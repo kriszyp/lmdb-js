@@ -1,6 +1,7 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.7 Engineering
+	Added slapd ordered indexing of integer attributes (ITS#5239)
 	Fixed slapd paged results control handling (ITS#5191)
 	Fixed slapd sasl-host parsing (ITS#5209)
 	Fixed slapd filter normalization (ITS#5212)
