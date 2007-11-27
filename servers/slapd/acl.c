@@ -2122,7 +2122,7 @@ acl_set_gather( SetCookie *cookie, struct berval *name, AttributeDescription *de
 		
 	} else {
 		op2.ors_filterstr = *slap_filterstr_objectClass_pres;
-		op2.ors_filter = slap_filter_objectClass_pres;
+		op2.ors_filter = (Filter *)slap_filter_objectClass_pres;
 	}
 
 
