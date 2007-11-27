@@ -96,9 +96,9 @@ typedef struct syncinfo_s {
 	int			si_refreshDone;
 	int			si_syncdata;
 	int			si_logstate;
-	int			si_conn_setup;
 	Avlnode			*si_presentlist;
 	LDAP			*si_ld;
+	Connection		*si_conn;
 	LDAP_LIST_HEAD(np, nonpresent_entry)	si_nonpresentlist;
 	ldap_pvt_thread_mutex_t	si_mutex;
 } syncinfo_t;
@@ -1113,11 +1113,9 @@ done:
 	if ( res ) ldap_msgfree( res );
 
 	if ( rc && rc != LDAP_SYNC_REFRESH_REQUIRED && si->si_ld ) {
-		if ( si->si_conn_setup ) {
-			ber_socket_t s;
-			ldap_get_option( si->si_ld, LDAP_OPT_DESC, &s );
-			connection_client_stop( s );
-			si->si_conn_setup = 0;
+		if ( si->si_conn ) {
+			connection_client_stop( si->si_conn );
+			si->si_conn = NULL;
 		}
 		ldap_unbind_ext( si->si_ld, NULL, NULL );
 		si->si_ld = NULL;
@@ -1160,10 +1158,9 @@ do_syncrepl(
 
 	if ( slapd_shutdown ) {
 		if ( si->si_ld ) {
-			if ( si->si_conn_setup ) {
-				ldap_get_option( si->si_ld, LDAP_OPT_DESC, &s );
-				connection_client_stop( s );
-				si->si_conn_setup = 0;
+			if ( si->si_conn ) {
+				connection_client_stop( si->si_conn );
+				si->si_conn = NULL;
 			}
 			ldap_unbind_ext( si->si_ld, NULL, NULL );
 			si->si_ld = NULL;
@@ -1215,7 +1212,7 @@ reload:
 
 		/* We got deleted while running on cn=config */
 		if ( !si->si_ctype ) {
-			if ( si->si_conn_setup )
+			if ( si->si_conn )
 				dostop = 1;
 			rc = -1;
 		}
@@ -1225,14 +1222,12 @@ reload:
 			 * If we failed, tear down the connection and reschedule.
 			 */
 			if ( rc == LDAP_SUCCESS ) {
-				if ( si->si_conn_setup ) {
-					connection_client_enable( s );
+				if ( si->si_conn ) {
+					connection_client_enable( si->si_conn );
 				} else {
-					rc = connection_client_setup( s, do_syncrepl, arg );
-					if ( rc == 0 )
-						si->si_conn_setup = 1;
+					si->si_conn = connection_client_setup( s, do_syncrepl, arg );
 				} 
-			} else if ( si->si_conn_setup ) {
+			} else if ( si->si_conn ) {
 				dostop = 1;
 			}
 		} else {
@@ -1253,7 +1248,8 @@ reload:
 	}
 
 	if ( dostop ) {
-		connection_client_stop( s );
+		connection_client_stop( si->si_conn );
+		si->si_conn = NULL;
 	}
 
 	if ( rc == LDAP_SUCCESS ) {
@@ -3224,11 +3220,9 @@ syncinfo_free( syncinfo_t *sie, int free_all )
 		si_next = sie->si_next;
 
 		if ( sie->si_ld ) {
-			if ( sie->si_conn_setup ) {
-				ber_socket_t s;
-				ldap_get_option( sie->si_ld, LDAP_OPT_DESC, &s );
-				connection_client_stop( s );
-				sie->si_conn_setup = 0;
+			if ( sie->si_conn ) {
+				connection_client_stop( sie->si_conn );
+				sie->si_conn = NULL;
 			}
 			ldap_unbind_ext( sie->si_ld, NULL, NULL );
 		}
@@ -3844,7 +3838,6 @@ add_syncrepl(
 	si->si_manageDSAit = 0;
 	si->si_tlimit = 0;
 	si->si_slimit = 0;
-	si->si_conn_setup = 0;
 
 	si->si_presentlist = NULL;
 	LDAP_LIST_INIT( &si->si_nonpresentlist );
