@@ -97,7 +97,9 @@ dn2path(struct berval * orig_dn, struct berval * suffixdn, struct berval * base_
 
 	dn = *orig_dn;
 
-	for ( ptr = dn.bv_val, end = &dn.bv_val[dn.bv_len]; ptr < end; ptr++) {
+	/* escape dirsep's
+	 * use "\" + hexpair, so the escaped DN remains formally valid */
+	for ( ptr = dn.bv_val, end = &dn.bv_val[dn.bv_len]; ptr < end; ptr++ ) {
 		if ( ptr[0] == LDAP_DIRSEP[0] ) {
 			nsep++;
 		}
@@ -114,7 +116,7 @@ dn2path(struct berval * orig_dn, struct berval * suffixdn, struct berval * base_
 		{
 			static const char hex[] = "0123456789ABCDEF";
 			if ( ptr[0] == LDAP_DIRSEP[0] ) {
-				*p++ = '\\';	/* FIXME: fs-escape */
+				*p++ = '\\';
 				*p++ = hex[(LDAP_DIRSEP[0] & 0xF0U) >> 4];
 				*p = hex[LDAP_DIRSEP[0] & 0x0FU];
 			} else {
