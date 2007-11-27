@@ -88,7 +88,7 @@ usage( int tool, const char *progname )
 		break;
 
 	case SLAPINDEX:
-		options = " [-c]\n\t[-g] [-n databasenumber | -b suffix] [attr ...] [-q]\n";
+		options = " [-c]\n\t[-g] [-n databasenumber | -b suffix] [attr ...] [-q] [-t]\n";
 		break;
 
 	case SLAPTEST:
@@ -241,7 +241,7 @@ slap_tool_init(
 
 	switch( tool ) {
 	case SLAPADD:
-		options = "b:cd:f:F:gj:l:n:o:qsS:tuvw";
+		options = "b:cd:f:F:gj:l:n:o:qsS:uvw";
 		break;
 
 	case SLAPCAT:
@@ -265,7 +265,7 @@ slap_tool_init(
 		break;
 
 	case SLAPINDEX:
-		options = "b:cd:f:F:gn:o:qv";
+		options = "b:cd:f:F:gn:o:qtv";
 		mode |= SLAP_TOOL_READMAIN;
 		break;
 
