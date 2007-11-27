@@ -128,8 +128,11 @@ translucent_cfadd( Operation *op, SlapReply *rs, Entry *e, ConfigArgs *ca )
 	Debug(LDAP_DEBUG_TRACE, "==> translucent_cfadd\n", 0, 0, 0);
 
 	/* FIXME: should not hardcode "olcDatabase" here */
-	bv.bv_len = sprintf( ca->cr_msg, "olcDatabase=%s",
-			     ov->db.bd_info->bi_type );
+	bv.bv_len = snprintf( ca->cr_msg, sizeof( ca->cr_msg ),
+		"olcDatabase=%s", ov->db.bd_info->bi_type );
+	if ( bv.bv_len < 0 || bv.bv_len >= sizeof( ca->cr_msg ) ) {
+		return -1;
+	}
 	bv.bv_val = ca->cr_msg;
 	ca->be = &ov->db;
 	ov->defer_db_open = 0;

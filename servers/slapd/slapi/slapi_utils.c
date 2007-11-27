@@ -3216,21 +3216,25 @@ LDAP *slapi_ldap_init( char *ldaphost, int ldapport, int secure, int shared )
 	int rc;
 
 	size = sizeof("ldap:///");
-	if ( secure )
+	if ( secure ) {
 		size++;
+	}
 	size += strlen( ldaphost );
-	if ( ldapport != 0 )
+	if ( ldapport != 0 ) {
 		size += 32;
+	}
 
 	url = slapi_ch_malloc( size );
 
 	if ( ldapport != 0 ) {
-		sprintf( url, "ldap%s://%s:%d/", ( secure ? "s" : "" ), ldaphost, ldapport );
+		rc = snprintf( url, size, "ldap%s://%s:%d/", ( secure ? "s" : "" ), ldaphost, ldapport );
 	} else {
-		sprintf( url, "ldap%s://%s/", ( secure ? "s" : "" ), ldaphost );
+		rc = snprintf( url, size, "ldap%s://%s/", ( secure ? "s" : "" ), ldaphost );
 	}
 
-	rc = ldap_initialize( &ld, url );
+	if ( rc > 0 && rc < size ) {
+		rc = ldap_initialize( &ld, url );
+	}
 
 	slapi_ch_free_string( &url );
 

@@ -515,10 +515,12 @@ log_age_parse(char *agestr)
 }
 
 static void
-log_age_unparse( int age, struct berval *agebv )
+log_age_unparse( int age, struct berval *agebv, size_t size )
 {
-	int dd, hh, mm, ss;
+	int dd, hh, mm, ss, len;
 	char *ptr;
+
+	assert( size > 0 );
 
 	ss = age % 60;
 	age /= 60;
@@ -530,11 +532,22 @@ log_age_unparse( int age, struct berval *agebv )
 
 	ptr = agebv->bv_val;
 
-	if ( dd ) 
-		ptr += sprintf( ptr, "%d+", dd );
-	ptr += sprintf( ptr, "%02d:%02d", hh, mm );
-	if ( ss )
-		ptr += sprintf( ptr, ":%02d", ss );
+	if ( dd ) {
+		len = snprintf( ptr, size, "%d+", dd );
+		assert( len >= 0 && len < size );
+		size -= len;
+		ptr += len;
+	}
+	len = snprintf( ptr, size, "%02d:%02d", hh, mm );
+	assert( len >= 0 && len < size );
+	size -= len;
+	ptr += len;
+	if ( ss ) {
+		len = snprintf( ptr, size, ":%02d", ss );
+		assert( len >= 0 && len < size );
+		size -= len;
+		ptr += len;
+	}
 
 	agebv->bv_len = ptr - agebv->bv_val;
 }
@@ -704,11 +717,11 @@ log_cf_gen(ConfigArgs *c)
 				break;
 			}
 			agebv.bv_val = agebuf;
-			log_age_unparse( li->li_age, &agebv );
+			log_age_unparse( li->li_age, &agebv, sizeof( agebuf ) );
 			agebv.bv_val[agebv.bv_len] = ' ';
 			agebv.bv_len++;
 			cyclebv.bv_val = agebv.bv_val + agebv.bv_len;
-			log_age_unparse( li->li_cycle, &cyclebv );
+			log_age_unparse( li->li_cycle, &cyclebv, sizeof( agebuf ) - agebv.bv_len );
 			agebv.bv_len += cyclebv.bv_len;
 			value_add_one( &c->rvalue_vals, &agebv );
 			break;
@@ -845,7 +858,7 @@ log_cf_gen(ConfigArgs *c)
 		case LOG_OLD:
 			li->li_oldf = str2filter( c->argv[1] );
 			if ( !li->li_oldf ) {
-				sprintf( c->cr_msg, "bad filter!" );
+				snprintf( c->cr_msg, sizeof( c->cr_msg ), "bad filter!" );
 				rc = 1;
 			}
 			break;
@@ -1165,8 +1178,8 @@ static Entry *accesslog_entry( Operation *op, SlapReply *rs, int logop,
 	timestamp.bv_val = rdnbuf+STRLENOF(RDNEQ);
 	timestamp.bv_len = sizeof(rdnbuf) - STRLENOF(RDNEQ);
 	slap_timestamp( &op->o_time, &timestamp );
-	sprintf( timestamp.bv_val + timestamp.bv_len-1, ".%06dZ", op->o_tincr );
-	timestamp.bv_len += 7;
+	snprintf( timestamp.bv_val + timestamp.bv_len-1, sizeof(".123456Z"), ".%06dZ", op->o_tincr );
+	timestamp.bv_len += STRLENOF(".123456");
 
 	rdn.bv_len = STRLENOF(RDNEQ)+timestamp.bv_len;
 	ad_reqStart->ad_type->sat_equality->smr_normalize(
@@ -1190,8 +1203,8 @@ static Entry *accesslog_entry( Operation *op, SlapReply *rs, int logop,
 
 	timestamp.bv_len = sizeof(rdnbuf) - STRLENOF(RDNEQ);
 	slap_timestamp( &op2->o_time, &timestamp );
-	sprintf( timestamp.bv_val + timestamp.bv_len-1, ".%06dZ", op2->o_tincr );
-	timestamp.bv_len += 7;
+	snprintf( timestamp.bv_val + timestamp.bv_len-1, sizeof(".123456Z"), ".%06dZ", op2->o_tincr );
+	timestamp.bv_len += STRLENOF(".123456");
 
 	attr_merge_normalize_one( e, ad_reqEnd, &timestamp, op->o_tmpmemctx );
 
@@ -1210,8 +1223,10 @@ static Entry *accesslog_entry( Operation *op, SlapReply *rs, int logop,
 		attr_merge_one( e, ad_reqType, &lo->word, NULL );
 	}
 
-	rdn.bv_len = sprintf( rdn.bv_val, "%lu", op->o_connid );
-	attr_merge_one( e, ad_reqSession, &rdn, NULL );
+	rdn.bv_len = snprintf( rdn.bv_val, sizeof( rdnbuf ), "%lu", op->o_connid );
+	if ( rdn.bv_len >= 0 || rdn.bv_len < sizeof( rdnbuf ) ) {
+		attr_merge_one( e, ad_reqSession, &rdn, NULL );
+	} /* else? */
 
 	if ( BER_BVISNULL( &op->o_dn ) ) {
 		attr_merge_one( e, ad_reqAuthzID, (struct berval *)&slap_empty_bv,
@@ -1340,10 +1355,11 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 		ber_str2bv( rs->sr_text, 0, 0, &bv );
 		attr_merge_one( e, ad_reqMessage, &bv, NULL );
 	}
-	bv.bv_len = sprintf( timebuf, "%d", rs->sr_err );
-	bv.bv_val = timebuf;
-
-	attr_merge_one( e, ad_reqResult, &bv, NULL );
+	bv.bv_len = snprintf( timebuf, sizeof( timebuf ), "%d", rs->sr_err );
+	if ( bv.bv_len >= 0 && bv.bv_len < sizeof( timebuf ) ) {
+		bv.bv_val = timebuf;
+		attr_merge_one( e, ad_reqResult, &bv, NULL );
+	}
 
 	last_attr = attr_find( e->e_attrs, ad_reqResult );
 
@@ -1556,20 +1572,28 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 			op->o_tmpfree( vals, op->o_tmpmemctx );
 		}
 		bv.bv_val = timebuf;
-		bv.bv_len = sprintf( bv.bv_val, "%d", rs->sr_nentries );
-		attr_merge_one( e, ad_reqEntries, &bv, NULL );
+		bv.bv_len = snprintf( bv.bv_val, sizeof( timebuf ), "%d", rs->sr_nentries );
+		if ( bv.bv_len >= 0 && bv.bv_len < sizeof( timebuf ) ) {
+			attr_merge_one( e, ad_reqEntries, &bv, NULL );
+		} /* else? */
 
-		bv.bv_len = sprintf( bv.bv_val, "%d", op->ors_tlimit );
-		attr_merge_one( e, ad_reqTimeLimit, &bv, NULL );
+		bv.bv_len = snprintf( bv.bv_val, sizeof( timebuf ), "%d", op->ors_tlimit );
+		if ( bv.bv_len >= 0 && bv.bv_len < sizeof( timebuf ) ) {
+			attr_merge_one( e, ad_reqTimeLimit, &bv, NULL );
+		} /* else? */
 
-		bv.bv_len = sprintf( bv.bv_val, "%d", op->ors_slimit );
-		attr_merge_one( e, ad_reqSizeLimit, &bv, NULL );
+		bv.bv_len = snprintf( bv.bv_val, sizeof( timebuf ), "%d", op->ors_slimit );
+		if ( bv.bv_len >= 0 && bv.bv_len < sizeof( timebuf ) ) {
+			attr_merge_one( e, ad_reqSizeLimit, &bv, NULL );
+		} /* else? */
 		break;
 
 	case LOG_EN_BIND:
 		bv.bv_val = timebuf;
-		bv.bv_len = sprintf( bv.bv_val, "%d", op->o_protocol );
-		attr_merge_one( e, ad_reqVersion, &bv, NULL );
+		bv.bv_len = snprintf( bv.bv_val, sizeof( timebuf ), "%d", op->o_protocol );
+		if ( bv.bv_len >= 0 && bv.bv_len < sizeof( timebuf ) ) {
+			attr_merge_one( e, ad_reqVersion, &bv, NULL );
+		} /* else? */
 		if ( op->orb_method == LDAP_AUTH_SIMPLE ) {
 			attr_merge_one( e, ad_reqMethod, &simple, NULL );
 		} else {
@@ -1743,8 +1767,10 @@ accesslog_abandon( Operation *op, SlapReply *rs )
 
 	e = accesslog_entry( op, rs, LOG_EN_ABANDON, &op2 );
 	bv.bv_val = buf;
-	bv.bv_len = sprintf( buf, "%d", op->orn_msgid );
-	attr_merge_one( e, ad_reqId, &bv, NULL );
+	bv.bv_len = snprintf( buf, sizeof( buf ), "%d", op->orn_msgid );
+	if ( bv.bv_len >= 0 && bv.bv_len < sizeof( buf ) ) {
+		attr_merge_one( e, ad_reqId, &bv, NULL );
+	} /* else? */
 
 	op2.o_hdr = op->o_hdr;
 	op2.o_tag = LDAP_REQ_ADD;

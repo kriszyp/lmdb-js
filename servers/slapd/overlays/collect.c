@@ -58,12 +58,14 @@ collect_cf( ConfigArgs *c )
 		collect_info *ci;
 		for ( ci = on->on_bi.bi_private; ci; ci = ci->ci_next ) {
 			struct berval bv;
+			int len;
 
-			bv.bv_len = ci->ci_dn.bv_len + 3 +
+			bv.bv_len = ci->ci_dn.bv_len + STRLENOF("\"\" ") +
 				ci->ci_ad->ad_cname.bv_len;
 			bv.bv_val = ch_malloc( bv.bv_len + 1 );
-			sprintf( bv.bv_val, "\"%s\" %s", ci->ci_dn.bv_val,
-				ci->ci_ad->ad_cname.bv_val );
+			len = snprintf( bv.bv_val, bv.bv_len + 1, "\"%s\" %s",
+				ci->ci_dn.bv_val, ci->ci_ad->ad_cname.bv_val );
+			assert( len == bv.bv_len );
 			ber_bvarray_add( &c->rvalue_vals, &bv );
 			rc = 0;
 		}

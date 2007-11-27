@@ -624,8 +624,11 @@ again:
 				maxid = i;
 			}
 		}
-		fop.ors_filterstr.bv_len = sprintf( buf, "(entryCSN>=%s)",
-			cf.f_av_value.bv_val );
+		fop.ors_filterstr.bv_len = snprintf( buf, sizeof( buf ),
+			"(entryCSN>=%s)", cf.f_av_value.bv_val );
+		if ( fop.ors_filterstr.bv_len < 0 || fop.ors_filterstr.bv_len >= sizeof( buf ) ) {
+			return LDAP_OTHER;
+		}
 		fop.ors_attrsonly = 0;
 		fop.ors_attrs = csn_anlist;
 		fop.ors_slimit = SLAP_NO_LIMIT;
@@ -649,16 +652,19 @@ again:
 		/* Look for exact match the first time */
 		if ( findcsn_retry ) {
 			cf.f_choice = LDAP_FILTER_EQUALITY;
-			fop.ors_filterstr.bv_len = sprintf( buf, "(entryCSN=%s)",
-				cf.f_av_value.bv_val );
+			fop.ors_filterstr.bv_len = snprintf( buf, sizeof( buf ),
+				"(entryCSN=%s)", cf.f_av_value.bv_val );
 		/* On retry, look for <= */
 		} else {
 			cf.f_choice = LDAP_FILTER_LE;
 			fop.ors_limit = &fc_limits;
 			memset( &fc_limits, 0, sizeof( fc_limits ));
 			fc_limits.lms_s_unchecked = 1;
-			fop.ors_filterstr.bv_len = sprintf( buf, "(entryCSN<=%s)",
-				cf.f_av_value.bv_val );
+			fop.ors_filterstr.bv_len = snprintf( buf, sizeof( buf ),
+				"(entryCSN<=%s)", cf.f_av_value.bv_val );
+		}
+		if ( fop.ors_filterstr.bv_len < 0 || fop.ors_filterstr.bv_len >= sizeof( buf ) ) {
+			return LDAP_OTHER;
 		}
 		fop.ors_attrsonly = 1;
 		fop.ors_attrs = slap_anlist_no_attrs;
@@ -2412,10 +2418,14 @@ sp_cf_gen(ConfigArgs *c)
 		case SP_CHKPT:
 			if ( si->si_chkops || si->si_chktime ) {
 				struct berval bv;
-				bv.bv_len = sprintf( c->cr_msg, "%d %d",
-					si->si_chkops, si->si_chktime );
-				bv.bv_val = c->cr_msg;
-				value_add_one( &c->rvalue_vals, &bv );
+				bv.bv_len = snprintf( c->cr_msg, sizeof( c->cr_msg ),
+					"%d %d", si->si_chkops, si->si_chktime );
+				if ( bv.bv_len < 0 || bv.bv_len >= sizeof( c->cr_msg ) ) {
+					rc = 1;
+				} else {
+					bv.bv_val = c->cr_msg;
+					value_add_one( &c->rvalue_vals, &bv );
+				}
 			} else {
 				rc = 1;
 			}

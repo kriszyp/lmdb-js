@@ -1311,7 +1311,8 @@ dynlist_db_open(
 			if ( oc == NULL ) {
 				oc = oc_find( "groupOfURLs" );
 				if ( oc == NULL ) {
-					sprintf( cr->msg, "unable to fetch objectClass \"groupOfURLs\"" );
+					snprintf( cr->msg, sizeof( cr->msg),
+						"unable to fetch objectClass \"groupOfURLs\"" );
 					Debug( LDAP_DEBUG_ANY, "dynlist_db_open: %s.\n", cr->msg, 0, 0 );
 					return 1;
 				}
@@ -1324,7 +1325,8 @@ dynlist_db_open(
 			if ( ad == NULL ) {
 				rc = slap_str2ad( "memberURL", &ad, &text );
 				if ( rc != LDAP_SUCCESS ) {
-					sprintf( cr->msg, "unable to fetch attributeDescription \"memberURL\": %d (%s)",
+					snprintf( cr->msg, sizeof( cr->msg),
+						"unable to fetch attributeDescription \"memberURL\": %d (%s)",
 						rc, text );
 					Debug( LDAP_DEBUG_ANY, "dynlist_db_open: %s.\n", cr->msg, 0, 0 );
 					return 1;
