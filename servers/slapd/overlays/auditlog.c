@@ -224,32 +224,6 @@ auditlog_db_destroy(
 	return 0;
 }
 
-static int
-auditlog_config(
-	BackendDB	*be,
-	const char	*fname,
-	int		lineno,
-	int		argc,
-	char	**argv
-)
-{
-	slap_overinst *on = (slap_overinst *) be->bd_info;
-	auditlog_data *ad = on->on_bi.bi_private;
-
-	/* history log file */
-	if ( strcasecmp( argv[0], "auditlog" ) == 0 ) {
-		if ( argc < 2 ) {
-			Debug( LDAP_DEBUG_ANY,
-	    "%s: line %d: missing filename in \"auditlog <filename>\" line\n",
-			    fname, lineno, 0 );
-				return( 1 );
-		}
-		ad->ad_logfile = ch_strdup( argv[1] );
-		return 0;
-	}
-	return SLAP_CONF_UNKNOWN;
-}
-
 int auditlog_initialize() {
 	int rc;
 
