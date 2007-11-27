@@ -293,7 +293,6 @@ static int
 backsql_tree_delete_search_cb( Operation *op, SlapReply *rs )
 {
 	if ( rs->sr_type == REP_SEARCH ) {
-		backsql_info 		*bi = (backsql_info*)op->o_bd->be_private;
 		backsql_tree_delete_t	*btd;
 		backsql_entryID		*eid;
 
@@ -367,7 +366,7 @@ backsql_tree_delete(
 	op2.ors_deref = LDAP_DEREF_NEVER;
 	op2.ors_slimit = SLAP_NO_LIMIT;
 	op2.ors_tlimit = SLAP_NO_LIMIT;
-	op2.ors_filter = slap_filter_objectClass_pres;
+	op2.ors_filter = (Filter *)slap_filter_objectClass_pres;
 	op2.ors_filterstr = *slap_filterstr_objectClass_pres;
 	op2.ors_attrs = slap_anlist_all_attributes;
 	op2.ors_attrsonly = 0;
@@ -403,7 +402,6 @@ clean:;
 int
 backsql_delete( Operation *op, SlapReply *rs )
 {
-	backsql_info 		*bi = (backsql_info*)op->o_bd->be_private;
 	SQLHDBC 		dbh = SQL_NULL_HDBC;
 	SQLHSTMT		sth = SQL_NULL_HSTMT;
 	backsql_oc_map_rec	*oc = NULL;

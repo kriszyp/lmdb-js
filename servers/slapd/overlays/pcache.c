@@ -2015,6 +2015,9 @@ pcache_op_cleanup( Operation *op, SlapReply *rs ) {
 				case PC_SIZELIMIT:
 					qc->q_sizelimit = rs->sr_nentries;
 					break;
+				default:
+					assert( 0 );
+					break;
 				}
 				ldap_pvt_thread_rdwr_wunlock(&qc->rwlock);
 				ldap_pvt_thread_mutex_lock(&cm->cache_mutex);

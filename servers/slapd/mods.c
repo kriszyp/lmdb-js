@@ -69,7 +69,7 @@ modify_add_values(
 	if ( a != NULL ) {
 		MatchingRule	*mr;
 		struct berval *cvals;
-		int		rc, i, j, p;
+		int		rc, i, p;
 		unsigned flags;
 
 		mr = mod->sm_desc->ad_type->sat_equality;

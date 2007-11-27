@@ -2153,7 +2153,6 @@ int slapi_attr_value_cmp( const Slapi_Attr *a, const struct berval *v1, const st
 int slapi_attr_value_find( const Slapi_Attr *a, struct berval *v )
 {
 	int rc;
-	int ret;
 
 	if ( a ->a_vals == NULL ) {
 		return -1;

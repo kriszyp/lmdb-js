@@ -1325,7 +1325,7 @@ idassert-authzFrom	"dn:<rootdn>"
 
 		if ( BER_BVISNULL( &be->be_nsuffix[ c ] ) ) {
 			Debug( LDAP_DEBUG_ANY, "%s: line %d: "
-	"%s: line %d: <suffix> \"%s\" must be within the database naming context, in "
+	"<suffix> \"%s\" must be within the database naming context, in "
 	"\"suffixMassage <suffix> <massaged suffix>\"\n",
 				fname, lineno, pvnc.bv_val );
 			free( pvnc.bv_val );

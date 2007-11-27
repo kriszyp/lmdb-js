@@ -867,7 +867,7 @@ meta_back_get_candidate(
 		op2.ors_slimit = 1;
 		op2.ors_tlimit = SLAP_NO_LIMIT;
 
-		op2.ors_filter = slap_filter_objectClass_pres;
+		op2.ors_filter = (Filter *)slap_filter_objectClass_pres;
 		op2.ors_filterstr = *slap_filterstr_objectClass_pres;
 
 		op2.o_callback = &cb2;
