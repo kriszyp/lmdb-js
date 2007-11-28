@@ -664,6 +664,10 @@ ID bdb_tool_entry_modify(
 		(long) e->e_id, e->e_dn, 0 );
 
 	if (! (slapMode & SLAP_TOOL_QUICK)) {
+		if( cursor ) {
+			cursor->c_close( cursor );
+			cursor = NULL;
+		}
 	rc = TXN_BEGIN( bdb->bi_dbenv, NULL, &tid, 
 		bdb->bi_db_opflags );
 	if( rc != 0 ) {
