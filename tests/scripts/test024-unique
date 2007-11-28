@@ -28,7 +28,7 @@ echo "rootpw `$SLAPPASSWD -T $CONFIGPWF`" >$TESTDIR/configpw.conf
 
 echo "Running slapadd to build slapd database..."
 . $CONFFILTER $BACKEND $MONITORDB < $UNIQUECONF > $CONF1
-$SLAPADD -f $CONF1 -l $LDIFUNIQUE -d7
+$SLAPADD -f $CONF1 -l $LDIFUNIQUE
 RC=$?
 if test $RC != 0 ; then
 	echo "slapadd failed ($RC)!"
