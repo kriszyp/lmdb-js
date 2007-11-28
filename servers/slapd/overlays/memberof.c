@@ -1448,39 +1448,7 @@ memberof_db_init(
 	slap_overinst	*on = (slap_overinst *)be->bd_info;
 	memberof_t	tmp_mo = { 0 }, *mo;
 
-	int		rc;
-	const char	*text = NULL;
-
-	rc = slap_str2ad( SLAPD_MEMBEROF_ATTR, &tmp_mo.mo_ad_memberof, &text );
-	if ( rc != LDAP_SUCCESS ) {
-		Debug( LDAP_DEBUG_ANY,
-			"memberof_db_init: "
-			"unable to find attribute=\"%s\": %s (%d)\n",
-			SLAPD_MEMBEROF_ATTR, text, rc );
-		return rc;
-	}
-
-	rc = slap_str2ad( SLAPD_GROUP_ATTR, &tmp_mo.mo_ad_member, &text );
-	if ( rc != LDAP_SUCCESS ) {
-		Debug( LDAP_DEBUG_ANY,
-			"memberof_db_init: "
-			"unable to find attribute=\"%s\": %s (%d)\n",
-			SLAPD_GROUP_ATTR, text, rc );
-		return rc;
-	}
-
-	tmp_mo.mo_oc_group = oc_find( SLAPD_GROUP_CLASS );
-	if ( tmp_mo.mo_oc_group == NULL ) {
-		Debug( LDAP_DEBUG_ANY,
-			"memberof_db_init: "
-			"unable to find objectClass=\"%s\"\n",
-			SLAPD_GROUP_CLASS, 0, 0 );
-		return 1;
-	}
-
 	mo = (memberof_t *)ch_calloc( 1, sizeof( memberof_t ) );
-	*mo = tmp_mo;
-
 	on->on_bi.bi_private = (void *)mo;
 
 	return 0;
@@ -1656,8 +1624,10 @@ mo_cf_gen( ConfigArgs *c )
 
 		switch( c->type ) {
 		case MO_DN:
-			value_add_one( &c->rvalue_vals, &mo->mo_dn );
-			value_add_one( &c->rvalue_nvals, &mo->mo_ndn );
+			if ( mo->mo_dn.bv_val != NULL) {
+				value_add_one( &c->rvalue_vals, &mo->mo_dn );
+				value_add_one( &c->rvalue_nvals, &mo->mo_ndn );
+			}
 			break;
 
 		case MO_DANGLING:
@@ -1683,18 +1653,21 @@ mo_cf_gen( ConfigArgs *c )
 #endif
 
 		case MO_GROUP_OC:
-			assert( mo->mo_oc_group != NULL );
-			value_add_one( &c->rvalue_vals, &mo->mo_oc_group->soc_cname );
+			if ( mo->mo_oc_group != NULL ){
+				value_add_one( &c->rvalue_vals, &mo->mo_oc_group->soc_cname );
+			}
 			break;
 
 		case MO_MEMBER_AD:
-			assert( mo->mo_ad_member != NULL );
-			value_add_one( &c->rvalue_vals, &mo->mo_ad_member->ad_cname );
+			if ( mo->mo_ad_member != NULL ){
+				value_add_one( &c->rvalue_vals, &mo->mo_ad_member->ad_cname );
+			}
 			break;
 
 		case MO_MEMBER_OF_AD:
-			assert( mo->mo_ad_memberof != NULL );
-			value_add_one( &c->rvalue_vals, &mo->mo_ad_memberof->ad_cname );
+			if ( mo->mo_ad_memberof != NULL ){
+				value_add_one( &c->rvalue_vals, &mo->mo_ad_memberof->ad_cname );
+			}
 			break;
 
 		default:
@@ -1842,6 +1815,40 @@ memberof_db_open(
 {
 	slap_overinst	*on = (slap_overinst *)be->bd_info;
 	memberof_t	*mo = (memberof_t *)on->on_bi.bi_private;
+	
+	int		rc;
+	const char	*text = NULL;
+
+	if( ! mo->mo_ad_memberof ){
+		rc = slap_str2ad( SLAPD_MEMBEROF_ATTR, &mo->mo_ad_memberof, &text );
+		if ( rc != LDAP_SUCCESS ) {
+			Debug( LDAP_DEBUG_ANY, "memberof_db_open: "
+					"unable to find attribute=\"%s\": %s (%d)\n",
+					SLAPD_MEMBEROF_ATTR, text, rc );
+			return rc;
+		}
+	}
+
+	if( ! mo->mo_ad_member ){
+		rc = slap_str2ad( SLAPD_GROUP_ATTR, &mo->mo_ad_member, &text );
+		if ( rc != LDAP_SUCCESS ) {
+			Debug( LDAP_DEBUG_ANY, "memberof_db_open: "
+					"unable to find attribute=\"%s\": %s (%d)\n",
+					SLAPD_GROUP_ATTR, text, rc );
+			return rc;
+		}
+	}
+
+    if( ! mo->mo_oc_group ){
+		mo->mo_oc_group = oc_find( SLAPD_GROUP_CLASS );
+		if ( mo->mo_oc_group == NULL ) {
+			Debug( LDAP_DEBUG_ANY,
+					"memberof_db_open: "
+					"unable to find objectClass=\"%s\"\n",
+					SLAPD_GROUP_CLASS, 0, 0 );
+			return 1;
+		}
+	}
 
 	if ( BER_BVISNULL( &mo->mo_dn ) ) {
 		ber_dupbv( &mo->mo_dn, &be->be_rootdn );
