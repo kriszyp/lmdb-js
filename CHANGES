@@ -1,6 +1,7 @@
 OpenLDAP 2.3 Change Log
 
 OpenLDAP 2.3.40 Engineering
+	Fixed slapd-bdb slapadd hang (ITS#5225)
 	Fixed slapo-translucent interactions with slapo-rwm (ITS#4889)
 	Documentation
 		Fixed slapd.conf(5) maxderefdepth default value typo (ITS#5200)
