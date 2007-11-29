@@ -516,6 +516,7 @@ release:
 	rc = on->on_info->oi_orig->bi_op_add(op, &nrs);
 	if ( op->ora_e == e )
 		entry_free( e );
+	op->o_callback = cb.sc_next;
 
 	return(rc);
 }
