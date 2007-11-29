@@ -554,7 +554,6 @@ static int translucent_compare(Operation *op, SlapReply *rs) {
 */
 	db = op->o_bd;
 	op->o_bd = &ov->db;
-	op->o_callback = NULL;
 	rc = ov->db.bd_info->bi_op_compare(op, rs);
 	op->o_bd = db;
 
