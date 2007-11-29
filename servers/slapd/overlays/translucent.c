@@ -516,6 +516,7 @@ release:
 	rc = on->on_info->oi_orig->bi_op_add(op, &nrs);
 	if ( op->ora_e == e )
 		entry_free( e );
+	op->o_callback = cb.sc_next;
 
 	return(rc);
 }
@@ -554,7 +555,6 @@ static int translucent_compare(Operation *op, SlapReply *rs) {
 */
 	db = op->o_bd;
 	op->o_bd = &ov->db;
-	op->o_callback = NULL;
 	rc = ov->db.bd_info->bi_op_compare(op, rs);
 	op->o_bd = db;
 
