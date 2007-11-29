@@ -151,10 +151,34 @@ H3: delta-syncrepl replication
 
 H3: N-Way Multi-Master replication
 
-http://www.connexitor.com/blog/pivot/entry.php?id=105#body
-http://www.openldap.org/lists/openldap-software/200702/msg00006.html
-http://www.openldap.org/lists/openldap-software/200602/msg00064.html
+Multi-Master replication is a replication technique using Syncrepl to replicate 
+data to multiple Master Directory servers. 
 
+* Advantages of Multi-Master replication:
+
+- If any master fails, other masters will continue to accept updates
+- Avoids a single point of failure
+- Masters can be located in several physical sites i.e. distributed across the 
+network/globe.
+- Good for Automatic failover/High Availability
+
+* Disadvantages of Multi-Master replication:
+
+- It has {{B:NOTHING}} to do with load balancing
+- {{URL:http://www.openldap.org/faq/data/cache/1240.html}}
+- If connectivity with a master is lost because of a network partition, then 
+"automatic failover" can just compound the problem
+- Typically, a particular machine cannot distinguish between losing contact
+ with a peer because that peer crashed, or because the network link has failed
+- If a network is partitioned and multiple clients start writing to each of the 
+"masters" then reconciliation will be a pain; it may be best to simply deny 
+writes to the clients that are partitioned from the single master
+- Masters {{B:must}} propagate writes to {{B:all}} the other servers, which 
+means the network traffic and write load is constant and spreads across all 
+of the servers
+
+
+This is discussed in full in the {{SECT:N-Way Multi-Master}} section below
 
 H3: MirrorMode replication
 
@@ -575,6 +599,9 @@ cookie stored in the consumer replica database.
 
 H2: N-Way Multi-Master
 
+Import and expand from link:
+
+{{URL:http://blog.suretecsystems.com/archives/40-OpenLDAP-Weekly-News-Issue-5.html#extended}}
 
 H2: MirrorMode
 
@@ -616,7 +643,7 @@ slapd syncrepl provider, then the only change is the following two directives:
 >       mirrormode  on
 >       serverID    1
 
-Note: You need to make sure that the {{sererID}} of each mirror node pair is 
+Note: You need to make sure that the {{serverID}} of each mirror node pair is 
 different and that the {{provider}} syncrepl directive points to the opposite 
 mirror node.
 
@@ -671,6 +698,8 @@ dedicated proxy software, 2. using a Back-LDAP proxy as a syncrepl provider
 
 A typical enterprise example might be:
 
+!import "dual_dc.png"; align="center"; title="MirrorMode Enterprise Configuration"
+FT[align="Center"] Figure X.Y: MirrorMode in a Dual Data Center Configuration
 
 H4: Normal Consumer Configuration
 

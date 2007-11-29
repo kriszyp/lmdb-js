@@ -62,6 +62,7 @@ sdf-img: \
 	config_local.png \
 	config_ref.png \
 	config_repl.gif \
+	dual_dc.png \
 	intro_dctree.png \
 	intro_tree.png \
 	refint.png 
