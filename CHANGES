@@ -5,7 +5,7 @@ OpenLDAP 2.4.7 Engineering
 	Fixed slapd paged results control handling (ITS#5191)
 	Fixed slapd sasl-host parsing (ITS#5209)
 	Fixed slapd filter normalization (ITS#5212)
-	Fixed slapd multiple sufix checking (ITS#5186)
+	Fixed slapd multiple suffix checking (ITS#5186)
 	Fixed slapd paged results handling when using rootdn (ITS#5230)
 	Fixed slapd syncrepl presentlist handling (ITS#5231)
 	Fixed slapd core schema 'c' definition for RFC4519 (ITS#5236)
