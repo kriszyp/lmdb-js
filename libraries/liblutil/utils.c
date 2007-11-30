@@ -638,9 +638,6 @@ scale( int new, lutil_int_decnum *prev, unsigned char *tmp )
 				part >>= 8;
 			}
 		}
-		j++;
-		prev->beg += j;
-		prev->len -= j;
 	}
 
 	out = tmp + prev->bufsiz - 1;
@@ -651,11 +648,9 @@ scale( int new, lutil_int_decnum *prev, unsigned char *tmp )
 		if (!new )
 			break;
 	}
-	if ( !prev->len ) {
-		prev->beg += i;
-		prev->len = -i;
-		prev->len++;
-	}
+	i--;
+	prev->beg = prev->bufsiz + i;
+	prev->len = -i;
 	AC_MEMCPY( prev->buf+prev->beg, tmp+prev->beg, prev->len );
 }
 

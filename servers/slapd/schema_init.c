@@ -2161,13 +2161,17 @@ integerIndexer(
 			rc = LDAP_INVALID_SYNTAX;
 			goto leave;
 		}
-		/* If too small, pad with zeros */
+		/* If too small, sign-extend */
 		if ( iv.bv_len < index_intlen ) {
-			int j, k;
+			int j, k, pad;
 			keys[i].bv_val[0] = index_intlen;
+			if (iv.bv_val[0] & 0x80)
+				pad = 0xff;
+			else
+				pad = 0;
 			k = index_intlen - iv.bv_len + 1;
 			for ( j=1; j<k; j++)
-				keys[i].bv_val[j] = 0;
+				keys[i].bv_val[j] = pad;
 			for ( j = 0; j<iv.bv_len; j++ )
 				keys[i].bv_val[j+k] = iv.bv_val[j];
 		} else {
