@@ -645,10 +645,7 @@ scale( int new, lutil_int_decnum *prev, unsigned char *tmp )
 		new += out[i];
 		out[i] = new & 0xff;
 		new >>= 8;
-		if (!new )
-			break;
 	}
-	i--;
 	prev->beg = prev->bufsiz + i;
 	prev->len = -i;
 	AC_MEMCPY( prev->buf+prev->beg, tmp+prev->beg, prev->len );
