@@ -25,8 +25,8 @@
 #include "back-bdb.h"
 #include "lutil_hash.h"
 
-static char presence_keyval[LUTIL_HASH_BYTES] = {0,0,0,1};
-static struct berval presence_key = {LUTIL_HASH_BYTES, presence_keyval};
+static char presence_keyval[] = {0,0};
+static struct berval presence_key = BER_BVC(presence_keyval);
 
 AttrInfo *bdb_index_mask(
 	Backend *be,
