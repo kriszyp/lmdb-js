@@ -2119,30 +2119,38 @@ integerVal2Key(
 	struct berval *tmp
 )
 {
+	struct berval iv;
 	int neg;
 
-	if ( lutil_str2bin( val, tmp )) {
+	iv = *tmp;
+	if ( lutil_str2bin( val, &iv )) {
 		return LDAP_INVALID_SYNTAX;
 	}
 
-	neg = tmp->bv_val[0] & 0x80;
+	neg = iv.bv_val[0] & 0x80;
+
+	/* Omit leading 0 pad byte */
+	if ( !iv.bv_val[0] ) {
+		iv.bv_val++;
+		iv.bv_len--;
+	}
 
 	/* If too small, sign-extend */
-	if ( tmp->bv_len < index_intlen ) {
+	if ( iv.bv_len < index_intlen ) {
 		int j, k, pad;
 		key->bv_val[0] = index_intlen;
-		k = index_intlen - tmp->bv_len + 1;
+		k = index_intlen - iv.bv_len + 1;
 		if ( neg )
 			pad = 0xff;
 		else
 			pad = 0;
 		for ( j=1; j<k; j++)
 			key->bv_val[j] = pad;
-		for ( j = 0; j<tmp->bv_len; j++ )
-			key->bv_val[j+k] = tmp->bv_val[j];
+		for ( j = 0; j<iv.bv_len; j++ )
+			key->bv_val[j+k] = iv.bv_val[j];
 	} else {
-		key->bv_val[0] = tmp->bv_len;
-		memcpy( key->bv_val+1, tmp->bv_val, index_intlen );
+		key->bv_val[0] = iv.bv_len;
+		memcpy( key->bv_val+1, iv.bv_val, index_intlen );
 	}
 	if ( neg ) {
 		key->bv_val[0] = -key->bv_val[0];
