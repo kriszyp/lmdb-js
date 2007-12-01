@@ -2112,6 +2112,46 @@ integerMatch(
 	return LDAP_SUCCESS;
 }
 
+static int
+integerVal2Key(
+	struct berval *val,
+	struct berval *key,
+	struct berval *tmp
+)
+{
+	int neg;
+
+	if ( lutil_str2bin( val, tmp )) {
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	neg = tmp->bv_val[0] & 0x80;
+
+	/* If too small, sign-extend */
+	if ( tmp->bv_len < index_intlen ) {
+		int j, k, pad;
+		key->bv_val[0] = index_intlen;
+		k = index_intlen - tmp->bv_len + 1;
+		if ( neg )
+			pad = 0xff;
+		else
+			pad = 0;
+		for ( j=1; j<k; j++)
+			key->bv_val[j] = pad;
+		for ( j = 0; j<tmp->bv_len; j++ )
+			key->bv_val[j+k] = tmp->bv_val[j];
+	} else {
+		key->bv_val[0] = tmp->bv_len;
+		memcpy( key->bv_val+1, tmp->bv_val, index_intlen );
+	}
+	if ( neg ) {
+		key->bv_val[0] = -key->bv_val[0];
+	}
+	/* convert signed to unsigned */
+	key->bv_val[0] ^= 0x80;
+	return 0;
+}
+
 /* Index generation function */
 static int
 integerIndexer(
@@ -2157,32 +2197,11 @@ integerIndexer(
 			}
 		}
 		iv = itmp;
-		if ( lutil_str2bin( &values[i], &iv )) {
-			rc = LDAP_INVALID_SYNTAX;
+		rc = integerVal2Key( &values[i], &keys[i], &iv );
+		if ( rc )
 			goto leave;
-		}
-		/* If too small, sign-extend */
-		if ( iv.bv_len < index_intlen ) {
-			int j, k, pad;
-			keys[i].bv_val[0] = index_intlen;
-			if (iv.bv_val[0] & 0x80)
-				pad = 0xff;
-			else
-				pad = 0;
-			k = index_intlen - iv.bv_len + 1;
-			for ( j=1; j<k; j++)
-				keys[i].bv_val[j] = pad;
-			for ( j = 0; j<iv.bv_len; j++ )
-				keys[i].bv_val[j+k] = iv.bv_val[j];
-		} else {
-			keys[i].bv_val[0] = iv.bv_len;
-			memcpy( keys[i].bv_val+1, iv.bv_val, index_intlen );
-		}
-		/* convert signed to unsigned */
-		keys[i].bv_val[1] ^= 0x80;
 	}
 	*keysp = keys;
-	rc = 0;
 leave:
 	if ( itmp.bv_val != ibuf ) {
 		slap_sl_free( itmp.bv_val, ctx );
@@ -2223,29 +2242,10 @@ integerFilter(
 		iv.bv_len = sizeof(ibuf);
 	}
 
-	if ( lutil_str2bin( value, &iv )) {
-		rc = LDAP_INVALID_SYNTAX;
-		goto leave;
-	}
-	/* If too small, pad with zeros */
-	if ( iv.bv_len < index_intlen ) {
-		int j, k;
-		keys[0].bv_val[0] = index_intlen;
-		k = index_intlen - iv.bv_len + 1;
-		for ( j=1; j<k; j++)
-			keys[0].bv_val[j] = 0;
-		for ( j = 0; j<iv.bv_len; j++ )
-			keys[0].bv_val[j+k] = iv.bv_val[j];
-	} else {
-		keys[0].bv_val[0] = iv.bv_len;
-		memcpy( keys[0].bv_val+1, iv.bv_val, index_intlen );
-	}
-	/* convert signed to unsigned */
-	keys[0].bv_val[1] ^= 0x80;
+	rc = integerVal2Key( value, keys, &iv );
+	if ( rc == 0 )
+		*keysp = keys;
 
-	rc = 0;
-	*keysp = keys;
-leave:
 	if ( iv.bv_val != ibuf ) {
 		slap_sl_free( iv.bv_val, ctx );
 	}
