@@ -663,6 +663,8 @@ scale( int new, lutil_int_decnum *prev, unsigned char *tmp )
  * Output buffer must be provided, bv_len must indicate buffer size
  * Hex input can be "0x1234" or "'1234'H"
  *
+ * Temporarily modifies the input string.
+ *
  * Note: High bit of binary form is always the sign bit. If the number
  * is supposed to be positive but has the high bit set, a zero byte
  * is prepended. It is assumed that this has already been handled on
@@ -736,15 +738,15 @@ lutil_str2bin( struct berval *in, struct berval *out )
 		num.beg = num.bufsiz-1;
 		num.len = 0;
 		if ( pin[0] == '-' ) {
-			neg = 1;
+			neg = 0xff;
 			len--;
 			pin++;
 		}
 
 #define	DECMAX	8	/* 8 digits at a time */
 
-		if ( len > sizeof(tmpbuf)) {
-			tmp = ber_memalloc( len );
+		if ( len >= sizeof(tmpbuf)) {
+			tmp = ber_memalloc( len+1 );
 		} else {
 			tmp = tmpbuf;
 		}
@@ -778,29 +780,14 @@ lutil_str2bin( struct berval *in, struct berval *out )
 			for ( i=0; i<num.len; i++ )
 				ptr[i] ^= 0xff;
 
-			/* Add 1, with carry */
-			i--;
-			j = 1;
-			for ( ; i>=0; i-- ) {
-				j += ptr[i];
-				ptr[i] = j & 0xff;
-				j >>= 8;
-				if (!j)
-					break;
-			}
-			/* If we overflowed and there's still room,
-			 * set an explicit sign byte
-			 */
-			if ( !(  ptr[0] & 0x80 ) && num.beg ) {
-				num.beg--;
-				num.len++;
-				num.buf[num.beg] = 0x80;
-			}
-		} else if (( num.buf[num.beg] & 0x80 ) && num.beg ) {
-			/* positive int with high bit set, prepend 0 */
+			/* add 1, with carry - overflow handled below */
+			while ( i-- && ! (ptr[i] = (ptr[i] + 1) & 0xff )) ;
+		}
+		/* Prepend sign byte if wrong sign bit */
+		if (( num.buf[num.beg] ^ neg ) & 0x80 ) {
 			num.beg--;
 			num.len++;
-			num.buf[num.beg] = 0;
+			num.buf[num.beg] = neg;
 		}
 		if ( num.beg )
 			AC_MEMCPY( num.buf, num.buf+num.beg, num.len );
