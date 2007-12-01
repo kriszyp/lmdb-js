@@ -745,8 +745,9 @@ lutil_str2bin( struct berval *in, struct berval *out )
 
 #define	DECMAX	8	/* 8 digits at a time */
 
-		if ( len >= sizeof(tmpbuf)) {
-			tmp = ber_memalloc( len+1 );
+		/* tmp must be at least as large as outbuf */
+		if ( out->bv_len > sizeof(tmpbuf)) {
+			tmp = ber_memalloc( out->bv_len );
 		} else {
 			tmp = tmpbuf;
 		}
