@@ -2173,7 +2173,7 @@ integerIndexer(
 	void *ctx )
 {
 	char ibuf[64];
-	struct berval iv, itmp;
+	struct berval itmp;
 	BerVarray keys;
 	int i, rc;
 
@@ -2204,8 +2204,7 @@ integerIndexer(
 				itmp.bv_val = slap_sl_realloc( itmp.bv_val, itmp.bv_len, ctx );
 			}
 		}
-		iv = itmp;
-		rc = integerVal2Key( &values[i], &keys[i], &iv );
+		rc = integerVal2Key( &values[i], &keys[i], &itmp );
 		if ( rc )
 			goto leave;
 	}
