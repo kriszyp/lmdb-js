@@ -2114,13 +2114,15 @@ integerMatch(
 	return LDAP_SUCCESS;
 }
 
+/* 10**INDEX_INTLEN_CHOP < 256**INDEX_INTLEN_CHOPBYTES */
 #define INDEX_INTLEN_CHOP 7
+#define INDEX_INTLEN_CHOPBYTES 3
 
 static int
 integerVal2Key(
-	struct berval val,
+	struct berval *in,
 	struct berval *key,
-	struct berval itmp,
+	struct berval *tmp,
 	void *ctx
 )
 {
@@ -2134,6 +2136,7 @@ integerVal2Key(
 	ber_slen_t k = index_intlen_strlen, chop = 0;
 	unsigned char neg = 0xff, signmask = 0x80;
 	unsigned char lenbuf[sizeof(k) + 2], *lenp;
+	struct berval val = *in, itmp = *tmp;
 
 	if ( val.bv_val[0] != '-' ) {
 		neg = 0;
@@ -2142,9 +2145,9 @@ integerVal2Key(
 
 	/* Chop least significant digits, increase length instead */
 	if ( val.bv_len > k ) {
-		chop = (val.bv_len - k + 2) / 7;	/* 2 fewer digits */
+		chop = (val.bv_len-k+2)/INDEX_INTLEN_CHOP; /* 2 fewer digits */
 		val.bv_len -= chop * INDEX_INTLEN_CHOP;	/* #digits chopped */
-		chop *= 3;	/* >#key bytes chopped: 256**3 > 10**7 */
+		chop *= INDEX_INTLEN_CHOPBYTES;		/* #bytes added */
 		if ( chop > 0x7fffffff ) {
 			memset( key->bv_val, neg ^ 0xff, index_intlen );
 			return 0;
@@ -2239,7 +2242,7 @@ integerIndexer(
 			else if ( itmp.bv_len > maxstrlen )
 				itmp.bv_len = maxstrlen;
 		}
-		rc = integerVal2Key( values[i], &keys[i], itmp, ctx );
+		rc = integerVal2Key( &values[i], &keys[i], &itmp, ctx );
 		if ( rc )
 			goto leave;
 	}
@@ -2285,7 +2288,7 @@ integerFilter(
 		iv.bv_len = sizeof(ibuf);
 	}
 
-	rc = integerVal2Key( *value, keys, iv, ctx );
+	rc = integerVal2Key( value, keys, &iv, ctx );
 	if ( rc == 0 )
 		*keysp = keys;
 
