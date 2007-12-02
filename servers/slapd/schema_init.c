@@ -2114,6 +2114,8 @@ integerMatch(
 	return LDAP_SUCCESS;
 }
 
+#define INDEX_INTLEN_CHOP 7
+
 static int
 integerVal2Key(
 	struct berval val,
@@ -2140,7 +2142,7 @@ integerVal2Key(
 	/* Chop least significant digits, increase length instead */
 	if ( val.bv_len > k ) {
 		chop = (val.bv_len - k + 2) / 7;	/* 2 fewer digits */
-		val.bv_len -= chop * 7;	/* #digits chopped */
+		val.bv_len -= chop * INDEX_INTLEN_CHOP;	/* #digits chopped */
 		chop *= 3;	/* >#key bytes chopped: 256**3 > 10**7 */
 		if ( chop > 0x7fffffff ) {
 			memset( key->bv_val, neg ^ 0xff, index_intlen );
@@ -2197,16 +2199,18 @@ integerIndexer(
 	char ibuf[64];
 	struct berval itmp;
 	BerVarray keys;
+	ber_len_t vlen;
 	int i, rc;
+	unsigned maxstrlen = index_intlen_strlen + INDEX_INTLEN_CHOP-1;
 
 	/* count the values and find max needed length */
-	itmp.bv_len = 0;
+	vlen = 0;
 	for( i = 0; !BER_BVISNULL( &values[i] ); i++ ) {
-		if ( itmp.bv_len < values[i].bv_len )
-			itmp.bv_len = values[i].bv_len;
+		if ( vlen < values[i].bv_len )
+			vlen = values[i].bv_len;
 	}
-	if ( itmp.bv_len > index_intlen_strlen )
-		itmp.bv_len > index_intlen_strlen;
+	if ( vlen > maxstrlen )
+		vlen = maxstrlen;
 
 	/* we should have at least one value at this point */
 	assert( i > 0 );
@@ -2219,14 +2223,21 @@ integerIndexer(
 	keys[i].bv_len = 0;
 	keys[i].bv_val = NULL;
 
-	if ( itmp.bv_len > (int) sizeof(ibuf) ) {
-		itmp.bv_val = slap_sl_malloc( itmp.bv_len, ctx );
+	if ( vlen > sizeof(ibuf) ) {
+		itmp.bv_val = slap_sl_malloc( vlen, ctx );
 	} else {
 		itmp.bv_val = ibuf;
-		itmp.bv_len = sizeof(ibuf);
 	}
+	itmp.bv_len = sizeof(ibuf);
 
 	for ( i=0; !BER_BVISNULL( &values[i] ); i++ ) {
+		if ( itmp.bv_val != ibuf ) {
+			itmp.bv_len = values[i].bv_len;
+			if ( itmp.bv_len <= sizeof(ibuf) )
+				itmp.bv_len = sizeof(ibuf);
+			else if ( itmp.bv_len > maxstrlen )
+				itmp.bv_len = maxstrlen;
+		}
 		rc = integerVal2Key( values[i], &keys[i], itmp );
 		if ( rc )
 			goto leave;
@@ -2264,8 +2275,8 @@ integerFilter(
 	keys[0].bv_len = index_intlen;
 	keys[0].bv_val = slap_sl_malloc( index_intlen, ctx );
 
-	iv.bv_len = value->bv_len < index_intlen_strlen
-		? value->bv_len : index_intlen_strlen;
+	iv.bv_len = value->bv_len < index_intlen_strlen + INDEX_INTLEN_CHOP-1
+		? value->bv_len : index_intlen_strlen + INDEX_INTLEN_CHOP-1;
 	if ( iv.bv_len > (int) sizeof(ibuf) ) {
 		iv.bv_val = slap_sl_malloc( iv.bv_len, ctx );
 	} else {
