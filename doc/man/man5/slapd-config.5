@@ -456,7 +456,8 @@ feature.  The default is 0.
 .B olcIndexIntLen: <integer>
 Specify the key length for ordered integer indices. The most significant
 bytes of the binary integer will be used for index keys. The default
-value is 4, which provides exact indexing for 32 bit values.
+value is 4, which provides exact indexing for 31 bit values.
+A floating point representation is used to index too large values.
 .TP
 .B olcIndexSubstrIfMaxlen: <integer>
 Specify the maximum length for subinitial and subfinal indices. Only

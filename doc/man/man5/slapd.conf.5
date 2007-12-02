@@ -473,7 +473,8 @@ continuing with the next line of the current file.
 .B index_intlen <integer>
 Specify the key length for ordered integer indices. The most significant
 bytes of the binary integer will be used for index keys. The default
-value is 4, which provides exact indexing for 32 bit values.
+value is 4, which provides exact indexing for 31 bit values.
+A floating point representation is used to index too large values.
 .TP
 .B index_substr_if_minlen <integer>
 Specify the minimum length for subinitial and subfinal indices. An

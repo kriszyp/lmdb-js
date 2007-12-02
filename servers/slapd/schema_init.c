@@ -63,6 +63,8 @@ unsigned int index_substr_any_len = SLAP_INDEX_SUBSTR_ANY_LEN_DEFAULT;
 unsigned int index_substr_any_step = SLAP_INDEX_SUBSTR_ANY_STEP_DEFAULT;
 
 unsigned int index_intlen = SLAP_INDEX_INTLEN_DEFAULT;
+unsigned int index_intlen_strlen = SLAP_INDEX_INTLEN_STRLEN(
+	SLAP_INDEX_INTLEN_DEFAULT );
 
 ldap_pvt_thread_mutex_t	ad_undef_mutex;
 ldap_pvt_thread_mutex_t	oc_undef_mutex;
@@ -2114,49 +2116,69 @@ integerMatch(
 
 static int
 integerVal2Key(
-	struct berval *val,
+	struct berval val,
 	struct berval *key,
-	struct berval *tmp
+	struct berval itmp
 )
 {
-	struct berval iv;
-	int neg;
+	/* index format:
+	 * only if too large: one's complement <sign*length of chopped bytes>,
+	 * two's complement value (sign-extended or chopped as needed),
+	 * with 1st byte of the above adjusted as follows:
+	 *   inverse sign in the top <number of length-bytes + 1> bits,
+	 *   then the sign bit as delimiter.
+	 */
+	ber_slen_t k = index_intlen_strlen, chop = 0;
+	unsigned char neg = 0xff, signmask = 0x80;
+	unsigned char lenbuf[sizeof(k) + 2], *lenp;
 
-	iv = *tmp;
-	if ( lutil_str2bin( val, &iv )) {
+	if ( val.bv_val[0] != '-' ) {
+		neg = 0;
+		--k;
+	}
+
+	/* Chop least significant digits, increase length instead */
+	if ( val.bv_len > k ) {
+		chop = (val.bv_len - k + 2) / 7;	/* 2 fewer digits */
+		val.bv_len -= chop * 7;	/* #digits chopped */
+		chop *= 3;	/* >#key bytes chopped: 256**3 > 10**7 */
+		if ( chop > 0x7fffffff ) {
+			memset( key->bv_val, neg ^ 0xff, index_intlen );
+			return 0;
+		}
+	}
+
+	if ( lutil_str2bin( &val, &itmp )) {
 		return LDAP_INVALID_SYNTAX;
 	}
 
-	neg = iv.bv_val[0] & 0x80;
-
-	/* Omit leading 0 pad byte */
-	if ( !iv.bv_val[0] ) {
-		iv.bv_val++;
-		iv.bv_len--;
+	/* Omit leading sign byte */
+	if ( itmp.bv_val[0] == neg ) {
+		itmp.bv_val++;
+		itmp.bv_len--;
 	}
 
-	/* If too small, sign-extend */
-	if ( iv.bv_len < index_intlen ) {
-		int j, k, pad;
-		key->bv_val[0] = index_intlen;
-		k = index_intlen - iv.bv_len + 1;
-		if ( neg )
-			pad = 0xff;
-		else
-			pad = 0;
-		for ( j=1; j<k; j++)
-			key->bv_val[j] = pad;
-		for ( j = 0; j<iv.bv_len; j++ )
-			key->bv_val[j+k] = iv.bv_val[j];
-	} else {
-		key->bv_val[0] = iv.bv_len;
-		memcpy( key->bv_val+1, iv.bv_val, index_intlen );
+	k = (ber_slen_t) index_intlen - ((ber_slen_t) itmp.bv_len + chop);
+	if ( k > 0 ) {
+		assert( chop == 0 );
+		memset( key->bv_val, neg, k );	/* sign-extend */
+	} else if ( k != 0 || ((itmp.bv_val[0] ^ neg) & 0xc0) ) {
+		lenp = lenbuf + sizeof(lenbuf);
+		k = -k;
+		do {
+			*--lenp = k ^ neg;
+			signmask >>= 1;
+		} while ( (k >>= 8) != 0 || (signmask >> 1) <= (*lenp ^ neg) );
+		/* With n bytes used in lenbuf, the top n+1 bits of signmask
+		 * are 1, and the top n+2 bits of *lenp are the sign bit. */
+		k = (lenbuf + sizeof(lenbuf)) - lenp;
+		if ( k > index_intlen )
+			k = index_intlen;
+		memcpy( key->bv_val, lenp, k );
+		itmp.bv_len = index_intlen - k;
 	}
-	if ( neg ) {
-		key->bv_val[0] = -key->bv_val[0];
-	}
-	/* convert signed to unsigned */
-	key->bv_val[0] ^= 0x80;
+	memcpy( key->bv_val + k, itmp.bv_val, itmp.bv_len );
+	key->bv_val[0] ^= (unsigned char) -signmask & 0xff; /* invert sign */
 	return 0;
 }
 
@@ -2177,34 +2199,35 @@ integerIndexer(
 	BerVarray keys;
 	int i, rc;
 
-	for( i=0; !BER_BVISNULL( &values[i] ); i++ ) {
-		/* just count them */
+	/* count the values and find max needed length */
+	itmp.bv_len = 0;
+	for( i = 0; !BER_BVISNULL( &values[i] ); i++ ) {
+		if ( itmp.bv_len < values[i].bv_len )
+			itmp.bv_len = values[i].bv_len;
 	}
+	if ( itmp.bv_len > index_intlen_strlen )
+		itmp.bv_len > index_intlen_strlen;
 
 	/* we should have at least one value at this point */
 	assert( i > 0 );
 
 	keys = slap_sl_malloc( sizeof( struct berval ) * (i+1), ctx );
 	for ( i = 0; !BER_BVISNULL( &values[i] ); i++ ) {
-		keys[i].bv_len = index_intlen+1;
-		keys[i].bv_val = slap_sl_malloc( index_intlen+1, ctx );
+		keys[i].bv_len = index_intlen;
+		keys[i].bv_val = slap_sl_malloc( index_intlen, ctx );
 	}
 	keys[i].bv_len = 0;
 	keys[i].bv_val = NULL;
 
-	itmp.bv_val = ibuf;
-	itmp.bv_len = sizeof(ibuf);
+	if ( itmp.bv_len > (int) sizeof(ibuf) ) {
+		itmp.bv_val = slap_sl_malloc( itmp.bv_len, ctx );
+	} else {
+		itmp.bv_val = ibuf;
+		itmp.bv_len = sizeof(ibuf);
+	}
 
 	for ( i=0; !BER_BVISNULL( &values[i] ); i++ ) {
-		if ( values[i].bv_len > itmp.bv_len ) {
-			itmp.bv_len = values[i].bv_len;
-			if ( itmp.bv_val == ibuf ) {
-				itmp.bv_val = slap_sl_malloc( itmp.bv_len, ctx );
-			} else {
-				itmp.bv_val = slap_sl_realloc( itmp.bv_val, itmp.bv_len, ctx );
-			}
-		}
-		rc = integerVal2Key( &values[i], &keys[i], &itmp );
+		rc = integerVal2Key( values[i], &keys[i], itmp );
 		if ( rc )
 			goto leave;
 	}
@@ -2238,18 +2261,19 @@ integerFilter(
 
 	keys = slap_sl_malloc( sizeof( struct berval ) * 2, ctx );
 
-	keys[0].bv_len = index_intlen + 1;
-	keys[0].bv_val = slap_sl_malloc( index_intlen+1, ctx );
+	keys[0].bv_len = index_intlen;
+	keys[0].bv_val = slap_sl_malloc( index_intlen, ctx );
 
-	if ( value->bv_len > sizeof( ibuf )) {
-		iv.bv_val = slap_sl_malloc( value->bv_len, ctx );
-		iv.bv_len = value->bv_len;
+	iv.bv_len = value->bv_len < index_intlen_strlen
+		? value->bv_len : index_intlen_strlen;
+	if ( iv.bv_len > (int) sizeof(ibuf) ) {
+		iv.bv_val = slap_sl_malloc( iv.bv_len, ctx );
 	} else {
 		iv.bv_val = ibuf;
 		iv.bv_len = sizeof(ibuf);
 	}
 
-	rc = integerVal2Key( value, keys, &iv );
+	rc = integerVal2Key( *value, keys, iv );
 	if ( rc == 0 )
 		*keysp = keys;
 
