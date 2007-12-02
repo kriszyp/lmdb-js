@@ -2146,12 +2146,12 @@ integerVal2Key(
 	/* Chop least significant digits, increase length instead */
 	if ( val.bv_len > k ) {
 		chop = (val.bv_len-k+2)/INDEX_INTLEN_CHOP; /* 2 fewer digits */
-		val.bv_len -= chop * INDEX_INTLEN_CHOP;	/* #digits chopped */
-		chop *= INDEX_INTLEN_CHOPBYTES;		/* #bytes added */
-		if ( chop > 0x7fffffff ) {
+		if ( chop > 0x7fffffff / INDEX_INTLEN_CHOPBYTES ) {
 			memset( key->bv_val, neg ^ 0xff, index_intlen );
 			return 0;
 		}
+		val.bv_len -= chop * INDEX_INTLEN_CHOP;	/* #digits chopped */
+		chop *= INDEX_INTLEN_CHOPBYTES;		/* #bytes added */
 	}
 
 	if ( lutil_str2bin( &val, &itmp, ctx )) {
