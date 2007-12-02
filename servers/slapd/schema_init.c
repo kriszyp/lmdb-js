@@ -2120,7 +2120,8 @@ static int
 integerVal2Key(
 	struct berval val,
 	struct berval *key,
-	struct berval itmp
+	struct berval itmp,
+	void *ctx
 )
 {
 	/* index format:
@@ -2150,7 +2151,7 @@ integerVal2Key(
 		}
 	}
 
-	if ( lutil_str2bin( &val, &itmp )) {
+	if ( lutil_str2bin( &val, &itmp, ctx )) {
 		return LDAP_INVALID_SYNTAX;
 	}
 
@@ -2238,7 +2239,7 @@ integerIndexer(
 			else if ( itmp.bv_len > maxstrlen )
 				itmp.bv_len = maxstrlen;
 		}
-		rc = integerVal2Key( values[i], &keys[i], itmp );
+		rc = integerVal2Key( values[i], &keys[i], itmp, ctx );
 		if ( rc )
 			goto leave;
 	}
@@ -2284,7 +2285,7 @@ integerFilter(
 		iv.bv_len = sizeof(ibuf);
 	}
 
-	rc = integerVal2Key( *value, keys, iv );
+	rc = integerVal2Key( *value, keys, iv, ctx );
 	if ( rc == 0 )
 		*keysp = keys;
 
@@ -3141,7 +3142,7 @@ serialNumberAndIssuerNormalize(
 	}
 	sn2.bv_val = stmp;
 	sn2.bv_len = sn.bv_len;
-	if ( lutil_str2bin( &sn, &sn2 )) {
+	if ( lutil_str2bin( &sn, &sn2, ctx )) {
 		rc = LDAP_INVALID_SYNTAX;
 		goto leave;
 	}
