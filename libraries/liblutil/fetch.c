@@ -57,6 +57,14 @@ ldif_open_url(
 		}
 
 		p = ber_strdup( urlstr );
+
+		/* But we should convert to LDAP_DIRSEP before use */
+		if ( LDAP_DIRSEP[0] != '/' ) {
+			char *s = p;
+			while (( s = strchr( s, '/' )))
+				*s++ = LDAP_DIRSEP[0];
+		}
+
 		ldap_pvt_hex_unescape( p );
 
 		url = fopen( p, "rb" );
