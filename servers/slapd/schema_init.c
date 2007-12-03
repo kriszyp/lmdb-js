@@ -2114,7 +2114,7 @@ integerMatch(
 	return LDAP_SUCCESS;
 }
 
-/* 10**INDEX_INTLEN_CHOP < 256**INDEX_INTLEN_CHOPBYTES */
+/* 10**Chop < 256**Chopbytes and Chop > Chopbytes<<1 (for sign bit and itmp) */
 #define INDEX_INTLEN_CHOP 7
 #define INDEX_INTLEN_CHOPBYTES 3
 
@@ -2123,19 +2123,18 @@ integerVal2Key(
 	struct berval *in,
 	struct berval *key,
 	struct berval *tmp,
-	void *ctx
-)
+	void *ctx )
 {
 	/* index format:
-	 * only if too large: one's complement <sign*length of chopped bytes>,
+	 * only if too large: one's complement <sign*exponent (chopped bytes)>,
 	 * two's complement value (sign-extended or chopped as needed),
-	 * with 1st byte of the above adjusted as follows:
-	 *   inverse sign in the top <number of length-bytes + 1> bits,
-	 *   then the sign bit as delimiter.
+	 * however the top <number of exponent-bytes + 1> bits of first byte
+	 * above is the inverse sign.   The next bit is the sign as delimiter.
 	 */
-	ber_slen_t k = index_intlen_strlen, chop = 0;
-	unsigned char neg = 0xff, signmask = 0x80;
-	unsigned char lenbuf[sizeof(k) + 2], *lenp;
+	ber_slen_t k = index_intlen_strlen;
+	ber_len_t chop = 0;
+	unsigned signmask = ~0x7fU;
+	unsigned char lenbuf[sizeof(k) + 2], *lenp, neg = 0xff;
 	struct berval val = *in, itmp = *tmp;
 
 	if ( val.bv_val[0] != '-' ) {
@@ -2144,12 +2143,8 @@ integerVal2Key(
 	}
 
 	/* Chop least significant digits, increase length instead */
-	if ( val.bv_len > k ) {
+	if ( val.bv_len > (ber_len_t) k ) {
 		chop = (val.bv_len-k+2)/INDEX_INTLEN_CHOP; /* 2 fewer digits */
-		if ( chop > 0x7fffffff / INDEX_INTLEN_CHOPBYTES ) {
-			memset( key->bv_val, neg ^ 0xff, index_intlen );
-			return 0;
-		}
 		val.bv_len -= chop * INDEX_INTLEN_CHOP;	/* #digits chopped */
 		chop *= INDEX_INTLEN_CHOPBYTES;		/* #bytes added */
 	}
@@ -2164,27 +2159,27 @@ integerVal2Key(
 		itmp.bv_len--;
 	}
 
-	k = (ber_slen_t) index_intlen - ((ber_slen_t) itmp.bv_len + chop);
+	k = (ber_slen_t) index_intlen - (ber_slen_t) (itmp.bv_len + chop);
 	if ( k > 0 ) {
 		assert( chop == 0 );
 		memset( key->bv_val, neg, k );	/* sign-extend */
 	} else if ( k != 0 || ((itmp.bv_val[0] ^ neg) & 0xc0) ) {
 		lenp = lenbuf + sizeof(lenbuf);
-		k = -k;
+		chop = - (ber_len_t) k;
 		do {
-			*--lenp = k ^ neg;
+			*--lenp = ((unsigned char) chop & 0xff) ^ neg;
 			signmask >>= 1;
-		} while ( (k >>= 8) != 0 || (signmask >> 1) <= (*lenp ^ neg) );
-		/* With n bytes used in lenbuf, the top n+1 bits of signmask
-		 * are 1, and the top n+2 bits of *lenp are the sign bit. */
+		} while ( (chop >>= 8) != 0 || (signmask >> 1) & (*lenp ^ neg) );
+		/* With n bytes in lenbuf, the top n+1 bits of (signmask&0xff)
+		 * are 1, and the top n+2 bits of lenp[] are the sign bit. */
 		k = (lenbuf + sizeof(lenbuf)) - lenp;
-		if ( k > index_intlen )
+		if ( k > (ber_slen_t) index_intlen )
 			k = index_intlen;
 		memcpy( key->bv_val, lenp, k );
 		itmp.bv_len = index_intlen - k;
 	}
 	memcpy( key->bv_val + k, itmp.bv_val, itmp.bv_len );
-	key->bv_val[0] ^= (unsigned char) -signmask & 0xff; /* invert sign */
+	key->bv_val[0] ^= (unsigned char) signmask & 0xff; /* invert sign */
 	return 0;
 }
 
