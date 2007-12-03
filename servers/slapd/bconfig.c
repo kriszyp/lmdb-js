@@ -1160,6 +1160,8 @@ config_generic(ConfigArgs *c) {
 
 		case CFG_IX_INTLEN:
 			index_intlen = SLAP_INDEX_INTLEN_DEFAULT;
+			index_intlen_strlen = SLAP_INDEX_INTLEN_STRLEN(
+				SLAP_INDEX_INTLEN_DEFAULT );
 			break;
 
 		case CFG_ACL:
@@ -1511,6 +1513,8 @@ config_generic(ConfigArgs *c) {
 			else if ( c->value_int > 255 )
 				c->value_int = 255;
 			index_intlen = c->value_int;
+			index_intlen_strlen = SLAP_INDEX_INTLEN_STRLEN(
+				index_intlen );
 			break;
 			
 		case CFG_SORTVALS: {

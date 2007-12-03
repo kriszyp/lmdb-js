@@ -35,6 +35,7 @@
 #include "lutil.h"
 #include "ldap_defaults.h"
 #include "ldap_pvt.h"
+#include "lber_pvt.h"
 
 #ifdef HAVE_EBCDIC
 int _trans_argv = 1;
@@ -671,7 +672,7 @@ scale( int new, lutil_int_decnum *prev, unsigned char *tmp )
  * any hex input.
  */
 int
-lutil_str2bin( struct berval *in, struct berval *out )
+lutil_str2bin( struct berval *in, struct berval *out, void *ctx )
 {
 	char *pin, *pout, ctmp;
 	char *end;
@@ -747,7 +748,7 @@ lutil_str2bin( struct berval *in, struct berval *out )
 
 		/* tmp must be at least as large as outbuf */
 		if ( out->bv_len > sizeof(tmpbuf)) {
-			tmp = ber_memalloc( out->bv_len );
+			tmp = ber_memalloc_x( out->bv_len, ctx );
 		} else {
 			tmp = tmpbuf;
 		}
@@ -795,7 +796,7 @@ lutil_str2bin( struct berval *in, struct berval *out )
 		out->bv_len = num.len;
 decfail:
 		if ( tmp != tmpbuf ) {
-			ber_memfree( tmp );
+			ber_memfree_x( tmp, ctx );
 		}
 	}
 	return rc;
