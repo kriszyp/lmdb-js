@@ -438,7 +438,7 @@ bdb_cache_find_ndn(
 			bdb_cache_entryinfo_unlock( eip );
 
 #if defined(LDAP_DEBUG) && defined(LDAP_DEVEL)
-			bdb->bi_dbenv->log_printf( bdb->bi_dbenv, NULL, "Reading %s",
+			bdb->bi_dbenv->log_printf( bdb->bi_dbenv, NULL, "slapd Reading %s",
 				ei.bei_nrdn.bv_val );
 #endif
 
@@ -450,7 +450,7 @@ bdb_cache_find_ndn(
 			}
 
 #if defined(LDAP_DEBUG) && defined(LDAP_DEVEL)
-			bdb->bi_dbenv->log_printf( bdb->bi_dbenv, NULL, "Read got %s(%d)",
+			bdb->bi_dbenv->log_printf( bdb->bi_dbenv, NULL, "slapd Read got %s(%d)",
 				ei.bei_nrdn.bv_val, ei.bei_id );
 #endif
 
