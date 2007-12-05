@@ -372,6 +372,11 @@ retry:	/* transaction retry */
 		goto return_results;
 	}
 
+#if defined(LDAP_DEBUG) && defined(LDAP_DEVEL)
+	bdb->bi_dbenv->log_printf( bdb->bi_dbenv, lt2, "Starting delete %s(%d)",
+		e->e_nname.bv_val, e->e_id );
+#endif
+
 	/* Can't do it if we have kids */
 	rs->sr_err = bdb_cache_children( op, lt2, e );
 	if( rs->sr_err != DB_NOTFOUND ) {
@@ -492,6 +497,11 @@ retry:	/* transaction retry */
 		p = NULL;
 	}
 
+#if defined(LDAP_DEBUG) && defined(LDAP_DEVEL)
+	bdb->bi_dbenv->log_printf( bdb->bi_dbenv, lt2, "Commit1 delete %s(%d)",
+		e->e_nname.bv_val, e->e_id );
+#endif
+
 	if ( TXN_COMMIT( lt2, 0 ) != 0 ) {
 		rs->sr_err = LDAP_OTHER;
 		rs->sr_text = "txn_commit(2) failed";
@@ -517,6 +527,12 @@ retry:	/* transaction retry */
 			goto return_results;
 		}
 	} else {
+
+#if defined(LDAP_DEBUG) && defined(LDAP_DEVEL)
+		bdb->bi_dbenv->log_printf( bdb->bi_dbenv, ltid, "Cache delete %s(%d)",
+			e->e_nname.bv_val, e->e_id );
+#endif
+
 		rc = bdb_cache_delete( bdb, e, locker, &lock );
 		switch( rc ) {
 		case DB_LOCK_DEADLOCK:
@@ -528,6 +544,11 @@ retry:	/* transaction retry */
 	}
 	ltid = NULL;
 	op->o_private = NULL;
+
+#if defined(LDAP_DEBUG) && defined(LDAP_DEVEL)
+	bdb->bi_dbenv->log_printf( bdb->bi_dbenv, NULL, "Committed delete %s(%d)",
+		e->e_nname.bv_val, e->e_id );
+#endif
 
 	if( rs->sr_err != 0 ) {
 		Debug( LDAP_DEBUG_TRACE,

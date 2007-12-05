@@ -364,7 +364,12 @@ bdb_entryinfo_add_internal(
 			bdb->bi_cache.c_leaves++;
 		rc = avl_insert( &ei->bei_parent->bei_kids, ei2, bdb_rdn_cmp,
 			avl_dup_error );
-		assert( !rc );
+#if defined(LDAP_DEBUG) && defined(LDAP_DEVEL)
+		if ( rc ) {
+			bdb->bi_dbenv->log_flush( bdb->bi_dbenv, NULL );
+			assert( !rc );
+		}
+#endif
 #ifdef BDB_HIER
 		ei->bei_parent->bei_ckids++;
 #endif
@@ -432,6 +437,11 @@ bdb_cache_find_ndn(
 				(ei.bei_nrdn.bv_val - ndn->bv_val);
 			bdb_cache_entryinfo_unlock( eip );
 
+#if defined(LDAP_DEBUG) && defined(LDAP_DEVEL)
+			bdb->bi_dbenv->log_printf( bdb->bi_dbenv, NULL, "Reading %s",
+				ei.bei_nrdn.bv_val );
+#endif
+
 			rc = bdb_dn2id( op, locker, &ei.bei_nrdn, &ei );
 			if (rc) {
 				bdb_cache_entryinfo_lock( eip );
@@ -439,9 +449,16 @@ bdb_cache_find_ndn(
 				return rc;
 			}
 
+#if defined(LDAP_DEBUG) && defined(LDAP_DEVEL)
+			bdb->bi_dbenv->log_printf( bdb->bi_dbenv, NULL, "Read got %s(%d)",
+				ei.bei_nrdn.bv_val, ei.bei_id );
+#endif
+
 			/* DN exists but needs to be added to cache */
 			ei.bei_nrdn.bv_len = len;
 			rc = bdb_entryinfo_add_internal( bdb, &ei, &ei2 );
+			Debug( LDAP_DEBUG_TRACE, "add_internal: \"%s\" %d\n",
+				ei.bei_nrdn.bv_val, ei.bei_id, 0 );
 			/* add_internal left eip and c_rwlock locked */
 			ldap_pvt_thread_rdwr_wunlock( &bdb->bi_cache.c_rwlock );
 			if ( rc ) {
