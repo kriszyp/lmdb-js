@@ -73,7 +73,7 @@ bdb_dn2entry(
 			/* always return EntryInfo */
 			if ( ei->bei_parent ) {
 				ei = ei->bei_parent;
-				rc2 = bdb_cache_find_id( op, tid, ei->bei_id, &ei, 1,
+				rc2 = bdb_cache_find_id( op, tid, ei->bei_id, &ei, 0,
 					locker, lock );
 				if ( rc2 ) rc = rc2;
 			}
