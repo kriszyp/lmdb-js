@@ -132,7 +132,6 @@ int bdb_dn2idl(
 
 int bdb_dn2id_parent(
 	Operation *op,
-	DB_TXN *txn,
 	BDB_LOCKER locker,
 	EntryInfo *ei,
 	ID *idp );
@@ -552,7 +551,6 @@ int bdb_cache_find_id(
 int
 bdb_cache_find_parent(
 	Operation *op,
-	DB_TXN *txn,
 	BDB_LOCKER	locker,
 	ID id,
 	EntryInfo **res

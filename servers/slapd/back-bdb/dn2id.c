@@ -722,7 +722,6 @@ hdb_dn2id(
 int
 hdb_dn2id_parent(
 	Operation *op,
-	DB_TXN *txn,
 	BDB_LOCKER	locker,
 	EntryInfo *ei,
 	ID *idp )
@@ -746,9 +745,9 @@ hdb_dn2id_parent(
 	DBTzero(&data);
 	data.flags = DB_DBT_USERMEM;
 
-	rc = db->cursor( db, txn, &cursor, bdb->bi_db_opflags );
+	rc = db->cursor( db, NULL, &cursor, bdb->bi_db_opflags );
 	if ( rc ) return rc;
-	if ( !txn && locker ) {
+	if ( locker ) {
 		CURSOR_SETLOCKER(cursor, locker);
 	}
 

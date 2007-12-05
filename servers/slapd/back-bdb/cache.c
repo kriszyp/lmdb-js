@@ -351,6 +351,8 @@ bdb_entryinfo_add_internal(
 		ei->bei_rdn.bv_val = NULL;
 #endif
 	} else {
+		int rc;
+
 		bdb->bi_cache.c_eiused++;
 		ber_dupbv( &ei2->bei_nrdn, &ei->bei_nrdn );
 
@@ -360,8 +362,9 @@ bdb_entryinfo_add_internal(
 		 */
 		if ( ei->bei_parent->bei_kids || !ei->bei_parent->bei_id )
 			bdb->bi_cache.c_leaves++;
-		avl_insert( &ei->bei_parent->bei_kids, ei2, bdb_rdn_cmp,
+		rc = avl_insert( &ei->bei_parent->bei_kids, ei2, bdb_rdn_cmp,
 			avl_dup_error );
+		assert( !rc );
 #ifdef BDB_HIER
 		ei->bei_parent->bei_ckids++;
 #endif
@@ -484,7 +487,6 @@ bdb_cache_find_ndn(
 int
 hdb_cache_find_parent(
 	Operation *op,
-	DB_TXN *txn,
 	BDB_LOCKER	locker,
 	ID id,
 	EntryInfo **res )
@@ -498,7 +500,7 @@ hdb_cache_find_parent(
 	ei.bei_ckids = 0;
 
 	for (;;) {
-		rc = hdb_dn2id_parent( op, txn, locker, &ei, &eip.bei_id );
+		rc = hdb_dn2id_parent( op, locker, &ei, &eip.bei_id );
 		if ( rc ) break;
 
 		/* Save the previous node, if any */
@@ -835,7 +837,7 @@ again:	ldap_pvt_thread_rdwr_rlock( &bdb->bi_cache.c_rwlock );
 			}
 		}
 #else
-		rc = hdb_cache_find_parent(op, tid, locker, id, eip );
+		rc = hdb_cache_find_parent(op, locker, id, eip );
 		if ( rc == 0 ) flag |= ID_LOCKED;
 #endif
 	}
