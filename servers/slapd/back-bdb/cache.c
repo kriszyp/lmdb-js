@@ -380,7 +380,7 @@ bdb_entryinfo_add_internal(
 int
 bdb_cache_find_ndn(
 	Operation	*op,
-	DB_TXN		*txn,
+	BDB_LOCKER		locker,
 	struct berval	*ndn,
 	EntryInfo	**res )
 {
@@ -429,7 +429,7 @@ bdb_cache_find_ndn(
 				(ei.bei_nrdn.bv_val - ndn->bv_val);
 			bdb_cache_entryinfo_unlock( eip );
 
-			rc = bdb_dn2id( op, txn, &ei.bei_nrdn, &ei );
+			rc = bdb_dn2id( op, locker, &ei.bei_nrdn, &ei );
 			if (rc) {
 				bdb_cache_entryinfo_lock( eip );
 				*res = eip;
@@ -821,7 +821,7 @@ again:	ldap_pvt_thread_rdwr_rlock( &bdb->bi_cache.c_rwlock );
 #ifndef BDB_HIER
 		rc = bdb_id2entry( op->o_bd, tid, locker, id, &ep );
 		if ( rc == 0 ) {
-			rc = bdb_cache_find_ndn( op, tid,
+			rc = bdb_cache_find_ndn( op, locker,
 				&ep->e_nname, eip );
 			if ( *eip ) flag |= ID_LOCKED;
 			if ( rc ) {

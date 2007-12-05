@@ -504,7 +504,7 @@ ext_candidates(
 		BDB_IDL_ZERO( ids );
 		if ( mra->ma_rule == slap_schema.si_mr_distinguishedNameMatch ) {
 			ei = NULL;
-			rc = bdb_cache_find_ndn( op, NULL, &mra->ma_value, &ei );
+			rc = bdb_cache_find_ndn( op, locker, &mra->ma_value, &ei );
 			if ( rc == LDAP_SUCCESS )
 				bdb_idl_insert( ids, ei->bei_id );
 			if ( ei )
@@ -518,7 +518,7 @@ ext_candidates(
 				struct berval pdn;
 				ei = NULL;
 				dnParent( &mra->ma_value, &pdn );
-				bdb_cache_find_ndn( op, NULL, &pdn, &ei );
+				bdb_cache_find_ndn( op, locker, &pdn, &ei );
 				if ( ei ) {
 					bdb_cache_entryinfo_unlock( ei );
 					while ( ei && ei->bei_id ) {
@@ -538,7 +538,7 @@ ext_candidates(
 				scope = LDAP_SCOPE_BASE;
 			if ( scope > LDAP_SCOPE_BASE ) {
 				ei = NULL;
-				rc = bdb_cache_find_ndn( op, NULL, &mra->ma_value, &ei );
+				rc = bdb_cache_find_ndn( op, locker, &mra->ma_value, &ei );
 				if ( ei )
 					bdb_cache_entryinfo_unlock( ei );
 				if ( rc == LDAP_SUCCESS ) {

@@ -244,12 +244,13 @@ done:
 int
 bdb_dn2id(
 	Operation *op,
-	DB_TXN *txn,
+	BDB_LOCKER locker,
 	struct berval	*dn,
 	EntryInfo *ei )
 {
 	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
 	DB *db = bdb->bi_dn2id->bdi_db;
+	DBC	*cursor;
 	int		rc;
 	DBT		key, data;
 	ID		nid;
@@ -267,8 +268,14 @@ bdb_dn2id(
 	data.ulen = sizeof(ID);
 	data.flags = DB_DBT_USERMEM;
 
+	rc = db->cursor( db, NULL, &cursor, bdb->bi_db_opflags );
+	if ( rc ) return rc;
+	if ( locker ) {
+		CURSOR_SETLOCKER(cursor, locker);
+	}
+
 	/* fetch it */
-	rc = db->get( db, txn, &key, &data, bdb->bi_db_opflags );
+	rc = cursor->c_get( cursor, &key, &data, DB_SET );
 
 	if( rc != 0 ) {
 		Debug( LDAP_DEBUG_TRACE, "<= bdb_dn2id: get failed: %s (%d)\n",
@@ -279,6 +286,7 @@ bdb_dn2id(
 			ei->bei_id, 0, 0 );
 	}
 
+	cursor->c_close( cursor );
 	op->o_tmpfree( key.data, op->o_tmpmemctx );
 	return rc;
 }
@@ -638,7 +646,7 @@ hdb_dn2id_delete(
 int
 hdb_dn2id(
 	Operation	*op,
-	DB_TXN *txn,
+	BDB_LOCKER locker,
 	struct berval	*in,
 	EntryInfo	*ei )
 {
@@ -669,8 +677,11 @@ hdb_dn2id(
 	data.dlen = data.ulen;
 	data.flags = DB_DBT_USERMEM | DB_DBT_PARTIAL;
 
-	rc = db->cursor( db, txn, &cursor, bdb->bi_db_opflags );
+	rc = db->cursor( db, NULL, &cursor, bdb->bi_db_opflags );
 	if ( rc ) return rc;
+	if ( locker ) {
+		CURSOR_SETLOCKER( cursor, locker );
+	}
 
 	d = op->o_tmpalloc( data.size * 3, op->o_tmpmemctx );
 	d->nrdnlen[1] = nrlen & 0xff;

@@ -97,7 +97,7 @@ int bdb_dn2entry LDAP_P(( Operation *op, DB_TXN *tid,
 
 int bdb_dn2id(
 	Operation *op,
-	DB_TXN *tid,
+	BDB_LOCKER locker,
 	struct berval *dn,
 	EntryInfo *ei );
 
@@ -529,7 +529,7 @@ int bdb_cache_modify(
 );
 int bdb_cache_find_ndn(
 	Operation *op,
-	DB_TXN	*txn,
+	BDB_LOCKER	locker,
 	struct berval   *ndn,
 	EntryInfo	**res
 );
