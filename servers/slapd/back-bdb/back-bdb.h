@@ -70,13 +70,15 @@ typedef struct __db_locker * BDB_LOCKER;
 extern int __lock_getlocker(DB_LOCKTAB *lt, u_int32_t locker, int create, DB_LOCKER **ret);
 
 #define CURSOR_SETLOCKER(cursor, id)	cursor->locker = id
-#define	CURSOR_GETLOCKER(cursor)	cursor->locker
+#define CURSOR_GETLOCKER(cursor)	cursor->locker
+#define BDB_LOCKID(locker)	locker->id
 #else
 
 typedef u_int32_t BDB_LOCKER;
 
 #define CURSOR_SETLOCKER(cursor, id)	cursor->locker = id
 #define CURSOR_GETLOCKER(cursor)	cursor->locker
+#define BDB_LOCKID(locker)	locker
 
 #endif
 
@@ -106,7 +108,7 @@ typedef struct bdb_entry_info {
 	 * to avoid conflicting with BDB's internal locks. So add a byte here
 	 * that is always zero.
 	 */
-	char bei_lockpad;
+	short bei_lockpad;
 
 	short bei_state;
 #define	CACHE_ENTRY_DELETED	1
@@ -311,6 +313,25 @@ struct bdb_op_info {
 #undef TXN_ID
 #define TXN_ID(txn)	(txn)->locker
 #endif
+
+/* #undef BDB_LOG_DEBUG */
+
+#ifdef BDB_LOG_DEBUG
+
+/* env->log_printf appeared in 4.4 */
+#if DB_VERSION_FULL >= 0x04040000
+#define	BDB_LOG_PRINTF(env,txn,fmt,...)	(env)->log_printf((env),(txn),(fmt),__VA_ARGS__)
+#else
+extern int __db_logmsg(const DB_ENV *env, DB_TXN *txn, const char *op, u_int32_t flags,
+	const char *fmt,...);
+#define	BDB_LOG_PRINTF(env,txn,fmt,...)	__db_logmsg((env),(txn),"DIAGNOSTIC",0,(fmt),__VA_ARGS__)
+#endif
+
+#else /* !BDB_LOG_DEBUG */
+
+#define BDB_LOG_PRINTF(a,b,c,...)
+
+#endif /* BDB_LOG_DEBUG */
 
 #endif
 

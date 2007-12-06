@@ -23,6 +23,29 @@
 #include "idl.h"
 #include "lutil.h"
 
+#define bdb_dn2id_lock					BDB_SYMBOL(dn2id_lock)
+
+static int
+bdb_dn2id_lock( struct bdb_info *bdb, struct berval *dn,
+	int rw, BDB_LOCKER locker, DB_LOCK *lock )
+{
+	int       rc;
+	DBT       lockobj;
+	int       db_rw;
+
+	if (rw)
+		db_rw = DB_LOCK_WRITE;
+	else
+		db_rw = DB_LOCK_READ;
+
+	lockobj.data = dn->bv_val;
+	lockobj.size = dn->bv_len;
+
+	rc = LOCK_GET(bdb->bi_dbenv, BDB_LOCKID(locker), DB_LOCK_NOWAIT,
+					&lockobj, db_rw, lock);
+	return rc;
+}
+
 #ifndef BDB_HIER
 int
 bdb_dn2id_add(
@@ -146,10 +169,11 @@ bdb_dn2id_delete(
 {
 	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
 	DB *db = bdb->bi_dn2id->bdi_db;
-	int		rc;
-	DBT		key;
 	char		*buf;
+	DBT		key;
+	DB_LOCK	lock;
 	struct berval	pdn, ptr;
+	int		rc;
 
 	Debug( LDAP_DEBUG_TRACE, "=> bdb_dn2id_delete( \"%s\", 0x%08lx )\n",
 		e->e_ndn, e->e_id, 0 );
@@ -164,6 +188,10 @@ bdb_dn2id_delete(
 	ptr.bv_len = e->e_nname.bv_len;
 	AC_MEMCPY( ptr.bv_val, e->e_nname.bv_val, e->e_nname.bv_len );
 	ptr.bv_val[ptr.bv_len] = '\0';
+
+	/* We hold this lock until the TXN completes */
+	rc = bdb_dn2id_lock( bdb, &e->e_nname, 1, TXN_ID( txn ), &lock );
+	if ( rc ) return rc;
 
 	/* delete it */
 	rc = db->del( db, txn, &key, 0 );
@@ -244,12 +272,14 @@ done:
 int
 bdb_dn2id(
 	Operation *op,
-	DB_TXN *txn,
 	struct berval	*dn,
-	EntryInfo *ei )
+	EntryInfo *ei,
+	BDB_LOCKER locker,
+	DB_LOCK *lock )
 {
 	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
 	DB *db = bdb->bi_dn2id->bdi_db;
+	DBC	*cursor;
 	int		rc;
 	DBT		key, data;
 	ID		nid;
@@ -267,8 +297,17 @@ bdb_dn2id(
 	data.ulen = sizeof(ID);
 	data.flags = DB_DBT_USERMEM;
 
+	rc = bdb_dn2id_lock( bdb, dn, 0, locker, lock );
+	if ( rc ) return rc;
+
+	rc = db->cursor( db, NULL, &cursor, bdb->bi_db_opflags );
+	if ( rc ) return rc;
+	if ( locker ) {
+		CURSOR_SETLOCKER(cursor, locker);
+	}
+
 	/* fetch it */
-	rc = db->get( db, txn, &key, &data, bdb->bi_db_opflags );
+	rc = cursor->c_get( cursor, &key, &data, DB_SET );
 
 	if( rc != 0 ) {
 		Debug( LDAP_DEBUG_TRACE, "<= bdb_dn2id: get failed: %s (%d)\n",
@@ -279,6 +318,7 @@ bdb_dn2id(
 			ei->bei_id, 0, 0 );
 	}
 
+	cursor->c_close( cursor );
 	op->o_tmpfree( key.data, op->o_tmpmemctx );
 	return rc;
 }
@@ -568,6 +608,7 @@ hdb_dn2id_delete(
 	int rc;
 	ID	nid;
 	unsigned char dlen[2];
+	DB_LOCK	lock;
 
 	DBTzero(&key);
 	key.size = sizeof(ID);
@@ -580,6 +621,10 @@ hdb_dn2id_delete(
 	data.ulen = data.size;
 	data.dlen = data.size;
 	data.flags = DB_DBT_USERMEM | DB_DBT_PARTIAL;
+
+	/* We hold this lock until the TXN completes */
+	rc = bdb_dn2id_lock( bdb, &e->e_nname, 1, TXN_ID( txn ), &lock );
+	if ( rc ) return rc;
 
 	key.data = &nid;
 	rc = db->cursor( db, txn, &cursor, bdb->bi_db_opflags );
@@ -638,9 +683,10 @@ hdb_dn2id_delete(
 int
 hdb_dn2id(
 	Operation	*op,
-	DB_TXN *txn,
 	struct berval	*in,
-	EntryInfo	*ei )
+	EntryInfo	*ei,
+	BDB_LOCKER locker,
+	DB_LOCK *lock )
 {
 	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
 	DB *db = bdb->bi_dn2id->bdi_db;
@@ -669,8 +715,14 @@ hdb_dn2id(
 	data.dlen = data.ulen;
 	data.flags = DB_DBT_USERMEM | DB_DBT_PARTIAL;
 
-	rc = db->cursor( db, txn, &cursor, bdb->bi_db_opflags );
+	rc = bdb_dn2id_lock( bdb, in, 0, locker, lock );
 	if ( rc ) return rc;
+
+	rc = db->cursor( db, NULL, &cursor, bdb->bi_db_opflags );
+	if ( rc ) return rc;
+	if ( locker ) {
+		CURSOR_SETLOCKER( cursor, locker );
+	}
 
 	d = op->o_tmpalloc( data.size * 3, op->o_tmpmemctx );
 	d->nrdnlen[1] = nrlen & 0xff;
@@ -711,7 +763,6 @@ hdb_dn2id(
 int
 hdb_dn2id_parent(
 	Operation *op,
-	DB_TXN *txn,
 	BDB_LOCKER	locker,
 	EntryInfo *ei,
 	ID *idp )
@@ -735,9 +786,9 @@ hdb_dn2id_parent(
 	DBTzero(&data);
 	data.flags = DB_DBT_USERMEM;
 
-	rc = db->cursor( db, txn, &cursor, bdb->bi_db_opflags );
+	rc = db->cursor( db, NULL, &cursor, bdb->bi_db_opflags );
 	if ( rc ) return rc;
-	if ( !txn && locker ) {
+	if ( locker ) {
 		CURSOR_SETLOCKER(cursor, locker);
 	}
 

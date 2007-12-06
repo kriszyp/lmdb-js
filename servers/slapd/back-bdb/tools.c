@@ -231,7 +231,7 @@ ID bdb_tool_dn2id_get(
 	op.o_tmpmemctx = NULL;
 	op.o_tmpmfuncs = &ch_mfuncs;
 
-	rc = bdb_cache_find_ndn( &op, NULL, dn, &ei );
+	rc = bdb_cache_find_ndn( &op, 0, dn, &ei );
 	if ( ei ) bdb_cache_entryinfo_unlock( ei );
 	if ( rc == DB_NOTFOUND )
 		return NOID;
@@ -306,7 +306,7 @@ Entry* bdb_tool_entry_get( BackendDB *be, ID id )
 			op.o_tmpmemctx = NULL;
 			op.o_tmpmfuncs = &ch_mfuncs;
 
-			rc = bdb_cache_find_parent( &op, NULL, CURSOR_GETLOCKER(cursor), id, &ei );
+			rc = bdb_cache_find_parent( &op, CURSOR_GETLOCKER(cursor), id, &ei );
 			if ( rc == LDAP_SUCCESS ) {
 				bdb_cache_entryinfo_unlock( ei );
 				e->e_private = ei;
@@ -340,7 +340,7 @@ static int bdb_tool_next_id(
 		return 0;
 	}
 
-	rc = bdb_cache_find_ndn( op, tid, &ndn, &ei );
+	rc = bdb_cache_find_ndn( op, TXN_ID( tid ), &ndn, &ei );
 	if ( ei ) bdb_cache_entryinfo_unlock( ei );
 	if ( rc == DB_NOTFOUND ) {
 		if ( !be_issuffix( op->o_bd, &ndn ) ) {
