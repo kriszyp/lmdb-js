@@ -62,8 +62,8 @@ bdb_dn2id_add(
 	char		*buf;
 	struct berval	ptr, pdn;
 
-	Debug( LDAP_DEBUG_TRACE, "=> bdb_dn2id_add( \"%s\", 0x%08lx )\n",
-		e->e_ndn, (long) e->e_id, 0 );
+	Debug( LDAP_DEBUG_TRACE, "=> bdb_dn2id_add 0x%lx: \"%s\"\n",
+		e->e_id, e->e_ndn, 0 );
 	assert( e->e_id != NOID );
 
 	DBTzero( &key );
@@ -86,8 +86,8 @@ bdb_dn2id_add(
 	/* store it -- don't override */
 	rc = db->put( db, txn, &key, &data, DB_NOOVERWRITE );
 	if( rc != 0 ) {
-		Debug( LDAP_DEBUG_ANY, "=> bdb_dn2id_add: put failed: %s %d\n",
-			db_strerror(rc), rc, 0 );
+		Debug( LDAP_DEBUG_ANY, "=> bdb_dn2id_add 0x%lx: put failed: %s %d\n",
+			e->e_id, db_strerror(rc), rc );
 		goto done;
 	}
 
@@ -99,8 +99,8 @@ bdb_dn2id_add(
 		rc = db->put( db, txn, &key, &data, DB_NOOVERWRITE );
 		if( rc != 0 ) {
 			Debug( LDAP_DEBUG_ANY,
-			"=> bdb_dn2id_add: subtree (%s) put failed: %d\n",
-			ptr.bv_val, rc, 0 );
+			"=> bdb_dn2id_add 0x%lx: subtree (%s) put failed: %d\n",
+			e->e_id, ptr.bv_val, rc );
 			goto done;
 		}
 		
@@ -120,8 +120,8 @@ bdb_dn2id_add(
 
 		if( rc != 0 ) {
 			Debug( LDAP_DEBUG_ANY,
-				"=> bdb_dn2id_add: parent (%s) insert failed: %d\n",
-					ptr.bv_val, rc, 0 );
+				"=> bdb_dn2id_add 0x%lx: parent (%s) insert failed: %d\n",
+					e->e_id, ptr.bv_val, rc );
 			goto done;
 		}
 	}
@@ -138,8 +138,8 @@ bdb_dn2id_add(
 
 		if( rc != 0 ) {
 			Debug( LDAP_DEBUG_ANY,
-				"=> bdb_dn2id_add: subtree (%s) insert failed: %d\n",
-					ptr.bv_val, rc, 0 );
+				"=> bdb_dn2id_add 0x%lx: subtree (%s) insert failed: %d\n",
+					e->e_id, ptr.bv_val, rc );
 			break;
 		}
 #ifdef BDB_MULTIPLE_SUFFIXES
@@ -156,7 +156,7 @@ bdb_dn2id_add(
 
 done:
 	op->o_tmpfree( buf, op->o_tmpmemctx );
-	Debug( LDAP_DEBUG_TRACE, "<= bdb_dn2id_add: %d\n", rc, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "<= bdb_dn2id_add 0x%lx: %d\n", e->e_id, rc, 0 );
 	return rc;
 }
 
@@ -175,8 +175,8 @@ bdb_dn2id_delete(
 	struct berval	pdn, ptr;
 	int		rc;
 
-	Debug( LDAP_DEBUG_TRACE, "=> bdb_dn2id_delete( \"%s\", 0x%08lx )\n",
-		e->e_ndn, e->e_id, 0 );
+	Debug( LDAP_DEBUG_TRACE, "=> bdb_dn2id_delete 0x%lx: \"%s\"\n",
+		e->e_id, e->e_ndn, 0 );
 
 	DBTzero( &key );
 	key.size = e->e_nname.bv_len + 2;
@@ -191,13 +191,13 @@ bdb_dn2id_delete(
 
 	/* We hold this lock until the TXN completes */
 	rc = bdb_dn2id_lock( bdb, &e->e_nname, 1, TXN_ID( txn ), &lock );
-	if ( rc ) return rc;
+	if ( rc ) goto done;
 
 	/* delete it */
 	rc = db->del( db, txn, &key, 0 );
 	if( rc != 0 ) {
-		Debug( LDAP_DEBUG_ANY, "=> bdb_dn2id_delete: delete failed: %s %d\n",
-			db_strerror(rc), rc, 0 );
+		Debug( LDAP_DEBUG_ANY, "=> bdb_dn2id_delete 0x%lx: delete failed: %s %d\n",
+			e->e_id, db_strerror(rc), rc );
 		goto done;
 	}
 
@@ -209,8 +209,8 @@ bdb_dn2id_delete(
 		rc = bdb_idl_delete_key( op->o_bd, db, txn, &key, e->e_id );
 		if( rc != 0 ) {
 			Debug( LDAP_DEBUG_ANY,
-			"=> bdb_dn2id_delete: subtree (%s) delete failed: %d\n",
-			ptr.bv_val, rc, 0 );
+			"=> bdb_dn2id_delete 0x%lx: subtree (%s) delete failed: %d\n",
+			e->e_id, ptr.bv_val, rc );
 			goto done;
 		}
 
@@ -230,8 +230,8 @@ bdb_dn2id_delete(
 
 		if( rc != 0 ) {
 			Debug( LDAP_DEBUG_ANY,
-				"=> bdb_dn2id_delete: parent (%s) delete failed: %d\n",
-				ptr.bv_val, rc, 0 );
+				"=> bdb_dn2id_delete 0x%lx: parent (%s) delete failed: %d\n",
+				e->e_id, ptr.bv_val, rc );
 			goto done;
 		}
 	}
@@ -247,8 +247,8 @@ bdb_dn2id_delete(
 		rc = bdb_idl_delete_key( op->o_bd, db, txn, &key, e->e_id );
 		if( rc != 0 ) {
 			Debug( LDAP_DEBUG_ANY,
-				"=> bdb_dn2id_delete: subtree (%s) delete failed: %d\n",
-				ptr.bv_val, rc, 0 );
+				"=> bdb_dn2id_delete 0x%lx: subtree (%s) delete failed: %d\n",
+				e->e_id, ptr.bv_val, rc );
 			goto done;
 		}
 #ifdef BDB_MULTIPLE_SUFFIXES
@@ -265,7 +265,7 @@ bdb_dn2id_delete(
 
 done:
 	op->o_tmpfree( buf, op->o_tmpmemctx );
-	Debug( LDAP_DEBUG_TRACE, "<= bdb_dn2id_delete %d\n", rc, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "<= bdb_dn2id_delete 0x%lx: %d\n", e->e_id, rc, 0 );
 	return rc;
 }
 
@@ -285,6 +285,7 @@ bdb_dn2id(
 	ID		nid;
 
 	Debug( LDAP_DEBUG_TRACE, "=> bdb_dn2id(\"%s\")\n", dn->bv_val, 0, 0 );
+
 	DBTzero( &key );
 	key.size = dn->bv_len + 2;
 	key.data = op->o_tmpalloc( key.size, op->o_tmpmemctx );
@@ -297,11 +298,12 @@ bdb_dn2id(
 	data.ulen = sizeof(ID);
 	data.flags = DB_DBT_USERMEM;
 
-	rc = bdb_dn2id_lock( bdb, dn, 0, locker, lock );
-	if ( rc ) return rc;
-
 	rc = db->cursor( db, NULL, &cursor, bdb->bi_db_opflags );
-	if ( rc ) return rc;
+	if ( rc ) goto leave;
+
+	rc = bdb_dn2id_lock( bdb, dn, 0, locker, lock );
+	if ( rc ) goto nolock;
+
 	if ( locker ) {
 		CURSOR_SETLOCKER(cursor, locker);
 	}
@@ -309,16 +311,18 @@ bdb_dn2id(
 	/* fetch it */
 	rc = cursor->c_get( cursor, &key, &data, DB_SET );
 
+nolock:
+	cursor->c_close( cursor );
+leave:
+
 	if( rc != 0 ) {
 		Debug( LDAP_DEBUG_TRACE, "<= bdb_dn2id: get failed: %s (%d)\n",
 			db_strerror( rc ), rc, 0 );
 	} else {
 		BDB_DISK2ID( &nid, &ei->bei_id );
-		Debug( LDAP_DEBUG_TRACE, "<= bdb_dn2id: got id=0x%08lx\n",
+		Debug( LDAP_DEBUG_TRACE, "<= bdb_dn2id: got id=0x%lx\n",
 			ei->bei_id, 0, 0 );
 	}
-
-	cursor->c_close( cursor );
 	op->o_tmpfree( key.data, op->o_tmpmemctx );
 	return rc;
 }
@@ -517,10 +521,14 @@ hdb_dn2id_add(
 	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
 	DB *db = bdb->bi_dn2id->bdi_db;
 	DBT		key, data;
+	DB_LOCK		lock;
 	ID		nid;
 	int		rc, rlen, nrlen;
 	diskNode *d;
 	char *ptr;
+
+	Debug( LDAP_DEBUG_TRACE, "=> hdb_dn2id_add 0x%lx: \"%s\"\n",
+		e->e_id, e->e_ndn, 0 );
 
 	nrlen = dn_rdnlen( op->o_bd, &e->e_nname );
 	if (nrlen) {
@@ -546,6 +554,10 @@ hdb_dn2id_add(
 	BDB_ID2DISK( eip->bei_id, &nid );
 
 	key.data = &nid;
+
+	/* We hold this lock until the TXN completes */
+	rc = bdb_dn2id_lock( bdb, &e->e_nname, 1, TXN_ID( txn ), &lock );
+	if ( rc ) goto leave;
 
 	/* Need to make dummy root node once. Subsequent attempts
 	 * will fail harmlessly.
@@ -588,7 +600,10 @@ hdb_dn2id_add(
 			bdb_idl_cache_add_id( bdb, db, &key, e->e_id );
 		}
 	}
+
+leave:
 	op->o_tmpfree( d, op->o_tmpmemctx );
+	Debug( LDAP_DEBUG_TRACE, "<= hdb_dn2id_add 0x%lx: %d\n", e->e_id, rc, 0 );
 
 	return rc;
 }
@@ -610,6 +625,9 @@ hdb_dn2id_delete(
 	unsigned char dlen[2];
 	DB_LOCK	lock;
 
+	Debug( LDAP_DEBUG_TRACE, "=> hdb_dn2id_delete 0x%lx: \"%s\"\n",
+		e->e_id, e->e_ndn, 0 );
+
 	DBTzero(&key);
 	key.size = sizeof(ID);
 	key.ulen = key.size;
@@ -622,13 +640,7 @@ hdb_dn2id_delete(
 	data.dlen = data.size;
 	data.flags = DB_DBT_USERMEM | DB_DBT_PARTIAL;
 
-	/* We hold this lock until the TXN completes */
-	rc = bdb_dn2id_lock( bdb, &e->e_nname, 1, TXN_ID( txn ), &lock );
-	if ( rc ) return rc;
-
 	key.data = &nid;
-	rc = db->cursor( db, txn, &cursor, bdb->bi_db_opflags );
-	if ( rc ) return rc;
 
 	d = op->o_tmpalloc( data.size, op->o_tmpmemctx );
 	d->nrdnlen[1] = BEI(e)->bei_nrdn.bv_len & 0xff;
@@ -637,6 +649,13 @@ hdb_dn2id_delete(
 	dlen[1] = d->nrdnlen[1];
 	strcpy( d->nrdn, BEI(e)->bei_nrdn.bv_val );
 	data.data = d;
+
+	rc = db->cursor( db, txn, &cursor, bdb->bi_db_opflags );
+	if ( rc ) goto leave;
+
+	/* We hold this lock until the TXN completes */
+	rc = bdb_dn2id_lock( bdb, &e->e_nname, 1, TXN_ID( txn ), &lock );
+	if ( rc ) goto nolock;
 
 	/* Delete our ID from the parent's list */
 	rc = cursor->c_get( cursor, &key, &data, DB_GET_BOTH_RANGE );
@@ -658,7 +677,10 @@ hdb_dn2id_delete(
 		if ( rc == 0 )
 			rc = cursor->c_del( cursor, 0 );
 	}
+
+nolock:
 	cursor->c_close( cursor );
+leave:
 	op->o_tmpfree( d, op->o_tmpmemctx );
 
 	/* Delete IDL cache entries */
@@ -676,6 +698,7 @@ hdb_dn2id_delete(
 			bdb_idl_cache_del_id( bdb, db, &key, e->e_id );
 		}
 	}
+	Debug( LDAP_DEBUG_TRACE, "<= hdb_dn2id_delete 0x%lx: %d\n", e->e_id, rc, 0 );
 	return rc;
 }
 
@@ -698,6 +721,8 @@ hdb_dn2id(
 	unsigned char dlen[2];
 	ID idp, parentID;
 
+	Debug( LDAP_DEBUG_TRACE, "=> hdb_dn2id(\"%s\")\n", in->bv_val, 0, 0 );
+
 	nrlen = dn_rdnlen( op->o_bd, in );
 	if (!nrlen) nrlen = in->bv_len;
 
@@ -715,9 +740,6 @@ hdb_dn2id(
 	data.dlen = data.ulen;
 	data.flags = DB_DBT_USERMEM | DB_DBT_PARTIAL;
 
-	rc = bdb_dn2id_lock( bdb, in, 0, locker, lock );
-	if ( rc ) return rc;
-
 	rc = db->cursor( db, NULL, &cursor, bdb->bi_db_opflags );
 	if ( rc ) return rc;
 	if ( locker ) {
@@ -732,6 +754,9 @@ hdb_dn2id(
 	ptr = lutil_strncopy( d->nrdn, in->bv_val, nrlen );
 	*ptr = '\0';
 	data.data = d;
+
+	rc = bdb_dn2id_lock( bdb, in, 0, locker, lock );
+	if ( rc ) goto leave;
 
 	rc = cursor->c_get( cursor, &key, &data, DB_GET_BOTH_RANGE );
 	if ( rc == 0 && (dlen[1] != d->nrdnlen[1] || dlen[0] != d->nrdnlen[0] ||
@@ -754,8 +779,17 @@ hdb_dn2id(
 			ei->bei_parent->bei_dkids = dkids;
 		}
 	}
+
+leave:
 	cursor->c_close( cursor );
 	op->o_tmpfree( d, op->o_tmpmemctx );
+	if( rc != 0 ) {
+		Debug( LDAP_DEBUG_TRACE, "<= hdb_dn2id: get failed: %s (%d)\n",
+			db_strerror( rc ), rc, 0 );
+	} else {
+		Debug( LDAP_DEBUG_TRACE, "<= hdb_dn2id: got id=0x%lx\n",
+			ei->bei_id, 0, 0 );
+	}
 
 	return rc;
 }
