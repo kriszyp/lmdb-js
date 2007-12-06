@@ -451,6 +451,31 @@ typedef struct diskNode {
 	unsigned char entryID[sizeof(ID)];  /* variable placement */
 } diskNode;
 
+/* Sort function for the sorted duplicate data items of a dn2id key.
+ * Sorts based on normalized RDN, in length order.
+ */
+int
+hdb_dup_compare(
+	DB *db, 
+	const DBT *usrkey,
+	const DBT *curkey
+)
+{
+	diskNode *un, *cn;
+	int rc, ul, cl;
+
+	un = (diskNode *)usrkey->data;
+	cn = (diskNode *)curkey->data;
+
+	/* data is not aligned, cannot compare directly */
+	ul = un->nrdnlen[0] << 8 | un->nrdnlen[1];
+	cl = cn->nrdnlen[0] << 8 | cn->nrdnlen[1];
+
+	rc = ul - cl;
+	if( rc ) return rc;
+	return strcmp( un->nrdn, cn->nrdn );
+}
+
 /* This function constructs a full DN for a given entry.
  */
 int hdb_fix_dn(

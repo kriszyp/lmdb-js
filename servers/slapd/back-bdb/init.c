@@ -412,6 +412,8 @@ shm_retry:
 				flags |= DB_CREATE;
 			}
 #else
+			rc = db->bdi_db->set_dup_compare( db->bdi_db,
+				bdb_dup_compare );
 			if ( slapMode & (SLAP_TOOL_READONLY|SLAP_TOOL_READMAIN) ) {
 				flags |= DB_RDONLY;
 			} else {
