@@ -327,9 +327,12 @@ extern int __db_logmsg(const DB_ENV *env, DB_TXN *txn, const char *op, u_int32_t
 #define	BDB_LOG_PRINTF(env,txn,fmt,...)	__db_logmsg((env),(txn),"DIAGNOSTIC",0,(fmt),__VA_ARGS__)
 #endif
 
-#else /* !BDB_LOG_DEBUG */
-
+/* !BDB_LOG_DEBUG */
+#elif (defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L) || \
+	(defined(__GNUC__) && __GNUC__ >= 3 && !defined(__STRICT_ANSI__))
 #define BDB_LOG_PRINTF(a,b,c,...)
+#else
+#define BDB_LOG_PRINTF (void)	/* will evaluate and discard the arguments */
 
 #endif /* BDB_LOG_DEBUG */
 
