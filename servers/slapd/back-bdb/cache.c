@@ -155,12 +155,6 @@ bdb_cache_lru_link( struct bdb_info *bdb, EntryInfo *ei )
  * alternatives though.
  */
 
-#if DB_VERSION_FULL >= 0x04060012
-#define BDB_LOCKID(locker)	locker->id
-#else
-#define BDB_LOCKID(locker)	locker
-#endif
-
 /* Atomically release and reacquire a lock */
 int
 bdb_cache_entry_db_relock(
@@ -426,6 +420,7 @@ bdb_cache_find_ndn(
 		ei.bei_parent = eip;
 		ei2 = (EntryInfo *)avl_find( eip->bei_kids, &ei, bdb_rdn_cmp );
 		if ( !ei2 ) {
+			DB_LOCK lock;
 			int len = ei.bei_nrdn.bv_len;
 				
 			if ( BER_BVISEMPTY( ndn )) {
@@ -442,9 +437,11 @@ bdb_cache_find_ndn(
 				ei.bei_nrdn.bv_val );
 #endif
 
-			rc = bdb_dn2id( op, locker, &ei.bei_nrdn, &ei );
+			lock.mode = DB_LOCK_NG;
+			rc = bdb_dn2id( op, &ei.bei_nrdn, &ei, locker, &lock );
 			if (rc) {
 				bdb_cache_entryinfo_lock( eip );
+				bdb_cache_entry_db_unlock( bdb, &lock );
 				*res = eip;
 				return rc;
 			}
@@ -461,6 +458,7 @@ bdb_cache_find_ndn(
 				ei.bei_nrdn.bv_val, ei.bei_id, 0 );
 			/* add_internal left eip and c_rwlock locked */
 			ldap_pvt_thread_rdwr_wunlock( &bdb->bi_cache.c_rwlock );
+			bdb_cache_entry_db_unlock( bdb, &lock );
 			if ( rc ) {
 				*res = eip;
 				return rc;

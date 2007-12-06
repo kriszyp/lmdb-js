@@ -97,9 +97,10 @@ int bdb_dn2entry LDAP_P(( Operation *op, DB_TXN *tid,
 
 int bdb_dn2id(
 	Operation *op,
-	BDB_LOCKER locker,
 	struct berval *dn,
-	EntryInfo *ei );
+	EntryInfo *ei,
+	BDB_LOCKER locker,
+	DB_LOCK *lock );
 
 int bdb_dn2id_add(
 	Operation *op,

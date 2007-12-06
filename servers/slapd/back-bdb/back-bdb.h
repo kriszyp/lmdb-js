@@ -70,13 +70,15 @@ typedef struct __db_locker * BDB_LOCKER;
 extern int __lock_getlocker(DB_LOCKTAB *lt, u_int32_t locker, int create, DB_LOCKER **ret);
 
 #define CURSOR_SETLOCKER(cursor, id)	cursor->locker = id
-#define	CURSOR_GETLOCKER(cursor)	cursor->locker
+#define CURSOR_GETLOCKER(cursor)	cursor->locker
+#define BDB_LOCKID(locker)	locker->id
 #else
 
 typedef u_int32_t BDB_LOCKER;
 
 #define CURSOR_SETLOCKER(cursor, id)	cursor->locker = id
 #define CURSOR_GETLOCKER(cursor)	cursor->locker
+#define BDB_LOCKID(locker)	locker
 
 #endif
 
