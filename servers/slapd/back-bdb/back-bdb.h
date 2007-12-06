@@ -83,7 +83,7 @@ typedef struct bdb_entry_info {
 	 * to avoid conflicting with BDB's internal locks. So add a byte here
 	 * that is always zero.
 	 */
-	char bei_lockpad;
+	short bei_lockpad;
 
 	short bei_state;
 #define	CACHE_ENTRY_DELETED	1

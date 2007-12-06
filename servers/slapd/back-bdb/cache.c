@@ -252,6 +252,8 @@ bdb_entryinfo_add_internal(
 		ei->bei_rdn.bv_val = NULL;
 #endif
 	} else {
+		int rc;
+
 		bdb->bi_cache.c_eiused++;
 		ber_dupbv( &ei2->bei_nrdn, &ei->bei_nrdn );
 
@@ -261,8 +263,13 @@ bdb_entryinfo_add_internal(
 		 */
 		if ( ei->bei_parent->bei_kids || !ei->bei_parent->bei_id )
 			bdb->bi_cache.c_leaves++;
-		avl_insert( &ei->bei_parent->bei_kids, ei2, bdb_rdn_cmp,
+		rc = avl_insert( &ei->bei_parent->bei_kids, ei2, bdb_rdn_cmp,
 			avl_dup_error );
+ 		if ( rc ) {
+ 			/* This should never happen; entry cache is corrupt */
+ 			bdb->bi_dbenv->log_flush( bdb->bi_dbenv, NULL );
+ 			assert( !rc );
+ 		}
 #ifdef BDB_HIER
 		ei->bei_parent->bei_ckids++;
 #endif
@@ -281,7 +288,7 @@ bdb_entryinfo_add_internal(
 int
 bdb_cache_find_ndn(
 	Operation	*op,
-	DB_TXN		*txn,
+	u_int32_t		locker,
 	struct berval	*ndn,
 	EntryInfo	**res )
 {
@@ -318,6 +325,7 @@ bdb_cache_find_ndn(
 		ei.bei_parent = eip;
 		ei2 = (EntryInfo *)avl_find( eip->bei_kids, &ei, bdb_rdn_cmp );
 		if ( !ei2 ) {
+			DB_LOCK lock;
 			int len = ei.bei_nrdn.bv_len;
 				
 			if ( BER_BVISEMPTY( ndn )) {
@@ -329,9 +337,11 @@ bdb_cache_find_ndn(
 				(ei.bei_nrdn.bv_val - ndn->bv_val);
 			bdb_cache_entryinfo_unlock( eip );
 
-			rc = bdb_dn2id( op, txn, &ei.bei_nrdn, &ei );
+			lock.mode = DB_LOCK_NG;
+			rc = bdb_dn2id( op, &ei.bei_nrdn, &ei, locker, &lock );
 			if (rc) {
 				bdb_cache_entryinfo_lock( eip );
+				bdb_cache_entry_db_unlock( bdb->bi_dbenv, &lock );
 				*res = eip;
 				return rc;
 			}
@@ -341,6 +351,7 @@ bdb_cache_find_ndn(
 			rc = bdb_entryinfo_add_internal( bdb, &ei, &ei2 );
 			/* add_internal left eip and c_rwlock locked */
 			ldap_pvt_thread_rdwr_wunlock( &bdb->bi_cache.c_rwlock );
+			bdb_cache_entry_db_unlock( bdb->bi_dbenv, &lock );
 			if ( rc ) {
 				*res = eip;
 				return rc;
@@ -384,7 +395,6 @@ bdb_cache_find_ndn(
 int
 hdb_cache_find_parent(
 	Operation *op,
-	DB_TXN *txn,
 	u_int32_t	locker,
 	ID id,
 	EntryInfo **res )
@@ -399,7 +409,7 @@ hdb_cache_find_parent(
 	ei.bei_ckids = 0;
 
 	for (;;) {
-		rc = hdb_dn2id_parent( op, txn, locker, &ei, &eip.bei_id );
+		rc = hdb_dn2id_parent( op, locker, &ei, &eip.bei_id );
 		if ( rc ) break;
 
 		/* Save the previous node, if any */
@@ -703,7 +713,7 @@ again:	ldap_pvt_thread_rdwr_rlock( &bdb->bi_cache.c_rwlock );
 #ifndef BDB_HIER
 		rc = bdb_id2entry( op->o_bd, tid, locker, id, &ep );
 		if ( rc == 0 ) {
-			rc = bdb_cache_find_ndn( op, tid,
+			rc = bdb_cache_find_ndn( op, locker,
 				&ep->e_nname, eip );
 			if ( *eip ) islocked = 1;
 			if ( rc ) {
@@ -717,7 +727,7 @@ again:	ldap_pvt_thread_rdwr_rlock( &bdb->bi_cache.c_rwlock );
 			}
 		}
 #else
-		rc = hdb_cache_find_parent(op, tid, locker, id, eip );
+		rc = hdb_cache_find_parent(op, locker, id, eip );
 		if ( rc == 0 ) islocked = 1;
 #endif
 	}

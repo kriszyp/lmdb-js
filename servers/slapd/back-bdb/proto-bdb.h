@@ -97,9 +97,10 @@ int bdb_dn2entry LDAP_P(( Operation *op, DB_TXN *tid,
 
 int bdb_dn2id(
 	Operation *op,
-	DB_TXN *tid,
 	struct berval *dn,
-	EntryInfo *ei );
+	EntryInfo *ei,
+	u_int32_t locker,
+	DB_LOCK *lock );
 
 int bdb_dn2id_add(
 	Operation *op,
@@ -126,14 +127,19 @@ int bdb_dn2idl(
 
 #ifdef BDB_HIER
 #define bdb_dn2id_parent			BDB_SYMBOL(dn2id_parent)
+#define bdb_dup_compare				BDB_SYMBOL(dup_compare)
 #define bdb_fix_dn					BDB_SYMBOL(fix_dn)
 
 int bdb_dn2id_parent(
 	Operation *op,
-	DB_TXN *txn,
 	u_int32_t locker,
 	EntryInfo *ei,
 	ID *idp );
+
+int bdb_dup_compare(
+	DB *db,
+	const DBT *usrkey,
+	const DBT *curkey );
 
 int bdb_fix_dn( Entry *e, int checkit );
 #endif
@@ -506,7 +512,7 @@ int bdb_cache_modify(
 );
 int bdb_cache_find_ndn(
 	Operation *op,
-	DB_TXN	*txn,
+	u_int32_t	locker,
 	struct berval   *ndn,
 	EntryInfo	**res
 );
@@ -526,7 +532,6 @@ int bdb_cache_find_id(
 int
 bdb_cache_find_parent(
 	Operation *op,
-	DB_TXN *txn,
 	u_int32_t	locker,
 	ID id,
 	EntryInfo **res

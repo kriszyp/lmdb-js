@@ -214,7 +214,7 @@ ID bdb_tool_dn2id_get(
 	op.o_tmpmemctx = NULL;
 	op.o_tmpmfuncs = &ch_mfuncs;
 
-	rc = bdb_cache_find_ndn( &op, NULL, dn, &ei );
+	rc = bdb_cache_find_ndn( &op, 0, dn, &ei );
 	if ( ei ) bdb_cache_entryinfo_unlock( ei );
 	if ( rc == DB_NOTFOUND )
 		return NOID;
@@ -280,7 +280,7 @@ Entry* bdb_tool_entry_get( BackendDB *be, ID id )
 		op.o_tmpmemctx = NULL;
 		op.o_tmpmfuncs = &ch_mfuncs;
 
-		rc = bdb_cache_find_parent( &op, NULL, cursor->locker, id, &ei );
+		rc = bdb_cache_find_parent( &op, cursor->locker, id, &ei );
 		if ( rc == LDAP_SUCCESS ) {
 			bdb_cache_entryinfo_unlock( ei );
 			e->e_private = ei;
@@ -312,7 +312,7 @@ static int bdb_tool_next_id(
 		return 0;
 	}
 
-	rc = bdb_cache_find_ndn( op, tid, &ndn, &ei );
+	rc = bdb_cache_find_ndn( op, TXN_ID( tid ), &ndn, &ei );
 	if ( ei ) bdb_cache_entryinfo_unlock( ei );
 	if ( rc == DB_NOTFOUND ) {
 		if ( !be_issuffix( op->o_bd, &ndn ) ) {
@@ -668,17 +668,17 @@ ID bdb_tool_entry_modify(
 			cursor->c_close( cursor );
 			cursor = NULL;
 		}
-	rc = TXN_BEGIN( bdb->bi_dbenv, NULL, &tid, 
-		bdb->bi_db_opflags );
-	if( rc != 0 ) {
-		snprintf( text->bv_val, text->bv_len,
-			"txn_begin failed: %s (%d)",
-			db_strerror(rc), rc );
-		Debug( LDAP_DEBUG_ANY,
-			"=> " LDAP_XSTRING(bdb_tool_entry_modify) ": %s\n",
-			 text->bv_val, 0, 0 );
-		return NOID;
-	}
+		rc = TXN_BEGIN( bdb->bi_dbenv, NULL, &tid, 
+			bdb->bi_db_opflags );
+		if( rc != 0 ) {
+			snprintf( text->bv_val, text->bv_len,
+				"txn_begin failed: %s (%d)",
+				db_strerror(rc), rc );
+			Debug( LDAP_DEBUG_ANY,
+				"=> " LDAP_XSTRING(bdb_tool_entry_modify) ": %s\n",
+				 text->bv_val, 0, 0 );
+			return NOID;
+		}
 	}
 
 	op.o_hdr = &ohdr;
