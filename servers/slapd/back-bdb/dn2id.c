@@ -468,11 +468,11 @@ hdb_dup_compare(
 	cn = (diskNode *)curkey->data;
 
 	/* data is not aligned, cannot compare directly */
-	ul = un->nrdnlen[0] << 8 | un->nrdnlen[1];
-	cl = cn->nrdnlen[0] << 8 | cn->nrdnlen[1];
+	rc = un->nrdnlen[0] - cn->nrdnlen[0];
+	if ( rc ) return rc;
+	rc = un->nrdnlen[1] - cn->nrdnlen[1];
+	if ( rc ) return rc;
 
-	rc = ul - cl;
-	if( rc ) return rc;
 	return strcmp( un->nrdn, cn->nrdn );
 }
 
