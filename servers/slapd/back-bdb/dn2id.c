@@ -546,7 +546,6 @@ hdb_dn2id_add(
 	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
 	DB *db = bdb->bi_dn2id->bdi_db;
 	DBT		key, data;
-	DB_LOCK		lock;
 	ID		nid;
 	int		rc, rlen, nrlen;
 	diskNode *d;
@@ -579,10 +578,6 @@ hdb_dn2id_add(
 	BDB_ID2DISK( eip->bei_id, &nid );
 
 	key.data = &nid;
-
-	/* We hold this lock until the TXN completes */
-	rc = bdb_dn2id_lock( bdb, &e->e_nname, 1, TXN_ID( txn ), &lock );
-	if ( rc ) goto leave;
 
 	/* Need to make dummy root node once. Subsequent attempts
 	 * will fail harmlessly.
