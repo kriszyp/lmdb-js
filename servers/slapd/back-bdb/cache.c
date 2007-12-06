@@ -358,12 +358,11 @@ bdb_entryinfo_add_internal(
 			bdb->bi_cache.c_leaves++;
 		rc = avl_insert( &ei->bei_parent->bei_kids, ei2, bdb_rdn_cmp,
 			avl_dup_error );
-#if defined(LDAP_DEBUG) && defined(LDAP_DEVEL)
 		if ( rc ) {
+			/* This should never happen; entry cache is corrupt */
 			bdb->bi_dbenv->log_flush( bdb->bi_dbenv, NULL );
 			assert( !rc );
 		}
-#endif
 #ifdef BDB_HIER
 		ei->bei_parent->bei_ckids++;
 #endif
@@ -432,10 +431,8 @@ bdb_cache_find_ndn(
 				(ei.bei_nrdn.bv_val - ndn->bv_val);
 			bdb_cache_entryinfo_unlock( eip );
 
-#if defined(LDAP_DEBUG) && defined(LDAP_DEVEL)
 			LOG_PRINTF( bdb->bi_dbenv, NULL, "slapd Reading %s",
 				ei.bei_nrdn.bv_val );
-#endif
 
 			lock.mode = DB_LOCK_NG;
 			rc = bdb_dn2id( op, &ei.bei_nrdn, &ei, locker, &lock );
@@ -446,10 +443,8 @@ bdb_cache_find_ndn(
 				return rc;
 			}
 
-#if defined(LDAP_DEBUG) && defined(LDAP_DEVEL)
 			LOG_PRINTF( bdb->bi_dbenv, NULL, "slapd Read got %s(%d)",
 				ei.bei_nrdn.bv_val, ei.bei_id );
-#endif
 
 			/* DN exists but needs to be added to cache */
 			ei.bei_nrdn.bv_len = len;

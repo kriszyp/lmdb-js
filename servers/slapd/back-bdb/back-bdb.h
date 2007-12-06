@@ -153,10 +153,10 @@ typedef struct bdb_cache {
 	EntryInfo	*c_lruhead;	/* lru - add accessed entries here */
 	EntryInfo	*c_lrutail;	/* lru - rem lru entries from here */
 	EntryInfo	c_dntree;
-	int		c_maxsize;
+	unsigned	c_maxsize;
 	int		c_cursize;
-	int		c_minfree;
-	int		c_eimax;
+	unsigned	c_minfree;
+	unsigned	c_eimax;
 	int		c_eiused;	/* EntryInfo's in use */
 	int		c_leaves;	/* EntryInfo leaf nodes */
 	int		c_purging;
@@ -225,7 +225,7 @@ struct bdb_info {
 
 	ID			bi_lastid;
 	ldap_pvt_thread_mutex_t	bi_lastid_mutex;
-	int		bi_idl_cache_max_size;
+	unsigned	bi_idl_cache_max_size;
 	int		bi_idl_cache_size;
 	Avlnode		*bi_idl_tree;
 	bdb_idl_cache_entry_t	*bi_idl_lru_head;
@@ -314,6 +314,10 @@ struct bdb_op_info {
 #define TXN_ID(txn)	(txn)->locker
 #endif
 
+/* #undef BDB_LOG_DEBUG */
+
+#ifdef BDB_LOG_DEBUG
+
 /* env->log_printf appeared in 4.4 */
 #if DB_VERSION_FULL >= 0x04040000
 #define	LOG_PRINTF(env,txn,fmt,...)	(env)->log_printf((env),(txn),(fmt),__VA_ARGS__)
@@ -322,6 +326,12 @@ extern int __db_logmsg(const DB_ENV *env, DB_TXN *txn, const char *op, u_int32_t
 	const char *fmt,...);
 #define	LOG_PRINTF(env,txn,fmt,...)	__db_logmsg((env),(txn),"DIAGNOSTIC",0,(fmt),__VA_ARGS__)
 #endif
+
+#else /* !BDB_LOG_DEBUG */
+
+#define LOG_PRINTF(a,b,c,...)
+
+#endif /* BDB_LOG_DEBUG */
 
 #endif
 

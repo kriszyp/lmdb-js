@@ -372,10 +372,8 @@ retry:	/* transaction retry */
 		goto return_results;
 	}
 
-#if defined(LDAP_DEBUG) && defined(LDAP_DEVEL)
 	LOG_PRINTF( bdb->bi_dbenv, lt2, "slapd Starting delete %s(%d)",
 		e->e_nname.bv_val, e->e_id );
-#endif
 
 	/* Can't do it if we have kids */
 	rs->sr_err = bdb_cache_children( op, lt2, e );
@@ -497,10 +495,8 @@ retry:	/* transaction retry */
 		p = NULL;
 	}
 
-#if defined(LDAP_DEBUG) && defined(LDAP_DEVEL)
 	LOG_PRINTF( bdb->bi_dbenv, lt2, "slapd Commit1 delete %s(%d)",
 		e->e_nname.bv_val, e->e_id );
-#endif
 
 	if ( TXN_COMMIT( lt2, 0 ) != 0 ) {
 		rs->sr_err = LDAP_OTHER;
@@ -528,10 +524,8 @@ retry:	/* transaction retry */
 		}
 	} else {
 
-#if defined(LDAP_DEBUG) && defined(LDAP_DEVEL)
 		LOG_PRINTF( bdb->bi_dbenv, ltid, "slapd Cache delete %s(%d)",
 			e->e_nname.bv_val, e->e_id );
-#endif
 
 		rc = bdb_cache_delete( bdb, e, locker, &lock );
 		switch( rc ) {
@@ -545,10 +539,8 @@ retry:	/* transaction retry */
 	ltid = NULL;
 	op->o_private = NULL;
 
-#if defined(LDAP_DEBUG) && defined(LDAP_DEVEL)
 	LOG_PRINTF( bdb->bi_dbenv, NULL, "slapd Committed delete %s(%d)",
 		e->e_nname.bv_val, e->e_id );
-#endif
 
 	if( rs->sr_err != 0 ) {
 		Debug( LDAP_DEBUG_TRACE,
