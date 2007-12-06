@@ -431,7 +431,7 @@ bdb_cache_find_ndn(
 				(ei.bei_nrdn.bv_val - ndn->bv_val);
 			bdb_cache_entryinfo_unlock( eip );
 
-			LOG_PRINTF( bdb->bi_dbenv, NULL, "slapd Reading %s",
+			BDB_LOG_PRINTF( bdb->bi_dbenv, NULL, "slapd Reading %s",
 				ei.bei_nrdn.bv_val );
 
 			lock.mode = DB_LOCK_NG;
@@ -443,14 +443,12 @@ bdb_cache_find_ndn(
 				return rc;
 			}
 
-			LOG_PRINTF( bdb->bi_dbenv, NULL, "slapd Read got %s(%d)",
+			BDB_LOG_PRINTF( bdb->bi_dbenv, NULL, "slapd Read got %s(%d)",
 				ei.bei_nrdn.bv_val, ei.bei_id );
 
 			/* DN exists but needs to be added to cache */
 			ei.bei_nrdn.bv_len = len;
 			rc = bdb_entryinfo_add_internal( bdb, &ei, &ei2 );
-			Debug( LDAP_DEBUG_TRACE, "add_internal: \"%s\" %d\n",
-				ei.bei_nrdn.bv_val, ei.bei_id, 0 );
 			/* add_internal left eip and c_rwlock locked */
 			ldap_pvt_thread_rdwr_wunlock( &bdb->bi_cache.c_rwlock );
 			bdb_cache_entry_db_unlock( bdb, &lock );

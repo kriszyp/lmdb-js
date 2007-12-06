@@ -372,7 +372,7 @@ retry:	/* transaction retry */
 		goto return_results;
 	}
 
-	LOG_PRINTF( bdb->bi_dbenv, lt2, "slapd Starting delete %s(%d)",
+	BDB_LOG_PRINTF( bdb->bi_dbenv, lt2, "slapd Starting delete %s(%d)",
 		e->e_nname.bv_val, e->e_id );
 
 	/* Can't do it if we have kids */
@@ -495,7 +495,7 @@ retry:	/* transaction retry */
 		p = NULL;
 	}
 
-	LOG_PRINTF( bdb->bi_dbenv, lt2, "slapd Commit1 delete %s(%d)",
+	BDB_LOG_PRINTF( bdb->bi_dbenv, lt2, "slapd Commit1 delete %s(%d)",
 		e->e_nname.bv_val, e->e_id );
 
 	if ( TXN_COMMIT( lt2, 0 ) != 0 ) {
@@ -524,7 +524,7 @@ retry:	/* transaction retry */
 		}
 	} else {
 
-		LOG_PRINTF( bdb->bi_dbenv, ltid, "slapd Cache delete %s(%d)",
+		BDB_LOG_PRINTF( bdb->bi_dbenv, ltid, "slapd Cache delete %s(%d)",
 			e->e_nname.bv_val, e->e_id );
 
 		rc = bdb_cache_delete( bdb, e, locker, &lock );
@@ -539,7 +539,7 @@ retry:	/* transaction retry */
 	ltid = NULL;
 	op->o_private = NULL;
 
-	LOG_PRINTF( bdb->bi_dbenv, NULL, "slapd Committed delete %s(%d)",
+	BDB_LOG_PRINTF( bdb->bi_dbenv, NULL, "slapd Committed delete %s(%d)",
 		e->e_nname.bv_val, e->e_id );
 
 	if( rs->sr_err != 0 ) {
