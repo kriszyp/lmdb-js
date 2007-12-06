@@ -312,6 +312,15 @@ struct bdb_op_info {
 #define TXN_ID(txn)	(txn)->locker
 #endif
 
+/* env->log_printf appeared in 4.4 */
+#if DB_VERSION_FULL >= 0x04040000
+#define	LOG_PRINTF(env,txn,fmt,...)	(env)->log_printf((env),(txn),(fmt),__VA_ARGS__)
+#else
+extern int __db_logmsg(const DB_ENV *env, DB_TXN *txn, const char *op, u_int32_t flags,
+	const char *fmt,...);
+#define	LOG_PRINTF(env,txn,fmt,...)	__db_logmsg((env),(txn),"DIAGNOSTIC",0,(fmt),__VA_ARGS__)
+#endif
+
 #endif
 
 #ifndef DB_BUFFER_SMALL

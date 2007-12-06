@@ -373,7 +373,7 @@ retry:	/* transaction retry */
 	}
 
 #if defined(LDAP_DEBUG) && defined(LDAP_DEVEL)
-	bdb->bi_dbenv->log_printf( bdb->bi_dbenv, lt2, "slapd Starting delete %s(%d)",
+	LOG_PRINTF( bdb->bi_dbenv, lt2, "slapd Starting delete %s(%d)",
 		e->e_nname.bv_val, e->e_id );
 #endif
 
@@ -498,7 +498,7 @@ retry:	/* transaction retry */
 	}
 
 #if defined(LDAP_DEBUG) && defined(LDAP_DEVEL)
-	bdb->bi_dbenv->log_printf( bdb->bi_dbenv, lt2, "slapd Commit1 delete %s(%d)",
+	LOG_PRINTF( bdb->bi_dbenv, lt2, "slapd Commit1 delete %s(%d)",
 		e->e_nname.bv_val, e->e_id );
 #endif
 
@@ -529,7 +529,7 @@ retry:	/* transaction retry */
 	} else {
 
 #if defined(LDAP_DEBUG) && defined(LDAP_DEVEL)
-		bdb->bi_dbenv->log_printf( bdb->bi_dbenv, ltid, "slapd Cache delete %s(%d)",
+		LOG_PRINTF( bdb->bi_dbenv, ltid, "slapd Cache delete %s(%d)",
 			e->e_nname.bv_val, e->e_id );
 #endif
 
@@ -546,7 +546,7 @@ retry:	/* transaction retry */
 	op->o_private = NULL;
 
 #if defined(LDAP_DEBUG) && defined(LDAP_DEVEL)
-	bdb->bi_dbenv->log_printf( bdb->bi_dbenv, NULL, "slapd Committed delete %s(%d)",
+	LOG_PRINTF( bdb->bi_dbenv, NULL, "slapd Committed delete %s(%d)",
 		e->e_nname.bv_val, e->e_id );
 #endif
 
