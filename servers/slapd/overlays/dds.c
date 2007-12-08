@@ -134,6 +134,9 @@ dds_expire( void *ctx, dds_info_t *di )
 
 	int		ndeletes, ntotdeletes;
 
+	int		rc;
+	char		*extra = "";
+
 	connection_fake_init( &conn, &opbuf, ctx );
 	op = &opbuf.ob_op;
 
@@ -184,6 +187,7 @@ done_search:;
 	op->o_tmpfree( op->ors_filterstr.bv_val, op->o_tmpmemctx );
 	filter_free_x( op, op->ors_filter );
 
+	rc = rs.sr_err;
 	switch ( rs.sr_err ) {
 	case LDAP_SUCCESS:
 		break;
@@ -191,12 +195,13 @@ done_search:;
 	case LDAP_NO_SUCH_OBJECT:
 		/* (ITS#5267) database not created yet? */
 		rs.sr_err = LDAP_SUCCESS;
+		extra = " (ignored)";
 		/* fallthru */
 
 	default:
-		Log1( LDAP_DEBUG_ANY, LDAP_LEVEL_ERR,
-			"DDS expired objects lookup failed err=%d\n",
-			rs.sr_err );
+		Log2( LDAP_DEBUG_ANY, LDAP_LEVEL_ERR,
+			"DDS expired objects lookup failed err=%d%s\n",
+			rc, extra );
 		goto done;
 	}
 
@@ -1618,6 +1623,9 @@ dds_count( void *ctx, BackendDB *be )
 	slap_callback	sc = { 0 };
 	SlapReply	rs = { REP_RESULT };
 
+	int		rc;
+	char		*extra = "";
+
 	connection_fake_init( &conn, &opbuf, ctx );
 	op = &opbuf.ob_op;
 
@@ -1653,6 +1661,7 @@ dds_count( void *ctx, BackendDB *be )
 	op->o_callback = &sc;
 	sc.sc_response = dds_count_cb;
 	sc.sc_private = &di->di_num_dynamicObjects;
+	di->di_num_dynamicObjects = 0;
 
 	op->o_bd->bd_info = (BackendInfo *)on->on_info;
 	(void)op->o_bd->bd_info->bi_op_search( op, &rs );
@@ -1662,15 +1671,25 @@ done_search:;
 	op->o_tmpfree( op->ors_filterstr.bv_val, op->o_tmpmemctx );
 	filter_free_x( op, op->ors_filter );
 
-	if ( rs.sr_err == LDAP_SUCCESS ) {
+	rc = rs.sr_err;
+	switch ( rs.sr_err ) {
+	case LDAP_SUCCESS:
 		Log1( LDAP_DEBUG_STATS, LDAP_LEVEL_INFO,
 			"DDS non-expired=%d\n",
 			di->di_num_dynamicObjects );
+		break;
 
-	} else {
-		Log1( LDAP_DEBUG_ANY, LDAP_LEVEL_ERR,
-			"DDS non-expired objects lookup failed err=%d\n",
-			rs.sr_err );
+	case LDAP_NO_SUCH_OBJECT:
+		/* (ITS#5267) database not created yet? */
+		rs.sr_err = LDAP_SUCCESS;
+		extra = " (ignored)";
+		/* fallthru */
+
+	default:
+		Log2( LDAP_DEBUG_ANY, LDAP_LEVEL_ERR,
+			"DDS non-expired objects lookup failed err=%d%s\n",
+			rc, extra );
+		break;
 	}
 
 	return rs.sr_err;
