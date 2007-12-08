@@ -746,7 +746,7 @@ tool_args( int argc, char **argv )
 		case 'P':
 			ival = strtol( optarg, &next, 10 );
 			if ( next == NULL || next[0] != '\0' ) {
-				fprintf( stderr, "%s: unabel to parse protocol version \"%s\"\n", prog, optarg );
+				fprintf( stderr, "%s: unable to parse protocol version \"%s\"\n", prog, optarg );
 				exit( EXIT_FAILURE );
 			}
 			switch( ival ) {
