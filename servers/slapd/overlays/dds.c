@@ -184,7 +184,16 @@ done_search:;
 	op->o_tmpfree( op->ors_filterstr.bv_val, op->o_tmpmemctx );
 	filter_free_x( op, op->ors_filter );
 
-	if ( rs.sr_err != LDAP_SUCCESS ) {
+	switch ( rs.sr_err ) {
+	case LDAP_SUCCESS:
+		break;
+
+	case LDAP_NO_SUCH_OBJECT:
+		/* (ITS#5267) database not created yet? */
+		rs.sr_err = LDAP_SUCCESS;
+		/* fallthru */
+
+	default:
 		Log1( LDAP_DEBUG_ANY, LDAP_LEVEL_ERR,
 			"DDS expired objects lookup failed err=%d\n",
 			rs.sr_err );
