@@ -251,7 +251,7 @@ int bdb_modify_internal(
 	/* start with deleting the old index entries */
 	for ( ap = save_attrs; ap != NULL; ap = ap->a_next ) {
 		if ( ap->a_flags & SLAP_ATTR_IXDEL ) {
-			struct berval tmp, *vals;
+			struct berval *vals;
 			Attribute *a2;
 			ap->a_flags &= ~SLAP_ATTR_IXDEL;
 			a2 = attr_find( e->e_attrs, ap->a_desc );
