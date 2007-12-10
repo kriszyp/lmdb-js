@@ -36,6 +36,7 @@ OpenLDAP 2.4.7 Release (2007/12/01)
 		Clarified slapd.conf(5) limits issues in syncrepl (ITS#5243)
 		Fixed slapd-config(5) maxderefdepth default value typo (ITS#5200)
 		Patches for minor typos in man pages (ITS#5228)
+		admin24/replication.sdf spelling (ITS#5270)
 
 
 OpenLDAP 2.4.6 Release (2007/10/31)
