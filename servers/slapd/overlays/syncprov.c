@@ -2321,6 +2321,12 @@ syncprov_operational(
 	slap_overinst		*on = (slap_overinst *)op->o_bd->bd_info;
 	syncprov_info_t		*si = (syncprov_info_t *)on->on_bi.bi_private;
 
+	/* This prevents generating unnecessarily; frontend will strip
+	 * any statically stored copy.
+	 */
+	if ( op->o_sync != SLAP_CONTROL_NONE )
+		return SLAP_CB_CONTINUE;
+
 	if ( rs->sr_entry &&
 		dn_match( &rs->sr_entry->e_nname, op->o_bd->be_nsuffix )) {
 

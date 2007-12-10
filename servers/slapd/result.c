@@ -898,12 +898,16 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 		} else {
 			/* specific attrs requested */
 			if ( is_at_operational( desc->ad_type ) ) {
-				if ( !SLAP_OPATTRS( rs->sr_attr_flags ) &&
-					!ad_inlist( desc, rs->sr_attrs ) )
-				{
-					continue;
+				/* if not explicitly requested */
+				if ( !ad_inlist( desc, rs->sr_attrs )) {
+					/* if not all op attrs requested, skip */
+					if ( !SLAP_OPATTRS( rs->sr_attr_flags ))
+						continue;
+					/* if DSA-specific and replicating, skip */
+					if ( op->o_sync != SLAP_CONTROL_NONE &&
+						desc->ad_type->sat_usage == LDAP_SCHEMA_DSA_OPERATION )
+						continue;
 				}
-
 			} else {
 				if ( !userattrs && !ad_inlist( desc, rs->sr_attrs ) ) {
 					continue;
