@@ -748,102 +748,133 @@ memberof_op_modify( Operation *op, SlapReply *rs )
 	save_dn = op->o_dn;
 	save_ndn = op->o_ndn;
 
-	if ( MEMBEROF_DANGLING_CHECK( mo )
-			&& !get_relax( op )
-			&& memberof_isGroupOrMember( op, &iswhat ) == LDAP_SUCCESS
-			&& ( iswhat & MEMBEROF_IS_GROUP ) )
+	if ( memberof_isGroupOrMember( op, &iswhat ) == LDAP_SUCCESS
+		&& ( iswhat & MEMBEROF_IS_GROUP ) )
 	{
-		op->o_dn = op->o_bd->be_rootdn;
-		op->o_dn = op->o_bd->be_rootndn;
-		op->o_bd->bd_info = (BackendInfo *)on->on_info;
-	
-		assert( op->orm_modlist != NULL );
-	
-		for ( mlp = &op->orm_modlist; *mlp; ) {
-			Modifications	*ml = *mlp;
-			int		i;
-	
-			if ( !is_ad_subtype( ml->sml_desc, mo->mo_ad_member ) ) {
-				mlp = &ml->sml_next;
-				continue;
+		Modifications *ml;
+		int save_member = 0;
+
+		for ( ml = op->orm_modlist; ml; ml = ml->sml_next ) {
+			if ( ml->sml_desc == mo->mo_ad_member ) {
+				switch ( ml->sml_op ) {
+				case LDAP_MOD_DELETE:
+				case LDAP_MOD_REPLACE:
+					save_member = 1;
+					break;
+				}
 			}
-	
-			switch ( ml->sml_op ) {
-			case LDAP_MOD_DELETE:
-				/* we don't care about cancellations: if the value
-				 * exists, fine; if it doesn't, we let the underlying
-				 * database fail as appropriate; */
-				mlp = &ml->sml_next;
-				break;
-	
-			case LDAP_MOD_REPLACE:
-			case LDAP_MOD_ADD:
-				/* NOTE: right now, the attributeType we use
-				 * for member must have a normalized value */
-				assert( ml->sml_nvalues != NULL );
-	
-				for ( i = 0; !BER_BVISNULL( &ml->sml_nvalues[ i ] ); i++ ) {
-					int		rc;
-					Entry		*e;
-	
-					if ( be_entry_get_rw( op, &ml->sml_nvalues[ i ],
-							NULL, NULL, 0, &e ) == LDAP_SUCCESS )
-					{
-						be_entry_release_r( op, e );
-						continue;
-					}
-	
-					if ( MEMBEROF_DANGLING_ERROR( mo ) ) {
-						rc = rs->sr_err = LDAP_CONSTRAINT_VIOLATION;
-						rs->sr_text = "adding non-existing object "
-							"as group member";
-						send_ldap_result( op, rs );
-						goto done;
-					}
-	
-					if ( MEMBEROF_DANGLING_DROP( mo ) ) {
-						int	j;
-	
-						Debug( LDAP_DEBUG_ANY, "%s: memberof_op_modify(\"%s\"): "
-							"member=\"%s\" does not exist (stripping...)\n",
-							op->o_log_prefix, op->o_req_dn.bv_val,
-							ml->sml_nvalues[ i ].bv_val );
-	
-						for ( j = i + 1; !BER_BVISNULL( &ml->sml_nvalues[ j ] ); j++ );
-						ber_memfree( ml->sml_values[ i ].bv_val );
-						BER_BVZERO( &ml->sml_values[ i ] );
-						ber_memfree( ml->sml_nvalues[ i ].bv_val );
-						BER_BVZERO( &ml->sml_nvalues[ i ] );
-						ml->sml_numvals--;
-						if ( j - i == 1 ) {
-							break;
-						}
-	
-						AC_MEMCPY( &ml->sml_values[ i ], &ml->sml_values[ i + 1 ],
-							sizeof( struct berval ) * ( j - i ) );
-						AC_MEMCPY( &ml->sml_nvalues[ i ], &ml->sml_nvalues[ i + 1 ],
-							sizeof( struct berval ) * ( j - i ) );
-						i--;
-					}
-				}
-	
-				if ( BER_BVISNULL( &ml->sml_nvalues[ 0 ] ) ) {
-					*mlp = ml->sml_next;
-					slap_mod_free( &ml->sml_mod, 0 );
-					free( ml );
-	
-				} else {
+		}
+
+		if ( save_member ) {
+			BerVarray	vals = NULL;
+
+			op->o_dn = op->o_bd->be_rootdn;
+			op->o_dn = op->o_bd->be_rootndn;
+			op->o_bd->bd_info = (BackendInfo *)on->on_info;
+			rc = backend_attribute( op, NULL, &op->o_req_ndn,
+					mo->mo_ad_member, &vals, ACL_READ );
+			op->o_bd->bd_info = (BackendInfo *)on;
+			if ( rc == LDAP_SUCCESS && vals != NULL ) {
+				memberof_saved_member_set( op, &saved_member_vals, vals );
+				ber_bvarray_free_x( vals, op->o_tmpmemctx );
+			}
+		}
+
+		if ( MEMBEROF_DANGLING_CHECK( mo )
+				&& !get_relax( op ) )
+		{
+			op->o_dn = op->o_bd->be_rootdn;
+			op->o_dn = op->o_bd->be_rootndn;
+			op->o_bd->bd_info = (BackendInfo *)on->on_info;
+		
+			assert( op->orm_modlist != NULL );
+		
+			for ( mlp = &op->orm_modlist; *mlp; ) {
+				Modifications	*ml = *mlp;
+				int		i;
+		
+				if ( !is_ad_subtype( ml->sml_desc, mo->mo_ad_member ) ) {
 					mlp = &ml->sml_next;
+					continue;
 				}
-	
-				break;
-	
-			default:
-				assert( 0 );
+		
+				switch ( ml->sml_op ) {
+				case LDAP_MOD_DELETE:
+					/* we don't care about cancellations: if the value
+					 * exists, fine; if it doesn't, we let the underlying
+					 * database fail as appropriate; */
+					mlp = &ml->sml_next;
+					break;
+		
+				case LDAP_MOD_REPLACE:
+				case LDAP_MOD_ADD:
+					/* NOTE: right now, the attributeType we use
+					 * for member must have a normalized value */
+					assert( ml->sml_nvalues != NULL );
+		
+					for ( i = 0; !BER_BVISNULL( &ml->sml_nvalues[ i ] ); i++ ) {
+						int		rc;
+						Entry		*e;
+		
+						if ( be_entry_get_rw( op, &ml->sml_nvalues[ i ],
+								NULL, NULL, 0, &e ) == LDAP_SUCCESS )
+						{
+							be_entry_release_r( op, e );
+							continue;
+						}
+		
+						if ( MEMBEROF_DANGLING_ERROR( mo ) ) {
+							rc = rs->sr_err = LDAP_CONSTRAINT_VIOLATION;
+							rs->sr_text = "adding non-existing object "
+								"as group member";
+							send_ldap_result( op, rs );
+							goto done;
+						}
+		
+						if ( MEMBEROF_DANGLING_DROP( mo ) ) {
+							int	j;
+		
+							Debug( LDAP_DEBUG_ANY, "%s: memberof_op_modify(\"%s\"): "
+								"member=\"%s\" does not exist (stripping...)\n",
+								op->o_log_prefix, op->o_req_dn.bv_val,
+								ml->sml_nvalues[ i ].bv_val );
+		
+							for ( j = i + 1; !BER_BVISNULL( &ml->sml_nvalues[ j ] ); j++ );
+							ber_memfree( ml->sml_values[ i ].bv_val );
+							BER_BVZERO( &ml->sml_values[ i ] );
+							ber_memfree( ml->sml_nvalues[ i ].bv_val );
+							BER_BVZERO( &ml->sml_nvalues[ i ] );
+							ml->sml_numvals--;
+							if ( j - i == 1 ) {
+								break;
+							}
+		
+							AC_MEMCPY( &ml->sml_values[ i ], &ml->sml_values[ i + 1 ],
+								sizeof( struct berval ) * ( j - i ) );
+							AC_MEMCPY( &ml->sml_nvalues[ i ], &ml->sml_nvalues[ i + 1 ],
+								sizeof( struct berval ) * ( j - i ) );
+							i--;
+						}
+					}
+		
+					if ( BER_BVISNULL( &ml->sml_nvalues[ 0 ] ) ) {
+						*mlp = ml->sml_next;
+						slap_mod_free( &ml->sml_mod, 0 );
+						free( ml );
+		
+					} else {
+						mlp = &ml->sml_next;
+					}
+		
+					break;
+		
+				default:
+					assert( 0 );
+				}
 			}
 		}
 	}
-
+	
 	if ( mmlp != NULL ) {
 		Modifications	*ml = *mmlp;
 		int		i;
@@ -1280,12 +1311,10 @@ memberof_res_modify( Operation *op, SlapReply *rs )
 				/* fall thru */
 	
 			case LDAP_MOD_REPLACE:
+				vals = memberof_saved_member_get( op, &saved_member_vals );
+
 				/* delete all ... */
-				op->o_bd->bd_info = (BackendInfo *)on->on_info;
-				rc = backend_attribute( op, NULL, &op->o_req_ndn,
-						mo->mo_ad_member, &vals, ACL_READ );
-				op->o_bd->bd_info = (BackendInfo *)on;
-				if ( rc == LDAP_SUCCESS ) {
+				if ( vals != NULL ) {
 					for ( i = 0; !BER_BVISNULL( &vals[ i ] ); i++ ) {
 						(void)memberof_value_modify( op, rs,
 								&vals[ i ], mo->mo_ad_memberof,
@@ -1448,39 +1477,7 @@ memberof_db_init(
 	slap_overinst	*on = (slap_overinst *)be->bd_info;
 	memberof_t	tmp_mo = { 0 }, *mo;
 
-	int		rc;
-	const char	*text = NULL;
-
-	rc = slap_str2ad( SLAPD_MEMBEROF_ATTR, &tmp_mo.mo_ad_memberof, &text );
-	if ( rc != LDAP_SUCCESS ) {
-		Debug( LDAP_DEBUG_ANY,
-			"memberof_db_init: "
-			"unable to find attribute=\"%s\": %s (%d)\n",
-			SLAPD_MEMBEROF_ATTR, text, rc );
-		return rc;
-	}
-
-	rc = slap_str2ad( SLAPD_GROUP_ATTR, &tmp_mo.mo_ad_member, &text );
-	if ( rc != LDAP_SUCCESS ) {
-		Debug( LDAP_DEBUG_ANY,
-			"memberof_db_init: "
-			"unable to find attribute=\"%s\": %s (%d)\n",
-			SLAPD_GROUP_ATTR, text, rc );
-		return rc;
-	}
-
-	tmp_mo.mo_oc_group = oc_find( SLAPD_GROUP_CLASS );
-	if ( tmp_mo.mo_oc_group == NULL ) {
-		Debug( LDAP_DEBUG_ANY,
-			"memberof_db_init: "
-			"unable to find objectClass=\"%s\"\n",
-			SLAPD_GROUP_CLASS, 0, 0 );
-		return 1;
-	}
-
 	mo = (memberof_t *)ch_calloc( 1, sizeof( memberof_t ) );
-	*mo = tmp_mo;
-
 	on->on_bi.bi_private = (void *)mo;
 
 	return 0;
@@ -1656,8 +1653,10 @@ mo_cf_gen( ConfigArgs *c )
 
 		switch( c->type ) {
 		case MO_DN:
-			value_add_one( &c->rvalue_vals, &mo->mo_dn );
-			value_add_one( &c->rvalue_nvals, &mo->mo_ndn );
+			if ( mo->mo_dn.bv_val != NULL) {
+				value_add_one( &c->rvalue_vals, &mo->mo_dn );
+				value_add_one( &c->rvalue_nvals, &mo->mo_ndn );
+			}
 			break;
 
 		case MO_DANGLING:
@@ -1683,18 +1682,21 @@ mo_cf_gen( ConfigArgs *c )
 #endif
 
 		case MO_GROUP_OC:
-			assert( mo->mo_oc_group != NULL );
-			value_add_one( &c->rvalue_vals, &mo->mo_oc_group->soc_cname );
+			if ( mo->mo_oc_group != NULL ){
+				value_add_one( &c->rvalue_vals, &mo->mo_oc_group->soc_cname );
+			}
 			break;
 
 		case MO_MEMBER_AD:
-			assert( mo->mo_ad_member != NULL );
-			value_add_one( &c->rvalue_vals, &mo->mo_ad_member->ad_cname );
+			if ( mo->mo_ad_member != NULL ){
+				value_add_one( &c->rvalue_vals, &mo->mo_ad_member->ad_cname );
+			}
 			break;
 
 		case MO_MEMBER_OF_AD:
-			assert( mo->mo_ad_memberof != NULL );
-			value_add_one( &c->rvalue_vals, &mo->mo_ad_memberof->ad_cname );
+			if ( mo->mo_ad_memberof != NULL ){
+				value_add_one( &c->rvalue_vals, &mo->mo_ad_memberof->ad_cname );
+			}
 			break;
 
 		default:
@@ -1842,6 +1844,40 @@ memberof_db_open(
 {
 	slap_overinst	*on = (slap_overinst *)be->bd_info;
 	memberof_t	*mo = (memberof_t *)on->on_bi.bi_private;
+	
+	int		rc;
+	const char	*text = NULL;
+
+	if( ! mo->mo_ad_memberof ){
+		rc = slap_str2ad( SLAPD_MEMBEROF_ATTR, &mo->mo_ad_memberof, &text );
+		if ( rc != LDAP_SUCCESS ) {
+			Debug( LDAP_DEBUG_ANY, "memberof_db_open: "
+					"unable to find attribute=\"%s\": %s (%d)\n",
+					SLAPD_MEMBEROF_ATTR, text, rc );
+			return rc;
+		}
+	}
+
+	if( ! mo->mo_ad_member ){
+		rc = slap_str2ad( SLAPD_GROUP_ATTR, &mo->mo_ad_member, &text );
+		if ( rc != LDAP_SUCCESS ) {
+			Debug( LDAP_DEBUG_ANY, "memberof_db_open: "
+					"unable to find attribute=\"%s\": %s (%d)\n",
+					SLAPD_GROUP_ATTR, text, rc );
+			return rc;
+		}
+	}
+
+    if( ! mo->mo_oc_group ){
+		mo->mo_oc_group = oc_find( SLAPD_GROUP_CLASS );
+		if ( mo->mo_oc_group == NULL ) {
+			Debug( LDAP_DEBUG_ANY,
+					"memberof_db_open: "
+					"unable to find objectClass=\"%s\"\n",
+					SLAPD_GROUP_CLASS, 0, 0 );
+			return 1;
+		}
+	}
 
 	if ( BER_BVISNULL( &mo->mo_dn ) ) {
 		ber_dupbv( &mo->mo_dn, &be->be_rootdn );
