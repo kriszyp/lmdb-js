@@ -773,7 +773,6 @@ lutil_str2bin( struct berval *in, struct berval *out, void *ctx )
 		}
 		/* Negate the result */
 		if ( neg ) {
-			int i, j;
 			unsigned char *ptr;
 
 			ptr = num.buf+num.beg;
