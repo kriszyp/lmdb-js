@@ -608,7 +608,7 @@ H2: MirrorMode
 H3: Arguments for MirrorMode
 
 * Provides a high-availability (HA) solution for directory writes (replicas handle reads)
-* As long as one Master is operational, writes can safely be excepted
+* As long as one Master is operational, writes can safely be accepted 
 * Master nodes replicate from each other, so they are always up to date and
 can be ready to take over (hot standby)
 * Syncrepl also allows the master nodes to re-synchronize after any downtime
