@@ -55,7 +55,7 @@ cat /dev/null > $SEARCHOUT
 
 echo "Searching database..."
 echo "# Searching database..." >> $SEARCHOUT
-$LDAPSEARCH -b "$BASEDN" -h $LOCALHOST -p $PORT1 >> $SEARCHOUT 2>&1
+$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 >> $SEARCHOUT 2>&1
 
 RC=$?
 if test $RC != 0 ; then
@@ -67,7 +67,7 @@ fi
 DN="OU=Sales+CN=J. Smith,DC=example,DC=net"
 echo "Searching database for DN=\"$DN\"..."
 echo "# Searching database for DN=\"$DN\"..." >> $SEARCHOUT
-$LDAPSEARCH -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
 	"(member=$DN)" >> $SEARCHOUT 2>&1
 
 RC=$?
@@ -80,7 +80,7 @@ fi
 DN="testUUID=597ae2f6-16a6-1027-98f4-ABCDEFabcdef,DC=Example"
 echo "Searching database for entryUUID-named DN=\"$DN\"..."
 echo "# Searching database for entryUUID-named DN=\"$DN\"..." >> $SEARCHOUT
-$LDAPSEARCH -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
 	"(member=$DN)" \
 	>> $SEARCHOUT 2>&1
 
@@ -94,7 +94,7 @@ fi
 DN="dc=example,dc=com"
 echo "Searching database for nameAndOptionalUID=\"$DN\"..."
 echo "# Searching database for nameAndOptionalUID=\"$DN\"..." >> $SEARCHOUT
-$LDAPSEARCH -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
 	"(uniqueMember=$DN)" >> $SEARCHOUT 2>&1
 
 RC=$?
@@ -107,7 +107,7 @@ fi
 DN="dc=example,dc=com#'001000'B"
 echo "Searching database for nameAndOptionalUID=\"$DN\"..."
 echo "# Searching database for nameAndOptionalUID=\"$DN\"..." >> $SEARCHOUT
-$LDAPSEARCH -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
 	"(uniqueMember=$DN)" >> $SEARCHOUT 2>&1
 
 RC=$?
@@ -120,7 +120,7 @@ fi
 DN="dc=example,dc=com"
 echo "Searching database for uniqueMember~=\"$DN\" (approx)..."
 echo "# Searching database for uniqueMember~=\"$DN\" (approx)..." >> $SEARCHOUT
-$LDAPSEARCH -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
 	"(uniqueMember~=)" >> $SEARCHOUT 2>&1
 
 RC=$?
@@ -133,7 +133,7 @@ fi
 DN="dc=example,dc=com#'001000'B"
 echo "Searching database for uniqueMember~=\"$DN\" (approx)..."
 echo "# Searching database for uniqueMember~=\"$DN\" (approx)..." >> $SEARCHOUT
-$LDAPSEARCH -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
 	"(uniqueMember~=$DN)" >> $SEARCHOUT 2>&1
 
 RC=$?
