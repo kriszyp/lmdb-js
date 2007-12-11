@@ -60,6 +60,7 @@ typedef struct log_info {
 	Filter *li_oldf;
 	Entry *li_old;
 	int li_success;
+	int li_unlock;
 	ldap_pvt_thread_mutex_t li_op_mutex;
 	ldap_pvt_thread_mutex_t li_log_mutex;
 } log_info;
@@ -913,6 +914,7 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 		ldap_pvt_thread_mutex_lock( &li->li_log_mutex );
 		old = li->li_old;
 		li->li_old = NULL;
+		li->li_unlock = 0;
 		ldap_pvt_thread_mutex_unlock( &li->li_op_mutex );
 	}
 
@@ -1224,16 +1226,43 @@ accesslog_op_bind( Operation *op, SlapReply *rs )
 }
 
 static int
+accesslog_mod_cleanup( Operation *op, SlapReply *rs )
+{
+	slap_callback *sc = op->o_callback;
+	slap_overinst *on = sc->sc_private;
+	log_info *li = on->on_bi.bi_private;
+	op->o_callback = sc->sc_next;
+
+	op->o_tmpfree( sc, op->o_tmpmemctx );
+
+	if ( li->li_unlock ) {
+		BackendInfo *bi = op->o_bd->bd_info;
+		op->o_bd->bd_info = (BackendInfo *)on;
+		accesslog_response( op, rs );
+		op->o_bd->bd_info = bi;
+	}
+	return 0;
+}
+
+static int
 accesslog_op_mod( Operation *op, SlapReply *rs )
 {
 	slap_overinst *on = (slap_overinst *)op->o_bd->bd_info;
 	log_info *li = on->on_bi.bi_private;
 
 	if ( li->li_ops & LOG_OP_WRITES ) {
+		slap_callback *cb = op->o_tmpalloc( sizeof( slap_callback ), op->o_tmpmemctx );
+		cb->sc_cleanup = accesslog_mod_cleanup;
+		cb->sc_response = NULL; 
+		cb->sc_private = on;
+		cb->sc_next = op->o_callback;
+		op->o_callback = cb;
+
 		/* FIXME: this needs to be a recursive mutex to allow
 		 * overlays like refint to keep working.
 		 */
 		ldap_pvt_thread_mutex_lock( &li->li_op_mutex );
+		li->li_unlock = 1;
 		if ( li->li_oldf && ( op->o_tag == LDAP_REQ_DELETE ||
 			op->o_tag == LDAP_REQ_MODIFY )) {
 			int rc;

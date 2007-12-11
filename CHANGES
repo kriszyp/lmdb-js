@@ -4,6 +4,7 @@ OpenLDAP 2.3.40 Engineering
 	Fixed slapd-bdb/hdb slapadd hang (ITS#5225)
 	Fixed slapd-bdb/hdb dn2entry lock bug (ITS#5257)
 	Fixed slapd-bdb/hdb dn2id lock bug (ITS#5262)
+	Fixed slapo-accesslog abandoned op cleanup (ITS#5161)
 	Fixed slapo-translucent interactions with slapo-rwm (ITS#4889)
 	Documentation
 		Fixed slapd.conf(5) maxderefdepth default value typo (ITS#5200)
