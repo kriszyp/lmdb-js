@@ -129,9 +129,15 @@ dn2path(struct berval * orig_dn, struct berval * suffixdn, struct berval * base_
 	res->bv_len = dn.bv_len + base_path->bv_len + 1 + STRLENOF( LDIF );
 	res->bv_val = ch_malloc( res->bv_len + 1 );
 	ptr = lutil_strcopy( res->bv_val, base_path->bv_val );
-	*ptr++ = LDAP_DIRSEP[0];
-	ptr = lutil_strcopy( ptr, suffixdn->bv_val );
-	end = dn.bv_val + dn.bv_len - suffixdn->bv_len - 1;
+	end = dn.bv_val + dn.bv_len;
+	if ( !BER_BVISEMPTY( suffixdn ) ) {
+		*ptr++ = LDAP_DIRSEP[0];
+		ptr = lutil_strcopy( ptr, suffixdn->bv_val );
+		end -= suffixdn->bv_len + 1;
+
+	} else if ( BER_BVISEMPTY( &dn ) ) {
+		*ptr++ = LDAP_DIRSEP[0];
+	}
 	while ( end > dn.bv_val ) {
 		for (sep = end-1; sep >= dn.bv_val && !DN_SEPARATOR( *sep ); sep--);
 		*ptr++ = LDAP_DIRSEP[0];
@@ -161,6 +167,8 @@ dn2path(struct berval * orig_dn, struct berval * suffixdn, struct berval * base_
 	if ( dn.bv_val != orig_dn->bv_val ) {
 		ch_free( dn.bv_val );
 	}
+
+	assert( strlen( res->bv_val ) == res->bv_len );
 }
 
 static char * slurp_file(int fd) {
@@ -393,81 +401,83 @@ typedef struct bvlist {
 } bvlist;
 
 
-static int r_enum_tree(enumCookie *ck, struct berval *path,
+static int r_enum_tree(enumCookie *ck, struct berval *path, int base,
 	struct berval *pdn, struct berval *pndn)
 {
-	Entry *e;
-	int fd, rc = LDAP_SUCCESS;
+	Entry *e = NULL;
+	int fd = 0, rc = LDAP_SUCCESS;
 
-	fd = open( path->bv_val, O_RDONLY );
-	if ( fd < 0 ) {
-		Debug( LDAP_DEBUG_TRACE,
-			"=> ldif_enum_tree: failed to open %s: %s\n",
-			path->bv_val, STRERROR(errno), 0 );
-		return LDAP_NO_SUCH_OBJECT;
-	}
-
-	e = get_entry_for_fd(fd, pdn, pndn);
-	if ( !e ) {
-		Debug( LDAP_DEBUG_ANY,
-			"=> ldif_enum_tree: failed to read entry for %s\n",
-			path->bv_val, 0, 0 );
-		return LDAP_BUSY;
-	}
-
-	if ( ck->op->ors_scope == LDAP_SCOPE_BASE ||
-		ck->op->ors_scope == LDAP_SCOPE_SUBTREE ) {
-		/* Send right away? */
-		if ( ck->rs ) {
-			/*
-			 * if it's a referral, add it to the list of referrals. only do
-			 * this for non-base searches, and don't check the filter
-			 * explicitly here since it's only a candidate anyway.
-			 */
-			if ( !get_manageDSAit( ck->op )
-					&& ck->op->ors_scope != LDAP_SCOPE_BASE
-					&& is_entry_referral( e ) )
-			{
-				BerVarray erefs = get_entry_referrals( ck->op, e );
-				ck->rs->sr_ref = referral_rewrite( erefs,
-						&e->e_name, NULL,
-						ck->op->oq_search.rs_scope == LDAP_SCOPE_ONELEVEL
-							? LDAP_SCOPE_BASE : LDAP_SCOPE_SUBTREE );
-
-				ck->rs->sr_entry = e;
-				rc = send_search_reference( ck->op, ck->rs );
-				ber_bvarray_free( ck->rs->sr_ref );
-				ber_bvarray_free( erefs );
-				ck->rs->sr_ref = NULL;
-				ck->rs->sr_entry = NULL;
-
-			} else if ( test_filter( ck->op, e, ck->op->ors_filter ) == LDAP_COMPARE_TRUE )
-			{
-				ck->rs->sr_entry = e;
-				ck->rs->sr_attrs = ck->op->ors_attrs;
-				ck->rs->sr_flags = REP_ENTRY_MODIFIABLE;
-				rc = send_search_entry(ck->op, ck->rs);
-				ck->rs->sr_entry = NULL;
-			}
-			fd = 1;
-			if ( rc )
-				goto done;
-		} else {
-		/* Queueing up for tool mode */
-			if(ck->entries == NULL) {
-				ck->entries = (Entry **) ch_malloc(sizeof(Entry *) * ENTRY_BUFF_INCREMENT);
-				ck->elen = ENTRY_BUFF_INCREMENT;
-			}
-			if(ck->eind >= ck->elen) { /* grow entries if necessary */	
-				ck->entries = (Entry **) ch_realloc(ck->entries, sizeof(Entry *) * (ck->elen) * 2);
-				ck->elen *= 2;
-			}
-
-			ck->entries[ck->eind++] = e;
-			fd = 0;
+	if ( !base ) {
+		fd = open( path->bv_val, O_RDONLY );
+		if ( fd < 0 ) {
+			Debug( LDAP_DEBUG_TRACE,
+				"=> ldif_enum_tree: failed to open %s: %s\n",
+				path->bv_val, STRERROR(errno), 0 );
+			return LDAP_NO_SUCH_OBJECT;
 		}
-	} else {
-		fd = 1;
+
+		e = get_entry_for_fd(fd, pdn, pndn);
+		if ( !e ) {
+			Debug( LDAP_DEBUG_ANY,
+				"=> ldif_enum_tree: failed to read entry for %s\n",
+				path->bv_val, 0, 0 );
+			return LDAP_BUSY;
+		}
+
+		if ( ck->op->ors_scope == LDAP_SCOPE_BASE ||
+			ck->op->ors_scope == LDAP_SCOPE_SUBTREE ) {
+			/* Send right away? */
+			if ( ck->rs ) {
+				/*
+				 * if it's a referral, add it to the list of referrals. only do
+				 * this for non-base searches, and don't check the filter
+				 * explicitly here since it's only a candidate anyway.
+				 */
+				if ( !get_manageDSAit( ck->op )
+						&& ck->op->ors_scope != LDAP_SCOPE_BASE
+						&& is_entry_referral( e ) )
+				{
+					BerVarray erefs = get_entry_referrals( ck->op, e );
+					ck->rs->sr_ref = referral_rewrite( erefs,
+							&e->e_name, NULL,
+							ck->op->oq_search.rs_scope == LDAP_SCOPE_ONELEVEL
+								? LDAP_SCOPE_BASE : LDAP_SCOPE_SUBTREE );
+	
+					ck->rs->sr_entry = e;
+					rc = send_search_reference( ck->op, ck->rs );
+					ber_bvarray_free( ck->rs->sr_ref );
+					ber_bvarray_free( erefs );
+					ck->rs->sr_ref = NULL;
+					ck->rs->sr_entry = NULL;
+	
+				} else if ( test_filter( ck->op, e, ck->op->ors_filter ) == LDAP_COMPARE_TRUE )
+				{
+					ck->rs->sr_entry = e;
+					ck->rs->sr_attrs = ck->op->ors_attrs;
+					ck->rs->sr_flags = REP_ENTRY_MODIFIABLE;
+					rc = send_search_entry(ck->op, ck->rs);
+					ck->rs->sr_entry = NULL;
+				}
+				fd = 1;
+				if ( rc )
+					goto done;
+			} else {
+			/* Queueing up for tool mode */
+				if(ck->entries == NULL) {
+					ck->entries = (Entry **) ch_malloc(sizeof(Entry *) * ENTRY_BUFF_INCREMENT);
+					ck->elen = ENTRY_BUFF_INCREMENT;
+				}
+				if(ck->eind >= ck->elen) { /* grow entries if necessary */	
+					ck->entries = (Entry **) ch_realloc(ck->entries, sizeof(Entry *) * (ck->elen) * 2);
+					ck->elen *= 2;
+				}
+	
+				ck->entries[ck->eind++] = e;
+				fd = 0;
+			}
+		} else {
+			fd = 1;
+		}
 	}
 
 	if ( ck->op->ors_scope != LDAP_SCOPE_BASE ) {
@@ -551,7 +561,9 @@ static int r_enum_tree(enumCookie *ck, struct berval *path,
 					AC_MEMCPY( ptr->bv.bv_val + ptr->off, ptr->num.bv_val,
 						ptr->num.bv_len );
 				fullpath( path, &ptr->bv, &fpath );
-				rc = r_enum_tree(ck, &fpath, &e->e_name, &e->e_nname );
+				rc = r_enum_tree(ck, &fpath, 0,
+					e != NULL ? &e->e_name : pdn,
+					e != NULL ? &e->e_nname : pndn );
 				free(fpath.bv_val);
 			}
 			if ( ptr->num.bv_val )
@@ -578,7 +590,7 @@ enum_tree(
 	dnParent( &ck->op->o_req_dn, &pdn );
 	dnParent( &ck->op->o_req_ndn, &pndn );
 	dn2path( &ck->op->o_req_ndn, &ck->op->o_bd->be_nsuffix[0], &li->li_base_path, &path);
-	rc = r_enum_tree(ck, &path, &pdn, &pndn);
+	rc = r_enum_tree(ck, &path, BER_BVISEMPTY( &ck->op->o_req_ndn ) ? 1 : 0, &pdn, &pndn);
 	ch_free( path.bv_val );
 	return rc;
 }
@@ -697,6 +709,11 @@ ldif_back_referrals( Operation *op, SlapReply *rs )
 		return rc;
 	}
 
+	if ( BER_BVISEMPTY( &op->o_req_ndn ) ) {
+		/* the empty DN cannot be a referral */
+		return rc;
+	}
+
 	li = (struct ldif_info *)op->o_bd->be_private;
 	ldap_pvt_thread_rdwr_rlock( &li->li_rdwr );
 	entry = get_entry( op, &li->li_base_path );
@@ -711,7 +728,9 @@ ldif_back_referrals( Operation *op, SlapReply *rs )
 		for ( ; entry == NULL; ) {
 			dnParent( &pndn, &pndn );
 			
-			if ( !dnIsSuffix( &pndn, &op->o_bd->be_nsuffix[0] ) ) {
+			if ( BER_BVISEMPTY( &pndn )
+				|| !dnIsSuffix( &pndn, &op->o_bd->be_nsuffix[0] ) )
+			{
 				break;
 			}
 
