@@ -1023,15 +1023,17 @@ static int ldif_back_delete(Operation *op, SlapReply *rs) {
 			break;
 
 		case ENOENT:
-			rs->sr_err = LDAP_NO_SUCH_OBJECT;
+			/* is leaf, go on */
+			res = 0;
 			break;
 
 		default:
 			rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
 			break;
 		}
+	}
 
-	} else {
+	if ( !res ) {
 		res = unlink(path.bv_val);
 		if ( res == -1 ) {
 			switch ( errno ) {
