@@ -40,6 +40,7 @@ class LDAPRequest{
         
         const LDAPConstraints* getConstraints() const;
         const LDAPAsynConnection* getConnection() const;
+        LDAPMsg *getNextMessage() const;
         int getType()const;
         int getMsgID() const;
         int getHopCount() const;
