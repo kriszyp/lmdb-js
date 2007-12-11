@@ -80,6 +80,7 @@ typedef struct syncinfo_s {
 	int					si_tlimit;
 	int					si_refreshDelete;
 	int					si_refreshPresent;
+	int					si_refreshDone;
 	int					si_syncdata;
 	int					si_logstate;
 	int					si_conn_setup;
@@ -584,6 +585,8 @@ do_syncrep1(
 			&si->si_syncCookie.ctxcsn, si->si_syncCookie.rid );
 	}
 
+	si->si_refreshDone = 0;
+
 	rc = ldap_sync_search( si, op->o_tmpmemctx );
 
 	if( rc != LDAP_SUCCESS ) {
@@ -643,7 +646,6 @@ do_syncrep2(
 	struct timeval tout = { 0, 0 };
 
 	int		refreshDeletes = 0;
-	int		refreshDone = 1;
 	BerVarray syncUUIDs = NULL;
 	ber_tag_t si_tag;
 
@@ -874,10 +876,14 @@ do_syncrep2(
 								slap_parse_sync_cookie( &syncCookie, NULL );
 							}
 						}
+						/* Defaults to TRUE */
 						if ( ber_peek_tag( ber, &len ) ==
 							LDAP_TAG_REFRESHDONE )
 						{
-							ber_scanf( ber, "b", &refreshDone );
+							ber_scanf( ber, "b", &si->si_refreshDone );
+						} else
+						{
+							si->si_refreshDone = 1;
 						}
 						ber_scanf( ber, /*"{"*/ "}" );
 						break;
@@ -1697,7 +1703,7 @@ syncrepl_entry(
 	}
 
 	if (( syncstate == LDAP_SYNC_PRESENT || syncstate == LDAP_SYNC_ADD )) {
-		if ( !si->si_refreshPresent ) {
+ 		if ( !si->si_refreshPresent && !si->si_refreshDone ) {
 			syncuuid_bv = ber_dupbv( NULL, syncUUID );
 			avl_insert( &si->si_presentlist, (caddr_t) syncuuid_bv,
 				syncuuid_cmp, avl_dup_error );
