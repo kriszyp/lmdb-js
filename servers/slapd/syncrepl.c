@@ -2370,7 +2370,7 @@ syncrepl_updateCookie(
 	Modifications mod = { { 0 } };
 	struct berval vals[ 2 ];
 
-	int rc;
+	int rc, dbflags;
 
 	slap_callback cb = { NULL };
 	SlapReply	rs_modify = {REP_RESULT};
@@ -2402,7 +2402,10 @@ syncrepl_updateCookie(
 	/* update contextCSN */
 	op->o_msgid = SLAP_SYNC_UPDATE_MSGID;
 	op->orm_modlist = &mod;
+	dbflags = SLAP_DBFLAGS(op->o_bd);
+	SLAP_DBFLAGS(op->o_bd) |= SLAP_DBFLAG_NOLASTMOD;
 	rc = be->be_modify( op, &rs_modify );
+	SLAP_DBFLAGS(op->o_bd) = dbflags;
 	op->o_msgid = 0;
 
 	if ( rs_modify.sr_err != LDAP_SUCCESS ) {
