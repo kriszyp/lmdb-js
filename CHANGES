@@ -1,5 +1,7 @@
 OpenLDAP 2.4 Change Log
 
+OpenLDAP 2.4.X Engineering
+
 OpenLDAP 2.4.7 Release (2007/12/14)
 	Added slapd ordered indexing of integer attributes (ITS#5239)
 	Fixed slapd paged results control handling (ITS#5191)
