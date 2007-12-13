@@ -95,7 +95,7 @@ olcAttributeTypes: ( 2.5.4.5 NAME 'serialNumber'
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.44{64} )
 #
 # RFC 4519 definition ('countryName' in X.500 and RFC2256)
-olcAttributeTypes: ( 2.5.4.6 NAME 'c'
+olcAttributeTypes: ( 2.5.4.6 NAME ( 'c' 'countryName' )
   DESC 'RFC4519: two-letter ISO-3166 country code'
   SUP name
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.11
