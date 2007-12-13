@@ -33,6 +33,9 @@ bdb_dn2id_lock( struct bdb_info *bdb, struct berval *dn,
 	DBT       lockobj;
 	int       db_rw;
 
+	if (!locker)
+		return 0;
+
 	if (rw)
 		db_rw = DB_LOCK_WRITE;
 	else
