@@ -340,7 +340,7 @@ static int bdb_tool_next_id(
 		return 0;
 	}
 
-	rc = bdb_cache_find_ndn( op, TXN_ID( tid ), &ndn, &ei );
+	rc = bdb_cache_find_ndn( op, tid ? TXN_ID( tid ) : 0, &ndn, &ei );
 	if ( ei ) bdb_cache_entryinfo_unlock( ei );
 	if ( rc == DB_NOTFOUND ) {
 		if ( !be_issuffix( op->o_bd, &ndn ) ) {
