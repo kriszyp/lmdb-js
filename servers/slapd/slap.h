@@ -1006,11 +1006,11 @@ struct SubstringsAssertion {
 };
 
 struct MatchingRuleAssertion {
+	AttributeDescription	*ma_desc;	/* optional */
+	struct berval		ma_value;	/* required */
 	MatchingRule		*ma_rule;	/* optional */
 	struct berval		ma_rule_text;	/* optional */
-	AttributeDescription	*ma_desc;	/* optional */
 	int			ma_dnattrs;	/* boolean */
-	struct berval		ma_value;	/* required */
 #ifdef LDAP_COMP_MATCH
 	ComponentFilter		*ma_cf;	/* component filter */
 #endif
