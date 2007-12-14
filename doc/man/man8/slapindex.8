@@ -28,7 +28,9 @@ is used to regenerate
 indices based upon the current contents of a database.
 It opens the given database determined by the database number or
 suffix and updates the indices for all values of all attributes
-of all entries.
+of all entries. If a list of specific attributes is provided
+on the command line, only the indices for those attributes will
+be regenerated.
 Databases configured as
 .B subordinate
 of this one are also re-indexed, unless \fB-g\fP is specified.
