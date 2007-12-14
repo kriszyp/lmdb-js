@@ -956,6 +956,20 @@ static int translucent_search(Operation *op, SlapReply *rs) {
 	op->o_callback = cb.sc_next;
 	/* Send out anything remaining on the list and finish */
 	if ( tc.step & USE_LIST ) {
+		if ( tc.list ) {
+			Avlnode *av;
+
+			av = tavl_end( tc.list, TAVL_DIR_LEFT );
+			while ( av ) {
+				rs->sr_flags = REP_ENTRY_MUSTBEFREED;
+				rs->sr_entry = av->avl_data;
+				rc = send_search_entry( op, rs );
+				if ( rc ) break;
+				av = tavl_next( av, TAVL_DIR_RIGHT );
+			}
+			tavl_free( tc.list, NULL );
+		}
+		send_ldap_result( op, rs );
 	}
 
 	return rc;
