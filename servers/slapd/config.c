@@ -660,29 +660,23 @@ read_config_file(const char *fname, int depth, ConfigArgs *cf, ConfigTable *cft)
 	int rc;
 	struct stat s;
 
-	c = ch_calloc( 1, sizeof( ConfigArgs ) );
-	if ( c == NULL ) {
-		return 1;
-	}
-
-	if ( depth ) {
-		memcpy( c, cf, sizeof( ConfigArgs ) );
+	if ( cf ) {
+		c = cf;
 	} else {
-		c->depth = depth; /* XXX */
-		c->bi = NULL;
-		c->be = NULL;
-	}
+		c = ch_calloc( 1, sizeof( ConfigArgs ) );
 
-	c->valx = -1;
-	c->fname = fname;
-	init_config_argv( c );
+		c->valx = -1;
+		c->fname = fname;
+		init_config_argv( c );
+	}
 
 	if ( stat( fname, &s ) != 0 ) {
 		ldap_syslog = 1;
 		Debug(LDAP_DEBUG_ANY,
 		    "could not stat config file \"%s\": %s (%d)\n",
 		    fname, strerror(errno), errno);
-		ch_free( c );
+		if ( !cf )
+			ch_free( c );
 		return(1);
 	}
 
@@ -691,7 +685,8 @@ read_config_file(const char *fname, int depth, ConfigArgs *cf, ConfigTable *cft)
 		Debug(LDAP_DEBUG_ANY,
 		    "regular file expected, got \"%s\"\n",
 		    fname, 0, 0 );
-		ch_free( c );
+		if ( !cf )
+			ch_free( c );
 		return(1);
 	}
 
@@ -701,7 +696,8 @@ read_config_file(const char *fname, int depth, ConfigArgs *cf, ConfigTable *cft)
 		Debug(LDAP_DEBUG_ANY,
 		    "could not open config file \"%s\": %s (%d)\n",
 		    fname, strerror(errno), errno);
-		ch_free( c );
+		if ( !cf )
+			ch_free( c );
 		return(1);
 	}
 
@@ -843,10 +839,12 @@ read_config_file(const char *fname, int depth, ConfigArgs *cf, ConfigTable *cft)
 	rc = 0;
 
 done:
-	ch_free(c->tline);
 	fclose(fp);
-	ch_free(c->argv);
-	ch_free(c);
+	if ( !cf ) {
+		ch_free(c->tline);
+		ch_free(c->argv);
+		ch_free(c);
+	}
 	return(rc);
 }
 
