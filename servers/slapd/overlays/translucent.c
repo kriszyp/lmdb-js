@@ -993,13 +993,19 @@ static int translucent_search(Operation *op, SlapReply *rs) {
 
 			av = tavl_end( tc.list, TAVL_DIR_LEFT );
 			while ( av ) {
-				rs->sr_flags = REP_ENTRY_MUSTBEFREED;
 				rs->sr_entry = av->avl_data;
-				rc = send_search_entry( op, rs );
-				if ( rc ) break;
+				rc = test_filter( op, rs->sr_entry, op->ors_filter );
+				if ( rc == LDAP_COMPARE_TRUE ) {
+					rs->sr_flags = REP_ENTRY_MUSTBEFREED;
+					rc = send_search_entry( op, rs );
+					if ( rc ) break;
+				} else {
+					entry_free( rs->sr_entry );
+				}
 				av = tavl_next( av, TAVL_DIR_RIGHT );
 			}
 			tavl_free( tc.list, NULL );
+			rs->sr_entry = NULL;
 		}
 		send_ldap_result( op, rs );
 	}
