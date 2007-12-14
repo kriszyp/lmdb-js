@@ -859,6 +859,10 @@ read_config_file(const char *fname, int depth, ConfigArgs *cf, ConfigTable *cft)
 	rc = 0;
 
 done:
+	if ( cf ) {
+		cf->be = c->be;
+		cf->bi = c->bi;
+	}
 	ch_free(c->tline);
 	fclose(fp);
 	ch_free(c->argv);
