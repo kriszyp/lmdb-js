@@ -783,16 +783,13 @@ static int translucent_search_cb(Operation *op, SlapReply *rs) {
 				re->e_attrs = as;
 			}
 		}
+		/* If both filters, save entry for later */
 		if ( tc->step == (USE_LIST|RMT_SIDE) ) {
-			rc = test_filter( op, re, tc->orig );
-			if ( rc == LDAP_COMPARE_TRUE ) {
-				tavl_insert( &tc->list, re, entry_dn_cmp, avl_dup_error );
-			} else {
-				entry_free( re );
-			}
+			tavl_insert( &tc->list, re, entry_dn_cmp, avl_dup_error );
 			rs->sr_entry = NULL;
 			rc = 0;
 		} else {
+		/* send it now */
 			rs->sr_entry = re;
 			rs->sr_flags |= REP_ENTRY_MUSTBEFREED;
 			rc = SLAP_CB_CONTINUE;
