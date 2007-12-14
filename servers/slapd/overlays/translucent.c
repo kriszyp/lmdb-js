@@ -648,8 +648,6 @@ typedef struct trans_ctx {
 	BackendDB *db;
 	slap_overinst *on;
 	Filter *orig;
-	Filter *rmt;
-	Filter *lcl;
 	Avlnode *list;
 	int step;
 } trans_ctx;
@@ -886,7 +884,7 @@ trans_filter_dup(Operation *op, Filter *f, AttributeName *an)
 			return NULL;
 		}
 		/* Only 1 element in this list */
-		if ((f->f_choice & SLAPD_FILTER_MASK) != LDAP_FILTER_NOT &&
+		if ((n->f_choice & SLAPD_FILTER_MASK) != LDAP_FILTER_NOT &&
 			!n->f_list->f_next ) {
 			f = n->f_list;
 			*n = *f;
@@ -896,6 +894,35 @@ trans_filter_dup(Operation *op, Filter *f, AttributeName *an)
 	}
 	}
 	return n;
+}
+
+static void
+trans_filter_free( Operation *op, Filter *f )
+{
+	Filter *n, *p, *next;
+
+	f->f_choice &= SLAPD_FILTER_MASK;
+
+	switch( f->f_choice ) {
+	case LDAP_FILTER_AND:
+	case LDAP_FILTER_OR:
+	case LDAP_FILTER_NOT:
+		/* Free in reverse order */
+		n = NULL;
+		for ( p = f->f_list; p; p = next ) {
+			next = p->f_next;
+			p->f_next = n;
+			n = p;
+		}
+		for ( p = n; p; p = next ) {
+			next = p->f_next;
+			trans_filter_free( op, p );
+		}
+		break;
+	default:
+		break;
+	}
+	op->o_tmpfree( f, op->o_tmpmemctx );
 }
 
 /*
@@ -911,6 +938,7 @@ static int translucent_search(Operation *op, SlapReply *rs) {
 	slap_callback cb = { NULL, NULL, NULL, NULL };
 	trans_ctx tc;
 	Filter *fl, *fr;
+	struct berval fbv;
 	int rc = 0;
 
 	Debug(LDAP_DEBUG_TRACE, "==> translucent_search: <%s> %s\n",
@@ -931,27 +959,34 @@ static int translucent_search(Operation *op, SlapReply *rs) {
 	tc.db = op->o_bd;
 	tc.on = on;
 	tc.orig = op->ors_filter;
-	tc.rmt = fr;
-	tc.lcl = fl;
 	tc.list = NULL;
 	tc.step = 0;
+	fbv = op->ors_filterstr;
 
 	op->o_callback = &cb;
 
 	if ( fr || !fl ) {
-		tc.step |= RMT_SIDE;
-		if ( fl ) tc.step |= USE_LIST;
 		op->o_bd = &ov->db;
-		if ( fl )
+		tc.step |= RMT_SIDE;
+		if ( fl ) {
+			tc.step |= USE_LIST;
 			op->ors_filter = fr;
+			filter2bv_x( op, fr, &op->ors_filterstr );
+		}
 		rc = ov->db.bd_info->bi_op_search(op, rs);
 		op->o_bd = tc.db;
+		if ( fl ) {
+			op->o_tmpfree( op->ors_filterstr.bv_val, op->o_tmpmemctx );
+		}
 	}
 	if ( fl && !rc ) {
 		tc.step |= LCL_SIDE;
 		op->ors_filter = fl;
+		filter2bv_x( op, fl, &op->ors_filterstr );
 		rc = overlay_op_walk( op, rs, op_search, on->on_info, on->on_next );
+		op->o_tmpfree( op->ors_filterstr.bv_val, op->o_tmpmemctx );
 	}
+	op->ors_filterstr = fbv;
 	op->ors_filter = tc.orig;
 	op->o_callback = cb.sc_next;
 	/* Send out anything remaining on the list and finish */
@@ -971,6 +1006,12 @@ static int translucent_search(Operation *op, SlapReply *rs) {
 		}
 		send_ldap_result( op, rs );
 	}
+
+	/* Free in reverse order */
+	if ( fl )
+		trans_filter_free( op, fl );
+	if ( fr )
+		trans_filter_free( op, fr );
 
 	return rc;
 }
