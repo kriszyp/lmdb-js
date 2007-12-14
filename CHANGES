@@ -1,6 +1,7 @@
 OpenLDAP 2.3 Change Log
 
 OpenLDAP 2.3.40 Engineering
+	Fixed slapd include handling (ITS#5276)
 	Fixed slapd syncrepl compatibility with 2.4 (ITS#5231)
 	Fixed slapd-bdb/hdb slapadd hang (ITS#5225)
 	Fixed slapd-bdb/hdb dn2entry lock bug (ITS#5257)
