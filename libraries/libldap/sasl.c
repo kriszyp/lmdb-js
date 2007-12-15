@@ -201,7 +201,7 @@ ldap_sasl_bind_s(
 		rc = ldap_parse_sasl_bind_result( ld, result, &scredp, 0 );
 	}
 
-	if ( rc != LDAP_SUCCESS && rc != LDAP_SASL_BIND_IN_PROGRESS ) {
+	if ( rc != LDAP_SUCCESS ) {
 		ldap_msgfree( result );
 		return( rc );
 	}
@@ -347,7 +347,7 @@ ldap_parse_sasl_bind_result(
 		ldap_msgfree( res );
 	}
 
-	return( ld->ld_errno );
+	return( LDAP_SUCCESS );
 }
 
 int
