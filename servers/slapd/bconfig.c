@@ -797,6 +797,11 @@ typedef struct ServerID {
 
 static ServerID *sid_list;
 
+typedef struct voidList {
+	struct voidList *vl_next;
+	void *vl_ptr;
+} voidList;
+
 typedef struct ADlist {
 	struct ADlist *al_next;
 	AttributeDescription *al_desc;
@@ -5759,8 +5764,19 @@ config_back_db_open( BackendDB *be, ConfigReply *cr )
 			slap_overinst *on;
 			Entry *oe;
 			int j;
+			voidList *vl, *v0 = NULL;
 
-			for (j=0,on=oi->oi_list; on; j++,on=on->on_next) {
+			/* overlays are in LIFO order, must reverse stack */
+			for (on=oi->oi_list; on; on=on->on_next) {
+				vl = ch_malloc( sizeof( voidList ));
+				vl->vl_next = v0;
+				v0 = vl;
+				vl->vl_ptr = on;
+			}
+			for (j=0; vl; j++,vl=v0) {
+				on = vl->vl_ptr;
+				v0 = vl->vl_next;
+				ch_free( vl );
 				if ( on->on_bi.bi_db_config && !on->on_bi.bi_cf_ocs ) {
 					Debug( LDAP_DEBUG_ANY,
 						"WARNING: No dynamic config support for overlay %s.\n",
