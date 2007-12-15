@@ -94,7 +94,8 @@ static ConfigOCs translucentocs[] = {
 	  "NAME 'olcTranslucentConfig' "
 	  "DESC 'Translucent configuration' "
 	  "SUP olcOverlayConfig "
-	  "MAY ( olcTranslucentStrict $ olcTranslucentNoGlue ) )",
+	  "MAY ( olcTranslucentStrict $ olcTranslucentNoGlue $"
+	  " olcTranslucentLocal $ olcTranslucentRemote ) )",
 	  Cft_Overlay, translucentcfg, NULL, translucent_cfadd },
 	{ "( OLcfgOvOc:14.2 "
 	  "NAME 'olcTranslucentDatabase' "
@@ -182,6 +183,8 @@ translucent_cf_gen( ConfigArgs *c )
 		an = &ov->remote;
 
 	if ( c->op == SLAP_CONFIG_EMIT ) {
+		if ( !*an )
+			return 1;
 		for ( i = 0; !BER_BVISNULL(&(*an)[i].an_name); i++ ) {
 			value_add_one( &c->rvalue_vals, &(*an)[i].an_name );
 		}
