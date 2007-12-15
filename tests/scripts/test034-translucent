@@ -723,6 +723,76 @@ if test $RC != 0 ; then
 	exit 1
 fi
 
+echo "Testing search: unconfigured local filter..."
+$LDAPSEARCH -H $URI2 -b "o=translucent" "(employeeType=consultant)" > $SEARCHOUT 2>&1
+
+ATTR=`grep dn: $SEARCHOUT` > $NOWHERE 2>&1
+if test -n "$ATTR" ; then
+	echo "got result $ATTR, should have been no result"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit 1
+fi
+
+echo "Dynamically configuring local slapd with translucent_local..."
+
+$LDAPMODIFY -D cn=config -H $URI2 -y $CONFIGPWF <<EOF
+dn: olcOverlay={0}translucent,olcDatabase={$DBIX}$BACKEND,cn=config
+changetype: modify
+add: olcTranslucentLocal
+olcTranslucentLocal: employeeType
+EOF
+RC=$?
+if test $RC != 0 ; then
+    echo "ldapmodify of dynamic config failed ($RC)"
+    test $KILLSERVERS != no && kill -HUP $KILLPIDS
+    exit 1
+fi
+
+echo "Testing search: configured local filter..."
+$LDAPSEARCH -H $URI2 -b "o=translucent" "(employeeType=consultant)" > $SEARCHOUT 2>&1
+
+ATTR=`grep dn: $SEARCHOUT` > $NOWHERE 2>&1
+if test -z "$ATTR" ; then
+	echo "got no result, should have found entry"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit 1
+fi
+
+echo "Testing search: unconfigured remote filter..."
+$LDAPSEARCH -H $URI2 -b "o=translucent" "(|(employeeType=foo)(carlicense=right))" > $SEARCHOUT 2>&1
+
+ATTR=`grep dn: $SEARCHOUT` > $NOWHERE 2>&1
+if test -n "$ATTR" ; then
+	echo "got result $ATTR, should have been no result"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit 1
+fi
+
+echo "Dynamically configuring local slapd with translucent_remote..."
+
+$LDAPMODIFY -D cn=config -H $URI2 -y $CONFIGPWF <<EOF
+dn: olcOverlay={0}translucent,olcDatabase={$DBIX}$BACKEND,cn=config
+changetype: modify
+add: olcTranslucentRemote
+olcTranslucentRemote: carLicense
+EOF
+RC=$?
+if test $RC != 0 ; then
+    echo "ldapmodify of dynamic config failed ($RC)"
+    test $KILLSERVERS != no && kill -HUP $KILLPIDS
+    exit 1
+fi
+
+echo "Testing search: configured remote filter..."
+$LDAPSEARCH -H $URI2 -b "o=translucent" "(|(employeeType=foo)(carlicense=right))" > $SEARCHOUT 2>&1
+
+ATTR=`grep dn: $SEARCHOUT` > $NOWHERE 2>&1
+if test -z "$ATTR" ; then
+	echo "got no result, should have found entry"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit 1
+fi
+
 test $KILLSERVERS != no && kill -HUP $KILLPIDS
 
 echo ">>>>> Test succeeded"
