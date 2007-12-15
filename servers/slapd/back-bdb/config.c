@@ -42,6 +42,8 @@ static ConfigDriver bdb_cf_gen;
 enum {
 	BDB_CHKPT = 1,
 	BDB_CONFIG,
+	BDB_CRYPTFILE,
+	BDB_CRYPTKEY,
 	BDB_DIRECTORY,
 	BDB_NOSYNC,
 	BDB_DIRTYR,
@@ -70,6 +72,14 @@ static ConfigTable bdbcfg[] = {
 		bdb_cf_gen, "( OLcfgDbAt:1.2 NAME 'olcDbCheckpoint' "
 			"DESC 'Database checkpoint interval in kbytes and minutes' "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )",NULL, NULL },
+	{ "cryptfile", "file", 2, 2, 0, ARG_STRING|ARG_MAGIC|BDB_CRYPTFILE,
+		bdb_cf_gen, "( OLcfgDbAt:1.13 NAME 'olcDbCryptFile' "
+			"DESC 'Pathname of file containing the DB encryption key' "
+			"SYNTAX OMsDirectoryString SINGLE-VALUE )",NULL, NULL },
+	{ "cryptkey", "key", 2, 2, 0, ARG_BERVAL|ARG_MAGIC|BDB_CRYPTKEY,
+		bdb_cf_gen, "( OLcfgDbAt:1.14 NAME 'olcDbCryptKey' "
+			"DESC 'DB encryption key' "
+			"SYNTAX OMsOctetString SINGLE-VALUE )",NULL, NULL },
 	{ "dbconfig", "DB_CONFIG setting", 1, 0, 0, ARG_MAGIC|BDB_CONFIG,
 		bdb_cf_gen, "( OLcfgDbAt:1.3 NAME 'olcDbConfig' "
 			"DESC 'BerkeleyDB DB_CONFIG configuration directives' "
@@ -143,6 +153,7 @@ static ConfigOCs bdbocs[] = {
 		"SUP olcDatabaseConfig "
 		"MUST olcDbDirectory "
 		"MAY ( olcDbCacheSize $ olcDbCheckpoint $ olcDbConfig $ "
+		"olcDbCryptFile $ olcDbCryptKey $ "
 		"olcDbNoSync $ olcDbDirtyRead $ olcDbIDLcacheSize $ "
 		"olcDbIndex $ olcDbLinearIndex $ olcDbLockDetect $ "
 		"olcDbMode $ olcDbSearchStack $ olcDbShmKey $ "
@@ -364,6 +375,25 @@ bdb_cf_gen( ConfigArgs *c )
 			}
 			break;
 
+		case BDB_CRYPTFILE:
+			if ( bdb->bi_db_crypt_file ) {
+				c->value_string = ch_strdup( bdb->bi_db_crypt_file );
+			} else {
+				rc = 1;
+			}
+			break;
+
+		/* If a crypt file has been set, its contents are copied here.
+		 * But we don't want the key to be incorporated here.
+		 */
+		case BDB_CRYPTKEY:
+			if ( !bdb->bi_db_crypt_file && !BER_BVISNULL( &bdb->bi_db_crypt_key )) {
+				value_add_one( &c->rvalue_vals, &bdb->bi_db_crypt_key );
+			} else {
+				rc = 1;
+			}
+			break;
+
 		case BDB_DIRECTORY:
 			if ( bdb->bi_dbenv_home ) {
 				c->value_string = ch_strdup( bdb->bi_dbenv_home );
@@ -471,6 +501,21 @@ bdb_cf_gen( ConfigArgs *c )
 			}
 			bdb->bi_flags |= BDB_UPD_CONFIG;
 			c->cleanup = bdb_cf_cleanup;
+			break;
+		/* Doesn't really make sense to change these on the fly;
+		 * the entire DB must be dumped and reloaded
+		 */
+		case BDB_CRYPTFILE:
+			if ( bdb->bi_db_crypt_file ) {
+				ch_free( bdb->bi_db_crypt_file );
+				bdb->bi_db_crypt_file = NULL;
+			}
+			/* FALLTHRU */
+		case BDB_CRYPTKEY:
+			if ( !BER_BVISNULL( &bdb->bi_db_crypt_key )) {
+				ch_free( bdb->bi_db_crypt_key.bv_val );
+				BER_BVZERO( &bdb->bi_db_crypt_key );
+			}
 			break;
 		case BDB_DIRECTORY:
 			bdb->bi_flags |= BDB_RE_OPEN;
@@ -613,6 +658,22 @@ bdb_cf_gen( ConfigArgs *c )
 		}
 		ber_str2bv( ptr, 0, 1, &bv );
 		ber_bvarray_add( &bdb->bi_db_config, &bv );
+		}
+		break;
+
+	case BDB_CRYPTFILE:
+		rc = lutil_get_filed_password( c->value_string, &bdb->bi_db_crypt_key );
+		if ( rc == 0 ) {
+			bdb->bi_db_crypt_file = c->value_string;
+		}
+		break;
+
+	/* Cannot set key if file was already set */
+	case BDB_CRYPTKEY:
+		if ( bdb->bi_db_crypt_file ) {
+			rc = 1;
+		} else {
+			bdb->bi_db_crypt_key = c->value_bv;
 		}
 		break;
 

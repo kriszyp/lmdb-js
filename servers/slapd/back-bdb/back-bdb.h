@@ -235,6 +235,8 @@ struct bdb_info {
 	alock_info_t	bi_alock_info;
 	char		*bi_db_config_path;
 	BerVarray	bi_db_config;
+	char		*bi_db_crypt_file;
+	struct berval	bi_db_crypt_key;
 	bdb_monitor_t	bi_monitor;
 
 #ifdef BDB_MONITOR_IDX
