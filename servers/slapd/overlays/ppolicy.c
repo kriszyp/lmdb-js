@@ -1771,7 +1771,8 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 		}
 	}
 
-	if (pa) {
+	/* If pwdInHistory is zero, passwords may be reused */
+	if (pa && pp.pwdInHistory > 0) {
 		/*
 		 * Last check - the password history.
 		 */
@@ -1786,8 +1787,6 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 			pErr = PP_passwordInHistory;
 			goto return_results;
 		}
-	
-		if (pp.pwdInHistory < 1) goto do_modify;
 	
 		/*
 		 * Iterate through the password history, and fail on any
