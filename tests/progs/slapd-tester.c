@@ -140,7 +140,7 @@ main( int argc, char **argv )
 	int		sextra_args = 0;
 	char		scmd[MAXPATHLEN];
 	/* static so that its address can be used in initializer below. */
-	static char	sloops[] = "18446744073709551615UL";
+	static char	sloops[LDAP_PVT_INTTYPE_CHARS(unsigned long)];
 	/* read */
 	char		*rfile = NULL;
 	char		*rreqs[MAXREQS];
@@ -150,14 +150,14 @@ main( int argc, char **argv )
 	int		ranum;
 	int		rextra_args = 0;
 	char		rcmd[MAXPATHLEN];
-	static char	rloops[] = "18446744073709551615UL";
+	static char	rloops[LDAP_PVT_INTTYPE_CHARS(unsigned long)];
 	/* addel */
 	char		*afiles[MAXREQS];
 	int		anum = 0;
 	char		*aargs[MAXARGS];
 	int		aanum;
 	char		acmd[MAXPATHLEN];
-	static char	aloops[] = "18446744073709551615UL";
+	static char	aloops[LDAP_PVT_INTTYPE_CHARS(unsigned long)];
 	/* modrdn */
 	char		*nfile = NULL;
 	char		*nreqs[MAXREQS];
@@ -165,7 +165,7 @@ main( int argc, char **argv )
 	char		*nargs[MAXARGS];
 	int		nanum;
 	char		ncmd[MAXPATHLEN];
-	static char	nloops[] = "18446744073709551615UL";
+	static char	nloops[LDAP_PVT_INTTYPE_CHARS(unsigned long)];
 	/* modify */
 	char		*mfile = NULL;
 	char		*mreqs[MAXREQS];
@@ -174,7 +174,7 @@ main( int argc, char **argv )
 	char		*margs[MAXARGS];
 	int		manum;
 	char		mcmd[MAXPATHLEN];
-	static char	mloops[] = "18446744073709551615UL";
+	static char	mloops[LDAP_PVT_INTTYPE_CHARS(unsigned long)];
 	/* bind */
 	char		*bfile = NULL;
 	char		*breqs[MAXREQS];
@@ -184,7 +184,7 @@ main( int argc, char **argv )
 	char		*bargs[MAXARGS];
 	int		banum;
 	char		bcmd[MAXPATHLEN];
-	static char	bloops[] = "18446744073709551615UL";
+	static char	bloops[LDAP_PVT_INTTYPE_CHARS(unsigned long)];
 	char		**bargs_extra = NULL;
 
 	char		*friendlyOpt = NULL;

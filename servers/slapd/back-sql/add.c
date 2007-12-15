@@ -794,7 +794,7 @@ backsql_add_attr(
 		int		prc = LDAP_SUCCESS;
 		/* first parameter #, parameter order */
 		SQLUSMALLINT	pno, po;
-		char		logbuf[] = "val[18446744073709551615UL], id=18446744073709551615UL";
+		char		logbuf[ STRLENOF("val[], id=") + 2*LDAP_PVT_INTTYPE_CHARS(unsigned long)];
 		
 		/*
 		 * Do not deal with the objectClass that is used

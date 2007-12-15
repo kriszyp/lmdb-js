@@ -540,8 +540,8 @@ backsql_db_config(
 			0, 0 );
 
 	} else if ( !strcasecmp( argv[ 0 ], "fetch_attrs" ) ) {
-		char	*str, *s, *next;
-		char	delimstr[] = ",";
+		char		*str, *s, *next;
+		const char	*delimstr = ",";
 
 		if ( argc < 2 ) {
 			Debug( LDAP_DEBUG_TRACE,
@@ -761,10 +761,10 @@ create_baseObject(
 			"objectClass: extensibleObject\n"
 			"description: builtin baseObject for back-sql\n"
 			"description: all entries mapped "
-			"in the \"ldap_entries\" table\n"
-			"description: must have "
-			"\"" BACKSQL_BASEOBJECT_IDSTR "\" "
-			"in the \"parent\" column",
+				"in table \"ldap_entries\" "
+				"must have "
+				"\"" BACKSQL_BASEOBJECT_IDSTR "\" "
+				"in the \"parent\" column",
 			be->be_suffix[0].bv_val );
 
 	bi->sql_baseObject = str2entry( buf );

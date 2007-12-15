@@ -236,7 +236,7 @@ monitor_subsys_conn_update(
 
 	if ( n != -1 ) {
 		Attribute	*a;
-		char		buf[] = "+9223372036854775807L";
+		char		buf[LDAP_PVT_INTTYPE_CHARS(long)];
 		ber_len_t	len;
 
 		a = attr_find( e->e_attrs, mi->mi_ad_monitorCounter );

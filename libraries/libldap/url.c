@@ -582,7 +582,7 @@ desc2str_len( LDAPURLDesc *u )
 	len += sep;
 
 	if ( u->lud_port ) {
-		char	buf[] = ":65535";
+		char	buf[ STRLENOF(":65535") + 1 ];
 
 		len += snprintf( buf, sizeof( buf ), ":%d", u->lud_port );
 		if ( u->lud_host && u->lud_host[0] ) {

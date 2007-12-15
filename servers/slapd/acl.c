@@ -1280,7 +1280,7 @@ slap_acl_mask(
 					/* extract IP and try exact match */
 					} else if ( b->a_peername_style == ACL_STYLE_IP ) {
 						char		*port;
-						char		buf[] = "255.255.255.255";
+						char		buf[STRLENOF("255.255.255.255") + 1];
 						struct berval	ip;
 						unsigned long	addr;
 						int		port_number = -1;
@@ -1325,7 +1325,7 @@ slap_acl_mask(
 					/* extract IPv6 and try exact match */
 					} else if ( b->a_peername_style == ACL_STYLE_IPV6 ) {
 						char		*port;
-						char		buf[] = "FFFF:FFFF:FFFF:FFFF:FFFF:FFFF:FFFF:FFFF";
+						char		buf[STRLENOF("FFFF:FFFF:FFFF:FFFF:FFFF:FFFF:FFFF:FFFF") + 1];
 						struct berval	ip;
 						struct in6_addr	addr;
 						int		port_number = -1;

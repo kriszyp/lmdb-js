@@ -235,7 +235,7 @@ int backsql_free_db_conn( Operation *op, SQLHDBC dbh );
  * util.c
  */
 
-extern char 
+extern const char 
 	backsql_def_oc_query[],
 	backsql_def_needs_select_oc_query[],
 	backsql_def_at_query[],
@@ -246,8 +246,7 @@ extern char
 	backsql_def_subtree_cond[],
 	backsql_def_upper_subtree_cond[],
 	backsql_id_query[],
-	backsql_def_concat_func[];
-extern char 
+	backsql_def_concat_func[],
 	backsql_check_dn_ru_query[];
 
 struct berbuf * backsql_strcat_x( struct berbuf *dest, void *memctx, ... );

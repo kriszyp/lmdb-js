@@ -121,7 +121,7 @@ typedef struct config_args_s {
 	char *tline;
 	const char *fname;
 	int lineno;
-	char log[MAXPATHLEN + STRLENOF(": line 18446744073709551615") + 1];
+	char log[MAXPATHLEN + STRLENOF(": line ") + LDAP_PVT_INTTYPE_CHARS(unsigned long)];
 #define cr_msg reply.msg
 	ConfigReply reply;
 	int depth;

@@ -3522,7 +3522,7 @@ parse_syncrepl_line(
 				si->si_anfile = attr_fname;
 			} else {
 				char *str, *s, *next;
-				char delimstr[] = " ,\t";
+				const char *delimstr = " ,\t";
 				str = ch_strdup( val );
 				for ( s = ldap_pvt_strtok( str, delimstr, &next );
 						s != NULL;

@@ -162,7 +162,7 @@ monitor_subsys_rww_update(
 	struct berval	nrdn;
 
 	Attribute	*a;
-	char 		buf[] = "+9223372036854775807L";
+	char 		buf[LDAP_PVT_INTTYPE_CHARS(long)];
 	long		num = 0;
 	ber_len_t	len;
 
