@@ -60,6 +60,25 @@ the \fI<min>\fP argument is non-zero, an internal task will run every
 \fI<min>\fP minutes to perform the checkpoint.
 See the Berkeley DB reference guide for more details.
 .TP
+.BI cryptfile \ <file>
+Specify the pathname of a file containing an encryption key to use for
+encrypting the database. Encryption is performed using Berkeley DB's
+implementation of AES. Note that encryption can only be configured before
+any database files are created, and changing the key can only be done
+after destroying the current database and recreating it. Encryption is
+not enabled by default, and some distributions of Berkeley DB do not
+support encryption.
+.TP
+.BI cryptkey \ <key>
+Specify an encryption key to use for encrypting the database. This option
+may be used when a separate
+.I cryptfile
+is not desired. Only one of
+.B cryptkey
+or
+.B cryptfile
+may be configured.
+.TP
 .BI dbconfig \ <Berkeley\-DB\-setting>
 Specify a configuration directive to be placed in the
 .B DB_CONFIG
