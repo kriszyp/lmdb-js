@@ -95,6 +95,8 @@ static int attrsonly;
 static int timelimit = -1;
 static int sizelimit = -1;
 
+static char *control;
+
 static char *def_tmpdir;
 static char *def_urlpre;
 
@@ -255,7 +257,7 @@ int
 handle_private_option( int i )
 {
 	int crit, ival;
-	char *control, *cvalue, *next;
+	char *cvalue, *next;
 	switch ( i ) {
 	case 'a':	/* set alias deref option */
 		if ( strcasecmp( optarg, "never" ) == 0 ) {
@@ -1040,6 +1042,12 @@ getNextPage:
 
 	tool_unbind( ld );
 	tool_destroy();
+	if ( base != NULL ) {
+		ber_memfree( base );
+	}
+	if ( control != NULL ) {
+		ber_memfree( control );
+	}
 
 	if ( c ) {
 		for ( ; save_nctrls-- > 0; ) {
