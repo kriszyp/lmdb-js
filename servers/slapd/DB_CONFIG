@@ -1,8 +1,8 @@
 # $OpenLDAP$
 # Example DB_CONFIG file for use with slapd(8) BDB/HDB databases.
 #
-# See Sleepycat Berkeley DB documentation
-#   <http://www.sleepycat.com/docs/ref/env/db_config.html>
+# See the Oracle Berkeley DB documentation
+#   <http://www.oracle.com/technology/documentation/berkeley-db/db/ref/env/db_config.html>
 # for detail description of DB_CONFIG syntax and semantics.
 #
 # Hints can also be found in the OpenLDAP Software FAQ
