@@ -11,6 +11,7 @@ OpenLDAP 2.3.40 Engineering
 	Documentation
 		Fixed slapd.conf(5) maxderefdepth default value typo (ITS#5200)
 		Clarified slapd.conf(5) limits issues in syncrepl (ITS#5243)
+		DB_CONFIG.example URL wrong in comments (ITS#5288)
 
 OpenLDAP 2.3.39 Release (2007/10/26)
 	Fixed slapd backglue compilation problem (ITS#5214)
