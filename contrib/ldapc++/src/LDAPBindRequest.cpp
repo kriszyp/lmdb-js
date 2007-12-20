@@ -9,8 +9,11 @@
 
 #include "LDAPBindRequest.h"
 #include "LDAPException.h"
+#include "SaslInteractionHandler.h"
+#include "SaslInteraction.h"
 
 #include <cstdlib>
+#include <sasl/sasl.h>
 
 using namespace std;
 
@@ -73,10 +76,97 @@ LDAPMessageQueue* LDAPBindRequest::sendRequest(){
     }
 }
 
-LDAPRequest* LDAPBindRequest::followReferral(LDAPMsg* /*urls*/){
-    DEBUG(LDAP_DEBUG_TRACE,"LDAPBindRequest::followReferral()" << endl);
-    DEBUG(LDAP_DEBUG_TRACE,
-            "ReferralChasing for bind-operation not implemented yet" << endl);
-    return 0;
+LDAPSaslBindRequest::LDAPSaslBindRequest(const std::string& mech,
+        const std::string& cred, 
+        LDAPAsynConnection *connect,
+        const LDAPConstraints *cons, 
+        bool isReferral) : LDAPRequest(connect, cons, isReferral),m_mech(mech), m_cred(cred) {}
+
+LDAPMessageQueue* LDAPSaslBindRequest::sendRequest()
+{
+    DEBUG(LDAP_DEBUG_TRACE,"LDAPSaslBindRequest::sendRequest()" << endl);
+    int msgID=0;
+    
+    BerValue tmpcred;
+    tmpcred.bv_val = (char*) malloc( m_cred.size() * sizeof(char));
+    m_cred.copy(tmpcred.bv_val,string::npos);
+    tmpcred.bv_len = m_cred.size();
+    
+    LDAPControl** tmpSrvCtrls=m_cons->getSrvCtrlsArray();
+    LDAPControl** tmpClCtrls=m_cons->getClCtrlsArray();
+    int err=ldap_sasl_bind(m_connection->getSessionHandle(), "", m_mech.c_str(), 
+            &tmpcred, tmpSrvCtrls, tmpClCtrls, &msgID);
+    LDAPControlSet::freeLDAPControlArray(tmpSrvCtrls);
+    LDAPControlSet::freeLDAPControlArray(tmpClCtrls);
+    free(tmpcred.bv_val);
+
+    if(err != LDAP_SUCCESS){
+        throw LDAPException(err);
+    }else{
+        m_msgID=msgID;
+        return new LDAPMessageQueue(this);
+    }
+}
+
+LDAPSaslBindRequest::~LDAPSaslBindRequest()
+{
+    DEBUG(LDAP_DEBUG_DESTROY,"LDAPSaslBindRequest::~LDAPSaslBindRequest()" << endl);
+}
+
+LDAPSaslInteractiveBind::LDAPSaslInteractiveBind( const std::string& mech, 
+        int flags, SaslInteractionHandler *sih, LDAPAsynConnection *connect,
+        const LDAPConstraints *cons, bool isReferral) : 
+            LDAPRequest(connect, cons, isReferral),
+            m_mech(mech), m_flags(flags), m_sih(sih), m_res(0)
+{
+}
+
+static int my_sasl_interact(LDAP *l, unsigned flags, void *cbh, void *interact)
+{
+    DEBUG(LDAP_DEBUG_TRACE, "LDAPSaslInteractiveBind::my_sasl_interact()" 
+            << std::endl );
+    std::list<SaslInteraction*> interactions;
+
+    sasl_interact_t *iter = (sasl_interact_t*) interact;
+    while ( iter->id != SASL_CB_LIST_END ) {
+        SaslInteraction *si = new SaslInteraction(iter);
+        interactions.push_back( si );
+        iter++;
+    }
+    ((SaslInteractionHandler*)cbh)->handleInteractions(interactions);
+    return LDAP_SUCCESS;
+}
+
+/* This kind of fakes an asynchronous operation, ldap_sasl_interactive_bind_s
+ * is synchronous */
+LDAPMessageQueue *LDAPSaslInteractiveBind::sendRequest()
+{
+    DEBUG(LDAP_DEBUG_TRACE, "LDAPSaslInteractiveBind::sendRequest()" <<
+            m_mech << std::endl);
+
+    LDAPControl** tmpSrvCtrls=m_cons->getSrvCtrlsArray();
+    LDAPControl** tmpClCtrls=m_cons->getClCtrlsArray();
+    int res = ldap_sasl_interactive_bind_s( m_connection->getSessionHandle(),
+            "", m_mech.c_str(), tmpSrvCtrls, tmpClCtrls, m_flags, 
+            my_sasl_interact, m_sih );
+
+    DEBUG(LDAP_DEBUG_TRACE, "ldap_sasl_interactive_bind_s returned: " 
+            << res << std::endl);
+    if(res != LDAP_SUCCESS){
+        throw LDAPException(res);
+    } else {
+        m_res = new LDAPResult(LDAPMsg::BIND_RESPONSE, res, ""); 
+    }
+    return new LDAPMessageQueue(this);
+}
+
+LDAPMsg* LDAPSaslInteractiveBind::getNextMessage() const 
+{
+    return m_res;
+}
+
+LDAPSaslInteractiveBind::~LDAPSaslInteractiveBind()
+{
+    DEBUG(LDAP_DEBUG_DESTROY,"LDAPSaslInteractiveBind::~LDAPSaslInteractiveBind()" << endl);
 }
 

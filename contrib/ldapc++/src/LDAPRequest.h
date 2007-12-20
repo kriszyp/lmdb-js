@@ -40,7 +40,7 @@ class LDAPRequest{
         
         const LDAPConstraints* getConstraints() const;
         const LDAPAsynConnection* getConnection() const;
-        LDAPMsg *getNextMessage() const;
+        virtual LDAPMsg *getNextMessage() const;
         int getType()const;
         int getMsgID() const;
         int getHopCount() const;
@@ -64,7 +64,7 @@ class LDAPRequest{
          * functions of the C-API to send the Request to a LDAP-Server
          */
         virtual LDAPMessageQueue* sendRequest()=0;
-        virtual LDAPRequest* followReferral(LDAPMsg* ref)=0;
+        virtual LDAPRequest* followReferral(LDAPMsg* ref);
 
         /**
          * Compare this request with another on. And returns true if they

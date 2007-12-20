@@ -70,6 +70,13 @@ LDAPMsg* LDAPRequest::getNextMessage() const
     }
 }
 
+LDAPRequest* LDAPRequest::followReferral(LDAPMsg* /*urls*/){
+    DEBUG(LDAP_DEBUG_TRACE,"LDAPBindRequest::followReferral()" << endl);
+    DEBUG(LDAP_DEBUG_TRACE,
+            "ReferralChasing not implemented for this operation" << endl);
+    return 0;
+}
+
 const LDAPConstraints* LDAPRequest::getConstraints() const{
     DEBUG(LDAP_DEBUG_TRACE,"LDAPRequest::getConstraints()" << endl);
     return m_cons;

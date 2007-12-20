@@ -21,6 +21,7 @@
 #include <LDAPModList.h>
 #include <LDAPUrl.h>
 #include <LDAPUrlList.h>
+#include <SaslInteractionHandler.h>
 
 //* Main class for an asynchronous LDAP connection 
 /**
@@ -59,9 +60,6 @@ class LDAPAsynConnection{
          * Search
          */
         static const int SEARCH_SUB=2;
-//        static const int SEARCH_SUB=LDAP_SCOPE_SUBTREE;
-//        static const int SEARCH_ONE=LDAP_SCOPE_ONELEVEL;
-//        static const int SEARCH_SUB=LDAP_SCOPE_SUBTREE;
 
         /** Construtor that initializes a connection to a server
          * @param hostname Name (or IP-Adress) of the destination host
@@ -69,7 +67,7 @@ class LDAPAsynConnection{
          * @param cons Default constraints to use with operations over 
          *      this connection
          */
-        LDAPAsynConnection(const std::string& hostname=std::string("localhost"),
+        LDAPAsynConnection(const std::string& url=std::string("localhost"),
                 int port=0, LDAPConstraints *cons=new LDAPConstraints() );
 
         //* Destructor
@@ -116,7 +114,17 @@ class LDAPAsynConnection{
          * @param dn the distiguished name to bind as
          * @param passwd cleartext password to use
          */
-        LDAPMessageQueue* bind(const std::string& dn="", const std::string& passwd="",
+        LDAPMessageQueue* bind(const std::string& dn="", 
+                const std::string& passwd="",
+                const LDAPConstraints *cons=0);
+
+        LDAPMessageQueue* saslBind(const std::string& mech, 
+                const std::string& cred, 
+                const LDAPConstraints *cons=0);
+
+        LDAPMessageQueue* saslInteractiveBind(const std::string& mech,
+                int flags=0,
+                SaslInteractionHandler *sih=0,
                 const LDAPConstraints *cons=0);
 
         /** Performing a search on a directory tree.
