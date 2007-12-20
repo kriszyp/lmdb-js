@@ -358,7 +358,7 @@ ldap_search_st(
 	    == -1 )
 		return( ld->ld_errno );
 
-	if ( ldap_result( ld, msgid, LDAP_MSG_ALL, timeout, res ) == -1 )
+	if ( ldap_result( ld, msgid, LDAP_MSG_ALL, timeout, res ) == -1 || !*res )
 		return( ld->ld_errno );
 
 	if ( ld->ld_errno == LDAP_TIMEOUT ) {
@@ -386,7 +386,7 @@ ldap_search_s(
 	    == -1 )
 		return( ld->ld_errno );
 
-	if ( ldap_result( ld, msgid, LDAP_MSG_ALL, (struct timeval *) NULL, res ) == -1 || !res )
+	if ( ldap_result( ld, msgid, LDAP_MSG_ALL, (struct timeval *) NULL, res ) == -1 || !*res )
 		return( ld->ld_errno );
 
 	return( ldap_result2error( ld, *res, 0 ) );
