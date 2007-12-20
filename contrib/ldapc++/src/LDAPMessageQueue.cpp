@@ -39,6 +39,10 @@ LDAPMessageQueue::~LDAPMessageQueue(){
 LDAPMsg *LDAPMessageQueue::getNext(){
     DEBUG(LDAP_DEBUG_TRACE,"LDAPMessageQueue::getNext()" << endl);
 
+    if ( m_activeReq.empty() ) {
+        return 0;
+    }
+
     LDAPRequest *req=m_activeReq.top();
     LDAPMsg *ret=0;
 
