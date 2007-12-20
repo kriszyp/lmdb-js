@@ -322,7 +322,7 @@ wait4msg(
 		}
 #endif /* LDAP_DEBUG */
 
-        	if ( ( *result = chkResponseList( ld, msgid, all ) ) != NULL ) {
+		if ( ( *result = chkResponseList( ld, msgid, all ) ) != NULL ) {
 			rc = (*result)->lm_msgtype;
 
 		} else {
@@ -350,7 +350,7 @@ wait4msg(
 			ldap_pvt_thread_mutex_unlock( &ld->ld_conn_mutex );
 #endif
 
-		    	if ( !lc_ready ) {
+			if ( !lc_ready ) {
 				rc = ldap_int_select( ld, tvp );
 #ifdef LDAP_DEBUG
 				if ( rc == -1 ) {
