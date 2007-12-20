@@ -5,6 +5,7 @@
 
 #include <iostream>
 #include <iomanip>
+#include "config.h"
 
 #ifdef HAVE_TERMIOS_H
 #include <termios.h>
