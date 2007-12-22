@@ -50,7 +50,8 @@ do_time( );
 static void
 usage( char *name )
 {
-	fprintf( stderr, "usage: %s -H <uri> -b <baseDN> -w <passwd> -t <seconds> -r lo:hi\n\t[-R %:lo:hi] [-f <filter-template>] [-n <threads>]\n",
+	fprintf( stderr, "usage: %s -H <uri> -b <baseDN> -w <passwd> -t <seconds> -r lo:hi\n\t"
+		"[-R %:lo:hi] [-f <filter-template>] [-n <threads>] [-D <bindDN>] [-i <seconds>]\n",
 			name );
 	exit( EXIT_FAILURE );
 }
@@ -61,9 +62,12 @@ static char hname[1024];
 static char *uri = "ldap:///";
 static char	*base;
 static char	*pass;
+static char *binder;
 
 static int tdur, r1per, r1lo, r1hi, r2per, r2lo, r2hi;
 static int threads = 1;
+
+static int interval = 30;
 
 static volatile int *r1binds, *r2binds;
 static int *r1old, *r2old;
@@ -74,10 +78,14 @@ main( int argc, char **argv )
 {
 	int		i;
 
-	while ( (i = getopt( argc, argv, "b:H:w:f:n:t:r:R:" )) != EOF ) {
+	while ( (i = getopt( argc, argv, "b:D:H:w:f:n:i:t:r:R:" )) != EOF ) {
 		switch( i ) {
 			case 'b':		/* base DN of a tree of user DNs */
 				base = strdup( optarg );
+				break;
+
+			case 'D':
+				binder = strdup( optarg );
 				break;
 
 			case 'H':		/* the server uri */
@@ -90,6 +98,12 @@ main( int argc, char **argv )
 
 			case 't':		/* the duration to run */
 				if ( lutil_atoi( &tdur, optarg ) != 0 ) {
+					usage( argv[0] );
+				}
+				break;
+
+			case 'i':		/* the time interval */
+				if ( lutil_atoi( &interval, optarg ) != 0 ) {
 					usage( argv[0] );
 				}
 				break;
@@ -142,7 +156,7 @@ main( int argc, char **argv )
 static void *
 my_task( void *my_num )
 {
-	LDAP	*ld = NULL;
+	LDAP	*ld = NULL, *sld = NULL;
 	ber_int_t msgid;
 	LDAPMessage *res, *msg;
 	char *attrs[] = { "1.1", NULL };
@@ -161,6 +175,25 @@ my_task( void *my_num )
 			&version ); 
 	}
 	(void) ldap_set_option( ld, LDAP_OPT_REFERRALS, LDAP_OPT_OFF );
+
+	ldap_initialize( &sld, uri );
+	if ( sld == NULL ) {
+		perror( "ldap_initialize" );
+		return NULL;
+	}
+
+	{
+		int version = LDAP_VERSION3;
+		(void) ldap_set_option( sld, LDAP_OPT_PROTOCOL_VERSION,
+			&version ); 
+	}
+	(void) ldap_set_option( sld, LDAP_OPT_REFERRALS, LDAP_OPT_OFF );
+	if ( binder ) {
+		rc = ldap_bind_s( sld, binder, pass, LDAP_AUTH_SIMPLE );
+		if ( rc != LDAP_SUCCESS ) {
+			ldap_perror( sld, "ldap_bind" );
+		}
+	}
 
 	r1binds[tid] = 0;
 
@@ -182,24 +215,24 @@ my_task( void *my_num )
 		}
 		sprintf(fstr, filter, j);
 
-		rc = ldap_search_ext( ld, base, LDAP_SCOPE_SUB,
+		rc = ldap_search_ext( sld, base, LDAP_SCOPE_SUB,
 			fstr, attrs, 0, NULL, NULL, 0, 0, &msgid );
 		if ( rc != LDAP_SUCCESS ) {
-			ldap_perror( ld, "ldap_search_ex" );
+			ldap_perror( sld, "ldap_search_ex" );
 			return NULL;
 		}
 
-		while (( rc=ldap_result( ld, LDAP_RES_ANY, LDAP_MSG_ONE, NULL, &res )) >0){
+		while (( rc=ldap_result( sld, LDAP_RES_ANY, LDAP_MSG_ONE, NULL, &res )) >0){
 			BerElement *ber;
 			struct berval bv;
 			char *ptr;
 			int done = 0;
 
-			for (msg = ldap_first_message( ld, res ); msg;
-				msg = ldap_next_message( ld, msg )) {
+			for (msg = ldap_first_message( sld, res ); msg;
+				msg = ldap_next_message( sld, msg )) {
 				switch ( ldap_msgtype( msg )) {
 				case LDAP_RES_SEARCH_ENTRY:
-					rc = ldap_get_dn_ber( ld, msg, &ber, &bv );
+					rc = ldap_get_dn_ber( sld, msg, &ber, &bv );
 					strcpy(dn, bv.bv_val );
 					ber_free( ber, 0 );
 					break;
@@ -224,6 +257,7 @@ my_task( void *my_num )
 			r2binds[tid]++;
 	}
 
+	ldap_unbind( sld );
 	ldap_unbind( ld );
 
 	return NULL;
@@ -253,7 +287,7 @@ do_time( )
 	}
 
 	for (;;) {
-		tv.tv_sec = 30;
+		tv.tv_sec = interval;
 		tv.tv_usec = 0;
 
 		select(0, NULL, NULL, NULL, &tv);
