@@ -406,6 +406,7 @@ slap_auxprop_store(
 	unsigned ulen)
 {
 	Operation op = {0};
+	Opheader oph;
 	SlapReply rs = {REP_RESULT};
 	int rc, i, j;
 	Connection *conn = NULL;
@@ -476,7 +477,13 @@ slap_auxprop_store(
 			&text, textbuf, textlen );
 
 		if ( rc == LDAP_SUCCESS ) {
-			op.o_hdr = conn->c_sasl_bindop->o_hdr;
+			if ( conn->c_sasl_bindop ) {
+				op.o_hdr = conn->c_sasl_bindop->o_hdr;
+			} else {
+				op.o_hdr = &oph;
+				memset( &oph, 0, sizeof(oph) );
+				operation_fake_init( conn, &op, ldap_pvt_thread_pool_context(), 0 );
+			}
 			op.o_tag = LDAP_REQ_MODIFY;
 			op.o_ndn = op.o_req_ndn;
 			op.o_callback = &cb;
