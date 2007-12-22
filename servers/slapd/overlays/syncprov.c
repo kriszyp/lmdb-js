@@ -1607,8 +1607,12 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 			}
 			if ( si->si_chktime &&
 				(op->o_time - si->si_chklast >= si->si_chktime )) {
-				do_check = 1;
-				si->si_chklast = op->o_time;
+				if ( si->si_chklast ) {
+					do_check = 1;
+					si->si_chklast = op->o_time;
+				} else {
+					si->si_chklast = 1;
+				}
 			}
 		}
 		ldap_pvt_thread_rdwr_wunlock( &si->si_csn_rwlock );
