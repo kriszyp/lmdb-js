@@ -27,7 +27,7 @@ LDAP_BEGIN_DECL
 
 struct sockinfo {
 	const char	*si_sockpath;
-	int		si_extensions;
+	slap_mask_t	si_extensions;
 };
 
 #define	SOCK_EXT_BINDDN	1

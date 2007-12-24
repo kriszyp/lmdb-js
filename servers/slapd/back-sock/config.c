@@ -15,7 +15,7 @@
  */
 /* ACKNOWLEDGEMENTS:
  * This work was initially developed by Brian Candler for inclusion
- * in OpenLDAP Software.
+ * in OpenLDAP Software. Dynamic config support by Howard Chu.
  */
 
 #include "portable.h"
@@ -26,57 +26,82 @@
 #include <ac/socket.h>
 
 #include "slap.h"
+#include "config.h"
 #include "back-sock.h"
 
-int
-sock_back_db_config(
-    BackendDB	*be,
-    const char	*fname,
-    int		lineno,
-    int		argc,
-    char	**argv
-)
+static ConfigDriver bs_cf_gen;
+
+enum {
+	BS_EXT = 1
+};
+
+static ConfigTable bscfg[] = {
+	{ "socketpath", "pathname", 2, 2, 0, ARG_STRING|ARG_OFFSET,
+		(void *)offsetof(struct sockinfo, si_sockpath),
+		"( OLcfgDbAt:7.1 NAME 'olcDbSocketPath' "
+			"DESC 'Pathname for Unix domain socket' "
+			"EQUALITY caseExactMatch "
+			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
+	{ "extensions", "ext", 2, 0, 0, ARG_MAGIC|BS_EXT,
+		bs_cf_gen, "( OLcfgDbAt:7.2 NAME 'olcDbSocketExtensions' "
+			"DESC 'binddn, peername, or ssf' "
+			"EQUALITY caseIgnoreMatch "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
+	{ NULL, NULL }
+};
+
+static ConfigOCs bsocs[] = {
+	{ "( OLcfgDbOc:7.1 "
+		"NAME 'olcDbSocketConfig' "
+		"DESC 'Socket backend configuration' "
+		"SUP olcDatabaseConfig "
+		"MUST olcDbSocketPath "
+		"MAY olcDbSocketExtensions )",
+			Cft_Database, bscfg },
+	{ NULL, 0, NULL }
+};
+
+static slap_verbmasks bs_exts[] = {
+	{ BER_BVC("binddn"), SOCK_EXT_BINDDN },
+	{ BER_BVC("peername"), SOCK_EXT_PEERNAME },
+	{ BER_BVC("ssf"), SOCK_EXT_SSF },
+	{ BER_BVNULL, 0 }
+};
+
+static int
+bs_cf_gen( ConfigArgs *c )
 {
-	struct sockinfo	*si = (struct sockinfo *) be->be_private;
+	struct sockinfo	*si = c->be->be_private;
+	int rc;
 
-	if ( si == NULL ) {
-		fprintf( stderr, "%s: line %d: sock backend info is null!\n",
-		    fname, lineno );
-		return( 1 );
-	}
-
-	/* socketpath */
-	if ( strcasecmp( argv[0], "socketpath" ) == 0 ) {
-		if ( argc != 2 ) {
-			fprintf( stderr,
-	"%s: line %d: exactly one parameter needed for \"socketpath\"\n",
-			    fname, lineno );
-			return( 1 );
+	if ( c->op == SLAP_CONFIG_EMIT ) {
+		switch( c->type ) {
+		case BS_EXT:
+			return mask_to_verbs( bs_exts, si->si_extensions, &c->rvalue_vals );
 		}
-		si->si_sockpath = ch_strdup( argv[1] );
-
-	/* extensions */
-	} else if ( strcasecmp( argv[0], "extensions" ) == 0 ) {
-		int i;
-		for ( i=1; i<argc; i++ ) {
-			if ( strcasecmp( argv[i], "binddn" ) == 0 )
-				si->si_extensions |= SOCK_EXT_BINDDN;
-			else if ( strcasecmp( argv[i], "peername" ) == 0 )
-				si->si_extensions |= SOCK_EXT_PEERNAME;
-			else if ( strcasecmp( argv[i], "ssf" ) == 0 )
-				si->si_extensions |= SOCK_EXT_SSF;
-			else {
-				fprintf( stderr,
-	"%s: line %d: unknown extension \"%s\"\n",
-			    fname, lineno, argv[i] );
-				return( 1 );
+	} else if ( c->op == LDAP_MOD_DELETE ) {
+		switch( c->type ) {
+		case BS_EXT:
+			if ( c->valx < 0 ) {
+				si->si_extensions = 0;
+			} else {
 			}
+			return mask_to_verbs( bs_exts, si->si_extensions, &c->rvalue_vals );
 		}
 
-	/* anything else */
 	} else {
-		return SLAP_CONF_UNKNOWN;
+		switch( c->type ) {
+		case BS_EXT:
+			return verbs_to_mask( c->argc, c->argv, bs_exts, &si->si_extensions );
+		}
 	}
+	return 1;
+}
 
-	return 0;
+int
+sock_back_init_cf( BackendInfo *bi )
+{
+	bi->bi_cf_ocs = bsocs;
+
+	return config_register_schema( bscfg, bsocs );
 }

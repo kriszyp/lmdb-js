@@ -38,7 +38,7 @@ sock_back_initialize(
 	bi->bi_destroy = 0;
 
 	bi->bi_db_init = sock_back_db_init;
-	bi->bi_db_config = sock_back_db_config;
+	bi->bi_db_config = 0;
 	bi->bi_db_open = 0;
 	bi->bi_db_close = 0;
 	bi->bi_db_destroy = sock_back_db_destroy;
@@ -60,7 +60,7 @@ sock_back_initialize(
 	bi->bi_connection_init = 0;
 	bi->bi_connection_destroy = 0;
 
-	return 0;
+	return sock_back_init_cf( bi );
 }
 
 int
@@ -74,6 +74,7 @@ sock_back_db_init(
 	si = (struct sockinfo *) ch_calloc( 1, sizeof(struct sockinfo) );
 
 	be->be_private = si;
+	be->be_cf_ocs = be->bd_info->bi_cf_ocs;
 
 	return si == NULL;
 }
