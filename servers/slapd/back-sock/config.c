@@ -84,9 +84,14 @@ bs_cf_gen( ConfigArgs *c )
 		case BS_EXT:
 			if ( c->valx < 0 ) {
 				si->si_extensions = 0;
+				rc = 0;
 			} else {
+				slap_mask_t dels = 0;
+				rc = verbs_to_mask( c->argc, c->argv, bs_exts, &dels );
+				if ( rc == 0 )
+					si->si_extensions ^= dels;
 			}
-			return mask_to_verbs( bs_exts, si->si_extensions, &c->rvalue_vals );
+			return rc;
 		}
 
 	} else {
