@@ -39,6 +39,7 @@ enum db_which {
 static int
 over_db_func(
 	BackendDB *be,
+	ConfigReply *cr,
 	enum db_which which
 )
 {
@@ -51,14 +52,14 @@ over_db_func(
 	func = &oi->oi_orig->bi_db_open;
 	if ( func[which] ) {
 		be->bd_info = oi->oi_orig;
-		rc = func[which]( be, NULL );
+		rc = func[which]( be, cr );
 	}
 
 	for (; on && rc == 0; on=on->on_next) {
 		be->bd_info = &on->on_bi;
 		func = &on->on_bi.bi_db_open;
 		if (func[which]) {
-			rc = func[which]( be, NULL );
+			rc = func[which]( be, cr );
 		}
 	}
 	be->bd_info = bi_orig;
@@ -172,7 +173,7 @@ over_db_open(
 	ConfigReply *cr
 )
 {
-	return over_db_func( be, db_open );
+	return over_db_func( be, cr, db_open );
 }
 
 static int
@@ -189,13 +190,13 @@ over_db_close(
 	for (; on && rc == 0; on=on->on_next) {
 		be->bd_info = &on->on_bi;
 		if ( be->bd_info->bi_db_close ) {
-			rc = be->bd_info->bi_db_close( be, NULL );
+			rc = be->bd_info->bi_db_close( be, cr );
 		}
 	}
 
 	if ( oi->oi_orig->bi_db_close ) {
 		be->bd_info = oi->oi_orig;
-		rc = be->bd_info->bi_db_close( be, NULL );
+		rc = be->bd_info->bi_db_close( be, cr );
 	}
 
 	be->bd_info = bi_orig;
@@ -212,7 +213,7 @@ over_db_destroy(
 	slap_overinst *on = oi->oi_list, *next;
 	int rc;
 
-	rc = over_db_func( be, db_destroy );
+	rc = over_db_func( be, cr, db_destroy );
 
 	if ( on ) {
 		for (next = on->on_next; on; on=next) {
@@ -1248,10 +1249,10 @@ overlay_config( BackendDB *be, const char *ov, int idx, BackendInfo **res )
 
 	} else {
 		if ( overlay_is_inst( be, ov ) ) {
-			Debug( LDAP_DEBUG_ANY, "overlay_config(): "
-				"overlay \"%s\" already in list\n",
-				ov, 0, 0 );
 			if ( SLAPO_SINGLE( be ) ) {
+				Debug( LDAP_DEBUG_ANY, "overlay_config(): "
+					"overlay \"%s\" already in list\n",
+					ov, 0, 0 );
 				return 1;
 			}
 		}
