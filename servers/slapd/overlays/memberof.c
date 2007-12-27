@@ -453,6 +453,13 @@ memberof_value_modify(
 		ml->sml_nvalues[ 0 ] = *new_ndn;
 
 		(void)op->o_bd->be_modify( &op2, &rs2 );
+		if ( rs2.sr_err != LDAP_SUCCESS ) {
+			char buf[ SLAP_TEXT_BUFLEN ];
+			snprintf( buf, sizeof( buf ),
+				"memberof_value_modify %s=\"%s\" failed err=%d",
+				ad->ad_cname.bv_val, new_dn->bv_val, rs2.sr_err );
+			Debug( LDAP_DEBUG_ANY, "%s: %s\n", op->o_log_prefix, buf, 0 );
+		}
 
 		assert( op2.orm_modlist == &mod[ 0 ] );
 		assert( op2.orm_modlist->sml_next == &mod[ 1 ] );
@@ -473,6 +480,13 @@ memberof_value_modify(
 		ml->sml_nvalues[ 0 ] = *old_ndn;
 
 		(void)op->o_bd->be_modify( &op2, &rs2 );
+		if ( rs2.sr_err != LDAP_SUCCESS ) {
+			char buf[ SLAP_TEXT_BUFLEN ];
+			snprintf( buf, sizeof( buf ),
+				"memberof_value_modify %s=\"%s\" failed err=%d",
+				ad->ad_cname.bv_val, new_dn->bv_val, rs2.sr_err );
+			Debug( LDAP_DEBUG_ANY, "%s: %s\n", op->o_log_prefix, buf, 0 );
+		}
 
 		assert( op2.orm_modlist == &mod[ 0 ] );
 		assert( op2.orm_modlist->sml_next == &mod[ 1 ] );
@@ -528,7 +542,7 @@ memberof_op_add( Operation *op, SlapReply *rs )
 
 	if ( MEMBEROF_DANGLING_CHECK( mo )
 			&& !get_relax( op )
-			&& is_entry_objectclass( op->ora_e, mo->mo_oc_group, 0 ) )
+			&& is_entry_objectclass_or_sub( op->ora_e, mo->mo_oc_group ) )
 	{
 		op->o_dn = op->o_bd->be_rootdn;
 		op->o_dn = op->o_bd->be_rootndn;
@@ -545,11 +559,7 @@ memberof_op_add( Operation *op, SlapReply *rs )
 			assert( a->a_nvals != NULL );
 
 			for ( i = 0; !BER_BVISNULL( &a->a_nvals[ i ] ); i++ ) {
-				Entry		*e;
-
-				/* FIXME: entry_get_rw does not pass
-				 * thru overlays yet; when it does, we
-				 * might need to make a copy of the DN */
+				Entry		*e = NULL;
 
 				rc = be_entry_get_rw( op, &a->a_nvals[ i ],
 						NULL, NULL, 0, &e );
@@ -1149,7 +1159,7 @@ memberof_res_add( Operation *op, SlapReply *rs )
 		}
 	}
 
-	if ( is_entry_objectclass( op->ora_e, mo->mo_oc_group, 0 ) ) {
+	if ( is_entry_objectclass_or_sub( op->ora_e, mo->mo_oc_group ) ) {
 		Attribute	*a;
 
 		for ( a = attrs_find( op->ora_e->e_attrs, mo->mo_ad_member );
