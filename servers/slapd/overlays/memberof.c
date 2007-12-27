@@ -264,6 +264,7 @@ memberof_saveMember_cb( Operation *op, SlapReply *rs )
 	if ( rs->sr_type == REP_SEARCH ) {
 		memberof_cookie_t	*mc;
 		Attribute		*a;
+		BerVarray		vals = NULL;
 
 		mc = (memberof_cookie_t *)op->o_callback->sc_private;
 		mc->foundit = 1;
@@ -272,12 +273,13 @@ memberof_saveMember_cb( Operation *op, SlapReply *rs )
 		assert( rs->sr_entry->e_attrs != NULL );
 
 		a = attr_find( rs->sr_entry->e_attrs, mc->ad );
+		if ( a != NULL ) {
+			vals = a->a_nvals;
+		}
 
-		assert( a != NULL );
+		memberof_saved_member_set( op, mc->key, vals );
 
-		memberof_saved_member_set( op, mc->key, a->a_nvals );
-
-		if ( attr_find( a->a_next, mc->ad ) != NULL ) {
+		if ( a && attr_find( a->a_next, mc->ad ) != NULL ) {
 			Debug( LDAP_DEBUG_ANY,
 				"%s: memberof_saveMember_cb(\"%s\"): "
 				"more than one occurrence of \"%s\" "
