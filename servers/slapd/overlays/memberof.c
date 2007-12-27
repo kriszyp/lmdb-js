@@ -484,7 +484,7 @@ memberof_value_modify(
 			char buf[ SLAP_TEXT_BUFLEN ];
 			snprintf( buf, sizeof( buf ),
 				"memberof_value_modify %s=\"%s\" failed err=%d",
-				ad->ad_cname.bv_val, new_dn->bv_val, rs2.sr_err );
+				ad->ad_cname.bv_val, old_dn->bv_val, rs2.sr_err );
 			Debug( LDAP_DEBUG_ANY, "%s: %s\n", op->o_log_prefix, buf, 0 );
 		}
 
