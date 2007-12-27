@@ -48,7 +48,7 @@ sock_back_compare(
 	e.e_private = NULL;
 
 	if ( ! access_allowed( op, &e,
-		entry, NULL, ACL_READ, NULL ) )
+		entry, NULL, ACL_COMPARE, NULL ) )
 	{
 		send_ldap_error( op, rs, LDAP_INSUFFICIENT_ACCESS, NULL );
 		return -1;
