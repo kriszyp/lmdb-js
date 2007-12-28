@@ -441,7 +441,6 @@ retry:	/* transaction retry */
 
 	opinfo.boi_bdb = op->o_bd;
 	opinfo.boi_txn = ltid;
-	opinfo.boi_locker = locker;
 	opinfo.boi_err = 0;
 	opinfo.boi_acl_cache = op->o_do_not_cache;
 	op->o_private = &opinfo;
