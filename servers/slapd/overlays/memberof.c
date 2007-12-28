@@ -155,6 +155,8 @@ typedef struct memberof_t {
 #define	MEMBEROF_FREFINT	0x04U
 #define	MEMBEROF_FREVERSE	0x08U
 
+	ber_int_t		mo_dangling_err;
+
 #define MEMBEROF_CHK(mo,f) \
 	(((mo)->mo_flags & (f)) == (f))
 #define MEMBEROF_DANGLING_CHECK(mo) \
@@ -571,7 +573,7 @@ memberof_op_add( Operation *op, SlapReply *rs )
 				}
 
 				if ( MEMBEROF_DANGLING_ERROR( mo ) ) {
-					rc = rs->sr_err = LDAP_CONSTRAINT_VIOLATION;
+					rc = rs->sr_err = mo->mo_dangling_err;
 					rs->sr_text = "adding non-existing object "
 						"as group member";
 					send_ldap_result( op, rs );
@@ -649,7 +651,7 @@ memberof_op_add( Operation *op, SlapReply *rs )
 				}
 
 				if ( MEMBEROF_DANGLING_ERROR( mo ) ) {
-					rc = rs->sr_err = LDAP_CONSTRAINT_VIOLATION;
+					rc = rs->sr_err = mo->mo_dangling_err;
 					rs->sr_text = "adding non-existing object "
 						"as memberof";
 					send_ldap_result( op, rs );
@@ -836,7 +838,7 @@ memberof_op_modify( Operation *op, SlapReply *rs )
 						}
 		
 						if ( MEMBEROF_DANGLING_ERROR( mo ) ) {
-							rc = rs->sr_err = LDAP_CONSTRAINT_VIOLATION;
+							rc = rs->sr_err = mo->mo_dangling_err;
 							rs->sr_text = "adding non-existing object "
 								"as group member";
 							send_ldap_result( op, rs );
@@ -933,7 +935,7 @@ memberof_op_modify( Operation *op, SlapReply *rs )
 						}
 
 						if ( MEMBEROF_DANGLING_ERROR( mo ) ) {
-							rc = rs->sr_err = LDAP_CONSTRAINT_VIOLATION;
+							rc = rs->sr_err = mo->mo_dangling_err;
 							rs->sr_text = "deleting non-existing object "
 								"as memberof";
 							send_ldap_result( op, rs );
@@ -1044,7 +1046,7 @@ memberof_op_modify( Operation *op, SlapReply *rs )
 				op->o_bd->bd_info = (BackendInfo *)on;
 				if ( rc != LDAP_SUCCESS ) {
 					if ( MEMBEROF_DANGLING_ERROR( mo ) ) {
-						rc = rs->sr_err = LDAP_CONSTRAINT_VIOLATION;
+						rc = rs->sr_err = mo->mo_dangling_err;
 						rs->sr_text = "adding non-existing object "
 							"as memberof";
 						send_ldap_result( op, rs );
@@ -1490,6 +1492,10 @@ memberof_db_init(
 	memberof_t	tmp_mo = { 0 }, *mo;
 
 	mo = (memberof_t *)ch_calloc( 1, sizeof( memberof_t ) );
+
+	/* safe default */
+	mo->mo_dangling_err = LDAP_CONSTRAINT_VIOLATION;
+
 	on->on_bi.bi_private = (void *)mo;
 
 	return 0;
@@ -1499,12 +1505,16 @@ enum {
 	MO_DN = 1,
 	MO_DANGLING,
 	MO_REFINT,
+	MO_GROUP_OC,
+	MO_MEMBER_AD,
+	MO_MEMBER_OF_AD,
 #if 0
 	MO_REVERSE,
 #endif
-	MO_GROUP_OC,
-	MO_MEMBER_AD,
-	MO_MEMBER_OF_AD
+
+	MO_DANGLING_ERROR,
+
+	MO_LAST
 };
 
 static ConfigDriver mo_cf_gen;
@@ -1570,6 +1580,13 @@ static ConfigTable mo_cfg[] = {
 		NULL, NULL },
 #endif
 
+	{ "memberof-dangling-error", "error code",
+		2, 2, 0, ARG_MAGIC|MO_DANGLING_ERROR, mo_cf_gen,
+		"( OLcfgOvAt:18.7 NAME 'olcMemberOfDanglingError' "
+			"DESC 'Error code returned in case of dangling back reference' "
+			"SYNTAX OMsDirectoryString SINGLE-VALUE )",
+		NULL, NULL },
+
 	{ NULL, NULL, 0, 0, 0, ARG_IGNORED }
 };
 
@@ -1581,6 +1598,7 @@ static ConfigOCs mo_ocs[] = {
 		"MAY ( "
 			"olcMemberOfDN "
 			"$ olcMemberOfDangling "
+			"$ olcMemberOfDanglingError"
 			"$ olcMemberOfRefInt "
 			"$ olcMemberOfGroupOC "
 			"$ olcMemberOfMemberAD "
@@ -1683,6 +1701,25 @@ mo_cf_gen( ConfigArgs *c )
 			}
 			break;
 
+		case MO_DANGLING_ERROR:
+			if ( mo->mo_flags & MEMBEROF_FDANGLING_ERROR ) {
+				char buf[ SLAP_TEXT_BUFLEN ];
+				enum_to_verb( slap_ldap_response_code, mo->mo_dangling_err, &bv );
+				if ( BER_BVISNULL( &bv ) ) {
+					bv.bv_len = snprintf( buf, sizeof( buf ), "0x%x", mo->mo_dangling_err );
+					if ( bv.bv_len < sizeof( buf ) ) {
+						bv.bv_val = buf;
+					} else {
+						rc = 1;
+						break;
+					}
+				}
+				value_add_one( &c->rvalue_vals, &bv );
+			} else {
+				rc = 1;
+			}
+			break;
+
 		case MO_REFINT:
 			c->value_int = MEMBEROF_REFINT( mo );
 			break;
@@ -1740,6 +1777,15 @@ mo_cf_gen( ConfigArgs *c )
 
 			mo->mo_flags &= ~MEMBEROF_FDANGLING_MASK;
 			mo->mo_flags |= dangling_mode[ i ].mask;
+			break;
+
+		case MO_DANGLING_ERROR:
+			i = verb_to_mask( c->argv[ 1 ], slap_ldap_response_code );
+			if ( !BER_BVISNULL( &slap_ldap_response_code[ i ].word ) ) {
+				mo->mo_dangling_err = slap_ldap_response_code[ i ].mask;
+			} else if ( lutil_atoix( &mo->mo_dangling_err, c->argv[ 1 ], 0 ) ) {
+				return 1;
+			}
 			break;
 
 		case MO_REFINT:
@@ -1880,7 +1926,7 @@ memberof_db_open(
 		}
 	}
 
-    if( ! mo->mo_oc_group ){
+	if( ! mo->mo_oc_group ){
 		mo->mo_oc_group = oc_find( SLAPD_GROUP_CLASS );
 		if ( mo->mo_oc_group == NULL ) {
 			Debug( LDAP_DEBUG_ANY,
