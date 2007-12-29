@@ -42,6 +42,51 @@ static BackendInfo	slap_frontendInfo;
 static BackendDB	slap_frontendDB;
 BackendDB	*frontendDB;
 
+static int
+fe_entry_get_rw(
+	Operation *op,
+	struct berval *ndn,
+	ObjectClass *oc,
+	AttributeDescription *at,
+	int rw,
+	Entry **e )
+{
+	BackendDB	*bd;
+	int		rc = LDAP_NO_SUCH_OBJECT;
+
+	bd = op->o_bd;
+	op->o_bd = select_backend( ndn, 0 );
+	if ( op->o_bd != NULL ) {
+		if ( op->o_bd->be_fetch ) {
+			rc = op->o_bd->be_fetch( op, ndn, oc, at, rw, e );
+		}
+	}
+	op->o_bd = bd;
+
+	return rc;
+}
+
+static int
+fe_entry_release_rw(
+	Operation *op,
+	Entry *e,
+	int rw )
+{
+	BackendDB	*bd;
+	int		rc = LDAP_NO_SUCH_OBJECT;
+
+	bd = op->o_bd;
+	op->o_bd = select_backend( &e->e_nname, 0 );
+	if ( op->o_bd != NULL ) {
+		if ( op->o_bd->be_release ) {
+			rc = op->o_bd->be_release( op, e, rw );
+		}
+	}
+	op->o_bd = bd;
+
+	return rc;
+}
+
 int
 frontend_init( void )
 {
@@ -115,10 +160,8 @@ frontend_init( void )
 	frontendDB->bd_info->bi_op_search = fe_op_search;
 	frontendDB->bd_info->bi_extended = fe_extended;
 	frontendDB->bd_info->bi_operational = fe_aux_operational;
-#if 0
 	frontendDB->bd_info->bi_entry_get_rw = fe_entry_get_rw;
 	frontendDB->bd_info->bi_entry_release_rw = fe_entry_release_rw;
-#endif
 	frontendDB->bd_info->bi_access_allowed = fe_access_allowed;
 	frontendDB->bd_info->bi_acl_group = fe_acl_group;
 	frontendDB->bd_info->bi_acl_attribute = fe_acl_attribute;
