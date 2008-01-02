@@ -145,7 +145,7 @@ virtual DSA by clients that are otherwise unable to "chase" (i.e. follow)
 referrals by themselves.
 
 The chain overlay is built on top of the ldap backend; it is compiled by 
-default when --enable-ldap.
+default when {{B:--enable-ldap}}.
 
 
 H3: Chaining Configuration
