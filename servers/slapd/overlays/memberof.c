@@ -472,8 +472,10 @@ memberof_value_modify(
 			char buf[ SLAP_TEXT_BUFLEN ];
 			snprintf( buf, sizeof( buf ),
 				"memberof_value_modify %s=\"%s\" failed err=%d text=%s",
-				ad->ad_cname.bv_val, new_dn->bv_val, rs2.sr_err, rs2.sr_text );
-			Debug( LDAP_DEBUG_ANY, "%s: %s\n", op->o_log_prefix, buf, 0 );
+				ad->ad_cname.bv_val, new_dn->bv_val, rs2.sr_err,
+				rs2.sr_text ? rs2.sr_text : "" );
+			Debug( LDAP_DEBUG_ANY, "%s: %s\n",
+				op->o_log_prefix, buf, 0 );
 		}
 
 		assert( op2.orm_modlist == &mod[ mcnt ] );
@@ -486,6 +488,8 @@ memberof_value_modify(
 		if ( ml != NULL ) {
 			slap_mods_free( ml, 1 );
 		}
+
+		mod[ 0 ].sml_next = NULL;
 	}
 
 	if ( old_ndn != NULL ) {
@@ -503,8 +507,10 @@ memberof_value_modify(
 			char buf[ SLAP_TEXT_BUFLEN ];
 			snprintf( buf, sizeof( buf ),
 				"memberof_value_modify %s=\"%s\" failed err=%d text=%s",
-				ad->ad_cname.bv_val, old_dn->bv_val, rs2.sr_err, rs2.sr_text );
-			Debug( LDAP_DEBUG_ANY, "%s: %s\n", op->o_log_prefix, buf, 0 );
+				ad->ad_cname.bv_val, old_dn->bv_val, rs2.sr_err,
+				rs2.sr_text ? rs2.sr_text : "" );
+			Debug( LDAP_DEBUG_ANY, "%s: %s\n",
+				op->o_log_prefix, buf, 0 );
 		}
 
 		assert( op2.orm_modlist == &mod[ mcnt ] );
