@@ -122,8 +122,8 @@ slap_op_free( Operation *op, void *ctx )
 		ldap_pvt_thread_pool_getkey( ctx, (void *)slap_op_free, &otmp, NULL );
 		op2 = otmp;
 		LDAP_STAILQ_NEXT( op, o_next ) = op2;
-		ldap_pvt_thread_pool_setkey( ctx, (void *)slap_op_free, (void *)op,
-			slap_op_q_destroy );
+		ldap_pvt_thread_pool_setkey( ctx, (void *)slap_op_free,
+			(void *)op, slap_op_q_destroy, NULL, NULL );
 	} else {
 		ber_memfree_x( op, NULL );
 	}
@@ -160,8 +160,8 @@ slap_op_alloc(
 		if ( otmp ) {
 			op = otmp;
 			otmp = LDAP_STAILQ_NEXT( op, o_next );
-			ldap_pvt_thread_pool_setkey( ctx, (void *)slap_op_free, otmp,
-				slap_op_q_destroy );
+			ldap_pvt_thread_pool_setkey( ctx, (void *)slap_op_free,
+				otmp, slap_op_q_destroy, NULL, NULL );
 		}
 	}
 	if (!op) {

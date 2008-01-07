@@ -756,7 +756,7 @@ clear_key_idx( ldap_int_thread_userctx_t *ctx, int i )
  *   responsibility to free any existing data with the same key.
  *   kfree() must not call functions taking a tpool argument.
  */
-int ldap_pvt_thread_pool_setkey_x(
+int ldap_pvt_thread_pool_setkey(
 	void *xctx,
 	void *key,
 	void *data,

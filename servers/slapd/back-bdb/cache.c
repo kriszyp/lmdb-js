@@ -1449,7 +1449,7 @@ bdb_locker_flush( DB_ENV *env )
 	void *ctx = ldap_pvt_thread_pool_context();
 
 	if ( !ldap_pvt_thread_pool_getkey( ctx, env, &data, NULL ) ) {
-		ldap_pvt_thread_pool_setkey( ctx, env, NULL, NULL );
+		ldap_pvt_thread_pool_setkey( ctx, env, NULL, NULL, NULL, NULL );
 		bdb_locker_id_free( env, data );
 	}
 }
@@ -1494,7 +1494,7 @@ bdb_locker_id( Operation *op, DB_ENV *env, BDB_LOCKER *locker )
 		data = (void *)((long)lockid);
 #endif
 		if ( ( rc = ldap_pvt_thread_pool_setkey( ctx, env,
-			data, bdb_locker_id_free ) ) ) {
+			data, bdb_locker_id_free, NULL, NULL ) ) ) {
 			XLOCK_ID_FREE( env, lockid );
 			Debug( LDAP_DEBUG_ANY, "bdb_locker_id: err %s(%d)\n",
 				db_strerror(rc), rc, 0 );

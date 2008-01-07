@@ -976,7 +976,7 @@ conn_counter_init( Operation *op, void *ctx )
 		sc = vsc;
 		slap_counters_init( sc );
 		ldap_pvt_thread_pool_setkey( ctx, conn_counter_init, vsc,
-			conn_counter_destroy );
+			conn_counter_destroy, NULL, NULL );
 
 		ldap_pvt_thread_mutex_lock( &slap_counters.sc_mutex );
 		sc->sc_next = slap_counters.sc_next;
@@ -1953,8 +1953,8 @@ connection_fake_init2(
 			slapi_int_create_object_extensions( SLAPI_X_EXT_OPERATION, op );
 			eb->eb_conn = conn->c_extensions;
 			eb->eb_op = op->o_hdr->oh_extensions;
-			ldap_pvt_thread_pool_setkey( ctx, connection_fake_init, eb,
-				connection_fake_destroy );
+			ldap_pvt_thread_pool_setkey( ctx, connection_fake_init,
+				eb, connection_fake_destroy, NULL, NULL );
 		} else {
 			eb = ebx;
 			conn->c_extensions = eb->eb_conn;
