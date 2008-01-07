@@ -505,8 +505,10 @@ slap_passwd_check(
 	AccessControlState	acl_state = ACL_STATE_INIT;
 
 #ifdef SLAPD_SPASSWD
-	ldap_pvt_thread_pool_setkey( op->o_threadctx, slap_sasl_bind,
-		op->o_conn->c_sasl_authctx, NULL );
+	void		*old_authctx = NULL;
+
+	ldap_pvt_thread_pool_setkey_x( op->o_threadctx, slap_sasl_bind,
+		op->o_conn->c_sasl_authctx, NULL, &old_authctx, NULL );
 #endif
 
 	for ( bv = a->a_vals; bv->bv_val != NULL; bv++ ) {
@@ -525,7 +527,7 @@ slap_passwd_check(
 
 #ifdef SLAPD_SPASSWD
 	ldap_pvt_thread_pool_setkey( op->o_threadctx, slap_sasl_bind,
-		NULL, NULL );
+		old_authctx, NULL );
 #endif
 
 	return result;
