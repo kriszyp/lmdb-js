@@ -2,7 +2,7 @@
 # $OpenLDAP$
 ## This work is part of OpenLDAP Software <http://www.openldap.org/>.
 ##
-## Copyright 1998-2007 The OpenLDAP Foundation.
+## Copyright 1998-2008 The OpenLDAP Foundation.
 ## All rights reserved.
 ##
 ## Redistribution and use in source and binary forms, with or without
@@ -496,6 +496,8 @@ case $RC in
 	;;
 esac
 
+case $BACKEND in bdb | hdb)
+
 echo "Testing higher than unchecked limit requested for unchecked limited ID..."
 $LDAPRSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 -w secret \
 	-D 'cn=Unchecked Limited User,ou=People,dc=example,dc=com' \
@@ -546,6 +548,9 @@ case $RC in
 		test $KILLSERVERS != no && kill -HUP $KILLPIDS
 		exit $RC
 	;;
+esac
+;;
+*)	echo "Skipping test for unchecked limit with $BACKEND backend." ;;
 esac
 
 echo "Testing no limits requested for limited regex..."

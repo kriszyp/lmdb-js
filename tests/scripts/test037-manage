@@ -16,6 +16,11 @@
 echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
 
+if test $BACKEND = "ldif" ; then 
+	echo "LDIF backend does not support manageDIT control, test skipped"
+	exit 0
+fi 
+
 mkdir -p $TESTDIR $DBDIR1
 
 echo "Running slapadd to build slapd database..."
