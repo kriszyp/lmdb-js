@@ -194,7 +194,7 @@ memberof_saved_member_free( void *key, void *data )
 static BerVarray
 memberof_saved_member_get( Operation *op, void *keyp )
 {
-	BerVarray	vals;
+	void		*vals;
 	BerVarray	*key = (BerVarray *)keyp;
 
 	assert( op != NULL );
@@ -204,10 +204,8 @@ memberof_saved_member_get( Operation *op, void *keyp )
 		*key = NULL;
 
 	} else {
-		ldap_pvt_thread_pool_getkey( op->o_threadctx,
-				key, (void **)&vals, NULL );
-		ldap_pvt_thread_pool_setkey( op->o_threadctx,
-				key, NULL, NULL );
+		ldap_pvt_thread_pool_setkey_x( op->o_threadctx,
+				key, NULL, NULL, &vals, NULL );
 	}
 
 	return vals;
@@ -232,7 +230,7 @@ memberof_saved_member_set( Operation *op, void *keyp, BerVarray vals )
 		*key = saved_vals;
 
 	} else {
-		BerVarray	old_vals = NULL;
+		void	*old_vals = NULL;
 
 		ldap_pvt_thread_pool_setkey_x( op->o_threadctx, key,
 				saved_vals, memberof_saved_member_free, &old_vals, NULL );
@@ -1515,7 +1513,7 @@ memberof_db_init(
 	ConfigReply	*cr )
 {
 	slap_overinst	*on = (slap_overinst *)be->bd_info;
-	memberof_t	tmp_mo = { 0 }, *mo;
+	memberof_t		*mo;
 
 	mo = (memberof_t *)ch_calloc( 1, sizeof( memberof_t ) );
 
