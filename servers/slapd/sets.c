@@ -362,7 +362,7 @@ done2:;
 
 		} else {
 			for ( i = 0; !BER_BVISNULL( &set[ i ] ); i++ ) {
-				Debug( LDAP_DEBUG_ACL, "  ACL set[%d]=%s\n", i, set[i].bv_val, 0 );
+				Debug( LDAP_DEBUG_ACL, "  ACL set[%ld]=%s\n", i, set[i].bv_val, 0 );
 			}
 		}
 	}
