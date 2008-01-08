@@ -395,6 +395,7 @@ delete_values( Operation *op, Entry *e, Modification *mod, int *newlevel )
 				a->a_vals[ k - 1 ] = a->a_vals[ k ];
 			}
 			BER_BVZERO( &a->a_vals[ k - 1 ] );
+			a->a_numvals--;
 
 			break;
 		}
@@ -409,6 +410,8 @@ delete_values( Operation *op, Entry *e, Modification *mod, int *newlevel )
 
 	/* if no values remain, delete the entire attribute */
 	if ( BER_BVISNULL( &a->a_vals[ 0 ] ) ) {
+		assert( a->a_numvals == 0 );
+
 		/* should already be zero */
 		*newlevel = 0;
 		

@@ -835,6 +835,7 @@ monitor_subsys_database_modify(
 	
 							BER_BVZERO( &a->a_vals[ k - 1 ] );
 							BER_BVZERO( &a->a_nvals[ k - 1 ] );
+							a->a_numvals--;
 						}
 					}
 				}
@@ -860,8 +861,15 @@ monitor_subsys_database_modify(
 	
 							BER_BVZERO( &a->a_vals[ k - 1 ] );
 							BER_BVZERO( &a->a_nvals[ k - 1 ] );
+							a->a_numvals--;
 						}
 					}
+				}
+
+				if ( a->a_vals == NULL ) {
+					assert( a->a_numvals == 0 );
+
+					attr_delete( &e->e_attrs, mi->mi_ad_restrictedOperation );
 				}
 			}
 		}
