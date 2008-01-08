@@ -117,13 +117,10 @@ slap_op_free( Operation *op, void *ctx )
 	op->o_controls = opbuf->ob_controls;
 
 	if ( ctx ) {
-		Operation *op2;
-		void *otmp = NULL;
-		ldap_pvt_thread_pool_getkey( ctx, (void *)slap_op_free, &otmp, NULL );
-		op2 = otmp;
-		LDAP_STAILQ_NEXT( op, o_next ) = op2;
+		void *op2 = NULL;
 		ldap_pvt_thread_pool_setkey( ctx, (void *)slap_op_free,
-			(void *)op, slap_op_q_destroy, NULL, NULL );
+			op, slap_op_q_destroy, &op2, NULL );
+		LDAP_STAILQ_NEXT( op, o_next ) = op2;
 	} else {
 		ber_memfree_x( op, NULL );
 	}
