@@ -260,6 +260,7 @@ monitor_subsys_thread_update(
 				ber_bvarray_free( a->a_vals );
 				a->a_vals = NULL;
 				a->a_nvals = NULL;
+				a->a_numvals = 0;
 			}
 
 			i = 0;
@@ -292,6 +293,7 @@ monitor_subsys_thread_update(
 				ber_bvarray_free( a->a_vals );
 				a->a_vals = NULL;
 				a->a_nvals = NULL;
+				a->a_numvals = 0;
 			}
 	
 			i = 0;
