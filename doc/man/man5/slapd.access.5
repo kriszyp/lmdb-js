@@ -595,7 +595,8 @@ prefix and the
 part, and it is compared against the
 .B <ip>
 portion of the pattern after masking with
-.BR <mask> .
+.BR <mask> :
+\fI((peername & <mask>) == <ip>)\fP.
 As an example, 
 .B peername.ip=127.0.0.1
 and
