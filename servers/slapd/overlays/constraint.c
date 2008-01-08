@@ -378,8 +378,6 @@ constraint_violation( constraint *c, struct berval *bv, Operation *op, SlapReply
 			  STRLENOF(")(|");
 
 		for (i = 0; c->attrs[i]; i++) {
-			const char *text = NULL;
-
 			len += STRLENOF("(") +
 				   c->attrs[i]->ad_cname.bv_len +
 				   STRLENOF("=") + 
