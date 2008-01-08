@@ -203,7 +203,7 @@ static char * slurp_file(int fd) {
 }
 
 /*
- * return number of bytes written, or -1 in case of error
+ * return nonnegative for success or -1 for error
  * do not return numbers less than -1
  */
 static int spew_file(int fd, char * spew, int len) {
