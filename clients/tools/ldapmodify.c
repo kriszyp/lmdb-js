@@ -70,15 +70,14 @@
 
 #include "common.h"
 
-static int	ldapadd, force = 0;
+static int	ldapadd;
 static char *rejfile = NULL;
 static LDAP	*ld = NULL;
 
 #define	M_SEP	0x7f
 
-/* strings found in replog/LDIF entries (mostly lifted from slurpd/slurp.h) */
+/* strings found in LDIF entries */
 static struct berval BV_VERSION = BER_BVC("version");
-static struct berval BV_REPLICA = BER_BVC("replica");
 static struct berval BV_DN = BER_BVC("dn");
 static struct berval BV_CONTROL = BER_BVC("control");
 static struct berval BV_CHANGETYPE = BER_BVC("changetype");
@@ -144,7 +143,6 @@ usage( void )
  	fprintf( stderr,
 		_("             [!]txn=<commit|abort>         (transaction)\n"));
 #endif
-	fprintf( stderr, _("  -F         force all changes records to be used\n"));
 	fprintf( stderr, _("  -S file    write skipped modifications to `file'\n"));
 
 	tool_common_usage();
@@ -152,7 +150,7 @@ usage( void )
 }
 
 
-const char options[] = "aE:FrS:"
+const char options[] = "aE:rS:"
 	"cd:D:e:f:h:H:IMnO:o:p:P:QR:U:vVw:WxX:y:Y:Z";
 
 int
@@ -215,10 +213,6 @@ handle_private_option( int i )
 
 	case 'a':	/* add */
 		ldapadd = 1;
-		break;
-
-	case 'F':	/* force all changes records to be used */
-		force = 1;
 		break;
 
 	case 'r':	/* replace (obsolete) */
@@ -411,7 +405,7 @@ process_ldif_rec( char *rbuf, int linenum )
 	int		rc, modop, replicaport;
 	int		expect_modop, expect_sep;
 	int		deleteoldrdn;
-	int		saw_replica, use_record, new_entry, delete_entry, got_all;
+	int		new_entry, delete_entry, got_all;
 	LDAPMod	**pmods, *lm = NULL;
 	int version;
 	LDAPControl **pctrls;
@@ -422,11 +416,10 @@ process_ldif_rec( char *rbuf, int linenum )
 
 	new_entry = ldapadd;
 
-	rc = got_all = saw_replica = delete_entry = modop = expect_modop = 0;
+	rc = got_all = delete_entry = modop = expect_modop = 0;
 	expect_sep = 0;
 	version = 0;
 	deleteoldrdn = 1;
-	use_record = force;
 	pmods = NULL;
 	pctrls = NULL;
 	dn = newrdn = newsup = NULL;
@@ -464,27 +457,7 @@ process_ldif_rec( char *rbuf, int linenum )
 		freeval[i] = freev;
 
 		if ( dn == NULL ) {
-			if ( !use_record && !BVICMP( btype+i, &BV_REPLICA )) {
-				char *p;
-				++saw_replica;
-				if (( p = strchr( vals[i].bv_val, ':' )) == NULL ) {
-					replicaport = 0;
-				} else {
-					*p++ = '\0';
-					if ( lutil_atoi( &replicaport, p ) != 0 ) {
-						fprintf( stderr, _("%s: unable to parse replica port \"%s\" (line %d) entry: \"%s\"\n"),
-							prog, p, linenum+i, dn == NULL ? "" : dn );
-						rc = LDAP_PARAM_ERROR;
-						break;
-					}
-				}
-				if ( ldaphost != NULL &&
-					strcasecmp( vals[i].bv_val, ldaphost ) == 0 &&
-					replicaport == ldapport )
-				{
-					use_record = 1;
-				}
-			} else if ( linenum+i == 1 && !BVICMP( btype+i, &BV_VERSION )) {
+			if ( linenum+i == 1 && !BVICMP( btype+i, &BV_VERSION )) {
 				int	v;
 				if( vals[i].bv_len == 0 || lutil_atoi( &v, vals[i].bv_val) != 0 || v != 1 ) {
 					fprintf( stderr,
@@ -496,13 +469,6 @@ process_ldif_rec( char *rbuf, int linenum )
 			} else if ( !BVICMP( btype+i, &BV_DN )) {
 				dn = vals[i].bv_val;
 				idn = i;
-				if ( !use_record && saw_replica ) {
-					printf(_("%s: skipping change record for entry: %s at line %d\n"),
-						prog, dn, linenum+i);
-					printf(_("\t(LDAP host/port does not match replica: lines)\n"));
-					rc = 0;
-					goto leave;
-				}
 			}
 			/* skip all lines until we see "dn:" */
 		}
