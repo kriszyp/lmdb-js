@@ -402,7 +402,7 @@ static int
 process_ldif_rec( char *rbuf, int linenum )
 {
 	char	*line, *dn, *newrdn, *newsup;
-	int		rc, modop, replicaport;
+	int		rc, modop;
 	int		expect_modop, expect_sep;
 	int		deleteoldrdn;
 	int		new_entry, delete_entry, got_all;
