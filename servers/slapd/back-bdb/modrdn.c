@@ -559,6 +559,9 @@ retry:	/* transaction retry */
 	case DB_NOTFOUND:
 		break;
 	case 0:
+		/* Allow rename to same DN */
+		if ( nei == ei )
+			break;
 		rs->sr_err = LDAP_ALREADY_EXISTS;
 		goto return_results;
 	default:
@@ -586,6 +589,27 @@ retry:	/* transaction retry */
 				goto return_results;
 			}
 		}                   
+	}
+
+	/* Rename to exactly the same name, noop */
+	if ( nei == ei && bvmatch( &e->e_name, &new_dn )) {
+		rs->sr_err = LDAP_SUCCESS;
+		if ( op->o_postread ) {
+			if( postread_ctrl == NULL ) {
+				postread_ctrl = &ctrls[num_ctrls++];
+				ctrls[num_ctrls] = NULL;
+			}
+			if( slap_read_controls( op, rs, e,
+				&slap_post_read_bv, postread_ctrl ) )
+			{
+				Debug( LDAP_DEBUG_TRACE,        
+					"<=- " LDAP_XSTRING(bdb_modrdn)
+					": post-read failed!\n", 0, 0, 0 );
+			}                   
+		}
+		TXN_ABORT( ltid );
+		ltid = NULL;
+		goto return_results;
 	}
 
 	/* nested transaction */
