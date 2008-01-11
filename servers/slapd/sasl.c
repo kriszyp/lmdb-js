@@ -829,7 +829,7 @@ static int chk_sasl(
 	rtn = LUTIL_PASSWD_ERR;
 
 	ctx = ldap_pvt_thread_pool_context();
-	ldap_pvt_thread_pool_getkey( ctx, slap_sasl_bind, &sconn, NULL );
+	ldap_pvt_thread_pool_getkey( ctx, (void *)slap_sasl_bind, &sconn, NULL );
 
 	if( sconn != NULL ) {
 		int sc;

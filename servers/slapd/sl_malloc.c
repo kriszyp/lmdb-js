@@ -246,7 +246,8 @@ slap_sl_mem_detach(
 	slheap = NULL;
 #else
 	/* separate from context */
-	ldap_pvt_thread_pool_setkey( ctx, (void *)slap_sl_mem_init, NULL, NULL, NULL, NULL );
+	ldap_pvt_thread_pool_setkey( ctx, (void *)slap_sl_mem_init,
+		NULL, 0, NULL, NULL );
 #endif
 }
 

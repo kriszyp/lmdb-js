@@ -998,7 +998,7 @@ static void *search_stack( Operation *op )
 	void *ret = NULL;
 
 	if ( op->o_threadctx ) {
-		ldap_pvt_thread_pool_getkey( op->o_threadctx, search_stack,
+		ldap_pvt_thread_pool_getkey( op->o_threadctx, (void *)search_stack,
 			&ret, NULL );
 	} else {
 		ret = bdb->bi_search_stack;
@@ -1008,7 +1008,7 @@ static void *search_stack( Operation *op )
 		ret = ch_malloc( bdb->bi_search_stack_depth * BDB_IDL_UM_SIZE
 			* sizeof( ID ) );
 		if ( op->o_threadctx ) {
-			ldap_pvt_thread_pool_setkey( op->o_threadctx, search_stack,
+			ldap_pvt_thread_pool_setkey( op->o_threadctx, (void *)search_stack,
 				ret, search_stack_free, NULL, NULL );
 		} else {
 			bdb->bi_search_stack = ret;
