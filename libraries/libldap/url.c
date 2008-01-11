@@ -642,14 +642,16 @@ desc2str( LDAPURLDesc *u, char *s, int len )
 	}
 
 	if ( u->lud_port ) {
-		len -= sprintf( s, "%s://%s%s%s:%d%n", u->lud_scheme,
+		sofar = sprintf( s, "%s://%s%s%s:%d", u->lud_scheme,
 				is_v6 ? "[" : "",
 				u->lud_host ? u->lud_host : "",
 				is_v6 ? "]" : "",
-				u->lud_port, &sofar );
+				u->lud_port );
+		len -= sofar;
 
 	} else {
-		len -= sprintf( s, "%s://%n", u->lud_scheme, &sofar );
+		sofar = sprintf( s, "%s://", u->lud_scheme );
+		len -= sofar;
 		if ( u->lud_host && u->lud_host[0] ) {
 			if ( is_v6 ) {
 				s[sofar++] = '[';
