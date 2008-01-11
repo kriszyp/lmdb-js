@@ -241,155 +241,157 @@ str2entry2( char *s, int checkvals )
 		}
 	}
 
-	for ( i=0; i<=lines; i++ ) {
-		ad_prev = ad;
-		if ( !ad || ( i<lines && !bvcasematch( type+i, &ad->ad_cname ))) {
-			ad = NULL;
-			rc = slap_bv2ad( type+i, &ad, &text );
-
-			if( rc != LDAP_SUCCESS ) {
-				Debug( slapMode & SLAP_TOOL_MODE
-					? LDAP_DEBUG_ANY : LDAP_DEBUG_TRACE,
-					"<= str2entry: str2ad(%s): %s\n", type[i].bv_val, text, 0 );
-				if( slapMode & SLAP_TOOL_MODE ) {
-					goto fail;
-				}
-
-				rc = slap_bv2undef_ad( type+i, &ad, &text, 0 );
+	if ( lines > 0 ) {
+		for ( i=0; i<=lines; i++ ) {
+			ad_prev = ad;
+			if ( !ad || ( i<lines && !bvcasematch( type+i, &ad->ad_cname ))) {
+				ad = NULL;
+				rc = slap_bv2ad( type+i, &ad, &text );
+	
 				if( rc != LDAP_SUCCESS ) {
+					Debug( slapMode & SLAP_TOOL_MODE
+						? LDAP_DEBUG_ANY : LDAP_DEBUG_TRACE,
+						"<= str2entry: str2ad(%s): %s\n", type[i].bv_val, text, 0 );
+					if( slapMode & SLAP_TOOL_MODE ) {
+						goto fail;
+					}
+	
+					rc = slap_bv2undef_ad( type+i, &ad, &text, 0 );
+					if( rc != LDAP_SUCCESS ) {
+						Debug( LDAP_DEBUG_ANY,
+							"<= str2entry: slap_str2undef_ad(%s): %s\n",
+								type[i].bv_val, text, 0 );
+						goto fail;
+					}
+				}
+	
+				/* require ';binary' when appropriate (ITS#5071) */
+				if ( slap_syntax_is_binary( ad->ad_type->sat_syntax ) && !slap_ad_is_binary( ad ) ) {
 					Debug( LDAP_DEBUG_ANY,
-						"<= str2entry: slap_str2undef_ad(%s): %s\n",
-							type[i].bv_val, text, 0 );
+						"str2entry: attributeType %s #%d: "
+						"needs ';binary' transfer as per syntax %s\n", 
+						ad->ad_cname.bv_val, 0,
+						ad->ad_type->sat_syntax->ssyn_oid );
 					goto fail;
 				}
 			}
-
-			/* require ';binary' when appropriate (ITS#5071) */
-			if ( slap_syntax_is_binary( ad->ad_type->sat_syntax ) && !slap_ad_is_binary( ad ) ) {
-				Debug( LDAP_DEBUG_ANY,
-					"str2entry: attributeType %s #%d: "
-					"needs ';binary' transfer as per syntax %s\n", 
-					ad->ad_cname.bv_val, 0,
-					ad->ad_type->sat_syntax->ssyn_oid );
-				goto fail;
-			}
-		}
-
-		if (( ad_prev && ad != ad_prev ) || ( i == lines )) {
-			int j, k;
-			/* FIXME: we only need this when migrating from an unsorted DB */
-			if ( atail != &ahead && atail->a_desc->ad_type->sat_flags & SLAP_AT_SORTED_VAL ) {
-				rc = slap_sort_vals( (Modifications *)atail, &text, &j, NULL );
-				if ( rc == LDAP_SUCCESS ) {
-					atail->a_flags |= SLAP_ATTR_SORTED_VALS;
-				} else if ( rc == LDAP_TYPE_OR_VALUE_EXISTS ) {
-					Debug( LDAP_DEBUG_ANY,
-						"str2entry: attributeType %s value #%d provided more than once\n",
-						atail->a_desc->ad_cname.bv_val, j, 0 );
-					goto fail;
+	
+			if (( ad_prev && ad != ad_prev ) || ( i == lines )) {
+				int j, k;
+				/* FIXME: we only need this when migrating from an unsorted DB */
+				if ( atail != &ahead && atail->a_desc->ad_type->sat_flags & SLAP_AT_SORTED_VAL ) {
+					rc = slap_sort_vals( (Modifications *)atail, &text, &j, NULL );
+					if ( rc == LDAP_SUCCESS ) {
+						atail->a_flags |= SLAP_ATTR_SORTED_VALS;
+					} else if ( rc == LDAP_TYPE_OR_VALUE_EXISTS ) {
+						Debug( LDAP_DEBUG_ANY,
+							"str2entry: attributeType %s value #%d provided more than once\n",
+							atail->a_desc->ad_cname.bv_val, j, 0 );
+						goto fail;
+					}
 				}
-			}
-			atail->a_next = attr_alloc( NULL );
-			atail = atail->a_next;
-			atail->a_flags = 0;
-			atail->a_numvals = attr_cnt;
-			atail->a_desc = ad_prev;
-			atail->a_vals = ch_malloc( (attr_cnt + 1) * sizeof(struct berval));
-			if( ad_prev->ad_type->sat_equality &&
-				ad_prev->ad_type->sat_equality->smr_normalize )
-				atail->a_nvals = ch_malloc( (attr_cnt + 1) * sizeof(struct berval));
-			else
-				atail->a_nvals = NULL;
-			k = i - attr_cnt;
-			for ( j=0; j<attr_cnt; j++ ) {
-				if ( freeval[k] )
-					atail->a_vals[j] = vals[k];
+				atail->a_next = attr_alloc( NULL );
+				atail = atail->a_next;
+				atail->a_flags = 0;
+				atail->a_numvals = attr_cnt;
+				atail->a_desc = ad_prev;
+				atail->a_vals = ch_malloc( (attr_cnt + 1) * sizeof(struct berval));
+				if( ad_prev->ad_type->sat_equality &&
+					ad_prev->ad_type->sat_equality->smr_normalize )
+					atail->a_nvals = ch_malloc( (attr_cnt + 1) * sizeof(struct berval));
 				else
-					ber_dupbv( atail->a_vals+j, &vals[k] );
-				vals[k].bv_val = NULL;
-				if ( atail->a_nvals ) {
-					atail->a_nvals[j] = nvals[k];
-					nvals[k].bv_val = NULL;
+					atail->a_nvals = NULL;
+				k = i - attr_cnt;
+				for ( j=0; j<attr_cnt; j++ ) {
+					if ( freeval[k] )
+						atail->a_vals[j] = vals[k];
+					else
+						ber_dupbv( atail->a_vals+j, &vals[k] );
+					vals[k].bv_val = NULL;
+					if ( atail->a_nvals ) {
+						atail->a_nvals[j] = nvals[k];
+						nvals[k].bv_val = NULL;
+					}
+					k++;
 				}
-				k++;
+				BER_BVZERO( &atail->a_vals[j] );
+				if ( atail->a_nvals ) {
+					BER_BVZERO( &atail->a_nvals[j] );
+				} else {
+					atail->a_nvals = atail->a_vals;
+				}
+				attr_cnt = 0;
+				if ( i == lines ) break;
 			}
-			BER_BVZERO( &atail->a_vals[j] );
-			if ( atail->a_nvals ) {
-				BER_BVZERO( &atail->a_nvals[j] );
-			} else {
-				atail->a_nvals = atail->a_vals;
-			}
-			attr_cnt = 0;
-			if ( i == lines ) break;
-		}
-
-		if ( BER_BVISNULL( &vals[i] ) ) {
-			Debug( LDAP_DEBUG_ANY,
-				"str2entry: attributeType %s #%d: "
-				"no value\n", 
-				ad->ad_cname.bv_val, attr_cnt, 0 );
-			goto fail;
-		}
-
-		if( slapMode & SLAP_TOOL_MODE ) {
-			struct berval pval;
-			slap_syntax_validate_func *validate =
-				ad->ad_type->sat_syntax->ssyn_validate;
-			slap_syntax_transform_func *pretty =
-				ad->ad_type->sat_syntax->ssyn_pretty;
-
-			if ( pretty ) {
-				rc = ordered_value_pretty( ad,
-					&vals[i], &pval, NULL );
-
-			} else if ( validate ) {
-				/*
-			 	 * validate value per syntax
-			 	 */
-				rc = ordered_value_validate( ad, &vals[i], LDAP_MOD_ADD );
-
-			} else {
+	
+			if ( BER_BVISNULL( &vals[i] ) ) {
 				Debug( LDAP_DEBUG_ANY,
 					"str2entry: attributeType %s #%d: "
-					"no validator for syntax %s\n", 
-					ad->ad_cname.bv_val, attr_cnt,
-					ad->ad_type->sat_syntax->ssyn_oid );
+					"no value\n", 
+					ad->ad_cname.bv_val, attr_cnt, 0 );
 				goto fail;
 			}
-
-			if( rc != 0 ) {
-				Debug( LDAP_DEBUG_ANY,
-					"str2entry: invalid value "
-					"for attributeType %s #%d (syntax %s)\n",
-					ad->ad_cname.bv_val, attr_cnt,
-					ad->ad_type->sat_syntax->ssyn_oid );
-				goto fail;
+	
+			if( slapMode & SLAP_TOOL_MODE ) {
+				struct berval pval;
+				slap_syntax_validate_func *validate =
+					ad->ad_type->sat_syntax->ssyn_validate;
+				slap_syntax_transform_func *pretty =
+					ad->ad_type->sat_syntax->ssyn_pretty;
+	
+				if ( pretty ) {
+					rc = ordered_value_pretty( ad,
+						&vals[i], &pval, NULL );
+	
+				} else if ( validate ) {
+					/*
+				 	 * validate value per syntax
+				 	 */
+					rc = ordered_value_validate( ad, &vals[i], LDAP_MOD_ADD );
+	
+				} else {
+					Debug( LDAP_DEBUG_ANY,
+						"str2entry: attributeType %s #%d: "
+						"no validator for syntax %s\n", 
+						ad->ad_cname.bv_val, attr_cnt,
+						ad->ad_type->sat_syntax->ssyn_oid );
+					goto fail;
+				}
+	
+				if( rc != 0 ) {
+					Debug( LDAP_DEBUG_ANY,
+						"str2entry: invalid value "
+						"for attributeType %s #%d (syntax %s)\n",
+						ad->ad_cname.bv_val, attr_cnt,
+						ad->ad_type->sat_syntax->ssyn_oid );
+					goto fail;
+				}
+	
+				if( pretty ) {
+					if ( freeval[i] ) free( vals[i].bv_val );
+					vals[i] = pval;
+					freeval[i] = 1;
+				}
 			}
-
-			if( pretty ) {
-				if ( freeval[i] ) free( vals[i].bv_val );
-				vals[i] = pval;
-				freeval[i] = 1;
+	
+			if ( ad->ad_type->sat_equality &&
+				ad->ad_type->sat_equality->smr_normalize )
+			{
+				rc = ordered_value_normalize(
+					SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
+					ad,
+					ad->ad_type->sat_equality,
+					&vals[i], &nvals[i], NULL );
+	
+				if ( rc ) {
+					Debug( LDAP_DEBUG_ANY,
+				   		"<= str2entry NULL (smr_normalize %s %d)\n", ad->ad_cname.bv_val, rc, 0 );
+					goto fail;
+				}
 			}
+	
+			attr_cnt++;
 		}
-
-		if ( ad->ad_type->sat_equality &&
-			ad->ad_type->sat_equality->smr_normalize )
-		{
-			rc = ordered_value_normalize(
-				SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
-				ad,
-				ad->ad_type->sat_equality,
-				&vals[i], &nvals[i], NULL );
-
-			if ( rc ) {
-				Debug( LDAP_DEBUG_ANY,
-			   		"<= str2entry NULL (smr_normalize %s %d)\n", ad->ad_cname.bv_val, rc, 0 );
-				goto fail;
-			}
-		}
-
-		attr_cnt++;
 	}
 
 	free( type );
