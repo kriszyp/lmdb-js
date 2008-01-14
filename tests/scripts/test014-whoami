@@ -428,7 +428,7 @@ esac
 
 BINDDN="cn=Bjorn Jensen,ou=Information Technology Division,ou=People,dc=example,dc=com"
 BINDPW=bjorn
-AUTHZID="dn:"
+AUTHZID="dn:cn=don't!"
 echo "Testing ldapwhoami as ${BINDDN} for ${AUTHZID} (no authzTo; should fail)..."
 $LDAPWHOAMI -h $LOCALHOST -p $PORT1 -D "$BINDDN" -w $BINDPW \
 	-e \!authzid="$AUTHZID"
