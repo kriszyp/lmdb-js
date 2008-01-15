@@ -63,10 +63,10 @@ relay_back_select_backend( Operation *op, SlapReply *rs, int err, int dosend )
 	if ( bd == NULL && !BER_BVISNULL( &op->o_req_ndn ) ) {
 		bd = select_backend( &op->o_req_ndn, 1 );
 		if ( bd == op->o_bd ) {
+			rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
+			rs->sr_text = "back-relay would call self";
 			if ( err > LDAP_SUCCESS && dosend ) {
-				send_ldap_error( op, rs,
-						LDAP_UNWILLING_TO_PERFORM, 
-						"back-relay would call self" );
+				send_ldap_result( op, rs );
 			}
 			return NULL;
 		}
@@ -123,7 +123,7 @@ relay_back_op_bind( Operation *op, SlapReply *rs )
 
 	bd = relay_back_select_backend( op, rs, LDAP_INVALID_CREDENTIALS, 1 );
 	if ( bd == NULL ) {
-		return rc;
+		return rs->sr_err;
 	}
 
 	if ( bd->be_bind ) {
@@ -157,7 +157,7 @@ relay_back_op_unbind( Operation *op, SlapReply *rs )
 
 	bd = relay_back_select_backend( op, rs, LDAP_SUCCESS, 0 );
 	if ( bd == NULL ) {
-		return 1;
+		return rs->sr_err;
 	}
 
 	if ( bd && bd->be_unbind ) {
@@ -187,7 +187,7 @@ relay_back_op_search( Operation *op, SlapReply *rs )
 
 	bd = relay_back_select_backend( op, rs, LDAP_NO_SUCH_OBJECT, 1 );
 	if ( bd == NULL ) {
-		return 1;
+		return rs->sr_err;
 	}
 
 	if ( bd->be_search ) {
@@ -222,7 +222,7 @@ relay_back_op_compare( Operation *op, SlapReply *rs )
 
 	bd = relay_back_select_backend( op, rs, LDAP_NO_SUCH_OBJECT, 1 );
 	if ( bd == NULL ) {
-		return 1;
+		return rs->sr_err;
 	}
 
 	if ( bd->be_compare ) {
@@ -257,7 +257,7 @@ relay_back_op_modify( Operation *op, SlapReply *rs )
 
 	bd = relay_back_select_backend( op, rs, LDAP_NO_SUCH_OBJECT, 1 );
 	if ( bd == NULL ) {
-		return 1;
+		return rs->sr_err;
 	}
 
 	if ( bd->be_modify ) {
@@ -292,7 +292,7 @@ relay_back_op_modrdn( Operation *op, SlapReply *rs )
 
 	bd = relay_back_select_backend( op, rs, LDAP_NO_SUCH_OBJECT, 1 );
 	if ( bd == NULL ) {
-		return 1;
+		return rs->sr_err;
 	}
 
 	if ( bd->be_modrdn ) {
@@ -327,7 +327,7 @@ relay_back_op_add( Operation *op, SlapReply *rs )
 
 	bd = relay_back_select_backend( op, rs, LDAP_NO_SUCH_OBJECT, 1 );
 	if ( bd == NULL ) {
-		return 1;
+		return rs->sr_err;
 	}
 
 	if ( bd->be_add ) {
@@ -362,7 +362,7 @@ relay_back_op_delete( Operation *op, SlapReply *rs )
 
 	bd = relay_back_select_backend( op, rs, LDAP_NO_SUCH_OBJECT, 1 );
 	if ( bd == NULL ) {
-		return 1;
+		return rs->sr_err;
 	}
 
 	if ( bd->be_delete ) {
@@ -392,7 +392,7 @@ relay_back_op_abandon( Operation *op, SlapReply *rs )
 
 	bd = relay_back_select_backend( op, rs, LDAP_SUCCESS, 0 );
 	if ( bd == NULL ) {
-		return 1;
+		return rs->sr_err;
 	}
 
 	if ( bd->be_abandon ) {
@@ -422,7 +422,7 @@ relay_back_op_cancel( Operation *op, SlapReply *rs )
 
 	bd = relay_back_select_backend( op, rs, LDAP_CANNOT_CANCEL, 0 );
 	if ( bd == NULL ) {
-		return 1;
+		return rs->sr_err;
 	}
 
 	if ( bd->be_cancel ) {
@@ -453,11 +453,11 @@ int
 relay_back_op_extended( Operation *op, SlapReply *rs )
 {
 	BackendDB		*bd;
-	int			rc = 1;
+	int			rc;
 
 	bd = relay_back_select_backend( op, rs, LDAP_NO_SUCH_OBJECT, 0 );
 	if ( bd == NULL ) {
-		return 1;
+		return rs->sr_err;
 	}
 
 	if ( bd->be_extended ) {
@@ -475,9 +475,8 @@ relay_back_op_extended( Operation *op, SlapReply *rs )
 		}
 
 	} else {
-		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
-				"operation not supported "
-				"within naming context" );
+		rc = rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
+		rs->sr_text = "operation not supported within naming context";
 	}
 
 	return rc;
