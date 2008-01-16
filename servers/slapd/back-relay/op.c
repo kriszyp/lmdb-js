@@ -32,6 +32,7 @@
 #define RB_SEND			(0x8000U)
 #define	RB_UNWILLING_SEND	(RB_UNWILLING|RB_SEND)
 #define	RB_REFERRAL_SEND	(RB_REFERRAL|RB_SEND)
+#define	RB_ERR_SEND		(RB_ERR|RB_SEND)
 
 static int
 relay_back_swap_bd( Operation *op, SlapReply *rs )
@@ -179,13 +180,13 @@ relay_back_op_bind( Operation *op, SlapReply *rs )
 	}
 
 	bd = relay_back_select_backend( op, rs,
-		( LDAP_INVALID_CREDENTIALS | RB_ERR | RB_SEND ) );
+		( LDAP_INVALID_CREDENTIALS | RB_ERR_SEND ) );
 	if ( bd == NULL ) {
 		return rs->sr_err;
 	}
 
 	return relay_back_op( op, rs, bd, bd->be_bind,
-		( LDAP_INVALID_CREDENTIALS | RB_ERR | RB_SEND ) );
+		( LDAP_INVALID_CREDENTIALS | RB_ERR_SEND ) );
 }
 
 int
@@ -207,7 +208,7 @@ relay_back_op_search( Operation *op, SlapReply *rs )
 	BackendDB		*bd;
 
 	bd = relay_back_select_backend( op, rs,
-		( LDAP_NO_SUCH_OBJECT | RB_ERR | RB_SEND ) );
+		( LDAP_NO_SUCH_OBJECT | RB_ERR_SEND ) );
 	if ( bd == NULL ) {
 		return rs->sr_err;
 	}
@@ -222,7 +223,7 @@ relay_back_op_compare( Operation *op, SlapReply *rs )
 	BackendDB		*bd;
 
 	bd = relay_back_select_backend( op, rs,
-		( LDAP_NO_SUCH_OBJECT | RB_ERR | RB_SEND ) );
+		( LDAP_NO_SUCH_OBJECT | RB_ERR_SEND ) );
 	if ( bd == NULL ) {
 		return rs->sr_err;
 	}
@@ -237,7 +238,7 @@ relay_back_op_modify( Operation *op, SlapReply *rs )
 	BackendDB		*bd;
 
 	bd = relay_back_select_backend( op, rs,
-		( LDAP_NO_SUCH_OBJECT | RB_ERR | RB_SEND ) );
+		( LDAP_NO_SUCH_OBJECT | RB_ERR_SEND ) );
 	if ( bd == NULL ) {
 		return rs->sr_err;
 	}
@@ -252,7 +253,7 @@ relay_back_op_modrdn( Operation *op, SlapReply *rs )
 	BackendDB		*bd;
 
 	bd = relay_back_select_backend( op, rs,
-		( LDAP_NO_SUCH_OBJECT | RB_ERR | RB_SEND ) );
+		( LDAP_NO_SUCH_OBJECT | RB_ERR_SEND ) );
 	if ( bd == NULL ) {
 		return rs->sr_err;
 	}
@@ -267,7 +268,7 @@ relay_back_op_add( Operation *op, SlapReply *rs )
 	BackendDB		*bd;
 
 	bd = relay_back_select_backend( op, rs,
-		( LDAP_NO_SUCH_OBJECT | RB_ERR | RB_SEND ) );
+		( LDAP_NO_SUCH_OBJECT | RB_ERR_SEND ) );
 	if ( bd == NULL ) {
 		return rs->sr_err;
 	}
@@ -282,7 +283,7 @@ relay_back_op_delete( Operation *op, SlapReply *rs )
 	BackendDB		*bd;
 
 	bd = relay_back_select_backend( op, rs,
-		( LDAP_NO_SUCH_OBJECT | RB_ERR | RB_SEND ) );
+		( LDAP_NO_SUCH_OBJECT | RB_ERR_SEND ) );
 	if ( bd == NULL ) {
 		return rs->sr_err;
 	}
@@ -412,7 +413,7 @@ relay_back_chk_referrals( Operation *op, SlapReply *rs )
 	BackendDB		*bd;
 
 	bd = relay_back_select_backend( op, rs,
-		( LDAP_SUCCESS | RB_ERR | RB_SEND ) );
+		( LDAP_SUCCESS | RB_ERR_SEND ) );
 	/* FIXME: this test only works if there are no overlays, so
 	 * it is nearly useless; if made stricter, no nested back-relays
 	 * can be instantiated... too bad. */
