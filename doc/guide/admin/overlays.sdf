@@ -63,8 +63,99 @@ H3: Overview
 This overlay can record accesses to a given backend database on another
 database.
 
+This allows all of the activity on a given database to be reviewed using arbitrary 
+LDAP queries, instead of just logging to local flat text files. Configuration 
+options are available for selecting a subset of operation types to log, and to 
+automatically prune older log records from the logging database. Log records 
+are stored with audit schema to assure their readability whether viewed as LDIF 
+or in raw form.
+
+It is also used for {{SECT:delta-syncrepl replication}}
 
 H3: Access Logging Configuration
+
+The following is a basic example that implements Access Logging:
+
+>        database bdb
+>        suffix dc=example,dc=com
+>        ...
+>        overlay accesslog
+>        logdb cn=log
+>        logops writes reads
+>        logold (objectclass=person)
+>        
+>        database bdb
+>        suffix cn=log
+>        ...
+>        index reqStart eq
+>        access to *
+>          by dn.base="cn=admin,dc=example,dc=com" read
+
+The following is an example used for {{SECT:delta-syncrepl replication}}:
+
+>        database hdb
+>        suffix cn=accesslog
+>        directory /usr/local/var/openldap-accesslog
+>        rootdn cn=accesslog
+>        index default eq
+>        index entryCSN,objectClass,reqEnd,reqResult,reqStart
+
+Accesslog overlay definitions for the primary db
+
+>        database bdb
+>        suffix dc=example,dc=com
+>        ...
+>        overlay accesslog
+>        logdb cn=accesslog
+>        logops writes
+>        logsuccess TRUE
+>        # scan the accesslog DB every day, and purge entries older than 7 days
+>        logpurge 07+00:00 01+00:00
+
+An example search result against {{B:cn=accesslog}} might look like:
+
+>        [ghenry@suretec ghenry]# ldapsearch -x -b cn=accesslog
+>        # extended LDIF
+>        #
+>        # LDAPv3
+>        # base <cn=accesslog> with scope subtree
+>        # filter: (objectclass=*)
+>        # requesting: ALL
+>        #
+>        
+>        # accesslog
+>        dn: cn=accesslog
+>        objectClass: auditContainer
+>        cn: accesslog
+>        
+>        # 20080110163829.000004Z, accesslog
+>        dn: reqStart=20080110163829.000004Z,cn=accesslog
+>        objectClass: auditModify
+>        reqStart: 20080110163829.000004Z
+>        reqEnd: 20080110163829.000005Z
+>        reqType: modify
+>        reqSession: 196696
+>        reqAuthzID: cn=admin,dc=suretecsystems,dc=com
+>        reqDN: uid=suretec-46022f8$,ou=Users,dc=suretecsystems,dc=com
+>        reqResult: 0
+>        reqMod: sambaPwdCanChange:- ###CENSORED###
+>        reqMod: sambaPwdCanChange:+ ###CENSORED###
+>        reqMod: sambaNTPassword:- ###CENSORED###
+>        reqMod: sambaNTPassword:+ ###CENSORED###
+>        reqMod: sambaPwdLastSet:- ###CENSORED###
+>        reqMod: sambaPwdLastSet:+ ###CENSORED###
+>        reqMod: entryCSN:= 20080110163829.095157Z#000000#000#000000
+>        reqMod: modifiersName:= cn=admin,dc=suretecsystems,dc=com
+>        reqMod: modifyTimestamp:= 20080110163829Z
+>        
+>        # search result
+>        search: 2
+>        result: 0 Success
+>        
+>        # numResponses: 3
+>        # numEntries: 2
+
+For more information, please see {{slapo-accesslog(5)}} and the {{SECT:delta-syncrepl replication}} section.
 
 
 H2: Audit Logging
