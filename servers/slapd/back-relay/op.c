@@ -27,10 +27,11 @@
 
 #define	RB_ERR_MASK		(0x00FFU)
 #define RB_ERR			(0x1000U)
-#define RB_UNWILLING		(0x2000U)
+#define RB_UNSUPPORTED_FLAG	(0x2000U)
 #define RB_REFERRAL		(0x4000U)
 #define RB_SEND			(0x8000U)
-#define	RB_UNWILLING_SEND	(RB_UNWILLING|RB_SEND)
+#define RB_UNSUPPORTED (LDAP_UNWILLING_TO_PERFORM|RB_ERR|RB_UNSUPPORTED_FLAG)
+#define	RB_UNSUPPORTED_SEND	(RB_UNSUPPORTED|RB_SEND)
 #define	RB_REFERRAL_SEND	(RB_REFERRAL|RB_SEND)
 #define	RB_ERR_SEND		(RB_ERR|RB_SEND)
 
@@ -75,15 +76,11 @@ relay_back_select_backend( Operation *op, SlapReply *rs, slap_mask_t fail_mode )
 			Debug( LDAP_DEBUG_ANY,
 				"%s: back-relay for DN=\"%s\" would call self.\n",
 				op->o_log_prefix, op->o_req_dn.bv_val, 0 );
-			if ( fail_mode & RB_UNWILLING ) {
-				rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
-
-			} else if ( fail_mode & RB_ERR ) {
+			if ( fail_mode & RB_ERR ) {
 				rs->sr_err = rc;
-			}
-
-			if ( fail_mode & RB_SEND ) {
-				send_ldap_result( op, rs );
+				if ( fail_mode & RB_SEND ) {
+					send_ldap_result( op, rs );
+				}
 			}
 
 			return NULL;
@@ -147,12 +144,9 @@ relay_back_op(
 			op->o_callback = op->o_callback->sc_next;
 		}
 
-	} else {
-		if ( fail_mode & RB_ERR ) {
-			rs->sr_err = rc;
-
-		} else if ( fail_mode & RB_UNWILLING ) {
-			rc = rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
+	} else if ( fail_mode & RB_ERR ) {
+		rs->sr_err = rc;
+		if ( fail_mode & RB_UNSUPPORTED_FLAG ) {
 			rs->sr_text = "operation not supported within naming context";
 		}
 
@@ -214,7 +208,7 @@ relay_back_op_search( Operation *op, SlapReply *rs )
 	}
 
 	return relay_back_op( op, rs, bd, bd->be_search,
-		RB_UNWILLING_SEND );
+		RB_UNSUPPORTED_SEND );
 }
 
 int
@@ -229,7 +223,7 @@ relay_back_op_compare( Operation *op, SlapReply *rs )
 	}
 
 	return relay_back_op( op, rs, bd, bd->be_compare,
-		RB_UNWILLING_SEND );
+		RB_UNSUPPORTED_SEND );
 }
 
 int
@@ -244,7 +238,7 @@ relay_back_op_modify( Operation *op, SlapReply *rs )
 	}
 
 	return relay_back_op( op, rs, bd, bd->be_modify,
-		RB_UNWILLING_SEND );
+		RB_UNSUPPORTED_SEND );
 }
 
 int
@@ -259,7 +253,7 @@ relay_back_op_modrdn( Operation *op, SlapReply *rs )
 	}
 
 	return relay_back_op( op, rs, bd, bd->be_modrdn,
-		RB_UNWILLING_SEND );
+		RB_UNSUPPORTED_SEND );
 }
 
 int
@@ -274,7 +268,7 @@ relay_back_op_add( Operation *op, SlapReply *rs )
 	}
 
 	return relay_back_op( op, rs, bd, bd->be_add,
-		RB_UNWILLING_SEND );
+		RB_UNSUPPORTED_SEND );
 }
 
 int
@@ -289,7 +283,7 @@ relay_back_op_delete( Operation *op, SlapReply *rs )
 	}
 
 	return relay_back_op( op, rs, bd, bd->be_delete,
-		RB_UNWILLING_SEND );
+		RB_UNSUPPORTED_SEND );
 }
 
 int
@@ -342,7 +336,7 @@ relay_back_op_extended( Operation *op, SlapReply *rs )
 	}
 
 	return relay_back_op( op, rs, bd, bd->be_extended,
-		RB_UNWILLING );
+		RB_UNSUPPORTED );
 }
 
 int
