@@ -139,6 +139,24 @@ void LDAPAttributeList::addAttribute(const LDAPAttribute& attr){
     }
 }
 
+void LDAPAttributeList::replaceAttribute(const LDAPAttribute& attr)
+{
+    DEBUG(LDAP_DEBUG_TRACE,"LDAPAttribute::replaceAttribute()" << endl);
+    DEBUG(LDAP_DEBUG_TRACE | LDAP_DEBUG_PARAMETER,
+            "   attr:" << attr << endl);
+    
+    LDAPAttributeList::iterator i;
+    for( i = m_attrs.begin(); i != m_attrs.end(); i++){
+	if(attr.getName().size() == i->getName().size()){
+	    if(equal(attr.getName().begin(), attr.getName().end(), i->getName().begin(),
+		    nocase_compare)){
+                m_attrs.erase(i);
+                break;
+            }
+        }
+    }
+    m_attrs.push_back(attr);
+}
 
 LDAPMod** LDAPAttributeList::toLDAPModArray() const{
     DEBUG(LDAP_DEBUG_TRACE,"LDAPAttribute::toLDAPModArray()" << endl);

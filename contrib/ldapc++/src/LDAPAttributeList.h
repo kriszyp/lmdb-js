@@ -84,12 +84,17 @@ class LDAPAttributeList{
 	 */
 	const LDAPAttribute* getAttributeByName(const std::string& name) const;
 
-
         /**
          * Adds one element to the end of the list.
          * @param attr The attribute to add to the list.
          */
         void addAttribute(const LDAPAttribute& attr);
+
+        /**
+         * Replace an Attribute in the List
+         * @param attr The attribute to add to the list.
+         */
+        void replaceAttribute(const LDAPAttribute& attr);
 
         /**
          * Translates the list of Attributes to a 0-terminated array of
