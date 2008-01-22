@@ -5,12 +5,14 @@
 
 #include <iostream>
 #include <iomanip>
+#include <limits>
 #include "config.h"
 
 #ifdef HAVE_TERMIOS_H
 #include <termios.h>
 #endif
 
+#include <string.h>
 #include "SaslInteractionHandler.h"
 #include "SaslInteraction.h"
 #include "debug.h"
