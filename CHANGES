@@ -1,5 +1,8 @@
 OpenLDAP 2.3 Change Log
 
+OpenLDAP 2.3.41 Engineering
+	Fixed syncrepl propagation of errors (ITS#5282)
+
 OpenLDAP 2.3.40 Release (2007/12/25)
 	Fixed slapd include handling (ITS#5276)
 	Fixed slapd syncrepl compatibility with 2.4 (ITS#5231)
