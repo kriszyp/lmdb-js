@@ -108,7 +108,7 @@ static ConfigOCs translucentocs[] = {
 static int
 translucent_ldadd_cleanup( ConfigArgs *ca )
 {
-	slap_overinst *on = ca->private;
+	slap_overinst *on = ca->ca_private;
 	translucent_info *ov = on->on_bi.bi_private;
 
 	ov->defer_db_open = 0;
@@ -130,7 +130,7 @@ translucent_ldadd( CfEntryInfo *cei, Entry *e, ConfigArgs *ca )
 	on = (slap_overinst *)cei->ce_bi;
 	ov = on->on_bi.bi_private;
 	ca->be = &ov->db;
-	ca->private = on;
+	ca->ca_private = on;
 	if ( CONFIG_ONLINE_ADD( ca ))
 		ca->cleanup = translucent_ldadd_cleanup;
 	else

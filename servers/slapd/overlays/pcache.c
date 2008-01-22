@@ -2663,7 +2663,7 @@ static int pcache_db_open2( slap_overinst *on, ConfigReply *cr );
 static int
 pc_ldadd_cleanup( ConfigArgs *c )
 {
-	slap_overinst *on = c->private;
+	slap_overinst *on = c->ca_private;
 	return pcache_db_open2( on, &c->reply );
 }
 
@@ -2685,7 +2685,7 @@ pc_ldadd( CfEntryInfo *p, Entry *e, ConfigArgs *ca )
 		ca->cleanup = pc_ldadd_cleanup;
 	else
 		cm->defer_db_open = 0;
-	ca->private = on;
+	ca->ca_private = on;
 	return LDAP_SUCCESS;
 }
 

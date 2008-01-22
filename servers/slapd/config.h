@@ -19,6 +19,8 @@
 
 #include<ac/string.h>
 
+LDAP_BEGIN_DECL
+
 typedef struct ConfigTable {
 	char *name;
 	char *what;
@@ -150,7 +152,7 @@ typedef struct config_args_s {
 	BackendDB *be;
 	BackendInfo *bi;
 	Entry *ca_entry;	/* entry being modified */
-	void *private;	/* anything */
+	void *ca_private;	/* anything */
 	ConfigDriver *cleanup;
 	ConfigType table;	/* which config table did we come from */
 } ConfigArgs;
@@ -198,5 +200,7 @@ int config_shadow( ConfigArgs *c, int flag );
 
 extern slap_verbmasks *slap_ldap_response_code;
 extern int slap_ldap_response_code_register( struct berval *bv, int err );
+
+LDAP_END_DECL
 
 #endif /* CONFIG_H */

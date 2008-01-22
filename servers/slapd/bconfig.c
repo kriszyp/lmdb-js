@@ -889,7 +889,7 @@ config_generic(ConfigArgs *c) {
 			}
 			break;
 		case CFG_OID: {
-			ConfigFile *cf = c->private;
+			ConfigFile *cf = c->ca_private;
 			if ( !cf )
 				oidm_unparse( &c->rvalue_vals, NULL, NULL, 1 );
 			else if ( cf->c_om_head )
@@ -903,7 +903,7 @@ config_generic(ConfigArgs *c) {
 			ad_unparse_options( &c->rvalue_vals );
 			break;
 		case CFG_OC: {
-			ConfigFile *cf = c->private;
+			ConfigFile *cf = c->ca_private;
 			if ( !cf )
 				oc_unparse( &c->rvalue_vals, NULL, NULL, 1 );
 			else if ( cf->c_oc_head )
@@ -914,7 +914,7 @@ config_generic(ConfigArgs *c) {
 			}
 			break;
 		case CFG_ATTR: {
-			ConfigFile *cf = c->private;
+			ConfigFile *cf = c->ca_private;
 			if ( !cf )
 				at_unparse( &c->rvalue_vals, NULL, NULL, 1 );
 			else if ( cf->c_at_head )
@@ -925,7 +925,7 @@ config_generic(ConfigArgs *c) {
 			}
 			break;
 		case CFG_DIT: {
-			ConfigFile *cf = c->private;
+			ConfigFile *cf = c->ca_private;
 			if ( !cf )
 				cr_unparse( &c->rvalue_vals, NULL, NULL, 1 );
 			else if ( cf->c_cr_head )
@@ -968,7 +968,7 @@ config_generic(ConfigArgs *c) {
 			break;
 		}
 		case CFG_ROOTDSE: {
-			ConfigFile *cf = c->private;
+			ConfigFile *cf = c->ca_private;
 			if ( cf->c_dseFiles ) {
 				value_add( &c->rvalue_vals, cf->c_dseFiles );
 			} else {
@@ -1037,7 +1037,7 @@ config_generic(ConfigArgs *c) {
 			} break;
 #ifdef SLAPD_MODULES
 		case CFG_MODLOAD: {
-			ModPaths *mp = c->private;
+			ModPaths *mp = c->ca_private;
 			if (mp->mp_loads) {
 				int i;
 				for (i=0; !BER_BVISNULL(&mp->mp_loads[i]); i++) {
@@ -1059,7 +1059,7 @@ config_generic(ConfigArgs *c) {
 			}
 			break;
 		case CFG_MODPATH: {
-			ModPaths *mp = c->private;
+			ModPaths *mp = c->ca_private;
 			if ( !BER_BVISNULL( &mp->mp_path ))
 				value_add_one( &c->rvalue_vals, &mp->mp_path );
 
@@ -1204,7 +1204,7 @@ config_generic(ConfigArgs *c) {
 					return 1;
 				}
 			}
-			cfn = c->private;
+			cfn = c->ca_private;
 			if ( c->valx < 0 ) {
 				ObjectClass *oc;
 
@@ -1242,7 +1242,7 @@ config_generic(ConfigArgs *c) {
 					return 1;
 				}
 			}
-			cfn = c->private;
+			cfn = c->ca_private;
 			if ( c->valx < 0 ) {
 				AttributeType *at;
 
@@ -1422,8 +1422,8 @@ config_generic(ConfigArgs *c) {
 		case CFG_OID: {
 			OidMacro *om;
 
-			if ( c->op == LDAP_MOD_ADD && c->private && cfn != c->private )
-				cfn = c->private;
+			if ( c->op == LDAP_MOD_ADD && c->ca_private && cfn != c->ca_private )
+				cfn = c->ca_private;
 			if(parse_oidm(c, 1, &om))
 				return(1);
 			if (!cfn->c_om_head) cfn->c_om_head = om;
@@ -1434,8 +1434,8 @@ config_generic(ConfigArgs *c) {
 		case CFG_OC: {
 			ObjectClass *oc, *prev;
 
-			if ( c->op == LDAP_MOD_ADD && c->private && cfn != c->private )
-				cfn = c->private;
+			if ( c->op == LDAP_MOD_ADD && c->ca_private && cfn != c->ca_private )
+				cfn = c->ca_private;
 			if ( c->valx < 0 ) {
 				prev = cfn->c_oc_tail;
 			} else {
@@ -1466,8 +1466,8 @@ config_generic(ConfigArgs *c) {
 		case CFG_ATTR: {
 			AttributeType *at, *prev;
 
-			if ( c->op == LDAP_MOD_ADD && c->private && cfn != c->private )
-				cfn = c->private;
+			if ( c->op == LDAP_MOD_ADD && c->ca_private && cfn != c->ca_private )
+				cfn = c->ca_private;
 			if ( c->valx < 0 ) {
 				prev = cfn->c_at_tail;
 			} else {
@@ -1498,8 +1498,8 @@ config_generic(ConfigArgs *c) {
 		case CFG_DIT: {
 			ContentRule *cr;
 
-			if ( c->op == LDAP_MOD_ADD && c->private && cfn != c->private )
-				cfn = c->private;
+			if ( c->op == LDAP_MOD_ADD && c->ca_private && cfn != c->ca_private )
+				cfn = c->ca_private;
 			if(parse_cr(c, &cr)) return(1);
 			if (!cfn->c_cr_head) cfn->c_cr_head = cr;
 			cfn->c_cr_tail = cr;
@@ -1595,8 +1595,8 @@ sortval_reject:
 			{
 				struct berval bv;
 				ber_str2bv( c->argv[1], 0, 1, &bv );
-				if ( c->op == LDAP_MOD_ADD && c->private && cfn != c->private )
-					cfn = c->private;
+				if ( c->op == LDAP_MOD_ADD && c->ca_private && cfn != c->ca_private )
+					cfn = c->ca_private;
 				ber_bvarray_add( &cfn->c_dseFiles, &bv );
 			}
 			break;
@@ -1790,8 +1790,8 @@ sortval_reject:
 			/* If we're just adding a module on an existing modpath,
 			 * make sure we've selected the current path.
 			 */
-			if ( c->op == LDAP_MOD_ADD && c->private && modcur != c->private ) {
-				modcur = c->private;
+			if ( c->op == LDAP_MOD_ADD && c->ca_private && modcur != c->ca_private ) {
+				modcur = c->ca_private;
 				/* This should never fail */
 				if ( module_path( modcur->mp_path.bv_val )) {
 					snprintf( c->cr_msg, sizeof( c->cr_msg ), "<%s> module path no longer valid",
@@ -1839,7 +1839,7 @@ sortval_reject:
 				mp->mp_next = NULL;
 				mp->mp_loads = NULL;
 				modlast = mp;
-				c->private = mp;
+				c->ca_private = mp;
 				modcur = mp;
 			}
 			
@@ -1898,8 +1898,8 @@ sortval_reject:
 static int
 config_fname(ConfigArgs *c) {
 	if(c->op == SLAP_CONFIG_EMIT) {
-		if (c->private) {
-			ConfigFile *cf = c->private;
+		if (c->ca_private) {
+			ConfigFile *cf = c->ca_private;
 			value_add_one( &c->rvalue_vals, &cf->c_file );
 			return 0;
 		}
@@ -3040,7 +3040,7 @@ config_include(ConfigArgs *c) {
 		ch_free( cf->c_file.bv_val );
 		ch_free( cf );
 	} else {
-		c->private = cf;
+		c->ca_private = cf;
 	}
 	return(rc);
 }
@@ -3965,14 +3965,14 @@ cfAddSchema( CfEntryInfo *p, Entry *e, ConfigArgs *ca )
 	/* This entry is hardcoded, don't re-parse it */
 	if ( p->ce_type == Cft_Global ) {
 		cfn = p->ce_private;
-		ca->private = cfn;
+		ca->ca_private = cfn;
 		return LDAP_COMPARE_TRUE;
 	}
 	if ( p->ce_type != Cft_Schema )
 		return LDAP_CONSTRAINT_VIOLATION;
 
 	cfn = ch_calloc( 1, sizeof(ConfigFile) );
-	ca->private = cfn;
+	ca->ca_private = cfn;
 	cfo = p->ce_private;
 	cfn->c_sibs = cfo->c_kids;
 	cfo->c_kids = cfn;
@@ -4224,7 +4224,7 @@ config_add_internal( CfBackInfo *cfb, Entry *e, ConfigArgs *ca, SlapReply *rs,
 	rc = LDAP_CONSTRAINT_VIOLATION;
 	if ( coptr->co_type == Cft_Global && !last ) {
 		cfn = cfb->cb_config;
-		ca->private = cfn;
+		ca->ca_private = cfn;
 		ca->be = frontendDB;	/* just to get past check_vals */
 		rc = LDAP_SUCCESS;
 	}
@@ -4377,7 +4377,7 @@ ok:
 	ce->ce_type = colst[0]->co_type;
 	ce->ce_be = ca->be;
 	ce->ce_bi = ca->bi;
-	ce->ce_private = ca->private;
+	ce->ce_private = ca->ca_private;
 	ca->ca_entry = ce->ce_entry;
 	if ( !last ) {
 		cfb->cb_root = ce;
@@ -4660,7 +4660,7 @@ config_modify_internal( CfEntryInfo *ce, Operation *op, SlapReply *rs,
 	init_config_argv( ca );
 	ca->be = ce->ce_be;
 	ca->bi = ce->ce_bi;
-	ca->private = ce->ce_private;
+	ca->ca_private = ce->ce_private;
 	ca->ca_entry = e;
 	ca->fname = "slapd";
 	ca->ca_op = op;
@@ -5369,7 +5369,7 @@ config_build_entry( Operation *op, SlapReply *rs, CfEntryInfo *parent,
 		BER_BVZERO( &pdn );
 	}
 
-	ce->ce_private = c->private;
+	ce->ce_private = c->ca_private;
 	ce->ce_be = c->be;
 	ce->ce_bi = c->bi;
 
@@ -5439,7 +5439,7 @@ config_build_schema_inc( ConfigArgs *c, CfEntryInfo *ceparent,
 	Operation *op, SlapReply *rs )
 {
 	Entry *e;
-	ConfigFile *cf = c->private;
+	ConfigFile *cf = c->ca_private;
 	char *ptr;
 	struct berval bv;
 
@@ -5468,13 +5468,13 @@ config_build_schema_inc( ConfigArgs *c, CfEntryInfo *ceparent,
 		c->value_dn.bv_len += bv.bv_len;
 		c->value_dn.bv_val[c->value_dn.bv_len] ='\0';
 
-		c->private = cf;
+		c->ca_private = cf;
 		e = config_build_entry( op, rs, ceparent, c, &c->value_dn,
 			&CFOC_SCHEMA, NULL );
 		if ( !e ) {
 			return -1;
 		} else if ( e && cf->c_kids ) {
-			c->private = cf->c_kids;
+			c->ca_private = cf->c_kids;
 			config_build_schema_inc( c, e->e_private, op, rs );
 		}
 	}
@@ -5499,7 +5499,7 @@ config_build_modules( ConfigArgs *c, CfEntryInfo *ceparent,
 			/* FIXME: how can indicate error? */
 			return -1;
 		}
-		c->private = mp;
+		c->ca_private = mp;
 		if ( ! config_build_entry( op, rs, ceparent, c, &c->value_dn, &CFOC_MODULE, NULL )) {
 			return -1;
 		}
@@ -5576,7 +5576,7 @@ config_check_schema(Operation *op, CfBackInfo *cfb)
 		}
 	} else {
 		SlapReply rs = {REP_RESULT};
-		c.private = NULL;
+		c.ca_private = NULL;
 		e = config_build_entry( op, &rs, cfb->cb_root, &c, &schema_rdn,
 			&CFOC_SCHEMA, NULL );
 		if ( !e ) {
@@ -5642,7 +5642,7 @@ config_back_db_open( BackendDB *be, ConfigReply *cr )
 
 	/* create root of tree */
 	rdn = config_rdn;
-	c.private = cfb->cb_config;
+	c.ca_private = cfb->cb_config;
 	c.be = frontendDB;
 	e = config_build_entry( op, &rs, NULL, &c, &rdn, &CFOC_GLOBAL, NULL );
 	if ( !e ) {
@@ -5668,7 +5668,7 @@ config_back_db_open( BackendDB *be, ConfigReply *cr )
 	 * files.
 	 */
 	rdn = schema_rdn;
-	c.private = NULL;
+	c.ca_private = NULL;
 	e = config_build_entry( op, &rs, ceparent, &c, &rdn, &CFOC_SCHEMA, NULL );
 	if ( !e ) {
 		return -1;
@@ -5682,7 +5682,7 @@ config_back_db_open( BackendDB *be, ConfigReply *cr )
 	/* Create schema nodes for included schema... */
 	if ( cfb->cb_config->c_kids ) {
 		c.depth = 0;
-		c.private = cfb->cb_config->c_kids;
+		c.ca_private = cfb->cb_config->c_kids;
 		if (config_build_schema_inc( &c, ce, op, &rs )) {
 			return -1;
 		}
