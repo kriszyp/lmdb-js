@@ -3,11 +3,14 @@
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
-#include "debug.h"
-#include "StringList.h"
 #include "LDAPSchema.h"
 
 #include <ctype.h>
+#include <ldap.h>
+
+#include "debug.h"
+#include "StringList.h"
+
 
 using namespace std;
 
