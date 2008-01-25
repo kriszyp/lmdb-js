@@ -738,8 +738,7 @@ slapd syncrepl provider, then the only change is the following two directives:
 >       serverID    1
 
 Note: You need to make sure that the {{serverID}} of each mirror node pair is 
-different and that the {{provider}} syncrepl directive points to the opposite 
-mirror node.
+different.
 
 H4: Mirror Node Configuration
 
@@ -752,7 +751,17 @@ Here's a specific cut down example using {{SECT:LDAP Sync Replication}} in
 MirrorMode node 1:
 
 >       # syncrepl directives    
->       syncrepl      rid=1
+>       syncrepl      rid=001
+>                     provider=ldap://ldap-ridr1.example.com
+>                     bindmethod=simple
+>                     binddn="cn=mirrormode,dc=example,dc=com"
+>                     credentials=mirrormode
+>                     searchbase="dc=example,dc=com"
+>                     schemachecking=on
+>                     type=refreshAndPersist
+>                     retry="60 +"
+>
+>       syncrepl      rid=002
 >                     provider=ldap://ldap-rid2.example.com
 >                     bindmethod=simple
 >                     binddn="cn=mirrormode,dc=example,dc=com"
@@ -768,8 +777,18 @@ MirrorMode node 1:
 MirrorMode node 2:
 
 >       # syncrepl directives
->       syncrepl      rid=1
->                     provider=ldap://ldap-rid1.example.com
+>       syncrepl      rid=001
+>                     provider=ldap://ldap-ridr1.example.com
+>                     bindmethod=simple
+>                     binddn="cn=mirrormode,dc=example,dc=com"
+>                     credentials=mirrormode
+>                     searchbase="dc=example,dc=com"
+>                     schemachecking=on
+>                     type=refreshAndPersist
+>                     retry="60 +"
+>
+>       syncrepl      rid=002
+>                     provider=ldap://ldap-rid2.example.com
 >                     bindmethod=simple
 >                     binddn="cn=mirrormode,dc=example,dc=com"
 >                     credentials=mirrormode
@@ -782,8 +801,7 @@ MirrorMode node 2:
 >       serverID    2
 
 It's simple really; each MirrorMode node is setup {{B:exactly}} the same, except
-that the {{B:provider}} directive is set to point to the other MirrorMode node
-and the {{serverID}} is unique.
+that the {{serverID}} is unique.
 
 H4: Failover Configuration
 
