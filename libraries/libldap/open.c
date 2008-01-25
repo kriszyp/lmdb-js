@@ -82,7 +82,7 @@ ldap_open( LDAP_CONST char *host, int port )
 	}
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_open: %s\n",
-		ld == NULL ? "succeeded" : "failed", 0, 0 );
+		ld != NULL ? "succeeded" : "failed", 0, 0 );
 
 	return ld;
 }
