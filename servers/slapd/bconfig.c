@@ -4705,6 +4705,7 @@ config_modify_internal( CfEntryInfo *ce, Operation *op, SlapReply *rs,
 			rc = modify_delete_vindex(e, &ml->sml_mod,
 				get_permissiveModify(op),
 				&rs->sr_text, ca->cr_msg, sizeof(ca->cr_msg), idx );
+			if ( rc ) goto out_noop;
 			if ( ml->sml_op == LDAP_MOD_REPLACE ) {
 				ml->sml_values = vals;
 				ml->sml_nvalues = nvals;
