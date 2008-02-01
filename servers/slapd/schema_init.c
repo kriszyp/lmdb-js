@@ -3586,7 +3586,9 @@ csnNormalize23(
 	}
 
 	gt.bv_len = ptr - gt.bv_val;
-	assert( gt.bv_len == STRLENOF( "YYYYmmddHHMMSSZ" ) );
+	if ( gt.bv_len != STRLENOF( "YYYYmmddHHMMSSZ" ) ) {
+		return LDAP_INVALID_SYNTAX;
+	}
 
 	cnt.bv_val = ptr + 1;
 	cnt.bv_len = val->bv_len - ( cnt.bv_val - val->bv_val );
@@ -3597,7 +3599,9 @@ csnNormalize23(
 	}
 
 	cnt.bv_len = ptr - cnt.bv_val;
-	assert( cnt.bv_len == STRLENOF( "000000" ) );
+	if ( cnt.bv_len != STRLENOF( "000000" ) ) {
+		return LDAP_INVALID_SYNTAX;
+	}
 
 	sid.bv_val = ptr + 1;
 	sid.bv_len = val->bv_len - ( sid.bv_val - val->bv_val );
@@ -3608,11 +3612,15 @@ csnNormalize23(
 	}
 
 	sid.bv_len = ptr - sid.bv_val;
-	assert( sid.bv_len == STRLENOF( "00" ) );
+	if ( sid.bv_len != STRLENOF( "00" ) ) {
+		return LDAP_INVALID_SYNTAX;
+	}
 
 	mod.bv_val = ptr + 1;
 	mod.bv_len = val->bv_len - ( mod.bv_val - val->bv_val );
-	assert( mod.bv_len == STRLENOF( "000000" ) );
+	if ( mod.bv_len != STRLENOF( "000000" ) ) {
+		return LDAP_INVALID_SYNTAX;
+	}
 
 	normalized->bv_len = STRLENOF( "YYYYmmddHHMMSS.uuuuuuZ#SSSSSS#SID#ssssss" );
 	normalized->bv_val = ber_memalloc_x( normalized->bv_len + 1, ctx );
@@ -3632,7 +3640,10 @@ csnNormalize23(
 	}
 	*ptr = '\0';
 
-	assert( ptr - normalized->bv_val == normalized->bv_len );
+	if ( ptr - normalized->bv_val != normalized->bv_len ) {
+		ber_memfree_x( normalized->bv_val, ctx );
+		return LDAP_INVALID_SYNTAX;
+	}
 
 	return LDAP_SUCCESS;
 }
@@ -3666,14 +3677,18 @@ csnNormalize(
 		return csnNormalize23( usage, syntax, mr, val, normalized, ctx );
 	}
 
-	assert( val->bv_len == STRLENOF( "YYYYmmddHHMMSS.uuuuuuZ#SSSSSS#SID#ssssss" ) );
+	if ( val->bv_len != STRLENOF( "YYYYmmddHHMMSS.uuuuuuZ#SSSSSS#SID#ssssss" ) ) {
+		return LDAP_INVALID_SYNTAX;
+	}
 
 	ptr = ber_bvchr( val, '#' );
 	if ( ptr == NULL || ptr - val->bv_val == val->bv_len ) {
 		return LDAP_INVALID_SYNTAX;
 	}
 
-	assert( ptr - val->bv_val == STRLENOF( "YYYYmmddHHMMSS.uuuuuuZ" ) );
+	if ( ptr - val->bv_val != STRLENOF( "YYYYmmddHHMMSS.uuuuuuZ" ) ) {
+		return LDAP_INVALID_SYNTAX;
+	}
 
 	cnt.bv_val = ptr + 1;
 	cnt.bv_len = val->bv_len - ( cnt.bv_val - val->bv_val );
@@ -3683,7 +3698,9 @@ csnNormalize(
 		return LDAP_INVALID_SYNTAX;
 	}
 
-	assert( ptr - cnt.bv_val == STRLENOF( "000000" ) );
+	if ( ptr - cnt.bv_val != STRLENOF( "000000" ) ) {
+		return LDAP_INVALID_SYNTAX;
+	}
 
 	sid.bv_val = ptr + 1;
 	sid.bv_len = val->bv_len - ( sid.bv_val - val->bv_val );
@@ -3694,12 +3711,16 @@ csnNormalize(
 	}
 
 	sid.bv_len = ptr - sid.bv_val;
-	assert( sid.bv_len == STRLENOF( "000" ) );
+	if ( sid.bv_len != STRLENOF( "000" ) ) {
+		return LDAP_INVALID_SYNTAX;
+	}
 
 	mod.bv_val = ptr + 1;
 	mod.bv_len = val->bv_len - ( mod.bv_val - val->bv_val );
 
-	assert( mod.bv_len == STRLENOF( "000000" ) );
+	if ( mod.bv_len != STRLENOF( "000000" ) ) {
+		return LDAP_INVALID_SYNTAX;
+	}
 
 	ber_dupbv_x( normalized, val, ctx );
 
