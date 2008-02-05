@@ -940,7 +940,12 @@ config_generic(ConfigArgs *c) {
 			AccessControl *a;
 			char *src, *dst, ibuf[11];
 			struct berval bv, abv;
-			for (i=0, a=c->be->be_acl; a; i++,a=a->acl_next) {
+			AccessControl *end;
+			if ( c->be == frontendDB )
+				end = NULL;
+			else
+				end = frontendDB->be_acl;
+			for (i=0, a=c->be->be_acl; a && a != end; i++,a=a->acl_next) {
 				abv.bv_len = snprintf( ibuf, sizeof( ibuf ), SLAP_X_ORDERED_FMT, i );
 				if ( abv.bv_len >= sizeof( ibuf ) ) {
 					ber_bvarray_free_x( c->rvalue_vals, NULL );
