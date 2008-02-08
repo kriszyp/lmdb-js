@@ -36,7 +36,7 @@ with the options shown in
 .BR slapd-ldap (5).
 These
 .B slapd.conf
-options are specific to the Translucent Proxy overlay; they should appear 
+options are specific to the Translucent Proxy overlay; they must appear 
 after the
 .B overlay
 directive.
@@ -57,6 +57,32 @@ operation, such that all parents of an entry added to the local database
 must be created by hand. Glue records are always created for a
 .B modify
 operation.
+.TP
+.B translucent_local <attr[,attr...]>
+Specify a list of attributes that should be searched for in the local database
+when used in a search filter. By default, search filters are only handled by
+the remote database. With this directive, search filters will be split into a
+local and remote portion, and local attributes will be searched locally.
+.TP
+.B translucent_remote <attr[,attr...]>
+Specify a list of attributes that should be searched for in the remote database
+when used in a search filter. This directive complements the
+.B translucent_local
+directive. Attributes may be specified as both local and remote if desired.
+.LP
+If neither
+.B translucent_local
+nor
+.B translucent_remote
+are specified, the default behavior is to search the remote database with the
+complete search filter. If only
+.B translucent_local
+is specified, searches will only be run on the local database. Likewise, if only
+.B translucent_remote
+is specified, searches will only be run on the remote database. In any case, both
+the local and remote entries corresponding to a search result will be merged
+before being returned to the client.
+
 .SH CAVEATS
 .LP
 The Translucent Proxy overlay will disable schema checking in the local database,

@@ -36,6 +36,8 @@
 /* config block */
 typedef struct translucent_info {
 	BackendDB db;			/* captive backend */
+	AttributeName *local;	/* valid attrs for local filters */
+	AttributeName *remote;	/* valid attrs for remote filters */
 	int strict;
 	int no_glue;
 	int defer_db_open;
@@ -43,6 +45,13 @@ typedef struct translucent_info {
 
 static ConfigLDAPadd translucent_ldadd;
 static ConfigCfAdd translucent_cfadd;
+
+static ConfigDriver translucent_cf_gen;
+
+enum {
+	TRANS_LOCAL = 1,
+	TRANS_REMOTE
+};
 
 static ConfigTable translucentcfg[] = {
 	{ "translucent_strict", "on|off", 1, 2, 0,
@@ -57,6 +66,18 @@ static ConfigTable translucentcfg[] = {
 	  "( OLcfgOvAt:14.2 NAME 'olcTranslucentNoGlue' "
 	  "DESC 'Disable automatic glue records for ADD and MODRDN' "
 	  "SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
+	{ "translucent_local", "attr[,attr...]", 1, 2, 0,
+	  ARG_STRING|ARG_MAGIC|TRANS_LOCAL,
+	  translucent_cf_gen,
+	  "( OLcfgOvAt:14.3 NAME 'olcTranslucentLocal' "
+	  "DESC 'Attributes to use in local search filter' "
+	  "SYNTAX OMsDirectoryString )", NULL, NULL },
+	{ "translucent_remote", "attr[,attr...]", 1, 2, 0,
+	  ARG_STRING|ARG_MAGIC|TRANS_REMOTE,
+	  translucent_cf_gen,
+	  "( OLcfgOvAt:14.4 NAME 'olcTranslucentRemote' "
+	  "DESC 'Attributes to use in remote search filter' "
+	  "SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ NULL, NULL, 0, 0, 0, ARG_IGNORED }
 };
 
@@ -73,7 +94,8 @@ static ConfigOCs translucentocs[] = {
 	  "NAME 'olcTranslucentConfig' "
 	  "DESC 'Translucent configuration' "
 	  "SUP olcOverlayConfig "
-	  "MAY ( olcTranslucentStrict $ olcTranslucentNoGlue ) )",
+	  "MAY ( olcTranslucentStrict $ olcTranslucentNoGlue $"
+	  " olcTranslucentLocal $ olcTranslucentRemote ) )",
 	  Cft_Overlay, translucentcfg, NULL, translucent_cfadd },
 	{ "( OLcfgOvOc:14.2 "
 	  "NAME 'olcTranslucentDatabase' "
@@ -144,6 +166,51 @@ translucent_cfadd( Operation *op, SlapReply *rs, Entry *e, ConfigArgs *ca )
 				    ov->db.bd_info->bi_cf_ocs,
 				    &translucentocs[1] );
 
+	return 0;
+}
+
+static int
+translucent_cf_gen( ConfigArgs *c )
+{
+	slap_overinst	*on = (slap_overinst *)c->bi;
+	translucent_info *ov = on->on_bi.bi_private;
+	AttributeName **an, *a2;
+	int i;
+
+	if ( c->type == TRANS_LOCAL )
+		an = &ov->local;
+	else
+		an = &ov->remote;
+
+	if ( c->op == SLAP_CONFIG_EMIT ) {
+		if ( !*an )
+			return 1;
+		for ( i = 0; !BER_BVISNULL(&(*an)[i].an_name); i++ ) {
+			value_add_one( &c->rvalue_vals, &(*an)[i].an_name );
+		}
+		return ( i < 1 );
+	} else if ( c->op == LDAP_MOD_DELETE ) {
+		if ( c->valx < 0 ) {
+			anlist_free( *an, 1, NULL );
+			*an = NULL;
+		} else {
+			i = c->valx;
+			ch_free( (*an)[i].an_name.bv_val );
+			do {
+				(*an)[i] = (*an)[i+1];
+			} while ( !BER_BVISNULL( &(*an)[i].an_name ));
+		}
+		return 0;
+	}
+	a2 = str2anlist( *an, c->argv[1], "," );
+	if ( !a2 ) {
+		snprintf( c->cr_msg, sizeof( c->cr_msg ), "%s unable to parse attribute %s",
+			c->argv[0], c->argv[1] );
+		Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
+			"%s: %s\n", c->log, c->cr_msg, 0 );
+		return ARG_BAD_CONF;
+	}
+	*an = a2;
 	return 0;
 }
 
@@ -563,16 +630,45 @@ static int translucent_compare(Operation *op, SlapReply *rs) {
 
 /*
 ** translucent_search_cb()
-**	merge local data with the search result
+**	merge local data with remote data
 **
+** Four cases:
+** 1: remote search, no local filter
+**	merge data and send immediately
+** 2: remote search, with local filter
+**	merge data and save
+** 3: local search, no remote filter
+**	merge data and send immediately
+** 4: local search, with remote filter
+**	check list, merge, send, delete
 */
 
-static int translucent_search_cb(Operation *op, SlapReply *rs) {
+#define	RMT_SIDE	0
+#define	LCL_SIDE	1
+#define	USE_LIST	2
+
+typedef struct trans_ctx {
 	BackendDB *db;
 	slap_overinst *on;
-	Entry *e, *re = NULL;
+	Filter *orig;
+	Avlnode *list;
+	int step;
+} trans_ctx;
+
+static int translucent_search_cb(Operation *op, SlapReply *rs) {
+	trans_ctx *tc;
+	BackendDB *db;
+	slap_overinst *on;
+	translucent_info *ov;
+	Entry *le, *re;
 	Attribute *a, *ax, *an, *as = NULL;
 	int rc;
+
+	tc = op->o_callback->sc_private;
+
+	/* Don't let the op complete while we're gathering data */
+	if ( rs->sr_type == REP_RESULT && ( tc->step & USE_LIST ))
+		return 0;
 
 	if(!op || !rs || rs->sr_type != REP_SEARCH || !rs->sr_entry)
 		return(SLAP_CB_CONTINUE);
@@ -580,29 +676,77 @@ static int translucent_search_cb(Operation *op, SlapReply *rs) {
 	Debug(LDAP_DEBUG_TRACE, "==> translucent_search_cb: %s\n",
 		rs->sr_entry->e_name.bv_val, 0, 0);
 
-	db = op->o_bd;
-	op->o_bd = op->o_callback->sc_private;
-	on = (slap_overinst *) op->o_bd->bd_info;
+	on = tc->on;
+	ov = on->on_bi.bi_private;
 
-	rc = overlay_entry_get_ov(op, &rs->sr_entry->e_nname, NULL, NULL, 0, &e, on);
+	db = op->o_bd;
+	re = NULL;
+
+	/* If we have local, get remote */
+	if ( tc->step & LCL_SIDE ) {
+		le = rs->sr_entry;
+		/* If entry is already on list, use it */
+		if ( tc->step & USE_LIST ) {
+			re = tavl_delete( &tc->list, le, entry_dn_cmp );
+			if ( re ) {
+				if ( rs->sr_flags & REP_ENTRY_MUSTRELEASE ) {
+					rs->sr_flags ^= REP_ENTRY_MUSTRELEASE;
+					be_entry_release_r( op, rs->sr_entry );
+				}
+				if ( rs->sr_flags & REP_ENTRY_MUSTBEFREED ) {
+					rs->sr_flags ^= REP_ENTRY_MUSTBEFREED;
+					entry_free( rs->sr_entry );
+				}
+				rc = test_filter( op, re, tc->orig );
+				if ( rc == LDAP_COMPARE_TRUE ) {
+					rs->sr_flags |= REP_ENTRY_MUSTBEFREED;
+					rs->sr_entry = re;
+					return SLAP_CB_CONTINUE;
+				} else {
+					entry_free( re );
+					rs->sr_entry = NULL;
+					return 0;
+				}
+			}
+		}
+		op->o_bd = &ov->db;
+		rc = be_entry_get_rw( op, &rs->sr_entry->e_nname, NULL, NULL, 0, &re );
+		if ( rc == LDAP_SUCCESS && re ) {
+			Entry *tmp = entry_dup( re );
+			be_entry_release_r( op, re );
+			re = tmp;
+		}
+	} else {
+	/* Else we have remote, get local */
+		op->o_bd = tc->db;
+		rc = overlay_entry_get_ov(op, &rs->sr_entry->e_nname, NULL, NULL, 0, &le, on);
+		if ( rc == LDAP_SUCCESS && le ) {
+			re = entry_dup( rs->sr_entry );
+			if ( rs->sr_flags & REP_ENTRY_MUSTRELEASE ) {
+				rs->sr_flags ^= REP_ENTRY_MUSTRELEASE;
+				be_entry_release_r( op, rs->sr_entry );
+			}
+			if ( rs->sr_flags & REP_ENTRY_MUSTBEFREED ) {
+				rs->sr_flags ^= REP_ENTRY_MUSTBEFREED;
+				entry_free( rs->sr_entry );
+			}
+		} else {
+			le = NULL;
+		}
+	}
 
 /*
-** if we got an entry from local backend:
-**	make a copy of this search result;
+** if we got remote and local entry:
 **	foreach local attr:
-**		foreach search result attr:
-**			if match, result attr with local attr;
+**		foreach remote attr:
+**			if match, remote attr with local attr;
 **			if new local, add to list;
-**	append new local attrs to search result;
+**	append new local attrs to remote;
 **
 */
 
-	if(e && rc == LDAP_SUCCESS) {
-		re = entry_dup(rs->sr_entry);
-		for(ax = e->e_attrs; ax; ax = ax->a_next) {
-#if 0
-			if(is_at_operational(ax->a_desc->ad_type)) continue;
-#endif
+	if ( re && le ) {
+		for(ax = le->e_attrs; ax; ax = ax->a_next) {
 			for(a = re->e_attrs; a; a = a->a_next) {
 				if(a->a_desc == ax->a_desc) {
 					if(a->a_vals != a->a_nvals)
@@ -619,7 +763,19 @@ static int translucent_search_cb(Operation *op, SlapReply *rs) {
 			an->a_next = as;
 			as = an;
 		}
-		overlay_entry_release_ov(op, e, 0, on);
+		/* Dispose of local entry */
+		if ( tc->step & LCL_SIDE ) {
+			if ( rs->sr_flags & REP_ENTRY_MUSTRELEASE ) {
+				rs->sr_flags ^= REP_ENTRY_MUSTRELEASE;
+				be_entry_release_r( op, rs->sr_entry );
+			}
+			if ( rs->sr_flags & REP_ENTRY_MUSTBEFREED ) {
+				rs->sr_flags ^= REP_ENTRY_MUSTBEFREED;
+				entry_free( rs->sr_entry );
+			}
+		} else {
+			overlay_entry_release_ov(op, le, 0, on);
+		}
 
 		/* literally append, so locals are always last */
 		if(as) {
@@ -630,12 +786,143 @@ static int translucent_search_cb(Operation *op, SlapReply *rs) {
 				re->e_attrs = as;
 			}
 		}
-		rs->sr_entry = re;
-		rs->sr_flags |= REP_ENTRY_MUSTBEFREED;
+		/* If both filters, save entry for later */
+		if ( tc->step == (USE_LIST|RMT_SIDE) ) {
+			tavl_insert( &tc->list, re, entry_dn_cmp, avl_dup_error );
+			rs->sr_entry = NULL;
+			rc = 0;
+		} else {
+		/* send it now */
+			rs->sr_entry = re;
+			rs->sr_flags |= REP_ENTRY_MUSTBEFREED;
+			rc = SLAP_CB_CONTINUE;
+		}
+	} else if ( le ) {
+	/* Only a local entry: remote was deleted
+	 * Ought to delete the local too...
+	 */
+	 	rc = 0;
+	} else if ( tc->step & USE_LIST ) {
+	/* Only a remote entry, but both filters:
+	 * Test the complete filter
+	 */
+		rc = test_filter( op, rs->sr_entry, tc->orig );
+		if ( rc == LDAP_COMPARE_TRUE ) {
+			rc = SLAP_CB_CONTINUE;
+		} else {
+			rc = 0;
+		}
+	} else {
+	/* Only a remote entry, only remote filter:
+	 * just pass thru
+	 */
+		rc = SLAP_CB_CONTINUE;
 	}
 
 	op->o_bd = db;
-	return(SLAP_CB_CONTINUE);
+	return rc;
+}
+
+/* Dup the filter, excluding invalid elements */
+static Filter *
+trans_filter_dup(Operation *op, Filter *f, AttributeName *an)
+{
+	Filter *n = NULL;
+
+	if ( !f )
+		return NULL;
+
+	switch( f->f_choice & SLAPD_FILTER_MASK ) {
+	case SLAPD_FILTER_COMPUTED:
+		n = op->o_tmpalloc( sizeof(Filter), op->o_tmpmemctx );
+		n->f_choice = f->f_choice;
+		n->f_result = f->f_result;
+		n->f_next = NULL;
+		break;
+
+	case LDAP_FILTER_PRESENT:
+		if ( ad_inlist( f->f_desc, an )) {
+			n = op->o_tmpalloc( sizeof(Filter), op->o_tmpmemctx );
+			n->f_choice = f->f_choice;
+			n->f_desc = f->f_desc;
+			n->f_next = NULL;
+		}
+		break;
+
+	case LDAP_FILTER_EQUALITY:
+	case LDAP_FILTER_GE:
+	case LDAP_FILTER_LE:
+	case LDAP_FILTER_APPROX:
+	case LDAP_FILTER_SUBSTRINGS:
+	case LDAP_FILTER_EXT:
+		if ( !f->f_av_desc || ad_inlist( f->f_av_desc, an )) {
+			n = op->o_tmpalloc( sizeof(Filter), op->o_tmpmemctx );
+			n->f_choice = f->f_choice;
+			n->f_ava = f->f_ava;
+			n->f_next = NULL;
+		}
+		break;
+
+	case LDAP_FILTER_AND:
+	case LDAP_FILTER_OR:
+	case LDAP_FILTER_NOT: {
+		Filter **p;
+
+		n = op->o_tmpalloc( sizeof(Filter), op->o_tmpmemctx );
+		n->f_choice = f->f_choice;
+		n->f_next = NULL;
+
+		for ( p = &n->f_list, f = f->f_list; f; f = f->f_next ) {
+			*p = trans_filter_dup( op, f, an );
+			if ( !*p )
+				continue;
+			p = &(*p)->f_next;
+		}
+		/* nothing valid in this list */
+		if ( !n->f_list ) {
+			op->o_tmpfree( n, op->o_tmpmemctx );
+			return NULL;
+		}
+		/* Only 1 element in this list */
+		if ((n->f_choice & SLAPD_FILTER_MASK) != LDAP_FILTER_NOT &&
+			!n->f_list->f_next ) {
+			f = n->f_list;
+			*n = *f;
+			op->o_tmpfree( f, op->o_tmpmemctx );
+		}
+		break;
+	}
+	}
+	return n;
+}
+
+static void
+trans_filter_free( Operation *op, Filter *f )
+{
+	Filter *n, *p, *next;
+
+	f->f_choice &= SLAPD_FILTER_MASK;
+
+	switch( f->f_choice ) {
+	case LDAP_FILTER_AND:
+	case LDAP_FILTER_OR:
+	case LDAP_FILTER_NOT:
+		/* Free in reverse order */
+		n = NULL;
+		for ( p = f->f_list; p; p = next ) {
+			next = p->f_next;
+			p->f_next = n;
+			n = p;
+		}
+		for ( p = n; p; p = next ) {
+			next = p->f_next;
+			trans_filter_free( op, p );
+		}
+		break;
+	default:
+		break;
+	}
+	op->o_tmpfree( f, op->o_tmpmemctx );
 }
 
 /*
@@ -649,7 +936,10 @@ static int translucent_search(Operation *op, SlapReply *rs) {
 	slap_overinst *on = (slap_overinst *) op->o_bd->bd_info;
 	translucent_info *ov = on->on_bi.bi_private;
 	slap_callback cb = { NULL, NULL, NULL, NULL };
-	int rc;
+	trans_ctx tc;
+	Filter *fl, *fr;
+	struct berval fbv;
+	int rc = 0;
 
 	Debug(LDAP_DEBUG_TRACE, "==> translucent_search: <%s> %s\n",
 		op->o_req_dn.bv_val, op->ors_filterstr.bv_val, 0);
@@ -659,14 +949,75 @@ static int translucent_search(Operation *op, SlapReply *rs) {
 			"remote DB not available");
 		return(rs->sr_err);
 	}
+
+	fr = ov->remote ? trans_filter_dup( op, op->ors_filter, ov->remote ) : NULL;
+	fl = ov->local ? trans_filter_dup( op, op->ors_filter, ov->local ) : NULL;
 	cb.sc_response = (slap_response *) translucent_search_cb;
-	cb.sc_private = op->o_bd;
+	cb.sc_private = &tc;
 	cb.sc_next = op->o_callback;
 
+	tc.db = op->o_bd;
+	tc.on = on;
+	tc.orig = op->ors_filter;
+	tc.list = NULL;
+	tc.step = 0;
+	fbv = op->ors_filterstr;
+
 	op->o_callback = &cb;
-	op->o_bd = &ov->db;
-	rc = ov->db.bd_info->bi_op_search(op, rs);
-	op->o_bd = cb.sc_private;
+
+	if ( fr || !fl ) {
+		op->o_bd = &ov->db;
+		tc.step |= RMT_SIDE;
+		if ( fl ) {
+			tc.step |= USE_LIST;
+			op->ors_filter = fr;
+			filter2bv_x( op, fr, &op->ors_filterstr );
+		}
+		rc = ov->db.bd_info->bi_op_search(op, rs);
+		op->o_bd = tc.db;
+		if ( fl ) {
+			op->o_tmpfree( op->ors_filterstr.bv_val, op->o_tmpmemctx );
+		}
+	}
+	if ( fl && !rc ) {
+		tc.step |= LCL_SIDE;
+		op->ors_filter = fl;
+		filter2bv_x( op, fl, &op->ors_filterstr );
+		rc = overlay_op_walk( op, rs, op_search, on->on_info, on->on_next );
+		op->o_tmpfree( op->ors_filterstr.bv_val, op->o_tmpmemctx );
+	}
+	op->ors_filterstr = fbv;
+	op->ors_filter = tc.orig;
+	op->o_callback = cb.sc_next;
+	/* Send out anything remaining on the list and finish */
+	if ( tc.step & USE_LIST ) {
+		if ( tc.list ) {
+			Avlnode *av;
+
+			av = tavl_end( tc.list, TAVL_DIR_LEFT );
+			while ( av ) {
+				rs->sr_entry = av->avl_data;
+				rc = test_filter( op, rs->sr_entry, op->ors_filter );
+				if ( rc == LDAP_COMPARE_TRUE ) {
+					rs->sr_flags = REP_ENTRY_MUSTBEFREED;
+					rc = send_search_entry( op, rs );
+					if ( rc ) break;
+				} else {
+					entry_free( rs->sr_entry );
+				}
+				av = tavl_next( av, TAVL_DIR_RIGHT );
+			}
+			tavl_free( tc.list, NULL );
+			rs->sr_entry = NULL;
+		}
+		send_ldap_result( op, rs );
+	}
+
+	/* Free in reverse order */
+	if ( fl )
+		trans_filter_free( op, fl );
+	if ( fr )
+		trans_filter_free( op, fr );
 
 	return rc;
 }
@@ -806,8 +1157,7 @@ static int translucent_db_open(BackendDB *be, ConfigReply *cr) {
 
 /*
 ** translucent_db_close()
-**	if the captive backend has a close() method, call it;
-**	free any config data;
+**	if the captive backend has a close() method, call it
 **
 */
 
@@ -829,7 +1179,8 @@ translucent_db_close( BackendDB *be, ConfigReply *cr )
 
 /*
 ** translucent_db_destroy()
-**	if the captive backend has a db_destroy() method, call it
+**	if the captive backend has a db_destroy() method, call it;
+**	free any config data
 **
 */
 
@@ -843,6 +1194,10 @@ translucent_db_destroy( BackendDB *be, ConfigReply *cr )
 	Debug(LDAP_DEBUG_TRACE, "==> translucent_db_destroy\n", 0, 0, 0);
 
 	if ( ov ) {
+		if ( ov->remote )
+			anlist_free( ov->remote, 1, NULL );
+		if ( ov->local )
+			anlist_free( ov->local, 1, NULL );
 		if ( ov->db.be_private != NULL ) {
 			backend_stopdown_one( &ov->db );
 		}
