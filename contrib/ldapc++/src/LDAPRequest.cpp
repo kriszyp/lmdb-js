@@ -47,6 +47,29 @@ LDAPRequest::~LDAPRequest(){
     delete m_cons;
 }
 
+LDAPMsg* LDAPRequest::getNextMessage() const 
+{
+    DEBUG(LDAP_DEBUG_DESTROY,"LDAPRequest::getNextMessage()" << endl);
+    int res;
+    LDAPMessage *msg;
+
+    res=ldap_result(this->m_connection->getSessionHandle(),
+            this->m_msgID,0,0,&msg);
+
+    if (res <= 0){
+        if(msg != 0){
+            ldap_msgfree(msg);
+        }
+        throw  LDAPException(this->m_connection);
+    }else{	
+        LDAPMsg *ret=0;
+        //this can  throw an exception (Decoding Error)
+        ret = LDAPMsg::create(this,msg);
+        ldap_msgfree(msg);
+        return ret;
+    }
+}
+
 const LDAPConstraints* LDAPRequest::getConstraints() const{
     DEBUG(LDAP_DEBUG_TRACE,"LDAPRequest::getConstraints()" << endl);
     return m_cons;
