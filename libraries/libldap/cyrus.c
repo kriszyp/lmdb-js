@@ -670,9 +670,9 @@ ldap_int_sasl_bind(
 	{
 		char authid[sizeof("gidNumber=4294967295+uidNumber=4294967295,"
 			"cn=peercred,cn=external,cn=auth")];
-		sprintf( authid, "gidNumber=%d+uidNumber=%d,"
+		sprintf( authid, "gidNumber=%u+uidNumber=%u,"
 			"cn=peercred,cn=external,cn=auth",
-			(int) getegid(), (int) geteuid() );
+			getegid(), geteuid() );
 		(void) ldap_int_sasl_external( ld, ld->ld_defconn, authid,
 			LDAP_PVT_SASL_LOCAL_SSF );
 	}
