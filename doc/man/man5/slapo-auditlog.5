@@ -38,11 +38,6 @@ The following LDIF could be used to add this overlay to
 .LP
 .RS
 .nf
-dn: cn=module{0},cn=config
-changetype: modify
-add: olcModuleLoad
-olcModuleLoad: {2}auditlog.la
-
 dn: olcOverlay=auditlog,olcDatabase={1}hdb,cn=config 
 changetype: add
 objectClass: olcOverlayConfig
