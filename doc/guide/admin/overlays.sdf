@@ -69,14 +69,66 @@ H3: Access Logging Configuration
 
 H2: Audit Logging
 
-This overlay records changes on a given backend database to an LDIF log
-file.
-   
-   
+The Audit Logging overlay can be used to record all changes on a given backend database to a specified log file.
+
 H3: Overview
 
+If the need arises whereby changes need to be logged as standard LDIF, then the auditlog overlay {{B:slapo-auditlog (5)}}
+can be used. Full examples are available in the man page {{B:slapo-auditlog (5)}}
 
 H3: Audit Logging Configuration
+
+If the directory is running vi {{F:slapd.d}}, then the following LDIF could be used to add the overlay to the overlay list 
+in {{B:cn=config}} and set what file the {{TERM:LDIF}} gets logged to (adjust to suit)
+
+>       dn: cn=module{0},cn=config
+>       changetype: modify
+>       add: olcModuleLoad
+>       olcModuleLoad: {2}auditlog.la
+> 
+>       dn: olcOverlay=auditlog,olcDatabase={1}hdb,cn=config
+>       changetype: add
+>       objectClass: olcOverlayConfig
+>       objectClass: olcAuditLogConfig
+>       olcOverlay: auditlog
+>       olcAuditlogFile: /tmp/auditlog.ldif
+
+
+In this example for testing, we are logging changes to {{F:/tmp/auditlog.ldif}}
+
+A typical {{TERM:LDIF}} file created by {{B:slapo-auditlog (5)}} would look like:
+
+>       # add 1196797576 dc=suretecsystems,dc=com cn=admin,dc=suretecsystems,dc=com
+>       dn: dc=suretecsystems,dc=com
+>       changetype: add
+>       objectClass: dcObject
+>       objectClass: organization
+>       dc: suretecsystems
+>       o: Suretec Systems Ltd.
+>       structuralObjectClass: organization
+>       entryUUID: 1606f8f8-f06e-1029-8289-f0cc9d81e81a
+>       creatorsName: cn=admin,dc=suretecsystems,dc=com
+>       modifiersName: cn=admin,dc=suretecsystems,dc=com
+>       createTimestamp: 20051123130912Z
+>       modifyTimestamp: 20051123130912Z
+>       entryCSN: 20051123130912.000000Z#000001#000#000000
+>       auditContext: cn=accesslog
+>       # end add 1196797576
+>       
+>       # add 1196797577 dc=suretecsystems,dc=com cn=admin,dc=suretecsystems,dc=com
+>       dn: ou=Groups,dc=suretecsystems,dc=com
+>       changetype: add
+>       objectClass: top
+>       objectClass: organizationalUnit
+>       ou: Groups
+>       structuralObjectClass: organizationalUnit
+>       entryUUID: 160aaa2a-f06e-1029-828a-f0cc9d81e81a
+>       creatorsName: cn=admin,dc=suretecsystems,dc=com
+>       modifiersName: cn=admin,dc=suretecsystems,dc=com
+>       createTimestamp: 20051123130912Z
+>       modifyTimestamp: 20051123130912Z
+>       entryCSN: 20051123130912.000000Z#000002#000#000000
+>       # end add 1196797577
 
 
 H2: Chaining
@@ -230,7 +282,7 @@ Whenever an entry with this object class is retrieved, the search is performed.
 has to be a subtype of {{F:labeledURI}}. The attributes and values present in
 the search result are added to the entry unless {{F:member-ad}} is used (see
 below).
-* {{F:member-ad}}: if present, changes the overlay behaviour into a dynamic group.
+* {{F:member-ad}}: if present, changes the overlay behavior into a dynamic group.
 Instead of inserting the results of the search in the entry, the distinguished name
 of the results are added as values of this attribute.
 
@@ -275,7 +327,7 @@ Let's apply it to the following entry:
 >       objectClass: groupOfNames
 >       labeledURI: ldap:///ou=people,dc=example,dc=com??one?(objectClass=inetOrgPerson)
 
-The behaviour is similar to the dynamic list configuration we had before:
+The behavior is similar to the dynamic list configuration we had before:
 whenever an entry with the {{F:groupOfNames}} object class is retrieved, the
 search specified in the {{F:labeledURI}} attribute is performed. But this time,
 only the distinguished names of the results are added, and as values of the
@@ -285,7 +337,7 @@ This is what we get:
 !import "allusersgroup-en.png"; align="center"; title="Dynamic group for all users"
 FT[align="Center"] Figure X.Y: Dynamic Group for all users
 
-Note that a side effect of this scheme of dymamic groups is that the members
+Note that a side effect of this scheme of dynamic groups is that the members
 need to be specified as full DNs. So, if you are planning in using this for
 {{F:posixGroup}}s, be sure to use RFC2307bis and some attribute which can hold
 distinguished names. The {{F:memberUid}} attribute used in the {{F:posixGroup}}
