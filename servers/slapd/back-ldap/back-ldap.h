@@ -424,6 +424,12 @@ typedef enum ldap_back_send_t {
 #define LDAP_BACK_PRINT_CONNTREE 0
 #endif /* !LDAP_BACK_PRINT_CONNTREE */
 
+typedef struct ldap_extra_t {
+	int (*proxy_authz_ctrl)( Operation *op, SlapReply *rs, struct berval *bound_ndn,
+		int version, slap_idassert_t *si, LDAPControl	*ctrl );
+	int (*controls_free)( Operation *op, SlapReply *rs, LDAPControl ***pctrls );
+} ldap_extra_t;
+
 LDAP_END_DECL
 
 #include "proto-ldap.h"
