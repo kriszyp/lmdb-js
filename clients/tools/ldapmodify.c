@@ -1136,12 +1136,13 @@ domodify(
 			tool_perror( newentry ? "ldap_add" : "ldap_modify",
 				rc, NULL, NULL, NULL, NULL );
 			goto done;
-		} else if ( verbose ) {
-			printf( _("modify complete\n") );
 		}
-
 		rc = process_response( ld, msgid,
 			newentry ? LDAP_RES_ADD : LDAP_RES_MODIFY, dn );
+
+		if ( verbose && rc == LDAP_SUCCESS ) {
+			printf( _("modify complete\n") );
+		}
 
 	} else {
 		rc = LDAP_SUCCESS;
@@ -1168,12 +1169,12 @@ dodelete(
 			fprintf( stderr, _("%s: delete failed: %s\n"), prog, dn );
 			tool_perror( "ldap_delete", rc, NULL, NULL, NULL, NULL );
 			goto done;
-		} else if ( verbose ) {
-			printf( _("delete complete") );
 		}
-
 		rc = process_response( ld, msgid, LDAP_RES_DELETE, dn );
 
+		if ( verbose && rc == LDAP_SUCCESS ) {
+			printf( _("delete complete\n") );
+		}
 	} else {
 		rc = LDAP_SUCCESS;
 	}
@@ -1207,12 +1208,12 @@ dorename(
 			fprintf( stderr, _("%s: rename failed: %s\n"), prog, dn );
 			tool_perror( "ldap_rename", rc, NULL, NULL, NULL, NULL );
 			goto done;
-		} else {
-			printf( _("rename completed\n") );
 		}
-
 		rc = process_response( ld, msgid, LDAP_RES_RENAME, dn );
 
+		if ( verbose && rc == LDAP_SUCCESS ) {
+			printf( _("rename complete\n") );
+		}
 	} else {
 		rc = LDAP_SUCCESS;
 	}

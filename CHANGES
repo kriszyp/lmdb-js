@@ -1,6 +1,7 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.8 Engineering
+	Fixed ldapmodify verbose logging (ITS#5247)
 	Fixed slapd include handling (ITS#5276)
 	Fixed slapd non-atomic signal variables (ITS#5248)
 	Fixed slapd-ldif delete (ITS#5265)
