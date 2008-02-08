@@ -2,6 +2,7 @@ OpenLDAP 2.3 Change Log
 
 OpenLDAP 2.3.41 Engineering
 	Fixed syncrepl propagation of errors (ITS#5282)
+	Fixed crash when no-op control is used (ITS#5358)
 
 OpenLDAP 2.3.40 Release (2007/12/25)
 	Fixed slapd include handling (ITS#5276)
