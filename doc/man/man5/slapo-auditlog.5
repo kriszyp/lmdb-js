@@ -6,6 +6,8 @@
 slapo-auditlog \- Audit Logging overlay to slapd
 .SH SYNOPSIS
 ETCDIR/slapd.conf
+.TP
+ETCDIR/slapd.d
 .SH DESCRIPTION
 The Audit Logging overlay can be used to record all changes on a given
 backend database to a specified log file. Changes are logged as standard
@@ -26,10 +28,38 @@ directive.
 .B auditlog <filename>
 Specify the fully qualified path for the log file.
 .TP
-.B
+.B olcAuditlogFile <filename>
+For use with 
+.B cn=config
+.SH EXAMPLE
+The following LDIF could be used to add this overlay to
+.B cn=config 
+(adjust to suit)
+.LP
+.RS
+.nf
+dn: cn=module{0},cn=config
+changetype: modify
+add: olcModuleLoad
+olcModuleLoad: {2}auditlog.la
+
+dn: olcOverlay=auditlog,olcDatabase={1}hdb,cn=config 
+changetype: add
+objectClass: olcOverlayConfig
+objectClass: olcAuditLogConfig
+olcOverlay: auditlog
+olcAuditlogFile: /tmp/auditlog.ldif
+.fi
+.RE
+.LP
+.LP
 .SH FILES
 .TP
 ETCDIR/slapd.conf
 default slapd configuration file
+.TP
+ETCDIR/slapd.d
+default slapd configuration directory
 .SH SEE ALSO
-.BR slapd.conf (5).
+.BR slapd.conf (5),
+.BR slapd-config(5).
