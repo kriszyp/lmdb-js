@@ -1,13 +1,15 @@
 .TH SLAPO-CONSTRAINT 5 "RELEASEDATE" "OpenLDAP LDVERSION"
 .\" Copyright 2005-2006 Hewlett-Packard Company
+.\" Copyright 2006-2007 The OpenLDAP Foundation All Rights Reserved.
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
+.\" $OpenLDAP$
 .SH NAME
 slapo-constraint \- Attribute Constraint Overlay to slapd
 .SH SYNOPSIS
 ETCDIR/slapd.conf
 .SH DESCRIPTION
-The constraint overlay is used to enforce a regular expression
-constraint on all values of specified attributes. Attributes can
+The constraint overlay is used to ensure that attribute values match
+some constraints beyond basic LDAP syntax.  Attributes can
 have multiple constraints placed upon them, and all must be satisfied
 when modifying an attribute value under constraint.
 .LP
@@ -25,33 +27,55 @@ directive.
 .B constraint_attribute <attribute_name> <type> <value>
 Specifies the constraint which should apply to the attribute named as
 the first parameter.
-At the moment only one type of constraint is supported -
-.B
-regex.
+Two types of constraint are currently supported -
+.B regex
+and
+.BR uri .
+
 The parameter following the
-.B
-regex
+.B regex
 type is a Unix style regular expression (See
-.B
-regex(7))
+.BR regex (7)
+). The parameter following the
+.B uri
+type is an LDAP URI. The URI will be evaluated using an internal search.
+It must not include a hostname, and it must include a list of attributes
+to evaluate.
 
 Any attempt to add or modify an attribute named as part of the
-constraint overlay specification which does not fit the regular
-expression constraint listed will fail with a
+constraint overlay specification which does not fit the 
+constraint listed will fail with a
 LDAP_CONSTRAINT_VIOLATION error.
 .SH EXAMPLES
-.B
+.LP
+.RS
+.nf
+overlay constraint
 constraint_attribute mail regex ^[:alnum:]+@mydomain.com$
+constraint_attribute title uri
+  ldap:///dc=catalog,dc=example,dc=com?title?sub?(objectClass=titleCatalog)
+.fi
 
 A specification like the above would reject any
-.B
-mail
+.B mail
 attribute which did not look like
 .B
 <alpha-numeric string>@mydomain.com
+It would also reject any
+.B title
+attribute whose values were not listed in the
+.B title
+attribute of any
+.B titleCatalog
+entries in the given scope.
+.RE
 .SH FILES
 .TP
 ETCDIR/slapd.conf
 default slapd configuration file
 .SH SEE ALSO
 .BR slapd.conf (5).
+.SH ACKNOWLEDGEMENTS
+This module was written in 2005 by Neil Dunbar of Hewlett-Packard and subsequently
+extended by Howard Chu and Emmanuel Dreyfus.
+.so ../Project

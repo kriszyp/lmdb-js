@@ -7,6 +7,7 @@ OpenLDAP 2.4.8 Engineering
 	Fixed slapd non-atomic signal variables (ITS#5248)
 	Fixed slapd overlay ordering when moving to slapd.d (ITS#5284)
 	Fixed slapd-ldif delete (ITS#5265)
+	Added slapo-constraint cross-attribute constraints (ITS#4987)
 	Added slapo-translucent local searching (ITS#5283)
 	Fixed test047 to skip if rwm is not available (ITS#5292)
 	Build Environment
