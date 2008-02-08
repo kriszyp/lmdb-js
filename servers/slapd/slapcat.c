@@ -32,7 +32,7 @@
 #include "slapcommon.h"
 #include "ldif.h"
 
-static int gotsig;
+static volatile sig_atomic_t gotsig;
 
 static RETSIGTYPE
 slapcat_sig( int sig )
