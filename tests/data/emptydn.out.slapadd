@@ -1,24 +1,12 @@
-dn: c=US
-objectClass: country
-c: US
-
-dn: o=Example,c=US
+dn: o=Beispiel,c=DE
 objectClass: organization
+o: Beispiel
+o: Beispiel GmbH
 o: Example
-o: Example, Inc.
 
-dn: c=UK
+dn: c=DE
 objectClass: country
-c: UK
-
-dn: o=Example,c=UK
-objectClass: organization
-o: Example
-o: Example, Ltd.
-
-dn: c=IT
-objectClass: country
-c: IT
+c: DE
 
 dn: o=Esempio,c=IT
 objectClass: organization
@@ -26,13 +14,25 @@ o: Esempio
 o: Esempio S.p.A.
 o: Example
 
-dn: c=DE
-objectClass: country
-c: DE
-
-dn: o=Beispiel,c=DE
+dn: o=Example,c=UK
 objectClass: organization
-o: Beispiel
-o: Beispiel GmbH
 o: Example
+o: Example, Ltd.
+
+dn: o=Example,c=US
+objectClass: organization
+o: Example
+o: Example, Inc.
+
+dn: c=IT
+objectClass: country
+c: IT
+
+dn: c=UK
+objectClass: country
+c: UK
+
+dn: c=US
+objectClass: country
+c: US
 

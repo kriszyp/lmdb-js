@@ -66,7 +66,7 @@ fi
 
 echo "Searching database..."
 
-$LDAPSEARCH -b "" -h $LOCALHOST -p $PORT1 > $SEARCHOUT 2>&1
+$LDAPSEARCH -S "" -b "" -h $LOCALHOST -p $PORT1 > $SEARCHOUT 2>&1
 
 RC=$?
 if test $RC != 0 ; then
@@ -143,7 +143,7 @@ EOF
 
 echo "Searching database..."
 
-$LDAPSEARCH -b "" -h $LOCALHOST -p $PORT1 > $SEARCHOUT 2>&1
+$LDAPSEARCH -S "" -b "" -h $LOCALHOST -p $PORT1 > $SEARCHOUT 2>&1
 
 RC=$?
 if test $RC != 0 ; then

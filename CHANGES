@@ -3,7 +3,9 @@ OpenLDAP 2.4 Change Log
 OpenLDAP 2.4.8 Engineering
 	Fixed slapd include handling (ITS#5276)
 	Fixed slapd non-atomic signal variables (ITS#5248)
-	Fixed libldap_r threaded library linking (ITS#4982)
+	Fixed slapd-ldif delete (ITS#5265)
+	Build Environment
+		Fixed libldap_r threaded library linking (ITS#4982)
 	Documentation
 		DB_CONFIG.example URL wrong in comments (ITS#5288)
 		Add cn=config example for auditlog (ITS#5245)
