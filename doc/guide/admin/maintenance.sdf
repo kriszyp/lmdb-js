@@ -86,10 +86,10 @@ To understand the {{F:db_archive}} interface, the reader should refer to
 chapter 9 of the Berkeley DB guide. In particular, the following chapters are 
 recommended:
 
-* Database and log file archival
-* Log file removal
-* Recovery procedures
-* Hot failover
+* Database and log file archival - {{URL:http://www.oracle.com/technology/documentation/berkeley-db/db/ref/transapp/archival.html}}
+* Log file removal - {{URL:http://www.oracle.com/technology/documentation/berkeley-db/db/ref/transapp/logfile.html}}
+* Recovery procedures - {{URL:http://www.oracle.com/technology/documentation/berkeley-db/db/ref/transapp/recovery.html}}
+* Hot failover - {{URL:http://www.oracle.com/technology/documentation/berkeley-db/db/ref/transapp/hotfail.html}}
 
 Advanced installations can use special environment settings to fine-tune some 
 Berkeley DB options (change the log file limit, etc). This can be done by using 
