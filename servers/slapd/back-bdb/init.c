@@ -279,6 +279,18 @@ shm_retry:
 
 	bdb->bi_dbenv->set_lk_detect( bdb->bi_dbenv, bdb->bi_lock_detect );
 
+	if ( !BER_BVISNULL( &bdb->bi_db_crypt_key )) {
+		rc = bdb->bi_dbenv->set_encrypt( bdb->bi_dbenv, bdb->bi_db_crypt_key.bv_val,
+			DB_ENCRYPT_AES );
+		if ( rc ) {
+			Debug( LDAP_DEBUG_ANY,
+				LDAP_XSTRING(bdb_db_open) ": database \"%s\": "
+				"dbenv set_encrypt failed: %s (%d).\n",
+				be->be_suffix[0].bv_val, db_strerror(rc), rc );
+			goto fail;
+		}
+	}
+
 	/* One long-lived TXN per thread, two TXNs per write op */
 	bdb->bi_dbenv->set_tx_max( bdb->bi_dbenv, connection_pool_max * 3 );
 
@@ -388,6 +400,20 @@ shm_retry:
 				LDAP_XSTRING(bdb_db_open) ": %s\n",
 				cr->msg, 0, 0 );
 			goto fail;
+		}
+
+		if( !BER_BVISNULL( &bdb->bi_db_crypt_key )) {
+			rc = db->bdi_db->set_flags( db->bdi_db, DB_ENCRYPT );
+			if ( rc ) {
+				snprintf(cr->msg, sizeof(cr->msg),
+					"database \"%s\": db set_flags(DB_ENCRYPT)(%s) failed: %s (%d).",
+					be->be_suffix[0].bv_val, 
+					bdb->bi_dbenv_home, db_strerror(rc), rc );
+				Debug( LDAP_DEBUG_ANY,
+					LDAP_XSTRING(bdb_db_open) ": %s\n",
+					cr->msg, 0, 0 );
+				goto fail;
+			}
 		}
 
 		if( i == BDB_ID2ENTRY ) {
