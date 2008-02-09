@@ -582,19 +582,17 @@ desc2str_len( LDAPURLDesc *u )
 	len += sep;
 
 	if ( u->lud_port ) {
-		char	buf[ STRLENOF(":65535") + 1 ];
+		unsigned p = u->lud_port;
+		if ( p > 65535 )
+			return -1;
 
-		len += snprintf( buf, sizeof( buf ), ":%d", u->lud_port );
-		if ( u->lud_host && u->lud_host[0] ) {
-			len += strlen( u->lud_host );
-		}
+		len += (p > 999 ? 5 + (p > 9999) : p > 99 ? 4 : 2 + (p > 9));
+	}
 
-	} else {
-		if ( u->lud_host && u->lud_host[0] ) {
-			len += hex_escape_len( u->lud_host, URLESC_SLASH );
-			if ( !is_ipc && strchr( u->lud_host, ':' )) {
-				len += 2;	/* IPv6, [] */
-			}
+	if ( u->lud_host && u->lud_host[0] ) {
+		len += hex_escape_len( u->lud_host, URLESC_SLASH );
+		if ( !is_ipc && strchr( u->lud_host, ':' )) {
+			len += 2;	/* IPv6, [] */
 		}
 	}
 
