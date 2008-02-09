@@ -98,7 +98,7 @@ LDAP_SLAPD_F (int) acl_string_expand LDAP_P((
 /*
  * aclparse.c
  */
-LDAP_SLAPD_V (char *) style_strings[];
+LDAP_SLAPD_V (LDAP_CONST char *) style_strings[];
 
 LDAP_SLAPD_F (int) parse_acl LDAP_P(( Backend *be,
 	const char *fname, int lineno,
@@ -2039,7 +2039,7 @@ LDAP_SLAPD_F (int) fe_access_allowed LDAP_P((
 
 # define UI2BVX(bv,ui,ctx) \
 	do { \
-		char		buf[] = "+9223372036854775807L"; \
+		char		buf[LDAP_PVT_INTTYPE_CHARS(long)]; \
 		ber_len_t	len; \
 		len = snprintf( buf, sizeof( buf ), UI2BV_FORMAT, (ui) ); \
 		if ( len > (bv)->bv_len ) { \

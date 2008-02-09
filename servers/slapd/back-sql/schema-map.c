@@ -189,7 +189,7 @@ static int
 backsql_add_sysmaps( backsql_info *bi, backsql_oc_map_rec *oc_map )
 {
 	backsql_at_map_rec	*at_map;
-	char			s[] = "+9223372036854775807L";
+	char			s[LDAP_PVT_INTTYPE_CHARS(long)];
 	struct berval		sbv;
 	struct berbuf		bb;
 	
@@ -228,13 +228,11 @@ backsql_add_sysmaps( backsql_info *bi, backsql_oc_map_rec *oc_map )
 
 	at_map->bam_add_proc = NULL;
 	{
-		char	tmp[] =
-			"INSERT INTO ldap_entry_objclasses "
+		char	tmp[STRLENOF("INSERT INTO ldap_entry_objclasses "
 			"(entry_id,oc_name) VALUES "
 			"((SELECT id FROM ldap_entries "
-			"WHERE oc_map_id="
-			"18446744073709551615UL "	/* 64 bit ULONG */
-			"AND keyval=?),?)";
+			"WHERE oc_map_id= "
+			"AND keyval=?),?)") + LDAP_PVT_INTTYPE_CHARS(unsigned long)];
 		snprintf( tmp, sizeof(tmp), 
 			"INSERT INTO ldap_entry_objclasses "
 			"(entry_id,oc_name) VALUES "
@@ -246,12 +244,10 @@ backsql_add_sysmaps( backsql_info *bi, backsql_oc_map_rec *oc_map )
 
 	at_map->bam_delete_proc = NULL;
 	{
-		char	tmp[] =
-			"DELETE FROM ldap_entry_objclasses "
+		char	tmp[STRLENOF("DELETE FROM ldap_entry_objclasses "
 			"WHERE entry_id=(SELECT id FROM ldap_entries "
-			"WHERE oc_map_id="
-			"18446744073709551615UL "	/* 64 bit ULONG */
-			"AND keyval=?) AND oc_name=?";
+			"WHERE oc_map_id= "
+			"AND keyval=?) AND oc_name=?") + LDAP_PVT_INTTYPE_CHARS(unsigned long)];
 		snprintf( tmp, sizeof(tmp), 
 			"DELETE FROM ldap_entry_objclasses "
 			"WHERE entry_id=(SELECT id FROM ldap_entries "

@@ -1058,7 +1058,7 @@ get_url_perms(
 						S_IRGRP, S_IWGRP, S_IXGRP,
 						S_IROTH, S_IWOTH, S_IXOTH
 					};
-					static char	c[] = "-rwxrwxrwx"; 
+					static const char	c[] = "-rwxrwxrwx"; 
 
 					if ( value[ j ] == c[ j ] ) {
 						p |= m[ j ];

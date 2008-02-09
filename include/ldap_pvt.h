@@ -169,7 +169,7 @@ LDAP_F( int ) ldap_bv2rdn_x LDAP_P((
 	struct berval *, LDAPRDN *, char **, unsigned flags, void *ctx ));
 LDAP_F( int ) ldap_rdn2bv_x LDAP_P(( 
 	LDAPRDN rdn, struct berval *bv, unsigned flags, void *ctx ));
-#endif
+#endif /* LDAP_AVA_NULL */
 
 /* url.c */
 LDAP_F (void) ldap_pvt_hex_unescape LDAP_P(( char *s ));
@@ -225,7 +225,7 @@ LDAP_F (void) ldap_pvt_sasl_remove LDAP_P(( struct sockbuf * ));
 
 #ifndef LDAP_PVT_SASL_LOCAL_SSF
 #define LDAP_PVT_SASL_LOCAL_SSF	71	/* SSF for Unix Domain Sockets */
-#endif
+#endif /* ! LDAP_PVT_SASL_LOCAL_SSF */
 
 struct ldap;
 struct ldapmsg;
@@ -316,6 +316,8 @@ LDAP_END_DECL
  * If none is available, unsigned long data is used.
  */
 
+LDAP_BEGIN_DECL
+
 #ifdef USE_MP_BIGNUM
 /*
  * Use OpenSSL's BIGNUM
@@ -403,5 +405,16 @@ typedef	unsigned long		ldap_pvt_mp_t;
 #endif /* MP */
 
 #include "ldap_pvt_uc.h"
+
+LDAP_END_DECL
+
+LDAP_BEGIN_DECL
+
+#include <limits.h>				/* get CHAR_BIT */
+
+/* Buffer space for sign, decimal digits and \0. Note: log10(2) < 146/485. */
+#define LDAP_PVT_INTTYPE_CHARS(type) (((sizeof(type)*CHAR_BIT-1)*146)/485 + 3)
+
+LDAP_END_DECL
 
 #endif /* _LDAP_PVT_H */

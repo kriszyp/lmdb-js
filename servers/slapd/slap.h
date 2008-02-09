@@ -2446,7 +2446,7 @@ typedef struct Opheader {
 
 	slap_counters_t	*oh_counters;
 
-	char		oh_log_prefix[ /* sizeof("conn=18446744073709551615 op=18446744073709551615") */ SLAP_TEXT_BUFLEN ];
+	char		oh_log_prefix[ /* sizeof("conn= op=") + 2*LDAP_PVT_INTTYPE_CHARS(unsigned long) */ SLAP_TEXT_BUFLEN ];
 
 #ifdef LDAP_SLAPI
 	void	*oh_extensions;		/* NS-SLAPI plugin */

@@ -864,7 +864,7 @@ backsql_process_filter( backsql_srch_info *bsi, Filter *f )
 		struct berval	keyval;
 #else /* ! BACKSQL_ARBITRARY_KEY */
 		unsigned long	keyval;
-		char		keyvalbuf[] = "18446744073709551615";
+		char		keyvalbuf[LDAP_PVT_INTTYPE_CHARS(unsigned long)];
 #endif /* ! BACKSQL_ARBITRARY_KEY */
 
 		switch ( f->f_choice ) {
