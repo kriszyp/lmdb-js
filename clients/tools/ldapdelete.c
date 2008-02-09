@@ -51,6 +51,7 @@
 
 
 static int	prune = 0;
+static int sizelimit = -1;
 
 
 static int dodelete LDAP_P((
@@ -76,11 +77,13 @@ usage( void )
 
 
 const char options[] = "r"
-	"cd:D:e:f:h:H:IMnO:o:p:P:QR:U:vVw:WxX:y:Y:Z";
+	"cd:D:e:f:h:H:IMnO:o:p:P:QR:U:vVw:WxX:y:Y:z:Z";
 
 int
 handle_private_option( int i )
 {
+	int ival;
+	char *next;
 	switch ( i ) {
 #if 0
 		int crit;
@@ -113,6 +116,29 @@ handle_private_option( int i )
 
 	case 'r':
 		prune = 1;
+		break;
+
+	case 'z':	/* size limit */
+		if ( strcasecmp( optarg, "none" ) == 0 ) {
+			sizelimit = 0;
+
+		} else if ( strcasecmp( optarg, "max" ) == 0 ) {
+			sizelimit = LDAP_MAXINT;
+
+		} else {
+			ival = strtol( optarg, &next, 10 );
+			if ( next == NULL || next[0] != '\0' ) {
+				fprintf( stderr,
+					_("Unable to parse size limit \"%s\"\n"), optarg );
+				exit( EXIT_FAILURE );
+			}
+			sizelimit = ival;
+		}
+		if( sizelimit < 0 || sizelimit > LDAP_MAXINT ) {
+			fprintf( stderr, _("%s: invalid sizelimit (%d) specified\n"),
+				prog, sizelimit );
+			exit( EXIT_FAILURE );
+		}
 		break;
 
 	default:
@@ -304,27 +330,31 @@ static int dodelete(
  */
 static int deletechildren(
 	LDAP *ld,
-	const char *dn )
+	const char *base )
 {
 	LDAPMessage *res, *e;
 	int entries;
-	int rc;
+	int rc, srch_rc;
 	static char *attrs[] = { LDAP_NO_ATTRS, NULL };
 	LDAPControl c, *ctrls[2];
 	BerElement *ber = NULL;
 	LDAPMessage *res_se;
 
-	if ( verbose ) printf ( _("deleting children of: %s\n"), dn );
+	if ( verbose ) printf ( _("deleting children of: %s\n"), base );
 
 	/*
-	 * Do a one level search at dn for children.  For each, delete its children.
+	 * Do a one level search at base for children.  For each, delete its children.
 	 */
-
-	rc = ldap_search_ext_s( ld, dn, LDAP_SCOPE_ONELEVEL, NULL, attrs, 1,
-		NULL, NULL, NULL, -1, &res );
-	if ( rc != LDAP_SUCCESS ) {
-		tool_perror( "ldap_search", rc, NULL, NULL, NULL, NULL );
-		return( rc );
+more:;
+	srch_rc = ldap_search_ext_s( ld, base, LDAP_SCOPE_ONELEVEL, NULL, attrs, 1,
+		NULL, NULL, NULL, sizelimit, &res );
+	switch ( srch_rc ) {
+	case LDAP_SUCCESS:
+	case LDAP_SIZELIMIT_EXCEEDED:
+		break;
+	default:
+		tool_perror( "ldap_search", srch_rc, NULL, NULL, NULL, NULL );
+		return( srch_rc );
 	}
 
 	entries = ldap_count_entries( ld, res );
@@ -373,8 +403,12 @@ static int deletechildren(
 
 	ldap_msgfree( res );
 
+	if ( srch_rc == LDAP_SIZELIMIT_EXCEEDED ) {
+		goto more;
+	}
+
 	/*
-	 * Do a one level search at dn for subentry children.
+	 * Do a one level search at base for subentry children.
 	 */
 
 	if ((ber = ber_alloc_t(LBER_USE_DER)) == NULL) {
@@ -394,11 +428,16 @@ static int deletechildren(
 	ctrls[0] = &c;
 	ctrls[1] = NULL;
 
-	rc = ldap_search_ext_s( ld, dn, LDAP_SCOPE_ONELEVEL, NULL, attrs, 1,
-		ctrls, NULL, NULL, -1, &res_se );
-	if ( rc != LDAP_SUCCESS ) {
-		tool_perror( "ldap_search", rc, NULL, NULL, NULL, NULL );
-		return( rc );
+more2:;
+	srch_rc = ldap_search_ext_s( ld, base, LDAP_SCOPE_ONELEVEL, NULL, attrs, 1,
+		ctrls, NULL, NULL, sizelimit, &res_se );
+	switch ( srch_rc ) {
+	case LDAP_SUCCESS:
+	case LDAP_SIZELIMIT_EXCEEDED:
+		break;
+	default:
+		tool_perror( "ldap_search", srch_rc, NULL, NULL, NULL, NULL );
+		return( srch_rc );
 	}
 	ber_free( ber, 1 );
 
@@ -440,5 +479,10 @@ static int deletechildren(
 	}
 
 	ldap_msgfree( res_se );
+
+	if ( srch_rc == LDAP_SIZELIMIT_EXCEEDED ) {
+		goto more2;
+	}
+
 	return rc;
 }
