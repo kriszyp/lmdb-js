@@ -151,16 +151,19 @@ slap_set_join(
 							sizeof( struct berval ),
 							cp->set_op->o_tmpmemctx );
 					BER_BVZERO( &set[ 0 ] );
-					return set;
+					goto done2;
 				}
-				return set_dup( cp, lset, SLAP_SET_LREF2REF( op_flags ) );
+				set = set_dup( cp, lset, SLAP_SET_LREF2REF( op_flags ) );
+				goto done2;
 			}
 			slap_set_dispose( cp, lset, SLAP_SET_LREF2REF( op_flags ) );
-			return set_dup( cp, rset, SLAP_SET_RREF2REF( op_flags ) );
+			set = set_dup( cp, rset, SLAP_SET_RREF2REF( op_flags ) );
+			goto done2;
 		}
 		if ( rset == NULL || BER_BVISNULL( &rset[ 0 ] ) ) {
 			slap_set_dispose( cp, rset, SLAP_SET_RREF2REF( op_flags ) );
-			return set_dup( cp, lset, SLAP_SET_LREF2REF( op_flags ) );
+			set = set_dup( cp, lset, SLAP_SET_LREF2REF( op_flags ) );
+			goto done2;
 		}
 
 		/* worst scenario: no duplicates */
@@ -277,25 +280,13 @@ slap_set_join(
 		j = slap_set_size( lset );
 
 		/* handle empty set cases */
-		if ( i == 0 ) {
-			if ( j == 0 ) {
-				set = cp->set_op->o_tmpcalloc( i * j + 1, sizeof( struct berval ),
-						cp->set_op->o_tmpmemctx );
-				if ( set == NULL ) {
-					break;
-				}
-				BER_BVZERO( &set[ 0 ] );
-				break;
-
-			} else {
-				set = set_dup( cp, lset, SLAP_SET_LREF2REF( op_flags ) );
-				lset = NULL;
+		if ( i == 0 || j == 0 ) {
+			set = cp->set_op->o_tmpcalloc( 1, sizeof( struct berval ),
+					cp->set_op->o_tmpmemctx );
+			if ( set == NULL ) {
 				break;
 			}
-
-		} else if ( j == 0 ) {
-			set = set_dup( cp, rset, SLAP_SET_RREF2REF( op_flags ) );
-			rset = NULL;
+			BER_BVZERO( &set[ 0 ] );
 			break;
 		}
 
@@ -363,6 +354,18 @@ slap_set_join(
 done:;
 	if ( lset ) slap_set_dispose( cp, lset, SLAP_SET_LREF2REF( op_flags ) );
 	if ( rset ) slap_set_dispose( cp, rset, SLAP_SET_RREF2REF( op_flags ) );
+
+done2:;
+	if ( LogTest( LDAP_DEBUG_ACL ) ) {
+		if ( BER_BVISNULL( set ) ) {
+			Debug( LDAP_DEBUG_ACL, "  ACL set: empty\n", 0, 0, 0 );
+
+		} else {
+			for ( i = 0; !BER_BVISNULL( &set[ i ] ); i++ ) {
+				Debug( LDAP_DEBUG_ACL, "  ACL set[%d]=%s\n", i, set[i].bv_val, 0 );
+			}
+		}
+	}
 
 	return set;
 }
