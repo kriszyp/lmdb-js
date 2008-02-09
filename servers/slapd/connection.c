@@ -1896,6 +1896,27 @@ connection_fake_init(
 }
 
 void
+operation_fake_init(
+	Connection *conn,
+	Operation *op,
+	void *ctx,
+	int newmem )
+{
+	/* set memory context */
+	op->o_tmpmemctx = slap_sl_mem_create(SLAP_SLAB_SIZE, SLAP_SLAB_STACK, ctx,
+		newmem );
+	op->o_tmpmfuncs = &slap_sl_mfuncs;
+	op->o_threadctx = ctx;
+	op->o_tid = ldap_pvt_thread_pool_tid( ctx );
+
+	op->o_counters = &slap_counters;
+	op->o_conn = conn;
+	op->o_connid = op->o_conn->c_connid;
+	connection_init_log_prefix( op );
+}
+
+
+void
 connection_fake_init2(
 	Connection *conn,
 	OperationBuffer *opbuf,
@@ -1917,17 +1938,7 @@ connection_fake_init2(
 	op->o_hdr = &opbuf->ob_hdr;
 	op->o_controls = opbuf->ob_controls;
 
-	/* set memory context */
-	op->o_tmpmemctx = slap_sl_mem_create(SLAP_SLAB_SIZE, SLAP_SLAB_STACK, ctx,
-		newmem );
-	op->o_tmpmfuncs = &slap_sl_mfuncs;
-	op->o_threadctx = ctx;
-	op->o_tid = ldap_pvt_thread_pool_tid( ctx );
-
-	op->o_counters = &slap_counters;
-	op->o_conn = conn;
-	op->o_connid = op->o_conn->c_connid;
-	connection_init_log_prefix( op );
+	operation_fake_init( conn, op, ctx, newmem );
 
 #ifdef LDAP_SLAPI
 	if ( slapi_plugins_used ) {
