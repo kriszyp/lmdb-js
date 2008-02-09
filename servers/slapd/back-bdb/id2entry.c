@@ -331,12 +331,11 @@ int bdb_entry_get(
 	if( op ) boi = (struct bdb_op_info *) op->o_private;
 	if( boi != NULL && op->o_bd->be_private == boi->boi_bdb->be_private ) {
 		txn = boi->boi_txn;
-		locker = boi->boi_locker;
 	}
 
 	if ( txn != NULL ) {
 		locker = TXN_ID ( txn );
-	} else if ( !locker ) {
+	} else {
 		rc = LOCK_ID ( bdb->bi_dbenv, &locker );
 		free_lock_id = 1;
 		switch(rc) {
