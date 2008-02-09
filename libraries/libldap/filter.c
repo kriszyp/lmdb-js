@@ -50,7 +50,8 @@ static int put_simple_filter LDAP_P((
 static int put_substring_filter LDAP_P((
 	BerElement *ber,
 	char *type,
-	char *str ));
+	char *str,
+	char *nextstar ));
 
 static int put_filter_list LDAP_P((
 	BerElement *ber,
@@ -693,7 +694,7 @@ put_simple_filter(
 				ftype = LDAP_FILTER_PRESENT;
 
 			} else {
-				rc = put_substring_filter( ber, str, value );
+				rc = put_substring_filter( ber, str, value, nextstar );
 				goto done;
 			}
 		} break;
@@ -720,9 +721,8 @@ done:
 }
 
 static int
-put_substring_filter( BerElement *ber, char *type, char *val )
+put_substring_filter( BerElement *ber, char *type, char *val, char *nextstar )
 {
-	char *nextstar;
 	int gotstar = 0;
 	ber_tag_t	ftype = LDAP_FILTER_SUBSTRINGS;
 
@@ -734,12 +734,13 @@ put_substring_filter( BerElement *ber, char *type, char *val )
 	}
 
 	for( ; *val; val=nextstar ) {
-		nextstar = ldap_pvt_find_wildcard( val );
+		if ( gotstar )
+			nextstar = ldap_pvt_find_wildcard( val );
 
 		if ( nextstar == NULL ) {
 			return -1;
 		}
-		
+
 		if ( *nextstar == '\0' ) {
 			ftype = LDAP_SUBSTRING_FINAL;
 		} else {
@@ -751,9 +752,7 @@ put_substring_filter( BerElement *ber, char *type, char *val )
 			}
 		}
 
-		if ( *val == '\0' ) {
-			return -1;
-		} else {
+		if ( *val != '\0' || ftype == LDAP_SUBSTRING_ANY ) {
 			ber_slen_t len = ldap_pvt_filter_value_unescape( val );
 
 			if ( len <= 0  ) {
@@ -1099,7 +1098,7 @@ put_simple_vrFilter(
 				ftype = LDAP_FILTER_PRESENT;
 
 			} else {
-				rc = put_substring_filter( ber, str, value );
+				rc = put_substring_filter( ber, str, value, nextstar );
 				goto done;
 			}
 		} break;
