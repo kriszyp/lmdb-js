@@ -12,6 +12,7 @@ OpenLDAP 2.4.8 Engineering
 	Added slapo-autogroup contrib module (ITS#5145)
 	Added slapo-constraint cross-attribute constraints (ITS#4987)
 	Fixed slapo-ppolicy password checking when no policy required it (ITS#5285)
+	Fixed slapo-syncrepl hang on checkpoint (ITS#5261)
 	Added slapo-translucent local searching (ITS#5283)
 	Fixed test047 to skip if rwm is not available (ITS#5292)
 	Build Environment
