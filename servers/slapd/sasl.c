@@ -149,15 +149,18 @@ slap_sasl_log(
 
 #if SASL_VERSION_MAJOR >= 2
 static const char *slap_propnames[] = {
-	"*slapConn", "*slapAuthcDN", "*slapAuthzDN", NULL };
+	"*slapConn", "*slapAuthcDNlen", "*slapAuthcDN",
+	"*slapAuthzDNlen", "*slapAuthzDN", NULL };
 
 static Filter generic_filter = { LDAP_FILTER_PRESENT, { 0 }, NULL };
 static struct berval generic_filterstr = BER_BVC("(objectclass=*)");
 
 #define	SLAP_SASL_PROP_CONN	0
-#define	SLAP_SASL_PROP_AUTHC	1
-#define	SLAP_SASL_PROP_AUTHZ	2
-#define	SLAP_SASL_PROP_COUNT	3	/* Number of properties we used */
+#define	SLAP_SASL_PROP_AUTHCLEN	1
+#define	SLAP_SASL_PROP_AUTHC	2
+#define	SLAP_SASL_PROP_AUTHZLEN	3
+#define	SLAP_SASL_PROP_AUTHZ	4
+#define	SLAP_SASL_PROP_COUNT	5	/* Number of properties we used */
 
 typedef struct lookup_info {
 	int flags;
@@ -282,16 +285,25 @@ slap_auxprop_lookup(
 					AC_MEMCPY( &conn, sl.list[i].values[0], sizeof( conn ) );
 				continue;
 			}
-			if ( (flags & SASL_AUXPROP_AUTHZID) &&
-				!strcmp( sl.list[i].name, slap_propnames[SLAP_SASL_PROP_AUTHZ] ) ) {
-
-				if ( sl.list[i].values && sl.list[i].values[0] )
-					AC_MEMCPY( &op.o_req_ndn, sl.list[i].values[0], sizeof( struct berval ) );
-				break;
+			if ( flags & SASL_AUXPROP_AUTHZID ) {
+				if ( !strcmp( sl.list[i].name, slap_propnames[SLAP_SASL_PROP_AUTHZLEN] )) {
+					if ( sl.list[i].values && sl.list[i].values[0] )
+						AC_MEMCPY( &op.o_req_ndn.bv_len, sl.list[i].values[0],
+							sizeof( op.o_req_ndn.bv_len ) );
+				} else if ( !strcmp( sl.list[i].name, slap_propnames[SLAP_SASL_PROP_AUTHZ] )) {
+					if ( sl.list[i].values )
+						op.o_req_ndn.bv_val = (char *)sl.list[i].values[0];
+					break;
+				}
 			}
-			if ( !strcmp( sl.list[i].name, slap_propnames[SLAP_SASL_PROP_AUTHC] ) ) {
-				if ( sl.list[i].values && sl.list[i].values[0] ) {
-					AC_MEMCPY( &op.o_req_ndn, sl.list[i].values[0], sizeof( struct berval ) );
+
+			if ( !strcmp( sl.list[i].name, slap_propnames[SLAP_SASL_PROP_AUTHCLEN] )) {
+				if ( sl.list[i].values && sl.list[i].values[0] )
+					AC_MEMCPY( &op.o_req_ndn.bv_len, sl.list[i].values[0],
+						sizeof( op.o_req_ndn.bv_len ) );
+			} else if ( !strcmp( sl.list[i].name, slap_propnames[SLAP_SASL_PROP_AUTHC] ) ) {
+				if ( sl.list[i].values ) {
+					op.o_req_ndn.bv_val = (char *)sl.list[i].values[0];
 					if ( !(flags & SASL_AUXPROP_AUTHZID) )
 						break;
 				}
@@ -432,10 +444,13 @@ slap_auxprop_store(
 					AC_MEMCPY( &conn, pr[i].values[0], sizeof( conn ) );
 				continue;
 			}
-			if ( !strcmp( pr[i].name, slap_propnames[SLAP_SASL_PROP_AUTHC] ) ) {
-				if ( pr[i].values && pr[i].values[0] ) {
-					AC_MEMCPY( &op.o_req_ndn, pr[i].values[0], sizeof( struct berval ) );
-				}
+			if ( !strcmp( pr[i].name, slap_propnames[SLAP_SASL_PROP_AUTHCLEN] )) {
+				if ( pr[i].values && pr[i].values[0] )
+					AC_MEMCPY( &op.o_req_ndn.bv_len, pr[i].values[0],
+						sizeof( op.o_req_ndn.bv_len ) );
+			} else if ( !strcmp( pr[i].name, slap_propnames[SLAP_SASL_PROP_AUTHC] ) ) {
+				if ( pr[i].values )
+					op.o_req_ndn.bv_val = (char *)pr[i].values[0];
 			}
 		}
 	}
@@ -586,9 +601,9 @@ slap_sasl_canonicalize(
 		prop_request( props, slap_propnames );
 
 	if ( flags & SASL_CU_AUTHID )
-		which = SLAP_SASL_PROP_AUTHC;
+		which = SLAP_SASL_PROP_AUTHCLEN;
 	else
-		which = SLAP_SASL_PROP_AUTHZ;
+		which = SLAP_SASL_PROP_AUTHZLEN;
 
 	/* Need to store the Connection for auxprop_lookup */
 	if ( !auxvals[SLAP_SASL_PROP_CONN].values ) {
@@ -637,12 +652,19 @@ slap_sasl_canonicalize(
 
 	names[0] = slap_propnames[which];
 	names[1] = NULL;
+	prop_set( props, names[0], (char *)&dn.bv_len, sizeof( dn.bv_len ) );
 
-	prop_set( props, names[0], (char *)&dn, sizeof( dn ) );
+	which++;
+	names[0] = slap_propnames[which];
+	prop_set( props, names[0], dn.bv_val, dn.bv_len );
 
 	Debug( LDAP_DEBUG_ARGS, "SASL Canonicalize [conn=%ld]: %s=\"%s\"\n",
 		conn ? conn->c_connid : -1, names[0]+1,
 		dn.bv_val ? dn.bv_val : "<EMPTY>" );
+
+	/* Not needed any more, SASL has copied it */
+	if ( conn && conn->c_sasl_bindop )
+		conn->c_sasl_bindop->o_tmpfree( dn.bv_val, conn->c_sasl_bindop->o_tmpmemctx );
 
 done:
 	AC_MEMCPY( out, in, inlen );
@@ -682,7 +704,6 @@ slap_sasl_authorize(
 		"authcid=\"%s\" authzid=\"%s\"\n",
 		conn ? conn->c_connid : -1, auth_identity, requested_user );
 	if ( conn->c_sasl_dn.bv_val ) {
-		ch_free( conn->c_sasl_dn.bv_val );
 		BER_BVZERO( &conn->c_sasl_dn );
 	}
 
@@ -695,15 +716,17 @@ slap_sasl_authorize(
 		return SASL_NOAUTHZ;
 	}
 
-	AC_MEMCPY( &authcDN, auxvals[0].values[0], sizeof(authcDN) );
+	AC_MEMCPY( &authcDN.bv_len, auxvals[0].values[0], sizeof(authcDN.bv_len) );
+	authcDN.bv_val = auxvals[1].values ? (char *)auxvals[1].values[0] : NULL;
 	conn->c_sasl_dn = authcDN;
 
 	/* Nothing to do if no authzID was given */
-	if ( !auxvals[1].name || !auxvals[1].values ) {
+	if ( !auxvals[2].name || !auxvals[2].values ) {
 		goto ok;
 	}
 	
-	AC_MEMCPY( &authzDN, auxvals[1].values[0], sizeof(authzDN) );
+	AC_MEMCPY( &authzDN.bv_len, auxvals[2].values[0], sizeof(authzDN.bv_len) );
+	authzDN.bv_val = auxvals[3].values ? (char *)auxvals[3].values[0] : NULL;
 
 	rc = slap_sasl_authorized( conn->c_sasl_bindop, &authcDN, &authzDN );
 	if ( rc != LDAP_SUCCESS ) {
@@ -712,20 +735,12 @@ slap_sasl_authorize(
 			(long) (conn ? conn->c_connid : -1), rc, 0 );
 
 		sasl_seterror( sconn, 0, "not authorized" );
-		ch_free( authzDN.bv_val );
 		return SASL_NOAUTHZ;
 	}
 
 	/* FIXME: we need yet another dup because slap_sasl_getdn()
 	 * is using the bind operation slab */
-	if ( conn->c_sasl_bindop ) {
-		ber_dupbv( &conn->c_sasl_authz_dn, &authzDN );
-		slap_sl_free( authzDN.bv_val,
-				conn->c_sasl_bindop->o_tmpmemctx );
-
-	} else {
-		conn->c_sasl_authz_dn = authzDN;
-	}
+	ber_dupbv( &conn->c_sasl_authz_dn, &authzDN );
 
 ok:
 	if (conn->c_sasl_bindop) {
@@ -1668,7 +1683,7 @@ int slap_sasl_bind( Operation *op, SlapReply *rs )
 	if ( sc == SASL_OK ) {
 		sasl_ssf_t *ssf = NULL;
 
-		op->orb_edn = op->o_conn->c_sasl_dn;
+		ber_dupbv_x( &op->orb_edn, &op->o_conn->c_sasl_dn, op->o_tmpmemctx );
 		BER_BVZERO( &op->o_conn->c_sasl_dn );
 		op->o_conn->c_sasl_done = 1;
 
@@ -1720,8 +1735,6 @@ int slap_sasl_bind( Operation *op, SlapReply *rs )
 		send_ldap_sasl( op, rs );
 
 	} else {
-		if ( op->o_conn->c_sasl_dn.bv_len )
-			ch_free( op->o_conn->c_sasl_dn.bv_val );
 		BER_BVZERO( &op->o_conn->c_sasl_dn );
 #if SASL_VERSION_MAJOR >= 2
 		rs->sr_text = sasl_errdetail( ctx );
