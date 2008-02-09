@@ -5,6 +5,7 @@ OpenLDAP 2.4.8 Engineering
 	Fixed libldap ldap_parse_sasl_bind_result (ITS#5263)
 	Fixed libldap search timeout crash (ITS#5291)
 	Fixed ldapdelete with sizelimit (ITS#5294)
+	Fixed slapd idlcache on adds (ITS#5086)
 	Fixed slapd include handling (ITS#5276)
 	Fixed slapd multi-step SASL binds (ITS#5298)
 	Fixed slapd non-atomic signal variables (ITS#5248)
