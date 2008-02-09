@@ -696,10 +696,6 @@ bdb_idl_insert_key(
 
 	assert( id != NOID );
 
-	if ( bdb->bi_idl_cache_size ) {
-		bdb_idl_cache_del( bdb, db, key );
-	}
-
 	DBTzero( &data );
 	data.size = sizeof( ID );
 	data.ulen = data.size;
@@ -872,6 +868,12 @@ fail:
 		cursor->c_close( cursor );
 		return rc;
 	}
+	/* If key was added (didn't already exist) and using IDL cache,
+	 * update key in IDL cache.
+	 */
+	if ( !rc && bdb->bi_idl_cache_max_size ) {
+		bdb_idl_cache_add_id( bdb, db, key, id );
+	}
 	rc = cursor->c_close( cursor );
 	if( rc != 0 ) {
 		Debug( LDAP_DEBUG_ANY, "=> bdb_idl_insert_key: "
@@ -904,7 +906,7 @@ bdb_idl_delete_key(
 	}
 	assert( id != NOID );
 
-	if ( bdb->bi_idl_cache_max_size ) {
+	if ( bdb->bi_idl_cache_size ) {
 		bdb_idl_cache_del( bdb, db, key );
 	}
 
