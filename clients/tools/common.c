@@ -223,6 +223,17 @@ tool_destroy( void )
 #ifdef HAVE_TLS
 	ldap_pvt_tls_destroy();
 #endif
+
+	if ( ldapuri != NULL ) {
+		ber_memfree( ldapuri );
+		ldapuri = NULL;
+	}
+
+	if ( pr_cookie.bv_val != NULL ) {
+		ber_memfree( pr_cookie.bv_val );
+		pr_cookie.bv_val = NULL;
+		pr_cookie.bv_len = 0;
+	}
 }
 
 void
