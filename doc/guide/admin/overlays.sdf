@@ -172,11 +172,6 @@ H3: Audit Logging Configuration
 If the directory is running vi {{F:slapd.d}}, then the following LDIF could be used to add the overlay to the overlay list 
 in {{B:cn=config}} and set what file the {{TERM:LDIF}} gets logged to (adjust to suit)
 
->       dn: cn=module{0},cn=config
->       changetype: modify
->       add: olcModuleLoad
->       olcModuleLoad: {2}auditlog.la
-> 
 >       dn: olcOverlay=auditlog,olcDatabase={1}hdb,cn=config
 >       changetype: add
 >       objectClass: olcOverlayConfig
@@ -338,11 +333,6 @@ title attribute of any {{titleCatalog}} entries in the given scope.
 
 An example for use with {{cn=config}}:
 
->       dn: cn=module{0},cn=config
->       changetype: modify
->       add: olcModuleLoad
->       olcModuleLoad: {1}constraint.la
-> 
 >       dn: olcOverlay=constraint,olcDatabase={1}hdb,cn=config
 >       changetype: add
 >       objectClass: olcOverlayConfig
