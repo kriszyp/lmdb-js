@@ -307,6 +307,7 @@ tls_parse_ciphers( tls_ctx *ctx, char *suites )
 			/* unrecognized cipher suite */
 			return -1;
 		}
+		ptr += len + 1;
 	} while (end);
 
 	/* Space for all 3 lists */
@@ -348,6 +349,7 @@ tls_parse_ciphers( tls_ctx *ctx, char *suites )
 				break;
 			}
 		}
+		ptr += len + 1;
 	} while (end);
 	kx[nkx] = 0;
 	cipher[ncipher] = 0;
