@@ -99,6 +99,8 @@ slap_graduate_commit_csn( Operation *op )
 		if ( csne->ce_opid == op->o_opid && csne->ce_connid == op->o_connid ) {
 			LDAP_TAILQ_REMOVE( op->o_bd->be_pending_csn_list,
 				csne, ce_csn_link );
+			Debug( LDAP_DEBUG_SYNC, "slap_graduate_commit_csn: removing %p %s\n",
+				csne->ce_csn.bv_val, csne->ce_csn.bv_val, 0 );
 			if ( op->o_csn.bv_val == csne->ce_csn.bv_val ) {
 				BER_BVZERO( &op->o_csn );
 			}
@@ -162,6 +164,9 @@ slap_queue_csn(
 
 	pending = (struct slap_csn_entry *) ch_calloc( 1,
 			sizeof( struct slap_csn_entry ));
+
+	Debug( LDAP_DEBUG_SYNC, "slap_queue_csn: queing %p %s\n", csn->bv_val, csn->bv_val, 0 );
+
 	ldap_pvt_thread_mutex_lock( op->o_bd->be_pcl_mutexp );
 
 	ber_dupbv( &pending->ce_csn, csn );
