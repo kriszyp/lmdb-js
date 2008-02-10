@@ -112,6 +112,8 @@ struct ldap_int_thread_pool_s {
 
 	/* Some active task needs to be the sole active task.
 	 * Atomic variable so ldap_pvt_thread_pool_pausing() can read it.
+	 * Note: Pauses adjust ltp_<open_count/vary_open_count/work_list>,
+	 * so pool_<submit/wrapper>() mostly can avoid testing ltp_pause.
 	 */
 	volatile sig_atomic_t ltp_pause;
 
@@ -123,7 +125,7 @@ struct ldap_int_thread_pool_s {
 
 	int ltp_pending_count;		/* Pending or paused requests */
 	int ltp_active_count;		/* Active, not paused requests */
-	int ltp_open_count;			/* Number of threads */
+	int ltp_open_count;			/* Number of threads, negated when ltp_pause */
 	int ltp_starting;			/* Currenlty starting threads */
 
 	/*
@@ -310,14 +312,14 @@ ldap_pvt_thread_pool_submit (
 
 	pool->ltp_pending_count++;
 	LDAP_STAILQ_INSERT_TAIL(&pool->ltp_pending_list, task, ltt_next.q);
-	if (pool->ltp_pause) {
-		ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
-		return(0);
-	}
-	ldap_pvt_thread_cond_signal(&pool->ltp_cond);
+
+	/* true if ltp_pause != 0 or we should open (create) a thread */
 	if (pool->ltp_vary_open_count > 0 &&
 		pool->ltp_open_count < pool->ltp_active_count+pool->ltp_pending_count)
 	{
+		if (pool->ltp_pause)
+			goto done;
+
 		pool->ltp_starting++;
 		pool->ltp_open_count++;
 		SET_VARY_OPEN_COUNT(pool);
@@ -357,12 +359,12 @@ ldap_pvt_thread_pool_submit (
 			}
 			/* there is another open thread, so this
 			 * task will be handled eventually.
-			 * continue on, we have signalled that
-			 * the task is waiting.
 			 */
 		}
 	}
+	ldap_pvt_thread_cond_signal(&pool->ltp_cond);
 
+ done:
 	ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
 	return(0);
 
@@ -435,6 +437,8 @@ ldap_pvt_thread_pool_query(
 
 	case LDAP_PVT_THREAD_POOL_PARAM_OPEN:
 		count = pool->ltp_open_count;
+		if (count < 0)
+			count = -count;
 		break;
 
 	case LDAP_PVT_THREAD_POOL_PARAM_STARTING:
@@ -671,6 +675,8 @@ ldap_int_thread_pool_wrapper (
 			ldap_pvt_thread_cond_signal(&pool->ltp_pcond);
 	}
 
+	assert(!pool->ltp_pause); /* thread_keys writable, ltp_open_count >= 0 */
+
 	/* The ltp_mutex lock protects ctx->ltu_key from pool_purgekey()
 	 * during this call, since it prevents new pauses. */
 	ldap_pvt_thread_pool_context_reset(&ctx);
@@ -682,7 +688,7 @@ ldap_int_thread_pool_wrapper (
 	pool->ltp_open_count--;
 	SET_VARY_OPEN_COUNT(pool);
 	/* let pool_destroy know we're all done */
-	if (pool->ltp_open_count < 1)
+	if (pool->ltp_open_count == 0)
 		ldap_pvt_thread_cond_signal(&pool->ltp_cond);
 
 	ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
@@ -724,6 +730,9 @@ ldap_pvt_thread_pool_pause (
 
 	/* Wait for everyone else to pause or finish */
 	pool->ltp_pause = 1;
+	/* Let ldap_pvt_thread_pool_submit() through to its ltp_pause test,
+	 * and do not finish threads in ldap_pvt_thread_pool_wrapper() */
+	pool->ltp_open_count = -pool->ltp_open_count;
 	SET_VARY_OPEN_COUNT(pool);
 	/* Hide pending tasks from ldap_pvt_thread_pool_wrapper() */
 	pool->ltp_work_list = &empty_pending_list;
@@ -753,7 +762,10 @@ ldap_pvt_thread_pool_resume (
 
 	ldap_pvt_thread_mutex_lock(&pool->ltp_mutex);
 
+	assert(pool->ltp_pause);
 	pool->ltp_pause = 0;
+	if (pool->ltp_open_count <= 0) /* true when paused, but be paranoid */
+		pool->ltp_open_count = -pool->ltp_open_count;
 	SET_VARY_OPEN_COUNT(pool);
 	pool->ltp_work_list = &pool->ltp_pending_list;
 
