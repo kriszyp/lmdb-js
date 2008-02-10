@@ -86,6 +86,8 @@ typedef struct ldap_int_thread_task_s {
 	void *ltt_arg;
 } ldap_int_thread_task_t;
 
+typedef LDAP_STAILQ_HEAD(tcq, ldap_int_thread_task_s) ldap_int_tpool_plist_t;
+
 struct ldap_int_thread_pool_s {
 	LDAP_STAILQ_ENTRY(ldap_int_thread_pool_s) ltp_next;
 
@@ -99,7 +101,7 @@ struct ldap_int_thread_pool_s {
 	ldap_pvt_thread_cond_t ltp_pcond;
 
 	/* pending tasks, and unused task objects */
-	LDAP_STAILQ_HEAD(tcq, ldap_int_thread_task_s) ltp_pending_list;
+	ldap_int_tpool_plist_t ltp_pending_list;
 	LDAP_SLIST_HEAD(tcl, ldap_int_thread_task_s) ltp_free_list;
 
 	/* The pool is finishing, waiting for its threads to close.
@@ -129,6 +131,9 @@ struct ldap_int_thread_pool_s {
 	 * in ldap_pvt_thread_pool_<submit/wrapper>().
 	 */
 
+	/* ltp_pause == 0 ? &ltp_pending_list : &empty_pending_list */
+	ldap_int_tpool_plist_t *ltp_work_list;
+
 	/* >0 if paused or we may open a thread, <0 if we should close a thread. */
 	/* Updated when ltp_<finishing/pause/max_count/open_count> change. */
 	int ltp_vary_open_count;
@@ -139,6 +144,9 @@ struct ldap_int_thread_pool_s {
 		 ((pool)->ltp_max_count ? (pool)->ltp_max_count : LDAP_MAXTHR) \
 		 - (pool)->ltp_open_count)
 };
+
+static ldap_int_tpool_plist_t empty_pending_list =
+	LDAP_STAILQ_HEAD_INITIALIZER(empty_pending_list);
 
 static int ldap_int_has_thread_pool = 0;
 static LDAP_STAILQ_HEAD(tpq, ldap_int_thread_pool_s)
@@ -217,7 +225,9 @@ ldap_pvt_thread_pool_init (
 	pool->ltp_max_pending = max_pending;
 
 	LDAP_STAILQ_INIT(&pool->ltp_pending_list);
+	pool->ltp_work_list = &pool->ltp_pending_list;
 	LDAP_SLIST_INIT(&pool->ltp_free_list);
+
 	ldap_pvt_thread_mutex_lock(&ldap_pvt_thread_pool_mutex);
 	LDAP_STAILQ_INSERT_TAIL(&ldap_int_thread_pool_list, pool, ltp_next);
 	ldap_pvt_thread_mutex_unlock(&ldap_pvt_thread_pool_mutex);
@@ -620,11 +630,8 @@ ldap_int_thread_pool_wrapper (
 	pool->ltp_starting--;
 
 	for (;;) {
-		while (pool->ltp_pause)
-			ldap_pvt_thread_cond_wait(&pool->ltp_cond, &pool->ltp_mutex);
-
-		task = LDAP_STAILQ_FIRST(&pool->ltp_pending_list);
-		if (task == NULL) {
+		task = LDAP_STAILQ_FIRST(pool->ltp_work_list);
+		if (task == NULL) {	/* paused or no pending tasks */
 			if (pool->ltp_vary_open_count < 0) {
 				/* not paused, and either finishing or too many
 				 * threads running (can happen if ltp_max_count
@@ -718,6 +725,8 @@ ldap_pvt_thread_pool_pause (
 	/* Wait for everyone else to pause or finish */
 	pool->ltp_pause = 1;
 	SET_VARY_OPEN_COUNT(pool);
+	/* Hide pending tasks from ldap_pvt_thread_pool_wrapper() */
+	pool->ltp_work_list = &empty_pending_list;
 
 	while (pool->ltp_active_count > 1) {
 		ldap_pvt_thread_cond_wait(&pool->ltp_pcond, &pool->ltp_mutex);
@@ -743,10 +752,14 @@ ldap_pvt_thread_pool_resume (
 		return(0);
 
 	ldap_pvt_thread_mutex_lock(&pool->ltp_mutex);
+
 	pool->ltp_pause = 0;
 	SET_VARY_OPEN_COUNT(pool);
+	pool->ltp_work_list = &pool->ltp_pending_list;
+
 	if (!pool->ltp_finishing)
 		ldap_pvt_thread_cond_broadcast(&pool->ltp_cond);
+
 	ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
 	return(0);
 }
