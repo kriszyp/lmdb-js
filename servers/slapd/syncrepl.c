@@ -2708,7 +2708,6 @@ syncrepl_updateCookie(
 	}
 	ldap_pvt_thread_mutex_unlock( &si->si_cookieState->cs_mutex );
 
-	slap_graduate_commit_csn( op );
 	op->o_bd = be;
 	op->o_tmpfree( op->o_csn.bv_val, op->o_tmpmemctx );
 	BER_BVZERO( &op->o_csn );
