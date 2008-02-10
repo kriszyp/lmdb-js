@@ -17,6 +17,7 @@
 
 #include <stdio.h>
 
+#include <ac/signal.h>
 #include <ac/stdarg.h>
 #include <ac/stdlib.h>
 #include <ac/string.h>
@@ -106,15 +107,17 @@ struct ldap_int_thread_pool_s {
 
 	ldap_int_thread_pool_state_t ltp_state;
 
-	/* some active request needs to be the sole active request */
-	int ltp_pause;
+	/* Some active task needs to be the sole active task.
+ 	 * Atomic variable so ldap_pvt_thread_pool_pausing() can read it.
+	 */
+ 	volatile sig_atomic_t ltp_pause;
 
-	long ltp_max_count;			/* max number of threads in pool, or 0 */
-	long ltp_max_pending;		/* max pending or paused requests, or 0 */
-	long ltp_pending_count;		/* pending or paused requests */
-	long ltp_active_count;		/* active, not paused requests */
-	long ltp_open_count;		/* number of threads */
-	long ltp_starting;			/* currenlty starting threads */
+	int ltp_max_count;			/* Max number of threads in pool, or 0 */
+	int ltp_max_pending;		/* Max pending or paused requests, or 0 */
+	int ltp_pending_count;		/* Pending or paused requests */
+	int ltp_active_count;		/* Active, not paused requests */
+	int ltp_open_count;			/* Number of threads */
+	int ltp_starting;			/* Currenlty starting threads */
 };
 
 static int ldap_int_has_thread_pool = 0;
@@ -259,20 +262,15 @@ ldap_pvt_thread_pool_submit (
 	if (pool->ltp_state != LDAP_INT_THREAD_POOL_RUNNING
 		|| (pool->ltp_max_pending
 			&& pool->ltp_pending_count >= pool->ltp_max_pending))
-	{
-		ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
-		return(-1);
-	}
+		goto failed;
 
 	task = LDAP_SLIST_FIRST(&pool->ltp_free_list);
 	if (task) {
 		LDAP_SLIST_REMOVE_HEAD(&pool->ltp_free_list, ltt_next.l);
 	} else {
 		task = (ldap_int_thread_task_t *) LDAP_MALLOC(sizeof(*task));
-		if (task == NULL) {
-			ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
-			return(-1);
-		}
+		if (task == NULL)
+			goto failed;
 	}
 
 	task->ltt_start_routine = start_routine;
@@ -314,12 +312,12 @@ ldap_pvt_thread_pool_submit (
 					 * back out of ltp_pending_count, free the task,
 					 * report the error.
 					 */
+					pool->ltp_pending_count--;
 					LDAP_STAILQ_REMOVE(&pool->ltp_pending_list, task,
 						ldap_int_thread_task_s, ltt_next.q);
-					pool->ltp_pending_count--;
-					ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
-					LDAP_FREE(task);
-					return(-1);
+					LDAP_SLIST_INSERT_HEAD(&pool->ltp_free_list, task,
+						ltt_next.l);
+					goto failed;
 				}
 			}
 			/* there is another open thread, so this
@@ -332,6 +330,10 @@ ldap_pvt_thread_pool_submit (
 
 	ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
 	return(0);
+
+ failed:
+	ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
+	return(-1);
 }
 
 /* Set max #threads.  value <= 0 means max supported #threads (LDAP_MAXTHR) */
@@ -459,6 +461,23 @@ ldap_pvt_thread_pool_query(
 	}
 
 	return ( count == -1 ? -1 : 0 );
+}
+
+/*
+ * true if pool is pausing; does not lock any mutex to check.
+ * 0 if not pause, 1 if pause, -1 if error or no pool.
+ */
+int
+ldap_pvt_thread_pool_pausing( ldap_pvt_thread_pool_t *tpool )
+{
+	int rc = -1;
+	struct ldap_int_thread_pool_s *pool;
+
+	if ( tpool != NULL && (pool = *tpool) != NULL ) {
+		rc = pool->ltp_pause;
+	}
+
+	return rc;
 }
 
 /*
