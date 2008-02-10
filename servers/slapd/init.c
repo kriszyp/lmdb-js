@@ -179,16 +179,6 @@ slap_init( int mode, const char *name )
 		return 1;
 	}
 
-#ifdef HAVE_TLS
-	/* Library defaults to full certificate checking. This is correct when
-	 * a client is verifying a server because all servers should have a
-	 * valid cert. But few clients have valid certs, so we want our default
-	 * to be no checking. The config file can override this as usual.
-	 */
-	rc = 0;
-	(void) ldap_pvt_tls_set_option( NULL, LDAP_OPT_X_TLS_REQUIRE_CERT, &rc );
-#endif
-
 	if ( frontend_init() ) {
 		slap_debug |= LDAP_DEBUG_NONE;
 		Debug( LDAP_DEBUG_ANY,
