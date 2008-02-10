@@ -21,7 +21,7 @@
 
 #include "back-bdb.h"
 
-int bdb_next_id( BackendDB *be, DB_TXN *tid, ID *out )
+int bdb_next_id( BackendDB *be, ID *out )
 {
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 

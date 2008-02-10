@@ -419,7 +419,7 @@ bdb_key_change(
 #define bdb_next_id					BDB_SYMBOL(next_id)
 #define bdb_last_id					BDB_SYMBOL(last_id)
 
-int bdb_next_id( BackendDB *be, DB_TXN *tid, ID *id );
+int bdb_next_id( BackendDB *be, ID *id );
 int bdb_last_id( BackendDB *be, DB_TXN *tid );
 
 /*
