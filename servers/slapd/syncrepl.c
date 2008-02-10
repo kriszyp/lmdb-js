@@ -811,6 +811,19 @@ do_syncrep2(
 					if ( !BER_BVISNULL( &syncCookie.octet_str ) )
 					{
 						slap_parse_sync_cookie( &syncCookie, NULL );
+						if ( syncCookie.ctxcsn ) {
+							int i, sid = slap_parse_csn_sid( syncCookie.ctxcsn );
+							for ( i =0; i<si->si_cookieState->cs_num; i++ ) {
+								if ( si->si_cookieState->cs_sids[i] == sid && 
+									ber_bvcmp( syncCookie.ctxcsn, &si->si_cookieState->cs_vals[i] ) <= 0 ) {
+									Debug( LDAP_DEBUG_SYNC, "do_syncrep2: %s CSN too old, ignoring %s\n",
+										si->si_ridtxt, syncCookie.ctxcsn->bv_val, 0 );
+									ldap_controls_free( rctrls );
+									rc = 0;
+									goto done;
+								}
+							}
+						}
 					}
 				}
 				rc = 0;
@@ -2930,10 +2943,9 @@ dn_callback(
 					} else if ( rc == 0 ) {
 						Debug( LDAP_DEBUG_SYNC,
 							"dn_callback : entries have identical CSN "
-							"%s ours %s, new %s\n",
+							"%s %s\n",
 							rs->sr_entry->e_name.bv_val,
-							old->a_vals[0].bv_val,
-							new->a_vals[0].bv_val );
+							old->a_vals[0].bv_val, 0 );
 						return LDAP_SUCCESS;
 					}
 				}
