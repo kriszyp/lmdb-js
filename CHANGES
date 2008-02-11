@@ -36,6 +36,7 @@ OpenLDAP 2.4.8 Engineering
 	Documentation
 		DB_CONFIG.example URL wrong in comments (ITS#5288)
 		Add cn=config example for auditlog (ITS#5245)
+		ldapmodify(1) clarification for RFC2849 (ITS#5312)
 
 OpenLDAP 2.4.7 Release (2007/12/14)
 	Added slapd ordered indexing of integer attributes (ITS#5239)

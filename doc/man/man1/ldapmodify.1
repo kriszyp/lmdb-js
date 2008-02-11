@@ -151,13 +151,6 @@ debugging in conjunction with -v.
 .B \-v
 Use verbose mode, with many diagnostics written to standard output.
 .TP
-.B \-F
-Force application of all changes regardless of the contents of input
-lines that begin with
-.I replica:
-(by default, replica: lines are compared against the LDAP server host
-and port in use to decide if a replog record should actually be applied).
-.TP
 .B \-M[M]
 Enable manage DSA IT control.
 .B \-MM
@@ -243,40 +236,9 @@ Issue StartTLS (Transport Layer Security) extended operation. If you use
 , the command will require the operation to be successful.
 .SH INPUT FORMAT
 The contents of \fIfile\fP (or standard input if no \-f flag is given on
-the command line) should conform to the format defined in
-.BR ldif (1)
-(LDIF as defined RFC 2849), or
-.BR slapd.replog (5)
-(an extended form of LDIF)
-with the exceptions noted below.
-.LP
-Lines that begin with "replica:" are matched against the LDAP server host
-and port in use to decide if a particular replog record should be applied.
-Any other lines that precede the "dn:" line are ignored.
-The -F flag can be used to force
-.I ldapmodify
-to apply all of the replog changes, regardless of the presence or
-absence of any "replica:" lines.
-.LP
-If no "changetype:" line is present, the default is "add" if the -a
-flag is set (or if the program was invoked as
-.I ldapadd)
-and "modify" otherwise.
-.LP
-If changetype is "modify" and no "add:", "replace:", or "delete:" lines
-appear, the default is "replace" for
-.BR ldapmodify (1)
-and "add" for
-.BR ldapadd (1).
-.LP
-Note that the above exceptions to the
-.BR slapd.replog (5)
-format allow
+the command line) must conform to the format defined in
 .BR ldif (5)
-entries to be used as input to
-.I ldapmodify
-or
-.I ldapadd.
+(LDIF as defined in RFC 2849).
 .SH EXAMPLES
 Assuming that the file
 .B /tmp/entrymods
