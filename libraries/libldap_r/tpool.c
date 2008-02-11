@@ -756,11 +756,13 @@ clear_key_idx( ldap_int_thread_userctx_t *ctx, int i )
  *   responsibility to free any existing data with the same key.
  *   kfree() must not call functions taking a tpool argument.
  */
-int ldap_pvt_thread_pool_setkey(
+int ldap_pvt_thread_pool_setkey_x(
 	void *xctx,
 	void *key,
 	void *data,
-	ldap_pvt_thread_pool_keyfree_t *kfree )
+	ldap_pvt_thread_pool_keyfree_t *kfree,
+	void **olddatap,
+	ldap_pvt_thread_pool_keyfree_t **oldkfreep )
 {
 	ldap_int_thread_userctx_t *ctx = xctx;
 	int i, found;
@@ -773,6 +775,22 @@ int ldap_pvt_thread_pool_setkey(
 			break;
 		} else if ( !ctx->ltu_key[i].ltk_key ) {
 			break;
+		}
+	}
+
+	if ( olddatap ) {
+		if ( found ) {
+			*olddatap = ctx->ltu_key[i].ltk_data;
+		} else {
+			*olddatap = NULL;
+		}
+	}
+
+	if ( oldkfreep ) {
+		if ( found ) {
+			*oldkfreep = ctx->ltu_key[i].ltk_free;
+		} else {
+			*oldkfreep = NULL;
 		}
 	}
 
