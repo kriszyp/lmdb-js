@@ -1,4 +1,5 @@
 /* frontend.c - routines for dealing with frontend */
+/* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
  * Copyright 1998-2008 The OpenLDAP Foundation.
