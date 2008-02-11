@@ -214,9 +214,9 @@ cleanup:
 int
 fe_op_modrdn( Operation *op, SlapReply *rs )
 {
-	Backend		*newSuperior_be = NULL;
-	struct berval	pdn = BER_BVNULL;
+	struct berval	dest_ndn = BER_BVNULL, dest_pndn, pdn = BER_BVNULL;
 	BackendDB	*op_be, *bd = op->o_bd;
+	ber_slen_t	diff;
 	
 	if( op->o_req_ndn.bv_len == 0 ) {
 		Debug( LDAP_DEBUG_ANY, "%s do_modrdn: root dse!\n",
@@ -231,6 +231,23 @@ fe_op_modrdn( Operation *op, SlapReply *rs )
 
 		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
 			"cannot rename subschema subentry" );
+		goto cleanup;
+	}
+
+	if( op->orr_nnewSup ) {
+		dest_pndn = *op->orr_nnewSup;
+	} else {
+		dnParent( &op->o_req_ndn, &dest_pndn );
+	}
+	build_new_dn( &dest_ndn, &dest_pndn, &op->orr_nnewrdn, op->o_tmpmemctx );
+
+	diff = (ber_slen_t) dest_ndn.bv_len - (ber_slen_t) op->o_req_ndn.bv_len;
+	if ( diff > 0 ? dnIsSuffix( &dest_ndn, &op->o_req_ndn )
+		: diff < 0 && dnIsSuffix( &op->o_req_ndn, &dest_ndn ) )
+	{
+		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
+			diff > 0 ? "cannot place an entry below itself"
+			: "cannot place an entry above itself" );
 		goto cleanup;
 	}
 
@@ -275,19 +292,11 @@ fe_op_modrdn( Operation *op, SlapReply *rs )
 		goto cleanup;
 	}
 
-	/* Make sure that the entry being changed and the newSuperior are in 
-	 * the same backend, otherwise we return an error.
-	 */
-	if( op->orr_newSup ) {
-		newSuperior_be = select_backend( op->orr_nnewSup, 0 );
-
-		if ( newSuperior_be != op->o_bd ) {
-			/* newSuperior is in different backend */
+	/* check that destination DN is in the same backend as source DN */
+	if ( select_backend( &dest_ndn, 0 ) != op->o_bd ) {
 			send_ldap_error( op, rs, LDAP_AFFECTS_MULTIPLE_DSAS,
 				"cannot rename between DSAs" );
-
 			goto cleanup;
-		}
 	}
 
 	/*
@@ -367,6 +376,8 @@ fe_op_modrdn( Operation *op, SlapReply *rs )
 	}
 
 cleanup:;
+	if ( dest_ndn.bv_val != NULL )
+		ber_memfree_x( dest_ndn.bv_val, op->o_tmpmemctx );
 	op->o_bd = bd;
 	return rs->sr_err;
 }

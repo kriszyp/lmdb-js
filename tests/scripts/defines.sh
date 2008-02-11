@@ -77,6 +77,7 @@ CLIENTDIR=../clients/tools
 # conf
 CONF=$DATADIR/slapd.conf
 CONFTWO=$DATADIR/slapd2.conf
+CONF2DB=$DATADIR/slapd-2db.conf
 MCONF=$DATADIR/slapd-master.conf
 COMPCONF=$DATADIR/slapd-component.conf
 PWCONF=$DATADIR/slapd-pw.conf
