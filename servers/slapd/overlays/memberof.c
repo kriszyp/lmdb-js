@@ -204,7 +204,7 @@ memberof_saved_member_get( Operation *op, void *keyp )
 		*key = NULL;
 
 	} else {
-		ldap_pvt_thread_pool_setkey_x( op->o_threadctx,
+		ldap_pvt_thread_pool_setkey( op->o_threadctx,
 				key, NULL, NULL, &vals, NULL );
 	}
 
@@ -232,7 +232,7 @@ memberof_saved_member_set( Operation *op, void *keyp, BerVarray vals )
 	} else {
 		void	*old_vals = NULL;
 
-		ldap_pvt_thread_pool_setkey_x( op->o_threadctx, key,
+		ldap_pvt_thread_pool_setkey( op->o_threadctx, key,
 				saved_vals, memberof_saved_member_free, &old_vals, NULL );
 		if ( old_vals != NULL ) {
 			ber_bvarray_free( old_vals );

@@ -200,7 +200,7 @@ int ldap_pvt_thread_pool_getkey (
 	return(0);
 }
 
-int ldap_pvt_thread_pool_setkey_x (
+int ldap_pvt_thread_pool_setkey (
 	void *ctx, void *key,
 	void *data, ldap_pvt_thread_pool_keyfree_t *kfree,
 	void **olddatap, ldap_pvt_thread_pool_keyfree_t **oldkfreep )

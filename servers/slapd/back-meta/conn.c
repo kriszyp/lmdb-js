@@ -948,7 +948,8 @@ meta_back_candidates_get( Operation *op )
 			data = (void *)mc;
 			ldap_pvt_thread_pool_setkey( op->o_threadctx,
 					&meta_back_candidates_dummy, data,
-					meta_back_candidates_keyfree );
+					meta_back_candidates_keyfree,
+					NULL, NULL );
 
 		} else {
 			mi->mi_candidates = mc;

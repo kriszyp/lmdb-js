@@ -1009,7 +1009,7 @@ static void *search_stack( Operation *op )
 			* sizeof( ID ) );
 		if ( op->o_threadctx ) {
 			ldap_pvt_thread_pool_setkey( op->o_threadctx, search_stack,
-				ret, search_stack_free );
+				ret, search_stack_free, NULL, NULL );
 		} else {
 			bdb->bi_search_stack = ret;
 		}

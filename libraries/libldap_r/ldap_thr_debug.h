@@ -119,7 +119,7 @@
 #define	ldap_pvt_thread_pool_resume		ldap_int_thread_pool_resume
 #define	ldap_pvt_thread_pool_destroy	ldap_int_thread_pool_destroy
 #define	ldap_pvt_thread_pool_getkey		ldap_int_thread_pool_getkey
-#define	ldap_pvt_thread_pool_setkey_x	ldap_int_thread_pool_setkey_x
+#define	ldap_pvt_thread_pool_setkey	ldap_int_thread_pool_setkey
 #define	ldap_pvt_thread_pool_purgekey	ldap_int_thread_pool_purgekey
 #define	ldap_pvt_thread_pool_context	ldap_int_thread_pool_context
 #define	ldap_pvt_thread_pool_context_reset ldap_int_thread_pool_context_reset
@@ -182,7 +182,7 @@
 #undef	ldap_pvt_thread_pool_resume
 #undef	ldap_pvt_thread_pool_destroy
 #undef	ldap_pvt_thread_pool_getkey
-#undef	ldap_pvt_thread_pool_setkey_x
+#undef	ldap_pvt_thread_pool_setkey
 #undef	ldap_pvt_thread_pool_purgekey
 #undef	ldap_pvt_thread_pool_context
 #undef	ldap_pvt_thread_pool_context_reset

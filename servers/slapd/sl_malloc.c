@@ -129,7 +129,7 @@ slap_sl_mem_create(
 			slheap = sh;
 #else
 			ldap_pvt_thread_pool_setkey(ctx, (void *)slap_sl_mem_init,
-				(void *)sh, slap_sl_mem_destroy);
+				(void *)sh, slap_sl_mem_destroy, NULL, NULL);
 #endif
 		} else if ( size > (char *)sh->sh_end - (char *)sh->sh_base ) {
 			void	*newptr;
@@ -162,7 +162,7 @@ slap_sl_mem_create(
 			slheap = sh;
 #else
 			ldap_pvt_thread_pool_setkey(ctx, (void *)slap_sl_mem_init,
-				(void *)sh, slap_sl_mem_destroy);
+				(void *)sh, slap_sl_mem_destroy, NULL, NULL);
 #endif
 		} else {
 			for (i = 0; i <= sh->sh_maxorder - order_start; i++) {
@@ -246,7 +246,7 @@ slap_sl_mem_detach(
 	slheap = NULL;
 #else
 	/* separate from context */
-	ldap_pvt_thread_pool_setkey( ctx, (void *)slap_sl_mem_init, NULL, NULL );
+	ldap_pvt_thread_pool_setkey( ctx, (void *)slap_sl_mem_init, NULL, NULL, NULL, NULL );
 #endif
 }
 

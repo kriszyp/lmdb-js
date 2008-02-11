@@ -519,7 +519,7 @@ backsql_get_db_conn( Operation *op, SQLHDBC *dbhp )
 			data = (void *)dbh;
 			ldap_pvt_thread_pool_setkey( op->o_threadctx,
 					&backsql_db_conn_dummy, data,
-					backsql_db_conn_keyfree );
+					backsql_db_conn_keyfree, NULL, NULL );
 
 		} else {
 			bi->sql_dbh = dbh;
