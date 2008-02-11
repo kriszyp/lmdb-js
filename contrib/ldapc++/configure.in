@@ -67,7 +67,7 @@ dnl NOOP
     ])
 dnl Checks for header files.
 AC_HEADER_TIME
-AC_CHECK_HEADER(ldap.h)
+AC_CHECK_HEADERS(termios.h ldap.h)
 AC_EGREP_HEADER(ldap_add_ext,ldap.h,[
 dnl NOOP
         :
