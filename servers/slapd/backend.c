@@ -1830,7 +1830,7 @@ fe_aux_operational(
 	SlapReply *rs )
 {
 	Attribute		**ap;
-	int			rc = 0;
+	int			rc = LDAP_SUCCESS;
 
 	for ( ap = &rs->sr_operational_attrs; *ap; ap = &(*ap)->a_next )
 		/* just count them */ ;

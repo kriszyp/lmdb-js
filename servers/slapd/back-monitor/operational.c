@@ -62,6 +62,6 @@ monitor_back_operational(
 		ap = &(*ap)->a_next;
 	}
 	
-	return 0;
+	return LDAP_SUCCESS;
 }
 

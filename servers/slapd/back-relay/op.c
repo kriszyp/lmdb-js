@@ -431,7 +431,7 @@ relay_back_chk_referrals( Operation *op, SlapReply *rs )
 		}
 	}
 
-	return relay_back_op( op, rs, bd, bd->be_chk_referrals, 0 );
+	return relay_back_op( op, rs, bd, bd->be_chk_referrals, LDAP_SUCCESS );
 }
 
 int
