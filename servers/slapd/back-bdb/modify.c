@@ -719,5 +719,8 @@ done:
 		slap_sl_free( (*postread_ctrl)->ldctl_value.bv_val, op->o_tmpmemctx );
 		slap_sl_free( *postread_ctrl, op->o_tmpmemctx );
 	}
+
+	rs->sr_text = NULL;
+
 	return rs->sr_err;
 }
