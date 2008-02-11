@@ -981,6 +981,7 @@ getNextPage:
 			attrs, attrsonly, NULL, NULL, NULL, -1 );
 
 	} else {
+		rc = 0;
 		first = 1;
 		while ( fgets( line, sizeof( line ), fp ) != NULL ) { 
 			line[ strlen( line ) - 1 ] = '\0';
