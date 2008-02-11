@@ -355,8 +355,7 @@ ldap_int_bisect_find( ber_int_t *v, ber_len_t n, ber_int_t id, int *idxp )
 	begin = 0;
 	end = n - 1;
 
-	if ( n > 0 ) {
-		if ( id < v[ begin ] ) {
+		if ( n <= 0 || id < v[ begin ] ) {
 			*idxp = 0;
 
 		} else if ( id > v[ end ] ) {
@@ -366,7 +365,7 @@ ldap_int_bisect_find( ber_int_t *v, ber_len_t n, ber_int_t id, int *idxp )
 			int		pos;
 			ber_int_t	curid;
 	
-			while ( end >= begin ) {
+			do {
 				pos = (begin + end)/2;
 				curid = v[ pos ];
 	
@@ -374,24 +373,17 @@ ldap_int_bisect_find( ber_int_t *v, ber_len_t n, ber_int_t id, int *idxp )
 					end = pos - 1;
 	
 				} else if ( id > curid ) {
-					begin = pos + 1;
+					begin = ++pos;
 	
 				} else {
 					/* already abandoned? */
-					*idxp = pos;
 					rc = 1;
 					break;
 				}
-			}
+			} while ( end >= begin );
 	
-			if ( rc == 0 ) {
-				*idxp = pos + ( id > curid ? 1 : 0 );
-			}
+			*idxp = pos;
 		}
-
-	} else {
-		*idxp = 0;
-	}
 
 	return rc;
 }
