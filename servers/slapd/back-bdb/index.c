@@ -499,7 +499,7 @@ bdb_index_entry(
 
 	/* add each attribute to the indexes */
 	for ( ; ap != NULL; ap = ap->a_next ) {
-#ifdef LDAP_COMP_MATCH
+#if 0 /* ifdef LDAP_COMP_MATCH */
 		AttrInfo *ai;
 		/* see if attribute has components to be indexed */
 		ai = bdb_attr_mask( op->o_bd->be_private, ap->a_desc->ad_type->sat_ad );
