@@ -31,6 +31,7 @@
 #define LDAP_THREAD_IMPLEMENTATION
 #define LDAP_THREAD_RDWR_IMPLEMENTATION
 #include "ldap_thr_debug.h"	 /* May rename the symbols defined below */
+#include <signal.h>			 /* For pthread_kill() */
 
 #if HAVE_PTHREADS < 6
 #  define LDAP_INT_THREAD_ATTR_DEFAULT		pthread_attr_default
