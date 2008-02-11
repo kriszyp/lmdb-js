@@ -100,6 +100,11 @@ struct ldap_int_thread_pool_s {
 	/* ltp_active_count <= 1 && ltp_pause */
 	ldap_pvt_thread_cond_t ltp_pcond;
 
+	/* ltp_pause == 0 ? &ltp_pending_list : &empty_pending_list,
+	 * maintaned to reduce work for pool_wrapper()
+	 */
+	ldap_int_tpool_plist_t *ltp_work_list;
+
 	/* pending tasks, and unused task objects */
 	ldap_int_tpool_plist_t ltp_pending_list;
 	LDAP_SLIST_HEAD(tcl, ldap_int_thread_task_s) ltp_free_list;
@@ -128,16 +133,11 @@ struct ldap_int_thread_pool_s {
 	int ltp_open_count;			/* Number of threads, negated when ltp_pause */
 	int ltp_starting;			/* Currenlty starting threads */
 
-	/*
-	 * State maintained to reduce the time ltp_mutex must be locked
-	 * in ldap_pvt_thread_pool_<submit/wrapper>().
+	/* >0 if paused or we may open a thread, <0 if we should close a thread.
+	 * Updated when ltp_<finishing/pause/max_count/open_count> change.
+	 * Maintained to reduce the time ltp_mutex must be locked in
+	 * ldap_pvt_thread_pool_<submit/wrapper>().
 	 */
-
-	/* ltp_pause == 0 ? &ltp_pending_list : &empty_pending_list */
-	ldap_int_tpool_plist_t *ltp_work_list;
-
-	/* >0 if paused or we may open a thread, <0 if we should close a thread. */
-	/* Updated when ltp_<finishing/pause/max_count/open_count> change. */
 	int ltp_vary_open_count;
 #	define SET_VARY_OPEN_COUNT(pool)	\
 		((pool)->ltp_vary_open_count =	\
@@ -525,17 +525,6 @@ ldap_pvt_thread_pool_backload ( ldap_pvt_thread_pool_t *tpool )
 	return rc;
 }
 
-static void
-flush_pending_list( struct ldap_int_thread_pool_s *pool )
-{
-	ldap_int_thread_task_t *task;
-
-	while ((task = LDAP_STAILQ_FIRST(&pool->ltp_pending_list)) != NULL) {
-		LDAP_STAILQ_REMOVE_HEAD(&pool->ltp_pending_list, ltt_next.q);
-		LDAP_FREE(task);
-	}
-}
-
 /* Destroy the pool after making its threads finish */
 int
 ldap_pvt_thread_pool_destroy ( ldap_pvt_thread_pool_t *tpool, int run_pending )
@@ -566,17 +555,20 @@ ldap_pvt_thread_pool_destroy ( ldap_pvt_thread_pool_t *tpool, int run_pending )
 	SET_VARY_OPEN_COUNT(pool);
 	if (pool->ltp_max_pending > 0)
 		pool->ltp_max_pending = -pool->ltp_max_pending;
-	if (!run_pending)
-		flush_pending_list(pool);
+
+	if (!run_pending) {
+		while ((task = LDAP_STAILQ_FIRST(&pool->ltp_pending_list)) != NULL) {
+			LDAP_STAILQ_REMOVE_HEAD(&pool->ltp_pending_list, ltt_next.q);
+			LDAP_FREE(task);
+		}
+		pool->ltp_pending_count = 0;
+	}
 
 	while (pool->ltp_open_count) {
 		if (!pool->ltp_pause)
 			ldap_pvt_thread_cond_broadcast(&pool->ltp_cond);
 		ldap_pvt_thread_cond_wait(&pool->ltp_cond, &pool->ltp_mutex);
 	}
-	ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
-
-	flush_pending_list(pool);
 
 	while ((task = LDAP_SLIST_FIRST(&pool->ltp_free_list)) != NULL)
 	{
@@ -584,6 +576,7 @@ ldap_pvt_thread_pool_destroy ( ldap_pvt_thread_pool_t *tpool, int run_pending )
 		LDAP_FREE(task);
 	}
 
+	ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
 	ldap_pvt_thread_cond_destroy(&pool->ltp_pcond);
 	ldap_pvt_thread_cond_destroy(&pool->ltp_cond);
 	ldap_pvt_thread_mutex_destroy(&pool->ltp_mutex);
@@ -600,6 +593,7 @@ ldap_int_thread_pool_wrapper (
 {
 	struct ldap_int_thread_pool_s *pool = xpool;
 	ldap_int_thread_task_t *task;
+	ldap_int_tpool_plist_t *work_list;
 	ldap_int_thread_userctx_t ctx, *kctx;
 	unsigned i, keyslot, hash;
 
@@ -634,7 +628,8 @@ ldap_int_thread_pool_wrapper (
 	pool->ltp_starting--;
 
 	for (;;) {
-		task = LDAP_STAILQ_FIRST(pool->ltp_work_list);
+		work_list = pool->ltp_work_list; /* help the compiler a bit */
+		task = LDAP_STAILQ_FIRST(work_list);
 		if (task == NULL) {	/* paused or no pending tasks */
 			if (pool->ltp_vary_open_count < 0) {
 				/* not paused, and either finishing or too many
@@ -660,7 +655,7 @@ ldap_int_thread_pool_wrapper (
 			continue;
 		}
 
-		LDAP_STAILQ_REMOVE_HEAD(&pool->ltp_pending_list, ltt_next.q);
+		LDAP_STAILQ_REMOVE_HEAD(work_list, ltt_next.q);
 		pool->ltp_pending_count--;
 		pool->ltp_active_count++;
 		ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
@@ -907,7 +902,7 @@ void *ldap_pvt_thread_pool_context( )
 	void *ctx = NULL;
 
 	ldap_pvt_thread_key_getdata( ldap_tpool_key, &ctx );
-	return ctx ? ctx : &ldap_int_main_thrctx;
+	return ctx ? ctx : (void *) &ldap_int_main_thrctx;
 }
 
 /*
