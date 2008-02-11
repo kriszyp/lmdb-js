@@ -783,7 +783,7 @@ be_isroot_pw( Operation *op )
  * checks if binding as rootdn
  *
  * return value:
- *	SLAP_CB_CONTINUE		if not the rootdn
+ *	SLAP_CB_CONTINUE		if not the rootdn, or if rootpw is null
  *	LDAP_SUCCESS			if rootdn & rootpw
  *	LDAP_INVALID_CREDENTIALS	if rootdn & !rootpw
  *
