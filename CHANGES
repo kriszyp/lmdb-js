@@ -9,6 +9,7 @@ OpenLDAP 2.4.8 Engineering
 	Fixed ldapdelete with sizelimit (ITS#5294)
 	Fixed slapd idlcache on adds (ITS#5086)
 	Fixed slapd include handling (ITS#5276)
+	Fixed slapd modrdn check for valid new DN (ITS#5344)
 	Fixed slapd multi-step SASL binds (ITS#5298)
 	Fixed slapd non-atomic signal variables (ITS#5248)
 	Fixed slapd overlay ordering when moving to slapd.d (ITS#5284)
