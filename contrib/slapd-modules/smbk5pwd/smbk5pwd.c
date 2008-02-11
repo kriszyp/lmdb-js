@@ -268,7 +268,7 @@ static int k5key_chk(
 	const struct berval *cred,
 	const char **text )
 {
-	void *ctx;
+	void *ctx, *op_tmp;
 	Operation *op;
 	int rc;
 	Entry *e;
@@ -281,9 +281,10 @@ static int k5key_chk(
 	/* Find our thread context, find our Operation */
 	ctx = ldap_pvt_thread_pool_context();
 
-	if ( ldap_pvt_thread_pool_getkey( ctx, smbk5pwd_op_cleanup, (void **)&op, NULL ) ||
-		!op )
+	if ( ldap_pvt_thread_pool_getkey( ctx, smbk5pwd_op_cleanup, &op_tmp, NULL )
+		 || !op_tmp )
 		return LUTIL_PASSWD_ERR;
+	op = op_tmp;
 
 	rc = be_entry_get_rw( op, &op->o_req_ndn, NULL, NULL, 0, &e );
 	if ( rc != LDAP_SUCCESS ) return LUTIL_PASSWD_ERR;
