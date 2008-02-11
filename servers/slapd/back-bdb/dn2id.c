@@ -465,7 +465,7 @@ hdb_dup_compare(
 )
 {
 	diskNode *un, *cn;
-	int rc, ul, cl;
+	int rc;
 
 	un = (diskNode *)usrkey->data;
 	cn = (diskNode *)curkey->data;

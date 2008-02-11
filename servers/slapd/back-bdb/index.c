@@ -477,7 +477,7 @@ bdb_index_entry(
 {
 	int rc;
 	Attribute *ap = e->e_attrs;
-#ifdef LDAP_COMP_MATCH
+#if 0 /* ifdef LDAP_COMP_MATCH */
 	ComponentReference *cr_list = NULL;
 	ComponentReference *cr = NULL, *dupped_cr = NULL;
 	void* decoded_comp;
