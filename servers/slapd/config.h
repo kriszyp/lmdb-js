@@ -196,4 +196,6 @@ int config_shadow( ConfigArgs *c, int flag );
 
 #define	SLAP_X_ORDERED_FMT	"{%d}"
 
+extern slap_verbmasks *slap_ldap_response_code;
+
 #endif /* CONFIG_H */

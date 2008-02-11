@@ -1007,6 +1007,92 @@ enum_to_verb(slap_verbmasks *v, slap_mask_t m, struct berval *bv) {
 	return -1;
 }
 
+static slap_verbmasks slap_ldap_response_code_[] = {
+	{ BER_BVC("success"),				LDAP_SUCCESS },
+
+	{ BER_BVC("operationsError"),			LDAP_OPERATIONS_ERROR },
+	{ BER_BVC("protocolError"),			LDAP_PROTOCOL_ERROR },
+	{ BER_BVC("timelimitExceeded"),			LDAP_TIMELIMIT_EXCEEDED },
+	{ BER_BVC("sizelimitExceeded"),			LDAP_SIZELIMIT_EXCEEDED },
+	{ BER_BVC("compareFalse"),			LDAP_COMPARE_FALSE },
+	{ BER_BVC("compareTrue"),			LDAP_COMPARE_TRUE },
+
+	{ BER_BVC("authMethodNotSupported"),		LDAP_AUTH_METHOD_NOT_SUPPORTED },
+	{ BER_BVC("strongAuthNotSupported"),		LDAP_STRONG_AUTH_NOT_SUPPORTED },
+	{ BER_BVC("strongAuthRequired"),		LDAP_STRONG_AUTH_REQUIRED },
+	{ BER_BVC("strongerAuthRequired"),		LDAP_STRONGER_AUTH_REQUIRED },
+#if 0 /* not LDAPv3 */
+	{ BER_BVC("partialResults"),			LDAP_PARTIAL_RESULTS },
+#endif
+
+	{ BER_BVC("referral"),				LDAP_REFERRAL },
+	{ BER_BVC("adminlimitExceeded"),		LDAP_ADMINLIMIT_EXCEEDED },
+	{ BER_BVC("unavailableCriticalExtension"),	LDAP_UNAVAILABLE_CRITICAL_EXTENSION },
+	{ BER_BVC("confidentialityRequired"),		LDAP_CONFIDENTIALITY_REQUIRED },
+	{ BER_BVC("saslBindInProgress"),		LDAP_SASL_BIND_IN_PROGRESS },
+
+	{ BER_BVC("noSuchAttribute"),			LDAP_NO_SUCH_ATTRIBUTE },
+	{ BER_BVC("undefinedType"),			LDAP_UNDEFINED_TYPE },
+	{ BER_BVC("inappropriateMatching"),		LDAP_INAPPROPRIATE_MATCHING },
+	{ BER_BVC("constraintViolation"),		LDAP_CONSTRAINT_VIOLATION },
+	{ BER_BVC("typeOrValueExists"),			LDAP_TYPE_OR_VALUE_EXISTS },
+	{ BER_BVC("invalidSyntax"),			LDAP_INVALID_SYNTAX },
+
+	{ BER_BVC("noSuchObject"),			LDAP_NO_SUCH_OBJECT },
+	{ BER_BVC("aliasProblem"),			LDAP_ALIAS_PROBLEM },
+	{ BER_BVC("invalidDnSyntax"),			LDAP_INVALID_DN_SYNTAX },
+#if 0 /* not LDAPv3 */
+	{ BER_BVC("isLeaf"),				LDAP_IS_LEAF },
+#endif
+	{ BER_BVC("aliasDerefProblem"),			LDAP_ALIAS_DEREF_PROBLEM },
+
+	{ BER_BVC("proxyAuthzFailure"),			LDAP_X_PROXY_AUTHZ_FAILURE },
+	{ BER_BVC("inappropriateAuth"),			LDAP_INAPPROPRIATE_AUTH },
+	{ BER_BVC("invalidCredentials"),		LDAP_INVALID_CREDENTIALS },
+	{ BER_BVC("insufficientAccess"),		LDAP_INSUFFICIENT_ACCESS },
+
+	{ BER_BVC("busy"),				LDAP_BUSY },
+	{ BER_BVC("unavailable"),			LDAP_UNAVAILABLE },
+	{ BER_BVC("unwillingToPerform"),		LDAP_UNWILLING_TO_PERFORM },
+	{ BER_BVC("loopDetect"),			LDAP_LOOP_DETECT },
+
+	{ BER_BVC("namingViolation"),			LDAP_NAMING_VIOLATION },
+	{ BER_BVC("objectClassViolation"),		LDAP_OBJECT_CLASS_VIOLATION },
+	{ BER_BVC("notAllowedOnNonleaf"),		LDAP_NOT_ALLOWED_ON_NONLEAF },
+	{ BER_BVC("notAllowedOnRdn"),			LDAP_NOT_ALLOWED_ON_RDN },
+	{ BER_BVC("alreadyExists"),			LDAP_ALREADY_EXISTS },
+	{ BER_BVC("noObjectClassMods"),			LDAP_NO_OBJECT_CLASS_MODS },
+	{ BER_BVC("resultsTooLarge"),			LDAP_RESULTS_TOO_LARGE },
+	{ BER_BVC("affectsMultipleDsas"),		LDAP_AFFECTS_MULTIPLE_DSAS },
+
+	{ BER_BVC("other"),				LDAP_OTHER },
+
+	/* extension-specific */
+
+	{ BER_BVC("cupResourcesExhausted"),		LDAP_CUP_RESOURCES_EXHAUSTED },
+	{ BER_BVC("cupSecurityViolation"),		LDAP_CUP_SECURITY_VIOLATION },
+	{ BER_BVC("cupInvalidData"),			LDAP_CUP_INVALID_DATA },
+	{ BER_BVC("cupUnsupportedScheme"),		LDAP_CUP_UNSUPPORTED_SCHEME },
+	{ BER_BVC("cupReloadRequired"),			LDAP_CUP_RELOAD_REQUIRED },
+
+	{ BER_BVC("cancelled"),				LDAP_CANCELLED },
+	{ BER_BVC("noSuchOperation"),			LDAP_NO_SUCH_OPERATION },
+	{ BER_BVC("tooLate"),				LDAP_TOO_LATE },
+	{ BER_BVC("cannotCancel"),			LDAP_CANNOT_CANCEL },
+
+	{ BER_BVC("assertionFailed"),			LDAP_ASSERTION_FAILED },
+
+	{ BER_BVC("proxiedAuthorizationDenied"),	LDAP_PROXIED_AUTHORIZATION_DENIED },
+
+	{ BER_BVC("syncRefreshRequired"),		LDAP_SYNC_REFRESH_REQUIRED },
+
+	{ BER_BVC("noOperation"),			LDAP_X_NO_OPERATION },
+
+	{ BER_BVNULL,				0 }
+};
+
+slap_verbmasks *slap_ldap_response_code = slap_ldap_response_code_;
+
 #ifdef HAVE_TLS
 static slap_verbmasks tlskey[] = {
 	{ BER_BVC("no"),	SB_TLS_OFF },

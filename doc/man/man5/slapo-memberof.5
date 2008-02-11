@@ -36,59 +36,69 @@ The following
 configuration options are defined for the memberofoverlay.
 
 .TP
-.B memberof-group-oc <group-oc>
+.BI memberof-group-oc \ <group-oc>
 The value 
-.B <group-oc> 
+.I <group-oc> 
 is the name of the objectClass that triggers the reverse group membership
 update.
 It defaults to \fIgroupOfNames\fP.
 
 .TP
-.B memberof-member-ad <member-ad>
+.BI memberof-member-ad \ <member-ad>
 The value 
-.B <member-ad> 
+.I <member-ad> 
 is the name of the attribute that contains the names of the members
 in the group objects; it must be DN-valued.
 It defaults to \fImember\fP.
 
 .TP
-.B memberof-memberof-ad <memberof-ad>
+.BI memberof-memberof-ad \ <memberof-ad>
 The value 
-.B <memberof-ad> 
+.I <memberof-ad> 
 is the name of the attribute that contains the names of the groups
 an entry is member of; it must be DN-valued.  Its contents are 
 automatically updated by the overlay.
 It defaults to \fImemberOf\fP.
 
 .TP
-.B memberof-dn <dn>
+.BI memberof-dn \ <dn>
 The value 
-.B <dn> 
+.I <dn> 
 contains the DN that is used as \fImodifiersName\fP for internal 
 modifications performed to update the reverse group membership.
 It defaults to the \fIrootdn\fP of the underlying database.
 
 .TP
-.B memberof-dangling {ignore, drop, error}
+.BI "memberof-dangling {" ignore ", " drop ", " error "}"
 This option determines the behavior of the overlay when, during 
 a modification, it encounters dangling references.
 The default is
-.BR ignore ,
+.IR ignore ,
 which may leave dangling references.
 Other options are
-.BR drop ,
+.IR drop ,
 which discards those modifications that would result in dangling
 references, and
-.BR error ,
+.IR error ,
 which causes modifications that would result in dangling references
 to fail.
 
 .TP
-.B memberof-refint {true|FALSE}
+.BI memberof-dangling-error \ <error-code>
+If
+.BR memberof-dangling
+is set to
+.IR error ,
+this configuration parameter can be used to modify the response code
+returned in case of violation.  It defaults to "constraint violation",
+but other implementations are known to return "no such object" instead.
+
+.TP
+.BI "memberof-refint {" true "|" FALSE "}"
 This option determines whether the overlay will try to preserve
 referential integrity or not.
 If set to
-.BR TRUE ,
+.IR TRUE ,
 when an entry containing values of the "is member of" attribute is modified,
 the corresponding groups are modified as well.
 
