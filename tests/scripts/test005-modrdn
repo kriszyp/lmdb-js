@@ -16,11 +16,11 @@
 echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
 
-mkdir -p $TESTDIR $DBDIR1
+mkdir -p $TESTDIR $DBDIR1A $DBDIR1B
 
 echo "Running slapadd to build slapd database..."
-. $CONFFILTER $BACKEND $MONITORDB < $CONF > $CONF1
-$SLAPADD -f $CONF1 -l $LDIFORDERED
+. $CONFFILTER $BACKEND $MONITORDB < $CONF2DB > $CONF1
+$SLAPADD -f $CONF1 -b "$BASEDN" -l $LDIFORDERED
 RC=$?
 if test $RC != 0 ; then
 	echo "slapadd failed ($RC)!"
@@ -221,9 +221,28 @@ if test $? != 0 ; then
 	exit -1
 fi
 
-echo "Testing modrdn with newSuperior as child of target "
+echo "Testing modrdn to another database (should fail with affectsMultipleDSAs)"
 $LDAPMODRDN -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD > \
-	$TESTOUT 2>&1  -s 'cn=Sub1, ou=FooBar, cn=James A Jones 1, ou=Alumni Association, ou=People, dc=example, dc=com' \
+	$TESTOUT 2>&1 'cn=All Staff,ou=Groups,dc=example,dc=com' 'cn=Everyone'
+RC=$?
+case $RC in
+0)
+	echo "ldapmodrdn succeeded, should have failed!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit -1
+	;;
+71)
+	;;
+*)
+	echo "ldapmodrdn failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+	;;
+esac
+
+echo "Testing modrdn with newSuperior = target (should fail with unwillingToPerform)"
+$LDAPMODRDN -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD > \
+	$TESTOUT 2>&1  -s 'cn=James A Jones 1, ou=Alumni Association, ou=People, dc=example, dc=com' \
 	'cn=James A Jones 1, ou=Alumni Association, ou=People, dc=example, dc=com' 'cn=James A Jones 1'
 
 RC=$?
@@ -233,8 +252,7 @@ case $RC in
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit -1
 	;;
-32)
-	echo "ldapmodrdn failed (noSuchObject)"
+53)
 	;;
 *)
 	echo "ldapmodrdn failed ($RC)!"
