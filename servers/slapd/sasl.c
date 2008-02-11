@@ -216,7 +216,8 @@ sasl_ap_lookup( Operation *op, SlapReply *rs )
 					 * past the scheme name, skip this value.
 					 */
 #ifdef SLAPD_CLEARTEXT
-					if ( !ber_bvstrcasecmp( bv, &sc_cleartext ) ) {
+					if ( !strncasecmp( bv->bv_val, sc_cleartext.bv_val,
+						sc_cleartext.bv_len )) {
 						struct berval cbv;
 						cbv.bv_len = bv->bv_len - sc_cleartext.bv_len;
 						if ( cbv.bv_len > 0 ) {
