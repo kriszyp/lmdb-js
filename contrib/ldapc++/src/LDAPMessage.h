@@ -98,6 +98,7 @@ class LDAPMsg{
          * Only for internal use.
          */
         LDAPMsg(LDAPMessage *msg);
+        LDAPMsg(int msgType, int msgID);
        
         /**
          * This attribute stores Server-Control that were returned with the

@@ -103,6 +103,7 @@ class LDAPResult : public LDAPMsg{
          *              Message.
          */
         LDAPResult(const LDAPRequest *req, LDAPMessage *msg);
+        LDAPResult(int type, int resultCode, const std::string &msg); 
         
         /**
          * The destructor.

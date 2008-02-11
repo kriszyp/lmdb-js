@@ -8,6 +8,7 @@
 
 #include "LDAPResult.h"
 #include "LDAPExtResult.h"
+#include "LDAPSaslBindResult.h"
 #include "LDAPRequest.h"
 #include "LDAPSearchResult.h"
 #include "LDAPSearchReference.h"
@@ -19,6 +20,13 @@ using namespace std;
 LDAPMsg::LDAPMsg(LDAPMessage *msg){
     DEBUG(LDAP_DEBUG_CONSTRUCT,"LDAPMsg::LDAPMsg()" << endl);
     msgType=ldap_msgtype(msg);
+    m_hasControls=false;
+}
+
+LDAPMsg::LDAPMsg(int type, int id=0){
+    DEBUG(LDAP_DEBUG_CONSTRUCT,"LDAPMsg::LDAPMsg()" << endl);
+    msgType = type;
+    msgID = id;
     m_hasControls=false;
 }
 
@@ -34,6 +42,8 @@ LDAPMsg* LDAPMsg::create(const LDAPRequest *req, LDAPMessage *msg){
         case EXTENDED_RESPONSE :
             return new LDAPExtResult(req,msg);
         break;
+        case BIND_RESPONSE :
+            return new LDAPSaslBindResult(req,msg);
         default :
             return new LDAPResult(req, msg);
     }
