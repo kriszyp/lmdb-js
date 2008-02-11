@@ -1242,16 +1242,19 @@ ldap_pvt_thread_pool_getkey(
 }
 
 int
-ldap_pvt_thread_pool_setkey(
+ldap_pvt_thread_pool_setkey_x(
 	void *xctx,
 	void *key,
 	void *data,
-	ldap_pvt_thread_pool_keyfree_t *kfree )
+	ldap_pvt_thread_pool_keyfree_t *kfree,
+	void **olddatap,
+	ldap_pvt_thread_pool_keyfree_t **oldkfreep )
 {
 	int rc;
-	ERROR_IF( !threading_enabled, "ldap_pvt_thread_pool_setkey" );
-	rc = ldap_int_thread_pool_setkey( xctx, key, data, kfree );
-	ERROR_IF( rc, "ldap_pvt_thread_pool_setkey" );
+	ERROR_IF( !threading_enabled, "ldap_pvt_thread_pool_setkey_x" );
+	rc = ldap_int_thread_pool_setkey_x(
+		xctx, key, data, kfree, olddatap, oldkfreep );
+	ERROR_IF( rc, "ldap_pvt_thread_pool_setkey_x" );
 	return rc;
 }
 
