@@ -67,6 +67,21 @@ const LDAPAttributeList* LDAPEntry::getAttributes() const{
     return m_attrs;
 }
 
+const LDAPAttribute* LDAPEntry::getAttributeByName(const std::string& name) const 
+{
+    return m_attrs->getAttributeByName(name);
+}
+
+void LDAPEntry::addAttribute(const LDAPAttribute& attr)
+{
+    m_attrs->addAttribute(attr);
+}
+
+void LDAPEntry::replaceAttribute(const LDAPAttribute& attr)
+{
+    m_attrs->replaceAttribute(attr); 
+}
+
 ostream& operator << (ostream& s, const LDAPEntry& le){
     s << "DN: " << le.m_dn << ": " << *(le.m_attrs); 
     return s;

@@ -17,11 +17,11 @@ class LDAPAsynConnection;
  */
 class LDAPEntry{
 
-	public :
+    public :
         /**
          * Copy-constructor
          */
-		LDAPEntry(const LDAPEntry& entry);
+        LDAPEntry(const LDAPEntry& entry);
 
         /**
          * Constructs a new entry (also used as standard constructor).
@@ -29,7 +29,7 @@ class LDAPEntry{
          * @param dn    The Distinguished Name for the new entry.
          * @param attrs The attributes for the new entry.
          */
-		LDAPEntry(const std::string& dn=std::string(), 
+        LDAPEntry(const std::string& dn=std::string(), 
                 const LDAPAttributeList *attrs=new LDAPAttributeList());
 
         /**
@@ -38,44 +38,66 @@ class LDAPEntry{
          * The constructor is used internally to create a LDAPEntry from
          * the C-API's data structurs.
          */ 
-		LDAPEntry(const LDAPAsynConnection *ld, LDAPMessage *msg);
+        LDAPEntry(const LDAPAsynConnection *ld, LDAPMessage *msg);
 
         /**
          * Destructor
          */
-		~LDAPEntry();
+        ~LDAPEntry();
         
         /**
          * Sets the DN-attribute.
          * @param dn: The new DN for the entry.
          */
-		void setDN(const std::string& dn);
+        void setDN(const std::string& dn);
 
         /**
          * Sets the attributes of the entry.
          * @param attr: A pointer to a std::list of the new attributes.
          */
-		void setAttributes(LDAPAttributeList *attrs);
+        void setAttributes(LDAPAttributeList *attrs);
+
+	/**
+	 * Get an Attribute by its AttributeType (simple wrapper around
+         * LDAPAttributeList::getAttributeByName() )
+	 * @param name The name of the Attribute to look for
+	 * @return a pointer to the LDAPAttribute with the AttributeType 
+	 *	"name" or 0, if there is no Attribute of that Type
+	 */
+	const LDAPAttribute* getAttributeByName(const std::string& name) const;
+
+        /**
+         * Adds one Attribute to the List of Attributes (simple wrapper around
+         * LDAPAttributeList::addAttribute() ).
+         * @param attr The attribute to add to the list.
+         */
+        void addAttribute(const LDAPAttribute& attr);
+
+        /**
+         * Replace an Attribute in the List of Attributes (simple wrapper
+         * around LDAPAttributeList::replaceAttribute() ).
+         * @param attr The attribute to add to the list.
+         */
+        void replaceAttribute(const LDAPAttribute& attr);
 
         /**
          * @returns The current DN of the entry.
          */
-		const std::string& getDN() const ;
+        const std::string& getDN() const ;
 
         /**
          * @returns A const pointer to the attributes of the entry.  
          */
-		const LDAPAttributeList* getAttributes() const;
+        const LDAPAttributeList* getAttributes() const;
 
         /**
          * This method can be used to dump the data of a LDAPResult-Object.
          * It is only useful for debugging purposes at the moment
          */
-		friend std::ostream& operator << (std::ostream& s, const LDAPEntry& le);
+        friend std::ostream& operator << (std::ostream& s, const LDAPEntry& le);
 	
     private :
-
-		LDAPAttributeList *m_attrs;
-		std::string m_dn;
+        LDAPAttributeList *m_attrs;
+        std::string m_dn;
 };
 #endif  //LDAP_ENTRY_H
