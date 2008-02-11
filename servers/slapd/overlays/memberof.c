@@ -407,6 +407,7 @@ memberof_value_modify(
 	slap_callback	cb = { NULL, slap_null_cb, NULL, NULL };
 	Modifications	mod[ 2 ] = { { { 0 } } }, *ml;
 	struct berval	values[ 4 ], nvalues[ 4 ];
+	int		mcnt = 0;
 
 	op2.o_tag = LDAP_REQ_MODIFY;
 
@@ -418,23 +419,28 @@ memberof_value_modify(
 	op2.o_callback = &cb;
 	op2.o_dn = op->o_bd->be_rootdn;
 	op2.o_ndn = op->o_bd->be_rootndn;
+	op2.orm_modlist = NULL;
 
-	ml = &mod[ 0 ];
-	ml->sml_numvals = 1;
-	ml->sml_values = &values[ 0 ];
-	ml->sml_values[ 0 ] = mo->mo_dn;
-	BER_BVZERO( &ml->sml_values[ 1 ] );
-	ml->sml_nvalues = &nvalues[ 0 ];
-	ml->sml_nvalues[ 0 ] = mo->mo_ndn;
-	BER_BVZERO( &ml->sml_nvalues[ 1 ] );
-	ml->sml_desc = slap_schema.si_ad_modifiersName;
-	ml->sml_type = ml->sml_desc->ad_cname;
-	ml->sml_op = LDAP_MOD_REPLACE;
-	ml->sml_flags = SLAP_MOD_INTERNAL;
-	ml->sml_next = NULL;
-	op2.orm_modlist = ml;
+	if ( !BER_BVISNULL( &mo->mo_ndn ) ) {
+		ml = &mod[ mcnt ];
+		ml->sml_numvals = 1;
+		ml->sml_values = &values[ 0 ];
+		ml->sml_values[ 0 ] = mo->mo_dn;
+		BER_BVZERO( &ml->sml_values[ 1 ] );
+		ml->sml_nvalues = &nvalues[ 0 ];
+		ml->sml_nvalues[ 0 ] = mo->mo_ndn;
+		BER_BVZERO( &ml->sml_nvalues[ 1 ] );
+		ml->sml_desc = slap_schema.si_ad_modifiersName;
+		ml->sml_type = ml->sml_desc->ad_cname;
+		ml->sml_op = LDAP_MOD_REPLACE;
+		ml->sml_flags = SLAP_MOD_INTERNAL;
+		ml->sml_next = op2.orm_modlist;
+		op2.orm_modlist = ml;
 
-	ml = &mod[ 1 ];
+		mcnt++;
+	}
+
+	ml = &mod[ mcnt ];
 	ml->sml_numvals = 1;
 	ml->sml_values = &values[ 2 ];
 	BER_BVZERO( &ml->sml_values[ 1 ] );
@@ -443,14 +449,14 @@ memberof_value_modify(
 	ml->sml_desc = ad;
 	ml->sml_type = ml->sml_desc->ad_cname;
 	ml->sml_flags = SLAP_MOD_INTERNAL;
-	ml->sml_next = NULL;
-	op2.orm_modlist->sml_next = ml;
+	ml->sml_next = op2.orm_modlist;
+	op2.orm_modlist = ml;
 
 	if ( new_ndn != NULL ) {
 		assert( !BER_BVISNULL( new_dn ) );
 		assert( !BER_BVISNULL( new_ndn ) );
 
-		ml = &mod[ 1 ];
+		ml = &mod[ mcnt ];
 		ml->sml_op = LDAP_MOD_ADD;
 
 		ml->sml_values[ 0 ] = *new_dn;
@@ -460,14 +466,18 @@ memberof_value_modify(
 		if ( rs2.sr_err != LDAP_SUCCESS ) {
 			char buf[ SLAP_TEXT_BUFLEN ];
 			snprintf( buf, sizeof( buf ),
-				"memberof_value_modify %s=\"%s\" failed err=%d",
-				ad->ad_cname.bv_val, new_dn->bv_val, rs2.sr_err );
+				"memberof_value_modify %s=\"%s\" failed err=%d text=%s",
+				ad->ad_cname.bv_val, new_dn->bv_val, rs2.sr_err, rs2.sr_text );
 			Debug( LDAP_DEBUG_ANY, "%s: %s\n", op->o_log_prefix, buf, 0 );
 		}
 
-		assert( op2.orm_modlist == &mod[ 0 ] );
-		assert( op2.orm_modlist->sml_next == &mod[ 1 ] );
-		ml = op2.orm_modlist->sml_next->sml_next;
+		assert( op2.orm_modlist == &mod[ mcnt ] );
+		assert( mcnt == 0 || op2.orm_modlist->sml_next == &mod[ 0 ] );
+		ml = op2.orm_modlist->sml_next;
+		if ( mcnt == 1 ) {
+			assert( ml == &mod[ 0 ] );
+			ml = ml->sml_next;
+		}
 		if ( ml != NULL ) {
 			slap_mods_free( ml, 1 );
 		}
@@ -477,7 +487,7 @@ memberof_value_modify(
 		assert( !BER_BVISNULL( old_dn ) );
 		assert( !BER_BVISNULL( old_ndn ) );
 
-		ml = &mod[ 1 ];
+		ml = &mod[ mcnt ];
 		ml->sml_op = LDAP_MOD_DELETE;
 
 		ml->sml_values[ 0 ] = *old_dn;
@@ -487,14 +497,17 @@ memberof_value_modify(
 		if ( rs2.sr_err != LDAP_SUCCESS ) {
 			char buf[ SLAP_TEXT_BUFLEN ];
 			snprintf( buf, sizeof( buf ),
-				"memberof_value_modify %s=\"%s\" failed err=%d",
-				ad->ad_cname.bv_val, old_dn->bv_val, rs2.sr_err );
+				"memberof_value_modify %s=\"%s\" failed err=%d text=%s",
+				ad->ad_cname.bv_val, old_dn->bv_val, rs2.sr_err, rs2.sr_text );
 			Debug( LDAP_DEBUG_ANY, "%s: %s\n", op->o_log_prefix, buf, 0 );
 		}
 
-		assert( op2.orm_modlist == &mod[ 0 ] );
-		assert( op2.orm_modlist->sml_next == &mod[ 1 ] );
-		ml = op2.orm_modlist->sml_next->sml_next;
+		assert( op2.orm_modlist == &mod[ mcnt ] );
+		ml = op2.orm_modlist->sml_next;
+		if ( mcnt == 1 ) {
+			assert( ml == &mod[ 0 ] );
+			ml = ml->sml_next;
+		}
 		if ( ml != NULL ) {
 			slap_mods_free( ml, 1 );
 		}
@@ -1937,7 +1950,7 @@ memberof_db_open(
 		}
 	}
 
-	if ( BER_BVISNULL( &mo->mo_dn ) ) {
+	if ( BER_BVISNULL( &mo->mo_dn ) && !BER_BVISNULL( &be->be_rootdn ) ) {
 		ber_dupbv( &mo->mo_dn, &be->be_rootdn );
 		ber_dupbv( &mo->mo_ndn, &be->be_rootndn );
 	}

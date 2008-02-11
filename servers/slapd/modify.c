@@ -383,6 +383,10 @@ slap_mods_no_user_mod_check(
 			continue;
 		}
 
+		if ( ml->sml_flags & SLAP_MOD_INTERNAL ) {
+			continue;
+		}
+
 		if ( get_relax( op ) ) {
 			if ( ml->sml_desc->ad_type->sat_flags & SLAP_AT_MANAGEABLE ) {
 				ml->sml_flags |= SLAP_MOD_MANAGING;
