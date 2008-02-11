@@ -1007,6 +1007,47 @@ enum_to_verb(slap_verbmasks *v, slap_mask_t m, struct berval *bv) {
 	return -1;
 }
 
+/* register a new verbmask */
+static int
+slap_verbmask_register( slap_verbmasks *vm_, slap_verbmasks **vmp, struct berval *bv, int mask )
+{
+	slap_verbmasks	*vm = *vmp;
+	int		i;
+
+	/* check for duplicate word */
+	/* NOTE: we accept duplicate codes; the first occurrence will be used
+	 * when mapping from mask to verb */
+	i = verb_to_mask( bv->bv_val, vm );
+	if ( !BER_BVISNULL( &vm[ i ].word ) ) {
+		return -1;
+	}
+
+	for ( i = 0; !BER_BVISNULL( &vm[ i ].word ); i++ )
+		;
+
+	if ( vm == vm_ ) {
+		/* first time: duplicate array */
+		vm = ch_calloc( i + 2, sizeof( slap_verbmasks ) );
+		for ( i = 0; !BER_BVISNULL( &vm_[ i ].word ); i++ )
+		{
+			ber_dupbv( &vm[ i ].word, &vm_[ i ].word );
+			*((slap_mask_t*)&vm[ i ].mask) = vm_[ i ].mask;
+		}
+
+	} else {
+		vm = ch_realloc( vm, (i + 2) * sizeof( slap_verbmasks ) );
+	}
+
+	ber_dupbv( &vm[ i ].word, bv );
+	*((slap_mask_t*)&vm[ i ].mask) = mask;
+
+	BER_BVZERO( &vm[ i+1 ].word );
+
+	*vmp = vm;
+
+	return i;
+}
+
 static slap_verbmasks slap_ldap_response_code_[] = {
 	{ BER_BVC("success"),				LDAP_SUCCESS },
 
@@ -1092,6 +1133,13 @@ static slap_verbmasks slap_ldap_response_code_[] = {
 };
 
 slap_verbmasks *slap_ldap_response_code = slap_ldap_response_code_;
+
+int
+slap_ldap_response_code_register( struct berval *bv, int err )
+{
+	return slap_verbmask_register( slap_ldap_response_code_,
+		&slap_ldap_response_code, bv, err );
+}
 
 #ifdef HAVE_TLS
 static slap_verbmasks tlskey[] = {
