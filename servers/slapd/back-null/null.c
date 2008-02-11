@@ -70,7 +70,8 @@ null_back_false( Operation *op, SlapReply *rs )
 
 
 /* for overlays */
-int null_back_entry_get(
+static int
+null_back_entry_get(
 	Operation *op,
 	struct berval *ndn,
 	ObjectClass *oc,
@@ -78,8 +79,10 @@ int null_back_entry_get(
 	int rw,
 	Entry **ent )
 {
-	*ent = NULL;
-	return 1;
+	assert( *ent == NULL );
+
+	/* don't admit the object isn't there */
+	return oc || at ? LDAP_NO_SUCH_ATTRIBUTE : LDAP_BUSY;
 }
 
 
