@@ -605,7 +605,7 @@ static int translucent_compare(Operation *op, SlapReply *rs) {
 **
 */
 	rc = overlay_entry_get_ov(op, &op->o_req_ndn, NULL, ava->aa_desc, 0, &e, on);
-	if(e && rc == LDAP_SUCCESS) {
+	if(rc == LDAP_SUCCESS && e) {
 		overlay_entry_release_ov(op, e, 0, on);
 		return(SLAP_CB_CONTINUE);
 	}
