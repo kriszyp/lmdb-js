@@ -23,6 +23,7 @@ OpenLDAP 2.4.8 Engineering
 	Added slapo-constraint cross-attribute constraints (ITS#4987)
 	Fixed slapo-memberof objectClass inheritance (ITS#5299)
 	Added slapo-memberof global overlay support (ITS#5301)
+	Fixed slapo-memberof leak (ITS#5302)
 	Fixed slapo-ppolicy only password check with policy (ITS#5285)
 	Fixed slapo-syncrepl hang on checkpoint (ITS#5261)
 	Added slapo-translucent local searching (ITS#5283)
