@@ -790,7 +790,7 @@ int ldap_pvt_thread_pool_setkey(
 		if ( found ) {
 			*oldkfreep = ctx->ltu_key[i].ltk_free;
 		} else {
-			*oldkfreep = NULL;
+			*oldkfreep = 0;
 		}
 	}
 
