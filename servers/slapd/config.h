@@ -108,10 +108,10 @@ typedef struct ConfigOCs {
 
 typedef int (ConfigDriver)(struct config_args_s *c);
 
-typedef struct config_reply_s {
+struct config_reply_s {
 	int err;
 	char msg[SLAP_TEXT_BUFLEN];
-} ConfigReply;
+};
 
 typedef struct config_args_s {
 	int argc;
