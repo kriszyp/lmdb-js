@@ -599,9 +599,103 @@ cookie stored in the consumer replica database.
 
 H2: N-Way Multi-Master
 
-Import and expand from link:
+For the following example we will be using 3 Master nodes. Keeping in line with
+{{B:test050-syncrepl-multimaster}} of the OpenLDAP test suite, we will be configuring
+{{slapd(8)}} via {{B:cn=config}}
 
-{{URL:http://blog.suretecsystems.com/archives/40-OpenLDAP-Weekly-News-Issue-5.html#extended}}
+This sets up the config database:
+
+>     dn: cn=config
+>     objectClass: olcGlobal
+>     cn: config
+>     olcServerID: 1
+>     
+>     dn: olcDatabase={0}config,cn=config
+>     objectClass: olcDatabaseConfig
+>     olcDatabase: {0}config
+>     olcRootPW: secret
+
+second and third servers will have a different olcServerID obviously:
+
+>     dn: cn=config
+>     objectClass: olcGlobal
+>     cn: config
+>     olcServerID: 2
+>     
+>     dn: olcDatabase={0}config,cn=config
+>     objectClass: olcDatabaseConfig
+>     olcDatabase: {0}config
+>     olcRootPW: secret
+
+This sets up syncrepl as a provider (since these are all masters):
+
+>     dn: cn=module,cn=config
+>     objectClass: olcModuleList
+>     cn: module
+>     olcModulePath: /usr/local/libexec/openldap
+>     olcModuleLoad: syncprov.la
+
+Now we setup the first Master Node (replace $URI1, $URI2 and $URI3 etc. with your actual ldap urls):
+
+>     dn: cn=config
+>     changetype: modify
+>     replace: olcServerID
+>     olcServerID: 1 $URI1
+>     olcServerID: 2 $URI2
+>     olcServerID: 3 $URI3
+>     
+>     dn: olcOverlay=syncprov,olcDatabase={0}config,cn=config
+>     changetype: add
+>     objectClass: olcOverlayConfig
+>     objectClass: olcSyncProvConfig
+>     olcOverlay: syncprov
+>     
+>     dn: olcDatabase={0}config,cn=config
+>     changetype: modify
+>     add: olcSyncRepl
+>     olcSyncRepl: rid=001 provider=$URI1 binddn="cn=config" bindmethod=simple
+>       credentials=secret searchbase="cn=config" type=refreshAndPersist
+>       retry="5 5 300 5" timeout=1
+>     olcSyncRepl: rid=002 provider=$URI2 binddn="cn=config" bindmethod=simple
+>       credentials=secret searchbase="cn=config" type=refreshAndPersist
+>       retry="5 5 300 5" timeout=1
+>     olcSyncRepl: rid=003 provider=$URI3 binddn="cn=config" bindmethod=simple
+>       credentials=secret searchbase="cn=config" type=refreshAndPersist
+>       retry="5 5 300 5" timeout=1
+>     -
+>     add: olcMirrorMode
+>     olcMirrorMode: TRUE
+
+Now start up the Master and a consumer/s, also add the above LDIF to the first consumer, second consumer etc. It will then replicate {{B:cn=config}}. You now have N-Way Multimaster on the config database.
+
+We still have to replicate the actual data, not just the config, so add to the master (all active and configured consumers/masters will pull down this config, as they are all syncing). Also, replace all {{${}}} variables with whatever is applicable to your setup:
+
+>     dn: olcDatabase={1}$BACKEND,cn=config
+>     objectClass: olcDatabaseConfig
+>     objectClass: olc${BACKEND}Config
+>     olcDatabase: {1}$BACKEND
+>     olcSuffix: $BASEDN
+>     olcDbDirectory: ./db
+>     olcRootDN: $MANAGERDN
+>     olcRootPW: $PASSWD
+>     olcSyncRepl: rid=004 provider=$URI1 binddn="$MANAGERDN" bindmethod=simple
+>       credentials=$PASSWD searchbase="$BASEDN" type=refreshOnly
+>       interval=00:00:00:10 retry="5 5 300 5" timeout=1
+>     olcSyncRepl: rid=005 provider=$URI2 binddn="$MANAGERDN" bindmethod=simple
+>       credentials=$PASSWD searchbase="$BASEDN" type=refreshOnly
+>       interval=00:00:00:10 retry="5 5 300 5" timeout=1
+>     olcSyncRepl: rid=006 provider=$URI3 binddn="$MANAGERDN" bindmethod=simple
+>       credentials=$PASSWD searchbase="$BASEDN" type=refreshOnly
+>       interval=00:00:00:10 retry="5 5 300 5" timeout=1
+>     olcMirrorMode: TRUE
+>     
+>     dn: olcOverlay=syncprov,olcDatabase={1}${BACKEND},cn=config
+>     changetype: add
+>     objectClass: olcOverlayConfig
+>     objectClass: olcSyncProvConfig
+>     olcOverlay: syncprov
+
+Note: You must have all your server set to the same time via {{http://www.ntp.org/}}
 
 H2: MirrorMode
 
