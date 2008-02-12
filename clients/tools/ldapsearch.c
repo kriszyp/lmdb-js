@@ -625,7 +625,7 @@ main( int argc, char **argv )
 {
 	char		*filtpattern, **attrs = NULL, line[BUFSIZ];
 	FILE		*fp = NULL;
-	int		rc, i, first;
+	int			rc, rc1, i, first;
 	LDAP		*ld = NULL;
 	BerElement	*seber = NULL, *vrber = NULL;
 
@@ -990,11 +990,13 @@ getNextPage:
 			} else {
 				first = 0;
 			}
-			rc = dosearch( ld, base, scope, filtpattern, line,
+			rc1 = dosearch( ld, base, scope, filtpattern, line,
 				attrs, attrsonly, NULL, NULL, NULL, -1 );
 
-			if ( rc != 0 && !contoper ) {
-				break;
+			if ( rc1 != 0 ) {
+				rc = rc1;
+				if ( !contoper )
+					break;
 			}
 		}
 		if ( fp != stdin ) {
