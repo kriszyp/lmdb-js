@@ -27,6 +27,7 @@ OpenLDAP 2.4.8 Engineering
 	Fixed slapd cn=config global acls (ITS#5352)
 	Fixed slapd truncated cookie (ITS#5362)
 	Fixed slapd str2entry with no attrs (ITS#5308)
+	Fixed slapd TLSVerifyClient default (ITS#5360)
 	Fixed slapd-bdb crash with modrdn (ITS#5358)
 	Fixed slapd-bdb segv with bdb4.6 (ITS#5322)
 	Fixed slapd-bdb modrdn to same dn (ITS#5319)
