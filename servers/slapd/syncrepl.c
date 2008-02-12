@@ -1158,7 +1158,9 @@ do_syncrepl(
 	if ( si == NULL )
 		return NULL;
 
-	ldap_pvt_thread_mutex_lock( &si->si_mutex );
+	/* Don't wait around if there's a previous session still running */
+	if ( ldap_pvt_thread_mutex_trylock( &si->si_mutex ))
+		return NULL;
 
 	switch( abs( si->si_type ) ) {
 	case LDAP_SYNC_REFRESH_ONLY:
