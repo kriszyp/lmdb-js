@@ -777,9 +777,7 @@ ldif_back_referrals( Operation *op, SlapReply *rs )
 			rs->sr_ref = NULL;
 
 		} else if ( rc != LDAP_SUCCESS ) {
-			rs->sr_err = rc;
 			rs->sr_text = rs->sr_matched ? "bad referral object" : NULL;
-			send_ldap_result( op, rs );
 		}
 
 		if ( rs->sr_matched ) {
@@ -810,8 +808,8 @@ ldif_back_referrals( Operation *op, SlapReply *rs )
 			rs->sr_ref = NULL;
 
 		} else {
-			send_ldap_error( op, rs, LDAP_OTHER, "bad referral object" );
-			rc = rs->sr_err;
+			rc = LDAP_OTHER;
+			rs->sr_text = "bad referral object";
 		}
 
 		rs->sr_matched = NULL;
@@ -1212,6 +1210,7 @@ int ldif_back_entry_get(
 {
 	struct ldif_info *li = (struct ldif_info *) op->o_bd->be_private;
 	struct berval op_dn = op->o_req_dn, op_ndn = op->o_req_ndn;
+	int rc = LDAP_NO_SUCH_OBJECT;
 
 	assert( ndn != NULL );
 	assert( !BER_BVISNULL( ndn ) );
@@ -1224,12 +1223,16 @@ int ldif_back_entry_get(
 	op->o_req_ndn = op_ndn;
 	ldap_pvt_thread_rdwr_runlock( &li->li_rdwr );
 
-	if ( *ent && oc && !is_entry_objectclass_or_sub( *ent, oc ) ) {
-		entry_free( *ent );
-		*ent = NULL;
+	if ( *ent ) {
+		rc = LDAP_SUCCESS;
+		if ( oc && !is_entry_objectclass_or_sub( *ent, oc ) ) {
+			rc = LDAP_NO_SUCH_ATTRIBUTE;
+			entry_free( *ent );
+			*ent = NULL;
+		}
 	}
 
-	return ( *ent == NULL ? 1 : 0 );
+	return rc;
 }
 
 static int ldif_tool_entry_open(BackendDB *be, int mode) {

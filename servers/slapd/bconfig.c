@@ -5298,18 +5298,23 @@ int config_back_entry_get(
 {
 	CfBackInfo *cfb;
 	CfEntryInfo *ce, *last;
+	int rc = LDAP_NO_SUCH_OBJECT;
 
 	cfb = (CfBackInfo *)op->o_bd->be_private;
 
 	ce = config_find_base( cfb->cb_root, ndn, &last );
 	if ( ce ) {
 		*ent = ce->ce_entry;
-		if ( *ent && oc && !is_entry_objectclass_or_sub( *ent, oc ) ) {
-			*ent = NULL;
+		if ( *ent ) {
+			rc = LDAP_SUCCESS;
+			if ( oc && !is_entry_objectclass_or_sub( *ent, oc ) ) {
+				rc = LDAP_NO_SUCH_ATTRIBUTE;
+				*ent = NULL;
+			}
 		}
 	}
 
-	return ( *ent == NULL ? 1 : 0 );
+	return rc;
 }
 
 static void
