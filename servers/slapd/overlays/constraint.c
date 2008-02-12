@@ -275,14 +275,16 @@ constraint_cf_gen( ConfigArgs *c )
 				return ( ARG_BAD_CONF );
 			}
 
-			a2 = ch_malloc( sizeof(constraint) );
+			a2 = ch_calloc( sizeof(constraint), 1 );
 			a2->ap_next = on->on_bi.bi_private;
 			a2->ap = ap.ap;
 			a2->re = ap.re;
 			a2->val = ap.val;
 			a2->lud = ap.lud;
-			ber_str2bv(a2->lud->lud_dn, 0, 0, &a2->dn);
-			ber_str2bv(a2->lud->lud_filter, 0, 0, &a2->filter);
+			if ( a2->lud ) {
+				ber_str2bv(a2->lud->lud_dn, 0, 0, &a2->dn);
+				ber_str2bv(a2->lud->lud_filter, 0, 0, &a2->filter);
+			}
 			a2->attrs = ap.attrs;
 			on->on_bi.bi_private = a2;
 			break;
