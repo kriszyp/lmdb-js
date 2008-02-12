@@ -3,8 +3,8 @@ OpenLDAP 2.3 Change Log
 OpenLDAP 2.3.41 Engineering
 	Fixed slapd idlcache on adds (ITS#5086)
 	Fixed slapd-bdb modrdn to same dn (ITS#5319)
+	Fixed slapd-bdb crash with modrdn (ITS#5358) 
 	Fixed syncrepl propagation of errors (ITS#5282)
-	Fixed crash when no-op control is used (ITS#5358)
 
 OpenLDAP 2.3.40 Release (2007/12/25)
 	Fixed slapd include handling (ITS#5276)
