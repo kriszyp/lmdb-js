@@ -2,17 +2,16 @@ OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.8 Engineering
 	Fixed ldapmodify verbose logging (ITS#5247)
-	Fixed ldapmodify exit code init (ITS#5317)
+	Fixed ldapdelete with sizelimit (ITS#5294)
+	Fixed ldapdelete with subentries control (ITS#5293)
+	Fixed ldapsearch exit code init (ITS#5317)
 	Fixed libldap extended decoding (ITS#5304)
 	Fixed libldap filter abort (ITS#5300)
 	Fixed libldap ldap_parse_sasl_bind_result (ITS#5263)
 	Fixed libldap result codes for open (ITS#5338)
 	Fixed libldap search timeout crash (ITS#5291)
 	Fixed libldap paged results crash (ITS#5315)
-	Fixed libldap use of %n (ITS#5324)
 	Fixed libldap cipher suite with GnuTLS (ITS#5341)
-	Fixed ldapdelete with sizelimit (ITS#5294)
-	Fixed ldapdelete with subentries control (ITS#5293)
 	Fixed slapd support for 2.1 CSN (ITS#5348)
 	Fixed slapd idlcache on adds (ITS#5086)
 	Fixed slapd include handling (ITS#5276)
@@ -48,9 +47,10 @@ OpenLDAP 2.4.8 Engineering
 	Fixed slapo-ppolicy only password check with policy (ITS#5285)
 	Fixed slapo-syncrepl hang on checkpoint (ITS#5261)
 	Added slapo-translucent local searching (ITS#5283)
-	Fixed test047 to skip if rwm is not available (ITS#5292)
 	Build Environment
 		Fixed libldap_r threaded library linking (ITS#4982)
+		Fixed libldap use of %n (ITS#5324)
+		Fixed test047 to skip if rwm is not available (ITS#5292)
 	Documentation
 		DB_CONFIG.example URL wrong in comments (ITS#5288)
 		Add cn=config example for auditlog (ITS#5245)
