@@ -16,6 +16,9 @@ when modifying an attribute value under constraint.
 This overlay is intended to be used to force syntactic regularity upon
 certain string represented data which have well known canonical forms,
 like telephone numbers, post codes, FQDNs, etc.
+.LP
+It constrains only LDAP adds and modify commands and only seeks to
+control the add and modify value of a modify request.
 .SH CONFIGURATION
 This
 .B slapd.conf
