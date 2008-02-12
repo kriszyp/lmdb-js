@@ -10,6 +10,7 @@ OpenLDAP 2.4.8 Engineering
 	Fixed libldap search timeout crash (ITS#5291)
 	Fixed libldap paged results crash (ITS#5315)
 	Fixed libldap use of %n (ITS#5324)
+	Fixed libldap cipher suite with GnuTLS (ITS#5341)
 	Fixed ldapdelete with sizelimit (ITS#5294)
 	Fixed ldapdelete with subentries control (ITS#5293)
 	Fixed slapd support for 2.1 CSN (ITS#5348)
