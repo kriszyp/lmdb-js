@@ -316,12 +316,41 @@ H2: Constraints
 H3: Overview
 
 This overlay enforces a regular expression constraint on all values
-of specified attributes. It is used to enforce a more rigorous
-syntax when the underlying attribute syntax is too general.
+of specified attributes during an LDAP modify request that contains add or modify
+commands. It is used to enforce a more rigorous syntax when the underlying attribute 
+syntax is too general.
 
 
 H3: Constraint Configuration
-   
+
+Configuration via {{slapd.conf}}(5) would look like:
+
+>        overlay constraint
+>        constraint_attribute mail regex ^[:alnum:]+@mydomain.com$
+>        constraint_attribute title uri
+>        ldap:///dc=catalog,dc=example,dc=com?title?sub?(objectClass=titleCatalog)
+
+A specification like the above would reject any {{mail}} attribute which did not
+look like {{<alpha-numeric string>@mydomain.com}}.
+
+It would also reject any title attribute whose values were not listed in the 
+title attribute of any {{titleCatalog}} entries in the given scope.   
+
+An example for use with {{cn=config}}:
+
+>       dn: cn=module{0},cn=config
+>       changetype: modify
+>       add: olcModuleLoad
+>       olcModuleLoad: {1}constraint.la
+> 
+>       dn: olcOverlay=constraint,olcDatabase={1}hdb,cn=config
+>       changetype: add
+>       objectClass: olcOverlayConfig
+>       objectClass: olcConstraintConfig
+>       olcOverlay: constraint
+>       olcConstraintAttribute: mail regex ^[:alnum:]+@mydomain.com$
+>       olcConstraintAttribute: title uri ldap:///dc=catalog,dc=example,dc=com?title?sub?(objectClass=titleCatalog)
+
    
 H2: Dynamic Directory Services
 
