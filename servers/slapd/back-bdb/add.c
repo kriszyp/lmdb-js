@@ -33,6 +33,7 @@ bdb_add(Operation *op, SlapReply *rs )
 	AttributeDescription *children = slap_schema.si_ad_children;
 	AttributeDescription *entry = slap_schema.si_ad_entry;
 	DB_TXN		*ltid = NULL, *lt2;
+	ID eid = NOID;
 	struct bdb_op_info opinfo = {0};
 	int subentry;
 	BDB_LOCKER	locker = 0, rlocker = 0;
@@ -114,20 +115,6 @@ txnReturn:
 	}
 
 	subentry = is_entry_subentry( op->oq_add.rs_e );
-
-	/*
-	 * acquire an ID outside of the operation transaction
-	 * to avoid serializing adds.
-	 */
-	rs->sr_err = bdb_next_id( op->o_bd, NULL, &op->oq_add.rs_e->e_id );
-	if( rs->sr_err != 0 ) {
-		Debug( LDAP_DEBUG_TRACE,
-			LDAP_XSTRING(bdb_add) ": next_id failed (%d)\n",
-			rs->sr_err, 0, 0 );
-		rs->sr_err = LDAP_OTHER;
-		rs->sr_text = "internal error";
-		goto return_results;
-	}
 
 	/* Get our thread locker ID */
 	rs->sr_err = LOCK_ID( bdb->bi_dbenv, &rlocker );
@@ -313,6 +300,19 @@ retry:	/* transaction retry */
 		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
 		rs->sr_text = "no write access to entry";
 		goto return_results;;
+	}
+
+	if ( eid == NOID ) {
+		rs->sr_err = bdb_next_id( op->o_bd, &eid );
+		if( rs->sr_err != 0 ) {
+			Debug( LDAP_DEBUG_TRACE,
+				LDAP_XSTRING(bdb_add) ": next_id failed (%d)\n",
+				rs->sr_err, 0, 0 );
+			rs->sr_err = LDAP_OTHER;
+			rs->sr_text = "internal error";
+			goto return_results;
+		}
+		op->oq_add.rs_e->e_id = eid;
 	}
 
 	/* nested transaction */

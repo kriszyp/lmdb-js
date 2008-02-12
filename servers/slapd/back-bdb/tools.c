@@ -364,7 +364,7 @@ static int bdb_tool_next_id(
 				ei = &eidummy;
 			}
 		}
-		rc = bdb_next_id( op->o_bd, tid, &e->e_id );
+		rc = bdb_next_id( op->o_bd, &e->e_id );
 		if ( rc ) {
 			snprintf( text->bv_val, text->bv_len,
 				"next_id failed: %s (%d)",
