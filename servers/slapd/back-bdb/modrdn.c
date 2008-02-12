@@ -559,6 +559,9 @@ retry:	/* transaction retry */
 	case DB_NOTFOUND:
 		break;
 	case 0:
+		/* Allow rename to same DN */
+		if ( nei == ei )
+			break;
 		rs->sr_err = LDAP_ALREADY_EXISTS;
 		goto return_results;
 	default:

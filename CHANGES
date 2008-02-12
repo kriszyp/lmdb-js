@@ -20,6 +20,7 @@ OpenLDAP 2.4.8 Engineering
 	Fixed slapd NULL set values (ITS#5286)
 	Fixed slapd segv with SASL/OTP (ITS#5259)
 	Fixed slapd-bdb segv with bdb4.6 (ITS#5322)
+	Fixed slapd-bdb modrdn to same dn (ITS#5319)
 	Added slapd-bdb/slapd-hdb DB encryption (ITS#5359)
 	Fixed slapd-ldif delete (ITS#5265)
 	Fixed slapd-monitor crash (ITS#5311)
