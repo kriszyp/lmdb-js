@@ -129,8 +129,8 @@ slap_op_free( Operation *op, void *ctx )
 void
 slap_op_time(time_t *t, int *nop)
 {
-	*t = slap_get_time();
 	ldap_pvt_thread_mutex_lock( &slap_op_mutex );
+	*t = slap_get_time();
 	if ( *t == last_time ) {
 		*nop = ++last_incr;
 	} else {
