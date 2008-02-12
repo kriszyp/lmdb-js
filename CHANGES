@@ -26,6 +26,7 @@ OpenLDAP 2.4.8 Engineering
 	Added slapd-bdb/slapd-hdb DB encryption (ITS#5359)
 	Fixed slapd-ldif delete (ITS#5265)
 	Fixed slapd-monitor crash (ITS#5311)
+	Fixed slapd-relay compare (ITS#4937)
 	Added slapd-sock (ITS#4094)
 	Added slapo-autogroup contrib module (ITS#5145)
 	Added slapo-constraint cross-attribute constraints (ITS#4987)
