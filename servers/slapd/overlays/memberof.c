@@ -205,7 +205,7 @@ memberof_saved_member_get( Operation *op, void *keyp )
 
 	} else {
 		ldap_pvt_thread_pool_setkey( op->o_threadctx,
-				key, NULL, NULL, &vals, NULL );
+				key, NULL, 0, &vals, NULL );
 	}
 
 	return vals;

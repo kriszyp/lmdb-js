@@ -822,15 +822,15 @@ be_rootdn_bind( Operation *op, SlapReply *rs )
 	}
 
 #ifdef SLAPD_SPASSWD
-	ldap_pvt_thread_pool_setkey( op->o_threadctx, slap_sasl_bind,
-		op->o_conn->c_sasl_authctx, NULL, &old_authctx, NULL );
+	ldap_pvt_thread_pool_setkey( op->o_threadctx, (void *)slap_sasl_bind,
+		op->o_conn->c_sasl_authctx, 0, &old_authctx, NULL );
 #endif
 
 	rc = lutil_passwd( &op->o_bd->be_rootpw, &op->orb_cred, NULL, NULL );
 
 #ifdef SLAPD_SPASSWD
-	ldap_pvt_thread_pool_setkey( op->o_threadctx, slap_sasl_bind,
-		old_authctx, NULL, NULL, NULL );
+	ldap_pvt_thread_pool_setkey( op->o_threadctx, (void *)slap_sasl_bind,
+		old_authctx, 0, NULL, NULL );
 #endif
 
 	rc = ( rc == 0 ? LDAP_SUCCESS : LDAP_INVALID_CREDENTIALS );

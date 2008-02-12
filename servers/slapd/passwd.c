@@ -507,8 +507,8 @@ slap_passwd_check(
 #ifdef SLAPD_SPASSWD
 	void		*old_authctx = NULL;
 
-	ldap_pvt_thread_pool_setkey( op->o_threadctx, slap_sasl_bind,
-		op->o_conn->c_sasl_authctx, NULL, &old_authctx, NULL );
+	ldap_pvt_thread_pool_setkey( op->o_threadctx, (void *)slap_sasl_bind,
+		op->o_conn->c_sasl_authctx, 0, &old_authctx, NULL );
 #endif
 
 	for ( bv = a->a_vals; bv->bv_val != NULL; bv++ ) {
@@ -526,8 +526,8 @@ slap_passwd_check(
 	}
 
 #ifdef SLAPD_SPASSWD
-	ldap_pvt_thread_pool_setkey( op->o_threadctx, slap_sasl_bind,
-		old_authctx, NULL, NULL, NULL );
+	ldap_pvt_thread_pool_setkey( op->o_threadctx, (void *)slap_sasl_bind,
+		old_authctx, 0, NULL, NULL );
 #endif
 
 	return result;

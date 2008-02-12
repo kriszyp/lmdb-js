@@ -1449,7 +1449,7 @@ bdb_locker_flush( DB_ENV *env )
 	void *ctx = ldap_pvt_thread_pool_context();
 
 	if ( !ldap_pvt_thread_pool_getkey( ctx, env, &data, NULL ) ) {
-		ldap_pvt_thread_pool_setkey( ctx, env, NULL, NULL, NULL, NULL );
+		ldap_pvt_thread_pool_setkey( ctx, env, NULL, 0, NULL, NULL );
 		bdb_locker_id_free( env, data );
 	}
 }

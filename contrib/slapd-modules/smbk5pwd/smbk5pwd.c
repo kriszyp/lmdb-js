@@ -215,7 +215,7 @@ static int smbk5pwd_op_cleanup(
 
 	/* clear out the current key */
 	ldap_pvt_thread_pool_setkey( op->o_threadctx, smbk5pwd_op_cleanup,
-		NULL, NULL, NULL, NULL );
+		NULL, 0, NULL, NULL );
 
 	/* free the callback */
 	cb = op->o_callback;
@@ -235,7 +235,7 @@ static int smbk5pwd_op_bind(
 	if ( op->oq_bind.rb_method == LDAP_AUTH_SIMPLE ) {
 		slap_callback *cb;
 		ldap_pvt_thread_pool_setkey( op->o_threadctx,
-			smbk5pwd_op_cleanup, op, NULL, NULL, NULL );
+			smbk5pwd_op_cleanup, op, 0, NULL, NULL );
 		cb = op->o_tmpcalloc( 1, sizeof(slap_callback), op->o_tmpmemctx );
 		cb->sc_cleanup = smbk5pwd_op_cleanup;
 		cb->sc_next = op->o_callback;

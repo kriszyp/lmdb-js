@@ -971,11 +971,12 @@ conn_counter_init( Operation *op, void *ctx )
 	slap_counters_t *sc;
 	void *vsc = NULL;
 
-	if ( ldap_pvt_thread_pool_getkey( ctx, conn_counter_init, &vsc, NULL ) || !vsc ) {
+	if ( ldap_pvt_thread_pool_getkey(
+			ctx, (void *)conn_counter_init, &vsc, NULL ) || !vsc ) {
 		vsc = ch_malloc( sizeof( slap_counters_t ));
 		sc = vsc;
 		slap_counters_init( sc );
-		ldap_pvt_thread_pool_setkey( ctx, conn_counter_init, vsc,
+		ldap_pvt_thread_pool_setkey( ctx, (void*)conn_counter_init, vsc,
 			conn_counter_destroy, NULL, NULL );
 
 		ldap_pvt_thread_mutex_lock( &slap_counters.sc_mutex );
@@ -1946,14 +1947,14 @@ connection_fake_init2(
 		void *ebx = NULL;
 
 		/* Use thread keys to make sure these eventually get cleaned up */
-		if ( ldap_pvt_thread_pool_getkey( ctx, connection_fake_init, &ebx,
-			NULL )) {
+		if ( ldap_pvt_thread_pool_getkey( ctx, (void *)connection_fake_init,
+				&ebx, NULL )) {
 			eb = ch_malloc( sizeof( *eb ));
 			slapi_int_create_object_extensions( SLAPI_X_EXT_CONNECTION, conn );
 			slapi_int_create_object_extensions( SLAPI_X_EXT_OPERATION, op );
 			eb->eb_conn = conn->c_extensions;
 			eb->eb_op = op->o_hdr->oh_extensions;
-			ldap_pvt_thread_pool_setkey( ctx, connection_fake_init,
+			ldap_pvt_thread_pool_setkey( ctx, (void *)connection_fake_init,
 				eb, connection_fake_destroy, NULL, NULL );
 		} else {
 			eb = ebx;
