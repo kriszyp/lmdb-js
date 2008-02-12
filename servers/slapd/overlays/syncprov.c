@@ -1566,6 +1566,12 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 		char cbuf[LDAP_LUTIL_CSNSTR_BUFSIZE];
 		int do_check = 0, have_psearches;
 
+		/* Don't do any processing for consumer contextCSN updates */
+		if ( SLAP_SYNC_SHADOW( op->o_bd ) && 
+			op->o_msgid == SLAP_SYNC_UPDATE_MSGID ) {
+			return SLAP_CB_CONTINUE;
+		}
+
 		/* Update our context CSN */
 		cbuf[0] = '\0';
 		ldap_pvt_thread_rdwr_wlock( &si->si_csn_rwlock );
@@ -1590,13 +1596,6 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 					sizeof(int));
 				si->si_sids[i] = sid;
 			}
-		}
-
-		/* Don't do any processing for consumer contextCSN updates */
-		if ( SLAP_SYNC_SHADOW( op->o_bd ) && 
-			op->o_msgid == SLAP_SYNC_UPDATE_MSGID ) {
-			ldap_pvt_thread_rdwr_wunlock( &si->si_csn_rwlock );
-			return SLAP_CB_CONTINUE;
 		}
 
 		si->si_numops++;
