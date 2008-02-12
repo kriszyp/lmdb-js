@@ -509,7 +509,7 @@ meta_back_single_bind(
 		ldap_pvt_thread_yield();
 	}
 
-	ldap_back_controls_free( op, rs, &ctrls );
+	mi->mi_ldap_extra->controls_free( op, rs, &ctrls );
 
 	meta_back_bind_op_result( op, rs, mc, candidate, msgid, LDAP_BACK_DONTSEND );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
@@ -1553,7 +1553,7 @@ meta_back_proxy_authz_bind( metaconn_t *mc, int candidate, Operation *op, SlapRe
  *
  * if any needs to be added, it is prepended to existing ones,
  * in a newly allocated array.  The companion function
- * ldap_back_controls_free() must be used to restore the original
+ * mi->mi_ldap_extra->controls_free() must be used to restore the original
  * status of op->o_ctrls.
  */
 int
@@ -1595,7 +1595,7 @@ meta_back_controls_add(
 	/* put controls that go __before__ existing ones here */
 
 	/* proxyAuthz for identity assertion */
-	switch ( ldap_back_proxy_authz_ctrl( op, rs, &msc->msc_bound_ndn,
+	switch ( mi->mi_ldap_extra->proxy_authz_ctrl( op, rs, &msc->msc_bound_ndn,
 		mt->mt_version, &mt->mt_idassert, &c[ j1 ] ) )
 	{
 	case SLAP_CB_CONTINUE:

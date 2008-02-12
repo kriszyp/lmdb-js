@@ -397,6 +397,9 @@ typedef struct metainfo_t {
 	time_t			mi_idle_timeout;
 	struct timeval		mi_bind_timeout;
 	time_t			mi_timeout[ SLAP_OP_LAST ];
+
+	ldap_extra_t	*mi_ldap_extra;
+
 } metainfo_t;
 
 typedef enum meta_op_type {

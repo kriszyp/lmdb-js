@@ -32,6 +32,11 @@
 #include "config.h"
 #include "back-ldap.h"
 
+static const ldap_extra_t ldap_extra = {
+	ldap_back_proxy_authz_ctrl,
+	ldap_back_controls_free
+};
+
 int
 ldap_back_open( BackendInfo	*bi )
 {
@@ -82,6 +87,8 @@ ldap_back_initialize( BackendInfo *bi )
 
 	bi->bi_connection_init = 0;
 	bi->bi_connection_destroy = ldap_back_conn_destroy;
+
+	bi->bi_extra = (void *)&ldap_extra;
 
 	rc = chain_initialize();
 	if ( rc ) {

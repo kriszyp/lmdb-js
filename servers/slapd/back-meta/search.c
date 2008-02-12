@@ -624,7 +624,7 @@ retry:;
 		if ( nretries && meta_back_retry( op, rs, mcp, candidate, LDAP_BACK_DONTSEND ) ) {
 			nretries = 0;
 			/* if the identity changed, there might be need to re-authz */
-			(void)ldap_back_controls_free( op, rs, &ctrls );
+			(void)mi->mi_ldap_extra->controls_free( op, rs, &ctrls );
 			goto retry;
 		}
 
@@ -641,7 +641,7 @@ retry:;
 	}
 
 done:;
-	(void)ldap_back_controls_free( op, rs, &ctrls );
+	(void)mi->mi_ldap_extra->controls_free( op, rs, &ctrls );
 
 	if ( mapped_attrs ) {
 		free( mapped_attrs );
