@@ -67,6 +67,13 @@ attributetype ( DynGroupAttr:1
 	DESC 'Identity to use when processing the memberURL'
 	SUP distinguishedName SINGLE-VALUE )
 
+attributeType ( DynGroupAttr:2
+	NAME 'dgAuthz'
+	DESC 'Optional authorization rules that determine who is allowed to assume the dgIdentity'
+	EQUALITY authzMatch
+	SYNTAX 1.3.6.1.4.1.4203.666.2.7
+	X-ORDERED 'VALUES' )
+
 objectClass ( NetscapeLDAPobjectClass:33
 	NAME 'groupOfURLs'
 	SUP top STRUCTURAL
@@ -79,4 +86,6 @@ objectClass ( NetscapeLDAPobjectClass:33
 objectClass ( DynGroupOC:1
 	NAME 'dgIdentityAux'
 	SUP top AUXILIARY
-	MAY dgIdentity )
+	MAY ( dgIdentity $ dgAuthz ) )
+
+
