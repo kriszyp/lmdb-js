@@ -172,11 +172,6 @@ H3: Audit Logging Configuration
 If the directory is running vi {{F:slapd.d}}, then the following LDIF could be used to add the overlay to the overlay list 
 in {{B:cn=config}} and set what file the {{TERM:LDIF}} gets logged to (adjust to suit)
 
->       dn: cn=module{0},cn=config
->       changetype: modify
->       add: olcModuleLoad
->       olcModuleLoad: {2}auditlog.la
-> 
 >       dn: olcOverlay=auditlog,olcDatabase={1}hdb,cn=config
 >       changetype: add
 >       objectClass: olcOverlayConfig
@@ -338,11 +333,6 @@ title attribute of any {{titleCatalog}} entries in the given scope.
 
 An example for use with {{cn=config}}:
 
->       dn: cn=module{0},cn=config
->       changetype: modify
->       add: olcModuleLoad
->       olcModuleLoad: {1}constraint.la
-> 
 >       dn: olcOverlay=constraint,olcDatabase={1}hdb,cn=config
 >       changetype: add
 >       objectClass: olcOverlayConfig
@@ -357,9 +347,24 @@ H2: Dynamic Directory Services
 
 H3: Overview
 
-This overlay supports dynamic objects, which have a limited life after
-which they expire and are automatically deleted.
-   
+The {{dds}} overlay to {{slapd}}(8) implements dynamic objects as per RFC 2589.
+The name {{dds}} stands for Dynamic Directory Services. It allows to define 
+dynamic objects, characterized by the {{dynamicObject}} objectClass.
+
+Dynamic objects have a limited lifetime, determined by a time-to-live (TTL) 
+that can be refreshed by means of a specific refresh extended operation. This 
+operation allows to set the Client Refresh Period (CRP), namely the period 
+between refreshes that is required to preserve the dynamic object from expiration. 
+The expiration time is computed by adding the requested TTL to the current time.
+When dynamic objects reach the end of their lifetime without being further 
+refreshed, they are automatically {{deleted}}. There is no guarantee of immediate 
+deletion, so clients should not count on it.
+
+Dynamic objects can have subordinates, provided these also are dynamic objects.
+RFC 2589 does not specify what the behavior of a dynamic directory service 
+should be when a dynamic object with (dynamic) subordinates expires.
+In this implementation, the lifetime of dynamic objects with subordinates is prolonged
+until all the dynamic subordinates expire.
    
 H3: Dynamic Directory Service Configuration
 
