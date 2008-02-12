@@ -6,6 +6,7 @@ OpenLDAP 2.4.8 Engineering
 	Fixed libldap extended decoding (ITS#5304)
 	Fixed libldap filter abort (ITS#5300)
 	Fixed libldap ldap_parse_sasl_bind_result (ITS#5263)
+	Fixed libldap result codes for open (ITS#5338)
 	Fixed libldap search timeout crash (ITS#5291)
 	Fixed libldap paged results crash (ITS#5315)
 	Fixed libldap use of %n (ITS#5324)
