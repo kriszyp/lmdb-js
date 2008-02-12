@@ -11,6 +11,7 @@ OpenLDAP 2.4.8 Engineering
 	Fixed libldap paged results crash (ITS#5315)
 	Fixed libldap use of %n (ITS#5324)
 	Fixed ldapdelete with sizelimit (ITS#5294)
+	Fixed slapd support for 2.1 CSN (ITS#5348)
 	Fixed slapd idlcache on adds (ITS#5086)
 	Fixed slapd include handling (ITS#5276)
 	Fixed slapd indexing with component matching (ITS#4112)
