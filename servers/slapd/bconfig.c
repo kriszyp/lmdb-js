@@ -4775,8 +4775,9 @@ config_modify_internal( CfEntryInfo *ce, Operation *op, SlapReply *rs,
 		/* check that the entry still obeys the schema */
 		rc = entry_schema_check(op, e, NULL, 0, 0,
 			&rs->sr_text, ca->cr_msg, sizeof(ca->cr_msg) );
-		if ( rc ) goto out_noop;
 	}
+	if ( rc ) goto out_noop;
+
 	/* Basic syntax checks are OK. Do the actual settings. */
 	for ( ml = op->orm_modlist; ml; ml = ml->sml_next ) {
 		ct = config_find_table( colst, nocs, ml->sml_desc, ca );
@@ -5414,13 +5415,16 @@ config_build_entry( Operation *op, SlapReply *rs, CfEntryInfo *parent,
 	rc = structural_class(oc_at->a_vals, &oc, NULL, &text, c->cr_msg,
 		sizeof(c->cr_msg), op ? op->o_tmpmemctx : NULL );
 	attr_merge_normalize_one(e, slap_schema.si_ad_structuralObjectClass, &oc->soc_cname, NULL );
-	if ( op && !op->o_noop ) {
+	if ( op ) {
 		op->ora_e = e;
 		op->ora_modlist = NULL;
-		op->o_bd->be_add( op, rs );
-		if ( ( rs->sr_err != LDAP_SUCCESS ) 
-				&& (rs->sr_err != LDAP_ALREADY_EXISTS) ) {
-			return NULL;
+		slap_add_opattrs( op, NULL, NULL, 0, 0 );
+		if ( !op->o_noop ) {
+			op->o_bd->be_add( op, rs );
+			if ( ( rs->sr_err != LDAP_SUCCESS ) 
+					&& (rs->sr_err != LDAP_ALREADY_EXISTS) ) {
+				return NULL;
+			}
 		}
 	}
 	if ( ceprev ) {

@@ -21,6 +21,7 @@ OpenLDAP 2.4.8 Engineering
 	Fixed slapd NULL printf (ITS#5264)	
 	Fixed slapd NULL set values (ITS#5286)
 	Fixed slapd segv with SASL/OTP (ITS#5259)
+	Fixed slapd cn=config crash on delete (ITS#5343)
 	Fixed slapd str2entry with no attrs (ITS#5308)
 	Fixed slapd-bdb segv with bdb4.6 (ITS#5322)
 	Fixed slapd-bdb modrdn to same dn (ITS#5319)
