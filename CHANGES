@@ -38,6 +38,7 @@ OpenLDAP 2.4.8 Engineering
 	Fixed slapd-monitor crash (ITS#5311)
 	Fixed slapd-relay compare (ITS#4937)
 	Added slapd-sock (ITS#4094)
+	Fixed slapo-accesslog cleanup on successful response (ITS#5374)
 	Added slapo-autogroup contrib module (ITS#5145)
 	Added slapo-constraint cross-attribute constraints (ITS#4987)
 	Fixed slapo-memberof objectClass inheritance (ITS#5299)
