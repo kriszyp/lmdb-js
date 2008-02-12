@@ -8,12 +8,12 @@ Overlays are software components that provide hooks to functions analogous to
 those provided by backends, which can be stacked on top of the backend calls 
 and as callbacks on top of backend responses to alter their behavior. 
 
-Overlays may be compiled statically into slapd, or when module support
+Overlays may be compiled statically into {{slapd}}, or when module support
 is enabled, they may be dynamically loaded. Most of the overlays
 are only allowed to be configured on individual databases, but some
 may also be configured globally.
 
-Essentially they represent a means to:
+Essentially, they represent a means to:
 
     * customize the behavior of existing backends without changing the backend 
       code and without requiring one to write a new custom backend with 
@@ -26,9 +26,9 @@ the naming convention is
 
 >        slapo-<overlay name>
 
-Not all distributed overlays have a man page yet. Feel free to contribute one, 
-if you think you well understood the behavior of the component and the 
-implications of all the related configuration directives.
+All distributed core overlays have a man page. Feel free to contribute to any, 
+if you think there is anything missing in describing the behavior of the component 
+and the implications of all the related configuration directives.
 
 Official overlays are located in
 
