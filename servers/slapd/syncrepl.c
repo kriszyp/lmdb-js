@@ -84,6 +84,7 @@ typedef struct syncinfo_s {
 	int					si_syncdata;
 	int					si_logstate;
 	int					si_conn_setup;
+	ber_int_t				si_msgid;
 	Avlnode				*si_presentlist;
 	LDAP				*si_ld;
 	LDAP_LIST_HEAD(np, nonpresent_entry) si_nonpresentlist;
@@ -315,7 +316,6 @@ ldap_sync_search(
 	BerElement *ber = (BerElement *)&berbuf;
 	LDAPControl c[2], *ctrls[3];
 	struct timeval timeout;
-	ber_int_t	msgid;
 	int rc;
 	int rhint;
 	char *base;
@@ -403,7 +403,7 @@ ldap_sync_search(
 
 	rc = ldap_search_ext( si->si_ld, base, scope, filter, attrs, attrsonly,
 		ctrls, NULL, si->si_tlimit > 0 ? &timeout : NULL,
-		si->si_slimit, &msgid );
+		si->si_slimit, &si->si_msgid );
 	ber_free_buf( ber );
 	return rc;
 }
@@ -667,7 +667,7 @@ do_syncrep2(
 		tout_p = NULL;
 	}
 
-	while (( rc = ldap_result( si->si_ld, LDAP_RES_ANY, LDAP_MSG_ONE,
+	while (( rc = ldap_result( si->si_ld, si->si_msgid, LDAP_MSG_ONE,
 		tout_p, &res )) > 0 )
 	{
 		if ( slapd_shutdown ) {
@@ -722,6 +722,10 @@ do_syncrep2(
 					if (( rc = syncrepl_message_to_op( si, op, msg )) == LDAP_SUCCESS &&
 						!BER_BVISNULL( &syncCookie.ctxcsn ) ) {
 						syncrepl_updateCookie( si, op, psub, &syncCookie );
+					} else if ( rc == LDAP_NO_SUCH_OBJECT ) {
+						rc = LDAP_SYNC_REFRESH_REQUIRED;
+						si->si_logstate = SYNCLOG_FALLBACK;
+						ldap_abandon_ext( si->si_ld, si->si_msgid, NULL, NULL );
 					}
 				} else if (( rc = syncrepl_message_to_entry( si, op, msg,
 					&modlist, &entry, syncstate )) == LDAP_SUCCESS ) {
