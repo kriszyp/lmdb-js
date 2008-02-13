@@ -833,6 +833,9 @@ do_syncrep2(
 						syncCookie.ctxcsn )
 					{
 						rc = syncrepl_updateCookie( si, op, psub, &syncCookie );
+					} else if ( rc == LDAP_NO_SUCH_OBJECT ) {
+						rc = LDAP_SYNC_REFRESH_REQUIRED;
+						si->si_logstate = SYNCLOG_FALLBACK;
 					}
 				} else if ( ( rc = syncrepl_message_to_entry( si, op, msg,
 					&modlist, &entry, syncstate ) ) == LDAP_SUCCESS )
