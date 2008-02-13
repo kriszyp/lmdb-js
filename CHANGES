@@ -49,6 +49,7 @@ OpenLDAP 2.4.8 Engineering
 	Fixed slapo-ppolicy del/replace password without new one (ITS#5373)
 	Fixed slapo-syncrepl hang on checkpoint (ITS#5261)
 	Added slapo-translucent local searching (ITS#5283)
+	Removed lint
 	Build Environment
 		Fixed libldap_r threaded library linking (ITS#4982)
 		Fixed libldap use of %n (ITS#5324)
