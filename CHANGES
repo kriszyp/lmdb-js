@@ -46,6 +46,7 @@ OpenLDAP 2.4.8 Engineering
 	Added slapo-memberof global overlay support (ITS#5301)
 	Fixed slapo-memberof leak (ITS#5302)
 	Fixed slapo-ppolicy only password check with policy (ITS#5285)
+	Fixed slapo-ppolicy del/replace password without new one (ITS#5373)
 	Fixed slapo-syncrepl hang on checkpoint (ITS#5261)
 	Added slapo-translucent local searching (ITS#5283)
 	Build Environment

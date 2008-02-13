@@ -1550,35 +1550,35 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 				delmod = ml;
 			}
 
-			if ((deladd == 1) && ((ml->sml_op == LDAP_MOD_ADD) ||
-				  (ml->sml_op == LDAP_MOD_REPLACE)))
-			{
-				deladd = 2;
-			}
-
 			if ((ml->sml_op == LDAP_MOD_ADD) ||
 				(ml->sml_op == LDAP_MOD_REPLACE))
 			{
-				/* FIXME: there's no easy way to ensure
-				 * that add does not cause multiple
-				 * userPassword values; one way (that 
-				 * would be consistent with the single
-				 * password constraint) would be to turn
-				 * add into replace); another would be
-				 * to disallow add.
-				 *
-				 * Let's check at least that a single value
-				 * is being added
-				 */
-				assert( ml->sml_values != NULL );
-				assert( !BER_BVISNULL( &ml->sml_values[ 0 ] ) );
-				if ( addmod || !BER_BVISNULL( &ml->sml_values[ 1 ] ) ) {
-					rs->sr_err = LDAP_CONSTRAINT_VIOLATION; 
-					rs->sr_text = "Password policy only allows one password value";
-					goto return_results;
-				}
+				if ( ml->sml_values && !BER_BVISNULL( &ml->sml_values[0] )) {
+					if ( deladd == 1 )
+						deladd = 2;
 
-				addmod = ml;
+					/* FIXME: there's no easy way to ensure
+					 * that add does not cause multiple
+					 * userPassword values; one way (that 
+					 * would be consistent with the single
+					 * password constraint) would be to turn
+					 * add into replace); another would be
+					 * to disallow add.
+					 *
+					 * Let's check at least that a single value
+					 * is being added
+					 */
+					if ( addmod || !BER_BVISNULL( &ml->sml_values[ 1 ] ) ) {
+						rs->sr_err = LDAP_CONSTRAINT_VIOLATION; 
+						rs->sr_text = "Password policy only allows one password value";
+						goto return_results;
+					}
+
+					addmod = ml;
+				} else {
+					/* replace can have no values, add cannot */
+					assert( ml->sml_op == LDAP_MOD_REPLACE );
+				}
 			}
 
 		} else if ( !is_at_operational( ml->sml_desc->ad_type ) ) {
@@ -1622,30 +1622,18 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 	 * if we have a "safe password modify policy", then we need to check if we're doing
 	 * a delete (with the old password), followed by an add (with the new password).
 	 *
-	 * If we don't have this, then we fail with an error. We also skip all the checks if
+	 * If we got just a delete with nothing else, just let it go. We also skip all the checks if
 	 * the root user is bound. Root can do anything, including avoid the policies.
 	 */
 
 	if (!pwmod) goto do_modify;
 
 	/*
-	 * Did we get a valid add mod?
-	 */
-
-	if (!addmod) {
-		rs->sr_err = LDAP_OTHER;
-		rs->sr_text = "Internal Error";
-		Debug( LDAP_DEBUG_TRACE,
-			"cannot locate modification supplying new password\n", 0, 0, 0 );
-		goto return_results;
-	}
-
-	/*
 	 * Build the password history list in ascending time order
 	 * We need this, even if the user is root, in order to maintain
 	 * the pwdHistory operational attributes properly.
 	 */
-	if (pp.pwdInHistory > 0 && (ha = attr_find( e->e_attrs, ad_pwdHistory ))) {
+	if (addmod && pp.pwdInHistory > 0 && (ha = attr_find( e->e_attrs, ad_pwdHistory ))) {
 		struct berval oldpw;
 		time_t oldtime;
 
@@ -1666,6 +1654,20 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 	}
 
 	if (be_isroot( op )) goto do_modify;
+
+	if (!pp.pwdAllowUserChange) {
+		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
+		rs->sr_text = "User alteration of password is not allowed";
+		pErr = PP_passwordModNotAllowed;
+		goto return_results;
+	}
+
+	/* Just deleting? */
+	if (!addmod) {
+		/* skip everything else */
+		pwmod = 0;
+		goto do_modify;
+	}
 
 	/* This is a pwdModify exop that provided the old pw.
 	 * We need to create a Delete mod for this old pw and 
@@ -1694,13 +1696,6 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
 		rs->sr_text = "Must supply old password to be changed as well as new one";
 		pErr = PP_mustSupplyOldPassword;
-		goto return_results;
-	}
-
-	if (!pp.pwdAllowUserChange) {
-		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
-		rs->sr_text = "User alteration of password is not allowed";
-		pErr = PP_passwordModNotAllowed;
 		goto return_results;
 	}
 
