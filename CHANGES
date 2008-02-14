@@ -28,6 +28,7 @@ OpenLDAP 2.4.8 Engineering
 	Fixed slapd sasl with CLEARTEXT (ITS#5368)
 	Fixed slapd str2entry with no attrs (ITS#5308)
 	Fixed slapd TLSVerifyClient default (ITS#5360)
+	Fixed slapd HAVE_TLS dependency (ITS#5379)
 	Fixed slapd delta-syncrepl refresh mode (ITS#5376)
 	Fixed slapd-bdb idlcache on adds (ITS#5086)
 	Fixed slapd-bdb crash with modrdn (ITS#5358)

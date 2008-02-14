@@ -1402,19 +1402,18 @@ slap_cf_aux_table_unparse( void *src, struct berval *bv, slap_cf_aux_table *tab0
 int
 slap_tls_get_config( LDAP *ld, int opt, char **val )
 {
+#ifdef HAVE_TLS
 	slap_verbmasks *keys;
 	int i, ival;
 
 	*val = NULL;
 	switch( opt ) {
-#ifdef HAVE_TLS
 	case LDAP_OPT_X_TLS_CRLCHECK:
 		keys = crlkeys;
 		break;
 	case LDAP_OPT_X_TLS_REQUIRE_CERT:
 		keys = vfykeys;
 		break;
-#endif
 	default:
 		return -1;
 	}
@@ -1425,6 +1424,7 @@ slap_tls_get_config( LDAP *ld, int opt, char **val )
 			return 0;
 		}
 	}
+#endif
 	return -1;
 }
 
