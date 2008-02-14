@@ -1227,7 +1227,9 @@ cleanup_attr:;
 					mod.sm_type = mod.sm_desc->ad_cname;
 					mod.sm_numvals = (*tap)->a_numvals;
 					mod.sm_values = (*tap)->a_vals;
-					mod.sm_nvalues = (*tap)->a_nvals;
+					if ( (*tap)->a_nvals != (*tap)->a_vals ) {
+						mod.sm_nvalues = (*tap)->a_nvals;
+					}
 
 					(void)modify_add_values( &e, &mod,
 						/* permissive */ 1,
@@ -1614,6 +1616,7 @@ rwm_db_config(
 				fname, lineno, argv[ 1 ] );
 			return 1;
 		}
+
 	} else if ( strcasecmp( argv[0], "normalize-mapped-attrs" ) ==  0 ) {
 		if ( argc !=2 ) { 
 			fprintf( stderr,
