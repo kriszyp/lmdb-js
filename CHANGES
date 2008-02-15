@@ -1,6 +1,6 @@
 OpenLDAP 2.4 Change Log
 
-OpenLDAP 2.4.8 Engineering
+OpenLDAP 2.4.8 Release (2008/02/16)
 	Fixed ldapmodify verbose logging (ITS#5247)
 	Fixed ldapdelete with sizelimit (ITS#5294)
 	Fixed ldapdelete with subentries control (ITS#5293)
