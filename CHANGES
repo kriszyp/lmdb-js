@@ -38,6 +38,7 @@ OpenLDAP 2.4.8 Engineering
 	Added slapd-bdb/slapd-hdb DB encryption (ITS#5359)
 	Fixed slapd-ldif delete (ITS#5265)
 	Fixed slapd-meta link to slapd-ldap (ITS#5355)
+	Fixed slapd-meta setting of sm_nvalues (ITS#5375)
 	Fixed slapd-monitor crash (ITS#5311)
 	Fixed slapd-relay compare (ITS#4937)
 	Added slapd-sock (ITS#4094)

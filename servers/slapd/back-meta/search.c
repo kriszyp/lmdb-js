@@ -2042,7 +2042,9 @@ next_attr:;
 					mod.sm_desc = (*ap)->a_desc;
 					mod.sm_type = mod.sm_desc->ad_cname;
 					mod.sm_values = (*tap)->a_vals;
-					mod.sm_nvalues = (*tap)->a_nvals;
+					if ( (*tap)->a_nvals != (*tap)->a_vals ) {
+						mod.sm_nvalues = (*tap)->a_nvals;
+					}
 
 					(void)modify_add_values( &e, &mod,
 						/* permissive */ 1,
