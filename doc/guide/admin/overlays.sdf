@@ -261,7 +261,7 @@ bound to the slave will also exist on the master. If that DN does not have
 update privileges on the master, nothing will happen.
 
 You will need to restart the slave after these changes. Then, if you are using 
-{{loglevel 256}}, you can monitor an {{ldapmodify}} on the slave and the master.
+{{loglevel stats}} (256), you can monitor an {{ldapmodify}} on the slave and the master.
 
 Now start an {{ldapmodify}} on the slave and watch the logs. You should expect 
 something like:
