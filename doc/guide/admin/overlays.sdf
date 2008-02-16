@@ -360,12 +360,6 @@ When dynamic objects reach the end of their lifetime without being further
 refreshed, they are automatically {{deleted}}. There is no guarantee of immediate 
 deletion, so clients should not count on it.
 
-Dynamic objects can have subordinates, provided these also are dynamic objects.
-RFC 2589 does not specify what the behavior of a dynamic directory service 
-should be when a dynamic object with (dynamic) subordinates expires.
-In this implementation, the lifetime of dynamic objects with subordinates is prolonged
-until all the dynamic subordinates expire.
-   
 H3: Dynamic Directory Service Configuration
 
 
@@ -857,7 +851,7 @@ H3: Overview
 
 Overlays can be stacked, which means that more than one overlay
 can be instantiated for each database, or for the frontend.
-As a consequence, each overlay's function is called, if defined,
+As a consequence, each overlays function is called, if defined,
 when overlay execution is invoked.
 Multiple overlays are executed in reverse order (it's a stack, all in all)
 with respect to their definition in slapd.conf (5), or with respect
