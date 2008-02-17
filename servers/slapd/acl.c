@@ -2086,6 +2086,10 @@ acl_set_gather( SetCookie *cookie, struct berval *name, AttributeDescription *de
 
 	rc = ldap_url_parse( name->bv_val, &ludp );
 	if ( rc != LDAP_URL_SUCCESS ) {
+		Debug( LDAP_DEBUG_TRACE,
+			"%s acl_set_gather: unable to parse URL=\"%s\"\n",
+			cp->asc_op->o_log_prefix, name->bv_val, 0 );
+
 		rc = LDAP_PROTOCOL_ERROR;
 		goto url_done;
 	}
@@ -2094,6 +2098,10 @@ acl_set_gather( SetCookie *cookie, struct berval *name, AttributeDescription *de
 	{
 		/* host part must be empty */
 		/* extensions parts must be empty */
+		Debug( LDAP_DEBUG_TRACE,
+			"%s acl_set_gather: host/exts must be absent in URL=\"%s\"\n",
+			cp->asc_op->o_log_prefix, name->bv_val, 0 );
+
 		rc = LDAP_PROTOCOL_ERROR;
 		goto url_done;
 	}
@@ -2104,11 +2112,19 @@ acl_set_gather( SetCookie *cookie, struct berval *name, AttributeDescription *de
 			&op2.o_req_ndn, cp->asc_op->o_tmpmemctx );
 	BER_BVZERO( &op2.o_req_dn );
 	if ( rc != LDAP_SUCCESS ) {
+		Debug( LDAP_DEBUG_TRACE,
+			"%s acl_set_gather: DN=\"%s\" normalize failed\n",
+			cp->asc_op->o_log_prefix, op2.o_req_dn.bv_val, 0 );
+
 		goto url_done;
 	}
 
 	op2.o_bd = select_backend( &op2.o_req_ndn, 1 );
 	if ( ( op2.o_bd == NULL ) || ( op2.o_bd->be_search == NULL ) ) {
+		Debug( LDAP_DEBUG_TRACE,
+			"%s acl_set_gather: no database could be selected for DN=\"%s\"\n",
+			cp->asc_op->o_log_prefix, op2.o_req_ndn.bv_val, 0 );
+
 		rc = LDAP_NO_SUCH_OBJECT;
 		goto url_done;
 	}
@@ -2119,6 +2135,10 @@ acl_set_gather( SetCookie *cookie, struct berval *name, AttributeDescription *de
 				cp->asc_op->o_tmpmemctx );
 		op2.ors_filter = str2filter_x( cp->asc_op, op2.ors_filterstr.bv_val );
 		if ( op2.ors_filter == NULL ) {
+			Debug( LDAP_DEBUG_TRACE,
+				"%s acl_set_gather: unable to parse filter=\"%s\"\n",
+				cp->asc_op->o_log_prefix, op2.ors_filterstr.bv_val, 0 );
+
 			rc = LDAP_PROTOCOL_ERROR;
 			goto url_done;
 		}
