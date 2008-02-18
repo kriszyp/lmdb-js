@@ -1,6 +1,6 @@
 OpenLDAP 2.4 Change Log
 
-OpenLDAP 2.4.8 Release (2008/02/16)
+OpenLDAP 2.4.8 Release (2008/02/18)
 	Fixed ldapmodify verbose logging (ITS#5247)
 	Fixed ldapdelete with sizelimit (ITS#5294)
 	Fixed ldapdelete with subentries control (ITS#5293)
@@ -30,6 +30,8 @@ OpenLDAP 2.4.8 Release (2008/02/16)
 	Fixed slapd TLSVerifyClient default (ITS#5360)
 	Fixed slapd HAVE_TLS dependency (ITS#5379)
 	Fixed slapd delta-syncrepl refresh mode (ITS#5376)
+	Fixed slapd ACL sets URI attrs (ITS#5384)
+	Fixed slapd invalid entryUUID filter (ITS#5386)
 	Fixed slapd-bdb idlcache on adds (ITS#5086)
 	Fixed slapd-bdb crash with modrdn (ITS#5358)
 	Fixed slapd-bdb segv with bdb4.6 (ITS#5322)
