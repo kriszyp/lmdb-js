@@ -2031,6 +2031,10 @@ acl_set_cb_gather( Operation *op, SlapReply *rs )
 
 		for ( j = 0; !BER_BVISNULL( &rs->sr_attrs[ j ].an_name ); j++ ) {
 			AttributeDescription	*desc = rs->sr_attrs[ j ].an_desc;
+
+			if ( desc == NULL ) {
+				continue;
+			}
 			
 			if ( desc == slap_schema.si_ad_entryDN ) {
 				bvalsp = bvals;
@@ -2071,7 +2075,6 @@ acl_set_gather( SetCookie *cookie, struct berval *name, AttributeDescription *de
 	int			nattrs = 0;
 	slap_callback		cb = { NULL, acl_set_cb_gather, NULL, NULL };
 	acl_set_gather_t	p = { 0 };
-	const char		*text = NULL;
 
 	/* this routine needs to return the bervals instead of
 	 * plain strings, since syntax is not known.  It should
@@ -2083,6 +2086,10 @@ acl_set_gather( SetCookie *cookie, struct berval *name, AttributeDescription *de
 
 	rc = ldap_url_parse( name->bv_val, &ludp );
 	if ( rc != LDAP_URL_SUCCESS ) {
+		Debug( LDAP_DEBUG_TRACE,
+			"%s acl_set_gather: unable to parse URL=\"%s\"\n",
+			cp->asc_op->o_log_prefix, name->bv_val, 0 );
+
 		rc = LDAP_PROTOCOL_ERROR;
 		goto url_done;
 	}
@@ -2091,6 +2098,10 @@ acl_set_gather( SetCookie *cookie, struct berval *name, AttributeDescription *de
 	{
 		/* host part must be empty */
 		/* extensions parts must be empty */
+		Debug( LDAP_DEBUG_TRACE,
+			"%s acl_set_gather: host/exts must be absent in URL=\"%s\"\n",
+			cp->asc_op->o_log_prefix, name->bv_val, 0 );
+
 		rc = LDAP_PROTOCOL_ERROR;
 		goto url_done;
 	}
@@ -2101,11 +2112,19 @@ acl_set_gather( SetCookie *cookie, struct berval *name, AttributeDescription *de
 			&op2.o_req_ndn, cp->asc_op->o_tmpmemctx );
 	BER_BVZERO( &op2.o_req_dn );
 	if ( rc != LDAP_SUCCESS ) {
+		Debug( LDAP_DEBUG_TRACE,
+			"%s acl_set_gather: DN=\"%s\" normalize failed\n",
+			cp->asc_op->o_log_prefix, op2.o_req_dn.bv_val, 0 );
+
 		goto url_done;
 	}
 
 	op2.o_bd = select_backend( &op2.o_req_ndn, 1 );
 	if ( ( op2.o_bd == NULL ) || ( op2.o_bd->be_search == NULL ) ) {
+		Debug( LDAP_DEBUG_TRACE,
+			"%s acl_set_gather: no database could be selected for DN=\"%s\"\n",
+			cp->asc_op->o_log_prefix, op2.o_req_ndn.bv_val, 0 );
+
 		rc = LDAP_NO_SUCH_OBJECT;
 		goto url_done;
 	}
@@ -2116,6 +2135,10 @@ acl_set_gather( SetCookie *cookie, struct berval *name, AttributeDescription *de
 				cp->asc_op->o_tmpmemctx );
 		op2.ors_filter = str2filter_x( cp->asc_op, op2.ors_filterstr.bv_val );
 		if ( op2.ors_filter == NULL ) {
+			Debug( LDAP_DEBUG_TRACE,
+				"%s acl_set_gather: unable to parse filter=\"%s\"\n",
+				cp->asc_op->o_log_prefix, op2.ors_filterstr.bv_val, 0 );
+
 			rc = LDAP_PROTOCOL_ERROR;
 			goto url_done;
 		}
@@ -2131,19 +2154,25 @@ acl_set_gather( SetCookie *cookie, struct berval *name, AttributeDescription *de
 
 	/* Grap the attributes */
 	if ( ludp->lud_attrs ) {
+		int i;
+
 		for ( ; ludp->lud_attrs[ nattrs ]; nattrs++ )
 			;
 
-		anlistp = slap_sl_malloc( sizeof( AttributeName ) * ( nattrs + 2 ),
+		anlistp = slap_sl_calloc( sizeof( AttributeName ), nattrs + 2,
 				cp->asc_op->o_tmpmemctx );
 
-		for ( ; ludp->lud_attrs[ nattrs ]; nattrs++ ) {
-			ber_str2bv( ludp->lud_attrs[ nattrs ], 0, 0, &anlistp[ nattrs ].an_name );
-			anlistp[ nattrs ].an_desc = NULL;
-			rc = slap_bv2ad( &anlistp[ nattrs ].an_name,
-					&anlistp[ nattrs ].an_desc, &text );
-			if ( rc != LDAP_SUCCESS ) {
-				goto url_done;
+		for ( i = 0, nattrs = 0; ludp->lud_attrs[ i ]; i++ ) {
+			struct berval		name;
+			AttributeDescription	*desc = NULL;
+			const char		*text = NULL;
+
+			ber_str2bv( ludp->lud_attrs[ i ], 0, 0, &name );
+			rc = slap_bv2ad( &name, &desc, &text );
+			if ( rc == LDAP_SUCCESS ) {
+				anlistp[ nattrs ].an_name = name;
+				anlistp[ nattrs ].an_desc = desc;
+				nattrs++;
 			}
 		}
 
