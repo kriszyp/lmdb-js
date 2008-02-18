@@ -22,14 +22,14 @@
 LDAP_BEGIN_DECL
 
 typedef struct ConfigTable {
-	char *name;
-	char *what;
+	const char *name;
+	const char *what;
 	int min_args;
 	int max_args;
 	int length;
 	unsigned int arg_type;
 	void *arg_item;
-	char *attribute;
+	const char *attribute;
 	AttributeDescription *ad;
 	void *notify;
 } ConfigTable;
@@ -99,7 +99,7 @@ typedef int (ConfigCfAdd)(
 	Operation *op, SlapReply *rs, Entry *parent, struct config_args_s *ca );
 
 typedef struct ConfigOCs {
-	char *co_def;
+	const char *co_def;
 	ConfigType co_type;
 	ConfigTable *co_table;
 	ConfigLDAPadd *co_ldadd;
