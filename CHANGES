@@ -1,6 +1,6 @@
 OpenLDAP 2.3 Change Log
 
-OpenLDAP 2.3.41 Release (2008/02/16)
+OpenLDAP 2.3.41 Release (2008/02/19)
 	Fixed slapd timestamp race condition (ITS#5370)
 	Fixed slapd delta-syncrepl refresh mode (ITS#5376)
 	Fixed slapd-bdb modrdn to same dn (ITS#5319)
