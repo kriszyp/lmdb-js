@@ -851,7 +851,7 @@ H3: Overview
 
 Overlays can be stacked, which means that more than one overlay
 can be instantiated for each database, or for the frontend.
-As a consequence, each overlays function is called, if defined,
+As a consequence, each overlay's function is called, if defined,
 when overlay execution is invoked.
 Multiple overlays are executed in reverse order (it's a stack, all in all)
 with respect to their definition in slapd.conf (5), or with respect
