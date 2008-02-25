@@ -502,6 +502,10 @@ oc_next( ObjectClass **oc )
 	}
 #endif
 
+	if ( *oc == NULL ) {
+		return 0;
+	}
+
 	*oc = LDAP_STAILQ_NEXT(*oc,soc_next);
 
 	return (*oc != NULL);
