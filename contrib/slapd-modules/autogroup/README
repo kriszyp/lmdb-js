@@ -1,10 +1,10 @@
 autogroup overlay Readme
 
 DESCRIPTION
-    The autogroup overlay allows automated updates of group membership which
-    meet the requirements of any filter contained in the group. The filters 
-    are build from the LDAP URI-valued attributes. Any time an object is
-    added/deleated/updated, it is tested for compilance with the filters,
+    The autogroup overlay allows automated updates of group memberships which
+    meet the requirements of any filter contained in the group definition.
+	The filters are built from LDAP URI-valued attributes. Any time an object
+	is added/deleted/updated, it is tested for compliance with the filters,
     and its membership is accordingly updated. For searches and compares
     it behaves like a static group.
 
@@ -27,7 +27,7 @@ CONFIGURATION
     # slapd.conf:
 
     moduleload /path/to/autogroup.so
-        Loads the overlay (OpenLDAP must be build with --enable-modules).
+        Loads the overlay (OpenLDAP must be built with --enable-modules).
 
     overlay autogroup
         This directive adds the autogroup overlay to the current database.
