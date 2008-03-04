@@ -124,14 +124,14 @@ attrs_alloc( int num )
 
 
 void
-attr_clean_x( Attribute *a, void *ctx )
+attr_clean( Attribute *a )
 {
 	if ( a->a_nvals && a->a_nvals != a->a_vals &&
 		!( a->a_flags & SLAP_ATTR_DONT_FREE_VALS )) {
 		if ( a->a_flags & SLAP_ATTR_DONT_FREE_DATA ) {
-			ber_memfree_x( a->a_nvals, ctx );
+			free( a->a_nvals );
 		} else {
-			ber_bvarray_free_x( a->a_nvals, ctx );
+			ber_bvarray_free( a->a_nvals );
 		}
 	}
 	/* a_vals may be equal to slap_dummy_bv, a static empty berval;
@@ -141,9 +141,9 @@ attr_clean_x( Attribute *a, void *ctx )
 	if ( a->a_vals != &slap_dummy_bv &&
 		!( a->a_flags & SLAP_ATTR_DONT_FREE_VALS )) {
 		if ( a->a_flags & SLAP_ATTR_DONT_FREE_DATA ) {
-			ber_memfree_x( a->a_vals, ctx );
+			free( a->a_vals );
 		} else {
-			ber_bvarray_free_x( a->a_vals, ctx );
+			ber_bvarray_free( a->a_vals );
 		}
 	}
 	a->a_desc = NULL;
@@ -154,12 +154,6 @@ attr_clean_x( Attribute *a, void *ctx )
 #endif
 	a->a_flags = 0;
 	a->a_numvals = 0;
-}
-
-void
-attr_clean( Attribute *a )
-{
-	attr_clean_x( a, NULL );
 }
 
 void
@@ -190,7 +184,7 @@ comp_tree_free( Attribute *a )
 #endif
 
 void
-attrs_free_x( Attribute *a, void *ctx )
+attrs_free( Attribute *a )
 {
 	if ( a ) {
 		Attribute *b = (Attribute *)0xBAD, *tail, *next;
@@ -199,7 +193,7 @@ attrs_free_x( Attribute *a, void *ctx )
 		tail = a;
 		do {
 			next = a->a_next;
-			attr_clean_x( a, ctx );
+			attr_clean( a );
 			a->a_next = b;
 			b = a;
 			a = next;
@@ -212,12 +206,6 @@ attrs_free_x( Attribute *a, void *ctx )
 		attr_list = b;
 		ldap_pvt_thread_mutex_unlock( &attr_mutex );
 	}
-}
-
-void
-attrs_free( Attribute *a )
-{
-	attrs_free_x( a, NULL );
 }
 
 static void
