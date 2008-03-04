@@ -303,6 +303,7 @@ LDAP_SLAPD_F (int) attr_delete LDAP_P((
 	Attribute **attrs, AttributeDescription *desc ));
 
 LDAP_SLAPD_F (void) attrs_free LDAP_P(( Attribute *a ));
+LDAP_SLAPD_F (void) attrs_free_x LDAP_P(( Attribute *a, void *ctx ));
 LDAP_SLAPD_F (Attribute *) attrs_dup LDAP_P(( Attribute *a ));
 LDAP_SLAPD_F (int) attr_init LDAP_P(( void ));
 LDAP_SLAPD_F (int) attr_destroy LDAP_P(( void ));
