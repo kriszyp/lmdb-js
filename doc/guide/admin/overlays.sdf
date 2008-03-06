@@ -347,7 +347,7 @@ H2: Dynamic Directory Services
 
 H3: Overview
 
-The {{dds}} overlay to {{slapd}}(8) implements dynamic objects as per RFC 2589.
+The {{dds}} overlay to {{slapd}}(8) implements dynamic objects as per {{REF:RFC2589}}.
 The name {{dds}} stands for Dynamic Directory Services. It allows to define 
 dynamic objects, characterized by the {{dynamicObject}} objectClass.
 
@@ -362,62 +362,70 @@ deletion, so clients should not count on it.
 
 H3: Dynamic Directory Service Configuration
 
-A usage of dynamic objects might beto implement dynamic meetings; in this case, 
+A usage of dynamic objects might be to implement dynamic meetings; in this case, 
 all the participants to the meeting are allowed to refresh the meeting object, 
 but only the creator can delete it (otherwise it will be deleted when the TTL expires).
 
 If we add the overlay to an example database, specifying a Max TTL of 1 day, a 
 min of 10 seconds, with a default TTL of 1 hour. We'll also specify an interval
-of 5 seconds between expiration checks and a tolerance of 1 second (lifetime of
-a dynamic object will be {{B:entryTtl + tolerance}}.
+of 120 (less than 60s might be too small) seconds between expiration checks and a 
+tolerance of 5 second (lifetime of a dynamic object will be {{entryTtl + tolerance}}).
 
 >       overlay dds
 >       dds-max-ttl     1d
 >       dds-min-ttl     10s
 >       dds-default-ttl 1h
->       dds-interval    5s
->       dds-tolerance   1s
+>       dds-interval    120s
+>       dds-tolerance   5s
 
-So let's create an entry using:
+and add an index:
 
->       dn: cn=Dynamic,dc=example,dc=com
->       objectClass: inetOrgPerson
+>       entryExpireTimestamp
+
+Create a meeting is as simple as adding the following:
+
+>       dn: cn=OpenLDAP Documentation Meeting,ou=Meetings,dc=example,dc=com
+>       objectClass: groupOfNames
 >       objectClass: dynamicObject
->       cn: Dynamic Object
->       sn: Object
-
-MORE coming.
-
+>       cn: OpenLDAP Documentation Meeting
+>       member: uid=ghenry,ou=People,dc=example,dc=com
+>       member: uid=hyc,ou=People,dc=example,dc=com
 
 H4: Dynamic Directory Service ACLs
 
-Allow users to start a meeting and to join it; restrict refresh to the {{B:member}}s; 
+Allow users to start a meeting and to join it; restrict refresh to the {{member}}; 
 restrict delete to the creator:
 
 >       access to attrs=userPassword
 >          by self write
 >          by * read
 >       
->       access to dn.base="cn=Meetings,dc=example,dc=com"
+>       access to dn.base="ou=Meetings,dc=example,dc=com"
 >                 attrs=children
 >            by users write
 >       
->       access to dn.onelevel="cn=Meetings,dc=example,dc=com"
+>       access to dn.onelevel="ou=Meetings,dc=example,dc=com"
 >                 attrs=entry
 >            by dnattr=creatorsName write
 >            by * read
 >       
->       access to dn.onelevel="cn=Meetings,dc=example,dc=com"
+>       access to dn.onelevel="ou=Meetings,dc=example,dc=com"
 >                 attrs=participant
 >            by dnattr=creatorsName write
 >            by users selfwrite
 >            by * read
 >       
->       access to dn.onelevel="cn=Meetings,dc=example,dc=com"
+>       access to dn.onelevel="ou=Meetings,dc=example,dc=com"
 >                 attrs=entryTtl
 >            by dnattr=member manage
 >            by * read
 
+In simple terms, the user who created the {{OpenLDAP Documentation Meeting}} can add new attendees, 
+refresh the meeting using (basically complete control):
+
+>       ldapexop -x -H ldap://ldaphost "refresh" "cn=OpenLDAP Documentation Meeting,ou=Meetings,dc=example,dc=com" "120" -D "uid=ghenry,ou=People,dc=example,dc=com" -W
+
+Any user can join the meeting, but not add another attendee, but they can refresh the meeting. The ACLs above are quite straight forward to understand.
 
 H2: Dynamic Groups
 
@@ -907,7 +915,7 @@ H3: Overview
 
 Overlays can be stacked, which means that more than one overlay
 can be instantiated for each database, or for the frontend.
-As a consequence, each overlay's function is called, if defined,
+As a consequence, each overlays function is called, if defined,
 when overlay execution is invoked.
 Multiple overlays are executed in reverse order (it's a stack, all in all)
 with respect to their definition in slapd.conf (5), or with respect
