@@ -175,7 +175,7 @@ CA|Certificate Authority
 CER|Canonical Encoding Rules
 CLDAP|Connection-less LDAP
 CN|Common Name
-CRAM-MD5|SASL MD5 Challedge/Response Authentication Mechanism
+CRAM-MD5|SASL MD5 Challenge/Response Authentication Mechanism
 CRL|Certificate Revocation List
 DAP|Directory Access Protocol
 DC|Domain Component
@@ -219,7 +219,7 @@ JPEG|Joint Photographic Experts Group
 Kerberos|Kerberos Authentication Service
 LBER|Lightweight BER
 LDAP|Lightweight Directory Access Protocol
-LDAP Sync|LDAP Content Sychronization
+LDAP Sync|LDAP Content Synchronization
 LDAPv3|LDAP, version 3
 LDIF|LDAP Data Interchange Format
 MD5|Message Digest 5
@@ -284,6 +284,7 @@ UM-GUIDE|O|The SLAPD and SLURPD Administrators Guide|http://www.umich.edu/~dirsv
 RFC2079|PS|Definition of an X.500 Attribute Type and an Object Class to Hold Uniform Resource Identifers|http://www.rfc-editor.org/rfc/rfc2079.txt
 RFC2296|PS|Use of Language Codes in LDAP|http://www.rfc-editor.org/rfc/rfc2296.txt
 RFC2307|X|An Approach for Using LDAP as a Network Information Service|http://www.rfc-editor.org/rfc/rfc2307.txt
+RFC2589|PS|Lightweight Directory Access Protocol (v3): Extensions for Dynamic Directory Services|http://www.rfc-editor.org/rfc/rfc2589.txt
 RFC2798|I|Definition of the inetOrgPerson LDAP Object Class|http://www.rfc-editor.org/rfc/rfc2798.txt
 RFC2831|PS|Using Digest Authentication as a SASL Mechanism|http://www.rfc-editor.org/rfc/rfc2831.txt
 RFC2849|PS|The LDAP Data Interchange Format|http://www.rfc-editor.org/rfc/rfc2849.txt
@@ -294,7 +295,7 @@ RFC3494|I|Lightweight Directory Access Protocol version 2 (LDAPv2) to Historic S
 RFC4013|PS|SASLprep: Stringprep Profile for User Names and Passwords|http://www.rfc-editor.org/rfc/rfc4013.txt
 RFC4346|PS|The Transport Layer Security (TLS) Protocol, Version 1.1|http://www.rfc-editor.org/rfc/rfc4346.txt
 RFC4422|PS|Simple Authentication and Security Layer (SASL)|http://www.rfc-editor.org/rfc/rfc4422.txt
-RFC4510|PS|Lightweight Directory Access Protocol (LDAP) Technical Specification Roadmap|http://www.rfc-editor.org/rfc/rfc4510.txt
+RFC4510|PS|Lightweight Directory Access Protocol (LDAP): Technical Specification Roadmap|http://www.rfc-editor.org/rfc/rfc4510.txt
 RFC4511|PS|Lightweight Directory Access Protocol (LDAP): The Protocol|http://www.rfc-editor.org/rfc/rfc4512.txt
 RFC4512|PS|Lightweight Directory Access Protocol (LDAP): Directory Information Models|http://www.rfc-editor.org/rfc/rfc4512.txt
 RFC4513|PS|Lightweight Directory Access Protocol (LDAP): Authentication Methods and Security Mechanisms|http://www.rfc-editor.org/rfc/rfc4513.txt
