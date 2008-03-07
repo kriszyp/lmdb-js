@@ -382,7 +382,7 @@ and add an index:
 
 >       entryExpireTimestamp
 
-Create a meeting is as simple as adding the following:
+Creating a meeting is as simple as adding the following:
 
 >       dn: cn=OpenLDAP Documentation Meeting,ou=Meetings,dc=example,dc=com
 >       objectClass: groupOfNames
