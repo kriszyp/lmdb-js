@@ -286,6 +286,183 @@ from 1.
 Target <target> must be defined.
 
 .TP
+.B idassert-authzFrom <authz-regexp>
+if defined, selects what
+.I local
+identities are authorized to exploit the identity assertion feature.
+The string
+.B <authz-regexp>
+follows the rules defined for the
+.I authzFrom
+attribute.
+See 
+.BR slapd.conf (5),
+section related to
+.BR authz-policy ,
+for details on the syntax of this field.
+
+.HP
+.hy 0
+.B idassert-bind
+.B bindmethod=none|simple|sasl [binddn=<simple DN>] [credentials=<simple password>]
+.B [saslmech=<SASL mech>] [secprops=<properties>] [realm=<realm>]
+.B [authcId=<authentication ID>] [authzId=<authorization ID>]
+.B [authz={native|proxyauthz}] [mode=<mode>] [flags=<flags>]
+.B [tls_cert=<file>]
+.B [tls_key=<file>]
+.B [tls_cacert=<file>]
+.B [tls_cacertdir=<path>]
+.B [tls_reqcert=never|allow|try|demand]
+.B [tls_ciphersuite=<ciphers>]
+.B [tls_crlcheck=none|peer|all]
+.RS
+Allows to define the parameters of the authentication method that is 
+internally used by the proxy to authorize connections that are 
+authenticated by other databases.
+The identity defined by this directive, according to the properties
+associated to the authentication method, is supposed to have auth access 
+on the target server to attributes used on the proxy for authentication
+and authorization, and to be allowed to authorize the users.
+This requires to have
+.B proxyAuthz
+privileges on a wide set of DNs, e.g.
+.BR authzTo=dn.subtree:"" ,
+and the remote server to have
+.B authz-policy
+set to
+.B to
+or
+.BR both .
+See
+.BR slapd.conf (5)
+for details on these statements and for remarks and drawbacks about
+their usage.
+The supported bindmethods are
+
+\fBnone|simple|sasl\fP
+
+where
+.B none
+is the default, i.e. no \fIidentity assertion\fP is performed.
+
+The authz parameter is used to instruct the SASL bind to exploit 
+.B native 
+SASL authorization, if available; since connections are cached,
+this should only be used when authorizing with a fixed identity
+(e.g. by means of the 
+.B authzDN
+or
+.B authzID
+parameters).
+Otherwise, the default
+.B proxyauthz
+is used, i.e. the proxyAuthz control (Proxied Authorization, RFC 4370)
+is added to all operations.
+
+The supported modes are:
+
+\fB<mode> := {legacy|anonymous|none|self}\fP
+
+If 
+.B <mode>
+is not present, and 
+.B authzId
+is given, the proxy always authorizes that identity.
+.B <authorization ID>
+can be 
+
+\fBu:<user>\fP
+
+\fB[dn:]<DN>\fP
+
+The former is supposed to be expanded by the remote server according 
+to the authz rules; see
+.BR slapd.conf (5)
+for details.
+In the latter case, whether or not the 
+.B dn:
+prefix is present, the string must pass DN validation and normalization.
+
+The default mode is 
+.BR legacy ,
+which implies that the proxy will either perform a simple bind as the
+.I authcDN
+or a SASL bind as the
+.I authcID
+and assert the client's identity when it is not anonymous.
+Direct binds are always proxied.
+The other modes imply that the proxy will always either perform a simple bind 
+as the
+.IR authcDN
+or a SASL bind as the
+.IR authcID ,
+unless restricted by
+.BR idassert-authzFrom
+rules (see below), in which case the operation will fail;
+eventually, it will assert some other identity according to
+.BR <mode> .
+Other identity assertion modes are
+.BR anonymous
+and
+.BR self ,
+which respectively mean that the 
+.I empty 
+or the 
+.IR client 's 
+identity
+will be asserted;
+.BR none ,
+which means that no proxyAuthz control will be used, so the
+.I authcDN
+or the
+.I authcID
+identity will be asserted.
+For all modes that require the use of the
+.I proxyAuthz 
+control, on the remote server the proxy identity must have appropriate 
+.I authzTo
+permissions, or the asserted identities must have appropriate
+.I authzFrom 
+permissions.  Note, however, that the ID assertion feature is mostly 
+useful when the asserted identities do not exist on the remote server.
+
+Flags can be
+
+\fBoverride,[non-]prescriptive\fP
+
+When the 
+.B override
+flag is used, identity assertion takes place even when the database
+is authorizing for the identity of the client, i.e. after binding
+with the provided identity, and thus authenticating it, the proxy
+performs the identity assertion using the configured identity and
+authentication method.
+
+When the
+.B prescriptive
+flag is used (the default), operations fail with
+\fIinappropriateAuthentication\fP
+for those identities whose assertion is not allowed by the
+.B idassert-authzFrom
+patterns.
+If the 
+.B non-prescriptive
+flag is used, operations are performed anonymously for those identities 
+whose assertion is not allowed by the
+.B idassert-authzFrom
+patterns.
+
+The TLS settings default to the same as the main slapd TLS settings,
+except for
+.B tls_reqcert
+which defaults to "demand".
+
+The identity associated to this directive is also used for privileged
+operations whenever \fBidassert-bind\fP is defined and \fBacl-bind\fP
+is not.  See \fBacl-bind\fP for details.
+.RE
+
+.TP
 .B idle-timeout <time>
 This directive causes a cached connection to be dropped an recreated
 after it has been idle for the specified time.
