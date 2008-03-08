@@ -837,8 +837,10 @@ syncprov_sendresp( Operation *op, opcookie *opc, syncops *so,
 
 /* Play back queued responses */
 static int
-syncprov_qplay( Operation *op, slap_overinst *on, syncops *so )
+syncprov_qplay( Operation *op, struct re_s *rtask )
 {
+	syncops *so = rtask->arg;
+	slap_overinst *on = so->s_op->o_private;
 	syncres *sr;
 	Entry *e;
 	opcookie opc;
@@ -910,7 +912,6 @@ syncprov_qtask( void *ctx, void *arg )
 {
 	struct re_s *rtask = arg;
 	syncops *so = rtask->arg;
-	slap_overinst *on = so->s_op->o_private;
 	OperationBuffer opbuf;
 	Operation *op;
 	BackendDB be;
@@ -935,7 +936,7 @@ syncprov_qtask( void *ctx, void *arg )
 	op->o_private = NULL;
 	op->o_callback = NULL;
 
-	rc = syncprov_qplay( op, on, so );
+	rc = syncprov_qplay( op, rtask );
 
 	/* decrement use count... */
 	syncprov_free_syncop( so );
