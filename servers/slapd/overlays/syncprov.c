@@ -1780,7 +1780,13 @@ syncprov_op_mod( Operation *op, SlapReply *rs )
 			/* wait for this op to get to head of list */
 			while ( mt->mt_mods != mi ) {
 				ldap_pvt_thread_mutex_unlock( &mt->mt_mutex );
-				ldap_pvt_thread_yield();
+				/* FIXME: if dynamic config can delete overlays or
+				 * databases we'll have to check for cleanup here.
+				 * Currently it's not an issue because there are
+				 * no dynamic config deletes...
+				 */
+				if ( !ldap_pvt_thread_pool_pausecheck( &connection_pool ))
+					ldap_pvt_thread_yield();
 				ldap_pvt_thread_mutex_lock( &mt->mt_mutex );
 
 				/* clean up if the caller is giving up */
