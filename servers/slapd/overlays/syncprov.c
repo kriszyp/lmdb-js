@@ -853,10 +853,10 @@ syncprov_qplay( Operation *op, slap_overinst *on, syncops *so )
 			so->s_res = sr->s_next;
 		if ( !so->s_res )
 			so->s_restail = NULL;
-		ldap_pvt_thread_mutex_unlock( &so->s_mutex );
-
+		/* Exit loop with mutex held */
 		if ( !sr || so->s_op->o_abandon )
 			break;
+		ldap_pvt_thread_mutex_unlock( &so->s_mutex );
 
 		opc.sdn = sr->s_dn;
 		opc.sndn = sr->s_ndn;
@@ -883,9 +883,24 @@ syncprov_qplay( Operation *op, slap_overinst *on, syncops *so )
 
 		ch_free( sr );
 
-		if ( rc )
+		if ( rc ) {
+			/* Exit loop with mutex held */
+			ldap_pvt_thread_mutex_lock( &so->s_mutex );
 			break;
+		}
 	}
+
+	/* wait until we get explicitly scheduled again */
+	ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
+	ldap_pvt_runqueue_stoptask( &slapd_rq, rtask );
+	if ( rc == 0 ) {
+		ldap_pvt_runqueue_resched( &slapd_rq, rtask, 1 );
+	} else {
+		/* bail out on any error */
+		ldap_pvt_runqueue_remove( &slapd_rq, rtask );
+	}
+	ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
+	ldap_pvt_thread_mutex_unlock( &so->s_mutex );
 	return rc;
 }
 
@@ -924,17 +939,6 @@ syncprov_qtask( void *ctx, void *arg )
 
 	/* decrement use count... */
 	syncprov_free_syncop( so );
-
-	/* wait until we get explicitly scheduled again */
-	ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
-	ldap_pvt_runqueue_stoptask( &slapd_rq, rtask );
-	if ( rc == 0 ) {
-		ldap_pvt_runqueue_resched( &slapd_rq, rtask, 1 );
-	} else {
-		/* bail out on any error */
-		ldap_pvt_runqueue_remove( &slapd_rq, rtask );
-	}
-	ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
 
 #if 0	/* FIXME: connection_close isn't exported from slapd.
 		 * should it be?
