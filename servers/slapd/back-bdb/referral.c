@@ -93,7 +93,7 @@ dn2entry_retry:
 			if( is_entry_referral( e ) ) {
 				BerVarray ref = get_entry_referrals( op, e );
 				rc = LDAP_OTHER;
-				rs->sr_ref = referral_rewrite( ref, NULL,
+				rs->sr_ref = referral_rewrite( ref, &e->e_name,
 					&op->o_req_dn, LDAP_SCOPE_DEFAULT );
 				ber_bvarray_free( ref );
 				if ( rs->sr_ref ) {
@@ -104,10 +104,6 @@ dn2entry_retry:
 
 			bdb_cache_return_entry_r (bdb, e, &lock);
 			e = NULL;
-		} else if ( !be_issuffix( op->o_bd, &op->o_req_ndn ) && default_referral != NULL ) {
-			rc = LDAP_OTHER;
-			rs->sr_ref = referral_rewrite( default_referral,
-				NULL, &op->o_req_dn, LDAP_SCOPE_DEFAULT );
 		}
 
 		if( rs->sr_ref != NULL ) {
