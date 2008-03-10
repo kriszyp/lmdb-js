@@ -692,12 +692,8 @@ ldap_int_thread_pool_wrapper (
 	return(NULL);
 }
 
-/* See if a pause was requested; wait for it if so.
- * Return 1 if we waited, 0 if not
- */
-int
-ldap_pvt_thread_pool_pausecheck (
-	ldap_pvt_thread_pool_t *tpool )
+static int
+handle_pause( ldap_pvt_thread_pool_t *tpool, int do_pause )
 {
 	struct ldap_int_thread_pool_s *pool;
 
@@ -709,7 +705,7 @@ ldap_pvt_thread_pool_pausecheck (
 	if (pool == NULL)
 		return(0);
 
-	if ( !pool->ltp_pause )
+	if (! (do_pause || pool->ltp_pause))
 		return(0);
 
 	ldap_pvt_thread_mutex_lock(&pool->ltp_mutex);
@@ -727,56 +723,42 @@ ldap_pvt_thread_pool_pausecheck (
 		pool->ltp_pending_count--;
 		pool->ltp_active_count++;
 	}
+
+	if (do_pause) {
+		/* Wait for everyone else to pause or finish */
+		pool->ltp_pause = 1;
+		/* Let ldap_pvt_thread_pool_submit() through to its ltp_pause test,
+		 * and do not finish threads in ldap_pvt_thread_pool_wrapper() */
+		pool->ltp_open_count = -pool->ltp_open_count;
+		SET_VARY_OPEN_COUNT(pool);
+		/* Hide pending tasks from ldap_pvt_thread_pool_wrapper() */
+		pool->ltp_work_list = &empty_pending_list;
+
+		while (pool->ltp_active_count > 1) {
+			ldap_pvt_thread_cond_wait(&pool->ltp_pcond, &pool->ltp_mutex);
+		}
+	}
+
 	ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
-	return 1;
+	return(!do_pause);
+}
+
+/*
+ * If a pause was requested, wait for it.  If several threads
+ * are waiting to pause, let through one or more pauses.
+ * Return 1 if we waited, 0 if not, -1 at parameter error.
+ */
+int
+ldap_pvt_thread_pool_pausecheck( ldap_pvt_thread_pool_t *tpool )
+{
+	return handle_pause( tpool, 0 );
 }
 
 /* Pause the pool.  Return when all other threads are paused. */
 int
-ldap_pvt_thread_pool_pause ( 
-	ldap_pvt_thread_pool_t *tpool )
+ldap_pvt_thread_pool_pause( ldap_pvt_thread_pool_t *tpool )
 {
-	struct ldap_int_thread_pool_s *pool;
-
-	if (tpool == NULL)
-		return(-1);
-
-	pool = *tpool;
-
-	if (pool == NULL)
-		return(0);
-
-	ldap_pvt_thread_mutex_lock(&pool->ltp_mutex);
-
-	/* If someone else has already requested a pause, we have to wait */
-	if (pool->ltp_pause) {
-		pool->ltp_pending_count++;
-		pool->ltp_active_count--;
-		/* let the other pool_pause() know when it can proceed */
-		if (pool->ltp_active_count < 2)
-			ldap_pvt_thread_cond_signal(&pool->ltp_pcond);
-		do {
-			ldap_pvt_thread_cond_wait(&pool->ltp_cond, &pool->ltp_mutex);
-		} while (pool->ltp_pause);
-		pool->ltp_pending_count--;
-		pool->ltp_active_count++;
-	}
-
-	/* Wait for everyone else to pause or finish */
-	pool->ltp_pause = 1;
-	/* Let ldap_pvt_thread_pool_submit() through to its ltp_pause test,
-	 * and do not finish threads in ldap_pvt_thread_pool_wrapper() */
-	pool->ltp_open_count = -pool->ltp_open_count;
-	SET_VARY_OPEN_COUNT(pool);
-	/* Hide pending tasks from ldap_pvt_thread_pool_wrapper() */
-	pool->ltp_work_list = &empty_pending_list;
-
-	while (pool->ltp_active_count > 1) {
-		ldap_pvt_thread_cond_wait(&pool->ltp_pcond, &pool->ltp_mutex);
-	}
-
-	ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
-	return(0);
+	return handle_pause( tpool, 1 );
 }
 
 /* End a pause */
