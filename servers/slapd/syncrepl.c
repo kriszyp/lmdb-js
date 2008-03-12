@@ -671,7 +671,7 @@ compare_csns( struct sync_cookie *sc1, struct sync_cookie *sc2, int *which )
 			value_match( &match, slap_schema.si_ad_entryCSN,
 				slap_schema.si_ad_entryCSN->ad_type->sat_ordering,
 				SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
-				&sc1->ctxcsn[i], &sc2->ctxcsn[i], &text );
+				&sc1->ctxcsn[i], &sc2->ctxcsn[j], &text );
 			if ( match < 0 ) {
 				*which = j;
 				return match;
