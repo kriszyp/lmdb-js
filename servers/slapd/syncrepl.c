@@ -596,27 +596,35 @@ do_syncrep1(
 		 * this particular consumer. That includes other consumers in
 		 * the same context, or local changes detected above.
 		 */
-		if ( si->si_cookieAge != si->si_cookieState->cs_age ) {
-			for (i=0; !BER_BVISNULL( &si->si_syncCookie.ctxcsn[i] ); i++) {
-				/* bogus, just dup everything */
-				if ( si->si_syncCookie.sids[i] == -1 ) {
-					ber_bvarray_free( si->si_syncCookie.ctxcsn );
-					ber_bvarray_dup_x( &si->si_syncCookie.ctxcsn,
-						si->si_cookieState->cs_vals, NULL );
-					changed = 1;
-					break;
-				}
-				for (j=0; j<si->si_cookieState->cs_num; j++) {
-					if ( si->si_syncCookie.sids[i] !=
-						si->si_cookieState->cs_sids[j] )
-						continue;
-					if ( bvmatch( &si->si_syncCookie.ctxcsn[i],
-						&si->si_cookieState->cs_vals[j] ))
+		if ( si->si_cookieState->cs_num > 0 && si->si_cookieAge !=
+			si->si_cookieState->cs_age ) {
+			if ( !si->si_syncCookie.numcsns ) {
+				ber_bvarray_free( si->si_syncCookie.ctxcsn );
+				ber_bvarray_dup_x( &si->si_syncCookie.ctxcsn,
+					si->si_cookieState->cs_vals, NULL );
+				changed = 1;
+			} else {
+				for (i=0; !BER_BVISNULL( &si->si_syncCookie.ctxcsn[i] ); i++) {
+					/* bogus, just dup everything */
+					if ( si->si_syncCookie.sids[i] == -1 ) {
+						ber_bvarray_free( si->si_syncCookie.ctxcsn );
+						ber_bvarray_dup_x( &si->si_syncCookie.ctxcsn,
+							si->si_cookieState->cs_vals, NULL );
+						changed = 1;
 						break;
-					ber_bvreplace( &si->si_syncCookie.ctxcsn[i],
-						&si->si_cookieState->cs_vals[j] );
-					changed = 1;
-					break;
+					}
+					for (j=0; j<si->si_cookieState->cs_num; j++) {
+						if ( si->si_syncCookie.sids[i] !=
+							si->si_cookieState->cs_sids[j] )
+							continue;
+						if ( bvmatch( &si->si_syncCookie.ctxcsn[i],
+							&si->si_cookieState->cs_vals[j] ))
+							break;
+						ber_bvreplace( &si->si_syncCookie.ctxcsn[i],
+							&si->si_cookieState->cs_vals[j] );
+						changed = 1;
+						break;
+					}
 				}
 			}
 		}
