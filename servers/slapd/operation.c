@@ -184,6 +184,19 @@ slap_op_alloc(
 	return( op );
 }
 
+void
+slap_op_popextra( Operation *op, OpExtra *oe )
+{
+	OpExtra **prev;
+
+	for ( prev = &op->o_extra; *prev; prev = &(*prev)->oe_next ) {
+		if ( *prev == oe ) {
+			*prev = oe->oe_next;
+			break;
+		}
+	}
+}
+
 slap_op_t
 slap_req2op( ber_tag_t tag )
 {

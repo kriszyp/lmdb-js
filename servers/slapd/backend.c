@@ -1334,6 +1334,11 @@ be_entry_get_rw(
 	return LDAP_UNWILLING_TO_PERFORM;
 }
 
+typedef struct fe_extra {
+	OpExtra fe_oe;
+	BackendDB *fe_be;
+} fe_extra;
+
 int 
 fe_acl_group(
 	Operation *op,
@@ -1586,8 +1591,17 @@ fe_acl_attribute(
 	int			freeattr = 0, i, j, rc = LDAP_SUCCESS;
 	AccessControlState	acl_state = ACL_STATE_INIT;
 	Backend			*be = op->o_bd;
+	fe_extra		*fex;
 
-	op->o_bd = select_backend( edn, 0 );
+	for ( fex = (fe_extra *)op->o_extra; fex; fex = (fe_extra *)fex->fe_oe.oe_next ) {
+		if ( fex->fe_oe.oe_key == (void *)frontend_init )
+			break;
+	}
+
+	if ( fex && fex->fe_be )
+		op->o_bd = fex->fe_be;
+	else
+		op->o_bd = select_backend( edn, 0 );
 
 	if ( target && dn_match( &target->e_nname, edn ) ) {
 		e = target;
@@ -1706,13 +1720,18 @@ backend_attribute(
 	slap_access_t access )
 {
 	int			rc;
-	BackendDB		*be_orig;
+	fe_extra	fex;
 
-	be_orig = op->o_bd;
+	fex.fe_be = op->o_bd;
+	fex.fe_oe.oe_key = (void *)frontend_init;
+	fex.fe_oe.oe_next = op->o_extra;
+	op->o_extra = (OpExtra *)&fex;
+
 	op->o_bd = frontendDB;
 	rc = frontendDB->be_attribute( op, target, edn,
 		entry_at, vals, access );
-	op->o_bd = be_orig;
+	op->o_bd = fex.fe_be;
+	slap_op_popextra( op, (OpExtra *)&fex );
 
 	return rc;
 }

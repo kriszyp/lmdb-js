@@ -1394,10 +1394,8 @@ LDAP_SLAPD_F (Operation *) slap_op_alloc LDAP_P((
 	BerElement *ber, ber_int_t msgid,
 	ber_tag_t tag, ber_int_t id, void *ctx ));
 
-LDAP_SLAPD_F (int) slap_op_add LDAP_P(( Operation **olist, Operation *op ));
-LDAP_SLAPD_F (int) slap_op_remove LDAP_P(( Operation **olist, Operation *op ));
-LDAP_SLAPD_F (Operation *) slap_op_pop LDAP_P(( Operation **olist ));
 LDAP_SLAPD_F (slap_op_t) slap_req2op LDAP_P(( ber_tag_t tag ));
+LDAP_SLAPD_F (void) slap_op_popextra LDAP_P(( Operation *op, OpExtra *oe ));
 
 /*
  * operational.c
