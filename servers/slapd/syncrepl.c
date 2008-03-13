@@ -433,34 +433,6 @@ ldap_sync_search(
 }
 
 static int
-ask_syncprov( Operation *op, syncinfo_t *si, Attribute *a )
-{
-	AttributeName at[2];
-	Entry e = {0};
-	SlapReply rs = {0};
-
-	/* Look for contextCSN from syncprov overlay. If
-	 * there's no overlay, this will be a no-op. That means
-	 * this is a pure consumer, so local changes will not be
-	 * allowed, and all changes will already be reflected in
-	 * the cookieState.
-	 */
-	a->a_desc = slap_schema.si_ad_contextCSN;
-	e.e_attrs = a;
-	e.e_name = si->si_wbe->be_suffix[0];
-	e.e_nname = si->si_wbe->be_nsuffix[0];
-	rs.sr_entry = &e;
-	rs.sr_flags = REP_ENTRY_MODIFIABLE;
-	at[0].an_name = a->a_desc->ad_cname;
-	at[0].an_desc = a->a_desc;
-	BER_BVZERO( &at[1].an_name );
-	op->o_req_dn = e.e_name;
-	op->o_req_ndn = e.e_nname;
-
-	return backend_operational( op, &rs );
-}
-
-static int
 do_syncrep1(
 	Operation *op,
 	syncinfo_t *si )
@@ -527,25 +499,22 @@ do_syncrep1(
 			ldap_pvt_thread_mutex_lock( &si->si_cookieState->cs_mutex );
 			if ( !si->si_cookieState->cs_num ) {
 				/* get contextCSN shadow replica from database */
-				Attribute a = {0};
+				BerVarray csn = NULL;
 				void *ctx = op->o_tmpmemctx;
 
-				rc = ask_syncprov( op, si, &a );
-				if ( rc || !a.a_vals ) {
-					/* try to read stored contextCSN */
-					op->o_tmpmemctx = NULL;
-					backend_attribute( op, NULL, &op->o_req_ndn,
-						slap_schema.si_ad_contextCSN, &a.a_vals, ACL_READ );
-					op->o_tmpmemctx = ctx;
-					if ( a.a_vals ) {
-						for (i=0; !BER_BVISNULL( &a.a_vals[i] ); i++);
-						a.a_numvals = i;
-					}
-				}
-				if ( a.a_vals ) {
-					si->si_cookieState->cs_vals = a.a_vals;
-					si->si_cookieState->cs_num = a.a_numvals;
-					si->si_cookieState->cs_sids = slap_parse_csn_sids( a.a_vals, a.a_numvals, NULL );
+				op->o_req_ndn = op->o_bd->be_nsuffix[0];
+				op->o_req_dn = op->o_req_ndn;
+
+				/* try to read stored contextCSN */
+				op->o_tmpmemctx = NULL;
+				backend_attribute( op, NULL, &op->o_req_ndn,
+					slap_schema.si_ad_contextCSN, &csn, ACL_READ );
+				op->o_tmpmemctx = ctx;
+				if ( csn ) {
+					si->si_cookieState->cs_vals = csn;
+					for (i=0; !BER_BVISNULL( &csn[i] ); i++);
+					si->si_cookieState->cs_num = i;
+					si->si_cookieState->cs_sids = slap_parse_csn_sids( csn, i, NULL );
 				}
 			}
 			if ( si->si_cookieState->cs_num ) {
@@ -569,7 +538,10 @@ do_syncrep1(
 			si->si_syncCookie.ctxcsn, si->si_syncCookie.rid,
 			si->si_syncCookie.sid );
 	} else {
+		AttributeName at[2];
 		Attribute a = {0};
+		Entry e = {0};
+		SlapReply rs = {0};
 		int i, j, changed = 0;
 
 		/* Look for contextCSN from syncprov overlay. If
@@ -578,8 +550,20 @@ do_syncrep1(
 		 * allowed, and all changes will already be reflected in
 		 * the cookieState.
 		 */
+		a.a_desc = slap_schema.si_ad_contextCSN;
+		e.e_attrs = &a;
+		e.e_name = si->si_wbe->be_suffix[0];
+		e.e_nname = si->si_wbe->be_nsuffix[0];
+		rs.sr_entry = &e;
+		rs.sr_flags = REP_ENTRY_MODIFIABLE;
+		at[0].an_name = a.a_desc->ad_cname;
+		at[0].an_desc = a.a_desc;
+		BER_BVZERO( &at[1].an_name );
+		op->o_req_dn = e.e_name;
+		op->o_req_ndn = e.e_nname;
+
 		ldap_pvt_thread_mutex_lock( &si->si_cookieState->cs_mutex );
-		rc = ask_syncprov( op, si, &a );
+		rc = backend_operational( op, &rs );
 		if ( rc == LDAP_SUCCESS && a.a_vals ) {
 			int num = a.a_numvals;
 			/* check for differences */
