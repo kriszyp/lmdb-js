@@ -1940,12 +1940,10 @@ syncprov_detach_op( Operation *op, syncops *so, slap_overinst *on )
 	op2->o_do_not_cache = 1;
 
 	/* Add op2 to conn so abandon will find us */
-	ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
 	op->o_conn->c_n_ops_executing++;
 	op->o_conn->c_n_ops_completed--;
 	LDAP_STAILQ_INSERT_TAIL( &op->o_conn->c_ops, op2, o_next );
 	so->s_flags |= PS_IS_DETACHED;
-	ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
 
 	/* Prevent anyone else from trying to send a result for this op */
 	op->o_abandon = 1;
@@ -2055,15 +2053,27 @@ syncprov_search_response( Operation *op, SlapReply *rs )
 
 			/* Detach this Op from frontend control */
 			ldap_pvt_thread_mutex_lock( &ss->ss_so->s_mutex );
+			ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
 
-			/* Turn off the refreshing flag */
-			ss->ss_so->s_flags ^= PS_IS_REFRESHING;
+			/* But not if this connection was closed along the way */
+			if ( op->o_abandon ) {
+				ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
+				ldap_pvt_thread_mutex_unlock( &ss->ss_so->s_mutex );
+				syncprov_free_syncop( ss->ss_so );
+				return SLAPD_ABANDON;
 
-			syncprov_detach_op( op, ss->ss_so, on );
+			} else {
+				/* Turn off the refreshing flag */
+				ss->ss_so->s_flags ^= PS_IS_REFRESHING;
 
-			/* If there are queued responses, fire them off */
-			if ( ss->ss_so->s_res )
-				syncprov_qstart( ss->ss_so );
+				syncprov_detach_op( op, ss->ss_so, on );
+
+				ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
+
+				/* If there are queued responses, fire them off */
+				if ( ss->ss_so->s_res )
+					syncprov_qstart( ss->ss_so );
+			}
 			ldap_pvt_thread_mutex_unlock( &ss->ss_so->s_mutex );
 
 			return LDAP_SUCCESS;
