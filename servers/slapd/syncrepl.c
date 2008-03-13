@@ -554,24 +554,25 @@ do_syncrep1(
 		e.e_attrs = &a;
 		e.e_name = si->si_wbe->be_suffix[0];
 		e.e_nname = si->si_wbe->be_nsuffix[0];
-		rs.sr_entry = &e;
-		rs.sr_flags = REP_ENTRY_MODIFIABLE;
 		at[0].an_name = a.a_desc->ad_cname;
 		at[0].an_desc = a.a_desc;
 		BER_BVZERO( &at[1].an_name );
+		rs.sr_entry = &e;
+		rs.sr_flags = REP_ENTRY_MODIFIABLE;
+		rs.sr_attrs = at;
 		op->o_req_dn = e.e_name;
 		op->o_req_ndn = e.e_nname;
 
 		ldap_pvt_thread_mutex_lock( &si->si_cookieState->cs_mutex );
 		rc = backend_operational( op, &rs );
-		if ( rc == LDAP_SUCCESS && a.a_vals ) {
+		if ( rc == LDAP_SUCCESS && a.a_nvals ) {
 			int num = a.a_numvals;
 			/* check for differences */
 			if ( num != si->si_cookieState->cs_num ) {
 				changed = 1;
 			} else {
 				for ( i=0; i<num; i++ ) {
-					if ( ber_bvcmp( &a.a_vals[i],
+					if ( ber_bvcmp( &a.a_nvals[i],
 						&si->si_cookieState->cs_vals[i] )) {
 						changed =1;
 						break;
@@ -582,22 +583,20 @@ do_syncrep1(
 				ber_bvarray_free( si->si_cookieState->cs_vals );
 				ch_free( si->si_cookieState->cs_sids );
 				si->si_cookieState->cs_num = num;
-				si->si_cookieState->cs_vals = a.a_vals;
-				si->si_cookieState->cs_sids = slap_parse_csn_sids( a.a_vals,
+				si->si_cookieState->cs_vals = a.a_nvals;
+				si->si_cookieState->cs_sids = slap_parse_csn_sids( a.a_nvals,
 					num, NULL );
 				si->si_cookieState->cs_age++;
 			} else {
-				ber_bvarray_free( a.a_vals );
+				ber_bvarray_free( a.a_nvals );
 			}
-			changed = 0;
+			ber_bvarray_free( a.a_vals );
 		}
 		/* See if the cookieState has changed due to anything outside
 		 * this particular consumer. That includes other consumers in
 		 * the same context, or local changes detected above.
 		 */
-		if ( si->si_cookieState->cs_num > 1 && si->si_cookieAge !=
-			si->si_cookieState->cs_age ) {
-
+		if ( si->si_cookieAge != si->si_cookieState->cs_age ) {
 			for (i=0; !BER_BVISNULL( &si->si_syncCookie.ctxcsn[i] ); i++) {
 				/* bogus, just dup everything */
 				if ( si->si_syncCookie.sids[i] == -1 ) {
@@ -620,12 +619,13 @@ do_syncrep1(
 					break;
 				}
 			}
-			if ( changed ) {
-				ch_free( si->si_syncCookie.octet_str.bv_val );
-				slap_compose_sync_cookie( NULL, &si->si_syncCookie.octet_str,
-					si->si_syncCookie.ctxcsn, si->si_syncCookie.rid,
-					si->si_syncCookie.sid );
-			}
+		}
+		if ( changed ) {
+			si->si_cookieAge = si->si_cookieState->cs_age;
+			ch_free( si->si_syncCookie.octet_str.bv_val );
+			slap_compose_sync_cookie( NULL, &si->si_syncCookie.octet_str,
+				si->si_syncCookie.ctxcsn, si->si_syncCookie.rid,
+				si->si_syncCookie.sid );
 		}
 		ldap_pvt_thread_mutex_unlock( &si->si_cookieState->cs_mutex );
 	}
