@@ -42,6 +42,9 @@ PB:
 !include "slapdconfig.sdf"; chapter
 PB:
 
+!include "access-control.sdf"; chapter
+PB:
+
 !include "runningslapd.sdf"; chapter
 PB:
 
