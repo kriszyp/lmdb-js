@@ -2467,10 +2467,19 @@ typedef union OpRequest {
 	req_pwdexop_s oq_pwdexop;
 } OpRequest;
 
+/* This is only a header. Actual users should define their own
+ * structs with the oe_next / oe_key fields at the top and
+ * whatever else they need following.
+ */
 typedef struct OpExtra {
-	struct OpExtra *oe_next;
+	LDAP_SLIST_ENTRY(OpExtra) oe_next;
 	void *oe_key;
 } OpExtra;
+
+typedef struct OpExtraDB {
+	OpExtra oe;
+	BackendDB *oe_db;
+} OpExtraDB;
 
 struct Operation {
 	Opheader *o_hdr;
@@ -2665,7 +2674,7 @@ struct Operation {
 
 	/* DEPRECATE o_private - use o_extra instead */
 	void	*o_private;	/* anything the backend needs */
-	OpExtra	*o_extra;	/* anything the backend needs */
+	LDAP_SLIST_HEAD(o_e, OpExtra) o_extra;	/* anything the backend needs */
 
 	LDAP_STAILQ_ENTRY(Operation)	o_next;	/* next operation in list */
 };

@@ -840,7 +840,7 @@ static int
 syncprov_qplay( Operation *op, struct re_s *rtask )
 {
 	syncops *so = rtask->arg;
-	slap_overinst *on = so->s_op->o_private;
+	slap_overinst *on = LDAP_SLIST_FIRST(&so->s_op->o_extra)->oe_key;
 	syncres *sr;
 	Entry *e;
 	opcookie opc;
@@ -933,7 +933,7 @@ syncprov_qtask( void *ctx, void *arg )
 	be = *so->s_op->o_bd;
 	be.be_flags |= SLAP_DBFLAG_OVERLAY;
 	op->o_bd = &be;
-	op->o_private = NULL;
+	LDAP_SLIST_FIRST(&op->o_extra) = NULL;
 	op->o_callback = NULL;
 
 	rc = syncprov_qplay( op, rtask );
@@ -1854,6 +1854,7 @@ syncprov_search_cleanup( Operation *op, SlapReply *rs )
 typedef struct SyncOperationBuffer {
 	Operation		sob_op;
 	Opheader		sob_hdr;
+	OpExtra			sob_oe;
 	AttributeName	sob_extra;	/* not always present */
 	/* Further data allocated here */
 } SyncOperationBuffer;
@@ -1882,6 +1883,7 @@ syncprov_detach_op( Operation *op, syncops *so, slap_overinst *on )
 	sopbuf2 = ch_calloc( 1, size );
 	op2 = &sopbuf2->sob_op;
 	op2->o_hdr = &sopbuf2->sob_hdr;
+	LDAP_SLIST_FIRST(&op2->o_extra) = &sopbuf2->sob_oe;
 
 	/* Copy the fields we care about explicitly, leave the rest alone */
 	*op2->o_hdr = *op->o_hdr;
@@ -1889,7 +1891,8 @@ syncprov_detach_op( Operation *op, syncops *so, slap_overinst *on )
 	op2->o_time = op->o_time;
 	op2->o_bd = on->on_info->oi_origdb;
 	op2->o_request = op->o_request;
-	op2->o_private = on;
+	LDAP_SLIST_FIRST(&op2->o_extra)->oe_key = on;
+	LDAP_SLIST_NEXT(LDAP_SLIST_FIRST(&op2->o_extra), oe_next) = NULL;
 
 	ptr = (char *) sopbuf2 + offsetof( SyncOperationBuffer, sob_extra );
 	if ( i ) {

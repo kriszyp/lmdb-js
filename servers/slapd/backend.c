@@ -1335,11 +1335,6 @@ be_entry_get_rw(
 	return LDAP_UNWILLING_TO_PERFORM;
 }
 
-typedef struct fe_extra {
-	OpExtra fe_oe;
-	BackendDB *fe_be;
-} fe_extra;
-
 int 
 fe_acl_group(
 	Operation *op,
@@ -1355,15 +1350,15 @@ fe_acl_group(
 	int rc;
 	GroupAssertion *g;
 	Backend *be = op->o_bd;
-	fe_extra		*fex;
+	OpExtra		*oex;
 
-	for ( fex = (fe_extra *)op->o_extra; fex; fex = (fe_extra *)fex->fe_oe.oe_next ) {
-		if ( fex->fe_oe.oe_key == (void *)backend_group )
+	LDAP_SLIST_FOREACH(oex, &op->o_extra, oe_next) {
+		if ( oex->oe_key == (void *)backend_group )
 			break;
 	}
 
-	if ( fex && fex->fe_be )
-		op->o_bd = fex->fe_be;
+	if ( oex && ((OpExtraDB *)oex)->oe_db )
+		op->o_bd = ((OpExtraDB *)oex)->oe_db;
 	else
 		op->o_bd = select_backend( gr_ndn, 0 );
 
@@ -1572,26 +1567,25 @@ backend_group(
 {
 	int			rc;
 	BackendDB *be_orig;
-	fe_extra	fex;
+	OpExtraDB	oex;
 
 	if ( op->o_abandon ) {
 		return SLAPD_ABANDON;
 	}
 
 	if ( op->o_bd && SLAP_ISOVERLAY( op->o_bd ))
-		fex.fe_be = op->o_bd->bd_orig;
+		oex.oe_db = op->o_bd->bd_orig;
 	else
-		fex.fe_be = op->o_bd;
-	fex.fe_oe.oe_key = (void *)backend_group;
-	fex.fe_oe.oe_next = op->o_extra;
-	op->o_extra = (OpExtra *)&fex;
+		oex.oe_db = op->o_bd;
+	oex.oe.oe_key = (void *)backend_group;
+	LDAP_SLIST_INSERT_HEAD(&op->o_extra, &oex.oe, oe_next);
 
 	be_orig = op->o_bd;
 	op->o_bd = frontendDB;
 	rc = frontendDB->be_group( op, target, gr_ndn,
 		op_ndn, group_oc, group_at );
 	op->o_bd = be_orig;
-	slap_op_popextra( op, (OpExtra *)&fex );
+	LDAP_SLIST_REMOVE(&op->o_extra, &oex.oe, OpExtra, oe_next);
 
 	return rc;
 }
@@ -1611,15 +1605,15 @@ fe_acl_attribute(
 	int			freeattr = 0, i, j, rc = LDAP_SUCCESS;
 	AccessControlState	acl_state = ACL_STATE_INIT;
 	Backend			*be = op->o_bd;
-	fe_extra		*fex;
+	OpExtra		*oex;
 
-	for ( fex = (fe_extra *)op->o_extra; fex; fex = (fe_extra *)fex->fe_oe.oe_next ) {
-		if ( fex->fe_oe.oe_key == (void *)backend_attribute )
+	LDAP_SLIST_FOREACH(oex, &op->o_extra, oe_next) {
+		if ( oex->oe_key == (void *)backend_attribute )
 			break;
 	}
 
-	if ( fex && fex->fe_be )
-		op->o_bd = fex->fe_be;
+	if ( oex && ((OpExtraDB *)oex)->oe_db )
+		op->o_bd = ((OpExtraDB *)oex)->oe_db;
 	else
 		op->o_bd = select_backend( edn, 0 );
 
@@ -1741,22 +1735,21 @@ backend_attribute(
 {
 	int			rc;
 	BackendDB *be_orig;
-	fe_extra	fex;
+	OpExtraDB	oex;
 
 	if ( op->o_bd && SLAP_ISOVERLAY( op->o_bd ))
-		fex.fe_be = op->o_bd->bd_orig;
+		oex.oe_db = op->o_bd->bd_orig;
 	else
-		fex.fe_be = op->o_bd;
-	fex.fe_oe.oe_key = (void *)backend_attribute;
-	fex.fe_oe.oe_next = op->o_extra;
-	op->o_extra = (OpExtra *)&fex;
+		oex.oe_db = op->o_bd;
+	oex.oe.oe_key = (void *)backend_attribute;
+	LDAP_SLIST_INSERT_HEAD(&op->o_extra, &oex.oe, oe_next);
 
 	be_orig = op->o_bd;
 	op->o_bd = frontendDB;
 	rc = frontendDB->be_attribute( op, target, edn,
 		entry_at, vals, access );
 	op->o_bd = be_orig;
-	slap_op_popextra( op, (OpExtra *)&fex );
+	LDAP_SLIST_REMOVE(&op->o_extra, &oex.oe, OpExtra, oe_next);
 
 	return rc;
 }
@@ -1881,10 +1874,10 @@ fe_aux_operational(
 	Attribute		**ap;
 	int			rc = LDAP_SUCCESS;
 	BackendDB		*be_orig = op->o_bd;
-	fe_extra		*fex;
+	OpExtra		*oex;
 
-	for ( fex = (fe_extra *)op->o_extra; fex; fex = (fe_extra *)fex->fe_oe.oe_next ) {
-		if ( fex->fe_oe.oe_key == (void *)backend_operational )
+	LDAP_SLIST_FOREACH(oex, &op->o_extra, oe_next) {
+		if ( oex->oe_key == (void *)backend_operational )
 			break;
 	}
 
@@ -1913,8 +1906,8 @@ fe_aux_operational(
 	}
 
 	/* Let the overlays have a chance at this */
-	if ( fex && fex->fe_be ) {
-		op->o_bd = fex->fe_be;
+	if ( oex && ((OpExtraDB *)oex)->oe_db ) {
+		op->o_bd = ((OpExtraDB *)oex)->oe_db;
 	} else {
 		op->o_bd = select_backend( &op->o_req_ndn, 0 );
 	}
@@ -1933,15 +1926,14 @@ int backend_operational( Operation *op, SlapReply *rs )
 {
 	int rc;
 	BackendDB *be_orig;
-	fe_extra	fex;
+	OpExtraDB	oex;
 
 	if ( op->o_bd && SLAP_ISOVERLAY( op->o_bd ))
-		fex.fe_be = op->o_bd->bd_orig;
+		oex.oe_db = op->o_bd->bd_orig;
 	else
-		fex.fe_be = op->o_bd;
-	fex.fe_oe.oe_key = (void *)backend_operational;
-	fex.fe_oe.oe_next = op->o_extra;
-	op->o_extra = (OpExtra *)&fex;
+		oex.oe_db = op->o_bd;
+	oex.oe.oe_key = (void *)backend_operational;
+	LDAP_SLIST_INSERT_HEAD(&op->o_extra, &oex.oe, oe_next);
 
 	/* Moved this into the frontend so global overlays are called */
 
@@ -1949,7 +1941,7 @@ int backend_operational( Operation *op, SlapReply *rs )
 	op->o_bd = frontendDB;
 	rc = frontendDB->be_operational( op, rs );
 	op->o_bd = be_orig;
-	slap_op_popextra( op, (OpExtra *)&fex );
+	LDAP_SLIST_REMOVE(&op->o_extra, &oex.oe, OpExtra, oe_next);
 
 	return rc;
 }

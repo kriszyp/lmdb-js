@@ -419,6 +419,8 @@ slapi_add_internal_pb( Slapi_PBlock *pb )
 {
 	SlapReply		*rs;
 	Slapi_Entry		*entry_orig = NULL;
+	OpExtraDB oex;
+	int rc;
 
 	if ( pb == NULL ) {
 		return -1;
@@ -478,16 +480,20 @@ slapi_add_internal_pb( Slapi_PBlock *pb )
 		goto cleanup;
 	}
 
-	if ( slapi_int_func_internal_pb( pb, op_add ) == 0 ) {
-		if ( pb->pb_op->ora_e != NULL && pb->pb_op->o_private != NULL ) {
+	oex.oe.oe_key = (void *)do_add;
+	oex.oe_db = NULL;
+	LDAP_SLIST_INSERT_HEAD(&pb->pb_op->o_extra, &oex.oe, oe_next);
+	rc = slapi_int_func_internal_pb( pb, op_add );
+	LDAP_SLIST_REMOVE(&pb->pb_op->o_extra, &oex.oe, OpExtra, oe_next);
+
+	if ( !rc ) {
+		if ( pb->pb_op->ora_e != NULL && oex.oe_db != NULL ) {
 			BackendDB	*bd = pb->pb_op->o_bd;
 
-			pb->pb_op->o_bd = (BackendDB *)pb->pb_op->o_private;
-			pb->pb_op->o_private = NULL;
+			pb->pb_op->o_bd = oex.oe_db;
 			be_entry_release_w( pb->pb_op, pb->pb_op->ora_e );
 			pb->pb_op->ora_e = NULL;
 			pb->pb_op->o_bd = bd;
-			pb->pb_op->o_private = NULL;
 		}
 	}
 
