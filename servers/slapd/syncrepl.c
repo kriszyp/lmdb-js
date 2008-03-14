@@ -2621,7 +2621,7 @@ syncrepl_updateCookie(
 	struct sync_cookie *syncCookie )
 {
 	Backend *be = op->o_bd;
-	Modifications mod[2];
+	Modifications mod;
 	struct berval first = BER_BVNULL;
 
 	int rc, i, j, len;
@@ -2629,24 +2629,22 @@ syncrepl_updateCookie(
 	slap_callback cb = { NULL };
 	SlapReply	rs_modify = {REP_RESULT};
 
-	mod[0].sml_op = LDAP_MOD_DELETE;
-	mod[0].sml_desc = slap_schema.si_ad_contextCSN;
-	mod[0].sml_type = mod[0].sml_desc->ad_cname;
-	mod[0].sml_values = NULL;
-	mod[0].sml_nvalues = NULL;
-	mod[0].sml_numvals = 0;
-	mod[0].sml_next = &mod[1];
-
-	mod[1].sml_op = LDAP_MOD_ADD;
-	mod[1].sml_desc = slap_schema.si_ad_contextCSN;
-	mod[1].sml_type = mod[0].sml_desc->ad_cname;
-	mod[1].sml_values = NULL;
-	mod[1].sml_nvalues = NULL;
-	mod[1].sml_numvals = 0;
-	mod[1].sml_next = NULL;
+	mod.sml_op = LDAP_MOD_REPLACE;
+	mod.sml_desc = slap_schema.si_ad_contextCSN;
+	mod.sml_type = mod.sml_desc->ad_cname;
+	mod.sml_nvalues = NULL;
+	mod.sml_next = NULL;
 
 	ldap_pvt_thread_mutex_lock( &si->si_cookieState->cs_mutex );
 
+	/* clone the cookieState CSNs so we can Replace the whole thing */
+	mod.sml_numvals = si->si_cookieState->cs_num;
+	mod.sml_values = op->o_tmpalloc(( mod.sml_numvals+1 )*sizeof(struct berval), op->o_tmpmemctx );
+	for ( i=0; i<mod.sml_numvals; i++ )
+		mod.sml_values[i] = si->si_cookieState->cs_vals[i];
+	BER_BVZERO( &mod.sml_values[i] );
+
+	/* find any CSNs in the syncCookie that are newer than the cookieState */
 	for ( i=0; i<syncCookie->numcsns; i++ ) {
 		for ( j=0; j<si->si_cookieState->cs_num; j++ ) {
 			if ( syncCookie->sids[i] != si->si_cookieState->cs_sids[j] )
@@ -2656,12 +2654,7 @@ syncrepl_updateCookie(
 				len = si->si_cookieState->cs_vals[j].bv_len;
 			if ( memcmp( syncCookie->ctxcsn[i].bv_val,
 				si->si_cookieState->cs_vals[j].bv_val, len ) > 0 ) {
-				ber_bvarray_add_x( &mod[0].sml_values,
-					&si->si_cookieState->cs_vals[j], op->o_tmpmemctx );
-				mod[0].sml_numvals++;
-				ber_bvarray_add_x( &mod[1].sml_values,
-					&syncCookie->ctxcsn[i], op->o_tmpmemctx );
-				mod[1].sml_numvals++;
+				mod.sml_values[j] = syncCookie->ctxcsn[i];
 				if ( BER_BVISNULL( &first ))
 					first = syncCookie->ctxcsn[i];
 			}
@@ -2669,9 +2662,10 @@ syncrepl_updateCookie(
 		}
 		/* there was no match for this SID, it's a new CSN */
 		if ( j == si->si_cookieState->cs_num ) {
-			ber_bvarray_add_x( &mod[1].sml_values,
-				&syncCookie->ctxcsn[i], op->o_tmpmemctx );
-			mod[1].sml_numvals++;
+			mod.sml_values = op->o_tmprealloc( mod.sml_values,
+				( mod.sml_numvals+2 )*sizeof(struct berval), op->o_tmpmemctx );
+			mod.sml_values[mod.sml_numvals++] = syncCookie->ctxcsn[i];
+			BER_BVZERO( &mod.sml_values[mod.sml_numvals] );
 			if ( BER_BVISNULL( &first ))
 				first = syncCookie->ctxcsn[i];
 		}
@@ -2679,6 +2673,7 @@ syncrepl_updateCookie(
 	/* Should never happen, ITS#5065 */
 	if ( BER_BVISNULL( &first )) {
 		ldap_pvt_thread_mutex_unlock( &si->si_cookieState->cs_mutex );
+		op->o_tmpfree( mod.sml_values, op->o_tmpmemctx );
 		return 0;
 	}
 	op->o_bd = si->si_wbe;
@@ -2696,11 +2691,7 @@ syncrepl_updateCookie(
 	/* update contextCSN */
 	op->o_msgid = SLAP_SYNC_UPDATE_MSGID;
 
-	if ( mod[0].sml_values )
-		op->orm_modlist = mod;
-	else
-		op->orm_modlist = &mod[1];
-
+	op->orm_modlist = &mod;
 	op->orm_no_opattrs = 1;
 	rc = op->o_bd->be_modify( op, &rs_modify );
 	op->orm_no_opattrs = 0;
@@ -2710,21 +2701,15 @@ syncrepl_updateCookie(
 		slap_sync_cookie_free( &si->si_syncCookie, 0 );
 		slap_dup_sync_cookie( &si->si_syncCookie, syncCookie );
 		/* If we replaced any old values */
-		if ( mod[0].sml_values ) {
-			for ( i=0; !BER_BVISNULL( &mod[0].sml_values[i] ); i++ ) {
-				for ( j=0; j<si->si_cookieState->cs_num; j++ ) {
-					if ( mod[0].sml_values[i].bv_val !=
-						si->si_cookieState->cs_vals[j].bv_val )
-						continue;
-					ber_bvreplace( &si->si_cookieState->cs_vals[j],
-						&mod[1].sml_values[i] );
-					break;
-				}
-			}
-		} else {
-			/* Else we just added */
-			si->si_cookieState->cs_num += syncCookie->numcsns;
-			value_add( &si->si_cookieState->cs_vals, syncCookie->ctxcsn );
+		for ( i=0; i<si->si_cookieState->cs_num; i++ ) {
+			if ( mod.sml_values[i].bv_val != si->si_cookieState->cs_vals[i].bv_val )
+					ber_bvreplace( &si->si_cookieState->cs_vals[i],
+						&mod.sml_values[i] );
+		}
+		/* Handle any added values */
+		if ( i < mod.sml_numvals ) {
+			si->si_cookieState->cs_num = mod.sml_numvals;
+			value_add( &si->si_cookieState->cs_vals, &mod.sml_values[i] );
 			free( si->si_cookieState->cs_sids );
 			si->si_cookieState->cs_sids = slap_parse_csn_sids(
 				si->si_cookieState->cs_vals, si->si_cookieState->cs_num, NULL );
@@ -2742,9 +2727,8 @@ syncrepl_updateCookie(
 	op->o_bd = be;
 	op->o_tmpfree( op->o_csn.bv_val, op->o_tmpmemctx );
 	BER_BVZERO( &op->o_csn );
-	if ( mod[1].sml_next ) slap_mods_free( mod[1].sml_next, 1 );
-	op->o_tmpfree( mod[1].sml_values, op->o_tmpmemctx );
-	op->o_tmpfree( mod[0].sml_values, op->o_tmpmemctx );
+	if ( mod.sml_next ) slap_mods_free( mod.sml_next, 1 );
+	op->o_tmpfree( mod.sml_values, op->o_tmpmemctx );
 
 	return rc;
 }
