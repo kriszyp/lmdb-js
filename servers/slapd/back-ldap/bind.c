@@ -1480,7 +1480,7 @@ retry:;
 		}
 
 		rc = 0;
-		goto leave;
+		goto func_leave;
 	}
 
 	rc = ldap_back_op_result( lc, op, rs, msgid,
@@ -1499,7 +1499,7 @@ done:;
 		ldap_set_rebind_proc( lc->lc_ld, li->li_rebind_f, lc );
 	}
 
-leave:;
+func_leave:;
 	if ( op->o_callback == &cb )
 		op->o_callback = cb.sc_next;
 	op->o_tag = o_tag;
