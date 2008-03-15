@@ -8,7 +8,7 @@ Access to your directory can be configured via two methods, the first using
 {{SECT:The slapd Configuration File}} and the second using the {{slapd-config}}(5) 
 format ({{SECT:Configuring slapd}}).
 
-H2: Static Access Control Configuration
+H2: Access Control via Static Configuration
 
 Access to entries and attributes is controlled by the
 access configuration file directive. The general form of an
@@ -422,7 +422,7 @@ E: 37.	rootdn "cn=Manager,dc=example,dc=com"
 E: 38.	index objectClass eq
 E: 39.	access to * by users read
 
-H2: Dynamic Access Control Configuration
+H2: Access Control via Dynamic Configuration
 
 Access to slapd entries and attributes is controlled by the
 olcAccess attribute, whose values are a sequence of access directives.
