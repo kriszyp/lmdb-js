@@ -533,7 +533,7 @@ refint_qtask( void *ctx, void *arg )
 		fptr->f_choice = LDAP_FILTER_EXT;
 		fptr->f_mra = (MatchingRuleAssertion *)(fptr+1);
 		fptr->f_mr_rule = mr_dnSubtreeMatch;
-		fptr->f_mr_rule_text = mr_dnSubtreeMatch->smr_str;
+		fptr->f_mr_rule_text = mr_dnSubtreeMatch->smr_bvoid;
 		fptr->f_mr_desc = ip->attr;
 		fptr->f_mr_dnattrs = 0;
 		fptr->f_next = ftop.f_or;
