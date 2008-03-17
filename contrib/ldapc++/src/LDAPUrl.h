@@ -138,7 +138,7 @@ class LDAPUrl{
          * @param dest The encoded result string
          * @param flags
          */
-        void percentEncode( const std::string& src, 
+        std::string& percentEncode( const std::string& src, 
                     std::string& dest, 
                     int flags=0 ) const;
    
