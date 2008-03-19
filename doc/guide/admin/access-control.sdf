@@ -4,9 +4,29 @@
 
 H1: Access Control
 
+H2: Introduction
+
+As the directory gets populated with more and more data of varying sensitivity, 
+controlling the kinds of access granted to the directory becomes more and more
+critical. For instance, the directory may contain data of a confidential nature 
+that you may need to protect by contract or by law. Or, if using the directory 
+to control access to other services, inappropriate access to the directory may 
+create avenues of attack to your sites security that result in devastating 
+damage to your assets.
+
 Access to your directory can be configured via two methods, the first using
 {{SECT:The slapd Configuration File}} and the second using the {{slapd-config}}(5) 
 format ({{SECT:Configuring slapd}}).
+
+The default access control policy is allow read by all clients. Regardless of 
+what access control policy is defined, the {{rootdn}} is always allowed full 
+rights (i.e. auth, search, compare, read and write) on everything and anything.
+
+As a consequence, it's useless (and results in a performance penalty) to explicitly 
+list the {{rootdn}} among the {{<by>}} clauses.
+
+The following sections will describe Access Control Lists in more details and 
+follow with some examples and recommendations. 
 
 H2: Access Control via Static Configuration
 
@@ -14,29 +34,29 @@ Access to entries and attributes is controlled by the
 access configuration file directive. The general form of an
 access line is:
 
->	<access directive> ::= access to <what>
->		[by <who> [<access>] [<control>] ]+
->	<what> ::= * |
->		[dn[.<basic-style>]=<regex> | dn.<scope-style>=<DN>]
->		[filter=<ldapfilter>] [attrs=<attrlist>]
->	<basic-style> ::= regex | exact
->	<scope-style> ::= base | one | subtree | children
->	<attrlist> ::= <attr> [val[.<basic-style>]=<regex>] | <attr> , <attrlist>
->	<attr> ::= <attrname> | entry | children
->	<who> ::= * | [anonymous | users | self
->			| dn[.<basic-style>]=<regex> | dn.<scope-style>=<DN>] 
->		[dnattr=<attrname>]
->		[group[/<objectclass>[/<attrname>][.<basic-style>]]=<regex>]
->		[peername[.<basic-style>]=<regex>]
->		[sockname[.<basic-style>]=<regex>]
->		[domain[.<basic-style>]=<regex>]
->		[sockurl[.<basic-style>]=<regex>]
->		[set=<setspec>]
->		[aci=<attrname>]
->	<access> ::= [self]{<level>|<priv>}
->	<level> ::= none | disclose | auth | compare | search | read | write | manage
->	<priv> ::= {=|+|-}{m|w|r|s|c|x|d|0}+
->	<control> ::= [stop | continue | break]
+>    <access directive> ::= access to <what>
+>        [by <who> [<access>] [<control>] ]+
+>    <what> ::= * |
+>        [dn[.<basic-style>]=<regex> | dn.<scope-style>=<DN>]
+>        [filter=<ldapfilter>] [attrs=<attrlist>]
+>    <basic-style> ::= regex | exact
+>    <scope-style> ::= base | one | subtree | children
+>    <attrlist> ::= <attr> [val[.<basic-style>]=<regex>] | <attr> , <attrlist>
+>    <attr> ::= <attrname> | entry | children
+>    <who> ::= * | [anonymous | users | self
+>            | dn[.<basic-style>]=<regex> | dn.<scope-style>=<DN>] 
+>        [dnattr=<attrname>]
+>        [group[/<objectclass>[/<attrname>][.<basic-style>]]=<regex>]
+>        [peername[.<basic-style>]=<regex>]
+>        [sockname[.<basic-style>]=<regex>]
+>        [domain[.<basic-style>]=<regex>]
+>        [sockurl[.<basic-style>]=<regex>]
+>        [set=<setspec>]
+>        [aci=<attrname>]
+>    <access> ::= [self]{<level>|<priv>}
+>    <level> ::= none | disclose | auth | compare | search | read | write | manage
+>    <priv> ::= {=|+|-}{m|w|r|s|c|x|d|0}+
+>    <control> ::= [stop | continue | break]
 
 where the <what> part selects the entries and/or attributes to which
 the access applies, the {{EX:<who>}} part specifies which entities
@@ -55,9 +75,9 @@ and attributes to which the access control applies.  Entries are
 commonly selected in two ways: by DN and by filter.  The following
 qualifiers select entries by DN:
 
->	to *
->	to dn[.<basic-style>]=<regex>
->	to dn.<scope-style>=<DN>
+>    to *
+>    to dn[.<basic-style>]=<regex>
+>    to dn.<scope-style>=<DN>
 
 The first form is used to select all entries.  The second form may
 be used to select entries by matching a regular expression against
@@ -76,12 +96,12 @@ under the DN (but not the entry named by the DN).
 
 For example, if the directory contained entries named:
 
->	0: o=suffix
->	1: cn=Manager,o=suffix
->	2: ou=people,o=suffix
->	3: uid=kdz,ou=people,o=suffix
->	4: cn=addresses,uid=kdz,ou=people,o=suffix
->	5: uid=hyc,ou=people,o=suffix
+>    0: o=suffix
+>    1: cn=Manager,o=suffix
+>    2: ou=people,o=suffix
+>    3: uid=kdz,ou=people,o=suffix
+>    4: cn=addresses,uid=kdz,ou=people,o=suffix
+>    5: uid=hyc,ou=people,o=suffix
 
 \Then:
 . {{EX:dn.base="ou=people,o=suffix"}} match 2;
@@ -92,27 +112,27 @@ For example, if the directory contained entries named:
 
 Entries may also be selected using a filter:
 
->	to filter=<ldap filter>
+>    to filter=<ldap filter>
 
 where <ldap filter> is a string representation of an LDAP
 search filter, as described in {{REF:RFC4515}}.  For example:
 
->	to filter=(objectClass=person)
+>    to filter=(objectClass=person)
 
 Note that entries may be selected by both DN and filter by
 including both qualifiers in the <what> clause.
 
->	to dn.one="ou=people,o=suffix" filter=(objectClass=person)
+>    to dn.one="ou=people,o=suffix" filter=(objectClass=person)
 
 Attributes within an entry are selected by including a comma-separated
 list of attribute names in the <what> selector:
 
->	attrs=<attribute list>
+>    attrs=<attribute list>
 
 A specific value of an attribute is selected by using a single
 attribute name and also using a value selector:
 
->	attrs=<attribute> val[.<style>]=<regex>
+>    attrs=<attribute> val[.<style>]=<regex>
 
 There are two special {{pseudo}} attributes {{EX:entry}} and
 {{EX:children}}.  To read (and hence return) a target entry, the
@@ -138,7 +158,7 @@ access. Note that access is granted to "entities" not "entries."
 The following table summarizes entity specifiers:
 
 !block table; align=Center; coltags="EX,N"; \
-	title="Table 6.3: Access Entity Specifiers"
+    title="Table 6.3: Access Entity Specifiers"
 Specifier|Entities
 *|All, including anonymous and authenticated users
 anonymous|Anonymous (non-authenticated) users
@@ -154,7 +174,7 @@ Other control factors are also supported.  For example, a {{EX:<who>}}
 can be restricted by an entry listed in a DN-valued attribute in
 the entry to which the access applies:
 
->	dnattr=<dn-valued attribute name>
+>    dnattr=<dn-valued attribute name>
 
 The dnattr specification is used to give access to an entry
 whose DN is listed in an attribute of the entry (e.g., give
@@ -171,16 +191,16 @@ H3: The access to grant
 The kind of <access> granted can be one of the following:
 
 !block table; colaligns="LRL"; coltags="EX,EX,N"; align=Center; \
-	title="Table 6.4: Access Levels"
-Level		Privileges	Description
-none		=0			no access
-disclose	=d			needed for information disclosure on error
-auth		=dx			needed to authenticate (bind)
-compare		=cdx		needed to compare
-search		=scdx		needed to apply search filters
-read		=rscdx		needed to read search results
-write		=wrscdx		needed to modify/rename
-manage		=mwrscdx	needed to manage
+    title="Table 6.4: Access Levels"
+Level        Privileges    Description
+none        =0             no access
+disclose    =d             needed for information disclosure on error
+auth        =dx            needed to authenticate (bind)
+compare     =cdx           needed to compare
+search      =scdx          needed to apply search filters
+read        =rscdx         needed to read search results
+write       =wrscdx        needed to modify/rename
+manage      =mwrscdx       needed to manage
 !endblock
 
 Each level implies all lower levels of access. So, for example,
@@ -231,14 +251,14 @@ section shows some examples of its use for descriptive purposes.
 
 A simple example:
 
->	access to * by * read
+>    access to * by * read
 
 This access directive grants read access to everyone.
 
->	access to *
->		by self write
->		by anonymous auth
->		by * read
+>    access to *
+>        by self write
+>        by anonymous auth
+>        by * read
 
 This directive allows the user to modify their entry, allows anonymous
 to authentication against these entries, and allows all others to
@@ -251,10 +271,10 @@ It is often desirable to restrict operations based upon the level
 of protection in place.  The following shows how security strength
 factors (SSF) can be used.
 
->	access to *
->		by ssf=128 self write
->		by ssf=64 anonymous auth
->		by ssf=64 users read
+>    access to *
+>        by ssf=128 self write
+>        by ssf=64 anonymous auth
+>        by ssf=64 users read
 
 This directive allows users to modify their own entries if security
 protections have of strength 128 or better have been established,
@@ -267,10 +287,10 @@ The following example shows the use of a style specifiers to select
 the entries by DN in two access directives where ordering is
 significant.
 
->	access to dn.children="dc=example,dc=com"
-> 		by * search
->	access to dn.children="dc=com"
-> 		by * read
+>    access to dn.children="dc=example,dc=com"
+>         by * search
+>    access to dn.children="dc=com"
+>         by * read
 
 Read access is granted to entries under the {{EX:dc=com}} subtree,
 except for those entries under the {{EX:dc=example,dc=com}} subtree,
@@ -291,14 +311,14 @@ the access directives and the {{EX:by <who>}} clauses.  It also
 shows the use of an attribute selector to grant access to a specific
 attribute and various {{EX:<who>}} selectors.
 
->	access to dn.subtree="dc=example,dc=com" attrs=homePhone
->		by self write
->		by dn.children="dc=example,dc=com" search
->		by peername.regex=IP:10\..+ read
->	access to dn.subtree="dc=example,dc=com"
->		by self write
->		by dn.children="dc=example,dc=com" search
->		by anonymous auth
+>    access to dn.subtree="dc=example,dc=com" attrs=homePhone
+>        by self write
+>        by dn.children="dc=example,dc=com" search
+>        by peername.regex=IP:10\..+ read
+>    access to dn.subtree="dc=example,dc=com"
+>        by self write
+>        by dn.children="dc=example,dc=com" search
+>        by anonymous auth
 
 This example applies to entries in the "{{EX:dc=example,dc=com}}"
 subtree. To all attributes except {{EX:homePhone}}, an entry can
@@ -317,8 +337,8 @@ create a group and allow people to add and remove only
 their own DN from the member attribute, you could accomplish
 it with an access directive like this:
 
->	access to attrs=member,entry
-> 		by dnattr=member selfwrite
+>    access to attrs=member,entry
+>         by dnattr=member selfwrite
 
 The dnattr {{EX:<who>}} selector says that the access applies to
 entries listed in the {{EX:member}} attribute. The {{EX:selfwrite}} access
@@ -342,10 +362,10 @@ database instances. The line numbers shown are provided for
 reference only and are not included in the actual file. First, the
 global configuration section:
 
-E:  1.	# example config file - global configuration section
-E:  2.	include /usr/local/etc/schema/core.schema
-E:  3.	referral ldap://root.openldap.org
-E:  4.	access to * by * read
+E:  1.    # example config file - global configuration section
+E:  2.    include /usr/local/etc/schema/core.schema
+E:  3.    referral ldap://root.openldap.org
+E:  4.    access to * by * read
  
 Line 1 is a comment. Line 2 includes another config file
 which contains {{core}} schema definitions.
@@ -366,26 +386,26 @@ truelies, the other on judgmentday. Indices are to be
 maintained for several attributes, and the {{EX:userPassword}}
 attribute is to be protected from unauthorized access.
 
-E:  5.	# BDB definition for the example.com
-E:  6.	database bdb
-E:  7.	suffix "dc=example,dc=com"
-E:  8.	directory /usr/local/var/openldap-data
-E:  9.	rootdn "cn=Manager,dc=example,dc=com"
-E: 10.	rootpw secret
-E: 11.	# indexed attribute definitions
-E: 12.	index uid pres,eq
-E: 13.	index cn,sn,uid pres,eq,approx,sub
-E: 14.	index objectClass eq
-E: 15.	# database access control definitions
-E: 16.	access to attrs=userPassword
-E: 17.		by self write
-E: 18.		by anonymous auth
-E: 19.		by dn.base="cn=Admin,dc=example,dc=com" write
-E: 20.		by * none
-E: 21.	access to *
-E: 22.		by self write
-E: 23.		by dn.base="cn=Admin,dc=example,dc=com" write
-E: 24.		by * read
+E:  5.    # BDB definition for the example.com
+E:  6.    database bdb
+E:  7.    suffix "dc=example,dc=com"
+E:  8.    directory /usr/local/var/openldap-data
+E:  9.    rootdn "cn=Manager,dc=example,dc=com"
+E: 10.    rootpw secret
+E: 11.    # indexed attribute definitions
+E: 12.    index uid pres,eq
+E: 13.    index cn,sn,uid pres,eq,approx,sub
+E: 14.    index objectClass eq
+E: 15.    # database access control definitions
+E: 16.    access to attrs=userPassword
+E: 17.        by self write
+E: 18.        by anonymous auth
+E: 19.        by dn.base="cn=Admin,dc=example,dc=com" write
+E: 20.        by * none
+E: 21.    access to *
+E: 22.        by self write
+E: 23.        by dn.base="cn=Admin,dc=example,dc=com" write
+E: 24.        by * read
 
 Line 5 is a comment. The start of the database definition is marked
 by the database keyword on line 6. Line 7 specifies the DN suffix
@@ -414,13 +434,13 @@ BDB database. This one handles queries involving the
 as the first database.  Note that without line 39, the read access
 would be allowed due to the global access rule at line 4.
 
-E: 33.	# BDB definition for example.net
-E: 34.	database bdb
-E: 35.	suffix "dc=example,dc=net"
-E: 36.	directory /usr/local/var/openldap-data-net
-E: 37.	rootdn "cn=Manager,dc=example,dc=com"
-E: 38.	index objectClass eq
-E: 39.	access to * by users read
+E: 33.    # BDB definition for example.net
+E: 34.    database bdb
+E: 35.    suffix "dc=example,dc=net"
+E: 36.    directory /usr/local/var/openldap-data-net
+E: 37.    rootdn "cn=Manager,dc=example,dc=com"
+E: 38.    index objectClass eq
+E: 39.    access to * by users read
 
 H2: Access Control via Dynamic Configuration
 
@@ -428,30 +448,30 @@ Access to slapd entries and attributes is controlled by the
 olcAccess attribute, whose values are a sequence of access directives.
 The general form of the olcAccess configuration is:
 
->	olcAccess: <access directive>
->	<access directive> ::= to <what>
->		[by <who> [<access>] [<control>] ]+
->	<what> ::= * |
->		[dn[.<basic-style>]=<regex> | dn.<scope-style>=<DN>]
->		[filter=<ldapfilter>] [attrs=<attrlist>]
->	<basic-style> ::= regex | exact
->	<scope-style> ::= base | one | subtree | children
->	<attrlist> ::= <attr> [val[.<basic-style>]=<regex>] | <attr> , <attrlist>
->	<attr> ::= <attrname> | entry | children
->	<who> ::= * | [anonymous | users | self
->			| dn[.<basic-style>]=<regex> | dn.<scope-style>=<DN>] 
->		[dnattr=<attrname>]
->		[group[/<objectclass>[/<attrname>][.<basic-style>]]=<regex>]
->		[peername[.<basic-style>]=<regex>]
->		[sockname[.<basic-style>]=<regex>]
->		[domain[.<basic-style>]=<regex>]
->		[sockurl[.<basic-style>]=<regex>]
->		[set=<setspec>]
->		[aci=<attrname>]
->	<access> ::= [self]{<level>|<priv>}
->	<level> ::= none | disclose | auth | compare | search | read | write | manage
->	<priv> ::= {=|+|-}{m|w|r|s|c|x|d|0}+
->	<control> ::= [stop | continue | break]
+>    olcAccess: <access directive>
+>    <access directive> ::= to <what>
+>        [by <who> [<access>] [<control>] ]+
+>    <what> ::= * |
+>        [dn[.<basic-style>]=<regex> | dn.<scope-style>=<DN>]
+>        [filter=<ldapfilter>] [attrs=<attrlist>]
+>    <basic-style> ::= regex | exact
+>    <scope-style> ::= base | one | subtree | children
+>    <attrlist> ::= <attr> [val[.<basic-style>]=<regex>] | <attr> , <attrlist>
+>    <attr> ::= <attrname> | entry | children
+>    <who> ::= * | [anonymous | users | self
+>            | dn[.<basic-style>]=<regex> | dn.<scope-style>=<DN>] 
+>        [dnattr=<attrname>]
+>        [group[/<objectclass>[/<attrname>][.<basic-style>]]=<regex>]
+>        [peername[.<basic-style>]=<regex>]
+>        [sockname[.<basic-style>]=<regex>]
+>        [domain[.<basic-style>]=<regex>]
+>        [sockurl[.<basic-style>]=<regex>]
+>        [set=<setspec>]
+>        [aci=<attrname>]
+>    <access> ::= [self]{<level>|<priv>}
+>    <level> ::= none | disclose | auth | compare | search | read | write | manage
+>    <priv> ::= {=|+|-}{m|w|r|s|c|x|d|0}+
+>    <control> ::= [stop | continue | break]
 
 where the <what> part selects the entries and/or attributes to which
 the access applies, the {{EX:<who>}} part specifies which entities
@@ -470,9 +490,9 @@ and attributes to which the access control applies.  Entries are
 commonly selected in two ways: by DN and by filter.  The following
 qualifiers select entries by DN:
 
->	to *
->	to dn[.<basic-style>]=<regex>
->	to dn.<scope-style>=<DN>
+>    to *
+>    to dn[.<basic-style>]=<regex>
+>    to dn.<scope-style>=<DN>
 
 The first form is used to select all entries.  The second form may
 be used to select entries by matching a regular expression against
@@ -491,12 +511,12 @@ under the DN (but not the entry named by the DN).
 
 For example, if the directory contained entries named:
 
->	0: o=suffix
->	1: cn=Manager,o=suffix
->	2: ou=people,o=suffix
->	3: uid=kdz,ou=people,o=suffix
->	4: cn=addresses,uid=kdz,ou=people,o=suffix
->	5: uid=hyc,ou=people,o=suffix
+>    0: o=suffix
+>    1: cn=Manager,o=suffix
+>    2: ou=people,o=suffix
+>    3: uid=kdz,ou=people,o=suffix
+>    4: cn=addresses,uid=kdz,ou=people,o=suffix
+>    5: uid=hyc,ou=people,o=suffix
 
 \Then:
 . {{EX:dn.base="ou=people,o=suffix"}} match 2;
@@ -507,27 +527,27 @@ For example, if the directory contained entries named:
 
 Entries may also be selected using a filter:
 
->	to filter=<ldap filter>
+>    to filter=<ldap filter>
 
 where <ldap filter> is a string representation of an LDAP
 search filter, as described in {{REF:RFC4515}}.  For example:
 
->	to filter=(objectClass=person)
+>    to filter=(objectClass=person)
 
 Note that entries may be selected by both DN and filter by
 including both qualifiers in the <what> clause.
 
->	to dn.one="ou=people,o=suffix" filter=(objectClass=person)
+>    to dn.one="ou=people,o=suffix" filter=(objectClass=person)
 
 Attributes within an entry are selected by including a comma-separated
 list of attribute names in the <what> selector:
 
->	attrs=<attribute list>
+>    attrs=<attribute list>
 
 A specific value of an attribute is selected by using a single
 attribute name and also using a value selector:
 
->	attrs=<attribute> val[.<style>]=<regex>
+>    attrs=<attribute> val[.<style>]=<regex>
 
 There are two special {{pseudo}} attributes {{EX:entry}} and
 {{EX:children}}.  To read (and hence return) a target entry, the
@@ -553,7 +573,7 @@ access. Note that access is granted to "entities" not "entries."
 The following table summarizes entity specifiers:
 
 !block table; align=Center; coltags="EX,N"; \
-	title="Table 5.3: Access Entity Specifiers"
+    title="Table 5.3: Access Entity Specifiers"
 Specifier|Entities
 *|All, including anonymous and authenticated users
 anonymous|Anonymous (non-authenticated) users
@@ -569,7 +589,7 @@ Other control factors are also supported.  For example, a {{EX:<who>}}
 can be restricted by an entry listed in a DN-valued attribute in
 the entry to which the access applies:
 
->	dnattr=<dn-valued attribute name>
+>    dnattr=<dn-valued attribute name>
 
 The dnattr specification is used to give access to an entry
 whose DN is listed in an attribute of the entry (e.g., give
@@ -586,16 +606,16 @@ H3: The access to grant
 The kind of <access> granted can be one of the following:
 
 !block table; colaligns="LRL"; coltags="EX,EX,N"; align=Center; \
-	title="Table 5.4: Access Levels"
-Level		Privileges	Description
-none		=0			no access
-disclose	=d			needed for information disclosure on error
-auth		=dx			needed to authenticate (bind)
-compare		=cdx		needed to compare
-search		=scdx		needed to apply search filters
-read		=rscdx		needed to read search results
-write		=wrscdx		needed to modify/rename
-manage		=mwrscdx	needed to manage
+    title="Table 5.4: Access Levels"
+Level        Privileges    Description
+none         =0            no access
+disclose     =d            needed for information disclosure on error
+auth         =dx           needed to authenticate (bind)
+compare      =cdx          needed to compare
+search       =scdx         needed to apply search filters
+read         =rscdx        needed to read search results
+write        =wrscdx       needed to modify/rename
+manage       =mwrscdx      needed to manage
 !endblock
 
 Each level implies all lower levels of access. So, for example,
@@ -648,14 +668,14 @@ section shows some examples of its use for descriptive purposes.
 
 A simple example:
 
->	olcAccess: to * by * read
+>    olcAccess: to * by * read
 
 This access directive grants read access to everyone.
 
->	olcAccess: to *
->		by self write
->		by anonymous auth
->		by * read
+>    olcAccess: to *
+>        by self write
+>        by anonymous auth
+>        by * read
 
 This directive allows the user to modify their entry, allows anonymous
 to authenticate against these entries, and allows all others to
@@ -668,10 +688,10 @@ It is often desirable to restrict operations based upon the level
 of protection in place.  The following shows how security strength
 factors (SSF) can be used.
 
->	olcAccess: to *
->		by ssf=128 self write
->		by ssf=64 anonymous auth
->		by ssf=64 users read
+>    olcAccess: to *
+>        by ssf=128 self write
+>        by ssf=64 anonymous auth
+>        by ssf=64 users read
 
 This directive allows users to modify their own entries if security
 protections of strength 128 or better have been established,
@@ -684,10 +704,10 @@ The following example shows the use of style specifiers to select
 the entries by DN in two access directives where ordering is
 significant.
 
->	olcAccess: to dn.children="dc=example,dc=com"
-> 		by * search
->	olcAccess: to dn.children="dc=com"
-> 		by * read
+>    olcAccess: to dn.children="dc=example,dc=com"
+>         by * search
+>    olcAccess: to dn.children="dc=com"
+>         by * read
 
 Read access is granted to entries under the {{EX:dc=com}} subtree,
 except for those entries under the {{EX:dc=example,dc=com}} subtree,
@@ -708,14 +728,14 @@ the access directives and the {{EX:by <who>}} clauses.  It also
 shows the use of an attribute selector to grant access to a specific
 attribute and various {{EX:<who>}} selectors.
 
->	olcAccess: to dn.subtree="dc=example,dc=com" attrs=homePhone
->		by self write
->		by dn.children=dc=example,dc=com" search
->		by peername.regex=IP:10\..+ read
->	olcAccess: to dn.subtree="dc=example,dc=com"
->		by self write
->		by dn.children="dc=example,dc=com" search
->		by anonymous auth
+>    olcAccess: to dn.subtree="dc=example,dc=com" attrs=homePhone
+>        by self write
+>        by dn.children=dc=example,dc=com" search
+>        by peername.regex=IP:10\..+ read
+>    olcAccess: to dn.subtree="dc=example,dc=com"
+>        by self write
+>        by dn.children="dc=example,dc=com" search
+>        by anonymous auth
 
 This example applies to entries in the "{{EX:dc=example,dc=com}}"
 subtree. To all attributes except {{EX:homePhone}}, an entry can
@@ -734,8 +754,8 @@ create a group and allow people to add and remove only
 their own DN from the member attribute, you could accomplish
 it with an access directive like this:
 
->	olcAccess: to attrs=member,entry
-> 		by dnattr=member selfwrite
+>    olcAccess: to attrs=member,entry
+>         by dnattr=member selfwrite
 
 The dnattr {{EX:<who>}} selector says that the access applies to
 entries listed in the {{EX:member}} attribute. The {{EX:selfwrite}} access
@@ -758,21 +778,21 @@ tags are maintained automatically by slapd and do not need to be specified
 when originally defining the values. For example, when you create the
 settings
 
->	olcAccess: to attrs=member,entry
-> 		by dnattr=member selfwrite
->	olcAccess: to dn.children="dc=example,dc=com"
-> 		by * search
->	olcAccess: to dn.children="dc=com"
-> 		by * read
+>    olcAccess: to attrs=member,entry
+>         by dnattr=member selfwrite
+>    olcAccess: to dn.children="dc=example,dc=com"
+>         by * search
+>    olcAccess: to dn.children="dc=com"
+>         by * read
 
 when you read them back using slapcat or ldapsearch they will contain
 
->	olcAccess: {0}to attrs=member,entry
-> 		by dnattr=member selfwrite
->	olcAccess: {1}to dn.children="dc=example,dc=com"
-> 		by * search
->	olcAccess: {2}to dn.children="dc=com"
-> 		by * read
+>    olcAccess: {0}to attrs=member,entry
+>         by dnattr=member selfwrite
+>    olcAccess: {1}to dn.children="dc=example,dc=com"
+>         by * search
+>    olcAccess: {2}to dn.children="dc=com"
+>         by * read
 
 The numeric index may be used to specify a particular value to change
 when using ldapmodify to edit the access rules. This index can be used
@@ -782,36 +802,36 @@ numeric index is very helpful when multiple access rules are being managed.
 For example, if we needed to change the second rule above to grant
 write access instead of search, we could try this LDIF:
 
->	changetype: modify
->	delete: olcAccess
->	olcAccess: to dn.children="dc=example,dc=com" by * search
->	-
->	add: olcAccess
->	olcAccess: to dn.children="dc=example,dc=com" by * write
->	-
+>    changetype: modify
+>    delete: olcAccess
+>    olcAccess: to dn.children="dc=example,dc=com" by * search
+>    -
+>    add: olcAccess
+>    olcAccess: to dn.children="dc=example,dc=com" by * write
+>    -
 
 But this example {{B:will not}} guarantee that the existing values remain in
 their original order, so it will most likely yield a broken security
 configuration. Instead, the numeric index should be used:
 
->	changetype: modify
->	delete: olcAccess
->	olcAccess: {1}
->	-
->	add: olcAccess
->	olcAccess: {1}to dn.children="dc=example,dc=com" by * write
->	-
+>    changetype: modify
+>    delete: olcAccess
+>    olcAccess: {1}
+>    -
+>    add: olcAccess
+>    olcAccess: {1}to dn.children="dc=example,dc=com" by * write
+>    -
 
 This example deletes whatever rule is in value #1 of the {{EX:olcAccess}}
 attribute (regardless of its value) and adds a new value that is
 explicitly inserted as value #1. The result will be
 
->	olcAccess: {0}to attrs=member,entry
-> 		by dnattr=member selfwrite
->	olcAccess: {1}to dn.children="dc=example,dc=com"
-> 		by * write
->	olcAccess: {2}to dn.children="dc=com"
-> 		by * read
+>    olcAccess: {0}to attrs=member,entry
+>         by dnattr=member selfwrite
+>    olcAccess: {1}to dn.children="dc=example,dc=com"
+>         by * write
+>    olcAccess: {2}to dn.children="dc=com"
+>         by * read
 
 which is exactly what was intended.
 
@@ -830,12 +850,12 @@ database instances. The line numbers shown are provided for
 reference only and are not included in the actual file. First, the
 global configuration section:
 
-E:  1.	# example config file - global configuration entry
-E:  2.	dn: cn=config
-E:  3.	objectClass: olcGlobal
-E:  4.	cn: config
-E:  5.	olcReferral: ldap://root.openldap.org
-E:  6.	
+E:  1.    # example config file - global configuration entry
+E:  2.    dn: cn=config
+E:  3.    objectClass: olcGlobal
+E:  4.    cn: config
+E:  5.    olcReferral: ldap://root.openldap.org
+E:  6.    
 
 Line 1 is a comment. Lines 2-4 identify this as the global
 configuration entry.
@@ -845,20 +865,20 @@ below will be referred to the LDAP server running on the
 standard port (389) at the host {{EX:root.openldap.org}}.
 Line 6 is a blank line, indicating the end of this entry.
 
-E:  7.	# internal schema
-E:  8.	dn: cn=schema,cn=config
-E:  9.	objectClass: olcSchemaConfig
-E: 10.	cn: schema
-E: 11.	
+E:  7.    # internal schema
+E:  8.    dn: cn=schema,cn=config
+E:  9.    objectClass: olcSchemaConfig
+E: 10.    cn: schema
+E: 11.    
 
 Line 7 is a comment. Lines 8-10 identify this as the root of
 the schema subtree. The actual schema definitions in this entry
 are hardcoded into slapd so no additional attributes are specified here.
 Line 11 is a blank line, indicating the end of this entry.
 
-E: 12.	# include the core schema
-E: 13.	include: file:///usr/local/etc/openldap/schema/core.ldif
-E: 14.	
+E: 12.    # include the core schema
+E: 13.    include: file:///usr/local/etc/openldap/schema/core.ldif
+E: 14.    
 
 Line 12 is a comment. Line 13 is an LDIF include directive which
 accesses the {{core}} schema definitions in LDIF format. Line 14
@@ -868,12 +888,12 @@ Next comes the database definitions. The first database is the
 special {{EX:frontend}} database whose settings are applied globally
 to all the other databases.
 
-E: 15.	# global database parameters
-E: 16.	dn: olcDatabase=frontend,cn=config
-E: 17.	objectClass: olcDatabaseConfig
-E: 18.	olcDatabase: frontend
-E: 19.	olcAccess: to * by * read
-E: 20.	
+E: 15.    # global database parameters
+E: 16.    dn: olcDatabase=frontend,cn=config
+E: 17.    objectClass: olcDatabaseConfig
+E: 18.    olcDatabase: frontend
+E: 19.    olcAccess: to * by * read
+E: 20.    
 
 Line 15 is a comment. Lines 16-18 identify this entry as the global
 database entry. Line 19 is a global access control. It applies to all
@@ -884,28 +904,28 @@ in the "dc=example,dc=com" portion of the tree. Indices are to be maintained
 for several attributes, and the {{EX:userPassword}} attribute is to be
 protected from unauthorized access.
 
-E: 21.	# BDB definition for example.com
-E: 22.	dn: olcDatabase=bdb,cn=config
-E: 23.	objectClass: olcDatabaseConfig
-E: 24.	objectClass: olcBdbConfig
-E: 25.	olcDatabase: bdb
-E: 26.	olcSuffix: "dc=example,dc=com"
-E: 27.	olcDbDirectory: /usr/local/var/openldap-data
-E: 28.	olcRootDN: "cn=Manager,dc=example,dc=com"
-E: 29.	olcRootPW: secret
-E: 30.	olcDbIndex: uid pres,eq
-E: 31.	olcDbIndex: cn,sn,uid pres,eq,approx,sub
-E: 32.	olcDbIndex: objectClass eq
-E: 33.	olcAccess: to attrs=userPassword
-E: 34.	  by self write
-E: 35.	  by anonymous auth
-E: 36.	  by dn.base="cn=Admin,dc=example,dc=com" write
-E: 37.	  by * none
-E: 38.	olcAccess: to *
-E: 39.	  by self write
-E: 40.	  by dn.base="cn=Admin,dc=example,dc=com" write
-E: 41.	  by * read
-E: 42.	
+E: 21.    # BDB definition for example.com
+E: 22.    dn: olcDatabase=bdb,cn=config
+E: 23.    objectClass: olcDatabaseConfig
+E: 24.    objectClass: olcBdbConfig
+E: 25.    olcDatabase: bdb
+E: 26.    olcSuffix: "dc=example,dc=com"
+E: 27.    olcDbDirectory: /usr/local/var/openldap-data
+E: 28.    olcRootDN: "cn=Manager,dc=example,dc=com"
+E: 29.    olcRootPW: secret
+E: 30.    olcDbIndex: uid pres,eq
+E: 31.    olcDbIndex: cn,sn,uid pres,eq,approx,sub
+E: 32.    olcDbIndex: objectClass eq
+E: 33.    olcAccess: to attrs=userPassword
+E: 34.      by self write
+E: 35.      by anonymous auth
+E: 36.      by dn.base="cn=Admin,dc=example,dc=com" write
+E: 37.      by * none
+E: 38.    olcAccess: to *
+E: 39.      by self write
+E: 40.      by dn.base="cn=Admin,dc=example,dc=com" write
+E: 41.      by * read
+E: 42.    
 
 Line 21 is a comment. Lines 22-25 identify this entry as a BDB database
 configuration entry.  Line 26 specifies the DN suffix
@@ -936,21 +956,404 @@ BDB database. This one handles queries involving the
 as the first database.  Note that without line 52, the read access
 would be allowed due to the global access rule at line 19.
 
-E: 43.	# BDB definition for example.net
-E: 44.	dn: olcDatabase=bdb,cn=config
-E: 45.	objectClass: olcDatabaseConfig
-E: 46.	objectClass: olcBdbConfig
-E: 47.	olcDatabase: bdb
-E: 48.	olcSuffix: "dc=example,dc=net"
-E: 49.	olcDbDirectory: /usr/local/var/openldap-data-net
-E: 50.	olcRootDN: "cn=Manager,dc=example,dc=com"
-E: 51.	olcDbIndex: objectClass eq
-E: 52.	olcAccess: to * by users read
+E: 43.    # BDB definition for example.net
+E: 44.    dn: olcDatabase=bdb,cn=config
+E: 45.    objectClass: olcDatabaseConfig
+E: 46.    objectClass: olcBdbConfig
+E: 47.    olcDatabase: bdb
+E: 48.    olcSuffix: "dc=example,dc=net"
+E: 49.    olcDbDirectory: /usr/local/var/openldap-data-net
+E: 50.    olcRootDN: "cn=Manager,dc=example,dc=com"
+E: 51.    olcDbIndex: objectClass eq
+E: 52.    olcAccess: to * by users read
 
 
-H3: Converting from slapd.conf(8) to a {{B:cn=config}} directory format
+H3: Converting from {{slapd.conf}}(5) to a {{B:cn=config}} directory format
 
 Discuss slap* -f slapd.conf -F slapd.d/  (man slapd-config)
+
+
+H2: Access Control Common Examples
+
+H3: Basic ACLs
+
+Generally one should start with some basic ACLs such as:
+
+>    access to attr=userPassword
+>        by self =xw
+>        by anonymous auth
+>        by * none
+>
+>
+>      access to *
+>        by self write
+>        by users read
+>        by * none
+
+The first ACL allows users to update (but not read) their passwords, anonymous 
+users to authenticate against this attribute, and (implicitly) denying all 
+access to others.
+
+The second ACL allows users full access to their entry, authenticated users read 
+access to anything, and (implicitly) denying all access to others (in this case, 
+anonymous users). 
+
+
+H3: Matching Anonymous and Authenticated users
+
+An anonymous user has a empty DN. While the {{dn.exact=""}} or {{dn.regex="^$"}}
+ could be used, {{slapd}}(8)) offers an anonymous shorthand which should be 
+used instead.
+
+>    access to *
+>      by anonymous none
+>      by * read
+
+denies all access to anonymous users while granting others read. 
+
+Authenticated users have a subject DN. While {{dn.regex=".+"}} will match any 
+authenticated user, OpenLDAP provides the users short hand which should be used 
+instead.
+
+>    access to *
+>      by users read
+>      by * none
+
+This ACL grants read permissions to authenticated users while denying others 
+(i.e.: anonymous users).
+
+
+H3: Controlling rootdn access
+
+You could specify the {{rootdn}} in {{slapd.conf}}(5) or {[slapd.d}} without 
+specifying a {{rootpw}}. Then you have to add an actual directory entry with 
+the same dn, e.g.:
+
+>    dn: cn=Manager,o=MyOrganization
+>    cn: Manager
+>    sn: Manager
+>    objectClass: person
+>    objectClass: top
+>    userPassword: {SSHA}someSSHAdata
+
+Then binding as the {{rootdn}} will require a regular bind to that DN, which 
+in turn requires auth access to that entry's DN and {{userPassword}}, and this 
+can be restricted via ACLs. E.g.:
+
+>    access to dn.base="cn=Manager,o=MyOrganization"
+>      by peername.regex=127\.0\.0\.1 auth
+>      by peername.regex=192\.168\.0\..* auth
+>      by users none
+>      by * none
+
+The ACLs above will only allow binding using rootdn from localhost and 
+192.168.0.0/24.
+
+
+H3: Managing access with Groups
+
+There are a few ways to do this. One approach is illustrated here. Consider the 
+following DIT layout:
+
+>    +-dc=example,dc=com
+>    +---cn=administrators,dc=example,dc=com
+>    +---cn=fred blogs,dc=example,dc=com 
+
+and the following group object (in LDIF format):
+
+>    dn: cn=administrators,dc=example,dc=com
+>    cn: administrators of this region
+>    objectclass: groupOfNames  (important for the group acl feature)
+>    member: cn=fred blogs,dc=example,dc=com 
+>    member: cn=somebody else,dc=example,dc=com
+
+One can then grant access to the members of this this group by adding appropriate 
+{{by group}} clause to an access directive in {{slapd.conf}}(5). For instance,
+
+>    access to dn.children="dc=example,dc=com" 
+>        by self write 
+>        by group.exact="cn=Administrators,dc=example,dc=com" write  
+>        by * auth
+
+Like by {[dn}} clauses, one can also use {{expand}} to expand the group name 
+based upon the regular expression matching of the target, that is, the to {{dn.regex}}). 
+For instance,
+
+>    access to dn.regex="(.+,)?ou=People,(dc=[^,]+,dc=[^,]+)$"
+>             attrs=children,entry,uid
+>        by group.expand="cn=Managers,$2" write
+>        by users read
+>        by * auth
+
+
+The above illustration assumed that the group members are to be found in the 
+{{member}} attribute type of the {{groupOfNames}} object class. If you need to 
+use a different group object and/or a different attribute type then use the 
+following {{slapd.conf}}(5) (abbreviated) syntax:
+
+>    access to <what>
+>            by group/<objectclass>/<attributename>=<DN> <access>
+
+For example:
+
+>    access to *
+>      by group/organizationalRole/roleOccupant="cn=Administrator,dc=example,dc=com" write
+
+In this case, we have an ObjectClass {{organizationalRole}} which contains the 
+administrator DN's in the {{roleOccupant}} attribute. For instance:
+
+>    dn: cn=Administrator,dc=example,dc=com
+>    cn: Administrator
+>    objectclass: organizationalRole
+>    roleOccupant: cn=Jane Doe,dc=example,dc=com 
+
+Note: the specified member attribute type MUST be of DN or {{NameAndOptionalUID}} syntax, 
+and the specified object class SHOULD allow the attribute type.
+
+Dynamic Groups are also supported in Access Control. Please see {{slapo-dynlist}}(5)
+and the {{SECT:Dynamic Lists}} overlay section.
+
+
+H3:  Granting access to a subset of attributes
+
+You can grant access to a set of attributes by specifying a list of attribute names 
+in the ACL {{to}} clause. To be useful, you also need to grant access to the 
+{{entry}} itself. Also note how {{children}} controls the ability to add, delete, 
+and rename entries.
+
+>    # mail: self may write, authenticated users may read
+>    access to attrs=mail
+>      by self write
+>      by users read
+>      by * none
+>    
+>    # cn, sn: self my write, all may read
+>    access to attrs=cn,sn
+>      by self write
+>      by * read
+>    
+>    # immediate children: only self can add/delete entries under this entry
+>    access to attrs=children
+>      by self write
+>    
+>    # entry itself: self may write, all may read
+>    access to attrs=entry
+>      by self write
+>      by * read
+>    
+>    # other attributes: self may write, others have no access
+>    access to *
+>      by self write
+>      by * none
+
+ObjectClass names may also be specified in this list, which will affect 
+all the attributes that are required and/or allowed by that {{objectClass}}. 
+Actually, names in {{attrlist}} that are prefixed by {{@}} are directly treated 
+as objectClass names. A name prefixed by {{!}} is also treated as an objectClass, 
+but in this case the access rule affects the attributes that are not required 
+nor allowed by that {{objectClass}}. 
+
+
+H3: Allowing a user write to all entries below theirs
+
+For a setup where a user can write to its own record and to all of its children:
+
+>    access to dn.regex="(.+,)?(uid=[^,]+,o=Company)$"
+>       by dn.exact,expand="$2" write
+>       by anonymous auth
+
+(Add more examples for above)
+
+
+H3: Allowing entry creation
+
+Let's say, you have it like this:
+
+>        o=<basedn>
+>            ou=domains
+>                associatedDomain=<somedomain>
+>                    ou=users
+>                        uid=<someuserid>            
+>                        uid=<someotheruserid>
+>                    ou=addressbooks
+>                        uid=<someuserid>
+>                            cn=<someone>
+>                            cn=<someoneelse>
+
+and, for another domain <someotherdomain>:
+
+>        o=<basedn>
+>            ou=domains
+>                associatedDomain=<someotherdomain>
+>                    ou=users
+>                        uid=<someuserid>            
+>                        uid=<someotheruserid>
+>                    ou=addressbooks
+>                        uid=<someotheruserid>
+>                            cn=<someone>
+>                            cn=<someoneelse>
+
+then, if you wanted user {{uid=<someuserid>}} to {{B:ONLY}} create an entry 
+for its own thing, you could write an ACL like this:
+
+>    # this rule lets users of "associatedDomain=<matcheddomain>"
+>    # write under "ou=addressbook,associatedDomain=<matcheddomain>,ou=domains,o=<basedn>",
+>    # i.e. a user can write ANY entry below its domain's address book;
+>    # this permission is necessary, but not sufficient, the next 
+>    # will restrict this permission further
+>    
+>    
+>    access to dn.regex="^ou=addressbook,associatedDomain=([^,]+),ou=domains,o=<basedn>$" attrs=children
+>            by dn.regex="^uid=([^,]+),ou=users,associatedDomain=$1,ou=domains,o=<basedn>$$" write
+>            by * none
+>    
+>    
+>    # Note that above the "by" clause needs a "regex" style to make sure
+>    # it expands to a DN that starts with a "uid=<someuserid>" pattern
+>    # while substituting the associatedDomain submatch from the "what" clause.
+>    
+>    
+>    # This rule lets a user with "uid=<matcheduid>" of "<associatedDomain=matcheddomain>"
+>    # write (i.e. add, modify, delete) the entry whose DN is exactly
+>    # "uid=<matcheduid>,ou=addressbook,associatedDomain=<matcheddomain>,ou=domains,o=<basedn>"
+>    # and ANY entry as subtree of it
+>    
+>    
+>    access to dn.regex="^(.+,)?uid=([^,]+),ou=addressbook,associatedDomain=([^,]+),ou=domains,o=<basedn>$"
+>            by dn.exact,expand="uid=$2,ou=users,associatedDomain=$3,ou=domains,o=<basedn>" write
+>            by * none 
+>    
+>    
+>    # Note that above the "by" clause uses the "exact" style with the "expand"
+>    # modifier because now the whole pattern can be rebuilt by means of the
+>    # submatches from the "what" clause, so a "regex" compilation and evaluation
+>    # is no longer required.
+
+
+H3: Tips for using regular expressions in Access Control 
+
+Always use {{dn.regex=<pattern>}} when you intend to use regular expression 
+matching. {{dn=<pattern>}} alone defaults to {{dn.exact<pattern>}}.
+
+Use {{(.+)}} instead of {{(.*)}} when you want at least one char to be matched. 
+{{(.*)}} matches the empty string as well.
+
+Don't use regular expressions for matches that can be done otherwise in a safer 
+and cheaper manner. Examples:
+
+>    dn.regex=".*dc=example,dc=com"
+
+is unsafe and expensive:
+
+    * unsafe because any string containing {{dc=example,dc=com }}will match, 
+not only those that end with the desired pattern; use {{.*dc=example,dc=com$}} instead.
+    * unsafe also because it would allow any {{attributeType}} ending with {{dc}}
+ as naming attribute for the first RDN in the string, e.g. a custom attributeType 
+{{mydc}} would match as well. If you really need a regular expression that allows 
+just {{dc=example,dc=com}} or any of its subtrees, use {{^(.+,)?dc=example,dc=com$}}, 
+which means: anything to the left of dc=..., if any (the question mark after the 
+pattern within brackets), must end with a comma;
+    * expensive because if you don't need submatches, you could use scoping styles, e.g.
+
+>    dn.subtree="dc=example,dc=com"
+
+to include {{dc=example,dc=com}} in the matching patterns,
+
+>    dn.children="dc=example,dc=com"
+
+to exclude {{dc=example,dc=com}} from the matching patterns, or
+
+>    dn.onelevel="dc=example,dc=com"
+
+to allow exactly one sublevel matches only. 
+
+Always use {{^}} and {{$}} in regexes, whenever appropriate, because 
+{{ou=(.+),ou=(.+),ou=addressbooks,o=basedn}} will match 
+{{something=bla,ou=xxx,ou=yyy,ou=addressbooks,o=basedn,ou=addressbooks,o=basedn,dc=some,dc=org}}
+
+Always use {{([^,]+)}} to indicate exactly one RDN, because {{(.+)}} can 
+include any number of RDNs; e.g. {{ou=(.+),dc=example,dc=com}} will match 
+{{ou=My,o=Org,dc=example,dc=com}}, which might not be what you want.
+
+Never add the rootdn to the by clauses. ACLs are not even processed for operations 
+performed with rootdn identity (otherwise there would be no reason to define a 
+rootdn at all).
+
+Use shorthands. The user directive matches authenticated users and the anonymous
+directive matches anonymous users.
+
+Don't use the {{dn.regex}} form for <by> clauses if all you need is scoping 
+and/or substring replacement; use scoping styles (e.g. {{exact}}, {{onelevel}}, 
+{{children}} or {{subtree}}) and the style modifier expand to cause substring expansion.
+
+For instance,
+
+>    access to dn.regex=".+,dc=([^,]+),dc=([^,]+)$"
+>      by dn.regex="^[^,],ou=Admin,dc=$1,dc=$2$$" write
+
+although correct, can be safely and efficiently replaced by
+
+>    access to dn.regex=".+,(dc=[^,]+,dc=[^,]+)$"
+>      by dn.onelevel,expand="ou=Admin,$1" write
+
+where the regex in the {{<what>}} clause is more compact, and the one in the {{<by>}} 
+clause is replaced by a much more efficient scoping style of onelevel with substring expansion. 
+
+
+H3: Granting and Denying access based on security strength factors (ssf)
+
+You can restrict access based on the security strength factor (SSF)
+
+>    access to dn="cn=example,cn=edu"
+>          by * ssf=256 read
+
+0 (zero) implies no protection,
+1 implies integrity protection only,
+56 DES or other weak ciphers,
+112 triple DES and other strong ciphers,
+128 RC4, Blowfish and other modern strong ciphers.
+
+Other possibilities:
+
+>    transport_ssf=<n>
+>    tls_ssf=<n>
+>    sasl_ssf=<n>
+
+256 is recommended.
+
+See {{slapd.conf}}(5) for information on {{ssf}}.
+
+
+H3: When things aren't working as expected
+
+Consider this example:
+
+>    access to *
+>      by anonymous auth
+>    
+>    access to *
+>      by self write
+>    
+>    access to *
+>      by users read 
+
+You may think this will allow any user to login, to read everything and change 
+his own data if he is logged in. But in this example only the login works and 
+an ldapsearch returns no data. The Problem is that SLAPD goes through its access 
+config line by line and stops as soon as it finds a match in the part of the 
+access rule.(here: {{to *}})
+
+To get what we wanted the file has to read:
+
+>    access to *
+>      by anonymous auth
+>      by self write
+>      by users read 
+
+The general rule is: "special access rules first, generic access rules last"
+
+See also {{slapd.access}}(8), loglevel 128 and {{slapacl}}(8) for debugging
+information.
 
 
 H2: Sets - Granting rights based on relationships
