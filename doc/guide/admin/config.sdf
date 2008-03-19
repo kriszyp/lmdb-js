@@ -47,9 +47,10 @@ slapd(8) includes support for {{LDAP Sync}}-based replication, called
 information on multiple directory servers.   In its most basic
 configuration, the {{master}} is a syncrepl provider and one or more
 {{slave}} (or {{shadow}}) are syncrepl consumers.  An example
-master-slave configuration is shown in figure 3.3.
+master-slave configuration is shown in figure 3.3. Multi-Master 
+configurations are also supported.
 
-!import "config_repl.gif"; align="center"; title="Replicated Directory Services"
+!import "config_repl.png"; align="center"; title="Replicated Directory Services"
 FT[align="Center"] Figure 3.3: Replicated Directory Services
 
 This configuration can be used in conjunction with either of the
