@@ -696,7 +696,10 @@ again:
 		break;
 	}
 
-	fop.o_bd->bd_info = on->on_info->oi_orig;
+	if ( on->on_next )
+		fop.o_bd->bd_info = (BackendInfo *)on->on_next;
+	else
+		fop.o_bd->bd_info = on->on_info->oi_orig;
 	fop.o_bd->be_search( &fop, &frs );
 	fop.o_bd->bd_info = (BackendInfo *)on;
 
@@ -1528,7 +1531,10 @@ syncprov_playlog( Operation *op, SlapReply *rs, sessionlog *sl,
 		fop.ors_filter = &af;
 
 		cb.sc_response = playlog_cb;
-		fop.o_bd->bd_info = on->on_info->oi_orig;
+		if ( on->on_next )
+			fop.o_bd->bd_info = (BackendInfo *)on->on_next;
+		else
+			fop.o_bd->bd_info = on->on_info->oi_orig;
 
 		for ( i=ndel; i<num; i++ ) {
 			if ( uuids[i].bv_len == 0 ) continue;
