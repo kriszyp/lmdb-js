@@ -672,8 +672,8 @@ compare_csns( struct sync_cookie *sc1, struct sync_cookie *sc2, int *which )
 		return -1;
 	}
 
-	for (i=0; !BER_BVISNULL( &sc1->ctxcsn[i] ); i++) {
-		for (j=0; !BER_BVISNULL( &sc2->ctxcsn[j] ); j++) {
+	for (i=0; i<sc1->numcsns; i++) {
+		for (j=0; i<sc2->numcsns; j++) {
 			if ( sc1->sids[i] != sc2->sids[j] )
 				continue;
 			value_match( &match, slap_schema.si_ad_entryCSN,
