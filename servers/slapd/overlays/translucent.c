@@ -1147,7 +1147,7 @@ static int translucent_db_open(BackendDB *be, ConfigReply *cr) {
 	if ( ov->defer_db_open )
 		return 0;
 
-	rc = backend_startup_one( &ov->db, NULL );
+	rc = backend_startup_one( &ov->db, cr );
 
 	if(rc) Debug(LDAP_DEBUG_TRACE,
 		"translucent: bi_db_open() returned error %d\n", rc, 0, 0);

@@ -3209,7 +3209,7 @@ pcache_db_open2(
 	query_manager*  qm = cm->qm;
 	int rc;
 
-	rc = backend_startup_one( &cm->db, NULL );
+	rc = backend_startup_one( &cm->db, cr );
 	if ( rc == 0 ) {
 		cm->defer_db_open = 0;
 	}

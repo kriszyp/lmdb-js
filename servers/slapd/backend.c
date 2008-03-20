@@ -269,7 +269,7 @@ int backend_startup(Backend *be)
 
 	/* open frontend, if required */
 	if ( frontendDB->bd_info->bi_db_open ) {
-		rc = frontendDB->bd_info->bi_db_open( frontendDB, NULL );
+		rc = frontendDB->bd_info->bi_db_open( frontendDB, &cr );
 		if ( rc != 0 ) {
 			Debug( LDAP_DEBUG_ANY,
 				"backend_startup: bi_db_open(frontend) failed! (%d)\n",
