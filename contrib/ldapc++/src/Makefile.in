@@ -69,7 +69,7 @@ am_libldapcpp_la_OBJECTS = LDAPAddRequest.lo LDAPAsynConnection.lo \
 	LDAPReferenceList.lo LDAPRequest.lo LDAPResult.lo \
 	LDAPSaslBindResult.lo LDAPSchema.lo LDAPSearchReference.lo \
 	LDAPSearchRequest.lo LDAPSearchResult.lo LDAPSearchResults.lo \
-	LDAPUrl.lo LDAPUrlList.lo SaslInteraction.lo \
+	LDAPUrl.lo LDAPUrlList.lo LdifReader.lo SaslInteraction.lo \
 	SaslInteractionHandler.lo StringList.lo
 libldapcpp_la_OBJECTS = $(am_libldapcpp_la_OBJECTS)
 libldapcpp_la_LINK = $(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) \
@@ -238,6 +238,7 @@ libldapcpp_la_SOURCES = LDAPAddRequest.cpp \
 			LDAPSearchResults.cpp \
 			LDAPUrl.cpp \
 			LDAPUrlList.cpp \
+			LdifReader.cpp \
 			SaslInteraction.cpp \
 			SaslInteractionHandler.cpp \
 			StringList.cpp 
@@ -270,6 +271,7 @@ include_HEADERS = LDAPAsynConnection.h \
 			LDAPSearchResults.h \
 			LDAPUrl.h \
 			LDAPUrlList.h \
+			LdifReader.h \
 			SaslInteraction.h \
 			SaslInteractionHandler.h \
 			StringList.h 
@@ -410,6 +412,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/LDAPSearchResults.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/LDAPUrl.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/LDAPUrlList.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/LdifReader.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/SaslInteraction.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/SaslInteractionHandler.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/StringList.Plo@am__quote@
