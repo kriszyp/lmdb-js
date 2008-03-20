@@ -13,19 +13,20 @@
 
 #include <string>
 #include <sstream>
+#include <stdexcept>
 
 #include <sasl/saslutil.h> // For base64 routines
 
 typedef std::pair<std::string, std::string> stringpair;
-LdifReader::LdifReader( std::istream &input ) : m_ldifstream(input)
+
+LdifReader::LdifReader( std::istream &input ) 
+        : m_ldifstream(input), m_lineNumber(0)
 {
     DEBUG(LDAP_DEBUG_TRACE, "<> LdifReader::LdifReader()" << std::endl);
     this->m_version = 0;
     // read the first record to find out version and type of the LDIF
-    if ( this->readNextRecord(true) )
-    {
-        this->m_currentIsFirst = true;
-    }
+    this->readNextRecord(true);
+    this->m_currentIsFirst = true;
 }
 
 int LdifReader::readNextRecord( bool first )
@@ -60,12 +61,9 @@ int LdifReader::readNextRecord( bool first )
             // End of Entry
             break;
         }
-        int rc = this->splitLine(line, type, value);
-        if ( rc )
-        {
-            DEBUG(LDAP_DEBUG_TRACE, " Error while splitting ldif line" 
-                    << std::endl);
-        }
+
+        this->splitLine(line, type, value);
+
         if ( numLine == 0 )
         {
             if ( type == "version" )
@@ -74,7 +72,10 @@ int LdifReader::readNextRecord( bool first )
                 valuestream >> this->m_version;
                 if ( this->m_version != 1 ) // there is no other Version than LDIFv1 
                 {
-                    //throw LdifException();
+                    std::ostringstream err;
+                    err << "Line " << this->m_lineNumber 
+                        << ": Unsuported LDIF Version";
+                    throw( std::runtime_error(err.str()) );
                 }
                 continue;
             }
@@ -87,16 +88,27 @@ int LdifReader::readNextRecord( bool first )
                 DEBUG(LDAP_DEBUG_TRACE, " Include directive: " << value << std::endl);
                 if ( this->m_version == 1 )
                 {
-                    // "include" is not an LDIFv1 feature
+                    std::ostringstream err;
+                    err << "Line " << this->m_lineNumber 
+                        << ": \"include\" not allowed in LDIF version 1.";
+                    throw( std::runtime_error(err.str()) );
                 }
-                //this->readIncludeLine(value);
-                return 0;
+                else
+                {
+                    std::ostringstream err;
+                    err << "Line " << this->m_lineNumber 
+                        << ": \"include\" not yet suppported.";
+                    throw( std::runtime_error(err.str()) );
+                }
             }
             else
             {
                 DEBUG(LDAP_DEBUG_TRACE, " Record doesn't start with a DN" 
                             << std::endl);
-                return 0;
+                std::ostringstream err;
+                err << "Line " << this->m_lineNumber 
+                    << ": LDIF record does not start with a DN.";
+                throw( std::runtime_error(err.str()) );
             }
         }
         if ( numLine == 1 ) // might contain "changtype" to indicate a change request
@@ -110,6 +122,10 @@ int LdifReader::readNextRecord( bool first )
                 else if (! this->m_ldifTypeRequest )
                 {
                     // Change Request in Entry record LDIF, should we accept it?
+                    std::ostringstream err;
+                    err << "Line " << this->m_lineNumber 
+                        << ": Change Request in an entry-only LDIF.";
+                    throw( std::runtime_error(err.str()) );
                 }
                 if ( value == "modify" )
                 {
@@ -131,7 +147,10 @@ int LdifReader::readNextRecord( bool first )
                 {
                     DEBUG(LDAP_DEBUG_TRACE, " Unknown change request <" 
                             << value << ">" << std::endl);
-                    return 0;
+                    std::ostringstream err;
+                    err << "Line " << this->m_lineNumber 
+                        << ": Unknown changetype: \"" << value << "\".";
+                    throw( std::runtime_error(err.str()) );
                 }
             }
             else
@@ -179,6 +198,11 @@ LDAPEntry LdifReader::getEntryRecord()
             if ( curAl->getAttributeByName( i->first ) )
             {
                 // Attribute exists already -> Syntax Error
+                std::ostringstream err;
+                err << "Line " << this->m_lineNumber 
+                    << ": Attribute \"" << i->first 
+                    << "\" specified multiple times.";
+                throw( std::runtime_error(err.str()) );
             }
             else
             {
@@ -196,11 +220,11 @@ int LdifReader::getLdifLine(std::string &ldifline)
 {
     DEBUG(LDAP_DEBUG_TRACE, "-> LdifReader::getLdifLine()" << std::endl);
 
+    this->m_lineNumber++;
     if ( ! getline(m_ldifstream, ldifline) )
     {
         return -1;
     }
-
     while ( m_ldifstream &&
         (m_ldifstream.peek() == ' ' || m_ldifstream.peek() == '\t'))
     {
@@ -208,36 +232,43 @@ int LdifReader::getLdifLine(std::string &ldifline)
         m_ldifstream.ignore();
         getline(m_ldifstream, cat);
         ldifline += cat;
+        this->m_lineNumber++;
     }
 
     DEBUG(LDAP_DEBUG_TRACE, "<- LdifReader::getLdifLine()" << std::endl);
     return 0;
 }
 
-int LdifReader::splitLine(const std::string& line, 
+void LdifReader::splitLine(
+            const std::string& line, 
             std::string &type,
-            std::string &value)
+            std::string &value) const
 {
     std::string::size_type pos = line.find(':');
     if ( pos == std::string::npos )
     {
-        DEBUG(LDAP_DEBUG_ANY, "Invalid LDIF line. Not `:` separator" 
+        DEBUG(LDAP_DEBUG_ANY, "Invalid LDIF line. No `:` separator" 
                 << std::endl );
-        return -1;
+        std::ostringstream err;
+        err << "Line " << this->m_lineNumber << ": Invalid LDIF line. No `:` separator";
+        throw( std::runtime_error( err.str() ));
     }
+
     type = line.substr(0, pos);
     if ( pos == line.size() )
     {
         // empty value
         value = "";
-        return 0;
+        return;
     }
+
     pos++;
     char delim = line[pos];
     if ( delim == ':' || delim == '<' )
     {
         pos++;
     }
+
     for( ; pos < line.size() && isspace(line[pos]); pos++ )
     { /* empty */ }
 
@@ -258,21 +289,29 @@ int LdifReader::splitLine(const std::string& line,
         {
             value = "";
             DEBUG( LDAP_DEBUG_TRACE, " invalid base64 content" << std::endl );
-            return -1;
+            std::ostringstream err;
+            err << "Line " << this->m_lineNumber << ": Can't decode Base64 data";
+            throw( std::runtime_error( err.str() ));
         }
         else if ( rc == SASL_BUFOVER )
         {
             value = "";
             DEBUG( LDAP_DEBUG_TRACE, " not enough space in output buffer" 
                     << std::endl );
-            return -1;
+            std::ostringstream err;
+            err << "Line " << this->m_lineNumber 
+                << ": Can't decode Base64 data. Buffer too small";
+            throw( std::runtime_error( err.str() ));
         }
     }
     else if ( delim == '<' )
     {
         // URL value
         DEBUG(LDAP_DEBUG_TRACE, "  url value" << std::endl );
-        return -1;
+        std::ostringstream err;
+        err << "Line " << this->m_lineNumber 
+            << ": URLs are currently not supported";
+        throw( std::runtime_error( err.str() ));
     }
     else 
     {
@@ -281,7 +320,7 @@ int LdifReader::splitLine(const std::string& line,
     }
     DEBUG(LDAP_DEBUG_TRACE, "  Type: <" << type << ">" << std::endl );
     DEBUG(LDAP_DEBUG_TRACE, "  Value: <" << value << ">" << std::endl );
-    return 0;
+    return;
 }
 
 std::string LdifReader::readIncludeLine( const std::string& line ) const

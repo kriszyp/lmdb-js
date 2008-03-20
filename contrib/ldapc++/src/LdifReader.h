@@ -38,9 +38,9 @@ class LdifReader
     private:
         int getLdifLine(std::string &line);
 
-        int splitLine(const std::string& line, 
+        void splitLine(const std::string& line, 
                     std::string &type,
-                    std::string &value );
+                    std::string &value ) const;
 
         std::string readIncludeLine( const std::string &line) const;
 
@@ -48,6 +48,7 @@ class LdifReader
         LdifRecord m_currentRecord;
         int m_version;
         int m_curRecType;
+        int m_lineNumber;
         bool m_ldifTypeRequest;
         bool m_currentIsFirst;
 };
