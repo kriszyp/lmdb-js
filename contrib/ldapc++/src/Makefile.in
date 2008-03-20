@@ -66,12 +66,11 @@ am_libldapcpp_la_OBJECTS = LDAPAddRequest.lo LDAPAsynConnection.lo \
 	LDAPMessage.lo LDAPMessageQueue.lo LDAPModDNRequest.lo \
 	LDAPModification.lo LDAPModifyRequest.lo LDAPModList.lo \
 	LDAPObjClass.lo LDAPRebind.lo LDAPRebindAuth.lo \
-	LDAPReferralException.lo LDAPReferenceList.lo LDAPRequest.lo \
-	LDAPResult.lo LDAPSaslBindResult.lo LDAPSchema.lo \
-	LDAPSearchReference.lo LDAPSearchRequest.lo \
-	LDAPSearchResult.lo LDAPSearchResults.lo LDAPUrl.lo \
-	LDAPUrlList.lo SaslInteraction.lo SaslInteractionHandler.lo \
-	StringList.lo
+	LDAPReferenceList.lo LDAPRequest.lo LDAPResult.lo \
+	LDAPSaslBindResult.lo LDAPSchema.lo LDAPSearchReference.lo \
+	LDAPSearchRequest.lo LDAPSearchResult.lo LDAPSearchResults.lo \
+	LDAPUrl.lo LDAPUrlList.lo SaslInteraction.lo \
+	SaslInteractionHandler.lo StringList.lo
 libldapcpp_la_OBJECTS = $(am_libldapcpp_la_OBJECTS)
 libldapcpp_la_LINK = $(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CXXLD) $(AM_CXXFLAGS) \
@@ -228,7 +227,6 @@ libldapcpp_la_SOURCES = LDAPAddRequest.cpp \
 			LDAPObjClass.cpp \
 			LDAPRebind.cpp \
 			LDAPRebindAuth.cpp \
-			LDAPReferralException.cpp \
 			LDAPReferenceList.cpp \
 			LDAPRequest.cpp \
 			LDAPResult.cpp \
@@ -263,7 +261,6 @@ include_HEADERS = LDAPAsynConnection.h \
 			LDAPObjClass.h \
 			LDAPRebind.h \
 			LDAPRebindAuth.h \
-			LDAPReferralException.h \
 			LDAPReferenceList.h \
 			LDAPResult.h \
 			LDAPSaslBindResult.h \
@@ -403,7 +400,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/LDAPRebind.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/LDAPRebindAuth.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/LDAPReferenceList.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/LDAPReferralException.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/LDAPRequest.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/LDAPResult.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/LDAPSaslBindResult.Plo@am__quote@

@@ -31,7 +31,6 @@ libldapcpp_la_SOURCES = LDAPAddRequest.cpp \
 			LDAPObjClass.cpp \
 			LDAPRebind.cpp \
 			LDAPRebindAuth.cpp \
-			LDAPReferralException.cpp \
 			LDAPReferenceList.cpp \
 			LDAPRequest.cpp \
 			LDAPResult.cpp \
@@ -66,7 +65,6 @@ include_HEADERS = LDAPAsynConnection.h \
 			LDAPObjClass.h \
 			LDAPRebind.h \
 			LDAPRebindAuth.h \
-			LDAPReferralException.h \
 			LDAPReferenceList.h \
 			LDAPResult.h \
 			LDAPSaslBindResult.h \
