@@ -1203,9 +1203,21 @@ do_syncrepl(
 	op->o_managedsait = SLAP_CONTROL_NONCRITICAL;
 	be = si->si_be;
 
-	/* If we're glued, send writes through the glue parent */
+	/* Coordinate contextCSN updates with any syncprov overlays
+	 * in use. This may be complicated by the use of the glue
+	 * overlay.
+	 *
+	 * Typically there is a single syncprov mastering the entire
+	 * glued tree. In that case, our contextCSN updates should
+	 * go to the master DB.
+	 *
+	 * Alternatively, there may be individual syncprov overlays
+	 * on each glued branch. In that case, each syncprov only
+	 * knows about changes within its own branch. And so our
+	 * contextCSN updates should only go to the local DB.
+	 */
 	if ( !si->si_wbe ) {
-		if ( SLAP_GLUE_SUBORDINATE( be )) {
+		if ( SLAP_GLUE_SUBORDINATE( be ) && !overlay_is_inst( be, "syncprov" )) {
 			si->si_wbe = select_backend( &be->be_nsuffix[0], 1 );
 		} else {
 			si->si_wbe = be;
