@@ -15,8 +15,25 @@ class LdifReader
 {
     public:
         LdifReader( std::istream &input );
-        int readNextRecord();
+
+        inline bool isEntryRecords() const
+        {
+            return !m_ldifTypeRequest;
+        }
+
+        inline bool isChangeRecords() const
+        {
+            return m_ldifTypeRequest;
+        }
+
+        inline int getVersion() const
+        {
+            return m_version;
+        }
+
         LDAPEntry getEntryRecord();
+        int readNextRecord( bool first=false );
+        //LDAPRequest getChangeRecord();
 
     private:
         int getLdifLine(std::string &line);
@@ -29,7 +46,10 @@ class LdifReader
 
         std::istream &m_ldifstream;
         LdifRecord m_currentRecord;
+        int m_version;
         int m_curRecType;
+        bool m_ldifTypeRequest;
+        bool m_currentIsFirst;
 };
 
 #endif /* LDIF_READER_H */
