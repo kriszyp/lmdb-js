@@ -1306,6 +1306,7 @@ syncprov_checkpoint( Operation *op, SlapReply *rs, slap_overinst *on )
 	Operation opm;
 	SlapReply rsm = { 0 };
 	slap_callback cb = {0};
+	BackendDB be;
 
 	mod.sml_numvals = si->si_numcsns;
 	mod.sml_values = si->si_ctxcsn;
@@ -1321,8 +1322,12 @@ syncprov_checkpoint( Operation *op, SlapReply *rs, slap_overinst *on )
 	opm.o_callback = &cb;
 	opm.orm_modlist = &mod;
 	opm.orm_no_opattrs = 1;
-	opm.o_req_dn = op->o_bd->be_suffix[0];
-	opm.o_req_ndn = op->o_bd->be_nsuffix[0];
+	if ( SLAP_GLUE_SUBORDINATE( op->o_bd )) {
+		be = *on->on_info->oi_origdb;
+		opm.o_bd = &be;
+	}
+	opm.o_req_dn = opm.o_bd->be_suffix[0];
+	opm.o_req_ndn = opm.o_bd->be_nsuffix[0];
 	opm.o_bd->bd_info = on->on_info->oi_orig;
 	opm.o_managedsait = SLAP_CONTROL_NONCRITICAL;
 	opm.o_no_schema_check = 1;
@@ -1330,7 +1335,6 @@ syncprov_checkpoint( Operation *op, SlapReply *rs, slap_overinst *on )
 	if ( mod.sml_next != NULL ) {
 		slap_mods_free( mod.sml_next, 1 );
 	}
-	opm.orm_no_opattrs = 0;
 }
 
 static void
