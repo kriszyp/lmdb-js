@@ -552,8 +552,8 @@ do_syncrep1(
 		 */
 		a.a_desc = slap_schema.si_ad_contextCSN;
 		e.e_attrs = &a;
-		e.e_name = si->si_wbe->be_suffix[0];
-		e.e_nname = si->si_wbe->be_nsuffix[0];
+		e.e_name = op->o_bd->be_suffix[0];
+		e.e_nname = op->o_bd->be_nsuffix[0];
 		at[0].an_name = a.a_desc->ad_cname;
 		at[0].an_desc = a.a_desc;
 		BER_BVZERO( &at[1].an_name );
@@ -1201,11 +1201,7 @@ do_syncrepl(
 	op->o_tmpmfuncs = &ch_mfuncs;
 
 	op->o_managedsait = SLAP_CONTROL_NONCRITICAL;
-	op->o_bd = be = si->si_be;
-	op->o_dn = op->o_bd->be_rootdn;
-	op->o_ndn = op->o_bd->be_rootndn;
-	if ( !si->si_schemachecking )
-		op->o_no_schema_check = 1;
+	be = si->si_be;
 
 	/* If we're glued, send writes through the glue parent */
 	if ( !si->si_wbe ) {
@@ -1215,11 +1211,18 @@ do_syncrepl(
 			si->si_wbe = be;
 		}
 	}
+	if ( !si->si_schemachecking )
+		op->o_no_schema_check = 1;
 
 	/* Establish session, do search */
 	if ( !si->si_ld ) {
 		si->si_refreshDelete = 0;
 		si->si_refreshPresent = 0;
+
+		/* use main DB when retrieving contextCSN */
+		op->o_bd = si->si_wbe;
+		op->o_dn = op->o_bd->be_rootdn;
+		op->o_ndn = op->o_bd->be_rootndn;
 		rc = do_syncrep1( op, si );
 	}
 
@@ -1228,6 +1231,10 @@ reload:
 	if ( rc == LDAP_SUCCESS ) {
 		ldap_get_option( si->si_ld, LDAP_OPT_DESC, &s );
 
+		/* use current DB */
+		op->o_bd = be;
+		op->o_dn = op->o_bd->be_rootdn;
+		op->o_ndn = op->o_bd->be_rootndn;
 		rc = do_syncrep2( op, si );
 		if ( rc == LDAP_SYNC_REFRESH_REQUIRED )	{
 			rc = ldap_sync_search( si, op->o_tmpmemctx );
