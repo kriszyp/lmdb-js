@@ -12,15 +12,23 @@
 #include "debug.h"
 
 #include <string>
+#include <sstream>
 
 #include <sasl/saslutil.h> // For base64 routines
 
+typedef std::pair<std::string, std::string> stringpair;
 LdifReader::LdifReader( std::istream &input ) : m_ldifstream(input)
 {
     DEBUG(LDAP_DEBUG_TRACE, "<> LdifReader::LdifReader()" << std::endl);
+    this->m_version = 0;
+    // read the first record to find out version and type of the LDIF
+    if ( this->readNextRecord(true) )
+    {
+        this->m_currentIsFirst = true;
+    }
 }
 
-int LdifReader::readNextRecord()
+int LdifReader::readNextRecord( bool first )
 {
     DEBUG(LDAP_DEBUG_TRACE, "-> LdifReader::readRecord()" << std::endl);
     std::string line;
@@ -28,11 +36,30 @@ int LdifReader::readNextRecord()
     std::string value;
     int numLine = 0;
     int recordType = 0;
+
+    if ( (! first) && this->m_currentIsFirst == true )
+    {
+        this->m_currentIsFirst = false;
+        return m_curRecType;
+    }
+
     m_currentRecord.clear();
 
-    while ( !this->getLdifLine(line) && line != "" )
+    while ( !this->getLdifLine(line) )
     {
         DEBUG(LDAP_DEBUG_TRACE, "  Line: " << line << std::endl );
+
+        // skip comments and empty lines between entries
+        if ( line[0] == '#' || ( numLine == 0 && line.size() == 0 ) )
+        {
+            DEBUG(LDAP_DEBUG_TRACE, "skipping empty line or comment" << std::endl );
+            continue;
+        }
+        if ( line.size() == 0 ) 
+        {
+            // End of Entry
+            break;
+        }
         int rc = this->splitLine(line, type, value);
         if ( rc )
         {
@@ -41,6 +68,16 @@ int LdifReader::readNextRecord()
         }
         if ( numLine == 0 )
         {
+            if ( type == "version" )
+            {
+                std::istringstream valuestream(value);
+                valuestream >> this->m_version;
+                if ( this->m_version != 1 ) // there is no other Version than LDIFv1 
+                {
+                    //throw LdifException();
+                }
+                continue;
+            }
             if ( type == "dn" ) // Record should start with the DN ...
             {
                 DEBUG(LDAP_DEBUG_TRACE, " Record DN:" << value << std::endl);
@@ -48,7 +85,12 @@ int LdifReader::readNextRecord()
             else if ( type == "include" ) // ... or it might be an "include" line
             {
                 DEBUG(LDAP_DEBUG_TRACE, " Include directive: " << value << std::endl);
+                if ( this->m_version == 1 )
+                {
+                    // "include" is not an LDIFv1 feature
+                }
                 //this->readIncludeLine(value);
+                return 0;
             }
             else
             {
@@ -61,6 +103,14 @@ int LdifReader::readNextRecord()
         {
             if ( type == "changetype" ) 
             {
+                if ( first ) 
+                {
+                    this->m_ldifTypeRequest = true;
+                }
+                else if (! this->m_ldifTypeRequest )
+                {
+                    // Change Request in Entry record LDIF, should we accept it?
+                }
                 if ( value == "modify" )
                 {
                     recordType = LDAPMsg::MODIFY_REQUEST;
@@ -79,19 +129,30 @@ int LdifReader::readNextRecord()
                 }
                 else
                 {
-                    DEBUG(LDAP_DEBUG_TRACE, " Unknown change request <" << value << ">" << std::endl);
+                    DEBUG(LDAP_DEBUG_TRACE, " Unknown change request <" 
+                            << value << ">" << std::endl);
                     return 0;
                 }
             }
             else
             {
+                if ( first ) 
+                {
+                    this->m_ldifTypeRequest = false;
+                }
+                else if (this->m_ldifTypeRequest )
+                {
+                    // Entry record in Change record LDIF, should we accept 
+                    // it (e.g. as AddRequest)?
+                }
                 recordType = LDAPMsg::SEARCH_ENTRY;
             }
         }
-        m_currentRecord.push_back(std::pair<std::string, std::string>(type, value));
+        m_currentRecord.push_back( stringpair(type, value) );
         numLine++;
     }
-    DEBUG(LDAP_DEBUG_TRACE, "<- LdifReader::readRecord()" << std::endl);
+    DEBUG(LDAP_DEBUG_TRACE, "<- LdifReader::readRecord() return: " 
+            << recordType << std::endl);
     m_curRecType = recordType;
     return recordType;
 }
@@ -102,7 +163,7 @@ LDAPEntry LdifReader::getEntryRecord()
     {
         // Error
     }
-    std::list<std::pair<std::string, std::string> >::const_iterator i = m_currentRecord.begin();
+    std::list<stringpair>::const_iterator i = m_currentRecord.begin();
     LDAPEntry resEntry(i->second);
     i++;
     LDAPAttribute curAttr(i->first);
@@ -115,10 +176,9 @@ LDAPEntry LdifReader::getEntryRecord()
         }
         else
         {
-            if ( curAl->getAttributeByName( i->first ) ) 
-                    // Attribute exists already -> Syntax Error
+            if ( curAl->getAttributeByName( i->first ) )
             {
-                // Error
+                // Attribute exists already -> Syntax Error
             }
             else
             {
