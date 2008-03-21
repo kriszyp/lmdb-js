@@ -1555,13 +1555,16 @@ syncprov_playlog( Operation *op, SlapReply *rs, sessionlog *sl,
 	if ( ndel ) {
 		struct berval cookie;
 
-		slap_compose_sync_cookie( op, &cookie, delcsn, srs->sr_state.rid,
-			srs->sr_state.sid );
+		if ( delcsn[0].bv_len ) {
+			slap_compose_sync_cookie( op, &cookie, delcsn, srs->sr_state.rid,
+				srs->sr_state.sid );
+		}
 
 		Debug( LDAP_DEBUG_SYNC, "syncprov_playlog: cookie=%s\n", cookie.bv_val, 0, 0 );
 
 		uuids[ndel].bv_val = NULL;
-		syncprov_sendinfo( op, rs, LDAP_TAG_SYNC_ID_SET, &cookie, 0, uuids, 1 );
+		syncprov_sendinfo( op, rs, LDAP_TAG_SYNC_ID_SET,
+			delcsn[0].bv_len ? &cookie : NULL, 0, uuids, 1 );
 		op->o_tmpfree( cookie.bv_val, op->o_tmpmemctx );
 	}
 	op->o_tmpfree( uuids, op->o_tmpmemctx );
