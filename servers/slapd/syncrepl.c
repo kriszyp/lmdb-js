@@ -468,15 +468,15 @@ do_syncrep1(
 
 	ldap_set_option( si->si_ld, LDAP_OPT_TIMELIMIT, &si->si_tlimit );
 
+	si->si_syncCookie.rid = si->si_rid;
+	si->si_syncCookie.sid = SLAP_SINGLE_SHADOW( si->si_be ) ? -1 :
+		slap_serverID;
+
 	/* We've just started up, or the remote server hasn't sent us
 	 * any meaningful state.
 	 */
 	if ( BER_BVISNULL( &si->si_syncCookie.octet_str ) ) {
 		int i;
-
-		si->si_syncCookie.rid = si->si_rid;
-		si->si_syncCookie.sid = SLAP_SINGLE_SHADOW( si->si_be ) ? -1 :
-			slap_serverID;
 
 		LDAP_STAILQ_FOREACH( sc, &slap_sync_cookie, sc_next ) {
 			if ( si->si_rid == sc->rid ) {
@@ -552,26 +552,27 @@ do_syncrep1(
 		 */
 		a.a_desc = slap_schema.si_ad_contextCSN;
 		e.e_attrs = &a;
-		e.e_name = si->si_wbe->be_suffix[0];
-		e.e_nname = si->si_wbe->be_nsuffix[0];
-		rs.sr_entry = &e;
-		rs.sr_flags = REP_ENTRY_MODIFIABLE;
+		e.e_name = op->o_bd->be_suffix[0];
+		e.e_nname = op->o_bd->be_nsuffix[0];
 		at[0].an_name = a.a_desc->ad_cname;
 		at[0].an_desc = a.a_desc;
 		BER_BVZERO( &at[1].an_name );
+		rs.sr_entry = &e;
+		rs.sr_flags = REP_ENTRY_MODIFIABLE;
+		rs.sr_attrs = at;
 		op->o_req_dn = e.e_name;
 		op->o_req_ndn = e.e_nname;
 
 		ldap_pvt_thread_mutex_lock( &si->si_cookieState->cs_mutex );
 		rc = backend_operational( op, &rs );
-		if ( rc == LDAP_SUCCESS && a.a_vals ) {
+		if ( rc == LDAP_SUCCESS && a.a_nvals ) {
 			int num = a.a_numvals;
 			/* check for differences */
 			if ( num != si->si_cookieState->cs_num ) {
 				changed = 1;
 			} else {
 				for ( i=0; i<num; i++ ) {
-					if ( ber_bvcmp( &a.a_vals[i],
+					if ( ber_bvcmp( &a.a_nvals[i],
 						&si->si_cookieState->cs_vals[i] )) {
 						changed =1;
 						break;
@@ -582,50 +583,57 @@ do_syncrep1(
 				ber_bvarray_free( si->si_cookieState->cs_vals );
 				ch_free( si->si_cookieState->cs_sids );
 				si->si_cookieState->cs_num = num;
-				si->si_cookieState->cs_vals = a.a_vals;
-				si->si_cookieState->cs_sids = slap_parse_csn_sids( a.a_vals,
+				si->si_cookieState->cs_vals = a.a_nvals;
+				si->si_cookieState->cs_sids = slap_parse_csn_sids( a.a_nvals,
 					num, NULL );
 				si->si_cookieState->cs_age++;
 			} else {
-				ber_bvarray_free( a.a_vals );
+				ber_bvarray_free( a.a_nvals );
 			}
-			changed = 0;
+			ber_bvarray_free( a.a_vals );
 		}
 		/* See if the cookieState has changed due to anything outside
 		 * this particular consumer. That includes other consumers in
 		 * the same context, or local changes detected above.
 		 */
-		if ( si->si_cookieState->cs_num > 1 && si->si_cookieAge !=
+		if ( si->si_cookieState->cs_num > 0 && si->si_cookieAge !=
 			si->si_cookieState->cs_age ) {
-
-			for (i=0; !BER_BVISNULL( &si->si_syncCookie.ctxcsn[i] ); i++) {
-				/* bogus, just dup everything */
-				if ( si->si_syncCookie.sids[i] == -1 ) {
-					ber_bvarray_free( si->si_syncCookie.ctxcsn );
-					ber_bvarray_dup_x( &si->si_syncCookie.ctxcsn,
-						si->si_cookieState->cs_vals, NULL );
-					changed = 1;
-					break;
-				}
-				for (j=0; j<si->si_cookieState->cs_num; j++) {
-					if ( si->si_syncCookie.sids[i] !=
-						si->si_cookieState->cs_sids[j] )
-						continue;
-					if ( bvmatch( &si->si_syncCookie.ctxcsn[i],
-						&si->si_cookieState->cs_vals[j] ))
+			if ( !si->si_syncCookie.numcsns ) {
+				ber_bvarray_free( si->si_syncCookie.ctxcsn );
+				ber_bvarray_dup_x( &si->si_syncCookie.ctxcsn,
+					si->si_cookieState->cs_vals, NULL );
+				changed = 1;
+			} else {
+				for (i=0; !BER_BVISNULL( &si->si_syncCookie.ctxcsn[i] ); i++) {
+					/* bogus, just dup everything */
+					if ( si->si_syncCookie.sids[i] == -1 ) {
+						ber_bvarray_free( si->si_syncCookie.ctxcsn );
+						ber_bvarray_dup_x( &si->si_syncCookie.ctxcsn,
+							si->si_cookieState->cs_vals, NULL );
+						changed = 1;
 						break;
-					ber_bvreplace( &si->si_syncCookie.ctxcsn[i],
-						&si->si_cookieState->cs_vals[j] );
-					changed = 1;
-					break;
+					}
+					for (j=0; j<si->si_cookieState->cs_num; j++) {
+						if ( si->si_syncCookie.sids[i] !=
+							si->si_cookieState->cs_sids[j] )
+							continue;
+						if ( bvmatch( &si->si_syncCookie.ctxcsn[i],
+							&si->si_cookieState->cs_vals[j] ))
+							break;
+						ber_bvreplace( &si->si_syncCookie.ctxcsn[i],
+							&si->si_cookieState->cs_vals[j] );
+						changed = 1;
+						break;
+					}
 				}
 			}
-			if ( changed ) {
-				ch_free( si->si_syncCookie.octet_str.bv_val );
-				slap_compose_sync_cookie( NULL, &si->si_syncCookie.octet_str,
-					si->si_syncCookie.ctxcsn, si->si_syncCookie.rid,
-					SLAP_SINGLE_SHADOW( si->si_be ) ? -1 : slap_serverID );
-			}
+		}
+		if ( changed ) {
+			si->si_cookieAge = si->si_cookieState->cs_age;
+			ch_free( si->si_syncCookie.octet_str.bv_val );
+			slap_compose_sync_cookie( NULL, &si->si_syncCookie.octet_str,
+				si->si_syncCookie.ctxcsn, si->si_syncCookie.rid,
+				si->si_syncCookie.sid );
 		}
 		ldap_pvt_thread_mutex_unlock( &si->si_cookieState->cs_mutex );
 	}
@@ -664,14 +672,14 @@ compare_csns( struct sync_cookie *sc1, struct sync_cookie *sc2, int *which )
 		return -1;
 	}
 
-	for (i=0; !BER_BVISNULL( &sc1->ctxcsn[i] ); i++) {
-		for (j=0; !BER_BVISNULL( &sc2->ctxcsn[j] ); j++) {
+	for (i=0; i<sc1->numcsns; i++) {
+		for (j=0; i<sc2->numcsns; j++) {
 			if ( sc1->sids[i] != sc2->sids[j] )
 				continue;
 			value_match( &match, slap_schema.si_ad_entryCSN,
 				slap_schema.si_ad_entryCSN->ad_type->sat_ordering,
 				SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
-				&sc1->ctxcsn[i], &sc2->ctxcsn[i], &text );
+				&sc1->ctxcsn[i], &sc2->ctxcsn[j], &text );
 			if ( match < 0 ) {
 				*which = j;
 				return match;
@@ -1193,25 +1201,40 @@ do_syncrepl(
 	op->o_tmpmfuncs = &ch_mfuncs;
 
 	op->o_managedsait = SLAP_CONTROL_NONCRITICAL;
-	op->o_bd = be = si->si_be;
-	op->o_dn = op->o_bd->be_rootdn;
-	op->o_ndn = op->o_bd->be_rootndn;
-	if ( !si->si_schemachecking )
-		op->o_no_schema_check = 1;
+	be = si->si_be;
 
-	/* If we're glued, send writes through the glue parent */
+	/* Coordinate contextCSN updates with any syncprov overlays
+	 * in use. This may be complicated by the use of the glue
+	 * overlay.
+	 *
+	 * Typically there is a single syncprov mastering the entire
+	 * glued tree. In that case, our contextCSN updates should
+	 * go to the master DB.
+	 *
+	 * Alternatively, there may be individual syncprov overlays
+	 * on each glued branch. In that case, each syncprov only
+	 * knows about changes within its own branch. And so our
+	 * contextCSN updates should only go to the local DB.
+	 */
 	if ( !si->si_wbe ) {
-		if ( SLAP_GLUE_SUBORDINATE( be )) {
+		if ( SLAP_GLUE_SUBORDINATE( be ) && !overlay_is_inst( be, "syncprov" )) {
 			si->si_wbe = select_backend( &be->be_nsuffix[0], 1 );
 		} else {
 			si->si_wbe = be;
 		}
 	}
+	if ( !si->si_schemachecking )
+		op->o_no_schema_check = 1;
 
 	/* Establish session, do search */
 	if ( !si->si_ld ) {
 		si->si_refreshDelete = 0;
 		si->si_refreshPresent = 0;
+
+		/* use main DB when retrieving contextCSN */
+		op->o_bd = si->si_wbe;
+		op->o_dn = op->o_bd->be_rootdn;
+		op->o_ndn = op->o_bd->be_rootndn;
 		rc = do_syncrep1( op, si );
 	}
 
@@ -1220,6 +1243,10 @@ reload:
 	if ( rc == LDAP_SUCCESS ) {
 		ldap_get_option( si->si_ld, LDAP_OPT_DESC, &s );
 
+		/* use current DB */
+		op->o_bd = be;
+		op->o_dn = op->o_bd->be_rootdn;
+		op->o_ndn = op->o_bd->be_rootndn;
 		rc = do_syncrep2( op, si );
 		if ( rc == LDAP_SYNC_REFRESH_REQUIRED )	{
 			rc = ldap_sync_search( si, op->o_tmpmemctx );
@@ -2613,7 +2640,7 @@ syncrepl_updateCookie(
 	struct sync_cookie *syncCookie )
 {
 	Backend *be = op->o_bd;
-	Modifications mod[2];
+	Modifications mod;
 	struct berval first = BER_BVNULL;
 
 	int rc, i, j, len;
@@ -2621,24 +2648,22 @@ syncrepl_updateCookie(
 	slap_callback cb = { NULL };
 	SlapReply	rs_modify = {REP_RESULT};
 
-	mod[0].sml_op = LDAP_MOD_DELETE;
-	mod[0].sml_desc = slap_schema.si_ad_contextCSN;
-	mod[0].sml_type = mod[0].sml_desc->ad_cname;
-	mod[0].sml_values = NULL;
-	mod[0].sml_nvalues = NULL;
-	mod[0].sml_numvals = 0;
-	mod[0].sml_next = &mod[1];
-
-	mod[1].sml_op = LDAP_MOD_ADD;
-	mod[1].sml_desc = slap_schema.si_ad_contextCSN;
-	mod[1].sml_type = mod[0].sml_desc->ad_cname;
-	mod[1].sml_values = NULL;
-	mod[1].sml_nvalues = NULL;
-	mod[1].sml_numvals = 0;
-	mod[1].sml_next = NULL;
+	mod.sml_op = LDAP_MOD_REPLACE;
+	mod.sml_desc = slap_schema.si_ad_contextCSN;
+	mod.sml_type = mod.sml_desc->ad_cname;
+	mod.sml_nvalues = NULL;
+	mod.sml_next = NULL;
 
 	ldap_pvt_thread_mutex_lock( &si->si_cookieState->cs_mutex );
 
+	/* clone the cookieState CSNs so we can Replace the whole thing */
+	mod.sml_numvals = si->si_cookieState->cs_num;
+	mod.sml_values = op->o_tmpalloc(( mod.sml_numvals+1 )*sizeof(struct berval), op->o_tmpmemctx );
+	for ( i=0; i<mod.sml_numvals; i++ )
+		mod.sml_values[i] = si->si_cookieState->cs_vals[i];
+	BER_BVZERO( &mod.sml_values[i] );
+
+	/* find any CSNs in the syncCookie that are newer than the cookieState */
 	for ( i=0; i<syncCookie->numcsns; i++ ) {
 		for ( j=0; j<si->si_cookieState->cs_num; j++ ) {
 			if ( syncCookie->sids[i] != si->si_cookieState->cs_sids[j] )
@@ -2648,12 +2673,7 @@ syncrepl_updateCookie(
 				len = si->si_cookieState->cs_vals[j].bv_len;
 			if ( memcmp( syncCookie->ctxcsn[i].bv_val,
 				si->si_cookieState->cs_vals[j].bv_val, len ) > 0 ) {
-				ber_bvarray_add_x( &mod[0].sml_values,
-					&si->si_cookieState->cs_vals[j], op->o_tmpmemctx );
-				mod[0].sml_numvals++;
-				ber_bvarray_add_x( &mod[1].sml_values,
-					&syncCookie->ctxcsn[i], op->o_tmpmemctx );
-				mod[1].sml_numvals++;
+				mod.sml_values[j] = syncCookie->ctxcsn[i];
 				if ( BER_BVISNULL( &first ))
 					first = syncCookie->ctxcsn[i];
 			}
@@ -2661,9 +2681,10 @@ syncrepl_updateCookie(
 		}
 		/* there was no match for this SID, it's a new CSN */
 		if ( j == si->si_cookieState->cs_num ) {
-			ber_bvarray_add_x( &mod[1].sml_values,
-				&syncCookie->ctxcsn[i], op->o_tmpmemctx );
-			mod[1].sml_numvals++;
+			mod.sml_values = op->o_tmprealloc( mod.sml_values,
+				( mod.sml_numvals+2 )*sizeof(struct berval), op->o_tmpmemctx );
+			mod.sml_values[mod.sml_numvals++] = syncCookie->ctxcsn[i];
+			BER_BVZERO( &mod.sml_values[mod.sml_numvals] );
 			if ( BER_BVISNULL( &first ))
 				first = syncCookie->ctxcsn[i];
 		}
@@ -2671,6 +2692,7 @@ syncrepl_updateCookie(
 	/* Should never happen, ITS#5065 */
 	if ( BER_BVISNULL( &first )) {
 		ldap_pvt_thread_mutex_unlock( &si->si_cookieState->cs_mutex );
+		op->o_tmpfree( mod.sml_values, op->o_tmpmemctx );
 		return 0;
 	}
 	op->o_bd = si->si_wbe;
@@ -2688,11 +2710,7 @@ syncrepl_updateCookie(
 	/* update contextCSN */
 	op->o_msgid = SLAP_SYNC_UPDATE_MSGID;
 
-	if ( mod[0].sml_values )
-		op->orm_modlist = mod;
-	else
-		op->orm_modlist = &mod[1];
-
+	op->orm_modlist = &mod;
 	op->orm_no_opattrs = 1;
 	rc = op->o_bd->be_modify( op, &rs_modify );
 	op->orm_no_opattrs = 0;
@@ -2702,21 +2720,15 @@ syncrepl_updateCookie(
 		slap_sync_cookie_free( &si->si_syncCookie, 0 );
 		slap_dup_sync_cookie( &si->si_syncCookie, syncCookie );
 		/* If we replaced any old values */
-		if ( mod[0].sml_values ) {
-			for ( i=0; !BER_BVISNULL( &mod[0].sml_values[i] ); i++ ) {
-				for ( j=0; j<si->si_cookieState->cs_num; j++ ) {
-					if ( mod[0].sml_values[i].bv_val !=
-						si->si_cookieState->cs_vals[j].bv_val )
-						continue;
-					ber_bvreplace( &si->si_cookieState->cs_vals[j],
-						&mod[1].sml_values[i] );
-					break;
-				}
-			}
-		} else {
-			/* Else we just added */
-			si->si_cookieState->cs_num += syncCookie->numcsns;
-			value_add( &si->si_cookieState->cs_vals, syncCookie->ctxcsn );
+		for ( i=0; i<si->si_cookieState->cs_num; i++ ) {
+			if ( mod.sml_values[i].bv_val != si->si_cookieState->cs_vals[i].bv_val )
+					ber_bvreplace( &si->si_cookieState->cs_vals[i],
+						&mod.sml_values[i] );
+		}
+		/* Handle any added values */
+		if ( i < mod.sml_numvals ) {
+			si->si_cookieState->cs_num = mod.sml_numvals;
+			value_add( &si->si_cookieState->cs_vals, &mod.sml_values[i] );
 			free( si->si_cookieState->cs_sids );
 			si->si_cookieState->cs_sids = slap_parse_csn_sids(
 				si->si_cookieState->cs_vals, si->si_cookieState->cs_num, NULL );
@@ -2734,9 +2746,8 @@ syncrepl_updateCookie(
 	op->o_bd = be;
 	op->o_tmpfree( op->o_csn.bv_val, op->o_tmpmemctx );
 	BER_BVZERO( &op->o_csn );
-	if ( mod[1].sml_next ) slap_mods_free( mod[1].sml_next, 1 );
-	op->o_tmpfree( mod[1].sml_values, op->o_tmpmemctx );
-	op->o_tmpfree( mod[0].sml_values, op->o_tmpmemctx );
+	if ( mod.sml_next ) slap_mods_free( mod.sml_next, 1 );
+	op->o_tmpfree( mod.sml_values, op->o_tmpmemctx );
 
 	return rc;
 }
