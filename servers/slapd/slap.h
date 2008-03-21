@@ -1707,6 +1707,7 @@ struct ConfigOCs;	/* config.h */
 
 struct BackendDB {
 	BackendInfo	*bd_info;	/* pointer to shared backend info */
+	BackendDB *bd_orig;		/* pointer to original backend, for overlays */
 
 	/* fields in this structure (and routines acting on this structure)
 	   should be renamed from be_ to bd_ */
@@ -2466,6 +2467,20 @@ typedef union OpRequest {
 	req_pwdexop_s oq_pwdexop;
 } OpRequest;
 
+/* This is only a header. Actual users should define their own
+ * structs with the oe_next / oe_key fields at the top and
+ * whatever else they need following.
+ */
+typedef struct OpExtra {
+	LDAP_SLIST_ENTRY(OpExtra) oe_next;
+	void *oe_key;
+} OpExtra;
+
+typedef struct OpExtraDB {
+	OpExtra oe;
+	BackendDB *oe_db;
+} OpExtraDB;
+
 struct Operation {
 	Opheader *o_hdr;
 
@@ -2657,7 +2672,9 @@ struct Operation {
 	LDAPControl	**o_ctrls;	 /* controls */
 	struct berval o_csn;
 
+	/* DEPRECATE o_private - use o_extra instead */
 	void	*o_private;	/* anything the backend needs */
+	LDAP_SLIST_HEAD(o_e, OpExtra) o_extra;	/* anything the backend needs */
 
 	LDAP_STAILQ_ENTRY(Operation)	o_next;	/* next operation in list */
 };

@@ -48,6 +48,7 @@ do_add( Operation *op, SlapReply *rs )
 	size_t		textlen = sizeof( textbuf );
 	int		rc = 0;
 	int		freevals = 1;
+	OpExtraDB oex;
 
 	Debug( LDAP_DEBUG_TRACE, "%s do_add\n",
 		op->o_log_prefix, 0, 0 );
@@ -185,8 +186,13 @@ do_add( Operation *op, SlapReply *rs )
 
 	freevals = 0;
 
+	oex.oe.oe_key = (void *)do_add;
+	oex.oe_db = NULL;
+	LDAP_SLIST_INSERT_HEAD(&op->o_extra, &oex.oe, oe_next);
+
 	op->o_bd = frontendDB;
 	rc = frontendDB->be_add( op, rs );
+	LDAP_SLIST_REMOVE(&op->o_extra, &oex.oe, OpExtra, oe_next);
 
 #ifdef LDAP_X_TXN
 	if ( rc == LDAP_X_TXN_SPECIFY_OKAY ) {
@@ -195,17 +201,15 @@ do_add( Operation *op, SlapReply *rs )
 	} else
 #endif
 	if ( rc == 0 ) {
-		if ( op->ora_e != NULL && op->o_private != NULL ) {
+		if ( op->ora_e != NULL && oex.oe_db != NULL ) {
 			BackendDB	*bd = op->o_bd;
 
-			op->o_bd = (BackendDB *)op->o_private;
-			op->o_private = NULL;
+			op->o_bd = oex.oe_db;
 
 			be_entry_release_w( op, op->ora_e );
 
 			op->ora_e = NULL;
 			op->o_bd = bd;
-			op->o_private = NULL;
 		}
 	}
 
@@ -329,11 +333,17 @@ fe_op_add( Operation *op, SlapReply *rs )
 
 			rc = op->o_bd->be_add( op, rs );
 			if ( rc == LDAP_SUCCESS ) {
+				OpExtra *oex;
 				/* NOTE: be_entry_release_w() is
 				 * called by do_add(), so that global
 				 * overlays on the way back can
 				 * at least read the entry */
-				op->o_private = op->o_bd;
+				LDAP_SLIST_FOREACH(oex, &op->o_extra, oe_next) {
+					if ( oex->oe_key == (void *)do_add ) {
+						((OpExtraDB *)oex)->oe_db = op->o_bd;
+						break;
+					}
+				}
 			}
 
 		} else {
