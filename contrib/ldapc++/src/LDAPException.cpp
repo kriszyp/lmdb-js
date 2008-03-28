@@ -1,9 +1,8 @@
+// $OpenLDAP$
 /*
  * Copyright 2000, OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
-
-
 
 #include <ldap.h>
 #include "config.h"
