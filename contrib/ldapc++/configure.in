@@ -1,7 +1,8 @@
+dnl $OpenLDAP$
+
 dnl Copyright 2000-2003, OpenLDAP Foundation, All Rights Reserved.
 dnl COPYING RESTRICTIONS APPLY, see COPYRIGHT file
-  
-  
+
 dnl Process this file with autoconf to produce a configure script.
 
 dnl disable config.cache
