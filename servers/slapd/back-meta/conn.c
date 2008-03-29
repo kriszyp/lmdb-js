@@ -140,11 +140,30 @@ meta_back_conndn_dup(
  */
 #if META_BACK_PRINT_CONNTREE > 0
 static void
+meta_back_print( metaconn_t *mc, char *avlstr )
+{
+	int	i;
+
+	fputs( "targets=[", stderr );
+	for ( i = 0; i < mc->mc_info->mi_ntargets; i++ ) {
+		fputc( mc->mc_conns[ i ].msc_ld ? '*' : 'o', stderr);
+	}
+	fputc( ']', stderr );
+
+	fprintf( stderr, " mc=%p local=\"%s\" conn=%p refcnt=%d%s %s\n",
+		(void *)mc,
+		mc->mc_local_ndn.bv_val ? mc->mc_local_ndn.bv_val : "",
+		(void *)mc->mc_conn,
+		mc->mc_refcnt,
+		LDAP_BACK_CONN_TAINTED( mc ) ? " tainted" : "",
+		avlstr );
+}
+
+static void
 meta_back_ravl_print( Avlnode *root, int depth )
 {
 	int     	i;
-	metaconn_t	*mc;
-	
+
 	if ( root == 0 ) {
 		return;
 	}
@@ -154,15 +173,11 @@ meta_back_ravl_print( Avlnode *root, int depth )
 	for ( i = 0; i < depth; i++ ) {
 		fprintf( stderr, "-" );
 	}
+	fputc( ' ', stderr );
 
-	mc = (metaconn_t *)root->avl_data;
-	fprintf( stderr, "mc=%p local=\"%s\" conn=%p %s refcnt=%d%s\n",
-		(void *)mc,
-		mc->mc_local_ndn.bv_val ? mc->mc_local_ndn.bv_val : "",
-		(void *)mc->mc_conn,
-		avl_bf2str( root->avl_bf ), mc->mc_refcnt,
-		LDAP_BACK_CONN_TAINTED( mc ) ? " tainted" : "" );
-	
+	meta_back_print( (metaconn_t *)root->avl_data,
+		avl_bf2str( root->avl_bf ) );
+
 	meta_back_ravl_print( root->avl_left, depth + 1 );
 }
 
@@ -192,11 +207,8 @@ meta_back_print_conntree( metainfo_t *mi, char *msg )
 
 		LDAP_TAILQ_FOREACH( mc, &mi->mi_conn_priv[ c ].mic_priv, mc_q )
 		{
-			fprintf( stderr, "    [%d] mc=%p local=\"%s\" conn=%p refcnt=%d flags=0x%08x\n",
-				i,
-				(void *)mc,
-				mc->mc_local_ndn.bv_val ? mc->mc_local_ndn.bv_val : "",
-				(void *)mc->mc_conn, mc->mc_refcnt, mc->msc_mscflags );
+			fprintf( stderr, "    [%d] ", i );
+			meta_back_print( mc, "" );
 			i++;
 		}
 	}
@@ -1612,7 +1624,7 @@ done:;
 		}
 
 #if META_BACK_PRINT_CONNTREE > 0
-		meta_back_print_conntree( mi, ">>> meta_back_getconn" );
+		meta_back_print_conntree( mi, "<<< meta_back_getconn" );
 #endif /* META_BACK_PRINT_CONNTREE */
 		ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
 
