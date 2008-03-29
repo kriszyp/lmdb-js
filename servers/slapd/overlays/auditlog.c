@@ -127,7 +127,7 @@ static int auditlog_response(Operation *op, SlapReply *rs) {
 
 	stamp = slap_get_time();
 	fprintf(f, "# %s %ld %s%s%s\n",
-		what, stamp, suffix, who ? " " : "", who ? who->bv_val : "");
+		what, (long)stamp, suffix, who ? " " : "", who ? who->bv_val : "");
 
 	if ( !BER_BVISEMPTY( &op->o_conn->c_dn ) &&
 		(!who || !dn_match( who, &op->o_conn->c_dn )))
@@ -174,7 +174,7 @@ static int auditlog_response(Operation *op, SlapReply *rs) {
 		break;
 	}
 
-	fprintf(f, "# end %s %ld\n\n", what, stamp);
+	fprintf(f, "# end %s %ld\n\n", what, (long)stamp);
 
 	fclose(f);
 	ldap_pvt_thread_mutex_unlock(&ad->ad_mutex);
