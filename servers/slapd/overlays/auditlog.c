@@ -74,7 +74,7 @@ static int auditlog_response(Operation *op, SlapReply *rs) {
 	Modifications *m;
 	struct berval *b, *who = NULL;
 	char *what, *suffix;
-	long stamp = slap_get_time();
+	time_t stamp;
 	int i;
 
 	if ( rs->sr_err != LDAP_SUCCESS ) return SLAP_CB_CONTINUE;
@@ -125,6 +125,7 @@ static int auditlog_response(Operation *op, SlapReply *rs) {
 		return SLAP_CB_CONTINUE;
 	}
 
+	stamp = slap_get_time();
 	fprintf(f, "# %s %ld %s%s%s\n",
 		what, stamp, suffix, who ? " " : "", who ? who->bv_val : "");
 
