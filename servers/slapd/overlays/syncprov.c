@@ -2385,7 +2385,7 @@ syncprov_operational(
 				}
 
 				if ( !ap ) {
-					if ( !rs->sr_flags & REP_ENTRY_MODIFIABLE ) {
+					if ( !(rs->sr_flags & REP_ENTRY_MODIFIABLE) ) {
 						rs->sr_entry = entry_dup( rs->sr_entry );
 						rs->sr_flags |=
 							REP_ENTRY_MODIFIABLE|REP_ENTRY_MUSTBEFREED;
