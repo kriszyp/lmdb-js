@@ -769,9 +769,11 @@ log_cf_gen(ConfigArgs *c)
 			if ( li->li_task ) {
 				struct re_s *re = li->li_task;
 				li->li_task = NULL;
+				ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
 				if ( ldap_pvt_runqueue_isrunning( &slapd_rq, re ))
 					ldap_pvt_runqueue_stoptask( &slapd_rq, re );
 				ldap_pvt_runqueue_remove( &slapd_rq, re );
+				ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
 			}
 			li->li_age = 0;
 			li->li_cycle = 0;
@@ -843,12 +845,15 @@ log_cf_gen(ConfigArgs *c)
 					struct re_s *re = li->li_task;
 					if ( re )
 						re->interval.tv_sec = li->li_cycle;
-					else
+					else {
+						ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
 						li->li_task = ldap_pvt_runqueue_insert( &slapd_rq,
 							li->li_cycle, accesslog_purge, li,
 							"accesslog_purge", li->li_db ?
 								li->li_db->be_suffix[0].bv_val :
 								c->be->be_suffix[0].bv_val );
+						ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
+					}
 				}
 			}
 			break;
@@ -2022,8 +2027,10 @@ accesslog_db_open(
 		ber_dupbv( &li->li_db->be_rootndn, li->li_db->be_nsuffix );
 	}
 
+	ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
 	ldap_pvt_runqueue_insert( &slapd_rq, 3600, accesslog_db_root, on,
 		"accesslog_db_root", li->li_db->be_suffix[0].bv_val );
+	ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
 
 	return 0;
 }

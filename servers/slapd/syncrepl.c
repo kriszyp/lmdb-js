@@ -3260,6 +3260,7 @@ syncinfo_free( syncinfo_t *sie, int free_all )
 		}
 	
 		/* re-fetch it, in case it was already removed */
+		ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
 		sie->si_re = ldap_pvt_runqueue_find( &slapd_rq, do_syncrepl, sie );
 		if ( sie->si_re ) {
 			if ( ldap_pvt_runqueue_isrunning( &slapd_rq, sie->si_re ) )
@@ -3267,6 +3268,7 @@ syncinfo_free( syncinfo_t *sie, int free_all )
 			ldap_pvt_runqueue_remove( &slapd_rq, sie->si_re );
 		}
 	
+		ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
 	 	ldap_pvt_thread_mutex_destroy( &sie->si_mutex );
 	
 		bindconf_free( &sie->si_bindconf );
@@ -3917,9 +3919,11 @@ add_syncrepl(
 
 			if ( !isMe ) {
 				init_syncrepl( si );
+				ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
 				si->si_re = ldap_pvt_runqueue_insert( &slapd_rq,
 					si->si_interval, do_syncrepl, si, "do_syncrepl",
 					si->si_ridtxt );
+				ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
 				if ( si->si_re )
 					rc = config_sync_shadow( c ) ? -1 : 0;
 				else
@@ -4148,13 +4152,18 @@ syncrepl_config( ConfigArgs *c )
 			for ( sip = &c->be->be_syncinfo, i=0; *sip; i++ ) {
 				si = *sip;
 				if ( c->valx == -1 || i == c->valx ) {
+					int isrunning = 0;
 					*sip = si->si_next;
 					/* If the task is currently active, we have to leave
 					 * it running. It will exit on its own. This will only
 					 * happen when running on the cn=config DB.
 					 */
-					if ( si->si_re &&
-						ldap_pvt_runqueue_isrunning( &slapd_rq, si->si_re ) ) {
+					if ( si->si_re ) {
+						ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
+						isrunning = ldap_pvt_runqueue_isrunning( &slapd_rq, si->si_re );
+						ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
+					}
+					if ( si->si_re && isrunning ) {
 						si->si_ctype = 0;
 					} else {
 						syncinfo_free( si, 0 );
