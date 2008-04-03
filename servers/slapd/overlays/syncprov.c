@@ -2243,6 +2243,9 @@ no_change:		if ( !(op->o_sync_mode & SLAP_SYNC_PERSIST) ) {
 				}
 				goto shortcut;
 			}
+		} else {
+			/* consumer doesn't have the right number of CSNs */
+			changed = SS_CHANGED;
 		}
 		/* Do we have a sessionlog for this search? */
 		sl=si->si_logs;
