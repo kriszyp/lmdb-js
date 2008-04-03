@@ -91,8 +91,8 @@ typedef struct smbk5pwd_t {
 #ifdef DO_SAMBA
 	/* How many seconds before forcing a password change? */
 	time_t	smb_must_change;
-        /* How many seconds after allowing a password change? */
-        time_t  smb_can_change;
+	/* How many seconds after allowing a password change? */
+	time_t  smb_can_change;
 #endif
 } smbk5pwd_t;
 
@@ -571,28 +571,28 @@ static int smbk5pwd_exop_passwd(
 			ml->sml_nvalues = NULL;
 		}
 
-                if (pi->smb_can_change)
-                {
-                        ml = ch_malloc(sizeof(Modifications));
-                        ml->sml_next = qpw->rs_mods;
-                        qpw->rs_mods = ml;
+		if (pi->smb_can_change)
+		{
+			ml = ch_malloc(sizeof(Modifications));
+			ml->sml_next = qpw->rs_mods;
+			qpw->rs_mods = ml;
 
-                        keys = ch_malloc( 2 * sizeof(struct berval) );
-                        keys[0].bv_val = ch_malloc( LDAP_PVT_INTTYPE_CHARS(long) );
-                        keys[0].bv_len = snprintf(keys[0].bv_val,
-                                        LDAP_PVT_INTTYPE_CHARS(long),
-                                        "%ld", slap_get_time() + pi->smb_can_change);
-                        BER_BVZERO( &keys[1] );
+			keys = ch_malloc( 2 * sizeof(struct berval) );
+			keys[0].bv_val = ch_malloc( LDAP_PVT_INTTYPE_CHARS(long) );
+			keys[0].bv_len = snprintf(keys[0].bv_val,
+					LDAP_PVT_INTTYPE_CHARS(long),
+					"%ld", slap_get_time() + pi->smb_can_change);
+			BER_BVZERO( &keys[1] );
 
-                        ml->sml_desc = ad_sambaPwdCanChange;
-                        ml->sml_op = LDAP_MOD_REPLACE;
+			ml->sml_desc = ad_sambaPwdCanChange;
+			ml->sml_op = LDAP_MOD_REPLACE;
 #ifdef SLAP_MOD_INTERNAL
-                        ml->sml_flags = SLAP_MOD_INTERNAL;
+			ml->sml_flags = SLAP_MOD_INTERNAL;
 #endif
-						ml->sml_numvals = 1;
-                        ml->sml_values = keys;
-                        ml->sml_nvalues = NULL;
-                }
+			ml->sml_numvals = 1;
+			ml->sml_values = keys;
+			ml->sml_nvalues = NULL;
+		}
 	}
 #endif /* DO_SAMBA */
 	be_entry_release_r( op, e );
@@ -626,11 +626,11 @@ static ConfigTable smbk5pwd_cfats[] = {
 		"( OLcfgCtAt:1.2 NAME 'olcSmbK5PwdMustChange' "
 		"DESC 'Credentials validity interval' "
 		"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
-        { "smbk5pwd-can-change", "time",
-                2, 2, 0, ARG_MAGIC|ARG_INT|PC_SMB_CAN_CHANGE, smbk5pwd_cf_func,
-                "( OLcfgCtAt:1.3 NAME 'olcSmbK5PwdCanChange' "
-                "DESC 'Credentials minimum validity interval' "
-                "SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
+	{ "smbk5pwd-can-change", "time",
+		2, 2, 0, ARG_MAGIC|ARG_INT|PC_SMB_CAN_CHANGE, smbk5pwd_cf_func,
+		"( OLcfgCtAt:1.3 NAME 'olcSmbK5PwdCanChange' "
+		"DESC 'Credentials minimum validity interval' "
+		"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
 
 	{ NULL, NULL, 0, 0, 0, ARG_IGNORED }
 };
@@ -677,13 +677,13 @@ smbk5pwd_cf_func( ConfigArgs *c )
 #endif /* ! DO_SAMBA */
 			break;
 
-                case PC_SMB_CAN_CHANGE:
+		case PC_SMB_CAN_CHANGE:
 #ifdef DO_SAMBA
-                        c->value_int = pi->smb_can_change;
+			c->value_int = pi->smb_can_change;
 #else /* ! DO_SAMBA */
-                        c->value_int = 0;
+			c->value_int = 0;
 #endif /* ! DO_SAMBA */
-                        break;
+			break;
 
 		case PC_SMB_ENABLE:
 			c->rvalue_vals = NULL;
@@ -844,7 +844,7 @@ smbk5pwd_modules_init( smbk5pwd_t *pi )
 		{ "sambaNTPassword",		&ad_sambaNTPassword },
 		{ "sambaPwdLastSet",		&ad_sambaPwdLastSet },
 		{ "sambaPwdMustChange",		&ad_sambaPwdMustChange },
-                { "sambaPwdCanChange",          &ad_sambaPwdCanChange },
+		{ "sambaPwdCanChange",		&ad_sambaPwdCanChange },
 		{ NULL }
 	},
 #endif /* DO_SAMBA */
