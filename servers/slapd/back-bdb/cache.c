@@ -252,16 +252,27 @@ bdb_cache_return_entry_rw( struct bdb_info *bdb, Entry *e,
 	int free = 0;
 
 	ei = e->e_private;
-	bdb_cache_entry_db_unlock( bdb, lock );
-	if ( ei ) {
-		bdb_cache_entryinfo_lock( ei );
+	if ( ei &&
+		( ei->bei_state & CACHE_ENTRY_NOT_CACHED ) &&
+		( bdb_cache_entryinfo_trylock( ei ) == 0 )) {
 		if ( ei->bei_state & CACHE_ENTRY_NOT_CACHED ) {
+			/* Releasing the entry can only be done when
+			 * we know that nobody else is using it, i.e we
+			 * should have an entry_db writelock.  But the
+			 * flag is only set by the thread that loads the
+			 * entry, and only if no other threads has found
+			 * it while it was working.  All other threads
+			 * clear the flag, which mean that we should be
+			 * the only thread using the entry if the flag
+			 * is set here.
+			 */
 			ei->bei_e = NULL;
 			ei->bei_state ^= CACHE_ENTRY_NOT_CACHED;
 			free = 1;
 		}
 		bdb_cache_entryinfo_unlock( ei );
 	}
+	bdb_cache_entry_db_unlock( bdb, lock );
 	if ( free ) {
 		e->e_private = NULL;
 		bdb_entry_return( e );
@@ -854,6 +865,11 @@ again:	ldap_pvt_thread_rdwr_rlock( &bdb->bi_cache.c_rwlock );
 
 	/* Ok, we found the info, do we have the entry? */
 	if ( rc == 0 ) {
+		if ( !( flag & ID_LOCKED )) {
+			bdb_cache_entryinfo_lock( *eip );
+			flag |= ID_LOCKED;
+		}
+
 		if ( (*eip)->bei_state & CACHE_ENTRY_DELETED ) {
 			rc = DB_NOTFOUND;
 		} else {
@@ -873,13 +889,13 @@ load1:
 				(*eip)->bei_state |= CACHE_ENTRY_LOADING;
 			}
 
-			/* If the entry was loaded before but uncached, and we need
-			 * it again, clear the uncached state
-			 */
-			if ( (*eip)->bei_state & CACHE_ENTRY_NOT_CACHED ) {
-				(*eip)->bei_state ^= CACHE_ENTRY_NOT_CACHED;
-				if ( flag & ID_NOCACHE )
-					flag ^= ID_NOCACHE;
+			if ( !load ) {
+				/* Clear the uncached state if we are not
+				 * loading it, i.e it is already cached or
+				 * another thread is currently loading it.
+				 */
+				(*eip)->bei_state &= ~CACHE_ENTRY_NOT_CACHED;
+				flag &= ~ID_NOCACHE;
 			}
 
 			if ( flag & ID_LOCKED ) {
@@ -906,9 +922,13 @@ load1:
 #endif
 						ep = NULL;
 						bdb_cache_lru_link( bdb, *eip );
-						if ( flag & ID_NOCACHE ) {
-							bdb_cache_entryinfo_lock( *eip );
-							(*eip)->bei_state |= CACHE_ENTRY_NOT_CACHED;
+						if (( flag & ID_NOCACHE ) &&
+							( bdb_cache_entryinfo_trylock( *eip ) == 0 )) {
+							/* Set the cached state only if no other thread
+							 * found the info while we was loading the entry.
+							 */
+							if ( (*eip)->bei_finders == 1 )
+								(*eip)->bei_state |= CACHE_ENTRY_NOT_CACHED;
 							bdb_cache_entryinfo_unlock( *eip );
 						}
 					}
