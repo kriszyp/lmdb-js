@@ -585,7 +585,6 @@ backend_db_init(
 	}
 
 	be->bd_info = bi;
-	be->bd_orig = be;
 
 	be->be_def_limit = frontendDB->be_def_limit;
 	be->be_dfltaccess = frontendDB->be_dfltaccess;
@@ -1359,7 +1358,8 @@ fe_acl_group(
 
 	if ( oex && ((OpExtraDB *)oex)->oe_db )
 		op->o_bd = ((OpExtraDB *)oex)->oe_db;
-	else
+
+	if ( !op->o_bd || !SLAP_DBHIDDEN( op->o_bd ))
 		op->o_bd = select_backend( gr_ndn, 0 );
 
 	for ( g = op->o_groups; g; g = g->ga_next ) {
@@ -1573,10 +1573,7 @@ backend_group(
 		return SLAPD_ABANDON;
 	}
 
-	if ( op->o_bd && SLAP_ISOVERLAY( op->o_bd ))
-		oex.oe_db = op->o_bd->bd_orig;
-	else
-		oex.oe_db = op->o_bd;
+	oex.oe_db = op->o_bd;
 	oex.oe.oe_key = (void *)backend_group;
 	LDAP_SLIST_INSERT_HEAD(&op->o_extra, &oex.oe, oe_next);
 
@@ -1614,7 +1611,8 @@ fe_acl_attribute(
 
 	if ( oex && ((OpExtraDB *)oex)->oe_db )
 		op->o_bd = ((OpExtraDB *)oex)->oe_db;
-	else
+
+	if ( !op->o_bd || !SLAP_DBHIDDEN( op->o_bd ))
 		op->o_bd = select_backend( edn, 0 );
 
 	if ( target && dn_match( &target->e_nname, edn ) ) {
@@ -1737,10 +1735,7 @@ backend_attribute(
 	BackendDB *be_orig;
 	OpExtraDB	oex;
 
-	if ( op->o_bd && SLAP_ISOVERLAY( op->o_bd ))
-		oex.oe_db = op->o_bd->bd_orig;
-	else
-		oex.oe_db = op->o_bd;
+	oex.oe_db = op->o_bd;
 	oex.oe.oe_key = (void *)backend_attribute;
 	LDAP_SLIST_INSERT_HEAD(&op->o_extra, &oex.oe, oe_next);
 
@@ -1775,10 +1770,7 @@ backend_access(
 	assert( edn != NULL );
 	assert( access > ACL_NONE );
 
-	if ( op->o_bd ) {
-		if ( SLAP_ISOVERLAY( op->o_bd ))
-			op->o_bd = op->o_bd->bd_orig;
-	} else {
+	if ( !op->o_bd ) {
 		op->o_bd = select_backend( edn, 0 );
 	}
 
@@ -1906,11 +1898,12 @@ fe_aux_operational(
 	}
 
 	/* Let the overlays have a chance at this */
-	if ( oex && ((OpExtraDB *)oex)->oe_db ) {
+	if ( oex && ((OpExtraDB *)oex)->oe_db )
 		op->o_bd = ((OpExtraDB *)oex)->oe_db;
-	} else {
+
+	if ( !op->o_bd || !SLAP_DBHIDDEN( op->o_bd ))
 		op->o_bd = select_backend( &op->o_req_ndn, 0 );
-	}
+
 	if ( op->o_bd != NULL && !be_match( op->o_bd, frontendDB ) &&
 		( SLAP_OPATTRS( rs->sr_attr_flags ) || rs->sr_attrs ) &&
 		op->o_bd->be_operational != NULL )
@@ -1928,10 +1921,7 @@ int backend_operational( Operation *op, SlapReply *rs )
 	BackendDB *be_orig;
 	OpExtraDB	oex;
 
-	if ( op->o_bd && SLAP_ISOVERLAY( op->o_bd ))
-		oex.oe_db = op->o_bd->bd_orig;
-	else
-		oex.oe_db = op->o_bd;
+	oex.oe_db = op->o_bd;
 	oex.oe.oe_key = (void *)backend_operational;
 	LDAP_SLIST_INSERT_HEAD(&op->o_extra, &oex.oe, oe_next);
 
