@@ -1157,7 +1157,7 @@ do_syncrepl(
 	OperationBuffer opbuf;
 	Operation *op;
 	int rc = LDAP_SUCCESS;
-	int dostop = 0;
+	int dostop = 0, do_setup = 0;
 	ber_socket_t s;
 	int i, defer = 1, fail = 0;
 	Backend *be;
@@ -1268,8 +1268,9 @@ reload:
 				if ( rc == LDAP_SUCCESS ) {
 					if ( si->si_conn ) {
 						connection_client_enable( si->si_conn );
+						goto success;
 					} else {
-						si->si_conn = connection_client_setup( s, do_syncrepl, arg );
+						do_setup = 1;
 					} 
 				} else if ( si->si_conn ) {
 					dostop = 1;
@@ -1335,6 +1336,11 @@ reload:
 	}
 
 	ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
+
+	if ( do_setup )
+		si->si_conn = connection_client_setup( s, do_syncrepl, arg );
+
+success:
 	ldap_pvt_thread_mutex_unlock( &si->si_mutex );
 
 	if ( rc ) {
