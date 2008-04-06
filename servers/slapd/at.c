@@ -1031,7 +1031,7 @@ at_schema_info( Entry *e )
 }
 
 int
-register_at( char *def, AttributeDescription **rad, int dupok )
+register_at( const char *def, AttributeDescription **rad, int dupok )
 {
 	LDAPAttributeType *at;
 	int code, freeit = 0;
