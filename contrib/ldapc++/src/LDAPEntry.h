@@ -47,7 +47,7 @@ class LDAPEntry{
         ~LDAPEntry();
 
         /**
-         * Assingment operator
+         * Assignment operator
          */
         LDAPEntry& operator=(const LDAPEntry& from);
 
