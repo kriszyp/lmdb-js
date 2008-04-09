@@ -189,8 +189,8 @@ typedef struct {
 } OidRec;
 
 static OidRec OidMacros[] = {
-	/* OpenLDAProot:666.11.1 */
-	{ "OLcfg", "1.3.6.1.4.1.4203.666.11.1" },
+	/* OpenLDAProot:1.12.2 */
+	{ "OLcfg", "1.3.6.1.4.1.4203.1.12.2" },
 	{ "OLcfgAt", "OLcfg:3" },
 	{ "OLcfgGlAt", "OLcfgAt:0" },
 	{ "OLcfgBkAt", "OLcfgAt:1" },

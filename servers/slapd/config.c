@@ -496,9 +496,6 @@ init_config_attrs(ConfigTable *ct) {
 			fprintf( stderr, "init_config_attrs: register_at failed\n" );
 			return code;
 		}
-#ifndef LDAP_DEVEL
-		ct[i].ad->ad_type->sat_flags |= SLAP_AT_HIDE;
-#endif
 	}
 
 	return 0;
@@ -514,9 +511,6 @@ init_config_ocs( ConfigOCs *ocs ) {
 			fprintf( stderr, "init_config_ocs: register_oc failed\n" );
 			return code;
 		}
-#ifndef LDAP_DEVEL
-		ocs[i].co_oc->soc_flags |= SLAP_OC_HIDE;
-#endif
 	}
 	return 0;
 }
