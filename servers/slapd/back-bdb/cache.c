@@ -964,12 +964,12 @@ load1:
 					}
 #endif
 				}
-				bdb_cache_entryinfo_lock( *eip );
-				(*eip)->bei_finders--;
-				if ( load )
-					(*eip)->bei_state ^= CACHE_ENTRY_LOADING;
-				bdb_cache_entryinfo_unlock( *eip );
 			}
+			bdb_cache_entryinfo_lock( *eip );
+			(*eip)->bei_finders--;
+			if ( load )
+				(*eip)->bei_state ^= CACHE_ENTRY_LOADING;
+			bdb_cache_entryinfo_unlock( *eip );
 		}
 	}
 	if ( flag & ID_LOCKED ) {
