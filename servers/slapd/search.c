@@ -241,8 +241,7 @@ fe_op_search( Operation *op, SlapReply *rs )
 {
 	BackendDB		*bd = op->o_bd;
 
-	/* fake while loop to allow breaking out */
-	while ( op->ors_scope == LDAP_SCOPE_BASE ) {
+	if ( op->ors_scope == LDAP_SCOPE_BASE ) {
 		Entry *entry = NULL;
 
 		if ( BER_BVISEMPTY( &op->o_req_ndn ) ) {
@@ -299,7 +298,6 @@ fe_op_search( Operation *op, SlapReply *rs )
 			send_ldap_result( op, rs );
 			goto return_results;
 		}
-		break;
 	}
 
 	if( BER_BVISEMPTY( &op->o_req_ndn ) && !BER_BVISEMPTY( &default_search_nbase ) ) {
