@@ -1001,6 +1001,10 @@ static int parsePagedResults (
 	*ps = op->o_conn->c_pagedresults_state;
 	ps->ps_size = size;
 	op->o_pagedresults_state = ps;
+	if ( !cookie.bv_len ) {
+		ps->ps_count = 0;
+		ps->ps_cookie = 0;
+	}
 
 	/* NOTE: according to RFC 2696 3.:
 

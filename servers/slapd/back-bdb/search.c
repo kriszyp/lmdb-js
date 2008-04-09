@@ -1221,20 +1221,6 @@ parse_paged_cookie( Operation *op, SlapReply *rs )
 			goto done;
 		}
 
-	} else {
-		/* Initial request.  Initialize state. */
-#if 0
-		if ( op->o_conn->c_pagedresults_state.ps_cookie != 0 ) {
-			/* There's another pagedResults control on the
-			 * same connection; reject new pagedResults controls 
-			 * (allowed by RFC2696) */
-			rs->sr_text = "paged results cookie unavailable; try later";
-			rc = LDAP_UNWILLING_TO_PERFORM;
-			goto done;
-		}
-#endif
-		ps->ps_cookie = 0;
-		ps->ps_count = 0;
 	}
 
 done:;
