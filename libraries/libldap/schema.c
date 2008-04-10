@@ -30,6 +30,8 @@
 
 #include <ldap_schema.h>
 
+static const char EndOfInput[] = "end of input";
+
 static const char *
 choose_name( char *names[], const char *fallback )
 {
@@ -1514,7 +1516,7 @@ ldap_str2syntax( LDAP_CONST char * s,
 		switch (kind) {
 		case TK_EOS:
 			*code = LDAP_SCHERR_NORIGHTPAREN;
-			*errp = ss;
+			*errp = EndOfInput;
 			ldap_syntax_free(syn);
 			return NULL;
 		case TK_RIGHTPAREN:
@@ -1679,7 +1681,7 @@ ldap_str2matchingrule( LDAP_CONST char * s,
 		switch (kind) {
 		case TK_EOS:
 			*code = LDAP_SCHERR_NORIGHTPAREN;
-			*errp = ss;
+			*errp = EndOfInput;
 			ldap_matchingrule_free(mr);
 			return NULL;
 		case TK_RIGHTPAREN:
@@ -1878,7 +1880,7 @@ ldap_str2matchingruleuse( LDAP_CONST char * s,
 		switch (kind) {
 		case TK_EOS:
 			*code = LDAP_SCHERR_NORIGHTPAREN;
-			*errp = ss;
+			*errp = EndOfInput;
 			ldap_matchingruleuse_free(mru);
 			return NULL;
 		case TK_RIGHTPAREN:
@@ -2110,7 +2112,7 @@ ldap_str2attributetype( LDAP_CONST char * s,
 		switch (kind) {
 		case TK_EOS:
 			*code = LDAP_SCHERR_NORIGHTPAREN;
-			*errp = ss;
+			*errp = EndOfInput;
 			ldap_attributetype_free(at);
 			return NULL;
 		case TK_RIGHTPAREN:
@@ -2483,7 +2485,7 @@ ldap_str2objectclass( LDAP_CONST char * s,
 		switch (kind) {
 		case TK_EOS:
 			*code = LDAP_SCHERR_NORIGHTPAREN;
-			*errp = ss;
+			*errp = EndOfInput;
 			ldap_objectclass_free(oc);
 			return NULL;
 		case TK_RIGHTPAREN:
@@ -2762,7 +2764,7 @@ ldap_str2contentrule( LDAP_CONST char * s,
 		switch (kind) {
 		case TK_EOS:
 			*code = LDAP_SCHERR_NORIGHTPAREN;
-			*errp = ss;
+			*errp = EndOfInput;
 			ldap_contentrule_free(cr);
 			return NULL;
 		case TK_RIGHTPAREN:
@@ -2987,7 +2989,7 @@ ldap_str2structurerule( LDAP_CONST char * s,
 		switch (kind) {
 		case TK_EOS:
 			*code = LDAP_SCHERR_NORIGHTPAREN;
-			*errp = ss;
+			*errp = EndOfInput;
 			ldap_structurerule_free(sr);
 			return NULL;
 		case TK_RIGHTPAREN:
@@ -3176,7 +3178,7 @@ ldap_str2nameform( LDAP_CONST char * s,
 		switch (kind) {
 		case TK_EOS:
 			*code = LDAP_SCHERR_NORIGHTPAREN;
-			*errp = ss;
+			*errp = EndOfInput;
 			ldap_nameform_free(nf);
 			return NULL;
 		case TK_RIGHTPAREN:
