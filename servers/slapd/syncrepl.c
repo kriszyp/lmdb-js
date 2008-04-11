@@ -834,10 +834,17 @@ do_syncrep2(
 					syncCookie.ctxcsn )
 				{
 					rc = syncrepl_updateCookie( si, op, psub, &syncCookie );
-				} else if ( rc == LDAP_NO_SUCH_OBJECT ) {
-					rc = LDAP_SYNC_REFRESH_REQUIRED;
-					si->si_logstate = SYNCLOG_FALLBACK;
-					ldap_abandon_ext( si->si_ld, si->si_msgid, NULL, NULL );
+				} else switch ( rc ) {
+					case LDAP_ALREADY_EXISTS:
+					case LDAP_NO_SUCH_OBJECT:
+					case LDAP_NO_SUCH_ATTRIBUTE:
+					case LDAP_TYPE_OR_VALUE_EXISTS:
+						rc = LDAP_SYNC_REFRESH_REQUIRED;
+						si->si_logstate = SYNCLOG_FALLBACK;
+						ldap_abandon_ext( si->si_ld, si->si_msgid, NULL, NULL );
+						break;
+					default:
+						break;
 				}
 			} else if ( ( rc = syncrepl_message_to_entry( si, op, msg,
 				&modlist, &entry, syncstate ) ) == LDAP_SUCCESS )
@@ -1157,7 +1164,7 @@ do_syncrepl(
 	OperationBuffer opbuf;
 	Operation *op;
 	int rc = LDAP_SUCCESS;
-	int dostop = 0;
+	int dostop = 0, do_setup = 0;
 	ber_socket_t s;
 	int i, defer = 1, fail = 0;
 	Backend *be;
@@ -1167,9 +1174,8 @@ do_syncrepl(
 	if ( si == NULL )
 		return NULL;
 
-	/* Don't wait around if there's a previous session still running */
-	if ( ldap_pvt_thread_mutex_trylock( &si->si_mutex ))
-		return NULL;
+	/* There will never be more than one instance active */
+	ldap_pvt_thread_mutex_lock( &si->si_mutex );
 
 	switch( abs( si->si_type ) ) {
 	case LDAP_SYNC_REFRESH_ONLY:
@@ -1268,8 +1274,9 @@ reload:
 				if ( rc == LDAP_SUCCESS ) {
 					if ( si->si_conn ) {
 						connection_client_enable( si->si_conn );
+						goto success;
 					} else {
-						si->si_conn = connection_client_setup( s, do_syncrepl, arg );
+						do_setup = 1;
 					} 
 				} else if ( si->si_conn ) {
 					dostop = 1;
@@ -1335,6 +1342,11 @@ reload:
 	}
 
 	ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
+
+	if ( do_setup )
+		si->si_conn = connection_client_setup( s, do_syncrepl, arg );
+
+success:
 	ldap_pvt_thread_mutex_unlock( &si->si_mutex );
 
 	if ( rc ) {
@@ -3260,6 +3272,7 @@ syncinfo_free( syncinfo_t *sie, int free_all )
 		}
 	
 		/* re-fetch it, in case it was already removed */
+		ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
 		sie->si_re = ldap_pvt_runqueue_find( &slapd_rq, do_syncrepl, sie );
 		if ( sie->si_re ) {
 			if ( ldap_pvt_runqueue_isrunning( &slapd_rq, sie->si_re ) )
@@ -3267,6 +3280,7 @@ syncinfo_free( syncinfo_t *sie, int free_all )
 			ldap_pvt_runqueue_remove( &slapd_rq, sie->si_re );
 		}
 	
+		ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
 	 	ldap_pvt_thread_mutex_destroy( &sie->si_mutex );
 	
 		bindconf_free( &sie->si_bindconf );
@@ -3917,9 +3931,11 @@ add_syncrepl(
 
 			if ( !isMe ) {
 				init_syncrepl( si );
+				ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
 				si->si_re = ldap_pvt_runqueue_insert( &slapd_rq,
 					si->si_interval, do_syncrepl, si, "do_syncrepl",
 					si->si_ridtxt );
+				ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
 				if ( si->si_re )
 					rc = config_sync_shadow( c ) ? -1 : 0;
 				else
@@ -4148,13 +4164,18 @@ syncrepl_config( ConfigArgs *c )
 			for ( sip = &c->be->be_syncinfo, i=0; *sip; i++ ) {
 				si = *sip;
 				if ( c->valx == -1 || i == c->valx ) {
+					int isrunning = 0;
 					*sip = si->si_next;
 					/* If the task is currently active, we have to leave
 					 * it running. It will exit on its own. This will only
 					 * happen when running on the cn=config DB.
 					 */
-					if ( si->si_re &&
-						ldap_pvt_runqueue_isrunning( &slapd_rq, si->si_re ) ) {
+					if ( si->si_re ) {
+						ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
+						isrunning = ldap_pvt_runqueue_isrunning( &slapd_rq, si->si_re );
+						ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
+					}
+					if ( si->si_re && isrunning ) {
 						si->si_ctype = 0;
 					} else {
 						syncinfo_free( si, 0 );
