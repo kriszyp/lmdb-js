@@ -696,10 +696,7 @@ again:
 		break;
 	}
 
-	if ( on->on_next )
-		fop.o_bd->bd_info = (BackendInfo *)on->on_next;
-	else
-		fop.o_bd->bd_info = on->on_info->oi_orig;
+	fop.o_bd->bd_info = (BackendInfo *)on->on_info;
 	fop.o_bd->be_search( &fop, &frs );
 	fop.o_bd->bd_info = (BackendInfo *)on;
 
@@ -1531,10 +1528,7 @@ syncprov_playlog( Operation *op, SlapReply *rs, sessionlog *sl,
 		fop.ors_filter = &af;
 
 		cb.sc_response = playlog_cb;
-		if ( on->on_next )
-			fop.o_bd->bd_info = (BackendInfo *)on->on_next;
-		else
-			fop.o_bd->bd_info = on->on_info->oi_orig;
+		fop.o_bd->bd_info = (BackendInfo *)on->on_info;
 
 		for ( i=ndel; i<num; i++ ) {
 			if ( uuids[i].bv_len == 0 ) continue;
@@ -2249,6 +2243,9 @@ no_change:		if ( !(op->o_sync_mode & SLAP_SYNC_PERSIST) ) {
 				}
 				goto shortcut;
 			}
+		} else {
+			/* consumer doesn't have the right number of CSNs */
+			changed = SS_CHANGED;
 		}
 		/* Do we have a sessionlog for this search? */
 		sl=si->si_logs;
@@ -2391,7 +2388,7 @@ syncprov_operational(
 				}
 
 				if ( !ap ) {
-					if ( !rs->sr_flags & REP_ENTRY_MODIFIABLE ) {
+					if ( !(rs->sr_flags & REP_ENTRY_MODIFIABLE) ) {
 						rs->sr_entry = entry_dup( rs->sr_entry );
 						rs->sr_flags |=
 							REP_ENTRY_MODIFIABLE|REP_ENTRY_MUSTBEFREED;
