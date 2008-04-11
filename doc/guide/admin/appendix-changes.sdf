@@ -179,6 +179,10 @@ H3: New features in slapd
 * monitoring of back-{b,h}db: cache fill-in, non-indexed searches,
 * session tracking control (draft-wahl-ldap-session)
 * subtree delete in back-sql (draft-armijo-ldap-treedelete)
+* sorted values in multivalued attributes for faster matching 
+* lightweight dispatcher for greater throughput under heavy load and on
+multiprocessor machines. (33% faster than 2.3 on AMD quad-socket dual-core server.)
+
 
 H3: New features in libldap
 
