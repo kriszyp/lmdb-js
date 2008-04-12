@@ -139,11 +139,12 @@ If set before any target specification, it affects all targets, unless
 overridden by any per-target directive.
 
 .TP
-.B pseudoroot-bind-defer {NO|yes}
+.B pseudoroot-bind-defer {YES|no}
 This directive, when set to 
 .BR yes ,
 causes the authentication to the remote servers with the pseudo-root
 identity to be deferred until actually needed by subsequent operations.
+Otherwise, all binds as the rootdn are propagated to the targets.
 
 .TP
 .B quarantine <interval>,<num>[;<interval>,<num>[...]]

@@ -99,6 +99,10 @@ meta_back_db_init(
  		return -1;
  	}
 
+	/* set default flags */
+	mi->mi_flags =
+		META_BACK_F_DEFER_ROOTDN_BIND;
+
 	/*
 	 * At present the default is no default target;
 	 * this may change
