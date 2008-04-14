@@ -50,8 +50,7 @@ LDAPMsg *LDAPMessageQueue::getNext(){
         ret = req->getNextMessage();
     }catch(LDAPException e){
         //do some clean up
-        delete req;
-        m_activeReq.top();
+        m_activeReq.pop();
         throw;   
     }
 
