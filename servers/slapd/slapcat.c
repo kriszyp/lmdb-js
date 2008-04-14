@@ -84,7 +84,6 @@ slapcat( int argc, char **argv )
 		char *data;
 		int len;
 		Entry* e;
-		int writerc;
 
 		if ( gotsig )
 			break;
@@ -124,16 +123,8 @@ slapcat( int argc, char **argv )
 			break;
 		}
 
-		writerc = fputs( data, ldiffp->fp );
-		if ( writerc == EOF ) {
-			fprintf(stderr, "%s: error writing output.\n",
-				progname);
-			rc = EXIT_FAILURE;
-			break;
-		}
-
-		writerc = fputs( "\n", ldiffp->fp );
-		if ( writerc == EOF ) {
+		if ( fputs( data, ldiffp->fp ) == EOF ||
+			fputs( "\n", ldiffp->fp ) == EOF ) {
 			fprintf(stderr, "%s: error writing output.\n",
 				progname);
 			rc = EXIT_FAILURE;
