@@ -492,6 +492,195 @@ refint_search_cb(
 	return(0);
 }
 
+static int
+refint_repair(
+	Operation	*op,
+	SlapReply	*rs,
+	refint_data	*id,
+	refint_q	*rq )
+{
+	dependent_data	*dp, *dp_next;
+	int		rc;
+
+	op->o_callback->sc_response = refint_search_cb;
+	op->o_req_dn = op->o_bd->be_suffix[ 0 ];
+	op->o_req_ndn = op->o_bd->be_nsuffix[ 0 ];
+	op->o_dn = op->o_bd->be_rootdn;
+	op->o_ndn = op->o_bd->be_rootndn;
+
+	/* search */
+	rc = op->o_bd->be_search( op, rs );
+
+	if ( rc != LDAP_SUCCESS ) {
+		Debug( LDAP_DEBUG_TRACE,
+			"refint_repair: search failed: %d\n",
+			rc, 0, 0 );
+		return 0;
+	}
+
+	/* safety? paranoid just in case */
+	if ( op->o_callback->sc_private == NULL ) {
+		Debug( LDAP_DEBUG_TRACE,
+			"refint_repair: callback wiped out sc_private?!\n",
+			0, 0, 0 );
+		return 0;
+	}
+
+	/* Set up the Modify requests */
+	op->o_callback->sc_response = &slap_null_cb;
+
+	/*
+	 * [our search callback builds a list of attrs]
+	 * foreach attr:
+	 *	make sure its dn has a backend;
+	 *	build Modification* chain;
+	 *	call the backend modify function;
+	 *
+	 */
+
+	for ( dp = rq->attrs; dp; dp = dp_next ) {
+		Operation	op2 = *op;
+		SlapReply	rs2 = { 0 };
+		refint_attrs	*ra;
+		Modifications	*m, *first = NULL;
+
+		dp_next = dp->next;
+
+		op2.o_tag = LDAP_REQ_MODIFY;
+		op2.orm_modlist = NULL;
+		op2.o_req_dn	= dp->dn;
+		op2.o_req_ndn	= dp->ndn;
+		op2.o_bd = select_backend( &dp->ndn, 1 );
+		if ( !op2.o_bd ) {
+			Debug( LDAP_DEBUG_TRACE,
+				"refint_repair: no backend for DN %s!\n",
+				dp->dn.bv_val, 0, 0 );
+			return 0;
+		}
+
+		rs2.sr_type = REP_RESULT;
+		for ( ra = dp->attrs; ra; ra = dp->attrs ) {
+			size_t	len;
+
+			dp->attrs = ra->next;
+			/* Set our ModifiersName */
+			if ( SLAP_LASTMOD( op->o_bd ) ) {
+				m = op2.o_tmpalloc( sizeof(Modifications) +
+					4*sizeof(BerValue), op2.o_tmpmemctx );
+				m->sml_next = op2.orm_modlist;
+				if ( !first )
+					first = m;
+				op2.orm_modlist = m;
+				m->sml_op = LDAP_MOD_REPLACE;
+				m->sml_flags = SLAP_MOD_INTERNAL;
+				m->sml_desc = slap_schema.si_ad_modifiersName;
+				m->sml_type = m->sml_desc->ad_cname;
+				m->sml_numvals = 1;
+				m->sml_values = (BerVarray)(m+1);
+				m->sml_nvalues = m->sml_values+2;
+				BER_BVZERO( &m->sml_values[1] );
+				BER_BVZERO( &m->sml_nvalues[1] );
+				m->sml_values[0] = refint_dn;
+				m->sml_nvalues[0] = refint_ndn;
+			}
+			if ( !BER_BVISEMPTY( &rq->newdn ) || ( ra->next &&
+				ra->attr == ra->next->attr ) )
+			{
+				len = sizeof(Modifications);
+
+				if ( ra->new_vals == NULL ) {
+					len += 4*sizeof(BerValue);
+				}
+
+				m = op2.o_tmpalloc( len, op2.o_tmpmemctx );
+				m->sml_next = op2.orm_modlist;
+				if ( !first )
+					first = m;
+				op2.orm_modlist = m;
+				m->sml_op = LDAP_MOD_ADD;
+				m->sml_flags = 0;
+				m->sml_desc = ra->attr;
+				m->sml_type = ra->attr->ad_cname;
+				if ( ra->new_vals == NULL ) {
+					m->sml_values = (BerVarray)(m+1);
+					m->sml_nvalues = m->sml_values+2;
+					BER_BVZERO( &m->sml_values[1] );
+					BER_BVZERO( &m->sml_nvalues[1] );
+					m->sml_numvals = 1;
+					if ( BER_BVISEMPTY( &rq->newdn ) ) {
+						op2.o_tmpfree( ra, op2.o_tmpmemctx );
+						ra = dp->attrs;
+						dp->attrs = ra->next;
+						m->sml_values[0] = id->nothing;
+						m->sml_nvalues[0] = id->nnothing;
+					} else {
+						m->sml_values[0] = rq->newdn;
+						m->sml_nvalues[0] = rq->newndn;
+					}
+				} else {
+					m->sml_values = ra->new_vals;
+					m->sml_nvalues = ra->new_nvals;
+					m->sml_numvals = ra->ra_numvals;
+				}
+			}
+
+			len = sizeof(Modifications);
+			if ( ra->old_vals == NULL ) {
+				len += 4*sizeof(BerValue);
+			}
+
+			m = op2.o_tmpalloc( len, op2.o_tmpmemctx );
+			m->sml_next = op2.orm_modlist;
+			op2.orm_modlist = m;
+			if ( !first )
+				first = m;
+			m->sml_op = LDAP_MOD_DELETE;
+			m->sml_flags = 0;
+			m->sml_desc = ra->attr;
+			m->sml_type = ra->attr->ad_cname;
+			if ( ra->old_vals == NULL ) {
+				m->sml_numvals = 1;
+				m->sml_values = (BerVarray)(m+1);
+				m->sml_nvalues = m->sml_values+2;
+				m->sml_values[0] = rq->olddn;
+				m->sml_nvalues[0] = rq->oldndn;
+				BER_BVZERO( &m->sml_values[1] );
+				BER_BVZERO( &m->sml_nvalues[1] );
+			} else {
+				m->sml_values = ra->old_vals;
+				m->sml_nvalues = ra->old_nvals;
+				m->sml_numvals = ra->ra_numvals;
+			}
+			op2.o_tmpfree( ra, op2.o_tmpmemctx );
+		}
+
+		op2.o_dn = op2.o_bd->be_rootdn;
+		op2.o_ndn = op2.o_bd->be_rootndn;
+		slap_op_time( &op2.o_time, &op2.o_tincr );
+		if ( ( rc = op2.o_bd->be_modify( &op2, &rs2 ) ) != LDAP_SUCCESS ) {
+			Debug( LDAP_DEBUG_TRACE,
+				"refint_repair: dependent modify failed: %d\n",
+				rs2.sr_err, 0, 0 );
+		}
+
+		while ( ( m = op2.orm_modlist ) ) {
+			op2.orm_modlist = m->sml_next;
+			if ( m->sml_values && m->sml_values != (BerVarray)(m+1) ) {
+				ber_bvarray_free_x( m->sml_values, op2.o_tmpmemctx );
+				ber_bvarray_free_x( m->sml_nvalues, op2.o_tmpmemctx );
+			}
+			op2.o_tmpfree( m, op2.o_tmpmemctx );
+			if ( m == first ) break;
+		}
+		slap_mods_free( op2.orm_modlist, 1 );
+		op2.o_tmpfree( dp->ndn.bv_val, op2.o_tmpmemctx );
+		op2.o_tmpfree( dp->dn.bv_val, op2.o_tmpmemctx );
+		op2.o_tmpfree( dp, op2.o_tmpmemctx );
+	}
+
+	return 0;
+}
+
 static void *
 refint_qtask( void *ctx, void *arg )
 {
@@ -504,9 +693,7 @@ refint_qtask( void *ctx, void *arg )
 	slap_callback cb = { NULL, NULL, NULL, NULL };
 	Filter ftop, *fptr;
 	refint_q *rq;
-	dependent_data *dp, *dp_next;
-	refint_attrs *ra, *ip;
-	int rc;
+	refint_attrs *ip;
 
 	connection_fake_init( &conn, &opbuf, ctx );
 	op = &opbuf.ob_op;
@@ -553,7 +740,7 @@ refint_qtask( void *ctx, void *arg )
 		if ( !rq )
 			break;
 
-		for (fptr = ftop.f_or; fptr; fptr=fptr->f_next )
+		for (fptr = ftop.f_or; fptr; fptr = fptr->f_next )
 			fptr->f_mr_value = rq->oldndn;
 
 		filter2bv_x( op, op->ors_filter, &op->ors_filterstr );
@@ -572,182 +759,28 @@ refint_qtask( void *ctx, void *arg )
 		/* no attrs! */
 		op->ors_attrs = slap_anlist_no_attrs;
 
-		op->o_req_ndn = id->dn;
-		op->o_req_dn = id->dn;
-		op->o_bd = rq->db;
-		op->o_dn = op->o_bd->be_rootdn;
-		op->o_ndn = op->o_bd->be_rootndn;
 		slap_op_time( &op->o_time, &op->o_tincr );
 
-		/* search */
-		rc = op->o_bd->be_search(op, &rs);
+		if ( rq->db != NULL ) {
+			op->o_bd = rq->db;
+			refint_repair( op, &rs, id, rq );
 
-		op->o_tmpfree( op->ors_filterstr.bv_val, op->o_tmpmemctx );
+		} else {
+			BackendDB	*be;
 
-		if(rc != LDAP_SUCCESS) {
-			Debug( LDAP_DEBUG_TRACE,
-				"refint_response: search failed: %d\n",
-				rc, 0, 0 );
-			continue;
+			LDAP_STAILQ_FOREACH( be, &backendDB, be_next ) {
+				/* we may want to skip cn=config */
+				if ( be == LDAP_STAILQ_FIRST(&backendDB) ) {
+					continue;
+				}
+
+				if ( be->be_search && be->be_modify ) {
+					op->o_bd = be;
+					refint_repair( op, &rs, id, rq );
+				}
+			}
 		}
 
-		/* safety? paranoid just in case */
-		if(!cb.sc_private) {
-			Debug( LDAP_DEBUG_TRACE,
-				"refint_response: callback wiped out sc_private?!\n",
-				0, 0, 0 );
-			continue;
-		}
-
-		/* Set up the Modify requests */
-		cb.sc_response	= &slap_null_cb;
-		op->o_tag	= LDAP_REQ_MODIFY;
-
-		/*
-		** [our search callback builds a list of attrs]
-		** foreach attr:
-		**	make sure its dn has a backend;
-		**	build Modification* chain;
-		**	call the backend modify function;
-		**
-		*/
-
-		for(dp = rq->attrs; dp; dp = dp_next) {
-			Modifications *m, *first = NULL;
-
-			dp_next = dp->next;
-
-			op->orm_modlist = NULL;
-
-			op->o_req_dn	= dp->dn;
-			op->o_req_ndn	= dp->ndn;
-			op->o_bd = select_backend(&dp->ndn, 1);
-			if(!op->o_bd) {
-				Debug( LDAP_DEBUG_TRACE,
-					"refint_response: no backend for DN %s!\n",
-					dp->dn.bv_val, 0, 0 );
-				goto done;
-			}
-			rs.sr_type	= REP_RESULT;
-			for (ra = dp->attrs; ra; ra = dp->attrs) {
-				size_t	len;
-
-				dp->attrs = ra->next;
-				/* Set our ModifiersName */
-				if ( SLAP_LASTMOD( op->o_bd )) {
-					m = op->o_tmpalloc( sizeof(Modifications) +
-						4*sizeof(BerValue), op->o_tmpmemctx );
-					m->sml_next = op->orm_modlist;
-					if ( !first )
-						first = m;
-					op->orm_modlist = m;
-					m->sml_op = LDAP_MOD_REPLACE;
-					m->sml_flags = SLAP_MOD_INTERNAL;
-					m->sml_desc = slap_schema.si_ad_modifiersName;
-					m->sml_type = m->sml_desc->ad_cname;
-					m->sml_numvals = 1;
-					m->sml_values = (BerVarray)(m+1);
-					m->sml_nvalues = m->sml_values+2;
-					BER_BVZERO( &m->sml_values[1] );
-					BER_BVZERO( &m->sml_nvalues[1] );
-					m->sml_values[0] = refint_dn;
-					m->sml_nvalues[0] = refint_ndn;
-				}
-				if ( !BER_BVISEMPTY( &rq->newdn ) || ( ra->next &&
-					ra->attr == ra->next->attr ))
-				{
-					len = sizeof(Modifications);
-
-					if ( ra->new_vals == NULL ) {
-						len += 4*sizeof(BerValue);
-					}
-
-					m = op->o_tmpalloc( len, op->o_tmpmemctx );
-					m->sml_next = op->orm_modlist;
-					if ( !first )
-						first = m;
-					op->orm_modlist = m;
-					m->sml_op = LDAP_MOD_ADD;
-					m->sml_flags = 0;
-					m->sml_desc = ra->attr;
-					m->sml_type = ra->attr->ad_cname;
-					if ( ra->new_vals == NULL ) {
-						m->sml_values = (BerVarray)(m+1);
-						m->sml_nvalues = m->sml_values+2;
-						BER_BVZERO( &m->sml_values[1] );
-						BER_BVZERO( &m->sml_nvalues[1] );
-						m->sml_numvals = 1;
-						if ( BER_BVISEMPTY( &rq->newdn )) {
-							op->o_tmpfree( ra, op->o_tmpmemctx );
-							ra = dp->attrs;
-							dp->attrs = ra->next;
-							m->sml_values[0] = id->nothing;
-							m->sml_nvalues[0] = id->nnothing;
-						} else {
-							m->sml_values[0] = rq->newdn;
-							m->sml_nvalues[0] = rq->newndn;
-						}
-					} else {
-						m->sml_values = ra->new_vals;
-						m->sml_nvalues = ra->new_nvals;
-						m->sml_numvals = ra->ra_numvals;
-					}
-				}
-
-				len = sizeof(Modifications);
-				if ( ra->old_vals == NULL ) {
-					len += 4*sizeof(BerValue);
-				}
-
-				m = op->o_tmpalloc( len, op->o_tmpmemctx );
-				m->sml_next = op->orm_modlist;
-				op->orm_modlist = m;
-				if ( !first )
-					first = m;
-				m->sml_op = LDAP_MOD_DELETE;
-				m->sml_flags = 0;
-				m->sml_desc = ra->attr;
-				m->sml_type = ra->attr->ad_cname;
-				if ( ra->old_vals == NULL ) {
-					m->sml_numvals = 1;
-					m->sml_values = (BerVarray)(m+1);
-					m->sml_nvalues = m->sml_values+2;
-					m->sml_values[0] = rq->olddn;
-					m->sml_nvalues[0] = rq->oldndn;
-					BER_BVZERO( &m->sml_values[1] );
-					BER_BVZERO( &m->sml_nvalues[1] );
-				} else {
-					m->sml_values = ra->old_vals;
-					m->sml_nvalues = ra->old_nvals;
-					m->sml_numvals = ra->ra_numvals;
-				}
-				op->o_tmpfree( ra, op->o_tmpmemctx );
-			}
-
-			op->o_dn = op->o_bd->be_rootdn;
-			op->o_ndn = op->o_bd->be_rootndn;
-			slap_op_time( &op->o_time, &op->o_tincr );
-			if((rc = op->o_bd->be_modify(op, &rs)) != LDAP_SUCCESS) {
-				Debug( LDAP_DEBUG_TRACE,
-					"refint_response: dependent modify failed: %d\n",
-					rs.sr_err, 0, 0 );
-			}
-
-			while (( m = op->orm_modlist )) {
-				op->orm_modlist = m->sml_next;
-				if ( m->sml_values && m->sml_values != (BerVarray)(m+1) ) {
-					ber_bvarray_free_x( m->sml_values, op->o_tmpmemctx );
-					ber_bvarray_free_x( m->sml_nvalues, op->o_tmpmemctx );
-				}
-				op->o_tmpfree( m, op->o_tmpmemctx );
-				if ( m == first ) break;
-			}
-			slap_mods_free( op->orm_modlist, 1 );
-			op->o_tmpfree( dp->ndn.bv_val, op->o_tmpmemctx );
-			op->o_tmpfree( dp->dn.bv_val, op->o_tmpmemctx );
-			op->o_tmpfree( dp, op->o_tmpmemctx );
-		}
-done:
 		if ( !BER_BVISNULL( &rq->newndn )) {
 			ch_free( rq->newndn.bv_val );
 			ch_free( rq->newdn.bv_val );
@@ -789,7 +822,7 @@ refint_response(
 	BerValue pdn;
 	int ac;
 	refint_q *rq;
-	BackendDB *db;
+	BackendDB *db = NULL;
 	refint_attrs *ip;
 
 	id->message = "_refint_response";
@@ -817,20 +850,22 @@ refint_response(
 	**
 	*/
 
-	db = select_backend(&id->dn, 1);
+	if ( on->on_info->oi_origdb != frontendDB ) {
+		db = select_backend(&id->dn, 1);
 
-	if(db) {
-		if (!db->be_search || !db->be_modify) {
+		if ( db ) {
+			if ( !db->be_search || !db->be_modify ) {
+				Debug( LDAP_DEBUG_TRACE,
+					"refint_response: backend missing search and/or modify\n",
+					0, 0, 0 );
+				return SLAP_CB_CONTINUE;
+			}
+		} else {
 			Debug( LDAP_DEBUG_TRACE,
-				"refint_response: backend missing search and/or modify\n",
-				0, 0, 0 );
+				"refint_response: no backend for our baseDN %s??\n",
+				id->dn.bv_val, 0, 0 );
 			return SLAP_CB_CONTINUE;
 		}
-	} else {
-		Debug( LDAP_DEBUG_TRACE,
-			"refint_response: no backend for our baseDN %s??\n",
-			id->dn.bv_val, 0, 0 );
-		return SLAP_CB_CONTINUE;
 	}
 
 	rq = ch_calloc( 1, sizeof( refint_q ));
@@ -839,7 +874,7 @@ refint_response(
 	rq->db = db;
 	rq->rdata = id;
 
-	if(op->o_tag == LDAP_REQ_MODRDN) {
+	if ( op->o_tag == LDAP_REQ_MODRDN ) {
 		if ( op->oq_modrdn.rs_newSup ) {
 			pdn = *op->oq_modrdn.rs_newSup;
 		} else {
