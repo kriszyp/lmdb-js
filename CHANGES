@@ -5,6 +5,7 @@ OpenLDAP 2.4.9 Engineering
 	Fixed slapcat error checking (ITS#5387)
 	Fixed slapd frontendDB backend selection (ITS#5419)
 	Fixed slapd delta-syncrepl resync (ITS#5378)
+	Fixed slapd pointer dereference (ITS#5388)
 	Fixed slapd syncrepl hang on back-config (ITS#5407)
 	Fixed slapd syncrepl compare_csns crash (ITS#5413)
 	Fixed slapd syncrepl contextCSN update clash (ITS#5426)
