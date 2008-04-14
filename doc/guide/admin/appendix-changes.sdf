@@ -15,6 +15,7 @@ asked on the OpenLDAP mailing lists and scenarios discussed there, we have added
 * {{SECT:When should I use LDAP?}}
 * {{SECT:When should I not use LDAP?}}
 * {{SECT:LDAP vs RDBMS}}
+* {{SECT:Access Control}}
 * {{SECT:Backends}}
 * {{SECT:Overlays}}
 * {{SECT:Replication}}
