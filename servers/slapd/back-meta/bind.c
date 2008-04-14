@@ -145,7 +145,7 @@ meta_back_bind( Operation *op, SlapReply *rs )
 			rc = LDAP_SUCCESS;
 			gotit = 1;
 
-		} else if ( isroot == 0 ) {
+		} else if ( !isroot ) {
 			/*
 			 * A bind operation is expected to have
 			 * ONE CANDIDATE ONLY!
@@ -249,10 +249,15 @@ meta_back_bind( Operation *op, SlapReply *rs )
 			meta_back_print_conntree( mi, "<<< meta_back_bind" );
 #endif /* META_BACK_PRINT_CONNTREE */
 			if ( lerr == 0 ) {
+#if 0
+				/* NOTE: a connection cannot be privileged
+				 * and be in the avl tree at the same time
+				 */
 				if ( isroot ) {
 					LDAP_BACK_CONN_ISPRIV_SET( mc );
 					LDAP_BACK_PCONN_SET( mc, op );
 				}
+#endif
 				LDAP_BACK_CONN_CACHED_SET( mc );
 
 			} else {
