@@ -3,8 +3,8 @@
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
-#include<iostream>
-#include<sstream>
+#include <iostream>
+#include <sstream>
 #include "LDAPConnection.h"
 #include "LDAPConstraints.h"
 #include "LDAPSearchReference.h"
@@ -16,7 +16,7 @@
 #include "LDAPModification.h"
 #include "LDAPReferralException.h"
 
-#include"debug.h"
+#include "debug.h"
 
 int main(){
     LDAPConstraints* cons=new LDAPConstraints;

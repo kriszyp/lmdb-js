@@ -1,5 +1,5 @@
-#include<iostream>
-#include<sstream>
+#include <iostream>
+#include <sstream>
 #include "LDAPConnection.h"
 #include "LDAPConstraints.h"
 #include "LDAPSearchReference.h"
@@ -12,7 +12,7 @@
 #include "LDAPReferralException.h"
 #include "LDAPSchema.h"
 
-#include"debug.h"
+#include "debug.h"
 
 int main(){
     LDAPConnection *lc=new LDAPConnection("192.168.3.128",389);
