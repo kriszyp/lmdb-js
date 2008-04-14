@@ -205,6 +205,7 @@ URI6="ldap://${LOCALHOST}:$PORT6/"
 
 # LDIF
 LDIF=$DATADIR/test.ldif
+LDIFADD1=$DATADIR/do_add.1
 LDIFGLUED=$DATADIR/test-glued.ldif
 LDIFORDERED=$DATADIR/test-ordered.ldif
 LDIFORDEREDCP=$DATADIR/test-ordered-cp.ldif
