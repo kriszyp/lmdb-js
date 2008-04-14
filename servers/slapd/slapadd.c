@@ -203,6 +203,7 @@ slapadd( int argc, char **argv )
 					if( continuemode ) continue;
 					break;
 				}
+				textbuf[ 0 ] = '\0';
 			}
 		}
 
