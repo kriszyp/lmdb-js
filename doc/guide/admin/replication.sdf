@@ -742,11 +742,12 @@ different and add it as a global configuration option.
 
 H4: Mirror Node Configuration
 
-This is the same as the {{SECT:Set up the provider slapd}} section, reference
-{{SECT:delta-syncrepl replication}} if using {{delta-syncrepl}}.
+This is the same as the {{SECT:Set up the provider slapd}} section.
+
+Note: Delta-syncrepl is not yet supported with MirrorMode.
 
 Here's a specific cut down example using {{SECT:LDAP Sync Replication}} in
-{{refreshAndPersist}} mode ({{delta-syncrepl}} can be used also):
+{{refreshAndPersist}} mode:
 
 MirrorMode node 1:
 
