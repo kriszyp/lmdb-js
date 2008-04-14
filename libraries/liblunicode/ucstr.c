@@ -128,7 +128,12 @@ struct berval * UTF8bvnormalize(
 	if ( len == 0 ) {
 		return ber_dupbv_x( newbv, bv, ctx );
 	}
-	
+
+	if ( !newbv ) {
+		newbv = ber_memalloc_x( sizeof(struct berval), ctx );
+		if ( !newbv ) return NULL;
+	}
+
 	/* Should first check to see if string is already in proper
 	 * normalized form. This is almost as time consuming as
 	 * the normalization though.
@@ -138,7 +143,7 @@ struct berval * UTF8bvnormalize(
 	if ( LDAP_UTF8_ISASCII( s ) ) {
 		if ( casefold ) {
 			outsize = len + 7;
-			out = (char *) malloc( outsize );
+			out = (char *) ber_memalloc_x( outsize, ctx );
 			if ( out == NULL ) {
 				return NULL;
 			}
@@ -150,7 +155,9 @@ struct berval * UTF8bvnormalize(
 			if ( i == len ) {
 				out[outpos++] = TOLOWER( s[len-1] );
 				out[outpos] = '\0';
-				return ber_str2bv( out, outpos, 0, newbv);
+				newbv->bv_val = out;
+				newbv->bv_len = outpos;
+				return newbv;
 			}
 		} else {
 			for ( i = 1; (i < len) && LDAP_UTF8_ISASCII(s + i); i++ ) {
@@ -162,7 +169,7 @@ struct berval * UTF8bvnormalize(
 			}
 				
 			outsize = len + 7;
-			out = (char *) malloc( outsize );
+			out = (char *) ber_memalloc_x( outsize, ctx );
 			if ( out == NULL ) {
 				return NULL;
 			}
@@ -171,7 +178,7 @@ struct berval * UTF8bvnormalize(
 		}
 	} else {
 		outsize = len + 7;
-		out = (char *) malloc( outsize );
+		out = (char *) ber_memalloc_x( outsize, ctx );
 		if ( out == NULL ) {
 			return NULL;
 		}
@@ -179,9 +186,9 @@ struct berval * UTF8bvnormalize(
 		i = 0;
 	}
 
-	p = ucs = malloc( len * sizeof(*ucs) );
+	p = ucs = ber_memalloc_x( len * sizeof(*ucs), ctx );
 	if ( ucs == NULL ) {
-		free(out);
+		ber_memfree_x(out, ctx);
 		return NULL;
 	}
 
@@ -198,8 +205,8 @@ struct berval * UTF8bvnormalize(
 		while ( i < len ) {
 			clen = LDAP_UTF8_CHARLEN2( s + i, clen );
 			if ( clen == 0 ) {
-				free( ucs );
-				free( out );
+				ber_memfree_x( ucs, ctx );
+				ber_memfree_x( out, ctx );
 				return NULL;
 			}
 			if ( clen == 1 ) {
@@ -210,8 +217,8 @@ struct berval * UTF8bvnormalize(
 			i++;
 			for( j = 1; j < clen; j++ ) {
 				if ( (s[i] & 0xc0) != 0x80 ) {
-					free( ucs );
-					free( out );
+					ber_memfree_x( ucs, ctx );
+					ber_memfree_x( out, ctx );
 					return NULL;
 				}
 				*p <<= 6;
@@ -239,11 +246,11 @@ struct berval * UTF8bvnormalize(
 				   6 bytes and terminator */
 				if ( outsize - outpos < 7 ) {
 					outsize = ucsoutlen - j + outpos + 6;
-					outtmp = (char *) realloc( out, outsize );
+					outtmp = (char *) ber_memrealloc_x( out, outsize, ctx );
 					if ( outtmp == NULL ) {
-						free( out );
-						free( ucs );
-						free( ucsout );
+						ber_memfree_x( ucsout, ctx );
+						ber_memfree_x( ucs, ctx );
+						ber_memfree_x( out, ctx );
 						return NULL;
 					}
 					out = outtmp;
@@ -252,7 +259,7 @@ struct berval * UTF8bvnormalize(
 			}
 		}
 
-		free( ucsout );
+		ber_memfree_x( ucsout, ctx );
 		ucsout = NULL;
 		
 		if ( i == len ) {
@@ -264,10 +271,10 @@ struct berval * UTF8bvnormalize(
 		/* Allocate more space in out if necessary */
 		if (len - i >= outsize - outpos) {
 			outsize += 1 + ((len - i) - (outsize - outpos));
-			outtmp = (char *) realloc(out, outsize);
+			outtmp = (char *) ber_memrealloc_x(out, outsize, ctx);
 			if (outtmp == NULL) {
-				free(out);
-				free(ucs);
+				ber_memfree_x( ucs, ctx );
+				ber_memfree_x( out, ctx );
 				return NULL;
 			}
 			out = outtmp;
@@ -288,9 +295,11 @@ struct berval * UTF8bvnormalize(
 		p = ucs + 1;
 	}
 
-	free( ucs );
+	ber_memfree_x( ucs, ctx );
 	out[outpos] = '\0';
-	return ber_str2bv( out, outpos, 0, newbv );
+	newbv->bv_val = out;
+	newbv->bv_len = outpos;
+	return newbv;
 }
 
 /* compare UTF8-strings, optionally ignore casing */
