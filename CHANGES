@@ -31,6 +31,7 @@ OpenLDAP 2.4.9 Engineering
 	Documentation
 		Fixed slapd.access(5) authz-regexp documented behavior (ITS#5400)
 		Fixed slapd.meta(5) idassert-* documentation (ITS#5406)
+		Fixed admin guide set documentation (ITS#5278,ITS#5279,ITS#5281)
 
 OpenLDAP 2.4.8 Release (2008/02/19)
 	Fixed ldapmodify verbose logging (ITS#5247)
