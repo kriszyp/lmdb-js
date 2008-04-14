@@ -1707,7 +1707,6 @@ struct ConfigOCs;	/* config.h */
 
 struct BackendDB {
 	BackendInfo	*bd_info;	/* pointer to shared backend info */
-	BackendDB *bd_orig;		/* pointer to original backend, for overlays */
 
 	/* fields in this structure (and routines acting on this structure)
 	   should be renamed from be_ to bd_ */
