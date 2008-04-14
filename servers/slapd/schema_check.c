@@ -32,6 +32,7 @@ static char * oc_check_required(
 static int entry_naming_check(
 	Entry *e,
 	int manage,
+	int add_naming,
 	const char** text,
 	char *textbuf, size_t textlen );
 /*
@@ -47,7 +48,7 @@ entry_schema_check(
 	Entry *e,
 	Attribute *oldattrs,
 	int manage,
-	int add_soc,
+	int add,
 	const char** text,
 	char *textbuf, size_t textlen )
 {
@@ -135,7 +136,7 @@ entry_schema_check(
 	assert( aoc->a_vals[0].bv_val != NULL );
 
 	/* check the structural object class attribute */
-	if ( asc == NULL && !add_soc ) {
+	if ( asc == NULL && !add ) {
 		Debug( LDAP_DEBUG_ANY,
 			"No structuralObjectClass for entry (%s)\n",
 		    e->e_dn, 0, 0 );
@@ -150,7 +151,7 @@ entry_schema_check(
 		return rc;
 	}
 
-	if ( asc == NULL && add_soc ) {
+	if ( asc == NULL && add ) {
 		attr_merge_one( e, ad_structuralObjectClass, &oc->soc_cname, NULL );
 		asc = attr_find( e->e_attrs, ad_structuralObjectClass );
 		sc = oc;
@@ -224,7 +225,7 @@ got_soc:
 
 	/* naming check */
 	if ( !is_entry_glue ( e ) ) {
-		rc = entry_naming_check( e, manage, text, textbuf, textlen );
+		rc = entry_naming_check( e, manage, add, text, textbuf, textlen );
 		if( rc != LDAP_SUCCESS ) {
 			goto done;
 		}
@@ -762,6 +763,7 @@ static int
 entry_naming_check(
 	Entry *e,
 	int manage,
+	int add_naming,
 	const char** text,
 	char *textbuf, size_t textlen )
 {
@@ -792,6 +794,7 @@ entry_naming_check(
 		AttributeDescription *desc = NULL;
 		Attribute *attr;
 		const char *errtext;
+		int add = 0;
 
 		if( ava->la_flags & LDAP_AVA_BINARY ) {
 			snprintf( textbuf, textlen, 
@@ -852,37 +855,51 @@ entry_naming_check(
 			snprintf( textbuf, textlen, 
 				"naming attribute '%s' is not present in entry",
 				ava->la_attr.bv_val );
-			rc = LDAP_NAMING_VIOLATION;
-			break;
+			if ( add_naming ) {
+				add = 1;
+
+			} else {
+				rc = LDAP_NAMING_VIOLATION;
+			}
+
+		} else {
+			rc = attr_valfind( attr, SLAP_MR_VALUE_OF_ASSERTION_SYNTAX|
+				SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH,
+				&ava->la_value, NULL, NULL );
+
+			if( rc != 0 ) {
+				switch( rc ) {
+				case LDAP_INAPPROPRIATE_MATCHING:
+					snprintf( textbuf, textlen, 
+						"inappropriate matching for naming attribute '%s'",
+						ava->la_attr.bv_val );
+					break;
+				case LDAP_INVALID_SYNTAX:
+					snprintf( textbuf, textlen, 
+						"value of naming attribute '%s' is invalid",
+						ava->la_attr.bv_val );
+					break;
+				case LDAP_NO_SUCH_ATTRIBUTE:
+					snprintf( textbuf, textlen, 
+						"value of naming attribute '%s' is not present in entry",
+						ava->la_attr.bv_val );
+					if ( add_naming ) {
+						add = 1;
+					}
+					break;
+				default:
+					snprintf( textbuf, textlen, 
+						"naming attribute '%s' is inappropriate",
+						ava->la_attr.bv_val );
+				}
+				rc = LDAP_NAMING_VIOLATION;
+			}
 		}
 
-		rc = attr_valfind( attr, SLAP_MR_VALUE_OF_ASSERTION_SYNTAX|
-			SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH,
-			&ava->la_value, NULL, NULL );
+		if ( add ) {
+			attr_merge_normalize_one( e, desc, &ava->la_value, NULL );
 
-		if( rc != 0 ) {
-			switch( rc ) {
-			case LDAP_INAPPROPRIATE_MATCHING:
-				snprintf( textbuf, textlen, 
-					"inappropriate matching for naming attribute '%s'",
-					ava->la_attr.bv_val );
-				break;
-			case LDAP_INVALID_SYNTAX:
-				snprintf( textbuf, textlen, 
-					"value of naming attribute '%s' is invalid",
-					ava->la_attr.bv_val );
-				break;
-			case LDAP_NO_SUCH_ATTRIBUTE:
-				snprintf( textbuf, textlen, 
-					"value of naming attribute '%s' is not present in entry",
-					ava->la_attr.bv_val );
-				break;
-			default:
-				snprintf( textbuf, textlen, 
-					"naming attribute '%s' is inappropriate",
-					ava->la_attr.bv_val );
-			}
-			rc = LDAP_NAMING_VIOLATION;
+		} else if ( rc != LDAP_SUCCESS ) {
 			break;
 		}
 	}

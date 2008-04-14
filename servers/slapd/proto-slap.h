@@ -1631,7 +1631,7 @@ LDAP_SLAPD_F( int ) entry_schema_check(
 	Entry *e,
 	Attribute *attrs,
 	int manage,
-	int add_soc,
+	int add,
 	const char** text,
 	char *textbuf, size_t textlen );
 
