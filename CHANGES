@@ -2,6 +2,7 @@ OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.9 Engineering
 	Fixed libldap_r tpool pause checks (ITS#5364, #5407)
+	Fixed slapcat error checking (ITS#5387)
 	Fixed slapd frontendDB backend selection (ITS#5419)
 	Fixed slapd delta-syncrepl resync (ITS#5378)
 	Fixed slapd syncrepl hang on back-config (ITS#5407)
