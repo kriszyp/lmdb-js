@@ -360,13 +360,63 @@ When dynamic objects reach the end of their lifetime without being further
 refreshed, they are automatically {{deleted}}. There is no guarantee of immediate 
 deletion, so clients should not count on it.
 
-Dynamic objects can have subordinates, provided these also are dynamic objects.
-RFC 2589 does not specify what the behavior of a dynamic directory service 
-should be when a dynamic object with (dynamic) subordinates expires.
-In this implementation, the lifetime of dynamic objects with subordinates is prolonged
-until all the dynamic subordinates expire.
-   
 H3: Dynamic Directory Service Configuration
+
+A usage of dynamic objects might beto implement dynamic meetings; in this case, 
+all the participants to the meeting are allowed to refresh the meeting object, 
+but only the creator can delete it (otherwise it will be deleted when the TTL expires).
+
+If we add the overlay to an example database, specifying a Max TTL of 1 day, a 
+min of 10 seconds, with a default TTL of 1 hour. We'll also specify an interval
+of 5 seconds between expiration checks and a tolerance of 1 second (lifetime of
+a dynamic object will be {{B:entryTtl + tolerance}}.
+
+>       overlay dds
+>       dds-max-ttl     1d
+>       dds-min-ttl     10s
+>       dds-default-ttl 1h
+>       dds-interval    5s
+>       dds-tolerance   1s
+
+So let's create an entry using:
+
+>       dn: cn=Dynamic,dc=example,dc=com
+>       objectClass: inetOrgPerson
+>       objectClass: dynamicObject
+>       cn: Dynamic Object
+>       sn: Object
+
+MORE coming.
+
+
+H4: Dynamic Directory Service ACLs
+
+Allow users to start a meeting and to join it; restrict refresh to the {{B:member}}s; 
+restrict delete to the creator:
+
+>       access to attrs=userPassword
+>          by self write
+>          by * read
+>       
+>       access to dn.base="cn=Meetings,dc=example,dc=com"
+>                 attrs=children
+>            by users write
+>       
+>       access to dn.onelevel="cn=Meetings,dc=example,dc=com"
+>                 attrs=entry
+>            by dnattr=creatorsName write
+>            by * read
+>       
+>       access to dn.onelevel="cn=Meetings,dc=example,dc=com"
+>                 attrs=participant
+>            by dnattr=creatorsName write
+>            by users selfwrite
+>            by * read
+>       
+>       access to dn.onelevel="cn=Meetings,dc=example,dc=com"
+>                 attrs=entryTtl
+>            by dnattr=member manage
+>            by * read
 
 
 H2: Dynamic Groups
