@@ -15,6 +15,7 @@ OpenLDAP 2.4.9 Engineering
 	Fixed slapd syncrepl refreshAndPersist (ITS#5454)
 	Fixed slapd syncrepl modrdn processing (ITS#5397)
 	Fixed slapd-ldap connection handler (ITS#5404)
+	Fixed slapo-refint dnSubtreeMatch (ITS#5427)
 	Fixed slapo-syncprov psearch on closed connection (ITS#5401)
 	Fixed slapo-syncprov psearch task delay (ITS#5405)
 	Fixed slapo-syncprov psearch filter identity (ITS#5418)
