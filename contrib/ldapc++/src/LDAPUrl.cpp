@@ -6,6 +6,7 @@
 
 #include "LDAPUrl.h"
 #include <sstream>
+#include <iomanip>
 #include "debug.h"
 
 using namespace std;
@@ -193,26 +194,39 @@ void LDAPUrl::parseUrl()
         // no hostname and port
         startpos++;
     } else {
+        std::string::size_type hostend;
+        std::string::size_type portstart;
         pos = m_urlString.find('/', startpos);
-        std::string hostport = m_urlString.substr(startpos, 
-                pos - startpos);
-        DEBUG(LDAP_DEBUG_TRACE, "    hostport: <" << hostport << ">" 
-                << std::endl);
-        std::string::size_type portstart = m_urlString.find(':', startpos);
-        if (portstart == std::string::npos || portstart > pos ) {
-            percentDecode(hostport, m_Host);
+
+        // IPv6 Address?
+        if ( m_urlString[startpos] == '[' ) {
+            // skip
+            startpos++;
+            hostend =  m_urlString.find(']', startpos);
+            if ( hostend == std::string::npos ){
+                throw LDAPUrlException(LDAPUrlException::INVALID_URL);
+            }
+            portstart = hostend + 1;
+        } else {
+            hostend = m_urlString.find(':', startpos);
+            if ( hostend == std::string::npos || portstart > pos ) {
+                hostend = pos;
+            }
+            portstart = hostend;
+        }
+        std::string host = m_urlString.substr(startpos, hostend - startpos);
+        DEBUG(LDAP_DEBUG_TRACE, "    host: <" << host << ">" << std::endl);
+        percentDecode(host, m_Host);
+
+        if (portstart >= m_urlString.length() || portstart >= pos ) {
             if ( m_Scheme == "ldap" || m_Scheme == "cldap" ) {
                 m_Port = LDAP_DEFAULT_PORT;
             } else if ( m_Scheme == "ldaps" ) {
                 m_Port = LDAPS_DEFAULT_PORT;
             }
         } else {
-            std::string tmp = m_urlString.substr(startpos, 
-                        portstart - startpos);
-            percentDecode(tmp, m_Host);
-            DEBUG(LDAP_DEBUG_TRACE, "Host: <" << m_Host << ">" << std::endl);
             std::string port = m_urlString.substr(portstart+1, 
-                    pos-portstart-1);
+                    (pos == std::string::npos ? pos : pos-portstart-1) );
             if ( port.length() > 0 ) {
                 std::istringstream i(port);
                 i >> m_Port;
@@ -328,8 +342,15 @@ void LDAPUrl::components2Url() const
 {
     std::ostringstream url; 
     std::string encoded = "";
-    this->percentEncode(m_Host, encoded, PCT_ENCFLAG_SLASH);
-    url << m_Scheme << "://" << encoded;
+    
+    url << m_Scheme << "://";
+    // IPv6 ?
+    if ( m_Host.find( ':', 0 ) != std::string::npos ) {
+        url <<  "[" << this->percentEncode(m_Host, encoded) <<  "]";
+    } else {
+        url << this->percentEncode(m_Host, encoded, PCT_ENCFLAG_SLASH);
+    }
+
     if ( m_Port != 0 ) {
         url << ":" << m_Port;
     }
@@ -394,7 +415,7 @@ void LDAPUrl::components2Url() const
 }
 
 
-void LDAPUrl::percentEncode( const std::string &src, 
+std::string& LDAPUrl::percentEncode( const std::string &src, 
         std::string &dest, 
         int flags) const
 {
@@ -454,12 +475,13 @@ void LDAPUrl::percentEncode( const std::string &src,
             break;
         }
         if ( escape ) {
-            o << "%" << (int)(unsigned char)*i ;
+            o << "%" << std::setw(2) << std::setfill('0') << (int)(unsigned char)*i ;
         } else {
             o.put(*i);
         }
     }
     dest = o.str();
+    return dest;
 }
 
 const code2string_s LDAPUrlException::code2string[] = {
