@@ -2239,10 +2239,10 @@ integerIndexer(
 		}
 		rc = integerVal2Key( &values[i], &keys[i], &itmp, ctx );
 		if ( rc )
-			goto leave;
+			goto func_leave;
 	}
 	*keysp = keys;
-leave:
+func_leave:
 	if ( itmp.bv_val != ibuf ) {
 		slap_sl_free( itmp.bv_val, ctx );
 	}
@@ -3142,7 +3142,7 @@ serialNumberAndIssuerNormalize(
 	sn2.bv_len = sn.bv_len;
 	if ( lutil_str2bin( &sn, &sn2, ctx )) {
 		rc = LDAP_INVALID_SYNTAX;
-		goto leave;
+		goto func_leave;
 	}
 
 	/* make room for sn + "$" */
@@ -3154,7 +3154,7 @@ serialNumberAndIssuerNormalize(
 		out->bv_len = 0;
 		slap_sl_free( ni.bv_val, ctx );
 		rc = LDAP_OTHER;
-		goto leave;
+		goto func_leave;
 	}
 
 	n = 0;
@@ -3192,7 +3192,7 @@ serialNumberAndIssuerNormalize(
 	Debug( LDAP_DEBUG_TRACE, "<<< serialNumberAndIssuerNormalize: <%s>\n",
 		out->bv_val, 0, 0 );
 
-leave:
+func_leave:
 	if ( stmp != sbuf )
 		slap_sl_free( stmp, ctx );
 	slap_sl_free( ni.bv_val, ctx );
