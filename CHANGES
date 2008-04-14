@@ -1,6 +1,7 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.9 Engineering
+	Fixed libldap to use unsigned port (ITS#5436)
 	Fixed libldap_r tpool pause checks (ITS#5364, #5407)
 	Fixed slapcat error checking (ITS#5387)
 	Fixed slapd add operations requiring naming attrs (ITS#5412)
