@@ -17,6 +17,7 @@ OpenLDAP 2.4.9 Engineering
 	Fixed slapd syncrepl crash on empty CSN (ITS#5432)
 	Fixed slapd syncrepl refreshAndPersist (ITS#5454)
 	Fixed slapd syncrepl modrdn processing (ITS#5397)
+	Fixed slapd/slapo-accesslog rq mutex usage (ITS#5442)
 	Fixed slapd-ldap connection handler (ITS#5404)
 	Fixed slapo-auditlog unnecessary syscall (ITS#5441)
 	Fixed slapo-refint dnSubtreeMatch (ITS#5427)

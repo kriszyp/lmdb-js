@@ -483,9 +483,11 @@ bdb_cf_gen( ConfigArgs *c )
 			if ( bdb->bi_txn_cp_task ) {
 				struct re_s *re = bdb->bi_txn_cp_task;
 				bdb->bi_txn_cp_task = NULL;
+				ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
 				if ( ldap_pvt_runqueue_isrunning( &slapd_rq, re ) )
 					ldap_pvt_runqueue_stoptask( &slapd_rq, re );
 				ldap_pvt_runqueue_remove( &slapd_rq, re );
+				ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
 			}
 			bdb->bi_txn_cp = 0;
 			break;
@@ -620,9 +622,11 @@ bdb_cf_gen( ConfigArgs *c )
 						c->log );
 					return 1;
 				}
+				ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
 				bdb->bi_txn_cp_task = ldap_pvt_runqueue_insert( &slapd_rq,
 					bdb->bi_txn_cp_min * 60, bdb_checkpoint, bdb,
 					LDAP_XSTRING(bdb_checkpoint), c->be->be_suffix[0].bv_val );
+				ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
 			}
 		}
 		} break;
@@ -747,9 +751,11 @@ bdb_cf_gen( ConfigArgs *c )
 					c->log );
 				return 1;
 			}
+			ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
 			bdb->bi_index_task = ldap_pvt_runqueue_insert( &slapd_rq, 36000,
 				bdb_online_index, c->be,
 				LDAP_XSTRING(bdb_online_index), c->be->be_suffix[0].bv_val );
+			ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
 		}
 		break;
 
