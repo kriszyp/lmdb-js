@@ -952,7 +952,8 @@ operation, requires
 .B search (=s)
 privileges on the 
 .B entry
-pseudo-attribute of the searchBase (NOTE: this was introduced with 2.3).
+pseudo-attribute of the searchBase
+(NOTE: this was introduced with OpenLDAP 2.4).
 Then, for each entry, it requires
 .B search (=s)
 privileges on the attributes that are defined in the filter.
@@ -998,6 +999,10 @@ privileges are also required on the
 attribute of the authorizing identity and/or on the 
 .B authzFrom
 attribute of the authorized identity.
+In general, when an internal lookup is performed for authentication
+or authorization purposes, search-specific privileges (see the access
+requirements for the search operation illustrated above) are relaxed to
+.BR auth .
 
 .LP
 Access control to search entries is checked by the frontend,
