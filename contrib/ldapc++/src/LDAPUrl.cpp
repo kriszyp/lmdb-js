@@ -163,7 +163,7 @@ void LDAPUrl::parseUrl()
     DEBUG(LDAP_DEBUG_TRACE, "LDAPUrl::parseUrl()" << std::endl);
     // reading Scheme
     std::string::size_type pos = m_urlString.find(':');
-    std::string::size_type startpos = m_urlString.find(':');
+    std::string::size_type startpos = pos;
     if (pos == std::string::npos) {
         throw LDAPUrlException(LDAPUrlException::INVALID_URL,
                 "No colon found in URL");
@@ -190,6 +190,7 @@ void LDAPUrl::parseUrl()
         startpos = pos + 3;
     }
     if ( m_urlString[startpos] == '/' ) {
+        // no hostname and port
         startpos++;
     } else {
         pos = m_urlString.find('/', startpos);
@@ -222,8 +223,8 @@ void LDAPUrl::parseUrl()
             DEBUG(LDAP_DEBUG_TRACE, "    Port: <" << m_Port << ">" 
                     << std::endl);
         }
+        startpos = pos + 1;
     }
-    startpos = pos + 1;
     int parserMode = base;
     while ( pos != std::string::npos ) {
         pos = m_urlString.find('?', startpos);
