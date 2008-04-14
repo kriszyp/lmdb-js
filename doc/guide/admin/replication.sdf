@@ -738,7 +738,7 @@ slapd syncrepl provider, then the only change is the following two directives:
 >       serverID    1
 
 Note: You need to make sure that the {{serverID}} of each mirror node pair is 
-different.
+different and add it as a global configuration option.
 
 H4: Mirror Node Configuration
 
@@ -750,6 +750,10 @@ Here's a specific cut down example using {{SECT:LDAP Sync Replication}} in
 
 MirrorMode node 1:
 
+>       # Global section
+>       serverID    1
+>       # database section
+>       
 >       # syncrepl directives    
 >       syncrepl      rid=001
 >                     provider=ldap://ldap-ridr1.example.com
@@ -772,10 +776,13 @@ MirrorMode node 1:
 >                     retry="60 +"
 >       
 >       mirrormode on
->       serverID    1
 
 MirrorMode node 2:
 
+>       # Global section
+>       serverID    2
+>       # database section
+>       
 >       # syncrepl directives
 >       syncrepl      rid=001
 >                     provider=ldap://ldap-ridr1.example.com
@@ -798,7 +805,6 @@ MirrorMode node 2:
 >                     retry="60 +"
 >       
 >       mirrormode on
->       serverID    2
 
 It's simple really; each MirrorMode node is setup {{B:exactly}} the same, except
 that the {{serverID}} is unique.
