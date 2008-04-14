@@ -620,6 +620,7 @@ glue_open (
 	glueinfo		*gi = on->on_bi.bi_private;
 	static int glueOpened = 0;
 	int i, j, same, bsame = 0, rc = 0;
+	ConfigReply cr = {0};
 
 	if (glueOpened) return 0;
 
@@ -650,7 +651,7 @@ glue_open (
 					gi->gi_n[i].gn_be->bd_info );
 			/* Let backend.c take care of the rest of startup */
 			if ( !rc )
-				rc = backend_startup_one( gi->gi_n[i].gn_be, NULL );
+				rc = backend_startup_one( gi->gi_n[i].gn_be, &cr );
 			if ( rc ) break;
 		}
 		if ( !rc && !bsame && on->on_info->oi_orig->bi_open )
