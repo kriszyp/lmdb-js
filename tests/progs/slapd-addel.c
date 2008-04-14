@@ -278,7 +278,10 @@ get_add_entry( char *filename, LDAPMod ***mods )
 
 			if (( nl = strchr( line, '\r' )) || ( nl = strchr( line, '\n' )))
 				*nl = '\0';
-			entry = strdup( line );
+			nl = line;
+			if ( !strncasecmp( nl, "dn: ", 4 ))
+				nl += 4;
+			entry = strdup( nl );
 
 		}
 
