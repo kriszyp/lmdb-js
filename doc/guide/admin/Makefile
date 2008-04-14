@@ -21,6 +21,7 @@ sdf-src: \
 	../plain.sdf \
 	../preamble.sdf \
 	abstract.sdf \
+	access-control.sdf \
 	appendix-changes.sdf \
 	appendix-common-errors.sdf \
 	appendix-configs.sdf \
@@ -65,7 +66,10 @@ sdf-img: \
 	dual_dc.png \
 	intro_dctree.png \
 	intro_tree.png \
-	refint.png 
+	refint.png \
+	set-following-references.png \
+	set-memberUid.png \
+	set-recursivegroup.png 
 
 guide.html: guide.sdf sdf-src sdf-img
 	sdf -2html guide.sdf
