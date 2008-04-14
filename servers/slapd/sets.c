@@ -709,20 +709,19 @@ slap_set_filter( SLAP_SET_GATHER gatherer,
 			break;
 
 		default:
-			if ( ( c != '_' )
-					&& ( c < 'A' || c > 'Z' )
-					&& ( c < 'a' || c > 'z' ) )
-			{
+			if ( !AD_LEADCHAR( c ) ) {
 				SF_ERROR( syntax );
 			}
 			filter--;
 			for ( len = 1;
-					( c = filter[ len ] )
-						&& ( ( c >= '0' && c <= '9' )
-							|| ( c >= 'A' && c <= 'Z' )
-							|| ( c >= 'a' && c <= 'z' ) );
-					len++ )
-				/* count */ ;
+				( c = filter[ len ] ) && AD_CHAR( c );
+				len++ )
+			{
+				/* count */
+				if ( c == '-' && !AD_CHAR( filter[ len + 1 ] ) ) {
+					break;
+				}
+			}
 			if ( len == 4
 				&& memcmp( "this", filter, len ) == 0 )
 			{
