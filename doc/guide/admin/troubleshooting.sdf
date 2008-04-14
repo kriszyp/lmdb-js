@@ -90,7 +90,7 @@ H2: Debugging {{slapd}}(8)
 After reading through the above sections and before e-mailing the OpenLDAP lists, you
 might want to try out some of the following to track down the cause of your problems:
 
-* Loglevel 256 is generally a good first loglevel to try for getting 
+* Loglevel stats (256) is generally a good first loglevel to try for getting 
   information useful to list members on issues
 * Running {{slapd -d -1}} can often track down fairly simple issues, such as 
   missing schemas and incorrect file permissions for the {{slapd}} user to things like certs

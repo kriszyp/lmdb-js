@@ -111,7 +111,7 @@ H2: Logging
 
 H3: What log level to use
 
-The default of {{loglevel 256}} is really the best bet. There's a corollary to 
+The default of {{loglevel stats}} (256) is really the best bet. There's a corollary to 
 this when problems *do* arise, don't try to trace them using syslog. 
 Use the debug flag instead, and capture slapd's stderr output. syslog is too 
 slow for debug tracing, and it's inherently lossy - it will throw away messages when it
@@ -131,7 +131,7 @@ and attribute {{foo}} does not have an equality index. If you see a lot of these
 messages, you should add the index. If you see one every month or so, it may
 be acceptable to ignore it.
 
-The default syslog level is 256 which logs the basic parameters of each
+The default syslog level is stats (256) which logs the basic parameters of each
 request; it usually produces 1-3 lines of output. On Solaris and systems that
 only provide synchronous syslog, you may want to turn it off completely, but
 usually you want to leave it enabled so that you'll be able to see index
