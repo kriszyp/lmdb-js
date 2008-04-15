@@ -12,6 +12,7 @@ OpenLDAP 2.4.9 Engineering
 	Fixed slapd pointer dereference (ITS#5388)
 	Fixed slapd null argument dereference (ITS#5435)
 	Fixed slapd sets attribute description parsing (ITS#5402)
+	Fixed slapd REP_ENTRY flags (ITS#5340)
 	Fixed slapd syncrepl hang on back-config (ITS#5407)
 	Fixed slapd syncrepl compare_csns crash (ITS#5413)
 	Fixed slapd syncrepl contextCSN update clash (ITS#5426)

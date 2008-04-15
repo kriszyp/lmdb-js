@@ -522,14 +522,20 @@ clean2:;
 		(void)slap_cleanup_play( op, rs );
 	}
 
-	if ( rs->sr_matched && rs->sr_flags & REP_MATCHED_MUSTBEFREED ) {
-		free( (char *)rs->sr_matched );
-		rs->sr_matched = NULL;
+	if ( rs->sr_flags & REP_MATCHED_MUSTBEFREED ) {
+		rs->sr_flags ^= REP_MATCHED_MUSTBEFREED; /* paranoia */
+		if ( rs->sr_matched ) {
+			free( (char *)rs->sr_matched );
+			rs->sr_matched = NULL;
+		}
 	}
 
-	if ( rs->sr_ref && rs->sr_flags & REP_REF_MUSTBEFREED ) {
-		ber_bvarray_free( rs->sr_ref );
-		rs->sr_ref = NULL;
+	if ( rs->sr_flags & REP_REF_MUSTBEFREED ) {
+		rs->sr_flags ^= REP_REF_MUSTBEFREED; /* paranoia */
+		if ( rs->sr_ref ) {
+			ber_bvarray_free( rs->sr_ref );
+			rs->sr_ref = NULL;
+		}
 	}
 
 	return rc;
@@ -625,6 +631,14 @@ slap_send_ldap_result( Operation *op, SlapReply *rs )
 	rs->sr_msgid = (rs->sr_tag != LBER_SEQUENCE) ? op->o_msgid : 0;
 
 abandon:
+	if ( rs->sr_flags & REP_REF_MUSTBEFREED ) {
+		if ( rs->sr_ref == NULL ) {
+			rs->sr_flags ^= REP_REF_MUSTBEFREED;
+			ber_bvarray_free( oref );
+		}
+		oref = NULL; /* send_ldap_response() will free rs->sr_ref if != NULL */
+	}
+
 	if ( send_ldap_response( op, rs ) == SLAP_CB_CONTINUE ) {
 		if ( op->o_tag == LDAP_REQ_SEARCH ) {
 			char nbuf[64];
