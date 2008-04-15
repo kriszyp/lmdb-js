@@ -776,7 +776,8 @@ delete transaction log files as soon as their contents have been
 checkpointed and they are no longer needed. Without this setting the
 transaction log files will continue to accumulate until some other
 cleanup procedure removes them. See the Berkeley DB documentation for the
-{{EX:db_archive}} command for details.
+{{EX:db_archive}} command for details. For a complete list of Berkeley DB 
+flags please see - {{URL:http://www.oracle.com/technology/documentation/berkeley-db/db/api_c/env_set_flags.html}}
 
 Ideally the BDB cache must be
 at least as large as the working set of the database, the log buffer size

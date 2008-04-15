@@ -90,6 +90,7 @@ recommended:
 * Log file removal - {{URL:http://www.oracle.com/technology/documentation/berkeley-db/db/ref/transapp/logfile.html}}
 * Recovery procedures - {{URL:http://www.oracle.com/technology/documentation/berkeley-db/db/ref/transapp/recovery.html}}
 * Hot failover - {{URL:http://www.oracle.com/technology/documentation/berkeley-db/db/ref/transapp/hotfail.html}}
+* Complete list of Berkeley DB flags - {{URL:http://www.oracle.com/technology/documentation/berkeley-db/db/api_c/env_set_flags.html}}
 
 Advanced installations can use special environment settings to fine-tune some 
 Berkeley DB options (change the log file limit, etc). This can be done by using 
