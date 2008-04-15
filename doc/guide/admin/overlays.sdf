@@ -10,16 +10,29 @@ and as callbacks on top of backend responses to alter their behavior.
 
 Overlays may be compiled statically into {{slapd}}, or when module support
 is enabled, they may be dynamically loaded. Most of the overlays
-are only allowed to be configured on individual databases, but some
-may also be configured globally.
+are only allowed to be configured on individual databases.
 
-Essentially, they represent a means to:
+Some can be stacked on the {{EX:frontend}} as well, for global use. This means that
+they can be executed after a request is parsed and validated, but right before the 
+appropriate database is selected. The main purpose is to affect operations 
+regardless of the database they will be handled by, and, in some cases, 
+to influence the selection of the database by massaging the request DN. 
+
+Essentially, overlays represent a means to:
 
     * customize the behavior of existing backends without changing the backend 
       code and without requiring one to write a new custom backend with 
       complete functionality
     * write functionality of general usefulness that can be applied to 
       different backend types
+
+When using {{slapd.conf}}(5), overlays that are configured before any other
+databases are considered global, as mentioned above. In fact they are implicitly
+stacked on top of the {{EX:frontend}} database. They can also be explicitly
+configured as such:
+
+>        database frontend
+>        overlay <overlay name>
 
 Overlays are usually documented by separate specific man pages in section 5; 
 the naming convention is
@@ -35,7 +48,7 @@ Official overlays are located in
 >        servers/slapd/overlays/
 
 That directory also contains the file slapover.txt, which describes the 
-rationale of the overlay implementation, and may serve as guideline for the 
+rationale of the overlay implementation, and may serve as a guideline for the 
 development of custom overlays.
 
 Contribware overlays are located in
@@ -45,13 +58,7 @@ Contribware overlays are located in
 along with other types of run-time loadable components; they are officially 
 distributed, but not maintained by the project.
 
-They can be stacked on the frontend as well; this means that they can be 
-executed after a request is parsed and validated, but right before the 
-appropriate database is selected. The main purpose is to affect operations 
-regardless of the database they will be handled by, and, in some cases, 
-to influence the selection of the database by massaging the request DN. 
-
-All the current overlays in 2.4 are listed and described in detail in the 
+All the current overlays in OpenLDAP are listed and described in detail in the 
 following sections.
 
 
@@ -239,8 +246,8 @@ H3: Chaining Configuration
 In order to demonstrate how this overlay works, we shall discuss a typical 
 scenario which might be one master server and three Syncrepl slaves. 
 
-On each replica, add this near the top of the file (global), before any database 
-definitions:
+On each replica, add this near the top of the {{slapd.conf}}(5) file
+(global), before any database definitions:
 
 >        overlay                    chain
 >        chain-uri                  "ldap://ldapmaster.example.com"
@@ -260,8 +267,10 @@ The DITs are exactly the same between these machines, therefore whatever user
 bound to the slave will also exist on the master. If that DN does not have 
 update privileges on the master, nothing will happen.
 
-You will need to restart the slave after these changes. Then, if you are using 
-{{loglevel stats}} (256), you can monitor an {{ldapmodify}} on the slave and the master.
+You will need to restart the slave after these {{slapd.conf}} changes.
+Then, if you are using {{loglevel stats}} (256), you can monitor an
+{{ldapmodify}} on the slave and the master. (If you're using {{cn=config}}
+no restart is required.)
 
 Now start an {{ldapmodify}} on the slave and watch the logs. You should expect 
 something like:
@@ -914,10 +923,10 @@ H2: Overlay Stacking
 H3: Overview
 
 Overlays can be stacked, which means that more than one overlay
-can be instantiated for each database, or for the frontend.
-As a consequence, each overlays function is called, if defined,
+can be instantiated for each database, or for the {{EX:frontend}}.
+As a consequence, each overlay's function is called, if defined,
 when overlay execution is invoked.
-Multiple overlays are executed in reverse order (it's a stack, all in all)
+Multiple overlays are executed in reverse order (as a stack)
 with respect to their definition in slapd.conf (5), or with respect
 to their ordering in the config database, as documented in slapd-config (5).
 
