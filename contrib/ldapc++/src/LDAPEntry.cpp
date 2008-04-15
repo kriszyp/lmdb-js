@@ -22,8 +22,11 @@ LDAPEntry::LDAPEntry(const LDAPEntry& entry){
 LDAPEntry::LDAPEntry(const string& dn, const LDAPAttributeList *attrs){
     DEBUG(LDAP_DEBUG_CONSTRUCT,"LDAPEntry::LDAPEntry()" << endl);
     DEBUG(LDAP_DEBUG_CONSTRUCT | LDAP_DEBUG_PARAMETER,
-            "   dn:" << dn << endl << " attrs:" << *attrs << endl);
-    m_attrs=new LDAPAttributeList(*attrs);
+            "   dn:" << dn << endl);
+    if ( attrs )
+        m_attrs=new LDAPAttributeList(*attrs);
+    else
+        m_attrs=new LDAPAttributeList();
     m_dn=dn;
 }
 
@@ -38,6 +41,13 @@ LDAPEntry::LDAPEntry(const LDAPAsynConnection *ld, LDAPMessage *msg){
 LDAPEntry::~LDAPEntry(){
     DEBUG(LDAP_DEBUG_DESTROY,"LDAPEntry::~LDAPEntry()" << endl);
     delete m_attrs;
+}
+
+LDAPEntry& LDAPEntry::operator=(const LDAPEntry& from){
+    m_dn = from.m_dn;
+    delete m_attrs;
+    m_attrs = new LDAPAttributeList( *(from.m_attrs));
+    return *this;
 }
 
 void LDAPEntry::setDN(const string& dn){

@@ -30,7 +30,7 @@ class LDAPEntry{
          * @param attrs The attributes for the new entry.
          */
         LDAPEntry(const std::string& dn=std::string(), 
-                const LDAPAttributeList *attrs=new LDAPAttributeList());
+                const LDAPAttributeList *attrs=0);
 
         /**
          * Used internally only.
@@ -44,7 +44,12 @@ class LDAPEntry{
          * Destructor
          */
         ~LDAPEntry();
-        
+
+        /**
+         * Assingment operator
+         */
+        LDAPEntry& operator=(const LDAPEntry& from);
+
         /**
          * Sets the DN-attribute.
          * @param dn: The new DN for the entry.
