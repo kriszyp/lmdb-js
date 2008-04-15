@@ -42,6 +42,7 @@ libldapcpp_la_SOURCES = LDAPAddRequest.cpp \
 			LDAPSearchResults.cpp \
 			LDAPUrl.cpp \
 			LDAPUrlList.cpp \
+			LdifReader.cpp \
 			SaslInteraction.cpp \
 			SaslInteractionHandler.cpp \
 			StringList.cpp 
@@ -74,6 +75,7 @@ include_HEADERS = LDAPAsynConnection.h \
 			LDAPSearchResults.h \
 			LDAPUrl.h \
 			LDAPUrlList.h \
+			LdifReader.h \
 			SaslInteraction.h \
 			SaslInteractionHandler.h \
 			StringList.h 
