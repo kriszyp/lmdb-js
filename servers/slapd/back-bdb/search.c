@@ -1160,10 +1160,6 @@ parse_paged_cookie( Operation *op, SlapReply *rs )
 			goto done;
 		}
 
-	} else {
-		/* Initial request.  Initialize state. */
-		ps->ps_cookie = 0;
-		ps->ps_count = 0;
 	}
 
 done:;

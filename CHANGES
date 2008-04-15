@@ -7,6 +7,7 @@ OpenLDAP 2.4.9 Engineering
 	Fixed slapd add operations requiring naming attrs (ITS#5412)
 	Fixed slapd frontendDB backend selection (ITS#5419)
 	Fixed slapd delta-syncrepl resync (ITS#5378)
+	Fixed slapd pagedresults stale state (ITS#5409)
 	Fixed slapd pointer dereference (ITS#5388)
 	Fixed slapd null argument dereference (ITS#5435)
 	Fixed slapd sets attribute description parsing (ITS#5402)
