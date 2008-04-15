@@ -7,7 +7,6 @@
 
 #include "LDAPResult.h"
 #include "LDAPException.h"
-#include "LDAPReferralException.h"
 #include "LDAPUrlList.h"
 
 #include "LDAPConnection.h"
