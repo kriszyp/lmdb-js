@@ -283,7 +283,7 @@ int bdb_modify_internal(
 				/* attribute was completely deleted */
 				vals = ap->a_nvals;
 			}
-			if ( !BER_BVISEMPTY( vals )) {
+			if ( !BER_BVISNULL( vals )) {
 				rc = bdb_index_values( op, tid, ap->a_desc,
 					vals, e->e_id, SLAP_INDEX_DELETE_OP );
 				if ( rc != LDAP_SUCCESS ) {

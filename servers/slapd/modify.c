@@ -589,6 +589,7 @@ int slap_mods_check(
 					ml->sml_values[nvals] = pval;
 				}
 			}
+			ml->sml_values[nvals].bv_len = 0;
 			ml->sml_numvals = nvals;
 
 			/*
