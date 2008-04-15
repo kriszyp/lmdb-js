@@ -802,7 +802,7 @@ meta_back_db_config(
 	{
 		if ( argc != 2 ) {
 			Debug( LDAP_DEBUG_ANY,
-	"%s: line %d: \"[pseudo]root-bind-defer {FALSE|true}\" takes 1 argument\n",
+	"%s: line %d: \"[pseudo]root-bind-defer {TRUE|false}\" takes 1 argument\n",
 				fname, lineno, 0 );
 			return( 1 );
 		}
@@ -818,7 +818,7 @@ meta_back_db_config(
 
 		default:
 			Debug( LDAP_DEBUG_ANY,
-	"%s: line %d: \"[pseudo]root-bind-defer {FALSE|true}\": invalid arg \"%s\".\n",
+	"%s: line %d: \"[pseudo]root-bind-defer {TRUE|false}\": invalid arg \"%s\".\n",
 				fname, lineno, argv[ 1 ] );
 			return 1;
 		}

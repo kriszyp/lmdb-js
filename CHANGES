@@ -25,6 +25,7 @@ OpenLDAP 2.4.9 Engineering
 	Fixed slapd-bdb entryinfo state if db_lock fails (ITS#5455)
 	Fixed slapd-config attribute publishing (ITS#5383)
 	Fixed slapd-ldap connection handler (ITS#5404)
+	Fixed slapd-meta connections on error (ITS#5440)
 	Fixed slapo-auditlog unnecessary syscall (ITS#5441)
 	Fixed slapo-refint dnSubtreeMatch (ITS#5427)
 	Fixed slapo-refint global referential integrity (ITS#5428)
