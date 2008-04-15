@@ -20,6 +20,7 @@ OpenLDAP 2.4.9 Engineering
 	Fixed slapd value list termination (ITS#5450)
 	Fixed slapd/slapo-accesslog rq mutex usage (ITS#5442)
 	Fixed slapd-bdb ID_NOCACHE handling (ITS#5439)
+	Fixed slapd-bdb entryinfo state if db_lock fails (ITS#5455)
 	Fixed slapd-ldap connection handler (ITS#5404)
 	Fixed slapo-auditlog unnecessary syscall (ITS#5441)
 	Fixed slapo-refint dnSubtreeMatch (ITS#5427)
