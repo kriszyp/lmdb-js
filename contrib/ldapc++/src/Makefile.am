@@ -1,4 +1,6 @@
-##
+# $OpenLDAP$
+
+###
 # Copyright 2000, OpenLDAP Foundation, All Rights Reserved.
 # COPYING RESTRICTIONS APPLY, see COPYRIGHT file
 ##
@@ -43,6 +45,7 @@ libldapcpp_la_SOURCES = LDAPAddRequest.cpp \
 			LDAPUrl.cpp \
 			LDAPUrlList.cpp \
 			LdifReader.cpp \
+			LdifWriter.cpp \
 			SaslInteraction.cpp \
 			SaslInteractionHandler.cpp \
 			StringList.cpp 
@@ -76,6 +79,7 @@ include_HEADERS = LDAPAsynConnection.h \
 			LDAPUrl.h \
 			LDAPUrlList.h \
 			LdifReader.h \
+			LdifWriter.h \
 			SaslInteraction.h \
 			SaslInteractionHandler.h \
 			StringList.h 

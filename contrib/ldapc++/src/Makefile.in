@@ -14,6 +14,9 @@
 
 @SET_MAKE@
 
+# $OpenLDAP$
+
+###
 # Copyright 2000, OpenLDAP Foundation, All Rights Reserved.
 # COPYING RESTRICTIONS APPLY, see COPYRIGHT file
 
@@ -69,8 +72,8 @@ am_libldapcpp_la_OBJECTS = LDAPAddRequest.lo LDAPAsynConnection.lo \
 	LDAPReferenceList.lo LDAPRequest.lo LDAPResult.lo \
 	LDAPSaslBindResult.lo LDAPSchema.lo LDAPSearchReference.lo \
 	LDAPSearchRequest.lo LDAPSearchResult.lo LDAPSearchResults.lo \
-	LDAPUrl.lo LDAPUrlList.lo LdifReader.lo SaslInteraction.lo \
-	SaslInteractionHandler.lo StringList.lo
+	LDAPUrl.lo LDAPUrlList.lo LdifReader.lo LdifWriter.lo \
+	SaslInteraction.lo SaslInteractionHandler.lo StringList.lo
 libldapcpp_la_OBJECTS = $(am_libldapcpp_la_OBJECTS)
 libldapcpp_la_LINK = $(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CXXLD) $(AM_CXXFLAGS) \
@@ -239,6 +242,7 @@ libldapcpp_la_SOURCES = LDAPAddRequest.cpp \
 			LDAPUrl.cpp \
 			LDAPUrlList.cpp \
 			LdifReader.cpp \
+			LdifWriter.cpp \
 			SaslInteraction.cpp \
 			SaslInteractionHandler.cpp \
 			StringList.cpp 
@@ -272,6 +276,7 @@ include_HEADERS = LDAPAsynConnection.h \
 			LDAPUrl.h \
 			LDAPUrlList.h \
 			LdifReader.h \
+			LdifWriter.h \
 			SaslInteraction.h \
 			SaslInteractionHandler.h \
 			StringList.h 
@@ -413,6 +418,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/LDAPUrl.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/LDAPUrlList.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/LdifReader.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/LdifWriter.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/SaslInteraction.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/SaslInteractionHandler.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/StringList.Plo@am__quote@
