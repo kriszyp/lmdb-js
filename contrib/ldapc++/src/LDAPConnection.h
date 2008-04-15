@@ -89,6 +89,10 @@ class LDAPConnection : private LDAPAsynConnection {
          */
         void bind(const std::string& dn="", const std::string& passwd="",
                 LDAPConstraints* cons=0);
+        void saslInteractiveBind(const std::string& mech,
+                int flags=0,
+                SaslInteractionHandler *sih=0,
+                const LDAPConstraints *cons=0);
         
         /**
          * Performs the UNBIND-operation on the destination server
