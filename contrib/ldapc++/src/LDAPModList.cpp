@@ -38,3 +38,11 @@ LDAPMod** LDAPModList::toLDAPModArray(){
     }
     return ret;
 }
+
+bool LDAPModList::empty() const {
+    return m_modList.empty();
+}
+
+unsigned int LDAPModList::size() const {
+    return m_modList.size();
+}
