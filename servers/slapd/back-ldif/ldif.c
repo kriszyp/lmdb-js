@@ -67,7 +67,7 @@ static ConfigTable ldifcfg[] = {
 		"( OLcfgDbAt:0.1 NAME 'olcDbDirectory' "
 			"DESC 'Directory for database content' "
 			"EQUALITY caseIgnoreMatch "
-			"SYNTAX OMsDirectoryString )", NULL, NULL },
+			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
 	{ NULL, NULL, 0, 0, 0, ARG_IGNORED,
 		NULL, NULL, NULL, NULL }
 };
@@ -722,15 +722,15 @@ ldif_back_referrals( Operation *op, SlapReply *rs )
 	if ( entry == NULL ) {
 		struct berval	odn = op->o_req_dn;
 		struct berval	ondn = op->o_req_ndn;
+		struct berval	pndn = ondn;
+		ber_len_t		min_dnlen = op->o_bd->be_nsuffix[0].bv_len;
 
-		struct berval	pndn = op->o_req_ndn;
+		if ( min_dnlen == 0 )
+			min_dnlen = 1;	   /* catch empty DN */
 
 		for ( ; entry == NULL; ) {
 			dnParent( &pndn, &pndn );
-			
-			if ( BER_BVISEMPTY( &pndn )
-				|| !dnIsSuffix( &pndn, &op->o_bd->be_nsuffix[0] ) )
-			{
+			if ( pndn.bv_len < min_dnlen ) {
 				break;
 			}
 
@@ -1349,6 +1349,7 @@ ldif_back_db_init( BackendDB *be, ConfigReply *cr )
 	be->be_private = li;
 	be->be_cf_ocs = ldifocs;
 	ldap_pvt_thread_rdwr_init(&li->li_rdwr);
+	SLAP_DBFLAGS( be ) |= SLAP_DBFLAG_ONE_SUFFIX;
 	return 0;
 }
 
