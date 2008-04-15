@@ -575,7 +575,7 @@ ldap_connect_to_host(LDAP *ld, Sockbuf *sb,
 
 		(void)memset((char *)&sin, '\0', sizeof sin);
 		sin.sin_family = AF_INET;
-		sin.sin_port = htons((short) port);
+		sin.sin_port = htons((unsigned short) port);
 
 		if( use_hp ) {
 			AC_MEMCPY( &sin.sin_addr, hp->h_addr_list[i],
