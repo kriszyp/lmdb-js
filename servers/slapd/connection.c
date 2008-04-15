@@ -1621,6 +1621,9 @@ connection_resched( Connection *conn )
 {
 	Operation *op;
 
+	if( conn->c_writewaiter )
+		return 0;
+
 	if( conn->c_conn_state == SLAP_C_CLOSING ) {
 		Debug( LDAP_DEBUG_TRACE, "connection_resched: "
 			"attempting closing conn=%lu sd=%d\n",
@@ -1629,7 +1632,7 @@ connection_resched( Connection *conn )
 		return 0;
 	}
 
-	if( conn->c_conn_state != SLAP_C_ACTIVE || conn->c_writewaiter ) {
+	if( conn->c_conn_state != SLAP_C_ACTIVE ) {
 		/* other states need different handling */
 		return 0;
 	}
