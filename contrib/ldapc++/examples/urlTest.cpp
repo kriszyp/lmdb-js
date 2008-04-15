@@ -1,3 +1,9 @@
+// $OpenLDAP$
+/*
+ * Copyright 2008, OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+
 #include <LDAPUrl.h>
 #include <LDAPException.h>
 #include <cstdlib>

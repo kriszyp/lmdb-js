@@ -1,3 +1,9 @@
+// $OpenLDAP$
+/*
+ * Copyright 2008, OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+
 #include <iostream>
 #include <sstream>
 #include "LDAPConnection.h"
@@ -9,7 +15,6 @@
 #include "LDAPEntry.h"
 #include "LDAPException.h"
 #include "LDAPModification.h"
-#include "LDAPReferralException.h"
 #include "LDAPSchema.h"
 
 #include "debug.h"

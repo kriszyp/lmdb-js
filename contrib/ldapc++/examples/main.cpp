@@ -1,3 +1,4 @@
+// $OpenLDAP$
 /*
  * Copyright 2000, OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
@@ -14,7 +15,6 @@
 #include "LDAPEntry.h"
 #include "LDAPException.h"
 #include "LDAPModification.h"
-#include "LDAPReferralException.h"
 
 #include "debug.h"
 
@@ -69,7 +69,7 @@ int main(){
         
         lc->unbind();
         delete lc;
-   }catch (LDAPException e){
+   }catch (LDAPException &e){
         std::cout << "-------------- caught Exception ---------"<< std::endl;
         std::cout << e << std::endl;
     }
