@@ -248,7 +248,7 @@ LDAP_SLAPD_F (void) at_unparse LDAP_P((
 	BerVarray *bva, AttributeType *start, AttributeType *end, int system ));
 
 LDAP_SLAPD_F (int) register_at LDAP_P((
-	char *at,
+	const char *at,
 	AttributeDescription **ad,
 	int dupok ));
 
@@ -1368,7 +1368,7 @@ LDAP_SLAPD_F (void) oc_unparse LDAP_P((
 	BerVarray *bva, ObjectClass *start, ObjectClass *end, int system ));
 
 LDAP_SLAPD_F (int) register_oc LDAP_P((
-	char *desc,
+	const char *desc,
 	ObjectClass **oc,
 	int dupok ));
 

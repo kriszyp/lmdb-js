@@ -896,7 +896,7 @@ oc_schema_info( Entry *e )
 }
 
 int
-register_oc( char *def, ObjectClass **soc, int dupok )
+register_oc( const char *def, ObjectClass **soc, int dupok )
 {
 	LDAPObjectClass *oc;
 	int code;
