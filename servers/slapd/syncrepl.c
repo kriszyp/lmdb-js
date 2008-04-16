@@ -722,10 +722,17 @@ do_syncrep2(
 					if (( rc = syncrepl_message_to_op( si, op, msg )) == LDAP_SUCCESS &&
 						!BER_BVISNULL( &syncCookie.ctxcsn ) ) {
 						syncrepl_updateCookie( si, op, psub, &syncCookie );
-					} else if ( rc == LDAP_NO_SUCH_OBJECT ) {
-						rc = LDAP_SYNC_REFRESH_REQUIRED;
-						si->si_logstate = SYNCLOG_FALLBACK;
-						ldap_abandon_ext( si->si_ld, si->si_msgid, NULL, NULL );
+					} else switch ( rc ) {
+						case LDAP_ALREADY_EXISTS:
+						case LDAP_NO_SUCH_OBJECT:
+						case LDAP_NO_SUCH_ATTRIBUTE:
+						case LDAP_TYPE_OR_VALUE_EXISTS:
+							rc = LDAP_SYNC_REFRESH_REQUIRED;
+							si->si_logstate = SYNCLOG_FALLBACK;
+							ldap_abandon_ext( si->si_ld, si->si_msgid, NULL, NULL );
+							break;
+						default:
+							break;
 					}
 				} else if (( rc = syncrepl_message_to_entry( si, op, msg,
 					&modlist, &entry, syncstate )) == LDAP_SUCCESS ) {
