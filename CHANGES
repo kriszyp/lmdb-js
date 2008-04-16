@@ -24,6 +24,7 @@ OpenLDAP 2.4.9 Engineering
 	Fixed slapd/slapo-accesslog rq mutex usage (ITS#5442)
 	Fixed slapd-bdb ID_NOCACHE handling (ITS#5439)
 	Fixed slapd-bdb entryinfo state if db_lock fails (ITS#5455)
+	Fixed slapd-bdb referral rewrite (ITS#5339)
 	Fixed slapd-config attribute publishing (ITS#5383)
 	Fixed slapd-ldap connection handler (ITS#5404)
 	Fixed slapd-meta connections on error (ITS#5440)
