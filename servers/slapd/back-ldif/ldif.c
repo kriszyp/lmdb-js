@@ -50,14 +50,88 @@ struct ldif_info {
 #define mkdir(a,b)	mkdir(a)
 #endif
 
-#define LDIF	".ldif"
 
+#define LDIF	".ldif"
+#define LDIF_FILETYPE_SEP	'.'			/* LDIF[0] */
+
+/*
+ * Unsafe/translated characters in the filesystem.
+ *
+ * LDIF_UNSAFE_CHAR(c) returns true if the character c is not to be used
+ * in relative filenames, except it should accept '\\' even if unsafe and
+ * need not reject '{' and '}'.  The value should be a constant expression.
+ *
+ * If '\\' is unsafe, #define LDIF_ESCAPE_CHAR as a safe character.
+ *
+ * If '{' and '}' are unsafe, #define IX_FSL/IX_FSR as safe characters.
+ * (Not digits, '-' or '+'.  IX_FSL == IX_FSR is allowed.)
+ *
+ * Characters are escaped as LDIF_ESCAPE_CHAR followed by two hex digits,
+ * except '\\' is replaced with LDIF_ESCAPE_CHAR and {} with IX_FS[LR].
+ * Also some LDIF special chars are hex-escaped.
+ *
+ * Thus an LDIF filename is a valid normalized RDN (or suffix DN)
+ * followed by ".ldif", except with '\\' replaced with LDIF_ESCAPE_CHAR.
+ */
+
+#ifndef _WIN32
+
+/*
+ * Unix/MacOSX version.  ':' vs '/' can cause confusion on MacOSX so we
+ * escape both.  We escape them on Unix so both OS variants get the same
+ * filenames.
+ */
+#define LDIF_ESCAPE_CHAR	'\\'
+#define LDIF_UNSAFE_CHAR(c)	((c) == '/' || (c) == ':')
+
+#else /* _WIN32 */
+
+/* Windows version - Microsoft's list of unsafe characters, except '\\' */
+#define LDIF_ESCAPE_CHAR	'^'
+#define LDIF_UNSAFE_CHAR(c)	\
+	((c) == '/' || (c) == ':' || \
+	 (c) == '<' || (c) == '>' || (c) == '"' || \
+	 (c) == '|' || (c) == '?' || (c) == '*')
+
+#endif /* !_WIN32 */
+
+/*
+ * Left and Right "{num}" prefix to ordered RDNs ("olcDatabase={1}bdb").
+ * IX_DN* are for LDAP RDNs, IX_FS* for their .ldif filenames.
+ */
 #define IX_DNL	'{'
 #define	IX_DNR	'}'
 #ifndef IX_FSL
 #define	IX_FSL	IX_DNL
 #define IX_FSR	IX_DNR
 #endif
+
+/*
+ * Test for unsafe chars, as well as chars handled specially by back-ldif:
+ * - If the escape char is not '\\', it must itself be escaped.  Otherwise
+ *   '\\' and the escape char would map to the same character.
+ * - Escape the '.' in ".ldif", so the directory for an RDN that actually
+ *   ends with ".ldif" can not conflict with a file of the same name.  And
+ *   since some OSes/programs choke on multiple '.'s, escape all of them.
+ * - If '{' and '}' are translated to some other characters, those
+ *   characters must in turn be escaped when they occur in an RDN.
+ */
+#ifndef LDIF_NEED_ESCAPE
+#define	LDIF_NEED_ESCAPE(c) \
+	((LDIF_UNSAFE_CHAR(c)) || \
+	 LDIF_MAYBE_UNSAFE(c, LDIF_ESCAPE_CHAR) || \
+	 LDIF_MAYBE_UNSAFE(c, LDIF_FILETYPE_SEP) || \
+	 LDIF_MAYBE_UNSAFE(c, IX_FSL) || \
+	 (IX_FSR != IX_FSL && LDIF_MAYBE_UNSAFE(c, IX_FSR)))
+#endif
+/*
+ * Helper macro for LDIF_NEED_ESCAPE(): Treat character x as unsafe if
+ * back-ldif does not already treat is specially.
+ */
+#define LDIF_MAYBE_UNSAFE(c, x) \
+	(!(LDIF_UNSAFE_CHAR(x) || (x) == '\\' || (x) == IX_DNL || (x) == IX_DNR) \
+	 && (c) == (x))
+
 
 #define ENTRY_BUFF_INCREMENT 500
 
@@ -84,94 +158,61 @@ static ConfigOCs ldifocs[] = {
 
 /* Set *res = LDIF filename path for the normalized DN */
 static void
-dn2path( BackendDB *be, struct berval *orig_dn, struct berval *res )
+dn2path( BackendDB *be, struct berval *dn, struct berval *res )
 {
 	struct ldif_info *li = (struct ldif_info *) be->be_private;
 	struct berval *suffixdn = &be->be_nsuffix[0];
-	char *ptr, *sep, *end;
-	int nsep = 0;
-	struct berval dn;
+	const char *start, *end, *next, *p;
+	char ch, *ptr;
+	ber_len_t len;
+	static const char hex[] = "0123456789ABCDEF";
 
-	assert( orig_dn != NULL );
-	assert( !BER_BVISNULL( orig_dn ) );
+	assert( dn != NULL );
+	assert( !BER_BVISNULL( dn ) );
 	assert( suffixdn != NULL );
 	assert( !BER_BVISNULL( suffixdn ) );
-	assert( dnIsSuffix( orig_dn, suffixdn ) );
+	assert( dnIsSuffix( dn, suffixdn ) );
 
-	dn = *orig_dn;
+	start = dn->bv_val;
+	end = start + dn->bv_len;
 
-	/* escape dirsep's
-	 * use "\" + hexpair, so the escaped DN remains formally valid */
-	for ( ptr = dn.bv_val, end = &dn.bv_val[dn.bv_len]; ptr < end; ptr++ ) {
-		if ( ptr[0] == LDAP_DIRSEP[0] ) {
-			nsep++;
-		}
+	/* Room for dir, dirsep, dn, LDIF, "\hexpair"-escaping of unsafe chars */
+	len = li->li_base_path.bv_len + dn->bv_len + (1 + STRLENOF( LDIF ));
+	for ( p = start; p < end; ) {
+		ch = *p++;
+		if ( LDIF_NEED_ESCAPE( ch ) )
+			len += 2;
 	}
+	res->bv_val = ch_malloc( len + 1 );
 
-	if ( nsep ) {
-		char	*p;
-
-		dn.bv_len += 2*nsep;
-		dn.bv_val = ch_malloc( dn.bv_len + 1 );
-
-		for ( ptr = orig_dn->bv_val, end = &orig_dn->bv_val[orig_dn->bv_len], p = dn.bv_val;
-			ptr < end; ptr++, p++)
-		{
-			static const char hex[] = "0123456789ABCDEF";
-			if ( ptr[0] == LDAP_DIRSEP[0] ) {
-				*p++ = '\\';
-				*p++ = hex[(LDAP_DIRSEP[0] & 0xF0U) >> 4];
-				*p = hex[LDAP_DIRSEP[0] & 0x0FU];
-			} else {
-				p[0] = ptr[0];
+	ptr = lutil_strcopy( res->bv_val, li->li_base_path.bv_val );
+	for ( next = end - suffixdn->bv_len; end > start; end = next ) {
+		/* Set p = start of DN component, next = &',' or start of DN */
+		while ( (p = next) > start ) {
+			--next;
+			if ( DN_SEPARATOR( *next ) )
+				break;
+		}
+		/* Append <dirsep> <p..end-1: RDN or database-suffix> */
+		for ( *ptr++ = LDAP_DIRSEP[0]; p < end; *ptr++ = ch ) {
+			ch = *p++;
+			if ( LDIF_ESCAPE_CHAR != '\\' && ch == '\\' ) {
+				ch = LDIF_ESCAPE_CHAR;
+			} else if ( IX_FSL != IX_DNL && ch == IX_DNL ) {
+				ch = IX_FSL;
+			} else if ( IX_FSR != IX_DNR && ch == IX_DNR ) {
+				ch = IX_FSR;
+			} else if ( LDIF_NEED_ESCAPE( ch ) ) {
+				*ptr++ = LDIF_ESCAPE_CHAR;
+				*ptr++ = hex[(ch & 0xFFU) >> 4];
+				ch = hex[ch & 0x0FU];
 			}
 		}
-		p[0] = '\0';
 	}
+	ptr = lutil_strcopy( ptr, LDIF );
+	res->bv_len = ptr - res->bv_val;
 
-	res->bv_len = dn.bv_len + li->li_base_path.bv_len + 1 + STRLENOF( LDIF );
-	res->bv_val = ch_malloc( res->bv_len + 1 );
-	ptr = lutil_strcopy( res->bv_val, li->li_base_path.bv_val );
-	end = dn.bv_val + dn.bv_len;
-	if ( !BER_BVISEMPTY( suffixdn ) ) {
-		*ptr++ = LDAP_DIRSEP[0];
-		ptr = lutil_strcopy( ptr, suffixdn->bv_val );
-		end -= suffixdn->bv_len + 1;
-
-	} else if ( BER_BVISEMPTY( &dn ) ) {
-		*ptr++ = LDAP_DIRSEP[0];
-	}
-	while ( end > dn.bv_val ) {
-		for (sep = end-1; sep >= dn.bv_val && !DN_SEPARATOR( *sep ); sep--);
-		*ptr++ = LDAP_DIRSEP[0];
-		ptr = lutil_strncopy( ptr, sep+1, end-sep-1 );
-		end = sep;
-	}
-	strcpy(ptr, LDIF);
-#if IX_FSL != IX_DNL
-	{
-		struct berval bv;
-		bv = *res;
-		while ( ptr = ber_bvchr( &bv, IX_DNL ) ) {
-			*ptr++ = IX_FSL;
-			assert( ( ptr - bv.bv_val ) <= bv.bv_len );
-			bv.bv_len -= ( ptr - bv.bv_val );
-			bv.bv_val = ptr;
-			ptr = ber_bvchr( &bv, IX_DNR );
-			if ( !ptr )
-				break;
-			*ptr++ = IX_FSR;
-			assert( ( ptr - bv.bv_val ) <= bv.bv_len );
-			bv.bv_len -= ( ptr - bv.bv_val );
-			bv.bv_val = ptr;
-		}
-	}
-#endif
-	if ( dn.bv_val != orig_dn->bv_val ) {
-		ch_free( dn.bv_val );
-	}
-
-	assert( strlen( res->bv_val ) == res->bv_len );
+	assert( res->bv_len <= len );
 }
 
 static char * slurp_file(int fd) {
@@ -933,7 +974,7 @@ static int ldif_back_add(Operation *op, SlapReply *rs) {
 
 		statres = stat(base.bv_val, &stats); /* check if container exists */
 		if(statres == -1 && errno == ENOENT) { /* container missing */
-			base.bv_val[base.bv_len] = '.';
+			base.bv_val[base.bv_len] = LDIF_FILETYPE_SEP;
 			statres = stat(base.bv_val, &stats); /* check for leaf node */
 			base.bv_val[base.bv_len] = '\0';
 			if(statres == -1 && errno == ENOENT) {
@@ -1035,7 +1076,7 @@ static int ldif_back_delete(Operation *op, SlapReply *rs) {
 	dn2path( op->o_bd, &op->o_req_ndn, &path );
 	path.bv_val[path.bv_len - STRLENOF(LDIF)] = '\0';
 	res = rmdir(path.bv_val);
-	path.bv_val[path.bv_len - STRLENOF(LDIF)] = '.';
+	path.bv_val[path.bv_len - STRLENOF(LDIF)] = LDIF_FILETYPE_SEP;
 	rs->sr_err = LDAP_SUCCESS;
 	if ( res ) {
 		switch ( errno ) {
@@ -1299,7 +1340,7 @@ static ID ldif_tool_entry_put(BackendDB * be, Entry * e, struct berval *text) {
 
 		statres = stat(base.bv_val, &stats); /* check if container exists */
 		if(statres == -1 && errno == ENOENT) { /* container missing */
-			base.bv_val[base.bv_len] = '.';
+			base.bv_val[base.bv_len] = LDIF_FILETYPE_SEP;
 			statres = stat(base.bv_val, &stats); /* check for leaf node */
 			base.bv_val[base.bv_len] = '\0';
 			if(statres == -1 && errno == ENOENT) {
