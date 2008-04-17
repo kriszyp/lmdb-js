@@ -356,7 +356,7 @@ got_soc:
 					}
 				}
 
-				if( xc == NULL ) {
+				if( xc != NULL ) {
 					snprintf( textbuf, textlen, "instanstantiation of "
 						"abstract objectClass '%s' not allowed",
 						aoc->a_vals[i].bv_val );
