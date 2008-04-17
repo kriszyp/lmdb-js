@@ -2117,27 +2117,6 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 	srs = op->o_controls[slap_cids.sc_LDAPsync];
 	op->o_managedsait = SLAP_CONTROL_NONCRITICAL;
 
-	/* snapshot the ctxcsn */
-	ldap_pvt_thread_rdwr_rlock( &si->si_csn_rwlock );
-	numcsns = si->si_numcsns;
-	if ( numcsns ) {
-		ber_bvarray_dup_x( &ctxcsn, si->si_ctxcsn, op->o_tmpmemctx );
-		sids = op->o_tmpalloc( numcsns * sizeof(int), op->o_tmpmemctx );
-		for ( i=0; i<numcsns; i++ )
-			sids[i] = si->si_sids[i];
-	} else {
-		ctxcsn = NULL;
-		sids = NULL;
-	}
-	ldap_pvt_thread_rdwr_runlock( &si->si_csn_rwlock );
-
-	/* If we have no ctxcsn yet, don't return any data at all. */
-	if ( !numcsns ) {
-			rs->sr_err = LDAP_SUCCESS;
-			send_ldap_result( op, rs );
-			return rs->sr_err;
-	}
-
 	/* If this is a persistent search, set it up right away */
 	if ( op->o_sync_mode & SLAP_SYNC_PERSIST ) {
 		syncops so = {0};
@@ -2177,10 +2156,30 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 		ldap_pvt_thread_mutex_unlock( &si->si_ops_mutex );
 	}
 
+	/* snapshot the ctxcsn */
+	ldap_pvt_thread_rdwr_rlock( &si->si_csn_rwlock );
+	numcsns = si->si_numcsns;
+	if ( numcsns ) {
+		ber_bvarray_dup_x( &ctxcsn, si->si_ctxcsn, op->o_tmpmemctx );
+		sids = op->o_tmpalloc( numcsns * sizeof(int), op->o_tmpmemctx );
+		for ( i=0; i<numcsns; i++ )
+			sids[i] = si->si_sids[i];
+	} else {
+		ctxcsn = NULL;
+		sids = NULL;
+	}
+	ldap_pvt_thread_rdwr_runlock( &si->si_csn_rwlock );
+	
 	/* If we have a cookie, handle the PRESENT lookups */
 	if ( srs->sr_state.ctxcsn ) {
 		sessionlog *sl;
 		int i, j;
+
+		/* If we don't have any CSN of our own yet, pretend nothing
+		 * has changed.
+		 */
+		if ( !numcsns )
+			goto no_change;
 
 		if ( !si->si_nopres )
 			do_present = SS_PRESENT;
@@ -2229,7 +2228,7 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 			}
 			if ( !changed ) {
 				do_present = 0;
-				if ( !(op->o_sync_mode & SLAP_SYNC_PERSIST) ) {
+no_change:		if ( !(op->o_sync_mode & SLAP_SYNC_PERSIST) ) {
 					LDAPControl	*ctrls[2];
 
 					ctrls[0] = NULL;
