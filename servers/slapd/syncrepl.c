@@ -946,7 +946,8 @@ do_syncrep2(
 				 *	2) on err policy : stop service, stop sync, retry
 				 */
 				if ( refreshDeletes == 0 && match < 0 &&
-					err == LDAP_SUCCESS )
+					err == LDAP_SUCCESS &&
+					syncCookie_req.numcsns == syncCookie.numcsns )
 				{
 					syncrepl_del_nonpresent( op, si, NULL,
 						&syncCookie.ctxcsn[m] );
@@ -1095,7 +1096,8 @@ do_syncrep2(
 				}
 
 				if ( match < 0 ) {
-					if ( si->si_refreshPresent == 1 ) {
+					if ( si->si_refreshPresent == 1 &&
+						syncCookie_req.numcsns == syncCookie.numcsns ) {
 						syncrepl_del_nonpresent( op, si, NULL,
 							&syncCookie.ctxcsn[m] );
 					}
