@@ -328,11 +328,11 @@ entry_schema_check(
 				ObjectClass *xc = NULL;
 				for( j=0; aoc->a_vals[j].bv_val; j++ ) {
 					if( i != j ) {
-						xc = oc_bvfind( &aoc->a_vals[i] );
+						xc = oc_bvfind( &aoc->a_vals[j] );
 						if( xc == NULL ) {
 							snprintf( textbuf, textlen, 
 								"unrecognized objectClass '%s'",
-								aoc->a_vals[i].bv_val );
+								aoc->a_vals[j].bv_val );
 
 							Debug( LDAP_DEBUG_ANY,
 								"entry_check_schema(%s): %s\n",
@@ -356,8 +356,8 @@ entry_schema_check(
 					}
 				}
 
-				if( xc == NULL ) {
-					snprintf( textbuf, textlen, "instanstantiation of "
+				if( xc != NULL ) {
+					snprintf( textbuf, textlen, "instantiation of "
 						"abstract objectClass '%s' not allowed",
 						aoc->a_vals[i].bv_val );
 
