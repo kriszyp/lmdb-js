@@ -5,6 +5,7 @@ OpenLDAP 2.4.9 Engineering
 	Fixed libldap error message for missing close paren (ITS#5458)
 	Fixed libldap_r tpool pause checks (ITS#5364, #5407)
 	Fixed slapcat error checking (ITS#5387)
+	Fixed slapd abstract objectClass inheritance check (ITS#5474)
 	Fixed slapd add operations requiring naming attrs (ITS#5412)
 	Fixed slapd frontendDB backend selection (ITS#5419)
 	Fixed slapd delta-syncrepl resync (ITS#5378)
