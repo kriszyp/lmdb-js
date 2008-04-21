@@ -764,12 +764,111 @@ H2: Password Policies
 
 H3: Overview
 
-This overlay provides a variety of password control mechanisms,
-e.g. password aging, password reuse and duplication control, mandatory
-password resets, etc.
+This overlay follows the specifications contained in the draft RFC titled 
+draft-behera-ldap-password-policy-09. While the draft itself is expired, it has 
+been implemented in several directory servers, including slapd. Nonetheless, 
+it is important to note that it is a draft, meaning that it is subject to change 
+and is a work-in-progress.
+
+The key abilities of the password policy overlay are as follows:
+
+* Enforce a minimum length for new passwords
+* Make sure passwords are not changed too frequently
+* Cause passwords to expire, provide warnings before they need to be changed, and allow a fixed number of 'grace' logins to allow them to be changed after they have expired
+* Maintain a history of passwords to prevent password re-use
+* Prevent password guessing by locking a password for a specified period of time after repeated authentication failures
+* Force a password to be changed at the next authentication
+* Set an administrative lock on an account
+* Support multiple password policies on a default or a per-object basis.
+* Perform arbitrary quality checks using an external loadable module. This is a non-standard extension of the draft RFC.
 
 
 H3: Password Policy Configuration
+
+Instantiate the module in the database where it will be used, after adding the 
+new ppolicy schema and loading the ppolicy module. The following example shows 
+the ppolicy module being added to the database that handles the naming 
+context "dc=example,dc=com". In this example we are also specifying the DN of 
+a policy object to use if none other is specified in a user's object.
+
+>       database bdb
+>       suffix "dc=example,dc=com"
+>       [...additional database configuration directives go here...]
+>       
+>       overlay ppolicy
+>       ppolicy_default "cn=default,ou=policies,dc=example,dc=com"
+
+
+Now we need a container for the policy objects. In our example the password 
+policy objects are going to be placed in a section of the tree called 
+"ou=policies,dc=example,dc=com":
+
+>       dn: ou=policies,dc=example,dc=com
+>       objectClass: organizationalUnit
+>       objectClass: top
+>       ou: policies
+
+
+The default policy object that we are creating defines the following policies:
+
+* The user is allowed to change his own password. Note that the directory ACLs for this attribute can also affect this ability (pwdAllowUserChange: TRUE).
+* The name of the password attribute is "userPassword" (pwdAttribute: userPassword). Note that this is the only value that is accepted by OpenLDAP for this attribute.
+* The server will check the syntax of the password. If the server is unable to check the syntax (i.e., it was hashed or otherwise encoded by the client) it will return an error refusing the password (pwdCheckQuality: 2).
+* When a client includes the Password Policy Request control with a bind request, the server will respond with a password expiration warning if it is going to expire in ten minutes or less (pwdExpireWarning: 600). The warnings themselves are returned in a Password Policy Response control.
+* When the password for a DN has expired, the server will allow five additional "grace" logins (pwdGraceAuthNLimit: 5).
+* The server will maintain a history of the last five passwords that were used for a DN (pwdInHistory: 5).
+* The server will lock the account after the maximum number of failed bind attempts has been exceeded (pwdLockout: TRUE).
+* When the server has locked an account, the server will keep it locked until an administrator unlocks it (pwdLockoutDuration: 0)
+* The server will reset its failed bind count after a period of 30 seconds.
+* Passwords will not expire (pwdMaxAge: 0).
+* Passwords can be changed as often as desired (pwdMinAge: 0).
+* Passwords must be at least 5 characters in length (pwdMinLength: 5).
+* The password does not need to be changed at the first bind or when the administrator has reset the password (pwdMustChange: FALSE)
+* The current password does not need to be included with password change requests (pwdSafeModify: FALSE)
+* The server will only allow five failed binds in a row for a particular DN (pwdMaxFailure: 5).
+
+
+The actual policy would be:
+
+>       dn: cn=default,ou=policies,dc=example,dc=com
+>       cn: default
+>       objectClass: pwdPolicy
+>       objectClass: person
+>       objectClass: top
+>       pwdAllowUserChange: TRUE
+>       pwdAttribute: userPassword
+>       pwdCheckQuality: 2
+>       pwdExpireWarning: 600
+>       pwdFailureCountInterval: 30
+>       pwdGraceAuthNLimit: 5
+>       pwdInHistory: 5
+>       pwdLockout: TRUE
+>       pwdLockoutDuration: 0
+>       pwdMaxAge: 0
+>       pwdMaxFailure: 5
+>       pwdMinAge: 0
+>       pwdMinLength: 5
+>       pwdMustChange: FALSE
+>       pwdSafeModify: FALSE
+>       sn: dummy value
+
+You can create additional policy objects as needed. 
+
+
+There are two ways password policy can be applied to individual objects:
+
+1. Default password policy - If, as in the example above, the password policy 
+module was configured with the DN of a default policy object and if that object 
+exists, then the policy defined in that object is applied.
+
+2. The pwdPolicySubentry in a user's object - If a user's object contains a 
+value for the pwdPolicySubEntry attribute, and if that object exists, then 
+the policy defined by that object is applied. Remember that we need to add 
+object class pwdPolicy to the user's object as well.
+
+Please see {{slapo-ppolicy(5)}} for complete explanations of features and discussion of
+ "Password Management Issues" at {{URL:http://www.connexitor.com/forums/viewtopic.php?f=6&t=25}}
+
 
 
 H2: Referential Integrity
@@ -924,7 +1023,7 @@ H3: Overview
 
 Overlays can be stacked, which means that more than one overlay
 can be instantiated for each database, or for the {{EX:frontend}}.
-As a consequence, each overlay's function is called, if defined,
+As a consequence, each overlays function is called, if defined,
 when overlay execution is invoked.
 Multiple overlays are executed in reverse order (as a stack)
 with respect to their definition in slapd.conf (5), or with respect
