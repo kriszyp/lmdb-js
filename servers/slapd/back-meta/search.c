@@ -2041,6 +2041,7 @@ next_attr:;
 					mod.sm_op = LDAP_MOD_ADD;
 					mod.sm_desc = (*ap)->a_desc;
 					mod.sm_type = mod.sm_desc->ad_cname;
+					mod.sm_numvals = (*ap)->a_numvals;
 					mod.sm_values = (*tap)->a_vals;
 					if ( (*tap)->a_nvals != (*tap)->a_vals ) {
 						mod.sm_nvalues = (*tap)->a_nvals;
