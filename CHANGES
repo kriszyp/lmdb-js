@@ -30,6 +30,7 @@ OpenLDAP 2.4.9 Engineering
 	Fixed slapd-bdb referral rewrite (ITS#5339)
 	Fixed slapd-config attribute publishing (ITS#5383)
 	Fixed slapd-ldap connection handler (ITS#5404)
+	Fixed slapd-ldif file name handling (ITS#5408)
 	Fixed slapd-meta connections on error (ITS#5440)
 	Fixed slapd-meta crash on search (ITS#5481)
 	Fixed slapo-auditlog unnecessary syscall (ITS#5441)
