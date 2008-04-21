@@ -10,13 +10,10 @@ resilient enterprise deployment.
 {{PRD:OpenLDAP}} has various configuration options for creating a replicated 
 directory. The following sections will discuss these.
 
-H2: Replication Strategies
+H2: Push Based
 
 
-H3: Push Based
-
-
-H5: Replacing Slurpd
+H3: Replacing Slurpd
 
 {{Slurpd}} replication has been deprecated in favor of Syncrepl replication and 
 has been completely removed from OpenLDAP 2.4.
@@ -131,71 +128,9 @@ As you can see, you can let your imagination go wild using Syncrepl and
 {{slapd-ldap(8)}} tailoring your replication to fit your specific network 
 topology.
 
-H3: Pull Based
+H2: Pull Based
 
-
-H4: syncrepl replication
-
-
-H4: delta-syncrepl replication
-
-
-H2: Replication Types
-
-
-H3: syncrepl replication
-
-
-H3: delta-syncrepl replication
-
-
-H3: N-Way Multi-Master replication
-
-Multi-Master replication is a replication technique using Syncrepl to replicate 
-data to multiple Master Directory servers. 
-
-* Advantages of Multi-Master replication:
-
-- If any master fails, other masters will continue to accept updates
-- Avoids a single point of failure
-- Masters can be located in several physical sites i.e. distributed across the 
-network/globe.
-- Good for Automatic failover/High Availability
-
-* Disadvantages of Multi-Master replication:
-
-- It has {{B:NOTHING}} to do with load balancing
-- {{URL:http://www.openldap.org/faq/data/cache/1240.html}}
-- If connectivity with a master is lost because of a network partition, then 
-"automatic failover" can just compound the problem
-- Typically, a particular machine cannot distinguish between losing contact
- with a peer because that peer crashed, or because the network link has failed
-- If a network is partitioned and multiple clients start writing to each of the 
-"masters" then reconciliation will be a pain; it may be best to simply deny 
-writes to the clients that are partitioned from the single master
-- Masters {{B:must}} propagate writes to {{B:all}} the other servers, which 
-means the network traffic and write load is constant and spreads across all 
-of the servers
-
-
-This is discussed in full in the {{SECT:N-Way Multi-Master}} section below
-
-H3: MirrorMode replication
-
-MirrorMode is a hybrid configuration that provides all of the consistency
-guarantees of single-master replication, while also providing the high
-availability of multi-master. In MirrorMode two masters are set up to
-replicate from each other (as a multi-master configuration) but an
-external frontend is employed to direct all writes to only one of
-the two servers. The second master will only be used for writes if
-the first master crashes, at which point the frontend will switch to
-directing all writes to the second master. When a crashed master is
-repaired and restarted it will automatically catch up to any changes
-on the running master and resync.
-
-This is discussed in full in the {{SECT:MirrorMode}} section below
-
-H2: LDAP Sync Replication
+H3: LDAP Sync Replication
 
 The {{TERM:LDAP Sync}} Replication engine, {{TERM:syncrepl}} for
 short, is a consumer-side replication engine that enables the
@@ -253,7 +188,7 @@ also subject to the access privileges of the bind identity of the
 syncrepl replication connection.
 
 
-H3: The LDAP Content Synchronization Protocol
+H4: The LDAP Content Synchronization Protocol
 
 The LDAP Sync protocol allows a client to maintain a synchronized
 copy of a DIT fragment. The LDAP Sync operation is defined as a set
@@ -344,7 +279,7 @@ reliable identifier.  The {{EX:entryUUID}} is attached to each
 synchronization control.
 
 
-H3: Syncrepl Details
+H4: Syncrepl Details
 
 The syncrepl engine utilizes both the {{refreshOnly}} and the
 {{refreshAndPersist}} operations of the LDAP Sync protocol.  If a
@@ -450,8 +385,130 @@ on the provider. Logically the entry must be deleted on the consumer
 but in {{refreshOnly}} mode the provider cannot detect and propagate
 this change without the use of the session log.
 
+For configuration, please see the {{SECT:Syncrepl}} section.
 
-H3: Configuring Syncrepl
+
+H3: Delta-syncrepl replication
+
+* Disadvantages of Syncrepl replication:
+
+OpenLDAP's syncrepl replication is an object-based replication mechanism. 
+When any attribute value in a replicated object is changed on the provider, 
+each consumer fetches and processes the complete changed object {B:both changed and unchanged attribute values}
+ during replication. This works well, but has drawbacks in some situations. 
+
+For example, suppose you have a database consisting of 100,000 objects of 1 KB 
+each. Further, suppose you routinely run a batch job to change the value of 
+a single two-byte attribute value that appears in each of the 100,000 objects 
+on the master. Not counting LDAP and TCP/IP protocol overhead, each time you 
+run this job each consumer will transfer and process {B:1 GB} of data to process 
+{B:200KB of changes! }
+
+99.98% of the data that is transmitted and processed in a case like this will 
+be redundant, since it represents values that did not change. This is a waste 
+of valuable transmission and processing bandwidth and can cause an unacceptable 
+replication backlog to develop. While this situation is extreme, it serves to 
+demonstrate a very real problem that is encountered in some LDAP deployments.
+
+
+* Where Delta-syncrepl comes in:
+
+Delta-syncrepl, a changelog-based variant of syncrepl, is designed to address 
+situations like the one described above. Delta-syncrepl works by maintaining a 
+changelog of a selectable depth on the provider. The replication consumer on 
+each consumer checks the changelog for the changes it needs and, as long as 
+the changelog contains the needed changes, the delta-syncrepl consumer fetches 
+them from the changelog and applies them to its database. If, however, a replica 
+is too far out of sync (or completely empty), conventional syncrepl is used to 
+bring it up to date and replication then switches to the delta-syncrepl mode.
+
+For configuration, please see the {{SECT:Delta-syncrepl}} section.
+
+
+H2: Mixture of both Pull and Push based
+
+H3: N-Way Multi-Master replication
+
+Multi-Master replication is a replication technique using Syncrepl to replicate 
+data to multiple Master Directory servers. 
+
+* Advantages of Multi-Master replication:
+
+- If any master fails, other masters will continue to accept updates
+- Avoids a single point of failure
+- Masters can be located in several physical sites i.e. distributed across the 
+network/globe.
+- Good for Automatic failover/High Availability
+
+* Disadvantages of Multi-Master replication:
+
+- It has {{B:NOTHING}} to do with load balancing
+- {{URL:http://www.openldap.org/faq/data/cache/1240.html}}
+- If connectivity with a master is lost because of a network partition, then 
+"automatic failover" can just compound the problem
+- Typically, a particular machine cannot distinguish between losing contact
+ with a peer because that peer crashed, or because the network link has failed
+- If a network is partitioned and multiple clients start writing to each of the 
+"masters" then reconciliation will be a pain; it may be best to simply deny 
+writes to the clients that are partitioned from the single master
+- Masters {{B:must}} propagate writes to {{B:all}} the other servers, which 
+means the network traffic and write load is constant and spreads across all 
+of the servers
+
+
+For configuration, please see the {{SECT:N-Way Multi-Master}} section below
+
+H3: MirrorMode replication
+
+MirrorMode is a hybrid configuration that provides all of the consistency
+guarantees of single-master replication, while also providing the high
+availability of multi-master. In MirrorMode two masters are set up to
+replicate from each other (as a multi-master configuration) but an
+external frontend is employed to direct all writes to only one of
+the two servers. The second master will only be used for writes if
+the first master crashes, at which point the frontend will switch to
+directing all writes to the second master. When a crashed master is
+repaired and restarted it will automatically catch up to any changes
+on the running master and resync.
+
+H4: Arguments for MirrorMode
+
+* Provides a high-availability (HA) solution for directory writes (replicas handle reads)
+* As long as one Master is operational, writes can safely be accepted
+* Master nodes replicate from each other, so they are always up to date and
+can be ready to take over (hot standby)
+* Syncrepl also allows the master nodes to re-synchronize after any downtime
+* Delta-Syncrepl can be used
+
+
+H4: Arguments against MirrorMode
+
+* MirrorMode is not what is termed as a Multi-Master solution. This is because 
+writes have to go to one of the mirror nodes at a time
+* MirrorMode can be termed as Active-Active Hot-Standby, therefor an external 
+server (slapd in proxy mode) or device (hardware load balancer) to manage which 
+master is currently active
+* While syncrepl can recover from a completely empty database, slapadd is much 
+faster
+* Does not provide faster or more scalable write performance (neither could 
+  any Multi-Master solution)
+* Backups are managed slightly differently
+- If backing up the Berkeley database itself and periodically backing up the 
+transaction log files, then the same member of the mirror pair needs to be 
+used to collect logfiles until the next database backup is taken 
+- To ensure that both databases are consistent, each database might have to be 
+put in read-only mode while performing a slapcat. 
+- When using slapcat, the generated LDIF files can be rather large. This can 
+happen with a non-MirrorMode deployment also.
+
+For configuration, please see the {{SECT:MirrorMode}} section below
+
+
+H2: Configuring the different replication types
+
+H3: Syncrepl
+
+H4: Syncrepl configuration
 
 Because syncrepl is a consumer-side replication engine, the syncrepl
 specification is defined in {{slapd.conf}}(5) of the consumer
@@ -597,7 +654,115 @@ digits.  The command line cookie overrides the synchronization
 cookie stored in the consumer replica database.
 
 
-H2: N-Way Multi-Master
+H3: Delta-syncrepl
+
+H4: Delta-syncrepl Master configuration
+
+Setting up delta-syncrepl requires configuration changes on both the master and 
+replica servers:
+
+>     # Give the replica DN unlimited read access.  This ACL may need to be
+>     # merged with other ACL statements.
+>     
+>     access to *
+>        by dn.base="cn=replicator,dc=symas,dc=com" read
+>        by * break
+>     
+>     # Set the module path location
+>     modulepath /opt/symas/lib/openldap
+>     
+>     # Load the hdb backend
+>     moduleload back_hdb.la
+>     
+>     # Load the accesslog overlay
+>     moduleload accesslog.la
+>     
+>     #Load the syncprov overlay
+>     moduleload syncprov.la
+>     
+>     # Accesslog database definitions
+>     database hdb
+>     suffix cn=accesslog
+>     directory /db/accesslog
+>     rootdn cn=accesslog
+>     index default eq
+>     index entryCSN,objectClass,reqEnd,reqResult,reqStart
+>     
+>     overlay syncprov
+>     syncprov-nopresent TRUE
+>     syncprov-reloadhint TRUE
+>     
+>     # Let the replica DN have limitless searches
+>     limits dn.exact="cn=replicator,dc=symas,dc=com" time.soft=unlimited time.hard=unlimited size.soft=unlimited size.hard=unlimited
+>     
+>     # Primary database definitions
+>     database hdb
+>     suffix "dc=symas,dc=com"
+>     rootdn "cn=manager,dc=symas,dc=com"
+>     
+>     ## Whatever other configuration options are desired
+>     
+>     # syncprov specific indexing
+>     index entryCSN eq
+>     index entryUUID eq
+>     
+>     # syncrepl Provider for primary db
+>     overlay syncprov
+>     syncprov-checkpoint 1000 60
+>     
+>     # accesslog overlay definitions for primary db
+>     overlay accesslog
+>     logdb cn=accesslog
+>     logops writes
+>     logsuccess TRUE
+>     # scan the accesslog DB every day, and purge entries older than 7 days
+>     logpurge 07+00:00 01+00:00
+>     
+>     # Let the replica DN have limitless searches
+>     limits dn.exact="cn=replicator,dc=symas,dc=com" time.soft=unlimited time.hard=unlimited size.soft=unlimited size.hard=unlimited
+
+For more information, always consult the relevant man pages (slapo-accesslog and slapd.conf)
+
+
+H4: Delta-syncrepl Replica configuration
+
+>     # Primary replica database configuration
+>     database hdb
+>     suffix "dc=symas,dc=com"
+>     rootdn "cn=manager,dc=symas,dc=com"
+>     
+>     ## Whatever other configuration bits for the replica, like indexing
+>     ## that you want
+>     
+>     # syncrepl specific indices
+>     index entryUUID eq
+>     
+>     # syncrepl directives
+>     syncrepl  rid=0
+>               provider=ldap://ldapmaster.symas.com:389
+>               bindmethod=simple
+>               binddn="cn=replicator,dc=symas,dc=com"
+>               credentials=secret
+>               searchbase="dc=symas,dc=com"
+>               logbase="cn=accesslog"
+>               logfilter="(&(objectClass=auditWriteObject)(reqResult=0))"
+>               schemachecking=on
+>               type=refreshAndPersist
+>               retry="60 +"
+>               syncdata=accesslog
+>     
+>     # Refer updates to the master
+>     updateref               ldap://ldapmaster.symas.com
+
+
+The above configuration assumes that you have a replicator identity defined 
+in your database that can be used to bind to the master with. In addition, 
+all of the databases (primary master, primary replica, and the accesslog 
+storage database) should also have properly tuned {{DB_CONFIG}} files that meet 
+your needs.
+
+
+H3: N-Way Multi-Master
 
 For the following example we will be using 3 Master nodes. Keeping in line with
 {{B:test050-syncrepl-multimaster}} of the OpenLDAP test suite, we will be configuring
@@ -697,39 +862,7 @@ We still have to replicate the actual data, not just the config, so add to the m
 
 Note: You must have all your server set to the same time via {{http://www.ntp.org/}}
 
-H2: MirrorMode
-
-H3: Arguments for MirrorMode
-
-* Provides a high-availability (HA) solution for directory writes (replicas handle reads)
-* As long as one Master is operational, writes can safely be accepted
-* Master nodes replicate from each other, so they are always up to date and
-can be ready to take over (hot standby)
-* Syncrepl also allows the master nodes to re-synchronize after any downtime
-* Delta-Syncrepl can be used
-
-
-H3: Arguments against MirrorMode
-
-* MirrorMode is not what is termed as a Multi-Master solution. This is because 
-writes have to go to one of the mirror nodes at a time
-* MirrorMode can be termed as Active-Active Hot-Standby, therefor an external 
-server (slapd in proxy mode) or device (hardware load balancer) to manage which 
-master is currently active
-* While syncrepl can recover from a completely empty database, slapadd is much 
-faster
-* Does not provide faster or more scalable write performance (neither could 
-  any Multi-Master solution)
-* Backups are managed slightly differently
-- If backing up the Berkeley database itself and periodically backing up the 
-transaction log files, then the same member of the mirror pair needs to be 
-used to collect logfiles until the next database backup is taken 
-- To ensure that both databases are consistent, each database might have to be 
-put in read-only mode while performing a slapcat. 
-- When using slapcat, the generated LDIF files can be rather large. This can 
-happen with a non-MirrorMode deployment also.
-
-H3: MirrorMode Configuration
+H3: MirrorMode
 
 MirrorMode configuration is actually very easy. If you have ever setup a normal
 slapd syncrepl provider, then the only change is the following two directives:
@@ -810,7 +943,7 @@ MirrorMode node 2:
 It's simple really; each MirrorMode node is setup {{B:exactly}} the same, except
 that the {{serverID}} is unique.
 
-H4: Failover Configuration
+H5: Failover Configuration
 
 There are generally 2 choices for this; 1.  Hardware proxies/load-balancing or 
 dedicated proxy software, 2. using a Back-LDAP proxy as a syncrepl provider
@@ -820,13 +953,13 @@ A typical enterprise example might be:
 !import "dual_dc.png"; align="center"; title="MirrorMode Enterprise Configuration"
 FT[align="Center"] Figure X.Y: MirrorMode in a Dual Data Center Configuration
 
-H4: Normal Consumer Configuration
+H5: Normal Consumer Configuration
 
 This is exactly the same as the {{SECT:Set up the consumer slapd}} section. It
 can either setup in normal {{SECT:syncrepl replication}} mode, or in 
 {{SECT:delta-syncrepl replication}} mode.
 
-H3: MirrorMode Summary
+H4: MirrorMode Summary
 
 Hopefully you will now have a directory architecture that provides all of the 
 consistency guarantees of single-master replication, whilst also providing the 
