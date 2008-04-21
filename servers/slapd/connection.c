@@ -1712,6 +1712,9 @@ connection_resched( Connection *conn )
 {
 	Operation *op;
 
+	if( conn->c_writewaiter )
+		return 0;
+
 	if( conn->c_conn_state == SLAP_C_CLOSING ) {
 		ber_socket_t	sd;
 		ber_sockbuf_ctrl( conn->c_sb, LBER_SB_OPT_GET_FD, &sd );
@@ -1723,7 +1726,7 @@ connection_resched( Connection *conn )
 		return 0;
 	}
 
-	if( conn->c_conn_state != SLAP_C_ACTIVE || conn->c_writewaiter ) {
+	if( conn->c_conn_state != SLAP_C_ACTIVE ) {
 		/* other states need different handling */
 		return 0;
 	}

@@ -2,6 +2,7 @@ OpenLDAP 2.3 Change Log
 
 OpenLDAP 2.3.42 Engineering
 	Fixed slapd abstract objectClass inheritance check (ITS#5474)
+	Fixed slapd connection handling (ITS#5469)
 	Fixed slapd delta-syncrepl refresh mode (ITS#5376)
 	Fixed slapd delta-syncrepl resync (ITS#5378)
 	Fixed slapd pagedresults stale state (ITS#5409)
