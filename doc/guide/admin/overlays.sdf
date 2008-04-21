@@ -857,14 +857,14 @@ You can create additional policy objects as needed.
 
 There are two ways password policy can be applied to individual objects:
 
-1. Default password policy - If, as in the example above, the password policy 
-module was configured with the DN of a default policy object and if that object 
-exists, then the policy defined in that object is applied.
+1. The pwdPolicySubentry in a user's object - If a user's object has a
+pwdPolicySubEntry attribute specifying the DN of a policy object, then 
+the policy defined by that object is applied.
 
-2. The pwdPolicySubentry in a user's object - If a user's object contains a 
-value for the pwdPolicySubEntry attribute, and if that object exists, then 
-the policy defined by that object is applied. Remember that we need to add 
-object class pwdPolicy to the user's object as well.
+2. Default password policy - If there is no specific pwdPolicySubentry set
+for an object, and the password policy module was configured with the DN of a
+default policy object and if that object exists, then the policy defined in
+that object is applied.
 
 Please see {{slapo-ppolicy(5)}} for complete explanations of features and discussion of
  "Password Management Issues" at {{URL:http://www.connexitor.com/forums/viewtopic.php?f=6&t=25}}
