@@ -585,6 +585,7 @@ backend_db_init(
 	}
 
 	be->bd_info = bi;
+	be->bd_self = be;
 
 	be->be_def_limit = frontendDB->be_def_limit;
 	be->be_dfltaccess = frontendDB->be_dfltaccess;
