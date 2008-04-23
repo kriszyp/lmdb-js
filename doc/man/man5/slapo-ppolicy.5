@@ -491,7 +491,7 @@ policy proposal.
 .SH OPERATIONAL ATTRIBUTES
 .P
 The operational attributes used by the
-.B passwd_policy
+.B ppolicy
 module are stored in the user's entry.  Most of these attributes
 are not intended to be changed directly by users; they are there
 to track user activity.  They have been detailed here so that
@@ -499,6 +499,19 @@ administrators and users can both understand the workings of
 the
 .B ppolicy
 module.
+
+.P
+Note that the current IETF Password Policy proposal does not define
+how these operational attributes are expected to behave in a
+replication environment. In general, authentication attempts on
+a slave server only affect the copy of the operational attributes
+on that slave and will not affect any attributes for
+a user's entry on the master server. Operational attribute changes
+resulting from authentication attempts on a master server
+will usually replicate to the slaves (and also overwrite
+any changes that originated on the slave). 
+These behaviors are not guaranteed and are subject to change
+when a formal specification emerges.
 
 .B userPassword
 .P
