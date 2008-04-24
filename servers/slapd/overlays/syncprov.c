@@ -737,6 +737,13 @@ syncprov_free_syncop( syncops *so )
 		ldap_pvt_thread_mutex_unlock( &so->s_mutex );
 		return;
 	}
+	if ( so->s_qtask ) {
+		ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
+		if ( ldap_pvt_runqueue_isrunning( &slapd_rq, so->s_qtask ) )
+			ldap_pvt_runqueue_stoptask( &slapd_rq, so->s_qtask );
+		ldap_pvt_runqueue_remove( &slapd_rq, so->s_qtask );
+		ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
+	}
 	ldap_pvt_thread_mutex_unlock( &so->s_mutex );
 	if ( so->s_flags & PS_IS_DETACHED ) {
 		filter_free( so->s_op->ors_filter );
