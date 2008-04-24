@@ -29,43 +29,6 @@
 
 static slap_overinst *overlays;
 
-enum db_which {
-	db_open = 0,
-	db_close,
-	db_destroy,
-	db_last
-};
-
-static int
-over_db_func(
-	BackendDB *be,
-	ConfigReply *cr,
-	enum db_which which
-)
-{
-	slap_overinfo *oi = be->bd_info->bi_private;
-	slap_overinst *on = oi->oi_list;
-	BackendInfo *bi_orig = be->bd_info;
-	BI_db_open **func;
-	int rc = 0;
-
-	func = &oi->oi_orig->bi_db_open;
-	if ( func[which] ) {
-		be->bd_info = oi->oi_orig;
-		rc = func[which]( be, cr );
-	}
-
-	for (; on && rc == 0; on=on->on_next) {
-		be->bd_info = &on->on_bi;
-		func = &on->on_bi.bi_db_open;
-		if (func[which]) {
-			rc = func[which]( be, cr );
-		}
-	}
-	be->bd_info = bi_orig;
-	return rc;
-}
-
 static int
 over_db_config(
 	BackendDB *be,
@@ -173,7 +136,25 @@ over_db_open(
 	ConfigReply *cr
 )
 {
-	return over_db_func( be, cr, db_open );
+	slap_overinfo *oi = be->bd_info->bi_private;
+	slap_overinst *on = oi->oi_list;
+	BackendDB db = *be;
+	int rc = 0;
+
+	db.be_flags |= SLAP_DBFLAG_OVERLAY;
+	db.bd_info = oi->oi_orig;
+	if ( db.bd_info->bi_db_open ) {
+		rc = db.bd_info->bi_db_open( &db, cr );
+	}
+
+	for (; on && rc == 0; on=on->on_next) {
+		db.bd_info = &on->on_bi;
+		if ( db.bd_info->bi_db_open ) {
+			rc = db.bd_info->bi_db_open( &db, cr );
+		}
+	}
+
+	return rc;
 }
 
 static int
@@ -211,17 +192,29 @@ over_db_destroy(
 {
 	slap_overinfo *oi = be->bd_info->bi_private;
 	slap_overinst *on = oi->oi_list, *next;
+	BackendInfo *bi_orig = be->bd_info;
 	int rc;
 
-	rc = over_db_func( be, cr, db_destroy );
+	be->bd_info = oi->oi_orig;
+	if ( be->bd_info->bi_db_destroy ) {
+		rc = be->bd_info->bi_db_destroy( be, cr );
+	}
 
+	for (; on && rc == 0; on=on->on_next) {
+		be->bd_info = &on->on_bi;
+		if ( be->bd_info->bi_db_destroy ) {
+			rc = be->bd_info->bi_db_destroy( be, cr );
+		}
+	}
+
+	on = oi->oi_list;
 	if ( on ) {
 		for (next = on->on_next; on; on=next) {
 			next = on->on_next;
 			free( on );
 		}
 	}
-
+	be->bd_info = bi_orig;
 	free( oi );
 	return rc;
 }

@@ -356,7 +356,7 @@ monitor_back_register_database_limbo(
 
 	el.el_type = LIMBO_DATABASE;
 
-	el.el_be = be;
+	el.el_be = be->bd_self;
 	el.el_ndn = ndn;
 	
 	for ( elpp = &mi->mi_entry_limbo;

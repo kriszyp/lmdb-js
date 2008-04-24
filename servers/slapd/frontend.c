@@ -93,6 +93,7 @@ frontend_init( void )
 {
 	/* data */
 	frontendDB = &slap_frontendDB;
+	frontendDB->bd_self = frontendDB;
 
 	/* ACLs */
 	frontendDB->be_dfltaccess = ACL_READ;
