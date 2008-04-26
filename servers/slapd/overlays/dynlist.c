@@ -460,9 +460,12 @@ dynlist_prepare_entry( Operation *op, SlapReply *rs, dynlist_info_t *dli )
 		}
 		o.ors_scope = lud->lud_scope;
 
-		for ( dlm = dli->dli_dlm; dlm; dlm = dlm->dlm_next )
-			if (dlm->dlm_mapped_ad != NULL)
+		for ( dlm = dli->dli_dlm; dlm; dlm = dlm->dlm_next ) {
+			if ( dlm->dlm_mapped_ad != NULL ) {
 				break;
+			}
+		}
+
 		if ( dli->dli_dlm && !dlm ) {
 			/* if ( lud->lud_attrs != NULL ),
 			 * the URL should be ignored */
