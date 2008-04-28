@@ -1257,18 +1257,19 @@ bdb_cache_delete(
 
 	assert( e->e_private != NULL );
 
+	/* Lock the entry's info */
+	bdb_cache_entryinfo_lock( ei );
+
 	/* Set this early, warn off any queriers */
 	ei->bei_state |= CACHE_ENTRY_DELETED;
 
-	/* Lock the entry's info */
-	bdb_cache_entryinfo_lock( ei );
+	bdb_cache_entryinfo_unlock( ei );
 
 	/* Get write lock on the data */
 	rc = bdb_cache_entry_db_relock( bdb, locker, ei, 1, 0, lock );
 	if ( rc ) {
 		/* couldn't lock, undo and give up */
 		ei->bei_state ^= CACHE_ENTRY_DELETED;
-		bdb_cache_entryinfo_unlock( ei );
 		return rc;
 	}
 
@@ -1283,8 +1284,6 @@ bdb_cache_delete(
 	/* free lru mutex */
 	ldap_pvt_thread_mutex_unlock( &bdb->bi_cache.c_lru_mutex );
 
-	/* Leave entry info locked */
-
 	return( rc );
 }
 
@@ -1293,6 +1292,8 @@ bdb_cache_delete_cleanup(
 	Cache *cache,
 	EntryInfo *ei )
 {
+	bdb_cache_entryinfo_lock( ei );
+
 	if ( ei->bei_e ) {
 		ei->bei_e->e_private = NULL;
 #ifdef SLAP_ZONE_ALLOC
