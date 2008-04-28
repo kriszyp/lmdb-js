@@ -154,13 +154,18 @@ monitor_cache_get(
 	*ep = NULL;
 
 	tmp_mc.mc_ndn = *ndn;
+retry:;
 	ldap_pvt_thread_mutex_lock( &mi->mi_cache_mutex );
 	mc = ( monitor_cache_t * )avl_find( mi->mi_cache,
 			( caddr_t )&tmp_mc, monitor_cache_cmp );
 
 	if ( mc != NULL ) {
 		/* entry is returned with mutex locked */
-		monitor_cache_lock( mc->mc_e );
+		if ( monitor_cache_trylock( mc->mc_e ) ) {
+			ldap_pvt_thread_mutex_unlock( &mi->mi_cache_mutex );
+			ldap_pvt_thread_yield();
+			goto retry;
+		}
 		*ep = mc->mc_e;
 	}
 
