@@ -925,7 +925,7 @@ load1:
 						if (( flag & ID_NOCACHE ) &&
 							( bdb_cache_entryinfo_trylock( *eip ) == 0 )) {
 							/* Set the cached state only if no other thread
-							 * found the info while we was loading the entry.
+							 * found the info while we were loading the entry.
 							 */
 							if ( (*eip)->bei_finders == 1 )
 								(*eip)->bei_state |= CACHE_ENTRY_NOT_CACHED;
