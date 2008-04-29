@@ -1292,7 +1292,7 @@ bdb_cache_delete_cleanup(
 	Cache *cache,
 	EntryInfo *ei )
 {
-	bdb_cache_entryinfo_lock( ei );
+	/* Enter with ei locked */
 
 	if ( ei->bei_e ) {
 		ei->bei_e->e_private = NULL;

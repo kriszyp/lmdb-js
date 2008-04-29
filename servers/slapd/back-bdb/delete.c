@@ -572,6 +572,7 @@ return_results:
 	if( e != NULL ) {
 		if ( rs->sr_err == LDAP_SUCCESS ) {
 			/* Free the EntryInfo and the Entry */
+			bdb_cache_entryinfo_lock( BEI(e) );
 			bdb_cache_delete_cleanup( &bdb->bi_cache, BEI(e) );
 		} else {
 			bdb_unlocked_cache_return_entry_w(&bdb->bi_cache, e);
