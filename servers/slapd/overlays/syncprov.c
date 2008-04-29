@@ -1180,6 +1180,9 @@ syncprov_matchops( Operation *op, opcookie *opc, int saveit )
 		int found = 0;
 
 		snext = ss->s_next;
+		if ( ss->s_op->o_abandon )
+			continue;
+
 		/* validate base */
 		fc.fss = ss;
 		fc.fbase = 0;
