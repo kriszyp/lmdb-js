@@ -106,7 +106,7 @@ typedef struct syncinfo_s {
 
 static int syncuuid_cmp( const void *, const void * );
 static int avl_presentlist_insert( syncinfo_t* si, struct berval *syncUUID );
-static void syncrepl_del_nonpresent( Operation *, syncinfo_t *, BerVarray, struct berval * );
+static void syncrepl_del_nonpresent( Operation *, syncinfo_t *, BerVarray, struct sync_cookie *, int );
 static int syncrepl_message_to_op(
 					syncinfo_t *, Operation *, LDAPMessage * );
 static int syncrepl_message_to_entry(
@@ -950,7 +950,7 @@ do_syncrep2(
 					syncCookie_req.numcsns == syncCookie.numcsns )
 				{
 					syncrepl_del_nonpresent( op, si, NULL,
-						&syncCookie.ctxcsn[m] );
+						&syncCookie, m );
 				} else {
 					avl_free( si->si_presentlist, ch_free );
 					si->si_presentlist = NULL;
@@ -1061,7 +1061,7 @@ do_syncrep2(
 					ber_scanf( ber, /*"{"*/ "}" );
 					if ( refreshDeletes ) {
 						syncrepl_del_nonpresent( op, si, syncUUIDs,
-							&syncCookie.ctxcsn[m] );
+							&syncCookie, m );
 						ber_bvarray_free_x( syncUUIDs, op->o_tmpmemctx );
 					} else {
 						int i;
@@ -1099,7 +1099,7 @@ do_syncrep2(
 					if ( si->si_refreshPresent == 1 &&
 						syncCookie_req.numcsns == syncCookie.numcsns ) {
 						syncrepl_del_nonpresent( op, si, NULL,
-							&syncCookie.ctxcsn[m] );
+							&syncCookie, m );
 					}
 
 					if ( syncCookie.ctxcsn )
@@ -2352,7 +2352,8 @@ syncrepl_del_nonpresent(
 	Operation *op,
 	syncinfo_t *si,
 	BerVarray uuids,
-	struct berval *cookiecsn )
+	struct sync_cookie *sc,
+	int m )
 {
 	Backend* be = op->o_bd;
 	slap_callback	cb = { NULL };
@@ -2405,6 +2406,8 @@ syncrepl_del_nonpresent(
 		}
 		si->si_refreshDelete ^= NP_DELETE_ONE;
 	} else {
+		Filter *cf, *of;
+
 		memset( &an[0], 0, 2 * sizeof( AttributeName ) );
 		an[0].an_name = slap_schema.si_ad_entryUUID->ad_cname;
 		an[0].an_desc = slap_schema.si_ad_entryUUID;
@@ -2412,21 +2415,55 @@ syncrepl_del_nonpresent(
 		op->ors_slimit = SLAP_NO_LIMIT;
 		op->ors_attrsonly = 0;
 		op->ors_filter = str2filter_x( op, si->si_filterstr.bv_val );
-		op->ors_filterstr = si->si_filterstr;
+		/* In multimaster, updates can continue to arrive while
+		 * we're searching. Limit the search result to entries
+		 * older than all of our cookie CSNs.
+		 */
+		if ( SLAP_MULTIMASTER( op->o_bd )) {
+			Filter *f;
+			int i;
+			cf = op->o_tmpalloc( (sc->numcsns+1) * sizeof(Filter) +
+				sc->numcsns * sizeof(AttributeAssertion), op->o_tmpmemctx );
+			f = cf;
+			f->f_choice = LDAP_FILTER_AND;
+			f->f_and = ++f;
+			of = f;
+			for ( i=0; i<sc->numcsns; i++ ) {
+				f = of;
+				f->f_choice = LDAP_FILTER_LE;
+				f->f_ava = (AttributeAssertion *)(f+1);
+				f->f_av_desc = slap_schema.si_ad_entryCSN;
+				f->f_av_value = sc->ctxcsn[i];
+				f->f_next = (Filter *)(f->f_ava+1);
+				of = f->f_next;
+			}
+			f->f_next = op->ors_filter;
+			of = op->ors_filter;
+			op->ors_filter = cf;
+			filter2bv_x( op, op->ors_filter, &op->ors_filterstr );
+		} else {
+			cf = NULL;
+			op->ors_filterstr = si->si_filterstr;
+		}
 		op->o_nocaching = 1;
 
 		if ( limits_check( op, &rs_search ) == 0 ) {
 			rc = be->be_search( op, &rs_search );
 		}
+		if ( SLAP_MULTIMASTER( op->o_bd )) {
+			op->o_tmpfree( cf, op->o_tmpmemctx );
+			op->ors_filter = of;
+		}
 		if ( op->ors_filter ) filter_free_x( op, op->ors_filter );
+
 	}
 
 	op->o_nocaching = 0;
 
 	if ( !LDAP_LIST_EMPTY( &si->si_nonpresentlist ) ) {
 
-		if ( cookiecsn && !BER_BVISNULL( cookiecsn ) ) {
-			csn = *cookiecsn;
+		if ( sc->ctxcsn && !BER_BVISNULL( &sc->ctxcsn[m] ) ) {
+			csn = sc->ctxcsn[m];
 		} else {
 			csn = si->si_syncCookie.ctxcsn[0];
 		}
