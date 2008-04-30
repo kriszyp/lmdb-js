@@ -78,23 +78,23 @@ void LDAPAttrType::setUsage (int at_usage) {
     usage = at_usage;
 }
 
-bool LDAPAttrType::isSingle () {
+bool LDAPAttrType::isSingle() const {
     return single;
-}
+} 
 
-string LDAPAttrType::getOid () {
+string LDAPAttrType::getOid() const {
     return oid;
 }
 
-string LDAPAttrType::getDesc () {
+string LDAPAttrType::getDesc() const {
     return desc;
 }
 
-StringList LDAPAttrType::getNames () {
+StringList LDAPAttrType::getNames() const {
     return names;
 }
 
-string LDAPAttrType::getName () {
+string LDAPAttrType::getName() const {
 
     if (names.empty())
 	return "";
@@ -102,6 +102,6 @@ string LDAPAttrType::getName () {
 	return *(names.begin());
 }
 
-int LDAPAttrType::getUsage () {
+int LDAPAttrType::getUsage() const {
     return usage;
 }

@@ -58,34 +58,34 @@ class LDAPAttrType{
 	/**
 	 * Returns attribute description
 	 */
-	string getDesc ();
+	string getDesc() const;
 	
 	/**
 	 * Returns attribute oid
 	 */
-	string getOid ();
+	string getOid() const;
 
 	/**
 	 * Returns attribute name (first one if there are more of them)
 	 */
-	string getName ();
+	string getName() const;
 
 	/**
 	 * Returns all attribute names
 	 */
-	StringList getNames();
+	StringList getNames() const;
 	
 	/**
 	 * Returns true if attribute type allows only single value
 	 */
-	bool isSingle();
+	bool isSingle() const;
 	
 	/**
  	 * Return the 'usage' value:
  	 * (0=userApplications, 1=directoryOperation, 2=distributedOperation, 
 	 *  3=dSAOperation)
  	 */
- 	int getUsage ();
+ 	int getUsage () const;
 
 	void setNames (char **at_names);
 	void setDesc (char *at_desc);
