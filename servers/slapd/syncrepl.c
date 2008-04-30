@@ -2426,8 +2426,8 @@ syncrepl_del_nonpresent(
 				sc->numcsns * sizeof(AttributeAssertion), op->o_tmpmemctx );
 			f = cf;
 			f->f_choice = LDAP_FILTER_AND;
-			f->f_and = ++f;
 			f->f_next = NULL;
+			f->f_and = ++f;
 			of = f;
 			for ( i=0; i<sc->numcsns; i++ ) {
 				f = of;
