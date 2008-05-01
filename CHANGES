@@ -34,6 +34,7 @@ OpenLDAP 2.4.9 Engineering
 	Fixed slapd-ldif file name handling (ITS#5408)
 	Fixed slapd-meta connections on error (ITS#5440)
 	Fixed slapd-meta crash on search (ITS#5481)
+	Fixed slapo-accesslog null callback stack crash (ITS#5490)
 	Fixed slapo-auditlog unnecessary syscall (ITS#5441)
 	Fixed slapo-refint dnSubtreeMatch (ITS#5427)
 	Fixed slapo-refint global referential integrity (ITS#5428)
