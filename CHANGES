@@ -46,6 +46,8 @@ OpenLDAP 2.4.9 Engineering
 	Fixed slapo-syncprov/glue search ops (ITS#5434)
 	Fixed slapo-syncprov null cookie (ITS#5437,#5444)
 	Fixed slapo-syncprov double-free (ITS#5445)
+	Fixed slapo-syncprov free syncop correctly (ITS#5484)
+	Fixed slapo-syncprov glue deadlock (ITS#5451)
 	Build Environment
 		Fixed leave function naming for OSF1 (ITS#5411)
 	Documentation

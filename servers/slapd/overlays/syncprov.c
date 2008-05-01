@@ -737,6 +737,13 @@ syncprov_free_syncop( syncops *so )
 		ldap_pvt_thread_mutex_unlock( &so->s_mutex );
 		return;
 	}
+	if ( so->s_qtask ) {
+		ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
+		if ( ldap_pvt_runqueue_isrunning( &slapd_rq, so->s_qtask ) )
+			ldap_pvt_runqueue_stoptask( &slapd_rq, so->s_qtask );
+		ldap_pvt_runqueue_remove( &slapd_rq, so->s_qtask );
+		ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
+	}
 	ldap_pvt_thread_mutex_unlock( &so->s_mutex );
 	if ( so->s_flags & PS_IS_DETACHED ) {
 		filter_free( so->s_op->ors_filter );
@@ -1173,6 +1180,9 @@ syncprov_matchops( Operation *op, opcookie *opc, int saveit )
 		int found = 0;
 
 		snext = ss->s_next;
+		if ( ss->s_op->o_abandon )
+			continue;
+
 		/* validate base */
 		fc.fss = ss;
 		fc.fbase = 0;
@@ -2389,7 +2399,14 @@ syncprov_operational(
 
 				if ( !ap ) {
 					if ( !(rs->sr_flags & REP_ENTRY_MODIFIABLE) ) {
-						rs->sr_entry = entry_dup( rs->sr_entry );
+						Entry *e = entry_dup( rs->sr_entry );
+						if ( rs->sr_flags & REP_ENTRY_MUSTRELEASE ) {
+							overlay_entry_release_ov( op, rs->sr_entry, 0, on );
+							rs->sr_flags ^= REP_ENTRY_MUSTRELEASE;
+						} else if ( rs->sr_flags & REP_ENTRY_MUSTBEFREED ) {
+							entry_free( rs->sr_entry );
+						}
+						rs->sr_entry = e;
 						rs->sr_flags |=
 							REP_ENTRY_MODIFIABLE|REP_ENTRY_MUSTBEFREED;
 						a = attr_find( rs->sr_entry->e_attrs,
