@@ -174,6 +174,8 @@ bdb_cache_entry_db_relock(
 
 	if ( !lock ) return 0;
 
+Debug( LDAP_DEBUG_TRACE, "bdb_cache_entry_dn_relock: lock %p locker %d\n", lock,locker,0 );
+
 	lockobj.data = &ei->bei_id;
 	lockobj.size = sizeof(ei->bei_id) + 1;
 
@@ -210,6 +212,8 @@ bdb_cache_entry_db_lock( struct bdb_info *bdb, BDB_LOCKER locker, EntryInfo *ei,
 
 	if ( !lock ) return 0;
 
+Debug( LDAP_DEBUG_TRACE, "bdb_cache_entry_db_lock: lock %p locker %d\n", lock,locker,0 );
+
 	if (rw)
 		db_rw = DB_LOCK_WRITE;
 	else
@@ -238,6 +242,8 @@ bdb_cache_entry_db_unlock ( struct bdb_info *bdb, DB_LOCK *lock )
 	int rc;
 
 	if ( !lock || lock->mode == DB_LOCK_NG ) return 0;
+
+Debug( LDAP_DEBUG_TRACE, "bdb_cache_entry_db_unlock: lock %p\n", lock,0,0 );
 
 	rc = LOCK_PUT ( bdb->bi_dbenv, lock );
 	return rc;

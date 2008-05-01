@@ -328,7 +328,7 @@ bdb_search( Operation *op, SlapReply *rs )
 	attrs = op->oq_search.rs_attrs;
 
 	LDAP_SLIST_FOREACH( oex, &op->o_extra, oe_next ) {
-		if ( oex->oe_key == (void *)op->o_bd->bd_self )
+		if ( oex->oe_key == bdb )
 			break;
 	}
 	opinfo = (struct bdb_op_info *) oex;

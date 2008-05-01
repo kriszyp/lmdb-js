@@ -259,7 +259,7 @@ int bdb_entry_release(
 		}
 		/* free entry and reader or writer lock */
 		LDAP_SLIST_FOREACH( oex, &op->o_extra, oe_next ) {
-			if ( oex->oe_key == op->o_bd->bd_self ) break;
+			if ( oex->oe_key == bdb ) break;
 		}
 		boi = (struct bdb_op_info *)oex;
 
@@ -335,7 +335,7 @@ int bdb_entry_get(
 	if( op ) {
 		OpExtra *oex;
 		LDAP_SLIST_FOREACH( oex, &op->o_extra, oe_next ) {
-			if ( oex->oe_key == op->o_bd->bd_self ) break;
+			if ( oex->oe_key == bdb ) break;
 		}
 		boi = (struct bdb_op_info *)oex;
 		if ( boi )
@@ -416,7 +416,7 @@ return_results:
 			if ( op ) {
 				if ( !boi ) {
 					boi = op->o_tmpcalloc(1,sizeof(struct bdb_op_info),op->o_tmpmemctx);
-					boi->boi_oe.oe_key = op->o_bd;
+					boi->boi_oe.oe_key = bdb;
 					LDAP_SLIST_INSERT_HEAD( &op->o_extra, &boi->boi_oe, oe_next );
 				}
 				if ( !boi->boi_txn ) {
