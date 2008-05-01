@@ -2427,8 +2427,8 @@ syncrepl_del_nonpresent(
 			f = cf;
 			f->f_choice = LDAP_FILTER_AND;
 			f->f_next = NULL;
-			f->f_and = ++f;
-			of = f;
+			f->f_and = f+1;
+			of = f->f_and;
 			for ( i=0; i<sc->numcsns; i++ ) {
 				f = of;
 				f->f_choice = LDAP_FILTER_LE;
