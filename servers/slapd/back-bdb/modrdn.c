@@ -134,7 +134,8 @@ retry:	/* transaction retry */
 
 		rs->sr_err = TXN_ABORT( ltid );
 		ltid = NULL;
-		op->o_private = NULL;
+		LDAP_SLIST_REMOVE( &op->o_extra, &opinfo.boi_oe, OpExtra, oe_next );
+		opinfo.boi_oe.oe_key = NULL;
 		op->o_do_not_cache = opinfo.boi_acl_cache;
 		if( rs->sr_err != 0 ) {
 			rs->sr_err = LDAP_OTHER;
@@ -165,11 +166,11 @@ retry:	/* transaction retry */
 
 	locker = TXN_ID ( ltid );
 
-	opinfo.boi_bdb = op->o_bd;
+	opinfo.boi_oe.oe_key = op->o_bd->bd_self;
 	opinfo.boi_txn = ltid;
 	opinfo.boi_err = 0;
 	opinfo.boi_acl_cache = op->o_do_not_cache;
-	op->o_private = &opinfo;
+	LDAP_SLIST_INSERT_HEAD( &op->o_extra, &opinfo.boi_oe, oe_next );
 
 	/* get entry */
 	rs->sr_err = bdb_dn2entry( op, ltid, &op->o_req_ndn, &ei, 1,
@@ -764,7 +765,8 @@ retry:	/* transaction retry */
 	}
  
 	ltid = NULL;
-	op->o_private = NULL;
+	LDAP_SLIST_REMOVE( &op->o_extra, &opinfo.boi_oe, OpExtra, oe_next );
+	opinfo.boi_oe.oe_key = NULL;
  
 	if( rs->sr_err != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE,
@@ -823,7 +825,9 @@ done:
 	if( ltid != NULL ) {
 		TXN_ABORT( ltid );
 	}
-	op->o_private = NULL;
+	if ( opinfo.boi_oe.oe_key ) {
+		LDAP_SLIST_REMOVE( &op->o_extra, &opinfo.boi_oe, OpExtra, oe_next );
+	}
 
 	if( preread_ctrl != NULL && (*preread_ctrl) != NULL ) {
 		slap_sl_free( (*preread_ctrl)->ldctl_value.bv_val, op->o_tmpmemctx );

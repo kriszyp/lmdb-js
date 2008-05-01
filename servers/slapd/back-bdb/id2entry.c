@@ -242,7 +242,8 @@ int bdb_entry_release(
 	int rw )
 {
 	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
-	struct bdb_op_info *boi = NULL;
+	struct bdb_op_info *boi;
+	OpExtra *oex;
  
 	/* slapMode : SLAP_SERVER_MODE, SLAP_TOOL_MODE,
 			SLAP_TRUNCATE_MODE, SLAP_UNDEFINED_MODE */
@@ -257,7 +258,10 @@ int bdb_entry_release(
 #endif
 		}
 		/* free entry and reader or writer lock */
-		boi = (struct bdb_op_info *)op->o_private;
+		LDAP_SLIST_FOREACH( oex, &op->o_extra, oe_next ) {
+			if ( oex->oe_key == op->o_bd->bd_self ) break;
+		}
+		boi = (struct bdb_op_info *)oex;
 
 		/* lock is freed with txn */
 		if ( !boi || boi->boi_txn ) {
@@ -274,8 +278,8 @@ int bdb_entry_release(
 				}
 			}
 			if ( !boi->boi_locks ) {
+				LDAP_SLIST_REMOVE( &op->o_extra, &boi->boi_oe, OpExtra, oe_next );
 				op->o_tmpfree( boi, op->o_tmpmemctx );
-				op->o_private = NULL;
 			}
 		}
 	} else {
@@ -328,9 +332,14 @@ int bdb_entry_get(
 		"=> bdb_entry_get: oc: \"%s\", at: \"%s\"\n",
 		oc ? oc->soc_cname.bv_val : "(null)", at_name, 0);
 
-	if( op ) boi = (struct bdb_op_info *) op->o_private;
-	if( boi != NULL && op->o_bd->be_private == boi->boi_bdb->be_private ) {
-		txn = boi->boi_txn;
+	if( op ) {
+		OpExtra *oex;
+		LDAP_SLIST_FOREACH( oex, &op->o_extra, oe_next ) {
+			if ( oex->oe_key == op->o_bd->bd_self ) break;
+		}
+		boi = (struct bdb_op_info *)oex;
+		if ( boi )
+			txn = boi->boi_txn;
 	}
 
 	if ( txn != NULL ) {
@@ -407,8 +416,8 @@ return_results:
 			if ( op ) {
 				if ( !boi ) {
 					boi = op->o_tmpcalloc(1,sizeof(struct bdb_op_info),op->o_tmpmemctx);
-					boi->boi_bdb = op->o_bd;
-					op->o_private = boi;
+					boi->boi_oe.oe_key = op->o_bd;
+					LDAP_SLIST_INSERT_HEAD( &op->o_extra, &boi->boi_oe, oe_next );
 				}
 				if ( !boi->boi_txn ) {
 					struct bdb_lock_info *bli;
