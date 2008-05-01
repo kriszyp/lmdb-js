@@ -2200,6 +2200,7 @@ acl_set_gather( SetCookie *cookie, struct berval *name, AttributeDescription *de
 	op2.ors_attrs = anlistp;
 	op2.ors_attrsonly = 0;
 	op2.o_private = cp->asc_op->o_private;
+	op2.o_extra = cp->asc_op->o_extra;
 
 	cb.sc_private = &p;
 
