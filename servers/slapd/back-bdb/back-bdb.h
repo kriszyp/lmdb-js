@@ -267,7 +267,7 @@ struct bdb_lock_info {
 };
 
 struct bdb_op_info {
-	BackendDB*	boi_bdb;
+	OpExtra boi_oe;
 	DB_TXN*		boi_txn;
 	u_int32_t	boi_err;
 	int		boi_acl_cache;

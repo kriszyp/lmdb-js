@@ -322,11 +322,16 @@ bdb_search( Operation *op, SlapReply *rs )
 	DB_LOCK		lock;
 	struct	bdb_op_info	*opinfo = NULL;
 	DB_TXN			*ltid = NULL;
+	OpExtra *oex;
 
 	Debug( LDAP_DEBUG_TRACE, "=> " LDAP_XSTRING(bdb_search) "\n", 0, 0, 0);
 	attrs = op->oq_search.rs_attrs;
 
-	opinfo = (struct bdb_op_info *) op->o_private;
+	LDAP_SLIST_FOREACH( oex, &op->o_extra, oe_next ) {
+		if ( oex->oe_key == bdb )
+			break;
+	}
+	opinfo = (struct bdb_op_info *) oex;
 
 	manageDSAit = get_manageDSAit( op );
 
