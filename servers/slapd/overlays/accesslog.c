@@ -915,7 +915,7 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 		old = li->li_old;
 		li->li_old = NULL;
 		/* Disarm mod_cleanup */
-		for ( cb = op->o_callback->sc_next; cb; cb = cb->sc_next ) {
+		for ( cb = op->o_callback; cb; cb = cb->sc_next ) {
 			if ( cb->sc_private == (void *)on ) {
 				cb->sc_private = NULL;
 				break;
