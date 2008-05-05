@@ -131,11 +131,11 @@ EOF
 	fi
 fi
 #
-# Note that we configure a timeout here; it's possible for both
-# servers to attempt to bind to each other while a modify to
-# cn=config is in progress. When the modify pauses the thread pool
-# neither server will progress. The timeout will drop the syncrepl
-# attempt and allow the modifies to complete.
+# Note that we used to configure a timeout here; it was possible for
+# the servers to attempt to bind to each other while a modify to
+# cn=config is in progress. When the modify paused the thread pool
+# neither server wwould progress. The timeout should no longer be
+# needed since the pool pause code was adjusted.
 #
 read CONFIGPW < $CONFIGPWF
 $LDAPMODIFY -D cn=config -H $URI1 -y $CONFIGPWF <<EOF >> $TESTOUT 2>&1
@@ -213,13 +213,13 @@ changetype: modify
 add: olcSyncRepl
 olcSyncRepl: rid=001 provider=$URI1 binddn="cn=config" bindmethod=simple
   credentials=$CONFIGPW searchbase="cn=config" type=refreshAndPersist
-  retry="5 5 300 5" timeout=1
+  retry="5 5 300 5"
 olcSyncRepl: rid=002 provider=$URI2 binddn="cn=config" bindmethod=simple
   credentials=$CONFIGPW searchbase="cn=config" type=refreshAndPersist
-  retry="5 5 300 5" timeout=1
+  retry="5 5 300 5"
 olcSyncRepl: rid=003 provider=$URI3 binddn="cn=config" bindmethod=simple
   credentials=$CONFIGPW searchbase="cn=config" type=refreshAndPersist
-  retry="5 5 300 5" timeout=1
+  retry="5 5 300 5"
 -
 add: olcMirrorMode
 olcMirrorMode: TRUE
@@ -263,13 +263,13 @@ changetype: modify
 add: olcSyncRepl
 olcSyncRepl: rid=001 provider=$URI1 binddn="cn=config" bindmethod=simple
   credentials=$CONFIGPW searchbase="cn=config" type=refreshAndPersist
-  retry="5 5 300 5" timeout=1
+  retry="5 5 300 5"
 olcSyncRepl: rid=002 provider=$URI2 binddn="cn=config" bindmethod=simple
   credentials=$CONFIGPW searchbase="cn=config" type=refreshAndPersist
-  retry="5 5 300 5" timeout=1
+  retry="5 5 300 5"
 olcSyncRepl: rid=003 provider=$URI3 binddn="cn=config" bindmethod=simple
   credentials=$CONFIGPW searchbase="cn=config" type=refreshAndPersist
-  retry="5 5 300 5" timeout=1
+  retry="5 5 300 5"
 -
 add: olcMirrorMode
 olcMirrorMode: TRUE
@@ -321,13 +321,13 @@ olcRootDN: $MANAGERDN
 olcRootPW: $PASSWD
 olcSyncRepl: rid=004 provider=$URI1 binddn="$MANAGERDN" bindmethod=simple
   credentials=$PASSWD searchbase="$BASEDN" type=refreshOnly
-  interval=00:00:00:10 retry="5 5 300 5" timeout=1
+  interval=00:00:00:10 retry="5 5 300 5"
 olcSyncRepl: rid=005 provider=$URI2 binddn="$MANAGERDN" bindmethod=simple
   credentials=$PASSWD searchbase="$BASEDN" type=refreshOnly
-  interval=00:00:00:10 retry="5 5 300 5" timeout=1
+  interval=00:00:00:10 retry="5 5 300 5"
 olcSyncRepl: rid=006 provider=$URI3 binddn="$MANAGERDN" bindmethod=simple
   credentials=$PASSWD searchbase="$BASEDN" type=refreshOnly
-  interval=00:00:00:10 retry="5 5 300 5" timeout=1
+  interval=00:00:00:10 retry="5 5 300 5"
 olcMirrorMode: TRUE
 
 dn: olcOverlay=syncprov,olcDatabase={1}${BACKEND},cn=config
