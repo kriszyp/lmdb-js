@@ -1176,6 +1176,7 @@ syncprov_matchops( Operation *op, opcookie *opc, int saveit )
 	for (ss = si->si_ops, sprev = (syncops *)&si->si_ops; ss;
 		sprev = ss, ss=snext)
 	{
+		Operation op2;
 		syncmatches *sm;
 		int found = 0;
 
@@ -1223,8 +1224,11 @@ syncprov_matchops( Operation *op, opcookie *opc, int saveit )
 			}
 		}
 
+		if ( fc.fscope )
+			op2 = *ss->s_op;
+
 		/* check if current o_req_dn is in scope and matches filter */
-		if ( fc.fscope && test_filter( ss->s_op, e, ss->s_op->ors_filter ) ==
+		if ( fc.fscope && test_filter( &op2, e, ss->s_op->ors_filter ) ==
 			LDAP_COMPARE_TRUE ) {
 			if ( saveit ) {
 				sm = op->o_tmpalloc( sizeof(syncmatches), op->o_tmpmemctx );
