@@ -1522,6 +1522,8 @@ in order to work over all of the glued databases. E.g.
 .B [sizelimit=<limit>]
 .B [timelimit=<limit>]
 .B [schemachecking=on|off]
+.B [network_timeout=<seconds>]
+.B [timeout=<seconds>]
 .B [bindmethod=simple|sasl]
 .B [binddn=<dn>]
 .B [saslmech=<mech>]
@@ -1632,6 +1634,17 @@ in terms of required/allowed attributes, and that naming attributes
 and distinguished values must be present.
 As a consequence, schema checking should be \fBoff\fP when partial
 replication is used.
+
+The
+.B network_timeout
+parameter sets how long the consumer will wait to establish a
+network connection to the provider. Once a connection is
+established, the
+.B timeout
+parameter determines how long the consumer will wait for the initial
+Bind request to complete. The defaults for these parameters come
+from 
+.BR ldap.conf (5).
 
 A
 .B bindmethod
