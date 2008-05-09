@@ -1522,7 +1522,7 @@ in order to work over all of the glued databases. E.g.
 .B [sizelimit=<limit>]
 .B [timelimit=<limit>]
 .B [schemachecking=on|off]
-.B [network_timeout=<seconds>]
+.B [network-timeout=<seconds>]
 .B [timeout=<seconds>]
 .B [bindmethod=simple|sasl]
 .B [binddn=<dn>]
@@ -1636,7 +1636,7 @@ As a consequence, schema checking should be \fBoff\fP when partial
 replication is used.
 
 The
-.B network_timeout
+.B network-timeout
 parameter sets how long the consumer will wait to establish a
 network connection to the provider. Once a connection is
 established, the
