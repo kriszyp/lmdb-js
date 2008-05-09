@@ -601,14 +601,16 @@ constraint_modify( Operation *op, SlapReply *rs )
 				Debug(LDAP_DEBUG_TRACE, 
 					"==> constraint_modify ce = %d, "
 					"ca = %d, cp->count = %d\n",
-					ca, ce, cp->count);
+					ce, ca, cp->count);
 
 				if (m->sml_op == LDAP_MOD_ADD)
 					if (ca + ce > cp->count)
 						goto mod_violation;
-				if (m->sml_op == LDAP_MOD_REPLACE)
+				if (m->sml_op == LDAP_MOD_REPLACE) {
 					if (ca > cp->count)
 						goto mod_violation;
+					ce = ca;
+				}
 			} 
 
 			/* DELETE are to be ignored beyond this point */
