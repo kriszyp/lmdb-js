@@ -8,6 +8,7 @@ OpenLDAP 2.3.42 Engineering
 	Fixed slapd pagedresults stale state (ITS#5409)
 	Fixed slapd-ldap connection handler (ITS#5404)
 	Fixed slapo-accesslog null callback stack crash (ITS#5490)
+	Fixed slapo-syncprov csn update with delta-syncrepl (ITS#5493)
 
 OpenLDAP 2.3.41 Release (2008/02/19)
 	Fixed slapd timestamp race condition (ITS#5370)

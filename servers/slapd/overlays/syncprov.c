@@ -1856,6 +1856,7 @@ syncprov_search_response( Operation *op, SlapReply *rs )
 {
 	searchstate *ss = op->o_callback->sc_private;
 	slap_overinst *on = ss->ss_on;
+	syncprov_info_t *si = (syncprov_info_t *)on->on_bi.bi_private;
 	sync_control *srs = op->o_controls[slap_cids.sc_LDAPsync];
 
 	if ( rs->sr_type == REP_SEARCH || rs->sr_type == REP_SEARCHREF ) {
@@ -1898,8 +1899,16 @@ syncprov_search_response( Operation *op, SlapReply *rs )
 		rs->sr_ctrls = op->o_tmpalloc( sizeof(LDAPControl *)*2,
 			op->o_tmpmemctx );
 		rs->sr_ctrls[1] = NULL;
-		rs->sr_err = syncprov_state_ctrl( op, rs, rs->sr_entry,
-			LDAP_SYNC_ADD, rs->sr_ctrls, 0, 0, NULL );
+		/* If we're in delta-sync mode, always send a cookie */
+		if ( si->si_nopres && si->si_usehint && a ) {
+			struct berval cookie;
+			slap_compose_sync_cookie( op, &cookie, a->a_nvals, srs->sr_state.rid );
+			rs->sr_err = syncprov_state_ctrl( op, rs, rs->sr_entry,
+				LDAP_SYNC_ADD, rs->sr_ctrls, 0, 1, &cookie );
+		} else {
+			rs->sr_err = syncprov_state_ctrl( op, rs, rs->sr_entry,
+				LDAP_SYNC_ADD, rs->sr_ctrls, 0, 0, NULL );
+		}
 	} else if ( rs->sr_type == REP_RESULT && rs->sr_err == LDAP_SUCCESS ) {
 		struct berval cookie;
 
