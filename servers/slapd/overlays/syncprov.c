@@ -1515,10 +1515,6 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 				strcpy( si->si_ctxcsnbuf, cbuf );
 				si->si_ctxcsn.bv_len = maxcsn.bv_len;
 			}
-		} else {
-			/* internal ops that aren't meant to be replicated */
-			ldap_pvt_thread_rdwr_wunlock( &si->si_csn_rwlock );
-			return SLAP_CB_CONTINUE;
 		}
 
 		/* Don't do any processing for consumer contextCSN updates */
