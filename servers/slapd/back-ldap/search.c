@@ -795,8 +795,9 @@ ldap_back_entry_get(
 	ldapinfo_t	*li = (ldapinfo_t *) op->o_bd->be_private;
 
 	ldapconn_t	*lc = NULL;
-	int		rc = 1,
+	int		rc,
 			do_not_cache;
+	ber_tag_t	tag;
 	struct berval	bdn;
 	LDAPMessage	*result = NULL,
 			*e = NULL;
@@ -810,12 +811,18 @@ ldap_back_entry_get(
 
 	/* Tell getconn this is a privileged op */
 	do_not_cache = op->o_do_not_cache;
+	tag = op->o_tag;
+	/* do not cache */
 	op->o_do_not_cache = 1;
-	if ( !ldap_back_dobind( &lc, op, &rs, LDAP_BACK_DONTSEND ) ) {
-		op->o_do_not_cache = do_not_cache;
+	/* ldap_back_entry_get() is an entry lookup, so it does not need
+	 * to know what the entry is being looked up for */
+	op->o_tag = LDAP_REQ_SEARCH;
+	rc = ldap_back_dobind( &lc, op, &rs, LDAP_BACK_DONTSEND );
+	op->o_do_not_cache = do_not_cache;
+	op->o_tag = tag;
+	if ( !rc ) {
 		return rs.sr_err;
 	}
-	op->o_do_not_cache = do_not_cache;
 
 	if ( at ) {
 		attrp = attr;
