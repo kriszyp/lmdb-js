@@ -2620,7 +2620,6 @@ slapd_daemon( void )
 {
 	int rc;
 
-	connections_init();
 #ifdef LDAP_CONNECTIONLESS
 	connectionless_init();
 #endif /* LDAP_CONNECTIONLESS */
