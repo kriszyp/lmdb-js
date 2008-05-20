@@ -1,6 +1,7 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.10 Engineering
+	Fixed slapd missing termination of integerFilter keys (ITS#5503)
 	Fixed slapd-ldap entry_get() op-dependent behavior (ITS#5513)
 	Fixed slapo-syncprov csn update with delta-syncrepl (ITS#5493)
 
