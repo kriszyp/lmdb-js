@@ -1,8 +1,5 @@
 OpenLDAP 2.3 Change Log
 
-OpenLDAP 2.3.43 Engineering
-	Fixed slapd-ldap entry_get() op-dependent behavior (ITS#5513)
-
 OpenLDAP 2.3.42 Release (2008/05/15)
 	Fixed slapd abstract objectClass inheritance check (ITS#5474)
 	Fixed slapd connection handling (ITS#5469)
@@ -10,6 +7,7 @@ OpenLDAP 2.3.42 Release (2008/05/15)
 	Fixed slapd delta-syncrepl resync (ITS#5378)
 	Fixed slapd pagedresults stale state (ITS#5409)
 	Fixed slapd-ldap connection handler (ITS#5404)
+	Fixed slapd-ldap entry_get() op-dependent behavior (ITS#5513)
 	Fixed slapo-accesslog null callback stack crash (ITS#5490)
 	Fixed slapo-syncprov csn update with delta-syncrepl (ITS#5493)
 	Documentation
