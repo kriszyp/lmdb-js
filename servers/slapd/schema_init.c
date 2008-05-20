@@ -2273,6 +2273,8 @@ integerFilter(
 
 	keys[0].bv_len = index_intlen;
 	keys[0].bv_val = slap_sl_malloc( index_intlen, ctx );
+	keys[1].bv_len = 0;
+	keys[1].bv_val = NULL;
 
 	iv.bv_len = value->bv_len < index_intlen_strlen + INDEX_INTLEN_CHOP-1
 		? value->bv_len : index_intlen_strlen + INDEX_INTLEN_CHOP-1;

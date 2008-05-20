@@ -1224,8 +1224,11 @@ syncprov_matchops( Operation *op, opcookie *opc, int saveit )
 			}
 		}
 
-		if ( fc.fscope )
+		if ( fc.fscope ) {
 			op2 = *ss->s_op;
+			op2.o_hdr = op->o_hdr;
+			op2.o_extra = op->o_extra;
+		}
 
 		/* check if current o_req_dn is in scope and matches filter */
 		if ( fc.fscope && test_filter( &op2, e, ss->s_op->ors_filter ) ==
