@@ -1152,7 +1152,11 @@ gotit:
 				}
 				cx->depth--;
 				cx->op->o_tmpfree( save, cx->op->o_tmpmemctx );
-				if ( nokids ) ei->bei_state |= CACHE_ENTRY_NO_GRANDKIDS;
+				if ( nokids ) {
+					bdb_cache_entryinfo_lock( ei );
+					ei->bei_state |= CACHE_ENTRY_NO_GRANDKIDS;
+					bdb_cache_entryinfo_unlock( ei );
+				}
 			}
 			/* Make sure caller knows it had kids! */
 			cx->tmp[0]=1;
