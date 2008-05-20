@@ -2049,11 +2049,11 @@ acl_set_cb_gather( Operation *op, SlapReply *rs )
 					bvalsp = a->a_nvals;
 				}
 			}
-		}
 
-		if ( bvalsp ) {
-			p->bvals = slap_set_join( p->cookie, p->bvals,
-					( '|' | SLAP_SET_RREF ), bvalsp );
+			if ( bvalsp ) {
+				p->bvals = slap_set_join( p->cookie, p->bvals,
+						( '|' | SLAP_SET_RREF ), bvalsp );
+			}
 		}
 
 	} else {
