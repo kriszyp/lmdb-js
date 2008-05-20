@@ -47,6 +47,9 @@
 #ifdef HAVE_IO_H
 #include <io.h>
 #endif /* HAVE_IO_H */
+#ifdef HAVE_FCNTL_H
+#include <fcntl.h>
+#endif
 
 #include "ldap-int.h"
 #include "ldap_defaults.h"
@@ -89,6 +92,9 @@ ldap_pvt_socket(LDAP *ld)
 {
 	ber_socket_t s = socket(PF_LOCAL, SOCK_STREAM, 0);
 	oslocal_debug(ld, "ldap_new_socket: %d\n",s,0,0);
+#ifdef FD_CLOEXEC
+	fcntl(s, F_SETFD, FD_CLOEXEC);
+#endif
 	return ( s );
 }
 
