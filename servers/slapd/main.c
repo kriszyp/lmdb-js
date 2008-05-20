@@ -929,6 +929,8 @@ unhandled_option:;
 	 */
 	time( &starttime );
 
+	connections_init();
+
 	if ( slap_startup( NULL ) != 0 ) {
 		rc = 1;
 		SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 21 );
