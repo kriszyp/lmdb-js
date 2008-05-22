@@ -1238,7 +1238,7 @@ idassert-authzFrom	"dn:<rootdn>"
 			return 1;
 		}
 
-		if ( mi->mi_ntargets ) {
+		if ( mi->mi_ntargets == 0 ) {
 			mi->mi_flags |= LDAP_BACK_F_QUARANTINE;
 
 		} else {
