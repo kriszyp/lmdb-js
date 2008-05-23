@@ -601,6 +601,9 @@ ldap_free_connection( LDAP *ld, LDAPConn *lc, int force, int unbind )
 				} else {
 				    prevlc->lconn_next = tmplc->lconn_next;
 				}
+				if ( ld->ld_defconn == lc ) {
+					ld->ld_defconn = NULL;
+				}
 				break;
 			}
 			prevlc = tmplc;
@@ -631,6 +634,8 @@ ldap_free_connection( LDAP *ld, LDAPConn *lc, int force, int unbind )
 		}
 		if ( lc->lconn_sb != ld->ld_sb ) {
 			ber_sockbuf_free( lc->lconn_sb );
+		} else {
+			ber_int_sb_close( lc->lconn_sb );
 		}
 		if ( lc->lconn_rebind_queue != NULL) {
 			int i;
