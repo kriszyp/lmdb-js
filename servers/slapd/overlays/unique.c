@@ -250,7 +250,6 @@ unique_new_domain_uri ( unique_domain_uri **urip,
 		filter_free( f );
 	}
 exit:
-	if ( bv.bv_val ) ber_memfree ( bv.bv_val );
 	uri->next = *urip;
 	*urip = uri;
 	if ( rc ) {
