@@ -5,6 +5,7 @@ OpenLDAP 2.4.10 Engineering
 	Fixed slapd missing termination of integerFilter keys (ITS#5503)
 	Fixed slapd multiple attrs in URI (ITS#5516)
 	Fixed slapd-ldap entry_get() op-dependent behavior (ITS#5513)
+	Fixed slapd-meta quarantine crasher (ITS#5522)
 	Fixed slapo-syncprov csn update with delta-syncrepl (ITS#5493)
 	Fixed slapo-syncprov op2.o_extra reset (ITS#5506)
 	Fixed slapo-syncprov sending ops without queued CSNs (ITS#5465)
