@@ -58,7 +58,8 @@ to the server.  For example, the {{host_options}}(5) rule:
 
 allows only incoming connections from the private network {{F:10.0.0.0}}
 and localhost ({{F:127.0.0.1}}) to access the directory service.
-Note that IP addresses are used as {{slapd}}(8) is not normally
+
+Note: IP addresses are used as {{slapd}}(8) is not normally
 configured to perform reverse lookups.
 
 It is noted that TCP wrappers require the connection to be accepted.
@@ -127,10 +128,11 @@ requested by providing a valid name and password.
 An anonymous bind results in an {{anonymous}} authorization
 association.  Anonymous bind mechanism is enabled by default, but
 can be disabled by specifying "{{EX:disallow bind_anon}}" in
-{{slapd.conf}}(5).  Note that disabling the anonymous bind mechanism
-does not prevent anonymous access to the directory.  To require
-authentication to access the directory, one should instead
-specify "{{EX:require authc}}".
+{{slapd.conf}}(5).  
+
+Note: Disabling the anonymous bind mechanism does not prevent 
+anonymous access to the directory. To require authentication to 
+access the directory, one should instead specify "{{EX:require authc}}".
 
 An unauthenticated bind also results in an {{anonymous}} authorization
 association.  Unauthenticated bind mechanism is disabled by default,
@@ -158,19 +160,19 @@ binds to use encryption of DES equivalent or better.
 The user/password authenticated bind mechanism can be completely
 disabled by setting "{{EX:disallow bind_simple}}".
 
-Note:  An unsuccessful bind always results in the session having
+Note: An unsuccessful bind always results in the session having
 an {{anonymous}} authorization association.
 
 
 H3: SASL method
 
 The LDAP {{TERM:SASL}} method allows the use of any SASL authentication
-mechanism.  The {{SECT:Using SASL}} section discusses the use of SASL.
+mechanism. The {{SECT:Using SASL}} section discusses the use of SASL.
 
 H2: Password Storage
 
 LDAP passwords are normally stored in the {{userPassword}} attribute.
-RFC4519 specifies that passwords are not stored in encrypted form,
+{{REF:RFC4519}} specifies that passwords are not stored in encrypted form,
 but this can create an unwanted security exposure so {{slapd}} provides
 several options for the administrator to choose from.
 
@@ -183,7 +185,7 @@ on the value, so a Unix {{crypt}}-style password might look like this:
 
 > userPassword: {CRYPT}.7D8U/PCF00Hw
 
-In general is is safest to store passwords in a salted hashed format
+In general, it is safest to store passwords in a salted hashed format
 like SSHA. This makes it very hard for an attacker to derive passwords
 from stolen backups or by obtaining access to the on-disk {{slapd}}
 database.
@@ -214,6 +216,10 @@ The advantage of the CRYPT scheme is that passwords can be
 transferred to or from an existing Unix password file without having
 to know the cleartext form. Both forms of {{crypt}} include salt so
 they have some resistance to dictionary attacks.
+
+
+Note: Since this scheme uses the operation system's {{crypt(3)}} hash function, 
+it is therefore operation system specific.
 
 H3: MD5 password storage scheme
 
@@ -247,7 +253,7 @@ of salt leaves the scheme exposed to dictionary attacks.
 H3: SSHA password storage scheme
 
 This is the salted version of the SHA scheme. It is believed to be the
-most secure password storage sheme supported by {{slapd}}.
+most secure password storage scheme supported by {{slapd}}.
 
 These values represent the same password:
 
@@ -260,18 +266,21 @@ This is not really a password storage scheme at all. It uses the
 value of the {{userPassword}} attribute to delegate password
 verification to another process. See below for more information.
 
-Note that this is not the same as using SASL to authenticate the LDAP
+Note: This is not the same as using SASL to authenticate the LDAP
 session.
 
 H3: KERBEROS password storage scheme
 
 This is not really a password storage scheme at all. It uses the
 value of the {{userPassword}} attribute to delegate password
-verification to Kerberos. Note that this is not the same as using
-Kerberos authentication of the LDAP session. This scheme could be said
-to defeat the advantages of Kerberos by causing the Kerberos password
-to be exposed to the {{slapd}} server (and possibly on the network as
-well).
+verification to Kerberos. 
+
+Note: This is not the same as using Kerberos authentication of 
+the LDAP session.
+
+This scheme could be said to defeat the advantages of Kerberos by 
+causing the Kerberos password to be exposed to the {{slapd}} server 
+(and possibly on the network as well).
 
 H2: Pass-Through authentication
 
@@ -285,10 +294,11 @@ server, another LDAP server, or anything supported by the PAM mechanism.
 The server must be built with the {{EX:--enable-spasswd}}
 configuration option to enable pass-through authentication.
 
-Note that this is not the same as using a SASL mechanism to
-authenticate the LDAP session. Pass-Through authentication works only
-with plaintext passwords, as used in the "simple bind" and "SASL
-PLAIN" authentication mechanisms.
+Note: This is not the same as using a SASL mechanism to
+authenticate the LDAP session.
+
+Pass-Through authentication works only with plaintext passwords, as 
+used in the "simple bind" and "SASL PLAIN" authentication mechanisms.}}
 
 Pass-Through authentication is selective: it only affects users whose
 {{userPassword}} attribute has a value marked with the "{SASL}"
@@ -301,10 +311,12 @@ mechanism and are used to identify the account whose password is to be
 verified. This allows arbitrary mapping between entries in OpenLDAP
 and accounts known to the backend authentication service.
 
-Note that there is no support for changing passwords in the backend
-via {{slapd}}. It would be wise to use access control to prevent users
-from changing their passwords through LDAP where they have
-pass-through authentication enabled.
+Note: There is no support for changing passwords in the backend
+via {{slapd}}.
+
+It would be wise to use access control to prevent users from changing 
+their passwords through LDAP where they have pass-through authentication 
+enabled.
 
 
 H3: Configuring slapd to use an authentication provider
@@ -318,7 +330,7 @@ file to be considered is confusingly named {{slapd.conf}} and is
 typically found in the SASL library directory, often
 {{EX:/usr/lib/sasl2/slapd.conf}} This file governs the use of SASL
 when talking LDAP to {{slapd}} as well as the use of SASL backends for
-pass-through authentication. See {{EX:options.html}} in the Cyrus SASL
+pass-through authentication. See {{EX:options.html}} in the {{PRD:Cyrus SASL}}
 docs for full details. Here is a simple example for a server that will
 use {{saslauthd}} to verify passwords:
 
@@ -331,7 +343,7 @@ H3: Configuring saslauthd
 {{saslauthd}} is capable of using many different authentication
 services: see {{saslauthd(8)}} for details. A common requirement is to
 delegate some or all authentication to another LDAP server. Here is a
-sample {{EX:saslauthd.conf}} that uses AD:
+sample {{EX:saslauthd.conf}} that uses Microsoft Active Directory (AD):
 
 > ldap_servers: ldap://dc1.example.com/ ldap://dc2.example.com/
 > 
