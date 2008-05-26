@@ -395,7 +395,7 @@ bdb_monitor_db_open( BackendDB *be )
 	{
 		struct berval	bv, nbv;
 		ber_len_t	pathlen = 0, len = 0;
-		char		path[ PATH_MAX ] = { '\0' };
+		char		path[ MAXPATHLEN ] = { '\0' };
 		char		*fname = bdb->bi_dbenv_home,
 				*ptr;
 
