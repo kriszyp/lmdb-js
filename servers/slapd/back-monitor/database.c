@@ -49,14 +49,6 @@ static int monitor_back_add_plugin( monitor_info_t *mi, Backend *be, Entry *e );
 #include "../back-meta/back-meta.h"
 #endif /* defined(SLAPD_META) */
 
-/* for PATH_MAX on some systems (e.g. Solaris) */
-#ifdef HAVE_LIMITS_H
-#include <limits.h>
-#endif /* HAVE_LIMITS_H */
-#ifndef PATH_MAX
-#define PATH_MAX	4095
-#endif /* ! PATH_MAX */
-
 static int
 monitor_subsys_database_modify(
 	Operation	*op,
@@ -313,7 +305,7 @@ monitor_subsys_database_init(
 		{
 			struct berval	bv;
 			ber_len_t	pathlen = 0, len = 0;
-			char		path[ PATH_MAX ] = { '\0' };
+			char		path[ MAXPATHLEN ] = { '\0' };
 			struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 			char		*fname = bdb->bi_dbenv_home;
 
