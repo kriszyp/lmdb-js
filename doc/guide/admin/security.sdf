@@ -1,5 +1,6 @@
 # $OpenLDAP$
 # Copyright 1999-2008 The OpenLDAP Foundation, All Rights Reserved.
+# Portions Copyright 2008 Andrew Findlay.
 # COPYING RESTRICTIONS APPLY, see COPYRIGHT.
 
 H1: Security Considerations
