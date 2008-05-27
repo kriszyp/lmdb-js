@@ -44,16 +44,16 @@ typedef struct unique_attrs_s {
 
 typedef struct unique_domain_uri_s {
 	struct unique_domain_uri_s *next;
-	struct berval *dn;
-	struct berval *ndn;
-	struct berval *filter;
+	struct berval dn;
+	struct berval ndn;
+	struct berval filter;
 	struct unique_attrs_s *attrs;
 	int scope;
 } unique_domain_uri;
 
 typedef struct unique_domain_s {
 	struct unique_domain_s *next;
-	struct berval *domain_spec;
+	struct berval domain_spec;
 	struct unique_domain_uri_s *uri;
 	char ignore;                          /* polarity of attributes */
 	char strict;                          /* null considered unique too */
@@ -138,9 +138,9 @@ unique_free_domain_uri ( unique_domain_uri *uri )
 
 	while ( uri ) {
 		next_uri = uri->next;
-		ber_bvfree ( uri->dn );
-		ber_bvfree ( uri->ndn );
-		ber_bvfree ( uri->filter );
+		ch_free ( uri->dn.bv_val );
+		ch_free ( uri->ndn.bv_val );
+		ch_free ( uri->filter.bv_val );
 		attr = uri->attrs;
 		while ( attr ) {
 			next_attr = attr->next;
@@ -160,7 +160,7 @@ unique_free_domain ( unique_domain *domain )
 
 	while ( domain ) {
 		next_domain = domain->next;
-		ber_bvfree ( domain->domain_spec );
+		ch_free ( domain->domain_spec.bv_val );
 		unique_free_domain_uri ( domain->uri );
 		ch_free ( domain );
 		domain = next_domain;
@@ -183,11 +183,11 @@ unique_new_domain_uri ( unique_domain_uri **urip,
 	uri = ch_calloc ( 1, sizeof ( unique_domain_uri ) );
 
 	if ( url_desc->lud_dn && url_desc->lud_dn[0] ) {
-		ber_str2bv( url_desc->lud_dn, 0, 1, &bv );
+		ber_str2bv( url_desc->lud_dn, 0, 0, &bv );
 		rc = dnPrettyNormal( NULL,
 				     &bv,
-				     uri->dn,
-				     uri->ndn,
+				     &uri->dn,
+				     &uri->ndn,
 				     NULL );
 		if ( rc != LDAP_SUCCESS ) {
 			snprintf( c->cr_msg, sizeof( c->cr_msg ),
@@ -197,10 +197,10 @@ unique_new_domain_uri ( unique_domain_uri **urip,
 			goto exit;
 		}
 
-		if ( !dnIsSuffix ( uri->ndn, &be->be_nsuffix[0] ) ) {
+		if ( !dnIsSuffix ( &uri->ndn, &be->be_nsuffix[0] ) ) {
 			snprintf( c->cr_msg, sizeof( c->cr_msg ),
 				  "dn <%s> is not a suffix of backend base dn <%s>",
-				  uri->dn->bv_val,
+				  uri->dn.bv_val,
 				  be->be_nsuffix[0].bv_val );
 			rc = ARG_BAD_CONF;
 			goto exit;
@@ -239,8 +239,8 @@ unique_new_domain_uri ( unique_domain_uri **urip,
 
 	if (url_desc->lud_filter) {
 		Filter * f;
-		uri->filter = ber_str2bv( url_desc->lud_filter, 0, 1, NULL);
-		f = str2filter( uri->filter->bv_val );
+		ber_str2bv( url_desc->lud_filter, 0, 1, &uri->filter );
+		f = str2filter( uri->filter.bv_val );
 		if ( !f ) {
 			snprintf( c->cr_msg, sizeof( c->cr_msg ),
 				  "unique: bad filter");
@@ -305,7 +305,7 @@ unique_new_domain ( unique_domain **domainp,
 	      domain_spec, 0, 0);
 
 	domain = ch_calloc ( 1, sizeof (unique_domain) );
-	domain->domain_spec = ber_str2bv( domain_spec, 0, 1, NULL );
+	ber_str2bv( domain_spec, 0, 1, &domain->domain_spec );
 
 	uri_start = domain_spec;
 	if ( strncasecmp ( uri_start, "ignore ",
@@ -372,24 +372,23 @@ unique_cf_base( ConfigArgs *c )
 	switch ( c->op ) {
 	case SLAP_CONFIG_EMIT:
 		rc = 0;
-		if ( legacy && legacy->uri && legacy->uri->dn ) {
+		if ( legacy && legacy->uri && legacy->uri->dn.bv_val ) {
 			rc = value_add_one ( &c->rvalue_vals,
-					     legacy->uri->dn );
+					     &legacy->uri->dn );
 			if ( rc ) return rc;
 			rc = value_add_one ( &c->rvalue_nvals,
-					     legacy->uri->ndn );
+					     &legacy->uri->ndn );
 			if ( rc ) return rc;
 		}
 		break;
 	case LDAP_MOD_DELETE:
-		assert ( legacy && legacy->uri && legacy->uri->dn );
+		assert ( legacy && legacy->uri && legacy->uri->dn.bv_val );
 		rc = 0;
-		ber_bvfree ( legacy->uri->dn );
-		ber_bvfree ( legacy->uri->ndn );
-		legacy->uri->dn = NULL;
-		legacy->uri->ndn = NULL;
-		if ( !legacy->uri->attrs
-		     && !legacy->uri->dn ) {
+		ch_free ( legacy->uri->dn.bv_val );
+		ch_free ( legacy->uri->ndn.bv_val );
+		BER_BVZERO( &legacy->uri->dn );
+		BER_BVZERO( &legacy->uri->ndn );
+		if ( !legacy->uri->attrs ) {
 			unique_free_domain_uri ( legacy->uri );
 			legacy->uri = NULL;
 		}
@@ -425,10 +424,10 @@ unique_cf_base( ConfigArgs *c )
 		}
 		if ( !legacy->uri )
 			unique_new_domain_uri_basic ( &legacy->uri, c );
-		ber_bvfree ( legacy->uri->dn );
-		ber_bvfree ( legacy->uri->ndn );
-		legacy->uri->dn = ber_bvdup ( &c->value_dn );
-		legacy->uri->ndn = ber_bvdup ( &c->value_ndn );
+		ch_free ( legacy->uri->dn.bv_val );
+		ch_free ( legacy->uri->ndn.bv_val );
+		legacy->uri->dn = c->value_dn;
+		legacy->uri->ndn = c->value_ndn;
 		rc = 0;
 		break;
 	default:
@@ -485,7 +484,7 @@ unique_cf_attrs( ConfigArgs *c )
 				ch_free (attr);
 			}
 			if ( !legacy->uri->attrs
-			     && !legacy->uri->dn ) {
+			     && !legacy->uri->dn.bv_val ) {
 				unique_free_domain_uri ( legacy->uri );
 				legacy->uri = NULL;
 			}
@@ -663,10 +662,7 @@ unique_cf_uri( ConfigArgs *c )
 		      domain;
 		      domain = domain->next ) {
 			rc = value_add_one ( &c->rvalue_vals,
-					     domain->domain_spec );
-			if ( rc ) break;
-			rc = value_add_one ( &c->rvalue_nvals,
-					     domain->domain_spec );
+					     &domain->domain_spec );
 			if ( rc ) break;
 		}
 		break;
@@ -952,7 +948,7 @@ unique_search(
 	struct berval * dn,
 	int scope,
 	SlapReply *rs,
-	char *key
+	struct berval *key
 )
 {
 	slap_overinst *on = (slap_overinst *) op->o_bd->bd_info;
@@ -963,8 +959,8 @@ unique_search(
 
 	Debug(LDAP_DEBUG_TRACE, "==> unique_search %s\n", key, 0, 0);
 
-	nop->ors_filter = str2filter_x(nop, key);
-	ber_str2bv(key, 0, 0, &nop->ors_filterstr);
+	nop->ors_filter = str2filter_x(nop, key->bv_val);
+	nop->ors_filterstr = *key;
 
 	cb.sc_response	= (slap_response*)count_attr_cb;
 	cb.sc_private	= &uq;
@@ -986,7 +982,7 @@ unique_search(
 	nop->o_bd = on->on_info->oi_origdb;
 	rc = nop->o_bd->be_search(nop, &nrs);
 	filter_free_x(nop, nop->ors_filter);
-	op->o_tmpfree( key, op->o_tmpmemctx );
+	op->o_tmpfree( key->bv_val, op->o_tmpmemctx );
 
 	if(rc != LDAP_SUCCESS && rc != LDAP_NO_SUCH_OBJECT) {
 		op->o_bd->bd_info = (BackendInfo *) on->on_info;
@@ -1020,6 +1016,7 @@ unique_add(
 	Operation nop = *op;
 	Attribute *a;
 	char *key, *kp;
+	struct berval bvkey;
 	int rc = SLAP_CB_CONTINUE;
 
 	Debug(LDAP_DEBUG_TRACE, "==> unique_add <%s>\n",
@@ -1038,8 +1035,8 @@ unique_add(
 		{
 			int len;
 
-			if ( uri->ndn
-			     && !dnIsSuffix( &op->o_req_ndn, uri->ndn ))
+			if ( uri->ndn.bv_val
+			     && !dnIsSuffix( &op->o_req_ndn, &uri->ndn ))
 				continue;
 
 			if(!(a = op->ora_e->e_attrs)) {
@@ -1061,12 +1058,12 @@ unique_add(
 			/* skip this domain-uri if it isn't involved */
 			if ( !ks ) continue;
 
-			if ( uri->filter && uri->filter->bv_len )
-				ks += uri->filter->bv_len + STRLENOF ("(&)");
+			if ( uri->filter.bv_val && uri->filter.bv_len )
+				ks += uri->filter.bv_len + STRLENOF ("(&)");
 			kp = key = op->o_tmpalloc(ks, op->o_tmpmemctx);
 
-			if ( uri->filter && uri->filter->bv_len ) {
-				len = snprintf (kp, ks, "(&%s", uri->filter->bv_val);
+			if ( uri->filter.bv_val && uri->filter.bv_len ) {
+				len = snprintf (kp, ks, "(&%s", uri->filter.bv_val);
 				assert( len >= 0 && len < ks );
 				kp += len;
 			}
@@ -1086,20 +1083,22 @@ unique_add(
 			len = snprintf(kp, ks - (kp - key), ")");
 			assert( len >= 0 && len < ks - (kp - key) );
 			kp += len;
-			if ( uri->filter && uri->filter->bv_len ) {
+			if ( uri->filter.bv_val && uri->filter.bv_len ) {
 				len = snprintf(kp, ks - (kp - key), ")");
 				assert( len >= 0 && len < ks - (kp - key) );
 				kp += len;
 			}
+			bvkey.bv_val = key;
+			bvkey.bv_len = kp - key;
 
 			rc = unique_search ( op,
 					     &nop,
-					     uri->ndn ?
-					     uri->ndn :
+					     uri->ndn.bv_val ?
+					     &uri->ndn :
 					     &op->o_bd->be_nsuffix[0],
 					     uri->scope,
 					     rs,
-					     key);
+					     &bvkey);
 
 			if ( rc != SLAP_CB_CONTINUE ) break;
 		}
@@ -1124,6 +1123,7 @@ unique_modify(
 	Operation nop = *op;
 	Modifications *m;
 	char *key, *kp;
+	struct berval bvkey;
 	int rc = SLAP_CB_CONTINUE;
 
 	Debug(LDAP_DEBUG_TRACE, "==> unique_modify <%s>\n",
@@ -1142,8 +1142,8 @@ unique_modify(
 		{
 			int len;
 
-			if ( uri->ndn
-			     && !dnIsSuffix( &op->o_req_ndn, uri->ndn ))
+			if ( uri->ndn.bv_val
+			     && !dnIsSuffix( &op->o_req_ndn, &uri->ndn ))
 				continue;
 
 			if ( !(m = op->orm_modlist) ) {
@@ -1166,12 +1166,12 @@ unique_modify(
 			/* skip this domain-uri if it isn't involved */
 			if ( !ks ) continue;
 
-			if ( uri->filter && uri->filter->bv_len )
-				ks += uri->filter->bv_len + STRLENOF ("(&)");
+			if ( uri->filter.bv_val && uri->filter.bv_len )
+				ks += uri->filter.bv_len + STRLENOF ("(&)");
 			kp = key = op->o_tmpalloc(ks, op->o_tmpmemctx);
 
-			if ( uri->filter && uri->filter->bv_len ) {
-				len = snprintf(kp, ks, "(&%s", uri->filter->bv_val);
+			if ( uri->filter.bv_val && uri->filter.bv_len ) {
+				len = snprintf(kp, ks, "(&%s", uri->filter.bv_val);
 				assert( len >= 0 && len < ks );
 				kp += len;
 			}
@@ -1193,20 +1193,22 @@ unique_modify(
 			len = snprintf(kp, ks - (kp - key), ")");
 			assert( len >= 0 && len < ks - (kp - key) );
 			kp += len;
-			if ( uri->filter && uri->filter->bv_len ) {
+			if ( uri->filter.bv_val && uri->filter.bv_len ) {
 				len = snprintf (kp, ks - (kp - key), ")");
 				assert( len >= 0 && len < ks - (kp - key) );
 				kp += len;
 			}
+			bvkey.bv_val = key;
+			bvkey.bv_len = kp - key;
 
 			rc = unique_search ( op,
 					     &nop,
-					     uri->ndn ?
-					     uri->ndn :
+					     uri->ndn.bv_val ?
+					     &uri->ndn :
 					     &op->o_bd->be_nsuffix[0],
 					     uri->scope,
 					     rs,
-					     key);
+					     &bvkey);
 
 			if ( rc != SLAP_CB_CONTINUE ) break;
 		}
@@ -1230,6 +1232,7 @@ unique_modrdn(
 	unique_domain *domain;
 	Operation nop = *op;
 	char *key, *kp;
+	struct berval bvkey;
 	LDAPRDN	newrdn;
 	struct berval bv[2];
 	int rc = SLAP_CB_CONTINUE;
@@ -1250,10 +1253,10 @@ unique_modrdn(
 		{
 			int i, len;
 
-			if ( uri->ndn
-			     && !dnIsSuffix( &op->o_req_ndn, uri->ndn )
+			if ( uri->ndn.bv_val
+			     && !dnIsSuffix( &op->o_req_ndn, &uri->ndn )
 			     && (!op->orr_nnewSup
-				 || !dnIsSuffix( op->orr_nnewSup, uri->ndn )))
+				 || !dnIsSuffix( op->orr_nnewSup, &uri->ndn )))
 				continue;
 
 			if ( ldap_bv2rdn_x ( &op->oq_modrdn.rs_newrdn,
@@ -1296,12 +1299,12 @@ unique_modrdn(
 			/* skip this domain if it isn't involved */
 			if ( !ks ) continue;
 
-			if ( uri->filter && uri->filter->bv_len )
-				ks += uri->filter->bv_len + STRLENOF ("(&)");
+			if ( uri->filter.bv_val && uri->filter.bv_len )
+				ks += uri->filter.bv_len + STRLENOF ("(&)");
 			kp = key = op->o_tmpalloc(ks, op->o_tmpmemctx);
 
-			if ( uri->filter && uri->filter->bv_len ) {
-				len = snprintf(kp, ks, "(&%s", uri->filter->bv_val);
+			if ( uri->filter.bv_val && uri->filter.bv_len ) {
+				len = snprintf(kp, ks, "(&%s", uri->filter.bv_val);
 				assert( len >= 0 && len < ks );
 				kp += len;
 			}
@@ -1323,20 +1326,22 @@ unique_modrdn(
 			len = snprintf(kp, ks - (kp - key), ")");
 			assert( len >= 0 && len < ks - (kp - key) );
 			kp += len;
-			if ( uri->filter && uri->filter->bv_len ) {
+			if ( uri->filter.bv_val && uri->filter.bv_len ) {
 				len = snprintf (kp, ks - (kp - key), ")");
 				assert( len >= 0 && len < ks - (kp - key) );
 				kp += len;
 			}
+			bvkey.bv_val = key;
+			bvkey.bv_len = kp - key;
 
 			rc = unique_search ( op,
 					     &nop,
-					     uri->ndn ?
-					     uri->ndn :
+					     uri->ndn.bv_val ?
+					     &uri->ndn :
 					     &op->o_bd->be_nsuffix[0],
 					     uri->scope,
 					     rs,
-					     key);
+					     &bvkey);
 
 			if ( rc != SLAP_CB_CONTINUE ) break;
 		}
