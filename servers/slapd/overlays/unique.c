@@ -1026,7 +1026,7 @@ unique_add(
 	      domain = domain->next )
 	{
 		unique_domain_uri *uri;
-		int ks = 0;
+		int ks = STRLENOF("(|)");
 
 		for ( uri = domain->uri;
 		      uri;
@@ -1136,7 +1136,7 @@ unique_modify(
 	      domain = domain->next )
 	{
 		unique_domain_uri *uri;
-		int ks = 0;
+		int ks = STRLENOF("(|)");
 
 		for ( uri = domain->uri;
 		      uri;
@@ -1250,7 +1250,7 @@ unique_modrdn(
 	      domain = domain->next )
 	{
 		unique_domain_uri *uri;
-		int ks = 0;
+		int ks = STRLENOF("(|)");
 
 		for ( uri = domain->uri;
 		      uri;
