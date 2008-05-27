@@ -19,9 +19,9 @@ Software Copyright Notices}} and the {{SECT:OpenLDAP Public License}}.
 Complete copies of the notices and associated license can be found
 in Appendix K and L, respectively.
 
-Portions of this document are copyright by others as reflected in
-the {{SECT:Additional Copyright Notices}} section and/or individual
-source files.
+Portions of OpenLDAP Software and this document may be copyright
+by other parties and/or subject to additional restrictions.  Individual
+source files should be consulted for additional copyright notices.
 
 P2[notoc] Scope of this Document
 
