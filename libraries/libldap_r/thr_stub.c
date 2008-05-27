@@ -226,6 +226,16 @@ int ldap_pvt_thread_pool_resume (
 	return(0);
 }
 
+int ldap_pvt_thread_pool_pausing( ldap_pvt_thread_pool_t *tpool )
+{
+	return(0);
+}
+
+ldap_pvt_thread_pool_pausecheck( ldap_pvt_thread_pool_t *tpool )
+{
+	return(0);
+}
+	
 void *ldap_pvt_thread_pool_context( )
 {
 	return(NULL);
