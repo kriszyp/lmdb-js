@@ -250,7 +250,6 @@ unique_new_domain_uri ( unique_domain_uri **urip,
 		filter_free( f );
 	}
 exit:
-	if ( bv.bv_val ) ber_memfree ( bv.bv_val );
 	uri->next = *urip;
 	*urip = uri;
 	if ( rc ) {
@@ -1058,6 +1057,9 @@ unique_add(
 			/* skip this domain-uri if it isn't involved */
 			if ( !ks ) continue;
 
+			/* terminating NUL */
+			ks++;
+
 			if ( uri->filter.bv_val && uri->filter.bv_len )
 				ks += uri->filter.bv_len + STRLENOF ("(&)");
 			kp = key = op->o_tmpalloc(ks, op->o_tmpmemctx);
@@ -1165,6 +1167,9 @@ unique_modify(
 
 			/* skip this domain-uri if it isn't involved */
 			if ( !ks ) continue;
+
+			/* terminating NUL */
+			ks++;
 
 			if ( uri->filter.bv_val && uri->filter.bv_len )
 				ks += uri->filter.bv_len + STRLENOF ("(&)");
@@ -1298,6 +1303,9 @@ unique_modrdn(
 
 			/* skip this domain if it isn't involved */
 			if ( !ks ) continue;
+
+			/* terminating NUL */
+			ks++;
 
 			if ( uri->filter.bv_val && uri->filter.bv_len )
 				ks += uri->filter.bv_len + STRLENOF ("(&)");
