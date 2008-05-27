@@ -6,6 +6,7 @@ OpenLDAP 2.4.10 Engineering
 	Fixed libldap_r missing stubs (ITS#5519)
 	Fixed slapd missing termination of integerFilter keys (ITS#5503)
 	Fixed slapd multiple attrs in URI (ITS#5516)
+	Fixed slapd socket assert (ITS#5489)
 	Fixed slapd-bdb/hdb MAXPATHLEN (ITS#5531)
 	Fixed slapd-ldap entry_get() op-dependent behavior (ITS#5513)
 	Fixed slapd-meta quarantine crasher (ITS#5522)
