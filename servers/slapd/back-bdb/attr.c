@@ -292,6 +292,7 @@ bdb_attr_index_config(
 					b->ai_indexmask = b->ai_newmask;
 				b->ai_newmask = a->ai_newmask;
 				ch_free( a );
+				rc = 0;
 				continue;
 			}
 			fprintf( stderr,
