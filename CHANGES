@@ -24,6 +24,7 @@ OpenLDAP 2.4.10 Engineering
 	Fixed slapo-unique filter terminator (ITS#5511)
 	Documentation
 		Add search privileges documentation (ITS#5512)
+		admin24 security document updates (ITS#5524)
 
 OpenLDAP 2.4.9 Release (2008/05/07)
 	Fixed libldap to use unsigned port (ITS#5436)
