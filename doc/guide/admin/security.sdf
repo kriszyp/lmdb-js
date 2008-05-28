@@ -173,26 +173,41 @@ mechanism. The {{SECT:Using SASL}} section discusses the use of SASL.
 H2: Password Storage
 
 LDAP passwords are normally stored in the {{userPassword}} attribute.
-{{REF:RFC4519}} specifies that passwords are not stored in encrypted form,
-but this can create an unwanted security exposure so {{slapd}} provides
-several options for the administrator to choose from.
+{{REF:RFC4519}} specifies that passwords are not stored in encrypted
+(or hashed) form.  This allows a wide range of password-based
+authentication mechanisms, such as {{EX:DIGEST-MD5}} to be used.
+This is also the most interoperable storage scheme.
+
+However, it may be desirable to store a hash of password instead.
+{{slapd}}(8) supports a variety of storage schemes for the administrator
+to choose from.
+
+Note: Values of password attributes, regardless of storage scheme
+used, should be protected as if they were clear text.  Hashed
+passwords are subject to {{dictionary attacks}} and {{brute-force
+attacks}}.
 
 The {{userPassword}} attribute is allowed to have more than one value,
 and it is possible for each value to be stored in a different form.
 During authentication, {{slapd}} will iterate through the values
 until it finds one that matches the offered password or until it
-runs out of values to inspect. The storage scheme is stored as a prefix
-on the value, so a Unix {{crypt}}-style password might look like this:
+runs out of values to inspect.  The storage scheme is stored as a prefix
+on the value, so a hashed password using the Salted SHA1 ({{EX:SSHA}})
+scheme looks like:
 
-> userPassword: {CRYPT}.7D8U/PCF00Hw
+> userPassword: {SSHA}DkMTwBl+a/3DQTxCYEApdUtNXGgdUac3
 
-In general, it is safest to store passwords in a salted hashed format
-like SSHA. This makes it very hard for an attacker to derive passwords
-from stolen backups or by obtaining access to the on-disk {{slapd}}
-database.
+The advantage of hashed passwords is that is that an attacker which
+discovers the hash does not have direct access to the actual password.
+Unforunately, as dictionary and brute force attacks are generally
+quite easy for attackers to successfully mount, this advantage is
+marginal at best.  (This is why all modern Unix systems use shadow
+password files.)
 
-The disadvantage of hashed storage is that it prevents the use of some
-authentication mechanisms such as {{EX:DIGEST-MD5}}.
+The disadvantages of hashed storage is they are non-standard, may
+cause interoperability problems, and generally preclude the use
+of stronger than Simple (or SASL/PLAIN) password-based authentication
+mechanisms, such as {{EX:DIGEST-MD5}}.
 
 H3: SSHA password storage scheme
 
@@ -219,8 +234,8 @@ transferred to or from an existing Unix password file without having
 to know the cleartext form. Both forms of {{crypt}} include salt so
 they have some resistance to dictionary attacks.
 
-Note: Since this scheme uses the operation system's {{crypt(3)}} hash function, 
-it is therefore operation system specific.
+Note: Since this scheme uses the operation system's {{crypt(3)}}
+hash function, it is therefore operation system specific.
 
 H3: MD5 password storage scheme
 
