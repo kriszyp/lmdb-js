@@ -1,6 +1,6 @@
 OpenLDAP 2.3 Change Log
 
-OpenLDAP 2.3.42 Release (2008/05/15)
+OpenLDAP 2.3.42 Release (2008/05/28)
 	Fixed libldap file descriptor leak with SELinux (ITS#5507)
 	Fixed libldap ld_defconn cleanup if it was freed (ITS#5518, ITS#5525)
 	Fixed slapd abstract objectClass inheritance check (ITS#5474)
