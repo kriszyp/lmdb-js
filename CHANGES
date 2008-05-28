@@ -1,6 +1,7 @@
 OpenLDAP 2.3 Change Log
 
 OpenLDAP 2.3.43 Engineering
+	Fixed slapd replog timestamps (ITS#5532)
 
 OpenLDAP 2.3.42 Release (2008/05/28)
 	Fixed libldap file descriptor leak with SELinux (ITS#5507)

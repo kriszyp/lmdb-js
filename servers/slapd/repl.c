@@ -168,7 +168,7 @@ replog( Operation *op )
 	int     count = 0;
 #endif
 	int	subsets = 0;
-	long	now = slap_get_time();
+	long	now;
 	char	*replogfile;
 
 	replogfile = op->o_bd->be_replogfile ? op->o_bd->be_replogfile :
@@ -183,6 +183,7 @@ replog( Operation *op )
 		return;
 	}
 
+	now = slap_get_time();
 	for ( i = 0; op->o_bd->be_replica != NULL && op->o_bd->be_replica[i] != NULL; i++ ) {
 		/* check if dn's suffix matches legal suffixes, if any */
 		if ( op->o_bd->be_replica[i]->ri_nsuffix != NULL ) {
