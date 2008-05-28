@@ -627,10 +627,10 @@ slap_send_ldap_result( Operation *op, SlapReply *rs )
 		rs->sr_ref = NULL;
 	}
 
+abandon:
 	rs->sr_tag = slap_req2res( op->o_tag );
 	rs->sr_msgid = (rs->sr_tag != LBER_SEQUENCE) ? op->o_msgid : 0;
 
-abandon:
 	if ( rs->sr_flags & REP_REF_MUSTBEFREED ) {
 		if ( rs->sr_ref == NULL ) {
 			rs->sr_flags ^= REP_REF_MUSTBEFREED;
