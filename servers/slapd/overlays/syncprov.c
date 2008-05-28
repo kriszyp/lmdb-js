@@ -1596,6 +1596,17 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 		cbuf[0] = '\0';
 		ldap_pvt_thread_rdwr_wlock( &si->si_csn_rwlock );
 		slap_get_commit_csn( op, &maxcsn );
+		if ( BER_BVISNULL( &maxcsn ) && SLAP_GLUE_SUBORDINATE( op->o_bd )) {
+			/* syncrepl queues the CSN values in the db where
+			 * it is configured , not where the changes are made.
+			 * So look for a value in the glue db if we didn't
+			 * find any in this db.
+			 */
+			BackendDB *be = op->o_bd;
+			op->o_bd = select_backend( &be->be_nsuffix[0], 1);
+			slap_get_commit_csn( op, &maxcsn );
+			op->o_bd = be;
+		}
 		if ( !BER_BVISNULL( &maxcsn ) ) {
 			int i, sid;
 			strcpy( cbuf, maxcsn.bv_val );
