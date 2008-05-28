@@ -194,14 +194,15 @@ database.
 The disadvantage of hashed storage is that it prevents the use of some
 authentication mechanisms such as {{EX:DIGEST-MD5}}.
 
-H3: CLEARTEXT password storage scheme
+H3: SSHA password storage scheme
 
-Cleartext passwords can be stored directly in the {{userPassword}}
-attribute, or can have the '{CLEARTEXT}' prefix. These two values are
-equivalent:
+This is the salted version of the SHA scheme. It is believed to be the
+most secure password storage scheme supported by {{slapd}}.
 
-> userPassword: secret
-> userPassword: {CLEARTEXT}secret
+These values represent the same password:
+
+> userPassword: {SSHA}DkMTwBl+a/3DQTxCYEApdUtNXGgdUac3
+> userPassword: {SSHA}d0Q0626PSH9VUld7yWpR0k6BlpQmtczb
 
 H3: CRYPT password storage scheme
 
@@ -217,7 +218,6 @@ The advantage of the CRYPT scheme is that passwords can be
 transferred to or from an existing Unix password file without having
 to know the cleartext form. Both forms of {{crypt}} include salt so
 they have some resistance to dictionary attacks.
-
 
 Note: Since this scheme uses the operation system's {{crypt(3)}} hash function, 
 it is therefore operation system specific.
@@ -250,16 +250,6 @@ hash process. SHA is thought to be more secure than MD5, but the lack
 of salt leaves the scheme exposed to dictionary attacks.
 
 > userPassword: {SHA}5en6G6MezRroT3XKqkdPOmY/BfQ=
-
-H3: SSHA password storage scheme
-
-This is the salted version of the SHA scheme. It is believed to be the
-most secure password storage scheme supported by {{slapd}}.
-
-These values represent the same password:
-
-> userPassword: {SSHA}DkMTwBl+a/3DQTxCYEApdUtNXGgdUac3
-> userPassword: {SSHA}d0Q0626PSH9VUld7yWpR0k6BlpQmtczb
 
 H3: SASL password storage scheme
 
