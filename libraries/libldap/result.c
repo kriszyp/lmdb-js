@@ -582,6 +582,11 @@ nextresp3:
 
 	/* id == 0 iff unsolicited notification message (RFC 4511) */
 
+	/* id < 0 is invalid, just toss it. FIXME: should we disconnect? */
+	if ( id < 0 ) {
+		goto retry_ber;
+	}
+	
 	/* if it's been abandoned, toss it */
 	if ( id > 0 ) {
 		if ( ldap_abandoned( ld, id, &idx ) ) {
@@ -602,8 +607,8 @@ nextresp3:
 			}
 
 			Debug( LDAP_DEBUG_ANY,
-				"abandoned/discarded ld %p msgid %ld message type %s\n",
-				(void *)ld, (long)id, ldap_int_msgtype2str( tag ) );
+				"abandoned/discarded ld %p msgid %d message type %s\n",
+				(void *)ld, id, ldap_int_msgtype2str( tag ) );
 
 retry_ber:
 			ber_free( ber, 1 );
@@ -629,8 +634,8 @@ retry_ber:
 			}
 
 			Debug( LDAP_DEBUG_ANY,
-				"no request for response on ld %p msgid %ld message type %s (tossing)\n",
-				(void *)ld, (long)id, msg );
+				"no request for response on ld %p msgid %d message type %s (tossing)\n",
+				(void *)ld, id, msg );
 
 			goto retry_ber;
 		}
@@ -652,8 +657,8 @@ nextresp2:
 	}
 
 	Debug( LDAP_DEBUG_TRACE,
-		"read1msg: ld %p msgid %ld message type %s\n",
-		(void *)ld, (long)lr->lr_msgid, ldap_int_msgtype2str( tag ) );
+		"read1msg: ld %p msgid %d message type %s\n",
+		(void *)ld, id, ldap_int_msgtype2str( tag ) );
 
 	if ( id == 0 ) {
 		/* unsolicited notification message (RFC 4511) */
@@ -900,8 +905,8 @@ nextresp2:
 			{
 				id = lr->lr_msgid;
 				tag = lr->lr_res_msgtype;
-				Debug( LDAP_DEBUG_TRACE, "request done: ld %p msgid %ld\n",
-					(void *)ld, (long) id, 0 );
+				Debug( LDAP_DEBUG_TRACE, "request done: ld %p msgid %d\n",
+					(void *)ld, id, 0 );
 				Debug( LDAP_DEBUG_TRACE,
 					"res_errno: %d, res_error: <%s>, "
 					"res_matched: <%s>\n",
@@ -1156,8 +1161,8 @@ nextresp2:
 		goto exit;
 	}
 
-	Debug( LDAP_DEBUG_TRACE, "adding response ld %p msgid %ld type %ld:\n",
-		(void *)ld, (long) newmsg->lm_msgid, (long) newmsg->lm_msgtype );
+	Debug( LDAP_DEBUG_TRACE, "adding response ld %p msgid %d type %ld:\n",
+		(void *)ld, newmsg->lm_msgid, (long) newmsg->lm_msgtype );
 
 	/* part of a search response - add to end of list of entries */
 	l->lm_chain_tail->lm_chain = newmsg;
