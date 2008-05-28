@@ -404,7 +404,6 @@ syncprov_findbase( Operation *op, fbase_cookie *fc )
 		slap_callback cb = {0};
 		Operation fop;
 		SlapReply frs = { REP_RESULT };
-		BackendInfo *bi;
 		int rc;
 
 		fc->fss->s_flags ^= PS_FIND_BASE;
@@ -412,11 +411,10 @@ syncprov_findbase( Operation *op, fbase_cookie *fc )
 
 		fop = *fc->fss->s_op;
 
+		fop.o_bd = fop.o_bd->bd_self;
 		fop.o_hdr = op->o_hdr;
-		fop.o_bd = op->o_bd;
 		fop.o_time = op->o_time;
 		fop.o_tincr = op->o_tincr;
-		bi = op->o_bd->bd_info;
 
 		cb.sc_response = findbase_cb;
 		cb.sc_private = fc;
@@ -434,8 +432,7 @@ syncprov_findbase( Operation *op, fbase_cookie *fc )
 		fop.ors_filter = &generic_filter;
 		fop.ors_filterstr = generic_filterstr;
 
-		rc = overlay_op_walk( &fop, &frs, op_search, on->on_info, on );
-		op->o_bd->bd_info = bi;
+		rc = fop.o_bd->be_search( &fop, &frs );
 	} else {
 		ldap_pvt_thread_mutex_unlock( &fc->fss->s_mutex );
 		fc->fbase = 1;
