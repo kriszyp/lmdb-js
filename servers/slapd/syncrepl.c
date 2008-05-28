@@ -568,7 +568,12 @@ do_syncrep1(
 		op->o_tls_ssf = ldap_pvt_tls_get_strength( ssl );
 	}
 #endif /* HAVE_TLS */
-	ldap_get_option( si->si_ld, LDAP_OPT_X_SASL_SSF, &op->o_sasl_ssf );
+	{
+		ber_len_t ssf; /* ITS#5403, 3864 LDAP_OPT_X_SASL_SSF probably ought
+						  to use sasl_ssf_t but currently uses ber_len_t */
+		ldap_get_option( si->si_ld, LDAP_OPT_X_SASL_SSF, &ssf );
+		op->o_sasl_ssf = ssf;
+	}
 	op->o_ssf = ( op->o_sasl_ssf > op->o_tls_ssf )
 		?  op->o_sasl_ssf : op->o_tls_ssf;
 
