@@ -3,6 +3,7 @@ OpenLDAP 2.4 Change Log
 OpenLDAP 2.4.10 Engineering
 	Fixed libldap file descriptor leak with SELinux (ITS#5507)
 	Fixed libldap ld_defconn cleanup if it was freed (ITS#5518, ITS#5525)
+	Fixed libldap msgid handling (ITS#5318)
 	Fixed libldap_r missing stubs (ITS#5519)
 	Fixed slapd missing termination of integerFilter keys (ITS#5503)
 	Fixed slapd multiple attrs in URI (ITS#5516)
