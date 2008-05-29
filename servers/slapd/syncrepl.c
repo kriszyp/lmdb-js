@@ -580,8 +580,10 @@ do_syncrep1(
 	ldap_set_option( si->si_ld, LDAP_OPT_TIMELIMIT, &si->si_tlimit );
 
 	si->si_syncCookie.rid = si->si_rid;
-	si->si_syncCookie.sid = SLAP_SINGLE_SHADOW( si->si_be ) ? -1 :
-		slap_serverID;
+
+	/* whenever there are multiple data sources possible, advertise sid */
+	si->si_syncCookie.sid = ( SLAP_MULTIMASTER( si->si_be ) || SLAP_GLUE_SUBORDINATE( si->si_be ) ||
+		SLAP_GLUE_INSTANCE( si->si_be )) ? slap_serverID : -1;
 
 	/* We've just started up, or the remote server hasn't sent us
 	 * any meaningful state.
