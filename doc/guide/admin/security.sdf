@@ -197,17 +197,17 @@ scheme looks like:
 
 > userPassword: {SSHA}DkMTwBl+a/3DQTxCYEApdUtNXGgdUac3
 
-The advantage of hashed passwords is that is that an attacker which
+The advantage of hashed passwords is that an attacker which
 discovers the hash does not have direct access to the actual password.
-Unforunately, as dictionary and brute force attacks are generally
+Unfortunately, as dictionary and brute force attacks are generally
 quite easy for attackers to successfully mount, this advantage is
-marginal at best.  (This is why all modern Unix systems use shadow
-password files.)
+marginal at best (this is why all modern Unix systems use shadow
+password files).
 
-The disadvantages of hashed storage is they are non-standard, may
-cause interoperability problems, and generally preclude the use
+The disadvantages of hashed storage is that they are non-standard, may
+cause interoperability problem, and generally preclude the use
 of stronger than Simple (or SASL/PLAIN) password-based authentication
-mechanisms, such as {{EX:DIGEST-MD5}}.
+mechanisms such as {{EX:DIGEST-MD5}}.
 
 H3: SSHA password storage scheme
 
@@ -234,8 +234,8 @@ transferred to or from an existing Unix password file without having
 to know the cleartext form. Both forms of {{crypt}} include salt so
 they have some resistance to dictionary attacks.
 
-Note: Since this scheme uses the operation system's {{crypt(3)}}
-hash function, it is therefore operation system specific.
+Note: Since this scheme uses the operating system's {{crypt(3)}}
+hash function, it is therefore operating system specific.
 
 H3: MD5 password storage scheme
 
