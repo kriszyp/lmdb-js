@@ -2107,7 +2107,7 @@ syncprov_search_response( Operation *op, SlapReply *rs )
 			if ( op->o_abandon ) {
 				ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
 				ldap_pvt_thread_mutex_unlock( &ss->ss_so->s_mutex );
-				syncprov_free_syncop( ss->ss_so );
+				/* syncprov_ab_cleanup will free this syncop */
 				return SLAPD_ABANDON;
 
 			} else {
