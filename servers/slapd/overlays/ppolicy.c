@@ -2093,7 +2093,12 @@ ppolicy_db_init(
 		for (i=0; pwd_UsSchema[i].def; i++) {
 			code = slap_str2ad( pwd_UsSchema[i].def, pwd_UsSchema[i].ad, &err );
 			if ( code ) {
-				fprintf( stderr, "User Schema Load failed %d: %s\n", code, err );
+				if ( cr ){
+					snprintf( cr->msg, sizeof(cr->msg), 
+						"User Schema load failed for attribute \"%s\". Error code %d: %s",
+						pwd_UsSchema[i].def, code, err );
+					fprintf( stderr, "%s\n", cr->msg );
+				}
 				return code;
 			}
 		}
