@@ -580,8 +580,10 @@ do_syncrep1(
 	ldap_set_option( si->si_ld, LDAP_OPT_TIMELIMIT, &si->si_tlimit );
 
 	si->si_syncCookie.rid = si->si_rid;
-	si->si_syncCookie.sid = SLAP_SINGLE_SHADOW( si->si_be ) ? -1 :
-		slap_serverID;
+
+	/* whenever there are multiple data sources possible, advertise sid */
+	si->si_syncCookie.sid = ( SLAP_MULTIMASTER( si->si_be ) || si->si_be != si->si_wbe ) ?
+		slap_serverID : -1;
 
 	/* We've just started up, or the remote server hasn't sent us
 	 * any meaningful state.
@@ -1240,7 +1242,8 @@ do_syncrepl(
 	 *
 	 * Typically there is a single syncprov mastering the entire
 	 * glued tree. In that case, our contextCSN updates should
-	 * go to the master DB.
+	 * go to the master DB. But if there is no syncprov on the
+	 * master DB, then nothing special is needed here.
 	 *
 	 * Alternatively, there may be individual syncprov overlays
 	 * on each glued branch. In that case, each syncprov only
@@ -1249,7 +1252,11 @@ do_syncrepl(
 	 */
 	if ( !si->si_wbe ) {
 		if ( SLAP_GLUE_SUBORDINATE( be ) && !overlay_is_inst( be, "syncprov" )) {
-			si->si_wbe = select_backend( &be->be_nsuffix[0], 1 );
+			BackendDB * top_be = select_backend( &be->be_nsuffix[0], 1 );
+			if ( overlay_is_inst( top_be, "syncprov" ))
+				si->si_wbe = select_backend( &be->be_nsuffix[0], 1 );
+			else
+				si->si_wbe = be;
 		} else {
 			si->si_wbe = be;
 		}

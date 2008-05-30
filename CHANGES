@@ -10,6 +10,7 @@ OpenLDAP 2.4.10 Engineering
 	Fixed slapd multiple attrs in URI (ITS#5516)
 	Fixed slapd sasl_ssf retrieval (ITS#5403)
 	Fixed slapd socket assert (ITS#5489)
+	Fixed slapd syncrepl cookie (ITS#5536)
 	Fixed slapd-bdb/hdb MAXPATHLEN (ITS#5531)
 	Fixed slapd-bdb indexing in single ADD/MOD (ITS#5521)
 	Fixed slapd-ldap entry_get() op-dependent behavior (ITS#5513)

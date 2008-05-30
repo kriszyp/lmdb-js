@@ -720,7 +720,9 @@ size allowed.  0 disables security layers.  The default is 65536.
 .B olcServerID: <integer> [<URL>]
 Specify an integer ID from 0 to 4095 for this server. These IDs are
 required when using multimaster replication and each master must have a
-unique ID. If the URL is provided, this directive may be specified
+unique ID. Note that this requirement also applies to separate masters
+contributing to a glued set of databases.
+If the URL is provided, this directive may be specified
 multiple times, providing a complete list of participating servers
 and their IDs. The fully qualified hostname of each server should be
 used in the supplied URLs. The IDs are used in the "replica id" field
