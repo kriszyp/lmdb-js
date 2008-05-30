@@ -497,7 +497,8 @@ findmax_cb( Operation *op, SlapReply *rs )
 		Attribute *a = attr_find( rs->sr_entry->e_attrs,
 			slap_schema.si_ad_entryCSN );
 
-		if ( a && ber_bvcmp( &a->a_vals[0], maxcsn ) > 0 ) {
+		if ( a && ber_bvcmp( &a->a_vals[0], maxcsn ) > 0 &&
+			slap_parse_csn_sid( &a->a_vals[0] ) == slap_serverID ) {
 			maxcsn->bv_len = a->a_vals[0].bv_len;
 			strcpy( maxcsn->bv_val, a->a_vals[0].bv_val );
 		}
@@ -587,7 +588,7 @@ syncprov_findcsn( Operation *op, find_csn_t mode )
 	sync_control *srs = NULL;
 	struct slap_limits_set fc_limits;
 	int i, rc = LDAP_SUCCESS, findcsn_retry = 1;
-	int maxid = 0;
+	int maxid;
 
 	if ( mode != FIND_MAXCSN ) {
 		srs = op->o_controls[slap_cids.sc_LDAPsync];
@@ -613,14 +614,20 @@ again:
 	switch( mode ) {
 	case FIND_MAXCSN:
 		cf.f_choice = LDAP_FILTER_GE;
-		cf.f_av_value = si->si_ctxcsn[0];
-		/* If there are multiple CSNs, use the largest */
-		for ( i=1; i<si->si_numcsns; i++) {
-			if ( ber_bvcmp( &cf.f_av_value, &si->si_ctxcsn[i] ) < 0 ) {
-				cf.f_av_value = si->si_ctxcsn[i];
+		/* If there are multiple CSNs, use the one with our serverID */
+		for ( i=0; i<si->si_numcsns; i++) {
+			if ( slap_serverID == si->si_sids[i] ) {
 				maxid = i;
+				break;
 			}
 		}
+		if ( i == si->si_numcsns ) {
+			/* No match: this is multimaster, and none of the content in the DB
+			 * originated locally. Treat like no CSN.
+			 */
+			return LDAP_NO_SUCH_OBJECT;
+		}
+		cf.f_av_value = si->si_ctxcsn[maxid];
 		fop.ors_filterstr.bv_len = snprintf( buf, sizeof( buf ),
 			"(entryCSN>=%s)", cf.f_av_value.bv_val );
 		if ( fop.ors_filterstr.bv_len < 0 || fop.ors_filterstr.bv_len >= sizeof( buf ) ) {

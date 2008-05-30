@@ -21,6 +21,7 @@ OpenLDAP 2.4.10 Engineering
 	Fixed slapo-syncprov op2.o_extra reset (ITS#5501, #5506)
 	Fixed slapo-syncprov searching wrong backend (ITS#5487)
 	Fixed slapo-syncprov sending ops without queued CSNs (ITS#5465)
+	Fixed slapo-syncprov max csn search on startup (ITS#5537)
 	Fixed slapo-unique config structs (ITS#5526)
 	Fixed slapo-unique filter terminator (ITS#5511)
 	Documentation
