@@ -916,7 +916,7 @@ int slapi_over_is_inst( BackendDB *be )
 	return overlay_is_inst( be, SLAPI_OVERLAY_NAME );
 }
 
-int slapi_over_config( BackendDB *be )
+int slapi_over_config( BackendDB *be, ConfigReply *cr )
 {
 	if ( slapi_over_initialized == 0 ) {
 		int rc;
@@ -940,7 +940,7 @@ int slapi_over_config( BackendDB *be )
 		slapi_over_initialized = 1;
 	}
 
-	return overlay_config( be, SLAPI_OVERLAY_NAME, -1, NULL );
+	return overlay_config( be, SLAPI_OVERLAY_NAME, -1, NULL, cr );
 }
 
 #endif /* LDAP_SLAPI */
