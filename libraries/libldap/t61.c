@@ -684,6 +684,8 @@ int ldap_utf8s_to_t61s( struct berval *src, struct berval *dst )
 			*d++ = 0x3f;
 			break;
 		}
+		i += j;
+		c += j;
 	}
 	*d = '\0';
 	return LDAP_SUCCESS;
