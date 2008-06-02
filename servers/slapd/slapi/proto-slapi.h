@@ -83,7 +83,7 @@ LDAP_SLAPI_F (int) slapi_int_clear_object_extensions LDAP_P((int objecttype, voi
 
 /* slapi_overlay.c */
 LDAP_SLAPI_F (int) slapi_over_is_inst LDAP_P((BackendDB *));
-LDAP_SLAPI_F (int) slapi_over_config LDAP_P((BackendDB *));
+LDAP_SLAPI_F (int) slapi_over_config LDAP_P((BackendDB *, ConfigReply *));
 
 LDAP_END_DECL
 

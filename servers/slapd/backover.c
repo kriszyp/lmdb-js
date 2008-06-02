@@ -1143,7 +1143,7 @@ overlay_move( BackendDB *be, slap_overinst *on, int idx )
 
 /* add an overlay to a particular backend. */
 int
-overlay_config( BackendDB *be, const char *ov, int idx, BackendInfo **res )
+overlay_config( BackendDB *be, const char *ov, int idx, BackendInfo **res, ConfigReply *cr )
 {
 	slap_overinst *on = NULL, *on2 = NULL, **prev;
 	slap_overinfo *oi = NULL;
@@ -1278,7 +1278,7 @@ overlay_config( BackendDB *be, const char *ov, int idx, BackendInfo **res )
 	if ( on2->on_bi.bi_db_init ) {
 		int rc;
 		be->bd_info = (BackendInfo *)on2;
-		rc = on2->on_bi.bi_db_init( be, NULL );
+		rc = on2->on_bi.bi_db_init( be, cr);
 		be->bd_info = (BackendInfo *)oi;
 		if ( rc ) {
 			*prev = on2->on_next;

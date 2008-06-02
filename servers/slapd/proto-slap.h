@@ -435,7 +435,7 @@ LDAP_SLAPD_F (int) glue_sub_del( BackendDB *be );
  */
 LDAP_SLAPD_F (int) overlay_register LDAP_P(( slap_overinst *on ));
 LDAP_SLAPD_F (int) overlay_config LDAP_P(( BackendDB *be, const char *ov,
-	int idx, BackendInfo **res ));
+	int idx, BackendInfo **res, ConfigReply *cr ));
 LDAP_SLAPD_F (void) overlay_destroy_one LDAP_P((
 	BackendDB *be,
 	slap_overinst *on ));
