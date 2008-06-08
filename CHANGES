@@ -1,6 +1,6 @@
 OpenLDAP 2.4 Change Log
 
-OpenLDAP 2.4.10 Release (2008/06/05)
+OpenLDAP 2.4.10 Release (2008/06/08)
 	Fixed libldap file descriptor leak with SELinux (ITS#5507)
 	Fixed libldap ld_defconn cleanup if it was freed (ITS#5518, ITS#5525)
 	Fixed libldap msgid handling (ITS#5318)
