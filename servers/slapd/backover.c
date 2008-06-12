@@ -1081,6 +1081,43 @@ overlay_destroy_one( BackendDB *be, slap_overinst *on )
 	}
 }
 
+#ifdef SLAP_CONFIG_DELETE
+void
+overlay_remove( BackendDB *be, slap_overinst *on )
+{
+	slap_overinfo *oi = on->on_info;
+	slap_overinst **oidx, *on2;
+
+	/* remove overlay from oi_list an call db_close and db_destroy
+	 * handlers */
+	for ( oidx = &oi->oi_list; *oidx; oidx = &(*oidx)->on_next ) {
+		if ( *oidx == on ) {
+			*oidx = on->on_next;
+			BackendInfo *bi_orig = be->bd_info;
+			be->bd_info = (BackendInfo *)on;
+			if ( on->on_bi.bi_db_close ) {
+				on->on_bi.bi_db_close( be, NULL );
+			}
+			if ( on->on_bi.bi_db_destroy ) {
+				on->on_bi.bi_db_destroy( be, NULL );
+			}
+			be->bd_info = bi_orig;
+			free( on );
+			break;
+		}
+	}
+	
+	/* clean up after removing last overlay */
+	if ( ! oi->oi_list ) 
+	{
+		/* reset db flags and bd_info to orig */
+		SLAP_DBFLAGS( be ) &= ~SLAP_DBFLAG_GLOBAL_OVERLAY;
+		be->bd_info = oi->oi_orig;
+		ch_free(oi);
+	}
+}
+#endif /* SLAP_CONFIG_DELETE */
+
 void
 overlay_insert( BackendDB *be, slap_overinst *on2, slap_overinst ***prev,
 	int idx )

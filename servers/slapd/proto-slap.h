@@ -469,7 +469,10 @@ LDAP_SLAPD_F (void) overlay_insert LDAP_P((
 	BackendDB *be, slap_overinst *on, slap_overinst ***prev, int idx ));
 LDAP_SLAPD_F (void) overlay_move LDAP_P((
 	BackendDB *be, slap_overinst *on, int idx ));
-
+#ifdef SLAP_CONFIG_DELETE
+LDAP_SLAPD_F (void) overlay_remove LDAP_P((
+	BackendDB *be, slap_overinst *on ));
+#endif /* SLAP_CONFIG_DELETE */
 /*
  * bconfig.c
  */
