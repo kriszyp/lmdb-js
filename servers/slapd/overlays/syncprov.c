@@ -1181,6 +1181,7 @@ syncprov_matchops( Operation *op, opcookie *opc, int saveit )
 		sprev = ss, ss=snext)
 	{
 		Operation op2;
+		Opheader oh;
 		syncmatches *sm;
 		int found = 0;
 
@@ -1230,7 +1231,10 @@ syncprov_matchops( Operation *op, opcookie *opc, int saveit )
 
 		if ( fc.fscope ) {
 			op2 = *ss->s_op;
-			op2.o_hdr = op->o_hdr;
+			oh = *op->o_hdr;
+			oh.oh_conn = ss->s_op->o_conn;
+			oh.oh_connid = ss->s_op->o_connid;
+			op2.o_hdr = &oh;
 			op2.o_extra = op->o_extra;
 		}
 
