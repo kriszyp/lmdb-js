@@ -77,7 +77,7 @@ sock_read_and_send_results(
 		}
 
 		len = strlen( line );
-		while ( bp + len - buf > bsize ) {
+		while ( bp + len + 1 - buf > bsize ) {
 			size_t offset = bp - buf;
 			bsize += BUFSIZ;
 			buf = (char *) ch_realloc( buf, bsize );
