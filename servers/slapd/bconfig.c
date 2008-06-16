@@ -1676,7 +1676,7 @@ sortval_reject:
 						Listener **l = slapd_get_listeners();
 						int i;
 
-						for ( i=0; l[i]; i++ ) {
+						for ( i=0; l && l[i]; i++ ) {
 							LDAPURLDesc *lu2;
 							int isMe = 0;
 							ldap_url_parse( l[i]->sl_url.bv_val, &lu2 );
