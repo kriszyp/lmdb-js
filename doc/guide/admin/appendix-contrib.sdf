@@ -50,7 +50,7 @@ Component Matching rules (RFC 3687).
 
 H3: denyop
 
-Deny selected operations, returning {unwillingToPerform}.
+Deny selected operations, returning {{unwillingToPerform}}.
 
 
 H3: dsaschema
@@ -86,7 +86,7 @@ Proxy Authorization compatibility with obsolete internet-draft.
 H3: smbk5pwd
 
 Make the PasswordModify Extended Operation update Kerberos
-keys and Samba password hashes as well as {userPassword}.
+keys and Samba password hashes as well as {{userPassword}}.
 
 
 H3: trace
@@ -96,7 +96,7 @@ Trace overlay invocation.
 
 H3: usn
 
-Maintain {usnCreated} and {usnChanged} attrs similar to Microsoft AD.
+Maintain {{usnCreated}} and {{usnChanged}} attrs similar to Microsoft AD.
 
 
 H2: Tools
