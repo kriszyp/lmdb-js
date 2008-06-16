@@ -7,7 +7,7 @@ Public License.
 This directory contains native-API slapd modules (overlays etc):
 
 acl (plugins)
-	Plugins that implement access rules.  Currently only posixgroup,
+	Plugins that implement access rules.  Currently only posixGroup,
 	which implements access control based on posixGroup membership.
 
 addpartial (overlay)
@@ -52,6 +52,6 @@ trace (overlay)
 	Trace overlay invocation.
 
 usn (overlay)
-	Main usnCreated and usnChanged attrs similar to Microsoft AD.
+	Maintain usnCreated and usnChanged attrs similar to Microsoft AD.
 
 $OpenLDAP$
