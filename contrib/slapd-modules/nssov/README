@@ -35,7 +35,7 @@ to your slapd configuration file. (The nis.schema file contains
 the original RFC2307 schema. Some modifications will be needed to
 use RFC2307bis.)
 
-The overlay must be configured with Service Search Descriptors (SSDs)
+The overlay may be configured with Service Search Descriptors (SSDs)
 for each NSS service that will be used. SSDs are configured using
 
 	nssov-svc <service> <url>
