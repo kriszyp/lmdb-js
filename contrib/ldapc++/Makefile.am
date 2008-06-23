@@ -5,5 +5,6 @@
 # COPYING RESTRICTIONS APPLY, see COPYRIGHT file
 ##
 
+EXTRA_DIST=version.var version.sh
 SUBDIRS = src examples
 
