@@ -183,6 +183,7 @@ sysconfdir = @sysconfdir@
 target_alias = @target_alias@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
+EXTRA_DIST = version.var version.sh
 SUBDIRS = src examples
 all: all-recursive
 
