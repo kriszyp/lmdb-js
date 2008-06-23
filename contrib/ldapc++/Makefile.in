@@ -16,7 +16,7 @@
 
 # $OpenLDAP$
 
-# Copyright 2000-2003, OpenLDAP Foundation, All Rights Reserved.
+# Copyright 2000-2008, OpenLDAP Foundation, All Rights Reserved.
 # COPYING RESTRICTIONS APPLY, see COPYRIGHT file
 VPATH = @srcdir@
 pkgdatadir = $(datadir)/@PACKAGE@
@@ -183,7 +183,7 @@ sysconfdir = @sysconfdir@
 target_alias = @target_alias@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-EXTRA_DIST = version.var version.sh
+EXTRA_DIST = COPYRIGHT doxygen.rc LICENSE version.var version.sh
 SUBDIRS = src examples
 all: all-recursive
 
