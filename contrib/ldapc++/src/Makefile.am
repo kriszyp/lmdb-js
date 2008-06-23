@@ -84,15 +84,17 @@ include_HEADERS = LDAPAsynConnection.h \
 			SaslInteractionHandler.h \
 			StringList.h 
 
-noinst_HEADERS = LDAPAddRequest.h \
-                LDAPBindRequest.h \
-                LDAPCompareRequest.h \
-                LDAPDeleteRequest.h \
-                LDAPExtRequest.h \
-                LDAPModDNRequest.h \
-                LDAPModifyRequest.h \
-                LDAPRequest.h \
-                LDAPSearchRequest.h 
+noinst_HEADERS = ac/time.h \
+		debug.h \
+		LDAPAddRequest.h \
+		LDAPBindRequest.h \
+		LDAPCompareRequest.h \
+		LDAPDeleteRequest.h \
+		LDAPExtRequest.h \
+		LDAPModDNRequest.h \
+		LDAPModifyRequest.h \
+		LDAPRequest.h \
+		LDAPSearchRequest.h
 
 libldapcpp_la_LIBADD = -lldap -llber
 libldapcpp_la_LDFLAGS = -version-info @OPENLDAP_CPP_API_VERSION@
