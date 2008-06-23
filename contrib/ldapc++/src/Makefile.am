@@ -1,7 +1,7 @@
 # $OpenLDAP$
 
 ###
-# Copyright 2000, OpenLDAP Foundation, All Rights Reserved.
+# Copyright 2000-2008, OpenLDAP Foundation, All Rights Reserved.
 # COPYING RESTRICTIONS APPLY, see COPYRIGHT file
 ##
 
@@ -95,5 +95,5 @@ noinst_HEADERS = LDAPAddRequest.h \
                 LDAPSearchRequest.h 
 
 libldapcpp_la_LIBADD = -lldap -llber
-libldapcpp_la_LDFLAGS = -version-info 0:5:0
+libldapcpp_la_LDFLAGS = -version-info @OPENLDAP_CPP_API_VERSION@
 

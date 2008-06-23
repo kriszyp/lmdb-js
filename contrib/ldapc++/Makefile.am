@@ -5,6 +5,5 @@
 # COPYING RESTRICTIONS APPLY, see COPYRIGHT file
 ##
 
-EXTRA_DIST = BUGS
 SUBDIRS = src examples
 
