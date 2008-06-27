@@ -584,13 +584,11 @@ ber_get_next(
 				return LBER_DEFAULT;
 			}
 			/* Not enough bytes? */
-			if (ber->ber_rwptr - (char *)p < llen) {
-#if defined( EWOULDBLOCK )
-				sock_errset(EWOULDBLOCK);
-#elif defined( EAGAIN )
-				sock_errset(EAGAIN);
-#endif			
-				return LBER_DEFAULT;
+			i = ber->ber_rwptr - (char *)p;
+			if (i < llen) {
+				sblen=ber_int_sb_read( sb, ber->ber_rwptr, i );
+				if (sblen<i) return LBER_DEFAULT;
+				ber->ber_rwptr += sblen;
 			}
 			for (i=0; i<llen; i++) {
 				tlen <<=8;
