@@ -5507,6 +5507,12 @@ config_build_entry( Operation *op, SlapReply *rs, CfEntryInfo *parent,
 	oc_at = attr_find( e->e_attrs, slap_schema.si_ad_objectClass );
 	rc = structural_class(oc_at->a_vals, &oc, NULL, &text, c->cr_msg,
 		sizeof(c->cr_msg), op ? op->o_tmpmemctx : NULL );
+	if ( rc != LDAP_SUCCESS ) {
+		Debug( LDAP_DEBUG_ANY,
+			"config_build_entry: build \"%s\" failed: \"%s\"\n",
+			rdn->bv_val, text, 0);
+		return NULL;
+	}
 	attr_merge_normalize_one(e, slap_schema.si_ad_structuralObjectClass, &oc->soc_cname, NULL );
 	if ( op ) {
 		op->ora_e = e;
