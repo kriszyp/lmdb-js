@@ -5457,7 +5457,7 @@ config_build_entry( Operation *op, SlapReply *rs, CfEntryInfo *parent,
 	ce->ce_parent = parent;
 	if ( parent ) {
 		pdn = parent->ce_entry->e_nname;
-		if ( parent->ce_kids )
+		if ( parent->ce_kids && parent->ce_kids->ce_type <= ce->ce_type )
 			for ( ceprev = parent->ce_kids; ceprev->ce_sibs &&
 				ceprev->ce_type <= ce->ce_type;
 				ceprev = ceprev->ce_sibs );
