@@ -1019,6 +1019,7 @@ static AttributeType slap_at_undefined = {
 	NULL, /* syntax (will be set later to "octetString") */
 	NULL, /* schema check function */
 	NULL, /* oidmacro */
+	NULL, /* soidmacro */
 	SLAP_AT_ABSTRACT|SLAP_AT_FINAL,	/* mask */
 	{ NULL }, /* next */
 	NULL /* attribute description */
@@ -1036,6 +1037,7 @@ static AttributeType slap_at_proxied = {
 	NULL, /* syntax (will be set later to "octetString") */
 	NULL, /* schema check function */
 	NULL, /* oidmacro */
+	NULL, /* soidmacro */
 	SLAP_AT_ABSTRACT|SLAP_AT_FINAL,	/* mask */
 	{ NULL }, /* next */
 	NULL /* attribute description */
