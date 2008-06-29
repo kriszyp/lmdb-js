@@ -1557,22 +1557,26 @@ dynlist_db_open(
 		}
 	}
 
-	rc = slap_str2ad( "dgIdentity", &ad_dgIdentity, &text );
-	if ( rc != LDAP_SUCCESS ) {
-		snprintf( cr->msg, sizeof( cr->msg),
-			"unable to fetch attributeDescription \"dgIdentity\": %d (%s)",
-			rc, text );
-		Debug( LDAP_DEBUG_ANY, "dynlist_db_open: %s\n", cr->msg, 0, 0 );
-		/* Just a warning */
+	if ( ad_dgIdentity == NULL ) {
+		rc = slap_str2ad( "dgIdentity", &ad_dgIdentity, &text );
+		if ( rc != LDAP_SUCCESS ) {
+			snprintf( cr->msg, sizeof( cr->msg),
+				"unable to fetch attributeDescription \"dgIdentity\": %d (%s)",
+				rc, text );
+			Debug( LDAP_DEBUG_ANY, "dynlist_db_open: %s\n", cr->msg, 0, 0 );
+			/* Just a warning */
+		}
 	}
 
-	rc = slap_str2ad( "dgAuthz", &ad_dgAuthz, &text );
-	if ( rc != LDAP_SUCCESS ) {
-		snprintf( cr->msg, sizeof( cr->msg),
-			"unable to fetch attributeDescription \"dgAuthz\": %d (%s)",
-			rc, text );
-		Debug( LDAP_DEBUG_ANY, "dynlist_db_open: %s\n", cr->msg, 0, 0 );
-		/* Just a warning */
+	if ( ad_dgAuthz == NULL ) {
+		rc = slap_str2ad( "dgAuthz", &ad_dgAuthz, &text );
+		if ( rc != LDAP_SUCCESS ) {
+			snprintf( cr->msg, sizeof( cr->msg),
+				"unable to fetch attributeDescription \"dgAuthz\": %d (%s)",
+				rc, text );
+			Debug( LDAP_DEBUG_ANY, "dynlist_db_open: %s\n", cr->msg, 0, 0 );
+			/* Just a warning */
+		}
 	}
 
 	return 0;
