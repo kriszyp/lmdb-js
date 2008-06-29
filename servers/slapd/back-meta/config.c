@@ -1089,7 +1089,7 @@ idassert-authzFrom	"dn:<rootdn>"
 			}
 			cargv[ 2 ] = binddn;
 
-			rc = slap_idassert_parse_cf( fname, lineno, cargc, cargv, &mi->mi_targets[ mi->mi_ntargets - 1 ]->mt_idassert );
+			rc = mi->mi_ldap_extra->idassert_parse_cf( fname, lineno, cargc, cargv, &mi->mi_targets[ mi->mi_ntargets - 1 ]->mt_idassert );
 			if ( rc == 0 ) {
 				struct berval	bv;
 
@@ -1159,7 +1159,7 @@ idassert-authzFrom	"dn:<rootdn>"
 			return 1;
 		}
 
-		return slap_idassert_parse_cf( fname, lineno, argc, argv, &mi->mi_targets[ mi->mi_ntargets - 1 ]->mt_idassert );
+		return mi->mi_ldap_extra->idassert_parse_cf( fname, lineno, argc, argv, &mi->mi_targets[ mi->mi_ntargets - 1 ]->mt_idassert );
 
 	/* idassert-authzFrom */
 	} else if ( strcasecmp( argv[ 0 ], "idassert-authzFrom" ) == 0 ) {
@@ -1188,7 +1188,7 @@ idassert-authzFrom	"dn:<rootdn>"
 			return 1;
 		}
 
-		return slap_idassert_authzfrom_parse_cf( fname, lineno, argv[ 1 ], &mi->mi_targets[ mi->mi_ntargets - 1 ]->mt_idassert );
+		return mi->mi_ldap_extra->idassert_authzfrom_parse_cf( fname, lineno, argv[ 1 ], &mi->mi_targets[ mi->mi_ntargets - 1 ]->mt_idassert );
 
 	/* quarantine */
 	} else if ( strcasecmp( argv[ 0 ], "quarantine" ) == 0 ) {
@@ -1232,7 +1232,7 @@ idassert-authzFrom	"dn:<rootdn>"
 			ldap_pvt_thread_mutex_init( &mi->mi_targets[ mi->mi_ntargets - 1 ]->mt_quarantine_mutex );
 		}
 
-		if ( slap_retry_info_parse( argv[ 1 ], ri, buf, sizeof( buf ) ) ) {
+		if ( mi->mi_ldap_extra->retry_info_parse( argv[ 1 ], ri, buf, sizeof( buf ) ) ) {
 			Debug( LDAP_DEBUG_ANY,
 				"%s line %d: %s.\n",
 				fname, lineno, buf );
