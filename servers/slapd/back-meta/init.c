@@ -93,6 +93,15 @@ meta_back_db_init(
 {
 	metainfo_t	*mi;
 	int		i;
+	BackendInfo	*bi;
+
+	bi = backend_info( "ldap" );
+	if ( !bi || !bi->bi_extra ) {
+		Debug( LDAP_DEBUG_ANY,
+			"meta_back_db_init: needs back-ldap\n",
+			0, 0, 0 );
+		return 1;
+	}
 
 	mi = ch_calloc( 1, sizeof( metainfo_t ) );
 	if ( mi == NULL ) {
@@ -127,6 +136,8 @@ meta_back_db_init(
 	}
 	mi->mi_conn_priv_max = LDAP_BACK_CONN_PRIV_DEFAULT;
 	
+	mi->mi_ldap_extra = (ldap_extra_t *)bi->bi_extra;
+
 	be->be_private = mi;
 
 	return 0;
@@ -138,7 +149,6 @@ meta_back_db_open(
 	ConfigReply	*cr )
 {
 	metainfo_t	*mi = (metainfo_t *)be->be_private;
-	BackendInfo *bi;
 
 	int		i,
 			not_always = 0,
@@ -152,15 +162,6 @@ meta_back_db_open(
 			0, 0, 0 );
 		return 1;
 	}
-
-	bi = backend_info( "ldap" );
-	if ( !bi || !bi->bi_extra ) {
-		Debug( LDAP_DEBUG_ANY,
-			"meta_back_db_open: needs back-ldap\n",
-			0, 0, 0 );
-		return 1;
-	}
-	mi->mi_ldap_extra = (ldap_extra_t *)bi->bi_extra;
 
 	for ( i = 0; i < mi->mi_ntargets; i++ ) {
 		slap_bindconf	sb = { BER_BVNULL };
