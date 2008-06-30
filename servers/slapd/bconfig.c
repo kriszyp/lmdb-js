@@ -3994,7 +3994,7 @@ cfAddDatabase( CfEntryInfo *p, Entry *e, struct config_args_s *ca )
 	}
 	/* config must be {0}, nothing else allowed */
 	if ( !strncmp( e->e_nname.bv_val, "olcDatabase={0}", STRLENOF("olcDatabase={0}")) &&
-		strcmp( e->e_nname.bv_val + STRLENOF("olcDatabase={0}"), "config" )) {
+		strncmp( e->e_nname.bv_val + STRLENOF("olcDatabase={0}"), "config,", STRLENOF("config,") )) {
 		return LDAP_CONSTRAINT_VIOLATION;
 	}
 	ca->be = frontendDB;	/* just to get past check_vals */
