@@ -810,9 +810,9 @@ slapd_clr_write( ber_socket_t s, int wake )
 {
 	ldap_pvt_thread_mutex_lock( &slap_daemon.sd_mutex );
 
-	assert( SLAP_SOCK_IS_ACTIVE( s ));
-
 	if ( SLAP_SOCK_IS_WRITE( s )) {
+		assert( SLAP_SOCK_IS_ACTIVE( s ));
+
 		SLAP_SOCK_CLR_WRITE( s );
 		slap_daemon.sd_nwriters--;
 	}
