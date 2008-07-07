@@ -1,6 +1,7 @@
 OpenLDAP 2.3 Change Log
 
 OpenLDAP 2.3.43 Engineering
+	Fixed liblber ber_get_next length decoding (ITS#5580)
 	Fixed slapd replog timestamps (ITS#5532)
 
 OpenLDAP 2.3.42 Release (2008/05/28)

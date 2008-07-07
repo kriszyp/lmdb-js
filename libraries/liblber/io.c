@@ -495,14 +495,18 @@ ber_get_next(
 	}
 
 	while (ber->ber_rwptr > (char *)&ber->ber_tag && ber->ber_rwptr <
-		(char *)&ber->ber_len + LENSIZE*2 -1) {
+		(char *)&ber->ber_len + LENSIZE*2) {
 		ber_slen_t sblen;
 		char buf[sizeof(ber->ber_len)-1];
 		ber_len_t tlen = 0;
 
+		/* The tag & len can be at most 9 bytes; we try to read up to 8 here */
 		sock_errset(0);
-		sblen=ber_int_sb_read( sb, ber->ber_rwptr,
-			((char *)&ber->ber_len + LENSIZE*2 - 1)-ber->ber_rwptr);
+		sblen=((char *)&ber->ber_len + LENSIZE*2 - 1)-ber->ber_rwptr;
+		/* Trying to read the last len byte of a 9 byte tag+len */
+		if (sblen<1)
+			sblen = 1;
+		sblen=ber_int_sb_read( sb, ber->ber_rwptr, sblen );
 		if (sblen<=0) return LBER_DEFAULT;
 		ber->ber_rwptr += sblen;
 
@@ -552,7 +556,7 @@ ber_get_next(
 			int i;
 			unsigned char *p = (unsigned char *)ber->ber_ptr;
 			int llen = *p++ & 0x7f;
-			if (llen > (int)sizeof(ber_len_t)) {
+			if (llen > LENSIZE) {
 				sock_errset(ERANGE);
 				return LBER_DEFAULT;
 			}
