@@ -200,6 +200,7 @@ slap_set_join(
 							cp->set_op->o_tmpfree( rset[ i ].bv_val, cp->set_op->o_tmpmemctx );
 							rset[ i ] = rset[ --rlast ];
 							BER_BVZERO( &rset[ rlast ] );
+							i--;
 						}
 						exists = 1;
 						break;
