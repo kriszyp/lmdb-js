@@ -1,6 +1,7 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.11 Engineering
+	Added slapo-nssov contrib module
 
 OpenLDAP 2.4.10 Release (2008/06/08)
 	Fixed libldap file descriptor leak with SELinux (ITS#5507)
