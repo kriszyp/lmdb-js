@@ -2,6 +2,7 @@ OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.11 Engineering
 	Fixed slapd sets memory leak (ITS#5557)
+	Fixed slapd-sock buffer count (ITS#5558)
 	Added slapo-nssov contrib module
 	Fixed slapo-ppolicy DNs with whitespaces (ITS#5552)
 	Fixed slapo-syncprov ACL evaluation (ITS#5548)
