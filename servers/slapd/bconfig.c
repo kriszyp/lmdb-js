@@ -5225,7 +5225,90 @@ out:
 static int
 config_back_delete( Operation *op, SlapReply *rs )
 {
-	send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM, NULL );
+#ifdef SLAP_CONFIG_DELETE
+	CfBackInfo *cfb;
+	CfEntryInfo *ce, *last, *ce2;
+
+	slap_mask_t mask;
+
+	cfb = (CfBackInfo *)op->o_bd->be_private;
+
+	ce = config_find_base( cfb->cb_root, &op->o_req_ndn, &last );
+	if ( !ce ) {
+		if ( last )
+			rs->sr_matched = last->ce_entry->e_name.bv_val;
+		rs->sr_err = LDAP_NO_SUCH_OBJECT;
+	} if ( ce->ce_kids ) {
+		rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
+	} else if ( ce->ce_type == Cft_Overlay ){
+		char *iptr;
+		int count, ixold, rc;
+
+		ldap_pvt_thread_pool_pause( &connection_pool );
+		
+		overlay_remove( ce->ce_be, (slap_overinst *)ce->ce_bi );
+
+		/* remove CfEntryInfo from the siblings list */
+		if ( ce->ce_parent->ce_kids == ce ) {
+			ce->ce_parent->ce_kids = ce->ce_sibs;
+		} else {
+			for ( ce2 = ce->ce_parent->ce_kids ; ce2; ce2 = ce2->ce_sibs ) {
+				if ( ce2->ce_sibs == ce ) {
+					ce2->ce_sibs = ce->ce_sibs;
+					break;
+				}
+			}
+		}
+
+		/* remove from underlying database */
+		if ( cfb->cb_use_ldif ) {
+			BackendDB *be = op->o_bd;
+			slap_callback sc = { NULL, slap_null_cb, NULL, NULL }, *scp;
+			struct berval dn, ndn, req_dn, req_ndn;
+
+			op->o_bd = &cfb->cb_db;
+
+			dn = op->o_dn;
+			ndn = op->o_ndn;
+			req_dn = op->o_req_dn;
+			req_ndn = op->o_req_ndn;
+
+			op->o_dn = op->o_bd->be_rootdn;
+			op->o_ndn = op->o_bd->be_rootndn;
+			op->o_req_dn = ce->ce_entry->e_name;
+			op->o_req_ndn = ce->ce_entry->e_nname;
+
+			scp = op->o_callback;
+			op->o_callback = &sc;
+			op->o_bd->be_delete( op, rs );
+			op->o_bd = be;
+			op->o_callback = scp;
+			op->o_dn = dn;
+			op->o_ndn = ndn;
+			op->o_req_dn = req_dn;
+			op->o_req_ndn = req_ndn;
+		}
+
+		/* renumber siblings */
+		iptr = ber_bvchr( &op->o_req_ndn, '{' ) + 1;
+		ixold = strtol( iptr, NULL, 0 );
+		for (ce2 = ce->ce_sibs, count=0; ce2; ce2=ce2->ce_sibs) {
+			config_renumber_one( op, rs, ce2->ce_parent, ce2->ce_entry,
+				count+ixold, 0, cfb->cb_use_ldif );
+			count++;
+		}
+
+		ce->ce_entry->e_private=NULL;
+		entry_free(ce->ce_entry);
+		ch_free(ce);
+		ldap_pvt_thread_pool_resume( &connection_pool );
+	} else {
+		rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
+	}
+#else
+	rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
+#endif /* SLAP_CONFIG_DELETE */
+	send_ldap_result( op, rs );
 	return rs->sr_err;
 }
 
