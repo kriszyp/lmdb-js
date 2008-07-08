@@ -214,7 +214,7 @@ static ConfigDriver ppolicy_cf_default;
 
 static ConfigTable ppolicycfg[] = {
 	{ "ppolicy_default", "policyDN", 2, 2, 0,
-	  ARG_DN|ARG_MAGIC|PPOLICY_DEFAULT, ppolicy_cf_default,
+	  ARG_DN|ARG_QUOTE|ARG_MAGIC|PPOLICY_DEFAULT, ppolicy_cf_default,
 	  "( OLcfgOvAt:12.1 NAME 'olcPPolicyDefault' "
 	  "DESC 'DN of a pwdPolicy object for uncustomized objects' "
 	  "SYNTAX OMsDN SINGLE-VALUE )", NULL, NULL },
