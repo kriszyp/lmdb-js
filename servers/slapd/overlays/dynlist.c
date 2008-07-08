@@ -178,10 +178,10 @@ dynlist_sc_update( Operation *op, SlapReply *rs )
 		goto done;
 	}
 
-	for ( dlm = dlc->dlc_dli->dli_dlm; dlm; dlm = dlm->dlm_next ) {
-		if (dlm->dlm_mapped_ad != NULL)
-			continue;
-
+	/* if there is only one member_ad, and it's not mapped,
+	 * consider it as old-style member listing */
+	dlm = dlc->dlc_dli->dli_dlm;
+	if ( dlm && dlm->dlm_mapped_ad == NULL && dlm->dlm_next == NULL ) {
 		/* if access allowed, try to add values, emulating permissive
 		 * control to silently ignore duplicates */
 		if ( access_allowed( op, rs->sr_entry, slap_schema.si_ad_entry,
