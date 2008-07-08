@@ -90,6 +90,12 @@ class LDAPAttributeList{
          * @param attr The attribute to add to the list.
          */
         void addAttribute(const LDAPAttribute& attr);
+        
+        /**
+         * Deletes all values of an Attribute for the list
+         * @param type The attribute type to be deleted.
+         */
+        void delAttribute(const std::string& type);
 
         /**
          * Replace an Attribute in the List

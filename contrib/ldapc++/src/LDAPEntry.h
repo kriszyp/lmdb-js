@@ -78,6 +78,13 @@ class LDAPEntry{
          * @param attr The attribute to add to the list.
          */
         void addAttribute(const LDAPAttribute& attr);
+        
+        /**
+         * Deletes all values of an Attribute from the list of Attributes 
+         * (simple wrapper around LDAPAttributeList::delAttribute() ).
+         * @param type The attribute to delete.
+         */
+        void delAttribute(const std::string& type);
 
         /**
          * Replace an Attribute in the List of Attributes (simple wrapper

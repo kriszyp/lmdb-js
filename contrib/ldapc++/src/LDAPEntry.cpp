@@ -88,6 +88,11 @@ void LDAPEntry::addAttribute(const LDAPAttribute& attr)
     m_attrs->addAttribute(attr);
 }
 
+void LDAPEntry::delAttribute(const std::string& type)
+{
+    m_attrs->delAttribute(type);
+}
+
 void LDAPEntry::replaceAttribute(const LDAPAttribute& attr)
 {
     m_attrs->replaceAttribute(attr); 
