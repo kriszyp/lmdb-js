@@ -9,6 +9,8 @@ OpenLDAP 2.4.11 Engineering
 	Fixed slapo-syncprov ACL evaluation (ITS#5548)
 	Build Environment
 		Fixed test048 to skip if threads is not available (ITS#5529)
+	Documentation
+		Added slapo-pcache(5) sizelimit caching (ITS#5559)
 
 OpenLDAP 2.4.10 Release (2008/06/08)
 	Fixed libldap file descriptor leak with SELinux (ITS#5507)
