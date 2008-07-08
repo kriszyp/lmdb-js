@@ -2015,6 +2015,10 @@ pcache_op_cleanup( Operation *op, SlapReply *rs ) {
 				case PC_SIZELIMIT:
 					qc->q_sizelimit = rs->sr_nentries;
 					break;
+
+				case PC_NEGATIVE:
+					break;
+
 				default:
 					assert( 0 );
 					break;
