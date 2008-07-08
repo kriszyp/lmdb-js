@@ -680,7 +680,8 @@ struct AttributeType {
 	Syntax				*sat_syntax;
 
 	AttributeTypeSchemaCheckFN	*sat_check;
-	char				*sat_oidmacro;
+	char				*sat_oidmacro;	/* attribute OID */
+	char				*sat_soidmacro;	/* syntax OID */
 
 #define SLAP_AT_NONE			0x0000U
 #define SLAP_AT_ABSTRACT		0x0100U /* cannot be instantiated */
