@@ -13,6 +13,7 @@ OpenLDAP 2.4.11 Engineering
 		Fixed test048 to skip if threads is not available (ITS#5529)
 	Documentation
 		Added slapo-pcache(5) sizelimit caching (ITS#5559)
+		Added slapd-access(5) add and delete privs (ITS#5566)
 		admin24 GnuTLS documentation (ITS#5554)
 
 OpenLDAP 2.4.10 Release (2008/06/08)
