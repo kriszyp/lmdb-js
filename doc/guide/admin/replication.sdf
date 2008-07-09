@@ -221,10 +221,11 @@ You can see we use the {{updatedn}} directive here and example ACLs ({{F:usr/loc
 In order to support more replicas, just add more {{database ldap}} sections and
 increment the {{syncrepl rid}} number accordingly.
 
-{{Note: You must populate the Master and Slave directories with the same data, 
-unlike when using normal Syncrepl}}
+Note: You must populate the Master and Slave directories with the same data, 
+unlike when using normal Syncrepl
 
-A typical standalone ldap proxy might look like:
+If you do not have access to modify the master directory configuration you can
+configure a standalone ldap proxy, which might look like:
 
 !import "push-based-standalone.png"; align="center"; title="Syncrepl Standalone Proxy Mode"
 FT[align="Center"] Figure X.Y: Replacing slurpd with a standalone version
