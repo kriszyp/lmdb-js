@@ -2323,6 +2323,15 @@ no_change:		if ( !(op->o_sync_mode & SLAP_SYNC_PERSIST) ) {
 				send_ldap_error( op, rs, LDAP_SYNC_REFRESH_REQUIRED, "sync cookie is stale" );
 				return rs->sr_err;
 			}
+			if ( srs->sr_state.ctxcsn ) {
+				ber_bvarray_free_x( srs->sr_state.ctxcsn, op->o_tmpmemctx );
+				srs->sr_state.ctxcsn = NULL;
+			}
+			if ( srs->sr_state.sids ) {
+				slap_sl_free( srs->sr_state.sids, op->o_tmpmemctx );
+				srs->sr_state.sids = NULL;
+			}
+			srs->sr_state.numcsns = 0;
 		} else {
 			gotstate = 1;
 			/* If changed and doing Present lookup, send Present UUIDs */
