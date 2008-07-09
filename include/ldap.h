@@ -2343,5 +2343,21 @@ ldap_parse_session_tracking_control LDAP_P((
 
 #endif /* LDAP_CONTROL_X_SESSION_TRACKING */
 
+/*
+ * in assertion.c
+ */
+LDAP_F (int)
+ldap_create_assertion_control_value LDAP_P((
+	LDAP		*ld,
+	char		*assertion,
+	struct berval	*value ));
+
+LDAP_F( int )
+ldap_create_assertion_control LDAP_P((
+	LDAP		*ld,
+	char		*filter,
+	int		iscritical,
+	LDAPControl	**ctrlp ));
+
 LDAP_END_DECL
 #endif /* _LDAP_H */
