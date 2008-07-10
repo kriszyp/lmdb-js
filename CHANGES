@@ -25,6 +25,7 @@ OpenLDAP 2.4.11 Engineering
 	Added slapo-nssov contrib module
 	Fixed slapo-pcache handling of negative search caches (ITS#5546)
 	Fixed slapo-ppolicy DNs with whitespaces (ITS#5552)
+	Fixed slapo-ppolicy modify with internal ops (ITS#5569)
 	Fixed slapo-syncprov ACL evaluation (ITS#5548)
 	Fixed slapo-syncprov crash with delcsn (ITS#5589)
 	Fixed slapo-syncprov full reload (ITS#5564)

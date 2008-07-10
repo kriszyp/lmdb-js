@@ -1581,7 +1581,7 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 				}
 			}
 
-		} else if ( !is_at_operational( ml->sml_desc->ad_type ) ) {
+		} else if ( !(ml->sml_flags & SLAP_MOD_INTERNAL) && !is_at_operational( ml->sml_desc->ad_type ) ) {
 			mod_pw_only = 0;
 			/* modifying something other than password */
 		}
