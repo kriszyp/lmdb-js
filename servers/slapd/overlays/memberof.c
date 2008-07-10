@@ -843,6 +843,12 @@ memberof_op_modify( Operation *op, SlapReply *rs )
 					break;
 		
 				case LDAP_MOD_REPLACE:
+ 					/* Handle this just like a delete (see above) */
+ 					if ( !ml->sml_values ) {
+ 						mlp = &ml->sml_next;
+ 						break;
+ 					}
+ 
 				case LDAP_MOD_ADD:
 					/* NOTE: right now, the attributeType we use
 					 * for member must have a normalized value */
@@ -1038,7 +1044,7 @@ memberof_op_modify( Operation *op, SlapReply *rs )
 				goto done2;
 			}
 
-			if ( ml->sml_op == LDAP_MOD_DELETE ) {
+			if ( ml->sml_op == LDAP_MOD_DELETE || !ml->sml_values ) {
 				break;
 			}
 			/* fall thru */
@@ -1305,7 +1311,7 @@ memberof_res_modify( Operation *op, SlapReply *rs )
 				ber_bvarray_free_x( vals, op->o_tmpmemctx );
 			}
 
-			if ( ml->sml_op == LDAP_MOD_DELETE ) {
+			if ( ml->sml_op == LDAP_MOD_DELETE || !mml->sml_values ) {
 				break;
 			}
 			/* fall thru */
@@ -1362,7 +1368,7 @@ memberof_res_modify( Operation *op, SlapReply *rs )
 					ber_bvarray_free_x( vals, op->o_tmpmemctx );
 				}
 	
-				if ( ml->sml_op == LDAP_MOD_DELETE ) {
+				if ( ml->sml_op == LDAP_MOD_DELETE || !ml->sml_values ) {
 					break;
 				}
 				/* fall thru */

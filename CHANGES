@@ -14,6 +14,7 @@ OpenLDAP 2.4.11 Engineering
 	Fixed slapd-meta link to slapd-ldap (ITS#5355)
 	Fixed slapd-sock, back-shell buffer count (ITS#5558)
 	Fixed slapo-dynlist dg attrs lookup (ITS#5583)
+	Fixed slapo-memberof replace handling (ITS#5584)
 	Added slapo-nssov contrib module
 	Fixed slapo-pcache handling of negative search caches (ITS#5546)
 	Fixed slapo-ppolicy DNs with whitespaces (ITS#5552)
