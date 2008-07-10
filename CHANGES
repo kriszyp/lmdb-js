@@ -20,8 +20,9 @@ OpenLDAP 2.4.11 Engineering
 	Fixed slapo-pcache handling of negative search caches (ITS#5546)
 	Fixed slapo-ppolicy DNs with whitespaces (ITS#5552)
 	Fixed slapo-syncprov ACL evaluation (ITS#5548)
-	Fixed slapo-syncprov full reload (ITS#5564)
 	Fixed slapo-syncprov crash with delcsn (ITS#5589)
+	Fixed slapo-syncprov full reload (ITS#5564)
+	Fixed slapo-syncprov missing olcSpReloadHint attr(ITS#5591)
 	Fixed slapo-unique filter normalization (ITS#5581)
 	Fixed contrib smbk5pwd terminator (ITS#5575)
 	Build Environment

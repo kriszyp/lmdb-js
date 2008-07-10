@@ -2512,7 +2512,11 @@ static ConfigOCs spocs[] = {
 		"NAME 'olcSyncProvConfig' "
 		"DESC 'SyncRepl Provider configuration' "
 		"SUP olcOverlayConfig "
-		"MAY ( olcSpCheckpoint $ olcSpSessionlog $ olcSpNoPresent ) )",
+		"MAY ( olcSpCheckpoint "
+			"$ olcSpSessionlog "
+			"$ olcSpNoPresent "
+			"$ olcSpReloadHint "
+		") )",
 			Cft_Overlay, spcfg },
 	{ NULL, 0, NULL }
 };
