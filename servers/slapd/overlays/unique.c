@@ -238,15 +238,15 @@ unique_new_domain_uri ( unique_domain_uri **urip,
 	}
 
 	if (url_desc->lud_filter) {
-		Filter * f;
-		ber_str2bv( url_desc->lud_filter, 0, 1, &uri->filter );
-		f = str2filter( uri->filter.bv_val );
+		Filter *f = str2filter( url_desc->lud_filter );
 		if ( !f ) {
 			snprintf( c->cr_msg, sizeof( c->cr_msg ),
 				  "unique: bad filter");
 			rc = ARG_BAD_CONF;
 			goto exit;
 		}
+		/* make sure the strfilter is in normal form (ITS#5581) */
+		filter2bv( f, &uri->filter );
 		filter_free( f );
 	}
 exit:
