@@ -350,6 +350,7 @@ static int smbk5pwd_exop_passwd(
 	Modifications *ml;
 	slap_overinst *on = (slap_overinst *)op->o_bd->bd_info;
 	smbk5pwd_t *pi = on->on_bi.bi_private;
+	char term;
 
 	/* Not the operation we expected, pass it on... */
 	if ( ber_bvcmp( &slap_EXOP_MODIFY_PASSWD, &op->ore_reqoid ) ) {
@@ -359,6 +360,9 @@ static int smbk5pwd_exop_passwd(
 	op->o_bd->bd_info = (BackendInfo *)on->on_info;
 	rc = be_entry_get_rw( op, &op->o_req_ndn, NULL, NULL, 0, &e );
 	if ( rc != LDAP_SUCCESS ) return rc;
+
+	term = qpw->rs_new.bv_val[qpw->rs_new.bv_len];
+	qpw->rs_new.bv_val[qpw->rs_new.bv_len] = '\0';
 
 #ifdef DO_KRB5
 	/* Kerberos stuff */
@@ -596,6 +600,7 @@ static int smbk5pwd_exop_passwd(
 	}
 #endif /* DO_SAMBA */
 	be_entry_release_r( op, e );
+	qpw->rs_new.bv_val[qpw->rs_new.bv_len] = term;
 
 	return SLAP_CB_CONTINUE;
 }
