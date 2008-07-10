@@ -4,6 +4,7 @@ OpenLDAP 2.4.11 Engineering
 	Fixed liblber ber_get_next length decoding (ITS#5580)
 	Added libldap assertion control (ITS#5560)
 	Fixed libldap GnuTLS CRL result handling (ITS#5577)
+	Fixed libldap GnuTLS SSF computation (ITS#5585)
 	Fixed slapd check for structural_class failures (ITS#5540)
 	Fixed slapd config backend renumbering (ITS#5571)
 	Fixed slapd configContext OID (ITS#5383)

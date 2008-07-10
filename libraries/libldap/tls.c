@@ -2795,7 +2795,7 @@ ldap_pvt_tls_get_strength( void *s )
 	gnutls_cipher_algorithm_t c;
 
 	c = gnutls_cipher_get( session->session );
-	return gnutls_cipher_get_key_size( c );
+	return gnutls_cipher_get_key_size( c ) * 8;
 #else
 	return 0;
 #endif
