@@ -66,6 +66,8 @@ sdf-img: \
 	dual_dc.png \
 	intro_dctree.png \
 	intro_tree.png \
+	push-based-complete.png \
+	push-based-standalone.png \
 	refint.png \
 	set-following-references.png \
 	set-memberUid.png \
