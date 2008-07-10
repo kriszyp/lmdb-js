@@ -755,6 +755,7 @@ ldap_int_tls_init_ctx( struct ldapoptions *lo, int is_server )
 			crlfile,
 			GNUTLS_X509_FMT_PEM );
 		if ( rc < 0 ) goto error_exit;
+		rc = 0;
 	}
 	if ( is_server ) {
 		gnutls_dh_params_init (&((tls_ctx*) 
