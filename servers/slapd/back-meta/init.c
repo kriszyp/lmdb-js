@@ -383,7 +383,7 @@ meta_back_db_destroy(
 				if ( META_BACK_TGT_QUARANTINE( mt ) ) {
 					if ( mt->mt_quarantine.ri_num != mi->mi_quarantine.ri_num )
 					{
-						slap_retry_info_destroy( &mt->mt_quarantine );
+						mi->mi_ldap_extra->retry_info_destroy( &mt->mt_quarantine );
 					}
 
 					ldap_pvt_thread_mutex_destroy( &mt->mt_quarantine_mutex );
@@ -411,7 +411,7 @@ meta_back_db_destroy(
 		}
 
 		if ( META_BACK_QUARANTINE( mi ) ) {
-			slap_retry_info_destroy( &mi->mi_quarantine );
+			mi->mi_ldap_extra->retry_info_destroy( &mi->mi_quarantine );
 		}
 	}
 

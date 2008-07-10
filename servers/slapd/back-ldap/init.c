@@ -34,7 +34,12 @@
 
 static const ldap_extra_t ldap_extra = {
 	ldap_back_proxy_authz_ctrl,
-	ldap_back_controls_free
+	ldap_back_controls_free,
+	slap_idassert_authzfrom_parse_cf,
+	slap_idassert_parse_cf,
+	slap_retry_info_destroy,
+	slap_retry_info_parse,
+	slap_retry_info_unparse
 };
 
 int
