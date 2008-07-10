@@ -3992,6 +3992,11 @@ cfAddDatabase( CfEntryInfo *p, Entry *e, struct config_args_s *ca )
 	if ( p->ce_type != Cft_Global ) {
 		return LDAP_CONSTRAINT_VIOLATION;
 	}
+	/* config must be {0}, nothing else allowed */
+	if ( !strncmp( e->e_nname.bv_val, "olcDatabase={0}", STRLENOF("olcDatabase={0}")) &&
+		strcmp( e->e_nname.bv_val + STRLENOF("olcDatabase={0}"), "config" )) {
+		return LDAP_CONSTRAINT_VIOLATION;
+	}
 	ca->be = frontendDB;	/* just to get past check_vals */
 	return LDAP_SUCCESS;
 }
@@ -5457,7 +5462,7 @@ config_build_entry( Operation *op, SlapReply *rs, CfEntryInfo *parent,
 	ce->ce_parent = parent;
 	if ( parent ) {
 		pdn = parent->ce_entry->e_nname;
-		if ( parent->ce_kids )
+		if ( parent->ce_kids && parent->ce_kids->ce_type <= ce->ce_type )
 			for ( ceprev = parent->ce_kids; ceprev->ce_sibs &&
 				ceprev->ce_type <= ce->ce_type;
 				ceprev = ceprev->ce_sibs );

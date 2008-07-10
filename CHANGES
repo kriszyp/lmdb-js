@@ -5,6 +5,7 @@ OpenLDAP 2.4.11 Engineering
 	Added libldap assertion control (ITS#5560)
 	Fixed libldap GnuTLS CRL result handling (ITS#5577)
 	Fixed slapd check for structural_class failures (ITS#5540)
+	Fixed slapd config backend renumbering (ITS#5571)
 	Fixed slapd configContext OID (ITS#5383)
 	Fixed slapd crash with no listeners (ITS#5563)
 	Fixed slapd equality rules for olcRootDN/olcSchemaDN (ITS#5540)
