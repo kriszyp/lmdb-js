@@ -2883,6 +2883,14 @@ attr_cmp( Operation *op, Attribute *old, Attribute *new,
 			}
 		}
 
+		/* Don't delete/add an objectClass, always use the replace op.
+		 * Modify would fail if provider has replaced entry with a new,
+		 * and the new explicitly includes a superior of a class that was
+		 * only included implicitly in the old entry.  Ref ITS#5517.
+		 */
+		if ( nn && no < o && old->a_desc == slap_schema.si_ad_objectClass )
+			no = o;
+
 		i = j;
 		/* all old values were deleted, just use the replace op */
 		if ( no == o ) {

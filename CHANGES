@@ -14,6 +14,7 @@ OpenLDAP 2.4.11 Engineering
 	Fixed slapd sets memory leak (ITS#5557)
 	Fixed slapd sortvals binary search (ITS#5578)
 	Fixed slapd syncrepl updates with multiple masters (ITS#5597)
+	Fixed slapd syncrepl superior objectClass delete/add (ITS#5600)
 	Fixed slapd syncrepl/slapo-syncprov contextCSN updates as internal ops (ITS#5596)
 	Added slapd-ldap/slapd-meta option to filter out search references (ITS#5593)
 	Fixed slapd-meta link to slapd-ldap (ITS#5355)
