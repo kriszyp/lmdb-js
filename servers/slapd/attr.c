@@ -324,17 +324,16 @@ attr_valfind(
 		while ( 0 < n ) {
 			unsigned pivot = n >> 1;
 			i = base + pivot;
-			if ( i >= a->a_numvals ) {
-				i = a->a_numvals - 1;
-				break;
-			}
 			rc = value_match( &match, a->a_desc, mr, flags,
 				&a->a_nvals[i], cval, &text );
 			if ( rc == LDAP_SUCCESS && match == 0 )
 				break;
-			n = pivot;
-			if ( match < 0 )
+			if ( match < 0 ) {
 				base = i+1;
+				n -= pivot+1;
+			} else {
+				n = pivot;
+			}
 		}
 		if ( match < 0 )
 			i++;
