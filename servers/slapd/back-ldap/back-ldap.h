@@ -315,6 +315,8 @@ typedef struct ldapinfo_t {
 #define	LDAP_BACK_F_ST_RESPONSE		(0x00040000U)
 #endif /* SLAP_CONTROL_X_SESSION_TRACKING */
 
+#define LDAP_BACK_F_NOREFS		(0x00080000U)
+
 #define	LDAP_BACK_ISSET_F(ff,f)		( ( (ff) & (f) ) == (f) )
 #define	LDAP_BACK_ISMASK_F(ff,m,f)	( ( (ff) & (m) ) == (f) )
 
@@ -352,6 +354,8 @@ typedef struct ldapinfo_t {
 #define	LDAP_BACK_ST_REQUEST(li)	LDAP_BACK_ISSET( (li), LDAP_BACK_F_ST_REQUEST)
 #define	LDAP_BACK_ST_RESPONSE(li)	LDAP_BACK_ISSET( (li), LDAP_BACK_F_ST_RESPONSE)
 #endif /* SLAP_CONTROL_X_SESSION_TRACKING */
+
+#define	LDAP_BACK_NOREFS(li)		LDAP_BACK_ISSET( (li), LDAP_BACK_F_NOREFS)
 
 	int			li_version;
 

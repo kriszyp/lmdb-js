@@ -15,6 +15,7 @@ OpenLDAP 2.4.11 Engineering
 	Fixed slapd sortvals binary search (ITS#5578)
 	Fixed slapd syncrepl updates with multiple masters (ITS#5597)
 	Fixed slapd syncrepl/slapo-syncprov contextCSN updates as internal ops (ITS#5596)
+	Added slapd-ldap/slapd-meta option to filter out search references (ITS#5593)
 	Fixed slapd-meta link to slapd-ldap (ITS#5355)
 	Fixed slapd-sock, back-shell buffer count (ITS#5558)
 	Fixed slapo-dynlist dg attrs lookup (ITS#5583)

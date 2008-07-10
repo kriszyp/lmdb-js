@@ -128,6 +128,15 @@ but, in case at least one target returned an error code, the first
 non-success error code is returned.
 
 .TP
+.B norefs <NO|yes>
+If
+.BR yes ,
+do not return search reference responses.
+By default, they are returned unless request is LDAPv2.
+If set before any target specification, it affects all targets, unless
+overridden by any per-target directive.
+
+.TP
 .B protocol\-version {0,2,3}
 This directive indicates what protocol version must be used to contact
 the remote server.

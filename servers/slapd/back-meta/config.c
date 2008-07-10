@@ -1453,6 +1453,36 @@ idassert-authzFrom	"dn:<rootdn>"
 			return 1;
 		}
 
+	/* do not return search references */
+	} else if ( strcasecmp( argv[ 0 ], "norefs" ) == 0 ) {
+		unsigned	*flagsp = mi->mi_ntargets ?
+				&mi->mi_targets[ mi->mi_ntargets - 1 ]->mt_flags
+				: &mi->mi_flags;
+
+		if ( argc != 2 ) {
+			Debug( LDAP_DEBUG_ANY,
+	"%s: line %d: \"norefs {TRUE|false}\" needs 1 argument.\n",
+				fname, lineno, 0 );
+			return( 1 );
+		}
+
+		/* this is the default; we add it because the default might change... */
+		switch ( check_true_false( argv[ 1 ] ) ) {
+		case 1:
+			*flagsp |= LDAP_BACK_F_NOREFS;
+			break;
+
+		case 0:
+			*flagsp &= ~LDAP_BACK_F_NOREFS;
+			break;
+
+		default:
+			Debug( LDAP_DEBUG_ANY,
+		"%s: line %d: \"norefs {TRUE|false}\": unknown argument \"%s\".\n",
+				fname, lineno, argv[ 1 ] );
+			return( 1 );
+		}
+
 	/* anything else */
 	} else {
 		return SLAP_CONF_UNKNOWN;

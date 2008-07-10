@@ -1155,6 +1155,10 @@ really_bad:;
 					char		**references = NULL;
 					int		cnt;
 
+					if ( META_BACK_TGT_NOREFS( mi->mi_targets[ i ] ) ) {
+						continue;
+					}
+
 					if ( candidates[ i ].sr_type == REP_INTERMEDIATE ) {
 						/* don't retry any more... */
 						candidates[ i ].sr_type = REP_RESULT;
