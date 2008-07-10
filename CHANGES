@@ -1,6 +1,7 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.11 Engineering
+	Fixed liblber ber_get_next length decoding (ITS#5580)
 	Added libldap assertion control (ITS#5560)
 	Fixed libldap GnuTLS CRL result handling (ITS#5577)
 	Fixed slapd crash with no listeners (ITS#5563)
