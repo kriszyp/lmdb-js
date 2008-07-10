@@ -2755,7 +2755,7 @@ serialNumberAndIssuerCheck(
 
 	} else {
 		/* Parse GSER format */ 
-		int havesn=0,haveissuer=0;
+		int havesn = 0, haveissuer = 0, numdquotes = 0;
 		struct berval x = *in;
 		struct berval ni;
 		x.bv_val++;
@@ -2821,7 +2821,10 @@ serialNumberAndIssuerCheck(
 			STRLENOF("serialNumber")) == 0 )
 		{
 			/* parse serialNumber */
-			int neg=0;
+			int neg = 0;
+			char first = '\0';
+			int extra = 0;
+
 			x.bv_val += STRLENOF("serialNumber");
 			x.bv_len -= STRLENOF("serialNumber");
 
@@ -2842,29 +2845,45 @@ serialNumberAndIssuerCheck(
 			}
 
 			if ( sn->bv_val[0] == '0' && ( sn->bv_val[1] == 'x' ||
-				sn->bv_val[1] == 'X' )) {
+				sn->bv_val[1] == 'X' ))
+			{
 				is_hex = 1;
+				first = sn->bv_val[2];
+				extra = 2;
+
+				sn->bv_len += STRLENOF("0x");
 				for( ; sn->bv_len < x.bv_len; sn->bv_len++ ) {
 					if ( !ASCII_HEX( sn->bv_val[sn->bv_len] )) break;
 				}
+
 			} else if ( sn->bv_val[0] == '\'' ) {
+				first = sn->bv_val[1];
+				extra = 3;
+
+				sn->bv_len += STRLENOF("'");
+
 				for( ; sn->bv_len < x.bv_len; sn->bv_len++ ) {
 					if ( !ASCII_HEX( sn->bv_val[sn->bv_len] )) break;
 				}
 				if ( sn->bv_val[sn->bv_len] == '\'' &&
-					sn->bv_val[sn->bv_len+1] == 'H' )
+					sn->bv_val[sn->bv_len + 1] == 'H' )
+				{
+					sn->bv_len += STRLENOF("'H");
 					is_hex = 1;
-				else
+
+				} else {
 					return LDAP_INVALID_SYNTAX;
-				sn->bv_len += 2;
+				}
+
 			} else {
+				first = sn->bv_val[0];
 				for( ; sn->bv_len < x.bv_len; sn->bv_len++ ) {
 					if ( !ASCII_DIGIT( sn->bv_val[sn->bv_len] )) break;
 				}
 			}
 
 			if (!( sn->bv_len > neg )) return LDAP_INVALID_SYNTAX;
-			if (( sn->bv_len > 1+neg ) && ( sn->bv_val[neg] == '0' )) {
+			if (( sn->bv_len > extra+1+neg ) && ( first == '0' )) {
 				return LDAP_INVALID_SYNTAX;
 			}
 
@@ -2921,6 +2940,7 @@ serialNumberAndIssuerCheck(
 				}
 				if ( is->bv_val[is->bv_len+1] == '"' ) {
 					/* double dquote */
+					numdquotes++;
 					is->bv_len+=2;
 					continue;
 				}
@@ -2993,11 +3013,25 @@ serialNumberAndIssuerCheck(
 		/* should have no characters left... */
 		if( x.bv_len ) return LDAP_INVALID_SYNTAX;
 
-		ber_dupbv_x( &ni, is, ctx );
-		*is = ni;
+		if ( numdquotes == 0 ) {
+			ber_dupbv_x( &ni, is, ctx );
+		} else {
+			ber_int_t src, dst;
 
-		/* need to handle double dquotes here */
+			ni.bv_len = is->bv_len - numdquotes;
+			ni.bv_val = ber_memalloc_x( ni.bv_len + 1, ctx );
+			for ( src = 0, dst = 0; src < is->bv_len; src++, dst++ ) {
+				if ( is->bv_val[src] == '"' ) {
+					src++;
+				}
+				ni.bv_val[dst] = is->bv_val[src];
+			}
+			ni.bv_val[dst] = '\0';
+		}
+			
+		*is = ni;
 	}
+
 	return 0;
 }
 	
