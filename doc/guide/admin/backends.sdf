@@ -120,7 +120,62 @@ for more information
 
 H3: back-ldif Configuration
 
-LATER
+Like many other backends, the LDIF backend can be instantiated with very few
+configuration lines:
+
+>	include ./schema/core.schema
+>	
+>	database  ldif
+>	directory "./ldif"
+>	suffix    "dc=suretecsystems,dc=com"
+>	rootdn    "cn=LDIF,dc=suretecsystems,dc=com"
+>	rootpw    LDIF
+
+You'll notice that when compared to examples below, there is no:
+
+>   moduleload  back_ldif.la
+
+directive. This is because {{back_ldif}} is always built in by default as it is
+used by {{slapd-config(5)}}, which again is built in by default.
+
+If we add the {{dcObject}} for {{dc=suretecsystems,dc=com}}, you can see how this
+is added behind the scenes on the file system:
+
+>   dn: dc=suretecsystems,dc=com
+>   objectClass: dcObject
+>   objectClass: organization
+>   dc: suretecsystems
+>   o: Suretec Systems Ltd
+
+Now we add it to the directory:
+
+>   ldapadd -x -H ldap://localhost:9011 -f suretec.ldif -D "cn=LDIF,dc=suretecsystems,dc=com" -w LDIF
+>   adding new entry "dc=suretecsystems,dc=com"
+
+And inside {{F: ./ldif}} we have:
+
+>   ls ./ldif
+>   dc=suretecsystems,dc=com.ldif
+
+which again contains:
+
+>   cat ldif/dc\=suretecsystems\,dc\=com.ldif 
+>   
+>   dn: dc=suretecsystems
+>   objectClass: dcObject
+>   objectClass: organization
+>   dc: suretecsystems
+>   o: Suretec Systems Ltd.
+>   structuralObjectClass: organization
+>   entryUUID: 2134b714-e3a1-102c-9a15-f96ee263886d
+>   creatorsName: cn=LDIF,dc=suretecsystems,dc=com
+>   createTimestamp: 20080711142643Z
+>   entryCSN: 20080711142643.661124Z#000000#000#000000
+>   modifiersName: cn=LDIF,dc=suretecsystems,dc=com
+>   modifyTimestamp: 20080711142643Z
+
+This is the complete format you would get when exporting your directory using
+{{F: slapcat}} etc.
 
 H3: Further Information
 
@@ -185,9 +240,9 @@ needed to instantiate a monitor backend:
 >
 >	modulepath  /usr/local/libexec/openldap
 >	moduleload  back_monitor.la
-
+>	
 >	database monitor
->   rootdn "cn=monitoring,cn=Monitor"
+>	rootdn "cn=monitoring,cn=Monitor"
 >	rootpw monitoring
 
 You can also apply Access Control to this database like any other database, for 
@@ -198,7 +253,7 @@ example:
 >	     by users read
 >	     by * none
 
-Note: The {[F: core.schema}} must be loaded for the monitor database to work. 
+Note: The {{F: core.schema}} must be loaded for the monitor database to work. 
 
 A small example of the data returned via {{ldapsearch}} would be:
 
