@@ -162,7 +162,10 @@ An example search result against {{B:cn=accesslog}} might look like:
 >        # numResponses: 3
 >        # numEntries: 2
 
-For more information, please see {{slapo-accesslog(5)}} and the {{SECT:delta-syncrepl replication}} section.
+
+H3: Further Information
+
+{{slapo-accesslog(5)}} and the {{SECT:delta-syncrepl replication}} section.
 
 
 H2: Audit Logging
@@ -189,7 +192,7 @@ in {{B:cn=config}} and set what file the {{TERM:LDIF}} gets logged to (adjust to
 
 In this example for testing, we are logging changes to {{F:/tmp/auditlog.ldif}}
 
-A typical {{TERM:LDIF}} file created by {{B:slapo-auditlog (5)}} would look like:
+A typical {{TERM:LDIF}} file created by {{B:slapo-auditlog(5)}} would look like:
 
 >       # add 1196797576 dc=suretecsystems,dc=com cn=admin,dc=suretecsystems,dc=com
 >       dn: dc=suretecsystems,dc=com
@@ -222,6 +225,11 @@ A typical {{TERM:LDIF}} file created by {{B:slapo-auditlog (5)}} would look like
 >       modifyTimestamp: 20051123130912Z
 >       entryCSN: 20051123130912.000000Z#000002#000#000000
 >       # end add 1196797577
+
+
+H3: Further Information
+
+{{:slapo-auditlog(5)}}
 
 
 H2: Chaining
@@ -314,6 +322,11 @@ side, the actual error is returned to the client.
 >        chain-return-error TRUE
 
 
+H3: Further Information
+
+{{:slapo-chain(5)}}
+
+
 H2: Constraints
 
 
@@ -349,6 +362,11 @@ An example for use with {{cn=config}}:
 >       olcOverlay: constraint
 >       olcConstraintAttribute: mail regex ^[:alnum:]+@mydomain.com$
 >       olcConstraintAttribute: title uri ldap:///dc=catalog,dc=example,dc=com?title?sub?(objectClass=titleCatalog)
+
+
+H3: Further Information
+
+{{:slapo-constraint(5)}}
 
    
 H2: Dynamic Directory Services
@@ -435,6 +453,12 @@ refresh the meeting using (basically complete control):
 >       ldapexop -x -H ldap://ldaphost "refresh" "cn=OpenLDAP Documentation Meeting,ou=Meetings,dc=example,dc=com" "120" -D "uid=ghenry,ou=People,dc=example,dc=com" -W
 
 Any user can join the meeting, but not add another attendee, but they can refresh the meeting. The ACLs above are quite straight forward to understand.
+
+
+H3: Further Information
+
+{{:slapo-dds(5)}}
+
 
 H2: Dynamic Groups
 
@@ -540,6 +564,12 @@ distinguished names. The {{F:memberUid}} attribute used in the {{F:posixGroup}}
 object class can hold only names, not DNs, and is therefore not suitable for
 dynamic groups.
 
+
+H3: Further Information
+
+{{:slapo-dynlist(5)}}
+
+
 H2: Reverse Group Membership Maintenance
 
 H3: Overview
@@ -616,6 +646,11 @@ Results in the following output from a search on the test1 user:
 
 Note that the {{B:memberOf}} attribute is an operational attribute, so it must be
 requested explicitly.
+
+
+H3: Further Information
+
+{{:slapo-memberof(5)}}
 
 
 H2: The Proxy Cache Engine
@@ -761,6 +796,11 @@ H5: Examples:
 
     is not cacheable, because the filter does not match the template ( logical
     OR "|" condition instead of logical AND "&" )
+
+
+H3: Further Information
+
+{{:slapo-pcache(5)}}
                            
                            
 H2: Password Policies
@@ -874,6 +914,10 @@ Please see {{slapo-ppolicy(5)}} for complete explanations of features and discus
  "Password Management Issues" at {{URL:http://www.connexitor.com/forums/viewtopic.php?f=6&t=25}}
 
 
+H3: Further Information
+
+{{:slapo-ppolicy(5)}}
+
 
 H2: Referential Integrity
 
@@ -947,6 +991,12 @@ If we removed all users from the directory who are a member of this group, then 
 would be a single member in the group: {{F:cn=admin,dc=example,dc=com}}. This is the
 {{F:refint_nothing}} parameter kicking into action so that the schema is not violated.
 
+
+H3: Further Information
+
+{{:slapo-refint(5)}}
+
+
 H2: Return Code
 
 
@@ -1003,16 +1053,31 @@ An excerpt of a {{F:retcode.conf}} would be something like:
 Please see {{F:tests/data/retcode.conf}} for a complete {{F:retcode.conf}}
 
 
+H3: Further Information
+
+{{:slapo-retcode(5)}}
+
+
 H2: Rewrite/Remap
             
             
 H3: Overview
 
-It performs basic DN/data rewrite and
-objectClass/attributeType mapping.
+It performs basic DN/data rewrite and objectClass/attributeType mapping. Its 
+usage is mostly intended to provide virtual views of existing data either 
+remotely, in conjunction with the proxy backend described in {{slapd-ldap(5)}}, 
+or locally, in conjunction with the relay backend described in {{slapd-relay(5)}}.
+
+This overlay is extremely configurable and advanced, therefore recommended 
+reading is the {{slapo-rwm(5)}} man page.
 
 
 H3: Rewrite/Remap Configuration
+
+
+H3: Further Information
+
+{{:slapo-rwm(5)}}
 
 
 H2: Sync Provider
@@ -1025,6 +1090,11 @@ replication, including persistent search functionality
 
 
 H3: Sync Provider Configuration
+
+
+H3: Further Information
+
+{{:slapo-syncprov(5)}}
 
 
 H2: Translucent Proxy
@@ -1042,6 +1112,12 @@ overridden by the database.
 H3: Translucent Proxy Configuration
 
 
+
+H3: Further Information
+
+{{:slapo-translucent(5)}}
+
+
 H2: Attribute Uniqueness
 
 
@@ -1054,6 +1130,11 @@ to enforce the uniqueness of some or all attributes within a subtree.
 H3: Attribute Uniqueness Configuration
 
 
+H3: Further Information
+
+{{:slapo-unique(5)}}
+
+
 H2: Value Sorting
 
 
@@ -1064,6 +1145,11 @@ of an attribute when it is returned in a search.
 
 
 H3: Value Sorting Configuration
+
+
+H3: Further Information
+
+{{:slapo-valsort(5)}}
 
 
 H2: Overlay Stacking
