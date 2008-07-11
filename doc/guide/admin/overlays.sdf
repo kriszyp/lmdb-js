@@ -482,6 +482,7 @@ Here is an example which will allow us to have an email alias which automaticall
 expands to all user's emails according to our LDAP filter:
 
 In {{slapd.conf}}(5):
+
 >       overlay dynlist
 >       dynlist-attrset nisMailAlias labeledURI
 
@@ -489,6 +490,7 @@ This means that whenever an entry which has the {{F:nisMailAlias}} object class 
 retrieved, the search specified in the {{F:labeledURI}} attribute is performed.
 
 Let's say we have this entry in our directory:
+
 >       cn=all,ou=aliases,dc=example,dc=com
 >       cn: all
 >       objectClass: nisMailAlias
@@ -510,10 +512,12 @@ automatically populate an {{F:allusers}} group with all the user accounts in the
 directory.
 
 In {{F:slapd.conf}}(5):
+
 >       overlay dynlist
 >       dynlist-attrset groupOfNames labeledURI member
 
 Let's apply it to the following entry:
+
 >       cn=allusers,ou=group,dc=example,dc=com
 >       cn: all
 >       objectClass: groupOfNames
@@ -897,6 +901,7 @@ all the groups he/she was a member of. No more scripting for this.
 H3: Referential Integrity Configuration
 
 The configuration for this overlay is as follows:
+
 >       overlay refint
 >       refint_attributes <attribute [attribute ...]>
 >       refint_nothing <string>
@@ -917,6 +922,7 @@ to the entry.
 To illustrate this overlay, we will use the group membership scenario.
 
 In {{F:slapd.conf}}:
+
 >       overlay refint
 >       refint_attributes member
 >       refint_nothing "cn=admin,dc=example,dc=com"
@@ -947,10 +953,54 @@ H2: Return Code
 H3: Overview
 
 This overlay is useful to test the behavior of clients when
-server-generated erroneous and/or unusual responses occur.
+server-generated erroneous and/or unusual responses occur,
+for example; error codes, referrals, excessive response times and so on.
+
+This would be classed as a debugging tool whilst developing client software
+or additional Overlays.
+
+For detailed information, please see the {{slapo-retcode(5)}} man page.
 
 
 H3: Return Code Configuration
+
+The retcode overlay utilizes the "return code" schema described in the man page.  
+This schema is specifically designed for use with this overlay and is not intended 
+to be used otherwise. 
+
+Note: The necessary schema is loaded automatically by the overlay.
+
+An example configuration might be:
+
+>       overlay         retcode
+>       retcode-parent  "ou=RetCodes,dc=example,dc=com"
+>       include         ./retcode.conf
+>       
+>       retcode-item    "cn=Unsolicited"                0x00 unsolicited="0"
+>       retcode-item    "cn=Notice of Disconnect"       0x00 unsolicited="1.3.6.1.4.1.1466.20036"
+>       retcode-item    "cn=Pre-disconnect"             0x34 flags="pre-disconnect"
+>       retcode-item    "cn=Post-disconnect"            0x34 flags="post-disconnect"
+
+Note: {{retcode.conf}} can be found in the openldap source at: {{F:tests/data/retcode.conf}}
+
+An excerpt of a {{F:retcode.conf}} would be something like:
+
+>       retcode-item    "cn=success"                            0x00
+>       
+>       retcode-item    "cn=success w/ delay"                   0x00    sleeptime=2
+>       
+>       retcode-item    "cn=operationsError"                    0x01
+>       retcode-item    "cn=protocolError"                      0x02
+>       retcode-item    "cn=timeLimitExceeded"                  0x03    op=search
+>       retcode-item    "cn=sizeLimitExceeded"                  0x04    op=search
+>       retcode-item    "cn=compareFalse"                       0x05    op=compare
+>       retcode-item    "cn=compareTrue"                        0x06    op=compare
+>       retcode-item    "cn=authMethodNotSupported"             0x07
+>       retcode-item    "cn=strongAuthNotSupported"             0x07    text="same as authMethodNotSupported"
+>       retcode-item    "cn=strongAuthRequired"                 0x08
+>       retcode-item    "cn=strongerAuthRequired"               0x08    text="same as strongAuthRequired"
+
+Please see {{F:tests/data/retcode.conf}} for a complete {{F:retcode.conf}}
 
 
 H2: Rewrite/Remap
