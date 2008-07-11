@@ -100,9 +100,6 @@ a connection needs be created.
 This feature can be used to provide a form of load balancing when using 
 {{SECT: MirrorMode replication}}.
 
-As always, refer to the {{slapd-ldap(5)}} man page for the finer details.
-
-
 H3: Further Information
 
 {{slapd-ldap}}(5)
@@ -200,7 +197,40 @@ Inspired by the {{F:/dev/null}} device.
 
 H3: back-null Configuration
 
-LATER
+This has to be one of the shortest configurations you'll ever do. In order to 
+test this, your {{F: slapd.conf}} file would look like:
+
+>	modulepath  /usr/local/libexec/openldap
+>	moduleload  back_null.la
+
+>	database null
+>	suffix "cn=Nothing"
+>	bind on
+
+The first two directives are only applicable if you've enabled module support and
+haven't "built-in" {{slapd-null(5)}} support (why would you?).
+
+{{bind on}} means:
+
+{{"Allow binds as any DN in this backend's suffix, with any password. The default is "off"."}}
+
+To test this backend with {{ldapsearch}}:
+
+>	ldapsearch -x -H ldap://localhost:9011 -D "uid=none,cn=Nothing" -w testing -b 'cn=Nothing'
+>	# extended LDIF
+>	#
+>	# LDAPv3
+>	# base <cn=Nothing> with scope subtree
+>	# filter: (objectclass=*)
+>	# requesting: ALL
+>	#
+>	
+>	# search result
+>	search: 2
+>	result: 0 Success
+>	
+>	# numResponses: 1
+
 
 H3: Further Information
 
