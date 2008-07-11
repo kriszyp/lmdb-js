@@ -446,7 +446,7 @@ H3: Overview
 
 The primary purpose of this {{slapd}}(8) backend is to PRESENT information 
 stored in some RDBMS as an LDAP subtree without any programming (some SQL and 
-maybe stored procedures can’t be considered programming, anyway ;).
+maybe stored procedures can't be considered programming, anyway ;).
 
 That is, for example, when you (some ISP) have account information you use in 
 an RDBMS, and want to use modern solutions that expect such information in LDAP 
@@ -467,14 +467,88 @@ The SQL backend is designed to be tunable to virtually any relational schema wit
 having to change source (through that meta-information mentioned). Also, it uses 
 ODBC to connect to RDBMSes, and is highly configurable for SQL dialects RDBMSes 
 may use, so it may be used for integration and distribution of data on different 
-RDBMSes, OSes, hosts etc., in other words, in highly heterogeneous environment.
+RDBMSes, OSes, hosts etc., in other words, in highly heterogeneous environments.
 
 This backend is experimental.
 
 H3: back-sql Configuration
 
-LATER
+This backend has to be one of the most abused and complex backends there is. 
+Therefore, we will go through a simple, small example that comes with the 
+OpenLDAP source and can be found in {{F: servers/slapd/back-sql/rdbms_depend/README}}
+
+For this example we will be using PostgreSQL.
+
+First, we add to {{F: /etc/odbc.ini}} a block of the form:
+
+>	[example]                        <===
+>	Description         = Example for OpenLDAP's back-sql
+>	Driver              = PostgreSQL
+>	Trace               = No
+>	Database            = example    <===
+>	Servername          = localhost
+>	UserName            = manager    <===
+>	Password            = secret     <===
+>	Port                = 5432
+>	;Protocol            = 6.4
+>	ReadOnly            = No
+>	RowVersioning       = No
+>	ShowSystemTables    = No
+>	ShowOidColumn       = No
+>	FakeOidIndex        = No
+>	ConnSettings        =
+
+The relevant information for our test setup is highlighted with '<===' on the 
+right above.
+
+Next, we add to {{F: /etc/odbcinst.ini}} a block of the form:
+
+>	[PostgreSQL]
+>	Description     = ODBC for PostgreSQL
+>	Driver          = /usr/lib/libodbcpsql.so
+>	Setup           = /usr/lib/libodbcpsqlS.so
+>	FileUsage       = 1
+
+
+We will presume you know how to create a database and user in PostgreSQL and 
+how to set a password. Also, we'll presume you can populate the 'example'
+database you've just created with the following files, as found in {{F: servers/slapd/back-sql/rdbms_depend/pgsql }} 
+
+>	backsql_create.sql, testdb_create.sql, testdb_data.sql, testdb_metadata.sql
+
+Lastly, run the test:
+
+>	[root@localhost]# cd $SOURCES/tests
+>	[root@localhost]# SLAPD_USE_SQL=pgsql ./run sql-test000
+
+Briefly, you should see something like (cut short for space):
+
+>	Cleaning up test run directory leftover from previous run.
+>	Running ./scripts/sql-test000-read...
+>	running defines.sh
+>	Starting slapd on TCP/IP port 9011...
+>	Testing SQL backend read operations...
+>	Waiting 5 seconds for slapd to start...
+>	Testing correct bind... dn:cn=Mitya Kovalev,dc=example,dc=com
+>	Testing incorrect bind (should fail)... ldap_bind: Invalid credentials (49)
+>	
+>	......
+>	
+>	Filtering original ldif...
+>	Comparing filter output...
+>	>>>>> Test succeeded
+
+The test is basically readonly; this can be performed by all RDBMSes 
+(listed above). 
+
+There is another test, sql-test900-write, which is currently enabled
+only for PostgreSQL and IBM db2.
+
+Using {{F: sql-test000}}, files in {{F: servers/slapd/back-sql/rdbms_depend/pgsql/}}
+and the man page, you should be set.
+
+Note: This backend is experimental.
 
 H3: Further Information
 
-{{slapd-sql}}(5)
+{{slapd-sql}}(5) and {{F: servers/slapd/back-sql/rdbms_depend/README}}
