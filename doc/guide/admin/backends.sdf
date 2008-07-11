@@ -242,14 +242,49 @@ H2: Passwd
 H3: Overview
 
 The PASSWD backend to {{slapd}}(8) serves up the user account information 
-listed in the system {{passwd}}(5) file.
+listed in the system {{passwd}}(5) file (defaulting to {{F: /etc/passwd}}).
 
 This backend is provided for demonstration purposes only. The DN of each entry 
 is "uid=<username>,<suffix>".
 
 H3: back-passwd Configuration
 
-LATER
+The configuration using {{F: slapd.conf}} a slightly longer, but not much. For 
+example:
+
+>	include ./schema/core.schema
+>	
+>	modulepath  /usr/local/libexec/openldap
+>	moduleload  back_passwd.la
+>	
+>	database passwd
+>	suffix "cn=passwd"
+
+Again, testing this with {{ldapsearch}} would result in something like:
+
+>	ldapsearch -x -H ldap://localhost:9011 -b 'cn=passwd'
+>	# extended LDIF
+>	#
+>	# LDAPv3
+>	# base <cn=passwd> with scope subtree
+>	# filter: (objectclass=*)
+>	# requesting: ALL
+>	#
+>	
+>	# passwd
+>	dn: cn=passwd
+>	cn: passwd
+>	objectClass: organizationalUnit
+>	
+>	# root, passwd
+>	dn: uid=root,cn=passwd
+>	objectClass: person
+>	objectClass: uidObject
+>	uid: root
+>	cn: root
+>	sn: root
+>	description: root
+
 
 H3: Further Information
 
