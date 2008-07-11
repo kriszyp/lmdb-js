@@ -54,9 +54,54 @@ in some modified form. For this purpose, the proxy binds to the remote server
 with some administrative identity, and, if required, authorizes the asserted 
 identity. 
 
+It is heavily used by a lot of other {{SECT: Backends}} and {{SECT: Overlays}}.
+
 H3: back-ldap Configuration
 
-LATER
+As previously mentioned, {{slapd-ldap(5)}} is used behind the scenes by many 
+other {{SECT: Backends}} and {{SECT: Overlays}}. Some of them merely provide a 
+few configuration directive themselves, but have available to the administrator
+the whole of the {{slapd-ldap(5)}} options. 
+
+For example, the {{SECT: Translucent Proxy}}, which retrieves entries from a 
+remote LDAP server that can be partially overridden by the defined database, has
+only four specific {{translucent-}} directives, but can be configured using any 
+of the normal {{slapd-ldap(5)}} options. See {[slapo-translucent(5)}} for details.
+
+Other {{SECT: Overlays}} allow you to tag directives in front of a normal 
+{{slapd-ldap(5)}} directive. For example, the {{slapo-chain(5)}} overlay does 
+this:
+
+{{"There are very few chain overlay specific directives; however, directives 
+related to the instances of the ldap backend that may be implicitly instantiated 
+by the overlay may assume a special meaning when used in conjunction with this 
+overlay.  They are described in slapd-ldap(5), and they also need to be prefixed 
+by chain-."}}
+
+You may have also seen the {{slapd-ldap(5)}} backend used and described in the
+{{SECT: Push Based}} {{SECT: Replication}} section of the guide.
+
+It should therefore be obvious that the {{slapd-ldap(5)}} backend is extremely
+flexible and heavily used throughout the OpenLDAP Suite.
+
+The following is a very simple example, but already the power of the {{slapd-ldap(5)}}
+backend is seen by use of a {{uri list}}:
+
+>	database        ldap
+>	suffix          "dc=suretecsystems,dc=com"
+>	rootdn          "cn=slapd-ldap"
+>	uri             ldap://localhost/ ldap://remotehost ldap://remotehost2
+
+The URI list is space or comma-separated. Whenever the server that responds 
+is not the first one in the list, the list is rearranged and the responsive 
+server is moved to the head, so that it will be first contacted the next time 
+a connection needs be created.
+
+This feature can be used to provide a form of load balancing when using 
+{{SECT: MirrorMode replication}}.
+
+As always, refer to the {{slapd-ldap(5)}} man page for the finer details.
+
 
 H3: Further Information
 
