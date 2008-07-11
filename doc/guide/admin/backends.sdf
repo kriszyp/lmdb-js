@@ -174,7 +174,60 @@ See the {{SECT:Monitoring}} section.
 
 H3: back-monitor Configuration
 
-LATER
+The monitor database can be instantiated only once, i.e. only one occurrence 
+of "database monitor" can occur in the {{slapd.conf(5)}} file.  Also the suffix 
+is automatically set to {{"cn=Monitor"}}.
+
+You can however set a {{rootdn}} and {{rootpw}}. The following is all that is
+needed to instantiate a monitor backend:
+
+>	include ./schema/core.schema
+>
+>	modulepath  /usr/local/libexec/openldap
+>	moduleload  back_monitor.la
+
+>	database monitor
+>   rootdn "cn=monitoring,cn=Monitor"
+>	rootpw monitoring
+
+You can also apply Access Control to this database like any other database, for 
+example:
+
+>	access to dn.subtree="cn=Monitor"
+>	     by dn.exact="uid=Admin,dc=my,dc=org" write
+>	     by users read
+>	     by * none
+
+Note: The {[F: core.schema}} must be loaded for the monitor database to work. 
+
+A small example of the data returned via {{ldapsearch}} would be:
+
+>	ldapsearch -x -H ldap://localhost:9011 -b 'cn=Monitor'
+>	# extended LDIF
+>	#
+>	# LDAPv3
+>	# base <cn=Monitor> with scope subtree
+>	# filter: (objectclass=*)
+>	# requesting: ALL
+>	#
+>	
+>	# Monitor
+>	dn: cn=Monitor
+>	objectClass: monitorServer
+>	cn: Monitor
+>	description: This subtree contains monitoring/managing objects.
+>	description: This object contains information about this server.
+>	description: Most of the information is held in operational attributes, which 
+>	 must be explicitly requested.
+>	
+>	# Backends, Monitor
+>	dn: cn=Backends,cn=Monitor
+>	objectClass: monitorContainer
+>	cn: Backends
+>	description: This subsystem contains information about available backends.
+
+Please see the {{SECT: Monitoring}} section for complete examples of information
+available via this backend.
 
 H3: Further Information
 
