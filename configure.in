@@ -253,8 +253,8 @@ OL_ARG_WITH(mp,
 	[  --with-mp               with multiple precision statistics auto|longlong|long|bignum|gmp],
 	auto, [auto longlong long bignum gmp yes no])
 OL_ARG_WITH(odbc,
-	[  --with-odbc             with specific ODBC support iodbc|unixodbc|auto],
-	auto, [auto iodbc unixodbc] )
+	[  --with-odbc             with specific ODBC support iodbc|unixodbc|odbc32|auto],
+	auto, [auto iodbc unixodbc odbc32] )
 
 dnl ----------------------------------------------------------------
 dnl Server options
@@ -1929,7 +1929,7 @@ if test $ol_enable_sql != no ; then
 	LIBS="$LTHREAD_LIBS"
 
 	if test $ol_with_odbc = auto ; then
-		ol_with_odbc="iodbc unixodbc"
+		ol_with_odbc="iodbc unixodbc odbc32"
 	fi
 
 	for odbc in $ol_with_odbc ; do
@@ -1946,6 +1946,13 @@ if test $ol_enable_sql != no ; then
 				AC_CHECK_LIB(odbc, SQLDriverConnect, [have_odbc=yes], [have_odbc=no])
 				if test $have_odbc = yes ; then
 					ol_link_sql="-lodbc"
+				fi
+				;;
+
+			odbc32)
+				AC_CHECK_LIB(odbc32, SQLDriverConnect, [have_odbc32=yes], [have_odbc32=no])
+				if test $have_odbc32 = yes ; then
+					ol_link_sql="-lodbc32"
 				fi
 				;;
 
