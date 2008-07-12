@@ -4,6 +4,7 @@ OpenLDAP 2.3.43 Engineering
 	Fixed liblber ber_get_next length decoding (ITS#5580)
 	Fixed slapd replog timestamps (ITS#5532)
 	Fixed slapd socket assert (ITS#5489)
+	Fixed slapo-ppolicy modify with internal ops (ITS#5569)
 	Fixed slapo-syncprov psearch on closed connection (ITS#5401, ITS#5565)
 
 OpenLDAP 2.3.42 Release (2008/05/28)
