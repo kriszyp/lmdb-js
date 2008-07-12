@@ -473,6 +473,9 @@ LDAP_SLAPD_F (void) overlay_move LDAP_P((
 LDAP_SLAPD_F (void) overlay_remove LDAP_P((
 	BackendDB *be, slap_overinst *on ));
 #endif /* SLAP_CONFIG_DELETE */
+LDAP_SLAPD_F (int) overlay_callback_after_backover LDAP_P((
+	Operation *op, slap_callback *sc, int append ));
+
 /*
  * bconfig.c
  */
