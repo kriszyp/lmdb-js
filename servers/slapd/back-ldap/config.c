@@ -71,6 +71,7 @@ enum {
 	LDAP_BACK_CFG_QUARANTINE,
 	LDAP_BACK_CFG_ST_REQUEST,
 	LDAP_BACK_CFG_NOREFS,
+	LDAP_BACK_CFG_NOUNDEFFILTER,
 
 	LDAP_BACK_CFG_REWRITE,
 
@@ -311,8 +312,16 @@ static ConfigTable ldapcfg[] = {
 	{ "norefs", "true|FALSE", 2, 2, 0,
 		ARG_MAGIC|ARG_ON_OFF|LDAP_BACK_CFG_NOREFS,
 		ldap_back_cf_gen, "( OLcfgDbAt:3.25 "
-			"NAME 'olcDbNorefs' "
+			"NAME 'olcDbNoRefs' "
 			"DESC 'Do not return search reference responses' "
+			"SYNTAX OMsBoolean "
+			"SINGLE-VALUE )",
+		NULL, NULL },
+	{ "noundeffilter", "true|FALSE", 2, 2, 0,
+		ARG_MAGIC|ARG_ON_OFF|LDAP_BACK_CFG_NOUNDEFFILTER,
+		ldap_back_cf_gen, "( OLcfgDbAt:3.26 "
+			"NAME 'olcDbNoUndefFilter' "
+			"DESC 'Do not propagate undefined search filters' "
 			"SYNTAX OMsBoolean "
 			"SINGLE-VALUE )",
 		NULL, NULL },
@@ -358,7 +367,8 @@ static ConfigOCs ldapocs[] = {
 #ifdef SLAP_CONTROL_X_SESSION_TRACKING
 			"$ olcDbSessionTrackingRequest "
 #endif /* SLAP_CONTROL_X_SESSION_TRACKING */
-			"$ olcDbNorefs "
+			"$ olcDbNoRefs "
+			"$ olcDbNoUndefFilter "
 		") )",
 		 	Cft_Database, ldapcfg},
 	{ NULL, 0, NULL }
@@ -1152,6 +1162,10 @@ ldap_back_cf_gen( ConfigArgs *c )
 			c->value_int = LDAP_BACK_NOREFS( li );
 			break;
 
+		case LDAP_BACK_CFG_NOUNDEFFILTER:
+			c->value_int = LDAP_BACK_NOUNDEFFILTER( li );
+			break;
+
 		default:
 			/* FIXME: we need to handle all... */
 			assert( 0 );
@@ -1276,6 +1290,10 @@ ldap_back_cf_gen( ConfigArgs *c )
 
 		case LDAP_BACK_CFG_NOREFS:
 			li->li_flags &= ~LDAP_BACK_F_NOREFS;
+			break;
+
+		case LDAP_BACK_CFG_NOUNDEFFILTER:
+			li->li_flags &= ~LDAP_BACK_F_NOUNDEFFILTER;
 			break;
 
 		default:
@@ -1928,6 +1946,15 @@ done_url:;
 
 		} else {
 			li->li_flags &= ~LDAP_BACK_F_NOREFS;
+		}
+		break;
+
+	case LDAP_BACK_CFG_NOUNDEFFILTER:
+		if ( c->value_int ) {
+			li->li_flags |= LDAP_BACK_F_NOUNDEFFILTER;
+
+		} else {
+			li->li_flags &= ~LDAP_BACK_F_NOUNDEFFILTER;
 		}
 		break;
 

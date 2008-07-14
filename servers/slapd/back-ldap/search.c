@@ -102,23 +102,27 @@ ldap_back_munge_filter(
 			goto done;
 		}
 
-		oldfilter = *filter;
-		if ( newbv->bv_len > oldbv->bv_len ) {
-			filter->bv_len += newbv->bv_len - oldbv->bv_len;
-			if ( filter->bv_val == op->ors_filterstr.bv_val ) {
-				filter->bv_val = op->o_tmpalloc( filter->bv_len + 1,
-						op->o_tmpmemctx );
-
-				AC_MEMCPY( filter->bv_val, op->ors_filterstr.bv_val,
-						op->ors_filterstr.bv_len + 1 );
-
-			} else {
-				filter->bv_val = op->o_tmprealloc( filter->bv_val,
-						filter->bv_len + 1, op->o_tmpmemctx );
-			}
-
-			ptr = filter->bv_val + ( ptr - oldfilter.bv_val );
+		/* if undef or invalid filter is not allowed,
+		 * don't rewrite filter */
+		if ( LDAP_BACK_NOUNDEFFILTER( li ) ) {
+			return -1;
 		}
+
+		oldfilter = *filter;
+		filter->bv_len += newbv->bv_len - oldbv->bv_len;
+		if ( filter->bv_val == op->ors_filterstr.bv_val ) {
+			filter->bv_val = op->o_tmpalloc( filter->bv_len + 1,
+					op->o_tmpmemctx );
+
+			AC_MEMCPY( filter->bv_val, op->ors_filterstr.bv_val,
+					op->ors_filterstr.bv_len + 1 );
+
+		} else {
+			filter->bv_val = op->o_tmprealloc( filter->bv_val,
+					filter->bv_len + 1, op->o_tmpmemctx );
+		}
+
+		ptr = filter->bv_val + ( ptr - oldfilter.bv_val );
 
 		AC_MEMCPY( &ptr[ newbv->bv_len ],
 				&ptr[ oldbv->bv_len ], 
@@ -240,14 +244,18 @@ retry:
 			goto finish;
 
 		case LDAP_FILTER_ERROR:
-			if ( ldap_back_munge_filter( op, &filter ) ) {
+			switch (ldap_back_munge_filter( op, &filter ) ) {
+			case 0:
+			case -1:
+				/* invalid filters return success with no data */
+				rs->sr_err = LDAP_SUCCESS;
+				rs->sr_text = NULL;
+				break;
+
+			case 1:
 				free_filter = 1;
 				goto retry;
 			}
-
-			/* invalid filters return success with no data */
-			rs->sr_err = LDAP_SUCCESS;
-			rs->sr_text = NULL;
 			goto finish;
 		
 		default:
