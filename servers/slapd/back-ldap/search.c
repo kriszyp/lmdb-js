@@ -94,18 +94,18 @@ ldap_back_munge_filter(
 
 		} else if ( strncmp( ptr, bv_undefined.bv_val, bv_undefined.bv_len ) == 0 )
 		{
+			/* if undef or invalid filter is not allowed,
+			 * don't rewrite filter */
+			if ( LDAP_BACK_NOUNDEFFILTER( li ) ) {
+				return -1;
+			}
+
 			oldbv = &bv_undefined;
 			newbv = &bv_F;
 
 		} else {
 			gotit = 0;
 			goto done;
-		}
-
-		/* if undef or invalid filter is not allowed,
-		 * don't rewrite filter */
-		if ( LDAP_BACK_NOUNDEFFILTER( li ) ) {
-			return -1;
 		}
 
 		oldfilter = *filter;

@@ -137,6 +137,19 @@ If set before any target specification, it affects all targets, unless
 overridden by any per-target directive.
 
 .TP
+.B noundeffilter <NO|yes>
+If
+.BR yes ,
+return success instead of searching if a filter is undefined or contains
+undefined portions.
+By default, the search is propagated after replacing undefined portions
+with
+.BR (!(objectClass=*)) ,
+which corresponds to the empty result set.
+If set before any target specification, it affects all targets, unless
+overridden by any per-target directive.
+
+.TP
 .B protocol\-version {0,2,3}
 This directive indicates what protocol version must be used to contact
 the remote server.
