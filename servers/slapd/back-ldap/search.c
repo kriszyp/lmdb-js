@@ -532,6 +532,10 @@ finish:;
 		ldap_back_quarantine( op, rs );
 	}
 
+	if ( filter.bv_val != op->ors_filterstr.bv_val ) {
+		op->o_tmpfree( filter.bv_val, op->o_tmpmemctx );
+	}
+
 #if 0
 	/* let send_ldap_result play cleanup handlers (ITS#4645) */
 	if ( rc != SLAPD_ABANDON )
@@ -555,10 +559,6 @@ finish:;
 			LDAP_FREE( match.bv_val );
 		}
 		rs->sr_matched = save_matched;
-	}
-
-	if ( filter.bv_val != op->ors_filterstr.bv_val ) {
-		op->o_tmpfree( filter.bv_val, op->o_tmpmemctx );
 	}
 
 	if ( rs->sr_text ) {
