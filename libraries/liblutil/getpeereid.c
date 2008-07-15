@@ -58,6 +58,7 @@ int lutil_getpeereid( int s, uid_t *euid, gid_t *egid
 		*euid = ucred_geteuid( uc );
 		*egid = ucred_getegid( uc );
 		ucred_free( uc );
+		return 0;
 	}
 
 #elif defined( SO_PEERCRED )
