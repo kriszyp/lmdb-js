@@ -97,7 +97,12 @@ ldap_back_munge_filter(
 			/* if undef or invalid filter is not allowed,
 			 * don't rewrite filter */
 			if ( LDAP_BACK_NOUNDEFFILTER( li ) ) {
-				return -1;
+				if ( filter->bv_val != op->ors_filterstr.bv_val ) {
+					op->o_tmpfree( filter->bv_val, op->o_tmpmemctx );
+				}
+				BER_BVZERO( filter );
+				gotit = -1;
+				goto done;
 			}
 
 			oldbv = &bv_undefined;
@@ -156,7 +161,6 @@ ldap_back_search(
 			msgid; 
 	struct berval	match = BER_BVNULL,
 			filter = BER_BVNULL;
-	int		free_filter = 0;
 	int		i;
 	char		**attrs = NULL;
 	int		freetext = 0;
@@ -244,18 +248,13 @@ retry:
 			goto finish;
 
 		case LDAP_FILTER_ERROR:
-			switch (ldap_back_munge_filter( op, &filter ) ) {
-			case 0:
-			case -1:
-				/* invalid filters return success with no data */
-				rs->sr_err = LDAP_SUCCESS;
-				rs->sr_text = NULL;
-				break;
-
-			case 1:
-				free_filter = 1;
+			if (ldap_back_munge_filter( op, &filter ) > 0 ) {
 				goto retry;
 			}
+
+			/* invalid filters return success with no data */
+			rs->sr_err = LDAP_SUCCESS;
+			rs->sr_text = NULL;
 			goto finish;
 		
 		default:
@@ -558,7 +557,7 @@ finish:;
 		rs->sr_matched = save_matched;
 	}
 
-	if ( free_filter ) {
+	if ( filter.bv_val != op->ors_filterstr.bv_val ) {
 		op->o_tmpfree( filter.bv_val, op->o_tmpmemctx );
 	}
 
