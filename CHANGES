@@ -1,6 +1,6 @@
 OpenLDAP 2.4 Change Log
 
-OpenLDAP 2.4.11 Release (2008/07/13)
+OpenLDAP 2.4.11 Release (2008/07/16)
 	Fixed liblber ber_get_next length decoding (ITS#5580)
 	Added libldap assertion control (ITS#5560)
 	Fixed libldap GnuTLS CRL result handling (ITS#5577)
