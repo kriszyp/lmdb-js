@@ -571,7 +571,7 @@ memberof_op_add( Operation *op, SlapReply *rs )
 			&& is_entry_objectclass_or_sub( op->ora_e, mo->mo_oc_group ) )
 	{
 		op->o_dn = op->o_bd->be_rootdn;
-		op->o_dn = op->o_bd->be_rootndn;
+		op->o_ndn = op->o_bd->be_rootndn;
 		op->o_bd->bd_info = (BackendInfo *)on->on_info;
 
 		for ( ap = &op->ora_e->e_attrs; *ap; ) {
@@ -805,7 +805,7 @@ memberof_op_modify( Operation *op, SlapReply *rs )
 			BerVarray	vals = NULL;
 
 			op->o_dn = op->o_bd->be_rootdn;
-			op->o_dn = op->o_bd->be_rootndn;
+			op->o_ndn = op->o_bd->be_rootndn;
 			op->o_bd->bd_info = (BackendInfo *)on->on_info;
 			rc = backend_attribute( op, NULL, &op->o_req_ndn,
 					mo->mo_ad_member, &vals, ACL_READ );
@@ -820,7 +820,7 @@ memberof_op_modify( Operation *op, SlapReply *rs )
 				&& !get_relax( op ) )
 		{
 			op->o_dn = op->o_bd->be_rootdn;
-			op->o_dn = op->o_bd->be_rootndn;
+			op->o_ndn = op->o_bd->be_rootndn;
 			op->o_bd->bd_info = (BackendInfo *)on->on_info;
 		
 			assert( op->orm_modlist != NULL );
