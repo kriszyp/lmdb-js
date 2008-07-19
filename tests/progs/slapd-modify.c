@@ -310,7 +310,7 @@ retry:;
 	}
 
 done:;
-	fprintf( stderr, " PID=%ld - Modify done (%d).\n", (long) pid, rc );
+	fprintf( stderr, "  PID=%ld - Modify done (%d).\n", (long) pid, rc );
 
 	ldap_unbind_ext( ld, NULL, NULL );
 }

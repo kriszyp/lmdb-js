@@ -394,7 +394,7 @@ do_bind( char *uri, char *dn, struct berval *pass, int maxloop,
 	}
 
 	if ( maxloop > 1 ) {
-		fprintf( stderr, " PID=%ld - Bind done (%d).\n", (long) pid, rc );
+		fprintf( stderr, "  PID=%ld - Bind done (%d).\n", (long) pid, rc );
 	}
 
 	if ( ldp && noinit ) {
@@ -570,7 +570,7 @@ novals:;
 	end = GetTickCount();
 	end -= beg;
 
-	fprintf( stderr, " PID=%ld - Bind done %d in %d.%03d seconds.\n",
+	fprintf( stderr, "  PID=%ld - Bind done %d in %d.%03d seconds.\n",
 		(long) pid, i, end / 1000, end % 1000 );
 #else
 	gettimeofday( &end, NULL );
@@ -581,7 +581,7 @@ novals:;
 	}
 	end.tv_sec -= beg.tv_sec;
 
-	fprintf( stderr, " PID=%ld - Bind done %d in %ld.%06ld seconds.\n",
+	fprintf( stderr, "  PID=%ld - Bind done %d in %ld.%06ld seconds.\n",
 		(long) pid, i, (long) end.tv_sec, (long) end.tv_usec );
 #endif
 

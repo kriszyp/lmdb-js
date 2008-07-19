@@ -319,7 +319,7 @@ do_random( char *uri, char *manager, struct berval *passwd,
 		break;
 	}
 
-	fprintf( stderr, " PID=%ld - Search done (%d).\n", (long) pid, rc );
+	fprintf( stderr, "  PID=%ld - Search done (%d).\n", (long) pid, rc );
 
 	if ( ld != NULL ) {
 		ldap_unbind_ext( ld, NULL, NULL );
@@ -419,7 +419,7 @@ retry:;
 		*ldp = ld;
 
 	} else {
-		fprintf( stderr, " PID=%ld - Read done (%d).\n", (long) pid, rc );
+		fprintf( stderr, "  PID=%ld - Read done (%d).\n", (long) pid, rc );
 
 		if ( ld != NULL ) {
 			ldap_unbind_ext( ld, NULL, NULL );
