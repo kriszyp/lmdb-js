@@ -16,6 +16,10 @@
 echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
 
+if test x$LOOPS = x ; then
+	LOOPS=50
+fi
+
 mkdir -p $TESTDIR $DBDIR1
 
 echo "Running slapadd to build slapd database..."
@@ -51,7 +55,7 @@ for i in 0 1 2 3 4 5; do
 done
 
 echo "Using tester for concurrent server access..."
-time $SLAPDTESTER -P "$PROGDIR" -d "$DATADIR" -h $LOCALHOST -p $PORT1 -D "$MANAGERDN" -w $PASSWD -l 50
+time $SLAPDTESTER -P "$PROGDIR" -d "$DATADIR" -h $LOCALHOST -p $PORT1 -D "$MANAGERDN" -w $PASSWD -l $LOOPS
 #$SLAPDTESTER -P "$PROGDIR" -d "$DATADIR" -h $LOCALHOST -p $PORT1 -D "$MANAGERDN" -w $PASSWD -l 50
 RC=$?
 
