@@ -14,20 +14,20 @@
 ## <http://www.OpenLDAP.org/license.html>.
 
 MONITORDB="$1"
-DATADIR="$2"
-TESTDIR="$3"
+SRCDIR="$2"
+DSTDIR="$3"
 
 echo "MONITORDB $MONITORDB"
-echo "DATADIR $DATADIR"
-echo "TESTDIR $TESTDIR"
+echo "SRCDIR $SRCDIR"
+echo "DSTDIR $DSTDIR"
 echo "pwd `pwd`"
 
 # copy test data
-cp "$DATADIR"/do_* "$TESTDIR"
+cp "$SRCDIR"/do_* "$DSTDIR"
 if test $MONITORDB != no ; then
 
-	# add back-monitor testing
-	cat >> "$TESTDIR/do_search.0" << EOF
+	# add back-monitor testing data
+	cat >> "$DSTDIR/do_search.0" << EOF
 cn=Monitor
 (objectClass=*)
 cn=Monitor
@@ -38,10 +38,11 @@ cn=Monitor
 (objectClass=*)
 EOF
 
-	cat >> "$TESTDIR/do_read.0" << EOF
+	cat >> "$DSTDIR/do_read.0" << EOF
 cn=Backend 1,cn=Backends,cn=Monitor
 cn=Entries,cn=Statistics,cn=Monitor
 cn=Database 1,cn=Databases,cn=Monitor
 EOF
 
 fi
+
