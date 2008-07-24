@@ -2301,7 +2301,7 @@ slapd_daemon_task(
 						Debug( LDAP_DEBUG_ANY,
 							"daemon: "
 							SLAP_EVENT_FNAME
-							"failed count %d "
+							" failed count %d "
 							"err (%d): %s\n",
 							ebadf, err,
 							sock_errstr( err ) );
