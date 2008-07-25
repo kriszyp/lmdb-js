@@ -115,7 +115,7 @@ H3: Database Software
 
 OpenLDAP's {{slapd}}(8) {{TERM:BDB}} and {{TERM:HDB}} primary database backends
 require {{ORG[expand]Oracle}} {{PRD:Berkeley DB}}.
-If not available at configure time, you will not be able build
+If not available at configure time, you will not be able to build
 {{slapd}}(8) with these primary database backends.
 
 Your operating system may provide a supported version of
