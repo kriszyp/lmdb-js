@@ -4536,8 +4536,10 @@ firstComponentNormalize(
 
 	if( val->bv_len < 3 ) return LDAP_INVALID_SYNTAX;
 
-	if( val->bv_val[0] != '(' /*')'*/ &&
-		val->bv_val[0] != '{' /*'}'*/ )
+	if( ! ( val->bv_val[0] == '(' /*')'*/
+			&& val->bv_val[val->bv_len - 1] == /*'('*/ ')' )
+		&& ! ( val->bv_val[0] == '{' /*'}'*/
+			&& val->bv_val[val->bv_len - 1] == /*'('*/ '}' ) )
 	{
 		return LDAP_INVALID_SYNTAX;
 	}
@@ -4552,7 +4554,7 @@ firstComponentNormalize(
 
 	/* grab next word */
 	comp.bv_val = &val->bv_val[len];
-	len = val->bv_len - len;
+	len = val->bv_len - len - STRLENOF(/*"{"*/ "}");
 	for( comp.bv_len = 0;
 		!ASCII_SPACE(comp.bv_val[comp.bv_len]) && comp.bv_len < len;
 		comp.bv_len++ )
