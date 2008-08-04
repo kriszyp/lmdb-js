@@ -107,9 +107,14 @@ rwm_op_cleanup( Operation *op, SlapReply *rs )
 		case LDAP_REQ_BIND:
 			if ( rs->sr_err == LDAP_SUCCESS ) {
 #if 0
-				/* too late, conn_mutex released */
+				ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
+				/* too late, c_mutex released */
+				fprintf( stderr, "*** DN: \"%s\" => \"%s\"\n",
+					op->o_conn->c_ndn.bv_val,
+					op->o_req_ndn.bv_val );
 				ber_bvreplace( &op->o_conn->c_ndn,
 					&op->o_req_ndn );
+				ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
 #endif
 			}
 			break;
@@ -1058,37 +1063,44 @@ rwm_attrs( Operation *op, SlapReply *rs, Attribute** a_first, int stripEntryDN )
 
 				/* try to normalize mapped Attributes if the original 
 				 * AttributeType was not normalized */
-				if ((rwmap->rwm_flags & RWM_F_NORMALIZE_MAPPED_ATTRS) && 
-					(!(*ap)->a_desc->ad_type->sat_equality || 
+				if ( (!(*ap)->a_desc->ad_type->sat_equality || 
 					!(*ap)->a_desc->ad_type->sat_equality->smr_normalize) &&
 					mapping->m_dst_ad->ad_type->sat_equality &&
 					mapping->m_dst_ad->ad_type->sat_equality->smr_normalize )
 				{
-					int i = 0;
-
-					last = (*ap)->a_numvals;
-					if ( last )
+					if ((rwmap->rwm_flags & RWM_F_NORMALIZE_MAPPED_ATTRS))
 					{
-						(*ap)->a_nvals = ch_malloc( (last+1) * sizeof(struct berval) );
+						int i = 0;
 
-						for ( i = 0; !BER_BVISNULL( &(*ap)->a_vals[i]); i++ ) {
-							int		rc;
-							/*
-							 * check that each value is valid per syntax
-							 * and pretty if appropriate
-							 */
-							rc = mapping->m_dst_ad->ad_type->sat_equality->smr_normalize(
-								SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
-								mapping->m_dst_ad->ad_type->sat_syntax,
-								mapping->m_dst_ad->ad_type->sat_equality,
-								&(*ap)->a_vals[i], &(*ap)->a_nvals[i],
-								NULL );
+						last = (*ap)->a_numvals;
+						if ( last )
+						{
+							(*ap)->a_nvals = ch_malloc( (last+1) * sizeof(struct berval) );
 
-							if ( rc != LDAP_SUCCESS ) {
-								BER_BVZERO( &(*ap)->a_nvals[i] );
+							for ( i = 0; !BER_BVISNULL( &(*ap)->a_vals[i]); i++ ) {
+								int		rc;
+								/*
+								 * check that each value is valid per syntax
+								 * and pretty if appropriate
+								 */
+								rc = mapping->m_dst_ad->ad_type->sat_equality->smr_normalize(
+									SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
+									mapping->m_dst_ad->ad_type->sat_syntax,
+									mapping->m_dst_ad->ad_type->sat_equality,
+									&(*ap)->a_vals[i], &(*ap)->a_nvals[i],
+									NULL );
+
+								if ( rc != LDAP_SUCCESS ) {
+									BER_BVZERO( &(*ap)->a_nvals[i] );
+								}
 							}
+							BER_BVZERO( &(*ap)->a_nvals[i] );
 						}
-						BER_BVZERO( &(*ap)->a_nvals[i] );
+
+					} else {
+						assert( (*ap)->a_nvals == (*ap)->a_vals );
+						(*ap)->a_nvals = NULL;
+						ber_bvarray_dup_x( &(*ap)->a_nvals, (*ap)->a_vals, NULL );
 					}
 				}
 
