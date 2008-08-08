@@ -19,7 +19,7 @@ LDAPAttrType::LDAPAttrType(){
     usage = 0;
 }
 
-LDAPAttrType::LDAPAttrType (string at_item) { 
+LDAPAttrType::LDAPAttrType (string at_item, int flags ) { 
 
     DEBUG(LDAP_DEBUG_CONSTRUCT,
             "LDAPAttrType::LDAPAttrType( )" << endl);
@@ -27,7 +27,7 @@ LDAPAttrType::LDAPAttrType (string at_item) {
     LDAPAttributeType *a;
     int ret;
     const char *errp;
-    a = ldap_str2attributetype (at_item.c_str(), &ret, &errp,SCHEMA_PARSE_FLAG);
+    a = ldap_str2attributetype (at_item.c_str(), &ret, &errp, flags);
 
     if (a) {
 	this->setNames( a->at_names );

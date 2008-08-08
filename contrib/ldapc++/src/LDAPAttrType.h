@@ -12,9 +12,6 @@
 
 #include "StringList.h"
 
-#define SCHEMA_PARSE_FLAG    0x03
-
-
 using namespace std;
 
 /**
@@ -43,7 +40,8 @@ class LDAPAttrType{
 	 * "( SuSE.YaST.Attr:19 NAME ( 'skelDir' ) DESC ''
 	 *    EQUALITY caseExactIA5Match SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )"
          */   
-        LDAPAttrType (string at_item);
+        LDAPAttrType (string at_item, int flags = LDAP_SCHEMA_ALLOW_NO_OID | 
+                      LDAP_SCHEMA_ALLOW_QUOTED );
 
         /**
          * Destructor
