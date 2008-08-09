@@ -345,9 +345,12 @@ aci_list_get_rights(
 			continue;
 		}
 
-		found = 1;
 		*mask |= aci_list_get_attr_rights( &perm, attr, val );
 		*mask |= aci_list_get_attr_rights( &perm, &aci_bv[ ACI_BV_BR_ALL ], NULL );
+
+		if ( *mask != ACL_PRIV_NONE ) { 
+			found = 1;
+		}
 	}
 
 	return found;
@@ -439,7 +442,9 @@ aci_mask(
 				opts,
 				sdn;
 	int			rc;
-		
+
+	ACL_INIT( *grant );
+	ACL_INIT( *deny );
 
 	assert( !BER_BVISNULL( &desc->ad_cname ) );
 
