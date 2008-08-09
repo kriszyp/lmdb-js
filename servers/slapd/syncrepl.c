@@ -579,6 +579,9 @@ do_syncrep1(
 
 	ldap_set_option( si->si_ld, LDAP_OPT_TIMELIMIT, &si->si_tlimit );
 
+	rc = LDAP_DEREF_NEVER;	/* actually could allow DEREF_FINDING */
+	ldap_set_option( si->si_ld, LDAP_OPT_DEREF, &rc );
+
 	si->si_syncCookie.rid = si->si_rid;
 
 	/* whenever there are multiple data sources possible, advertise sid */
@@ -910,6 +913,11 @@ do_syncrep2(
 				}
 				rc = err;
 				goto done;
+			}
+			if ( err ) {
+				Debug( LDAP_DEBUG_ANY,
+					"do_syncrep2: %s LDAP_RES_SEARCH_RESULT (%d) %s\n",
+					si->si_ridtxt, err, ldap_err2string( err ) );
 			}
 			if ( rctrls ) {
 				rctrlp = *rctrls;
