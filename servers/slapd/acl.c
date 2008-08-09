@@ -2114,7 +2114,7 @@ acl_set_gather( SetCookie *cookie, struct berval *name, AttributeDescription *de
 	if ( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE,
 			"%s acl_set_gather: DN=\"%s\" normalize failed\n",
-			cp->asc_op->o_log_prefix, op2.o_req_dn.bv_val, 0 );
+			cp->asc_op->o_log_prefix, ludp->lud_dn, 0 );
 
 		goto url_done;
 	}
