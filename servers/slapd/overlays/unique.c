@@ -239,6 +239,7 @@ unique_new_domain_uri ( unique_domain_uri **urip,
 
 	if (url_desc->lud_filter) {
 		Filter *f = str2filter( url_desc->lud_filter );
+		char *ptr;
 		if ( !f ) {
 			snprintf( c->cr_msg, sizeof( c->cr_msg ),
 				  "unique: bad filter");
@@ -248,6 +249,14 @@ unique_new_domain_uri ( unique_domain_uri **urip,
 		/* make sure the strfilter is in normal form (ITS#5581) */
 		filter2bv( f, &uri->filter );
 		filter_free( f );
+		ptr = strstr( uri->filter.bv_val, "(?=" /*)*/ );
+		if ( ptr != NULL && ptr <= ( uri->filter.bv_val - STRLENOF( "(?=" /*)*/ ) + uri->filter.bv_len ) )
+		{
+			snprintf( c->cr_msg, sizeof( c->cr_msg ),
+				  "unique: bad filter");
+			rc = ARG_BAD_CONF;
+			goto exit;
+		}
 	}
 exit:
 	uri->next = *urip;
@@ -401,6 +410,14 @@ unique_cf_base( ConfigArgs *c )
 		if ( domains ) {
 			snprintf( c->cr_msg, sizeof( c->cr_msg ),
 				  "cannot set legacy attrs when URIs are present" );
+			Debug ( LDAP_DEBUG_CONFIG, "unique config: %s\n",
+				c->cr_msg, NULL, NULL );
+			rc = ARG_BAD_CONF;
+			break;
+		}
+		if ( be->be_nsuffix == NULL ) {
+			snprintf( c->cr_msg, sizeof( c->cr_msg ),
+				  "suffix must be set" );
 			Debug ( LDAP_DEBUG_CONFIG, "unique config: %s\n",
 				c->cr_msg, NULL, NULL );
 			rc = ARG_BAD_CONF;
@@ -959,6 +976,13 @@ unique_search(
 	Debug(LDAP_DEBUG_TRACE, "==> unique_search %s\n", key, 0, 0);
 
 	nop->ors_filter = str2filter_x(nop, key->bv_val);
+	if(nop->ors_filter == NULL) {
+		op->o_bd->bd_info = (BackendInfo *) on->on_info;
+		send_ldap_error(op, rs, LDAP_OTHER,
+			"unique_search invalid filter");
+		return(rs->sr_err);
+	}
+
 	nop->ors_filterstr = *key;
 
 	cb.sc_response	= (slap_response*)count_attr_cb;
