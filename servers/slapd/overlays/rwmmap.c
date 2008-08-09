@@ -81,7 +81,9 @@ rwm_map_init( struct ldapmap *lm, struct ldapmapping **m )
 		return LDAP_NO_MEMORY;
 	}
 
-	/* FIXME: I don't think this is needed any more... */
+	/* NOTE: this is needed to make sure that
+	 *	rwm-map attribute *
+	 * does not  filter out all attributes including objectClass */
 	rc = slap_str2ad( "objectClass", &mapping[0].m_src_ad, &text );
 	if ( rc != LDAP_SUCCESS ) {
 		ch_free( mapping );

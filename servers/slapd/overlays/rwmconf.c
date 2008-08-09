@@ -71,6 +71,13 @@ rwm_map_config(
 		return 1;
 	}
 
+	if ( !is_oc && map->map == NULL ) {
+		/* only init if required */
+		if ( rwm_map_init( map, &mapping ) != LDAP_SUCCESS ) {
+			return 1;
+		}
+	}
+
 	if ( strcmp( argv[2], "*" ) == 0 ) {
 		if ( argc < 4 || strcmp( argv[3], "*" ) == 0 ) {
 			map->drop_missing = ( argc < 4 );
@@ -225,11 +232,6 @@ rwm_map_config(
 				rwm_mapping_cmp, rwm_mapping_dup );
 
 success_return:;
-	if ( !is_oc && map->map == NULL ) {
-		/* only init if required */
-		rc = rwm_map_init( map, &mapping ) != LDAP_SUCCESS;
-	}
-
 	return rc;
 
 error_return:;
