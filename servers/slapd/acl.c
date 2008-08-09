@@ -2275,7 +2275,7 @@ acl_match_set (
 	AclSetCookie	cookie;
 
 	if ( default_set_attribute == NULL ) {
-		ber_dupbv_x( &set, subj, op->o_tmpmemctx );
+		set = *subj;
 
 	} else {
 		struct berval		subjdn, ndn = BER_BVNULL;
@@ -2324,7 +2324,9 @@ acl_match_set (
 			acl_set_gather,
 			(SetCookie *)&cookie, &set,
 			&op->o_ndn, &e->e_nname, NULL ) > 0 );
-		slap_sl_free( set.bv_val, op->o_tmpmemctx );
+		if ( set.bv_val != subj->bv_val ) {
+			slap_sl_free( set.bv_val, op->o_tmpmemctx );
+		}
 	}
 
 	return(rc);
