@@ -1743,6 +1743,12 @@ OpenLDAPaciPrettyNormal(
 		}
 
 		nsubject = ad->ad_cname;
+
+	} else if ( OpenLDAPacitypes[ idx ] == &aci_bv[ ACI_BV_SET ]
+		|| OpenLDAPacitypes[ idx ] == &aci_bv[ ACI_BV_SET_REF ] )
+	{
+		/* NOTE: dunno how to normalize it... */
+		nsubject = subject;
 	}
 
 
