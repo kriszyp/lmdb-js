@@ -123,6 +123,7 @@ LDAP_BEGIN_DECL
 #define LDAP_OPT_SOCKBUF            0x5008  /* sockbuf */
 #define LDAP_OPT_DEFBASE		0x5009	/* searchbase */
 #define	LDAP_OPT_CONNECT_ASYNC		0x5010	/* create connections asynchronously */
+#define	LDAP_OPT_CONNECT_CB			0x5011	/* connection callbacks */
 
 /* OpenLDAP TLS options */
 #define LDAP_OPT_X_TLS				0x6000
@@ -880,6 +881,27 @@ struct ldap_sync_t {
 /*
  * End of LDAP sync (RFC4533) API
  */
+
+/*
+ * Connection callbacks...
+ */
+struct ldap_conncb;
+struct sockaddr;
+
+/* Called after a connection is established */
+typedef void (ldap_conn_add_f) LDAP_P(( LDAP *ld, Sockbuf *sb, const char *name, struct sockaddr *addr,
+	struct ldap_conncb *ctx ));
+/* Called before a connection is closed */
+typedef void (ldap_conn_del_f) LDAP_P(( LDAP *ld, Sockbuf *sb, struct ldap_conncb *ctx ));
+
+/* Callbacks are pushed on a stack. Last one pushed is first one executed. The
+ * delete callback is called with a NULL Sockbuf just before freeing the LDAP handle.
+ */
+typedef struct ldap_conncb {
+	ldap_conn_add_f *lc_add;
+	ldap_conn_del_f *lc_del;
+	void *lc_arg;
+} ldap_conncb;
 
 /*
  * The API draft spec says we should declare (or cause to be declared)

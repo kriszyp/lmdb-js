@@ -159,6 +159,11 @@ struct ldaptls {
 };
 #endif
 
+typedef struct ldaplist {
+	struct ldaplist *ll_next;
+	void *ll_data;
+} ldaplist;
+
 /*
  * structure representing get/set'able options
  * which have global defaults.
@@ -236,6 +241,9 @@ struct ldapoptions {
 	void *ldo_nextref_params;
 	LDAP_URLLIST_PROC *ldo_urllist_proc;
 	void *ldo_urllist_params;
+
+	/* LDAP connection callback stack */
+	ldaplist *ldo_conn_cbs;
 
 	LDAP_BOOLEANS ldo_booleans;	/* boolean options */
 };

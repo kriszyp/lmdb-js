@@ -642,6 +642,28 @@ ldap_free_connection( LDAP *ld, LDAPConn *lc, int force, int unbind )
 		ldap_pvt_thread_mutex_unlock( &ld->ld_conn_mutex );
 #endif
 
+		/* process connection callbacks */
+		{
+			struct ldapoptions *lo;
+			ldaplist *ll;
+			ldap_conncb *cb;
+
+			lo = &ld->ld_options;
+			if ( lo->ldo_conn_cbs ) {
+				for ( ll=lo->ldo_conn_cbs; ll; ll=ll->ll_next ) {
+					cb = ll->ll_data;
+					cb->lc_del( ld, lc->lconn_sb, cb );
+				}
+			}
+			lo = LDAP_INT_GLOBAL_OPT();
+			if ( lo->ldo_conn_cbs ) {
+				for ( ll=lo->ldo_conn_cbs; ll; ll=ll->ll_next ) {
+					cb = ll->ll_data;
+					cb->lc_del( ld, lc->lconn_sb, cb );
+				}
+			}
+		}
+
 		if ( lc->lconn_status == LDAP_CONNST_CONNECTED ) {
 			ldap_mark_select_clear( ld, lc->lconn_sb );
 			if ( unbind ) {

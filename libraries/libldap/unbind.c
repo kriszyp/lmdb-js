@@ -112,6 +112,18 @@ ldap_ld_free(
 	ldap_pvt_thread_mutex_unlock( &ld->ld_res_mutex );
 #endif
 
+	/* final close callbacks */
+	{
+		ldaplist *ll, *next;
+
+		for ( ll = ld->ld_options.ldo_conn_cbs; ll; ll = next ) {
+			ldap_conncb *cb = ll->ll_data;
+			next = ll->ll_next;
+			cb->lc_del( ld, NULL, cb );
+			LDAP_FREE( ll );
+		}
+	}
+
 	if ( ld->ld_error != NULL ) {
 		LDAP_FREE( ld->ld_error );
 		ld->ld_error = NULL;
