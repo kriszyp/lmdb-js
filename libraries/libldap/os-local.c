@@ -350,20 +350,12 @@ ldap_connect_to_path(LDAP *ld, Sockbuf *sb, const char *path, int async)
 	rc = ldap_pvt_connect(ld, s, &server, async);
 
 	if (rc == 0) {
-		ldaplist *ll;
-		struct ldapoptions *lo;
-		ber_sockbuf_ctrl( sb, LBER_SB_OPT_SET_FD, (void *)&s );
-		lo = &ld->ld_options;
-		for (ll = lo->ldo_conn_cbs; ll; ll = ll->ll_next) {
-			ldap_conncb *cb = ll->ll_data;
-			cb->lc_add( ld, sb, path, (struct sockaddr *)&server, cb );
-		}
-		lo = LDAP_INT_GLOBAL_OPT();
-		for (ll = lo->ldo_conn_cbs; ll; ll = ll->ll_next) {
-			ldap_conncb *cb = ll->ll_data;
-			cb->lc_add( ld, sb, path, (struct sockaddr *)&server, cb );
-		}
-	} else {
+		int err;
+		err = ldap_int_connect_cbs( ld, sb, &s, path, (struct sockaddr *)&server );
+		if ( err )
+			rc = err;
+	}
+	if ( rc ) {
 		ldap_pvt_close_socket(ld, s);
 	}
 	return rc;
