@@ -319,11 +319,12 @@ sendcred:
 }
 
 int
-ldap_connect_to_path(LDAP *ld, Sockbuf *sb, const char *path, int async)
+ldap_connect_to_path(LDAP *ld, Sockbuf *sb, LDAPURLDesc *srv, int async)
 {
 	struct sockaddr_un	server;
 	ber_socket_t		s;
 	int			rc;
+	const char *path = srv->lud_host;
 
 	oslocal_debug(ld, "ldap_connect_to_path\n",0,0,0);
 
@@ -351,7 +352,7 @@ ldap_connect_to_path(LDAP *ld, Sockbuf *sb, const char *path, int async)
 
 	if (rc == 0) {
 		int err;
-		err = ldap_int_connect_cbs( ld, sb, &s, path, (struct sockaddr *)&server );
+		err = ldap_int_connect_cbs( ld, sb, &s, srv, (struct sockaddr *)&server );
 		if ( err )
 			rc = err;
 	}

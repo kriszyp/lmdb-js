@@ -425,7 +425,7 @@ ldap_pvt_inet_aton( const char *host, struct in_addr *in)
 #endif
 
 int
-ldap_int_connect_cbs(LDAP *ld, Sockbuf *sb, ber_socket_t *s, const char *host, struct sockaddr *addr)
+ldap_int_connect_cbs(LDAP *ld, Sockbuf *sb, ber_socket_t *s, LDAPURLDesc *srv, struct sockaddr *addr)
 {
 	struct ldapoptions *lo;
 	ldaplist *ll;
@@ -438,7 +438,7 @@ ldap_int_connect_cbs(LDAP *ld, Sockbuf *sb, ber_socket_t *s, const char *host, s
 	lo = &ld->ld_options;
 	for (ll = lo->ldo_conn_cbs; ll; ll = ll->ll_next) {
 		cb = ll->ll_data;
-		rc = cb->lc_add( ld, sb, host, addr, cb );
+		rc = cb->lc_add( ld, sb, srv, addr, cb );
 		/* on any failure, call the teardown functions for anything
 		 * that previously succeeded
 		 */
@@ -456,7 +456,7 @@ ldap_int_connect_cbs(LDAP *ld, Sockbuf *sb, ber_socket_t *s, const char *host, s
 	lo = LDAP_INT_GLOBAL_OPT();
 	for (ll = lo->ldo_conn_cbs; ll; ll = ll->ll_next) {
 		cb = ll->ll_data;
-		rc = cb->lc_add( ld, sb, host, addr, cb );
+		rc = cb->lc_add( ld, sb, srv, addr, cb );
 		if ( rc ) {
 			ldaplist *l2;
 			for (l2 = lo->ldo_conn_cbs; l2 != ll; l2 = l2->ll_next) {
@@ -477,13 +477,13 @@ ldap_int_connect_cbs(LDAP *ld, Sockbuf *sb, ber_socket_t *s, const char *host, s
 
 int
 ldap_connect_to_host(LDAP *ld, Sockbuf *sb,
-	int proto,
-	const char *host, int port,
+	int proto, LDAPURLDesc *srv,
 	int async )
 {
 	int	rc;
-	int	socktype;
+	int	socktype, port;
 	ber_socket_t		s = AC_SOCKET_INVALID;
+	char *host;
 
 #if defined( HAVE_GETADDRINFO ) && defined( HAVE_INET_NTOP )
 	char serv[7];
@@ -498,8 +498,22 @@ ldap_connect_to_host(LDAP *ld, Sockbuf *sb,
 	char *ha_buf=NULL;
 #endif
 
-	if( host == NULL ) host = "localhost";
-	
+	if ( srv->lud_host == NULL || *srv->lud_host == 0 ) {
+		host = "localhost";
+	} else {
+		host = srv->lud_host;
+	}
+
+	port = srv->lud_port;
+
+	if( !port ) {
+		if( strcmp(srv->lud_scheme, "ldaps") == 0 ) {
+			port = LDAPS_PORT;
+		} else {
+			port = LDAP_PORT;
+		}
+	}
+
 	switch(proto) {
 	case LDAP_PROTO_TCP: socktype = SOCK_STREAM;
 		osip_debug( ld,
@@ -587,7 +601,7 @@ ldap_connect_to_host(LDAP *ld, Sockbuf *sb,
 		rc = ldap_pvt_connect( ld, s,
 			sai->ai_addr, sai->ai_addrlen, async );
 		if ( rc == 0 || rc == -2 ) {
-			err = ldap_int_connect_cbs( ld, sb, &s, host, sai->ai_addr );
+			err = ldap_int_connect_cbs( ld, sb, &s, srv, sai->ai_addr );
 			if ( err )
 				rc = err;
 			else
@@ -662,7 +676,7 @@ ldap_connect_to_host(LDAP *ld, Sockbuf *sb,
 			async);
    
 		if ( (rc == 0) || (rc == -2) ) {
-			i = ldap_int_connect_cbs( ld, sb, &s, host, (struct sockaddr *)&sin );
+			i = ldap_int_connect_cbs( ld, sb, &s, srv, (struct sockaddr *)&sin );
 			if ( i )
 				rc = i;
 			else

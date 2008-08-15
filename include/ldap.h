@@ -127,7 +127,7 @@ LDAP_BEGIN_DECL
 
 /* OpenLDAP TLS options */
 #define LDAP_OPT_X_TLS				0x6000
-#define LDAP_OPT_X_TLS_CTX			0x6001	/* OpenSSL CTX */
+#define LDAP_OPT_X_TLS_CTX			0x6001	/* OpenSSL CTX* */
 #define LDAP_OPT_X_TLS_CACERTFILE	0x6002
 #define LDAP_OPT_X_TLS_CACERTDIR	0x6003
 #define LDAP_OPT_X_TLS_CERTFILE		0x6004
@@ -136,7 +136,7 @@ LDAP_BEGIN_DECL
 /* #define LDAP_OPT_X_TLS_PROTOCOL		0x6007 */
 #define LDAP_OPT_X_TLS_CIPHER_SUITE	0x6008
 #define LDAP_OPT_X_TLS_RANDOM_FILE	0x6009
-#define LDAP_OPT_X_TLS_SSL_CTX		0x600a
+#define LDAP_OPT_X_TLS_SSL_CTX		0x600a	/* OpenSSL SSL* */
 #define LDAP_OPT_X_TLS_CRLCHECK		0x600b
 #define LDAP_OPT_X_TLS_CONNECT_CB	0x600c
 #define LDAP_OPT_X_TLS_CONNECT_ARG	0x600d
@@ -889,7 +889,7 @@ struct ldap_conncb;
 struct sockaddr;
 
 /* Called after a connection is established */
-typedef void (ldap_conn_add_f) LDAP_P(( LDAP *ld, Sockbuf *sb, const char *name, struct sockaddr *addr,
+typedef int (ldap_conn_add_f) LDAP_P(( LDAP *ld, Sockbuf *sb, LDAPURLDesc *srv, struct sockaddr *addr,
 	struct ldap_conncb *ctx ));
 /* Called before a connection is closed */
 typedef void (ldap_conn_del_f) LDAP_P(( LDAP *ld, Sockbuf *sb, struct ldap_conncb *ctx ));
