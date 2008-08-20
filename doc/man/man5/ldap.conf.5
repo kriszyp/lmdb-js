@@ -3,9 +3,9 @@
 .\" Copyright 1998-2008 The OpenLDAP Foundation All Rights Reserved.
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
 .SH NAME
-ldap.conf, .ldaprc \- ldap configuration file
+ldap.conf, .ldaprc \- LDAP configuration file/environment variables
 .SH SYNOPSIS
-ETCDIR/ldap.conf, .ldaprc
+ETCDIR/ldap.conf, ldaprc, .ldaprc, $LDAP<option-name>
 .SH DESCRIPTION
 If the environment variable \fBLDAPNOINIT\fP is defined, all
 defaulting is disabled.
@@ -45,6 +45,17 @@ in the
 .I ldap.conf
 (or file specified by
 .BR LDAPCONF ).
+.LP
+Thus the following files and variables are read, in order:
+.nf
+    variable     $LDAPNOINIT, and if that is not set:
+    system file  ETCDIR/ldap.conf,
+    user files   $HOME/ldaprc,  $HOME/.ldaprc,  ./ldaprc,
+    system file  $LDAPCONF,
+    user files   $HOME/$LDAPRC, $HOME/.$LDAPRC, ./$LDAPRC,
+    variables    $LDAP<option-name>.
+.fi
+Settings late in the list override earlier ones.
 .SH OPTIONS
 The configuration options are case-insensitive;
 their value, on a case by case basis, may be case-sensitive.
