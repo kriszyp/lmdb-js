@@ -443,6 +443,8 @@ ndb_back_initialize(
 #if	SLAPD_NDB == SLAPD_MOD_DYNAMIC
 
 /* conditionally define the init_module() function */
+extern "C" { int init_module( int argc, char *argv[] ); }
+
 SLAP_BACKEND_INIT_MODULE( ndb )
 
 #endif /* SLAPD_NDB == SLAPD_MOD_DYNAMIC */
