@@ -260,8 +260,8 @@ numericStringMatch			equality	numerical
 numericStringOrderingMatch		ordering	numerical
 numericStringSubstringsMatch		substrings	numerical
 octetStringMatch			equality	octet string
-octetStringOrderingStringMatch		ordering	octet string
-octetStringSubstringsStringMatch	ordering	octet string
+octetStringOrderingMatch		ordering	octet string
+octetStringSubstringsMatch	ordering	octet string
 objectIdentiferMatch			equality	object identifier
 !endblock
 
