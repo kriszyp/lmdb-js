@@ -32,6 +32,16 @@ for CMD in $SRCDIR/scripts/test*; do
 	else
 		/bin/rm -rf $TESTDIR
 	fi
+	if test $BACKEND = ndb ; then
+		mysql --user root <<EOF
+		drop database if exists db_1;
+		drop database if exists db_2;
+		drop database if exists db_3;
+		drop database if exists db_4;
+		drop database if exists db_5;
+		drop database if exists db_6;
+EOF
+	fi
 
 	echo ">>>>> Starting ${TB}`basename $CMD`${TN} ..."
 	$CMD
