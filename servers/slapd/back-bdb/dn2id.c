@@ -27,13 +27,13 @@
 
 static int
 bdb_dn2id_lock( struct bdb_info *bdb, struct berval *dn,
-	int rw, BDB_LOCKER locker, DB_LOCK *lock )
+	int rw, DB_TXN *txn, DB_LOCK *lock )
 {
 	int       rc;
 	DBT       lockobj;
 	int       db_rw;
 
-	if (!locker)
+	if (!txn)
 		return 0;
 
 	if (rw)
@@ -44,7 +44,7 @@ bdb_dn2id_lock( struct bdb_info *bdb, struct berval *dn,
 	lockobj.data = dn->bv_val;
 	lockobj.size = dn->bv_len;
 
-	rc = LOCK_GET(bdb->bi_dbenv, BDB_LOCKID(locker), DB_LOCK_NOWAIT,
+	rc = LOCK_GET(bdb->bi_dbenv, TXN_ID(txn), DB_LOCK_NOWAIT,
 					&lockobj, db_rw, lock);
 	return rc;
 }
@@ -193,7 +193,7 @@ bdb_dn2id_delete(
 	ptr.bv_val[ptr.bv_len] = '\0';
 
 	/* We hold this lock until the TXN completes */
-	rc = bdb_dn2id_lock( bdb, &e->e_nname, 1, TXN_ID( txn ), &lock );
+	rc = bdb_dn2id_lock( bdb, &e->e_nname, 1, txn, &lock );
 	if ( rc ) goto done;
 
 	/* delete it */
@@ -277,7 +277,7 @@ bdb_dn2id(
 	Operation *op,
 	struct berval	*dn,
 	EntryInfo *ei,
-	BDB_LOCKER locker,
+	DB_TXN *txn,
 	DB_LOCK *lock )
 {
 	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
@@ -301,15 +301,11 @@ bdb_dn2id(
 	data.ulen = sizeof(ID);
 	data.flags = DB_DBT_USERMEM;
 
-	rc = db->cursor( db, NULL, &cursor, bdb->bi_db_opflags );
+	rc = db->cursor( db, txn, &cursor, bdb->bi_db_opflags );
 	if ( rc ) goto func_leave;
 
-	rc = bdb_dn2id_lock( bdb, dn, 0, locker, lock );
+	rc = bdb_dn2id_lock( bdb, dn, 0, txn, lock );
 	if ( rc ) goto nolock;
-
-	if ( locker ) {
-		CURSOR_SETLOCKER(cursor, locker);
-	}
 
 	/* fetch it */
 	rc = cursor->c_get( cursor, &key, &data, DB_SET );
@@ -379,7 +375,7 @@ bdb_dn2id_children(
 int
 bdb_dn2idl(
 	Operation *op,
-	BDB_LOCKER locker,
+	DB_TXN *txn,
 	struct berval *ndn,
 	EntryInfo *ei,
 	ID *ids,
@@ -412,7 +408,7 @@ bdb_dn2idl(
 	AC_MEMCPY( &((char *)key.data)[1], ndn->bv_val, key.size - 1 );
 
 	BDB_IDL_ZERO( ids );
-	rc = bdb_idl_fetch_key( op->o_bd, db, locker, &key, ids, NULL, 0 );
+	rc = bdb_idl_fetch_key( op->o_bd, db, txn, &key, ids, NULL, 0 );
 
 	if( rc != 0 ) {
 		Debug( LDAP_DEBUG_TRACE,
@@ -677,7 +673,7 @@ hdb_dn2id_delete(
 	if ( rc ) goto func_leave;
 
 	/* We hold this lock until the TXN completes */
-	rc = bdb_dn2id_lock( bdb, &e->e_nname, 1, TXN_ID( txn ), &lock );
+	rc = bdb_dn2id_lock( bdb, &e->e_nname, 1, txn, &lock );
 	if ( rc ) goto nolock;
 
 	/* Delete our ID from the parent's list */
@@ -731,7 +727,7 @@ hdb_dn2id(
 	Operation	*op,
 	struct berval	*in,
 	EntryInfo	*ei,
-	BDB_LOCKER locker,
+	DB_TXN *txn,
 	DB_LOCK *lock )
 {
 	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
@@ -763,11 +759,8 @@ hdb_dn2id(
 	data.dlen = data.ulen;
 	data.flags = DB_DBT_USERMEM | DB_DBT_PARTIAL;
 
-	rc = db->cursor( db, NULL, &cursor, bdb->bi_db_opflags );
+	rc = db->cursor( db, txn, &cursor, bdb->bi_db_opflags );
 	if ( rc ) return rc;
-	if ( locker ) {
-		CURSOR_SETLOCKER( cursor, locker );
-	}
 
 	d = op->o_tmpalloc( data.size * 3, op->o_tmpmemctx );
 	d->nrdnlen[1] = nrlen & 0xff;
@@ -778,7 +771,7 @@ hdb_dn2id(
 	*ptr = '\0';
 	data.data = d;
 
-	rc = bdb_dn2id_lock( bdb, in, 0, locker, lock );
+	rc = bdb_dn2id_lock( bdb, in, 0, txn, lock );
 	if ( rc ) goto func_leave;
 
 	rc = cursor->c_get( cursor, &key, &data, DB_GET_BOTH_RANGE );
@@ -820,7 +813,7 @@ func_leave:
 int
 hdb_dn2id_parent(
 	Operation *op,
-	BDB_LOCKER	locker,
+	DB_TXN *txn,
 	EntryInfo *ei,
 	ID *idp )
 {
@@ -843,11 +836,8 @@ hdb_dn2id_parent(
 	DBTzero(&data);
 	data.flags = DB_DBT_USERMEM;
 
-	rc = db->cursor( db, NULL, &cursor, bdb->bi_db_opflags );
+	rc = db->cursor( db, txn, &cursor, bdb->bi_db_opflags );
 	if ( rc ) return rc;
-	if ( locker ) {
-		CURSOR_SETLOCKER(cursor, locker);
-	}
 
 	data.ulen = sizeof(diskNode) + (SLAP_LDAPDN_MAXLEN * 2);
 	d = op->o_tmpalloc( data.ulen, op->o_tmpmemctx );
@@ -941,7 +931,7 @@ hdb_dn2id_children(
 struct dn2id_cookie {
 	struct bdb_info *bdb;
 	Operation *op;
-	BDB_LOCKER locker;
+	DB_TXN *txn;
 	EntryInfo *ei;
 	ID *ids;
 	ID *tmp;
@@ -1176,7 +1166,7 @@ gotit:
 int
 hdb_dn2idl(
 	Operation	*op,
-	BDB_LOCKER locker,
+	DB_TXN *txn,
 	struct berval *ndn,
 	EntryInfo	*ei,
 	ID *ids,
@@ -1209,7 +1199,7 @@ hdb_dn2idl(
 	cx.tmp = stack;
 	cx.buf = stack + BDB_IDL_UM_SIZE;
 	cx.op = op;
-	cx.locker = locker;
+	cx.txn = txn;
 	cx.need_sort = 0;
 	cx.depth = 0;
 

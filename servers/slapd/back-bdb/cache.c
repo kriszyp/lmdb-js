@@ -159,7 +159,7 @@ bdb_cache_lru_link( struct bdb_info *bdb, EntryInfo *ei )
 int
 bdb_cache_entry_db_relock(
 	struct bdb_info *bdb,
-	BDB_LOCKER locker,
+	DB_TXN *txn,
 	EntryInfo *ei,
 	int rw,
 	int tryOnly,
@@ -183,7 +183,7 @@ bdb_cache_entry_db_relock(
 	list[1].lock = *lock;
 	list[1].mode = rw ? DB_LOCK_WRITE : DB_LOCK_READ;
 	list[1].obj = &lockobj;
-	rc = bdb->bi_dbenv->lock_vec(bdb->bi_dbenv, BDB_LOCKID(locker), tryOnly ? DB_LOCK_NOWAIT : 0,
+	rc = bdb->bi_dbenv->lock_vec(bdb->bi_dbenv, TXN_ID(txn), tryOnly ? DB_LOCK_NOWAIT : 0,
 		list, 2, NULL );
 
 	if (rc && !tryOnly) {
@@ -198,7 +198,7 @@ bdb_cache_entry_db_relock(
 }
 
 static int
-bdb_cache_entry_db_lock( struct bdb_info *bdb, BDB_LOCKER locker, EntryInfo *ei,
+bdb_cache_entry_db_lock( struct bdb_info *bdb, DB_TXN *txn, EntryInfo *ei,
 	int rw, int tryOnly, DB_LOCK *lock )
 {
 #ifdef NO_DB_LOCK
@@ -218,7 +218,7 @@ bdb_cache_entry_db_lock( struct bdb_info *bdb, BDB_LOCKER locker, EntryInfo *ei,
 	lockobj.data = &ei->bei_id;
 	lockobj.size = sizeof(ei->bei_id) + 1;
 
-	rc = LOCK_GET(bdb->bi_dbenv, BDB_LOCKID(locker), tryOnly ? DB_LOCK_NOWAIT : 0,
+	rc = LOCK_GET(bdb->bi_dbenv, TXN_ID(txn), tryOnly ? DB_LOCK_NOWAIT : 0,
 					&lockobj, db_rw, lock);
 	if (rc && !tryOnly) {
 		Debug( LDAP_DEBUG_TRACE,
@@ -394,7 +394,7 @@ bdb_entryinfo_add_internal(
 int
 bdb_cache_find_ndn(
 	Operation	*op,
-	BDB_LOCKER		locker,
+	DB_TXN		*txn,
 	struct berval	*ndn,
 	EntryInfo	**res )
 {
@@ -448,7 +448,7 @@ bdb_cache_find_ndn(
 				ei.bei_nrdn.bv_val );
 
 			lock.mode = DB_LOCK_NG;
-			rc = bdb_dn2id( op, &ei.bei_nrdn, &ei, locker, &lock );
+			rc = bdb_dn2id( op, &ei.bei_nrdn, &ei, txn, &lock );
 			if (rc) {
 				bdb_cache_entryinfo_lock( eip );
 				bdb_cache_entry_db_unlock( bdb, &lock );
@@ -508,7 +508,7 @@ bdb_cache_find_ndn(
 int
 hdb_cache_find_parent(
 	Operation *op,
-	BDB_LOCKER	locker,
+	DB_TXN	*txn,
 	ID id,
 	EntryInfo **res )
 {
@@ -521,7 +521,7 @@ hdb_cache_find_parent(
 	ei.bei_ckids = 0;
 
 	for (;;) {
-		rc = hdb_dn2id_parent( op, locker, &ei, &eip.bei_id );
+		rc = hdb_dn2id_parent( op, txn, &ei, &eip.bei_id );
 		if ( rc ) break;
 
 		/* Save the previous node, if any */
@@ -668,7 +668,7 @@ bdb_cache_lru_purge( struct bdb_info *bdb )
 		return;
 	}
 
-	if ( bdb->bi_cache.c_locker ) {
+	if ( bdb->bi_cache.c_txn ) {
 		lockp = &lock;
 	} else {
 		lockp = NULL;
@@ -715,7 +715,7 @@ bdb_cache_lru_purge( struct bdb_info *bdb )
 		 * the object is idle.
 		 */
 		if ( bdb_cache_entry_db_lock( bdb,
-			bdb->bi_cache.c_locker, elru, 1, 1, lockp ) == 0 ) {
+			bdb->bi_cache.c_txn, elru, 1, 1, lockp ) == 0 ) {
 
 			/* Free entry for this node if it's present */
 			if ( elru->bei_e ) {
@@ -793,7 +793,6 @@ bdb_cache_find_id(
 	ID				id,
 	EntryInfo	**eip,
 	int		flag,
-	BDB_LOCKER	locker,
 	DB_LOCK		*lock )
 {
 	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
@@ -842,9 +841,9 @@ again:	ldap_pvt_thread_rdwr_rlock( &bdb->bi_cache.c_rwlock );
 	/* See if the ID exists in the database; add it to the cache if so */
 	if ( !*eip ) {
 #ifndef BDB_HIER
-		rc = bdb_id2entry( op->o_bd, tid, locker, id, &ep );
+		rc = bdb_id2entry( op->o_bd, tid, id, &ep );
 		if ( rc == 0 ) {
-			rc = bdb_cache_find_ndn( op, locker,
+			rc = bdb_cache_find_ndn( op, tid,
 				&ep->e_nname, eip );
 			if ( *eip ) flag |= ID_LOCKED;
 			if ( rc ) {
@@ -858,7 +857,7 @@ again:	ldap_pvt_thread_rdwr_rlock( &bdb->bi_cache.c_rwlock );
 			}
 		}
 #else
-		rc = hdb_cache_find_parent(op, locker, id, eip );
+		rc = hdb_cache_find_parent(op, tid, id, eip );
 		if ( rc == 0 ) flag |= ID_LOCKED;
 #endif
 	}
@@ -902,14 +901,14 @@ load1:
 				bdb_cache_entryinfo_unlock( *eip );
 				flag ^= ID_LOCKED;
 			}
-			rc = bdb_cache_entry_db_lock( bdb, locker, *eip, load, 0, lock );
+			rc = bdb_cache_entry_db_lock( bdb, tid, *eip, load, 0, lock );
 			if ( (*eip)->bei_state & CACHE_ENTRY_DELETED ) {
 				rc = DB_NOTFOUND;
 				bdb_cache_entry_db_unlock( bdb, lock );
 			} else if ( rc == 0 ) {
 				if ( load ) {
 					if ( !ep) {
-						rc = bdb_id2entry( op->o_bd, tid, locker, id, &ep );
+						rc = bdb_id2entry( op->o_bd, tid, id, &ep );
 					}
 					if ( rc == 0 ) {
 						ep->e_private = *eip;
@@ -934,7 +933,7 @@ load1:
 					}
 					if ( rc == 0 ) {
 						/* If we succeeded, downgrade back to a readlock. */
-						rc = bdb_cache_entry_db_relock( bdb, locker,
+						rc = bdb_cache_entry_db_relock( bdb, tid,
 							*eip, 0, 0, lock );
 					} else {
 						/* Otherwise, release the lock. */
@@ -955,12 +954,12 @@ load1:
 					rc = bdb_fix_dn( (*eip)->bei_e, 1 );
 					if ( rc ) {
 						bdb_cache_entry_db_relock( bdb,
-							locker, *eip, 1, 0, lock );
+							tid, *eip, 1, 0, lock );
 						/* check again in case other modifier did it already */
 						if ( bdb_fix_dn( (*eip)->bei_e, 1 ) )
 							rc = bdb_fix_dn( (*eip)->bei_e, 2 );
 						bdb_cache_entry_db_relock( bdb,
-							locker, *eip, 0, 0, lock );
+							tid, *eip, 0, 0, lock );
 					}
 #endif
 				}
@@ -1039,7 +1038,7 @@ bdb_cache_add(
 	EntryInfo *eip,
 	Entry *e,
 	struct berval *nrdn,
-	BDB_LOCKER locker,
+	DB_TXN *txn,
 	DB_LOCK *lock )
 {
 	EntryInfo *new, ei;
@@ -1056,7 +1055,7 @@ bdb_cache_add(
 	/* Lock this entry so that bdb_add can run to completion.
 	 * It can only fail if BDB has run out of lock resources.
 	 */
-	rc = bdb_cache_entry_db_lock( bdb, locker, &ei, 0, 0, lock );
+	rc = bdb_cache_entry_db_lock( bdb, txn, &ei, 0, 0, lock );
 	if ( rc ) {
 		bdb_cache_entryinfo_unlock( eip );
 		return rc;
@@ -1114,13 +1113,13 @@ bdb_cache_modify(
 	struct bdb_info *bdb,
 	Entry *e,
 	Attribute *newAttrs,
-	BDB_LOCKER locker,
+	DB_TXN *txn,
 	DB_LOCK *lock )
 {
 	EntryInfo *ei = BEI(e);
 	int rc;
 	/* Get write lock on data */
-	rc = bdb_cache_entry_db_relock( bdb, locker, ei, 1, 0, lock );
+	rc = bdb_cache_entry_db_relock( bdb, txn, ei, 1, 0, lock );
 
 	/* If we've done repeated mods on a cached entry, then e_attrs
 	 * is no longer contiguous with the entry, and must be freed.
@@ -1144,7 +1143,7 @@ bdb_cache_modrdn(
 	struct berval *nrdn,
 	Entry *new,
 	EntryInfo *ein,
-	BDB_LOCKER locker,
+	DB_TXN *txn,
 	DB_LOCK *lock )
 {
 	EntryInfo *ei = BEI(e), *pei;
@@ -1154,7 +1153,7 @@ bdb_cache_modrdn(
 #endif
 
 	/* Get write lock on data */
-	rc =  bdb_cache_entry_db_relock( bdb, locker, ei, 1, 0, lock );
+	rc =  bdb_cache_entry_db_relock( bdb, txn, ei, 1, 0, lock );
 	if ( rc ) return rc;
 
 	/* If we've done repeated mods on a cached entry, then e_attrs
@@ -1249,7 +1248,7 @@ int
 bdb_cache_delete(
 	struct bdb_info *bdb,
     Entry		*e,
-    BDB_LOCKER	locker,
+    DB_TXN *txn,
     DB_LOCK	*lock )
 {
 	EntryInfo *ei = BEI(e);
@@ -1266,7 +1265,7 @@ bdb_cache_delete(
 	bdb_cache_entryinfo_unlock( ei );
 
 	/* Get write lock on the data */
-	rc = bdb_cache_entry_db_relock( bdb, locker, ei, 1, 0, lock );
+	rc = bdb_cache_entry_db_relock( bdb, txn, ei, 1, 0, lock );
 	if ( rc ) {
 		/* couldn't lock, undo and give up */
 		ei->bei_state ^= CACHE_ENTRY_DELETED;
@@ -1436,56 +1435,36 @@ bdb_lru_print( Cache *cache )
 #endif
 #endif
 
-#ifdef BDB_REUSE_LOCKERS
 static void
-bdb_locker_id_free( void *key, void *data )
+bdb_reader_free( void *key, void *data )
 {
-	DB_ENV *env = key;
-	u_int32_t lockid;
-	int rc;
+	/* DB_ENV *env = key; */
+	DB_TXN *txn = data;
 
-#if DB_VERSION_FULL >= 0x04060012
-	BDB_LOCKER lptr = data;
-	lockid = lptr->id;
-#else
-	lockid = (long)data;
-#endif
-	rc = XLOCK_ID_FREE( env, lockid );
-	if ( rc == EINVAL ) {
-		DB_LOCKREQ lr;
-		Debug( LDAP_DEBUG_ANY,
-			"bdb_locker_id_free: %lu err %s(%d)\n",
-			(unsigned long) lockid, db_strerror(rc), rc );
-		/* release all locks held by this locker. */
-		lr.op = DB_LOCK_PUT_ALL;
-		lr.obj = NULL;
-		env->lock_vec( env, lockid, 0, &lr, 1, NULL );
-		XLOCK_ID_FREE( env, lockid );
-	}
+	TXN_ABORT( txn );
 }
 
 /* free up any keys used by the main thread */
 void
-bdb_locker_flush( DB_ENV *env )
+bdb_reader_flush( DB_ENV *env )
 {
 	void *data;
 	void *ctx = ldap_pvt_thread_pool_context();
 
 	if ( !ldap_pvt_thread_pool_getkey( ctx, env, &data, NULL ) ) {
 		ldap_pvt_thread_pool_setkey( ctx, env, NULL, 0, NULL, NULL );
-		bdb_locker_id_free( env, data );
+		bdb_reader_free( env, data );
 	}
 }
 
 int
-bdb_locker_id( Operation *op, DB_ENV *env, BDB_LOCKER *locker )
+bdb_reader_get( Operation *op, DB_ENV *env, DB_TXN **txn )
 {
 	int i, rc;
-	u_int32_t lockid;
 	void *data;
 	void *ctx;
 
-	if ( !env || !locker ) return -1;
+	if ( !env || !txn ) return -1;
 
 	/* If no op was provided, try to find the ctx anyway... */
 	if ( op ) {
@@ -1496,42 +1475,29 @@ bdb_locker_id( Operation *op, DB_ENV *env, BDB_LOCKER *locker )
 
 	/* Shouldn't happen unless we're single-threaded */
 	if ( !ctx ) {
-		*locker = 0;
+		*txn = NULL;
 		return 0;
 	}
 
 	if ( ldap_pvt_thread_pool_getkey( ctx, env, &data, NULL ) ) {
 		for ( i=0, rc=1; rc != 0 && i<4; i++ ) {
-			rc = XLOCK_ID( env, &lockid );
+			rc = TXN_BEGIN( env, NULL, txn, DB_READ_COMMITTED );
 			if (rc) ldap_pvt_thread_yield();
 		}
 		if ( rc != 0) {
 			return rc;
 		}
-#if DB_VERSION_FULL >= 0x04060012
-		{ BDB_LOCKER lptr;
-		__lock_getlocker( env->lk_handle, lockid, 0, &lptr );
-		data = lptr;
-		}
-#else
-		data = (void *)((long)lockid);
-#endif
+		data = *txn;
 		if ( ( rc = ldap_pvt_thread_pool_setkey( ctx, env,
-			data, bdb_locker_id_free, NULL, NULL ) ) ) {
-			XLOCK_ID_FREE( env, lockid );
-			Debug( LDAP_DEBUG_ANY, "bdb_locker_id: err %s(%d)\n",
+			data, bdb_reader_free, NULL, NULL ) ) ) {
+			TXN_ABORT( *txn );
+			Debug( LDAP_DEBUG_ANY, "bdb_reader_get: err %s(%d)\n",
 				db_strerror(rc), rc, 0 );
 
 			return rc;
 		}
 	} else {
-		lockid = (long)data;
+		*txn = data;
 	}
-#if DB_VERSION_FULL >= 0x04060012
-	*locker = data;
-#else
-	*locker = lockid;
-#endif
 	return 0;
 }
-#endif /* BDB_REUSE_LOCKERS */

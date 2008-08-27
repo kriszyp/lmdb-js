@@ -96,7 +96,7 @@ int bdb_tool_entry_open(
 
 	if (cursor == NULL) {
 		int rc = bdb->bi_id2entry->bdi_db->cursor(
-			bdb->bi_id2entry->bdi_db, NULL, &cursor,
+			bdb->bi_id2entry->bdi_db, bdb->bi_cache.c_txn, &cursor,
 			bdb->bi_db_opflags );
 		if( rc != 0 ) {
 			return -1;
@@ -241,6 +241,7 @@ ID bdb_tool_dn2id_get(
 
 Entry* bdb_tool_entry_get( BackendDB *be, ID id )
 {
+	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	Entry *e = NULL;
 	char *dptr;
 	int rc, eoff;
@@ -306,7 +307,7 @@ Entry* bdb_tool_entry_get( BackendDB *be, ID id )
 			op.o_tmpmemctx = NULL;
 			op.o_tmpmfuncs = &ch_mfuncs;
 
-			rc = bdb_cache_find_parent( &op, CURSOR_GETLOCKER(cursor), id, &ei );
+			rc = bdb_cache_find_parent( &op, bdb->bi_cache.c_txn, id, &ei );
 			if ( rc == LDAP_SUCCESS ) {
 				bdb_cache_entryinfo_unlock( ei );
 				e->e_private = ei;
@@ -340,7 +341,7 @@ static int bdb_tool_next_id(
 		return 0;
 	}
 
-	rc = bdb_cache_find_ndn( op, tid ? TXN_ID( tid ) : 0, &ndn, &ei );
+	rc = bdb_cache_find_ndn( op, tid, &ndn, &ei );
 	if ( ei ) bdb_cache_entryinfo_unlock( ei );
 	if ( rc == DB_NOTFOUND ) {
 		if ( !be_issuffix( op->o_bd, &ndn ) ) {

@@ -32,11 +32,10 @@ bdb_add(Operation *op, SlapReply *rs )
 	size_t textlen = sizeof textbuf;
 	AttributeDescription *children = slap_schema.si_ad_children;
 	AttributeDescription *entry = slap_schema.si_ad_entry;
-	DB_TXN		*ltid = NULL, *lt2;
+	DB_TXN		*ltid = NULL, *lt2, *rtxn;
 	ID eid = NOID;
 	struct bdb_op_info opinfo = {0};
 	int subentry;
-	BDB_LOCKER	locker = 0, rlocker = 0;
 	DB_LOCK		lock;
 
 	int		num_retries = 0;
@@ -115,8 +114,8 @@ txnReturn:
 
 	subentry = is_entry_subentry( op->oq_add.rs_e );
 
-	/* Get our thread locker ID */
-	rs->sr_err = LOCK_ID( bdb->bi_dbenv, &rlocker );
+	/* Get our reader TXN */
+	rs->sr_err = bdb_reader_get( op, bdb->bi_dbenv, &rtxn );
 
 	if( 0 ) {
 retry:	/* transaction retry */
@@ -157,8 +156,6 @@ retry:	/* transaction retry */
 		goto return_results;
 	}
 
-	locker = TXN_ID ( ltid );
-
 	opinfo.boi_oe.oe_key = bdb;
 	opinfo.boi_txn = ltid;
 	opinfo.boi_err = 0;
@@ -176,7 +173,7 @@ retry:	/* transaction retry */
 
 	/* get entry or parent */
 	rs->sr_err = bdb_dn2entry( op, ltid, &op->ora_e->e_nname, &ei,
-		1, locker, &lock );
+		1, &lock );
 	switch( rs->sr_err ) {
 	case 0:
 		rs->sr_err = LDAP_ALREADY_EXISTS;
@@ -428,8 +425,8 @@ retry:	/* transaction retry */
 			nrdn = op->ora_e->e_nname;
 		}
 
-		/* Use the thread locker here, outside the txn */
-		bdb_cache_add( bdb, ei, op->ora_e, &nrdn, rlocker, &lock );
+		/* Use the reader txn here, outside the add txn */
+		bdb_cache_add( bdb, ei, op->ora_e, &nrdn, rtxn, &lock );
 
 		if(( rs->sr_err=TXN_COMMIT( ltid, 0 )) != 0 ) {
 			rs->sr_text = "txn_commit failed";

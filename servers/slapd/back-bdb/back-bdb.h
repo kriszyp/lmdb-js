@@ -58,30 +58,6 @@ LDAP_BEGIN_DECL
 #define	BDB_PAGESIZE	4096	/* BDB's original default */
 #endif
 
-/* 4.6.18 redefines cursor->locker */
-#if DB_VERSION_FULL >= 0x04060012
-
-struct __db_locker {
-	u_int32_t	id;
-};
-
-typedef struct __db_locker * BDB_LOCKER;
-
-extern int __lock_getlocker(DB_LOCKTAB *lt, u_int32_t locker, int create, DB_LOCKER **ret);
-
-#define CURSOR_SETLOCKER(cursor, id)	cursor->locker = id
-#define CURSOR_GETLOCKER(cursor)	cursor->locker
-#define BDB_LOCKID(locker)	locker->id
-#else
-
-typedef u_int32_t BDB_LOCKER;
-
-#define CURSOR_SETLOCKER(cursor, id)	cursor->locker = id
-#define CURSOR_GETLOCKER(cursor)	cursor->locker
-#define BDB_LOCKID(locker)	locker
-
-#endif
-
 #define DEFAULT_CACHE_SIZE     1000
 
 /* The default search IDL stack cache depth */
@@ -160,7 +136,7 @@ typedef struct bdb_cache {
 	int		c_eiused;	/* EntryInfo's in use */
 	int		c_leaves;	/* EntryInfo leaf nodes */
 	int		c_purging;
-	BDB_LOCKER	c_locker;	/* used by lru cleaner */
+	DB_TXN	*c_txn;	/* used by lru cleaner */
 	ldap_pvt_thread_rdwr_t c_rwlock;
 	ldap_pvt_thread_mutex_t c_lru_mutex;
 	ldap_pvt_thread_mutex_t c_count_mutex;
@@ -309,12 +285,6 @@ struct bdb_op_info {
 	((db)->open)(db, NULL, file, name, type, flags, mode)
 #endif
 
-/* BDB 4.6.18 makes locker a struct instead of an int */
-#if DB_VERSION_FULL >= 0x04060012
-#undef TXN_ID
-#define TXN_ID(txn)	(txn)->locker
-#endif
-
 /* #undef BDB_LOG_DEBUG */
 
 #ifdef BDB_LOG_DEBUG
@@ -342,8 +312,6 @@ extern int __db_logmsg(const DB_ENV *env, DB_TXN *txn, const char *op, u_int32_t
 #ifndef DB_BUFFER_SMALL
 #define DB_BUFFER_SMALL			ENOMEM
 #endif
-
-#define BDB_REUSE_LOCKERS
 
 #define BDB_CSN_COMMIT	0
 #define BDB_CSN_ABORT	1

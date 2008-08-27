@@ -30,10 +30,10 @@ bdb_compare( Operation *op, SlapReply *rs )
 	Attribute	*a;
 	int		manageDSAit = get_manageDSAit( op );
 
-	BDB_LOCKER	locker;
+	DB_TXN		*rtxn;
 	DB_LOCK		lock;
 
-	rs->sr_err = LOCK_ID(bdb->bi_dbenv, &locker);
+	rs->sr_err = bdb_reader_get(op, bdb->bi_dbenv, &rtxn);
 	switch(rs->sr_err) {
 	case 0:
 		break;
@@ -44,8 +44,8 @@ bdb_compare( Operation *op, SlapReply *rs )
 
 dn2entry_retry:
 	/* get entry */
-	rs->sr_err = bdb_dn2entry( op, NULL, &op->o_req_ndn, &ei, 1,
-		locker, &lock );
+	rs->sr_err = bdb_dn2entry( op, rtxn, &op->o_req_ndn, &ei, 1,
+		&lock );
 
 	switch( rs->sr_err ) {
 	case DB_NOTFOUND:
@@ -185,6 +185,5 @@ done:
 		bdb_cache_return_entry_r( bdb, e, &lock );
 	}
 
-	LOCK_ID_FREE ( bdb->bi_dbenv, locker );
 	return rs->sr_err;
 }

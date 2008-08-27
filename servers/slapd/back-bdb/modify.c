@@ -334,7 +334,6 @@ bdb_modify( Operation *op, SlapReply *rs )
 	Entry		dummy = {0};
 	int			fakeroot = 0;
 
-	BDB_LOCKER	locker = 0;
 	DB_LOCK		lock;
 
 	int		num_retries = 0;
@@ -438,8 +437,6 @@ retry:	/* transaction retry */
 		goto return_results;
 	}
 
-	locker = TXN_ID ( ltid );
-
 	opinfo.boi_oe.oe_key = bdb;
 	opinfo.boi_txn = ltid;
 	opinfo.boi_err = 0;
@@ -448,7 +445,7 @@ retry:	/* transaction retry */
 
 	/* get entry or ancestor */
 	rs->sr_err = bdb_dn2entry( op, ltid, &op->o_req_ndn, &ei, 1,
-		locker, &lock );
+		&lock );
 
 	if ( rs->sr_err != 0 ) {
 		Debug( LDAP_DEBUG_TRACE,
@@ -655,7 +652,7 @@ retry:	/* transaction retry */
 			attrs_free( dummy.e_attrs );
 
 		} else {
-			rc = bdb_cache_modify( bdb, e, dummy.e_attrs, locker, &lock );
+			rc = bdb_cache_modify( bdb, e, dummy.e_attrs, ltid, &lock );
 			switch( rc ) {
 			case DB_LOCK_DEADLOCK:
 			case DB_LOCK_NOTGRANTED:

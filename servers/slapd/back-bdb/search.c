@@ -31,7 +31,7 @@ static int search_candidates(
 	Operation *op,
 	SlapReply *rs,
 	Entry *e,
-	BDB_LOCKER locker,
+	DB_TXN *txn,
 	ID	*ids,
 	ID	*scopes );
 
@@ -51,7 +51,7 @@ static Entry * deref_base (
 	SlapReply *rs,
 	Entry *e,
 	Entry **matched,
-	BDB_LOCKER locker,
+	DB_TXN *txn,
 	DB_LOCK *lock,
 	ID	*tmp,
 	ID	*visited )
@@ -101,8 +101,8 @@ static Entry * deref_base (
 			break;
 		}
 
-		rs->sr_err = bdb_dn2entry( op, NULL, &ndn, &ei,
-			0, locker, &lockr );
+		rs->sr_err = bdb_dn2entry( op, txn, &ndn, &ei,
+			0, &lockr );
 
 		if ( ei ) {
 			e = ei->bei_e;
@@ -143,7 +143,7 @@ static int search_aliases(
 	Operation *op,
 	SlapReply *rs,
 	Entry *e,
-	BDB_LOCKER locker,
+	DB_TXN *txn,
 	ID *ids,
 	ID *scopes,
 	ID *stack )
@@ -180,7 +180,7 @@ static int search_aliases(
 
 	/* Find all aliases in database */
 	BDB_IDL_ZERO( aliases );
-	rs->sr_err = bdb_filter_candidates( op, locker, &af, aliases,
+	rs->sr_err = bdb_filter_candidates( op, txn, &af, aliases,
 		curscop, visited );
 	if (rs->sr_err != LDAP_SUCCESS) {
 		return rs->sr_err;
@@ -202,7 +202,7 @@ static int search_aliases(
 		 * to the cumulative list of candidates.
 		 */
 		BDB_IDL_CPY( curscop, aliases );
-		rs->sr_err = bdb_dn2idl( op, locker, &e->e_nname, BEI(e), subscop,
+		rs->sr_err = bdb_dn2idl( op, txn, &e->e_nname, BEI(e), subscop,
 			subscop2+BDB_IDL_DB_SIZE );
 		if (first) {
 			first = 0;
@@ -220,8 +220,8 @@ static int search_aliases(
 		{
 			ei = NULL;
 retry1:
-			rs->sr_err = bdb_cache_find_id(op, NULL,
-				ida, &ei, 0, locker, &lockr );
+			rs->sr_err = bdb_cache_find_id(op, txn,
+				ida, &ei, 0, &lockr );
 			if (rs->sr_err != LDAP_SUCCESS) {
 				if ( rs->sr_err == DB_LOCK_DEADLOCK ||
 					rs->sr_err == DB_LOCK_NOTGRANTED ) goto retry1;
@@ -239,7 +239,7 @@ retry1:
 
 			/* Actually dereference the alias */
 			BDB_IDL_ZERO(tmp);
-			a = deref_base( op, rs, a, &matched, locker, &lockr,
+			a = deref_base( op, rs, a, &matched, txn, &lockr,
 				tmp, visited );
 			if (a) {
 				/* If the target was not already in our current candidates,
@@ -286,8 +286,8 @@ nextido:
 		 */
 		ei = NULL;
 sameido:
-		rs->sr_err = bdb_cache_find_id(op, NULL, ido, &ei,
-			0, locker, &locka );
+		rs->sr_err = bdb_cache_find_id(op, txn, ido, &ei,
+			0, &locka );
 		if ( rs->sr_err != LDAP_SUCCESS ) {
 			if ( rs->sr_err == DB_LOCK_DEADLOCK ||
 				rs->sr_err == DB_LOCK_NOTGRANTED )
@@ -318,7 +318,6 @@ bdb_search( Operation *op, SlapReply *rs )
 	int		tentries = 0, nentries = 0;
 	int		idflag = 0;
 
-	BDB_LOCKER	locker = 0;
 	DB_LOCK		lock;
 	struct	bdb_op_info	*opinfo = NULL;
 	DB_TXN			*ltid = NULL;
@@ -337,9 +336,8 @@ bdb_search( Operation *op, SlapReply *rs )
 
 	if ( opinfo && opinfo->boi_txn ) {
 		ltid = opinfo->boi_txn;
-		locker = TXN_ID( ltid );
 	} else {
-		rs->sr_err = LOCK_ID( bdb->bi_dbenv, &locker );
+		rs->sr_err = bdb_reader_get( op, bdb->bi_dbenv, &ltid );
 
 		switch(rs->sr_err) {
 		case 0:
@@ -362,7 +360,7 @@ bdb_search( Operation *op, SlapReply *rs )
 dn2entry_retry:
 		/* get entry with reader lock */
 		rs->sr_err = bdb_dn2entry( op, ltid, &op->o_req_ndn, &ei,
-			1, locker, &lock );
+			1, &lock );
 	}
 
 	switch(rs->sr_err) {
@@ -374,16 +372,12 @@ dn2entry_retry:
 		break;
 	case LDAP_BUSY:
 		send_ldap_error( op, rs, LDAP_BUSY, "ldap server busy" );
-		if ( !opinfo )
-			LOCK_ID_FREE (bdb->bi_dbenv, locker );
 		return LDAP_BUSY;
 	case DB_LOCK_DEADLOCK:
 	case DB_LOCK_NOTGRANTED:
 		goto dn2entry_retry;
 	default:
 		send_ldap_error( op, rs, LDAP_OTHER, "internal error" );
-		if ( !opinfo )
-			LOCK_ID_FREE (bdb->bi_dbenv, locker );
 		return rs->sr_err;
 	}
 
@@ -393,7 +387,7 @@ dn2entry_retry:
 
 			stub.bv_val = op->o_req_ndn.bv_val;
 			stub.bv_len = op->o_req_ndn.bv_len - matched->e_nname.bv_len - 1;
-			e = deref_base( op, rs, matched, &matched, locker, &lock,
+			e = deref_base( op, rs, matched, &matched, ltid, &lock,
 				candidates, NULL );
 			if ( e ) {
 				build_new_dn( &op->o_req_ndn, &e->e_nname, &stub,
@@ -403,7 +397,7 @@ dn2entry_retry:
 				goto dn2entry_retry;
 			}
 		} else if ( e && is_entry_alias( e )) {
-			e = deref_base( op, rs, e, &matched, locker, &lock,
+			e = deref_base( op, rs, e, &matched, ltid, &lock,
 				candidates, NULL );
 		}
 	}
@@ -456,8 +450,6 @@ dn2entry_retry:
 
 		send_ldap_result( op, rs );
 
-		if ( !opinfo )
-			LOCK_ID_FREE (bdb->bi_dbenv, locker );
 		if ( rs->sr_ref ) {
 			ber_bvarray_free( rs->sr_ref );
 			rs->sr_ref = NULL;
@@ -523,9 +515,6 @@ dn2entry_retry:
 		rs->sr_matched = matched_dn.bv_val;
 		send_ldap_result( op, rs );
 
-		if ( !opinfo ) {
-			LOCK_ID_FREE (bdb->bi_dbenv, locker );
-		}
 		ber_bvarray_free( rs->sr_ref );
 		rs->sr_ref = NULL;
 		ber_memfree( matched_dn.bv_val );
@@ -576,7 +565,7 @@ dn2entry_retry:
 		BDB_IDL_ZERO( candidates );
 		BDB_IDL_ZERO( scopes );
 		rs->sr_err = search_candidates( op, rs, &base,
-			locker, candidates, scopes );
+			ltid, candidates, scopes );
 	}
 
 	/* start cursor at beginning of candidates.
@@ -686,7 +675,7 @@ fetch_entry_retry:
 			/* get the entry with reader lock */
 			ei = NULL;
 			rs->sr_err = bdb_cache_find_id( op, ltid,
-				id, &ei, idflag, locker, &lock );
+				id, &ei, idflag, &lock );
 
 			if (rs->sr_err == LDAP_BUSY) {
 				rs->sr_text = "ldap server busy";
@@ -931,9 +920,6 @@ nochange:
 	rs->sr_err = LDAP_SUCCESS;
 
 done:
-	if ( !opinfo )
-		LOCK_ID_FREE( bdb->bi_dbenv, locker );
-
 	if( rs->sr_v2ref ) {
 		ber_bvarray_free( rs->sr_v2ref );
 		rs->sr_v2ref = NULL;
@@ -1026,7 +1012,7 @@ static int search_candidates(
 	Operation *op,
 	SlapReply *rs,
 	Entry *e,
-	BDB_LOCKER locker,
+	DB_TXN *txn,
 	ID	*ids,
 	ID	*scopes )
 {
@@ -1100,13 +1086,13 @@ static int search_candidates(
 	}
 
 	if( op->ors_deref & LDAP_DEREF_SEARCHING ) {
-		rc = search_aliases( op, rs, e, locker, ids, scopes, stack );
+		rc = search_aliases( op, rs, e, txn, ids, scopes, stack );
 	} else {
-		rc = bdb_dn2idl( op, locker, &e->e_nname, BEI(e), ids, stack );
+		rc = bdb_dn2idl( op, txn, &e->e_nname, BEI(e), ids, stack );
 	}
 
 	if ( rc == LDAP_SUCCESS ) {
-		rc = bdb_filter_candidates( op, locker, &f, ids,
+		rc = bdb_filter_candidates( op, txn, &f, ids,
 			stack, stack+BDB_IDL_UM_SIZE );
 	}
 
