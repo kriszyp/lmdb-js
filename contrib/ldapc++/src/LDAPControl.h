@@ -17,11 +17,6 @@
 class LDAPCtrl{
     public :
         /**
-         * Copy-constructor
-         */
-        LDAPCtrl(const LDAPCtrl& c);
-
-        /**
          * Constructor.
          * @param oid:  The Object Identifier of the Control
          * @param critical: "true" if the Control should be handled
@@ -29,7 +24,7 @@ class LDAPCtrl{
          * @param data: If there is data for the control, put it here.
          * @param length: The length of the data field
          */
-        LDAPCtrl(const char *oid, bool critical, const char *data=0, 
+        LDAPCtrl(const char *oid, bool critical=false, const char *data=0, 
                 int length=0);
 
         /**
@@ -39,8 +34,8 @@ class LDAPCtrl{
          *                  critical by the server.
          * @param data: If there is data for the control, put it here.
          */
-        LDAPCtrl(const std::string& oid, bool critical=false,
-                const std::string& data=std::string());
+        LDAPCtrl(const std::string& oid, bool critical,
+                 const std::string& data);
 
         /**
          * Creates a copy of the Control that "ctrl is pointing to
@@ -58,7 +53,13 @@ class LDAPCtrl{
         std::string getOID() const;
 
         /**
-         * @return The Data of the control as a std::string-Objekt
+         * @return true if there is no "Control Value" (there is a
+         * difference between no and an empty control value)
+         */
+        bool hasData() const;
+
+        /**
+         * @return The Data of the control as a std::string-Object
          */
         std::string getData() const;
 
@@ -80,6 +81,7 @@ class LDAPCtrl{
         std::string m_oid;
         std::string m_data;
         bool m_isCritical;
+        bool m_noData;
 };
 
 #endif //LDAP_CONTROL_H
