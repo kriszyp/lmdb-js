@@ -61,7 +61,7 @@ bdb_db_init( BackendDB *be, ConfigReply *cr )
 
 	/* DBEnv parameters */
 	bdb->bi_dbenv_home = ch_strdup( SLAPD_DEFAULT_DB_DIR );
-	bdb->bi_dbenv_xflags = 0;
+	bdb->bi_dbenv_xflags = DB_TIME_NOTGRANTED;
 	bdb->bi_dbenv_mode = SLAPD_DEFAULT_DB_MODE;
 
 	bdb->bi_cache.c_maxsize = DEFAULT_CACHE_SIZE;
@@ -503,7 +503,7 @@ shm_retry:
 	}
 
 	if ( !quick ) {
-		TXN_BEGIN(bdb->bi_dbenv, NULL, &bdb->bi_cache.c_txn, DB_READ_COMMITTED);
+		TXN_BEGIN(bdb->bi_dbenv, NULL, &bdb->bi_cache.c_txn, DB_READ_COMMITTED | DB_TXN_NOWAIT);
 	}
 
 	entry_prealloc( bdb->bi_cache.c_maxsize );

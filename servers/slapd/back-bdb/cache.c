@@ -1481,7 +1481,7 @@ bdb_reader_get( Operation *op, DB_ENV *env, DB_TXN **txn )
 
 	if ( ldap_pvt_thread_pool_getkey( ctx, env, &data, NULL ) ) {
 		for ( i=0, rc=1; rc != 0 && i<4; i++ ) {
-			rc = TXN_BEGIN( env, NULL, txn, DB_READ_COMMITTED );
+			rc = TXN_BEGIN( env, NULL, txn, DB_READ_COMMITTED | DB_TXN_NOWAIT );
 			if (rc) ldap_pvt_thread_yield();
 		}
 		if ( rc != 0) {
