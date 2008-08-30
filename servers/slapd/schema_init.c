@@ -2030,10 +2030,8 @@ postalAddressNormalize(
 {
 	BerVarray lines = NULL, nlines = NULL;
 	int l, c;
-	int nescapes = 0;
 	int rc = LDAP_SUCCESS;
 	MatchingRule *xmr = NULL;
-	struct berval bv = BER_BVNULL;
 	char *p;
 
 	if ( SLAP_MR_ASSOCIATED( mr, slap_schema.si_mr_caseIgnoreListMatch ) ) {
@@ -2065,38 +2063,11 @@ postalAddressNormalize(
 	normalized->bv_len = l;
 
 	for ( l = 0; !BER_BVISNULL( &lines[l] ); l++ ) {
-		int s, d;
-		ber_len_t oldlen;
-
-		ber_bvreplace_x( &bv, &lines[l], ctx );
-		oldlen = bv.bv_len;
-		for ( d = 0, s = 0; s < oldlen; d++, s++ ) {
-			if ( bv.bv_val[s] == '\\' ) {
-				if ( &bv.bv_val[s] - &bv.bv_val[0] + STRLENOF( "\\XX" ) > oldlen ) {
-					rc = LDAP_INVALID_SYNTAX;
-					goto done;
-
-				} else if ( strncasecmp( &bv.bv_val[s + 1], "24", STRLENOF( "24" ) ) == 0 ) {
-					bv.bv_val[d] = '$';
-
-				} else if ( strncasecmp( &bv.bv_val[s + 1], "5C", STRLENOF( "5C" ) ) == 0 ) {
-					bv.bv_val[d] = '\\';
-
-				} else {
-					rc = LDAP_INVALID_SYNTAX;
-					goto done;
-				}
-
-				nescapes++;
-				s += 2;
-				bv.bv_len -= 2;
-
-			} else {
-				bv.bv_val[d] = bv.bv_val[s];
-			}
-		}
-
-		rc = UTF8StringNormalize( usage, NULL, xmr, &bv, &nlines[l], ctx );
+		/* NOTE: we directly normalize each line,
+		 * without unescaping the values, since the special
+		 * values '\24' ('$') and '\5C' ('\') are not affected
+		 * by normalization */
+		rc = UTF8StringNormalize( usage, NULL, xmr, &lines[l], &nlines[l], ctx );
 		if ( rc != LDAP_SUCCESS ) {
 			rc = LDAP_INVALID_SYNTAX;
 			goto done;
@@ -2105,27 +2076,11 @@ postalAddressNormalize(
 		normalized->bv_len += nlines[l].bv_len;
 	}
 
-	normalized->bv_len += 2*nescapes;
-
 	normalized->bv_val = slap_sl_malloc( normalized->bv_len + 1, ctx );
 
 	p = normalized->bv_val;
 	for ( l = 0; !BER_BVISNULL( &nlines[l] ); l++ ) {
-		for ( c = 0; c < nlines[l].bv_len; c++ ) {
-			switch ( nlines[l].bv_val[c] ) {
-			case '\\':
-				p = lutil_strcopy( p, "\\5C" );
-				break;
-
-			case '$':
-				p = lutil_strcopy( p, "\\24" );
-				break;
-
-			default:
-				*p++ = nlines[l].bv_val[c];
-				break;
-			}
-		}
+		p = lutil_strncopy( p, nlines[l].bv_val, nlines[l].bv_len );
 
 		*p++ = '$';
 	}
@@ -2134,10 +2089,6 @@ postalAddressNormalize(
 	assert( p - normalized->bv_val == normalized->bv_len );
 
 done:;
-	if ( !BER_BVISNULL( &bv ) ) {
-		ber_memfree_x( bv.bv_val, ctx );
-	}
-
 	if ( nlines != NULL ) {
 		for ( l = 0; !BER_BVISNULL( &nlines[ l ] ); l++ ) {
 			slap_sl_free( nlines[l].bv_val, ctx );
