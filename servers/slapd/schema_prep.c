@@ -1072,6 +1072,10 @@ static struct slap_schema_mr_map {
 	{ "objectIdentifierFirstComponentMatch",
 		offsetof(struct slap_internal_schema,
 			si_mr_objectIdentifierFirstComponentMatch) },
+	{ "caseIgnoreMatch",
+		offsetof(struct slap_internal_schema, si_mr_caseIgnoreMatch) },
+	{ "caseIgnoreListMatch",
+		offsetof(struct slap_internal_schema, si_mr_caseIgnoreListMatch) },
 	{ NULL, 0 }
 };
 
