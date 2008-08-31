@@ -1982,6 +1982,8 @@ fi
 
 dnl ----------------------------------------------------------------
 dnl MySQL NDBapi
+dnl Note: uses C++, but we don't want to add C++ test overhead to
+dnl the rest of the libtool machinery.
 ol_link_ndb=no
 if test $ol_enable_ndb != no ; then
 	AC_CHECK_PROG(MYSQL,mysql_config,yes)
@@ -1992,8 +1994,27 @@ if test $ol_enable_ndb != no ; then
 	SQL_INC=`mysql_config --include`
 	SLAPD_NDB_INCS="$SQL_INC $SQL_INC/storage/ndb $SQL_INC/storage/ndb/ndbapi"
 
+	save_CPPFLAGS="$CPPFLAGS"
+	CPPFLAGS="$SLAPD_NDB_INCS"
+	AC_MSG_CHECKING(for NdbApi.hpp)
+	AC_PREPROC_IFELSE(
+		[AC_LANG_SOURCE([[#include <NdbApi.hpp>]])],
+			AC_MSG_RESULT(yes),
+			AC_MSG_ERROR([could not locate NdbApi headers])
+	)
+	CPPFLAGS="$save_CPPFLAGS"
+
 	SQL_LIB=`mysql_config --libs_r`
-	SLAPD_NDB_LIBS="$SQL_LIB -lndbclient -lmysys -lmystrings -lstdc++"
+	SLAPD_NDB_LIBS="$SQL_LIB -lndbclient -lstdc++"
+
+	save_LDFLAGS="$LDFLAGS"
+	save_LIBS="$LIBS"
+	LDFLAGS="$SQL_LIB"
+	AC_CHECK_LIB(ndbclient,ndb_init,[],[
+		AC_MSG_ERROR([could not locate ndbclient library])
+	],[-lstdc++])
+	LIBS="$save_LIBS"
+	LDFLAGS="$save_LDFLAGS"
 
 	if test "$ol_enable_ndb" = yes ; then
 		SLAPD_LIBS="$SLAPD_LIBS \$(SLAPD_NDB_LIBS)"
