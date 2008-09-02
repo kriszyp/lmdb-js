@@ -355,7 +355,7 @@ dn2entry_retry:
 	case DB_LOCK_NOTGRANTED:
 		/* the txn must abort and retry */
 		if ( txn ) {
-			boi->boi_err = rc;
+			if ( boi ) boi->boi_err = rc;
 			return LDAP_BUSY;
 		}
 		ldap_pvt_thread_yield();
