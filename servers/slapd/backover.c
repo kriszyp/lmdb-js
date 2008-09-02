@@ -597,6 +597,27 @@ over_acl_attribute(
 	return rc;
 }
 
+int
+overlay_callback_after_backover( Operation *op, slap_callback *sc, int append )
+{
+	slap_callback **scp;
+
+	for ( scp = &op->o_callback; *scp != NULL; scp = &(*scp)->sc_next ) {
+		if ( (*scp)->sc_response == over_back_response ) {
+			sc->sc_next = (*scp)->sc_next;
+			(*scp)->sc_next = sc;
+			return 0;
+		}
+	}
+
+	if ( append ) {
+		*scp = sc;
+		return 0;
+	}
+
+	return 1;
+}
+
 /*
  * default return code in case of missing backend function
  * and overlay stack returning SLAP_CB_CONTINUE

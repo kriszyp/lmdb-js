@@ -104,6 +104,15 @@ rwm_op_cleanup( Operation *op, SlapReply *rs )
 				op->ore_reqdata = ros->ore_reqdata;
 			}
 			break;
+		case LDAP_REQ_BIND:
+			if ( rs->sr_err == LDAP_SUCCESS ) {
+#if 0
+				/* too late, conn_mutex released */
+				ber_bvreplace( &op->o_conn->c_ndn,
+					&op->o_req_ndn );
+#endif
+			}
+			break;
 		default:	break;
 		}
 		op->o_callback = op->o_callback->sc_next;
@@ -354,7 +363,7 @@ rwm_op_bind( Operation *op, SlapReply *rs )
 		return -1;
 	}
 
-	op->o_callback = &roc->cb;
+	overlay_callback_after_backover( op, &roc->cb, 1 );
 
 	return SLAP_CB_CONTINUE;
 }
