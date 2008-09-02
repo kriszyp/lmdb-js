@@ -1,6 +1,7 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.12 Engineering
+	Fixed slapd-meta quarantine behavior (ITS#5592)
 	Fixed slapo-constraint string termination (ITS#5609)
 	Fixed slapo-rwm callback cleanup (ITS#5601)
 
