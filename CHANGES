@@ -1,6 +1,7 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.12 Engineering
+	Fixed slapo-constraint string termination (ITS#5609)
 
 OpenLDAP 2.4.11 Release (2008/07/16)
 	Fixed liblber ber_get_next length decoding (ITS#5580)

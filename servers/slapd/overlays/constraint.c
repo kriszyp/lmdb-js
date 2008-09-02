@@ -282,8 +282,16 @@ constraint_cf_gen( ConfigArgs *c )
 				if (ap.lud->lud_dn == NULL)
 					ap.lud->lud_dn = ch_strdup("");
 
-				if (ap.lud->lud_filter == NULL)
+				if (ap.lud->lud_filter == NULL) {
 					ap.lud->lud_filter = ch_strdup("objectClass=*");
+				} else if ( ap.lud->lud_filter[0] == '(' ) {
+					ber_len_t len = strlen( ap.lud->lud_filter );
+					if ( ap.lud->lud_filter[len - 1] != ')' ) {
+							return( ARG_BAD_CONF );
+					}
+					AC_MEMCPY( &ap.lud->lud_filter[0], &ap.lud->lud_filter[1], len - 2 );
+					ap.lud->lud_filter[len - 2] = '\0';
+				}
 
 				ber_str2bv( c->argv[3], 0, 1, &ap.val );
 			} else {
@@ -427,6 +435,7 @@ constraint_violation( constraint *c, struct berval *bv, Operation *op, SlapReply
 		}
 		*ptr++ = ')';
 		*ptr++ = ')';
+		*ptr++ = '\0';
 
 		Debug(LDAP_DEBUG_TRACE, 
 			"==> constraint_violation uri filter = %s\n",
