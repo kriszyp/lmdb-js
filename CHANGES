@@ -14,6 +14,7 @@ OpenLDAP 2.4.12 Engineering
 	Fixed slapo-memberof internal operations DN (ITS#5622)
 	Fixed slapo-rwm callback cleanup (ITS#5601)
 	Fixed slapo-rwm attr mapping and merging (ITS#5624)
+	Fixed slapo-unique filter validation (ITS#5581)
 	Build Environment
 		Fixed ODBC library detection (ITS#5602)
 	Documentation
