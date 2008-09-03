@@ -38,6 +38,15 @@ excessive overhead for some applications, so its use should be
 carefully considered.
 In the examples section, some typical scenarios will be discussed.
 
+The proxy instance of
+.BR slapd (8)
+must contain schema information for the attributes and objectClasses
+used in filters, request DN and request-related data in general.
+It should also contain schema information for the data returned
+by the proxied server.
+It is the responsibility of the proxy administrator to keep the schema
+of the proxy lined up with that of the proxied server.
+
 .LP
 Note: When looping back to the same instance of \fBslapd\fP(8), 
 each connection requires a new thread; as a consequence, \fBslapd\fP(8)
