@@ -197,6 +197,15 @@ unique_new_domain_uri ( unique_domain_uri **urip,
 			goto exit;
 		}
 
+		if ( be->be_nsuffix == NULL ) {
+			snprintf( c->cr_msg, sizeof( c->cr_msg ),
+				  "suffix must be set" );
+			Debug ( LDAP_DEBUG_CONFIG, "unique config: %s\n",
+				c->cr_msg, NULL, NULL );
+			rc = ARG_BAD_CONF;
+			goto exit;
+		}
+
 		if ( !dnIsSuffix ( &uri->ndn, &be->be_nsuffix[0] ) ) {
 			snprintf( c->cr_msg, sizeof( c->cr_msg ),
 				  "dn <%s> is not a suffix of backend base dn <%s>",
