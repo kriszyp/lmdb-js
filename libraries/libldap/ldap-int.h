@@ -160,6 +160,11 @@ struct ldaptls {
 };
 #endif
 
+typedef struct ldaplist {
+	struct ldaplist *ll_next;
+	void *ll_data;
+} ldaplist;
+
 /*
  * structure representing get/set'able options
  * which have global defaults.
@@ -235,6 +240,9 @@ struct ldapoptions {
 	void *ldo_nextref_params;
 	LDAP_URLLIST_PROC *ldo_urllist_proc;
 	void *ldo_urllist_params;
+
+	/* LDAP connection callback stack */
+	ldaplist *ldo_conn_cbs;
 
 	LDAP_BOOLEANS ldo_booleans;	/* boolean options */
 };
@@ -503,7 +511,7 @@ LDAP_F (void) ldap_int_ip_init( void );
 LDAP_F (int) ldap_int_timeval_dup( struct timeval **dest,
 	const struct timeval *tm );
 LDAP_F (int) ldap_connect_to_host( LDAP *ld, Sockbuf *sb,
-	int proto, const char *host, int port, int async );
+	int proto, LDAPURLDesc *srv, int async );
 LDAP_F (int) ldap_int_poll( LDAP *ld, ber_socket_t s,
 	struct timeval *tvp );
 
@@ -522,12 +530,15 @@ LDAP_F (void) ldap_mark_select_clear( LDAP *ld, Sockbuf *sb );
 LDAP_F (int) ldap_is_read_ready( LDAP *ld, Sockbuf *sb );
 LDAP_F (int) ldap_is_write_ready( LDAP *ld, Sockbuf *sb );
 
+LDAP_F (int) ldap_int_connect_cbs( LDAP *ld, Sockbuf *sb,
+	ber_socket_t *s, LDAPURLDesc *srv, struct sockaddr *addr );
+
 /*
  * in os-local.c
  */
 #ifdef LDAP_PF_LOCAL
 LDAP_F (int) ldap_connect_to_path( LDAP *ld, Sockbuf *sb,
-	const char *path, int async );
+	LDAPURLDesc *srv, int async );
 #endif /* LDAP_PF_LOCAL */
 
 /*

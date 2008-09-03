@@ -123,6 +123,7 @@ ldap_create( LDAP **ldp )
 	ld->ld_options.ldo_sctrls = NULL;
 	ld->ld_options.ldo_cctrls = NULL;
 	ld->ld_options.ldo_defludp = NULL;
+	ld->ld_options.ldo_conn_cbs = NULL;
 
 #ifdef HAVE_CYRUS_SASL
 	ld->ld_options.ldo_def_sasl_mech = gopts->ldo_def_sasl_mech
@@ -343,27 +344,10 @@ ldap_int_open_connection(
 
 	switch ( proto = ldap_pvt_url_scheme2proto( srv->lud_scheme ) ) {
 		case LDAP_PROTO_TCP:
-			port = srv->lud_port;
-
-			if ( srv->lud_host == NULL || *srv->lud_host == 0 ) {
-				host = NULL;
-			} else {
-				host = srv->lud_host;
-			}
-
-			if( !port ) {
-				if( strcmp(srv->lud_scheme, "ldaps") == 0 ) {
-					port = LDAPS_PORT;
-				} else {
-					port = LDAP_PORT;
-				}
-			}
-
 			rc = ldap_connect_to_host( ld, conn->lconn_sb,
-				proto, host, port, async );
+				proto, srv, async );
 
 			if ( rc == -1 ) return rc;
-
 #ifdef LDAP_DEBUG
 			ber_sockbuf_add_io( conn->lconn_sb, &ber_sockbuf_io_debug,
 				LBER_SBIOD_LEVEL_PROVIDER, (void *)"tcp_" );
@@ -375,19 +359,9 @@ ldap_int_open_connection(
 
 #ifdef LDAP_CONNECTIONLESS
 		case LDAP_PROTO_UDP:
-			port = srv->lud_port;
-
-			if ( srv->lud_host == NULL || *srv->lud_host == 0 ) {
-				host = NULL;
-			} else {
-				host = srv->lud_host;
-			}
-
-			if( !port ) port = LDAP_PORT;
-
 			LDAP_IS_UDP(ld) = 1;
 			rc = ldap_connect_to_host( ld, conn->lconn_sb,
-				proto, host, port, async );
+				proto, srv, async );
 
 			if ( rc == -1 ) return rc;
 #ifdef LDAP_DEBUG
@@ -406,7 +380,7 @@ ldap_int_open_connection(
 #ifdef LDAP_PF_LOCAL
 			/* only IPC mechanism supported is PF_LOCAL (PF_UNIX) */
 			rc = ldap_connect_to_path( ld, conn->lconn_sb,
-				srv->lud_host, async );
+				srv, async );
 			if ( rc == -1 ) return rc;
 #ifdef LDAP_DEBUG
 			ber_sockbuf_add_io( conn->lconn_sb, &ber_sockbuf_io_debug,

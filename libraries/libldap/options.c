@@ -249,7 +249,22 @@ ldap_get_option(
 	case LDAP_OPT_CONNECT_ASYNC:
 		* (int *) outvalue = (int) LDAP_BOOL_GET(lo, LDAP_BOOL_CONNECT_ASYNC);
 		return LDAP_OPT_SUCCESS;
-		
+
+	case LDAP_OPT_CONNECT_CB:
+		{
+			/* Getting deletes the specified callback */
+			ldaplist **ll = &lo->ldo_conn_cbs;
+			for (;*ll;ll = &(*ll)->ll_next) {
+				if ((*ll)->ll_data == outvalue) {
+					ldaplist *lc = *ll;
+					*ll = lc->ll_next;
+					LDAP_FREE(lc);
+					break;
+				}
+			}
+		}
+		return LDAP_OPT_SUCCESS;
+
 	case LDAP_OPT_RESULT_CODE:
 		if(ld == NULL) {
 			/* bad param */
@@ -733,6 +748,17 @@ ldap_set_option(
 
 	case LDAP_OPT_DEBUG_LEVEL:
 		lo->ldo_debug = * (const int *) invalue;
+		return LDAP_OPT_SUCCESS;
+
+	case LDAP_OPT_CONNECT_CB:
+		{
+			/* setting pushes the callback */
+			ldaplist *ll;
+			ll = LDAP_MALLOC( sizeof( *ll ));
+			ll->ll_data = (void *)invalue;
+			ll->ll_next = lo->ldo_conn_cbs;
+			lo->ldo_conn_cbs = ll;
+		}
 		return LDAP_OPT_SUCCESS;
 	}
 	return LDAP_OPT_ERROR;
