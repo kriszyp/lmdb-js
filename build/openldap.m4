@@ -487,32 +487,10 @@ __db_version
 ])
 
 if test $ol_cv_bdb_major = 4 ; then
-	if test $ol_cv_bdb_minor = 6 ; then
-		OL_BERKELEY_DB_TRY(ol_cv_db_db_4_dot_6,[-ldb-4.6])
-		OL_BERKELEY_DB_TRY(ol_cv_db_db46,[-ldb46])
-		OL_BERKELEY_DB_TRY(ol_cv_db_db_46,[-ldb-46])
-		OL_BERKELEY_DB_TRY(ol_cv_db_db_4_6,[-ldb-4-6])
-	elif test $ol_cv_bdb_minor = 5 ; then
-		OL_BERKELEY_DB_TRY(ol_cv_db_db_4_dot_5,[-ldb-4.5])
-		OL_BERKELEY_DB_TRY(ol_cv_db_db45,[-ldb45])
-		OL_BERKELEY_DB_TRY(ol_cv_db_db_45,[-ldb-45])
-		OL_BERKELEY_DB_TRY(ol_cv_db_db_4_5,[-ldb-4-5])
-	elif test $ol_cv_bdb_minor = 4 ; then
-		OL_BERKELEY_DB_TRY(ol_cv_db_db_4_dot_4,[-ldb-4.4])
-		OL_BERKELEY_DB_TRY(ol_cv_db_db44,[-ldb44])
-		OL_BERKELEY_DB_TRY(ol_cv_db_db_44,[-ldb-44])
-		OL_BERKELEY_DB_TRY(ol_cv_db_db_4_4,[-ldb-4-4])
-	elif test $ol_cv_bdb_minor = 3 ; then
-		OL_BERKELEY_DB_TRY(ol_cv_db_db_4_dot_3,[-ldb-4.3])
-		OL_BERKELEY_DB_TRY(ol_cv_db_db43,[-ldb43])
-		OL_BERKELEY_DB_TRY(ol_cv_db_db_43,[-ldb-43])
-		OL_BERKELEY_DB_TRY(ol_cv_db_db_4_3,[-ldb-4-3])
-	elif test $ol_cv_bdb_minor = 2 ; then
-		OL_BERKELEY_DB_TRY(ol_cv_db_db_4_dot_2,[-ldb-4.2])
-		OL_BERKELEY_DB_TRY(ol_cv_db_db42,[-ldb42])
-		OL_BERKELEY_DB_TRY(ol_cv_db_db_42,[-ldb-42])
-		OL_BERKELEY_DB_TRY(ol_cv_db_db_4_2,[-ldb-4-2])
-	fi
+	OL_BERKELEY_DB_TRY(ol_cv_db_db_4_dot_m,[-ldb-4.$ol_cv_bdb_minor])
+	OL_BERKELEY_DB_TRY(ol_cv_db_db4m,[-ldb4$ol_cv_bdb_minor])
+	OL_BERKELEY_DB_TRY(ol_cv_db_db_4m,[-ldb-4$ol_cv_bdb_minor])
+	OL_BERKELEY_DB_TRY(ol_cv_db_db_4_m,[-ldb-4-$ol_cv_bdb_minor])
 	OL_BERKELEY_DB_TRY(ol_cv_db_db_4,[-ldb-4])
 	OL_BERKELEY_DB_TRY(ol_cv_db_db4,[-ldb4])
 	OL_BERKELEY_DB_TRY(ol_cv_db_db,[-ldb])
@@ -697,8 +675,10 @@ AC_DEFUN([OL_BDB_COMPAT],
 #	define DB_VERSION_MINOR 0
 #endif
 
-/* require 4.2 or later, but exclude 4.3 */
-#if (DB_VERSION_MAJOR >= 4) && (DB_VERSION_MINOR >= 2) && (DB_VERSION_MINOR !=3)
+#define DB_VERSION_MM	((DB_VERSION_MAJOR<<8)|DB_VERSION_MINOR)
+
+/* require 4.4 or later */
+#if DB_VERSION_MM >= 0x0404
 	__db_version_compat
 #endif
 	], [ol_cv_bdb_compat=yes], [ol_cv_bdb_compat=no])])
