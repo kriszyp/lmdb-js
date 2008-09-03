@@ -9,6 +9,7 @@ OpenLDAP 2.4.12 Engineering
 	Fixed slapd firstComponentMatch normalization (ITS#5634)
 	Fixed slapd overlay control registration (ITS#5649)
 	Fixed slapd socket closing on Windows (ITS#5606)
+	Fixed slapd syncrepl error logging (ITS#5618)
 	Fixed slapd-ldap,slapd-meta invalid filter behavior (ITS#5614)
 	Fixed slapd-meta quarantine behavior (ITS#5592)
 	Fixed slapd-meta objectClass filtering (ITS#5647)
