@@ -69,7 +69,7 @@ ber_decode_oid( BerValue *in, BerValue *out )
 		val |= der[i] & 0x7f;
 		if ( !( der[i] & 0x80 )) {
 			if ( ptr == NULL ) {
-				/* Initial "x.y": val=x*40+y, x<=2, y<40 if x=2 */
+				/* Initial "x.y": val=x*40+y, x<=2, y<40 if x<2 */
 				ptr = out->bv_val;
 				val1 = (val < 80 ? val/40 : 2);
 				val -= val1*40;
