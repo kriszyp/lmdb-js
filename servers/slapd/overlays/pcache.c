@@ -1593,6 +1593,7 @@ struct search_info {
 	Query query;
 	QueryTemplate *qtemp;
 	AttributeName*  save_attrs;	/* original attributes, saved for response */
+	int swap_saved_attrs;
 	int max;
 	int over;
 	int count;
@@ -1984,7 +1985,7 @@ pcache_op_cleanup( Operation *op, SlapReply *rs ) {
 	if ( rs->sr_type == REP_RESULT || 
 		op->o_abandon || rs->sr_err == SLAPD_ABANDON )
 	{
-		if ( si->save_attrs != NULL ) {
+		if ( si->swap_saved_attrs ) {
 			rs->sr_attrs = si->save_attrs;
 			op->ors_attrs = si->save_attrs;
 		}
@@ -2067,7 +2068,7 @@ pcache_response(
 {
 	struct search_info *si = op->o_callback->sc_private;
 
-	if ( si->save_attrs != NULL ) {
+	if ( si->swap_saved_attrs ) {
 		rs->sr_attrs = si->save_attrs;
 		op->ors_attrs = si->save_attrs;
 	}
@@ -2164,7 +2165,7 @@ add_filter_attrs(
 	}
 	BER_BVZERO( &(*new_attrs)[j].an_name );
 
-	return count;
+	return j;
 }
 
 /* NOTE: this is a quick workaround to let pcache minimally interact
@@ -2416,6 +2417,7 @@ pcache_op_search(
 		}
 		si->head = NULL;
 		si->tail = NULL;
+		si->swap_saved_attrs = 1;
 		si->save_attrs = op->ors_attrs;
 
 		op->ors_attrs = qtemp->t_attrs.attrs;

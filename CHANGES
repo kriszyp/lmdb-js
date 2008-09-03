@@ -19,6 +19,7 @@ OpenLDAP 2.4.12 Engineering
 	Fixed slapd-sql fault on NULL fields (ITS#5653)
 	Fixed slapo-constraint string termination (ITS#5609)
 	Fixed slapo-memberof internal operations DN (ITS#5622)
+	Fixed slapo-pcache attrset crash (ITS#5665)
 	Fixed slapo-rwm callback cleanup (ITS#5601)
 	Fixed slapo-rwm attr mapping and merging (ITS#5624)
 	Fixed slapo-rwm objectClass filtering (ITS#5647)
