@@ -171,7 +171,7 @@ to work (except for the two statistics levels, which are always
 enabled). Log levels may be specified as integers or by keyword.
 Multiple log levels may be used and the levels are additive.
 To display what levels
-correspond to what kind of debugging, invoke slapd with {{EX:-?}}
+correspond to what kind of debugging, invoke slapd with {{EX:-d?}}
 or consult the table below. The possible values for <level> are:
 
 !block table; colaligns="RL"; align=Center; \

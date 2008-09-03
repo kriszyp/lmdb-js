@@ -137,7 +137,7 @@ the {{syslogd}}(8) {{EX:LOG_LOCAL4}} facility). You must have
 configured OpenLDAP {{EX:--enable-debug}} (the default) for this
 to work (except for the two statistics levels, which are always
 enabled).  Log levels are additive. To display what numbers
-correspond to what kind of debugging, invoke slapd with {{EX:-?}}
+correspond to what kind of debugging, invoke slapd with {{EX:-d?}}
 or consult the table below. The possible values for <integer> are:
 
 !block table; colaligns="RL"; align=Center; \
