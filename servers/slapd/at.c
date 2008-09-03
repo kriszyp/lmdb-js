@@ -722,8 +722,22 @@ at_add(
 	 * its own superiorss
 	 */
 	if ( sat->sat_sup ) {
-		sat->sat_syntax = sat->sat_sup->sat_syntax;
-		sat->sat_equality = sat->sat_sup->sat_equality;
+		Syntax *syn = syn_find(sat->sat_sup->sat_syntax->ssyn_oid);
+		if ( syn != sat->sat_sup->sat_syntax ) {
+			sat->sat_syntax = ch_malloc( sizeof( Syntax ));
+			*sat->sat_syntax = *sat->sat_sup->sat_syntax;
+		} else {
+			sat->sat_syntax = sat->sat_sup->sat_syntax;
+		}
+		if ( sat->sat_sup->sat_equality ) {
+			MatchingRule *mr = mr_find( sat->sat_sup->sat_equality->smr_oid );
+			if ( mr != sat->sat_sup->sat_equality ) {
+				sat->sat_equality = ch_malloc( sizeof( MatchingRule ));
+				*sat->sat_equality = *sat->sat_sup->sat_equality;
+			} else {
+				sat->sat_equality = sat->sat_sup->sat_equality;
+			}
+		}
 		sat->sat_approx = sat->sat_sup->sat_approx;
 		sat->sat_ordering = sat->sat_sup->sat_ordering;
 		sat->sat_substr = sat->sat_sup->sat_substr;
