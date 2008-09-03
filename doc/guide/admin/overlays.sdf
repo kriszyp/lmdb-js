@@ -1140,11 +1140,78 @@ H2: Value Sorting
 
 H3: Overview
 
-This overlay can be used to enforce a specific order for the values
-of an attribute when it is returned in a search.
-
+The Value Sorting overlay can be used with a backend database to sort the 
+values of specific multi-valued attributes within a subtree. The sorting occurs 
+whenever the attributes are returned in a search response.
 
 H3: Value Sorting Configuration
+
+Sorting can be specified in ascending or descending order, using either numeric 
+or alphanumeric sort methods. Additionally, a "weighted" sort can be specified,
+ which uses a numeric weight prepended to the attribute values. 
+
+The weighted sort is always performed in ascending order, but may be combined 
+with the other methods for values that all have equal weights. The weight is 
+specified by prepending an integer weight {<weight>} in front of each value 
+of the attribute for which weighted sorting is desired. This weighting factor 
+is stripped off and never returned in search results.
+
+Here are a few examples:
+
+>       loglevel    sync stats
+>       
+>       database    hdb
+>       suffix      "dc=suretecsystems,dc=com"
+>       directory   /usr/local/var/openldap-data
+>       
+>       ......
+>       
+>       overlay valsort
+>       valsort-attr memberUid ou=Groups,dc=suretecsystems,dc=com alpha-ascend
+
+For example, ascend:
+
+>       # sharedemail, Groups, suretecsystems.com
+>       dn: cn=sharedemail,ou=Groups,dc=suretecsystems,dc=com
+>       objectClass: posixGroup
+>       objectClass: top
+>       cn: sharedemail
+>       gidNumber: 517
+>       memberUid: admin
+>       memberUid: dovecot
+>       memberUid: laura
+>       memberUid: suretec
+
+For weighted, we change our data to:
+
+>       # sharedemail, Groups, suretecsystems.com
+>       dn: cn=sharedemail,ou=Groups,dc=suretecsystems,dc=com
+>       objectClass: posixGroup
+>       objectClass: top
+>       cn: sharedemail
+>       gidNumber: 517
+>       memberUid: {4}admin
+>       memberUid: {2}dovecot
+>       memberUid: {1}laura
+>       memberUid: {3}suretec
+
+and change the config to:
+
+>       overlay valsort
+>       valsort-attr memberUid ou=Groups,dc=suretecsystems,dc=com weighted
+
+Searching now results in:
+
+>       # sharedemail, Groups, OxObjects, suretecsystems.com
+>       dn: cn=sharedemail,ou=Groups,ou=OxObjects,dc=suretecsystems,dc=com
+>       objectClass: posixGroup
+>       objectClass: top
+>       cn: sharedemail
+>       gidNumber: 517
+>       memberUid: laura
+>       memberUid: dovecot
+>       memberUid: suretec
+>       memberUid: admin
 
 
 H3: Further Information
