@@ -286,6 +286,7 @@ Backends="bdb \
 	ldap \
 	meta \
 	monitor \
+	ndb \
 	null \
 	passwd \
 	perl \
@@ -311,6 +312,8 @@ OL_ARG_ENABLE(meta,[    --enable-meta	  enable metadirectory backend],
 	no, [no yes mod], ol_enable_backends)dnl
 OL_ARG_ENABLE(monitor,[    --enable-monitor	  enable monitor backend],
 	yes, [no yes mod], ol_enable_backends)dnl
+OL_ARG_ENABLE(ndb,[    --enable-ndb	  enable MySQL NDB Cluster backend],
+	no, [no yes mod], ol_enable_backends)dnl
 OL_ARG_ENABLE(null,[    --enable-null	  enable null backend],
 	no, [no yes mod], ol_enable_backends)dnl
 OL_ARG_ENABLE(passwd,[    --enable-passwd	  enable passwd backend],
@@ -460,6 +463,7 @@ elif test $ol_enable_modules != yes &&
 	test $ol_enable_ldap = no &&
 	test $ol_enable_meta = no &&
 	test $ol_enable_monitor = no &&
+	test $ol_enable_ndb = no &&
 	test $ol_enable_null = no &&
 	test $ol_enable_passwd = no &&
 	test $ol_enable_perl = no &&
@@ -500,6 +504,8 @@ dnl ----------------------------------------------------------------
 dnl Initialize vars
 LDAP_LIBS=
 BDB_LIBS=
+SLAPD_NDB_LIBS=
+SLAPD_NDB_INCS=
 LTHREAD_LIBS=
 LUTIL_LIBS=
 
@@ -518,6 +524,7 @@ BUILD_HDB=no
 BUILD_LDAP=no
 BUILD_META=no
 BUILD_MONITOR=no
+BUILD_NDB=no
 BUILD_NULL=no
 BUILD_PASSWD=no
 BUILD_PERL=no
@@ -1974,6 +1981,47 @@ if test $ol_enable_sql != no ; then
 fi
 
 dnl ----------------------------------------------------------------
+dnl MySQL NDBapi
+dnl Note: uses C++, but we don't want to add C++ test overhead to
+dnl the rest of the libtool machinery.
+ol_link_ndb=no
+if test $ol_enable_ndb != no ; then
+	AC_CHECK_PROG(MYSQL,mysql_config,yes)
+	if test "$MYSQL" != yes ; then
+		AC_MSG_ERROR([could not locate mysql_config])
+	fi
+
+	SQL_INC=`mysql_config --include`
+	SLAPD_NDB_INCS="$SQL_INC $SQL_INC/storage/ndb $SQL_INC/storage/ndb/ndbapi"
+
+	save_CPPFLAGS="$CPPFLAGS"
+	CPPFLAGS="$SLAPD_NDB_INCS"
+	AC_MSG_CHECKING(for NdbApi.hpp)
+	AC_PREPROC_IFELSE(
+		[AC_LANG_SOURCE([[#include <NdbApi.hpp>]])],
+			AC_MSG_RESULT(yes),
+			AC_MSG_ERROR([could not locate NdbApi headers])
+	)
+	CPPFLAGS="$save_CPPFLAGS"
+
+	SQL_LIB=`mysql_config --libs_r`
+	SLAPD_NDB_LIBS="$SQL_LIB -lndbclient -lstdc++"
+
+	save_LDFLAGS="$LDFLAGS"
+	save_LIBS="$LIBS"
+	LDFLAGS="$SQL_LIB"
+	AC_CHECK_LIB(ndbclient,ndb_init,[],[
+		AC_MSG_ERROR([could not locate ndbclient library])
+	],[-lstdc++])
+	LIBS="$save_LIBS"
+	LDFLAGS="$save_LDFLAGS"
+
+	if test "$ol_enable_ndb" = yes ; then
+		SLAPD_LIBS="$SLAPD_LIBS \$(SLAPD_NDB_LIBS)"
+	fi
+fi
+
+dnl ----------------------------------------------------------------
 dnl International Components for Unicode
 OL_ICU
 if test "$ol_icu" = no ; then
@@ -2579,6 +2627,19 @@ if test "$ol_enable_meta" != no ; then
 	AC_DEFINE_UNQUOTED(SLAPD_META,$MFLAG,[define to support LDAP Metadirectory backend])
 fi
 
+if test "$ol_enable_ndb" != no ; then
+	BUILD_SLAPD=yes
+	BUILD_NDB=$ol_enable_ndb
+	if test "$ol_enable_ndb" = mod ; then
+		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-ndb"
+		MFLAG=SLAPD_MOD_DYNAMIC
+	else
+		SLAPD_STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS back-ndb"
+		MFLAG=SLAPD_MOD_STATIC
+	fi
+	AC_DEFINE_UNQUOTED(SLAPD_NDB,$MFLAG,[define to support NDB backend])
+fi
+
 if test "$ol_enable_null" != no ; then
 	BUILD_SLAPD=yes
 	BUILD_NULL=$ol_enable_null
@@ -2923,6 +2984,7 @@ dnl backends
   AC_SUBST(BUILD_LDAP)
   AC_SUBST(BUILD_META)
   AC_SUBST(BUILD_MONITOR)
+  AC_SUBST(BUILD_NDB)
   AC_SUBST(BUILD_NULL)
   AC_SUBST(BUILD_PASSWD)
   AC_SUBST(BUILD_RELAY)
@@ -2954,6 +3016,8 @@ dnl overlays
 AC_SUBST(LDAP_LIBS)
 AC_SUBST(SLAPD_LIBS)
 AC_SUBST(BDB_LIBS)
+AC_SUBST(SLAPD_NDB_LIBS)
+AC_SUBST(SLAPD_NDB_INCS)
 AC_SUBST(LTHREAD_LIBS)
 AC_SUBST(LUTIL_LIBS)
 AC_SUBST(WRAP_LIBS)
@@ -3024,6 +3088,7 @@ AC_CONFIG_FILES([Makefile:build/top.mk:Makefile.in:build/dir.mk]
 [servers/slapd/back-ldif/Makefile:build/top.mk:servers/slapd/back-ldif/Makefile.in:build/mod.mk]
 [servers/slapd/back-meta/Makefile:build/top.mk:servers/slapd/back-meta/Makefile.in:build/mod.mk]
 [servers/slapd/back-monitor/Makefile:build/top.mk:servers/slapd/back-monitor/Makefile.in:build/mod.mk]
+[servers/slapd/back-ndb/Makefile:build/top.mk:servers/slapd/back-ndb/Makefile.in:build/mod.mk]
 [servers/slapd/back-null/Makefile:build/top.mk:servers/slapd/back-null/Makefile.in:build/mod.mk]
 [servers/slapd/back-passwd/Makefile:build/top.mk:servers/slapd/back-passwd/Makefile.in:build/mod.mk]
 [servers/slapd/back-perl/Makefile:build/top.mk:servers/slapd/back-perl/Makefile.in:build/mod.mk]

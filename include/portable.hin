@@ -945,6 +945,9 @@
 /* define to support cn=Monitor backend */
 #undef SLAPD_MONITOR
 
+/* define to support NDB backend */
+#undef SLAPD_NDB
+
 /* define to support NULL backend */
 #undef SLAPD_NULL
 
