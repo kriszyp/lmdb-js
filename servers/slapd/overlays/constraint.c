@@ -347,14 +347,14 @@ constraint_uri_cb( Operation *op, SlapReply *rs )
 static int
 constraint_violation( constraint *c, struct berval *bv, Operation *op, SlapReply *rs)
 {
-	if ((!c) || (!bv)) return 0;
+	if ((!c) || (!bv)) return LDAP_SUCCESS;
 	
 	if ((c->re) &&
 		(regexec(c->re, bv->bv_val, 0, NULL, 0) == REG_NOMATCH))
-		return 1; /* regular expression violation */
+		return LDAP_CONSTRAINT_VIOLATION; /* regular expression violation */
 
 	if ((c->size) && (bv->bv_len > c->size))
-		return 1; /* size violation */
+		return LDAP_CONSTRAINT_VIOLATION; /* size violation */
 
 	if (c->lud) {
 		Operation nop = *op;
@@ -388,8 +388,11 @@ constraint_violation( constraint *c, struct berval *bv, Operation *op, SlapReply
 			nop.o_req_dn = dn;
 			nop.o_req_ndn = dn;
 			nop.o_bd = select_backend(&nop.o_req_ndn, 1 );
-			if (!nop.o_bd || !nop.o_bd->be_search) {
-				return 1; /* unexpected error */
+			if (!nop.o_bd) {
+				return LDAP_NO_SUCH_OBJECT; /* unexpected error */
+			}
+			if (!nop.o_bd->be_search) {
+				return LDAP_OTHER; /* unexpected error */
 			}
 		} else {
 			nop.o_req_dn = nop.o_bd->be_nsuffix[0];
@@ -437,32 +440,36 @@ constraint_violation( constraint *c, struct berval *bv, Operation *op, SlapReply
 		*ptr++ = ')';
 		*ptr++ = '\0';
 
-		Debug(LDAP_DEBUG_TRACE, 
-			"==> constraint_violation uri filter = %s\n",
-			filterstr.bv_val, 0, 0);
-
 		nop.ors_filterstr = filterstr;
 		nop.ors_filter = str2filter_x(&nop, filterstr.bv_val);
+		if ( nop.ors_filter == NULL ) {
+			Debug( LDAP_DEBUG_ANY,
+				"%s constraint_violation uri filter=\"%s\" invalid\n",
+				op->o_log_prefix, filterstr.bv_val, 0 );
 
-		rc = nop.o_bd->be_search( &nop, &nrs );
+		} else {
+			Debug(LDAP_DEBUG_TRACE, 
+				"==> constraint_violation uri filter = %s\n",
+				filterstr.bv_val, 0, 0);
+
+			rc = nop.o_bd->be_search( &nop, &nrs );
 		
+			Debug(LDAP_DEBUG_TRACE, 
+				"==> constraint_violation uri rc = %d, found = %d\n",
+				rc, found, 0);
+		}
 		op->o_tmpfree(filterstr.bv_val, op->o_tmpmemctx);
-		Debug(LDAP_DEBUG_TRACE, 
-			"==> constraint_violation uri rc = %d, found = %d\n",
-			rc, found, 0);
 
 		if((rc != LDAP_SUCCESS) && (rc != LDAP_NO_SUCH_OBJECT)) {
-			send_ldap_error(op, rs, rc, 
-				"constraint_violation uri search failed");
-			return 1; /* unexpected error */
+			return rc; /* unexpected error */
 		}
 
 		if (!found)
-			return 1; /* constraint violation */
+			return LDAP_CONSTRAINT_VIOLATION; /* constraint violation */
 			
 	}
 	
-	return 0;
+	return LDAP_SUCCESS;
 }
 
 static char *
@@ -497,12 +504,13 @@ constraint_add( Operation *op, SlapReply *rs )
 	BerVarray b = NULL;
 	int i;
 	struct berval rsv = BER_BVC("add breaks constraint");
-	char *msg;
+	int rc;
+	char *msg = NULL;
 
 	if ((a = op->ora_e->e_attrs) == NULL) {
 		op->o_bd->bd_info = (BackendInfo *)(on->on_info);
 		send_ldap_error(op, rs, LDAP_INVALID_SYNTAX,
-			"constraint_add() got null op.ora_e.e_attrs");
+			"constraint_add: no attrs");
 		return(rs->sr_err);
 	}
 
@@ -519,12 +527,17 @@ constraint_add( Operation *op, SlapReply *rs )
 				"a->a_numvals = %d, cp->count = %d\n",
 				a->a_numvals, cp->count, 0);
 
-			if ((cp->count != 0) && (a->a_numvals > cp->count))
+			if ((cp->count != 0) && (a->a_numvals > cp->count)) {
+				rc = LDAP_CONSTRAINT_VIOLATION;
 				goto add_violation;
+			}
 
-			for(i=0; b[i].bv_val; i++) 
-				if (constraint_violation( cp, &b[i], op, rs))
+			for ( i = 0; b[i].bv_val; i++ ) {
+				rc = constraint_violation( cp, &b[i], op, rs );
+				if ( rc ) {
 					goto add_violation;
+				}
+			}
 		}
 	}
 	/* Default is to just fall through to the normal processing */
@@ -532,8 +545,10 @@ constraint_add( Operation *op, SlapReply *rs )
 
 add_violation:
 	op->o_bd->bd_info = (BackendInfo *)(on->on_info);
-	msg = print_message( &rsv, a->a_desc );
-	send_ldap_error(op, rs, LDAP_CONSTRAINT_VIOLATION, msg );
+	if (rc == LDAP_CONSTRAINT_VIOLATION ) {
+		msg = print_message( &rsv, a->a_desc );
+	}
+	send_ldap_error(op, rs, rc, msg );
 	ch_free(msg);
 	return (rs->sr_err);
 }
@@ -550,7 +565,8 @@ constraint_modify( Operation *op, SlapReply *rs )
 	BerVarray b = NULL;
 	int i;
 	struct berval rsv = BER_BVC("modify breaks constraint");
-	char *msg;
+	int rc;
+	char *msg = NULL;
 	
 	Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE, "constraint_modify()", 0,0,0);
 	if ((m = op->orm_modlist) == NULL) {
@@ -563,7 +579,6 @@ constraint_modify( Operation *op, SlapReply *rs )
 	/* Do we need to count attributes? */
 	for(cp = c; cp; cp = cp->ap_next) {
 		if (cp->count != 0) {
-			int rc;
 
 			op->o_bd = on->on_info->oi_origdb;
 			rc = be_entry_get_rw( op, &op->o_req_ndn, NULL, NULL, 0, &target_entry );
@@ -571,14 +586,18 @@ constraint_modify( Operation *op, SlapReply *rs )
 
 			if (rc != 0 || target_entry == NULL) {
 				Debug(LDAP_DEBUG_TRACE, 
-					"==> constraint_modify rc = %d\n",
-					rc, 0, 0);
+					"==> constraint_modify rc = %d DN=\"%s\"%s\n",
+					rc, op->o_req_ndn.bv_val,
+					target_entry ? "" : " not found" );
+				if ( rc == 0 ) 
+					rc = LDAP_CONSTRAINT_VIOLATION;
 				goto mod_violation;
 			}
 			break;
 		}
 	}
-		
+
+	rc = LDAP_CONSTRAINT_VIOLATION;
 	for(;m; m = m->sml_next) {
 		int ce = 0;
 
@@ -612,12 +631,17 @@ constraint_modify( Operation *op, SlapReply *rs )
 					"ca = %d, cp->count = %d\n",
 					ce, ca, cp->count);
 
-				if (m->sml_op == LDAP_MOD_ADD)
-					if (ca + ce > cp->count)
+				if (m->sml_op == LDAP_MOD_ADD) {
+					if (ca + ce > cp->count) {
+						rc = LDAP_CONSTRAINT_VIOLATION;
 						goto mod_violation;
+					}
+				}
 				if (m->sml_op == LDAP_MOD_REPLACE) {
-					if (ca > cp->count)
+					if (ca > cp->count) {
+						rc = LDAP_CONSTRAINT_VIOLATION;
 						goto mod_violation;
+					}
 					ce = ca;
 				}
 			} 
@@ -626,9 +650,12 @@ constraint_modify( Operation *op, SlapReply *rs )
 			if (( m->sml_op & LDAP_MOD_OP ) == LDAP_MOD_DELETE)
 				continue;
 
-			for(i=0; b[i].bv_val; i++)
-				if (constraint_violation( cp, &b[i], op, rs))
+			for ( i = 0; b[i].bv_val; i++ ) {
+				rc = constraint_violation( cp, &b[i], op, rs );
+				if ( rc ) {
 					goto mod_violation;
+				}
+			}
 		}
 	}
 	
@@ -638,6 +665,7 @@ constraint_modify( Operation *op, SlapReply *rs )
 		op->o_bd = be;
 	}
 	return SLAP_CB_CONTINUE;
+
 mod_violation:
 	/* violation */
 	if (target_entry) {
@@ -646,8 +674,10 @@ mod_violation:
 		op->o_bd = be;
 	}
 	op->o_bd->bd_info = (BackendInfo *)(on->on_info);
-	msg = print_message( &rsv, m->sml_desc );
-	send_ldap_error(op, rs, LDAP_CONSTRAINT_VIOLATION, msg );
+	if ( rc == LDAP_CONSTRAINT_VIOLATION ) {
+		msg = print_message( &rsv, m->sml_desc );
+	}
+	send_ldap_error( op, rs, LDAP_CONSTRAINT_VIOLATION, msg );
 	ch_free(msg);
 	return (rs->sr_err);
 }
