@@ -1063,7 +1063,7 @@ overlay_register_control( BackendDB *be, const char *oid )
 		
 		/* add to all backends... */
 		LDAP_STAILQ_FOREACH( bd, &backendDB, be_next ) {
-			if ( be == bd ) {
+			if ( bd == be->bd_self ) {
 				gotit = 1;
 			}
 
@@ -1074,8 +1074,8 @@ overlay_register_control( BackendDB *be, const char *oid )
 	}
 	
 	if ( !gotit ) {
-		be->be_ctrls[ cid ] = 1;
-		be->be_ctrls[ SLAP_MAX_CIDS ] = 1;
+		be->bd_self->be_ctrls[ cid ] = 1;
+		be->bd_self->be_ctrls[ SLAP_MAX_CIDS ] = 1;
 	}
 
 	return 0;
