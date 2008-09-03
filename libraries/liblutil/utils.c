@@ -77,6 +77,13 @@ char* lutil_progname( const char* name, int argc, char *argv[] )
 	LUTIL_SLASHPATH( argv[0] );
 	progname = strrchr ( argv[0], *LDAP_DIRSEP );
 	progname = progname ? &progname[1] : argv[0];
+#ifdef _WIN32
+	{
+		size_t len = strlen( progname );
+		if ( len > 4 && strcasecmp( &progname[len - 4], ".exe" ) == 0 )
+			progname[len - 4] = '\0';
+	}
+#endif
 	return progname;
 }
 
