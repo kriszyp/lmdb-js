@@ -473,7 +473,7 @@ check_syncprov(
 			for ( i=0; i<num; i++ ) {
 				if ( ber_bvcmp( &a.a_nvals[i],
 					&si->si_cookieState->cs_vals[i] )) {
-					changed =1;
+					changed = 1;
 					break;
 				}
 			}
@@ -2770,8 +2770,13 @@ syncrepl_updateCookie(
 			if ( memcmp( syncCookie->ctxcsn[i].bv_val,
 				si->si_cookieState->cs_vals[j].bv_val, len ) > 0 ) {
 				mod.sml_values[j] = syncCookie->ctxcsn[i];
-				if ( BER_BVISNULL( &first ))
+				if ( BER_BVISNULL( &first ) ) {
 					first = syncCookie->ctxcsn[i];
+
+				} else if ( memcmp( syncCookie->ctxcsn[i].bv_val, first.bv_val, first.bv_len ) > 0 )
+				{
+					first = syncCookie->ctxcsn[i];
+				}
 			}
 			break;
 		}
@@ -2781,8 +2786,12 @@ syncrepl_updateCookie(
 				( mod.sml_numvals+2 )*sizeof(struct berval), op->o_tmpmemctx );
 			mod.sml_values[mod.sml_numvals++] = syncCookie->ctxcsn[i];
 			BER_BVZERO( &mod.sml_values[mod.sml_numvals] );
-			if ( BER_BVISNULL( &first ))
+			if ( BER_BVISNULL( &first ) ) {
 				first = syncCookie->ctxcsn[i];
+			} else if ( memcmp( syncCookie->ctxcsn[i].bv_val, first.bv_val, first.bv_len ) > 0 )
+			{
+				first = syncCookie->ctxcsn[i];
+			}
 		}
 	}
 	/* Should never happen, ITS#5065 */
