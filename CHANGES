@@ -16,6 +16,7 @@ OpenLDAP 2.4.12 Engineering
 	Fixed slapd-meta objectClass filtering (ITS#5647)
 	Fixed slapd-relay initialization (ITS#5643)
 	Fixed slapd-sql freeing of connection (ITS#5607)
+	Fixed slapd-sql fault on NULL fields (ITS#5653)
 	Fixed slapo-constraint string termination (ITS#5609)
 	Fixed slapo-memberof internal operations DN (ITS#5622)
 	Fixed slapo-rwm callback cleanup (ITS#5601)
