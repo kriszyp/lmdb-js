@@ -401,6 +401,15 @@ dn2entry_retry:
 		goto return_results;
 	}
 
+	/* NOTE: attr_find() or attrs_find()? */
+	if ( at && attr_find( e->e_attrs, at ) == NULL ) {
+		Debug( LDAP_DEBUG_ACL,
+			"<= bdb_entry_get: failed to find attribute %s\n",
+			at->ad_cname.bv_val, 0, 0 ); 
+		rc = LDAP_NO_SUCH_ATTRIBUTE;
+		goto return_results;
+	}
+
 return_results:
 	if( rc != LDAP_SUCCESS ) {
 		/* free entry */
