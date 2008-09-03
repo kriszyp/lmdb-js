@@ -316,6 +316,7 @@ typedef struct metatarget_t {
 #endif /* SLAP_CONTROL_X_SESSION_TRACKING */
 
 #define	META_BACK_TGT_NOREFS(mt)		META_BACK_TGT_ISSET( (mt), LDAP_BACK_F_NOREFS )
+#define	META_BACK_TGT_NOUNDEFFILTER(mt)		META_BACK_TGT_ISSET( (mt), LDAP_BACK_F_NOUNDEFFILTER )
 
 	int			mt_version;
 	time_t			mt_network_timeout;
@@ -374,13 +375,13 @@ typedef struct metainfo_t {
 	unsigned		mi_flags;
 #define	li_flags		mi_flags
 /* uses flags as defined in <back-ldap/back-ldap.h> */
-#define	META_BACK_F_ONERR_STOP		(0x00100000U)
-#define	META_BACK_F_ONERR_REPORT	(0x00200000U)
+#define	META_BACK_F_ONERR_STOP		(0x01000000U)
+#define	META_BACK_F_ONERR_REPORT	(0x02000000U)
 #define	META_BACK_F_ONERR_MASK		(META_BACK_F_ONERR_STOP|META_BACK_F_ONERR_REPORT)
-#define	META_BACK_F_DEFER_ROOTDN_BIND	(0x00400000U)
-#define	META_BACK_F_PROXYAUTHZ_ALWAYS	(0x00800000U)	/* users always proxyauthz */
-#define	META_BACK_F_PROXYAUTHZ_ANON	(0x01000000U)	/* anonymous always proxyauthz */
-#define	META_BACK_F_PROXYAUTHZ_NOANON	(0x02000000U)	/* anonymous remains anonymous */
+#define	META_BACK_F_DEFER_ROOTDN_BIND	(0x04000000U)
+#define	META_BACK_F_PROXYAUTHZ_ALWAYS	(0x08000000U)	/* users always proxyauthz */
+#define	META_BACK_F_PROXYAUTHZ_ANON	(0x10000000U)	/* anonymous always proxyauthz */
+#define	META_BACK_F_PROXYAUTHZ_NOANON	(0x20000000U)	/* anonymous remains anonymous */
 
 #define	META_BACK_ONERR_STOP(mi)	LDAP_BACK_ISSET( (mi), META_BACK_F_ONERR_STOP )
 #define	META_BACK_ONERR_REPORT(mi)	LDAP_BACK_ISSET( (mi), META_BACK_F_ONERR_REPORT )

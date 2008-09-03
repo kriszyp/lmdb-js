@@ -530,10 +530,15 @@ ldap_back_int_filter_map_rewrite(
 
 	case SLAPD_FILTER_COMPUTED:
 		switch ( f->f_result ) {
-		case LDAP_COMPARE_FALSE:
 		/* FIXME: treat UNDEFINED as FALSE */
 		case SLAPD_COMPARE_UNDEFINED:
 computed:;
+			if ( META_BACK_TGT_NOUNDEFFILTER( dc->target ) ) {
+				return LDAP_COMPARE_FALSE;
+			}
+			/* fallthru */
+
+		case LDAP_COMPARE_FALSE:
 			if ( META_BACK_TGT_T_F( dc->target ) ) {
 				tmp = &ber_bvtf_false;
 				break;

@@ -2,12 +2,15 @@ OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.12 Engineering
 	Fixed slapd socket closing on Windows (ITS#5606)
+	Fixed slapd-ldap,slapd-meta invalid filter behavior (ITS#5614)
 	Fixed slapd-meta quarantine behavior (ITS#5592)
 	Fixed slapd-sql freeing of connection (ITS#5607)
 	Fixed slapo-constraint string termination (ITS#5609)
 	Fixed slapo-rwm callback cleanup (ITS#5601)
 	Build Environment
 		Fixed ODBC library detection (ITS#5602)
+	Documentation
+		Added slapd-ldap(5), slapd-meta(5) noundeffilter (ITS#5614)
 
 OpenLDAP 2.4.11 Release (2008/07/16)
 	Fixed liblber ber_get_next length decoding (ITS#5580)

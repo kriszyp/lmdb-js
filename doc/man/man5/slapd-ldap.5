@@ -392,6 +392,17 @@ do not return search reference responses.
 By default, they are returned unless request is LDAPv2.
 
 .TP
+.B noundeffilter <NO|yes>
+If
+.BR yes ,
+return success instead of searching if a filter is undefined or contains
+undefined portions.
+By default, the search is propagated after replacing undefined portions
+with
+.BR (!(objectClass=*)) ,
+which corresponds to the empty result set.
+
+.TP
 .B protocol\-version {0,2,3}
 This directive indicates what protocol version must be used to contact
 the remote server.

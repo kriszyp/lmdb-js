@@ -94,6 +94,17 @@ ldap_back_munge_filter(
 
 		} else if ( strncmp( ptr, bv_undefined.bv_val, bv_undefined.bv_len ) == 0 )
 		{
+			/* if undef or invalid filter is not allowed,
+			 * don't rewrite filter */
+			if ( LDAP_BACK_NOUNDEFFILTER( li ) ) {
+				if ( filter->bv_val != op->ors_filterstr.bv_val ) {
+					op->o_tmpfree( filter->bv_val, op->o_tmpmemctx );
+				}
+				BER_BVZERO( filter );
+				gotit = -1;
+				goto done;
+			}
+
 			oldbv = &bv_undefined;
 			newbv = &bv_F;
 
@@ -103,22 +114,20 @@ ldap_back_munge_filter(
 		}
 
 		oldfilter = *filter;
-		if ( newbv->bv_len > oldbv->bv_len ) {
-			filter->bv_len += newbv->bv_len - oldbv->bv_len;
-			if ( filter->bv_val == op->ors_filterstr.bv_val ) {
-				filter->bv_val = op->o_tmpalloc( filter->bv_len + 1,
-						op->o_tmpmemctx );
+		filter->bv_len += newbv->bv_len - oldbv->bv_len;
+		if ( filter->bv_val == op->ors_filterstr.bv_val ) {
+			filter->bv_val = op->o_tmpalloc( filter->bv_len + 1,
+					op->o_tmpmemctx );
 
-				AC_MEMCPY( filter->bv_val, op->ors_filterstr.bv_val,
-						op->ors_filterstr.bv_len + 1 );
+			AC_MEMCPY( filter->bv_val, op->ors_filterstr.bv_val,
+					op->ors_filterstr.bv_len + 1 );
 
-			} else {
-				filter->bv_val = op->o_tmprealloc( filter->bv_val,
-						filter->bv_len + 1, op->o_tmpmemctx );
-			}
-
-			ptr = filter->bv_val + ( ptr - oldfilter.bv_val );
+		} else {
+			filter->bv_val = op->o_tmprealloc( filter->bv_val,
+					filter->bv_len + 1, op->o_tmpmemctx );
 		}
+
+		ptr = filter->bv_val + ( ptr - oldfilter.bv_val );
 
 		AC_MEMCPY( &ptr[ newbv->bv_len ],
 				&ptr[ oldbv->bv_len ], 
@@ -152,7 +161,6 @@ ldap_back_search(
 			msgid; 
 	struct berval	match = BER_BVNULL,
 			filter = BER_BVNULL;
-	int		free_filter = 0;
 	int		i;
 	char		**attrs = NULL;
 	int		freetext = 0;
@@ -240,8 +248,7 @@ retry:
 			goto finish;
 
 		case LDAP_FILTER_ERROR:
-			if ( ldap_back_munge_filter( op, &filter ) ) {
-				free_filter = 1;
+			if (ldap_back_munge_filter( op, &filter ) > 0 ) {
 				goto retry;
 			}
 
@@ -525,6 +532,10 @@ finish:;
 		ldap_back_quarantine( op, rs );
 	}
 
+	if ( filter.bv_val != op->ors_filterstr.bv_val ) {
+		op->o_tmpfree( filter.bv_val, op->o_tmpmemctx );
+	}
+
 #if 0
 	/* let send_ldap_result play cleanup handlers (ITS#4645) */
 	if ( rc != SLAPD_ABANDON )
@@ -548,10 +559,6 @@ finish:;
 			LDAP_FREE( match.bv_val );
 		}
 		rs->sr_matched = save_matched;
-	}
-
-	if ( free_filter ) {
-		op->o_tmpfree( filter.bv_val, op->o_tmpmemctx );
 	}
 
 	if ( rs->sr_text ) {
