@@ -462,18 +462,6 @@ backsql_open_db_handle(
 	return LDAP_SUCCESS;
 }
 
-int
-backsql_free_db_conn( Operation *op, SQLHDBC dbh )
-{
-	Debug( LDAP_DEBUG_TRACE, "==>backsql_free_db_conn()\n", 0, 0, 0 );
-
-	(void)backsql_close_db_handle( dbh );
-
-	Debug( LDAP_DEBUG_TRACE, "<==backsql_free_db_conn()\n", 0, 0, 0 );
-
-	return LDAP_SUCCESS;
-}
-
 static void	*backsql_db_conn_dummy;
 
 static void
@@ -481,7 +469,22 @@ backsql_db_conn_keyfree(
 	void		*key,
 	void		*data )
 {
-	backsql_close_db_handle( (SQLHDBC)data );
+	(void)backsql_close_db_handle( (SQLHDBC)data );
+}
+
+int
+backsql_free_db_conn( Operation *op, SQLHDBC dbh )
+{
+	Debug( LDAP_DEBUG_TRACE, "==>backsql_free_db_conn()\n", 0, 0, 0 );
+
+	(void)backsql_close_db_handle( dbh );
+	ldap_pvt_thread_pool_setkey( op->o_threadctx,
+		&backsql_db_conn_dummy, (void *)SQL_NULL_HDBC,
+		backsql_db_conn_keyfree, NULL, NULL );
+
+	Debug( LDAP_DEBUG_TRACE, "<==backsql_free_db_conn()\n", 0, 0, 0 );
+
+	return LDAP_SUCCESS;
 }
 
 int
@@ -514,9 +517,8 @@ backsql_get_db_conn( Operation *op, SQLHDBC *dbhp )
 		}
 
 		if ( op->o_threadctx ) {
-			void		*data = NULL;
+			void		*data = (void *)dbh;
 
-			data = (void *)dbh;
 			ldap_pvt_thread_pool_setkey( op->o_threadctx,
 					&backsql_db_conn_dummy, data,
 					backsql_db_conn_keyfree, NULL, NULL );
