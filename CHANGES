@@ -6,6 +6,7 @@ OpenLDAP 2.4.12 Engineering
 	Fixed slapd-meta quarantine behavior (ITS#5592)
 	Fixed slapd-sql freeing of connection (ITS#5607)
 	Fixed slapo-constraint string termination (ITS#5609)
+	Fixed slapo-memberof internal operations DN (ITS#5622)
 	Fixed slapo-rwm callback cleanup (ITS#5601)
 	Build Environment
 		Fixed ODBC library detection (ITS#5602)
