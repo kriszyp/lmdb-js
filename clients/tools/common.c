@@ -134,6 +134,7 @@ static int print_paged_results( LDAP *ld, LDAPControl *ctrl );
 #ifdef LDAP_CONTROL_PASSWORDPOLICYREQUEST
 static int print_ppolicy( LDAP *ld, LDAPControl *ctrl );
 #endif
+static int print_sss( LDAP *ld, LDAPControl *ctrl );
 
 static struct tool_ctrls_t {
 	const char	*oid;
@@ -146,6 +147,7 @@ static struct tool_ctrls_t {
 #ifdef LDAP_CONTROL_PASSWORDPOLICYREQUEST
 	{ LDAP_CONTROL_PASSWORDPOLICYRESPONSE,		TOOL_ALL,	print_ppolicy },
 #endif
+	{ LDAP_CONTROL_SORTRESPONSE,	TOOL_SEARCH,	print_sss },
 	{ NULL,						0,		NULL }
 };
 
@@ -1862,6 +1864,26 @@ print_paged_results( LDAP *ld, LDAPControl *ctrl )
 	}
 
 	return 0;
+}
+
+static int
+print_sss( LDAP *ld, LDAPControl *ctrl )
+{
+	int rc;
+	ber_int_t err;
+	char *attr;
+
+	rc = ldap_parse_sortresponse_control( ld, ctrl, &err, &attr );
+	if ( rc == LDAP_SUCCESS ) {
+		char buf[ BUFSIZ ];
+		rc = snprintf( buf, sizeof(buf), "(%d) %s %s",
+			err, ldap_err2string(err), attr ? attr : "" );
+
+		tool_write_ldif( ldif ? LDIF_PUT_COMMENT : LDIF_PUT_VALUE,
+			"sortResult", buf, rc );
+	}
+
+	return rc;
 }
 
 #ifdef LDAP_CONTROL_PASSWORDPOLICYREQUEST
