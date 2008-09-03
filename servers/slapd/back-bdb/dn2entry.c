@@ -34,7 +34,6 @@ bdb_dn2entry(
 	struct berval *dn,
 	EntryInfo **e,
 	int matched,
-	BDB_LOCKER locker,
 	DB_LOCK *lock )
 {
 	EntryInfo *ei = NULL;
@@ -45,7 +44,7 @@ bdb_dn2entry(
 
 	*e = NULL;
 
-	rc = bdb_cache_find_ndn( op, locker, dn, &ei );
+	rc = bdb_cache_find_ndn( op, tid, dn, &ei );
 	if ( rc ) {
 		if ( matched && rc == DB_NOTFOUND ) {
 			/* Set the return value, whether we have its entry
@@ -54,7 +53,7 @@ bdb_dn2entry(
 			*e = ei;
 			if ( ei && ei->bei_id ) {
 				rc2 = bdb_cache_find_id( op, tid, ei->bei_id,
-					&ei, ID_LOCKED, locker, lock );
+					&ei, ID_LOCKED, lock );
 				if ( rc2 ) rc = rc2;
 			} else if ( ei ) {
 				bdb_cache_entryinfo_unlock( ei );
@@ -66,7 +65,7 @@ bdb_dn2entry(
 		}
 	} else {
 		rc = bdb_cache_find_id( op, tid, ei->bei_id, &ei, ID_LOCKED,
-			locker, lock );
+			lock );
 		if ( rc == 0 ) {
 			*e = ei;
 		} else if ( matched && rc == DB_NOTFOUND ) {
@@ -74,7 +73,7 @@ bdb_dn2entry(
 			if ( ei->bei_parent ) {
 				ei = ei->bei_parent;
 				rc2 = bdb_cache_find_id( op, tid, ei->bei_id, &ei, 0,
-					locker, lock );
+					lock );
 				if ( rc2 ) rc = rc2;
 			}
 			*e = ei;

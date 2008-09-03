@@ -61,7 +61,7 @@ bdb_db_init( BackendDB *be, ConfigReply *cr )
 
 	/* DBEnv parameters */
 	bdb->bi_dbenv_home = ch_strdup( SLAPD_DEFAULT_DB_DIR );
-	bdb->bi_dbenv_xflags = 0;
+	bdb->bi_dbenv_xflags = DB_TIME_NOTGRANTED;
 	bdb->bi_dbenv_mode = SLAPD_DEFAULT_DB_MODE;
 
 	bdb->bi_cache.c_maxsize = DEFAULT_CACHE_SIZE;
@@ -503,13 +503,7 @@ shm_retry:
 	}
 
 	if ( !quick ) {
-#if DB_VERSION_FULL >= 0x04060012
-		u_int32_t lid;
-		XLOCK_ID(bdb->bi_dbenv, &lid);
-		__lock_getlocker(bdb->bi_dbenv->lk_handle, lid, 0, &bdb->bi_cache.c_locker);
-#else
-		XLOCK_ID(bdb->bi_dbenv, &bdb->bi_cache.c_locker);
-#endif
+		TXN_BEGIN(bdb->bi_dbenv, NULL, &bdb->bi_cache.c_txn, DB_READ_COMMITTED | DB_TXN_NOWAIT);
 	}
 
 	entry_prealloc( bdb->bi_cache.c_maxsize );
@@ -517,7 +511,7 @@ shm_retry:
 
 	/* setup for empty-DN contexts */
 	if ( BER_BVISEMPTY( &be->be_nsuffix[0] )) {
-		rc = bdb_id2entry( be, NULL, 0, 0, &e );
+		rc = bdb_id2entry( be, NULL, 0, &e );
 	}
 	if ( !e ) {
 		e = entry_alloc();
@@ -600,17 +594,12 @@ bdb_db_close( BackendDB *be, ConfigReply *cr )
 	/* close db environment */
 	if( bdb->bi_dbenv ) {
 		/* Free cache locker if we enabled locking */
-		if ( !( slapMode & SLAP_TOOL_QUICK ) && bdb->bi_cache.c_locker ) {
-#if DB_VERSION_FULL >= 0x04060012
-			XLOCK_ID_FREE(bdb->bi_dbenv, bdb->bi_cache.c_locker->id);
-#else
-			XLOCK_ID_FREE(bdb->bi_dbenv, bdb->bi_cache.c_locker);
-#endif
-			bdb->bi_cache.c_locker = 0;
+		if ( !( slapMode & SLAP_TOOL_QUICK ) && bdb->bi_cache.c_txn ) {
+			TXN_ABORT( bdb->bi_cache.c_txn );
+			bdb->bi_cache.c_txn = NULL;
 		}
-#ifdef BDB_REUSE_LOCKERS
-		bdb_locker_flush( bdb->bi_dbenv );
-#endif
+		bdb_reader_flush( bdb->bi_dbenv );
+
 		/* force a checkpoint, but not if we were ReadOnly,
 		 * and not in Quick mode since there are no transactions there.
 		 */
@@ -745,9 +734,10 @@ bdb_back_initialize(
 	db_env_set_func_free( ber_memfree );
 	db_env_set_func_malloc( (db_malloc *)ber_memalloc );
 	db_env_set_func_realloc( (db_realloc *)ber_memrealloc );
-#ifndef NO_THREAD
+#if !defined(NO_THREAD) && DB_VERSION_FULL <= 0x04070000
 	/* This is a no-op on a NO_THREAD build. Leave the default
 	 * alone so that BDB will sleep on interprocess conflicts.
+	 * Don't bother on BDB 4.7...
 	 */
 	db_env_set_func_yield( ldap_pvt_thread_yield );
 #endif

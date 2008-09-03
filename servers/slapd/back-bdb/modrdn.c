@@ -46,7 +46,6 @@ bdb_modrdn( Operation	*op, SlapReply *rs )
 
 	int		manageDSAit = get_manageDSAit( op );
 
-	BDB_LOCKER	locker = 0;
 	DB_LOCK		lock, plock, nplock;
 
 	int		num_retries = 0;
@@ -164,8 +163,6 @@ retry:	/* transaction retry */
 		goto return_results;
 	}
 
-	locker = TXN_ID ( ltid );
-
 	opinfo.boi_oe.oe_key = bdb;
 	opinfo.boi_txn = ltid;
 	opinfo.boi_err = 0;
@@ -174,7 +171,7 @@ retry:	/* transaction retry */
 
 	/* get entry */
 	rs->sr_err = bdb_dn2entry( op, ltid, &op->o_req_ndn, &ei, 1,
-		locker, &lock );
+		&lock );
 
 	switch( rs->sr_err ) {
 	case 0:
@@ -309,7 +306,7 @@ retry:	/* transaction retry */
 		 * children.
 		 */
 		rs->sr_err = bdb_cache_find_id( op, ltid,
-			eip->bei_id, &eip, 0, locker, &plock );
+			eip->bei_id, &eip, 0, &plock );
 
 		switch( rs->sr_err ) {
 		case 0:
@@ -418,7 +415,7 @@ retry:	/* transaction retry */
 			/* Get Entry with dn=newSuperior. Does newSuperior exist? */
 
 			rs->sr_err = bdb_dn2entry( op, ltid, np_ndn,
-				&neip, 0, locker, &nplock );
+				&neip, 0, &nplock );
 
 			switch( rs->sr_err ) {
 			case 0: np = neip->bei_e;
@@ -551,7 +548,7 @@ retry:	/* transaction retry */
 
 	/* Shortcut the search */
 	nei = neip ? neip : eip;
-	rs->sr_err = bdb_cache_find_ndn ( op, locker, &new_ndn, &nei );
+	rs->sr_err = bdb_cache_find_ndn ( op, ltid, &new_ndn, &nei );
 	if ( nei ) bdb_cache_entryinfo_unlock( nei );
 	switch( rs->sr_err ) {
 	case DB_LOCK_DEADLOCK:
@@ -747,7 +744,7 @@ retry:	/* transaction retry */
 
 	} else {
 		rc = bdb_cache_modrdn( bdb, e, &op->orr_nnewrdn, &dummy, neip,
-			locker, &lock );
+			ltid, &lock );
 		switch( rc ) {
 		case DB_LOCK_DEADLOCK:
 		case DB_LOCK_NOTGRANTED:

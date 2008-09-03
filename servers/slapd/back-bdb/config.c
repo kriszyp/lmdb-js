@@ -202,7 +202,6 @@ bdb_online_index( void *ctx, void *arg )
 	DBT key, data;
 	DB_TXN *txn;
 	DB_LOCK lock;
-	BDB_LOCKER locker;
 	ID id, nid;
 	EntryInfo *ei;
 	int rc, getnext = 1;
@@ -231,7 +230,6 @@ bdb_online_index( void *ctx, void *arg )
 		rc = TXN_BEGIN( bdb->bi_dbenv, NULL, &txn, bdb->bi_db_opflags );
 		if ( rc ) 
 			break;
-		locker = TXN_ID( txn );
 		if ( getnext ) {
 			getnext = 0;
 			BDB_ID2DISK( id, &nid );
@@ -257,7 +255,7 @@ bdb_online_index( void *ctx, void *arg )
 		}
 
 		ei = NULL;
-		rc = bdb_cache_find_id( op, txn, id, &ei, 0, locker, &lock );
+		rc = bdb_cache_find_id( op, txn, id, &ei, 0, &lock );
 		if ( rc ) {
 			TXN_ABORT( txn );
 			if ( rc == DB_LOCK_DEADLOCK ) {

@@ -38,7 +38,6 @@ bdb_delete( Operation *op, SlapReply *rs )
 	struct bdb_op_info opinfo = {0};
 	ID	eid;
 
-	BDB_LOCKER	locker = 0;
 	DB_LOCK		lock, plock;
 
 	int		num_retries = 0;
@@ -154,8 +153,6 @@ retry:	/* transaction retry */
 		goto return_results;
 	}
 
-	locker = TXN_ID ( ltid );
-
 	opinfo.boi_oe.oe_key = bdb;
 	opinfo.boi_txn = ltid;
 	opinfo.boi_err = 0;
@@ -168,7 +165,7 @@ retry:	/* transaction retry */
 
 	/* get entry */
 	rs->sr_err = bdb_dn2entry( op, ltid, &op->o_req_ndn, &ei, 1,
-		locker, &lock );
+		&lock );
 
 	switch( rs->sr_err ) {
 	case 0:
@@ -217,7 +214,7 @@ retry:	/* transaction retry */
 		goto return_results;
 	}
 
-	rc = bdb_cache_find_id( op, ltid, eip->bei_id, &eip, 0, locker, &plock );
+	rc = bdb_cache_find_id( op, ltid, eip->bei_id, &eip, 0, &plock );
 	switch( rc ) {
 	case DB_LOCK_DEADLOCK:
 	case DB_LOCK_NOTGRANTED:
@@ -527,7 +524,7 @@ retry:	/* transaction retry */
 		BDB_LOG_PRINTF( bdb->bi_dbenv, ltid, "slapd Cache delete %s(%d)",
 			e->e_nname.bv_val, e->e_id );
 
-		rc = bdb_cache_delete( bdb, e, locker, &lock );
+		rc = bdb_cache_delete( bdb, e, ltid, &lock );
 		switch( rc ) {
 		case DB_LOCK_DEADLOCK:
 		case DB_LOCK_NOTGRANTED:

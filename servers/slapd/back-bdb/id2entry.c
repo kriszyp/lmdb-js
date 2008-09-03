@@ -93,7 +93,6 @@ int bdb_id2entry_update(
 int bdb_id2entry(
 	BackendDB *be,
 	DB_TXN *tid,
-	BDB_LOCKER locker,
 	ID id,
 	Entry **e )
 {
@@ -119,11 +118,6 @@ int bdb_id2entry(
 	/* fetch it */
 	rc = db->cursor( db, tid, &cursor, bdb->bi_db_opflags );
 	if ( rc ) return rc;
-
-	/* Use our own locker if needed */
-	if ( !tid && locker ) {
-		CURSOR_SETLOCKER( cursor, locker );
-	}
 
 	/* Get the nattrs / nvals counts first */
 	data.ulen = data.dlen = sizeof(buf);
@@ -322,9 +316,7 @@ int bdb_entry_get(
 	int	rc;
 	const char *at_name = at ? at->ad_cname.bv_val : "(null)";
 
-	BDB_LOCKER	locker = 0;
 	DB_LOCK		lock;
-	int		free_lock_id = 0;
 
 	Debug( LDAP_DEBUG_ARGS,
 		"=> bdb_entry_get: ndn: \"%s\"\n", ndn->bv_val, 0, 0 ); 
@@ -342,11 +334,8 @@ int bdb_entry_get(
 			txn = boi->boi_txn;
 	}
 
-	if ( txn != NULL ) {
-		locker = TXN_ID ( txn );
-	} else {
-		rc = LOCK_ID ( bdb->bi_dbenv, &locker );
-		free_lock_id = 1;
+	if ( !txn ) {
+		rc = bdb_reader_get( op, bdb->bi_dbenv, &txn );
 		switch(rc) {
 		case 0:
 			break;
@@ -357,7 +346,7 @@ int bdb_entry_get(
 
 dn2entry_retry:
 	/* can we find entry */
-	rc = bdb_dn2entry( op, txn, ndn, &ei, 0, locker, &lock );
+	rc = bdb_dn2entry( op, txn, ndn, &ei, 0, &lock );
 	switch( rc ) {
 	case DB_NOTFOUND:
 	case 0:
@@ -373,9 +362,6 @@ dn2entry_retry:
 		goto dn2entry_retry;
 	default:
 		if ( boi ) boi->boi_err = rc;
-		if ( free_lock_id ) {
-			LOCK_ID_FREE( bdb->bi_dbenv, locker );
-		}
 		return (rc != LDAP_BUSY) ? LDAP_OTHER : LDAP_BUSY;
 	}
 	if (ei) e = ei->bei_e;
@@ -383,9 +369,6 @@ dn2entry_retry:
 		Debug( LDAP_DEBUG_ACL,
 			"=> bdb_entry_get: cannot find entry: \"%s\"\n",
 				ndn->bv_val, 0, 0 ); 
-		if ( free_lock_id ) {
-			LOCK_ID_FREE( bdb->bi_dbenv, locker );
-		}
 		return LDAP_NO_SUCH_OBJECT; 
 	}
 	
@@ -442,10 +425,6 @@ return_results:
 			*ent = entry_dup( e );
 			bdb_cache_return_entry_rw(bdb, e, rw, &lock);
 		}
-	}
-
-	if ( free_lock_id ) {
-		LOCK_ID_FREE( bdb->bi_dbenv, locker );
 	}
 
 	Debug( LDAP_DEBUG_TRACE,

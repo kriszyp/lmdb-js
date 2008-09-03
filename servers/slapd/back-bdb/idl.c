@@ -502,7 +502,7 @@ int
 bdb_idl_fetch_key(
 	BackendDB	*be,
 	DB			*db,
-	BDB_LOCKER locker,
+	DB_TXN		*txn,
 	DBT			*key,
 	ID			*ids,
 	DBC                     **saved_cursor,
@@ -575,13 +575,12 @@ bdb_idl_fetch_key(
 
 	/* If we're not reusing an existing cursor, get a new one */
 	if( opflag != DB_NEXT ) {
-		rc = db->cursor( db, NULL, &cursor, bdb->bi_db_opflags );
+		rc = db->cursor( db, txn, &cursor, bdb->bi_db_opflags );
 		if( rc != 0 ) {
 			Debug( LDAP_DEBUG_ANY, "=> bdb_idl_fetch_key: "
 				"cursor failed: %s (%d)\n", db_strerror(rc), rc, 0 );
 			return rc;
 		}
-		CURSOR_SETLOCKER( cursor, locker );
 	} else {
 		cursor = *saved_cursor;
 	}
