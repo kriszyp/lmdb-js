@@ -108,10 +108,8 @@ relay_back_cf( ConfigArgs *c )
 				"of relay dn \"%s\" "
 				"in \"olcRelay <dn>\"\n",
 				c->value_dn.bv_val );
-			Log2( LDAP_DEBUG_ANY, LDAP_LEVEL_ERR,
+			Log2( LDAP_DEBUG_CONFIG, LDAP_LEVEL_ERR,
 				"%s: %s.\n", c->log, c->cr_msg );
-			rc = 1;
-			goto relay_done;
 
 		} else if ( bd->be_private == c->be->be_private ) {
 			snprintf( c->cr_msg, sizeof( c->cr_msg),
@@ -213,7 +211,17 @@ relay_back_db_open( Backend *be, ConfigReply *cr )
 		ri->ri_bd = select_backend( &ri->ri_realsuffix, 1 );
 
 		/* must be there: it was during config! */
-		assert( ri->ri_bd != NULL );
+		if ( ri->ri_bd == NULL ) {
+			snprintf( cr->msg, sizeof( cr->msg),
+				"cannot find database "
+				"of relay dn \"%s\" "
+				"in \"olcRelay <dn>\"\n",
+				ri->ri_realsuffix.bv_val );
+			Log1( LDAP_DEBUG_ANY, LDAP_LEVEL_ERR,
+				"relay_back_db_open: %s.\n", cr->msg );
+
+			return 1;
+		}
 
 		/* inherit controls */
 		AC_MEMCPY( be->be_ctrls, ri->ri_bd->be_ctrls, sizeof( be->be_ctrls ) );
