@@ -726,6 +726,7 @@ slap_set_filter( SLAP_SET_GATHER gatherer,
 			if ( len == 4
 				&& memcmp( "this", filter, len ) == 0 )
 			{
+				assert( !BER_BVISNULL( target ) );
 				if ( ( SF_TOP() == (void *)'/' ) || IS_SET( SF_TOP() ) ) {
 					SF_ERROR( syntax );
 				}
@@ -746,15 +747,15 @@ slap_set_filter( SLAP_SET_GATHER gatherer,
 				if ( ( SF_TOP() == (void *)'/' ) || IS_SET( SF_TOP() ) ) {
 					SF_ERROR( syntax );
 				}
+				if ( BER_BVISNULL( user ) ) {
+					SF_ERROR( memory );
+				}
 				set = cp->set_op->o_tmpcalloc( 2, sizeof( struct berval ),
 						cp->set_op->o_tmpmemctx );
 				if ( set == NULL ) {
 					SF_ERROR( memory );
 				}
 				ber_dupbv_x( set, user, cp->set_op->o_tmpmemctx );
-				if ( BER_BVISNULL( set ) ) {
-					SF_ERROR( memory );
-				}
 				BER_BVZERO( &set[ 1 ] );
 				
 			} else if ( SF_TOP() != (void *)'/' ) {
