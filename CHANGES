@@ -7,6 +7,7 @@ OpenLDAP 2.4.12 Engineering
 	Fixed slapd custom attribute inheritance (ITS#5642)
 	Fixed slapd dynacl mask handling (ITS#5637)
 	Fixed slapd firstComponentMatch normalization (ITS#5634)
+	Added slapd caseIgnoreListMatch (ITS#5608)
 	Fixed slapd overlay control registration (ITS#5649)
 	Fixed slapd socket closing on Windows (ITS#5606)
 	Fixed slapd syncrepl error logging (ITS#5618)

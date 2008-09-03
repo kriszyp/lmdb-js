@@ -1987,6 +1987,119 @@ telephoneNumberNormalize(
 	return LDAP_SUCCESS;
 }
 
+static int
+postalAddressValidate(
+	Syntax *syntax,
+	struct berval *in )
+{
+	struct berval bv = *in;
+	int c;
+
+	for ( c = 0; c < in->bv_len; c++ ) {
+		if ( in->bv_val[c] == '\\' ) {
+			c++;
+			if ( strncasecmp( &in->bv_val[c], "24", STRLENOF( "24" ) ) != 0
+				&& strncasecmp( &in->bv_val[c], "5C", STRLENOF( "5C" ) ) != 0 )
+			{
+				return LDAP_INVALID_SYNTAX;
+			}
+			continue;
+		}
+
+		if ( in->bv_val[c] == '$' ) {
+			bv.bv_len = &in->bv_val[c] - bv.bv_val;
+			if ( UTF8StringValidate( NULL, &bv ) != LDAP_SUCCESS ) {
+				return LDAP_INVALID_SYNTAX;
+			}
+			bv.bv_val = &in->bv_val[c] + 1;
+		}
+	}
+
+	bv.bv_len = &in->bv_val[c] - bv.bv_val;
+	return UTF8StringValidate( NULL, &bv );
+}
+
+static int
+postalAddressNormalize(
+	slap_mask_t usage,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *val,
+	struct berval *normalized,
+	void *ctx )
+{
+	BerVarray lines = NULL, nlines = NULL;
+	int l, c;
+	int rc = LDAP_SUCCESS;
+	MatchingRule *xmr = NULL;
+	char *p;
+
+	if ( SLAP_MR_ASSOCIATED( mr, slap_schema.si_mr_caseIgnoreListMatch ) ) {
+		xmr = slap_schema.si_mr_caseIgnoreMatch;
+
+	} else {
+		xmr = slap_schema.si_mr_caseExactMatch;
+	}
+
+	for ( l = 0, c = 0; c < val->bv_len; c++ ) {
+		if ( val->bv_val[c] == '$' ) {
+			l++;
+		}
+	}
+
+	lines = slap_sl_calloc( sizeof( struct berval ), 2 * ( l + 2 ), ctx );
+	nlines = &lines[l + 2];
+
+	lines[0].bv_val = val->bv_val;
+	for ( l = 0, c = 0; c < val->bv_len; c++ ) {
+		if ( val->bv_val[c] == '$' ) {
+			lines[l].bv_len = &val->bv_val[c] - lines[l].bv_val;
+			l++;
+			lines[l].bv_val = &val->bv_val[c + 1];
+		}
+	}
+	lines[l].bv_len = &val->bv_val[c] - lines[l].bv_val;
+
+	normalized->bv_len = l;
+
+	for ( l = 0; !BER_BVISNULL( &lines[l] ); l++ ) {
+		/* NOTE: we directly normalize each line,
+		 * without unescaping the values, since the special
+		 * values '\24' ('$') and '\5C' ('\') are not affected
+		 * by normalization */
+		rc = UTF8StringNormalize( usage, NULL, xmr, &lines[l], &nlines[l], ctx );
+		if ( rc != LDAP_SUCCESS ) {
+			rc = LDAP_INVALID_SYNTAX;
+			goto done;
+		}
+
+		normalized->bv_len += nlines[l].bv_len;
+	}
+
+	normalized->bv_val = slap_sl_malloc( normalized->bv_len + 1, ctx );
+
+	p = normalized->bv_val;
+	for ( l = 0; !BER_BVISNULL( &nlines[l] ); l++ ) {
+		p = lutil_strncopy( p, nlines[l].bv_val, nlines[l].bv_len );
+
+		*p++ = '$';
+	}
+	*--p = '\0';
+
+	assert( p - normalized->bv_val == normalized->bv_len );
+
+done:;
+	if ( nlines != NULL ) {
+		for ( l = 0; !BER_BVISNULL( &nlines[ l ] ); l++ ) {
+			slap_sl_free( nlines[l].bv_val, ctx );
+		}
+
+		slap_sl_free( lines, ctx );
+	}
+
+	return rc;
+}
+
 int
 numericoidValidate(
 	Syntax *syntax,
@@ -4688,7 +4801,7 @@ static slap_syntax_defs_rec syntax_defs[] = {
 	{"( 1.3.6.1.4.1.1466.115.121.1.40 DESC 'Octet String' )",
 		0, NULL, blobValidate, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.41 DESC 'Postal Address' )",
-		0, NULL, UTF8StringValidate, NULL},
+		0, NULL, postalAddressValidate, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.42 DESC 'Protocol Information' )",
 		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.43 DESC 'Presentation Address' )",
@@ -4993,7 +5106,9 @@ static slap_mrule_defs_rec mrule_defs[] = {
 	{"( 2.5.13.11 NAME 'caseIgnoreListMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.41 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT, NULL,
-		NULL, NULL, NULL, NULL, NULL, NULL },
+		NULL, postalAddressNormalize, octetStringMatch,
+		octetStringIndexer, octetStringFilter,
+		NULL },
 
 	{"( 2.5.13.12 NAME 'caseIgnoreListSubstringsMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )",
