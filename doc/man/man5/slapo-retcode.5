@@ -227,6 +227,8 @@ The auxiliary objectclass to alter the behavior of existing objects:
 .nf
 overlay         retcode
 retcode-parent  "ou=RetCodes,dc=example,dc=com"
+
+# retcode.conf is found in tests/data/ of the source tree
 include         ./retcode.conf
 
 # Wait 10 seconds, then return success (0x00)
