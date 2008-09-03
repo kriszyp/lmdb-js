@@ -427,7 +427,7 @@ retry:;
 	}
 
 done:;
-	fprintf( stderr, " PID=%ld - Add/Delete done (%d).\n", (long) pid, rc );
+	fprintf( stderr, "  PID=%ld - Add/Delete done (%d).\n", (long) pid, rc );
 
 	ldap_unbind_ext( ld, NULL, NULL );
 }

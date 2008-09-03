@@ -16,6 +16,10 @@
 echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
 
+if test x$LOOPS = x ; then
+	LOOPS=50
+fi
+
 mkdir -p $TESTDIR $DBDIR1
 
 echo "Running slapadd to build slapd database..."
@@ -50,9 +54,13 @@ for i in 0 1 2 3 4 5; do
 	sleep 5
 done
 
+# fix test data to include back-monitor, if available
+# NOTE: copies do_* files from $DATADIR to $TESTDIR
+$MONITORDATA "$MONITORDB" "$DATADIR" "$TESTDIR"
+
 echo "Using tester for concurrent server access..."
-time $SLAPDTESTER -P "$PROGDIR" -d "$DATADIR" -h $LOCALHOST -p $PORT1 -D "$MANAGERDN" -w $PASSWD -l 50
-#$SLAPDTESTER -P "$PROGDIR" -d "$DATADIR" -h $LOCALHOST -p $PORT1 -D "$MANAGERDN" -w $PASSWD -l 50
+time $SLAPDTESTER -P "$PROGDIR" -d "$TESTDIR" -h $LOCALHOST -p $PORT1 -D "$MANAGERDN" -w $PASSWD -l $LOOPS
+#$SLAPDTESTER -P "$PROGDIR" -d "$TESTDIR" -h $LOCALHOST -p $PORT1 -D "$MANAGERDN" -w $PASSWD -l $LOOPS
 RC=$?
 
 if test $RC != 0 ; then

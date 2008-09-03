@@ -331,7 +331,7 @@ sleep 25
 
 echo "Using ldapsearch to read all the entries from the master..."
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
-	'objectclass=*' > $MASTEROUT 2>&1
+	'(objectClass=*)' '*' entryCSN > $MASTEROUT 2>&1
 RC=$?
 
 if test $RC != 0 ; then
@@ -342,7 +342,7 @@ fi
 
 echo "Using ldapsearch to read all the entries from the R1 slave..."
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
-	'objectclass=*' > $SERVER2OUT 2>&1
+	'(objectClass=*)' '*' entryCSN > $SERVER2OUT 2>&1
 RC=$?
 
 if test $RC != 0 ; then
@@ -353,7 +353,7 @@ fi
 
 echo "Using ldapsearch to read all the entries from the R2 slave..."
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT3 \
-	'objectclass=*' > $SERVER3OUT 2>&1
+	'(objectClass=*)' '*' entryCSN > $SERVER3OUT 2>&1
 RC=$?
 
 if test $RC != 0 ; then
@@ -364,7 +364,7 @@ fi
 
 echo "Using ldapsearch to read all the entries from the P1 slave..."
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT4 \
-	'objectclass=*' > $SERVER4OUT 2>&1
+	'(objectClass=*)' '*' entryCSN > $SERVER4OUT 2>&1
 RC=$?
 
 if test $RC != 0 ; then
@@ -375,7 +375,7 @@ fi
 
 echo "Using ldapsearch to read all the entries from the P2 slave..."
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT5 \
-	'objectclass=*' > $SERVER5OUT 2>&1
+	'(objectClass=*)' '*' entryCSN > $SERVER5OUT 2>&1
 RC=$?
 
 if test $RC != 0 ; then
@@ -386,7 +386,7 @@ fi
 
 echo "Using ldapsearch to read all the entries from the P3 slave..."
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT6 \
-	'objectclass=*' > $SERVER6OUT 2>&1
+	'(objectClass=*)' '*' entryCSN > $SERVER6OUT 2>&1
 RC=$?
 
 if test $RC != 0 ; then
