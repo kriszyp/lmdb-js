@@ -1383,7 +1383,7 @@ SSHA
 mandir
 RXER
 SSFs
-octetStringOrderingStringMatch
+octetStringOrderingMatch
 auditCompare
 pEntry
 strongAuthNotSupported
@@ -1657,7 +1657,7 @@ BCP
 baz
 params
 generalizedTimeOrderingMatch
-octetStringSubstringsStringMatch
+octetStringSubstringsMatch
 ber
 slimit
 ali
