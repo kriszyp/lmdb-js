@@ -12,9 +12,6 @@
 
 #include "StringList.h"
 
-#define SCHEMA_PARSE_FLAG    0x03
-
-
 using namespace std;
 
 /**
@@ -36,7 +33,7 @@ class LDAPObjClass{
         /**
          * Copy constructor
 	 */   
-	LDAPObjClass (const LDAPObjClass& oc);
+	LDAPObjClass( const LDAPObjClass& oc );
 
         /**
 	 * Constructs new object and fills the data structure by parsing the
@@ -46,7 +43,8 @@ class LDAPObjClass{
 	 * "( SuSE.YaST.OC:5 NAME 'userTemplate' SUP objectTemplate STRUCTURAL
 	 *    DESC 'User object template' MUST ( cn ) MAY ( secondaryGroup ))"
          */   
-        LDAPObjClass (string oc_item);
+        LDAPObjClass (string oc_item, int flags = LDAP_SCHEMA_ALLOW_NO_OID |
+                      LDAP_SCHEMA_ALLOW_QUOTED);
 
         /**
          * Destructor
