@@ -10,6 +10,7 @@ OpenLDAP 2.4.12 Engineering
 	Added slapd caseIgnoreListMatch (ITS#5608)
 	Fixed slapd overlay control registration (ITS#5649)
 	Fixed slapd socket closing on Windows (ITS#5606)
+	Fixed slapd sortvals comparison (ITS#5578)
 	Fixed slapd syncrepl error logging (ITS#5618)
 	Fixed slapd-bdb entry return if attr not present (ITS#5650)
 	Fixed slapd-ldap,slapd-meta invalid filter behavior (ITS#5614)

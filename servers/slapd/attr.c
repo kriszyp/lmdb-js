@@ -404,7 +404,7 @@ attr_valadd(
 					rc = LDAP_TYPE_OR_VALUE_EXISTS;
 				return rc;
 			}
-			for ( j = a->a_numvals; j >= slot; j-- ) {
+			for ( j = a->a_numvals; j >= (int)slot; j-- ) {
 				a->a_vals[j+1] = a->a_vals[j];
 				if ( nvals )
 					a->a_nvals[j+1] = a->a_nvals[j];
