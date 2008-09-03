@@ -63,7 +63,8 @@ static slap_control_t slap_acl_mask(
 	int nmatch,
 	regmatch_t *matches,
 	int count,
-	AccessControlState *state );
+	AccessControlState *state,
+	slap_access_t access );
 
 static int	regex_matches(
 	struct berval *pat, char *str, char *buf,
@@ -246,7 +247,7 @@ slap_access_allowed(
 		}
 
 		control = slap_acl_mask( a, &mask, op,
-			e, desc, val, MAXREMATCHES, matches, count, state );
+			e, desc, val, MAXREMATCHES, matches, count, state, access );
 
 		if ( control != ACL_BREAK ) {
 			break;
@@ -1053,7 +1054,8 @@ slap_acl_mask(
 	int			nmatch,
 	regmatch_t		*matches,
 	int			count,
-	AccessControlState	*state )
+	AccessControlState	*state,
+	slap_access_t	access )
 {
 	int		i;
 	Access		*b;
@@ -1061,7 +1063,7 @@ slap_acl_mask(
 	char		accessmaskbuf[ACCESSMASK_MAXLEN];
 #endif /* DEBUG */
 	const char	*attr;
-	slap_mask_t	a2pmask = ACL_ACCESS2PRIV( *mask );
+	slap_mask_t	a2pmask = ACL_ACCESS2PRIV( access );
 
 	assert( a != NULL );
 	assert( mask != NULL );
@@ -1790,8 +1792,6 @@ slap_acl_mask(
 			*mask = modmask;
 		}
 
-		a2pmask = *mask;
-
 		Debug( LDAP_DEBUG_ACL,
 			"<= acl_mask: [%d] mask: %s\n",
 			i, accessmask2str(*mask, accessmaskbuf, 1), 0 );
@@ -2114,7 +2114,7 @@ acl_set_gather( SetCookie *cookie, struct berval *name, AttributeDescription *de
 	if ( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE,
 			"%s acl_set_gather: DN=\"%s\" normalize failed\n",
-			cp->asc_op->o_log_prefix, op2.o_req_dn.bv_val, 0 );
+			cp->asc_op->o_log_prefix, ludp->lud_dn, 0 );
 
 		goto url_done;
 	}
@@ -2275,7 +2275,7 @@ acl_match_set (
 	AclSetCookie	cookie;
 
 	if ( default_set_attribute == NULL ) {
-		ber_dupbv_x( &set, subj, op->o_tmpmemctx );
+		set = *subj;
 
 	} else {
 		struct berval		subjdn, ndn = BER_BVNULL;
@@ -2324,7 +2324,9 @@ acl_match_set (
 			acl_set_gather,
 			(SetCookie *)&cookie, &set,
 			&op->o_ndn, &e->e_nname, NULL ) > 0 );
-		slap_sl_free( set.bv_val, op->o_tmpmemctx );
+		if ( set.bv_val != subj->bv_val ) {
+			slap_sl_free( set.bv_val, op->o_tmpmemctx );
+		}
 	}
 
 	return(rc);
