@@ -5245,7 +5245,7 @@ config_back_delete( Operation *op, SlapReply *rs )
 		if ( last )
 			rs->sr_matched = last->ce_entry->e_name.bv_val;
 		rs->sr_err = LDAP_NO_SUCH_OBJECT;
-	} if ( ce->ce_kids ) {
+	} else if ( ce->ce_kids ) {
 		rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
 	} else if ( ce->ce_type == Cft_Overlay ){
 		char *iptr;
