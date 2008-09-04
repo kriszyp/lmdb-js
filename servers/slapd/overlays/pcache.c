@@ -182,6 +182,7 @@ typedef struct cache_manager_s {
 	unsigned long	num_cached_queries; 		/* total number of cached queries */
 	unsigned long   max_queries;			/* upper bound on # of cached queries */
 	int		save_queries;			/* save cached queries across restarts */
+	int	check_cacheability;		/* check whether a query is cacheable */
 	int 	numattrsets;			/* number of attribute sets */
 	int 	cur_entries;			/* current number of entries cached */
 	int 	max_entries;			/* max number of entries cached */
@@ -1963,7 +1964,7 @@ pcache_op_cleanup( Operation *op, SlapReply *rs ) {
 		if ( !si->over ) {
 			/* check if the entry contains undefined
 			 * attributes/objectClasses (ITS#5680) */
-			if ( test_filter( op, rs->sr_entry, si->query.filter ) != LDAP_COMPARE_TRUE ) {
+			if ( cm->check_cacheability && test_filter( op, rs->sr_entry, si->query.filter ) != LDAP_COMPARE_TRUE ) {
 				Debug( pcache_debug, "%s: query not cacheable because of schema issues in DN \"%s\"\n",
 					op->o_log_prefix, rs->sr_entry->e_name.bv_val, 0 );
 				goto over;
@@ -2645,6 +2646,11 @@ static ConfigTable pccfg[] = {
 		"( OLcfgOvAt:2.6 NAME 'olcProxySaveQueries' "
 			"DESC 'Save cached queries for hot restart' "
 			"SYNTAX OMsBoolean )", NULL, NULL },
+	{ "proxyCheckCacheability", "TRUE|FALSE",
+		2, 2, 0, ARG_ON_OFF|ARG_OFFSET, (void *)offsetof(cache_manager, check_cacheability),
+		"( OLcfgOvAt:2.7 NAME 'olcProxyCheckCacheability' "
+			"DESC 'Check whether the results of a query are cacheable, e.g. for schema issues' "
+			"SYNTAX OMsBoolean )", NULL, NULL },
 
 	{ NULL, NULL, 0, 0, 0, ARG_IGNORED }
 };
@@ -2664,7 +2670,7 @@ static ConfigOCs pcocs[] = {
 		"DESC 'ProxyCache configuration' "
 		"SUP olcOverlayConfig "
 		"MUST ( olcProxyCache $ olcProxyAttrset $ olcProxyTemplate ) "
-		"MAY ( olcProxyResponseCB $ olcProxyCacheQueries $ olcProxySaveQueries ) )",
+		"MAY ( olcProxyResponseCB $ olcProxyCacheQueries $ olcProxySaveQueries $ olcProxyCheckCacheability ) )",
 		Cft_Overlay, pccfg, NULL, pc_cfadd },
 	{ "( OLcfgOvOc:2.2 "
 		"NAME 'olcPcacheDatabase' "
@@ -3157,6 +3163,7 @@ pcache_db_init(
 	cm->cur_entries = 0;
 	cm->max_queries = 10000;
 	cm->save_queries = 0;
+	cm->check_cacheability = 0;
 	cm->response_cb = PCACHE_RESPONSE_CB_TAIL;
 	cm->defer_db_open = 1;
 	cm->cc_period = 1000;

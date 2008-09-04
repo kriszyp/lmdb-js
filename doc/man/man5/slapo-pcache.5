@@ -69,8 +69,27 @@ proxycache \fBbdb 10000 1 50 100\fP
 .RE
 
 .TP
+.B proxyattrset <index> <attrs...>
+Used to associate a set of attributes <attrs..> with an <index>. Each attribute
+set is associated with an integer from 0 to <numattrsets>-1. These indices are
+used by the \fBproxytemplate\fP directive to define cacheable templates. 
+A set of attributes cannot be empty.  A set of attributes can contain the
+special attributes "*" (all user attributes), "+" (all operational attributes)
+or both; in the latter case, any other attribute is redundant and should
+be avoided for clarity.  A set of attributes can contain "1.1" as the only
+attribute; in this case, only the presence of the entries is cached.
+
+.TP
 .B proxycachequeries <queries>
 Specify the maximum number of queries to cache. The default is 10000.
+
+.TP
+.B proxycheckcacheability { TRUE | FALSE }
+Check whether the results of a query being cached can actually be returned
+from the cache by the proxy DSA.  When enabled, the entries being returned
+while caching the results of a query are checked to ensure consistency
+with the schema known to the proxy DSA.  In case of failure, the query
+is not cached.  By default, the check is off.
 
 .TP
 .B proxysavequeries { TRUE | FALSE }
@@ -89,17 +108,6 @@ and
 directives are not changed neither in order nor in contents.
 If new sets and templates are added, or if other details of the pcache
 overlay configuration changed, this feature should not be affected.
-
-.TP
-.B proxyattrset <index> <attrs...>
-Used to associate a set of attributes <attrs..> with an <index>. Each attribute
-set is associated with an integer from 0 to <numattrsets>-1. These indices are
-used by the \fBproxytemplate\fP directive to define cacheable templates. 
-A set of attributes cannot be empty.  A set of attributes can contain the
-special attributes "*" (all user attributes), "+" (all operational attributes)
-or both; in the latter case, any other attribute is redundant and should
-be avoided for clarity.  A set of attributes can contain "1.1" as the only
-attribute; in this case, only the presence of the entries is cached.
 
 .TP
 .B proxytemplate <template_string> <attrset_index> <ttl> [<negttl> [<limitttl>]]

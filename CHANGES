@@ -36,6 +36,7 @@ OpenLDAP 2.4.12 Engineering
 	Documentation
 		Added slapd-ldap(5), slapd-meta(5) noundeffilter (ITS#5614)
 		Fixed slapd-ldap(5), slapd-meta(5), slapo-pcache(5) schema requirements (ITS#5680)
+		Added slapo-pcache(5) proxycheckcacheability option (ITS#5680)
 		Added slapo-retcode(5) retcode.conf location (ITS#5633)
 		admin24 guide updates (ITS#5616)
 		admin24 octetString fix (ITS#5670)
