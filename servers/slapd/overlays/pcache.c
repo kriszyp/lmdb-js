@@ -1961,6 +1961,14 @@ pcache_op_cleanup( Operation *op, SlapReply *rs ) {
 		 * limit, empty the chain and ignore the rest.
 		 */
 		if ( !si->over ) {
+			/* check if the entry contains undefined
+			 * attributes/objectClasses (ITS#5680) */
+			if ( test_filter( op, rs->sr_entry, si->query.filter ) != LDAP_COMPARE_TRUE ) {
+				Debug( pcache_debug, "%s: query not cacheable because of schema issues in DN \"%s\"\n",
+					op->o_log_prefix, rs->sr_entry->e_name.bv_val, 0 );
+				goto over;
+			}
+
 			if ( si->count < si->max ) {
 				si->count++;
 				e = entry_dup( rs->sr_entry );
@@ -1969,6 +1977,7 @@ pcache_op_cleanup( Operation *op, SlapReply *rs ) {
 				si->tail = e;
 
 			} else {
+over:;
 				si->over = 1;
 				si->count = 0;
 				for (;si->head; si->head=e) {
