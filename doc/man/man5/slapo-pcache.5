@@ -182,6 +182,13 @@ The remote server should expose the
 attribute because the underlying database that actually caches the entries 
 may need it for optimal local processing of the queries.
 
+The proxy server should contain all the schema information required for caching.
+Significantly, it needs the schema of attributes used in the query templates.
+If the objectClass attribute is used in a query template, it needs the definition
+of the objectClasses of the entries it is supposed to cache.
+It is the responsibility of the proxy administrator to keep the proxy schema
+lined up with that of the proxied server.
+
 Another potential (and subtle) inconsistency may occur when data is retrieved 
 with different identities and specific per-identity access control
 is enforced by the remote server.
