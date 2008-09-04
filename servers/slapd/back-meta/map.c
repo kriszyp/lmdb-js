@@ -323,7 +323,7 @@ ldap_back_int_filter_map_rewrite(
 		return LDAP_OTHER;
 	}
 
-	switch ( f->f_choice ) {
+	switch ( ( f->f_choice & SLAPD_FILTER_MASK ) ) {
 	case LDAP_FILTER_EQUALITY:
 		if ( map_attr_value( dc, f->f_av_desc, &atmp,
 					&f->f_av_value, &vtmp, remap ) )
