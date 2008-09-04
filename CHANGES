@@ -32,6 +32,7 @@ OpenLDAP 2.4.12 Engineering
 	Fixed slapo-unique suffix testing (ITS#5641)
 	Build Environment
 		Fixed ODBC library detection (ITS#5602)
+		Added BDB 4.7 support (ITS#5523)
 	Documentation
 		Added slapd-ldap(5), slapd-meta(5) noundeffilter (ITS#5614)
 		Fixed slapd-ldap(5), slapd-meta(5), slapo-pcache(5) schema requirements (ITS#5680)
