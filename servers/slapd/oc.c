@@ -227,6 +227,7 @@ oc_bvfind_undef( struct berval *ocname )
 	oc->soc_cname.bv_len = ocname->bv_len;
 	oc->soc_cname.bv_val = (char *)&oc[ 1 ];
 	AC_MEMCPY( oc->soc_cname.bv_val, ocname->bv_val, ocname->bv_len );
+	oc->soc_cname.bv_val[ oc->soc_cname.bv_len ] = '\0';
 
 	/* canonical to upper case */
 	ldap_pvt_str2upper( oc->soc_cname.bv_val );

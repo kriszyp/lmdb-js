@@ -10,6 +10,7 @@ OpenLDAP 2.4.12 Engineering
 	Fixed slapd firstComponentMatch normalization (ITS#5634)
 	Added slapd caseIgnoreListMatch (ITS#5608)
 	Fixed slapd objectClass canonicalization (ITS#5681)
+	Fixed slapd objectClass termination (ITS#5682)
 	Fixed slapd overlay control registration (ITS#5649)
 	Fixed slapd socket closing on Windows (ITS#5606)
 	Fixed slapd sortvals comparison (ITS#5578)
