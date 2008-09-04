@@ -713,11 +713,13 @@ ldap_build_entry(
 			}
 
 			if ( rc != LDAP_SUCCESS ) {
+				ObjectClass *oc;
+
 				/* check if, by chance, it's an undefined objectClass */
 				if ( attr->a_desc == slap_schema.si_ad_objectClass &&
-						oc_bvfind_undef( &attr->a_vals[i] ) != NULL )
+						( oc = oc_bvfind_undef( &attr->a_vals[i] ) ) != NULL )
 				{
-					ber_dupbv( &pval, &attr->a_vals[i] );
+					ber_dupbv( &pval, &oc->soc_cname );
 
 				} else {
 					attr->a_nvals = NULL;
