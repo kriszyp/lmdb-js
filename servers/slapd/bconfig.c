@@ -5247,13 +5247,26 @@ config_back_delete( Operation *op, SlapReply *rs )
 		rs->sr_err = LDAP_NO_SUCH_OBJECT;
 	} else if ( ce->ce_kids ) {
 		rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
-	} else if ( ce->ce_type == Cft_Overlay ){
+	} else if ( ce->ce_type == Cft_Overlay || ce->ce_type == Cft_Database ){
 		char *iptr;
 		int count, ixold, rc;
 
 		ldap_pvt_thread_pool_pause( &connection_pool );
-		
-		overlay_remove( ce->ce_be, (slap_overinst *)ce->ce_bi );
+
+		if ( ce->ce_type == Cft_Overlay ){
+			overlay_remove( ce->ce_be, (slap_overinst *)ce->ce_bi );
+		} else { /* Cft_Database*/
+			if ( ce->ce_be == frontendDB || ce->ce_be == op->o_bd ){
+				rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
+				rs->sr_text = "Cannot delete config or frontend database";
+				ldap_pvt_thread_pool_resume( &connection_pool );
+				goto out;
+			} 
+			if ( ce->ce_be->bd_info->bi_db_close ) {
+				ce->ce_be->bd_info->bi_db_close( ce->ce_be, NULL );
+			}
+			backend_destroy_one( ce->ce_be, 1);
+		}
 
 		/* remove CfEntryInfo from the siblings list */
 		if ( ce->ce_parent->ce_kids == ce ) {
@@ -5315,6 +5328,7 @@ config_back_delete( Operation *op, SlapReply *rs )
 #else
 	rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
 #endif /* SLAP_CONFIG_DELETE */
+out:
 	send_ldap_result( op, rs );
 	return rs->sr_err;
 }
