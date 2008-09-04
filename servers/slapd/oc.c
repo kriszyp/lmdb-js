@@ -228,6 +228,9 @@ oc_bvfind_undef( struct berval *ocname )
 	oc->soc_cname.bv_val = (char *)&oc[ 1 ];
 	AC_MEMCPY( oc->soc_cname.bv_val, ocname->bv_val, ocname->bv_len );
 
+	/* canonical to upper case */
+	ldap_pvt_str2upper( oc->soc_cname.bv_val );
+
 	LDAP_STAILQ_NEXT( oc, soc_next ) = NULL;
 	ldap_pvt_thread_mutex_lock( &oc_undef_mutex );
 	LDAP_STAILQ_INSERT_HEAD( &oc_undef_list, oc, soc_next );

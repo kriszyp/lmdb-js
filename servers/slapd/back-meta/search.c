@@ -1905,6 +1905,8 @@ meta_send_entry(
 			struct berval 	*bv;
 
 			for ( bv = attr->a_vals; !BER_BVISNULL( bv ); bv++ ) {
+				ObjectClass *oc;
+
 				ldap_back_map( &mi->mi_targets[ target ]->mt_rwmap.rwm_oc,
 						bv, &mapped, BACKLDAP_REMAP );
 				if ( BER_BVISNULL( &mapped ) || mapped.bv_val[0] == '\0') {
@@ -1936,6 +1938,12 @@ remove_oc:;
 					}
 
 					ber_bvreplace( bv, &mapped );
+
+				} else if ( ( oc = oc_bvfind_undef( bv ) ) == NULL ) {
+					goto remove_oc;
+
+				} else {
+					ber_bvreplace( bv, &oc->soc_cname );
 				}
 			}
 		/*
