@@ -3881,7 +3881,7 @@ check_name_index( CfEntryInfo *parent, ConfigType ce_type, Entry *e,
 		if ( isconfig && index == -1 ) {
 			index = 0;
 		}
-		if ( !isfrontend && index == -1 ) {
+		if (( !isfrontend && index == -1 ) || ( index > nsibs ) ){
 			index = nsibs;
 		}
 
