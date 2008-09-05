@@ -939,6 +939,11 @@ error_return:;
 			at->at_oid = oidm;
 		}
 
+		if ( soidm ) {
+			SLAP_FREE( at->at_syntax_oid );
+			at->at_syntax_oid = soidm;
+		}
+
 	} else if ( rsat ) {
 		*rsat = sat;
 	}

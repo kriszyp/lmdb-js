@@ -5,6 +5,7 @@ OpenLDAP 2.4.12 Engineering
 	Fixed liblutil executables on Windows (ITS#5604)
 	Fixed slapd aci performance (ITS#5636)
 	Fixed slapd aci's with sets (ITS#5627)
+	Fixed slapd attribute leak (ITS#5683)
 	Fixed slapd custom attribute inheritance (ITS#5642)
 	Fixed slapd dynacl mask handling (ITS#5637)
 	Fixed slapd firstComponentMatch normalization (ITS#5634)
