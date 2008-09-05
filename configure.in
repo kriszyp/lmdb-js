@@ -301,7 +301,7 @@ SLAPD Backend Options:])
 OL_ARG_ENABLE(backends,[    --enable-backends	  enable all available backends],
 	--, [no yes mod])dnl
 OL_ARG_ENABLE(bdb,[    --enable-bdb	  enable Berkeley DB backend],
-	yes, [no yes mod], ol_enable_backends)dnl
+	no, [no yes mod], ol_enable_backends)dnl
 OL_ARG_ENABLE(dnssrv,[    --enable-dnssrv	  enable dnssrv backend],
 	no, [no yes mod], ol_enable_backends)dnl
 OL_ARG_ENABLE(hdb,[    --enable-hdb	  enable Hierarchical DB backend],
