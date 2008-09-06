@@ -59,13 +59,16 @@ rwm_op_cleanup( Operation *op, SlapReply *rs )
 		op->o_req_ndn = ros->ro_ndn;
 
 		if ( !BER_BVISNULL( &ros->r_dn )
-			&& ros->r_dn.bv_val != ros->r_ndn.bv_val )
+			&& ros->r_dn.bv_val != ros->r_ndn.bv_val
+			&& ros->r_dn.bv_val != ros->ro_dn.bv_val )
 		{
 			ch_free( ros->r_dn.bv_val );
 			BER_BVZERO( &ros->r_dn );
 		}
 
-		if ( !BER_BVISNULL( &ros->r_ndn ) ) {
+		if ( !BER_BVISNULL( &ros->r_ndn )
+			&& ros->r_ndn.bv_val != ros->ro_ndn.bv_val )
+		{
 			ch_free( ros->r_ndn.bv_val );
 			BER_BVZERO( &ros->r_ndn );
 		}
