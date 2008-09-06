@@ -478,6 +478,7 @@ return_error:
 			return rc;
 		}
 
+		*text = NULL;
 		rc = LDAP_SUCCESS;
 	}
 
