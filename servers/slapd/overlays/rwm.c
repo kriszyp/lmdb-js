@@ -46,6 +46,86 @@ typedef struct rwm_op_cb {
 	rwm_op_state ros;
 } rwm_op_cb;
 
+static void
+rwm_op_rollback( Operation *op, SlapReply *rs, rwm_op_state *ros )
+{
+	if ( !BER_BVISNULL( &ros->ro_dn ) ) {
+		op->o_req_dn = ros->ro_dn;
+	}
+	if ( !BER_BVISNULL( &ros->ro_ndn ) ) {
+		op->o_req_ndn = ros->ro_ndn;
+	}
+
+	if ( !BER_BVISNULL( &ros->r_dn )
+		&& ros->r_dn.bv_val != ros->ro_dn.bv_val )
+	{
+		assert( ros->r_dn.bv_val != ros->r_ndn.bv_val );
+		ch_free( ros->r_dn.bv_val );
+		BER_BVZERO( &ros->r_dn );
+	}
+
+	if ( !BER_BVISNULL( &ros->r_ndn )
+		&& ros->r_ndn.bv_val != ros->ro_ndn.bv_val )
+	{
+		ch_free( ros->r_ndn.bv_val );
+		BER_BVZERO( &ros->r_ndn );
+	}
+
+	BER_BVZERO( &ros->ro_dn );
+	BER_BVZERO( &ros->ro_ndn );
+
+	switch( ros->r_tag ) {
+	case LDAP_REQ_COMPARE:
+		if ( op->orc_ava->aa_value.bv_val != ros->orc_ava->aa_value.bv_val )
+			op->o_tmpfree( op->orc_ava->aa_value.bv_val, op->o_tmpmemctx );
+		op->orc_ava = ros->orc_ava;
+		break;
+	case LDAP_REQ_MODIFY:
+		slap_mods_free( op->orm_modlist, 1 );
+		op->orm_modlist = ros->orm_modlist;
+		break;
+	case LDAP_REQ_MODRDN:
+		if ( op->orr_newSup != ros->orr_newSup ) {
+			ch_free( op->orr_newSup->bv_val );
+			ch_free( op->orr_nnewSup->bv_val );
+			op->o_tmpfree( op->orr_newSup, op->o_tmpmemctx );
+			op->o_tmpfree( op->orr_nnewSup, op->o_tmpmemctx );
+			op->orr_newSup = ros->orr_newSup;
+			op->orr_nnewSup = ros->orr_nnewSup;
+		}
+		break;
+	case LDAP_REQ_SEARCH:
+		ch_free( ros->mapped_attrs );
+		filter_free_x( op, op->ors_filter );
+		ch_free( op->ors_filterstr.bv_val );
+		op->ors_attrs = ros->ors_attrs;
+		op->ors_filter = ros->ors_filter;
+		op->ors_filterstr = ros->ors_filterstr;
+		break;
+	case LDAP_REQ_EXTENDED:
+		if ( op->ore_reqdata != ros->ore_reqdata ) {
+			ber_bvfree( op->ore_reqdata );
+			op->ore_reqdata = ros->ore_reqdata;
+		}
+		break;
+	case LDAP_REQ_BIND:
+		if ( rs->sr_err == LDAP_SUCCESS ) {
+#if 0
+			ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
+			/* too late, c_mutex released */
+			fprintf( stderr, "*** DN: \"%s\" => \"%s\"\n",
+				op->o_conn->c_ndn.bv_val,
+				op->o_req_ndn.bv_val );
+			ber_bvreplace( &op->o_conn->c_ndn,
+				&op->o_req_ndn );
+			ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
+#endif
+		}
+		break;
+	default:	break;
+	}
+}
+
 static int
 rwm_op_cleanup( Operation *op, SlapReply *rs )
 {
@@ -53,73 +133,10 @@ rwm_op_cleanup( Operation *op, SlapReply *rs )
 	rwm_op_state *ros = cb->sc_private;
 
 	if ( rs->sr_type == REP_RESULT || rs->sr_type == REP_EXTENDED ||
-		op->o_abandon || rs->sr_err == SLAPD_ABANDON ) {
+		op->o_abandon || rs->sr_err == SLAPD_ABANDON )
+	{
+		rwm_op_rollback( op, rs, ros );
 
-		op->o_req_dn = ros->ro_dn;
-		op->o_req_ndn = ros->ro_ndn;
-
-		if ( !BER_BVISNULL( &ros->r_dn )
-			&& ros->r_dn.bv_val != ros->r_ndn.bv_val )
-		{
-			ch_free( ros->r_dn.bv_val );
-			BER_BVZERO( &ros->r_dn );
-		}
-
-		if ( !BER_BVISNULL( &ros->r_ndn ) ) {
-			ch_free( ros->r_ndn.bv_val );
-			BER_BVZERO( &ros->r_ndn );
-		}
-
-		switch( ros->r_tag ) {
-		case LDAP_REQ_COMPARE:
-			if ( op->orc_ava->aa_value.bv_val != ros->orc_ava->aa_value.bv_val )
-				op->o_tmpfree( op->orc_ava->aa_value.bv_val, op->o_tmpmemctx );
-			op->orc_ava = ros->orc_ava;
-			break;
-		case LDAP_REQ_MODIFY:
-			slap_mods_free( op->orm_modlist, 1 );
-			op->orm_modlist = ros->orm_modlist;
-			break;
-		case LDAP_REQ_MODRDN:
-			if ( op->orr_newSup != ros->orr_newSup ) {
-				ch_free( op->orr_newSup->bv_val );
-				ch_free( op->orr_nnewSup->bv_val );
-				op->o_tmpfree( op->orr_newSup, op->o_tmpmemctx );
-				op->o_tmpfree( op->orr_nnewSup, op->o_tmpmemctx );
-				op->orr_newSup = ros->orr_newSup;
-				op->orr_nnewSup = ros->orr_nnewSup;
-			}
-			break;
-		case LDAP_REQ_SEARCH:
-			ch_free( ros->mapped_attrs );
-			filter_free_x( op, op->ors_filter );
-			ch_free( op->ors_filterstr.bv_val );
-			op->ors_attrs = ros->ors_attrs;
-			op->ors_filter = ros->ors_filter;
-			op->ors_filterstr = ros->ors_filterstr;
-			break;
-		case LDAP_REQ_EXTENDED:
-			if ( op->ore_reqdata != ros->ore_reqdata ) {
-				ber_bvfree( op->ore_reqdata );
-				op->ore_reqdata = ros->ore_reqdata;
-			}
-			break;
-		case LDAP_REQ_BIND:
-			if ( rs->sr_err == LDAP_SUCCESS ) {
-#if 0
-				ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
-				/* too late, c_mutex released */
-				fprintf( stderr, "*** DN: \"%s\" => \"%s\"\n",
-					op->o_conn->c_ndn.bv_val,
-					op->o_req_ndn.bv_val );
-				ber_bvreplace( &op->o_conn->c_ndn,
-					&op->o_req_ndn );
-				ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
-#endif
-			}
-			break;
-		default:	break;
-		}
 		op->o_callback = op->o_callback->sc_next;
 		op->o_tmpfree( cb, op->o_tmpmemctx );
 	}
@@ -193,11 +210,13 @@ rwm_op_dn_massage( Operation *op, SlapReply *rs, void *cookie,
 
 	if ( op->o_req_dn.bv_val != op->o_req_ndn.bv_val ) {
 		op->o_req_dn = dn;
+		assert( BER_BVISNULL( &ros->r_dn ) );
 		ros->r_dn = dn;
 	} else {
 		op->o_req_dn = ndn;
 	}
 	op->o_req_ndn = ndn;
+	assert( BER_BVISNULL( &ros->r_ndn ) );
 	ros->r_ndn = ndn;
 
 	return LDAP_SUCCESS;
@@ -821,7 +840,9 @@ error_return:;
 		ch_free( fstr.bv_val );
 	}
 
+	rwm_op_rollback( op, rs, &roc->ros );
 	op->oq_search = roc->ros.oq_search;
+	op->o_tmpfree( roc, op->o_tmpmemctx );
 
 	op->o_bd->bd_info = (BackendInfo *)on->on_info;
 	send_ldap_error( op, rs, rc, text );
