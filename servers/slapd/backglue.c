@@ -435,16 +435,19 @@ glue_op_search ( Operation *op, SlapReply *rs )
 			if (scope0 == LDAP_SCOPE_ONELEVEL && 
 				dn_match(pdn, &ndn))
 			{
+				struct berval mdn, mndn;
 				op->ors_scope = LDAP_SCOPE_BASE;
-				op->o_req_dn = op->o_bd->be_suffix[0];
-				op->o_req_ndn = op->o_bd->be_nsuffix[0];
+				mdn = op->o_req_dn = op->o_bd->be_suffix[0];
+				mndn = op->o_req_ndn = op->o_bd->be_nsuffix[0];
 				rs->sr_err = op->o_bd->be_search(op, rs);
 				if ( rs->sr_err == LDAP_NO_SUCH_OBJECT ) {
 					gs.err = LDAP_SUCCESS;
 				}
 				op->ors_scope = LDAP_SCOPE_ONELEVEL;
-				op->o_req_dn = dn;
-				op->o_req_ndn = ndn;
+				if ( op->o_req_dn.bv_val == mdn.bv_val )
+					op->o_req_dn = dn;
+				if ( op->o_req_ndn.bv_val == mndn.bv_val )
+					op->o_req_ndn = ndn;
 
 			} else if (scope0 == LDAP_SCOPE_SUBTREE &&
 				dn_match(&op->o_bd->be_nsuffix[0], &ndn))
@@ -454,14 +457,17 @@ glue_op_search ( Operation *op, SlapReply *rs )
 			} else if (scope0 == LDAP_SCOPE_SUBTREE &&
 				dnIsSuffix(&op->o_bd->be_nsuffix[0], &ndn))
 			{
-				op->o_req_dn = op->o_bd->be_suffix[0];
-				op->o_req_ndn = op->o_bd->be_nsuffix[0];
+				struct berval mdn, mndn;
+				mdn = op->o_req_dn = op->o_bd->be_suffix[0];
+				mndn = op->o_req_ndn = op->o_bd->be_nsuffix[0];
 				rs->sr_err = glue_sub_search( op, rs, b0, on );
 				if ( rs->sr_err == LDAP_NO_SUCH_OBJECT ) {
 					gs.err = LDAP_SUCCESS;
 				}
-				op->o_req_dn = dn;
-				op->o_req_ndn = ndn;
+				if ( op->o_req_dn.bv_val == mdn.bv_val )
+					op->o_req_dn = dn;
+				if ( op->o_req_ndn.bv_val == mndn.bv_val )
+					op->o_req_ndn = ndn;
 
 			} else if (dnIsSuffix(&ndn, &op->o_bd->be_nsuffix[0])) {
 				rs->sr_err = glue_sub_search( op, rs, b0, on );
@@ -524,8 +530,6 @@ end_of_loop:;
 		op->ors_scope = scope0;
 		op->ors_tlimit = tlimit0;
 		op->o_time = starttime;
-		op->o_req_dn = dn;
-		op->o_req_ndn = ndn;
 
 		break;
 	}
