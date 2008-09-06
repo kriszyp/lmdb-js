@@ -111,6 +111,7 @@ get_ava(
 		Debug( LDAP_DEBUG_FILTER,
 		"get_ava: illegal value for attributeType %s\n", type.bv_val, 0, 0 );
 		ber_dupbv_x( &aa->aa_value, &value, op->o_tmpmemctx );
+		*text = NULL;
 		rc = LDAP_SUCCESS;
 	}
 
