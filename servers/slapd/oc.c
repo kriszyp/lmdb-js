@@ -92,6 +92,9 @@ int is_entry_objectclass(
 			e->e_dn == NULL ? "" : e->e_dn,
 			oc->soc_oclass.oc_oid, 0 );
 
+		/* mark flags as set */
+		e->e_ocflags |= SLAP_OC__END;
+
 		return 0;
 	}
 
