@@ -982,7 +982,7 @@ unique_search(
 	unique_counter uq = { NULL, 0 };
 	int rc;
 
-	Debug(LDAP_DEBUG_TRACE, "==> unique_search %s\n", key, 0, 0);
+	Debug(LDAP_DEBUG_TRACE, "==> unique_search %s\n", key->bv_val, 0, 0);
 
 	nop->ors_filter = str2filter_x(nop, key->bv_val);
 	if(nop->ors_filter == NULL) {
