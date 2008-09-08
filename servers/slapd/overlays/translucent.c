@@ -67,13 +67,13 @@ static ConfigTable translucentcfg[] = {
 	  "DESC 'Disable automatic glue records for ADD and MODRDN' "
 	  "SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
 	{ "translucent_local", "attr[,attr...]", 1, 2, 0,
-	  ARG_STRING|ARG_MAGIC|TRANS_LOCAL,
+	  ARG_MAGIC|TRANS_LOCAL,
 	  translucent_cf_gen,
 	  "( OLcfgOvAt:14.3 NAME 'olcTranslucentLocal' "
 	  "DESC 'Attributes to use in local search filter' "
 	  "SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ "translucent_remote", "attr[,attr...]", 1, 2, 0,
-	  ARG_STRING|ARG_MAGIC|TRANS_REMOTE,
+	  ARG_MAGIC|TRANS_REMOTE,
 	  translucent_cf_gen,
 	  "( OLcfgOvAt:14.4 NAME 'olcTranslucentRemote' "
 	  "DESC 'Attributes to use in remote search filter' "
