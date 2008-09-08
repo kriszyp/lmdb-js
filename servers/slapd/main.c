@@ -1030,6 +1030,8 @@ stop:
 		ch_free( configdir );
 	if ( urls )
 		ch_free( urls );
+	if ( global_host )
+		ch_free( global_host );
 
 	/* kludge, get symbols referenced */
 	tavl_free( NULL, NULL );
