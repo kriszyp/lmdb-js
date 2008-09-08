@@ -193,7 +193,7 @@ over_db_destroy(
 	slap_overinfo *oi = be->bd_info->bi_private;
 	slap_overinst *on = oi->oi_list, *next;
 	BackendInfo *bi_orig = be->bd_info;
-	int rc;
+	int rc = 0;
 
 	be->bd_info = oi->oi_orig;
 	if ( be->bd_info->bi_db_destroy ) {
