@@ -663,6 +663,7 @@ static int translucent_search_cb(Operation *op, SlapReply *rs) {
 	Entry *le, *re;
 	Attribute *a, *ax, *an, *as = NULL;
 	int rc;
+	int test_f = 0;
 
 	tc = op->o_callback->sc_private;
 
@@ -715,6 +716,7 @@ static int translucent_search_cb(Operation *op, SlapReply *rs) {
 			Entry *tmp = entry_dup( re );
 			be_entry_release_r( op, re );
 			re = tmp;
+			test_f = 1;
 		}
 	} else {
 	/* Else we have remote, get local */
@@ -795,7 +797,16 @@ static int translucent_search_cb(Operation *op, SlapReply *rs) {
 		/* send it now */
 			rs->sr_entry = re;
 			rs->sr_flags |= REP_ENTRY_MUSTBEFREED;
-			rc = SLAP_CB_CONTINUE;
+			if ( test_f ) {
+				rc = test_filter( op, rs->sr_entry, tc->orig );
+				if ( rc == LDAP_COMPARE_TRUE ) {
+					rc = SLAP_CB_CONTINUE;
+				} else {
+					rc = 0;
+				}
+			} else {
+				rc = SLAP_CB_CONTINUE;
+			}
 		}
 	} else if ( le ) {
 	/* Only a local entry: remote was deleted
