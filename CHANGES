@@ -33,6 +33,7 @@ OpenLDAP 2.4.12 Engineering
 	Fixed slapo-rwm callback cleanup (ITS#5601,ITS#5687)
 	Fixed slapo-rwm attr mapping and merging (ITS#5624)
 	Fixed slapo-rwm objectClass filtering (ITS#5647)
+	Fixed slapo-translucent back-config support (ITS#5689)
 	Fixed slapo-translucent filter usage on merged entries (ITS#5679)
 	Fixed slapo-unique filter validation (ITS#5581)
 	Fixed slapo-unique suffix testing (ITS#5641)
