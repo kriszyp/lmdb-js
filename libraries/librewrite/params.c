@@ -32,6 +32,7 @@ rewrite_param_set(
 )
 {
 	struct rewrite_var *var;
+	int rc = REWRITE_SUCCESS;
 
 	assert( info != NULL );
 	assert( name != NULL );
@@ -47,21 +48,20 @@ rewrite_param_set(
 		free( var->lv_value.bv_val );
 		var->lv_value.bv_val = strdup( value );
 		var->lv_value.bv_len = strlen( value );
+
 	} else {
 		var = rewrite_var_insert( &info->li_params, name, value );
-		if ( var == NULL ) {
-#ifdef USE_REWRITE_LDAP_PVT_THREADS
-			ldap_pvt_thread_rdwr_wunlock( &info->li_params_mutex );
-#endif /* USE_REWRITE_LDAP_PVT_THREADS */
-			return REWRITE_ERR;
-		}
+	}
+
+	if ( var == NULL || var->lv_value.bv_val == NULL ) {
+		rc = REWRITE_ERR;
 	}
 	
 #ifdef USE_REWRITE_LDAP_PVT_THREADS
 	ldap_pvt_thread_rdwr_wunlock( &info->li_params_mutex );
 #endif /* USE_REWRITE_LDAP_PVT_THREADS */
 
-	return REWRITE_SUCCESS;
+	return rc;
 }
 
 /*
@@ -75,6 +75,7 @@ rewrite_param_get(
 )
 {
 	struct rewrite_var *var;
+	int rc = REWRITE_SUCCESS;
 
 	assert( info != NULL );
 	assert( name != NULL );
@@ -88,22 +89,19 @@ rewrite_param_get(
 #endif /* USE_REWRITE_LDAP_PVT_THREADS */
 	
 	var = rewrite_var_find( info->li_params, name );
-	if ( var == NULL ) {
-		
-#ifdef USE_REWRITE_LDAP_PVT_THREADS
-		ldap_pvt_thread_rdwr_runlock( &info->li_params_mutex );
-#endif /* USE_REWRITE_LDAP_PVT_THREADS */
-		
-		return REWRITE_ERR;
-	} else {
+	if ( var != NULL ) {
 		value->bv_val = strdup( var->lv_value.bv_val );
 		value->bv_len = var->lv_value.bv_len;
 	}
+
+	if ( var == NULL || value->bv_val == NULL ) {
+		rc = REWRITE_ERR;
+	}
 	
 #ifdef USE_REWRITE_LDAP_PVT_THREADS
-        ldap_pvt_thread_rdwr_runlock( &info->li_params_mutex );
+	ldap_pvt_thread_rdwr_runlock( &info->li_params_mutex );
 #endif /* USE_REWRITE_LDAP_PVT_THREADS */
-	
+
 	return REWRITE_SUCCESS;
 }
 

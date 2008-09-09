@@ -216,7 +216,7 @@ rewrite_session(
 
 		case REWRITE_MODE_COPY_INPUT:
 			*result = strdup( string );
-			rc = REWRITE_REGEXEC_OK;
+			rc = ( *result != NULL ) ? REWRITE_REGEXEC_OK : REWRITE_REGEXEC_ERR;
 			goto rc_return;
 
 		case REWRITE_MODE_USE_DEFAULT:

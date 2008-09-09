@@ -169,9 +169,9 @@ dnssrv_back_search(
 		AttributeDescription *ad_objectClass
 			= slap_schema.si_ad_objectClass;
 		AttributeDescription *ad_ref = slap_schema.si_ad_ref;
-		e.e_name.bv_val = strdup( op->o_req_dn.bv_val );
+		e.e_name.bv_val = ch_strdup( op->o_req_dn.bv_val );
 		e.e_name.bv_len = op->o_req_dn.bv_len;
-		e.e_nname.bv_val = strdup( op->o_req_ndn.bv_val );
+		e.e_nname.bv_val = ch_strdup( op->o_req_ndn.bv_val );
 		e.e_nname.bv_len = op->o_req_ndn.bv_len;
 
 		e.e_attrs = NULL;

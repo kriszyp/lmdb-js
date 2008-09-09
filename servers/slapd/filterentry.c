@@ -220,7 +220,7 @@ static int test_mra_filter(
 					num_attr_vals++;
 
 					/* following malloced will be freed by comp_tree_free () */
-					a->a_comp_data = malloc( sizeof( ComponentData ) +
+					a->a_comp_data = SLAP_MALLOC( sizeof( ComponentData ) +
 						sizeof( ComponentSyntaxInfo* )*num_attr_vals );
 
 					if ( !a->a_comp_data ) return LDAP_NO_MEMORY;
@@ -716,7 +716,7 @@ test_ava_filter(
 			num_attr_vals++;/* for NULL termination */
 
 			/* following malloced will be freed by comp_tree_free () */
-			a->a_comp_data = malloc( sizeof( ComponentData ) + sizeof( ComponentSyntaxInfo* )*num_attr_vals );
+			a->a_comp_data = SLAP_MALLOC( sizeof( ComponentData ) + sizeof( ComponentSyntaxInfo* )*num_attr_vals );
 
 			if ( !a->a_comp_data ) {
 				return LDAP_NO_MEMORY;
