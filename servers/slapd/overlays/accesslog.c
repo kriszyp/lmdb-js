@@ -579,10 +579,14 @@ log_old_lookup( Operation *op, SlapReply *rs )
 	 */
 	a = attr_find( rs->sr_entry->e_attrs,
 		slap_schema.si_ad_entryCSN );
-	if ( a && ber_bvcmp( &a->a_vals[0], &pd->csn ) > 0 ) {
-		AC_MEMCPY( pd->csn.bv_val, a->a_vals[0].bv_val,
-			a->a_vals[0].bv_len );
-		pd->csn.bv_len = a->a_vals[0].bv_len;
+	if ( a ) {
+		int len = a->a_vals[0].bv_len;
+		if ( len > pd->csn.bv_len )
+			len = pd->csn.bv_len;
+		if ( memcmp( a->a_vals[0].bv_val, pd->csn.bv_val, len ) > 0 ) {
+			AC_MEMCPY( pd->csn.bv_val, a->a_vals[0].bv_val, len );
+			pd->csn.bv_len = len;
+		}
 	}
 	if ( pd->used >= pd->slots ) {
 		pd->slots += PURGE_INCREMENT;
