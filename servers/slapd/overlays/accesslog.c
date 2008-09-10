@@ -568,19 +568,22 @@ static int
 log_old_lookup( Operation *op, SlapReply *rs )
 {
 	purge_data *pd = op->o_callback->sc_private;
+	Attribute *a;
 
 	if ( rs->sr_type != REP_SEARCH) return 0;
 
 	if ( slapd_shutdown ) return 0;
 
-	/* Remember old CSN */
-	if ( pd->csn.bv_val[0] == '\0' ) {
-		Attribute *a = attr_find( rs->sr_entry->e_attrs,
-			slap_schema.si_ad_entryCSN );
-		if ( a ) {
-			int len = a->a_vals[0].bv_len;
-			if ( len > pd->csn.bv_len )
-				len = pd->csn.bv_len;
+	/* Remember max CSN: should always be the last entry
+	 * seen, since log entries are ordered chronologically...
+	 */
+	a = attr_find( rs->sr_entry->e_attrs,
+		slap_schema.si_ad_entryCSN );
+	if ( a ) {
+		int len = a->a_vals[0].bv_len;
+		if ( len > pd->csn.bv_len )
+			len = pd->csn.bv_len;
+		if ( memcmp( a->a_vals[0].bv_val, pd->csn.bv_val, len ) > 0 ) {
 			AC_MEMCPY( pd->csn.bv_val, a->a_vals[0].bv_val, len );
 			pd->csn.bv_len = len;
 		}
@@ -656,6 +659,7 @@ accesslog_purge( void *ctx, void *arg )
 	if ( pd.used ) {
 		int i;
 
+		/* delete the expired entries */
 		op->o_tag = LDAP_REQ_DELETE;
 		op->o_callback = &nullsc;
 		op->o_csn = pd.csn;
@@ -670,6 +674,33 @@ accesslog_purge( void *ctx, void *arg )
 		}
 		ch_free( pd.ndn );
 		ch_free( pd.dn );
+
+		{
+			Modifications mod;
+			struct berval bv[2];
+			/* update context's entryCSN to reflect oldest CSN */
+			mod.sml_numvals = 1;
+			mod.sml_values = bv;
+			bv[0] = pd.csn;
+			BER_BVZERO(&bv[1]);
+			mod.sml_nvalues = NULL;
+			mod.sml_desc = slap_schema.si_ad_entryCSN;
+			mod.sml_op = LDAP_MOD_REPLACE;
+			mod.sml_flags = SLAP_MOD_INTERNAL;
+			mod.sml_next = NULL;
+
+			op->o_tag = LDAP_REQ_MODIFY;
+			op->orm_modlist = &mod;
+			op->orm_no_opattrs = 1;
+			op->o_req_dn = li->li_db->be_suffix[0];
+			op->o_req_ndn = li->li_db->be_nsuffix[0];
+			op->o_no_schema_check = 1;
+			op->o_managedsait = SLAP_CONTROL_NONCRITICAL;
+			op->o_bd->be_modify( op, &rs );
+			if ( mod.sml_next ) {
+				slap_mods_free( mod.sml_next, 1 );
+			}
+		}
 	}
 
 	ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
