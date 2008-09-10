@@ -193,6 +193,10 @@ rewrite_subst_compile(
 		subs_len += l;
 		subs[ nsub ].bv_len = l;
 		subs[ nsub ].bv_val = malloc( l + 1 );
+		if ( subs[ nsub ].bv_val == NULL ) {
+			free( subs );
+			goto cleanup;
+		}
 		AC_MEMCPY( subs[ nsub ].bv_val, begin, l );
 		subs[ nsub ].bv_val[ l ] = '\0';
 	} else {

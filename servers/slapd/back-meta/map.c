@@ -333,7 +333,7 @@ ldap_back_int_filter_map_rewrite(
 
 		fstr->bv_len = atmp.bv_len + vtmp.bv_len
 			+ ( sizeof("(=)") - 1 );
-		fstr->bv_val = malloc( fstr->bv_len + 1 );
+		fstr->bv_val = ch_malloc( fstr->bv_len + 1 );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s=%s)",
 			atmp.bv_val, vtmp.bv_len ? vtmp.bv_val : "" );
@@ -350,7 +350,7 @@ ldap_back_int_filter_map_rewrite(
 
 		fstr->bv_len = atmp.bv_len + vtmp.bv_len
 			+ ( sizeof("(>=)") - 1 );
-		fstr->bv_val = malloc( fstr->bv_len + 1 );
+		fstr->bv_val = ch_malloc( fstr->bv_len + 1 );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s>=%s)",
 			atmp.bv_val, vtmp.bv_len ? vtmp.bv_val : "" );
@@ -367,7 +367,7 @@ ldap_back_int_filter_map_rewrite(
 
 		fstr->bv_len = atmp.bv_len + vtmp.bv_len
 			+ ( sizeof("(<=)") - 1 );
-		fstr->bv_val = malloc( fstr->bv_len + 1 );
+		fstr->bv_val = ch_malloc( fstr->bv_len + 1 );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s<=%s)",
 			atmp.bv_val, vtmp.bv_len ? vtmp.bv_val : "" );
@@ -384,7 +384,7 @@ ldap_back_int_filter_map_rewrite(
 
 		fstr->bv_len = atmp.bv_len + vtmp.bv_len
 			+ ( sizeof("(~=)") - 1 );
-		fstr->bv_val = malloc( fstr->bv_len + 1 );
+		fstr->bv_val = ch_malloc( fstr->bv_len + 1 );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s~=%s)",
 			atmp.bv_val, vtmp.bv_len ? vtmp.bv_val : "" );
@@ -402,7 +402,7 @@ ldap_back_int_filter_map_rewrite(
 		/* cannot be a DN ... */
 
 		fstr->bv_len = atmp.bv_len + ( STRLENOF( "(=*)" ) );
-		fstr->bv_val = malloc( fstr->bv_len + 128 ); /* FIXME: why 128 ? */
+		fstr->bv_val = ch_malloc( fstr->bv_len + 128 ); /* FIXME: why 128 ? */
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s=*)",
 			atmp.bv_val );
@@ -462,7 +462,7 @@ ldap_back_int_filter_map_rewrite(
 		}
 
 		fstr->bv_len = atmp.bv_len + ( STRLENOF( "(=*)" ) );
-		fstr->bv_val = malloc( fstr->bv_len + 1 );
+		fstr->bv_val = ch_malloc( fstr->bv_len + 1 );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s=*)",
 			atmp.bv_val );
@@ -472,7 +472,7 @@ ldap_back_int_filter_map_rewrite(
 	case LDAP_FILTER_OR:
 	case LDAP_FILTER_NOT:
 		fstr->bv_len = STRLENOF( "(%)" );
-		fstr->bv_val = malloc( fstr->bv_len + 128 );	/* FIXME: why 128? */
+		fstr->bv_val = ch_malloc( fstr->bv_len + 128 );	/* FIXME: why 128? */
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%c)",
 			f->f_choice == LDAP_FILTER_AND ? '&' :
@@ -517,7 +517,7 @@ ldap_back_int_filter_map_rewrite(
 			( f->f_mr_dnattrs ? STRLENOF( ":dn" ) : 0 ) +
 			( !BER_BVISEMPTY( &f->f_mr_rule_text ) ? f->f_mr_rule_text.bv_len + 1 : 0 ) +
 			vtmp.bv_len + ( STRLENOF( "(:=)" ) );
-		fstr->bv_val = malloc( fstr->bv_len + 1 );
+		fstr->bv_val = ch_malloc( fstr->bv_len + 1 );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s%s%s%s:=%s)",
 			atmp.bv_val,

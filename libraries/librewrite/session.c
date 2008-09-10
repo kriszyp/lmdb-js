@@ -256,6 +256,7 @@ rewrite_session_var_get(
 {
 	struct rewrite_session *session;
 	struct rewrite_var *var;
+	int rc = REWRITE_SUCCESS;
 
 	assert( info != NULL );
 	assert( cookie != NULL );
@@ -279,27 +280,22 @@ rewrite_session_var_get(
 #endif /* USE_REWRITE_LDAP_PVT_THREADS */
 	
 	var = rewrite_var_find( session->ls_vars, name );
-	if ( var == NULL ) {
-		
-#ifdef USE_REWRITE_LDAP_PVT_THREADS
-	        ldap_pvt_thread_rdwr_runlock( &session->ls_vars_mutex );
-#endif /* USE_REWRITE_LDAP_PVT_THREADS */
-
-		rewrite_session_return( info, session );
-
-		return REWRITE_ERR;
-	} else {
+	if ( var != NULL ) {
 		value->bv_val = strdup( var->lv_value.bv_val );
 		value->bv_len = var->lv_value.bv_len;
 	}
-	
+
+	if ( var == NULL || value->bv_val == NULL ) {
+		rc = REWRITE_ERR;
+	}
+
 #ifdef USE_REWRITE_LDAP_PVT_THREADS
         ldap_pvt_thread_rdwr_runlock( &session->ls_vars_mutex );
 #endif /* USE_REWRITE_LDAP_PVT_THREADS */
 
 	rewrite_session_return( info, session );
-	
-	return REWRITE_SUCCESS;
+
+	return rc;
 }
 
 static void

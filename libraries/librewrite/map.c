@@ -88,6 +88,9 @@ rewrite_map_parse(
 	 */
 	l = p - string - 1;
 	s = calloc( sizeof( char ), l + 1 );
+	if ( s == NULL ) {
+		return NULL;
+	}
 	AC_MEMCPY( s, string, l );
 	s[ l ] = 0;
 
@@ -231,6 +234,10 @@ rewrite_map_parse(
 		 */
 		map->lm_type = REWRITE_MAP_SUBCONTEXT;
 		map->lm_name = strdup( s + 1 );
+		if ( map->lm_name == NULL ) {
+			rc = -1;
+			goto cleanup;
+		}
 		map->lm_data = rewrite_context_find( info, s + 1 );
 		if ( map->lm_data == NULL ) {
 			rc = -1;
@@ -266,6 +273,10 @@ rewrite_map_parse(
 				map->lm_name = strdup( s + 1 );
 			}
 		}
+		if ( map->lm_name == NULL ) {
+			rc = -1;
+			goto cleanup;
+		}
 		break;
 	
 	/*
@@ -279,6 +290,10 @@ rewrite_map_parse(
 			map->lm_type = REWRITE_MAP_GET_OP_VAR;
 			map->lm_name = strdup( s + 1 );
 		}
+		if ( map->lm_name == NULL ) {
+			rc = -1;
+			goto cleanup;
+		}
 		break;
 	
 	/*
@@ -287,6 +302,10 @@ rewrite_map_parse(
 	case REWRITE_OPERATOR_PARAM_GET:		/* '$' */
 		map->lm_type = REWRITE_MAP_GET_PARAM;
 		map->lm_name = strdup( s + 1 );
+		if ( map->lm_name == NULL ) {
+			rc = -1;
+			goto cleanup;
+		}
 		break;
 	
 	/*
@@ -295,6 +314,10 @@ rewrite_map_parse(
 	default:
 		map->lm_type = REWRITE_MAP_BUILTIN;
 		map->lm_name = strdup( s );
+		if ( map->lm_name == NULL ) {
+			rc = -1;
+			goto cleanup;
+		}
 		map->lm_data = rewrite_builtin_map_find( info, s );
 		if ( map->lm_data == NULL ) {
 			rc = -1;
@@ -372,11 +395,16 @@ rewrite_map_apply(
 		rc = rewrite_var_set( &op->lo_vars, map->lm_name,
 				key->bv_val, 1 )
 			? REWRITE_SUCCESS : REWRITE_ERR;
-		if ( map->lm_type == REWRITE_MAP_SET_OP_VAR ) {
-			val->bv_val = strdup( "" );
-		} else {
-			val->bv_val = strdup( key->bv_val );
-			val->bv_len = key->bv_len;
+		if ( rc == REWRITE_SUCCESS ) {
+			if ( map->lm_type == REWRITE_MAP_SET_OP_VAR ) {
+				val->bv_val = strdup( "" );
+			} else {
+				val->bv_val = strdup( key->bv_val );
+				val->bv_len = key->bv_len;
+			}
+			if ( val->bv_val == NULL ) {
+				rc = REWRITE_ERR;
+			}
 		}
 		break;
 	
@@ -389,6 +417,9 @@ rewrite_map_apply(
 		} else {
 			val->bv_val = strdup( var->lv_value.bv_val );
 			val->bv_len = var->lv_value.bv_len;
+			if ( val->bv_val == NULL ) {
+				rc = REWRITE_ERR;
+			}
 		}
 		break;	
 	}
@@ -401,11 +432,16 @@ rewrite_map_apply(
 		}
 		rc = rewrite_session_var_set( info, op->lo_cookie, 
 				map->lm_name, key->bv_val );
-		if ( map->lm_type == REWRITE_MAP_SET_SESN_VAR ) {
-			val->bv_val = strdup( "" );
-		} else {
-			val->bv_val = strdup( key->bv_val );
-			val->bv_len = key->bv_len;
+		if ( rc == REWRITE_SUCCESS ) {
+			if ( map->lm_type == REWRITE_MAP_SET_SESN_VAR ) {
+				val->bv_val = strdup( "" );
+			} else {
+				val->bv_val = strdup( key->bv_val );
+				val->bv_len = key->bv_len;
+			}
+			if ( val->bv_val == NULL ) {
+				rc = REWRITE_ERR;
+			}
 		}
 		break;
 

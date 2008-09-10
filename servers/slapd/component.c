@@ -491,7 +491,10 @@ get_componentId( Operation *op, ComponentAssertionValue* cav,
 	if ( op ) {
 		*cid = op->o_tmpalloc( sizeof( ComponentId ), op->o_tmpmemctx );
 	} else {
-		*cid = malloc( sizeof( ComponentId ) );
+		*cid = SLAP_MALLOC( sizeof( ComponentId ) );
+	}
+	if (*cid == NULL) {
+		return LDAP_NO_MEMORY;
 	}
 	**cid = _cid;
 	return LDAP_SUCCESS;
@@ -564,7 +567,7 @@ get_component_reference(
 		ca_comp_ref = op->o_tmpalloc( sizeof( ComponentReference ),
 			op->o_tmpmemctx );
 	} else {
-		ca_comp_ref = malloc( sizeof( ComponentReference ) );
+		ca_comp_ref = SLAP_MALLOC( sizeof( ComponentReference ) );
 	}
 
 	if ( !ca_comp_ref ) return LDAP_NO_MEMORY;
@@ -951,7 +954,7 @@ get_item( Operation *op, ComponentAssertionValue* cav, ComponentAssertion** ca,
 	if ( op )
 		_ca = op->o_tmpalloc( sizeof( ComponentAssertion ), op->o_tmpmemctx );
 	else
-		_ca = malloc( sizeof( ComponentAssertion ) );
+		_ca = SLAP_MALLOC( sizeof( ComponentAssertion ) );
 
 	if ( !_ca ) return LDAP_NO_MEMORY;
 
@@ -1170,7 +1173,10 @@ parse_comp_filter( Operation* op, ComponentAssertionValue* cav,
 		if ( op ) {
 			*filt = op->o_tmpalloc( sizeof(f), op->o_tmpmemctx );
 		} else {
-			*filt = malloc( sizeof(f) );
+			*filt = SLAP_MALLOC( sizeof(f) );
+		}
+		if ( *filt == NULL ) {
+			return LDAP_NO_MEMORY;
 		}
 		**filt = f;
 	}
