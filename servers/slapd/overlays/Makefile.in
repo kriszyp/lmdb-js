@@ -22,6 +22,7 @@ SRCS = overlays.c \
 	dynlist.c \
 	memberof.c \
 	pcache.c \
+	collect.c \
 	ppolicy.c \
 	refint.c \
 	retcode.c \
@@ -82,6 +83,9 @@ memberof.la : memberof.lo
 
 pcache.la : pcache.lo
 	$(LTLINK_MOD) -module -o $@ pcache.lo version.lo $(LINK_LIBS)
+
+collect.la : collect.lo
+	$(LTLINK_MOD) -module -o $@ collect.lo version.lo $(LINK_LIBS)
 
 ppolicy.la : ppolicy.lo
 	$(LTLINK_MOD) -module -o $@ ppolicy.lo version.lo $(LINK_LIBS) $(MODULES_LIBS)
