@@ -640,6 +640,17 @@ bdb_db_destroy( BackendDB *be, ConfigReply *cr )
 {
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 
+	/* stop and remove checkpoint task */
+	if ( bdb->bi_txn_cp_task ) {
+		struct re_s *re = bdb->bi_txn_cp_task;
+		bdb->bi_txn_cp_task = NULL;
+		ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
+		if ( ldap_pvt_runqueue_isrunning( &slapd_rq, re ) )
+			ldap_pvt_runqueue_stoptask( &slapd_rq, re );
+		ldap_pvt_runqueue_remove( &slapd_rq, re );
+		ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
+	}
+
 	/* monitor handling */
 	(void)bdb_monitor_db_destroy( be );
 
