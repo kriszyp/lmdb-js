@@ -695,7 +695,6 @@ lutil_str2bin( struct berval *in, struct berval *out, void *ctx )
 {
 	char *pin, *pout, ctmp;
 	char *end;
-	long l;
 	int i, chunk, len, rc = 0, hex = 0;
 	if ( !out || !out->bv_val || out->bv_len < in->bv_len )
 		return -1;
@@ -718,38 +717,40 @@ lutil_str2bin( struct berval *in, struct berval *out, void *ctx )
 	}
 	if ( hex ) {
 #define HEXMAX	(2 * sizeof(long))
+		unsigned long l;
 		/* Convert a longword at a time, but handle leading
 		 * odd bytes first
 		 */
-		chunk = len & (HEXMAX-1);
+		chunk = len % HEXMAX;
 		if ( !chunk )
 			chunk = HEXMAX;
 
 		while ( len ) {
+			int ochunk;
 			ctmp = pin[chunk];
 			pin[chunk] = '\0';
 			errno = 0;
-			l = strtol( pin, &end, 16 );
+			l = strtoul( pin, &end, 16 );
 			pin[chunk] = ctmp;
 			if ( errno )
 				return -1;
-			chunk++;
-			chunk >>= 1;
-			for ( i = chunk; i>=0; i-- ) {
+			ochunk = (chunk + 1)/2;
+			for ( i = ochunk - 1; i >= 0; i-- ) {
 				pout[i] = l & 0xff;
 				l >>= 8;
 			}
 			pin += chunk;
-			pout += sizeof(long);
+			pout += ochunk;
 			len -= chunk;
 			chunk = HEXMAX;
 		}
-		out->bv_len = pout + len - out->bv_val;
+		out->bv_len = pout - out->bv_val;
 	} else {
 	/* Decimal */
 		char tmpbuf[64], *tmp;
 		lutil_int_decnum num;
 		int neg = 0;
+		long l;
 
 		len = in->bv_len;
 		pin = in->bv_val;
