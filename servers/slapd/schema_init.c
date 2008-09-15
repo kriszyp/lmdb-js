@@ -5360,6 +5360,7 @@ char *certificateListExactMatchSyntaxes[] = {
 #ifdef LDAP_COMP_MATCH
 char *componentFilterMatchSyntaxes[] = {
 	"1.3.6.1.4.1.1466.115.121.1.8" /* certificate */,
+	"1.3.6.1.4.1.1466.115.121.1.9" /* certificateList */,
 	NULL
 };
 #endif
@@ -5394,8 +5395,6 @@ char *objectIdentifierFirstComponentMatchSyntaxes[] = {
  * 2.5.13.33*	keywordMatch
  * 2.5.13.36+	certificatePairExactMatch
  * 2.5.13.37+	certificatePairMatch
- * 2.5.13.38+	certificateListExactMatch
- * 2.5.13.39+	certificateListMatch
  * 2.5.13.40+	algorithmIdentifierMatch
  * 2.5.13.41*	storedPrefixMatch
  * 2.5.13.42	attributeCertificateMatch
@@ -5702,14 +5701,14 @@ static slap_mrule_defs_rec mrule_defs[] = {
 
 	{"( 2.5.13.38 NAME 'certificateListExactMatch' "
 		"SYNTAX 1.3.6.1.1.15.5 )",
-		SLAP_MR_EQUALITY | SLAP_MR_EXT | SLAP_MR_HIDE, certificateListExactMatchSyntaxes,
+		SLAP_MR_EQUALITY | SLAP_MR_EXT, certificateListExactMatchSyntaxes,
 		NULL, certificateListExactNormalize, octetStringMatch,
 		octetStringIndexer, octetStringFilter,
 		NULL },
 
 	{"( 2.5.13.39 NAME 'certificateListMatch' "
 		"SYNTAX 1.3.6.1.1.15.6 )",
-		SLAP_MR_EQUALITY | SLAP_MR_EXT | SLAP_MR_HIDE, NULL,
+		SLAP_MR_EQUALITY | SLAP_MR_EXT, NULL,
 		NULL, NULL, NULL, NULL, NULL,
 		NULL },
 
