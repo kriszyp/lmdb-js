@@ -74,6 +74,13 @@ generalizedTimeValidate(
 	Syntax *syntax,
 	struct berval *in );
 
+#ifdef SUPPORT_OBSOLETE_UTC_SYNTAX
+static int
+utcTimeValidate(
+	Syntax *syntax,
+	struct berval *in );
+#endif /* SUPPORT_OBSOLETE_UTC_SYNTAX */
+
 static int
 inValidate(
 	Syntax *syntax,
@@ -3429,6 +3436,494 @@ done:
 	return rc;
 }
 
+/* X.509 PKI certificateList stuff */
+static int
+checkTime( struct berval *in, struct berval *out )
+{
+	int i;
+	char buf[STRLENOF("YYYYmmddHHMMSSZ") + 1];
+	struct berval bv;
+
+	assert( in != NULL );
+	assert( !BER_BVISNULL( in ) );
+	assert( !BER_BVISEMPTY( in ) );
+
+	if ( in->bv_len < STRLENOF( "YYmmddHHMMSSZ" ) ) {
+		return -1;
+	}
+
+	if ( out != NULL ) {
+		assert( !BER_BVISNULL( out ) );
+		assert( out->bv_len >= sizeof( buf ) );
+		bv.bv_val = out->bv_val;
+
+	} else {
+		bv.bv_val = buf;
+	}
+
+	for ( i = 0; i < STRLENOF( "YYYYmmddHHMMSS" ); i++ ) {
+		if ( !ASCII_DIGIT( in->bv_val[i] ) ) break;
+	}
+
+	if ( in->bv_val[i] != 'Z' ) {
+		return -1;
+	}
+	i++;
+
+	if ( i != in->bv_len ) {
+		return -1;
+	}
+
+	if ( i == STRLENOF( "YYYYmmddHHMMSSZ" ) ) {
+		lutil_strncopy( bv.bv_val, in->bv_val, i );
+		bv.bv_len = i;
+		
+	} else if ( i == STRLENOF( "YYmmddHHMMSSZ" ) ) {
+		char *p = bv.bv_val;
+		if ( in->bv_val[0] < '7' ) {
+			p = lutil_strcopy( p, "20" );
+
+		} else {
+			p = lutil_strcopy( p, "19" );
+		}
+		lutil_strncopy( p, in->bv_val, i );
+		bv.bv_len = 2 + i;
+
+	} else {
+		return -1;
+	}
+
+	i = generalizedTimeValidate( NULL, &bv );
+	if ( i == LDAP_SUCCESS && out != NULL ) {
+		out->bv_len = bv.bv_len;
+	}
+
+	return i != LDAP_SUCCESS;
+}
+
+static int
+issuerAndThisUpdateCheck(
+	struct berval *in,
+	struct berval *is,
+	struct berval *tu,
+	void *ctx )
+{
+	int numdquotes = 0;
+	struct berval x = *in;
+	struct berval ni = BER_BVNULL;
+	/* Parse GSER format */ 
+	enum {
+		HAVE_NONE = 0x0,
+		HAVE_ISSUER = 0x1,
+		HAVE_THISUPDATE = 0x2,
+		HAVE_ALL = ( HAVE_ISSUER | HAVE_THISUPDATE )
+	} have = HAVE_NONE;
+
+
+	if ( in->bv_len < STRLENOF( "{issuer \"\",thisUpdate \"YYMMDDhhmmssZ\"}" ) ) return LDAP_INVALID_SYNTAX;
+
+	if ( in->bv_val[0] != '{' && in->bv_val[in->bv_len-1] != '}' ) {
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	x.bv_val++;
+	x.bv_len -= STRLENOF("{}");
+
+	do {
+		/* eat leading spaces */
+		for ( ; (x.bv_val[0] == ' ') && x.bv_len; x.bv_val++, x.bv_len-- ) {
+			/* empty */;
+		}
+
+		/* should be at issuer or thisUpdate */
+		if ( strncasecmp( x.bv_val, "issuer", STRLENOF("issuer") ) == 0 ) {
+			if ( have & HAVE_ISSUER ) return LDAP_INVALID_SYNTAX;
+
+			/* parse issuer */
+			x.bv_val += STRLENOF("issuer");
+			x.bv_len -= STRLENOF("issuer");
+
+			if ( x.bv_val[0] != ' ' ) return LDAP_INVALID_SYNTAX;
+			x.bv_val++;
+			x.bv_len--;
+
+			/* eat leading spaces */
+			for ( ; (x.bv_val[0] == ' ') && x.bv_len; x.bv_val++, x.bv_len-- ) {
+				/* empty */;
+			}
+
+			/* For backward compatibility, this part is optional */
+			if ( strncasecmp( x.bv_val, "rdnSequence:", STRLENOF("rdnSequence:") ) != 0 ) {
+				return LDAP_INVALID_SYNTAX;
+			}
+			x.bv_val += STRLENOF("rdnSequence:");
+			x.bv_len -= STRLENOF("rdnSequence:");
+
+			if ( x.bv_val[0] != '"' ) return LDAP_INVALID_SYNTAX;
+			x.bv_val++;
+			x.bv_len--;
+
+			is->bv_val = x.bv_val;
+			is->bv_len = 0;
+
+			for ( ; is->bv_len < x.bv_len; ) {
+				if ( is->bv_val[is->bv_len] != '"' ) {
+					is->bv_len++;
+					continue;
+				}
+				if ( is->bv_val[is->bv_len+1] == '"' ) {
+					/* double dquote */
+					is->bv_len += 2;
+					continue;
+				}
+				break;
+			}
+			x.bv_val += is->bv_len + 1;
+			x.bv_len -= is->bv_len + 1;
+
+			have |= HAVE_ISSUER;
+
+		} else if ( strncasecmp( x.bv_val, "thisUpdate", STRLENOF("thisUpdate") ) == 0 )
+		{
+			if ( have & HAVE_THISUPDATE ) return LDAP_INVALID_SYNTAX;
+
+			/* parse thisUpdate */
+			x.bv_val += STRLENOF("thisUpdate");
+			x.bv_len -= STRLENOF("thisUpdate");
+
+			if ( x.bv_val[0] != ' ' ) return LDAP_INVALID_SYNTAX;
+			x.bv_val++;
+			x.bv_len--;
+
+			/* eat leading spaces */
+			for ( ; (x.bv_val[0] == ' ') && x.bv_len; x.bv_val++, x.bv_len-- ) {
+				/* empty */;
+			}
+
+			if ( x.bv_val[0] != '"' ) return LDAP_INVALID_SYNTAX;
+			x.bv_val++;
+			x.bv_len--;
+
+			tu->bv_val = x.bv_val;
+			tu->bv_len = 0;
+
+			for ( ; tu->bv_len < x.bv_len; tu->bv_len++ ) {
+				if ( tu->bv_val[tu->bv_len] == '"' ) {
+					break;
+				}
+			}
+			x.bv_val += tu->bv_len + 1;
+			x.bv_len -= tu->bv_len + 1;
+
+			have |= HAVE_THISUPDATE;
+
+		} else {
+			return LDAP_INVALID_SYNTAX;
+		}
+
+		/* eat leading spaces */
+		for ( ; (x.bv_val[0] == ' ') && x.bv_len; x.bv_val++, x.bv_len-- ) {
+			/* empty */;
+		}
+
+		if ( have == HAVE_ALL ) {
+			break;
+		}
+
+		if ( x.bv_val[0] != ',' ) {
+			return LDAP_INVALID_SYNTAX;
+		}
+
+		x.bv_val++;
+		x.bv_len--;
+	} while ( 1 );
+
+	/* should have no characters left... */
+	if ( x.bv_len ) return LDAP_INVALID_SYNTAX;
+
+	if ( numdquotes == 0 ) {
+		ber_dupbv_x( &ni, is, ctx );
+
+	} else {
+		ber_int_t src, dst;
+
+		ni.bv_len = is->bv_len - numdquotes;
+		ni.bv_val = ber_memalloc_x( ni.bv_len + 1, ctx );
+		for ( src = 0, dst = 0; src < is->bv_len; src++, dst++ ) {
+			if ( is->bv_val[src] == '"' ) {
+				src++;
+			}
+			ni.bv_val[dst] = is->bv_val[src];
+		}
+		ni.bv_val[dst] = '\0';
+	}
+		
+	*is = ni;
+
+	return 0;
+}
+
+static int
+issuerAndThisUpdateValidate(
+	Syntax *syntax,
+	struct berval *in )
+{
+	int rc;
+	struct berval i, tu;
+
+	Debug( LDAP_DEBUG_TRACE, ">>> issuerAndThisUpdateValidate: <%s>\n",
+		in->bv_val, 0, 0 );
+
+	rc = issuerAndThisUpdateCheck( in, &i, &tu, NULL );
+	if ( rc ) {
+		goto done;
+	}
+
+	/* validate DN -- doesn't handle double dquote */ 
+	rc = dnValidate( NULL, &i );
+	if ( rc ) {
+		rc = LDAP_INVALID_SYNTAX;
+
+	} else if ( checkTime( &tu, NULL ) ) {
+		rc = LDAP_INVALID_SYNTAX;
+	}
+
+	if ( in->bv_val[0] == '{' && in->bv_val[in->bv_len-1] == '}' ) {
+		slap_sl_free( i.bv_val, NULL );
+	}
+
+	Debug( LDAP_DEBUG_TRACE, "<<< issuerAndThisUpdateValidate: <%s> err=%d\n",
+		in->bv_val, rc, 0 );
+
+done:;
+	return rc;
+}
+
+static int
+issuerAndThisUpdatePretty(
+	Syntax *syntax,
+	struct berval *in,
+	struct berval *out,
+	void *ctx )
+{
+	int rc;
+	struct berval i, tu, ni = BER_BVNULL;
+	char *p;
+
+	assert( in != NULL );
+	assert( out != NULL );
+
+	BER_BVZERO( out );
+
+	Debug( LDAP_DEBUG_TRACE, ">>> issuerAndThisUpdatePretty: <%s>\n",
+		in->bv_val, 0, 0 );
+
+	rc = issuerAndThisUpdateCheck( in, &i, &tu, ctx );
+	if ( rc ) {
+		goto done;
+	}
+
+	rc = dnPretty( syntax, &i, &ni, ctx );
+
+	if ( in->bv_val[0] == '{' && in->bv_val[in->bv_len-1] == '}' ) {
+		slap_sl_free( i.bv_val, ctx );
+	}
+
+	if ( rc || checkTime( &tu, NULL ) ) {
+		rc = LDAP_INVALID_SYNTAX;
+		goto done;
+	}
+
+	/* make room */
+	out->bv_len = STRLENOF("{ issuer rdnSequence:\"\", thisUpdate \"\" }")
+		+ ni.bv_len + tu.bv_len;
+	out->bv_val = slap_sl_malloc( out->bv_len + 1, ctx );
+
+	if ( out->bv_val == NULL ) {
+		out->bv_len = 0;
+		rc = LDAP_OTHER;
+		goto done;
+	}
+
+	p = out->bv_val;
+	p = lutil_strcopy( p, "{ issuer rdnSequence:\"" /*}*/ );
+	p = lutil_strncopy( p, ni.bv_val, ni.bv_len );
+	p = lutil_strcopy( p, "\", thisUpdate \"" );
+	p = lutil_strncopy( p, tu.bv_val, tu.bv_len );
+	p = lutil_strcopy( p, /*{*/ "\" }" );
+
+	assert( p - out->bv_val == out->bv_len );
+
+done:;
+	Debug( LDAP_DEBUG_TRACE, "<<< issuerAndThisUpdatePretty: <%s> => <%s>\n",
+		in->bv_val, rc == LDAP_SUCCESS ? out->bv_val : "(err)", 0 );
+
+	slap_sl_free( ni.bv_val, ctx );
+
+	return rc; 
+}
+
+static int
+issuerAndThisUpdateNormalize(
+	slap_mask_t usage,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *in,
+	struct berval *out,
+	void *ctx )
+{
+	struct berval i, ni, tu, tu2;
+	char sbuf[STRLENOF("YYYYmmddHHMMSSZ") + 1];
+	char *p;
+	int rc;
+
+	assert( in != NULL );
+	assert( out != NULL );
+
+	Debug( LDAP_DEBUG_TRACE, ">>> issuerAndThisUpdateNormalize: <%s>\n",
+		in->bv_val, 0, 0 );
+
+	rc = issuerAndThisUpdateCheck( in, &i, &tu, ctx );
+	if ( rc ) {
+		return rc;
+	}
+
+	rc = dnNormalize( usage, syntax, mr, &i, &ni, ctx );
+
+	if ( in->bv_val[0] == '{' && in->bv_val[in->bv_len-1] == '}' ) {
+		slap_sl_free( i.bv_val, ctx );
+	}
+
+	tu2.bv_val = sbuf;
+	tu2.bv_len = sizeof( sbuf );
+	if ( rc || checkTime( &tu, &tu2 ) ) {
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	out->bv_len = STRLENOF( "{ issuer rdnSequence:\"\", thisUpdate \"\" }" )
+		+ ni.bv_len + tu2.bv_len;
+	out->bv_val = slap_sl_malloc( out->bv_len + 1, ctx );
+
+	if ( out->bv_val == NULL ) {
+		out->bv_len = 0;
+		rc = LDAP_OTHER;
+		goto func_leave;
+	}
+
+	p = out->bv_val;
+
+	p = lutil_strcopy( p, "{ issuer rdnSequence:\"" /*}*/ );
+	p = lutil_strncopy( p, ni.bv_val, ni.bv_len );
+	p = lutil_strcopy( p, "\", thisUpdate \"" );
+	p = lutil_strncopy( p, tu2.bv_val, tu2.bv_len );
+	p = lutil_strcopy( p, /*{*/ "\" }" );
+
+	assert( p - out->bv_val == out->bv_len );
+
+func_leave:
+	Debug( LDAP_DEBUG_TRACE, "<<< issuerAndThisUpdateNormalize: <%s> => <%s>\n",
+		in->bv_val, rc == LDAP_SUCCESS ? out->bv_val : "(err)", 0 );
+
+	slap_sl_free( ni.bv_val, ctx );
+
+	return rc;
+}
+
+static int
+certificateListExactNormalize(
+	slap_mask_t usage,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *val,
+	struct berval *normalized,
+	void *ctx )
+{
+	BerElementBuffer berbuf;
+	BerElement *ber = (BerElement *)&berbuf;
+	ber_tag_t tag;
+	ber_len_t len;
+	ber_int_t version;
+	struct berval issuer_dn = BER_BVNULL, bvdn,
+		thisUpdate, bvtu;
+	char *p, tubuf[STRLENOF("YYYYmmddHHMMSSZ") + 1];
+	int rc = LDAP_INVALID_SYNTAX;
+
+	assert( val != NULL );
+
+	Debug( LDAP_DEBUG_TRACE, ">>> certificateListExactNormalize: <%p, %lu>\n",
+		val->bv_val, val->bv_len, 0 );
+
+	if ( BER_BVISEMPTY( val ) ) goto done;
+
+	if ( SLAP_MR_IS_VALUE_OF_ASSERTION_SYNTAX(usage) ) {
+		return issuerAndThisUpdateNormalize( 0, NULL, NULL, val, normalized, ctx );
+	}
+
+	assert( SLAP_MR_IS_VALUE_OF_ATTRIBUTE_SYNTAX(usage) != 0 );
+
+	ber_init2( ber, val, LBER_USE_DER );
+	tag = ber_skip_tag( ber, &len );	/* Signed wrapper */
+	if ( tag != LBER_SEQUENCE ) return LDAP_INVALID_SYNTAX;
+	tag = ber_skip_tag( ber, &len );	/* Sequence */
+	if ( tag != LBER_SEQUENCE ) return LDAP_INVALID_SYNTAX;
+	tag = ber_peek_tag( ber, &len );
+	/* Optional version */
+	if ( tag == LBER_INTEGER ) {
+		tag = ber_get_int( ber, &version );
+		assert( tag == LBER_INTEGER );
+		if ( version != SLAP_X509_V2 ) return LDAP_INVALID_SYNTAX;
+	}
+	tag = ber_skip_tag( ber, &len );	/* Signature Algorithm */
+	if ( tag != LBER_SEQUENCE ) return LDAP_INVALID_SYNTAX;
+	ber_skip_data( ber, len );
+
+	tag = ber_peek_tag( ber, &len );	/* IssuerDN */
+	if ( tag != LBER_SEQUENCE ) return LDAP_INVALID_SYNTAX;
+	len = ber_ptrlen( ber );
+	bvdn.bv_val = val->bv_val + len;
+	bvdn.bv_len = val->bv_len - len;
+	tag = ber_skip_tag( ber, &len );
+	ber_skip_data( ber, len );
+
+	tag = ber_skip_tag( ber, &len );	/* thisUpdate */
+	/* Time is a CHOICE { UTCTime, GeneralizedTime } */
+	if ( tag != SLAP_TAG_UTCTIME && tag != SLAP_TAG_GENERALIZEDTIME ) return LDAP_INVALID_SYNTAX;
+	bvtu.bv_val = (char *)ber->ber_ptr;
+	bvtu.bv_len = len;
+
+	rc = dnX509normalize( &bvdn, &issuer_dn );
+	if ( rc != LDAP_SUCCESS ) goto done;
+
+	thisUpdate.bv_val = tubuf;
+	thisUpdate.bv_len = sizeof(tubuf);
+	if ( checkTime( &bvtu, &thisUpdate ) ) {
+		rc = LDAP_INVALID_SYNTAX;
+		goto done;
+	}
+
+	normalized->bv_len = STRLENOF( "{ issuer rdnSequence:\"\", thisUpdate \"\" }" )
+		+ issuer_dn.bv_len + thisUpdate.bv_len;
+	normalized->bv_val = ch_malloc( normalized->bv_len + 1 );
+
+	p = normalized->bv_val;
+
+	p = lutil_strcopy( p, "{ issuer rdnSequence:\"" );
+	p = lutil_strncopy( p, issuer_dn.bv_val, issuer_dn.bv_len );
+	p = lutil_strcopy( p, "\", thisUpdate \"" );
+	p = lutil_strncopy( p, thisUpdate.bv_val, thisUpdate.bv_len );
+	p = lutil_strcopy( p, /*{*/ "\" }" );
+
+	rc = LDAP_SUCCESS;
+
+done:
+	Debug( LDAP_DEBUG_TRACE, "<<< certificateListExactNormalize: <%p, %lu> => <%s>\n",
+		val->bv_val, val->bv_len, rc == LDAP_SUCCESS ? normalized->bv_val : "(err)" );
+
+	if ( issuer_dn.bv_val ) ber_memfree( issuer_dn.bv_val );
+
+	return rc;
+}
+
 static int
 hexValidate(
 	Syntax *syntax,
@@ -4816,7 +5311,9 @@ static slap_syntax_defs_rec syntax_defs[] = {
 	{"( 1.3.6.1.1.15.4 DESC 'Certificate Pair Assertion' )",
 		SLAP_SYNTAX_HIDE, NULL, NULL, NULL},
 	{"( 1.3.6.1.1.15.5 DESC 'Certificate List Exact Assertion' )",
-		SLAP_SYNTAX_HIDE, NULL, NULL, NULL},
+		SLAP_SYNTAX_HIDE, NULL,
+		issuerAndThisUpdateValidate,
+		issuerAndThisUpdatePretty},
 	{"( 1.3.6.1.1.15.6 DESC 'Certificate List Assertion' )",
 		SLAP_SYNTAX_HIDE, NULL, NULL, NULL},
 	{"( 1.3.6.1.1.15.7 DESC 'Algorithm Identifier' )",
@@ -4854,6 +5351,10 @@ char *csnSIDMatchSyntaxes[] = {
 };
 char *certificateExactMatchSyntaxes[] = {
 	"1.3.6.1.4.1.1466.115.121.1.8" /* certificate */,
+	NULL
+};
+char *certificateListExactMatchSyntaxes[] = {
+	"1.3.6.1.4.1.1466.115.121.1.9" /* certificateList */,
 	NULL
 };
 #ifdef LDAP_COMP_MATCH
@@ -5196,6 +5697,19 @@ static slap_mrule_defs_rec mrule_defs[] = {
 	{"( 2.5.13.35 NAME 'certificateMatch' "
 		"SYNTAX 1.3.6.1.1.15.2 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT, NULL,
+		NULL, NULL, NULL, NULL, NULL,
+		NULL },
+
+	{"( 2.5.13.38 NAME 'certificateListExactMatch' "
+		"SYNTAX 1.3.6.1.1.15.5 )",
+		SLAP_MR_EQUALITY | SLAP_MR_EXT | SLAP_MR_HIDE, certificateListExactMatchSyntaxes,
+		NULL, certificateListExactNormalize, octetStringMatch,
+		octetStringIndexer, octetStringFilter,
+		NULL },
+
+	{"( 2.5.13.39 NAME 'certificateListMatch' "
+		"SYNTAX 1.3.6.1.1.15.6 )",
+		SLAP_MR_EQUALITY | SLAP_MR_EXT | SLAP_MR_HIDE, NULL,
 		NULL, NULL, NULL, NULL, NULL,
 		NULL },
 
