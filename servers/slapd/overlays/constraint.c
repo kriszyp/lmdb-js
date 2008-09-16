@@ -498,7 +498,6 @@ static int
 constraint_add( Operation *op, SlapReply *rs )
 {
 	slap_overinst *on = (slap_overinst *) op->o_bd->bd_info;
-	Backend *be = op->o_bd;
 	Attribute *a;
 	constraint *c = on->on_bi.bi_private, *cp;
 	BerVarray b = NULL;

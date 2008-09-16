@@ -393,9 +393,6 @@ static struct berval generic_filterstr = BER_BVC("(objectclass=*)");
 static int
 syncprov_findbase( Operation *op, fbase_cookie *fc )
 {
-	opcookie *opc = op->o_callback->sc_private;
-	slap_overinst *on = opc->son;
-
 	/* Use basic parameters from syncrepl search, but use
 	 * current op's threadctx / tmpmemctx
 	 */

@@ -31,6 +31,8 @@
 #include "slap.h"
 #include "config.h"
 
+#include "lutil.h"
+
 /* This is a cheap hack to implement a collective attribute.
  *
  * This demonstration overlay looks for a specified attribute in an
@@ -266,7 +268,7 @@ collect_modify( Operation *op, SlapReply *rs)
 	collect_info *ci = on->on_bi.bi_private;
 	Modifications *ml;
 	char errMsg[100];
-	int rc, idx;
+	int idx;
 
 	for ( ml = op->orm_modlist; ml != NULL; ml = ml->sml_next) {
 		for (; ci; ci=ci->ci_next ) {
