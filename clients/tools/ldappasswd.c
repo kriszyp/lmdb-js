@@ -389,7 +389,6 @@ main( int argc, char *argv[] )
 			" new password expected", NULL, NULL, NULL );
 	}
 
-skip:
 	if( verbose || code != LDAP_SUCCESS ||
 		matcheddn || text || refs || ctrls )
 	{
