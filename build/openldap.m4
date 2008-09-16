@@ -310,37 +310,35 @@ dnl --------------------------------------------------------------------
 dnl Get major and minor version from <db.h>
 AC_DEFUN([OL_BDB_HEADER_VERSION],
 [AC_CACHE_CHECK([for Berkeley DB major version in db.h], [ol_cv_bdb_major],[
-	ol_cv_bdb_major=0
-	if test $ol_cv_bdb_major = 0 ; then
-		AC_LANG_CONFTEST([
+	AC_LANG_CONFTEST([
 #include <db.h>
 #ifndef DB_VERSION_MAJOR
 #	define DB_VERSION_MAJOR 1
 #endif
 __db_version DB_VERSION_MAJOR
 ])
-		ol_cv_bdb_major=`eval "$ac_cpp conftest.$ac_ext" | $EGREP __db_version | $SED 's/__db_version //'`
-	fi
-
-	if test $ol_cv_bdb_major = 0 ; then
-		AC_MSG_ERROR([Unknown Berkeley DB major version])
-	fi
+	set X `eval "$ac_cpp conftest.$ac_ext" | $EGREP __db_version` none none
+	ol_cv_bdb_major=${3}
 ])
+case $ol_cv_bdb_major in [[1-9]]*) : ;; *)
+	AC_MSG_ERROR([Unknown Berkeley DB major version in db.h]) ;;
+esac
 
 dnl Determine minor version
 AC_CACHE_CHECK([for Berkeley DB minor version in db.h], [ol_cv_bdb_minor],[
-	ol_cv_bdb_minor=0
-	if test $ol_cv_bdb_minor = 0 ; then
-		AC_LANG_CONFTEST([
+	AC_LANG_CONFTEST([
 #include <db.h>
 #ifndef DB_VERSION_MINOR
 #	define DB_VERSION_MINOR 0
 #endif
 __db_version DB_VERSION_MINOR
 ])
-		ol_cv_bdb_minor=`eval "$ac_cpp conftest.$ac_ext" | $EGREP __db_version | $SED 's/__db_version //'`
-	fi
+	set X `eval "$ac_cpp conftest.$ac_ext" | $EGREP __db_version` none none
+	ol_cv_bdb_minor=${3}
 ])
+case $ol_cv_bdb_minor in [[0-9]]*) : ;; *)
+	AC_MSG_ERROR([Unknown Berkeley DB minor version in db.h]) ;;
+esac
 ])
 dnl
 dnl --------------------------------------------------------------------
