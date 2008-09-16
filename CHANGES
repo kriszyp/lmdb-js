@@ -27,6 +27,7 @@ OpenLDAP 2.4.12 Engineering
 	Fixed slapd-meta memory handling (ITS#5691)
 	Fixed slapd-meta objectClass filtering (ITS#5647)
 	Fixed slapd-meta quarantine behavior (ITS#5592)
+	Added slapd-ndb experimental backend
 	Fixed slapd-relay initialization (ITS#5643)
 	Fixed slapd-sql freeing of connection (ITS#5607)
 	Fixed slapd-sql fault on NULL fields (ITS#5653)
