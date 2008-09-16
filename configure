@@ -27471,7 +27471,7 @@ else
 __db_version DB_VERSION_MAJOR
 
 _ACEOF
-		ol_cv_bdb_major=`$CPP conftest.$ac_ext | $EGREP __db_version | $SED 's/__db_version //'`
+		ol_cv_bdb_major=`eval "$ac_cpp conftest.$ac_ext" | $EGREP __db_version | $SED 's/__db_version //'`
 	fi
 
 	if test $ol_cv_bdb_major = 0 ; then
@@ -27501,7 +27501,7 @@ else
 __db_version DB_VERSION_MINOR
 
 _ACEOF
-		ol_cv_bdb_minor=`$CPP conftest.$ac_ext | $EGREP __db_version | $SED 's/__db_version //'`
+		ol_cv_bdb_minor=`eval "$ac_cpp conftest.$ac_ext" | $EGREP __db_version | $SED 's/__db_version //'`
 	fi
 
 fi
