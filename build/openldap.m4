@@ -288,24 +288,6 @@ AC_DEFUN([OL_BERKELEY_DB_TRY],
 #define NULL ((void*)0)
 #endif
 ]], [[
-#if DB_VERSION_MAJOR > 1
-	{
-		char *version;
-		int major, minor, patch;
-
-		version = db_version( &major, &minor, &patch );
-
-		if( major != DB_VERSION_MAJOR ||
-			minor < DB_VERSION_MINOR )
-		{
-			printf("Berkeley DB version mismatch\n"
-				"\theader: %s\n\tlibrary: %s\n",
-				DB_VERSION_STRING, version);
-			return 1;
-		}
-	}
-#endif
-
 #if DB_VERSION_MAJOR > 2
 	db_env_create( NULL, 0 );
 #elif DB_VERSION_MAJOR > 1
@@ -374,18 +356,6 @@ if test $ol_cv_bdb_major = 4 ; then
 	OL_BERKELEY_DB_TRY(ol_cv_db_db_4,[-ldb-4])
 	OL_BERKELEY_DB_TRY(ol_cv_db_db4,[-ldb4])
 	OL_BERKELEY_DB_TRY(ol_cv_db_db,[-ldb])
-
-elif test $ol_cv_bdb_major = 3 ; then
-	OL_BERKELEY_DB_TRY(ol_cv_db_db3,[-ldb3])
-	OL_BERKELEY_DB_TRY(ol_cv_db_db_3,[-ldb-3])
-
-elif test $ol_cv_bdb_major = 2 ; then
-	OL_BERKELEY_DB_TRY(ol_cv_db_db2,[-ldb2])
-	OL_BERKELEY_DB_TRY(ol_cv_db_db_2,[-ldb-2])
-
-elif test $ol_cv_bdb_major = 1 ; then
-	OL_BERKELEY_DB_TRY(ol_cv_db_db1,[-ldb1])
-	OL_BERKELEY_DB_TRY(ol_cv_db_db_1,[-ldb-1])
 fi
 OL_BERKELEY_DB_TRY(ol_cv_db_none)
 ])
