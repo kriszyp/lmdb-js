@@ -325,56 +325,19 @@ fi
 ])
 dnl
 dnl --------------------------------------------------------------------
-dnl Try to locate appropriate library
-AC_DEFUN([OL_BERKELEY_DB_LINK],
-[ol_cv_lib_db=no
-
-dnl Determine major version
-AC_CACHE_CHECK([for Berkeley DB major version], [ol_cv_bdb_major],[
+dnl Get major and minor version from <db.h>
+AC_DEFUN([OL_BDB_HEADER_VERSION],
+[AC_CACHE_CHECK([for Berkeley DB major version in db.h], [ol_cv_bdb_major],[
 	ol_cv_bdb_major=0
 	if test $ol_cv_bdb_major = 0 ; then
-		AC_EGREP_CPP(__db_version, [
+		AC_LANG_CONFTEST([
 #include <db.h>
 #ifndef DB_VERSION_MAJOR
 #	define DB_VERSION_MAJOR 1
 #endif
-#if DB_VERSION_MAJOR == 4
-__db_version
-#endif
-		], [ol_cv_bdb_major=4], [:])
-	fi
-	if test $ol_cv_bdb_major = 0 ; then
-		AC_EGREP_CPP(__db_version, [
-#include <db.h>
-#ifndef DB_VERSION_MAJOR
-#	define DB_VERSION_MAJOR 1
-#endif
-#if DB_VERSION_MAJOR == 3
-__db_version
-#endif
-		], [ol_cv_bdb_major=3], [:])
-	fi
-	if test $ol_cv_bdb_major = 0 ; then
-		AC_EGREP_CPP(__db_version, [
-#include <db.h>
-#ifndef DB_VERSION_MAJOR
-#	define DB_VERSION_MAJOR 1
-#endif
-#if DB_VERSION_MAJOR == 2
-__db_version
-#endif
-		], [ol_cv_bdb_major=2], [:])
-	fi
-	if test $ol_cv_bdb_major = 0 ; then
-		AC_EGREP_CPP(__db_version, [
-#include <db.h>
-#ifndef DB_VERSION_MAJOR
-#	define DB_VERSION_MAJOR 1
-#endif
-#if DB_VERSION_MAJOR == 1
-__db_version
-#endif
-		], [ol_cv_bdb_major=1], [:])
+__db_version DB_VERSION_MAJOR
+])
+		ol_cv_bdb_major=`$CPP conftest.$ac_ext | $EGREP __db_version | $SED 's/__db_version //'`
 	fi
 
 	if test $ol_cv_bdb_major = 0 ; then
@@ -383,108 +346,25 @@ __db_version
 ])
 
 dnl Determine minor version
-AC_CACHE_CHECK([for Berkeley DB minor version], [ol_cv_bdb_minor],[
+AC_CACHE_CHECK([for Berkeley DB minor version in db.h], [ol_cv_bdb_minor],[
 	ol_cv_bdb_minor=0
 	if test $ol_cv_bdb_minor = 0 ; then
-		AC_EGREP_CPP(__db_version, [
+		AC_LANG_CONFTEST([
 #include <db.h>
 #ifndef DB_VERSION_MINOR
 #	define DB_VERSION_MINOR 0
 #endif
-#if DB_VERSION_MINOR == 9
-__db_version
-#endif
-		], [ol_cv_bdb_minor=9], [:])
-	fi
-	if test $ol_cv_bdb_minor = 0 ; then
-		AC_EGREP_CPP(__db_version, [
-#include <db.h>
-#ifndef DB_VERSION_MINOR
-#	define DB_VERSION_MINOR 0
-#endif
-#if DB_VERSION_MINOR == 8
-__db_version
-#endif
-		], [ol_cv_bdb_minor=8], [:])
-	fi
-	if test $ol_cv_bdb_minor = 0 ; then
-		AC_EGREP_CPP(__db_version, [
-#include <db.h>
-#ifndef DB_VERSION_MINOR
-#	define DB_VERSION_MINOR 0
-#endif
-#if DB_VERSION_MINOR == 7
-__db_version
-#endif
-		], [ol_cv_bdb_minor=7], [:])
-	fi
-	if test $ol_cv_bdb_minor = 0 ; then
-		AC_EGREP_CPP(__db_version, [
-#include <db.h>
-#ifndef DB_VERSION_MINOR
-#	define DB_VERSION_MINOR 0
-#endif
-#if DB_VERSION_MINOR == 6
-__db_version
-#endif
-		], [ol_cv_bdb_minor=6], [:])
-	fi
-	if test $ol_cv_bdb_minor = 0 ; then
-		AC_EGREP_CPP(__db_version, [
-#include <db.h>
-#ifndef DB_VERSION_MINOR
-#	define DB_VERSION_MINOR 0
-#endif
-#if DB_VERSION_MINOR == 5
-__db_version
-#endif
-		], [ol_cv_bdb_minor=5], [:])
-	fi
-	if test $ol_cv_bdb_minor = 0 ; then
-		AC_EGREP_CPP(__db_version, [
-#include <db.h>
-#ifndef DB_VERSION_MINOR
-#	define DB_VERSION_MINOR 0
-#endif
-#if DB_VERSION_MINOR == 4
-__db_version
-#endif
-		], [ol_cv_bdb_minor=4], [:])
-	fi
-	if test $ol_cv_bdb_minor = 0 ; then
-		AC_EGREP_CPP(__db_version, [
-#include <db.h>
-#ifndef DB_VERSION_MINOR
-#	define DB_VERSION_MINOR 0
-#endif
-#if DB_VERSION_MINOR == 3
-__db_version
-#endif
-		], [ol_cv_bdb_minor=3], [:])
-	fi
-	if test $ol_cv_bdb_minor = 0 ; then
-		AC_EGREP_CPP(__db_version, [
-#include <db.h>
-#ifndef DB_VERSION_MINOR
-#	define DB_VERSION_MINOR 0
-#endif
-#if DB_VERSION_MINOR == 2
-__db_version
-#endif
-		], [ol_cv_bdb_minor=2], [:])
-	fi
-	if test $ol_cv_bdb_minor = 0 ; then
-		AC_EGREP_CPP(__db_version, [
-#include <db.h>
-#ifndef DB_VERSION_MINOR
-#	define DB_VERSION_MINOR 0
-#endif
-#if DB_VERSION_MINOR == 1
-__db_version
-#endif
-		], [ol_cv_bdb_minor=1], [:])
+__db_version DB_VERSION_MINOR
+])
+		ol_cv_bdb_minor=`$CPP conftest.$ac_ext | $EGREP __db_version | $SED 's/__db_version //'`
 	fi
 ])
+])
+dnl
+dnl --------------------------------------------------------------------
+dnl Try to locate appropriate library
+AC_DEFUN([OL_BERKELEY_DB_LINK],
+[ol_cv_lib_db=no
 
 if test $ol_cv_bdb_major = 4 ; then
 	OL_BERKELEY_DB_TRY(ol_cv_db_db_4_dot_m,[-ldb-4.$ol_cv_bdb_minor])
@@ -513,7 +393,7 @@ dnl
 dnl --------------------------------------------------------------------
 dnl Check if Berkeley DB version
 AC_DEFUN([OL_BERKELEY_DB_VERSION],
-[AC_CACHE_CHECK([for Berkeley DB version match], [ol_cv_berkeley_db_version], [
+[AC_CACHE_CHECK([for Berkeley DB library and header version match], [ol_cv_berkeley_db_version], [
 	ol_LIBS="$LIBS"
 	LIBS="$LTHREAD_LIBS $LIBS"
 	if test $ol_cv_lib_db != yes ; then
@@ -652,6 +532,13 @@ AC_DEFUN([OL_BERKELEY_DB],
 [ol_cv_berkeley_db=no
 AC_CHECK_HEADERS(db.h)
 if test $ac_cv_header_db_h = yes; then
+	OL_BDB_HEADER_VERSION
+	OL_BDB_COMPAT
+
+	if test $ol_cv_bdb_compat != yes ; then
+		AC_MSG_ERROR([BerkeleyDB version incompatible with BDB/HDB backends])
+	fi
+
 	OL_BERKELEY_DB_LINK
 	if test "$ol_cv_lib_db" != no ; then
 		ol_cv_berkeley_db=yes
@@ -663,7 +550,7 @@ fi
 dnl --------------------------------------------------------------------
 dnl Check for version compatility with back-bdb
 AC_DEFUN([OL_BDB_COMPAT],
-[AC_CACHE_CHECK([Berkeley DB version for BDB/HDB backends], [ol_cv_bdb_compat],[
+[AC_CACHE_CHECK([if Berkeley DB version supported by BDB/HDB backends], [ol_cv_bdb_compat],[
 	AC_EGREP_CPP(__db_version_compat,[
 #include <db.h>
 
@@ -684,37 +571,6 @@ AC_DEFUN([OL_BDB_COMPAT],
 	], [ol_cv_bdb_compat=yes], [ol_cv_bdb_compat=no])])
 ])
 
-dnl --------------------------------------------------------------------
-dnl Find old Berkeley DB 1.85/1.86
-AC_DEFUN([OL_BERKELEY_COMPAT_DB],
-[AC_CHECK_HEADERS(db_185.h db.h)
-if test $ac_cv_header_db_185_h = yes || test $ac_cv_header_db_h = yes; then
-	AC_CACHE_CHECK([if Berkeley DB header compatibility], [ol_cv_header_db1],[
-		AC_EGREP_CPP(__db_version_1,[
-#if HAVE_DB_185_H
-#	include <db_185.h>
-#else
-#	include <db.h>
-#endif
-
- /* this check could be improved */
-#ifndef DB_VERSION_MAJOR
-#	define DB_VERSION_MAJOR 1
-#endif
-
-#if DB_VERSION_MAJOR == 1 
-	__db_version_1
-#endif
-],	[ol_cv_header_db1=yes], [ol_cv_header_db1=no])])
-
-	if test $ol_cv_header_db1 = yes ; then
-		OL_BERKELEY_DB_LINK
-		if test "$ol_cv_lib_db" != no ; then
-			ol_cv_berkeley_db=yes
-		fi
-	fi
-fi
-])
 dnl
 dnl ====================================================================
 dnl Check POSIX Thread version 

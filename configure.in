@@ -1850,12 +1850,6 @@ if test $ol_enable_bdb/$ol_enable_hdb != no/no; then
 		BDB_LIBS="$BDB_LIBS $ol_cv_lib_db"
 	fi
 
-	OL_BDB_COMPAT
-
-	if test $ol_cv_bdb_compat != yes ; then
-		AC_MSG_ERROR([BDB/HDB: BerkeleyDB version incompatible])
-	fi
-
 	SLAPD_LIBS="$SLAPD_LIBS \$(BDB_LIBS)"
 
 	ol_link_bdb=yes 
