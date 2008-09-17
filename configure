@@ -27460,9 +27460,7 @@ if test "${ol_cv_bdb_major+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
 
-	ol_cv_bdb_major=0
-	if test $ol_cv_bdb_major = 0 ; then
-		cat >conftest.$ac_ext <<_ACEOF
+	cat >conftest.$ac_ext <<_ACEOF
 
 #include <db.h>
 #ifndef DB_VERSION_MAJOR
@@ -27471,18 +27469,17 @@ else
 __db_version DB_VERSION_MAJOR
 
 _ACEOF
-		ol_cv_bdb_major=`eval "$ac_cpp conftest.$ac_ext" | $EGREP __db_version | $SED 's/__db_version //'`
-	fi
-
-	if test $ol_cv_bdb_major = 0 ; then
-		{ { echo "$as_me:$LINENO: error: Unknown Berkeley DB major version" >&5
-echo "$as_me: error: Unknown Berkeley DB major version" >&2;}
-   { (exit 1); exit 1; }; }
-	fi
+	set X `eval "$ac_cpp conftest.$ac_ext" | $EGREP __db_version` none none
+	ol_cv_bdb_major=${3}
 
 fi
 echo "$as_me:$LINENO: result: $ol_cv_bdb_major" >&5
 echo "${ECHO_T}$ol_cv_bdb_major" >&6
+case $ol_cv_bdb_major in [1-9]*) : ;; *)
+	{ { echo "$as_me:$LINENO: error: Unknown Berkeley DB major version in db.h" >&5
+echo "$as_me: error: Unknown Berkeley DB major version in db.h" >&2;}
+   { (exit 1); exit 1; }; } ;;
+esac
 
 echo "$as_me:$LINENO: checking for Berkeley DB minor version in db.h" >&5
 echo $ECHO_N "checking for Berkeley DB minor version in db.h... $ECHO_C" >&6
@@ -27490,9 +27487,7 @@ if test "${ol_cv_bdb_minor+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
 
-	ol_cv_bdb_minor=0
-	if test $ol_cv_bdb_minor = 0 ; then
-		cat >conftest.$ac_ext <<_ACEOF
+	cat >conftest.$ac_ext <<_ACEOF
 
 #include <db.h>
 #ifndef DB_VERSION_MINOR
@@ -27501,12 +27496,17 @@ else
 __db_version DB_VERSION_MINOR
 
 _ACEOF
-		ol_cv_bdb_minor=`eval "$ac_cpp conftest.$ac_ext" | $EGREP __db_version | $SED 's/__db_version //'`
-	fi
+	set X `eval "$ac_cpp conftest.$ac_ext" | $EGREP __db_version` none none
+	ol_cv_bdb_minor=${3}
 
 fi
 echo "$as_me:$LINENO: result: $ol_cv_bdb_minor" >&5
 echo "${ECHO_T}$ol_cv_bdb_minor" >&6
+case $ol_cv_bdb_minor in [0-9]*) : ;; *)
+	{ { echo "$as_me:$LINENO: error: Unknown Berkeley DB minor version in db.h" >&5
+echo "$as_me: error: Unknown Berkeley DB minor version in db.h" >&2;}
+   { (exit 1); exit 1; }; } ;;
+esac
 
 	echo "$as_me:$LINENO: checking if Berkeley DB version supported by BDB/HDB backends" >&5
 echo $ECHO_N "checking if Berkeley DB version supported by BDB/HDB backends... $ECHO_C" >&6
