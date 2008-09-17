@@ -103,7 +103,7 @@ constraint_attribute title uri
   ldap:///dc=catalog,dc=example,dc=com?title?sub?(objectClass=titleCatalog)
 constraint_attribute cn,sn,givenName set
   "(this/givenName + [ ] + this/sn) & this/cn"
-  restrict="ldap:///ou=People,dc=example,dc=com??sub?(objectClass=person)"
+  restrict="ldap:///ou=People,dc=example,dc=com??sub?(objectClass=inetOrgPerson)"
 .fi
 
 .RE
@@ -125,7 +125,7 @@ to be constructed by pairing values of the attributes
 and 
 .BR givenName ,
 separated by a space, but only for entries derived from the objectClass
-.BR person .
+.BR inetOrgPerson .
 .RE
 .SH FILES
 .TP
