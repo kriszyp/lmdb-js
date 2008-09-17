@@ -41,6 +41,7 @@
 
 #define REGEX_STR "regex"
 #define URI_STR "uri"
+#define SET_STR "set"
 #define SIZE_STR "size"
 #define COUNT_STR "count"
 
@@ -54,9 +55,10 @@
 
 typedef struct constraint {
 	struct constraint *ap_next;
-	AttributeDescription *ap;
+	AttributeDescription **ap;
 	regex_t *re;
 	LDAPURLDesc *lud;
+	int set;
 	size_t size;
 	size_t count;
 	AttributeDescription **attrs;
@@ -104,6 +106,8 @@ constraint_free( constraint *cp )
 		ldap_free_urldesc(cp->lud);
 	if (cp->attrs)
 		ch_free(cp->attrs);
+	if (cp->ap)
+		ch_free(cp->ap);
 	ch_free(cp);
 }
 
@@ -122,36 +126,55 @@ constraint_cf_gen( ConfigArgs *c )
 		switch (c->type) {
 		case CONSTRAINT_ATTRIBUTE:
 			for (cp=cn; cp; cp=cp->ap_next) {
-				int len;
 				char *s;
 				char *tstr = NULL;
+				int quotes = 0;
+				int j;
 
-				len = cp->ap->ad_cname.bv_len + 3;
+				bv.bv_len = STRLENOF("  ");
+				for (j = 0; cp->ap[j]; j++) {
+					bv.bv_len += cp->ap[j]->ad_cname.bv_len;
+				}
+
+				/* room for commas */
+				bv.bv_len += j - 1;
+
 				if (cp->re) {
-					len += STRLENOF(REGEX_STR);
 					tstr = REGEX_STR;
 				} else if (cp->lud) {
-					len += STRLENOF(URI_STR);
 					tstr = URI_STR;
+				} else if (cp->set) {
+					tstr = SET_STR;
+					quotes = 1;
 				} else if (cp->size) {
-					len += STRLENOF(SIZE_STR);
 					tstr = SIZE_STR;
 				} else if (cp->count) {
-					len += STRLENOF(COUNT_STR);
 					tstr = COUNT_STR;
 				}
-				len += cp->val.bv_len;
 
-				s = ch_malloc(len);
+				bv.bv_len += strlen(tstr);
+				bv.bv_len += cp->val.bv_len + 2*quotes;
 
-				bv.bv_len = snprintf(s, len, "%s %s %s", cp->ap->ad_cname.bv_val,
-						 tstr, cp->val.bv_val);
-				bv.bv_val = s;
+				s = bv.bv_val = ch_malloc(bv.bv_len + 1);
+
+				s = lutil_strncopy( s, cp->ap[0]->ad_cname.bv_val, cp->ap[0]->ad_cname.bv_len );
+				for (j = 1; cp->ap[j]; j++) {
+					*s++ = ',';
+					s = lutil_strncopy( s, cp->ap[j]->ad_cname.bv_val, cp->ap[j]->ad_cname.bv_len );
+				}
+				*s++ = ' ';
+				s = lutil_strcopy( s, tstr );
+				*s++ = ' ';
+				if ( quotes ) *s++ = '"';
+				s = lutil_strncopy( s, cp->val.bv_val, cp->val.bv_len );
+				if ( quotes ) *s++ = '"';
+				*s = '\0';
+
 				rc = value_add_one( &c->rvalue_vals, &bv );
+				if (rc == LDAP_SUCCESS)
+					rc = value_add_one( &c->rvalue_nvals, &bv );
+				ch_free(bv.bv_val);
 				if (rc) return rc;
-				rc = value_add_one( &c->rvalue_nvals, &bv );
-				if (rc) return rc;
-				ch_free(s);
 			}
 			break;
 		default:
@@ -198,14 +221,24 @@ constraint_cf_gen( ConfigArgs *c )
 	case SLAP_CONFIG_ADD:
 	case LDAP_MOD_ADD:
 		switch (c->type) {
-		case CONSTRAINT_ATTRIBUTE:
-			if ( slap_str2ad( c->argv[1], &ap.ap, &text ) ) {
-				snprintf( c->cr_msg, sizeof( c->cr_msg ),
-					"%s <%s>: %s\n", c->argv[0], c->argv[1], text );
-				Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
-					   "%s: %s\n", c->log, c->cr_msg, 0 );
-				return( ARG_BAD_CONF );
+		case CONSTRAINT_ATTRIBUTE: {
+			int j;
+			char **attrs = ldap_str2charray( c->argv[1], "," );
+
+			for ( j = 0; attrs[j]; j++)
+				/* just count */ ;
+			ap.ap = ch_calloc( sizeof(AttributeDescription*), j + 1 );
+			for ( j = 0; attrs[j]; j++) {
+				if ( slap_str2ad( attrs[j], &ap.ap[j], &text ) ) {
+					snprintf( c->cr_msg, sizeof( c->cr_msg ),
+						"%s <%s>: %s\n", c->argv[0], attrs[j], text );
+					Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
+						   "%s: %s\n", c->log, c->cr_msg, 0 );
+					ldap_memvfree((void**)attrs);
+					return( ARG_BAD_CONF );
+				}
 			}
+			ldap_memvfree((void**)attrs);
 
 			if ( strcasecmp( c->argv[2], REGEX_STR ) == 0) {
 				int err;
@@ -294,6 +327,11 @@ constraint_cf_gen( ConfigArgs *c )
 				}
 
 				ber_str2bv( c->argv[3], 0, 1, &ap.val );
+
+			} else if ( strcasecmp( c->argv[2], SET_STR ) == 0 ) {
+				ap.set = 1;
+				ber_str2bv( c->argv[3], 0, 1, &ap.val );
+
 			} else {
 				snprintf( c->cr_msg, sizeof( c->cr_msg ),
 				   "%s %s: Unknown constraint type: %s",
@@ -309,6 +347,7 @@ constraint_cf_gen( ConfigArgs *c )
 			a2->re = ap.re;
 			a2->val = ap.val;
 			a2->lud = ap.lud;
+			a2->set = ap.set;
 			a2->size = ap.size;
 			a2->count = ap.count;
 			if ( a2->lud ) {
@@ -317,7 +356,7 @@ constraint_cf_gen( ConfigArgs *c )
 			}
 			a2->attrs = ap.attrs;
 			on->on_bi.bi_private = a2;
-			break;
+			} break;
 		default:
 			abort();
 			break;
@@ -468,7 +507,7 @@ constraint_violation( constraint *c, struct berval *bv, Operation *op, SlapReply
 			return LDAP_CONSTRAINT_VIOLATION; /* constraint violation */
 			
 	}
-	
+
 	return LDAP_SUCCESS;
 }
 
@@ -518,7 +557,11 @@ constraint_add( Operation *op, SlapReply *rs )
 		if (is_at_operational(a->a_desc->ad_type)) continue;
 
 		for(cp = c; cp; cp = cp->ap_next) {
-			if (cp->ap != a->a_desc) continue;
+			int j;
+			for (j = 0; cp->ap[j]; j++) {
+				if (cp->ap[j] == a->a_desc) break;
+			}
+			if (cp->ap[j] == NULL) continue;
 			if ((b = a->a_vals) == NULL) continue;
 				
 			Debug(LDAP_DEBUG_TRACE, 
@@ -537,8 +580,15 @@ constraint_add( Operation *op, SlapReply *rs )
 					goto add_violation;
 				}
 			}
+
+			if (cp->set && acl_match_set(&cp->val, op, op->ora_e, NULL) == 0) {
+				rc = LDAP_CONSTRAINT_VIOLATION;
+				goto add_violation; /* constraint violation */
+			}
+
 		}
 	}
+
 	/* Default is to just fall through to the normal processing */
 	return SLAP_CB_CONTINUE;
 
@@ -559,7 +609,7 @@ constraint_modify( Operation *op, SlapReply *rs )
 	slap_overinst *on = (slap_overinst *) op->o_bd->bd_info;
 	Backend *be = op->o_bd;
 	constraint *c = on->on_bi.bi_private, *cp;
-	Entry *target_entry = NULL;
+	Entry *target_entry = NULL, *target_entry_copy = NULL;
 	Modifications *m;
 	BerVarray b = NULL;
 	int i;
@@ -567,7 +617,7 @@ constraint_modify( Operation *op, SlapReply *rs )
 	int rc;
 	char *msg = NULL;
 	
-	Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE, "constraint_modify()", 0,0,0);
+	Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE, "constraint_modify()\n", 0,0,0);
 	if ((m = op->orm_modlist) == NULL) {
 		op->o_bd->bd_info = (BackendInfo *)(on->on_info);
 		send_ldap_error(op, rs, LDAP_INVALID_SYNTAX,
@@ -577,8 +627,7 @@ constraint_modify( Operation *op, SlapReply *rs )
 
 	/* Do we need to count attributes? */
 	for(cp = c; cp; cp = cp->ap_next) {
-		if (cp->count != 0) {
-
+		if (cp->count != 0 || cp->set) {
 			op->o_bd = on->on_info->oi_origdb;
 			rc = be_entry_get_rw( op, &op->o_req_ndn, NULL, NULL, 0, &target_entry );
 			op->o_bd = be;
@@ -600,11 +649,8 @@ constraint_modify( Operation *op, SlapReply *rs )
 	for(;m; m = m->sml_next) {
 		int ce = 0;
 
-		/* Get this attribute count, if needed */
-		if (target_entry)
-			ce = constraint_count_attr(target_entry, m->sml_desc);
-
 		if (is_at_operational( m->sml_desc->ad_type )) continue;
+
 		if ((( m->sml_op & LDAP_MOD_OP ) != LDAP_MOD_ADD) &&
 			(( m->sml_op & LDAP_MOD_OP ) != LDAP_MOD_REPLACE) &&
 			(( m->sml_op & LDAP_MOD_OP ) != LDAP_MOD_DELETE))
@@ -614,8 +660,18 @@ constraint_modify( Operation *op, SlapReply *rs )
 		if ((( b = m->sml_values ) == NULL ) || (b[0].bv_val == NULL))
 			continue;
 
+		/* Get this attribute count, if needed */
+		if (target_entry)
+			ce = constraint_count_attr(target_entry, m->sml_desc);
+
 		for(cp = c; cp; cp = cp->ap_next) {
-			if (cp->ap != m->sml_desc) continue;
+			int j;
+			for (j = 0; cp->ap[j]; j++) {
+				if (cp->ap[j] == m->sml_desc) {
+					break;
+				}
+			}
+			if (cp->ap[j] == NULL) continue;
 			
 			if (cp->count != 0) {
 				int ca;
@@ -655,14 +711,91 @@ constraint_modify( Operation *op, SlapReply *rs )
 					goto mod_violation;
 				}
 			}
+
+			if (cp->set && target_entry) {
+				if (target_entry_copy == NULL) {
+					Modifications *ml;
+
+					target_entry_copy = entry_dup(target_entry);
+
+					/* apply modifications, in an attempt
+					 * to estimate what the entry would
+					 * look like in case all modifications
+					 * pass */
+					for ( ml = op->orm_modlist; ml; ml = ml->sml_next ) {
+						Modification *mod = &ml->sml_mod;
+						const char *text;
+						char textbuf[SLAP_TEXT_BUFLEN];
+						size_t textlen = sizeof(textbuf);
+						int err;
+
+						switch ( mod->sm_op ) {
+						case LDAP_MOD_ADD:
+							err = modify_add_values( target_entry_copy,
+								mod, get_permissiveModify(op),
+								&text, textbuf, textlen );
+							break;
+
+						case LDAP_MOD_DELETE:
+							err = modify_delete_values( target_entry_copy,
+								mod, get_permissiveModify(op),
+								&text, textbuf, textlen );
+							break;
+
+						case LDAP_MOD_REPLACE:
+							err = modify_replace_values( target_entry_copy,
+								mod, get_permissiveModify(op),
+								&text, textbuf, textlen );
+							break;
+
+						case LDAP_MOD_INCREMENT:
+							err = modify_increment_values( target_entry_copy,
+								mod, get_permissiveModify(op),
+								&text, textbuf, textlen );
+							break;
+
+						case SLAP_MOD_SOFTADD:
+ 							mod->sm_op = LDAP_MOD_ADD;
+							err = modify_add_values( target_entry_copy,
+								mod, get_permissiveModify(op),
+								&text, textbuf, textlen );
+ 							mod->sm_op = SLAP_MOD_SOFTADD;
+ 							if ( err == LDAP_TYPE_OR_VALUE_EXISTS ) {
+ 								err = LDAP_SUCCESS;
+ 							}
+							break;
+
+						default:
+							err = LDAP_OTHER;
+							break;
+						}
+
+						if ( err != LDAP_SUCCESS ) {
+							rc = err;
+							goto mod_violation;
+						}
+					}
+				}
+
+		
+				if ( acl_match_set(&cp->val, op, target_entry_copy, NULL) == 0) {
+					rc = LDAP_CONSTRAINT_VIOLATION;
+					goto mod_violation;
+				}
+			}
 		}
 	}
-	
+
 	if (target_entry) {
 		op->o_bd = on->on_info->oi_origdb;
 		be_entry_release_r(op, target_entry);
 		op->o_bd = be;
 	}
+
+	if (target_entry_copy) {
+		entry_free(target_entry_copy);
+	}
+
 	return SLAP_CB_CONTINUE;
 
 mod_violation:
@@ -672,6 +805,11 @@ mod_violation:
 		be_entry_release_r(op, target_entry);
 		op->o_bd = be;
 	}
+
+	if (target_entry_copy) {
+		entry_free(target_entry_copy);
+	}
+
 	op->o_bd->bd_info = (BackendInfo *)(on->on_info);
 	if ( rc == LDAP_CONSTRAINT_VIOLATION ) {
 		msg = print_message( &rsv, m->sml_desc );
