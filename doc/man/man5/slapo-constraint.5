@@ -27,9 +27,9 @@ It should appear after the
 .B overlay
 directive.
 .TP
-.B constraint_attribute <attribute_name>[,...] <type> <value>
-Specifies the constraint which should apply to the attribute named as
-the first parameter.
+.B constraint_attribute <attribute_name>[,...] <type> <value> [<extra> [...]]
+Specifies the constraint which should apply to the comma-separated
+attribute list named as the first parameter.
 Two types of constraint are currently supported -
 .BR regex ,
 .BR size ,
@@ -60,6 +60,33 @@ type can be used to enforce a limit on an attribute length, and the
 .B count
 type limits the number of values of an attribute.
 
+Extra parameters can occur in any order after those described above.
+.RS
+.TP
+.B <extra> : restrict=<uri>
+.RE
+
+.RS
+This extra parameter allows to restrict the application of the corresponding
+constraint only to entries that match the
+.IR base ,
+.I scope
+and
+.I filter
+portions of the LDAP URI.
+The
+.IR base ,
+if present, must be within the naming context of the database.
+The
+.I scope
+is only used when the
+.I base
+is present; it defaults to
+.BR base .
+The other parameters of the URI are not allowed.
+.RE
+
+.LP
 Any attempt to add or modify an attribute named as part of the
 constraint overlay specification which does not fit the 
 constraint listed will fail with a
@@ -76,6 +103,7 @@ constraint_attribute title uri
   ldap:///dc=catalog,dc=example,dc=com?title?sub?(objectClass=titleCatalog)
 constraint_attribute cn,sn,givenName set
   "(this/givenName + [ ] + this/sn) & this/cn"
+  restrict="ldap:///ou=People,dc=example,dc=com??sub?(objectClass=person)"
 .fi
 
 .RE
@@ -96,7 +124,8 @@ to be constructed by pairing values of the attributes
 .B sn
 and 
 .BR givenName ,
-separated by a space.
+separated by a space, but only for entries derived from the objectClass
+.BR person .
 .RE
 .SH FILES
 .TP
