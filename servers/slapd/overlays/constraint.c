@@ -820,24 +820,39 @@ add_violation:
 
 
 static int
-constraint_modify( Operation *op, SlapReply *rs )
+constraint_update( Operation *op, SlapReply *rs )
 {
 	slap_overinst *on = (slap_overinst *) op->o_bd->bd_info;
 	Backend *be = op->o_bd;
 	constraint *c = on->on_bi.bi_private, *cp;
 	Entry *target_entry = NULL, *target_entry_copy = NULL;
-	Modifications *m;
+	Modifications *modlist, *m;
 	BerVarray b = NULL;
 	int i;
 	struct berval rsv = BER_BVC("modify breaks constraint");
 	int rc;
 	char *msg = NULL;
+
+	switch ( op->o_tag ) {
+	case LDAP_REQ_MODIFY:
+		modlist = op->orm_modlist;
+		break;
+
+	case LDAP_REQ_MODRDN:
+		modlist = op->orr_modlist;
+		break;
+
+	default:
+		/* impossible! assert? */
+		return LDAP_OTHER;
+	}
+
 	
-	Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE, "constraint_modify()\n", 0,0,0);
-	if ((m = op->orm_modlist) == NULL) {
+	Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE, "constraint_update()\n", 0,0,0);
+	if ((m = modlist) == NULL) {
 		op->o_bd->bd_info = (BackendInfo *)(on->on_info);
 		send_ldap_error(op, rs, LDAP_INVALID_SYNTAX,
-						"constraint_modify() got null orm_modlist");
+						"constraint_update() got null modlist");
 		return(rs->sr_err);
 	}
 
@@ -850,7 +865,7 @@ constraint_modify( Operation *op, SlapReply *rs )
 
 			if (rc != 0 || target_entry == NULL) {
 				Debug(LDAP_DEBUG_TRACE, 
-					"==> constraint_modify rc = %d DN=\"%s\"%s\n",
+					"==> constraint_update rc = %d DN=\"%s\"%s\n",
 					rc, op->o_req_ndn.bv_val,
 					target_entry ? "" : " not found" );
 				if ( rc == 0 ) 
@@ -902,7 +917,7 @@ constraint_modify( Operation *op, SlapReply *rs )
 				for (ca = 0; b[ca].bv_val; ++ca);
 
 				Debug(LDAP_DEBUG_TRACE, 
-					"==> constraint_modify ce = %d, "
+					"==> constraint_update ce = %d, "
 					"ca = %d, cp->count = %d\n",
 					ce, ca, cp->count);
 
@@ -938,11 +953,30 @@ constraint_modify( Operation *op, SlapReply *rs )
 
 					target_entry_copy = entry_dup(target_entry);
 
+					/* if rename, set the new entry's name
+					 * (in normalized form only) */
+					if ( op->o_tag == LDAP_REQ_MODRDN ) {
+						struct berval pdn, ndn = BER_BVNULL;
+
+						if ( op->orr_nnewSup ) {
+							pdn = *op->orr_nnewSup;
+
+						} else {
+							dnParent( &target_entry_copy->e_nname, &pdn );
+						}
+
+						build_new_dn( &ndn, &pdn, &op->orr_nnewrdn, NULL ); 
+
+						ber_memfree( target_entry_copy->e_nname.bv_val );
+						target_entry_copy->e_nname = ndn;
+						ber_bvreplace( &target_entry_copy->e_name, &ndn );
+					}
+
 					/* apply modifications, in an attempt
 					 * to estimate what the entry would
 					 * look like in case all modifications
 					 * pass */
-					for ( ml = op->orm_modlist; ml; ml = ml->sml_next ) {
+					for ( ml = modlist; ml; ml = ml->sml_next ) {
 						Modification *mod = &ml->sml_mod;
 						const char *text;
 						char textbuf[SLAP_TEXT_BUFLEN];
@@ -997,7 +1031,6 @@ constraint_modify( Operation *op, SlapReply *rs )
 					}
 				}
 
-		
 				if ( acl_match_set(&cp->val, op, target_entry_copy, NULL) == 0) {
 					rc = LDAP_CONSTRAINT_VIOLATION;
 					goto mod_violation;
@@ -1067,7 +1100,8 @@ constraint_initialize( void ) {
 	constraint_ovl.on_bi.bi_type = "constraint";
 	constraint_ovl.on_bi.bi_db_close = constraint_close;
 	constraint_ovl.on_bi.bi_op_add = constraint_add;
-	constraint_ovl.on_bi.bi_op_modify = constraint_modify;
+	constraint_ovl.on_bi.bi_op_modify = constraint_update;
+	constraint_ovl.on_bi.bi_op_modrdn = constraint_update;
 
 	constraint_ovl.on_bi.bi_private = NULL;
 	
