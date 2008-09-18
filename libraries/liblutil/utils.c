@@ -303,23 +303,6 @@ lutil_gettime( struct lutil_tm *tm )
 	GetSystemTime( &st );
 	QueryPerformanceCounter( &count );
 
-	/* We assume Windows has at least a vague idea of
-	 * when a second begins. So we align our microsecond count
-	 * with the Windows millisecond count using this offset.
-	 * We retain the submillisecond portion of our own count.
-	 */
-	if ( !cFreq.QuadPart ) {
-		long long t;
-		int usec;
-		QueryPerformanceFrequency( &cFreq );
-
-		t = count.QuadPart * 1000000;
-		t /= cFreq.QuadPart;
-		usec = t % 10000000;
-		usec /= 1000;
-		offset = ( usec - st.wMilliseconds ) * 1000;
-	}
-
 	/* It shouldn't ever go backwards, but multiple CPUs might
 	 * be able to hit in the same tick.
 	 */
@@ -330,14 +313,42 @@ lutil_gettime( struct lutil_tm *tm )
 		prevCount = count;
 	}
 
+	/* We assume Windows has at least a vague idea of
+	 * when a second begins. So we align our microsecond count
+	 * with the Windows millisecond count using this offset.
+	 * We retain the submillisecond portion of our own count.
+	 *
+	 * Note - this also assumes that the relationship between
+	 * the PerformanceCouunter and SystemTime stays constant;
+	 * that assumption breaks if the SystemTime is adjusted by
+	 * an external action.
+	 */
+	if ( !cFreq.QuadPart ) {
+		long long t;
+		int usec;
+		QueryPerformanceFrequency( &cFreq );
+
+		/* just get sub-second portion of counter */
+		t = count.QuadPart % cFreq.QuadPart;
+
+		/* convert to microseconds */
+		t *= 1000000;
+		usec = t / cFreq.QuadPart;
+
+		offset = usec - st.wMilliseconds * 1000;
+	}
+
 	tm->tm_usub = subs;
 
 	/* convert to microseconds */
+	count.QuadPart %= cFreq.QuadPart;
 	count.QuadPart *= 1000000;
 	count.QuadPart /= cFreq.QuadPart;
 	count.QuadPart -= offset;
 
 	tm->tm_usec = count.QuadPart % 1000000;
+	if ( tm->tm_usec < 0 )
+		tm->tm_usec += 1000000;
 
 	/* any difference larger than microseconds is
 	 * already reflected in st

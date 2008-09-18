@@ -3,6 +3,7 @@ OpenLDAP 2.4 Change Log
 OpenLDAP 2.4.12 Engineering
 	Fixed libldap TLS_CRLFILE (ITS#5677)
 	Fixed liblutil executables on Windows (ITS#5604)
+	Fixed liblutil microsecond overflows on Windows (ITS#5668)
 	Fixed librewrite memory handling (ITS#5691)
 	Fixed slapd aci performance (ITS#5636)
 	Fixed slapd aci's with sets (ITS#5627)
