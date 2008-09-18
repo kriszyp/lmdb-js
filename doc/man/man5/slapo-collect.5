@@ -13,9 +13,9 @@ In X.500, a collective attribute is "a user attribute whose
 values are the same for each member of an entry collection".
 
 Collective attributes are added to entries returned by a search operation
-when the entry is within the scope of the related collectiveAttributeSubentry.
+when the entry is within the scope of the related ancestor.
 Collective attributes can only be modified when the modification affects
-the related collectiveAttributeSubentry.
+the related ancestor.
 
 .SH CONFIGURATION
 This
@@ -28,8 +28,7 @@ directive.
 .B collectinfo <DN> <attrlist>
 Specify the
 .B DN
-of a collectiveAttributeSubentry and the set
-of related collective attributes, where
+of the ancestor entry and the set of related collective attributes, where
 .B attrlist
 is a comma-separated list of attributes.
 The
