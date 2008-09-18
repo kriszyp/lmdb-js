@@ -2013,7 +2013,7 @@ if test $ol_enable_ndb != no ; then
 	save_LDFLAGS="$LDFLAGS"
 	save_LIBS="$LIBS"
 	LDFLAGS="$SQL_LIB"
-	AC_CHECK_LIB(ndbclient,ndb_init,[],[
+	AC_CHECK_LIB(ndbclient,ndb_init,[: ok],[
 		AC_MSG_ERROR([could not locate ndbclient library])
 	],[-lstdc++])
 	LIBS="$save_LIBS"
