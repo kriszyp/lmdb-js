@@ -2582,9 +2582,12 @@ slapd_daemon_task(
 		connections_shutdown();
 	}
 
-	Debug( LDAP_DEBUG_ANY,
-		"slapd shutdown: waiting for %d threads to terminate\n",
-		ldap_pvt_thread_pool_backload( &connection_pool ), 0, 0 );
+	if ( LogTest( LDAP_DEBUG_ANY )) {
+		int t = ldap_pvt_thread_pool_backload( &connection_pool );
+		Debug( LDAP_DEBUG_ANY,
+			"slapd shutdown: waiting for %d operations/tasks to finish\n",
+			t, 0, 0 );
+	}
 	ldap_pvt_thread_pool_destroy( &connection_pool, 1 );
 
 	free( slap_listeners );
