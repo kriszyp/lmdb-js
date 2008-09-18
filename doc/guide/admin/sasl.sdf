@@ -267,9 +267,9 @@ See {{SECT: Mapping Authentication Identities}} below for information
 on optional mapping of identities.
 
 With suitable mappings in place, users can specify SASL IDs when
-performing LDAP operations and sldb}} and the directory itself will
-be used to verify the authentication.  For example, the user
-identified by the directory entry:
+performing LDAP operations, and the password stored in {{sasldb}} or in
+the directory itself will be used to verify the authentication.
+For example, the user identified by the directory entry:
 
 >       dn: cn=Andrew Findlay+uid=u000997,dc=example,dc=com
 >       objectclass: inetOrgPerson
