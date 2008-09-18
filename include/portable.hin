@@ -957,6 +957,9 @@
 /* define for Audit Logging overlay */
 #undef SLAPD_OVER_AUDITLOG
 
+/* define for Collect overlay */
+#undef SLAPD_OVER_COLLECT
+
 /* define for Attribute Constraint overlay */
 #undef SLAPD_OVER_CONSTRAINT
 
