@@ -17,8 +17,9 @@ This overlay is intended to be used to force syntactic regularity upon
 certain string represented data which have well known canonical forms,
 like telephone numbers, post codes, FQDNs, etc.
 .LP
-It constrains only LDAP adds and modify commands and only seeks to
-control the add and modify value of a modify request.
+It constrains only LDAP \fIadd\fP, \fImodify\fP and \fIrename\fP commands
+and only seeks to control the \fIadd\fP and \fIreplace\fP values
+of \fImodify\fP and \fIrename\fP requests.
 .SH CONFIGURATION
 This
 .B slapd.conf
