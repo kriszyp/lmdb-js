@@ -742,12 +742,37 @@ retcode_db_init( BackendDB *be, ConfigReply *cr )
 	return 0;
 }
 
+static void
+retcode_item_destroy( retcode_item_t *rdi )
+{
+	ber_memfree( rdi->rdi_line.bv_val );
+
+	ber_memfree( rdi->rdi_dn.bv_val );
+	ber_memfree( rdi->rdi_ndn.bv_val );
+
+	if ( !BER_BVISNULL( &rdi->rdi_text ) ) {
+		ber_memfree( rdi->rdi_text.bv_val );
+	}
+
+	if ( !BER_BVISNULL( &rdi->rdi_matched ) ) {
+		ber_memfree( rdi->rdi_matched.bv_val );
+	}
+
+	if ( rdi->rdi_ref ) {
+		ber_bvarray_free( rdi->rdi_ref );
+	}
+
+	BER_BVZERO( &rdi->rdi_e.e_name );
+	BER_BVZERO( &rdi->rdi_e.e_nname );
+
+	entry_clean( &rdi->rdi_e );
+
+	ch_free( rdi );
+}
 
 enum {
 	RC_PARENT = 1,
-	RC_ITEM,
-	RC_INDIR,
-	RC_SLEEP
+	RC_ITEM
 };
 
 static ConfigDriver rc_cf_gen;
@@ -758,12 +783,13 @@ static ConfigTable rccfg[] = {
 		"( OLcfgOvAt:20.1 NAME 'olcRetcodeParent' "
 			"DESC '' "
 			"SYNTAX OMsDN SINGLE-VALUE )", NULL, NULL },
-	{ "retcode-item", "rdn> <retcode> <text> <...",
+	{ "retcode-item", "rdn> <retcode> <...",
 		3, 0, 0, ARG_MAGIC|RC_ITEM, rc_cf_gen,
 		"( OLcfgOvAt:20.2 NAME 'olcRetcodeItem' "
 			"DESC '' "
+	  		"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString "
-	  		"EQUALITY caseIgnoreMatch )", NULL, NULL },
+			"X-ORDERED 'VALUES' )", NULL, NULL },
 	{ "retcode-indir", "on|off",
 		1, 2, 0, ARG_OFFSET|ARG_ON_OFF,
 			(void *)offsetof(retcode_t, rd_indir),
@@ -772,7 +798,7 @@ static ConfigTable rccfg[] = {
 			"SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
 
 	{ "retcode-sleep", "sleeptime",
-		2, 2, 0, ARG_OFFSET|ARG_INT|RC_SLEEP,
+		2, 2, 0, ARG_OFFSET|ARG_INT,
 			(void *)offsetof(retcode_t, rd_sleep),
 		"( OLcfgOvAt:20.4 NAME 'olcRetcodeSleep' "
 			"DESC '' "
@@ -803,7 +829,6 @@ rc_cf_gen( ConfigArgs *c )
 	int		rc = ARG_BAD_CONF;
 
 	if ( c->op == SLAP_CONFIG_EMIT ) {
-		struct berval bv;
 		switch( c->type ) {
 		case RC_PARENT:
 			if ( !BER_BVISEMPTY( &rd->rd_pdn )) {
@@ -820,9 +845,19 @@ rc_cf_gen( ConfigArgs *c )
 
 		case RC_ITEM: {
 			retcode_item_t *rdi;
+			int i;
 
-			for ( rdi = rd->rd_item; rdi; rdi = rdi->rdi_next ) {
-				ber_bvarray_add( &c->rvalue_vals, &rdi->rdi_line );
+			for ( rdi = rd->rd_item, i = 0; rdi; rdi = rdi->rdi_next, i++ ) {
+				char buf[4096];
+				struct berval bv;
+				char *ptr;
+
+				bv.bv_len = snprintf( buf, sizeof( buf ), SLAP_X_ORDERED_FMT, i );
+				bv.bv_len += rdi->rdi_line.bv_len;
+				ptr = bv.bv_val = ch_malloc( bv.bv_len + 1 );
+				ptr = lutil_strcopy( ptr, buf );
+				ptr = lutil_strncopy( ptr, rdi->rdi_line.bv_val, rdi->rdi_line.bv_len );
+				ber_bvarray_add( &c->rvalue_vals, &bv );
 			}
 			rc = 0;
 			} break;
@@ -835,7 +870,48 @@ rc_cf_gen( ConfigArgs *c )
 		return rc;
 
 	} else if ( c->op == LDAP_MOD_DELETE ) {
-		return 1;	/* FIXME */
+		switch( c->type ) {
+		case RC_PARENT:
+			if ( rd->rd_pdn.bv_val ) {
+				ber_memfree ( rd->rd_pdn.bv_val );
+				rc = 0;
+			}
+			if ( rd->rd_npdn.bv_val ) {
+				ber_memfree ( rd->rd_npdn.bv_val );
+			}
+			break;
+
+		case RC_ITEM:
+			if ( c->valx == -1 ) {
+				retcode_item_t *rdi, *next;
+
+				for ( rdi = rd->rd_item; rdi != NULL; rdi = next ) {
+					next = rdi->rdi_next;
+					retcode_item_destroy( rdi );
+				}
+
+			} else {
+				retcode_item_t **rdip, *rdi;
+				int i;
+
+				for ( rdip = &rd->rd_item, i = 0; i <= c->valx && *rdip; i++, rdip = &(*rdip)->rdi_next )
+					;
+				if ( *rdip == NULL ) {
+					return 1;
+				}
+				rdi = *rdip;
+				*rdip = rdi->rdi_next;
+
+				retcode_item_destroy( rdi );
+			}
+			rc = 0;
+			break;
+
+		default:
+			assert( 0 );
+			break;
+		}
+		return rc;	/* FIXME */
 	}
 
 	switch( c->type ) {
@@ -1300,29 +1376,8 @@ retcode_db_destroy( BackendDB *be, ConfigReply *cr )
 		retcode_item_t	*rdi, *next;
 
 		for ( rdi = rd->rd_item; rdi != NULL; rdi = next ) {
-			ber_memfree( rdi->rdi_dn.bv_val );
-			ber_memfree( rdi->rdi_ndn.bv_val );
-
-			if ( !BER_BVISNULL( &rdi->rdi_text ) ) {
-				ber_memfree( rdi->rdi_text.bv_val );
-			}
-
-			if ( !BER_BVISNULL( &rdi->rdi_matched ) ) {
-				ber_memfree( rdi->rdi_matched.bv_val );
-			}
-
-			if ( rdi->rdi_ref ) {
-				ber_bvarray_free( rdi->rdi_ref );
-			}
-
-			BER_BVZERO( &rdi->rdi_e.e_name );
-			BER_BVZERO( &rdi->rdi_e.e_nname );
-
-			entry_clean( &rdi->rdi_e );
-
 			next = rdi->rdi_next;
-
-			ch_free( rdi );
+			retcode_item_destroy( rdi );
 		}
 
 		if ( !BER_BVISNULL( &rd->rd_pdn ) ) {
