@@ -131,7 +131,7 @@ frontend_init( void )
 	frontendDB->bd_info->bi_type = "frontend";
 
 	/* known controls */
-	if ( slap_known_controls ) {
+	{
 		int	i;
 
 		frontendDB->bd_info->bi_controls = slap_known_controls;
