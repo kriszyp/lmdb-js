@@ -120,7 +120,7 @@ set_dup( SetCookie *cp, BerVarray set, unsigned flags )
 /* Join two sets according to operator op and flags op_flags.
  * op can be:
  *	'|' (or):	the union between the two sets is returned,
- *		 	eliminating diplicates
+ *		 	eliminating duplicates
  *	'&' (and):	the intersection between the two sets
  *			is returned
  *	'+' (add):	the inner product of the two sets is returned,
