@@ -90,7 +90,13 @@ before being returned to the client.
 .TP
 .B translucent_bind_local 
 Enable looking for locally stored credentials for simple bind when binding
-to the remote database fails.
+to the remote database fails.  Disabled by default.
+
+.TP
+.B translucent_pwmod_local
+Enable RFC 3062 Password Modification extended operation on locally stored
+credentials.  The operation only applies to entries that exist in the remote
+database.  Disabled by default.
 
 .SH ACCESS CONTROL
 Access control is delegated to either the remote DSA(s) or to the local database
