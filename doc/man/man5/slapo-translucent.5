@@ -31,15 +31,19 @@ operation will perform a comparison with attributes defined in the local
 database record (if any) before any comparison is made with data in the
 remote database.
 .SH CONFIGURATION
-The Translucent Proxy overlay uses a remote LDAP server which is configured
-with the options shown in
-.BR slapd-ldap (5).
+The Translucent Proxy overlay uses a proxied database,
+typically a (set of) remote LDAP server(s), which is configured with the options shown in
+.BR slapd-ldap (5),
+.BR slapd-meta (5)
+or similar.
 These
 .B slapd.conf
 options are specific to the Translucent Proxy overlay; they must appear 
 after the
 .B overlay
-directive.
+directive that instantiates the
+.B translucent
+overlay.
 .TP
 .B translucent_strict
 By default, attempts to delete attributes in either the local or remote
@@ -87,6 +91,22 @@ before being returned to the client.
 .B translucent_bind_local 
 Enable looking for locally stored credentials for simple bind when binding
 to the remote database fails.
+
+.SH ACCESS CONTROL
+Access control is delegated to either the remote DSA(s) or to the local database
+backend for
+.B auth
+and
+.B write
+operations.
+It is delegated to the remote DSA(s) and to the frontend for
+.B read
+operations.
+Local access rules involving data returned by the remote DSA(s) should be designed
+with care.  In fact, entries are returned by the remote DSA(s) only based on the
+remote fraction of the data, based on the identity the operation is performed as.
+As a consequence, local rules might only be allowed to see a portion
+of the remote data.
 
 .SH CAVEATS
 .LP
