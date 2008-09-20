@@ -5,11 +5,15 @@
 H1:  LDAP Result Codes
 
 For the purposes of this guide, we have incorporated the standard LDAP result 
-codes from {{Appendix A.  LDAP Result Codes}} of rfc4511. A copy of which can 
+codes from {{Appendix A.  LDAP Result Codes}} of rfc4511, a copy of which can 
 be found in {{F:doc/rfc}} of the OpenLDAP source code.
 
 We have expanded the description of each error in relation to the OpenLDAP 
 toolsets.
+LDAP extensions may introduce extension-specific result codes, which are not part
+of rfc4511.
+OpenLDAP returns the result codes related to extensions it implements.
+Their meaning is documented in the extension they are related to.
 
 H2:  Non-Error Result Codes
 
