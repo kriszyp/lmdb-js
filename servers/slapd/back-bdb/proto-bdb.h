@@ -49,7 +49,7 @@ int bdb_attr_slot( struct bdb_info *bdb,
 
 int bdb_attr_index_config LDAP_P(( struct bdb_info *bdb,
 	const char *fname, int lineno,
-	int argc, char **argv ));
+	int argc, char **argv, struct config_reply_s *cr ));
 
 void bdb_attr_index_unparse LDAP_P(( struct bdb_info *bdb, BerVarray *bva ));
 void bdb_attr_index_destroy LDAP_P(( struct bdb_info *bdb ));
