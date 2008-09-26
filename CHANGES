@@ -49,6 +49,7 @@ OpenLDAP 2.4.12 Engineering
 		Added BDB 4.7 support (ITS#5523)
 		Added slapo-collect overlay with enhancements(ITS#5659)
 	Documentation
+		Added slapo-collect(5) man page (ITS#5706)
 		Added slapd-ldap(5), slapd-meta(5) noundeffilter (ITS#5614)
 		Fixed slapd-ldap(5), slapd-meta(5), slapo-pcache(5) schema requirements (ITS#5680)
 		Added slapo-pcache(5) proxycheckcacheability option (ITS#5680)
