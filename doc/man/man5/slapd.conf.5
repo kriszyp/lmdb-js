@@ -508,6 +508,37 @@ changing these settings will generally require deleting any indices that
 depend on these parameters and recreating them with
 .BR slapindex (8).
 
+.HP
+.hy 0
+.B ldapsyntax "(\ <oid>\
+ [DESC\ <description>]\
+ [X-SUBST <substitute\-syntax>]\ )"
+.RS
+Specify an LDAP syntax using the LDAPv3 syntax defined in RFC 4512.
+The slapd parser extends the RFC 4512 definition by allowing string
+forms as well as numeric OIDs to be used for the syntax OID.
+(See the
+.B objectidentifier
+description.) 
+The slapd parser also honors the
+.B X-SUBST
+extension (an OpenLDAP-specific extension), which allows to use the
+.B ldapsyntax
+statement to define a non-implemented syntax along with another syntax,
+the extension value
+.IR substitute\-syntax ,
+as its temporary replacement.
+The
+.I substitute\-syntax
+must be defined.
+This allows to define attribute types that make use of non-implemented syntaxes
+using the correct syntax OID.
+Unless 
+.B X-SUBST
+is used, this configuration statement would result in an error,
+since no handlers would be associated to the resulting syntax structure.
+.RE
+
 .TP
 .B localSSF <SSF>
 Specifies the Security Strength Factor (SSF) to be given local LDAP sessions,
