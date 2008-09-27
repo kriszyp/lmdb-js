@@ -736,7 +736,7 @@ bdb_cf_gen( ConfigArgs *c )
 
 	case BDB_INDEX:
 		rc = bdb_attr_index_config( bdb, c->fname, c->lineno,
-			c->argc - 1, &c->argv[1] );
+			c->argc - 1, &c->argv[1], &c->reply);
 
 		if( rc != LDAP_SUCCESS ) return 1;
 		if (( bdb->bi_flags & BDB_IS_OPEN ) && !bdb->bi_index_task ) {

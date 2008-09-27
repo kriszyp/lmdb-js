@@ -23,6 +23,7 @@
 
 #include "slap.h"
 #include "back-bdb.h"
+#include "config.h"
 #include "lutil.h"
 
 /* Find the ad, return -1 if not found,
@@ -92,7 +93,8 @@ bdb_attr_index_config(
 	const char		*fname,
 	int			lineno,
 	int			argc,
-	char		**argv )
+	char		**argv,
+	struct		config_reply_s *c_reply)
 {
 	int rc = 0;
 	int	i;
@@ -132,9 +134,14 @@ bdb_attr_index_config(
 			rc = slap_str2index( indexes[i], &index );
 
 			if( rc != LDAP_SUCCESS ) {
-				fprintf( stderr, "%s: line %d: "
-					"index type \"%s\" undefined\n",
-					fname, lineno, indexes[i] );
+				if ( c_reply )
+				{
+					snprintf(c_reply->msg, sizeof(c_reply->msg),
+						"index type \"%s\" undefined", indexes[i] );
+
+					fprintf( stderr, "%s: line %d: %s\n",
+						fname, lineno, c_reply->msg );
+				}
 				rc = LDAP_PARAM_ERROR;
 				goto done;
 			}
@@ -144,9 +151,13 @@ bdb_attr_index_config(
 	}
 
 	if( !mask ) {
-		fprintf( stderr, "%s: line %d: "
-			"no indexes selected\n",
-			fname, lineno );
+		if ( c_reply )
+		{
+			snprintf(c_reply->msg, sizeof(c_reply->msg),
+				"no indexes selected" );
+			fprintf( stderr, "%s: line %d: %s\n",
+				fname, lineno, c_reply->msg );
+		}
 		rc = LDAP_PARAM_ERROR;
 		goto done;
 	}
@@ -169,9 +180,14 @@ bdb_attr_index_config(
 		if ( is_component_reference( attrs[i] ) ) {
 			rc = extract_component_reference( attrs[i], &cr );
 			if ( rc != LDAP_SUCCESS ) {
-				fprintf( stderr, "%s: line %d: "
-					"index component reference\"%s\" undefined\n",
-					fname, lineno, attrs[i] );
+				if ( c_reply )
+				{
+					snprintf(c_reply->msg, sizeof(c_reply->msg),
+						"index component reference\"%s\" undefined",
+						attrs[i] );
+					fprintf( stderr, "%s: line %d: %s\n",
+						fname, lineno, c_reply->msg );
+				}
 				goto done;
 			}
 			cr->cr_indexmask = mask;
@@ -187,16 +203,25 @@ bdb_attr_index_config(
 		rc = slap_str2ad( attrs[i], &ad, &text );
 
 		if( rc != LDAP_SUCCESS ) {
-			fprintf( stderr, "%s: line %d: "
-				"index attribute \"%s\" undefined\n",
-				fname, lineno, attrs[i] );
+			if ( c_reply )
+			{
+				snprintf(c_reply->msg, sizeof(c_reply->msg),
+					"index attribute \"%s\" undefined",
+					attrs[i] );
+
+				fprintf( stderr, "%s: line %d: %s\n",
+					fname, lineno, c_reply->msg );
+			}
 			goto done;
 		}
 
 		if( slap_ad_is_binary( ad ) ) {
-			fprintf( stderr, "%s: line %d: "
-				"index of attribute \"%s\" disallowed\n",
-				fname, lineno, attrs[i] );
+			if (c_reply) {
+				snprintf(c_reply->msg, sizeof(c_reply->msg),
+					"index of attribute \"%s\" disallowed", attrs[i] );
+				fprintf( stderr, "%s: line %d: %s\n",
+					fname, lineno, c_reply->msg );
+			}
 			rc = LDAP_UNWILLING_TO_PERFORM;
 			goto done;
 		}
@@ -206,9 +231,12 @@ bdb_attr_index_config(
 				&& ad->ad_type->sat_approx->smr_indexer
 				&& ad->ad_type->sat_approx->smr_filter ) )
 		{
-			fprintf( stderr, "%s: line %d: "
-				"approx index of attribute \"%s\" disallowed\n",
-				fname, lineno, attrs[i] );
+			if (c_reply) {
+				snprintf(c_reply->msg, sizeof(c_reply->msg),
+					"approx index of attribute \"%s\" disallowed", attrs[i] );
+				fprintf( stderr, "%s: line %d: %s\n",
+					fname, lineno, c_reply->msg );
+			}
 			rc = LDAP_INAPPROPRIATE_MATCHING;
 			goto done;
 		}
@@ -218,9 +246,12 @@ bdb_attr_index_config(
 				&& ad->ad_type->sat_equality->smr_indexer
 				&& ad->ad_type->sat_equality->smr_filter ) )
 		{
-			fprintf( stderr, "%s: line %d: "
-				"equality index of attribute \"%s\" disallowed\n",
-				fname, lineno, attrs[i] );
+			if (c_reply) {
+				snprintf(c_reply->msg, sizeof(c_reply->msg),
+					"equality index of attribute \"%s\" disallowed", attrs[i] );
+				fprintf( stderr, "%s: line %d: %s\n",
+					fname, lineno, c_reply->msg );
+			}
 			rc = LDAP_INAPPROPRIATE_MATCHING;
 			goto done;
 		}
@@ -230,9 +261,12 @@ bdb_attr_index_config(
 				&& ad->ad_type->sat_substr->smr_indexer
 				&& ad->ad_type->sat_substr->smr_filter ) )
 		{
-			fprintf( stderr, "%s: line %d: "
-				"substr index of attribute \"%s\" disallowed\n",
-				fname, lineno, attrs[i] );
+			if (c_reply) {
+				snprintf(c_reply->msg, sizeof(c_reply->msg),
+					"substr index of attribute \"%s\" disallowed", attrs[i] );
+				fprintf( stderr, "%s: line %d: %s\n",
+					fname, lineno, c_reply->msg );
+			}
 			rc = LDAP_INAPPROPRIATE_MATCHING;
 			goto done;
 		}
@@ -295,9 +329,13 @@ bdb_attr_index_config(
 				rc = 0;
 				continue;
 			}
-			fprintf( stderr,
-				"%s: line %d: duplicate index definition for attr \"%s\".\n",
-				fname, lineno, attrs[i] );
+			if (c_reply) {
+				snprintf(c_reply->msg, sizeof(c_reply->msg),
+					"duplicate index definition for attr \"%s\"",
+					attrs[i] );
+				fprintf( stderr, "%s: line %d: %s\n",
+					fname, lineno, c_reply->msg );
+			}
 
 			rc = LDAP_PARAM_ERROR;
 			goto done;
