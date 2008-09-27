@@ -111,6 +111,11 @@ slap_op_free( Operation *op, void *ctx )
 	}
 #endif /* defined( LDAP_SLAPI ) */
 
+	if ( !BER_BVISNULL( &op->o_csn ) ) {
+		op->o_tmpfree( op->o_csn.bv_val, op->o_tmpmemctx );
+		BER_BVZERO( &op->o_csn );
+	}
+
 	opbuf = (OperationBuffer *) op;
 	memset( opbuf, 0, sizeof(*opbuf) );
 	op->o_hdr = &opbuf->ob_hdr;
