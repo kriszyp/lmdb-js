@@ -254,6 +254,7 @@ static OidRec OidMacros[] = {
  * OLcfgOv{Oc|At}:17			-> dyngroup
  * OLcfgOv{Oc|At}:18			-> memberof
  * OLcfgOv{Oc|At}:19			-> collect
+ * OLcfgOv{Oc|At}:20			-> retcode
  */
 
 /* alphabetical ordering */
