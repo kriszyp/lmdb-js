@@ -204,6 +204,9 @@ static int search_aliases(
 		BDB_IDL_CPY( curscop, aliases );
 		rs->sr_err = bdb_dn2idl( op, txn, &e->e_nname, BEI(e), subscop,
 			subscop2+BDB_IDL_DB_SIZE );
+		if ( rs->sr_err == DB_LOCK_DEADLOCK )
+			return rs->sr_err;
+
 		if (first) {
 			first = 0;
 		} else {
@@ -223,8 +226,10 @@ retry1:
 			rs->sr_err = bdb_cache_find_id(op, txn,
 				ida, &ei, 0, &lockr );
 			if (rs->sr_err != LDAP_SUCCESS) {
-				if ( rs->sr_err == DB_LOCK_DEADLOCK ||
-					rs->sr_err == DB_LOCK_NOTGRANTED ) goto retry1;
+				if ( rs->sr_err == DB_LOCK_DEADLOCK )
+					return rs->sr_err;
+				if ( rs->sr_err == DB_LOCK_NOTGRANTED )
+					goto retry1;
 				continue;
 			}
 			a = ei->bei_e;
@@ -253,6 +258,8 @@ retry1:
 				}
 				bdb_cache_return_entry_r( bdb, a, &lockr);
 
+			} else if ( rs->sr_err == DB_LOCK_DEADLOCK ) {
+				return rs->sr_err;
 			} else if (matched) {
 				/* Alias could not be dereferenced, or it deref'd to
 				 * an ID we've already seen. Ignore it.
@@ -289,8 +296,9 @@ sameido:
 		rs->sr_err = bdb_cache_find_id(op, txn, ido, &ei,
 			0, &locka );
 		if ( rs->sr_err != LDAP_SUCCESS ) {
-			if ( rs->sr_err == DB_LOCK_DEADLOCK ||
-				rs->sr_err == DB_LOCK_NOTGRANTED )
+			if ( rs->sr_err == DB_LOCK_DEADLOCK )
+				return rs->sr_err;
+			if ( rs->sr_err == DB_LOCK_NOTGRANTED )
 				goto sameido;
 			goto nextido;
 		}
@@ -370,10 +378,14 @@ dn2entry_retry:
 	case 0:
 		e = ei->bei_e;
 		break;
+	case DB_LOCK_DEADLOCK:
+		if ( !opinfo )
+			goto dn2entry_retry;
+		opinfo->boi_err = rs->sr_err;
+		/* FALLTHRU */
 	case LDAP_BUSY:
 		send_ldap_error( op, rs, LDAP_BUSY, "ldap server busy" );
 		return LDAP_BUSY;
-	case DB_LOCK_DEADLOCK:
 	case DB_LOCK_NOTGRANTED:
 		goto dn2entry_retry;
 	default:
@@ -566,6 +578,12 @@ dn2entry_retry:
 		BDB_IDL_ZERO( scopes );
 		rs->sr_err = search_candidates( op, rs, &base,
 			ltid, candidates, scopes );
+		if ( rs->sr_err == DB_LOCK_DEADLOCK ) {
+			if ( opinfo )
+				opinfo->boi_err = rs->sr_err;
+			send_ldap_error( op, rs, LDAP_BUSY, "ldap server busy" );
+			return LDAP_BUSY;
+		}
 	}
 
 	/* start cursor at beginning of candidates.
@@ -682,8 +700,13 @@ fetch_entry_retry:
 				send_ldap_result( op, rs );
 				goto done;
 
-			} else if ( rs->sr_err == DB_LOCK_DEADLOCK
-				|| rs->sr_err == DB_LOCK_NOTGRANTED )
+			} else if ( rs->sr_err == DB_LOCK_DEADLOCK ) {
+				if ( opinfo )
+					opinfo->boi_err = rs->sr_err;
+				send_ldap_error( op, rs, LDAP_BUSY, "ldap server busy" );
+				goto done;
+
+			} else if ( rs->sr_err == DB_LOCK_NOTGRANTED )
 			{
 				goto fetch_entry_retry;
 			} else if ( rs->sr_err == LDAP_OTHER ) {
