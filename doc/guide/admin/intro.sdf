@@ -424,7 +424,7 @@ well-defined {{TERM:C}} {{TERM:API}}, you can write your own
 customized modules which extend {{slapd}} in numerous ways.  Also,
 a number of {{programmable database}} modules are provided.  These
 allow you to expose external data sources to {{slapd}} using popular
-programming languages ({{PRD:Perl}}, {{shell}}, and {{TERM:SQL}}.
+programming languages ({{PRD:Perl}}, {{shell}}, and {{TERM:SQL}}).
 
 {{B:Threads}}: {{slapd}} is threaded for high performance.  A single
 multi-threaded {{slapd}} process handles all incoming requests using
