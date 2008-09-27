@@ -855,8 +855,7 @@ ctrls_cleanup( Operation *op, SlapReply *rs, LDAPControl **oldctrls )
 
 	for ( n = 0; rs->sr_ctrls[n]; n++ ) {
 		if ( rs->sr_ctrls[n]->ldctl_oid == ppolicy_ctrl_oid ) {
-			ch_free( rs->sr_ctrls[n]->ldctl_value.bv_val );
-			ch_free( rs->sr_ctrls[n] );
+			op->o_tmpfree( rs->sr_ctrls[n], op->o_tmpmemctx );
 			rs->sr_ctrls[n] = (LDAPControl *)(-1);
 			break;
 		}
@@ -2021,7 +2020,7 @@ return_results:
 	if ( send_ctrl ) {
 		if ( is_pwdexop ) {
 			if ( rs->sr_flags & REP_CTRLS_MUSTBEFREED ) {
-				slap_free_ctrls( op, oldctrls );
+				op->o_tmpfree( oldctrls, op->o_tmpmemctx );
 			}
 			oldctrls = NULL;
 			rs->sr_flags |= REP_CTRLS_MUSTBEFREED;
