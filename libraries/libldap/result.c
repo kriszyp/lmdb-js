@@ -648,6 +648,7 @@ retry_ber:
 			ber_scanf(ber, "x{");
 		}
 nextresp2:
+		;
 #endif
 	}
 
