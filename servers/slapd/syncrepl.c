@@ -1354,6 +1354,7 @@ reload:
 	if ( rc == SYNC_PAUSED ) {
 		rtask->interval.tv_sec = 0;
 		ldap_pvt_runqueue_resched( &slapd_rq, rtask, 0 );
+		rtask->interval.tv_sec = si->si_interval;
 		rc = 0;
 	} else if ( rc == LDAP_SUCCESS ) {
 		if ( si->si_type == LDAP_SYNC_REFRESH_ONLY ) {
