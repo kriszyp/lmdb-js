@@ -24,6 +24,7 @@ OpenLDAP 2.4.12 Engineering
 	Fixed slapd syncrepl contextCSN detection (ITS#5675)
 	Fixed slapd syncrepl error logging (ITS#5618)
 	Fixed slapd-bdb entry return if attr not present (ITS#5650)
+	Fixed slapd-bdb olcDbMode syntax (ITS#5713)
 	Fixed slapd-dnssrv memory handling (ITS#5691)
 	Fixed slapd-ldap,slapd-meta invalid filter behavior (ITS#5614)
 	Fixed slapd-meta memory handling (ITS#5691)

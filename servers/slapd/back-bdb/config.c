@@ -49,7 +49,8 @@ enum {
 	BDB_DIRTYR,
 	BDB_INDEX,
 	BDB_LOCKD,
-	BDB_SSTACK
+	BDB_SSTACK,
+	BDB_MODE
 };
 
 static ConfigTable bdbcfg[] = {
@@ -121,11 +122,10 @@ static ConfigTable bdbcfg[] = {
 		bdb_cf_gen, "( OLcfgDbAt:1.8 NAME 'olcDbLockDetect' "
 		"DESC 'Deadlock detection algorithm' "
 		"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
-	{ "mode", "mode", 2, 2, 0, ARG_INT|ARG_OFFSET,
-		(void *)offsetof(struct bdb_info, bi_dbenv_mode),
-		"( OLcfgDbAt:0.3 NAME 'olcDbMode' "
+	{ "mode", "mode", 2, 2, 0, ARG_MAGIC|BDB_MODE,
+		bdb_cf_gen, "( OLcfgDbAt:0.3 NAME 'olcDbMode' "
 		"DESC 'Unix permissions of database files' "
-		"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
+		"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
 	{ "searchstack", "depth", 2, 2, 0, ARG_INT|ARG_MAGIC|BDB_SSTACK,
 		bdb_cf_gen, "( OLcfgDbAt:1.9 NAME 'olcDbSearchStack' "
 		"DESC 'Depth of search stack in IDLs' "
@@ -360,15 +360,31 @@ bdb_cf_gen( ConfigArgs *c )
 	if ( c->op == SLAP_CONFIG_EMIT ) {
 		rc = 0;
 		switch( c->type ) {
+		case BDB_MODE: {
+			char buf[64];
+			struct berval bv;
+			bv.bv_len = snprintf( buf, sizeof(buf), "0%o", bdb->bi_dbenv_mode );
+			if ( bv.bv_len > 0 && bv.bv_len < sizeof(buf) ) {
+				bv.bv_val = buf;
+				value_add_one( &c->rvalue_vals, &bv );
+			} else {
+				rc = 1;
+			}
+			} break;
+
 		case BDB_CHKPT:
 			if ( bdb->bi_txn_cp ) {
 				char buf[64];
 				struct berval bv;
-				bv.bv_len = sprintf( buf, "%d %d", bdb->bi_txn_cp_kbyte,
+				bv.bv_len = snprintf( buf, sizeof(buf), "%d %d", bdb->bi_txn_cp_kbyte,
 					bdb->bi_txn_cp_min );
-				bv.bv_val = buf;
-				value_add_one( &c->rvalue_vals, &bv );
-			} else{
+				if ( bv.bv_len > 0 && bv.bv_len < sizeof(buf) ) {
+					bv.bv_val = buf;
+					value_add_one( &c->rvalue_vals, &bv );
+				} else {
+					rc = 1;
+				}
+			} else {
 				rc = 1;
 			}
 			break;
@@ -472,6 +488,14 @@ bdb_cf_gen( ConfigArgs *c )
 	} else if ( c->op == LDAP_MOD_DELETE ) {
 		rc = 0;
 		switch( c->type ) {
+		case BDB_MODE:
+#if 0
+			/* FIXME: does it make any sense to change the mode,
+			 * if we don't exec a chmod()? */
+			bdb->bi_dbenv_mode = SLAPD_DEFAULT_DB_MODE;
+			break;
+#endif
+
 		/* single-valued no-ops */
 		case BDB_LOCKD:
 		case BDB_SSTACK:
@@ -589,6 +613,46 @@ bdb_cf_gen( ConfigArgs *c )
 	}
 
 	switch( c->type ) {
+	case BDB_MODE:
+		if ( ASCII_DIGIT( c->argv[1][0] ) ) {
+			long mode;
+			char *next;
+			errno = 0;
+			mode = strtol( c->argv[1], &next, 0 );
+			if ( errno != 0 || next == c->argv[1] || next[0] != '\0' ) {
+				fprintf( stderr, "%s: "
+					"unable to parse mode=\"%s\".\n",
+					c->log, c->argv[1] );
+				return 1;
+			}
+			bdb->bi_dbenv_mode = mode;
+
+		} else {
+			char *m = c->argv[1];
+			int who, what, mode = 0;
+
+			if ( strlen( m ) != STRLENOF("-rwxrwxrwx") ) {
+				return 1;
+			}
+
+			if ( m[0] != '-' ) {
+				return 1;
+			}
+
+			m++;
+			for ( who = 0; who < 3; who++ ) {
+				for ( what = 0; what < 3; what++, m++ ) {
+					if ( m[0] == '-' ) {
+						continue;
+					} else if ( m[0] != "rwx"[what] ) {
+						return 1;
+					}
+					mode += ((1 << (2 - what)) << 3*(2 - who));
+				}
+			}
+			bdb->bi_dbenv_mode = mode;
+		}
+		break;
 	case BDB_CHKPT: {
 		long	l;
 		bdb->bi_txn_cp = 1;
