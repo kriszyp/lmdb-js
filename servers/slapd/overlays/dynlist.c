@@ -306,7 +306,9 @@ dynlist_sc_update( Operation *op, SlapReply *rs )
 			ad = a->a_desc;
 			for ( dlm = dlc->dlc_dli->dli_dlm; dlm; dlm = dlm->dlm_next ) {
 				if ( dlm->dlm_member_ad == a->a_desc ) {
-					ad = dlm->dlm_mapped_ad;
+					if ( dlm->dlm_mapped_ad ) {
+						ad = dlm->dlm_mapped_ad;
+					}
 					break;
 				}
 			}
