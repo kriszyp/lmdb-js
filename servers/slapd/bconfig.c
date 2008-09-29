@@ -4633,6 +4633,15 @@ config_back_add( Operation *op, SlapReply *rs )
 		goto out;
 	}
 
+	/*
+	 * Check for attribute ACL
+	 */
+	if ( !acl_check_modlist( op, op->ora_e, op->orm_modlist )) {
+		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
+		rs->sr_text = "no write access to attribute";
+		goto out;
+	}
+
 	cfb = (CfBackInfo *)op->o_bd->be_private;
 
 	/* add opattrs for syncprov */
