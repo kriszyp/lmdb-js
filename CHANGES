@@ -37,6 +37,7 @@ OpenLDAP 2.4.12 Engineering
 	Fixed slapo-memberof internal operations DN (ITS#5622)
 	Fixed slapo-pcache attrset crash (ITS#5665)
 	Fixed slapo-pcache caching with invalid schema (ITS#5680)
+	Fixed slapo-ppolicy control return on password modify exop (ITS#5711)
 	Fixed slapo-rwm callback cleanup (ITS#5601,ITS#5687)
 	Fixed slapo-rwm attr mapping and merging (ITS#5624)
 	Fixed slapo-rwm objectClass filtering (ITS#5647)

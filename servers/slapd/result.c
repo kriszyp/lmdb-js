@@ -538,6 +538,14 @@ clean2:;
 		}
 	}
 
+	if ( rs->sr_flags & REP_CTRLS_MUSTBEFREED ) {
+		rs->sr_flags ^= REP_CTRLS_MUSTBEFREED; /* paranoia */
+		if ( rs->sr_ctrls ) {
+			slap_free_ctrls( op, rs->sr_ctrls );
+			rs->sr_ctrls = NULL;
+		}
+	}
+
 	return rc;
 }
 

@@ -142,7 +142,7 @@ $LDAPMODIFY -v -D "$USER" -h $LOCALHOST -p $PORT1 -w $PASS >> \
 dn: uid=nd, ou=People, dc=example, dc=com
 changetype: modify
 delete: userpassword
-userpassword: testpassword
+userpassword: $PASS
 -
 replace: userpassword
 userpassword: 20urgle12-1
@@ -220,7 +220,7 @@ $LDAPMODIFY -v -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD >> \
 dn: uid=nd, ou=People, dc=example, dc=com
 changetype: modify
 replace: userPassword
-userPassword: testpassword
+userPassword: $PASS
 -
 replace: pwdReset
 pwdReset: TRUE
@@ -288,8 +288,11 @@ fi
 
 sleep 2
 
+OLDPASS=$PASS
+PASS=successexpect
+
 $LDAPPASSWD -h $LOCALHOST -p $PORT1 \
-	-w $PASS -s failexpect -a $PASS \
+	-w $OLDPASS -s $PASS -a $OLDPASS \
 	-D "$USER" >> $TESTOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
@@ -299,10 +302,10 @@ if test $RC != 0 ; then
 fi
 
 echo "Testing length requirement..."
-
+# check control in response (ITS#5711)
 $LDAPPASSWD -h $LOCALHOST -p $PORT1 \
-	-w failexpect -a failexpect -s spw \
-	-D "$USER" > ${TESTOUT}.2 2>&1
+	-w $PASS -a $PASS -s 2shr \
+	-D "$USER" -e ppolicy > ${TESTOUT}.2 2>&1
 RC=$?
 cat ${TESTOUT}.2 >> $TESTOUT
 if test $RC = 0 ; then
@@ -316,15 +319,21 @@ if test $COUNT != 1 ; then
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit 1
 fi
+COUNT=`grep "Password is too short for policy" ${TESTOUT}.2 | wc -l`
+if test $COUNT != 1 ; then
+	echo "Control not returned in response"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit 1
+fi
 
 echo "Testing hashed length requirement..."
 
-$LDAPMODIFY -h $LOCALHOST -p $PORT1 -D "$USER" -w failexpect > \
+$LDAPMODIFY -h $LOCALHOST -p $PORT1 -D "$USER" -w $PASS > \
 	${TESTOUT}.2 2>&1 << EOMODS
 dn: $USER
 changetype: modify
 delete: userPassword
-userPassword: failexpect
+userPassword: $PASS
 -
 add: userPassword
 userPassword: {MD5}xxxxxx
