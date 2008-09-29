@@ -20,6 +20,7 @@ OpenLDAP 2.4.12 Engineering
 	Fixed slapd spurious text output (ITS#5688)
 	Fixed slapd socket closing on Windows (ITS#5606)
 	Fixed slapd sortvals comparison (ITS#5578)
+	Added slapd substitute syntax support (ITS#5663)
 	Fixed slapd syncrepl contextCSN detection (ITS#5675)
 	Fixed slapd syncrepl error logging (ITS#5618)
 	Fixed slapd-bdb entry return if attr not present (ITS#5650)

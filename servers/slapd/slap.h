@@ -415,6 +415,7 @@ struct Syntax {
 #else
 #define SLAP_SYNTAX_HIDE	0x8000U /* hide (do not publish) */
 #endif
+#define	SLAP_SYNTAX_HARDCODE	0x10000U	/* This is hardcoded schema */
 
 	Syntax				**ssyn_sups;
 
@@ -431,7 +432,7 @@ struct Syntax {
 	struct ComponentDesc* ssync_comp_syntax;
 #endif
 
-	LDAP_SLIST_ENTRY(Syntax)	ssyn_next;
+	LDAP_STAILQ_ENTRY(Syntax)	ssyn_next;
 };
 
 #define slap_syntax_is_flag(s,flag) ((int)((s)->ssyn_flags & (flag)) ? 1 : 0)

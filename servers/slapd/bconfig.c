@@ -63,6 +63,7 @@ typedef struct ConfigFile {
 	ContentRule *c_cr_head, *c_cr_tail;
 	ObjectClass *c_oc_head, *c_oc_tail;
 	OidMacro *c_om_head, *c_om_tail;
+	Syntax *c_syn_head, *c_syn_tail;
 	BerVarray c_dseFiles;
 } ConfigFile;
 
@@ -87,7 +88,7 @@ static struct berval cfdir;
 
 /* Private state */
 static AttributeDescription *cfAd_backend, *cfAd_database, *cfAd_overlay,
-	*cfAd_include, *cfAd_attr, *cfAd_oc, *cfAd_om;
+	*cfAd_include, *cfAd_attr, *cfAd_oc, *cfAd_om, *cfAd_syntax;
 
 static ConfigFile *cfn;
 
@@ -97,9 +98,11 @@ static Avlnode *CfOcTree;
 extern AttributeType *at_sys_tail;	/* at.c */
 extern ObjectClass *oc_sys_tail;	/* oc.c */
 extern OidMacro *om_sys_tail;	/* oidm.c */
+extern Syntax *syn_sys_tail;	/* syntax.c */
 static AttributeType *cf_at_tail;
 static ObjectClass *cf_oc_tail;
 static OidMacro *cf_om_tail;
+static Syntax *cf_syn_tail;
 
 static int config_add_internal( CfBackInfo *cfb, Entry *e, ConfigArgs *ca,
 	SlapReply *rs, int *renumber, Operation *op );
@@ -180,6 +183,7 @@ enum {
 	CFG_SERVERID,
 	CFG_SORTVALS,
 	CFG_IX_INTLEN,
+	CFG_SYNTAX,
 
 	CFG_LAST
 };
@@ -381,6 +385,13 @@ static ConfigTable config_back_cf_table[] = {
 	{ "lastmod", "on|off", 2, 2, 0, ARG_DB|ARG_ON_OFF|ARG_MAGIC|CFG_LASTMOD,
 		&config_generic, "( OLcfgDbAt:0.4 NAME 'olcLastMod' "
 			"SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
+	{ "ldapsyntax",	"syntax", 2, 0, 0,
+		ARG_PAREN|ARG_MAGIC|CFG_SYNTAX,
+		&config_generic, "( OLcfgGlAt:85 NAME 'olcLdapSyntaxes' "
+			"DESC 'OpenLDAP ldapSyntax' "
+			"EQUALITY caseIgnoreMatch "
+			"SYNTAX OMsDirectoryString X-ORDERED 'VALUES' )",
+				NULL, NULL },
 	{ "limits", "limits", 2, 0, 0, ARG_DB|ARG_MAGIC|CFG_LIMITS,
 		&config_generic, "( OLcfgDbAt:0.5 NAME 'olcLimits' "
 			"EQUALITY caseIgnoreMatch "
@@ -732,13 +743,13 @@ static ConfigOCs cf_ocs[] = {
 		 "olcTLSRandFile $ olcTLSVerifyClient $ olcTLSDHParamFile $ "
 		 "olcTLSCRLFile $ olcToolThreads $ "
 		 "olcObjectIdentifier $ olcAttributeTypes $ olcObjectClasses $ "
-		 "olcDitContentRules ) )", Cft_Global },
+		 "olcDitContentRules $ olcLdapSyntaxes ) )", Cft_Global },
 	{ "( OLcfgGlOc:2 "
 		"NAME 'olcSchemaConfig' "
 		"DESC 'OpenLDAP schema object' "
 		"SUP olcConfig STRUCTURAL "
 		"MAY ( cn $ olcObjectIdentifier $ olcAttributeTypes $ "
-		 "olcObjectClasses $ olcDitContentRules ) )",
+		 "olcObjectClasses $ olcDitContentRules $ olcLdapSyntaxes ) )",
 		 	Cft_Schema, NULL, cfAddSchema },
 	{ "( OLcfgGlOc:3 "
 		"NAME 'olcBackendConfig' "
@@ -923,6 +934,17 @@ config_generic(ConfigArgs *c) {
 			else if ( cf->c_at_head )
 				at_unparse( &c->rvalue_vals, cf->c_at_head,
 					cf->c_at_tail, 0 );
+			if ( !c->rvalue_vals )
+				rc = 1;
+			}
+			break;
+		case CFG_SYNTAX: {
+			ConfigFile *cf = c->ca_private;
+			if ( !cf )
+				syn_unparse( &c->rvalue_vals, NULL, NULL, 1 );
+			else if ( cf->c_syn_head )
+				syn_unparse( &c->rvalue_vals, cf->c_syn_head,
+					cf->c_syn_tail, 0 );
 			if ( !c->rvalue_vals )
 				rc = 1;
 			}
@@ -1277,6 +1299,44 @@ config_generic(ConfigArgs *c) {
 				}
 			}
 			break;
+
+		case CFG_SYNTAX: {
+			CfEntryInfo *ce;
+			/* Can be NULL when undoing a failed add */
+			if ( c->ca_entry ) {
+				ce = c->ca_entry->e_private;
+				/* can't modify the hardcoded schema */
+				if ( ce->ce_parent->ce_type == Cft_Global )
+					return 1;
+				}
+			}
+			cfn = c->ca_private;
+			if ( c->valx < 0 ) {
+				Syntax *syn;
+
+				for( syn = cfn->c_syn_head; syn; syn_next( &syn )) {
+					syn_delete( syn );
+					if ( syn == cfn->c_syn_tail )
+						break;
+				}
+				cfn->c_syn_head = cfn->c_syn_tail = NULL;
+			} else {
+				Syntax *syn, *prev = NULL;
+
+				for ( i = 0, syn = cfn->c_syn_head; i < c->valx; i++) {
+					prev = syn;
+					syn_next( &syn );
+				}
+				syn_delete( syn );
+				if ( cfn->c_syn_tail == syn ) {
+					cfn->c_syn_tail = prev;
+				}
+				if ( cfn->c_syn_head == syn ) {
+					syn_next( &syn );
+					cfn->c_syn_head = syn;
+				}
+			}
+			break;
 		case CFG_SORTVALS:
 			if ( c->valx < 0 ) {
 				ADlist *sv;
@@ -1500,6 +1560,38 @@ config_generic(ConfigArgs *c) {
 			if(parse_at(c, &at, prev)) return(1);
 			if (!cfn->c_at_head) cfn->c_at_head = at;
 			if (cfn->c_at_tail == prev) cfn->c_at_tail = at;
+			}
+			break;
+
+		case CFG_SYNTAX: {
+			Syntax *syn, *prev;
+
+			if ( c->op == LDAP_MOD_ADD && c->ca_private && cfn != c->ca_private )
+				cfn = c->ca_private;
+			if ( c->valx < 0 ) {
+				prev = cfn->c_syn_tail;
+			} else {
+				prev = NULL;
+				/* If adding anything after the first, prev is easy */
+				if ( c->valx ) {
+					int i;
+					for ( i = 0, syn = cfn->c_syn_head; i < c->valx; i++ ) {
+						prev = syn;
+						syn_next( &syn );
+					}
+				} else
+				/* If adding the first, and head exists, find its prev */
+					if (cfn->c_syn_head) {
+					for ( syn_start( &syn ); syn != cfn->c_syn_head; ) {
+						prev = syn;
+						syn_next( &syn );
+					}
+				}
+				/* else prev is NULL, append to end of global list */
+			}
+			if ( parse_syn( c, &syn, prev ) ) return(1);
+			if ( !cfn->c_syn_head ) cfn->c_syn_head = syn;
+			if ( cfn->c_syn_tail == prev ) cfn->c_syn_tail = syn;
 			}
 			break;
 
@@ -4062,6 +4154,13 @@ schema_destroy_one( ConfigArgs *ca, ConfigOCs **colst, int nocs,
 		ct = config_find_table( colst, nocs, ad, ca );
 		config_del_vals( ct, ca );
 	}
+	if ( cfn->c_syn_head ) {
+		struct berval bv = BER_BVC("olcLdapSyntaxes");
+		ad = NULL;
+		slap_bv2ad( &bv, &ad, &text );
+		ct = config_find_table( colst, nocs, ad, ca );
+		config_del_vals( ct, ca );
+	}
 	if ( cfn->c_om_head ) {
 		struct berval bv = BER_BVC("olcObjectIdentifier");
 		ad = NULL;
@@ -5556,7 +5655,7 @@ config_build_schema_inc( ConfigArgs *c, CfEntryInfo *ceparent,
 
 	for (; cf; cf=cf->c_sibs, c->depth++) {
 		if ( !cf->c_at_head && !cf->c_cr_head && !cf->c_oc_head &&
-			!cf->c_om_head ) continue;
+			!cf->c_om_head && !cf->c_syn_head ) continue;
 		c->value_dn.bv_val = c->log;
 		LUTIL_SLASHPATH( cf->c_file.bv_val );
 		bv.bv_val = strrchr(cf->c_file.bv_val, LDAP_DIRSEP[0]);
@@ -5685,6 +5784,21 @@ config_check_schema(Operation *op, CfBackInfo *cfb)
 			ber_bvarray_free( bv );
 			cf_oc_tail = oc_sys_tail;
 		}
+		if ( cf_syn_tail != syn_sys_tail ) {
+			a = attr_find( e->e_attrs, cfAd_syntax );
+			if ( a ) {
+				if ( a->a_nvals != a->a_vals )
+					ber_bvarray_free( a->a_nvals );
+				ber_bvarray_free( a->a_vals );
+				a->a_vals = NULL;
+				a->a_nvals = NULL;
+				a->a_numvals = 0;
+			}
+			syn_unparse( &bv, NULL, NULL, 1 );
+			attr_merge_normalize( e, cfAd_syntax, bv, NULL );
+			ber_bvarray_free( bv );
+			cf_syn_tail = syn_sys_tail;
+		}
 	} else {
 		SlapReply rs = {REP_RESULT};
 		c.ca_private = NULL;
@@ -5698,6 +5812,7 @@ config_check_schema(Operation *op, CfBackInfo *cfb)
 		cf_at_tail = at_sys_tail;
 		cf_oc_tail = oc_sys_tail;
 		cf_om_tail = om_sys_tail;
+		cf_syn_tail = syn_sys_tail;
 	}
 	return 0;
 }
@@ -5789,6 +5904,7 @@ config_back_db_open( BackendDB *be, ConfigReply *cr )
 	cf_at_tail = at_sys_tail;
 	cf_oc_tail = oc_sys_tail;
 	cf_om_tail = om_sys_tail;
+	cf_syn_tail = syn_sys_tail;
 
 	/* Create schema nodes for included schema... */
 	if ( cfb->cb_config->c_kids ) {
@@ -6222,6 +6338,7 @@ static struct {
 	{ "backend", &cfAd_backend },
 	{ "database", &cfAd_database },
 	{ "include", &cfAd_include },
+	{ "ldapsyntax", &cfAd_syntax },
 	{ "objectclass", &cfAd_oc },
 	{ "objectidentifier", &cfAd_om },
 	{ "overlay", &cfAd_overlay },
