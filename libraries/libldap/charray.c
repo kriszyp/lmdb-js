@@ -191,10 +191,10 @@ ldap_str2charray( const char *str_in, const char *brkstr )
 	}
 
 	i = 1;
-	for ( s = str; *s; s++ ) {
-		if ( ldap_utf8_strchr( brkstr, s ) != NULL ) {
-			i++;
-		}
+	for ( s = str; *s; LDAP_UTF8_INCR(s) ) {
+		s = ldap_utf8_strchr( s, brkstr );
+		if ( !s ) break;
+		i++;
 	}
 
 	res = (char **) LDAP_MALLOC( (i + 1) * sizeof(char *) );
