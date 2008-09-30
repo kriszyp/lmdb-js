@@ -322,6 +322,20 @@ side, the actual error is returned to the client.
 >        chain-return-error TRUE
 
 
+H3: Read-Back of Chained Modifications
+
+Occasionally, applications want to read back the data that they just wrote.
+If a modification requested to a shadow server was silently chained to its 
+producer, an immediate read could result in receiving data not yet sync'ed.  
+In those cases, clients should use the {{B:dontusecopy}} control to ensure 
+they are directed to the authoritative source for that piece of data.
+
+This control usually causes a referral to the actual source of the data
+to be returned.  However, when the {{slapo-chain(5)}} overlay is used,
+it intercepts the referral being returned in response to the
+{{B:dontusecopy}} control, and tries to fetch the requested data.
+
+
 H3: Further Information
 
 {{:slapo-chain(5)}}
