@@ -191,8 +191,8 @@ ldap_str2charray( const char *str_in, const char *brkstr )
 	}
 
 	i = 1;
-	for ( s = str; *s; LDAP_UTF8_INCR(s) ) {
-		s = ldap_utf8_strchr( s, brkstr );
+	for ( s = str; ; LDAP_UTF8_INCR(s) ) {
+		s = ldap_utf8_strpbrk( s, brkstr );
 		if ( !s ) break;
 		i++;
 	}
