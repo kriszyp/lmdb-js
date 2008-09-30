@@ -37,6 +37,7 @@ OpenLDAP 2.4.12 Engineering
 	Fixed slapd-sql fault on NULL fields (ITS#5653)
 	Fixed slapo-accesslog entryCSN generation on purge (ITS#5694)
 	Fixed slapo-constraint string termination (ITS#5609)
+	Fixed slapo-dynlist expansion with mapped attributes (ITS#5717)
 	Fixed slapo-memberof internal operations DN (ITS#5622)
 	Fixed slapo-pcache attrset crash (ITS#5665)
 	Fixed slapo-pcache caching with invalid schema (ITS#5680)

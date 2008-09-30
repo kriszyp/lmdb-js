@@ -306,7 +306,9 @@ dynlist_sc_update( Operation *op, SlapReply *rs )
 			ad = a->a_desc;
 			for ( dlm = dlc->dlc_dli->dli_dlm; dlm; dlm = dlm->dlm_next ) {
 				if ( dlm->dlm_member_ad == a->a_desc ) {
-					ad = dlm->dlm_mapped_ad;
+					if ( dlm->dlm_mapped_ad ) {
+						ad = dlm->dlm_mapped_ad;
+					}
 					break;
 				}
 			}
@@ -369,8 +371,8 @@ dynlist_prepare_entry( Operation *op, SlapReply *rs, dynlist_info_t *dli )
 
 	/* Don't generate member list if it wasn't requested */
 	for ( dlm = dli->dli_dlm; dlm; dlm = dlm->dlm_next ) {
-		if ( userattrs ||
-		     ad_inlist( dlm->dlm_member_ad, rs->sr_attrs ) ) 
+		AttributeDescription *ad = dlm->dlm_mapped_ad ? dlm->dlm_mapped_ad : dlm->dlm_member_ad;
+		if ( userattrs || ad_inlist( ad, rs->sr_attrs ) ) 
 			break;
 	}
 	if ( dli->dli_dlm && !dlm )
@@ -421,7 +423,6 @@ dynlist_prepare_entry( Operation *op, SlapReply *rs, dynlist_info_t *dli )
 		int		i, j;
 		struct berval	dn;
 		int		rc;
-		dynlist_map_t	*dlm;
 
 		BER_BVZERO( &o.o_req_dn );
 		BER_BVZERO( &o.o_req_ndn );
@@ -498,9 +499,23 @@ dynlist_prepare_entry( Operation *op, SlapReply *rs, dynlist_info_t *dli )
 					if ( o.ors_attrs[j].an_desc != NULL &&
 							is_at_operational( o.ors_attrs[j].an_desc->ad_type ) )
 					{
-						if ( !opattrs && !ad_inlist( o.ors_attrs[j].an_desc, rs->sr_attrs ) )
-						{
+						if ( !opattrs ) {
 							continue;
+						}
+
+						if ( !ad_inlist( o.ors_attrs[j].an_desc, rs->sr_attrs ) ) {
+							/* lookup if mapped -- linear search,
+							 * not very efficient unless list
+							 * is very short */
+							for ( dlm = dli->dli_dlm; dlm; dlm = dlm->dlm_next ) {
+								if ( dlm->dlm_member_ad == o.ors_attrs[j].an_desc ) {
+									break;
+								}
+							}
+
+							if ( dlm == NULL ) {
+								continue;
+							}
 						}
 
 					} else {
@@ -508,7 +523,18 @@ dynlist_prepare_entry( Operation *op, SlapReply *rs, dynlist_info_t *dli )
 								o.ors_attrs[j].an_desc != NULL &&
 								!ad_inlist( o.ors_attrs[j].an_desc, rs->sr_attrs ) )
 						{
-							continue;
+							/* lookup if mapped -- linear search,
+							 * not very efficient unless list
+							 * is very short */
+							for ( dlm = dli->dli_dlm; dlm; dlm = dlm->dlm_next ) {
+								if ( dlm->dlm_member_ad == o.ors_attrs[j].an_desc ) {
+									break;
+								}
+							}
+
+							if ( dlm == NULL ) {
+								continue;
+							}
 						}
 					}
 				}
