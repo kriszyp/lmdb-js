@@ -885,10 +885,11 @@ full indexing and so a separate slapindex run is not needed. With
 this option, slapadd does no indexing and slapindex must be used.
 
 
-H4: olcDbMode: <integer>
+H4: olcDbMode: { <octal> | <symbolic> }
 
 This directive specifies the file protection mode that newly
-created database index files should have.
+created database index files should have. This can be in the form
+{{EX:0600}} or {{EX:-rw-------}}
 
 \Default:
 
