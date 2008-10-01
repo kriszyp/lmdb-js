@@ -103,6 +103,8 @@ static Entry * deref_base (
 
 		rs->sr_err = bdb_dn2entry( op, txn, &ndn, &ei,
 			0, &lockr );
+		if ( rs->sr_err == DB_LOCK_DEADLOCK )
+			return NULL;
 
 		if ( ei ) {
 			e = ei->bei_e;
@@ -204,14 +206,15 @@ static int search_aliases(
 		BDB_IDL_CPY( curscop, aliases );
 		rs->sr_err = bdb_dn2idl( op, txn, &e->e_nname, BEI(e), subscop,
 			subscop2+BDB_IDL_DB_SIZE );
-		if ( rs->sr_err == DB_LOCK_DEADLOCK )
-			return rs->sr_err;
 
 		if (first) {
 			first = 0;
 		} else {
 			bdb_cache_return_entry_r (bdb, e, &locka);
 		}
+		if ( rs->sr_err == DB_LOCK_DEADLOCK )
+			return rs->sr_err;
+
 		BDB_IDL_CPY(subscop2, subscop);
 		rs->sr_err = bdb_idl_intersection(curscop, subscop);
 		bdb_idl_union( ids, subscop2 );
@@ -379,8 +382,10 @@ dn2entry_retry:
 		e = ei->bei_e;
 		break;
 	case DB_LOCK_DEADLOCK:
-		if ( !opinfo )
+		if ( !opinfo ) {
+			ltid->flags &= ~TXN_DEADLOCK;
 			goto dn2entry_retry;
+		}
 		opinfo->boi_err = rs->sr_err;
 		/* FALLTHRU */
 	case LDAP_BUSY:
@@ -574,13 +579,17 @@ dn2entry_retry:
 		rs->sr_err = base_candidate( op->o_bd, &base, candidates );
 
 	} else {
+cand_retry:
 		BDB_IDL_ZERO( candidates );
 		BDB_IDL_ZERO( scopes );
 		rs->sr_err = search_candidates( op, rs, &base,
 			ltid, candidates, scopes );
 		if ( rs->sr_err == DB_LOCK_DEADLOCK ) {
-			if ( opinfo )
-				opinfo->boi_err = rs->sr_err;
+			if ( !opinfo ) {
+				ltid->flags &= ~TXN_DEADLOCK;
+				goto cand_retry;
+			}
+			opinfo->boi_err = rs->sr_err;
 			send_ldap_error( op, rs, LDAP_BUSY, "ldap server busy" );
 			return LDAP_BUSY;
 		}
@@ -701,8 +710,11 @@ fetch_entry_retry:
 				goto done;
 
 			} else if ( rs->sr_err == DB_LOCK_DEADLOCK ) {
-				if ( opinfo )
-					opinfo->boi_err = rs->sr_err;
+				if ( !opinfo ) {
+					ltid->flags &= ~TXN_DEADLOCK;
+					goto fetch_entry_retry;
+				}
+				opinfo->boi_err = rs->sr_err;
 				send_ldap_error( op, rs, LDAP_BUSY, "ldap server busy" );
 				goto done;
 
