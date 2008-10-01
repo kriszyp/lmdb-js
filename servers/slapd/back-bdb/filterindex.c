@@ -582,6 +582,9 @@ list_candidates(
 			save+BDB_IDL_UM_SIZE );
 
 		if ( rc != 0 ) {
+			if ( rc == DB_LOCK_DEADLOCK )
+				return rc;
+
 			if ( ftype == LDAP_FILTER_AND ) {
 				rc = 0;
 				continue;
