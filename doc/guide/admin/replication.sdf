@@ -810,9 +810,10 @@ H4: Delta-syncrepl Master configuration
 Setting up delta-syncrepl requires configuration changes on both the master and 
 replica servers:
 
->     # Give the replica DN unlimited read access.  This ACL may need to be
->     # merged with other ACL statements.
->     
+>     # Give the replica DN unlimited read access.  This ACL needs to be
+>     # merged with other ACL statements, and/or moved within the scope
+>     # of a database.  The "by * break" portion causes evaluation of
+>     # subsequent rules.  See slapd.access(5) for details.
 >     access to *
 >        by dn.base="cn=replicator,dc=symas,dc=com" read
 >        by * break
