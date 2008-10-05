@@ -1150,7 +1150,6 @@ Connection *connection_client_setup(
 		c->c_clientarg = arg;
 
 		slapd_add_internal( sfd, 0 );
-		slapd_set_read( sfd, 1 );
 	}
 	return c;
 }
