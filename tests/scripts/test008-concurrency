@@ -16,8 +16,8 @@
 echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
 
-if test x$LOOPS = x ; then
-	LOOPS=50
+if test x$TESTLOOPS = x ; then
+	TESTLOOPS=50
 fi
 
 mkdir -p $TESTDIR $DBDIR1
@@ -59,8 +59,8 @@ done
 $MONITORDATA "$MONITORDB" "$DATADIR" "$TESTDIR"
 
 echo "Using tester for concurrent server access..."
-time $SLAPDTESTER -P "$PROGDIR" -d "$TESTDIR" -h $LOCALHOST -p $PORT1 -D "$MANAGERDN" -w $PASSWD -l $LOOPS
-#$SLAPDTESTER -P "$PROGDIR" -d "$TESTDIR" -h $LOCALHOST -p $PORT1 -D "$MANAGERDN" -w $PASSWD -l $LOOPS
+time $SLAPDTESTER -P "$PROGDIR" -d "$TESTDIR" -h $LOCALHOST -p $PORT1 -D "$MANAGERDN" -w $PASSWD -l $TESTLOOPS
+#$SLAPDTESTER -P "$PROGDIR" -d "$TESTDIR" -h $LOCALHOST -p $PORT1 -D "$MANAGERDN" -w $PASSWD -l $TESTLOOPS
 RC=$?
 
 if test $RC != 0 ; then
