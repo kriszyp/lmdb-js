@@ -26,8 +26,8 @@ if test $RDBMS = "rdbmsno" ; then
 	exit 0
 fi
 
-if test "x$LOOPS" = "x" ; then
-	LOOPS=5
+if test "x$TESTLOOPS" = "x" ; then
+	TESTLOOPS=5
 fi
 
 if test "x$CHILDREN" = "x" ; then
@@ -102,7 +102,7 @@ fi
 echo "Using tester for concurrent server access..."
 $SLAPDTESTER -P "$PROGDIR" -d "$SQLDATADIR" \
 	-h $LOCALHOST -p $PORT1 -D "$MANAGERDN" -w $PASSWD \
-	-l $LOOPS $CHILDREN -FF
+	-l $TESTLOOPS $CHILDREN -FF
 RC=$?
 
 if test $RC != 0 ; then
