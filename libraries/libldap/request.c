@@ -352,6 +352,31 @@ ldap_send_server_request(
 	return( msgid );
 }
 
+/* return 0 if no StartTLS ext, 1 if present, 2 if critical */
+static int
+find_tls_ext( LDAPURLDesc *srv )
+{
+	int i, crit;
+	char *ext;
+
+	if ( !srv->lud_exts )
+		return 0;
+
+	for (i=0; srv->lud_exts[i]; i++) {
+		crit = 0;
+		ext = srv->lud_exts[i];
+		if ( ext[0] == '!') {
+			ext++;
+			crit = 1;
+		}
+		if ( !strcasecmp( ext, "StartTLS" ) ||
+			!strcmp( ext, LDAP_EXOP_START_TLS )) {
+			return crit + 1;
+		}
+	}
+	return 0;
+}
+
 LDAPConn *
 ldap_new_connection( LDAP *ld, LDAPURLDesc **srvlist, int use_ldsb,
 	int connect, LDAPreqinfo *bind )
@@ -425,6 +450,39 @@ ldap_new_connection( LDAP *ld, LDAPURLDesc **srvlist, int use_ldsb,
 #ifdef LDAP_R_COMPILE
 	ldap_pvt_thread_mutex_unlock( &ld->ld_conn_mutex );
 #endif
+
+	if ( lc->lconn_server->lud_exts ) {
+#ifdef HAVE_TLS
+		if ( connect ) {
+			int rc, ext = find_tls_ext( lc->lconn_server );
+			if ( ext ) {
+				LDAPConn	*savedefconn;
+
+				savedefconn = ld->ld_defconn;
+				++lc->lconn_refcnt;	/* avoid premature free */
+				ld->ld_defconn = lc;
+
+#ifdef LDAP_R_COMPILE
+				ldap_pvt_thread_mutex_unlock( &ld->ld_req_mutex );
+				ldap_pvt_thread_mutex_unlock( &ld->ld_res_mutex );
+#endif
+				rc = ldap_start_tls_s( ld, NULL, NULL );
+#ifdef LDAP_R_COMPILE
+				ldap_pvt_thread_mutex_lock( &ld->ld_res_mutex );
+				ldap_pvt_thread_mutex_lock( &ld->ld_req_mutex );
+#endif
+				ld->ld_defconn = savedefconn;
+				--lc->lconn_refcnt;
+
+				if ( rc != LDAP_SUCCESS && ext == 2 ) {
+					ldap_free_connection( ld, lc, 1, 0 );
+					return NULL;
+				}
+			}
+			
+		}
+#endif
+	}
 
 	if ( bind != NULL ) {
 		int		err = 0;
@@ -1018,10 +1076,18 @@ ldap_chase_v3referrals( LDAP *ld, LDAPRequest *lr, char **refs, int sref, char *
 		}
 
 		if( srv->lud_crit_exts ) {
-			/* we do not support any extensions */
-			ld->ld_errno = LDAP_NOT_SUPPORTED;
-			rc = -1;
-			goto done;
+			int ok = 0;
+#ifdef HAVE_TLS
+			/* If StartTLS is the only critical ext, OK. */
+			if ( find_tls_ext( srv ) == 2 && srv->lud_crit_exts == 1 )
+				ok = 1;
+#endif
+			if ( !ok ) {
+					/* we do not support any other extensions */
+					ld->ld_errno = LDAP_NOT_SUPPORTED;
+					rc = -1;
+					goto done;
+			}
 		}
 
 		/* check connection for re-bind in progress */
