@@ -370,6 +370,7 @@ find_tls_ext( LDAPURLDesc *srv )
 			crit = 1;
 		}
 		if ( !strcasecmp( ext, "StartTLS" ) ||
+			!strcasecmp( ext, "X-StartTLS" ) ||
 			!strcmp( ext, LDAP_EXOP_START_TLS )) {
 			return crit + 1;
 		}
@@ -1083,10 +1084,10 @@ ldap_chase_v3referrals( LDAP *ld, LDAPRequest *lr, char **refs, int sref, char *
 				ok = 1;
 #endif
 			if ( !ok ) {
-					/* we do not support any other extensions */
-					ld->ld_errno = LDAP_NOT_SUPPORTED;
-					rc = -1;
-					goto done;
+				/* we do not support any other extensions */
+				ld->ld_errno = LDAP_NOT_SUPPORTED;
+				rc = -1;
+				goto done;
 			}
 		}
 
