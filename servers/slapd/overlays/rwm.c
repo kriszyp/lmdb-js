@@ -1367,7 +1367,7 @@ rwm_send_entry( Operation *op, SlapReply *rs )
 	(void)rwm_attrs( op, rs, &e->e_attrs, 1 );
 
 	if ( rs->sr_flags & REP_ENTRY_MUSTRELEASE ) {
-		be_entry_release_rw( op, rs->sr_entry, 0 );
+		overlay_entry_release_ov( op, rs->sr_entry, 0, on );
 	}
 
 	rs->sr_entry = e;

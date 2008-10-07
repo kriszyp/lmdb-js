@@ -692,7 +692,7 @@ static int translucent_search_cb(Operation *op, SlapReply *rs) {
 			if ( re ) {
 				if ( rs->sr_flags & REP_ENTRY_MUSTRELEASE ) {
 					rs->sr_flags ^= REP_ENTRY_MUSTRELEASE;
-					be_entry_release_r( op, rs->sr_entry );
+					overlay_entry_release_ov( op, rs->sr_entry, 0, on );
 				}
 				if ( rs->sr_flags & REP_ENTRY_MUSTBEFREED ) {
 					rs->sr_flags ^= REP_ENTRY_MUSTBEFREED;
@@ -726,7 +726,7 @@ static int translucent_search_cb(Operation *op, SlapReply *rs) {
 			re = entry_dup( rs->sr_entry );
 			if ( rs->sr_flags & REP_ENTRY_MUSTRELEASE ) {
 				rs->sr_flags ^= REP_ENTRY_MUSTRELEASE;
-				be_entry_release_r( op, rs->sr_entry );
+				overlay_entry_release_ov( op, rs->sr_entry, 0, on );
 			}
 			if ( rs->sr_flags & REP_ENTRY_MUSTBEFREED ) {
 				rs->sr_flags ^= REP_ENTRY_MUSTBEFREED;
@@ -769,7 +769,7 @@ static int translucent_search_cb(Operation *op, SlapReply *rs) {
 		if ( tc->step & LCL_SIDE ) {
 			if ( rs->sr_flags & REP_ENTRY_MUSTRELEASE ) {
 				rs->sr_flags ^= REP_ENTRY_MUSTRELEASE;
-				be_entry_release_r( op, rs->sr_entry );
+				overlay_entry_release_ov( op, rs->sr_entry, 0, on );
 			}
 			if ( rs->sr_flags & REP_ENTRY_MUSTBEFREED ) {
 				rs->sr_flags ^= REP_ENTRY_MUSTBEFREED;
