@@ -613,10 +613,12 @@ hdb_dn2id_add(
 		tmp[1] = eip->bei_id;
 		*ptr = DN_ONE_PREFIX;
 		bdb_idl_cache_add_id( bdb, db, &key, e->e_id );
-		*ptr = DN_SUBTREE_PREFIX;
-		for (; eip && eip->bei_parent->bei_id; eip = eip->bei_parent) {
-			tmp[1] = eip->bei_id;
-			bdb_idl_cache_add_id( bdb, db, &key, e->e_id );
+		if ( eip->bei_parent ) {
+			*ptr = DN_SUBTREE_PREFIX;
+			for (; eip && eip->bei_parent->bei_id; eip = eip->bei_parent) {
+				tmp[1] = eip->bei_id;
+				bdb_idl_cache_add_id( bdb, db, &key, e->e_id );
+			}
 		}
 	}
 
@@ -710,10 +712,12 @@ func_leave:
 		tmp[1] = eip->bei_id;
 		*ptr = DN_ONE_PREFIX;
 		bdb_idl_cache_del_id( bdb, db, &key, e->e_id );
-		*ptr = DN_SUBTREE_PREFIX;
-		for (; eip && eip->bei_parent->bei_id; eip = eip->bei_parent) {
-			tmp[1] = eip->bei_id;
-			bdb_idl_cache_del_id( bdb, db, &key, e->e_id );
+		if ( eip ->bei_parent ) {
+			*ptr = DN_SUBTREE_PREFIX;
+			for (; eip && eip->bei_parent->bei_id; eip = eip->bei_parent) {
+				tmp[1] = eip->bei_id;
+				bdb_idl_cache_del_id( bdb, db, &key, e->e_id );
+			}
 		}
 	}
 	Debug( LDAP_DEBUG_TRACE, "<= hdb_dn2id_delete 0x%lx: %d\n", e->e_id, rc, 0 );
