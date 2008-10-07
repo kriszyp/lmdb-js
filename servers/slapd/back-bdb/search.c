@@ -857,6 +857,13 @@ fetch_entry_retry:
 				op->oq_search.rs_scope == LDAP_SCOPE_ONELEVEL
 					? LDAP_SCOPE_BASE : LDAP_SCOPE_SUBTREE );
 
+			/* free reader lock */
+#ifdef SLAP_ZONE_ALLOC
+			slap_zn_runlock(bdb->bi_cache.c_zctx, e);
+#endif
+			bdb_cache_return_entry_r( bdb, e, &lock );
+			e = NULL;
+
 			send_search_reference( op, rs );
 
 			ber_bvarray_free( rs->sr_ref );
@@ -889,13 +896,54 @@ fetch_entry_retry:
 			}
 
 			if (e) {
+				struct bdb_op_info bois;
+				struct bdb_lock_info blis;
+
+				/* Must set lockinfo so that entry_release will work */
+				if (!opinfo) {
+					bois.boi_oe.oe_key = bdb;
+					bois.boi_txn = NULL;
+					bois.boi_err = 0;
+					bois.boi_acl_cache = op->o_do_not_cache;
+					bois.boi_flag = BOI_DONTFREE;
+					bois.boi_locks = &blis;
+					blis.bli_next = NULL;
+					LDAP_SLIST_INSERT_HEAD( &op->o_extra, &bois.boi_oe,
+						oe_next );
+				} else {
+					blis.bli_next = opinfo->boi_locks;
+					opinfo->boi_locks = &blis;
+				}
+				blis.bli_id = e->e_id;
+				blis.bli_lock = lock;
+				blis.bli_flag = BLI_DONTFREE;
+
 				/* safe default */
 				rs->sr_attrs = op->oq_search.rs_attrs;
 				rs->sr_operational_attrs = NULL;
 				rs->sr_ctrls = NULL;
-				rs->sr_flags = 0;
+				rs->sr_flags = REP_ENTRY_MUSTRELEASE;
 				rs->sr_err = LDAP_SUCCESS;
 				rs->sr_err = send_search_entry( op, rs );
+
+				/* send_search_entry will usually free it.
+				 * an overlay might leave its own copy here;
+				 * bli_flag will be 0 if lock was already released.
+				 */
+				if ( blis.bli_flag ) {
+#ifdef SLAP_ZONE_ALLOC
+					slap_zn_runlock(bdb->bi_cache.c_zctx, e);
+#endif
+					bdb_cache_return_entry_r(bdb, e, &lock);
+					if ( opinfo ) {
+						opinfo->boi_locks = blis.bli_next;
+					} else {
+						LDAP_SLIST_REMOVE( &op->o_extra, &bois.boi_oe,
+							OpExtra, oe_next );
+					}
+				}
+				rs->sr_entry = NULL;
+				e = NULL;
 
 				switch ( rs->sr_err ) {
 				case LDAP_SUCCESS:	/* entry sent ok */
@@ -904,12 +952,6 @@ fetch_entry_retry:
 					break;
 				case LDAP_UNAVAILABLE:
 				case LDAP_SIZELIMIT_EXCEEDED:
-#ifdef SLAP_ZONE_ALLOC
-					slap_zn_runlock(bdb->bi_cache.c_zctx, e);
-#endif
-					bdb_cache_return_entry_r(bdb, e, &lock);
-					e = NULL;
-					rs->sr_entry = NULL;
 					if ( rs->sr_err == LDAP_SIZELIMIT_EXCEEDED ) {
 						rs->sr_ref = rs->sr_v2ref;
 						send_ldap_result( op, rs );
