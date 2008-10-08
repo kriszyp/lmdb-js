@@ -1041,7 +1041,7 @@ MirrorMode node 1:
 >       
 >       # syncrepl directive    
 >       syncrepl      rid=001
->                     provider=ldap://ldap-rid2.example.com
+>                     provider=ldap://ldap-sid2.example.com
 >                     bindmethod=simple
 >                     binddn="cn=mirrormode,dc=example,dc=com"
 >                     credentials=mirrormode
@@ -1059,8 +1059,8 @@ MirrorMode node 2:
 >       # database section
 >       
 >       # syncrepl directive
->       syncrepl      rid=002
->                     provider=ldap://ldap-rid1.example.com
+>       syncrepl      rid=001
+>                     provider=ldap://ldap-sid1.example.com
 >                     bindmethod=simple
 >                     binddn="cn=mirrormode,dc=example,dc=com"
 >                     credentials=mirrormode
@@ -1072,7 +1072,7 @@ MirrorMode node 2:
 >       mirrormode on
 
 It's simple really; each MirrorMode node is setup {{B:exactly}} the same, except
-that the {{serverID}} and {{rid}} are unique, and that the {{provider}} is pointed to 
+that the {{serverID}} is unique, and each consumer is pointed to 
 the other server.
 
 H5: Failover Configuration
