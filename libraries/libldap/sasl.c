@@ -482,12 +482,6 @@ done:
 #include <sasl.h>
 #endif
 
-#if SASL_VERSION_MAJOR >= 2
-#define SASL_CONST const
-#else
-#define SASL_CONST
-#endif
-
 #endif /* HAVE_CYRUS_SASL */
 
 static int
