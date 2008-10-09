@@ -1013,7 +1013,7 @@ unique_search(
 
 	nop->o_bd = on->on_info->oi_origdb;
 	rc = nop->o_bd->be_search(nop, &nrs);
-	filter_free_x(nop, nop->ors_filter);
+	filter_free_x(nop, nop->ors_filter, 1);
 	op->o_tmpfree( key->bv_val, op->o_tmpmemctx );
 
 	if(rc != LDAP_SUCCESS && rc != LDAP_NO_SUCH_OBJECT) {

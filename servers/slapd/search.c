@@ -227,7 +227,7 @@ return_results:;
 		op->o_tmpfree( op->ors_filterstr.bv_val, op->o_tmpmemctx );
 	}
 	if ( op->ors_filter != NULL) {
-		filter_free_x( op, op->ors_filter );
+		filter_free_x( op, op->ors_filter, 1 );
 	}
 	if ( op->ors_attrs != NULL ) {
 		op->o_tmpfree( op->ors_attrs, op->o_tmpmemctx );

@@ -2475,7 +2475,7 @@ syncrepl_del_nonpresent(
 			op->o_tmpfree( cf, op->o_tmpmemctx );
 			op->ors_filter = of;
 		}
-		if ( op->ors_filter ) filter_free_x( op, op->ors_filter );
+		if ( op->ors_filter ) filter_free_x( op, op->ors_filter, 1 );
 
 	}
 

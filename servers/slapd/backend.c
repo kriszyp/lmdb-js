@@ -1496,7 +1496,7 @@ fe_acl_group(
 						{
 							rc = 0;
 						}
-						filter_free_x( op, filter );
+						filter_free_x( op, filter, 1 );
 					}
 loopit:
 					ldap_free_urldesc( ludp );

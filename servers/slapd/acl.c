@@ -2211,7 +2211,7 @@ acl_set_gather( SetCookie *cookie, struct berval *name, AttributeDescription *de
 
 url_done:;
 	if ( op2.ors_filter && op2.ors_filter != slap_filter_objectClass_pres ) {
-		filter_free_x( cp->asc_op, op2.ors_filter );
+		filter_free_x( cp->asc_op, op2.ors_filter, 1 );
 	}
 	if ( !BER_BVISNULL( &op2.o_req_ndn ) ) {
 		slap_sl_free( op2.o_req_ndn.bv_val, cp->asc_op->o_tmpmemctx );
