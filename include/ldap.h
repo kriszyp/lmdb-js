@@ -164,7 +164,8 @@ LDAP_BEGIN_DECL
 #define LDAP_OPT_X_SASL_SECPROPS		0x6106 /* write-only */
 #define LDAP_OPT_X_SASL_SSF_MIN			0x6107
 #define LDAP_OPT_X_SASL_SSF_MAX			0x6108
-#define	LDAP_OPT_X_SASL_MAXBUFSIZE		0x6109
+#define LDAP_OPT_X_SASL_MAXBUFSIZE		0x6109
+#define LDAP_OPT_X_SASL_MECHLIST		0x610a /* read-only */
 
 /* Private API Extensions -- reserved for application use */
 #define LDAP_OPT_PRIVATE_EXTENSION_BASE 0x7000  /* Private API inclusive */

@@ -1123,6 +1123,13 @@ ldap_int_sasl_config( struct ldapoptions *lo, int option, const char *arg )
 int
 ldap_int_sasl_get_option( LDAP *ld, int option, void *arg )
 {
+	if ( option == LDAP_OPT_X_SASL_MECHLIST ) {
+		if ( ldap_int_sasl_init() )
+			return -1;
+		*(char ***)arg = sasl_global_listmech();
+		return 0;
+	}
+
 	if ( ld == NULL )
 		return -1;
 
