@@ -272,6 +272,22 @@ description).  The default is
 specifies the maximum security layer receive buffer
 size allowed.  0 disables security layers.  The default is 65536.
 .RE
+.SH GSSAPI OPTIONS
+If OpenLDAP is built with Generic Security Services Application Programming Interface support,
+there are more options you can specify.
+.TP
+.B GSSAPI_SIGN <on/true/yes/off/false/no>
+Specifies if GSSAPI signing (GSS_C_INTEG_FLAG) should be used.
+The default is off.
+.TP
+.B GSSAPI_ENCRYPT <on/true/yes/off/false/no>
+Specifies if GSSAPI encryption (GSS_C_INTEG_FLAG and GSS_C_CONF_FLAG)
+should be used. The default is off.
+.TP
+.B GSSAPI_ALLOW_REMOTE_PRINCIPAL <on/true/yes/off/false/no>
+Specifies if GSSAPI based authentification should try to form the
+target principal name out of the ldapServiceName or dnsHostName
+attribute of the targets RootDSE entry. The default is off.
 .SH TLS OPTIONS
 If OpenLDAP is built with Transport Layer Security support, there
 are more options you can specify.  These options are used when an
