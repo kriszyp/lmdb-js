@@ -3253,7 +3253,7 @@ typedef struct setup_cookie {
 	ConfigArgs *ca;
 	Entry *frontend;
 	Entry *config;
-	int	got_frontend;
+	int got_frontend;
 	int got_config;
 } setup_cookie;
 
@@ -3262,15 +3262,18 @@ config_ldif_resp( Operation *op, SlapReply *rs )
 {
 	if ( rs->sr_type == REP_SEARCH ) {
 		setup_cookie *sc = op->o_callback->sc_private;
+		struct berval pdn;
 
 		sc->cfb->cb_got_ldif = 1;
 		/* Does the frontend exist? */
 		if ( !sc->got_frontend ) {
 			if ( !strncmp( rs->sr_entry->e_nname.bv_val,
-				"olcDatabase", STRLENOF( "olcDatabase" ))) {
+				"olcDatabase", STRLENOF( "olcDatabase" )))
+			{
 				if ( strncmp( rs->sr_entry->e_nname.bv_val +
 					STRLENOF( "olcDatabase" ), "={-1}frontend",
-					STRLENOF( "={-1}frontend" ))) {
+					STRLENOF( "={-1}frontend" )))
+				{
 					struct berval rdn;
 					int i = op->o_noop;
 					sc->ca->be = frontendDB;
@@ -3293,13 +3296,19 @@ config_ldif_resp( Operation *op, SlapReply *rs )
 				}
 			}
 		}
+
+		dnParent( &rs->sr_entry->e_nname, &pdn );
+
 		/* Does the configDB exist? */
 		if ( sc->got_frontend && !sc->got_config &&
 			!strncmp( rs->sr_entry->e_nname.bv_val,
-			"olcDatabase", STRLENOF( "olcDatabase" ))) {
+			"olcDatabase", STRLENOF( "olcDatabase" )) &&
+			dn_match( &config_rdn, &pdn ) )
+		{
 			if ( strncmp( rs->sr_entry->e_nname.bv_val +
 				STRLENOF( "olcDatabase" ), "={0}config",
-				STRLENOF( "={0}config" ))) {
+				STRLENOF( "={0}config" )))
+			{
 				struct berval rdn;
 				int i = op->o_noop;
 				sc->ca->be = LDAP_STAILQ_FIRST( &backendDB );
