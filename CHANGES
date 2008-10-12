@@ -1,6 +1,6 @@
 OpenLDAP 2.4 Change Log
 
-OpenLDAP 2.4.12 Release (2008/10/08)
+OpenLDAP 2.4.12 Release (2008/10/12)
 	Fixed libldap ldap_utf8_strchar arguments (ITS#5720)
 	Fixed libldap TLS_CRLFILE (ITS#5677)
 	Fixed liblutil executables on Windows (ITS#5604)
