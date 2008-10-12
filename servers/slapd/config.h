@@ -201,6 +201,8 @@ int config_shadow( ConfigArgs *c, int flag );
 extern slap_verbmasks *slap_ldap_response_code;
 extern int slap_ldap_response_code_register( struct berval *bv, int err );
 
+extern ConfigTable olcDatabaseDummy[];
+
 LDAP_END_DECL
 
 #endif /* CONFIG_H */

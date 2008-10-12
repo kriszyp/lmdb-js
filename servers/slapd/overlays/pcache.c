@@ -2655,15 +2655,6 @@ static ConfigTable pccfg[] = {
 	{ NULL, NULL, 0, 0, 0, ARG_IGNORED }
 };
 
-/* Need to no-op this keyword for dynamic config */
-static ConfigTable pcdummy[] = {
-	{ "", "", 0, 0, 0, ARG_IGNORED,
-		NULL, "( OLcfgGlAt:13 NAME 'olcDatabase' "
-			"DESC 'The backend type for a database instance' "
-			"SUP olcBackend SINGLE-VALUE X-ORDERED 'SIBLINGS' )", NULL, NULL },
-	{ NULL, NULL, 0, 0, 0, ARG_IGNORED }
-};
-
 static ConfigOCs pcocs[] = {
 	{ "( OLcfgOvOc:2.1 "
 		"NAME 'olcPcacheConfig' "
@@ -2675,7 +2666,7 @@ static ConfigOCs pcocs[] = {
 	{ "( OLcfgOvOc:2.2 "
 		"NAME 'olcPcacheDatabase' "
 		"DESC 'Cache database configuration' "
-		"AUXILIARY )", Cft_Misc, pcdummy, pc_ldadd },
+		"AUXILIARY )", Cft_Misc, olcDatabaseDummy, pc_ldadd },
 	{ NULL, 0, NULL }
 };
 
@@ -3995,11 +3986,6 @@ pcache_initialize()
 	code = config_register_schema( pccfg, pcocs );
 	if ( code ) return code;
 
-	{
-		const char *text;
-		code = slap_str2ad( "olcDatabase", &pcdummy[0].ad, &text );
-		if ( code ) return code;
-	}
 	return overlay_register( &pcache );
 }
 

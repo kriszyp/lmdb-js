@@ -696,6 +696,15 @@ static ConfigTable config_back_cf_table[] = {
 		NULL, NULL, NULL, NULL }
 };
 
+/* Need to no-op this keyword for dynamic config */
+ConfigTable olcDatabaseDummy[] = {
+	{ "", "", 0, 0, 0, ARG_IGNORED,
+		NULL, "( OLcfgGlAt:13 NAME 'olcDatabase' "
+			"DESC 'The backend type for a database instance' "
+			"SUP olcBackend SINGLE-VALUE X-ORDERED 'SIBLINGS' )", NULL, NULL },
+	{ NULL, NULL, 0, 0, 0, ARG_IGNORED }
+};
+
 /* Routines to check if a child can be added to this type */
 static ConfigLDAPadd cfAddSchema, cfAddInclude, cfAddDatabase,
 	cfAddBackend, cfAddModule, cfAddOverlay;
@@ -6473,6 +6482,9 @@ config_back_initialize( BackendInfo *bi )
 	bi->bi_cf_ocs = cf_ocs;
 
 	i = config_register_schema( ct, cf_ocs );
+	if ( i ) return i;
+
+	i = slap_str2ad( "olcDatabase", &olcDatabaseDummy[0].ad, &text );
 	if ( i ) return i;
 
 	/* setup olcRootPW to be base64-encoded when written in LDIF form;
