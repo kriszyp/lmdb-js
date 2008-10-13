@@ -1111,13 +1111,14 @@ overlay_remove( BackendDB *be, slap_overinst *on )
 {
 	slap_overinfo *oi = on->on_info;
 	slap_overinst **oidx;
+	BackendInfo *bi_orig;
 
 	/* remove overlay from oi_list an call db_close and db_destroy
 	 * handlers */
 	for ( oidx = &oi->oi_list; *oidx; oidx = &(*oidx)->on_next ) {
 		if ( *oidx == on ) {
 			*oidx = on->on_next;
-			BackendInfo *bi_orig = be->bd_info;
+			bi_orig = be->bd_info;
 			be->bd_info = (BackendInfo *)on;
 			if ( on->on_bi.bi_db_close ) {
 				on->on_bi.bi_db_close( be, NULL );
