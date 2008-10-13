@@ -377,7 +377,7 @@ matching_rule_use_init( void )
 
 	LDAP_SLIST_FOREACH( mr, &mr_list, smr_next ) {
 		AttributeType	*at;
-		MatchingRuleUse	mru_storage = { 0 },
+		MatchingRuleUse	mru_storage = {{ 0 }},
 				*mru = &mru_storage;
 
 		char		**applies_oids = NULL;

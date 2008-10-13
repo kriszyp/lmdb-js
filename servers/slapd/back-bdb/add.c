@@ -34,7 +34,7 @@ bdb_add(Operation *op, SlapReply *rs )
 	AttributeDescription *entry = slap_schema.si_ad_entry;
 	DB_TXN		*ltid = NULL, *lt2, *rtxn;
 	ID eid = NOID;
-	struct bdb_op_info opinfo = {0};
+	struct bdb_op_info opinfo = {{{ 0 }}};
 	int subentry;
 	DB_LOCK		lock;
 
