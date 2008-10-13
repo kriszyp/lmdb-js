@@ -625,7 +625,7 @@ tool_args( int argc, char **argv )
 						(unsigned char *)bv.bv_val,
 						bv.bv_len );
 
-					if ( retcode == -1 || retcode > bv.bv_len ) {
+					if ( retcode == -1 || (unsigned) retcode > bv.bv_len ) {
 						fprintf( stderr, "Unable to parse value of general control %s\n",
 							control );
 						usage();
@@ -1310,7 +1310,7 @@ tool_bind( LDAP *ld )
 		sctrlsp = sctrls;
 	}
 
-	assert( nsctrls < sizeof(sctrls)/sizeof(sctrls[0]) );
+	assert( nsctrls < (int) (sizeof(sctrls)/sizeof(sctrls[0])) );
 
 	if ( authmethod == LDAP_AUTH_SASL ) {
 #ifdef HAVE_CYRUS_SASL
@@ -1523,7 +1523,7 @@ tool_server_controls( LDAP *ld, LDAPControl *extra_c, int count )
 		
 		ber_init2( ber, NULL, LBER_USE_DER );
 
-		if ( ber_printf( ber, "s", proxydn ) == LBER_ERROR ) {
+		if ( ber_printf( ber, "s", proxydn ) == -1 ) {
 			exit( EXIT_FAILURE );
 		}
 
