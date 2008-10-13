@@ -395,7 +395,7 @@ create_passcontrol( Operation *op, int exptime, int grace, LDAPPasswordPolicyErr
 	}
 	ber_printf( ber, /*{*/ "N}" );
 
-	if (ber_flatten2( ber, &(c.ldctl_value), 1 ) == LBER_DEFAULT) {
+	if (ber_flatten2( ber, &(c.ldctl_value), 1 ) == -1) {
 		return NULL;
 	}
 	(void)ber_free_buf(ber);
@@ -679,7 +679,7 @@ parse_pwdhistory( struct berval *bv, char **oid, time_t *oldtime, struct berval 
 {
 	char *ptr;
 	struct berval nv, npw;
-	int i, j;
+	ber_len_t i, j;
 	
 	assert (bv && (bv->bv_len > 0) && (bv->bv_val) && oldtime && oldpw );
 

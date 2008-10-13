@@ -877,7 +877,7 @@ dynlist_build_def_filter( dynlist_info_t *dli )
 	ptr = lutil_strcopy( ptr, dli->dli_oc->soc_cname.bv_val );
 	ptr = lutil_strcopy( ptr, "))" );
 
-	assert( dli->dli_default_filter.bv_len == ptr - dli->dli_default_filter.bv_val );
+	assert( ptr == &dli->dli_default_filter.bv_val[dli->dli_default_filter.bv_len] );
 
 	return 0;
 }
