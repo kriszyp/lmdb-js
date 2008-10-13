@@ -1575,7 +1575,7 @@ meta_back_controls_add(
 
 	LDAPControl		**ctrls = NULL;
 	/* set to the maximum number of controls this backend can add */
-	LDAPControl		c[ 2 ] = { 0 };
+	LDAPControl		c[ 2 ] = {{ 0 }};
 	int			n = 0, i, j1 = 0, j2 = 0;
 
 	*pctrls = NULL;
@@ -1642,7 +1642,7 @@ meta_back_controls_add(
 		goto done;
 	}
 
-	assert( j1 + j1 <= sizeof( c )/sizeof(LDAPControl) );
+	assert( j1 + j2 <= (int) (sizeof( c )/sizeof( c[0] )) );
 
 	if ( op->o_ctrls ) {
 		for ( n = 0; op->o_ctrls[ n ]; n++ )
