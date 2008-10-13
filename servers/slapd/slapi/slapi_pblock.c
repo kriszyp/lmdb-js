@@ -396,7 +396,7 @@ static int
 pblock_set_default( Slapi_PBlock *pb, int param, void *value ) 
 {
 	slapi_pblock_class_t pbClass;
-	size_t i;
+	int i;
 
 	pbClass = pblock_get_param_class( param );
 	if ( pbClass == PBLOCK_CLASS_INVALID ) {

@@ -52,7 +52,7 @@ struct slapi_condvar {
 
 static int checkBVString(const struct berval *bv)
 {
-	int i;
+	ber_len_t i;
 
 	for ( i = 0; i < bv->bv_len; i++ ) {
 		if ( bv->bv_val[i] == '\0' )
@@ -3231,7 +3231,7 @@ LDAP *slapi_ldap_init( char *ldaphost, int ldapport, int secure, int shared )
 		rc = snprintf( url, size, "ldap%s://%s/", ( secure ? "s" : "" ), ldaphost );
 	}
 
-	if ( rc > 0 && rc < size ) {
+	if ( rc > 0 && (size_t) rc < size ) {
 		rc = ldap_initialize( &ld, url );
 	} else {
 		ld = NULL;
