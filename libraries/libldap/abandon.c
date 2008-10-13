@@ -447,8 +447,7 @@ int
 ldap_int_bisect_delete( ber_int_t **vp, ber_len_t *np, int id, int idx )
 {
 	ber_int_t	*v;
-	ber_len_t	n;
-	int		i;
+	ber_len_t	i, n;
 
 	assert( vp != NULL );
 	assert( np != NULL );

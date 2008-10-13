@@ -691,7 +691,7 @@ ldap_sync_init( ldap_sync_t *ls, int mode )
 		rc ? "!!! " : "",
 		rc );
 #endif /* LDAP_SYNC_TRACE */
-	if ( rc == LBER_ERROR ) {
+	if ( rc < 0 ) {
 		rc = LDAP_OTHER;
                 goto done;
         }
