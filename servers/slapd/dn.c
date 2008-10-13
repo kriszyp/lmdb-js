@@ -1077,7 +1077,7 @@ dn_rdnlen(
 
 	p = ber_bvchr( dn_in, ',' );
 
-	return p ? p - dn_in->bv_val : dn_in->bv_len;
+	return p ? (ber_len_t) (p - dn_in->bv_val) : dn_in->bv_len;
 }
 
 

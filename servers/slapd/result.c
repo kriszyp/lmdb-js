@@ -1546,7 +1546,7 @@ int slap_read_controls(
 
 	rc = ber_flatten2( ber, &c.ldctl_value, 0 );
 
-	if( rc == LBER_ERROR ) return LDAP_OTHER;
+	if( rc == -1 ) return LDAP_OTHER;
 
 	c.ldctl_oid = oid->bv_val;
 	c.ldctl_iscritical = 0;

@@ -178,7 +178,7 @@ alock_read_iattr ( unsigned char * bufptr )
 	assert (bufptr != NULL);
 
 	bufptr += sizeof (unsigned long int);
-	for (count=0; count <= sizeof (unsigned long int); ++count) {
+	for (count=0; count <= (int) sizeof (unsigned long int); ++count) {
 		val <<= 8;
 		val += (unsigned long int) *bufptr--;
 	}

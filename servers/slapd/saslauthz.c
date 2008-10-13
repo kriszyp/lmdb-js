@@ -1699,7 +1699,7 @@ exact_match:
 
 			/* leave room for at least one char of attributeType,
 			 * one for '=' and one for ',' */
-			if ( d < STRLENOF( "x=,") ) {
+			if ( d < (int) STRLENOF( "x=,") ) {
 				goto CONCLUDED;
 			}
 

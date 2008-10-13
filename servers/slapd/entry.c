@@ -725,8 +725,8 @@ ber_len_t entry_flatsize(Entry *e, int norm)
  */
 int entry_encode(Entry *e, struct berval *bv)
 {
-	ber_len_t len, dnlen, ndnlen;
-	int i, nattrs, nvals;
+	ber_len_t len, dnlen, ndnlen, i;
+	int nattrs, nvals;
 	Attribute *a;
 	unsigned char *ptr;
 

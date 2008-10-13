@@ -267,12 +267,12 @@ ordered_value_renumber( Attribute *a )
 {
 	char *ptr, ibuf[64];	/* many digits */
 	struct berval ibv, tmp, vtmp;
-	int i;
+	unsigned i;
 
 	ibv.bv_val = ibuf;
 
 	for (i=0; i<a->a_numvals; i++) {
-		ibv.bv_len = sprintf(ibv.bv_val, "{%d}", i);
+		ibv.bv_len = sprintf(ibv.bv_val, "{%u}", i);
 		vtmp = a->a_vals[i];
 		if ( vtmp.bv_val[0] == '{' ) {
 			ptr = ber_bvchr(&vtmp, '}');
@@ -750,7 +750,7 @@ ordered_value_add(
 			k = strtol( vals[i].bv_val + 1, &next, 0 );
 			if ( next == vals[i].bv_val + 1 ||
 				next[ 0 ] != '}' ||
-				next - vals[i].bv_val > vals[i].bv_len )
+				(ber_len_t) (next - vals[i].bv_val) > vals[i].bv_len )
 			{
 				ch_free( nnew );
 				ch_free( new );

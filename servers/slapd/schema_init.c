@@ -1543,8 +1543,8 @@ UTF8StringNormalize(
 	void *ctx )
 {
 	struct berval tmp, nvalue;
-	int flags;
-	int i, wasspace;
+	int flags, wasspace;
+	ber_len_t i;
 
 	assert( SLAP_MR_IS_VALUE_OF_SYNTAX( use ) != 0 );
 
@@ -1619,7 +1619,7 @@ directoryStringSubstringsMatch(
 	int match = 0;
 	SubstringsAssertion *sub = assertedValue;
 	struct berval left = *value;
-	int i;
+	ber_len_t i;
 	int priorspace=0;
 
 	if ( !BER_BVISNULL( &sub->sa_initial ) ) {
@@ -2008,7 +2008,7 @@ postalAddressValidate(
 	struct berval *in )
 {
 	struct berval bv = *in;
-	int c;
+	ber_len_t c;
 
 	for ( c = 0; c < in->bv_len; c++ ) {
 		if ( in->bv_val[c] == '\\' ) {
@@ -2044,7 +2044,7 @@ postalAddressNormalize(
 	void *ctx )
 {
 	BerVarray lines = NULL, nlines = NULL;
-	int l, c;
+	ber_len_t l, c;
 	int rc = LDAP_SUCCESS;
 	MatchingRule *xmr = NULL;
 	char *p;
@@ -2101,7 +2101,7 @@ postalAddressNormalize(
 	}
 	*--p = '\0';
 
-	assert( p - normalized->bv_val == normalized->bv_len );
+	assert( p == &normalized->bv_val[normalized->bv_len] );
 
 done:;
 	if ( nlines != NULL ) {
@@ -2851,9 +2851,8 @@ static int
 checkNum( struct berval *in, struct berval *out )
 {
 	/* parse serialNumber */
-	int neg = 0;
+	ber_len_t neg = 0, extra = 0;
 	char first = '\0';
-	int extra = 0;
 
 	out->bv_val = in->bv_val;
 	out->bv_len = 0;
@@ -2911,7 +2910,7 @@ serialNumberAndIssuerCheck(
 	struct berval *is,
 	void *ctx )
 {
-	int n;
+	ber_len_t n;
 
 	if( in->bv_len < 3 ) return LDAP_INVALID_SYNTAX;
 
@@ -3059,7 +3058,7 @@ serialNumberAndIssuerCheck(
 			ber_dupbv_x( &ni, is, ctx );
 
 		} else {
-			ber_int_t src, dst;
+			ber_len_t src, dst;
 
 			ni.bv_len = is->bv_len - numdquotes;
 			ni.bv_val = ber_memalloc_x( ni.bv_len + 1, ctx );
@@ -3164,7 +3163,7 @@ serialNumberAndIssuerPretty(
 	p = lutil_strncopy( p, ni.bv_val, ni.bv_len );
 	p = lutil_strcopy( p, /*{*/ "\" }" );
 
-	assert( p - out->bv_val == out->bv_len );
+	assert( p == &out->bv_val[out->bv_len] );
 
 done:;
 	Debug( LDAP_DEBUG_TRACE, "<<< serialNumberAndIssuerPretty: <%s> => <%s>\n",
@@ -3186,8 +3185,7 @@ slap_bin2hex(
 	unsigned char *ptr, zero = '\0';
 	char *sptr;
 	int first;
-	int i;
-	ber_len_t len, nlen;
+	ber_len_t i, len, nlen;
 
 	assert( in != NULL );
 	assert( !BER_BVISNULL( in ) );
@@ -3240,7 +3238,7 @@ slap_bin2hex(
 	*sptr++ = 'H';
 	*sptr = '\0';
 
-	assert( sptr - out->bv_val == nlen );
+	assert( sptr == &out->bv_val[nlen] );
 
 	out->bv_len = nlen;
 
@@ -3327,7 +3325,7 @@ serialNumberAndIssuerNormalize(
 	p = lutil_strncopy( p, ni.bv_val, ni.bv_len );
 	p = lutil_strcopy( p, /*{*/ "\" }" );
 
-	assert( p - out->bv_val == out->bv_len );
+	assert( p == &out->bv_val[out->bv_len] );
 
 func_leave:
 	Debug( LDAP_DEBUG_TRACE, "<<< serialNumberAndIssuerNormalize: <%s> => <%s>\n",
@@ -3440,7 +3438,8 @@ done:
 static int
 checkTime( struct berval *in, struct berval *out )
 {
-	int i;
+	int rc;
+	ber_len_t i;
 	char buf[STRLENOF("YYYYmmddHHMMSSZ") + 1];
 	struct berval bv;
 
@@ -3493,12 +3492,12 @@ checkTime( struct berval *in, struct berval *out )
 		return -1;
 	}
 
-	i = generalizedTimeValidate( NULL, &bv );
-	if ( i == LDAP_SUCCESS && out != NULL ) {
+	rc = generalizedTimeValidate( NULL, &bv );
+	if ( rc == LDAP_SUCCESS && out != NULL ) {
 		out->bv_len = bv.bv_len;
 	}
 
-	return i != LDAP_SUCCESS;
+	return rc != LDAP_SUCCESS;
 }
 
 static int
@@ -3645,7 +3644,7 @@ issuerAndThisUpdateCheck(
 		ber_dupbv_x( &ni, is, ctx );
 
 	} else {
-		ber_int_t src, dst;
+		ber_len_t src, dst;
 
 		ni.bv_len = is->bv_len - numdquotes;
 		ni.bv_val = ber_memalloc_x( ni.bv_len + 1, ctx );
@@ -3752,7 +3751,7 @@ issuerAndThisUpdatePretty(
 	p = lutil_strncopy( p, tu.bv_val, tu.bv_len );
 	p = lutil_strcopy( p, /*{*/ "\" }" );
 
-	assert( p - out->bv_val == out->bv_len );
+	assert( p == &out->bv_val[out->bv_len] );
 
 done:;
 	Debug( LDAP_DEBUG_TRACE, "<<< issuerAndThisUpdatePretty: <%s> => <%s>\n",
@@ -3818,7 +3817,7 @@ issuerAndThisUpdateNormalize(
 	p = lutil_strncopy( p, tu2.bv_val, tu2.bv_len );
 	p = lutil_strcopy( p, /*{*/ "\" }" );
 
-	assert( p - out->bv_val == out->bv_len );
+	assert( p == & out->bv_val[out->bv_len] );
 
 func_leave:
 	Debug( LDAP_DEBUG_TRACE, "<<< issuerAndThisUpdateNormalize: <%s> => <%s>\n",
@@ -3929,7 +3928,7 @@ hexValidate(
 	Syntax *syntax,
 	struct berval *in )
 {
-	int	i;
+	ber_len_t	i;
 
 	assert( in != NULL );
 	assert( !BER_BVISNULL( in ) );
@@ -3954,7 +3953,7 @@ hexNormalize(
 	struct berval *normalized,
 	void *ctx )
 {
-	int	i;
+	ber_len_t	i;
 
 	assert( val != NULL );
 	assert( normalized != NULL );
@@ -4045,7 +4044,7 @@ csnSidNormalize(
 	assert( SLAP_MR_IS_VALUE_OF_ATTRIBUTE_SYNTAX(usage) != 0 );
 
 	ptr = ber_bvchr( val, '#' );
-	if ( ptr == NULL || ptr - val->bv_val == val->bv_len ) {
+	if ( ptr == NULL || ptr == &val->bv_val[val->bv_len] ) {
 		return LDAP_INVALID_SYNTAX;
 	}
 
@@ -4053,7 +4052,7 @@ csnSidNormalize(
 	bv.bv_len = val->bv_len - ( ptr + 1 - val->bv_val );
 
 	ptr = ber_bvchr( &bv, '#' );
-	if ( ptr == NULL || ptr - val->bv_val == val->bv_len ) {
+	if ( ptr == NULL || ptr == &val->bv_val[val->bv_len] ) {
 		return LDAP_INVALID_SYNTAX;
 	}
 
@@ -4061,7 +4060,7 @@ csnSidNormalize(
 	bv.bv_len = val->bv_len - ( ptr + 1 - val->bv_val );
 		
 	ptr = ber_bvchr( &bv, '#' );
-	if ( ptr == NULL || ptr - val->bv_val == val->bv_len ) {
+	if ( ptr == NULL || ptr == &val->bv_val[val->bv_len] ) {
 		return LDAP_INVALID_SYNTAX;
 	}
 
@@ -4100,7 +4099,7 @@ csnValidate(
 	bv = *in;
 
 	ptr = ber_bvchr( &bv, '#' );
-	if ( ptr == NULL || ptr - bv.bv_val == bv.bv_len ) {
+	if ( ptr == NULL || ptr == &bv.bv_val[bv.bv_len] ) {
 		return LDAP_INVALID_SYNTAX;
 	}
 
@@ -4120,7 +4119,7 @@ csnValidate(
 	bv.bv_len = in->bv_len - ( bv.bv_val - in->bv_val );
 
 	ptr = ber_bvchr( &bv, '#' );
-	if ( ptr == NULL || ptr - in->bv_val == in->bv_len ) {
+	if ( ptr == NULL || ptr == &in->bv_val[in->bv_len] ) {
 		return LDAP_INVALID_SYNTAX;
 	}
 
@@ -4138,7 +4137,7 @@ csnValidate(
 	bv.bv_len = in->bv_len - ( bv.bv_val - in->bv_val );
 
 	ptr = ber_bvchr( &bv, '#' );
-	if ( ptr == NULL || ptr - in->bv_val == in->bv_len ) {
+	if ( ptr == NULL || ptr == &in->bv_val[in->bv_len] ) {
 		return LDAP_INVALID_SYNTAX;
 	}
 
@@ -4178,7 +4177,7 @@ csnNormalize21(
 	struct berval	bv;
 	char		buf[ STRLENOF( "YYYYmmddHHMMSS.uuuuuuZ#SSSSSS#SID#ssssss" ) + 1 ];
 	char		*ptr;
-	int		i;
+	ber_len_t	i;
 
 	assert( SLAP_MR_IS_VALUE_OF_SYNTAX( usage ) != 0 );
 	assert( !BER_BVISEMPTY( val ) );
@@ -4186,7 +4185,7 @@ csnNormalize21(
 	gt = *val;
 
 	ptr = ber_bvchr( &gt, '#' );
-	if ( ptr == NULL || ptr - gt.bv_val == gt.bv_len ) {
+	if ( ptr == NULL || ptr == &gt.bv_val[gt.bv_len] ) {
 		return LDAP_INVALID_SYNTAX;
 	}
 
@@ -4203,7 +4202,7 @@ csnNormalize21(
 	cnt.bv_len = val->bv_len - ( cnt.bv_val - val->bv_val );
 
 	ptr = ber_bvchr( &cnt, '#' );
-	if ( ptr == NULL || ptr - val->bv_val == val->bv_len ) {
+	if ( ptr == NULL || ptr == &val->bv_val[val->bv_len] ) {
 		return LDAP_INVALID_SYNTAX;
 	}
 
@@ -4223,7 +4222,7 @@ csnNormalize21(
 	sid.bv_len = val->bv_len - ( sid.bv_val - val->bv_val );
 		
 	ptr = ber_bvchr( &sid, '#' );
-	if ( ptr == NULL || ptr - val->bv_val == val->bv_len ) {
+	if ( ptr == NULL || ptr == &val->bv_val[val->bv_len] ) {
 		return LDAP_INVALID_SYNTAX;
 	}
 
@@ -4261,7 +4260,7 @@ csnNormalize21(
 	}
 	*ptr = '\0';
 
-	assert( ptr - bv.bv_val == bv.bv_len );
+	assert( ptr == &bv.bv_val[bv.bv_len] );
 
 	if ( csnValidate( syntax, &bv ) != LDAP_SUCCESS ) {
 		return LDAP_INVALID_SYNTAX;
@@ -4286,7 +4285,7 @@ csnNormalize23(
 	struct berval	bv;
 	char		buf[ STRLENOF( "YYYYmmddHHMMSS.uuuuuuZ#SSSSSS#SID#ssssss" ) + 1 ];
 	char		*ptr;
-	int		i;
+	ber_len_t	i;
 
 	assert( SLAP_MR_IS_VALUE_OF_SYNTAX( usage ) != 0 );
 	assert( !BER_BVISEMPTY( val ) );
@@ -4294,7 +4293,7 @@ csnNormalize23(
 	gt = *val;
 
 	ptr = ber_bvchr( &gt, '#' );
-	if ( ptr == NULL || ptr - gt.bv_val == gt.bv_len ) {
+	if ( ptr == NULL || ptr == &gt.bv_val[gt.bv_len] ) {
 		return LDAP_INVALID_SYNTAX;
 	}
 
@@ -4307,7 +4306,7 @@ csnNormalize23(
 	cnt.bv_len = val->bv_len - ( cnt.bv_val - val->bv_val );
 
 	ptr = ber_bvchr( &cnt, '#' );
-	if ( ptr == NULL || ptr - val->bv_val == val->bv_len ) {
+	if ( ptr == NULL || ptr == &val->bv_val[val->bv_len] ) {
 		return LDAP_INVALID_SYNTAX;
 	}
 
@@ -4320,7 +4319,7 @@ csnNormalize23(
 	sid.bv_len = val->bv_len - ( sid.bv_val - val->bv_val );
 		
 	ptr = ber_bvchr( &sid, '#' );
-	if ( ptr == NULL || ptr - val->bv_val == val->bv_len ) {
+	if ( ptr == NULL || ptr == &val->bv_val[val->bv_len] ) {
 		return LDAP_INVALID_SYNTAX;
 	}
 
@@ -4353,7 +4352,7 @@ csnNormalize23(
 	}
 	*ptr = '\0';
 
-	assert( ptr - bv.bv_val == bv.bv_len );
+	assert( ptr == &bv.bv_val[bv.bv_len] );
 	if ( csnValidate( syntax, &bv ) != LDAP_SUCCESS ) {
 		return LDAP_INVALID_SYNTAX;
 	}
@@ -4375,7 +4374,7 @@ csnNormalize(
 {
 	struct berval	cnt, sid, mod;
 	char		*ptr;
-	int		i;
+	ber_len_t	i;
 
 	assert( val != NULL );
 	assert( normalized != NULL );
@@ -4403,7 +4402,7 @@ csnNormalize(
 	}
 
 	ptr = ber_bvchr( val, '#' );
-	if ( ptr == NULL || ptr - val->bv_val == val->bv_len ) {
+	if ( ptr == NULL || ptr == &val->bv_val[val->bv_len] ) {
 		return LDAP_INVALID_SYNTAX;
 	}
 
@@ -4415,7 +4414,7 @@ csnNormalize(
 	cnt.bv_len = val->bv_len - ( cnt.bv_val - val->bv_val );
 
 	ptr = ber_bvchr( &cnt, '#' );
-	if ( ptr == NULL || ptr - val->bv_val == val->bv_len ) {
+	if ( ptr == NULL || ptr == &val->bv_val[val->bv_len] ) {
 		return LDAP_INVALID_SYNTAX;
 	}
 
@@ -4427,7 +4426,7 @@ csnNormalize(
 	sid.bv_len = val->bv_len - ( sid.bv_val - val->bv_val );
 		
 	ptr = ber_bvchr( &sid, '#' );
-	if ( ptr == NULL || ptr - val->bv_val == val->bv_len ) {
+	if ( ptr == NULL || ptr == &val->bv_val[val->bv_len] ) {
 		return LDAP_INVALID_SYNTAX;
 	}
 
