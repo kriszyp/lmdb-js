@@ -119,8 +119,9 @@ See the Berkeley DB reference guide for more details.
 Specify the page size to use for a particular database file, in units
 of 1024 bytes. The default for the
 .B id2entry
-file is 16, the default for
-all other files is 4. The maximum that BerkeleyDB supports is 64. This
+file is 16, the default for all other files depends on the size of the
+underlying filesystem's block size (typically 4 or 8).
+The maximum that BerkeleyDB supports is 64. This
 setting usually should not need to be changed, but if BerkeleyDB's
 "db_stat -d" shows a large amount of overflow pages in use in a file,
 setting a larger size may increase performance at the expense of
