@@ -446,8 +446,9 @@ shm_retry:
 				flags |= DB_CREATE;
 			}
 		} else {
-			if ( !rc ) rc = BDB_PAGESIZE;
-			rc = db->bdi_db->set_pagesize( db->bdi_db, rc );
+			/* Use FS default size if not configured */
+			if ( rc )
+				rc = db->bdi_db->set_pagesize( db->bdi_db, rc );
 
 			rc = db->bdi_db->set_flags( db->bdi_db, 
 				DB_DUP | DB_DUPSORT );

@@ -157,10 +157,10 @@ bdb_db_cache(
 		}
 	}
 
-	/* If no explicit size set, use the default */
+	/* If no explicit size set, use the FS default */
 	flags = bdb_db_findsize( bdb, name );
-	if ( !flags ) flags = BDB_PAGESIZE;
-	rc = db->bdi_db->set_pagesize( db->bdi_db, flags );
+	if ( flags )
+		rc = db->bdi_db->set_pagesize( db->bdi_db, flags );
 
 #ifdef BDB_INDEX_USE_HASH
 	rc = db->bdi_db->set_h_hash( db->bdi_db, bdb_db_hash );

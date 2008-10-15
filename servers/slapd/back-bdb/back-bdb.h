@@ -54,10 +54,6 @@ LDAP_BEGIN_DECL
 #define	BDB_ID2ENTRY_PAGESIZE	16384
 #endif
 
-#ifndef BDB_PAGESIZE
-#define	BDB_PAGESIZE	4096	/* BDB's original default */
-#endif
-
 #define DEFAULT_CACHE_SIZE     1000
 
 /* The default search IDL stack cache depth */
