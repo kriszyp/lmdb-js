@@ -57,6 +57,29 @@ bdb_db_hash(
 #define	BDB_INDEXTYPE	DB_BTREE
 #endif
 
+/* If a configured size is found, return it, otherwise return 0 */
+int
+bdb_db_findsize(
+	struct bdb_info *bdb,
+	struct berval *name
+)
+{
+	struct bdb_db_pgsize *bp;
+	int rc;
+
+	for ( bp = bdb->bi_pagesizes; bp; bp=bp->bdp_next ) {
+		rc = strncmp( name->bv_val, bp->bdp_name.bv_val, name->bv_len );
+		if ( !rc ) {
+			if ( name->bv_len == bp->bdp_name.bv_len )
+				return bp->bdp_size;
+			if ( name->bv_len < bp->bdp_name.bv_len &&
+				bp->bdp_name.bv_val[name->bv_len] == '.' )
+				return bp->bdp_size;
+		}
+	}
+	return 0;
+}
+
 int
 bdb_db_cache(
 	Backend	*be,
@@ -121,7 +144,11 @@ bdb_db_cache(
 		}
 	}
 
-	rc = db->bdi_db->set_pagesize( db->bdi_db, BDB_PAGESIZE );
+	/* If no explicit size set, use the default */
+	flags = bdb_db_findsize( bdb, name );
+	if ( !flags ) flags = BDB_PAGESIZE;
+	rc = db->bdi_db->set_pagesize( db->bdi_db, flags );
+
 #ifdef BDB_INDEX_USE_HASH
 	rc = db->bdi_db->set_h_hash( db->bdi_db, bdb_db_hash );
 #endif

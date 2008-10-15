@@ -156,6 +156,12 @@ struct bdb_db_info {
 	DB			*bdi_db;
 };
 
+struct bdb_db_pgsize {
+	struct bdb_db_pgsize *bdp_next;
+	struct berval	bdp_name;
+	int	bdp_size;
+};
+
 #ifdef LDAP_DEVEL
 #define BDB_MONITOR_IDX
 #endif /* LDAP_DEVEL */
@@ -178,9 +184,10 @@ struct bdb_info {
 	int			bi_dbenv_mode;
 
 	int			bi_ndatabases;
+	int		bi_db_opflags;	/* db-specific flags */
 	struct bdb_db_info **bi_databases;
 	ldap_pvt_thread_mutex_t	bi_database_mutex;
-	int		bi_db_opflags;	/* db-specific flags */
+	struct bdb_db_pgsize *bi_pagesizes;
 
 	slap_mask_t	bi_defaultmask;
 	Cache		bi_cache;

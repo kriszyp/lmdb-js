@@ -50,7 +50,8 @@ enum {
 	BDB_INDEX,
 	BDB_LOCKD,
 	BDB_SSTACK,
-	BDB_MODE
+	BDB_MODE,
+	BDB_PGSIZE
 };
 
 static ConfigTable bdbcfg[] = {
@@ -89,6 +90,11 @@ static ConfigTable bdbcfg[] = {
 		bdb_cf_gen, "( OLcfgDbAt:1.4 NAME 'olcDbNoSync' "
 			"DESC 'Disable synchronous database writes' "
 			"SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
+	{ "dbpagesize", "db> <size", 3, 3, 0, ARG_MAGIC|BDB_PGSIZE,
+		bdb_cf_gen, "( OLcfgDbAt:1.15 NAME 'olcDbPageSize' "
+			"DESC 'Page size of specified DB, in Kbytes' "
+			"EQUALITY caseExactMatch "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ "dirtyread", NULL, 1, 2, 0,
 #ifdef SLAP_BDB_ALLOW_DIRTY_READ
 		ARG_ON_OFF|ARG_MAGIC|BDB_DIRTYR, bdb_cf_gen,
@@ -157,7 +163,7 @@ static ConfigOCs bdbocs[] = {
 		"olcDbNoSync $ olcDbDirtyRead $ olcDbIDLcacheSize $ "
 		"olcDbIndex $ olcDbLinearIndex $ olcDbLockDetect $ "
 		"olcDbMode $ olcDbSearchStack $ olcDbShmKey $ "
-		"olcDbCacheFree $ olcDbDNcacheSize ) )",
+		"olcDbCacheFree $ olcDbDNcacheSize $ olcDbPageSize ) )",
 		 	Cft_Database, bdbcfg },
 	{ NULL, 0, NULL }
 };
@@ -483,6 +489,23 @@ bdb_cf_gen( ConfigArgs *c )
 		case BDB_SSTACK:
 			c->value_int = bdb->bi_search_stack_depth;
 			break;
+
+		case BDB_PGSIZE: {
+				struct bdb_db_pgsize *ps;
+				char buf[SLAP_TEXT_BUFLEN];
+				struct berval bv;
+				int rc = 1;
+
+				bv.bv_val = buf;
+				for ( ps = bdb->bi_pagesizes; ps; ps = ps->bdp_next ) {
+					bv.bv_len = sprintf( buf, "%s %d", ps->bdp_name.bv_val,
+						ps->bdp_size / 1024 );
+					value_add_one( &c->rvalue_vals, &bv );
+					rc = 0;
+
+				}
+				break;
+			}
 		}
 		return rc;
 	} else if ( c->op == LDAP_MOD_DELETE ) {
@@ -605,6 +628,24 @@ bdb_cf_gen( ConfigArgs *c )
 
 					bv.bv_val[ bv.bv_len ] = sep;
 					ldap_charray_free( attrs );
+				}
+			}
+			break;
+		/* doesn't make sense on the fly; the DB file must be
+		 * recreated
+		 */
+		case BDB_PGSIZE: {
+				struct bdb_db_pgsize *ps, **prev;
+				int i;
+
+				for ( i = 0, prev = &bdb->bi_pagesizes, ps = *prev; ps;
+					prev = &ps->bdp_next, ps = ps->bdp_next, i++ ) {
+					if ( c->valx == -1 || i == c->valx ) {
+						*prev = ps->bdp_next;
+						ch_free( ps );
+						ps = *prev;
+						if ( i == c->valx ) break;
+					}
 				}
 			}
 			break;
@@ -840,6 +881,31 @@ bdb_cf_gen( ConfigArgs *c )
 			c->value_int = MINIMUM_SEARCH_STACK_DEPTH;
 		}
 		bdb->bi_search_stack_depth = c->value_int;
+		break;
+
+	case BDB_PGSIZE: {
+		struct bdb_db_pgsize *ps, **prev;
+		int i, s;
+		
+		s = atoi(c->argv[2]);
+		if ( s < 1 || s > 64 ) {
+			snprintf( c->cr_msg, sizeof( c->cr_msg ),
+				"%s: size must be > 0 and <= 64: %d",
+				c->log, s );
+			Debug( LDAP_DEBUG_ANY, "%s\n", c->cr_msg, 0, 0 );
+			return -1;
+		}
+		i = strlen(c->argv[1]);
+		ps = ch_malloc( sizeof(struct bdb_db_pgsize) + i + 1 );
+		ps->bdp_next = NULL;
+		ps->bdp_name.bv_len = i;
+		ps->bdp_name.bv_val = (char *)(ps+1);
+		strcpy( ps->bdp_name.bv_val, c->argv[1] );
+		ps->bdp_size = s * 1024;
+		for ( prev = &bdb->bi_pagesizes; *prev; prev = &(*prev)->bdp_next )
+			;
+		*prev = ps;
+		}
 		break;
 	}
 	return 0;

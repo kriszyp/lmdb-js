@@ -416,19 +416,25 @@ shm_retry:
 			}
 		}
 
+		rc = bdb_db_findsize( bdb, (struct berval *)&bdbi_databases[i].name );
+
 		if( i == BDB_ID2ENTRY ) {
+			if ( !rc ) rc = BDB_ID2ENTRY_PAGESIZE;
+			rc = db->bdi_db->set_pagesize( db->bdi_db, rc );
+
 			if ( slapMode & SLAP_TOOL_MODE )
 				db->bdi_db->mpf->set_priority( db->bdi_db->mpf,
 					DB_PRIORITY_VERY_LOW );
 
-			rc = db->bdi_db->set_pagesize( db->bdi_db,
-				BDB_ID2ENTRY_PAGESIZE );
 			if ( slapMode & SLAP_TOOL_READMAIN ) {
 				flags |= DB_RDONLY;
 			} else {
 				flags |= DB_CREATE;
 			}
 		} else {
+			if ( !rc ) rc = BDB_PAGESIZE;
+			rc = db->bdi_db->set_pagesize( db->bdi_db, rc );
+
 			rc = db->bdi_db->set_flags( db->bdi_db, 
 				DB_DUP | DB_DUPSORT );
 #ifndef BDB_HIER
@@ -446,8 +452,6 @@ shm_retry:
 				flags |= DB_CREATE;
 			}
 #endif
-			rc = db->bdi_db->set_pagesize( db->bdi_db,
-				BDB_PAGESIZE );
 		}
 
 #ifdef HAVE_EBCDIC
