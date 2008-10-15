@@ -111,6 +111,18 @@ Enabling this option may improve performance at the expense of data
 security.
 See the Berkeley DB reference guide for more details.
 .TP
+\fBdbpagesize \fR \fI<dbfile> <size>\fR
+Specify the page size to use for a particular database file, in units
+of 1024 bytes. The default for the
+.B id2entry
+file is 16, the default for
+all other files is 4. The maximum that BerkeleyDB supports is 64. This
+setting usually should not need to be changed, but if BerkeleyDB's
+"db_stat -d" shows a large amount of overflow pages in use in a file,
+setting a larger size may increase performance at the expense of
+data integrity. This setting only takes effect when a database is
+being newly created. See the Berkeley DB reference guide for more details.
+.TP
 .BI directory \ <directory>
 Specify the directory where the BDB files containing this database and
 associated indexes live.
