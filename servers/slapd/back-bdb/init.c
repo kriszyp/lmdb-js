@@ -416,6 +416,20 @@ shm_retry:
 			}
 		}
 
+		if( bdb->bi_flags & BDB_CHKSUM ) {
+			rc = db->bdi_db->set_flags( db->bdi_db, DB_CHKSUM );
+			if ( rc ) {
+				snprintf(cr->msg, sizeof(cr->msg),
+					"database \"%s\": db set_flags(DB_CHKSUM)(%s) failed: %s (%d).",
+					be->be_suffix[0].bv_val, 
+					bdb->bi_dbenv_home, db_strerror(rc), rc );
+				Debug( LDAP_DEBUG_ANY,
+					LDAP_XSTRING(bdb_db_open) ": %s\n",
+					cr->msg, 0, 0 );
+				goto fail;
+			}
+		}
+
 		rc = bdb_db_findsize( bdb, (struct berval *)&bdbi_databases[i].name );
 
 		if( i == BDB_ID2ENTRY ) {

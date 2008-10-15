@@ -51,7 +51,8 @@ enum {
 	BDB_LOCKD,
 	BDB_SSTACK,
 	BDB_MODE,
-	BDB_PGSIZE
+	BDB_PGSIZE,
+	BDB_CHECKSUM
 };
 
 static ConfigTable bdbcfg[] = {
@@ -74,6 +75,10 @@ static ConfigTable bdbcfg[] = {
 		bdb_cf_gen, "( OLcfgDbAt:1.2 NAME 'olcDbCheckpoint' "
 			"DESC 'Database checkpoint interval in kbytes and minutes' "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )",NULL, NULL },
+	{ "checksum", NULL, 1, 2, 0, ARG_ON_OFF|ARG_MAGIC|BDB_CHECKSUM,
+		bdb_cf_gen, "( OLcfgDbAt:1.16 NAME 'olcDbChecksum' "
+			"DESC 'Enable database checksum validation' "
+			"SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
 	{ "cryptfile", "file", 2, 2, 0, ARG_STRING|ARG_MAGIC|BDB_CRYPTFILE,
 		bdb_cf_gen, "( OLcfgDbAt:1.13 NAME 'olcDbCryptFile' "
 			"DESC 'Pathname of file containing the DB encryption key' "
@@ -467,6 +472,11 @@ bdb_cf_gen( ConfigArgs *c )
 				c->value_int = 1;
 			break;
 			
+		case BDB_CHECKSUM:
+			if ( bdb->bi_flags & BDB_CHKSUM )
+				c->value_int = 1;
+			break;
+
 		case BDB_INDEX:
 			bdb_attr_index_unparse( bdb, &c->rvalue_vals );
 			if ( !c->rvalue_vals ) rc = 1;
@@ -576,6 +586,9 @@ bdb_cf_gen( ConfigArgs *c )
 			break;
 		case BDB_NOSYNC:
 			bdb->bi_dbenv->set_flags( bdb->bi_dbenv, DB_TXN_NOSYNC, 0 );
+			break;
+		case BDB_CHECKSUM:
+			bdb->bi_flags &= ~BDB_CHKSUM;
 			break;
 		case BDB_INDEX:
 			if ( c->valx == -1 ) {
@@ -837,6 +850,13 @@ bdb_cf_gen( ConfigArgs *c )
 			bdb->bi_dbenv->set_flags( bdb->bi_dbenv, DB_TXN_NOSYNC,
 				c->value_int );
 		}
+		break;
+
+	case BDB_CHECKSUM:
+		if ( c->value_int )
+			bdb->bi_flags |= BDB_CHKSUM;
+		else
+			bdb->bi_flags &= ~BDB_CHKSUM;
 		break;
 
 	case BDB_INDEX:

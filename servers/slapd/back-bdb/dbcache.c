@@ -144,6 +144,19 @@ bdb_db_cache(
 		}
 	}
 
+	if( bdb->bi_flags & BDB_CHKSUM ) {
+		rc = db->bdi_db->set_flags( db->bdi_db, DB_CHKSUM );
+		if ( rc ) {
+			Debug( LDAP_DEBUG_ANY,
+				"bdb_db_cache: db set_flags(DB_CHKSUM)(%s) failed: %s (%d)\n",
+				bdb->bi_dbenv_home, db_strerror(rc), rc );
+			ldap_pvt_thread_mutex_unlock( &bdb->bi_database_mutex );
+			db->bdi_db->close( db->bdi_db, 0 );
+			ch_free( db );
+			return rc;
+		}
+	}
+
 	/* If no explicit size set, use the default */
 	flags = bdb_db_findsize( bdb, name );
 	if ( !flags ) flags = BDB_PAGESIZE;
