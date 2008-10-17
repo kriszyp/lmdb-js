@@ -42,11 +42,20 @@
  * is no effect. If no attribute was configured, there is no effect.
  */
 
+/* Use C99 flexible array member if supported, C89 "struct hack" otherwise. */
+#define FLEXIBLE_STRUCT_SIZE(stype, mtype, mcount) \
+	(sizeof(stype) + sizeof(mtype) * ((mcount) - (0 FLEXIBLE_ARRAY_MEMBER)))
+#if __STDC_VERSION__>=199901L || (defined __GNUC__ && !defined __STRICT_ANSI__)
+#define FLEXIBLE_ARRAY_MEMBER
+#else
+#define FLEXIBLE_ARRAY_MEMBER +1
+#endif
+
 typedef struct collect_info {
 	struct collect_info *ci_next;
 	struct berval ci_dn;
 	int ci_ad_num;
-	AttributeDescription *ci_ad[];
+	AttributeDescription *ci_ad[FLEXIBLE_ARRAY_MEMBER];
 } collect_info;
 
 /*
@@ -175,8 +184,8 @@ collect_cf( ConfigArgs *c )
 		}
 
 		/* allocate config info with room for attribute array */
-		ci = ch_malloc( sizeof( collect_info ) +
-			( sizeof (AttributeDescription *) * (count + 1)));
+		ci = ch_malloc( FLEXIBLE_STRUCT_SIZE( collect_info,
+			AttributeDescription *, count + 1 ));
 
 		/* validate and normalize dn */
 		ber_str2bv( c->argv[1], 0, 0, &bv );
