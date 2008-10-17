@@ -469,7 +469,7 @@ ldap_back_monitor_db_open( BackendDB *be )
 	ptr = lutil_strncopy( ptr, suffix.bv_val, suffix.bv_len );
 	ptr = lutil_strcopy( ptr, "))" );
 	ptr[ 0 ] = '\0';
-	assert( filter->bv_len == ptr - filter->bv_val );
+	assert( ptr == &filter->bv_val[ filter->bv_len ] );
 
 	if ( suffix.bv_val != be->be_nsuffix[ 0 ].bv_val ) {
 		ch_free( suffix.bv_val );
