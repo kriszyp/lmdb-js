@@ -162,7 +162,7 @@ sb_sasl_cyrus_encode(
 	ber_int_t ret;
 	unsigned tmpsize = dst->buf_size;
 
-	ret = sasl_encode( sasl_context, buf, len,
+	ret = sasl_encode( sasl_context, (char *)buf, len,
 			   (SASL_CONST char **)&dst->buf_base,
 			   &tmpsize );
 
@@ -556,7 +556,7 @@ ldap_int_sasl_bind(
 				/* and server provided us with data? */
 				Debug( LDAP_DEBUG_TRACE,
 					"ldap_int_sasl_bind: rc=%d sasl=%d len=%ld\n",
-					rc, saslrc, scred ? scred->bv_len : -1 );
+					rc, saslrc, scred ? (long) scred->bv_len : -1L );
 				ber_bvfree( scred );
 				scred = NULL;
 			}
@@ -840,7 +840,7 @@ int ldap_pvt_sasl_secprops(
 	const char *in,
 	sasl_security_properties_t *secprops )
 {
-	int i, j, l;
+	unsigned i, j, l;
 	char **props;
 	unsigned sflags = 0;
 	int got_sflags = 0;
