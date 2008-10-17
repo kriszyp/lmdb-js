@@ -695,55 +695,56 @@ loop_begin:
 		 * any subsequent entries
 		 */
 		nentries++;
-		if ( nentries > bdb->bi_cache.c_maxsize && !idflag )
+		if ( nentries > bdb->bi_cache.c_maxsize && !idflag ) {
 			idflag = ID_NOCACHE;
+		}
 
 fetch_entry_retry:
-			/* get the entry with reader lock */
-			ei = NULL;
-			rs->sr_err = bdb_cache_find_id( op, ltid,
-				id, &ei, idflag, &lock );
+		/* get the entry with reader lock */
+		ei = NULL;
+		rs->sr_err = bdb_cache_find_id( op, ltid,
+			id, &ei, idflag, &lock );
 
-			if (rs->sr_err == LDAP_BUSY) {
-				rs->sr_text = "ldap server busy";
-				send_ldap_result( op, rs );
-				goto done;
+		if (rs->sr_err == LDAP_BUSY) {
+			rs->sr_text = "ldap server busy";
+			send_ldap_result( op, rs );
+			goto done;
 
-			} else if ( rs->sr_err == DB_LOCK_DEADLOCK ) {
-				if ( !opinfo ) {
-					ltid->flags &= ~TXN_DEADLOCK;
-					goto fetch_entry_retry;
-				}
-				opinfo->boi_err = rs->sr_err;
-				send_ldap_error( op, rs, LDAP_BUSY, "ldap server busy" );
-				goto done;
-
-			} else if ( rs->sr_err == DB_LOCK_NOTGRANTED )
-			{
+		} else if ( rs->sr_err == DB_LOCK_DEADLOCK ) {
+			if ( !opinfo ) {
+				ltid->flags &= ~TXN_DEADLOCK;
 				goto fetch_entry_retry;
-			} else if ( rs->sr_err == LDAP_OTHER ) {
-				rs->sr_text = "internal error";
-				send_ldap_result( op, rs );
-				goto done;
+			}
+			opinfo->boi_err = rs->sr_err;
+			send_ldap_error( op, rs, LDAP_BUSY, "ldap server busy" );
+			goto done;
+
+		} else if ( rs->sr_err == DB_LOCK_NOTGRANTED )
+		{
+			goto fetch_entry_retry;
+		} else if ( rs->sr_err == LDAP_OTHER ) {
+			rs->sr_text = "internal error";
+			send_ldap_result( op, rs );
+			goto done;
+		}
+
+		if ( ei && rs->sr_err == LDAP_SUCCESS ) {
+			e = ei->bei_e;
+		} else {
+			e = NULL;
+		}
+
+		if ( e == NULL ) {
+			if( !BDB_IDL_IS_RANGE(candidates) ) {
+				/* only complain for non-range IDLs */
+				Debug( LDAP_DEBUG_TRACE,
+					LDAP_XSTRING(bdb_search)
+					": candidate %ld not found\n",
+					(long) id, 0, 0 );
 			}
 
-			if ( ei && rs->sr_err == LDAP_SUCCESS ) {
-				e = ei->bei_e;
-			} else {
-				e = NULL;
-			}
-
-			if ( e == NULL ) {
-				if( !BDB_IDL_IS_RANGE(candidates) ) {
-					/* only complain for non-range IDLs */
-					Debug( LDAP_DEBUG_TRACE,
-						LDAP_XSTRING(bdb_search)
-						": candidate %ld not found\n",
-						(long) id, 0, 0 );
-				}
-
-				goto loop_continue;
-			}
+			goto loop_continue;
+		}
 
 		rs->sr_entry = e;
 
