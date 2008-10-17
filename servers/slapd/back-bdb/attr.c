@@ -30,14 +30,14 @@
  * set point for insertion if ins is non-NULL
  */
 int
-bdb_attr_slot( struct bdb_info *bdb, AttributeDescription *ad, unsigned *ins )
+bdb_attr_slot( struct bdb_info *bdb, AttributeDescription *ad, int *ins )
 {
 	unsigned base = 0, cursor = 0;
 	unsigned n = bdb->bi_nattrs;
 	int val = 0;
 	
 	while ( 0 < n ) {
-		int pivot = n >> 1;
+		unsigned pivot = n >> 1;
 		cursor = base + pivot;
 
 		val = SLAP_PTRCMP( ad, bdb->bi_attrs[cursor]->ai_desc );
@@ -61,7 +61,7 @@ bdb_attr_slot( struct bdb_info *bdb, AttributeDescription *ad, unsigned *ins )
 static int
 ainfo_insert( struct bdb_info *bdb, AttrInfo *a )
 {
-	unsigned x;
+	int x;
 	int i = bdb_attr_slot( bdb, a->ai_desc, &x );
 
 	/* Is it a dup? */
