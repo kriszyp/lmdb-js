@@ -597,6 +597,8 @@ ldap_chain_search(
 	struct berval	odn = op->o_req_dn,
 			ondn = op->o_req_ndn;
 	slap_response	*save_response = op->o_callback->sc_response;
+	Entry		*save_entry = rs->sr_entry;
+	slap_mask_t	save_flags = rs->sr_flags;
 
 	int		rc = LDAP_OTHER,
 			first_rc = -1;
@@ -761,7 +763,8 @@ further_cleanup:;
 	op->o_req_ndn = ondn;
 	op->o_callback->sc_response = save_response;
 	rs->sr_type = REP_SEARCHREF;
-	rs->sr_entry = NULL;
+	rs->sr_entry = save_entry;
+	rs->sr_flags = save_flags;
 
 	if ( rc != LDAP_SUCCESS ) {
 		/* couldn't chase any of the referrals */
