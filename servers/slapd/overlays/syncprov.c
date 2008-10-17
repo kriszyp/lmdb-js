@@ -627,7 +627,7 @@ again:
 		cf.f_av_value = si->si_ctxcsn[maxid];
 		fop.ors_filterstr.bv_len = snprintf( buf, sizeof( buf ),
 			"(entryCSN>=%s)", cf.f_av_value.bv_val );
-		if ( fop.ors_filterstr.bv_len < 0 || fop.ors_filterstr.bv_len >= sizeof( buf ) ) {
+		if ( fop.ors_filterstr.bv_len >= sizeof( buf ) ) {
 			return LDAP_OTHER;
 		}
 		fop.ors_attrsonly = 0;
@@ -664,7 +664,7 @@ again:
 			fop.ors_filterstr.bv_len = snprintf( buf, sizeof( buf ),
 				"(entryCSN<=%s)", cf.f_av_value.bv_val );
 		}
-		if ( fop.ors_filterstr.bv_len < 0 || fop.ors_filterstr.bv_len >= sizeof( buf ) ) {
+		if ( fop.ors_filterstr.bv_len >= sizeof( buf ) ) {
 			return LDAP_OTHER;
 		}
 		fop.ors_attrsonly = 1;
@@ -2532,7 +2532,7 @@ sp_cf_gen(ConfigArgs *c)
 				struct berval bv;
 				bv.bv_len = snprintf( c->cr_msg, sizeof( c->cr_msg ),
 					"%d %d", si->si_chkops, si->si_chktime );
-				if ( bv.bv_len < 0 || bv.bv_len >= sizeof( c->cr_msg ) ) {
+				if ( bv.bv_len >= sizeof( c->cr_msg ) ) {
 					rc = 1;
 				} else {
 					bv.bv_val = c->cr_msg;

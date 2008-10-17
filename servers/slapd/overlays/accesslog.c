@@ -1400,7 +1400,7 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 		attr_merge_one( e, ad_reqMessage, &bv, NULL );
 	}
 	bv.bv_len = snprintf( timebuf, sizeof( timebuf ), "%d", rs->sr_err );
-	if ( bv.bv_len >= 0 && bv.bv_len < sizeof( timebuf ) ) {
+	if ( bv.bv_len < sizeof( timebuf ) ) {
 		bv.bv_val = timebuf;
 		attr_merge_one( e, ad_reqResult, &bv, NULL );
 	}
@@ -1617,17 +1617,17 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 		}
 		bv.bv_val = timebuf;
 		bv.bv_len = snprintf( bv.bv_val, sizeof( timebuf ), "%d", rs->sr_nentries );
-		if ( bv.bv_len >= 0 && bv.bv_len < sizeof( timebuf ) ) {
+		if ( bv.bv_len < sizeof( timebuf ) ) {
 			attr_merge_one( e, ad_reqEntries, &bv, NULL );
 		} /* else? */
 
 		bv.bv_len = snprintf( bv.bv_val, sizeof( timebuf ), "%d", op->ors_tlimit );
-		if ( bv.bv_len >= 0 && bv.bv_len < sizeof( timebuf ) ) {
+		if ( bv.bv_len < sizeof( timebuf ) ) {
 			attr_merge_one( e, ad_reqTimeLimit, &bv, NULL );
 		} /* else? */
 
 		bv.bv_len = snprintf( bv.bv_val, sizeof( timebuf ), "%d", op->ors_slimit );
-		if ( bv.bv_len >= 0 && bv.bv_len < sizeof( timebuf ) ) {
+		if ( bv.bv_len < sizeof( timebuf ) ) {
 			attr_merge_one( e, ad_reqSizeLimit, &bv, NULL );
 		} /* else? */
 		break;
@@ -1635,7 +1635,7 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 	case LOG_EN_BIND:
 		bv.bv_val = timebuf;
 		bv.bv_len = snprintf( bv.bv_val, sizeof( timebuf ), "%d", op->o_protocol );
-		if ( bv.bv_len >= 0 && bv.bv_len < sizeof( timebuf ) ) {
+		if ( bv.bv_len < sizeof( timebuf ) ) {
 			attr_merge_one( e, ad_reqVersion, &bv, NULL );
 		} /* else? */
 		if ( op->orb_method == LDAP_AUTH_SIMPLE ) {
@@ -1838,7 +1838,7 @@ accesslog_abandon( Operation *op, SlapReply *rs )
 	e = accesslog_entry( op, rs, LOG_EN_ABANDON, &op2 );
 	bv.bv_val = buf;
 	bv.bv_len = snprintf( buf, sizeof( buf ), "%d", op->orn_msgid );
-	if ( bv.bv_len >= 0 && bv.bv_len < sizeof( buf ) ) {
+	if ( bv.bv_len < sizeof( buf ) ) {
 		attr_merge_one( e, ad_reqId, &bv, NULL );
 	} /* else? */
 
