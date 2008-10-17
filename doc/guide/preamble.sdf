@@ -164,7 +164,7 @@ ASN.1|Abstract Syntax Notation - One
 AVA|Attribute Value Assertion
 AuthcDN|Authentication DN
 AuthcId|Authentication Identity
-AuthzDN|Authorizaiton DN
+AuthzDN|Authorization DN
 AuthzId|Authorization Identity
 BCP|Best Current Practice
 BDB|Berkeley DB (Backend)
