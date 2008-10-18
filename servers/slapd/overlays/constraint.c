@@ -786,8 +786,8 @@ constraint_add( Operation *op, SlapReply *rs )
 
 			Debug(LDAP_DEBUG_TRACE, 
 				"==> constraint_add, "
-				"a->a_numvals = %d, cp->count = %d\n",
-				a->a_numvals, cp->count, 0);
+				"a->a_numvals = %u, cp->count = %lu\n",
+				a->a_numvals, (unsigned long) cp->count, 0);
 
 			if ((cp->count != 0) && (a->a_numvals > cp->count)) {
 				rc = LDAP_CONSTRAINT_VIOLATION;
@@ -885,7 +885,7 @@ constraint_update( Operation *op, SlapReply *rs )
 
 	rc = LDAP_CONSTRAINT_VIOLATION;
 	for(;m; m = m->sml_next) {
-		int ce = 0;
+		unsigned ce = 0;
 
 		if (is_at_operational( m->sml_desc->ad_type )) continue;
 
@@ -916,7 +916,7 @@ constraint_update( Operation *op, SlapReply *rs )
 			}
 
 			if (cp->count != 0) {
-				int ca;
+				unsigned ca;
 
 				if (m->sml_op == LDAP_MOD_DELETE)
 					ce = 0;
@@ -924,9 +924,9 @@ constraint_update( Operation *op, SlapReply *rs )
 				for (ca = 0; b[ca].bv_val; ++ca);
 
 				Debug(LDAP_DEBUG_TRACE, 
-					"==> constraint_update ce = %d, "
-					"ca = %d, cp->count = %d\n",
-					ce, ca, cp->count);
+					"==> constraint_update ce = %u, "
+					"ca = %u, cp->count = %lu\n",
+					ce, ca, (unsigned long) cp->count);
 
 				if (m->sml_op == LDAP_MOD_ADD) {
 					if (ca + ce > cp->count) {
