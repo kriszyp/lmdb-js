@@ -4363,8 +4363,8 @@ serialNumberAndIssuerSerialCheck(
 		ber_dupbv_x( &ni, is, ctx );
 
 	} else {
-		ber_int_t src, dst;
-		
+		ber_len_t src, dst;
+
 		ni.bv_len = is->bv_len - numdquotes;
 		ni.bv_val = ber_memalloc_x( ni.bv_len + 1, ctx );
 		for ( src = 0, dst = 0; src < is->bv_len; src++, dst++ ) {
