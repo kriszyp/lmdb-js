@@ -510,53 +510,51 @@ slap_retry_info_unparse(
 	slap_retry_info_t	*ri,
 	struct berval		*bvout )
 {
-	int		i;
 	char		buf[ BUFSIZ * 2 ],
 			*ptr = buf;
-	struct berval	bv = BER_BVNULL;
+	int		i, len, restlen = (int) sizeof( buf );
+	struct berval	bv;
 
 	assert( ri != NULL );
 	assert( bvout != NULL );
 
 	BER_BVZERO( bvout );
 
-#define WHATSLEFT	( &buf[ sizeof( buf ) ] - ptr )
-
 	for ( i = 0; ri->ri_num[ i ] != SLAP_RETRYNUM_TAIL; i++ ) {
 		if ( i > 0 ) {
-			if ( WHATSLEFT <= 1 ) {
+			if ( --restlen <= 0 ) {
 				return 1;
 			}
 			*ptr++ = ';';
 		}
 
-		if ( lutil_unparse_time( ptr, WHATSLEFT, (long)ri->ri_interval[i] ) ) {
+		if ( lutil_unparse_time( ptr, restlen, ri->ri_interval[i] ) < 0 ) {
 			return 1;
 		}
-		ptr += strlen( ptr );
-
-		if ( WHATSLEFT <= 1 ) {
+		len = (int) strlen( ptr );
+		if ( (restlen -= len + 1) <= 0 ) {
 			return 1;
 		}
+		ptr += len;
 		*ptr++ = ',';
 
 		if ( ri->ri_num[i] == SLAP_RETRYNUM_FOREVER ) {
-			if ( WHATSLEFT <= 1 ) {
+			if ( --restlen <= 0 ) {
 				return 1;
 			}
 			*ptr++ = '+';
 
 		} else {
-			ptr += snprintf( ptr, WHATSLEFT, "%d", ri->ri_num[i] );
-			if ( WHATSLEFT <= 0 ) {
+			len = snprintf( ptr, restlen, "%d", ri->ri_num[i] );
+			if ( (restlen -= len) <= 0 || len < 0 ) {
 				return 1;
 			}
+			ptr += len;
 		}
 	}
 
 	bv.bv_val = buf;
 	bv.bv_len = ptr - buf;
-
 	ber_dupbv( bvout, &bv );
 
 	return 0;
