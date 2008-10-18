@@ -3948,10 +3948,10 @@ check_name_index( CfEntryInfo *parent, ConfigType ce_type, Entry *e,
 			isconfig = 1;
 	}
 	ptr1 = ber_bvchr( &e->e_name, '{' );
-	if ( ptr1 && ptr1 - e->e_name.bv_val < rdn.bv_len ) {
+	if ( ptr1 && ptr1 < &e->e_name.bv_val[ rdn.bv_len ] ) {
 		char	*next;
 		ptr2 = strchr( ptr1, '}' );
-		if (!ptr2 || ptr2 - e->e_name.bv_val > rdn.bv_len)
+		if ( !ptr2 || ptr2 > &e->e_name.bv_val[ rdn.bv_len ] )
 			return LDAP_NAMING_VIOLATION;
 		if ( ptr2-ptr1 == 1)
 			return LDAP_NAMING_VIOLATION;
