@@ -981,7 +981,11 @@ tool_args( int argc, char **argv )
 
 	if (authmethod == -1 && protocol > LDAP_VERSION2) {
 #ifdef HAVE_CYRUS_SASL
-		authmethod = LDAP_AUTH_SASL;
+		if ( binddn != NULL ) {
+			authmethod = LDAP_AUTH_SIMPLE;
+		} else {
+			authmethod = LDAP_AUTH_SASL;
+		}
 #else
 		authmethod = LDAP_AUTH_SIMPLE;
 #endif
