@@ -1038,6 +1038,26 @@ static int parseNoOp (
 		return LDAP_PROTOCOL_ERROR;
 	}
 
+	if ( !ctrl->ldctl_iscritical ) {
+		rs->sr_text = "noop control not critical";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	switch ( op->o_tag ) {
+	case LDAP_REQ_ADD:
+	case LDAP_REQ_MODIFY:
+	case LDAP_REQ_RENAME:
+	case LDAP_REQ_DELETE:
+	/* NOTE: only selected extended operations should be eligible;
+	 * checking is delegated to the appropriate handlers */
+	case LDAP_REQ_EXTENDED:
+		break;
+
+	default:
+		rs->sr_text = "noop control on non-allowed operation";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
 	op->o_noop = ctrl->ldctl_iscritical
 		? SLAP_CONTROL_CRITICAL
 		: SLAP_CONTROL_NONCRITICAL;
