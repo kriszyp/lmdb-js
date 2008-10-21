@@ -887,42 +887,49 @@ limits_parse_one(
 	return 0;
 }
 
-#define WHATSLEFT	( buflen - ( ptr - bv->bv_val ) )
+/* Helper macros for limits_unparse() and limits_unparse_one():
+ * Write to ptr, but not past bufEnd.  Move ptr past the new text.
+ * Return (success && enough room ? 0 : -1).
+ */
+#define ptr_APPEND_BV(bv) /* Append a \0-terminated berval */ \
+	(WHATSLEFT <= (bv).bv_len ? -1 : \
+	 ((void) (ptr = lutil_strcopy( ptr, (bv).bv_val )), 0))
+#define ptr_APPEND_LIT(str) /* Append a string literal */ \
+	(WHATSLEFT <= STRLENOF( "" str "" ) ? -1 : \
+	 ((void) (ptr = lutil_strcopy( ptr, str )), 0))
+#define ptr_APPEND_FMT(args) /* Append formatted text */ \
+	(WHATSLEFT <= (tmpLen = snprintf args) ? -1 : ((void) (ptr += tmpLen), 0))
+#define ptr_APPEND_FMT1(fmt, arg) ptr_APPEND_FMT(( ptr, WHATSLEFT, fmt, arg ))
+#define WHATSLEFT ((ber_len_t) (bufEnd - ptr))
 
 /* Caller must provide an adequately sized buffer in bv */
 int
 limits_unparse( struct slap_limits *lim, struct berval *bv, ber_len_t buflen )
 {
 	struct berval btmp;
-	char *ptr;
-	int type, lm, dntypelen;
+	char *ptr, *bufEnd;			/* Updated/used by ptr_APPEND_*()/WHATSLEFT */
+	ber_len_t tmpLen;			/* Used by ptr_APPEND_FMT*() */
+	unsigned type, style;
+	int rc = 0;
 
 	if ( !bv || !bv->bv_val ) return -1;
 
 	ptr = bv->bv_val;
+	bufEnd = ptr + buflen;
 	type = lim->lm_flags & SLAP_LIMITS_TYPE_MASK;
 
 	if ( type == SLAP_LIMITS_TYPE_GROUP ) {
-		if ( WHATSLEFT <= STRLENOF( "group/" "/" "=\"" "\"" )
-				+ lim->lm_group_oc->soc_cname.bv_len
-				+ lim->lm_group_ad->ad_cname.bv_len
-				+ lim->lm_pat.bv_len ) return -1;
-
-		ptr = lutil_strcopy( ptr, "group/" );
-		ptr = lutil_strcopy( ptr, lim->lm_group_oc->soc_cname.bv_val );
-		*ptr++ = '/';
-		ptr = lutil_strcopy( ptr, lim->lm_group_ad->ad_cname.bv_val );
-		ptr = lutil_strcopy( ptr, "=\"" );
-		ptr = lutil_strcopy( ptr, lim->lm_pat.bv_val );
-		*ptr++ = '"';
+		rc = ptr_APPEND_FMT(( ptr, WHATSLEFT, "group/%s/%s=\"%s\"",
+			lim->lm_group_oc->soc_cname.bv_val,
+			lim->lm_group_ad->ad_cname.bv_val,
+			lim->lm_pat.bv_val ));
 	} else {
-		lm = lim->lm_flags & SLAP_LIMITS_MASK;
-		switch( lm ) {
+		style = lim->lm_flags & SLAP_LIMITS_MASK;
+		switch( style ) {
 		case SLAP_LIMITS_ANONYMOUS:
 		case SLAP_LIMITS_USERS:
 		case SLAP_LIMITS_ANY:
-			if ( WHATSLEFT <= lmpats[lm].bv_len ) return -1;
-			ptr = lutil_strcopy( ptr, lmpats[lm].bv_val );
+			rc = ptr_APPEND_BV( lmpats[style] );
 			break;
 		case SLAP_LIMITS_UNDEFINED:
 		case SLAP_LIMITS_EXACT:
@@ -930,30 +937,23 @@ limits_unparse( struct slap_limits *lim, struct berval *bv, ber_len_t buflen )
 		case SLAP_LIMITS_SUBTREE:
 		case SLAP_LIMITS_CHILDREN:
 		case SLAP_LIMITS_REGEX:
-			dntypelen = type == SLAP_LIMITS_TYPE_SELF
-				? STRLENOF( "dn." ) : STRLENOF( "dn.this." );
-			if ( WHATSLEFT <= dntypelen + STRLENOF( "=" "\"" "\"" )
-					+ lmpats[lm].bv_len + lim->lm_pat.bv_len ) return -1;
-			ptr = lutil_strncopy( ptr, "dn.this.", dntypelen );
-			ptr = lutil_strcopy( ptr, lmpats[lm].bv_val );
-			*ptr++ = '=';
-			*ptr++ = '"';
-			ptr = lutil_strcopy( ptr, lim->lm_pat.bv_val );
-			*ptr++ = '"';
+			rc = ptr_APPEND_FMT(( ptr, WHATSLEFT, "dn.%s%s=\"%s\"",
+				type == SLAP_LIMITS_TYPE_SELF ? "" : "this.",
+				lmpats[style].bv_val, lim->lm_pat.bv_val ));
 			break;
 		}
 	}
-	bv->bv_len = ptr - bv->bv_val;
-	btmp.bv_val = ptr;
-	btmp.bv_len = 0;
-	if ( limits_unparse_one( &lim->lm_limits,
-			SLAP_LIMIT_SIZE|SLAP_LIMIT_TIME,
-			&btmp, WHATSLEFT ) )
-	{
-		return -1;
+	if ( rc == 0 ) {
+		bv->bv_len = ptr - bv->bv_val;
+		btmp.bv_val = ptr;
+		btmp.bv_len = 0;
+		rc = limits_unparse_one( &lim->lm_limits,
+			SLAP_LIMIT_SIZE | SLAP_LIMIT_TIME,
+			&btmp, WHATSLEFT );
+		if ( rc == 0 )
+			bv->bv_len += btmp.bv_len;
 	}
-	bv->bv_len += btmp.bv_len;
-	return 0;
+	return rc;
 }
 
 /* Caller must provide an adequately sized buffer in bv */
@@ -964,11 +964,13 @@ limits_unparse_one(
 	struct berval	*bv,
 	ber_len_t		buflen )
 {
-	char *ptr;
+	char *ptr, *bufEnd;			/* Updated/used by ptr_APPEND_*()/WHATSLEFT */
+	ber_len_t tmpLen;			/* Used by ptr_APPEND_FMT*() */
 
 	if ( !bv || !bv->bv_val ) return -1;
 
 	ptr = bv->bv_val;
+	bufEnd = ptr + buflen;
 
 	if ( which & SLAP_LIMIT_SIZE ) {
 		if ( lim->lms_s_soft != SLAPD_DEFAULT_SIZELIMIT ) {
@@ -980,79 +982,49 @@ limits_unparse_one(
 				goto s_hard;
 			/* If there's also a hard limit, fully qualify this one */
 			} else if ( lim->lms_s_hard ) {
-				if ( WHATSLEFT <= STRLENOF( " size.soft=" ) ) return -1;
-				ptr = lutil_strcopy( ptr, " size.soft=" );
+				if ( ptr_APPEND_LIT( " size.soft=" ) ) return -1;
 
 			/* If doing both size & time, qualify this */
 			} else if ( which & SLAP_LIMIT_TIME ) {
-				if ( WHATSLEFT <= STRLENOF( " size=" ) ) return -1;
-				ptr = lutil_strcopy( ptr, " size=" );
+				if ( ptr_APPEND_LIT( " size=" ) ) return -1;
 			}
 
-			if ( lim->lms_s_soft == -1 ) {
-				if ( WHATSLEFT <= STRLENOF( "unlimited" ) ) return -1;
-				ptr = lutil_strcopy( ptr, "unlimited" );
-			} else {
-				ptr += snprintf( ptr, WHATSLEFT, "%d", lim->lms_s_soft );
-				if ( WHATSLEFT < 0 ) return -1;
-			}
-			*ptr++ = ' ';
+			if ( lim->lms_s_soft == -1
+					? ptr_APPEND_LIT( "unlimited " )
+					: ptr_APPEND_FMT1( "%d ", lim->lms_s_soft ) )
+				return -1;
 		}
 s_hard:
 		if ( lim->lms_s_hard ) {
-			if ( WHATSLEFT <= STRLENOF( " size.hard=" ) ) return -1;
-			ptr = lutil_strcopy( ptr, " size.hard=" );
-			if ( lim->lms_s_hard == -1 ) {
-				if ( WHATSLEFT <= STRLENOF( "unlimited" ) ) return -1;
-				ptr = lutil_strcopy( ptr, "unlimited" );
-			} else {
-				ptr += snprintf( ptr, WHATSLEFT, "%d", lim->lms_s_hard );
-				if ( WHATSLEFT < 0 ) return -1;
-			}
-			*ptr++ = ' ';
+			if ( ptr_APPEND_LIT( " size.hard=" ) ) return -1;
+			if ( lim->lms_s_hard == -1
+					? ptr_APPEND_LIT( "unlimited " )
+					: ptr_APPEND_FMT1( "%d ", lim->lms_s_hard ) )
+				return -1;
 		}
 		if ( lim->lms_s_unchecked != -1 ) {
-			if ( WHATSLEFT <= STRLENOF( " size.unchecked=" ) ) return -1;
-			ptr = lutil_strcopy( ptr, " size.unchecked=" );
-			if ( lim->lms_s_unchecked == 0 ) {
-				if ( WHATSLEFT <= STRLENOF( "disabled" ) ) return -1;
-				ptr = lutil_strcopy( ptr, "disabled" );
-			} else {
-				ptr += snprintf( ptr, WHATSLEFT, "%d", lim->lms_s_unchecked );
-				if ( WHATSLEFT < 0 ) return -1;
-			}
-			*ptr++ = ' ';
+			if ( ptr_APPEND_LIT( " size.unchecked=" ) ) return -1;
+			if ( lim->lms_s_unchecked == 0
+					? ptr_APPEND_LIT( "disabled " )
+					: ptr_APPEND_FMT1( "%d ", lim->lms_s_unchecked ) )
+				return -1;
 		}
 		if ( lim->lms_s_pr_hide ) {
-			if ( WHATSLEFT <= STRLENOF( " size.pr=noEstimate " ) ) return -1;
-			ptr = lutil_strcopy( ptr, " size.pr=noEstimate " );
+			if ( ptr_APPEND_LIT( " size.pr=noEstimate " ) ) return -1;
 		}
 		if ( lim->lms_s_pr ) {
-			if ( WHATSLEFT <= STRLENOF( " size.pr=" ) ) return -1;
-			ptr = lutil_strcopy( ptr, " size.pr=" );
-			if ( lim->lms_s_pr == -1 ) {
-				if ( WHATSLEFT <= STRLENOF( "unlimited" ) ) return -1;
-				ptr = lutil_strcopy( ptr, "unlimited" );
-			} else {
-				ptr += snprintf( ptr, WHATSLEFT, "%d", lim->lms_s_pr );
-				if ( WHATSLEFT < 0 ) return -1;
-			}
-			*ptr++ = ' ';
+			if ( ptr_APPEND_LIT( " size.pr=" ) ) return -1;
+			if ( lim->lms_s_pr == -1
+					? ptr_APPEND_LIT( "unlimited " )
+					: ptr_APPEND_FMT1( "%d ", lim->lms_s_pr ) )
+				return -1;
 		}
 		if ( lim->lms_s_pr_total ) {
-			if ( WHATSLEFT <= STRLENOF( " size.prtotal=" ) ) return -1;
-			ptr = lutil_strcopy( ptr, " size.prtotal=" );
-			if ( lim->lms_s_pr_total == -1 ) {
-				if ( WHATSLEFT <= STRLENOF( "unlimited" ) ) return -1;
-				ptr = lutil_strcopy( ptr, "unlimited" );
-			} else if ( lim->lms_s_pr_total == -2 ) {
-				if ( WHATSLEFT <= STRLENOF( "disabled" ) ) return -1;
-				ptr = lutil_strcopy( ptr, "disabled" );
-			} else {
-				ptr += snprintf( ptr, WHATSLEFT, "%d", lim->lms_s_pr_total );
-				if ( WHATSLEFT < 0 ) return -1;
-			}
-			*ptr++ = ' ';
+			if ( ptr_APPEND_LIT( " size.prtotal=" ) ) return -1;
+			if ( lim->lms_s_pr_total  == -1 ? ptr_APPEND_LIT( "unlimited " )
+				: lim->lms_s_pr_total == -2 ? ptr_APPEND_LIT( "disabled " )
+				: ptr_APPEND_FMT1( "%d ", lim->lms_s_pr_total ) )
+				return -1;
 		}
 	}
 
@@ -1067,36 +1039,25 @@ s_hard:
 
 			/* If there's also a hard limit, fully qualify this one */
 			} else if ( lim->lms_t_hard ) {
-				if ( WHATSLEFT <= STRLENOF( " time.soft=" ) ) return -1;
-				ptr = lutil_strcopy( ptr, " time.soft=" );
+				if ( ptr_APPEND_LIT( " time.soft=" ) ) return -1;
 
 			/* If doing both size & time, qualify this */
 			} else if ( which & SLAP_LIMIT_SIZE ) {
-				if ( WHATSLEFT <= STRLENOF( " time=" ) ) return -1;
-				ptr = lutil_strcopy( ptr, " time=" );
+				if ( ptr_APPEND_LIT( " time=" ) ) return -1;
 			}
 
-			if ( lim->lms_t_soft == -1 ) {
-				if ( WHATSLEFT <= STRLENOF( "unlimited" ) ) return -1;
-				ptr = lutil_strcopy( ptr, "unlimited" );
-			} else {
-				ptr += snprintf( ptr, WHATSLEFT, "%d", lim->lms_t_soft );
-				if ( WHATSLEFT < 0 ) return -1;
-			}
-			*ptr++ = ' ';
+			if ( lim->lms_t_soft == -1
+					? ptr_APPEND_LIT( "unlimited " )
+					: ptr_APPEND_FMT1( "%d ", lim->lms_t_soft ) )
+				return -1;
 		}
 t_hard:
 		if ( lim->lms_t_hard ) {
-			if ( WHATSLEFT <= STRLENOF( " time.hard=" ) ) return -1;
-			ptr = lutil_strcopy( ptr, " time.hard=" );
-			if ( lim->lms_t_hard == -1 ) {
-				if ( WHATSLEFT <= STRLENOF( "unlimited" ) ) return -1;
-				ptr = lutil_strcopy( ptr, "unlimited" );
-			} else {
-				ptr += snprintf( ptr, WHATSLEFT, "%d", lim->lms_t_hard );
-				if ( WHATSLEFT < 0 ) return -1;
-			}
-			*ptr++ = ' ';
+			if ( ptr_APPEND_LIT( " time.hard=" ) ) return -1;
+			if ( lim->lms_t_hard == -1
+					? ptr_APPEND_LIT( "unlimited " )
+					: ptr_APPEND_FMT1( "%d ", lim->lms_t_hard ) )
+				return -1;
 		}
 	}
 	if ( ptr != bv->bv_val ) {
