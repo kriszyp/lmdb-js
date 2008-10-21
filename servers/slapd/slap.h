@@ -1641,6 +1641,7 @@ struct slap_limits_set {
 
 struct slap_limits {
 	unsigned		lm_flags;	/* type of pattern */
+	/* Values must match lmpats[] in limits.c */
 #define SLAP_LIMITS_UNDEFINED		0x0000U
 #define SLAP_LIMITS_EXACT		0x0001U
 #define SLAP_LIMITS_BASE		SLAP_LIMITS_EXACT
@@ -1653,8 +1654,10 @@ struct slap_limits {
 #define SLAP_LIMITS_ANY			0x0008U
 #define SLAP_LIMITS_MASK		0x000FU
 
-#define SLAP_LIMITS_TYPE_DN		0x0000U
+#define SLAP_LIMITS_TYPE_SELF		0x0000U
+#define SLAP_LIMITS_TYPE_DN		SLAP_LIMITS_TYPE_SELF
 #define SLAP_LIMITS_TYPE_GROUP		0x0010U
+#define SLAP_LIMITS_TYPE_THIS		0x0020U
 #define SLAP_LIMITS_TYPE_MASK		0x00F0U
 
 	regex_t			lm_regex;	/* regex data for REGEX */

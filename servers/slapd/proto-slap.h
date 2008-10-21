@@ -1115,9 +1115,6 @@ LDAP_SLAPD_F (int) slap_build_syncUUID_set LDAP_P((
 /*
  * limits.c
  */
-LDAP_SLAPD_F (int) limits_get LDAP_P((
-	Operation *op, struct berval *ndn,
-	struct slap_limits_set **limit ));
 LDAP_SLAPD_F (int) limits_parse LDAP_P((
 	Backend *be, const char *fname, int lineno,
 	int argc, char **argv ));
