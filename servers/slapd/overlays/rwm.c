@@ -1177,7 +1177,9 @@ remove_oc:;
 					last--;
 					bv--;
 
-				} else if ( mapped.bv_val != bv[0].bv_val ) {
+				} else if ( mapped.bv_val != bv[0].bv_val
+					&& ber_bvstrcasecmp( &mapped, &bv[0] ) != 0 )
+				{
 					int	i;
 
 					for ( i = 0; !BER_BVISNULL( &(*ap)->a_vals[ i ] ); i++ ) {
