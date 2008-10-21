@@ -60,6 +60,7 @@ param_error:;
 	}
 
 	assert( LDAP_VALID( ld ) );
+	ld->ld_errno = LDAP_SUCCESS;
 
 	/* check sizes according to I.D. */
 	if ( sessionSourceIp == NULL ) {
