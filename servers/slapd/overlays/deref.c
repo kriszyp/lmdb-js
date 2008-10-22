@@ -64,7 +64,7 @@
  *  DerefRes ::= SEQUENCE {
  *      derefAttr       AttributeDescription,
  *      derefVal        LDAPDN,
- *      attrVals        PartialAttributeList OPTIONAL }
+ *      attrVals        [0] PartialAttributeList OPTIONAL }
  *
  *  If vals is empty, partialAttribute is omitted.
  *  If all vals in attrVals are empty, attrVals is omitted.
@@ -345,19 +345,28 @@ deref_response( Operation *op, SlapReply *rs )
 		rc = ber_printf( ber, "{" /*}*/ );
 		for ( dr = drhead; dr != NULL; dr = dr->dr_next ) {
 			for ( i = 0; !BER_BVISNULL( &dr->dr_vals[ i ].dv_derefSpecVal ); i++ ) {
-				int j;
+				int j, first = 1;
 
-				rc = ber_printf( ber, "{OO{" /*}*/,
+				rc = ber_printf( ber, "{OO" /*}*/,
 					&dr->dr_spec.ds_derefAttr->ad_cname,
 					&dr->dr_vals[ i ].dv_derefSpecVal );
 				for ( j = 0; j < dr->dr_spec.ds_nattrs; j++ ) {
 					if ( dr->dr_vals[ i ].dv_attrVals[ j ] != NULL ) {
+						if ( first ) {
+							rc = ber_printf( ber, "t{" /*}*/,
+								(LBER_CONSTRUCTED|LBER_CLASS_CONTEXT) );
+							first = 0;
+						}
 						rc = ber_printf( ber, "{O[W]}",
 							&dr->dr_spec.ds_attributes[ j ]->ad_cname,
 							dr->dr_vals[ i ].dv_attrVals[ j ] );
 					}
 				}
-				rc = ber_printf( ber, /*{*/ "}N}" );
+				if ( !first ) {
+					rc = ber_printf( ber, /*{{*/ "}N}" );
+				} else {
+					rc = ber_printf( ber, /*{*/ "}" );
+				}
 			}
 		}
 		rc = ber_printf( ber, /*{*/ "}" );

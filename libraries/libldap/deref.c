@@ -198,21 +198,24 @@ ldap_parse_derefresponse_control(
 			goto done;
 		}
 
-		for ( tag = ber_first_element( ber, &len, &last2 );
-			tag != LBER_DEFAULT;
-			tag = ber_next_element( ber, &len, last2 ) )
-		{
-			LDAPDerefVal *dv;
+		tag = ber_peek_tag( ber, &len );
+		if ( tag == (LBER_CONSTRUCTED|LBER_CLASS_CONTEXT) ) {
+			for ( tag = ber_first_element( ber, &len, &last2 );
+				tag != LBER_DEFAULT;
+				tag = ber_next_element( ber, &len, last2 ) )
+			{
+				LDAPDerefVal *dv;
 
-			dv = LDAP_CALLOC( 1, sizeof(LDAPDerefVal) );
+				dv = LDAP_CALLOC( 1, sizeof(LDAPDerefVal) );
 
-			tag = ber_scanf( ber, "{a[W]}", &dv->type, &dv->vals );
-			if ( tag == LBER_ERROR ) {
-				goto done;
+				tag = ber_scanf( ber, "{a[W]}", &dv->type, &dv->vals );
+				if ( tag == LBER_ERROR ) {
+					goto done;
+				}
+
+				*dvp = dv;
+				dvp = &dv->next;
 			}
-
-			*dvp = dv;
-			dvp = &dv->next;
 		}
 
 		tag = ber_scanf( ber, "}" );
