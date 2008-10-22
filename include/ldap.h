@@ -321,6 +321,8 @@ typedef struct ldapcontrol {
 						LDAP_CONTROL_X_SESSION_TRACKING ".2"
 #define LDAP_CONTROL_X_SESSION_TRACKING_USERNAME \
 						LDAP_CONTROL_X_SESSION_TRACKING ".3"
+/* Dereference Control (work in progress) */
+#define	LDAP_CONTROL_X_DEREF			"1.3.6.1.4.1.4203.666.5.16"
 #endif /* LDAP_DEVEL */
 
 /* various expired works */
@@ -2399,6 +2401,57 @@ ldap_create_assertion_control LDAP_P((
 	char		*filter,
 	int		iscritical,
 	LDAPControl	**ctrlp ));
+
+/*
+ * in deref.c
+ */
+
+typedef struct LDAPDerefSpec {
+	char *derefAttr;
+	char **attributes;
+} LDAPDerefSpec;
+
+typedef struct LDAPDerefVal {
+	char *type;
+	BerVarray vals;
+	struct LDAPDerefVal *next;
+} LDAPDerefVal;
+
+typedef struct LDAPDerefRes {
+	char *derefAttr;
+	struct berval derefVal;
+	LDAPDerefVal *attrVals;
+	struct LDAPDerefRes *next;
+} LDAPDerefRes;
+
+LDAP_F( int )
+ldap_create_deref_control_value LDAP_P((
+	LDAP *ld,
+	LDAPDerefSpec *ds,
+	struct berval *value ));
+
+LDAP_F( int )
+ldap_create_deref_control LDAP_P((
+	LDAP		*ld,
+	LDAPDerefSpec	*ds,
+	int		iscritical,
+	LDAPControl	**ctrlp ));
+
+LDAP_F( void )
+ldap_derefresponse_free LDAP_P((
+	LDAPDerefRes *dr ));
+
+LDAP_F( int )
+ldap_parse_derefresponse_control LDAP_P((
+	LDAP *ld,
+	LDAPControl *ctrl,
+	LDAPDerefRes **drp ));
+
+LDAP_F( int )
+ldap_parse_deref_control LDAP_P((
+	LDAP		*ld,
+	LDAPControl	**ctrls,
+	LDAPDerefRes	**drp ));
 
 LDAP_END_DECL
 #endif /* _LDAP_H */

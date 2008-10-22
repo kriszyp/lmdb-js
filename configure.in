@@ -338,6 +338,7 @@ Overlays="accesslog \
 	collect \
 	constraint \
 	dds \
+	deref \
 	dyngroup \
 	dynlist \
 	memberof \
@@ -366,6 +367,8 @@ OL_ARG_ENABLE(collect,[    --enable-collect	  Collect overlay],
 OL_ARG_ENABLE(constraint,[    --enable-constraint	  Attribute Constraint overlay],
 	no, [no yes mod], ol_enable_overlays)
 OL_ARG_ENABLE(dds,[    --enable-dds  	  Dynamic Directory Services overlay],
+	no, [no yes mod], ol_enable_overlays)
+OL_ARG_ENABLE(deref,[    --enable-deref	  Dereference overlay],
 	no, [no yes mod], ol_enable_overlays)
 OL_ARG_ENABLE(dyngroup,[    --enable-dyngroup	  Dynamic Group overlay],
 	no, [no yes mod], ol_enable_overlays)
@@ -2844,6 +2847,18 @@ if test "$ol_enable_dds" != no ; then
 		SLAPD_STATIC_OVERLAYS="$SLAPD_STATIC_OVERLAYS dds.o"
 	fi
 	AC_DEFINE_UNQUOTED(SLAPD_OVER_DDS,$MFLAG,[define for Dynamic Directory Services overlay])
+fi
+
+if test "$ol_enable_deref" != no ; then
+	BUILD_DDS=$ol_enable_deref
+	if test "$ol_enable_deref" = mod ; then
+		MFLAG=SLAPD_MOD_DYNAMIC
+		SLAPD_DYNAMIC_OVERLAYS="$SLAPD_DYNAMIC_OVERLAYS deref.la"
+	else
+		MFLAG=SLAPD_MOD_STATIC
+		SLAPD_STATIC_OVERLAYS="$SLAPD_STATIC_OVERLAYS deref.o"
+	fi
+	AC_DEFINE_UNQUOTED(SLAPD_OVER_DEREF,$MFLAG,[define for Dynamic Directory Services overlay])
 fi
 
 if test "$ol_enable_dyngroup" != no ; then

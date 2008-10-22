@@ -223,6 +223,12 @@ static LDAPControl *c = NULL;
 static int nctrls = 0;
 static int save_nctrls = 0;
 
+#ifdef LDAP_CONTROL_X_DEREF
+static int derefcrit;
+static LDAPDerefSpec *ds;
+static struct berval derefval;
+#endif
+
 static int
 ctrl_add( void )
 {
@@ -490,6 +496,43 @@ handle_private_option( int i )
 				exit( EXIT_FAILURE );
 			}
 			if ( crit ) ldapsync *= -1;
+
+#ifdef LDAP_CONTROL_X_DEREF
+		} else if ( strcasecmp( control, "deref" ) == 0 ) {
+			int ispecs;
+			char **specs;
+
+			/* cvalue is something like
+			 *
+			 * derefAttr:attr[,attr[...]][;derefAttr:attr[,attr[...]]]"
+			 */
+
+			specs = ldap_str2charray( cvalue, ";" );
+			for ( ispecs = 0; specs[ ispecs ] != NULL; ispecs++ )
+				/* count'em */
+
+			ds = ldap_memcalloc( ispecs + 1, sizeof( LDAPDerefSpec ) );
+			if ( ds == NULL ) {
+				/* error */
+			}
+
+			for ( ispecs = 0; specs[ ispecs ] != NULL; ispecs++ ) {
+				char *ptr;
+
+				ptr = strchr( specs[ ispecs ], ':' );
+				if ( ptr == NULL ) {
+					/* error */
+				}
+
+				ds[ ispecs ].derefAttr = specs[ ispecs ];
+				*ptr++ = '\0';
+				ds[ ispecs ].attributes = ldap_str2charray( ptr, "," );
+			}
+
+			derefcrit = 1 + crit;
+
+			ldap_memfree( specs );
+#endif /* LDAP_CONTROL_X_DEREF */
 
 		} else if ( tool_is_oid( control ) ) {
 			if ( ctrl_add() ) {
@@ -781,6 +824,9 @@ getNextPage:
 #ifdef LDAP_CONTROL_DONTUSECOPY
 		|| dontUseCopy
 #endif
+#ifdef LDAP_CONTROL_X_DEREF
+		|| derefcrit
+#endif
 		|| domainScope
 		|| pagedResults
 		|| ldapsync
@@ -933,6 +979,32 @@ getNextPage:
 			c[i].ldctl_iscritical = sss > 1;
 			i++;
 		}
+
+#ifdef LDAP_CONTROL_X_DEREF
+		if ( ds ) {
+			if ( derefval.bv_val == NULL ) {
+				int i;
+				if ( ldap_create_deref_control_value( ld, ds, &derefval ) != LDAP_SUCCESS ) {
+					return EXIT_FAILURE;
+				}
+
+				for ( i = 0; ds[ i ].derefAttr != NULL; i++ ) {
+					ldap_memfree( ds[ i ].derefAttr );
+					ldap_charray_free( ds[ i ].attributes );
+				}
+				ldap_memfree( ds );
+			}
+
+			if ( ctrl_add() ) {
+				exit( EXIT_FAILURE );
+			}
+
+			c[ i ].ldctl_iscritical = derefcrit > 1;
+			c[ i ].ldctl_oid = LDAP_CONTROL_X_DEREF;
+			c[ i ].ldctl_value = derefval;
+			i++;
+		}
+#endif /* LDAP_CONTROL_X_DEREF */
 	}
 
 	tool_server_controls( ld, c, i );
@@ -1019,6 +1091,12 @@ getNextPage:
 			printf(_("\n# with server side sorting %scontrol"),
 				sss > 1 ? _("critical ") : "" );
 		}
+#ifdef LDAP_CONTROL_X_DEREF
+		if ( sss ) {
+			printf(_("\n# with dereference %scontrol"),
+				sss > 1 ? _("critical ") : "" );
+		}
+#endif
 
 		printf( _("\n#\n\n") );
 
