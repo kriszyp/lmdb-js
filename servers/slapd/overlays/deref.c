@@ -342,35 +342,6 @@ deref_response( Operation *op, SlapReply *rs )
 		ber_init2( ber, &bv, LBER_USE_DER );
 		ber_set_option( ber, LBER_OPT_BER_MEMCTX, &op->o_tmpmemctx );
 
-#if 0
-		rc = ber_printf( ber, "{" /*}*/ );
-		for ( dr = drhead; dr != NULL; dr = dr->dr_next ) {
-			rc = ber_printf( ber, "{{O{" /*}}}*/,
-				&dr->dr_spec.ds_derefAttr->ad_cname );
-			for ( i = 0; i < dr->dr_spec.ds_nattrs; i++ ) {
-				rc = ber_printf( ber, "O",
-					&dr->dr_spec.ds_attributes[ i ]->ad_cname );
-			}
-			rc = ber_printf( ber, /*{{*/ "}}{" /*}*/ );
-			for ( i = 0; !BER_BVISNULL( &dr->dr_vals[ i ].dv_derefSpecVal ); i++ ) {
-				int j;
-
-				rc = ber_printf( ber, "{O{" /*}}*/ ,
-					&dr->dr_vals[ i ].dv_derefSpecVal );
-				for ( j = 0; j < dr->dr_spec.ds_nattrs; j++ ) {
-					if ( dr->dr_vals[ i ].dv_attrVals[ j ] != NULL ) {
-						rc = ber_printf( ber, "[W]", dr->dr_vals[ i ].dv_attrVals[ j ] );
-					} else {
-						rc = ber_printf( ber, "b", 0 );
-					}
-				}
-				rc = ber_printf( ber, /*{{*/ "}}" );
-			}
-			rc = ber_printf( ber, /*{{*/ "}}" );
-		}
-		rc = ber_printf( ber, /*{*/ "}" );
-#endif
-
 		rc = ber_printf( ber, "{" /*}*/ );
 		for ( dr = drhead; dr != NULL; dr = dr->dr_next ) {
 			for ( i = 0; !BER_BVISNULL( &dr->dr_vals[ i ].dv_derefSpecVal ); i++ ) {
@@ -486,7 +457,7 @@ deref_op_search( Operation *op, SlapReply *rs )
 }
 
 int
-deref_initialize()
+deref_initialize(void)
 {
 	int rc;
 
@@ -497,7 +468,7 @@ deref_initialize()
 		Debug( LDAP_DEBUG_ANY,
 			"deref_init: Failed to register control (%d)\n",
 		rc, 0, 0 );
-		return rc;
+		return -1;
 	}
 
 	deref.on_bi.bi_type = "deref";
