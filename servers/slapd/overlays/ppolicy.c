@@ -395,17 +395,16 @@ create_passcontrol( Operation *op, int exptime, int grace, LDAPPasswordPolicyErr
 	}
 	ber_printf( ber, /*{*/ "N}" );
 
-	if (ber_flatten2( ber, &(c.ldctl_value), 1 ) == -1) {
+	if (ber_flatten2( ber, &c.ldctl_value, 0 ) == -1) {
 		return NULL;
 	}
-	(void)ber_free_buf(ber);
 	cp = op->o_tmpalloc( sizeof( LDAPControl ) + c.ldctl_value.bv_len, op->o_tmpmemctx );
 	cp->ldctl_oid = (char *)ppolicy_ctrl_oid;
 	cp->ldctl_iscritical = 0;
 	cp->ldctl_value.bv_val = (char *)&cp[1];
 	cp->ldctl_value.bv_len = c.ldctl_value.bv_len;
 	AC_MEMCPY( cp->ldctl_value.bv_val, c.ldctl_value.bv_val, c.ldctl_value.bv_len );
-	ber_memfree( c.ldctl_value.bv_val );
+	(void)ber_free_buf(ber);
 	
 	return cp;
 }
