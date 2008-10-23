@@ -80,11 +80,11 @@
  * 2.1.2. Response
  *
  * { { memberOf, "cn=abartlet,cn=users,dc=abartlet,dc=net",
- *     { GUID, [ "0bc11d00-e431-40a0-8767-344a320142fa" ],
- *       SID, [ "S-1-2-3-2345" ] } },
+ *     { { GUID, [ "0bc11d00-e431-40a0-8767-344a320142fa" ] },
+ *       { SID, [ "S-1-2-3-2345" ] } } },
  *   { memberOf, "cn=ando,cn=users,dc=sys-net,dc=it",
- *     { GUID, [ "0bc11d00-e431-40a0-8767-344a320142fb" ],
- *       SID, [ "S-1-2-3-2346" ] } } }
+ *     { { GUID, [ "0bc11d00-e431-40a0-8767-344a320142fb" ] },
+ *       { SID, [ "S-1-2-3-2346" ] } } } }
  *
  * 2.2. Example
  *
@@ -95,8 +95,9 @@
  * 2.2.2. Response
  *
  * { { member, "cn=ando,cn=users,dc=sys-net,dc=it",
- *     { cn, [ "ando", "Pierangelo Masarati" ],
- *       uid, [ "ando" ] } } }
+ *     { { cn, [ "ando", "Pierangelo Masarati" ] },
+ *       { uid, [ "ando" ] } } },
+ *   { member, "dc=sys-net,dc=it" } }
  */
 
 #define o_deref			o_ctrlflag[deref_cid]
