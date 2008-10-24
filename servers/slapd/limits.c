@@ -67,6 +67,7 @@ limits_get(
 	struct slap_limits_set 	**limit
 )
 {
+	static struct berval empty_dn = BER_BVC( "" );
 	struct slap_limits **lm;
 	struct berval		*ndns[2];
 
@@ -95,12 +96,19 @@ limits_get(
 		unsigned	isthis = type == SLAP_LIMITS_TYPE_THIS;
 		struct berval *ndn = ndns[isthis];
 
+		if ( style == SLAP_LIMITS_ANY )
+			goto found_any;
+
+		if ( BER_BVISEMPTY( ndn ) ) {
+			if ( style == SLAP_LIMITS_ANONYMOUS )
+				goto found_nodn;
+			if ( !isthis )
+				continue;
+			ndn = &empty_dn;
+		}
+
 		switch ( style ) {
 		case SLAP_LIMITS_EXACT:
-			if ( BER_BVISEMPTY( ndn ) ) {
-				break;
-			}
-
 			if ( type == SLAP_LIMITS_TYPE_GROUP ) {
 				int	rc = backend_group( op, NULL,
 						&lm[0]->lm_pat, ndn,
@@ -121,10 +129,6 @@ limits_get(
 		case SLAP_LIMITS_CHILDREN: {
 			ber_len_t d;
 			
-			if ( BER_BVISEMPTY( ndn ) ) {
-				break;
-			}
-
 			/* ndn shorter than lm_pat */
 			if ( ndn->bv_len < lm[0]->lm_pat.bv_len ) {
 				break;
@@ -159,33 +163,19 @@ limits_get(
 		}
 
 		case SLAP_LIMITS_REGEX:
-			if ( BER_BVISEMPTY( ndn ) ) {
-				break;
-			}
 			if ( regexec( &lm[0]->lm_regex, ndn->bv_val, 0, NULL, 0 ) == 0 ) {
 				goto found_dn;
 			}
 			break;
 
 		case SLAP_LIMITS_ANONYMOUS:
-			if ( BER_BVISEMPTY( ndn ) ) {
-				goto found;
-			}
 			break;
 
 		case SLAP_LIMITS_USERS:
-			if ( !BER_BVISEMPTY( ndn ) ) {
-				goto found;
-			}
-			break;
-
-		case SLAP_LIMITS_ANY:
-			*limit = &lm[0]->lm_limits;
-			return( 0 );
-
-		found:
+		found_nodn:
 			Debug( LDAP_DEBUG_TRACE, "<== limits_get: type=%s match=%s\n",
 				dn_source[isthis], limits2str( style ), 0 );
+		found_any:
 			*limit = &lm[0]->lm_limits;
 			return( 0 );
 
@@ -461,15 +451,7 @@ limits_parse(
 		}
 
 		/* pre-check the data */
-		switch ( flags ) {
-		case SLAP_LIMITS_ANONYMOUS:
-		case SLAP_LIMITS_USERS:
-
-			/* no need for pattern */
-			pattern = NULL;
-			break;
-
-		default:
+		if ( pattern != NULL ) {
 			if ( pattern[0] != '=' ) {
 				Debug( LDAP_DEBUG_ANY,
 					"%s : line %d: missing '=' in "
@@ -490,7 +472,7 @@ limits_parse(
 				flags = SLAP_LIMITS_ANY;
 				pattern = NULL;
 
-			} else if ( flags == SLAP_LIMITS_REGEX
+			} else if ( (flags & SLAP_LIMITS_MASK) == SLAP_LIMITS_REGEX
 					&& strcmp( pattern, ".*" ) == 0 ) {
 				flags = SLAP_LIMITS_ANY;
 				pattern = NULL;
