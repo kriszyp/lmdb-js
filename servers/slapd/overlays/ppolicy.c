@@ -364,8 +364,8 @@ static const char ppolicy_ctrl_oid[] = LDAP_CONTROL_PASSWORDPOLICYRESPONSE;
 static LDAPControl *
 create_passcontrol( Operation *op, int exptime, int grace, LDAPPasswordPolicyError err )
 {
-	char berbuf[LBER_ELEMENT_SIZEOF], bb2[LBER_ELEMENT_SIZEOF];
-	BerElement *ber = (BerElement *)berbuf, *b2 = (BerElement *)bb2;
+	BerElementBuffer berbuf, bb2;
+	BerElement *ber = (BerElement *) &berbuf, *b2 = (BerElement *) &bb2;
 	LDAPControl c = { 0 }, *cp;
 	struct berval bv;
 
