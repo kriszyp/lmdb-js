@@ -265,17 +265,17 @@ query2url( Operation *op, CachedQuery *q, struct berval *urlbv )
 {
 	struct berval	bv_scope,
 			bv_filter;
-	char		attrset_buf[ 32 ],
-			expiry_buf[ 32 ],
+	char		attrset_buf[ LDAP_PVT_INTTYPE_CHARS( unsigned long ) ],
+			expiry_buf[ LDAP_PVT_INTTYPE_CHARS( unsigned long ) ],
 			*ptr;
 	ber_len_t	attrset_len,
 			expiry_len;
 
 	ldap_pvt_scope2bv( q->scope, &bv_scope );
 	filter2bv_x( op, q->filter, &bv_filter );
-	attrset_len = snprintf( attrset_buf, sizeof( attrset_buf ),
+	attrset_len = sprintf( attrset_buf,
 		"%lu", (unsigned long)q->qtemp->attr_set_index );
-	expiry_len = snprintf( expiry_buf, sizeof( expiry_buf ),
+	expiry_len = sprintf( expiry_buf,
 		"%lu", (unsigned long)q->expiry_time );
 
 	urlbv->bv_len = STRLENOF( "ldap:///" )
@@ -3797,8 +3797,8 @@ pcache_exop_query_delete(
 
 	struct berval	uuid = BER_BVNULL,
 			*uuidp = NULL;
-	char		buf[ SLAP_TEXT_BUFLEN ] = { '\0' };
-	int		len = 0;
+	char		buf[ SLAP_TEXT_BUFLEN ];
+	unsigned	len;
 	ber_tag_t	tag = LBER_DEFAULT;
 
 	if ( LogTest( LDAP_DEBUG_STATS ) ) {
@@ -3816,7 +3816,7 @@ pcache_exop_query_delete(
 		assert( !BER_BVISNULL( &op->o_req_ndn ) );
 		len = snprintf( buf, sizeof( buf ), " dn=\"%s\"", op->o_req_ndn.bv_val );
 
-		if ( !BER_BVISNULL( &uuid ) ) {
+		if ( !BER_BVISNULL( &uuid ) && len < sizeof( buf ) ) {
 			snprintf( &buf[ len ], sizeof( buf ) - len, " queryId=\"%s\"", uuid.bv_val );
 		}
 
