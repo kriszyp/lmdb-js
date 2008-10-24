@@ -18,6 +18,7 @@
 
 #include <stdio.h>
 
+#include <ac/ctype.h>
 #include <ac/regex.h>
 #include <ac/string.h>
 
@@ -248,7 +249,6 @@ limits_add(
 	case SLAP_LIMITS_ONE:
 	case SLAP_LIMITS_SUBTREE:
 	case SLAP_LIMITS_CHILDREN:
-		lm->lm_flags = style | type;
 		{
 			int rc;
 			struct berval bv;
@@ -264,7 +264,6 @@ limits_add(
 		break;
 		
 	case SLAP_LIMITS_REGEX:
-		lm->lm_flags = style | type;
 		ber_str2bv( pattern, 0, 1, &lm->lm_pat );
 		if ( regcomp( &lm->lm_regex, lm->lm_pat.bv_val, 
 					REG_EXTENDED | REG_ICASE ) ) {
@@ -277,7 +276,6 @@ limits_add(
 	case SLAP_LIMITS_ANONYMOUS:
 	case SLAP_LIMITS_USERS:
 	case SLAP_LIMITS_ANY:
-		lm->lm_flags = style | type;
 		BER_BVZERO( &lm->lm_pat );
 		break;
 	}
@@ -291,6 +289,7 @@ limits_add(
 		break;
 	}
 
+	lm->lm_flags = style | type;
 	lm->lm_limits = *limit;
 
 	i = 0;
@@ -447,6 +446,11 @@ limits_parse(
 			{
 				flags = SLAP_LIMITS_ANONYMOUS;
 				pattern = NULL;
+
+			} else {
+				/* force error below */
+				if ( *pattern == '=' )
+					--pattern;
 			}
 		}
 
@@ -454,13 +458,14 @@ limits_parse(
 		if ( pattern != NULL ) {
 			if ( pattern[0] != '=' ) {
 				Debug( LDAP_DEBUG_ANY,
-					"%s : line %d: missing '=' in "
+					"%s : line %d: %s in "
 					"\"dn[.{this|self}][.{exact|base"
-					"|onelevel|subtree|children|regex}]"
-					"=<pattern>\" in "
-					"\"limits <pattern> <limits>\" "
-					"line.\n%s",
-					fname, lineno, "" );
+					"|onelevel|subtree|children|regex"
+					"|anonymous}]=<pattern>\" in "
+					"\"limits <pattern> <limits>\" line.\n",
+					fname, lineno,
+					isalnum( (unsigned char)pattern[0] )
+					? "unknown DN modifier" : "missing '='" );
 				return( -1 );
 			}
 
@@ -1330,23 +1335,11 @@ limits_destroy(
 	}
 
 	for ( i = 0; lm[ i ]; i++ ) {
-		switch ( lm[ i ]->lm_flags & SLAP_LIMITS_MASK ) {
-		case SLAP_LIMITS_REGEX:
+		if ( (lm[ i ]->lm_flags & SLAP_LIMITS_MASK) == SLAP_LIMITS_REGEX )
 			regfree( &lm[ i ]->lm_regex );
-			break;
 
-		case SLAP_LIMITS_EXACT:
-		case SLAP_LIMITS_ONE:
-		case SLAP_LIMITS_SUBTREE:
-		case SLAP_LIMITS_CHILDREN:
-			if ( !BER_BVISNULL( &lm[ i ]->lm_pat ) ) {
-				ch_free( lm[ i ]->lm_pat.bv_val );
-			}
-			break;
-
-		default:
-			break;
-		}
+		if ( !BER_BVISNULL( &lm[ i ]->lm_pat ) )
+			ch_free( lm[ i ]->lm_pat.bv_val );
 
 		ch_free( lm[ i ] );
 	}
