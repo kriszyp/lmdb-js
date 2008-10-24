@@ -98,6 +98,17 @@
  *     { { cn, [ "ando", "Pierangelo Masarati" ] },
  *       { uid, [ "ando" ] } } },
  *   { member, "dc=sys-net,dc=it" } }
+ *
+ *
+ * 3. Security considerations
+ *
+ * The control result must not disclose information the client's
+ * identity could not have accessed directly by performing the related
+ * search operations.  The presence of a derefVal in the control
+ * response does not imply neither the existence of nor any access
+ * privilege to the corresponding entry.  It is merely a consequence
+ * of the read access the client's identity has on the corresponding
+ * attribute's value.
  */
 
 #define o_deref			o_ctrlflag[deref_cid]
@@ -267,6 +278,8 @@ deref_response( Operation *op, SlapReply *rs )
 		int nDerefRes = 0, nDerefVals = 0, nAttrs = 0, nVals = 0;
 		struct berval ctrlval;
 		LDAPControl *ctrl, **ctrlsp;
+		AccessControlState acl_state = ACL_STATE_INIT;
+		static char dummy = '\0';
 		int i;
 
 		op->o_bd->bd_info = (BackendInfo *)dc->dc_on->on_info;
@@ -294,6 +307,14 @@ deref_response( Operation *op, SlapReply *rs )
 					dv[ i ].dv_attrVals = bva;
 					bva += ds->ds_nattrs;
 
+
+					if ( !access_allowed( op, rs->sr_entry, a->a_desc,
+							&a->a_nvals[ i ], ACL_READ, &acl_state ) )
+					{
+						dv[ i ].dv_derefSpecVal.bv_val = &dummy;
+						continue;
+					}
+
 					dv[i].dv_derefSpecVal = a->a_vals[ i ];
 					bv.bv_len += dv[i].dv_derefSpecVal.bv_len;
 					nVals++;
@@ -303,19 +324,45 @@ deref_response( Operation *op, SlapReply *rs )
 					if ( rc == LDAP_SUCCESS && e != NULL ) {
 						int j;
 
-						for ( j = 0; j < ds->ds_nattrs; j++ ) {
-							Attribute *aa = attr_find( e->e_attrs, ds->ds_attributes[ j ] );
-							if ( aa != NULL ) {
-								int k;
+						if ( access_allowed( op, e, slap_schema.si_ad_entry,
+							NULL, ACL_READ, NULL ) )
+						{
+							for ( j = 0; j < ds->ds_nattrs; j++ ) {
+								Attribute *aa;
 
-								dv[i].dv_attrVals[ j ] = aa->a_vals;
-
-								bv.bv_len += ds->ds_attributes[ j ]->ad_cname.bv_len;
-								for ( k = 0; !BER_BVISNULL( &aa->a_vals[ k ] ); k++ ) {
-									bv.bv_len += aa->a_vals[ k ].bv_len;
-									nVals++;
+								if ( !access_allowed( op, e, ds->ds_attributes[ j ], NULL,
+									ACL_READ, &acl_state ) )
+								{
+									continue;
 								}
-								nAttrs++;
+
+								aa = attr_find( e->e_attrs, ds->ds_attributes[ j ] );
+								if ( aa != NULL ) {
+									unsigned k, h, last = aa->a_numvals;
+
+									ber_bvarray_dup_x( &dv[ i ].dv_attrVals[ j ],
+										aa->a_vals, op->o_tmpmemctx );
+
+									bv.bv_len += ds->ds_attributes[ j ]->ad_cname.bv_len;
+
+									for ( k = 0, h = 0; k < aa->a_numvals; k++ ) {
+										if ( !access_allowed( op, e,
+											aa->a_desc,
+											&aa->a_nvals[ k ],
+											ACL_READ, &acl_state ) )
+										{
+											op->o_tmpfree( dv[ i ].dv_attrVals[ j ][ h ].bv_val,
+												op->o_tmpmemctx );
+											dv[ i ].dv_attrVals[ j ][ h ] = dv[ i ].dv_attrVals[ j ][ --last ];
+											BER_BVZERO( &dv[ i ].dv_attrVals[ j ][ last ] );
+											continue;
+										}
+										bv.bv_len += dv[ i ].dv_attrVals[ j ][ h ].bv_len;
+										nVals++;
+										h++;
+									}
+									nAttrs++;
+								}
 							}
 						}
 
@@ -348,6 +395,10 @@ deref_response( Operation *op, SlapReply *rs )
 			for ( i = 0; !BER_BVISNULL( &dr->dr_vals[ i ].dv_derefSpecVal ); i++ ) {
 				int j, first = 1;
 
+				if ( dr->dr_vals[ i ].dv_derefSpecVal.bv_val == &dummy ) {
+					continue;
+				}
+
 				rc = ber_printf( ber, "{OO" /*}*/,
 					&dr->dr_spec.ds_derefAttr->ad_cname,
 					&dr->dr_vals[ i ].dv_derefSpecVal );
@@ -361,6 +412,8 @@ deref_response( Operation *op, SlapReply *rs )
 						rc = ber_printf( ber, "{O[W]}",
 							&dr->dr_spec.ds_attributes[ j ]->ad_cname,
 							dr->dr_vals[ i ].dv_attrVals[ j ] );
+						op->o_tmpfree( dr->dr_vals[ i ].dv_attrVals[ j ],
+							op->o_tmpmemctx );
 					}
 				}
 				if ( !first ) {
