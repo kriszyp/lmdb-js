@@ -280,15 +280,28 @@ deref_response( Operation *op, SlapReply *rs )
 		LDAPControl *ctrl, **ctrlsp;
 		AccessControlState acl_state = ACL_STATE_INIT;
 		static char dummy = '\0';
+		Entry *ebase;
 		int i;
 
 		op->o_bd->bd_info = (BackendInfo *)dc->dc_on->on_info;
+		rc = overlay_entry_get_ov( op, &rs->sr_entry->e_nname, NULL, NULL, 0, &ebase, dc->dc_on );
+		if ( rc != LDAP_SUCCESS || ebase == NULL ) {
+			op->o_bd->bd_info = bi;
+			return SLAP_CB_CONTINUE;
+		}
+
 		for ( ds = dc->dc_ds; ds; ds = ds->ds_next ) {
-			Attribute *a = attr_find( rs->sr_entry->e_attrs, ds->ds_derefAttr );
+			Attribute *a = attr_find( ebase->e_attrs, ds->ds_derefAttr );
 
 			if ( a != NULL ) {
 				DerefVal *dv;
 				BerVarray *bva;
+
+				if ( !access_allowed( op, rs->sr_entry, a->a_desc,
+						NULL, ACL_READ, &acl_state ) )
+				{
+					continue;
+				}
 
 				dr = op->o_tmpcalloc( 1,
 					sizeof( DerefRes ) + ( sizeof( DerefVal ) + sizeof( BerVarray * ) * ds->ds_nattrs ) * ( a->a_numvals + 1 ),
@@ -374,6 +387,7 @@ deref_response( Operation *op, SlapReply *rs )
 				drp = &dr->dr_next;
 			}
 		}
+		overlay_entry_release_ov( op, ebase, 0, dc->dc_on );
 		op->o_bd->bd_info = bi;
 
 		if ( drhead == NULL ) {
