@@ -38,13 +38,16 @@ typedef struct rwm_op_state {
 	OpRequest o_request;
 } rwm_op_state;
 
-static int
-rwm_db_destroy( BackendDB *be, ConfigReply *cr );
-
 typedef struct rwm_op_cb {
 	slap_callback cb;
 	rwm_op_state ros;
 } rwm_op_cb;
+
+static int
+rwm_db_destroy( BackendDB *be, ConfigReply *cr );
+
+static int
+rwm_send_entry( Operation *op, SlapReply *rs );
 
 static void
 rwm_op_rollback( Operation *op, SlapReply *rs, rwm_op_state *ros )
@@ -734,7 +737,7 @@ rwm_op_modrdn( Operation *op, SlapReply *rs )
 	}
 
 	/* TODO: rewrite newRDN, attribute types, 
-	 * values of DN-valued attributes ... */
+	 * values of DN-valued attributes (hopefully not used in RDN)... */
 
 	op->o_callback = &roc->cb;
 
@@ -756,6 +759,97 @@ rwm_swap_attrs( Operation *op, SlapReply *rs )
 	op->ors_attrs = ros->mapped_attrs; 
 	
  	return SLAP_CB_CONTINUE;
+}
+
+/*
+ * NOTE: this implementation of get/release entry is probably far from
+ * optimal.  The rationale consists in intercepting the request directed
+ * to the underlying database, in order to rewrite/remap the request,
+ * perform it using the modified data, duplicate the resulting entry
+ * and finally free it when release is called.
+ * This implies that subsequent overlays are not called, as the request
+ * is directly shunted to the underlying database.
+ */
+static int
+rwm_entry_release_rw( Operation *op, Entry *e, int rw )
+{
+	slap_overinst		*on = (slap_overinst *) op->o_bd->bd_info;
+
+	/* can't be ours */
+	if ( ((BackendInfo *)on->on_info->oi_orig)->bi_entry_get_rw == NULL ) {
+		return SLAP_CB_CONTINUE;
+	}
+
+	/* just free entry if (probably) ours */
+	if ( e->e_private == NULL ) {
+		entry_free( e );
+		return LDAP_SUCCESS;
+	}
+
+	return SLAP_CB_CONTINUE;
+}
+
+static int
+rwm_entry_get_rw( Operation *op, struct berval *ndn,
+	ObjectClass *oc, AttributeDescription *at, int rw, Entry **ep )
+{
+	slap_overinst		*on = (slap_overinst *) op->o_bd->bd_info;
+	struct ldaprwmap	*rwmap = 
+			(struct ldaprwmap *)on->on_bi.bi_private;
+
+	int			rc;
+	dncookie		dc;
+
+	BackendDB		db;
+	Operation		op2;
+	SlapReply		rs = { REP_SEARCH };
+
+	rwm_op_state		ros = { 0 };
+
+	if ( ((BackendInfo *)on->on_info->oi_orig)->bi_entry_get_rw == NULL ) {
+		return SLAP_CB_CONTINUE;
+	}
+
+	/* massage DN */
+	op2.o_tag = LDAP_REQ_SEARCH;
+	op2 = *op;
+	op2.o_req_dn = *ndn;
+	op2.o_req_ndn = *ndn;
+	rc = rwm_op_dn_massage( &op2, &rs, "searchDN", &ros );
+	if ( rc != LDAP_SUCCESS ) {
+		return LDAP_OTHER;
+	}
+
+	/* map attribute & objectClass */
+	if ( at != NULL ) {
+	}
+
+	if ( oc != NULL ) {
+	}
+
+	/* fetch entry */
+	db = *op->o_bd;
+	op2.o_bd = &db;
+	op2.o_bd->bd_info = (BackendInfo *)on->on_info->oi_orig;
+	op2.ors_attrs = slap_anlist_all_attributes;
+	rc = op2.o_bd->bd_info->bi_entry_get_rw( &op2, &ros.r_ndn, oc, at, rw, ep );
+	if ( rc == LDAP_SUCCESS && *ep != NULL ) {
+		rs.sr_entry = *ep;
+
+		/* duplicate & release */
+		op2.o_bd->bd_info = (BackendInfo *)on;
+		rc = rwm_send_entry( &op2, &rs );
+		if ( rc == SLAP_CB_CONTINUE ) {
+			*ep = rs.sr_entry;
+			rc = LDAP_SUCCESS;
+		}
+	}
+
+	if ( ros.r_ndn.bv_val != ndn->bv_val ) {
+		op->o_tmpfree( ros.r_ndn.bv_val, op->o_tmpmemctx );
+	}
+
+	return rc;
 }
 
 static int
@@ -2128,6 +2222,10 @@ rwm_initialize( void )
 	rwm.on_bi.bi_op_delete = rwm_op_delete;
 	rwm.on_bi.bi_op_unbind = rwm_op_unbind;
 	rwm.on_bi.bi_extended = rwm_extended;
+#if 1 /* TODO */
+	rwm.on_bi.bi_entry_release_rw = rwm_entry_release_rw;
+	rwm.on_bi.bi_entry_get_rw = rwm_entry_get_rw;
+#endif
 
 	rwm.on_bi.bi_operational = rwm_operational;
 	rwm.on_bi.bi_chk_referrals = 0 /* rwm_chk_referrals */ ;
