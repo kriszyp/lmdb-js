@@ -192,7 +192,7 @@ deref_parseCtrl (
 		ds = (DerefSpec *)op->o_tmpcalloc( 1,
 			sizeof(DerefSpec) + sizeof(AttributeDescription *)*(cnt + 1),
 			op->o_tmpmemctx );
-		ds->ds_attributes = (AttributeDescription **)&ds[1];
+		ds->ds_attributes = (AttributeDescription **)&ds[ 1 ];
 		ds->ds_nattrs = cnt;
 
 		rc = slap_bv2ad( &derefAttr, &ds->ds_derefAttr, &text );
@@ -263,6 +263,20 @@ justcleanup:;
 }
 
 static int
+deref_cleanup( Operation *op, SlapReply *rs )
+{
+	if ( rs->sr_type == REP_RESULT || rs->sr_err == SLAPD_ABANDON ) {
+		op->o_tmpfree( op->o_callback, op->o_tmpmemctx );
+		op->o_callback = NULL;
+
+		op->o_tmpfree( op->o_ctrlderef, op->o_tmpmemctx );
+		op->o_ctrlderef = NULL;
+	}
+
+	return SLAP_CB_CONTINUE;
+}
+
+static int
 deref_response( Operation *op, SlapReply *rs )
 {
 	int rc = SLAP_CB_CONTINUE;
@@ -273,7 +287,6 @@ deref_response( Operation *op, SlapReply *rs )
 		deref_cb_t *dc = (deref_cb_t *)op->o_callback->sc_private;
 		DerefSpec *ds;
 		DerefRes *dr, *drhead = NULL, **drp = &drhead;
-		BackendInfo *bi = op->o_bd->bd_info;
 		struct berval bv = BER_BVNULL;
 		int nDerefRes = 0, nDerefVals = 0, nAttrs = 0, nVals = 0;
 		struct berval ctrlval;
@@ -283,10 +296,8 @@ deref_response( Operation *op, SlapReply *rs )
 		Entry *ebase;
 		int i;
 
-		op->o_bd->bd_info = (BackendInfo *)dc->dc_on->on_info;
 		rc = overlay_entry_get_ov( op, &rs->sr_entry->e_nname, NULL, NULL, 0, &ebase, dc->dc_on );
 		if ( rc != LDAP_SUCCESS || ebase == NULL ) {
-			op->o_bd->bd_info = bi;
 			return SLAP_CB_CONTINUE;
 		}
 
@@ -328,8 +339,8 @@ deref_response( Operation *op, SlapReply *rs )
 						continue;
 					}
 
-					dv[i].dv_derefSpecVal = a->a_vals[ i ];
-					bv.bv_len += dv[i].dv_derefSpecVal.bv_len;
+					ber_dupbv_x( &dv[ i ].dv_derefSpecVal, &a->a_vals[ i ], op->o_tmpmemctx );
+					bv.bv_len += dv[ i ].dv_derefSpecVal.bv_len;
 					nVals++;
 					nDerefVals++;
 
@@ -388,7 +399,6 @@ deref_response( Operation *op, SlapReply *rs )
 			}
 		}
 		overlay_entry_release_ov( op, ebase, 0, dc->dc_on );
-		op->o_bd->bd_info = bi;
 
 		if ( drhead == NULL ) {
 			return SLAP_CB_CONTINUE;
@@ -416,6 +426,7 @@ deref_response( Operation *op, SlapReply *rs )
 				rc = ber_printf( ber, "{OO" /*}*/,
 					&dr->dr_spec.ds_derefAttr->ad_cname,
 					&dr->dr_vals[ i ].dv_derefSpecVal );
+				op->o_tmpfree( dr->dr_vals[ i ].dv_derefSpecVal.bv_val, op->o_tmpmemctx );
 				for ( j = 0; j < dr->dr_spec.ds_nattrs; j++ ) {
 					if ( dr->dr_vals[ i ].dv_attrVals[ j ] != NULL ) {
 						if ( first ) {
@@ -490,23 +501,12 @@ cleanup:;
 			op->o_tmpfree( drhead, op->o_tmpmemctx );
 			drhead = drnext;
 		}
+
+	} else if ( rs->sr_type == REP_RESULT ) {
+		rc = deref_cleanup( op, rs );
 	}
 
 	return rc;
-}
-
-static int
-deref_cleanup( Operation *op, SlapReply *rs )
-{
-	if ( rs->sr_type == REP_RESULT || rs->sr_err == SLAPD_ABANDON ) {
-		op->o_tmpfree( op->o_callback, op->o_tmpmemctx );
-		op->o_callback = NULL;
-
-		op->o_tmpfree( op->o_ctrlderef, op->o_tmpmemctx );
-		op->o_ctrlderef = NULL;
-	}
-
-	return SLAP_CB_CONTINUE;
 }
 
 static int
@@ -544,7 +544,7 @@ deref_initialize(void)
 	if ( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY,
 			"deref_init: Failed to register control (%d)\n",
-		rc, 0, 0 );
+			rc, 0, 0 );
 		return -1;
 	}
 
