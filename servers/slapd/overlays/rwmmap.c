@@ -1178,7 +1178,8 @@ rwm_referral_result_rewrite(
 int
 rwm_dnattr_result_rewrite(
 	dncookie		*dc,
-	BerVarray		a_vals )
+	BerVarray		a_vals,
+	BerVarray		a_nvals )
 {
 	int		i, last;
 
@@ -1186,11 +1187,11 @@ rwm_dnattr_result_rewrite(
 	last--;
 
 	for ( i = 0; !BER_BVISNULL( &a_vals[i] ); i++ ) {
-		struct berval	dn;
+		struct berval	pdn, ndn;
 		int		rc;
 		
-		dn = a_vals[i];
-		rc = rwm_dn_massage_pretty( dc, &a_vals[i], &dn );
+		pdn = a_vals[i];
+		rc = rwm_dn_massage_pretty_normalize( dc, &a_vals[i], &pdn, &ndn );
 		switch ( rc ) {
 		case LDAP_UNWILLING_TO_PERFORM:
 			/*
@@ -1198,19 +1199,27 @@ rwm_dnattr_result_rewrite(
 			 * legal to trim values when adding/modifying;
 			 * it should be when searching (e.g. ACLs).
 			 */
+			assert( a_vals[i].bv_val != a_nvals[i].bv_val );
 			ch_free( a_vals[i].bv_val );
+			ch_free( a_nvals[i].bv_val );
 			if ( last > i ) {
 				a_vals[i] = a_vals[last];
+				a_nvals[i] = a_nvals[last];
 			}
 			BER_BVZERO( &a_vals[last] );
+			BER_BVZERO( &a_nvals[last] );
 			last--;
 			break;
 
 		default:
 			/* leave attr untouched if massage failed */
-			if ( !BER_BVISNULL( &dn ) && a_vals[i].bv_val != dn.bv_val ) {
+			if ( !BER_BVISNULL( &pdn ) && a_vals[i].bv_val != pdn.bv_val ) {
 				ch_free( a_vals[i].bv_val );
-				a_vals[i] = dn;
+				a_vals[i] = pdn;
+			}
+			if ( !BER_BVISNULL( &ndn ) && a_nvals[i].bv_val != ndn.bv_val ) {
+				ch_free( a_nvals[i].bv_val );
+				a_nvals[i] = ndn;
 			}
 			break;
 		}

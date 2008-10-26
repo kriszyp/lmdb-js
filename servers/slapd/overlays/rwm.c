@@ -1225,7 +1225,7 @@ remove_oc:;
 				|| ( mapping != NULL && mapping->m_src_ad->ad_type->sat_syntax == slap_schema.si_syn_distinguishedName ) )
 		{
 			dc.ctx = "searchAttrDN";
-			rc = rwm_dnattr_result_rewrite( &dc, (*ap)->a_vals );
+			rc = rwm_dnattr_result_rewrite( &dc, (*ap)->a_vals, (*ap)->a_nvals );
 			if ( rc != LDAP_SUCCESS ) {
 				goto cleanup_attr;
 			}
