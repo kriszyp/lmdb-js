@@ -649,14 +649,10 @@ abandon:
 
 	if ( send_ldap_response( op, rs ) == SLAP_CB_CONTINUE ) {
 		if ( op->o_tag == LDAP_REQ_SEARCH ) {
-			char nbuf[64];
-			snprintf( nbuf, sizeof nbuf, "%d nentries=%d",
-				rs->sr_err, rs->sr_nentries );
-
 			Statslog( LDAP_DEBUG_STATS,
-			"%s SEARCH RESULT tag=%lu err=%s text=%s\n",
-				op->o_log_prefix, rs->sr_tag, nbuf,
-				rs->sr_text ? rs->sr_text : "", 0 );
+				"%s SEARCH RESULT tag=%lu err=%d nentries=%d text=%s\n",
+				op->o_log_prefix, rs->sr_tag, rs->sr_err,
+				rs->sr_nentries, rs->sr_text ? rs->sr_text : "" );
 		} else {
 			Statslog( LDAP_DEBUG_STATS,
 				"%s RESULT tag=%lu err=%d text=%s\n",
