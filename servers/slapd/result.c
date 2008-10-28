@@ -747,7 +747,6 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 	BerElement	*ber = (BerElement *) &berbuf;
 	Attribute	*a;
 	int		i, j, rc = LDAP_UNAVAILABLE, bytes;
-	char		*edn;
 	int		userattrs;
 	AccessControlState acl_state = ACL_STATE_INIT;
 	int			 attrsonly;
@@ -809,8 +808,6 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 		rc = LDAP_INSUFFICIENT_ACCESS;
 		goto error_return;
 	}
-
-	edn = rs->sr_entry->e_nname.bv_val;
 
 	if ( op->o_res_ber ) {
 		/* read back control or LDAP_CONNECTIONLESS */
@@ -1198,6 +1195,9 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 		goto error_return;
 	}
 
+	Statslog( LDAP_DEBUG_STATS2, "%s ENTRY dn=\"%s\"\n",
+	    op->o_log_prefix, rs->sr_entry->e_nname.bv_val, 0, 0, 0 );
+
 	if ( rs->sr_flags & REP_ENTRY_MUSTRELEASE ) {
 		be_entry_release_rw( op, rs->sr_entry, 0 );
 		rs->sr_flags ^= REP_ENTRY_MUSTRELEASE;
@@ -1224,9 +1224,6 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 		ldap_pvt_mp_add_ulong( op->o_counters->sc_pdu, 1 );
 		ldap_pvt_thread_mutex_unlock( &op->o_counters->sc_mutex );
 	}
-
-	Statslog( LDAP_DEBUG_STATS2, "%s ENTRY dn=\"%s\"\n",
-	    op->o_log_prefix, edn, 0, 0, 0 );
 
 	Debug( LDAP_DEBUG_TRACE,
 		"<= send_search_entry: conn %lu exit.\n", op->o_connid, 0, 0 );
