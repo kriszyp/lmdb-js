@@ -4,8 +4,8 @@
 Network Working Group                                        P. Masarati
 Internet-Draft                                     Politecnico di Milano
 Intended status: Standards Track                                  H. Chu
-Expires: April 30, 2009                                      Symas Corp.
-                                                        October 27, 2008
+Expires: May 1, 2009                                         Symas Corp.
+                                                        October 28, 2008
 
 
                         LDAP Dereference Control
@@ -34,7 +34,7 @@ Status of this Memo
    The list of Internet-Draft Shadow Directories can be accessed at
    http://www.ietf.org/shadow.html.
 
-   This Internet-Draft will expire on April 30, 2009.
+   This Internet-Draft will expire on May 1, 2009.
 
 
 
@@ -52,7 +52,7 @@ Status of this Memo
 
 
 
-Masarati & Chu           Expires April 30, 2009                 [Page 1]
+Masarati & Chu             Expires May 1, 2009                  [Page 1]
 
 Internet-Draft                 LDAP Deref                   October 2008
 
@@ -108,7 +108,7 @@ Table of Contents
 
 
 
-Masarati & Chu           Expires April 30, 2009                 [Page 2]
+Masarati & Chu             Expires May 1, 2009                  [Page 2]
 
 Internet-Draft                 LDAP Deref                   October 2008
 
@@ -164,7 +164,7 @@ Internet-Draft                 LDAP Deref                   October 2008
 
 
 
-Masarati & Chu           Expires April 30, 2009                 [Page 3]
+Masarati & Chu             Expires May 1, 2009                  [Page 3]
 
 Internet-Draft                 LDAP Deref                   October 2008
 
@@ -194,19 +194,17 @@ Internet-Draft                 LDAP Deref                   October 2008
    SHOULD be treated as distinct and unrelated descriptions.
 
    This control is only appropriate for the search operation [RFC4511].
-   This control MUST be ignored if the Search was requested with
-   SearchRequest.typesOnly specified as TRUE.  The dereference attribute
-   MUST be part of the search result set.
 
    The semantics of the criticality field are specified in [RFC4511].
    In detail, the criticality of the control determines whether the
    control will or will not be used, and if it will not be used, whether
-   the operation will continue without the control, or fail returning
-   unavailableCriticalExtension.  If the control is appropriate for an
-   operation and, for any reason, it cannot be applied in its entirety
-   to a single SearchResultEntry response, it MUST NOT be applied to
-   that specific SearchResultEntry response, without affecting its
-   application to any subsequent SearchResultEntry response.
+   the operation will continue without returning the control in the
+   response, or fail, returning unavailableCriticalExtension.  If the
+   control is appropriate for an operation and, for any reason, it
+   cannot be applied in its entirety to a single SearchResultEntry
+   response, it MUST NOT be applied to that specific SearchResultEntry
+   response, without affecting its application to any subsequent
+   SearchResultEntry response.
 
    This control is totally unrelated to alias dereferencing [RFC4511].
 
@@ -220,7 +218,9 @@ Internet-Draft                 LDAP Deref                   October 2008
 
 
 
-Masarati & Chu           Expires April 30, 2009                 [Page 4]
+
+
+Masarati & Chu             Expires May 1, 2009                  [Page 4]
 
 Internet-Draft                 LDAP Deref                   October 2008
 
@@ -276,7 +276,7 @@ Internet-Draft                 LDAP Deref                   October 2008
 
 
 
-Masarati & Chu           Expires April 30, 2009                 [Page 5]
+Masarati & Chu             Expires May 1, 2009                  [Page 5]
 
 Internet-Draft                 LDAP Deref                   October 2008
 
@@ -291,7 +291,7 @@ Internet-Draft                 LDAP Deref                   October 2008
        sn: Chu
        uid: hyc
 
-       dn: Pierangelo Masarati,ou=people,dc=OpenLDAP,dc=org
+       dn: cn=Pierangelo Masarati,ou=people,dc=OpenLDAP,dc=org
        objectClass: inetOrgPerson
        cn: Pierangelo Masarati
        sn: Masarati
@@ -299,7 +299,7 @@ Internet-Draft                 LDAP Deref                   October 2008
 
        dn: cn=Test Group,ou=groups,dc=OpenLDAP,dc=org
        objectClass: groupOfNames
-       cn: test Group
+       cn: Test Group
        member: cn=Howard Chu,ou=people,dc=OpenLDAP,dc=org
        member: cn=Pierangelo,Masarati,ou=people,dc=OpenLDAP,dc=org
 
@@ -332,7 +332,7 @@ Internet-Draft                 LDAP Deref                   October 2008
 
 
 
-Masarati & Chu           Expires April 30, 2009                 [Page 6]
+Masarati & Chu             Expires May 1, 2009                  [Page 6]
 
 Internet-Draft                 LDAP Deref                   October 2008
 
@@ -388,7 +388,7 @@ Internet-Draft                 LDAP Deref                   October 2008
 
 
 
-Masarati & Chu           Expires April 30, 2009                 [Page 7]
+Masarati & Chu             Expires May 1, 2009                  [Page 7]
 
 Internet-Draft                 LDAP Deref                   October 2008
 
@@ -402,7 +402,8 @@ Internet-Draft                 LDAP Deref                   October 2008
    existence of nor any access privilege to the corresponding entry.  It
    is merely a consequence of the read access the client's identity has
    on the corresponding value of the derefRes.derefAttr that would be
-   returned as part of the attributes of a SearchResultEntry [RFC4511].
+   returned as part of the attributes of a SearchResultEntry response
+   [RFC4511].
 
    Security considerations described in documents listed in [RFC4510]
    apply.
@@ -443,8 +444,7 @@ Internet-Draft                 LDAP Deref                   October 2008
 
 
 
-
-Masarati & Chu           Expires April 30, 2009                 [Page 8]
+Masarati & Chu             Expires May 1, 2009                  [Page 8]
 
 Internet-Draft                 LDAP Deref                   October 2008
 
@@ -500,7 +500,7 @@ Internet-Draft                 LDAP Deref                   October 2008
 
 
 
-Masarati & Chu           Expires April 30, 2009                 [Page 9]
+Masarati & Chu             Expires May 1, 2009                  [Page 9]
 
 Internet-Draft                 LDAP Deref                   October 2008
 
@@ -556,7 +556,7 @@ Internet-Draft                 LDAP Deref                   October 2008
 
 
 
-Masarati & Chu           Expires April 30, 2009                [Page 10]
+Masarati & Chu             Expires May 1, 2009                 [Page 10]
 
 Internet-Draft                 LDAP Deref                   October 2008
 
@@ -612,7 +612,7 @@ Internet-Draft                 LDAP Deref                   October 2008
 
 
 
-Masarati & Chu           Expires April 30, 2009                [Page 11]
+Masarati & Chu             Expires May 1, 2009                 [Page 11]
 
 Internet-Draft                 LDAP Deref                   October 2008
 
@@ -668,7 +668,7 @@ Authors' Addresses
 
 
 
-Masarati & Chu           Expires April 30, 2009                [Page 12]
+Masarati & Chu             Expires May 1, 2009                 [Page 12]
 
 Internet-Draft                 LDAP Deref                   October 2008
 
@@ -724,5 +724,5 @@ Intellectual Property
 
 
 
-Masarati & Chu           Expires April 30, 2009                [Page 13]
+Masarati & Chu             Expires May 1, 2009                 [Page 13]
 

@@ -142,9 +142,7 @@ hierarchy SHOULD be treated as distinct and unrelated descriptions.
 
                 <t>
 This control is only appropriate for the search operation
-<xref target="RFC4511" />. This control MUST be ignored if the
-Search was requested with SearchRequest.typesOnly specified as TRUE.
-The dereference attribute MUST be part of the search result set.
+<xref target="RFC4511" />.
                 </t>
 
                 <t>
@@ -152,8 +150,8 @@ The semantics of the criticality field are specified in
 <xref target="RFC4511" />.
 In detail, the criticality of the control determines whether the control
 will or will not be used, and if it will not be used, whether the operation
-will continue without the control, or fail returning
-unavailableCriticalExtension.
+will continue without returning the control in the response, or fail,
+returning unavailableCriticalExtension.
 If the control is appropriate for an operation and, for any reason,
 it cannot be applied in its entirety to a single SearchResultEntry response,
 it MUST NOT be applied to that specific SearchResultEntry response,
@@ -236,7 +234,7 @@ Given these entries:
     sn: Chu
     uid: hyc
 
-    dn: Pierangelo Masarati,ou=people,dc=OpenLDAP,dc=org
+    dn: cn=Pierangelo Masarati,ou=people,dc=OpenLDAP,dc=org
     objectClass: inetOrgPerson
     cn: Pierangelo Masarati
     sn: Masarati
@@ -244,7 +242,7 @@ Given these entries:
 
     dn: cn=Test Group,ou=groups,dc=OpenLDAP,dc=org
     objectClass: groupOfNames
-    cn: test Group
+    cn: Test Group
     member: cn=Howard Chu,ou=people,dc=OpenLDAP,dc=org
     member: cn=Pierangelo,Masarati,ou=people,dc=OpenLDAP,dc=org
                  </artwork>
@@ -287,7 +285,8 @@ no derefRes.attrVals, does not imply neither the existence of nor any
 access privilege to the corresponding entry.
 It is merely a consequence of the read access the client's identity has
 on the corresponding value of the derefRes.derefAttr that would be returned
-as part of the attributes of a SearchResultEntry <xref target="RFC4511" />.
+as part of the attributes of a SearchResultEntry response
+<xref target="RFC4511" />.
         </t>
         <t>
 Security considerations described in documents listed in
