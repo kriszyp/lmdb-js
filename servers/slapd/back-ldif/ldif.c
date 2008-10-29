@@ -336,7 +336,13 @@ spew_entry( Entry * e, struct berval * path, int dolock, int *save_errnop )
 					tmpfname, STRERROR( save_errno ), 0 );
 
 			} else {
+#ifdef _WIN32
+				/* returns 0 on failure, nonzero on success */
+				res = MoveFileEx( tmpfname, path->bv_val,
+					MOVEFILE_REPLACE_EXISTING ) == 0;
+#else
 				res = rename( tmpfname, path->bv_val );
+#endif
 				if ( res == 0 ) {
 					rs = LDAP_SUCCESS;
 
