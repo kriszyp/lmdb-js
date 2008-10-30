@@ -2900,8 +2900,13 @@ attr_cmp( Operation *op, Attribute *old, Attribute *new,
 		 * Modify would fail if provider has replaced entry with a new,
 		 * and the new explicitly includes a superior of a class that was
 		 * only included implicitly in the old entry.  Ref ITS#5517.
+		 *
+		 * Also use replace op if attr has no equality matching rule.
+		 * (ITS#5781)
 		 */
-		if ( nn && no < o && old->a_desc == slap_schema.si_ad_objectClass )
+		if ( nn && no < o &&
+			( old->a_desc == slap_schema.si_ad_objectClass ||
+			 !old->a_desc->ad_type->sat_equality ))
 			no = o;
 
 		i = j;
