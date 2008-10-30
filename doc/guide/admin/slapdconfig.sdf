@@ -27,7 +27,7 @@ be overridden in backend and/or database directives, and backend directives
 can be overridden by database directives.
 
 Blank lines and comment lines beginning with a '{{EX:#}}' character
-are ignored.  If a line begins with white space, it is considered a
+are ignored.  If a line begins with whitespace, it is considered a
 continuation of the previous line (even if the previous line is a
 comment).
 
@@ -56,7 +56,7 @@ The general format of slapd.conf is as follows:
 >	...
 
 A configuration directive may take arguments.  If so, they are
-separated by white space.  If an argument contains white space,
+separated by whitespace.  If an argument contains whitespace,
 the argument should be enclosed in double quotes {{EX:"like this"}}. If
 an argument contains a double quote or a backslash character `{{EX:\}}',
 the character should be preceded by a backslash character `{{EX:\}}'.

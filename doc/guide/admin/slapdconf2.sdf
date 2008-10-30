@@ -125,7 +125,7 @@ keywords, using the keyword as the attribute name, with the "olc"
 prefix attached.
 
 A configuration directive may take arguments.  If so, the arguments are
-separated by white space.  If an argument contains white space,
+separated by whitespace.  If an argument contains whitespace,
 the argument should be enclosed in double quotes {{EX:"like this"}}.
 In the descriptions that follow, arguments that should be replaced
 by actual text are shown in brackets {{EX:<>}}.

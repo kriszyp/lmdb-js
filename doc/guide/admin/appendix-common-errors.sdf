@@ -162,7 +162,7 @@ values (the server will only report the first error it finds).
 
 Common causes include:
 
-* extraneous white space (especially trailing white space)
+* extraneous whitespace (especially trailing whitespace)
 * improperly encoded characters (LDAPv3 uses UTF-8 encoded Unicode)
 * empty values (few syntaxes allow empty values)
 
