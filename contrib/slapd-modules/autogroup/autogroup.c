@@ -1503,7 +1503,7 @@ autogroup_db_open(
 		op->o_bd->be_search( op, &rs );
 		op->o_bd->bd_info = (BackendInfo *)on;
 
-		filter_free_x( op, op->ors_filter );
+		filter_free_x( op, op->ors_filter, 1 );
 		op->o_tmpfree( op->ors_filterstr.bv_val, op->o_tmpmemctx );
 	}		
 	ldap_pvt_thread_mutex_unlock( &agi->agi_mutex );
