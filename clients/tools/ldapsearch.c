@@ -413,7 +413,7 @@ handle_private_option( int i )
 				exit( EXIT_FAILURE );
 			}
 			keyp = cvalue;
-			while (keyp = strchr(keyp, '/')) {
+			while ( ( keyp = strchr(keyp, '/') ) != NULL ) {
 				*keyp++ = ' ';
 			}
 			if ( ldap_create_sort_keylist( &sss_keys, cvalue )) {

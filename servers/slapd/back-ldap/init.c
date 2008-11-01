@@ -233,14 +233,10 @@ ldap_back_db_open( BackendDB *be, ConfigReply *cr )
 	if ( rc != 0 ) {
 		/* ignore by now */
 		rc = 0;
-#if 0
-		goto fail;
-#endif
 	}
 
 	li->li_flags |= LDAP_BACK_F_ISOPEN;
 
-fail:;
 	return rc;
 }
 

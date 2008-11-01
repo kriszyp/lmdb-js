@@ -1107,7 +1107,7 @@ void
 overlay_remove( BackendDB *be, slap_overinst *on )
 {
 	slap_overinfo *oi = on->on_info;
-	slap_overinst **oidx, *on2;
+	slap_overinst **oidx;
 
 	/* remove overlay from oi_list an call db_close and db_destroy
 	 * handlers */

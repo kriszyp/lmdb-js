@@ -241,7 +241,6 @@ ID bdb_tool_dn2id_get(
 
 Entry* bdb_tool_entry_get( BackendDB *be, ID id )
 {
-	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	Entry *e = NULL;
 	char *dptr;
 	int rc, eoff;
@@ -298,6 +297,7 @@ Entry* bdb_tool_entry_get( BackendDB *be, ID id )
 		e->e_id = id;
 #ifdef BDB_HIER
 		if ( slapMode & SLAP_TOOL_READONLY ) {
+			struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 			EntryInfo *ei = NULL;
 			Operation op = {0};
 			Opheader ohdr = {0};

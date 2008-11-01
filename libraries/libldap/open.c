@@ -337,8 +337,7 @@ ldap_int_open_connection(
 	int async )
 {
 	int rc = -1;
-	char *host;
-	int port, proto;
+	int proto;
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_int_open_connection\n", 0, 0, 0 );
 

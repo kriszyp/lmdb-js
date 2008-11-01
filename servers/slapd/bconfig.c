@@ -5336,8 +5336,6 @@ config_back_delete( Operation *op, SlapReply *rs )
 	CfBackInfo *cfb;
 	CfEntryInfo *ce, *last, *ce2;
 
-	slap_mask_t mask;
-
 	cfb = (CfBackInfo *)op->o_bd->be_private;
 
 	ce = config_find_base( cfb->cb_root, &op->o_req_ndn, &last );
@@ -5349,7 +5347,7 @@ config_back_delete( Operation *op, SlapReply *rs )
 		rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
 	} else if ( ce->ce_type == Cft_Overlay ){
 		char *iptr;
-		int count, ixold, rc;
+		int count, ixold;
 
 		ldap_pvt_thread_pool_pause( &connection_pool );
 		

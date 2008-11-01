@@ -623,7 +623,6 @@ hdb_dn2id_add(
 		}
 	}
 
-func_leave:
 	op->o_tmpfree( d, op->o_tmpmemctx );
 	Debug( LDAP_DEBUG_TRACE, "<= hdb_dn2id_add 0x%lx: %d\n", e->e_id, rc, 0 );
 
