@@ -77,11 +77,11 @@ Table of Contents
    5.  IANA Considerations  . . . . . . . . . . . . . . . . . . . . .  7
      5.1.  Object Identifier Registration . . . . . . . . . . . . . .  7
    6.  Acknowledgments  . . . . . . . . . . . . . . . . . . . . . . .  8
-   7.  Normative References . . . . . . . . . . . . . . . . . . . . .  9
+   7.  References . . . . . . . . . . . . . . . . . . . . . . . . . .  9
+     7.1.  Normative References . . . . . . . . . . . . . . . . . . .  9
+     7.2.  Informative References . . . . . . . . . . . . . . . . . .  9
    Author's Address . . . . . . . . . . . . . . . . . . . . . . . . . 10
    Intellectual Property and Copyright Statements . . . . . . . . . . 11
-
-
 
 
 
@@ -449,7 +449,9 @@ Masarati                  Expires April 4, 2009                 [Page 8]
 Internet-Draft               LDAP WHATFAILED                October 2008
 
 
-7.  Normative References
+7.  References
+
+7.1.  Normative References
 
    [RFC2119]  Bradner, S., "Key words for use in RFCs to Indicate
               Requirement Levels", BCP 14, RFC 2119, March 1997.
@@ -461,6 +463,8 @@ Internet-Draft               LDAP WHATFAILED                October 2008
    [RFC4511]  Sermersheim, J., "Lightweight Directory Access Protocol
               (LDAP): The Protocol", RFC 4511, June 2006.
 
+7.2.  Informative References
+
    [RFC4526]  Zeilenga, K., "Lightweight Directory Access Protocol
               (LDAP) Absolute True and False Filters", RFC 4526,
               June 2006.
@@ -468,10 +472,6 @@ Internet-Draft               LDAP WHATFAILED                October 2008
    [RFC4529]  Zeilenga, K., "Requesting Attributes by Object Class in
               the Lightweight Directory Access Protocol", RFC 4529,
               June 2006.
-
-
-
-
 
 
 

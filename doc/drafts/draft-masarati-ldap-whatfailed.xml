@@ -217,6 +217,8 @@ Object Identifier for use in this technical specification.
             &rfc2119;
             &rfc4510;
             &rfc4511;
+        </references>
+        <references title='Informative References'>
             &rfc4526;
             &rfc4529;
         </references>
