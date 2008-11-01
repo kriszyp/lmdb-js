@@ -4,8 +4,8 @@
 Network Working Group                                        P. Masarati
 Internet-Draft                                     Politecnico di Milano
 Intended status: Standards Track                                  H. Chu
-Expires: May 1, 2009                                         Symas Corp.
-                                                        October 28, 2008
+Expires: April 4, 2009                                       Symas Corp.
+                                                            October 2008
 
 
                         LDAP Dereference Control
@@ -34,7 +34,7 @@ Status of this Memo
    The list of Internet-Draft Shadow Directories can be accessed at
    http://www.ietf.org/shadow.html.
 
-   This Internet-Draft will expire on May 1, 2009.
+   This Internet-Draft will expire on April 4, 2009.
 
 
 
@@ -52,7 +52,7 @@ Status of this Memo
 
 
 
-Masarati & Chu             Expires May 1, 2009                  [Page 1]
+Masarati & Chu            Expires April 4, 2009                 [Page 1]
 
 Internet-Draft                 LDAP Deref                   October 2008
 
@@ -108,7 +108,7 @@ Table of Contents
 
 
 
-Masarati & Chu             Expires May 1, 2009                  [Page 2]
+Masarati & Chu            Expires April 4, 2009                 [Page 2]
 
 Internet-Draft                 LDAP Deref                   October 2008
 
@@ -164,7 +164,7 @@ Internet-Draft                 LDAP Deref                   October 2008
 
 
 
-Masarati & Chu             Expires May 1, 2009                  [Page 3]
+Masarati & Chu            Expires April 4, 2009                 [Page 3]
 
 Internet-Draft                 LDAP Deref                   October 2008
 
@@ -220,7 +220,7 @@ Internet-Draft                 LDAP Deref                   October 2008
 
 
 
-Masarati & Chu             Expires May 1, 2009                  [Page 4]
+Masarati & Chu            Expires April 4, 2009                 [Page 4]
 
 Internet-Draft                 LDAP Deref                   October 2008
 
@@ -276,7 +276,7 @@ Internet-Draft                 LDAP Deref                   October 2008
 
 
 
-Masarati & Chu             Expires May 1, 2009                  [Page 5]
+Masarati & Chu            Expires April 4, 2009                 [Page 5]
 
 Internet-Draft                 LDAP Deref                   October 2008
 
@@ -285,23 +285,23 @@ Internet-Draft                 LDAP Deref                   October 2008
 
    Given these entries:
 
-       dn: cn=Howard Chu,ou=people,dc=OpenLDAP,dc=org
+       dn: cn=Howard Chu,ou=people,dc=example,dc=org
        objectClass: inetOrgPerson
        cn: Howard Chu
        sn: Chu
        uid: hyc
 
-       dn: cn=Pierangelo Masarati,ou=people,dc=OpenLDAP,dc=org
+       dn: cn=Pierangelo Masarati,ou=people,dc=example,dc=org
        objectClass: inetOrgPerson
        cn: Pierangelo Masarati
        sn: Masarati
        uid: ando
 
-       dn: cn=Test Group,ou=groups,dc=OpenLDAP,dc=org
+       dn: cn=Test Group,ou=groups,dc=example,dc=org
        objectClass: groupOfNames
        cn: Test Group
-       member: cn=Howard Chu,ou=people,dc=OpenLDAP,dc=org
-       member: cn=Pierangelo,Masarati,ou=people,dc=OpenLDAP,dc=org
+       member: cn=Howard Chu,ou=people,dc=example,dc=org
+       member: cn=Pierangelo,Masarati,ou=people,dc=example,dc=org
 
    A search could be performed with a Dereference request control value
    specified as
@@ -311,9 +311,9 @@ Internet-Draft                 LDAP Deref                   October 2008
    and the "cn=Test Group" entry would be returned with the response
    control value
 
-       { { member, cn=Howard Chu,ou=people,dc=OpenLDAP,dc=org,
+       { { member, cn=Howard Chu,ou=people,dc=example,dc=org,
            { { uid, [hyc] } } },
-         { member, cn=Pierangelo Masarati,ou=people,dc=OpenLDAP,dc=org,
+         { member, cn=Pierangelo Masarati,ou=people,dc=example,dc=org,
            { { uid, [ando] } } } }
 
 
@@ -332,14 +332,16 @@ Internet-Draft                 LDAP Deref                   October 2008
 
 
 
-Masarati & Chu             Expires May 1, 2009                  [Page 6]
+Masarati & Chu            Expires April 4, 2009                 [Page 6]
 
 Internet-Draft                 LDAP Deref                   October 2008
 
 
 4.  Implementation Notes
 
-   This LDAP extension is currently implemented in OpenLDAP software.
+   This LDAP extension is currently implemented in OpenLDAP software
+   suing the temporary OID 1.3.6.1.4.1.4203.666.5.16 under OpenLDAP's
+   experimental OID arc.
 
 
 
@@ -386,9 +388,7 @@ Internet-Draft                 LDAP Deref                   October 2008
 
 
 
-
-
-Masarati & Chu             Expires May 1, 2009                  [Page 7]
+Masarati & Chu            Expires April 4, 2009                 [Page 7]
 
 Internet-Draft                 LDAP Deref                   October 2008
 
@@ -444,7 +444,7 @@ Internet-Draft                 LDAP Deref                   October 2008
 
 
 
-Masarati & Chu             Expires May 1, 2009                  [Page 8]
+Masarati & Chu            Expires April 4, 2009                 [Page 8]
 
 Internet-Draft                 LDAP Deref                   October 2008
 
@@ -500,7 +500,7 @@ Internet-Draft                 LDAP Deref                   October 2008
 
 
 
-Masarati & Chu             Expires May 1, 2009                  [Page 9]
+Masarati & Chu            Expires April 4, 2009                 [Page 9]
 
 Internet-Draft                 LDAP Deref                   October 2008
 
@@ -556,7 +556,7 @@ Internet-Draft                 LDAP Deref                   October 2008
 
 
 
-Masarati & Chu             Expires May 1, 2009                 [Page 10]
+Masarati & Chu            Expires April 4, 2009                [Page 10]
 
 Internet-Draft                 LDAP Deref                   October 2008
 
@@ -612,7 +612,7 @@ Internet-Draft                 LDAP Deref                   October 2008
 
 
 
-Masarati & Chu             Expires May 1, 2009                 [Page 11]
+Masarati & Chu            Expires April 4, 2009                [Page 11]
 
 Internet-Draft                 LDAP Deref                   October 2008
 
@@ -668,7 +668,7 @@ Authors' Addresses
 
 
 
-Masarati & Chu             Expires May 1, 2009                 [Page 12]
+Masarati & Chu            Expires April 4, 2009                [Page 12]
 
 Internet-Draft                 LDAP Deref                   October 2008
 
@@ -724,5 +724,5 @@ Intellectual Property
 
 
 
-Masarati & Chu             Expires May 1, 2009                 [Page 13]
+Masarati & Chu            Expires April 4, 2009                [Page 13]
 
