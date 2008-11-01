@@ -138,6 +138,9 @@ static int print_sss( LDAP *ld, LDAPControl *ctrl );
 #ifdef LDAP_CONTROL_X_DEREF
 static int print_deref( LDAP *ld, LDAPControl *ctrl );
 #endif
+#ifdef LDAP_CONTROL_X_WHATFAILED
+static int print_whatfailed( LDAP *ld, LDAPControl *ctrl );
+#endif
 
 static struct tool_ctrls_t {
 	const char	*oid;
@@ -153,6 +156,9 @@ static struct tool_ctrls_t {
 	{ LDAP_CONTROL_SORTRESPONSE,	TOOL_SEARCH,	print_sss },
 #ifdef LDAP_CONTROL_X_DEREF
 	{ LDAP_CONTROL_X_DEREF,				TOOL_SEARCH,	print_deref },
+#endif
+#ifdef LDAP_CONTROL_X_WHATFAILED
+	{ LDAP_CONTROL_X_WHATFAILED,			TOOL_ALL,	print_whatfailed },
 #endif
 	{ NULL,						0,		NULL }
 };
@@ -1963,6 +1969,43 @@ done:;
 	ldap_derefresponse_free( drhead );
 
 	return rc;
+}
+#endif
+
+#ifdef LDAP_CONTROL_X_WHATFAILED
+static int
+print_whatfailed( LDAP *ld, LDAPControl *ctrl )
+{
+	BerElement *ber;
+	ber_tag_t tag;
+	ber_len_t siz;
+	BerVarray bva = NULL;
+
+	/* Create a BerElement from the berval returned in the control. */
+	ber = ber_init( &ctrl->ldctl_value );
+
+	if ( ber == NULL ) {
+		return LDAP_NO_MEMORY;
+	}
+
+	siz = sizeof(struct berval);
+	tag = ber_scanf( ber, "[M]", &bva, &siz, 0 );
+	if ( tag != LBER_ERROR ) {
+		int i;
+
+		tool_write_ldif( LDIF_PUT_COMMENT, " what failed:", NULL, 0 );
+
+		for ( i = 0; bva[i].bv_val != NULL; i++ ) {
+			tool_write_ldif( LDIF_PUT_COMMENT, NULL, bva[i].bv_val, bva[i].bv_len );
+		}
+
+		ldap_memfree( bva );
+	}
+
+        ber_free( ber, 1 );
+
+
+	return 0;
 }
 #endif
 

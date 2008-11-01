@@ -64,6 +64,7 @@ LDAP_BEGIN_DECL
 #define LDAP_SYNC_TIMESTAMP
 #define SLAP_CONTROL_X_SORTEDRESULTS
 #define SLAP_CONTROL_X_SESSION_TRACKING
+#define SLAP_CONTROL_X_WHATFAILED
 #define SLAP_CONFIG_DELETE
 #endif
 
@@ -2406,6 +2407,9 @@ struct slap_control_ids {
 	int sc_sessionTracking;
 #endif
 	int sc_valuesReturnFilter;
+#ifdef SLAP_CONTROL_X_WHATFAILED
+	int sc_whatFailed;
+#endif
 };
 
 /*
@@ -2673,6 +2677,11 @@ struct Operation {
 #define o_session_tracking	o_ctrlflag[slap_cids.sc_sessionTracking]
 #define o_tracked_sessions	o_controls[slap_cids.sc_sessionTracking]
 #define get_sessionTracking(op)			((int)(op)->o_session_tracking)
+#endif
+
+#ifdef SLAP_CONTROL_X_WHATFAILED
+#define o_whatFailed o_ctrlflag[slap_cids.sc_whatFailed]
+#define get_whatFailed(op)				_SCM((op)->o_whatFailed)
 #endif
 
 #define o_sync			o_ctrlflag[slap_cids.sc_LDAPsync]
