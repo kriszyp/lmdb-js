@@ -1,6 +1,7 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.13 Engineering
+	Fixed liblutil hex conversion (ITS#5699)
 	Fixed slapd-bdb/hdb invalid db crash (ITS#5698)
 
 OpenLDAP 2.4.12 Release (2008/10/12)
