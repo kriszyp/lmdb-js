@@ -95,6 +95,7 @@ int		assertctl;
 char		*assertion = NULL;
 struct berval	assertionvalue = BER_BVNULL;
 char		*authzid = NULL;
+int		authzcrit = 1;
 /* support deprecated early version of proxyAuthz */
 #define LDAP_CONTROL_OBSOLETE_PROXY_AUTHZ	"2.16.840.1.113730.3.4.12"
 #ifdef LDAP_CONTROL_OBSOLETE_PROXY_AUTHZ
@@ -387,8 +388,8 @@ tool_args( int argc, char **argv )
 
 			crit = 0;
 			cvalue = NULL;
-			if( optarg[0] == '!' ) {
-				crit = 1;
+			while ( optarg[0] == '!' ) {
+				crit++;
 				optarg++;
 			}
 
@@ -430,6 +431,10 @@ tool_args( int argc, char **argv )
 				if( !crit ) {
 					fprintf( stderr, "authzid: must be marked critical\n" );
 					usage();
+				} else if ( crit > 1 ) {
+					/* purposely flag proxied authorization
+					 * as non-critical, to test DSA */
+					authzcrit = 0;
 				}
 
 				assert( authzid == NULL );
@@ -452,6 +457,10 @@ tool_args( int argc, char **argv )
 				if( !crit ) {
 					fprintf( stderr, "proxydn: must be marked critical\n" );
 					usage();
+				} else if ( crit > 1 ) {
+					/* purposely flag proxied authorization
+					 * as non-critical, to test DSA */
+					authzcrit = 0;
 				}
 
 				assert( proxydn == NULL );
@@ -538,6 +547,11 @@ tool_args( int argc, char **argv )
 
 #ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
 			} else if ( strcasecmp( control, "chaining" ) == 0 ) {
+				if ( chaining ) {
+					fprintf( stderr, "chaining control previously specified\n");
+					exit( EXIT_FAILURE );
+				}
+
 				chaining = 1 + crit;
 
 				if ( cvalue != NULL ) {
@@ -612,6 +626,16 @@ tool_args( int argc, char **argv )
 
 			} else if ( tool_is_oid( control ) ) {
 				LDAPControl	*tmpctrls, ctrl;
+
+				if ( unknown_ctrls != NULL ) {
+					int i;
+					for ( i = 0; unknown_ctrls[ i ].ldctl_oid != NULL; i++ ) {
+						if ( strcmp( control, unknown_ctrls[ i ].ldctl_oid ) == 0 ) {
+							fprintf( stderr, "%s control previously specified\n", control );
+							exit( EXIT_FAILURE );
+						}
+					}
+				}
 
 				tmpctrls = (LDAPControl *)realloc( unknown_ctrls,
 					(unknown_ctrls_num + 1)*sizeof( LDAPControl ) );
@@ -1525,7 +1549,7 @@ tool_server_controls( LDAP *ld, LDAPControl *extra_c, int count )
 		c[i].ldctl_value.bv_val = authzid;
 		c[i].ldctl_value.bv_len = strlen( authzid );
 		c[i].ldctl_oid = LDAP_CONTROL_PROXY_AUTHZ;
-		c[i].ldctl_iscritical = 1;
+		c[i].ldctl_iscritical = authzcrit;
 		ctrls[i] = &c[i];
 		i++;
 	}
@@ -1548,7 +1572,7 @@ tool_server_controls( LDAP *ld, LDAPControl *extra_c, int count )
 		}
 
 		c[i].ldctl_oid = LDAP_CONTROL_OBSOLETE_PROXY_AUTHZ;
-		c[i].ldctl_iscritical = 1;
+		c[i].ldctl_iscritical = authzcrit;
 		ctrls[i] = &c[i];
 		i++;
 	}
