@@ -1604,12 +1604,12 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 	{
 		struct berval maxcsn = BER_BVNULL;
 		char cbuf[LDAP_LUTIL_CSNSTR_BUFSIZE];
-		int do_check = 0, have_psearches;
+		int do_check = 0, have_psearches, foundit;
 
 		/* Update our context CSN */
 		cbuf[0] = '\0';
 		ldap_pvt_thread_rdwr_wlock( &si->si_csn_rwlock );
-		slap_get_commit_csn( op, &maxcsn );
+		slap_get_commit_csn( op, &maxcsn, &foundit );
 		if ( BER_BVISNULL( &maxcsn ) && SLAP_GLUE_SUBORDINATE( op->o_bd )) {
 			/* syncrepl queues the CSN values in the db where
 			 * it is configured , not where the changes are made.
@@ -1618,7 +1618,7 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 			 */
 			BackendDB *be = op->o_bd;
 			op->o_bd = select_backend( &be->be_nsuffix[0], 1);
-			slap_get_commit_csn( op, &maxcsn );
+			slap_get_commit_csn( op, &maxcsn, &foundit );
 			op->o_bd = be;
 		}
 		if ( !BER_BVISNULL( &maxcsn ) ) {
@@ -1641,7 +1641,7 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 					sizeof(int));
 				si->si_sids[i] = sid;
 			}
-		} else {
+		} else if ( !foundit ) {
 			/* internal ops that aren't meant to be replicated */
 			ldap_pvt_thread_rdwr_wunlock( &si->si_csn_rwlock );
 			return SLAP_CB_CONTINUE;
@@ -1678,8 +1678,11 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 			ldap_pvt_thread_rdwr_runlock( &si->si_csn_rwlock );
 		}
 
-		opc->sctxcsn.bv_len = maxcsn.bv_len;
-		opc->sctxcsn.bv_val = cbuf;
+		/* only update consumer ctx if this is the greatest csn */
+		if ( bvmatch( &maxcsn, &op->o_csn )) {
+			opc->sctxcsn.bv_len = maxcsn.bv_len;
+			opc->sctxcsn.bv_val = cbuf;
+		}
 
 		/* Handle any persistent searches */
 		ldap_pvt_thread_mutex_lock( &si->si_ops_mutex );
