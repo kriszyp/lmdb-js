@@ -33,7 +33,8 @@ int slap_serverID;
 void
 slap_get_commit_csn(
 	Operation *op,
-	struct berval *maxcsn
+	struct berval *maxcsn,
+	int *foundit
 )
 {
 	struct slap_csn_entry *csne, *committed_csne = NULL;
@@ -42,12 +43,16 @@ slap_get_commit_csn(
 	if ( maxcsn ) {
 		BER_BVZERO( maxcsn );
 	}
+	if ( foundit ) {
+		*foundit = 0;
+	}
 
 	ldap_pvt_thread_mutex_lock( &be->be_pcl_mutex );
 
 	LDAP_TAILQ_FOREACH( csne, be->be_pending_csn_list, ce_csn_link ) {
 		if ( csne->ce_opid == op->o_opid && csne->ce_connid == op->o_connid ) {
 			csne->ce_state = SLAP_CSN_COMMIT;
+			if ( foundit ) *foundit = 1;
 			break;
 		}
 	}
