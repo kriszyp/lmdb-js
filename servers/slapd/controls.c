@@ -960,6 +960,13 @@ static int parseDontUseCopy (
 		return LDAP_PROTOCOL_ERROR;
 	}
 
+	if ( ( global_disallows & SLAP_DISALLOW_DONTUSECOPY_N_CRIT )
+		&& !ctrl->ldctl_iscritical )
+	{
+		rs->sr_text = "dontUseCopy criticality of FALSE not allowed";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
 	op->o_dontUseCopy = ctrl->ldctl_iscritical
 		? SLAP_CONTROL_CRITICAL
 		: SLAP_CONTROL_NONCRITICAL;
@@ -1026,6 +1033,13 @@ static int parseProxyAuthz (
 
 	if ( BER_BVISNULL( &ctrl->ldctl_value )) {
 		rs->sr_text = "proxy authorization control value absent";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	if ( ( global_disallows & SLAP_DISALLOW_PROXY_AUTHZ_N_CRIT )
+		&& !ctrl->ldctl_iscritical )
+	{
+		rs->sr_text = "proxied authorization criticality of FALSE not allowed";
 		return LDAP_PROTOCOL_ERROR;
 	}
 

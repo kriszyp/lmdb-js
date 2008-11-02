@@ -1863,6 +1863,9 @@ struct BackendDB {
 #define SLAP_DISALLOW_TLS_2_ANON	0x0010U /* StartTLS -> Anonymous */
 #define SLAP_DISALLOW_TLS_AUTHC		0x0020U	/* TLS while authenticated */
 
+#define SLAP_DISALLOW_PROXY_AUTHZ_N_CRIT	0x0100U
+#define SLAP_DISALLOW_DONTUSECOPY_N_CRIT	0x0200U
+
 #define SLAP_DISALLOW_AUX_WO_CR		0x4000U
 
 	slap_mask_t	be_requires;	/* pre-operation requirements */
