@@ -2733,7 +2733,7 @@ syncprov_db_open(
 			si->si_sids = slap_parse_csn_sids( si->si_ctxcsn, a->a_numvals, NULL );
 		}
 		overlay_entry_release_ov( op, e, 0, on );
-		if ( si->si_ctxcsn ) {
+		if ( si->si_ctxcsn && !SLAP_DBCLEAN( be )) {
 			op->o_req_dn = be->be_suffix[0];
 			op->o_req_ndn = be->be_nsuffix[0];
 			op->ors_scope = LDAP_SCOPE_SUBTREE;
