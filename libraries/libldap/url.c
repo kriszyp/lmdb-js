@@ -590,9 +590,11 @@ desc2str_len( LDAPURLDesc *u )
 	}
 
 	if ( u->lud_host && u->lud_host[0] ) {
+		char *ptr;
 		len += hex_escape_len( u->lud_host, URLESC_SLASH );
-		if ( !is_ipc && strchr( u->lud_host, ':' )) {
-			len += 2;	/* IPv6, [] */
+		if ( !is_ipc && ( ptr = strchr( u->lud_host, ':' ))) {
+			if ( strchr( ptr+1, ':' ))
+				len += 2;	/* IPv6, [] */
 		}
 	}
 
@@ -610,6 +612,7 @@ desc2str( LDAPURLDesc *u, char *s, int len )
 	int		is_v6 = 0;
 	int		is_ipc = 0;
 	struct berval	scope = BER_BVNULL;
+	char		*ptr;
 
 	if ( u == NULL ) {
 		return -1;
@@ -637,8 +640,9 @@ desc2str( LDAPURLDesc *u, char *s, int len )
 		sep = 1;
 	}
 
-	if ( !is_ipc && u->lud_host && strchr( u->lud_host, ':' )) {
-		is_v6 = 1;
+	if ( !is_ipc && u->lud_host && ( ptr = strchr( u->lud_host, ':' ))) {
+		if ( strchr( ptr+1, ':' ))
+			is_v6 = 1;
 	}
 
 	if ( u->lud_port ) {
