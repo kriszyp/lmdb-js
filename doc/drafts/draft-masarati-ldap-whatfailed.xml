@@ -162,7 +162,7 @@ the controlValue is:
                     <postamble>
 If the set of extension OID is empty, the control is omitted
 from the response.
-The criticality SHOULD be FALSE.
+The criticality MUST be FALSE.
                     </postamble>
                 </figure>
             </section>

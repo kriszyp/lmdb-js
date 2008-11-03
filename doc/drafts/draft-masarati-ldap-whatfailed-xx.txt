@@ -213,7 +213,7 @@ Internet-Draft               LDAP WHATFAILED                October 2008
        controlValue ::= SET OF oid LDAPOID
 
    If the set of extension OID is empty, the control is omitted from the
-   response.  The criticality SHOULD be FALSE.
+   response.  The criticality MUST be FALSE.
 
 
 
