@@ -273,7 +273,7 @@ value
         <section title="Implementation Notes">
         <t>
 This LDAP extension is currently implemented in OpenLDAP software
-suing the temporary OID 1.3.6.1.4.1.4203.666.5.16 under OpenLDAP's
+using the temporary OID 1.3.6.1.4.1.4203.666.5.16 under OpenLDAP's
 experimental OID arc.
         </t>
         </section>
