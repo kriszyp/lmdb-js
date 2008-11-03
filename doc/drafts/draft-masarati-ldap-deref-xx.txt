@@ -301,7 +301,7 @@ Internet-Draft                 LDAP Deref                   October 2008
        objectClass: groupOfNames
        cn: Test Group
        member: cn=Howard Chu,ou=people,dc=example,dc=org
-       member: cn=Pierangelo,Masarati,ou=people,dc=example,dc=org
+       member: cn=Pierangelo Masarati,ou=people,dc=example,dc=org
 
    A search could be performed with a Dereference request control value
    specified as

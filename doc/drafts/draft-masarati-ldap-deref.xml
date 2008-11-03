@@ -244,7 +244,7 @@ Given these entries:
     objectClass: groupOfNames
     cn: Test Group
     member: cn=Howard Chu,ou=people,dc=example,dc=org
-    member: cn=Pierangelo,Masarati,ou=people,dc=example,dc=org
+    member: cn=Pierangelo Masarati,ou=people,dc=example,dc=org
                  </artwork>
             </figure>
             <figure>
