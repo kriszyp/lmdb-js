@@ -584,6 +584,17 @@ bdb_db_close( BackendDB *be, ConfigReply *cr )
 	ber_bvarray_free( bdb->bi_db_config );
 	bdb->bi_db_config = NULL;
 
+	if( bdb->bi_dbenv ) {
+		/* Free cache locker if we enabled locking.
+		 * TXNs must all be closed before DBs...
+		 */
+		if ( !( slapMode & SLAP_TOOL_QUICK ) && bdb->bi_cache.c_txn ) {
+			TXN_ABORT( bdb->bi_cache.c_txn );
+			bdb->bi_cache.c_txn = NULL;
+		}
+		bdb_reader_flush( bdb->bi_dbenv );
+	}
+
 	while( bdb->bi_databases && bdb->bi_ndatabases-- ) {
 		db = bdb->bi_databases[bdb->bi_ndatabases];
 		rc = db->bdi_db->close( db->bdi_db, 0 );
@@ -614,13 +625,6 @@ bdb_db_close( BackendDB *be, ConfigReply *cr )
 
 	/* close db environment */
 	if( bdb->bi_dbenv ) {
-		/* Free cache locker if we enabled locking */
-		if ( !( slapMode & SLAP_TOOL_QUICK ) && bdb->bi_cache.c_txn ) {
-			TXN_ABORT( bdb->bi_cache.c_txn );
-			bdb->bi_cache.c_txn = NULL;
-		}
-		bdb_reader_flush( bdb->bi_dbenv );
-
 		/* force a checkpoint, but not if we were ReadOnly,
 		 * and not in Quick mode since there are no transactions there.
 		 */
