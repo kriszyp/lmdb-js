@@ -166,7 +166,8 @@ destroy:;
 	if ( !BER_BVISNULL( &authzID ) ) {
 		op->o_tmpfree( authzID.bv_val, op->o_tmpmemctx );
 	}
-	slap_tool_destroy();
+	if ( slap_tool_destroy())
+		rc = EXIT_FAILURE;
 
 	return rc;
 }

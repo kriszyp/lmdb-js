@@ -399,7 +399,8 @@ destroy:;
 		}
 	}
 
-	slap_tool_destroy();
+	if ( slap_tool_destroy())
+		rc = EXIT_FAILURE;
 
 	return rc;
 }

@@ -108,7 +108,8 @@ slaptest( int argc, char **argv )
 		fprintf( stderr, "config file testing succeeded\n");
 	}
 
-	slap_tool_destroy();
+	if ( slap_tool_destroy())
+		rc = EXIT_FAILURE;
 
 	return rc;
 }
