@@ -215,7 +215,7 @@ bdb_attr_index_config(
 			goto done;
 		}
 
-		if( slap_ad_is_binary( ad ) ) {
+		if( ad == slap_schema.si_ad_entryDN || slap_ad_is_binary( ad ) ) {
 			if (c_reply) {
 				snprintf(c_reply->msg, sizeof(c_reply->msg),
 					"index of attribute \"%s\" disallowed", attrs[i] );
