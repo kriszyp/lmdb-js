@@ -698,28 +698,6 @@ done:
 }
 
 static int
-dn_equality_candidate(
-	Operation *op,
-	DB_TXN *rtxn,
-	struct berval *ndn,
-	ID *ids )
-{
-	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
-	EntryInfo ei = { 0 };
-	DB_LOCK lock;
-	int rc;
-
-	lock.mode = DB_LOCK_NG;
-	rc = bdb_dn2id( op, ndn, &ei, rtxn, &lock );
-	if ( rc == 0 ) {
-		BDB_IDL_RANGE( ids, ei.bei_id, ei.bei_id );
-		bdb_cache_entry_db_unlock( bdb, &lock );
-	}
-
-	return rc;
-}
-
-static int
 equality_candidates(
 	Operation *op,
 	DB_TXN *rtxn,
@@ -740,7 +718,13 @@ equality_candidates(
 			ava->aa_desc->ad_cname.bv_val, 0, 0 );
 
 	if ( ava->aa_desc == slap_schema.si_ad_entryDN ) {
-		return dn_equality_candidate( op, rtxn, &ava->aa_value, ids );
+		EntryInfo *ei = NULL;
+		rc = bdb_cache_find_ndn( op, rtxn, &ava->aa_value, &ei );
+		if ( rc == LDAP_SUCCESS )
+			bdb_idl_insert( ids, ei->bei_id );
+		if ( ei )
+			bdb_cache_entryinfo_unlock( ei );
+		return rc;
 	}
 
 	BDB_IDL_ALL( bdb, ids );
