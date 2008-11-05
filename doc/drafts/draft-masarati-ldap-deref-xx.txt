@@ -206,11 +206,11 @@ Internet-Draft                 LDAP Deref                   October 2008
    response, without affecting its application to any subsequent
    SearchResultEntry response.
 
+   Servers implementing this technical specification SHOULD publish the
+   object identifier deref-oid (IANA assigned; see Section 6) as a value
+   of the 'supportedControl' attribute [RFC4512] in their root DSE.
+
    This control is totally unrelated to alias dereferencing [RFC4511].
-
-
-
-
 
 
 
@@ -227,7 +227,8 @@ Internet-Draft                 LDAP Deref                   October 2008
 
 2.2.  Control Request
 
-   The specification of the Dereference Control request is:
+   The control type is deref-oid (IANA assigned; see Section 6).  The
+   specification of the Dereference Control request is:
 
          controlValue ::= SEQUENCE OF derefSpec DerefSpec
 
@@ -241,7 +242,8 @@ Internet-Draft                 LDAP Deref                   October 2008
 
 2.3.  Control Response
 
-   The specification of the Dereference Control response is:
+   The control type is deref-oid (IANA assigned; see Section 6).  The
+   specification of the Dereference Control response is:
 
          controlValue ::= SEQUENCE OF derefRes DerefRes
 
@@ -263,8 +265,6 @@ Internet-Draft                 LDAP Deref                   October 2008
    If partialAttribute.vals is empty, the corresponding partialAttribute
    is omitted.  If all partialAttribute.vals in attrVals are empty, that
    derefRes.attrVals is omitted.
-
-
 
 
 

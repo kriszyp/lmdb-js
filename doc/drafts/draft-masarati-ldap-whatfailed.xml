@@ -7,6 +7,8 @@
       'http://xml.resource.org/public/rfc/bibxml/reference.RFC.4510.xml'>
     <!ENTITY rfc4511 PUBLIC '' 
       'http://xml.resource.org/public/rfc/bibxml/reference.RFC.4511.xml'>
+    <!ENTITY rfc4512 PUBLIC '' 
+      'http://xml.resource.org/public/rfc/bibxml/reference.RFC.4512.xml'>
     <!ENTITY rfc4526 PUBLIC '' 
       'http://xml.resource.org/public/rfc/bibxml/reference.RFC.4526.xml'>
     <!ENTITY rfc4529 PUBLIC '' 
@@ -140,11 +142,20 @@ is malformed.
 Clients SHOULD NOT rely on any specific ordering of controls handling
 when requesting the "What Failed?" control.
                 </t>
+
+                <t>
+Servers implementing this technical specification SHOULD publish
+the object identifier whatFailed-oid (IANA assigned;
+see <xref target="iana_considerations" />) as a value
+of the 'supportedControl' attribute <xref target="RFC4512" />
+in their root DSE.
+                </t>
             </section>
 
             <section title="Control Request">
                 <t>
-The controlType is whatFailed-oid;
+The controlType is whatFailed-oid (IANA assigned;
+see <xref target="iana_considerations" />);
 the controlValue MUST be absent;
 the criticality SHOULD be FALSE.
                 </t>
@@ -153,7 +164,8 @@ the criticality SHOULD be FALSE.
             <section title="Control Response">
                 <figure>
                     <preamble>
-The controlType is whatFailed-oid;
+The controlType is whatFailed-oid (IANA assigned;
+see <xref target="iana_considerations" />);
 the controlValue is:
                     </preamble>
                     <artwork>
@@ -187,7 +199,7 @@ in the response.
             </t>
         </section>
 
-        <section title="IANA Considerations">
+        <section anchor="iana_considerations" title="IANA Considerations">
             <section title="Object Identifier Registration">
                 <figure>
                     <preamble>
@@ -217,6 +229,7 @@ Object Identifier for use in this technical specification.
             &rfc2119;
             &rfc4510;
             &rfc4511;
+            &rfc4512;
         </references>
         <references title='Informative References'>
             &rfc4526;

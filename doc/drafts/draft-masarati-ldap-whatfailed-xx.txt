@@ -71,17 +71,17 @@ Table of Contents
    2.  LDAP "What Failed?" Control  . . . . . . . . . . . . . . . . .  4
      2.1.  Control Semantics  . . . . . . . . . . . . . . . . . . . .  4
      2.2.  Control Request  . . . . . . . . . . . . . . . . . . . . .  4
-     2.3.  Control Response . . . . . . . . . . . . . . . . . . . . .  4
-   3.  Implementation Notes . . . . . . . . . . . . . . . . . . . . .  5
-   4.  Security Considerations  . . . . . . . . . . . . . . . . . . .  6
-   5.  IANA Considerations  . . . . . . . . . . . . . . . . . . . . .  7
-     5.1.  Object Identifier Registration . . . . . . . . . . . . . .  7
-   6.  Acknowledgments  . . . . . . . . . . . . . . . . . . . . . . .  8
-   7.  References . . . . . . . . . . . . . . . . . . . . . . . . . .  9
-     7.1.  Normative References . . . . . . . . . . . . . . . . . . .  9
-     7.2.  Informative References . . . . . . . . . . . . . . . . . .  9
-   Author's Address . . . . . . . . . . . . . . . . . . . . . . . . . 10
-   Intellectual Property and Copyright Statements . . . . . . . . . . 11
+     2.3.  Control Response . . . . . . . . . . . . . . . . . . . . .  5
+   3.  Implementation Notes . . . . . . . . . . . . . . . . . . . . .  6
+   4.  Security Considerations  . . . . . . . . . . . . . . . . . . .  7
+   5.  IANA Considerations  . . . . . . . . . . . . . . . . . . . . .  8
+     5.1.  Object Identifier Registration . . . . . . . . . . . . . .  8
+   6.  Acknowledgments  . . . . . . . . . . . . . . . . . . . . . . .  9
+   7.  References . . . . . . . . . . . . . . . . . . . . . . . . . . 10
+     7.1.  Normative References . . . . . . . . . . . . . . . . . . . 10
+     7.2.  Informative References . . . . . . . . . . . . . . . . . . 10
+   Author's Address . . . . . . . . . . . . . . . . . . . . . . . . . 11
+   Intellectual Property and Copyright Statements . . . . . . . . . . 12
 
 
 
@@ -201,14 +201,34 @@ Internet-Draft               LDAP WHATFAILED                October 2008
    ordering of controls handling when requesting the "What Failed?"
    control.
 
+   Servers implementing this technical specification SHOULD publish the
+   object identifier whatFailed-oid (IANA assigned; see Section 5) as a
+   value of the 'supportedControl' attribute [RFC4512] in their root
+   DSE.
+
 2.2.  Control Request
 
-   The controlType is whatFailed-oid; the controlValue MUST be absent;
-   the criticality SHOULD be FALSE.
+   The controlType is whatFailed-oid (IANA assigned; see Section 5); the
+   controlValue MUST be absent; the criticality SHOULD be FALSE.
+
+
+
+
+
+
+
+
+
+
+Masarati                  Expires April 4, 2009                 [Page 4]
+
+Internet-Draft               LDAP WHATFAILED                October 2008
+
 
 2.3.  Control Response
 
-   The controlType is whatFailed-oid; the controlValue is:
+   The controlType is whatFailed-oid (IANA assigned; see Section 5); the
+   controlValue is:
 
        controlValue ::= SET OF oid LDAPOID
 
@@ -220,7 +240,43 @@ Internet-Draft               LDAP WHATFAILED                October 2008
 
 
 
-Masarati                  Expires April 4, 2009                 [Page 4]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Masarati                  Expires April 4, 2009                 [Page 5]
 
 Internet-Draft               LDAP WHATFAILED                October 2008
 
@@ -276,7 +332,7 @@ Internet-Draft               LDAP WHATFAILED                October 2008
 
 
 
-Masarati                  Expires April 4, 2009                 [Page 5]
+Masarati                  Expires April 4, 2009                 [Page 6]
 
 Internet-Draft               LDAP WHATFAILED                October 2008
 
@@ -332,7 +388,7 @@ Internet-Draft               LDAP WHATFAILED                October 2008
 
 
 
-Masarati                  Expires April 4, 2009                 [Page 6]
+Masarati                  Expires April 4, 2009                 [Page 7]
 
 Internet-Draft               LDAP WHATFAILED                October 2008
 
@@ -388,7 +444,7 @@ Internet-Draft               LDAP WHATFAILED                October 2008
 
 
 
-Masarati                  Expires April 4, 2009                 [Page 7]
+Masarati                  Expires April 4, 2009                 [Page 8]
 
 Internet-Draft               LDAP WHATFAILED                October 2008
 
@@ -444,7 +500,7 @@ Internet-Draft               LDAP WHATFAILED                October 2008
 
 
 
-Masarati                  Expires April 4, 2009                 [Page 8]
+Masarati                  Expires April 4, 2009                 [Page 9]
 
 Internet-Draft               LDAP WHATFAILED                October 2008
 
@@ -462,6 +518,10 @@ Internet-Draft               LDAP WHATFAILED                October 2008
 
    [RFC4511]  Sermersheim, J., "Lightweight Directory Access Protocol
               (LDAP): The Protocol", RFC 4511, June 2006.
+
+   [RFC4512]  Zeilenga, K., "Lightweight Directory Access Protocol
+              (LDAP): Directory Information Models", RFC 4512,
+              June 2006.
 
 7.2.  Informative References
 
@@ -496,11 +556,7 @@ Internet-Draft               LDAP WHATFAILED                October 2008
 
 
 
-
-
-
-
-Masarati                  Expires April 4, 2009                 [Page 9]
+Masarati                  Expires April 4, 2009                [Page 10]
 
 Internet-Draft               LDAP WHATFAILED                October 2008
 
@@ -556,7 +612,7 @@ Author's Address
 
 
 
-Masarati                  Expires April 4, 2009                [Page 10]
+Masarati                  Expires April 4, 2009                [Page 11]
 
 Internet-Draft               LDAP WHATFAILED                October 2008
 
@@ -612,5 +668,5 @@ Intellectual Property
 
 
 
-Masarati                  Expires April 4, 2009                [Page 11]
+Masarati                  Expires April 4, 2009                [Page 12]
 
