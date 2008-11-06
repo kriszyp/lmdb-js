@@ -2809,13 +2809,13 @@ syncrepl_updateCookie(
 	op->o_req_ndn = op->o_bd->be_nsuffix[0];
 
 	/* update contextCSN */
-	op->o_msgid = SLAP_SYNC_UPDATE_MSGID;
+	op->o_dont_replicate = 1;
 
 	op->orm_modlist = &mod;
 	op->orm_no_opattrs = 1;
 	rc = op->o_bd->be_modify( op, &rs_modify );
 	op->orm_no_opattrs = 0;
-	op->o_msgid = 0;
+	op->o_dont_replicate = 0;
 
 	if ( rs_modify.sr_err == LDAP_SUCCESS ) {
 		slap_sync_cookie_free( &si->si_syncCookie, 0 );

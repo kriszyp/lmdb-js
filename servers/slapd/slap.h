@@ -1694,8 +1694,6 @@ struct syncinfo_s;
 #define SLAP_SYNC_SID_MAX	4095	/* based on liblutil/csn.c field width */
 #define SLAP_SYNCUUID_SET_SIZE 256
 
-#define	SLAP_SYNC_UPDATE_MSGID	1
-
 struct sync_cookie {
 	struct berval *ctxcsn;
 	struct berval octet_str;
@@ -2594,6 +2592,7 @@ struct Operation {
 	GroupAssertion *o_groups;
 	char o_do_not_cache;	/* don't cache groups from this op */
 	char o_is_auth_check;	/* authorization in progress */
+	char o_dont_replicate;
 	slap_access_t o_acl_priv;
 
 	char o_nocaching;
