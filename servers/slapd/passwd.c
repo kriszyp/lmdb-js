@@ -228,8 +228,12 @@ int passwd_extop(
 		if ( rc == LDAP_SUCCESS && e ) {
 			Attribute *a = attr_find( e->e_attrs,
 				slap_schema.si_ad_userPassword );
-			if ( a )
+			if ( a ) {
+				char oldNul = qpw->rs_old.bv_val[qpw->rs_old.bv_len];
+				qpw->rs_old.bv_val[qpw->rs_old.bv_len] = 0;
 				rc = slap_passwd_check( op, e, a, &qpw->rs_old, &rs->sr_text );
+				qpw->rs_old.bv_val[qpw->rs_old.bv_len] = oldNul;
+			}
 			else
 				rc = 1;
 			be_entry_release_r( op, e );
