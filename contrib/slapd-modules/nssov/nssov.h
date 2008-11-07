@@ -277,7 +277,7 @@ int nssov_shadow_all(nssov_info *ni,TFILE *fp,Operation *op);
 	op->ors_slimit = SLAP_NO_LIMIT; \
     /* do the internal search */ \
 	op->o_bd->be_search( op, &rs ); \
-	filter_free_x( op, op->ors_filter ); \
+	filter_free_x( op, op->ors_filter, 1 ); \
     return 0; \
   }
 
