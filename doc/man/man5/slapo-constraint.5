@@ -27,15 +27,16 @@ It should appear after the
 .B overlay
 directive.
 .TP
-.B constraint_attribute <attribute_name> <type> <value>
+.B constraint_attribute <attribute_name>[,...] <type> <value>
 Specifies the constraint which should apply to the attribute named as
 the first parameter.
 Two types of constraint are currently supported -
-.B regex ,
-.B size ,
-.B count ,
+.BR regex ,
+.BR size ,
+.BR count ,
+.BR uri ,
 and
-.BR uri .
+.BR set .
 
 The parameter following the
 .B regex
@@ -46,6 +47,12 @@ type is a Unix style regular expression (See
 type is an LDAP URI. The URI will be evaluated using an internal search.
 It must not include a hostname, and it must include a list of attributes
 to evaluate.
+
+The parameter following the
+.B set
+type is a string that is interpreted according to the syntax in use
+for ACL sets.  This allows to construct constraints based on the contents
+of the entry.
 
 The 
 .B size
@@ -67,8 +74,11 @@ constraint_attribute userPassword count 3
 constraint_attribute mail regex ^[:alnum:]+@mydomain.com$
 constraint_attribute title uri
   ldap:///dc=catalog,dc=example,dc=com?title?sub?(objectClass=titleCatalog)
+constraint_attribute cn,sn,givenName set
+  "(this/givenName + [ ] + this/sn) & this/cn"
 .fi
 
+.RE
 A specification like the above would reject any
 .B mail
 attribute which did not look like
@@ -80,6 +90,13 @@ attribute whose values were not listed in the
 attribute of any
 .B titleCatalog
 entries in the given scope.
+Finally, it requires the values of the attribute
+.B cn
+to be constructed by pairing values of the attributes
+.B sn
+and 
+.BR givenName ,
+separated by a space.
 .RE
 .SH FILES
 .TP
