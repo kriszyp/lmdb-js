@@ -42,6 +42,7 @@ typedef struct translucent_info {
 	int no_glue;
 	int defer_db_open;
 	int bind_local;
+	int pwmod_local;
 } translucent_info;
 
 static ConfigLDAPadd translucent_ldadd;
@@ -85,6 +86,12 @@ static ConfigTable translucentcfg[] = {
 	  "( OLcfgOvAt:14.5 NAME 'olcTranslucentBindLocal' "
 	  "DESC 'Enable local bind' "
 	  "SYNTAX OMsBoolean SINGLE-VALUE)", NULL, NULL },
+	{ "translucent_pwmod_local", "on|off", 1, 2, 0,
+	  ARG_ON_OFF|ARG_OFFSET,
+	  (void *)offsetof(translucent_info, pwmod_local),
+	  "( OLcfgOvAt:14.6 NAME 'olcTranslucentPwModLocal' "
+	  "DESC 'Enable local RFC 3062 Password Modify extended operation' "
+	  "SYNTAX OMsBoolean SINGLE-VALUE)", NULL, NULL },
 	{ NULL, NULL, 0, 0, 0, ARG_IGNORED }
 };
 
@@ -103,7 +110,7 @@ static ConfigOCs translucentocs[] = {
 	  "SUP olcOverlayConfig "
 	  "MAY ( olcTranslucentStrict $ olcTranslucentNoGlue $"
 	  " olcTranslucentLocal $ olcTranslucentRemote $"
-	  " olcTranslucentBindLocal ) )",
+	  " olcTranslucentBindLocal $ olcTranslucentPwModLocal ) )",
 	  Cft_Overlay, translucentcfg, NULL, translucent_cfadd },
 	{ "( OLcfgOvOc:14.2 "
 	  "NAME 'olcTranslucentDatabase' "
@@ -634,6 +641,128 @@ static int translucent_compare(Operation *op, SlapReply *rs) {
 	op->o_bd = db;
 
 	return(rc);
+}
+
+static int translucent_pwmod(Operation *op, SlapReply *rs) {
+	SlapReply nrs = { REP_RESULT };
+	Operation nop;
+
+	slap_overinst *on = (slap_overinst *) op->o_bd->bd_info;
+	translucent_info *ov = on->on_bi.bi_private;
+	const struct berval bv_exop_pwmod = BER_BVC(LDAP_EXOP_MODIFY_PASSWD);
+	Entry *e = NULL, *re = NULL;
+	BackendDB *db;
+	int rc = 0;
+	slap_callback cb = { 0 };
+
+	if (!ov->pwmod_local) {
+		rs->sr_err = LDAP_CONSTRAINT_VIOLATION,
+		rs->sr_text = "attempt to modify password in local database";
+		return rs->sr_err;
+	}
+
+/*
+** fetch entry from the captive backend;
+** if it did not exist, fail;
+** release it, if captive backend supports this;
+**
+*/
+	db = op->o_bd;
+	op->o_bd = &ov->db;
+	rc = ov->db.bd_info->bi_entry_get_rw(op, &op->o_req_ndn, NULL, NULL, 0, &re);
+	if(rc != LDAP_SUCCESS || re == NULL ) {
+		send_ldap_error((op), rs, LDAP_NO_SUCH_OBJECT,
+			"attempt to modify nonexistent local record");
+		return(rs->sr_err);
+	}
+	op->o_bd = db;
+/*
+** fetch entry from local backend;
+** if it exists:
+**	return CONTINUE;
+*/
+
+	op->o_bd->bd_info = (BackendInfo *) on->on_info;
+	rc = be_entry_get_rw(op, &op->o_req_ndn, NULL, NULL, 0, &e);
+	op->o_bd->bd_info = (BackendInfo *) on;
+
+	if(e && rc == LDAP_SUCCESS) {
+		if(re) {
+			if(ov->db.bd_info->bi_entry_release_rw) {
+				op->o_bd = &ov->db;
+				ov->db.bd_info->bi_entry_release_rw(op, re, 0);
+				op->o_bd = db;
+			} else {
+				entry_free(re);
+			}
+		}
+		op->o_bd->bd_info = (BackendInfo *) on->on_info;
+		be_entry_release_r(op, e);
+		op->o_bd->bd_info = (BackendInfo *) on;
+		return SLAP_CB_CONTINUE;
+	}
+
+	/* don't leak remote entry copy */
+	if(re) {
+		if(ov->db.bd_info->bi_entry_release_rw) {
+			op->o_bd = &ov->db;
+			ov->db.bd_info->bi_entry_release_rw(op, re, 0);
+			op->o_bd = db;
+		} else {
+			entry_free(re);
+		}
+	}
+/*
+** glue_parent() for this Entry;
+** call bi_op_add() in local backend;
+**
+*/
+	e = entry_alloc();
+	ber_dupbv( &e->e_name, &op->o_req_dn );
+	ber_dupbv( &e->e_nname, &op->o_req_ndn );
+	e->e_attrs = NULL;
+
+	nop = *op;
+	nop.o_tag = LDAP_REQ_ADD;
+	cb.sc_response = slap_null_cb;
+	nop.oq_add.rs_e	= e;
+
+	glue_parent(&nop);
+
+	nop.o_callback = &cb;
+	rc = on->on_info->oi_orig->bi_op_add(&nop, &nrs);
+	if ( nop.ora_e == e ) {
+		entry_free( e );
+	}
+
+	if ( rc == LDAP_SUCCESS ) {
+		return SLAP_CB_CONTINUE;
+	}
+
+	return rc;
+}
+
+static int translucent_exop(Operation *op, SlapReply *rs) {
+	SlapReply nrs = { REP_RESULT };
+
+	slap_overinst *on = (slap_overinst *) op->o_bd->bd_info;
+	translucent_info *ov = on->on_bi.bi_private;
+	const struct berval bv_exop_pwmod = BER_BVC(LDAP_EXOP_MODIFY_PASSWD);
+
+	Debug(LDAP_DEBUG_TRACE, "==> translucent_exop: %s\n",
+		op->o_req_dn.bv_val, 0, 0);
+
+	if(ov->defer_db_open) {
+		send_ldap_error(op, rs, LDAP_UNAVAILABLE,
+			"remote DB not available");
+		return(rs->sr_err);
+	}
+
+	if ( bvmatch( &bv_exop_pwmod, &op->ore_reqoid ) ) {
+		return translucent_pwmod( op, rs );
+	}
+
+	return SLAP_CB_CONTINUE;
 }
 
 /*
@@ -1270,6 +1399,7 @@ int translucent_initialize() {
 	translucent.on_bi.bi_op_search	= translucent_search;
 	translucent.on_bi.bi_op_compare	= translucent_compare;
 	translucent.on_bi.bi_connection_destroy = translucent_connection_destroy;
+	translucent.on_bi.bi_extended	= translucent_exop;
 
 	translucent.on_bi.bi_cf_ocs = translucentocs;
 	rc = config_register_schema ( translucentcfg, translucentocs );

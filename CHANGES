@@ -9,6 +9,7 @@ OpenLDAP 2.4.13 Engineering
 	Added slapo-constraint support for relax control (ITS#5705)
 	Added slapo-constraint "set" type (ITS#5702)
 	Added slapo-translucent try local bind when remote fails (ITS#5656)
+	Added slapo-translucent support for RFC3062 password mod extended op (ITS#5656)
 
 OpenLDAP 2.4.12 Release (2008/10/12)
 	Fixed libldap ldap_utf8_strchar arguments (ITS#5720)
