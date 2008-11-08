@@ -20,6 +20,10 @@ like telephone numbers, post codes, FQDNs, etc.
 It constrains only LDAP \fIadd\fP, \fImodify\fP and \fIrename\fP commands
 and only seeks to control the \fIadd\fP and \fIreplace\fP values
 of \fImodify\fP and \fIrename\fP requests.
+.LP
+No constraints are applied for operations performed with the
+.I relax
+control set.
 .SH CONFIGURATION
 This
 .B slapd.conf
