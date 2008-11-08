@@ -579,7 +579,7 @@ cleanup:;
 			slap_op_groups_free( &o );
 		}
 		if ( o.ors_filter ) {
-			filter_free_x( &o, o.ors_filter );
+			filter_free_x( &o, o.ors_filter, 1 );
 		}
 		if ( o.ors_attrs && o.ors_attrs != rs->sr_attrs
 				&& o.ors_attrs != slap_anlist_no_attrs )

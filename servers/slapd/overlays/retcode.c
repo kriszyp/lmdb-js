@@ -273,7 +273,7 @@ retcode_op_internal( Operation *op, SlapReply *rs )
 	rc = op2.o_bd->be_search( &op2, rs );
 	op->o_abandon = op2.o_abandon;
 
-	filter_free_x( &op2, op2.ors_filter );
+	filter_free_x( &op2, op2.ors_filter, 1 );
 	ber_memfree_x( op2.ors_filterstr.bv_val, op2.o_tmpmemctx );
 
 	if ( rdc.rdc_flags == SLAP_CB_CONTINUE ) {

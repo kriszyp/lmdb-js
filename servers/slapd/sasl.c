@@ -1044,7 +1044,7 @@ slapd_rw_apply( void *private, const char *filter, struct berval *val )
 		}
 		rc = REWRITE_ERR;
 	}
-	filter_free_x( op, op->ors_filter );
+	filter_free_x( op, op->ors_filter, 1 );
 	op->o_tmpfree( op->ors_filterstr.bv_val, op->o_tmpmemctx );
 	return rc;
 }

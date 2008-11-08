@@ -492,7 +492,7 @@ return_error:
 }
 
 void
-filter_free_x( Operation *op, Filter *f )
+filter_free_x( Operation *op, Filter *f, int freeme )
 {
 	Filter	*p, *next;
 
@@ -531,7 +531,7 @@ filter_free_x( Operation *op, Filter *f )
 	case LDAP_FILTER_NOT:
 		for ( p = f->f_list; p != NULL; p = next ) {
 			next = p->f_next;
-			filter_free_x( op, p );
+			filter_free_x( op, p, 1 );
 		}
 		break;
 
@@ -548,7 +548,9 @@ filter_free_x( Operation *op, Filter *f )
 		break;
 	}
 
-	op->o_tmpfree( f, op->o_tmpmemctx );
+	if ( freeme ) {
+		op->o_tmpfree( f, op->o_tmpmemctx );
+	}
 }
 
 void
@@ -560,7 +562,7 @@ filter_free( Filter *f )
 	op.o_hdr = &ohdr;
 	op.o_tmpmemctx = slap_sl_context( f );
 	op.o_tmpmfuncs = &slap_sl_mfuncs;
-	filter_free_x( &op, f );
+	filter_free_x( &op, f, 1 );
 }
 
 void

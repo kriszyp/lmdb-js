@@ -3,6 +3,7 @@ OpenLDAP 2.4 Change Log
 OpenLDAP 2.4.13 Engineering
 	Fixed liblutil hex conversion (ITS#5699)
 	Fixed slapd database open with real structure (ITS#5724)
+	Fixed slapd rewriting undefined filter (ITS#5731)
 	Added slapd GSSAPI refactoring (ITS#5369)
 	Added slapd support for certificateListExactMatch from RFC4523 (ITS#5700)
 	Fixed slapd-bdb/hdb invalid db crash (ITS#5698)
@@ -10,6 +11,7 @@ OpenLDAP 2.4.13 Engineering
 	Added slapo-constraint support for constraining rename (ITS#5703)
 	Added slapo-constraint support for relax control (ITS#5705)
 	Added slapo-constraint "set" type (ITS#5702)
+	Fixed slapo-rwm reusing freed filter (ITS#5732)
 	Added slapo-translucent try local bind when remote fails (ITS#5656)
 	Added slapo-translucent support for RFC3062 password mod extended op (ITS#5656)
 

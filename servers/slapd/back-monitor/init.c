@@ -868,7 +868,7 @@ monitor_search2ndn(
 
 cleanup:;
 	if ( op->ors_filter != NULL ) {
-		filter_free_x( op, op->ors_filter );
+		filter_free_x( op, op->ors_filter, 1 );
 	}
 	if ( !BER_BVISNULL( &op->ors_filterstr ) ) {
 		op->o_tmpfree( op->ors_filterstr.bv_val, op->o_tmpmemctx );

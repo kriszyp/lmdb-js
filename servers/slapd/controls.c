@@ -1205,7 +1205,7 @@ static int parseAssert (
 			send_ldap_result( op, rs );
 		}
 		if( op->o_assertion != NULL ) {
-			filter_free_x( op, op->o_assertion );
+			filter_free_x( op, op->o_assertion, 1 );
 		}
 		return rs->sr_err;
 	}

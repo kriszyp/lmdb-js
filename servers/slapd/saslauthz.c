@@ -1226,7 +1226,7 @@ is_dn:		bv.bv_len = uri->bv_len - (bv.bv_val - uri->bv_val);
 
 done:
 	if( rc != LDAP_SUCCESS ) {
-		if( *filter ) filter_free_x( op, *filter );
+		if( *filter ) filter_free_x( op, *filter, 1 );
 		BER_BVZERO( base );
 		BER_BVZERO( fstr );
 	} else {
@@ -1843,7 +1843,7 @@ exact_match:
 CONCLUDED:
 	if( !BER_BVISNULL( &op.o_req_dn ) ) slap_sl_free( op.o_req_dn.bv_val, opx->o_tmpmemctx );
 	if( !BER_BVISNULL( &op.o_req_ndn ) ) slap_sl_free( op.o_req_ndn.bv_val, opx->o_tmpmemctx );
-	if( op.ors_filter ) filter_free_x( opx, op.ors_filter );
+	if( op.ors_filter ) filter_free_x( opx, op.ors_filter, 1 );
 	if( !BER_BVISNULL( &op.ors_filterstr ) ) ch_free( op.ors_filterstr.bv_val );
 
 	Debug( LDAP_DEBUG_TRACE,
@@ -2015,7 +2015,7 @@ FINISHED:
 		slap_sl_free( op.o_req_ndn.bv_val, opx->o_tmpmemctx );
 	}
 	if( op.ors_filter ) {
-		filter_free_x( opx, op.ors_filter );
+		filter_free_x( opx, op.ors_filter, 1 );
 	}
 	if( !BER_BVISNULL( &op.ors_filterstr ) ) {
 		ch_free( op.ors_filterstr.bv_val );

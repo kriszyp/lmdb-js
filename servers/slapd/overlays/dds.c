@@ -185,7 +185,7 @@ dds_expire( void *ctx, dds_info_t *di )
 
 done_search:;
 	op->o_tmpfree( op->ors_filterstr.bv_val, op->o_tmpmemctx );
-	filter_free_x( op, op->ors_filter );
+	filter_free_x( op, op->ors_filter, 1 );
 
 	rc = rs.sr_err;
 	switch ( rs.sr_err ) {
@@ -1671,7 +1671,7 @@ dds_count( void *ctx, BackendDB *be )
 
 done_search:;
 	op->o_tmpfree( op->ors_filterstr.bv_val, op->o_tmpmemctx );
-	filter_free_x( op, op->ors_filter );
+	filter_free_x( op, op->ors_filter, 1 );
 
 	rc = rs.sr_err;
 	switch ( rs.sr_err ) {

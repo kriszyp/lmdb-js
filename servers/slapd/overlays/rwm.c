@@ -96,7 +96,7 @@ rwm_op_rollback( Operation *op, SlapReply *rs, rwm_op_state *ros )
 		break;
 	case LDAP_REQ_SEARCH:
 		ch_free( ros->mapped_attrs );
-		filter_free_x( op, op->ors_filter );
+		filter_free_x( op, op->ors_filter, 1 );
 		ch_free( op->ors_filterstr.bv_val );
 		op->ors_attrs = ros->ors_attrs;
 		op->ors_filter = ros->ors_filter;
@@ -833,7 +833,7 @@ error_return:;
 	}
 
 	if ( f != NULL ) {
-		filter_free_x( op, f );
+		filter_free_x( op, f, 1 );
 	}
 
 	if ( !BER_BVISNULL( &fstr ) ) {

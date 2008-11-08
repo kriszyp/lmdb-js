@@ -495,6 +495,10 @@ rwm_int_filter_map_rewrite(
 		return LDAP_OTHER;
 	}
 
+	if ( f->f_choice & SLAPD_FILTER_UNDEFINED ) {
+		goto computed;
+	}
+
 	switch ( f->f_choice & SLAPD_FILTER_MASK ) {
 	case LDAP_FILTER_EQUALITY:
 		ad = f->f_av_desc;
@@ -706,7 +710,7 @@ rwm_int_filter_map_rewrite(
 
 	case -1:
 computed:;
-		filter_free_x( op, f );
+		filter_free_x( op, f, 0 );
 		f->f_choice = SLAPD_FILTER_COMPUTED;
 		f->f_result = SLAPD_COMPARE_UNDEFINED;
 		/* fallthru */
