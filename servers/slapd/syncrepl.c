@@ -4063,9 +4063,6 @@ add_syncrepl(
 			"Config: ** successfully added syncrepl \"%s\"\n",
 			BER_BVISNULL( &si->si_bindconf.sb_uri ) ?
 			"(null)" : si->si_bindconf.sb_uri.bv_val, 0, 0 );
-		if ( !si->si_schemachecking ) {
-			SLAP_DBFLAGS(c->be) |= SLAP_DBFLAG_NO_SCHEMA_CHECK;
-		}
 		if ( c->be->be_syncinfo ) {
 			si->si_cookieState = c->be->be_syncinfo->si_cookieState;
 		} else {
