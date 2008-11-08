@@ -2,6 +2,7 @@ OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.13 Engineering
 	Fixed liblutil hex conversion (ITS#5699)
+	Added slapd support for certificateListExactMatch from RFC4523 (ITS#5700)
 	Fixed slapd-bdb/hdb invalid db crash (ITS#5698)
 	Added slapo-translucent try local bind when remote fails (ITS#5656)
 
