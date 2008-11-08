@@ -71,6 +71,11 @@ ldap_bind( LDAP *ld, LDAP_CONST char *dn, LDAP_CONST char *passwd, int authmetho
 	case LDAP_AUTH_SIMPLE:
 		return( ldap_simple_bind( ld, dn, passwd ) );
 
+#ifdef HAVE_GSSAPI
+	case LDAP_AUTH_NEGOTIATE:
+		return( ldap_gssapi_bind_s( ld, dn, passwd) );
+#endif
+
 	case LDAP_AUTH_SASL:
 		/* user must use ldap_sasl_bind */
 		/* FALL-THRU */
@@ -106,6 +111,11 @@ ldap_bind_s(
 	switch ( authmethod ) {
 	case LDAP_AUTH_SIMPLE:
 		return( ldap_simple_bind_s( ld, dn, passwd ) );
+
+#ifdef HAVE_GSSAPI
+	case LDAP_AUTH_NEGOTIATE:
+		return( ldap_gssapi_bind_s( ld, dn, passwd) );
+#endif
 
 	case LDAP_AUTH_SASL:
 		/* user must use ldap_sasl_bind */

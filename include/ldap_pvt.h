@@ -21,6 +21,7 @@
 #define _LDAP_PVT_H 1
 
 #include <lber.h>				/* get ber_slen_t */
+#include <lber_pvt.h>				/* get Sockbuf_Buf */
 
 LDAP_BEGIN_DECL
 
@@ -217,12 +218,52 @@ LDAP_F (void *) ldap_pvt_sasl_mutex_new LDAP_P((void));
 LDAP_F (int) ldap_pvt_sasl_mutex_lock LDAP_P((void *mutex));
 LDAP_F (int) ldap_pvt_sasl_mutex_unlock LDAP_P((void *mutex));
 LDAP_F (void) ldap_pvt_sasl_mutex_dispose LDAP_P((void *mutex));
+#endif /* HAVE_CYRUS_SASL */
 
 struct sockbuf; /* avoid pulling in <lber.h> */
 LDAP_F (int) ldap_pvt_sasl_install LDAP_P(( struct sockbuf *, void * ));
 LDAP_F (void) ldap_pvt_sasl_remove LDAP_P(( struct sockbuf * ));
-#endif /* HAVE_CYRUS_SASL */
 
+/*
+ * SASL encryption support for LBER Sockbufs
+ */
+
+struct sb_sasl_generic_data;
+
+struct sb_sasl_generic_ops {
+	void (*init)(struct sb_sasl_generic_data *p,
+		     ber_len_t *min_send,
+		     ber_len_t *max_send,
+		     ber_len_t *max_recv);
+	ber_int_t (*encode)(struct sb_sasl_generic_data *p,
+			    unsigned char *buf,
+			    ber_len_t len,
+			    Sockbuf_Buf *dst);
+	ber_int_t (*decode)(struct sb_sasl_generic_data *p,
+			    const Sockbuf_Buf *src,
+			    Sockbuf_Buf *dst);
+	void (*reset_buf)(struct sb_sasl_generic_data *p,
+			  Sockbuf_Buf *buf);
+	void (*fini)(struct sb_sasl_generic_data *p);
+};
+
+struct sb_sasl_generic_install {
+	const struct sb_sasl_generic_ops 	*ops;
+	void					*ops_private;
+};
+
+struct sb_sasl_generic_data {
+	const struct sb_sasl_generic_ops 	*ops;
+	void					*ops_private;
+	Sockbuf_IO_Desc				*sbiod;
+	ber_len_t				min_send;
+	ber_len_t				max_send;
+	ber_len_t				max_recv;
+	Sockbuf_Buf				sec_buf_in;
+	Sockbuf_Buf				buf_in;
+	Sockbuf_Buf				buf_out;
+};
+ 
 #ifndef LDAP_PVT_SASL_LOCAL_SSF
 #define LDAP_PVT_SASL_LOCAL_SSF	71	/* SSF for Unix Domain Sockets */
 #endif /* ! LDAP_PVT_SASL_LOCAL_SSF */

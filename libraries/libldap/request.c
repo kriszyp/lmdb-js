@@ -736,6 +736,9 @@ ldap_free_connection( LDAP *ld, LDAPConn *lc, int force, int unbind )
 		}
 
 		ldap_int_sasl_close( ld, lc );
+#ifdef HAVE_GSSAPI
+		ldap_int_gssapi_close( ld, lc );
+#endif
 
 		ldap_free_urllist( lc->lconn_server );
 

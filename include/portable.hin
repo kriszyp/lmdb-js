@@ -250,6 +250,18 @@
 /* Define to 1 if you have the <grp.h> header file. */
 #undef HAVE_GRP_H
 
+/* define if you have GSSAPI */
+#undef HAVE_GSSAPI
+
+/* Define to 1 if you have the <gssapi/gssapi.h> header file. */
+#undef HAVE_GSSAPI_GSSAPI_H
+
+/* Define to 1 if you have the <gssapi.h> header file. */
+#undef HAVE_GSSAPI_H
+
+/* Define to 1 if you have the `gss_oid_to_str' function. */
+#undef HAVE_GSS_OID_TO_STR
+
 /* Define to 1 if you have the `hstrerror' function. */
 #undef HAVE_HSTRERROR
 

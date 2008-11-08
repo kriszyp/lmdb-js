@@ -227,6 +227,15 @@ struct ldapoptions {
 	struct sasl_security_properties	ldo_sasl_secprops;
 #endif
 
+#ifdef HAVE_GSSAPI
+	unsigned gssapi_flags;
+
+	unsigned ldo_gssapi_flags;
+#define LDAP_GSSAPI_OPT_DO_NOT_FREE_GSS_CONTEXT	0x0001
+#define LDAP_GSSAPI_OPT_ALLOW_REMOTE_PRINCIPAL	0x0002
+	unsigned ldo_gssapi_options;
+#endif
+
 	int		ldo_refhoplimit;	/* limit on referral nesting */
 
 	/* LDAPv3 server and client controls */
@@ -256,6 +265,9 @@ typedef struct ldap_conn {
 #ifdef HAVE_CYRUS_SASL
 	void		*lconn_sasl_authctx;	/* context for bind */
 	void		*lconn_sasl_sockctx;	/* for security layer */
+#endif
+#ifdef HAVE_GSSAPI
+	void		*lconn_gss_ctx;		/* gss_ctx_id_t */
 #endif
 	int			lconn_refcnt;
 	time_t		lconn_created;	/* time */
@@ -400,6 +412,9 @@ LDAP_V ( ldap_pvt_thread_mutex_t ) ldap_int_resolv_mutex;
 
 #ifdef HAVE_CYRUS_SASL
 LDAP_V( ldap_pvt_thread_mutex_t ) ldap_int_sasl_mutex;
+#endif
+#ifdef HAVE_GSSAPI
+LDAP_V( ldap_pvt_thread_mutex_t ) ldap_int_gssapi_mutex;
 #endif
 #endif
 

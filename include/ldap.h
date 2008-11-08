@@ -108,6 +108,17 @@ LDAP_BEGIN_DECL
 #define LDAP_OPT_ERROR_STRING			LDAP_OPT_DIAGNOSTIC_MESSAGE
 #define LDAP_OPT_MATCHED_DN			0x0033
 /* 0x0034 - 0x3fff not defined */
+/* 0x0091 used by Microsoft for LDAP_OPT_AUTO_RECONNECT */
+#define LDAP_OPT_SSPI_FLAGS			0x0092
+/* 0x0093 used by Microsoft for LDAP_OPT_SSL_INFO */
+/* 0x0094 used by Microsoft for LDAP_OPT_REF_DEREF_CONN_PER_MSG */
+#define LDAP_OPT_SIGN				0x0095
+#define LDAP_OPT_ENCRYPT			0x0096
+#define LDAP_OPT_SASL_METHOD			0x0097
+/* 0x0098 used by Microsoft for LDAP_OPT_AREC_EXCLUSIVE */
+#define LDAP_OPT_SECURITY_CONTEXT		0x0099
+/* 0x009A used by Microsoft for LDAP_OPT_ROOTDSE_CACHE */
+/* 0x009B - 0x3fff not defined */
 
 /* API Extensions */
 #define LDAP_OPT_API_EXTENSION_BASE 0x4000  /* API extensions */
@@ -164,7 +175,13 @@ LDAP_BEGIN_DECL
 #define LDAP_OPT_X_SASL_SECPROPS		0x6106 /* write-only */
 #define LDAP_OPT_X_SASL_SSF_MIN			0x6107
 #define LDAP_OPT_X_SASL_SSF_MAX			0x6108
-#define	LDAP_OPT_X_SASL_MAXBUFSIZE		0x6109
+#define LDAP_OPT_X_SASL_MAXBUFSIZE		0x6109
+#define LDAP_OPT_X_SASL_MECHLIST		0x610a /* read-only */
+
+/* OpenLDAP GSSAPI options */
+#define LDAP_OPT_X_GSSAPI_DO_NOT_FREE_CONTEXT      0x6200
+#define LDAP_OPT_X_GSSAPI_ALLOW_REMOTE_PRINCIPAL   0x6201
+
 
 /* Private API Extensions -- reserved for application use */
 #define LDAP_OPT_PRIVATE_EXTENSION_BASE 0x7000  /* Private API inclusive */
@@ -481,6 +498,8 @@ typedef struct ldapcontrol {
 #define LDAP_AUTH_KRBV41 ((ber_tag_t) 0x81U) /* context specific + primitive */
 #define LDAP_AUTH_KRBV42 ((ber_tag_t) 0x82U) /* context specific + primitive */
 
+/* used by the Windows API but not used on the wire */
+#define LDAP_AUTH_NEGOTIATE ((ber_tag_t) 0x04FFU)
 
 /* filter types */
 #define LDAP_FILTER_AND	((ber_tag_t) 0xa0U)	/* context specific + constructed */
