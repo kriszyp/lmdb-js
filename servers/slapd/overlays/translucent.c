@@ -95,14 +95,6 @@ static ConfigTable translucentcfg[] = {
 	{ NULL, NULL, 0, 0, 0, ARG_IGNORED }
 };
 
-static ConfigTable transdummy[] = {
-	{ "", "", 0, 0, 0, ARG_IGNORED,
-		NULL, "( OLcfgGlAt:13 NAME 'olcDatabase' "
-			"DESC 'The backend type for a database instance' "
-			"SUP olcBackend SINGLE-VALUE X-ORDERED 'SIBLINGS' )", NULL, NULL },
-	{ NULL, NULL, 0, 0, 0, ARG_IGNORED }
-};
-
 static ConfigOCs translucentocs[] = {
 	{ "( OLcfgOvOc:14.1 "
 	  "NAME 'olcTranslucentConfig' "
@@ -115,7 +107,7 @@ static ConfigOCs translucentocs[] = {
 	{ "( OLcfgOvOc:14.2 "
 	  "NAME 'olcTranslucentDatabase' "
 	  "DESC 'Translucent target database configuration' "
-	  "AUXILIARY )", Cft_Misc, transdummy, translucent_ldadd },
+	  "AUXILIARY )", Cft_Misc, olcDatabaseDummy, translucent_ldadd },
 	{ NULL, 0, NULL }
 };
 /* for translucent_init() */

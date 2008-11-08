@@ -63,6 +63,7 @@ typedef enum {
 	LDAP_CH_RES,
 	LDAP_CH_ERR
 } ldap_chain_status_t;
+
 static BackendInfo	*lback;
 
 typedef struct ldap_chain_t {
@@ -1096,7 +1097,7 @@ static ConfigOCs chainocs[] = {
 		"NAME 'olcChainDatabase' "
 		"DESC 'Chain remote server configuration' "
 		"AUXILIARY )",
-		Cft_Misc, chaincfg, chain_ldadd },
+		Cft_Misc, olcDatabaseDummy, chain_ldadd },
 	{ NULL, 0, NULL }
 };
 
@@ -1186,6 +1187,8 @@ chain_ldadd( CfEntryInfo *p, Entry *e, ConfigArgs *ca )
 			goto done;
 		}
 	}
+
+	ca->ca_private = on;
 
 done:;
 	if ( rc != LDAP_SUCCESS ) {
@@ -1510,17 +1513,11 @@ ldap_chain_db_init(
 	ldap_chain_t	*lc = NULL;
 
 	if ( lback == NULL ) {
-		static BackendInfo	lback2;
-
 		lback = backend_info( "ldap" );
 
 		if ( lback == NULL ) {
 			return 1;
 		}
-
-		lback2 = *lback;
-		lback2.bi_type = ldapchain.on_bi.bi_type;
-		lback = &lback2;
 	}
 
 	lc = ch_malloc( sizeof( ldap_chain_t ) );
@@ -2062,7 +2059,8 @@ ldap_chain_parse_ctrl(
 int
 chain_initialize( void )
 {
-	int	rc;
+	int rc;
+	const char *text;
 
 	/* Make sure we don't exceed the bits reserved for userland */
 	config_check_userland( CH_LAST );

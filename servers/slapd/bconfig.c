@@ -696,6 +696,15 @@ static ConfigTable config_back_cf_table[] = {
 		NULL, NULL, NULL, NULL }
 };
 
+/* Need to no-op this keyword for dynamic config */
+ConfigTable olcDatabaseDummy[] = {
+	{ "", "", 0, 0, 0, ARG_IGNORED,
+		NULL, "( OLcfgGlAt:13 NAME 'olcDatabase' "
+			"DESC 'The backend type for a database instance' "
+			"SUP olcBackend SINGLE-VALUE X-ORDERED 'SIBLINGS' )", NULL, NULL },
+	{ NULL, NULL, 0, 0, 0, ARG_IGNORED }
+};
+
 /* Routines to check if a child can be added to this type */
 static ConfigLDAPadd cfAddSchema, cfAddInclude, cfAddDatabase,
 	cfAddBackend, cfAddModule, cfAddOverlay;
@@ -3253,7 +3262,7 @@ typedef struct setup_cookie {
 	ConfigArgs *ca;
 	Entry *frontend;
 	Entry *config;
-	int	got_frontend;
+	int got_frontend;
 	int got_config;
 } setup_cookie;
 
@@ -3262,15 +3271,18 @@ config_ldif_resp( Operation *op, SlapReply *rs )
 {
 	if ( rs->sr_type == REP_SEARCH ) {
 		setup_cookie *sc = op->o_callback->sc_private;
+		struct berval pdn;
 
 		sc->cfb->cb_got_ldif = 1;
 		/* Does the frontend exist? */
 		if ( !sc->got_frontend ) {
 			if ( !strncmp( rs->sr_entry->e_nname.bv_val,
-				"olcDatabase", STRLENOF( "olcDatabase" ))) {
+				"olcDatabase", STRLENOF( "olcDatabase" )))
+			{
 				if ( strncmp( rs->sr_entry->e_nname.bv_val +
 					STRLENOF( "olcDatabase" ), "={-1}frontend",
-					STRLENOF( "={-1}frontend" ))) {
+					STRLENOF( "={-1}frontend" )))
+				{
 					struct berval rdn;
 					int i = op->o_noop;
 					sc->ca->be = frontendDB;
@@ -3293,13 +3305,19 @@ config_ldif_resp( Operation *op, SlapReply *rs )
 				}
 			}
 		}
+
+		dnParent( &rs->sr_entry->e_nname, &pdn );
+
 		/* Does the configDB exist? */
 		if ( sc->got_frontend && !sc->got_config &&
 			!strncmp( rs->sr_entry->e_nname.bv_val,
-			"olcDatabase", STRLENOF( "olcDatabase" ))) {
+			"olcDatabase", STRLENOF( "olcDatabase" )) &&
+			dn_match( &config_rdn, &pdn ) )
+		{
 			if ( strncmp( rs->sr_entry->e_nname.bv_val +
 				STRLENOF( "olcDatabase" ), "={0}config",
-				STRLENOF( "={0}config" ))) {
+				STRLENOF( "={0}config" )))
+			{
 				struct berval rdn;
 				int i = op->o_noop;
 				sc->ca->be = LDAP_STAILQ_FIRST( &backendDB );
@@ -6441,6 +6459,9 @@ config_back_initialize( BackendInfo *bi )
 	bi->bi_cf_ocs = cf_ocs;
 
 	i = config_register_schema( ct, cf_ocs );
+	if ( i ) return i;
+
+	i = slap_str2ad( "olcDatabase", &olcDatabaseDummy[0].ad, &text );
 	if ( i ) return i;
 
 	/* setup olcRootPW to be base64-encoded when written in LDIF form;
