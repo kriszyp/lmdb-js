@@ -3,6 +3,7 @@ OpenLDAP 2.4 Change Log
 OpenLDAP 2.4.13 Engineering
 	Fixed liblutil hex conversion (ITS#5699)
 	Fixed slapd-bdb/hdb invalid db crash (ITS#5698)
+	Added slapo-translucent try local bind when remote fails (ITS#5656)
 
 OpenLDAP 2.4.12 Release (2008/10/12)
 	Fixed libldap ldap_utf8_strchar arguments (ITS#5720)

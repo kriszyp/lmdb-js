@@ -41,6 +41,7 @@ typedef struct translucent_info {
 	int strict;
 	int no_glue;
 	int defer_db_open;
+	int bind_local;
 } translucent_info;
 
 static ConfigLDAPadd translucent_ldadd;
@@ -78,6 +79,12 @@ static ConfigTable translucentcfg[] = {
 	  "( OLcfgOvAt:14.4 NAME 'olcTranslucentRemote' "
 	  "DESC 'Attributes to use in remote search filter' "
 	  "SYNTAX OMsDirectoryString )", NULL, NULL },
+	{ "translucent_bind_local", "on|off", 1, 2, 0,
+	  ARG_ON_OFF|ARG_OFFSET,
+	  (void *)offsetof(translucent_info, bind_local),
+	  "( OLcfgOvAt:14.5 NAME 'olcTranslucentBindLocal' "
+	  "DESC 'Enable local bind' "
+	  "SYNTAX OMsBoolean SINGLE-VALUE)", NULL, NULL },
 	{ NULL, NULL, 0, 0, 0, ARG_IGNORED }
 };
 
@@ -95,7 +102,8 @@ static ConfigOCs translucentocs[] = {
 	  "DESC 'Translucent configuration' "
 	  "SUP olcOverlayConfig "
 	  "MAY ( olcTranslucentStrict $ olcTranslucentNoGlue $"
-	  " olcTranslucentLocal $ olcTranslucentRemote ) )",
+	  " olcTranslucentLocal $ olcTranslucentRemote $"
+	  " olcTranslucentBindLocal ) )",
 	  Cft_Overlay, translucentcfg, NULL, translucent_cfadd },
 	{ "( OLcfgOvOc:14.2 "
 	  "NAME 'olcTranslucentDatabase' "
@@ -1044,6 +1052,7 @@ static int translucent_bind(Operation *op, SlapReply *rs) {
 	slap_overinst *on = (slap_overinst *) op->o_bd->bd_info;
 	translucent_info *ov = on->on_bi.bi_private;
 	BackendDB *db;
+	slap_callback sc = { 0 }, *save_cb;
 	int rc;
 
 	Debug(LDAP_DEBUG_TRACE, "translucent_bind: <%s> method %d\n",
@@ -1054,10 +1063,25 @@ static int translucent_bind(Operation *op, SlapReply *rs) {
 			"remote DB not available");
 		return(rs->sr_err);
 	}
+
+	if (ov->bind_local) {
+		sc.sc_response = slap_null_cb;
+		save_cb = op->o_callback;
+		op->o_callback = &sc;
+	}
+
 	db = op->o_bd;
 	op->o_bd = &ov->db;
 	rc = ov->db.bd_info->bi_op_bind(op, rs);
 	op->o_bd = db;
+
+	if (ov->bind_local) {
+		op->o_callback = save_cb;
+		if (rc != LDAP_SUCCESS) {
+			rc = SLAP_CB_CONTINUE;
+		}
+	}
+
 	return rc;
 }
 
