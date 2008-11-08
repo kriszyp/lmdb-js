@@ -180,7 +180,7 @@ do_search(
 
 	if ( StatslogTest( LDAP_DEBUG_STATS ) ) {
 		char abuf[BUFSIZ/2], *ptr = abuf;
-		int len = 0, alen;
+		unsigned len = 0, alen;
 
 		sprintf(abuf, "scope=%d deref=%d", op->ors_scope, op->ors_deref);
 		Statslog( LDAP_DEBUG_STATS,

@@ -212,7 +212,7 @@ dup_comp_filter_list (
 int
 get_len_of_next_assert_value ( struct berval* bv, char separator )
 {
-	int i = 0;
+	ber_len_t i = 0;
 	while (1) {
 		if ( (bv->bv_val[ i ] == separator) || ( i >= bv->bv_len) )
 			break;

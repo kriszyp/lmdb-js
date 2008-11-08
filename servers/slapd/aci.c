@@ -1043,7 +1043,7 @@ static int
 OpenLDAPaciValidatePerms(
 	struct berval *perms ) 
 {
-	int		i;
+	ber_len_t	i;
 
 	for ( i = 0; i < perms->bv_len; ) {
 		switch ( perms->bv_val[ i ] ) {

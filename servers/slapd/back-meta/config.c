@@ -1082,7 +1082,9 @@ idassert-authzFrom	"dn:<rootdn>"
 				return 1;
 			}
 
-			if ( snprintf( binddn, sizeof( binddn ), "binddn=%s", argv[ 1 ] ) >= sizeof( binddn ) ) {
+			if ( sizeof( binddn ) <= (unsigned) snprintf( binddn,
+					sizeof( binddn ), "binddn=%s", argv[ 1 ] ))
+			{
 				Debug( LDAP_DEBUG_ANY, "%s: line %d: \"pseudorootdn\" too long.\n",
 					fname, lineno, 0 );
 				return 1;

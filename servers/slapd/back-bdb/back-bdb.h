@@ -332,7 +332,7 @@ extern int __db_logmsg(const DB_ENV *env, DB_TXN *txn, const char *op, u_int32_t
 
 /* Copy a pointer "src" to a pointer "dst" from big-endian to native order */
 #define BDB_DISK2ID( src, dst ) \
-	do { int i0; ID tmp = 0; unsigned char *_p;	\
+	do { unsigned i0; ID tmp = 0; unsigned char *_p;	\
 		_p = (unsigned char *)(src);	\
 		for ( i0=0; i0<sizeof(ID); i0++ ) {	\
 			tmp <<= 8; tmp |= *_p++;	\

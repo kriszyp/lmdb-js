@@ -395,13 +395,12 @@ static int bdb_tool_next_id(
 			holes[nholes++].id = e->e_id;
 		}
 	} else if ( !hole ) {
-		unsigned i;
+		unsigned i, j;
 
 		e->e_id = ei->bei_id;
 
 		for ( i=0; i<nholes; i++) {
 			if ( holes[i].id == e->e_id ) {
-				int j;
 				free(holes[i].dn.bv_val);
 				for (j=i;j<nholes;j++) holes[j] = holes[j+1];
 				holes[j].id = 0;

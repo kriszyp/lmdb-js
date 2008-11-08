@@ -747,7 +747,7 @@ bdb_cache_lru_purge( struct bdb_info *bdb )
 		if ( islocked )
 			bdb_cache_entryinfo_unlock( elru );
 
-		if ( count >= bdb->bi_cache.c_minfree ) {
+		if ( (unsigned) count >= bdb->bi_cache.c_minfree ) {
 			ldap_pvt_thread_mutex_lock( &bdb->bi_cache.c_count_mutex );
 			bdb->bi_cache.c_cursize -= count;
 			ldap_pvt_thread_mutex_unlock( &bdb->bi_cache.c_count_mutex );

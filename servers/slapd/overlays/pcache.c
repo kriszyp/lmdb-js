@@ -1697,7 +1697,7 @@ pcache_remove_entries_from_cache(
 	Filter		f = { 0 };
 	char		filtbuf[ LDAP_LUTIL_UUIDSTR_BUFSIZE + STRLENOF( "(entryUUID=)" ) ];
 	AttributeAssertion ava = ATTRIBUTEASSERTION_INIT;
-	AttributeName	attrs[ 2 ] = { 0 };
+	AttributeName	attrs[ 2 ] = {{{ 0 }}};
 	int		s, rc;
 
 	if ( op == NULL ) {
@@ -1812,7 +1812,7 @@ pcache_remove_entry_queries_from_cache(
 	Filter			f = { 0 };
 	char			filter_str[ LDAP_LUTIL_UUIDSTR_BUFSIZE + STRLENOF( "(queryId=)" ) ];
 	AttributeAssertion	ava = ATTRIBUTEASSERTION_INIT;
-	AttributeName		attrs[ 2 ] = { 0 };
+	AttributeName		attrs[ 2 ] = {{{ 0 }}};
 	int			rc;
 
 	BerVarray		vals = NULL;
@@ -3258,7 +3258,7 @@ pcache_db_open2(
 			BerVarray	vals = NULL;
 			Filter		f = { 0 }, f2 = { 0 };
 			AttributeAssertion	ava = ATTRIBUTEASSERTION_INIT;
-			AttributeName	attrs[ 2 ] = { 0 };
+			AttributeName	attrs[ 2 ] = {{{ 0 }}};
 
 			connection_fake_init( &conn, &opbuf, thrctx );
 			op = &opbuf.ob_op;
@@ -3424,7 +3424,7 @@ pcache_db_close(
 		slap_callback	cb = { 0 };
 
 		SlapReply	rs = { REP_RESULT };
-		Modifications	mod = { 0 };
+		Modifications	mod = {{ 0 }};
 
 		thrctx = ldap_pvt_thread_pool_context();
 

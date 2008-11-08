@@ -59,7 +59,7 @@ modify_add_values(
 	/* FIXME: Catch old code that doesn't set sm_numvals.
 	 */
 	if ( !BER_BVISNULL( &mod->sm_values[mod->sm_numvals] )) {
-		int i;
+		unsigned i;
 		for ( i = 0; !BER_BVISNULL( &mod->sm_values[i] ); i++ );
 		assert( mod->sm_numvals == i );
 	}
@@ -69,8 +69,8 @@ modify_add_values(
 	if ( a != NULL ) {
 		MatchingRule	*mr;
 		struct berval *cvals;
-		int		rc, i, p;
-		unsigned flags;
+		int		rc;
+		unsigned i, p, flags;
 
 		mr = mod->sm_desc->ad_type->sat_equality;
 		if( mr == NULL || !mr->smr_match ) {
@@ -116,7 +116,7 @@ modify_add_values(
 					/* value already exists */
 					*text = textbuf;
 					snprintf( textbuf, textlen,
-						"modify/%s: %s: value #%d already exists",
+						"modify/%s: %s: value #%u already exists",
 						op, mod->sm_desc->ad_cname.bv_val, i );
 					return LDAP_TYPE_OR_VALUE_EXISTS;
 				}
@@ -196,8 +196,8 @@ modify_delete_vindex(
 	MatchingRule 	*mr = mod->sm_desc->ad_type->sat_equality;
 	struct berval *cvals;
 	int		*id2 = NULL;
-	int		i, j, rc = 0;
-	unsigned flags;
+	int		rc = 0;
+	unsigned i, j, flags;
 	char		dummy = '\0';
 
 	/*

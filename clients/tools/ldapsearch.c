@@ -856,13 +856,13 @@ getNextPage:
 							&sync_cookie );
 			}
 
-			if ( err == LBER_ERROR ) {
+			if ( err == -1 ) {
 				ber_free( syncber, 1 );
 				fprintf( stderr, _("ldap sync control encoding error!\n") );
 				return EXIT_FAILURE;
 			}
 
-			if ( ber_flatten( syncber, &syncbvalp ) == LBER_ERROR ) {
+			if ( ber_flatten( syncber, &syncbvalp ) == -1 ) {
 				return EXIT_FAILURE;
 			}
 
@@ -1618,7 +1618,7 @@ static int print_result(
 
 						tool_write_ldif( LDIF_PUT_TEXT,
 							"text", line,
-							next ? next - line : strlen( line ) );
+							next ? (size_t) (next - line) : strlen( line ));
 
 						line = next ? next + 1 : NULL;
 					}

@@ -1099,7 +1099,7 @@ ldap_chase_v3referrals( LDAP *ld, LDAPRequest *lr, char **refs, int sref, char *
 			/* See if we've already requested this DN with this conn */
 			LDAPRequest *lp;
 			int looped = 0;
-			int len = srv->lud_dn ? strlen( srv->lud_dn ) : 0;
+			ber_len_t len = srv->lud_dn ? strlen( srv->lud_dn ) : 0;
 			for ( lp = origreq; lp; ) {
 				if ( lp->lr_conn == lc
 					&& len == lp->lr_dn.bv_len
@@ -1358,7 +1358,7 @@ ldap_chase_referrals( LDAP *ld,
 		if (( lc = find_connection( ld, srv, 1 )) != NULL ) {
 			LDAPRequest *lp;
 			int looped = 0;
-			int len = srv->lud_dn ? strlen( srv->lud_dn ) : 0;
+			ber_len_t len = srv->lud_dn ? strlen( srv->lud_dn ) : 0;
 			for ( lp = lr; lp; lp = lp->lr_parent ) {
 				if ( lp->lr_conn == lc
 					&& len == lp->lr_dn.bv_len )

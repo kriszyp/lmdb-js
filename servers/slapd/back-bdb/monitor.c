@@ -551,9 +551,9 @@ bdb_monitor_bitmask2key( slap_mask_t bitmask )
 {
 	int	key;
 
-	for ( key = 0; key < 8*sizeof(slap_mask_t) && !( bitmask & 0x1U ); key++ ) {
+	for ( key = 0; key < 8 * (int)sizeof(slap_mask_t) && !( bitmask & 0x1U );
+			key++ )
 		bitmask >>= 1;
-	}
 
 	return key;
 }

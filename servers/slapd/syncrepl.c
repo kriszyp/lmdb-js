@@ -407,7 +407,7 @@ ldap_sync_search(
 			abs(si->si_type), rhint );
 	}
 
-	if ( (rc = ber_flatten2( ber, &c[0].ldctl_value, 0 ) ) == LBER_ERROR ) {
+	if ( (rc = ber_flatten2( ber, &c[0].ldctl_value, 0 ) ) == -1 ) {
 		ber_free_buf( ber );
 		return rc;
 	}
@@ -2733,7 +2733,8 @@ syncrepl_updateCookie(
 	Modifications mod;
 	struct berval first = BER_BVNULL;
 
-	int rc, i, j, len;
+	int rc, i, j;
+	ber_len_t len;
 
 	slap_callback cb = { NULL };
 	SlapReply	rs_modify = {REP_RESULT};
@@ -3056,7 +3057,8 @@ dn_callback(
 				new = attr_find( dni->new_entry->e_attrs,
 					slap_schema.si_ad_entryCSN );
 				if ( new && old ) {
-					int rc, len = old->a_vals[0].bv_len;
+					int rc;
+					ber_len_t len = old->a_vals[0].bv_len;
 					if ( len > new->a_vals[0].bv_len )
 						len = new->a_vals[0].bv_len;
 					rc = memcmp( old->a_vals[0].bv_val,

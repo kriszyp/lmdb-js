@@ -534,17 +534,17 @@ log_age_unparse( int age, struct berval *agebv, size_t size )
 
 	if ( dd ) {
 		len = snprintf( ptr, size, "%d+", dd );
-		assert( len >= 0 && len < size );
+		assert( len >= 0 && (unsigned) len < size );
 		size -= len;
 		ptr += len;
 	}
 	len = snprintf( ptr, size, "%02d:%02d", hh, mm );
-	assert( len >= 0 && len < size );
+	assert( len >= 0 && (unsigned) len < size );
 	size -= len;
 	ptr += len;
 	if ( ss ) {
 		len = snprintf( ptr, size, ":%02d", ss );
-		assert( len >= 0 && len < size );
+		assert( len >= 0 && (unsigned) len < size );
 		size -= len;
 		ptr += len;
 	}
@@ -580,7 +580,7 @@ log_old_lookup( Operation *op, SlapReply *rs )
 	a = attr_find( rs->sr_entry->e_attrs,
 		slap_schema.si_ad_entryCSN );
 	if ( a ) {
-		int len = a->a_vals[0].bv_len;
+		ber_len_t len = a->a_vals[0].bv_len;
 		if ( len > pd->csn.bv_len )
 			len = pd->csn.bv_len;
 		if ( memcmp( a->a_vals[0].bv_val, pd->csn.bv_val, len ) > 0 ) {
@@ -933,7 +933,7 @@ logSchemaControlValidate(
 	struct berval	*valp )
 {
 	struct berval	val, bv;
-	int		i;
+	ber_len_t		i;
 	int		rc = LDAP_SUCCESS;
 
 	assert( valp != NULL );
@@ -1155,7 +1155,7 @@ accesslog_ctrls(
 		}
 		
 		if ( !BER_BVISNULL( &ctrls[ i ]->ldctl_value ) ) {
-			int	j;
+			ber_len_t	j;
 
 			ptr = lutil_strcopy( ptr, " controlValue \"" );
 			for ( j = 0; j < ctrls[ i ]->ldctl_value.bv_len; j++ )

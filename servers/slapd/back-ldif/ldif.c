@@ -35,8 +35,8 @@ typedef struct enumCookie {
 	Operation *op;
 	SlapReply *rs;
 	Entry **entries;
-	int elen;
-	int eind;
+	ID elen;
+	ID eind;
 } enumCookie;
 
 struct ldif_info {

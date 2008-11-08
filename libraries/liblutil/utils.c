@@ -940,7 +940,7 @@ lutil_snprintf( char *buf, ber_len_t bufsize, char **next, ber_len_t *len, LDAP_
 		*len = ret;
 	}
 
-	if ( ret >= bufsize ) {
+	if ( (unsigned) ret >= bufsize ) {
 		if ( next ) {
 			*next = &buf[ bufsize - 1 ];
 		}

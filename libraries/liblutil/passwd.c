@@ -716,7 +716,7 @@ static int chk_lanman(
 	const struct berval *cred,
 	const char **text )
 {
-	int i;
+	ber_len_t i;
 	char UcasePassword[15];
 	des_cblock key;
 	des_key_schedule schedule;
@@ -1003,7 +1003,7 @@ static int hash_lanman(
 	const char **text )
 {
 
-	int i;
+	ber_len_t i;
 	char UcasePassword[15];
 	des_cblock key;
 	des_key_schedule schedule;

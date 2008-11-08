@@ -213,7 +213,7 @@ attr_dup2( Attribute *tmp, Attribute *a )
 {
 	tmp->a_flags = a->a_flags & SLAP_ATTR_PERSISTENT_FLAGS;
 	if ( a->a_vals != NULL ) {
-		int	i;
+		unsigned	i, j;
 
 		tmp->a_numvals = a->a_numvals;
 		tmp->a_vals = ch_malloc( (tmp->a_numvals + 1) * sizeof(struct berval) );
@@ -228,7 +228,6 @@ attr_dup2( Attribute *tmp, Attribute *a )
 		assert( a->a_nvals != NULL );
 
 		if ( a->a_nvals != a->a_vals ) {
-			int	j;
 
 			tmp->a_nvals = ch_malloc( (tmp->a_numvals + 1) * sizeof(struct berval) );
 			for ( j = 0; !BER_BVISNULL( &a->a_nvals[j] ); j++ ) {
