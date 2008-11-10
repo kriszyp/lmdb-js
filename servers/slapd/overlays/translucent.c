@@ -1268,7 +1268,6 @@ static int translucent_db_init(BackendDB *be, ConfigReply *cr) {
 	on->on_bi.bi_private = ov;
 	ov->db = *be;
 	ov->db.be_private = NULL;
-	ov->db.be_pcl_mutexp = &ov->db.be_pcl_mutex;
 	ov->defer_db_open = 1;
 
 	if ( !backend_db_init( "ldap", &ov->db, -1, NULL )) {

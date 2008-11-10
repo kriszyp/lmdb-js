@@ -594,8 +594,7 @@ backend_db_init(
 	be->be_requires = frontendDB->be_requires;
 	be->be_ssf_set = frontendDB->be_ssf_set;
 
-	be->be_pcl_mutexp = &be->be_pcl_mutex;
-	ldap_pvt_thread_mutex_init( be->be_pcl_mutexp );
+	ldap_pvt_thread_mutex_init( &be->be_pcl_mutex );
 
  	/* assign a default depth limit for alias deref */
 	be->be_max_deref_depth = SLAPD_DEFAULT_MAXDEREFDEPTH; 
