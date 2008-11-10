@@ -1105,12 +1105,7 @@ bitStringValidate(
   ...
       
  *
- * Note: normalization strips any leading "0"s, unless the
- * bit string is exactly "'0'B", so the normalized example,
- * in slapd, would result in
- * 
- * 1.3.6.1.4.1.1466.0=#04024869,o=test,c=gb#'101'B
- * 
+ * Note:
  * RFC 4514 clarifies that SHARP, i.e. "#", doesn't have to
  * be escaped except when at the beginning of a value, the
  * definition of Name and Optional UID appears to be flawed,
@@ -1134,11 +1129,11 @@ bitStringValidate(
  *
  * in fact "com#'1'B" is a valid IA5 string.
  *
- * As a consequence, current slapd code assumes that the
- * presence of portions of a BitString at the end of the string 
- * representation of a NameAndOptionalUID means a BitString
- * is expected, and cause an error otherwise.  This is quite
- * arbitrary, and might change in the future.
+ * As a consequence, current slapd code takes the presence of
+ * #<valid BitString> at the end of the string representation
+ * of a NameAndOptionalUID to mean this is indeed a BitString.
+ * This is quite arbitrary - it has changed the past and might
+ * change in the future.
  */
 
 
@@ -1209,7 +1204,8 @@ nameUIDPretty(
 
 			if ( rc == LDAP_SUCCESS ) {
 				ber_dupbv_x( &dnval, val, ctx );
-				dnval.bv_len -= uidval.bv_len + 1;
+				uidval.bv_val--;
+				dnval.bv_len -= ++uidval.bv_len;
 				dnval.bv_val[dnval.bv_len] = '\0';
 
 			} else {
@@ -1226,36 +1222,18 @@ nameUIDPretty(
 		}
 
 		if( !BER_BVISNULL( &uidval ) ) {
-			int	i, c, got1;
 			char	*tmp;
 
 			tmp = slap_sl_realloc( out->bv_val, out->bv_len 
-				+ STRLENOF( "#" ) + uidval.bv_len + 1,
+				+ uidval.bv_len + 1,
 				ctx );
 			if( tmp == NULL ) {
 				ber_memfree_x( out->bv_val, ctx );
 				return LDAP_OTHER;
 			}
 			out->bv_val = tmp;
-			out->bv_val[out->bv_len++] = '#';
-			out->bv_val[out->bv_len++] = '\'';
-
-			got1 = uidval.bv_len < sizeof("'0'B"); 
-			for( i = 1; i < uidval.bv_len - 2; i++ ) {
-				c = uidval.bv_val[i];
-				switch(c) {
-					case '0':
-						if( got1 ) out->bv_val[out->bv_len++] = c;
-						break;
-					case '1':
-						got1 = 1;
-						out->bv_val[out->bv_len++] = c;
-						break;
-				}
-			}
-
-			out->bv_val[out->bv_len++] = '\'';
-			out->bv_val[out->bv_len++] = 'B';
+			memcpy( out->bv_val + out->bv_len, uidval.bv_val, uidval.bv_len );
+			out->bv_len += uidval.bv_len;
 			out->bv_val[out->bv_len] = '\0';
 		}
 	}
