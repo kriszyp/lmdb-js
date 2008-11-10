@@ -427,6 +427,12 @@ upon StartTLS operation receipt.
 .B tls_authc
 disallows the StartTLS operation if authenticated (see also
 .BR tls_2_anon ).
+.B proxy_authz_non_critical
+disables acceptance of the proxied authorization control (RFC4370)
+when criticality is FALSE.
+.B dontusecopy_non_critical
+disables acceptance of the dontUseCopy control (a work in progress)
+when criticality is FALSE.
 .HP
 .hy 0
 .B ditcontentrule "(\ <oid>\

@@ -2587,6 +2587,8 @@ config_disallows(ConfigArgs *c) {
 		{ BER_BVC("bind_simple"),	SLAP_DISALLOW_BIND_SIMPLE },
 		{ BER_BVC("tls_2_anon"),		SLAP_DISALLOW_TLS_2_ANON },
 		{ BER_BVC("tls_authc"),		SLAP_DISALLOW_TLS_AUTHC },
+		{ BER_BVC("proxy_authz_non_critical"),	SLAP_DISALLOW_PROXY_AUTHZ_N_CRIT },
+		{ BER_BVC("dontusecopy_non_critical"),	SLAP_DISALLOW_DONTUSECOPY_N_CRIT },
 		{ BER_BVNULL, 0 }
 	};
 	if (c->op == SLAP_CONFIG_EMIT) {
