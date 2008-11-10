@@ -503,6 +503,7 @@ slap_passwd_check(
 	int			result = 1;
 	struct berval		*bv;
 	AccessControlState	acl_state = ACL_STATE_INIT;
+	char		credNul = cred->bv_val[cred->bv_len];
 
 #ifdef SLAPD_SPASSWD
 	void		*old_authctx = NULL;
@@ -510,6 +511,8 @@ slap_passwd_check(
 	ldap_pvt_thread_pool_setkey( op->o_threadctx, (void *)slap_sasl_bind,
 		op->o_conn->c_sasl_authctx, 0, &old_authctx, NULL );
 #endif
+
+	if ( credNul ) cred->bv_val[cred->bv_len] = 0;
 
 	for ( bv = a->a_vals; bv->bv_val != NULL; bv++ ) {
 		/* if e is provided, check access */
@@ -524,6 +527,8 @@ slap_passwd_check(
 			break;
 		}
 	}
+
+	if ( credNul ) cred->bv_val[cred->bv_len] = credNul;
 
 #ifdef SLAPD_SPASSWD
 	ldap_pvt_thread_pool_setkey( op->o_threadctx, (void *)slap_sasl_bind,
