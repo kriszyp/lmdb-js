@@ -911,7 +911,15 @@ When adding the suffix entry of a database,
 .B add
 access to
 .B children
-of the empty DN ("") is required.
+of the empty DN ("") is required. Also if
+Add content ACL checking has been configured on
+the database (see the
+.BR slapd.conf (5)
+or
+.BR slapd-config (5)
+manual page),
+.B add (=a)
+will be required on all of the attributes being added.
 
 .LP
 The 

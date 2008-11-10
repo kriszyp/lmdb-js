@@ -1237,8 +1237,10 @@ used here.
 .B olcAddContentAcl: TRUE | FALSE
 Controls whether Add operations will perform ACL checks on
 the content of the entry being added. This check is off
-by default; usually only Write access to the parent entry's
-children pseudo-attribute is required.
+by default. See the
+.BR slapd.access (5)
+manual page for more details on ACL requirements for
+Add operations.
 .TP
 .B olcHidden: TRUE | FALSE
 Controls whether the database will be used to answer
