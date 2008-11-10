@@ -2,8 +2,9 @@ OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.13 Engineering
 	Fixed liblutil hex conversion (ITS#5699)
-	Fixed slapd overlay/database open with real structure (ITS#5724)
 	Added slapd GSSAPI refactoring (ITS#5369)
+	Fixed slapd overlay/database open with real structure (ITS#5724)
+	Fixed slapd parsing of read entry control (ITS#5741)
 	Added slapd private databases in global overlays (ITS#5735,ITS#5736)
 	Added slapd support for certificateListExactMatch (ITS#5700)
 	Fixed slapd-bdb/hdb invalid db crash (ITS#5698)
