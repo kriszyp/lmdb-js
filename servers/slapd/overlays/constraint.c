@@ -757,6 +757,10 @@ constraint_add( Operation *op, SlapReply *rs )
 	int rc;
 	char *msg = NULL;
 
+	if (get_relax(op)) {
+		return SLAP_CB_CONTINUE;
+	}
+
 	if ((a = op->ora_e->e_attrs) == NULL) {
 		op->o_bd->bd_info = (BackendInfo *)(on->on_info);
 		send_ldap_error(op, rs, LDAP_INVALID_SYNTAX,
@@ -833,6 +837,10 @@ constraint_update( Operation *op, SlapReply *rs )
 	int rc;
 	char *msg = NULL;
 
+	if (get_relax(op)) {
+		return SLAP_CB_CONTINUE;
+	}
+
 	switch ( op->o_tag ) {
 	case LDAP_REQ_MODIFY:
 		modlist = op->orm_modlist;
@@ -846,7 +854,6 @@ constraint_update( Operation *op, SlapReply *rs )
 		/* impossible! assert? */
 		return LDAP_OTHER;
 	}
-
 	
 	Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE, "constraint_update()\n", 0,0,0);
 	if ((m = modlist) == NULL) {
