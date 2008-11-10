@@ -2,7 +2,6 @@ OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.13 Engineering
 	Fixed liblutil hex conversion (ITS#5699)
-	Added slapd GSSAPI refactoring (ITS#5369)
 	Fixed slapd nameUIDPretty bitstring parsing (ITS#5750)
 	Fixed slapd overlay/database open with real structure (ITS#5724)
 	Fixed slapd parsing of read entry control (ITS#5741)
@@ -24,6 +23,9 @@ OpenLDAP 2.4.13 Engineering
 	Fixed slapo-rwm reusing freed filter (ITS#5732)
 	Added slapo-translucent try local bind when remote fails (ITS#5656)
 	Added slapo-translucent support for PasswordModify exop (ITS#5656)
+	Build Environment
+		Added ldapurl command
+		Added slapd GSSAPI refactoring (ITS#5369)
 	Documentation
 		admin24 added olcLimits to example (ITS#5746)
 
