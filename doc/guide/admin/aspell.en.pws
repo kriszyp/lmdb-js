@@ -1,4 +1,4 @@
-personal_ws-1.1 en 1674 
+personal_ws-1.1 en 1675 
 commonName
 bla
 Masarati
@@ -83,6 +83,7 @@ CWD
 ando
 reqDeleteOldRDN
 DSA
+dontusecopy
 msgfree
 DSE
 keycol
@@ -420,8 +421,8 @@ usr
 txt
 UTR
 XER
-olcDbIDLcacheSize
 roomNumber
+olcDbIDLcacheSize
 namespace
 LDAPControl
 dbconfig
@@ -606,6 +607,7 @@ searchResultDone
 MAXLEN
 pwdInHistory
 reqAttrsOnly
+realtime
 sysconfdir
 searchResultReference
 olcAttributeTypes
@@ -1208,8 +1210,8 @@ ERXRTc
 LxsdLy
 lastmod
 integerOrderingMatch
-RowVersioning
 sambaGroupType
+RowVersioning
 searchEntryDN
 pwdLockout
 sbin

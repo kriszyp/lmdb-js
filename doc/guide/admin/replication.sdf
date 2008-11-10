@@ -439,7 +439,7 @@ can be made, a provider-initiated push mode may be needed.
 This mode can be configured with the aid of the LDAP Backend
 ({{SECT: Backends}} and {{slapd-ldap(8)}}). Instead of running the
 syncrepl engine on the actual consumer, a slapd-ldap proxy is set up
-near (or colocated with) the provider that points to the consumer,
+near (or collocated with) the provider that points to the consumer,
 and the syncrepl engine runs on the proxy.
 
 For configuration, please see the {{SECT:Syncrepl Proxy}} section.
