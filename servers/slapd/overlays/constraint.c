@@ -642,6 +642,7 @@ constraint_violation( constraint *c, struct berval *bv, Operation *op, SlapReply
 			Debug( LDAP_DEBUG_ANY,
 				"%s constraint_violation uri filter=\"%s\" invalid\n",
 				op->o_log_prefix, filterstr.bv_val, 0 );
+			rc = LDAP_OTHER;
 
 		} else {
 			Debug(LDAP_DEBUG_TRACE, 
@@ -656,7 +657,7 @@ constraint_violation( constraint *c, struct berval *bv, Operation *op, SlapReply
 		}
 		op->o_tmpfree(filterstr.bv_val, op->o_tmpmemctx);
 
-		if((rc != LDAP_SUCCESS) && (rc != LDAP_NO_SUCH_OBJECT)) {
+		if ((rc != LDAP_SUCCESS) && (rc != LDAP_NO_SUCH_OBJECT)) {
 			return rc; /* unexpected error */
 		}
 
