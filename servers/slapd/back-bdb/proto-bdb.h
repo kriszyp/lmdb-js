@@ -45,7 +45,7 @@ AttrInfo *bdb_attr_mask( struct bdb_info *bdb,
 void bdb_attr_flush( struct bdb_info *bdb );
 
 int bdb_attr_slot( struct bdb_info *bdb,
-	AttributeDescription *desc, unsigned *insert );
+	AttributeDescription *desc, int *insert );
 
 int bdb_attr_index_config LDAP_P(( struct bdb_info *bdb,
 	const char *fname, int lineno,

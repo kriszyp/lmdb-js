@@ -520,7 +520,7 @@ slap_retry_info_unparse(
 
 	BER_BVZERO( bvout );
 
-#define WHATSLEFT	( sizeof( buf ) - ( ptr - buf ) )
+#define WHATSLEFT	( &buf[ sizeof( buf ) ] - ptr )
 
 	for ( i = 0; ri->ri_num[ i ] != SLAP_RETRYNUM_TAIL; i++ ) {
 		if ( i > 0 ) {

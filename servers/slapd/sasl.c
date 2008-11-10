@@ -397,7 +397,8 @@ slap_auxprop_store(
 	Operation op = {0};
 	Opheader oph;
 	SlapReply rs = {REP_RESULT};
-	int rc, i, j;
+	int rc, i;
+	unsigned j;
 	Connection *conn = NULL;
 	const struct propval *pr;
 	Modifications *modlist = NULL, **modtail = &modlist, *mod;

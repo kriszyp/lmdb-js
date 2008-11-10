@@ -412,7 +412,7 @@ ldap_int_bisect_insert( ber_int_t **vp, ber_len_t *np, int id, int idx )
 	assert( np != NULL );
 	assert( *np >= 0 );
 	assert( idx >= 0 );
-	assert( idx <= *np );
+	assert( (unsigned) idx <= *np );
 
 	n = *np;
 
@@ -453,7 +453,7 @@ ldap_int_bisect_delete( ber_int_t **vp, ber_len_t *np, int id, int idx )
 	assert( np != NULL );
 	assert( *np >= 0 );
 	assert( idx >= 0 );
-	assert( idx < *np );
+	assert( (unsigned) idx < *np );
 
 	v = *vp;
 

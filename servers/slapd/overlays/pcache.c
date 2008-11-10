@@ -2712,7 +2712,7 @@ pc_cfadd( Operation *op, SlapReply *rs, Entry *p, ConfigArgs *ca )
 	/* FIXME: should not hardcode "olcDatabase" here */
 	bv.bv_len = snprintf( ca->cr_msg, sizeof( ca->cr_msg ),
 		"olcDatabase=%s", cm->db.bd_info->bi_type );
-	if ( bv.bv_len < 0 || bv.bv_len >= sizeof( ca->cr_msg ) ) {
+	if ( bv.bv_len >= sizeof( ca->cr_msg ) ) {
 		return -1;
 	}
 	bv.bv_val = ca->cr_msg;

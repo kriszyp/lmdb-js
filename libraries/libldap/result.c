@@ -1435,7 +1435,7 @@ ldap_mark_abandoned( LDAP *ld, ber_int_t msgid, int idx )
 
 	/* NOTE: those assertions are repeated in ldap_int_bisect_delete() */
 	assert( idx >= 0 );
-	assert( idx < ld->ld_nabandoned );
+	assert( (unsigned) idx < ld->ld_nabandoned );
 	assert( ld->ld_abandoned[ idx ] == msgid );
 
 	return ldap_int_bisect_delete( &ld->ld_abandoned, &ld->ld_nabandoned,

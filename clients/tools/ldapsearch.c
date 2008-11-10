@@ -1146,14 +1146,15 @@ static int dosearch(
 	int			cancel_msgid = -1;
 
 	if( filtpatt != NULL ) {
-		size_t max_fsize = strlen( filtpatt ) + strlen( value ) + 1;
+		size_t max_fsize = strlen( filtpatt ) + strlen( value ) + 1, outlen;
 		filter = malloc( max_fsize );
 		if( filter == NULL ) {
 			perror( "malloc" );
 			return EXIT_FAILURE;
 		}
 
-		if( snprintf( filter, max_fsize, filtpatt, value ) >= max_fsize ) {
+		outlen = snprintf( filter, max_fsize, filtpatt, value );
+		if( outlen >= max_fsize ) {
 			fprintf( stderr, "Bad filter pattern: \"%s\"\n", filtpatt );
 			free( filter );
 			return EXIT_FAILURE;
