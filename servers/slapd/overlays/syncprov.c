@@ -908,6 +908,10 @@ syncprov_qplay( Operation *op, struct re_s *rtask )
 	} else {
 		/* bail out on any error */
 		ldap_pvt_runqueue_remove( &slapd_rq, rtask );
+
+		/* Prevent duplicate remove */
+		if ( so->s_qtask == rtask )
+			so->s_qtask = NULL;
 	}
 	ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
 	ldap_pvt_thread_mutex_unlock( &so->s_mutex );
