@@ -29,6 +29,7 @@ OpenLDAP 2.4.13 Engineering
 	Added slapd-bdb/hdb dbpagesize keyword
 	Added slapd-bdb/hdb checksum keyword
 	Fixed slapd-bdb/hdb indexing of entryDN (ITS#5790)
+	Fixed slapd-bdb/hdb lookup of entryDN with equality (ITS#5791)
 	Fixed slapd-ldap snprintf buffer overflow test (ITS#4467)
 	Fixed slapd-ldif file rename on windows (ITS#5774)
 	Fixed slapd-null read controls support (ITS#5757)

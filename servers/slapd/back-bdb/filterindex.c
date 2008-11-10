@@ -717,6 +717,16 @@ equality_candidates(
 	Debug( LDAP_DEBUG_TRACE, "=> bdb_equality_candidates (%s)\n",
 			ava->aa_desc->ad_cname.bv_val, 0, 0 );
 
+	if ( ava->aa_desc == slap_schema.si_ad_entryDN ) {
+		EntryInfo *ei = NULL;
+		rc = bdb_cache_find_ndn( op, rtxn, &ava->aa_value, &ei );
+		if ( rc == LDAP_SUCCESS )
+			bdb_idl_insert( ids, ei->bei_id );
+		if ( ei )
+			bdb_cache_entryinfo_unlock( ei );
+		return rc;
+	}
+
 	BDB_IDL_ALL( bdb, ids );
 
 	rc = bdb_index_param( op->o_bd, ava->aa_desc, LDAP_FILTER_EQUALITY,
