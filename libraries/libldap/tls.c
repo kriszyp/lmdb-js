@@ -1894,6 +1894,7 @@ ldap_pvt_tls_check_hostname( LDAP *ld, void *s, const char *name_in )
 
 		} else {
 			ret = LDAP_LOCAL_ERROR;
+			if ( !len1 ) len1 = strlen( name );
 			if ( len1 == altnamesize && strncasecmp(name, altname, altnamesize) == 0 ) {
 				ret = LDAP_SUCCESS;
 
