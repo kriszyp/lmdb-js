@@ -817,7 +817,10 @@ undef_promote(
 
 			*u_ad = (*u_ad)->ad_next;
 
+			tmp->ad_type = nat;
 			tmp->ad_next = NULL;
+			/* ad_cname was contiguous, no leak here */
+			tmp->ad_cname = nat->sat_cname;
 			*n_ad = tmp;
 			n_ad = &tmp->ad_next;
 		} else {

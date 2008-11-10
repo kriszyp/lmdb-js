@@ -25,6 +25,7 @@ OpenLDAP 2.4.13 Engineering
 	Fixed slapd statslog printing of released entry (ITS#5775)
 	Added slapd support for certificateListExactMatch (ITS#5700)
 	Fixed slapd syncrepl MOD of attrs with no EQ rule (ITS#5781)
+	Fixed slapd undef promote (ITS#5783,ITS#5795)
 	Added slapd What failed? control (ITS#5784)
 	Fixed slapd-bdb/hdb invalid db crash (ITS#5698)
 	Added slapd-bdb/hdb dbpagesize keyword
