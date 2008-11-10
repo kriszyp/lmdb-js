@@ -29,6 +29,7 @@ OpenLDAP 2.4.13 Engineering
 	Added slapo-constraint "set" type (ITS#5702)
 	Fixed slapo-constraint filter parsing error (ITS#5751)
 	Added slapo-dynlist URI restriction ability (ITS#5761)
+	Fixed slapo-ldif file rename on windows (ITS#5774)
 	Fixed slapo-ppolicy unaligned BerElement (ITS#5770)
 	Fixed slapo-rwm objectClass preservation (ITS#5760)
 	Fixed slapo-rwm rewriting undefined filter (ITS#5731)
