@@ -5523,7 +5523,7 @@ int config_back_entry_get(
 	return rc;
 }
 
-static void
+static int
 config_build_attrs( Entry *e, AttributeType **at, AttributeDescription *ad,
 	ConfigTable *ct, ConfigArgs *c )
 {
@@ -5540,18 +5540,42 @@ config_build_attrs( Entry *e, AttributeType **at, AttributeDescription *ad,
 				 * returns success with no values */
 				if (rc == LDAP_SUCCESS && c->rvalue_vals != NULL ) {
 					if ( c->rvalue_nvals )
-						attr_merge(e, ct[i].ad, c->rvalue_vals,
+						rc = attr_merge(e, ct[i].ad, c->rvalue_vals,
 							c->rvalue_nvals);
-					else
-						attr_merge_normalize(e, ct[i].ad,
+					else {
+						slap_syntax_validate_func *validate =
+							ct[i].ad->ad_type->sat_syntax->ssyn_validate;
+						if ( validate ) {
+							int j;
+							for ( j=0; c->rvalue_vals[j].bv_val; j++ ) {
+								rc = ordered_value_validate( ct[i].ad,
+									&c->rvalue_vals[j], LDAP_MOD_ADD );
+								if ( rc ) {
+									Debug( LDAP_DEBUG_ANY,
+										"config_build_attrs: error %d on %s value #%d\n",
+										rc, ct[i].ad->ad_cname.bv_val, j );
+									return rc;
+								}
+							}
+						}
+							
+						rc = attr_merge_normalize(e, ct[i].ad,
 							c->rvalue_vals, NULL);
+					}
 					ber_bvarray_free( c->rvalue_nvals );
 					ber_bvarray_free( c->rvalue_vals );
+					if ( rc ) {
+						Debug( LDAP_DEBUG_ANY,
+							"config_build_attrs: error %d on %s\n",
+							rc, ct[i].ad->ad_cname.bv_val, 0 );
+						return rc;
+					}
 				}
 				break;
 			}
 		}
 	}
+	return 0;
 }
 
 Entry *
@@ -5565,7 +5589,7 @@ config_build_entry( Operation *op, SlapReply *rs, CfEntryInfo *parent,
 	AttributeDescription *ad = NULL;
 	int rc;
 	char *ptr;
-	const char *text;
+	const char *text = "";
 	Attribute *oc_at;
 	struct berval pdn;
 	ObjectClass *oc;
@@ -5603,7 +5627,7 @@ config_build_entry( Operation *op, SlapReply *rs, CfEntryInfo *parent,
 	ad_name.bv_len = ptr - rdn->bv_val;
 	rc = slap_bv2ad( &ad_name, &ad, &text );
 	if ( rc ) {
-		return NULL;
+		goto fail;
 	}
 	val.bv_val = ptr+1;
 	val.bv_len = rdn->bv_len - (val.bv_val - rdn->bv_val);
@@ -5611,26 +5635,35 @@ config_build_entry( Operation *op, SlapReply *rs, CfEntryInfo *parent,
 
 	oc = main->co_oc;
 	c->table = main->co_type;
-	if ( oc->soc_required )
-		config_build_attrs( e, oc->soc_required, ad, main->co_table, c );
+	if ( oc->soc_required ) {
+		rc = config_build_attrs( e, oc->soc_required, ad, main->co_table, c );
+		if ( rc ) goto fail;
+	}
 
-	if ( oc->soc_allowed )
-		config_build_attrs( e, oc->soc_allowed, ad, main->co_table, c );
+	if ( oc->soc_allowed ) {
+		rc = config_build_attrs( e, oc->soc_allowed, ad, main->co_table, c );
+		if ( rc ) goto fail;
+	}
 
 	if ( extra ) {
 		oc = extra->co_oc;
 		c->table = extra->co_type;
-		if ( oc->soc_required )
-			config_build_attrs( e, oc->soc_required, ad, extra->co_table, c );
+		if ( oc->soc_required ) {
+			rc = config_build_attrs( e, oc->soc_required, ad, extra->co_table, c );
+			if ( rc ) goto fail;
+		}
 
-		if ( oc->soc_allowed )
-			config_build_attrs( e, oc->soc_allowed, ad, extra->co_table, c );
+		if ( oc->soc_allowed ) {
+			rc = config_build_attrs( e, oc->soc_allowed, ad, extra->co_table, c );
+			if ( rc ) goto fail;
+		}
 	}
 
 	oc_at = attr_find( e->e_attrs, slap_schema.si_ad_objectClass );
 	rc = structural_class(oc_at->a_vals, &oc, NULL, &text, c->cr_msg,
 		sizeof(c->cr_msg), op ? op->o_tmpmemctx : NULL );
 	if ( rc != LDAP_SUCCESS ) {
+fail:
 		Debug( LDAP_DEBUG_ANY,
 			"config_build_entry: build \"%s\" failed: \"%s\"\n",
 			rdn->bv_val, text, 0);
@@ -5645,7 +5678,7 @@ config_build_entry( Operation *op, SlapReply *rs, CfEntryInfo *parent,
 			op->o_bd->be_add( op, rs );
 			if ( ( rs->sr_err != LDAP_SUCCESS ) 
 					&& (rs->sr_err != LDAP_ALREADY_EXISTS) ) {
-				return NULL;
+				goto fail;
 			}
 		}
 	}
@@ -5667,7 +5700,7 @@ config_build_schema_inc( ConfigArgs *c, CfEntryInfo *ceparent,
 	Entry *e;
 	ConfigFile *cf = c->ca_private;
 	char *ptr;
-	struct berval bv;
+	struct berval bv, rdn;
 
 	for (; cf; cf=cf->c_sibs, c->depth++) {
 		if ( !cf->c_at_head && !cf->c_cr_head && !cf->c_oc_head &&
@@ -5693,9 +5726,10 @@ config_build_schema_inc( ConfigArgs *c, CfEntryInfo *ceparent,
 			bv.bv_len );
 		c->value_dn.bv_len += bv.bv_len;
 		c->value_dn.bv_val[c->value_dn.bv_len] ='\0';
+		rdn = c->value_dn;
 
 		c->ca_private = cf;
-		e = config_build_entry( op, rs, ceparent, c, &c->value_dn,
+		e = config_build_entry( op, rs, ceparent, c, &rdn,
 			&CFOC_SCHEMA, NULL );
 		if ( !e ) {
 			return -1;
