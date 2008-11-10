@@ -61,6 +61,7 @@ OpenLDAP 2.4.13 Engineering
 	Fixed tools unaligned BerElement (ITS#5770)
 	Fixed contrib nssov crash on empty groups (ITS#5800)
 	Fixed contrib nssov crash with nssov-map (ITS#5801)
+	Fixed contrib nssov filter and search limits (ITS#5802)
 	Added contrib smbk5pwd honor principal expiration (ITS#5766)
 	Build Environment
 		Added ldapurl command
