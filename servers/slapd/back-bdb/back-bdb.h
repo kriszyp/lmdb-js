@@ -54,10 +54,6 @@ LDAP_BEGIN_DECL
 #define	BDB_ID2ENTRY_PAGESIZE	16384
 #endif
 
-#ifndef BDB_PAGESIZE
-#define	BDB_PAGESIZE	4096	/* BDB's original default */
-#endif
-
 #define DEFAULT_CACHE_SIZE     1000
 
 /* The default search IDL stack cache depth */
@@ -156,6 +152,12 @@ struct bdb_db_info {
 	DB			*bdi_db;
 };
 
+struct bdb_db_pgsize {
+	struct bdb_db_pgsize *bdp_next;
+	struct berval	bdp_name;
+	int	bdp_size;
+};
+
 #ifdef LDAP_DEVEL
 #define BDB_MONITOR_IDX
 #endif /* LDAP_DEVEL */
@@ -178,9 +180,10 @@ struct bdb_info {
 	int			bi_dbenv_mode;
 
 	int			bi_ndatabases;
+	int		bi_db_opflags;	/* db-specific flags */
 	struct bdb_db_info **bi_databases;
 	ldap_pvt_thread_mutex_t	bi_database_mutex;
-	int		bi_db_opflags;	/* db-specific flags */
+	struct bdb_db_pgsize *bi_pagesizes;
 
 	slap_mask_t	bi_defaultmask;
 	Cache		bi_cache;
@@ -226,6 +229,7 @@ struct bdb_info {
 #define	BDB_UPD_CONFIG	0x04
 #define	BDB_DEL_INDEX	0x08
 #define	BDB_RE_OPEN		0x10
+#define BDB_CHKSUM		0x20
 #ifdef BDB_HIER
 	int		bi_modrdns;		/* number of modrdns completed */
 	ldap_pvt_thread_mutex_t	bi_modrdns_mutex;

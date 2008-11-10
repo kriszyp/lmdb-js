@@ -416,19 +416,40 @@ shm_retry:
 			}
 		}
 
+		if( bdb->bi_flags & BDB_CHKSUM ) {
+			rc = db->bdi_db->set_flags( db->bdi_db, DB_CHKSUM );
+			if ( rc ) {
+				snprintf(cr->msg, sizeof(cr->msg),
+					"database \"%s\": db set_flags(DB_CHKSUM)(%s) failed: %s (%d).",
+					be->be_suffix[0].bv_val, 
+					bdb->bi_dbenv_home, db_strerror(rc), rc );
+				Debug( LDAP_DEBUG_ANY,
+					LDAP_XSTRING(bdb_db_open) ": %s\n",
+					cr->msg, 0, 0 );
+				goto fail;
+			}
+		}
+
+		rc = bdb_db_findsize( bdb, (struct berval *)&bdbi_databases[i].name );
+
 		if( i == BDB_ID2ENTRY ) {
+			if ( !rc ) rc = BDB_ID2ENTRY_PAGESIZE;
+			rc = db->bdi_db->set_pagesize( db->bdi_db, rc );
+
 			if ( slapMode & SLAP_TOOL_MODE )
 				db->bdi_db->mpf->set_priority( db->bdi_db->mpf,
 					DB_PRIORITY_VERY_LOW );
 
-			rc = db->bdi_db->set_pagesize( db->bdi_db,
-				BDB_ID2ENTRY_PAGESIZE );
 			if ( slapMode & SLAP_TOOL_READMAIN ) {
 				flags |= DB_RDONLY;
 			} else {
 				flags |= DB_CREATE;
 			}
 		} else {
+			/* Use FS default size if not configured */
+			if ( rc )
+				rc = db->bdi_db->set_pagesize( db->bdi_db, rc );
+
 			rc = db->bdi_db->set_flags( db->bdi_db, 
 				DB_DUP | DB_DUPSORT );
 #ifndef BDB_HIER
@@ -446,8 +467,6 @@ shm_retry:
 				flags |= DB_CREATE;
 			}
 #endif
-			rc = db->bdi_db->set_pagesize( db->bdi_db,
-				BDB_PAGESIZE );
 		}
 
 #ifdef HAVE_EBCDIC

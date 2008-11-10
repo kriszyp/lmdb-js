@@ -70,12 +70,18 @@ int bdb_back_init_cf( BackendInfo *bi );
  * dbcache.c
  */
 #define bdb_db_cache				BDB_SYMBOL(db_cache)
+#define bdb_db_findsize				BDB_SYMBOL(db_findsize)
 
 int
 bdb_db_cache(
     Backend	*be,
     struct berval *name,
 	DB **db );
+
+int
+bdb_db_findsize(
+	struct bdb_info *bdb,
+	struct berval *name );
 
 /*
  * dn2entry.c
