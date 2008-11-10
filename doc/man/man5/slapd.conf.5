@@ -226,7 +226,7 @@ or a set of identities; it can take five forms:
 .B dn[.<dnstyle>]:<pattern>
 .RE
 .RS
-.B u[<mech>[<realm>]]:<pattern>
+.B u[.<mech>[/<realm>]]:<pattern>
 .RE
 .RS
 .B group[/objectClass[/attributeType]]:<pattern>
@@ -314,7 +314,8 @@ to explicitly set the type of identity specification that is being used.
 A subset of these rules can be used as third arg in the 
 .B authz-regexp
 statement (see below); significantly, the 
-.I URI
+.IR URI ,
+provided it results in exactly one entry,
 and the
 .I dn.exact:<dn> 
 forms.
@@ -322,8 +323,10 @@ forms.
 .TP
 .B authz-regexp <match> <replace>
 Used by the authentication framework to convert simple user names,
-such as provided by SASL subsystem, to an LDAP DN used for
-authorization purposes.  Note that the resultant DN need not refer
+such as provided by SASL subsystem, or extracted from certificates
+in case of cert-based SASL EXTERNAL, or provided within the RFC 4370
+"proxied authorization" control, to an LDAP DN used for
+authorization purposes.  Note that the resulting DN need not refer
 to an existing entry to be considered valid.  When an authorization
 request is received from the SASL subsystem, the SASL 
 .BR USERNAME ,
