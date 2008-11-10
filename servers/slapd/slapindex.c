@@ -99,6 +99,7 @@ slapindex( int argc, char **argv )
 
 	(void) be->be_entry_close( be );
 
-	slap_tool_destroy();
+	if ( slap_tool_destroy())
+		rc = EXIT_FAILURE;
 	return( rc );
 }

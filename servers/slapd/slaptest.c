@@ -1,3 +1,4 @@
+/* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
  * Copyright 2004-2008 The OpenLDAP Foundation.
@@ -108,7 +109,8 @@ slaptest( int argc, char **argv )
 		fprintf( stderr, "config file testing succeeded\n");
 	}
 
-	slap_tool_destroy();
+	if ( slap_tool_destroy())
+		rc = EXIT_FAILURE;
 
 	return rc;
 }

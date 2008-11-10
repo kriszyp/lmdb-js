@@ -349,11 +349,13 @@ int backend_shutdown( Backend *be )
 		}
 
 		if ( be->bd_info->bi_db_close ) {
-			be->bd_info->bi_db_close( be, NULL );
+			rc = be->bd_info->bi_db_close( be, NULL );
+			if ( rc ) return rc;
 		}
 
 		if( be->bd_info->bi_close ) {
-			be->bd_info->bi_close( be->bd_info );
+			rc = be->bd_info->bi_close( be->bd_info );
+			if ( rc ) return rc;
 		}
 
 		return 0;

@@ -1,3 +1,4 @@
+/* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
  * Copyright 2004-2008 The OpenLDAP Foundation.
@@ -99,7 +100,8 @@ slapdn( int argc, char **argv )
 		}
 	}
 	
-	slap_tool_destroy();
+	if ( slap_tool_destroy())
+		rc = EXIT_FAILURE;
 
 	return rc;
 }

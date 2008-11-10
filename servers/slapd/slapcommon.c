@@ -740,13 +740,16 @@ startup:;
 	}
 }
 
-void slap_tool_destroy( void )
+int slap_tool_destroy( void )
 {
+	int rc = 0;
 	if ( !dryrun ) {
 		if ( need_shutdown ) {
-			slap_shutdown( be );
+			if ( slap_shutdown( be ))
+				rc = EXIT_FAILURE;
 		}
-		slap_destroy();
+		if ( slap_destroy())
+			rc = EXIT_FAILURE;
 	}
 #ifdef SLAPD_MODULES
 	if ( slapMode == SLAP_SERVER_MODE ) {
@@ -772,4 +775,5 @@ void slap_tool_destroy( void )
 	if ( ldiffp && ldiffp != &dummy ) {
 		ldif_close( ldiffp );
 	}
+	return rc;
 }

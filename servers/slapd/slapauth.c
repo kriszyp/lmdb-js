@@ -1,3 +1,4 @@
+/* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
  * Copyright 2004-2008 The OpenLDAP Foundation.
@@ -166,7 +167,8 @@ destroy:;
 	if ( !BER_BVISNULL( &authzID ) ) {
 		op->o_tmpfree( authzID.bv_val, op->o_tmpmemctx );
 	}
-	slap_tool_destroy();
+	if ( slap_tool_destroy())
+		rc = EXIT_FAILURE;
 
 	return rc;
 }
