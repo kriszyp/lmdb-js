@@ -12,6 +12,7 @@ OpenLDAP 2.4.13 Engineering
 	Added slapd-bdb/hdb dbpagesize keyword
 	Added slapd-bdb/hdb checksum keyword
 	Fixed slapd-ldap snprintf buffer overflow test (ITS#4467)
+	Fixed slapd-null read controls support (ITS#5757)
 	Fixed slapo-chain/translucent back-config support (ITS#5736)
 	Fixed slapo-chain segv with search references (ITS#5742)
 	Fixed slapo-collect compile with C89 (ITS#5747)

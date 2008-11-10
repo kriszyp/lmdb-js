@@ -184,6 +184,34 @@ null_back_db_destroy( Backend *be, ConfigReply *cr )
 int
 null_back_initialize( BackendInfo *bi )
 {
+	static char *controls[] = {
+		LDAP_CONTROL_ASSERT,
+		LDAP_CONTROL_MANAGEDSAIT,
+		LDAP_CONTROL_PAGEDRESULTS,
+		LDAP_CONTROL_SUBENTRIES,
+#if 0 /* do not declare support for write operation specific controls */
+		LDAP_CONTROL_NOOP,
+		LDAP_CONTROL_PRE_READ,
+		LDAP_CONTROL_POST_READ,
+		LDAP_CONTROL_X_PERMISSIVE_MODIFY,
+#ifdef LDAP_X_TXN
+		LDAP_CONTROL_X_TXN_SPEC,
+#endif
+#endif
+		NULL
+	};
+
+	Debug( LDAP_DEBUG_TRACE,
+		"null_back_initialize: initialize null backend\n", 0, 0, 0 );
+
+	bi->bi_flags |=
+		SLAP_BFLAG_INCREMENT |
+		SLAP_BFLAG_SUBENTRIES |
+		SLAP_BFLAG_ALIASES |
+		SLAP_BFLAG_REFERRALS;
+
+	bi->bi_controls = controls;
+
 	bi->bi_open = 0;
 	bi->bi_close = 0;
 	bi->bi_config = 0;
