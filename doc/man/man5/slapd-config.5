@@ -1234,6 +1234,12 @@ which they are defined.  They are supported by every
 type of backend. All of the Global Database Options may also be
 used here.
 .TP
+.B olcAddContentAcl TRUE | FALSE
+Controls whether Add operations will perform ACL checks on
+the content of the entry being added. This check is off
+by default; usually only Write access to the parent entry's
+children pseudo-attribute is required.
+.TP
 .B olcHidden: TRUE | FALSE
 Controls whether the database will be used to answer
 queries. A database that is hidden will never be
