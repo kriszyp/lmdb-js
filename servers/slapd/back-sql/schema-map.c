@@ -570,7 +570,7 @@ backsql_load_schema_map( backsql_info *bi, SQLHDBC dbh )
 			int i;
 
 			for ( i = 0; required[ i ].name != NULL; i++ ) {
-				if ( oc_row.value_len[ i ] <= 0 ) {
+				if ( oc_row.value_len[ required[ i ].idx ] <= 0 ) {
 					Debug( LDAP_DEBUG_ANY,
 						"backsql_load_schema_map(): "
 						"required column #%d \"%s\" is empty\n",
