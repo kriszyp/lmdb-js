@@ -59,6 +59,7 @@ static HDB *db;
 static AttributeDescription *ad_krb5Key;
 static AttributeDescription *ad_krb5KeyVersionNumber;
 static AttributeDescription *ad_krb5PrincipalName;
+static AttributeDescription *ad_krb5ValidEnd;
 static ObjectClass *oc_krb5KDCEntry;
 #endif
 
@@ -273,9 +274,9 @@ static int k5key_chk(
 	int rc;
 	Entry *e;
 	Attribute *a;
-    krb5_error_code ret;
-    krb5_keyblock key;
-    krb5_salt salt;
+	krb5_error_code ret;
+	krb5_keyblock key;
+	krb5_salt salt;
 	hdb_entry ent;
 
 	/* Find our thread context, find our Operation */
@@ -300,6 +301,19 @@ static int k5key_chk(
 		memset( &ent, 0, sizeof(ent) );
 		ret = krb5_parse_name(context, a->a_vals[0].bv_val, &ent.principal);
 		if ( ret ) break;
+
+		a = attr_find( e->e_attrs, ad_krb5ValidEnd );
+		if (a) {
+			struct lutil_tm tm;
+			struct lutil_timet tt;
+			if ( lutil_parsetime( a->a_vals[0].bv_val, &tm ) == 0 &&
+				lutil_tm2time( &tm, &tt ) == 0 && tt.tt_usec < op->o_time ) {
+				/* Account is expired */
+				rc = LUTIL_PASSWD_ERR;
+				break;
+			}
+		}
+
 		krb5_get_pw_salt( context, ent.principal, &salt );
 		krb5_free_principal( context, ent.principal );
 
@@ -840,6 +854,7 @@ smbk5pwd_modules_init( smbk5pwd_t *pi )
 		{ "krb5Key",			&ad_krb5Key },
 		{ "krb5KeyVersionNumber",	&ad_krb5KeyVersionNumber },
 		{ "krb5PrincipalName",		&ad_krb5PrincipalName },
+		{ "krb5ValidEnd",		&ad_krb5ValidEnd },
 		{ NULL }
 	},
 #endif /* DO_KRB5 */
@@ -908,7 +923,7 @@ smbk5pwd_modules_init( smbk5pwd_t *pi )
 			char *err_str, *err_msg = "<unknown error>";
 			err_str = krb5_get_error_string( context );
 			if (!err_str)
-				err_msg = krb5_get_err_text( context, ret );
+				err_msg = (char *)krb5_get_err_text( context, ret );
 			Debug( LDAP_DEBUG_ANY, "smbk5pwd: "
 				"unable to initialize krb5 admin context: %s (%d).\n",
 				err_str ? err_str : err_msg, ret, 0 );

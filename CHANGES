@@ -41,6 +41,7 @@ OpenLDAP 2.4.13 Engineering
 	Added slapo-translucent support for PasswordModify exop (ITS#5656)
 	Fixed tools simple bind without SASL (ITS#5753)
 	Fixed tools unaligned BerElement (ITS#5770)
+	Added contrib smbk5pwd honor principal expiration (ITS#5766)
 	Build Environment
 		Added ldapurl command
 		Added slapd GSSAPI refactoring (ITS#5369)
