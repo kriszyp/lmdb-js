@@ -660,6 +660,13 @@ LDAP_SLAPD_F (int)
 slap_ctrl_session_tracking_request_add LDAP_P((
 	Operation *op, SlapReply *rs, LDAPControl *ctrl ));
 #endif /* SLAP_CONTROL_X_SESSION_TRACKING */
+#ifdef SLAP_CONTROL_X_WHATFAILED
+LDAP_SLAPD_F (int)
+slap_ctrl_whatFailed_add LDAP_P((
+	Operation *op,
+	SlapReply *rs,
+	char **oids ));
+#endif /* SLAP_CONTROL_X_WHATFAILED */
 
 /*
  * config.c

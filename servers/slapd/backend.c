@@ -946,6 +946,12 @@ backend_check_controls(
 
 			case LDAP_COMPARE_FALSE:
 				if ( !op->o_bd->be_ctrls[cid] && (*ctrls)->ldctl_iscritical ) {
+#ifdef SLAP_CONTROL_X_WHATFAILED
+					if ( get_whatFailed( op ) ) {
+						char *oids[ 2 ] = { (*ctrls)->ldctl_oid, NULL };
+						slap_ctrl_whatFailed_add( op, rs, oids );
+					}
+#endif
 					/* RFC 4511 allows unavailableCriticalExtension to be
 					 * returned when the server is unwilling to perform
 					 * an operation extended by a recognized critical
