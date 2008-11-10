@@ -5,6 +5,8 @@ OpenLDAP 2.4.13 Engineering
 	Fixed liblutil hex conversion (ITS#5699)
 	Fixed liblutil returning undefined data (ITS#5748)
 	Fixed libldap error code return (ITS#5762)
+	Fixed slapd acl checks on ADD (ITS#4556,ITS#5723)
+	Added slapd keyword add_content_acl for add checks (ITS#4556,ITS#5723)
 	Fixed slapd config backend olcLogFile support (ITS#5765)
 	Added slapd dn.this search limits (ITS#5734)
 	Fixed slapd nameUIDPretty bitstring parsing (ITS#5750)

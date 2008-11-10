@@ -223,6 +223,19 @@ is_ref:			p.e_attrs = NULL;
 		goto return_results;;
 	}
 
+	/* 
+	 * Check ACL for attribute write access
+	 */
+	if (!acl_check_modlist(op, op->ora_e, op->ora_modlist)) {
+		Debug( LDAP_DEBUG_TRACE,
+			LDAP_XSTRING(bdb_add) ": no write access to attribute\n",
+			0, 0, 0 );
+		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
+		rs->sr_text = "no write access to attribute";
+		goto return_results;;
+	}
+
+
 	/* acquire entry ID */
 	if ( op->ora_e->e_id == NOID ) {
 		rs->sr_err = ndb_next_id( op->o_bd, NA.ndb, &op->ora_e->e_id );

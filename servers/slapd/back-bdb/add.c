@@ -299,6 +299,24 @@ retry:	/* transaction retry */
 		goto return_results;;
 	}
 
+	/* 
+	 * Check ACL for attribute write access
+	 */
+	if (!acl_check_modlist(op, oe, op->ora_modlist)) {
+		switch( opinfo.boi_err ) {
+		case DB_LOCK_DEADLOCK:
+		case DB_LOCK_NOTGRANTED:
+			goto retry;
+		}
+
+		Debug( LDAP_DEBUG_TRACE,
+			LDAP_XSTRING(bdb_add) ": no write access to attribute\n",
+			0, 0, 0 );
+		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
+		rs->sr_text = "no write access to attribute";
+		goto return_results;;
+	}
+
 	if ( eid == NOID ) {
 		rs->sr_err = bdb_next_id( op->o_bd, &eid );
 		if( rs->sr_err != 0 ) {
