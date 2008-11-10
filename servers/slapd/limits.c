@@ -27,6 +27,10 @@
 /* define to get an error if requesting limit higher than hard */
 #undef ABOVE_HARD_LIMIT_IS_ERROR
 
+#ifdef LDAP_DEBUG
+static const char *const dn_source[2] = { "DN", "DN.THIS" };
+#endif
+
 static char *
 limits2str( unsigned i )
 {
@@ -63,21 +67,25 @@ limits2str( unsigned i )
 	}
 }
 
-int
+static int
 limits_get( 
 	Operation		*op,
-	struct berval		*ndn, 
 	struct slap_limits_set 	**limit
 )
 {
 	struct slap_limits **lm;
+	struct berval		*ndns[2];
 
 	assert( op != NULL );
 	assert( limit != NULL );
 
-	Debug( LDAP_DEBUG_TRACE, "==> limits_get: %s dn=\"%s\"\n",
+	ndns[0] = &op->o_ndn;
+	ndns[1] = &op->o_req_ndn;
+
+	Debug( LDAP_DEBUG_TRACE, "==> limits_get: %s self=\"%s\" this=\"%s\"\n",
 			op->o_log_prefix,
-			BER_BVISNULL( ndn ) ? "[anonymous]" : ndn->bv_val, 0 );
+			BER_BVISNULL( ndns[0] ) ? "[anonymous]" : ndns[0]->bv_val,
+			BER_BVISNULL( ndns[1] ) ? "" : ndns[1]->bv_val );
 	/*
 	 * default values
 	 */
@@ -90,6 +98,8 @@ limits_get(
 	for ( lm = op->o_bd->be_limits; lm[0] != NULL; lm++ ) {
 		unsigned	style = lm[0]->lm_flags & SLAP_LIMITS_MASK;
 		unsigned	type = lm[0]->lm_flags & SLAP_LIMITS_TYPE_MASK;
+		unsigned	isthis = type == SLAP_LIMITS_TYPE_THIS;
+		struct berval *ndn = ndns[isthis];
 
 		switch ( style ) {
 		case SLAP_LIMITS_EXACT:
@@ -118,8 +128,8 @@ limits_get(
 			
 				if ( dn_match( &lm[0]->lm_pat, ndn ) ) {
 					*limit = &lm[0]->lm_limits;
-					Debug( LDAP_DEBUG_TRACE, "<== limits_get: type=DN match=EXACT dn=\"%s\"\n",
-							lm[0]->lm_pat.bv_val, 0, 0 );
+					Debug( LDAP_DEBUG_TRACE, "<== limits_get: type=%s match=EXACT dn=\"%s\"\n",
+							dn_source[isthis], lm[0]->lm_pat.bv_val, 0 );
 					return( 0 );
 				}
 			}
@@ -171,8 +181,8 @@ limits_get(
 				}
 
 				*limit = &lm[0]->lm_limits;
-				Debug( LDAP_DEBUG_TRACE, "<== limits_get: type=DN match=%s dn=\"%s\"\n",
-						limits2str( style ), lm[0]->lm_pat.bv_val, 0 );
+				Debug( LDAP_DEBUG_TRACE, "<== limits_get: type=%s match=%s dn=\"%s\"\n",
+						dn_source[isthis], limits2str( style ), lm[0]->lm_pat.bv_val );
 				return( 0 );
 			}
 
@@ -187,16 +197,16 @@ limits_get(
 						0, NULL, 0 ) == 0 )
 			{
 				*limit = &lm[0]->lm_limits;
-				Debug( LDAP_DEBUG_TRACE, "<== limits_get: type=DN match=%s dn=\"%s\"\n",
-						limits2str( style ), lm[0]->lm_pat.bv_val, 0 );
+				Debug( LDAP_DEBUG_TRACE, "<== limits_get: type=%s match=%s dn=\"%s\"\n",
+						dn_source[isthis], limits2str( style ), lm[0]->lm_pat.bv_val );
 				return( 0 );
 			}
 			break;
 
 		case SLAP_LIMITS_ANONYMOUS:
 			if ( BER_BVISEMPTY( ndn ) ) {
-				Debug( LDAP_DEBUG_TRACE, "<== limits_get: type=DN match=%s\n",
-						limits2str( style ), 0, 0 );
+				Debug( LDAP_DEBUG_TRACE, "<== limits_get: type=%s match=%s\n",
+						dn_source[isthis], limits2str( style ), 0 );
 				*limit = &lm[0]->lm_limits;
 				return( 0 );
 			}
@@ -205,8 +215,8 @@ limits_get(
 		case SLAP_LIMITS_USERS:
 			if ( !BER_BVISEMPTY( ndn ) ) {
 				*limit = &lm[0]->lm_limits;
-				Debug( LDAP_DEBUG_TRACE, "<== limits_get: type=DN match=%s\n",
-						limits2str( style ), 0, 0 );
+				Debug( LDAP_DEBUG_TRACE, "<== limits_get: type=%s match=%s\n",
+						dn_source[isthis], limits2str( style ), 0 );
 				return( 0 );
 			}
 			break;
@@ -248,6 +258,7 @@ limits_add(
 	case SLAP_LIMITS_ANONYMOUS:
 	case SLAP_LIMITS_USERS:
 	case SLAP_LIMITS_ANY:
+		/* For these styles, type == 0 (SLAP_LIMITS_TYPE_SELF). */
 		for ( i = 0; be->be_limits && be->be_limits[ i ]; i++ ) {
 			if ( be->be_limits[ i ]->lm_flags == style ) {
 				return( -1 );
@@ -363,10 +374,12 @@ limits_parse(
 	 * 
 	 * "anonymous"
 	 * "users"
-	 * [ "dn" [ "." { "exact" | "base" | "onelevel" | "subtree" | children"
-	 *	| "regex" | "anonymous" } ] "=" ] <dn pattern>
+	 * [ "dn" [ "." { "this" | "self" } ] [ "." { "exact" | "base" |
+	 *	"onelevel" | "subtree" | "children" | "regex" | "anonymous" } ]
+	 *	"=" ] <dn pattern>
 	 *
 	 * Note:
+	 *	"this" is the baseobject, "self" (the default) is the bound DN
 	 *	"exact" and "base" are the same (exact match);
 	 *	"onelevel" means exactly one rdn below, NOT including pattern
 	 *	"subtree" means any rdn below, including pattern
@@ -396,18 +409,31 @@ limits_parse(
 		
 	} else if ( strncasecmp( pattern, "dn", STRLENOF( "dn" ) ) == 0 ) {
 		pattern += STRLENOF( "dn" );
+		flags = SLAP_LIMITS_TYPE_SELF;
 		if ( pattern[0] == '.' ) {
 			pattern++;
+			if ( strncasecmp( pattern, "this", STRLENOF( "this" )) == 0 ) {
+				flags = SLAP_LIMITS_TYPE_THIS;
+				pattern += STRLENOF( "this" );
+			} else if ( strncasecmp( pattern, "self", STRLENOF( "self" )) == 0 ) {
+				pattern += STRLENOF( "self" );
+			} else {
+				goto got_dn_dot;
+			}
+		}
+		if ( pattern[0] == '.' ) {
+			pattern++;
+		got_dn_dot:
 			if ( strncasecmp( pattern, "exact", STRLENOF( "exact" )) == 0 ) {
-				flags = SLAP_LIMITS_EXACT;
+				flags |= SLAP_LIMITS_EXACT;
 				pattern += STRLENOF( "exact" );
 
 			} else if ( strncasecmp( pattern, "base", STRLENOF( "base" ) ) == 0 ) {
-				flags = SLAP_LIMITS_BASE;
+				flags |= SLAP_LIMITS_BASE;
 				pattern += STRLENOF( "base" );
 
 			} else if ( strncasecmp( pattern, "one", STRLENOF( "one" ) ) == 0 ) {
-				flags = SLAP_LIMITS_ONE;
+				flags |= SLAP_LIMITS_ONE;
 				pattern += STRLENOF( "one" );
 				if ( strncasecmp( pattern, "level", STRLENOF( "level" ) ) == 0 ) {
 					pattern += STRLENOF( "level" );
@@ -420,7 +446,7 @@ limits_parse(
 				}
 
 			} else if ( strncasecmp( pattern, "sub", STRLENOF( "sub" ) ) == 0 ) {
-				flags = SLAP_LIMITS_SUBTREE;
+				flags |= SLAP_LIMITS_SUBTREE;
 				pattern += STRLENOF( "sub" );
 				if ( strncasecmp( pattern, "tree", STRLENOF( "tree" ) ) == 0 ) {
 					pattern += STRLENOF( "tree" );
@@ -433,18 +459,20 @@ limits_parse(
 				}
 
 			} else if ( strncasecmp( pattern, "children", STRLENOF( "children" ) ) == 0 ) {
-				flags = SLAP_LIMITS_CHILDREN;
+				flags |= SLAP_LIMITS_CHILDREN;
 				pattern += STRLENOF( "children" );
 
 			} else if ( strncasecmp( pattern, "regex", STRLENOF( "regex" ) ) == 0 ) {
-				flags = SLAP_LIMITS_REGEX;
+				flags |= SLAP_LIMITS_REGEX;
 				pattern += STRLENOF( "regex" );
 
 			/* 
 			 * this could be deprecated in favour
 			 * of the pattern = "anonymous" form
 			 */
-			} else if ( strncasecmp( pattern, "anonymous", STRLENOF( "anonymous" ) ) == 0 ) {
+			} else if ( strncasecmp( pattern, "anonymous", STRLENOF( "anonymous" ) ) == 0
+					&& flags == SLAP_LIMITS_TYPE_SELF )
+			{
 				flags = SLAP_LIMITS_ANONYMOUS;
 				pattern = NULL;
 			}
@@ -463,8 +491,8 @@ limits_parse(
 			if ( pattern[0] != '=' ) {
 				Debug( LDAP_DEBUG_ANY,
 					"%s : line %d: missing '=' in "
-					"\"dn[.{exact|base|onelevel|subtree"
-					"|children|regex|anonymous}]"
+					"\"dn[.{this|self}][.{exact|base"
+					"|onelevel|subtree|children|regex}]"
 					"=<pattern>\" in "
 					"\"limits <pattern> <limits>\" "
 					"line.\n%s",
@@ -879,13 +907,14 @@ limits_unparse( struct slap_limits *lim, struct berval *bv, ber_len_t buflen )
 {
 	struct berval btmp;
 	char *ptr;
-	int lm;
+	int type, lm, dntypelen;
 
 	if ( !bv || !bv->bv_val ) return -1;
 
 	ptr = bv->bv_val;
+	type = lim->lm_flags & SLAP_LIMITS_TYPE_MASK;
 
-	if (( lim->lm_flags & SLAP_LIMITS_TYPE_MASK ) == SLAP_LIMITS_TYPE_GROUP ) {
+	if ( type == SLAP_LIMITS_TYPE_GROUP ) {
 		if ( WHATSLEFT <= STRLENOF( "group/" "/" "=\"" "\"" )
 				+ lim->lm_group_oc->soc_cname.bv_len
 				+ lim->lm_group_ad->ad_cname.bv_len
@@ -913,9 +942,11 @@ limits_unparse( struct slap_limits *lim, struct berval *bv, ber_len_t buflen )
 		case SLAP_LIMITS_SUBTREE:
 		case SLAP_LIMITS_CHILDREN:
 		case SLAP_LIMITS_REGEX:
-			if ( WHATSLEFT <= STRLENOF( "dn." "=" "\"" "\"" )
+			dntypelen = type == SLAP_LIMITS_TYPE_SELF
+				? STRLENOF( "dn." ) : STRLENOF( "dn.this." );
+			if ( WHATSLEFT <= dntypelen + STRLENOF( "=" "\"" "\"" )
 					+ strlen( lmpats[lm] ) + lim->lm_pat.bv_len ) return -1;
-			ptr = lutil_strcopy( ptr, "dn." );
+			ptr = lutil_strncopy( ptr, "dn.this.", dntypelen );
 			ptr = lutil_strcopy( ptr, lmpats[lm] );
 			*ptr++ = '=';
 			*ptr++ = '"';
@@ -1132,7 +1163,7 @@ limits_check( Operation *op, SlapReply *rs )
 
 	/* if not root, get appropriate limits */
 	} else {
-		( void ) limits_get( op, &op->o_ndn, &op->ors_limit );
+		( void ) limits_get( op, &op->ors_limit );
 
 		assert( op->ors_limit != NULL );
 

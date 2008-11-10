@@ -1250,23 +1250,33 @@ createTimestamp attributes for entries. It also controls
 the entryCSN and entryUUID attributes, which are needed
 by the syncrepl provider. By default, olcLastMod is TRUE.
 .TP
-.B olcLimits: <who> <limit> [<limit> [...]]
-Specify time and size limits based on who initiated an operation.
+.B olcLimits: <selector> <limit> [<limit> [...]]
+Specify time and size limits based on the operation's initiator or
+base DN.
 The argument
-.B who
+.B <selector>
 can be any of
 .RS
 .RS
 .TP
-anonymous | users | [dn[.<style>]=]<pattern> | group[/oc[/at]]=<pattern>
+anonymous | users | [<dnspec>=]<pattern> | group[/oc[/at]]=<pattern>
 
 .RE
 with
 .RS
 .TP
+<dnspec> ::= dn[.<type>][.<style>]
+.TP
+<type>  ::= self | this
+.TP
 <style> ::= exact | base | onelevel | subtree | children | regex | anonymous
 
 .RE
+DN type
+.B self
+is the default and means the bound user, while
+.B this
+means the base DN of the operation.
 The term
 .B anonymous
 matches all unauthenticated clients.
@@ -1300,7 +1310,7 @@ field is ignored.
 The same behavior is obtained by using the 
 .B anonymous
 form of the
-.B who
+.B <selector>
 clause.
 The term
 .BR group ,
@@ -1414,7 +1424,7 @@ limit is set to
 to preserve the original behavior.
 
 In case of no match, the global limits are used.
-The default values are the same as
+The default values are the same as for
 .B olcSizeLimit
 and
 .BR olcTimeLimit ;

@@ -2,6 +2,7 @@ OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.13 Engineering
 	Fixed liblutil hex conversion (ITS#5699)
+	Added slapd dn.this ACL limits (ITS#5734)
 	Fixed slapd nameUIDPretty bitstring parsing (ITS#5750)
 	Fixed slapd overlay/database open with real structure (ITS#5724)
 	Fixed slapd parsing of read entry control (ITS#5741)
