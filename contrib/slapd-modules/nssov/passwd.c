@@ -185,7 +185,7 @@ int nssov_uid2dn(Operation *op,nssov_info *ni,struct berval *uid,struct berval *
 	op2.ors_filter = str2filter_x( op, filter.bv_val );
 	op2.ors_attrs = slap_anlist_no_attrs;
 	rc = op2.o_bd->be_search( &op2, &rs );
-	filter_free_x( op, op2.ors_filter );
+	filter_free_x( op, op2.ors_filter, 1 );
 	return rc == LDAP_SUCCESS;
 }
 
