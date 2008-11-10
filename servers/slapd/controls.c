@@ -960,12 +960,10 @@ static int parseDontUseCopy (
 		return LDAP_PROTOCOL_ERROR;
 	}
 
-	if ( !ctrl->ldctl_iscritical ) {
-		rs->sr_text = "dontUseCopy criticality of FALSE not allowed";
-		return LDAP_PROTOCOL_ERROR;
-	}
+	op->o_dontUseCopy = ctrl->ldctl_iscritical
+		? SLAP_CONTROL_CRITICAL
+		: SLAP_CONTROL_NONCRITICAL;
 
-	op->o_dontUseCopy = SLAP_CONTROL_CRITICAL;
 	return LDAP_SUCCESS;
 }
 

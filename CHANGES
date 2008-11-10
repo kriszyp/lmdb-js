@@ -9,6 +9,7 @@ OpenLDAP 2.4.13 Engineering
 	Added slapd keyword add_content_acl for add checks (ITS#4556,ITS#5723)
 	Fixed slapd config backend olcLogFile support (ITS#5765)
 	Fixed slapd contextCSN pending list (ITS#5709)
+	Fixed slapd control criticality (ITS#5785)
 	Added slapd dn.this search limits (ITS#5734)
 	Fixed slapd nameUIDPretty bitstring parsing (ITS#5750)
 	Fixed slapd overlay/database open with real structure (ITS#5724)
