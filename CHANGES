@@ -46,6 +46,7 @@ OpenLDAP 2.4.13 Engineering
 		Added slapo-deref overlay (ITS#5768)
 	Documentation
 		admin24 added olcLimits to example (ITS#5746)
+		admin24 consolidated on whitespace (ITS#5759)
 
 OpenLDAP 2.4.12 Release (2008/10/12)
 	Fixed libldap ldap_utf8_strchar arguments (ITS#5720)
