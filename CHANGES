@@ -5,7 +5,7 @@ OpenLDAP 2.4.13 Engineering
 	Fixed liblutil returning undefined data (ITS#5748)
 	Fixed libldap error code return (ITS#5762)
 	Fixed slapd config backend olcLogFile support (ITS#5765)
-	Added slapd dn.this ACL limits (ITS#5734)
+	Added slapd dn.this search limits (ITS#5734)
 	Fixed slapd nameUIDPretty bitstring parsing (ITS#5750)
 	Fixed slapd overlay/database open with real structure (ITS#5724)
 	Fixed slapd parsing of read entry control (ITS#5741)
