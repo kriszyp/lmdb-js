@@ -1204,7 +1204,7 @@ See
 .BR olcLimits
 for an explanation of the different flags.
 .TP
-.B olcSortVals <attr> [...]
+.B olcSortVals: <attr> [...]
 Specify a list of multi-valued attributes whose values will always
 be maintained in sorted order. Using this option will allow Modify,
 Compare, and filter evaluations on these attributes to be performed
@@ -1233,6 +1233,14 @@ Options in this section only apply to the specific database for
 which they are defined.  They are supported by every
 type of backend. All of the Global Database Options may also be
 used here.
+.TP
+.B olcAddContentAcl: TRUE | FALSE
+Controls whether Add operations will perform ACL checks on
+the content of the entry being added. This check is off
+by default. See the
+.BR slapd.access (5)
+manual page for more details on ACL requirements for
+Add operations.
 .TP
 .B olcHidden: TRUE | FALSE
 Controls whether the database will be used to answer

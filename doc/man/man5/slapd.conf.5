@@ -1162,6 +1162,14 @@ or
 .BR sql ,
 depending on which backend will serve the database.
 .TP
+.B add_content_acl on | off
+Controls whether Add operations will perform ACL checks on
+the content of the entry being added. This check is off
+by default. See the
+.BR slapd.access (5)
+manual page for more details on ACL requirements for
+Add operations.
+.TP
 .B hidden on | off
 Controls whether the database will be used to answer
 queries. A database that is hidden will never be
