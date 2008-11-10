@@ -1273,6 +1273,7 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 	BerElement	*ber = (BerElement *) &berbuf;
 	int rc = 0;
 	int bytes;
+	char *edn = rs->sr_entry ? rs->sr_entry->e_name.bv_val : "(null)";
 
 	AttributeDescription *ad_ref = slap_schema.si_ad_ref;
 	AttributeDescription *ad_entry = slap_schema.si_ad_entry;
@@ -1287,7 +1288,7 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 
 	Debug( LDAP_DEBUG_TRACE,
 		"=> send_search_reference: dn=\"%s\"\n",
-		rs->sr_entry ? rs->sr_entry->e_name.bv_val : "(null)", 0, 0 );
+		edn, 0, 0 );
 
 	if (  rs->sr_entry && ! access_allowed( op, rs->sr_entry,
 		ad_entry, NULL, ACL_READ, NULL ) )
@@ -1313,7 +1314,7 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 	if( op->o_domain_scope ) {
 		Debug( LDAP_DEBUG_ANY,
 			"send_search_reference: domainScope control in (%s)\n", 
-			rs->sr_entry->e_dn, 0, 0 );
+			edn, 0, 0 );
 		rc = 0;
 		goto rel;
 	}
@@ -1321,7 +1322,7 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 	if( rs->sr_ref == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
 			"send_search_reference: null ref in (%s)\n", 
-			rs->sr_entry ? rs->sr_entry->e_dn : "(null)", 0, 0 );
+			edn, 0, 0 );
 		rc = 1;
 		goto rel;
 	}
@@ -1371,6 +1372,7 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 
 	rc = 0;
 	if ( rs->sr_flags & REP_ENTRY_MUSTRELEASE ) {
+		assert( rs->sr_entry != NULL );
 		be_entry_release_rw( op, rs->sr_entry, 0 );
 		rs->sr_flags ^= REP_ENTRY_MUSTRELEASE;
 		rs->sr_entry = NULL;
@@ -1520,8 +1522,8 @@ int slap_read_controls(
 	LDAPControl c;
 	Operation myop;
 
-	Debug( LDAP_DEBUG_ANY, "slap_read_controls: (%s) %s\n",
-		oid->bv_val, e->e_dn, 0 );
+	Debug( LDAP_DEBUG_ANY, "%s slap_read_controls: (%s) %s\n",
+		op->o_log_prefix, oid->bv_val, e->e_dn );
 
 	rs->sr_entry = e;
 	rs->sr_attrs = ( oid == &slap_pre_read_bv ) ?
