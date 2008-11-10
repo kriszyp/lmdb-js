@@ -39,6 +39,7 @@ OpenLDAP 2.4.13 Engineering
 	Fixed slapo-rwm rewriting undefined filter (ITS#5731)
 	Fixed slapo-rwm rewritten DN-valued attrs (ITS#5772)
 	Fixed slapo-rwm reusing freed filter (ITS#5732)
+	Fixed slapo-rwm entry get (ITS#5773)
 	Fixed slapo-syncprov runqueue removal (ITS#5776)
 	Added slapo-translucent try local bind when remote fails (ITS#5656)
 	Added slapo-translucent support for PasswordModify exop (ITS#5656)
