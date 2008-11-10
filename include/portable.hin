@@ -978,6 +978,9 @@
 /* define for Dynamic Directory Services overlay */
 #undef SLAPD_OVER_DDS
 
+/* define for Dynamic Directory Services overlay */
+#undef SLAPD_OVER_DEREF
+
 /* define for Dynamic Group overlay */
 #undef SLAPD_OVER_DYNGROUP
 

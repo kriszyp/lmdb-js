@@ -1,6 +1,7 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.13 Engineering
+	Added libldap dereference control support (ITS#5768)
 	Fixed liblutil hex conversion (ITS#5699)
 	Fixed liblutil returning undefined data (ITS#5748)
 	Fixed libldap error code return (ITS#5762)
@@ -36,6 +37,7 @@ OpenLDAP 2.4.13 Engineering
 	Build Environment
 		Added ldapurl command
 		Added slapd GSSAPI refactoring (ITS#5369)
+		Added slapo-deref overlay (ITS#5768)
 	Documentation
 		admin24 added olcLimits to example (ITS#5746)
 

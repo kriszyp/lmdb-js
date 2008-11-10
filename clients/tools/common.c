@@ -135,6 +135,9 @@ static int print_paged_results( LDAP *ld, LDAPControl *ctrl );
 static int print_ppolicy( LDAP *ld, LDAPControl *ctrl );
 #endif
 static int print_sss( LDAP *ld, LDAPControl *ctrl );
+#ifdef LDAP_CONTROL_X_DEREF
+static int print_deref( LDAP *ld, LDAPControl *ctrl );
+#endif
 
 static struct tool_ctrls_t {
 	const char	*oid;
@@ -148,6 +151,9 @@ static struct tool_ctrls_t {
 	{ LDAP_CONTROL_PASSWORDPOLICYRESPONSE,		TOOL_ALL,	print_ppolicy },
 #endif
 	{ LDAP_CONTROL_SORTRESPONSE,	TOOL_SEARCH,	print_sss },
+#ifdef LDAP_CONTROL_X_DEREF
+	{ LDAP_CONTROL_X_DEREF,				TOOL_SEARCH,	print_deref },
+#endif
 	{ NULL,						0,		NULL }
 };
 
@@ -1889,6 +1895,76 @@ print_sss( LDAP *ld, LDAPControl *ctrl )
 
 	return rc;
 }
+
+#ifdef LDAP_CONTROL_X_DEREF
+static int
+print_deref( LDAP *ld, LDAPControl *ctrl )
+{
+	LDAPDerefRes    *drhead = NULL, *dr;
+	int		rc;
+
+	rc = ldap_parse_derefresponse_control( ld, ctrl, &drhead );
+	if ( rc != LDAP_SUCCESS ) {
+		return rc;
+	}
+
+	for ( dr = drhead; dr != NULL; dr = dr->next ) {
+		LDAPDerefVal	*dv;
+		ber_len_t	len;
+		char		*buf, *ptr;
+
+		len = strlen( dr->derefAttr ) + STRLENOF(": ");
+
+		for ( dv = dr->attrVals; dv != NULL; dv = dv->next ) {
+			if ( dv->vals != NULL ) {
+				int j;
+				ber_len_t tlen = strlen(dv->type);
+
+				for ( j = 0; dv->vals[ j ].bv_val != NULL; j++ ) {
+					len += STRLENOF("<=>;") + tlen + dv->vals[ j ].bv_len;
+				}
+			}
+		}
+		len += dr->derefVal.bv_len;
+		buf = ldap_memalloc( len + 1 );
+		if ( buf == NULL ) {
+			rc = LDAP_NO_MEMORY;
+			goto done;
+		}
+
+		ptr = buf;
+		ptr = lutil_strcopy( ptr, dr->derefAttr );
+		*ptr++ = ':';
+		*ptr++ = ' ';
+		for ( dv = dr->attrVals; dv != NULL; dv = dv->next ) {
+			if ( dv->vals != NULL ) {
+				int j;
+				for ( j = 0; dv->vals[ j ].bv_val != NULL; j++ ) {
+					*ptr++ = '<';
+					ptr = lutil_strcopy( ptr, dv->type );
+					*ptr++ = '=';
+					ptr = lutil_strncopy( ptr, dv->vals[ j ].bv_val, dv->vals[ j ].bv_len );
+					*ptr++ = '>';
+					*ptr++ = ';';
+				}
+			}
+		}
+		ptr = lutil_strncopy( ptr, dr->derefVal.bv_val, dr->derefVal.bv_len );
+		*ptr++ = '\0';
+
+		tool_write_ldif( LDIF_PUT_COMMENT, NULL, buf, len );
+
+		ldap_memfree( buf );
+	}
+
+	rc = LDAP_SUCCESS;
+
+done:;
+	ldap_derefresponse_free( drhead );
+
+	return rc;
+}
+#endif
 
 #ifdef LDAP_CONTROL_PASSWORDPOLICYREQUEST
 static int

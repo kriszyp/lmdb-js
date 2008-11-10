@@ -18,6 +18,7 @@ SRCS = overlays.c \
 	auditlog.c \
 	constraint.c \
 	dds.c \
+	deref.c \
 	dyngroup.c \
 	dynlist.c \
 	memberof.c \
@@ -71,6 +72,9 @@ constraint.la : constraint.lo
 
 dds.la : dds.lo
 	$(LTLINK_MOD) -module -o $@ dds.lo version.lo $(LINK_LIBS)
+
+deref.la : deref.lo
+	$(LTLINK_MOD) -module -o $@ deref.lo version.lo $(LINK_LIBS)
 
 dyngroup.la : dyngroup.lo
 	$(LTLINK_MOD) -module -o $@ dyngroup.lo version.lo $(LINK_LIBS)
