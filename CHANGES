@@ -59,7 +59,8 @@ OpenLDAP 2.4.13 Engineering
 	Added slapo-translucent support for PasswordModify exop (ITS#5656)
 	Fixed tools simple bind without SASL (ITS#5753)
 	Fixed tools unaligned BerElement (ITS#5770)
-	Fixed contriv nssov crash on empty groups (ITS#5800)
+	Fixed contrib nssov crash on empty groups (ITS#5800)
+	Fixed contrib nssov crash with nssov-map (ITS#5801)
 	Added contrib smbk5pwd honor principal expiration (ITS#5766)
 	Build Environment
 		Added ldapurl command

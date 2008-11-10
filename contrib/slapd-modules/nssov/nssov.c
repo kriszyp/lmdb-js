@@ -476,7 +476,6 @@ nss_cf_gen(ConfigArgs *c)
 		case NSS_MAP:
 			rc = 1;
 			for (i=NM_alias;i<NM_NONE;i++) {
-				int j;
 
 				mi = &ni->ni_maps[i];
 				for (j=0;!BER_BVISNULL(&mi->mi_attrkeys[j]);j++) {
@@ -486,10 +485,10 @@ nss_cf_gen(ConfigArgs *c)
 
 						map.bv_len = nss_svcs[i].word.bv_len +
 							mi->mi_attrkeys[j].bv_len +
-							mi->mi_attrs->an_desc->ad_cname.bv_len + 2;
+							mi->mi_attrs[j].an_desc->ad_cname.bv_len + 2;
 						map.bv_val = ch_malloc(map.bv_len + 1);
 						sprintf(map.bv_val, "%s %s %s", nss_svcs[i].word.bv_val,
-							mi->mi_attrkeys[j].bv_val, mi->mi_attrs->an_desc->ad_cname.bv_val );
+							mi->mi_attrkeys[j].bv_val, mi->mi_attrs[j].an_desc->ad_cname.bv_val );
 						ber_bvarray_add( &c->rvalue_vals, &map );
 						rc = 0;
 					}
