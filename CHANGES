@@ -17,6 +17,7 @@ OpenLDAP 2.4.13 Engineering
 	Added slapd PMI schema (ITS#5695)
 	Added slapd private databases in global overlays (ITS#5735,ITS#5736)
 	Fixed slapd slapd.conf validation to LDIF (ITS#5755)
+	Fixed slapd startup scan for CSN (ITS#5640)
 	Fixed slapd statslog printing of released entry (ITS#5775)
 	Added slapd support for certificateListExactMatch (ITS#5700)
 	Fixed slapd syncrepl MOD of attrs with no EQ rule (ITS#5781)

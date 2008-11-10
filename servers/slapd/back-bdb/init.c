@@ -168,6 +168,8 @@ bdb_db_open( BackendDB *be, ConfigReply *cr )
 			be->be_suffix[0].bv_val, 0, 0 );
 		return -1;
 	}
+	if ( rc == ALOCK_CLEAN )
+		be->be_flags |= SLAP_DBFLAG_CLEAN;
 
 	/*
 	 * The DB_CONFIG file may have changed. If so, recover the
