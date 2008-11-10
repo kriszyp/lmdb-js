@@ -4154,8 +4154,8 @@ syncrepl_unparse( syncinfo_t *si, struct berval *bv )
 		if ( WHATSLEFT <= STRLENOF( " " ATTRSONLYSTR "=\"" "\"" ) ) return;
 		ptr = lutil_strcopy( ptr, " " ATTRSSTR "=\"" );
 		old = ptr;
-		/* FIXME: add check for overflow */
 		ptr = anlist_unparse( si->si_anlist, ptr, WHATSLEFT );
+		if ( ptr == NULL ) return;
 		if ( si->si_allattrs ) {
 			if ( WHATSLEFT <= STRLENOF( ",*\"" ) ) return;
 			if ( old != ptr ) *ptr++ = ',';
@@ -4171,8 +4171,8 @@ syncrepl_unparse( syncinfo_t *si, struct berval *bv )
 	if ( si->si_exanlist && !BER_BVISNULL(&si->si_exanlist[0].an_name) ) {
 		if ( WHATSLEFT <= STRLENOF( " " EXATTRSSTR "=" ) ) return;
 		ptr = lutil_strcopy( ptr, " " EXATTRSSTR "=" );
-		/* FIXME: add check for overflow */
 		ptr = anlist_unparse( si->si_exanlist, ptr, WHATSLEFT );
+		if ( ptr == NULL ) return;
 	}
 	if ( WHATSLEFT <= STRLENOF( " " SCHEMASTR "=" ) + STRLENOF( "off" ) ) return;
 	ptr = lutil_strcopy( ptr, " " SCHEMASTR "=" );
