@@ -1843,6 +1843,10 @@ acl_check_modlist(
 	}
 	assert( be != NULL );
 
+	/* If ADD attribute checking is not enabled, just allow it */
+	if ( op->o_tag == LDAP_REQ_ADD && !SLAP_DBACL_ADD( be ))
+		return 1;
+
 	/* short circuit root database access */
 	if ( be_isroot( op ) ) {
 		Debug( LDAP_DEBUG_ACL,

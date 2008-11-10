@@ -184,6 +184,7 @@ enum {
 	CFG_SORTVALS,
 	CFG_IX_INTLEN,
 	CFG_SYNTAX,
+	CFG_ACL_ADD,
 
 	CFG_LAST
 };
@@ -280,6 +281,10 @@ static ConfigTable config_back_cf_table[] = {
 			"DESC 'Access Control List' "
 			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString X-ORDERED 'VALUES' )", NULL, NULL },
+	{ "add_content_acl",	NULL, 0, 0, 0, ARG_MAY_DB|ARG_ON_OFF|ARG_MAGIC|CFG_ACL_ADD,
+		&config_generic, "( OLcfgGlAt:86 NAME 'olcAddContentAcl' "
+			"DESC 'Check ACLs against content of Add ops' "
+			"SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
 	{ "allows",	"features", 2, 0, 5, ARG_PRE_DB|ARG_MAGIC,
 		&config_allows, "( OLcfgGlAt:2 NAME 'olcAllows' "
 			"DESC 'Allowed set of deprecated features' "
@@ -771,7 +776,7 @@ static ConfigOCs cf_ocs[] = {
 		"SUP olcConfig STRUCTURAL "
 		"MUST olcDatabase "
 		"MAY ( olcHidden $ olcSuffix $ olcSubordinate $ olcAccess $ "
-		 "olcLastMod $ olcLimits $ "
+		 "olcAddContentAcl $ olcLastMod $ olcLimits $ "
 		 "olcMaxDerefDepth $ olcPlugin $ olcReadOnly $ olcReplica $ "
 		 "olcReplicaArgsFile $ olcReplicaPidFile $ olcReplicationInterval $ "
 		 "olcReplogFile $ olcRequires $ olcRestrict $ olcRootDN $ olcRootPW $ "
@@ -1006,6 +1011,9 @@ config_generic(ConfigArgs *c) {
 			rc = (!i);
 			break;
 		}
+		case CFG_ACL_ADD:
+			c->value_int = (SLAP_DBACL_ADD(c->be) != 0);
+			break;
 		case CFG_ROOTDSE: {
 			ConfigFile *cf = c->ca_private;
 			if ( cf->c_dseFiles ) {
@@ -1159,6 +1167,7 @@ config_generic(ConfigArgs *c) {
 		case CFG_SASLSECP:
 		case CFG_SSTR_IF_MAX:
 		case CFG_SSTR_IF_MIN:
+		case CFG_ACL_ADD:
 			break;
 
 		/* no-ops, requires slapd restart */
@@ -1692,6 +1701,13 @@ sortval_reject:
 			if ( parse_acl(c->be, c->fname, c->lineno, c->argc, c->argv, i ) ) {
 				return 1;
 			}
+			break;
+
+		case CFG_ACL_ADD:
+			if(c->value_int)
+				SLAP_DBFLAGS(c->be) |= SLAP_DBFLAG_ACL_ADD;
+			else
+				SLAP_DBFLAGS(c->be) &= ~SLAP_DBFLAG_ACL_ADD;
 			break;
 
 		case CFG_ROOTDSE:
@@ -6206,6 +6222,9 @@ config_back_db_init( BackendDB *be, ConfigReply* cr )
 
 	/* Hide from namingContexts */
 	SLAP_BFLAGS(be) |= SLAP_BFLAG_CONFIG;
+
+	/* Check ACLs on content of Adds by default */
+	SLAP_DBFLAGS(be) |= SLAP_DBFLAG_ACL_ADD;
 
 	return 0;
 }
