@@ -62,21 +62,25 @@ static AttributeName *slap_anlist_no_attrs = anlist_no_attrs;
 static AttributeDescription *ad_dgIdentity, *ad_dgAuthz;
 
 typedef struct dynlist_map_t {
-	AttributeDescription *dlm_member_ad;
-	AttributeDescription *dlm_mapped_ad;
-	struct dynlist_map_t *dlm_next;
+	AttributeDescription	*dlm_member_ad;
+	AttributeDescription	*dlm_mapped_ad;
+	struct dynlist_map_t	*dlm_next;
 } dynlist_map_t;
 
 typedef struct dynlist_info_t {
 	ObjectClass		*dli_oc;
 	AttributeDescription	*dli_ad;
 	struct dynlist_map_t	*dli_dlm;
+	struct berval		dli_uri;
+	LDAPURLDesc		*dli_lud;
+	struct berval		dli_uri_nbase;
+	Filter			*dli_uri_filter;
 	struct berval		dli_default_filter;
 	struct dynlist_info_t	*dli_next;
 } dynlist_info_t;
 
 #define DYNLIST_USAGE \
-	"\"dynlist-attrset <oc> <URL-ad> [[<mapped-ad>:]<member-ad> ...]\": "
+	"\"dynlist-attrset <oc> [uri] <URL-ad> [[<mapped-ad>:]<member-ad> ...]\": "
 
 static dynlist_info_t *
 dynlist_is_dynlist_next( Operation *op, SlapReply *rs, dynlist_info_t *old_dli )
@@ -102,6 +106,56 @@ dynlist_is_dynlist_next( Operation *op, SlapReply *rs, dynlist_info_t *old_dli )
 	}
 
 	for ( ; dli; dli = dli->dli_next ) {
+		if ( dli->dli_lud != NULL ) {
+			/* check base and scope */
+			if ( !BER_BVISNULL( &dli->dli_uri_nbase ) ) {
+				int d = rs->sr_entry->e_nname.bv_len - dli->dli_uri_nbase.bv_len;
+
+				if ( d < 0 ) {
+					continue;
+				}
+
+				if ( !dnIsSuffix( &rs->sr_entry->e_nname, &dli->dli_uri_nbase ) ) {
+					continue;
+				}
+
+				switch ( dli->dli_lud->lud_scope ) {
+				case LDAP_SCOPE_BASE:
+					if ( d != 0 ) {
+						continue;
+					}
+					break;
+
+				case LDAP_SCOPE_ONELEVEL: {
+					struct berval pdn;
+
+					dnParent( &rs->sr_entry->e_nname, &pdn );
+					if ( pdn.bv_len != dli->dli_uri_nbase.bv_len ) {
+						continue;
+					}
+					} break;
+
+				case LDAP_SCOPE_SUBORDINATE:
+					if ( d == 0 ) {
+						continue;
+					}
+					break;
+
+				case LDAP_SCOPE_SUBTREE:
+				case LDAP_SCOPE_DEFAULT:
+					break;
+
+				default:
+					continue;
+				}
+			}
+
+			/* check filter */
+			if ( dli->dli_uri_filter && test_filter( op, rs->sr_entry, dli->dli_uri_filter ) != LDAP_COMPARE_TRUE ) {
+				continue;
+			}
+		}
+
 		if ( attr_valfind( a,
 				SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH |
 				SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH,
@@ -1143,9 +1197,9 @@ static ConfigDriver	dl_cfgen;
 
 /* XXXmanu 255 is the maximum arguments we allow. Can we go beyond? */
 static ConfigTable dlcfg[] = {
-	{ "dynlist-attrset", "group-oc> <URL-ad> <member-ad",
-		3, 255, 0, ARG_MAGIC|DL_ATTRSET, dl_cfgen,
-		"( OLcfgOvAt:8.1 NAME 'olcDLattrSet' "
+	{ "dynlist-attrset", "group-oc> [uri] <URL-ad> <[mapped:]member-ad> [...]",
+		3, 0, 0, ARG_MAGIC|DL_ATTRSET, dl_cfgen,
+		"( OLcfgOvAt:8.1 NAME 'olcDlAttrSet' "
 			"DESC 'Dynamic list: <group objectClass>, <URL attributeDescription>, <member attributeDescription>' "
 			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString "
@@ -1191,9 +1245,21 @@ dl_cfgen( ConfigArgs *c )
 				assert( dli->dli_oc != NULL );
 				assert( dli->dli_ad != NULL );
 
+				/* FIXME: check buffer overflow! */
 				ptr += snprintf( c->cr_msg, sizeof( c->cr_msg ),
-					SLAP_X_ORDERED_FMT "%s %s", i,
-					dli->dli_oc->soc_cname.bv_val,
+					SLAP_X_ORDERED_FMT "%s", i,
+					dli->dli_oc->soc_cname.bv_val );
+
+				if ( !BER_BVISNULL( &dli->dli_uri ) ) {
+					*ptr++ = ' ';
+					*ptr++ = '"';
+					ptr = lutil_strncopy( ptr, dli->dli_uri.bv_val,
+						dli->dli_uri.bv_len );
+					*ptr++ = '"';
+				}
+
+				*ptr++ = ' ';
+				ptr = lutil_strncopy( ptr, dli->dli_oc->soc_cname.bv_val,
 					dli->dli_ad->ad_cname.bv_val );
 
 				for ( dlm = dli->dli_dlm; dlm; dlm = dlm->dlm_next ) {
@@ -1238,6 +1304,22 @@ dl_cfgen( ConfigArgs *c )
 
 					dli_next = dli->dli_next;
 
+					if ( !BER_BVISNULL( &dli->dli_uri ) ) {
+						ch_free( dli->dli_uri.bv_val );
+					}
+
+					if ( dli->dli_lud != NULL ) {
+						ldap_free_urldesc( dli->dli_lud );
+					}
+
+					if ( !BER_BVISNULL( &dli->dli_uri_nbase ) ) {
+						ber_memfree( dli->dli_uri_nbase.bv_val );
+					}
+
+					if ( dli->dli_uri_filter != NULL ) {
+						filter_free( dli->dli_uri_filter );
+					}
+
 					ch_free( dli->dli_default_filter.bv_val );
 
 					while ( dlm != NULL ) {
@@ -1266,6 +1348,23 @@ dl_cfgen( ConfigArgs *c )
 
 				dli = *dlip;
 				*dlip = dli->dli_next;
+
+				if ( !BER_BVISNULL( &dli->dli_uri ) ) {
+					ch_free( dli->dli_uri.bv_val );
+				}
+
+				if ( dli->dli_lud != NULL ) {
+					ldap_free_urldesc( dli->dli_lud );
+				}
+
+				if ( !BER_BVISNULL( &dli->dli_uri_nbase ) ) {
+					ber_memfree( dli->dli_uri_nbase.bv_val );
+				}
+
+				if ( dli->dli_uri_filter != NULL ) {
+					filter_free( dli->dli_uri_filter );
+				}
+
 				ch_free( dli->dli_default_filter.bv_val );
 
 				dlm = dli->dli_dlm;
@@ -1299,6 +1398,11 @@ dl_cfgen( ConfigArgs *c )
 					*dli_next = NULL;
 		ObjectClass		*oc = NULL;
 		AttributeDescription	*ad = NULL;
+		int			attridx = 2;
+		LDAPURLDesc		*lud = NULL;
+		struct berval		nbase = BER_BVNULL;
+		Filter			*filter = NULL;
+		struct berval		uri = BER_BVNULL;
 		dynlist_map_t           *dlm = NULL;
 		const char		*text;
 
@@ -1312,11 +1416,98 @@ dl_cfgen( ConfigArgs *c )
 			return 1;
 		}
 
-		rc = slap_str2ad( c->argv[ 2 ], &ad, &text );
+		if ( strncasecmp( c->argv[ attridx ], "ldap://", STRLENOF("ldap://") ) == 0 ) {
+			if ( ldap_url_parse( c->argv[ attridx ], &lud ) != LDAP_URL_SUCCESS ) {
+				snprintf( c->cr_msg, sizeof( c->cr_msg ), DYNLIST_USAGE
+					"unable to parse URI \"%s\"",
+					c->argv[ attridx ] );
+				rc = 1;
+				goto done_uri;
+			}
+
+			if ( lud->lud_host != NULL ) {
+				if ( lud->lud_host[0] == '\0' ) {
+					ch_free( lud->lud_host );
+					lud->lud_host = NULL;
+
+				} else {
+					snprintf( c->cr_msg, sizeof( c->cr_msg ), DYNLIST_USAGE
+						"host not allowed in URI \"%s\"",
+						c->argv[ attridx ] );
+					rc = 1;
+					goto done_uri;
+				}
+			}
+
+			if ( lud->lud_attrs != NULL ) {
+				snprintf( c->cr_msg, sizeof( c->cr_msg ), DYNLIST_USAGE
+					"attrs not allowed in URI \"%s\"",
+					c->argv[ attridx ] );
+				rc = 1;
+				goto done_uri;
+			}
+
+			if ( lud->lud_exts != NULL ) {
+				snprintf( c->cr_msg, sizeof( c->cr_msg ), DYNLIST_USAGE
+					"extensions not allowed in URI \"%s\"",
+					c->argv[ attridx ] );
+				rc = 1;
+				goto done_uri;
+			}
+
+			if ( lud->lud_dn != NULL && lud->lud_dn[ 0 ] != '\0' ) {
+				struct berval dn;
+				ber_str2bv( lud->lud_dn, 0, 0, &dn );
+				rc = dnNormalize( 0, NULL, NULL, &dn, &nbase, NULL );
+				if ( rc != LDAP_SUCCESS ) {
+					snprintf( c->cr_msg, sizeof( c->cr_msg ), DYNLIST_USAGE
+						"DN normalization failed in URI \"%s\"",
+						c->argv[ attridx ] );
+					goto done_uri;
+				}
+			}
+
+			if ( lud->lud_filter != NULL && lud->lud_filter[ 0 ] != '\0' ) {
+				filter = str2filter( lud->lud_filter );
+				if ( filter == NULL ) {
+					snprintf( c->cr_msg, sizeof( c->cr_msg ), DYNLIST_USAGE
+						"filter parsing failed in URI \"%s\"",
+						c->argv[ attridx ] );
+					rc = 1;
+					goto done_uri;
+				}
+			}
+
+			ber_str2bv( c->argv[ attridx ], 0, 1, &uri );
+
+done_uri:;
+			if ( rc ) {
+				if ( lud ) {
+					ldap_free_urldesc( lud );
+				}
+
+				if ( !BER_BVISNULL( &nbase ) ) {
+					ber_memfree( nbase.bv_val );
+				}
+
+				if ( filter != NULL ) {
+					filter_free( filter );
+				}
+
+				Debug( LDAP_DEBUG_ANY, "%s: %s.\n",
+					c->log, c->cr_msg, 0 );
+
+				return rc;
+			}
+
+			attridx++;
+		}
+
+		rc = slap_str2ad( c->argv[ attridx ], &ad, &text );
 		if ( rc != LDAP_SUCCESS ) {
 			snprintf( c->cr_msg, sizeof( c->cr_msg ), DYNLIST_USAGE
 				"unable to find AttributeDescription \"%s\"",
-				c->argv[ 2 ] );
+				c->argv[ attridx ] );
 			Debug( LDAP_DEBUG_ANY, "%s: %s.\n",
 				c->log, c->cr_msg, 0 );
 			return 1;
@@ -1326,13 +1517,15 @@ dl_cfgen( ConfigArgs *c )
 			snprintf( c->cr_msg, sizeof( c->cr_msg ), DYNLIST_USAGE
 				"AttributeDescription \"%s\" "
 				"must be a subtype of \"labeledURI\"",
-				c->argv[ 2 ] );
+				c->argv[ attridx ] );
 			Debug( LDAP_DEBUG_ANY, "%s: %s.\n",
 				c->log, c->cr_msg, 0 );
 			return 1;
 		}
 
-		for ( i = 3; i < c->argc; i++ ) {
+		attridx++;
+
+		for ( i = attridx; i < c->argc; i++ ) {
 			char *arg; 
 			char *cp;
 			AttributeDescription *member_ad = NULL;
@@ -1418,6 +1611,11 @@ dl_cfgen( ConfigArgs *c )
 		(*dlip)->dli_ad = ad;
 		(*dlip)->dli_dlm = dlm;
 		(*dlip)->dli_next = dli_next;
+
+		(*dlip)->dli_lud = lud;
+		(*dlip)->dli_uri_nbase = nbase;
+		(*dlip)->dli_uri_filter = filter;
+		(*dlip)->dli_uri = uri;
 
 		rc = dynlist_build_def_filter( *dlip );
 
@@ -1625,7 +1823,24 @@ dynlist_db_destroy(
 
 			dli_next = dli->dli_next;
 
+			if ( !BER_BVISNULL( &dli->dli_uri ) ) {
+				ch_free( dli->dli_uri.bv_val );
+			}
+
+			if ( dli->dli_lud != NULL ) {
+				ldap_free_urldesc( dli->dli_lud );
+			}
+
+			if ( !BER_BVISNULL( &dli->dli_uri_nbase ) ) {
+				ber_memfree( dli->dli_uri_nbase.bv_val );
+			}
+
+			if ( dli->dli_uri_filter != NULL ) {
+				filter_free( dli->dli_uri_filter );
+			}
+
 			ch_free( dli->dli_default_filter.bv_val );
+
 			dlm = dli->dli_dlm;
 			while ( dlm != NULL ) {
 				dlm_next = dlm->dlm_next;
