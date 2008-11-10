@@ -1648,8 +1648,7 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 		}
 
 		/* Don't do any processing for consumer contextCSN updates */
-		if ( SLAP_SYNC_SHADOW( op->o_bd ) && 
-			op->o_msgid == SLAP_SYNC_UPDATE_MSGID ) {
+		if ( op->o_dont_replicate ) {
 			ldap_pvt_thread_rdwr_wunlock( &si->si_csn_rwlock );
 			return SLAP_CB_CONTINUE;
 		}
