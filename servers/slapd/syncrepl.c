@@ -4078,9 +4078,9 @@ syncrepl_unparse( syncinfo_t *si, struct berval *bv )
 {
 	struct berval bc, uri;
 	char buf[BUFSIZ*2], *ptr;
+	ber_len_t len;
 	int i;
-
-#define WHATSLEFT	( sizeof( buf ) - ( ptr - buf ) )
+#	define WHATSLEFT	((ber_len_t) (&buf[sizeof( buf )] - ptr))
 
 	BER_BVZERO( bv );
 
@@ -4094,9 +4094,10 @@ syncrepl_unparse( syncinfo_t *si, struct berval *bv )
 
 	ptr = buf;
 	assert( si->si_rid >= 0 && si->si_rid <= SLAP_SYNC_SID_MAX );
-	ptr += snprintf( ptr, WHATSLEFT, IDSTR "=%03d " PROVIDERSTR "=%s",
+	len = snprintf( ptr, WHATSLEFT, IDSTR "=%03d " PROVIDERSTR "=%s",
 		si->si_rid, si->si_bindconf.sb_uri.bv_val );
-	if ( ptr - buf >= sizeof( buf ) ) return;
+	if ( len >= sizeof( buf ) ) return;
+	ptr += len;
 	if ( !BER_BVISNULL( &bc ) ) {
 		if ( WHATSLEFT <= bc.bv_len ) {
 			free( bc.bv_val );
@@ -4193,36 +4194,42 @@ syncrepl_unparse( syncinfo_t *si, struct berval *bv )
 		dd /= 60;
 		hh = dd % 24;
 		dd /= 24;
-		ptr = lutil_strcopy( ptr, " " INTERVALSTR "=" );
-		ptr += snprintf( ptr, WHATSLEFT, "%02d:%02d:%02d:%02d", dd, hh, mm, ss );
-		if ( ptr - buf >= sizeof( buf ) ) return;
+		len = snprintf( ptr, WHATSLEFT, " %s=%02d:%02d:%02d:%02d",
+			INTERVALSTR, dd, hh, mm, ss );
+		if ( len >= WHATSLEFT ) return;
+		ptr += len;
 	} else if ( si->si_retryinterval ) {
-		int space=0;
+		const char *space = "";
 		if ( WHATSLEFT <= STRLENOF( " " RETRYSTR "=\"" "\"" ) ) return;
 		ptr = lutil_strcopy( ptr, " " RETRYSTR "=\"" );
 		for (i=0; si->si_retryinterval[i]; i++) {
-			if ( space ) *ptr++ = ' ';
-			space = 1;
-			ptr += snprintf( ptr, WHATSLEFT, "%ld ", (long) si->si_retryinterval[i] );
+			len = snprintf( ptr, WHATSLEFT, "%s%ld ", space,
+				(long) si->si_retryinterval[i] );
+			space = " ";
+			if ( WHATSLEFT - 1 <= len ) return;
+			ptr += len;
 			if ( si->si_retrynum_init[i] == RETRYNUM_FOREVER )
 				*ptr++ = '+';
-			else
-				ptr += snprintf( ptr, WHATSLEFT, "%d", si->si_retrynum_init[i] );
+			else {
+				len = snprintf( ptr, WHATSLEFT, "%d", si->si_retrynum_init[i] );
+				if ( WHATSLEFT <= len ) return;
+				ptr += len;
+			}
 		}
 		if ( WHATSLEFT <= STRLENOF( "\"" ) ) return;
 		*ptr++ = '"';
 	}
 
 	if ( si->si_slimit ) {
-		if ( WHATSLEFT <= STRLENOF( " " SLIMITSTR "=" ) ) return;
-		ptr = lutil_strcopy( ptr, " " SLIMITSTR "=" );
-		ptr += snprintf( ptr, WHATSLEFT, "%d", si->si_slimit );
+		len = snprintf( ptr, WHATSLEFT, " " SLIMITSTR "=%d", si->si_slimit );
+		if ( WHATSLEFT <= len ) return;
+		ptr += len;
 	}
 
 	if ( si->si_tlimit ) {
-		if ( WHATSLEFT <= STRLENOF( " " TLIMITSTR "=" ) ) return;
-		ptr = lutil_strcopy( ptr, " " TLIMITSTR "=" );
-		ptr += snprintf( ptr, WHATSLEFT, "%d", si->si_tlimit );
+		len = snprintf( ptr, WHATSLEFT, " " TLIMITSTR "=%d", si->si_tlimit );
+		if ( WHATSLEFT <= len ) return;
+		ptr += len;
 	}
 
 	if ( si->si_syncdata ) {
