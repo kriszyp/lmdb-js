@@ -128,7 +128,7 @@ for P in $PORT1 $PORT2 ; do
 		exit 1
 	fi
 
-	echo "Reading the referral entry "ou=Other,$BASEDN" as anonymous on port $P..."
+	echo "Reading the referral entry \"ou=Other,$BASEDN\" as anonymous on port $P..."
 	$LDAPSEARCH -h $LOCALHOST -p $P -b "ou=Other,$BASEDN" -S "" \
 		 > $SEARCHOUT 2>&1
 
@@ -300,6 +300,31 @@ $LDAPWHOAMI -h $LOCALHOST -p $PORT1 \
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapwhoami failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+# ITS#57??
+$LDAPADD -h $LOCALHOST -p $PORT1 \
+	-D "$MANAGERDN" -w secret \
+	>> $TESTOUT 2>&1 \
+	<< EOMODS
+dn: ou=Can't Contact,dc=example,dc=com
+changetype: add
+objectclass: referral
+objectclass: extensibleobject
+ou: Can't Contact
+# invalid URI to test broken connectivity handling (search only)
+ref: ${URI3}ou=Can't%20Contact,dc=example,dc=com
+EOMODS
+
+echo "Reading the referral entry \"ou=Can't Contact,$BASEDN\" as anonymous on port $PORT1..."
+$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" -S "" "(cn=Can't Contact)" \
+	 > $SEARCHOUT 2>&1
+
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
 fi
