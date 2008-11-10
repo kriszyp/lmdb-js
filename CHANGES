@@ -20,6 +20,7 @@ OpenLDAP 2.4.13 Engineering
 	Added slapd-bdb/hdb dbpagesize keyword
 	Added slapd-bdb/hdb checksum keyword
 	Fixed slapd-ldap snprintf buffer overflow test (ITS#4467)
+	Fixed slapd-ldif file rename on windows (ITS#5774)
 	Fixed slapd-null read controls support (ITS#5757)
 	Fixed slapd-sql value length with right index (ITS#5779)
 	Fixed slapo-chain/translucent back-config support (ITS#5736)
@@ -31,7 +32,6 @@ OpenLDAP 2.4.13 Engineering
 	Added slapo-constraint "set" type (ITS#5702)
 	Fixed slapo-constraint filter parsing error (ITS#5751)
 	Added slapo-dynlist URI restriction ability (ITS#5761)
-	Fixed slapo-ldif file rename on windows (ITS#5774)
 	Fixed slapo-ppolicy unaligned BerElement (ITS#5770)
 	Fixed slapo-rwm objectClass preservation (ITS#5760)
 	Fixed slapo-rwm rewriting undefined filter (ITS#5731)
