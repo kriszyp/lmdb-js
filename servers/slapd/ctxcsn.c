@@ -37,53 +37,57 @@ slap_get_commit_csn(
 )
 {
 	struct slap_csn_entry *csne, *committed_csne = NULL;
+	BackendDB *be = op->o_bd->bd_self;
 
 	if ( maxcsn ) {
 		BER_BVZERO( maxcsn );
 	}
 
-	ldap_pvt_thread_mutex_lock( op->o_bd->be_pcl_mutexp );
+	ldap_pvt_thread_mutex_lock( be->be_pcl_mutexp );
 
-	LDAP_TAILQ_FOREACH( csne, op->o_bd->be_pending_csn_list, ce_csn_link ) {
+	LDAP_TAILQ_FOREACH( csne, be->be_pending_csn_list, ce_csn_link ) {
 		if ( csne->ce_opid == op->o_opid && csne->ce_connid == op->o_connid ) {
 			csne->ce_state = SLAP_CSN_COMMIT;
 			break;
 		}
 	}
 
-	LDAP_TAILQ_FOREACH( csne, op->o_bd->be_pending_csn_list, ce_csn_link ) {
+	LDAP_TAILQ_FOREACH( csne, be->be_pending_csn_list, ce_csn_link ) {
 		if ( csne->ce_state == SLAP_CSN_COMMIT ) committed_csne = csne;
 		if ( csne->ce_state == SLAP_CSN_PENDING ) break;
 	}
 
 	if ( committed_csne && maxcsn ) *maxcsn = committed_csne->ce_csn;
-	ldap_pvt_thread_mutex_unlock( op->o_bd->be_pcl_mutexp );
+	ldap_pvt_thread_mutex_unlock( be->be_pcl_mutexp );
 }
 
 void
 slap_rewind_commit_csn( Operation *op )
 {
 	struct slap_csn_entry *csne;
+	BackendDB *be = op->o_bd->bd_self;
 
-	ldap_pvt_thread_mutex_lock( op->o_bd->be_pcl_mutexp );
+	ldap_pvt_thread_mutex_lock( be->be_pcl_mutexp );
 
-	LDAP_TAILQ_FOREACH( csne, op->o_bd->be_pending_csn_list, ce_csn_link ) {
+	LDAP_TAILQ_FOREACH( csne, be->be_pending_csn_list, ce_csn_link ) {
 		if ( csne->ce_opid == op->o_opid && csne->ce_connid == op->o_connid ) {
 			csne->ce_state = SLAP_CSN_PENDING;
 			break;
 		}
 	}
 
-	ldap_pvt_thread_mutex_unlock( op->o_bd->be_pcl_mutexp );
+	ldap_pvt_thread_mutex_unlock( be->be_pcl_mutexp );
 }
 
 void
 slap_graduate_commit_csn( Operation *op )
 {
 	struct slap_csn_entry *csne;
+	BackendDB *be;
 
 	if ( op == NULL ) return;
 	if ( op->o_bd == NULL ) return;
+	be = op->o_bd->bd_self;
 
 #if 0
 	/* it is NULL when we get here from the frontendDB;
@@ -91,13 +95,13 @@ slap_graduate_commit_csn( Operation *op )
 	assert( op->o_bd->be_pcl_mutexp != NULL );
 #endif
 	
-	if ( op->o_bd->be_pcl_mutexp == NULL ) return;
+	if ( be->be_pcl_mutexp == NULL ) return;
 
-	ldap_pvt_thread_mutex_lock( op->o_bd->be_pcl_mutexp );
+	ldap_pvt_thread_mutex_lock( be->be_pcl_mutexp );
 
-	LDAP_TAILQ_FOREACH( csne, op->o_bd->be_pending_csn_list, ce_csn_link ) {
+	LDAP_TAILQ_FOREACH( csne, be->be_pending_csn_list, ce_csn_link ) {
 		if ( csne->ce_opid == op->o_opid && csne->ce_connid == op->o_connid ) {
-			LDAP_TAILQ_REMOVE( op->o_bd->be_pending_csn_list,
+			LDAP_TAILQ_REMOVE( be->be_pending_csn_list,
 				csne, ce_csn_link );
 			Debug( LDAP_DEBUG_SYNC, "slap_graduate_commit_csn: removing %p %s\n",
 				csne->ce_csn.bv_val, csne->ce_csn.bv_val, 0 );
@@ -110,7 +114,7 @@ slap_graduate_commit_csn( Operation *op )
 		}
 	}
 
-	ldap_pvt_thread_mutex_unlock( op->o_bd->be_pcl_mutexp );
+	ldap_pvt_thread_mutex_unlock( be->be_pcl_mutexp );
 
 	return;
 }
@@ -161,22 +165,23 @@ slap_queue_csn(
 	struct berval *csn )
 {
 	struct slap_csn_entry *pending;
+	BackendDB *be = op->o_bd->bd_self;
 
 	pending = (struct slap_csn_entry *) ch_calloc( 1,
 			sizeof( struct slap_csn_entry ));
 
 	Debug( LDAP_DEBUG_SYNC, "slap_queue_csn: queing %p %s\n", csn->bv_val, csn->bv_val, 0 );
 
-	ldap_pvt_thread_mutex_lock( op->o_bd->be_pcl_mutexp );
+	ldap_pvt_thread_mutex_lock( be->be_pcl_mutexp );
 
 	ber_dupbv( &pending->ce_csn, csn );
 	ber_bvreplace_x( &op->o_csn, &pending->ce_csn, op->o_tmpmemctx );
 	pending->ce_connid = op->o_connid;
 	pending->ce_opid = op->o_opid;
 	pending->ce_state = SLAP_CSN_PENDING;
-	LDAP_TAILQ_INSERT_TAIL( op->o_bd->be_pending_csn_list,
+	LDAP_TAILQ_INSERT_TAIL( be->be_pending_csn_list,
 		pending, ce_csn_link );
-	ldap_pvt_thread_mutex_unlock( op->o_bd->be_pcl_mutexp );
+	ldap_pvt_thread_mutex_unlock( be->be_pcl_mutexp );
 }
 
 int
