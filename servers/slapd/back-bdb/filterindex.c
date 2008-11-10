@@ -720,10 +720,14 @@ equality_candidates(
 	if ( ava->aa_desc == slap_schema.si_ad_entryDN ) {
 		EntryInfo *ei = NULL;
 		rc = bdb_cache_find_ndn( op, rtxn, &ava->aa_value, &ei );
-		if ( rc == LDAP_SUCCESS )
-			bdb_idl_insert( ids, ei->bei_id );
-		if ( ei )
+		if ( rc == LDAP_SUCCESS ) {
+			/* exactly one ID can match */
+			ids[0] = 1;
+			ids[1] = ei->bei_id;
+		}
+		if ( ei ) {
 			bdb_cache_entryinfo_unlock( ei );
+		}
 		return rc;
 	}
 
