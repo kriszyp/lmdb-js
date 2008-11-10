@@ -1,3 +1,4 @@
+/* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
  * Copyright 1998-2008 The OpenLDAP Foundation.
@@ -71,6 +72,7 @@ ldap_create_page_control_value(
 
 	value->bv_val = NULL;
 	value->bv_len = 0;
+	ld->ld_errno = LDAP_SUCCESS;
 
 	if ( cookie == NULL ) {
 		cookie = &null_cookie;

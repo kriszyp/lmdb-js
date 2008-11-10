@@ -304,6 +304,7 @@ ldap_create_sort_control_value(
 
 	value->bv_val = NULL;
 	value->bv_len = 0;
+	ld->ld_errno = LDAP_SUCCESS;
 
 	ber = ldap_alloc_ber_with_options( ld );
 	if ( ber == NULL) {
