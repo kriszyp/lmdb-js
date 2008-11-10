@@ -46,7 +46,7 @@ typedef struct collect_info {
 	struct collect_info *ci_next;
 	struct berval ci_dn;
 	int ci_ad_num;
-	AttributeDescription *ci_ad[];
+	AttributeDescription *ci_ad[1];
 } collect_info;
 
 /*
@@ -176,7 +176,7 @@ collect_cf( ConfigArgs *c )
 
 		/* allocate config info with room for attribute array */
 		ci = ch_malloc( sizeof( collect_info ) +
-			( sizeof (AttributeDescription *) * (count + 1)));
+			sizeof( AttributeDescription * ) * count );
 
 		/* validate and normalize dn */
 		ber_str2bv( c->argv[1], 0, 0, &bv );
