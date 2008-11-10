@@ -172,7 +172,7 @@ int nssov_uid2dn(Operation *op,nssov_info *ni,struct berval *uid,struct berval *
 	if (!isvalidusername(uid))
 		return 0;
 	/* we have to look up the entry */
-	nssov_filter_byid(mi,UIDN_KEY,uid,&filter);
+	nssov_filter_byid(mi,UID_KEY,uid,&filter);
 	BER_BVZERO(dn);
 	cb.sc_private = dn;
 	cb.sc_response = uid2dn_cb;
@@ -184,6 +184,8 @@ int nssov_uid2dn(Operation *op,nssov_info *ni,struct berval *uid,struct berval *
 	op2.ors_filterstr = filter;
 	op2.ors_filter = str2filter_x( op, filter.bv_val );
 	op2.ors_attrs = slap_anlist_no_attrs;
+	op2.ors_tlimit = SLAP_NO_LIMIT;
+	op2.ors_slimit = SLAP_NO_LIMIT;
 	rc = op2.o_bd->be_search( &op2, &rs );
 	filter_free_x( op, op2.ors_filter, 1 );
 	return rc == LDAP_SUCCESS;
