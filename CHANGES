@@ -14,6 +14,7 @@ OpenLDAP 2.4.13 Engineering
 	Fixed slapd control criticality (ITS#5785)
 	Added slapd dn.this search limits (ITS#5734)
 	Fixed slapd error status on shutdown (ITS#5745)
+	Fixed slapd filter substring handling (ITS#5803)
 	Fixed slapd nameUIDPretty bitstring parsing (ITS#5750)
 	Fixed slapd null termination of password (ITS#5794)
 	Fixed slapd overlay/database open with real structure (ITS#5724)
