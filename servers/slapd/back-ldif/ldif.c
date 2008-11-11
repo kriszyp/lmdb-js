@@ -554,20 +554,33 @@ typedef struct bvlist {
 
 
 static int r_enum_tree(enumCookie *ck, struct berval *path, int base,
-	struct berval *pdn, struct berval *pndn)
+	int scope, struct berval *pdn, struct berval *pndn)
 {
 	Entry *e = NULL;
 	int fd = 0, rc = LDAP_SUCCESS;
+	struct berval dn = BER_BVC( "" ), ndn = BER_BVC( "" );
 
-	if ( !base ) {
+	if ( base <= 0 ) {
 		rc = ldif_read_entry( ck->op, path->bv_val, pdn, pndn, &e,
 			ck->rs == NULL ? NULL : &ck->rs->sr_text );
 		if ( rc != LDAP_SUCCESS ) {
-			return LDAP_NO_SUCH_OBJECT;
+			/* Only the search baseDN may produce noSuchObject. */
+			return rc == LDAP_NO_SUCH_OBJECT && base ? LDAP_OTHER : rc;
 		}
 
-		if ( ck->op->ors_scope == LDAP_SCOPE_BASE ||
-			ck->op->ors_scope == LDAP_SCOPE_SUBTREE ) {
+		if ( scope != LDAP_SCOPE_BASE ) {
+			/* Copy DN/NDN since we send the entry with REP_ENTRY_MODIFIABLE,
+			 * which bconfig.c seems to need.  (TODO: see config_rename_one.)
+			 */
+			if ( ber_dupbv( &dn,  &e->e_name  ) == NULL ||
+				 ber_dupbv( &ndn, &e->e_nname ) == NULL )
+			{
+				rc = LDAP_OTHER;
+				goto done;
+			}
+		}
+
+		if ( scope == LDAP_SCOPE_BASE || scope == LDAP_SCOPE_SUBTREE ) {
 			/* Send right away? */
 			if ( ck->rs ) {
 				/*
@@ -581,7 +594,7 @@ static int r_enum_tree(enumCookie *ck, struct berval *path, int base,
 					BerVarray erefs = get_entry_referrals( ck->op, e );
 					ck->rs->sr_ref = referral_rewrite( erefs,
 							&e->e_name, NULL,
-							ck->op->ors_scope );
+							scope );
 	
 					ck->rs->sr_entry = e;
 					rc = send_search_reference( ck->op, ck->rs );
@@ -620,7 +633,7 @@ static int r_enum_tree(enumCookie *ck, struct berval *path, int base,
 		}
 	}
 
-	if ( ck->op->ors_scope != LDAP_SCOPE_BASE ) {
+	if ( scope != LDAP_SCOPE_BASE ) {
 		DIR * dir_of_path;
 		bvlist *list = NULL, *ptr;
 
@@ -686,10 +699,10 @@ static int r_enum_tree(enumCookie *ck, struct berval *path, int base,
 		}
 		closedir(dir_of_path);
 
-		if (ck->op->ors_scope == LDAP_SCOPE_ONELEVEL)
-			ck->op->ors_scope = LDAP_SCOPE_BASE;
-		else if ( ck->op->ors_scope == LDAP_SCOPE_SUBORDINATE)
-			ck->op->ors_scope = LDAP_SCOPE_SUBTREE;
+		if ( scope == LDAP_SCOPE_ONELEVEL )
+			scope = LDAP_SCOPE_BASE;
+		else if ( scope == LDAP_SCOPE_SUBORDINATE )
+			scope = LDAP_SCOPE_SUBTREE;
 
 		while ( ( ptr = list ) ) {
 			struct berval fpath;
@@ -701,9 +714,7 @@ static int r_enum_tree(enumCookie *ck, struct berval *path, int base,
 					AC_MEMCPY( ptr->bv.bv_val + ptr->off, ptr->num.bv_val,
 						ptr->num.bv_len );
 				fullpath( path, &ptr->bv, &fpath );
-				rc = r_enum_tree(ck, &fpath, 0,
-					e != NULL ? &e->e_name : pdn,
-					e != NULL ? &e->e_nname : pndn );
+				rc = r_enum_tree( ck, &fpath, 0, scope, &dn, &ndn );
 				free(fpath.bv_val);
 			}
 			if ( ptr->num.bv_val )
@@ -714,6 +725,10 @@ static int r_enum_tree(enumCookie *ck, struct berval *path, int base,
 	}
 done:
 	if ( fd ) entry_free( e );
+	if ( !BER_BVISEMPTY( &dn ) )
+		ber_memfree( dn.bv_val );
+	if ( !BER_BVISEMPTY( &ndn ) )
+		ber_memfree( ndn.bv_val );
 	return rc;
 }
 
@@ -729,7 +744,8 @@ enum_tree(
 	dnParent( &ck->op->o_req_dn, &pdn );
 	dnParent( &ck->op->o_req_ndn, &pndn );
 	dn2path( ck->op->o_bd, &ck->op->o_req_ndn, &path );
-	rc = r_enum_tree(ck, &path, BER_BVISEMPTY( &ck->op->o_req_ndn ) ? 1 : 0, &pdn, &pndn);
+	rc = r_enum_tree( ck, &path, BER_BVISEMPTY( &ck->op->o_req_ndn ) ? 1 : -1,
+		ck->op->ors_scope, &pdn, &pndn );
 	ch_free( path.bv_val );
 	return rc;
 }
