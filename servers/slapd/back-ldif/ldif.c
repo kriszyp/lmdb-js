@@ -61,11 +61,10 @@ struct ldif_info {
  * Unsafe/translated characters in the filesystem.
  *
  * LDIF_UNSAFE_CHAR(c) returns true if the character c is not to be used
- * in relative filenames, except it should accept '\\' even if unsafe and
- * need not reject '{' and '}'.  The value should be a constant expression.
+ * in relative filenames, except it should accept '\\', '{' and '}' even
+ * if unsafe.  The value should be a constant expression.
  *
  * If '\\' is unsafe, #define LDIF_ESCAPE_CHAR as a safe character.
- *
  * If '{' and '}' are unsafe, #define IX_FSL/IX_FSR as safe characters.
  * (Not digits, '-' or '+'.  IX_FSL == IX_FSR is allowed.)
  *
@@ -90,7 +89,7 @@ struct ldif_info {
 #else /* _WIN32 */
 
 /* Windows version - Microsoft's list of unsafe characters, except '\\' */
-#define LDIF_ESCAPE_CHAR	'^'
+#define LDIF_ESCAPE_CHAR	'^'			/* Not '\\' (unsafe on Windows) */
 #define LDIF_UNSAFE_CHAR(c)	\
 	((c) == '/' || (c) == ':' || \
 	 (c) == '<' || (c) == '>' || (c) == '"' || \
@@ -135,6 +134,18 @@ struct ldif_info {
 	(!(LDIF_UNSAFE_CHAR(x) || (x) == '\\' || (x) == IX_DNL || (x) == IX_DNR) \
 	 && (c) == (x))
 
+/* Collect other "safe char" tests here, until someone needs a fix. */
+enum {
+	safe_filenames = STRLENOF("" LDAP_DIRSEP "") == 1 && !(
+		LDIF_UNSAFE_CHAR('-') || /* for "{-1}frontend" in bconfig.c */
+		LDIF_UNSAFE_CHAR(LDIF_ESCAPE_CHAR) ||
+		LDIF_UNSAFE_CHAR(IX_FSL) || LDIF_UNSAFE_CHAR(IX_FSR))
+};
+/* Sanity check: Try to force a compilation error if !safe_filenames */
+typedef struct {
+	int assert_safe_filenames : safe_filenames ? 2 : -2;
+} assert_safe_filenames[safe_filenames ? 2 : -2];
+
 
 #define ENTRY_BUFF_INCREMENT 500
 
@@ -158,6 +169,10 @@ static ConfigOCs ldifocs[] = {
 	{ NULL, 0, NULL }
 };
 
+
+/*
+ * Handle file/directory names.
+ */
 
 /* Set *res = LDIF filename path for the normalized DN */
 static void
@@ -218,12 +233,19 @@ dn2path( BackendDB *be, struct berval *dn, struct berval *res )
 	assert( res->bv_len <= len );
 }
 
+/* .ldif entry filename length <-> subtree dirname length. */
+#define ldif2dir_len(bv)  ((bv).bv_len -= STRLENOF(LDIF))
+#define dir2ldif_len(bv)  ((bv).bv_len += STRLENOF(LDIF))
+/* .ldif entry filename <-> subtree dirname, both with dirname length. */
+#define ldif2dir_name(bv) ((bv).bv_val[(bv).bv_len] = '\0')
+#define dir2ldif_name(bv) ((bv).bv_val[(bv).bv_len] = LDIF_FILETYPE_SEP)
+
 /* Make temporary filename pattern for mkstemp() based on dnpath. */
 static char *
 ldif_tempname( const struct berval *dnpath )
 {
-	static const char suffix[] = "XXXXXX";
-	ber_len_t len = dnpath->bv_len;
+	static const char suffix[] = ".XXXXXX";
+	ber_len_t len = dnpath->bv_len - STRLENOF( LDIF );
 	char *name = SLAP_MALLOC( len + sizeof( suffix ) );
 
 	if ( name != NULL ) {
@@ -1096,7 +1118,6 @@ ldif_back_delete( Operation *op, SlapReply *rs )
 	struct ldif_info *li = (struct ldif_info *) op->o_bd->be_private;
 	struct berval path;
 	int rc = LDAP_SUCCESS;
-	int res = 0;
 
 	if ( BER_BVISEMPTY( &op->o_csn )) {
 		struct berval csn;
@@ -1110,10 +1131,9 @@ ldif_back_delete( Operation *op, SlapReply *rs )
 	ldap_pvt_thread_rdwr_wlock(&li->li_rdwr);
 
 	dn2path( op->o_bd, &op->o_req_ndn, &path );
-	path.bv_val[path.bv_len - STRLENOF(LDIF)] = '\0';
-	res = rmdir(path.bv_val);
-	path.bv_val[path.bv_len - STRLENOF(LDIF)] = LDIF_FILETYPE_SEP;
-	if ( res ) {
+	ldif2dir_len( path );
+	ldif2dir_name( path );
+	if ( rmdir( path.bv_val ) < 0 ) {
 		switch ( errno ) {
 		case ENOTEMPTY:
 			rc = LDAP_NOT_ALLOWED_ON_NONLEAF;
@@ -1129,14 +1149,19 @@ ldif_back_delete( Operation *op, SlapReply *rs )
 	}
 
 	if ( rc == LDAP_SUCCESS ) {
-		res = unlink(path.bv_val);
-		if ( res == -1 ) {
+		dir2ldif_name( path );
+		if ( unlink( path.bv_val ) < 0 ) {
 			rc = LDAP_NO_SUCH_OBJECT;
 			if ( errno != ENOENT ) {
 				rc = LDAP_OTHER;
 				rs->sr_text = "internal error (cannot delete entry file)";
 			}
 		}
+	}
+
+	if ( rc == LDAP_OTHER ) {
+		Debug( LDAP_DEBUG_ANY, "ldif_back_delete: %s \"%s\": %s\n",
+			"cannot delete", path.bv_val, STRERROR( errno ) );
 	}
 
 	SLAP_FREE(path.bv_val);
