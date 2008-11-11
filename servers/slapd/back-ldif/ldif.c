@@ -52,6 +52,7 @@ struct ldif_info {
 #else
 #define move_file(from, to) rename(from, to)
 #endif
+#define move_dir(from, to) rename(from, to)
 
 
 #define LDIF	".ldif"
@@ -1242,10 +1243,9 @@ ldif_move_entry(
 	struct berval *oldpath,
 	const char **text )
 {
-	int res;
 	struct berval newpath;
-	char *parentdir = NULL;
-	int rc;
+	char *parentdir = NULL, *trash;
+	int rc, rename_res;
 
 	rc = ldif_prepare_create( op, entry, &newpath,
 			op->orr_newSup ? &parentdir : NULL, text );
@@ -1253,11 +1253,51 @@ ldif_move_entry(
 	if ( rc == LDAP_SUCCESS ) {
 		rc = ldif_write_entry( op, entry, &newpath, parentdir, text );
 		if ( rc == LDAP_SUCCESS ) {
-				/* if this fails we should log something bad */
-				res = unlink( oldpath->bv_val );
-				oldpath->bv_val[oldpath->bv_len - STRLENOF(".ldif")] = '\0';
-				newpath.bv_val[newpath.bv_len - STRLENOF(".ldif")] = '\0';
-				res = rename( oldpath->bv_val, newpath.bv_val );
+			trash = oldpath->bv_val; /* will be .ldif file to delete */
+			ldif2dir_len( newpath );
+			ldif2dir_len( *oldpath );
+			/* Move subdir before deleting old entry,
+			 * so .ldif always exists if subdir does.
+			 */
+			ldif2dir_name( newpath );
+			ldif2dir_name( *oldpath );
+			rename_res = move_dir( oldpath->bv_val, newpath.bv_val );
+			if ( rename_res != 0 && errno != ENOENT ) {
+				rc = LDAP_OTHER;
+				*text = "internal error (cannot move this subtree)";
+				trash = newpath.bv_val;
+			}
+
+			/* Delete old entry, or if error undo change */
+			for (;;) {
+				dir2ldif_name( newpath );
+				dir2ldif_name( *oldpath );
+				if ( unlink( trash ) == 0 )
+					break;
+				if ( rc == LDAP_SUCCESS ) {
+					/* Prepare to undo change and return failure */
+					rc = LDAP_OTHER;
+					*text = "internal error (cannot move this entry)";
+					trash = newpath.bv_val;
+					if ( rename_res != 0 )
+						continue;
+					/* First move subdirectory back */
+					ldif2dir_name( newpath );
+					ldif2dir_name( *oldpath );
+					if ( move_dir( newpath.bv_val, oldpath->bv_val ) == 0 )
+						continue;
+				}
+				*text = "added new but couldn't delete old entry!";
+				break;
+			}
+
+			if ( rc != LDAP_SUCCESS ) {
+				char s[128];
+				snprintf( s, sizeof s, "%s (%s)", *text, STRERROR( errno ));
+				Debug( LDAP_DEBUG_ANY,
+					"ldif_move_entry: %s: \"%s\" -> \"%s\"\n",
+					s, op->o_req_dn.bv_val, entry->e_dn );
+			}
 		}
 
 		SLAP_FREE( newpath.bv_val );
