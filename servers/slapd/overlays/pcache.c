@@ -2316,6 +2316,9 @@ pcache_op_search(
 		return rs->sr_err;
 	}
 
+	/* pickup runtime ACL changes */
+	cm->db.be_acl = op->o_bd->be_acl;
+
 	tempstr.bv_val = op->o_tmpalloc( op->ors_filterstr.bv_len+1, op->o_tmpmemctx );
 	tempstr.bv_len = 0;
 	if ( filter2template( op, op->ors_filter, &tempstr, &filter_attrs,
