@@ -680,6 +680,7 @@ ldap_set_option(
 	case LDAP_OPT_DEBUG_LEVEL:
 	case LDAP_OPT_TIMEOUT:
 	case LDAP_OPT_NETWORK_TIMEOUT:
+	case LDAP_OPT_CONNECT_CB:
 		if(invalue == NULL) {
 			/* no place to set from */
 			return LDAP_OPT_ERROR;
