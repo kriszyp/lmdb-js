@@ -138,6 +138,7 @@ slap_access_allowed(
 	slap_access_t			access_level;
 	const char			*attr;
 	regmatch_t			matches[MAXREMATCHES];
+	AccessControlState	acl_state = ACL_STATE_INIT;
 
 	assert( op != NULL );
 	assert( e != NULL );
@@ -179,7 +180,7 @@ slap_access_allowed(
 	}
 
 	/* use backend default access if no backend acls */
-	if ( op->o_bd->be_acl == NULL ) {
+	if ( op->o_bd->be_acl == NULL && frontendDB->be_acl == NULL ) {
 		int	i;
 
 		Debug( LDAP_DEBUG_ACL,
@@ -201,15 +202,22 @@ slap_access_allowed(
 	ret = 0;
 	control = ACL_BREAK;
 
-	if ( state && state->as_vd_ad == desc ) {
+	if ( state == NULL )
+		state = &acl_state;
+	if ( state->as_vd_ad == desc ) {
 		a = state->as_vd_acl;
 		count = state->as_vd_acl_count;
-
+		if ( state->as_fe_done )
+			state->as_fe_done--;
 	} else {
-		if ( state ) state->as_vi_acl = NULL;
+		state->as_vi_acl = NULL;
+
 		a = NULL;
 		count = 0;
 	}
+	if ( a == NULL )
+		state->as_fe_done = 0;
+
 	ACL_PRIV_ASSIGN( mask, *maskp );
 	memset( matches, '\0', sizeof( matches ) );
 
@@ -476,13 +484,14 @@ slap_acl_get(
 	assert( e != NULL );
 	assert( count != NULL );
 	assert( desc != NULL );
+	assert( state != NULL );
 
 	attr = desc->ad_cname.bv_val;
 
 	assert( attr != NULL );
 
 	if( a == NULL ) {
-		if( op->o_bd == NULL ) {
+		if( op->o_bd == NULL || op->o_bd->be_acl == NULL ) {
 			a = frontendDB->be_acl;
 		} else {
 			a = op->o_bd->be_acl;
@@ -490,7 +499,8 @@ slap_acl_get(
 		prev = NULL;
 
 		assert( a != NULL );
-
+		if ( a == frontendDB->be_acl )
+			state->as_fe_done = 1;
 	} else {
 		prev = a;
 		a = a->acl_next;
@@ -498,8 +508,12 @@ slap_acl_get(
 
 	dnlen = e->e_nname.bv_len;
 
+ retry:
 	for ( ; a != NULL; prev = a, a = a->acl_next ) {
 		(*count) ++;
+
+		if ( a != frontendDB->be_acl && state->as_fe_done )
+			state->as_fe_done++;
 
 		if ( a->acl_dn_pat.bv_len || ( a->acl_dn_style != ACL_STYLE_REGEX )) {
 			if ( a->acl_dn_style == ACL_STYLE_REGEX ) {
@@ -567,7 +581,7 @@ slap_acl_get(
 				continue;
 			}
 
-			if( state && !( state->as_recorded & ACL_STATE_RECORDED_VD )) {
+			if( !( state->as_recorded & ACL_STATE_RECORDED_VD )) {
 				state->as_recorded |= ACL_STATE_RECORDED_VD;
 				state->as_vd_acl = prev;
 				state->as_vd_acl_count = *count - 1;
@@ -647,6 +661,12 @@ slap_acl_get(
 		Debug( LDAP_DEBUG_ACL, "=> acl_get: [%d] attr %s\n",
 		       *count, attr, 0);
 		return a;
+	}
+
+	if ( !state->as_fe_done ) {
+		state->as_fe_done = 1;
+		a = frontendDB->be_acl;
+		goto retry;
 	}
 
 	Debug( LDAP_DEBUG_ACL, "<= acl_get: done.\n", 0, 0, 0 );
@@ -1856,7 +1876,7 @@ acl_check_modlist(
 	}
 
 	/* use backend default access if no backend acls */
-	if( op->o_bd != NULL && op->o_bd->be_acl == NULL ) {
+	if( op->o_bd != NULL && op->o_bd->be_acl == NULL && frontendDB->be_acl == NULL ) {
 		Debug( LDAP_DEBUG_ACL,
 			"=> access_allowed: backend default %s access %s to \"%s\"\n",
 			access2str( ACL_WRITE ),

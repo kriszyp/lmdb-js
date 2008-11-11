@@ -261,8 +261,6 @@ int backend_startup(Backend *be)
 				return rc;
 			}
 		}
-		/* append global access controls */
-		acl_append( &be->be_acl, frontendDB->be_acl, -1 );
 
 		return backend_startup_one( be, &cr );
 	}
@@ -310,8 +308,6 @@ int backend_startup(Backend *be)
 				"has no suffix\n",
 				i, be->bd_info->bi_type, 0 );
 		}
-		/* append global access controls */
-		acl_append( &be->be_acl, frontendDB->be_acl, -1 );
 
 		rc = backend_startup_one( be, &cr );
 
