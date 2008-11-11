@@ -267,7 +267,11 @@ static int spew_file(int fd, char * spew, int len) {
 }
 
 static int
-spew_entry( Entry * e, struct berval * path, int dolock, int *save_errnop )
+ldif_write_entry(
+	Operation *op,
+	Entry *e,
+	const struct berval *path,
+	const char **text )
 {
 	int rs, save_errno = 0;
 	int openres;
@@ -301,10 +305,7 @@ spew_entry( Entry * e, struct berval * path, int dolock, int *save_errnop )
 		}
 
 		spew_res = -2;
-		if ( dolock ) {
-			ldap_pvt_thread_mutex_lock(&entry2str_mutex);
-		}
-
+		ldap_pvt_thread_mutex_lock( &entry2str_mutex );
 		entry_as_string = entry2str(e, &entry_length);
 		if ( entry_as_string != NULL ) {
 			spew_res = spew_file( openres,
@@ -313,10 +314,7 @@ spew_entry( Entry * e, struct berval * path, int dolock, int *save_errnop )
 				save_errno = errno;
 			}
 		}
-
-		if ( dolock ) {
-			ldap_pvt_thread_mutex_unlock(&entry2str_mutex);
-		}
+		ldap_pvt_thread_mutex_unlock( &entry2str_mutex );
 
 		/* Restore full DN */
 		if ( rdn.bv_len != e->e_name.bv_len ) {
@@ -367,10 +365,6 @@ spew_entry( Entry * e, struct berval * path, int dolock, int *save_errnop )
 
 	ch_free( tmpfname );
 
-	if ( rs != LDAP_SUCCESS && save_errnop != NULL ) {
-		*save_errnop = save_errno;
-	}
-
 	return rs;
 }
 
@@ -412,7 +406,8 @@ static int
 get_entry(
 	Operation *op,
 	Entry **entryp,
-	struct berval *pathp )
+	struct berval *pathp,
+	const char **text )
 {
 	int rc;
 	struct berval path, pdn, pndn;
@@ -732,7 +727,8 @@ static int apply_modify_to_entry(Entry * entry,
 		if(rc != LDAP_SUCCESS) break;
 	}
 
-	if(rc == LDAP_SUCCESS) {
+	if ( rc == LDAP_SUCCESS ) {
+		rs->sr_text = NULL; /* Needed at least with SLAP_MOD_SOFTADD */
 		if ( is_oc ) {
 			entry->e_ocflags = 0;
 		}
@@ -748,7 +744,7 @@ int
 ldif_back_referrals( Operation *op, SlapReply *rs )
 {
 	struct ldif_info	*li = NULL;
-	Entry			*entry;
+	Entry			*entry = NULL;
 	int			rc = LDAP_SUCCESS;
 
 #if 0
@@ -770,7 +766,7 @@ ldif_back_referrals( Operation *op, SlapReply *rs )
 
 	li = (struct ldif_info *)op->o_bd->be_private;
 	ldap_pvt_thread_rdwr_rlock( &li->li_rdwr );
-	get_entry( op, &entry, NULL );
+	get_entry( op, &entry, NULL, &rs->sr_text );
 
 	/* no object is found for them */
 	if ( entry == NULL ) {
@@ -791,7 +787,7 @@ ldif_back_referrals( Operation *op, SlapReply *rs )
 			op->o_req_dn = pndn;
 			op->o_req_ndn = pndn;
 
-			get_entry( op, &entry, NULL );
+			get_entry( op, &entry, NULL, &rs->sr_text );
 		}
 
 		ldap_pvt_thread_rdwr_runlock( &li->li_rdwr );
@@ -885,7 +881,7 @@ ldif_back_bind( Operation *op, SlapReply *rs )
 	Attribute *a;
 	AttributeDescription *password = slap_schema.si_ad_userPassword;
 	int return_val;
-	Entry *entry;
+	Entry *entry = NULL;
 
 	switch ( be_rootdn_bind( op, rs ) ) {
 	case SLAP_CB_CONTINUE:
@@ -899,7 +895,7 @@ ldif_back_bind( Operation *op, SlapReply *rs )
 
 	li = (struct ldif_info *) op->o_bd->be_private;
 	ldap_pvt_thread_rdwr_rlock(&li->li_rdwr);
-	return_val = get_entry(op, &entry, NULL);
+	return_val = get_entry(op, &entry, NULL, NULL);
 
 	/* no object is found for them */
 	if(return_val != LDAP_SUCCESS) {
@@ -1002,7 +998,7 @@ static int ldif_back_add(Operation *op, SlapReply *rs) {
 		if(rs->sr_err == LDAP_SUCCESS) {
 			statres = stat(leaf_path.bv_val, &stats);
 			if(statres == -1 && errno == ENOENT) {
-				rs->sr_err = spew_entry(e, &leaf_path, 1, NULL);
+				rs->sr_err = ldif_write_entry( op, e, &leaf_path, &rs->sr_text );
 			}
 			else if ( statres == -1 ) {
 				rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
@@ -1032,40 +1028,37 @@ static int ldif_back_modify(Operation *op, SlapReply *rs) {
 	Modifications * modlst = op->orm_modlist;
 	struct berval path;
 	Entry *entry;
-	int spew_res;
+	int rc;
 
 	slap_mods_opattrs( op, &op->orm_modlist, 1 );
 
 	ldap_pvt_thread_rdwr_wlock(&li->li_rdwr);
 
-	rs->sr_err = get_entry( op, &entry, &path );
-	if(entry != NULL) {
-		rs->sr_err = apply_modify_to_entry(entry, modlst, op, rs);
-		if(rs->sr_err == LDAP_SUCCESS) {
-			int save_errno;
-			spew_res = spew_entry(entry, &path, 1, &save_errno);
-			if(spew_res == -1) {
-				Debug( LDAP_DEBUG_ANY,
-					"%s ldif_back_modify: could not output entry \"%s\": %s\n",
-					op->o_log_prefix, entry->e_name.bv_val, STRERROR( save_errno ) );
-				rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
-			}
+	rc = get_entry( op, &entry, &path, &rs->sr_text );
+	if ( rc == LDAP_SUCCESS ) {
+		rc = apply_modify_to_entry( entry, modlst, op, rs );
+		if ( rc == LDAP_SUCCESS ) {
+			rc = ldif_write_entry( op, entry, &path, &rs->sr_text );
 		}
 
 		entry_free( entry );
 		SLAP_FREE( path.bv_val );
 	}
 
-	rs->sr_text = NULL;
 	ldap_pvt_thread_rdwr_wunlock(&li->li_rdwr);
-	send_ldap_result(op, rs);
+
+	rs->sr_err = rc;
+	send_ldap_result( op, rs );
 	slap_graduate_commit_csn( op );
 	return rs->sr_err;
 }
 
-static int ldif_back_delete(Operation *op, SlapReply *rs) {
+static int
+ldif_back_delete( Operation *op, SlapReply *rs )
+{
 	struct ldif_info *li = (struct ldif_info *) op->o_bd->be_private;
 	struct berval path;
+	int rc = LDAP_SUCCESS;
 	int res = 0;
 
 	if ( BER_BVISEMPTY( &op->o_csn )) {
@@ -1083,42 +1076,36 @@ static int ldif_back_delete(Operation *op, SlapReply *rs) {
 	path.bv_val[path.bv_len - STRLENOF(LDIF)] = '\0';
 	res = rmdir(path.bv_val);
 	path.bv_val[path.bv_len - STRLENOF(LDIF)] = LDIF_FILETYPE_SEP;
-	rs->sr_err = LDAP_SUCCESS;
 	if ( res ) {
 		switch ( errno ) {
 		case ENOTEMPTY:
-			rs->sr_err = LDAP_NOT_ALLOWED_ON_NONLEAF;
+			rc = LDAP_NOT_ALLOWED_ON_NONLEAF;
 			break;
-
 		case ENOENT:
 			/* is leaf, go on */
-			res = 0;
 			break;
-
 		default:
-			rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
+			rc = LDAP_OTHER;
+			rs->sr_text = "internal error (cannot delete subtree directory)";
 			break;
 		}
 	}
 
-	if ( !res ) {
+	if ( rc == LDAP_SUCCESS ) {
 		res = unlink(path.bv_val);
 		if ( res == -1 ) {
-			switch ( errno ) {
-			case ENOENT:
-				rs->sr_err = LDAP_NO_SUCH_OBJECT;
-				break;
-
-			default:
-				rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
-				break;
+			rc = LDAP_NO_SUCH_OBJECT;
+			if ( errno != ENOENT ) {
+				rc = LDAP_OTHER;
+				rs->sr_text = "internal error (cannot delete entry file)";
 			}
 		}
 	}
 
 	SLAP_FREE(path.bv_val);
 	ldap_pvt_thread_rdwr_wunlock(&li->li_rdwr);
-	send_ldap_result(op, rs);
+	rs->sr_err = rc;
+	send_ldap_result( op, rs );
 	slap_graduate_commit_csn( op );
 	return rs->sr_err;
 }
@@ -1128,7 +1115,8 @@ static int
 ldif_move_entry(
 	Operation *op,
 	Entry *entry,
-	struct berval *oldpath )
+	struct berval *oldpath,
+	const char **text )
 {
 	int res;
 	int exists_res;
@@ -1143,9 +1131,8 @@ ldif_move_entry(
 	else { /* do the modrdn */
 		exists_res = open(newpath.bv_val, O_RDONLY);
 		if(exists_res == -1 && errno == ENOENT) {
-			ldap_pvt_thread_mutex_lock( &entry2str_mutex );
-			res = spew_entry(entry, &newpath, 0, NULL);
-			if(res != -1) {
+			res = ldif_write_entry( op, entry, &newpath, text );
+			if ( res == LDAP_SUCCESS ) {
 				/* if this fails we should log something bad */
 				res = unlink( oldpath->bv_val );
 				oldpath->bv_val[oldpath->bv_len - STRLENOF(".ldif")] = '\0';
@@ -1160,7 +1147,6 @@ ldif_move_entry(
 					res = LDAP_UNWILLING_TO_PERFORM;
 				unlink(newpath.bv_val); /* in case file was created */
 			}
-			ldap_pvt_thread_mutex_unlock( &entry2str_mutex );
 		}
 		else if(exists_res) {
 			int close_res = close(exists_res);
@@ -1192,7 +1178,7 @@ ldif_back_modrdn(Operation *op, SlapReply *rs)
 
 	ldap_pvt_thread_rdwr_wlock( &li->li_rdwr );
 
-	rc = get_entry( op, &entry, &old_path );
+	rc = get_entry( op, &entry, &old_path, &rs->sr_text );
 	if ( rc == LDAP_SUCCESS ) {
 		/* build new dn, and new ndn for the entry */
 		if ( op->oq_modrdn.rs_newSup != NULL ) {
@@ -1204,7 +1190,7 @@ ldif_back_modrdn(Operation *op, SlapReply *rs)
 			p_dn = *op->oq_modrdn.rs_newSup;
 			op->o_req_dn = *op->oq_modrdn.rs_newSup;
 			op->o_req_ndn = *op->oq_modrdn.rs_nnewSup;
-			rc = get_entry( op, &np, NULL );
+			rc = get_entry( op, &np, NULL, &rs->sr_text );
 			op->o_req_dn = op_dn;
 			op->o_req_ndn = op_ndn;
 			if ( rc != LDAP_SUCCESS ) {
@@ -1224,14 +1210,13 @@ ldif_back_modrdn(Operation *op, SlapReply *rs)
 		/* perform the modifications */
 		rc = apply_modify_to_entry( entry, op->orr_modlist, op, rs );
 		if ( rc == LDAP_SUCCESS )
-			rc = ldif_move_entry( op, entry, &old_path );
+			rc = ldif_move_entry( op, entry, &old_path, &rs->sr_text );
 
 no_such_object:;
 		entry_free( entry );
 		SLAP_FREE( old_path.bv_val );
 	}
 
-	rs->sr_text = "";
 	ldap_pvt_thread_rdwr_wunlock( &li->li_rdwr );
 	rs->sr_err = rc;
 	send_ldap_result( op, rs );
@@ -1260,7 +1245,7 @@ ldif_back_entry_get(
 	ldap_pvt_thread_rdwr_rlock( &li->li_rdwr );
 	op->o_req_dn = *ndn;
 	op->o_req_ndn = *ndn;
-	rc = get_entry( op, e, NULL );
+	rc = get_entry( op, e, NULL, NULL );
 	op->o_req_dn = op_dn;
 	op->o_req_ndn = op_ndn;
 	ldap_pvt_thread_rdwr_runlock( &li->li_rdwr );
@@ -1331,11 +1316,16 @@ static Entry * ldif_tool_entry_get(BackendDB * be, ID id) {
 	}
 }
 
-static ID ldif_tool_entry_put(BackendDB * be, Entry * e, struct berval *text) {
+static ID
+ldif_tool_entry_put( BackendDB *be, Entry *e, struct berval *text )
+{
+	int rc;
+	const char *errmsg = NULL;
 	struct berval leaf_path = BER_BVNULL;
 	struct stat stats;
 	int statres;
 	int res = LDAP_SUCCESS;
+	Operation op = {0};
 
 	dn2path( be, &e->e_nname, &leaf_path );
 
@@ -1364,7 +1354,7 @@ static ID ldif_tool_entry_put(BackendDB * be, Entry * e, struct berval *text) {
 		if(res == LDAP_SUCCESS) {
 			statres = stat(leaf_path.bv_val, &stats);
 			if(statres == -1 && errno == ENOENT) {
-				res = spew_entry(e, &leaf_path, 0, NULL);
+				res = ldif_write_entry( &op, e, &leaf_path, &errmsg );
 			}
 			else /* it already exists */
 				res = LDAP_ALREADY_EXISTS;
@@ -1376,8 +1366,12 @@ static ID ldif_tool_entry_put(BackendDB * be, Entry * e, struct berval *text) {
 	if(res == LDAP_SUCCESS) {
 		return 1;
 	}
-	else
-		return NOID;
+	rc = res;
+	if ( errmsg == NULL && rc != LDAP_OTHER )
+		errmsg = ldap_err2string( rc );
+	if ( errmsg != NULL )
+		snprintf( text->bv_val, text->bv_len, "%s", errmsg );
+	return NOID;
 }
 
 
