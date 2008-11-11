@@ -385,6 +385,19 @@ get_ssa(
 
 	rc = LDAP_PROTOCOL_ERROR;
 
+	if ( ssa.sa_desc->ad_type->sat_substr == NULL ) {
+		for ( tag = ber_first_element( ber, &len, &last );
+			tag != LBER_DEFAULT;
+			tag = ber_next_element( ber, &len, last ) )
+		{
+			/* eat all */
+			rc = ber_scanf( ber, "x" );
+		}
+
+		rc = LDAP_INVALID_SYNTAX;
+		goto return_error;
+	}
+
 	for ( tag = ber_first_element( ber, &len, &last );
 		tag != LBER_DEFAULT;
 		tag = ber_next_element( ber, &len, last ) )
