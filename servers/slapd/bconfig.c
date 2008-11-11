@@ -979,12 +979,7 @@ config_generic(ConfigArgs *c) {
 			AccessControl *a;
 			char *src, *dst, ibuf[11];
 			struct berval bv, abv;
-			AccessControl *end;
-			if ( c->be == frontendDB )
-				end = NULL;
-			else
-				end = frontendDB->be_acl;
-			for (i=0, a=c->be->be_acl; a && a != end; i++,a=a->acl_next) {
+			for (i=0, a=c->be->be_acl; a; i++,a=a->acl_next) {
 				abv.bv_len = snprintf( ibuf, sizeof( ibuf ), SLAP_X_ORDERED_FMT, i );
 				if ( abv.bv_len >= sizeof( ibuf ) ) {
 					ber_bvarray_free_x( c->rvalue_vals, NULL );
@@ -1220,13 +1215,8 @@ config_generic(ConfigArgs *c) {
 
 		case CFG_ACL:
 			if ( c->valx < 0 ) {
-				AccessControl *end;
-				if ( c->be == frontendDB )
-					end = NULL;
-				else
-					end = frontendDB->be_acl;
-				acl_destroy( c->be->be_acl, end );
-				c->be->be_acl = end;
+				acl_destroy( c->be->be_acl );
+				c->be->be_acl = NULL;
 
 			} else {
 				AccessControl **prev, *a;
@@ -1691,11 +1681,10 @@ sortval_reject:
 		case CFG_ACL:
 			/* Don't append to the global ACL if we're on a specific DB */
 			i = c->valx;
-			if ( c->be != frontendDB && frontendDB->be_acl && c->valx == -1 ) {
+			if ( c->valx == -1 ) {
 				AccessControl *a;
 				i = 0;
-				for ( a=c->be->be_acl; a && a != frontendDB->be_acl;
-					a = a->acl_next )
+				for ( a=c->be->be_acl; a; a = a->acl_next )
 					i++;
 			}
 			if ( parse_acl(c->be, c->fname, c->lineno, c->argc, c->argv, i ) ) {
@@ -5934,7 +5923,7 @@ config_back_db_open( BackendDB *be, ConfigReply *cr )
 	/* If we have no explicitly configured ACLs, don't just use
 	 * the global ACLs. Explicitly deny access to everything.
 	 */
-	if ( frontendDB->be_acl && be->be_acl == frontendDB->be_acl ) {
+	if ( !be->be_acl ) {
 		parse_acl(be, "config_back_db_open", 0, 6, (char **)defacl, 0 );
 	}
 

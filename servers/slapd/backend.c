@@ -449,7 +449,7 @@ void backend_destroy_one( BackendDB *bd, int dynamic )
 	if ( !BER_BVISNULL( &bd->be_rootpw ) ) {
 		free( bd->be_rootpw.bv_val );
 	}
-	acl_destroy( bd->be_acl, frontendDB->be_acl );
+	acl_destroy( bd->be_acl );
 	limits_destroy( bd->be_limits );
 	if ( !BER_BVISNULL( &bd->be_update_ndn ) ) {
 		ch_free( bd->be_update_ndn.bv_val );
@@ -500,7 +500,8 @@ int backend_destroy(void)
 		if ( !BER_BVISNULL( &bd->be_rootpw ) ) {
 			free( bd->be_rootpw.bv_val );
 		}
-		acl_destroy( bd->be_acl, frontendDB->be_acl );
+		acl_destroy( bd->be_acl );
+		frontendDB = NULL;
 	}
 
 	return 0;

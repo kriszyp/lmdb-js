@@ -2449,19 +2449,12 @@ acl_free( AccessControl *a )
 	free( a );
 }
 
-/* Because backend_startup uses acl_append to tack on the global_acl to
- * the end of each backend's acl, we cannot just take one argument and
- * merrily free our way to the end of the list. backend_destroy calls us
- * with the be_acl in arg1, and global_acl in arg2 to give us a stopping
- * point. config_destroy calls us with global_acl in arg1 and NULL in
- * arg2, so we then proceed to polish off the global_acl.
- */
 void
-acl_destroy( AccessControl *a, AccessControl *end )
+acl_destroy( AccessControl *a )
 {
 	AccessControl *n;
 
-	for ( ; a && a != end; a = n ) {
+	for ( ; a; a = n ) {
 		n = a->acl_next;
 		acl_free( a );
 	}
