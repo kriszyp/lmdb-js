@@ -1542,9 +1542,10 @@ typedef struct AccessControlState {
 	slap_acl_state_t as_recorded;
 	int as_vd_acl_count;
 	int as_result;
+	int as_fe_done;
 } AccessControlState;
 #define ACL_STATE_INIT { NULL, NULL, NULL, \
-	ACL_STATE_NOT_RECORDED, 0, 0 }
+	ACL_STATE_NOT_RECORDED, 0, 0, 0 }
 
 /*
  * Backend-info

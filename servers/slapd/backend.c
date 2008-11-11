@@ -261,8 +261,6 @@ int backend_startup(Backend *be)
 				return rc;
 			}
 		}
-		/* append global access controls */
-		acl_append( &be->be_acl, frontendDB->be_acl, -1 );
 
 		return backend_startup_one( be, &cr );
 	}
@@ -310,8 +308,6 @@ int backend_startup(Backend *be)
 				"has no suffix\n",
 				i, be->bd_info->bi_type, 0 );
 		}
-		/* append global access controls */
-		acl_append( &be->be_acl, frontendDB->be_acl, -1 );
 
 		rc = backend_startup_one( be, &cr );
 
@@ -453,7 +449,7 @@ void backend_destroy_one( BackendDB *bd, int dynamic )
 	if ( !BER_BVISNULL( &bd->be_rootpw ) ) {
 		free( bd->be_rootpw.bv_val );
 	}
-	acl_destroy( bd->be_acl, frontendDB->be_acl );
+	acl_destroy( bd->be_acl );
 	limits_destroy( bd->be_limits );
 	if ( !BER_BVISNULL( &bd->be_update_ndn ) ) {
 		ch_free( bd->be_update_ndn.bv_val );
@@ -504,7 +500,8 @@ int backend_destroy(void)
 		if ( !BER_BVISNULL( &bd->be_rootpw ) ) {
 			free( bd->be_rootpw.bv_val );
 		}
-		acl_destroy( bd->be_acl, frontendDB->be_acl );
+		acl_destroy( bd->be_acl );
+		frontendDB = NULL;
 	}
 
 	return 0;

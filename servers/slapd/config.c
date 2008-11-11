@@ -1984,7 +1984,7 @@ config_destroy( )
 		if ( frontendDB->be_schemadn.bv_val )
 			free( frontendDB->be_schemadn.bv_val );
 		if ( frontendDB->be_acl )
-			acl_destroy( frontendDB->be_acl, NULL );
+			acl_destroy( frontendDB->be_acl );
 	}
 	free( line );
 	if ( slapd_args_file )
