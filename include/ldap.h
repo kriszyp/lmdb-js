@@ -288,7 +288,8 @@ typedef struct ldapcontrol {
 #define LDAP_CONTROL_SLURP				"1.3.6.1.4.1.4203.666.5.13"
 #define LDAP_CONTROL_VALSORT			"1.3.6.1.4.1.4203.666.5.14"
 #define LDAP_CONTROL_DONTUSECOPY		"1.3.6.1.4.1.4203.666.5.15"
-
+#define	LDAP_CONTROL_X_DEREF			"1.3.6.1.4.1.4203.666.5.16"
+#define	LDAP_CONTROL_X_WHATFAILED		"1.3.6.1.4.1.4203.666.5.17"
 
 /* LDAP Chaining Behavior Control *//* work in progress */
 /* <draft-sermersheim-ldap-chaining>;
@@ -321,10 +322,6 @@ typedef struct ldapcontrol {
 						LDAP_CONTROL_X_SESSION_TRACKING ".2"
 #define LDAP_CONTROL_X_SESSION_TRACKING_USERNAME \
 						LDAP_CONTROL_X_SESSION_TRACKING ".3"
-/* Dereference Control (work in progress) */
-#define	LDAP_CONTROL_X_DEREF			"1.3.6.1.4.1.4203.666.5.16"
-/* "What Failed?" Control (work in progress) */
-#define	LDAP_CONTROL_X_WHATFAILED		"1.3.6.1.4.1.4203.666.5.17"
 #endif /* LDAP_DEVEL */
 
 /* various expired works */
