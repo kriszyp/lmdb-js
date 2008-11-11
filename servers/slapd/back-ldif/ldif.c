@@ -48,6 +48,9 @@ struct ldif_info {
 
 #ifdef _WIN32
 #define mkdir(a,b)	mkdir(a)
+#define move_file(from, to) (!MoveFileEx(from, to, MOVEFILE_REPLACE_EXISTING))
+#else
+#define move_file(from, to) rename(from, to)
 #endif
 
 
@@ -215,48 +218,99 @@ dn2path( BackendDB *be, struct berval *dn, struct berval *res )
 	assert( res->bv_len <= len );
 }
 
-static char * slurp_file(int fd) {
-	int read_chars_total = 0;
-	int read_chars = 0;
-	int entry_size;
-	char * entry;
-	char * entry_pos;
-	struct stat st;
+/* Make temporary filename pattern for mkstemp() based on dnpath. */
+static char *
+ldif_tempname( const struct berval *dnpath )
+{
+	static const char suffix[] = "XXXXXX";
+	ber_len_t len = dnpath->bv_len;
+	char *name = SLAP_MALLOC( len + sizeof( suffix ) );
 
-	fstat(fd, &st);
-	entry_size = st.st_size;
-	entry = ch_malloc( entry_size+1 );
-	entry_pos = entry;
-	
-	while(1) {
-		read_chars = read(fd, (void *) entry_pos, entry_size - read_chars_total);
-		if(read_chars == -1) {
-			SLAP_FREE(entry);
-			return NULL;
-		}
-		if(read_chars == 0) {
-			entry[read_chars_total] = '\0';
-			break;
-		}
-		else {
-			read_chars_total += read_chars;
-			entry_pos += read_chars;
-		}
+	if ( name != NULL ) {
+		AC_MEMCPY( name, dnpath->bv_val, len );
+		strcpy( name + len, suffix );
 	}
-	return entry;
+	return name;
+}
+
+/*
+ * Read a file, or stat() it if datap == NULL.  Allocate and fill *datap.
+ * Return LDAP_SUCCESS, LDAP_NO_SUCH_OBJECT (no such file), or another error.
+ */
+static int
+ldif_read_file( const char *path, char **datap )
+{
+	int rc, fd, len;
+	int res = -1;	/* 0:success, <0:error, >0:file too big/growing. */
+	struct stat st;
+	char *data = NULL, *ptr;
+
+	if ( datap == NULL ) {
+		res = stat( path, &st );
+		goto done;
+	}
+	fd = open( path, O_RDONLY );
+	if ( fd >= 0 ) {
+		if ( fstat( fd, &st ) == 0 ) {
+			if ( st.st_size > INT_MAX - 2 ) {
+				res = 1;
+			} else {
+				len = st.st_size + 1; /* +1 detects file size > st.st_size */
+				*datap = data = ptr = SLAP_MALLOC( len + 1 );
+				if ( ptr != NULL ) {
+					while ( len && (res = read( fd, ptr, len )) ) {
+						if ( res > 0 ) {
+							len -= res;
+							ptr += res;
+						} else if ( errno != EINTR ) {
+							break;
+						}
+					}
+					*ptr = '\0';
+				}
+			}
+		}
+		if ( close( fd ) < 0 )
+			res = -1;
+	}
+
+ done:
+	if ( res == 0 ) {
+		Debug( LDAP_DEBUG_TRACE, "ldif_read_file: %s: \"%s\"\n",
+			datap ? "read entry file" : "entry file exists", path, 0 );
+		rc = LDAP_SUCCESS;
+	} else {
+		if ( res < 0 && errno == ENOENT ) {
+			Debug( LDAP_DEBUG_TRACE, "ldif_read_file: "
+				"no entry file \"%s\"\n", path, 0, 0 );
+			rc = LDAP_NO_SUCH_OBJECT;
+		} else {
+			const char *msg = res < 0 ? STRERROR( errno ) : "bad stat() size";
+			Debug( LDAP_DEBUG_ANY, "ldif_read_file: %s for \"%s\"\n",
+				msg, path, 0 );
+			rc = LDAP_OTHER;
+		}
+		if ( data != NULL )
+			SLAP_FREE( data );
+	}
+	return rc;
 }
 
 /*
  * return nonnegative for success or -1 for error
  * do not return numbers less than -1
  */
-static int spew_file(int fd, char * spew, int len) {
+static int
+spew_file( int fd, const char *spew, int len, int *save_errno )
+{
 	int writeres = 0;
-	
+
 	while(len > 0) {
 		writeres = write(fd, spew, len);
 		if(writeres == -1) {
-			return -1;
+			*save_errno = errno;
+			if (*save_errno != EINTR)
+				break;
 		}
 		else {
 			spew += writeres;
@@ -273,135 +327,136 @@ ldif_write_entry(
 	const struct berval *path,
 	const char **text )
 {
-	int rs, save_errno = 0;
-	int openres;
-	int res, spew_res;
-	int entry_length;
-	char * entry_as_string;
-	char *tmpfname = NULL;
+	int rc = LDAP_OTHER, res, save_errno = 0;
+	int fd, entry_length;
+	char *entry_as_string, *tmpfname;
 
-	tmpfname = ch_malloc( path->bv_len + STRLENOF( "XXXXXX" ) + 1 );
-	AC_MEMCPY( tmpfname, path->bv_val, path->bv_len );
-	AC_MEMCPY( &tmpfname[ path->bv_len ], "XXXXXX", STRLENOF( "XXXXXX" ) + 1 );
-
-	openres = mkstemp( tmpfname );
-	if ( openres == -1 ) {
+	tmpfname = ldif_tempname( path );
+	fd = tmpfname == NULL ? -1 : mkstemp( tmpfname );
+	if ( fd < 0 ) {
 		save_errno = errno;
-		rs = LDAP_UNWILLING_TO_PERFORM;
-		Debug( LDAP_DEBUG_ANY, "could not create tmpfile \"%s\": %s\n",
-			tmpfname, STRERROR( save_errno ), 0 );
+		Debug( LDAP_DEBUG_ANY, "ldif_write_entry: %s for \"%s\": %s\n",
+			"cannot create file", e->e_dn, STRERROR( save_errno ) );
 
 	} else {
+		ber_len_t dn_len = e->e_name.bv_len;
 		struct berval rdn;
-		int tmp;
 
 		/* Only save the RDN onto disk */
 		dnRdn( &e->e_name, &rdn );
-		if ( rdn.bv_len != e->e_name.bv_len ) {
+		if ( rdn.bv_len != dn_len ) {
 			e->e_name.bv_val[rdn.bv_len] = '\0';
-			tmp = e->e_name.bv_len;
 			e->e_name.bv_len = rdn.bv_len;
-			rdn.bv_len = tmp;
 		}
 
-		spew_res = -2;
+		res = -2;
 		ldap_pvt_thread_mutex_lock( &entry2str_mutex );
-		entry_as_string = entry2str(e, &entry_length);
-		if ( entry_as_string != NULL ) {
-			spew_res = spew_file( openres,
-				entry_as_string, entry_length );
-			if ( spew_res == -1 ) {
-				save_errno = errno;
-			}
-		}
+		entry_as_string = entry2str( e, &entry_length );
+		if ( entry_as_string != NULL )
+			res = spew_file( fd, entry_as_string, entry_length, &save_errno );
 		ldap_pvt_thread_mutex_unlock( &entry2str_mutex );
 
 		/* Restore full DN */
-		if ( rdn.bv_len != e->e_name.bv_len ) {
-			e->e_name.bv_val[e->e_name.bv_len] = ',';
-			e->e_name.bv_len = rdn.bv_len;
+		if ( rdn.bv_len != dn_len ) {
+			e->e_name.bv_val[rdn.bv_len] = ',';
+			e->e_name.bv_len = dn_len;
 		}
 
-		res = close( openres );
-		rs = LDAP_UNWILLING_TO_PERFORM;
+		if ( close( fd ) < 0 && res >= 0 ) {
+			res = -1;
+			save_errno = errno;
+		}
 
-		if ( spew_res > -2 ) {
-			if ( res == -1 || spew_res == -1 ) {
-				if ( save_errno == 0 ) {
-					save_errno = errno;
-				}
-				Debug( LDAP_DEBUG_ANY, "write error to tmpfile \"%s\": %s\n",
-					tmpfname, STRERROR( save_errno ), 0 );
-
+		if ( res >= 0 ) {
+			if ( move_file( tmpfname, path->bv_val ) == 0 ) {
+				Debug( LDAP_DEBUG_TRACE, "ldif_write_entry: "
+					"wrote entry \"%s\"\n", e->e_name.bv_val, 0, 0 );
+				rc = LDAP_SUCCESS;
 			} else {
-#ifdef _WIN32
-				/* returns 0 on failure, nonzero on success */
-				res = MoveFileEx( tmpfname, path->bv_val,
-					MOVEFILE_REPLACE_EXISTING ) == 0;
-#else
-				res = rename( tmpfname, path->bv_val );
-#endif
-				if ( res == 0 ) {
-					rs = LDAP_SUCCESS;
-
-				} else {
-					save_errno = errno;
-					switch ( save_errno ) {
-					case ENOENT:
-						rs = LDAP_NO_SUCH_OBJECT;
-						break;
-
-					default:
-						break;
-					}
-				}
+				save_errno = errno;
+				Debug( LDAP_DEBUG_ANY, "ldif_write_entry: "
+					"could not put entry file for \"%s\" in place: %s\n",
+					e->e_name.bv_val, STRERROR( save_errno ), 0 );
 			}
+		} else if ( res == -1 ) {
+			Debug( LDAP_DEBUG_ANY, "ldif_write_entry: %s \"%s\": %s\n",
+				"write error to", tmpfname, STRERROR( save_errno ) );
+			*text = "internal error (write error to entry file)";
 		}
 
-		if ( rs != LDAP_SUCCESS ) {
+		if ( rc != LDAP_SUCCESS ) {
 			unlink( tmpfname );
 		}
 	}
 
-	ch_free( tmpfname );
+	if ( rc == LDAP_OTHER && save_errno == ENOENT )
+		rc = LDAP_NO_SUCH_OBJECT;
 
-	return rs;
+	if ( tmpfname )
+		SLAP_FREE( tmpfname );
+	return rc;
 }
 
-static Entry * get_entry_for_fd(int fd,
+/*
+ * Read the entry at path, or if entryp==NULL just see if it exists.
+ * pdn and pndn are the parent's DN and normalized DN, or both NULL.
+ * Return an LDAP result code.
+ */
+static int
+ldif_read_entry(
+	Operation *op,
+	const char *path,
 	struct berval *pdn,
-	struct berval *pndn)
+	struct berval *pndn,
+	Entry **entryp,
+	const char **text )
 {
-	char * entry = (char *) slurp_file(fd);
-	Entry * ldentry = NULL;
-	
-	/* error reading file */
-	if(entry == NULL) {
-		goto return_value;
-	}
+	int rc;
+	Entry *entry;
+	char *entry_as_string;
+	struct berval rdn;
 
-	ldentry = str2entry(entry);
-	if ( ldentry ) {
-		struct berval rdn;
-		rdn = ldentry->e_name;
-		build_new_dn( &ldentry->e_name, pdn, &rdn, NULL );
-		ch_free( rdn.bv_val );
-		rdn = ldentry->e_nname;
-		build_new_dn( &ldentry->e_nname, pndn, &rdn, NULL );
-		ch_free( rdn.bv_val );
-	}
+	rc = ldif_read_file( path, entryp ? &entry_as_string : NULL );
 
- return_value:
-	if(fd != -1) {
-		if(close(fd) != 0) {
-			/* log error */
+	switch ( rc ) {
+	case LDAP_SUCCESS:
+		if ( entryp == NULL )
+			break;
+		*entryp = entry = str2entry( entry_as_string );
+		SLAP_FREE( entry_as_string );
+		if ( entry == NULL ) {
+			rc = LDAP_OTHER;
+			if ( text != NULL )
+				*text = "internal error (cannot parse some entry file)";
+			break;
 		}
+		if ( pdn == NULL || BER_BVISEMPTY( pdn ) )
+			break;
+		/* Append parent DN to DN from LDIF file */
+		rdn = entry->e_name;
+		build_new_dn( &entry->e_name, pdn, &rdn, NULL );
+		SLAP_FREE( rdn.bv_val );
+		rdn = entry->e_nname;
+		build_new_dn( &entry->e_nname, pndn, &rdn, NULL );
+		SLAP_FREE( rdn.bv_val );
+		break;
+
+	case LDAP_OTHER:
+		if ( text != NULL )
+			*text = entryp
+				? "internal error (cannot read some entry file)"
+				: "internal error (cannot stat some entry file)";
+		break;
 	}
-	if(entry != NULL)
-		SLAP_FREE(entry);
-	return ldentry;
+
+	return rc;
 }
 
+/*
+ * Read the operation's entry, or if entryp==NULL just see if it exists.
+ * Return an LDAP result code.  May set *text to a message on failure.
+ * If pathp is non-NULL, set it to the entry filename on success.
+ */
 static int
 get_entry(
 	Operation *op,
@@ -411,19 +466,11 @@ get_entry(
 {
 	int rc;
 	struct berval path, pdn, pndn;
-	int fd;
 
 	dnParent(&op->o_req_dn, &pdn);
 	dnParent(&op->o_req_ndn, &pndn);
 	dn2path( op->o_bd, &op->o_req_ndn, &path );
-	fd = open(path.bv_val, O_RDONLY);
-	/* error opening file (mebbe should log error) */
-	if ( fd == -1 && ( errno != ENOENT || op->o_tag != LDAP_REQ_ADD ) ) {
-		Debug( LDAP_DEBUG_ANY, "failed to open file \"%s\": %s\n",
-			path.bv_val, STRERROR(errno), 0 );
-	}
-	*entryp = fd < 0 ? NULL : get_entry_for_fd( fd, &pdn, &pndn );
-	rc = *entryp ? LDAP_SUCCESS : LDAP_NO_SUCH_OBJECT;
+	rc = ldif_read_entry( op, path.bv_val, &pdn, &pndn, entryp, text );
 
 	if ( rc == LDAP_SUCCESS && pathp != NULL ) {
 		*pathp = path;
@@ -459,20 +506,10 @@ static int r_enum_tree(enumCookie *ck, struct berval *path, int base,
 	int fd = 0, rc = LDAP_SUCCESS;
 
 	if ( !base ) {
-		fd = open( path->bv_val, O_RDONLY );
-		if ( fd < 0 ) {
-			Debug( LDAP_DEBUG_TRACE,
-				"=> ldif_enum_tree: failed to open %s: %s\n",
-				path->bv_val, STRERROR(errno), 0 );
+		rc = ldif_read_entry( ck->op, path->bv_val, pdn, pndn, &e,
+			ck->rs == NULL ? NULL : &ck->rs->sr_text );
+		if ( rc != LDAP_SUCCESS ) {
 			return LDAP_NO_SUCH_OBJECT;
-		}
-
-		e = get_entry_for_fd(fd, pdn, pndn);
-		if ( !e ) {
-			Debug( LDAP_DEBUG_ANY,
-				"=> ldif_enum_tree: failed to read entry for %s\n",
-				path->bv_val, 0, 0 );
-			return LDAP_BUSY;
 		}
 
 		if ( ck->op->ors_scope == LDAP_SCOPE_BASE ||
@@ -1139,13 +1176,6 @@ ldif_move_entry(
 				newpath.bv_val[newpath.bv_len - STRLENOF(".ldif")] = '\0';
 				res = rename( oldpath->bv_val, newpath.bv_val );
 				res = LDAP_SUCCESS;
-			}
-			else {
-				if(errno == ENOENT)
-					res = LDAP_NO_SUCH_OBJECT;
-				else
-					res = LDAP_UNWILLING_TO_PERFORM;
-				unlink(newpath.bv_val); /* in case file was created */
 			}
 		}
 		else if(exists_res) {
