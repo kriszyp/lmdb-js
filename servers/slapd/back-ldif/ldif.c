@@ -571,19 +571,17 @@ static int r_enum_tree(enumCookie *ck, struct berval *path, int base,
 			/* Send right away? */
 			if ( ck->rs ) {
 				/*
-				 * if it's a referral, add it to the list of referrals. only do
-				 * this for non-base searches, and don't check the filter
-				 * explicitly here since it's only a candidate anyway.
+				 * If it's a referral entry, send a continuation reference.
+				 * (ldif_back_referrals() handles baseobject referrals.)
+				 * Don't check the filter since it's only a candidate.
 				 */
 				if ( !get_manageDSAit( ck->op )
-						&& ck->op->ors_scope != LDAP_SCOPE_BASE
 						&& is_entry_referral( e ) )
 				{
 					BerVarray erefs = get_entry_referrals( ck->op, e );
 					ck->rs->sr_ref = referral_rewrite( erefs,
 							&e->e_name, NULL,
-							ck->op->oq_search.rs_scope == LDAP_SCOPE_ONELEVEL
-								? LDAP_SCOPE_BASE : LDAP_SCOPE_SUBTREE );
+							ck->op->ors_scope );
 	
 					ck->rs->sr_entry = e;
 					rc = send_search_reference( ck->op, ck->rs );
@@ -760,6 +758,7 @@ ldif_prepare_create(
 	struct berval *ndn = &e->e_nname;
 	struct berval ppath = BER_BVNULL;
 	struct stat st;
+	Entry *parent = NULL;
 	int rc = LDAP_SUCCESS;
 
 	dn2path( be, ndn, dnpath );
@@ -790,9 +789,25 @@ ldif_prepare_create(
 			/* No parent dir, check parent .ldif */
 			dir2ldif_name( ppath );
 			rc = ldif_read_entry( op, ppath.bv_val, NULL, NULL,
-				NULL, text );
+				(op->o_tag != LDAP_REQ_ADD || get_manageDSAit( op )
+				 ? &parent : NULL),
+				text );
 			switch ( rc ) {
 			case LDAP_SUCCESS:
+				/* Check that parent is not a referral, unless
+				 * ldif_back_referrals() already checked.
+				 */
+				if ( parent != NULL ) {
+					int is_ref = is_entry_referral( parent );
+					entry_free( parent );
+					if ( is_ref ) {
+						rc = LDAP_AFFECTS_MULTIPLE_DSAS;
+						*text = op->o_tag == LDAP_REQ_MODDN
+							? "newSuperior is a referral object"
+							: "parent is a referral object";
+						break;
+					}
+				}
 				/* Must create parent directory. */
 				ldif2dir_name( ppath );
 				*need_dir = ppath.bv_val;
@@ -899,133 +914,76 @@ static int apply_modify_to_entry(Entry * entry,
 	return rc;
 }
 
-int
+
+static int
 ldif_back_referrals( Operation *op, SlapReply *rs )
 {
-	struct ldif_info	*li = NULL;
-	Entry			*entry = NULL;
-	int			rc = LDAP_SUCCESS;
+	struct ldif_info *li = (struct ldif_info *) op->o_bd->be_private;
+	struct berval path, dn = op->o_req_dn, ndn = op->o_req_ndn;
+	ber_len_t min_dnlen;
+	Entry *entry = NULL, **entryp;
+	BerVarray ref;
+	int rc;
 
-#if 0
-	if ( op->o_tag == LDAP_REQ_SEARCH ) {
-		/* let search take care of itself */
-		return rc;
-	}
-#endif
-
-	if ( get_manageDSAit( op ) ) {
-		/* let op take care of DSA management */
-		return rc;
-	}
-
-	if ( BER_BVISEMPTY( &op->o_req_ndn ) ) {
-		/* the empty DN cannot be a referral */
-		return rc;
+	min_dnlen = op->o_bd->be_nsuffix[0].bv_len;
+	if ( min_dnlen == 0 ) {
+		/* Catch root DSE (empty DN), it is not a referral */
+		min_dnlen = 1;
+		if ( BER_BVISEMPTY( &ndn ) )
+			return LDAP_SUCCESS;
 	}
 
-	li = (struct ldif_info *)op->o_bd->be_private;
+	entryp = get_manageDSAit( op ) ? NULL : &entry;
+	dn2path( op->o_bd, &ndn, &path );
 	ldap_pvt_thread_rdwr_rlock( &li->li_rdwr );
-	get_entry( op, &entry, NULL, &rs->sr_text );
 
-	/* no object is found for them */
-	if ( entry == NULL ) {
-		struct berval	odn = op->o_req_dn;
-		struct berval	ondn = op->o_req_ndn;
-		struct berval	pndn = ondn;
-		ber_len_t		min_dnlen = op->o_bd->be_nsuffix[0].bv_len;
-
-		if ( min_dnlen == 0 )
-			min_dnlen = 1;	   /* catch empty DN */
-
-		for ( ; entry == NULL; ) {
-			dnParent( &pndn, &pndn );
-			if ( pndn.bv_len < min_dnlen ) {
-				break;
-			}
-
-			op->o_req_dn = pndn;
-			op->o_req_ndn = pndn;
-
-			get_entry( op, &entry, NULL, &rs->sr_text );
-		}
-
-		ldap_pvt_thread_rdwr_runlock( &li->li_rdwr );
-
-		op->o_req_dn = odn;
-		op->o_req_ndn = ondn;
+	for (;;) {
+		dnParent( &dn, &dn );
+		dnParent( &ndn, &ndn );
+		rc = ldif_read_entry( op, path.bv_val, &dn, &ndn,
+			entryp, &rs->sr_text );
+		if ( rc != LDAP_NO_SUCH_OBJECT )
+			break;
 
 		rc = LDAP_SUCCESS;
-		rs->sr_matched = NULL;
-		if ( entry != NULL ) {
-			Debug( LDAP_DEBUG_TRACE,
-				"ldif_back_referrals: tag=%lu target=\"%s\" matched=\"%s\"\n",
-				(unsigned long) op->o_tag, op->o_req_dn.bv_val, entry->e_name.bv_val );
-
-			if ( is_entry_referral( entry ) ) {
-				rc = LDAP_OTHER;
-				rs->sr_ref = get_entry_referrals( op, entry );
-				if ( rs->sr_ref ) {
-					rs->sr_matched = ber_strdup_x(
-					entry->e_name.bv_val, op->o_tmpmemctx );
-				}
-			}
-
-			entry_free(entry);
-
-		} else if ( default_referral != NULL ) {
-			rc = LDAP_OTHER;
-			rs->sr_ref = referral_rewrite( default_referral,
-				NULL, &op->o_req_dn, LDAP_SCOPE_DEFAULT );
-		}
-
-		if ( rs->sr_ref != NULL ) {
-			/* send referrals */
-			rc = rs->sr_err = LDAP_REFERRAL;
-			send_ldap_result( op, rs );
-			ber_bvarray_free( rs->sr_ref );
-			rs->sr_ref = NULL;
-
-		} else if ( rc != LDAP_SUCCESS ) {
-			rs->sr_text = rs->sr_matched ? "bad referral object" : NULL;
-		}
-
-		if ( rs->sr_matched ) {
-			op->o_tmpfree( (char *)rs->sr_matched, op->o_tmpmemctx );
-			rs->sr_matched = NULL;
-		}
-
-		return rc;
+		if ( ndn.bv_len < min_dnlen )
+			break;
+		(void) get_parent_path( &path, NULL );
+		dir2ldif_name( path );
+		entryp = &entry;
 	}
 
 	ldap_pvt_thread_rdwr_runlock( &li->li_rdwr );
+	SLAP_FREE( path.bv_val );
 
-	if ( is_entry_referral( entry ) ) {
-		/* entry is a referral */
-		BerVarray refs = get_entry_referrals( op, entry );
-		rs->sr_ref = referral_rewrite(
-			refs, &entry->e_name, &op->o_req_dn, LDAP_SCOPE_DEFAULT );
+	if ( entry != NULL ) {
+		if ( is_entry_referral( entry ) ) {
+			Debug( LDAP_DEBUG_TRACE,
+				"ldif_back_referrals: tag=%lu target=\"%s\" matched=\"%s\"\n",
+				(unsigned long) op->o_tag, op->o_req_dn.bv_val, entry->e_dn );
 
-		Debug( LDAP_DEBUG_TRACE,
-			"ldif_back_referrals: tag=%lu target=\"%s\" matched=\"%s\"\n",
-			(unsigned long) op->o_tag, op->o_req_dn.bv_val, entry->e_name.bv_val );
+			ref = get_entry_referrals( op, entry );
+			rs->sr_ref = referral_rewrite( ref, &entry->e_name, &op->o_req_dn,
+				op->o_tag == LDAP_REQ_SEARCH ?
+				op->ors_scope : LDAP_SCOPE_DEFAULT );
+			ber_bvarray_free( ref );
 
-		rs->sr_matched = entry->e_name.bv_val;
-		if ( rs->sr_ref != NULL ) {
-			rc = rs->sr_err = LDAP_REFERRAL;
-			send_ldap_result( op, rs );
-			ber_bvarray_free( rs->sr_ref );
-			rs->sr_ref = NULL;
-
-		} else {
-			rc = LDAP_OTHER;
-			rs->sr_text = "bad referral object";
+			if ( rs->sr_ref != NULL ) {
+				/* send referral */
+				rc = rs->sr_err = LDAP_REFERRAL;
+				rs->sr_matched = entry->e_dn;
+				send_ldap_result( op, rs );
+				ber_bvarray_free( rs->sr_ref );
+				rs->sr_ref = NULL;
+			} else {
+				rc = LDAP_OTHER;
+				rs->sr_text = "bad referral object";
+			}
+			rs->sr_matched = NULL;
 		}
 
-		rs->sr_matched = NULL;
-		ber_bvarray_free( refs );
+		entry_free( entry );
 	}
-
-	entry_free( entry );
 
 	return rc;
 }
