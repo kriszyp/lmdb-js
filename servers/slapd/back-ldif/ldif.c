@@ -31,19 +31,19 @@
 #include "lutil.h"
 #include "config.h"
 
-typedef struct enumCookie {
-	Operation *op;
-	SlapReply *rs;
-	Entry **entries;
-	ID elen;
-	ID eind;
-} enumCookie;
+struct ldif_tool {
+	Entry	**entries;			/* collected by bi_tool_entry_first() */
+	ID		elen;				/* length of entries[] array */
+	ID		ecount;				/* number of entries */
+	ID		ecurrent;			/* bi_tool_entry_next() position */
+#	define	ENTRY_BUFF_INCREMENT 500 /* initial entries[] length */
+};
 
+/* Per-database data */
 struct ldif_info {
-	struct berval li_base_path;
-	enumCookie li_tool_cookie;
-	ID li_tool_current;
-	ldap_pvt_thread_rdwr_t  li_rdwr;
+	struct berval li_base_path;			/* database directory */
+	struct ldif_tool li_tool;			/* for slap tools */
+	ldap_pvt_thread_rdwr_t	li_rdwr;	/* no other I/O when writing */
 };
 
 #ifdef _WIN32
@@ -148,8 +148,6 @@ typedef struct {
 } assert_safe_filenames[safe_filenames ? 2 : -2];
 
 
-#define ENTRY_BUFF_INCREMENT 500
-
 static ConfigTable ldifcfg[] = {
 	{ "directory", "dir", 2, 2, 0, ARG_BERVAL|ARG_OFFSET,
 		(void *)offsetof(struct ldif_info, li_base_path),
@@ -233,6 +231,36 @@ dn2path( BackendDB *be, struct berval *dn, struct berval *res )
 
 	assert( res->bv_len <= len );
 }
+
+/*
+ * *dest = dupbv(<dir + LDAP_DIRSEP>), plus room for <more>-sized filename.
+ * Return pointer past the dirname.
+ */
+static char *
+fullpath_alloc( struct berval *dest, const struct berval *dir, ber_len_t more )
+{
+	char *s = SLAP_MALLOC( dir->bv_len + more + 2 );
+
+	dest->bv_val = s;
+	if ( s == NULL ) {
+		dest->bv_len = 0;
+		Debug( LDAP_DEBUG_ANY, "back-ldif: out of memory\n", 0, 0, 0 );
+	} else {
+		s = lutil_strcopy( dest->bv_val, dir->bv_val );
+		*s++ = LDAP_DIRSEP[0];
+		*s = '\0';
+		dest->bv_len = s - dest->bv_val;
+	}
+	return s;
+}
+
+/*
+ * Append filename to fullpath_alloc() dirname or replace previous filename.
+ * dir_end = fullpath_alloc() return value.
+ */
+#define FILL_PATH(fpath, dir_end, filename) \
+	((fpath)->bv_len = lutil_strcopy(dir_end, filename) - (fpath)->bv_val)
+
 
 /* .ldif entry filename length <-> subtree dirname length. */
 #define ldif2dir_len(bv)  ((bv).bv_len -= STRLENOF(LDIF))
@@ -534,197 +562,247 @@ get_entry(
 	return rc;
 }
 
-static void fullpath(struct berval *base, struct berval *name, struct berval *res) {
-	char *ptr;
-	res->bv_len = name->bv_len + base->bv_len + 1;
-	res->bv_val = ch_malloc( res->bv_len + 1 );
-	strcpy(res->bv_val, base->bv_val);
-	ptr = res->bv_val + base->bv_len;
-	*ptr++ = LDAP_DIRSEP[0];
-	strcpy(ptr, name->bv_val);
-}
 
+/*
+ * RDN-named directory entry, with special handling of "attr={num}val" RDNs.
+ */
 typedef struct bvlist {
 	struct bvlist *next;
-	struct berval bv;
-	struct berval num;
-	int inum;
-	int off;
+	char *trunc;	/* filename was truncated here */
+	int  inum;		/* num from "attr={num}" in filename, if any */
+	char savech;	/* original char at *trunc */
+	char fname;		/* variable length array BVL_NAME(bvl) = &fname */
+#	define BVL_NAME(bvl) ((char *) (bvl) + offsetof(bvlist, fname))
+#	define BVL_SIZE(namelen) (sizeof(bvlist) + (namelen))
 } bvlist;
 
-
-static int r_enum_tree(enumCookie *ck, struct berval *path, int base,
-	int scope, struct berval *pdn, struct berval *pndn)
+static int
+ldif_send_entry( Operation *op, SlapReply *rs, Entry *e, int scope )
 {
-	Entry *e = NULL;
-	int fd = 0, rc = LDAP_SUCCESS;
-	struct berval dn = BER_BVC( "" ), ndn = BER_BVC( "" );
+	int rc = LDAP_SUCCESS;
 
-	if ( base <= 0 ) {
-		rc = ldif_read_entry( ck->op, path->bv_val, pdn, pndn, &e,
-			ck->rs == NULL ? NULL : &ck->rs->sr_text );
-		if ( rc != LDAP_SUCCESS ) {
-			/* Only the search baseDN may produce noSuchObject. */
-			return rc == LDAP_NO_SUCH_OBJECT && base ? LDAP_OTHER : rc;
-		}
+	if ( scope == LDAP_SCOPE_BASE || scope == LDAP_SCOPE_SUBTREE ) {
+		if ( rs == NULL ) {
+			/* Save the entry for tool mode */
+			struct ldif_tool *tl =
+				&((struct ldif_info *) op->o_bd->be_private)->li_tool;
 
-		if ( scope != LDAP_SCOPE_BASE ) {
-			/* Copy DN/NDN since we send the entry with REP_ENTRY_MODIFIABLE,
-			 * which bconfig.c seems to need.  (TODO: see config_rename_one.)
-			 */
-			if ( ber_dupbv( &dn,  &e->e_name  ) == NULL ||
-				 ber_dupbv( &ndn, &e->e_nname ) == NULL )
-			{
-				rc = LDAP_OTHER;
-				goto done;
-			}
-		}
-
-		if ( scope == LDAP_SCOPE_BASE || scope == LDAP_SCOPE_SUBTREE ) {
-			/* Send right away? */
-			if ( ck->rs ) {
-				/*
-				 * If it's a referral entry, send a continuation reference.
-				 * (ldif_back_referrals() handles baseobject referrals.)
-				 * Don't check the filter since it's only a candidate.
-				 */
-				if ( !get_manageDSAit( ck->op )
-						&& is_entry_referral( e ) )
-				{
-					BerVarray erefs = get_entry_referrals( ck->op, e );
-					ck->rs->sr_ref = referral_rewrite( erefs,
-							&e->e_name, NULL,
-							scope );
-	
-					ck->rs->sr_entry = e;
-					rc = send_search_reference( ck->op, ck->rs );
-					ber_bvarray_free( ck->rs->sr_ref );
-					ber_bvarray_free( erefs );
-					ck->rs->sr_ref = NULL;
-					ck->rs->sr_entry = NULL;
-	
-				} else if ( test_filter( ck->op, e, ck->op->ors_filter ) == LDAP_COMPARE_TRUE )
-				{
-					ck->rs->sr_entry = e;
-					ck->rs->sr_attrs = ck->op->ors_attrs;
-					ck->rs->sr_flags = REP_ENTRY_MODIFIABLE;
-					rc = send_search_entry(ck->op, ck->rs);
-					ck->rs->sr_entry = NULL;
-				}
-				fd = 1;
-				if ( rc )
+			if ( tl->ecount >= tl->elen ) {
+				/* Allocate/grow entries */
+				ID elen = tl->elen ? tl->elen * 2 : ENTRY_BUFF_INCREMENT;
+				Entry **entries = (Entry **) SLAP_REALLOC( tl->entries,
+					sizeof(Entry *) * elen );
+				if ( entries == NULL ) {
+					Debug( LDAP_DEBUG_ANY,
+						"ldif_send_entry: out of memory\n", 0, 0, 0 );
+					rc = LDAP_OTHER;
 					goto done;
-			} else {
-			/* Queueing up for tool mode */
-				if(ck->entries == NULL) {
-					ck->entries = (Entry **) ch_malloc(sizeof(Entry *) * ENTRY_BUFF_INCREMENT);
-					ck->elen = ENTRY_BUFF_INCREMENT;
 				}
-				if(ck->eind >= ck->elen) { /* grow entries if necessary */	
-					ck->entries = (Entry **) ch_realloc(ck->entries, sizeof(Entry *) * (ck->elen) * 2);
-					ck->elen *= 2;
-				}
-	
-				ck->entries[ck->eind++] = e;
-				fd = 0;
+				tl->elen = elen;
+				tl->entries = entries;
 			}
-		} else {
-			fd = 1;
+			tl->entries[tl->ecount++] = e;
+			return rc;
+		}
+
+		else if ( !get_manageDSAit( op ) && is_entry_referral( e ) ) {
+			/* Send a continuation reference.
+			 * (ldif_back_referrals() handles baseobject referrals.)
+			 * Don't check the filter since it's only a candidate.
+			 */
+			BerVarray refs = get_entry_referrals( op, e );
+			rs->sr_ref = referral_rewrite( refs, &e->e_name, NULL, scope );
+			rs->sr_entry = e;
+			rc = send_search_reference( op, rs );
+			ber_bvarray_free( rs->sr_ref );
+			ber_bvarray_free( refs );
+			rs->sr_ref = NULL;
+			rs->sr_entry = NULL;
+		}
+
+		else if ( test_filter( op, e, op->ors_filter ) == LDAP_COMPARE_TRUE ) {
+			rs->sr_entry = e;
+			rs->sr_attrs = op->ors_attrs;
+			rs->sr_flags = REP_ENTRY_MODIFIABLE;
+			rc = send_search_entry( op, rs );
+			rs->sr_entry = NULL;
 		}
 	}
 
-	if ( scope != LDAP_SCOPE_BASE ) {
-		DIR * dir_of_path;
-		bvlist *list = NULL, *ptr;
+ done:
+	entry_free( e );
+	return rc;
+}
 
-		path->bv_len -= STRLENOF( LDIF );
-		path->bv_val[path->bv_len] = '\0';
+/* Read LDIF directory <path> into <listp>.  Set *fname_maxlenp. */
+static int
+ldif_readdir(
+	Operation *op,
+	SlapReply *rs,
+	const struct berval *path,
+	bvlist **listp,
+	ber_len_t *fname_maxlenp )
+{
+	int rc = LDAP_SUCCESS;
+	DIR *dir_of_path;
 
-		dir_of_path = opendir(path->bv_val);
-		if(dir_of_path == NULL) { /* can't open directory */
-			if ( errno != ENOENT ) {
-				/* it shouldn't be treated as an error
-				 * only if the directory doesn't exist */
-				rc = LDAP_BUSY;
-				Debug( LDAP_DEBUG_ANY,
-					"=> ldif_enum_tree: failed to opendir %s (%d)\n",
-					path->bv_val, errno, 0 );
-			}
-			goto done;
+	*listp = NULL;
+	*fname_maxlenp = 0;
+
+	dir_of_path = opendir( path->bv_val );
+	if ( dir_of_path == NULL ) {
+		int save_errno = errno;
+		/* Absent directory is OK (leaf entry) */
+		if ( save_errno != ENOENT ) {
+			Debug( LDAP_DEBUG_ANY,
+				"=> ldif_search_entry: failed to opendir \"%s\": %s\n",
+				path->bv_val, STRERROR( save_errno ), 0 );
+			rc = LDAP_BUSY;
 		}
-	
-		while(1) {
-			struct berval fname, itmp;
-			struct dirent * dir;
+
+	} else {
+		bvlist *ptr;
+		struct dirent *dir;
+
+		while ( (dir = readdir( dir_of_path )) != NULL ) {
+			size_t fname_len;
 			bvlist *bvl, **prev;
+			char *idxp, *endp;
 
-			dir = readdir(dir_of_path);
-			if(dir == NULL) break; /* end of the directory */
-			fname.bv_len = strlen( dir->d_name );
-			if ( fname.bv_len <= STRLENOF( LDIF ))
+			fname_len = strlen( dir->d_name );
+			if ( fname_len <= STRLENOF( LDIF ))
 				continue;
-			if ( strcmp( dir->d_name + (fname.bv_len - STRLENOF(LDIF)), LDIF))
+			if ( strcmp( dir->d_name + fname_len - STRLENOF(LDIF), LDIF ))
 				continue;
-			fname.bv_val = dir->d_name;
 
-			bvl = ch_malloc( sizeof(bvlist) );
-			ber_dupbv( &bvl->bv, &fname );
-			BER_BVZERO( &bvl->num );
-			itmp.bv_val = ber_bvchr( &bvl->bv, IX_FSL );
-			if ( itmp.bv_val ) {
-				char *ptr;
-				itmp.bv_val++;
-				itmp.bv_len = bvl->bv.bv_len
-					- ( itmp.bv_val - bvl->bv.bv_val );
-				ptr = ber_bvchr( &itmp, IX_FSR );
-				if ( ptr ) {
-					itmp.bv_len = ptr - itmp.bv_val;
-					ber_dupbv( &bvl->num, &itmp );
-					bvl->inum = strtol( itmp.bv_val, NULL, 0 );
-					itmp.bv_val[0] = '\0';
-					bvl->off = itmp.bv_val - bvl->bv.bv_val;
-				}
+			if ( *fname_maxlenp < fname_len )
+				*fname_maxlenp = fname_len;
+
+			bvl = SLAP_MALLOC( BVL_SIZE( fname_len ) );
+			if ( bvl == NULL ) {
+				rc = LDAP_OTHER;
+				break;
+			}
+			strcpy( BVL_NAME( bvl ), dir->d_name );
+
+			bvl->savech = '\0';
+			if ( (idxp = strchr( BVL_NAME( bvl ), IX_FSL )) != NULL &&
+				 (endp = strchr( ++idxp, IX_FSR )) != NULL )
+			{
+				/* attr={n}val or bconfig.c's "pseudo-indexed" attr=val{n} */
+				bvl->inum = strtol( idxp, NULL, 0 );
+				bvl->trunc = idxp;
+				bvl->savech = *idxp;
+				*idxp = '\0';
 			}
 
-			for (prev = &list; (ptr = *prev) != NULL; prev = &ptr->next) {
-				int cmp = strcmp( bvl->bv.bv_val, ptr->bv.bv_val );
-				if ( !cmp && bvl->num.bv_val )
+			for ( prev = listp; (ptr = *prev) != NULL; prev = &ptr->next ) {
+				int cmp = strcmp( BVL_NAME( bvl ), BVL_NAME( ptr ));
+				if ( !cmp && bvl->savech )
 					cmp = bvl->inum - ptr->inum;
 				if ( cmp < 0 )
 					break;
 			}
 			*prev = bvl;
 			bvl->next = ptr;
-				
 		}
 		closedir(dir_of_path);
+	}
 
-		if ( scope == LDAP_SCOPE_ONELEVEL )
-			scope = LDAP_SCOPE_BASE;
-		else if ( scope == LDAP_SCOPE_SUBORDINATE )
-			scope = LDAP_SCOPE_SUBTREE;
+	return rc;
+}
 
-		while ( ( ptr = list ) ) {
-			struct berval fpath;
+/*
+ * Send an entry, recursively search its children, and free or save it.
+ * Return an LDAP result code.  Parameters:
+ *  op, rs  operation and reply.  rs == NULL for slap tools.
+ *  e       entry to search, or NULL for rootDSE.
+ *  scope   scope for the part of the search from this entry.
+ *  path    LDIF filename -- bv_len and non-directory part are overwritten.
+ */
+static int
+ldif_search_entry(
+	Operation *op,
+	SlapReply *rs,
+	Entry *e,
+	int scope,
+	struct berval *path )
+{
+	int rc = LDAP_SUCCESS;
+	struct berval dn = BER_BVC( "" ), ndn = BER_BVC( "" );
 
-			list = ptr->next;
-
-			if ( rc == LDAP_SUCCESS ) {
-				if ( ptr->num.bv_val )
-					AC_MEMCPY( ptr->bv.bv_val + ptr->off, ptr->num.bv_val,
-						ptr->num.bv_len );
-				fullpath( path, &ptr->bv, &fpath );
-				rc = r_enum_tree( ck, &fpath, 0, scope, &dn, &ndn );
-				free(fpath.bv_val);
-			}
-			if ( ptr->num.bv_val )
-				free( ptr->num.bv_val );
-			free(ptr->bv.bv_val);
-			free(ptr);
+	if ( scope != LDAP_SCOPE_BASE && e != NULL ) {
+		/* Copy DN/NDN since we send the entry with REP_ENTRY_MODIFIABLE,
+		 * which bconfig.c seems to need.  (TODO: see config_rename_one.)
+		 */
+		if ( ber_dupbv( &dn,  &e->e_name  ) == NULL ||
+			 ber_dupbv( &ndn, &e->e_nname ) == NULL )
+		{
+			Debug( LDAP_DEBUG_ANY,
+				"ldif_search_entry: out of memory\n", 0, 0, 0 );
+			rc = LDAP_OTHER;
+			goto done;
 		}
 	}
-done:
-	if ( fd ) entry_free( e );
+
+	/* Send the entry if appropriate, and free or save it */
+	if ( e != NULL )
+		rc = ldif_send_entry( op, rs, e, scope );
+
+	/* Search the children */
+	if ( scope != LDAP_SCOPE_BASE && rc == LDAP_SUCCESS ) {
+		bvlist *list, *ptr;
+		struct berval fpath;	/* becomes child pathname */
+		char *dir_end;	/* will point past dirname in fpath */
+
+		ldif2dir_len( *path );
+		ldif2dir_name( *path );
+		rc = ldif_readdir( op, rs, path, &list, &fpath.bv_len );
+
+		if ( list != NULL ) {
+			const char **text = rs == NULL ? NULL : &rs->sr_text;
+
+			if ( scope == LDAP_SCOPE_ONELEVEL )
+				scope = LDAP_SCOPE_BASE;
+			else if ( scope == LDAP_SCOPE_SUBORDINATE )
+				scope = LDAP_SCOPE_SUBTREE;
+
+			/* Allocate fpath and fill in directory part */
+			dir_end = fullpath_alloc( &fpath, path, fpath.bv_len );
+			if ( dir_end == NULL )
+				rc = LDAP_OTHER;
+
+			do {
+				ptr = list;
+
+				if ( rc == LDAP_SUCCESS ) {
+					if ( ptr->savech )
+					*ptr->trunc = ptr->savech;
+					FILL_PATH( &fpath, dir_end, BVL_NAME( ptr ));
+
+					rc = ldif_read_entry( op, fpath.bv_val, &dn, &ndn,
+						&e, text );
+					switch ( rc ) {
+					case LDAP_SUCCESS:
+						rc = ldif_search_entry( op, rs, e, scope, &fpath );
+						break;
+					case LDAP_NO_SUCH_OBJECT:
+						/* Only the search baseDN may produce noSuchObject. */
+						rc = LDAP_OTHER;
+						break;
+					}
+				}
+
+				list = ptr->next;
+				SLAP_FREE( ptr );
+			} while ( list != NULL );
+
+			if ( !BER_BVISNULL( &fpath ) )
+				SLAP_FREE( fpath.bv_val );
+		}
+	}
+
+ done:
 	if ( !BER_BVISEMPTY( &dn ) )
 		ber_memfree( dn.bv_val );
 	if ( !BER_BVISEMPTY( &ndn ) )
@@ -733,19 +811,24 @@ done:
 }
 
 static int
-enum_tree(
-	enumCookie *ck
-)
+search_tree( Operation *op, SlapReply *rs )
 {
+	int rc = LDAP_SUCCESS;
+	Entry *e = NULL;
 	struct berval path;
 	struct berval pdn, pndn;
-	int rc;
 
-	dnParent( &ck->op->o_req_dn, &pdn );
-	dnParent( &ck->op->o_req_ndn, &pndn );
-	dn2path( ck->op->o_bd, &ck->op->o_req_ndn, &path );
-	rc = r_enum_tree( ck, &path, BER_BVISEMPTY( &ck->op->o_req_ndn ) ? 1 : -1,
-		ck->op->ors_scope, &pdn, &pndn );
+	dn2path( op->o_bd, &op->o_req_ndn, &path );
+	if ( !BER_BVISEMPTY( &op->o_req_ndn ) ) {
+		/* Read baseObject */
+		dnParent( &op->o_req_dn, &pdn );
+		dnParent( &op->o_req_ndn, &pndn );
+		rc = ldif_read_entry( op, path.bv_val, &pdn, &pndn, &e,
+			rs == NULL ? NULL : &rs->sr_text );
+	}
+	if ( rc == LDAP_SUCCESS )
+		rc = ldif_search_entry( op, rs, e, op->ors_scope, &path );
+
 	ch_free( path.bv_val );
 	return rc;
 }
@@ -1067,12 +1150,9 @@ ldif_back_bind( Operation *op, SlapReply *rs )
 static int ldif_back_search(Operation *op, SlapReply *rs)
 {
 	struct ldif_info *li = (struct ldif_info *) op->o_bd->be_private;
-	enumCookie ck = { NULL, NULL, NULL, 0, 0 };
 
-	ck.op = op;
-	ck.rs = rs;
 	ldap_pvt_thread_rdwr_rlock(&li->li_rdwr);
-	rs->sr_err = enum_tree( &ck );
+	rs->sr_err = search_tree( op, rs );
 	ldap_pvt_thread_rdwr_runlock(&li->li_rdwr);
 	send_ldap_result(op, rs);
 
@@ -1365,57 +1445,57 @@ ldif_back_entry_get(
 /* Slap tools */
 
 static int ldif_tool_entry_open(BackendDB *be, int mode) {
-	struct ldif_info *li = (struct ldif_info *) be->be_private;
-	li->li_tool_current = 0;
+	struct ldif_tool *tl = &((struct ldif_info *) be->be_private)->li_tool;
+
+	tl->ecurrent = 0;
 	return 0;
 }					
 
 static int ldif_tool_entry_close(BackendDB * be) {
-	struct ldif_info *li = (struct ldif_info *) be->be_private;
+	struct ldif_tool *tl = &((struct ldif_info *) be->be_private)->li_tool;
+	Entry **entries = tl->entries;
 
-	SLAP_FREE(li->li_tool_cookie.entries);
+	SLAP_FREE( entries );
 	return 0;
 }
 
 static ID ldif_tool_entry_next(BackendDB *be)
 {
-	struct ldif_info *li = (struct ldif_info *) be->be_private;
-	if(li->li_tool_current >= li->li_tool_cookie.eind)
+	struct ldif_tool *tl = &((struct ldif_info *) be->be_private)->li_tool;
+
+	if ( tl->ecurrent >= tl->ecount )
 		return NOID;
 	else
-		return ++li->li_tool_current;
+		return ++tl->ecurrent;
 }
 
 static ID
 ldif_tool_entry_first(BackendDB *be)
 {
-	struct ldif_info *li = (struct ldif_info *) be->be_private;
+	struct ldif_tool *tl = &((struct ldif_info *) be->be_private)->li_tool;
 
-	if(li->li_tool_cookie.entries == NULL) {
+	if ( tl->entries == NULL ) {
 		Operation op = {0};
 
 		op.o_bd = be;
 		op.o_req_dn = *be->be_suffix;
 		op.o_req_ndn = *be->be_nsuffix;
 		op.ors_scope = LDAP_SCOPE_SUBTREE;
-		li->li_tool_cookie.op = &op;
-		(void)enum_tree( &li->li_tool_cookie );
-		li->li_tool_cookie.op = NULL;
+		(void) search_tree( &op, NULL );
 	}
 	return ldif_tool_entry_next( be );
 }
 
 static Entry * ldif_tool_entry_get(BackendDB * be, ID id) {
-	struct ldif_info *li = (struct ldif_info *) be->be_private;
-	Entry * e;
+	struct ldif_tool *tl = &((struct ldif_info *) be->be_private)->li_tool;
+	Entry *e = NULL;
 
-	if(id > li->li_tool_cookie.eind || id < 1)
-		return NULL;
-	else {
-		e = li->li_tool_cookie.entries[id - 1];
-		li->li_tool_cookie.entries[id - 1] = NULL;
-		return e;
+	--id;
+	if ( id < tl->ecount ) {
+		e = tl->entries[id];
+		tl->entries[id] = NULL;
 	}
+	return e;
 }
 
 static ID
