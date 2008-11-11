@@ -50,6 +50,8 @@ static char *const err2text[] = {
 	"Syntax not found",
 	"Duplicate ldapSyntax",
 	"Superior syntax not found",
+	"Substitute syntax not specified",
+	"Substitute syntax not found",
 	"OID or name required",
 	"Qualifier not supported",
 	"Invalid NAME",
