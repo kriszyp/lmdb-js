@@ -432,6 +432,7 @@ static int translucent_modify(Operation *op, SlapReply *rs) {
 
 	db = op->o_bd;
 	op->o_bd = &ov->db;
+	ov->db.be_acl = op->o_bd->be_acl;
 	rc = ov->db.bd_info->bi_entry_get_rw(op, &op->o_req_ndn, NULL, NULL, 0, &re);
 	if(rc != LDAP_SUCCESS || re == NULL ) {
 		send_ldap_error((op), rs, LDAP_NO_SUCH_OBJECT,
@@ -629,6 +630,7 @@ static int translucent_compare(Operation *op, SlapReply *rs) {
 */
 	db = op->o_bd;
 	op->o_bd = &ov->db;
+	ov->db.be_acl = op->o_bd->be_acl;
 	rc = ov->db.bd_info->bi_op_compare(op, rs);
 	op->o_bd = db;
 
@@ -661,6 +663,7 @@ static int translucent_pwmod(Operation *op, SlapReply *rs) {
 */
 	db = op->o_bd;
 	op->o_bd = &ov->db;
+	ov->db.be_acl = op->o_bd->be_acl;
 	rc = ov->db.bd_info->bi_entry_get_rw(op, &op->o_req_ndn, NULL, NULL, 0, &re);
 	if(rc != LDAP_SUCCESS || re == NULL ) {
 		send_ldap_error((op), rs, LDAP_NO_SUCH_OBJECT,
@@ -1096,6 +1099,7 @@ static int translucent_search(Operation *op, SlapReply *rs) {
 	cb.sc_private = &tc;
 	cb.sc_next = op->o_callback;
 
+	ov->db.be_acl = op->o_bd->be_acl;
 	tc.db = op->o_bd;
 	tc.on = on;
 	tc.orig = op->ors_filter;
@@ -1193,6 +1197,7 @@ static int translucent_bind(Operation *op, SlapReply *rs) {
 
 	db = op->o_bd;
 	op->o_bd = &ov->db;
+	ov->db.be_acl = op->o_bd->be_acl;
 	rc = ov->db.bd_info->bi_op_bind(op, rs);
 	op->o_bd = db;
 
