@@ -12,10 +12,10 @@
 ## top-level directory of the distribution or, alternatively, at
 ## <http://www.OpenLDAP.org/license.html>.
 
-if test "$BACKEND" != "bdb" && test "$BACKEND" != "hdb" ; then
-	echo "Test does not support $BACKEND"
+case $BACKEND in bdb | hdb | ldif) : ;; *)
+	echo "Test does not support $BACKEND backend, test skipped"
 	exit 0
-fi
+esac
 
 echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
@@ -36,7 +36,7 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-rm -f $DBDIR1A/* $DBDIR1B/*
+rm -rf $DBDIR1A/* $DBDIR1B/*
 cp -pr $DBDIR1C $DBDIR2C
 
 echo "Starting slapd 1 on TCP/IP port $PORT1..."
