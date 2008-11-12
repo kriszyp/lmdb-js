@@ -1347,6 +1347,7 @@ static int
 ldif_move_entry(
 	Operation *op,
 	Entry *entry,
+	int same_ndn,
 	struct berval *oldpath,
 	const char **text )
 {
@@ -1354,12 +1355,17 @@ ldif_move_entry(
 	char *parentdir = NULL, *trash;
 	int rc, rename_res;
 
-	rc = ldif_prepare_create( op, entry, &newpath,
+	if ( same_ndn ) {
+		rc = LDAP_SUCCESS;
+		newpath = *oldpath;
+	} else {
+		rc = ldif_prepare_create( op, entry, &newpath,
 			op->orr_newSup ? &parentdir : NULL, text );
+	}
 
 	if ( rc == LDAP_SUCCESS ) {
 		rc = ldif_write_entry( op, entry, &newpath, parentdir, text );
-		if ( rc == LDAP_SUCCESS ) {
+		if ( rc == LDAP_SUCCESS && !same_ndn ) {
 			trash = oldpath->bv_val; /* will be .ldif file to delete */
 			ldif2dir_len( newpath );
 			ldif2dir_len( *oldpath );
@@ -1407,7 +1413,8 @@ ldif_move_entry(
 			}
 		}
 
-		SLAP_FREE( newpath.bv_val );
+		if ( !same_ndn )
+			SLAP_FREE( newpath.bv_val );
 		if ( parentdir != NULL )
 			SLAP_FREE( parentdir );
 	}
@@ -1422,7 +1429,7 @@ ldif_back_modrdn(Operation *op, SlapReply *rs)
 	struct berval new_dn = BER_BVNULL, new_ndn = BER_BVNULL;
 	struct berval p_dn, old_path;
 	Entry *entry;
-	int rc;
+	int rc, same_ndn;
 
 	slap_mods_opattrs( op, &op->orr_modlist, 1 );
 
@@ -1438,6 +1445,7 @@ ldif_back_modrdn(Operation *op, SlapReply *rs)
 		}
 		build_new_dn( &new_dn, &p_dn, &op->oq_modrdn.rs_newrdn, NULL ); 
 		dnNormalize( 0, NULL, NULL, &new_dn, &new_ndn, NULL );
+		same_ndn = !ber_bvcmp( &entry->e_nname, &new_ndn );
 		ber_memfree_x( entry->e_name.bv_val, NULL );
 		ber_memfree_x( entry->e_nname.bv_val, NULL );
 		entry->e_name = new_dn;
@@ -1446,7 +1454,8 @@ ldif_back_modrdn(Operation *op, SlapReply *rs)
 		/* perform the modifications */
 		rc = apply_modify_to_entry( entry, op->orr_modlist, op, rs );
 		if ( rc == LDAP_SUCCESS )
-			rc = ldif_move_entry( op, entry, &old_path, &rs->sr_text );
+			rc = ldif_move_entry( op, entry, same_ndn, &old_path,
+				&rs->sr_text );
 
 		entry_free( entry );
 		SLAP_FREE( old_path.bv_val );
