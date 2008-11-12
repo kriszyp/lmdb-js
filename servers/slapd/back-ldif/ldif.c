@@ -406,6 +406,9 @@ ldif_write_entry(
 	int fd, entry_length;
 	char *entry_as_string, *tmpfname;
 
+	if ( op->o_abandon )
+		return SLAPD_ABANDON;
+
 	if ( parentdir != NULL && mkdir( parentdir, 0750 ) < 0 ) {
 		save_errno = errno;
 		Debug( LDAP_DEBUG_ANY, "ldif_write_entry: %s \"%s\": %s\n",
@@ -498,6 +501,12 @@ ldif_read_entry(
 	Entry *entry;
 	char *entry_as_string;
 	struct berval rdn;
+
+	/* TODO: Does slapd prevent Abandon of Bind as per rfc4511?
+	 * If so we need not check for LDAP_REQ_BIND here.
+	 */
+	if ( op->o_abandon && op->o_tag != LDAP_REQ_BIND )
+		return SLAPD_ABANDON;
 
 	rc = ldif_read_file( path, entryp ? &entry_as_string : NULL );
 
@@ -896,6 +905,9 @@ ldif_prepare_create(
 	Entry *parent = NULL;
 	int rc = LDAP_SUCCESS;
 
+	if ( op->o_abandon )
+		return SLAPD_ABANDON;
+
 	dn2path( be, ndn, dnpath );
 
 	if ( stat( dnpath->bv_val, &st ) == 0 ) { /* entry .ldif file */
@@ -1282,6 +1294,10 @@ ldif_back_delete( Operation *op, SlapReply *rs )
 	}
 
 	ldap_pvt_thread_rdwr_wlock(&li->li_rdwr);
+	if ( op->o_abandon ) {
+		rc = SLAPD_ABANDON;
+		goto done;
+	}
 
 	dn2path( op->o_bd, &op->o_req_ndn, &path );
 	ldif2dir_len( path );
@@ -1318,6 +1334,7 @@ ldif_back_delete( Operation *op, SlapReply *rs )
 	}
 
 	SLAP_FREE(path.bv_val);
+ done:
 	ldap_pvt_thread_rdwr_wunlock(&li->li_rdwr);
 	rs->sr_err = rc;
 	send_ldap_result( op, rs );
