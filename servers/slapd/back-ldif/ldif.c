@@ -137,6 +137,7 @@ struct ldif_info {
 
 /* Collect other "safe char" tests here, until someone needs a fix. */
 enum {
+	eq_unsafe = LDIF_UNSAFE_CHAR('='),
 	safe_filenames = STRLENOF("" LDAP_DIRSEP "") == 1 && !(
 		LDIF_UNSAFE_CHAR('-') || /* for "{-1}frontend" in bconfig.c */
 		LDIF_UNSAFE_CHAR(LDIF_ESCAPE_CHAR) ||
@@ -565,11 +566,14 @@ get_entry(
 
 /*
  * RDN-named directory entry, with special handling of "attr={num}val" RDNs.
+ * For sorting, filename "attr=val.ldif" is truncated to "attr="val\0ldif",
+ * and filename "attr={num}val.ldif" to "attr={\0um}val.ldif".
+ * Does not sort escaped chars correctly, would need to un-escape them.
  */
 typedef struct bvlist {
 	struct bvlist *next;
 	char *trunc;	/* filename was truncated here */
-	int  inum;		/* num from "attr={num}" in filename, if any */
+	int  inum;		/* num from "attr={num}" in filename, or INT_MIN */
 	char savech;	/* original char at *trunc */
 	char fname;		/* variable length array BVL_NAME(bvl) = &fname */
 #	define BVL_NAME(bvl) ((char *) (bvl) + offsetof(bvlist, fname))
@@ -667,10 +671,10 @@ ldif_readdir(
 		while ( (dir = readdir( dir_of_path )) != NULL ) {
 			size_t fname_len;
 			bvlist *bvl, **prev;
-			char *idxp, *endp;
+			char *trunc, *idxp, *endp, *endp2;
 
 			fname_len = strlen( dir->d_name );
-			if ( fname_len <= STRLENOF( LDIF ))
+			if ( fname_len < STRLENOF( "x=" LDIF )) /* min filename size */
 				continue;
 			if ( strcmp( dir->d_name + fname_len - STRLENOF(LDIF), LDIF ))
 				continue;
@@ -685,22 +689,28 @@ ldif_readdir(
 			}
 			strcpy( BVL_NAME( bvl ), dir->d_name );
 
-			bvl->savech = '\0';
-			if ( (idxp = strchr( BVL_NAME( bvl ), IX_FSL )) != NULL &&
-				 (endp = strchr( ++idxp, IX_FSR )) != NULL )
+			/* Make it sortable by ("attr=val" or <preceding {num}, num>) */
+			trunc = BVL_NAME( bvl ) + fname_len - STRLENOF( LDIF );
+			if ( (idxp = strchr( BVL_NAME( bvl ) + 2, IX_FSL )) != NULL &&
+				 (endp = strchr( ++idxp, IX_FSR )) != NULL && endp > idxp &&
+				 (eq_unsafe || idxp[-2] == '=' || endp + 1 == trunc) )
 			{
 				/* attr={n}val or bconfig.c's "pseudo-indexed" attr=val{n} */
-				bvl->inum = strtol( idxp, NULL, 0 );
-				bvl->trunc = idxp;
-				bvl->savech = *idxp;
-				*idxp = '\0';
+				bvl->inum = strtol( idxp, &endp2, 10 );
+				if ( endp2 == endp ) {
+					trunc = idxp;
+					goto truncate;
+				}
 			}
+			bvl->inum = INT_MIN;
+		truncate:
+			bvl->trunc = trunc;
+			bvl->savech = *trunc;
+			*trunc = '\0';
 
 			for ( prev = listp; (ptr = *prev) != NULL; prev = &ptr->next ) {
 				int cmp = strcmp( BVL_NAME( bvl ), BVL_NAME( ptr ));
-				if ( !cmp && bvl->savech )
-					cmp = bvl->inum - ptr->inum;
-				if ( cmp < 0 )
+				if ( cmp < 0 || (cmp == 0 && bvl->inum < ptr->inum) )
 					break;
 			}
 			*prev = bvl;
@@ -776,7 +786,6 @@ ldif_search_entry(
 				ptr = list;
 
 				if ( rc == LDAP_SUCCESS ) {
-					if ( ptr->savech )
 					*ptr->trunc = ptr->savech;
 					FILL_PATH( &fpath, dir_end, BVL_NAME( ptr ));
 
