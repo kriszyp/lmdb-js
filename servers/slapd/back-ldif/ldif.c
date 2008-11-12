@@ -656,17 +656,26 @@ ldif_readdir(
 	dir_of_path = opendir( path->bv_val );
 	if ( dir_of_path == NULL ) {
 		int save_errno = errno;
-		/* Absent directory is OK (leaf entry) */
-		if ( save_errno != ENOENT ) {
+		struct ldif_info *li = (struct ldif_info *) op->o_bd->be_private;
+		int is_rootDSE = (path->bv_len == li->li_base_path.bv_len);
+
+		/* Absent directory is OK (leaf entry), except the database dir */
+		if ( is_rootDSE || save_errno != ENOENT ) {
 			Debug( LDAP_DEBUG_ANY,
 				"=> ldif_search_entry: failed to opendir \"%s\": %s\n",
 				path->bv_val, STRERROR( save_errno ), 0 );
-			rc = LDAP_BUSY;
+			rc = LDAP_OTHER;
+			if ( rs != NULL )
+				rs->sr_text =
+					save_errno != ENOENT ? "internal error (bad directory)"
+					: !is_rootDSE ? "internal error (missing directory)"
+					: "internal error (database directory does not exist)";
 		}
 
 	} else {
 		bvlist *ptr;
 		struct dirent *dir;
+		int save_errno = 0;
 
 		while ( (dir = readdir( dir_of_path )) != NULL ) {
 			size_t fname_len;
@@ -685,6 +694,7 @@ ldif_readdir(
 			bvl = SLAP_MALLOC( BVL_SIZE( fname_len ) );
 			if ( bvl == NULL ) {
 				rc = LDAP_OTHER;
+				save_errno = errno;
 				break;
 			}
 			strcpy( BVL_NAME( bvl ), dir->d_name );
@@ -716,7 +726,18 @@ ldif_readdir(
 			*prev = bvl;
 			bvl->next = ptr;
 		}
-		closedir(dir_of_path);
+
+		if ( closedir( dir_of_path ) < 0 ) {
+			save_errno = errno;
+			rc = LDAP_OTHER;
+			if ( rs != NULL )
+				rs->sr_text = "internal error (bad directory)";
+		}
+		if ( rc != LDAP_SUCCESS ) {
+			Debug( LDAP_DEBUG_ANY, "ldif_search_entry: %s \"%s\": %s\n",
+				"error reading directory", path->bv_val,
+				STRERROR( save_errno ) );
+		}
 	}
 
 	return rc;
@@ -798,6 +819,12 @@ ldif_search_entry(
 					case LDAP_NO_SUCH_OBJECT:
 						/* Only the search baseDN may produce noSuchObject. */
 						rc = LDAP_OTHER;
+						if ( rs != NULL )
+							rs->sr_text = "internal error "
+								"(did someone just remove an entry file?)";
+						Debug( LDAP_DEBUG_ANY, "ldif_search_entry: "
+							"file listed in parent directory does not exist: "
+							"\"%s\"\n", fpath.bv_val, 0, 0 );
 						break;
 					}
 				}
@@ -1463,8 +1490,14 @@ static int ldif_tool_entry_open(BackendDB *be, int mode) {
 static int ldif_tool_entry_close(BackendDB * be) {
 	struct ldif_tool *tl = &((struct ldif_info *) be->be_private)->li_tool;
 	Entry **entries = tl->entries;
+	ID i;
 
+	for ( i = tl->ecount; i--; )
+		if ( entries[i] )
+			entry_free( entries[i] );
 	SLAP_FREE( entries );
+	tl->entries = NULL;
+	tl->ecount = tl->elen = 0;
 	return 0;
 }
 
@@ -1490,7 +1523,10 @@ ldif_tool_entry_first(BackendDB *be)
 		op.o_req_dn = *be->be_suffix;
 		op.o_req_ndn = *be->be_nsuffix;
 		op.ors_scope = LDAP_SCOPE_SUBTREE;
-		(void) search_tree( &op, NULL );
+		if ( search_tree( &op, NULL ) != LDAP_SUCCESS ) {
+			tl->ecurrent = tl->ecount; /* fail ldif_tool_entry_next() */
+			return 0; /* fail ldif_tool_entry_get() */
+		}
 	}
 	return ldif_tool_entry_next( be );
 }
