@@ -2273,7 +2273,7 @@ retry_add:;
 					"syncrepl_entry: %s be_modrdn (%d)\n", 
 					si->si_ridtxt, rc, 0 );
 			op->o_bd = be;
-			goto done;
+			/* Renamed entries may still have other mods so just fallthru */
 		}
 		if ( dni.mods ) {
 			op->o_tag = LDAP_REQ_MODIFY;
@@ -3049,8 +3049,10 @@ dn_callback(
 					{
 						dni->delOldRDN = 1;
 					}
-					/* OK, this was just a modDN, we're done */
-					return LDAP_SUCCESS;
+					/* A ModDN has happened, but other changes may have
+					 * occurred before we picked it up. So fallthru to
+					 * regular Modify processing.
+					 */
 				}
 
 				modtail = &dni->mods;
