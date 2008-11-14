@@ -568,15 +568,15 @@ get_entry(
 	int rc;
 	struct berval path, pdn, pndn;
 
-	dnParent(&op->o_req_dn, &pdn);
-	dnParent(&op->o_req_ndn, &pndn);
+	dnParent( &op->o_req_dn, &pdn );
+	dnParent( &op->o_req_ndn, &pndn );
 	dn2path( op->o_bd, &op->o_req_ndn, &path );
 	rc = ldif_read_entry( op, path.bv_val, &pdn, &pndn, entryp, text );
 
 	if ( rc == LDAP_SUCCESS && pathp != NULL ) {
 		*pathp = path;
 	} else {
-		SLAP_FREE(path.bv_val);
+		SLAP_FREE( path.bv_val );
 	}
 	return rc;
 }
@@ -993,10 +993,12 @@ ldif_prepare_create(
 	return rc;
 }
 
-static int apply_modify_to_entry(Entry * entry,
-				Modifications * modlist,
-				Operation * op,
-				SlapReply * rs)
+static int
+apply_modify_to_entry(
+	Entry *entry,
+	Modifications *modlist,
+	Operation *op,
+	SlapReply *rs )
 {
 	char textbuf[SLAP_TEXT_BUFLEN];
 	int rc = modlist ? LDAP_UNWILLING_TO_PERFORM : LDAP_SUCCESS;
@@ -1020,14 +1022,14 @@ static int apply_modify_to_entry(Entry * entry,
 				   &rs->sr_text, textbuf,
 				   sizeof( textbuf ) );
 			break;
-				
+
 		case LDAP_MOD_DELETE:
 			rc = modify_delete_values(entry, mods,
 				get_permissiveModify(op),
 				&rs->sr_text, textbuf,
 				sizeof( textbuf ) );
 			break;
-				
+
 		case LDAP_MOD_REPLACE:
 			rc = modify_replace_values(entry, mods,
 				 get_permissiveModify(op),
@@ -1192,19 +1194,19 @@ ldif_back_bind( Operation *op, SlapReply *rs )
 	}
 
 	/* let the front-end send success */
-	return_val = 0;
-	goto return_result;
+	return_val = LDAP_SUCCESS;
 
  return_result:
 	ldap_pvt_thread_rdwr_runlock(&li->li_rdwr);
-	if(return_val != 0)
+	if(return_val != LDAP_SUCCESS)
 		send_ldap_result( op, rs );
 	if(entry != NULL)
 		entry_free(entry);
 	return return_val;
 }
 
-static int ldif_back_search(Operation *op, SlapReply *rs)
+static int
+ldif_back_search( Operation *op, SlapReply *rs )
 {
 	struct ldif_info *li = (struct ldif_info *) op->o_bd->be_private;
 
@@ -1216,7 +1218,9 @@ static int ldif_back_search(Operation *op, SlapReply *rs)
 	return rs->sr_err;
 }
 
-static int ldif_back_add(Operation *op, SlapReply *rs) {
+static int
+ldif_back_add( Operation *op, SlapReply *rs )
+{
 	struct ldif_info *li = (struct ldif_info *) op->o_bd->be_private;
 	Entry * e = op->ora_e;
 	struct berval path;
@@ -1254,12 +1258,14 @@ static int ldif_back_add(Operation *op, SlapReply *rs) {
 	rs->sr_err = rc;
 	Debug( LDAP_DEBUG_TRACE, "ldif_back_add: err: %d text: %s\n",
 		rc, rs->sr_text ? rs->sr_text : "", 0 );
-	send_ldap_result(op, rs);
+	send_ldap_result( op, rs );
 	slap_graduate_commit_csn( op );
 	return rs->sr_err;
 }
 
-static int ldif_back_modify(Operation *op, SlapReply *rs) {
+static int
+ldif_back_modify( Operation *op, SlapReply *rs )
+{
 	struct ldif_info *li = (struct ldif_info *) op->o_bd->be_private;
 	Modifications * modlst = op->orm_modlist;
 	struct berval path;
@@ -1348,7 +1354,7 @@ ldif_back_delete( Operation *op, SlapReply *rs )
 			"cannot delete", path.bv_val, STRERROR( errno ) );
 	}
 
-	SLAP_FREE(path.bv_val);
+	SLAP_FREE( path.bv_val );
  done:
 	ldap_pvt_thread_rdwr_wunlock( &li->li_rdwr );
 	ldap_pvt_thread_mutex_unlock( &li->li_modop_mutex );
@@ -1443,7 +1449,7 @@ ldif_move_entry(
 }
 
 static int
-ldif_back_modrdn(Operation *op, SlapReply *rs)
+ldif_back_modrdn( Operation *op, SlapReply *rs )
 {
 	struct ldif_info *li = (struct ldif_info *) op->o_bd->be_private;
 	struct berval new_dn = BER_BVNULL, new_ndn = BER_BVNULL;
@@ -1463,7 +1469,7 @@ ldif_back_modrdn(Operation *op, SlapReply *rs)
 		} else {
 			dnParent( &entry->e_name, &p_dn );
 		}
-		build_new_dn( &new_dn, &p_dn, &op->oq_modrdn.rs_newrdn, NULL ); 
+		build_new_dn( &new_dn, &p_dn, &op->oq_modrdn.rs_newrdn, NULL );
 		dnNormalize( 0, NULL, NULL, &new_dn, &new_ndn, NULL );
 		same_ndn = !ber_bvcmp( &entry->e_nname, &new_ndn );
 		ber_memfree_x( entry->e_name.bv_val, NULL );
@@ -1526,14 +1532,18 @@ ldif_back_entry_get(
 
 /* Slap tools */
 
-static int ldif_tool_entry_open(BackendDB *be, int mode) {
+static int
+ldif_tool_entry_open( BackendDB *be, int mode )
+{
 	struct ldif_tool *tl = &((struct ldif_info *) be->be_private)->li_tool;
 
 	tl->ecurrent = 0;
 	return 0;
-}					
+}
 
-static int ldif_tool_entry_close(BackendDB * be) {
+static int
+ldif_tool_entry_close( BackendDB *be )
+{
 	struct ldif_tool *tl = &((struct ldif_info *) be->be_private)->li_tool;
 	Entry **entries = tl->entries;
 	ID i;
@@ -1547,7 +1557,8 @@ static int ldif_tool_entry_close(BackendDB * be) {
 	return 0;
 }
 
-static ID ldif_tool_entry_next(BackendDB *be)
+static ID
+ldif_tool_entry_next( BackendDB *be )
 {
 	struct ldif_tool *tl = &((struct ldif_info *) be->be_private)->li_tool;
 
@@ -1558,7 +1569,7 @@ static ID ldif_tool_entry_next(BackendDB *be)
 }
 
 static ID
-ldif_tool_entry_first(BackendDB *be)
+ldif_tool_entry_first( BackendDB *be )
 {
 	struct ldif_tool *tl = &((struct ldif_info *) be->be_private)->li_tool;
 
@@ -1577,7 +1588,9 @@ ldif_tool_entry_first(BackendDB *be)
 	return ldif_tool_entry_next( be );
 }
 
-static Entry * ldif_tool_entry_get(BackendDB * be, ID id) {
+static Entry *
+ldif_tool_entry_get( BackendDB *be, ID id )
+{
 	struct ldif_tool *tl = &((struct ldif_info *) be->be_private)->li_tool;
 	Entry *e = NULL;
 
@@ -1639,7 +1652,7 @@ ldif_back_db_destroy( Backend *be, ConfigReply *cr )
 {
 	struct ldif_info *li = be->be_private;
 
-	ch_free(li->li_base_path.bv_val);
+	ch_free( li->li_base_path.bv_val );
 	ldap_pvt_thread_rdwr_destroy( &li->li_rdwr );
 	ldap_pvt_thread_mutex_destroy( &li->li_modop_mutex );
 	free( be->be_private );
@@ -1647,7 +1660,7 @@ ldif_back_db_destroy( Backend *be, ConfigReply *cr )
 }
 
 static int
-ldif_back_db_open( Backend *be, ConfigReply *cr)
+ldif_back_db_open( Backend *be, ConfigReply *cr )
 {
 	struct ldif_info *li = (struct ldif_info *) be->be_private;
 	if( BER_BVISEMPTY(&li->li_base_path)) {/* missing base path */
@@ -1658,9 +1671,7 @@ ldif_back_db_open( Backend *be, ConfigReply *cr)
 }
 
 int
-ldif_back_initialize(
-			   BackendInfo	*bi
-			   )
+ldif_back_initialize( BackendInfo *bi )
 {
 	static char *controls[] = {
 		LDAP_CONTROL_MANAGEDSAIT,
@@ -1716,7 +1727,7 @@ ldif_back_initialize(
 	bi->bi_tool_entry_put = ldif_tool_entry_put;
 	bi->bi_tool_entry_reindex = 0;
 	bi->bi_tool_sync = 0;
-	
+
 	bi->bi_tool_dn2id_get = 0;
 	bi->bi_tool_entry_modify = 0;
 
