@@ -3018,15 +3018,25 @@ dn_callback(
 			if ( dni->new_entry ) {
 				Modifications **modtail, **ml;
 				Attribute *old, *new;
+				struct berval old_rdn, new_rdn;
+				struct berval old_p, new_p;
 				int is_ctx;
 
 				is_ctx = dn_match( &rs->sr_entry->e_nname,
 					&op->o_bd->be_nsuffix[0] );
 
 				/* Did the DN change?
+				 * case changes in the parent are ignored,
+				 * we only want to know if the RDN was
+				 * actually changed.
 				 */
-				if ( !dn_match( &rs->sr_entry->e_name,
-						&dni->new_entry->e_name ) )
+				dnRdn( &rs->sr_entry->e_name, &old_rdn );
+				dnRdn( &dni->new_entry->e_name, &new_rdn );
+				dnParent( &rs->sr_entry->e_nname, &old_p );
+				dnParent( &dni->new_entry->e_nname, &new_p );
+
+				if ( !dn_match( &old_rdn, &new_rdn ) ||
+					ber_bvstrcasecmp( &old_p, &new_p ))
 				{
 					struct berval oldRDN, oldVal;
 					AttributeDescription *ad = NULL;
