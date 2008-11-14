@@ -43,6 +43,15 @@ struct ldif_tool {
 struct ldif_info {
 	struct berval li_base_path;			/* database directory */
 	struct ldif_tool li_tool;			/* for slap tools */
+	/*
+	 * Read-only LDAP requests readlock li_rdwr for filesystem input.
+	 * Update requests first lock li_modop_mutex for filesystem I/O,
+	 * and then writelock li_rdwr as well for filesystem output.
+	 * This allows update requests to do callbacks that acquire
+	 * read locks, e.g. access controls that inspect entries.
+	 * (An alternative would be recursive read/write locks.)
+	 */
+	ldap_pvt_thread_mutex_t	li_modop_mutex; /* serialize update requests */
 	ldap_pvt_thread_rdwr_t	li_rdwr;	/* no other I/O when writing */
 };
 
@@ -1226,17 +1235,20 @@ static int ldif_back_add(Operation *op, SlapReply *rs) {
 	if ( rc != LDAP_SUCCESS )
 		goto send_res;
 
-	ldap_pvt_thread_rdwr_wlock(&li->li_rdwr);
+	ldap_pvt_thread_mutex_lock( &li->li_modop_mutex );
 
 	rc = ldif_prepare_create( op, e, &path, &parentdir, &rs->sr_text );
 	if ( rc == LDAP_SUCCESS ) {
+		ldap_pvt_thread_rdwr_wlock( &li->li_rdwr );
 		rc = ldif_write_entry( op, e, &path, parentdir, &rs->sr_text );
+		ldap_pvt_thread_rdwr_wunlock( &li->li_rdwr );
+
 		SLAP_FREE( path.bv_val );
 		if ( parentdir != NULL )
 			SLAP_FREE( parentdir );
 	}
 
-	ldap_pvt_thread_rdwr_wunlock(&li->li_rdwr);
+	ldap_pvt_thread_mutex_unlock( &li->li_modop_mutex );
 
  send_res:
 	rs->sr_err = rc;
@@ -1256,20 +1268,22 @@ static int ldif_back_modify(Operation *op, SlapReply *rs) {
 
 	slap_mods_opattrs( op, &op->orm_modlist, 1 );
 
-	ldap_pvt_thread_rdwr_wlock(&li->li_rdwr);
+	ldap_pvt_thread_mutex_lock( &li->li_modop_mutex );
 
 	rc = get_entry( op, &entry, &path, &rs->sr_text );
 	if ( rc == LDAP_SUCCESS ) {
 		rc = apply_modify_to_entry( entry, modlst, op, rs );
 		if ( rc == LDAP_SUCCESS ) {
+			ldap_pvt_thread_rdwr_wlock( &li->li_rdwr );
 			rc = ldif_write_entry( op, entry, &path, NULL, &rs->sr_text );
+			ldap_pvt_thread_rdwr_wunlock( &li->li_rdwr );
 		}
 
 		entry_free( entry );
 		SLAP_FREE( path.bv_val );
 	}
 
-	ldap_pvt_thread_rdwr_wunlock(&li->li_rdwr);
+	ldap_pvt_thread_mutex_unlock( &li->li_modop_mutex );
 
 	rs->sr_err = rc;
 	send_ldap_result( op, rs );
@@ -1293,7 +1307,8 @@ ldif_back_delete( Operation *op, SlapReply *rs )
 		slap_get_csn( op, &csn, 1 );
 	}
 
-	ldap_pvt_thread_rdwr_wlock(&li->li_rdwr);
+	ldap_pvt_thread_mutex_lock( &li->li_modop_mutex );
+	ldap_pvt_thread_rdwr_wlock( &li->li_rdwr );
 	if ( op->o_abandon ) {
 		rc = SLAPD_ABANDON;
 		goto done;
@@ -1335,7 +1350,8 @@ ldif_back_delete( Operation *op, SlapReply *rs )
 
 	SLAP_FREE(path.bv_val);
  done:
-	ldap_pvt_thread_rdwr_wunlock(&li->li_rdwr);
+	ldap_pvt_thread_rdwr_wunlock( &li->li_rdwr );
+	ldap_pvt_thread_mutex_unlock( &li->li_modop_mutex );
 	rs->sr_err = rc;
 	send_ldap_result( op, rs );
 	slap_graduate_commit_csn( op );
@@ -1351,6 +1367,7 @@ ldif_move_entry(
 	struct berval *oldpath,
 	const char **text )
 {
+	struct ldif_info *li = (struct ldif_info *) op->o_bd->be_private;
 	struct berval newpath;
 	char *parentdir = NULL, *trash;
 	int rc, rename_res;
@@ -1364,6 +1381,8 @@ ldif_move_entry(
 	}
 
 	if ( rc == LDAP_SUCCESS ) {
+		ldap_pvt_thread_rdwr_wlock( &li->li_rdwr );
+
 		rc = ldif_write_entry( op, entry, &newpath, parentdir, text );
 		if ( rc == LDAP_SUCCESS && !same_ndn ) {
 			trash = oldpath->bv_val; /* will be .ldif file to delete */
@@ -1413,6 +1432,7 @@ ldif_move_entry(
 			}
 		}
 
+		ldap_pvt_thread_rdwr_wunlock( &li->li_rdwr );
 		if ( !same_ndn )
 			SLAP_FREE( newpath.bv_val );
 		if ( parentdir != NULL )
@@ -1433,7 +1453,7 @@ ldif_back_modrdn(Operation *op, SlapReply *rs)
 
 	slap_mods_opattrs( op, &op->orr_modlist, 1 );
 
-	ldap_pvt_thread_rdwr_wlock( &li->li_rdwr );
+	ldap_pvt_thread_mutex_lock( &li->li_modop_mutex );
 
 	rc = get_entry( op, &entry, &old_path, &rs->sr_text );
 	if ( rc == LDAP_SUCCESS ) {
@@ -1461,7 +1481,7 @@ ldif_back_modrdn(Operation *op, SlapReply *rs)
 		SLAP_FREE( old_path.bv_val );
 	}
 
-	ldap_pvt_thread_rdwr_wunlock( &li->li_rdwr );
+	ldap_pvt_thread_mutex_unlock( &li->li_modop_mutex );
 	rs->sr_err = rc;
 	send_ldap_result( op, rs );
 	slap_graduate_commit_csn( op );
@@ -1608,7 +1628,8 @@ ldif_back_db_init( BackendDB *be, ConfigReply *cr )
 	li = ch_calloc( 1, sizeof(struct ldif_info) );
 	be->be_private = li;
 	be->be_cf_ocs = ldifocs;
-	ldap_pvt_thread_rdwr_init(&li->li_rdwr);
+	ldap_pvt_thread_mutex_init( &li->li_modop_mutex );
+	ldap_pvt_thread_rdwr_init( &li->li_rdwr );
 	SLAP_DBFLAGS( be ) |= SLAP_DBFLAG_ONE_SUFFIX;
 	return 0;
 }
@@ -1619,7 +1640,8 @@ ldif_back_db_destroy( Backend *be, ConfigReply *cr )
 	struct ldif_info *li = be->be_private;
 
 	ch_free(li->li_base_path.bv_val);
-	ldap_pvt_thread_rdwr_destroy(&li->li_rdwr);
+	ldap_pvt_thread_rdwr_destroy( &li->li_rdwr );
+	ldap_pvt_thread_mutex_destroy( &li->li_modop_mutex );
 	free( be->be_private );
 	return 0;
 }
