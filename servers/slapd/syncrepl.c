@@ -1935,6 +1935,8 @@ typedef struct dninfo {
 	int delOldRDN;	/* Was old RDN deleted? */
 	Modifications **modlist;	/* the modlist we received */
 	Modifications *mods;	/* the modlist we compared */
+	AttributeDescription *oldDesc;	/* for renames */
+	AttributeDescription *newDesc;	/* for renames */
 } dninfo;
 
 /* return 1 if inserted, 0 otherwise */
@@ -2202,6 +2204,7 @@ retry_add:;
 		op->o_req_ndn = dni.ndn;
 		if ( dni.renamed ) {
 			struct berval noldp, newp, nnewp;
+			Modifications *mod, **modtail, **ml;
 
 			op->o_tag = LDAP_REQ_MODRDN;
 			dnRdn( &entry->e_name, &op->orr_newrdn );
@@ -2219,8 +2222,30 @@ retry_add:;
 			}
 			op->orr_deleteoldrdn = dni.delOldRDN;
 			op->orr_modlist = NULL;
-			if ( ( rc = slap_modrdn2mods( op, &rs_modify ) ) ) {
-				goto done;
+
+			/* Move any RDN mods over to this op */
+			modtail = &op->orr_modlist;
+			for ( ml = &dni.mods; *ml; ml = &(*ml)->sml_next ) {
+				if ( (*ml)->sml_desc == dni.oldDesc ) {
+					mod = *ml;
+					*ml = mod->sml_next;
+					mod->sml_next = NULL;
+					*modtail = mod;
+					modtail = &mod->sml_next;
+					break;
+				}
+			}
+			if ( dni.oldDesc != dni.newDesc ) {
+				for ( ml = &dni.mods; *ml; ml = &(*ml)->sml_next ) {
+					if ( (*ml)->sml_desc == dni.newDesc ) {
+						mod = *ml;
+						*ml = mod->sml_next;
+						mod->sml_next = NULL;
+						*modtail = mod;
+						modtail = &mod->sml_next;
+						break;
+					}
+				}
 			}
 
 			/* RDNs must be NUL-terminated for back-ldap */
@@ -2239,18 +2264,11 @@ retry_add:;
 					&nullattr
 				};
 				AttributeDescription *opattr;
-				Modifications *mod, **modtail, **ml;
 				int i;
-
-				for ( mod = op->orr_modlist;
-					mod->sml_next;
-					mod = mod->sml_next )
-					;
-				modtail = &mod->sml_next;
 
 				/* pull mod off incoming modlist, append to orr_modlist */
 				for ( i = 0; (opattr = *opattrs[i]) != NULL; i++ ) {
-					for ( ml = modlist; *ml; ml = &(*ml)->sml_next )
+					for ( ml = &dni.mods; *ml; ml = &(*ml)->sml_next )
 					{
 						if ( (*ml)->sml_desc == opattr ) {
 							mod = *ml;
@@ -2274,6 +2292,8 @@ retry_add:;
 					si->si_ridtxt, rc, 0 );
 			op->o_bd = be;
 			/* Renamed entries may still have other mods so just fallthru */
+			op->o_req_dn = entry->e_name;
+			op->o_req_ndn = entry->e_nname;
 		}
 		if ( dni.mods ) {
 			op->o_tag = LDAP_REQ_MODIFY;
@@ -2293,7 +2313,7 @@ retry_add:;
 					si->si_ridtxt, rs_modify.sr_err, 0 );
 			}
 			op->o_bd = be;
-		} else {
+		} else if ( !dni.renamed ) {
 			Debug( LDAP_DEBUG_SYNC,
 					"syncrepl_entry: %s entry unchanged, ignored (%s)\n", 
 					si->si_ridtxt, op->o_req_dn.bv_val, 0 );
@@ -3040,6 +3060,7 @@ dn_callback(
 				{
 					struct berval oldRDN, oldVal;
 					AttributeDescription *ad = NULL;
+					int oldpos, newpos;
 					Attribute *a;
 
 					dni->renamed = 1;
@@ -3048,10 +3069,14 @@ dn_callback(
 					oldVal.bv_val = strchr(oldRDN.bv_val, '=') + 1;
 					oldVal.bv_len = oldRDN.bv_len - ( oldVal.bv_val -
 						oldRDN.bv_val );
-					oldRDN.bv_len -= oldVal.bv_len + 2;
+					oldRDN.bv_len -= oldVal.bv_len + 1;
 					slap_bv2ad( &oldRDN, &ad, &rs->sr_text );
-					a = attr_find( dni->new_entry->e_attrs, ad );
-					if ( !a || attr_valfind( a,
+					dni->oldDesc = ad;
+					for ( oldpos=0, a=rs->sr_entry->e_attrs;
+						a && a->a_desc != ad; oldpos++, a=a->a_next );
+					for ( newpos=0, a=dni->new_entry->e_attrs;
+						a && a->a_desc != ad; newpos++, a=a->a_next );
+					if ( !a || oldpos != newpos || attr_valfind( a,
 						SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH |
 						SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH |
 						SLAP_MR_VALUE_OF_SYNTAX,
@@ -3059,6 +3084,14 @@ dn_callback(
 					{
 						dni->delOldRDN = 1;
 					}
+					/* Get the newRDN's desc */
+					dnRdn( &dni->new_entry->e_nname, &oldRDN );
+					oldVal.bv_val = strchr(oldRDN.bv_val, '=');
+					oldRDN.bv_len = oldVal.bv_val - oldRDN.bv_val;
+					ad = NULL;
+					slap_bv2ad( &oldRDN, &ad, &rs->sr_text );
+					dni->newDesc = ad;
+
 					/* A ModDN has happened, but other changes may have
 					 * occurred before we picked it up. So fallthru to
 					 * regular Modify processing.
