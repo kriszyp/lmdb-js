@@ -31,12 +31,26 @@ CFPRO=$PRODIR/slapd.d
 CFCON=$CONDIR/slapd.d
 CFCON2=$CONDIR2/slapd.d
 
-SYNCTYPE="type=refreshOnly interval=00:00:00:10"
-#SYNCTYPE="type=refreshAndPersist"
-
 mkdir -p $TESTDIR $PRODIR $CONDIR $CONDIR2 $DBPRO $DBCON $DBCON2 $CFPRO $CFCON $CFCON2
 
 $SLAPPASSWD -g -n >$CONFIGPWF
+
+if test x"$SYNCMODE" = x ; then
+	SYNCMODE=rp
+else
+	case "$SYNCMODE" in
+		ro)
+			SYNCTYPE="type=refreshOnly interval=00:00:00:10"
+			;;
+		rp)
+			SYNCTYPE="type=refreshAndPersist"
+			;;
+		*)
+			echo "unknown sync mode $SYNCMODE"
+			exit 1;
+			;;
+	esac
+fi
 
 #
 # Test replication of dynamic config:
@@ -159,13 +173,13 @@ dn: olcDatabase={0}config,cn=config
 changetype: modify
 add: olcSyncRepl
 olcSyncRepl: rid=001 provider=$URI1 binddn="cn=config" bindmethod=simple
-  credentials=$CONFIGPW searchbase="cn=config" type=refreshAndPersist
+  credentials=$CONFIGPW searchbase="cn=config" $SYNCTYPE
   retry="5 5 300 5" timeout=3
 olcSyncRepl: rid=002 provider=$URI2 binddn="cn=config" bindmethod=simple
-  credentials=$CONFIGPW searchbase="cn=config" type=refreshAndPersist
+  credentials=$CONFIGPW searchbase="cn=config" $SYNCTYPE
   retry="5 5 300 5" timeout=3
 olcSyncRepl: rid=003 provider=$URI3 binddn="cn=config" bindmethod=simple
-  credentials=$CONFIGPW searchbase="cn=config" type=refreshAndPersist
+  credentials=$CONFIGPW searchbase="cn=config" $SYNCTYPE
   retry="5 5 300 5" timeout=3
 -
 add: olcMirrorMode
@@ -215,13 +229,13 @@ dn: olcDatabase={0}config,cn=config
 changetype: modify
 add: olcSyncRepl
 olcSyncRepl: rid=001 provider=$URI1 binddn="cn=config" bindmethod=simple
-  credentials=$CONFIGPW searchbase="cn=config" type=refreshAndPersist
+  credentials=$CONFIGPW searchbase="cn=config" $SYNCTYPE
   retry="5 5 300 5" timeout=3
 olcSyncRepl: rid=002 provider=$URI2 binddn="cn=config" bindmethod=simple
-  credentials=$CONFIGPW searchbase="cn=config" type=refreshAndPersist
+  credentials=$CONFIGPW searchbase="cn=config" $SYNCTYPE
   retry="5 5 300 5" timeout=3
 olcSyncRepl: rid=003 provider=$URI3 binddn="cn=config" bindmethod=simple
-  credentials=$CONFIGPW searchbase="cn=config" type=refreshAndPersist
+  credentials=$CONFIGPW searchbase="cn=config" $SYNCTYPE
   retry="5 5 300 5" timeout=3
 -
 add: olcMirrorMode
@@ -265,13 +279,13 @@ dn: olcDatabase={0}config,cn=config
 changetype: modify
 add: olcSyncRepl
 olcSyncRepl: rid=001 provider=$URI1 binddn="cn=config" bindmethod=simple
-  credentials=$CONFIGPW searchbase="cn=config" type=refreshAndPersist
+  credentials=$CONFIGPW searchbase="cn=config" $SYNCTYPE
   retry="5 5 300 5" timeout=3
 olcSyncRepl: rid=002 provider=$URI2 binddn="cn=config" bindmethod=simple
-  credentials=$CONFIGPW searchbase="cn=config" type=refreshAndPersist
+  credentials=$CONFIGPW searchbase="cn=config" $SYNCTYPE
   retry="5 5 300 5" timeout=3
 olcSyncRepl: rid=003 provider=$URI3 binddn="cn=config" bindmethod=simple
-  credentials=$CONFIGPW searchbase="cn=config" type=refreshAndPersist
+  credentials=$CONFIGPW searchbase="cn=config" $SYNCTYPE
   retry="5 5 300 5" timeout=3
 -
 add: olcMirrorMode
@@ -385,6 +399,72 @@ EOMODS
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapadd failed for consumer2 database ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+SLEEP=20
+echo "Waiting $SLEEP seconds for syncrepl to receive changes..."
+sleep $SLEEP
+
+echo "Using ldapmodify to add to the producer entries that will be deleted..."
+$LDAPMODIFY -D "$MANAGERDN" -H $URI1 -w $PASSWD \
+	>> $TESTOUT 2>&1 << EOADDS
+dn: cn=To be deleted by producer,dc=example,dc=com
+changetype: add
+objectClass: device
+# no distinguished values, will be added by DSA
+
+dn: cn=To be deleted by consumer1,dc=example,dc=com
+changetype: add
+objectClass: device
+# no distinguished values, will be added by DSA
+
+dn: cn=To be deleted by consumer2,dc=example,dc=com
+changetype: add
+objectClass: device
+# no distinguished values, will be added by DSA
+
+dn: cn=To be deleted by producer,dc=example,dc=com
+changetype: delete
+EOADDS
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapmodify failed for producer database ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+SLEEP=20
+echo "Waiting $SLEEP seconds for syncrepl to receive changes..."
+sleep $SLEEP
+
+echo "Using ldapmodify to delete entries from consumer1..."
+$LDAPMODIFY -D "$MANAGERDN" -H $URI2 -w $PASSWD \
+	>> $TESTOUT 2>&1 << EOADDS
+dn: cn=To be deleted by consumer1,dc=example,dc=com
+changetype: delete
+EOADDS
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapmodify failed for consumer2 database ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+SLEEP=20
+echo "Waiting $SLEEP seconds for syncrepl to receive changes..."
+sleep $SLEEP
+
+echo "Using ldapmodify to delete entries from consumer2..."
+$LDAPMODIFY -D "$MANAGERDN" -H $URI3 -w $PASSWD \
+	>> $TESTOUT 2>&1 << EOADDS
+dn: cn=To be deleted by consumer2,dc=example,dc=com
+changetype: delete
+EOADDS
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapmodify failed for consumer2 database ($RC)!"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
 fi

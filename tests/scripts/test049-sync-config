@@ -32,6 +32,23 @@ mkdir -p $TESTDIR $PRODIR $CONDIR $DBPRO $DBCON $CFPRO $CFCON
 
 $SLAPPASSWD -g -n >$CONFIGPWF
 
+if test x"$SYNCMODE" = x ; then
+	SYNCMODE=rp
+else
+	case "$SYNCMODE" in
+		ro)
+			SYNCTYPE="type=refreshOnly interval=00:00:00:10"
+			;;
+		rp)
+			SYNCTYPE="type=refreshAndPersist"
+			;;
+		*)
+			echo "unknown sync mode $SYNCMODE"
+			exit 1;
+			;;
+	esac
+fi
+
 #
 # Test replication of dynamic config:
 # - start producer
@@ -97,8 +114,7 @@ dn: olcDatabase={0}config,cn=config
 changetype: modify
 add: olcSyncRepl
 olcSyncRepl: rid=001 provider=$URI1 binddn="cn=config" bindmethod=simple
-  credentials=$CONFIGPW searchbase="cn=config" type=refreshOnly
-  interval=00:00:00:10
+  credentials=$CONFIGPW searchbase="cn=config" $SYNCTYPE
 -
 add: olcUpdateRef
 olcUpdateRef: $URI1
@@ -154,8 +170,7 @@ dn: olcDatabase={0}config,cn=config
 changetype: modify
 add: olcSyncRepl
 olcSyncRepl: rid=001 provider=$URI1 binddn="cn=config" bindmethod=simple
-  credentials=$CONFIGPW searchbase="cn=config" type=refreshOnly
-  interval=00:00:00:10
+  credentials=$CONFIGPW searchbase="cn=config" $SYNCTYPE
 -
 add: olcUpdateRef
 olcUpdateRef: $URI1
@@ -230,8 +245,7 @@ olcDbDirectory: ./db
 olcRootDN: $MANAGERDN
 olcRootPW: $PASSWD
 olcSyncRepl: rid=002 provider=$URI1 binddn="$MANAGERDN" bindmethod=simple
-  credentials=$PASSWD searchbase="$BASEDN" type=refreshOnly
-  interval=00:00:00:10
+  credentials=$PASSWD searchbase="$BASEDN" $SYNCTYPE
 olcUpdateRef: $URI1
 
 dn: olcOverlay=syncprov,olcDatabase={1}${BACKEND},cn=config

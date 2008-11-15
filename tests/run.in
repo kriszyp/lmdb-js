@@ -13,7 +13,7 @@
 ## top-level directory of the distribution or, alternatively, at
 ## <http://www.OpenLDAP.org/license.html>.
 
-USAGE="$0 [-b <backend>] [-c] [-k] [-p] [-u] [-w] <script>"
+USAGE="$0 [-b <backend>] [-c] [-k] [-p] [-s {ro|rp}] [-u] [-w] <script>"
 
 # configure generated
 SRCDIR="@srcdir@"
@@ -80,6 +80,7 @@ CLEAN=no
 WAIT=0
 KILLSERVERS=yes
 PRESERVE=${PRESERVE-no}
+SYNCMODE=
 USERDATA=no
 
 while test $# -gt 0 ; do
@@ -99,6 +100,18 @@ while test $# -gt 0 ; do
 		-p | -preserve)
 			PRESERVE=yes
 			shift ;;
+
+		-s | -syncmode)
+			case "$2" in
+				ro | rp)
+					SYNCMODE="$2"
+					;;
+				*)
+					echo "unknown sync mode $2"
+					echo "$USAGE"; exit 1
+					;;
+			esac
+			shift; shift ;;
 
 		-u | -userdata)
 			USERDATA=yes
@@ -137,7 +150,7 @@ BACKENDTYPE=`eval 'echo $AC_'$BACKEND`
 if test "x$BACKENDTYPE" = "x" ; then
 	BACKENDTYPE="unknown"
 fi
-export BACKEND BACKENDTYPE WAIT KILLSERVERS PRESERVE USERDATA
+export BACKEND BACKENDTYPE WAIT KILLSERVERS PRESERVE SYNCMODE USERDATA
 
 if test $# = 0 ; then
 	echo "$USAGE"; exit 1
