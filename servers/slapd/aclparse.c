@@ -528,7 +528,7 @@ parse_acl(
 					if ( style != NULL ) {
 						if ( strcasecmp( style, "regex" ) == 0 ) {
 							int e = regcomp( &a->acl_attrval_re, bv.bv_val,
-								REG_EXTENDED | REG_ICASE | REG_NOSUB );
+								REG_EXTENDED | REG_ICASE );
 							if ( e ) {
 								char	err[SLAP_TEXT_BUFLEN],
 									buf[ SLAP_TEXT_BUFLEN ];
@@ -1004,7 +1004,8 @@ parse_acl(
 								< bdn->a_pat.bv_len;
 							exp = strchr( exp, '$' ) )
 						{
-							if ( isdigit( (unsigned char) exp[ 1 ] ) ) {
+							if ( ( isdigit( (unsigned char) exp[ 1 ] ) ||
+								    exp[ 1 ] == '{' ) ) {
 								gotit = 1;
 								break;
 							}

@@ -46,6 +46,13 @@ LDAP_SLAPD_F (int) dynacl_aci_init LDAP_P(( void ));
 /*
  * acl.c
  */
+typedef struct AclRegexMatches {        
+	int dn_count;
+        regmatch_t dn_data[MAXREMATCHES];
+	int val_count;
+        regmatch_t val_data[MAXREMATCHES];
+} AclRegexMatches;
+
 LDAP_SLAPD_F (int) access_allowed_mask LDAP_P((
 	Operation *op,
 	Entry *e, AttributeDescription *desc, struct berval *val,
@@ -93,7 +100,7 @@ LDAP_SLAPD_F (int) acl_match_set LDAP_P((
 	struct berval *default_set_attribute ));
 LDAP_SLAPD_F (int) acl_string_expand LDAP_P((
 	struct berval *newbuf, struct berval *pattern,
-	char *match, int nmatch, regmatch_t *matches ));
+	char *dnmatch, char *valmatch, AclRegexMatches *matches ));
 
 /*
  * aclparse.c

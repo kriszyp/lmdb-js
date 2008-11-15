@@ -369,6 +369,10 @@ ranging from 0 to 9 (where 0 matches the entire string),
 or the form
 .BR ${<digit>+} ,
 for submatches higher than 9.
+Substring substitution from attribute value can
+be done in 
+using the form
+.BR ${v<digit>+} .
 Since the dollar character is used to indicate a substring replacement,
 the dollar character that is used to indicate match up to the end of
 the string must be escaped by a second dollar character, e.g.
