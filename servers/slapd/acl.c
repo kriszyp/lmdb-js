@@ -120,7 +120,7 @@ slap_access_always_allowed(
 	( sizeof ( (m)->dn_data ) / sizeof( *(m)->dn_data ) )
 #define MATCHES_VALMAXCOUNT(m) 					\
 	( sizeof ( (m)->val_data ) / sizeof( *(m)->val_data ) )
-#define MATCHES_MEMSET(m) {					\
+#define MATCHES_MEMSET(m) do {					\
 	memset( (m)->dn_data, '\0', sizeof( (m)->dn_data ) );	\
 	memset( (m)->val_data, '\0', sizeof( (m)->val_data ) );	\
 	(m)->dn_count = MATCHES_DNMAXCOUNT( (m) );		\
@@ -1809,7 +1809,7 @@ slap_acl_mask(
 				 * an API update
 				 */
 				(void)da->da_mask( da->da_private, op, e, desc,
-					val, matches.dn_count, matches.dn_data, 
+					val, matches->dn_count, matches->dn_data, 
 					&grant, &deny ); 
 
 				tgrant |= grant;
