@@ -518,7 +518,7 @@ slap_acl_get(
 	AccessControlState *state )
 {
 	const char *attr;
-	int dnlen, patlen;
+	ber_len_t dnlen;
 	AccessControl *prev;
 
 	assert( e != NULL );
@@ -566,6 +566,8 @@ slap_acl_get(
 					continue;
 
 			} else {
+				ber_len_t patlen;
+
 				Debug( LDAP_DEBUG_ACL, "=> dn: [%d] %s\n", 
 					*count, a->acl_dn_pat.bv_val, 0 );
 				patlen = a->acl_dn_pat.bv_len;
@@ -579,7 +581,7 @@ slap_acl_get(
 
 				} else if ( a->acl_dn_style == ACL_STYLE_ONE ) {
 					ber_len_t	rdnlen = 0;
-					int		sep = 0;
+					ber_len_t	sep = 0;
 
 					if ( dnlen <= patlen )
 						continue;
@@ -591,7 +593,7 @@ slap_acl_get(
 					}
 
 					rdnlen = dn_rdnlen( NULL, &e->e_nname );
-					if ( rdnlen != dnlen - patlen - sep )
+					if ( rdnlen + patlen + sep != dnlen )
 						continue;
 
 				} else if ( a->acl_dn_style == ACL_STYLE_SUBTREE ) {
@@ -660,7 +662,7 @@ slap_acl_get(
 						continue;
 					
 				} else {
-					int		patlen, vdnlen;
+					ber_len_t	patlen, vdnlen;
 	
 					patlen = a->acl_attrval.bv_len;
 					vdnlen = val->bv_len;
@@ -679,7 +681,7 @@ slap_acl_get(
 							continue;
 	
 						rdnlen = dn_rdnlen( NULL, val );
-						if ( rdnlen != vdnlen - patlen - 1 )
+						if ( rdnlen + patlen + 1 != vdnlen )
 							continue;
 	
 					} else if ( a->acl_attrval_style == ACL_STYLE_SUBTREE ) {
@@ -737,7 +739,6 @@ static int
 acl_mask_dn(
 	Operation		*op,
 	Entry			*e,
-	AttributeDescription	*desc,
 	struct berval		*val,
 	AccessControl		*a,
 	AclRegexMatches		*matches,
@@ -1022,9 +1023,6 @@ acl_mask_dnattr(
 	Entry			*e,
 	struct berval		*val,
 	AccessControl		*a,
-	Access			*b,
-	int			i,
-	AclRegexMatches		*matches,
 	int			count,
 	AccessControlState	*state,
 	slap_dn_access		*bdn,
@@ -1184,7 +1182,7 @@ slap_acl_mask(
 			 * is maintained in a_dn_pat.
 			 */
 
-			if ( acl_mask_dn( op, e, desc, val, a, matches,
+			if ( acl_mask_dn( op, e, val, a, matches,
 				&b->a_dn, &op->o_ndn ) )
 			{
 				continue;
@@ -1215,7 +1213,7 @@ slap_acl_mask(
 				ndn = op->o_ndn;
 			}
 
-			if ( acl_mask_dn( op, e, desc, val, a, matches,
+			if ( acl_mask_dn( op, e, val, a, matches,
 				&b->a_realdn, &ndn ) )
 			{
 				continue;
@@ -1506,8 +1504,8 @@ slap_acl_mask(
 		}
 
 		if ( b->a_dn_at != NULL ) {
-			if ( acl_mask_dnattr( op, e, val, a, b, i,
-					matches, count, state,
+			if ( acl_mask_dnattr( op, e, val, a,
+					count, state,
 					&b->a_dn, &op->o_ndn ) )
 			{
 				continue;
@@ -1524,8 +1522,8 @@ slap_acl_mask(
 				ndn = op->o_ndn;
 			}
 
-			if ( acl_mask_dnattr( op, e, val, a, b, i,
-					matches, count, state,
+			if ( acl_mask_dnattr( op, e, val, a,
+					count, state,
 					&b->a_realdn, &ndn ) )
 			{
 				continue;
