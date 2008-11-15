@@ -634,12 +634,10 @@ slap_acl_get(
 			}
 
 			if ( a->acl_attrval_style == ACL_STYLE_REGEX ) {
-				int rc;
-
 				Debug( LDAP_DEBUG_ACL,
 					"acl_get: valpat %s\n",
 					a->acl_attrval.bv_val, 0, 0 );
-				if ( rc = regexec ( &a->acl_attrval_re, 
+				if ( regexec ( &a->acl_attrval_re, 
 						    val->bv_val, 
 						    matches->val_count, 
 						    matches->val_data, 0 ) )
@@ -804,7 +802,6 @@ acl_mask_dn(
 			AclRegexMatches	tmp_matches,
 					*tmp_matchesp = &tmp_matches;
 			int		rc = 0;
-			int		dnoffset;
 			regmatch_t 	*tmp_data;
 
 			MATCHES_MEMSET( &tmp_matches );
@@ -1140,7 +1137,9 @@ slap_acl_mask(
 	char		accessmaskbuf[ACCESSMASK_MAXLEN];
 #endif /* DEBUG */
 	const char	*attr;
+#ifdef SLAP_DYNACL
 	slap_mask_t	a2pmask = ACL_ACCESS2PRIV( access );
+#endif /* SLAP_DYNACL */
 
 	assert( a != NULL );
 	assert( mask != NULL );
