@@ -2273,7 +2273,7 @@ retry_add:;
 					"syncrepl_entry: %s be_modrdn (%d)\n", 
 					si->si_ridtxt, rc, 0 );
 			op->o_bd = be;
-			goto done;
+			/* Renamed entries may still have other mods so just fallthru */
 		}
 		if ( dni.mods ) {
 			op->o_tag = LDAP_REQ_MODIFY;
@@ -3018,15 +3018,25 @@ dn_callback(
 			if ( dni->new_entry ) {
 				Modifications **modtail, **ml;
 				Attribute *old, *new;
+				struct berval old_rdn, new_rdn;
+				struct berval old_p, new_p;
 				int is_ctx;
 
 				is_ctx = dn_match( &rs->sr_entry->e_nname,
 					&op->o_bd->be_nsuffix[0] );
 
 				/* Did the DN change?
+				 * case changes in the parent are ignored,
+				 * we only want to know if the RDN was
+				 * actually changed.
 				 */
-				if ( !dn_match( &rs->sr_entry->e_name,
-						&dni->new_entry->e_name ) )
+				dnRdn( &rs->sr_entry->e_name, &old_rdn );
+				dnRdn( &dni->new_entry->e_name, &new_rdn );
+				dnParent( &rs->sr_entry->e_nname, &old_p );
+				dnParent( &dni->new_entry->e_nname, &new_p );
+
+				if ( !dn_match( &old_rdn, &new_rdn ) ||
+					ber_bvstrcasecmp( &old_p, &new_p ))
 				{
 					struct berval oldRDN, oldVal;
 					AttributeDescription *ad = NULL;
@@ -3049,8 +3059,10 @@ dn_callback(
 					{
 						dni->delOldRDN = 1;
 					}
-					/* OK, this was just a modDN, we're done */
-					return LDAP_SUCCESS;
+					/* A ModDN has happened, but other changes may have
+					 * occurred before we picked it up. So fallthru to
+					 * regular Modify processing.
+					 */
 				}
 
 				modtail = &dni->mods;

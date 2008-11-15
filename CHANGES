@@ -28,6 +28,7 @@ OpenLDAP 2.4.13 Engineering
 	Added slapd support for certificateListExactMatch (ITS#5700)
 	Fixed slapd syncrepl event loss (ITS#5710)
 	Fixed slapd syncrepl MOD of attrs with no EQ rule (ITS#5781)
+	Fixed slapd syncrepl rename handling (ITS#5809)
 	Fixed slapd syncrepl schema checking (ITS#5798)
 	Fixed slapd undef promote (ITS#5783,ITS#5795)
 	Added slapd What failed? control (ITS#5784)
