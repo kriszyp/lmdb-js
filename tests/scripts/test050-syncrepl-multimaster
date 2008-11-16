@@ -172,13 +172,13 @@ dn: olcDatabase={0}config,cn=config
 changetype: modify
 add: olcSyncRepl
 olcSyncRepl: rid=001 provider=$URI1 binddn="cn=config" bindmethod=simple
-  credentials=$CONFIGPW searchbase="cn=config" $SYNCTYPE
+  credentials=$CONFIGPW searchbase="cn=config" type=refreshAndPersist
   retry="5 5 300 5" timeout=3
 olcSyncRepl: rid=002 provider=$URI2 binddn="cn=config" bindmethod=simple
-  credentials=$CONFIGPW searchbase="cn=config" $SYNCTYPE
+  credentials=$CONFIGPW searchbase="cn=config" type=refreshAndPersist
   retry="5 5 300 5" timeout=3
 olcSyncRepl: rid=003 provider=$URI3 binddn="cn=config" bindmethod=simple
-  credentials=$CONFIGPW searchbase="cn=config" $SYNCTYPE
+  credentials=$CONFIGPW searchbase="cn=config" type=refreshAndPersist
   retry="5 5 300 5" timeout=3
 -
 add: olcMirrorMode
@@ -228,13 +228,13 @@ dn: olcDatabase={0}config,cn=config
 changetype: modify
 add: olcSyncRepl
 olcSyncRepl: rid=001 provider=$URI1 binddn="cn=config" bindmethod=simple
-  credentials=$CONFIGPW searchbase="cn=config" $SYNCTYPE
+  credentials=$CONFIGPW searchbase="cn=config" type=refreshAndPersist
   retry="5 5 300 5" timeout=3
 olcSyncRepl: rid=002 provider=$URI2 binddn="cn=config" bindmethod=simple
-  credentials=$CONFIGPW searchbase="cn=config" $SYNCTYPE
+  credentials=$CONFIGPW searchbase="cn=config" type=refreshAndPersist
   retry="5 5 300 5" timeout=3
 olcSyncRepl: rid=003 provider=$URI3 binddn="cn=config" bindmethod=simple
-  credentials=$CONFIGPW searchbase="cn=config" $SYNCTYPE
+  credentials=$CONFIGPW searchbase="cn=config" type=refreshAndPersist
   retry="5 5 300 5" timeout=3
 -
 add: olcMirrorMode
@@ -278,13 +278,13 @@ dn: olcDatabase={0}config,cn=config
 changetype: modify
 add: olcSyncRepl
 olcSyncRepl: rid=001 provider=$URI1 binddn="cn=config" bindmethod=simple
-  credentials=$CONFIGPW searchbase="cn=config" $SYNCTYPE
+  credentials=$CONFIGPW searchbase="cn=config" type=refreshAndPersist
   retry="5 5 300 5" timeout=3
 olcSyncRepl: rid=002 provider=$URI2 binddn="cn=config" bindmethod=simple
-  credentials=$CONFIGPW searchbase="cn=config" $SYNCTYPE
+  credentials=$CONFIGPW searchbase="cn=config" type=refreshAndPersist
   retry="5 5 300 5" timeout=3
 olcSyncRepl: rid=003 provider=$URI3 binddn="cn=config" bindmethod=simple
-  credentials=$CONFIGPW searchbase="cn=config" $SYNCTYPE
+  credentials=$CONFIGPW searchbase="cn=config" type=refreshAndPersist
   retry="5 5 300 5" timeout=3
 -
 add: olcMirrorMode
@@ -358,6 +358,24 @@ if test $RC != 0 ; then
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
 fi
+
+case $BACKEND in
+bdb | hdb)
+	$LDAPMODIFY -D cn=config -H $URI1 -y $CONFIGPWF <<EOF >>$TESTOUT 2>&1
+dn: olcDatabase={1}$BACKEND,cn=config
+changetype: modify
+add: olcDbIndex
+olcDbIndex: objectClass,entryUUID,entryCSN eq
+olcDbIndex: cn,uid pres,eq,sub
+EOF
+	RC=$?
+	if test $RC != 0 ; then
+		echo "ldapadd modify for database config ($RC)!"
+		test $KILLSERVERS != no && kill -HUP $KILLPIDS
+		exit $RC
+	fi
+	;;
+esac
 
 echo "Using ldapadd to populate producer..."
 $LDAPADD -D "$MANAGERDN" -H $URI1 -w $PASSWD -f $LDIFORDERED \
