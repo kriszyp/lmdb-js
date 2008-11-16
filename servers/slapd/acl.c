@@ -243,10 +243,9 @@ slap_access_allowed(
 
 		/* DN matches */
 		for ( i = 0; i < dnmaxcount && dn_data[i].rm_eo > 0; i++ ) {
-			char *debugmsg = "=> match[dn%d]: %d %d ";
 			char *data = e->e_ndn;
 
-			Debug( LDAP_DEBUG_ACL, debugmsg, i,
+			Debug( LDAP_DEBUG_ACL, "=> match[dn%d]: %d %d ", i,
 				(int)dn_data[i].rm_so, 
 				(int)dn_data[i].rm_eo );
 			if ( dn_data[i].rm_so <= dn_data[0].rm_eo ) {
@@ -262,10 +261,9 @@ slap_access_allowed(
 
 		/* val matches */
 		for ( i = 0; i < valmaxcount && val_data[i].rm_eo > 0; i++ ) {
-			char *debugmsg = "=> match[val%d]: %d %d ";
 			char *data = val->bv_val;
 
-			Debug( LDAP_DEBUG_ACL, debugmsg, i,
+			Debug( LDAP_DEBUG_ACL, "=> match[val%d]: %d %d ", i,
 				(int)val_data[i].rm_so, 
 				(int)val_data[i].rm_eo );
 			if ( val_data[i].rm_so <= val_data[0].rm_eo ) {
