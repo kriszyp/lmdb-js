@@ -2201,7 +2201,6 @@ retry_add:;
 		op->o_req_ndn = dni.ndn;
 		if ( dni.renamed ) {
 			struct berval noldp, newp, nnewp;
-			Modifications *mod, **modtail, **ml;
 
 			op->o_tag = LDAP_REQ_MODRDN;
 			dnRdn( &entry->e_name, &op->orr_newrdn );
