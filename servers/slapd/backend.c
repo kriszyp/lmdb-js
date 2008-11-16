@@ -946,7 +946,9 @@ backend_check_controls(
 				if ( !op->o_bd->be_ctrls[cid] && (*ctrls)->ldctl_iscritical ) {
 #ifdef SLAP_CONTROL_X_WHATFAILED
 					if ( get_whatFailed( op ) ) {
-						char *oids[ 2 ] = { (*ctrls)->ldctl_oid, NULL };
+						char *oids[ 2 ];
+						oids[ 0 ] = (*ctrls)->ldctl_oid;
+						oids[ 1 ] = NULL;
 						slap_ctrl_whatFailed_add( op, rs, oids );
 					}
 #endif
