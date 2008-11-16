@@ -1932,11 +1932,8 @@ typedef struct dninfo {
 	struct berval dn;
 	struct berval ndn;
 	int renamed;	/* Was an existing entry renamed? */
-	int delOldRDN;	/* Was old RDN deleted? */
 	Modifications **modlist;	/* the modlist we received */
 	Modifications *mods;	/* the modlist we compared */
-	AttributeDescription *oldDesc;	/* for renames */
-	AttributeDescription *newDesc;	/* for renames */
 } dninfo;
 
 /* return 1 if inserted, 0 otherwise */
@@ -2220,32 +2217,11 @@ retry_add:;
 				op->orr_newSup = NULL;
 				op->orr_nnewSup = NULL;
 			}
-			op->orr_deleteoldrdn = dni.delOldRDN;
+			/* Let the modify handler take care of deleting old RDNs */
+			op->orr_deleteoldrdn = 0;
 			op->orr_modlist = NULL;
-
-			/* Move any RDN mods over to this op */
-			modtail = &op->orr_modlist;
-			for ( ml = &dni.mods; *ml; ml = &(*ml)->sml_next ) {
-				if ( (*ml)->sml_desc == dni.oldDesc ) {
-					mod = *ml;
-					*ml = mod->sml_next;
-					mod->sml_next = NULL;
-					*modtail = mod;
-					modtail = &mod->sml_next;
-					break;
-				}
-			}
-			if ( dni.oldDesc != dni.newDesc ) {
-				for ( ml = &dni.mods; *ml; ml = &(*ml)->sml_next ) {
-					if ( (*ml)->sml_desc == dni.newDesc ) {
-						mod = *ml;
-						*ml = mod->sml_next;
-						mod->sml_next = NULL;
-						*modtail = mod;
-						modtail = &mod->sml_next;
-						break;
-					}
-				}
+			if ( ( rc = slap_modrdn2mods( op, &rs_modify ) ) ) {
+				goto done;
 			}
 
 			/* RDNs must be NUL-terminated for back-ldap */
@@ -2254,32 +2230,9 @@ retry_add:;
 			noldp = op->orr_nnewrdn;
 			ber_dupbv_x( &op->orr_nnewrdn, &noldp, op->o_tmpmemctx );
 
-			/* Setup opattrs too */
-			{
-				static AttributeDescription *nullattr = NULL;
-				static AttributeDescription **const opattrs[] = {
-					&slap_schema.si_ad_entryCSN,
-					&slap_schema.si_ad_modifiersName,
-					&slap_schema.si_ad_modifyTimestamp,
-					&nullattr
-				};
-				AttributeDescription *opattr;
-				int i;
-
-				/* pull mod off incoming modlist, append to orr_modlist */
-				for ( i = 0; (opattr = *opattrs[i]) != NULL; i++ ) {
-					for ( ml = &dni.mods; *ml; ml = &(*ml)->sml_next )
-					{
-						if ( (*ml)->sml_desc == opattr ) {
-							mod = *ml;
-							*ml = mod->sml_next;
-							mod->sml_next = NULL;
-							*modtail = mod;
-							modtail = &mod->sml_next;
-							break;
-						}
-					}
-				}
+			/* Remove the CSN for now, only propagate the Modify */
+			if ( syncCSN ) {
+				slap_graduate_commit_csn( op );
 			}
 			op->o_bd = si->si_wbe;
 			rc = op->o_bd->be_modrdn( op, &rs_modify );
@@ -2291,9 +2244,12 @@ retry_add:;
 					"syncrepl_entry: %s be_modrdn (%d)\n", 
 					si->si_ridtxt, rc, 0 );
 			op->o_bd = be;
-			/* Renamed entries may still have other mods so just fallthru */
+			/* Renamed entries still have other mods so just fallthru */
 			op->o_req_dn = entry->e_name;
 			op->o_req_ndn = entry->e_nname;
+			if ( syncCSN ) {
+				slap_queue_csn( op, syncCSN );
+			}
 		}
 		if ( dni.mods ) {
 			op->o_tag = LDAP_REQ_MODIFY;
@@ -2313,7 +2269,7 @@ retry_add:;
 					si->si_ridtxt, rs_modify.sr_err, 0 );
 			}
 			op->o_bd = be;
-		} else if ( !dni.renamed ) {
+		} else {
 			Debug( LDAP_DEBUG_SYNC,
 					"syncrepl_entry: %s entry unchanged, ignored (%s)\n", 
 					si->si_ridtxt, op->o_req_dn.bv_val, 0 );
@@ -3058,39 +3014,7 @@ dn_callback(
 				if ( !dn_match( &old_rdn, &new_rdn ) ||
 					ber_bvstrcasecmp( &old_p, &new_p ))
 				{
-					struct berval oldRDN, oldVal;
-					AttributeDescription *ad = NULL;
-					int oldpos, newpos;
-					Attribute *a;
-
 					dni->renamed = 1;
-					/* See if the oldRDN was deleted */
-					dnRdn( &rs->sr_entry->e_nname, &oldRDN );
-					oldVal.bv_val = strchr(oldRDN.bv_val, '=') + 1;
-					oldVal.bv_len = oldRDN.bv_len - ( oldVal.bv_val -
-						oldRDN.bv_val );
-					oldRDN.bv_len -= oldVal.bv_len + 1;
-					slap_bv2ad( &oldRDN, &ad, &rs->sr_text );
-					dni->oldDesc = ad;
-					for ( oldpos=0, a=rs->sr_entry->e_attrs;
-						a && a->a_desc != ad; oldpos++, a=a->a_next );
-					for ( newpos=0, a=dni->new_entry->e_attrs;
-						a && a->a_desc != ad; newpos++, a=a->a_next );
-					if ( !a || oldpos != newpos || attr_valfind( a,
-						SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH |
-						SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH |
-						SLAP_MR_VALUE_OF_SYNTAX,
-						&oldVal, NULL, op->o_tmpmemctx ) != LDAP_SUCCESS )
-					{
-						dni->delOldRDN = 1;
-					}
-					/* Get the newRDN's desc */
-					dnRdn( &dni->new_entry->e_nname, &oldRDN );
-					oldVal.bv_val = strchr(oldRDN.bv_val, '=');
-					oldRDN.bv_len = oldVal.bv_val - oldRDN.bv_val;
-					ad = NULL;
-					slap_bv2ad( &oldRDN, &ad, &rs->sr_text );
-					dni->newDesc = ad;
 
 					/* A ModDN has happened, but other changes may have
 					 * occurred before we picked it up. So fallthru to
