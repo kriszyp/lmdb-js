@@ -103,13 +103,15 @@ replace: sn
 sn: James A Jones 1
 EOMODS
 RC=$?
+
+test $KILLSERVERS != no && kill -HUP $KILLPIDS
+
 case $RC in
 0)
 	echo "ldapmodify succeed as expected"
 	;;
 *)
 	echo "ldapmodify failed ($RC)!"
-	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
 	;;
 esac
