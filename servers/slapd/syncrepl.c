@@ -3161,12 +3161,12 @@ nonpresent_callback(
 			}
 
 			if ( LogTest( LDAP_DEBUG_SYNC ) ) {
-				char buf[sizeof("rid=999 not")];
+				char buf[sizeof("rid=999 non")];
 
 				snprintf( buf, sizeof(buf), "%s %s", si->si_ridtxt,
-					present_uuid ? "got" : "not" );
+					present_uuid ? "" : "non" );
 
-				Debug( LDAP_DEBUG_SYNC, "nonpresent_callback: %s UUID %s, dn %s\n",
+				Debug( LDAP_DEBUG_SYNC, "nonpresent_callback: %spresent UUID %s, dn %s\n",
 					buf, a ? a->a_vals[0].bv_val : "<missing>", rs->sr_entry->e_name.bv_val );
 			}
 
