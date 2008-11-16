@@ -47,20 +47,19 @@ $SLAPPASSWD -g -n >$CONFIGPWF
 
 if test x"$SYNCMODE" = x ; then
 	SYNCMODE=rp
-else
-	case "$SYNCMODE" in
-		ro)
-			SYNCTYPE="type=refreshOnly interval=00:00:00:10"
-			;;
-		rp)
-			SYNCTYPE="type=refreshAndPersist"
-			;;
-		*)
-			echo "unknown sync mode $SYNCMODE"
-			exit 1;
-			;;
-	esac
 fi
+case "$SYNCMODE" in
+	ro)
+		SYNCTYPE="type=refreshOnly interval=00:00:00:10"
+		;;
+	rp)
+		SYNCTYPE="type=refreshAndPersist"
+		;;
+	*)
+		echo "unknown sync mode $SYNCMODE"
+		exit 1;
+		;;
+esac
 
 echo "Initializing producer configurations..."
 $SLAPADD -F $CFPROD -n 0 <<EOF
