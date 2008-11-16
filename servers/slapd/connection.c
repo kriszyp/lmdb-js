@@ -423,8 +423,8 @@ Connection * connection_init(
 
 	if ( flags & CONN_IS_CLIENT ) {
 		c->c_connid = 0;
-		c->c_conn_state = SLAP_C_CLIENT;
 		ldap_pvt_thread_mutex_lock( &connections_mutex );
+		c->c_conn_state = SLAP_C_CLIENT;
 		c->c_struct_state = SLAP_C_USED;
 		ldap_pvt_thread_mutex_unlock( &connections_mutex );
 		c->c_close_reason = "?";			/* should never be needed */
@@ -510,8 +510,8 @@ Connection * connection_init(
 	id = c->c_connid = conn_nextid++;
 	ldap_pvt_thread_mutex_unlock( &conn_nextid_mutex );
 
-	c->c_conn_state = SLAP_C_INACTIVE;
 	ldap_pvt_thread_mutex_lock( &connections_mutex );
+	c->c_conn_state = SLAP_C_INACTIVE;
 	c->c_struct_state = SLAP_C_USED;
 	ldap_pvt_thread_mutex_unlock( &connections_mutex );
 	c->c_close_reason = "?";			/* should never be needed */
