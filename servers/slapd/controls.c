@@ -863,7 +863,9 @@ return_results:
 				}
 
 				if ( get_whatFailed( op ) ) {
-					char *oids[ 2 ] = { failed_oid, NULL };
+					char *oids[ 2 ];
+					oids[ 0 ] = failed_oid;
+					oids[ 1 ] = NULL;
 					slap_ctrl_whatFailed_add( op, rs, oids );
 				}
 			}
