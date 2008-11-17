@@ -74,6 +74,7 @@ OpenLDAP 2.4.13 Engineering
 		admin24 added olcLimits to example (ITS#5746)
 		admin24 consolidated on whitespace (ITS#5759)
 		slapo-dds(5) manageDIT to relax (ITS#5780)
+		slapo-dds(5) rootdn requirement added (ITS#5811)
 		slapo-syncprov(5) sessionlog clarification (ITS#5806)
 
 OpenLDAP 2.4.12 Release (2008/10/12)
