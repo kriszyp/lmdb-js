@@ -73,6 +73,7 @@ OpenLDAP 2.4.13 Engineering
 	Documentation
 		admin24 added olcLimits to example (ITS#5746)
 		admin24 consolidated on whitespace (ITS#5759)
+		slapd-conf,config(5) suboridinate/olcSubordinate keyword (ITS#5788)
 		slapo-dds(5) manageDIT to relax (ITS#5780)
 		slapo-dds(5) rootdn requirement added (ITS#5811)
 		slapo-syncprov(5) sessionlog clarification (ITS#5806)

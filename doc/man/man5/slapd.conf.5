@@ -1161,6 +1161,13 @@ should be one of
 or
 .BR sql ,
 depending on which backend will serve the database.
+
+LDAP operations, even subtree searches, normally access only one
+database.
+That can be changed by gluing databases together with the
+.B subordinate
+keyword.
+Access controls and some overlays can also involve multiple databases.
 .TP
 .B add_content_acl on | off
 Controls whether Add operations will perform ACL checks on
@@ -1517,8 +1524,12 @@ and \fB{CRYPT}\fP passwords are not recommended.  If empty
 Specify the DN suffix of queries that will be passed to this 
 backend database.  Multiple suffix lines can be given and at least one is 
 required for each database definition.
+
 If the suffix of one database is "inside" that of another, the database
 with the inner suffix must come first in the configuration file.
+You may also want to glue such databases together with the
+.B subordinate
+keyword.
 .TP
 .B subordinate [advertise]
 Specify that the current backend database is a subordinate of another
