@@ -423,8 +423,10 @@ Connection * connection_init(
 
 	if ( flags & CONN_IS_CLIENT ) {
 		c->c_connid = 0;
+		ldap_pvt_thread_mutex_lock( &connections_mutex );
 		c->c_conn_state = SLAP_C_CLIENT;
 		c->c_struct_state = SLAP_C_USED;
+		ldap_pvt_thread_mutex_unlock( &connections_mutex );
 		c->c_close_reason = "?";			/* should never be needed */
 		ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_SET_FD, &sfd );
 		ldap_pvt_thread_mutex_unlock( &c->c_mutex );
@@ -508,8 +510,10 @@ Connection * connection_init(
 	id = c->c_connid = conn_nextid++;
 	ldap_pvt_thread_mutex_unlock( &conn_nextid_mutex );
 
+	ldap_pvt_thread_mutex_lock( &connections_mutex );
 	c->c_conn_state = SLAP_C_INACTIVE;
 	c->c_struct_state = SLAP_C_USED;
+	ldap_pvt_thread_mutex_unlock( &connections_mutex );
 	c->c_close_reason = "?";			/* should never be needed */
 
 	c->c_ssf = c->c_transport_ssf = ssf;
@@ -843,12 +847,12 @@ Connection* connection_next( Connection *c, ber_socket_t *index )
 	for(; *index < dtblsize; (*index)++) {
 		int c_struct;
 		if( connections[*index].c_struct_state == SLAP_C_UNINITIALIZED ) {
+			/* FIXME: accessing c_conn_state without locking c_mutex */
 			assert( connections[*index].c_conn_state == SLAP_C_INVALID );
 			continue;
 		}
 
 		if( connections[*index].c_struct_state == SLAP_C_USED ) {
-			assert( connections[*index].c_conn_state != SLAP_C_INVALID );
 			c = &connections[(*index)++];
 			if ( ldap_pvt_thread_mutex_trylock( &c->c_mutex )) {
 				/* avoid deadlock */
@@ -861,6 +865,7 @@ Connection* connection_next( Connection *c, ber_socket_t *index )
 					continue;
 				}
 			}
+			assert( c->c_conn_state != SLAP_C_INVALID );
 			break;
 		}
 
@@ -868,6 +873,7 @@ Connection* connection_next( Connection *c, ber_socket_t *index )
 		if ( c_struct == SLAP_C_PENDING )
 			continue;
 		assert( c_struct == SLAP_C_UNUSED );
+		/* FIXME: accessing c_conn_state without locking c_mutex */
 		assert( connections[*index].c_conn_state == SLAP_C_INVALID );
 	}
 
