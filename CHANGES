@@ -6,6 +6,7 @@ OpenLDAP 2.4.13 Engineering
 	Fixed liblutil returning undefined data (ITS#5748)
 	Fixed libldap error code return (ITS#5762)
 	Fixed libldap interaction with GnuTLS CN IP-based matches (ITS#5789)
+	Fixed libldap MAXHOSTNAMELEN typo (ITS#5815)
 	Fixed libldap Ipv6 detection (ITS#5739)
 	Fixed slapd acl checks on ADD (ITS#4556,ITS#5723)
 	Fixed slapd acl application to newly created backends (ITS#5572)
