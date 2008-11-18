@@ -32,6 +32,22 @@ mkdir -p $TESTDIR $PRODIR $CONDIR $DBPRO $DBCON $CFPRO $CFCON
 
 $SLAPPASSWD -g -n >$CONFIGPWF
 
+if test x"$SYNCMODE" = x ; then
+	SYNCMODE=rp
+fi
+case "$SYNCMODE" in
+	ro)
+		SYNCTYPE="type=refreshOnly interval=00:00:00:10"
+		;;
+	rp)
+		SYNCTYPE="type=refreshAndPersist"
+		;;
+	*)
+		echo "unknown sync mode $SYNCMODE"
+		exit 1;
+		;;
+esac
+
 #
 # Test replication of dynamic config:
 # - start producer
@@ -97,8 +113,8 @@ dn: olcDatabase={0}config,cn=config
 changetype: modify
 add: olcSyncRepl
 olcSyncRepl: rid=001 provider=$URI1 binddn="cn=config" bindmethod=simple
-  credentials=$CONFIGPW searchbase="cn=config" type=refreshOnly
-  interval=00:00:00:10
+  credentials=$CONFIGPW searchbase="cn=config" type=refreshAndPersist
+  retry="5 5 300 5" timeout=3
 -
 add: olcUpdateRef
 olcUpdateRef: $URI1
@@ -154,8 +170,8 @@ dn: olcDatabase={0}config,cn=config
 changetype: modify
 add: olcSyncRepl
 olcSyncRepl: rid=001 provider=$URI1 binddn="cn=config" bindmethod=simple
-  credentials=$CONFIGPW searchbase="cn=config" type=refreshOnly
-  interval=00:00:00:10
+  credentials=$CONFIGPW searchbase="cn=config" type=refreshAndPersist
+  retry="5 5 300 5" timeout=3
 -
 add: olcUpdateRef
 olcUpdateRef: $URI1
@@ -230,8 +246,8 @@ olcDbDirectory: ./db
 olcRootDN: $MANAGERDN
 olcRootPW: $PASSWD
 olcSyncRepl: rid=002 provider=$URI1 binddn="$MANAGERDN" bindmethod=simple
-  credentials=$PASSWD searchbase="$BASEDN" type=refreshOnly
-  interval=00:00:00:10
+  credentials=$PASSWD searchbase="$BASEDN" $SYNCTYPE
+  retry="5 5 300 5" timeout=3
 olcUpdateRef: $URI1
 
 dn: olcOverlay=syncprov,olcDatabase={1}${BACKEND},cn=config
@@ -246,6 +262,24 @@ if test $RC != 0 ; then
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
 fi
+
+case $BACKEND in
+bdb | hdb)
+	$LDAPMODIFY -D cn=config -H $URI1 -y $CONFIGPWF <<EOF >>$TESTOUT 2>&1
+dn: olcDatabase={1}$BACKEND,cn=config
+changetype: modify
+add: olcDbIndex
+olcDbIndex: objectClass,entryUUID,entryCSN eq
+olcDbIndex: cn,uid pres,eq,sub
+EOF
+	RC=$?
+	if test $RC != 0 ; then
+		echo "ldapadd modify for database config ($RC)!"
+		test $KILLSERVERS != no && kill -HUP $KILLPIDS
+		exit $RC
+	fi
+	;;
+esac
 
 echo "Using ldapadd to populate producer..."
 $LDAPADD -D "$MANAGERDN" -H $URI1 -w $PASSWD -f $LDIFORDERED \
