@@ -360,7 +360,12 @@ retry:
 				entry_clean( &ent );
 			}
 			ldap_msgfree( res );
-			if ( rc != LDAP_SUCCESS ) {
+			switch ( rc ) {
+			case LDAP_SUCCESS:
+			case LDAP_INSUFFICIENT_ACCESS:
+				break;
+
+			default:
 				if ( rc == LDAP_UNAVAILABLE ) {
 					rc = rs->sr_err = LDAP_OTHER;
 				} else {

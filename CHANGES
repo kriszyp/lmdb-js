@@ -40,6 +40,7 @@ OpenLDAP 2.4.13 Engineering
 	Fixed slapd-bdb/hdb indexing of entryDN (ITS#5790)
 	Fixed slapd-bdb/hdb lookup of entryDN with equality (ITS#5791)
 	Fixed slapd-ldap snprintf buffer overflow test (ITS#4467)
+	Fixed slapd-ldap search stop on minor failure (ITS#5816)
 	Fixed slapd-ldif file rename on windows (ITS#5774)
 	Fixed slapd-null read controls support (ITS#5757)
 	Fixed slapd-sql value length with right index (ITS#5779)
