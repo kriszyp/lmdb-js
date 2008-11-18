@@ -1260,7 +1260,7 @@ dl_cfgen( ConfigArgs *c )
 
 				*ptr++ = ' ';
 				ptr = lutil_strncopy( ptr, dli->dli_oc->soc_cname.bv_val,
-					dli->dli_ad->ad_cname.bv_len );
+					dli->dli_oc->soc_cname.bv_len );
 
 				for ( dlm = dli->dli_dlm; dlm; dlm = dlm->dlm_next ) {
 					ptr[ 0 ] = ' ';
