@@ -151,9 +151,32 @@ ldap_add_ext(
 		/* for each attribute in the entry... */
 		for ( i = 0; attrs[i] != NULL; i++ ) {
 			if ( ( attrs[i]->mod_op & LDAP_MOD_BVALUES) != 0 ) {
+				int j;
+
+				if ( attrs[i]->mod_bvalues == NULL ) {
+					ld->ld_errno = LDAP_PARAM_ERROR;
+					ber_free( ber, 1 );
+					return ld->ld_errno;
+				}
+
+				for ( j = 0; attrs[i]->mod_bvalues[ j ] != NULL; j++ ) {
+					if ( attrs[i]->mod_bvalues[ j ]->bv_val == NULL ) {
+						ld->ld_errno = LDAP_PARAM_ERROR;
+						ber_free( ber, 1 );
+						return ld->ld_errno;
+					}
+				}
+
 				rc = ber_printf( ber, "{s[V]N}", attrs[i]->mod_type,
 				    attrs[i]->mod_bvalues );
+
 			} else {
+				if ( attrs[i]->mod_values == NULL ) {
+					ld->ld_errno = LDAP_PARAM_ERROR;
+					ber_free( ber, 1 );
+					return ld->ld_errno;
+				}
+
 				rc = ber_printf( ber, "{s[v]N}", attrs[i]->mod_type,
 				    attrs[i]->mod_values );
 			}

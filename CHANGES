@@ -2,6 +2,7 @@ OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.13 Release (2008/11/20)
 	Added libldap dereference control support (ITS#5768)
+	Fixed libldap parameter checking (ITS#5817)
 	Fixed liblutil hex conversion (ITS#5699)
 	Fixed liblutil returning undefined data (ITS#5748)
 	Fixed libldap error code return (ITS#5762)
