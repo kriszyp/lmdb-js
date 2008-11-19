@@ -3,12 +3,12 @@
 
 Network Working Group                                        P. Masarati
 Internet-Draft                                     Politecnico di Milano
-Intended status: Standards Track                            October 2008
-Expires: April 4, 2009
+Intended status: Standards Track                       November 19, 2008
+Expires: May 23, 2009
 
 
                       LDAP "What Failed?" Control
-                   draft-masarati-ldap-whatfailed.txt
+                 draft-masarati-ldap-whatfailed-00.txt
 
 Status of this Memo
 
@@ -33,7 +33,7 @@ Status of this Memo
    The list of Internet-Draft Shadow Directories can be accessed at
    http://www.ietf.org/shadow.html.
 
-   This Internet-Draft will expire on April 4, 2009.
+   This Internet-Draft will expire on May 23, 2009.
 
 
 
@@ -52,9 +52,9 @@ Status of this Memo
 
 
 
-Masarati                  Expires April 4, 2009                 [Page 1]
+Masarati                  Expires May 23, 2009                  [Page 1]
 
-Internet-Draft               LDAP WHATFAILED                October 2008
+Internet-Draft               LDAP WHATFAILED               November 2008
 
 
 Abstract
@@ -108,9 +108,9 @@ Table of Contents
 
 
 
-Masarati                  Expires April 4, 2009                 [Page 2]
+Masarati                  Expires May 23, 2009                  [Page 2]
 
-Internet-Draft               LDAP WHATFAILED                October 2008
+Internet-Draft               LDAP WHATFAILED               November 2008
 
 
 1.  Background and Intended Use
@@ -164,9 +164,9 @@ Internet-Draft               LDAP WHATFAILED                October 2008
 
 
 
-Masarati                  Expires April 4, 2009                 [Page 3]
+Masarati                  Expires May 23, 2009                  [Page 3]
 
-Internet-Draft               LDAP WHATFAILED                October 2008
+Internet-Draft               LDAP WHATFAILED               November 2008
 
 
 2.  LDAP "What Failed?" Control
@@ -220,9 +220,9 @@ Internet-Draft               LDAP WHATFAILED                October 2008
 
 
 
-Masarati                  Expires April 4, 2009                 [Page 4]
+Masarati                  Expires May 23, 2009                  [Page 4]
 
-Internet-Draft               LDAP WHATFAILED                October 2008
+Internet-Draft               LDAP WHATFAILED               November 2008
 
 
 2.3.  Control Response
@@ -276,9 +276,9 @@ Internet-Draft               LDAP WHATFAILED                October 2008
 
 
 
-Masarati                  Expires April 4, 2009                 [Page 5]
+Masarati                  Expires May 23, 2009                  [Page 5]
 
-Internet-Draft               LDAP WHATFAILED                October 2008
+Internet-Draft               LDAP WHATFAILED               November 2008
 
 
 3.  Implementation Notes
@@ -332,9 +332,9 @@ Internet-Draft               LDAP WHATFAILED                October 2008
 
 
 
-Masarati                  Expires April 4, 2009                 [Page 6]
+Masarati                  Expires May 23, 2009                  [Page 6]
 
-Internet-Draft               LDAP WHATFAILED                October 2008
+Internet-Draft               LDAP WHATFAILED               November 2008
 
 
 4.  Security Considerations
@@ -388,9 +388,9 @@ Internet-Draft               LDAP WHATFAILED                October 2008
 
 
 
-Masarati                  Expires April 4, 2009                 [Page 7]
+Masarati                  Expires May 23, 2009                  [Page 7]
 
-Internet-Draft               LDAP WHATFAILED                October 2008
+Internet-Draft               LDAP WHATFAILED               November 2008
 
 
 5.  IANA Considerations
@@ -444,9 +444,9 @@ Internet-Draft               LDAP WHATFAILED                October 2008
 
 
 
-Masarati                  Expires April 4, 2009                 [Page 8]
+Masarati                  Expires May 23, 2009                  [Page 8]
 
-Internet-Draft               LDAP WHATFAILED                October 2008
+Internet-Draft               LDAP WHATFAILED               November 2008
 
 
 6.  Acknowledgments
@@ -500,9 +500,9 @@ Internet-Draft               LDAP WHATFAILED                October 2008
 
 
 
-Masarati                  Expires April 4, 2009                 [Page 9]
+Masarati                  Expires May 23, 2009                  [Page 9]
 
-Internet-Draft               LDAP WHATFAILED                October 2008
+Internet-Draft               LDAP WHATFAILED               November 2008
 
 
 7.  References
@@ -556,9 +556,9 @@ Internet-Draft               LDAP WHATFAILED                October 2008
 
 
 
-Masarati                  Expires April 4, 2009                [Page 10]
+Masarati                  Expires May 23, 2009                 [Page 10]
 
-Internet-Draft               LDAP WHATFAILED                October 2008
+Internet-Draft               LDAP WHATFAILED               November 2008
 
 
 Author's Address
@@ -612,9 +612,9 @@ Author's Address
 
 
 
-Masarati                  Expires April 4, 2009                [Page 11]
+Masarati                  Expires May 23, 2009                 [Page 11]
 
-Internet-Draft               LDAP WHATFAILED                October 2008
+Internet-Draft               LDAP WHATFAILED               November 2008
 
 
 Full Copyright Statement
@@ -668,5 +668,5 @@ Intellectual Property
 
 
 
-Masarati                  Expires April 4, 2009                [Page 12]
+Masarati                  Expires May 23, 2009                 [Page 12]
 

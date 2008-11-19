@@ -4,12 +4,12 @@
 Network Working Group                                        P. Masarati
 Internet-Draft                                     Politecnico di Milano
 Intended status: Standards Track                                  H. Chu
-Expires: April 4, 2009                                       Symas Corp.
-                                                            October 2008
+Expires: May 23, 2009                                        Symas Corp.
+                                                       November 19, 2008
 
 
                         LDAP Dereference Control
-                     draft-masarati-ldap-deref.txt
+                    draft-masarati-ldap-deref-00.txt
 
 Status of this Memo
 
@@ -34,7 +34,7 @@ Status of this Memo
    The list of Internet-Draft Shadow Directories can be accessed at
    http://www.ietf.org/shadow.html.
 
-   This Internet-Draft will expire on April 4, 2009.
+   This Internet-Draft will expire on May 23, 2009.
 
 
 
@@ -52,9 +52,9 @@ Status of this Memo
 
 
 
-Masarati & Chu            Expires April 4, 2009                 [Page 1]
+Masarati & Chu            Expires May 23, 2009                  [Page 1]
 
-Internet-Draft                 LDAP Deref                   October 2008
+Internet-Draft                 LDAP Deref                  November 2008
 
 
 Abstract
@@ -108,9 +108,9 @@ Table of Contents
 
 
 
-Masarati & Chu            Expires April 4, 2009                 [Page 2]
+Masarati & Chu            Expires May 23, 2009                  [Page 2]
 
-Internet-Draft                 LDAP Deref                   October 2008
+Internet-Draft                 LDAP Deref                  November 2008
 
 
 1.  Background and Intended Use
@@ -164,9 +164,9 @@ Internet-Draft                 LDAP Deref                   October 2008
 
 
 
-Masarati & Chu            Expires April 4, 2009                 [Page 3]
+Masarati & Chu            Expires May 23, 2009                  [Page 3]
 
-Internet-Draft                 LDAP Deref                   October 2008
+Internet-Draft                 LDAP Deref                  November 2008
 
 
 2.  The LDAP Dereference Control
@@ -220,9 +220,9 @@ Internet-Draft                 LDAP Deref                   October 2008
 
 
 
-Masarati & Chu            Expires April 4, 2009                 [Page 4]
+Masarati & Chu            Expires May 23, 2009                  [Page 4]
 
-Internet-Draft                 LDAP Deref                   October 2008
+Internet-Draft                 LDAP Deref                  November 2008
 
 
 2.2.  Control Request
@@ -276,9 +276,9 @@ Internet-Draft                 LDAP Deref                   October 2008
 
 
 
-Masarati & Chu            Expires April 4, 2009                 [Page 5]
+Masarati & Chu            Expires May 23, 2009                  [Page 5]
 
-Internet-Draft                 LDAP Deref                   October 2008
+Internet-Draft                 LDAP Deref                  November 2008
 
 
 3.  Examples
@@ -332,9 +332,9 @@ Internet-Draft                 LDAP Deref                   October 2008
 
 
 
-Masarati & Chu            Expires April 4, 2009                 [Page 6]
+Masarati & Chu            Expires May 23, 2009                  [Page 6]
 
-Internet-Draft                 LDAP Deref                   October 2008
+Internet-Draft                 LDAP Deref                  November 2008
 
 
 4.  Implementation Notes
@@ -388,9 +388,9 @@ Internet-Draft                 LDAP Deref                   October 2008
 
 
 
-Masarati & Chu            Expires April 4, 2009                 [Page 7]
+Masarati & Chu            Expires May 23, 2009                  [Page 7]
 
-Internet-Draft                 LDAP Deref                   October 2008
+Internet-Draft                 LDAP Deref                  November 2008
 
 
 5.  Security Considerations
@@ -444,9 +444,9 @@ Internet-Draft                 LDAP Deref                   October 2008
 
 
 
-Masarati & Chu            Expires April 4, 2009                 [Page 8]
+Masarati & Chu            Expires May 23, 2009                  [Page 8]
 
-Internet-Draft                 LDAP Deref                   October 2008
+Internet-Draft                 LDAP Deref                  November 2008
 
 
 6.  IANA Considerations
@@ -500,9 +500,9 @@ Internet-Draft                 LDAP Deref                   October 2008
 
 
 
-Masarati & Chu            Expires April 4, 2009                 [Page 9]
+Masarati & Chu            Expires May 23, 2009                  [Page 9]
 
-Internet-Draft                 LDAP Deref                   October 2008
+Internet-Draft                 LDAP Deref                  November 2008
 
 
 7.  Acknowledgments
@@ -556,9 +556,9 @@ Internet-Draft                 LDAP Deref                   October 2008
 
 
 
-Masarati & Chu            Expires April 4, 2009                [Page 10]
+Masarati & Chu            Expires May 23, 2009                 [Page 10]
 
-Internet-Draft                 LDAP Deref                   October 2008
+Internet-Draft                 LDAP Deref                  November 2008
 
 
 8.  Normative References
@@ -612,9 +612,9 @@ Internet-Draft                 LDAP Deref                   October 2008
 
 
 
-Masarati & Chu            Expires April 4, 2009                [Page 11]
+Masarati & Chu            Expires May 23, 2009                 [Page 11]
 
-Internet-Draft                 LDAP Deref                   October 2008
+Internet-Draft                 LDAP Deref                  November 2008
 
 
 Authors' Addresses
@@ -668,9 +668,9 @@ Authors' Addresses
 
 
 
-Masarati & Chu            Expires April 4, 2009                [Page 12]
+Masarati & Chu            Expires May 23, 2009                 [Page 12]
 
-Internet-Draft                 LDAP Deref                   October 2008
+Internet-Draft                 LDAP Deref                  November 2008
 
 
 Full Copyright Statement
@@ -724,5 +724,5 @@ Intellectual Property
 
 
 
-Masarati & Chu            Expires April 4, 2009                [Page 13]
+Masarati & Chu            Expires May 23, 2009                 [Page 13]
 

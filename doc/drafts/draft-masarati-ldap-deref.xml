@@ -15,7 +15,7 @@
 
 <!-- $OpenLDAP$ -->
 
-<rfc category="std" ipr="full3978" docName="draft-masarati-ldap-deref.txt">
+<rfc category="std" ipr="full3978" docName="draft-masarati-ldap-deref-00.txt">
 
 <?xml-stylesheet type='text/xsl' href='rfc2629.xslt' ?>
 
@@ -62,8 +62,7 @@
 		<uri>http://www.symas.com/</uri>
             </address>
         </author>
-        <!--date/-->
-        <date month='October' year='2008' />
+        <date/>
         <abstract>
             <t>
 This document describes the Dereference Control for LDAP.
