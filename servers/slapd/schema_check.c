@@ -880,12 +880,13 @@ entry_naming_check(
 						ava->la_attr.bv_val );
 					break;
 				case LDAP_NO_SUCH_ATTRIBUTE:
-					snprintf( textbuf, textlen, 
-						"value of naming attribute '%s' is not present in entry",
-						ava->la_attr.bv_val );
 					if ( add_naming ) {
 						add = 1;
 						rc = LDAP_SUCCESS;
+					} else {
+						snprintf( textbuf, textlen, 
+							"value of naming attribute '%s' is not present in entry",
+							ava->la_attr.bv_val );
 					}
 					break;
 				default:
