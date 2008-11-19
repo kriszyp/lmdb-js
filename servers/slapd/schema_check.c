@@ -885,6 +885,7 @@ entry_naming_check(
 						ava->la_attr.bv_val );
 					if ( add_naming ) {
 						add = 1;
+						rc = LDAP_SUCCESS;
 					}
 					break;
 				default:
@@ -892,7 +893,10 @@ entry_naming_check(
 						"naming attribute '%s' is inappropriate",
 						ava->la_attr.bv_val );
 				}
-				rc = LDAP_NAMING_VIOLATION;
+
+				if ( !add ) {
+					rc = LDAP_NAMING_VIOLATION;
+				}
 			}
 		}
 
