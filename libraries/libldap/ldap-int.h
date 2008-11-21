@@ -121,6 +121,7 @@ LDAP_BEGIN_DECL
 #define LDAP_BOOL_RESTART		1
 #define LDAP_BOOL_TLS			3
 #define	LDAP_BOOL_CONNECT_ASYNC		4
+#define	LDAP_BOOL_SASL_NOCANON		5
 
 #define LDAP_BOOLEANS	unsigned long
 #define LDAP_BOOL(n)	((LDAP_BOOLEANS)1 << (n))

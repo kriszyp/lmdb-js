@@ -62,6 +62,7 @@ int		contoper = 0;
 int		debug = 0;
 char		*infile = NULL;
 int		dont = 0;
+int		nocanon = 0;
 int		referrals = 0;
 int		verbose = 0;
 int		ldif = 0;
@@ -293,6 +294,7 @@ N_("  -H URI     LDAP Uniform Resource Identifier(s)\n"),
 N_("  -I         use SASL Interactive mode\n"),
 N_("  -M         enable Manage DSA IT control (-MM to make critical)\n"),
 N_("  -n         show what would be done but don't actually do it\n"),
+N_("  -N         do not use reverse DNS to canonicalize SASL host name\n"),
 N_("  -O props   SASL security properties\n"),
 N_("  -o <opt>[=<optparam] general options\n"),
 N_("             nettimeout=<timeout> (in seconds, or \"none\" or \"max\")\n"),
@@ -723,6 +725,9 @@ tool_args( int argc, char **argv )
 			break;
 		case 'n':	/* print operations, don't actually do them */
 			dont++;
+			break;
+		case 'N':
+			nocanon++;
 			break;
 		case 'o':
 			control = ber_strdup( optarg );
@@ -1274,6 +1279,14 @@ dnssrv_free:;
 			exit( EXIT_FAILURE );
 		}
 
+		/* canon */
+		if( ldap_set_option( ld, LDAP_OPT_X_SASL_NOCANON,
+			nocanon ? LDAP_OPT_ON : LDAP_OPT_OFF ) != LDAP_OPT_SUCCESS )
+		{
+			fprintf( stderr, "Could not set LDAP_OPT_X_SASL_NOCANON %s\n",
+				nocanon ? "on" : "off" );
+			exit( EXIT_FAILURE );
+		}
 		if( ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, &protocol )
 			!= LDAP_OPT_SUCCESS )
 		{
