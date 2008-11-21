@@ -1024,7 +1024,10 @@ ldap_int_sasl_get_option( LDAP *ld, int option, void *arg )
 int
 ldap_int_sasl_set_option( LDAP *ld, int option, void *arg )
 {
-	if ( ld == NULL || arg == NULL )
+	if ( ld == NULL )
+		return -1;
+
+	if ( arg == NULL && option != LDAP_OPT_X_SASL_NOCANON )
 		return -1;
 
 	switch ( option ) {
