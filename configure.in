@@ -2423,6 +2423,7 @@ AC_CHECK_FUNCS(			\
 	flock			\
 	fstat			\
 	getdtablesize		\
+	geteuid			\
 	getgrgid		\
 	gethostname		\
 	getpass			\
