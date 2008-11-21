@@ -18,6 +18,10 @@
 #include <stdio.h>
 #include <ac/stdlib.h>
 
+#ifdef HAVE_GETEUID
+#include <ac/unistd.h>
+#endif
+
 #include <ac/socket.h>
 #include <ac/string.h>
 #include <ac/ctype.h>
@@ -629,6 +633,12 @@ void ldap_int_initialize( struct ldapoptions *gopts, int *dbglvl )
 #endif
 
 	openldap_ldap_init_w_sysconf(LDAP_CONF_FILE);
+
+#ifdef HAVE_GETEUID
+	if ( geteuid() != getuid() )
+		return;
+#endif
+
 	openldap_ldap_init_w_userconf(LDAP_USERRC_FILE);
 
 	{

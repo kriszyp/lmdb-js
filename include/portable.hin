@@ -190,6 +190,9 @@
 /* Define to 1 if you have the `getdtablesize' function. */
 #undef HAVE_GETDTABLESIZE
 
+/* Define to 1 if you have the `geteuid' function. */
+#undef HAVE_GETEUID
+
 /* Define to 1 if you have the `getgrgid' function. */
 #undef HAVE_GETGRGID
 
