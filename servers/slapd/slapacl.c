@@ -98,6 +98,7 @@ slapacl( int argc, char **argv )
 
 	connection_fake_init( &conn, &opbuf, &conn );
 	op = &opbuf.ob_op;
+	op->o_tmpmemctx = NULL;
 
 	conn.c_listener = &listener;
 	conn.c_listener_url = listener_url;
