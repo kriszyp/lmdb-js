@@ -2451,6 +2451,9 @@ syncrepl_del_nonpresent(
 			op->ors_filter = of;
 		}
 		if ( op->ors_filter ) filter_free_x( op, op->ors_filter, 1 );
+		if ( op->ors_filterstr.bv_val != si->si_filterstr.bv_val ) {
+			op->o_tmpfree( op->ors_filterstr.bv_val, op->o_tmpmemctx );
+		}
 
 	}
 
