@@ -287,11 +287,11 @@ int bdb_modify_internal(
 				rc = bdb_index_values( op, tid, ap->a_desc,
 					vals, e->e_id, SLAP_INDEX_DELETE_OP );
 				if ( rc != LDAP_SUCCESS ) {
-					attrs_free( e->e_attrs );
-					e->e_attrs = save_attrs;
 					Debug( LDAP_DEBUG_ANY,
 						"%s: attribute \"%s\" index delete failure\n",
 						op->o_log_prefix, ap->a_desc->ad_cname.bv_val, 0 );
+					attrs_free( e->e_attrs );
+					e->e_attrs = save_attrs;
 					return rc;
 				}
 			}
@@ -306,11 +306,11 @@ int bdb_modify_internal(
 				ap->a_nvals,
 				e->e_id, SLAP_INDEX_ADD_OP );
 			if ( rc != LDAP_SUCCESS ) {
-				attrs_free( e->e_attrs );
-				e->e_attrs = save_attrs;
 				Debug( LDAP_DEBUG_ANY,
 				       "%s: attribute \"%s\" index add failure\n",
 					op->o_log_prefix, ap->a_desc->ad_cname.bv_val, 0 );
+				attrs_free( e->e_attrs );
+				e->e_attrs = save_attrs;
 				return rc;
 			}
 		}
