@@ -203,9 +203,8 @@ for i in 1 2 3; do
 		break
 	fi
 
-	SLEEP=5
-	echo "Waiting $SLEEP seconds for syncrepl to receive changes..."
-	sleep $SLEEP
+	echo "Waiting $SLEEP1 seconds for syncrepl to receive changes..."
+	sleep $SLEEP1
 done
 
 #echo "Using ldapsearch to read all the entries from the master..."
@@ -245,11 +244,10 @@ if test $? != 0 ; then
 fi
 
 CHECK=`expr $CHECK + 1`
-SLEEP=10
-echo "$CHECK > Stopping the provider, sleeping $SLEEP seconds and restarting it..."
+echo "$CHECK > Stopping the provider, sleeping $SLEEP2 seconds and restarting it..."
 kill -HUP "$MASTERPID"
 wait $MASTERPID
-sleep $SLEEP
+sleep $SLEEP2
 
 echo "======================= RESTART =======================" >> $LOG1
 $SLAPD -f $CONF1 -h $URI1 -d $LVL $TIMING >> $LOG1 2>&1 &
@@ -379,9 +377,8 @@ fi
 
 # check slave contextCSN
 for i in 1 2 3; do
-	SLEEP=5
-	echo "Waiting $SLEEP seconds for syncrepl to receive changes..."
-	sleep $SLEEP
+	echo "Waiting $SLEEP1 seconds for syncrepl to receive changes..."
+	sleep $SLEEP1
 
 	$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
 		'(objectClass=*)' -s base contextCSN > "${SLAVEOUT}.$CHECK" 2>&1
@@ -487,9 +484,8 @@ fi
 
 # check slave contextCSN
 for i in 1 2 3 4 5; do
-	SLEEP=5
-	echo "Waiting $SLEEP seconds for syncrepl to receive changes..."
-	sleep $SLEEP
+	echo "Waiting $SLEEP1 seconds for syncrepl to receive changes..."
+	sleep $SLEEP1
 
 	$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
 		'(objectClass=*)' -s base contextCSN > "${SLAVEOUT}.$CHECK" 2>&1
@@ -593,9 +589,8 @@ for i in 1 2 3; do
 		break
 	fi
 
-	SLEEP=5
-	echo "Waiting $SLEEP seconds for syncrepl to receive changes..."
-	sleep $SLEEP
+	echo "Waiting $SLEEP1 seconds for syncrepl to receive changes..."
+	sleep $SLEEP1
 done
 
 #echo "Using ldapsearch to read all the entries from the master..."
@@ -649,9 +644,8 @@ drink: Mad Dog 20/20
 
 EOMODS
 
-SLEEP=10
-echo "Waiting $SLEEP seconds for syncrepl to retry..."
-sleep $SLEEP
+echo "Waiting $SLEEP2 seconds for syncrepl to retry..."
+sleep $SLEEP2
 
 echo "Restarting consumer..."
 echo "======================= RESTART =======================" >> $LOG2
@@ -676,9 +670,8 @@ fi
 # check slave contextCSN
 
 for i in 1 2 3 4 5; do
-	SLEEP=5
-	echo "Waiting $SLEEP seconds for syncrepl to receive changes..."
-	sleep $SLEEP
+	echo "Waiting $SLEEP1 seconds for syncrepl to receive changes..."
+	sleep $SLEEP1
 
 	$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
 		'(objectClass=*)' -s base contextCSN > "${SLAVEOUT}.$CHECK" 2>&1
@@ -750,9 +743,8 @@ if test $? != 0 ; then
 	fi
 	KILLPIDS="$MASTERPID $SLAVEPID $PROXYPID"
 
-	SLEEP=15
-	echo "	Waiting $SLEEP seconds for syncrepl to receive changes..."
-	sleep $SLEEP
+	echo "	Waiting $SLEEP2 seconds for syncrepl to receive changes..."
+	sleep $SLEEP2
 
 	#echo "Using ldapsearch to read all the entries from the slave..."
 	$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
@@ -834,9 +826,8 @@ for i in 1 2 3; do
 		break
 	fi
 
-	SLEEP=5
-	echo "Waiting $SLEEP seconds for syncrepl to receive changes..."
-	sleep $SLEEP
+	echo "Waiting $SLEEP1 seconds for syncrepl to receive changes..."
+	sleep $SLEEP1
 done
 
 #echo "Using ldapsearch to read all the entries from the master..."

@@ -13,7 +13,7 @@
 ## top-level directory of the distribution or, alternatively, at
 ## <http://www.OpenLDAP.org/license.html>.
 
-if test "$BACKEND" != "bdb" && test "$BACKEND" != "hdb" ; then
+if test "$BACKEND" != "bdb" && test "$BACKEND" != "hdb" && test "$BACKEND" != "ldif"; then
 	echo "Test does not support $BACKEND"
 	exit 0
 fi
@@ -118,8 +118,8 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-echo "Waiting 15 seconds for syncrepl to receive changes..."
-sleep 15
+echo "Waiting $SLEEP1 seconds for syncrepl to receive changes..."
+sleep $SLEEP1
 
 echo "Stopping the provider, sleeping 10 seconds and restarting it..."
 kill -HUP "$PID"
@@ -251,8 +251,8 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-echo "Waiting 15 seconds for syncrepl to receive changes..."
-sleep 15
+echo "Waiting $SLEEP1 seconds for syncrepl to receive changes..."
+sleep $SLEEP1
 
 echo "Stopping consumer to test recovery..."
 kill -HUP $SLAVEPID
@@ -288,8 +288,8 @@ if test $WAIT != 0 ; then
 fi
 KILLPIDS="$PID $SLAVEPID"
 
-echo "Waiting 25 seconds for syncrepl to receive changes..."
-sleep 25
+echo "Waiting $SLEEP1 seconds for syncrepl to receive changes..."
+sleep $SLEEP1
 
 if test ! $BACKLDAP = "ldapno" ; then
 	echo "Try updating the consumer slapd..."
@@ -322,8 +322,8 @@ EOMODS
 		exit $RC
 	fi
 
-	echo "Waiting 15 seconds for syncrepl to receive changes..."
-	sleep 15
+	echo "Waiting $SLEEP1 seconds for syncrepl to receive changes..."
+	sleep $SLEEP1
 fi
 
 OPATTRS="entryUUID creatorsName createTimestamp modifiersName modifyTimestamp"

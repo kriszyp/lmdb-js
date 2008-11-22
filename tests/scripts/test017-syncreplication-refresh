@@ -113,8 +113,8 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-echo "Waiting 15 seconds for syncrepl to receive changes..."
-sleep 15
+echo "Waiting $SLEEP1 seconds for syncrepl to receive changes..."
+sleep $SLEEP1
 
 echo "Using ldapmodify to modify producer directory..."
 
@@ -202,8 +202,8 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-echo "Waiting 15 seconds for syncrepl to receive changes..."
-sleep 15
+echo "Waiting $SLEEP1 seconds for syncrepl to receive changes..."
+sleep $SLEEP1
 
 echo "Try updating the consumer slapd..."
 $LDAPMODIFY -v -D "$MANAGERDN" -h $LOCALHOST -p $PORT2 -w $PASSWD > \
