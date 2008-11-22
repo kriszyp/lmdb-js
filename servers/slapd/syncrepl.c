@@ -3905,6 +3905,11 @@ parse_syncrepl_line(
 		return -1;
 	}
 
+	if ( si->si_retryinterval == NULL ) {
+		Debug( LDAP_DEBUG_ANY, "syncrepl %s " SEARCHBASESTR "=\"%s\": no retry defined\n", 
+			si->si_ridtxt, c->be->be_suffix ? c->be->be_suffix[ 0 ].bv_val : "(null)", 0 );
+	}
+
 	return 0;
 }
 
