@@ -422,6 +422,7 @@ return_results:
 						op->o_tmpmemctx );
 					bli->bli_next = boi->boi_locks;
 					bli->bli_id = e->e_id;
+					bii->bli_flag = 0;
 					bli->bli_lock = lock;
 					boi->boi_locks = bli;
 				}
