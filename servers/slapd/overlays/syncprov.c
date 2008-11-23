@@ -1259,6 +1259,12 @@ syncprov_matchops( Operation *op, opcookie *opc, int saveit )
 			/* send DELETE */
 			syncprov_qresp( opc, ss, LDAP_SYNC_DELETE );
 		}
+		if ( !saveit && found ) {
+			/* Decrement s_inuse, was incremented when called
+			 * with saveit == TRUE
+			 */
+			syncprov_free_syncop( ss );
+		}
 	}
 	ldap_pvt_thread_mutex_unlock( &si->si_ops_mutex );
 
