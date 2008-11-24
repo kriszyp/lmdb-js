@@ -1287,7 +1287,7 @@ Note:  If no attributes are specified, for example {{B:ldap:///??sub?}}, then th
 the keyword {{B:ignore}} can be specified to exclude certain non-operational attributes. 
 
 To search at the base dn of the current backend database ensuring uniqueness of the {{B:mail}}
-attribute, we simply do:
+attribute, we simply add the following configuration:
 
 >       overlay unique
 >       unique_uri ldap:///?mail?sub?
