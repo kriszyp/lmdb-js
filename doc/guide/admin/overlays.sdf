@@ -1268,12 +1268,60 @@ H2: Attribute Uniqueness
 
 H3: Overview
 
-This overlay can be used with a backend database such as slapd-bdb (5)
+This overlay can be used with a backend database such as {{slapd-bdb(5)}}
 to enforce the uniqueness of some or all attributes within a subtree.
 
 
 H3: Attribute Uniqueness Configuration
 
+This overlay is only effective on new data from the point the overlay is enabled. To
+check uniqueness for existing data, you can export and import your data again via the
+LDAP Add operation, which will not be suitable for large amounts of data, unlike {{B:slapcat}}.
+
+For the following example, if uniqueness were enforced for the {{B:mail}} attribute, 
+the subtree would be searched for any other records which also have a {{B:mail}} attribute 
+containing the same value presented with an {{B:add}}, {{B:modify}} or {{B:modrdn}} operation 
+which are unique within the configured scope. If any are found, the request is rejected.
+
+Note:  If no attributes are specified, for example {{B:ldap:///??sub?}}, then the URI applies to all non-operational attributes. However,
+the keyword {{B:ignore}} can be specified to exclude certain non-operational attributes. 
+
+To search at the base dn of the current backend database ensuring uniqueness of the {{B:mail}}
+attribute, we simply do:
+
+>       overlay unique
+>       unique_uri ldap:///?mail?sub?
+
+For an existing entry of:
+
+>       dn: cn=gavin,dc=suretecsystems,dc=com
+>       objectClass: top
+>       objectClass: inetorgperson
+>       cn: gavin
+>       sn: henry
+>       mail: ghenry@suretecsystems.com
+
+and we then try to add a new entry of:
+
+>       dn: cn=robert,dc=suretecsystems,dc=com
+>       objectClass: top
+>       objectClass: inetorgperson
+>       cn: robert
+>       sn: jones
+>       mail: ghenry@suretecsystems.com
+
+would result in an error like so:
+
+>       adding new entry "cn=robert,dc=example,dc=com"
+>       ldap_add: Constraint violation (19)
+>               additional info: some attributes not unique
+
+The overlay can have multiple URIs specified within a domain, allowing complex
+selections of objects and also have multiple {{B:unique_uri}} statements or 
+{{B:olcUniqueURI}} attributes which will create independent domains.
+
+For more information and details about the {{B:strict}} and {{B:ignore}} keywords,
+please see the {{:slapo-unique(5)}} man page.
 
 H3: Further Information
 
