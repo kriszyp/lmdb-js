@@ -326,7 +326,7 @@ H3: Read-Back of Chained Modifications
 
 Occasionally, applications want to read back the data that they just wrote.
 If a modification requested to a shadow server was silently chained to its 
-producer, an immediate read could result in receiving data not yet sync'ed.  
+producer, an immediate read could result in receiving data not yet synchronized.  
 In those cases, clients should use the {{B:dontusecopy}} control to ensure 
 they are directed to the authoritative source for that piece of data.
 
@@ -1099,16 +1099,31 @@ H2: Sync Provider
 
 H3: Overview
 
-This overlay implements the provider-side support for syncrepl
-replication, including persistent search functionality
-
+This overlay implements the provider-side support for the LDAP Content Synchronization 
+({{REF:RFC4533}}) as well as syncrepl replication support, including persistent search functionality.
 
 H3: Sync Provider Configuration
 
+There is very little configuration needed for this overlay, in fact for many situations merely loading 
+the overlay will suffice.
+
+However, because the overlay creates a contextCSN attribute in the root entry of the database which is
+updated for every write operation performed against the database and only updated in memory, it is 
+recommended to configure a checkpoint so that the contextCSN is written into the underlying database to 
+minimize recovery time after an unclean shutdown:
+
+>       overlay syncprov
+>       syncprov-checkpoint 100 10
+
+For every 100 operations or 10 minutes, which ever is sooner, the contextCSN will be checkpointed.
+
+The four configuration directives available are {{B:syncprov-checkpoint}}, {{B:syncprov-sessionlog}},
+{{B:syncprov-nopresent}} and {{B:syncprov-reloadhint}} which are covered in the man page discussing
+various other scenarios where this overlay can be used. 
 
 H3: Further Information
 
-{{:slapo-syncprov(5)}}
+The {{:slapo-syncprov(5)}} man page and the {{SECT:Configuring the different replication types}} section
 
 
 H2: Translucent Proxy
