@@ -96,6 +96,7 @@ typedef struct syncinfo_s {
 	int			si_refreshDone;
 	int			si_syncdata;
 	int			si_logstate;
+	int			si_got;
 	ber_int_t	si_msgid;
 	Avlnode			*si_presentlist;
 	LDAP			*si_ld;
@@ -3464,12 +3465,30 @@ syncinfo_free( syncinfo_t *sie, int free_all )
 #define MANAGEDSAITSTR		"manageDSAit"
 
 /* mandatory */
-#define GOT_ID			0x0001
-#define GOT_PROVIDER	0x0002
-#define	GOT_BASE		0x0004
+enum {
+	GOT_RID			= 0x00000001U,
+	GOT_PROVIDER		= 0x00000002U,
+	GOT_SCHEMACHECKING	= 0x00000004U,
+	GOT_FILTER		= 0x00000008U,
+	GOT_SEARCHBASE		= 0x00000010U,
+	GOT_SCOPE		= 0x00000020U,
+	GOT_ATTRSONLY		= 0x00000040U,
+	GOT_ATTRS		= 0x00000080U,
+	GOT_TYPE		= 0x00000100U,
+	GOT_INTERVAL		= 0x00000200U,
+	GOT_RETRY		= 0x00000400U,
+	GOT_SLIMIT		= 0x00000800U,
+	GOT_TLIMIT		= 0x00001000U,
+	GOT_SYNCDATA		= 0x00002000U,
+	GOT_LOGBASE		= 0x00004000U,
+	GOT_LOGFILTER		= 0x00008000U,
+	GOT_EXATTRS		= 0x00010000U,
+	GOT_MANAGEDSAIT		= 0x00020000U,
+	GOT_BINDCONF		= 0x00040000U,
 
 /* check */
-#define GOT_ALL			(GOT_ID|GOT_PROVIDER|GOT_BASE)
+	GOT_REQUIRED		= (GOT_RID|GOT_PROVIDER|GOT_SEARCHBASE)
+};
 
 static struct {
 	struct berval key;
@@ -3494,11 +3513,100 @@ static slap_verbmasks datamodes[] = {
 };
 
 static int
+parse_syncrepl_retry(
+	ConfigArgs	*c,
+	char		*arg,
+	syncinfo_t	*si )
+{
+	char **retry_list;
+	int j, k, n;
+	int use_default = 0;
+
+	char *val = arg + STRLENOF( RETRYSTR "=" );
+	if ( strcasecmp( val, "undefined" ) == 0 ) {
+		val = "3600 +";
+		use_default = 1;
+	}
+
+	retry_list = (char **) ch_calloc( 1, sizeof( char * ) );
+	retry_list[0] = NULL;
+
+	slap_str2clist( &retry_list, val, " ,\t" );
+
+	for ( k = 0; retry_list && retry_list[k]; k++ ) ;
+	n = k / 2;
+	if ( k % 2 ) {
+		snprintf( c->cr_msg, sizeof( c->cr_msg ),
+			"Error: incomplete syncrepl retry list" );
+		Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
+		for ( k = 0; retry_list && retry_list[k]; k++ ) {
+			ch_free( retry_list[k] );
+		}
+		ch_free( retry_list );
+		return 1;
+	}
+	si->si_retryinterval = (time_t *) ch_calloc( n + 1, sizeof( time_t ) );
+	si->si_retrynum = (int *) ch_calloc( n + 1, sizeof( int ) );
+	si->si_retrynum_init = (int *) ch_calloc( n + 1, sizeof( int ) );
+	for ( j = 0; j < n; j++ ) {
+		unsigned long	t;
+		if ( lutil_atoul( &t, retry_list[j*2] ) != 0 ) {
+			snprintf( c->cr_msg, sizeof( c->cr_msg ),
+				"Error: invalid retry interval \"%s\" (#%d)",
+				retry_list[j*2], j );
+			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
+			/* do some cleanup */
+			return 1;
+		}
+		si->si_retryinterval[j] = (time_t)t;
+		if ( *retry_list[j*2+1] == '+' ) {
+			si->si_retrynum_init[j] = RETRYNUM_FOREVER;
+			si->si_retrynum[j] = RETRYNUM_FOREVER;
+			j++;
+			break;
+		} else {
+			if ( lutil_atoi( &si->si_retrynum_init[j], retry_list[j*2+1] ) != 0
+					|| si->si_retrynum_init[j] <= 0 )
+			{
+				snprintf( c->cr_msg, sizeof( c->cr_msg ),
+					"Error: invalid initial retry number \"%s\" (#%d)",
+					retry_list[j*2+1], j );
+				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
+				/* do some cleanup */
+				return 1;
+			}
+			if ( lutil_atoi( &si->si_retrynum[j], retry_list[j*2+1] ) != 0
+					|| si->si_retrynum[j] <= 0 )
+			{
+				snprintf( c->cr_msg, sizeof( c->cr_msg ),
+					"Error: invalid retry number \"%s\" (#%d)",
+					retry_list[j*2+1], j );
+				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
+				/* do some cleanup */
+				return 1;
+			}
+		}
+	}
+	si->si_retrynum_init[j] = RETRYNUM_TAIL;
+	si->si_retrynum[j] = RETRYNUM_TAIL;
+	si->si_retryinterval[j] = 0;
+	
+	for ( k = 0; retry_list && retry_list[k]; k++ ) {
+		ch_free( retry_list[k] );
+	}
+	ch_free( retry_list );
+	if ( !use_default ) {
+		si->si_got |= GOT_RETRY;
+	}
+
+	return 0;
+}
+
+static int
 parse_syncrepl_line(
 	ConfigArgs	*c,
 	syncinfo_t	*si )
 {
-	int	gots = 0;
 	int	i;
 	char	*val;
 
@@ -3525,13 +3633,13 @@ parse_syncrepl_line(
 			}
 			si->si_rid = tmp;
 			sprintf( si->si_ridtxt, IDSTR "=%03d", si->si_rid );
-			gots |= GOT_ID;
+			si->si_got |= GOT_RID;
 		} else if ( !strncasecmp( c->argv[ i ], PROVIDERSTR "=",
 					STRLENOF( PROVIDERSTR "=" ) ) )
 		{
 			val = c->argv[ i ] + STRLENOF( PROVIDERSTR "=" );
 			ber_str2bv( val, 0, 1, &si->si_bindconf.sb_uri );
-			gots |= GOT_PROVIDER;
+			si->si_got |= GOT_PROVIDER;
 		} else if ( !strncasecmp( c->argv[ i ], SCHEMASTR "=",
 					STRLENOF( SCHEMASTR "=" ) ) )
 		{
@@ -3543,6 +3651,7 @@ parse_syncrepl_line(
 			} else {
 				si->si_schemachecking = 1;
 			}
+			si->si_got |= GOT_SCHEMACHECKING;
 		} else if ( !strncasecmp( c->argv[ i ], FILTERSTR "=",
 					STRLENOF( FILTERSTR "=" ) ) )
 		{
@@ -3550,6 +3659,7 @@ parse_syncrepl_line(
 			if ( si->si_filterstr.bv_val )
 				ch_free( si->si_filterstr.bv_val );
 			ber_str2bv( val, 0, 1, &si->si_filterstr );
+			si->si_got |= GOT_FILTER;
 		} else if ( !strncasecmp( c->argv[ i ], LOGFILTERSTR "=",
 					STRLENOF( LOGFILTERSTR "=" ) ) )
 		{
@@ -3557,6 +3667,7 @@ parse_syncrepl_line(
 			if ( si->si_logfilterstr.bv_val )
 				ch_free( si->si_logfilterstr.bv_val );
 			ber_str2bv( val, 0, 1, &si->si_logfilterstr );
+			si->si_got |= GOT_LOGFILTER;
 		} else if ( !strncasecmp( c->argv[ i ], SEARCHBASESTR "=",
 					STRLENOF( SEARCHBASESTR "=" ) ) )
 		{
@@ -3585,7 +3696,7 @@ parse_syncrepl_line(
 				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
 				return -1;
 			}
-			gots |= GOT_BASE;
+			si->si_got |= GOT_SEARCHBASE;
 		} else if ( !strncasecmp( c->argv[ i ], LOGBASESTR "=",
 					STRLENOF( LOGBASESTR "=" ) ) )
 		{
@@ -3605,6 +3716,7 @@ parse_syncrepl_line(
 				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
 				return -1;
 			}
+			si->si_got |= GOT_LOGBASE;
 		} else if ( !strncasecmp( c->argv[ i ], SCOPESTR "=",
 					STRLENOF( SCOPESTR "=" ) ) )
 		{
@@ -3623,10 +3735,12 @@ parse_syncrepl_line(
 				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
 				return -1;
 			}
+			si->si_got |= GOT_SCOPE;
 		} else if ( !strncasecmp( c->argv[ i ], ATTRSONLYSTR,
 					STRLENOF( ATTRSONLYSTR ) ) )
 		{
 			si->si_attrsonly = 1;
+			si->si_got |= GOT_ATTRSONLY;
 		} else if ( !strncasecmp( c->argv[ i ], ATTRSSTR "=",
 					STRLENOF( ATTRSSTR "=" ) ) )
 		{
@@ -3663,6 +3777,7 @@ parse_syncrepl_line(
 					return -1;
 				}
 			}
+			si->si_got |= GOT_ATTRS;
 		} else if ( !strncasecmp( c->argv[ i ], EXATTRSSTR "=",
 					STRLENOF( EXATTRSSTR "=" ) ) )
 		{
@@ -3683,6 +3798,7 @@ parse_syncrepl_line(
 					return -1;
 				}
 			}
+			si->si_got |= GOT_EXATTRS;
 		} else if ( !strncasecmp( c->argv[ i ], TYPESTR "=",
 					STRLENOF( TYPESTR "=" ) ) )
 		{
@@ -3703,6 +3819,7 @@ parse_syncrepl_line(
 				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
 				return -1;
 			}
+			si->si_got |= GOT_TYPE;
 		} else if ( !strncasecmp( c->argv[ i ], INTERVALSTR "=",
 					STRLENOF( INTERVALSTR "=" ) ) )
 		{
@@ -3769,80 +3886,13 @@ parse_syncrepl_line(
 				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
 				return -1;
 			}
+			si->si_got |= GOT_INTERVAL;
 		} else if ( !strncasecmp( c->argv[ i ], RETRYSTR "=",
 					STRLENOF( RETRYSTR "=" ) ) )
 		{
-			char **retry_list;
-			int j, k, n;
-
-			val = c->argv[ i ] + STRLENOF( RETRYSTR "=" );
-			retry_list = (char **) ch_calloc( 1, sizeof( char * ) );
-			retry_list[0] = NULL;
-
-			slap_str2clist( &retry_list, val, " ,\t" );
-
-			for ( k = 0; retry_list && retry_list[k]; k++ ) ;
-			n = k / 2;
-			if ( k % 2 ) {
-				snprintf( c->cr_msg, sizeof( c->cr_msg ),
-					"Error: incomplete syncrepl retry list" );
-				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
-				for ( k = 0; retry_list && retry_list[k]; k++ ) {
-					ch_free( retry_list[k] );
-				}
-				ch_free( retry_list );
+			if ( parse_syncrepl_retry( c, c->argv[ i ], si ) ) {
 				return 1;
 			}
-			si->si_retryinterval = (time_t *) ch_calloc( n + 1, sizeof( time_t ) );
-			si->si_retrynum = (int *) ch_calloc( n + 1, sizeof( int ) );
-			si->si_retrynum_init = (int *) ch_calloc( n + 1, sizeof( int ) );
-			for ( j = 0; j < n; j++ ) {
-				unsigned long	t;
-				if ( lutil_atoul( &t, retry_list[j*2] ) != 0 ) {
-					snprintf( c->cr_msg, sizeof( c->cr_msg ),
-						"Error: invalid retry interval \"%s\" (#%d)",
-						retry_list[j*2], j );
-					Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
-					/* do some cleanup */
-					return 1;
-				}
-				si->si_retryinterval[j] = (time_t)t;
-				if ( *retry_list[j*2+1] == '+' ) {
-					si->si_retrynum_init[j] = RETRYNUM_FOREVER;
-					si->si_retrynum[j] = RETRYNUM_FOREVER;
-					j++;
-					break;
-				} else {
-					if ( lutil_atoi( &si->si_retrynum_init[j], retry_list[j*2+1] ) != 0
-							|| si->si_retrynum_init[j] <= 0 )
-					{
-						snprintf( c->cr_msg, sizeof( c->cr_msg ),
-							"Error: invalid initial retry number \"%s\" (#%d)",
-							retry_list[j*2+1], j );
-						Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
-						/* do some cleanup */
-						return 1;
-					}
-					if ( lutil_atoi( &si->si_retrynum[j], retry_list[j*2+1] ) != 0
-							|| si->si_retrynum[j] <= 0 )
-					{
-						snprintf( c->cr_msg, sizeof( c->cr_msg ),
-							"Error: invalid retry number \"%s\" (#%d)",
-							retry_list[j*2+1], j );
-						Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
-						/* do some cleanup */
-						return 1;
-					}
-				}
-			}
-			si->si_retrynum_init[j] = RETRYNUM_TAIL;
-			si->si_retrynum[j] = RETRYNUM_TAIL;
-			si->si_retryinterval[j] = 0;
-			
-			for ( k = 0; retry_list && retry_list[k]; k++ ) {
-				ch_free( retry_list[k] );
-			}
-			ch_free( retry_list );
 		} else if ( !strncasecmp( c->argv[ i ], MANAGEDSAITSTR "=",
 					STRLENOF( MANAGEDSAITSTR "=" ) ) )
 		{
@@ -3856,6 +3906,7 @@ parse_syncrepl_line(
 				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
 				return 1;
 			}
+			si->si_got |= GOT_MANAGEDSAIT;
 		} else if ( !strncasecmp( c->argv[ i ], SLIMITSTR "=",
 					STRLENOF( SLIMITSTR "=") ) )
 		{
@@ -3870,6 +3921,7 @@ parse_syncrepl_line(
 				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
 				return 1;
 			}
+			si->si_got |= GOT_SLIMIT;
 		} else if ( !strncasecmp( c->argv[ i ], TLIMITSTR "=",
 					STRLENOF( TLIMITSTR "=" ) ) )
 		{
@@ -3884,11 +3936,13 @@ parse_syncrepl_line(
 				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
 				return 1;
 			}
+			si->si_got |= GOT_TLIMIT;
 		} else if ( !strncasecmp( c->argv[ i ], SYNCDATASTR "=",
 					STRLENOF( SYNCDATASTR "=" ) ) )
 		{
 			val = c->argv[ i ] + STRLENOF( SYNCDATASTR "=" );
 			si->si_syncdata = verb_to_mask( val, datamodes );
+			si->si_got |= GOT_SYNCDATA;
 		} else if ( bindconf_parse( c->argv[i], &si->si_bindconf ) ) {
 			snprintf( c->cr_msg, sizeof( c->cr_msg ),
 				"Error: parse_syncrepl_line: "
@@ -3896,21 +3950,27 @@ parse_syncrepl_line(
 			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
 			return -1;
 		}
+		si->si_got |= GOT_BINDCONF;
 	}
 
-	if ( gots != GOT_ALL ) {
+	if ( ( si->si_got & GOT_REQUIRED ) != GOT_REQUIRED ) {
 		snprintf( c->cr_msg, sizeof( c->cr_msg ),
 			"Error: Malformed \"syncrepl\" line in slapd config file, missing%s%s%s",
-			gots & GOT_ID ? "" : " "IDSTR,
-			gots & GOT_PROVIDER ? "" : " "PROVIDERSTR,
-			gots & GOT_BASE ? "" : " "SEARCHBASESTR );
+			si->si_got & GOT_RID ? "" : " "IDSTR,
+			si->si_got & GOT_PROVIDER ? "" : " "PROVIDERSTR,
+			si->si_got & GOT_SEARCHBASE ? "" : " "SEARCHBASESTR );
 		Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
 		return -1;
 	}
 
-	if ( si->si_retryinterval == NULL ) {
-		Debug( LDAP_DEBUG_ANY, "syncrepl %s " SEARCHBASESTR "=\"%s\": no retry defined\n", 
+	if ( !( si->si_got & GOT_RETRY ) ) {
+		Debug( LDAP_DEBUG_ANY, "syncrepl %s " SEARCHBASESTR "=\"%s\": no retry defined, using default\n", 
 			si->si_ridtxt, c->be->be_suffix ? c->be->be_suffix[ 0 ].bv_val : "(null)", 0 );
+		if ( si->si_retryinterval == NULL ) {
+			if ( parse_syncrepl_retry( c, "retry=undefined", si ) ) {
+				return 1;
+			}
+		}
 	}
 
 	return 0;
@@ -4176,7 +4236,9 @@ syncrepl_unparse( syncinfo_t *si, struct berval *bv )
 			INTERVALSTR, dd, hh, mm, ss );
 		if ( len >= WHATSLEFT ) return;
 		ptr += len;
-	} else if ( si->si_retryinterval ) {
+	}
+
+	if ( si->si_got & GOT_RETRY ) {
 		const char *space = "";
 		if ( WHATSLEFT <= STRLENOF( " " RETRYSTR "=\"" "\"" ) ) return;
 		ptr = lutil_strcopy( ptr, " " RETRYSTR "=\"" );
@@ -4196,6 +4258,8 @@ syncrepl_unparse( syncinfo_t *si, struct berval *bv )
 		}
 		if ( WHATSLEFT <= STRLENOF( "\"" ) ) return;
 		*ptr++ = '"';
+	} else {
+		ptr = lutil_strcopy( ptr, " " RETRYSTR "=undefined" );
 	}
 
 	if ( si->si_slimit ) {

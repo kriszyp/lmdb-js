@@ -1694,6 +1694,9 @@ For example, retry="60 10 300 3" lets the consumer retry every 60 seconds
 for the first 10 times and then retry every 300 seconds for the next 3
 times before stop retrying. The `+' in <# of retries> means indefinite
 number of retries until success.
+If no 
+.B retry
+was specified, by default syncrepl retries every hour forever.
 
 The schema checking can be enforced at the LDAP Sync
 consumer site by turning on the
