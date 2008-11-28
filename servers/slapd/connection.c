@@ -225,8 +225,11 @@ int connections_timeout_idle(time_t now)
 		c = connection_next( c, &connindex ) )
 	{
 		/* Don't timeout a slow-running request or a persistent
-		 * outbound connection */
-		if( c->c_n_ops_executing || c->c_conn_state == SLAP_C_CLIENT ) {
+		 * outbound connection. But if it has a writewaiter, see
+		 * if the waiter has been there too long.
+		 */
+		if(( c->c_n_ops_executing && !c->c_writewaiter)
+			|| c->c_conn_state == SLAP_C_CLIENT ) {
 			continue;
 		}
 
