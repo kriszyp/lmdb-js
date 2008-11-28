@@ -66,7 +66,8 @@ static slap_control_t slap_acl_mask(
 	slap_access_t access );
 
 static int	regex_matches(
-	struct berval *pat, char *str, char *buf,
+	struct berval *pat, char *str,
+	struct berval *dn_matches, struct berval *val_matches,
 	AclRegexMatches *matches);
 
 typedef	struct AclSetCookie {
@@ -843,7 +844,7 @@ acl_mask_dn(
 			}
 
 			if ( !regex_matches( &bdn->a_pat, opndn->bv_val,
-				e->e_ndn, tmp_matchesp ) )
+				&e->e_nname, NULL, tmp_matchesp ) )
 			{
 				return 1;
 			}
@@ -910,8 +911,8 @@ acl_mask_dn(
 			}
 
 			if ( acl_string_expand( &bv, &bdn->a_pat, 
-						e->e_nname.bv_val, 
-						val ? val->bv_val : NULL, tmp_matchesp ) )
+						&e->e_nname, 
+						val, tmp_matchesp ) )
 			{
 				return 1;
 			}
@@ -1227,8 +1228,8 @@ slap_acl_mask(
 
 			if ( !ber_bvccmp( &b->a_sockurl_pat, '*' ) ) {
 				if ( b->a_sockurl_style == ACL_STYLE_REGEX) {
-					if (!regex_matches( &b->a_sockurl_pat, op->o_conn->c_listener_url.bv_val,
-							e->e_ndn, matches ) ) 
+					if ( !regex_matches( &b->a_sockurl_pat, op->o_conn->c_listener_url.bv_val,
+							&e->e_nname, val, matches ) ) 
 					{
 						continue;
 					}
@@ -1239,7 +1240,7 @@ slap_acl_mask(
 
 					bv.bv_len = sizeof( buf ) - 1;
 					bv.bv_val = buf;
-					if ( acl_string_expand( &bv, &b->a_sockurl_pat, e->e_ndn, val->bv_val, matches ) )
+					if ( acl_string_expand( &bv, &b->a_sockurl_pat, &e->e_nname, val, matches ) )
 					{
 						continue;
 					}
@@ -1266,8 +1267,8 @@ slap_acl_mask(
 				b->a_domain_pat.bv_val, 0, 0 );
 			if ( !ber_bvccmp( &b->a_domain_pat, '*' ) ) {
 				if ( b->a_domain_style == ACL_STYLE_REGEX) {
-					if (!regex_matches( &b->a_domain_pat, op->o_conn->c_peer_domain.bv_val,
-							e->e_ndn, matches ) ) 
+					if ( !regex_matches( &b->a_domain_pat, op->o_conn->c_peer_domain.bv_val,
+							&e->e_nname, val, matches ) ) 
 					{
 						continue;
 					}
@@ -1283,7 +1284,7 @@ slap_acl_mask(
 						bv.bv_len = sizeof(buf) - 1;
 						bv.bv_val = buf;
 
-						if ( acl_string_expand(&bv, &b->a_domain_pat, e->e_ndn, val->bv_val, matches) )
+						if ( acl_string_expand(&bv, &b->a_domain_pat, &e->e_nname, val, matches) )
 						{
 							continue;
 						}
@@ -1320,8 +1321,8 @@ slap_acl_mask(
 				b->a_peername_pat.bv_val, 0, 0 );
 			if ( !ber_bvccmp( &b->a_peername_pat, '*' ) ) {
 				if ( b->a_peername_style == ACL_STYLE_REGEX ) {
-					if (!regex_matches( &b->a_peername_pat, op->o_conn->c_peer_name.bv_val,
-							e->e_ndn, matches ) ) 
+					if ( !regex_matches( &b->a_peername_pat, op->o_conn->c_peer_name.bv_val,
+							&e->e_nname, val, matches ) ) 
 					{
 						continue;
 					}
@@ -1339,7 +1340,7 @@ slap_acl_mask(
 
 						bv.bv_len = sizeof( buf ) - 1;
 						bv.bv_val = buf;
-						if ( acl_string_expand( &bv, &b->a_peername_pat, e->e_ndn, val->bv_val, matches ) )
+						if ( acl_string_expand( &bv, &b->a_peername_pat, &e->e_nname, val, matches ) )
 						{
 							continue;
 						}
@@ -1472,8 +1473,8 @@ slap_acl_mask(
 				b->a_sockname_pat.bv_val, 0, 0 );
 			if ( !ber_bvccmp( &b->a_sockname_pat, '*' ) ) {
 				if ( b->a_sockname_style == ACL_STYLE_REGEX) {
-					if (!regex_matches( &b->a_sockname_pat, op->o_conn->c_sock_name.bv_val,
-							e->e_ndn, matches ) ) 
+					if ( !regex_matches( &b->a_sockname_pat, op->o_conn->c_sock_name.bv_val,
+							&e->e_nname, val, matches ) ) 
 					{
 						continue;
 					}
@@ -1484,7 +1485,7 @@ slap_acl_mask(
 
 					bv.bv_len = sizeof( buf ) - 1;
 					bv.bv_val = buf;
-					if ( acl_string_expand( &bv, &b->a_sockname_pat, e->e_ndn, val->bv_val, matches ) )
+					if ( acl_string_expand( &bv, &b->a_sockname_pat, &e->e_nname, val, matches ) )
 					{
 						continue;
 					}
@@ -1597,7 +1598,7 @@ slap_acl_mask(
 				}
 				
 				if ( acl_string_expand( &bv, &b->a_group_pat,
-						e->e_nname.bv_val, val->bv_val,
+						&e->e_nname, val,
 						tmp_matchesp ) )
 				{
 					continue;
@@ -1685,7 +1686,7 @@ slap_acl_mask(
 				}
 				
 				if ( acl_string_expand( &bv, &b->a_set_pat,
-						e->e_nname.bv_val, val->bv_val,
+						&e->e_nname, val,
 						tmp_matchesp ) )
 				{
 					continue;
@@ -2508,8 +2509,8 @@ int
 acl_string_expand(
 	struct berval	*bv,
 	struct berval	*pat,
-	char		*dn_match,
-	char		*val_match,
+	struct berval	*dn_matches,
+	struct berval	*val_matches,
 	AclRegexMatches	*matches)
 {
 	ber_len_t	size;
@@ -2571,13 +2572,15 @@ acl_string_expand(
 				case DN_FLAG:
 					nm = matches->dn_count;
 					m = matches->dn_data;
-					data = dn_match;
+					data = dn_matches ? dn_matches->bv_val : NULL;
 					break;
 				case VAL_FLAG:
 					nm = matches->val_count;
 					m = matches->val_data;
-					data = val_match;
+					data = val_matches ? val_matches->bv_val : NULL;
 					break;
+				default:
+					assert( 0 );
 				}
 				if ( n >= nm ) {
 					/* FIXME: error */
@@ -2629,7 +2632,8 @@ static int
 regex_matches(
 	struct berval	*pat,		/* pattern to expand and match against */
 	char		*str,		/* string to match against pattern */
-	char		*buf,		/* buffer with $N expansion variables */
+	struct berval	*dn_matches,	/* buffer with $N expansion variables from DN */
+	struct berval	*val_matches,	/* buffer with $N expansion variables from val */
 	AclRegexMatches	*matches	/* offsets in buffer for $N expansion variables */
 )
 {
@@ -2645,7 +2649,7 @@ regex_matches(
 		str = "";
 	};
 
-	acl_string_expand( &bv, pat, buf, NULL, matches );
+	acl_string_expand( &bv, pat, dn_matches, val_matches, matches );
 	rc = regcomp( &re, newbuf, REG_EXTENDED|REG_ICASE );
 	if ( rc ) {
 		char error[ACL_BUF_SIZE];

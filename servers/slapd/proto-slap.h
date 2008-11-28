@@ -93,7 +93,7 @@ LDAP_SLAPD_F (int) acl_match_set LDAP_P((
 	struct berval *default_set_attribute ));
 LDAP_SLAPD_F (int) acl_string_expand LDAP_P((
 	struct berval *newbuf, struct berval *pattern,
-	char *dnmatch, char *valmatch, AclRegexMatches *matches ));
+	struct berval *dnmatch, struct berval *valmatch, AclRegexMatches *matches ));
 
 /*
  * aclparse.c
