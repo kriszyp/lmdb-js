@@ -355,8 +355,9 @@ modifyDN             modify
 modifyAttrDN         modify AVA (DN portion of "ref" excluded)
 referralAttrDN       add/modify DN portion of referrals
                      (default to none)
-modrDN               modrdn
-newSuperiorDN        modrdn
+renameDN             modrdn (the old DN)
+newSuperiorDN        modrdn (the new parent DN, if any)
+newRDN               modrdn (the new relative DN)
 deleteDN             delete
 exopPasswdDN         password modify extended operation DN
 .fi

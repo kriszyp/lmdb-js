@@ -96,6 +96,12 @@ rwm_op_rollback( Operation *op, SlapReply *rs, rwm_op_state *ros )
 			op->orr_newSup = ros->orr_newSup;
 			op->orr_nnewSup = ros->orr_nnewSup;
 		}
+		if ( op->orr_newrdn.bv_val != ros->orr_newrdn.bv_val ) {
+			ch_free( op->orr_newrdn.bv_val );
+			ch_free( op->orr_nnewrdn.bv_val );
+			op->orr_newrdn = ros->orr_newrdn;
+			op->orr_nnewrdn = ros->orr_nnewrdn;
+		}
 		break;
 	case LDAP_REQ_SEARCH:
 		ch_free( ros->mapped_attrs );
@@ -684,11 +690,11 @@ rwm_op_modrdn( Operation *op, SlapReply *rs )
 			(struct ldaprwmap *)on->on_bi.bi_private;
 	
 	int			rc;
+	dncookie		dc;
 
 	rwm_op_cb		*roc = rwm_callback_get( op, rs );
 
 	if ( op->orr_newSup ) {
-		dncookie	dc;
 		struct berval	nnewSup = BER_BVNULL;
 		struct berval	newSup = BER_BVNULL;
 
@@ -719,12 +725,47 @@ rwm_op_modrdn( Operation *op, SlapReply *rs )
 	}
 
 	/*
+	 * Rewrite the newRDN, if needed
+ 	 */
+	{
+		struct berval	newrdn = BER_BVNULL;
+		struct berval	nnewrdn = BER_BVNULL;
+
+		dc.rwmap = rwmap;
+		dc.conn = op->o_conn;
+		dc.rs = rs;
+		dc.ctx = "newRDN";
+		newrdn = op->orr_newrdn;
+		nnewrdn = op->orr_nnewrdn;
+		rc = rwm_dn_massage_pretty_normalize( &dc, &op->orr_newrdn, &newrdn, &nnewrdn );
+		if ( rc != LDAP_SUCCESS ) {
+			op->o_bd->bd_info = (BackendInfo *)on->on_info;
+			send_ldap_error( op, rs, rc, "newRDN massage error" );
+			goto err;
+		}
+
+		if ( op->orr_newrdn.bv_val != newrdn.bv_val ) {
+			op->orr_newrdn = newrdn;
+			op->orr_nnewrdn = nnewrdn;
+		}
+	}
+
+	/*
 	 * Rewrite the dn, if needed
  	 */
 	rc = rwm_op_dn_massage( op, rs, "renameDN", &roc->ros );
 	if ( rc != LDAP_SUCCESS ) {
 		op->o_bd->bd_info = (BackendInfo *)on->on_info;
 		send_ldap_error( op, rs, rc, "renameDN massage error" );
+		goto err;
+	}
+
+	op->o_callback = &roc->cb;
+
+	rc = SLAP_CB_CONTINUE;
+
+	if ( 0 ) {
+err:;
 		if ( op->orr_newSup != roc->ros.orr_newSup ) {
 			ch_free( op->orr_newSup->bv_val );
 			ch_free( op->orr_nnewSup->bv_val );
@@ -733,15 +774,16 @@ rwm_op_modrdn( Operation *op, SlapReply *rs )
 			op->orr_newSup = roc->ros.orr_newSup;
 			op->orr_nnewSup = roc->ros.orr_nnewSup;
 		}
-		return -1;
+
+		if ( op->orr_newrdn.bv_val != roc->ros.orr_newrdn.bv_val ) {
+			ch_free( op->orr_newrdn.bv_val );
+			ch_free( op->orr_nnewrdn.bv_val );
+			op->orr_newrdn = roc->ros.orr_newrdn;
+			op->orr_nnewrdn = roc->ros.orr_nnewrdn;
+		}
 	}
 
-	/* TODO: rewrite newRDN, attribute types, 
-	 * values of DN-valued attributes (hopefully not used in RDN)... */
-
-	op->o_callback = &roc->cb;
-
-	return SLAP_CB_CONTINUE;
+	return rc;
 }
 
 
