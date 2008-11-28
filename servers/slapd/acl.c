@@ -911,7 +911,7 @@ acl_mask_dn(
 
 			if ( acl_string_expand( &bv, &bdn->a_pat, 
 						e->e_nname.bv_val, 
-						val->bv_val, tmp_matchesp ) )
+						val ? val->bv_val : NULL, tmp_matchesp ) )
 			{
 				return 1;
 			}
