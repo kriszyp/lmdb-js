@@ -400,11 +400,15 @@ aci_group_member (
 	if ( grp_oc != NULL && grp_ad != NULL ) {
 		char		buf[ ACI_BUF_SIZE ];
 		struct berval	bv, ndn;
+		AclRegexMatches amatches = { 0 };
+
+		amatches.dn_count = nmatch;
+		AC_MEMCPY( amatches.dn_data, matches, sizeof( amatches.dn_data ) );
 
 		bv.bv_len = sizeof( buf ) - 1;
 		bv.bv_val = (char *)&buf;
 		if ( acl_string_expand( &bv, &subjdn,
-				e->e_ndn, nmatch, matches ) )
+				&e->e_nname, NULL, &amatches ) )
 		{
 			rc = LDAP_OTHER;
 			goto done;
