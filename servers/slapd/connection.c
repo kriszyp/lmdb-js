@@ -268,7 +268,7 @@ static Connection* connection_get( ber_socket_t s )
 			assert( c->c_conn_state == SLAP_C_INVALID );
 			assert( c->c_sd == AC_SOCKET_INVALID );
 
-			Debug( LDAP_DEBUG_TRACE,
+			Debug( LDAP_DEBUG_CONNS,
 				"connection_get(%d): connection not used\n",
 				s, 0, 0 );
 
@@ -738,7 +738,7 @@ void connection_closing( Connection *c, const char *why )
 	/* c_mutex must be locked by caller */
 
 	if( c->c_conn_state != SLAP_C_CLOSING ) {
-		Debug( LDAP_DEBUG_TRACE,
+		Debug( LDAP_DEBUG_CONNS,
 			"connection_closing: readying conn=%lu sd=%d for close\n",
 			c->c_connid, c->c_sd, 0 );
 		/* update state to closing */
@@ -791,7 +791,7 @@ connection_close( Connection *c )
 	if ( !LDAP_STAILQ_EMPTY(&c->c_ops) ||
 		!LDAP_STAILQ_EMPTY(&c->c_pending_ops) )
 	{
-		Debug( LDAP_DEBUG_TRACE,
+		Debug( LDAP_DEBUG_CONNS,
 			"connection_close: deferring conn=%lu sd=%d\n",
 			c->c_connid, c->c_sd, 0 );
 		return;
@@ -1268,7 +1268,7 @@ connection_read( ber_socket_t s, conn_readinfo *cri )
 	c->c_n_read++;
 
 	if( c->c_conn_state == SLAP_C_CLOSING ) {
-		Debug( LDAP_DEBUG_TRACE,
+		Debug( LDAP_DEBUG_CONNS,
 			"connection_read(%d): closing, ignoring input for id=%lu\n",
 			s, c->c_connid, 0 );
 		connection_return( c );
@@ -1630,7 +1630,7 @@ connection_resched( Connection *conn )
 		return 0;
 
 	if( conn->c_conn_state == SLAP_C_CLOSING ) {
-		Debug( LDAP_DEBUG_TRACE, "connection_resched: "
+		Debug( LDAP_DEBUG_CONNS, "connection_resched: "
 			"attempting closing conn=%lu sd=%d\n",
 			conn->c_connid, conn->c_sd, 0 );
 		connection_close( conn );
