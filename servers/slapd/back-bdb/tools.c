@@ -522,9 +522,7 @@ ID bdb_tool_entry_put(
 	}
 
 	if (( slapMode & SLAP_TOOL_QUICK ) && (( e->e_id & 0xfff ) == 0xfff )) {
-		ldap_pvt_thread_mutex_lock( &bdb_tool_trickle_mutex );
 		ldap_pvt_thread_cond_signal( &bdb_tool_trickle_cond );
-		ldap_pvt_thread_mutex_unlock( &bdb_tool_trickle_mutex );
 	}
 
 	if ( !bdb->bi_linear_index )
