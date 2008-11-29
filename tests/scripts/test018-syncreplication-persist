@@ -148,6 +148,9 @@ for i in 0 1 2 3 4 5; do
 	sleep 5
 done
 
+echo "Waiting $SLEEP1 seconds for consumer to reconnect..."
+sleep $SLEEP1
+
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
