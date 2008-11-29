@@ -2228,23 +2228,18 @@ retry_add:;
 				goto done;
 			}
 
-			/* Drop the RDN mods from this op:
+			/* Drop the RDN-related mods from this op, because their
+			 * equivalents were just setup by slap_modrdn2mods.
+			 *
 			 * If delOldRDN is TRUE then we should see a delete modop
-			 * for oldDesc. The valid cases are:
-			 *  oldNattr had only one value, newDesc == oldDesc:
-			 *    we'll see a replace modop for oldDesc
-			 *  oldNattr had only one value, newDesc != oldDesc:
-			 *    we'll see a delete modop for oldDesc with no values
-			 *  oldNattr had multiple values:
-			 *    we'll see a delete modop for oldDesc / old RDN value
-			 *
-			 * If the modop has only one value, just drop it; it's already
-			 * present in orr_modlist. Otherwise, if we see a delete for
-			 * oldDesc with more values, we must remove the old RDN value
-			 * from that modop since it's already in orr_modlist.
-			 *
-			 * Likewise if we see a replace on oldDesc with multiple values,
-			 * we must drop the new RDN value and turn it into an add.
+			 * for oldDesc. We might see a replace instead.
+			 *  delete with no values: therefore newDesc != oldDesc.
+			 *   if oldNattr had only one value, then Drop this op.
+			 *  delete with 1 value: can only be the oldRDN value. Drop op.
+			 *  delete with N values: Drop oldRDN value, keep remainder.
+			 *  replace with 1 value: if oldNattr had only one value and
+			 *     newDesc == oldDesc, Drop this op.
+			 * Any other cases must be left intact.
 			 *
 			 * We should also see an add modop for newDesc. (But not if
 			 * we got a replace modop due to delOldRDN.) If it has
@@ -2254,7 +2249,6 @@ retry_add:;
 			if ( dni.delOldRDN ) {
 				for ( ml = &dni.mods; *ml; ml = &(*ml)->sml_next ) {
 					if ( (*ml)->sml_desc == dni.oldDesc ) {
-						short sm_op;
 						mod = *ml;
 						if ( mod->sml_op == LDAP_MOD_REPLACE &&
 							dni.oldDesc != dni.newDesc ) {
@@ -2267,27 +2261,19 @@ retry_add:;
 							dni.oldNattr->a_numvals == 1 &&
 							( mod->sml_op == LDAP_MOD_DELETE ||
 							  mod->sml_op == LDAP_MOD_REPLACE )) {
+							if ( mod->sml_op == LDAP_MOD_REPLACE )
+								got_replace = 1;
 							/* Drop this op */
 							*ml = mod->sml_next;
 							mod->sml_next = NULL;
 							slap_mods_free( mod, 1 );
-							if ( mod->sml_op == LDAP_MOD_REPLACE )
-								got_replace = 1;
 							break;
 						}
-						if ( mod->sml_op == LDAP_MOD_ADD )
+						if ( mod->sml_op != LDAP_MOD_DELETE || mod->sml_numvals == 0 )
 							continue;
-						if ( mod->sml_op == LDAP_MOD_DELETE && mod->sml_numvals == 0 )
-							continue;
-						if ( mod->sml_op == LDAP_MOD_REPLACE ) {
-							got_replace = 1;
-							sm_op = SLAP_MOD_SOFTADD;
-						} else {
-							sm_op = LDAP_MOD_DELETE;
-						}
 						for ( m2 = op->orr_modlist; m2; m2=m2->sml_next ) {
 							if ( m2->sml_desc == dni.oldDesc &&
-								m2->sml_op == sm_op ) break;
+								m2->sml_op == LDAP_MOD_DELETE ) break;
 						}
 						for ( i=0; i<mod->sml_numvals; i++ ) {
 							if ( bvmatch( &mod->sml_values[i], &m2->sml_values[0] )) {
