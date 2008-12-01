@@ -2,6 +2,7 @@ OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.14 Engineering
 	Fixed libldap_r deref building (ITS#5768)
+	Fixed slapd syncrepl rename handling (ITS#5809)
 
 OpenLDAP 2.4.13 Release (2008/11/24)
 	Added libldap dereference control support (ITS#5768)
