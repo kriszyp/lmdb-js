@@ -2207,7 +2207,7 @@ retry_add:;
 		if ( dni.renamed ) {
 			struct berval noldp, newp;
 			Modifications *mod, **modtail, **ml, *m2;
-			int i, got_replace = 0;
+			int i, got_replace = 0, just_rename = 0;
 
 			op->o_tag = LDAP_REQ_MODRDN;
 			dnRdn( &entry->e_name, &op->orr_newrdn );
@@ -2367,8 +2367,12 @@ retry_add:;
 				 */
 				if ( dni.mods ) {
 					mod = dni.mods;
+					/* don't set a CSN for the rename op */
+					if ( syncCSN )
+						slap_graduate_commit_csn( op );
 				} else {
 					mod = op->orr_modlist;
+					just_rename = 1;
 				}
 				for ( ; mod->sml_next; mod=mod->sml_next );
 				mod->sml_next = m2;
@@ -2386,6 +2390,9 @@ retry_add:;
 			/* Renamed entries may still have other mods so just fallthru */
 			op->o_req_dn = entry->e_name;
 			op->o_req_ndn = entry->e_nname;
+			/* Use CSN on the modify */
+			if ( syncCSN && !just_rename )
+				slap_queue_csn( op, syncCSN );
 		}
 		if ( dni.mods ) {
 			op->o_tag = LDAP_REQ_MODIFY;
