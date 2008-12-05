@@ -1735,6 +1735,7 @@ tls_get_cert_dn( tls_session *session, struct berval *dnbv )
 	xn = X509_get_subject_name(x);
 	dnbv->bv_len = i2d_X509_NAME( xn, NULL );
 	dnbv->bv_val = xn->bytes->data;
+	X509_free(x);
 	return 0;
 }
 #endif /* HAVE_GNUTLS */
