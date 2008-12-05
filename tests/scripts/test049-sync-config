@@ -22,7 +22,7 @@ if test $SYNCPROV = syncprovno; then
 fi 
 
 PRODIR=$TESTDIR/pro
-CONDIR=$TESTDIR/con
+CONDIR=$TESTDIR/con1
 DBPRO=$PRODIR/db
 DBCON=$CONDIR/db
 CFPRO=$PRODIR/slapd.d
