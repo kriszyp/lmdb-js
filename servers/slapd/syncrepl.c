@@ -4539,7 +4539,7 @@ syncrepl_config( ConfigArgs *c )
 			}
 		}
 		if ( !c->be->be_syncinfo ) {
-			SLAP_DBFLAGS( c->be ) &= ~(SLAP_DBFLAG_SHADOW|SLAP_DBFLAG_SYNC_SHADOW);
+			SLAP_DBFLAGS( c->be ) &= ~SLAP_DBFLAG_SHADOW_MASK;
 			if ( cs ) {
 				ber_bvarray_free( cs->cs_vals );
 				ldap_pvt_thread_mutex_destroy( &cs->cs_mutex );
