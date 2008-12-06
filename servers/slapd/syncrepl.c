@@ -724,7 +724,6 @@ do_syncrep2(
 	syncinfo_t *si )
 {
 	LDAPControl	**rctrls = NULL;
-	LDAPControl	*rctrlp;
 
 	BerElementBuffer berbuf;
 	BerElement	*ber = (BerElement *)&berbuf;
@@ -781,6 +780,8 @@ do_syncrep2(
 	while ( ( rc = ldap_result( si->si_ld, si->si_msgid, LDAP_MSG_ONE,
 		tout_p, &msg ) ) > 0 )
 	{
+		LDAPControl	*rctrlp = NULL;
+
 		if ( slapd_shutdown ) {
 			rc = -2;
 			goto done;
@@ -789,18 +790,22 @@ do_syncrep2(
 		case LDAP_RES_SEARCH_ENTRY:
 			ldap_get_entry_controls( si->si_ld, msg, &rctrls );
 			/* we can't work without the control */
-			rctrlp = NULL;
 			if ( rctrls ) {
 				LDAPControl **next;
 				/* NOTE: make sure we use the right one;
 				 * a better approach would be to run thru
 				 * the whole list and take care of all */
+				/* NOTE: since we issue the search request,
+				 * we should know what controls to expect,
+				 * and there should be none apart from the
+				 * sync-related control */
 				rctrlp = ldap_control_find( LDAP_CONTROL_SYNC_STATE, rctrls, &next );
 				if ( next && ldap_control_find( LDAP_CONTROL_SYNC_STATE, next, NULL ) )
 				{
 					Debug( LDAP_DEBUG_ANY, "do_syncrep2: %s "
 						"got search entry with multiple "
 						"Sync State control\n", si->si_ridtxt, 0, 0 );
+					ldap_controls_free( rctrls );
 					rc = -1;
 					goto done;
 				}
@@ -921,7 +926,26 @@ do_syncrep2(
 					si->si_ridtxt, err, ldap_err2string( err ) );
 			}
 			if ( rctrls ) {
-				rctrlp = *rctrls;
+				LDAPControl **next;
+				/* NOTE: make sure we use the right one;
+				 * a better approach would be to run thru
+				 * the whole list and take care of all */
+				/* NOTE: since we issue the search request,
+				 * we should know what controls to expect,
+				 * and there should be none apart from the
+				 * sync-related control */
+				rctrlp = ldap_control_find( LDAP_CONTROL_SYNC_DONE, rctrls, &next );
+				if ( next && ldap_control_find( LDAP_CONTROL_SYNC_DONE, next, NULL ) )
+				{
+					Debug( LDAP_DEBUG_ANY, "do_syncrep2: %s "
+						"got search result with multiple "
+						"Sync State control\n", si->si_ridtxt, 0, 0 );
+					ldap_controls_free( rctrls );
+					rc = -1;
+					goto done;
+				}
+			}
+			if ( rctrlp ) {
 				ber_init2( ber, &rctrlp->ldctl_value, LBER_USE_DER );
 
 				ber_scanf( ber, "{" /*"}"*/);
