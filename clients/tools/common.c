@@ -251,6 +251,14 @@ tool_destroy( void )
 		pr_cookie.bv_val = NULL;
 		pr_cookie.bv_len = 0;
 	}
+
+	if ( binddn != NULL ) {
+		ber_memfree( binddn );
+	}
+
+	if ( passwd.bv_val != NULL ) {
+		ber_memfree( passwd.bv_val );
+	}
 }
 
 void
