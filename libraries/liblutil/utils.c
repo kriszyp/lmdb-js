@@ -439,6 +439,21 @@ lutil_strncopy(
 	return a-1;
 }
 
+/* memcopy is like memcpy except it returns a pointer to the byte past
+ * the end of the result buffer, set to NULL. This allows fast construction
+ * of catenated buffers.  Provided for API consistency with lutil_str*copy().
+ */
+char *
+lutil_memcopy(
+	char *a,
+	const char *b,
+	size_t n
+)
+{
+	AC_MEMCPY(a, b, n);
+	return a + n;
+}
+
 #ifndef HAVE_MKSTEMP
 int mkstemp( char * template )
 {
