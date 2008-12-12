@@ -1637,8 +1637,6 @@ ldap_back_op_result(
 	char		**refs = NULL;
 	LDAPControl	**ctrls = NULL;
 
-#define	ERR_OK(err) ((err) == LDAP_SUCCESS || (err) == LDAP_COMPARE_FALSE || (err) == LDAP_COMPARE_TRUE)
-
 	rs->sr_text = NULL;
 	rs->sr_matched = NULL;
 	rs->sr_ref = NULL;
@@ -1647,7 +1645,7 @@ ldap_back_op_result(
 	/* if the error recorded in the reply corresponds
 	 * to a successful state, get the error from the
 	 * remote server response */
-	if ( ERR_OK( rs->sr_err ) ) {
+	if ( LDAP_ERR_OK( rs->sr_err ) ) {
 		int		rc;
 		struct timeval	tv;
 		LDAPMessage	*res = NULL;
@@ -1800,7 +1798,7 @@ retry:;
 	/* if the error in the reply structure is not
 	 * LDAP_SUCCESS, try to map it from client 
 	 * to server error */
-	if ( !ERR_OK( rs->sr_err ) ) {
+	if ( !LDAP_ERR_OK( rs->sr_err ) ) {
 		rs->sr_err = slap_map_api2result( rs );
 
 		/* internal ops ( op->o_conn == NULL ) 
@@ -1825,8 +1823,8 @@ retry:;
 		}
 
 	} else if ( op->o_conn &&
-		( ( ( sendok & LDAP_BACK_SENDOK ) && ERR_OK( rs->sr_err ) )
-			|| ( ( sendok & LDAP_BACK_SENDERR ) && rs->sr_err != LDAP_SUCCESS ) ) )
+		( ( ( sendok & LDAP_BACK_SENDOK ) && LDAP_ERR_OK( rs->sr_err ) )
+			|| ( ( sendok & LDAP_BACK_SENDERR ) && !LDAP_ERR_OK( rs->sr_err ) ) ) )
 	{
 		send_ldap_result( op, rs );
 	}
@@ -1859,7 +1857,7 @@ retry:;
 		rs->sr_ctrls = NULL;
 	}
 
-	return( ERR_OK( rs->sr_err ) ? LDAP_SUCCESS : rs->sr_err );
+	return( LDAP_ERR_OK( rs->sr_err ) ? LDAP_SUCCESS : rs->sr_err );
 }
 
 /* return true if bound, false if failed */
