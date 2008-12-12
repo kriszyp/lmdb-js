@@ -195,6 +195,9 @@ lutil_strcopy LDAP_P(( char *dst, const char *src ));
 LDAP_LUTIL_F( char* )
 lutil_strncopy LDAP_P(( char *dst, const char *src, size_t n ));
 
+LDAP_LUTIL_F( char* )
+lutil_memcopy LDAP_P(( char *dst, const char *src, size_t n ));
+
 struct tm;
 
 /* use this macro to statically allocate buffer for lutil_gentime */

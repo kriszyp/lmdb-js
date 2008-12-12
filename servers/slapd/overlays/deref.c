@@ -466,7 +466,7 @@ deref_response( Operation *op, SlapReply *rs )
 		ctrl->ldctl_oid = LDAP_CONTROL_X_DEREF;
 		ctrl->ldctl_iscritical = 0;
 		ctrl->ldctl_value.bv_len = ctrlval.bv_len;
-		lutil_strncopy( ctrl->ldctl_value.bv_val, ctrlval.bv_val, ctrlval.bv_len );
+		AC_MEMCPY( ctrl->ldctl_value.bv_val, ctrlval.bv_val, ctrlval.bv_len );
 		ctrl->ldctl_value.bv_val[ ctrl->ldctl_value.bv_len ] = '\0';
 
 		ber_free_buf( ber );

@@ -511,12 +511,18 @@ handle_private_option( int i )
 			 */
 
 			specs = ldap_str2charray( cvalue, ";" );
+			if ( specs == NULL ) {
+				fprintf( stderr, _("deref specs \"%s\" invalid\n"),
+					cvalue );
+				exit( EXIT_FAILURE );
+			}
 			for ( ispecs = 0; specs[ ispecs ] != NULL; ispecs++ )
 				/* count'em */
 
 			ds = ldap_memcalloc( ispecs + 1, sizeof( LDAPDerefSpec ) );
 			if ( ds == NULL ) {
-				/* error */
+				perror( "malloc" );
+				exit( EXIT_FAILURE );
 			}
 
 			for ( ispecs = 0; specs[ ispecs ] != NULL; ispecs++ ) {
@@ -524,7 +530,9 @@ handle_private_option( int i )
 
 				ptr = strchr( specs[ ispecs ], ':' );
 				if ( ptr == NULL ) {
-					/* error */
+					fprintf( stderr, _("deref specs \"%s\" invalid\n"),
+						cvalue );
+					exit( EXIT_FAILURE );
 				}
 
 				ds[ ispecs ].derefAttr = specs[ ispecs ];
@@ -984,9 +992,12 @@ getNextPage:
 		}
 
 #ifdef LDAP_CONTROL_X_DEREF
-		if ( ds ) {
+		if ( derefcrit ) {
 			if ( derefval.bv_val == NULL ) {
 				int i;
+
+				assert( ds != NULL );
+
 				if ( ldap_create_deref_control_value( ld, ds, &derefval ) != LDAP_SUCCESS ) {
 					return EXIT_FAILURE;
 				}
@@ -996,6 +1007,7 @@ getNextPage:
 					ldap_charray_free( ds[ i ].attributes );
 				}
 				ldap_memfree( ds );
+				ds = NULL;
 			}
 
 			if ( ctrl_add() ) {
@@ -1185,6 +1197,9 @@ getNextPage:
 	}
 	if ( sss_keys != NULL ) {
 		ldap_free_sort_keylist( sss_keys );
+	}
+	if ( derefval.bv_val != NULL ) {
+		ldap_memfree( derefval.bv_val );
 	}
 
 	if ( c ) {

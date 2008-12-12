@@ -249,6 +249,14 @@ tool_destroy( void )
 		pr_cookie.bv_val = NULL;
 		pr_cookie.bv_len = 0;
 	}
+
+	if ( binddn != NULL ) {
+		ber_memfree( binddn );
+	}
+
+	if ( passwd.bv_val != NULL ) {
+		ber_memfree( passwd.bv_val );
+	}
 }
 
 void
@@ -1927,11 +1935,11 @@ print_deref( LDAP *ld, LDAPControl *ctrl )
 				ber_len_t tlen = strlen(dv->type);
 
 				for ( j = 0; dv->vals[ j ].bv_val != NULL; j++ ) {
-					len += STRLENOF("<=>;") + tlen + dv->vals[ j ].bv_len;
+					len += STRLENOF("<:=>;") + tlen + 4*((dv->vals[ j ].bv_len - 1)/3 + 1);
 				}
 			}
 		}
-		len += dr->derefVal.bv_len;
+		len += dr->derefVal.bv_len + STRLENOF("\n");
 		buf = ldap_memalloc( len + 1 );
 		if ( buf == NULL ) {
 			rc = LDAP_NO_MEMORY;
@@ -1946,19 +1954,40 @@ print_deref( LDAP *ld, LDAPControl *ctrl )
 			if ( dv->vals != NULL ) {
 				int j;
 				for ( j = 0; dv->vals[ j ].bv_val != NULL; j++ ) {
+					int k;
+
+					for ( k = 0; k < dv->vals[ j ].bv_len; k++ ) {
+						if ( !isprint( dv->vals[ j ].bv_val[k] ) ) {
+							k = -1;
+							break;
+						}
+					}
+
 					*ptr++ = '<';
 					ptr = lutil_strcopy( ptr, dv->type );
+					if ( k == -1 ) {
+						*ptr++ = ':';
+					}
 					*ptr++ = '=';
-					ptr = lutil_strncopy( ptr, dv->vals[ j ].bv_val, dv->vals[ j ].bv_len );
+					if ( k == -1 ) {
+						k = lutil_b64_ntop( dv->vals[ j ].bv_val, dv->vals[ j ].bv_len, ptr, buf + len - ptr );
+						assert( k >= 0 );
+						ptr += k;
+						
+					} else {
+						ptr = lutil_memcopy( ptr, dv->vals[ j ].bv_val, dv->vals[ j ].bv_len );
+					}
 					*ptr++ = '>';
 					*ptr++ = ';';
 				}
 			}
 		}
 		ptr = lutil_strncopy( ptr, dr->derefVal.bv_val, dr->derefVal.bv_len );
+		*ptr++ = '\n';
 		*ptr++ = '\0';
+		assert( ptr <= buf + len );
 
-		tool_write_ldif( LDIF_PUT_COMMENT, NULL, buf, len );
+		tool_write_ldif( LDIF_PUT_COMMENT, NULL, buf, ptr - buf);
 
 		ldap_memfree( buf );
 	}
