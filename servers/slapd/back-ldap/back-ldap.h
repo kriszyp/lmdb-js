@@ -393,6 +393,8 @@ typedef struct ldapinfo_t {
 	time_t			li_timeout[ SLAP_OP_LAST ];
 } ldapinfo_t;
 
+#define	LDAP_ERR_OK(err) ((err) == LDAP_SUCCESS || (err) == LDAP_COMPARE_FALSE || (err) == LDAP_COMPARE_TRUE)
+
 typedef enum ldap_back_send_t {
 	LDAP_BACK_DONTSEND		= 0x00,
 	LDAP_BACK_SENDOK		= 0x01,

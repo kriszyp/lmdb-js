@@ -953,9 +953,7 @@ meta_back_op_result(
 		metatarget_t		*mt = mi->mi_targets[ candidate ];
 		metasingleconn_t	*msc = &mc->mc_conns[ candidate ];
 
-#define	ERR_OK(err) ((err) == LDAP_SUCCESS || (err) == LDAP_COMPARE_FALSE || (err) == LDAP_COMPARE_TRUE)
-
-		if ( ERR_OK( rs->sr_err ) ) {
+		if ( LDAP_ERR_OK( rs->sr_err ) ) {
 			int		rc;
 			struct timeval	tv;
 			LDAPMessage	*res = NULL;
@@ -1087,7 +1085,7 @@ retry:;
 		/* if the error in the reply structure is not
 		 * LDAP_SUCCESS, try to map it from client 
 		 * to server error */
-		if ( !ERR_OK( rs->sr_err ) ) {
+		if ( !LDAP_ERR_OK( rs->sr_err ) ) {
 			rs->sr_err = slap_map_api2result( rs );
 
 			/* internal ops ( op->o_conn == NULL ) 
@@ -1206,9 +1204,17 @@ retry:;
 		rs->sr_matched = matched;
 	}
 
-	if ( op->o_conn &&
-		( ( sendok & LDAP_BACK_SENDOK ) 
-			|| ( ( sendok & LDAP_BACK_SENDERR ) && rs->sr_err != LDAP_SUCCESS ) ) )
+	if ( rs->sr_err == LDAP_UNAVAILABLE ) {
+		if ( !( sendok & LDAP_BACK_RETRYING ) ) {
+			if ( op->o_conn && ( sendok & LDAP_BACK_SENDERR ) ) {
+				if ( rs->sr_text == NULL ) rs->sr_text = "Proxy operation retry failed";
+				send_ldap_result( op, rs );
+			}
+		}
+
+	} else if ( op->o_conn &&
+		( ( ( sendok & LDAP_BACK_SENDOK ) && LDAP_ERR_OK( rs->sr_err ) )
+			|| ( ( sendok & LDAP_BACK_SENDERR ) && !LDAP_ERR_OK( rs->sr_err ) ) ) )
 	{
 		send_ldap_result( op, rs );
 	}
@@ -1235,7 +1241,7 @@ retry:;
 	rs->sr_ref = save_ref;
 	rs->sr_ctrls = save_ctrls;
 
-	return( ERR_OK( rs->sr_err ) ? LDAP_SUCCESS : rs->sr_err );
+	return( LDAP_ERR_OK( rs->sr_err ) ? LDAP_SUCCESS : rs->sr_err );
 }
 
 /*
