@@ -785,8 +785,7 @@ ldap_pvt_thread_pool_resume (
 	SET_VARY_OPEN_COUNT(pool);
 	pool->ltp_work_list = &pool->ltp_pending_list;
 
-	if (!pool->ltp_finishing)
-		ldap_pvt_thread_cond_broadcast(&pool->ltp_cond);
+	ldap_pvt_thread_cond_broadcast(&pool->ltp_cond);
 
 	ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
 	return(0);

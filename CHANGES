@@ -4,6 +4,7 @@ OpenLDAP 2.4.14 Engineering
 	Fixed libldap deref handling (ITS#5768)
 	Fixed libldap peer cert memory leak (ITS#5849)
 	Fixed libldap_r deref building (ITS#5768)
+	Fixed libldap_r slapd lockup when paused during shutdown (ITS#5841)
 	Fixed slapd syncrepl rename handling (ITS#5809)
 	Fixed slapd syncrepl MMR when adding new server (ITS#5850)
 	Fixed slapd-meta double response sending (ITS#5854)
