@@ -309,8 +309,8 @@ H3: Delta-syncrepl replication
 
 LDAP Sync replication is an object-based replication mechanism. 
 When any attribute value in a replicated object is changed on the provider, 
-each consumer fetches and processes the complete changed object
-{{B:both changed and unchanged attribute values}} during replication.
+each consumer fetches and processes the complete changed object, including
+{{B:both the changed and unchanged attribute values}} during replication.
 One advantage of this approach is that when multiple changes occur to
 a single object, the precise sequence of those changes need not be preserved;
 only the final state of the entry is significant. But this approach
@@ -408,7 +408,6 @@ H4: Arguments for MirrorMode
 * Provider nodes replicate from each other, so they are always up to date and
 can be ready to take over (hot standby)
 * Syncrepl also allows the provider nodes to re-synchronize after any downtime
-* Delta-Syncrepl can be used
 
 
 H4: Arguments against MirrorMode
@@ -424,6 +423,7 @@ transaction log files, then the same member of the mirror pair needs to be
 used to collect logfiles until the next database backup is taken 
 - To ensure that both databases are consistent, each database might have to be 
 put in read-only mode while performing a slapcat. 
+* Delta-Syncrepl is not yet supported
 
 For configuration, please see the {{SECT:MirrorMode}} section below
 
