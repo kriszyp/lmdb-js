@@ -112,6 +112,13 @@ txnReturn:
 		goto return_results;
 	}
 
+	if ( get_assert( op ) &&
+		( test_filter( op, op->ora_e, get_assertion( op )) != LDAP_COMPARE_TRUE ))
+	{
+		rs->sr_err = LDAP_ASSERTION_FAILED;
+		goto return_results;
+	}
+
 	subentry = is_entry_subentry( op->oq_add.rs_e );
 
 	/* Get our reader TXN */
