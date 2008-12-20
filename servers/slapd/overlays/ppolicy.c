@@ -2094,6 +2094,16 @@ ppolicy_db_init(
 {
 	slap_overinst *on = (slap_overinst *) be->bd_info;
 
+	if ( SLAP_ISGLOBALOVERLAY( be ) ) {
+		/* do not allow slapo-ppolicy to be global by now (ITS#5858) */
+		if ( cr ){
+			snprintf( cr->msg, sizeof(cr->msg), 
+				"slapo-ppolicy cannot be global" );
+			fprintf( stderr, "%s\n", cr->msg );
+		}
+		return 1;
+	}
+
 	/* Has User Schema been initialized yet? */
 	if ( !pwd_UsSchema[0].ad[0] ) {
 		const char *err;
