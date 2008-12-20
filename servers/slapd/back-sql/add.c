@@ -975,6 +975,17 @@ backsql_add( Operation *op, SlapReply *rs )
 
 	slap_add_opattrs( op, &rs->sr_text, textbuf, textlen, 1 );
 
+	if ( get_assert( op ) &&
+		( test_filter( op, op->ora_e, get_assertion( op )) != LDAP_COMPARE_TRUE ))
+	{
+		Debug( LDAP_DEBUG_TRACE, "   backsql_add(\"%s\"): "
+			"assertion control failed -- aborting\n",
+			op->ora_e->e_name.bv_val, 0, 0 );
+		e = NULL;
+		rs->sr_err = LDAP_ASSERTION_FAILED;
+		goto done;
+	}
+
 	/* search structuralObjectClass */
 	for ( at = op->ora_e->e_attrs; at != NULL; at = at->a_next ) {
 		if ( at->a_desc == slap_schema.si_ad_structuralObjectClass ) {
