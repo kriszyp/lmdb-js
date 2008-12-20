@@ -3634,6 +3634,9 @@ config_send( Operation *op, SlapReply *rs, CfEntryInfo *ce, int depth )
 		rs->sr_entry = ce->ce_entry;
 		rs->sr_flags = 0;
 		rc = send_search_entry( op, rs );
+		if ( rc != LDAP_SUCCESS ) {
+			return rc;
+		}
 	}
 	if ( op->ors_scope == LDAP_SCOPE_SUBTREE ) {
 		if ( ce->ce_kids ) {
@@ -5503,20 +5506,22 @@ config_back_search( Operation *op, SlapReply *rs )
 	switch ( op->ors_scope ) {
 	case LDAP_SCOPE_BASE:
 	case LDAP_SCOPE_SUBTREE:
-		config_send( op, rs, ce, 0 );
+		rs->sr_err = config_send( op, rs, ce, 0 );
 		break;
 		
 	case LDAP_SCOPE_ONELEVEL:
 		for (ce = ce->ce_kids; ce; ce=ce->ce_sibs) {
-			config_send( op, rs, ce, 1 );
+			rs->sr_err = config_send( op, rs, ce, 1 );
+			if ( rs->sr_err ) {
+				break;
+			}
 		}
 		break;
 	}
-		
-	rs->sr_err = LDAP_SUCCESS;
+
 out:
 	send_ldap_result( op, rs );
-	return 0;
+	return rs->sr_err;
 }
 
 /* no-op, we never free entries */
