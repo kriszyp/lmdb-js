@@ -3162,40 +3162,46 @@ dn_callback(
 			 * We compare the non-normalized values so that cosmetic changes
 			 * in the provider are always propagated.
 			 */
-			if ( dni->new_entry ) {
+			if ( dni->new_entry && !is_entry_glue( rs->sr_entry )) {
 				Modifications **modtail, **ml;
 				Attribute *old, *new;
 				struct berval old_rdn, new_rdn;
 				struct berval old_p, new_p;
 				int is_ctx, new_sup = 0;
 
-				/* Make sure new entry is actually newer than old entry */
-				old = attr_find( rs->sr_entry->e_attrs,
-					slap_schema.si_ad_entryCSN );
-				new = attr_find( dni->new_entry->e_attrs,
-					slap_schema.si_ad_entryCSN );
-				if ( new && old ) {
-					int rc;
-					ber_len_t len = old->a_vals[0].bv_len;
-					if ( len > new->a_vals[0].bv_len )
-						len = new->a_vals[0].bv_len;
-					rc = memcmp( old->a_vals[0].bv_val,
-						new->a_vals[0].bv_val, len );
-					if ( rc > 0 ) {
-						Debug( LDAP_DEBUG_SYNC,
-							"dn_callback : new entry is older than ours "
-							"%s ours %s, new %s\n",
-							rs->sr_entry->e_name.bv_val,
-							old->a_vals[0].bv_val,
-							new->a_vals[0].bv_val );
-						return LDAP_SUCCESS;
-					} else if ( rc == 0 ) {
-						Debug( LDAP_DEBUG_SYNC,
-							"dn_callback : entries have identical CSN "
-							"%s %s\n",
-							rs->sr_entry->e_name.bv_val,
-							old->a_vals[0].bv_val, 0 );
-						return LDAP_SUCCESS;
+				/* If old entry is not a glue entry, make sure new entry
+				 * is actually newer than old entry
+				 */
+				if ( !is_entry_glue( rs->sr_entry )) {
+					old = attr_find( rs->sr_entry->e_attrs,
+						slap_schema.si_ad_objectClass );
+					old = attr_find( rs->sr_entry->e_attrs,
+						slap_schema.si_ad_entryCSN );
+					new = attr_find( dni->new_entry->e_attrs,
+						slap_schema.si_ad_entryCSN );
+					if ( new && old ) {
+						int rc;
+						ber_len_t len = old->a_vals[0].bv_len;
+						if ( len > new->a_vals[0].bv_len )
+							len = new->a_vals[0].bv_len;
+						rc = memcmp( old->a_vals[0].bv_val,
+							new->a_vals[0].bv_val, len );
+						if ( rc > 0 ) {
+							Debug( LDAP_DEBUG_SYNC,
+								"dn_callback : new entry is older than ours "
+								"%s ours %s, new %s\n",
+								rs->sr_entry->e_name.bv_val,
+								old->a_vals[0].bv_val,
+								new->a_vals[0].bv_val );
+							return LDAP_SUCCESS;
+						} else if ( rc == 0 ) {
+							Debug( LDAP_DEBUG_SYNC,
+								"dn_callback : entries have identical CSN "
+								"%s %s\n",
+								rs->sr_entry->e_name.bv_val,
+								old->a_vals[0].bv_val, 0 );
+							return LDAP_SUCCESS;
+						}
 					}
 				}
 
