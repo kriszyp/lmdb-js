@@ -3162,7 +3162,7 @@ dn_callback(
 			 * We compare the non-normalized values so that cosmetic changes
 			 * in the provider are always propagated.
 			 */
-			if ( dni->new_entry && !is_entry_glue( rs->sr_entry )) {
+			if ( dni->new_entry ) {
 				Modifications **modtail, **ml;
 				Attribute *old, *new;
 				struct berval old_rdn, new_rdn;
