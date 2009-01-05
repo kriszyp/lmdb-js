@@ -1646,7 +1646,7 @@ slapd_daemon_destroy( void )
 {
 	connections_destroy();
 #ifdef HAVE_WINSOCK
-	if ( wake_sds[1] != INVALID_SOCKET )
+	if ( wake_sds[1] != INVALID_SOCKET && wake_sds[1] != wake_sds[0] )
 #endif /* HAVE_WINSOCK */
 		tcp_close( SLAP_FD2SOCK(wake_sds[1]) );
 #ifdef HAVE_WINSOCK
