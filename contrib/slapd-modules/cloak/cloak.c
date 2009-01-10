@@ -282,7 +282,7 @@ static slap_overinst cloak_ovl;
 static ConfigTable cloakcfg[] = {
 	{ "cloak-attr", "attribute [class]",
 		2, 3, 0, ARG_MAGIC|CLOAK_ATTR, cloak_cfgen,
-		"( OLcfgOvAt:22.1 NAME 'olcCloakAttribute' "
+		"( OLcfgCtAt:4.1 NAME 'olcCloakAttribute' "
 			"DESC 'Cloaked attribute: attribute [class]' "
 			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString "
@@ -292,7 +292,7 @@ static ConfigTable cloakcfg[] = {
 };
 
 static ConfigOCs cloakocs[] = {
-	{ "( OLcfgOvOc:22.1 "
+	{ "( OLcfgCtOc:4.1 "
 	  "NAME 'olcCloakConfig' "
 	  "DESC 'Attribute cloak configuration' "
 	  "SUP olcOverlayConfig "
