@@ -1132,10 +1132,13 @@ operations_error:
 		/* c_mutex is locked */
 		connection_closing( conn,
 			tag == LDAP_REQ_UNBIND ? NULL : "operations error" );
+		connection_close( conn );
+		break;
+	default:
+		connection_resched( conn );
 		break;
 	}
 
-	connection_resched( conn );
 	ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 	slap_op_free( op, ctx );
 	return NULL;
@@ -1633,10 +1636,6 @@ connection_resched( Connection *conn )
 		return 0;
 
 	if( conn->c_conn_state == SLAP_C_CLOSING ) {
-		Debug( LDAP_DEBUG_CONNS, "connection_resched: "
-			"attempting closing conn=%lu sd=%d\n",
-			conn->c_connid, conn->c_sd, 0 );
-		connection_close( conn );
 		return 0;
 	}
 
