@@ -2544,6 +2544,7 @@ slapd_daemon_task(
 				} else {
 					Debug( LDAP_DEBUG_CONNS,
 						"daemon: hangup on %d\n", fd, 0, 0 );
+					connection_hangup( fd );
 				}
 			}
 		}

@@ -1249,6 +1249,20 @@ int connection_read_activate( ber_socket_t s )
 	return rc;
 }
 
+/* Used for epoll / event functions that distinguish hangups from read events */
+void
+connection_hangup( ber_socket_t s )
+{
+	Connection *c;
+
+	c = connection_get( s );
+	if ( c ) {
+		connection_closing( c, "connection lost" );
+		connection_close( c );
+		connection_return( c );
+	}
+}
+
 static int
 connection_read( ber_socket_t s, conn_readinfo *cri )
 {
