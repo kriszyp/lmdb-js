@@ -761,8 +761,8 @@ void connection_closing( Connection *c, const char *why )
 		connection_abandon( c );
 
 		/* wake write blocked operations */
+		ldap_pvt_thread_mutex_lock( &c->c_write1_mutex );
 		if ( c->c_writers > 0 ) {
-			ldap_pvt_thread_mutex_lock( &c->c_write1_mutex );
 			c->c_writers = -c->c_writers;
 			ldap_pvt_thread_cond_broadcast( &c->c_write1_cv );
 			ldap_pvt_thread_mutex_unlock( &c->c_write1_mutex );
@@ -778,6 +778,7 @@ void connection_closing( Connection *c, const char *why )
 			}
 			ldap_pvt_thread_mutex_unlock( &c->c_write1_mutex );
 		} else {
+			ldap_pvt_thread_mutex_unlock( &c->c_write1_mutex );
 			slapd_clr_write( c->c_sd, 1 );
 		}
 
