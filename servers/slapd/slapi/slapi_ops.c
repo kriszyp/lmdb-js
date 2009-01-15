@@ -224,8 +224,10 @@ slapi_int_connection_init_pb( Slapi_PBlock *pb, ber_tag_t tag )
 
 	/* should check status of thread calls */
 	ldap_pvt_thread_mutex_init( &conn->c_mutex );
-	ldap_pvt_thread_mutex_init( &conn->c_write_mutex );
-	ldap_pvt_thread_cond_init( &conn->c_write_cv );
+	ldap_pvt_thread_mutex_init( &conn->c_write1_mutex );
+	ldap_pvt_thread_mutex_init( &conn->c_write2_mutex );
+	ldap_pvt_thread_cond_init( &conn->c_write1_cv );
+	ldap_pvt_thread_cond_init( &conn->c_write2_cv );
 
 	ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 
