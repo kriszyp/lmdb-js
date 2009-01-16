@@ -880,8 +880,10 @@ dnl autoconf would try to generate if one merely used AC_SEARCH_LIBS
 if test "$ac_cv_header_winsock_h" = yes; then
 AC_CACHE_CHECK([for winsock], [ol_cv_winsock],[
 save_LIBS="$LIBS"
-for curlib in ws2_32 wsock32; do
-	LIBS="$LIBS -l$curlib"
+for curlib in none ws2_32 wsock32; do
+	if test curlib != none ; then
+	    LIBS="$save_LIBS -l$curlib"
+	fi
 	AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <winsock.h>
 			]], [[
 			socket(0,0,0);
@@ -891,14 +893,11 @@ for curlib in ws2_32 wsock32; do
 			]])],[ol_cv_winsock=yes],[ol_cv_winsock=no])
 
 	if test $ol_cv_winsock = yes ; then
-		if test -a $curlib = ws2_32; then
-			ol_cv_winsock=winsock2
-		fi
-		break
+	    ol_cv_winsock=$curlib
 	fi
-
-	LIBS="$save_LIBS"
+	break
 done
+LIBS="$save_LIBS"
 ])
 if test $ol_cv_winsock != no ; then
     AC_DEFINE(HAVE_WINSOCK, 1, [define if you have winsock])
@@ -907,8 +906,12 @@ if test $ol_cv_winsock != no ; then
     ac_cv_func_closesocket=yes
     ac_cv_func_gethostname=yes
 
-    if test $ol_cv_winock = winsock2 ; then
-	AC_DEFINE(HAVE_WINSOCK2, 1, [define if you have winsock2])
+	if test $ol_cv_winsock != none ; then
+        LIBS="$LIBS -l$ol_cv_winsock"
+	fi
+
+    if test $ol_cv_winsock = ws2_32 ; then
+		AC_DEFINE(HAVE_WINSOCK2, 1, [define if you have winsock2])
     fi
 fi
 
