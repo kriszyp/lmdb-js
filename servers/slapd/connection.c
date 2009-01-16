@@ -1185,8 +1185,6 @@ void connection_client_stop(
 	/* get (locked) connection */
 	c = connection_get( s );
 
-	if ( !c ) return;
-
 	assert( c->c_conn_state == SLAP_C_CLIENT );
 
 	c->c_listener = NULL;
@@ -1265,9 +1263,14 @@ connection_hangup( ber_socket_t s )
 
 	c = connection_get( s );
 	if ( c ) {
-		connection_closing( c, "connection lost" );
-		connection_close( c );
-		connection_return( c );
+		if ( c->c_conn_state == SLAP_C_CLIENT ) {
+			connection_return( c );
+			connection_read_activate( s );
+		} else {
+			connection_closing( c, "connection lost" );
+			connection_close( c );
+			connection_return( c );
+		}
 	}
 }
 
