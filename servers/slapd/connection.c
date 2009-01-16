@@ -1184,7 +1184,9 @@ void connection_client_stop(
 
 	/* get (locked) connection */
 	c = connection_get( s );
-	
+
+	if ( !c ) return;
+
 	assert( c->c_conn_state == SLAP_C_CLIENT );
 
 	c->c_listener = NULL;
