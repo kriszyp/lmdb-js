@@ -2402,9 +2402,12 @@ AC_CHECK_FUNC(_snprintf, [ac_cv_func_snprintf=yes
 	AC_DEFINE(snprintf, _snprintf, [define to snprintf routine])
 ])
 
-AC_CHECK_FUNC(_vsnprintf, [ac_cv_func_vsnprintf=yes
+AC_CHECK_FUNCS(vsnprintf _vsnprintf)
+
+if test $ac_cv_func_vsnprintf = no -a $ac_cv_func__vsnprintf = yes ; then
+	ac_cv_func_vsnprintf=yes
 	AC_DEFINE(vsnprintf, _vsnprintf, [define to vsnprintf routine])
-])
+fi
 
 AC_FUNC_VPRINTF
 
