@@ -842,7 +842,7 @@ AC_CHECK_HEADERS(	\
 )
 
 dnl Only check Winsock on MinGW
-if test "$ac_cv_mingw32" = yes -o \( "$ac_cv_cygwin" = yes -a "$GCC" = no \) ; then
+if test x"$ac_cv_mingw32" = xyes -o \( x"$ac_cv_cygwin" = xyes -a x"$GCC" = xno \) ; then
 	AC_CHECK_HEADERS( winsock.h winsock2.h )
 fi
 
