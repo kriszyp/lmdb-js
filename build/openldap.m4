@@ -120,6 +120,17 @@ fi
 ])
 dnl
 dnl --------------------------------------------------------------------
+dnl Check for MSVC
+AC_DEFUN([OL_MSVC],
+[AC_REQUIRE_CPP()dnl
+AC_CACHE_CHECK([for Microsoft Visual C++], ol_cv_msvc,
+[AC_PREPROC_IFELSE([AC_LANG_SOURCE([[
+#ifndef _MSC_VER
+#include <__FOO__/generate_error.h>
+#endif
+]])],[ol_cv_msvc=yes],[ol_cv_msvc=no])])])
+
+dnl --------------------------------------------------------------------
 dnl OpenLDAP version of STDC header check w/ EBCDIC support
 AC_DEFUN([OL_HEADER_STDC],
 [AC_REQUIRE_CPP()dnl
