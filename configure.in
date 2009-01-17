@@ -909,8 +909,9 @@ if test $ol_cv_winsock != no ; then
     ac_cv_func_closesocket=yes
     ac_cv_func_gethostname=yes
 
-	if test $ol_cv_winsock != none -a $ol_cv_winsock != yes; then
+	if test $ol_cv_winsock != none -a $ol_cv_winsock != yes ; then
         LIBS="$LIBS -l$ol_cv_winsock"
+	    AC_MSG_WARN("set libs to $LIBS");
 	fi
 
     if test $ol_cv_winsock = ws2_32 -o $ol_cv_winsock = yes ; then
@@ -3052,7 +3053,7 @@ dnl For Windows build, we don't want to include -dlopen flags.
 dnl They hurt more than they help.
 dnl
 
-if test "$ac_cv_mingw32" = yes ; then
+if test "$ac_cv_mingw32" = yes -l $ol_cv_msvc = yes ; then
 	PLAT=NT
 	SLAPD_MODULES_LDFLAGS=
 else
