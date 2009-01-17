@@ -911,7 +911,6 @@ if test $ol_cv_winsock != no ; then
 
 	if test $ol_cv_winsock != none -a $ol_cv_winsock != yes ; then
         LIBS="$LIBS -l$ol_cv_winsock"
-	    AC_MSG_WARN("set libs to $LIBS");
 	fi
 
     if test $ol_cv_winsock = ws2_32 -o $ol_cv_winsock = yes ; then
