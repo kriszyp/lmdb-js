@@ -892,12 +892,9 @@ for curlib in none ws2_32 wsock32; do
 			select(0,NULL,NULL,NULL,NULL);
 			closesocket(0);
 			gethostname(NULL,0);
-			]])],[ol_cv_winsock=yes],[ol_cv_winsock=no])
+			]])],[ol_cv_winsock=$curlib],[ol_cv_winsock=no])
 
-	if test $ol_cv_winsock = yes ; then
-	    ol_cv_winsock=$curlib
-	fi
-	break
+	test $ol_cv_winsock != no && break;
 done
 LIBS="$save_LIBS"
 ])
