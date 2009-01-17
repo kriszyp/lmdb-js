@@ -876,6 +876,10 @@ if test $ac_cv_func_sigaction = no && test $ac_cv_func_sigaction = no ; then
 	AC_CHECK_LIB(V3, sigset)
 fi
 
+if test $ol_cv_msvc ; then
+   ol_cv_winsock=yes
+fi
+
 dnl The following is INTENTIONALLY scripted out because shell does not
 dnl support variable names with the '@' character, which is what
 dnl autoconf would try to generate if one merely used AC_SEARCH_LIBS
@@ -894,10 +898,11 @@ for curlib in none ws2_32 wsock32; do
 			gethostname(NULL,0);
 			]])],[ol_cv_winsock=$curlib],[ol_cv_winsock=no])
 
-	test $ol_cv_winsock != no && break
+	test "$ol_cv_winsock" != no && break
 done
 LIBS="$save_LIBS"
 ])
+
 if test $ol_cv_winsock != no ; then
     AC_DEFINE(HAVE_WINSOCK, 1, [define if you have winsock])
     ac_cv_func_socket=yes
@@ -905,11 +910,11 @@ if test $ol_cv_winsock != no ; then
     ac_cv_func_closesocket=yes
     ac_cv_func_gethostname=yes
 
-	if test $ol_cv_winsock != none ; then
+	if test $ol_cv_winsock != none -a $ol_cv_winsock != yes; then
         LIBS="$LIBS -l$ol_cv_winsock"
 	fi
 
-    if test $ol_cv_winsock = ws2_32 ; then
+    if test $ol_cv_winsock = ws2_32 -o $ol_cv_winsock = yes ; then
 		AC_DEFINE(HAVE_WINSOCK2, 1, [define if you have winsock2])
     fi
 fi
