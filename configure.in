@@ -918,6 +918,7 @@ if test $ol_cv_winsock != no ; then
 		AC_DEFINE(HAVE_WINSOCK2, 1, [define if you have winsock2])
     fi
 fi
+fi
 
 dnl Find socket()
 dnl Likely combinations:
