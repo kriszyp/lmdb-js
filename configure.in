@@ -3051,7 +3051,7 @@ dnl For Windows build, we don't want to include -dlopen flags.
 dnl They hurt more than they help.
 dnl
 
-if test "$ac_cv_mingw32" = yes -l $ol_cv_msvc = yes ; then
+if test "$ac_cv_mingw32" = yes -o $ol_cv_msvc = yes ; then
 	PLAT=NT
 	SLAPD_MODULES_LDFLAGS=
 else

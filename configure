@@ -38961,7 +38961,7 @@ fi
 
 
 
-if test "$ac_cv_mingw32" = yes -l $ol_cv_msvc = yes ; then
+if test "$ac_cv_mingw32" = yes -o $ol_cv_msvc = yes ; then
 	PLAT=NT
 	SLAPD_MODULES_LDFLAGS=
 else
