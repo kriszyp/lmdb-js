@@ -8,6 +8,7 @@ OpenLDAP 2.4.14 Engineering
 	Fixed libldap_r slapd lockup when paused during shutdown (ITS#5841)
 	Added slapd syncrepl default retry setting (ITS#5825)
 	Added slapd val.regex expansion (ITS#5804)
+	Added slapo-rwm newRDN rewriting (ITS#5834)
 	Fixed slapd syncrepl rename handling (ITS#5809)
 	Fixed slapd syncrepl MMR when adding new server (ITS#5850)
 	Fixed slapd-ldif numerous bugs (ITS#5408)
