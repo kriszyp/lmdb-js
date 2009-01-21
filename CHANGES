@@ -22,6 +22,7 @@ OpenLDAP 2.4.14 Engineering
 	Fixed slapd-meta double response sending (ITS#5854)
 	Fixed slapo-ppolicy to not be global (ITS#5858)
 	Updated contrib/addpartial module (ITS#5764)
+	Added contrib/cloak module (ITS#5872)
 	Build Environment
 		Fixed test049,test050 to work on windows (ITS#5842)
 		Removed patch for BerkeleyDB 4.7.25 (Official patch available)
