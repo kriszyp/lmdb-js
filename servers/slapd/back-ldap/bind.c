@@ -2206,7 +2206,9 @@ ldap_back_proxy_authz_bind(
 		 * so that referral chasing is attempted using the right
 		 * identity */
 		LDAP_BACK_CONN_ISBOUND_SET( lc );
-		ber_bvreplace( &lc->lc_bound_ndn, binddn );
+		if ( !BER_BVISNULL( binddn ) ) {
+			ber_bvreplace( &lc->lc_bound_ndn, binddn );
+		}
 
 		if ( !BER_BVISNULL( &lc->lc_cred ) ) {
 			memset( lc->lc_cred.bv_val, 0,
@@ -2214,8 +2216,10 @@ ldap_back_proxy_authz_bind(
 		}
 
 		if ( LDAP_BACK_SAVECRED( li ) ) {
-			ber_bvreplace( &lc->lc_cred, bindcred );
-			ldap_set_rebind_proc( lc->lc_ld, li->li_rebind_f, lc );
+			if ( !BER_BVISNULL( bindcred ) ) {
+				ber_bvreplace( &lc->lc_cred, bindcred );
+				ldap_set_rebind_proc( lc->lc_ld, li->li_rebind_f, lc );
+			}
 
 		} else {
 			lc->lc_cred.bv_len = 0;

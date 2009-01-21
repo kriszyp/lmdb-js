@@ -743,6 +743,19 @@ slap_idassert_parse( ConfigArgs *c, slap_idassert_t *si )
 			return 1;
 		}
 	}
+
+	if ( si->si_bc.sb_method == LDAP_AUTH_SIMPLE ) {
+		if ( BER_BVISNULL( &si->si_bc.sb_binddn )
+			|| BER_BVISNULL( &si->si_bc.sb_cred ) )
+		{
+			snprintf( c->cr_msg, sizeof( c->cr_msg ),
+				"\"idassert-bind <args>\": "
+				"SIMPLE needs \"binddn\" and \"credentials\"" );
+			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
+			return 1;
+		}
+	}
+
 	bindconf_tls_defaults( &si->si_bc );
 
 	return 0;
