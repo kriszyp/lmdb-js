@@ -106,6 +106,7 @@ static const struct ol_attribute {
 	{1, ATTR_STRING,	"SASL_AUTHZID",		NULL,
 		offsetof(struct ldapoptions, ldo_def_sasl_authzid)},
 	{0, ATTR_SASL,		"SASL_SECPROPS",	NULL,	LDAP_OPT_X_SASL_SECPROPS},
+	{0, ATTR_BOOL,		"SASL_NOCANON",	NULL,	LDAP_BOOL_SASL_NOCANON},
 #endif
 
 #ifdef HAVE_GSSAPI

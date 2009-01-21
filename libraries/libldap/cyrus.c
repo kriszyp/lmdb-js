@@ -446,10 +446,21 @@ ldap_int_sasl_bind(
 	}
 
 	{
-		char *saslhost = ldap_host_connected_to( ld->ld_defconn->lconn_sb,
+		char *saslhost;
+		int nocanon = (int)LDAP_BOOL_GET( &ld->ld_options,
+			LDAP_BOOL_SASL_NOCANON );
+
+		/* If we don't need to canonicalize just use the host
+		 * from the LDAP URI.
+		 */
+		if ( nocanon )
+			saslhost = ld->ld_defconn->lconn_server->lud_host;
+		else 
+			saslhost = ldap_host_connected_to( ld->ld_defconn->lconn_sb,
 			"localhost" );
 		rc = ldap_int_sasl_open( ld, ld->ld_defconn, saslhost );
-		LDAP_FREE( saslhost );
+		if ( !nocanon )
+			LDAP_FREE( saslhost );
 	}
 
 	if ( rc != LDAP_SUCCESS ) return rc;
@@ -996,6 +1007,9 @@ ldap_int_sasl_get_option( LDAP *ld, int option, void *arg )
 		case LDAP_OPT_X_SASL_MAXBUFSIZE:
 			*(ber_len_t *)arg = ld->ld_options.ldo_sasl_secprops.maxbufsize;
 			break;
+		case LDAP_OPT_X_SASL_NOCANON:
+			*(int *)arg = (int) LDAP_BOOL_GET(&ld->ld_options, LDAP_BOOL_SASL_NOCANON );
+			break;
 
 		case LDAP_OPT_X_SASL_SECPROPS:
 			/* this option is write only */
@@ -1010,7 +1024,10 @@ ldap_int_sasl_get_option( LDAP *ld, int option, void *arg )
 int
 ldap_int_sasl_set_option( LDAP *ld, int option, void *arg )
 {
-	if ( ld == NULL || arg == NULL )
+	if ( ld == NULL )
+		return -1;
+
+	if ( arg == NULL && option != LDAP_OPT_X_SASL_NOCANON )
 		return -1;
 
 	switch ( option ) {
@@ -1062,6 +1079,13 @@ ldap_int_sasl_set_option( LDAP *ld, int option, void *arg )
 		break;
 	case LDAP_OPT_X_SASL_MAXBUFSIZE:
 		ld->ld_options.ldo_sasl_secprops.maxbufsize = *(ber_len_t *)arg;
+		break;
+	case LDAP_OPT_X_SASL_NOCANON:
+		if ( arg == LDAP_OPT_OFF ) {
+			LDAP_BOOL_CLR(&ld->ld_options, LDAP_BOOL_SASL_NOCANON );
+		} else {
+			LDAP_BOOL_SET(&ld->ld_options, LDAP_BOOL_SASL_NOCANON );
+		}
 		break;
 
 	case LDAP_OPT_X_SASL_SECPROPS: {

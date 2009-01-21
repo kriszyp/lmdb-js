@@ -78,7 +78,7 @@ usage( void )
 
 
 const char options[] = "r"
-	"cd:D:e:f:h:H:IMnO:o:p:P:QR:U:vVw:WxX:y:Y:z:Z";
+	"cd:D:e:f:h:H:IMnNO:o:p:P:QR:U:vVw:WxX:y:Y:z:Z";
 
 int
 handle_private_option( int i )

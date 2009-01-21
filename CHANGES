@@ -1,6 +1,7 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.14 Engineering
+	Added libldap option to disable SASL host canonicalization (ITS#5812)
 	Fixed libldap deref handling (ITS#5768)
 	Fixed libldap peer cert memory leak (ITS#5849)
 	Fixed libldap_r deref building (ITS#5768)
