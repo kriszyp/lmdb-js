@@ -583,13 +583,6 @@ meta_back_search_start(
 		goto done;
 	}
 
-	/* should we check return values? */
-	if ( op->ors_deref != -1 ) {
-		assert( msc->msc_ld != NULL );
-		(void)ldap_set_option( msc->msc_ld, LDAP_OPT_DEREF,
-				( void * )&op->ors_deref );
-	}
-
 	if ( op->ors_tlimit != SLAP_NO_LIMIT ) {
 		tv.tv_sec = op->ors_tlimit > 0 ? op->ors_tlimit : 1;
 		tv.tv_usec = 0;
@@ -597,6 +590,13 @@ meta_back_search_start(
 	}
 
 retry:;
+	/* should we check return values? */
+	if ( op->ors_deref != -1 ) {
+		assert( msc->msc_ld != NULL );
+		(void)ldap_set_option( msc->msc_ld, LDAP_OPT_DEREF,
+				( void * )&op->ors_deref );
+	}
+
 	ctrls = op->o_ctrls;
 	if ( meta_back_controls_add( op, rs, *mcp, candidate, &ctrls )
 		!= LDAP_SUCCESS )

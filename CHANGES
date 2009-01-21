@@ -23,6 +23,7 @@ OpenLDAP 2.4.14 Engineering
 	Fixed slapd-ldif rename on same DN (ITS#5319)
 	Fixed slapd-ldif deadlock (ITS#5329)
 	Fixed slapd-meta double response sending (ITS#5854)
+	Fixed slapd-meta alias deref for retry (ITS#5889)
 	Fixed slapo-ppolicy to not be global (ITS#5858)
 	Updated contrib/addpartial module (ITS#5764)
 	Added contrib/cloak module (ITS#5872)
