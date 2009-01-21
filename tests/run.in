@@ -80,7 +80,7 @@ CLEAN=no
 WAIT=0
 KILLSERVERS=yes
 PRESERVE=${PRESERVE-no}
-SYNCMODE=
+SYNCMODE=${SYNCMODE-rp}
 USERDATA=no
 
 while test $# -gt 0 ; do
