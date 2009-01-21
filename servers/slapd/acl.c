@@ -52,7 +52,7 @@ static AccessControl * slap_acl_get(
 	Operation *op, Entry *e,
 	AttributeDescription *desc,
 	struct berval *val,
-	int nmatch, regmatch_t *matches,
+	AclRegexMatches *matches,
 	AccessControlState *state );
 
 static slap_control_t slap_acl_mask(
@@ -60,21 +60,22 @@ static slap_control_t slap_acl_mask(
 	Operation *op, Entry *e,
 	AttributeDescription *desc,
 	struct berval *val,
-	int nmatch,
-	regmatch_t *matches,
+	AclRegexMatches *matches,
 	int count,
 	AccessControlState *state,
 	slap_access_t access );
 
 static int	regex_matches(
-	struct berval *pat, char *str, char *buf,
-	int nmatch, regmatch_t *matches);
+	struct berval *pat, char *str,
+	struct berval *dn_matches, struct berval *val_matches,
+	AclRegexMatches *matches);
 
 typedef	struct AclSetCookie {
 	SetCookie	asc_cookie;
 #define	asc_op		asc_cookie.set_op
 	Entry		*asc_e;
 } AclSetCookie;
+
 
 SLAP_SET_GATHER acl_set_gather;
 SLAP_SET_GATHER acl_set_gather2;
@@ -116,6 +117,17 @@ slap_access_always_allowed(
 	return 1;
 }
 
+#define MATCHES_DNMAXCOUNT(m) 					\
+	( sizeof ( (m)->dn_data ) / sizeof( *(m)->dn_data ) )
+#define MATCHES_VALMAXCOUNT(m) 					\
+	( sizeof ( (m)->val_data ) / sizeof( *(m)->val_data ) )
+#define MATCHES_MEMSET(m) do {					\
+	memset( (m)->dn_data, '\0', sizeof( (m)->dn_data ) );	\
+	memset( (m)->val_data, '\0', sizeof( (m)->val_data ) );	\
+	(m)->dn_count = MATCHES_DNMAXCOUNT( (m) );		\
+	(m)->val_count = MATCHES_VALMAXCOUNT( (m) );		\
+} while ( 0 /* CONSTCOND */ )
+
 int
 slap_access_allowed(
 	Operation		*op,
@@ -137,8 +149,8 @@ slap_access_allowed(
 	slap_control_t			control;
 	slap_access_t			access_level;
 	const char			*attr;
-	regmatch_t			matches[MAXREMATCHES];
-	AccessControlState	acl_state = ACL_STATE_INIT;
+	AclRegexMatches			matches;
+	AccessControlState		acl_state = ACL_STATE_INIT;
 
 	assert( op != NULL );
 	assert( e != NULL );
@@ -219,23 +231,51 @@ slap_access_allowed(
 		state->as_fe_done = 0;
 
 	ACL_PRIV_ASSIGN( mask, *maskp );
-	memset( matches, '\0', sizeof( matches ) );
+	MATCHES_MEMSET( &matches );
 
 	while ( ( a = slap_acl_get( a, &count, op, e, desc, val,
-		MAXREMATCHES, matches, state ) ) != NULL )
+		&matches, state ) ) != NULL )
 	{
-		int i;
+		int i; 
+		int dnmaxcount = MATCHES_DNMAXCOUNT( &matches );
+		int valmaxcount = MATCHES_VALMAXCOUNT( &matches );
+		regmatch_t *dn_data = matches.dn_data;
+		regmatch_t *val_data = matches.val_data;
 
-		for ( i = 0; i < MAXREMATCHES && matches[i].rm_so > 0; i++ ) {
-			Debug( LDAP_DEBUG_ACL, "=> match[%d]: %d %d ", i,
-				(int)matches[i].rm_so, (int)matches[i].rm_eo );
-			if ( matches[i].rm_so <= matches[0].rm_eo ) {
+		/* DN matches */
+		for ( i = 0; i < dnmaxcount && dn_data[i].rm_eo > 0; i++ ) {
+			char *data = e->e_ndn;
+
+			Debug( LDAP_DEBUG_ACL, "=> match[dn%d]: %d %d ", i,
+				(int)dn_data[i].rm_so, 
+				(int)dn_data[i].rm_eo );
+			if ( dn_data[i].rm_so <= dn_data[0].rm_eo ) {
 				int n;
-				for ( n = matches[i].rm_so; n < matches[i].rm_eo; n++ ) {
-					Debug( LDAP_DEBUG_ACL, "%c", e->e_ndn[n], 0, 0 );
+				for ( n = dn_data[i].rm_so; 
+				      n < dn_data[i].rm_eo; n++ ) {
+					Debug( LDAP_DEBUG_ACL, "%c", 
+					       data[n], 0, 0 );
 				}
 			}
-			Debug( LDAP_DEBUG_ARGS, "\n", 0, 0, 0 );
+			Debug( LDAP_DEBUG_ACL, "\n", 0, 0, 0 );
+		}
+
+		/* val matches */
+		for ( i = 0; i < valmaxcount && val_data[i].rm_eo > 0; i++ ) {
+			char *data = val->bv_val;
+
+			Debug( LDAP_DEBUG_ACL, "=> match[val%d]: %d %d ", i,
+				(int)val_data[i].rm_so, 
+				(int)val_data[i].rm_eo );
+			if ( val_data[i].rm_so <= val_data[0].rm_eo ) {
+				int n;
+				for ( n = val_data[i].rm_so; 
+				      n < val_data[i].rm_eo; n++ ) {
+					Debug( LDAP_DEBUG_ACL, "%c", 
+					       data[n], 0, 0 );
+				}
+			}
+			Debug( LDAP_DEBUG_ACL, "\n", 0, 0, 0 );
 		}
 
 		if ( state ) {
@@ -255,13 +295,13 @@ slap_access_allowed(
 		}
 
 		control = slap_acl_mask( a, &mask, op,
-			e, desc, val, MAXREMATCHES, matches, count, state, access );
+			e, desc, val, &matches, count, state, access );
 
 		if ( control != ACL_BREAK ) {
 			break;
 		}
 
-		memset( matches, '\0', sizeof( matches ) );
+		MATCHES_MEMSET( &matches );
 	}
 
 	if ( ACL_IS_INVALID( mask ) ) {
@@ -473,12 +513,11 @@ slap_acl_get(
 	Entry		*e,
 	AttributeDescription *desc,
 	struct berval	*val,
-	int			nmatch,
-	regmatch_t	*matches,
+	AclRegexMatches	*matches,
 	AccessControlState *state )
 {
 	const char *attr;
-	int dnlen, patlen;
+	ber_len_t dnlen;
 	AccessControl *prev;
 
 	assert( e != NULL );
@@ -519,10 +558,15 @@ slap_acl_get(
 			if ( a->acl_dn_style == ACL_STYLE_REGEX ) {
 				Debug( LDAP_DEBUG_ACL, "=> dnpat: [%d] %s nsub: %d\n", 
 					*count, a->acl_dn_pat.bv_val, (int) a->acl_dn_re.re_nsub );
-				if (regexec(&a->acl_dn_re, e->e_ndn, nmatch, matches, 0))
+				if ( regexec ( &a->acl_dn_re, 
+					       e->e_ndn, 
+				 	       matches->dn_count, 
+					       matches->dn_data, 0 ) )
 					continue;
 
 			} else {
+				ber_len_t patlen;
+
 				Debug( LDAP_DEBUG_ACL, "=> dn: [%d] %s\n", 
 					*count, a->acl_dn_pat.bv_val, 0 );
 				patlen = a->acl_dn_pat.bv_len;
@@ -536,7 +580,7 @@ slap_acl_get(
 
 				} else if ( a->acl_dn_style == ACL_STYLE_ONE ) {
 					ber_len_t	rdnlen = 0;
-					int		sep = 0;
+					ber_len_t	sep = 0;
 
 					if ( dnlen <= patlen )
 						continue;
@@ -548,7 +592,7 @@ slap_acl_get(
 					}
 
 					rdnlen = dn_rdnlen( NULL, &e->e_nname );
-					if ( rdnlen != dnlen - patlen - sep )
+					if ( rdnlen + patlen + sep != dnlen )
 						continue;
 
 				} else if ( a->acl_dn_style == ACL_STYLE_SUBTREE ) {
@@ -571,7 +615,10 @@ slap_acl_get(
 		}
 
 		if ( a->acl_attrs && !ad_inlist( desc, a->acl_attrs ) ) {
-			matches[0].rm_so = matches[0].rm_eo = -1;
+			matches->dn_data[0].rm_so = -1;
+			matches->dn_data[0].rm_eo = -1;
+			matches->val_data[0].rm_so = -1;
+			matches->val_data[0].rm_eo = -1;
 			continue;
 		}
 
@@ -591,7 +638,10 @@ slap_acl_get(
 				Debug( LDAP_DEBUG_ACL,
 					"acl_get: valpat %s\n",
 					a->acl_attrval.bv_val, 0, 0 );
-				if ( regexec( &a->acl_attrval_re, val->bv_val, 0, NULL, 0 ) )
+				if ( regexec ( &a->acl_attrval_re, 
+						    val->bv_val, 
+						    matches->val_count, 
+						    matches->val_data, 0 ) )
 				{
 					continue;
 				}
@@ -611,7 +661,7 @@ slap_acl_get(
 						continue;
 					
 				} else {
-					int		patlen, vdnlen;
+					ber_len_t	patlen, vdnlen;
 	
 					patlen = a->acl_attrval.bv_len;
 					vdnlen = val->bv_len;
@@ -630,7 +680,7 @@ slap_acl_get(
 							continue;
 	
 						rdnlen = dn_rdnlen( NULL, val );
-						if ( rdnlen != vdnlen - patlen - 1 )
+						if ( rdnlen + patlen + 1 != vdnlen )
 							continue;
 	
 					} else if ( a->acl_attrval_style == ACL_STYLE_SUBTREE ) {
@@ -688,11 +738,9 @@ static int
 acl_mask_dn(
 	Operation		*op,
 	Entry			*e,
-	AttributeDescription	*desc,
 	struct berval		*val,
 	AccessControl		*a,
-	int			nmatch,
-	regmatch_t		*matches,
+	AclRegexMatches		*matches,
 	slap_dn_access		*bdn,
 	struct berval		*opndn )
 {
@@ -751,35 +799,38 @@ acl_mask_dn(
 
 	} else if ( bdn->a_style == ACL_STYLE_REGEX ) {
 		if ( !ber_bvccmp( &bdn->a_pat, '*' ) ) {
-			int		tmp_nmatch;
-			regmatch_t	tmp_matches[2],
-					*tmp_matchesp = tmp_matches;
-
+			AclRegexMatches	tmp_matches,
+					*tmp_matchesp = &tmp_matches;
 			int		rc = 0;
+			regmatch_t 	*tmp_data;
 
-			switch ( a->acl_dn_style ) {
+			MATCHES_MEMSET( &tmp_matches );
+			tmp_data = &tmp_matches.dn_data[0];
+
+			if ( a->acl_attrval_style == ACL_STYLE_REGEX )
+				tmp_matchesp = matches;
+			else switch ( a->acl_dn_style ) {
 			case ACL_STYLE_REGEX:
 				if ( !BER_BVISNULL( &a->acl_dn_pat ) ) {
-					tmp_matchesp = matches;
-					tmp_nmatch = nmatch;
+					tmp_matchesp = matches; 
 					break;
 				}
 			/* FALLTHRU: applies also to ACL_STYLE_REGEX when pattern is "*" */
 
 			case ACL_STYLE_BASE:
-				tmp_matches[0].rm_so = 0;
-				tmp_matches[0].rm_eo = e->e_nname.bv_len;
-				tmp_nmatch = 1;
+				tmp_data[0].rm_so = 0;
+				tmp_data[0].rm_eo = e->e_nname.bv_len;
+				tmp_matches.dn_count = 1;
 				break;
 
 			case ACL_STYLE_ONE:
 			case ACL_STYLE_SUBTREE:
 			case ACL_STYLE_CHILDREN:
-				tmp_matches[0].rm_so = 0;
-				tmp_matches[0].rm_eo = e->e_nname.bv_len;
-				tmp_matches[1].rm_so = e->e_nname.bv_len - a->acl_dn_pat.bv_len;
-				tmp_matches[1].rm_eo = e->e_nname.bv_len;
-				tmp_nmatch = 2;
+				tmp_data[0].rm_so = 0;
+				tmp_data[0].rm_eo = e->e_nname.bv_len;
+				tmp_data[1].rm_so = e->e_nname.bv_len - a->acl_dn_pat.bv_len;
+				tmp_data[1].rm_eo = e->e_nname.bv_len;
+				tmp_matches.dn_count = 2;
 				break;
 
 			default:
@@ -793,7 +844,7 @@ acl_mask_dn(
 			}
 
 			if ( !regex_matches( &bdn->a_pat, opndn->bv_val,
-				e->e_ndn, tmp_nmatch, tmp_matchesp ) )
+				&e->e_nname, NULL, tmp_matchesp ) )
 			{
 				return 1;
 			}
@@ -811,38 +862,42 @@ acl_mask_dn(
 			struct berval	bv;
 			char		buf[ACL_BUF_SIZE];
 			
-			int		tmp_nmatch;
-			regmatch_t	tmp_matches[2],
-					*tmp_matchesp = tmp_matches;
-
+			AclRegexMatches	tmp_matches,
+					*tmp_matchesp = &tmp_matches;
 			int		rc = 0;
+			regmatch_t 	*tmp_data;
+
+			MATCHES_MEMSET( &tmp_matches );
+			tmp_data = &tmp_matches.dn_data[0];
 
 			bv.bv_len = sizeof( buf ) - 1;
 			bv.bv_val = buf;
 
-			switch ( a->acl_dn_style ) {
+			/* Expand value regex */
+			if ( a->acl_attrval_style == ACL_STYLE_REGEX )
+				tmp_matchesp = matches;
+			else switch ( a->acl_dn_style ) {
 			case ACL_STYLE_REGEX:
 				if ( !BER_BVISNULL( &a->acl_dn_pat ) ) {
 					tmp_matchesp = matches;
-					tmp_nmatch = nmatch;
 					break;
 				}
 			/* FALLTHRU: applies also to ACL_STYLE_REGEX when pattern is "*" */
 
 			case ACL_STYLE_BASE:
-				tmp_matches[0].rm_so = 0;
-				tmp_matches[0].rm_eo = e->e_nname.bv_len;
-				tmp_nmatch = 1;
+				tmp_data[0].rm_so = 0;
+				tmp_data[0].rm_eo = e->e_nname.bv_len;
+				tmp_matches.dn_count = 1;
 				break;
 
 			case ACL_STYLE_ONE:
 			case ACL_STYLE_SUBTREE:
 			case ACL_STYLE_CHILDREN:
-				tmp_matches[0].rm_so = 0;
-				tmp_matches[0].rm_eo = e->e_nname.bv_len;
-				tmp_matches[1].rm_so = e->e_nname.bv_len - a->acl_dn_pat.bv_len;
-				tmp_matches[1].rm_eo = e->e_nname.bv_len;
-				tmp_nmatch = 2;
+				tmp_data[0].rm_so = 0;
+				tmp_data[0].rm_eo = e->e_nname.bv_len;
+				tmp_data[1].rm_so = e->e_nname.bv_len - a->acl_dn_pat.bv_len;
+				tmp_data[1].rm_eo = e->e_nname.bv_len;
+				tmp_matches.dn_count = 2;
 				break;
 
 			default:
@@ -856,8 +911,8 @@ acl_mask_dn(
 			}
 
 			if ( acl_string_expand( &bv, &bdn->a_pat, 
-					e->e_nname.bv_val,
-					tmp_nmatch, tmp_matchesp ) )
+						&e->e_nname, 
+						val, tmp_matchesp ) )
 			{
 				return 1;
 			}
@@ -967,9 +1022,6 @@ acl_mask_dnattr(
 	Entry			*e,
 	struct berval		*val,
 	AccessControl		*a,
-	Access			*b,
-	int			i,
-	regmatch_t		*matches,
 	int			count,
 	AccessControlState	*state,
 	slap_dn_access		*bdn,
@@ -1071,8 +1123,7 @@ slap_acl_mask(
 	Entry			*e,
 	AttributeDescription	*desc,
 	struct berval		*val,
-	int			nmatch,
-	regmatch_t		*matches,
+	AclRegexMatches		*matches,
 	int			count,
 	AccessControlState	*state,
 	slap_access_t	access )
@@ -1083,7 +1134,9 @@ slap_acl_mask(
 	char		accessmaskbuf[ACCESSMASK_MAXLEN];
 #endif /* DEBUG */
 	const char	*attr;
+#ifdef SLAP_DYNACL
 	slap_mask_t	a2pmask = ACL_ACCESS2PRIV( access );
+#endif /* SLAP_DYNACL */
 
 	assert( a != NULL );
 	assert( mask != NULL );
@@ -1128,7 +1181,7 @@ slap_acl_mask(
 			 * is maintained in a_dn_pat.
 			 */
 
-			if ( acl_mask_dn( op, e, desc, val, a, nmatch, matches,
+			if ( acl_mask_dn( op, e, val, a, matches,
 				&b->a_dn, &op->o_ndn ) )
 			{
 				continue;
@@ -1159,7 +1212,7 @@ slap_acl_mask(
 				ndn = op->o_ndn;
 			}
 
-			if ( acl_mask_dn( op, e, desc, val, a, nmatch, matches,
+			if ( acl_mask_dn( op, e, val, a, matches,
 				&b->a_realdn, &ndn ) )
 			{
 				continue;
@@ -1175,8 +1228,8 @@ slap_acl_mask(
 
 			if ( !ber_bvccmp( &b->a_sockurl_pat, '*' ) ) {
 				if ( b->a_sockurl_style == ACL_STYLE_REGEX) {
-					if (!regex_matches( &b->a_sockurl_pat, op->o_conn->c_listener_url.bv_val,
-							e->e_ndn, nmatch, matches ) ) 
+					if ( !regex_matches( &b->a_sockurl_pat, op->o_conn->c_listener_url.bv_val,
+							&e->e_nname, val, matches ) ) 
 					{
 						continue;
 					}
@@ -1187,8 +1240,7 @@ slap_acl_mask(
 
 					bv.bv_len = sizeof( buf ) - 1;
 					bv.bv_val = buf;
-					if ( acl_string_expand( &bv, &b->a_sockurl_pat,
-							e->e_ndn, nmatch, matches ) )
+					if ( acl_string_expand( &bv, &b->a_sockurl_pat, &e->e_nname, val, matches ) )
 					{
 						continue;
 					}
@@ -1215,8 +1267,8 @@ slap_acl_mask(
 				b->a_domain_pat.bv_val, 0, 0 );
 			if ( !ber_bvccmp( &b->a_domain_pat, '*' ) ) {
 				if ( b->a_domain_style == ACL_STYLE_REGEX) {
-					if (!regex_matches( &b->a_domain_pat, op->o_conn->c_peer_domain.bv_val,
-							e->e_ndn, nmatch, matches ) ) 
+					if ( !regex_matches( &b->a_domain_pat, op->o_conn->c_peer_domain.bv_val,
+							&e->e_nname, val, matches ) ) 
 					{
 						continue;
 					}
@@ -1232,8 +1284,7 @@ slap_acl_mask(
 						bv.bv_len = sizeof(buf) - 1;
 						bv.bv_val = buf;
 
-						if ( acl_string_expand(&bv, &b->a_domain_pat,
-								e->e_ndn, nmatch, matches) )
+						if ( acl_string_expand(&bv, &b->a_domain_pat, &e->e_nname, val, matches) )
 						{
 							continue;
 						}
@@ -1270,8 +1321,8 @@ slap_acl_mask(
 				b->a_peername_pat.bv_val, 0, 0 );
 			if ( !ber_bvccmp( &b->a_peername_pat, '*' ) ) {
 				if ( b->a_peername_style == ACL_STYLE_REGEX ) {
-					if (!regex_matches( &b->a_peername_pat, op->o_conn->c_peer_name.bv_val,
-							e->e_ndn, nmatch, matches ) ) 
+					if ( !regex_matches( &b->a_peername_pat, op->o_conn->c_peer_name.bv_val,
+							&e->e_nname, val, matches ) ) 
 					{
 						continue;
 					}
@@ -1289,8 +1340,7 @@ slap_acl_mask(
 
 						bv.bv_len = sizeof( buf ) - 1;
 						bv.bv_val = buf;
-						if ( acl_string_expand( &bv, &b->a_peername_pat,
-								e->e_ndn, nmatch, matches ) )
+						if ( acl_string_expand( &bv, &b->a_peername_pat, &e->e_nname, val, matches ) )
 						{
 							continue;
 						}
@@ -1423,8 +1473,8 @@ slap_acl_mask(
 				b->a_sockname_pat.bv_val, 0, 0 );
 			if ( !ber_bvccmp( &b->a_sockname_pat, '*' ) ) {
 				if ( b->a_sockname_style == ACL_STYLE_REGEX) {
-					if (!regex_matches( &b->a_sockname_pat, op->o_conn->c_sock_name.bv_val,
-							e->e_ndn, nmatch, matches ) ) 
+					if ( !regex_matches( &b->a_sockname_pat, op->o_conn->c_sock_name.bv_val,
+							&e->e_nname, val, matches ) ) 
 					{
 						continue;
 					}
@@ -1435,8 +1485,7 @@ slap_acl_mask(
 
 					bv.bv_len = sizeof( buf ) - 1;
 					bv.bv_val = buf;
-					if ( acl_string_expand( &bv, &b->a_sockname_pat,
-							e->e_ndn, nmatch, matches ) )
+					if ( acl_string_expand( &bv, &b->a_sockname_pat, &e->e_nname, val, matches ) )
 					{
 						continue;
 					}
@@ -1454,8 +1503,8 @@ slap_acl_mask(
 		}
 
 		if ( b->a_dn_at != NULL ) {
-			if ( acl_mask_dnattr( op, e, val, a, b, i,
-					matches, count, state,
+			if ( acl_mask_dnattr( op, e, val, a,
+					count, state,
 					&b->a_dn, &op->o_ndn ) )
 			{
 				continue;
@@ -1472,8 +1521,8 @@ slap_acl_mask(
 				ndn = op->o_ndn;
 			}
 
-			if ( acl_mask_dnattr( op, e, val, a, b, i,
-					matches, count, state,
+			if ( acl_mask_dnattr( op, e, val, a,
+					count, state,
 					&b->a_realdn, &ndn ) )
 			{
 				continue;
@@ -1499,38 +1548,43 @@ slap_acl_mask(
 			/* see if asker is listed in dnattr */
 			if ( b->a_group_style == ACL_STYLE_EXPAND ) {
 				char		buf[ACL_BUF_SIZE];
-				int		tmp_nmatch;
-				regmatch_t	tmp_matches[2],
-						*tmp_matchesp = tmp_matches;
+				AclRegexMatches	tmp_matches,
+						*tmp_matchesp = &tmp_matches;
+				regmatch_t 	*tmp_data;
+
+				MATCHES_MEMSET( &tmp_matches );
+				tmp_data = &tmp_matches.dn_data[0];
 
 				bv.bv_len = sizeof(buf) - 1;
 				bv.bv_val = buf;
 
 				rc = 0;
 
-				switch ( a->acl_dn_style ) {
+				if ( a->acl_attrval_style == ACL_STYLE_REGEX )
+					tmp_matchesp = matches;
+				else switch ( a->acl_dn_style ) {
 				case ACL_STYLE_REGEX:
 					if ( !BER_BVISNULL( &a->acl_dn_pat ) ) {
 						tmp_matchesp = matches;
-						tmp_nmatch = nmatch;
 						break;
 					}
 
 				/* FALLTHRU: applies also to ACL_STYLE_REGEX when pattern is "*" */
 				case ACL_STYLE_BASE:
-					tmp_matches[0].rm_so = 0;
-					tmp_matches[0].rm_eo = e->e_nname.bv_len;
-					tmp_nmatch = 1;
+					tmp_data[0].rm_so = 0;
+					tmp_data[0].rm_eo = e->e_nname.bv_len;
+					tmp_matches.dn_count = 1;
 					break;
 
 				case ACL_STYLE_ONE:
 				case ACL_STYLE_SUBTREE:
 				case ACL_STYLE_CHILDREN:
-					tmp_matches[0].rm_so = 0;
-					tmp_matches[0].rm_eo = e->e_nname.bv_len;
-					tmp_matches[1].rm_so = e->e_nname.bv_len - a->acl_dn_pat.bv_len;
-					tmp_matches[1].rm_eo = e->e_nname.bv_len;
-					tmp_nmatch = 2;
+					tmp_data[0].rm_so = 0;
+					tmp_data[0].rm_eo = e->e_nname.bv_len;
+
+					tmp_data[1].rm_so = e->e_nname.bv_len - a->acl_dn_pat.bv_len;
+					tmp_data[1].rm_eo = e->e_nname.bv_len;
+					tmp_matches.dn_count = 2;
 					break;
 
 				default:
@@ -1544,8 +1598,8 @@ slap_acl_mask(
 				}
 				
 				if ( acl_string_expand( &bv, &b->a_group_pat,
-						e->e_nname.bv_val,
-						tmp_nmatch, tmp_matchesp ) )
+						&e->e_nname, val,
+						tmp_matchesp ) )
 				{
 					continue;
 				}
@@ -1583,39 +1637,42 @@ slap_acl_mask(
 				b->a_set_pat.bv_val, 0, 0 );
 
 			if ( b->a_set_style == ACL_STYLE_EXPAND ) {
-				int		tmp_nmatch;
-				regmatch_t	tmp_matches[2],
-						*tmp_matchesp = tmp_matches;
+				AclRegexMatches	tmp_matches,
+						*tmp_matchesp = &tmp_matches;
 				int		rc = 0;
+				regmatch_t 	*tmp_data;
+
+				MATCHES_MEMSET( &tmp_matches );
+				tmp_data = &tmp_matches.dn_data[0];
 
 				bv.bv_len = sizeof( buf ) - 1;
 				bv.bv_val = buf;
 
 				rc = 0;
 
-				switch ( a->acl_dn_style ) {
+				if ( a->acl_attrval_style == ACL_STYLE_REGEX )
+					tmp_matchesp = matches;
+				else switch ( a->acl_dn_style ) {
 				case ACL_STYLE_REGEX:
 					if ( !BER_BVISNULL( &a->acl_dn_pat ) ) {
 						tmp_matchesp = matches;
-						tmp_nmatch = nmatch;
 						break;
 					}
 
 				/* FALLTHRU: applies also to ACL_STYLE_REGEX when pattern is "*" */
 				case ACL_STYLE_BASE:
-					tmp_matches[0].rm_so = 0;
-					tmp_matches[0].rm_eo = e->e_nname.bv_len;
-					tmp_nmatch = 1;
+					tmp_data[0].rm_so = 0;
+					tmp_data[0].rm_eo = e->e_nname.bv_len;
+					tmp_matches.dn_count = 1;
 					break;
 
 				case ACL_STYLE_ONE:
 				case ACL_STYLE_SUBTREE:
 				case ACL_STYLE_CHILDREN:
-					tmp_matches[0].rm_so = 0;
-					tmp_matches[0].rm_eo = e->e_nname.bv_len;
-					tmp_matches[1].rm_so = e->e_nname.bv_len - a->acl_dn_pat.bv_len;
-					tmp_matches[1].rm_eo = e->e_nname.bv_len;
-					tmp_nmatch = 2;
+					tmp_data[0].rm_so = 0;
+					tmp_data[0].rm_eo = e->e_nname.bv_len;
+					tmp_data[1].rm_so = e->e_nname.bv_len - a->acl_dn_pat.bv_len;
+					tmp_data[1].rm_eo = e->e_nname.bv_len; tmp_matches.dn_count = 2;
 					break;
 
 				default:
@@ -1629,8 +1686,8 @@ slap_acl_mask(
 				}
 				
 				if ( acl_string_expand( &bv, &b->a_set_pat,
-						e->e_nname.bv_val,
-						tmp_nmatch, tmp_matchesp ) )
+						&e->e_nname, val,
+						tmp_matchesp ) )
 				{
 					continue;
 				}
@@ -1742,8 +1799,14 @@ slap_acl_mask(
 				Debug( LDAP_DEBUG_ACL, "    <= check a_dynacl: %s\n",
 					da->da_name, 0, 0 );
 
+				/*
+				 * XXXmanu Only DN matches are supplied 
+				 * sending attribute values matches require
+				 * an API update
+				 */
 				(void)da->da_mask( da->da_private, op, e, desc,
-					val, nmatch, matches, &grant, &deny );
+					val, matches->dn_count, matches->dn_data, 
+					&grant, &deny ); 
 
 				tgrant |= grant;
 				tdeny |= deny;
@@ -2446,20 +2509,22 @@ int
 acl_string_expand(
 	struct berval	*bv,
 	struct berval	*pat,
-	char		*match,
-	int		nmatch,
-	regmatch_t	*matches)
+	struct berval	*dn_matches,
+	struct berval	*val_matches,
+	AclRegexMatches	*matches)
 {
 	ber_len_t	size;
 	char   *sp;
 	char   *dp;
 	int	flag;
+	enum { DN_FLAG, VAL_FLAG } tflag;
 
 	size = 0;
 	bv->bv_val[0] = '\0';
 	bv->bv_len--; /* leave space for lone $ */
 
 	flag = 0;
+	tflag = DN_FLAG;
 	for ( dp = bv->bv_val, sp = pat->bv_val; size < bv->bv_len &&
 		sp < pat->bv_val + pat->bv_len ; sp++ )
 	{
@@ -2469,11 +2534,21 @@ acl_string_expand(
 				*dp++ = '$';
 				size++;
 				flag = 0;
+				tflag = DN_FLAG;
+
+			} else if ( flag == 2 && *sp == 'v' /*'}'*/) {
+				tflag = VAL_FLAG;
+
+			} else if ( flag == 2 && *sp == 'd' /*'}'*/) {
+				tflag = DN_FLAG;
 
 			} else if ( flag == 1 && *sp == '{' /*'}'*/) {
 				flag = 2;
 
 			} else if ( *sp >= '0' && *sp <= '9' ) {
+				int	nm;
+				regmatch_t *m;
+				char *data;
 				int	n;
 				int	i;
 				int	l;
@@ -2493,20 +2568,40 @@ acl_string_expand(
 					}
 				}
 
-				if ( n >= nmatch ) {
+				switch (tflag) {
+				case DN_FLAG:
+					nm = matches->dn_count;
+					m = matches->dn_data;
+					data = dn_matches ? dn_matches->bv_val : NULL;
+					break;
+				case VAL_FLAG:
+					nm = matches->val_count;
+					m = matches->val_data;
+					data = val_matches ? val_matches->bv_val : NULL;
+					break;
+				default:
+					assert( 0 );
+				}
+				if ( n >= nm ) {
+					/* FIXME: error */
+					return 1;
+				}
+				if ( data == NULL ) {
 					/* FIXME: error */
 					return 1;
 				}
 				
 				*dp = '\0';
-				i = matches[n].rm_so;
-				l = matches[n].rm_eo; 
+				i = m[n].rm_so;
+				l = m[n].rm_eo; 
+					
 				for ( ; size < bv->bv_len && i < l; size++, i++ ) {
-					*dp++ = match[i];
+					*dp++ = data[i];
 				}
 				*dp = '\0';
 
 				flag = 0;
+				tflag = DN_FLAG;
 			}
 		} else {
 			if (*sp == '$') {
@@ -2527,8 +2622,8 @@ acl_string_expand(
 	*dp = '\0';
 	bv->bv_len = size;
 
-	Debug( LDAP_DEBUG_TRACE, "=> acl_string_expand: pattern:  %.*s\n", (int)pat->bv_len, pat->bv_val, 0 );
-	Debug( LDAP_DEBUG_TRACE, "=> acl_string_expand: expanded: %s\n", bv->bv_val, 0, 0 );
+	Debug( LDAP_DEBUG_ACL, "=> acl_string_expand: pattern:  %.*s\n", (int)pat->bv_len, pat->bv_val, 0 );
+	Debug( LDAP_DEBUG_ACL, "=> acl_string_expand: expanded: %s\n", bv->bv_val, 0, 0 );
 
 	return 0;
 }
@@ -2537,9 +2632,9 @@ static int
 regex_matches(
 	struct berval	*pat,		/* pattern to expand and match against */
 	char		*str,		/* string to match against pattern */
-	char		*buf,		/* buffer with $N expansion variables */
-	int		nmatch,	/* size of the matches array */
-	regmatch_t	*matches	/* offsets in buffer for $N expansion variables */
+	struct berval	*dn_matches,	/* buffer with $N expansion variables from DN */
+	struct berval	*val_matches,	/* buffer with $N expansion variables from val */
+	AclRegexMatches	*matches	/* offsets in buffer for $N expansion variables */
 )
 {
 	regex_t re;
@@ -2554,7 +2649,7 @@ regex_matches(
 		str = "";
 	};
 
-	acl_string_expand( &bv, pat, buf, nmatch, matches );
+	acl_string_expand( &bv, pat, dn_matches, val_matches, matches );
 	rc = regcomp( &re, newbuf, REG_EXTENDED|REG_ICASE );
 	if ( rc ) {
 		char error[ACL_BUF_SIZE];

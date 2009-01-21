@@ -1547,6 +1547,13 @@ typedef struct AccessControlState {
 #define ACL_STATE_INIT { NULL, NULL, NULL, \
 	ACL_STATE_NOT_RECORDED, 0, 0, 0 }
 
+typedef struct AclRegexMatches {        
+	int dn_count;
+        regmatch_t dn_data[MAXREMATCHES];
+	int val_count;
+        regmatch_t val_data[MAXREMATCHES];
+} AclRegexMatches;
+
 /*
  * Backend-info
  * represents a backend 
