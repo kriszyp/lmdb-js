@@ -16,8 +16,8 @@
  *
  * Author:  David H. Hawes, Jr.
  * Email:   dhawes@vt.edu
- * Version: $Revision: 6588 $
- * Updated: $Date: 2007-11-07 13:29:25 -0500 (Wed, 07 Nov 2007) $
+ * Version: $Revision: 8385 $
+ * Updated: $Date: 2008-11-04 12:19:52 -0500 (Tue, 04 Nov 2008) $
  * 
  * addpartial-overlay
  *
