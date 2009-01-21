@@ -474,6 +474,8 @@ from a search operation.
 
 >	olcSizeLimit: 500
 
+See the {{SECT:Limits}} section of this guide and slapd-config(5)
+for more details.
 
 
 H4: olcSuffix: <dn suffix>
@@ -667,6 +669,9 @@ exceeded timelimit will be returned.
 \Default:
 
 >	olcTimeLimit: 3600
+
+See the {{SECT:Limits}} section of this guide and slapd-config(5)
+for more details.
 
 
 H4: olcUpdateref: <URL>

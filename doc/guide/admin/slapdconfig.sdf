@@ -203,6 +203,8 @@ from a search operation.
 
 >	sizelimit 500
 
+See the {{SECT:Limits}} section of this guide and slapd.conf(5)
+for more details.
 
 H4: timelimit <integer>
 
@@ -214,6 +216,9 @@ exceeded timelimit will be returned.
 \Default:
 
 >	timelimit 3600
+
+See the {{SECT:Limits}} section of this guide and slapd.conf(5)
+for more details.
 
 
 H3: General Backend Directives
@@ -271,6 +276,14 @@ supported backend types listed in Table 6.2.
 
 This marks the beginning of a new {{TERM:BDB}} database instance
 declaration.
+
+
+H4: limits <who> <limit> [<limit> [...]]
+
+Specify time and size limits based on who initiated an operation.
+
+See the {{SECT:Limits}} section of this guide and slapd.conf(5)
+for more details.
 
 
 H4: readonly { on | off }
