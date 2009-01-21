@@ -2801,14 +2801,17 @@ struct Connection {
 	LDAP_STAILQ_HEAD(c_o, Operation) c_ops;	/* list of operations being processed */
 	LDAP_STAILQ_HEAD(c_po, Operation) c_pending_ops;	/* list of pending operations */
 
-	ldap_pvt_thread_mutex_t	c_write_mutex;	/* only one pdu written at a time */
-	ldap_pvt_thread_cond_t	c_write_cv;		/* used to wait for sd write-ready*/
+	ldap_pvt_thread_mutex_t	c_write1_mutex;	/* only one pdu written at a time */
+	ldap_pvt_thread_cond_t	c_write1_cv;	/* only one pdu written at a time */
+	ldap_pvt_thread_mutex_t	c_write2_mutex;	/* used to wait for sd write-ready */
+	ldap_pvt_thread_cond_t	c_write2_cv;	/* used to wait for sd write-ready*/
 
 	BerElement	*c_currentber;	/* ber we're attempting to read */
+	int			c_writers;		/* number of writers waiting */
 
 	char		c_sasl_bind_in_progress;	/* multi-op bind in progress */
+	char		c_writewaiter;	/* true if blocked on write */
 
-	char		c_writewaiter;	/* true if writer is waiting */
 
 #define	CONN_IS_TLS	1
 #define	CONN_IS_UDP	2

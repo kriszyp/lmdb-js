@@ -137,27 +137,44 @@ static long send_ldap_ber(
 	BerElement *ber )
 {
 	ber_len_t bytes;
+	long ret = 0;
+	int closing = 0;
 
 	ber_get_option( ber, LBER_OPT_BER_BYTES_TO_WRITE, &bytes );
 
 	/* write only one pdu at a time - wait til it's our turn */
-	ldap_pvt_thread_mutex_lock( &conn->c_write_mutex );
+	ldap_pvt_thread_mutex_lock( &conn->c_write1_mutex );
+	if ( connection_state_closing( conn )) {
+		ldap_pvt_thread_mutex_unlock( &conn->c_write1_mutex );
+		return 0;
+	}
+	while ( conn->c_writers > 0 ) {
+		ldap_pvt_thread_cond_wait( &conn->c_write1_cv, &conn->c_write1_mutex );
+	}
+	/* connection was closed under us */
+	if ( conn->c_writers < 0 ) {
+		closing = 1;
+		/* we're the last waiter, let the closer continue */
+		if ( conn->c_writers == -1 )
+			ldap_pvt_thread_cond_signal( &conn->c_write1_cv );
+	}
 
-	/* lock the connection */ 
-	ldap_pvt_thread_mutex_lock( &conn->c_mutex );
+	conn->c_writers++;
+	ldap_pvt_thread_mutex_unlock( &conn->c_write1_mutex );
+
+	if ( closing )
+		return 0;
 
 	/* write the pdu */
 	while( 1 ) {
 		int err;
 
-		if ( connection_state_closing( conn ) ) {
-			ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
-			ldap_pvt_thread_mutex_unlock( &conn->c_write_mutex );
-
-			return 0;
-		}
+		/* lock the connection */ 
+		ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 
 		if ( ber_flush2( conn->c_sb, ber, LBER_FLUSH_FREE_NEVER ) == 0 ) {
+			ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
+			ret = bytes;
 			break;
 		}
 
@@ -176,23 +193,41 @@ static long send_ldap_ber(
 			connection_closing( conn, "connection lost on write" );
 
 			ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
-			ldap_pvt_thread_mutex_unlock( &conn->c_write_mutex );
 
-			return( -1 );
+			ret = -1;
+			break;
 		}
 
 		/* wait for socket to be write-ready */
+		ldap_pvt_thread_mutex_lock( &conn->c_write2_mutex );
 		conn->c_writewaiter = 1;
 		slapd_set_write( conn->c_sd, 1 );
 
-		ldap_pvt_thread_cond_wait( &conn->c_write_cv, &conn->c_mutex );
+		ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
+		ldap_pvt_thread_cond_wait( &conn->c_write2_cv, &conn->c_write2_mutex );
 		conn->c_writewaiter = 0;
+		ldap_pvt_thread_mutex_unlock( &conn->c_write2_mutex );
+		ldap_pvt_thread_mutex_lock( &conn->c_write1_mutex );
+		closing = ( conn->c_writers < 0 );
+		ldap_pvt_thread_mutex_unlock( &conn->c_write1_mutex );
+		if ( closing ) {
+			ret = 0;
+			break;
+		}
 	}
 
-	ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
-	ldap_pvt_thread_mutex_unlock( &conn->c_write_mutex );
+	ldap_pvt_thread_mutex_lock( &conn->c_write1_mutex );
+	if ( conn->c_writers < 0 ) {
+		conn->c_writers++;
+		if ( !conn->c_writers )
+			ldap_pvt_thread_cond_signal( &conn->c_write1_cv );
+	} else {
+		conn->c_writers--;
+		ldap_pvt_thread_cond_signal( &conn->c_write1_cv );
+	}
+	ldap_pvt_thread_mutex_unlock( &conn->c_write1_mutex );
 
-	return bytes;
+	return ret;
 }
 
 static int

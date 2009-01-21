@@ -2495,7 +2495,7 @@ slapd_daemon_task(
 #endif /* LDAP_DEBUG */
 
 		for ( i = 0; i < ns; i++ ) {
-			int rc = 1, fd;
+			int rc = 1, fd, w = 0;
 
 			if ( SLAP_EVENT_IS_LISTENER( i ) ) {
 				rc = slap_listener_activate( SLAP_EVENT_LISTENER( i ) );
@@ -2522,6 +2522,7 @@ slapd_daemon_task(
 						fd, 0, 0 );
 
 					SLAP_EVENT_CLR_WRITE( i );
+					w = 1;
 
 					/*
 					 * NOTE: it is possible that the connection was closed
@@ -2541,9 +2542,10 @@ slapd_daemon_task(
 
 					SLAP_EVENT_CLR_READ( i );
 					connection_read_activate( fd );
-				} else {
+				} else if ( !w ) {
 					Debug( LDAP_DEBUG_CONNS,
 						"daemon: hangup on %d\n", fd, 0, 0 );
+					connection_hangup( fd );
 				}
 			}
 		}

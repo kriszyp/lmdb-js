@@ -163,8 +163,10 @@ int connections_destroy(void)
 		if( connections[i].c_struct_state != SLAP_C_UNINITIALIZED ) {
 			ber_sockbuf_free( connections[i].c_sb );
 			ldap_pvt_thread_mutex_destroy( &connections[i].c_mutex );
-			ldap_pvt_thread_mutex_destroy( &connections[i].c_write_mutex );
-			ldap_pvt_thread_cond_destroy( &connections[i].c_write_cv );
+			ldap_pvt_thread_mutex_destroy( &connections[i].c_write1_mutex );
+			ldap_pvt_thread_mutex_destroy( &connections[i].c_write2_mutex );
+			ldap_pvt_thread_cond_destroy( &connections[i].c_write1_cv );
+			ldap_pvt_thread_cond_destroy( &connections[i].c_write2_cv );
 #ifdef LDAP_SLAPI
 			if ( slapi_plugins_used ) {
 				slapi_int_free_object_extensions( SLAPI_X_EXT_CONNECTION,
@@ -384,8 +386,10 @@ Connection * connection_init(
 
 		/* should check status of thread calls */
 		ldap_pvt_thread_mutex_init( &c->c_mutex );
-		ldap_pvt_thread_mutex_init( &c->c_write_mutex );
-		ldap_pvt_thread_cond_init( &c->c_write_cv );
+		ldap_pvt_thread_mutex_init( &c->c_write1_mutex );
+		ldap_pvt_thread_mutex_init( &c->c_write2_mutex );
+		ldap_pvt_thread_cond_init( &c->c_write1_cv );
+		ldap_pvt_thread_cond_init( &c->c_write2_cv );
 
 #ifdef LDAP_SLAPI
 		if ( slapi_plugins_used ) {
@@ -417,6 +421,7 @@ Connection * connection_init(
 	assert( c->c_sasl_bindop == NULL );
 	assert( c->c_currentber == NULL );
 	assert( c->c_writewaiter == 0);
+	assert( c->c_writers == 0);
 
 	c->c_listener = listener;
 	c->c_sd = s;
@@ -593,6 +598,7 @@ connection_destroy( Connection *c )
 	assert( LDAP_STAILQ_EMPTY(&c->c_txn_ops) );
 #endif
 	assert( c->c_writewaiter == 0);
+	assert( c->c_writers == 0);
 
 	/* only for stats (print -1 as "%lu" may give unexpected results ;) */
 	connid = c->c_connid;
@@ -752,18 +758,24 @@ void connection_closing( Connection *c, const char *why )
 		connection_abandon( c );
 
 		/* wake write blocked operations */
-		if ( c->c_writewaiter ) {
-			ldap_pvt_thread_cond_signal( &c->c_write_cv );
-			/* ITS#4667 this may allow another thread to drop into
-			 * connection_resched / connection_close before we
-			 * finish, but that's OK.
-			 */
-			slapd_clr_write( c->c_sd, 1 );
-			ldap_pvt_thread_mutex_unlock( &c->c_mutex );
-			ldap_pvt_thread_mutex_lock( &c->c_write_mutex );
-			ldap_pvt_thread_mutex_lock( &c->c_mutex );
-			ldap_pvt_thread_mutex_unlock( &c->c_write_mutex );
+		ldap_pvt_thread_mutex_lock( &c->c_write1_mutex );
+		if ( c->c_writers > 0 ) {
+			c->c_writers = -c->c_writers;
+			ldap_pvt_thread_cond_broadcast( &c->c_write1_cv );
+			ldap_pvt_thread_mutex_unlock( &c->c_write1_mutex );
+			if ( c->c_writewaiter ) {
+				ldap_pvt_thread_mutex_lock( &c->c_write2_mutex );
+				ldap_pvt_thread_cond_signal( &c->c_write2_cv );
+				slapd_clr_write( c->c_sd, 1 );
+				ldap_pvt_thread_mutex_unlock( &c->c_write2_mutex );
+			}
+			ldap_pvt_thread_mutex_lock( &c->c_write1_mutex );
+			while ( c->c_writers ) {
+				ldap_pvt_thread_cond_wait( &c->c_write1_cv, &c->c_write1_mutex );
+			}
+			ldap_pvt_thread_mutex_unlock( &c->c_write1_mutex );
 		} else {
+			ldap_pvt_thread_mutex_unlock( &c->c_write1_mutex );
 			slapd_clr_write( c->c_sd, 1 );
 		}
 
@@ -778,11 +790,6 @@ connection_close( Connection *c )
 {
 	assert( connections != NULL );
 	assert( c != NULL );
-
-	/* ITS#4667 we may have gotten here twice */
-	if ( c->c_conn_state == SLAP_C_INVALID )
-		return;
-
 	assert( c->c_struct_state == SLAP_C_USED );
 	assert( c->c_conn_state == SLAP_C_CLOSING );
 
@@ -1174,7 +1181,7 @@ void connection_client_stop(
 
 	/* get (locked) connection */
 	c = connection_get( s );
-	
+
 	assert( c->c_conn_state == SLAP_C_CLIENT );
 
 	c->c_listener = NULL;
@@ -1244,6 +1251,24 @@ int connection_read_activate( ber_socket_t s )
 	}
 
 	return rc;
+}
+
+void
+connection_hangup( ber_socket_t s )
+{
+	Connection *c;
+
+	c = connection_get( s );
+	if ( c ) {
+		if ( c->c_conn_state == SLAP_C_CLIENT ) {
+			connection_return( c );
+			connection_read_activate( s );
+		} else {
+			connection_closing( c, "connection lost" );
+			connection_close( c );
+			connection_return( c );
+		}
+	}
 }
 
 static int
@@ -1831,7 +1856,7 @@ int connection_write(ber_socket_t s)
 	Debug( LDAP_DEBUG_TRACE,
 		"connection_write(%d): waking output for id=%lu\n",
 		s, c->c_connid, 0 );
-	ldap_pvt_thread_cond_signal( &c->c_write_cv );
+	ldap_pvt_thread_cond_signal( &c->c_write2_cv );
 
 	if ( ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_NEEDS_READ, NULL ) ) {
 		slapd_set_read( s, 1 );
