@@ -357,7 +357,7 @@ H3: Constraint Configuration
 Configuration via {{slapd.conf}}(5) would look like:
 
 >        overlay constraint
->        constraint_attribute mail regex ^[:alnum:]+@mydomain.com$
+>        constraint_attribute mail regex ^[[:alnum:]]+@mydomain.com$
 >        constraint_attribute title uri
 >        ldap:///dc=catalog,dc=example,dc=com?title?sub?(objectClass=titleCatalog)
 
@@ -374,7 +374,7 @@ An example for use with {{cn=config}}:
 >       objectClass: olcOverlayConfig
 >       objectClass: olcConstraintConfig
 >       olcOverlay: constraint
->       olcConstraintAttribute: mail regex ^[:alnum:]+@mydomain.com$
+>       olcConstraintAttribute: mail regex ^[[:alnum:]]+@mydomain.com$
 >       olcConstraintAttribute: title uri ldap:///dc=catalog,dc=example,dc=com?title?sub?(objectClass=titleCatalog)
 
 

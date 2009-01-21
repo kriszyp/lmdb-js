@@ -103,7 +103,7 @@ LDAP_CONSTRAINT_VIOLATION error.
 overlay constraint
 constraint_attribute jpegPhoto size 131072
 constraint_attribute userPassword count 3
-constraint_attribute mail regex ^[:alnum:]+@mydomain.com$
+constraint_attribute mail regex ^[[:alnum:]]+@mydomain.com$
 constraint_attribute title uri
   ldap:///dc=catalog,dc=example,dc=com?title?sub?(objectClass=titleCatalog)
 constraint_attribute cn,sn,givenName set
