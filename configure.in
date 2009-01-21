@@ -691,6 +691,7 @@ if test $ol_enable_perl != no ; then
 fi
 
 AC_PROG_CPP
+OL_MSVC
 
 dnl ----------------------------------------------------------------
 dnl Checks for Windows NT
@@ -842,7 +843,7 @@ AC_CHECK_HEADERS(	\
 )
 
 dnl Only check Winsock on MinGW
-if test "$ac_cv_mingw32" = yes ; then
+if test "$ac_cv_mingw32" = yes -o "$ol_cv_msvc" = yes ; then
 	AC_CHECK_HEADERS( winsock.h winsock2.h )
 fi
 
@@ -874,37 +875,48 @@ if test $ac_cv_func_sigaction = no && test $ac_cv_func_sigaction = no ; then
 	AC_CHECK_LIB(V3, sigset)
 fi
 
+if test $ol_cv_msvc ; then
+   ol_cv_winsock=yes
+fi
+
 dnl The following is INTENTIONALLY scripted out because shell does not
 dnl support variable names with the '@' character, which is what
 dnl autoconf would try to generate if one merely used AC_SEARCH_LIBS
 if test "$ac_cv_header_winsock_h" = yes; then
-AC_CACHE_CHECK([for winsock], [ol_cv_winsock],
-save_LIBS="$LIBS"
-for curlib in ws2_32 wsock32; do
-	LIBS="$LIBS -l$curlib"
-	AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <winsock.h>
+	AC_CACHE_CHECK([for winsock], [ol_cv_winsock],[
+	save_LIBS="$LIBS"
+	for curlib in none ws2_32 wsock32; do
+		if test curlib != none ; then
+	    	LIBS="$save_LIBS -l$curlib"
+		fi
+		AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <winsock.h>
 			]], [[
 			socket(0,0,0);
 			select(0,NULL,NULL,NULL,NULL);
 			closesocket(0);
 			gethostname(NULL,0);
-			]])],[ol_cv_winsock=yes],[ol_cv_winsock=no])
+			]])],[ol_cv_winsock=$curlib],[ol_cv_winsock=no])
 
-	if test $ol_cv_winsock = yes; then
-		AC_DEFINE(HAVE_WINSOCK, 1, [define if you have winsock])
-		ac_cv_func_socket=yes
-		ac_cv_func_select=yes
-		ac_cv_func_closesocket=yes
-		ac_cv_func_gethostname=yes
-		if test $curlib = ws2_32; then
-			ol_cv_winsock=winsock2
-			AC_DEFINE(HAVE_WINSOCK2, 1,
-				  [define if you have winsock2])
-		fi
-		break
-	fi
+		test "$ol_cv_winsock" != no && break
+	done
 	LIBS="$save_LIBS"
-done)
+	])
+
+	if test $ol_cv_winsock != no ; then
+    	AC_DEFINE(HAVE_WINSOCK, 1, [define if you have winsock])
+    	ac_cv_func_socket=yes
+    	ac_cv_func_select=yes
+    	ac_cv_func_closesocket=yes
+    	ac_cv_func_gethostname=yes
+
+		if test $ol_cv_winsock != none -a $ol_cv_winsock != yes ; then
+        	LIBS="$LIBS -l$ol_cv_winsock"
+		fi
+
+    	if test $ol_cv_winsock = ws2_32 -o $ol_cv_winsock = yes ; then
+			AC_DEFINE(HAVE_WINSOCK2, 1, [define if you have winsock2])
+    	fi
+	fi
 fi
 
 dnl Find socket()
@@ -969,7 +981,6 @@ then
 fi
 
 dnl ----------------------------------------------------------------
-# strerror checks
 OL_STRERROR
 
 dnl ----------------------------------------------------------------
@@ -1002,7 +1013,7 @@ if test $ac_cv_header_sys_uuid_h = yes ; then
 	AC_SEARCH_LIBS([uuid_to_str], [uuid], [have_uuid=yes], :)
 	LIBS="$save_LIBS"
 
-	if test have_uuid = yes ; then
+	if test $have_uuid = yes ; then
 		AC_DEFINE(HAVE_UUID_TO_STR,1,
 			[define if you have uuid_to_str()])
 
@@ -1019,7 +1030,7 @@ if test $have_uuid = no ; then
 		AC_SEARCH_LIBS([uuid_generate], [uuid], [have_uuid=yes], :)
 		LIBS="$save_LIBS"
 
-		if test have_uuid = yes ; then
+		if test $have_uuid = yes ; then
 			AC_DEFINE(HAVE_UUID_GENERATE,1,
 				[define if you have uuid_generate()])
 
@@ -2402,9 +2413,12 @@ AC_CHECK_FUNC(_snprintf, [ac_cv_func_snprintf=yes
 	AC_DEFINE(snprintf, _snprintf, [define to snprintf routine])
 ])
 
-AC_CHECK_FUNC(_vsnprintf, [ac_cv_func_vsnprintf=yes
+AC_CHECK_FUNCS(vsnprintf _vsnprintf)
+
+if test $ac_cv_func_vsnprintf = no -a $ac_cv_func__vsnprintf = yes ; then
+	ac_cv_func_vsnprintf=yes
 	AC_DEFINE(vsnprintf, _vsnprintf, [define to vsnprintf routine])
-])
+fi
 
 AC_FUNC_VPRINTF
 
@@ -3037,7 +3051,7 @@ dnl For Windows build, we don't want to include -dlopen flags.
 dnl They hurt more than they help.
 dnl
 
-if test "$ac_cv_mingw32" = yes ; then
+if test "$ac_cv_mingw32" = yes -o $ol_cv_msvc = yes ; then
 	PLAT=NT
 	SLAPD_MODULES_LDFLAGS=
 else

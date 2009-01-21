@@ -120,6 +120,17 @@ fi
 ])
 dnl
 dnl --------------------------------------------------------------------
+dnl Check for MSVC
+AC_DEFUN([OL_MSVC],
+[AC_REQUIRE_CPP()dnl
+AC_CACHE_CHECK([whether we are using MS Visual C++], ol_cv_msvc,
+[AC_PREPROC_IFELSE([AC_LANG_SOURCE([[
+#ifndef _MSC_VER
+#include <__FOO__/generate_error.h>
+#endif
+]])],[ol_cv_msvc=yes],[ol_cv_msvc=no])])])
+
+dnl --------------------------------------------------------------------
 dnl OpenLDAP version of STDC header check w/ EBCDIC support
 AC_DEFUN([OL_HEADER_STDC],
 [AC_REQUIRE_CPP()dnl
@@ -910,7 +921,9 @@ AC_DEFUN([OL_LIB_FETCH],
 LIBS="-lfetch -lcom_err $LIBS"
 AC_CACHE_CHECK([fetch(3) library],ol_cv_lib_fetch,[
 	AC_LINK_IFELSE([AC_LANG_PROGRAM([[
+#ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
+#endif
 #include <stdio.h>
 #include <fetch.h>]], [[struct url *u = fetchParseURL("file:///"); ]])],[ol_cv_lib_fetch=yes],[ol_cv_lib_fetch=no])])
 LIBS=$ol_LIBS
