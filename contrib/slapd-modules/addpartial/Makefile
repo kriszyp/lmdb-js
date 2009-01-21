@@ -1,6 +1,7 @@
 # $OpenLDAP$
 OPENLDAP_SRC=../../..
-CPPFLAGS+=-I${OPENLDAP_SRC}/include -I${OPENLDAP_SRC}/servers/slapd
+OPENLDAP_BLD=../../..
+CPPFLAGS+=-I${OPENLDAP_SRC}/include -I${OPENLDAP_SRC}/servers/slapd -I${OPENLDAP_BLD}/include
 CC=gcc
 
 all: addpartial-overlay.so

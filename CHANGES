@@ -12,6 +12,7 @@ OpenLDAP 2.4.14 Engineering
 	Fixed slapd-ldif rename on same DN (ITS#5319)
 	Fixed slapd-ldif deadlock (ITS#5329)
 	Fixed slapd-meta double response sending (ITS#5854)
+	Updated contrib/addpartial module (ITS#5764)
 	Build Environment
 		Fixed test049,test050 to work on windows (ITS#5842)
 		Removed patch for BerkeleyDB 4.7.25 (Official patch available)
