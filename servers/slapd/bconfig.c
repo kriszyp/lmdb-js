@@ -1028,7 +1028,7 @@ config_generic(ConfigArgs *c) {
 					if ( !BER_BVISEMPTY( &si->si_url )) {
 						bv.bv_len = si->si_url.bv_len + 6;
 						bv.bv_val = ch_malloc( bv.bv_len );
-						sprintf( bv.bv_val, "%d %s", si->si_num,
+						bv.bv_len = sprintf( bv.bv_val, "%d %s", si->si_num,
 							si->si_url.bv_val );
 						ber_bvarray_add( &c->rvalue_vals, &bv );
 					} else {

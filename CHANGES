@@ -10,6 +10,7 @@ OpenLDAP 2.4.14 Engineering
 	Added slapd val.regex expansion (ITS#5804)
 	Added slapo-rwm newRDN rewriting (ITS#5834)
 	Fixed slapd bconfig to return error codes (ITS#5867)
+	Fixed slapd bconfig encoding incorrectly (ITS#5897)
 	Fixed slapd syncrepl rename handling (ITS#5809)
 	Fixed slapd syncrepl MMR when adding new server (ITS#5850)
 	Fixed slapd syncrepl replication with glued DB (ITS#5866)
