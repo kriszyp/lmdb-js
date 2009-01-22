@@ -234,6 +234,21 @@ newsuperior: ou=Retired, ou=People, dc=example,dc=com
 dn: cn=James A Jones 2, ou=Information Technology Division, ou=People, dc=example,dc=com
 changetype: delete
 
+dn: dc=testdomain1,dc=example,dc=com
+changetype: modify
+replace: description
+description: Example, Inc. ITS test domain
+
+dn: dc=testdomain1,dc=example,dc=com
+changetype: modrdn
+newrdn: dc=itsdomain1
+deleteoldrdn: 1
+
+dn: dc=testdomain2,dc=example,dc=com
+changetype: modrdn
+newrdn: dc=itsdomain2
+deleteoldrdn: 1
+
 EOMODS
 
 RC=$?
@@ -279,7 +294,19 @@ sn: Coltrane
 uid: rosco
 cn: Rosco P. Coltrane
 
+dn: dc=itsdomain2,dc=example,dc=com
+changetype: modify
+replace: description
+description: Example, Inc. itsdomain2 test domain
+
 EOMODS
+
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapmodify failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
 
 echo "Restarting consumer..."
 echo "RESTART" >> $LOG4
