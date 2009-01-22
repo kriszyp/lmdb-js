@@ -823,13 +823,13 @@ We still have to replicate the actual data, not just the config, so add to the m
 >     olcRootPW: $PASSWD
 >     olcLimits: dn.exact="$MANAGERDN" time.soft=unlimited time.hard=unlimited size.soft=unlimited size.hard=unlimited
 >     olcSyncRepl: rid=004 provider=$URI1 binddn="$MANAGERDN" bindmethod=simple
->       credentials=$PASSWD searchbase="$BASEDN" type=refreshOnly
+>       credentials=$PASSWD searchbase="$BASEDN" type=refreshAndPersist
 >       interval=00:00:00:10 retry="5 5 300 5" timeout=1
 >     olcSyncRepl: rid=005 provider=$URI2 binddn="$MANAGERDN" bindmethod=simple
->       credentials=$PASSWD searchbase="$BASEDN" type=refreshOnly
+>       credentials=$PASSWD searchbase="$BASEDN" type=refreshAndPersist
 >       interval=00:00:00:10 retry="5 5 300 5" timeout=1
 >     olcSyncRepl: rid=006 provider=$URI3 binddn="$MANAGERDN" bindmethod=simple
->       credentials=$PASSWD searchbase="$BASEDN" type=refreshOnly
+>       credentials=$PASSWD searchbase="$BASEDN" type=refreshAndPersist
 >       interval=00:00:00:10 retry="5 5 300 5" timeout=1
 >     olcMirrorMode: TRUE
 >     
