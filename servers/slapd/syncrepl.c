@@ -1406,7 +1406,10 @@ reload:
 
 		if ( !si->si_ctype
 			|| !si->si_retrynum || si->si_retrynum[i] == RETRYNUM_TAIL ) {
-			ldap_pvt_runqueue_remove( &slapd_rq, rtask );
+			if ( si->si_re ) {
+				ldap_pvt_runqueue_remove( &slapd_rq, rtask );
+				si->si_re = NULL;
+			}
 			fail = RETRYNUM_TAIL;
 		} else if ( RETRYNUM_VALID( si->si_retrynum[i] ) ) {
 			if ( si->si_retrynum[i] > 0 )
