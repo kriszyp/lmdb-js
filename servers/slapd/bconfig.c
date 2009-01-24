@@ -692,7 +692,7 @@ static ConfigTable config_back_cf_table[] = {
 #else
 		ARG_IGNORED, NULL,
 #endif
-		"( OLcfgGlAt:85 NAME 'olcTLSProtocolMin' "
+		"( OLcfgGlAt:87 NAME 'olcTLSProtocolMin' "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
 	{ "tool-threads", "count", 2, 2, 0, ARG_INT|ARG_MAGIC|CFG_TTHREADS,
 		&config_generic, "( OLcfgGlAt:80 NAME 'olcToolThreads' "
