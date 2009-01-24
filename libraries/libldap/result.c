@@ -1127,7 +1127,8 @@ nextresp2:
 	if ( msgid == LDAP_RES_ANY || id == msgid ) {
 		if ( all == LDAP_MSG_ONE
 			|| ( newmsg->lm_msgtype != LDAP_RES_SEARCH_RESULT
-			    	&& newmsg->lm_msgtype != LDAP_RES_SEARCH_ENTRY
+				&& newmsg->lm_msgtype != LDAP_RES_SEARCH_ENTRY
+				&& newmsg->lm_msgtype != LDAP_RES_INTERMEDIATE
 			  	&& newmsg->lm_msgtype != LDAP_RES_SEARCH_REFERENCE ) )
 		{
 			*result = newmsg;
