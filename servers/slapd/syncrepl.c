@@ -2571,6 +2571,8 @@ syncrepl_del_nonpresent(
 		si->si_refreshDelete ^= NP_DELETE_ONE;
 	} else {
 		Filter *cf, *of;
+		Filter mmf[2];
+		AttributeAssertion mmaa;
 
 		memset( &an[0], 0, 2 * sizeof( AttributeName ) );
 		an[0].an_name = slap_schema.si_ad_entryUUID->ad_cname;
@@ -2581,30 +2583,29 @@ syncrepl_del_nonpresent(
 		op->ors_filter = str2filter_x( op, si->si_filterstr.bv_val );
 		/* In multimaster, updates can continue to arrive while
 		 * we're searching. Limit the search result to entries
-		 * older than all of our cookie CSNs.
+		 * older than our newest cookie CSN.
 		 */
 		if ( SLAP_MULTIMASTER( op->o_bd )) {
 			Filter *f;
 			int i;
-			cf = op->o_tmpalloc( (sc->numcsns+1) * sizeof(Filter) +
-				sc->numcsns * sizeof(AttributeAssertion), op->o_tmpmemctx );
-			f = cf;
+
+			f = mmf;
 			f->f_choice = LDAP_FILTER_AND;
-			f->f_next = NULL;
+			f->f_next = op->ors_filter;
 			f->f_and = f+1;
 			of = f->f_and;
+			f = of;
+			f->f_choice = LDAP_FILTER_LE;
+			f->f_ava = &mmaa;
+			f->f_av_desc = slap_schema.si_ad_entryCSN;
+			f->f_next = NULL;
+			BER_BVZERO( &f->f_av_value );
 			for ( i=0; i<sc->numcsns; i++ ) {
-				f = of;
-				f->f_choice = LDAP_FILTER_LE;
-				f->f_ava = (AttributeAssertion *)(f+1);
-				f->f_av_desc = slap_schema.si_ad_entryCSN;
-				f->f_av_value = sc->ctxcsn[i];
-				f->f_next = (Filter *)(f->f_ava+1);
-				of = f->f_next;
+				if ( ber_bvcmp( &sc->ctxcsn[i], &f->f_av_value ) > 0 )
+					f->f_av_value = sc->ctxcsn[i];
 			}
-			f->f_next = op->ors_filter;
 			of = op->ors_filter;
-			op->ors_filter = cf;
+			op->ors_filter = mmf;
 			filter2bv_x( op, op->ors_filter, &op->ors_filterstr );
 		} else {
 			cf = NULL;
@@ -2616,7 +2617,6 @@ syncrepl_del_nonpresent(
 			rc = be->be_search( op, &rs_search );
 		}
 		if ( SLAP_MULTIMASTER( op->o_bd )) {
-			op->o_tmpfree( cf, op->o_tmpmemctx );
 			op->ors_filter = of;
 		}
 		if ( op->ors_filter ) filter_free_x( op, op->ors_filter, 1 );
