@@ -145,6 +145,7 @@ enum {
 	CFG_DATABASE,
 	CFG_TLS_RAND,
 	CFG_TLS_CIPHER,
+	CFG_TLS_PROTOCOL_MIN,
 	CFG_TLS_CERT_FILE,
 	CFG_TLS_CERT_KEY,
 	CFG_TLS_CA_PATH,
@@ -684,6 +685,14 @@ static ConfigTable config_back_cf_table[] = {
 		ARG_IGNORED, NULL,
 #endif
 		"( OLcfgGlAt:77 NAME 'olcTLSDHParamFile' "
+			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
+	{ "TLSProtocolMin",	NULL, 0, 0, 0,
+#ifdef HAVE_TLS
+		CFG_TLS_PROTOCOL_MIN|ARG_STRING|ARG_MAGIC, &config_tls_config,
+#else
+		ARG_IGNORED, NULL,
+#endif
+		"( OLcfgGlAt:85 NAME 'olcTLSProtocolMin' "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
 	{ "tool-threads", "count", 2, 2, 0, ARG_INT|ARG_MAGIC|CFG_TTHREADS,
 		&config_generic, "( OLcfgGlAt:80 NAME 'olcToolThreads' "
@@ -3207,6 +3216,7 @@ config_tls_config(ConfigArgs *c) {
 	switch(c->type) {
 	case CFG_TLS_CRLCHECK:	flag = LDAP_OPT_X_TLS_CRLCHECK; break;
 	case CFG_TLS_VERIFY:	flag = LDAP_OPT_X_TLS_REQUIRE_CERT; break;
+	case CFG_TLS_PROTOCOL_MIN: flag = LDAP_OPT_X_TLS_PROTOCOL_MIN; break;
 	default:
 		Debug(LDAP_DEBUG_ANY, "%s: "
 				"unknown tls_option <0x%x>\n",

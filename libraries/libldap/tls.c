@@ -772,6 +772,12 @@ ldap_int_tls_init_ctx( struct ldapoptions *lo, int is_server )
 			(const unsigned char *) "OpenLDAP", sizeof("OpenLDAP")-1 );
 	}
 
+	if (lo->ldo_tls_protocol_min > LDAP_OPT_X_TLS_PROTOCOL_SSL3)
+		SSL_CTX_set_options( lo->ldo_tls_ctx,
+					SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 );
+	else if (lo->ldo_tls_protocol_min > LDAP_OPT_X_TLS_PROTOCOL_SSL2)
+		SSL_CTX_set_options( lo->ldo_tls_ctx, SSL_OP_NO_SSLv2 );
+
 	if ( lo->ldo_tls_ciphersuite &&
 		!SSL_CTX_set_cipher_list( lo->ldo_tls_ctx, ciphersuite ) )
 	{
@@ -2146,6 +2152,23 @@ ldap_int_tls_config( LDAP *ld, int option, const char *arg )
 			return ldap_pvt_tls_set_option( ld, option, &i );
 		}
 		return -1;
+	case LDAP_OPT_X_TLS_PROTOCOL_MIN: {
+		char *next;
+		long l;
+		l = strtol( arg, &next, 10 );
+		if ( l < 0 || l > 0xff || next == arg ||
+			( *next != '\0' && *next != '.' ) )
+			return -1;
+		i = l << 8;
+		if (*next == '.') {
+			arg = next + 1;
+			l = strtol( arg, &next, 10 );
+			if ( l < 0 || l > 0xff || next == arg || *next != '\0' )
+				return -1;
+			i += l;
+		}
+		return ldap_pvt_tls_set_option( ld, option, &i );
+		}
 #ifdef HAVE_OPENSSL_CRL
 	case LDAP_OPT_X_TLS_CRLCHECK:
 		i = -1;
@@ -2234,6 +2257,9 @@ ldap_pvt_tls_get_option( LDAP *ld, int option, void *arg )
 	case LDAP_OPT_X_TLS_CIPHER_SUITE:
 		*(char **)arg = lo->ldo_tls_ciphersuite ?
 			LDAP_STRDUP( lo->ldo_tls_ciphersuite ) : NULL;
+		break;
+	case LDAP_OPT_X_TLS_PROTOCOL_MIN:
+		*(int *)arg = lo->ldo_tls_protocol_min;
 		break;
 	case LDAP_OPT_X_TLS_RANDOM_FILE:
 #ifdef HAVE_OPENSSL
@@ -2373,7 +2399,10 @@ ldap_pvt_tls_set_option( LDAP *ld, int option, void *arg )
 		if ( lo->ldo_tls_ciphersuite ) LDAP_FREE( lo->ldo_tls_ciphersuite );
 		lo->ldo_tls_ciphersuite = arg ? LDAP_STRDUP( (char *) arg ) : NULL;
 		return 0;
-
+	case LDAP_OPT_X_TLS_PROTOCOL_MIN:
+		if ( !arg ) return -1;
+		lo->ldo_tls_protocol_min = * (int *) arg;
+		return 0;
 	case LDAP_OPT_X_TLS_RANDOM_FILE:
 		if ( ld != NULL )
 			return -1;
