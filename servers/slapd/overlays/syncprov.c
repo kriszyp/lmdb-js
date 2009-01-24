@@ -800,7 +800,7 @@ syncprov_sendresp( Operation *op, opcookie *opc, syncops *so,
 		rs.sr_entry = *e;
 		if ( rs.sr_entry->e_private )
 			rs.sr_flags = REP_ENTRY_MUSTRELEASE;
-		if ( opc->sreference ) {
+		if ( opc->sreference && so->s_op->o_managedsait <= SLAP_CONTROL_IGNORED ) {
 			rs.sr_ref = get_entry_referrals( op, rs.sr_entry );
 			rs.sr_err = send_search_reference( op, &rs );
 			ber_bvarray_free( rs.sr_ref );
@@ -823,7 +823,7 @@ syncprov_sendresp( Operation *op, opcookie *opc, syncops *so,
 		e_uuid.e_name = opc->sdn;
 		e_uuid.e_nname = opc->sndn;
 		rs.sr_entry = &e_uuid;
-		if ( opc->sreference ) {
+		if ( opc->sreference && so->s_op->o_managedsait <= SLAP_CONTROL_IGNORED ) {
 			struct berval bv = BER_BVNULL;
 			rs.sr_ref = &bv;
 			rs.sr_err = send_search_reference( op, &rs );
@@ -1949,6 +1949,7 @@ syncprov_detach_op( Operation *op, syncops *so, slap_overinst *on )
 	op2->o_time = op->o_time;
 	op2->o_bd = on->on_info->oi_origdb;
 	op2->o_request = op->o_request;
+	op2->o_managedsait = op->o_managedsait;
 	LDAP_SLIST_FIRST(&op2->o_extra)->oe_key = on;
 	LDAP_SLIST_NEXT(LDAP_SLIST_FIRST(&op2->o_extra), oe_next) = NULL;
 
@@ -2175,7 +2176,6 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 	}
 
 	srs = op->o_controls[slap_cids.sc_LDAPsync];
-	op->o_managedsait = SLAP_CONTROL_NONCRITICAL;
 
 	/* If this is a persistent search, set it up right away */
 	if ( op->o_sync_mode & SLAP_SYNC_PERSIST ) {

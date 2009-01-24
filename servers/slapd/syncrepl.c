@@ -343,7 +343,7 @@ ldap_sync_search(
 {
 	BerElementBuffer berbuf;
 	BerElement *ber = (BerElement *)&berbuf;
-	LDAPControl c[2], *ctrls[3];
+	LDAPControl c[3], *ctrls[4];
 	int rc;
 	int rhint;
 	char *base;
@@ -417,14 +417,19 @@ ldap_sync_search(
 	c[0].ldctl_iscritical = si->si_type < 0;
 	ctrls[0] = &c[0];
 
+	c[1].ldctl_oid = LDAP_CONTROL_MANAGEDSAIT;
+	BER_BVZERO( &c[1].ldctl_value );
+	c[1].ldctl_iscritical = 1;
+	ctrls[1] = &c[1];
+
 	if ( !BER_BVISNULL( &si->si_bindconf.sb_authzId ) ) {
-		c[1].ldctl_oid = LDAP_CONTROL_PROXY_AUTHZ;
-		c[1].ldctl_value = si->si_bindconf.sb_authzId;
-		c[1].ldctl_iscritical = 1;
-		ctrls[1] = &c[1];
-		ctrls[2] = NULL;
+		c[2].ldctl_oid = LDAP_CONTROL_PROXY_AUTHZ;
+		c[2].ldctl_value = si->si_bindconf.sb_authzId;
+		c[2].ldctl_iscritical = 1;
+		ctrls[2] = &c[2];
+		ctrls[3] = NULL;
 	} else {
-		ctrls[1] = NULL;
+		ctrls[2] = NULL;
 	}
 
 	rc = ldap_search_ext( si->si_ld, base, scope, filter, attrs, attrsonly,
@@ -582,6 +587,8 @@ do_syncrep1(
 
 	rc = LDAP_DEREF_NEVER;	/* actually could allow DEREF_FINDING */
 	ldap_set_option( si->si_ld, LDAP_OPT_DEREF, &rc );
+
+	ldap_set_option( si->si_ld, LDAP_OPT_REFERRALS, LDAP_OPT_OFF );
 
 	si->si_syncCookie.rid = si->si_rid;
 
