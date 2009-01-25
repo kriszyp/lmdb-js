@@ -171,7 +171,15 @@ static long send_ldap_ber(
 		int err;
 
 		/* lock the connection */ 
-		ldap_pvt_thread_mutex_lock( &conn->c_mutex );
+		if ( ldap_pvt_thread_mutex_trylock( &conn->c_mutex )) {
+			ldap_pvt_thread_mutex_unlock( &conn->c_write1_mutex );
+			ldap_pvt_thread_mutex_lock( &conn->c_write1_mutex );
+			if ( conn->c_writers < 0 ) {
+				ret = 0;
+				break;
+			}
+			continue;
+		}
 
 		if ( ber_flush2( conn->c_sb, ber, LBER_FLUSH_FREE_NEVER ) == 0 ) {
 			ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
