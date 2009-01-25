@@ -2096,6 +2096,7 @@ syncrepl_entry(
 	op->o_time = slap_get_time();
 	op->ors_tlimit = SLAP_NO_LIMIT;
 	op->ors_slimit = 1;
+	op->ors_limit = NULL;
 
 	op->ors_attrs = slap_anlist_all_attributes;
 	op->ors_attrsonly = 0;
@@ -2107,12 +2108,10 @@ syncrepl_entry(
 	dni.new_entry = entry;
 	dni.modlist = modlist;
 
-	if ( limits_check( op, &rs_search ) == 0 ) {
-		rc = be->be_search( op, &rs_search );
-		Debug( LDAP_DEBUG_SYNC,
-				"syncrepl_entry: %s be_search (%d)\n", 
-				si->si_ridtxt, rc, 0 );
-	}
+	rc = be->be_search( op, &rs_search );
+	Debug( LDAP_DEBUG_SYNC,
+			"syncrepl_entry: %s be_search (%d)\n", 
+			si->si_ridtxt, rc, 0 );
 
 	if ( !BER_BVISNULL( &op->ors_filterstr ) ) {
 		slap_sl_free( op->ors_filterstr.bv_val, op->o_tmpmemctx );
@@ -2589,6 +2588,8 @@ syncrepl_del_nonpresent(
 		an[0].an_desc = slap_schema.si_ad_entryUUID;
 		op->ors_attrs = an;
 		op->ors_slimit = SLAP_NO_LIMIT;
+		op->ors_tlimit = SLAP_NO_LIMIT;
+		op->ors_limit = NULL;
 		op->ors_attrsonly = 0;
 		op->ors_filter = str2filter_x( op, si->si_filterstr.bv_val );
 		/* In multimaster, updates can continue to arrive while
@@ -2623,9 +2624,8 @@ syncrepl_del_nonpresent(
 		}
 		op->o_nocaching = 1;
 
-		if ( limits_check( op, &rs_search ) == 0 ) {
-			rc = be->be_search( op, &rs_search );
-		}
+
+		rc = be->be_search( op, &rs_search );
 		if ( SLAP_MULTIMASTER( op->o_bd )) {
 			op->ors_filter = of;
 		}
@@ -3337,8 +3337,8 @@ dn_callback(
 					 * stays co-located with the other mod opattrs. But only
 					 * if we know there are other valid mods.
 					 */
-					if ( old->a_desc == slap_schema.si_ad_modifiersName &&
-						dni->mods )
+					if ( dni->mods && ( old->a_desc == slap_schema.si_ad_modifiersName ||
+						old->a_desc == slap_schema.si_ad_modifyTimestamp ))
 						attr_cmp( op, NULL, new, &modtail, &ml );
 					else
 						attr_cmp( op, old, new, &modtail, &ml );
