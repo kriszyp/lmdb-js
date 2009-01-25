@@ -719,7 +719,8 @@ bdb_cache_lru_purge( struct bdb_info *bdb )
 			bdb->bi_cache.c_txn, elru, 1, 1, lockp ) == 0 ) {
 
 			/* Free entry for this node if it's present */
-			if ( elru->bei_e && bdb->bi_cache.c_cursize > bdb->bi_cache.c_maxsize ) {
+			if ( elru->bei_e && bdb->bi_cache.c_cursize > bdb->bi_cache.c_maxsize &&
+				count < bdb->bi_cache.c_minfree ) {
 				elru->bei_e->e_private = NULL;
 #ifdef SLAP_ZONE_ALLOC
 				bdb_entry_return( bdb, elru->bei_e, elru->bei_zseq );
