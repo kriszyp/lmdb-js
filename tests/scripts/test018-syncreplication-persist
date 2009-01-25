@@ -235,14 +235,14 @@ dn: cn=James A Jones 2, ou=Information Technology Division, ou=People, dc=exampl
 changetype: delete
 
 dn: dc=testdomain1,dc=example,dc=com
-changetype: modify
-replace: description
-description: Example, Inc. ITS test domain
-
-dn: dc=testdomain1,dc=example,dc=com
 changetype: modrdn
 newrdn: dc=itsdomain1
 deleteoldrdn: 1
+
+dn: dc=itsdomain1,dc=example,dc=com
+changetype: modify
+replace: description
+description: Example, Inc. ITS test domain
 
 dn: dc=testdomain2,dc=example,dc=com
 changetype: modrdn
