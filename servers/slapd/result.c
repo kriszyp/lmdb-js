@@ -199,9 +199,11 @@ static long send_ldap_ber(
 		    err, sock_errstr(err), 0 );
 
 		if ( err != EWOULDBLOCK && err != EAGAIN ) {
+			ldap_pvt_thread_mutex_unlock( &conn->c_write1_mutex );
 			connection_closing( conn, "connection lost on write" );
 
 			ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
+			ldap_pvt_thread_mutex_lock( &conn->c_write1_mutex );
 
 			ret = -1;
 			break;
