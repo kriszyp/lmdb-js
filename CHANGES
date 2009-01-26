@@ -31,6 +31,7 @@ OpenLDAP 2.4.14 Engineering
 	Fixed slapd-ldif deadlock (ITS#5329)
 	Fixed slapd-meta double response sending (ITS#5854)
 	Fixed slapd-meta alias deref for retry (ITS#5889)
+	Fixed slapo-pcache filter sorting (ITS#5756)
 	Fixed slapo-ppolicy to not be global (ITS#5858)
 	Fixed slapo-rwm with back-config (ITS#5906)
 	Updated contrib/addpartial module (ITS#5764)
