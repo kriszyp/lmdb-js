@@ -1830,7 +1830,6 @@ rwm_db_config(
 enum {
 	/* rewrite */
 	RWM_CF_REWRITE = 1,
-	RWM_CF_SUFFIXMASSAGE,
 
 	/* map */
 	RWM_CF_MAP,
@@ -1841,8 +1840,10 @@ enum {
 };
 
 static slap_verbmasks t_f_mode[] = {
+	{ BER_BVC( "true" ),		RWM_F_SUPPORT_T_F },
 	{ BER_BVC( "yes" ),		RWM_F_SUPPORT_T_F },
 	{ BER_BVC( "discover" ),	RWM_F_SUPPORT_T_F_DISCOVER },
+	{ BER_BVC( "false" ),		RWM_F_NONE },
 	{ BER_BVC( "no" ),		RWM_F_NONE },
 	{ BER_BVNULL,			0 }
 };
@@ -1852,7 +1853,7 @@ static ConfigDriver rwm_cf_gen;
 static ConfigTable rwmcfg[] = {
 	{ "rwm-rewrite", "rewrite",
 		2, 0, STRLENOF("rwm-rewrite"),
-		ARG_MAGIC|ARG_QUOTE|RWM_CF_REWRITE, rwm_cf_gen,
+		ARG_MAGIC|RWM_CF_REWRITE, rwm_cf_gen,
 		"( OLcfgOvAt:16.1 NAME 'olcRwmRewrite' "
 			"DESC 'Rewrites strings' "
 			"EQUALITY caseIgnoreMatch "
@@ -1861,7 +1862,7 @@ static ConfigTable rwmcfg[] = {
 		NULL, NULL },
 
 	{ "rwm-suffixmassage", "[virtual]> <real",
-		2, 3, 0, ARG_MAGIC|RWM_CF_SUFFIXMASSAGE, rwm_cf_gen,
+		2, 3, 0, ARG_MAGIC|RWM_CF_REWRITE, rwm_cf_gen,
 		NULL, NULL, NULL },
 		
 	{ "rwm-t-f-support", "true|false|discover",
@@ -1955,6 +1956,7 @@ rwm_cf_gen( ConfigArgs *c )
 
 	BackendDB		db;
 	char			*argv0;
+	int			idx0 = 0;
 	int			rc = 0;
 
 	db = *c->be;
@@ -2059,37 +2061,26 @@ rwm_cf_gen( ConfigArgs *c )
 		return rc;
 	}
 
+	if ( strncasecmp( c->argv[ 0 ], "olcRwm", STRLENOF( "olcRwm" ) ) == 0 ) {
+		idx0 = 1;
+	}
+
 	switch ( c->type ) {
 	case RWM_CF_REWRITE:
-		argv0 = c->argv[ 0 ];
-		c->argv[ 0 ] += STRLENOF( "rwm-" );
-		rc = rwm_rw_config( &db, c->fname, c->lineno, c->argc, c->argv );
-		c->argv[ 0 ] = argv0;
-		if ( rc ) {
+		argv0 = c->argv[ idx0 ];
+		if ( strncasecmp( argv0, "rwm-", STRLENOF( "rwm-" ) ) != 0 ) {
 			return 1;
-
-		} else {
-			char		*line;
-			struct berval	bv;
-
-			line = ldap_charray2str( c->argv, "\" \"" );
-			if ( line != NULL ) {
-				int	len = strlen( c->argv[ 0 ] );
-
-				ber_str2bv( line, 0, 0, &bv );
-				AC_MEMCPY( &bv.bv_val[ len ], &bv.bv_val[ len + 1 ],
-					bv.bv_len - ( len + 1 ) );
-				bv.bv_val[ bv.bv_len - 1 ] = '"';
-				ber_bvarray_add( &rwmap->rwm_bva_rewrite, &bv );
-			}
 		}
-		break;
+		c->argv[ idx0 ] += STRLENOF( "rwm-" );
+		if ( strcasecmp( c->argv[ idx0 ], "suffixmassage" ) == 0 ) {
+			rc = rwm_suffixmassage_config( &db, c->fname, c->lineno,
+				c->argc - idx0, &c->argv[ idx0 ] );
 
-	case RWM_CF_SUFFIXMASSAGE:
-		argv0 = c->argv[ 0 ];
-		c->argv[ 0 ] += STRLENOF( "rwm-" );
-		rc = rwm_suffixmassage_config( &db, c->fname, c->lineno, c->argc, c->argv );
-		c->argv[ 0 ] = argv0;
+		} else {
+			rc = rwm_rw_config( &db, c->fname, c->lineno,
+				c->argc - idx0, &c->argv[ idx0 ] );
+		}
+		c->argv[ idx0 ] = argv0;
 		if ( rc ) {
 			return 1;
 
@@ -2097,14 +2088,9 @@ rwm_cf_gen( ConfigArgs *c )
 			char		*line;
 			struct berval	bv;
 
-			/* FIXME: not optimal; in fact, this keeps track
-			 * of the fact that a set of rules was added
-			 * using the rwm-suffixmassage shortcut, but the
-			 * rules are not clarified */
-
-			line = ldap_charray2str( c->argv, "\" \"" );
+			line = ldap_charray2str( &c->argv[ idx0 ], "\" \"" );
 			if ( line != NULL ) {
-				int	len = strlen( c->argv[ 0 ] );
+				int	len = strlen( c->argv[ idx0 ] );
 
 				ber_str2bv( line, 0, 0, &bv );
 				AC_MEMCPY( &bv.bv_val[ len ], &bv.bv_val[ len + 1 ],
