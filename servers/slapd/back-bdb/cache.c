@@ -749,10 +749,13 @@ bdb_cache_lru_purge( struct bdb_info *bdb )
 		if ( islocked )
 			bdb_cache_entryinfo_unlock( elru );
 
-		if ( (unsigned) count >= bdb->bi_cache.c_minfree && bdb->bi_cache.c_leaves <= eimax ) {
-			ldap_pvt_thread_mutex_lock( &bdb->bi_cache.c_count_mutex );
-			bdb->bi_cache.c_cursize -= count;
-			ldap_pvt_thread_mutex_unlock( &bdb->bi_cache.c_count_mutex );
+		if (( bdb->bi_cache.c_cursize < bdb->bi_cache.c_maxsize ||
+			(unsigned) count >= bdb->bi_cache.c_minfree ) && bdb->bi_cache.c_leaves <= eimax ) {
+			if ( count ) {
+				ldap_pvt_thread_mutex_lock( &bdb->bi_cache.c_count_mutex );
+				bdb->bi_cache.c_cursize -= count;
+				ldap_pvt_thread_mutex_unlock( &bdb->bi_cache.c_count_mutex );
+			}
 			break;
 		}
 bottom:
