@@ -719,16 +719,22 @@ bdb_cache_lru_purge( struct bdb_info *bdb )
 			bdb->bi_cache.c_txn, elru, 1, 1, lockp ) == 0 ) {
 
 			/* Free entry for this node if it's present */
-			if ( elru->bei_e && bdb->bi_cache.c_cursize > bdb->bi_cache.c_maxsize &&
-				count < bdb->bi_cache.c_minfree ) {
-				elru->bei_e->e_private = NULL;
+			if ( elru->bei_e ) {
+				if ( bdb->bi_cache.c_cursize > bdb->bi_cache.c_maxsize &&
+					count < bdb->bi_cache.c_minfree ) {
+					elru->bei_e->e_private = NULL;
 #ifdef SLAP_ZONE_ALLOC
-				bdb_entry_return( bdb, elru->bei_e, elru->bei_zseq );
+					bdb_entry_return( bdb, elru->bei_e, elru->bei_zseq );
 #else
-				bdb_entry_return( elru->bei_e );
+					bdb_entry_return( elru->bei_e );
 #endif
-				elru->bei_e = NULL;
-				count++;
+					elru->bei_e = NULL;
+					count++;
+				} else {
+					/* Keep this node cached, skip to next */
+					bdb_cache_entry_db_unlock( bdb, lockp );
+					goto next;
+				}
 			}
 			bdb_cache_entry_db_unlock( bdb, lockp );
 
@@ -746,10 +752,11 @@ bdb_cache_lru_purge( struct bdb_info *bdb )
 			}	/* Leave on list until we need to free it */
 		}
 
+next:
 		if ( islocked )
 			bdb_cache_entryinfo_unlock( elru );
 
-		if (( bdb->bi_cache.c_cursize < bdb->bi_cache.c_maxsize ||
+		if (( bdb->bi_cache.c_cursize <= bdb->bi_cache.c_maxsize ||
 			(unsigned) count >= bdb->bi_cache.c_minfree ) && bdb->bi_cache.c_leaves <= eimax ) {
 			if ( count ) {
 				ldap_pvt_thread_mutex_lock( &bdb->bi_cache.c_count_mutex );
