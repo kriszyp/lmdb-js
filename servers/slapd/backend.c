@@ -612,6 +612,9 @@ backend_db_init(
 			nbackends--;
 		}
 	} else {
+		if ( !bi->bi_nDB ) {
+			backend_init_controls( bi );
+		}
 		bi->bi_nDB++;
 	}
 	return( be );
