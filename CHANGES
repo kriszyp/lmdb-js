@@ -34,6 +34,7 @@ OpenLDAP 2.4.14 Engineering
 	Fixed slapo-rwm with back-config (ITS#5906)
 	Updated contrib/addpartial module (ITS#5764)
 	Added contrib/cloak module (ITS#5872)
+	Added contrib/smbk5pwd gcrypt support (ITS#5410)
 	Build Environment
 		Fixed test049,test050 to work on windows (ITS#5842)
 		Updated test017,test018,test019 to cover more cases (ITS#5883)
