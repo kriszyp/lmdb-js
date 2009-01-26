@@ -651,6 +651,7 @@ tlsg_session_chkhost( LDAP *ld, tls_session *session, const char *name_in )
 
 		} else {
 			ret = LDAP_LOCAL_ERROR;
+			if ( !len1 ) len1 = strlen( name );
 			if ( len1 == altnamesize && strncasecmp(name, altname, altnamesize) == 0 ) {
 				ret = LDAP_SUCCESS;
 
