@@ -15,6 +15,7 @@ OpenLDAP 2.4.14 Engineering
 	Fixed slapd epoll handling (ITS#5886)
 	Fixed slapd syncrepl rename handling (ITS#5809)
 	Fixed slapd syncrepl MMR when adding new server (ITS#5850)
+	Fixed slapd syncrepl MMR with deleted entries (ITS#5843)
 	Fixed slapd syncrepl replication with glued DB (ITS#5866)
 	Fixed slapd syncrepl replication with moddn (ITS#5901)
 	Fixed slapd wake_sds close on Windows (ITS#5855)
