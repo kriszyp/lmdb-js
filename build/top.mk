@@ -32,6 +32,7 @@ exec_prefix = @exec_prefix@
 ldap_subdir = @ldap_subdir@
 
 bindir = @bindir@
+datarootdir = @datarootdir@
 datadir = @datadir@$(ldap_subdir)
 includedir = @includedir@
 infodir = @infodir@

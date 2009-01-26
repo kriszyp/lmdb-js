@@ -1177,6 +1177,11 @@ case $ol_with_gssapi in yes | auto)
 			             [ol_link_gssapi=yes;GSSAPI_LIBS="-lgssapi_krb5"],
 			             [ol_link_gssapi=no])
 		fi
+		if test $ol_link_gssapi != yes ; then
+			AC_CHECK_LIB(gss, gss_wrap,
+			             [ol_link_gssapi=yes;GSSAPI_LIBS="-lgss"],
+			             [ol_link_gssapi=no])
+		fi
 	fi
 
 	;;

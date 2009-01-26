@@ -41,6 +41,7 @@ OpenLDAP 2.4.14 Engineering
 		Updated test017,test018,test019 to cover more cases (ITS#5883)
 		Removed patch for BerkeleyDB 4.7.25 (Official patch available)
 		Fixed MSVC 9.0 build issues (ITS#5888)
+		Fixed gss detection on Solaris (ITS#5846)
 	Documentation
 		admin24 added limits chapter (ITS#5818)
 		slapo-constraint(5) example fix (ITS#5895)
