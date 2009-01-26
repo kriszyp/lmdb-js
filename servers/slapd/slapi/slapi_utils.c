@@ -26,6 +26,7 @@
 #include <ac/stdarg.h>
 #include <ac/ctype.h>
 #include <ac/unistd.h>
+#include <lutil.h>
 
 #include <slap.h>
 #include <slapi.h>
@@ -1820,9 +1821,16 @@ slapi_pw_find(
 	struct berval	**vals, 
 	struct berval	*v ) 
 {
-	/*
-	 * FIXME: what's the point?
-	 */
+	int i;
+
+	if( ( vals == NULL ) || ( v == NULL ) )
+		return 1;
+
+	for ( i = 0; vals[i] != NULL; i++ ) {
+		if ( !lutil_passwd( vals[i], v, NULL, NULL ) )
+			return 0;
+	}
+
 	return 1;
 }
 
