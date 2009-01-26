@@ -323,6 +323,18 @@ it is of critical importance that the key file is protected carefully.
 Specifies acceptable cipher suite and preference order.
 <cipher-suite-spec> should be a cipher specification for OpenSSL,
 e.g., HIGH:MEDIUM:+SSLv2.
+
+To check what ciphers a given spec selects, use:
+
+.nf
+	openssl ciphers -v <cipher-suite-spec>
+.fi
+
+To obtain the list of ciphers in GNUtls use:
+
+.nf
+	gnutls-cli -l
+.fi
 .TP
 .B TLS_RANDFILE <filename>
 Specifies the file to obtain random bits from when /dev/[u]random is
