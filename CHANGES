@@ -24,6 +24,7 @@ OpenLDAP 2.4.14 Engineering
 	Fixed slapd-bdb/hdb dncachesize handling (ITS#5860)
 	Fixed slapd-bdb/hdb RFC4528 control support (ITS#5861)
 	Fixed slapd-bdb/hdb trickle task usage (ITS#5864)
+	Fixed slapd-hdb idlcache with empty suffix (ITS#5859)
 	Fixed slapd-ldap idassert-bind validity checking (ITS#5863)
 	Fixed slapd-ldif numerous bugs (ITS#5408)
 	Fixed slapd-ldif rename on same DN (ITS#5319)
