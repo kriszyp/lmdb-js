@@ -75,11 +75,21 @@ static ldap_pvt_thread_mutex_t bdb_tool_index_mutex;
 static ldap_pvt_thread_cond_t bdb_tool_index_cond_main;
 static ldap_pvt_thread_cond_t bdb_tool_index_cond_work;
 
+#if DB_VERSION_FULL >= 0x04060000
+#define	USE_TRICKLE	1
+#else
+/* Seems to slow things down too much in BDB 4.5 */
+#undef USE_TRICKLE
+#endif
+
+#ifdef USE_TRICKLE
 static ldap_pvt_thread_mutex_t bdb_tool_trickle_mutex;
 static ldap_pvt_thread_cond_t bdb_tool_trickle_cond;
 
-static void * bdb_tool_index_task( void *ctx, void *ptr );
 static void * bdb_tool_trickle_task( void *ctx, void *ptr );
+#endif
+
+static void * bdb_tool_index_task( void *ctx, void *ptr );
 
 int bdb_tool_entry_open(
 	BackendDB *be, int mode )
@@ -106,9 +116,11 @@ int bdb_tool_entry_open(
 	/* Set up for threaded slapindex */
 	if (( slapMode & (SLAP_TOOL_QUICK|SLAP_TOOL_READONLY)) == SLAP_TOOL_QUICK ) {
 		if ( !bdb_tool_info ) {
+#ifdef USE_TRICKLE
 			ldap_pvt_thread_mutex_init( &bdb_tool_trickle_mutex );
 			ldap_pvt_thread_cond_init( &bdb_tool_trickle_cond );
 			ldap_pvt_thread_pool_submit( &connection_pool, bdb_tool_trickle_task, bdb->bi_dbenv );
+#endif
 
 			ldap_pvt_thread_mutex_init( &bdb_tool_index_mutex );
 			ldap_pvt_thread_cond_init( &bdb_tool_index_cond_main );
@@ -137,9 +149,11 @@ int bdb_tool_entry_close(
 {
 	if ( bdb_tool_info ) {
 		slapd_shutdown = 1;
+#ifdef USE_TRICKLE
 		ldap_pvt_thread_mutex_lock( &bdb_tool_trickle_mutex );
 		ldap_pvt_thread_cond_signal( &bdb_tool_trickle_cond );
 		ldap_pvt_thread_mutex_unlock( &bdb_tool_trickle_mutex );
+#endif
 		ldap_pvt_thread_mutex_lock( &bdb_tool_index_mutex );
 		bdb_tool_index_tcount = slap_tool_thread_max - 1;
 		ldap_pvt_thread_cond_broadcast( &bdb_tool_index_cond_work );
@@ -521,9 +535,11 @@ ID bdb_tool_entry_put(
 		goto done;
 	}
 
+#ifdef USE_TRICKLE
 	if (( slapMode & SLAP_TOOL_QUICK ) && (( e->e_id & 0xfff ) == 0xfff )) {
 		ldap_pvt_thread_cond_signal( &bdb_tool_trickle_cond );
 	}
+#endif
 
 	if ( !bdb->bi_linear_index )
 		rc = bdb_tool_index_add( &op, tid, e );
@@ -1096,6 +1112,7 @@ int bdb_tool_idl_add(
 }
 #endif
 
+#ifdef USE_TRICKLE
 static void *
 bdb_tool_trickle_task( void *ctx, void *ptr )
 {
@@ -1114,6 +1131,7 @@ bdb_tool_trickle_task( void *ctx, void *ptr )
 
 	return NULL;
 }
+#endif
 
 static void *
 bdb_tool_index_task( void *ctx, void *ptr )
