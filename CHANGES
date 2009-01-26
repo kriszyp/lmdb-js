@@ -18,6 +18,7 @@ OpenLDAP 2.4.14 Engineering
 	Fixed slapd syncrepl replication with glued DB (ITS#5866)
 	Fixed slapd syncrepl replication with moddn (ITS#5901)
 	Fixed slapd wake_sds close on Windows (ITS#5855)
+	Fixed slapd-bdb/hdb dncachesize handling (ITS#5860)
 	Fixed slapd-bdb/hdb RFC4528 control support (ITS#5861)
 	Fixed slapd-ldap idassert-bind validity checking (ITS#5863)
 	Fixed slapd-ldif numerous bugs (ITS#5408)

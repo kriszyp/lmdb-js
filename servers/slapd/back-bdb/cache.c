@@ -662,7 +662,16 @@ bdb_cache_lru_purge( struct bdb_info *bdb )
 	/* Wait for the mutex; we're the only one trying to purge. */
 	ldap_pvt_thread_mutex_lock( &bdb->bi_cache.c_lru_mutex );
 
-	if ( bdb->bi_cache.c_cursize <= bdb->bi_cache.c_maxsize ) {
+	/* maximum number of EntryInfo leaves to cache. In slapcat
+	 * we always free all leaf nodes.
+	 */
+	if ( slapMode & SLAP_TOOL_READONLY )
+		eimax = 0;
+	else
+		eimax = bdb->bi_cache.c_eimax;
+
+	if ( bdb->bi_cache.c_cursize <= bdb->bi_cache.c_maxsize &&
+		bdb->bi_cache.c_leaves <= eimax ) {
 		ldap_pvt_thread_mutex_unlock( &bdb->bi_cache.c_lru_mutex );
 		bdb->bi_cache.c_purging = 0;
 		return;
@@ -675,14 +684,6 @@ bdb_cache_lru_purge( struct bdb_info *bdb )
 	}
 
 	count = 0;
-
-	/* maximum number of EntryInfo leaves to cache. In slapcat
-	 * we always free all leaf nodes.
-	 */
-	if ( slapMode & SLAP_TOOL_READONLY )
-		eimax = 0;
-	else
-		eimax = bdb->bi_cache.c_eimax;
 
 	/* Look for an unused entry to remove */
 	for ( elru = bdb->bi_cache.c_lruhead; elru; elru = elnext ) {
@@ -719,14 +720,21 @@ bdb_cache_lru_purge( struct bdb_info *bdb )
 
 			/* Free entry for this node if it's present */
 			if ( elru->bei_e ) {
-				elru->bei_e->e_private = NULL;
+				if ( bdb->bi_cache.c_cursize > bdb->bi_cache.c_maxsize &&
+					count < bdb->bi_cache.c_minfree ) {
+					elru->bei_e->e_private = NULL;
 #ifdef SLAP_ZONE_ALLOC
-				bdb_entry_return( bdb, elru->bei_e, elru->bei_zseq );
+					bdb_entry_return( bdb, elru->bei_e, elru->bei_zseq );
 #else
-				bdb_entry_return( elru->bei_e );
+					bdb_entry_return( elru->bei_e );
 #endif
-				elru->bei_e = NULL;
-				count++;
+					elru->bei_e = NULL;
+					count++;
+				} else {
+					/* Keep this node cached, skip to next */
+					bdb_cache_entry_db_unlock( bdb, lockp );
+					goto next;
+				}
 			}
 			bdb_cache_entry_db_unlock( bdb, lockp );
 
@@ -744,13 +752,17 @@ bdb_cache_lru_purge( struct bdb_info *bdb )
 			}	/* Leave on list until we need to free it */
 		}
 
+next:
 		if ( islocked )
 			bdb_cache_entryinfo_unlock( elru );
 
-		if ( (unsigned) count >= bdb->bi_cache.c_minfree ) {
-			ldap_pvt_thread_mutex_lock( &bdb->bi_cache.c_count_mutex );
-			bdb->bi_cache.c_cursize -= count;
-			ldap_pvt_thread_mutex_unlock( &bdb->bi_cache.c_count_mutex );
+		if (( bdb->bi_cache.c_cursize <= bdb->bi_cache.c_maxsize ||
+			(unsigned) count >= bdb->bi_cache.c_minfree ) && bdb->bi_cache.c_leaves <= eimax ) {
+			if ( count ) {
+				ldap_pvt_thread_mutex_lock( &bdb->bi_cache.c_count_mutex );
+				bdb->bi_cache.c_cursize -= count;
+				ldap_pvt_thread_mutex_unlock( &bdb->bi_cache.c_count_mutex );
+			}
 			break;
 		}
 bottom:
@@ -986,16 +998,19 @@ load1:
 		int purge = 0;
 
 		if ( load ) {
+			ldap_pvt_thread_mutex_lock( &bdb->bi_cache.c_count_mutex );
 			if ( !( flag & ID_NOCACHE )) {
-				ldap_pvt_thread_mutex_lock( &bdb->bi_cache.c_count_mutex );
 				bdb->bi_cache.c_cursize++;
 				if ( bdb->bi_cache.c_cursize > bdb->bi_cache.c_maxsize &&
 					!bdb->bi_cache.c_purging ) {
 					purge = 1;
 					bdb->bi_cache.c_purging = 1;
 				}
-				ldap_pvt_thread_mutex_unlock( &bdb->bi_cache.c_count_mutex );
+			} else if ( bdb->bi_cache.c_leaves > bdb->bi_cache.c_eimax && !bdb->bi_cache.c_purging ) {
+				purge = 1;
+				bdb->bi_cache.c_purging = 1;
 			}
+			ldap_pvt_thread_mutex_unlock( &bdb->bi_cache.c_count_mutex );
 		}
 		if ( purge )
 			bdb_cache_lru_purge( bdb );
