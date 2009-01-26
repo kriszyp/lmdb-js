@@ -160,17 +160,26 @@ static long send_ldap_ber(
 	}
 
 	conn->c_writers++;
-	ldap_pvt_thread_mutex_unlock( &conn->c_write1_mutex );
 
-	if ( closing )
+	if ( closing ) {
+		ldap_pvt_thread_mutex_unlock( &conn->c_write1_mutex );
 		return 0;
+	}
 
 	/* write the pdu */
 	while( 1 ) {
 		int err;
 
 		/* lock the connection */ 
-		ldap_pvt_thread_mutex_lock( &conn->c_mutex );
+		if ( ldap_pvt_thread_mutex_trylock( &conn->c_mutex )) {
+			ldap_pvt_thread_mutex_unlock( &conn->c_write1_mutex );
+			ldap_pvt_thread_mutex_lock( &conn->c_write1_mutex );
+			if ( conn->c_writers < 0 ) {
+				ret = 0;
+				break;
+			}
+			continue;
+		}
 
 		if ( ber_flush2( conn->c_sb, ber, LBER_FLUSH_FREE_NEVER ) == 0 ) {
 			ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
@@ -190,12 +199,12 @@ static long send_ldap_ber(
 		    err, sock_errstr(err), 0 );
 
 		if ( err != EWOULDBLOCK && err != EAGAIN ) {
+			conn->c_writers--;
+			ldap_pvt_thread_mutex_unlock( &conn->c_write1_mutex );
 			connection_closing( conn, "connection lost on write" );
 
 			ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
-
-			ret = -1;
-			break;
+			return -1;
 		}
 
 		/* wait for socket to be write-ready */
@@ -203,20 +212,18 @@ static long send_ldap_ber(
 		conn->c_writewaiter = 1;
 		slapd_set_write( conn->c_sd, 1 );
 
+		ldap_pvt_thread_mutex_unlock( &conn->c_write1_mutex );
 		ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 		ldap_pvt_thread_cond_wait( &conn->c_write2_cv, &conn->c_write2_mutex );
 		conn->c_writewaiter = 0;
 		ldap_pvt_thread_mutex_unlock( &conn->c_write2_mutex );
 		ldap_pvt_thread_mutex_lock( &conn->c_write1_mutex );
-		closing = ( conn->c_writers < 0 );
-		ldap_pvt_thread_mutex_unlock( &conn->c_write1_mutex );
-		if ( closing ) {
+		if ( conn->c_writers < 0 ) {
 			ret = 0;
 			break;
 		}
 	}
 
-	ldap_pvt_thread_mutex_lock( &conn->c_write1_mutex );
 	if ( conn->c_writers < 0 ) {
 		conn->c_writers++;
 		if ( !conn->c_writers )
