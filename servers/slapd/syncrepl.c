@@ -343,7 +343,7 @@ ldap_sync_search(
 {
 	BerElementBuffer berbuf;
 	BerElement *ber = (BerElement *)&berbuf;
-	LDAPControl c[2], *ctrls[3];
+	LDAPControl c[3], *ctrls[4];
 	int rc;
 	int rhint;
 	char *base;
@@ -417,14 +417,19 @@ ldap_sync_search(
 	c[0].ldctl_iscritical = si->si_type < 0;
 	ctrls[0] = &c[0];
 
+	c[1].ldctl_oid = LDAP_CONTROL_MANAGEDSAIT;
+	BER_BVZERO( &c[1].ldctl_value );
+	c[1].ldctl_iscritical = 1;
+	ctrls[1] = &c[1];
+
 	if ( !BER_BVISNULL( &si->si_bindconf.sb_authzId ) ) {
-		c[1].ldctl_oid = LDAP_CONTROL_PROXY_AUTHZ;
-		c[1].ldctl_value = si->si_bindconf.sb_authzId;
-		c[1].ldctl_iscritical = 1;
-		ctrls[1] = &c[1];
-		ctrls[2] = NULL;
+		c[2].ldctl_oid = LDAP_CONTROL_PROXY_AUTHZ;
+		c[2].ldctl_value = si->si_bindconf.sb_authzId;
+		c[2].ldctl_iscritical = 1;
+		ctrls[2] = &c[2];
+		ctrls[3] = NULL;
 	} else {
-		ctrls[1] = NULL;
+		ctrls[2] = NULL;
 	}
 
 	rc = ldap_search_ext( si->si_ld, base, scope, filter, attrs, attrsonly,
@@ -582,6 +587,8 @@ do_syncrep1(
 
 	rc = LDAP_DEREF_NEVER;	/* actually could allow DEREF_FINDING */
 	ldap_set_option( si->si_ld, LDAP_OPT_DEREF, &rc );
+
+	ldap_set_option( si->si_ld, LDAP_OPT_REFERRALS, LDAP_OPT_OFF );
 
 	si->si_syncCookie.rid = si->si_rid;
 
@@ -1399,7 +1406,10 @@ reload:
 
 		if ( !si->si_ctype
 			|| !si->si_retrynum || si->si_retrynum[i] == RETRYNUM_TAIL ) {
-			ldap_pvt_runqueue_remove( &slapd_rq, rtask );
+			if ( si->si_re ) {
+				ldap_pvt_runqueue_remove( &slapd_rq, rtask );
+				si->si_re = NULL;
+			}
 			fail = RETRYNUM_TAIL;
 		} else if ( RETRYNUM_VALID( si->si_retrynum[i] ) ) {
 			if ( si->si_retrynum[i] > 0 )
@@ -2086,6 +2096,7 @@ syncrepl_entry(
 	op->o_time = slap_get_time();
 	op->ors_tlimit = SLAP_NO_LIMIT;
 	op->ors_slimit = 1;
+	op->ors_limit = NULL;
 
 	op->ors_attrs = slap_anlist_all_attributes;
 	op->ors_attrsonly = 0;
@@ -2097,12 +2108,10 @@ syncrepl_entry(
 	dni.new_entry = entry;
 	dni.modlist = modlist;
 
-	if ( limits_check( op, &rs_search ) == 0 ) {
-		rc = be->be_search( op, &rs_search );
-		Debug( LDAP_DEBUG_SYNC,
-				"syncrepl_entry: %s be_search (%d)\n", 
-				si->si_ridtxt, rc, 0 );
-	}
+	rc = be->be_search( op, &rs_search );
+	Debug( LDAP_DEBUG_SYNC,
+			"syncrepl_entry: %s be_search (%d)\n", 
+			si->si_ridtxt, rc, 0 );
 
 	if ( !BER_BVISNULL( &op->ors_filterstr ) ) {
 		slap_sl_free( op->ors_filterstr.bv_val, op->o_tmpmemctx );
@@ -2579,6 +2588,8 @@ syncrepl_del_nonpresent(
 		an[0].an_desc = slap_schema.si_ad_entryUUID;
 		op->ors_attrs = an;
 		op->ors_slimit = SLAP_NO_LIMIT;
+		op->ors_tlimit = SLAP_NO_LIMIT;
+		op->ors_limit = NULL;
 		op->ors_attrsonly = 0;
 		op->ors_filter = str2filter_x( op, si->si_filterstr.bv_val );
 		/* In multimaster, updates can continue to arrive while
@@ -2613,9 +2624,8 @@ syncrepl_del_nonpresent(
 		}
 		op->o_nocaching = 1;
 
-		if ( limits_check( op, &rs_search ) == 0 ) {
-			rc = be->be_search( op, &rs_search );
-		}
+
+		rc = be->be_search( op, &rs_search );
 		if ( SLAP_MULTIMASTER( op->o_bd )) {
 			op->ors_filter = of;
 		}
@@ -3327,8 +3337,8 @@ dn_callback(
 					 * stays co-located with the other mod opattrs. But only
 					 * if we know there are other valid mods.
 					 */
-					if ( old->a_desc == slap_schema.si_ad_modifiersName &&
-						dni->mods )
+					if ( dni->mods && ( old->a_desc == slap_schema.si_ad_modifiersName ||
+						old->a_desc == slap_schema.si_ad_modifyTimestamp ))
 						attr_cmp( op, NULL, new, &modtail, &ml );
 					else
 						attr_cmp( op, old, new, &modtail, &ml );
