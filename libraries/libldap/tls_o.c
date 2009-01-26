@@ -222,6 +222,11 @@ tlso_ctx_init( struct ldapoptions *lo, struct ldaptls *lt, int is_server )
 			(const unsigned char *) "OpenLDAP", sizeof("OpenLDAP")-1 );
 	}
 
+	if ( lo->ldo_tls_protocol_min > LDAP_OPT_X_TLS_PROTOCOL_SSL3 )
+		SSL_CTX_set_options( ctx, SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 );
+	else if ( lo->ldo_tls_protocol_min > LDAP_OPT_X_TLS_PROTOCOL_SSL2 )
+		SSL_CTX_set_options( ctx, SSL_OP_NO_SSLv2 );
+
 	if ( lo->ldo_tls_ciphersuite &&
 		!SSL_CTX_set_cipher_list( ctx, lt->lt_ciphersuite ) )
 	{

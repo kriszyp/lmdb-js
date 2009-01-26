@@ -542,6 +542,23 @@ ldap_int_tls_config( LDAP *ld, int option, const char *arg )
 			return ldap_pvt_tls_set_option( ld, option, &i );
 		}
 		return -1;
+	case LDAP_OPT_X_TLS_PROTOCOL_MIN: {
+		char *next;
+		long l;
+		l = strtol( arg, &next, 10 );
+		if ( l < 0 || l > 0xff || next == arg ||
+			( *next != '\0' && *next != '.' ) )
+			return -1;
+		i = l << 8;
+		if (*next == '.') {
+			arg = next + 1;
+			l = strtol( arg, &next, 10 );
+			if ( l < 0 || l > 0xff || next == arg || *next != '\0' )
+				return -1;
+			i += l;
+		}
+		return ldap_pvt_tls_set_option( ld, option, &i );
+		}
 	case LDAP_OPT_X_TLS_CRLCHECK:	/* OpenSSL only */
 		i = -1;
 		if ( strcasecmp( arg, "none" ) == 0 ) {
@@ -624,6 +641,9 @@ ldap_pvt_tls_get_option( LDAP *ld, int option, void *arg )
 	case LDAP_OPT_X_TLS_CIPHER_SUITE:
 		*(char **)arg = lo->ldo_tls_ciphersuite ?
 			LDAP_STRDUP( lo->ldo_tls_ciphersuite ) : NULL;
+		break;
+	case LDAP_OPT_X_TLS_PROTOCOL_MIN:
+		*(int *)arg = lo->ldo_tls_protocol_min;
 		break;
 	case LDAP_OPT_X_TLS_RANDOM_FILE:	/* OpenSSL only */
 		*(char **)arg = lo->ldo_tls_randfile ?
@@ -754,6 +774,11 @@ ldap_pvt_tls_set_option( LDAP *ld, int option, void *arg )
 	case LDAP_OPT_X_TLS_CIPHER_SUITE:
 		if ( lo->ldo_tls_ciphersuite ) LDAP_FREE( lo->ldo_tls_ciphersuite );
 		lo->ldo_tls_ciphersuite = arg ? LDAP_STRDUP( (char *) arg ) : NULL;
+		return 0;
+
+	case LDAP_OPT_X_TLS_PROTOCOL_MIN:
+		if ( !arg ) return -1;
+		lo->ldo_tls_protocol_min = *(int *)arg;
 		return 0;
 
 	case LDAP_OPT_X_TLS_RANDOM_FILE:	/* OpenSSL only */
