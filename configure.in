@@ -698,6 +698,7 @@ dnl Checks for Windows NT
 case $host_os in
   *mingw32* ) ac_cv_mingw32=yes ;;
   *cygwin* ) ac_cv_cygwin=yes ;;
+  *interix* ) ac_cv_interix=yes ;;
 esac
 
 dnl ----------------------------------------------------------------
@@ -843,7 +844,10 @@ AC_CHECK_HEADERS(	\
 )
 
 dnl Only check Winsock on MinGW
-if test "$ac_cv_mingw32" = yes -o "$ol_cv_msvc" = yes ; then
+if test "$ac_cv_mingw32" = yes \
+	-o "$ac_cv_interix" = yes \
+	-o "$ol_cv_msvc" = yes
+then
 	AC_CHECK_HEADERS( winsock.h winsock2.h )
 fi
 
