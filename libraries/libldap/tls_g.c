@@ -51,8 +51,15 @@
 
 #if LIBGNUTLS_VERSION_NUMBER >= 0x020200
 #define	HAVE_CIPHERSUITES	1
+/* This is a kludge. gcrypt 1.4.x has support. Recent GnuTLS requires gcrypt 1.4.x
+ * but that dependency isn't reflected in their configure script, resulting in
+ * build errors on older gcrypt. So, if they have a working build environment,
+ * assume gcrypt is new enough.
+ */
+#define HAVE_GCRYPT_RAND	1
 #else
 #undef HAVE_CIPHERSUITES
+#undef HAVE_GCRYPT_RAND
 #endif
 
 #ifndef HAVE_CIPHERSUITES
@@ -163,6 +170,17 @@ tlsg_thr_init( void )
 static int
 tlsg_init( void )
 {
+#ifdef HAVE_GCRYPT_RAND
+	struct ldapoptions *lo = LDAP_INT_GLOBAL_OPT();
+	if ( lo->ldo_tls_randfile &&
+		gcry_control( GCRYCTL_SET_RNDEGD_SOCKET, lo->ldo_tls_randfile )) {
+		Debug( LDAP_DEBUG_ANY,
+		"TLS: gcry_control GCRYCTL_SET_RNDEGD_SOCKET failed\n",
+		0, 0, 0);
+		return -1;
+	}
+#endif
+
 	gnutls_global_init();
 
 #ifndef HAVE_CIPHERSUITES
