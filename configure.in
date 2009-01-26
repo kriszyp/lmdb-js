@@ -1012,9 +1012,11 @@ dnl UUID Support
 
 have_uuid=no
 AC_CHECK_HEADERS(sys/uuid.h)
+dnl The HAVE_UUID_TO_STR code path also needs uuid_create
 if test $ac_cv_header_sys_uuid_h = yes ; then
 	save_LIBS="$LIBS"
 	AC_SEARCH_LIBS([uuid_to_str], [uuid], [have_uuid=yes], :)
+	AC_SEARCH_LIBS([uuid_create], [uuid], :, [have_uuid=no])
 	LIBS="$save_LIBS"
 
 	if test $have_uuid = yes ; then
@@ -1027,11 +1029,13 @@ if test $ac_cv_header_sys_uuid_h = yes ; then
 fi
 
 dnl Look for uuid_generate
+dnl The HAVE_UUID_GENERATE code path also needs uuid_unparse_lower
 if test $have_uuid = no ; then
 	AC_CHECK_HEADERS(uuid/uuid.h)
 	if test $ac_cv_header_uuid_uuid_h = yes ; then
 		save_LIBS="$LIBS"
 		AC_SEARCH_LIBS([uuid_generate], [uuid], [have_uuid=yes], :)
+		AC_SEARCH_LIBS([uuid_unparse_lower], [uuid], :, [have_uuid=no])
 		LIBS="$save_LIBS"
 
 		if test $have_uuid = yes ; then
