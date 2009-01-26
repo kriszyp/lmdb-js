@@ -19,14 +19,11 @@
 
 struct tls_impl;
 
-typedef struct tls_ctx {
-	struct tls_impl *tc_impl;
-} tls_ctx;
+struct tls_ctx;
+struct tls_session;
 
-typedef struct tls_session {
-	struct tls_impl *ts_impl;
-	void *ts_session;
-} tls_session;
+typedef struct tls_ctx tls_ctx;
+typedef struct tls_session tls_session;
 
 typedef int (TI_tls_init)(void);
 typedef void (TI_tls_destroy)(void);
@@ -74,5 +71,7 @@ typedef struct tls_impl {
 
 	int ti_inited;
 } tls_impl;
+
+extern tls_impl ldap_int_tls_impl;
 
 #endif /* _LDAP_TLS_H */

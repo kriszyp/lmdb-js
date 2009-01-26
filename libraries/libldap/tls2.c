@@ -41,30 +41,7 @@
 #include <ldap_pvt_thread.h>
 #endif
 
-#ifdef HAVE_GNUTLS
-extern tls_impl ldap_int_gnutls_impl;
-#endif
-
-#ifdef HAVE_OPENSSL
-extern tls_impl ldap_int_openssl_impl;
-#endif
-
-#ifdef HAVE_MOZNSS
-extern tls_impl ldap_int_moznss_impl;
-#endif
-
-static tls_impl *tls_impls[] = {
-#ifdef HAVE_OPENSSL
-	&ldap_int_openssl_impl,
-#endif
-#ifdef HAVE_GNUTLS
-	&ldap_int_gnutls_impl,
-#endif
-#ifdef HAVE_MOZNSS
-	&ldap_int_moznss_impl,
-#endif
-	NULL
-};
+static tls_impl *tls_imp = &ldap_int_tls_impl;
 
 #endif /* HAVE_TLS */
 
@@ -98,11 +75,8 @@ static oid_name oids[] = {
 void
 ldap_pvt_tls_ctx_free ( void *c )
 {
-	tls_ctx *ctx = c;
-
-	if ( !ctx ) return;
-
-	ctx->tc_impl->ti_ctx_free( ctx );
+	if ( !c ) return;
+	tls_imp->ti_ctx_free( c );
 }
 
 static void
@@ -110,7 +84,7 @@ tls_ctx_ref( tls_ctx *ctx )
 {
 	if ( !ctx ) return;
 
-	ctx->tc_impl->ti_ctx_ref( ctx );
+	tls_imp->ti_ctx_ref( ctx );
 }
 
 #ifdef LDAP_R_COMPILE
@@ -169,11 +143,7 @@ ldap_pvt_tls_destroy( void )
 
 	ldap_int_tls_destroy( lo );
 
-	for ( i=0; tls_impls[i]; i++ ) {
-		if ( tls_impls[i]->ti_inited ) {
-			tls_impls[i]->ti_tls_destroy();
-		}
-	}
+	tls_imp->ti_tls_destroy();
 }
 
 /*
@@ -207,7 +177,7 @@ ldap_pvt_tls_init( void )
 {
 	struct ldapoptions *lo = LDAP_INT_GLOBAL_OPT();   
 
-	return tls_init( tls_impls[lo->ldo_tls_impl] );
+	return tls_init( tls_imp );
 }
 
 /*
@@ -217,7 +187,7 @@ static int
 ldap_int_tls_init_ctx( struct ldapoptions *lo, int is_server )
 {
 	int i, rc = 0;
-	tls_impl *ti = tls_impls[lo->ldo_tls_impl];
+	tls_impl *ti = tls_imp;
 	struct ldaptls lts = lo->ldo_tls_info;
 
 	if ( lo->ldo_tls_ctx )
@@ -322,7 +292,7 @@ alloc_handle( void *ctx_arg, int is_server )
 		ctx = lo->ldo_tls_ctx;
 	}
 
-	ssl = ctx->tc_impl->ti_session_new( ctx, is_server );
+	ssl = tls_imp->ti_session_new( ctx, is_server );
 	if ( ssl == NULL ) {
 		Debug( LDAP_DEBUG_ANY,"TLS: can't create ssl handle.\n",0,0,0);
 		return NULL;
@@ -336,7 +306,7 @@ update_flags( Sockbuf *sb, tls_session * ssl, int rc )
 	sb->sb_trans_needs_read  = 0;
 	sb->sb_trans_needs_write = 0;
 
-	return ssl->ts_impl->ti_session_upflags( sb, ssl, rc );
+	return tls_imp->ti_session_upflags( sb, ssl, rc );
 }
 
 /*
@@ -374,7 +344,7 @@ ldap_int_tls_connect( LDAP *ld, LDAPConn *conn )
 		ber_sockbuf_add_io( sb, &ber_sockbuf_io_debug,
 			LBER_SBIOD_LEVEL_TRANSPORT, (void *)"tls_" );
 #endif
-		ber_sockbuf_add_io( sb, ssl->ts_impl->ti_sbio,
+		ber_sockbuf_add_io( sb, tls_imp->ti_sbio,
 			LBER_SBIOD_LEVEL_TRANSPORT, (void *)ssl );
 
 		lo = LDAP_INT_GLOBAL_OPT();   
@@ -391,7 +361,7 @@ ldap_int_tls_connect( LDAP *ld, LDAPConn *conn )
 			lo->ldo_tls_connect_cb( ld, ssl, ctx, lo->ldo_tls_connect_arg );
 	}
 
-	err = ssl->ts_impl->ti_session_connect( ld, ssl );
+	err = tls_imp->ti_session_connect( ld, ssl );
 
 #ifdef HAVE_WINSOCK
 	errno = WSAGetLastError();
@@ -404,7 +374,7 @@ ldap_int_tls_connect( LDAP *ld, LDAPConn *conn )
 			return 1;
 		}
 
-		msg = ssl->ts_impl->ti_session_errmsg( err, buf, sizeof(buf) );
+		msg = tls_imp->ti_session_errmsg( err, buf, sizeof(buf) );
 		if ( msg ) {
 			if ( ld->ld_error ) {
 				LDAP_FREE( ld->ld_error );
@@ -418,7 +388,7 @@ ldap_int_tls_connect( LDAP *ld, LDAPConn *conn )
 		Debug( LDAP_DEBUG_ANY,"TLS: can't connect: %s.\n",
 			ld->ld_error ? ld->ld_error : "" ,0,0);
 
-		ber_sockbuf_remove_io( sb, ssl->ts_impl->ti_sbio,
+		ber_sockbuf_remove_io( sb, tls_imp->ti_sbio,
 			LBER_SBIOD_LEVEL_TRANSPORT );
 #ifdef LDAP_DEBUG
 		ber_sockbuf_remove_io( sb, &ber_sockbuf_io_debug,
@@ -449,11 +419,11 @@ ldap_pvt_tls_accept( Sockbuf *sb, void *ctx_arg )
 		ber_sockbuf_add_io( sb, &ber_sockbuf_io_debug,
 			LBER_SBIOD_LEVEL_TRANSPORT, (void *)"tls_" );
 #endif
-		ber_sockbuf_add_io( sb, ssl->ts_impl->ti_sbio,
+		ber_sockbuf_add_io( sb, tls_imp->ti_sbio,
 			LBER_SBIOD_LEVEL_TRANSPORT, (void *)ssl );
 	}
 
-	err = ssl->ts_impl->ti_session_accept( ssl );
+	err = tls_imp->ti_session_accept( ssl );
 
 #ifdef HAVE_WINSOCK
 	errno = WSAGetLastError();
@@ -465,9 +435,9 @@ ldap_pvt_tls_accept( Sockbuf *sb, void *ctx_arg )
 		if ( update_flags( sb, ssl, err )) return 1;
 
 		Debug( LDAP_DEBUG_ANY,"TLS: can't accept: %s.\n",
-			ssl->ts_impl->ti_session_errmsg( err, buf, sizeof(buf) ),0,0 );
+			tls_imp->ti_session_errmsg( err, buf, sizeof(buf) ),0,0 );
 
-		ber_sockbuf_remove_io( sb, ssl->ts_impl->ti_sbio,
+		ber_sockbuf_remove_io( sb, tls_imp->ti_sbio,
 			LBER_SBIOD_LEVEL_TRANSPORT );
 #ifdef LDAP_DEBUG
 		ber_sockbuf_remove_io( sb, &ber_sockbuf_io_debug,
@@ -513,7 +483,7 @@ ldap_pvt_tls_get_peer_dn( void *s, struct berval *dn,
 	struct berval bvdn;
 	int rc;
 
-	rc = session->ts_impl->ti_session_peer_dn( session, &bvdn );
+	rc = tls_imp->ti_session_peer_dn( session, &bvdn );
 	if ( rc ) return rc;
 
 	rc = ldap_X509dn2bv( &bvdn, dn, 
@@ -526,7 +496,7 @@ ldap_pvt_tls_check_hostname( LDAP *ld, void *s, const char *name_in )
 {
 	tls_session *session = s;
 
-	return session->ts_impl->ti_session_chkhost( ld, session, name_in );
+	return tls_imp->ti_session_chkhost( ld, session, name_in );
 }
 
 int
@@ -823,7 +793,7 @@ ldap_int_tls_start ( LDAP *ld, LDAPConn *conn, LDAPURLDesc *srv )
 		host = "localhost";
 	}
 
-	(void) tls_init( tls_impls[ld->ld_options.ldo_tls_impl] );
+	(void) tls_init( tls_imp );
 
 	/*
 	 * Fortunately, the lib uses blocking io...
@@ -866,7 +836,7 @@ ldap_pvt_tls_get_strength( void *s )
 {
 	tls_session *session = s;
 
-	return session->ts_impl->ti_session_strength( session );
+	return tls_imp->ti_session_strength( session );
 }
 
 
@@ -878,7 +848,7 @@ ldap_pvt_tls_get_my_dn( void *s, struct berval *dn, LDAPDN_rewrite_dummy *func, 
 	struct berval der_dn;
 	int rc;
 
-	session->ts_impl->ti_session_my_dn( session, &der_dn );
+	tls_imp->ti_session_my_dn( session, &der_dn );
 	rc = ldap_X509dn2bv(&der_dn, dn, (LDAPDN_rewrite_func *)func, flags );
 	return rc;
 #else /* !HAVE_TLS */

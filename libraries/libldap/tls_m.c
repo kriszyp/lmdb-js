@@ -46,7 +46,6 @@
 #include <ssl.h>
 
 typedef struct tlsm_ctx {
-	tls_impl *tc_impl;
 	PRFileDesc *tc_model;
 	int tc_refcnt;
 #ifdef LDAP_R_COMPILE
@@ -54,16 +53,13 @@ typedef struct tlsm_ctx {
 #endif
 } tlsm_ctx;
 
-typedef struct tlsm_session {
-	tls_impl *ts_impl;
-	PRFileDesc *ts_session;
-} tlsm_session;
+typedef PRFileDesc tlsm_session;
 
 static PRDescIdentity	tlsm_layer_id;
 
 static const PRIOMethods tlsm_PR_methods;
 
-extern tls_impl ldap_int_moznss_impl;
+extern tls_impl ldap_int_tls_impl;
 
 #ifdef LDAP_R_COMPILE
 
@@ -117,7 +113,6 @@ tlsm_ctx_new ( struct ldapoptions *lo )
 		if ( fd ) {
 			ctx->tc_model = SSL_ImportFD( NULL, fd );
 			if ( ctx->tc_model ) {
-				ctx->tc_impl = &ldap_int_moznss_impl;
 				ctx->tc_refcnt = 1;
 #ifdef LDAP_R_COMPILE
 				ldap_pvt_thread_mutex_init( &ctx->tc_refmutex );
@@ -252,26 +247,18 @@ tlsm_session_new ( tls_ctx * ctx, int is_server )
 	tlsm_session *session;
 	PRFileDesc *fd;
 
-	session = LDAP_MALLOC( sizeof (*session) );
-	if ( !session )
-		return NULL;
-
 	fd = PR_CreateIOLayerStub(tlsm_layer_id, &tlsm_PR_methods);
 	if ( !fd ) {
-		LDAP_FREE( session );
 		return NULL;
 	}
 
-	session->ts_session = SSL_ImportFD( c->tc_model, fd );
-	if ( !session->ts_session ) {
+	session = SSL_ImportFD( c->tc_model, fd );
+	if ( !session ) {
 		PR_DELETE( fd );
-		LDAP_FREE( session );
 		return NULL;
 	}
 
-	session->ts_impl = &ldap_int_moznss_impl;
-
-	SSL_ResetHandshake( session->ts_session, is_server );
+	SSL_ResetHandshake( session, is_server );
 
 	return (tls_session *)session;
 } 
@@ -281,7 +268,7 @@ tlsm_session_accept( tls_session *session )
 {
 	tlsm_session *s = (tlsm_session *)session;
 
-	return SSL_ForceHandshake( s->ts_session );
+	return SSL_ForceHandshake( s );
 }
 
 static int
@@ -291,8 +278,8 @@ tlsm_session_connect( LDAP *ld, tls_session *session )
 	int rc;
 
 	/* By default, NSS checks the cert hostname for us */
-	rc = SSL_SetURL( s->ts_session, ld->ld_options.ldo_defludp->lud_host );
-	return SSL_ForceHandshake( s->ts_session );
+	rc = SSL_SetURL( s, ld->ld_options.ldo_defludp->lud_host );
+	return SSL_ForceHandshake( s );
 }
 
 static int
@@ -331,7 +318,7 @@ tlsm_session_my_dn( tls_session *session, struct berval *der_dn )
 	tlsm_session *s = (tlsm_session *)session;
 	CERTCertificate *cert;
 
-	cert = SSL_LocalCertificate( s->ts_session );
+	cert = SSL_LocalCertificate( s );
 	if (!cert) return LDAP_INVALID_CREDENTIALS;
 
 	der_dn->bv_val = cert->derSubject.data;
@@ -346,7 +333,7 @@ tlsm_session_peer_dn( tls_session *session, struct berval *der_dn )
 	tlsm_session *s = (tlsm_session *)session;
 	CERTCertificate *cert;
 
-	cert = SSL_PeerCertificate( s->ts_session );
+	cert = SSL_PeerCertificate( s );
 	if (!cert) return LDAP_INVALID_CREDENTIALS;
 	
 	der_dn->bv_val = cert->derSubject.data;
@@ -529,7 +516,7 @@ tlsm_session_strength( tls_session *session )
 	tlsm_session *s = (tlsm_session *)session;
 	int rc, keySize;
 
-	rc = SSL_SecurityStatus( s->ts_session, NULL, NULL, NULL, &keySize,
+	rc = SSL_SecurityStatus( s, NULL, NULL, NULL, &keySize,
 		NULL, NULL );
 	return rc ? 0 : keySize;
 }
@@ -703,7 +690,7 @@ tlsm_sb_setup( Sockbuf_IO_Desc *sbiod, void *arg )
 		return -1;
 	}
 
-	fd = PR_GetIdentitiesLayer( session->ts_session, tlsm_layer_id );
+	fd = PR_GetIdentitiesLayer( session, tlsm_layer_id );
 	if ( !fd ) {
 		LBER_FREE( p );
 		return -1;
@@ -725,8 +712,7 @@ tlsm_sb_remove( Sockbuf_IO_Desc *sbiod )
 	assert( sbiod->sbiod_pvt != NULL );
 
 	p = (struct tls_data *)sbiod->sbiod_pvt;
-	PR_Close( p->session->ts_session );
-	LBER_FREE( p->session );
+	PR_Close( p->session );
 	LBER_FREE( sbiod->sbiod_pvt );
 	sbiod->sbiod_pvt = NULL;
 	return 0;
@@ -741,7 +727,7 @@ tlsm_sb_close( Sockbuf_IO_Desc *sbiod )
 	assert( sbiod->sbiod_pvt != NULL );
 
 	p = (struct tls_data *)sbiod->sbiod_pvt;
-	PR_Shutdown( p->session->ts_session, PR_SHUTDOWN_BOTH );
+	PR_Shutdown( p->session, PR_SHUTDOWN_BOTH );
 	return 0;
 }
 
@@ -760,7 +746,7 @@ tlsm_sb_ctrl( Sockbuf_IO_Desc *sbiod, int opt, void *arg )
 		return 1;
 		
 	} else if ( opt == LBER_SB_OPT_DATA_READY ) {
-        PRPollDesc pd = { p->session->ts_session, PR_POLL_READ, 0 };
+        PRPollDesc pd = { p->session, PR_POLL_READ, 0 };
         if( PR_Poll( &pd, 1, 1 ) > 0 ) {
             return 1;
 		}
@@ -781,7 +767,7 @@ tlsm_sb_read( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len)
 
 	p = (struct tls_data *)sbiod->sbiod_pvt;
 
-	ret = PR_Recv( p->session->ts_session, buf, len, 0, PR_INTERVAL_NO_TIMEOUT );
+	ret = PR_Recv( p->session, buf, len, 0, PR_INTERVAL_NO_TIMEOUT );
 	if ( ret < 0 ) {
 		err = PR_GetError();
 		if ( err == PR_PENDING_INTERRUPT_ERROR || err == PR_WOULD_BLOCK_ERROR ) {
@@ -806,7 +792,7 @@ tlsm_sb_write( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len)
 
 	p = (struct tls_data *)sbiod->sbiod_pvt;
 
-	ret = PR_Send( p->session->ts_session, (char *)buf, len, 0, PR_INTERVAL_NO_TIMEOUT );
+	ret = PR_Send( p->session, (char *)buf, len, 0, PR_INTERVAL_NO_TIMEOUT );
 	if ( ret < 0 ) {
 		err = PR_GetError();
 		if ( err == PR_PENDING_INTERRUPT_ERROR || err == PR_WOULD_BLOCK_ERROR ) {

@@ -51,18 +51,8 @@
 #include <ssl.h>
 #endif
 
-typedef struct tlso_ctx {
-	tls_impl *tc_impl;
-	SSL_CTX *tc_ctx;
-	int tc_refcnt;
-} tlso_ctx;
-
-typedef struct tlso_session {
-	tls_impl *ts_impl;
-	SSL *ts_session;
-} tlso_session;
-
-extern tls_impl ldap_int_openssl_impl;
+typedef SSL_CTX tlso_ctx;
+typedef SSL tlso_session;
 
 static int  tlso_opt_trace = 1;
 
@@ -201,36 +191,21 @@ tlso_destroy( void )
 static tls_ctx *
 tlso_ctx_new( struct ldapoptions *lo )
 {
-	tlso_ctx *ctx = LDAP_MALLOC( sizeof(tlso_ctx) );
-	if ( ctx ) {
-		ctx->tc_ctx = SSL_CTX_new( SSLv23_method() );
-		if ( ctx->tc_ctx ) {
-			ctx->tc_impl = &ldap_int_openssl_impl;
-			ctx->tc_refcnt = 1;
-		} else {
-			LDAP_FREE( ctx );
-			ctx = NULL;
-		}
-	}
-	return (tls_ctx *)ctx;
+	return (tls_ctx *) SSL_CTX_new( SSLv23_method() );
 }
 
 static void
 tlso_ctx_ref( tls_ctx *ctx )
 {
 	tlso_ctx *c = (tlso_ctx *)ctx;
-	c->tc_refcnt++;
+	CRYPTO_add( &c->references, 1, CRYPTO_LOCK_SSL_CTX );
 }
 
 static void
 tlso_ctx_free ( tls_ctx *ctx )
 {
 	tlso_ctx *c = (tlso_ctx *)ctx;
-	c->tc_refcnt--;
-	if ( c->tc_refcnt < 1 ) {
-		SSL_CTX_free( c->tc_ctx );
-		LDAP_FREE( c );
-	}
+	SSL_CTX_free( c );
 }
 
 /*
@@ -239,8 +214,7 @@ tlso_ctx_free ( tls_ctx *ctx )
 static int
 tlso_ctx_init( struct ldapoptions *lo, struct ldaptls *lt, int is_server )
 {
-	tlso_ctx *tc = (tlso_ctx *)lo->ldo_tls_ctx;
-	SSL_CTX *ctx = tc->tc_ctx;
+	tlso_ctx *ctx = (tlso_ctx *)lo->ldo_tls_ctx;
 	int i;
 
 	if ( is_server ) {
@@ -375,17 +349,7 @@ static tls_session *
 tlso_session_new( tls_ctx *ctx, int is_server )
 {
 	tlso_ctx *c = (tlso_ctx *)ctx;
-	tlso_session *s = LDAP_MALLOC( sizeof(tlso_session));
-	if ( s ) {
-		s->ts_session = SSL_new( c->tc_ctx );
-		if ( s->ts_session ) {
-			s->ts_impl = &ldap_int_openssl_impl;
-		} else {
-			LDAP_FREE( s );
-			s = NULL;
-		}
-	}
-	return (tls_session *)s;
+	return (tls_session *)SSL_new( c );
 }
 
 static int
@@ -394,7 +358,7 @@ tlso_session_connect( LDAP *ld, tls_session *sess )
 	tlso_session *s = (tlso_session *)sess;
 
 	/* Caller expects 0 = success, OpenSSL returns 1 = success */
-	return SSL_connect( s->ts_session ) - 1;
+	return SSL_connect( s ) - 1;
 }
 
 static int
@@ -403,7 +367,7 @@ tlso_session_accept( tls_session *sess )
 	tlso_session *s = (tlso_session *)sess;
 
 	/* Caller expects 0 = success, OpenSSL returns 1 = success */
-	return SSL_accept( s->ts_session ) - 1;
+	return SSL_accept( s ) - 1;
 }
 
 static int
@@ -412,7 +376,7 @@ tlso_session_upflags( Sockbuf *sb, tls_session *sess, int rc )
 	tlso_session *s = (tlso_session *)sess;
 
 	/* 1 was subtracted above, offset it back now */
-	rc = SSL_get_error(s->ts_session, rc+1);
+	rc = SSL_get_error(s, rc+1);
 	if (rc == SSL_ERROR_WANT_READ) {
 		sb->sb_trans_needs_read  = 1;
 		return 1;
@@ -445,7 +409,7 @@ tlso_session_my_dn( tls_session *sess, struct berval *der_dn )
 	X509 *x;
 	X509_NAME *xn;
 
-	x = SSL_get_certificate( s->ts_session );
+	x = SSL_get_certificate( s );
 
 	if (!x) return LDAP_INVALID_CREDENTIALS;
 	
@@ -470,7 +434,7 @@ static int
 tlso_session_peer_dn( tls_session *sess, struct berval *der_dn )
 {
 	tlso_session *s = (tlso_session *)sess;
-	X509 *x = tlso_get_cert( s->ts_session );
+	X509 *x = tlso_get_cert( s );
 	X509_NAME *xn;
 
 	if ( !x )
@@ -511,7 +475,7 @@ tlso_session_chkhost( LDAP *ld, tls_session *sess, const char *name_in )
 		name = name_in;
 	}
 
-	x = tlso_get_cert(s->ts_session);
+	x = tlso_get_cert(s);
 	if (!x) {
 		Debug( LDAP_DEBUG_ANY,
 			"TLS: unable to get peer certificate.\n",
@@ -668,7 +632,7 @@ tlso_session_strength( tls_session *sess )
 	tlso_session *s = (tlso_session *)sess;
 	SSL_CIPHER *c;
 
-	c = SSL_get_current_cipher(s->ts_session);
+	c = SSL_get_current_cipher(s);
 	return SSL_CIPHER_get_bits(c, NULL);
 }
 
@@ -807,7 +771,7 @@ tlso_sb_setup( Sockbuf_IO_Desc *sbiod, void *arg )
 	p->sbiod = sbiod;
 	bio = BIO_new( &tlso_bio_method );
 	bio->ptr = (void *)p;
-	SSL_set_bio( p->session->ts_session, bio, bio );
+	SSL_set_bio( p->session, bio, bio );
 	sbiod->sbiod_pvt = p;
 	return 0;
 }
@@ -821,8 +785,7 @@ tlso_sb_remove( Sockbuf_IO_Desc *sbiod )
 	assert( sbiod->sbiod_pvt != NULL );
 
 	p = (struct tls_data *)sbiod->sbiod_pvt;
-	SSL_free( p->session->ts_session );
-	LDAP_FREE( p->session );
+	SSL_free( p->session );
 	LBER_FREE( sbiod->sbiod_pvt );
 	sbiod->sbiod_pvt = NULL;
 	return 0;
@@ -837,7 +800,7 @@ tlso_sb_close( Sockbuf_IO_Desc *sbiod )
 	assert( sbiod->sbiod_pvt != NULL );
 
 	p = (struct tls_data *)sbiod->sbiod_pvt;
-	SSL_shutdown( p->session->ts_session );
+	SSL_shutdown( p->session );
 	return 0;
 }
 
@@ -856,7 +819,7 @@ tlso_sb_ctrl( Sockbuf_IO_Desc *sbiod, int opt, void *arg )
 		return 1;
 
 	} else if ( opt == LBER_SB_OPT_DATA_READY ) {
-		if( SSL_pending( p->session->ts_session ) > 0 ) {
+		if( SSL_pending( p->session ) > 0 ) {
 			return 1;
 		}
 	}
@@ -876,11 +839,11 @@ tlso_sb_read( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len)
 
 	p = (struct tls_data *)sbiod->sbiod_pvt;
 
-	ret = SSL_read( p->session->ts_session, (char *)buf, len );
+	ret = SSL_read( p->session, (char *)buf, len );
 #ifdef HAVE_WINSOCK
 	errno = WSAGetLastError();
 #endif
-	err = SSL_get_error( p->session->ts_session, ret );
+	err = SSL_get_error( p->session, ret );
 	if (err == SSL_ERROR_WANT_READ ) {
 		sbiod->sbiod_sb->sb_trans_needs_read = 1;
 		sock_errset(EWOULDBLOCK);
@@ -902,11 +865,11 @@ tlso_sb_write( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len)
 
 	p = (struct tls_data *)sbiod->sbiod_pvt;
 
-	ret = SSL_write( p->session->ts_session, (char *)buf, len );
+	ret = SSL_write( p->session, (char *)buf, len );
 #ifdef HAVE_WINSOCK
 	errno = WSAGetLastError();
 #endif
-	err = SSL_get_error( p->session->ts_session, ret );
+	err = SSL_get_error( p->session, ret );
 	if (err == SSL_ERROR_WANT_WRITE ) {
 		sbiod->sbiod_sb->sb_trans_needs_write = 1;
 		sock_errset(EWOULDBLOCK);
@@ -1253,7 +1216,7 @@ tlso_tmp_dh_cb( SSL *ssl, int is_export, int key_length )
 	return dh;
 }
 
-tls_impl ldap_int_openssl_impl = {
+tls_impl ldap_int_tls_impl = {
 	"OpenSSL",
 
 	tlso_init,

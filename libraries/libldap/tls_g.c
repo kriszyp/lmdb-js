@@ -58,7 +58,6 @@ typedef struct tls_cipher_suite {
 } tls_cipher_suite;
 
 typedef struct tlsg_ctx {
-	tls_impl *tc_impl;
 	struct ldapoptions *lo;
 	gnutls_certificate_credentials_t cred;
 	gnutls_dh_params_t dh_params;
@@ -73,7 +72,6 @@ typedef struct tlsg_ctx {
 } tlsg_ctx;
 
 typedef struct tlsg_session {
-	tls_impl *ts_impl;
 	gnutls_session_t session;
 	tlsg_ctx *ctx;
 	struct berval peer_der_dn;
@@ -84,7 +82,6 @@ static int tlsg_n_ciphers;
 
 static int tlsg_parse_ciphers( tlsg_ctx *ctx, char *suites );
 static int tlsg_cert_verify( tlsg_session *s );
-extern tls_impl ldap_int_gnutls_impl;
 
 #ifdef LDAP_R_COMPILE
 
@@ -205,7 +202,6 @@ tlsg_ctx_new ( struct ldapoptions *lo )
 			ber_memfree( ctx );
 			return NULL;
 		}
-		ctx->tc_impl = &ldap_int_gnutls_impl;
 		ctx->refcount = 1;
 #ifdef LDAP_R_COMPILE
 		ldap_pvt_thread_mutex_init( &ctx->ref_mutex );
@@ -326,7 +322,6 @@ tlsg_session_new ( tls_ctx * ctx, int is_server )
 		return NULL;
 
 	session->ctx = c;
-	session->ts_impl = &ldap_int_gnutls_impl;
 	gnutls_init( &session->session, is_server ? GNUTLS_SERVER : GNUTLS_CLIENT );
 	gnutls_set_default_priority( session->session );
 	if ( c->kx_list ) {
@@ -940,7 +935,7 @@ tlsg_cert_verify( tlsg_session *ssl )
 	return 0;
 }
 
-tls_impl ldap_int_gnutls_impl = {
+tls_impl ldap_int_tls_impl = {
 	"GnuTLS",
 
 	tlsg_init,
