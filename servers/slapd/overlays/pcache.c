@@ -588,13 +588,12 @@ static int lex_bvcmp( struct berval *bv1, struct berval *bv2 )
 	return len;
 }
 
-/* compare the first value in each filter */
-static int pcache_filter_cmp( const void *v1, const void *v2 )
+/* compare the current value in each filter */
+static int pcache_filter_cmp( Filter *f1, Filter *f2 )
 {
-	const CachedQuery *q1 = v1, *q2 =v2;
 	int rc, weight1, weight2;
 
-	switch( q1->first->f_choice ) {
+	switch( f1->f_choice ) {
 	case LDAP_FILTER_PRESENT:
 		weight1 = 0;
 		break;
@@ -606,7 +605,7 @@ static int pcache_filter_cmp( const void *v1, const void *v2 )
 	default:
 		weight1 = 2;
 	}
-	switch( q2->first->f_choice ) {
+	switch( f2->f_choice ) {
 	case LDAP_FILTER_PRESENT:
 		weight2 = 0;
 		break;
@@ -621,54 +620,78 @@ static int pcache_filter_cmp( const void *v1, const void *v2 )
 	rc = weight1 - weight2;
 	if ( !rc ) {
 		switch( weight1 ) {
-		case 0:	return 0;
+		case 0:
+			break;
 		case 1:
-			rc = lex_bvcmp( &q1->first->f_av_value, &q2->first->f_av_value );
+			rc = lex_bvcmp( &f1->f_av_value, &f2->f_av_value );
 			break;
 		case 2:
-			if ( q1->first->f_choice == LDAP_FILTER_SUBSTRINGS ) {
+			if ( f1->f_choice == LDAP_FILTER_SUBSTRINGS ) {
 				rc = 0;
-				if ( !BER_BVISNULL( &q1->first->f_sub_initial )) {
-					if ( !BER_BVISNULL( &q2->first->f_sub_initial )) {
-						rc = lex_bvcmp( &q1->first->f_sub_initial,
-							&q2->first->f_sub_initial );
+				if ( !BER_BVISNULL( &f1->f_sub_initial )) {
+					if ( !BER_BVISNULL( &f2->f_sub_initial )) {
+						rc = lex_bvcmp( &f1->f_sub_initial,
+							&f2->f_sub_initial );
 					} else {
 						rc = 1;
 					}
-				} else if ( !BER_BVISNULL( &q2->first->f_sub_initial )) {
+				} else if ( !BER_BVISNULL( &f2->f_sub_initial )) {
 					rc = -1;
 				}
 				if ( rc ) break;
-				if ( q1->first->f_sub_any ) {
-					if ( q2->first->f_sub_any ) {
-						rc = lex_bvcmp( q1->first->f_sub_any,
-							q2->first->f_sub_any );
+				if ( f1->f_sub_any ) {
+					if ( f2->f_sub_any ) {
+						rc = lex_bvcmp( f1->f_sub_any,
+							f2->f_sub_any );
 					} else {
 						rc = 1;
 					}
-				} else if ( q2->first->f_sub_any ) {
+				} else if ( f2->f_sub_any ) {
 					rc = -1;
 				}
 				if ( rc ) break;
-				if ( !BER_BVISNULL( &q1->first->f_sub_final )) {
-					if ( !BER_BVISNULL( &q2->first->f_sub_final )) {
-						rc = lex_bvcmp( &q1->first->f_sub_final,
-							&q2->first->f_sub_final );
+				if ( !BER_BVISNULL( &f1->f_sub_final )) {
+					if ( !BER_BVISNULL( &f2->f_sub_final )) {
+						rc = lex_bvcmp( &f1->f_sub_final,
+							&f2->f_sub_final );
 					} else {
 						rc = 1;
 					}
-				} else if ( !BER_BVISNULL( &q2->first->f_sub_final )) {
+				} else if ( !BER_BVISNULL( &f2->f_sub_final )) {
 					rc = -1;
 				}
 			} else {
-				rc = lex_bvcmp( &q1->first->f_mr_value,
-					&q2->first->f_mr_value );
+				rc = lex_bvcmp( &f1->f_mr_value,
+					&f2->f_mr_value );
 			}
 			break;
 		}
+		if ( !rc ) {
+			f1 = f1->f_next;
+			f2 = f2->f_next;
+			if ( f1 || f2 ) {
+				if ( !f1 )
+					rc = -1;
+				else if ( !f2 )
+					rc = 1;
+				else {
+					while ( f1->f_choice == LDAP_FILTER_AND || f1->f_choice == LDAP_FILTER_OR )
+						f1 = f1->f_and;
+					while ( f2->f_choice == LDAP_FILTER_AND || f2->f_choice == LDAP_FILTER_OR )
+						f2 = f2->f_and;
+					rc = pcache_filter_cmp( f1, f2 );
+				}
+			}
+		}
 	}
-
 	return rc;
+}
+
+/* compare filters in each query */
+static int pcache_query_cmp( const void *v1, const void *v2 )
+{
+	const CachedQuery *q1 = v1, *q2 =v2;
+	return pcache_filter_cmp( q1->first, q2->first );
 }
 
 /* add query on top of LRU list */
@@ -922,7 +945,7 @@ find_filter( Operation *op, Avlnode *root, Filter *inputf, Filter *first )
 		ptr = tavl_end( root, 1 );
 		dir = TAVL_DIR_LEFT;
 	} else {
-		ptr = tavl_find3( root, &cq, pcache_filter_cmp, &ret );
+		ptr = tavl_find3( root, &cq, pcache_query_cmp, &ret );
 		dir = (first->f_choice == LDAP_FILTER_GE) ? TAVL_DIR_LEFT :
 			TAVL_DIR_RIGHT;
 	}
@@ -1227,7 +1250,7 @@ add_query(
 	new_cached_query->prev = NULL;
 	new_cached_query->qbase = qbase;
 	rc = tavl_insert( &qbase->scopes[query->scope], new_cached_query,
-		pcache_filter_cmp, avl_dup_error );
+		pcache_query_cmp, avl_dup_error );
 	if ( rc == 0 ) {
 		qbase->queries++;
 		if (templ->query == NULL)
@@ -1273,7 +1296,7 @@ remove_from_template (CachedQuery* qc, QueryTemplate* template)
 		qc->next->prev = qc->prev;
 		qc->prev->next = qc->next;
 	}
-	tavl_delete( &qc->qbase->scopes[qc->scope], qc, pcache_filter_cmp );
+	tavl_delete( &qc->qbase->scopes[qc->scope], qc, pcache_query_cmp );
 	qc->qbase->queries--;
 	if ( qc->qbase->queries == 0 ) {
 		avl_delete( &template->qbase, qc->qbase, pcache_dn_cmp );
