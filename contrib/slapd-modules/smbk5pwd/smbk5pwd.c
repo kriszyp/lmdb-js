@@ -64,8 +64,13 @@ static ObjectClass *oc_krb5KDCEntry;
 #endif
 
 #ifdef DO_SAMBA
+#ifdef HAVE_GNUTLS
+#include <gcrypt.h>
+typedef unsigned char DES_cblock[8];
+#else
 #include <openssl/des.h>
 #include <openssl/md4.h>
+#endif
 #include "ldap_utf8.h"
 
 static AttributeDescription *ad_sambaLMPassword;
@@ -130,7 +135,9 @@ static void lmPasswd_to_key(
 	k[6] = ((lpw[5]&0x3F)<<2) | (lpw[6]>>6);
 	k[7] = ((lpw[6]&0x7F)<<1);
 
+#ifdef HAVE_OPENSSL
 	des_set_odd_parity( key );
+#endif
 }
 
 #define MAX_PWLEN 256
@@ -164,21 +171,45 @@ static void lmhash(
 {
 	char UcasePassword[15];
 	DES_cblock key;
-	DES_key_schedule schedule;
 	DES_cblock StdText = "KGS!@#$%";
 	DES_cblock hbuf[2];
+#ifdef HAVE_OPENSSL
+	DES_key_schedule schedule;
+#elif defined(HAVE_GNUTLS)
+	gcry_cipher_hd_t h = NULL;
+	gcry_error_t err;
+
+	err = gcry_cipher_open( &h, GCRY_CIPHER_DES, GCRY_CIPHER_MODE_CBC, 0 );
+	if ( err ) return;
+#endif
 
 	strncpy( UcasePassword, passwd->bv_val, 14 );
 	UcasePassword[14] = '\0';
 	ldap_pvt_str2upper( UcasePassword );
 
 	lmPasswd_to_key( UcasePassword, &key );
+#ifdef HAVE_GNUTLS
+	err = gcry_cipher_setkey( h, &key, sizeof(key) );
+	if ( err == 0 ) {
+		err = gcry_cipher_encrypt( h, &hbuf[0], sizeof(key), &StdText, sizeof(key) );
+		if ( err == 0 ) {
+			gcry_cipher_reset( h );
+			lmPasswd_to_key( &UcasePassword[7], &key );
+			err = gcry_cipher_setkey( h, &key, sizeof(key) );
+			if ( err == 0 ) {
+				err = gcry_cipher_encrypt( h, &hbuf[1], sizeof(key), &StdText, sizeof(key) );
+			}
+		}
+		gcry_cipher_close( h );
+	}
+#elif defined(HAVE_OPENSSL)
 	des_set_key_unchecked( &key, schedule );
 	des_ecb_encrypt( &StdText, &hbuf[0], schedule , DES_ENCRYPT );
 
 	lmPasswd_to_key( &UcasePassword[7], &key );
 	des_set_key_unchecked( &key, schedule );
 	des_ecb_encrypt( &StdText, &hbuf[1], schedule , DES_ENCRYPT );
+#endif
 
 	hexify( (char *)hbuf, hash );
 }
@@ -193,14 +224,20 @@ static void nthash(
 	 * 256 UCS2 characters, not 256 bytes...
 	 */
 	char hbuf[HASHLEN];
+#ifdef HAVE_OPENSSL
 	MD4_CTX ctx;
+#endif
 
 	if (passwd->bv_len > MAX_PWLEN*2)
 		passwd->bv_len = MAX_PWLEN*2;
-		
+
+#ifdef HAVE_OPENSSL
 	MD4_Init( &ctx );
 	MD4_Update( &ctx, passwd->bv_val, passwd->bv_len );
 	MD4_Final( (unsigned char *)hbuf, &ctx );
+#elif defined(HAVE_GNUTLS)
+	gcry_md_hash_buffer(GCRY_MD_MD4, hbuf, passwd->bv_val, passwd->bv_len );
+#endif
 
 	hexify( hbuf, hash );
 }
