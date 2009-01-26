@@ -623,6 +623,11 @@ hdb_dn2id_add(
 				tmp[1] = eip->bei_id;
 				bdb_idl_cache_add_id( bdb, db, &key, e->e_id );
 			}
+			/* Handle DB with empty suffix */
+			if ( !op->o_bd->be_suffix[0].bv_len && eip ) {
+				tmp[1] = eip->bei_id;
+				bdb_idl_cache_add_id( bdb, db, &key, e->e_id );
+			}
 		}
 	}
 
@@ -719,6 +724,11 @@ func_leave:
 		if ( eip ->bei_parent ) {
 			*ptr = DN_SUBTREE_PREFIX;
 			for (; eip && eip->bei_parent->bei_id; eip = eip->bei_parent) {
+				tmp[1] = eip->bei_id;
+				bdb_idl_cache_del_id( bdb, db, &key, e->e_id );
+			}
+			/* Handle DB with empty suffix */
+			if ( !op->o_bd->be_suffix[0].bv_len && eip ) {
 				tmp[1] = eip->bei_id;
 				bdb_idl_cache_del_id( bdb, db, &key, e->e_id );
 			}
