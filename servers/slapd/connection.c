@@ -1237,7 +1237,7 @@ int connection_read_activate( ber_socket_t s )
 	 * thread reads data on it. Otherwise the listener thread will repeatedly
 	 * submit the same event on it to the pool.
 	 */
-	rc = slapd_clr_read( s, 0 );
+	rc = slapd_ack_read( s, 0 );
 	if ( rc )
 		return rc;
 
@@ -1841,7 +1841,7 @@ int connection_write(ber_socket_t s)
 
 	assert( connections != NULL );
 
-	slapd_clr_write( s, 0 );
+	slapd_ack_write( s, 0 );
 
 	c = connection_get( s );
 	if( c == NULL ) {
