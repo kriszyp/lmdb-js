@@ -13,7 +13,7 @@
 ## top-level directory of the distribution or, alternatively, at
 ## <http://www.OpenLDAP.org/license.html>.
 
-USAGE="$0 [-b <backend>] [-c] [-k] [-p] [-s {ro|rp}] [-u] [-w] <script>"
+USAGE="$0 [-b <backend>] [-c] [-k] [-l #] [-p] [-s {ro|rp}] [-u] [-w] <script>"
 
 # configure generated
 SRCDIR="@srcdir@"
@@ -82,6 +82,8 @@ KILLSERVERS=yes
 PRESERVE=${PRESERVE-no}
 SYNCMODE=${SYNCMODE-rp}
 USERDATA=no
+LOOP=1
+COUNTER=1
 
 while test $# -gt 0 ; do
 	case "$1" in
@@ -95,6 +97,16 @@ while test $# -gt 0 ; do
 
 		-k | -kill)
 			KILLSERVERS=no
+			shift ;;
+		-l | -loop)
+			NUM="$(echo $2 | sed 's/[0-9]//g')"
+			if [ -z "$NUM" ]; then
+				LOOP=$2
+			else
+				echo "Loop variable not an int: $2"
+				echo "$USAGE"; exit 1
+			fi
+			shift ;
 			shift ;;
 
 		-p | -preserve)
@@ -214,14 +226,25 @@ fi
 LDAPNOINIT=true; export LDAPNOINIT
 
 echo "Running ${SCRIPT}..."
-$SCRIPT $*
-RC=$?
+while [ $COUNTER -le $LOOP ]; do
+	$SCRIPT $*
+	RC=$?
 
-if test $CLEAN = yes ; then
-	echo "Cleaning up test run directory from this run."
-	/bin/rm -rf ${TESTDIR}
-	echo "Cleaning up symlinks."
-	/bin/rm -f ${DATADIR} ${SCHEMADIR}
-fi
+	if test $CLEAN = yes ; then
+		echo "Cleaning up test run directory from this run."
+		/bin/rm -rf ${TESTDIR}
+		echo "Cleaning up symlinks."
+		/bin/rm -f ${DATADIR} ${SCHEMADIR}
+	fi
 
+	if [ $RC -ne 0 ]; then
+		exit $RC
+	else
+		COUNTER=`expr $COUNTER + 1`
+		if [ $COUNTER -le $LOOP ]; then
+			echo "Cleaning up test run directory from this run."
+			/bin/rm -rf ${TESTDIR}
+		fi
+	fi
+done
 exit $RC
