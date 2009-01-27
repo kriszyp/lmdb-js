@@ -161,9 +161,6 @@ static struct slap_daemon {
 /***************************************
  * Use epoll infrastructure - epoll(4) *
  ***************************************/
-
-#undef SLAP_EVENT_ACK		/* events trigger once per descriptor */
-
 # define SLAP_EVENT_FNAME		"epoll"
 # define SLAP_EVENTS_ARE_INDEXED	0
 # define SLAP_EPOLL_SOCK_IX(s)		(slap_daemon.sd_index[(s)])
@@ -294,12 +291,10 @@ static struct slap_daemon {
 } while (0)
 
 #elif defined(SLAP_X_DEVPOLL) && defined(HAVE_DEVPOLL)
+
 /*************************************************************
  * Use Solaris' (>= 2.7) /dev/poll infrastructure - poll(7d) *
  *************************************************************/
-
-#define SLAP_EVENT_ACK	1	/* events keep signalling unless we stop them */
-
 # define SLAP_EVENT_FNAME		"/dev/poll"
 # define SLAP_EVENTS_ARE_INDEXED	0
 /*
@@ -475,9 +470,6 @@ static struct slap_daemon {
 } while (0)
 
 #else /* ! epoll && ! /dev/poll */
-
-#define SLAP_EVENT_ACK	1	/* events keep signalling unless we stop them */
-
 # ifdef HAVE_WINSOCK
 # define SLAP_EVENT_FNAME		"WSselect"
 /* Winsock provides a "select" function but its fd_sets are
@@ -936,24 +928,6 @@ slapd_remove(
 }
 
 void
-slapd_ack_write( ber_socket_t s, int wake )
-{
-#ifdef SLAP_EVENT_ACK
-	ldap_pvt_thread_mutex_lock( &slap_daemon.sd_mutex );
-
-	if ( SLAP_SOCK_IS_WRITE( s )) {
-		assert( SLAP_SOCK_IS_ACTIVE( s ));
-
-		SLAP_SOCK_CLR_WRITE( s );
-		slap_daemon.sd_nwriters--;
-	}
-
-	ldap_pvt_thread_mutex_unlock( &slap_daemon.sd_mutex );
-#endif
-	WAKE_LISTENER(wake);
-}
-
-void
 slapd_clr_write( ber_socket_t s, int wake )
 {
 	ldap_pvt_thread_mutex_lock( &slap_daemon.sd_mutex );
@@ -983,26 +957,6 @@ slapd_set_write( ber_socket_t s, int wake )
 
 	ldap_pvt_thread_mutex_unlock( &slap_daemon.sd_mutex );
 	WAKE_LISTENER(wake);
-}
-
-int
-slapd_ack_read( ber_socket_t s, int wake )
-{
-#ifdef SLAP_EVENT_ACK
-	int rc = 1;
-	ldap_pvt_thread_mutex_lock( &slap_daemon.sd_mutex );
-
-	if ( SLAP_SOCK_IS_ACTIVE( s )) {
-		SLAP_SOCK_CLR_READ( s );
-		rc = 0;
-	}
-	ldap_pvt_thread_mutex_unlock( &slap_daemon.sd_mutex );
-	if ( !rc )
-		WAKE_LISTENER(wake);
-	return rc;
-#else
-	return 0;
-#endif
 }
 
 int
