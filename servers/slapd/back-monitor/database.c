@@ -66,7 +66,7 @@ init_readOnly( monitor_info_t *mi, Entry *e, slap_mask_t restrictops )
 	struct berval	*tf = ( ( restrictops & SLAP_RESTRICT_OP_MASK ) == SLAP_RESTRICT_OP_WRITES ) ?
 		(struct berval *)&slap_true_bv : (struct berval *)&slap_false_bv;
 
-	return attr_merge_one( e, mi->mi_ad_readOnly, tf, tf );
+	return attr_merge_one( e, mi->mi_ad_readOnly, tf, NULL );
 }
 
 static int
@@ -162,9 +162,9 @@ monitor_subsys_database_init_one(
 				rdnval, 0, 0 );
 		} else {
 			attr_merge( e, slap_schema.si_ad_namingContexts,
-				be->be_suffix, be->be_nsuffix );
+				be->be_suffix, NULL );
 			attr_merge( e_database, slap_schema.si_ad_namingContexts,
-				be->be_suffix, be->be_nsuffix );
+				be->be_suffix, NULL );
 		}
 	}
 
@@ -301,7 +301,7 @@ monitor_subsys_database_init_one(
 
 			} else {
 				attr_merge( e_overlay, slap_schema.si_ad_namingContexts,
-						be->be_suffix, be->be_nsuffix );
+						be->be_suffix, NULL );
 			}
 
 			mp_overlay = monitor_entrypriv_create();
@@ -405,9 +405,15 @@ monitor_back_register_database(
 		if ( a ) {
 			int		j, k;
 
-			for ( j = 0; !BER_BVISNULL( &a->a_nvals[ j ] ); j++ ) {
-				for ( k = 0; !BER_BVISNULL( &be->be_nsuffix[ k ] ); k++ ) {
-					if ( dn_match( &a->a_nvals[ j ], &be->be_nsuffix[ k ] ) ) {
+			/* FIXME: RFC 4512 defines namingContexts without an
+			 *        equality matching rule, making comparisons
+			 *        like this one tricky.  We use a_vals and
+			 *        be_suffix instead for now.
+			 */
+			for ( j = 0; !BER_BVISNULL( &a->a_vals[ j ] ); j++ ) {
+				for ( k = 0; !BER_BVISNULL( &be->be_suffix[ k ] ); k++ ) {
+					if ( dn_match( &a->a_vals[ j ],
+					               &be->be_suffix[ k ] ) ) {
 						rc = 0;
 						goto done;
 					}

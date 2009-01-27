@@ -277,8 +277,7 @@ fail:
 		}
 		for ( j = 0; be->be_suffix[j].bv_val != NULL; j++ ) {
 			if( attr_merge_one( e, ad_namingContexts,
-					&be->be_suffix[j],
-					&be->be_nsuffix[0] ) )
+					&be->be_suffix[j], NULL ) )
 			{
 				goto fail;
 			}
