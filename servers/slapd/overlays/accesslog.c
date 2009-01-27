@@ -1770,7 +1770,7 @@ accesslog_op_mod( Operation *op, SlapReply *rs )
 			int rc;
 			Entry *e;
 
-			op->o_bd->bd_info = on->on_info->oi_orig;
+			op->o_bd->bd_info = (BackendInfo *)on->on_info;
 			rc = be_entry_get_rw( op, &op->o_req_ndn, NULL, NULL, 0, &e );
 			if ( e ) {
 				if ( test_filter( op, e, li->li_oldf ) == LDAP_COMPARE_TRUE )
