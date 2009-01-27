@@ -227,6 +227,9 @@ LDAPNOINIT=true; export LDAPNOINIT
 
 echo "Running ${SCRIPT}..."
 while [ $COUNTER -le $LOOP ]; do
+	if [ $LOOP -gt 1 ]; then
+		echo "Running $COUNTER of $LOOP iterations"
+	fi
 	$SCRIPT $*
 	RC=$?
 
