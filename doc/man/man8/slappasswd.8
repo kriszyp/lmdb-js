@@ -19,11 +19,14 @@ slappasswd \- OpenLDAP password utility
 .B Slappasswd
 is used to generate an userPassword value
 suitable for use with
-.BR ldapmodify (1)
-or
+.BR ldapmodify (1),
 .BR slapd.conf (5)
 .I rootpw
+configuration directive or the 
+.BR slapd-config (5) 
+.I olcRootPW
 configuration directive.
+.
 .SH OPTIONS
 .TP
 .B \-v
