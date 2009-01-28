@@ -1005,13 +1005,19 @@ backend_check_restrictions(
 	slap_mask_t requires;
 	slap_mask_t opflag;
 	slap_mask_t exopflag = 0;
-	slap_ssf_set_t *ssf;
+	slap_ssf_set_t ssfs, *ssf;
 	int updateop = 0;
 	int starttls = 0;
 	int session = 0;
 
+	restrictops = frontendDB->be_restrictops;
+	requires = frontendDB->be_requires;
+	ssfs = frontendDB->be_ssf_set;
+	ssf = &ssfs;
+
 	if ( op->o_bd ) {
-		int	rc = SLAP_CB_CONTINUE;
+		slap_ssf_t *fssf, *bssf;
+		int	rc = SLAP_CB_CONTINUE, i;
 
 		if ( op->o_bd->be_chk_controls ) {
 			rc = ( *op->o_bd->be_chk_controls )( op, rs );
@@ -1025,14 +1031,13 @@ backend_check_restrictions(
 			return rs->sr_err;
 		}
 
-		restrictops = op->o_bd->be_restrictops;
-		requires = op->o_bd->be_requires;
-		ssf = &op->o_bd->be_ssf_set;
-
-	} else {
-		restrictops = frontendDB->be_restrictops;
-		requires = frontendDB->be_requires;
-		ssf = &frontendDB->be_ssf_set;
+		restrictops |= op->o_bd->be_restrictops;
+		requires |= op->o_bd->be_requires;
+		bssf = &op->o_bd->be_ssf_set.sss_ssf;
+		fssf = &ssfs.sss_ssf;
+		for ( i=0; i<sizeof(ssfs)/sizeof(slap_ssf_t); i++ ) {
+			if ( bssf[i] ) fssf[i] = bssf[i];
+		}
 	}
 
 	switch( op->o_tag ) {
