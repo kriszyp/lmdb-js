@@ -178,61 +178,6 @@ typedef enum memberof_is_t {
 	MEMBEROF_IS_BOTH = (MEMBEROF_IS_GROUP|MEMBEROF_IS_MEMBER)
 } memberof_is_t;
 
-static void
-memberof_saved_member_free( void *key, void *data )
-{
-	ber_bvarray_free( (BerVarray)data );
-}
-
-static BerVarray
-memberof_saved_member_get( Operation *op, void *keyp )
-{
-	void		*vals;
-	BerVarray	*key = (BerVarray *)keyp;
-
-	assert( op != NULL );
-
-	if ( op->o_threadctx == NULL ) {
-		vals = *key;
-		*key = NULL;
-
-	} else {
-		ldap_pvt_thread_pool_setkey( op->o_threadctx,
-				key, NULL, 0, &vals, NULL );
-	}
-
-	return vals;
-}
-
-static void
-memberof_saved_member_set( Operation *op, void *keyp, BerVarray vals )
-{
-	BerVarray	saved_vals = NULL;
-	BerVarray	*key = (BerVarray*)keyp;
-
-	assert( op != NULL );
-
-	if ( vals ) {
-		ber_bvarray_dup_x( &saved_vals, vals, NULL );
-	}
-
-	if ( op->o_threadctx == NULL ) {
-		if ( *key ) {
-			ber_bvarray_free( *key );
-		}
-		*key = saved_vals;
-
-	} else {
-		void	*old_vals = NULL;
-
-		ldap_pvt_thread_pool_setkey( op->o_threadctx, key,
-				saved_vals, memberof_saved_member_free, &old_vals, NULL );
-		if ( old_vals != NULL ) {
-			ber_bvarray_free( old_vals );
-		}
-	}
-}
-
 typedef struct memberof_cookie_t {
 	AttributeDescription	*ad;
 	BerVarray		vals;
