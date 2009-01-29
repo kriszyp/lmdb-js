@@ -62,7 +62,10 @@ ldap_back_initialize( BackendInfo *bi )
 		 * and the entryTtl attribute */
 		SLAP_BFLAG_DYNAMIC |
 #endif /* LDAP_DYNAMIC_OBJECTS */
-		0;
+
+		/* back-ldap recognizes RFC4525 increment;
+		 * let the remote server complain, if needed (ITS#5912) */
+		SLAP_BFLAG_INCREMENT;
 
 	bi->bi_open = ldap_back_open;
 	bi->bi_config = 0;

@@ -53,7 +53,10 @@ meta_back_initialize(
 		SLAP_BFLAG_DYNAMIC |
 #endif /* LDAP_DYNAMIC_OBJECTS */
 #endif
-		0;
+
+		/* back-meta recognizes RFC4525 increment;
+		 * let the remote server complain, if needed (ITS#5912) */
+		SLAP_BFLAG_INCREMENT;
 
 	bi->bi_open = meta_back_open;
 	bi->bi_config = 0;
