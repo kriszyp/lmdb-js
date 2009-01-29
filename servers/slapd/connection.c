@@ -1859,7 +1859,9 @@ int connection_write(ber_socket_t s)
 	Debug( LDAP_DEBUG_TRACE,
 		"connection_write(%d): waking output for id=%lu\n",
 		s, c->c_connid, 0 );
+	ldap_pvt_thread_mutex_lock( &c->c_write2_mutex );
 	ldap_pvt_thread_cond_signal( &c->c_write2_cv );
+	ldap_pvt_thread_mutex_unlock( &c->c_write2_mutex );
 
 	if ( ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_NEEDS_READ, NULL ) ) {
 		slapd_set_read( s, 1 );
