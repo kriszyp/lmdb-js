@@ -215,7 +215,7 @@ static struct slap_daemon {
 	int rc; \
 	SLAP_EPOLL_SOCK_IX((s)) = slap_daemon.sd_nfds; \
 	SLAP_EPOLL_SOCK_EP((s)).data.ptr = (l) ? (l) : (void *)(&SLAP_EPOLL_SOCK_IX(s)); \
-	SLAP_EPOLL_SOCK_EV((s)) = EPOLLIN|EPOLLET; \
+	SLAP_EPOLL_SOCK_EV((s)) = EPOLLIN; \
 	rc = epoll_ctl(slap_daemon.sd_epfd, EPOLL_CTL_ADD, \
 		(s), &SLAP_EPOLL_SOCK_EP((s))); \
 	if ( rc == 0 ) { \
@@ -2545,6 +2545,11 @@ slapd_daemon_task(
 				} else if ( !w ) {
 					Debug( LDAP_DEBUG_CONNS,
 						"daemon: hangup on %d\n", fd, 0, 0 );
+#ifdef HAVE_EPOLL
+					/* Don't keep reporting the hangup
+					 */
+					SLAP_EPOLL_SOCK_SET( fd, EPOLLET );
+#endif
 					connection_hangup( fd );
 				}
 			}
