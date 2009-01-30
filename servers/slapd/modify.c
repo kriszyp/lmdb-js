@@ -268,6 +268,7 @@ fe_op_modify( Operation *op, SlapReply *rs )
 	if ( op->orm_increment && !SLAP_INCREMENT( op->o_bd ) ) {
 		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
 			"modify/increment not supported in context" );
+		goto cleanup;
 	}
 
 	/*

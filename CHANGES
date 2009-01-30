@@ -32,6 +32,7 @@ OpenLDAP 2.4.14 Engineering
 	Fixed slapd-bdb/hdb trickle task usage (ITS#5864)
 	Fixed slapd-hdb idlcache with empty suffix (ITS#5859)
 	Fixed slapd-ldap idassert-bind validity checking (ITS#5863)
+	Fixed slapd-ldap/meta RFC4525 increment support (ITS#5912)
 	Fixed slapd-ldif numerous bugs (ITS#5408)
 	Fixed slapd-ldif rename on same DN (ITS#5319)
 	Fixed slapd-ldif deadlock (ITS#5329)
