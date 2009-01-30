@@ -34,6 +34,7 @@
 
 #include "portable.h"
 
+#include <limits.h>
 #include <stdio.h>
 #include <ac/stdlib.h>
 
@@ -47,6 +48,9 @@
 
 #define AVL_INTERNAL
 #include "avl.h"
+
+/* Maximum tree depth this host's address space could support */
+#define MAX_TREE_DEPTH	(sizeof(void *) * CHAR_BIT)
 
 static const int avl_bfs[] = {LH, RH};
 
@@ -180,8 +184,8 @@ avl_delete( Avlnode **root, void* data, AVL_CMP fcmp )
 	int side, side_bf, shorter, nside;
 
 	/* parent stack */
-	Avlnode *pptr[sizeof(void *)*8];
-	unsigned char pdir[sizeof(void *)*8];
+	Avlnode *pptr[MAX_TREE_DEPTH];
+	unsigned char pdir[MAX_TREE_DEPTH];
 	int depth = 0;
 
 	if ( *root == NULL )
