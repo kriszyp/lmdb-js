@@ -36,6 +36,7 @@ OpenLDAP 2.4.14 Engineering
 	Fixed slapd-ldif numerous bugs (ITS#5408)
 	Fixed slapd-ldif rename on same DN (ITS#5319)
 	Fixed slapd-ldif deadlock (ITS#5329)
+	Fixed slapo-dynlist handling of flags (ITS#5898)
 	Fixed slapo-memberof multiple instantiation (ITS#5903)
 	Fixed slapd-meta double response sending (ITS#5854)
 	Fixed slapd-meta alias deref for retry (ITS#5889)

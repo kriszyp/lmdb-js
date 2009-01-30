@@ -452,12 +452,13 @@ dynlist_prepare_entry( Operation *op, SlapReply *rs, dynlist_info_t *dli )
 		o.o_groups = NULL;
 	}
 
+	e_flags = rs->sr_flags;
 	if ( !( rs->sr_flags & REP_ENTRY_MODIFIABLE ) ) {
 		e = entry_dup( rs->sr_entry );
+		e_flags |= ( REP_ENTRY_MODIFIABLE | REP_ENTRY_MUSTBEFREED );
 	} else {
 		e = rs->sr_entry;
 	}
-	e_flags = rs->sr_flags | ( REP_ENTRY_MODIFIABLE | REP_ENTRY_MUSTBEFREED );
 
 	dlc.dlc_e = e;
 	dlc.dlc_dli = dli;
@@ -855,6 +856,8 @@ done:;
 
 		if ( r.sr_flags & REP_ENTRY_MUSTBEFREED ) {
 			entry_free( r.sr_entry );
+			r.sr_entry = NULL;
+			r.sr_flags ^= REP_ENTRY_MUSTBEFREED;
 		}
 	}
 
