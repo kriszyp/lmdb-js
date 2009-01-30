@@ -218,7 +218,7 @@ When evaluating whether some requester should be given access to
 an entry and/or attribute, slapd compares the entry and/or attribute
 to the {{EX:<what>}} selectors given in the configuration file.
 For each entry, access controls provided in the database which holds
-the entry (or the first database if not held in any database) apply
+the entry (or the global access directives if not held in any database) apply
 first, followed by the global access directives.  Within this
 priority, access directives are examined in the order in which they
 appear in the config file.  Slapd stops with the first {{EX:<what>}}
@@ -422,9 +422,7 @@ Lines 12 through 14 indicate the indices to maintain for various
 attributes.
 
 Lines 16 through 24 specify access control for entries in this
-database.  As this is the first database, the controls also apply
-to entries not held in any database (such as the Root DSE).  For
-all applicable entries, the {{EX:userPassword}} attribute is writable
+database. For all applicable entries, the {{EX:userPassword}} attribute is writable
 by the entry itself and by the "admin" entry.  It may be used for
 authentication/authorization purposes, but is otherwise not readable.
 All other attributes are writable by the entry and the "admin"
@@ -635,7 +633,7 @@ When evaluating whether some requester should be given access to
 an entry and/or attribute, slapd compares the entry and/or attribute
 to the {{EX:<what>}} selectors given in the configuration.  For
 each entry, access controls provided in the database which holds
-the entry (or the first database if not held in any database) apply
+the entry (or the global access directives if not held in any database) apply
 first, followed by the global access directives (which are held in
 the {{EX:frontend}} database definition).  Within this priority,
 access directives are examined in the order in which they appear
@@ -944,9 +942,7 @@ Lines 30 through 32 indicate the indices to maintain for various
 attributes.
 
 Lines 33 through 41 specify access control for entries in this
-database.  As this is the first database, the controls also apply
-to entries not held in any database (such as the Root DSE).  For
-all applicable entries, the {{EX:userPassword}} attribute is writable
+database. For all applicable entries, the {{EX:userPassword}} attribute is writable
 by the entry itself and by the "admin" entry.  It may be used for
 authentication/authorization purposes, but is otherwise not readable.
 All other attributes are writable by the entry and the "admin"
