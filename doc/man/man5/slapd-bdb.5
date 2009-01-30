@@ -148,6 +148,12 @@ will return a different result.
 Specify the maximum number of DNs in the in-memory DN cache. The
 default is twice the \fBcachesize\fP. Ideally this cache should be
 large enough to contain the DNs of every entry in the database.
+It should be noted that the \fBDN cache\fP is allowed to temporarily
+grow beyond the configured size. It does this if many entries are 
+locked when it tries to do a purge, because that means they're
+legitimately in use. Also, the \fBDN cache\fP never purges entries
+that have cached children, so depending on the shape of the DIT, it 
+could have lots of cached DNs over the defined limit.
 .TP
 .BI idlcachesize \ <integer>
 Specify the size of the in-memory index cache, in index slots. The

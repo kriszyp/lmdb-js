@@ -54,6 +54,7 @@ OpenLDAP 2.4.14 Engineering
 		Fixed uuid_create/uuid_unparse_lower detection (ITS#5905)
 	Documentation
 		admin24 added limits chapter (ITS#5818)
+		slapd-bdb/hdb expansion on dncachesize behavior (ITS#5721)
 		slapo-constraint(5) example fix (ITS#5895)
 
 OpenLDAP 2.4.13 Release (2008/11/24)
