@@ -2123,17 +2123,16 @@ syncprov_search_response( Operation *op, SlapReply *rs )
 				op->o_tmpfree( cookie.bv_val, op->o_tmpmemctx );
 
 			/* Detach this Op from frontend control */
-			ldap_pvt_thread_mutex_lock( &ss->ss_so->s_mutex );
 			ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
 
 			/* But not if this connection was closed along the way */
 			if ( op->o_abandon ) {
 				ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
-				ldap_pvt_thread_mutex_unlock( &ss->ss_so->s_mutex );
 				/* syncprov_ab_cleanup will free this syncop */
 				return SLAPD_ABANDON;
 
 			} else {
+				ldap_pvt_thread_mutex_lock( &ss->ss_so->s_mutex );
 				/* Turn off the refreshing flag */
 				ss->ss_so->s_flags ^= PS_IS_REFRESHING;
 
@@ -2144,8 +2143,8 @@ syncprov_search_response( Operation *op, SlapReply *rs )
 				/* If there are queued responses, fire them off */
 				if ( ss->ss_so->s_res )
 					syncprov_qstart( ss->ss_so );
+				ldap_pvt_thread_mutex_unlock( &ss->ss_so->s_mutex );
 			}
-			ldap_pvt_thread_mutex_unlock( &ss->ss_so->s_mutex );
 
 			return LDAP_SUCCESS;
 		}
