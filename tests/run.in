@@ -99,7 +99,7 @@ while test $# -gt 0 ; do
 			KILLSERVERS=no
 			shift ;;
 		-l | -loop)
-			NUM="$(echo $2 | sed 's/[0-9]//g')"
+			NUM="`echo $2 | sed 's/[0-9]//g'`"
 			if [ -z "$NUM" ]; then
 				LOOP=$2
 			else
