@@ -5,6 +5,7 @@ OpenLDAP 2.4.14 Engineering
 	Added libldap TLS_PROTOCOL_MIN (ITS#5655)
 	Added libldap GnuTLS support for TLS_CIPHER_SUITE (ITS#5887)
 	Added libldap GnuTLS setting random file (ITS#5462)
+	Fixed libldap avl to macroize constants (ITS#5909)
 	Fixed libldap deref handling (ITS#5768)
 	Fixed libldap peer cert memory leak (ITS#5849)
 	Fixed libldap interaction with GnuTLS CN IP-based matches (ITS#5789)
