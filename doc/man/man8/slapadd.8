@@ -108,6 +108,12 @@ configuration file.  The
 cannot be used in conjunction with the
 .B \-b
 option.
+To populate the config database
+.BR slapd-config (5),
+use 
+.B \-n 0
+as it is always the first database. It must physically exist
+on the filesystem prior to this, however.
 .TP
 .BI \-o " option[=value]"
 Specify an

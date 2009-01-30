@@ -92,7 +92,12 @@ processed, and not its glued subordinates (if any).
 .TP
 .BI \-n " dbnum"
 Generate output for the \fIdbnum\fR\-th database listed in the
-configuration file.  The
+configuration file. The config database
+.BR slapd-config (5),
+is always the first database, so use
+.B \-n 0
+
+The
 .B \-n
 cannot be used in conjunction with the
 .B \-b

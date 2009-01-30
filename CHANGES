@@ -63,6 +63,7 @@ OpenLDAP 2.4.14 Engineering
 		slapd-bdb/hdb expansion on dncachesize behavior (ITS#5721)
 		slapo-constraint(5) example fix (ITS#5895)
 		slap*(8) man pages should mention slapd-config (ITS#5828)
+		slapadd/cat/index(8) note -n 0 for slapd-config (ITS#5891)
 
 OpenLDAP 2.4.13 Release (2008/11/24)
 	Added libldap dereference control support (ITS#5768)
