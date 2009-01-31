@@ -591,6 +591,34 @@ LDAP_F (const char *) ldap_int_msgtype2str( ber_tag_t tag );
 /*
  * in search.c
  */
+LDAP_F (int) ldap_int_search LDAP_P((
+	LDAP *ld,
+	LDAP_CONST char *base,
+	int scope,
+	LDAP_CONST char *filter,
+	char **attrs,
+	int attrsonly,
+	LDAPControl **sctrls,
+	LDAPControl **cctrls,
+	struct timeval *timeout,
+	int sizelimit,
+	int deref,
+	int *msgidp ));
+
+LDAP_F(int) ldap_int_search_s LDAP_P((
+	LDAP *ld,
+	LDAP_CONST char *base,
+	int scope,
+	LDAP_CONST char *filter,
+	char **attrs,
+	int attrsonly,
+	LDAPControl **sctrls,
+	LDAPControl **cctrls,
+	struct timeval *timeout,
+	int sizelimit,
+	int deref,
+	LDAPMessage **res ));
+
 LDAP_F (BerElement *) ldap_build_search_req LDAP_P((
 	LDAP *ld,
 	const char *base,
@@ -602,6 +630,7 @@ LDAP_F (BerElement *) ldap_build_search_req LDAP_P((
 	LDAPControl **cctrls,
 	ber_int_t timelimit,
 	ber_int_t sizelimit,
+	ber_int_t deref,
 	ber_int_t *msgidp));
 
 

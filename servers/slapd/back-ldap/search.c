@@ -180,12 +180,6 @@ ldap_back_search(
 	 * to map attrs and maybe rewrite value
 	 */
 
-	/* should we check return values? */
-	if ( op->ors_deref != -1 ) {
-		ldap_set_option( lc->lc_ld, LDAP_OPT_DEREF,
-				(void *)&op->ors_deref );
-	}
-
 	if ( op->ors_tlimit != SLAP_NO_LIMIT ) {
 		tv.tv_sec = op->ors_tlimit;
 		tv.tv_usec = 0;
@@ -221,11 +215,11 @@ ldap_back_search(
 	/* deal with <draft-zeilenga-ldap-t-f> filters */
 	filter = op->ors_filterstr;
 retry:
-	rs->sr_err = ldap_search_ext( lc->lc_ld, op->o_req_dn.bv_val,
+	rs->sr_err = ldap_int_search( lc->lc_ld, op->o_req_dn.bv_val,
 			op->ors_scope, filter.bv_val,
 			attrs, op->ors_attrsonly, ctrls, NULL,
 			tv.tv_sec ? &tv : NULL,
-			op->ors_slimit, &msgid );
+			op->ors_slimit, op->ors_deref, &msgid );
 
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		switch ( rs->sr_err ) {
@@ -853,9 +847,9 @@ retry:
 	}
 
 	/* TODO: timeout? */
-	rc = ldap_search_ext_s( lc->lc_ld, ndn->bv_val, LDAP_SCOPE_BASE, filter,
+	rc = ldap_int_search_s( lc->lc_ld, ndn->bv_val, LDAP_SCOPE_BASE, filter,
 				attrp, 0, ctrls, NULL,
-				NULL, LDAP_NO_LIMIT, &result );
+				NULL, LDAP_NO_LIMIT, op->ors_deref, &result );
 	if ( rc != LDAP_SUCCESS ) {
 		if ( rc == LDAP_SERVER_DOWN && do_retry ) {
 			do_retry = 0;
