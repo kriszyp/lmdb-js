@@ -464,7 +464,7 @@ changetype: delete
 EOADDS
 RC=$?
 if test $RC != 0 ; then
-	echo "ldapmodify failed for consumer2 database ($RC)!"
+	echo "ldapmodify failed for consumer1 database ($RC)!"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
 fi
