@@ -1,3 +1,4 @@
+# $OpenLDAP$
 CPPFLAGS+=-I../../../include -I../../../servers/slapd 
 CPPFLAGS+=-DSLAPD_OVER_NOPS=SLAPD_MOD_DYNAMIC
 LIBS=-lldap_r -llber -lcrypto
