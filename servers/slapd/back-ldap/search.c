@@ -215,7 +215,7 @@ ldap_back_search(
 	/* deal with <draft-zeilenga-ldap-t-f> filters */
 	filter = op->ors_filterstr;
 retry:
-	rs->sr_err = ldap_int_search( lc->lc_ld, op->o_req_dn.bv_val,
+	rs->sr_err = ldap_pvt_search( lc->lc_ld, op->o_req_dn.bv_val,
 			op->ors_scope, filter.bv_val,
 			attrs, op->ors_attrsonly, ctrls, NULL,
 			tv.tv_sec ? &tv : NULL,
@@ -847,7 +847,7 @@ retry:
 	}
 
 	/* TODO: timeout? */
-	rc = ldap_int_search_s( lc->lc_ld, ndn->bv_val, LDAP_SCOPE_BASE, filter,
+	rc = ldap_pvt_search_s( lc->lc_ld, ndn->bv_val, LDAP_SCOPE_BASE, filter,
 				attrp, 0, ctrls, NULL,
 				NULL, LDAP_NO_LIMIT, op->ors_deref, &result );
 	if ( rc != LDAP_SUCCESS ) {

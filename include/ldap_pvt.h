@@ -304,6 +304,34 @@ LDAP_F( int )
 ldap_bv2escaped_filter_value_x LDAP_P(( struct berval *in, struct berval *out,
 	int inplace, void *ctx ));
 
+LDAP_F (int) ldap_pvt_search LDAP_P((
+	struct ldap *ld,
+	LDAP_CONST char *base,
+	int scope,
+	LDAP_CONST char *filter,
+	char **attrs,
+	int attrsonly,
+	struct ldapcontrol **sctrls,
+	struct ldapcontrol **cctrls,
+	struct timeval *timeout,
+	int sizelimit,
+	int deref,
+	int *msgidp ));
+
+LDAP_F(int) ldap_pvt_search_s LDAP_P((
+	struct ldap *ld,
+	LDAP_CONST char *base,
+	int scope,
+	LDAP_CONST char *filter,
+	char **attrs,
+	int attrsonly,
+	struct ldapcontrol **sctrls,
+	struct ldapcontrol **cctrls,
+	struct timeval *timeout,
+	int sizelimit,
+	int deref,
+	struct ldapmsg **res ));
+
 /* string.c */
 LDAP_F( char * )
 ldap_pvt_str2upper LDAP_P(( char *str ));

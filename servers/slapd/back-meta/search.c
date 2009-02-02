@@ -603,7 +603,7 @@ retry:;
 	 * Starts the search
 	 */
 	assert( msc->msc_ld != NULL );
-	rc = ldap_int_search( msc->msc_ld,
+	rc = ldap_pvt_search( msc->msc_ld,
 			mbase.bv_val, realscope, mfilter.bv_val,
 			mapped_attrs, op->ors_attrsonly,
 			ctrls, NULL, tvp, op->ors_slimit, op->ors_deref,

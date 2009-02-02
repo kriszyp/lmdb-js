@@ -66,12 +66,12 @@ ldap_search_ext(
 	int sizelimit,
 	int *msgidp )
 {
-	return ldap_int_search( ld, base, scope, filter, attrs,
+	return ldap_pvt_search( ld, base, scope, filter, attrs,
 		attrsonly, sctrls, cctrls, timeout, sizelimit, -1, msgidp );
 }
 
 int
-ldap_int_search(
+ldap_pvt_search(
 	LDAP *ld,
 	LDAP_CONST char *base,
 	int scope,
@@ -147,12 +147,12 @@ ldap_search_ext_s(
 	int sizelimit,
 	LDAPMessage **res )
 {
-	return ldap_int_search_s( ld, base, scope, filter, attrs,
+	return ldap_pvt_search_s( ld, base, scope, filter, attrs,
 		attrsonly, sctrls, cctrls, timeout, sizelimit, -1, res );
 }
 
 int
-ldap_int_search_s(
+ldap_pvt_search_s(
 	LDAP *ld,
 	LDAP_CONST char *base,
 	int scope,
@@ -169,7 +169,7 @@ ldap_int_search_s(
 	int rc;
 	int	msgid;
 
-	rc = ldap_int_search( ld, base, scope, filter, attrs, attrsonly,
+	rc = ldap_pvt_search( ld, base, scope, filter, attrs, attrsonly,
 		sctrls, cctrls, timeout, sizelimit, deref, &msgid );
 
 	if ( rc != LDAP_SUCCESS ) {
