@@ -215,22 +215,34 @@ slapd will use the group database in the change root environment.
 .TP
 .BI \-c " cookie"
 This option provides a cookie for the syncrepl replication consumer.
-The cookie is a comma separated list of name=value pairs.
+The cookie is a comma separated list of \fIname=value\fP pairs.
 Currently supported syncrepl cookie fields are
-.B rid
+.BR rid ,
+.BR sid ,
 and
-.B csn.
+.BR csn .
 .B rid
 identifies a replication thread within the consumer server
 and is used to find the syncrepl specification in 
 .BR slapd.conf (5)
+or
+.BR slapd-config (5)
 having the matching replication identifier in its definition. The
 .B rid
 must be provided in order for any other specified values to be used.
+.B sid
+is the server id in a multi-master/mirror-mode configuration.
 .B csn
 is the commit sequence number received by a previous synchronization
 and represents the state of the consumer replica content which the
 syncrepl engine will synchronize to the current provider content.
+In case of \fImirror-mode\fP or \fImulti-master\fP replication agreement,
+multiple
+.B csn
+values, semicolon separated, can appear.
+Use only the 
+.B rid
+part to force a full reload.
 .TP
 .BI \-o " option[=value]"
 This option provides a generic means to specify options without the need to reserve
