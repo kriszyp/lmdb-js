@@ -66,6 +66,25 @@ ldap_search_ext(
 	int sizelimit,
 	int *msgidp )
 {
+	return ldap_pvt_search( ld, base, scope, filter, attrs,
+		attrsonly, sctrls, cctrls, timeout, sizelimit, -1, msgidp );
+}
+
+int
+ldap_pvt_search(
+	LDAP *ld,
+	LDAP_CONST char *base,
+	int scope,
+	LDAP_CONST char *filter,
+	char **attrs,
+	int attrsonly,
+	LDAPControl **sctrls,
+	LDAPControl **cctrls,
+	struct timeval *timeout,
+	int sizelimit,
+	int deref,
+	int *msgidp )
+{
 	int rc;
 	BerElement	*ber;
 	int timelimit;
@@ -98,7 +117,7 @@ ldap_search_ext(
 	}
 
 	ber = ldap_build_search_req( ld, base, scope, filter, attrs,
-	    attrsonly, sctrls, cctrls, timelimit, sizelimit, &id ); 
+	    attrsonly, sctrls, cctrls, timelimit, sizelimit, deref, &id ); 
 
 	if ( ber == NULL ) {
 		return ld->ld_errno;
@@ -128,11 +147,30 @@ ldap_search_ext_s(
 	int sizelimit,
 	LDAPMessage **res )
 {
+	return ldap_pvt_search_s( ld, base, scope, filter, attrs,
+		attrsonly, sctrls, cctrls, timeout, sizelimit, -1, res );
+}
+
+int
+ldap_pvt_search_s(
+	LDAP *ld,
+	LDAP_CONST char *base,
+	int scope,
+	LDAP_CONST char *filter,
+	char **attrs,
+	int attrsonly,
+	LDAPControl **sctrls,
+	LDAPControl **cctrls,
+	struct timeval *timeout,
+	int sizelimit,
+	int deref,
+	LDAPMessage **res )
+{
 	int rc;
 	int	msgid;
 
-	rc = ldap_search_ext( ld, base, scope, filter, attrs, attrsonly,
-		sctrls, cctrls, timeout, sizelimit, &msgid );
+	rc = ldap_pvt_search( ld, base, scope, filter, attrs, attrsonly,
+		sctrls, cctrls, timeout, sizelimit, deref, &msgid );
 
 	if ( rc != LDAP_SUCCESS ) {
 		return( rc );
@@ -188,7 +226,7 @@ ldap_search(
 	assert( LDAP_VALID( ld ) );
 
 	ber = ldap_build_search_req( ld, base, scope, filter, attrs,
-	    attrsonly, NULL, NULL, -1, -1, &id ); 
+	    attrsonly, NULL, NULL, -1, -1, -1, &id ); 
 
 	if ( ber == NULL ) {
 		return( -1 );
@@ -212,6 +250,7 @@ ldap_build_search_req(
 	LDAPControl **cctrls,
 	ber_int_t timelimit,
 	ber_int_t sizelimit,
+	ber_int_t deref,
 	ber_int_t *idp)
 {
 	BerElement	*ber;
@@ -267,7 +306,8 @@ ldap_build_search_req(
 	    char *dn = ld->ld_options.ldo_cldapdn;
 	    if (!dn) dn = "";
 	    err = ber_printf( ber, "{ist{seeiib", *idp, dn,
-		LDAP_REQ_SEARCH, base, (ber_int_t) scope, ld->ld_deref,
+		LDAP_REQ_SEARCH, base, (ber_int_t) scope,
+		(deref < 0) ? ld->ld_deref : deref,
 		(sizelimit < 0) ? ld->ld_sizelimit : sizelimit,
 		(timelimit < 0) ? ld->ld_timelimit : timelimit,
 		attrsonly );

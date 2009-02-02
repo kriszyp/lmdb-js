@@ -590,13 +590,6 @@ meta_back_search_start(
 	}
 
 retry:;
-	/* should we check return values? */
-	if ( op->ors_deref != -1 ) {
-		assert( msc->msc_ld != NULL );
-		(void)ldap_set_option( msc->msc_ld, LDAP_OPT_DEREF,
-				( void * )&op->ors_deref );
-	}
-
 	ctrls = op->o_ctrls;
 	if ( meta_back_controls_add( op, rs, *mcp, candidate, &ctrls )
 		!= LDAP_SUCCESS )
@@ -610,10 +603,10 @@ retry:;
 	 * Starts the search
 	 */
 	assert( msc->msc_ld != NULL );
-	rc = ldap_search_ext( msc->msc_ld,
+	rc = ldap_pvt_search( msc->msc_ld,
 			mbase.bv_val, realscope, mfilter.bv_val,
 			mapped_attrs, op->ors_attrsonly,
-			ctrls, NULL, tvp, op->ors_slimit,
+			ctrls, NULL, tvp, op->ors_slimit, op->ors_deref,
 			&candidates[ candidate ].sr_msgid ); 
 	switch ( rc ) {
 	case LDAP_SUCCESS:

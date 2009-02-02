@@ -602,6 +602,7 @@ LDAP_F (BerElement *) ldap_build_search_req LDAP_P((
 	LDAPControl **cctrls,
 	ber_int_t timelimit,
 	ber_int_t sizelimit,
+	ber_int_t deref,
 	ber_int_t *msgidp));
 
 
