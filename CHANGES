@@ -61,11 +61,12 @@ OpenLDAP 2.4.14 Engineering
 		Fixed uuid_create/uuid_unparse_lower detection (ITS#5905)
 	Documentation
 		admin24 added limits chapter (ITS#5818)
+		admin24 access-control clarify global ACLS (ITS#5851,ITS#5852)
 		slapd-bdb/hdb expansion on dncachesize behavior (ITS#5721)
 		slapo-constraint(5) example fix (ITS#5895)
 		slap*(8) man pages should mention slapd-config (ITS#5828)
 		slapd(8) document sid (ITS#5873)
-		slapd.access(5) clarify when global ACLS apply (ITS#5851)
+		slapd.access(5) clarify global ACLS (ITS#5851,ITS#5852)
 		slapadd/cat/index(8) note -n 0 for slapd-config (ITS#5891)
 		Added SEE ALSO slapd-config(5) to relevant man pages (ITS#5914)
 

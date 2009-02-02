@@ -54,7 +54,15 @@ are then used.
 If no access controls are present, the default policy
 allows anyone and everyone to read anything but restricts
 updates to rootdn.  (e.g., "access to * by * read").
-The rootdn can always read and write EVERYTHING!
+.LP
+When dealing with an access list, because the global access list is 
+effectively appended to each per-database list, if the resulting 
+list is non-empty then the access list will end with an implicit 
+.B access to * by * none
+directive. If there are no access directives applicable to a backend, 
+then a default read is used.
+.LP
+.B Be warned: the rootdn can always read and write EVERYTHING!
 .LP
 For entries not held in any backend (such as a root DSE), the
 global directives are used.

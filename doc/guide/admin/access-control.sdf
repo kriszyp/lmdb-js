@@ -219,7 +219,14 @@ an entry and/or attribute, slapd compares the entry and/or attribute
 to the {{EX:<what>}} selectors given in the configuration file.
 For each entry, access controls provided in the database which holds
 the entry (or the global access directives if not held in any database) apply
-first, followed by the global access directives.  Within this
+first, followed by the global access directives. However, when dealing with 
+an access list, because the global access list is effectively appended 
+to each per-database list, if the resulting list is non-empty then the 
+access list will end with an implicit {{EX:access to * by * none}} directive. 
+If there are no access directives applicable to a backend, then a default 
+read is used.
+
+Within this
 priority, access directives are examined in the order in which they
 appear in the config file.  Slapd stops with the first {{EX:<what>}}
 selector that matches the entry and/or attribute. The corresponding
@@ -304,9 +311,12 @@ are also under {{EX:dc=com}} entries.
 
 Also note that if no {{EX:access to}} directive matches or no {{EX:by
 <who>}} clause, {{B:access is denied}}.  That is, every {{EX:access
-to}} directive ends with an implicit {{EX:by * none}} clause and
-every access list ends with an implicit {{EX:access to * by * none}}
-directive.
+to}} directive ends with an implicit {{EX:by * none}} clause. When dealing
+with an access list, because the global access list is effectively appended 
+to each per-database list, if the resulting list is non-empty then the access 
+list will end with an implicit {{EX:access to * by * none}} directive. If
+there are no access directives applicable to a backend, then a default read is
+used.
 
 The next example again shows the importance of ordering, both of
 the access directives and the {{EX:by <who>}} clauses.  It also
@@ -635,7 +645,14 @@ to the {{EX:<what>}} selectors given in the configuration.  For
 each entry, access controls provided in the database which holds
 the entry (or the global access directives if not held in any database) apply
 first, followed by the global access directives (which are held in
-the {{EX:frontend}} database definition).  Within this priority,
+the {{EX:frontend}} database definition). However, when dealing with 
+an access list, because the global access list is effectively appended 
+to each per-database list, if the resulting list is non-empty then the 
+access list will end with an implicit {{EX:access to * by * none}} directive. 
+If there are no access directives applicable to a backend, then a default 
+read is used.
+
+Within this priority,
 access directives are examined in the order in which they appear
 in the configuration attribute.  Slapd stops with the first
 {{EX:<what>}} selector that matches the entry and/or attribute. The
@@ -720,10 +737,11 @@ would never be reached, since all entries under {{EX:dc=example,dc=com}}
 are also under {{EX:dc=com}} entries.
 
 Also note that if no {{EX:olcAccess: to}} directive matches or no {{EX:by
-<who>}} clause, {{B:access is denied}}.  That is, every {{EX:olcAccess:
-to}} directive ends with an implicit {{EX:by * none}} clause and
-every access list ends with an implicit {{EX:olcAccess: to * by * none}}
-directive.
+<who>}} clause, {{B:access is denied}}.  When dealing with an access list, 
+because the global access list is effectively appended to each per-database 
+list, if the resulting list is non-empty then the access list will end with 
+an implicit {{EX:access to * by * none}} directive. If there are no access 
+directives applicable to a backend, then a default read is used.
 
 The next example again shows the importance of ordering, both of
 the access directives and the {{EX:by <who>}} clauses.  It also
