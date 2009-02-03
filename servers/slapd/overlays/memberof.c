@@ -298,7 +298,7 @@ memberof_isGroupOrMember( Operation *op, memberof_is_t *iswhatp, memberof_cbinfo
 
 		if ( mc.foundit ) {
 			iswhat |= MEMBEROF_IS_GROUP;
-			mci->member = mc.vals;
+			if ( mc.vals ) mci->member = mc.vals;
 
 		}
 	}
@@ -318,7 +318,7 @@ memberof_isGroupOrMember( Operation *op, memberof_is_t *iswhatp, memberof_cbinfo
 
 		if ( mc.foundit ) {
 			iswhat |= MEMBEROF_IS_MEMBER;
-			mci->memberof = mc.vals;
+			if ( mc.vals ) mci->memberof = mc.vals;
 
 		}
 	}
