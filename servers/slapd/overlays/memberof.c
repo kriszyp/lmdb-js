@@ -188,6 +188,7 @@ typedef struct memberof_cbinfo_t {
 	slap_overinst *on;
 	BerVarray member;
 	BerVarray memberof;
+	memberof_is_t what;
 } memberof_cbinfo_t;
 	
 static int
@@ -244,7 +245,7 @@ memberof_saveMember_cb( Operation *op, SlapReply *rs )
  * attribute values of groups being deleted.
  */
 static int
-memberof_isGroupOrMember( Operation *op, memberof_is_t *iswhatp, memberof_cbinfo_t *mci )
+memberof_isGroupOrMember( Operation *op, memberof_cbinfo_t *mci )
 {
 	slap_overinst		*on = mci->on;
 	memberof_t		*mo = (memberof_t *)on->on_bi.bi_private;
@@ -258,8 +259,7 @@ memberof_isGroupOrMember( Operation *op, memberof_is_t *iswhatp, memberof_cbinfo
 	memberof_is_t		iswhat = MEMBEROF_IS_NONE;
 	memberof_cookie_t	mc;
 
-	assert( iswhatp != NULL );
-	assert( *iswhatp != MEMBEROF_IS_NONE );
+	assert( mci->what != MEMBEROF_IS_NONE );
 
 	cb.sc_private = &mc;
 	if ( op->o_tag == LDAP_REQ_DELETE ) {
@@ -283,7 +283,7 @@ memberof_isGroupOrMember( Operation *op, memberof_is_t *iswhatp, memberof_cbinfo
 	op2.ors_slimit = 1;
 	op2.ors_tlimit = SLAP_NO_LIMIT;
 
-	if ( *iswhatp & MEMBEROF_IS_GROUP ) {
+	if ( mci->what & MEMBEROF_IS_GROUP ) {
 		mc.ad = mo->mo_ad_member;
 		mc.foundit = 0;
 		mc.vals = NULL;
@@ -298,12 +298,12 @@ memberof_isGroupOrMember( Operation *op, memberof_is_t *iswhatp, memberof_cbinfo
 
 		if ( mc.foundit ) {
 			iswhat |= MEMBEROF_IS_GROUP;
-			mci->member = mc.vals;
+			if ( mc.vals ) mci->member = mc.vals;
 
 		}
 	}
 
-	if ( *iswhatp & MEMBEROF_IS_MEMBER ) {
+	if ( mci->what & MEMBEROF_IS_MEMBER ) {
 		mc.ad = mo->mo_ad_memberof;
 		mc.foundit = 0;
 		mc.vals = NULL;
@@ -318,12 +318,12 @@ memberof_isGroupOrMember( Operation *op, memberof_is_t *iswhatp, memberof_cbinfo
 
 		if ( mc.foundit ) {
 			iswhat |= MEMBEROF_IS_MEMBER;
-			mci->memberof = mc.vals;
+			if ( mc.vals ) mci->memberof = mc.vals;
 
 		}
 	}
 
-	*iswhatp = iswhat;
+	mci->what = iswhat;
 
 	return LDAP_SUCCESS;
 }
@@ -718,13 +718,9 @@ memberof_op_delete( Operation *op, SlapReply *rs )
 	slap_overinst	*on = (slap_overinst *)op->o_bd->bd_info;
 	memberof_t	*mo = (memberof_t *)on->on_bi.bi_private;
 
-	memberof_is_t	iswhat = MEMBEROF_IS_GROUP;
 	slap_callback *sc;
 	memberof_cbinfo_t *mci;
 
-	if ( MEMBEROF_REFINT( mo ) ) {
-		iswhat = MEMBEROF_IS_BOTH;
-	}
 
 	sc = op->o_tmpalloc( sizeof(slap_callback)+sizeof(*mci), op->o_tmpmemctx );
 	sc->sc_private = sc+1;
@@ -734,8 +730,12 @@ memberof_op_delete( Operation *op, SlapReply *rs )
 	mci->on = on;
 	mci->member = NULL;
 	mci->memberof = NULL;
+	mci->what = MEMBEROF_IS_GROUP;
+	if ( MEMBEROF_REFINT( mo ) ) {
+		mci->what = MEMBEROF_IS_BOTH;
+	}
 
-	memberof_isGroupOrMember( op, &iswhat, mci );
+	memberof_isGroupOrMember( op, mci );
 
 	sc->sc_next = op->o_callback;
 	op->o_callback = sc;
@@ -752,7 +752,6 @@ memberof_op_modify( Operation *op, SlapReply *rs )
 	Modifications	**mlp, **mmlp = NULL;
 	int		rc = SLAP_CB_CONTINUE, save_member = 0;
 	struct berval	save_dn, save_ndn;
-	memberof_is_t	iswhat = MEMBEROF_IS_GROUP;
 	slap_callback *sc;
 	memberof_cbinfo_t *mci, mcis;
 
@@ -770,9 +769,10 @@ memberof_op_modify( Operation *op, SlapReply *rs )
 	save_dn = op->o_dn;
 	save_ndn = op->o_ndn;
 	mcis.on = on;
+	mcis.what = MEMBEROF_IS_GROUP;
 
-	if ( memberof_isGroupOrMember( op, &iswhat, &mcis ) == LDAP_SUCCESS
-		&& ( iswhat & MEMBEROF_IS_GROUP ) )
+	if ( memberof_isGroupOrMember( op, &mcis ) == LDAP_SUCCESS
+		&& ( mcis.what & MEMBEROF_IS_GROUP ) )
 	{
 		Modifications *ml;
 
@@ -1127,6 +1127,7 @@ done2:;
 	mci->on = on;
 	mci->member = NULL;
 	mci->memberof = NULL;
+	mci->what = mcis.what;
 
 	if ( save_member ) {
 		op->o_dn = op->o_bd->be_rootdn;
@@ -1287,7 +1288,6 @@ memberof_res_modify( Operation *op, SlapReply *rs )
 	int		i, rc;
 	Modifications	*ml, *mml = NULL;
 	BerVarray	vals;
-	memberof_is_t	iswhat = MEMBEROF_IS_GROUP;
 
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		return SLAP_CB_CONTINUE;
@@ -1355,8 +1355,7 @@ memberof_res_modify( Operation *op, SlapReply *rs )
 		}
 	}
 
-	if ( memberof_isGroupOrMember( op, &iswhat, mci ) == LDAP_SUCCESS
-			&& ( iswhat & MEMBEROF_IS_GROUP ) )
+	if ( mci->what & MEMBEROF_IS_GROUP )
 	{
 		for ( ml = op->orm_modlist; ml; ml = ml->sml_next ) {
 			if ( ml->sml_desc != mo->mo_ad_member ) {
@@ -1431,14 +1430,14 @@ memberof_res_modrdn( Operation *op, SlapReply *rs )
 	BerVarray	vals;
 
 	struct berval	save_dn, save_ndn;
-	memberof_is_t	iswhat = MEMBEROF_IS_GROUP;
 
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		return SLAP_CB_CONTINUE;
 	}
 
+	mci->what = MEMBEROF_IS_GROUP;
 	if ( MEMBEROF_REFINT( mo ) ) {
-		iswhat |= MEMBEROF_IS_MEMBER;
+		mci->what |= MEMBEROF_IS_MEMBER;
 	}
 
 	if ( op->orr_nnewSup ) {
@@ -1455,11 +1454,11 @@ memberof_res_modrdn( Operation *op, SlapReply *rs )
 
 	op->o_req_dn = newNDN;
 	op->o_req_ndn = newNDN;
-	rc = memberof_isGroupOrMember( op, &iswhat, mci );
+	rc = memberof_isGroupOrMember( op, mci );
 	op->o_req_dn = save_dn;
 	op->o_req_ndn = save_ndn;
 
-	if ( rc != LDAP_SUCCESS || iswhat == MEMBEROF_IS_NONE ) {
+	if ( rc != LDAP_SUCCESS || mci->what == MEMBEROF_IS_NONE ) {
 		goto done;
 	}
 
@@ -1472,7 +1471,7 @@ memberof_res_modrdn( Operation *op, SlapReply *rs )
 
 	build_new_dn( &newDN, &newPDN, &op->orr_newrdn, op->o_tmpmemctx ); 
 
-	if ( iswhat & MEMBEROF_IS_GROUP ) {
+	if ( mci->what & MEMBEROF_IS_GROUP ) {
 		op->o_bd->bd_info = (BackendInfo *)on->on_info;
 		rc = backend_attribute( op, NULL, &newNDN,
 				mo->mo_ad_member, &vals, ACL_READ );
@@ -1489,7 +1488,7 @@ memberof_res_modrdn( Operation *op, SlapReply *rs )
 		}
 	}
 
-	if ( MEMBEROF_REFINT( mo ) && ( iswhat & MEMBEROF_IS_MEMBER ) ) {
+	if ( MEMBEROF_REFINT( mo ) && ( mci->what & MEMBEROF_IS_MEMBER ) ) {
 		op->o_bd->bd_info = (BackendInfo *)on->on_info;
 		rc = backend_attribute( op, NULL, &newNDN,
 				mo->mo_ad_memberof, &vals, ACL_READ );
