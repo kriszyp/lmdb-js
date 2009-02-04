@@ -68,6 +68,7 @@ OpenLDAP 2.4.14 Engineering
 		slapd-bdb/hdb expansion on dncachesize behavior (ITS#5721)
 		slapo-constraint(5) example fix (ITS#5895)
 		slap*(8) man pages should mention slapd-config (ITS#5828)
+		slapacl(8c) fix wording (ITS#5918)
 		slapd(8) document sid (ITS#5873)
 		slapd.access(5) clarify global ACLS (ITS#5851,ITS#5852)
 		slapadd/cat/index(8) note -n 0 for slapd-config (ITS#5891)

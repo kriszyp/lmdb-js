@@ -19,10 +19,12 @@ slapacl \- Check access to a list of attributes.
 .LP
 .SH DESCRIPTION
 .LP
-.B Slapacl
-is used to check the behavior of the slapd in verifying access to data
-according to ACLs, as specified in 
-.BR slapd.access (5).
+.B slapacl
+is used to check the behavior of 
+.BR slapd (8) 
+by verifying access to directory data according to the access control list
+directives defined in its configuration.
+.
 It opens the
 .BR slapd.conf (5)
 configuration file or the 
