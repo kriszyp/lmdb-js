@@ -42,6 +42,8 @@
 #endif
 
 static tls_impl *tls_imp = &ldap_int_tls_impl;
+#define HAS_TLS( sb )	ber_sockbuf_ctrl( sb, LBER_SB_OPT_HAS_IO, \
+				(void *)tls_imp->ti_sbio )
 
 #endif /* HAVE_TLS */
 
@@ -329,8 +331,9 @@ ldap_int_tls_connect( LDAP *ld, LDAPConn *conn )
 	int	err;
 	tls_session	*ssl = NULL;
 
-	ber_sockbuf_ctrl( sb, LBER_SB_OPT_GET_SSL, (void *)&ssl );
-	if ( !ssl ) {
+	if ( HAS_TLS( sb )) {
+		ber_sockbuf_ctrl( sb, LBER_SB_OPT_GET_SSL, (void *)&ssl );
+	} else {
 		struct ldapoptions *lo;
 		tls_ctx *ctx;
 
@@ -410,8 +413,9 @@ ldap_pvt_tls_accept( Sockbuf *sb, void *ctx_arg )
 	int	err;
 	tls_session	*ssl = NULL;
 
-	ber_sockbuf_ctrl( sb, LBER_SB_OPT_GET_SSL, (void *)&ssl );
-	if ( !ssl ) {
+	if ( HAS_TLS( sb )) {
+		ber_sockbuf_ctrl( sb, LBER_SB_OPT_GET_SSL, (void *)&ssl );
+	} else {
 		ssl = alloc_handle( ctx_arg, 1 );
 		if ( ssl == NULL ) return -1;
 
@@ -451,10 +455,7 @@ ldap_pvt_tls_accept( Sockbuf *sb, void *ctx_arg )
 int
 ldap_pvt_tls_inplace ( Sockbuf *sb )
 {
-	tls_session	*ssl = NULL;
-
-	ber_sockbuf_ctrl( sb, LBER_SB_OPT_GET_SSL, (void *)&ssl );
-	return ssl != NULL;
+	return HAS_TLS( sb ) ? 1 : 0;
 }
 
 int
