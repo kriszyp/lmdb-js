@@ -455,7 +455,7 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 
 		e_id = bsi.bsi_base_id;
 
-		rs->sr_err = entry_schema_check( op, &r, NULL, 0, 0,
+		rs->sr_err = entry_schema_check( op, &r, NULL, 0, 0, NULL,
 			&rs->sr_text, textbuf, sizeof( textbuf ) );
 		if ( rs->sr_err != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_TRACE, "   backsql_modrdn(\"%s\"): "

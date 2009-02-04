@@ -322,7 +322,7 @@ int ndb_modify_internal(
 	}
 
 	/* check that the entry still obeys the schema */
-	rc = entry_schema_check( op, NA->e, NULL, get_relax(op), 0,
+	rc = entry_schema_check( op, NA->e, NULL, get_relax(op), 0, NULL,
 		text, textbuf, textlen );
 	if ( rc != LDAP_SUCCESS || op->o_noop ) {
 		if ( rc != LDAP_SUCCESS ) {

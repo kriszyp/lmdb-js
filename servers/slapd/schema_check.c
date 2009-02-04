@@ -49,6 +49,7 @@ entry_schema_check(
 	Attribute *oldattrs,
 	int manage,
 	int add,
+	Attribute **socp,
 	const char** text,
 	char *textbuf, size_t textlen )
 {
@@ -212,15 +213,28 @@ got_soc:
 		rc = LDAP_OBJECT_CLASS_VIOLATION;
 		goto done;
 
-	} else if ( sc != slap_schema.si_oc_glue && sc != oc ) {
-		snprintf( textbuf, textlen, 
-			"structural object class modification "
-			"from '%s' to '%s' not allowed",
-			asc->a_vals[0].bv_val, oc->soc_cname.bv_val );
-		rc = LDAP_NO_OBJECT_CLASS_MODS;
-		goto done;
-	} else if ( sc == slap_schema.si_oc_glue ) {
+	} else if ( sc != oc ) {
+		if ( !manage && sc != slap_schema.si_oc_glue ) {
+			snprintf( textbuf, textlen, 
+				"structural object class modification "
+				"from '%s' to '%s' not allowed",
+				asc->a_vals[0].bv_val, oc->soc_cname.bv_val );
+			rc = LDAP_NO_OBJECT_CLASS_MODS;
+			goto done;
+		}
+
+		assert( asc->a_vals != NULL );
+		assert( !BER_BVISNULL( &asc->a_vals[0] ) );
+		assert( BER_BVISNULL( &asc->a_vals[1] ) );
+		assert( asc->a_nvals == asc->a_vals );
+
+		/* draft-zeilenga-ldap-relax: automatically modify
+		 * structuralObjectClass if changed with relax */
 		sc = oc;
+		ber_bvreplace( &asc->a_vals[ 0 ], &sc->soc_cname );
+		if ( socp ) {
+			*socp = asc;
+		}
 	}
 
 	/* naming check */

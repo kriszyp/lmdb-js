@@ -192,7 +192,7 @@ slapadd( int argc, char **argv )
 			op->o_bd = be;
 
 			if ( (slapMode & SLAP_TOOL_NO_SCHEMA_CHECK) == 0) {
-				rc = entry_schema_check( op, e, NULL, manage, 1,
+				rc = entry_schema_check( op, e, NULL, manage, 1, NULL,
 					&text, textbuf, textlen );
 
 				if( rc != LDAP_SUCCESS ) {

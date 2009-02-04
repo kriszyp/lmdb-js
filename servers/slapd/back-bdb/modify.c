@@ -27,6 +27,44 @@ static struct berval scbva[] = {
 	BER_BVNULL
 };
 
+static void
+bdb_modify_idxflags(
+	Operation *op,
+	AttributeDescription *desc,
+	int got_delete,
+	Attribute *newattrs,
+	Attribute *oldattrs )
+{
+	struct berval	ix_at;
+	AttrInfo	*ai;
+
+	/* check if modified attribute was indexed
+	 * but not in case of NOOP... */
+	ai = bdb_index_mask( op->o_bd, desc, &ix_at );
+	if ( ai ) {
+		if ( got_delete ) {
+			Attribute 	*ap;
+			struct berval	ix2;
+
+			ap = attr_find( oldattrs, desc );
+			if ( ap ) ap->a_flags |= SLAP_ATTR_IXDEL;
+
+			/* Find all other attrs that index to same slot */
+			for ( ap = newattrs; ap; ap = ap->a_next ) {
+				ai = bdb_index_mask( op->o_bd, ap->a_desc, &ix2 );
+				if ( ai && ix2.bv_val == ix_at.bv_val )
+					ap->a_flags |= SLAP_ATTR_IXADD;
+			}
+
+		} else {
+			Attribute 	*ap;
+
+			ap = attr_find( newattrs, desc );
+			if ( ap ) ap->a_flags |= SLAP_ATTR_IXADD;
+		}
+	}
+}
+
 int bdb_modify_internal(
 	Operation *op,
 	DB_TXN *tid,
@@ -43,7 +81,6 @@ int bdb_modify_internal(
 	Attribute 	*ap;
 	int			glue_attr_delete = 0;
 	int			got_delete;
-	AttrInfo *ai;
 
 	Debug( LDAP_DEBUG_TRACE, "bdb_modify_internal: 0x%08lx: %s\n",
 		e->e_id, e->e_dn, 0);
@@ -89,7 +126,6 @@ int bdb_modify_internal(
 	}
 
 	for ( ml = modlist; ml != NULL; ml = ml->sml_next ) {
-		struct berval ix_at;
 		mod = &ml->sml_mod;
 		got_delete = 0;
 
@@ -202,31 +238,17 @@ int bdb_modify_internal(
 
 		if ( glue_attr_delete ) e->e_ocflags = 0;
 
+
 		/* check if modified attribute was indexed
 		 * but not in case of NOOP... */
-		ai = bdb_index_mask( op->o_bd, mod->sm_desc, &ix_at );
-		if ( ai && !op->o_noop ) {
-			if ( got_delete ) {
-				struct berval ix2;
-
-				ap = attr_find( save_attrs, mod->sm_desc );
-				if ( ap ) ap->a_flags |= SLAP_ATTR_IXDEL;
-
-				/* Find all other attrs that index to same slot */
-				for ( ap = e->e_attrs; ap; ap=ap->a_next ) {
-					ai = bdb_index_mask( op->o_bd, ap->a_desc, &ix2 );
-					if ( ai && ix2.bv_val == ix_at.bv_val )
-						ap->a_flags |= SLAP_ATTR_IXADD;
-				}
-			} else {
-				ap = attr_find( e->e_attrs, mod->sm_desc );
-				if ( ap ) ap->a_flags |= SLAP_ATTR_IXADD;
-			}
+		if ( !op->o_noop ) {
+			bdb_modify_idxflags( op, mod->sm_desc, got_delete, e->e_attrs, save_attrs );
 		}
 	}
 
 	/* check that the entry still obeys the schema */
-	rc = entry_schema_check( op, e, save_attrs, get_relax(op), 0,
+	ap = NULL;
+	rc = entry_schema_check( op, e, save_attrs, get_relax(op), 0, &ap,
 		text, textbuf, textlen );
 	if ( rc != LDAP_SUCCESS || op->o_noop ) {
 		attrs_free( e->e_attrs );
@@ -244,6 +266,15 @@ int bdb_modify_internal(
 
 		/* if NOOP then silently revert to saved attrs */
 		return rc;
+	}
+
+	/* structuralObjectClass modified! */
+	if ( ap ) {
+		assert( ap->a_desc == slap_schema.si_ad_structuralObjectClass );
+		if ( !op->o_noop ) {
+			bdb_modify_idxflags( op, slap_schema.si_ad_structuralObjectClass,
+				1, e->e_attrs, save_attrs );
+		}
 	}
 
 	/* update the indices of the modified attributes */
