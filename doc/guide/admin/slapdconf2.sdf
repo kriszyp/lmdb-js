@@ -194,9 +194,10 @@ Level	Keyword	Description
 4096	Cache	database cache processing
 8192	Index	database indexing
 16384	Sync	syncrepl consumer processing
+32768	None	only messages that get logged whatever log level is set
 !endblock
 
-\Example:
+\Examples:
 
 E: olcLogLevel: -1
 
@@ -207,9 +208,18 @@ E: olcLogLevel: Conns Filter
 
 Just log the connection and search filter processing.
 
+E: olcLogLevel: None
+
+Log those messages that are logged regardless of the configured loglevel. This
+differs from setting the log level to 0, when no logging occurs. At least the
+{{EX:None}} level is required to have high priority messages logged.
+
 \Default:
 
 E: olcLogLevel: Stats
+
+Basic stats logging is configured by default. However, if no olcLogLevel is
+defined, no logging occurs (equivalent to a 0 level).
 
 
 H4: olcReferral <URI>
