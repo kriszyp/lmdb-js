@@ -54,7 +54,7 @@ ndb_back_add(Operation *op, SlapReply *rs )
 
 	/* check entry's schema */
 	rs->sr_err = entry_schema_check( op, op->oq_add.rs_e, NULL,
-		get_relax(op), 1, &rs->sr_text, textbuf, textlen );
+		get_relax(op), 1, NULL, &rs->sr_text, textbuf, textlen );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE,
 			LDAP_XSTRING(ndb_back_add) ": entry failed schema check: "

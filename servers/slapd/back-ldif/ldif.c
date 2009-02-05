@@ -1065,7 +1065,7 @@ apply_modify_to_entry(
 			entry->e_ocflags = 0;
 		}
 		/* check that the entry still obeys the schema */
-		rc = entry_schema_check( op, entry, NULL, 0, 0,
+		rc = entry_schema_check( op, entry, NULL, 0, 0, NULL,
 			  &rs->sr_text, textbuf, sizeof( textbuf ) );
 	}
 
@@ -1230,7 +1230,7 @@ ldif_back_add( Operation *op, SlapReply *rs )
 
 	Debug( LDAP_DEBUG_TRACE, "ldif_back_add: \"%s\"\n", e->e_dn, 0, 0 );
 
-	rc = entry_schema_check( op, e, NULL, 0, 1,
+	rc = entry_schema_check( op, e, NULL, 0, 1, NULL,
 		&rs->sr_text, textbuf, sizeof( textbuf ) );
 	if ( rc != LDAP_SUCCESS )
 		goto send_res;

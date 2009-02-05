@@ -1643,6 +1643,7 @@ LDAP_SLAPD_F( int ) entry_schema_check(
 	Attribute *attrs,
 	int manage,
 	int add,
+	Attribute **socp,
 	const char** text,
 	char *textbuf, size_t textlen );
 
