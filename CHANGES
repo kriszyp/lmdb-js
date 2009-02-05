@@ -46,6 +46,7 @@ OpenLDAP 2.4.14 Engineering
 	Fixed slapo-memberof multiple instantiation (ITS#5903)
 	Fixed slapo-pcache filter sorting (ITS#5756)
 	Fixed slapo-ppolicy to not be global (ITS#5858)
+	Fixed slapo-rwm double free (ITS#5923)
 	Fixed slapo-rwm with back-config (ITS#5906)
 	Added slapo-rwm newRDN rewriting (ITS#5834)
 	Updated contrib/addpartial module (ITS#5764)
