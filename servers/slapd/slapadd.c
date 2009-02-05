@@ -467,12 +467,18 @@ slapadd( int argc, char **argv )
 	ch_free( buf );
 
 	if ( !dryrun ) {
+		if ( enable_meter ) {
+			fprintf( stderr, "Closing DB..." );
+		}
 		if( be->be_entry_close( be ) ) {
 			rc = EXIT_FAILURE;
 		}
 
 		if( be->be_sync ) {
 			be->be_sync( be );
+		}
+		if ( enable_meter ) {
+			fprintf( stderr, "\n" );
 		}
 	}
 
