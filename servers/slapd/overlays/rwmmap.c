@@ -1187,7 +1187,7 @@ rwm_dnattr_result_rewrite(
 	last--;
 
 	for ( i = 0; !BER_BVISNULL( &a_vals[i] ); i++ ) {
-		struct berval	pdn, ndn;
+		struct berval	pdn, ndn = BER_BVNULL;
 		int		rc;
 		
 		pdn = a_vals[i];
