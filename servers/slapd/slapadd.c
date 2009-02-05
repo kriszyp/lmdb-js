@@ -35,6 +35,8 @@
 #include <lber.h>
 #include <ldif.h>
 #include <lutil.h>
+#include <lutil_meter.h>
+#include <sys/stat.h>
 
 #include "slapcommon.h"
 
@@ -67,9 +69,14 @@ slapadd( int argc, char **argv )
 	int rc = EXIT_SUCCESS;
 	int manage = 0;	
 
+	int enable_meter = 0;
+	lutil_meter_t meter;
+	struct stat stat_buf;
+
 	/* default "000" */
 	csnsid = 0;
 
+	if ( isatty (2) ) enable_meter = 1;
 	slap_tool_init( progname, SLAPADD, argc, argv );
 
 	memset( &opbuf, 0, sizeof(opbuf) );
@@ -118,6 +125,22 @@ slapadd( int argc, char **argv )
 		}
 	}
 
+	if ( enable_meter 
+#ifdef LDAP_DEBUG
+		/* tools default to "none" */
+		&& slap_debug == LDAP_DEBUG_NONE
+#endif
+		&& !fstat ( fileno ( ldiffp->fp ), &stat_buf )
+		&& S_ISREG(stat_buf.st_mode) ) {
+		enable_meter = !lutil_meter_open(
+			&meter,
+			&lutil_meter_text_display,
+			&lutil_meter_linear_estimator,
+			stat_buf.st_size);
+	} else {
+		enable_meter = 0;
+	}
+
 	/* nextline is the line number of the end of the current entry */
 	for( lineno=1; ldif_read_record( ldiffp, &nextline, &buf, &lmax );
 		lineno=nextline+1 ) {
@@ -127,6 +150,11 @@ slapadd( int argc, char **argv )
 			continue;
 
 		e = str2entry2( buf, checkvals );
+
+		if ( enable_meter )
+			lutil_meter_update( &meter,
+					 ftell( ldiffp->fp ),
+					 0);
 
 		/*
 		 * Initialize text buffer
@@ -345,6 +373,11 @@ slapadd( int argc, char **argv )
 	bvtext.bv_val = textbuf;
 	bvtext.bv_val[0] = '\0';
 
+	if ( enable_meter ) {
+		lutil_meter_update( &meter, ftell( ldiffp->fp ), 1);
+		lutil_meter_close( &meter );
+	}
+
 	if ( rc == EXIT_SUCCESS && update_ctxcsn && !dryrun && sid != SLAP_SYNC_SID_MAX + 1 ) {
 		ctxcsn_id = be->be_dn2id_get( be, be->be_nsuffix );
 		if ( ctxcsn_id == NOID ) {
@@ -438,12 +471,18 @@ slapadd( int argc, char **argv )
 	ch_free( buf );
 
 	if ( !dryrun ) {
+		if ( enable_meter ) {
+			fprintf( stderr, "Closing DB..." );
+		}
 		if( be->be_entry_close( be ) ) {
 			rc = EXIT_FAILURE;
 		}
 
 		if( be->be_sync ) {
 			be->be_sync( be );
+		}
+		if ( enable_meter ) {
+			fprintf( stderr, "\n" );
 		}
 	}
 
