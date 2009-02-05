@@ -126,8 +126,12 @@ slapadd( int argc, char **argv )
 	}
 
 	if ( enable_meter 
-	     && !fstat ( fileno ( ldiffp->fp ), &stat_buf )
-	     && S_ISREG(stat_buf.st_mode) ) {
+#ifdef LDAP_DEBUG
+		/* tools default to "none" */
+		&& slap_debug == LDAP_DEBUG_NONE
+#endif
+		&& !fstat ( fileno ( ldiffp->fp ), &stat_buf )
+		&& S_ISREG(stat_buf.st_mode) ) {
 		enable_meter = !lutil_meter_open(
 			&meter,
 			&lutil_meter_text_display,
