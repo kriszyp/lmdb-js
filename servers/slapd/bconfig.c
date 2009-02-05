@@ -3809,14 +3809,15 @@ config_rename_kids( CfEntryInfo *ce )
 	struct berval rdn, nrdn;
 
 	for (ce2 = ce->ce_kids; ce2; ce2 = ce2->ce_sibs) {
+		struct berval newdn, newndn;
 		dnRdn ( &ce2->ce_entry->e_name, &rdn );
 		dnRdn ( &ce2->ce_entry->e_nname, &nrdn );
+		build_new_dn( &newdn, &ce->ce_entry->e_name, &rdn, NULL );
+		build_new_dn( &newndn, &ce->ce_entry->e_nname, &nrdn, NULL );
 		free( ce2->ce_entry->e_name.bv_val );
 		free( ce2->ce_entry->e_nname.bv_val );
-		build_new_dn( &ce2->ce_entry->e_name, &ce->ce_entry->e_name,
-			&rdn, NULL );
-		build_new_dn( &ce2->ce_entry->e_nname, &ce->ce_entry->e_nname,
-			&nrdn, NULL );
+		ce2->ce_entry->e_name = newdn;
+		ce2->ce_entry->e_nname = newndn;
 		config_rename_kids( ce2 );
 	}
 }
