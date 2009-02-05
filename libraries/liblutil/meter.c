@@ -245,7 +245,7 @@ text_update (
 	{
 		/* spinner */
 		static const int phase_mod = 8;
-		static const char phase_char[] = "_.oO*^'^*Oo.";
+		static const char phase_char[] = "_.-*\"*-.";
 		*buf++ = phase_char[data->phase % phase_mod];
 		data->phase++;
 	}
