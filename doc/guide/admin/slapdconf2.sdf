@@ -178,8 +178,8 @@ or consult the table below. The possible values for <level> are:
 	title="Table 5.1: Debugging Levels"
 Level	Keyword		Description
 -1	any		enable all debugging
-0	(0x0 no)	debugging
-1	(0x1 trace)	trace function calls
+0			no debugging
+1	(0x1 trace)	trace function callss
 2	(0x2 packets)	debug packet handling
 4	(0x4 args)	heavy trace debugging
 8	(0x8 conns)	connection management
