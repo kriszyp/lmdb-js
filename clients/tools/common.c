@@ -1287,6 +1287,7 @@ dnssrv_free:;
 			exit( EXIT_FAILURE );
 		}
 
+#ifdef HAVE_CYRUS_SASL
 		/* canon */
 		if( ldap_set_option( ld, LDAP_OPT_X_SASL_NOCANON,
 			nocanon ? LDAP_OPT_ON : LDAP_OPT_OFF ) != LDAP_OPT_SUCCESS )
@@ -1295,6 +1296,7 @@ dnssrv_free:;
 				nocanon ? "on" : "off" );
 			exit( EXIT_FAILURE );
 		}
+#endif
 		if( ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, &protocol )
 			!= LDAP_OPT_SUCCESS )
 		{
