@@ -80,35 +80,38 @@ debugging levels are
 
 !block table; colaligns="RL"; align=Center; \
 	title="Table 7.1: Debugging Levels"
-Level	Keyword	Description
--1	Any	enable all debugging
-0		no debugging
-1	Trace	trace function calls
-2	Packets	debug packet handling
-4	Args	heavy trace debugging
-8	Conns	connection management
-16	BER	print out packets sent and received
-32	Filter	search filter processing
-64	Config	configuration processing
-128	ACL	access control list processing
-256	Stats	stats log connections/operations/results
-512	Stats2	stats log entries sent
-1024	Shell	print communication with shell backends
-2048	Parse	print entry parsing debugging
-4096	Cache	database cache processing
-8192	Index	database indexing
-16384	Sync	syncrepl consumer processing
-32768	None	only messages that get logged whatever log level is set
+Level	Keyword		Description
+-1	any		enable all debugging
+0	(0x0 no)	debugging
+1	(0x1 trace)	trace function calls
+2	(0x2 packets)	debug packet handling
+4	(0x4 args)	heavy trace debugging
+8	(0x8 conns)	connection management
+16	(0x10 BER)	print out packets sent and received
+32	(0x20 filter)	search filter processing
+64	(0x40 config)	configuration processing
+128	(0x80 ACL)	access control list processing
+256	(0x100 stats)	stats log connections/operations/results
+512	(0x200 stats2)	stats log entries sent
+1024	(0x400 shell)	print communication with shell backends
+2048	(0x800 parse)	print entry parsing debugging
+16384	(0x4000 sync)	syncrepl consumer processing
+32768	(0x8000 none)	only messages that get logged whatever log level is set
 !endblock
 
-Log levels may be specified as integers or by keyword. You may enable multiple
-levels by specifying the debug option once for each desired level.  Or, since
-debugging levels are additive, you can do the math yourself. That is, if you
-want to trace function calls and watch the config file being
-processed, you could set level to the sum of those two levels
-(in this case, {{EX: -d 65}}).  Or, you can let slapd do the
-math, (e.g. {{EX: -d 1 -d 64}}).  Consult {{F: <ldap_log.h>}} for
-more details.
+The desired log level can be input as a single integer that
+combines the (ORed) desired levels, both in decimal or in hexadecimal 
+notation, as a list of integers (that are ORed internally), or as a list of the names that are shown between brackets, such that
+
+>		loglevel 129
+>		loglevel 0x81
+>		loglevel 128 1
+>		loglevel 0x80 0x1
+>		loglevel acl trace
+
+are equivalent.
+
+You may enable multiple levels by specifying the debug option once for each desired level.  Or, since debugging levels are additive, you can do the math yourself. That is, if you want to trace function calls and watch the config file being processed, you could set level to the sum of those two levels (in this case, {{EX: -d 65}}).  Or, you can let slapd do the math, (e.g. {{EX: -d 1 -d 64}}).  Consult {{F: <ldap_log.h>}} for more details.
 
 Note: slapd must have been compiled with {{EX:--enable-debug}}
 defined for any debugging information beyond the two stats levels
