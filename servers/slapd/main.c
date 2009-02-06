@@ -792,7 +792,7 @@ unhandled_option:;
 		}
 	}
 
-	if ( glue_sub_attach( ) != 0 ) {
+	if ( glue_sub_attach( 0 ) != 0 ) {
 		Debug( LDAP_DEBUG_ANY,
 		    "subordinate config error\n",
 		    0, 0, 0 );

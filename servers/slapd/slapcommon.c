@@ -564,7 +564,7 @@ slap_tool_init(
 	}
 
 	if ( use_glue ) {
-		rc = glue_sub_attach();
+		rc = glue_sub_attach( 0 );
 
 		if ( rc != 0 ) {
 			fprintf( stderr,

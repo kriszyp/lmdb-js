@@ -942,6 +942,15 @@ glue_tool_sync (
 	return 0;
 }
 
+typedef struct glue_Addrec {
+	struct glue_Addrec *ga_next;
+	BackendDB *ga_be;
+} glue_Addrec;
+
+/* List of added subordinates */
+static glue_Addrec *ga_list;
+static int ga_adding;
+
 static int
 glue_db_init(
 	BackendDB *be,
@@ -993,6 +1002,9 @@ glue_db_init(
 		oi->oi_bi.bi_tool_sync = glue_tool_sync;
 
 	SLAP_DBFLAGS( be ) |= SLAP_DBFLAG_GLUE_INSTANCE;
+
+	if ( ga_list )
+		glue_sub_attach( 1 );
 
 	return 0;
 }
@@ -1068,20 +1080,18 @@ glue_sub_del( BackendDB *b0 )
 	return rc;
 }
 
-typedef struct glue_Addrec {
-	struct glue_Addrec *ga_next;
-	BackendDB *ga_be;
-} glue_Addrec;
-
-/* List of added subordinates */
-static glue_Addrec *ga_list;
 
 /* Attach all the subordinate backends to their superior */
 int
-glue_sub_attach()
+glue_sub_attach( int online )
 {
 	glue_Addrec *ga, *gnext = NULL;
 	int rc = 0;
+
+	if ( ga_adding )
+		return 0;
+
+	ga_adding = 1;
 
 	/* For all the subordinate backends */
 	for ( ga=ga_list; ga != NULL; ga = gnext ) {
@@ -1122,11 +1132,20 @@ glue_sub_attach()
 				&gi->gi_n[gi->gi_nodes].gn_pdn );
 			gi->gi_nodes++;
 			on->on_bi.bi_private = gi;
+			ga->ga_be->be_flags |= SLAP_DBFLAG_GLUE_LINKED;
 			break;
 		}
 		if ( !be ) {
 			Debug( LDAP_DEBUG_ANY, "glue: no superior found for sub %s!\n",
 				ga->ga_be->be_suffix[0].bv_val, 0, 0 );
+			/* allow this for now, assume a superior will
+			 * be added later
+			 */
+			if ( online ) {
+				rc = 0;
+				gnext = ga_list;
+				break;
+			}
 			rc = LDAP_NO_SUCH_OBJECT;
 		}
 		ch_free( ga );
@@ -1134,6 +1153,8 @@ glue_sub_attach()
 	}
 
 	ga_list = gnext;
+
+	ga_adding = 0;
 
 	return rc;
 }
@@ -1160,7 +1181,7 @@ glue_sub_add( BackendDB *be, int advert, int online )
 	ga_list = ga;
 
 	if ( online )
-		rc = glue_sub_attach();
+		rc = glue_sub_attach( online );
 
 	return rc;
 }
