@@ -176,40 +176,60 @@ or consult the table below. The possible values for <level> are:
 
 !block table; colaligns="RL"; align=Center; \
 	title="Table 5.1: Debugging Levels"
-Level	Keyword	Description
--1	Any	enable all debugging
-0		no debugging
-1	Trace	trace function calls
-2	Packets	debug packet handling
-4	Args	heavy trace debugging
-8	Conns	connection management
-16	BER	print out packets sent and received
-32	Filter	search filter processing
-64	Config	configuration processing
-128	ACL	access control list processing
-256	Stats	stats log connections/operations/results
-512	Stats2	stats log entries sent
-1024	Shell	print communication with shell backends
-2048	Parse	print entry parsing debugging
-4096	Cache	database cache processing
-8192	Index	database indexing
-16384	Sync	syncrepl consumer processing
+Level	Keyword		Description
+-1	any		enable all debugging
+0			no debugging
+1	(0x1 trace)	trace function callss
+2	(0x2 packets)	debug packet handling
+4	(0x4 args)	heavy trace debugging
+8	(0x8 conns)	connection management
+16	(0x10 BER)	print out packets sent and received
+32	(0x20 filter)	search filter processing
+64	(0x40 config)	configuration processing
+128	(0x80 ACL)	access control list processing
+256	(0x100 stats)	stats log connections/operations/results
+512	(0x200 stats2)	stats log entries sent
+1024	(0x400 shell)	print communication with shell backends
+2048	(0x800 parse)	print entry parsing debugging
+16384	(0x4000 sync)	syncrepl consumer processing
+32768	(0x8000 none)	only messages that get logged whatever log level is set
 !endblock
 
-\Example:
+The desired log level can be input as a single integer that
+combines the (ORed) desired levels, both in decimal or in hexadecimal 
+notation, as a list of integers (that are ORed internally), or as a list of the names that are shown between brackets, such that
 
-E: olcLogLevel: -1
+>		olcLogLevel 129
+>		olcLogLevel 0x81
+>		olcLogLevel 128 1
+>		olcLogLevel 0x80 0x1
+>		olcLogLevel acl trace
+
+are equivalent.
+
+\Examples:
+
+E: olcLogLevel -1
 
 This will cause lots and lots of debugging information to be
 logged.
 
-E: olcLogLevel: Conns Filter
+E: olcLogLevel conns filter
 
 Just log the connection and search filter processing.
 
+E: olcLogLevel none
+
+Log those messages that are logged regardless of the configured loglevel. This
+differs from setting the log level to 0, when no logging occurs. At least the
+{{EX:None}} level is required to have high priority messages logged.
+
 \Default:
 
-E: olcLogLevel: Stats
+E: olcLogLevel stats
+
+Basic stats logging is configured by default. However, if no olcLogLevel is
+defined, no logging occurs (equivalent to a 0 level).
 
 
 H4: olcReferral <URI>
