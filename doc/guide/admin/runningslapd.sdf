@@ -99,18 +99,6 @@ Level	Keyword		Description
 32768	(0x8000 none)	only messages that get logged whatever log level is set
 !endblock
 
-The desired log level can be input as a single integer that
-combines the (ORed) desired levels, both in decimal or in hexadecimal 
-notation, as a list of integers (that are ORed internally), or as a list of the names that are shown between brackets, such that
-
->		loglevel 129
->		loglevel 0x81
->		loglevel 128 1
->		loglevel 0x80 0x1
->		loglevel acl trace
-
-are equivalent.
-
 You may enable multiple levels by specifying the debug option once for each desired level.  Or, since debugging levels are additive, you can do the math yourself. That is, if you want to trace function calls and watch the config file being processed, you could set level to the sum of those two levels (in this case, {{EX: -d 65}}).  Or, you can let slapd do the math, (e.g. {{EX: -d 1 -d 64}}).  Consult {{F: <ldap_log.h>}} for more details.
 
 Note: slapd must have been compiled with {{EX:--enable-debug}}
