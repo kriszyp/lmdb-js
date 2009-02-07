@@ -1830,7 +1830,7 @@ meta_send_entry(
 		}
 		attr = attr_alloc( NULL );
 		if ( attr == NULL ) {
-			continue;
+			return LDAP_OTHER;
 		}
 		if ( slap_bv2ad( &mapped, &attr->a_desc, &text )
 				!= LDAP_SUCCESS) {
@@ -1846,6 +1846,7 @@ meta_send_entry(
 					mapped.bv_val, text );
 
 				Debug( LDAP_DEBUG_ANY, "%s", buf, 0, 0 );
+				( void )ber_scanf( &ber, "x" /* [W] */ );
 				attr_free( attr );
 				continue;
 			}
@@ -1868,7 +1869,6 @@ meta_send_entry(
 			 * present...
 			 */
 			( void )ber_scanf( &ber, "x" /* [W] */ );
-
 			attr_free(attr);
 			continue;
 		}
