@@ -74,6 +74,8 @@ static oid_name oids[] = {
 	{ BER_BVNULL, BER_BVNULL }
 };
 
+#ifdef HAVE_TLS
+
 void
 ldap_pvt_tls_ctx_free ( void *c )
 {
@@ -848,13 +850,10 @@ ldap_int_tls_start ( LDAP *ld, LDAPConn *conn, LDAPURLDesc *srv )
 void *
 ldap_pvt_tls_sb_ctx( Sockbuf *sb )
 {
-#ifdef HAVE_TLS
 	void			*p = NULL;
 	
 	ber_sockbuf_ctrl( sb, LBER_SB_OPT_GET_SSL, (void *)&p );
 	return p;
-#endif
-	return NULL;
 }
 
 int
@@ -865,11 +864,9 @@ ldap_pvt_tls_get_strength( void *s )
 	return tls_imp->ti_session_strength( session );
 }
 
-
 int
 ldap_pvt_tls_get_my_dn( void *s, struct berval *dn, LDAPDN_rewrite_dummy *func, unsigned flags )
 {
-#ifdef HAVE_TLS
 	tls_session *session = s;
 	struct berval der_dn;
 	int rc;
@@ -877,10 +874,8 @@ ldap_pvt_tls_get_my_dn( void *s, struct berval *dn, LDAPDN_rewrite_dummy *func, 
 	tls_imp->ti_session_my_dn( session, &der_dn );
 	rc = ldap_X509dn2bv(&der_dn, dn, (LDAPDN_rewrite_func *)func, flags );
 	return rc;
-#else /* !HAVE_TLS */
-	return LDAP_NOT_SUPPORTED;
-#endif
 }
+#endif /* HAVE_TLS */
 
 int
 ldap_start_tls( LDAP *ld,
