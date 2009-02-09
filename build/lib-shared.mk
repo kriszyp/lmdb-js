@@ -25,14 +25,6 @@ MKDEPFLAG = -l
 
 $(LIBRARY): version.lo
 	$(LTLINK_LIB) -o $@ $(OBJS) version.lo $(LINK_LIBS)
-	@if test "$(BUILD_LIBS_DYNAMIC)" = shared; then \
-		DIR=`$(PWD)`; DIR=`$(BASENAME) $$DIR`; \
-		dlname=`grep '^dlname=' $@`; \
-		eval $$dlname; \
-		echo "$(RM) ../$$dlname; ln -s $$DIR/.libs/$$dlname .."; \
-		$(RM) ../$$dlname; $(LN_S) $$DIR/.libs/$$dlname .; \
-		mv $$dlname ..; \
-	fi
 
 Makefile: $(top_srcdir)/build/lib-shared.mk
 
