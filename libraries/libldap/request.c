@@ -452,9 +452,9 @@ ldap_new_connection( LDAP *ld, LDAPURLDesc **srvlist, int use_ldsb,
 	ldap_pvt_thread_mutex_unlock( &ld->ld_conn_mutex );
 #endif
 
-	if ( lc->lconn_server->lud_exts ) {
+	if ( connect ) {
 #ifdef HAVE_TLS
-		if ( connect ) {
+		if ( lc->lconn_server->lud_exts ) {
 			int rc, ext = find_tls_ext( lc->lconn_server );
 			if ( ext ) {
 				LDAPConn	*savedefconn;
@@ -480,7 +480,6 @@ ldap_new_connection( LDAP *ld, LDAPURLDesc **srvlist, int use_ldsb,
 					return NULL;
 				}
 			}
-			
 		}
 #endif
 	}
