@@ -39,6 +39,7 @@ OpenLDAP 2.4.14 Engineering
 	Fixed slapd-ldap idassert-bind validity checking (ITS#5863)
 	Fixed slapd-ldap/meta RFC4525 increment support (ITS#5912)
 	Fixed slapd-ldap/meta search dereferencing (ITS#5916)
+	Fixed slapd-ldap/meta with intermediate response (ITS#5931)
 	Fixed slapd-ldif numerous bugs (ITS#5408)
 	Fixed slapd-ldif rename on same DN (ITS#5319)
 	Fixed slapd-ldif deadlock (ITS#5329)

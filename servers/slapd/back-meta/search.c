@@ -1411,6 +1411,16 @@ really_bad:;
 					 */
 					assert( ncandidates > 0 );
 					--ncandidates;
+
+				} else if ( rc == LDAP_RES_INTERMEDIATE ) {
+					/* TODO: ITS#5931 */
+
+					/* ignore right now */
+					Debug( LDAP_DEBUG_ANY,
+						"%s meta_back_search[%ld]: "
+						"intermediate response message not supported yet.\n",
+						op->o_log_prefix,
+						i, 0 );
 	
 				} else if ( rc == LDAP_RES_BIND ) {
 					meta_search_candidate_t	retcode;
@@ -1450,7 +1460,12 @@ really_bad:;
 					}
 	
 				} else {
-					assert( 0 );
+					Debug( LDAP_DEBUG_ANY,
+						"%s meta_back_search[%ld]: "
+						"unrecognized response message tag=%d\n",
+						op->o_log_prefix,
+						i, rc );
+				
 					ldap_msgfree( res );
 					res = NULL;
 					goto really_bad;
