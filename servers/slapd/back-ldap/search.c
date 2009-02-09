@@ -423,6 +423,12 @@ retry:
 				rs->sr_ctrls = NULL;
 			}
 
+		} else if ( rc == LDAP_RES_INTERMEDIATE ) {
+			Debug( LDAP_DEBUG_ANY,
+				"%s ldap_back_search: "
+				"intermediate response not supported yet.\n",
+				op->o_log_prefix, 0, 0 );
+
 		} else {
 			char		*err = NULL;
 
