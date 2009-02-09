@@ -41,7 +41,7 @@ clean-common: 	FORCE
 	$(RM) $(LIBRARY) ../$(LIBRARY) $(XLIBRARY) \
 		$(PROGRAMS) $(XPROGRAMS) $(XSRCS) $(XXSRCS) \
 		*.o *.lo a.out *.exe core version.c .libs/* \
-		../`$(BASENAME) $(LIBRARY) .la`.so* \
+		../`$(BASENAME) $(LIBRARY) .la`*.so* \
 		../`$(BASENAME) $(LIBRARY) .la`*.dll
 
 depend-common: FORCE
