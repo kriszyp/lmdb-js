@@ -7,6 +7,7 @@ OpenLDAP 2.4.14 Engineering
 	Added libldap GnuTLS setting random file (ITS#5462)
 	Added libldap alias dereferencing in C API (ITS#5916)
 	Fixed libldap deref handling (ITS#5768)
+	Fixed libldap NULL pointer deref (ITS#5934)
 	Fixed libldap peer cert memory leak (ITS#5849)
 	Fixed libldap interaction with GnuTLS CN IP-based matches (ITS#5789)
 	Fixed libldap intermediate response behavior (ITS#5896)
