@@ -147,6 +147,10 @@ tester_ignore_str2err( const char *err )
 	if ( err[ 0 ] == '!' ) {
 		ignore = 0;
 		err++;
+
+	} else if ( err[ 0 ] == '*' ) {
+		ignore = -1;
+		err++;
 	}
 
 	for ( i = 0; ignore_str2err[ i ].name != NULL; i++ ) {
@@ -191,16 +195,22 @@ tester_ignore_err( int err )
 	if ( err > 0 ) {
 		if ( err < TESTER_SERVER_LAST ) {
 			rc = ignore_server[ err ];
-			if ( rc ) {
+			if ( rc > 0 ) {
 				ignore_server[ err ]++;
+
+			} else if ( rc < 0 ) {
+				ignore_server[ err ]--;
 			}
 		}
 
 	} else if ( err < 0 ) {
 		if ( -err < TESTER_CLIENT_LAST ) {
 			rc = ignore_client[ -err ];
-			if ( rc ) {
+			if ( rc > 0 ) {
 				ignore_client[ -err ]++;
+
+			} else if ( rc < 0 ) {
+				ignore_server[ err ]--;
 			}
 		}
 	}

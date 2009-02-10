@@ -397,7 +397,7 @@ retry:;
 			/* if ignore.. */
 			if ( first ) {
 				/* only log if first occurrence */
-				if ( force < 2 || first == 1 ) {
+				if ( ( force < 2 && first > 0 ) || abs(first) == 1 ) {
 					tester_ldap_error( ld, buf, NULL );
 				}
 				continue;

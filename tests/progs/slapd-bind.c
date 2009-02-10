@@ -348,7 +348,7 @@ do_bind( char *uri, char *dn, struct berval *pass, int maxloop,
 			/* if ignore.. */
 			if ( first ) {
 				/* only log if first occurrence */
-				if ( first == 1 ) {
+				if ( ( force < 2 && first > 0 ) || abs(first) == 1 ) {
 					tester_ldap_error( ld, "ldap_sasl_bind_s", NULL );
 				}
 				rc = LDAP_SUCCESS;
