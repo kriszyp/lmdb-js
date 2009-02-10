@@ -249,13 +249,17 @@ main( int argc, char **argv )
 	uri = tester_uri( uri, host, port );
 
 	for ( i = 0; i < outerloops; i++ ) {
+		int rc;
+
 		if ( base != NULL ) {
-			do_base( uri, dn, &pass, base, filter, pwattr, loops,
+			rc = do_base( uri, dn, &pass, base, filter, pwattr, loops,
 				force, chaserefs, noinit, delay, -1, NULL );
 		} else {
-			do_bind( uri, dn, &pass, loops,
+			rc = do_bind( uri, dn, &pass, loops,
 				force, chaserefs, noinit, NULL, -1, NULL );
 		}
+		if ( rc == LDAP_SERVER_DOWN )
+			break;
 	}
 
 	exit( EXIT_SUCCESS );
@@ -344,7 +348,7 @@ do_bind( char *uri, char *dn, struct berval *pass, int maxloop,
 			/* if ignore.. */
 			if ( first ) {
 				/* only log if first occurrence */
-				if ( force < 2 || first == 1 ) {
+				if ( first == 1 ) {
 					tester_ldap_error( ld, "ldap_sasl_bind_s", NULL );
 				}
 				rc = LDAP_SUCCESS;
