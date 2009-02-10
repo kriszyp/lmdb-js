@@ -2887,7 +2887,7 @@ struct Connection {
 #define Statslog( level, fmt, connid, opid, arg1, arg2, arg3 )	\
 	do { \
 		if ( ldap_debug & (level) ) \
-			fprintf( stderr, (fmt), (connid), (opid), (arg1), (arg2), (arg3) );\
+			lutil_debug( ldap_debug, (level), (fmt), (connid), (opid), (arg1), (arg2), (arg3) );\
 	} while (0)
 #define StatslogTest( level ) (ldap_debug & (level))
 #endif /* !LDAP_SYSLOG */
