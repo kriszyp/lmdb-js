@@ -1212,6 +1212,46 @@ really_bad:;
 						rs->sr_ctrls = NULL;
 					}
 
+				} else if ( rc == LDAP_RES_INTERMEDIATE ) {
+					if ( candidates[ i ].sr_type == REP_INTERMEDIATE ) {
+						/* don't retry any more... */
+						candidates[ i ].sr_type = REP_RESULT;
+					}
+	
+					candidates[ i ].sr_msgid = META_MSGID_IGNORE;
+
+					/* FIXME: response controls
+					 * are passed without checks */
+					rs->sr_err = ldap_parse_intermediate( msc->msc_ld,
+						msg,
+						&rs->sr_rspoid,
+						&rs->sr_rspdata,
+						&rs->sr_ctrls,
+						0 );
+					if ( rs->sr_err != LDAP_SUCCESS ) {
+						candidates[ i ].sr_type = REP_RESULT;
+						ldap_msgfree( res );
+						res = NULL;
+						goto really_bad;
+					}
+
+					slap_send_ldap_intermediate( op, rs );
+
+					if ( rs->sr_rspoid != NULL ) {
+						ber_memfree( rs->sr_rspoid );
+						rs->sr_rspoid = NULL;
+					}
+
+					if ( rs->sr_rspdata != NULL ) {
+						ber_bvfree( rs->sr_rspdata );
+						rs->sr_rspdata = NULL;
+					}
+
+					if ( rs->sr_ctrls != NULL ) {
+						ldap_controls_free( rs->sr_ctrls );
+						rs->sr_ctrls = NULL;
+					}
+
 				} else if ( rc == LDAP_RES_SEARCH_RESULT ) {
 					char		buf[ SLAP_TEXT_BUFLEN ];
 					char		**references = NULL;
@@ -1412,16 +1452,6 @@ really_bad:;
 					assert( ncandidates > 0 );
 					--ncandidates;
 
-				} else if ( rc == LDAP_RES_INTERMEDIATE ) {
-					/* TODO: ITS#5931 */
-
-					/* ignore right now */
-					Debug( LDAP_DEBUG_ANY,
-						"%s meta_back_search[%ld]: "
-						"intermediate response message not supported yet.\n",
-						op->o_log_prefix,
-						i, 0 );
-	
 				} else if ( rc == LDAP_RES_BIND ) {
 					meta_search_candidate_t	retcode;
 	
@@ -1780,9 +1810,19 @@ meta_send_entry(
 				dn = BER_BVNULL;
 	const char 		*text;
 	dncookie		dc;
+	ber_len_t		len;
+	ber_tag_t		tag;
 	int			rc;
 
-	if ( ber_scanf( &ber, "{m{", &bdn ) == LBER_ERROR ) {
+	if ( ber_scanf( &ber, "l{", &len ) == LBER_ERROR ) {
+		return LDAP_DECODING_ERROR;
+	}
+
+	if ( ber_set_option( &ber, LBER_OPT_REMAINING_BYTES, &len ) != LBER_OPT_SUCCESS ) {
+		return LDAP_OTHER;
+	}
+
+	if ( ber_scanf( &ber, "m{", &bdn ) == LBER_ERROR ) {
 		return LDAP_DECODING_ERROR;
 	}
 
@@ -1814,7 +1854,12 @@ meta_send_entry(
 	BER_BVZERO( &dn );
 
 	if ( rc != LDAP_SUCCESS ) {
-		return LDAP_INVALID_DN_SYNTAX;
+		Debug( LDAP_DEBUG_ANY,
+			"%s meta_send_entry(\"%s\"): "
+			"invalid DN syntax\n",
+			op->o_log_prefix, ent.e_name.bv_val, 0 );
+		rc = LDAP_INVALID_DN_SYNTAX;
+		goto done;
 	}
 
 	/*
@@ -1833,6 +1878,20 @@ meta_send_entry(
 		slap_syntax_validate_func	*validate;
 		slap_syntax_transform_func	*pretty;
 
+		if ( ber_pvt_ber_remaining( &ber ) < 0 ) {
+			Debug( LDAP_DEBUG_ANY,
+				"%s meta_send_entry(\"%s\"): "
+				"unable to parse attr \"%s\".\n",
+				op->o_log_prefix, ent.e_name.bv_val, a.bv_val );
+				
+			rc = LDAP_OTHER;
+			goto done;
+		}
+
+		if ( ber_pvt_ber_remaining( &ber ) == 0 ) {
+			break;
+		}
+
 		ldap_back_map( &mi->mi_targets[ target ]->mt_rwmap.rwm_at, 
 				&a, &mapped, BACKLDAP_REMAP );
 		if ( BER_BVISNULL( &mapped ) || mapped.bv_val[0] == '\0' ) {
@@ -1845,7 +1904,8 @@ meta_send_entry(
 		}
 		attr = attr_alloc( NULL );
 		if ( attr == NULL ) {
-			return LDAP_OTHER;
+			rc = LDAP_OTHER;
+			goto done;
 		}
 		if ( slap_bv2ad( &mapped, &attr->a_desc, &text )
 				!= LDAP_SUCCESS) {
@@ -2097,6 +2157,8 @@ next_attr:;
 		rc = LDAP_OTHER;
 		break;
 	}
+
+done:;
 	rs->sr_entry = NULL;
 	rs->sr_attrs = NULL;
 	if ( rs->sr_ctrls != NULL ) {
