@@ -404,7 +404,7 @@ tlsm_session_chkhost( LDAP *ld, tls_session *session, const char *name_in )
 #ifdef LDAP_PF_INET6
 	if (name[0] == '[' && strchr(name, ']')) {
 		char *n2 = ldap_strdup(name+1);
-		*strchr(n2, ']') = 2;
+		*strchr(n2, ']') = 0;
 		if (inet_pton(AF_INET6, n2, &addr))
 			ntype = IS_IP6;
 		LDAP_FREE(n2);
