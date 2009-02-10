@@ -195,8 +195,8 @@ $MONITORDATA "$MONITORDB" "$TESTDIR/$DATADIR" "$TESTDIR"
 
 echo "Using tester for concurrent server access..."
 $SLAPDTESTER -P "$PROGDIR" -d "$TESTDIR" -h $LOCALHOST -p $PORT3 \
-	-D "cn=Manager,$METABASEDN" -w $PASSWD -l $TESTLOOPS -r 20 -FF \
-	-i '!REFERRAL'
+	-D "cn=Manager,$METABASEDN" -w $PASSWD -l $TESTLOOPS -r 20 \
+	-i '!REFERRAL' -i '*INVALID_CREDENTIALS'
 RC=$?
 
 if test $RC != 0 ; then
