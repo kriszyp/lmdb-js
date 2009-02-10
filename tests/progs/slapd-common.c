@@ -40,8 +40,8 @@ tester_t progtype;
 
 #define	TESTER_SERVER_LAST	(LDAP_OTHER + 1)
 #define TESTER_CLIENT_LAST	(- LDAP_REFERRAL_LIMIT_EXCEEDED + 1)
-static unsigned ignore_server[ TESTER_SERVER_LAST ];
-static unsigned ignore_client[ TESTER_CLIENT_LAST ];
+static int ignore_server[ TESTER_SERVER_LAST ];
+static int ignore_client[ TESTER_CLIENT_LAST ];
 
 static struct {
 	char	*name;
@@ -126,8 +126,7 @@ static struct {
 static int
 tester_ignore_str2err( const char *err )
 {
-	int		i;
-	unsigned	ignore = 1;
+	int		i, ignore = 1;
 
 	if ( strcmp( err, "ALL" ) == 0 ) {
 		for ( i = 0; ignore_str2err[ i ].name != NULL; i++ ) {
@@ -187,10 +186,10 @@ tester_ignore_str2errlist( const char *err )
 	return 0;
 }
 
-unsigned
+int
 tester_ignore_err( int err )
 {
-	unsigned	rc = 1;
+	int rc = 1;
 
 	if ( err > 0 ) {
 		if ( err < TESTER_SERVER_LAST ) {

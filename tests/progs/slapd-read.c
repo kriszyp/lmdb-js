@@ -389,7 +389,7 @@ retry:;
 		}
 
 		if ( rc ) {
-			unsigned	first = tester_ignore_err( rc );
+			int		first = tester_ignore_err( rc );
 			char		buf[ BUFSIZ ];
 
 			snprintf( buf, sizeof( buf ), "ldap_search_ext_s(%s)", entry );

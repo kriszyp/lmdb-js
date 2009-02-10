@@ -343,7 +343,7 @@ do_bind( char *uri, char *dn, struct berval *pass, int maxloop,
 
 		rc = ldap_sasl_bind_s( ld, dn, LDAP_SASL_SIMPLE, pass, NULL, NULL, NULL );
 		if ( rc ) {
-			unsigned first = tester_ignore_err( rc );
+			int first = tester_ignore_err( rc );
 
 			/* if ignore.. */
 			if ( first ) {

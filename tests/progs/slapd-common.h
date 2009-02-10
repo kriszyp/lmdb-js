@@ -37,7 +37,7 @@ extern void tester_error( const char *msg );
 extern void tester_perror( const char *fname, const char *msg );
 extern void tester_ldap_error( LDAP *ld, const char *fname, const char *msg );
 extern int tester_ignore_str2errlist( const char *err );
-extern unsigned tester_ignore_err( int err );
+extern int tester_ignore_err( int err );
 
 extern pid_t		pid;
 

@@ -443,7 +443,7 @@ retry:;
 		}
 
 		if ( rc ) {
-			unsigned first = tester_ignore_err( rc );
+			int first = tester_ignore_err( rc );
 			/* if ignore.. */
 			if ( first ) {
 				/* only log if first occurrence */
