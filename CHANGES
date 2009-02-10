@@ -65,6 +65,7 @@ OpenLDAP 2.4.14 Engineering
 	Added contrib/passwd sha2 support (ITS#5660)
 	Build Environment
 		Fixed test006 appending to log file (ITS#5910)
+		Fixed test036,test039 behavior on error (ITS#5893)
 		Fixed test048 sed pathname substitution (ITS#5910)
 		Fixed test049,test050 to work on windows (ITS#5842)
 		Updated test017,test018,test019 to cover more cases (ITS#5883)
