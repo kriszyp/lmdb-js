@@ -1218,8 +1218,6 @@ really_bad:;
 						candidates[ i ].sr_type = REP_RESULT;
 					}
 	
-					candidates[ i ].sr_msgid = META_MSGID_IGNORE;
-
 					/* FIXME: response controls
 					 * are passed without checks */
 					rs->sr_err = ldap_parse_intermediate( msc->msc_ld,
