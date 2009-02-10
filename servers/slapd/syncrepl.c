@@ -1442,22 +1442,7 @@ reload:
 
 	/* Do final delete cleanup */
 	if ( !si->si_ctype ) {
-		cookie_state *cs = NULL;
-		syncinfo_t **sip;
-
-		cs = be->be_syncinfo->si_cookieState;
-		for ( sip = &be->be_syncinfo; *sip != si; sip = &(*sip)->si_next );
-		*sip = si->si_next;
 		syncinfo_free( si, 0 );
-		if ( !be->be_syncinfo ) {
-			SLAP_DBFLAGS( be ) &= ~(SLAP_DBFLAG_SHADOW|SLAP_DBFLAG_SYNC_SHADOW);
-			if ( cs ) {
-				ch_free( cs->cs_sids );
-				ber_bvarray_free( cs->cs_vals );
-				ldap_pvt_thread_mutex_destroy( &cs->cs_mutex );
-				ch_free( cs );
-			}
-		}
 	}
 	return NULL;
 }
@@ -4538,9 +4523,11 @@ syncrepl_config( ConfigArgs *c )
 					 * happen when running on the cn=config DB.
 					 */
 					if ( si->si_re ) {
-						ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
-						isrunning = ldap_pvt_runqueue_isrunning( &slapd_rq, si->si_re );
-						ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
+						if ( ldap_pvt_thread_mutex_trylock( &si->si_mutex )) {
+							isrunning = 1;
+						} else {
+							ldap_pvt_thread_mutex_unlock( &si->si_mutex );
+						}
 					}
 					if ( si->si_re && isrunning ) {
 						si->si_ctype = 0;
@@ -4557,6 +4544,7 @@ syncrepl_config( ConfigArgs *c )
 		if ( !c->be->be_syncinfo ) {
 			SLAP_DBFLAGS( c->be ) &= ~SLAP_DBFLAG_SHADOW_MASK;
 			if ( cs ) {
+				ch_free( cs->cs_sids );
 				ber_bvarray_free( cs->cs_vals );
 				ldap_pvt_thread_mutex_destroy( &cs->cs_mutex );
 				ch_free( cs );
