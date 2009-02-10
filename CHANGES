@@ -26,6 +26,7 @@ OpenLDAP 2.4.14 Engineering
 	Fixed slapd epoll handling (ITS#5886)
 	Fixed slapd frontend/backend options handling (ITS#5857)
 	Fixed slapd glue with MMR (ITS#5925)
+	Fixed slapd listener comparison (ITS#5631)
 	Fixed slapd manageDSAit with glue entries (ITS#5921)
 	Fixed slapd syncrepl rename handling (ITS#5809)
 	Fixed slapd syncrepl MMR when adding new server (ITS#5850)

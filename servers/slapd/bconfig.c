@@ -1783,20 +1783,28 @@ sortval_reject:
 				*sip = si;
 
 				if (( slapMode & SLAP_SERVER_MODE ) && c->argc > 2 ) {
+					Listener **l = slapd_get_listeners();
+					int i, isMe = 0;
+
+					/* Try a straight compare with Listener strings */
+					for ( i=0; l && l[i]; i++ ) {
+						if ( !strcasecmp( c->argv[2], l[i]->sl_url.bv_val )) {
+							isMe = 1;
+							break;
+						}
+					}
+
 					/* If hostname is empty, or is localhost, or matches
 					 * our hostname, this serverID refers to this host.
 					 * Compare it against listeners and ports.
 					 */
-					if ( !lud->lud_host || !lud->lud_host[0] ||
+					if ( !isMe && ( !lud->lud_host || !lud->lud_host[0] ||
 						!strncasecmp("localhost", lud->lud_host,
 							STRLENOF("localhost")) ||
-						!strcasecmp( global_host, lud->lud_host )) {
-						Listener **l = slapd_get_listeners();
-						int i;
+						!strcasecmp( global_host, lud->lud_host ))) {
 
 						for ( i=0; l && l[i]; i++ ) {
 							LDAPURLDesc *lu2;
-							int isMe = 0;
 							ldap_url_parse( l[i]->sl_url.bv_val, &lu2 );
 							do {
 								if ( strcasecmp( lud->lud_scheme,
@@ -1825,14 +1833,16 @@ sortval_reject:
 							} while(0);
 							ldap_free_urldesc( lu2 );
 							if ( isMe ) {
-								slap_serverID = si->si_num;
-								Debug( LDAP_DEBUG_CONFIG,
-									"%s: SID=%d (listener=%s)\n",
-									c->log, slap_serverID,
-									l[i]->sl_url.bv_val );
 								break;
 							}
 						}
+					}
+					if ( isMe ) {
+						slap_serverID = si->si_num;
+						Debug( LDAP_DEBUG_CONFIG,
+							"%s: SID=%d (listener=%s)\n",
+							c->log, slap_serverID,
+							l[i]->sl_url.bv_val );
 					}
 				}
 				if ( c->argc > 2 )
