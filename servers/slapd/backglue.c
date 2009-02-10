@@ -1003,8 +1003,10 @@ glue_db_init(
 
 	SLAP_DBFLAGS( be ) |= SLAP_DBFLAG_GLUE_INSTANCE;
 
-	if ( ga_list )
+	if ( ga_list ) {
+		be->bd_info = oi;
 		glue_sub_attach( 1 );
+	}
 
 	return 0;
 }
