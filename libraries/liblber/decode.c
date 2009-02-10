@@ -143,13 +143,12 @@ ber_skip_tag( BerElement *ber, ber_len_t *len )
 {
 	ber_tag_t	tag;
 	unsigned char	lc;
-	char		*save;
+	ber_len_t	i, noctets;
+	unsigned char netlen[sizeof(ber_len_t)];
 
 	assert( ber != NULL );
 	assert( len != NULL );
 	assert( LBER_VALID( ber ) );
-
-	save = ber->ber_ptr;
 
 	/*
 	 * Any ber element looks like this: tag length contents.
@@ -183,9 +182,6 @@ ber_skip_tag( BerElement *ber, ber_len_t *len )
 	}
 
 	if ( lc & 0x80U ) {
-		ber_len_t	i, noctets;
-		unsigned char netlen[sizeof(ber_len_t)];
-
 		noctets = (lc & 0x7fU);
 
 		if ( noctets > sizeof(ber_len_t) ) {
@@ -206,7 +202,7 @@ ber_skip_tag( BerElement *ber, ber_len_t *len )
 	}
 
 	/* BER element should have enough data left */
-	if( *len > (ber_len_t) (ber_pvt_ber_remaining( ber ) + ber->ber_ptr - save) ) {
+	if( *len > (ber_len_t) ber_pvt_ber_remaining( ber ) ) {
 		return LBER_DEFAULT;
 	}
 	ber->ber_tag = *(unsigned char *)ber->ber_ptr;
