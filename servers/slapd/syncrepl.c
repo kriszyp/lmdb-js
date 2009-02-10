@@ -1442,7 +1442,9 @@ reload:
 
 	/* Do final delete cleanup */
 	if ( !si->si_ctype ) {
-		syncinfo_free( si, 0 );
+		cookie_state *cs = si->si_cookieState;
+		syncinfo_free( si, ( !be->be_syncinfo ||
+			be->be_syncinfo->si_cookieState != cs ));
 	}
 	return NULL;
 }
@@ -4508,6 +4510,7 @@ syncrepl_config( ConfigArgs *c )
 		return 1;
 	} else if ( c->op == LDAP_MOD_DELETE ) {
 		cookie_state *cs = NULL;
+		int isrunning = 0;
 		if ( c->be->be_syncinfo ) {
 			syncinfo_t *si, **sip;
 			int i;
@@ -4516,7 +4519,6 @@ syncrepl_config( ConfigArgs *c )
 			for ( sip = &c->be->be_syncinfo, i=0; *sip; i++ ) {
 				si = *sip;
 				if ( c->valx == -1 || i == c->valx ) {
-					int isrunning = 0;
 					*sip = si->si_next;
 					/* If the task is currently active, we have to leave
 					 * it running. It will exit on its own. This will only
@@ -4531,6 +4533,7 @@ syncrepl_config( ConfigArgs *c )
 					}
 					if ( si->si_re && isrunning ) {
 						si->si_ctype = 0;
+						si->si_next = NULL;
 					} else {
 						syncinfo_free( si, 0 );
 					}
@@ -4543,7 +4546,7 @@ syncrepl_config( ConfigArgs *c )
 		}
 		if ( !c->be->be_syncinfo ) {
 			SLAP_DBFLAGS( c->be ) &= ~SLAP_DBFLAG_SHADOW_MASK;
-			if ( cs ) {
+			if ( cs && !isrunning ) {
 				ch_free( cs->cs_sids );
 				ber_bvarray_free( cs->cs_vals );
 				ldap_pvt_thread_mutex_destroy( &cs->cs_mutex );
