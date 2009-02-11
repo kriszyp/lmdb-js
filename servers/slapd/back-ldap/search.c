@@ -424,10 +424,34 @@ retry:
 			}
 
 		} else if ( rc == LDAP_RES_INTERMEDIATE ) {
-			Debug( LDAP_DEBUG_ANY,
-				"%s ldap_back_search: "
-				"intermediate response not supported yet.\n",
-				op->o_log_prefix, 0, 0 );
+			/* FIXME: response controls
+			 * are passed without checks */
+			rc = ldap_parse_intermediate( lc->lc_ld,
+				res,
+				&rs->sr_rspoid,
+				&rs->sr_rspdata,
+				&rs->sr_ctrls,
+				0 );
+			if ( rc != LDAP_SUCCESS ) {
+				continue;
+			}
+
+			slap_send_ldap_intermediate( op, rs );
+
+			if ( rs->sr_rspoid != NULL ) {
+				ber_memfree( rs->sr_rspoid );
+				rs->sr_rspoid = NULL;
+			}
+
+			if ( rs->sr_rspdata != NULL ) {
+				ber_bvfree( rs->sr_rspdata );
+				rs->sr_rspdata = NULL;
+			}
+
+			if ( rs->sr_ctrls != NULL ) {
+				ldap_controls_free( rs->sr_ctrls );
+				rs->sr_ctrls = NULL;
+			}
 
 		} else {
 			char		*err = NULL;
@@ -646,7 +670,7 @@ ldap_build_entry(
 
 		attr = attr_alloc( NULL );
 		if ( attr == NULL ) {
-			continue;
+			return LDAP_OTHER;
 		}
 		if ( slap_bv2ad( &a, &attr->a_desc, &text ) 
 				!= LDAP_SUCCESS )
@@ -658,6 +682,8 @@ ldap_build_entry(
 					"%s ldap_build_entry: "
 					"slap_bv2undef_ad(%s): %s\n",
 					op->o_log_prefix, a.bv_val, text );
+
+				( void )ber_scanf( &ber, "x" /* [W] */ );
 				attr_free( attr );
 				continue;
 			}
@@ -680,7 +706,6 @@ ldap_build_entry(
 			 * present...
 			 */
 			( void )ber_scanf( &ber, "x" /* [W] */ );
-
 			attr_free( attr );
 			continue;
 		}
