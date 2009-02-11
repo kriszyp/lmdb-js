@@ -47,7 +47,6 @@ nops_rm_mod( Modifications **mods, Modifications *mod ) {
 		}
 	}
 
-	for (m = *mods; m; m = m->sml_next)
 	mod->sml_next = NULL;
 	slap_mods_free(mod, 1);
 
@@ -139,7 +138,6 @@ nops_modify( Operation *op, SlapReply *rs )
 	if ((m = op->orm_modlist) == NULL) {
 		op->o_bd->bd_info = (BackendInfo *)(on->on_info);
 		send_ldap_error(op, rs, LDAP_SUCCESS, "");
-		return(rs->sr_err);
 		return (rs->sr_err);
 	}
 
