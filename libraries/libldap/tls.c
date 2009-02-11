@@ -1825,7 +1825,7 @@ ldap_pvt_tls_check_hostname( LDAP *ld, void *s, const char *name_in )
 #ifdef LDAP_PF_INET6
 	if (name[0] == '[' && strchr(name, ']')) {
 		char *n2 = ldap_strdup(name+1);
-		*strchr(n2, ']') = 2;
+		*strchr(n2, ']') = 0;
 		if (inet_pton(AF_INET6, n2, &addr))
 			ntype = IS_IP6;
 		LDAP_FREE(n2);
@@ -1901,12 +1901,14 @@ ldap_pvt_tls_check_hostname( LDAP *ld, void *s, const char *name_in )
 
 		} else {
 			ret = LDAP_LOCAL_ERROR;
+			/* HACK: See ITS#5789 */
 			if ( !len1 ) len1 = strlen( name );
 			if ( len1 == altnamesize && strncasecmp(name, altname, altnamesize) == 0 ) {
 				ret = LDAP_SUCCESS;
 
 			} else if (( altname[0] == '*' ) && ( altname[1] == '.' )) {
 					/* Is this a wildcard match? */
+					/* HACK: See ITS#3134, #5938, RFC4513. */
 				if( domain &&
 					(len2 == altnamesize-1) && !strncasecmp(domain, &altname[1], len2)) {
 					ret = LDAP_SUCCESS;
@@ -1969,7 +1971,7 @@ ldap_pvt_tls_check_hostname( LDAP *ld, void *s, const char *name_in )
 #ifdef LDAP_PF_INET6
 	if (name[0] == '[' && strchr(name, ']')) {
 		char *n2 = ldap_strdup(name+1);
-		*strchr(n2, ']') = 2;
+		*strchr(n2, ']') = 0;
 		if (inet_pton(AF_INET6, n2, &addr))
 			ntype = IS_IP6;
 		LDAP_FREE(n2);
@@ -2075,6 +2077,7 @@ ldap_pvt_tls_check_hostname( LDAP *ld, void *s, const char *name_in )
 
 		} else if (( buf[0] == '*' ) && ( buf[1] == '.' )) {
 			char *domain = strchr(name, '.');
+			/* HACK: See ITS#3134, #5938, RFC4513 */
 			if( domain ) {
 				size_t dlen = 0;
 				size_t sl;
