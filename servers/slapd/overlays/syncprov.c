@@ -1339,7 +1339,14 @@ syncprov_checkpoint( Operation *op, SlapReply *rs, slap_overinst *on )
 	SlapReply rsm = { 0 };
 	slap_callback cb = {0};
 	BackendDB be;
+#ifdef CHECK_CSN
+	Syntax *syn = slap_schema.si_ad_contextCSN->ad_type->sat_syntax;
 
+	int i;
+	for ( i=0; i<si->si_numcsns; i++ ) {
+		assert( !syn->ssyn_validate( syn, si->si_ctxcsn+i ));
+	}
+#endif
 	mod.sml_numvals = si->si_numcsns;
 	mod.sml_values = si->si_ctxcsn;
 	mod.sml_nvalues = NULL;
@@ -1367,6 +1374,11 @@ syncprov_checkpoint( Operation *op, SlapReply *rs, slap_overinst *on )
 	if ( mod.sml_next != NULL ) {
 		slap_mods_free( mod.sml_next, 1 );
 	}
+#ifdef CHECK_CSN
+	for ( i=0; i<si->si_numcsns; i++ ) {
+		assert( !syn->ssyn_validate( syn, si->si_ctxcsn+i ));
+	}
+#endif
 }
 
 static void
