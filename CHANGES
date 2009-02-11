@@ -51,6 +51,7 @@ OpenLDAP 2.4.14 Engineering
 	Fixed slapd-ldif deadlock (ITS#5329)
 	Fixed slapd-meta double response sending (ITS#5854)
 	Fixed slapd-meta alias deref for retry (ITS#5889)
+	Fixed slapd-sock descriptor leak (ITS#5939)
 	Fixed slapo-accesslog on glued dbs (ITS#5907)
 	Fixed slapo-dynlist handling of flags (ITS#5898)
 	Fixed slapo-memberof multiple instantiation (ITS#5903)

@@ -57,6 +57,7 @@ opensock(
 	if ( connect( fd, (struct sockaddr *)&sockun, sizeof(sockun) ) < 0 ) {
 		Debug( LDAP_DEBUG_ANY, "socket connect(%s) failed\n",
 			sockpath ? sockpath : "<null>", 0, 0 );
+		close( fd );
 		return( NULL );
 	}
 
