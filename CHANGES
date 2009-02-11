@@ -19,7 +19,7 @@ OpenLDAP 2.4.14 Engineering
 	Added slapd val.regex expansion (ITS#5804)
 	Added slapd TLS_PROTOCOL_MIN (ITS#5655)
 	Added slapd slapi_pw_find (ITS#2615,ITS#4359)
-	Fixed slapd ad compatibility with ranged values (ITS#5927)
+	Added slapd compatibility with MSAD ranged values (ITS#5927)
 	Fixed slapd bconfig to return error codes (ITS#5867)
 	Fixed slapd bconfig encoding incorrectly (ITS#5897)
 	Fixed slapd bconfig dangling pointers (ITS#5924)
