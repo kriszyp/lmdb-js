@@ -957,6 +957,9 @@ ldap_is_read_ready( LDAP *ld, Sockbuf *sb )
 
 	sip = (struct selectinfo *)ld->ld_selectinfo;
 
+	if (ber_sockbuf_ctrl( sb, LBER_SB_OPT_DATA_READY, NULL ))
+		return 1;
+
 	ber_sockbuf_ctrl( sb, LBER_SB_OPT_GET_FD, &sd );
 
 #ifdef HAVE_POLL
