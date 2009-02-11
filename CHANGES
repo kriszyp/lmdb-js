@@ -23,6 +23,7 @@ OpenLDAP 2.4.14 Engineering
 	Fixed slapd bconfig to return error codes (ITS#5867)
 	Fixed slapd bconfig encoding incorrectly (ITS#5897)
 	Fixed slapd bconfig dangling pointers (ITS#5924)
+	Fixed slapd behavior with superior objectClasses (ITS#5517)
 	Fixed slapd connection assert (ITS#5835)
 	Fixed slapd epoll handling (ITS#5886)
 	Fixed slapd frontend/backend options handling (ITS#5857)

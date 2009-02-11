@@ -99,7 +99,13 @@ modify_add_values(
 		 * server (whether from LDAP or from the underlying
 		 * database).
 		 */
-		flags = SLAP_MR_EQUALITY | SLAP_MR_VALUE_OF_ASSERTION_SYNTAX;
+		if ( a->a_desc == slap_schema.si_ad_objectClass ) {
+			/* Needed by ITS#5517 */
+			flags = SLAP_MR_EQUALITY | SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX;
+
+		} else {
+			flags = SLAP_MR_EQUALITY | SLAP_MR_VALUE_OF_ASSERTION_SYNTAX;
+		}
 		if ( mod->sm_nvalues ) {
 			flags |= SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH |
 				SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH;
