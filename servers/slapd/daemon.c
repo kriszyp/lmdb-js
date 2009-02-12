@@ -2545,7 +2545,7 @@ slapd_daemon_task(
 				} else if ( !w ) {
 					Debug( LDAP_DEBUG_CONNS,
 						"daemon: hangup on %d\n", fd, 0, 0 );
-					if (SLAP_SOCK_IS_ACTIVE( fd ) {
+					if ( SLAP_SOCK_IS_ACTIVE( fd )) {
 #ifdef HAVE_EPOLL
 						/* Don't keep reporting the hangup
 						 */
