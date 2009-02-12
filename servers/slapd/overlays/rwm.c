@@ -1948,6 +1948,53 @@ slap_rewrite_unparse( BerVarray in, BerVarray *out )
 }
 
 static int
+rwm_bva_rewrite_add(
+	struct ldaprwmap	*rwmap,
+	const char		*argv[] )
+{
+	char		*line;
+	struct berval	bv;
+
+	line = ldap_charray2str( argv, "\" \"" );
+	if ( line != NULL ) {
+		int	len = strlen( argv[ 0 ] );
+
+		ber_str2bv( line, 0, 0, &bv );
+		AC_MEMCPY( &bv.bv_val[ len ], &bv.bv_val[ len + 1 ],
+			bv.bv_len - ( len + 1 ) );
+		bv.bv_val[ bv.bv_len - 1 ] = '"';
+		ber_bvarray_add( &rwmap->rwm_bva_rewrite, &bv );
+	}
+
+	return 0;
+}
+
+static int
+rwm_info_init( struct ldaprwmap *rwmap )
+{
+	char			*rargv[ 3 ];
+
+ 	rwmap->rwm_rw = rewrite_info_init( REWRITE_MODE_USE_DEFAULT );
+	if ( rwmap->rwm_rw == NULL ) {
+ 		return -1;
+ 	}
+
+	/* this rewriteContext by default must be null;
+	 * rules can be added if required */
+	rargv[ 0 ] = "rewriteContext";
+	rargv[ 1 ] = "searchFilter";
+	rargv[ 2 ] = NULL;
+	rewrite_parse( rwmap->rwm_rw, "<suffix massage>", 1, 2, rargv );
+
+	rargv[ 0 ] = "rewriteContext";
+	rargv[ 1 ] = "default";
+	rargv[ 2 ] = NULL;
+	rewrite_parse( rwmap->rwm_rw, "<suffix massage>", 2, 2, rargv );
+
+	return 0;
+}
+
+static int
 rwm_cf_gen( ConfigArgs *c )
 {
 	slap_overinst		*on = (slap_overinst *)c->bi;
@@ -2023,6 +2070,8 @@ rwm_cf_gen( ConfigArgs *c )
 
 				ber_bvarray_free( rwmap->rwm_bva_rewrite );
 				rwmap->rwm_bva_rewrite = NULL;
+
+				rc = rwm_info_init( rwmap );
 			}
 			break;
 
@@ -2085,19 +2134,7 @@ rwm_cf_gen( ConfigArgs *c )
 			return 1;
 
 		} else {
-			char		*line;
-			struct berval	bv;
-
-			line = ldap_charray2str( &c->argv[ idx0 ], "\" \"" );
-			if ( line != NULL ) {
-				int	len = strlen( c->argv[ idx0 ] );
-
-				ber_str2bv( line, 0, 0, &bv );
-				AC_MEMCPY( &bv.bv_val[ len ], &bv.bv_val[ len + 1 ],
-					bv.bv_len - ( len + 1 ) );
-				bv.bv_val[ bv.bv_len - 1 ] = '"';
-				ber_bvarray_add( &rwmap->rwm_bva_rewrite, &bv );
-			}
+			rwm_bva_rewrite_add( rwmap, &c->argv[ idx0 ] );
 		}
 		break;
 
@@ -2155,28 +2192,11 @@ rwm_db_init(
 {
 	slap_overinst		*on = (slap_overinst *) be->bd_info;
 	struct ldaprwmap	*rwmap;
-	char			*rargv[ 3 ];
 	int			rc = 0;
 
 	rwmap = (struct ldaprwmap *)ch_calloc( 1, sizeof( struct ldaprwmap ) );
 
- 	rwmap->rwm_rw = rewrite_info_init( REWRITE_MODE_USE_DEFAULT );
-	if ( rwmap->rwm_rw == NULL ) {
- 		rc = -1;
-		goto error_return;
- 	}
-
-	/* this rewriteContext by default must be null;
-	 * rules can be added if required */
-	rargv[ 0 ] = "rewriteContext";
-	rargv[ 1 ] = "searchFilter";
-	rargv[ 2 ] = NULL;
-	rewrite_parse( rwmap->rwm_rw, "<suffix massage>", 1, 2, rargv );
-
-	rargv[ 0 ] = "rewriteContext";
-	rargv[ 1 ] = "default";
-	rargv[ 2 ] = NULL;
-	rewrite_parse( rwmap->rwm_rw, "<suffix massage>", 2, 2, rargv );
+	rc = rwm_info_init( rwmap );
 
 error_return:;
 	on->on_bi.bi_private = (void *)rwmap;
