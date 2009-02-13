@@ -1950,6 +1950,7 @@ slap_rewrite_unparse( BerVarray in, BerVarray *out )
 static int
 rwm_bva_rewrite_add(
 	struct ldaprwmap	*rwmap,
+	int			idx,
 	const char		*argv[] )
 {
 	char		*line;
@@ -1963,19 +1964,25 @@ rwm_bva_rewrite_add(
 		AC_MEMCPY( &bv.bv_val[ len ], &bv.bv_val[ len + 1 ],
 			bv.bv_len - ( len + 1 ) );
 		bv.bv_val[ bv.bv_len - 1 ] = '"';
-		ber_bvarray_add( &rwmap->rwm_bva_rewrite, &bv );
+
+		if ( idx == -1 ) {
+			ber_bvarray_add( &rwmap->rwm_bva_rewrite, &bv );
+
+		} else {
+			rwmap->rwm_bva_rewrite[ idx ] = bv;
+		}
 	}
 
 	return 0;
 }
 
 static int
-rwm_info_init( struct ldaprwmap *rwmap )
+rwm_info_init( struct rewrite_info ** rwm_rw )
 {
 	char			*rargv[ 3 ];
 
- 	rwmap->rwm_rw = rewrite_info_init( REWRITE_MODE_USE_DEFAULT );
-	if ( rwmap->rwm_rw == NULL ) {
+ 	*rwm_rw = rewrite_info_init( REWRITE_MODE_USE_DEFAULT );
+	if ( *rwm_rw == NULL ) {
  		return -1;
  	}
 
@@ -1984,12 +1991,12 @@ rwm_info_init( struct ldaprwmap *rwmap )
 	rargv[ 0 ] = "rewriteContext";
 	rargv[ 1 ] = "searchFilter";
 	rargv[ 2 ] = NULL;
-	rewrite_parse( rwmap->rwm_rw, "<suffix massage>", 1, 2, rargv );
+	rewrite_parse( *rwm_rw, "<suffix massage>", 1, 2, rargv );
 
 	rargv[ 0 ] = "rewriteContext";
 	rargv[ 1 ] = "default";
 	rargv[ 2 ] = NULL;
-	rewrite_parse( rwmap->rwm_rw, "<suffix massage>", 2, 2, rargv );
+	rewrite_parse( *rwm_rw, "<suffix massage>", 2, 2, rargv );
 
 	return 0;
 }
@@ -2061,7 +2068,48 @@ rwm_cf_gen( ConfigArgs *c )
 		switch ( c->type ) {
 		case RWM_CF_REWRITE:
 			if ( c->valx >= 0 ) {
-				rc = 1;
+				ConfigArgs ca = { 0 };
+				int i;
+
+				for ( i = 0; !BER_BVISNULL( &rwmap->rwm_bva_rewrite[ i ] ); i++ )
+					/* count'em */ ;
+
+				if ( i >= c->valx ) {
+					rc = 1;
+					break;
+				}
+
+				ber_memfree( rwmap->rwm_bva_rewrite[ c->valx ].bv_val );
+				for ( i = c->valx; !BER_BVISNULL( &rwmap->rwm_bva_rewrite[ i + 1 ] ); i++ )
+				{
+					rwmap->rwm_bva_rewrite[ i ] = rwmap->rwm_bva_rewrite[ i + 1 ];
+				}
+				BER_BVZERO( &rwmap->rwm_bva_rewrite[ i ] );
+
+				rewrite_info_delete( &rwmap->rwm_rw );
+				assert( rwmap->rwm_rw == NULL );
+
+				rc = rwm_info_init( &rwmap->rwm_rw );
+
+				for ( i = 0; !BER_BVISNULL( &rwmap->rwm_bva_rewrite[ i ] ); i++ )
+				{
+					ca.line = rwmap->rwm_bva_rewrite[ i ].bv_val;
+					ca.argc = 0;
+					config_fp_parse_line( &ca );
+					
+					if ( strcasecmp( ca.argv[ 0 ], "suffixmassage" ) == 0 ) {
+						rc = rwm_suffixmassage_config( &db, c->fname, c->lineno,
+							ca.argc, ca.argv );
+
+					} else {
+						rc = rwm_rw_config( &db, c->fname, c->lineno,
+							ca.argc, ca.argv );
+					}
+
+					ch_free( ca.tline );
+
+					assert( rc == 0 );
+				}
 
 			} else if ( rwmap->rwm_rw != NULL ) {
 				rewrite_info_delete( &rwmap->rwm_rw );
@@ -2070,7 +2118,7 @@ rwm_cf_gen( ConfigArgs *c )
 				ber_bvarray_free( rwmap->rwm_bva_rewrite );
 				rwmap->rwm_bva_rewrite = NULL;
 
-				rc = rwm_info_init( rwmap );
+				rc = rwm_info_init( &rwmap->rwm_rw );
 			}
 			break;
 
@@ -2116,7 +2164,105 @@ rwm_cf_gen( ConfigArgs *c )
 	switch ( c->type ) {
 	case RWM_CF_REWRITE:
 		if ( c->valx >= 0 ) {
-			return 1;
+			struct rewrite_info *rwm_rw = rwmap->rwm_rw;
+			ConfigArgs ca = { 0 };
+			int i, last;
+
+			for ( last = 0; !BER_BVISNULL( &rwmap->rwm_bva_rewrite[ last ] ); last++ )
+				/* count'em */ ;
+
+			if ( c->valx > last ) {
+				c->valx = last;
+			}
+
+			rwmap->rwm_rw = NULL;
+			rc = rwm_info_init( &rwmap->rwm_rw );
+
+			for ( i = 0; i < c->valx; i++ ) {
+				ca.line = rwmap->rwm_bva_rewrite[ i ].bv_val;
+				ca.argc = 0;
+				config_fp_parse_line( &ca );
+
+				argv0 = ca.argv[ 0 ];
+				ca.argv[ 0 ] += STRLENOF( "rwm-" );
+				
+				if ( strcasecmp( ca.argv[ 0 ], "suffixmassage" ) == 0 ) {
+					rc = rwm_suffixmassage_config( &db, c->fname, c->lineno,
+						ca.argc, ca.argv );
+
+				} else {
+					rc = rwm_rw_config( &db, c->fname, c->lineno,
+						ca.argc, ca.argv );
+				}
+
+				ca.argv[ 0 ] = argv0;
+
+				ch_free( ca.tline );
+
+				assert( rc == 0 );
+			}
+
+			argv0 = c->argv[ idx0 ];
+			if ( strncasecmp( argv0, "rwm-", STRLENOF( "rwm-" ) ) != 0 ) {
+				return 1;
+			}
+			c->argv[ idx0 ] += STRLENOF( "rwm-" );
+			if ( strcasecmp( c->argv[ idx0 ], "suffixmassage" ) == 0 ) {
+				rc = rwm_suffixmassage_config( &db, c->fname, c->lineno,
+					c->argc - idx0, &c->argv[ idx0 ] );
+
+			} else {
+				rc = rwm_rw_config( &db, c->fname, c->lineno,
+					c->argc - idx0, &c->argv[ idx0 ] );
+			}
+			c->argv[ idx0 ] = argv0;
+			if ( rc != 0 ) {
+				rewrite_info_delete( &rwmap->rwm_rw );
+				assert( rwmap->rwm_rw == NULL );
+
+				rwmap->rwm_rw = rwm_rw;
+				return 1;
+			}
+
+			for ( i = c->valx; !BER_BVISNULL( &rwmap->rwm_bva_rewrite[ i ] ); i++ )
+			{
+				ca.line = rwmap->rwm_bva_rewrite[ i ].bv_val;
+				ca.argc = 0;
+				config_fp_parse_line( &ca );
+				
+				argv0 = ca.argv[ 0 ];
+				ca.argv[ 0 ] += STRLENOF( "rwm-" );
+				
+				if ( strcasecmp( ca.argv[ 0 ], "suffixmassage" ) == 0 ) {
+					rc = rwm_suffixmassage_config( &db, c->fname, c->lineno,
+						ca.argc, ca.argv );
+
+				} else {
+					rc = rwm_rw_config( &db, c->fname, c->lineno,
+						ca.argc, ca.argv );
+				}
+
+				ca.argv[ 0 ] = argv0;
+
+				ch_free( ca.tline );
+
+				assert( rc == 0 );
+			}
+
+			rwmap->rwm_bva_rewrite = ch_realloc( rwmap->rwm_bva_rewrite,
+				( last + 2 )*sizeof( struct berval ) );
+
+			for ( i = last - 1; i >= c->valx; i-- )
+			{
+				rwmap->rwm_bva_rewrite[ i + 1 ] = rwmap->rwm_bva_rewrite[ i ];
+			}
+
+			rwm_bva_rewrite_add( rwmap, c->valx, &c->argv[ idx0 ] );
+
+			rewrite_info_delete( &rwm_rw );
+			assert( rwm_rw == NULL );
+
+			break;
 		}
 
 		argv0 = c->argv[ idx0 ];
@@ -2137,7 +2283,7 @@ rwm_cf_gen( ConfigArgs *c )
 			return 1;
 
 		} else {
-			rwm_bva_rewrite_add( rwmap, &c->argv[ idx0 ] );
+			rwm_bva_rewrite_add( rwmap, -1, &c->argv[ idx0 ] );
 		}
 		break;
 
@@ -2203,7 +2349,7 @@ rwm_db_init(
 
 	rwmap = (struct ldaprwmap *)ch_calloc( 1, sizeof( struct ldaprwmap ) );
 
-	rc = rwm_info_init( rwmap );
+	rc = rwm_info_init( &rwmap->rwm_rw );
 
 error_return:;
 	on->on_bi.bi_private = (void *)rwmap;

@@ -86,7 +86,6 @@ int slapi_plugins_used = 0;
 
 static int fp_getline(FILE *fp, ConfigArgs *c);
 static void fp_getline_init(ConfigArgs *c);
-static int fp_parse_line(ConfigArgs *c);
 
 static char	*strtok_quote(char *line, char *sep, char **quote_ptr);
 static char *strtok_quote_ldif(char **line);
@@ -716,7 +715,7 @@ read_config_file(const char *fname, int depth, ConfigArgs *cf, ConfigTable *cft)
 
 		c->argc = 0;
 		ch_free( c->tline );
-		if ( fp_parse_line( c ) ) {
+		if ( config_fp_parse_line( c ) ) {
 			rc = 1;
 			goto done;
 		}
@@ -1955,8 +1954,8 @@ fp_getline( FILE *fp, ConfigArgs *c )
 	return(line[0] ? 1 : 0);
 }
 
-static int
-fp_parse_line(ConfigArgs *c)
+int
+config_fp_parse_line(ConfigArgs *c)
 {
 	char *token;
 	static char *const hide[] = {

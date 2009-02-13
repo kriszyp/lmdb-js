@@ -171,6 +171,8 @@ typedef struct config_args_s {
 #define value_dn values.v_dn.vdn_dn
 #define value_ndn values.v_dn.vdn_ndn
 
+int config_fp_parse_line(ConfigArgs *c);
+
 int config_register_schema(ConfigTable *ct, ConfigOCs *co);
 int config_del_vals(ConfigTable *cf, ConfigArgs *c);
 int config_get_vals(ConfigTable *ct, ConfigArgs *c);
