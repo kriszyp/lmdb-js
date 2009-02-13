@@ -74,7 +74,7 @@ relay_back_select_backend( Operation *op, SlapReply *rs, slap_mask_t fail_mode )
 
 	if ( bd == NULL && !BER_BVISNULL( &op->o_req_ndn ) ) {
 		bd = select_backend( &op->o_req_ndn, 1 );
-		if ( bd == op->o_bd ) {
+		if ( bd->be_private == op->o_bd->be_private ) {
 			Debug( LDAP_DEBUG_ANY,
 				"%s: back-relay for DN=\"%s\" would call self.\n",
 				op->o_log_prefix, op->o_req_dn.bv_val, 0 );
