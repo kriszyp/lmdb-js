@@ -4488,6 +4488,7 @@ config_add_internal( CfBackInfo *cfb, Entry *e, ConfigArgs *ca, SlapReply *rs,
 		if ( !ct ) continue;	/* user data? */
 		for (i=0; a->a_vals[i].bv_val; i++) {
 			char *iptr = NULL;
+			ca->valx = -1;
 			ca->line = a->a_vals[i].bv_val;
 			if ( a->a_desc->ad_type->sat_flags & SLAP_AT_ORDERED ) {
 				ptr = strchr( ca->line, '}' );
@@ -4499,8 +4500,6 @@ config_add_internal( CfBackInfo *cfb, Entry *e, ConfigArgs *ca, SlapReply *rs,
 			if ( a->a_desc->ad_type->sat_flags & SLAP_AT_ORDERED_SIB ) {
 				if ( iptr ) {
 					ca->valx = strtol( iptr+1, NULL, 0 );
-				} else {
-					ca->valx = -1;
 				}
 			} else {
 				ca->valx = i;
@@ -4789,6 +4788,7 @@ config_modify_add( ConfigTable *ct, ConfigArgs *ca, AttributeDescription *ad,
 {
 	int rc;
 
+	ca->valx = -1;
 	if (ad->ad_type->sat_flags & SLAP_AT_ORDERED &&
 		ca->line[0] == '{' )
 	{

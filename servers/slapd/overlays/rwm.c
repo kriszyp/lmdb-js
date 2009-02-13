@@ -2061,7 +2061,6 @@ rwm_cf_gen( ConfigArgs *c )
 		switch ( c->type ) {
 		case RWM_CF_REWRITE:
 			if ( c->valx >= 0 ) {
-				/* single modification is not allowed */
 				rc = 1;
 
 			} else if ( rwmap->rwm_rw != NULL ) {
@@ -2116,6 +2115,10 @@ rwm_cf_gen( ConfigArgs *c )
 
 	switch ( c->type ) {
 	case RWM_CF_REWRITE:
+		if ( c->valx >= 0 ) {
+			return 1;
+		}
+
 		argv0 = c->argv[ idx0 ];
 		if ( strncasecmp( argv0, "rwm-", STRLENOF( "rwm-" ) ) != 0 ) {
 			return 1;
@@ -2150,6 +2153,10 @@ rwm_cf_gen( ConfigArgs *c )
 		break;
 
 	case RWM_CF_MAP:
+		if ( c->valx >= 0 ) {
+			return 1;
+		}
+
 		argv0 = c->argv[ 0 ];
 		c->argv[ 0 ] += STRLENOF( "rwm-" );
 		rc = rwm_m_config( &db, c->fname, c->lineno, c->argc, c->argv );
