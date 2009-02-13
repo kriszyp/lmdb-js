@@ -61,6 +61,7 @@ OpenLDAP 2.4.14 Engineering
 	Fixed slapo-ppolicy to not be global (ITS#5858)
 	Fixed slapo-rwm double free (ITS#5923)
 	Fixed slapo-rwm with back-config (ITS#5906)
+	Fixed slapo-rwm olcRwmRewrite modification (ITS#5940)
 	Added slapo-rwm newRDN rewriting (ITS#5834)
 	Added slapadd progress meter (ITS#5922)
 	Updated contrib/addpartial module (ITS#5764)

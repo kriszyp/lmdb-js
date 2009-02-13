@@ -103,6 +103,8 @@ over_db_config(
 	ca.be = be;
 	snprintf( ca.log, sizeof( ca.log ), "%s: line %d",
 			ca.fname, ca.lineno );
+	ca.op = SLAP_CONFIG_ADD;
+	ca.valx = -1;
 
 	for (; on; on=on->on_next) {
 		rc = SLAP_CONF_UNKNOWN;
