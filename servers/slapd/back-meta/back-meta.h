@@ -318,6 +318,8 @@ typedef struct metatarget_t {
 #define	META_BACK_TGT_NOREFS(mt)		META_BACK_TGT_ISSET( (mt), LDAP_BACK_F_NOREFS )
 #define	META_BACK_TGT_NOUNDEFFILTER(mt)		META_BACK_TGT_ISSET( (mt), LDAP_BACK_F_NOUNDEFFILTER )
 
+	slap_mask_t		mt_rep_flags;
+
 	int			mt_version;
 	time_t			mt_network_timeout;
 	struct timeval		mt_bind_timeout;

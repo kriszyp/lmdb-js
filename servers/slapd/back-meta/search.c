@@ -2147,7 +2147,7 @@ next_attr:;
 	rs->sr_entry = &ent;
 	rs->sr_attrs = op->ors_attrs;
 	rs->sr_operational_attrs = NULL;
-	rs->sr_flags = 0;
+	rs->sr_flags = mi->mi_targets[ target ]->mt_rep_flags;
 	rs->sr_err = LDAP_SUCCESS;
 	rc = send_search_entry( op, rs );
 	switch ( rc ) {
