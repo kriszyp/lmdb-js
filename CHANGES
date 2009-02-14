@@ -1,6 +1,6 @@
 OpenLDAP 2.4 Change Log
 
-OpenLDAP 2.4.14 Engineering
+OpenLDAP 2.4.14 Release (2009/02/14)
 	Added libldap option to disable SASL host canonicalization (ITS#5812)
 	Added libldap TLS_PROTOCOL_MIN (ITS#5655)
 	Added libldap GnuTLS support for TLS_CIPHER_SUITE (ITS#5887)
