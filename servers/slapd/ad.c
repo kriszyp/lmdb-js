@@ -27,6 +27,10 @@
 #include "slap.h"
 #include "lutil.h"
 
+static struct berval bv_no_attrs = BER_BVC( LDAP_NO_ATTRS );
+static struct berval bv_all_user_attrs = BER_BVC( "*" );
+static struct berval bv_all_operational_attrs = BER_BVC( "+" );
+
 static AttributeName anlist_no_attrs[] = {
 	{ BER_BVC( LDAP_NO_ATTRS ), NULL, 0, NULL },
 	{ BER_BVNULL, NULL, 0, NULL }
@@ -52,6 +56,10 @@ AttributeName *slap_anlist_no_attrs = anlist_no_attrs;
 AttributeName *slap_anlist_all_user_attributes = anlist_all_user_attributes;
 AttributeName *slap_anlist_all_operational_attributes = anlist_all_operational_attributes;
 AttributeName *slap_anlist_all_attributes = anlist_all_attributes;
+
+struct berval * slap_bv_no_attrs = &bv_no_attrs;
+struct berval * slap_bv_all_user_attrs = &bv_all_user_attrs;
+struct berval * slap_bv_all_operational_attrs = &bv_all_operational_attrs;
 
 typedef struct Attr_option {
 	struct berval name;	/* option name or prefix */

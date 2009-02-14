@@ -191,6 +191,10 @@ LDAP_SLAPD_V( AttributeName * ) slap_anlist_all_user_attributes;
 LDAP_SLAPD_V( AttributeName * ) slap_anlist_all_operational_attributes;
 LDAP_SLAPD_V( AttributeName * ) slap_anlist_all_attributes;
 
+LDAP_SLAPD_V( struct berval * ) slap_bv_no_attrs;
+LDAP_SLAPD_V( struct berval * ) slap_bv_all_user_attrs;
+LDAP_SLAPD_V( struct berval * ) slap_bv_all_operational_attrs;
+
 /*
  * add.c
  */

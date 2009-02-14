@@ -119,6 +119,15 @@ ldap_back_mapping ( struct ldapmap *map, struct berval *s, struct ldapmapping **
 
 	assert( m != NULL );
 
+	/* let special attrnames slip through (ITS#5760) */
+	if ( bvmatch( s, slap_bv_no_attrs )
+		|| bvmatch( s, slap_bv_all_user_attrs )
+		|| bvmatch( s, slap_bv_all_operational_attrs ) )
+	{
+		*m = NULL;
+		return 0;
+	}
+
 	if ( remap == BACKLDAP_REMAP ) {
 		tree = map->remap;
 
