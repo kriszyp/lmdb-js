@@ -1762,6 +1762,7 @@ syncprov_op_compare( Operation *op, SlapReply *rs )
 
 		a.a_vals = si->si_ctxcsn;
 		a.a_nvals = a.a_vals;
+		a.a_numvals = si->si_numcsns;
 
 		rs->sr_err = access_allowed( op, &e, op->oq_compare.rs_ava->aa_desc,
 			&op->oq_compare.rs_ava->aa_value, ACL_COMPARE, NULL );
