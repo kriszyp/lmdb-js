@@ -1656,9 +1656,9 @@ slap_attr_flags( AttributeName *an )
 		flags |= ( SLAP_OPATTRS_NO | SLAP_USERATTRS_YES );
 
 	} else {
-		flags |= an_find( an, &AllOper )
+		flags |= an_find( an, slap_bv_all_operational_attrs )
 			? SLAP_OPATTRS_YES : SLAP_OPATTRS_NO;
-		flags |= an_find( an, &AllUser )
+		flags |= an_find( an, slap_bv_all_user_attrs )
 			? SLAP_USERATTRS_YES : SLAP_USERATTRS_NO;
 	}
 

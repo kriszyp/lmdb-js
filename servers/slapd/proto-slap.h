@@ -195,6 +195,11 @@ LDAP_SLAPD_V( struct berval * ) slap_bv_no_attrs;
 LDAP_SLAPD_V( struct berval * ) slap_bv_all_user_attrs;
 LDAP_SLAPD_V( struct berval * ) slap_bv_all_operational_attrs;
 
+/* deprecated; only defined for backward compatibility */
+#define NoAttrs		(*slap_bv_no_attrs)
+#define AllUser		(*slap_bv_all_user_attrs)
+#define AllOper		(*slap_bv_all_operational_attrs)
+
 /*
  * add.c
  */
@@ -1957,10 +1962,6 @@ LDAP_SLAPD_V (ldap_pvt_thread_mutex_t)	oc_undef_mutex;
 LDAP_SLAPD_V (ber_socket_t)	dtblsize;
 
 LDAP_SLAPD_V (int)		use_reverse_lookup;
-
-LDAP_SLAPD_V (struct berval)	AllUser;
-LDAP_SLAPD_V (struct berval)	AllOper;
-LDAP_SLAPD_V (struct berval)	NoAttrs;
 
 /*
  * operations

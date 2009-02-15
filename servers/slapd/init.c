@@ -55,10 +55,6 @@ int		ldap_syslog_level = LOG_DEBUG;
 
 BerVarray default_referral = NULL;
 
-struct berval AllUser = BER_BVC( LDAP_ALL_USER_ATTRIBUTES );
-struct berval AllOper = BER_BVC( LDAP_ALL_OPERATIONAL_ATTRIBUTES );
-struct berval NoAttrs = BER_BVC( LDAP_NO_ATTRS );
-
 /*
  * global variables that need mutex protection
  */
