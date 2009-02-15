@@ -143,7 +143,6 @@ void
 ldap_pvt_tls_destroy( void )
 {
 	struct ldapoptions *lo = LDAP_INT_GLOBAL_OPT();   
-	int i;
 
 	ldap_int_tls_destroy( lo );
 
@@ -179,8 +178,6 @@ tls_init(tls_impl *impl )
 int
 ldap_pvt_tls_init( void )
 {
-	struct ldapoptions *lo = LDAP_INT_GLOBAL_OPT();   
-
 	return tls_init( tls_imp );
 }
 
@@ -190,7 +187,7 @@ ldap_pvt_tls_init( void )
 static int
 ldap_int_tls_init_ctx( struct ldapoptions *lo, int is_server )
 {
-	int i, rc = 0;
+	int rc = 0;
 	tls_impl *ti = tls_imp;
 	struct ldaptls lts = lo->ldo_tls_info;
 

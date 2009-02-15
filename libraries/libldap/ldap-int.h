@@ -694,6 +694,16 @@ LDAP_F (void) ldap_int_tls_destroy LDAP_P(( struct ldapoptions *lo ));
 LDAP_F (char **) ldap_value_dup LDAP_P((
 	char *const *vals ));
 
+/*
+ *	in gssapi.c
+ */
+#ifdef HAVE_GSSAPI
+LDAP_F(int) ldap_int_gssapi_get_option LDAP_P(( LDAP *ld, int option, void *arg ));
+LDAP_F(int) ldap_int_gssapi_set_option LDAP_P(( LDAP *ld, int option, void *arg ));
+LDAP_F(int) ldap_int_gssapi_config LDAP_P(( struct ldapoptions *lo, int option, const char *arg ));
+LDAP_F(void) ldap_int_gssapi_close LDAP_P(( LDAP *ld, LDAPConn *lc ));
+#endif 
+
 LDAP_END_DECL
 
 #endif /* _LDAP_INT_H */
