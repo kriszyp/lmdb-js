@@ -704,6 +704,10 @@ again:
 	switch( mode ) {
 	case FIND_MAXCSN:
 		if ( ber_bvcmp( &si->si_ctxcsn[maxid], &maxcsn )) {
+#ifdef CHECK_CSN
+			Syntax *syn = slap_schema.si_ad_contextCSN->ad_type->sat_syntax;
+			assert( !syn->ssyn_validate( syn, &maxcsn ));
+#endif
 			ber_bvreplace( &si->si_ctxcsn[maxid], &maxcsn );
 			si->si_numops++;	/* ensure a checkpoint */
 		}
@@ -1641,6 +1645,10 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 		}
 		if ( !BER_BVISNULL( &maxcsn ) ) {
 			int i, sid;
+#ifdef CHECK_CSN
+			Syntax *syn = slap_schema.si_ad_contextCSN->ad_type->sat_syntax;
+			assert( !syn->ssyn_validate( syn, &maxcsn ));
+#endif
 			strcpy( cbuf, maxcsn.bv_val );
 			sid = slap_parse_csn_sid( &maxcsn );
 			for ( i=0; i<si->si_numcsns; i++ ) {
