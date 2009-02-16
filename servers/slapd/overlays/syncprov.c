@@ -1628,15 +1628,17 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 
 	if ( rs->sr_err == LDAP_SUCCESS )
 	{
-		struct berval maxcsn = BER_BVNULL;
+		struct berval maxcsn;
 		char cbuf[LDAP_LUTIL_CSNSTR_BUFSIZE];
 		int do_check = 0, have_psearches, foundit;
 
 		/* Update our context CSN */
 		cbuf[0] = '\0';
+		maxcsn.bv_val = cbuf;
+		maxcsn.bv_len = sizeof(cbuf);
 		ldap_pvt_thread_rdwr_wlock( &si->si_csn_rwlock );
 		slap_get_commit_csn( op, &maxcsn, &foundit );
-		if ( BER_BVISNULL( &maxcsn ) && SLAP_GLUE_SUBORDINATE( op->o_bd )) {
+		if ( BER_BVISEMPTY( &maxcsn ) && SLAP_GLUE_SUBORDINATE( op->o_bd )) {
 			/* syncrepl queues the CSN values in the db where
 			 * it is configured , not where the changes are made.
 			 * So look for a value in the glue db if we didn't
@@ -1644,16 +1646,17 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 			 */
 			BackendDB *be = op->o_bd;
 			op->o_bd = select_backend( &be->be_nsuffix[0], 1);
+			maxcsn.bv_val = cbuf;
+			maxcsn.bv_len = sizeof(cbuf);
 			slap_get_commit_csn( op, &maxcsn, &foundit );
 			op->o_bd = be;
 		}
-		if ( !BER_BVISNULL( &maxcsn ) ) {
+		if ( !BER_BVISEMPTY( &maxcsn ) ) {
 			int i, sid;
 #ifdef CHECK_CSN
 			Syntax *syn = slap_schema.si_ad_contextCSN->ad_type->sat_syntax;
 			assert( !syn->ssyn_validate( syn, &maxcsn ));
 #endif
-			strcpy( cbuf, maxcsn.bv_val );
 			sid = slap_parse_csn_sid( &maxcsn );
 			for ( i=0; i<si->si_numcsns; i++ ) {
 				if ( sid == si->si_sids[i] ) {
@@ -1709,8 +1712,7 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 
 		/* only update consumer ctx if this is the greatest csn */
 		if ( bvmatch( &maxcsn, &op->o_csn )) {
-			opc->sctxcsn.bv_len = maxcsn.bv_len;
-			opc->sctxcsn.bv_val = cbuf;
+			opc->sctxcsn = maxcsn;
 		}
 
 		/* Handle any persistent searches */
