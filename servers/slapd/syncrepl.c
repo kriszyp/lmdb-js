@@ -2876,6 +2876,9 @@ syncrepl_updateCookie(
 	Backend *be = op->o_bd;
 	Modifications mod;
 	struct berval first = BER_BVNULL;
+#ifdef CHECK_CSN
+	Syntax *syn = slap_schema.si_ad_contextCSN->ad_type->sat_syntax;
+#endif
 
 	int rc, i, j;
 	ber_len_t len;
@@ -2891,6 +2894,15 @@ syncrepl_updateCookie(
 	mod.sml_next = NULL;
 
 	ldap_pvt_thread_mutex_lock( &si->si_cookieState->cs_mutex );
+
+#ifdef CHECK_CSN
+	for ( i=0; i<syncCookie->numcsns; i++ ) {
+		assert( !syn->ssyn_validate( syn, syncCookie->ctxcsn+i ));
+	}
+	for ( i=0; i<si->si_cookieState->cs_num; i++ ) {
+		assert( !syn->ssyn_validate( syn, si->si_cookieState->cs_vals+i ));
+	}
+#endif
 
 	/* clone the cookieState CSNs so we can Replace the whole thing */
 	mod.sml_numvals = si->si_cookieState->cs_num;
@@ -2993,6 +3005,12 @@ syncrepl_updateCookie(
 	BER_BVZERO( &op->o_csn );
 	if ( mod.sml_next ) slap_mods_free( mod.sml_next, 1 );
 	op->o_tmpfree( mod.sml_values, op->o_tmpmemctx );
+
+#ifdef CHECK_CSN
+	for ( i=0; i<si->si_cookieState->cs_num; i++ ) {
+		assert( !syn->ssyn_validate( syn, si->si_cookieState->cs_vals+i ));
+	}
+#endif
 
 	return rc;
 }

@@ -1,6 +1,7 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.15 Engineering
+	Fixed slapd corrupt contextCSN (ITS#5947)
 
 OpenLDAP 2.4.14 Release (2009/02/14)
 	Added libldap option to disable SASL host canonicalization (ITS#5812)

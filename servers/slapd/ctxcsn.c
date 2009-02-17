@@ -30,6 +30,7 @@ const struct berval slap_ldapsync_bv = BER_BVC("ldapsync");
 const struct berval slap_ldapsync_cn_bv = BER_BVC("cn=ldapsync");
 int slap_serverID;
 
+/* maxcsn->bv_val must point to a char buf[LDAP_LUTIL_CSNSTR_BUFSIZE] */
 void
 slap_get_commit_csn(
 	Operation *op,
@@ -41,7 +42,8 @@ slap_get_commit_csn(
 	BackendDB *be = op->o_bd->bd_self;
 
 	if ( maxcsn ) {
-		BER_BVZERO( maxcsn );
+		assert( maxcsn->bv_val != NULL );
+		assert( maxcsn->bv_len >= LDAP_LUTIL_CSNSTR_BUFSIZE );
 	}
 	if ( foundit ) {
 		*foundit = 0;
@@ -62,7 +64,17 @@ slap_get_commit_csn(
 		if ( csne->ce_state == SLAP_CSN_PENDING ) break;
 	}
 
-	if ( committed_csne && maxcsn ) *maxcsn = committed_csne->ce_csn;
+	if ( maxcsn ) {
+		if ( committed_csne ) {
+			if ( committed_csne->ce_csn.bv_len < maxcsn->bv_len )
+				maxcsn->bv_len = committed_csne->ce_csn.bv_len;
+			AC_MEMCPY( maxcsn->bv_val, committed_csne->ce_csn.bv_val,
+				maxcsn->bv_len+1 );
+		} else {
+			maxcsn->bv_len = 0;
+			maxcsn->bv_val[0] = 0;
+		}
+	}
 	ldap_pvt_thread_mutex_unlock( &be->be_pcl_mutex );
 }
 
