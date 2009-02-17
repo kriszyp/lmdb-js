@@ -184,7 +184,7 @@ backsql_init_search(
 			BER_BVZERO( &bsi->bsi_attrs[ 0 ].an_name );
 	
 			for ( p = attrs; !BER_BVISNULL( &p->an_name ); p++ ) {
-				if ( BACKSQL_NCMP( &p->an_name, &AllUser ) == 0 ) {
+				if ( BACKSQL_NCMP( &p->an_name, slap_bv_all_user_attrs ) == 0 ) {
 					/* handle "*" */
 					bsi->bsi_flags |= BSQL_SF_ALL_USER;
 
@@ -198,7 +198,7 @@ backsql_init_search(
 					}
 					continue;
 
-				} else if ( BACKSQL_NCMP( &p->an_name, &AllOper ) == 0 ) {
+				} else if ( BACKSQL_NCMP( &p->an_name, slap_bv_all_operational_attrs ) == 0 ) {
 					/* handle "+" */
 					bsi->bsi_flags |= BSQL_SF_ALL_OPER;
 
@@ -212,7 +212,7 @@ backsql_init_search(
 					}
 					continue;
 
-				} else if ( BACKSQL_NCMP( &p->an_name, &NoAttrs ) == 0 ) {
+				} else if ( BACKSQL_NCMP( &p->an_name, slap_bv_no_attrs ) == 0 ) {
 					/* ignore "1.1" */
 					continue;
 
@@ -237,7 +237,7 @@ backsql_init_search(
 			
 			/* use hints if available */
 			for ( p = bi->sql_anlist; !BER_BVISNULL( &p->an_name ); p++ ) {
-				if ( BACKSQL_NCMP( &p->an_name, &AllUser ) == 0 ) {
+				if ( BACKSQL_NCMP( &p->an_name, slap_bv_all_user_attrs ) == 0 ) {
 					/* handle "*" */
 					bsi->bsi_flags |= BSQL_SF_ALL_USER;
 
@@ -251,7 +251,7 @@ backsql_init_search(
 					}
 					continue;
 
-				} else if ( BACKSQL_NCMP( &p->an_name, &AllOper ) == 0 ) {
+				} else if ( BACKSQL_NCMP( &p->an_name, slap_bv_all_operational_attrs ) == 0 ) {
 					/* handle "+" */
 					bsi->bsi_flags |= BSQL_SF_ALL_OPER;
 

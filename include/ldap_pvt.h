@@ -286,6 +286,11 @@ LDAP_F (int) ldap_open_internal_connection LDAP_P((
 LDAP_F (int) ldap_init_fd LDAP_P((
 	ber_socket_t fd, int proto, LDAP_CONST char *url, struct ldap **ldp ));
 
+/* sasl.c */
+LDAP_F (int) ldap_pvt_sasl_generic_install LDAP_P(( Sockbuf *sb,
+	struct sb_sasl_generic_install *install_arg ));
+LDAP_F (void) ldap_pvt_sasl_generic_remove LDAP_P(( Sockbuf *sb ));
+
 /* search.c */
 LDAP_F( int ) ldap_pvt_put_filter LDAP_P((
 	BerElement *ber,

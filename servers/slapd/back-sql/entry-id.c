@@ -1042,7 +1042,7 @@ next:;
 	}
 
 	if ( ( bsi->bsi_flags & BSQL_SF_ALL_OPER )
-			|| an_find( bsi->bsi_attrs, &AllOper )
+			|| an_find( bsi->bsi_attrs, slap_bv_all_operational_attrs )
 			|| an_find( bsi->bsi_attrs, &slap_schema.si_ad_structuralObjectClass->ad_cname ) )
 	{
 		ObjectClass	*soc = NULL;

@@ -119,6 +119,15 @@ ldap_back_mapping ( struct ldapmap *map, struct berval *s, struct ldapmapping **
 
 	assert( m != NULL );
 
+	/* let special attrnames slip through (ITS#5760) */
+	if ( bvmatch( s, slap_bv_no_attrs )
+		|| bvmatch( s, slap_bv_all_user_attrs )
+		|| bvmatch( s, slap_bv_all_operational_attrs ) )
+	{
+		*m = NULL;
+		return 0;
+	}
+
 	if ( remap == BACKLDAP_REMAP ) {
 		tree = map->remap;
 
@@ -140,6 +149,7 @@ ldap_back_map ( struct ldapmap *map, struct berval *s, struct berval *bv,
 	int remap )
 {
 	struct ldapmapping *mapping;
+	int drop_missing;
 
 	/* map->map may be NULL when mapping is configured,
 	 * but map->remap can't */
@@ -149,7 +159,7 @@ ldap_back_map ( struct ldapmap *map, struct berval *s, struct berval *bv,
 	}
 
 	BER_BVZERO( bv );
-	( void )ldap_back_mapping( map, s, &mapping, remap );
+	drop_missing = ldap_back_mapping( map, s, &mapping, remap );
 	if ( mapping != NULL ) {
 		if ( !BER_BVISNULL( &mapping->dst ) ) {
 			*bv = mapping->dst;
@@ -157,7 +167,7 @@ ldap_back_map ( struct ldapmap *map, struct berval *s, struct berval *bv,
 		return;
 	}
 
-	if ( !map->drop_missing ) {
+	if ( !drop_missing ) {
 		*bv = *s;
 	}
 }

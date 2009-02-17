@@ -1346,6 +1346,22 @@ ldap_perror LDAP_P((	/* deprecated, use ldap_err2string */
 
 
 /*
+ * gssapi.c:
+ */
+LDAP_F( int )
+ldap_gssapi_bind LDAP_P((
+	LDAP *ld,
+	LDAP_CONST char *dn,
+	LDAP_CONST char *creds ));
+
+LDAP_F( int )
+ldap_gssapi_bind_s LDAP_P((
+	LDAP *ld,
+	LDAP_CONST char *dn,
+	LDAP_CONST char *creds ));
+
+
+/*
  * in modify.c:
  */
 LDAP_F( int )

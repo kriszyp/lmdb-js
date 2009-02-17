@@ -2168,8 +2168,8 @@ add_filter_attrs(
 		(*new_attrs)[i].an_desc = attrs->attrs[i].an_desc;
 	}
 	BER_BVZERO( &(*new_attrs)[i].an_name );
-	alluser = an_find(*new_attrs, &AllUser);
-	allop = an_find(*new_attrs, &AllOper);
+	alluser = an_find( *new_attrs, slap_bv_all_user_attrs );
+	allop = an_find( *new_attrs, slap_bv_all_operational_attrs );
 
 	j = i;
 	for ( i=0; i<fattr_cnt; i++ ) {

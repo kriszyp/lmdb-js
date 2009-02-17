@@ -1197,76 +1197,70 @@ rwm_attrs( Operation *op, SlapReply *rs, Attribute** a_first, int stripEntryDN )
 		int			last = -1;
 		Attribute		*a;
 
-		if ( SLAP_OPATTRS( rs->sr_attr_flags ) && is_at_operational( (*ap)->a_desc->ad_type ) )
+		if ( op->ors_attrs != NULL && 
+				!SLAP_USERATTRS( rs->sr_attr_flags ) &&
+				!ad_inlist( (*ap)->a_desc, op->ors_attrs ) )
 		{
-			/* go on */ ;
-			
-		} else {
-			if ( op->ors_attrs != NULL && 
-					!SLAP_USERATTRS( rs->sr_attr_flags ) &&
-					!ad_inlist( (*ap)->a_desc, op->ors_attrs ) )
-			{
-				goto cleanup_attr;
-			}
+			goto cleanup_attr;
+		}
 
-			drop_missing = rwm_mapping( &rwmap->rwm_at,
-					&(*ap)->a_desc->ad_cname, &mapping, RWM_REMAP );
-			if ( drop_missing || ( mapping != NULL && BER_BVISEMPTY( &mapping->m_dst ) ) )
-			{
-				goto cleanup_attr;
-			}
-			if ( mapping != NULL ) {
-				assert( mapping->m_dst_ad != NULL );
+		drop_missing = rwm_mapping( &rwmap->rwm_at,
+				&(*ap)->a_desc->ad_cname, &mapping, RWM_REMAP );
+		if ( drop_missing || ( mapping != NULL && BER_BVISEMPTY( &mapping->m_dst ) ) )
+		{
+			goto cleanup_attr;
+		}
+		if ( mapping != NULL ) {
+			assert( mapping->m_dst_ad != NULL );
 
-				/* try to normalize mapped Attributes if the original 
-				 * AttributeType was not normalized */
-				if ( (!(*ap)->a_desc->ad_type->sat_equality || 
-					!(*ap)->a_desc->ad_type->sat_equality->smr_normalize) &&
-					mapping->m_dst_ad->ad_type->sat_equality &&
-					mapping->m_dst_ad->ad_type->sat_equality->smr_normalize )
+			/* try to normalize mapped Attributes if the original 
+			 * AttributeType was not normalized */
+			if ( (!(*ap)->a_desc->ad_type->sat_equality || 
+				!(*ap)->a_desc->ad_type->sat_equality->smr_normalize) &&
+				mapping->m_dst_ad->ad_type->sat_equality &&
+				mapping->m_dst_ad->ad_type->sat_equality->smr_normalize )
+			{
+				if ((rwmap->rwm_flags & RWM_F_NORMALIZE_MAPPED_ATTRS))
 				{
-					if ((rwmap->rwm_flags & RWM_F_NORMALIZE_MAPPED_ATTRS))
+					int i = 0;
+
+					last = (*ap)->a_numvals;
+					if ( last )
 					{
-						int i = 0;
+						(*ap)->a_nvals = ch_malloc( (last+1) * sizeof(struct berval) );
 
-						last = (*ap)->a_numvals;
-						if ( last )
-						{
-							(*ap)->a_nvals = ch_malloc( (last+1) * sizeof(struct berval) );
+						for ( i = 0; !BER_BVISNULL( &(*ap)->a_vals[i]); i++ ) {
+							int		rc;
+							/*
+							 * check that each value is valid per syntax
+							 * and pretty if appropriate
+							 */
+							rc = mapping->m_dst_ad->ad_type->sat_equality->smr_normalize(
+								SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
+								mapping->m_dst_ad->ad_type->sat_syntax,
+								mapping->m_dst_ad->ad_type->sat_equality,
+								&(*ap)->a_vals[i], &(*ap)->a_nvals[i],
+								NULL );
 
-							for ( i = 0; !BER_BVISNULL( &(*ap)->a_vals[i]); i++ ) {
-								int		rc;
-								/*
-								 * check that each value is valid per syntax
-								 * and pretty if appropriate
-								 */
-								rc = mapping->m_dst_ad->ad_type->sat_equality->smr_normalize(
-									SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
-									mapping->m_dst_ad->ad_type->sat_syntax,
-									mapping->m_dst_ad->ad_type->sat_equality,
-									&(*ap)->a_vals[i], &(*ap)->a_nvals[i],
-									NULL );
-
-								if ( rc != LDAP_SUCCESS ) {
-									BER_BVZERO( &(*ap)->a_nvals[i] );
-								}
+							if ( rc != LDAP_SUCCESS ) {
+								BER_BVZERO( &(*ap)->a_nvals[i] );
 							}
-							BER_BVZERO( &(*ap)->a_nvals[i] );
 						}
-
-					} else {
-						assert( (*ap)->a_nvals == (*ap)->a_vals );
-						(*ap)->a_nvals = NULL;
-						ber_bvarray_dup_x( &(*ap)->a_nvals, (*ap)->a_vals, NULL );
+						BER_BVZERO( &(*ap)->a_nvals[i] );
 					}
+
+				} else {
+					assert( (*ap)->a_nvals == (*ap)->a_vals );
+					(*ap)->a_nvals = NULL;
+					ber_bvarray_dup_x( &(*ap)->a_nvals, (*ap)->a_vals, NULL );
 				}
-
-				/* rewrite the attribute description */
-				(*ap)->a_desc = mapping->m_dst_ad;
-
-				/* will need to check for duplicate attrs */
-				check_duplicate_attrs++;
 			}
+
+			/* rewrite the attribute description */
+			(*ap)->a_desc = mapping->m_dst_ad;
+
+			/* will need to check for duplicate attrs */
+			check_duplicate_attrs++;
 		}
 
 		if ( (*ap)->a_desc == slap_schema.si_ad_entryDN ) {
@@ -1951,7 +1945,7 @@ static int
 rwm_bva_rewrite_add(
 	struct ldaprwmap	*rwmap,
 	int			idx,
-	const char		*argv[] )
+	char			**argv )
 {
 	char		*line;
 	struct berval	bv;

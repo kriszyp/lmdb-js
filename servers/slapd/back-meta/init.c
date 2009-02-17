@@ -170,6 +170,8 @@ meta_back_db_open(
 		slap_bindconf	sb = { BER_BVNULL };
 		metatarget_t	*mt = mi->mi_targets[ i ];
 
+		struct berval mapped;
+
 		ber_str2bv( mt->mt_uri, 0, 0, &sb.sb_uri );
 		sb.sb_version = mt->mt_version;
 		sb.sb_method = LDAP_AUTH_SIMPLE;
@@ -223,6 +225,22 @@ meta_back_db_open(
 			{
 				not_always_anon_non_prescriptive = 1;
 			}
+		}
+
+		BER_BVZERO( &mapped );
+		ldap_back_map( &mt->mt_rwmap.rwm_at, 
+			&slap_schema.si_ad_entryDN->ad_cname, &mapped,
+			BACKLDAP_REMAP );
+		if ( BER_BVISNULL( &mapped ) || mapped.bv_val[0] == '\0' ) {
+			mt->mt_rep_flags |= REP_NO_ENTRYDN;
+		}
+
+		BER_BVZERO( &mapped );
+		ldap_back_map( &mt->mt_rwmap.rwm_at, 
+			&slap_schema.si_ad_subschemaSubentry->ad_cname, &mapped,
+			BACKLDAP_REMAP );
+		if ( BER_BVISNULL( &mapped ) || mapped.bv_val[0] == '\0' ) {
+			mt->mt_rep_flags |= REP_NO_SUBSCHEMA;
 		}
 	}
 
