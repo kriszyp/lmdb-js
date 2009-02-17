@@ -1,6 +1,7 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.15 Engineering
+	Fixed libldap GnuTLS compilation (ITS#5955)
 	Fixed slapd corrupt contextCSN (ITS#5947)
 	Fixed slapo-rwm objectClass preservation (ITS#5760)
 
