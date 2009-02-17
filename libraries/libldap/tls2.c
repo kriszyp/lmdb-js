@@ -635,9 +635,11 @@ ldap_pvt_tls_get_option( LDAP *ld, int option, void *arg )
 	case LDAP_OPT_X_TLS_REQUIRE_CERT:
 		*(int *)arg = lo->ldo_tls_require_cert;
 		break;
+#ifdef HAVE_OPENSSL_CRL
 	case LDAP_OPT_X_TLS_CRLCHECK:	/* OpenSSL only */
 		*(int *)arg = lo->ldo_tls_crlcheck;
 		break;
+#endif
 	case LDAP_OPT_X_TLS_CIPHER_SUITE:
 		*(char **)arg = lo->ldo_tls_ciphersuite ?
 			LDAP_STRDUP( lo->ldo_tls_ciphersuite ) : NULL;
