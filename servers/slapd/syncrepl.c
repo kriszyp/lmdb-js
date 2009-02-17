@@ -4325,13 +4325,22 @@ add_syncrepl(
 			BER_BVISNULL( &si->si_bindconf.sb_uri ) ?
 			"(null)" : si->si_bindconf.sb_uri.bv_val, 0, 0 );
 		if ( c->be->be_syncinfo ) {
+			syncinfo_t *sip;
+
 			si->si_cookieState = c->be->be_syncinfo->si_cookieState;
+
+			// add new syncrepl to end of list (same order as when deleting)
+			for ( sip = c->be->be_syncinfo; sip->si_next; sip = sip->si_next );
+			sip->si_next = si;
 		} else {
 			si->si_cookieState = ch_calloc( 1, sizeof( cookie_state ));
 			ldap_pvt_thread_mutex_init( &si->si_cookieState->cs_mutex );
+
+			c->be->be_syncinfo = si;
 		}
-		si->si_next = c->be->be_syncinfo;
-		c->be->be_syncinfo = si;
+
+		si->si_next = NULL;
+
 		return 0;
 	}
 }
