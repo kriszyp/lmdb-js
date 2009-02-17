@@ -351,8 +351,6 @@ map_gsserr2ldap(
 	int gss_rc,
 	OM_uint32 minor_status )
 {
-	OM_uint32 min2;
-	OM_uint32 msg_ctx = 0;
 	char msg[256];
 
 	Debug( LDAP_DEBUG_ANY, "%s\n",
@@ -561,7 +559,7 @@ guess_service_principal(
 	}
 
 	ret = snprintf( svc_principal, svc_principal_size - 1, principal_fmt, str);
-	if (ret < 0 || ret >= svc_principal_size - 1) {
+	if (ret < 0 || (size_t)ret + 1 >= svc_principal_size) {
 		ld->ld_errno = LDAP_LOCAL_ERROR;
 		return ld->ld_errno;
 	}
@@ -996,7 +994,9 @@ ldap_gssapi_bind(
 	LDAP *ld,
 	LDAP_CONST char *dn,
 	LDAP_CONST char *creds )
-{ return LDAP_NOT_SUPPORTED; }
+{
+	return LDAP_NOT_SUPPORTED;
+}
 
 int
 ldap_gssapi_bind_s(

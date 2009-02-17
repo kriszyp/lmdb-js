@@ -141,7 +141,6 @@ lutil_meter_update (
 	int rc;
 
 	assert( meter != NULL );
-	assert( position >= 0 );
 
 	lutil_get_now( &now );
 

@@ -106,7 +106,6 @@ ldap_result(
 	struct timeval *timeout,
 	LDAPMessage **result )
 {
-	LDAPMessage	*lm;
 	int		rc;
 
 	assert( ld != NULL );
@@ -1384,7 +1383,6 @@ ldap_abandoned( LDAP *ld, ber_int_t msgid, int *idxp )
 
 	assert( idxp != NULL );
 	assert( msgid >= 0 );
-	assert( ld->ld_nabandoned >= 0 );
 
 	return ldap_int_bisect_find( ld->ld_abandoned, ld->ld_nabandoned, msgid, idxp );
 }
