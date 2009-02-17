@@ -649,12 +649,10 @@ ldap_pvt_tls_get_option( LDAP *ld, int option, void *arg )
 	case LDAP_OPT_X_TLS_PROTOCOL_MIN:
 		*(int *)arg = lo->ldo_tls_protocol_min;
 		break;
-#ifdef HAVE_OPENSSL
-	case LDAP_OPT_X_TLS_RANDOM_FILE:	/* OpenSSL only */
+	case LDAP_OPT_X_TLS_RANDOM_FILE:
 		*(char **)arg = lo->ldo_tls_randfile ?
 			LDAP_STRDUP( lo->ldo_tls_randfile ) : NULL;
 		break;
-#endif
 	case LDAP_OPT_X_TLS_SSL_CTX: {
 		void *retval = 0;
 		if ( ld != NULL ) {
@@ -788,14 +786,12 @@ ldap_pvt_tls_set_option( LDAP *ld, int option, void *arg )
 		if ( !arg ) return -1;
 		lo->ldo_tls_protocol_min = *(int *)arg;
 		return 0;
-#ifdef HAVE_OPENSSL
-	case LDAP_OPT_X_TLS_RANDOM_FILE:	/* OpenSSL only */
+	case LDAP_OPT_X_TLS_RANDOM_FILE:
 		if ( ld != NULL )
 			return -1;
 		if ( lo->ldo_tls_randfile ) LDAP_FREE (lo->ldo_tls_randfile );
 		lo->ldo_tls_randfile = arg ? LDAP_STRDUP( (char *) arg ) : NULL;
 		break;
-#endif
 	case LDAP_OPT_X_TLS_NEWCTX:
 		if ( !arg ) return -1;
 		if ( lo->ldo_tls_ctx )
