@@ -336,15 +336,13 @@ shm_retry:
 		if ( !do_recover && bdb->bi_shm_key ) {
 			bdb->bi_dbenv->close( bdb->bi_dbenv, 0 );
 			rc = db_env_create( &bdb->bi_dbenv, 0 );
-			if( rc == 0 ) {
+			if( rc == 0 && do_retry ) {
 				Debug( LDAP_DEBUG_ANY, LDAP_XSTRING(bdb_db_open)
 					": database \"%s\": "
 					"shared memory env open failed, assuming stale env.\n",
 					be->be_suffix[0].bv_val, 0, 0 );
-				if ( do_retry ) {
-					do_retry = 0;
-					goto shm_retry;
-				}
+				do_retry = 0;
+				goto shm_retry;
 			}
 		}
 		Debug( LDAP_DEBUG_ANY,
