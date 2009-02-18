@@ -5,6 +5,8 @@ OpenLDAP 2.4.15 Engineering
 	Fixed slapd corrupt contextCSN (ITS#5947)
 	Fixed slapd syncrepl order to match on add/delete (ITS#5954)
 	Fixed slapo-rwm objectClass preservation (ITS#5760)
+	Build Environment
+		Fixed tester library linking for windows (ITS#5740)
 
 OpenLDAP 2.4.14 Release (2009/02/14)
 	Added libldap option to disable SASL host canonicalization (ITS#5812)
