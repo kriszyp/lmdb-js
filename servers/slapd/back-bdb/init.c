@@ -111,6 +111,7 @@ bdb_db_open( BackendDB *be, ConfigReply *cr )
 	Entry *e = NULL;
 	int do_recover = 0, do_alock_recover = 0;
 	int alockt, quick = 0;
+	int do_retry = 1;
 
 	if ( be->be_suffix == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
@@ -340,7 +341,10 @@ shm_retry:
 					": database \"%s\": "
 					"shared memory env open failed, assuming stale env.\n",
 					be->be_suffix[0].bv_val, 0, 0 );
-				goto shm_retry;
+				if ( do_retry ) {
+					do_retry = 0;
+					goto shm_retry;
+				}
 			}
 		}
 		Debug( LDAP_DEBUG_ANY,
