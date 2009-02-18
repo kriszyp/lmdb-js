@@ -16,7 +16,7 @@ REQUIRED SOFTWARE
         Standard C compiler (required)
         Cyrus SASL 2.1.21+ (recommended)
         OpenSSL 0.9.7+ (recommended)
-        POSIX REGEX software (required)
+        Reentrant POSIX REGEX software (required)
 
     SLAPD:
         BDB and HDB backends require Oracle Berkeley DB 4.4, 4.5,
