@@ -23,7 +23,7 @@ SRCS     = slapd-common.c \
 LDAP_INCDIR= ../../include
 LDAP_LIBDIR= ../../libraries
 
-XLIBS    = $(LDAP_LIBLDAP_LA) $(LDAP_LIBLBER_LA) $(LDAP_LIBLUTIL_A)
+XLIBS    = $(LDAP_LIBLDAP_LA) $(LDAP_LIBLUTIL_A) $(LDAP_LIBLBER_LA)
 XXLIBS	 = $(SECURITY_LIBS) $(LUTIL_LIBS)
 
 OBJS     = slapd-common.o
