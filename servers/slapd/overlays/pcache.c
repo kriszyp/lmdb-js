@@ -1993,6 +1993,19 @@ pcache_op_cleanup( Operation *op, SlapReply *rs ) {
 				goto over;
 			}
 
+			/* check for malformed entries: attrs with no values */
+			{
+				Attribute *a = e->e_attrs;
+				for (; a; a=a->a_next) {
+					if ( !a->a_numvals ) {
+						Debug( pcache_debug, "%s: query not cacheable because of attrs without values in DN \"%s\" (%s)\n",
+						op->o_log_prefix, rs->sr_entry->e_name.bv_val,
+						a->a_desc->ad_cname.bv_val );
+						goto over;
+					}
+				}
+			}
+
 			if ( si->count < si->max ) {
 				si->count++;
 				e = entry_dup( rs->sr_entry );
