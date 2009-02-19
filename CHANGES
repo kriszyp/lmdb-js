@@ -1,6 +1,6 @@
 OpenLDAP 2.4 Change Log
 
-OpenLDAP 2.4.15 Engineering
+OpenLDAP 2.4.15 Release (2009/02/19)
 	Fixed libldap GnuTLS compilation (ITS#5955)
 	Fixed slapd corrupt contextCSN (ITS#5947)
 	Fixed slapd syncrepl order to match on add/delete (ITS#5954)
