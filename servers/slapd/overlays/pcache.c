@@ -1976,7 +1976,7 @@ pcache_op_cleanup( Operation *op, SlapReply *rs ) {
 		Entry *e;
 
 		/* don't return more entries than requested by the client */
-		if ( si->slimit && rs->sr_nentries >= si->slimit ) {
+		if ( si->slimit > 0 && rs->sr_nentries >= si->slimit ) {
 			si->slimit_exceeded = 1;
 		}
 
