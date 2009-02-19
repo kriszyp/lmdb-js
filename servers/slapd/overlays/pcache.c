@@ -1995,7 +1995,7 @@ pcache_op_cleanup( Operation *op, SlapReply *rs ) {
 
 			/* check for malformed entries: attrs with no values */
 			{
-				Attribute *a = e->e_attrs;
+				Attribute *a = rs->sr_entry->e_attrs;
 				for (; a; a=a->a_next) {
 					if ( !a->a_numvals ) {
 						Debug( pcache_debug, "%s: query not cacheable because of attrs without values in DN \"%s\" (%s)\n",
