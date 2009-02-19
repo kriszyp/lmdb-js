@@ -333,10 +333,10 @@ shm_retry:
 		/* Regular open failed, probably a missing shm environment.
 		 * Start over, do a recovery.
 		 */
-		if ( !do_recover && bdb->bi_shm_key ) {
+		if ( !do_recover && bdb->bi_shm_key && do_retry ) {
 			bdb->bi_dbenv->close( bdb->bi_dbenv, 0 );
 			rc = db_env_create( &bdb->bi_dbenv, 0 );
-			if( rc == 0 && do_retry ) {
+			if( rc == 0 ) {
 				Debug( LDAP_DEBUG_ANY, LDAP_XSTRING(bdb_db_open)
 					": database \"%s\": "
 					"shared memory env open failed, assuming stale env.\n",
