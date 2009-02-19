@@ -2080,12 +2080,17 @@ remove_oc:;
 
 			attr->a_nvals = ch_malloc( ( last + 1 ) * sizeof( struct berval ) );
 			for ( i = 0; i<last; i++ ) {
-				attr->a_desc->ad_type->sat_equality->smr_normalize(
+				/* if normalizer fails, forget this attr */
+				if ( attr->a_desc->ad_type->sat_equality->smr_normalize(
 					SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
 					attr->a_desc->ad_type->sat_syntax,
 					attr->a_desc->ad_type->sat_equality,
 					&attr->a_vals[i], &attr->a_nvals[i],
-					NULL );
+					NULL )) {
+					BER_BVZERO( &attr->a_nvals[i] );
+					attr_free( attr );
+					goto next_attr;
+				}
 			}
 			BER_BVZERO( &attr->a_nvals[i] );
 
