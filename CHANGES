@@ -2,10 +2,12 @@ OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.15 Release (2009/02/19)
 	Fixed libldap GnuTLS compilation (ITS#5955)
+	Fixed slapd bconfig conversion again (ITS#5346)
 	Fixed slapd corrupt contextCSN (ITS#5947)
 	Fixed slapd syncrepl order to match on add/delete (ITS#5954)
 	Fixed slapd-bdb/hdb behavior with unallocatable shm (ITS#5956)
 	Fixed slapd-meta with entries with invalid attrs (ITS#5959)
+	Fixed slapd-relay control initialization (ITS#5724)
 	Fixed slapo-pcache caching invalid entries (ITS#5927)
 	Fixed slapo-rwm objectClass preservation (ITS#5760)
 	Fixed slapo-rwm rwm_bva_rewrite handling (ITS#5960)

@@ -140,24 +140,21 @@ over_db_open(
 {
 	slap_overinfo *oi = be->bd_info->bi_private;
 	slap_overinst *on = oi->oi_list;
-	BackendInfo *bi_orig = be->bd_info;
+	BackendDB db = *be;
 	int rc = 0;
 
-	be->be_flags |= SLAP_DBFLAG_OVERLAY;
-	be->bd_info = oi->oi_orig;
-	if ( be->bd_info->bi_db_open ) {
-		rc = be->bd_info->bi_db_open( be, cr );
+	db.be_flags |= SLAP_DBFLAG_OVERLAY;
+	db.bd_info = oi->oi_orig;
+	if ( db.bd_info->bi_db_open ) {
+		rc = db.bd_info->bi_db_open( &db, cr );
 	}
 
 	for (; on && rc == 0; on=on->on_next) {
-		be->bd_info = &on->on_bi;
-		if ( be->bd_info->bi_db_open ) {
-			rc = be->bd_info->bi_db_open( be, cr );
+		db.bd_info = &on->on_bi;
+		if ( db.bd_info->bi_db_open ) {
+			rc = db.bd_info->bi_db_open( &db, cr );
 		}
 	}
-
-	be->bd_info = bi_orig;
-	be->be_flags ^= SLAP_DBFLAG_OVERLAY;
 
 	return rc;
 }
