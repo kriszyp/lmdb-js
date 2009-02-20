@@ -315,7 +315,8 @@ ldap_build_search_req(
 #endif
 	{
 	    err = ber_printf( ber, "{it{seeiib", *idp,
-		LDAP_REQ_SEARCH, base, (ber_int_t) scope, ld->ld_deref,
+		LDAP_REQ_SEARCH, base, (ber_int_t) scope,
+		(deref < 0) ? ld->ld_deref : deref,
 		(sizelimit < 0) ? ld->ld_sizelimit : sizelimit,
 		(timelimit < 0) ? ld->ld_timelimit : timelimit,
 		attrsonly );
