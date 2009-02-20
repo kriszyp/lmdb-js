@@ -1222,7 +1222,7 @@ really_bad:;
 					 * are passed without checks */
 					rs->sr_err = ldap_parse_intermediate( msc->msc_ld,
 						msg,
-						&rs->sr_rspoid,
+						(char **)&rs->sr_rspoid,
 						&rs->sr_rspdata,
 						&rs->sr_ctrls,
 						0 );
@@ -1236,7 +1236,7 @@ really_bad:;
 					slap_send_ldap_intermediate( op, rs );
 
 					if ( rs->sr_rspoid != NULL ) {
-						ber_memfree( rs->sr_rspoid );
+						ber_memfree( (char *)rs->sr_rspoid );
 						rs->sr_rspoid = NULL;
 					}
 
@@ -2097,11 +2097,11 @@ remove_oc:;
 					i--;
 				}
 			}
-			if ( last == 0 && attr->a_vals != &slap_dummy_bv ) {
+			BER_BVZERO( &attr->a_nvals[i] );
+			if ( last == 0 ) {
 				attr_free( attr );
 				goto next_attr;
 			}
-			BER_BVZERO( &attr->a_nvals[i] );
 
 		} else {
 			attr->a_nvals = attr->a_vals;
