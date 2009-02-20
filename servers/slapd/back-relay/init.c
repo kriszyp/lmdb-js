@@ -224,11 +224,11 @@ relay_back_db_open( Backend *be, ConfigReply *cr )
 		}
 
 		/* inherit controls */
-		AC_MEMCPY( be->be_ctrls, ri->ri_bd->be_ctrls, sizeof( be->be_ctrls ) );
+		AC_MEMCPY( be->bd_self->be_ctrls, ri->ri_bd->be_ctrls, sizeof( be->be_ctrls ) );
 
 	} else {
 		/* inherit all? */
-		AC_MEMCPY( be->be_ctrls, frontendDB->be_ctrls, sizeof( be->be_ctrls ) );
+		AC_MEMCPY( be->bd_self->be_ctrls, frontendDB->be_ctrls, sizeof( be->be_ctrls ) );
 	}
 
 	return 0;
