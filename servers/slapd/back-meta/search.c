@@ -1222,7 +1222,7 @@ really_bad:;
 					 * are passed without checks */
 					rs->sr_err = ldap_parse_intermediate( msc->msc_ld,
 						msg,
-						&rs->sr_rspoid,
+						(char **)&rs->sr_rspoid,
 						&rs->sr_rspdata,
 						&rs->sr_ctrls,
 						0 );
@@ -1236,7 +1236,7 @@ really_bad:;
 					slap_send_ldap_intermediate( op, rs );
 
 					if ( rs->sr_rspoid != NULL ) {
-						ber_memfree( rs->sr_rspoid );
+						ber_memfree( (char *)rs->sr_rspoid );
 						rs->sr_rspoid = NULL;
 					}
 
@@ -2080,24 +2080,34 @@ remove_oc:;
 
 			attr->a_nvals = ch_malloc( ( last + 1 ) * sizeof( struct berval ) );
 			for ( i = 0; i<last; i++ ) {
-				/* if normalizer fails, forget this attr */
+				/* if normalizer fails, drop this value */
 				if ( attr->a_desc->ad_type->sat_equality->smr_normalize(
 					SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
 					attr->a_desc->ad_type->sat_syntax,
 					attr->a_desc->ad_type->sat_equality,
 					&attr->a_vals[i], &attr->a_nvals[i],
 					NULL )) {
-					BER_BVZERO( &attr->a_nvals[i] );
-					attr_free( attr );
-					goto next_attr;
+					LBER_FREE( attr->a_vals[i].bv_val );
+					if ( --last == i ) {
+						BER_BVZERO( &attr->a_vals[ i ] );
+						break;
+					}
+					attr->a_vals[i] = attr->a_vals[last];
+					BER_BVZERO( &attr->a_vals[last] );
+					i--;
 				}
 			}
 			BER_BVZERO( &attr->a_nvals[i] );
+			if ( last == 0 ) {
+				attr_free( attr );
+				goto next_attr;
+			}
 
 		} else {
 			attr->a_nvals = attr->a_vals;
 		}
 
+		attr->a_numvals = last;
 		*attrp = attr;
 		attrp = &attr->a_next;
 next_attr:;
