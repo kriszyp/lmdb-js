@@ -428,7 +428,7 @@ retry:
 			 * are passed without checks */
 			rc = ldap_parse_intermediate( lc->lc_ld,
 				res,
-				&rs->sr_rspoid,
+				(char **)&rs->sr_rspoid,
 				&rs->sr_rspdata,
 				&rs->sr_ctrls,
 				0 );
@@ -439,7 +439,7 @@ retry:
 			slap_send_ldap_intermediate( op, rs );
 
 			if ( rs->sr_rspoid != NULL ) {
-				ber_memfree( rs->sr_rspoid );
+				ber_memfree( (char *)rs->sr_rspoid );
 				rs->sr_rspoid = NULL;
 			}
 
@@ -729,7 +729,10 @@ ldap_build_entry(
 			goto next_attr;
 		}
 
-		for ( i = 0; !BER_BVISNULL( &attr->a_vals[i] ); i++ ) {
+		for ( i = 0; !BER_BVISNULL( &attr->a_vals[i] ); i++ ) ;
+		last = i;
+
+		for ( i = 0; i<last; i++ ) {
 			struct berval	pval;
 			int		rc;
 
@@ -752,18 +755,25 @@ ldap_build_entry(
 					ber_dupbv( &pval, &oc->soc_cname );
 
 				} else {
-					attr->a_nvals = NULL;
-					attr_free( attr );
-					goto next_attr;
+					LBER_FREE( attr->a_vals[i].bv_val );
+					if ( --last == i ) {
+						BER_BVZERO( &attr->a_vals[i] );
+						break;
+					}
+					attr->a_vals[i] = attr->a_vals[last];
+					BER_BVZERO( &attr->a_vals[last] );
 				}
-			}
-
-			if ( pretty ) {
+			} else if ( pretty ) {
 				LBER_FREE( attr->a_vals[i].bv_val );
 				attr->a_vals[i] = pval;
 			}
 		}
 		attr->a_numvals = last = i;
+		if ( last == 0 && attr->a_vals != &slap_dummy_bv ) {
+			attr->a_nvals = NULL;
+			attr_free( attr );
+			goto next_attr;
+		}
 
 		if ( last && attr->a_desc->ad_type->sat_equality &&
 				attr->a_desc->ad_type->sat_equality->smr_normalize )
@@ -784,16 +794,26 @@ ldap_build_entry(
 					NULL );
 
 				if ( rc != LDAP_SUCCESS ) {
-					BER_BVZERO( &attr->a_nvals[i] );
-					attr_free( attr );
-					goto next_attr;
+					LBER_FREE( attr->a_vals[i].bv_val );
+					if ( --last == i ) {
+						BER_BVZERO( &attr->a_vals[i] );
+						break;
+					}
+					attr->a_vals[i] = attr->a_vals[last];
+					BER_BVZERO( &attr->a_vals[last] );
 				}
 			}
 			BER_BVZERO( &attr->a_nvals[i] );
+			if ( last == 0 ) {
+				attr_free( attr );
+				goto next_attr;
+			}
 
 		} else {
 			attr->a_nvals = attr->a_vals;
 		}
+
+		attr->a_numvals = last;
 		*attrp = attr;
 		attrp = &attr->a_next;
 
