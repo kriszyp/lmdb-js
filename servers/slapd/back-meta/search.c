@@ -2080,17 +2080,26 @@ remove_oc:;
 
 			attr->a_nvals = ch_malloc( ( last + 1 ) * sizeof( struct berval ) );
 			for ( i = 0; i<last; i++ ) {
-				/* if normalizer fails, forget this attr */
+				/* if normalizer fails, drop this value */
 				if ( attr->a_desc->ad_type->sat_equality->smr_normalize(
 					SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
 					attr->a_desc->ad_type->sat_syntax,
 					attr->a_desc->ad_type->sat_equality,
 					&attr->a_vals[i], &attr->a_nvals[i],
 					NULL )) {
-					BER_BVZERO( &attr->a_nvals[i] );
-					attr_free( attr );
-					goto next_attr;
+					LBER_FREE( attr->a_vals[i].bv_val );
+					if ( --last == i ) {
+						BER_BVZERO( &attr->a_vals[ i ] );
+						break;
+					}
+					attr->a_vals[i] = attr->a_vals[last];
+					BER_BVZERO( &attr->a_vals[last] );
+					i--;
 				}
+			}
+			if ( last == 0 && attr->a_vals != &slap_dummy_bv ) {
+				attr_free( attr );
+				goto next_attr;
 			}
 			BER_BVZERO( &attr->a_nvals[i] );
 
@@ -2098,6 +2107,7 @@ remove_oc:;
 			attr->a_nvals = attr->a_vals;
 		}
 
+		attr->a_numvals = last;
 		*attrp = attr;
 		attrp = &attr->a_next;
 next_attr:;
