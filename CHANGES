@@ -8,6 +8,7 @@ OpenLDAP 2.4.15 Release (2009/02/19)
 	Fixed slapd-meta with entries with invalid attrs (ITS#5959)
 	Fixed slapo-pcache caching invalid entries (ITS#5927)
 	Fixed slapo-rwm objectClass preservation (ITS#5760)
+	Fixed slapo-rwm rwm_bva_rewrite handling (ITS#5960)
 	Build Environment
 		Fixed tester library linking for windows (ITS#5740)
 

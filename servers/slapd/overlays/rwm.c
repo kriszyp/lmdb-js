@@ -2162,7 +2162,7 @@ rwm_cf_gen( ConfigArgs *c )
 			ConfigArgs ca = { 0 };
 			int i, last;
 
-			for ( last = 0; !BER_BVISNULL( &rwmap->rwm_bva_rewrite[ last ] ); last++ )
+			for ( last = 0; rwmap->rwm_bva_rewrite && !BER_BVISNULL( &rwmap->rwm_bva_rewrite[ last ] ); last++ )
 				/* count'em */ ;
 
 			if ( c->valx > last ) {
@@ -2218,7 +2218,7 @@ rwm_cf_gen( ConfigArgs *c )
 				return 1;
 			}
 
-			for ( i = c->valx; !BER_BVISNULL( &rwmap->rwm_bva_rewrite[ i ] ); i++ )
+			for ( i = c->valx; rwmap->rwm_bva_rewrite && !BER_BVISNULL( &rwmap->rwm_bva_rewrite[ i ] ); i++ )
 			{
 				ca.line = rwmap->rwm_bva_rewrite[ i ].bv_val;
 				ca.argc = 0;
@@ -2245,6 +2245,7 @@ rwm_cf_gen( ConfigArgs *c )
 
 			rwmap->rwm_bva_rewrite = ch_realloc( rwmap->rwm_bva_rewrite,
 				( last + 2 )*sizeof( struct berval ) );
+			BER_BVZERO( &rwmap->rwm_bva_rewrite[last+1] );
 
 			for ( i = last - 1; i >= c->valx; i-- )
 			{
@@ -2369,7 +2370,8 @@ rwm_db_destroy(
 
 		if ( rwmap->rwm_rw ) {
 			rewrite_info_delete( &rwmap->rwm_rw );
-			ber_bvarray_free( rwmap->rwm_bva_rewrite );
+			if ( rwmap->rwm_bva_rewrite )
+				ber_bvarray_free( rwmap->rwm_bva_rewrite );
 		}
 
 		avl_free( rwmap->rwm_oc.remap, rwm_mapping_dst_free );
