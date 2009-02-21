@@ -91,8 +91,18 @@ fi
 echo "Filtering ldapsearch results..."
 . $LDIFFILTER < $SEARCHOUT > $SEARCHFLT
 
+TMPMONITOROUT2=$MONITOROUT2
+case $BACKEND in
+bdb|hdb)
+	;;
+*)
+	TMPMONITOROUT2=$TESTDIR/monitor2.out
+	grep -v "olmBDB" $MONITOROUT2 > $TMPMONITOROUT2
+	;;
+esac
+
 echo "Comparing filter output..."
-$CMP $SEARCHFLT $MONITOROUT2 > $CMPOUT
+$CMP $SEARCHFLT $TMPMONITOROUT2 > $CMPOUT
 
 if test $? != 0 ; then
         echo "comparison failed - database monitor output is not correct"
