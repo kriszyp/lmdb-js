@@ -263,13 +263,18 @@ modify_delete_vindex(
 		goto return_result;
 	}
 
+	if ( a->a_desc == slap_schema.si_ad_objectClass ) {
+		/* Needed by ITS#5517,ITS#5963 */
+		flags = SLAP_MR_EQUALITY | SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX;
+
+	} else {
+		flags = SLAP_MR_EQUALITY | SLAP_MR_VALUE_OF_ASSERTION_SYNTAX;
+	}
 	if ( mod->sm_nvalues ) {
-		flags = SLAP_MR_EQUALITY | SLAP_MR_VALUE_OF_ASSERTION_SYNTAX
-			| SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH
+		flags |= SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH
 			| SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH;
 		cvals = mod->sm_nvalues;
 	} else {
-		flags = SLAP_MR_EQUALITY | SLAP_MR_VALUE_OF_ASSERTION_SYNTAX;
 		cvals = mod->sm_values;
 	}
 
