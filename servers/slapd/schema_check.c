@@ -881,7 +881,7 @@ entry_naming_check(
 				SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH,
 				&ava->la_value, NULL, NULL );
 
-			if( rc != 0 ) {
+			if ( rc != 0 ) {
 				switch( rc ) {
 				case LDAP_INAPPROPRIATE_MATCHING:
 					snprintf( textbuf, textlen, 
@@ -895,8 +895,16 @@ entry_naming_check(
 					break;
 				case LDAP_NO_SUCH_ATTRIBUTE:
 					if ( add_naming ) {
-						add = 1;
-						rc = LDAP_SUCCESS;
+						if ( is_at_single_value( desc->ad_type ) ) {
+							snprintf( textbuf, textlen, 
+								"value of single-valued naming attribute '%s' conflicts with value present in entry",
+								ava->la_attr.bv_val );
+
+						} else {
+							add = 1;
+							rc = LDAP_SUCCESS;
+						}
+
 					} else {
 						snprintf( textbuf, textlen, 
 							"value of naming attribute '%s' is not present in entry",
