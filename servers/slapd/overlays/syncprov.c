@@ -1630,7 +1630,7 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 	{
 		struct berval maxcsn;
 		char cbuf[LDAP_LUTIL_CSNSTR_BUFSIZE];
-		int do_check = 0, have_psearches, foundit;
+		int do_check = 0, have_psearches, foundit, csn_changed = 0;
 
 		/* Update our context CSN */
 		cbuf[0] = '\0';
@@ -1662,6 +1662,7 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 				if ( sid == si->si_sids[i] ) {
 					if ( ber_bvcmp( &maxcsn, &si->si_ctxcsn[i] ) > 0 ) {
 						ber_bvreplace( &si->si_ctxcsn[i], &maxcsn );
+						csn_changed = 1;
 					}
 					break;
 				}
@@ -1669,6 +1670,7 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 			/* It's a new SID for us */
 			if ( i == si->si_numcsns ) {
 				value_add_one( &si->si_ctxcsn, &maxcsn );
+				csn_changed = 1;
 				si->si_numcsns++;
 				si->si_sids = ch_realloc( si->si_sids, si->si_numcsns *
 					sizeof(int));
@@ -1710,8 +1712,8 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 			ldap_pvt_thread_rdwr_runlock( &si->si_csn_rwlock );
 		}
 
-		/* only update consumer ctx if this is the greatest csn */
-		if ( bvmatch( &maxcsn, &op->o_csn )) {
+		/* only update consumer ctx if this is a newer csn */
+		if ( csn_changed ) {
 			opc->sctxcsn = maxcsn;
 		}
 
