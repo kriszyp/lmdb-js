@@ -250,21 +250,8 @@ AVA_Sort( LDAPRDN rdn, int nAVAs )
 			ava_j = rdn[ j ];
 			a = strcmp( ava_i->la_attr.bv_val, ava_j->la_attr.bv_val );
 
-			if ( a == 0 ) {
-				int		d;
-
-				d = ava_i->la_value.bv_len - ava_j->la_value.bv_len;
-
-				a = memcmp( ava_i->la_value.bv_val, 
-						ava_j->la_value.bv_val,
-						d <= 0 ? ava_i->la_value.bv_len 
-							: ava_j->la_value.bv_len );
-
-				if ( a == 0 ) {
-					a = d;
-				}
-			}
-			/* Duplicates are not allowed */
+			/* RFC4512 does not allow multiple AVAs
+			 * with the same attribute type in RDN (ITS#5968) */
 			if ( a == 0 )
 				return LDAP_INVALID_DN_SYNTAX;
 
