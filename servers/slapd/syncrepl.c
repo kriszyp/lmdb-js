@@ -2887,12 +2887,11 @@ syncrepl_updateCookie(
 {
 	Backend *be = op->o_bd;
 	Modifications mod;
-	struct berval first = BER_BVNULL;
 #ifdef CHECK_CSN
 	Syntax *syn = slap_schema.si_ad_contextCSN->ad_type->sat_syntax;
 #endif
 
-	int rc, i, j;
+	int rc, i, j, csn_changed = 0;
 	ber_len_t len;
 
 	slap_callback cb = { NULL };
@@ -2934,13 +2933,7 @@ syncrepl_updateCookie(
 			if ( memcmp( syncCookie->ctxcsn[i].bv_val,
 				si->si_cookieState->cs_vals[j].bv_val, len ) > 0 ) {
 				mod.sml_values[j] = syncCookie->ctxcsn[i];
-				if ( BER_BVISNULL( &first ) ) {
-					first = syncCookie->ctxcsn[i];
-
-				} else if ( memcmp( syncCookie->ctxcsn[i].bv_val, first.bv_val, first.bv_len ) > 0 )
-				{
-					first = syncCookie->ctxcsn[i];
-				}
+				csn_changed = 1;
 			}
 			break;
 		}
@@ -2950,23 +2943,16 @@ syncrepl_updateCookie(
 				( mod.sml_numvals+2 )*sizeof(struct berval), op->o_tmpmemctx );
 			mod.sml_values[mod.sml_numvals++] = syncCookie->ctxcsn[i];
 			BER_BVZERO( &mod.sml_values[mod.sml_numvals] );
-			if ( BER_BVISNULL( &first ) ) {
-				first = syncCookie->ctxcsn[i];
-			} else if ( memcmp( syncCookie->ctxcsn[i].bv_val, first.bv_val, first.bv_len ) > 0 )
-			{
-				first = syncCookie->ctxcsn[i];
-			}
+			csn_changed = 1;
 		}
 	}
 	/* Should never happen, ITS#5065 */
-	if ( BER_BVISNULL( &first )) {
+	if ( !csn_changed ) {
 		ldap_pvt_thread_mutex_unlock( &si->si_cookieState->cs_mutex );
 		op->o_tmpfree( mod.sml_values, op->o_tmpmemctx );
 		return 0;
 	}
 	op->o_bd = si->si_wbe;
-	slap_queue_csn( op, &first );
-
 	op->o_tag = LDAP_REQ_MODIFY;
 
 	cb.sc_response = null_callback;
