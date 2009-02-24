@@ -1,6 +1,6 @@
 OpenLDAP 2.4 Change Log
 
-OpenLDAP 2.4.15 Release (2009/02/19)
+OpenLDAP 2.4.15 Release (2009/02/24)
 	Fixed libldap alias dereferencing in C API again (ITS#5916)
 	Fixed libldap GnuTLS compilation (ITS#5955)
 	Fixed slapd bconfig conversion again (ITS#5346)
