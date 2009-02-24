@@ -3249,7 +3249,7 @@ config_tls_config(ConfigArgs *c) {
 		}
 		return(ldap_pvt_tls_set_option(slap_tls_ld, flag, &i));
 	} else {
-		return(ldap_int_tls_config(slap_tls_ld, flag, c->argv[1]));
+		return(ldap_pvt_tls_config(slap_tls_ld, flag, c->argv[1]));
 	}
 }
 #endif

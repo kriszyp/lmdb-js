@@ -351,7 +351,7 @@ LDAP_F( struct berval * )
 ldap_pvt_str2lowerbv LDAP_P(( char *str, struct berval *bv ));
 
 /* tls.c */
-LDAP_F (int) ldap_int_tls_config LDAP_P(( struct ldap *ld,
+LDAP_F (int) ldap_pvt_tls_config LDAP_P(( struct ldap *ld,
 	int option, const char *arg ));
 LDAP_F (int) ldap_pvt_tls_get_option LDAP_P(( struct ldap *ld,
 	int option, void *arg ));

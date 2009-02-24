@@ -275,7 +275,7 @@ static void openldap_ldap_init_w_conf(
 				break;
 			case ATTR_TLS:
 #ifdef HAVE_TLS
-			   	ldap_int_tls_config( NULL, attrs[i].offset, opt );
+			   	ldap_pvt_tls_config( NULL, attrs[i].offset, opt );
 #endif
 				break;
 			case ATTR_OPT_TV: {
@@ -429,7 +429,7 @@ static void openldap_ldap_init_w_env(
 		   	break;
 		case ATTR_TLS:
 #ifdef HAVE_TLS
-		   	ldap_int_tls_config( NULL, attrs[i].offset, value );
+		   	ldap_pvt_tls_config( NULL, attrs[i].offset, value );
 #endif			 	
 		   	break;
 		}

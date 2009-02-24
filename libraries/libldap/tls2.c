@@ -500,7 +500,7 @@ ldap_pvt_tls_check_hostname( LDAP *ld, void *s, const char *name_in )
 }
 
 int
-ldap_int_tls_config( LDAP *ld, int option, const char *arg )
+ldap_pvt_tls_config( LDAP *ld, int option, const char *arg )
 {
 	int i;
 
