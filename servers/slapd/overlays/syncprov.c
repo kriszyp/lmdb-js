@@ -876,27 +876,34 @@ syncprov_qplay( Operation *op, struct re_s *rtask )
 			break;
 		ldap_pvt_thread_mutex_unlock( &so->s_mutex );
 
-		opc.sdn = sr->s_dn;
-		opc.sndn = sr->s_ndn;
-		opc.suuid = sr->s_uuid;
-		opc.sctxcsn = sr->s_csn;
-		opc.sreference = sr->s_isreference;
-		e = NULL;
+		if ( sr->s_mode == LDAP_SYNC_NEW_COOKIE ) {
+		    SlapReply rs = { REP_INTERMEDIATE };
 
-		if ( sr->s_mode != LDAP_SYNC_DELETE ) {
-			rc = overlay_entry_get_ov( op, &opc.sndn, NULL, NULL, 0, &e, on );
-			if ( rc ) {
-				Debug( LDAP_DEBUG_SYNC, "syncprov_qplay: failed to get %s, "
-					"error (%d), ignoring...\n", opc.sndn.bv_val, rc, 0 );
-				ch_free( sr );
-				rc = 0;
-				continue;
+		    rc = syncprov_sendinfo( op, &rs, LDAP_TAG_SYNC_NEW_COOKIE,
+				&sr->s_csn, 0, NULL, 0 );
+		} else {
+			opc.sdn = sr->s_dn;
+			opc.sndn = sr->s_ndn;
+			opc.suuid = sr->s_uuid;
+			opc.sctxcsn = sr->s_csn;
+			opc.sreference = sr->s_isreference;
+			e = NULL;
+
+			if ( sr->s_mode != LDAP_SYNC_DELETE ) {
+				rc = overlay_entry_get_ov( op, &opc.sndn, NULL, NULL, 0, &e, on );
+				if ( rc ) {
+					Debug( LDAP_DEBUG_SYNC, "syncprov_qplay: failed to get %s, "
+						"error (%d), ignoring...\n", opc.sndn.bv_val, rc, 0 );
+					ch_free( sr );
+					rc = 0;
+					continue;
+				}
 			}
-		}
-		rc = syncprov_sendresp( op, &opc, so, &e, sr->s_mode );
+			rc = syncprov_sendresp( op, &opc, so, &e, sr->s_mode );
 
-		if ( e ) {
-			overlay_entry_release_ov( op, e, 0, on );
+			if ( e ) {
+				overlay_entry_release_ov( op, e, 0, on );
+			}
 		}
 
 		ch_free( sr );
@@ -1007,17 +1014,25 @@ static int
 syncprov_qresp( opcookie *opc, syncops *so, int mode )
 {
 	syncres *sr;
-	int sid, srsize;
+	int srsize;
+	struct berval cookie = opc->sctxcsn;
 
-	/* Don't send changes back to their originator */
-	sid = slap_parse_csn_sid( &opc->sctxcsn );
-	if ( sid >= 0 && sid == so->s_sid )
-		return LDAP_SUCCESS;
+	if ( mode == LDAP_SYNC_NEW_COOKIE ) {
+		syncprov_info_t	*si = opc->son->on_bi.bi_private;
+
+		slap_compose_sync_cookie( NULL, &cookie, si->si_ctxcsn,
+			so->s_rid, so->s_sid);
+	} else if ( opc->sctxcsn.bv_len ) {
+		/* Don't send changes back to their originator */
+		int sid = slap_parse_csn_sid( &opc->sctxcsn );
+		if ( sid >= 0 && sid == so->s_sid )
+			return LDAP_SUCCESS;
+	}
 
 	srsize = sizeof(syncres) + opc->suuid.bv_len + 1 +
 		opc->sdn.bv_len + 1 + opc->sndn.bv_len + 1;
-	if ( opc->sctxcsn.bv_len )
-		srsize += opc->sctxcsn.bv_len + 1;
+	if ( cookie.bv_len )
+		srsize += cookie.bv_len + 1;
 	sr = ch_malloc( srsize );
 	sr->s_next = NULL;
 	sr->s_dn.bv_val = (char *)(sr + 1);
@@ -1031,13 +1046,17 @@ syncprov_qresp( opcookie *opc, syncops *so, int mode )
 		 opc->sndn.bv_val ) + 1;
 	sr->s_uuid.bv_len = opc->suuid.bv_len;
 	AC_MEMCPY( sr->s_uuid.bv_val, opc->suuid.bv_val, opc->suuid.bv_len );
-	if ( opc->sctxcsn.bv_len ) {
+	if ( cookie.bv_len ) {
 		sr->s_csn.bv_val = sr->s_uuid.bv_val + sr->s_uuid.bv_len + 1;
-		strcpy( sr->s_csn.bv_val, opc->sctxcsn.bv_val );
+		strcpy( sr->s_csn.bv_val, cookie.bv_val );
 	} else {
 		sr->s_csn.bv_val = NULL;
 	}
-	sr->s_csn.bv_len = opc->sctxcsn.bv_len;
+	sr->s_csn.bv_len = cookie.bv_len;
+
+	if ( mode == LDAP_SYNC_NEW_COOKIE && cookie.bv_val ) {
+		ch_free( cookie.bv_val );
+	}
 
 	ldap_pvt_thread_mutex_lock( &so->s_mutex );
 	if ( !so->s_res ) {
@@ -1266,6 +1285,8 @@ syncprov_matchops( Operation *op, opcookie *opc, int saveit )
 		} else if ( !saveit && found ) {
 			/* send DELETE */
 			syncprov_qresp( opc, ss, LDAP_SYNC_DELETE );
+		} else if ( !saveit ) {
+			syncprov_qresp( opc, ss, LDAP_SYNC_NEW_COOKIE );
 		}
 		if ( !saveit && found ) {
 			/* Decrement s_inuse, was incremented when called

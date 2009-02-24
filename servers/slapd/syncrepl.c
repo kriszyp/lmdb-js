@@ -1037,6 +1037,17 @@ do_syncrep2(
 						"LDAP_RES_INTERMEDIATE", 
 						"NEW_COOKIE" );
 					ber_scanf( ber, "tm", &tag, &cookie );
+					Debug( LDAP_DEBUG_SYNC,
+						"do_syncrep2: %s NEW_COOKIE: %s\n",
+						si->si_ridtxt,
+						cookie.bv_val, 0);
+					if ( !BER_BVISNULL( &cookie ) ) {
+						ch_free( syncCookie.octet_str.bv_val );
+						ber_dupbv( &syncCookie.octet_str, &cookie );
+					}
+					if (!BER_BVISNULL( &syncCookie.octet_str ) ) {
+						slap_parse_sync_cookie( &syncCookie, NULL );
+					}
 					break;
 				case LDAP_TAG_SYNC_REFRESH_DELETE:
 				case LDAP_TAG_SYNC_REFRESH_PRESENT:
@@ -1149,6 +1160,7 @@ do_syncrep2(
 
 				if ( match < 0 ) {
 					if ( si->si_refreshPresent == 1 &&
+						si_tag != LDAP_TAG_SYNC_NEW_COOKIE &&
 						syncCookie_req.numcsns == syncCookie.numcsns ) {
 						syncrepl_del_nonpresent( op, si, NULL,
 							&syncCookie, m );

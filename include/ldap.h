@@ -282,6 +282,7 @@ typedef struct ldapcontrol {
 #define LDAP_SYNC_ADD					1
 #define LDAP_SYNC_MODIFY				2
 #define LDAP_SYNC_DELETE				3
+#define LDAP_SYNC_NEW_COOKIE			4
 
 
 /* Password policy Controls *//* work in progress */
