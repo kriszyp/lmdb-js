@@ -61,6 +61,8 @@ static const PRIOMethods tlsm_PR_methods;
 
 extern tls_impl ldap_int_tls_impl;
 
+static int tslm_did_init;
+
 #ifdef LDAP_R_COMPILE
 
 static void
@@ -81,6 +83,8 @@ tlsm_init( void )
 	tlsm_layer_id = PR_GetUniqueIdentity("OpenLDAP");
 
 	if ( !NSS_IsInitialized() ) {
+		tlsm_did_init = 1;
+
 		NSS_NoDB_Init("");
 
 		NSS_SetDomesticPolicy();
@@ -97,7 +101,12 @@ tlsm_init( void )
 static void
 tlsm_destroy( void )
 {
-	NSS_Shutdown();
+	/* Only if we did the actual initialization */
+	if ( tlsm_did_init ) {
+		tlsm_did_init = 0;
+
+		NSS_Shutdown();
+	}
 
 	PR_Cleanup();
 }
