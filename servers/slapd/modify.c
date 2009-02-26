@@ -808,7 +808,7 @@ slap_sort_vals(
 		}
 	}
 	done:
-	if ( i >= 0 )
+	if ( rc == LDAP_TYPE_OR_VALUE_EXISTS && i >= 0 )
 		*dup = ix[i];
 
 	/* For sorted attributes, put the values in index order */
