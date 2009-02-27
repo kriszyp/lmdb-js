@@ -2168,10 +2168,8 @@ next_attr:;
 				while ( attr->a_numvals > 1 ) {
 					int i;
 					int rc = slap_sort_vals( (Modifications *)attr, &text, &i, op->o_tmpmemctx );
-					if ( rc != LDAP_TYPE_OR_VALUE_EXISTS ) {
-						attr->a_flags |= SLAP_ATTR_SORTED_VALS;
+					if ( rc != LDAP_TYPE_OR_VALUE_EXISTS )
 						break;
-					}
 
 					/* Strip duplicate values */
 					if ( attr->a_nvals != attr->a_vals )
@@ -2187,6 +2185,7 @@ next_attr:;
 					if ( attr->a_nvals != attr->a_vals )
 						BER_BVZERO(&attr->a_vals[attr->a_numvals]);
 				}
+				attr->a_flags |= SLAP_ATTR_SORTED_VALS;
 			}
 		}
 	}

@@ -819,10 +819,8 @@ ldap_build_entry(
 		if ( attr->a_desc->ad_type->sat_flags & SLAP_AT_SORTED_VAL ) {
 			while ( attr->a_numvals > 1 ) {
 				int rc = slap_sort_vals( (Modifications *)attr, &text, &i, op->o_tmpmemctx );
-				if ( rc != LDAP_TYPE_OR_VALUE_EXISTS ) {
-					attr->a_flags |= SLAP_ATTR_SORTED_VALS;
+				if ( rc != LDAP_TYPE_OR_VALUE_EXISTS )
 					break;
-				}
 
 				/* Strip duplicate values */
 				if ( attr->a_nvals != attr->a_vals )
@@ -838,6 +836,7 @@ ldap_build_entry(
 				if ( attr->a_nvals != attr->a_vals )
 					BER_BVZERO(&attr->a_vals[attr->a_numvals]);
 			}
+			attr->a_flags |= SLAP_ATTR_SORTED_VALS;
 		}
 
 		*attrp = attr;
