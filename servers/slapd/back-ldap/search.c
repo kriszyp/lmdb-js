@@ -47,7 +47,8 @@ ldap_build_entry( Operation *op, LDAPMessage *e, Entry *ent,
 static int
 ldap_back_munge_filter(
 	Operation	*op,
-	struct berval	*filter )
+	struct berval	*filter,
+	int	*freeit )
 {
 	ldapinfo_t	*li = (ldapinfo_t *) op->o_bd->be_private;
 
@@ -122,6 +123,7 @@ ldap_back_munge_filter(
 			AC_MEMCPY( filter->bv_val, op->ors_filterstr.bv_val,
 					op->ors_filterstr.bv_len + 1 );
 
+			*freeit = 1;
 		} else {
 			filter->bv_val = op->o_tmprealloc( filter->bv_val,
 					filter->bv_len + 1, op->o_tmpmemctx );
@@ -163,7 +165,7 @@ ldap_back_search(
 			filter = BER_BVNULL;
 	int		i;
 	char		**attrs = NULL;
-	int		freetext = 0;
+	int		freetext = 0, freefilter = 0;
 	int		do_retry = 1, dont_retry = 0;
 	LDAPControl	**ctrls = NULL;
 	char		**references = NULL;
@@ -242,7 +244,7 @@ retry:
 			goto finish;
 
 		case LDAP_FILTER_ERROR:
-			if (ldap_back_munge_filter( op, &filter ) > 0 ) {
+			if (ldap_back_munge_filter( op, &filter, &freefilter ) > 0 ) {
 				goto retry;
 			}
 
@@ -561,7 +563,7 @@ finish:;
 		ldap_back_quarantine( op, rs );
 	}
 
-	if ( filter.bv_val != op->ors_filterstr.bv_val ) {
+	if ( freefilter ) {
 		op->o_tmpfree( filter.bv_val, op->o_tmpmemctx );
 	}
 
