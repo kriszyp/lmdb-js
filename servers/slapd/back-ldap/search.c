@@ -563,7 +563,7 @@ finish:;
 		ldap_back_quarantine( op, rs );
 	}
 
-	if ( freefilter ) {
+	if ( freefilter && filter.bv_val != op->ors_filterstr.bv_val ) {
 		op->o_tmpfree( filter.bv_val, op->o_tmpmemctx );
 	}
 
