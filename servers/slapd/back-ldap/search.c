@@ -766,7 +766,9 @@ ldap_build_entry(
 					}
 					attr->a_vals[i] = attr->a_vals[last];
 					BER_BVZERO( &attr->a_vals[last] );
+					i--;
 				}
+
 			} else if ( pretty ) {
 				LBER_FREE( attr->a_vals[i].bv_val );
 				attr->a_vals[i] = pval;
@@ -801,6 +803,7 @@ ldap_build_entry(
 					}
 					attr->a_vals[i] = attr->a_vals[last];
 					BER_BVZERO( &attr->a_vals[last] );
+					i--;
 				}
 			}
 			BER_BVZERO( &attr->a_nvals[i] );
