@@ -1801,6 +1801,7 @@ meta_send_entry(
 	metainfo_t 		*mi = ( metainfo_t * )op->o_bd->be_private;
 	struct berval		a, mapped;
 	int			check_duplicate_attrs = 0;
+	int			check_sorted_attrs = 0;
 	Entry 			ent = { 0 };
 	BerElement 		ber = *e->lm_ber;
 	Attribute 		*attr, **attrp;
@@ -1924,6 +1925,9 @@ meta_send_entry(
 				continue;
 			}
 		}
+
+		if ( attr->a_desc->ad_type->sat_flags & SLAP_AT_SORTED_VAL )
+			check_sorted_attrs = 1;
 
 		/* no subschemaSubentry */
 		if ( attr->a_desc == slap_schema.si_ad_subschemaSubentry
@@ -2152,6 +2156,34 @@ next_attr:;
 
 				} else {
 					tap = &(*tap)->a_next;
+				}
+			}
+		}
+	}
+
+	/* Check for sorted attributes */
+	if ( check_sorted_attrs ) {
+		for ( attr = ent.e_attrs; attr; attr = attr->a_next ) {
+			if ( attr->a_desc->ad_type->sat_flags & SLAP_AT_SORTED_VAL ) {
+				while ( attr->a_numvals > 1 ) {
+					int i;
+					int rc = slap_sort_vals( (Modifications *)attr, &text, &i, op->o_tmpmemctx );
+					if ( rc != LDAP_TYPE_OR_VALUE_EXISTS )
+						break;
+
+					/* Strip duplicate values */
+					if ( attr->a_nvals != attr->a_vals )
+						LBER_FREE( attr->a_nvals[i].bv_val );
+					LBER_FREE( attr->a_vals[i].bv_val );
+					attr->a_numvals--;
+					if ( i < attr->a_numvals ) {
+						attr->a_vals[i] = attr->a_vals[attr->a_numvals];
+						if ( attr->a_nvals != attr->a_vals )
+							attr->a_nvals[i] = attr->a_nvals[attr->a_numvals];
+					}
+					BER_BVZERO(&attr->a_vals[attr->a_numvals]);
+					if ( attr->a_nvals != attr->a_vals )
+						BER_BVZERO(&attr->a_vals[attr->a_numvals]);
 				}
 			}
 		}
