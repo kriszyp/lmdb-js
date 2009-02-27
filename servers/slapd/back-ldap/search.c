@@ -732,6 +732,10 @@ ldap_build_entry(
 		for ( i = 0; !BER_BVISNULL( &attr->a_vals[i] ); i++ ) ;
 		last = i;
 
+		/*
+		 * check that each value is valid per syntax
+		 * and pretty if appropriate
+		 */
 		for ( i = 0; i<last; i++ ) {
 			struct berval	pval;
 			int		rc;
@@ -782,10 +786,6 @@ ldap_build_entry(
 			for ( i = 0; i < last; i++ ) {
 				int		rc;
 
-				/*
-				 * check that each value is valid per syntax
-				 * and pretty if appropriate
-				 */
 				rc = attr->a_desc->ad_type->sat_equality->smr_normalize(
 					SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
 					attr->a_desc->ad_type->sat_syntax,
@@ -814,6 +814,30 @@ ldap_build_entry(
 		}
 
 		attr->a_numvals = last;
+
+		/* Handle sorted vals, strip dups but keep the attr */
+		if ( attr->a_desc->ad_type->sat_flags & SLAP_AT_SORTED_VAL ) {
+			while ( attr->a_numvals > 1 ) {
+				int rc = slap_sort_vals( (Modifications *)attr, &text, &i, op->o_tmpmemctx );
+				if ( rc != LDAP_TYPE_OR_VALUE_EXISTS )
+					break;
+
+				/* Strip duplicate values */
+				if ( attr->a_nvals != attr->a_vals )
+					LBER_FREE( attr->a_nvals[i].bv_val );
+				LBER_FREE( attr->a_vals[i].bv_val );
+				attr->a_numvals--;
+				if ( i < attr->a_numvals ) {
+					attr->a_vals[i] = attr->a_vals[attr->a_numvals];
+					if ( attr->a_nvals != attr->a_vals )
+						attr->a_nvals[i] = attr->a_nvals[attr->a_numvals];
+				}
+				BER_BVZERO(&attr->a_vals[attr->a_numvals]);
+				if ( attr->a_nvals != attr->a_vals )
+					BER_BVZERO(&attr->a_vals[attr->a_numvals]);
+			}
+		}
+
 		*attrp = attr;
 		attrp = &attr->a_next;
 
