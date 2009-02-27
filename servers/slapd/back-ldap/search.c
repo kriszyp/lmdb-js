@@ -837,7 +837,7 @@ ldap_build_entry(
 				}
 				BER_BVZERO(&attr->a_vals[attr->a_numvals]);
 				if ( attr->a_nvals != attr->a_vals )
-					BER_BVZERO(&attr->a_vals[attr->a_numvals]);
+					BER_BVZERO(&attr->a_nvals[attr->a_numvals]);
 			}
 			attr->a_flags |= SLAP_ATTR_SORTED_VALS;
 		}
