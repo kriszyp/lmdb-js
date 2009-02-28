@@ -1551,22 +1551,24 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 					i += a->a_numvals;
 				}
 			}
-			vals = ch_malloc( (i + 1) * sizeof( struct berval ) );
-			i = 0;
-			for ( a=old->e_attrs; a; a=a->a_next ) {
-				if ( a->a_vals && a->a_flags ) {
-					for (b=a->a_vals; !BER_BVISNULL( b ); b++,i++) {
-						accesslog_val2val( a->a_desc, b, 0, &vals[i] );
+			if ( i ) {
+				vals = ch_malloc( (i + 1) * sizeof( struct berval ) );
+				i = 0;
+				for ( a=old->e_attrs; a; a=a->a_next ) {
+					if ( a->a_vals && a->a_flags ) {
+						for (b=a->a_vals; !BER_BVISNULL( b ); b++,i++) {
+							accesslog_val2val( a->a_desc, b, 0, &vals[i] );
+						}
 					}
 				}
+				vals[i].bv_val = NULL;
+				vals[i].bv_len = 0;
+				a = attr_alloc( ad_reqOld );
+				a->a_numvals = i;
+				a->a_vals = vals;
+				a->a_nvals = vals;
+				last_attr->a_next = a;
 			}
-			vals[i].bv_val = NULL;
-			vals[i].bv_len = 0;
-			a = attr_alloc( ad_reqOld );
-			a->a_numvals = i;
-			a->a_vals = vals;
-			a->a_nvals = vals;
-			last_attr->a_next = a;
 		}
 		if ( logop == LOG_EN_MODIFY ) {
 			break;
