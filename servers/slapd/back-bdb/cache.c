@@ -809,7 +809,7 @@ bdb_cache_find_id(
 {
 	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
 	Entry	*ep = NULL;
-	int	rc = 0, load = 0;
+	int	rc = 0, load = 0, added = 0;
 	EntryInfo ei = { 0 };
 
 	ei.bei_id = id;
@@ -905,7 +905,10 @@ load1:
 				 * loading it, i.e it is already cached or
 				 * another thread is currently loading it.
 				 */
-				(*eip)->bei_state &= ~CACHE_ENTRY_NOT_CACHED;
+				if ( (*eip)->bei_state & CACHE_ENTRY_NOT_CACHED ) {
+					(*eip)->bei_state &= ~CACHE_ENTRY_NOT_CACHED;
+					added = 1;
+				}
 				flag &= ~ID_NOCACHE;
 			}
 
@@ -933,6 +936,7 @@ load1:
 #endif
 						ep = NULL;
 						bdb_cache_lru_link( bdb, *eip );
+						added = 1;
 						if (( flag & ID_NOCACHE ) &&
 							( bdb_cache_entryinfo_trylock( *eip ) == 0 )) {
 							/* Set the cached state only if no other thread
@@ -997,7 +1001,7 @@ load1:
 	if ( rc == 0 ) {
 		int purge = 0;
 
-		if ( load ) {
+		if ( added ) {
 			ldap_pvt_thread_mutex_lock( &bdb->bi_cache.c_count_mutex );
 			if ( !( flag & ID_NOCACHE )) {
 				bdb->bi_cache.c_cursize++;
