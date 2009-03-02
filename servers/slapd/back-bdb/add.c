@@ -209,7 +209,8 @@ retry:	/* transaction retry */
 		rs->sr_ref = is_entry_referral( p )
 			? get_entry_referrals( op, p )
 			: NULL;
-		bdb_unlocked_cache_return_entry_r( bdb, p );
+		if ( p != (Entry *)&slap_entry_root )
+			bdb_unlocked_cache_return_entry_r( bdb, p );
 		p = NULL;
 		Debug( LDAP_DEBUG_TRACE,
 			LDAP_XSTRING(bdb_add) ": parent "
@@ -230,7 +231,8 @@ retry:	/* transaction retry */
 			goto retry;
 		}
 
-		bdb_unlocked_cache_return_entry_r( bdb, p );
+		if ( p != (Entry *)&slap_entry_root )
+			bdb_unlocked_cache_return_entry_r( bdb, p );
 		p = NULL;
 
 		Debug( LDAP_DEBUG_TRACE,
