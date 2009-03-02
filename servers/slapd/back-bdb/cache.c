@@ -673,8 +673,11 @@ bdb_cache_lru_purge( struct bdb_info *bdb )
 
 	if ( bdb->bi_cache.c_cursize > bdb->bi_cache.c_maxsize )
 		efree = bdb->bi_cache.c_minfree;
-	if ( bdb->bi_cache.c_leaves > eimax )
+	if ( bdb->bi_cache.c_leaves > eimax ) {
 		eifree = bdb->bi_cache.c_minfree * 10;
+		if ( eifree >= eimax )
+			eifree = eimax / 2;
+	}
 
 	if ( !efree && !eifree ) {
 		ldap_pvt_thread_mutex_unlock( &bdb->bi_cache.c_lru_mutex );
