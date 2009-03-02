@@ -421,7 +421,7 @@ tlso_session_my_dn( tls_session *sess, struct berval *der_dn )
 	xn = X509_get_subject_name(x);
 	der_dn->bv_len = i2d_X509_NAME( xn, NULL );
 	der_dn->bv_val = xn->bytes->data;
-	X509_free(x);
+	/* Don't X509_free, the session is still using it */
 	return 0;
 }
 
