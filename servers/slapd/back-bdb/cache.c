@@ -658,7 +658,10 @@ bdb_cache_lru_purge( struct bdb_info *bdb )
 	DB_LOCK		lock, *lockp;
 	EntryInfo *elru, *elnext = NULL;
 	int count, islocked, eimax;
-	int efree = 0, eifree = 0, eicount;
+	int efree = 0, eifree = 0, eicount, ecount;
+#ifdef LDAP_DEBUG
+	int iter;
+#endif
 
 	/* Wait for the mutex; we're the only one trying to purge. */
 	ldap_pvt_thread_mutex_lock( &bdb->bi_cache.c_lru_mutex );
@@ -693,6 +696,10 @@ bdb_cache_lru_purge( struct bdb_info *bdb )
 
 	count = 0;
 	eicount = 0;
+	ecount = 0;
+#ifdef LDAP_DEBUG
+	iter = 0;
+#endif
 
 	/* Look for an unused entry to remove */
 	for ( elru = bdb->bi_cache.c_lruhead; elru; elru = elnext ) {
@@ -729,6 +736,7 @@ bdb_cache_lru_purge( struct bdb_info *bdb )
 
 			/* Free entry for this node if it's present */
 			if ( elru->bei_e ) {
+				ecount++;
 				if ( count < efree ) {
 					elru->bei_e->e_private = NULL;
 #ifdef SLAP_ZONE_ALLOC
@@ -766,8 +774,11 @@ next:
 			bdb_cache_entryinfo_unlock( elru );
 
 		if ( count >= efree && eicount >= eifree ) {
-			if ( count ) {
+			if ( count || ecount > bdb->bi_cache.c_cursize ) {
 				ldap_pvt_thread_mutex_lock( &bdb->bi_cache.c_count_mutex );
+				/* HACK: we seem to be losing track, fix up now */
+				if ( ecount > bdb->bi_cache.c_cursize )
+					bdb->bi_cache.c_cursize = ecount;
 				bdb->bi_cache.c_cursize -= count;
 				ldap_pvt_thread_mutex_unlock( &bdb->bi_cache.c_count_mutex );
 			}
@@ -776,6 +787,9 @@ next:
 bottom:
 		if ( elnext == bdb->bi_cache.c_lruhead )
 			break;
+#ifdef LDAP_DEBUG
+		iter++;
+#endif
 	}
 
 	bdb->bi_cache.c_lruhead = elnext;
