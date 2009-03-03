@@ -845,6 +845,10 @@ nextresp2:
 				return( -1 );	/* fatal error */
 			}
 			lr->lr_res_errno = LDAP_SUCCESS; /* sucessfully chased referral */
+			if ( lr->lr_res_matched ) {
+				LDAP_FREE( lr->lr_res_matched );
+				lr->lr_res_matched = NULL;
+			}
 
 		} else {
 			if ( lr->lr_outrefcnt <= 0 && lr->lr_parent == NULL ) {
