@@ -635,8 +635,7 @@ find_connection( LDAP *ld, LDAPURLDesc *srv, int any )
 
 			if ( lsu_port == lcu_port
 				&& strcmp( lcu->lud_scheme, lsu->lud_scheme ) == 0
-				&& lcu->lud_host != NULL && *lcu->lud_host != '\0'
-				&& lsu->lud_host != NULL && *lsu->lud_host != '\0'
+				&& lcu->lud_host != NULL && lsu->lud_host != NULL
 				&& strcasecmp( lsu->lud_host, lcu->lud_host ) == 0 )
 			{
 				found = 1;
