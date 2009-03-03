@@ -839,7 +839,14 @@ We still have to replicate the actual data, not just the config, so add to the m
 >     objectClass: olcSyncProvConfig
 >     olcOverlay: syncprov
 
-Note: You must have all your servers set to the same time via {{http://www.ntp.org/}}
+Note: All of your servers' clocks must be tightly synchronized using
+e.g. NTP {{http://www.ntp.org/}}, atomic clock, or some other reliable
+time reference.
+
+Note: As stated in {{slapd-config}}(5), URLs specified in {{olcSyncRepl}}
+directives are the URLs of the servers from which to replicate. These
+must exactly match the URLs {{slapd}} listens on ({{-h}} in {{SECT:Command-Line Options}}).
+Otherwise slapd may attempt to replicate from itself, causing a loop.
 
 H3: MirrorMode
 
