@@ -340,12 +340,15 @@ for details on the syntax of this field.
 .B [saslmech=<SASL mech>] [secprops=<properties>] [realm=<realm>]
 .B [authcId=<authentication ID>] [authzId=<authorization ID>]
 .B [authz={native|proxyauthz}] [mode=<mode>] [flags=<flags>]
+.B [starttls=no|yes|critical]
+.B [starttls=no|yes|critical]
 .B [tls_cert=<file>]
 .B [tls_key=<file>]
 .B [tls_cacert=<file>]
 .B [tls_cacertdir=<path>]
 .B [tls_reqcert=never|allow|try|demand]
 .B [tls_ciphersuite=<ciphers>]
+.B [tls_protocol_min=<version>]
 .B [tls_crlcheck=none|peer|all]
 .RS
 Allows to define the parameters of the authentication method that is 
