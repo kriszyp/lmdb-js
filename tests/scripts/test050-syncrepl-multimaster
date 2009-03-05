@@ -24,14 +24,17 @@ fi
 PRODIR=$TESTDIR/pro
 CONDIR=$TESTDIR/con1
 CONDIR2=$TESTDIR/con2
+CONDIR3=$TESTDIR/con3
 DBPRO=$PRODIR/db
 DBCON=$CONDIR/db
 DBCON2=$CONDIR2/db
+DBCON3=$CONDIR3/db
 CFPRO=$PRODIR/slapd.d
 CFCON=$CONDIR/slapd.d
 CFCON2=$CONDIR2/slapd.d
+CFCON3=$CONDIR3/slapd.d
 
-mkdir -p $TESTDIR $PRODIR $CONDIR $CONDIR2 $DBPRO $DBCON $DBCON2 $CFPRO $CFCON $CFCON2
+mkdir -p $TESTDIR $PRODIR $CONDIR $CONDIR2 $CONDIR3 $DBPRO $DBCON $DBCON2 $DBCON3 $CFPRO $CFCON $CFCON2 $CFCON3
 
 $SLAPPASSWD -g -n >$CONFIGPWF
 
@@ -56,6 +59,7 @@ esac
 # - start producer
 # - start consumer1
 # - start consumer2
+# - start consumer3
 # - configure over ldap
 # - populate over ldap
 # - configure syncrepl over ldap
@@ -68,6 +72,18 @@ dn: cn=config
 objectClass: olcGlobal
 cn: config
 olcServerID: 3
+
+dn: olcDatabase={0}config,cn=config
+objectClass: olcDatabaseConfig
+olcDatabase: {0}config
+olcRootPW:< file://$CONFIGPWF
+EOF
+
+$SLAPADD -F $CFCON3 -n 0 <<EOF
+dn: cn=config
+objectClass: olcGlobal
+cn: config
+olcServerID: 4
 
 dn: olcDatabase={0}config,cn=config
 objectClass: olcDatabaseConfig
@@ -161,6 +177,7 @@ replace: olcServerID
 olcServerID: 1 $URI1
 olcServerID: 2 $URI2
 olcServerID: 3 $URI3
+olcServerID: 4 $URI4
 
 dn: olcOverlay=syncprov,olcDatabase={0}config,cn=config
 changetype: add
@@ -178,6 +195,9 @@ olcSyncRepl: rid=002 provider=$URI2 binddn="cn=config" bindmethod=simple
   credentials=$CONFIGPW searchbase="cn=config" type=refreshAndPersist
   retry="3 5 300 5" timeout=3
 olcSyncRepl: rid=003 provider=$URI3 binddn="cn=config" bindmethod=simple
+  credentials=$CONFIGPW searchbase="cn=config" type=refreshAndPersist
+  retry="3 5 300 5" timeout=3
+olcSyncRepl: rid=004 provider=$URI4 binddn="cn=config" bindmethod=simple
   credentials=$CONFIGPW searchbase="cn=config" type=refreshAndPersist
   retry="3 5 300 5" timeout=3
 -
@@ -236,6 +256,9 @@ olcSyncRepl: rid=002 provider=$URI2 binddn="cn=config" bindmethod=simple
 olcSyncRepl: rid=003 provider=$URI3 binddn="cn=config" bindmethod=simple
   credentials=$CONFIGPW searchbase="cn=config" type=refreshAndPersist
   retry="3 5 300 5" timeout=3
+olcSyncRepl: rid=004 provider=$URI4 binddn="cn=config" bindmethod=simple
+  credentials=$CONFIGPW searchbase="cn=config" type=refreshAndPersist
+  retry="3 5 300 5" timeout=3
 -
 add: olcMirrorMode
 olcMirrorMode: TRUE
@@ -284,6 +307,62 @@ olcSyncRepl: rid=002 provider=$URI2 binddn="cn=config" bindmethod=simple
   credentials=$CONFIGPW searchbase="cn=config" type=refreshAndPersist
   retry="3 5 300 5" timeout=3
 olcSyncRepl: rid=003 provider=$URI3 binddn="cn=config" bindmethod=simple
+  credentials=$CONFIGPW searchbase="cn=config" type=refreshAndPersist
+  retry="3 5 300 5" timeout=3
+olcSyncRepl: rid=004 provider=$URI4 binddn="cn=config" bindmethod=simple
+  credentials=$CONFIGPW searchbase="cn=config" type=refreshAndPersist
+  retry="3 5 300 5" timeout=3
+-
+add: olcMirrorMode
+olcMirrorMode: TRUE
+EOF
+
+echo "Starting consumer3 slapd on TCP/IP port $PORT4..."
+cd $CONDIR3
+$SLAPD -F ./slapd.d -h $URI4 -d $LVL $TIMING > $LOG4 2>&1 &
+SLAVE3PID=$!
+if test $WAIT != 0 ; then
+    echo SLAVE3PID $SLAVE3PID
+    read foo
+fi
+KILLPIDS="$KILLPIDS $SLAVE3PID"
+cd $TESTWD
+
+sleep 1
+
+echo "Using ldapsearch to check that consumer3 slapd is running..."
+for i in 0 1 2 3 4 5; do
+	$LDAPSEARCH -s base -b "" -H $URI4 \
+		'objectclass=*' > /dev/null 2>&1
+	RC=$?
+	if test $RC = 0 ; then
+		break
+	fi
+	echo "Waiting 5 seconds for slapd to start..."
+	sleep 5
+done
+
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+echo "Configuring syncrepl on consumer3..."
+$LDAPMODIFY -D cn=config -H $URI4 -y $CONFIGPWF <<EOF >>$TESTOUT 2>&1
+dn: olcDatabase={0}config,cn=config
+changetype: modify
+add: olcSyncRepl
+olcSyncRepl: rid=001 provider=$URI1 binddn="cn=config" bindmethod=simple
+  credentials=$CONFIGPW searchbase="cn=config" type=refreshAndPersist
+  retry="3 5 300 5" timeout=3
+olcSyncRepl: rid=002 provider=$URI2 binddn="cn=config" bindmethod=simple
+  credentials=$CONFIGPW searchbase="cn=config" type=refreshAndPersist
+  retry="3 5 300 5" timeout=3
+olcSyncRepl: rid=003 provider=$URI3 binddn="cn=config" bindmethod=simple
+  credentials=$CONFIGPW searchbase="cn=config" type=refreshAndPersist
+  retry="3 5 300 5" timeout=3
+olcSyncRepl: rid=004 provider=$URI4 binddn="cn=config" bindmethod=simple
   credentials=$CONFIGPW searchbase="cn=config" type=refreshAndPersist
   retry="3 5 300 5" timeout=3
 -
@@ -335,13 +414,16 @@ olcSuffix: $BASEDN
 olcDbDirectory: ./db
 olcRootDN: $MANAGERDN
 olcRootPW: $PASSWD
-olcSyncRepl: rid=004 provider=$URI1 binddn="$MANAGERDN" bindmethod=simple
+olcSyncRepl: rid=005 provider=$URI1 binddn="$MANAGERDN" bindmethod=simple
   credentials=$PASSWD searchbase="$BASEDN" $SYNCTYPE
   retry="3 5 300 5" timeout=3
-olcSyncRepl: rid=005 provider=$URI2 binddn="$MANAGERDN" bindmethod=simple
+olcSyncRepl: rid=006 provider=$URI2 binddn="$MANAGERDN" bindmethod=simple
   credentials=$PASSWD searchbase="$BASEDN" $SYNCTYPE
   retry="3 5 300 5" timeout=3
-olcSyncRepl: rid=006 provider=$URI3 binddn="$MANAGERDN" bindmethod=simple
+olcSyncRepl: rid=007 provider=$URI3 binddn="$MANAGERDN" bindmethod=simple
+  credentials=$PASSWD searchbase="$BASEDN" $SYNCTYPE
+  retry="3 5 300 5" timeout=3
+olcSyncRepl: rid=008 provider=$URI4 binddn="$MANAGERDN" bindmethod=simple
   credentials=$PASSWD searchbase="$BASEDN" $SYNCTYPE
   retry="3 5 300 5" timeout=3
 olcMirrorMode: TRUE
@@ -390,140 +472,6 @@ fi
 echo "Waiting $SLEEP1 seconds for syncrepl to receive changes..."
 sleep $SLEEP1
 
-echo "Using ldapadd to populate consumer1..."
-$LDAPADD -D "$MANAGERDN" -H $URI2 -w $PASSWD -f $LDIFADD1 \
-	>> $TESTOUT 2>&1
-RC=$?
-if test $RC != 0 ; then
-	echo "ldapadd failed for consumer1 database ($RC)!"
-	test $KILLSERVERS != no && kill -HUP $KILLPIDS
-	exit $RC
-fi
-
-echo "Waiting $SLEEP1 seconds for syncrepl to receive changes..."
-sleep $SLEEP1
-
-echo "Using ldapadd to populate consumer2..."
-$LDAPADD -D "$MANAGERDN" -H $URI3 -w $PASSWD \
-	<< EOMODS >> $TESTOUT 2>&1
-dn: cn=Consumer 2 Test,dc=example,dc=com
-changetype: add
-objectClass: device
-cn: Consumer 2 Test
-EOMODS
-RC=$?
-if test $RC != 0 ; then
-	echo "ldapadd failed for consumer2 database ($RC)!"
-	test $KILLSERVERS != no && kill -HUP $KILLPIDS
-	exit $RC
-fi
-
-echo "Waiting $SLEEP1 seconds for syncrepl to receive changes..."
-sleep $SLEEP1
-
-echo "Using ldapmodify to add to the producer entries that will be deleted..."
-$LDAPMODIFY -D "$MANAGERDN" -H $URI1 -w $PASSWD \
-	>> $TESTOUT 2>&1 << EOADDS
-dn: cn=To be deleted by producer,dc=example,dc=com
-changetype: add
-objectClass: device
-# no distinguished values, will be added by DSA
-
-dn: cn=To be deleted by consumer1,dc=example,dc=com
-changetype: add
-objectClass: device
-# no distinguished values, will be added by DSA
-
-dn: cn=To be deleted by consumer2,dc=example,dc=com
-changetype: add
-objectClass: device
-# no distinguished values, will be added by DSA
-
-dn: cn=To be deleted by producer,dc=example,dc=com
-changetype: delete
-EOADDS
-RC=$?
-if test $RC != 0 ; then
-	echo "ldapmodify failed for producer database ($RC)!"
-	test $KILLSERVERS != no && kill -HUP $KILLPIDS
-	exit $RC
-fi
-
-echo "Waiting $SLEEP1 seconds for syncrepl to receive changes..."
-sleep $SLEEP1
-
-echo "Using ldapmodify to delete entries from consumer1..."
-$LDAPMODIFY -D "$MANAGERDN" -H $URI2 -w $PASSWD \
-	>> $TESTOUT 2>&1 << EOADDS
-dn: cn=To be deleted by consumer1,dc=example,dc=com
-changetype: delete
-EOADDS
-RC=$?
-if test $RC != 0 ; then
-	echo "ldapmodify failed for consumer1 database ($RC)!"
-	test $KILLSERVERS != no && kill -HUP $KILLPIDS
-	exit $RC
-fi
-
-echo "Waiting $SLEEP1 seconds for syncrepl to receive changes..."
-sleep $SLEEP1
-
-echo "Using ldapmodify to delete entries from consumer2..."
-$LDAPMODIFY -D "$MANAGERDN" -H $URI3 -w $PASSWD \
-	>> $TESTOUT 2>&1 << EOADDS
-dn: cn=To be deleted by consumer2,dc=example,dc=com
-changetype: delete
-EOADDS
-RC=$?
-if test $RC != 0 ; then
-	echo "ldapmodify failed for consumer2 database ($RC)!"
-	test $KILLSERVERS != no && kill -HUP $KILLPIDS
-	exit $RC
-fi
-
-echo "Waiting $SLEEP1 seconds for syncrepl to receive changes..."
-sleep $SLEEP1
-
-echo "Using ldapsearch to check that syncrepl received database changes..."
-RC=32
-for i in 0 1 2 3 4 5; do
-	RESULT=`$LDAPSEARCH -H $URI2 \
-		-s base -b "cn=Ursula Hampster,ou=Alumni Association,ou=People,dc=example,dc=com" \
-		'(objectClass=*)' 2>&1 | awk '/^dn:/ {print "OK"}'`
-	if test "x$RESULT" = "xOK" ; then
-		RC=0
-		break
-	fi
-	echo "Waiting $SLEEP1 seconds for syncrepl to receive changes..."
-	sleep $SLEEP1
-done
-
-if test $RC != 0 ; then
-	echo "ldapsearch failed ($RC)!"
-	test $KILLSERVERS != no && kill -HUP $KILLPIDS
-	exit $RC
-fi
-
-echo "Using ldapsearch to check that syncrepl received database changes on consumer2..."
-RC=32
-for i in 0 1 2 3 4 5; do
-	RESULT=`$LDAPSEARCH -H $URI3 \
-		-s base -b "cn=Ursula Hampster,ou=Alumni Association,ou=People,dc=example,dc=com" \
-		'(objectClass=*)' 2>&1 | awk '/^dn:/ {print "OK"}'`
-	if test "x$RESULT" = "xOK" ; then
-		RC=0
-		break
-	fi
-	echo "Waiting $SLEEP1 seconds for syncrepl to receive changes..."
-	sleep $SLEEP1
-done
-
-if test $RC != 0 ; then
-	echo "ldapsearch failed ($RC)!"
-	test $KILLSERVERS != no && kill -HUP $KILLPIDS
-	exit $RC
-fi
-
 echo "Using ldapsearch to read config from the producer..."
 $LDAPSEARCH -b cn=config -D cn=config -H $URI1 -y $CONFIGPWF  \
 	'objectclass=*' > $MASTEROUT 2>&1
@@ -557,12 +505,25 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
+echo "Using ldapsearch to read config from consumer3..."
+$LDAPSEARCH -b cn=config -D cn=config -H $URI4 -y $CONFIGPWF \
+	'objectclass=*' > $SERVER4OUT 2>&1
+RC=$?
+
+if test $RC != 0 ; then
+	echo "ldapsearch failed at consumer3 ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
 echo "Filtering producer results..."
 . $LDIFFILTER < $MASTEROUT > $MASTERFLT
 echo "Filtering consumer1 results..."
 . $LDIFFILTER < $SLAVEOUT > $SLAVEFLT
 echo "Filtering consumer2 results..."
 . $LDIFFILTER < $SLAVE2OUT > $SLAVE2FLT
+echo "Filtering consumer3 results..."
+. $LDIFFILTER < $SERVER4OUT > $SERVER4FLT
 
 echo "Comparing retrieved configs from producer and consumer1..."
 $CMP $MASTERFLT $SLAVEFLT > $CMPOUT
@@ -578,6 +539,15 @@ $CMP $MASTERFLT $SLAVE2FLT > $CMPOUT
 
 if test $? != 0 ; then
 	echo "test failed - producer and consumer2 configs differ"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit 1
+fi
+
+echo "Comparing retrieved configs from producer and consumer3..."
+$CMP $MASTERFLT $SERVER4FLT > $CMPOUT
+
+if test $? != 0 ; then
+	echo "test failed - producer and consumer3 configs differ"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit 1
 fi
@@ -615,9 +585,16 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-# kill!
-# test $KILLSERVERS != no && kill -HUP $KILLPIDS
-kill -HUP $KILLPIDS
+echo "Using ldapsearch to read all the entries from consumer3..."
+$LDAPSEARCH -S "" -b "$BASEDN" -D "$MANAGERDN" -H $URI4 -w $PASSWD  \
+	'objectclass=*' > $SERVER4OUT 2>&1
+RC=$?
+
+if test $RC != 0 ; then
+	echo "ldapsearch failed at consumer3 ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
 
 echo "Filtering producer results..."
 . $LDIFFILTER < $MASTEROUT > $MASTERFLT
@@ -625,6 +602,8 @@ echo "Filtering consumer1 results..."
 . $LDIFFILTER < $SLAVEOUT > $SLAVEFLT
 echo "Filtering consumer2 results..."
 . $LDIFFILTER < $SLAVE2OUT > $SLAVE2FLT
+echo "Filtering consumer3 results..."
+. $LDIFFILTER < $SERVER4OUT > $SERVER4FLT
 
 echo "Comparing retrieved entries from producer and consumer1..."
 $CMP $MASTERFLT $SLAVEFLT > $CMPOUT
@@ -639,6 +618,420 @@ $CMP $MASTERFLT $SLAVE2FLT > $CMPOUT
 
 if test $? != 0 ; then
 	echo "test failed - producer and consumer2 databases differ"
+	exit 1
+fi
+
+echo "Comparing retrieved entries from producer and consumer3..."
+$CMP $MASTERFLT $SERVER4FLT > $CMPOUT
+
+if test $? != 0 ; then
+	echo "test failed - producer and consumer3 databases differ"
+	exit 1
+fi
+
+echo "Using ldapadd to populate consumer1..."
+$LDAPADD -D "$MANAGERDN" -H $URI2 -w $PASSWD -f $LDIFADD1 \
+	>> $TESTOUT 2>&1
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapadd failed for consumer1 database ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+echo "Waiting $SLEEP1 seconds for syncrepl to receive changes..."
+sleep $SLEEP1
+
+echo "Using ldapsearch to read all the entries from the producer..."
+$LDAPSEARCH -S "" -b "$BASEDN" -D "$MANAGERDN" -H $URI1 -w $PASSWD  \
+	'objectclass=*' > $MASTEROUT 2>&1
+RC=$?
+
+if test $RC != 0 ; then
+	echo "ldapsearch failed at producer ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+echo "Using ldapsearch to read all the entries from consumer1..."
+$LDAPSEARCH -S "" -b "$BASEDN" -D "$MANAGERDN" -H $URI2 -w $PASSWD  \
+	'objectclass=*' > $SLAVEOUT 2>&1
+RC=$?
+
+if test $RC != 0 ; then
+	echo "ldapsearch failed at consumer1 ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+echo "Using ldapsearch to read all the entries from consumer2..."
+$LDAPSEARCH -S "" -b "$BASEDN" -D "$MANAGERDN" -H $URI3 -w $PASSWD  \
+	'objectclass=*' > $SLAVE2OUT 2>&1
+RC=$?
+
+if test $RC != 0 ; then
+	echo "ldapsearch failed at consumer2 ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+echo "Using ldapsearch to read all the entries from consumer3..."
+$LDAPSEARCH -S "" -b "$BASEDN" -D "$MANAGERDN" -H $URI4 -w $PASSWD  \
+	'objectclass=*' > $SERVER4OUT 2>&1
+RC=$?
+
+if test $RC != 0 ; then
+	echo "ldapsearch failed at consumer3 ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+echo "Filtering producer results..."
+. $LDIFFILTER < $MASTEROUT > $MASTERFLT
+echo "Filtering consumer1 results..."
+. $LDIFFILTER < $SLAVEOUT > $SLAVEFLT
+echo "Filtering consumer2 results..."
+. $LDIFFILTER < $SLAVE2OUT > $SLAVE2FLT
+echo "Filtering consumer3 results..."
+. $LDIFFILTER < $SERVER4OUT > $SERVER4FLT
+
+echo "Comparing retrieved entries from producer and consumer1..."
+$CMP $MASTERFLT $SLAVEFLT > $CMPOUT
+
+if test $? != 0 ; then
+	echo "test failed - producer and consumer1 databases differ"
+	exit 1
+fi
+
+echo "Comparing retrieved entries from producer and consumer2..."
+$CMP $MASTERFLT $SLAVE2FLT > $CMPOUT
+
+if test $? != 0 ; then
+	echo "test failed - producer and consumer2 databases differ"
+	exit 1
+fi
+
+echo "Comparing retrieved entries from producer and consumer3..."
+$CMP $MASTERFLT $SERVER4FLT > $CMPOUT
+
+if test $? != 0 ; then
+	echo "test failed - producer and consumer3 databases differ"
+	exit 1
+fi
+
+echo "Using ldapadd to populate consumer2..."
+$LDAPADD -D "$MANAGERDN" -H $URI3 -w $PASSWD \
+	<< EOMODS >> $TESTOUT 2>&1
+dn: cn=Consumer 2 Test,dc=example,dc=com
+changetype: add
+objectClass: device
+cn: Consumer 2 Test
+EOMODS
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapadd failed for consumer2 database ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+echo "Waiting $SLEEP1 seconds for syncrepl to receive changes..."
+sleep $SLEEP1
+
+echo "Using ldapsearch to read all the entries from the producer..."
+$LDAPSEARCH -S "" -b "$BASEDN" -D "$MANAGERDN" -H $URI1 -w $PASSWD  \
+	'objectclass=*' > $MASTEROUT 2>&1
+RC=$?
+
+if test $RC != 0 ; then
+	echo "ldapsearch failed at producer ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+echo "Using ldapsearch to read all the entries from consumer1..."
+$LDAPSEARCH -S "" -b "$BASEDN" -D "$MANAGERDN" -H $URI2 -w $PASSWD  \
+	'objectclass=*' > $SLAVEOUT 2>&1
+RC=$?
+
+if test $RC != 0 ; then
+	echo "ldapsearch failed at consumer1 ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+echo "Using ldapsearch to read all the entries from consumer2..."
+$LDAPSEARCH -S "" -b "$BASEDN" -D "$MANAGERDN" -H $URI3 -w $PASSWD  \
+	'objectclass=*' > $SLAVE2OUT 2>&1
+RC=$?
+
+if test $RC != 0 ; then
+	echo "ldapsearch failed at consumer2 ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+echo "Using ldapsearch to read all the entries from consumer3..."
+$LDAPSEARCH -S "" -b "$BASEDN" -D "$MANAGERDN" -H $URI4 -w $PASSWD  \
+	'objectclass=*' > $SERVER4OUT 2>&1
+RC=$?
+
+if test $RC != 0 ; then
+	echo "ldapsearch failed at consumer3 ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+echo "Filtering producer results..."
+. $LDIFFILTER < $MASTEROUT > $MASTERFLT
+echo "Filtering consumer1 results..."
+. $LDIFFILTER < $SLAVEOUT > $SLAVEFLT
+echo "Filtering consumer2 results..."
+. $LDIFFILTER < $SLAVE2OUT > $SLAVE2FLT
+echo "Filtering consumer3 results..."
+. $LDIFFILTER < $SERVER4OUT > $SERVER4FLT
+
+echo "Comparing retrieved entries from producer and consumer1..."
+$CMP $MASTERFLT $SLAVEFLT > $CMPOUT
+
+if test $? != 0 ; then
+	echo "test failed - producer and consumer1 databases differ"
+	exit 1
+fi
+
+echo "Comparing retrieved entries from producer and consumer2..."
+$CMP $MASTERFLT $SLAVE2FLT > $CMPOUT
+
+if test $? != 0 ; then
+	echo "test failed - producer and consumer2 databases differ"
+	exit 1
+fi
+
+echo "Comparing retrieved entries from producer and consumer3..."
+$CMP $MASTERFLT $SERVER4FLT > $CMPOUT
+
+if test $? != 0 ; then
+	echo "test failed - producer and consumer3 databases differ"
+	exit 1
+fi
+
+echo "Using ldapmodify to add to the producer entries that will be deleted..."
+$LDAPMODIFY -D "$MANAGERDN" -H $URI1 -w $PASSWD \
+	>> $TESTOUT 2>&1 << EOADDS
+dn: cn=To be deleted by producer,dc=example,dc=com
+changetype: add
+objectClass: device
+# no distinguished values, will be added by DSA
+
+dn: cn=To be deleted by consumer1,dc=example,dc=com
+changetype: add
+objectClass: device
+# no distinguished values, will be added by DSA
+
+dn: cn=To be deleted by consumer2,dc=example,dc=com
+changetype: add
+objectClass: device
+# no distinguished values, will be added by DSA
+
+dn: cn=To be deleted by producer,dc=example,dc=com
+changetype: delete
+EOADDS
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapmodify failed for producer database ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+echo "Waiting $SLEEP1 seconds for syncrepl to receive changes..."
+sleep $SLEEP1
+
+echo "Using ldapsearch to read all the entries from the producer..."
+$LDAPSEARCH -S "" -b "$BASEDN" -D "$MANAGERDN" -H $URI1 -w $PASSWD  \
+	'objectclass=*' > $MASTEROUT 2>&1
+RC=$?
+
+if test $RC != 0 ; then
+	echo "ldapsearch failed at producer ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+echo "Using ldapsearch to read all the entries from consumer1..."
+$LDAPSEARCH -S "" -b "$BASEDN" -D "$MANAGERDN" -H $URI2 -w $PASSWD  \
+	'objectclass=*' > $SLAVEOUT 2>&1
+RC=$?
+
+if test $RC != 0 ; then
+	echo "ldapsearch failed at consumer1 ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+echo "Using ldapsearch to read all the entries from consumer2..."
+$LDAPSEARCH -S "" -b "$BASEDN" -D "$MANAGERDN" -H $URI3 -w $PASSWD  \
+	'objectclass=*' > $SLAVE2OUT 2>&1
+RC=$?
+
+if test $RC != 0 ; then
+	echo "ldapsearch failed at consumer2 ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+echo "Using ldapsearch to read all the entries from consumer3..."
+$LDAPSEARCH -S "" -b "$BASEDN" -D "$MANAGERDN" -H $URI4 -w $PASSWD  \
+	'objectclass=*' > $SERVER4OUT 2>&1
+RC=$?
+
+if test $RC != 0 ; then
+	echo "ldapsearch failed at consumer3 ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+echo "Filtering producer results..."
+. $LDIFFILTER < $MASTEROUT > $MASTERFLT
+echo "Filtering consumer1 results..."
+. $LDIFFILTER < $SLAVEOUT > $SLAVEFLT
+echo "Filtering consumer2 results..."
+. $LDIFFILTER < $SLAVE2OUT > $SLAVE2FLT
+echo "Filtering consumer3 results..."
+. $LDIFFILTER < $SERVER4OUT > $SERVER4FLT
+
+echo "Comparing retrieved entries from producer and consumer1..."
+$CMP $MASTERFLT $SLAVEFLT > $CMPOUT
+
+if test $? != 0 ; then
+	echo "test failed - producer and consumer1 databases differ"
+	exit 1
+fi
+
+echo "Comparing retrieved entries from producer and consumer2..."
+$CMP $MASTERFLT $SLAVE2FLT > $CMPOUT
+
+if test $? != 0 ; then
+	echo "test failed - producer and consumer2 databases differ"
+	exit 1
+fi
+
+echo "Comparing retrieved entries from producer and consumer3..."
+$CMP $MASTERFLT $SERVER4FLT > $CMPOUT
+
+if test $? != 0 ; then
+	echo "test failed - producer and consumer3 databases differ"
+	exit 1
+fi
+
+echo "Using ldapmodify to delete entries from consumer1..."
+$LDAPMODIFY -D "$MANAGERDN" -H $URI2 -w $PASSWD \
+	>> $TESTOUT 2>&1 << EOADDS
+dn: cn=To be deleted by consumer1,dc=example,dc=com
+changetype: delete
+EOADDS
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapmodify failed for consumer1 database ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+echo "Waiting $SLEEP1 seconds for syncrepl to receive changes..."
+sleep $SLEEP1
+
+echo "Using ldapmodify to delete entries from consumer2..."
+$LDAPMODIFY -D "$MANAGERDN" -H $URI3 -w $PASSWD \
+	>> $TESTOUT 2>&1 << EOADDS
+dn: cn=To be deleted by consumer2,dc=example,dc=com
+changetype: delete
+EOADDS
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapmodify failed for consumer2 database ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+echo "Waiting $SLEEP1 seconds for syncrepl to receive changes..."
+sleep $SLEEP1
+
+echo "Using ldapsearch to read all the entries from the producer..."
+$LDAPSEARCH -S "" -b "$BASEDN" -D "$MANAGERDN" -H $URI1 -w $PASSWD  \
+	'objectclass=*' > $MASTEROUT 2>&1
+RC=$?
+
+if test $RC != 0 ; then
+	echo "ldapsearch failed at producer ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+echo "Using ldapsearch to read all the entries from consumer1..."
+$LDAPSEARCH -S "" -b "$BASEDN" -D "$MANAGERDN" -H $URI2 -w $PASSWD  \
+	'objectclass=*' > $SLAVEOUT 2>&1
+RC=$?
+
+if test $RC != 0 ; then
+	echo "ldapsearch failed at consumer1 ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+echo "Using ldapsearch to read all the entries from consumer2..."
+$LDAPSEARCH -S "" -b "$BASEDN" -D "$MANAGERDN" -H $URI3 -w $PASSWD  \
+	'objectclass=*' > $SLAVE2OUT 2>&1
+RC=$?
+
+if test $RC != 0 ; then
+	echo "ldapsearch failed at consumer2 ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+echo "Using ldapsearch to read all the entries from consumer3..."
+$LDAPSEARCH -S "" -b "$BASEDN" -D "$MANAGERDN" -H $URI4 -w $PASSWD  \
+	'objectclass=*' > $SERVER4OUT 2>&1
+RC=$?
+
+if test $RC != 0 ; then
+	echo "ldapsearch failed at consumer3 ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+# kill!
+# test $KILLSERVERS != no && kill -HUP $KILLPIDS
+kill -HUP $KILLPIDS
+
+echo "Filtering producer results..."
+. $LDIFFILTER < $MASTEROUT > $MASTERFLT
+echo "Filtering consumer1 results..."
+. $LDIFFILTER < $SLAVEOUT > $SLAVEFLT
+echo "Filtering consumer2 results..."
+. $LDIFFILTER < $SLAVE2OUT > $SLAVE2FLT
+echo "Filtering consumer3 results..."
+. $LDIFFILTER < $SERVER4OUT > $SERVER4FLT
+
+echo "Comparing retrieved entries from producer and consumer1..."
+$CMP $MASTERFLT $SLAVEFLT > $CMPOUT
+
+if test $? != 0 ; then
+	echo "test failed - producer and consumer1 databases differ"
+	exit 1
+fi
+
+echo "Comparing retrieved entries from producer and consumer2..."
+$CMP $MASTERFLT $SLAVE2FLT > $CMPOUT
+
+if test $? != 0 ; then
+	echo "test failed - producer and consumer2 databases differ"
+	exit 1
+fi
+
+echo "Comparing retrieved entries from producer and consumer3..."
+$CMP $MASTERFLT $SERVER4FLT > $CMPOUT
+
+if test $? != 0 ; then
+	echo "test failed - producer and consumer3 databases differ"
 	exit 1
 fi
 
@@ -725,6 +1118,38 @@ sleep 1
 echo "Using ldapsearch to check that consumer2 slapd is running..."
 for i in 0 1 2 3 4 5; do
 	$LDAPSEARCH -s base -b "" -H $URI3 \
+		'objectclass=*' > /dev/null 2>&1
+	RC=$?
+	if test $RC = 0 ; then
+		break
+	fi
+	echo "Waiting 5 seconds for slapd to start..."
+	sleep 5
+done
+
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+echo "Starting consumer3 slapd on TCP/IP port $PORT4..."
+cd $CONDIR3
+echo "======================= RESTART =======================" >> $LOG4
+$SLAPD -F ./slapd.d -h $URI4 -d $LVL $TIMING >> $LOG4 2>&1 &
+SLAVE3PID=$!
+if test $WAIT != 0 ; then
+    echo SLAVE3PID $SLAVE3PID
+    read foo
+fi
+KILLPIDS="$KILLPIDS $SLAVE3PID"
+cd $TESTWD
+
+sleep 1
+
+echo "Using ldapsearch to check that consumer3 slapd is running..."
+for i in 0 1 2 3 4 5; do
+	$LDAPSEARCH -s base -b "" -H $URI4 \
 		'objectclass=*' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 0 ; then
