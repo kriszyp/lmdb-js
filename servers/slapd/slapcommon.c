@@ -693,8 +693,8 @@ slap_tool_init(
 		fprintf( stderr,
 			"Database number selected via -n is out of range\n"
 			"Must be in the range 0 to %d"
-			" (less than the number of configured databases, %d)\n",
-			nbackends - 1, nbackends );
+			" (the number of configured databases)\n",
+			nbackends - 1 );
 		exit( EXIT_FAILURE );
 
 	} else {
