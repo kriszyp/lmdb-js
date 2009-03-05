@@ -658,6 +658,10 @@ bdb_cache_lru_purge( struct bdb_info *bdb )
 	DB_LOCK		lock, *lockp;
 	EntryInfo *elru, *elnext = NULL;
 	int count, islocked, eimax;
+	int efree = 0, eifree = 0, eicount, ecount;
+#ifdef LDAP_DEBUG
+	int iter;
+#endif
 
 	/* Wait for the mutex; we're the only one trying to purge. */
 	ldap_pvt_thread_mutex_lock( &bdb->bi_cache.c_lru_mutex );
@@ -670,8 +674,15 @@ bdb_cache_lru_purge( struct bdb_info *bdb )
 	else
 		eimax = bdb->bi_cache.c_eimax;
 
-	if ( bdb->bi_cache.c_cursize <= bdb->bi_cache.c_maxsize &&
-		bdb->bi_cache.c_leaves <= eimax ) {
+	if ( bdb->bi_cache.c_cursize > bdb->bi_cache.c_maxsize )
+		efree = bdb->bi_cache.c_minfree;
+	if ( bdb->bi_cache.c_leaves > eimax ) {
+		eifree = bdb->bi_cache.c_minfree * 10;
+		if ( eifree >= eimax )
+			eifree = eimax / 2;
+	}
+
+	if ( !efree && !eifree ) {
 		ldap_pvt_thread_mutex_unlock( &bdb->bi_cache.c_lru_mutex );
 		bdb->bi_cache.c_purging = 0;
 		return;
@@ -684,6 +695,11 @@ bdb_cache_lru_purge( struct bdb_info *bdb )
 	}
 
 	count = 0;
+	eicount = 0;
+	ecount = 0;
+#ifdef LDAP_DEBUG
+	iter = 0;
+#endif
 
 	/* Look for an unused entry to remove */
 	for ( elru = bdb->bi_cache.c_lruhead; elru; elru = elnext ) {
@@ -720,8 +736,8 @@ bdb_cache_lru_purge( struct bdb_info *bdb )
 
 			/* Free entry for this node if it's present */
 			if ( elru->bei_e ) {
-				if ( bdb->bi_cache.c_cursize > bdb->bi_cache.c_maxsize &&
-					count < bdb->bi_cache.c_minfree ) {
+				ecount++;
+				if ( count < efree ) {
 					elru->bei_e->e_private = NULL;
 #ifdef SLAP_ZONE_ALLOC
 					bdb_entry_return( bdb, elru->bei_e, elru->bei_zseq );
@@ -744,11 +760,12 @@ bdb_cache_lru_purge( struct bdb_info *bdb )
 			if ( elru->bei_kids ) {
 				/* Drop from list, we ignore it... */
 				LRU_DEL( &bdb->bi_cache, elru );
-			} else if ( bdb->bi_cache.c_leaves > eimax ) {
+			} else if ( eicount < eifree ) {
 				/* Too many leaf nodes, free this one */
 				bdb_cache_delete_internal( &bdb->bi_cache, elru, 0 );
 				bdb_cache_delete_cleanup( &bdb->bi_cache, elru );
 				islocked = 0;
+				eicount++;
 			}	/* Leave on list until we need to free it */
 		}
 
@@ -756,10 +773,12 @@ next:
 		if ( islocked )
 			bdb_cache_entryinfo_unlock( elru );
 
-		if (( bdb->bi_cache.c_cursize <= bdb->bi_cache.c_maxsize ||
-			(unsigned) count >= bdb->bi_cache.c_minfree ) && bdb->bi_cache.c_leaves <= eimax ) {
-			if ( count ) {
+		if ( count >= efree && eicount >= eifree ) {
+			if ( count || ecount > bdb->bi_cache.c_cursize ) {
 				ldap_pvt_thread_mutex_lock( &bdb->bi_cache.c_count_mutex );
+				/* HACK: we seem to be losing track, fix up now */
+				if ( ecount > bdb->bi_cache.c_cursize )
+					bdb->bi_cache.c_cursize = ecount;
 				bdb->bi_cache.c_cursize -= count;
 				ldap_pvt_thread_mutex_unlock( &bdb->bi_cache.c_count_mutex );
 			}
@@ -768,6 +787,9 @@ next:
 bottom:
 		if ( elnext == bdb->bi_cache.c_lruhead )
 			break;
+#ifdef LDAP_DEBUG
+		iter++;
+#endif
 	}
 
 	bdb->bi_cache.c_lruhead = elnext;
