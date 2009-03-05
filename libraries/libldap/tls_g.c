@@ -385,15 +385,17 @@ tlsg_ctx_init( struct ldapoptions *lo, struct ldaptls *lt, int is_server )
 				for ( j = 0; j<ncas; j++ ) {
 					if ( gnutls_x509_crt_check_issuer( certs[i-1], cas[j] )) {
 						certs[i] = cas[j];
+						max++;
+						/* If this CA is self-signed, we're done */
 						if ( gnutls_x509_crt_check_issuer( cas[j], cas[j] ))
 							j = ncas;
 						break;
 					}
 				}
+				/* only continue if we found a CA and it was not self-signed */
 				if ( j == ncas )
 					break;
 			}
-			max = i+1;
 		}
 		rc = gnutls_certificate_set_x509_key( ctx->cred, certs, max, key );
 		if ( rc ) return -1;
