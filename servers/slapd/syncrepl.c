@@ -1258,8 +1258,11 @@ do_syncrepl(
 	if ( si == NULL )
 		return NULL;
 
-	/* There will never be more than one instance active */
-	ldap_pvt_thread_mutex_lock( &si->si_mutex );
+	/* Don't get stuck here while a pause is initiated */
+	while ( ldap_pvt_thread_mutex_trylock( &si->si_mutex )) {
+		if ( !ldap_pvt_thread_pool_pausecheck( &connection_pool ))
+			ldap_pvt_thread_yield();
+	}
 
 	switch( abs( si->si_type ) ) {
 	case LDAP_SYNC_REFRESH_ONLY:
