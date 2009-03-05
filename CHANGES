@@ -10,6 +10,8 @@ OpenLDAP 2.4.16 Engineering
 	Fixed slapd-ldap/meta with broken AD results (ITS#5977)
 	Fixed slapd-ldap/meta with invalid attrs again (ITS#5959)
 	Fixed slapo-accesslog interaction with ppolicy (ITS#5979)
+	Documentation
+		admin24 clarified MMR URI requirements (ITS#5942,ITS#5987)
 
 OpenLDAP 2.4.15 Release (2009/02/24)
 	Fixed libldap alias dereferencing in C API again (ITS#5916)
