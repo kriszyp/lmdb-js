@@ -378,7 +378,7 @@ tlsg_ctx_init( struct ldapoptions *lo, struct ldaptls *lt, int is_server )
 		 */
 		if ( max == 1 && !gnutls_x509_crt_check_issuer( certs[0], certs[0] )) {
 			gnutls_x509_crt_t *cas;
-			unsigned int i, j = 0, ncas;
+			unsigned int i, j, ncas;
 
 			gnutls_certificate_get_x509_cas( ctx->cred, &cas, &ncas );
 			for ( i = 1; i<VERIFY_DEPTH; i++ ) {
