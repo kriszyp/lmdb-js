@@ -177,8 +177,26 @@ slapadd( int argc, char **argv )
 		if( BER_BVISEMPTY( &e->e_nname ) &&
 			!BER_BVISEMPTY( be->be_nsuffix ))
 		{
-			fprintf( stderr, "%s: empty dn=\"%s\" (line=%d)\n",
-				progname, e->e_dn, lineno );
+			fprintf( stderr, "%s: line %d: "
+				"cannot add entry with empty dn=\"%s\"",
+				progname, lineno, e->e_dn );
+			bd = select_backend( &e->e_nname, nosubordinates );
+			if ( bd ) {
+				BackendDB *bdtmp;
+				int dbidx = 0;
+				LDAP_STAILQ_FOREACH( bdtmp, &backendDB, be_next ) {
+					if ( bdtmp == bd ) break;
+					dbidx++;
+				}
+
+				assert( bdtmp != NULL );
+				
+				fprintf( stderr, "; did you mean to use database #%d (%s)?",
+					dbidx,
+					bd->be_suffix[0].bv_val );
+
+			}
+			fprintf( stderr, "\n" );
 			rc = EXIT_FAILURE;
 			entry_free( e );
 			if( continuemode ) continue;
