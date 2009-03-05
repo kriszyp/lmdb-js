@@ -237,8 +237,8 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-echo "Waiting 25 seconds for syncrepl to receive changes..."
-sleep 25
+echo "Waiting $SLEEP2 seconds for syncrepl to receive changes..."
+sleep $SLEEP2
 
 echo "Using ldapmodify to modify master directory..."
 
@@ -341,8 +341,8 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-echo "Waiting 25 seconds for syncrepl to receive changes..."
-sleep 25
+echo "Waiting $SLEEP2 seconds for syncrepl to receive changes..."
+sleep $SLEEP2
 
 echo "Performing modify alone on provider..."
 $LDAPMODIFY -v -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD > \

@@ -37,7 +37,7 @@ if test x"$SYNCMODE" = x ; then
 fi
 case "$SYNCMODE" in
 	ro)
-		SYNCTYPE="type=refreshOnly interval=00:00:00:10"
+		SYNCTYPE="type=refreshOnly interval=00:00:00:03"
 		;;
 	rp)
 		SYNCTYPE="type=refreshAndPersist"
@@ -114,7 +114,7 @@ changetype: modify
 add: olcSyncRepl
 olcSyncRepl: rid=001 provider=$URI1 binddn="cn=config" bindmethod=simple
   credentials=$CONFIGPW searchbase="cn=config" type=refreshAndPersist
-  retry="5 5 300 5" timeout=3
+  retry="3 5 300 5" timeout=3
 -
 add: olcUpdateRef
 olcUpdateRef: $URI1
@@ -171,15 +171,14 @@ changetype: modify
 add: olcSyncRepl
 olcSyncRepl: rid=001 provider=$URI1 binddn="cn=config" bindmethod=simple
   credentials=$CONFIGPW searchbase="cn=config" type=refreshAndPersist
-  retry="5 5 300 5" timeout=3
+  retry="3 5 300 5" timeout=3
 -
 add: olcUpdateRef
 olcUpdateRef: $URI1
 EOF
 
-SLEEP=10
-echo "Waiting $SLEEP seconds for syncrepl to receive changes..."
-sleep $SLEEP
+echo "Waiting $SLEEP1 seconds for syncrepl to receive changes..."
+sleep $SLEEP1
 
 echo "Using ldapsearch to check that syncrepl received config changes..."
 RC=32
@@ -191,8 +190,8 @@ for i in 0 1 2 3 4 5; do
 		RC=0
 		break
 	fi
-	echo "Waiting 5 seconds for syncrepl to receive changes..."
-	sleep 5
+	echo "Waiting $SLEEP1 seconds for syncrepl to receive changes..."
+	sleep $SLEEP1
 done
 
 if test $RC != 0 ; then
@@ -247,7 +246,7 @@ olcRootDN: $MANAGERDN
 olcRootPW: $PASSWD
 olcSyncRepl: rid=002 provider=$URI1 binddn="$MANAGERDN" bindmethod=simple
   credentials=$PASSWD searchbase="$BASEDN" $SYNCTYPE
-  retry="5 5 300 5" timeout=3
+  retry="3 5 300 5" timeout=3
 olcUpdateRef: $URI1
 
 dn: olcOverlay=syncprov,olcDatabase={1}${BACKEND},cn=config
@@ -291,9 +290,8 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-SLEEP=20
-echo "Waiting $SLEEP seconds for syncrepl to receive changes..."
-sleep $SLEEP
+echo "Waiting $SLEEP1 seconds for syncrepl to receive changes..."
+sleep $SLEEP1
 
 echo "Using ldapsearch to check that syncrepl received database changes..."
 RC=32
@@ -305,8 +303,8 @@ for i in 0 1 2 3 4 5; do
 		RC=0
 		break
 	fi
-	echo "Waiting 5 seconds for syncrepl to receive changes..."
-	sleep 5
+	echo "Waiting $SLEEP1 seconds for syncrepl to receive changes..."
+	sleep $SLEEP1
 done
 
 if test $RC != 0 ; then

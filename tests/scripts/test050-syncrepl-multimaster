@@ -40,7 +40,7 @@ if test x"$SYNCMODE" = x ; then
 fi
 case "$SYNCMODE" in
 	ro)
-		SYNCTYPE="type=refreshOnly interval=00:00:00:10"
+		SYNCTYPE="type=refreshOnly interval=00:00:00:03"
 		;;
 	rp)
 		SYNCTYPE="type=refreshAndPersist"
@@ -173,13 +173,13 @@ changetype: modify
 add: olcSyncRepl
 olcSyncRepl: rid=001 provider=$URI1 binddn="cn=config" bindmethod=simple
   credentials=$CONFIGPW searchbase="cn=config" type=refreshAndPersist
-  retry="5 5 300 5" timeout=3
+  retry="3 5 300 5" timeout=3
 olcSyncRepl: rid=002 provider=$URI2 binddn="cn=config" bindmethod=simple
   credentials=$CONFIGPW searchbase="cn=config" type=refreshAndPersist
-  retry="5 5 300 5" timeout=3
+  retry="3 5 300 5" timeout=3
 olcSyncRepl: rid=003 provider=$URI3 binddn="cn=config" bindmethod=simple
   credentials=$CONFIGPW searchbase="cn=config" type=refreshAndPersist
-  retry="5 5 300 5" timeout=3
+  retry="3 5 300 5" timeout=3
 -
 add: olcMirrorMode
 olcMirrorMode: TRUE
@@ -229,13 +229,13 @@ changetype: modify
 add: olcSyncRepl
 olcSyncRepl: rid=001 provider=$URI1 binddn="cn=config" bindmethod=simple
   credentials=$CONFIGPW searchbase="cn=config" type=refreshAndPersist
-  retry="5 5 300 5" timeout=3
+  retry="3 5 300 5" timeout=3
 olcSyncRepl: rid=002 provider=$URI2 binddn="cn=config" bindmethod=simple
   credentials=$CONFIGPW searchbase="cn=config" type=refreshAndPersist
-  retry="5 5 300 5" timeout=3
+  retry="3 5 300 5" timeout=3
 olcSyncRepl: rid=003 provider=$URI3 binddn="cn=config" bindmethod=simple
   credentials=$CONFIGPW searchbase="cn=config" type=refreshAndPersist
-  retry="5 5 300 5" timeout=3
+  retry="3 5 300 5" timeout=3
 -
 add: olcMirrorMode
 olcMirrorMode: TRUE
@@ -279,13 +279,13 @@ changetype: modify
 add: olcSyncRepl
 olcSyncRepl: rid=001 provider=$URI1 binddn="cn=config" bindmethod=simple
   credentials=$CONFIGPW searchbase="cn=config" type=refreshAndPersist
-  retry="5 5 300 5" timeout=3
+  retry="3 5 300 5" timeout=3
 olcSyncRepl: rid=002 provider=$URI2 binddn="cn=config" bindmethod=simple
   credentials=$CONFIGPW searchbase="cn=config" type=refreshAndPersist
-  retry="5 5 300 5" timeout=3
+  retry="3 5 300 5" timeout=3
 olcSyncRepl: rid=003 provider=$URI3 binddn="cn=config" bindmethod=simple
   credentials=$CONFIGPW searchbase="cn=config" type=refreshAndPersist
-  retry="5 5 300 5" timeout=3
+  retry="3 5 300 5" timeout=3
 -
 add: olcMirrorMode
 olcMirrorMode: TRUE
@@ -337,13 +337,13 @@ olcRootDN: $MANAGERDN
 olcRootPW: $PASSWD
 olcSyncRepl: rid=004 provider=$URI1 binddn="$MANAGERDN" bindmethod=simple
   credentials=$PASSWD searchbase="$BASEDN" $SYNCTYPE
-  retry="5 5 300 5" timeout=3
+  retry="3 5 300 5" timeout=3
 olcSyncRepl: rid=005 provider=$URI2 binddn="$MANAGERDN" bindmethod=simple
   credentials=$PASSWD searchbase="$BASEDN" $SYNCTYPE
-  retry="5 5 300 5" timeout=3
+  retry="3 5 300 5" timeout=3
 olcSyncRepl: rid=006 provider=$URI3 binddn="$MANAGERDN" bindmethod=simple
   credentials=$PASSWD searchbase="$BASEDN" $SYNCTYPE
-  retry="5 5 300 5" timeout=3
+  retry="3 5 300 5" timeout=3
 olcMirrorMode: TRUE
 
 dn: olcOverlay=syncprov,olcDatabase={1}${BACKEND},cn=config
@@ -387,9 +387,8 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-SLEEP=20
-echo "Waiting $SLEEP seconds for syncrepl to receive changes..."
-sleep $SLEEP
+echo "Waiting $SLEEP1 seconds for syncrepl to receive changes..."
+sleep $SLEEP1
 
 echo "Using ldapadd to populate consumer1..."
 $LDAPADD -D "$MANAGERDN" -H $URI2 -w $PASSWD -f $LDIFADD1 \
@@ -401,9 +400,8 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-SLEEP=20
-echo "Waiting $SLEEP seconds for syncrepl to receive changes..."
-sleep $SLEEP
+echo "Waiting $SLEEP1 seconds for syncrepl to receive changes..."
+sleep $SLEEP1
 
 echo "Using ldapadd to populate consumer2..."
 $LDAPADD -D "$MANAGERDN" -H $URI3 -w $PASSWD \
@@ -420,9 +418,8 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-SLEEP=20
-echo "Waiting $SLEEP seconds for syncrepl to receive changes..."
-sleep $SLEEP
+echo "Waiting $SLEEP1 seconds for syncrepl to receive changes..."
+sleep $SLEEP1
 
 echo "Using ldapmodify to add to the producer entries that will be deleted..."
 $LDAPMODIFY -D "$MANAGERDN" -H $URI1 -w $PASSWD \
@@ -452,9 +449,8 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-SLEEP=20
-echo "Waiting $SLEEP seconds for syncrepl to receive changes..."
-sleep $SLEEP
+echo "Waiting $SLEEP1 seconds for syncrepl to receive changes..."
+sleep $SLEEP1
 
 echo "Using ldapmodify to delete entries from consumer1..."
 $LDAPMODIFY -D "$MANAGERDN" -H $URI2 -w $PASSWD \
@@ -469,9 +465,8 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-SLEEP=20
-echo "Waiting $SLEEP seconds for syncrepl to receive changes..."
-sleep $SLEEP
+echo "Waiting $SLEEP1 seconds for syncrepl to receive changes..."
+sleep $SLEEP1
 
 echo "Using ldapmodify to delete entries from consumer2..."
 $LDAPMODIFY -D "$MANAGERDN" -H $URI3 -w $PASSWD \
@@ -486,9 +481,8 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-SLEEP=20
-echo "Waiting $SLEEP seconds for syncrepl to receive changes..."
-sleep $SLEEP
+echo "Waiting $SLEEP1 seconds for syncrepl to receive changes..."
+sleep $SLEEP1
 
 echo "Using ldapsearch to check that syncrepl received database changes..."
 RC=32
@@ -500,8 +494,8 @@ for i in 0 1 2 3 4 5; do
 		RC=0
 		break
 	fi
-	echo "Waiting 5 seconds for syncrepl to receive changes..."
-	sleep 5
+	echo "Waiting $SLEEP1 seconds for syncrepl to receive changes..."
+	sleep $SLEEP1
 done
 
 if test $RC != 0 ; then
@@ -520,8 +514,8 @@ for i in 0 1 2 3 4 5; do
 		RC=0
 		break
 	fi
-	echo "Waiting 5 seconds for syncrepl to receive changes..."
-	sleep 5
+	echo "Waiting $SLEEP1 seconds for syncrepl to receive changes..."
+	sleep $SLEEP1
 done
 
 if test $RC != 0 ; then
@@ -747,9 +741,8 @@ if test $RC != 0 ; then
 fi
 
 # Insert modifications and more tests here.
-SLEEP=10
-echo "Waiting $SLEEP seconds for servers to resync..."
-sleep $SLEEP
+echo "Waiting $SLEEP1 seconds for servers to resync..."
+sleep $SLEEP1
 
 test $KILLSERVERS != no && kill -HUP $KILLPIDS
 

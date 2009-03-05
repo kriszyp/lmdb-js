@@ -159,9 +159,8 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-SLEEP=15
-echo "Waiting $SLEEP seconds for syncrepl to receive changes..."
-sleep $SLEEP
+echo "Waiting $SLEEP1 seconds for syncrepl to receive changes..."
+sleep $SLEEP1
 
 #echo "Using ldapsearch to read all the entries from the master..."
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
@@ -223,11 +222,10 @@ if test $? != 0 ; then
 fi
 
 CHECK=`expr $CHECK + 1`
-SLEEP=10
-echo "$CHECK > Stopping the provider, sleeping $SLEEP seconds and restarting it..."
+echo "$CHECK > Stopping the provider, sleeping $SLEEP2 seconds and restarting it..."
 kill -HUP "$MASTERPID"
 wait $MASTERPID
-sleep $SLEEP
+sleep $SLEEP2
 
 echo "======================= RESTART =======================" >> $LOG1
 $SLAPD -f $CONF1 -h $URI1 -d $LVL $TIMING >> $LOG1 2>&1 &
@@ -345,9 +343,8 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-SLEEP=15
-echo "Waiting $SLEEP seconds for syncrepl to receive changes..."
-sleep $SLEEP
+echo "Waiting $SLEEP1 seconds for syncrepl to receive changes..."
+sleep $SLEEP1
 
 #echo "Using ldapsearch to read all the entries from the master..."
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
@@ -457,9 +454,8 @@ if test $WAIT != 0 ; then
 fi
 KILLPIDS="$MASTERPID $P1SLAVEPID $R1SLAVEPID"
 
-SLEEP=25
-echo "Waiting $SLEEP seconds for syncrepl to receive changes..."
-sleep $SLEEP
+echo "Waiting $SLEEP1 seconds for syncrepl to receive changes..."
+sleep $SLEEP1
 
 #echo "Using ldapsearch to read all the entries from the master..."
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
@@ -539,9 +535,8 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-SLEEP=15
-echo "Waiting $SLEEP seconds for syncrepl to receive changes..."
-sleep $SLEEP
+echo "Waiting $SLEEP1 seconds for syncrepl to receive changes..."
+sleep $SLEEP1
 
 #echo "Using ldapsearch to read all the entries from the master..."
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \

@@ -133,9 +133,8 @@ case $RC in
 	;;
 esac
 
-SLEEP=15
-echo "Waiting $SLEEP seconds for shadow subtrees to sync..."
-sleep $SLEEP
+echo "Waiting $SLEEP1 seconds for shadow subtrees to sync..."
+sleep $SLEEP1
 
 echo "Filtering original ldif used to create database..."
 . $LDIFFILTER < $GLUESYNCOUT > $LDIFFLT
