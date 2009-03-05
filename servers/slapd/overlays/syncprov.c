@@ -908,11 +908,11 @@ syncprov_qplay( Operation *op, syncops *so )
 	} while (0);
 
 	/* We now only send one change at a time, to prevent one
-	 * psearch from hogging all the CPU. Resubmit this
-	 * task if there are more responses queued.
+	 * psearch from hogging all the CPU. Resubmit this task if
+	 * there are more responses queued and no errors occurred.
 	 */
 
-	if ( so->s_res ) {
+	if ( rc == 0 && so->s_res ) {
 		syncprov_qstart( so );
 	} else {
 		so->s_flags ^= PS_TASK_QUEUED;
