@@ -2321,6 +2321,12 @@ retry_add:;
 								break;
 							}
 						}
+						if ( !mod->sml_numvals ) {
+							/* Drop this op */
+							*ml = mod->sml_next;
+							mod->sml_next = NULL;
+							slap_mods_free( mod, 1 );
+						}
 						break;
 					}
 				}
