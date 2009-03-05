@@ -143,7 +143,9 @@ slapadd( int argc, char **argv )
 
 	/* nextline is the line number of the end of the current entry */
 	for( lineno=1; ldif_read_record( ldiffp, &nextline, &buf, &lmax );
-		lineno=nextline+1 ) {
+		lineno=nextline+1 )
+	{
+		BackendDB *bd;
 		Entry *e;
 
 		if ( lineno < jumpline )
@@ -173,7 +175,8 @@ slapadd( int argc, char **argv )
 
 		/* make sure the DN is not empty */
 		if( BER_BVISEMPTY( &e->e_nname ) &&
-			!BER_BVISEMPTY( be->be_nsuffix )) {
+			!BER_BVISEMPTY( be->be_nsuffix ))
+		{
 			fprintf( stderr, "%s: empty dn=\"%s\" (line=%d)\n",
 				progname, e->e_dn, lineno );
 			rc = EXIT_FAILURE;
@@ -183,19 +186,32 @@ slapadd( int argc, char **argv )
 		}
 
 		/* check backend */
-		if( select_backend( &e->e_nname, nosubordinates )
-			!= be )
-		{
+		bd = select_backend( &e->e_nname, nosubordinates );
+		if ( bd != be ) {
 			fprintf( stderr, "%s: line %d: "
-				"database (%s) not configured to hold \"%s\"\n",
+				"database #%d (%s) not configured to hold \"%s\"",
 				progname, lineno,
-				be ? be->be_suffix[0].bv_val : "<none>",
+				dbnum,
+				be->be_suffix[0].bv_val,
 				e->e_dn );
-			fprintf( stderr, "%s: line %d: "
-				"database (%s) not configured to hold \"%s\"\n",
-				progname, lineno,
-				be ? be->be_nsuffix[0].bv_val : "<none>",
-				e->e_ndn );
+			if ( bd ) {
+				BackendDB *bdtmp;
+				int dbidx = 0;
+				LDAP_STAILQ_FOREACH( bdtmp, &backendDB, be_next ) {
+					if ( bdtmp == bd ) break;
+					dbidx++;
+				}
+
+				assert( bdtmp != NULL );
+				
+				fprintf( stderr, "; did you mean to use database #%d (%s)?",
+					dbidx,
+					bd->be_suffix[0].bv_val );
+
+			} else {
+				fprintf( stderr, "; no database configured for that naming context" );
+			}
+			fprintf( stderr, "\n" );
 			rc = EXIT_FAILURE;
 			entry_free( e );
 			if( continuemode ) continue;

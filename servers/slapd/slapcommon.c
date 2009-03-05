@@ -218,7 +218,7 @@ slap_tool_init(
 	char *subtree = NULL;
 	char *ldiffile	= NULL;
 	char **debug_unknowns = NULL;
-	int rc, i, dbnum;
+	int rc, i;
 	int mode = SLAP_TOOL_MODE;
 	int truncatemode = 0;
 	int use_glue = 1;
@@ -353,7 +353,7 @@ slap_tool_init(
 			break;
 
 		case 'n':	/* which config file db to index */
-			if ( lutil_atoi( &dbnum, optarg ) ) {
+			if ( lutil_atoi( &dbnum, optarg ) || dbnum < 0 ) {
 				usage( tool, progname );
 			}
 			break;
@@ -689,12 +689,12 @@ slap_tool_init(
 				progname, dbnum, 0 );
 		}
 
-	} else if ( dbnum < 0 || dbnum > (nbackends-1) ) {
+	} else if ( dbnum >= nbackends ) {
 		fprintf( stderr,
 			"Database number selected via -n is out of range\n"
 			"Must be in the range 0 to %d"
-			" (number of configured databases)\n",
-			nbackends-1 );
+			" (less than the number of configured databases, %d)\n",
+			nbackends - 1, nbackends );
 		exit( EXIT_FAILURE );
 
 	} else {
@@ -705,6 +705,15 @@ slap_tool_init(
 	}
 
 startup:;
+	if ( be ) {
+		BackendDB *bdtmp;
+
+		dbnum = 0;
+		LDAP_STAILQ_FOREACH( bdtmp, &backendDB, be_next ) {
+			if ( bdtmp == be ) break;
+			dbnum++;
+		}
+	}
 
 #ifdef CSRIMALLOC
 	mal_leaktrace(1);
