@@ -9,11 +9,13 @@ OpenLDAP 2.4.16 Engineering
 	Fixed libldap referral chasing (ITS#5980)
 	Fixed slapd backglue with empty DBs (ITS#5986)
 	Fixed slapd syncrepl newCookie sync messages (ITS#5972)
+	Fixed slapd syncrepl multiple CSN propagation (ITS#5973)
 	Fixed slapd-bdb/hdb cachesize handling (ITS#5860)
 	Fixed slapd-ldap/meta with broken AD results (ITS#5977)
 	Fixed slapd-ldap/meta with invalid attrs again (ITS#5959)
 	Fixed slapo-accesslog interaction with ppolicy (ITS#5979)
 	Fixed slapo-syncprov newCookie sync messages (ITS#5972)
+	Fixed slapo-syncprov multiple CSN propagation (ITS#5973)
 	Documentation
 		admin24 clarified MMR URI requirements (ITS#5942,ITS#5987)
 		slapd-ldap/meta(5) added missing TLS options (ITS#5989)
