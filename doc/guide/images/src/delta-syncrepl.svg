@@ -18,7 +18,7 @@
    width="744.09448"
    inkscape:output_extension="org.inkscape.output.svg.inkscape"
    version="1.0"
-   inkscape:export-filename="/home/ghenry/Desktop/dual_dc.png"
+   inkscape:export-filename="/home/ghenry/Desktop/delta-syncrepl.png"
    inkscape:export-xdpi="90"
    inkscape:export-ydpi="90">
   <metadata
@@ -4541,7 +4541,7 @@
      id="base"
      inkscape:current-layer="layer1"
      inkscape:cx="391.40904"
-     inkscape:cy="251.71914"
+     inkscape:cy="253.29159"
      inkscape:document-units="px"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
@@ -4848,5 +4848,9 @@
        style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1.08729029px;stroke-linecap:butt;stroke-linejoin:miter;marker-start:url(#Arrow1Lstart);marker-mid:none;marker-end:url(#Arrow1Lend);stroke-opacity:1"
        d="M 244.20659,325.76325 L 336.79341,392.05559"
        id="path25655" />
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:0.48164538px;stroke-linecap:butt;stroke-linejoin:miter;marker-start:url(#Arrow1Lstart);marker-mid:none;marker-end:url(#Arrow1Lend);stroke-opacity:1"
+       d="M 168.40377,220.39252 L 208.59623,190.42632"
+       id="path5584" />
   </g>
 </svg>
