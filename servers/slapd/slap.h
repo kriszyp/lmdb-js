@@ -2371,6 +2371,7 @@ typedef struct PagedResultsState {
 
 struct slap_csn_entry {
 	struct berval ce_csn;
+	int ce_sid;
 	unsigned long ce_opid;
 	unsigned long ce_connid;
 #define SLAP_CSN_PENDING	1
