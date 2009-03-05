@@ -1,6 +1,7 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.16 Engineering
+	Fixed libldap segfault in checking cert/DN (ITS#5976)
 
 OpenLDAP 2.4.15 Release (2009/02/24)
 	Fixed libldap alias dereferencing in C API again (ITS#5916)
