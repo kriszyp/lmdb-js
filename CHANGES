@@ -12,6 +12,7 @@ OpenLDAP 2.4.16 Engineering
 	Fixed slapo-accesslog interaction with ppolicy (ITS#5979)
 	Documentation
 		admin24 clarified MMR URI requirements (ITS#5942,ITS#5987)
+		slapd-ldap/meta(5) added missing TLS options (ITS#5989)
 
 OpenLDAP 2.4.15 Release (2009/02/24)
 	Fixed libldap alias dereferencing in C API again (ITS#5916)
