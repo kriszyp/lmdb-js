@@ -183,7 +183,7 @@ do_modrdn( char *uri, char *manager,
 	int delay, int friendly, int chaserefs )
 {
 	LDAP	*ld = NULL;
-	int  	i = 0, do_retry = maxretries;
+	int  	i, do_retry = maxretries;
 	char	*DNs[2];
 	char	*rdns[2];
 	int	rc = LDAP_SUCCESS;
@@ -207,6 +207,8 @@ do_modrdn( char *uri, char *manager,
 	DNs[1][i] = '\0';
 	rdns[0] = strdup( DNs[1] );
 	DNs[1][i] = ',';
+
+	i = 0;
 
 retry:;
 	ldap_initialize( &ld, uri );
