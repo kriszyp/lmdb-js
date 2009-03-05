@@ -402,9 +402,18 @@ tlsg_session_accept( tls_session *session )
 
 	rc = gnutls_handshake( s->session );
 	if ( rc == 0 && s->ctx->lo->ldo_tls_require_cert != LDAP_OPT_X_TLS_NEVER ) {
-		rc = tlsg_cert_verify( s );
-		if ( rc && s->ctx->lo->ldo_tls_require_cert == LDAP_OPT_X_TLS_ALLOW )
+		const gnutls_datum_t *peer_cert_list;
+		unsigned int list_size;
+
+		peer_cert_list = gnutls_certificate_get_peers( s->session, 
+						&list_size );
+		if ( !peer_cert_list && s->ctx->lo->ldo_tls_require_cert == LDAP_OPT_X_TLS_TRY ) 
 			rc = 0;
+		else {
+			rc = tlsg_cert_verify( s );
+			if ( rc && s->ctx->lo->ldo_tls_require_cert == LDAP_OPT_X_TLS_ALLOW )
+				rc = 0;
+		}
 	}
 	return rc;
 }
@@ -483,7 +492,7 @@ tlsg_session_my_dn( tls_session *session, struct berval *der_dn )
 
 	if (!x) return LDAP_INVALID_CREDENTIALS;
 	
-	bv.bv_val = x->data;
+	bv.bv_val = (char *) x->data;
 	bv.bv_len = x->size;
 
 	tlsg_x509_cert_dn( &bv, der_dn, 1 );
@@ -496,7 +505,7 @@ tlsg_session_peer_dn( tls_session *session, struct berval *der_dn )
 	tlsg_session *s = (tlsg_session *)session;
 	if ( !s->peer_der_dn.bv_val ) {
 		const gnutls_datum_t *peer_cert_list;
-		int list_size;
+		unsigned int list_size;
 		struct berval bv;
 
 		peer_cert_list = gnutls_certificate_get_peers( s->session, 
@@ -504,7 +513,7 @@ tlsg_session_peer_dn( tls_session *session, struct berval *der_dn )
 		if ( !peer_cert_list ) return LDAP_INVALID_CREDENTIALS;
 
 		bv.bv_len = peer_cert_list->size;
-		bv.bv_val = peer_cert_list->data;
+		bv.bv_val = (char *) peer_cert_list->data;
 
 		tlsg_x509_cert_dn( &bv, &s->peer_der_dn, 1 );
 	}
@@ -525,13 +534,11 @@ tlsg_session_chkhost( LDAP *ld, tls_session *session, const char *name_in )
 	tlsg_session *s = (tlsg_session *)session;
 	int i, ret;
 	const gnutls_datum_t *peer_cert_list;
-	int list_size;
-	struct berval bv;
+	unsigned int list_size;
 	char altname[NI_MAXHOST];
 	size_t altnamesize;
 
 	gnutls_x509_crt_t cert;
-	gnutls_datum_t *x;
 	const char *name;
 	char *ptr;
 	char *domain = NULL;
@@ -540,9 +547,8 @@ tlsg_session_chkhost( LDAP *ld, tls_session *session, const char *name_in )
 #else
 	struct in_addr addr;
 #endif
-	int n, len1 = 0, len2 = 0;
+	int len1 = 0, len2 = 0;
 	int ntype = IS_DNS;
-	time_t now = time(0);
 
 	if( ldap_int_hostname &&
 		( !name_in || !strcasecmp( name_in, "localhost" ) ) )
@@ -896,7 +902,6 @@ tlsg_sb_read( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len)
 {
 	struct tls_data		*p;
 	ber_slen_t		ret;
-	int			err;
 
 	assert( sbiod != NULL );
 	assert( SOCKBUF_VALID( sbiod->sbiod_sb ) );
@@ -929,7 +934,6 @@ tlsg_sb_write( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len)
 {
 	struct tls_data		*p;
 	ber_slen_t		ret;
-	int			err;
 
 	assert( sbiod != NULL );
 	assert( SOCKBUF_VALID( sbiod->sbiod_sb ) );
@@ -965,6 +969,7 @@ tlsg_cert_verify( tlsg_session *ssl )
 	unsigned int status = 0;
 	int err;
 	time_t now = time(0);
+	time_t peertime;
 
 	err = gnutls_certificate_verify_peers2( ssl->session, &status );
 	if ( err < 0 ) {
@@ -977,12 +982,24 @@ tlsg_cert_verify( tlsg_session *ssl )
 			status, 0,0 );
 		return -1;
 	}
-	if ( gnutls_certificate_expiration_time_peers( ssl->session ) < now ) {
+	peertime = gnutls_certificate_expiration_time_peers( ssl->session );
+	if ( peertime == (time_t) -1 ) {
+		Debug( LDAP_DEBUG_ANY, "TLS: gnutls_certificate_expiration_time_peers failed\n",
+			0, 0, 0 );
+		return -1;
+	}
+	if ( peertime < now ) {
 		Debug( LDAP_DEBUG_ANY, "TLS: peer certificate is expired\n",
 			0, 0, 0 );
 		return -1;
 	}
-	if ( gnutls_certificate_activation_time_peers( ssl->session ) > now ) {
+	peertime = gnutls_certificate_activation_time_peers( ssl->session );
+	if ( peertime == (time_t) -1 ) {
+		Debug( LDAP_DEBUG_ANY, "TLS: gnutls_certificate_activation_time_peers failed\n",
+			0, 0, 0 );
+		return -1;
+	}
+	if ( peertime > now ) {
 		Debug( LDAP_DEBUG_ANY, "TLS: peer certificate not yet active\n",
 			0, 0, 0 );
 		return -1;
