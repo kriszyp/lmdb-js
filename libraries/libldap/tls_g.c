@@ -35,6 +35,8 @@
 #include <ac/unistd.h>
 #include <ac/param.h>
 #include <ac/dirent.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 #include "ldap-int.h"
 #include "ldap-tls.h"
@@ -290,6 +292,31 @@ tlsg_ctx_free ( tls_ctx *ctx )
 	ber_memfree ( c );
 }
 
+static int
+tlsg_getfile( const char *path, gnutls_datum_t *buf )
+{
+	int rc = -1, fd;
+	struct stat st;
+
+	fd = open( path, O_RDONLY );
+	if ( fd >= 0 && fstat( fd, &st ) == 0 ) {
+		buf->size = st.st_size;
+		buf->data = LDAP_MALLOC( st.st_size + 1 );
+		if ( buf->data ) {
+			rc = read( fd, buf->data, st.st_size );
+			close( fd );
+			if ( rc < st.st_size )
+				rc = -1;
+			else
+				rc = 0;
+		}
+	}
+	return rc;
+}
+
+/* This is the GnuTLS default */
+#define	VERIFY_DEPTH	6
+
 /*
  * initialize a new TLS context
  */
@@ -322,11 +349,53 @@ tlsg_ctx_init( struct ldapoptions *lo, struct ldaptls *lt, int is_server )
 	}
 
 	if ( lo->ldo_tls_certfile && lo->ldo_tls_keyfile ) {
-		rc = gnutls_certificate_set_x509_key_file( 
-			ctx->cred,
-			lt->lt_certfile,
-			lt->lt_keyfile,
+		gnutls_x509_privkey_t key;
+		gnutls_datum_t buf;
+		gnutls_x509_crt_t certs[VERIFY_DEPTH];
+		unsigned int max = VERIFY_DEPTH;
+
+		/* OpenSSL builds the cert chain for us, but GnuTLS
+		 * expects it to be present in the certfile. If it's
+		 * not, we have to build it ourselves. So we have to
+		 * do some special checks here...
+		 */
+		rc = tlsg_getfile( lt->lt_keyfile, &buf );
+		if ( rc ) return -1;
+		rc = gnutls_x509_privkey_import( key, &buf,
 			GNUTLS_X509_FMT_PEM );
+		LDAP_FREE( buf.data );
+		if ( rc < 0 ) return rc;
+
+		rc = tlsg_getfile( lt->lt_certfile, &buf );
+		if ( rc ) return -1;
+		rc = gnutls_x509_crt_list_import( certs, &max, &buf,
+			GNUTLS_X509_FMT_PEM, 0 );
+		LDAP_FREE( buf.data );
+		if ( rc < 0 ) return rc;
+
+		/* If there's only one cert and it's not self-signed,
+		 * then we have to build the cert chain.
+		 */
+		if ( max == 1 && !gnutls_x509_crt_check_issuer( certs[0], certs[0] )) {
+			gnutls_x509_crt_t *cas;
+			unsigned int i, j = 0, ncas;
+
+			gnutls_certificate_get_x509_cas( ctx->cred, &cas, &ncas );
+			for ( i = 1; i<VERIFY_DEPTH; i++ ) {
+				for ( j = 0; j<ncas; j++ ) {
+					if ( gnutls_x509_crt_check_issuer( certs[i-1], cas[j] )) {
+						certs[i] = cas[j];
+						if ( gnutls_x509_crt_check_issuer( cas[j], cas[j] ))
+							j = ncas;
+						break;
+					}
+				}
+				if ( j == ncas )
+					break;
+			}
+			max = i+1;
+		}
+		rc = gnutls_certificate_set_x509_key( ctx->cred, certs, max, key );
 		if ( rc ) return -1;
 	} else if ( lo->ldo_tls_certfile || lo->ldo_tls_keyfile ) {
 		Debug( LDAP_DEBUG_ANY, 
