@@ -3187,8 +3187,6 @@ dn_callback(
 				 */
 				if ( !is_entry_glue( rs->sr_entry )) {
 					old = attr_find( rs->sr_entry->e_attrs,
-						slap_schema.si_ad_objectClass );
-					old = attr_find( rs->sr_entry->e_attrs,
 						slap_schema.si_ad_entryCSN );
 					new = attr_find( dni->new_entry->e_attrs,
 						slap_schema.si_ad_entryCSN );
