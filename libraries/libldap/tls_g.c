@@ -349,6 +349,13 @@ tlsg_ctx_init( struct ldapoptions *lo, struct ldaptls *lt, int is_server )
 		if ( rc < 0 ) return -1;
 		rc = 0;
 	}
+
+	/* FIXME: ITS#5992 - this should go be configurable,
+	 * and V1 CA certs should be phased out ASAP.
+	 */
+	gnutls_certificate_set_verify_flags( ctx->cred,
+		GNUTLS_VERIFY_ALLOW_X509_V1_CA_CRT );
+
 	if ( is_server ) {
 		gnutls_dh_params_init(&ctx->dh_params);
 		gnutls_dh_params_generate2(ctx->dh_params, DH_BITS);
