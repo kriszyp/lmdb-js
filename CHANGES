@@ -5,7 +5,7 @@ OpenLDAP 2.4.16 Engineering
 	Fixed libldap GnuTLS with CA chains (ITS#5991)
 	Fixed libldap GnuTLS TLSVerifyCilent try (ITS#5981)
 	Fixed libldap segfault in checking cert/DN (ITS#5976)
-	Fixed libldap peer cert memory leak again (ITS#5849)
+	Fixed libldap peer cert double free (ITS#5849)
 	Fixed libldap referral chasing (ITS#5980)
 	Fixed slapd backglue with empty DBs (ITS#5986)
 	Fixed slapd syncrepl newCookie sync messages (ITS#5972)
