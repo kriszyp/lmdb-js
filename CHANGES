@@ -11,6 +11,7 @@ OpenLDAP 2.4.16 Engineering
 	Fixed slapd syncrepl newCookie sync messages (ITS#5972)
 	Fixed slapd syncrepl multiple CSN propagation (ITS#5973)
 	Fixed slapd-bdb/hdb cachesize handling (ITS#5860)
+	Fixed slapd-ldap incorrect referral handling (ITS#6003,ITS#5916)
 	Fixed slapd-ldap/meta with broken AD results (ITS#5977)
 	Fixed slapd-ldap/meta with invalid attrs again (ITS#5959)
 	Fixed slapo-accesslog interaction with ppolicy (ITS#5979)
