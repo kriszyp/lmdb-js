@@ -245,7 +245,7 @@ time the provider reads the last saved {{EX:contextCSN}} into memory
 and uses the in-memory copy exclusively thereafter. By default,
 changes to the {{EX:contextCSN}} as a result of database updates
 will not be written to the database until the server is cleanly
-shut down. A checkpoint facility exists to cause the contextCSN to
+shut down. A checkpoint facility exists to cause the {{EX:contextCSN}} to
 be written out more frequently if desired.
 
 Note that at startup time, if the provider is unable to read a
@@ -291,7 +291,7 @@ specification, it is possible for a modification to remove an entry
 from the replication scope even though the entry has not been deleted
 on the provider. Logically the entry must be deleted on the consumer
 but in {{refreshOnly}} mode the provider cannot detect and propagate
-this change without the use of the session log.
+this change without the use of the session log on the provider.
 
 For configuration, please see the {{SECT:Syncrepl}} section.
 
