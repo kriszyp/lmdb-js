@@ -212,8 +212,8 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-echo "Waiting 15 seconds for syncrepl to receive changes..."
-sleep 15
+echo "Waiting $SLEEP1 seconds for syncrepl to receive changes..."
+sleep $SLEEP1
 
 echo "Performing modrdn alone on the producer..."
 $LDAPMODIFY -v -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD > \
@@ -232,8 +232,8 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-echo "Waiting 15 seconds for syncrepl to receive changes..."
-sleep 15
+echo "Waiting $SLEEP1 seconds for syncrepl to receive changes..."
+sleep $SLEEP1
 
 echo "Performing modify alone on the producer..."
 $LDAPMODIFY -v -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD > \

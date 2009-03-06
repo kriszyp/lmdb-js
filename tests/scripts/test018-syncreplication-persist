@@ -148,8 +148,8 @@ for i in 0 1 2 3 4 5; do
 	sleep 5
 done
 
-echo "Waiting 15 seconds for consumer to reconnect..."
-sleep 15
+echo "Waiting $SLEEP1 seconds for consumer to reconnect..."
+sleep $SLEEP1
 
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"

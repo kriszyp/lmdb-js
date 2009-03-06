@@ -322,8 +322,8 @@ olcSyncRepl: rid=002 provider=$URI1 binddn="cn=config" bindmethod=simple
   credentials=$CONFIGPW searchbase="cn=config" type=refreshAndPersist
   retry="3 5 300 5" timeout=3
 EOF
-echo "Waiting 10 seconds for syncrepl to receive changes..."
-sleep 10
+echo "Waiting $SLEEP1 seconds for syncrepl to receive changes..."
+sleep $SLEEP1
 
 echo "Using ldapsearch to read config from the producer..."
 $LDAPSEARCH -b cn=config -D cn=config -H $URI1 -y $CONFIGPWF  \
