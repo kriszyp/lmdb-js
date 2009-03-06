@@ -930,7 +930,7 @@ retry:
 	/* TODO: timeout? */
 	rc = ldap_pvt_search_s( lc->lc_ld, ndn->bv_val, LDAP_SCOPE_BASE, filter,
 				attrp, 0, ctrls, NULL,
-				NULL, LDAP_NO_LIMIT, op->ors_deref, &result );
+				NULL, LDAP_NO_LIMIT, 0, &result );
 	if ( rc != LDAP_SUCCESS ) {
 		if ( rc == LDAP_SERVER_DOWN && do_retry ) {
 			do_retry = 0;
