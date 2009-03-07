@@ -39,6 +39,13 @@
 
 #include <rewrite.h>
 
+#define malloc(x)	ber_memalloc(x)
+#define calloc(x,y)	ber_memcalloc(x,y)
+#define realloc(x,y)	ber_memrealloc(x,y)
+#define free(x)	ber_memfree(x)
+#undef strdup
+#define	strdup(x)	ber_strdup(x)
+
 /* Uncomment to use ldap pvt threads */
 #define USE_REWRITE_LDAP_PVT_THREADS
 #include <ldap_pvt_thread.h>
