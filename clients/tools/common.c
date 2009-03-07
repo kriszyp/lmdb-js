@@ -647,7 +647,7 @@ tool_args( int argc, char **argv )
 					}
 				}
 
-				tmpctrls = (LDAPControl *)realloc( unknown_ctrls,
+				tmpctrls = (LDAPControl *)ber_memrealloc( unknown_ctrls,
 					(unknown_ctrls_num + 1)*sizeof( LDAPControl ) );
 				if ( tmpctrls == NULL ) {
 					fprintf( stderr, "%s: no memory?\n", prog );
@@ -1193,7 +1193,7 @@ tool_conn_setup( int dont, void (*private_setup)( LDAP * ) )
 					for ( i = 0; hosts[ i ] != NULL; i++ )
 						/* count'em */ ;
 
-					tmp = (char **)realloc( urls, sizeof( char * ) * ( nurls + i + 1 ) );
+					tmp = (char **)ber_memrealloc( urls, sizeof( char * ) * ( nurls + i + 1 ) );
 					if ( tmp == NULL ) {
 						fprintf( stderr,
 							"DNS SRV: out of memory?\n" );
@@ -1227,7 +1227,7 @@ dnssrv_free:;
 					ber_memfree( domain );
 
 				} else {
-					tmp = (char **)realloc( urls, sizeof( char * ) * ( nurls + 2 ) );
+					tmp = (char **)ber_memrealloc( urls, sizeof( char * ) * ( nurls + 2 ) );
 					if ( tmp == NULL ) {
 						fprintf( stderr,
 							"DNS SRV: out of memory?\n" );
