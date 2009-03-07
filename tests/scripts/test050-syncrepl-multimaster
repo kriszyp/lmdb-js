@@ -336,8 +336,8 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-echo "Waiting $SLEEP1 seconds for syncrepl to receive changes..."
-sleep $SLEEP1
+echo "Waiting $SLEEP2 seconds for syncrepl to receive changes..."
+sleep $SLEEP2
 
 n=1
 while [ $n -le $MMR ]; do
