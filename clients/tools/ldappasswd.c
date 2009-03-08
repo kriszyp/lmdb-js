@@ -379,7 +379,7 @@ main( int argc, char *argv[] )
 			perror( "ber_scanf" );
 		} else {
 			printf(_("New password: %s\n"), s);
-			free( s );
+			ber_memfree( s );
 		}
 
 		ber_free( ber, 1 );
