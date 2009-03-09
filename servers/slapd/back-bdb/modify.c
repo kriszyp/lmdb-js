@@ -363,7 +363,6 @@ bdb_modify( Operation *op, SlapReply *rs )
 	DB_TXN	*ltid = NULL, *lt2;
 	struct bdb_op_info opinfo = {{{ 0 }}};
 	Entry		dummy = {0};
-	int			fakeroot = 0;
 
 	DB_LOCK		lock;
 
@@ -487,19 +486,6 @@ retry:	/* transaction retry */
 		case DB_LOCK_NOTGRANTED:
 			goto retry;
 		case DB_NOTFOUND:
-			if ( BER_BVISEMPTY( &op->o_req_ndn )) {
-				struct berval gluebv = BER_BVC("glue");
-				e = ch_calloc( 1, sizeof(Entry));
-				e->e_name.bv_val = ch_strdup( "" );
-				ber_dupbv( &e->e_nname, &e->e_name );
-				attr_merge_one( e, slap_schema.si_ad_objectClass,
-					&gluebv, NULL );
-				attr_merge_one( e, slap_schema.si_ad_structuralObjectClass,
-					&gluebv, NULL );
-				e->e_private = ei;
-				fakeroot = 1;
-				rs->sr_err = 0;
-			}
 			break;
 		case LDAP_BUSY:
 			rs->sr_text = "ldap server busy";
@@ -511,9 +497,7 @@ retry:	/* transaction retry */
 		}
 	}
 
-	if ( !fakeroot ) {
-		e = ei->bei_e;
-	}
+	e = ei->bei_e;
 
 	/* acquire and lock entry */
 	/* FIXME: dn2entry() should return non-glue entry */
@@ -676,19 +660,11 @@ retry:	/* transaction retry */
 	} else {
 		/* may have changed in bdb_modify_internal() */
 		e->e_ocflags = dummy.e_ocflags;
-		if ( fakeroot ) {
-			e->e_private = NULL;
-			entry_free( e );
-			e = NULL;
-			attrs_free( dummy.e_attrs );
-
-		} else {
-			rc = bdb_cache_modify( bdb, e, dummy.e_attrs, ltid, &lock );
-			switch( rc ) {
-			case DB_LOCK_DEADLOCK:
-			case DB_LOCK_NOTGRANTED:
-				goto retry;
-			}
+		rc = bdb_cache_modify( bdb, e, dummy.e_attrs, ltid, &lock );
+		switch( rc ) {
+		case DB_LOCK_DEADLOCK:
+		case DB_LOCK_NOTGRANTED:
+			goto retry;
 		}
 		dummy.e_attrs = NULL;
 

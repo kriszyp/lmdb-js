@@ -537,10 +537,23 @@ shm_retry:
 		rc = bdb_id2entry( be, NULL, 0, &e );
 	}
 	if ( !e ) {
+		struct berval gluebv = BER_BVC("glue");
+		Operation op = {0};
+		Opheader ohdr = {0};
 		e = entry_alloc();
 		e->e_id = 0;
 		ber_dupbv( &e->e_name, (struct berval *)&slap_empty_bv );
 		ber_dupbv( &e->e_nname, (struct berval *)&slap_empty_bv );
+		attr_merge_one( e, slap_schema.si_ad_objectClass,
+			&gluebv, NULL );
+		attr_merge_one( e, slap_schema.si_ad_structuralObjectClass,
+			&gluebv, NULL );
+		op.o_hdr = &ohdr;
+		op.o_bd = be;
+		op.ora_e = e;
+		op.o_dn = be->be_rootdn;
+		op.o_ndn = be->be_rootndn;
+		slap_add_opattrs( &op, NULL, NULL, 0, 0 );
 	}
 	e->e_ocflags = SLAP_OC_GLUE|SLAP_OC__END;
 	e->e_private = &bdb->bi_cache.c_dntree;
