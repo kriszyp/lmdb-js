@@ -23,6 +23,7 @@
 
 #if SLAPD_BDB || SLAPD_HDB
 
+#include <lber.h>
 #include "alock.h"
 #include "lutil.h"
 
@@ -238,8 +239,8 @@ alock_read_slot ( alock_info_t * info,
 	slot_data->al_stamp = alock_read_iattr (slotbuf+16);
 	slot_data->al_pid   = alock_read_iattr (slotbuf+24);
 
-	if (slot_data->al_appname) free (slot_data->al_appname);
-	slot_data->al_appname = calloc (1, ALOCK_MAX_APPNAME);
+	if (slot_data->al_appname) ber_memfree (slot_data->al_appname);
+	slot_data->al_appname = ber_memcalloc (1, ALOCK_MAX_APPNAME);
 	if (slot_data->al_appname == NULL) {
 		return -1;
 	}
@@ -306,7 +307,7 @@ alock_query_slot ( alock_info_t * info )
 	(void) memset ((void *) &slot_data, 0, sizeof (alock_slot_t));
 	alock_read_slot (info, &slot_data);
 
-	if (slot_data.al_appname != NULL) free (slot_data.al_appname);
+	if (slot_data.al_appname != NULL) ber_memfree (slot_data.al_appname);
 	slot_data.al_appname = NULL;
 
 	nosave = slot_data.al_lock & ALOCK_NOSAVE;
@@ -349,24 +350,24 @@ alock_open ( alock_info_t * info,
 	slot_data.al_lock = locktype;
 	slot_data.al_stamp = time(NULL);
 	slot_data.al_pid = getpid();
-	slot_data.al_appname = calloc (1, ALOCK_MAX_APPNAME);
+	slot_data.al_appname = ber_memcalloc (1, ALOCK_MAX_APPNAME);
 	if (slot_data.al_appname == NULL) {
 		return ALOCK_UNSTABLE;
 	}
 	strncpy (slot_data.al_appname, appname, ALOCK_MAX_APPNAME-1);
 	slot_data.al_appname [ALOCK_MAX_APPNAME-1] = '\0';
 
-	filename = calloc (1, strlen (envdir) + strlen ("/alock") + 1);
+	filename = ber_memcalloc (1, strlen (envdir) + strlen ("/alock") + 1);
 	if (filename == NULL ) {
-		free (slot_data.al_appname);
+		ber_memfree (slot_data.al_appname);
 		return ALOCK_UNSTABLE;
 	}
 	ptr = lutil_strcopy(filename, envdir);
 	lutil_strcopy(ptr, "/alock");
 	info->al_fd = open (filename, O_CREAT|O_RDWR, 0666);
-	free (filename);
+	ber_memfree (filename);
 	if (info->al_fd < 0) {
-		free (slot_data.al_appname);
+		ber_memfree (slot_data.al_appname);
 		return ALOCK_UNSTABLE;
 	}
 	info->al_slot = 0;
@@ -374,14 +375,14 @@ alock_open ( alock_info_t * info,
 	res = alock_grab_lock (info->al_fd, 0);
 	if (res == -1) { 
 		close (info->al_fd);
-		free (slot_data.al_appname);
+		ber_memfree (slot_data.al_appname);
 		return ALOCK_UNSTABLE;
 	}
 
 	res = fstat (info->al_fd, &statbuf);
 	if (res == -1) { 
 		close (info->al_fd);
-		free (slot_data.al_appname);
+		ber_memfree (slot_data.al_appname);
 		return ALOCK_UNSTABLE;
 	}
 
@@ -410,7 +411,7 @@ alock_open ( alock_info_t * info,
 			} else if (res == ALOCK_UNIQUE
 				&& locktype == ALOCK_UNIQUE) {
 				close (info->al_fd);
-				free (slot_data.al_appname);
+				ber_memfree (slot_data.al_appname);
 				return ALOCK_BUSY;
 
 			} else if (res == ALOCK_DIRTY) {
@@ -418,7 +419,7 @@ alock_open ( alock_info_t * info,
 
 			} else if (res == -1) {
 				close (info->al_fd);
-				free (slot_data.al_appname);
+				ber_memfree (slot_data.al_appname);
 				return ALOCK_UNSTABLE;
 
 			}
@@ -427,7 +428,7 @@ alock_open ( alock_info_t * info,
 
 	if (dirty_count && live_count) {
 		close (info->al_fd);
-		free (slot_data.al_appname);
+		ber_memfree (slot_data.al_appname);
 		return ALOCK_UNSTABLE;
 	}
 	
@@ -436,11 +437,11 @@ alock_open ( alock_info_t * info,
 			       info->al_slot);
 	if (res == -1) { 
 		close (info->al_fd);
-		free (slot_data.al_appname);
+		ber_memfree (slot_data.al_appname);
 		return ALOCK_UNSTABLE;
 	}
 	res = alock_write_slot (info, &slot_data);
-	free (slot_data.al_appname);
+	ber_memfree (slot_data.al_appname);
 	if (res == -1) { 
 		close (info->al_fd);
 		return ALOCK_UNSTABLE;
@@ -549,7 +550,7 @@ alock_close ( alock_info_t * info, int nosave )
 	if (res == -1) {
 		close (info->al_fd);
 		if (slot_data.al_appname != NULL) 
-			free (slot_data.al_appname);
+			ber_memfree (slot_data.al_appname);
 		return ALOCK_UNSTABLE;
 	}
 	slot_data.al_lock = ALOCK_UNLOCKED;
@@ -559,11 +560,11 @@ alock_close ( alock_info_t * info, int nosave )
 	if (res == -1) {
 		close (info->al_fd);
 		if (slot_data.al_appname != NULL) 
-			free (slot_data.al_appname);
+			ber_memfree (slot_data.al_appname);
 		return ALOCK_UNSTABLE;
 	}
 	if (slot_data.al_appname != NULL) {
-		free (slot_data.al_appname);
+		ber_memfree (slot_data.al_appname);
 		slot_data.al_appname = NULL;
 	}
 
@@ -635,11 +636,11 @@ alock_recover ( alock_info_t * info )
 				if (res == -1) {
 					close (info->al_fd);
 					if (slot_data.al_appname != NULL) 
-						free (slot_data.al_appname);
+						ber_memfree (slot_data.al_appname);
 					return ALOCK_UNSTABLE;
 				}
 				if (slot_data.al_appname != NULL) {
-					free (slot_data.al_appname);
+					ber_memfree (slot_data.al_appname);
 					slot_data.al_appname = NULL;
 				}
 				
