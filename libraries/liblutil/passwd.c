@@ -1107,7 +1107,7 @@ static int hash_crypt(
 int lutil_salt_format(const char *format)
 {
 #ifdef SLAPD_CRYPT
-	free( salt_format );
+	ber_memfree( salt_format );
 
 	salt_format = format != NULL ? ber_strdup( format ) : NULL;
 #endif
