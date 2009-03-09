@@ -4547,8 +4547,8 @@
      inkscape:pageshadow="2"
      inkscape:window-height="722"
      inkscape:window-width="1014"
-     inkscape:window-x="0"
-     inkscape:window-y="25"
+     inkscape:window-x="3"
+     inkscape:window-y="67"
      inkscape:zoom="1"
      pagecolor="#ffffff"
      width="1052.3622px"
@@ -4582,7 +4582,7 @@
          sodipodi:role="line"
          id="tspan4411"
          x="316"
-         y="236.40942"></tspan><tspan
+         y="236.40942" /><tspan
          sodipodi:role="line"
          id="tspan4413" /></text>
     <rect
@@ -5273,5 +5273,21 @@
          id="tspan14562"
          x="887.11389"
          y="250.09229">m8</tspan></text>
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1.09121561px;stroke-linecap:butt;stroke-linejoin:miter;marker-start:url(#Arrow1Lstart);marker-mid:none;marker-end:url(#Arrow1Lend);stroke-opacity:1"
+       d="M 214,208.45503 L 214,296.36381"
+       id="path4225" />
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1.01945496px;stroke-linecap:butt;stroke-linejoin:miter;marker-start:url(#Arrow1Lstart);marker-end:url(#Arrow1Lend);stroke-opacity:1"
+       d="M 141.00973,247.40942 L 289.99027,247.40942"
+       id="path7153" />
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:0.67594701px;stroke-linecap:butt;stroke-linejoin:miter;marker-start:url(#Arrow1Lstart);marker-end:url(#Arrow1Lend);stroke-opacity:1"
+       d="M 448.33798,195.40942 L 481.20271,195.40942 L 516.66202,195.40942"
+       id="path8754" />
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:0.72011989px;stroke-linecap:butt;stroke-linejoin:miter;marker-start:url(#Arrow1Lstart);marker-end:url(#Arrow1Lend);stroke-opacity:1"
+       d="M 483,173.76948 L 483,199.42807 L 483,219.04936"
+       id="path8756" />
   </g>
 </svg>
