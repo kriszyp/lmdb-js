@@ -165,7 +165,7 @@ PORT=`expr $BASEPORT + $n`
 URI="ldap://${LOCALHOST}:$PORT/"
 echo "olcSyncRepl: rid=00$n provider=$URI binddn=\"cn=config\" bindmethod=simple" >> $TMP
 echo "  credentials=$CONFIGPW searchbase=\"cn=config\" type=refreshAndPersist" >> $TMP
-echo "  retry=\"3 5 300 5\" timeout=3" >> $TMP
+echo "  retry=\"3 10 300 5\" timeout=3" >> $TMP
 n=`expr $n + 1`
 done
 echo "-" >> $TMP
@@ -227,7 +227,7 @@ P2=`expr $BASEPORT + $j`
 U2="ldap://${LOCALHOST}:$P2/"
 echo "olcSyncRepl: rid=00$j provider=$U2 binddn=\"cn=config\" bindmethod=simple" >> $TMP
 echo "  credentials=$CONFIGPW searchbase=\"cn=config\" type=refreshAndPersist" >> $TMP
-echo "  retry=\"3 5 300 5\" timeout=3" >> $TMP
+echo "  retry=\"3 10 300 5\" timeout=3" >> $TMP
 j=`expr $j + 1`
 done
 cat <<EOF >> $TMP
@@ -288,7 +288,7 @@ URI="ldap://${LOCALHOST}:$PORT/"
 
 echo "olcSyncRepl: rid=01$n provider=$URI binddn=\"$MANAGERDN\" bindmethod=simple" >> $TMP
 echo "  credentials=$PASSWD searchbase=\"$BASEDN\" $SYNCTYPE" >> $TMP
-echo "  retry=\"3 5 300 5\" timeout=3" >> $TMP
+echo "  retry=\"3 10 300 5\" timeout=3" >> $TMP
 n=`expr $n + 1`
 done
 
