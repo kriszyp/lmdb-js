@@ -218,9 +218,12 @@ int connections_shutdown(void)
  */
 int connections_timeout_idle(time_t now)
 {
-	int i = 0;
+	int i = 0, writers = 0;
 	int connindex;
 	Connection* c;
+	time_t old;
+
+	old = slapd_get_writetime();
 
 	for( c = connection_first( &connindex );
 		c != NULL;
@@ -240,9 +243,21 @@ int connections_timeout_idle(time_t now)
 			connection_closing( c, "idletimeout" );
 			connection_close( c );
 			i++;
+			continue;
+		}
+		if ( c->c_writewaiter ) {
+			writers = 1;
+			if( difftime( c->c_activitytime+global_writetimeout, now) < 0 ) {
+				/* close it */
+				connection_closing( c, "writetimeout" );
+				connection_close( c );
+				i++;
+			}
 		}
 	}
 	connection_done( c );
+	if ( !writers )
+		slapd_clr_writetime( old );
 
 	return i;
 }

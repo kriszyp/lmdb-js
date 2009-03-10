@@ -210,7 +210,7 @@ static long send_ldap_ber(
 		/* wait for socket to be write-ready */
 		ldap_pvt_thread_mutex_lock( &conn->c_write2_mutex );
 		conn->c_writewaiter = 1;
-		slapd_set_write( conn->c_sd, 1 );
+		slapd_set_write( conn->c_sd, 2 );
 
 		ldap_pvt_thread_mutex_unlock( &conn->c_write1_mutex );
 		ldap_pvt_thread_mutex_unlock( &conn->c_mutex );

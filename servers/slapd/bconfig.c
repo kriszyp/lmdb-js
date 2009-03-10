@@ -706,6 +706,9 @@ static ConfigTable config_back_cf_table[] = {
 		&config_updateref, "( OLcfgDbAt:0.13 NAME 'olcUpdateRef' "
 			"EQUALITY caseIgnoreMatch "
 			"SUP labeledURI )", NULL, NULL },
+	{ "writetimeout", "timeout", 2, 2, 0, ARG_INT,
+		&global_writetimeout, "( OLcfgGlAt:88 NAME 'olcWriteTimeout' "
+			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
 	{ NULL,	NULL, 0, 0, 0, ARG_IGNORED,
 		NULL, NULL, NULL, NULL }
 };
@@ -764,7 +767,7 @@ static ConfigOCs cf_ocs[] = {
 		 "olcTLSCACertificatePath $ olcTLSCertificateFile $ "
 		 "olcTLSCertificateKeyFile $ olcTLSCipherSuite $ olcTLSCRLCheck $ "
 		 "olcTLSRandFile $ olcTLSVerifyClient $ olcTLSDHParamFile $ "
-		 "olcTLSCRLFile $ olcToolThreads $ "
+		 "olcTLSCRLFile $ olcToolThreads $ olcWriteTimeout $ "
 		 "olcObjectIdentifier $ olcAttributeTypes $ olcObjectClasses $ "
 		 "olcDitContentRules $ olcLdapSyntaxes ) )", Cft_Global },
 	{ "( OLcfgGlOc:2 "

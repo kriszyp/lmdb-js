@@ -842,6 +842,8 @@ LDAP_SLAPD_F (void) slapd_set_write LDAP_P((ber_socket_t s, int wake));
 LDAP_SLAPD_F (void) slapd_clr_write LDAP_P((ber_socket_t s, int wake));
 LDAP_SLAPD_F (void) slapd_set_read LDAP_P((ber_socket_t s, int wake));
 LDAP_SLAPD_F (int) slapd_clr_read LDAP_P((ber_socket_t s, int wake));
+LDAP_SLAPD_F (void) slapd_clr_writetime LDAP_P((time_t old));
+LDAP_SLAPD_F (time_t) slapd_get_writetime LDAP_P((void));
 
 LDAP_SLAPD_V (volatile sig_atomic_t) slapd_abrupt_shutdown;
 LDAP_SLAPD_V (volatile sig_atomic_t) slapd_shutdown;
@@ -1930,6 +1932,7 @@ LDAP_SLAPD_V (const char) 	Versionstr[];
 
 LDAP_SLAPD_V (int)		global_gentlehup;
 LDAP_SLAPD_V (int)		global_idletimeout;
+LDAP_SLAPD_V (int)		global_writetimeout;
 LDAP_SLAPD_V (char *)	global_host;
 LDAP_SLAPD_V (char *)	global_realm;
 LDAP_SLAPD_V (char *)	sasl_host;

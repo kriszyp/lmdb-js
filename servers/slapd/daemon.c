@@ -86,6 +86,8 @@ static ber_socket_t wake_sds[2]
 	;
 static int emfile;
 
+static time_t chk_writetime;
+
 static volatile int waking;
 #ifdef NO_THREADS
 #define WAKE_LISTENER(w)	do { \
@@ -954,6 +956,9 @@ slapd_set_write( ber_socket_t s, int wake )
 		SLAP_SOCK_SET_WRITE( s );
 		slap_daemon.sd_nwriters++;
 	}
+	if (( wake & 2 ) && global_writetimeout ) {
+		chk_writetime = slap_get_time();
+	}
 
 	ldap_pvt_thread_mutex_unlock( &slap_daemon.sd_mutex );
 	WAKE_LISTENER(wake);
@@ -985,6 +990,25 @@ slapd_set_read( ber_socket_t s, int wake )
 
 	ldap_pvt_thread_mutex_unlock( &slap_daemon.sd_mutex );
 	WAKE_LISTENER(wake);
+}
+
+time_t
+slapd_get_writetime()
+{
+	time_t cur;
+	ldap_pvt_thread_mutex_lock( &slap_daemon.sd_mutex );
+	cur = chk_writetime;
+	ldap_pvt_thread_mutex_unlock( &slap_daemon.sd_mutex );
+	return cur;
+}
+
+void
+slapd_clr_writetime( time_t old )
+{
+	ldap_pvt_thread_mutex_lock( &slap_daemon.sd_mutex );
+	if ( chk_writetime == old )
+		chk_writetime = 0;
+	ldap_pvt_thread_mutex_unlock( &slap_daemon.sd_mutex );
 }
 
 static void
@@ -2033,24 +2057,12 @@ slapd_daemon_task(
 {
 	int l;
 	time_t last_idle_check = 0;
-	struct timeval idle;
 	int ebadf = 0;
 
 #define SLAPD_IDLE_CHECK_LIMIT 4
 
 	if ( global_idletimeout > 0 ) {
 		last_idle_check = slap_get_time();
-		/* Set the select timeout.
-		 * Don't just truncate, preserve the fractions of
-		 * seconds to prevent sleeping for zero time.
-		 */
-		idle.tv_sec = global_idletimeout / SLAPD_IDLE_CHECK_LIMIT;
-		idle.tv_usec = global_idletimeout - \
-			( idle.tv_sec * SLAPD_IDLE_CHECK_LIMIT );
-		idle.tv_usec *= 1000000 / SLAPD_IDLE_CHECK_LIMIT;
-	} else {
-		idle.tv_sec = 0;
-		idle.tv_usec = 0;
 	}
 
 	slapd_add( wake_sds[0], 0, NULL );
@@ -2155,14 +2167,34 @@ slapd_daemon_task(
 
 		now = slap_get_time();
 
-		if ( ( global_idletimeout > 0 ) &&
-			difftime( last_idle_check +
-				global_idletimeout/SLAPD_IDLE_CHECK_LIMIT, now ) < 0 )
-		{
-			connections_timeout_idle( now );
-			last_idle_check = now;
+		if ( global_idletimeout > 0 || chk_writetime ) {
+			int check = 0;
+			/* Set the select timeout.
+			 * Don't just truncate, preserve the fractions of
+			 * seconds to prevent sleeping for zero time.
+			 */
+			if ( chk_writetime ) {
+				tv.tv_sec = global_writetimeout;
+				tv.tv_usec = global_writetimeout;
+				if ( difftime( chk_writetime, now ) < 0 )
+					check = 2;
+			} else {
+				tv.tv_sec = global_idletimeout / SLAPD_IDLE_CHECK_LIMIT;
+				tv.tv_usec = global_idletimeout - \
+					( tv.tv_sec * SLAPD_IDLE_CHECK_LIMIT );
+				tv.tv_usec *= 1000000 / SLAPD_IDLE_CHECK_LIMIT;
+				if ( difftime( last_idle_check +
+					global_idletimeout/SLAPD_IDLE_CHECK_LIMIT, now ) < 0 )
+					check = 1;
+			}
+			if ( check ) {
+				connections_timeout_idle( now );
+				last_idle_check = now;
+			}
+		} else {
+			tv.tv_sec = 0;
+			tv.tv_usec = 0;
 		}
-		tv = idle;
 
 #ifdef SIGHUP
 		if ( slapd_gentle_shutdown ) {
