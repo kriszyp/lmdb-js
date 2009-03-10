@@ -473,7 +473,9 @@ along with this option.
 .B idletimeout <integer>
 Specify the number of seconds to wait before forcibly closing
 an idle client connection.  A idletimeout of 0 disables this
-feature.  The default is 0.
+feature.  The default is 0. You may also want to set the
+.B writetimeout
+option.
 .TP
 .B include <filename>
 Read additional configuration information from the given file before
@@ -982,6 +984,12 @@ The default is 1.
 .\".B ucdata-path <path>
 .\"Specify the path to the directory containing the Unicode character
 .\"tables. The default path is DATADIR/ucdata.
+.TP
+.B writetimeout <integer>
+Specify the number of seconds to wait before forcibly closing
+a connection with an outstanding write. This allows recovery from
+various network hang conditions.  A writetimeout of 0 disables this
+feature.  The default is 0.
 .SH TLS OPTIONS
 If
 .B slapd

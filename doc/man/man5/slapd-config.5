@@ -451,7 +451,9 @@ along with this option.
 .B olcIdleTimeout: <integer>
 Specify the number of seconds to wait before forcibly closing
 an idle client connection.  A setting of 0 disables this
-feature.  The default is 0.
+feature.  The default is 0. You may also want to set the
+.B olcWriteTimeout
+option.
 .TP
 .B olcIndexIntLen: <integer>
 Specify the key length for ordered integer indices. The most significant
@@ -750,11 +752,12 @@ The default is 16; the minimum value is 2.
 Specify the maximum number of threads to use in tool mode.
 This should not be greater than the number of CPUs in the system.
 The default is 1.
-.\"ucdata-path is obsolete / ignored...
-.\".TP
-.\".B ucdata-path <path>
-.\"Specify the path to the directory containing the Unicode character
-.\"tables. The default path is DATADIR/ucdata.
+.TP
+.B olcWriteTimeout: <integer>
+Specify the number of seconds to wait before forcibly closing
+a connection with an outstanding write.  This allows recovery from
+various network hang conditions.  A setting of 0 disables this
+feature.  The default is 0.
 .SH TLS OPTIONS
 If
 .B slapd
