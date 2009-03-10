@@ -591,7 +591,7 @@ novals:;
 
 	if ( dns ) {
 		for ( i = 0; i < ndns; i++ ) {
-			free( dns[i] );
+			ber_memfree( dns[i] );
 		}
 		free( dns );
 	}
@@ -599,7 +599,7 @@ novals:;
 	if ( creds ) {
 		for ( i = 0; i < ndns; i++ ) {
 			if ( creds[i].bv_val != nullstr ) {
-				free( creds[i].bv_val );
+				ber_memfree( creds[i].bv_val );
 			}
 		}
 		free( creds );

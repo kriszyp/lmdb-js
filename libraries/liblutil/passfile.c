@@ -62,7 +62,7 @@ lutil_get_filed_password(
 	}
 #endif /* HAVE_FSTAT */
 
-	passwd->bv_val = (char *) malloc( passwd->bv_len + 1 );
+	passwd->bv_val = (char *) ber_memalloc( passwd->bv_len + 1 );
 	if( passwd->bv_val == NULL ) {
 		perror( filename );
 		return -1;
@@ -73,10 +73,10 @@ lutil_get_filed_password(
 	do {
 		if( nleft == 0 ) {
 			/* double the buffer size */
-			char *p = (char *) realloc( passwd->bv_val,
+			char *p = (char *) ber_memrealloc( passwd->bv_val,
 				2 * passwd->bv_len + 1 );
 			if( p == NULL ) {
-				free( passwd->bv_val );
+				ber_memfree( passwd->bv_val );
 				passwd->bv_val = NULL;
 				passwd->bv_len = 0;
 				return -1;
@@ -89,7 +89,7 @@ lutil_get_filed_password(
 		nr = fread( &passwd->bv_val[nread], 1, nleft, f );
 
 		if( nr < nleft && ferror( f ) ) {
-			free( passwd->bv_val );
+			ber_memfree( passwd->bv_val );
 			passwd->bv_val = NULL;
 			passwd->bv_len = 0;
 			return -1;

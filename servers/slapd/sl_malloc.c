@@ -195,7 +195,7 @@ slap_sl_mem_create(
 			if (size > (char *)sh->sh_end - (char *)sh->sh_base) {
 				void	*newptr;
 
-				newptr = realloc( sh->sh_base, size );
+				newptr = ch_realloc( sh->sh_base, size );
 				if ( newptr == NULL ) return NULL;
 				sh->sh_base = newptr;
 			}
