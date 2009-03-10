@@ -22,6 +22,7 @@ OpenLDAP 2.4.16 Engineering
 	Fixed slapo-syncprov multiple CSN propagation (ITS#5973)
 	Documentation
 		admin24 clarified MMR URI requirements (ITS#5942,ITS#5987)
+		Added ldapexop(1) manual page (ITS#5982)
 		slapd-ldap/meta(5) added missing TLS options (ITS#5989)
 
 OpenLDAP 2.4.15 Release (2009/02/24)
