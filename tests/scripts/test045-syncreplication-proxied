@@ -176,7 +176,7 @@ fi
 
 # get master contextCSN
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
-	'(objectClass=*)' -s base contextCSN > "${MASTEROUT}.$CHECK" 2>&1
+	-s base '(objectClass=*)' contextCSN > "${MASTEROUT}.$CHECK" 2>&1
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapsearch failed at master ($RC)!"
@@ -188,7 +188,7 @@ fi
 sleep 1
 for i in 1 2 3; do
 	$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
-		'(objectClass=*)' -s base contextCSN > "${SLAVEOUT}.$CHECK" 2>&1
+		-s base '(objectClass=*)' contextCSN > "${SLAVEOUT}.$CHECK" 2>&1
 	RC=$?
 
 	if test $RC != 0 ; then
@@ -367,7 +367,7 @@ fi
 
 # get master contextCSN
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
-	'(objectClass=*)' -s base contextCSN > "${MASTEROUT}.$CHECK" 2>&1
+	-s base '(objectClass=*)' contextCSN > "${MASTEROUT}.$CHECK" 2>&1
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapsearch failed at master ($RC)!"
@@ -381,7 +381,7 @@ for i in 1 2 3; do
 	sleep $SLEEP1
 
 	$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
-		'(objectClass=*)' -s base contextCSN > "${SLAVEOUT}.$CHECK" 2>&1
+		-s base '(objectClass=*)' contextCSN > "${SLAVEOUT}.$CHECK" 2>&1
 	RC=$?
 
 	if test $RC != 0 ; then
@@ -474,7 +474,7 @@ KILLPIDS="$MASTERPID $SLAVEPID $PROXYPID"
 
 # get master contextCSN
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
-	'(objectClass=*)' -s base contextCSN > "${MASTEROUT}.$CHECK" 2>&1
+	-s base '(objectClass=*)' contextCSN > "${MASTEROUT}.$CHECK" 2>&1
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapsearch failed at master ($RC)!"
@@ -488,7 +488,7 @@ for i in 1 2 3 4 5; do
 	sleep $SLEEP1
 
 	$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
-		'(objectClass=*)' -s base contextCSN > "${SLAVEOUT}.$CHECK" 2>&1
+		-s base '(objectClass=*)' contextCSN > "${SLAVEOUT}.$CHECK" 2>&1
 	RC=$?
 
 	if test $RC != 0 ; then
@@ -561,7 +561,7 @@ fi
 
 # get master contextCSN
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
-	'(objectClass=*)' -s base contextCSN > "${MASTEROUT}.$CHECK" 2>&1
+	-s base '(objectClass=*)' contextCSN > "${MASTEROUT}.$CHECK" 2>&1
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapsearch failed at master ($RC)!"
@@ -574,7 +574,7 @@ sleep 1
 
 for i in 1 2 3; do
 	$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
-		'(objectClass=*)' -s base contextCSN > "${SLAVEOUT}.$CHECK" 2>&1
+		-s base '(objectClass=*)' contextCSN > "${SLAVEOUT}.$CHECK" 2>&1
 	RC=$?
 
 	if test $RC != 0 ; then
@@ -659,7 +659,7 @@ KILLPIDS="$MASTERPID $SLAVEPID $PROXYPID"
 
 # get master contextCSN
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
-	'(objectClass=*)' -s base contextCSN > "${MASTEROUT}.$CHECK" 2>&1
+	-s base '(objectClass=*)' contextCSN > "${MASTEROUT}.$CHECK" 2>&1
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapsearch failed at master ($RC)!"
@@ -674,7 +674,7 @@ for i in 1 2 3 4 5; do
 	sleep $SLEEP1
 
 	$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
-		'(objectClass=*)' -s base contextCSN > "${SLAVEOUT}.$CHECK" 2>&1
+		-s base '(objectClass=*)' contextCSN > "${SLAVEOUT}.$CHECK" 2>&1
 	RC=$?
 
 	if test $RC != 0 ; then
@@ -799,7 +799,7 @@ fi
 
 # get master contextCSN
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
-	'(objectClass=*)' -s base contextCSN > "${MASTEROUT}.$CHECK" 2>&1
+	-s base '(objectClass=*)' contextCSN > "${MASTEROUT}.$CHECK" 2>&1
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapsearch failed at master ($RC)!"
@@ -811,7 +811,7 @@ fi
 sleep 1
 for i in 1 2 3; do
 	$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
-		'(objectClass=*)' -s base contextCSN > "${SLAVEOUT}.$CHECK" 2>&1
+		-s base '(objectClass=*)' contextCSN > "${SLAVEOUT}.$CHECK" 2>&1
 	RC=$?
 
 	if test $RC != 0 ; then
