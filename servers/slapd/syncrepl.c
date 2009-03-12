@@ -1260,6 +1260,8 @@ do_syncrepl(
 
 	/* Don't get stuck here while a pause is initiated */
 	while ( ldap_pvt_thread_mutex_trylock( &si->si_mutex )) {
+		if ( slapd_shutdown )
+			return NULL;
 		if ( !ldap_pvt_thread_pool_pausecheck( &connection_pool ))
 			ldap_pvt_thread_yield();
 	}

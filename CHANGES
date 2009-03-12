@@ -11,6 +11,7 @@ OpenLDAP 2.4.16 Engineering
 	Fixed slapd ctxcsn race condition (ITS#6001)
 	Fixed slapd syncrepl newCookie sync messages (ITS#5972)
 	Fixed slapd syncrepl multiple CSN propagation (ITS#5973)
+	Fixed slapd syncrepl hang during shutdown (ITS#6011)
 	Fixed slapd-bdb/hdb cachesize handling (ITS#5860)
 	Fixed slapd-bdb/hdb with slapcat with empty dn (ITS#6006)
 	Fixed slapd-ldap incorrect referral handling (ITS#6003,ITS#5916)
