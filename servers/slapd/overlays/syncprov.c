@@ -2388,6 +2388,16 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 						changed = SS_CHANGED;
 					else if ( newer > 0 ) {
 					/* our state is older, tell consumer nothing */
+						if ( sop ) {
+							syncops **sp = &si->si_ops;
+							
+							ldap_pvt_thread_mutex_lock( &si->si_ops_mutex );
+							while ( *sp != sop )
+								sp = &(*sp)->s_next;
+							*sp = sop->s_next;
+							ldap_pvt_thread_mutex_unlock( &si->si_ops_mutex );
+							ch_free( sop );
+						}
 						rs->sr_err = LDAP_SUCCESS;
 						rs->sr_ctrls = NULL;
 						send_ldap_result( op, rs );
