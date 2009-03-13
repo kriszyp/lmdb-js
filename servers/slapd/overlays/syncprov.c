@@ -785,7 +785,15 @@ syncprov_sendresp( Operation *op, opcookie *opc, syncops *so,
 	BER_BVZERO( &csns[1] );
 	slap_compose_sync_cookie( op, &cookie, csns, so->s_rid, slap_serverID ? slap_serverID : -1 );
 
-	Debug( LDAP_DEBUG_SYNC, "syncprov_sendresp: cookie=%s\n", cookie.bv_val, 0, 0 );
+#ifdef LDAP_DEBUG
+	if ( so->s_sid > 0 ) {
+		Debug( LDAP_DEBUG_SYNC, "syncprov_sendresp: to=%03x, cookie=%s\n",
+			so->s_sid, cookie.bv_val, 0 );
+	} else {
+		Debug( LDAP_DEBUG_SYNC, "syncprov_sendresp: cookie=%s\n",
+			cookie.bv_val, 0, 0 );
+	}
+#endif
 
 	e_uuid.e_attrs = &a_uuid;
 	a_uuid.a_desc = slap_schema.si_ad_entryUUID;
