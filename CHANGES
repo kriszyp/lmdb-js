@@ -19,7 +19,6 @@ OpenLDAP 2.4.16 Engineering
 	Fixed slapo-accesslog interaction with ppolicy (ITS#5979)
 	Fixed slapo-dynlist conversion to cn=config (ITS#6002)
 	Fixed slapo-syncprov newCookie sync messages (ITS#5972)
-	Fixed slapo-syncprov multiple CSN propagation (ITS#5973)
 	Build Environment
 		Cleaned up alloc/free functions for Windows (ITS#6005)
 	Documentation
