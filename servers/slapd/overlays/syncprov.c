@@ -2377,13 +2377,22 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 
 		/* If nothing has changed, shortcut it */
 		if ( srs->sr_state.numcsns == numcsns ) {
-			int i, j;
+			int i, j, newer;
 			for ( i=0; i<srs->sr_state.numcsns; i++ ) {
 				for ( j=0; j<numcsns; j++ ) {
 					if ( srs->sr_state.sids[i] != sids[j] )
 						continue;
-					if ( !bvmatch( &srs->sr_state.ctxcsn[i], &ctxcsn[j] ))
+					newer = ber_bvcmp( &srs->sr_state.ctxcsn[i], &ctxcsn[j] );
+					/* If our state is newer, tell consumer about changes */
+					if ( newer < 0 )
 						changed = SS_CHANGED;
+					else if ( newer > 0 ) {
+					/* our state is older, tell consumer nothing */
+						rs->sr_err = LDAP_SUCCESS;
+						rs->sr_ctrls = NULL;
+						send_ldap_result( op, rs );
+						return rs->sr_err;
+					}
 					break;
 				}
 				if ( changed )
