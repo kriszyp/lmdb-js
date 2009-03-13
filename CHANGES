@@ -11,6 +11,7 @@ OpenLDAP 2.4.16 Engineering
 	Fixed slapd ctxcsn race condition (ITS#6001)
 	Fixed slapd syncrepl newCookie sync messages (ITS#5972)
 	Fixed slapd syncrepl hang during shutdown (ITS#6011)
+	Fixed slapd syncrepl too many MMR messages (ITS#6020)
 	Fixed slapd-bdb/hdb cachesize handling (ITS#5860)
 	Fixed slapd-bdb/hdb with slapcat with empty dn (ITS#6006)
 	Fixed slapd-ldap incorrect referral handling (ITS#6003,ITS#5916)
@@ -19,6 +20,7 @@ OpenLDAP 2.4.16 Engineering
 	Fixed slapo-accesslog interaction with ppolicy (ITS#5979)
 	Fixed slapo-dynlist conversion to cn=config (ITS#6002)
 	Fixed slapo-syncprov newCookie sync messages (ITS#5972)
+	Fixed slapd-syncprov too many MMR messages (ITS#6020)
 	Build Environment
 		Cleaned up alloc/free functions for Windows (ITS#6005)
 	Documentation
