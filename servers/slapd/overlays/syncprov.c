@@ -1183,7 +1183,7 @@ syncprov_matchops( Operation *op, opcookie *opc, int saveit )
 		}
 
 		/* Don't send ops back to the messenger */
-		if ( scook && scook->sid == ss->s_sid ) {
+		if ( scook && scook->sid && scook->sid == ss->s_sid ) {
 			Debug( LDAP_DEBUG_SYNC, "syncprov_matchops: skipping relayed sid %03x\n",
 				scook->sid, 0, 0 );
 			continue;
