@@ -146,7 +146,8 @@ typedef struct opcookie {
 	struct berval sndn;
 	struct berval suuid;	/* UUID of entry */
 	struct berval sctxcsn;
-	int sreference;	/* Is the entry a reference? */
+	short ssid;	/* sid of op csn */
+	short sreference;	/* Is the entry a reference? */
 } opcookie;
 
 typedef struct fbase_cookie {
@@ -782,7 +783,7 @@ syncprov_sendresp( Operation *op, opcookie *opc, syncops *so,
 	ctrls[1] = NULL;
 	csns[0] = opc->sctxcsn;
 	BER_BVZERO( &csns[1] );
-	slap_compose_sync_cookie( op, &cookie, csns, so->s_rid, so->s_sid );
+	slap_compose_sync_cookie( op, &cookie, csns, so->s_rid, slap_serverID );
 
 	Debug( LDAP_DEBUG_SYNC, "syncprov_sendresp: cookie=%s\n", cookie.bv_val, 0, 0 );
 
@@ -981,12 +982,7 @@ syncprov_qresp( opcookie *opc, syncops *so, int mode )
 		syncprov_info_t	*si = opc->son->on_bi.bi_private;
 
 		slap_compose_sync_cookie( NULL, &cookie, si->si_ctxcsn,
-			so->s_rid, so->s_sid);
-	} else if ( opc->sctxcsn.bv_len ) {
-		/* Don't send changes back to their originator */
-		int sid = slap_parse_csn_sid( &opc->sctxcsn );
-		if ( sid >= 0 && sid == so->s_sid )
-			return LDAP_SUCCESS;
+			so->s_rid, slap_serverID);
 	}
 
 	srsize = sizeof(syncres) + opc->suuid.bv_len + 1 +
@@ -1113,6 +1109,7 @@ syncprov_matchops( Operation *op, opcookie *opc, int saveit )
 
 	fbase_cookie fc;
 	syncops *ss, *sprev, *snext;
+	struct sync_cookie *scook;
 	Entry *e = NULL;
 	Attribute *a;
 	int rc;
@@ -1164,6 +1161,7 @@ syncprov_matchops( Operation *op, opcookie *opc, int saveit )
 		ber_dupbv_x( &opc->sndn, &e->e_nname, op->o_tmpmemctx );
 	}
 
+	scook = op->o_controls[slap_cids.sc_LDAPsync];
 	ldap_pvt_thread_mutex_lock( &si->si_ops_mutex );
 	for (ss = si->si_ops, sprev = (syncops *)&si->si_ops; ss;
 		sprev = ss, ss=snext)
@@ -1176,6 +1174,20 @@ syncprov_matchops( Operation *op, opcookie *opc, int saveit )
 		snext = ss->s_next;
 		if ( ss->s_op->o_abandon )
 			continue;
+
+		/* Don't send ops back to the originator */
+		if ( opc->ssid && opc->ssid == ss->s_sid ) {
+			Debug( LDAP_DEBUG_SYNC, "syncprov_matchops: skipping original sid %03x\n",
+				opc->ssid, 0, 0 );
+			continue;
+		}
+
+		/* Don't send ops back to the messenger */
+		if ( scook && scook->sid == ss->s_sid ) {
+			Debug( LDAP_DEBUG_SYNC, "syncprov_matchops: skipping relayed sid %03x\n",
+				scook->sid, 0, 0 );
+			continue;
+		}
 
 		/* validate base */
 		fc.fss = ss;
@@ -1584,7 +1596,7 @@ syncprov_playlog( Operation *op, SlapReply *rs, sessionlog *sl,
 
 		if ( delcsn[0].bv_len ) {
 			slap_compose_sync_cookie( op, &cookie, delcsn, srs->sr_state.rid,
-				srs->sr_state.sid );
+				slap_serverID );
 
 			Debug( LDAP_DEBUG_SYNC, "syncprov_playlog: cookie=%s\n", cookie.bv_val, 0, 0 );
 		}
@@ -1877,6 +1889,12 @@ syncprov_op_mod( Operation *op, SlapReply *rs )
 	cb->sc_next = op->o_callback;
 	op->o_callback = cb;
 
+	if ( op->o_csn.bv_val ) {
+		opc->ssid = slap_parse_csn_sid( &op->o_csn );
+	} else {
+		opc->ssid = -1;
+	}
+
 	/* If there are active persistent searches, lock this operation.
 	 * See seqmod.c for the locking logic on its own.
 	 */
@@ -2146,7 +2164,7 @@ syncprov_search_response( Operation *op, SlapReply *rs )
 		/* If we're in delta-sync mode, always send a cookie */
 		if ( si->si_nopres && si->si_usehint && a ) {
 			struct berval cookie;
-			slap_compose_sync_cookie( op, &cookie, a->a_nvals, srs->sr_state.rid, srs->sr_state.sid );
+			slap_compose_sync_cookie( op, &cookie, a->a_nvals, srs->sr_state.rid, slap_serverID );
 			rs->sr_err = syncprov_state_ctrl( op, rs, rs->sr_entry,
 				LDAP_SYNC_ADD, rs->sr_ctrls, 0, 1, &cookie );
 		} else {
@@ -2158,7 +2176,7 @@ syncprov_search_response( Operation *op, SlapReply *rs )
 
 		if ( ss->ss_flags & SS_CHANGED ) {
 			slap_compose_sync_cookie( op, &cookie, ss->ss_ctxcsn,
-				srs->sr_state.rid, srs->sr_state.sid );
+				srs->sr_state.rid, slap_serverID );
 
 			Debug( LDAP_DEBUG_SYNC, "syncprov_search_response: cookie=%s\n", cookie.bv_val, 0, 0 );
 		}

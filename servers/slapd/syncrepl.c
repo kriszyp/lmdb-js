@@ -863,6 +863,7 @@ do_syncrep2(
 							}
 						}
 					}
+					op->o_controls[slap_cids.sc_LDAPsync] = &syncCookie;
 				}
 			}
 			rc = 0;
@@ -969,6 +970,7 @@ do_syncrep2(
 					if ( !BER_BVISNULL( &syncCookie.octet_str ) )
 					{
 						slap_parse_sync_cookie( &syncCookie, NULL );
+						op->o_controls[slap_cids.sc_LDAPsync] = &syncCookie;
 					}
 				}
 				if ( ber_peek_tag( ber, &len ) == LDAP_TAG_REFRESHDELETES )
@@ -1047,6 +1049,7 @@ do_syncrep2(
 					}
 					if (!BER_BVISNULL( &syncCookie.octet_str ) ) {
 						slap_parse_sync_cookie( &syncCookie, NULL );
+						op->o_controls[slap_cids.sc_LDAPsync] = &syncCookie;
 					}
 					break;
 				case LDAP_TAG_SYNC_REFRESH_DELETE:
@@ -1077,6 +1080,7 @@ do_syncrep2(
 						if ( !BER_BVISNULL( &syncCookie.octet_str ) )
 						{
 							slap_parse_sync_cookie( &syncCookie, NULL );
+							op->o_controls[slap_cids.sc_LDAPsync] = &syncCookie;
 						}
 					}
 					/* Defaults to TRUE */
@@ -1112,6 +1116,7 @@ do_syncrep2(
 						if ( !BER_BVISNULL( &syncCookie.octet_str ) )
 						{
 							slap_parse_sync_cookie( &syncCookie, NULL );
+							op->o_controls[slap_cids.sc_LDAPsync] = &syncCookie;
 							compare_csns( &syncCookie_req, &syncCookie, &m );
 						}
 					}
