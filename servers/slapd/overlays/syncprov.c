@@ -1631,6 +1631,7 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 		maxcsn.bv_len = sizeof(cbuf);
 		ldap_pvt_thread_rdwr_wlock( &si->si_csn_rwlock );
 
+#if 0
 		if ( op->o_dont_replicate &&
 				op->orm_modlist->sml_op == LDAP_MOD_REPLACE &&
 				op->orm_modlist->sml_desc == slap_schema.si_ad_contextCSN ) {
@@ -1680,6 +1681,7 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 			}
 			return SLAP_CB_CONTINUE;
 		}
+#endif
 
 		slap_get_commit_csn( op, &maxcsn, &foundit );
 		if ( BER_BVISEMPTY( &maxcsn ) && SLAP_GLUE_SUBORDINATE( op->o_bd )) {
