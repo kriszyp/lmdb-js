@@ -1161,7 +1161,7 @@ syncprov_matchops( Operation *op, opcookie *opc, int saveit )
 		ber_dupbv_x( &opc->sndn, &e->e_nname, op->o_tmpmemctx );
 	}
 
-	scook = op->o_controls[slap_cids.sc_LDAPsync];
+	scook = op->o_controls ? op->o_controls[slap_cids.sc_LDAPsync] : NULL;
 	ldap_pvt_thread_mutex_lock( &si->si_ops_mutex );
 	for (ss = si->si_ops, sprev = (syncops *)&si->si_ops; ss;
 		sprev = ss, ss=snext)
