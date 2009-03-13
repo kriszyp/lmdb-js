@@ -146,7 +146,8 @@ typedef struct opcookie {
 	struct berval sndn;
 	struct berval suuid;	/* UUID of entry */
 	struct berval sctxcsn;
-	short ssid;	/* sid of op csn */
+	short osid;	/* sid of op csn */
+	short rsid;	/* sid of relay */
 	short sreference;	/* Is the entry a reference? */
 } opcookie;
 
@@ -1117,7 +1118,6 @@ syncprov_matchops( Operation *op, opcookie *opc, int saveit )
 
 	fbase_cookie fc;
 	syncops *ss, *sprev, *snext;
-	struct sync_cookie *scook;
 	Entry *e = NULL;
 	Attribute *a;
 	int rc;
@@ -1169,7 +1169,6 @@ syncprov_matchops( Operation *op, opcookie *opc, int saveit )
 		ber_dupbv_x( &opc->sndn, &e->e_nname, op->o_tmpmemctx );
 	}
 
-	scook = op->o_controls ? op->o_controls[slap_cids.sc_LDAPsync] : NULL;
 	ldap_pvt_thread_mutex_lock( &si->si_ops_mutex );
 	for (ss = si->si_ops, sprev = (syncops *)&si->si_ops; ss;
 		sprev = ss, ss=snext)
@@ -1187,16 +1186,16 @@ syncprov_matchops( Operation *op, opcookie *opc, int saveit )
 		if ( saveit || op->o_tag == LDAP_REQ_ADD ) {
 
 			/* Don't send ops back to the originator */
-			if ( opc->ssid > 0 && opc->ssid == ss->s_sid ) {
+			if ( opc->osid > 0 && opc->osid == ss->s_sid ) {
 				Debug( LDAP_DEBUG_SYNC, "syncprov_matchops: skipping original sid %03x\n",
-					opc->ssid, 0, 0 );
+					opc->osid, 0, 0 );
 				continue;
 			}
 
 			/* Don't send ops back to the messenger */
-			if ( scook && scook->sid > 0 && scook->sid == ss->s_sid ) {
+			if ( opc->rsid > 0 && opc->rsid == ss->s_sid ) {
 				Debug( LDAP_DEBUG_SYNC, "syncprov_matchops: skipping relayed sid %03x\n",
-					scook->sid, 0, 0 );
+					opc->rsid, 0, 0 );
 				continue;
 			}
 		}
@@ -1251,7 +1250,7 @@ syncprov_matchops( Operation *op, opcookie *opc, int saveit )
 			rc = test_filter( &op2, e, ss->s_op->ors_filter );
 		}
 
-		Debug( LDAP_DEBUG_SYNC, "syncprov_matchops: sid %03x fscope %d rc %d\n",
+		Debug( LDAP_DEBUG_TRACE, "syncprov_matchops: sid %03x fscope %d rc %d\n",
 			ss->s_sid, fc.fscope, rc );
 
 		/* check if current o_req_dn is in scope and matches filter */
@@ -1906,10 +1905,16 @@ syncprov_op_mod( Operation *op, SlapReply *rs )
 	cb->sc_next = op->o_callback;
 	op->o_callback = cb;
 
+	opc->osid = -1;
+	opc->rsid = -1;
 	if ( op->o_csn.bv_val ) {
-		opc->ssid = slap_parse_csn_sid( &op->o_csn );
-	} else {
-		opc->ssid = -1;
+		opc->osid = slap_parse_csn_sid( &op->o_csn );
+	}
+	if ( op->o_controls ) {
+		struct sync_cookie *scook =
+		op->o_controls[slap_cids.sc_LDAPsync];
+		if ( scook )
+			opc->rsid = scook->sid;
 	}
 
 	/* If there are active persistent searches, lock this operation.
