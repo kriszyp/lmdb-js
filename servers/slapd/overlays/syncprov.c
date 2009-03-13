@@ -1183,18 +1183,22 @@ syncprov_matchops( Operation *op, opcookie *opc, int saveit )
 		if ( ss->s_op->o_abandon )
 			continue;
 
-		/* Don't send ops back to the originator */
-		if ( opc->ssid > 0 && opc->ssid == ss->s_sid ) {
-			Debug( LDAP_DEBUG_SYNC, "syncprov_matchops: skipping original sid %03x\n",
-				opc->ssid, 0, 0 );
-			continue;
-		}
+		/* First time thru, check for possible skips */
+		if ( saveit || op->o_tag == LDAP_REQ_ADD ) {
 
-		/* Don't send ops back to the messenger */
-		if ( scook && scook->sid > 0 && scook->sid == ss->s_sid ) {
-			Debug( LDAP_DEBUG_SYNC, "syncprov_matchops: skipping relayed sid %03x\n",
-				scook->sid, 0, 0 );
-			continue;
+			/* Don't send ops back to the originator */
+			if ( opc->ssid > 0 && opc->ssid == ss->s_sid ) {
+				Debug( LDAP_DEBUG_SYNC, "syncprov_matchops: skipping original sid %03x\n",
+					opc->ssid, 0, 0 );
+				continue;
+			}
+
+			/* Don't send ops back to the messenger */
+			if ( scook && scook->sid > 0 && scook->sid == ss->s_sid ) {
+				Debug( LDAP_DEBUG_SYNC, "syncprov_matchops: skipping relayed sid %03x\n",
+					scook->sid, 0, 0 );
+				continue;
+			}
 		}
 
 		/* validate base */
@@ -1244,11 +1248,14 @@ syncprov_matchops( Operation *op, opcookie *opc, int saveit )
 			oh.oh_connid = ss->s_op->o_connid;
 			op2.o_hdr = &oh;
 			op2.o_extra = op->o_extra;
+			rc = test_filter( &op2, e, ss->s_op->ors_filter );
 		}
 
+		Debug( LDAP_DEBUG_SYNC, "syncprov_matchops: sid %03x fscope %d rc %d\n",
+			ss->s_sid, fc.fscope, rc );
+
 		/* check if current o_req_dn is in scope and matches filter */
-		if ( fc.fscope && test_filter( &op2, e, ss->s_op->ors_filter ) ==
-			LDAP_COMPARE_TRUE ) {
+		if ( fc.fscope && rc == LDAP_COMPARE_TRUE ) {
 			if ( saveit ) {
 				sm = op->o_tmpalloc( sizeof(syncmatches), op->o_tmpmemctx );
 				sm->sm_next = opc->smatches;
