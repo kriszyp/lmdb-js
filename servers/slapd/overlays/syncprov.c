@@ -1944,6 +1944,9 @@ syncprov_op_mod( Operation *op, SlapReply *rs )
 				 * Currently it's not an issue because there are
 				 * no dynamic config deletes...
 				 */
+				if ( slapd_shutdown )
+					return SLAPD_ABANDON;
+
 				if ( !ldap_pvt_thread_pool_pausecheck( &connection_pool ))
 					ldap_pvt_thread_yield();
 				ldap_pvt_thread_mutex_lock( &mt->mt_mutex );
