@@ -244,7 +244,7 @@ ber_flush2( Sockbuf *sb, BerElement *ber, int freeit )
 			"ber_flush2: %ld bytes to sd %ld%s\n",
 			towrite, (long) sb->sb_fd,
 			ber->ber_rwptr != ber->ber_buf ?  " (re-flush)" : "" );
-		ber_log_bprint( LDAP_DEBUG_PACKETS, sb->sb_debug,
+		ber_log_bprint( LDAP_DEBUG_BER, sb->sb_debug,
 			ber->ber_rwptr, towrite );
 	}
 
