@@ -2241,6 +2241,7 @@ retry_add:;
 					si->si_ridtxt, rs_add.sr_err, 0 );
 				break;
 			}
+			syncCSN = NULL;
 			op->o_bd = be;
 			goto done;
 		}
@@ -2440,7 +2441,9 @@ retry_add:;
 			op->o_req_dn = entry->e_name;
 			op->o_req_ndn = entry->e_nname;
 			/* Use CSN on the modify */
-			if ( syncCSN && !just_rename )
+			if ( just_rename )
+				syncCSN = NULL;
+			else if ( syncCSN )
 				slap_queue_csn( op, syncCSN );
 		}
 		if ( dni.mods ) {
@@ -2460,11 +2463,16 @@ retry_add:;
 					"syncrepl_entry: %s be_modify failed (%d)\n",
 					si->si_ridtxt, rs_modify.sr_err, 0 );
 			}
+			syncCSN = NULL;
 			op->o_bd = be;
 		} else if ( !dni.renamed ) {
 			Debug( LDAP_DEBUG_SYNC,
 					"syncrepl_entry: %s entry unchanged, ignored (%s)\n", 
 					si->si_ridtxt, op->o_req_dn.bv_val, 0 );
+			if ( syncCSN ) {
+				slap_graduate_commit_csn( op );
+				syncCSN = NULL;
+			}
 		}
 		goto done;
 	case LDAP_SYNC_DELETE :
@@ -2493,6 +2501,7 @@ retry_add:;
 					break;
 				}
 			}
+			syncCSN = NULL;
 			op->o_bd = be;
 		}
 		goto done;
