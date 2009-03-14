@@ -1644,7 +1644,7 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 		maxcsn.bv_len = sizeof(cbuf);
 		ldap_pvt_thread_rdwr_wlock( &si->si_csn_rwlock );
 
-		if ( op->o_dont_replicate &&
+		if ( op->o_dont_replicate && op->o_tag == LDAP_REQ_MODIFY &&
 				op->orm_modlist->sml_op == LDAP_MOD_REPLACE &&
 				op->orm_modlist->sml_desc == slap_schema.si_ad_contextCSN ) {
 			/* Catch contextCSN updates from syncrepl. We have to look at
@@ -1749,17 +1749,23 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 
 		si->si_numops++;
 		if ( si->si_chkops || si->si_chktime ) {
-			if ( si->si_chkops && si->si_numops >= si->si_chkops ) {
-				do_check = 1;
-				si->si_numops = 0;
-			}
-			if ( si->si_chktime &&
-				(op->o_time - si->si_chklast >= si->si_chktime )) {
-				if ( si->si_chklast ) {
+			/* Never checkpoint adding the context entry,
+			 * it will deadlock
+			 */
+			if ( op->o_tag != LDAP_REQ_ADD ||
+				!dn_match( &op->o_req_ndn, &op->o_bd->be_nsuffix[0] )) {
+				if ( si->si_chkops && si->si_numops >= si->si_chkops ) {
 					do_check = 1;
-					si->si_chklast = op->o_time;
-				} else {
-					si->si_chklast = 1;
+					si->si_numops = 0;
+				}
+				if ( si->si_chktime &&
+					(op->o_time - si->si_chklast >= si->si_chktime )) {
+					if ( si->si_chklast ) {
+						do_check = 1;
+						si->si_chklast = op->o_time;
+					} else {
+						si->si_chklast = 1;
+					}
 				}
 			}
 		}
