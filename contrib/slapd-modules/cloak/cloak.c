@@ -270,7 +270,7 @@ cloak_search( Operation *op, SlapReply *rs )
 	sc = op->o_tmpcalloc( 1, sizeof( *sc ), op->o_tmpmemctx );
 	sc->sc_response = cloak_search_cb;
 	sc->sc_cleanup = NULL;
-	sc->sc_next = NULL;
+	sc->sc_next = op->o_callback;
 	sc->sc_private = ci;
 	op->o_callback = sc;
 
