@@ -1733,10 +1733,12 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 					sizeof(int));
 				si->si_sids[i] = sid;
 			}
+#if 0
 		} else if ( !foundit ) {
 			/* internal ops that aren't meant to be replicated */
 			ldap_pvt_thread_rdwr_wunlock( &si->si_csn_rwlock );
 			return SLAP_CB_CONTINUE;
+#endif
 		}
 
 		/* Don't do any processing for consumer contextCSN updates */
