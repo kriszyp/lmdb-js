@@ -1588,6 +1588,7 @@ syncrepl_message_to_op(
 		prdn = BER_BVNULL, nrdn = BER_BVNULL,
 		psup = BER_BVNULL, nsup = BER_BVNULL;
 	int		rc, deleteOldRdn = 0, freeReqDn = 0;
+	int		do_graduate = 0;
 
 	if ( ldap_msgtype( msg ) != LDAP_RES_SEARCH_ENTRY ) {
 		Debug( LDAP_DEBUG_ANY, "syncrepl_message_to_op: %s "
@@ -1656,6 +1657,7 @@ syncrepl_message_to_op(
 			&slap_schema.si_ad_entryCSN->ad_cname ) )
 		{
 			slap_queue_csn( op, bvals );
+			do_graduate = 1;
 		}
 		ch_free( bvals );
 	}
@@ -1700,6 +1702,7 @@ syncrepl_message_to_op(
 				Debug( LDAP_DEBUG_SYNC,
 					"syncrepl_message_to_op: %s be_add %s (%d)\n", 
 					si->si_ridtxt, op->o_req_dn.bv_val, rc );
+				do_graduate = 0;
 			}
 			if ( e == op->ora_e )
 				be_entry_release_w( op, op->ora_e );
@@ -1712,6 +1715,7 @@ syncrepl_message_to_op(
 				"syncrepl_message_to_op: %s be_modify %s (%d)\n", 
 				si->si_ridtxt, op->o_req_dn.bv_val, rc );
 			op->o_bd = si->si_be;
+			do_graduate = 0;
 		}
 		break;
 	case LDAP_REQ_MODRDN:
@@ -1755,16 +1759,19 @@ syncrepl_message_to_op(
 		Debug( rc ? LDAP_DEBUG_ANY : LDAP_DEBUG_SYNC,
 			"syncrepl_message_to_op: %s be_modrdn %s (%d)\n", 
 			si->si_ridtxt, op->o_req_dn.bv_val, rc );
+		do_graduate = 0;
 		break;
 	case LDAP_REQ_DELETE:
 		rc = op->o_bd->be_delete( op, &rs );
 		Debug( rc ? LDAP_DEBUG_ANY : LDAP_DEBUG_SYNC,
 			"syncrepl_message_to_op: %s be_delete %s (%d)\n", 
 			si->si_ridtxt, op->o_req_dn.bv_val, rc );
+		do_graduate = 0;
 		break;
 	}
 done:
-	slap_graduate_commit_csn( op );
+	if ( do_graduate )
+		slap_graduate_commit_csn( op );
 	op->o_bd = si->si_be;
 	op->o_tmpfree( op->o_csn.bv_val, op->o_tmpmemctx );
 	BER_BVZERO( &op->o_csn );
