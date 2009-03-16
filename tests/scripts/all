@@ -26,6 +26,13 @@ SLEEPTIME=10
 echo ">>>>> Executing all LDAP tests for $BACKEND"
 
 for CMD in $SRCDIR/scripts/test*; do
+	case "$CMD" in
+		*~)		continue;;
+		*.bak)	continue;;
+		*.sav)	continue;;
+		*)		test -x "$CMD" || continue;;
+	esac
+
 	# remove cruft from prior test
 	if test $PRESERVE = yes ; then
 		/bin/rm -rf $TESTDIR/db.*
