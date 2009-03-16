@@ -29,6 +29,7 @@ for CMD in $SRCDIR/scripts/test*; do
 	case "$CMD" in
 		*~)		continue;;
 		*.bak)	continue;;
+		*.orig)	continue;;
 		*.sav)	continue;;
 		*)		test -x "$CMD" || continue;;
 	esac
