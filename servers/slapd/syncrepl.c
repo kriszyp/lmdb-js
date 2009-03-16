@@ -1449,16 +1449,16 @@ reload:
 	if ( rc ) {
 		if ( fail == RETRYNUM_TAIL ) {
 			Debug( LDAP_DEBUG_ANY,
-				"do_syncrepl: %s quitting\n",
-				si->si_ridtxt, 0, 0 );
+				"do_syncrepl: %s rc %d quitting\n",
+				si->si_ridtxt, rc, 0 );
 		} else if ( fail > 0 ) {
 			Debug( LDAP_DEBUG_ANY,
-				"do_syncrepl: %s retrying (%d retries left)\n",
-				si->si_ridtxt, fail, 0 );
+				"do_syncrepl: %s rc %d retrying (%d retries left)\n",
+				si->si_ridtxt, rc, fail );
 		} else {
 			Debug( LDAP_DEBUG_ANY,
-				"do_syncrepl: %s retrying\n",
-				si->si_ridtxt, 0, 0 );
+				"do_syncrepl: %s rc %d retrying\n",
+				si->si_ridtxt, rc, 0 );
 		}
 	}
 
@@ -2181,8 +2181,8 @@ retry_add:;
 
 			rc = op->o_bd->be_add( op, &rs_add );
 			Debug( LDAP_DEBUG_SYNC,
-					"syncrepl_entry: %s be_add (%d)\n", 
-					si->si_ridtxt, rc, 0 );
+					"syncrepl_entry: %s be_add %s (%d)\n", 
+					si->si_ridtxt, op->o_req_dn.bv_val, rc );
 			switch ( rs_add.sr_err ) {
 			case LDAP_SUCCESS:
 				if ( op->ora_e == entry ) {
@@ -2244,8 +2244,8 @@ retry_add:;
 
 			default:
 				Debug( LDAP_DEBUG_ANY,
-					"syncrepl_entry: %s be_add failed (%d)\n",
-					si->si_ridtxt, rs_add.sr_err, 0 );
+					"syncrepl_entry: %s be_add %s failed (%d)\n",
+					si->si_ridtxt, op->o_req_dn.bv_val, rs_add.sr_err );
 				break;
 			}
 			syncCSN = NULL;
@@ -2384,7 +2384,7 @@ retry_add:;
 					}
 				}
 			}
-					
+
 			/* RDNs must be NUL-terminated for back-ldap */
 			noldp = op->orr_newrdn;
 			ber_dupbv_x( &op->orr_newrdn, &noldp, op->o_tmpmemctx );
@@ -2441,8 +2441,8 @@ retry_add:;
 
 			slap_mods_free( op->orr_modlist, 1 );
 			Debug( LDAP_DEBUG_SYNC,
-					"syncrepl_entry: %s be_modrdn (%d)\n", 
-					si->si_ridtxt, rc, 0 );
+					"syncrepl_entry: %s be_modrdn %s (%d)\n", 
+					si->si_ridtxt, op->o_req_dn.bv_val, rc );
 			op->o_bd = be;
 			/* Renamed entries may still have other mods so just fallthru */
 			op->o_req_dn = entry->e_name;
@@ -2463,8 +2463,8 @@ retry_add:;
 			slap_mods_free( op->orm_modlist, 1 );
 			op->orm_no_opattrs = 0;
 			Debug( LDAP_DEBUG_SYNC,
-					"syncrepl_entry: %s be_modify (%d)\n", 
-					si->si_ridtxt, rc, 0 );
+					"syncrepl_entry: %s be_modify %s (%d)\n", 
+					si->si_ridtxt, op->o_req_dn.bv_val, rc );
 			if ( rs_modify.sr_err != LDAP_SUCCESS ) {
 				Debug( LDAP_DEBUG_ANY,
 					"syncrepl_entry: %s be_modify failed (%d)\n",
@@ -2490,8 +2490,8 @@ retry_add:;
 			op->o_bd = si->si_wbe;
 			rc = op->o_bd->be_delete( op, &rs_delete );
 			Debug( LDAP_DEBUG_SYNC,
-					"syncrepl_entry: %s be_delete (%d)\n", 
-					si->si_ridtxt, rc, 0 );
+					"syncrepl_entry: %s be_delete %s (%d)\n", 
+					si->si_ridtxt, op->o_req_dn.bv_val, rc );
 
 			while ( rs_delete.sr_err == LDAP_SUCCESS
 				&& op->o_delete_glue_parent ) {
@@ -3595,6 +3595,9 @@ void
 syncinfo_free( syncinfo_t *sie, int free_all )
 {
 	syncinfo_t *si_next;
+
+	Debug( LDAP_DEBUG_TRACE, "syncinfo_free: %s\n",
+		sie->si_ridtxt, 0, 0 );
 
 	if ( free_all && sie->si_cookieState ) {
 		ch_free( sie->si_cookieState->cs_sids );
