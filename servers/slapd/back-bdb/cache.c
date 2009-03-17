@@ -1482,7 +1482,7 @@ bdb_reader_free( void *key, void *data )
 	/* DB_ENV *env = key; */
 	DB_TXN *txn = data;
 
-	TXN_ABORT( txn );
+	if ( txn ) TXN_ABORT( txn );
 }
 
 /* free up any keys used by the main thread */

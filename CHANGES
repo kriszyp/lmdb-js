@@ -16,6 +16,7 @@ OpenLDAP 2.4.16 Engineering
 	Fixed slapd syncrepl skipped entries with MMR (ITS#5988)
 	Fixed slapd-bdb/hdb cachesize handling (ITS#5860)
 	Fixed slapd-bdb/hdb with slapcat with empty dn (ITS#6006)
+	Fixed slapd-bdb/hdb with NULL transactions (ITS#6012)
 	Fixed slapd-ldap incorrect referral handling (ITS#6003,ITS#5916)
 	Fixed slapd-ldap/meta with broken AD results (ITS#5977)
 	Fixed slapd-ldap/meta with invalid attrs again (ITS#5959)
