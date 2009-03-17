@@ -4597,15 +4597,15 @@ syncrepl_config( ConfigArgs *c )
 					 * happen when running on the cn=config DB.
 					 */
 					if ( si->si_re ) {
-						Connection *c;
-						if ( ldap_pvt_thread_mutex_trylock( &si->si_mutex ))
+						if ( ldap_pvt_thread_mutex_trylock( &si->si_mutex )) {
 							isrunning = 1;
-						c = si->si_conn;
-						si->si_conn = NULL;
-						if ( c )
-							connection_client_stop( c );
-						if ( !isrunning )
+						} else {
 							ldap_pvt_thread_mutex_unlock( &si->si_mutex );
+						}
+						if ( si->si_conn ) {
+							connection_client_stop( si->si_conn );
+							si->si_conn = NULL;
+						}
 					}
 					if ( si->si_re && isrunning ) {
 						si->si_ctype = 0;
