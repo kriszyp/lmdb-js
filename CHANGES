@@ -28,6 +28,7 @@ OpenLDAP 2.4.16 Engineering
 	Fixed slapo-syncprov multiple CSN propagation (ITS#5973)
 	Fixed slapo-syncprov sending cookies without CSN (ITS#6024)
 	Fixed slapo-syncprov skipped entries with MMR (ITS#5988)
+	Fixed tools passphrase free (ITS#6014)
 	Build Environment
 		Cleaned up alloc/free functions for Windows (ITS#6005)
 		Fixed running of autosave files in testsuite (ITS#6026)
