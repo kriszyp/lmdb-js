@@ -133,9 +133,10 @@ slap_req2res( ber_tag_t tag )
 }
 
 static long send_ldap_ber(
-	Connection *conn,
+	Operation *op,
 	BerElement *ber )
 {
+	Connection *conn = op->o_conn;
 	ber_len_t bytes;
 	long ret = 0;
 	int closing = 0;
@@ -144,7 +145,7 @@ static long send_ldap_ber(
 
 	/* write only one pdu at a time - wait til it's our turn */
 	ldap_pvt_thread_mutex_lock( &conn->c_write1_mutex );
-	if ( connection_state_closing( conn )) {
+	if ( op->o_abandon || connection_state_closing( conn )) {
 		ldap_pvt_thread_mutex_unlock( &conn->c_write1_mutex );
 		return 0;
 	}
@@ -532,7 +533,7 @@ send_ldap_response(
 	}
 
 	/* send BER */
-	bytes = send_ldap_ber( op->o_conn, ber );
+	bytes = send_ldap_ber( op, ber );
 #ifdef LDAP_CONNECTIONLESS
 	if (!op->o_conn || op->o_conn->c_is_udp == 0)
 #endif
@@ -1243,7 +1244,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 	}
 
 	if ( op->o_res_ber == NULL ) {
-		bytes = send_ldap_ber( op->o_conn, ber );
+		bytes = send_ldap_ber( op, ber );
 		ber_free_buf( ber );
 
 		if ( bytes < 0 ) {
@@ -1416,7 +1417,7 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 #ifdef LDAP_CONNECTIONLESS
 	if (!op->o_conn || op->o_conn->c_is_udp == 0) {
 #endif
-	bytes = send_ldap_ber( op->o_conn, ber );
+	bytes = send_ldap_ber( op, ber );
 	ber_free_buf( ber );
 
 	if ( bytes < 0 ) {
