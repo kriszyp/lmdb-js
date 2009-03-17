@@ -1080,10 +1080,10 @@ register_at( const char *def, AttributeDescription **rad, int dupok )
 			freeit = 1;
 
 		} else {
-			ldap_attributetype_free( at );
 			Debug( LDAP_DEBUG_ANY,
 				"register_at: AttributeType \"%s\": %s, %s\n",
 				def, scherr2str(code), err );
+			ldap_attributetype_free( at );
 			return code;
 		}
 	}
