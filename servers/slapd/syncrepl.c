@@ -4586,13 +4586,11 @@ syncrepl_config( ConfigArgs *c )
 		}
 		return 1;
 	} else if ( c->op == LDAP_MOD_DELETE ) {
-		cookie_state *cs = NULL;
 		int isrunning = 0;
 		if ( c->be->be_syncinfo ) {
 			syncinfo_t *si, **sip;
 			int i;
 
-			cs = c->be->be_syncinfo->si_cookieState;
 			for ( sip = &c->be->be_syncinfo, i=0; *sip; i++ ) {
 				si = *sip;
 				if ( c->valx == -1 || i == c->valx ) {
@@ -4640,12 +4638,6 @@ syncrepl_config( ConfigArgs *c )
 		}
 		if ( !c->be->be_syncinfo ) {
 			SLAP_DBFLAGS( c->be ) &= ~SLAP_DBFLAG_SHADOW_MASK;
-			if ( cs && !isrunning ) {
-				ch_free( cs->cs_sids );
-				ber_bvarray_free( cs->cs_vals );
-				ldap_pvt_thread_mutex_destroy( &cs->cs_mutex );
-				ch_free( cs );
-			}
 		}
 		return 0;
 	}
