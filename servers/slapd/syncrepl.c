@@ -1258,10 +1258,10 @@ do_syncrepl(
 	int i, defer = 1, fail = 0;
 	Backend *be;
 
-	Debug( LDAP_DEBUG_TRACE, "=>do_syncrepl %s\n", si->si_ridtxt, 0, 0 );
-
 	if ( si == NULL )
 		return NULL;
+
+	Debug( LDAP_DEBUG_TRACE, "=>do_syncrepl %s\n", si->si_ridtxt, 0, 0 );
 
 	/* Don't get stuck here while a pause is initiated */
 	while ( ldap_pvt_thread_mutex_trylock( &si->si_mutex )) {
@@ -4597,11 +4597,15 @@ syncrepl_config( ConfigArgs *c )
 					 * happen when running on the cn=config DB.
 					 */
 					if ( si->si_re ) {
-						if ( ldap_pvt_thread_mutex_trylock( &si->si_mutex )) {
+						Connection *c;
+						if ( ldap_pvt_thread_mutex_trylock( &si->si_mutex ))
 							isrunning = 1;
-						} else {
+						c = si->si_conn;
+						si->si_conn = NULL;
+						if ( c )
+							connection_client_stop( c );
+						if ( !isrunning )
 							ldap_pvt_thread_mutex_unlock( &si->si_mutex );
-						}
 					}
 					if ( si->si_re && isrunning ) {
 						si->si_ctype = 0;
