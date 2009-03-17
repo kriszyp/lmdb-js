@@ -256,9 +256,11 @@ tool_destroy( void )
 		ber_memfree( binddn );
 	}
 
+#if 0	/* not yet */
 	if ( passwd.bv_val != NULL ) {
 		ber_memfree( passwd.bv_val );
 	}
+#endif
 }
 
 void
