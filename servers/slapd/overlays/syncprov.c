@@ -142,6 +142,7 @@ typedef struct syncprov_info_t {
 typedef struct opcookie {
 	slap_overinst *son;
 	syncmatches *smatches;
+	modtarget *smt;
 	struct berval sdn;	/* DN of entry, for deletes */
 	struct berval sndn;
 	struct berval suuid;	/* UUID of entry */
@@ -1313,26 +1314,24 @@ syncprov_op_cleanup( Operation *op, SlapReply *rs )
 	}
 
 	/* Remove op from lock table */
-	mtdummy.mt_op = op;
-	ldap_pvt_thread_mutex_lock( &si->si_mods_mutex );
-	mt = avl_find( si->si_mods, &mtdummy, sp_avl_cmp );
+	mt = opc->smt;
 	if ( mt ) {
 		modinst *mi = mt->mt_mods;
 
 		/* If there are more, promote the next one */
-		ldap_pvt_thread_mutex_lock( &mt->mt_mutex );
 		if ( mi->mi_next ) {
+			ldap_pvt_thread_mutex_lock( &mt->mt_mutex );
 			mt->mt_mods = mi->mi_next;
 			mt->mt_op = mt->mt_mods->mi_op;
 			ldap_pvt_thread_mutex_unlock( &mt->mt_mutex );
 		} else {
+			ldap_pvt_thread_mutex_lock( &si->si_mods_mutex );
 			avl_delete( &si->si_mods, mt, sp_avl_cmp );
-			ldap_pvt_thread_mutex_unlock( &mt->mt_mutex );
+			ldap_pvt_thread_mutex_unlock( &si->si_mods_mutex );
 			ldap_pvt_thread_mutex_destroy( &mt->mt_mutex );
 			ch_free( mt );
 		}
 	}
-	ldap_pvt_thread_mutex_unlock( &si->si_mods_mutex );
 	if ( !BER_BVISNULL( &opc->suuid ))
 		op->o_tmpfree( opc->suuid.bv_val, op->o_tmpmemctx );
 	if ( !BER_BVISNULL( &opc->sndn ))
@@ -1974,6 +1973,7 @@ syncprov_op_mod( Operation *op, SlapReply *rs )
 			avl_insert( &si->si_mods, mt, sp_avl_cmp, avl_dup_error );
 			ldap_pvt_thread_mutex_unlock( &si->si_mods_mutex );
 		}
+		opc->smt = mt;
 	}
 
 	if (( have_psearches || si->si_logs ) && op->o_tag != LDAP_REQ_ADD )

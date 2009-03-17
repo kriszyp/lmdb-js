@@ -22,6 +22,7 @@ OpenLDAP 2.4.16 Engineering
 	Fixed slapo-syncprov newCookie sync messages (ITS#5972)
 	Fixed slapd-syncprov too many MMR messages (ITS#6020)
 	Fixed slapo-syncprov replica lockout (ITS#5985)
+	Fixed slapo-syncprov modtarget tracking (ITS#5999)
 	Build Environment
 		Cleaned up alloc/free functions for Windows (ITS#6005)
 	Documentation
