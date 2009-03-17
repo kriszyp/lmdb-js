@@ -41,6 +41,7 @@ typedef struct cookie_state {
 	ldap_pvt_thread_mutex_t	cs_mutex;
 	int	cs_num;
 	int cs_age;
+	int cs_ref;
 	struct berval *cs_vals;
 	int *cs_sids;
 } cookie_state;
@@ -1464,9 +1465,7 @@ reload:
 
 	/* Do final delete cleanup */
 	if ( !si->si_ctype ) {
-		cookie_state *cs = si->si_cookieState;
-		syncinfo_free( si, ( !be->be_syncinfo ||
-			be->be_syncinfo->si_cookieState != cs ));
+		syncinfo_free( si, 0 );
 	}
 	return NULL;
 }
@@ -3599,7 +3598,8 @@ syncinfo_free( syncinfo_t *sie, int free_all )
 	Debug( LDAP_DEBUG_TRACE, "syncinfo_free: %s\n",
 		sie->si_ridtxt, 0, 0 );
 
-	if ( free_all && sie->si_cookieState ) {
+	sie->si_cookieState->cs_ref--;
+	if ( !sie->si_cookieState->cs_ref ) {
 		ch_free( sie->si_cookieState->cs_sids );
 		ber_bvarray_free( sie->si_cookieState->cs_vals );
 		ldap_pvt_thread_mutex_destroy( &sie->si_cookieState->cs_mutex );
@@ -4383,6 +4383,7 @@ add_syncrepl(
 
 			c->be->be_syncinfo = si;
 		}
+		si->si_cookieState->cs_ref++;
 
 		si->si_next = NULL;
 
