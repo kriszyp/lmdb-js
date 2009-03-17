@@ -1272,6 +1272,9 @@ do_syncrepl(
 			ldap_pvt_thread_yield();
 	}
 
+	if ( !si->si_ctype )
+		goto deleted;
+
 	switch( abs( si->si_type ) ) {
 	case LDAP_SYNC_REFRESH_ONLY:
 	case LDAP_SYNC_REFRESH_AND_PERSIST:
@@ -1359,6 +1362,7 @@ reload:
 			goto reload;
 		}
 
+deleted:
 		/* We got deleted while running on cn=config */
 		if ( !si->si_ctype ) {
 			if ( si->si_conn )
@@ -4600,15 +4604,28 @@ syncrepl_config( ConfigArgs *c )
 					if ( si->si_re ) {
 						if ( ldap_pvt_thread_mutex_trylock( &si->si_mutex )) {
 							isrunning = 1;
+						} else if ( si->si_conn ) {
+							isrunning = 1;
+							/* If there's a persistent connection, we don't
+							 * know if it's already got a thread queued.
+							 * so defer the free, but reschedule the task.
+							 * If there's a connection thread queued, it
+							 * will cleanup as necessary. If not, then the
+							 * runqueue task will cleanup.
+							 */
+							ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
+							if ( !ldap_pvt_runqueue_isrunning( &slapd_rq, si->si_re )) {
+								si->si_re->interval.tv_sec = 0;
+								ldap_pvt_runqueue_resched( &slapd_rq, si->si_re, 0 );
+								si->si_re->interval.tv_sec = si->si_interval;
+							}
+							ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
+
 						} else {
 							ldap_pvt_thread_mutex_unlock( &si->si_mutex );
 						}
-						if ( si->si_conn ) {
-							connection_client_stop( si->si_conn );
-							si->si_conn = NULL;
-						}
 					}
-					if ( si->si_re && isrunning ) {
+					if ( isrunning ) {
 						si->si_ctype = 0;
 						si->si_next = NULL;
 					} else {
