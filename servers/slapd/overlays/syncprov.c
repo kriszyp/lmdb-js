@@ -775,7 +775,7 @@ syncprov_sendresp( Operation *op, opcookie *opc, syncops *so,
 
 	SlapReply rs = { REP_SEARCH };
 	LDAPControl *ctrls[2];
-	struct berval cookie, csns[2];
+	struct berval cookie = BER_BVNULL, csns[2];
 	Entry e_uuid = {0};
 	Attribute a_uuid = {0};
 
@@ -783,18 +783,22 @@ syncprov_sendresp( Operation *op, opcookie *opc, syncops *so,
 		return SLAPD_ABANDON;
 
 	ctrls[1] = NULL;
-	csns[0] = opc->sctxcsn;
-	BER_BVZERO( &csns[1] );
-	slap_compose_sync_cookie( op, &cookie, csns, so->s_rid, slap_serverID ? slap_serverID : -1 );
+	if ( !BER_BVISNULL( &opc->sctxcsn )) {
+		csns[0] = opc->sctxcsn;
+		BER_BVZERO( &csns[1] );
+		slap_compose_sync_cookie( op, &cookie, csns, so->s_rid, slap_serverID ? slap_serverID : -1 );
+	}
 
 #ifdef LDAP_DEBUG
-	if ( so->s_sid > 0 ) {
-		Debug( LDAP_DEBUG_SYNC, "syncprov_sendresp: to=%03x, cookie=%s\n",
-			so->s_sid, cookie.bv_val, 0 );
-	} else {
-		Debug( LDAP_DEBUG_SYNC, "syncprov_sendresp: cookie=%s\n",
-			cookie.bv_val, 0, 0 );
-	}
+	if ( !BER_BVISNULL( &cookie )) {
+		if ( so->s_sid > 0 ) {
+			Debug( LDAP_DEBUG_SYNC, "syncprov_sendresp: to=%03x, cookie=%s\n",
+				so->s_sid, cookie.bv_val , 0 );
+		} else {
+			Debug( LDAP_DEBUG_SYNC, "syncprov_sendresp: cookie=%s\n",
+				cookie.bv_val, 0, 0 );
+		}
+	}		
 #endif
 
 	e_uuid.e_attrs = &a_uuid;
@@ -802,7 +806,9 @@ syncprov_sendresp( Operation *op, opcookie *opc, syncops *so,
 	a_uuid.a_nvals = &opc->suuid;
 	rs.sr_err = syncprov_state_ctrl( op, &rs, &e_uuid,
 		mode, ctrls, 0, 1, &cookie );
-	op->o_tmpfree( cookie.bv_val, op->o_tmpmemctx );
+	if ( !BER_BVISNULL( &cookie )) {
+		op->o_tmpfree( cookie.bv_val, op->o_tmpmemctx );
+	}
 
 	rs.sr_ctrls = ctrls;
 	op->o_bd->bd_info = (BackendInfo *)on->on_info;
@@ -2203,9 +2209,10 @@ syncprov_search_response( Operation *op, SlapReply *rs )
 				LDAP_SYNC_ADD, rs->sr_ctrls, 0, 0, NULL );
 		}
 	} else if ( rs->sr_type == REP_RESULT && rs->sr_err == LDAP_SUCCESS ) {
-		struct berval cookie;
+		struct berval cookie = BER_BVNULL;
 
-		if ( ss->ss_flags & SS_CHANGED ) {
+		if ( ( ss->ss_flags & SS_CHANGED ) &&
+			ss->ss_ctxcsn && !BER_BVISNULL( &ss->ss_ctxcsn[0] )) {
 			slap_compose_sync_cookie( op, &cookie, ss->ss_ctxcsn,
 				srs->sr_state.rid, slap_serverID ? slap_serverID : -1 );
 
@@ -2229,7 +2236,7 @@ syncprov_search_response( Operation *op, SlapReply *rs )
 	 			LDAP_TAG_SYNC_REFRESH_PRESENT : LDAP_TAG_SYNC_REFRESH_DELETE,
 				( ss->ss_flags & SS_CHANGED ) ? &cookie : NULL,
 				1, NULL, 0 );
-			if ( ss->ss_flags & SS_CHANGED )
+			if ( !BER_BVISNULL( &cookie ))
 				op->o_tmpfree( cookie.bv_val, op->o_tmpmemctx );
 
 			/* Detach this Op from frontend control */
