@@ -1588,6 +1588,7 @@ syncrepl_message_to_op(
 		prdn = BER_BVNULL, nrdn = BER_BVNULL,
 		psup = BER_BVNULL, nsup = BER_BVNULL;
 	int		rc, deleteOldRdn = 0, freeReqDn = 0;
+	int		do_graduate = 0;
 
 	if ( ldap_msgtype( msg ) != LDAP_RES_SEARCH_ENTRY ) {
 		Debug( LDAP_DEBUG_ANY, "syncrepl_message_to_op: %s "
@@ -1656,6 +1657,7 @@ syncrepl_message_to_op(
 			&slap_schema.si_ad_entryCSN->ad_cname ) )
 		{
 			slap_queue_csn( op, bvals );
+			do_graduate = 1;
 		}
 		ch_free( bvals );
 	}
@@ -1700,6 +1702,7 @@ syncrepl_message_to_op(
 				Debug( LDAP_DEBUG_SYNC,
 					"syncrepl_message_to_op: %s be_add %s (%d)\n", 
 					si->si_ridtxt, op->o_req_dn.bv_val, rc );
+				do_graduate = 0;
 			}
 			if ( e == op->ora_e )
 				be_entry_release_w( op, op->ora_e );
@@ -1712,6 +1715,7 @@ syncrepl_message_to_op(
 				"syncrepl_message_to_op: %s be_modify %s (%d)\n", 
 				si->si_ridtxt, op->o_req_dn.bv_val, rc );
 			op->o_bd = si->si_be;
+			do_graduate = 0;
 		}
 		break;
 	case LDAP_REQ_MODRDN:
@@ -1755,16 +1759,19 @@ syncrepl_message_to_op(
 		Debug( rc ? LDAP_DEBUG_ANY : LDAP_DEBUG_SYNC,
 			"syncrepl_message_to_op: %s be_modrdn %s (%d)\n", 
 			si->si_ridtxt, op->o_req_dn.bv_val, rc );
+		do_graduate = 0;
 		break;
 	case LDAP_REQ_DELETE:
 		rc = op->o_bd->be_delete( op, &rs );
 		Debug( rc ? LDAP_DEBUG_ANY : LDAP_DEBUG_SYNC,
 			"syncrepl_message_to_op: %s be_delete %s (%d)\n", 
 			si->si_ridtxt, op->o_req_dn.bv_val, rc );
+		do_graduate = 0;
 		break;
 	}
 done:
-	slap_graduate_commit_csn( op );
+	if ( do_graduate )
+		slap_graduate_commit_csn( op );
 	op->o_bd = si->si_be;
 	op->o_tmpfree( op->o_csn.bv_val, op->o_tmpmemctx );
 	BER_BVZERO( &op->o_csn );
@@ -2241,6 +2248,7 @@ retry_add:;
 					si->si_ridtxt, rs_add.sr_err, 0 );
 				break;
 			}
+			syncCSN = NULL;
 			op->o_bd = be;
 			goto done;
 		}
@@ -2440,7 +2448,9 @@ retry_add:;
 			op->o_req_dn = entry->e_name;
 			op->o_req_ndn = entry->e_nname;
 			/* Use CSN on the modify */
-			if ( syncCSN && !just_rename )
+			if ( just_rename )
+				syncCSN = NULL;
+			else if ( syncCSN )
 				slap_queue_csn( op, syncCSN );
 		}
 		if ( dni.mods ) {
@@ -2460,11 +2470,16 @@ retry_add:;
 					"syncrepl_entry: %s be_modify failed (%d)\n",
 					si->si_ridtxt, rs_modify.sr_err, 0 );
 			}
+			syncCSN = NULL;
 			op->o_bd = be;
 		} else if ( !dni.renamed ) {
 			Debug( LDAP_DEBUG_SYNC,
 					"syncrepl_entry: %s entry unchanged, ignored (%s)\n", 
 					si->si_ridtxt, op->o_req_dn.bv_val, 0 );
+			if ( syncCSN ) {
+				slap_graduate_commit_csn( op );
+				syncCSN = NULL;
+			}
 		}
 		goto done;
 	case LDAP_SYNC_DELETE :
@@ -2493,6 +2508,7 @@ retry_add:;
 					break;
 				}
 			}
+			syncCSN = NULL;
 			op->o_bd = be;
 		}
 		goto done;
