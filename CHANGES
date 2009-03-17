@@ -9,6 +9,7 @@ OpenLDAP 2.4.16 Engineering
 	Fixed libldap referral chasing (ITS#5980)
 	Fixed slapd backglue with empty DBs (ITS#5986)
 	Fixed slapd ctxcsn race condition (ITS#6001)
+	Fixed slapd debug message (ITS#6027)
 	Fixed slapd syncrepl newCookie sync messages (ITS#5972)
 	Fixed slapd syncrepl hang during shutdown (ITS#6011)
 	Fixed slapd syncrepl too many MMR messages (ITS#6020)
