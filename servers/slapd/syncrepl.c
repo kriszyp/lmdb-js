@@ -41,6 +41,7 @@ typedef struct cookie_state {
 	ldap_pvt_thread_mutex_t	cs_mutex;
 	int	cs_num;
 	int cs_age;
+	int cs_ref;
 	struct berval *cs_vals;
 	int *cs_sids;
 } cookie_state;
@@ -1258,10 +1259,10 @@ do_syncrepl(
 	int i, defer = 1, fail = 0;
 	Backend *be;
 
-	Debug( LDAP_DEBUG_TRACE, "=>do_syncrepl %s\n", si->si_ridtxt, 0, 0 );
-
 	if ( si == NULL )
 		return NULL;
+
+	Debug( LDAP_DEBUG_TRACE, "=>do_syncrepl %s\n", si->si_ridtxt, 0, 0 );
 
 	/* Don't get stuck here while a pause is initiated */
 	while ( ldap_pvt_thread_mutex_trylock( &si->si_mutex )) {
@@ -1270,6 +1271,9 @@ do_syncrepl(
 		if ( !ldap_pvt_thread_pool_pausecheck( &connection_pool ))
 			ldap_pvt_thread_yield();
 	}
+
+	if ( !si->si_ctype )
+		goto deleted;
 
 	switch( abs( si->si_type ) ) {
 	case LDAP_SYNC_REFRESH_ONLY:
@@ -1358,6 +1362,7 @@ reload:
 			goto reload;
 		}
 
+deleted:
 		/* We got deleted while running on cn=config */
 		if ( !si->si_ctype ) {
 			if ( si->si_conn )
@@ -1449,24 +1454,22 @@ reload:
 	if ( rc ) {
 		if ( fail == RETRYNUM_TAIL ) {
 			Debug( LDAP_DEBUG_ANY,
-				"do_syncrepl: %s quitting\n",
-				si->si_ridtxt, 0, 0 );
+				"do_syncrepl: %s rc %d quitting\n",
+				si->si_ridtxt, rc, 0 );
 		} else if ( fail > 0 ) {
 			Debug( LDAP_DEBUG_ANY,
-				"do_syncrepl: %s retrying (%d retries left)\n",
-				si->si_ridtxt, fail, 0 );
+				"do_syncrepl: %s rc %d retrying (%d retries left)\n",
+				si->si_ridtxt, rc, fail );
 		} else {
 			Debug( LDAP_DEBUG_ANY,
-				"do_syncrepl: %s retrying\n",
-				si->si_ridtxt, 0, 0 );
+				"do_syncrepl: %s rc %d retrying\n",
+				si->si_ridtxt, rc, 0 );
 		}
 	}
 
 	/* Do final delete cleanup */
 	if ( !si->si_ctype ) {
-		cookie_state *cs = si->si_cookieState;
-		syncinfo_free( si, ( !be->be_syncinfo ||
-			be->be_syncinfo->si_cookieState != cs ));
+		syncinfo_free( si, 0 );
 	}
 	return NULL;
 }
@@ -2181,8 +2184,8 @@ retry_add:;
 
 			rc = op->o_bd->be_add( op, &rs_add );
 			Debug( LDAP_DEBUG_SYNC,
-					"syncrepl_entry: %s be_add (%d)\n", 
-					si->si_ridtxt, rc, 0 );
+					"syncrepl_entry: %s be_add %s (%d)\n", 
+					si->si_ridtxt, op->o_req_dn.bv_val, rc );
 			switch ( rs_add.sr_err ) {
 			case LDAP_SUCCESS:
 				if ( op->ora_e == entry ) {
@@ -2244,8 +2247,8 @@ retry_add:;
 
 			default:
 				Debug( LDAP_DEBUG_ANY,
-					"syncrepl_entry: %s be_add failed (%d)\n",
-					si->si_ridtxt, rs_add.sr_err, 0 );
+					"syncrepl_entry: %s be_add %s failed (%d)\n",
+					si->si_ridtxt, op->o_req_dn.bv_val, rs_add.sr_err );
 				break;
 			}
 			syncCSN = NULL;
@@ -2384,7 +2387,7 @@ retry_add:;
 					}
 				}
 			}
-					
+
 			/* RDNs must be NUL-terminated for back-ldap */
 			noldp = op->orr_newrdn;
 			ber_dupbv_x( &op->orr_newrdn, &noldp, op->o_tmpmemctx );
@@ -2441,8 +2444,8 @@ retry_add:;
 
 			slap_mods_free( op->orr_modlist, 1 );
 			Debug( LDAP_DEBUG_SYNC,
-					"syncrepl_entry: %s be_modrdn (%d)\n", 
-					si->si_ridtxt, rc, 0 );
+					"syncrepl_entry: %s be_modrdn %s (%d)\n", 
+					si->si_ridtxt, op->o_req_dn.bv_val, rc );
 			op->o_bd = be;
 			/* Renamed entries may still have other mods so just fallthru */
 			op->o_req_dn = entry->e_name;
@@ -2463,8 +2466,8 @@ retry_add:;
 			slap_mods_free( op->orm_modlist, 1 );
 			op->orm_no_opattrs = 0;
 			Debug( LDAP_DEBUG_SYNC,
-					"syncrepl_entry: %s be_modify (%d)\n", 
-					si->si_ridtxt, rc, 0 );
+					"syncrepl_entry: %s be_modify %s (%d)\n", 
+					si->si_ridtxt, op->o_req_dn.bv_val, rc );
 			if ( rs_modify.sr_err != LDAP_SUCCESS ) {
 				Debug( LDAP_DEBUG_ANY,
 					"syncrepl_entry: %s be_modify failed (%d)\n",
@@ -2490,8 +2493,8 @@ retry_add:;
 			op->o_bd = si->si_wbe;
 			rc = op->o_bd->be_delete( op, &rs_delete );
 			Debug( LDAP_DEBUG_SYNC,
-					"syncrepl_entry: %s be_delete (%d)\n", 
-					si->si_ridtxt, rc, 0 );
+					"syncrepl_entry: %s be_delete %s (%d)\n", 
+					si->si_ridtxt, op->o_req_dn.bv_val, rc );
 
 			while ( rs_delete.sr_err == LDAP_SUCCESS
 				&& op->o_delete_glue_parent ) {
@@ -3596,7 +3599,11 @@ syncinfo_free( syncinfo_t *sie, int free_all )
 {
 	syncinfo_t *si_next;
 
-	if ( free_all && sie->si_cookieState ) {
+	Debug( LDAP_DEBUG_TRACE, "syncinfo_free: %s\n",
+		sie->si_ridtxt, 0, 0 );
+
+	sie->si_cookieState->cs_ref--;
+	if ( !sie->si_cookieState->cs_ref ) {
 		ch_free( sie->si_cookieState->cs_sids );
 		ber_bvarray_free( sie->si_cookieState->cs_vals );
 		ldap_pvt_thread_mutex_destroy( &sie->si_cookieState->cs_mutex );
@@ -4380,6 +4387,7 @@ add_syncrepl(
 
 			c->be->be_syncinfo = si;
 		}
+		si->si_cookieState->cs_ref++;
 
 		si->si_next = NULL;
 
@@ -4578,13 +4586,11 @@ syncrepl_config( ConfigArgs *c )
 		}
 		return 1;
 	} else if ( c->op == LDAP_MOD_DELETE ) {
-		cookie_state *cs = NULL;
 		int isrunning = 0;
 		if ( c->be->be_syncinfo ) {
 			syncinfo_t *si, **sip;
 			int i;
 
-			cs = c->be->be_syncinfo->si_cookieState;
 			for ( sip = &c->be->be_syncinfo, i=0; *sip; i++ ) {
 				si = *sip;
 				if ( c->valx == -1 || i == c->valx ) {
@@ -4596,11 +4602,28 @@ syncrepl_config( ConfigArgs *c )
 					if ( si->si_re ) {
 						if ( ldap_pvt_thread_mutex_trylock( &si->si_mutex )) {
 							isrunning = 1;
+						} else if ( si->si_conn ) {
+							isrunning = 1;
+							/* If there's a persistent connection, we don't
+							 * know if it's already got a thread queued.
+							 * so defer the free, but reschedule the task.
+							 * If there's a connection thread queued, it
+							 * will cleanup as necessary. If not, then the
+							 * runqueue task will cleanup.
+							 */
+							ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
+							if ( !ldap_pvt_runqueue_isrunning( &slapd_rq, si->si_re )) {
+								si->si_re->interval.tv_sec = 0;
+								ldap_pvt_runqueue_resched( &slapd_rq, si->si_re, 0 );
+								si->si_re->interval.tv_sec = si->si_interval;
+							}
+							ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
+
 						} else {
 							ldap_pvt_thread_mutex_unlock( &si->si_mutex );
 						}
 					}
-					if ( si->si_re && isrunning ) {
+					if ( isrunning ) {
 						si->si_ctype = 0;
 						si->si_next = NULL;
 					} else {
@@ -4615,12 +4638,6 @@ syncrepl_config( ConfigArgs *c )
 		}
 		if ( !c->be->be_syncinfo ) {
 			SLAP_DBFLAGS( c->be ) &= ~SLAP_DBFLAG_SHADOW_MASK;
-			if ( cs && !isrunning ) {
-				ch_free( cs->cs_sids );
-				ber_bvarray_free( cs->cs_vals );
-				ldap_pvt_thread_mutex_destroy( &cs->cs_mutex );
-				ch_free( cs );
-			}
 		}
 		return 0;
 	}
