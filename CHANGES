@@ -29,6 +29,7 @@ OpenLDAP 2.4.16 Engineering
 	Fixed slapo-syncprov skipped entries with MMR (ITS#5988)
 	Build Environment
 		Cleaned up alloc/free functions for Windows (ITS#6005)
+		Fixed running of autosave files in testsuite (ITS#6026)
 	Documentation
 		admin24 clarified MMR URI requirements (ITS#5942,ITS#5987)
 		Added ldapexop(1) manual page (ITS#5982)
