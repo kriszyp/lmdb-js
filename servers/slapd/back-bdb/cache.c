@@ -737,6 +737,13 @@ bdb_cache_lru_purge( struct bdb_info *bdb )
 			/* Free entry for this node if it's present */
 			if ( elru->bei_e ) {
 				ecount++;
+
+				/* the cache may have gone over the limit while we
+				 * weren't looking, so double check.
+				 */
+				if ( !efree && ecount > bdb->bi_cache.c_maxsize )
+					efree = bdb->bi_cache.c_minfree;
+
 				if ( count < efree ) {
 					elru->bei_e->e_private = NULL;
 #ifdef SLAP_ZONE_ALLOC
@@ -831,7 +838,7 @@ bdb_cache_find_id(
 {
 	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
 	Entry	*ep = NULL;
-	int	rc = 0, load = 0, added = 0;
+	int	rc = 0, load = 0;
 	EntryInfo ei = { 0 };
 
 	ei.bei_id = id;
@@ -929,7 +936,6 @@ load1:
 				 */
 				if ( (*eip)->bei_state & CACHE_ENTRY_NOT_CACHED ) {
 					(*eip)->bei_state &= ~CACHE_ENTRY_NOT_CACHED;
-					added = 1;
 				}
 				flag &= ~ID_NOCACHE;
 			}
@@ -958,7 +964,6 @@ load1:
 #endif
 						ep = NULL;
 						bdb_cache_lru_link( bdb, *eip );
-						added = 1;
 						if (( flag & ID_NOCACHE ) &&
 							( bdb_cache_entryinfo_trylock( *eip ) == 0 )) {
 							/* Set the cached state only if no other thread
@@ -1023,18 +1028,20 @@ load1:
 	if ( rc == 0 ) {
 		int purge = 0;
 
-		if ( added ) {
+		if ( bdb->bi_cache.c_cursize > bdb->bi_cache.c_maxsize ||
+			bdb->bi_cache.c_leaves > bdb->bi_cache.c_eimax ) {
 			ldap_pvt_thread_mutex_lock( &bdb->bi_cache.c_count_mutex );
-			if ( !( flag & ID_NOCACHE )) {
-				bdb->bi_cache.c_cursize++;
-				if ( bdb->bi_cache.c_cursize > bdb->bi_cache.c_maxsize &&
-					!bdb->bi_cache.c_purging ) {
+			if ( !bdb->bi_cache.c_purging ) {
+				if ( !( flag & ID_NOCACHE )) {
+					bdb->bi_cache.c_cursize++;
+					if ( bdb->bi_cache.c_cursize > bdb->bi_cache.c_maxsize ) {
+						purge = 1;
+						bdb->bi_cache.c_purging = 1;
+					}
+				} else if ( bdb->bi_cache.c_leaves > bdb->bi_cache.c_eimax ) {
 					purge = 1;
 					bdb->bi_cache.c_purging = 1;
 				}
-			} else if ( bdb->bi_cache.c_leaves > bdb->bi_cache.c_eimax && !bdb->bi_cache.c_purging ) {
-				purge = 1;
-				bdb->bi_cache.c_purging = 1;
 			}
 			ldap_pvt_thread_mutex_unlock( &bdb->bi_cache.c_count_mutex );
 		}
