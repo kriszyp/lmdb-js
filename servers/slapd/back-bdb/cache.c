@@ -1024,16 +1024,17 @@ load1:
 		if ( bdb->bi_cache.c_cursize > bdb->bi_cache.c_maxsize ||
 			bdb->bi_cache.c_leaves > bdb->bi_cache.c_eimax ) {
 			ldap_pvt_thread_mutex_lock( &bdb->bi_cache.c_count_mutex );
-			if ( !( flag & ID_NOCACHE )) {
-				bdb->bi_cache.c_cursize++;
-				if ( bdb->bi_cache.c_cursize > bdb->bi_cache.c_maxsize &&
-					!bdb->bi_cache.c_purging ) {
+			if ( !bdb->bi_cache.c_purging ) {
+				if ( !( flag & ID_NOCACHE )) {
+					bdb->bi_cache.c_cursize++;
+					if ( bdb->bi_cache.c_cursize > bdb->bi_cache.c_maxsize ) {
+						purge = 1;
+						bdb->bi_cache.c_purging = 1;
+					}
+				} else if ( bdb->bi_cache.c_leaves > bdb->bi_cache.c_eimax ) {
 					purge = 1;
 					bdb->bi_cache.c_purging = 1;
 				}
-			} else if ( bdb->bi_cache.c_leaves > bdb->bi_cache.c_eimax && !bdb->bi_cache.c_purging ) {
-				purge = 1;
-				bdb->bi_cache.c_purging = 1;
 			}
 			ldap_pvt_thread_mutex_unlock( &bdb->bi_cache.c_count_mutex );
 		}
