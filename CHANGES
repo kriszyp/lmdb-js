@@ -1,6 +1,6 @@
 OpenLDAP 2.4 Change Log
 
-OpenLDAP 2.4.16 Engineering
+OpenLDAP 2.4.16 Release (2009/03/20)
 	Fixed libldap GnuTLS with x509v1 CA certs (ITS#5992)
 	Fixed libldap GnuTLS with CA chains (ITS#5991)
 	Fixed libldap GnuTLS TLSVerifyCilent try (ITS#5981)
