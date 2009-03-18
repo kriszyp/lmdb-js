@@ -674,8 +674,12 @@ bdb_cache_lru_purge( struct bdb_info *bdb )
 	else
 		eimax = bdb->bi_cache.c_eimax;
 
-	if ( bdb->bi_cache.c_cursize > bdb->bi_cache.c_maxsize )
+	efree = bdb->bi_cache.c_cursize - bdb->bi_cache.c_maxsize;
+	if ( efree < 1 )
+		efree = 0;
+	else if (efree < bdb->bi_cache.c_minfree )
 		efree = bdb->bi_cache.c_minfree;
+
 	if ( bdb->bi_cache.c_leaves > eimax ) {
 		eifree = bdb->bi_cache.c_minfree * 10;
 		if ( eifree >= eimax )
