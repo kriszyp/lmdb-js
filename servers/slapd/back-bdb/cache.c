@@ -737,6 +737,13 @@ bdb_cache_lru_purge( struct bdb_info *bdb )
 			/* Free entry for this node if it's present */
 			if ( elru->bei_e ) {
 				ecount++;
+
+				/* the cache may have gone over the limit while we
+				 * weren't looking, so double check.
+				 */
+				if ( !efree && ecount > bdb->bi_cache.c_maxsize )
+					efree = bdb->bi_cache.c_minfree;
+
 				if ( count < efree ) {
 					elru->bei_e->e_private = NULL;
 #ifdef SLAP_ZONE_ALLOC
