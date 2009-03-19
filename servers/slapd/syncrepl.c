@@ -3605,8 +3605,6 @@ syncinfo_free( syncinfo_t *sie, int free_all )
 		sie->si_ridtxt, 0, 0 );
 
 	do {
-		struct re_s		*re;
-
 		si_next = sie->si_next;
 
 		sie->si_re = NULL;
@@ -3619,20 +3617,21 @@ syncinfo_free( syncinfo_t *sie, int free_all )
 			ldap_unbind_ext( sie->si_ld, NULL, NULL );
 		}
 	
-		/* re-fetch it, in case it was already removed */
-		ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
-		re = ldap_pvt_runqueue_find( &slapd_rq, do_syncrepl, sie );
-		if ( re ) {
+		if ( sie->si_re ) {
+			struct re_s		*re = sie->si_re;
+			sie->si_re = NULL;
+
+			ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
 			if ( ldap_pvt_runqueue_isrunning( &slapd_rq, re ) )
 				ldap_pvt_runqueue_stoptask( &slapd_rq, re );
 			ldap_pvt_runqueue_remove( &slapd_rq, re );
+			ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
 		}
-	
-		ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
-	 	ldap_pvt_thread_mutex_destroy( &sie->si_mutex );
-	
+
+		ldap_pvt_thread_mutex_destroy( &sie->si_mutex );
+
 		bindconf_free( &sie->si_bindconf );
-	
+
 		if ( sie->si_filterstr.bv_val ) {
 			ch_free( sie->si_filterstr.bv_val );
 		}
