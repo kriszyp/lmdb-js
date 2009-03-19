@@ -3607,8 +3607,6 @@ syncinfo_free( syncinfo_t *sie, int free_all )
 	do {
 		si_next = sie->si_next;
 
-		sie->si_re = NULL;
-
 		if ( sie->si_ld ) {
 			if ( sie->si_conn ) {
 				connection_client_stop( sie->si_conn );
