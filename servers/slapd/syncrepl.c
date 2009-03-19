@@ -1261,6 +1261,8 @@ do_syncrepl(
 
 	if ( si == NULL )
 		return NULL;
+	if ( slapd_shutdown )
+		return NULL;
 
 	Debug( LDAP_DEBUG_TRACE, "=>do_syncrepl %s\n", si->si_ridtxt, 0, 0 );
 
@@ -3602,15 +3604,12 @@ syncinfo_free( syncinfo_t *sie, int free_all )
 	Debug( LDAP_DEBUG_TRACE, "syncinfo_free: %s\n",
 		sie->si_ridtxt, 0, 0 );
 
-	sie->si_cookieState->cs_ref--;
-	if ( !sie->si_cookieState->cs_ref ) {
-		ch_free( sie->si_cookieState->cs_sids );
-		ber_bvarray_free( sie->si_cookieState->cs_vals );
-		ldap_pvt_thread_mutex_destroy( &sie->si_cookieState->cs_mutex );
-		ch_free( sie->si_cookieState );
-	}
 	do {
+		struct re_s		*re;
+
 		si_next = sie->si_next;
+
+		sie->si_re = NULL;
 
 		if ( sie->si_ld ) {
 			if ( sie->si_conn ) {
@@ -3622,11 +3621,11 @@ syncinfo_free( syncinfo_t *sie, int free_all )
 	
 		/* re-fetch it, in case it was already removed */
 		ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
-		sie->si_re = ldap_pvt_runqueue_find( &slapd_rq, do_syncrepl, sie );
-		if ( sie->si_re ) {
-			if ( ldap_pvt_runqueue_isrunning( &slapd_rq, sie->si_re ) )
-				ldap_pvt_runqueue_stoptask( &slapd_rq, sie->si_re );
-			ldap_pvt_runqueue_remove( &slapd_rq, sie->si_re );
+		re = ldap_pvt_runqueue_find( &slapd_rq, do_syncrepl, sie );
+		if ( re ) {
+			if ( ldap_pvt_runqueue_isrunning( &slapd_rq, re ) )
+				ldap_pvt_runqueue_stoptask( &slapd_rq, re );
+			ldap_pvt_runqueue_remove( &slapd_rq, re );
 		}
 	
 		ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
@@ -3708,6 +3707,13 @@ syncinfo_free( syncinfo_t *sie, int free_all )
 				ch_free( npe->npe_nname );
 			}
 			ch_free( npe );
+		}
+		sie->si_cookieState->cs_ref--;
+		if ( !sie->si_cookieState->cs_ref ) {
+			ch_free( sie->si_cookieState->cs_sids );
+			ber_bvarray_free( sie->si_cookieState->cs_vals );
+			ldap_pvt_thread_mutex_destroy( &sie->si_cookieState->cs_mutex );
+			ch_free( sie->si_cookieState );
 		}
 		ch_free( sie );
 		sie = si_next;
