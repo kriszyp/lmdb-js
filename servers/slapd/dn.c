@@ -220,10 +220,7 @@ rdnValidate(
 /*
  * AVA sorting inside a RDN
  *
- * rule: sort attributeTypes in alphabetical order; in case of multiple
- * occurrences of the same attributeType, sort values in byte order
- * (use memcmp, which implies alphabetical order in case of IA5 value;
- * this should guarantee the repeatability of the operation).
+ * Rule: sort attributeTypes in alphabetical order.
  *
  * Note: the sorting can be slightly improved by sorting first
  * by attribute type length, then by alphabetical order.
