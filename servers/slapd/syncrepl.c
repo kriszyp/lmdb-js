@@ -4605,24 +4605,24 @@ syncrepl_config( ConfigArgs *c )
 					if ( si->si_re ) {
 						if ( ldap_pvt_thread_mutex_trylock( &si->si_mutex )) {
 							isrunning = 1;
-						} else if ( si->si_conn ) {
-							isrunning = 1;
-							/* If there's a persistent connection, we don't
-							 * know if it's already got a thread queued.
-							 * so defer the free, but reschedule the task.
-							 * If there's a connection thread queued, it
-							 * will cleanup as necessary. If not, then the
-							 * runqueue task will cleanup.
-							 */
-							ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
-							if ( !ldap_pvt_runqueue_isrunning( &slapd_rq, si->si_re )) {
-								si->si_re->interval.tv_sec = 0;
-								ldap_pvt_runqueue_resched( &slapd_rq, si->si_re, 0 );
-								si->si_re->interval.tv_sec = si->si_interval;
-							}
-							ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
-
 						} else {
+							if ( si->si_conn ) {
+								isrunning = 1;
+								/* If there's a persistent connection, we don't
+								 * know if it's already got a thread queued.
+								 * so defer the free, but reschedule the task.
+								 * If there's a connection thread queued, it
+								 * will cleanup as necessary. If not, then the
+								 * runqueue task will cleanup.
+								 */
+								ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
+								if ( !ldap_pvt_runqueue_isrunning( &slapd_rq, si->si_re )) {
+									si->si_re->interval.tv_sec = 0;
+									ldap_pvt_runqueue_resched( &slapd_rq, si->si_re, 0 );
+									si->si_re->interval.tv_sec = si->si_interval;
+								}
+								ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
+							}
 							ldap_pvt_thread_mutex_unlock( &si->si_mutex );
 						}
 					}
