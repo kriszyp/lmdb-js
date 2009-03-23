@@ -119,7 +119,7 @@ int module_unload( const char *file_name )
 
 int module_load(const char* file_name, int argc, char *argv[])
 {
-	module_loaded_t *module = NULL;
+	module_loaded_t *module;
 	const char *error;
 	int rc;
 	MODULE_INIT_FN initialize;
@@ -128,6 +128,11 @@ int module_load(const char* file_name, int argc, char *argv[])
 #else
 #define	file	file_name
 #endif
+
+	/* silently ignore attempts to load a module that's already present */
+	module = module_handle( file_name );
+	if ( module )
+		return 0;
 
 	module = (module_loaded_t *)ch_calloc(1, sizeof(module_loaded_t) +
 		strlen(file_name));
