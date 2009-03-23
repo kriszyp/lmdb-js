@@ -129,10 +129,12 @@ int module_load(const char* file_name, int argc, char *argv[])
 #define	file	file_name
 #endif
 
-	/* silently ignore attempts to load a module that's already present */
 	module = module_handle( file_name );
-	if ( module )
-		return 0;
+	if ( module ) {
+		Debug( LDAP_DEBUG_ANY, "module_load: (%s) already loaded\n",
+			file_name, 0, 0 );
+		return -1;
+	}
 
 	module = (module_loaded_t *)ch_calloc(1, sizeof(module_loaded_t) +
 		strlen(file_name));
