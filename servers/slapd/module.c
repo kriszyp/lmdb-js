@@ -119,7 +119,7 @@ int module_unload( const char *file_name )
 
 int module_load(const char* file_name, int argc, char *argv[])
 {
-	module_loaded_t *module = NULL;
+	module_loaded_t *module;
 	const char *error;
 	int rc;
 	MODULE_INIT_FN initialize;
@@ -128,6 +128,13 @@ int module_load(const char* file_name, int argc, char *argv[])
 #else
 #define	file	file_name
 #endif
+
+	module = module_handle( file_name );
+	if ( module ) {
+		Debug( LDAP_DEBUG_ANY, "module_load: (%s) already loaded\n",
+			file_name, 0, 0 );
+		return -1;
+	}
 
 	module = (module_loaded_t *)ch_calloc(1, sizeof(module_loaded_t) +
 		strlen(file_name));
