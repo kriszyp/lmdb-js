@@ -31,7 +31,7 @@ for CMD in $SRCDIR/scripts/test*; do
 		*.bak)	continue;;
 		*.orig)	continue;;
 		*.sav)	continue;;
-		*)		test -x "$CMD" || continue;;
+		*)		test -f "$CMD" || continue;;
 	esac
 
 	# remove cruft from prior test
