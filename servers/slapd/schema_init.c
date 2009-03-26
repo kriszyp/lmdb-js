@@ -2814,6 +2814,7 @@ UUIDNormalize(
 
 		} else {
 			slap_sl_free( normalized->bv_val, ctx );
+			BER_BVZERO( normalized );
 			return LDAP_INVALID_SYNTAX;
 		}
 
