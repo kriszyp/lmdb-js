@@ -2759,6 +2759,8 @@ sockdestroy( void )
 RETSIGTYPE
 slap_sig_shutdown( int sig )
 {
+	int save_errno = errno;
+
 #if 0
 	Debug(LDAP_DEBUG_TRACE, "slap_sig_shutdown: signal %d\n", sig, 0, 0);
 #endif
@@ -2787,15 +2789,21 @@ slap_sig_shutdown( int sig )
 
 	/* reinstall self */
 	(void) SIGNAL_REINSTALL( sig, slap_sig_shutdown );
+
+	errno = save_errno;
 }
 
 RETSIGTYPE
 slap_sig_wake( int sig )
 {
+	int save_errno = errno;
+
 	WAKE_LISTENER(1);
 
 	/* reinstall self */
 	(void) SIGNAL_REINSTALL( sig, slap_sig_wake );
+
+	errno = save_errno;
 }
 
 
