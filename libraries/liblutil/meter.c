@@ -214,7 +214,7 @@ text_open (void ** display_datap)
 	data->buffer_length = default_buffer_length;
 	data->buffer = calloc( 1, default_buffer_length );
 	assert( data->buffer != NULL );
-	data->output = stdout;
+	data->output = stderr;
 	*display_datap = data;
 	return 0;
 }
@@ -314,7 +314,6 @@ text_update (
 	(void) fprintf( data->output,
 			"\r%-79s", 
 			data->buffer );
-	(void) fflush( data->output );
 	data->need_eol = 1;
 	return 0;
 }

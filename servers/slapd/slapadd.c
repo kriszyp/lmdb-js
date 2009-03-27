@@ -76,7 +76,7 @@ slapadd( int argc, char **argv )
 	/* default "000" */
 	csnsid = 0;
 
-	if ( isatty (1) ) enable_meter = 1;
+	if ( isatty (2) ) enable_meter = 1;
 	slap_tool_init( progname, SLAPADD, argc, argv );
 
 	memset( &opbuf, 0, sizeof(opbuf) );
@@ -506,7 +506,7 @@ slapadd( int argc, char **argv )
 
 	if ( !dryrun ) {
 		if ( enable_meter ) {
-			fprintf( stdout, "Closing DB..." );
+			fprintf( stderr, "Closing DB..." );
 		}
 		if( be->be_entry_close( be ) ) {
 			rc = EXIT_FAILURE;
@@ -516,7 +516,7 @@ slapadd( int argc, char **argv )
 			be->be_sync( be );
 		}
 		if ( enable_meter ) {
-			fprintf( stdout, "\n" );
+			fprintf( stderr, "\n" );
 		}
 	}
 
