@@ -1182,6 +1182,7 @@ syncprov_matchops( Operation *op, opcookie *opc, int saveit )
 	{
 		Operation op2;
 		Opheader oh;
+		BackendDB be;
 		syncmatches *sm;
 		int found = 0;
 
@@ -1249,9 +1250,11 @@ syncprov_matchops( Operation *op, opcookie *opc, int saveit )
 
 		if ( fc.fscope ) {
 			op2 = *ss->s_op;
+			be = *op2.o_bd;
 			oh = *op->o_hdr;
 			oh.oh_conn = ss->s_op->o_conn;
 			oh.oh_connid = ss->s_op->o_connid;
+			op2.o_bd = &be;
 			op2.o_hdr = &oh;
 			op2.o_extra = op->o_extra;
 			rc = test_filter( &op2, e, ss->s_op->ors_filter );
