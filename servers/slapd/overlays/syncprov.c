@@ -1255,6 +1255,7 @@ syncprov_matchops( Operation *op, opcookie *opc, int saveit )
 			op2.o_bd = op->o_bd->bd_self;
 			op2.o_hdr = &oh;
 			op2.o_extra = op->o_extra;
+			op2.o_callback = NULL;
 			rc = test_filter( &op2, e, ss->s_op->ors_filter );
 		}
 
