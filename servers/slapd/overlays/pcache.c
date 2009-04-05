@@ -1175,6 +1175,8 @@ free_query (CachedQuery* qc)
 {
 	free(qc->q_uuid.bv_val);
 	filter_free(qc->filter);
+	ldap_pvt_thread_rdwr_destroy( &qc->rwlock );
+	memset(qc, 0, sizeof(*qc));
 	free(qc);
 }
 
@@ -1264,6 +1266,7 @@ add_query(
 		new_cached_query = find_filter( op, qbase->scopes[query->scope],
 							query->filter, first );
 		filter_free( query->filter );
+		query->filter = NULL;
 	}
 	Debug( pcache_debug, "TEMPLATE %p QUERIES++ %d\n",
 			(void *) templ, templ->no_of_queries, 0 );
@@ -2750,7 +2753,8 @@ pc_cfadd( Operation *op, SlapReply *rs, Entry *p, ConfigArgs *ca )
 
 	/* FIXME: should not hardcode "olcDatabase" here */
 	bv.bv_len = snprintf( ca->cr_msg, sizeof( ca->cr_msg ),
-		"olcDatabase=%s", cm->db.bd_info->bi_type );
+		"olcDatabase=" SLAP_X_ORDERED_FMT "%s",
+		0, cm->db.bd_info->bi_type );
 	if ( bv.bv_len >= sizeof( ca->cr_msg ) ) {
 		return -1;
 	}
