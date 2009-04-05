@@ -1175,6 +1175,8 @@ free_query (CachedQuery* qc)
 {
 	free(qc->q_uuid.bv_val);
 	filter_free(qc->filter);
+	ldap_pvt_thread_rdwr_destroy( &qc->rwlock );
+	memset(qc, 0, sizeof(*qc));
 	free(qc);
 }
 
@@ -1264,6 +1266,7 @@ add_query(
 		new_cached_query = find_filter( op, qbase->scopes[query->scope],
 							query->filter, first );
 		filter_free( query->filter );
+		query->filter = NULL;
 	}
 	Debug( pcache_debug, "TEMPLATE %p QUERIES++ %d\n",
 			(void *) templ, templ->no_of_queries, 0 );
