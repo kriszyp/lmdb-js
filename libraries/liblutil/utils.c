@@ -466,6 +466,40 @@ int mkstemp( char * template )
 #endif
 
 #ifdef _MSC_VER
+/* Equivalent of MS CRT's _dosmaperr().
+ * @param lastError[in] Result of GetLastError().
+ */
+static errno_t win2errno(DWORD lastError)
+{
+	const struct { 
+		DWORD   windows_code;
+		errno_t errno_code;
+	} WIN2ERRNO_TABLE[] = {
+		{ ERROR_SUCCESS, 0 },
+		{ ERROR_FILE_NOT_FOUND, ENOENT },
+		{ ERROR_PATH_NOT_FOUND, ENOENT },
+		{ ERROR_TOO_MANY_OPEN_FILES, EMFILE },
+		{ ERROR_ACCESS_DENIED, EACCES },
+		{ ERROR_INVALID_HANDLE, EBADF },
+		{ ERROR_NOT_ENOUGH_MEMORY, ENOMEM },
+		{ ERROR_LOCK_VIOLATION, EACCES },
+		{ ERROR_FILE_EXISTS, EEXIST },
+		{ ERROR_INVALID_PARAMETER, EINVAL },
+		{ ERROR_FILENAME_EXCED_RANGE, ENAMETOOLONG },
+	};
+	const unsigned int WIN2ERRNO_TABLE_SIZE = sizeof(WIN2ERRNO_TABLE) /
+sizeof(WIN2ERRNO_TABLE[0]);
+	const errno_t DEFAULT_ERRNO_ERROR = -1;
+	unsigned int i;
+
+	for (i = 0; i < WIN2ERRNO_TABLE_SIZE; ++i) {
+		if (WIN2ERRNO_TABLE[i].windows_code == lastError) {
+			return WIN2ERRNO_TABLE[i].errno_code;
+		}
+	}
+	return DEFAULT_ERRNO_ERROR;
+}
+
 struct dirent {
 	char *d_name;
 };
@@ -483,8 +517,10 @@ DIR *opendir( char *path )
 	HANDLE h;
 	WIN32_FIND_DATA data;
 	
-	if (len+3 >= sizeof(tmp))
+	if (len+3 >= sizeof(tmp)) {
+		errno = ENAMETOOLONG;
 		return NULL;
+	}
 
 	strcpy(tmp, path);
 	tmp[len++] = '\\';
@@ -492,9 +528,11 @@ DIR *opendir( char *path )
 	tmp[len] = '\0';
 
 	h = FindFirstFile( tmp, &data );
-	
-	if ( h == INVALID_HANDLE_VALUE )
+
+	if ( h == INVALID_HANDLE_VALUE ) {
+		errno = win2errno( GetLastError());
 		return NULL;
+	}
 
 	d = ber_memalloc( sizeof(DIR) );
 	if ( !d )
@@ -518,7 +556,7 @@ struct dirent *readdir(DIR *dir)
 	}
 	return &dir->data;
 }
-void closedir(DIR *dir)
+int closedir(DIR *dir)
 {
 	FindClose(dir->dir);
 	ber_memfree(dir);

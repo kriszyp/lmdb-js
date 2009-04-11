@@ -34,6 +34,9 @@ typedef struct DIR {
 	int first;
 	char buf[MAX_PATH+1];
 } DIR;
+DIR *opendir(const char *name);
+struct dirent *readdir(DIR *dir);
+int closedir(DIR *dir);
 #else
 # define dirent direct
 # define NAMLEN(dirent) (dirent)->d_namlen
