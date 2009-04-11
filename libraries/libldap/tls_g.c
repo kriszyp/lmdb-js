@@ -354,6 +354,9 @@ tlsg_ctx_init( struct ldapoptions *lo, struct ldaptls *lt, int is_server )
 		gnutls_x509_crt_t certs[VERIFY_DEPTH];
 		unsigned int max = VERIFY_DEPTH;
 
+		rc = gnutls_x509_privkey_init( &key );
+		if ( rc ) return -1;
+
 		/* OpenSSL builds the cert chain for us, but GnuTLS
 		 * expects it to be present in the certfile. If it's
 		 * not, we have to build it ourselves. So we have to
