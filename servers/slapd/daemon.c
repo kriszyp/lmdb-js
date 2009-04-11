@@ -539,6 +539,7 @@ static struct slap_daemon {
 	slap_daemon.sd_flags = (char *)(slapd_ws_sockets + dtblsize); \
 	slap_daemon.sd_rflags = slap_daemon.sd_flags + dtblsize; \
 	memset( slapd_ws_sockets, -1, dtblsize * sizeof(SOCKET) ); \
+	memset( slap_daemon.sd_flags, 0, dtblsize ); \
 	slapd_ws_sockets[0] = wake_sds[0]; \
 	slapd_ws_sockets[1] = wake_sds[1]; \
 	wake_sds[0] = 0; \
@@ -1670,7 +1671,8 @@ slapd_daemon_destroy( void )
 {
 	connections_destroy();
 #ifdef HAVE_WINSOCK
-	if ( wake_sds[1] != INVALID_SOCKET && wake_sds[1] != wake_sds[0] )
+	if ( wake_sds[1] != INVALID_SOCKET &&
+		SLAP_FD2SOCK( wake_sds[1] ) != SLAP_FD2SOCK( wake_sds[0] ))
 #endif /* HAVE_WINSOCK */
 		tcp_close( SLAP_FD2SOCK(wake_sds[1]) );
 #ifdef HAVE_WINSOCK
