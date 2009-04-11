@@ -1302,10 +1302,6 @@ do_syncrepl(
 	connection_fake_init( &conn, &opbuf, ctx );
 	op = &opbuf.ob_op;
 
-	/* use global malloc for now */
-	op->o_tmpmemctx = NULL;
-	op->o_tmpmfuncs = &ch_mfuncs;
-
 	op->o_managedsait = SLAP_CONTROL_NONCRITICAL;
 	be = si->si_be;
 
