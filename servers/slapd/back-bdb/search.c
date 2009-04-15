@@ -1274,7 +1274,7 @@ send_paged_response(
 	ID		*lastid,
 	int		tentries )
 {
-	LDAPControl	ctrl, *ctrls[2];
+	LDAPControl	*ctrls[2];
 	BerElementBuffer berbuf;
 	BerElement	*ber = (BerElement *)&berbuf;
 	PagedResultsCookie respcookie;
@@ -1284,8 +1284,6 @@ send_paged_response(
 		"send_paged_response: lastid=0x%08lx nentries=%d\n", 
 		lastid ? *lastid : 0, rs->sr_nentries, NULL );
 
-	BER_BVZERO( &ctrl.ldctl_value );
-	ctrls[0] = &ctrl;
 	ctrls[1] = NULL;
 
 	ber_init2( ber, NULL, LBER_USE_DER );
@@ -1308,6 +1306,7 @@ send_paged_response(
 	/* return size of 0 -- no estimate */
 	ber_printf( ber, "{iO}", 0, &cookie ); 
 
+	ctrls[0] = op->o_tmpalloc( sizeof(LDAPControl), op->o_tmpmemctx );
 	if ( ber_flatten2( ber, &ctrls[0]->ldctl_value, 0 ) == -1 ) {
 		goto done;
 	}
@@ -1315,10 +1314,9 @@ send_paged_response(
 	ctrls[0]->ldctl_oid = LDAP_CONTROL_PAGEDRESULTS;
 	ctrls[0]->ldctl_iscritical = 0;
 
-	rs->sr_ctrls = ctrls;
+	slap_add_ctrls( op, rs, ctrls );
 	rs->sr_err = LDAP_SUCCESS;
 	send_ldap_result( op, rs );
-	rs->sr_ctrls = NULL;
 
 done:
 	(void) ber_free_buf( ber );
