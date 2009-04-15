@@ -14,6 +14,8 @@
  * <http://www.OpenLDAP.org/license.html>.
  */
 
+#define _GNU_SOURCE
+
 #include "portable.h"
 
 #ifndef HAVE_GETPEEREID
