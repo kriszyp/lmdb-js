@@ -4377,7 +4377,7 @@ add_syncrepl(
 
 			si->si_cookieState = c->be->be_syncinfo->si_cookieState;
 
-			// add new syncrepl to end of list (same order as when deleting)
+			/* add new syncrepl to end of list (same order as when deleting) */
 			for ( sip = c->be->be_syncinfo; sip->si_next; sip = sip->si_next );
 			sip->si_next = si;
 		} else {
