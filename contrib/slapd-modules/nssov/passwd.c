@@ -223,7 +223,7 @@ static int write_passwd(nssov_passwd_cbp *cbp,Entry *entry)
 		a = attr_find(entry->e_attrs, cbp->mi->mi_attrs[UID_KEY].an_desc);
 		if (!a)
 		{
-			Debug(LDAP_DEBUG_ANY,"passwd entry %s does not contain %s value",
+			Debug(LDAP_DEBUG_ANY,"passwd entry %s does not contain %s value\n",
 				entry->e_name.bv_val, cbp->mi->mi_attrs[UID_KEY].an_desc->ad_cname.bv_val,0);
 			return 0;
 		}
@@ -264,7 +264,7 @@ static int write_passwd(nssov_passwd_cbp *cbp,Entry *entry)
 		a = attr_find(entry->e_attrs, cbp->mi->mi_attrs[UIDN_KEY].an_desc);
         if ( !a )
 		{
-			Debug(LDAP_DEBUG_ANY,"passwd entry %s does not contain %s value",
+			Debug(LDAP_DEBUG_ANY,"passwd entry %s does not contain %s value\n",
 				entry->e_name.bv_val, cbp->mi->mi_attrs[UIDN_KEY].an_desc->ad_cname.bv_val,0);
 			return 0;
 		}
@@ -280,19 +280,19 @@ static int write_passwd(nssov_passwd_cbp *cbp,Entry *entry)
 	a = attr_find(entry->e_attrs, cbp->mi->mi_attrs[GIDN_KEY].an_desc);
 	if (!a)
 	{
-		Debug(LDAP_DEBUG_ANY,"passwd entry %s does not contain %s value",
+		Debug(LDAP_DEBUG_ANY,"passwd entry %s does not contain %s value\n",
 			entry->e_name.bv_val, cbp->mi->mi_attrs[GIDN_KEY].an_desc->ad_cname.bv_val,0);
 		return 0;
 	}
 	else if (a->a_numvals != 1)
 	{
-		Debug(LDAP_DEBUG_ANY,"passwd entry %s contains multiple %s values",
+		Debug(LDAP_DEBUG_ANY,"passwd entry %s contains multiple %s values\n",
 			entry->e_name.bv_val, cbp->mi->mi_attrs[GIDN_KEY].an_desc->ad_cname.bv_val,0);
 	}
 	gid=(gid_t)strtol(a->a_vals[0].bv_val,&tmp,0);
 	if ((a->a_vals[0].bv_val[0]=='\0')||(*tmp!='\0'))
 	{
-		Debug(LDAP_DEBUG_ANY,"passwd entry %s contains non-numeric %s value",
+		Debug(LDAP_DEBUG_ANY,"passwd entry %s contains non-numeric %s value\n",
 			entry->e_name.bv_val, cbp->mi->mi_attrs[GIDN_KEY].an_desc->ad_cname.bv_val,0);
 		return 0;
 	}
@@ -302,7 +302,7 @@ static int write_passwd(nssov_passwd_cbp *cbp,Entry *entry)
 		a = attr_find(entry->e_attrs, cbp->mi->mi_attrs[CN_KEY].an_desc);
 	if (!a || !a->a_numvals)
 	{
-		Debug(LDAP_DEBUG_ANY,"passwd entry %s does not contain %s or %s value",
+		Debug(LDAP_DEBUG_ANY,"passwd entry %s does not contain %s or %s value\n",
 			entry->e_name.bv_val,
 			cbp->mi->mi_attrs[GEC_KEY].an_desc->ad_cname.bv_val,
 			cbp->mi->mi_attrs[CN_KEY].an_desc->ad_cname.bv_val);
@@ -310,7 +310,7 @@ static int write_passwd(nssov_passwd_cbp *cbp,Entry *entry)
 	}
 	else if (a->a_numvals > 1)
 	{
-		Debug(LDAP_DEBUG_ANY,"passwd entry %s contains multiple %s or %s values",
+		Debug(LDAP_DEBUG_ANY,"passwd entry %s contains multiple %s or %s values\n",
 			entry->e_name.bv_val,
 			cbp->mi->mi_attrs[GEC_KEY].an_desc->ad_cname.bv_val,
 			cbp->mi->mi_attrs[CN_KEY].an_desc->ad_cname.bv_val);
@@ -320,7 +320,7 @@ static int write_passwd(nssov_passwd_cbp *cbp,Entry *entry)
 	a = attr_find(entry->e_attrs, cbp->mi->mi_attrs[DIR_KEY].an_desc);
 	if (!a)
 	{
-		Debug(LDAP_DEBUG_ANY,"passwd entry %s does not contain %s value",
+		Debug(LDAP_DEBUG_ANY,"passwd entry %s does not contain %s value\n",
 			entry->e_name.bv_val, cbp->mi->mi_attrs[DIR_KEY].an_desc->ad_cname.bv_val,0);
 		homedir=default_passwd_homeDirectory;
 	}
@@ -328,7 +328,7 @@ static int write_passwd(nssov_passwd_cbp *cbp,Entry *entry)
 	{
 		if (a->a_numvals > 1)
 		{
-			Debug(LDAP_DEBUG_ANY,"passwd entry %s contains multiple %s values",
+			Debug(LDAP_DEBUG_ANY,"passwd entry %s contains multiple %s values\n",
 				entry->e_name.bv_val, cbp->mi->mi_attrs[DIR_KEY].an_desc->ad_cname.bv_val,0);
 		}
 		homedir=a->a_vals[0];
@@ -345,7 +345,7 @@ static int write_passwd(nssov_passwd_cbp *cbp,Entry *entry)
 	{
 		if (a->a_numvals > 1)
 		{
-			Debug(LDAP_DEBUG_ANY,"passwd entry %s contains multiple %s values",
+			Debug(LDAP_DEBUG_ANY,"passwd entry %s contains multiple %s values\n",
 				entry->e_name.bv_val, cbp->mi->mi_attrs[SHL_KEY].an_desc->ad_cname.bv_val,0);
 		}
 		shell=a->a_vals[0];
@@ -357,7 +357,7 @@ static int write_passwd(nssov_passwd_cbp *cbp,Entry *entry)
 	{
 		if (!isvalidusername(&names[i]))
 		{
-			Debug(LDAP_DEBUG_ANY,"nssov: passwd entry %s contains invalid user name: \"%s\"",
+			Debug(LDAP_DEBUG_ANY,"nssov: passwd entry %s contains invalid user name: \"%s\"\n",
 				entry->e_name.bv_val,names[i].bv_val,0);
 		}
 		else
@@ -368,7 +368,7 @@ static int write_passwd(nssov_passwd_cbp *cbp,Entry *entry)
 				uid_t uid;
 				uid = strtol(uids[j].bv_val, &tmp, 0);
 				if ( *tmp ) {
-					Debug(LDAP_DEBUG_ANY,"nssov: passwd entry %s contains non-numeric %s value: \"%s\"",
+					Debug(LDAP_DEBUG_ANY,"nssov: passwd entry %s contains non-numeric %s value: \"%s\"\n",
 						entry->e_name.bv_val, cbp->mi->mi_attrs[UIDN_KEY].an_desc->ad_cname.bv_val,
 						names[i].bv_val);
 					continue;
@@ -398,11 +398,11 @@ NSSOV_HANDLE(
 	cbp.name.bv_len = tmpint32;
 	cbp.name.bv_val = cbp.buf;
 	if (!isvalidusername(&cbp.name)) {
-		Debug(LDAP_DEBUG_ANY,"nssov_passwd_byname(%s): invalid user name",cbp.name.bv_val,0,0);
+		Debug(LDAP_DEBUG_ANY,"nssov_passwd_byname(%s): invalid user name\n",cbp.name.bv_val,0,0);
 		return -1;
 	}
 	BER_BVZERO(&cbp.id); ,
-	Debug(LDAP_DEBUG_TRACE,"nssov_passwd_byname(%s)",cbp.name.bv_val,0,0);,
+	Debug(LDAP_DEBUG_TRACE,"nssov_passwd_byname(%s)\n",cbp.name.bv_val,0,0);,
 	NSLCD_ACTION_PASSWD_BYNAME,
 	nssov_filter_byname(cbp.mi,UID_KEY,&cbp.name,&filter)
 )
@@ -417,7 +417,7 @@ NSSOV_HANDLE(
 	cbp.id.bv_val = cbp.buf;
 	cbp.id.bv_len = snprintf(cbp.buf,sizeof(cbp.buf),"%d",uid);
 	BER_BVZERO(&cbp.name);,
-	Debug(LDAP_DEBUG_TRACE,"nssov_passwd_byuid(%s)",cbp.id.bv_val,0,0);,
+	Debug(LDAP_DEBUG_TRACE,"nssov_passwd_byuid(%s)\n",cbp.id.bv_val,0,0);,
 	NSLCD_ACTION_PASSWD_BYUID,
 	nssov_filter_byid(cbp.mi,UIDN_KEY,&cbp.id,&filter)
 )
@@ -428,7 +428,7 @@ NSSOV_HANDLE(
 	/* no parameters to read */
 	BER_BVZERO(&cbp.name);
 	BER_BVZERO(&cbp.id);,
-	Debug(LDAP_DEBUG_TRACE,"nssov_passwd_all()",0,0,0);,
+	Debug(LDAP_DEBUG_TRACE,"nssov_passwd_all()\n",0,0,0);,
 	NSLCD_ACTION_PASSWD_ALL,
 	(filter=cbp.mi->mi_filter,0)
 )

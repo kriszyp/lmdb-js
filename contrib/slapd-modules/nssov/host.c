@@ -59,7 +59,7 @@ static int write_host(nssov_host_cbp *cbp,Entry *entry)
 	a = attr_find( entry->e_attrs, cbp->mi->mi_attrs[0].an_desc );
 	if ( !a || !a->a_vals )
 	{
-		Debug(LDAP_DEBUG_ANY,"host entry %s does not contain %s value",
+		Debug(LDAP_DEBUG_ANY,"host entry %s does not contain %s value\n",
 			entry->e_name.bv_val, cbp->mi->mi_attrs[0].an_desc->ad_cname.bv_val, 0 );
 		return 0;
 	}
@@ -82,7 +82,7 @@ static int write_host(nssov_host_cbp *cbp,Entry *entry)
 	a = attr_find( entry->e_attrs, cbp->mi->mi_attrs[1].an_desc );
 	if ( !a || !a->a_vals )
 	{
-		Debug(LDAP_DEBUG_ANY,"host entry %s does not contain %s value",
+		Debug(LDAP_DEBUG_ANY,"host entry %s does not contain %s value\n",
 			entry->e_name.bv_val, cbp->mi->mi_attrs[1].an_desc->ad_cname.bv_val, 0 );
 		return 0;
 	}
@@ -119,7 +119,7 @@ NSSOV_HANDLE(
 	READ_STRING_BUF2(fp,cbp.buf,sizeof(cbp.buf));
 	cbp.name.bv_len = tmpint32;
 	cbp.name.bv_val = cbp.buf;,
-	Debug(LDAP_DEBUG_TRACE,"nssov_host_byname(%s)",cbp.name.bv_val,0,0);,
+	Debug(LDAP_DEBUG_TRACE,"nssov_host_byname(%s)\n",cbp.name.bv_val,0,0);,
 	NSLCD_ACTION_HOST_BYNAME,
 	nssov_filter_byname(cbp.mi,0,&cbp.name,&filter)
 )
@@ -137,12 +137,12 @@ NSSOV_HANDLE(
 	/* translate the address to a string */
 	if (inet_ntop(af,addr,cbp.buf,sizeof(cbp.buf))==NULL)
 	{
-		Debug(LDAP_DEBUG_ANY,"nssov: unable to convert address to string",0,0,0);
+		Debug(LDAP_DEBUG_ANY,"nssov: unable to convert address to string\n",0,0,0);
 		return -1;
 	}
 	cbp.addr.bv_val = cbp.buf;
 	cbp.addr.bv_len = strlen(cbp.buf);,
-	Debug(LDAP_DEBUG_TRACE,"nssov_host_byaddr(%s)",cbp.addr.bv_val,0,0);,
+	Debug(LDAP_DEBUG_TRACE,"nssov_host_byaddr(%s)\n",cbp.addr.bv_val,0,0);,
 	NSLCD_ACTION_HOST_BYADDR,
 	nssov_filter_byid(cbp.mi,1,&cbp.addr,&filter)
 )
@@ -153,7 +153,7 @@ NSSOV_HANDLE(
 	/* no parameters to read */
 	BER_BVZERO(&cbp.name);
 	BER_BVZERO(&cbp.addr);,
-	Debug(LDAP_DEBUG_TRACE,"nssov_host_all()",0,0,0);,
+	Debug(LDAP_DEBUG_TRACE,"nssov_host_all()\n",0,0,0);,
 	NSLCD_ACTION_HOST_ALL,
 	(filter=cbp.mi->mi_filter,0)
 )

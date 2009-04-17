@@ -152,7 +152,7 @@ int write_address(TFILE *fp,struct berval *addr)
 		/* failure, log but write simple invalid address
 			 (otherwise the address list is messed up) */
 		/* TODO: have error message in correct format */
-		Debug(LDAP_DEBUG_ANY,"nssov: unparseable address: %s",addr->bv_val,0,0);
+		Debug(LDAP_DEBUG_ANY,"nssov: unparseable address: %s\n",addr->bv_val,0,0);
 		/* write an illegal address type */
 		WRITE_INT32(fp,-1);
 		/* write an empty address */
@@ -170,14 +170,14 @@ int read_address(TFILE *fp,char *addr,int *addrlen,int *af)
 	READ_INT32(fp,*af);
 	if ((*af!=AF_INET)&&(*af!=AF_INET6))
 	{
-		Debug(LDAP_DEBUG_ANY,"nssov: incorrect address family specified: %d",*af,0,0);
+		Debug(LDAP_DEBUG_ANY,"nssov: incorrect address family specified: %d\n",*af,0,0);
 		return -1;
 	}
 	/* read address length */
 	READ_INT32(fp,len);
 	if ((len>*addrlen)||(len<=0))
 	{
-		Debug(LDAP_DEBUG_ANY,"nssov: address length incorrect: %d",len,0,0);
+		Debug(LDAP_DEBUG_ANY,"nssov: address length incorrect: %d\n",len,0,0);
 		return -1;
 	}
 	*addrlen=len;
@@ -237,7 +237,7 @@ static int read_header(TFILE *fp,int32_t *action)
   READ_TYPE(fp,tmpint32,int32_t);
   if (tmpint32 != (int32_t)NSLCD_VERSION)
   {
-    Debug( LDAP_DEBUG_TRACE,"nssov: wrong nslcd version id (%d)",(int)tmpint32,0,0);
+    Debug( LDAP_DEBUG_TRACE,"nssov: wrong nslcd version id (%d)\n",(int)tmpint32,0,0);
     return -1;
   }
   /* read the request type */
@@ -258,9 +258,9 @@ static void handleconnection(nssov_info *ni,int sock,Operation *op)
 
   /* log connection */
   if (lutil_getpeereid(sock,&uid,&gid))
-    Debug( LDAP_DEBUG_TRACE,"nssov: connection from unknown client: %s",strerror(errno),0,0);
+    Debug( LDAP_DEBUG_TRACE,"nssov: connection from unknown client: %s\n",strerror(errno),0,0);
   else
-    Debug( LDAP_DEBUG_TRACE,"nssov: connection from uid=%d gid=%d",
+    Debug( LDAP_DEBUG_TRACE,"nssov: connection from uid=%d gid=%d\n",
                       (int)uid,(int)gid,0);
 
   /* Should do authid mapping too */
@@ -322,6 +322,11 @@ static void handleconnection(nssov_info *ni,int sock,Operation *op)
     case NSLCD_ACTION_SERVICE_ALL:      (void)nssov_service_all(ni,fp,op); break;
     case NSLCD_ACTION_SHADOW_BYNAME:    if (uid==0) (void)nssov_shadow_byname(ni,fp,op); break;
     case NSLCD_ACTION_SHADOW_ALL:       if (uid==0) (void)nssov_shadow_all(ni,fp,op); break;
+	case NSLCD_ACTION_PAM_AUTHC:		(void)pam_authc(ni,fp,op); break;
+	case NSLCD_ACTION_PAM_AUTHZ:		(void)pam_authz(ni,fp,op); break;
+	case NSLCD_ACTION_PAM_SESS_O:		(void)pam_sess_o(ni,fp,op); break;
+	case NSLCD_ACTION_PAM_SESS_C:		(void)pam_sess_c(ni,fp,op); break;
+	case NSLCD_ACTION_PAM_PWMOD:		(void)pam_pwmod(ni,fp,op); break;
     default:
       Debug( LDAP_DEBUG_ANY,"nssov: invalid request id: %d",(int)action,0,0);
       break;
