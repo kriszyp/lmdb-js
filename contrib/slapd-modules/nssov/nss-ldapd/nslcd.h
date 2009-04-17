@@ -197,6 +197,12 @@
 #define NSLCD_ACTION_SHADOW_BYNAME      2001
 #define NSLCD_ACTION_SHADOW_ALL         2005
 
+#define NSLCD_ACTION_PAM_AUTHC         20001
+#define NSLCD_ACTION_PAM_AUTHZ         20002
+#define NSLCD_ACTION_PAM_SESS_O        20003
+#define NSLCD_ACTION_PAM_SESS_C        20004
+#define NSLCD_ACTION_PAM_PWMOD         20005
+
 /* Request result codes. */
 #define NSLCD_RESULT_END              3 /* key was not found */
 #define NSLCD_RESULT_SUCCESS               0 /* everything ok */
