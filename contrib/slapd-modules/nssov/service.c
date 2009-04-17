@@ -124,7 +124,7 @@ static int write_service(nssov_service_cbp *cbp,Entry *entry)
 	a = attr_find( entry->e_attrs, cbp->mi->mi_attrs[0].an_desc );
 	if ( !a || !a->a_vals )
 	{
-		Debug(LDAP_DEBUG_ANY,"service entry %s does not contain %s value",
+		Debug(LDAP_DEBUG_ANY,"service entry %s does not contain %s value\n",
 			entry->e_name.bv_val, cbp->mi->mi_attrs[0].an_desc->ad_cname.bv_val, 0 );
 		return 0;
 	}
@@ -147,17 +147,17 @@ static int write_service(nssov_service_cbp *cbp,Entry *entry)
 	a = attr_find( entry->e_attrs, cbp->mi->mi_attrs[1].an_desc );
 	if ( !a || !a->a_vals )
 	{
-		Debug(LDAP_DEBUG_ANY,"service entry %s does not contain %s value",
+		Debug(LDAP_DEBUG_ANY,"service entry %s does not contain %s value\n",
 			entry->e_name.bv_val, cbp->mi->mi_attrs[1].an_desc->ad_cname.bv_val, 0 );
 		return 0;
 	} else if ( a->a_numvals > 1 ) {
-		Debug(LDAP_DEBUG_ANY,"service entry %s contains multiple %s values",
+		Debug(LDAP_DEBUG_ANY,"service entry %s contains multiple %s values\n",
 			entry->e_name.bv_val, cbp->mi->mi_attrs[1].an_desc->ad_cname.bv_val, 0 );
 	}
 	port=(int)strtol(a->a_vals[0].bv_val,&tmp,0);
 	if (*tmp)
 	{
-		Debug(LDAP_DEBUG_ANY,"service entry %s contains non-numeric %s value",
+		Debug(LDAP_DEBUG_ANY,"service entry %s contains non-numeric %s value\n",
 			entry->e_name.bv_val, cbp->mi->mi_attrs[1].an_desc->ad_cname.bv_val, 0 );
 		return 0;
 	}
@@ -167,7 +167,7 @@ static int write_service(nssov_service_cbp *cbp,Entry *entry)
 		a = attr_find( entry->e_attrs, cbp->mi->mi_attrs[2].an_desc );
 		if ( !a || !a->a_vals )
 		{
-			Debug(LDAP_DEBUG_ANY,"service entry %s does not contain %s value",
+			Debug(LDAP_DEBUG_ANY,"service entry %s does not contain %s value\n",
 				entry->e_name.bv_val, cbp->mi->mi_attrs[2].an_desc->ad_cname.bv_val, 0 );
 			return 0;
 		}
@@ -215,7 +215,7 @@ NSSOV_HANDLE(
 	READ_STRING_BUF2(fp,cbp.pbuf,sizeof(cbp.pbuf));
 	cbp.prot.bv_len = tmpint32;
 	cbp.prot.bv_val = tmpint32 ? cbp.pbuf : NULL;,
-	Debug(LDAP_DEBUG_TRACE,"nssov_service_byname(%s,%s)",cbp.name.bv_val,cbp.prot.bv_val,0);,
+	Debug(LDAP_DEBUG_TRACE,"nssov_service_byname(%s,%s)\n",cbp.name.bv_val,cbp.prot.bv_val,0);,
 	NSLCD_ACTION_SERVICE_BYNAME,
 	mkfilter_service_byname(cbp.mi,&cbp.name,&cbp.prot,&filter)
 )
@@ -232,7 +232,7 @@ NSSOV_HANDLE(
 	READ_STRING_BUF2(fp,cbp.pbuf,sizeof(cbp.pbuf));
 	cbp.prot.bv_len = tmpint32;
 	cbp.prot.bv_val = tmpint32 ? cbp.pbuf : NULL;,
-	Debug(LDAP_DEBUG_TRACE,"nssov_service_bynumber(%s,%s)",cbp.name.bv_val,cbp.prot.bv_val,0);,
+	Debug(LDAP_DEBUG_TRACE,"nssov_service_bynumber(%s,%s)\n",cbp.name.bv_val,cbp.prot.bv_val,0);,
 	NSLCD_ACTION_SERVICE_BYNUMBER,
 	mkfilter_service_bynumber(cbp.mi,&cbp.name,&cbp.prot,&filter)
 )
@@ -242,7 +242,7 @@ NSSOV_HANDLE(
 	struct berval filter;
 	/* no parameters to read */
 	BER_BVZERO(&cbp.prot);,
-	Debug(LDAP_DEBUG_TRACE,"nssov_service_all()",0,0,0);,
+	Debug(LDAP_DEBUG_TRACE,"nssov_service_all()\n",0,0,0);,
 	NSLCD_ACTION_SERVICE_ALL,
 	(filter=cbp.mi->mi_filter,0)
 )

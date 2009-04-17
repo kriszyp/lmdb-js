@@ -62,7 +62,7 @@ static int write_rpc(nssov_rpc_cbp *cbp,Entry *entry)
 	a = attr_find( entry->e_attrs, cbp->mi->mi_attrs[0].an_desc );
 	if ( !a || !a->a_vals )
 	{
-		Debug(LDAP_DEBUG_ANY,"rpc entry %s does not contain %s value",
+		Debug(LDAP_DEBUG_ANY,"rpc entry %s does not contain %s value\n",
 			entry->e_name.bv_val, cbp->mi->mi_attrs[0].an_desc->ad_cname.bv_val, 0 );
 		return 0;
 	}
@@ -85,17 +85,17 @@ static int write_rpc(nssov_rpc_cbp *cbp,Entry *entry)
 	a = attr_find( entry->e_attrs, cbp->mi->mi_attrs[1].an_desc );
 	if ( !a || !a->a_vals )
 	{
-		Debug(LDAP_DEBUG_ANY,"rpc entry %s does not contain %s value",
+		Debug(LDAP_DEBUG_ANY,"rpc entry %s does not contain %s value\n",
 			entry->e_name.bv_val, cbp->mi->mi_attrs[1].an_desc->ad_cname.bv_val, 0 );
 		return 0;
 	} else if ( a->a_numvals > 1 ) {
-		Debug(LDAP_DEBUG_ANY,"rpc entry %s contains multiple %s values",
+		Debug(LDAP_DEBUG_ANY,"rpc entry %s contains multiple %s values\n",
 			entry->e_name.bv_val, cbp->mi->mi_attrs[1].an_desc->ad_cname.bv_val, 0 );
 	}
 	number=(int)strtol(a->a_vals[0].bv_val,&tmp,0);
 	if (*tmp)
 	{
-		Debug(LDAP_DEBUG_ANY,"rpc entry %s contains non-numeric %s value",
+		Debug(LDAP_DEBUG_ANY,"rpc entry %s contains non-numeric %s value\n",
 			entry->e_name.bv_val, cbp->mi->mi_attrs[1].an_desc->ad_cname.bv_val, 0 );
 		return 0;
 	}
@@ -126,7 +126,7 @@ NSSOV_HANDLE(
     READ_STRING_BUF2(fp,cbp.buf,sizeof(cbp.buf));
     cbp.name.bv_len = tmpint32;
     cbp.name.bv_val = cbp.buf;,
-	Debug(LDAP_DEBUG_TRACE,"nssov_rpc_byname(%s)",cbp.name.bv_val,0,0);,
+	Debug(LDAP_DEBUG_TRACE,"nssov_rpc_byname(%s)\n",cbp.name.bv_val,0,0);,
 	NSLCD_ACTION_RPC_BYNAME,
 	nssov_filter_byname(cbp.mi,0,&cbp.name,&filter)
 )
@@ -141,7 +141,7 @@ NSSOV_HANDLE(
 	cbp.numb.bv_val = cbp.buf;
 	cbp.numb.bv_len = snprintf(cbp.buf,sizeof(cbp.buf),"%d",number);
 	BER_BVZERO(&cbp.name);,
-	Debug(LDAP_DEBUG_TRACE,"nssov_rpc_bynumber(%s)",cbp.numb.bv_val,0,0);,
+	Debug(LDAP_DEBUG_TRACE,"nssov_rpc_bynumber(%s)\n",cbp.numb.bv_val,0,0);,
 	NSLCD_ACTION_RPC_BYNUMBER,
 	nssov_filter_byid(cbp.mi,1,&cbp.numb,&filter)
 )
@@ -150,7 +150,7 @@ NSSOV_HANDLE(
 	rpc,all,
 	struct berval filter;
 	/* no parameters to read */,
-	Debug(LDAP_DEBUG_TRACE,"nssov_rpc_all()",0,0,0);,
+	Debug(LDAP_DEBUG_TRACE,"nssov_rpc_all()\n",0,0,0);,
 	NSLCD_ACTION_RPC_ALL,
 	(filter=cbp.mi->mi_filter,0)
 )
