@@ -141,7 +141,7 @@ NSSOV_HANDLE(
 	cbp.numb.bv_val = cbp.buf;
 	cbp.numb.bv_len = snprintf(cbp.buf,sizeof(cbp.buf),"%d",number);
 	BER_BVZERO(&cbp.name);,
-	Debug(LDAP_DEBUG_TRACE,"nssov_rpc_bynumber(%d)",cbp.numb.bv_val,0,0);,
+	Debug(LDAP_DEBUG_TRACE,"nssov_rpc_bynumber(%s)",cbp.numb.bv_val,0,0);,
 	NSLCD_ACTION_RPC_BYNUMBER,
 	nssov_filter_byid(cbp.mi,1,&cbp.numb,&filter)
 )
