@@ -108,10 +108,9 @@ allows unauthenticated (anonymous) proxy authorization control to be processed
 (subject to access controls, authorization and other administrative limits).
 .TP
 .B argsfile <filename>
-The ( absolute ) name of a file that will hold the 
+The (absolute) name of a file that will hold the 
 .B slapd
-server's command line options
-if started without the debugging command line option.
+server's command line (program name and options).
 .TP
 .B attributeoptions [option-name]...
 Define tagging attribute options or option tag/range prefixes.
@@ -765,11 +764,10 @@ versions of crypt(3) to use an MD5 algorithm and provides
 provides 31 characters of salt.
 .TP
 .B pidfile <filename>
-The ( absolute ) name of a file that will hold the 
+The (absolute) name of a file that will hold the 
 .B slapd
-server's process ID ( see
-.BR getpid (2)
-) if started without the debugging command line option.
+server's process ID (see
+.BR getpid (2)).
 .TP
 .B referral <url>
 Specify the referral to pass back when
