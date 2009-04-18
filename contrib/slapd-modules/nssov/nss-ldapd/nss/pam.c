@@ -193,7 +193,6 @@ static enum nss_status pam_read_authc(
 	READ_INT32(fp,ctx->authz);
 	READ_STRING_BUF(fp,ctx->dn);
 	READ_STRING_BUF(fp,ctx->authzmsg);
-	READ_STRING_BUF(fp,ctx->tmpluser);
 	return NSS_STATUS_SUCCESS;
 }
 
@@ -317,6 +316,7 @@ static enum nss_status pam_read_authz(
 
 	READ_INT32(fp,ctx->authz);
 	READ_STRING_BUF(fp,ctx->authzmsg);
+	READ_STRING_BUF(fp,ctx->tmpluser);
 	return NSS_STATUS_SUCCESS;
 }
 
@@ -386,11 +386,12 @@ int pam_sm_acct_mgmt(
 		if (rc != PAM_IGNORE)
 			pam_warn(appconv, "LDAP authorization failed", PAM_ERROR_MSG, no_warn);
 	} else {
-		if (ctx2.authz != PAM_SUCCESS)
-			pam_warn(appconv, ctx2.authzmsg, PAM_ERROR_MSG, no_warn);
-		else if ( ctx->authz != PAM_SUCCESS ) {
+		if (ctx2.authzmsg && ctx2.authzmsg[0])
+			pam_warn(appconv, ctx2.authzmsg, PAM_TEXT_INFO, no_warn);
+		if (ctx2.authz == PAM_SUCCESS) {
 			rc = ctx->authz;
-			pam_warn(appconv, ctx->authzmsg, PAM_ERROR_MSG, no_warn);
+			if (ctx->authzmsg && ctx->authzmsg[0])
+				pam_warn(appconv, ctx->authzmsg, PAM_TEXT_INFO, no_warn);
 		}
 	}
 	if ( rc == PAM_SUCCESS && ctx->tmpluser && ctx->tmpluser[0] ) {
@@ -531,6 +532,19 @@ int pam_sm_close_session(
 	return rc;
 }
 
+static enum nss_status pam_read_pwmod(
+	TFILE *fp,pld_ctx *ctx,int *errnop)
+{
+	char *buffer = ctx->buf;
+	size_t buflen = sizeof(ctx->buf);
+	size_t bufptr = 0;
+	int32_t tmpint32;
+
+	READ_INT32(fp,ctx->authz);
+	READ_STRING_BUF(fp,ctx->authzmsg);
+	return NSS_STATUS_SUCCESS;
+}
+
 static enum nss_status pam_do_pwmod(
 	pld_ctx *ctx, const char *user, const char *oldpw, const char *newpw, int *errnop)
 {
@@ -539,7 +553,7 @@ static enum nss_status pam_do_pwmod(
 		WRITE_STRING(fp,user);
 		WRITE_STRING(fp,oldpw);
 		WRITE_STRING(fp,newpw),
-		pam_read_authz(fp,ctx,errnop));
+		pam_read_pwmod(fp,ctx,errnop));
 }
 
 int pam_sm_chauthtok(
