@@ -532,11 +532,11 @@ int pam_sm_close_session(
 }
 
 static enum nss_status pam_do_pwmod(
-	pld_ctx *ctx, const char *oldpw, const char *newpw, int *errnop)
+	pld_ctx *ctx, const char *user, const char *oldpw, const char *newpw, int *errnop)
 {
 	NSS_BYGEN(NSLCD_ACTION_PAM_PWMOD,
 		WRITE_STRING(fp,ctx->dn);
-		WRITE_STRING(fp,ctx->user);
+		WRITE_STRING(fp,user);
 		WRITE_STRING(fp,oldpw);
 		WRITE_STRING(fp,newpw),
 		pam_read_authz(fp,ctx,errnop));
@@ -632,7 +632,7 @@ int pam_sm_chauthtok(
 		if (rc != PAM_SUCCESS)
 			return rc;
 	}
-	rc = pam_do_pwmod(ctx, p, q, &err);
+	rc = pam_do_pwmod(ctx, username, p, q, &err);
 	p = NULL; q = NULL;
 	NSS2PAM_RC(rc, ignore_flags, PAM_SUCCESS);
 	if (rc == PAM_SUCCESS) {
