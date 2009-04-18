@@ -188,7 +188,7 @@ int nssov_uid2dn(Operation *op,nssov_info *ni,struct berval *uid,struct berval *
 	op2.ors_slimit = SLAP_NO_LIMIT;
 	rc = op2.o_bd->be_search( &op2, &rs );
 	filter_free_x( op, op2.ors_filter, 1 );
-	return rc == LDAP_SUCCESS;
+	return rc == LDAP_SUCCESS && !BER_BVISNULL(dn);
 }
 
 /* the maximum number of uidNumber attributes per entry */
