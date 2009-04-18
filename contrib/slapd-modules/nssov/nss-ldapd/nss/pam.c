@@ -534,7 +534,7 @@ int pam_sm_close_session(
 static enum nss_status pam_do_pwmod(
 	pld_ctx *ctx, const char *oldpw, const char *newpw, int *errnop)
 {
-	NSS_BYGEN(NSLCD_ACTION_PAM_SESS_C,
+	NSS_BYGEN(NSLCD_ACTION_PAM_PWMOD,
 		WRITE_STRING(fp,ctx->dn);
 		WRITE_STRING(fp,ctx->user);
 		WRITE_STRING(fp,oldpw);
