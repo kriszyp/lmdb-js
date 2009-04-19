@@ -1935,6 +1935,7 @@ LDAP_SLAPD_V (int)		global_gentlehup;
 LDAP_SLAPD_V (int)		global_idletimeout;
 LDAP_SLAPD_V (int)		global_writetimeout;
 LDAP_SLAPD_V (char *)	global_host;
+LDAP_SLAPD_V (struct berval)	global_host_bv;
 LDAP_SLAPD_V (char *)	global_realm;
 LDAP_SLAPD_V (char *)	sasl_host;
 LDAP_SLAPD_V (char **)	default_passwd_hash;

@@ -699,6 +699,7 @@ unhandled_option:;
 	Debug( LDAP_DEBUG_ANY, "%s", Versionstr, 0, 0 );
 
 	global_host = ldap_pvt_get_fqdn( NULL );
+	ber_str2bv( global_host, 0, 0, &global_host_bv );
 
 	if( check == CHECK_NONE && slapd_daemon_init( urls ) != 0 ) {
 		rc = 1;

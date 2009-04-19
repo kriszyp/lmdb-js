@@ -64,6 +64,7 @@ int		global_gentlehup = 0;
 int		global_idletimeout = 0;
 int		global_writetimeout = 0;
 char	*global_host = NULL;
+struct berval global_host_bv = BER_BVNULL;
 char	*global_realm = NULL;
 char	*sasl_host = NULL;
 char		**default_passwd_hash = NULL;

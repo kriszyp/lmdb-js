@@ -687,16 +687,16 @@ slapd_slp_init( const char* urls )
 	for ( i = 0; slapd_srvurls[i] != NULL; i++ ) {
 		if ( strcmp( slapd_srvurls[i], "ldap:///" ) == 0 ) {
 			slapd_srvurls[i] = (char *) ch_realloc( slapd_srvurls[i],
-				strlen( global_host ) +
+				global_host_bv.bv_len +
 				sizeof( LDAP_SRVTYPE_PREFIX ) );
 			strcpy( lutil_strcopy(slapd_srvurls[i],
-				LDAP_SRVTYPE_PREFIX ), global_host );
+				LDAP_SRVTYPE_PREFIX ), global_host_bv.bv_val );
 		} else if ( strcmp( slapd_srvurls[i], "ldaps:///" ) == 0 ) {
 			slapd_srvurls[i] = (char *) ch_realloc( slapd_srvurls[i],
-				strlen( global_host ) +
+				global_host_bv.bv_len +
 				sizeof( LDAPS_SRVTYPE_PREFIX ) );
 			strcpy( lutil_strcopy(slapd_srvurls[i],
-				LDAPS_SRVTYPE_PREFIX ), global_host );
+				LDAPS_SRVTYPE_PREFIX ), global_host_bv.bv_val );
 		}
 	}
 
