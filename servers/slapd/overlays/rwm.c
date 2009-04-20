@@ -847,6 +847,7 @@ rwm_entry_get_rw( Operation *op, struct berval *ndn,
 	SlapReply		rs = { REP_SEARCH };
 
 	rwm_op_state		ros = { 0 };
+	struct berval		mndn = BER_BVNULL;
 
 	if ( ((BackendInfo *)on->on_info->oi_orig)->bi_entry_get_rw == NULL ) {
 		return SLAP_CB_CONTINUE;
@@ -862,6 +863,8 @@ rwm_entry_get_rw( Operation *op, struct berval *ndn,
 		return LDAP_OTHER;
 	}
 
+	mndn = BER_BVISNULL( &ros.r_ndn ) ? *ndn : ros.r_ndn;
+
 	/* map attribute & objectClass */
 	if ( at != NULL ) {
 	}
@@ -874,7 +877,7 @@ rwm_entry_get_rw( Operation *op, struct berval *ndn,
 	op2.o_bd = &db;
 	op2.o_bd->bd_info = (BackendInfo *)on->on_info->oi_orig;
 	op2.ors_attrs = slap_anlist_all_attributes;
-	rc = op2.o_bd->bd_info->bi_entry_get_rw( &op2, &ros.r_ndn, oc, at, rw, ep );
+	rc = op2.o_bd->bd_info->bi_entry_get_rw( &op2, &mndn, oc, at, rw, ep );
 	if ( rc == LDAP_SUCCESS && *ep != NULL ) {
 		rs.sr_entry = *ep;
 
@@ -887,7 +890,7 @@ rwm_entry_get_rw( Operation *op, struct berval *ndn,
 		}
 	}
 
-	if ( ros.r_ndn.bv_val != ndn->bv_val ) {
+	if ( !BER_BVISNULL( &ros.r_ndn) && ros.r_ndn.bv_val != ndn->bv_val ) {
 		op->o_tmpfree( ros.r_ndn.bv_val, op->o_tmpmemctx );
 	}
 
