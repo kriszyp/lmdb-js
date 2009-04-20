@@ -248,9 +248,12 @@ int pam_authz(nssov_info *ni,TFILE *fp,Operation *op)
 	}
 
 	/* See if they have access to the host and service */
-	if (ni->ni_pam_opts & NI_PAM_HOSTSVC) {
+	if ((ni->ni_pam_opts & NI_PAM_HOSTSVC) && nssov_pam_svc_ad) {
 		AttributeAssertion ava = ATTRIBUTEASSERTION_INIT;
 		struct berval hostdn = BER_BVNULL;
+		struct berval odn = op->o_ndn;
+		op->o_dn = dn;
+		op->o_ndn = dn;
 		{
 			nssov_mapinfo *mi = &ni->ni_maps[NM_host];
 			char fbuf[1024];
@@ -299,7 +302,7 @@ int pam_authz(nssov_info *ni,TFILE *fp,Operation *op)
 		op->o_tag = LDAP_REQ_COMPARE;
 		op->o_req_dn = hostdn;
 		op->o_req_ndn = hostdn;
-		ava.aa_desc = ni->ni_pam_svc_ad;
+		ava.aa_desc = nssov_pam_svc_ad;
 		ava.aa_value = svc;
 		op->orc_ava = &ava;
 		rc = op->o_bd->be_compare( op, &rs );
@@ -308,6 +311,8 @@ int pam_authz(nssov_info *ni,TFILE *fp,Operation *op)
 			rc = PAM_PERM_DENIED;
 			goto finish;
 		}
+		op->o_dn = odn;
+		op->o_ndn = odn;
 	}
 
 	/* See if they're a member of the group */
@@ -340,9 +345,9 @@ int pam_authz(nssov_info *ni,TFILE *fp,Operation *op)
 			goto finish;
 		}
 	}
-	if (ni->ni_pam_opts & NI_PAM_USERHOST) {
-		a = attr_find(e->e_attrs, ni->ni_pam_host_ad);
-		if (!a || value_find_ex( ni->ni_pam_host_ad,
+	if ((ni->ni_pam_opts & NI_PAM_USERHOST) && nssov_pam_host_ad) {
+		a = attr_find(e->e_attrs, nssov_pam_host_ad);
+		if (!a || value_find_ex( nssov_pam_host_ad,
 			SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH,
 			a->a_vals, &global_host_bv, op->o_tmpmemctx )) {
 			rc = PAM_PERM_DENIED;
@@ -350,9 +355,9 @@ int pam_authz(nssov_info *ni,TFILE *fp,Operation *op)
 			goto finish;
 		}
 	}
-	if (ni->ni_pam_opts & NI_PAM_USERSVC) {
-		a = attr_find(e->e_attrs, ni->ni_pam_svc_ad);
-		if (!a || value_find_ex( ni->ni_pam_svc_ad,
+	if ((ni->ni_pam_opts & NI_PAM_USERSVC) && nssov_pam_svc_ad) {
+		a = attr_find(e->e_attrs, nssov_pam_svc_ad);
+		if (!a || value_find_ex( nssov_pam_svc_ad,
 			SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH,
 			a->a_vals, &svc, op->o_tmpmemctx )) {
 			rc = PAM_PERM_DENIED;

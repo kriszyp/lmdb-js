@@ -642,6 +642,28 @@ nss_cf_gen(ConfigArgs *c)
 		i = verbs_to_mask(c->argc, c->argv, pam_opts, &m);
 		if (i == 0) {
 			ni->ni_pam_opts = m;
+			if ((m & NI_PAM_USERHOST) && !nssov_pam_host_ad) {
+				const char *text;
+				i = slap_str2ad("host", &nssov_pam_host_ad, &text);
+				if (i != LDAP_SUCCESS) {
+					snprintf(c->cr_msg, sizeof(c->cr_msg),
+						"nssov: host attr unknown: %s", text);
+					Debug(LDAP_DEBUG_ANY,"%s\n",c->cr_msg,0,0);
+					rc = 1;
+					break;
+				}
+			}
+			if ((m & (NI_PAM_USERSVC|NI_PAM_HOSTSVC)) && !nssov_pam_svc_ad) {
+				const char *text;
+				i = slap_str2ad("authorizedService", &nssov_pam_svc_ad, &text);
+				if (i != LDAP_SUCCESS) {
+					snprintf(c->cr_msg, sizeof(c->cr_msg),
+						"nssov: authorizedService attr unknown: %s", text);
+					Debug(LDAP_DEBUG_ANY,"%s\n",c->cr_msg,0,0);
+					rc = 1;
+					break;
+				}
+			}
 		} else {
 			rc = 1;
 		}
@@ -731,6 +753,28 @@ nssov_db_open(
 		mi->mi_attrs[j].an_desc = NULL;
 	}
 
+	/* Find host and authorizedService definitions */
+	if ((ni->ni_pam_opts & NI_PAM_USERHOST) && !nssov_pam_host_ad)
+	{
+		const char *text;
+		i = slap_str2ad("host", &nssov_pam_host_ad, &text);
+		if (i != LDAP_SUCCESS) {
+			Debug(LDAP_DEBUG_ANY,"nssov: host attr unknown: %s\n",
+				text, 0, 0 );
+			return -1;
+		}
+	}
+	if ((ni->ni_pam_opts & (NI_PAM_USERSVC|NI_PAM_HOSTSVC)) &&
+		!nssov_pam_svc_ad)
+	{
+		const char *text;
+		i = slap_str2ad("authorizedService", &nssov_pam_svc_ad, &text);
+		if (i != LDAP_SUCCESS) {
+			Debug(LDAP_DEBUG_ANY,"nssov: authorizedService attr unknown: %s\n",
+				text, 0, 0 );
+			return -1;
+		}
+	}
 	if ( slapMode & SLAP_SERVER_MODE ) {
 		/* create a socket */
 		if ( (sock=socket(PF_UNIX,SOCK_STREAM,0))<0 )

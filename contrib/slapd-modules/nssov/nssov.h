@@ -74,8 +74,6 @@ typedef struct nssov_info
 	AttributeDescription *ni_pam_template_ad;
 	struct berval ni_pam_template;
 	struct berval ni_pam_defhost;
-	AttributeDescription *ni_pam_host_ad;
-	AttributeDescription *ni_pam_svc_ad;
 } nssov_info;
 
 #define NI_PAM_USERHOST		1	/* old style host checking */
@@ -87,6 +85,9 @@ typedef struct nssov_info
 
 #define	NI_PAM_OLD	(NI_PAM_USERHOST|NI_PAM_USERSVC|NI_PAM_USERGRP)
 #define	NI_PAM_NEW	NI_PAM_HOSTSVC
+
+extern AttributeDescription *nssov_pam_host_ad;
+extern AttributeDescription *nssov_pam_svc_ad;
 
 /* Read the default configuration file. */
 void nssov_cfg_init(nssov_info *ni,const char *fname);
