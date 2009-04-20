@@ -823,7 +823,7 @@ rwm_entry_release_rw( Operation *op, Entry *e, int rw )
 	}
 
 	/* just free entry if (probably) ours */
-	if ( e->e_private == NULL ) {
+	if ( e->e_private == NULL && BER_BVISNULL( &e->e_bv ) ) {
 		entry_free( e );
 		return LDAP_SUCCESS;
 	}
