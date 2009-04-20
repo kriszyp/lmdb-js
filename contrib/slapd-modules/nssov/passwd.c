@@ -143,7 +143,7 @@ int nssov_dn2uid(Operation *op,nssov_info *ni,struct berval *dn,struct berval *u
 	return 0;
 }
 
-static int uid2dn_cb(Operation *op,SlapReply *rs)
+int nssov_name2dn_cb(Operation *op,SlapReply *rs)
 {
 	if ( rs->sr_type == REP_SEARCH )
 	{
@@ -175,7 +175,7 @@ int nssov_uid2dn(Operation *op,nssov_info *ni,struct berval *uid,struct berval *
 	nssov_filter_byid(mi,UID_KEY,uid,&filter);
 	BER_BVZERO(dn);
 	cb.sc_private = dn;
-	cb.sc_response = uid2dn_cb;
+	cb.sc_response = nssov_name2dn_cb;
 	op2 = *op;
 	op2.o_callback = &cb;
 	op2.o_req_dn = mi->mi_base;

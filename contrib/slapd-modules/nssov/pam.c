@@ -104,7 +104,6 @@ int pam_authc(nssov_info *ni,TFILE *fp,Operation *op)
 	char svcc[256];
 	char pwdc[256];
 	struct berval uid, svc, pwd, sdn, dn;
-	int hlen;
 	struct bindinfo bi;
 
 	bi.authz = PAM_SUCCESS;
@@ -129,28 +128,34 @@ int pam_authc(nssov_info *ni,TFILE *fp,Operation *op)
 		goto finish;
 	}
 
-	/* Why didn't we make this a berval? */
-	hlen = strlen(global_host);
-
-	/* First try this form, to allow service-dependent mappings */
-	/* cn=<service>+uid=<user>,cn=<host>,cn=pam,cn=auth */
-	sdn.bv_len = uid.bv_len + svc.bv_len + hlen + STRLENOF( "cn=+uid=,cn=,cn=pam,cn=auth" );
-	sdn.bv_val = op->o_tmpalloc( sdn.bv_len + 1, op->o_tmpmemctx );
-	sprintf(sdn.bv_val, "cn=%s+uid=%s,cn=%s,cn=pam,cn=auth", svcc, uidc, global_host);
 	BER_BVZERO(&dn);
-	slap_sasl2dn(op, &sdn, &dn, 0);
-	op->o_tmpfree( sdn.bv_val, op->o_tmpmemctx );
+
+	if (ni->ni_pam_opts & NI_PAM_SASL2DN) {
+		int hlen = global_host_bv.bv_len;
+
+		/* cn=<service>+uid=<user>,cn=<host>,cn=pam,cn=auth */
+		sdn.bv_len = uid.bv_len + svc.bv_len + hlen +
+			STRLENOF( "cn=+uid=,cn=,cn=pam,cn=auth" );
+		sdn.bv_val = op->o_tmpalloc( sdn.bv_len + 1, op->o_tmpmemctx );
+		sprintf(sdn.bv_val, "cn=%s+uid=%s,cn=%s,cn=pam,cn=auth",
+			svcc, uidc, global_host_bv.bv_val);
+		slap_sasl2dn(op, &sdn, &dn, 0);
+		op->o_tmpfree( sdn.bv_val, op->o_tmpmemctx );
+	}
 
 	/* If no luck, do a basic uid search */
-	if (BER_BVISEMPTY(&dn)) {
-		if (!nssov_uid2dn(op, ni, &uid, &dn)) {
-			rc = PAM_USER_UNKNOWN;
-			goto finish;
+	if (BER_BVISEMPTY(&dn) && (ni->ni_pam_opts & NI_PAM_UID2DN)) {
+		nssov_uid2dn(op, ni, &uid, &dn);
+		if (!BER_BVISEMPTY(&dn)) {
+			sdn = dn;
+			dnNormalize( 0, NULL, NULL, &sdn, &dn, op->o_tmpmemctx );
 		}
-		sdn = dn;
-		dnNormalize( 0, NULL, NULL, &sdn, &dn, op->o_tmpmemctx );
 	}
 	BER_BVZERO(&sdn);
+	if (BER_BVISEMPTY(&dn)) {
+		rc = PAM_USER_UNKNOWN;
+		goto finish;
+	}
 
 	/* Should only need to do this once at open time, but there's always
 	 * the possibility that ppolicy will get loaded later.
@@ -201,6 +206,18 @@ finish:
 	return 0;
 }
 
+static int pam_nullcb(Operation *op, SlapReply *rs)
+{
+	return LDAP_SUCCESS;
+}
+
+static struct berval grpmsg =
+	BER_BVC("Access denied by group check");
+static struct berval hostmsg =
+	BER_BVC("Access denied for this host");
+static struct berval svcmsg =
+	BER_BVC("Access denied for this service");
+
 int pam_authz(nssov_info *ni,TFILE *fp,Operation *op)
 {
 	struct berval dn, svc;
@@ -209,6 +226,11 @@ int pam_authz(nssov_info *ni,TFILE *fp,Operation *op)
 	int32_t tmpint32;
 	char dnc[1024];
 	char svcc[256];
+	int rc = PAM_SUCCESS;
+	Entry *e = NULL;
+	Attribute *a;
+	SlapReply rs = {REP_RESULT};
+	slap_callback cb = {0};
 
 	READ_STRING_BUF2(fp,dnc,sizeof(dnc));
 	dn.bv_val = dnc;
@@ -219,12 +241,144 @@ int pam_authz(nssov_info *ni,TFILE *fp,Operation *op)
 
 	Debug(LDAP_DEBUG_TRACE,"nssov_pam_authz(%s)\n",dn.bv_val,0,0);
 
+	/* We don't do authorization if they weren't authenticated by us */
+	if (BER_BVISEMPTY(&dn)) {
+		rc = PAM_USER_UNKNOWN;
+		goto finish;
+	}
+
+	/* See if they have access to the host and service */
+	if (ni->ni_pam_opts & NI_PAM_HOSTSVC) {
+		AttributeAssertion ava = ATTRIBUTEASSERTION_INIT;
+		struct berval hostdn = BER_BVNULL;
+		{
+			nssov_mapinfo *mi = &ni->ni_maps[NM_host];
+			char fbuf[1024];
+			struct berval filter = {sizeof(fbuf),fbuf};
+			SlapReply rs2 = {REP_RESULT};
+
+			/* Lookup the host entry */
+			nssov_filter_byname(mi,0,&global_host_bv,&filter);
+			cb.sc_private = &hostdn;
+			cb.sc_response = nssov_name2dn_cb;
+			op->o_callback = &cb;
+			op->o_req_dn = mi->mi_base;
+			op->o_req_ndn = mi->mi_base;
+			op->ors_scope = mi->mi_scope;
+			op->ors_filterstr = filter;
+			op->ors_filter = str2filter_x(op, filter.bv_val);
+			op->ors_attrs = slap_anlist_no_attrs;
+			op->ors_tlimit = SLAP_NO_LIMIT;
+			op->ors_slimit = 2;
+			rc = op->o_bd->be_search(op, &rs2);
+			filter_free_x(op, op->ors_filter, 1);
+
+			if (BER_BVISEMPTY(&hostdn) &&
+				!BER_BVISEMPTY(&ni->ni_pam_defhost)) {
+				filter.bv_len = sizeof(fbuf);
+				filter.bv_val = fbuf;
+				memset(&rs2, 0, sizeof(rs2));
+				rs2.sr_type = REP_RESULT;
+				nssov_filter_byname(mi,0,&ni->ni_pam_defhost,&filter);
+				op->ors_filterstr = filter;
+				op->ors_filter = str2filter_x(op, filter.bv_val);
+				rc = op->o_bd->be_search(op, &rs2);
+				filter_free_x(op, op->ors_filter, 1);
+			}
+
+			/* no host entry, no default host -> deny */
+			if (BER_BVISEMPTY(&hostdn)) {
+				rc = PAM_PERM_DENIED;
+				authzmsg = hostmsg;
+				goto finish;
+			}
+		}
+
+		cb.sc_response = pam_nullcb;
+		cb.sc_private = NULL;
+		op->o_tag = LDAP_REQ_COMPARE;
+		op->o_req_dn = hostdn;
+		op->o_req_ndn = hostdn;
+		ava.aa_desc = ni->ni_pam_svc_ad;
+		ava.aa_value = svc;
+		op->orc_ava = &ava;
+		rc = op->o_bd->be_compare( op, &rs );
+		if ( rs.sr_err != LDAP_COMPARE_TRUE ) {
+			authzmsg = svcmsg;
+			rc = PAM_PERM_DENIED;
+			goto finish;
+		}
+	}
+
+	/* See if they're a member of the group */
+	if ((ni->ni_pam_opts & NI_PAM_USERGRP) &&
+		!BER_BVISEMPTY(&ni->ni_pam_group_dn) &&
+		ni->ni_pam_group_ad) {
+		AttributeAssertion ava = ATTRIBUTEASSERTION_INIT;
+		op->o_callback = &cb;
+		cb.sc_response = pam_nullcb;
+		op->o_tag = LDAP_REQ_COMPARE;
+		op->o_req_dn = ni->ni_pam_group_dn;
+		op->o_req_ndn = ni->ni_pam_group_dn;
+		ava.aa_desc = ni->ni_pam_group_ad;
+		ava.aa_value = dn;
+		op->orc_ava = &ava;
+		rc = op->o_bd->be_compare( op, &rs );
+		if ( rs.sr_err != LDAP_COMPARE_TRUE ) {
+			authzmsg = grpmsg;
+			rc = PAM_PERM_DENIED;
+			goto finish;
+		}
+	}
+
+	/* We need to check the user's entry for these bits */
+	if ((ni->ni_pam_opts & (NI_PAM_USERHOST|NI_PAM_USERSVC)) ||
+		ni->ni_pam_template_ad ) {
+		rc = be_entry_get_rw( op, &dn, NULL, NULL, 0, &e );
+		if (rc != LDAP_SUCCESS) {
+			rc = PAM_USER_UNKNOWN;
+			goto finish;
+		}
+	}
+	if (ni->ni_pam_opts & NI_PAM_USERHOST) {
+		a = attr_find(e->e_attrs, ni->ni_pam_host_ad);
+		if (!a || value_find_ex( ni->ni_pam_host_ad,
+			SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH,
+			a->a_vals, &global_host_bv, op->o_tmpmemctx )) {
+			rc = PAM_PERM_DENIED;
+			authzmsg = hostmsg;
+			goto finish;
+		}
+	}
+	if (ni->ni_pam_opts & NI_PAM_USERSVC) {
+		a = attr_find(e->e_attrs, ni->ni_pam_svc_ad);
+		if (!a || value_find_ex( ni->ni_pam_svc_ad,
+			SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH,
+			a->a_vals, &svc, op->o_tmpmemctx )) {
+			rc = PAM_PERM_DENIED;
+			authzmsg = svcmsg;
+			goto finish;
+		}
+	}
+
+	if (ni->ni_pam_template_ad) {
+		a = attr_find(e->e_attrs, ni->ni_pam_template_ad);
+		if (a)
+			tmpluser = a->a_vals[0];
+		else if (!BER_BVISEMPTY(&ni->ni_pam_template))
+			tmpluser = ni->ni_pam_template;
+	}
+
+finish:
 	WRITE_INT32(fp,NSLCD_VERSION);
 	WRITE_INT32(fp,NSLCD_ACTION_PAM_AUTHZ);
 	WRITE_INT32(fp,NSLCD_RESULT_SUCCESS);
-	WRITE_INT32(fp,PAM_SUCCESS);
+	WRITE_INT32(fp,rc);
 	WRITE_BERVAL(fp,&authzmsg);
 	WRITE_BERVAL(fp,&tmpluser);
+	if (e) {
+		be_entry_release_r(op, e);
+	}
 	return 0;
 }
 

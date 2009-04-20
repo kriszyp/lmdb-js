@@ -109,7 +109,7 @@ and checked to determine access. Also a check may be performed to see if
 the user is a member of a particular group. This method is pretty
 inflexible and doesn't scale well to large networks of users, hosts,
 and services.
-  The second uses slapd's ACL engine to check if the user has "auth"
+  The second uses slapd's ACL engine to check if the user has "compare"
 privilege on an ipHost object whose name matches the current hostname, and
 whose authorizedService attribute matches the current service name. This
 method is preferred, since it allows authorization to be centralized in

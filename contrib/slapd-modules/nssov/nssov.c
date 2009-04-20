@@ -407,9 +407,21 @@ static slap_verbmasks nss_svcs[] = {
 	{ BER_BVNULL, 0 }
 };
 
+static slap_verbmasks pam_opts[] = {
+	{ BER_BVC("userhost"), NI_PAM_USERHOST },
+	{ BER_BVC("userservice"), NI_PAM_USERSVC },
+	{ BER_BVC("usergroup"), NI_PAM_USERGRP },
+	{ BER_BVC("hostservice"), NI_PAM_HOSTSVC },
+	{ BER_BVC("sasl2dn"), NI_PAM_SASL2DN },
+	{ BER_BVC("uid2dn"), NI_PAM_UID2DN },
+	{ BER_BVNULL, 0 }
+};
+
 enum {
 	NSS_SSD=1,
-	NSS_MAP
+	NSS_MAP,
+	NSS_PAM,
+	NSS_PAMGROUP,
 };
 
 static ConfigDriver nss_cf_gen;
@@ -425,6 +437,52 @@ static ConfigTable nsscfg[] = {
 			"DESC 'Map <service> lookups of <orig> attr to <new> attr' "
 			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString )", NULL, NULL },
+	{ "nssov-pam", "options", 2, 0, 0, ARG_MAGIC|NSS_PAM,
+		nss_cf_gen, "(OLcfgCtAt:3.3 NAME 'olcNssPam' "
+			"DESC 'PAM authentication and authorization options' "
+			"EQUALITY caseIgnoreMatch "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
+	{ "nssov-pam-defhost", "hostname", 2, 2, 0, ARG_OFFSET|ARG_BERVAL,
+		(void *)offsetof(struct nssov_info, ni_pam_defhost),
+		"(OLcfgCtAt:3.4 NAME 'olcNssPamDefHost' "
+			"DESC 'Default hostname for service checks' "
+			"EQUALITY caseIgnoreMatch "
+			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
+	{ "nssov-pam-group-dn", "DN", 2, 2, 0, ARG_MAGIC|ARG_DN|NSS_PAMGROUP,
+		nss_cf_gen, "(OLcfgCtAt:3.5 NAME 'olcNssPamGroupDN' "
+			"DESC 'DN of group in which membership is required' "
+			"EQUALITY distinguishedNameMatch "
+			"SYNTAX OMsDN SINGLE-VALUE )", NULL, NULL },
+	{ "nssov-pam-group-ad", "options", 2, 2, 0, ARG_OFFSET|ARG_ATDESC,
+		(void *)offsetof(struct nssov_info, ni_pam_group_ad),
+		"(OLcfgCtAt:3.6 NAME 'olcNssPamGroupAD' "
+			"DESC 'Member attribute to use for group check' "
+			"EQUALITY caseIgnoreMatch "
+			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
+	{ "nssov-pam-min-uid", "uid", 2, 2, 0, ARG_OFFSET|ARG_INT,
+		(void *)offsetof(struct nssov_info, ni_pam_min_uid),
+		"(OLcfgCtAt:3.7 NAME 'olcNssPamMinUid' "
+			"DESC 'Minimum UID allowed to login' "
+			"EQUALITY integerMatch "
+			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
+	{ "nssov-pam-max-uid", "uid", 2, 2, 0, ARG_OFFSET|ARG_INT,
+		(void *)offsetof(struct nssov_info, ni_pam_max_uid),
+		"(OLcfgCtAt:3.8 NAME 'olcNssPamMaxUid' "
+			"DESC 'Maximum UID allowed to login' "
+			"EQUALITY integerMatch "
+			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
+	{ "nssov-pam-template-ad", "attr", 2, 2, 0, ARG_OFFSET|ARG_ATDESC,
+		(void *)offsetof(struct nssov_info, ni_pam_template_ad),
+		"(OLcfgCtAt:3.9 NAME 'olcNssPamTemplateAD' "
+			"DESC 'Attribute to use for template login name' "
+			"EQUALITY caseIgnoreMatch "
+			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
+	{ "nssov-pam-template", "name", 2, 2, 0, ARG_OFFSET|ARG_BERVAL,
+		(void *)offsetof(struct nssov_info, ni_pam_template),
+		"(OLcfgCtAt:3.10 NAME 'olcNssPamTemplate' "
+			"DESC 'Default template login name' "
+			"EQUALITY caseIgnoreMatch "
+			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
 	{ NULL, NULL, 0,0,0, ARG_IGNORED }
 };
 
@@ -433,7 +491,10 @@ static ConfigOCs nssocs[] = {
 		"NAME 'olcNssOvConfig' "
 		"DESC 'NSS lookup configuration' "
 		"SUP olcOverlayConfig "
-		"MAY ( olcNssSsd $ olcNssMap ) )",
+		"MAY ( olcNssSsd $ olcNssMap $ olcNssPam $ olcNssPamDefHost $ "
+			"olcNssPamGroupDN $ olcNssPamGroupAD $ "
+			"olcNssPamMinUid $ olcNssPamMaxUid $ "
+			"olcNssPamTemplateAD $ olcNssPamTemplate ) )",
 		Cft_Overlay, nsscfg },
 	{ NULL, 0, NULL }
 };
@@ -445,6 +506,7 @@ nss_cf_gen(ConfigArgs *c)
 	nssov_info *ni = on->on_bi.bi_private;
 	nssov_mapinfo *mi;
 	int i, j, rc = 0;
+	slap_mask_t m;
 
 	if ( c->op == SLAP_CONFIG_EMIT ) {
 		switch(c->type) {
@@ -500,9 +562,21 @@ nss_cf_gen(ConfigArgs *c)
 				}
 			}
 			break;
+		case NSS_PAM:
+			rc = mask_to_verbs( pam_opts, ni->ni_pam_opts, &c->rvalue_vals );
+			break;
+		case NSS_PAMGROUP:
+			if (!BER_BVISEMPTY( &ni->ni_pam_group_dn )) {
+				value_add_one( &c->rvalue_vals, &ni->ni_pam_group_dn );
+				value_add_one( &c->rvalue_nvals, &ni->ni_pam_group_dn );
+			} else {
+				rc = 1;
+			}
+			break;
 		}
 		return rc;
 	} else if ( c->op == LDAP_MOD_DELETE ) {
+		/* FIXME */
 		return 1;
 	}
 	switch( c->type ) {
@@ -562,6 +636,19 @@ nss_cf_gen(ConfigArgs *c)
 				break;
 			}
 		}
+		break;
+	case NSS_PAM:
+		m = ni->ni_pam_opts;
+		i = verbs_to_mask(c->argc, c->argv, pam_opts, &m);
+		if (i == 0) {
+			ni->ni_pam_opts = m;
+		} else {
+			rc = 1;
+		}
+		break;
+	case NSS_PAMGROUP:
+		ni->ni_pam_group_dn = c->value_ndn;
+		ch_free( c->value_dn.bv_val );
 		break;
 	}
 	return rc;

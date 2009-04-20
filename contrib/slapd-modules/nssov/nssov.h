@@ -64,7 +64,29 @@ typedef struct nssov_info
 	int ni_socket;
 	Connection *ni_conn;
 	BackendDB *ni_db;
+
+	/* PAM authz support... */
+	slap_mask_t ni_pam_opts;
+	struct berval ni_pam_group_dn;
+	AttributeDescription *ni_pam_group_ad;
+	int ni_pam_min_uid;
+	int ni_pam_max_uid;
+	AttributeDescription *ni_pam_template_ad;
+	struct berval ni_pam_template;
+	struct berval ni_pam_defhost;
+	AttributeDescription *ni_pam_host_ad;
+	AttributeDescription *ni_pam_svc_ad;
 } nssov_info;
+
+#define NI_PAM_USERHOST		1	/* old style host checking */
+#define NI_PAM_USERSVC		2	/* old style service checking */
+#define NI_PAM_USERGRP		4	/* old style group checking */
+#define NI_PAM_HOSTSVC		8	/* new style authz checking */
+#define NI_PAM_SASL2DN		0x10	/* use sasl2dn */
+#define NI_PAM_UID2DN		0x20	/* use uid2dn */
+
+#define	NI_PAM_OLD	(NI_PAM_USERHOST|NI_PAM_USERSVC|NI_PAM_USERGRP)
+#define	NI_PAM_NEW	NI_PAM_HOSTSVC
 
 /* Read the default configuration file. */
 void nssov_cfg_init(nssov_info *ni,const char *fname);
@@ -139,11 +161,12 @@ int read_address(TFILE *fp,char *addr,int *addrlen,int *af);
 /* checks to see if the specified string is a valid username */
 int isvalidusername(struct berval *name);
 
-/* transforms the DN info a uid doing an LDAP lookup if needed */
+/* transforms the DN into a uid doing an LDAP lookup if needed */
 int nssov_dn2uid(Operation *op,nssov_info *ni,struct berval *dn,struct berval *uid);
 
 /* transforms the uid into a DN by doing an LDAP lookup */
 int nssov_uid2dn(Operation *op,nssov_info *ni,struct berval *uid,struct berval *dn);
+int nssov_name2dn_cb(Operation *op, SlapReply *rs);
 
 /* Escapes characters in a string for use in a search filter. */
 int nssov_escape(struct berval *src,struct berval *dst);
