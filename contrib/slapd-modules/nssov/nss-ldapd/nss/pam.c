@@ -62,6 +62,7 @@ typedef struct pld_ctx {
 	char *dn;
 	char *tmpluser;
 	char *authzmsg;
+	char *oldpw;
 	int authok;
 	int authz;
 	char buf[1024];
@@ -73,6 +74,11 @@ static void pam_clr_ctx(
 	if (ctx->user) {
 		free(ctx->user);
 		ctx->user = NULL;
+	}
+	if (ctx->oldpw) {
+		memset(ctx->oldpw,0,strlen(ctx->oldpw));
+		free(ctx->oldpw);
+		ctx->oldpw = NULL;
 	}
 	ctx->dn = NULL;
 	ctx->tmpluser = NULL;
@@ -184,23 +190,25 @@ static int pam_get_authtok(
 static enum nss_status pam_read_authc(
 	TFILE *fp,pld_ctx *ctx,int *errnop)
 {
-	char *buffer = ctx->buf;
+	char *buffer = ctx->buf, *user;
 	size_t buflen = sizeof(ctx->buf);
 	size_t bufptr = 0;
 	int32_t tmpint32;
 
+	READ_STRING_BUF(fp,user);
+	READ_STRING_BUF(fp,ctx->dn);
 	READ_INT32(fp,ctx->authok);
 	READ_INT32(fp,ctx->authz);
-	READ_STRING_BUF(fp,ctx->dn);
 	READ_STRING_BUF(fp,ctx->authzmsg);
 	return NSS_STATUS_SUCCESS;
 }
 
 static enum nss_status pam_do_authc(
-	pld_ctx *ctx, const char *name, const char *svc,const char *pwd,int *errnop)
+	pld_ctx *ctx, const char *user, const char *svc,const char *pwd,int *errnop)
 {
 	NSS_BYGEN(NSLCD_ACTION_PAM_AUTHC,
-		WRITE_STRING(fp,name);
+		WRITE_STRING(fp,user);
+		WRITE_STRING(fp,"" /* DN */);
 		WRITE_STRING(fp,svc);
 		WRITE_STRING(fp,pwd),
 		pam_read_authc(fp,ctx,errnop));
@@ -273,8 +281,11 @@ int pam_sm_authenticate(
 		first_pass = 0;
 	}
 
-	if (rc == PAM_SUCCESS)
+	if (rc == PAM_SUCCESS) {
 		ctx->user = strdup(username);
+		if (ctx->authz == PAM_NEW_AUTHTOK_REQD)
+			ctx->oldpw = strdup(p);
+	}
 
 	return rc;
 }
@@ -314,9 +325,10 @@ static enum nss_status pam_read_authz(
 	size_t bufptr = 0;
 	int32_t tmpint32;
 
+	READ_STRING_BUF(fp,ctx->tmpluser);
+	READ_STRING_BUF(fp,ctx->dn);
 	READ_INT32(fp,ctx->authz);
 	READ_STRING_BUF(fp,ctx->authzmsg);
-	READ_STRING_BUF(fp,ctx->tmpluser);
 	return NSS_STATUS_SUCCESS;
 }
 
@@ -324,6 +336,7 @@ static enum nss_status pam_do_authz(
 	pld_ctx *ctx, const char *svc,int *errnop)
 {
 	NSS_BYGEN(NSLCD_ACTION_PAM_AUTHZ,
+		WRITE_STRING(fp,ctx->user);
 		WRITE_STRING(fp,ctx->dn);
 		WRITE_STRING(fp,svc),
 		pam_read_authz(fp,ctx,errnop));
@@ -380,6 +393,7 @@ int pam_sm_acct_mgmt(
 		return rc;
 
 	ctx2.dn = ctx->dn;
+	ctx2.user = ctx->user;
 	rc = pam_do_authz(&ctx2, svc, &err);
 	NSS2PAM_RC(rc, ignore_flags, PAM_SUCCESS);
 	if (rc != PAM_SUCCESS) {
@@ -404,6 +418,7 @@ static enum nss_status pam_do_sess_o(
 	pld_ctx *ctx, const char *svc,int *errnop)
 {
 	NSS_BYGEN(NSLCD_ACTION_PAM_SESS_O,
+		WRITE_STRING(fp,ctx->user);
 		WRITE_STRING(fp,ctx->dn);
 		WRITE_STRING(fp,svc),
 		NSS_STATUS_SUCCESS);
@@ -470,6 +485,7 @@ static enum nss_status pam_do_sess_c(
 	pld_ctx *ctx, const char *svc,int *errnop)
 {
 	NSS_BYGEN(NSLCD_ACTION_PAM_SESS_C,
+		WRITE_STRING(fp,ctx->user);
 		WRITE_STRING(fp,ctx->dn);
 		WRITE_STRING(fp,svc),
 		NSS_STATUS_SUCCESS);
@@ -535,22 +551,26 @@ int pam_sm_close_session(
 static enum nss_status pam_read_pwmod(
 	TFILE *fp,pld_ctx *ctx,int *errnop)
 {
-	char *buffer = ctx->buf;
+	char *buffer = ctx->buf, *user;
 	size_t buflen = sizeof(ctx->buf);
 	size_t bufptr = 0;
 	int32_t tmpint32;
 
+	READ_STRING_BUF(fp,user);
+	READ_STRING_BUF(fp,ctx->dn);
 	READ_INT32(fp,ctx->authz);
 	READ_STRING_BUF(fp,ctx->authzmsg);
 	return NSS_STATUS_SUCCESS;
 }
 
 static enum nss_status pam_do_pwmod(
-	pld_ctx *ctx, const char *user, const char *oldpw, const char *newpw, int *errnop)
+	pld_ctx *ctx, const char *user, const char *svc,
+	const char *oldpw, const char *newpw, int *errnop)
 {
 	NSS_BYGEN(NSLCD_ACTION_PAM_PWMOD,
-		WRITE_STRING(fp,ctx->dn);
 		WRITE_STRING(fp,user);
+		WRITE_STRING(fp,ctx->dn);
+		WRITE_STRING(fp,svc);
 		WRITE_STRING(fp,oldpw);
 		WRITE_STRING(fp,newpw),
 		pam_read_pwmod(fp,ctx,errnop));
@@ -560,7 +580,7 @@ int pam_sm_chauthtok(
 	pam_handle_t *pamh, int flags, int argc, const char **argv)
 {
 	int rc, err;
-	const char *username, *p = NULL, *q = NULL;
+	const char *username, *p = NULL, *q = NULL, *svc;
 	int first_pass = 0, no_warn = 0, ignore_flags = 0;
 	int i, success = PAM_SUCCESS;
 	struct pam_conv *appconv;
@@ -604,6 +624,10 @@ int pam_sm_chauthtok(
 	if (rc != PAM_SUCCESS)
 		return rc;
 
+	rc = pam_get_item (pamh, PAM_SERVICE, (CONST_ARG void **) &svc);
+	if (rc != PAM_SUCCESS)
+		return rc;
+
 	if (flags & PAM_PRELIM_CHECK) {
 		if (getuid()) {
 			if (!first_pass) {
@@ -615,16 +639,23 @@ int pam_sm_chauthtok(
 					free(p);
 				}
 			}
+			rc = pam_get_item(pamh, PAM_OLDAUTHTOK, &p);
+			if (rc) return rc;
 		} else {
 			rc = PAM_SUCCESS;
+		}
+		if (!ctx->dn) {
+			rc = pam_do_pwmod(ctx, username, svc, p, NULL, &err);
+			NSS2PAM_RC(rc, ignore_flags, PAM_SUCCESS);
 		}
 		return rc;
 	}
 
-	if (getuid()) {
-		rc = pam_get_item(pamh, PAM_OLDAUTHTOK, &p);
-		if (rc) return rc;
-	}
+	rc = pam_get_item(pamh, PAM_OLDAUTHTOK, &p);
+	if (rc) return rc;
+
+	if (!p)
+		p = ctx->oldpw;
 
 	if (first_pass) {
 		rc = pam_get_item(pamh, PAM_AUTHTOK, &q);
@@ -646,7 +677,7 @@ int pam_sm_chauthtok(
 		if (rc != PAM_SUCCESS)
 			return rc;
 	}
-	rc = pam_do_pwmod(ctx, username, p, q, &err);
+	rc = pam_do_pwmod(ctx, username, svc, p, q, &err);
 	p = NULL; q = NULL;
 	NSS2PAM_RC(rc, ignore_flags, PAM_SUCCESS);
 	if (rc == PAM_SUCCESS) {
