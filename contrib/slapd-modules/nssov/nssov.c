@@ -1,7 +1,7 @@
 /* nssov.c - nss-ldap overlay for slapd */
 /* $OpenLDAP$ */
 /*
- * Copyright 2008 by Howard Chu, Symas Corp.
+ * Copyright 2008-2009 by Howard Chu, Symas Corp.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -385,6 +385,7 @@ static void *acceptconn(void *ctx, void *arg)
 	}
 	connection_fake_init( &conn, &opbuf, ctx );
 	op=&opbuf.ob_op;
+	conn.c_ssf = conn.c_transport_ssf = local_ssf;
 	op->o_bd = ni->ni_db;
 	op->o_tag = LDAP_REQ_SEARCH;
 
