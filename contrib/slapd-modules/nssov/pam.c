@@ -217,6 +217,8 @@ static struct berval hostmsg =
 	BER_BVC("Access denied for this host");
 static struct berval svcmsg =
 	BER_BVC("Access denied for this service");
+static struct berval uidmsg =
+	BER_BVC("Access denied by UID check");
 
 int pam_authz(nssov_info *ni,TFILE *fp,Operation *op)
 {
@@ -338,7 +340,8 @@ int pam_authz(nssov_info *ni,TFILE *fp,Operation *op)
 
 	/* We need to check the user's entry for these bits */
 	if ((ni->ni_pam_opts & (NI_PAM_USERHOST|NI_PAM_USERSVC)) ||
-		ni->ni_pam_template_ad ) {
+		ni->ni_pam_template_ad ||
+		ni->ni_pam_min_uid || ni->ni_pam_max_uid ) {
 		rc = be_entry_get_rw( op, &dn, NULL, NULL, 0, &e );
 		if (rc != LDAP_SUCCESS) {
 			rc = PAM_USER_UNKNOWN;
@@ -362,6 +365,33 @@ int pam_authz(nssov_info *ni,TFILE *fp,Operation *op)
 			a->a_vals, &svc, op->o_tmpmemctx )) {
 			rc = PAM_PERM_DENIED;
 			authzmsg = svcmsg;
+			goto finish;
+		}
+	}
+
+/* from passwd.c */
+#define UIDN_KEY	2
+
+	if (ni->ni_pam_min_uid || ni->ni_pam_max_uid) {
+		int id;
+		char *tmp;
+		nssov_mapinfo *mi = &ni->ni_maps[NM_host];
+		a = attr_find(e->e_attrs, mi->mi_attrs[UIDN_KEY].an_desc);
+		if (!a) {
+			rc = PAM_PERM_DENIED;
+			authzmsg = uidmsg;
+			goto finish;
+		}
+		id = (int)strtol(a->a_vals[0].bv_val,&tmp,0);
+		if (a->a_vals[0].bv_val[0] == '\0' || *tmp != '\0') {
+			rc = PAM_PERM_DENIED;
+			authzmsg = uidmsg;
+			goto finish;
+		}
+		if ((ni->ni_pam_min_uid && id < ni->ni_pam_min_uid) ||
+			(ni->ni_pam_max_uid && id > ni->ni_pam_max_uid)) {
+			rc = PAM_PERM_DENIED;
+			authzmsg = uidmsg;
 			goto finish;
 		}
 	}
