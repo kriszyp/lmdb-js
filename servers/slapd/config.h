@@ -58,6 +58,7 @@ typedef enum {
 #define ARG_BERVAL	0x00006000
 #define ARG_DN		0x00007000
 #define ARG_UINT	0x00008000
+#define ARG_ATDESC	0x00009000
 
 #define ARGS_SYNTAX	0xffff0000
 #define ARG_IGNORED	0x00080000
@@ -140,6 +141,7 @@ typedef struct config_args_s {
 			struct berval vdn_dn;
 			struct berval vdn_ndn;
 		} v_dn;
+		AttributeDescription *v_ad;
 	} values;
 	/* return values for emit mode */
 	BerVarray rvalue_vals;
@@ -170,6 +172,7 @@ typedef struct config_args_s {
 #define value_bv values.v_bv
 #define value_dn values.v_dn.vdn_dn
 #define value_ndn values.v_dn.vdn_ndn
+#define value_ad values.v_ad
 
 int config_fp_parse_line(ConfigArgs *c);
 
