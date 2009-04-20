@@ -33,6 +33,9 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 
+AttributeDescription *nssov_pam_host_ad;
+AttributeDescription *nssov_pam_svc_ad;
+
 /* buffer sizes for I/O */
 #define READBUFFER_MINSIZE 32
 #define READBUFFER_MAXSIZE 64
