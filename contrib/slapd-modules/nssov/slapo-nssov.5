@@ -1,0 +1,193 @@
+.TH SLAPO-NSSOV 5 "RELEASEDATE" "OpenLDAP LDVERSION"
+.\" Copyright 1998-2009 The OpenLDAP Foundation, All Rights Reserved.
+.\" Copying restrictions apply.  See the COPYRIGHT file.
+.\" $OpenLDAP$
+.SH NAME
+slapo-nssov \- NSS lookup requests through a local Unix Domain socket
+.SH SYNOPSIS
+ETCDIR/slapd.conf
+.SH DESCRIPTION
+The
+.B nssov 
+overlay to
+.BR slapd (8)
+allows NSS lookup requests through a local Unix Domain socket. 
+It uses the same IPC protocol as Arthur de Jong's nss-ldapd, and 
+a complete copy of the nss-ldapd source is included here. It also 
+handles PAM requests.
+.LP
+The main objective here was to eliminate the libldap dependencies/clashes that 
+the current pam_ldap/nss_ldap solutions all suffer from. A secondary objective 
+was to allow for the possibility of more sophisticated caching than nscd 
+provides. (E.g., run slapd back-ldap + pcache on each node.) Of course, you 
+can also completey eliminate cache staleness considerations by running a 
+regular database with syncrepl.
+.LP
+And of course, another major objective was to allow all security policy to be 
+administered centrally via LDAP, instead of having fragile rules scattered 
+across multiple flat files. As such, there is no client-side configuration at 
+all for the pam/nss stub libraries. (They talk to the server via a Unix domain 
+socket whose path is hardcoded to /var/run/nslcd/). As a side benefit, this 
+can finally eliminate the perpetual confusion over /etc/ldap.conf vs 
+/etc/openldap/ldap.conf.
+.LP
+User authentication is performed by internal simple Binds. User authorization 
+leverages the slapd ACL engine, which offers much more power and flexibility 
+than the simple group/hostname checks in the old pam_ldap code.
+.LP
+To use this code, you will need the client-side stub library from
+nss-ldapd (which resides in nss-ldapd/nss). You will not need the
+nslcd daemon; this overlay replaces that part. You should already
+be familiar with the [RFC2307] and [RFC2307bis] schema to use this
+overlay. See the 
+.B nss-ldapd/README 
+for more information on the schema and which features are supported.
+.LP
+To use the overlay add:
+.LP 
+.RS
+.nf
+    include <path to>nis.schema
+
+    moduleload <path to>nssov.so
+    ...
+
+    database hdb
+    ...
+    overlay nssov
+.fi
+.RE
+.LP
+to your slapd configuration file. (The nis.schema file contains
+the original [RFC2307] schema. Some modifications will be needed to
+use [RFC2307bis].)
+.LP
+The overlay may be configured with 
+.B Service Search Descriptors (SSDs)
+for each NSS service that will be used. SSDs are configured using
+.LP 
+.RS
+.nf
+    nssov-ssd <service> <url>
+.fi
+.RE
+.LP
+where the <service> may be one of
+.LP 
+.RS
+.nf
+    alias
+    ether
+    group
+    host
+    netgroup
+    network
+    passwd
+    protocol
+    rpc
+    service
+    shadow
+.fi
+.RE
+.LP
+and the <url> must be of the form
+.LP 
+.RS
+.nf
+    ldap:///[<basedn>][??[<scope>][?<filter>]]
+.fi
+.RE
+.LP
+The 
+.B <basedn> 
+will default to the first suffix of the current database.
+The 
+.B <scope> 
+defaults to "subtree". The default 
+.B <filter> 
+depends on which service is being used.
+.LP
+If the local database is actually a proxy to a foreign LDAP server, some
+mapping of schema may be needed. Some simple attribute substitutions may
+be performed using
+.LP 
+.RS
+.nf
+    nssov-map <service> <orig> <new>
+.fi
+.RE
+.LP
+See the 
+.B nss-ldapd/README 
+for the original attribute names used in this code.
+.LP
+The overlay also supports dynamic configuration in cn=config. The layout
+of the config entry is
+.LP 
+.RS
+.nf
+    dn: olcOverlay={0}nssov,ocDatabase={1}hdb,cn=config
+    objectClass: olcOverlayConfig
+    objectClass: olcNssOvConfig
+    olcOverlay: {0}nssov
+    olcNssSvc: passwd ldap:///ou=users,dc=example,dc=com??one
+    olcNssMap: passwd uid accountName
+.fi
+.RE
+.LP
+which enables the passwd service, and uses the accountName attribute to
+fetch what is usually retrieved from the uid attribute.
+.LP
+PAM authentication, account management, session management, and password
+management are supported.
+.LP
+Authentication is performed using Simple Binds. Since all operations occur
+inside the slapd overlay, "fake" connections are used and they are
+inherently secure. Two methods of mapping the PAM username to an LDAP DN
+are provided:
+  the mapping can be accomplished using slapd's authz-regexp facility. In
+this case, a DN of the form
+.B    cn=<service>+uid=<user>,cn=<hostname>,cn=pam,cn=auth
+is fed into the regexp matcher. If a match is produced, the resulting DN
+is used. Otherwise, the NSS passwd map is invoked (which means it must already
+be configured).
+.LP
+If no DN is found, the overlay returns PAM_USER_UNKNOWN. If the DN is
+found, and Password Policy is supported, then the Bind will use the
+Password Policy control and return expiration information to PAM.
+.LP
+Account management also uses two methods. These methods depend on the
+ldapns.schema included with the nssov source.
+.LP  
+The first is identical to the method used in PADL's pam_ldap module:
+host and authorizedService attributes may be looked up in the user's entry,
+and checked to determine access. Also a check may be performed to see if
+the user is a member of a particular group. This method is pretty
+inflexible and doesn't scale well to large networks of users, hosts,
+and services.
+.LP
+  The second uses slapd's ACL engine to check if the user has "compare"
+privilege on an ipHost object whose name matches the current hostname, and
+whose authorizedService attribute matches the current service name. This
+method is preferred, since it allows authorization to be centralized in
+the ipHost entries instead of scattered across the entire user population.
+The ipHost entries must have an authorizedService attribute (e.g. by way
+of the authorizedServiceObject auxiliary class) to use this method.
+.LP
+Session management: the overlay may optionally add a "logged in" attribute
+to a user's entry for successful logins, and delete the corresponding
+value upon logout. The attribute value is of the form
+.B    <generalizedTime> <host> <service> <tty> (<ruser@rhost>)
+Password management: the overlay will perform a PasswordModify exop
+in the server for the given user.
+.SH FILES
+.TP
+ETCDIR/slapd.conf
+default slapd configuration file
+.SH SEE ALSO
+.BR slapd.conf (5),
+.BR slapd\-config (5),
+.BR slapd\-ldap (5),
+.BR slapd (8).
+.SH AUTHOR
+Originally implemented by Howard Chu; man page Gavin Henry, Suretec Systems Ltd.
