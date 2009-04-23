@@ -451,11 +451,14 @@ finish:
 
 int pam_sess_o(nssov_info *ni,TFILE *fp,Operation *op)
 {
-	struct berval dn, uid, svc;
+	struct berval dn, uid, svc, tty, rhost, ruser;
 	int32_t tmpint32;
 	char dnc[1024];
 	char svcc[256];
 	char uidc[32];
+	char ttyc[32];
+	char rhostc[256];
+	char ruserc[32];
 
 	READ_STRING_BUF2(fp,uidc,sizeof(uidc));
 	uid.bv_val = uidc;
@@ -466,6 +469,15 @@ int pam_sess_o(nssov_info *ni,TFILE *fp,Operation *op)
 	READ_STRING_BUF2(fp,svcc,sizeof(svcc));
 	svc.bv_val = svcc;
 	svc.bv_len = tmpint32;
+	READ_STRING_BUF2(fp,ttyc,sizeof(ttyc));
+	tty.bv_val = ttyc;
+	tty.bv_len = tmpint32;
+	READ_STRING_BUF2(fp,rhostc,sizeof(rhostc));
+	rhost.bv_val = rhostc;
+	rhost.bv_len = tmpint32;
+	READ_STRING_BUF2(fp,ruserc,sizeof(ruserc));
+	ruser.bv_val = ruserc;
+	ruser.bv_len = tmpint32;
 
 	Debug(LDAP_DEBUG_TRACE,"nssov_pam_sess_o(%s)\n",dn.bv_val,0,0);
 
@@ -477,11 +489,14 @@ int pam_sess_o(nssov_info *ni,TFILE *fp,Operation *op)
 
 int pam_sess_c(nssov_info *ni,TFILE *fp,Operation *op)
 {
-	struct berval dn, uid, svc;
+	struct berval dn, uid, svc, tty, rhost, ruser;
 	int32_t tmpint32;
 	char dnc[1024];
 	char svcc[256];
 	char uidc[32];
+	char ttyc[32];
+	char rhostc[256];
+	char ruserc[32];
 
 	READ_STRING_BUF2(fp,uidc,sizeof(uidc));
 	uid.bv_val = uidc;
@@ -492,6 +507,15 @@ int pam_sess_c(nssov_info *ni,TFILE *fp,Operation *op)
 	READ_STRING_BUF2(fp,svcc,sizeof(svcc));
 	svc.bv_val = svcc;
 	svc.bv_len = tmpint32;
+	READ_STRING_BUF2(fp,ttyc,sizeof(ttyc));
+	tty.bv_val = ttyc;
+	tty.bv_len = tmpint32;
+	READ_STRING_BUF2(fp,rhostc,sizeof(rhostc));
+	rhost.bv_val = rhostc;
+	rhost.bv_len = tmpint32;
+	READ_STRING_BUF2(fp,ruserc,sizeof(ruserc));
+	ruser.bv_val = ruserc;
+	ruser.bv_len = tmpint32;
 
 	Debug(LDAP_DEBUG_TRACE,"nssov_pam_sess_c(%s)\n",dn.bv_val,0,0);
 
