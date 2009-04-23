@@ -65,6 +65,7 @@ typedef struct pld_ctx {
 	char *oldpw;
 	int authok;
 	int authz;
+	int sessid;
 	char buf[1024];
 } pld_ctx;
 
@@ -414,6 +415,14 @@ int pam_sm_acct_mgmt(
 	return rc;
 }
 
+static enum nss_status pam_read_sess(
+	TFILE *fp,pld_ctx *ctx,int *errnop)
+{
+	int tmpint32;
+	READ_INT32(fp,ctx->sessid);
+	return NSS_STATUS_SUCCESS;
+}
+
 static enum nss_status pam_do_sess(
 	pam_handle_t *pamh,pld_ctx *ctx,int action,int *errnop)
 {
@@ -431,12 +440,13 @@ static enum nss_status pam_do_sess(
 		WRITE_STRING(fp,svc);
 		WRITE_STRING(fp,tty);
 		WRITE_STRING(fp,rhost);
-		WRITE_STRING(fp,ruser),
-		NSS_STATUS_SUCCESS);
+		WRITE_STRING(fp,ruser);
+		WRITE_INT32(fp,ctx->sessid),
+		pam_read_sess(fp,ctx,errnop));
 	}
 }
 
-int pam_sm_session(
+static int pam_sm_session(
 	pam_handle_t *pamh, int flags, int argc, const char **argv,
 	int action, int *no_warn)
 {

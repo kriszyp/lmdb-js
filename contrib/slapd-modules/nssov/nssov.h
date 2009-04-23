@@ -187,6 +187,8 @@ void nssov_rpc_init(nssov_info *ni);
 void nssov_service_init(nssov_info *ni);
 void nssov_shadow_init(nssov_info *ni);
 
+int nssov_pam_init(void);
+
 /* these are the different functions that handle the database
    specific actions, see nslcd.h for the action descriptions */
 int nssov_alias_byname(nssov_info *ni,TFILE *fp,Operation *op);

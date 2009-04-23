@@ -120,7 +120,7 @@ of the authorizedServiceObject auxiliary class) to use this method.
 Session management: the overlay may optionally add a "logged in" attribute
 to a user's entry for successful logins, and delete the corresponding
 value upon logout. The attribute value is of the form
-	<host> <service> <tty> <ruser@rhost> <generalizedTime>
+	<generalizedTime> <host> <service> <tty> (<ruser@rhost>)
 
 Password management: the overlay will perform a PasswordModify exop
 in the server for the given user.

@@ -688,7 +688,10 @@ nssov_db_init(
 	slap_overinst *on = (slap_overinst *)be->bd_info;
 	nssov_info *ni;
 	nssov_mapinfo *mi;
-	int i, j;
+	int rc;
+
+	rc = nssov_pam_init();
+	if (rc) return rc;
 
 	ni = ch_malloc( sizeof(nssov_info) );
 	on->on_bi.bi_private = ni;
