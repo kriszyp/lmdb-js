@@ -207,4 +207,19 @@
 #define NSLCD_RESULT_END              3 /* key was not found */
 #define NSLCD_RESULT_SUCCESS               0 /* everything ok */
 
+/* Partial list of PAM result codes. */
+#define NSLCD_PAM_SUCCESS             0 /* everything ok */
+#define NSLCD_PAM_PERM_DENIED         6 /* Permission denied */
+#define NSLCD_PAM_AUTH_ERR            7 /* Authc failure */
+#define NSLCD_PAM_CRED_INSUFFICIENT   8 /* Cannot access authc data */
+#define NSLCD_PAM_AUTHINFO_UNAVAIL    9 /* Cannot retrieve authc info */
+#define NSLCD_PAM_USER_UNKNOWN       10 /* User not known */
+#define NSLCD_PAM_MAXTRIES           11 /* Retry limit reached */
+#define NSLCD_PAM_NEW_AUTHTOK_REQD   12 /* Password expired */
+#define NSLCD_PAM_ACCT_EXPIRED       13 /* Account expired */
+#define NSLCD_PAM_SESSION_ERR        14 /* Cannot make/remove session record */
+#define NSLCD_PAM_AUTHTOK_DISABLE_AGING 23 /* Password aging disabled */
+#define NSLCD_PAM_IGNORE             25 /* Ignore module */
+#define NSLCD_PAM_ABORT              26 /* Fatal error */
+
 #endif /* not _NSLCD_H */

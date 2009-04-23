@@ -16,8 +16,6 @@
 #include "nssov.h"
 #include "lutil.h"
 
-#include <security/pam_modules.h>
-
 static int ppolicy_cid;
 static AttributeDescription *ad_loginStatus;
 
@@ -90,7 +88,7 @@ static int pam_bindcb(
 					pi->msg.bv_len = sprintf(pi->msg.bv_val,
 						"Password expired; %d grace logins remaining",
 						grace);
-					pi->authz = PAM_NEW_AUTHTOK_REQD;
+					pi->authz = NSLCD_PAM_NEW_AUTHTOK_REQD;
 				} else if (error != PP_noError) {
 					ber_str2bv(ldap_passwordpolicy_err2txt(error), 0, 0,
 						&pi->msg);
@@ -100,7 +98,7 @@ static int pam_bindcb(
 						rs->sr_err = LDAP_SUCCESS;
 						/* fallthru */
 					case PP_changeAfterReset:
-						pi->authz = PAM_NEW_AUTHTOK_REQD;
+						pi->authz = NSLCD_PAM_NEW_AUTHTOK_REQD;
 					}
 				}
 			}
@@ -120,13 +118,13 @@ int pam_do_bind(nssov_info *ni,TFILE *fp,Operation *op,
 
 	pi->msg.bv_val = pi->pwd.bv_val;
 	pi->msg.bv_len = 0;
-	pi->authz = PAM_SUCCESS;
+	pi->authz = NSLCD_PAM_SUCCESS;
 	BER_BVZERO(&pi->dn);
 
 	if (!isvalidusername(&pi->uid)) {
 		Debug(LDAP_DEBUG_ANY,"nssov_pam_do_bind(%s): invalid user name\n",
 			pi->uid.bv_val,0,0);
-		rc = PAM_USER_UNKNOWN;
+		rc = NSLCD_PAM_USER_UNKNOWN;
 		goto finish;
 	}
 
@@ -153,12 +151,12 @@ int pam_do_bind(nssov_info *ni,TFILE *fp,Operation *op,
 	}
 	BER_BVZERO(&sdn);
 	if (BER_BVISEMPTY(&pi->dn)) {
-		rc = PAM_USER_UNKNOWN;
+		rc = NSLCD_PAM_USER_UNKNOWN;
 		goto finish;
 	}
 
 	if (BER_BVISEMPTY(&pi->pwd)) {
-		rc = PAM_IGNORE;
+		rc = NSLCD_PAM_IGNORE;
 		goto finish;
 	}
 
@@ -195,9 +193,9 @@ int pam_do_bind(nssov_info *ni,TFILE *fp,Operation *op,
 	if (rc == LDAP_SUCCESS)
 		send_ldap_result(op, &rs);
 	switch(rs.sr_err) {
-	case LDAP_SUCCESS: rc = PAM_SUCCESS; break;
-	case LDAP_INVALID_CREDENTIALS: rc = PAM_AUTH_ERR; break;
-	default: rc = PAM_AUTH_ERR; break;
+	case LDAP_SUCCESS: rc = NSLCD_PAM_SUCCESS; break;
+	case LDAP_INVALID_CREDENTIALS: rc = NSLCD_PAM_AUTH_ERR; break;
+	default: rc = NSLCD_PAM_AUTH_ERR; break;
 	}
 finish:
 	return rc;
@@ -263,7 +261,7 @@ int pam_authz(nssov_info *ni,TFILE *fp,Operation *op)
 	char dnc[1024];
 	char uidc[32];
 	char svcc[256];
-	int rc = PAM_SUCCESS;
+	int rc = NSLCD_PAM_SUCCESS;
 	Entry *e = NULL;
 	Attribute *a;
 	SlapReply rs = {REP_RESULT};
@@ -283,7 +281,7 @@ int pam_authz(nssov_info *ni,TFILE *fp,Operation *op)
 
 	/* We don't do authorization if they weren't authenticated by us */
 	if (BER_BVISEMPTY(&dn)) {
-		rc = PAM_USER_UNKNOWN;
+		rc = NSLCD_PAM_USER_UNKNOWN;
 		goto finish;
 	}
 
@@ -331,7 +329,7 @@ int pam_authz(nssov_info *ni,TFILE *fp,Operation *op)
 
 			/* no host entry, no default host -> deny */
 			if (BER_BVISEMPTY(&hostdn)) {
-				rc = PAM_PERM_DENIED;
+				rc = NSLCD_PAM_PERM_DENIED;
 				authzmsg = hostmsg;
 				goto finish;
 			}
@@ -348,7 +346,7 @@ int pam_authz(nssov_info *ni,TFILE *fp,Operation *op)
 		rc = op->o_bd->be_compare( op, &rs );
 		if ( rs.sr_err != LDAP_COMPARE_TRUE ) {
 			authzmsg = svcmsg;
-			rc = PAM_PERM_DENIED;
+			rc = NSLCD_PAM_PERM_DENIED;
 			goto finish;
 		}
 		op->o_dn = odn;
@@ -371,7 +369,7 @@ int pam_authz(nssov_info *ni,TFILE *fp,Operation *op)
 		rc = op->o_bd->be_compare( op, &rs );
 		if ( rs.sr_err != LDAP_COMPARE_TRUE ) {
 			authzmsg = grpmsg;
-			rc = PAM_PERM_DENIED;
+			rc = NSLCD_PAM_PERM_DENIED;
 			goto finish;
 		}
 	}
@@ -382,7 +380,7 @@ int pam_authz(nssov_info *ni,TFILE *fp,Operation *op)
 		ni->ni_pam_min_uid || ni->ni_pam_max_uid ) {
 		rc = be_entry_get_rw( op, &dn, NULL, NULL, 0, &e );
 		if (rc != LDAP_SUCCESS) {
-			rc = PAM_USER_UNKNOWN;
+			rc = NSLCD_PAM_USER_UNKNOWN;
 			goto finish;
 		}
 	}
@@ -391,7 +389,7 @@ int pam_authz(nssov_info *ni,TFILE *fp,Operation *op)
 		if (!a || value_find_ex( nssov_pam_host_ad,
 			SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH,
 			a->a_vals, &global_host_bv, op->o_tmpmemctx )) {
-			rc = PAM_PERM_DENIED;
+			rc = NSLCD_PAM_PERM_DENIED;
 			authzmsg = hostmsg;
 			goto finish;
 		}
@@ -401,7 +399,7 @@ int pam_authz(nssov_info *ni,TFILE *fp,Operation *op)
 		if (!a || value_find_ex( nssov_pam_svc_ad,
 			SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH,
 			a->a_vals, &svc, op->o_tmpmemctx )) {
-			rc = PAM_PERM_DENIED;
+			rc = NSLCD_PAM_PERM_DENIED;
 			authzmsg = svcmsg;
 			goto finish;
 		}
@@ -416,19 +414,19 @@ int pam_authz(nssov_info *ni,TFILE *fp,Operation *op)
 		nssov_mapinfo *mi = &ni->ni_maps[NM_host];
 		a = attr_find(e->e_attrs, mi->mi_attrs[UIDN_KEY].an_desc);
 		if (!a) {
-			rc = PAM_PERM_DENIED;
+			rc = NSLCD_PAM_PERM_DENIED;
 			authzmsg = uidmsg;
 			goto finish;
 		}
 		id = (int)strtol(a->a_vals[0].bv_val,&tmp,0);
 		if (a->a_vals[0].bv_val[0] == '\0' || *tmp != '\0') {
-			rc = PAM_PERM_DENIED;
+			rc = NSLCD_PAM_PERM_DENIED;
 			authzmsg = uidmsg;
 			goto finish;
 		}
 		if ((ni->ni_pam_min_uid && id < ni->ni_pam_min_uid) ||
 			(ni->ni_pam_max_uid && id > ni->ni_pam_max_uid)) {
-			rc = PAM_PERM_DENIED;
+			rc = NSLCD_PAM_PERM_DENIED;
 			authzmsg = uidmsg;
 			goto finish;
 		}
@@ -588,8 +586,8 @@ int pam_pwmod(nssov_info *ni,TFILE *fp,Operation *op)
 	/* This is a prelim check */
 	if (BER_BVISEMPTY(&pi.dn)) {
 		rc = pam_do_bind(ni,fp,op,&pi);
-		if (rc == PAM_IGNORE)
-			rc = PAM_SUCCESS;
+		if (rc == NSLCD_PAM_IGNORE)
+			rc = NSLCD_PAM_SUCCESS;
 	} else {
 		BerElementBuffer berbuf;
 		BerElement *ber = (BerElement *)&berbuf;
@@ -620,9 +618,9 @@ int pam_pwmod(nssov_info *ni,TFILE *fp,Operation *op)
 		if (rs.sr_text)
 			ber_str2bv(rs.sr_text, 0, 0, &pi.msg);
 		if (rc == LDAP_SUCCESS)
-			rc = PAM_SUCCESS;
+			rc = NSLCD_PAM_SUCCESS;
 		else
-			rc = PAM_PERM_DENIED;
+			rc = NSLCD_PAM_PERM_DENIED;
 	}
 	WRITE_INT32(fp,NSLCD_VERSION);
 	WRITE_INT32(fp,NSLCD_ACTION_PAM_PWMOD);

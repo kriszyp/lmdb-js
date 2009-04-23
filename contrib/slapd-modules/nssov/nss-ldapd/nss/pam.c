@@ -69,6 +69,27 @@ typedef struct pld_ctx {
 	char buf[1024];
 } pld_ctx;
 
+static int nslcd2pam_rc(int rc)
+{
+#define	map(i)	case NSLCD_##i : rc = i; break
+	switch(rc) {
+		map(PAM_SUCCESS);
+		map(PAM_PERM_DENIED);
+		map(PAM_AUTH_ERR);
+		map(PAM_CRED_INSUFFICIENT);
+		map(PAM_AUTHINFO_UNAVAIL);
+		map(PAM_USER_UNKNOWN);
+		map(PAM_MAXTRIES);
+		map(PAM_NEW_AUTHTOK_REQD);
+		map(PAM_ACCT_EXPIRED);
+		map(PAM_SESSION_ERR);
+		map(PAM_AUTHTOK_DISABLE_AGING);
+		map(PAM_IGNORE);
+		map(PAM_ABORT);
+	}
+	return rc;
+}
+
 static void pam_clr_ctx(
 	pld_ctx *ctx)
 {
@@ -201,6 +222,8 @@ static enum nss_status pam_read_authc(
 	READ_INT32(fp,ctx->authok);
 	READ_INT32(fp,ctx->authz);
 	READ_STRING_BUF(fp,ctx->authzmsg);
+	ctx->authok = nslcd2pam_rc(ctx->authok);
+	ctx->authz = nslcd2pam_rc(ctx->authz);
 	return NSS_STATUS_SUCCESS;
 }
 
@@ -330,6 +353,7 @@ static enum nss_status pam_read_authz(
 	READ_STRING_BUF(fp,ctx->dn);
 	READ_INT32(fp,ctx->authz);
 	READ_STRING_BUF(fp,ctx->authzmsg);
+	ctx->authz = nslcd2pam_rc(ctx->authz);
 	return NSS_STATUS_SUCCESS;
 }
 
@@ -537,6 +561,7 @@ static enum nss_status pam_read_pwmod(
 	READ_STRING_BUF(fp,ctx->dn);
 	READ_INT32(fp,ctx->authz);
 	READ_STRING_BUF(fp,ctx->authzmsg);
+	ctx->authz = nslcd2pam_rc(ctx->authz);
 	return NSS_STATUS_SUCCESS;
 }
 
