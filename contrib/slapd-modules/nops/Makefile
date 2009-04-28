@@ -1,7 +1,7 @@
 # $OpenLDAP$
 CPPFLAGS+=-I../../../include -I../../../servers/slapd 
 CPPFLAGS+=-DSLAPD_OVER_NOPS=SLAPD_MOD_DYNAMIC
-LIBS=-lldap_r -llber -lcrypto
+LIBS=-L$(PREFIX)/lib -lldap_r -llber -lcrypto
 
 all: nops.la
 
@@ -13,4 +13,11 @@ nops.la:    nops.lo
 		   -rpath $(PREFIX)/lib -module -o $@ $? $(LIBS)
 
 clean:
-	rm nops.lo nops.la
+	rm -f nops.lo nops.la
+
+install: nops.la
+	mkdir -p $(PREFIX)/lib/openldap 
+	mkdir -p $(PREFIX)/man/man5
+	$(LIBTOOL) --mode=install cp nops.la $(PREFIX)/lib/openldap
+	$(LIBTOOL) --finish $(PREFIX)/lib
+	cp nops.5 $(PREFIX)/man/man5
