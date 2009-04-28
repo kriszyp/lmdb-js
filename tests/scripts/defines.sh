@@ -352,5 +352,3 @@ DDSOUT=$DATADIR/dds.out
 MEMBEROFOUT=$DATADIR/memberof.out
 SHTOOL="$SRCDIR/../build/shtool"
 
-# Just in case we linked the binaries dynamically
-LD_LIBRARY_PATH=$TESTWD/../libraries:${LD_LIBRARY_PATH} export LD_LIBRARY_PATH
