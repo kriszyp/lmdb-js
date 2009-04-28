@@ -1,3 +1,4 @@
+# $OpenLDAP$
 CPPFLAGS+=-I../../../include -I../../../servers/slapd
 
 all: kerberos.la netscape.la radius.la
