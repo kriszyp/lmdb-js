@@ -684,6 +684,7 @@ static struct slap_schema_ad_map {
 			"NAME 'monitorContext' "
 			"DESC 'monitor context' "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 "
+			"EQUALITY distinguishedNameMatch "
 			"SINGLE-VALUE NO-USER-MODIFICATION "
 			"USAGE dSAOperation )",
 		rootDseAttribute, SLAP_AT_HIDE,
@@ -694,6 +695,7 @@ static struct slap_schema_ad_map {
 			"NAME 'configContext' "
 			"DESC 'config context' "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 "
+			"EQUALITY distinguishedNameMatch "
 			"SINGLE-VALUE NO-USER-MODIFICATION "
 			"USAGE dSAOperation )",
 		rootDseAttribute, SLAP_AT_HIDE,
