@@ -49,9 +49,9 @@ In pull-based replication the consumer periodically
 polls the provider for updates. In push-based replication the consumer
 listens for updates that are sent by the provider in realtime. Since the
 protocol does not require a history store, the provider does not need to
-maintain any log of updates it has received.  (Note
+maintain any log of updates it has received (Note
 that the syncrepl engine is extensible and additional replication
-protocols may be supported in the future.)
+protocols may be supported in the future.).
 
 Syncrepl keeps track of the status of the replication content by
 maintaining and exchanging synchronization cookies. Because the
