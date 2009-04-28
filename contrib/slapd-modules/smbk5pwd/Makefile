@@ -34,4 +34,12 @@ smbk5pwd.lo:	smbk5pwd.c
 
 smbk5pwd.la:	smbk5pwd.lo
 	$(LIBTOOL) --mode=link $(CC) $(OPT) -version-info 0:0:0 \
-	-rpath /usr/local/libexec/openldap -module -o $@ $? $(LIBS)
+	-rpath $(PREFIX)/lib -module -o $@ $? $(LIBS)
+
+clean:
+	rm -f smbk5pwd.lo smbk5pwd.la
+
+install: smbk5pwd.la
+	mkdir -p $(PREFIX)/lib/openldap
+	$(LIBTOOL) --mode=install cp smbk5pwd.la $(PREFIX)/lib/openldap
+	$(LIBTOOL) --finish $(PREFIX)/lib
