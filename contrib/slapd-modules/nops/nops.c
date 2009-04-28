@@ -136,8 +136,13 @@ nops_modify( Operation *op, SlapReply *rs )
 	}
 
 	if ((m = op->orm_modlist) == NULL) {
+		slap_callback *cb = op->o_callback;
+
 		op->o_bd->bd_info = (BackendInfo *)(on->on_info);
-		send_ldap_error(op, rs, LDAP_SUCCESS, "");
+		op->o_callback = NULL;
+                send_ldap_error(op, rs, LDAP_SUCCESS, "");
+		op->o_callback = cb;
+
 		return (rs->sr_err);
 	}
 
