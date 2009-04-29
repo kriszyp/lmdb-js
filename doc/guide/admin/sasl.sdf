@@ -652,7 +652,7 @@ To help produce more sweeping rules for {{EX:authzFrom}} and
 be DNs with regular expression characters in them. This means a
 source rule like
 
->	authzTo: dn.regex=^uid=[^,]*,dc=example,dc=com$
+>	authzTo: dn.regex:^uid=[^,]*,dc=example,dc=com$
 
 would allow that authenticated user to authorize to any DN that
 matches the regular expression pattern given. This regular expression
