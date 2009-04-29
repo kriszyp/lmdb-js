@@ -2011,7 +2011,10 @@ print_deref( LDAP *ld, LDAPControl *ctrl )
 					}
 					*ptr++ = '=';
 					if ( k == -1 ) {
-						k = lutil_b64_ntop( dv->vals[ j ].bv_val, dv->vals[ j ].bv_len, ptr, buf + len - ptr );
+						k = lutil_b64_ntop(
+							(unsigned char *) dv->vals[ j ].bv_val,
+							dv->vals[ j ].bv_len,
+							ptr, buf + len - ptr );
 						assert( k >= 0 );
 						ptr += k;
 						
