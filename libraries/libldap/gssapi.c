@@ -246,7 +246,6 @@ sb_sasl_gssapi_decode(
 	int conf_req_flag = 0;
 	int conf_state;
 	unsigned char *b;
-	ber_len_t pkt_len;
 
 	wrapped.value	= src->buf_base + 4;
 	wrapped.length	= src->buf_end - 4;
@@ -288,7 +287,7 @@ sb_sasl_gssapi_decode(
 	{
 		ber_log_printf( LDAP_DEBUG_ANY, p->sbiod->sbiod_sb->sb_debug,
 				"sb_sasl_gssapi_decode: failed to grow the buffer to %lu bytes\n",
-				pkt_len );
+				unwrapped.length );
 		return -1;
 	}
 
@@ -553,7 +552,7 @@ guess_service_principal(
 	}
 
 	svc_principal = (char*) ldap_memalloc(svc_principal_size * sizeof(char));
-	if ( ret < 0 ) {
+	if ( svc_principal == NULL ) {
 		ld->ld_errno = LDAP_NO_MEMORY;
 		return ld->ld_errno;
 	}
