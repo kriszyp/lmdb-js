@@ -2,6 +2,7 @@ OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.17 Engineering
 	Fixed slapd normalization of updated schema attributes (ITS#5540)
+	Fixed slapd errno handling (ITS#6037)
 	Build Environment
 		Added test056-monitor (ITS#5540)
 		Added test057-memberof-refint (ITS#5395)

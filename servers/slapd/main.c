@@ -1056,13 +1056,12 @@ wait4child( int sig )
     int save_errno = errno;
 
 #ifdef WNOHANG
-    errno = 0;
+    do
+        errno = 0;
 #ifdef HAVE_WAITPID
-    while ( waitpid( (pid_t)-1, NULL, WNOHANG ) > 0 || errno == EINTR )
-	;	/* NULL */
+    while ( waitpid( (pid_t)-1, NULL, WNOHANG ) > 0 || errno == EINTR );
 #else
-    while ( wait3( NULL, WNOHANG, NULL ) > 0 || errno == EINTR )
-	;	/* NULL */
+    while ( wait3( NULL, WNOHANG, NULL ) > 0 || errno == EINTR );
 #endif
 #else
     (void) wait( NULL );
@@ -1072,4 +1071,3 @@ wait4child( int sig )
 }
 
 #endif /* LDAP_SIGCHLD */
-
