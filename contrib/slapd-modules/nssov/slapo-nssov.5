@@ -155,7 +155,8 @@ The recommended approach is to use
 .B hostservice
 instead. In this case, ipHost entries must be created for all hosts
 being managed, and they must also have the authorizedServiceObject
-class to allow authorizedService attributes to be used.
+class to allow authorizedService attributes to be used. Also the
+NSS host SSD must be configured so that ipHost entries can be found.
 Authorization is checked by performing an LDAP Compare operation
 looking for the PAM service name in the authorizedService attribute.
 .B slapd
