@@ -732,6 +732,7 @@ int entry_encode(Entry *e, struct berval *bv)
 
 	Debug( LDAP_DEBUG_TRACE, "=> entry_encode(0x%08lx): %s\n",
 		(long) e->e_id, e->e_dn, 0 );
+
 	dnlen = e->e_name.bv_len;
 	ndnlen = e->e_nname.bv_len;
 
@@ -782,6 +783,10 @@ int entry_encode(Entry *e, struct berval *bv)
 			}
 		}
 	}
+
+	Debug( LDAP_DEBUG_TRACE, "<= entry_encode(0x%08lx): %s\n",
+		(long) e->e_id, e->e_dn, 0 );
+
 	return 0;
 }
 
