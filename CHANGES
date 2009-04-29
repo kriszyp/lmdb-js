@@ -2,6 +2,7 @@ OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.17 Engineering
 	Fixed libldap gnutls private key init (ITS#6053)
+	Fixed liblutil opendir/closedir on windows (ITS#6041)
 	Fixed slapd errno handling (ITS#6037)
 	Fixed slapd global alloc handling (ITS#6054)
 	Fixed slapd moduleload with static backends and modules (ITS#6016)
