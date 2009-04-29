@@ -879,6 +879,8 @@ rwm_entry_get_rw( Operation *op, struct berval *ndn,
 	op2.ors_attrs = slap_anlist_all_attributes;
 	rc = op2.o_bd->bd_info->bi_entry_get_rw( &op2, &mndn, oc, at, rw, ep );
 	if ( rc == LDAP_SUCCESS && *ep != NULL ) {
+		/* we assume be_entry_release() needs to be called */
+		rs.sr_flags = REP_ENTRY_MUSTRELEASE;
 		rs.sr_entry = *ep;
 
 		/* duplicate & release */
