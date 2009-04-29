@@ -80,7 +80,7 @@ usage( int tool, const char *progname )
 
 	case SLAPCAT:
 		options = " [-c]\n\t[-g] [-n databasenumber | -b suffix]"
-			" [-l ldiffile] [-a filter]\n";
+			" [-l ldiffile] [-a filter] [-s subtree]\n";
 		break;
 
 	case SLAPDN:
