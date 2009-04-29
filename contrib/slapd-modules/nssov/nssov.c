@@ -426,6 +426,7 @@ enum {
 	NSS_MAP,
 	NSS_PAM,
 	NSS_PAMGROUP,
+	NSS_PAMSESS
 };
 
 static ConfigDriver nss_cf_gen;
@@ -487,6 +488,11 @@ static ConfigTable nsscfg[] = {
 			"DESC 'Default template login name' "
 			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
+	{ "nssov-pam-session", "service", 2, 2, 0, ARG_MAGIC|ARG_BERVAL|NSS_PAMSESS,
+		nss_cf_gen, "(OLcfgCtAt:3.11 NAME 'olcNssPamSession' "
+			"DESC 'Services for which sessions will be recorded' "
+			"EQUALITY caseIgnoreMatch "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ NULL, NULL, 0,0,0, ARG_IGNORED }
 };
 
@@ -497,7 +503,7 @@ static ConfigOCs nssocs[] = {
 		"SUP olcOverlayConfig "
 		"MAY ( olcNssSsd $ olcNssMap $ olcNssPam $ olcNssPamDefHost $ "
 			"olcNssPamGroupDN $ olcNssPamGroupAD $ "
-			"olcNssPamMinUid $ olcNssPamMaxUid $ "
+			"olcNssPamMinUid $ olcNssPamMaxUid $ olcNssPamSession $ "
 			"olcNssPamTemplateAD $ olcNssPamTemplate ) )",
 		Cft_Overlay, nsscfg },
 	{ NULL, 0, NULL }
@@ -573,6 +579,13 @@ nss_cf_gen(ConfigArgs *c)
 			if (!BER_BVISEMPTY( &ni->ni_pam_group_dn )) {
 				value_add_one( &c->rvalue_vals, &ni->ni_pam_group_dn );
 				value_add_one( &c->rvalue_nvals, &ni->ni_pam_group_dn );
+			} else {
+				rc = 1;
+			}
+			break;
+		case NSS_PAMSESS:
+			if (ni->ni_pam_sessions) {
+				ber_bvarray_dup_x( &c->rvalue_vals, ni->ni_pam_sessions, NULL );
 			} else {
 				rc = 1;
 			}
@@ -675,6 +688,9 @@ nss_cf_gen(ConfigArgs *c)
 	case NSS_PAMGROUP:
 		ni->ni_pam_group_dn = c->value_ndn;
 		ch_free( c->value_dn.bv_val );
+		break;
+	case NSS_PAMSESS:
+		ber_bvarray_add( &ni->ni_pam_sessions, &c->value_bv );
 		break;
 	}
 	return rc;

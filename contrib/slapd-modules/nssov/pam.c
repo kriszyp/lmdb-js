@@ -494,7 +494,20 @@ static int pam_sess(nssov_info *ni,TFILE *fp,Operation *op,int action)
 	Debug(LDAP_DEBUG_TRACE,"nssov_pam_sess_%c(%s)\n",
 		action==NSLCD_ACTION_PAM_SESS_O ? 'o' : 'c', dn.bv_val,0);
 
-	if (!dn.bv_len) return 0;
+	if (!dn.bv_len || !ni->ni_pam_sessions) return 0;
+
+	{
+		int i, found=0;
+		for (i=0; !BER_BVISNULL(&ni->ni_pam_sessions[i]); i++) {
+			if (ni->ni_pam_sessions[i].bv_len != svc.bv_len)
+				continue;
+			if (!strcasecmp(ni->ni_pam_sessions[i].bv_val, svc.bv_val)) {
+				found = 1;
+				break;
+			}
+		}
+		if (!found) return 0;
+	}
 
 	slap_op_time( &op->o_time, &op->o_tincr );
 	timestamp.bv_len = sizeof(timebuf);

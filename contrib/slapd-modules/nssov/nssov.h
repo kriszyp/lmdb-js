@@ -74,6 +74,7 @@ typedef struct nssov_info
 	AttributeDescription *ni_pam_template_ad;
 	struct berval ni_pam_template;
 	struct berval ni_pam_defhost;
+	struct berval *ni_pam_sessions;
 } nssov_info;
 
 #define NI_PAM_USERHOST		1	/* old style host checking */
