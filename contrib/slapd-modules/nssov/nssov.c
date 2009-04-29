@@ -416,7 +416,7 @@ static slap_verbmasks pam_opts[] = {
 	{ BER_BVC("userservice"), NI_PAM_USERSVC },
 	{ BER_BVC("usergroup"), NI_PAM_USERGRP },
 	{ BER_BVC("hostservice"), NI_PAM_HOSTSVC },
-	{ BER_BVC("sasl2dn"), NI_PAM_SASL2DN },
+	{ BER_BVC("authz2dn"), NI_PAM_SASL2DN },
 	{ BER_BVC("uid2dn"), NI_PAM_UID2DN },
 	{ BER_BVNULL, 0 }
 };
@@ -458,7 +458,7 @@ static ConfigTable nsscfg[] = {
 			"DESC 'DN of group in which membership is required' "
 			"EQUALITY distinguishedNameMatch "
 			"SYNTAX OMsDN SINGLE-VALUE )", NULL, NULL },
-	{ "nssov-pam-group-ad", "options", 2, 2, 0, ARG_OFFSET|ARG_ATDESC,
+	{ "nssov-pam-group-ad", "attr", 2, 2, 0, ARG_OFFSET|ARG_ATDESC,
 		(void *)offsetof(struct nssov_info, ni_pam_group_ad),
 		"(OLcfgCtAt:3.6 NAME 'olcNssPamGroupAD' "
 			"DESC 'Member attribute to use for group check' "
@@ -709,7 +709,7 @@ nssov_db_init(
 	rc = nssov_pam_init();
 	if (rc) return rc;
 
-	ni = ch_malloc( sizeof(nssov_info) );
+	ni = ch_calloc( 1, sizeof(nssov_info) );
 	on->on_bi.bi_private = ni;
 
 	/* set up map keys */
@@ -726,6 +726,7 @@ nssov_db_init(
 	nssov_shadow_init(ni);
 
 	ni->ni_db = be->bd_self;
+	ni->ni_pam_opts = NI_PAM_UID2DN;
 
 	return 0;
 }
