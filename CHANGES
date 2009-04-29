@@ -15,6 +15,8 @@ OpenLDAP 2.4.17 Engineering
 		Added test057-memberof-refint (ITS#5395)
 	Documentation
 		admin24 fixed example regex (ITS#6052)
+		slapd.conf(5) pidfile/argsfile description fix (ITS#5975)
+		slapd-config(5) pidfile/argsfile description fix (ITS#5975)
 
 OpenLDAP 2.4.16 Release (2009/04/05)
 	Fixed libldap GnuTLS with x509v1 CA certs (ITS#5992)
