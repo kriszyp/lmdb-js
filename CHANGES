@@ -6,6 +6,7 @@ OpenLDAP 2.4.17 Engineering
 	Fixed slapd global alloc handling (ITS#6054)
 	Fixed slapd moduleload with static backends and modules (ITS#6016)
 	Fixed slapd normalization of updated schema attributes (ITS#5540)
+	Fixed slapd sockets usage on windows (ITS#6039)
 	Build Environment
 		Added test056-monitor (ITS#5540)
 		Added test057-memberof-refint (ITS#5395)
