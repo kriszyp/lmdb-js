@@ -649,6 +649,8 @@ slap_tool_init(
 			nosubordinates = 1;
 		}
 
+		ch_free( base.bv_val );
+
 	} else if ( dbnum == -1 ) {
 		/* no suffix and no dbnum specified, just default to
 		 * the first available database
