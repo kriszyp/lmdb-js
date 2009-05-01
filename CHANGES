@@ -10,8 +10,9 @@ OpenLDAP 2.4.17 Engineering
 	Fixed slapd normalization of updated schema attributes (ITS#5540)
 	Fixed slapd pagedresults stacked control with overlays (ITS#6056)
 	Fixed slapd sockets usage on windows (ITS#6039)
-	Fixed slapo-rwm dn passing (ITS#6070)
 	Added slapo-rwm rwm-drop-unrequested-attrs config option (ITS#6057)
+	Fixed slapo-rwm dn passing (ITS#6070)
+	Fixed slapo-rwm entry free (ITS#6058)
 	Build Environment
 		Added test056-monitor (ITS#5540)
 		Added test057-memberof-refint (ITS#5395)
