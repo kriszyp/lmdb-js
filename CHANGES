@@ -15,6 +15,7 @@ OpenLDAP 2.4.17 Engineering
 	Added slapo-rwm rwm-drop-unrequested-attrs config option (ITS#6057)
 	Fixed slapo-rwm dn passing (ITS#6070)
 	Fixed slapo-rwm entry free (ITS#6058)
+	Fixed slapo-rwm entry release (ITS#6081)
 	Build Environment
 		Added test056-monitor (ITS#5540)
 		Added test057-memberof-refint (ITS#5395)
