@@ -1345,6 +1345,9 @@ bdb_cache_delete_cleanup(
 {
 	/* Enter with ei locked */
 
+	/* already freed? */
+	if ( !ei->bei_parent ) return;
+
 	if ( ei->bei_e ) {
 		ei->bei_e->e_private = NULL;
 #ifdef SLAP_ZONE_ALLOC
@@ -1367,6 +1370,10 @@ bdb_cache_delete_internal(
 {
 	int rc = 0;	/* return code */
 	int decr_leaf = 0;
+
+	/* already freed? */
+	if ( !e->bei_parent )
+		return -1;
 
 	/* Lock the parent's kids tree */
 	bdb_cache_entryinfo_lock( e->bei_parent );
