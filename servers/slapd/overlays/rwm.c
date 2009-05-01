@@ -1197,7 +1197,8 @@ rwm_attrs( Operation *op, SlapReply *rs, Attribute** a_first, int stripEntryDN )
 		int			last = -1;
 		Attribute		*a;
 
-		if ( op->ors_attrs != NULL && 
+		if ( ( rwmap->rwm_flags & RWM_F_DROP_UNREQUESTED_ATTRS ) &&
+				op->ors_attrs != NULL && 
 				!SLAP_USERATTRS( rs->sr_attr_flags ) &&
 				!ad_inlist( (*ap)->a_desc, op->ors_attrs ) )
 		{
@@ -1829,6 +1830,7 @@ enum {
 	RWM_CF_MAP,
 	RWM_CF_T_F_SUPPORT,
 	RWM_CF_NORMALIZE_MAPPED,
+	RWM_CF_DROP_UNREQUESTED,
 
 	RWM_CF_LAST
 };
@@ -1879,6 +1881,14 @@ static ConfigTable rwmcfg[] = {
 		2, 2, 0, ARG_MAGIC|ARG_ON_OFF|RWM_CF_NORMALIZE_MAPPED, rwm_cf_gen,
 		"( OLcfgOvAt:16.4 NAME 'olcRwmNormalizeMapped' "
 			"DESC 'Normalize mapped attributes/objectClasses' "
+			"SYNTAX OMsBoolean "
+			"SINGLE-VALUE )",
+		NULL, NULL },
+
+	{ "rwm-drop-unrequested-attrs", "true|false",
+		2, 2, 0, ARG_MAGIC|ARG_ON_OFF|RWM_CF_DROP_UNREQUESTED, rwm_cf_gen,
+		"( OLcfgOvAt:16.5 NAME 'olcRwmDropUnrequested' "
+			"DESC 'Drop unrequested attributes' "
 			"SYNTAX OMsBoolean "
 			"SINGLE-VALUE )",
 		NULL, NULL },
@@ -2051,6 +2061,10 @@ rwm_cf_gen( ConfigArgs *c )
 			c->value_int = ( rwmap->rwm_flags & RWM_F_NORMALIZE_MAPPED_ATTRS );
 			break;
 
+		case RWM_CF_DROP_UNREQUESTED:
+			c->value_int = ( rwmap->rwm_flags & RWM_F_DROP_UNREQUESTED_ATTRS );
+			break;
+
 		default:
 			assert( 0 );
 			rc = 1;
@@ -2143,6 +2157,10 @@ rwm_cf_gen( ConfigArgs *c )
 
 		case RWM_CF_NORMALIZE_MAPPED:
 			rwmap->rwm_flags &= ~RWM_F_NORMALIZE_MAPPED_ATTRS;
+			break;
+
+		case RWM_CF_DROP_UNREQUESTED:
+			rwmap->rwm_flags &= ~RWM_F_DROP_UNREQUESTED_ATTRS;
 			break;
 
 		default:
@@ -2325,6 +2343,14 @@ rwm_cf_gen( ConfigArgs *c )
 		}
 		break;
 
+	case RWM_CF_DROP_UNREQUESTED:
+		if ( c->value_int ) {
+			rwmap->rwm_flags |= RWM_F_DROP_UNREQUESTED_ATTRS;
+		} else {
+			rwmap->rwm_flags &= ~RWM_F_DROP_UNREQUESTED_ATTRS;
+		}
+		break;
+
 	default:
 		assert( 0 );
 		return 1;
@@ -2344,9 +2370,11 @@ rwm_db_init(
 
 	rwmap = (struct ldaprwmap *)ch_calloc( 1, sizeof( struct ldaprwmap ) );
 
+	/* default */
+	rwmap->rwm_flags = RWM_F_DROP_UNREQUESTED_ATTRS;
+
 	rc = rwm_info_init( &rwmap->rwm_rw );
 
-error_return:;
 	on->on_bi.bi_private = (void *)rwmap;
 
 	if ( rc ) {

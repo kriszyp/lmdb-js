@@ -89,6 +89,19 @@ Set this to "yes", if the
 overlay should try to normalize the values of attributes that are mapped from
 an attribute type that is unknown to the local server. The default value of
 this setting is "no".
+.TP
+.B rwm-drop-unrequested-attrs {yes|no}
+Set this to "yes", if the
+.B rwm
+overlay should drop attributes that are not explicitly requested
+by a search operation.
+When this is set to "no", the
+.B rwm
+overlay will leave all attributes in place, so that subsequent modules
+can further manipulate them.
+In any case, unrequested attributes will be omitted from search results
+by the frontend, when the search entry response package is encoded.
+The default value of this setting is "yes".
 .SH SUFFIX MASSAGING
 A basic feature of the
 .B rwm
