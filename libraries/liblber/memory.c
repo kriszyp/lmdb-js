@@ -651,6 +651,16 @@ ber_strdup( LDAP_CONST char *s )
 	return ber_strdup_x( s, NULL );
 }
 
+ber_len_t
+ber_strnlen( LDAP_CONST char *s, ber_len_t len )
+{
+	ber_len_t l;
+
+	for ( l = 0; l < len && s[l] != '\0'; l++ ) ;
+
+	return l;
+}
+
 char *
 ber_strndup_x( LDAP_CONST char *s, ber_len_t l, void *ctx )
 {
@@ -666,11 +676,7 @@ ber_strndup_x( LDAP_CONST char *s, ber_len_t l, void *ctx )
 		return NULL;
 	}
 
-	len = strlen( s );
-
-	if ( len > l ) {
-		len = l;
-	}
+	len = ber_strnlen( s, l );
 
 	if ( (p = ber_memalloc_x( len + 1, ctx )) == NULL ) {
 		ber_errno = LBER_ERROR_MEMORY;
