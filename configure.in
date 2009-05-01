@@ -2480,7 +2480,6 @@ AC_CHECK_FUNCS(			\
 	seteuid			\
 	signal			\
 	strdup			\
-	strnlen			\
 	strpbrk			\
 	strrchr			\
 	strsep			\
