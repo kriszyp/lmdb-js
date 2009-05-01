@@ -13,8 +13,8 @@
  * <http://www.OpenLDAP.org/license.html>.
  */
 
-#if defined(HAVE_STRNLEN) && !defined(_GNU_SOURCE)
-#define _GNU_SOURCE 1			/* Get strnlen() from <string.h> */
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE 1	/* Needed for <string.h> if HAVE_STRNLEN */
 #endif
 
 #include "portable.h"
