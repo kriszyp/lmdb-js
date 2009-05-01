@@ -13,10 +13,6 @@
  * <http://www.OpenLDAP.org/license.html>.
  */
 
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE 1	/* Needed for <string.h> if HAVE_STRNLEN */
-#endif
-
 #include "portable.h"
 
 #include <ac/stdlib.h>
@@ -658,19 +654,11 @@ ber_strdup( LDAP_CONST char *s )
 ber_len_t
 ber_strnlen( LDAP_CONST char *s, ber_len_t len )
 {
-#ifdef HAVE_STRNLEN
-	return (ber_len_t)strnlen( s, (ber_len_t)len );
-#else
 	ber_len_t l;
 
-	for ( l = 0; l < len; l++ ) {
-		if ( s[l] == '\0' ) {
-			return l;
-		}
-	}
+	for ( l = 0; l < len && s[l] != '\0'; l++ ) ;
 
-	return len;
-#endif /* HAVE_STRNLEN */
+	return l;
 }
 
 char *
