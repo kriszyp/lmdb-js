@@ -85,7 +85,7 @@ bdb_cache_entryinfo_free( Cache *cache, EntryInfo *ei )
 	BER_BVZERO( &ei->bei_nrdn );
 #ifdef BDB_HIER
 	free( ei->bei_rdn.bv_val );
-	BER_BVZERO( &ei->bei_rdn.bv_val );
+	BER_BVZERO( &ei->bei_rdn );
 	ei->bei_modrdns = 0;
 	ei->bei_ckids = 0;
 	ei->bei_dkids = 0;
