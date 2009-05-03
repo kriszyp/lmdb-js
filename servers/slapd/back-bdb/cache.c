@@ -64,6 +64,7 @@ bdb_cache_entryinfo_new( Cache *cache )
 			ei = cache->c_eifree;
 			cache->c_eifree = ei->bei_lrunext;
 			ei->bei_finders = 0;
+			ei->bei_lrunext = NULL;
 		}
 		ldap_pvt_thread_mutex_unlock( &cache->c_eifree_mutex );
 	}
@@ -81,10 +82,10 @@ static void
 bdb_cache_entryinfo_free( Cache *cache, EntryInfo *ei )
 {
 	free( ei->bei_nrdn.bv_val );
-	ei->bei_nrdn.bv_val = NULL;
+	BER_BVZERO( &ei->bei_nrdn );
 #ifdef BDB_HIER
 	free( ei->bei_rdn.bv_val );
-	ei->bei_rdn.bv_val = NULL;
+	BER_BVZERO( &ei->bei_rdn.bv_val );
 	ei->bei_modrdns = 0;
 	ei->bei_ckids = 0;
 	ei->bei_dkids = 0;
@@ -1358,8 +1359,8 @@ bdb_cache_delete_cleanup(
 		ei->bei_e = NULL;
 	}
 
-	bdb_cache_entryinfo_free( cache, ei );
 	bdb_cache_entryinfo_unlock( ei );
+	bdb_cache_entryinfo_free( cache, ei );
 }
 
 static int
