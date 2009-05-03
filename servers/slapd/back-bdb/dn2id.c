@@ -529,8 +529,8 @@ int hdb_fix_dn(
 		}
 	}
 	BEI(e)->bei_modrdns = max;
-	ptr[-1] = '\0';
-	nptr[-1] = '\0';
+	if ( ptr > e->e_name.bv_val ) ptr[-1] = '\0';
+	if ( nptr > e->e_nname.bv_val ) nptr[-1] = '\0';
 
 	return 0;
 }
