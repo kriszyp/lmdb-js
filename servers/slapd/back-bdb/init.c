@@ -223,6 +223,7 @@ bdb_db_open( BackendDB *be, ConfigReply *cr )
 			"Run manual recovery if errors are encountered.\n",
 			be->be_suffix[0].bv_val, 0, 0 );
 		do_recover = 0;
+		do_alock_recover = 0;
 		quick = alockt;
 	}
 
