@@ -302,7 +302,8 @@ retry:	/* transaction retry */
 				dnRdn( &op->ora_e->e_name, &rdn );
 
 				build_new_dn( &newdn, &p->e_name, &rdn, NULL ); 
-				ber_memfree( op->ora_e->e_name.bv_val );
+				if ( op->ora_e->e_name.bv_val != op->o_req_dn.bv_val )
+					ber_memfree( op->ora_e->e_name.bv_val );
 				op->ora_e->e_name = newdn;
 
 				/* FIXME: should check whether
