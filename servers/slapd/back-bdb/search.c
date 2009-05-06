@@ -569,10 +569,6 @@ dn2entry_retry:
 #ifdef SLAP_ZONE_ALLOC
 	slap_zn_runlock(bdb->bi_cache.c_zctx, e);
 #endif
-	if ( e != e_root ) {
-		bdb_cache_return_entry_r(bdb, e, &lock);
-	}
-	e = NULL;
 
 	/* select candidates */
 	if ( op->oq_search.rs_scope == LDAP_SCOPE_BASE ) {
@@ -594,6 +590,11 @@ cand_retry:
 			return LDAP_BUSY;
 		}
 	}
+
+	if ( e != e_root ) {
+		bdb_cache_return_entry_r(bdb, e, &lock);
+	}
+	e = NULL;
 
 	/* start cursor at beginning of candidates.
 	 */
