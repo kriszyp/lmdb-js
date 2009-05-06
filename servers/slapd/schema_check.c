@@ -797,7 +797,7 @@ entry_naming_check(
 	if ( ldap_bv2rdn( &e->e_name, &rdn, (char **)&p,
 		LDAP_DN_FORMAT_LDAP ) )
 	{
-		*text = "unrecongized attribute type(s) in RDN";
+		*text = "unrecognized attribute type(s) in RDN";
 		return LDAP_INVALID_DN_SYNTAX;
 	}
 
