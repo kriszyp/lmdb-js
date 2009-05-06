@@ -237,6 +237,7 @@ slap_tool_init(
 		leakfile = stderr;
 	}
 	free( leakfilename );
+	leakfilename = NULL;
 #endif
 
 	switch( tool ) {
@@ -447,6 +448,7 @@ slap_tool_init(
 #endif
 #ifdef HAVE_EBCDIC
 		free( logName );
+		logName = NULL;
 #endif
 	}
 #endif /* LDAP_DEBUG && LDAP_SYSLOG */
@@ -598,6 +600,9 @@ slap_tool_init(
 			fprintf( stderr, "Invalid filter '%s'\n", filterstr );
 			exit( EXIT_FAILURE );
 		}
+
+		ch_free( filterstr );
+		filterstr = NULL;
 	}
 
 	if( subtree ) {
@@ -613,6 +618,7 @@ slap_tool_init(
 			base = val;
 		} else {
 			free( subtree );
+			subtree = NULL;
 		}
 	}
 
@@ -628,6 +634,7 @@ slap_tool_init(
 
 		be = select_backend( &nbase, 0 );
 		ber_memfree( nbase.bv_val );
+		BER_BVZERO( &nbase );
 
 		switch ( tool ) {
 		case SLAPACL:
@@ -650,6 +657,7 @@ slap_tool_init(
 		}
 
 		ch_free( base.bv_val );
+		BER_BVZERO( &base );
 
 	} else if ( dbnum == -1 ) {
 		/* no suffix and no dbnum specified, just default to
@@ -723,10 +731,12 @@ startup:;
 
 	if ( conffile != NULL ) {
 		ch_free( conffile );
+		conffile = NULL;
 	}
 
 	if ( ldiffile != NULL ) {
 		ch_free( ldiffile );
+		ldiffile = NULL;
 	}
 
 	/* slapdn doesn't specify a backend to startup */
@@ -781,6 +791,7 @@ int slap_tool_destroy( void )
 
 	if ( !BER_BVISNULL( &authcDN ) ) {
 		ch_free( authcDN.bv_val );
+		BER_BVZERO( &authcDN );
 	}
 
 	if ( ldiffp && ldiffp != &dummy ) {
