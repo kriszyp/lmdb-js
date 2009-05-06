@@ -142,6 +142,57 @@ ldap_int_prepare_socket(LDAP *ld, int s, int proto )
 				"setsockopt(%d, SO_KEEPALIVE) failed (ignored).\n",
 				s, 0, 0 );
 		}
+		if ( ld->ld_options.ldo_keepalive_idle > 0 )
+		{
+#ifdef TCP_KEEPIDLE
+			if ( setsockopt( s, SOL_TCP, TCP_KEEPIDLE,
+					(void*) &ld->ld_options.ldo_keepalive_idle,
+					sizeof(ld->ld_options.ldo_keepalive_idle) ) == AC_SOCKET_ERROR )
+			{
+				osip_debug( ld, "ldap_prepare_socket: "
+					"setsockopt(%d, TCP_KEEPIDLE) failed (ignored).\n",
+					s, 0, 0 );
+			}
+#else
+			osip_debug( ld, "ldap_prepare_socket: "
+					"sockopt TCP_KEEPIDLE not supported on this system.\n", 
+					0, 0, 0 );
+#endif /* TCP_KEEPIDLE */
+		}
+		if ( ld->ld_options.ldo_keepalive_probes > 0 )
+		{
+#ifdef TCP_KEEPCNT
+			if ( setsockopt( s, SOL_TCP, TCP_KEEPCNT,
+					(void*) &ld->ld_options.ldo_keepalive_probes,
+					sizeof(ld->ld_options.ldo_keepalive_probes) ) == AC_SOCKET_ERROR )
+			{
+				osip_debug( ld, "ldap_prepare_socket: "
+					"setsockopt(%d, TCP_KEEPCNT) failed (ignored).\n",
+					s, 0, 0 );
+			}
+#else
+			osip_debug( ld, "ldap_prepare_socket: "
+					"sockopt TCP_KEEPCNT not supported on this system.\n", 
+					0, 0, 0 );
+#endif /* TCP_KEEPCNT */
+		}
+		if ( ld->ld_options.ldo_keepalive_interval > 0 )
+		{
+#ifdef TCP_KEEPINTVL
+			if ( setsockopt( s, SOL_TCP, TCP_KEEPINTVL,
+					(void*) &ld->ld_options.ldo_keepalive_interval,
+					sizeof(ld->ld_options.ldo_keepalive_interval) ) == AC_SOCKET_ERROR )
+			{
+				osip_debug( ld, "ldap_prepare_socket: "
+					"setsockopt(%d, TCP_KEEPINTVL) failed (ignored).\n",
+					s, 0, 0 );
+			} 
+#else
+			osip_debug( ld, "ldap_prepare_socket: "
+					"sockopt TCP_KEEPINTVL not supported on this system.\n", 
+					0, 0, 0 );
+#endif /* TCP_KEEPINTVL */
+		}
 #endif /* SO_KEEPALIVE */
 #ifdef TCP_NODELAY
 		if ( setsockopt( s, IPPROTO_TCP, TCP_NODELAY,

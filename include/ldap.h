@@ -191,6 +191,13 @@ LDAP_BEGIN_DECL
 #define LDAP_OPT_X_GSSAPI_DO_NOT_FREE_CONTEXT      0x6200
 #define LDAP_OPT_X_GSSAPI_ALLOW_REMOTE_PRINCIPAL   0x6201
 
+/*
+ * OpenLDAP per connection tcp-keepalive settings
+ * (Linux only, ignored where unsupported)
+ */
+#define LDAP_OPT_X_KEEPALIVE_IDLE		0x6300
+#define LDAP_OPT_X_KEEPALIVE_PROBES		0x6301
+#define LDAP_OPT_X_KEEPALIVE_INTERVAL	0x6302
 
 /* Private API Extensions -- reserved for application use */
 #define LDAP_OPT_PRIVATE_EXTENSION_BASE 0x7000  /* Private API inclusive */

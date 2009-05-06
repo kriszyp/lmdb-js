@@ -244,6 +244,14 @@ struct ldapoptions {
 	unsigned ldo_gssapi_options;
 #endif
 
+	/*
+	 * Per connection tcp-keepalive settings (Linux only,
+	 * ignored where unsupported)
+	 */
+	ber_int_t ldo_keepalive_idle;
+	ber_int_t ldo_keepalive_probes;
+	ber_int_t ldo_keepalive_interval;
+
 	int		ldo_refhoplimit;	/* limit on referral nesting */
 
 	/* LDAPv3 server and client controls */
