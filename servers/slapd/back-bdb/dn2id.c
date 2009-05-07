@@ -1102,7 +1102,7 @@ hdb_dn2idl_internal(
 		cx->rc = cx->dbc->c_close( cx->dbc );
 done_one:
 		bdb_cache_entryinfo_lock( cx->ei );
-		cx->ei->bei_state ^= CACHE_ENTRY_ONELEVEL;
+		cx->ei->bei_state &= ~CACHE_ENTRY_ONELEVEL;
 		bdb_cache_entryinfo_unlock( cx->ei );
 		if ( cx->rc )
 			return cx->rc;
@@ -1151,15 +1151,23 @@ gotit:
 				for ( cx->id = bdb_idl_first( save, &idcurs );
 					cx->id != NOID;
 					cx->id = bdb_idl_next( save, &idcurs )) {
-					cx->ei = bdb_cache_find_info( cx->bdb, cx->id );
+					EntryInfo *ei2;
+					cx->ei = NULL;
+					if ( bdb_cache_find_id( cx->op, cx->txn, cx->id, &cx->ei,
+						ID_NOENTRY, NULL ))
+						continue;
 					if ( !cx->ei ||
 						( cx->ei->bei_state & CACHE_ENTRY_NO_KIDS ))
 						continue;
 
+					ei2 = cx->ei;
 					BDB_ID2DISK( cx->id, &cx->nid );
 					hdb_dn2idl_internal( cx );
 					if ( !BDB_IDL_IS_ZERO( cx->tmp ))
 						nokids = 0;
+					bdb_cache_entryinfo_lock( ei2 );
+					ei2->bei_finders--;
+					bdb_cache_entryinfo_unlock( ei2 );
 				}
 				cx->depth--;
 				cx->op->o_tmpfree( save, cx->op->o_tmpmemctx );
