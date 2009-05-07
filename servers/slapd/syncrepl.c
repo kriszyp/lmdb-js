@@ -1622,7 +1622,16 @@ syncrepl_message_to_op(
 
 		if ( !ber_bvstrcasecmp( &bv, &ls->ls_dn ) ) {
 			bdn = bvals[0];
-			dnPrettyNormal( NULL, &bdn, &dn, &ndn, op->o_tmpmemctx );
+			rc = dnPrettyNormal( NULL, &bdn, &dn, &ndn, op->o_tmpmemctx );
+			if ( rc != LDAP_SUCCESS ) {
+				Debug( LDAP_DEBUG_ANY,
+					"syncrepl_message_to_op: %s "
+					"dn \"%s\" normalization failed (%d)",
+					si->si_ridtxt, bdn.bv_val, rc );
+				rc = -1;
+				ch_free( bvals );
+				goto done;
+			}
 			ber_dupbv( &op->o_req_dn, &dn );
 			ber_dupbv( &op->o_req_ndn, &ndn );
 			slap_sl_free( ndn.bv_val, op->o_tmpmemctx );
@@ -1854,7 +1863,21 @@ syncrepl_message_to_entry(
 		return -1;
 	}
 
-	dnPrettyNormal( NULL, &bdn, &dn, &ndn, op->o_tmpmemctx );
+	rc = dnPrettyNormal( NULL, &bdn, &dn, &ndn, op->o_tmpmemctx );
+	if ( rc != LDAP_SUCCESS ) {
+		/* One of the things that could happen is that the schema
+		 * is not lined-up; this could result in unknown attributes.
+		 * A value non conformant to the syntax should be unlikely,
+		 * except when replicating between different versions
+		 * of the software, or when syntax validation bugs are fixed
+		 */
+		Debug( LDAP_DEBUG_ANY,
+			"syncrepl_message_to_entry: "
+			"%s dn \"%s\" normalization failed (%d)",
+			si->si_ridtxt, bdn.bv_val, rc );
+		return rc;
+	}
+
 	ber_dupbv( &op->o_req_dn, &dn );
 	ber_dupbv( &op->o_req_ndn, &ndn );
 	slap_sl_free( ndn.bv_val, op->o_tmpmemctx );
