@@ -52,7 +52,7 @@ backsql_PrintErrors( SQLHENV henv, SQLHDBC hdbc, SQLHSTMT sth, int rc )
 }
 
 RETCODE
-backsql_Prepare( SQLHDBC dbh, SQLHSTMT *sth, char *query, int timeout )
+backsql_Prepare( SQLHDBC dbh, SQLHSTMT *sth, const char *query, int timeout )
 {
 	RETCODE		rc;
 
