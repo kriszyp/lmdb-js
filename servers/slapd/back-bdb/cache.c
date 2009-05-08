@@ -609,11 +609,10 @@ par2:
 			ldap_pvt_thread_rdwr_wlock( &bdb->bi_cache.c_rwlock );
 			goto par2;
 		}
-		if ( add ) {
+		if ( add )
 			bdb->bi_cache.c_eiused++;
-			if ( ei2 && ( ei2->bei_kids || !ei2->bei_id ))
-				bdb->bi_cache.c_leaves++;
-		}
+		if ( ei2 && ( ei2->bei_kids || !ei2->bei_id ))
+			bdb->bi_cache.c_leaves++;
 		ldap_pvt_thread_rdwr_wunlock( &bdb->bi_cache.c_rwlock );
 
 gotparent:
