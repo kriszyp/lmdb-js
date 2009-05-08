@@ -6,6 +6,7 @@ OpenLDAP 2.4.17 Engineering
 	Fixed libldap tls NULL error messages (ITS#6079)
 	Fixed liblutil opendir/closedir on windows (ITS#6041)
 	Fixed liblutil for _GNU_SOURCE (ITS#5464,ITS#5666)
+	Fixed slapd cert validation (ITS#6098)
 	Fixed slapd errno handling (ITS#6037)
 	Fixed slapd global alloc handling (ITS#6054)
 	Fixed slapd moduleload with static backends and modules (ITS#6016)
