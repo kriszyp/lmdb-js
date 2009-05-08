@@ -38,6 +38,7 @@ static int	bdb_cache_delete_internal(Cache *cache, EntryInfo *e, int decr);
 #define SLAPD_UNUSED
 #ifdef SLAPD_UNUSED
 static void	bdb_lru_print(Cache *cache);
+static void	bdb_idtree_print(Cache *cache);
 #endif
 #endif
 
@@ -564,7 +565,7 @@ again:
 			bdb_id_cmp, bdb_id_dup_err ) ) {
 			EntryInfo *eix = ein->bei_lrunext;
 
-			if ( eix->bei_state & (CACHE_ENTRY_PURGED|CACHE_ENTRY_DELETED) ) {
+			if ( bdb_cache_entryinfo_trylock( eix )) {
 				ldap_pvt_thread_rdwr_wunlock( &bdb->bi_cache.c_rwlock );
 				ldap_pvt_thread_yield();
 				goto again;
@@ -580,7 +581,6 @@ again:
 			if ( eir == ein ) {
 				*res = eix;
 				rc = 0;
-				bdb_cache_entryinfo_lock( eix );
 				break;
 			}
 
@@ -596,14 +596,18 @@ again:
 		if ( ei2 ) ei2->bei_parent = ein;
 
 		/* Look for this node's parent */
+par2:
 		if ( eip.bei_id ) {
 			ei2 = (EntryInfo *) avl_find( bdb->bi_cache.c_idtree,
 					(caddr_t) &eip, bdb_id_cmp );
-			if ( ei2 && ( ei2->bei_state & ( CACHE_ENTRY_PURGED|CACHE_ENTRY_DELETED ))) {
-				ei2 = NULL;
-			}
 		} else {
 			ei2 = &bdb->bi_cache.c_dntree;
+		}
+		if ( ei2 && bdb_cache_entryinfo_trylock( ei2 )) {
+			ldap_pvt_thread_rdwr_wunlock( &bdb->bi_cache.c_rwlock );
+			ldap_pvt_thread_yield();
+			ldap_pvt_thread_rdwr_wlock( &bdb->bi_cache.c_rwlock );
+			goto par2;
 		}
 		if ( add ) {
 			bdb->bi_cache.c_eiused++;
@@ -615,7 +619,6 @@ again:
 gotparent:
 		/* Got the parent, link in and we're done. */
 		if ( ei2 ) {
-			bdb_cache_entryinfo_lock( ei2 );
 			bdb_cache_entryinfo_lock( eir );
 			ein->bei_parent = ei2;
 
@@ -628,6 +631,7 @@ gotparent:
 				ein->bei_state &= ~CACHE_ENTRY_NOT_LINKED;
 
 			bdb_cache_entryinfo_unlock( ei2 );
+			eir->bei_finders--;
 
 			*res = eir;
 			break;
@@ -1036,12 +1040,12 @@ load1:
 					}
 #endif
 				}
+				bdb_cache_entryinfo_lock( *eip );
+				(*eip)->bei_finders--;
+				if ( load )
+					(*eip)->bei_state ^= CACHE_ENTRY_LOADING;
+				bdb_cache_entryinfo_unlock( *eip );
 			}
-			bdb_cache_entryinfo_lock( *eip );
-			(*eip)->bei_finders--;
-			if ( load )
-				(*eip)->bei_state ^= CACHE_ENTRY_LOADING;
-			bdb_cache_entryinfo_unlock( *eip );
 		}
 	}
 	if ( flag & ID_LOCKED ) {
@@ -1411,8 +1415,6 @@ bdb_cache_delete_internal(
 		return -1;
 	}
 
-	e->bei_state |= CACHE_ENTRY_PURGED;
-
 #ifdef BDB_HIER
 	e->bei_parent->bei_ckids--;
 	if ( decr && e->bei_parent->bei_dkids ) e->bei_parent->bei_dkids--;
@@ -1526,6 +1528,21 @@ bdb_lru_print( Cache *cache )
 		if ( e == cache->c_lrutail )
 			break;
 	}
+}
+
+static int
+bdb_entryinfo_print(void *data, void *arg)
+{
+	EntryInfo *e = data;
+	fprintf( stderr, "\t%p, %p id %ld rdn \"%s\"\n",
+		(void *) e, (void *) e->bei_e, e->bei_id, e->bei_nrdn.bv_val );
+	return 0;
+}
+
+static void
+bdb_idtree_print(Cache *cache)
+{
+	avl_apply( cache->c_idtree, bdb_entryinfo_print, NULL, -1, AVL_INORDER );
 }
 #endif
 #endif
