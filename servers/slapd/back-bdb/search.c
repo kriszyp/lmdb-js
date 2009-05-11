@@ -668,6 +668,7 @@ loop_begin:
 		/* check for abandon */
 		if ( op->o_abandon ) {
 			rs->sr_err = SLAPD_ABANDON;
+			send_ldap_result( op, rs );
 			goto done;
 		}
 
