@@ -145,7 +145,7 @@ static long send_ldap_ber(
 
 	/* write only one pdu at a time - wait til it's our turn */
 	ldap_pvt_thread_mutex_lock( &conn->c_write1_mutex );
-	if ( op->o_abandon || connection_state_closing( conn )) {
+	if (( op->o_abandon && !op->o_cancel ) || connection_state_closing( conn )) {
 		ldap_pvt_thread_mutex_unlock( &conn->c_write1_mutex );
 		return 0;
 	}
@@ -416,8 +416,12 @@ send_ldap_response(
 	long	bytes;
 
 	if ( rs->sr_err == SLAPD_ABANDON || op->o_abandon ) {
-		rc = SLAPD_ABANDON;
-		goto clean2;
+		if ( op->o_cancel ) {
+			rs->sr_err = LDAP_CANCELLED;
+		} else {
+			rc = SLAPD_ABANDON;
+			goto clean2;
+		}
 	}
 
 	if ( op->o_callback ) {
