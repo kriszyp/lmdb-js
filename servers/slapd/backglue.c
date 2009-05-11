@@ -535,17 +535,18 @@ end_of_loop:;
 
 		break;
 	}
+
+	op->o_callback = cb.sc_next;
 	if ( op->o_abandon ) {
 		rs->sr_err = SLAPD_ABANDON;
 	} else {
-		op->o_callback = cb.sc_next;
 		rs->sr_err = gs.err;
 		rs->sr_matched = gs.matched;
 		rs->sr_ref = gs.refs;
-		rs->sr_ctrls = gs.ctrls;
-
-		send_ldap_result( op, rs );
 	}
+	rs->sr_ctrls = gs.ctrls;
+
+	send_ldap_result( op, rs );
 
 	op->o_bd = b0;
 	op->o_bd->bd_info = bi0;
