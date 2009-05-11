@@ -1126,7 +1126,7 @@ operations_error:
 	}
 
 	if ( op->o_cancel == SLAP_CANCEL_REQ ) {
-		if ( rc == SLAPD_ABANDON || rc == LDAP_CANCELLED ) {
+		if ( rc == SLAPD_ABANDON ) {
 			op->o_cancel = SLAP_CANCEL_ACK;
 		} else {
 			op->o_cancel = LDAP_TOO_LATE;

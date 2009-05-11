@@ -415,13 +415,9 @@ send_ldap_response(
 	int		rc = LDAP_SUCCESS;
 	long	bytes;
 
-	if ( rs->sr_err == SLAPD_ABANDON || op->o_abandon ) {
-		if ( op->o_cancel ) {
-			rs->sr_err = LDAP_CANCELLED;
-		} else {
-			rc = SLAPD_ABANDON;
-			goto clean2;
-		}
+	if (( rs->sr_err == SLAPD_ABANDON || op->o_abandon ) && !op->o_cancel ) {
+		rc = SLAPD_ABANDON;
+		goto clean2;
 	}
 
 	if ( op->o_callback ) {
@@ -441,9 +437,13 @@ send_ldap_response(
 		ber_set_option( ber, LBER_OPT_BER_MEMCTX, &op->o_tmpmemctx );
 	}
 
+	rc = rs->sr_err;
+	if ( rc == SLAPD_ABANDON && op->o_cancel )
+		rc = LDAP_CANCELLED;
+
 	Debug( LDAP_DEBUG_TRACE,
 		"send_ldap_response: msgid=%d tag=%lu err=%d\n",
-		rs->sr_msgid, rs->sr_tag, rs->sr_err );
+		rs->sr_msgid, rs->sr_tag, rc );
 
 	if( rs->sr_ref ) {
 		Debug( LDAP_DEBUG_ARGS, "send_ldap_response: ref=\"%s\"\n",
@@ -467,7 +467,7 @@ send_ldap_response(
 
 	} else {
 	    rc = ber_printf( ber, "{it{ess" /*"}}"*/,
-		rs->sr_msgid, rs->sr_tag, rs->sr_err,
+		rs->sr_msgid, rs->sr_tag, rc,
 		rs->sr_matched == NULL ? "" : rs->sr_matched,
 		rs->sr_text == NULL ? "" : rs->sr_text );
 	}
