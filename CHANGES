@@ -12,6 +12,7 @@ OpenLDAP 2.4.17 Engineering
 	Fixed slapd moduleload with static backends and modules (ITS#6016)
 	Fixed slapd normalization of updated schema attributes (ITS#5540)
 	Fixed slapd pagedresults stacked control with overlays (ITS#6056)
+	Fixed slapd sending cancelled operations results (ITS#6103)
 	Fixed slapd sockets usage on windows (ITS#6039)
 	Fixed slapd-hdb freeing of already freed entries (ITS#6074)
 	Fixed slapd-hdb entryinfo cleanup (ITS#6088)
