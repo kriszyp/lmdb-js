@@ -53,18 +53,22 @@ static unsigned long conn_nextid = 0;
 static const char conn_lost_str[] = "connection lost";
 
 /* structure state (protected by connections_mutex) */
-#define SLAP_C_UNINITIALIZED	0x00	/* MUST BE ZERO (0) */
-#define SLAP_C_UNUSED			0x01
-#define SLAP_C_USED				0x02
-#define	SLAP_C_PENDING			0x03
+enum sc_struct_state {
+	SLAP_C_UNINITIALIZED = 0,	/* MUST BE ZERO (0) */
+	SLAP_C_UNUSED,
+	SLAP_C_USED,
+	SLAP_C_PENDING
+};
 
 /* connection state (protected by c_mutex ) */
-#define SLAP_C_INVALID			0x00	/* MUST BE ZERO (0) */
-#define SLAP_C_INACTIVE			0x01	/* zero threads */
-#define SLAP_C_ACTIVE			0x02	/* one or more threads */
-#define SLAP_C_BINDING			0x03	/* binding */
-#define SLAP_C_CLOSING			0x04	/* closing */
-#define SLAP_C_CLIENT			0x05	/* outbound client conn */
+enum sc_conn_state {
+	SLAP_C_INVALID = 0,		/* MUST BE ZERO (0) */
+	SLAP_C_INACTIVE,		/* zero threads */
+	SLAP_C_CLOSING,			/* closing */
+	SLAP_C_ACTIVE,			/* one or more threads */
+	SLAP_C_BINDING,			/* binding */
+	SLAP_C_CLIENT			/* outbound client conn */
+};
 
 const char *
 connection_state2str( int state )
@@ -72,9 +76,9 @@ connection_state2str( int state )
 	switch( state ) {
 	case SLAP_C_INVALID:	return "!";
 	case SLAP_C_INACTIVE:	return "|";
+	case SLAP_C_CLOSING:	return "C";
 	case SLAP_C_ACTIVE:		return "";
 	case SLAP_C_BINDING:	return "B";
-	case SLAP_C_CLOSING:	return "C";
 	case SLAP_C_CLIENT:		return "L";
 	}
 
@@ -695,19 +699,15 @@ connection_destroy( Connection *c )
 	}
 }
 
-int connection_state_closing( Connection *c )
+int connection_valid( Connection *c )
 {
 	/* c_mutex must be locked by caller */
 
-	int state;
 	assert( c != NULL );
-	assert( c->c_struct_state == SLAP_C_USED );
 
-	state = c->c_conn_state;
-
-	assert( state != SLAP_C_INVALID );
-
-	return state == SLAP_C_CLOSING;
+	return c->c_struct_state == SLAP_C_USED &&
+		c->c_conn_state >= SLAP_C_ACTIVE &&
+		c->c_conn_state <= SLAP_C_CLIENT;
 }
 
 static void connection_abandon( Connection *c )
