@@ -145,7 +145,7 @@ static long send_ldap_ber(
 
 	/* write only one pdu at a time - wait til it's our turn */
 	ldap_pvt_thread_mutex_lock( &conn->c_write1_mutex );
-	if (( op->o_abandon && !op->o_cancel ) || connection_state_closing( conn )) {
+	if (( op->o_abandon && !op->o_cancel ) || !connection_valid( conn )) {
 		ldap_pvt_thread_mutex_unlock( &conn->c_write1_mutex );
 		return 0;
 	}
