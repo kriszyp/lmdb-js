@@ -896,8 +896,7 @@ config_generic(ConfigArgs *c) {
 			if ( !c->rvalue_vals ) rc = 1;
 			break;
 		case CFG_RO:
-			c->value_int = (c->be->be_restrictops & SLAP_RESTRICT_OP_WRITES) ==
-				SLAP_RESTRICT_OP_WRITES;
+			c->value_int = (c->be->be_restrictops & SLAP_RESTRICT_READONLY);
 			break;
 		case CFG_AZPOLICY:
 			c->value_string = ch_strdup( slap_sasl_getpolicy());
@@ -1469,9 +1468,9 @@ config_generic(ConfigArgs *c) {
 
 		case CFG_RO:
 			if(c->value_int)
-				c->be->be_restrictops |= SLAP_RESTRICT_OP_WRITES;
+				c->be->be_restrictops |= SLAP_RESTRICT_READONLY;
 			else
-				c->be->be_restrictops &= ~SLAP_RESTRICT_OP_WRITES;
+				c->be->be_restrictops &= ~SLAP_RESTRICT_READONLY;
 			break;
 
 		case CFG_AZPOLICY:
