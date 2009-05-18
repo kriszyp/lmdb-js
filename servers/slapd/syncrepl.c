@@ -1256,7 +1256,7 @@ do_syncrepl(
 	int rc = LDAP_SUCCESS;
 	int dostop = 0;
 	ber_socket_t s;
-	int i, defer = 1, fail = 0;
+	int i, defer = 1, fail = 0, freeinfo = 0;
 	Backend *be;
 
 	if ( si == NULL )
@@ -1274,8 +1274,9 @@ do_syncrepl(
 			ldap_pvt_thread_yield();
 	}
 
-	if ( !si->si_ctype )
+	if ( si->si_ctype < 1 ) {
 		goto deleted;
+	}
 
 	switch( abs( si->si_type ) ) {
 	case LDAP_SYNC_REFRESH_ONLY:
@@ -1362,7 +1363,11 @@ reload:
 
 deleted:
 		/* We got deleted while running on cn=config */
-		if ( !si->si_ctype ) {
+		if ( si->si_ctype < 1 ) {
+			if ( si->si_ctype == -1 ) {
+				si->si_ctype = 0;
+				freeinfo = 1;
+			}
 			if ( si->si_conn )
 				dostop = 1;
 			rc = -1;
@@ -1429,7 +1434,7 @@ deleted:
 				break;
 		}
 
-		if ( !si->si_ctype
+		if ( si->si_ctype < 1
 			|| !si->si_retrynum || si->si_retrynum[i] == RETRYNUM_TAIL ) {
 			if ( si->si_re ) {
 				ldap_pvt_runqueue_remove( &slapd_rq, rtask );
@@ -1466,7 +1471,7 @@ deleted:
 	}
 
 	/* Do final delete cleanup */
-	if ( !si->si_ctype ) {
+	if ( freeinfo ) {
 		syncinfo_free( si, 0 );
 	}
 	return NULL;
@@ -4646,7 +4651,7 @@ syncrepl_config( ConfigArgs *c )
 						}
 					}
 					if ( isrunning ) {
-						si->si_ctype = 0;
+						si->si_ctype = -1;
 						si->si_next = NULL;
 					} else {
 						syncinfo_free( si, 0 );
