@@ -1296,7 +1296,8 @@ backend_check_restrictions(
 	}
 
 	if( ( restrictops & opflag )
-			|| ( exopflag && ( restrictops & exopflag ) ) ) {
+			|| ( exopflag && ( restrictops & exopflag ) )
+			|| (( restrictops & SLAP_RESTRICT_READONLY ) && updateop )) {
 		if( ( restrictops & SLAP_RESTRICT_OP_MASK) == SLAP_RESTRICT_OP_READS ) {
 			rs->sr_text = "read operations restricted";
 		} else if ( restrictops & exopflag ) {
