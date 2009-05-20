@@ -546,7 +546,7 @@ test_ava_filter(
 	if ( ava->aa_desc == slap_schema.si_ad_hasSubordinates 
 		&& op && op->o_bd && op->o_bd->be_has_subordinates )
 	{
-		int	hasSubordinates;
+		int	hasSubordinates = 0;
 		struct berval hs;
 
 		if( type != LDAP_FILTER_EQUALITY &&
