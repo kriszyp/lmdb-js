@@ -145,7 +145,7 @@ int config_check_vals(ConfigTable *Conf, ConfigArgs *c, int check_only ) {
 	}
 	if(Conf->min_args && (c->argc < Conf->min_args)) {
 		snprintf( c->cr_msg, sizeof( c->cr_msg ), "<%s> missing <%s> argument",
-			c->argv[0], Conf->what );
+			c->argv[0], Conf->what ? Conf->what : "" );
 		Debug(LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE, "%s: keyword %s\n", c->log, c->cr_msg, 0 );
 		return(ARG_BAD_CONF);
 	}
