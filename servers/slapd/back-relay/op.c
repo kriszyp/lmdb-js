@@ -457,15 +457,14 @@ relay_back_has_subordinates( Operation *op, Entry *e, int *hasSubs )
 {
 	SlapReply		rs = { 0 };
 	BackendDB		*bd;
-	int			rc = 1;
+	int			rc = LDAP_OTHER;
 
-	bd = relay_back_select_backend( op, &rs,
-		( LDAP_SUCCESS | RB_ERR ) );
+	bd = relay_back_select_backend( op, &rs, LDAP_OTHER );
 	/* FIXME: this test only works if there are no overlays, so
 	 * it is nearly useless; if made stricter, no nested back-relays
 	 * can be instantiated... too bad. */
 	if ( bd == NULL || bd == op->o_bd ) {
-		return 0;
+		return LDAP_OTHER;
 	}
 
 	if ( bd->be_has_subordinates ) {
@@ -477,7 +476,6 @@ relay_back_has_subordinates( Operation *op, Entry *e, int *hasSubs )
 	}
 
 	return rc;
-
 }
 
 int
