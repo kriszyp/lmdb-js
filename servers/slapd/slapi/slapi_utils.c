@@ -475,21 +475,30 @@ int
 slapi_entry_has_children( const Slapi_Entry *e )
 {
 	Slapi_PBlock *pb;
-	int hasSubordinates = 0;
+	Backend *be = select_backend( (struct berval *)&e->e_nname, 0 );
+	int rc, hasSubordinates = 0;
+
+	if ( be == NULL || be->be_has_subordinates == 0 ) {
+		return 0;
+	}
 
 	pb = slapi_pblock_new();
+	if ( pb == NULL ) {
+		return 0;
+	}
 	slapi_int_connection_init_pb( pb, LDAP_REQ_SEARCH );
 
-	slapi_pblock_set( pb, SLAPI_TARGET_DN, slapi_entry_get_dn( (Entry *)e ) );
-
-	pb->pb_op->o_bd = select_backend( (struct berval *)&e->e_nname, 0 );
-	if ( pb->pb_op->o_bd != NULL ) {
-		pb->pb_op->o_bd->be_has_subordinates( pb->pb_op, (Entry *)e, &hasSubordinates );
+	rc = slapi_pblock_set( pb, SLAPI_TARGET_DN, slapi_entry_get_dn(
+		(Entry *) e ));
+	if ( rc == LDAP_SUCCESS ) {
+		pb->pb_op->o_bd = be;
+		rc = be->be_has_subordinates( pb->pb_op, (Entry *) e,
+			&hasSubordinates );
 	}
 
 	slapi_pblock_destroy( pb );
 
-	return ( hasSubordinates == LDAP_COMPARE_TRUE );
+	return ( rc == LDAP_SUCCESS && hasSubordinates == LDAP_COMPARE_TRUE );
 }
 
 /*
