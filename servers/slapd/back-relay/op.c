@@ -74,27 +74,21 @@ relay_back_select_backend( Operation *op, SlapReply *rs, slap_mask_t fail_mode )
 
 	if ( bd == NULL && !BER_BVISNULL( &op->o_req_ndn ) ) {
 		bd = select_backend( &op->o_req_ndn, 1 );
-		if ( bd->be_private == op->o_bd->be_private ) {
+	}
+
+	if ( bd != NULL ) {
+			if ( bd->be_private != op->o_bd->be_private ) {
+				return bd;
+			}
+
 			Debug( LDAP_DEBUG_ANY,
 				"%s: back-relay for DN=\"%s\" would call self.\n",
 				op->o_log_prefix, op->o_req_dn.bv_val, 0 );
-			if ( fail_mode & RB_ERR ) {
-				rs->sr_err = rc;
-				if ( fail_mode & RB_SEND ) {
-					send_ldap_result( op, rs );
-				}
-			}
 
-			return NULL;
-		}
-	}
-
-	if ( bd == NULL ) {
-		if ( ( fail_mode & RB_REFERRAL )
-			&& ( fail_mode & RB_SEND )
+	} else if ( ( fail_mode & RB_REFERRAL_SEND ) == RB_REFERRAL_SEND
 			&& !BER_BVISNULL( &op->o_req_ndn )
 			&& default_referral )
-		{
+	{
 			rs->sr_err = LDAP_REFERRAL;
 
 			/* if we set sr_err to LDAP_REFERRAL,
@@ -114,18 +108,16 @@ relay_back_select_backend( Operation *op, SlapReply *rs, slap_mask_t fail_mode )
 			}
 
 			return NULL;
-		}
+	}
 
-		/* NOTE: err is LDAP_INVALID_CREDENTIALS for bind,
-		 * LDAP_NO_SUCH_OBJECT for other operations.
-		 * noSuchObject cannot be returned by bind */
+	if ( fail_mode & RB_ERR ) {
 		rs->sr_err = rc;
 		if ( fail_mode & RB_SEND ) {
 			send_ldap_result( op, rs );
 		}
 	}
 
-	return bd;
+	return NULL;
 }
 
 static int
@@ -294,6 +286,7 @@ relay_back_op_delete( Operation *op, SlapReply *rs )
 		RB_UNSUPPORTED_SEND );
 }
 
+#if 0 /* Should not exist - see ITS#6133 */
 int
 relay_back_op_abandon( Operation *op, SlapReply *rs )
 {
@@ -331,6 +324,7 @@ relay_back_op_cancel( Operation *op, SlapReply *rs )
 
 	return rc;
 }
+#endif /*0*/
 
 int
 relay_back_op_extended( Operation *op, SlapReply *rs )
@@ -402,6 +396,7 @@ relay_back_entry_get_rw( Operation *op, struct berval *ndn,
 
 }
 
+#if 0
 /*
  * NOTE: even the existence of this function is questionable: we cannot
  * pass the bi_chk_referrals() call thru the rwm overlay because there
@@ -414,6 +409,7 @@ relay_back_chk_referrals( Operation *op, SlapReply *rs )
 {
 	BackendDB		*bd;
 
+	/* FIXME: Can send success on failure. Should send referral or nothing. */
 	bd = relay_back_select_backend( op, rs,
 		( LDAP_SUCCESS | RB_ERR_REFERRAL_SEND ) );
 	/* FIXME: this test only works if there are no overlays, so
@@ -434,22 +430,22 @@ relay_back_chk_referrals( Operation *op, SlapReply *rs )
 
 	return relay_back_op( op, rs, bd, bd->be_chk_referrals, LDAP_SUCCESS );
 }
+#endif /*0*/
 
 int
 relay_back_operational( Operation *op, SlapReply *rs )
 {
 	BackendDB		*bd;
 
-	bd = relay_back_select_backend( op, rs,
-		( LDAP_SUCCESS | RB_ERR ) );
+	bd = relay_back_select_backend( op, rs, LDAP_SUCCESS );
 	/* FIXME: this test only works if there are no overlays, so
 	 * it is nearly useless; if made stricter, no nested back-relays
 	 * can be instantiated... too bad. */
 	if ( bd == NULL || bd == op->o_bd ) {
-		return 0;
+		return LDAP_SUCCESS;
 	}
 
-	return relay_back_op( op, rs, bd, bd->be_operational, 0 );
+	return relay_back_op( op, rs, bd, bd->be_operational, LDAP_SUCCESS );
 }
 
 int
@@ -478,6 +474,7 @@ relay_back_has_subordinates( Operation *op, Entry *e, int *hasSubs )
 	return rc;
 }
 
+#if 0 /* Should not exist - see ITS#6133 */
 int
 relay_back_connection_init( BackendDB *bd, Connection *c )
 {
@@ -512,6 +509,7 @@ relay_back_connection_destroy( BackendDB *bd, Connection *c )
 	return 0;
 
 }
+#endif /*0*/
 
 /*
  * FIXME: must implement tools as well
