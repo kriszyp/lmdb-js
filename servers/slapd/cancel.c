@@ -68,12 +68,14 @@ int cancel_extop( Operation *op, SlapReply *rs )
 
 	LDAP_STAILQ_FOREACH( o, &op->o_conn->c_pending_ops, o_next ) {
 		if ( o->o_msgid == opid ) {
-			LDAP_STAILQ_REMOVE( &op->o_conn->c_pending_ops, o, Operation, o_next );
-			LDAP_STAILQ_NEXT(o, o_next) = NULL;
-			op->o_conn->c_n_ops_pending--;
-			slap_op_free( o, NULL );
 			ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
-			return LDAP_SUCCESS;
+			/* TODO: We could instead remove the cancelled operation
+			 * from c_pending_ops like Abandon does, and send its
+			 * response here.  Not if it is pending because of a
+			 * congested connection though.
+			 */
+			rs->sr_text = "too busy for Cancel, try Abandon instead";
+			return LDAP_CANNOT_CANCEL;
 		}
 	}
 
