@@ -27,6 +27,10 @@ have a
 .B uid
 attribute containing the same value. If any are found, the request is
 rejected.
+.LP
+The search is performed using the rootdn of the database, to avoid issues
+with ACLs preventing the overlay from seeing all of the relevant data. As
+such, the database must have a rootdn configured.
 .SH CONFIGURATION
 These
 .B slapd.conf
