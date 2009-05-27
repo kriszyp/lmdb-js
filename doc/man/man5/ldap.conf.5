@@ -186,14 +186,17 @@ Note that the command line tools
 .\"Determines whether the library should implicitly restart connections (FIXME).
 .TP
 .B SIZELIMIT <integer>
-Specifies a size limit to use when performing searches.  The
-number should be a non-negative integer.  \fISIZELIMIT\fP of zero (0)
-specifies unlimited search size.
+Specifies a size limit (number of entries) to use when performing searches.
+The number should be a non-negative integer.  \fISIZELIMIT\fP of zero (0)
+specifies a request for unlimited search size.  Please note that the server
+may still apply any server-side limit on the amount of entries that can be 
+returned by a search operation.
 .TP
 .B TIMELIMIT <integer>
-Specifies a time limit to use when performing searches.  The
-number should be a non-negative integer.  \fITIMELIMIT\fP of zero (0)
-specifies unlimited search time to be used.
+Specifies a time limit (in seconds) to use when performing searches.
+The number should be a non-negative integer.  \fITIMELIMIT\fP of zero (0)
+specifies unlimited search time to be used.  Please note that the server
+may still apply any server-side limit on the duration of a search operation.
 .B VERSION {2|3}
 Specifies what version of the LDAP protocol should be used.
 .TP
