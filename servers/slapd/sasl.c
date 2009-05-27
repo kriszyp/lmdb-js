@@ -63,7 +63,28 @@ typedef struct sasl_ctx {
 
 static struct berval ext_bv = BER_BVC( "EXTERNAL" );
 
+char *slap_sasl_auxprops;
+
 #ifdef HAVE_CYRUS_SASL
+
+/* Just use our internal auxprop by default */
+static int
+slap_sasl_getopt(
+	void *context,
+	const char *plugin_name,
+	const char *option,
+	const char **result,
+	unsigned *len)
+{
+	if ( strcmp( option, "auxprop_plugin" )) {
+		return SASL_FAIL;
+	}
+	if ( slap_sasl_auxprops )
+		*result = slap_sasl_auxprops;
+	else
+		*result = "slapd";
+	return SASL_OK;
+}
 
 int
 slap_sasl_log(
@@ -1078,6 +1099,7 @@ int slap_sasl_init( void )
 	int rc;
 	static sasl_callback_t server_callbacks[] = {
 		{ SASL_CB_LOG, &slap_sasl_log, NULL },
+		{ SASL_CB_GETOPT, &slap_sasl_getopt, NULL },
 		{ SASL_CB_LIST_END, NULL, NULL }
 	};
 #endif
