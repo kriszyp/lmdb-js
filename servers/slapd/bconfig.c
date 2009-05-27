@@ -3193,6 +3193,27 @@ config_include(ConfigArgs *c) {
 
 #ifdef HAVE_TLS
 static int
+config_tls_cleanup(ConfigArgs *c) {
+	int rc = 0;
+
+	if ( slap_tls_ld ) {
+		int opt = 1;
+
+		ldap_pvt_tls_ctx_free( slap_tls_ctx );
+
+		/* Force new ctx to be created */
+		rc = ldap_pvt_tls_set_option( slap_tls_ld, LDAP_OPT_X_TLS_NEWCTX, &opt );
+		if( rc == 0 ) {
+			/* The ctx's refcount is bumped up here */
+			ldap_pvt_tls_get_option( slap_tls_ld, LDAP_OPT_X_TLS_CTX, &slap_tls_ctx );
+			/* This is a no-op if it's already loaded */
+			load_extop( &slap_EXOP_START_TLS, 0, starttls_extop );
+		}
+	}
+	return rc;
+}
+
+static int
 config_tls_option(ConfigArgs *c) {
 	int flag;
 	LDAP *ld = slap_tls_ld;
@@ -3215,9 +3236,11 @@ config_tls_option(ConfigArgs *c) {
 	if (c->op == SLAP_CONFIG_EMIT) {
 		return ldap_pvt_tls_get_option( ld, flag, &c->value_string );
 	} else if ( c->op == LDAP_MOD_DELETE ) {
+		c->cleanup = config_tls_cleanup;
 		return ldap_pvt_tls_set_option( ld, flag, NULL );
 	}
 	ch_free(c->value_string);
+	c->cleanup = config_tls_cleanup;
 	return(ldap_pvt_tls_set_option(ld, flag, c->argv[1]));
 }
 
@@ -3239,9 +3262,11 @@ config_tls_config(ConfigArgs *c) {
 		return slap_tls_get_config( slap_tls_ld, flag, &c->value_string );
 	} else if ( c->op == LDAP_MOD_DELETE ) {
 		int i = 0;
+		c->cleanup = config_tls_cleanup;
 		return ldap_pvt_tls_set_option( slap_tls_ld, flag, &i );
 	}
 	ch_free( c->value_string );
+	c->cleanup = config_tls_cleanup;
 	if ( isdigit( (unsigned char)c->argv[1][0] ) ) {
 		if ( lutil_atoi( &i, c->argv[1] ) != 0 ) {
 			Debug(LDAP_DEBUG_ANY, "%s: "
