@@ -816,6 +816,11 @@ ldapsearch -x -b "" -s base "+"
 .br
 See RFC 4512 section 5.1 for details.
 .TP
+.B sasl-auxprop <plugin> [...]
+Specify which auxprop plugins to use for authentication lookups. The
+default is empty, which just uses slapd's internal support. Usually
+no other auxprop plugins are needed.
+.TP
 .B sasl-host <fqdn>
 Used to specify the fully qualified domain name used for SASL processing.
 .TP
