@@ -768,7 +768,7 @@ static ConfigOCs cf_ocs[] = {
 		 "olcPluginLogFile $ olcReadOnly $ olcReferral $ "
 		 "olcReplogFile $ olcRequires $ olcRestrict $ olcReverseLookup $ "
 		 "olcRootDSE $ "
-		 "olcSaslHost $ olcSaslRealm $ olcSaslSecProps $ "
+		 "olcSaslAuxprops $ olcSaslHost $ olcSaslRealm $ olcSaslSecProps $ "
 		 "olcSecurity $ olcServerID $ olcSizeLimit $ "
 		 "olcSockbufMaxIncoming $ olcSockbufMaxIncomingAuth $ "
 		 "olcThreads $ olcTimeLimit $ olcTLSCACertificateFile $ "
