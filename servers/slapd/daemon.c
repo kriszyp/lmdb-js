@@ -2529,7 +2529,7 @@ slapd_daemon_task(
 #endif /* LDAP_DEBUG */
 
 		for ( i = 0; i < ns; i++ ) {
-			int rc = 1, fd, w = 0;
+			int rc = 1, fd, w = 0, r = 0;
 
 			if ( SLAP_EVENT_IS_LISTENER( i ) ) {
 				rc = slap_listener_activate( SLAP_EVENT_LISTENER( i ) );
@@ -2569,24 +2569,23 @@ slapd_daemon_task(
 					}
 				}
 				/* If event is a read */
-				if ( SLAP_EVENT_IS_READ( i ) ) {
+				if ( SLAP_EVENT_IS_READ( i ))
+					r = 1;
+				if ( r || !w ) {
 					Debug( LDAP_DEBUG_CONNS,
 						"daemon: read active on %d\n",
 						fd, 0, 0 );
 
-					SLAP_EVENT_CLR_READ( i );
-					connection_read_activate( fd );
-				} else if ( !w ) {
-					Debug( LDAP_DEBUG_CONNS,
-						"daemon: hangup on %d\n", fd, 0, 0 );
-					if ( SLAP_SOCK_IS_ACTIVE( fd )) {
+					if ( r ) {
+						SLAP_EVENT_CLR_READ( i );
+					} else {
 #ifdef HAVE_EPOLL
 						/* Don't keep reporting the hangup
 						 */
 						SLAP_EPOLL_SOCK_SET( fd, EPOLLET );
 #endif
-						connection_hangup( fd );
 					}
+					connection_read_activate( fd );
 				}
 			}
 		}
