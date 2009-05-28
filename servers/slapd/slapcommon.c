@@ -94,6 +94,11 @@ usage( int tool, const char *progname )
 	case SLAPTEST:
 		options = " [-u]\n";
 		break;
+
+	case SLAPSCHEMA:
+		options = " [-c]\n\t[-g] [-n databasenumber | -b suffix]"
+			" [-l errorfile] [-a filter] [-s subtree]\n";
+		break;
 	}
 
 	if ( options != NULL ) {
@@ -222,6 +227,7 @@ slap_tool_init(
 	int mode = SLAP_TOOL_MODE;
 	int truncatemode = 0;
 	int use_glue = 1;
+	int writer;
 
 #ifdef LDAP_DEBUG
 	/* tools default to "none", so that at least LDAP_DEBUG_ANY 
@@ -252,6 +258,11 @@ slap_tool_init(
 
 	case SLAPDN:
 		options = "d:f:F:No:Pv";
+		mode |= SLAP_TOOL_READMAIN | SLAP_TOOL_READONLY;
+		break;
+
+	case SLAPSCHEMA:
+		options = "a:b:cd:f:F:gl:n:o:s:v";
 		mode |= SLAP_TOOL_READMAIN | SLAP_TOOL_READONLY;
 		break;
 
@@ -396,7 +407,7 @@ slap_tool_init(
 		case 's':	/* dump subtree */
 			if ( tool == SLAPADD )
 				mode |= SLAP_TOOL_NO_SCHEMA_CHECK;
-			else if ( tool == SLAPCAT )
+			else if ( tool == SLAPCAT || tool == SLAPSCHEMA )
 				subtree = ch_strdup( optarg );
 			break;
 
@@ -454,8 +465,20 @@ slap_tool_init(
 #endif /* LDAP_DEBUG && LDAP_SYSLOG */
 
 	switch ( tool ) {
+	case SLAPCAT:
+	case SLAPSCHEMA:
+		writer = 1;
+		break;
+
+	default:
+		writer = 0;
+		break;
+	}
+
+	switch ( tool ) {
 	case SLAPADD:
 	case SLAPCAT:
+	case SLAPSCHEMA:
 		if ( ( argc != optind ) || (dbnum >= 0 && base.bv_val != NULL ) ) {
 			usage( tool, progname );
 		}
@@ -502,10 +525,10 @@ slap_tool_init(
 	}
 
 	if ( ldiffile == NULL ) {
-		dummy.fp = tool == SLAPCAT ? stdout : stdin;
+		dummy.fp = writer ? stdout : stdin;
 		ldiffp = &dummy;
 
-	} else if ((ldiffp = ldif_open( ldiffile, tool == SLAPCAT ? "w" : "r" ))
+	} else if ((ldiffp = ldif_open( ldiffile, writer ? "w" : "r" ))
 		== NULL )
 	{
 		perror( ldiffile );
@@ -554,6 +577,7 @@ slap_tool_init(
 	case SLAPADD:
 	case SLAPCAT:
 	case SLAPINDEX:
+	case SLAPSCHEMA:
 		if ( !nbackends ) {
 			fprintf( stderr, "No databases found "
 					"in config file\n" );
