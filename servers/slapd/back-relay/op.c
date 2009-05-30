@@ -26,6 +26,7 @@
 #include "slap.h"
 #include "back-relay.h"
 
+/* Flags for handling result codes and failures */
 #define	RB_ERR_MASK		(0x0000FFFFU)
 #define RB_ERR			(0x10000000U)
 #define RB_UNSUPPORTED_FLAG	(0x20000000U)
@@ -37,6 +38,10 @@
 #define	RB_ERR_SEND		(RB_ERR|RB_SEND)
 #define	RB_ERR_REFERRAL_SEND	(RB_ERR|RB_REFERRAL|RB_SEND)
 
+/*
+ * Callbacks: Caller set op->o_bd to underlying BackendDB and sc_private
+ * to Relay BackendDB. sc_response swaps them, sc_cleanup swaps them back.
+ */
 static int
 relay_back_swap_bd( Operation *op, SlapReply *rs )
 {
@@ -59,11 +64,8 @@ relay_back_swap_bd( Operation *op, SlapReply *rs )
 	}
 
 /*
- * selects the backend if not enforced at config;
- * in case of failure, behaves based on err:
- *	-1			don't send result
- *	LDAP_SUCCESS		don't send result; may send referral if dosend
- *	any valid error 	send as error result if dosend
+ * Select the backend database for the operation.  On failure, consult
+ * fail_mode for whether to set/send send a referral or error.
  */
 static BackendDB *
 relay_back_select_backend( Operation *op, SlapReply *rs, slap_mask_t fail_mode )
@@ -120,6 +122,10 @@ relay_back_select_backend( Operation *op, SlapReply *rs, slap_mask_t fail_mode )
 	return NULL;
 }
 
+/*
+ * Call operation handler func(op,rs) with op->o_bd = bd,
+ * or if func==0 set/send results depending on fail_mode.
+ */
 static int
 relay_back_op(
 	Operation	*op,
@@ -183,6 +189,7 @@ relay_back_op_bind( Operation *op, SlapReply *rs )
 		( LDAP_INVALID_CREDENTIALS | RB_ERR_SEND ) );
 }
 
+#if 0 /* Should not exist - see ITS#6133 */
 int
 relay_back_op_unbind( Operation *op, SlapReply *rs )
 {
@@ -195,6 +202,7 @@ relay_back_op_unbind( Operation *op, SlapReply *rs )
 
 	return 0;
 }
+#endif /*0*/
 
 int
 relay_back_op_search( Operation *op, SlapReply *rs )
@@ -365,7 +373,6 @@ relay_back_entry_release_rw( Operation *op, Entry *e, int rw )
 	}
 
 	return rc;
-
 }
 
 int
@@ -393,7 +400,6 @@ relay_back_entry_get_rw( Operation *op, struct berval *ndn,
 	}
 
 	return rc;
-
 }
 
 #if 0
@@ -451,11 +457,10 @@ relay_back_operational( Operation *op, SlapReply *rs )
 int
 relay_back_has_subordinates( Operation *op, Entry *e, int *hasSubs )
 {
-	SlapReply		rs = { 0 };
 	BackendDB		*bd;
 	int			rc = LDAP_OTHER;
 
-	bd = relay_back_select_backend( op, &rs, LDAP_OTHER );
+	bd = relay_back_select_backend( op, NULL, 0 );
 	/* FIXME: this test only works if there are no overlays, so
 	 * it is nearly useless; if made stricter, no nested back-relays
 	 * can be instantiated... too bad. */
@@ -510,6 +515,12 @@ relay_back_connection_destroy( BackendDB *bd, Connection *c )
 
 }
 #endif /*0*/
+
+/*
+ * Handlers that slapd calls for all databases are not set, as slapd
+ * would then call them twice for the underlying database:  Abandon,
+ * Cancel, Unbind and non-Operation handlers like be_connection_init.
+ */
 
 /*
  * FIXME: must implement tools as well

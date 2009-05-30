@@ -151,7 +151,6 @@ relay_back_initialize( BackendInfo *bi )
 	bi->bi_db_destroy = relay_back_db_destroy;
 
 	bi->bi_op_bind = relay_back_op_bind;
-	bi->bi_op_unbind = relay_back_op_unbind;
 	bi->bi_op_search = relay_back_op_search;
 	bi->bi_op_compare = relay_back_op_compare;
 	bi->bi_op_modify = relay_back_op_modify;
@@ -253,4 +252,3 @@ relay_back_db_destroy( Backend *be, ConfigReply *cr)
 SLAP_BACKEND_INIT_MODULE( relay )
 
 #endif /* SLAPD_RELAY == SLAPD_MOD_DYNAMIC */
-
