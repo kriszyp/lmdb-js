@@ -175,7 +175,7 @@ relay_back_db_init( Backend *be, ConfigReply *cr)
 
 	be->be_private = NULL;
 
-	ri = (relay_back_info *)ch_calloc( 1, sizeof( relay_back_info ) );
+	ri = (relay_back_info *) ch_calloc( 1, RELAY_INFO_SIZE );
 	if ( ri == NULL ) {
  		return -1;
  	}

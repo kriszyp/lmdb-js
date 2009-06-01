@@ -26,17 +26,43 @@
 #include "slap.h"
 #include "back-relay.h"
 
-/* Flags for handling result codes and failures */
-#define	RB_ERR_MASK		(0x0000FFFFU)
-#define RB_ERR			(0x10000000U)
-#define RB_UNSUPPORTED_FLAG	(0x20000000U)
-#define RB_REFERRAL		(0x40000000U)
-#define RB_SEND			(0x80000000U)
-#define RB_UNSUPPORTED		(LDAP_UNWILLING_TO_PERFORM|RB_ERR|RB_UNSUPPORTED_FLAG)
-#define	RB_UNSUPPORTED_SEND	(RB_UNSUPPORTED|RB_SEND)
-#define	RB_REFERRAL_SEND	(RB_REFERRAL|RB_SEND)
-#define	RB_ERR_SEND		(RB_ERR|RB_SEND)
-#define	RB_ERR_REFERRAL_SEND	(RB_ERR|RB_REFERRAL|RB_SEND)
+/* Results when no real database (.rf_bd) or operation handler (.rf_op) */
+static const struct relay_fail_modes_s {
+	slap_mask_t	rf_bd, rf_op;
+#define RB_ERR_MASK	0x0000FFFFU /* bitmask for default return value */
+#define RB_BDERR	0x80000000U /* use .rf_bd's default return value */
+#define RB_OPERR	0x40000000U /* set rs->sr_err = .rf_op return value */
+#define RB_REF		0x20000000U /* use default_referral if available */
+#define RB_SEND		0x10000000U /* send result; RB_??ERR is also set */
+#define RB_SENDREF	0/*unused*/ /* like RB_SEND when referral found */
+#define RB_NO_BIND	(RB_OPERR | LDAP_INVALID_CREDENTIALS)
+#define RB_NOT_SUPP	(RB_OPERR | LDAP_UNWILLING_TO_PERFORM)
+#define RB_NO_OBJ	(RB_REF | LDAP_NO_SUCH_OBJECT)
+#define RB_CHK_REF	(RB_REF | RB_SENDREF | LDAP_SUCCESS)
+} relay_fail_modes[relay_op_last] = {
+	/* .rf_bd is unused when zero, otherwise both fields have RB_BDERR */
+#	define RB_OP(b, o)	{ (b) | RB_BD2ERR(b), (o) | RB_BD2ERR(b) }
+#	define RB_BD2ERR(b)	((b) ? RB_BDERR : 0)
+	/* indexed by slap_operation_t: */
+	RB_OP(RB_NO_BIND|RB_SEND, RB_NO_BIND  |RB_SEND), /* Bind           */
+	RB_OP(0,                  LDAP_SUCCESS),         /* Unbind: unused */
+	RB_OP(RB_NO_OBJ |RB_SEND, RB_NOT_SUPP |RB_SEND), /* Search         */
+	RB_OP(RB_NO_OBJ |RB_SEND, SLAP_CB_CONTINUE),     /* Compare        */
+	RB_OP(RB_NO_OBJ |RB_SEND, RB_NOT_SUPP |RB_SEND), /* Modify         */
+	RB_OP(RB_NO_OBJ |RB_SEND, RB_NOT_SUPP |RB_SEND), /* Modrdn         */
+	RB_OP(RB_NO_OBJ |RB_SEND, RB_NOT_SUPP |RB_SEND), /* Add            */
+	RB_OP(RB_NO_OBJ |RB_SEND, RB_NOT_SUPP |RB_SEND), /* Delete         */
+	RB_OP(0,                  LDAP_SUCCESS),         /* Abandon:unused */
+	RB_OP(RB_NO_OBJ,          RB_NOT_SUPP),          /* Extended       */
+	RB_OP(0,                  SLAP_CB_CONTINUE),     /* Cancel: unused */
+	RB_OP(0,                  LDAP_SUCCESS),    /* operational         */
+	RB_OP(RB_CHK_REF,         LDAP_SUCCESS),    /* chk_referrals:unused*/
+	RB_OP(0,                  SLAP_CB_CONTINUE),/* chk_controls:unused */
+	/* additional relay_operation_t indexes from back-relay.h: */
+	RB_OP(0,                  0/*unused*/),     /* entry_get = op_last */
+	RB_OP(0,                  0/*unused*/),     /* entry_release       */
+	RB_OP(0,                  0/*unused*/),     /* has_subordinates    */
+};
 
 /*
  * Callbacks: Caller set op->o_bd to underlying BackendDB and sc_private
@@ -64,55 +90,57 @@ relay_back_swap_bd( Operation *op, SlapReply *rs )
 	}
 
 /*
- * Select the backend database for the operation.  On failure, consult
- * fail_mode for whether to set/send send a referral or error.
+ * Select the backend database with the operation's DN.  On failure,
+ * set/send results depending on operation type <which>'s fail_modes.
  */
 static BackendDB *
-relay_back_select_backend( Operation *op, SlapReply *rs, slap_mask_t fail_mode )
+relay_back_select_backend( Operation *op, SlapReply *rs, int which )
 {
-	relay_back_info		*ri = (relay_back_info *)op->o_bd->be_private;
-	BackendDB		*bd = ri->ri_bd;
-	int			rc = ( fail_mode & RB_ERR_MASK );
+	OpExtra		*oex;
+	char		*key = (char *) op->o_bd->be_private;
+	BackendDB	*bd  = ((relay_back_info *) key)->ri_bd;
+	slap_mask_t	fail_mode = relay_fail_modes[which].rf_bd;
+	int		useDN = 0, rc = ( fail_mode & RB_ERR_MASK );
 
 	if ( bd == NULL && !BER_BVISNULL( &op->o_req_ndn ) ) {
+		useDN = 1;
 		bd = select_backend( &op->o_req_ndn, 1 );
 	}
 
 	if ( bd != NULL ) {
-			if ( bd->be_private != op->o_bd->be_private ) {
-				return bd;
-			}
+		key += which; /* <relay, op type> key from RELAY_WRAP_OP() */
+		LDAP_SLIST_FOREACH( oex, &op->o_extra, oe_next ) {
+			if ( oex->oe_key == key )
+				break;
+		}
+		if ( oex == NULL ) {
+			return bd;
+		}
 
-			Debug( LDAP_DEBUG_ANY,
-				"%s: back-relay for DN=\"%s\" would call self.\n",
-				op->o_log_prefix, op->o_req_dn.bv_val, 0 );
+		bd = NULL;
+		Debug( LDAP_DEBUG_ANY,
+			"%s: back-relay for DN=\"%s\" would call self.\n",
+			op->o_log_prefix, op->o_req_dn.bv_val, 0 );
 
-	} else if ( ( fail_mode & RB_REFERRAL_SEND ) == RB_REFERRAL_SEND
-			&& !BER_BVISNULL( &op->o_req_ndn )
-			&& default_referral )
-	{
-			rs->sr_err = LDAP_REFERRAL;
+	} else if ( useDN && ( fail_mode & RB_REF ) && default_referral ) {
+		rc = LDAP_REFERRAL;
 
-			/* if we set sr_err to LDAP_REFERRAL,
-			 * we must provide one */
-			rs->sr_ref = referral_rewrite(
-				default_referral,
-				NULL, &op->o_req_dn,
-				LDAP_SCOPE_DEFAULT );
-			if ( !rs->sr_ref ) {
-				rs->sr_ref = default_referral;
-			}
+		/* if we set sr_err to LDAP_REFERRAL, we must provide one */
+		rs->sr_ref = referral_rewrite(
+			default_referral, NULL, &op->o_req_dn,
+			op->o_tag == LDAP_REQ_SEARCH ?
+			op->ors_scope : LDAP_SCOPE_DEFAULT );
+		if ( rs->sr_ref != NULL ) {
+			rs->sr_flags |= REP_REF_MUSTBEFREED;
+		} else {
+			rs->sr_ref = default_referral;
+		}
 
-			send_ldap_result( op, rs );
-
-			if ( rs->sr_ref != default_referral ) {
-				ber_bvarray_free( rs->sr_ref );
-			}
-
-			return NULL;
+		if ( fail_mode & RB_SENDREF )
+			fail_mode = (RB_BDERR | RB_SEND);
 	}
 
-	if ( fail_mode & RB_ERR ) {
+	if ( fail_mode & RB_BDERR ) {
 		rs->sr_err = rc;
 		if ( fail_mode & RB_SEND ) {
 			send_ldap_result( op, rs );
@@ -123,36 +151,55 @@ relay_back_select_backend( Operation *op, SlapReply *rs, slap_mask_t fail_mode )
 }
 
 /*
- * Call operation handler func(op,rs) with op->o_bd = bd,
- * or if func==0 set/send results depending on fail_mode.
+ * Forward <act> on <op> to database <bd>, with <relay, op type>-specific
+ * key in op->o_extra so relay_back_select_backend() can catch recursion.
+ */
+#define RELAY_WRAP_OP( op, bd, which, act ) { \
+	OpExtraDB wrap_oex; \
+	BackendDB *const wrap_bd = (op)->o_bd; \
+	wrap_oex.oe_db = wrap_bd; \
+	wrap_oex.oe.oe_key = (char *) wrap_bd->be_private + (which); \
+	LDAP_SLIST_INSERT_HEAD( &(op)->o_extra, &wrap_oex.oe, oe_next ); \
+	(op)->o_bd = (bd); \
+	act; \
+	(op)->o_bd = wrap_bd; \
+	LDAP_SLIST_REMOVE( &(op)->o_extra, &wrap_oex.oe, OpExtra, oe_next ); \
+}
+
+/*
+ * Forward backend function #<which> on <op> to operation DN's database
+ * like RELAY_WRAP_OP, after setting up callbacks. If no database or no
+ * backend function, set/send results depending on <which>'s fail_modes.
  */
 static int
-relay_back_op(
-	Operation	*op,
-	SlapReply	*rs,
-	BackendDB	*bd,
-	BI_op_func	*func,
-	slap_mask_t	fail_mode )
+relay_back_op( Operation *op, SlapReply *rs, int which )
 {
-	int			rc = ( fail_mode & RB_ERR_MASK );
+	BackendDB	*bd;
+	BI_op_bind	*func;
+	slap_mask_t	fail_mode = relay_fail_modes[which].rf_op;
+	int		rc = ( fail_mode & RB_ERR_MASK );
 
-	if ( func ) {
-		BackendDB	*be = op->o_bd;
+	bd = relay_back_select_backend( op, rs, which );
+	if ( bd == NULL ) {
+		if ( fail_mode & RB_BDERR )
+			return rs->sr_err;	/* sr_err was set above */
+
+	} else if ( (func = (&bd->be_bind)[which]) != 0 ) {
 		slap_callback	cb;
 
 		relay_back_add_cb( &cb, op );
 
-		op->o_bd = bd;
-		rc = func( op, rs );
-		op->o_bd = be;
+		RELAY_WRAP_OP( op, bd, which, {
+			rc = func( op, rs );
+		});
 
 		if ( op->o_callback == &cb ) {
 			op->o_callback = op->o_callback->sc_next;
 		}
 
-	} else if ( fail_mode & RB_ERR ) {
+	} else if ( fail_mode & RB_OPERR ) {
 		rs->sr_err = rc;
-		if ( fail_mode & RB_UNSUPPORTED_FLAG ) {
+		if ( rc == LDAP_UNWILLING_TO_PERFORM ) {
 			rs->sr_text = "operation not supported within naming context";
 		}
 
@@ -164,11 +211,10 @@ relay_back_op(
 	return rc;
 }
 
+
 int
 relay_back_op_bind( Operation *op, SlapReply *rs )
 {
-	BackendDB	*bd;
-
 	/* allow rootdn as a means to auth without the need to actually
  	 * contact the proxied DSA */
 	switch ( be_rootdn_bind( op, rs ) ) {
@@ -179,197 +225,41 @@ relay_back_op_bind( Operation *op, SlapReply *rs )
 		return rs->sr_err;
 	}
 
-	bd = relay_back_select_backend( op, rs,
-		( LDAP_INVALID_CREDENTIALS | RB_ERR_SEND ) );
-	if ( bd == NULL ) {
-		return rs->sr_err;
-	}
-
-	return relay_back_op( op, rs, bd, bd->be_bind,
-		( LDAP_INVALID_CREDENTIALS | RB_ERR_SEND ) );
+	return relay_back_op( op, rs, op_bind );
 }
 
-#if 0 /* Should not exist - see ITS#6133 */
-int
-relay_back_op_unbind( Operation *op, SlapReply *rs )
-{
-	BackendDB		*bd;
+#define RELAY_DEFOP(func, which) \
+	int func( Operation *op, SlapReply *rs ) \
+	{ return relay_back_op( op, rs, which ); }
 
-	bd = relay_back_select_backend( op, rs, 0 );
-	if ( bd != NULL ) {
-		(void)relay_back_op( op, rs, bd, bd->be_unbind, 0 );
-	}
+RELAY_DEFOP( relay_back_op_search,		op_search )
+RELAY_DEFOP( relay_back_op_compare,		op_compare )
+RELAY_DEFOP( relay_back_op_modify,		op_modify )
+RELAY_DEFOP( relay_back_op_modrdn,		op_modrdn )
+RELAY_DEFOP( relay_back_op_add,			op_add )
+RELAY_DEFOP( relay_back_op_delete,		op_delete )
+RELAY_DEFOP( relay_back_op_extended,	op_extended )
+RELAY_DEFOP( relay_back_operational,	op_aux_operational )
 
-	return 0;
-}
-#endif /*0*/
+/* Abandon, Cancel, Unbind and some DN-less calls like be_connection_init
+ * need no extra handling:  slapd already calls them for all databases.
+ */
 
-int
-relay_back_op_search( Operation *op, SlapReply *rs )
-{
-	BackendDB		*bd;
-
-	bd = relay_back_select_backend( op, rs,
-		( LDAP_NO_SUCH_OBJECT | RB_ERR_REFERRAL_SEND ) );
-	if ( bd == NULL ) {
-		return rs->sr_err;
-	}
-
-	return relay_back_op( op, rs, bd, bd->be_search,
-		RB_UNSUPPORTED_SEND );
-}
-
-int
-relay_back_op_compare( Operation *op, SlapReply *rs )
-{
-	BackendDB		*bd;
-
-	bd = relay_back_select_backend( op, rs,
-		( LDAP_NO_SUCH_OBJECT | RB_ERR_REFERRAL_SEND ) );
-	if ( bd == NULL ) {
-		return rs->sr_err;
-	}
-
-	return relay_back_op( op, rs, bd, bd->be_compare,
-		( SLAP_CB_CONTINUE | RB_ERR ) );
-}
-
-int
-relay_back_op_modify( Operation *op, SlapReply *rs )
-{
-	BackendDB		*bd;
-
-	bd = relay_back_select_backend( op, rs,
-		( LDAP_NO_SUCH_OBJECT | RB_ERR_REFERRAL_SEND ) );
-	if ( bd == NULL ) {
-		return rs->sr_err;
-	}
-
-	return relay_back_op( op, rs, bd, bd->be_modify,
-		RB_UNSUPPORTED_SEND );
-}
-
-int
-relay_back_op_modrdn( Operation *op, SlapReply *rs )
-{
-	BackendDB		*bd;
-
-	bd = relay_back_select_backend( op, rs,
-		( LDAP_NO_SUCH_OBJECT | RB_ERR_REFERRAL_SEND ) );
-	if ( bd == NULL ) {
-		return rs->sr_err;
-	}
-
-	return relay_back_op( op, rs, bd, bd->be_modrdn,
-		RB_UNSUPPORTED_SEND );
-}
-
-int
-relay_back_op_add( Operation *op, SlapReply *rs )
-{
-	BackendDB		*bd;
-
-	bd = relay_back_select_backend( op, rs,
-		( LDAP_NO_SUCH_OBJECT | RB_ERR_REFERRAL_SEND ) );
-	if ( bd == NULL ) {
-		return rs->sr_err;
-	}
-
-	return relay_back_op( op, rs, bd, bd->be_add,
-		RB_UNSUPPORTED_SEND );
-}
-
-int
-relay_back_op_delete( Operation *op, SlapReply *rs )
-{
-	BackendDB		*bd;
-
-	bd = relay_back_select_backend( op, rs,
-		( LDAP_NO_SUCH_OBJECT | RB_ERR_REFERRAL_SEND ) );
-	if ( bd == NULL ) {
-		return rs->sr_err;
-	}
-
-	return relay_back_op( op, rs, bd, bd->be_delete,
-		RB_UNSUPPORTED_SEND );
-}
-
-#if 0 /* Should not exist - see ITS#6133 */
-int
-relay_back_op_abandon( Operation *op, SlapReply *rs )
-{
-	BackendDB		*bd;
-
-	bd = relay_back_select_backend( op, rs, 0 );
-	if ( bd == NULL ) {
-		return rs->sr_err;
-	}
-
-	return relay_back_op( op, rs, bd, bd->be_abandon, 0 );
-}
-
-int
-relay_back_op_cancel( Operation *op, SlapReply *rs )
-{
-	BackendDB		*bd;
-	int			rc;
-
-	bd = relay_back_select_backend( op, rs,
-		( LDAP_CANNOT_CANCEL | RB_ERR ) );
-	if ( bd == NULL ) {
-		if ( op->o_cancel == SLAP_CANCEL_REQ ) {
-			op->o_cancel = LDAP_CANNOT_CANCEL;
-		}
-		return rs->sr_err;
-	}
-
-	rc = relay_back_op( op, rs, bd, bd->be_cancel,
-		( LDAP_CANNOT_CANCEL | RB_ERR ) );
-	if ( rc == LDAP_CANNOT_CANCEL && op->o_cancel == SLAP_CANCEL_REQ )
-	{
-		op->o_cancel = LDAP_CANNOT_CANCEL;
-	}
-
-	return rc;
-}
-#endif /*0*/
-
-int
-relay_back_op_extended( Operation *op, SlapReply *rs )
-{
-	BackendDB		*bd;
-
-	bd = relay_back_select_backend( op, rs,
-		( LDAP_NO_SUCH_OBJECT | RB_ERR | RB_REFERRAL ) );
-	if ( bd == NULL ) {
-		return rs->sr_err;
-	}
-
-	return relay_back_op( op, rs, bd, bd->be_extended,
-		RB_UNSUPPORTED );
-}
 
 int
 relay_back_entry_release_rw( Operation *op, Entry *e, int rw )
 {
-	relay_back_info		*ri = (relay_back_info *)op->o_bd->be_private;
 	BackendDB		*bd;
-	int			rc = 1;
+	int			rc = LDAP_UNWILLING_TO_PERFORM;
 
-	bd = ri->ri_bd;
-	if ( bd == NULL) {
-		bd = select_backend( &op->o_req_ndn, 1 );
-		if ( bd == NULL ) {
-			return 1;
-		}
-	}
-
-	if ( bd->be_release ) {
-		BackendDB	*be = op->o_bd;
-
-		op->o_bd = bd;
-		rc = bd->be_release( op, e, rw );
-		op->o_bd = be;
+	bd = relay_back_select_backend( op, NULL, relay_op_entry_release );
+	if ( bd && bd->be_release ) {
+		RELAY_WRAP_OP( op, bd, relay_op_entry_release, {
+			rc = bd->be_release( op, e, rw );
+		});
+	} else if ( e->e_private == NULL ) {
+		entry_free( e );
+		rc = LDAP_SUCCESS;
 	}
 
 	return rc;
@@ -379,24 +269,14 @@ int
 relay_back_entry_get_rw( Operation *op, struct berval *ndn,
 	ObjectClass *oc, AttributeDescription *at, int rw, Entry **e )
 {
-	relay_back_info		*ri = (relay_back_info *)op->o_bd->be_private;
 	BackendDB		*bd;
-	int			rc = 1;
+	int			rc = LDAP_NO_SUCH_OBJECT;
 
-	bd = ri->ri_bd;
-	if ( bd == NULL) {
-		bd = select_backend( &op->o_req_ndn, 1 );
-		if ( bd == NULL ) {
-			return 1;
-		}
-	}
-
-	if ( bd->be_fetch ) {
-		BackendDB	*be = op->o_bd;
-
-		op->o_bd = bd;
-		rc = bd->be_fetch( op, ndn, oc, at, rw, e );
-		op->o_bd = be;
+	bd = relay_back_select_backend( op, NULL, relay_op_entry_get );
+	if ( bd && bd->be_fetch ) {
+		RELAY_WRAP_OP( op, bd, relay_op_entry_get, {
+			rc = bd->be_fetch( op, ndn, oc, at, rw, e );
+		});
 	}
 
 	return rc;
@@ -410,49 +290,8 @@ relay_back_entry_get_rw( Operation *op, struct berval *ndn,
  * is passing the target database a DN that likely does not belong to its
  * naming context... mmmh.
  */
-int
-relay_back_chk_referrals( Operation *op, SlapReply *rs )
-{
-	BackendDB		*bd;
-
-	/* FIXME: Can send success on failure. Should send referral or nothing. */
-	bd = relay_back_select_backend( op, rs,
-		( LDAP_SUCCESS | RB_ERR_REFERRAL_SEND ) );
-	/* FIXME: this test only works if there are no overlays, so
-	 * it is nearly useless; if made stricter, no nested back-relays
-	 * can be instantiated... too bad. */
-	if ( bd == NULL || bd == op->o_bd ) {
-		return 0;
-	}
-
-	/* no nested back-relays... */
-	if ( overlay_is_over( bd ) ) {
-		slap_overinfo	*oi = (slap_overinfo *)bd->bd_info->bi_private;
-
-		if ( oi->oi_orig == op->o_bd->bd_info ) {
-			return 0;
-		}
-	}
-
-	return relay_back_op( op, rs, bd, bd->be_chk_referrals, LDAP_SUCCESS );
-}
+RELAY_DEFOP( relay_back_chk_referrals, op_aux_chk_referrals )
 #endif /*0*/
-
-int
-relay_back_operational( Operation *op, SlapReply *rs )
-{
-	BackendDB		*bd;
-
-	bd = relay_back_select_backend( op, rs, LDAP_SUCCESS );
-	/* FIXME: this test only works if there are no overlays, so
-	 * it is nearly useless; if made stricter, no nested back-relays
-	 * can be instantiated... too bad. */
-	if ( bd == NULL || bd == op->o_bd ) {
-		return LDAP_SUCCESS;
-	}
-
-	return relay_back_op( op, rs, bd, bd->be_operational, LDAP_SUCCESS );
-}
 
 int
 relay_back_has_subordinates( Operation *op, Entry *e, int *hasSubs )
@@ -460,67 +299,16 @@ relay_back_has_subordinates( Operation *op, Entry *e, int *hasSubs )
 	BackendDB		*bd;
 	int			rc = LDAP_OTHER;
 
-	bd = relay_back_select_backend( op, NULL, 0 );
-	/* FIXME: this test only works if there are no overlays, so
-	 * it is nearly useless; if made stricter, no nested back-relays
-	 * can be instantiated... too bad. */
-	if ( bd == NULL || bd == op->o_bd ) {
-		return LDAP_OTHER;
-	}
-
-	if ( bd->be_has_subordinates ) {
-		BackendDB	*be = op->o_bd;
-
-		op->o_bd = bd;
-		rc = bd->be_has_subordinates( op, e, hasSubs );
-		op->o_bd = be;
+	bd = relay_back_select_backend( op, NULL, relay_op_has_subordinates );
+	if ( bd && bd->be_has_subordinates ) {
+		RELAY_WRAP_OP( op, bd, relay_op_has_subordinates, {
+			rc = bd->be_has_subordinates( op, e, hasSubs );
+		});
 	}
 
 	return rc;
 }
 
-#if 0 /* Should not exist - see ITS#6133 */
-int
-relay_back_connection_init( BackendDB *bd, Connection *c )
-{
-	relay_back_info		*ri = (relay_back_info *)bd->be_private;
-
-	bd = ri->ri_bd;
-	if ( bd == NULL ) {
-		return 0;
-	}
-
-	if ( bd->be_connection_init ) {
-		return bd->be_connection_init( bd, c );
-	}
-
-	return 0;
-}
-
-int
-relay_back_connection_destroy( BackendDB *bd, Connection *c )
-{
-	relay_back_info		*ri = (relay_back_info *)bd->be_private;
-
-	bd = ri->ri_bd;
-	if ( bd == NULL ) {
-		return 0;
-	}
-
-	if ( bd->be_connection_destroy ) {
-		return bd->be_connection_destroy( bd, c );
-	}
-
-	return 0;
-
-}
-#endif /*0*/
-
-/*
- * Handlers that slapd calls for all databases are not set, as slapd
- * would then call them twice for the underlying database:  Abandon,
- * Cancel, Unbind and non-Operation handlers like be_connection_init.
- */
 
 /*
  * FIXME: must implement tools as well
