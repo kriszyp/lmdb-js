@@ -282,7 +282,7 @@ relay_back_entry_get_rw( Operation *op, struct berval *ndn,
 	return rc;
 }
 
-#if 0
+#if 0 /* Give the RB_SENDREF flag a nonzero value if implementing this */
 /*
  * NOTE: even the existence of this function is questionable: we cannot
  * pass the bi_chk_referrals() call thru the rwm overlay because there
