@@ -455,7 +455,7 @@ static ConfigTable config_back_cf_table[] = {
 	{ "password-crypt-salt-format", "salt", 2, 2, 0, ARG_STRING|ARG_MAGIC|CFG_SALT,
 		&config_generic, "( OLcfgGlAt:35 NAME 'olcPasswordCryptSaltFormat' "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
-	{ "password-hash", "hash", 2, 2, 0, ARG_MAGIC,
+	{ "password-hash", "hash", 2, 0, 0, ARG_MAGIC,
 		&config_passwd_hash, "( OLcfgGlAt:36 NAME 'olcPasswordHash' "
 			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString )", NULL, NULL },
