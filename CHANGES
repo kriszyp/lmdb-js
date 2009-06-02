@@ -31,6 +31,7 @@ OpenLDAP 2.4.17 Engineering
 		Fixed winsock detection for windows (ITS#6102, ITS#6078)
 	Documentation
 		admin24 fixed example regex (ITS#6052)
+		ldap.conf(5) improve sizelimit/timelimit limits (ITS#6127)
 		slapd.conf(5) pidfile/argsfile description fix (ITS#5975)
 		slapd-config(5) pidfile/argsfile description fix (ITS#5975)
 		slapo-unique(5) explicitly note rootdn requirement (ITS#6108)
