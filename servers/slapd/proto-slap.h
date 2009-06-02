@@ -1151,6 +1151,8 @@ LDAP_SLAPD_F (int) limits_unparse_one LDAP_P((
 	struct slap_limits_set *limit, int which, struct berval *bv, ber_len_t buflen ));
 LDAP_SLAPD_F (int) limits_unparse LDAP_P(( 
 	struct slap_limits *limit, struct berval *bv, ber_len_t buflen ));
+LDAP_SLAPD_F (void) limits_free_one LDAP_P(( 
+	struct slap_limits	*lm ));
 LDAP_SLAPD_F (void) limits_destroy LDAP_P(( struct slap_limits **lm ));
 
 /*

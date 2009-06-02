@@ -1388,6 +1388,36 @@ config_generic(ConfigArgs *c) {
 
 		case CFG_LIMITS:
 			/* FIXME: there is no limits_free function */
+			if ( c->valx < 0 ) {
+				limits_destroy( c->be->be_limits );
+				c->be->be_limits = NULL;
+
+			} else {
+				int cnt, num = -1;
+
+				if ( c->be->be_limits ) {
+					for ( num = 0; c->be->be_limits[ num ]; num++ )
+						/* just count */ ;
+				}
+
+				if ( c->valx >= num ) {
+					return 1;
+				}
+
+				if ( num == 1 ) {
+					limits_destroy( c->be->be_limits );
+					c->be->be_limits = NULL;
+
+				} else {
+					limits_free_one( c->be->be_limits[ c->valx ] );
+
+					for ( cnt = c->valx; cnt < num; cnt++ ) {
+						c->be->be_limits[ cnt ] = c->be->be_limits[ cnt + 1 ];
+					}
+				}
+			}
+			break;
+
 		case CFG_ATOPT:
 			/* FIXME: there is no ad_option_free function */
 		case CFG_ROOTDSE:
