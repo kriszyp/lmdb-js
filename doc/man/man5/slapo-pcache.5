@@ -4,7 +4,7 @@
 .\" Copyright 2001, Pierangelo Masarati, All rights reserved. <ando@sys-net.it>
 .\" $OpenLDAP$
 .SH NAME
-slapo-pcache \- proxycache overlay to slapd
+slapo\-pcache \- proxycache overlay to slapd
 .SH SYNOPSIS
 ETCDIR/slapd.conf
 .SH DESCRIPTION
@@ -71,7 +71,7 @@ proxycache \fBbdb 10000 1 50 100\fP
 .TP
 .B proxyattrset <index> <attrs...>
 Used to associate a set of attributes <attrs..> with an <index>. Each attribute
-set is associated with an integer from 0 to <numattrsets>-1. These indices are
+set is associated with an integer from 0 to <numattrsets>\-1. These indices are
 used by the \fBproxytemplate\fP directive to define cacheable templates. 
 A set of attributes cannot be empty.  A set of attributes can contain the
 special attributes "*" (all user attributes), "+" (all operational attributes)
@@ -121,7 +121,7 @@ hitting a sizelimit should also be cached for the specified amount of time.
 Results hitting a sizelimit are not cached by default (<limitttl> set to 0).
 
 .TP
-.B response-callback { head | tail }
+.B response\-callback { head | tail }
 Specifies whether the response callback should be placed at the
 .B tail
 (the default) or at the 
@@ -219,11 +219,11 @@ For this reason, it is suggested that, when using
 proxy caching be used in conjunction with the 
 .I identity assertion
 feature of
-.BR slapd-ldap (5)
+.BR slapd\-ldap (5)
 (see the
-.B idassert-bind
+.B idassert\-bind
 and the
-.B idassert-authz
+.B idassert\-authz
 statements), so that remote server interrogation occurs with a vanilla identity 
 that has some relatively high
 .B search

@@ -3,12 +3,12 @@
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
 .\" $OpenLDAP$
 .SH NAME
-slapo-translucent \- Translucent Proxy overlay to slapd
+slapo\-translucent \- Translucent Proxy overlay to slapd
 .SH SYNOPSIS
 ETCDIR/slapd.conf
 .SH DESCRIPTION
 The Translucent Proxy overlay can be used with a backend database such as
-.BR slapd-bdb (5)
+.BR slapd\-bdb (5)
 to create a "translucent proxy".  Entries retrieved from a remote LDAP
 server may have some or all attributes overridden, or new attributes
 added, by entries in the local database before being presented to the
@@ -33,8 +33,8 @@ remote database.
 .SH CONFIGURATION
 The Translucent Proxy overlay uses a proxied database,
 typically a (set of) remote LDAP server(s), which is configured with the options shown in
-.BR slapd-ldap (5),
-.BR slapd-meta (5)
+.BR slapd\-ldap (5),
+.BR slapd\-meta (5)
 or similar.
 These
 .B slapd.conf
@@ -130,4 +130,4 @@ default slapd configuration file
 .SH SEE ALSO
 .BR slapd.conf (5),
 .BR slapd\-config (5),
-.BR slapd-ldap (5).
+.BR slapd\-ldap (5).

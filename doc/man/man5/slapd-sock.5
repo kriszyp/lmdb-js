@@ -3,14 +3,14 @@
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
 .\" $OpenLDAP$
 .SH NAME
-slapd-sock \- Socket backend to slapd
+slapd\-sock \- Socket backend to slapd
 .SH SYNOPSIS
 ETCDIR/slapd.conf
 .SH DESCRIPTION
 The Socket backend to
 .BR slapd (8)
 uses an external program to handle queries, similarly to
-.BR slapd-shell (5).
+.BR slapd\-shell (5).
 However, in this case the external program listens on a Unix domain socket.
 This makes it possible to have a pool of processes, which persist between
 requests. This allows multithreaded operation and a higher level of
@@ -40,7 +40,7 @@ Gives the path to a Unix domain socket to which the commands will
 be sent and from which replies are received.
 .SH PROTOCOL
 The protocol is essentially the same as
-.BR slapd-shell (5)
+.BR slapd\-shell (5)
 with the addition of a newline to terminate the command parameters. The
 following commands are sent:
 .RS
@@ -96,7 +96,7 @@ dn: <DN>
 <repeat {
     <"add"/"delete"/"replace">: <attribute>
     <repeat { <attribute>: <value> }>
-    -
+    \-
 }>
 <blank line>
 .fi
@@ -235,7 +235,7 @@ pseudo_attribute of the searchBase;
 access to the attributes and values used in the filter is not checked.
 
 .SH EXAMPLE
-There is an example script in the slapd/back-sock/ directory
+There is an example script in the slapd/back\-sock/ directory
 in the OpenLDAP source tree.
 .SH FILES
 .TP

@@ -5,7 +5,7 @@
 .SH NAME
 ldap_result \- Wait for the result of an LDAP operation
 .SH LIBRARY
-OpenLDAP LDAP (libldap, -lldap)
+OpenLDAP LDAP (libldap, \-lldap)
 .SH SYNOPSIS
 .nf
 .ft B
@@ -29,7 +29,7 @@ an operation previously initiated by one of the LDAP asynchronous
 operation routines (e.g.,
 .BR ldap_search_ext (3),
 .BR ldap_modify_ext (3),
-etc.).  Those routines all return -1 in case of error, and an
+etc.).  Those routines all return \-1 in case of error, and an
 invocation identifier upon successful initiation of the operation. The
 invocation identifier is picked by the library and is guaranteed to be
 unique across the LDAP session.  It can be used to request the result
@@ -118,12 +118,12 @@ The
 routine returns the message id of a message.
 .SH ERRORS
 .B ldap_result()
-returns -1 if something bad happens, and zero if the
+returns \-1 if something bad happens, and zero if the
 timeout specified was exceeded.
 .B ldap_msgtype()
 and
 .B ldap_msgid()
-return -1 on error.
+return \-1 on error.
 .SH SEE ALSO
 .BR ldap (3),
 .BR ldap_first_message (3),

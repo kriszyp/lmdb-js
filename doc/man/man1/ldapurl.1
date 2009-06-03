@@ -11,7 +11,7 @@ ldapurl \- LDAP URL formatting tool
 [\c
 .BI \-b \ searchbase\fR]
 [\c
-.BR \-E \ [!]ext[=extparam]]
+.BR \-E \ [ ! ] \fIext\fP [ =\fIextparam\fP ]]
 [\c
 .BI \-f \ filter\fR]
 [\c
@@ -21,14 +21,14 @@ ldapurl \- LDAP URL formatting tool
 [\c
 .BI \-p \ ldapport\fR]
 [\c
-.BI \-s \ base\fR\||\|\fIone\fR\||\|\fIsub\fR\||\|\fIchildren\fR]
+.BR \-s \ { base \||\| one \||\| sub \||\| children }]
 [\c
 .BI \-S \ scheme\fR]
 .SH DESCRIPTION
 .I ldapurl
 is a command that allows to either compose or decompose LDAP URIs.
 .LP
-When invoked with the \fI-H\fP option,
+When invoked with the \fB\-H\fP option,
 .B ldapurl
 extracts the components of the \fIldapuri\fP option argument,
 unescaping hex-escaped chars as required.
@@ -37,17 +37,17 @@ It basically acts as a frontend to the
 call.
 Otherwise, it builds an LDAP URI based on the components
 passed with the appropriate options, performing the inverse operation.
-Option \fI-H\fP is incompatible with options
-.IR \-a ,
-.IR \-b ,
-.IR \-E ,
-.IR \-f ,
-.IR \-H ,
-.IR \-h ,
-.IR \-p ,
-.IR \-S ,
+Option \fB\-H\fP is incompatible with options
+.BR \-a ,
+.BR \-b ,
+.BR \-E ,
+.BR \-f ,
+.BR \-H ,
+.BR \-h ,
+.BR \-p ,
+.BR \-S ,
 and
-.IR \-s .
+.BR \-s .
 .SH OPTIONS
 .TP
 .TP
@@ -57,7 +57,7 @@ Set a comma-separated list of attribute selectors.
 .BI \-b \ searchbase
 Set the \fIsearchbase\fP.
 .TP
-.B \-E \fI[!]ext[=extparam]\fP
+.BR \-E \ [ ! ] \fIext\fP [ =\fIextparam\fP ]
 Set URL extensions; \'!\' indicates criticality.
 .TP
 .BI \-f \ filter
@@ -77,22 +77,22 @@ Set the TCP port.
 Set the URL scheme.  Defaults for other fields, like \fIldapport\fP,
 may depend on the value of \fIscheme\fP.
 .TP
-.BI \-s \ base\fR\||\|\fIone\fR\||\|\fIsub\fR\||\|\fIchildren
+.BR \-s \ { base \||\| one \||\| sub \||\| children }
 Specify the scope of the search to be one of
-.IR base ,
-.IR one ,
-.IR sub ,
+.BR base ,
+.BR one ,
+.BR sub ,
 or
-.I children
+.B children
 to specify a base object, one-level, subtree, or children search.
 The default is
-.IR sub .
+.BR sub .
 Note:
-.I children
+.B children
 scope requires LDAPv3 subordinate feature extension.
 
 .SH OUTPUT FORMAT
-If the \fI-H\fP option is used, the \fIldapuri\fP supplied
+If the \fB\-H\fP option is used, the \fIldapuri\fP supplied
 is exploded in its components, which are printed to standard output
 in an LDIF-like form.
 .LP
@@ -102,7 +102,7 @@ is printed to standard output.
 The following command:
 .LP
 .nf
-    ldapuri -h ldap.example.com -b dc=example,dc=com -s sub -f (cn=Some One)
+    ldapuri \-h ldap.example.com \-b dc=example,dc=com \-s sub \-f "(cn=Some One)"
 .fi
 .LP
 returns
@@ -114,7 +114,7 @@ returns
 The command:
 .LP
 .nf
-    ldapuri -H ldap://ldap.example.com:389/dc=example,dc=com??sub?(cn=Some%20One)
+    ldapuri \-H ldap://ldap.example.com:389/dc=example,dc=com??sub?(cn=Some%20One)
 .fi
 .LP
 returns

@@ -5,7 +5,7 @@
 .SH NAME
 ldap_rename, ldap_rename_s \- Renames the specified entry.
 .SH LIBRARY
-OpenLDAP LDAP (libldap, -lldap)
+OpenLDAP LDAP (libldap, \-lldap)
 .SH SYNOPSIS
 .nf
 .ft B
@@ -54,7 +54,7 @@ it initiated. The result of this operation can be obtained by calling
 .BR ldap_result(3).
 .SH ERRORS
 .B ldap_rename()
-returns -1 in case of error initiating the request, and
+returns \-1 in case of error initiating the request, and
 will set the \fIld_errno\fP field in the \fIld\fP parameter to
 indicate the error.
 .BR ldap_rename_s()
