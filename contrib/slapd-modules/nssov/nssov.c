@@ -1,7 +1,7 @@
 /* nssov.c - nss-ldap overlay for slapd */
 /* $OpenLDAP$ */
 /*
- * Copyright 2008 by Howard Chu, Symas Corp.
+ * Copyright 2008-2009 by Howard Chu, Symas Corp.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,6 +32,9 @@
 #include <ac/unistd.h>
 #include <fcntl.h>
 #include <sys/stat.h>
+
+AttributeDescription *nssov_pam_host_ad;
+AttributeDescription *nssov_pam_svc_ad;
 
 /* buffer sizes for I/O */
 #define READBUFFER_MINSIZE 32
@@ -152,7 +155,7 @@ int write_address(TFILE *fp,struct berval *addr)
 		/* failure, log but write simple invalid address
 			 (otherwise the address list is messed up) */
 		/* TODO: have error message in correct format */
-		Debug(LDAP_DEBUG_ANY,"nssov: unparseable address: %s",addr->bv_val,0,0);
+		Debug(LDAP_DEBUG_ANY,"nssov: unparseable address: %s\n",addr->bv_val,0,0);
 		/* write an illegal address type */
 		WRITE_INT32(fp,-1);
 		/* write an empty address */
@@ -170,14 +173,14 @@ int read_address(TFILE *fp,char *addr,int *addrlen,int *af)
 	READ_INT32(fp,*af);
 	if ((*af!=AF_INET)&&(*af!=AF_INET6))
 	{
-		Debug(LDAP_DEBUG_ANY,"nssov: incorrect address family specified: %d",*af,0,0);
+		Debug(LDAP_DEBUG_ANY,"nssov: incorrect address family specified: %d\n",*af,0,0);
 		return -1;
 	}
 	/* read address length */
 	READ_INT32(fp,len);
 	if ((len>*addrlen)||(len<=0))
 	{
-		Debug(LDAP_DEBUG_ANY,"nssov: address length incorrect: %d",len,0,0);
+		Debug(LDAP_DEBUG_ANY,"nssov: address length incorrect: %d\n",len,0,0);
 		return -1;
 	}
 	*addrlen=len;
@@ -237,7 +240,7 @@ static int read_header(TFILE *fp,int32_t *action)
   READ_TYPE(fp,tmpint32,int32_t);
   if (tmpint32 != (int32_t)NSLCD_VERSION)
   {
-    Debug( LDAP_DEBUG_TRACE,"nssov: wrong nslcd version id (%d)",(int)tmpint32,0,0);
+    Debug( LDAP_DEBUG_TRACE,"nssov: wrong nslcd version id (%d)\n",(int)tmpint32,0,0);
     return -1;
   }
   /* read the request type */
@@ -258,9 +261,9 @@ static void handleconnection(nssov_info *ni,int sock,Operation *op)
 
   /* log connection */
   if (lutil_getpeereid(sock,&uid,&gid))
-    Debug( LDAP_DEBUG_TRACE,"nssov: connection from unknown client: %s",strerror(errno),0,0);
+    Debug( LDAP_DEBUG_TRACE,"nssov: connection from unknown client: %s\n",strerror(errno),0,0);
   else
-    Debug( LDAP_DEBUG_TRACE,"nssov: connection from uid=%d gid=%d",
+    Debug( LDAP_DEBUG_TRACE,"nssov: connection from uid=%d gid=%d\n",
                       (int)uid,(int)gid,0);
 
   /* Should do authid mapping too */
@@ -322,6 +325,11 @@ static void handleconnection(nssov_info *ni,int sock,Operation *op)
     case NSLCD_ACTION_SERVICE_ALL:      (void)nssov_service_all(ni,fp,op); break;
     case NSLCD_ACTION_SHADOW_BYNAME:    if (uid==0) (void)nssov_shadow_byname(ni,fp,op); break;
     case NSLCD_ACTION_SHADOW_ALL:       if (uid==0) (void)nssov_shadow_all(ni,fp,op); break;
+	case NSLCD_ACTION_PAM_AUTHC:		(void)pam_authc(ni,fp,op); break;
+	case NSLCD_ACTION_PAM_AUTHZ:		(void)pam_authz(ni,fp,op); break;
+	case NSLCD_ACTION_PAM_SESS_O:		if (uid==0) (void)pam_sess_o(ni,fp,op); break;
+	case NSLCD_ACTION_PAM_SESS_C:		if (uid==0) (void)pam_sess_c(ni,fp,op); break;
+	case NSLCD_ACTION_PAM_PWMOD:		(void)pam_pwmod(ni,fp,op); break;
     default:
       Debug( LDAP_DEBUG_ANY,"nssov: invalid request id: %d",(int)action,0,0);
       break;
@@ -380,6 +388,7 @@ static void *acceptconn(void *ctx, void *arg)
 	}
 	connection_fake_init( &conn, &opbuf, ctx );
 	op=&opbuf.ob_op;
+	conn.c_ssf = conn.c_transport_ssf = local_ssf;
 	op->o_bd = ni->ni_db;
 	op->o_tag = LDAP_REQ_SEARCH;
 
@@ -402,9 +411,22 @@ static slap_verbmasks nss_svcs[] = {
 	{ BER_BVNULL, 0 }
 };
 
+static slap_verbmasks pam_opts[] = {
+	{ BER_BVC("userhost"), NI_PAM_USERHOST },
+	{ BER_BVC("userservice"), NI_PAM_USERSVC },
+	{ BER_BVC("usergroup"), NI_PAM_USERGRP },
+	{ BER_BVC("hostservice"), NI_PAM_HOSTSVC },
+	{ BER_BVC("authz2dn"), NI_PAM_SASL2DN },
+	{ BER_BVC("uid2dn"), NI_PAM_UID2DN },
+	{ BER_BVNULL, 0 }
+};
+
 enum {
 	NSS_SSD=1,
-	NSS_MAP
+	NSS_MAP,
+	NSS_PAM,
+	NSS_PAMGROUP,
+	NSS_PAMSESS
 };
 
 static ConfigDriver nss_cf_gen;
@@ -420,6 +442,57 @@ static ConfigTable nsscfg[] = {
 			"DESC 'Map <service> lookups of <orig> attr to <new> attr' "
 			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString )", NULL, NULL },
+	{ "nssov-pam", "options", 2, 0, 0, ARG_MAGIC|NSS_PAM,
+		nss_cf_gen, "(OLcfgCtAt:3.3 NAME 'olcNssPam' "
+			"DESC 'PAM authentication and authorization options' "
+			"EQUALITY caseIgnoreMatch "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
+	{ "nssov-pam-defhost", "hostname", 2, 2, 0, ARG_OFFSET|ARG_BERVAL,
+		(void *)offsetof(struct nssov_info, ni_pam_defhost),
+		"(OLcfgCtAt:3.4 NAME 'olcNssPamDefHost' "
+			"DESC 'Default hostname for service checks' "
+			"EQUALITY caseIgnoreMatch "
+			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
+	{ "nssov-pam-group-dn", "DN", 2, 2, 0, ARG_MAGIC|ARG_DN|NSS_PAMGROUP,
+		nss_cf_gen, "(OLcfgCtAt:3.5 NAME 'olcNssPamGroupDN' "
+			"DESC 'DN of group in which membership is required' "
+			"EQUALITY distinguishedNameMatch "
+			"SYNTAX OMsDN SINGLE-VALUE )", NULL, NULL },
+	{ "nssov-pam-group-ad", "attr", 2, 2, 0, ARG_OFFSET|ARG_ATDESC,
+		(void *)offsetof(struct nssov_info, ni_pam_group_ad),
+		"(OLcfgCtAt:3.6 NAME 'olcNssPamGroupAD' "
+			"DESC 'Member attribute to use for group check' "
+			"EQUALITY caseIgnoreMatch "
+			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
+	{ "nssov-pam-min-uid", "uid", 2, 2, 0, ARG_OFFSET|ARG_INT,
+		(void *)offsetof(struct nssov_info, ni_pam_min_uid),
+		"(OLcfgCtAt:3.7 NAME 'olcNssPamMinUid' "
+			"DESC 'Minimum UID allowed to login' "
+			"EQUALITY integerMatch "
+			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
+	{ "nssov-pam-max-uid", "uid", 2, 2, 0, ARG_OFFSET|ARG_INT,
+		(void *)offsetof(struct nssov_info, ni_pam_max_uid),
+		"(OLcfgCtAt:3.8 NAME 'olcNssPamMaxUid' "
+			"DESC 'Maximum UID allowed to login' "
+			"EQUALITY integerMatch "
+			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
+	{ "nssov-pam-template-ad", "attr", 2, 2, 0, ARG_OFFSET|ARG_ATDESC,
+		(void *)offsetof(struct nssov_info, ni_pam_template_ad),
+		"(OLcfgCtAt:3.9 NAME 'olcNssPamTemplateAD' "
+			"DESC 'Attribute to use for template login name' "
+			"EQUALITY caseIgnoreMatch "
+			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
+	{ "nssov-pam-template", "name", 2, 2, 0, ARG_OFFSET|ARG_BERVAL,
+		(void *)offsetof(struct nssov_info, ni_pam_template),
+		"(OLcfgCtAt:3.10 NAME 'olcNssPamTemplate' "
+			"DESC 'Default template login name' "
+			"EQUALITY caseIgnoreMatch "
+			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
+	{ "nssov-pam-session", "service", 2, 2, 0, ARG_MAGIC|ARG_BERVAL|NSS_PAMSESS,
+		nss_cf_gen, "(OLcfgCtAt:3.11 NAME 'olcNssPamSession' "
+			"DESC 'Services for which sessions will be recorded' "
+			"EQUALITY caseIgnoreMatch "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ NULL, NULL, 0,0,0, ARG_IGNORED }
 };
 
@@ -428,7 +501,10 @@ static ConfigOCs nssocs[] = {
 		"NAME 'olcNssOvConfig' "
 		"DESC 'NSS lookup configuration' "
 		"SUP olcOverlayConfig "
-		"MAY ( olcNssSsd $ olcNssMap ) )",
+		"MAY ( olcNssSsd $ olcNssMap $ olcNssPam $ olcNssPamDefHost $ "
+			"olcNssPamGroupDN $ olcNssPamGroupAD $ "
+			"olcNssPamMinUid $ olcNssPamMaxUid $ olcNssPamSession $ "
+			"olcNssPamTemplateAD $ olcNssPamTemplate ) )",
 		Cft_Overlay, nsscfg },
 	{ NULL, 0, NULL }
 };
@@ -440,6 +516,7 @@ nss_cf_gen(ConfigArgs *c)
 	nssov_info *ni = on->on_bi.bi_private;
 	nssov_mapinfo *mi;
 	int i, j, rc = 0;
+	slap_mask_t m;
 
 	if ( c->op == SLAP_CONFIG_EMIT ) {
 		switch(c->type) {
@@ -495,9 +572,28 @@ nss_cf_gen(ConfigArgs *c)
 				}
 			}
 			break;
+		case NSS_PAM:
+			rc = mask_to_verbs( pam_opts, ni->ni_pam_opts, &c->rvalue_vals );
+			break;
+		case NSS_PAMGROUP:
+			if (!BER_BVISEMPTY( &ni->ni_pam_group_dn )) {
+				value_add_one( &c->rvalue_vals, &ni->ni_pam_group_dn );
+				value_add_one( &c->rvalue_nvals, &ni->ni_pam_group_dn );
+			} else {
+				rc = 1;
+			}
+			break;
+		case NSS_PAMSESS:
+			if (ni->ni_pam_sessions) {
+				ber_bvarray_dup_x( &c->rvalue_vals, ni->ni_pam_sessions, NULL );
+			} else {
+				rc = 1;
+			}
+			break;
 		}
 		return rc;
 	} else if ( c->op == LDAP_MOD_DELETE ) {
+		/* FIXME */
 		return 1;
 	}
 	switch( c->type ) {
@@ -558,6 +654,44 @@ nss_cf_gen(ConfigArgs *c)
 			}
 		}
 		break;
+	case NSS_PAM:
+		m = ni->ni_pam_opts;
+		i = verbs_to_mask(c->argc, c->argv, pam_opts, &m);
+		if (i == 0) {
+			ni->ni_pam_opts = m;
+			if ((m & NI_PAM_USERHOST) && !nssov_pam_host_ad) {
+				const char *text;
+				i = slap_str2ad("host", &nssov_pam_host_ad, &text);
+				if (i != LDAP_SUCCESS) {
+					snprintf(c->cr_msg, sizeof(c->cr_msg),
+						"nssov: host attr unknown: %s", text);
+					Debug(LDAP_DEBUG_ANY,"%s\n",c->cr_msg,0,0);
+					rc = 1;
+					break;
+				}
+			}
+			if ((m & (NI_PAM_USERSVC|NI_PAM_HOSTSVC)) && !nssov_pam_svc_ad) {
+				const char *text;
+				i = slap_str2ad("authorizedService", &nssov_pam_svc_ad, &text);
+				if (i != LDAP_SUCCESS) {
+					snprintf(c->cr_msg, sizeof(c->cr_msg),
+						"nssov: authorizedService attr unknown: %s", text);
+					Debug(LDAP_DEBUG_ANY,"%s\n",c->cr_msg,0,0);
+					rc = 1;
+					break;
+				}
+			}
+		} else {
+			rc = 1;
+		}
+		break;
+	case NSS_PAMGROUP:
+		ni->ni_pam_group_dn = c->value_ndn;
+		ch_free( c->value_dn.bv_val );
+		break;
+	case NSS_PAMSESS:
+		ber_bvarray_add( &ni->ni_pam_sessions, &c->value_bv );
+		break;
 	}
 	return rc;
 }
@@ -570,9 +704,12 @@ nssov_db_init(
 	slap_overinst *on = (slap_overinst *)be->bd_info;
 	nssov_info *ni;
 	nssov_mapinfo *mi;
-	int i, j;
+	int rc;
 
-	ni = ch_malloc( sizeof(nssov_info) );
+	rc = nssov_pam_init();
+	if (rc) return rc;
+
+	ni = ch_calloc( 1, sizeof(nssov_info) );
 	on->on_bi.bi_private = ni;
 
 	/* set up map keys */
@@ -589,6 +726,7 @@ nssov_db_init(
 	nssov_shadow_init(ni);
 
 	ni->ni_db = be->bd_self;
+	ni->ni_pam_opts = NI_PAM_UID2DN;
 
 	return 0;
 }
@@ -639,17 +777,47 @@ nssov_db_open(
 		mi->mi_attrs[j].an_desc = NULL;
 	}
 
+	/* Find host and authorizedService definitions */
+	if ((ni->ni_pam_opts & NI_PAM_USERHOST) && !nssov_pam_host_ad)
+	{
+		const char *text;
+		i = slap_str2ad("host", &nssov_pam_host_ad, &text);
+		if (i != LDAP_SUCCESS) {
+			Debug(LDAP_DEBUG_ANY,"nssov: host attr unknown: %s\n",
+				text, 0, 0 );
+			return -1;
+		}
+	}
+	if ((ni->ni_pam_opts & (NI_PAM_USERSVC|NI_PAM_HOSTSVC)) &&
+		!nssov_pam_svc_ad)
+	{
+		const char *text;
+		i = slap_str2ad("authorizedService", &nssov_pam_svc_ad, &text);
+		if (i != LDAP_SUCCESS) {
+			Debug(LDAP_DEBUG_ANY,"nssov: authorizedService attr unknown: %s\n",
+				text, 0, 0 );
+			return -1;
+		}
+	}
 	if ( slapMode & SLAP_SERVER_MODE ) {
+		/* make sure /var/run/nslcd exists */
+		if (mkdir(NSLCD_PATH, (mode_t) 0555)) {
+			Debug(LDAP_DEBUG_TRACE,"nssov: mkdir(%s) failed (ignored): %s\n",
+					NSLCD_PATH,strerror(errno),0);
+		} else {
+			Debug(LDAP_DEBUG_TRACE,"nssov: created %s\n",NSLCD_PATH,0,0);
+		}
+
 		/* create a socket */
 		if ( (sock=socket(PF_UNIX,SOCK_STREAM,0))<0 )
 		{
-			Debug(LDAP_DEBUG_ANY,"nssov: cannot create socket: %s",strerror(errno),0,0);
+			Debug(LDAP_DEBUG_ANY,"nssov: cannot create socket: %s\n",strerror(errno),0,0);
 			return -1;
 		}
 		/* remove existing named socket */
 		if (unlink(NSLCD_SOCKET)<0)
 		{
-			Debug( LDAP_DEBUG_TRACE,"nssov: unlink() of "NSLCD_SOCKET" failed (ignored): %s",
+			Debug( LDAP_DEBUG_TRACE,"nssov: unlink() of "NSLCD_SOCKET" failed (ignored): %s\n",
 							strerror(errno),0,0);
 		}
 		/* create socket address structure */

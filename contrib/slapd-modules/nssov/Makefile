@@ -32,7 +32,7 @@ all:	nssov.la
 XOBJS = tio.lo
 
 OBJS = alias.lo ether.lo group.lo host.lo netgroup.lo network.lo \
-	nssov.lo passwd.lo protocol.lo rpc.lo service.lo shadow.lo
+	nssov.lo passwd.lo protocol.lo rpc.lo service.lo shadow.lo pam.lo
 
 .SUFFIXES: .c .o .lo
 
