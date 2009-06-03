@@ -26,6 +26,7 @@ enum slaptool {
 	SLAPDN,		/* DN check w/ syntax tool */
 	SLAPINDEX,	/* database index tool */
 	SLAPPASSWD,	/* password generation tool */
+	SLAPSCHEMA,	/* schema checking tool */
 	SLAPTEST,	/* slapd.conf test tool */
 	SLAPAUTH,	/* test authz-regexp and authc/authz stuff */
 	SLAPACL,	/* test acl */

@@ -7,6 +7,7 @@ OpenLDAP 2.4.17 Engineering
 	Fixed liblutil opendir/closedir on windows (ITS#6041)
 	Fixed liblutil for _GNU_SOURCE (ITS#5464,ITS#5666)
 	Added slapd sasl auxprop support (ITS#6147)
+	Added slapd schema checking tool (ITS#6150)
 	Fixed slapd assert with closing connections (ITS#6111)
 	Fixed slapd cert validation (ITS#6098)
 	Fixed slapd errno handling (ITS#6037)
