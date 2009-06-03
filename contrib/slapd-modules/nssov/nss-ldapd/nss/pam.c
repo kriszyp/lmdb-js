@@ -435,7 +435,7 @@ int pam_sm_acct_mgmt(
 
 	ctx2.dn = ctx->dn;
 	ctx2.user = ctx->user;
-	rc = pam_do_authz(&ctx2, svc, ruser, rhost, &err);
+	rc = pam_do_authz(&ctx2, svc, ruser, rhost, tty, &err);
 	NSS2PAM_RC(rc, ignore_flags, PAM_SUCCESS);
 	if (rc != PAM_SUCCESS) {
 		if (rc != PAM_IGNORE)
