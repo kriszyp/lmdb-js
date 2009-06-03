@@ -9,7 +9,8 @@ slapd \- Stand-alone LDAP Daemon
 [\c
 .BR \-4 | \-6 ]
 [\c
-.BR \-T \ { acl \||\| a [ dd ]\||\| auth \||\| c [ at ]\||\| d [ n ]\||\| i [ ndex ]\||\| p [ asswd ]\||\| s [ chema ]\||\| t [ est ]}]
+.BR \-T \ { acl \||\| a [ dd ]\||\| auth \||\| c [ at ]\||\|
+.BR d [ n ]\||\| i [ ndex ]\||\| p [ asswd ]\||\| s [ chema ]\||\| t [ est ]}]
 [\c
 .BI \-d \ debug-level\fR]
 [\c
@@ -73,8 +74,8 @@ Listen on IPv4 addresses only.
 .B \-6
 Listen on IPv6 addresses only.
 .TP
-.BR \-T \ { acl \||\| a [ dd ]\||\| auth \||\| c [ at ]\||\| d [ n ]\||\| i [ ndex ]\||\| p [ asswd ]\||\| s [ chema ]\||\| t [ est ]}
-Run in Tool mode. The additional argument selects whether to run as
+.BI \-T \ tool
+Run in Tool mode. The \fItool\fP argument selects whether to run as
 .IR slapadd ,
 .IR slapcat ,
 .IR slapdn ,
