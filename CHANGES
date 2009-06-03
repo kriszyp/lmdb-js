@@ -42,6 +42,7 @@ OpenLDAP 2.4.17 Engineering
 		ldap.conf(5) improve sizelimit/timelimit limits (ITS#6127)
 		slapd.conf(5) pidfile/argsfile description fix (ITS#5975)
 		slapd-config(5) pidfile/argsfile description fix (ITS#5975)
+		slapo-constraint(5) clarify URI example (ITS#6118)
 		slapo-unique(5) explicitly note rootdn requirement (ITS#6108)
 
 OpenLDAP 2.4.16 Release (2009/04/05)
