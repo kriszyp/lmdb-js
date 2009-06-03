@@ -255,12 +255,14 @@ static struct berval uidmsg =
 
 int pam_authz(nssov_info *ni,TFILE *fp,Operation *op)
 {
-	struct berval dn, uid, svc;
+	struct berval dn, uid, svc, ruser, rhost;
 	struct berval authzmsg = BER_BVNULL;
 	int32_t tmpint32;
 	char dnc[1024];
 	char uidc[32];
 	char svcc[256];
+	char ruserc[32];
+	char rhostc[256];
 	int rc = NSLCD_PAM_SUCCESS;
 	Entry *e = NULL;
 	Attribute *a;
@@ -276,6 +278,12 @@ int pam_authz(nssov_info *ni,TFILE *fp,Operation *op)
 	READ_STRING_BUF2(fp,svcc,sizeof(svcc));
 	svc.bv_val = svcc;
 	svc.bv_len = tmpint32;
+	READ_STRING_BUF2(fp,svcc,sizeof(ruserc));
+	ruser.bv_val = ruserc;
+	ruser.bv_len = tmpint32;
+	READ_STRING_BUF2(fp,svcc,sizeof(rhostc));
+	rhost.bv_val = rhostc;
+	rhost.bv_len = tmpint32;
 
 	Debug(LDAP_DEBUG_TRACE,"nssov_pam_authz(%s)\n",dn.bv_val,0,0);
 

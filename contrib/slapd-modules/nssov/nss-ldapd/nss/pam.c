@@ -358,12 +358,15 @@ static enum nss_status pam_read_authz(
 }
 
 static enum nss_status pam_do_authz(
-	pld_ctx *ctx, const char *svc,int *errnop)
+	pld_ctx *ctx, const char *svc, const char *ruser, const char *rhost,
+	int *errnop)
 {
 	NSS_BYGEN(NSLCD_ACTION_PAM_AUTHZ,
 		WRITE_STRING(fp,ctx->user);
 		WRITE_STRING(fp,ctx->dn);
-		WRITE_STRING(fp,svc),
+		WRITE_STRING(fp,svc);
+		WRITE_STRING(fp,ruser);
+		WRITE_STRING(fp,rhost),
 		pam_read_authz(fp,ctx,errnop));
 }
 
@@ -371,7 +374,7 @@ int pam_sm_acct_mgmt(
 	pam_handle_t *pamh, int flags, int argc, const char **argv)
 {
 	int rc, err;
-	const char *username, *svc;
+	const char *username, *svc, *ruser, *rhost;
 	int no_warn = 0, ignore_flags = 0;
 	int i;
 	struct pam_conv *appconv;
@@ -417,9 +420,16 @@ int pam_sm_acct_mgmt(
 	if (rc != PAM_SUCCESS)
 		return rc;
 
+	rc = pam_get_item (pamh, PAM_RUSER, (CONST_ARG void **) &ruser);
+	if (rc != PAM_SUCCESS)
+		return rc;
+
+	rc = pam_get_item (pamh, PAM_RHOST, (CONST_ARG void **) &rhost);
+	if (rc != PAM_SUCCESS)
+		return rc;
 	ctx2.dn = ctx->dn;
 	ctx2.user = ctx->user;
-	rc = pam_do_authz(&ctx2, svc, &err);
+	rc = pam_do_authz(&ctx2, svc, ruser, rhost, &err);
 	NSS2PAM_RC(rc, ignore_flags, PAM_SUCCESS);
 	if (rc != PAM_SUCCESS) {
 		if (rc != PAM_IGNORE)
