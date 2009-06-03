@@ -62,6 +62,7 @@ slap_mask_t		global_allows = 0;
 slap_mask_t		global_disallows = 0;
 int		global_gentlehup = 0;
 int		global_idletimeout = 0;
+int		global_writetimeout = 0;
 char	*global_host = NULL;
 char	*global_realm = NULL;
 char	*sasl_host = NULL;
