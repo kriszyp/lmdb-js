@@ -13,8 +13,7 @@ attributetype ( 1.3.6.1.4.1.5322.17.2.1 NAME 'authorizedService'
           SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
 
 objectclass ( 1.3.6.1.4.1.5322.17.1.1 NAME 'authorizedServiceObject'
-          DESC 'Auxiliary object class for adding authorizedService 
-attribute'
+          DESC 'Auxiliary object class for adding authorizedService attribute'
           SUP top
           AUXILIARY
           MAY authorizedService )
