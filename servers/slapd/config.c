@@ -216,6 +216,16 @@ int config_check_vals(ConfigTable *Conf, ConfigArgs *c, int check_only ) {
 			ch_free( c->value_ndn.bv_val );
 			ch_free( c->value_dn.bv_val );
 		}
+	} else if(arg_type == ARG_ATDESC) {
+		const char *text = NULL;
+		c->value_ad = NULL;
+		rc = slap_str2ad( c->argv[1], &c->value_ad, &text );
+		if ( rc != LDAP_SUCCESS ) {
+			snprintf( c->cr_msg, sizeof( c->cr_msg ), "<%s> invalid AttributeDescription %d (%s)",
+				c->argv[0], rc, text );
+			Debug(LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE, "%s: %s\n" , c->log, c->cr_msg, 0);
+			return(ARG_BAD_CONF);
+		}
 	} else {	/* all numeric */
 		int j;
 		iarg = 0; larg = 0; barg = 0;
@@ -366,6 +376,9 @@ int config_set_vals(ConfigTable *Conf, ConfigArgs *c) {
 			case ARG_BERVAL:
 				*(struct berval *)ptr = c->value_bv;
 				break;
+			case ARG_ATDESC:
+				*(AttributeDescription **)ptr = c->value_ad;
+				break;
 		}
 	return(0);
 }
@@ -443,6 +456,8 @@ config_get_vals(ConfigTable *cf, ConfigArgs *c)
 			break;
 		case ARG_BERVAL:
 			ber_dupbv( &c->value_bv, (struct berval *)ptr ); break;
+		case ARG_ATDESC:
+			c->value_ad = *(AttributeDescription **)ptr; break;
 		}
 	}
 	if ( cf->arg_type & ARGS_TYPES) {
@@ -465,6 +480,13 @@ config_get_vals(ConfigTable *cf, ConfigArgs *c)
 		case ARG_BERVAL:
 			if ( !BER_BVISEMPTY( &c->value_bv )) {
 				bv = c->value_bv;
+			} else {
+				return 1;
+			}
+			break;
+		case ARG_ATDESC:
+			if ( c->value_ad ) {
+				bv = c->value_ad->ad_cname;
 			} else {
 				return 1;
 			}
