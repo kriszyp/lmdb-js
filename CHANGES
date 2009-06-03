@@ -14,6 +14,7 @@ OpenLDAP 2.4.17 Engineering
 	Fixed slapd global alloc handling (ITS#6054)
 	Fixed slapd moduleload with static backends and modules (ITS#6016)
 	Fixed slapd normalization of updated schema attributes (ITS#5540)
+	Fixed slapd olcLimits handling (ITS#6159)
 	Fixed slapd pagedresults stacked control with overlays (ITS#6056)
 	Fixed slapd password-hash incorrect limit on arg length (ITS#6139)
 	Fixed slapd readonly restrictions (ITS#6109)
