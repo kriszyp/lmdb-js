@@ -1,7 +1,7 @@
 /* group.c - group lookup routines */
 /* $OpenLDAP$ */
 /*
- * Copyright 2008 by Howard Chu, Symas Corp.
+ * Copyright 2008-2009 by Howard Chu, Symas Corp.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -121,6 +121,10 @@ static int isvalidgroupname(struct berval *name)
 	/* check other characters */
 	for (i=1;i<name->bv_len;i++)
 	{
+#ifndef STRICT_GROUPS
+		/* allow spaces too */
+		if (name->bv_val[i] == ' ') continue;
+#endif
 		if ( ! ( (name->bv_val[i]>='A' && name->bv_val[i] <= 'Z') ||
 						 (name->bv_val[i]>='a' && name->bv_val[i] <= 'z') ||
 						 (name->bv_val[i]>='0' && name->bv_val[i] <= '9') ||
