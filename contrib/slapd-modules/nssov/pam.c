@@ -548,6 +548,8 @@ static int pam_sess(nssov_info *ni,TFILE *fp,Operation *op,int action)
 	cb.sc_response = slap_null_cb;
 	op->o_callback = &cb;
 	op->o_tag = LDAP_REQ_MODIFY;
+	op->o_dn = op->o_bd->be_rootdn;
+	op->o_ndn = op->o_bd->be_rootndn;
 	op->orm_modlist = &mod;
 	op->orm_no_opattrs = 1;
 	op->o_req_dn = dn;
