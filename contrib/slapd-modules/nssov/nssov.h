@@ -9,8 +9,12 @@
 #ifndef NSSOV_H
 #define NSSOV_H
 
+#ifndef NSLCD_PATH
+#define	NSLCD_PATH	"/var/run/nslcd"
+#endif
+
 #ifndef NSLCD_SOCKET
-#define NSLCD_SOCKET	"/var/run/nslcd/socket"
+#define NSLCD_SOCKET	NSLCD_PATH "/socket"
 #endif
 
 #include <stdio.h>

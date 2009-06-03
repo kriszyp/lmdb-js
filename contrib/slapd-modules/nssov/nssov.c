@@ -800,16 +800,24 @@ nssov_db_open(
 		}
 	}
 	if ( slapMode & SLAP_SERVER_MODE ) {
+		/* make sure /var/run/nslcd exists */
+		if (mkdir(NSLCD_PATH, (mode_t) 0555)) {
+			Debug(LDAP_DEBUG_TRACE,"nssov: mkdir(%s) failed (ignored): %s\n",
+					NSLCD_PATH,strerror(errno),0);
+		} else {
+			Debug(LDAP_DEBUG_TRACE,"nssov: created %s\n",NSLCD_PATH,0,0);
+		}
+
 		/* create a socket */
 		if ( (sock=socket(PF_UNIX,SOCK_STREAM,0))<0 )
 		{
-			Debug(LDAP_DEBUG_ANY,"nssov: cannot create socket: %s",strerror(errno),0,0);
+			Debug(LDAP_DEBUG_ANY,"nssov: cannot create socket: %s\n",strerror(errno),0,0);
 			return -1;
 		}
 		/* remove existing named socket */
 		if (unlink(NSLCD_SOCKET)<0)
 		{
-			Debug( LDAP_DEBUG_TRACE,"nssov: unlink() of "NSLCD_SOCKET" failed (ignored): %s",
+			Debug( LDAP_DEBUG_TRACE,"nssov: unlink() of "NSLCD_SOCKET" failed (ignored): %s\n",
 							strerror(errno),0,0);
 		}
 		/* create socket address structure */
