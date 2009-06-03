@@ -35,7 +35,7 @@ directive.
 .B constraint_attribute <attribute_name>[,...] <type> <value> [<extra> [...]]
 Specifies the constraint which should apply to the comma-separated
 attribute list named as the first parameter.
-Two types of constraint are currently supported -
+Five types of constraint are currently supported -
 .BR regex ,
 .BR size ,
 .BR count ,
@@ -122,7 +122,11 @@ attribute whose values were not listed in the
 .B title
 attribute of any
 .B titleCatalog
-entries in the given scope.
+entries in the given scope. (Note that the
+"dc=catalog,dc=example,dc=com" subtree ought to reside
+in a separate database, otherwise the initial set of
+titleCatalog entries could not be populated while the
+constraint is in effect.)
 Finally, it requires the values of the attribute
 .B cn
 to be constructed by pairing values of the attributes
