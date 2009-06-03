@@ -24,7 +24,7 @@ ldapexop
 [\c
 .BI \-D \ binddn\fR]
 [\c
-.BI \-e \ [!]ext[=extparam]\fR]
+.BR \-e \ [ ! ] \fIext\fP [ =\fIextparam\fP ]]
 [\c
 .BI \-f \ file\fR]
 [\c
@@ -40,7 +40,7 @@ ldapexop
 [\c
 .BI \-O \ security-properties\fR]
 [\c
-.BI \-o \ [!]ext[=extparam]\fR]
+.BI \-o \ opt\fR[\fP = optparam\fR]]
 [\c
 .BI \-p \ port\fR]
 [\c
@@ -66,8 +66,8 @@ ldapexop
 [\c
 .BI \-Y \ mech\fR]
 [\c
-.BR \-Z[Z] ]
-\ {
+.BR \-Z [ Z ]]
+{\c
 .I oid
 |
 .BI oid: data
@@ -78,8 +78,7 @@ ldapexop
 |
 .BI cancel \ cancel-id
 |
-.BI refresh \ DN \ \fR[\fIttl\fR]
-}
+.BI refresh \ DN \ \fR[\fIttl\fR]}
 
 .SH DESCRIPTION
 ldapexop issues the LDAP extended operation specified by \fBoid\fP
@@ -128,7 +127,7 @@ Set the LDAP debugging level to \fIlevel\fP.
 .BI \-D \ binddn
 Use the Distinguished Name \fIbinddn\fP to bind to the LDAP directory.
 .TP
-.BI \-e \ [!]ext[=extparam]
+.BR \-e \ [ ! ] \fIext\fP [ =\fIextparam\fP ]
 Specify general extensions.  \'!\' indicates criticality.
 .nf
   [!]assert=<filter>     (RFC 4528; a RFC 4515 Filter string)
@@ -152,7 +151,7 @@ Read operations from \fIfile\fP.
 .TP
 .BI \-h \ host
 Specify the host on which the ldap server is running.
-Deprecated in favor of \fB-H\fP.
+Deprecated in favor of \fB\-H\fP.
 .TP
 .BI \-H \ URI
 Specify URI(s) referring to the ldap server(s); only the protocol/host/port
@@ -165,7 +164,7 @@ only as needed.
 .TP
 .BI \-n
 Show what would be done but don't actually do it.
-Useful for debugging in conjunction with \fB-v\fP.
+Useful for debugging in conjunction with \fB\-v\fP.
 .TP
 .BI \-N
 Do not use reverse DNS to canonicalize SASL host name.
@@ -173,7 +172,7 @@ Do not use reverse DNS to canonicalize SASL host name.
 .BI \-O \ security-properties
 Specify SASL security properties.
 .TP
-.BI \-o \ opt[=optparam]
+.BI \-o \ opt\fR[\fP = optparam\fR]
 Specify general options:
 .nf
   nettimeout=<timeout> (in seconds, or "none" or "max")
@@ -181,7 +180,7 @@ Specify general options:
 .TP
 .BI \-p \ port
 Specify the TCP port where the ldap server is listening.
-Deprecated in favor of \fB-H\fP.
+Deprecated in favor of \fB\-H\fP.
 .TP
 .BI \-Q
 Enable SASL Quiet mode.  Never prompt.
@@ -199,7 +198,7 @@ Run in verbose mode, with many diagnostics written to standard output.
 .TP
 .BI \-V
 Print version info and usage message.
-If\fB-VV\fP is given, only the version information is printed.
+If\fB\-VV\fP is given, only the version information is printed.
 .TP
 .BI \-w \ passwd
 Use \fIpasswd\fP as the password for simple authentication.
@@ -215,11 +214,9 @@ Use simple authentication instead of SASL.
 Specify the requested authorization ID for SASL bind.
 .I authzid
 must be one of the following formats:
-.B dn:\c
-.I <distinguished name>
+.BI dn: "<distinguished name>"
 or
-.B u:\c
-.I <username>
+.BI u: <username>
 .TP
 .BI \-y \ file
 Use complete contents of \fIfile\fP as the password for
@@ -229,9 +226,9 @@ simple authentication.
 Specify the SASL mechanism to be used for authentication.
 Without this option, the program will choose the best mechanism the server knows.
 .TP
-.B \-Z[Z]
+.BR \-Z [ Z ]
 Issue StartTLS (Transport Layer Security) extended operation.
-Giving it twice (\fB-ZZ\fP) will require the operation to be successful.
+Giving it twice (\fB\-ZZ\fP) will require the operation to be successful.
 
 .SH DIAGNOSTICS
 Exit status is zero if no errors occur.
@@ -248,5 +245,5 @@ with \fBldapexop\fP.
 Do not expect it to be complete or absolutely correct.
 
 .SH ACKNOWLEDGEMENTS
-The OpenLDAP Project <http://www.openldap.org/>
+.so ../Project
 

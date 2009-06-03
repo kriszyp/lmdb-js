@@ -5,7 +5,7 @@
 .SH NAME
 ber_sockbuf_alloc, ber_sockbuf_free, ber_sockbuf_ctrl, ber_sockbuf_add_io, ber_sockbuf_remove_io, Sockbuf_IO \- OpenLDAP LBER I/O infrastructure
 .SH LIBRARY
-OpenLDAP LBER (liblber, -llber)
+OpenLDAP LBER (liblber, \-llber)
 .SH SYNOPSIS
 .B #include <lber.h>
 .LP
@@ -83,7 +83,7 @@ Retrieves the file descriptor associated to the
 .B arg
 must be a
 .BR "ber_socket_t *" .
-The return value will be 1 if a valid descriptor was present, -1 otherwise.
+The return value will be 1 if a valid descriptor was present, \-1 otherwise.
 .TP
 .B LBER_SB_OPT_SET_FD
 Sets the file descriptor of the
@@ -101,7 +101,7 @@ the
 .BR Sockbuf .
 .B arg
 should be NULL to disable and non-NULL to enable the non-blocking state.
-The return value will be 1 for success, -1 otherwise.
+The return value will be 1 for success, \-1 otherwise.
 .TP
 .B LBER_SB_OPT_DRAIN
 Flush (read and discard) all available input on the

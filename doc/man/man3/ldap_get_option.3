@@ -5,7 +5,7 @@
 .SH NAME
 ldap_get_option, ldap_set_option \- LDAP option handling routines
 .SH LIBRARY
-OpenLDAP LDAP (libldap, -lldap)
+OpenLDAP LDAP (libldap, \-lldap)
 .SH SYNOPSIS
 .nf
 .B #include <ldap.h>
@@ -66,7 +66,7 @@ and
 .B invalue
 must be a 
 .BR "struct timeval *" ,
-and they cannot be NULL. Using a struct with seconds set to -1 results
+and they cannot be NULL. Using a struct with seconds set to \-1 results
 in an infinite timeout, which is the default.
 .TP
 .B LDAP_OPT_NETWORK_TIMEOUT
@@ -84,7 +84,7 @@ and
 .B invalue
 must be a 
 .BR "struct timeval *" ,
-and they cannot be NULL. Using a struct with seconds set to -1 results
+and they cannot be NULL. Using a struct with seconds set to \-1 results
 in an infinite timeout, which is the default.
 .TP
 .B LDAP_OPT_DEREF

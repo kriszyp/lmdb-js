@@ -40,6 +40,7 @@ OpenLDAP 2.4.17 Engineering
 	Documentation
 		admin24 fixed example regex (ITS#6052)
 		admin24 removed temporary back-monitor note (ITS#6130)
+		man page consistency fixes (ITS#6023)
 		ldapsearch(1) output format description (ITS#6146)
 		ldap.conf(5) improve sizelimit/timelimit limits (ITS#6127)
 		slapd.conf(5) pidfile/argsfile description fix (ITS#5975)

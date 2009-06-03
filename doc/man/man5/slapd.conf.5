@@ -68,7 +68,7 @@ backslash character.
 The specific configuration options available are discussed below in the
 Global Configuration Options, General Backend Options, and General Database
 Options.  Backend-specific options are discussed in the
-.B slapd-<backend>(5)
+.B slapd\-<backend>(5)
 manual pages.  Refer to the "OpenLDAP Administrator's Guide" for more
 details on the slapd configuration file.
 .SH GLOBAL CONFIGURATION OPTIONS
@@ -114,26 +114,26 @@ server's command line (program name and options).
 .TP
 .B attributeoptions [option-name]...
 Define tagging attribute options or option tag/range prefixes.
-Options must not end with `-', prefixes must end with `-'.
-The `lang-' prefix is predefined.
+Options must not end with `\-', prefixes must end with `\-'.
+The `lang\-' prefix is predefined.
 If you use the
 .B attributeoptions
-directive, `lang-' will no longer be defined and you must specify it
+directive, `lang\-' will no longer be defined and you must specify it
 explicitly if you want it defined.
 
 An attribute description with a tagging option is a subtype of that
 attribute description without the option.
 Except for that, options defined this way have no special semantics.
-Prefixes defined this way work like the `lang-' options:
+Prefixes defined this way work like the `lang\-' options:
 They define a prefix for tagging options starting with the prefix.
-That is, if you define the prefix `x-foo-', you can use the option
-`x-foo-bar'.
+That is, if you define the prefix `x\-foo\-', you can use the option
+`x\-foo\-bar'.
 Furthermore, in a search or compare, a prefix or range name (with
-a trailing `-') matches all options starting with that name, as well
-as the option with the range name sans the trailing `-'.
-That is, `x-foo-bar-' matches `x-foo-bar' and `x-foo-bar-baz'.
+a trailing `\-') matches all options starting with that name, as well
+as the option with the range name sans the trailing `\-'.
+That is, `x\-foo\-bar\-' matches `x\-foo\-bar' and `x\-foo\-bar\-baz'.
 
-RFC 4520 reserves options beginning with `x-' for private experiments.
+RFC 4520 reserves options beginning with `x\-' for private experiments.
 Other options should be registered with IANA, see RFC 4520 section 3.5.
 OpenLDAP also has the `binary' option built in, but this is a transfer
 option, not a tagging option.
@@ -162,7 +162,7 @@ attribute syntax OID.
 description.) 
 .RE
 .TP
-.B authz-policy <policy>
+.B authz\-policy <policy>
 Used to specify which rules to use for Proxy Authorization.  Proxy
 authorization allows a client to authenticate to the server using one
 user's credentials, but specify a different identity to use for authorization
@@ -311,7 +311,7 @@ and
 can impact security, users are strongly encouraged 
 to explicitly set the type of identity specification that is being used.
 A subset of these rules can be used as third arg in the 
-.B authz-regexp
+.B authz\-regexp
 statement (see below); significantly, the 
 .IR URI ,
 provided it results in exactly one entry,
@@ -320,7 +320,7 @@ and the
 forms.
 .RE
 .TP
-.B authz-regexp <match> <replace>
+.B authz\-regexp <match> <replace>
 Used by the authentication framework to convert simple user names,
 such as provided by SASL subsystem, or extracted from certificates
 in case of cert-based SASL EXTERNAL, or provided within the RFC 4370
@@ -381,7 +381,7 @@ Note that this search is subject to access controls.  Specifically,
 the authentication identity must have "auth" access in the subject.
 
 Multiple 
-.B authz-regexp 
+.B authz\-regexp 
 options can be given in the configuration file to allow for multiple matching 
 and replacement patterns. The matching patterns are checked in the order they 
 appear in the file, stopping at the first successful match.
@@ -458,7 +458,7 @@ A SIGHUP signal will only cause a 'gentle' shutdown-attempt:
 will stop listening for new connections, but will not close the
 connections to the current clients.  Future write operations return
 unwilling-to-perform, though.  Slapd terminates when all clients
-have closed their connections (if they ever do), or \- as before \-
+have closed their connections (if they ever do), or - as before -
 if it receives a SIGTERM signal.  This can be useful if you wish to
 terminate the server and start a new
 .B slapd
@@ -522,7 +522,7 @@ depend on these parameters and recreating them with
 .hy 0
 .B ldapsyntax "(\ <oid>\
  [DESC\ <description>]\
- [X-SUBST <substitute\-syntax>]\ )"
+ [X\-SUBST <substitute-syntax>]\ )"
 .RS
 Specify an LDAP syntax using the LDAPv3 syntax defined in RFC 4512.
 The slapd parser extends the RFC 4512 definition by allowing string
@@ -531,20 +531,20 @@ forms as well as numeric OIDs to be used for the syntax OID.
 .B objectidentifier
 description.) 
 The slapd parser also honors the
-.B X-SUBST
+.B X\-SUBST
 extension (an OpenLDAP-specific extension), which allows to use the
 .B ldapsyntax
 statement to define a non-implemented syntax along with another syntax,
 the extension value
-.IR substitute\-syntax ,
+.IR substitute-syntax ,
 as its temporary replacement.
 The
-.I substitute\-syntax
+.I substitute-syntax
 must be defined.
 This allows to define attribute types that make use of non-implemented syntaxes
 using the correct syntax OID.
 Unless 
-.B X-SUBST
+.B X\-SUBST
 is used, this configuration statement would result in an error,
 since no handlers would be associated to the resulting syntax structure.
 .RE
@@ -658,7 +658,7 @@ or as a list of the names that are shown between brackets, such that
 are equivalent.
 The keyword 
 .B any
-can be used as a shortcut to enable logging at all levels (equivalent to -1).
+can be used as a shortcut to enable logging at all levels (equivalent to \-1).
 The keyword
 .BR none ,
 or the equivalent integer representation, causes those messages
@@ -680,7 +680,7 @@ are searched for in the directories specified by the
 .B modulepath
 option. This option and the
 .B modulepath
-option are only usable if slapd was compiled with --enable-modules.
+option are only usable if slapd was compiled with \-\-enable\-modules.
 .TP
 .B modulepath <pathspec>
 Specify a list of directories to search for loadable modules. Typically
@@ -710,7 +710,7 @@ in place of the numeric OID in objectclass and attribute definitions. The
 name can also be used with a suffix of the form ":xx" in which case the
 value "oid.xx" will be used.
 .TP
-.B password-hash <hash> [<hash>...]
+.B password\-hash <hash> [<hash>...]
 This option configures one or more hashes to be used in generation of user
 passwords stored in the userPassword attribute during processing of
 LDAP Password Modify Extended Operations (RFC 3062).
@@ -798,10 +798,10 @@ may be used to require no conditions (useful to clear out globally
 set conditions within a particular database); it must occur first
 in the list of conditions.
 .TP
-.B reverse-lookup on | off
+.B reverse\-lookup on | off
 Enable/disable client name unverified reverse lookup (default is 
 .BR off 
-if compiled with --enable-rlookups).
+if compiled with \-\-enable\-rlookups).
 .TP
 .B rootDSE <file>
 Specify the name of an LDIF(5) file containing user defined attributes
@@ -812,22 +812,22 @@ The root DSE is an entry with information about the server and its
 capabilities, in operational attributes.
 It has the empty DN, and can be read with e.g.:
 .ti +4
-ldapsearch -x -b "" -s base "+"
+ldapsearch \-x \-b "" \-s base "+"
 .br
 See RFC 4512 section 5.1 for details.
 .TP
-.B sasl-auxprops <plugin> [...]
+.B sasl\-auxprops <plugin> [...]
 Specify which auxprop plugins to use for authentication lookups. The
 default is empty, which just uses slapd's internal support. Usually
 no other auxprop plugins are needed.
 .TP
-.B sasl-host <fqdn>
+.B sasl\-host <fqdn>
 Used to specify the fully qualified domain name used for SASL processing.
 .TP
-.B sasl-realm <realm>
+.B sasl\-realm <realm>
 Specify SASL realm.  Default is empty.
 .TP
-.B sasl-secprops <properties>
+.B sasl\-secprops <properties>
 Used to specify Cyrus SASL security properties.
 The
 .B none
@@ -878,7 +878,7 @@ controls the entries on this server.  The default is "cn=Subschema".
 .B security <factors>
 Specify a set of security strength factors (separated by white space)
 to require (see
-.BR sasl-secprops 's
+.BR sasl\-secprops 's
 .B minssf
 option for a description of security strength factors).
 The directive may be specified globally and/or per-database.
@@ -978,7 +978,7 @@ See
 .BR limits
 for an explanation of the different flags.
 .TP
-.B tool-threads <integer>
+.B tool\-threads <integer>
 Specify the maximum number of threads to use in tool mode.
 This should not be greater than the number of CPUs in the system.
 The default is 1.
@@ -1008,13 +1008,13 @@ TLSCipherSuite HIGH:MEDIUM:+SSLv2
 To check what ciphers a given spec selects, use:
 
 .nf
-	openssl ciphers -v <cipher-suite-spec>
+	openssl ciphers \-v <cipher-suite-spec>
 .fi
 
 To obtain the list of ciphers in GNUtls use:
 
 .nf
-	gnutls-cli -l
+	gnutls-cli \-l
 .fi
 
 .TP
@@ -1523,7 +1523,7 @@ password can only be set if the rootdn is within the namingContext
 (suffix) of the database.
 This option accepts all RFC 2307 userPassword formats known to
 the server (see 
-.B password-hash
+.B password\-hash
 description) as well as cleartext.
 .BR slappasswd (8) 
 may be used to generate a hash of a password.  Cleartext
@@ -1604,7 +1604,7 @@ in order to work over all of the glued databases. E.g.
 .B [sizelimit=<limit>]
 .B [timelimit=<limit>]
 .B [schemachecking=on|off]
-.B [network-timeout=<seconds>]
+.B [network\-timeout=<seconds>]
 .B [timeout=<seconds>]
 .B [bindmethod=simple|sasl]
 .B [binddn=<dn>]
@@ -1721,7 +1721,7 @@ As a consequence, schema checking should be \fBoff\fP when partial
 replication is used.
 
 The
-.B network-timeout
+.B network\-timeout
 parameter sets how long the consumer will wait to establish a
 network connection to the provider. Once a connection is
 established, the
@@ -1757,7 +1757,7 @@ The
 .B authzid
 parameter may be used to specify an authorization identity.
 Specific security properties (as with the
-.B sasl-secprops
+.B sasl\-secprops
 keyword above) for a SASL bind can be set with the
 .B secprops
 option. A non default SASL realm can be set with the
@@ -1793,7 +1793,7 @@ and
 parameters must be set appropriately for the log that will be used. The
 .B syncdata
 parameter must be set to either "accesslog" if the log conforms to the
-.BR slapo-accesslog (5)
+.BR slapo\-accesslog (5)
 log format, or "changelog" if the log conforms
 to the obsolete \fIchangelog\fP format. If the
 .B syncdata
@@ -1833,10 +1833,10 @@ include   SYSCONFDIR/schema/core.schema
 pidfile   LOCALSTATEDIR/run/slapd.pid
 
 # Subtypes of "name" (e.g. "cn" and "ou") with the
-# option ";x-hidden" can be searched for/compared,
+# option ";x\-hidden" can be searched for/compared,
 # but are not shown.  See \fBslapd.access\fP(5).
-attributeoptions x-hidden lang-
-access to attrs=name;x-hidden by * =cs
+attributeoptions x\-hidden lang\-
+access to attrs=name;x\-hidden by * =cs
 
 # Protect passwords.  See \fBslapd.access\fP(5).
 access    to attrs=userPassword  by * auth
@@ -1844,11 +1844,11 @@ access    to attrs=userPassword  by * auth
 access    to *  by * read
 
 database  bdb
-suffix    "dc=our-domain,dc=com"
+suffix    "dc=our\-domain,dc=com"
 # The database directory MUST exist prior to
 # running slapd AND should only be accessible
 # by the slapd/tools. Mode 0700 recommended.
-directory LOCALSTATEDIR/openldap-data
+directory LOCALSTATEDIR/openldap\-data
 # Indices to maintain
 index     objectClass  eq
 index     cn,sn,mail   pres,eq,approx,sub
@@ -1857,7 +1857,7 @@ index     cn,sn,mail   pres,eq,approx,sub
 # so handle remote lookups on their behalf.
 database  ldap
 suffix    ""
-uri       ldap://ldap.some-server.com/
+uri       ldap://ldap.some\-server.com/
 lastmod   off
 .fi
 .RE

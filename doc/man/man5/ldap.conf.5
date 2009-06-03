@@ -40,7 +40,7 @@ The name of the variable is the option name with an added prefix of \fBLDAP\fP.
 For example, to define \fBBASE\fP via the environment, set the variable
 \fBLDAPBASE\fP to the desired value.
 .LP
-Some options are user\-only.  Such options are ignored if present
+Some options are user-only.  Such options are ignored if present
 in the
 .I ldap.conf
 (or file specified by
@@ -127,7 +127,7 @@ The base must be specified as a Distinguished Name in LDAP format.
 .B BINDDN <dn>
 Specifies the default bind DN to use when performing ldap operations.
 The bind DN must be specified as a Distinguished Name in LDAP format.
-.B This is a user\-only option.
+.B This is a user-only option.
 .TP
 .B DEREF <when>
 Specifies how alias dereferencing is done when performing a search. The
@@ -211,19 +211,19 @@ there are more options you can specify.
 .TP
 .B SASL_MECH <mechanism>
 Specifies the SASL mechanism to use.
-.B This is a user\-only option.
+.B This is a user-only option.
 .TP
 .B SASL_REALM <realm>
 Specifies the SASL realm.
-.B This is a user\-only option.
+.B This is a user-only option.
 .TP
 .B SASL_AUTHCID <authcid>
 Specifies the authentication identity.
-.B This is a user\-only option.
+.B This is a user-only option.
 .TP
 .B SASL_AUTHZID <authcid>
 Specifies the proxy authorization identity.
-.B This is a user\-only option.
+.B This is a user-only option.
 .TP
 .B SASL_SECPROPS <properties>
 Specifies Cyrus SASL security properties. The 
@@ -312,7 +312,7 @@ This parameter is ignored with GNUtls.
 .TP
 .B TLS_CERT <filename>
 Specifies the file that contains the client certificate.
-.B This is a user\-only option.
+.B This is a user-only option.
 .TP
 .B TLS_KEY <filename>
 Specifies the file that contains the private key that matches the certificate
@@ -320,7 +320,7 @@ stored in the
 .B TLS_CERT
 file. Currently, the private key must not be protected with a password, so
 it is of critical importance that the key file is protected carefully.
-.B This is a user\-only option.
+.B This is a user-only option.
 .TP
 .B TLS_CIPHER_SUITE <cipher-suite-spec>
 Specifies acceptable cipher suite and preference order.
@@ -330,13 +330,13 @@ e.g., HIGH:MEDIUM:+SSLv2.
 To check what ciphers a given spec selects, use:
 
 .nf
-	openssl ciphers -v <cipher-suite-spec>
+	openssl ciphers \-v <cipher-suite-spec>
 .fi
 
 To obtain the list of ciphers in GNUtls use:
 
 .nf
-	gnutls-cli -l
+	gnutls-cli \-l
 .fi
 .TP
 .B TLS_RANDFILE <filename>
