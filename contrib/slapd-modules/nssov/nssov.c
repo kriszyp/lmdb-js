@@ -397,16 +397,16 @@ static void *acceptconn(void *ctx, void *arg)
 }
 
 static slap_verbmasks nss_svcs[] = {
-	{ BER_BVC("alias"), NM_alias },
-	{ BER_BVC("ether"), NM_ether },
+	{ BER_BVC("aliases"), NM_alias },
+	{ BER_BVC("ethers"), NM_ether },
 	{ BER_BVC("group"), NM_group },
-	{ BER_BVC("host"), NM_host },
+	{ BER_BVC("hosts"), NM_host },
 	{ BER_BVC("netgroup"), NM_netgroup },
-	{ BER_BVC("network"), NM_network },
+	{ BER_BVC("networks"), NM_network },
 	{ BER_BVC("passwd"), NM_passwd },
-	{ BER_BVC("protocol"), NM_protocol },
+	{ BER_BVC("protocols"), NM_protocol },
 	{ BER_BVC("rpc"), NM_rpc },
-	{ BER_BVC("service"), NM_service },
+	{ BER_BVC("services"), NM_service },
 	{ BER_BVC("shadow"), NM_shadow },
 	{ BER_BVNULL, 0 }
 };
