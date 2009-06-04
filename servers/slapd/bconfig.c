@@ -4783,6 +4783,10 @@ config_back_add( Operation *op, SlapReply *rs )
 		}
 	}
 
+	if ( op->o_abandon ) {
+		rs->sr_err = SLAPD_ABANDON;
+		goto out;
+	}
 	ldap_pvt_thread_pool_pause( &connection_pool );
 
 	/* Strategy:
@@ -5223,8 +5227,13 @@ config_back_modify( Operation *op, SlapReply *rs )
 
 	slap_mods_opattrs( op, &op->orm_modlist, 1 );
 
-	if ( do_pause )
+	if ( do_pause ) {
+		if ( op->o_abandon ) {
+			rs->sr_err = SLAPD_ABANDON;
+			goto out;
+		}
 		ldap_pvt_thread_pool_pause( &connection_pool );
+	}
 
 	/* Strategy:
 	 * 1) perform the Modify on the cached Entry.
@@ -5388,6 +5397,10 @@ config_back_modrdn( Operation *op, SlapReply *rs )
 		goto out;
 	}
 
+	if ( op->o_abandon ) {
+		rs->sr_err = SLAPD_ABANDON;
+		goto out;
+	}
 	ldap_pvt_thread_pool_pause( &connection_pool );
 
 	if ( ce->ce_type == Cft_Schema ) {
@@ -5477,6 +5490,8 @@ config_back_delete( Operation *op, SlapReply *rs )
 		rs->sr_err = LDAP_NO_SUCH_OBJECT;
 	} else if ( ce->ce_kids ) {
 		rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
+	} else if ( op->o_abandon ) {
+		rs->sr_err = SLAPD_ABANDON;
 	} else if ( ce->ce_type == Cft_Overlay || ce->ce_type == Cft_Database ){
 		char *iptr;
 		int count, ixold;
@@ -6655,4 +6670,3 @@ config_back_initialize( BackendInfo *bi )
 
 	return 0;
 }
-
