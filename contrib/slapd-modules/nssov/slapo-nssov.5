@@ -247,7 +247,9 @@ of the form
 .RE
 Upon logout the corresponding value will be deleted. This feature allows
 a single LDAP Search to be used to check which users are logged in across
-all the hosts of a network. By default no services are configured.
+all the hosts of a network. The rootdn of the database is used to perform
+the updates of the loginStatus attribute, so a rootdn must already be
+configured for this feature to work. By default no services are configured.
 .LP
 The PAM functions support LDAP Password Policy as well. If the password
 policy overlay is in use (see
