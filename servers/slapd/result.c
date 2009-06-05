@@ -456,7 +456,7 @@ send_ldap_response(
 		op->o_protocol == LDAP_VERSION2 )
 	{
 		rc = ber_printf( ber, "t{ess" /*"}"*/,
-			rs->sr_tag, rs->sr_err,
+			rs->sr_tag, rc,
 		rs->sr_matched == NULL ? "" : rs->sr_matched,
 		rs->sr_text == NULL ? "" : rs->sr_text );
 	} else 
@@ -1669,4 +1669,3 @@ slap_attr_flags( AttributeName *an )
 
 	return flags;
 }
-
