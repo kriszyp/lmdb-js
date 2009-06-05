@@ -2582,7 +2582,9 @@ slapd_daemon_task(
 #ifdef HAVE_EPOLL
 						/* Don't keep reporting the hangup
 						 */
-						SLAP_EPOLL_SOCK_SET( fd, EPOLLET );
+						if ( SLAP_SOCK_IS_ACTIVE( fd )) {
+							SLAP_EPOLL_SOCK_SET( fd, EPOLLET );
+						}
 #endif
 					}
 					connection_read_activate( fd );
