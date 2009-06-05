@@ -36,6 +36,7 @@ do_abandon( Operation *op, SlapReply *rs )
 {
 	ber_int_t	id;
 	Operation	*o;
+	const char	*msg;
 
 	Debug( LDAP_DEBUG_TRACE, "%s do_abandon\n",
 		op->o_log_prefix, 0, 0 );
@@ -72,28 +73,21 @@ do_abandon( Operation *op, SlapReply *rs )
 	}
 
 	ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
-	/*
-	 * find the operation being abandoned and set the o_abandon
-	 * flag.  It's up to the backend to periodically check this
-	 * flag and abort the operation at a convenient time.
-	 */
 
+	/* Find the operation being abandoned. */
 	LDAP_STAILQ_FOREACH( o, &op->o_conn->c_ops, o_next ) {
 		if ( o->o_msgid == id ) {
-			o->o_abandon = 1;
 			break;
 		}
 	}
 
-	if ( o ) {
-		op->orn_msgid = id;
-
-		op->o_bd = frontendDB;
-		rs->sr_err = frontendDB->be_abandon( op, rs );
-
-	} else {
+	if ( o == NULL ) {
+		msg = "not found";
+		/* The operation is not active. Just discard it if found.  */
 		LDAP_STAILQ_FOREACH( o, &op->o_conn->c_pending_ops, o_next ) {
 			if ( o->o_msgid == id ) {
+				msg = "discarded";
+				/* FIXME: This traverses c_pending_ops yet again. */
 				LDAP_STAILQ_REMOVE( &op->o_conn->c_pending_ops,
 					o, Operation, o_next );
 				LDAP_STAILQ_NEXT(o, o_next) = NULL;
@@ -102,13 +96,24 @@ do_abandon( Operation *op, SlapReply *rs )
 				break;
 			}
 		}
+	} else {
+		msg = "found";
+		/* Set the o_abandon flag in the to-be-abandoned operation.
+		 * The backend can periodically check this flag and abort the
+		 * operation at a convenient time.  However it should "send"
+		 * the response anyway, with result code SLAPD_ABANDON.
+		 * The functions in result.c will intercept the message.
+		 */
+		o->o_abandon = 1;
+		op->orn_msgid = id;
+		op->o_bd = frontendDB;
+		rs->sr_err = frontendDB->be_abandon( op, rs );
 	}
 
 	ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
 
-	Debug( LDAP_DEBUG_TRACE, "%s do_abandon: op=%ld %sfound\n",
-		op->o_log_prefix,
-		(long) id, o ? "" : "not " );
+	Debug( LDAP_DEBUG_TRACE, "%s do_abandon: op=%ld %s\n",
+		op->o_log_prefix, (long) id, msg );
 	return rs->sr_err;
 }
 

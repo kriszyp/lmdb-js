@@ -65,6 +65,7 @@ int cancel_extop( Operation *op, SlapReply *rs )
 	}
 
 	ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
+
 	LDAP_STAILQ_FOREACH( o, &op->o_conn->c_pending_ops, o_next ) {
 		if ( o->o_msgid == opid ) {
 			LDAP_STAILQ_REMOVE( &op->o_conn->c_pending_ops, o, Operation, o_next );
@@ -78,21 +79,25 @@ int cancel_extop( Operation *op, SlapReply *rs )
 
 	LDAP_STAILQ_FOREACH( o, &op->o_conn->c_ops, o_next ) {
 		if ( o->o_msgid == opid ) {
-			o->o_abandon = 1;
 			break;
 		}
 	}
 
+	if ( o == NULL ) {
+	 	rc = LDAP_NO_SUCH_OPERATION;
+		rs->sr_text = "message ID not found";
+	} else if ( o->o_cancel != SLAP_CANCEL_NONE ) {
+		rc = LDAP_PROTOCOL_ERROR;
+		rs->sr_text = "message ID already being cancelled";
+	} else {
+		rc = LDAP_SUCCESS;
+		o->o_cancel = SLAP_CANCEL_REQ;
+		o->o_abandon = 1;
+	}
+
 	ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
 
-	if ( o ) {
-		if ( o->o_cancel != SLAP_CANCEL_NONE ) {
-			rs->sr_text = "message ID already being cancelled";
-			return LDAP_PROTOCOL_ERROR;
-		}
-
-		o->o_cancel = SLAP_CANCEL_REQ;
-
+	if ( rc == LDAP_SUCCESS ) {
 		LDAP_STAILQ_FOREACH( op->o_bd, &backendDB, be_next ) {
 			if( !op->o_bd->be_cancel ) continue;
 
@@ -113,9 +118,6 @@ int cancel_extop( Operation *op, SlapReply *rs )
 		}
 
 		o->o_cancel = SLAP_CANCEL_DONE;
-	} else {
-		rs->sr_text = "message ID not found";
-	 	rc = LDAP_NO_SUCH_OPERATION;
 	}
 
 	return rc;

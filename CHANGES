@@ -23,6 +23,7 @@ OpenLDAP 2.4.17 Engineering
 	Fixed slapd sending cancelled operations results (ITS#6103)
 	Fixed slapd slapi_entry_has_children (ITS#6132)
 	Fixed slapd sockets usage on windows (ITS#6039)
+	Fixed slapd some abandon and cancel race conditions (ITS#6104)
 	Fixed slapd tls context after changes (ITS#6135)
 	Fixed slapd-hdb freeing of already freed entries (ITS#6074)
 	Fixed slapd-hdb entryinfo cleanup (ITS#6088)
