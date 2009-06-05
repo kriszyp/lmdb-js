@@ -96,6 +96,17 @@ do_abandon( Operation *op, SlapReply *rs )
 				break;
 			}
 		}
+
+	} else if ( o->o_tag == LDAP_REQ_BIND
+			|| o->o_tag == LDAP_REQ_UNBIND
+			|| o->o_tag == LDAP_REQ_ABANDON ) {
+		msg = "cannot be abandoned";
+
+#if 0 /* Would break o_abandon used as "suppress response" flag, ITS#6138 */
+	} else if ( o->o_abandon ) {
+		msg = "already being abandoned";
+#endif
+
 	} else {
 		msg = "found";
 		/* Set the o_abandon flag in the to-be-abandoned operation.

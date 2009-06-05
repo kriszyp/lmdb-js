@@ -9,6 +9,7 @@ OpenLDAP 2.4.17 Engineering
 	Added slapd sasl auxprop support (ITS#6147)
 	Added slapd schema checking tool (ITS#6150)
 	Added slapd writetimeout keyword (ITS#5836)
+	Fixed slapd abandon/cancel handling for some ops (ITS#6157)
 	Fixed slapd assert with closing connections (ITS#6111)
 	Fixed slapd cancel behavior (ITS#6137)
 	Fixed slapd cert validation (ITS#6098)

@@ -66,16 +66,25 @@ int cancel_extop( Operation *op, SlapReply *rs )
 
 	ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
 
+	if ( op->o_abandon ) {
+		/* FIXME: Should instead reject the cancel/abandon of this op, but
+		 * it seems unsafe to reset op->o_abandon once it is set. ITS#6138.
+		 */
+		rc = LDAP_OPERATIONS_ERROR;
+		rs->sr_text = "tried to abandon or cancel this operation";
+		goto out;
+	}
+
 	LDAP_STAILQ_FOREACH( o, &op->o_conn->c_pending_ops, o_next ) {
 		if ( o->o_msgid == opid ) {
-			ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
 			/* TODO: We could instead remove the cancelled operation
 			 * from c_pending_ops like Abandon does, and send its
 			 * response here.  Not if it is pending because of a
 			 * congested connection though.
 			 */
+			rc = LDAP_CANNOT_CANCEL;
 			rs->sr_text = "too busy for Cancel, try Abandon instead";
-			return LDAP_CANNOT_CANCEL;
+			goto out;
 		}
 	}
 
@@ -88,15 +97,31 @@ int cancel_extop( Operation *op, SlapReply *rs )
 	if ( o == NULL ) {
 	 	rc = LDAP_NO_SUCH_OPERATION;
 		rs->sr_text = "message ID not found";
+
+	} else if ( o->o_tag == LDAP_REQ_BIND
+			|| o->o_tag == LDAP_REQ_UNBIND
+			|| o->o_tag == LDAP_REQ_ABANDON ) {
+		rc = LDAP_CANNOT_CANCEL;
+
 	} else if ( o->o_cancel != SLAP_CANCEL_NONE ) {
-		rc = LDAP_PROTOCOL_ERROR;
+		rc = LDAP_OPERATIONS_ERROR;
 		rs->sr_text = "message ID already being cancelled";
+
+#if 0
+	} else if ( o->o_abandon ) {
+		/* TODO: Would this break something when
+		 * o_abandon="suppress response"? (ITS#6138)
+		 */
+		rc = LDAP_TOO_LATE;
+#endif
+
 	} else {
 		rc = LDAP_SUCCESS;
 		o->o_cancel = SLAP_CANCEL_REQ;
 		o->o_abandon = 1;
 	}
 
+ out:
 	ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
 
 	if ( rc == LDAP_SUCCESS ) {
@@ -109,14 +134,12 @@ int cancel_extop( Operation *op, SlapReply *rs )
 			}
 		}
 
-		while ( o->o_cancel == SLAP_CANCEL_REQ ) {
+		while ( (rc = o->o_cancel) == SLAP_CANCEL_REQ ) {
 			ldap_pvt_thread_yield();
 		}
 
-		if ( o->o_cancel == SLAP_CANCEL_ACK ) {
+		if ( rc == SLAP_CANCEL_ACK ) {
 			rc = LDAP_SUCCESS;
-		} else {
-			rc = o->o_cancel;
 		}
 
 		o->o_cancel = SLAP_CANCEL_DONE;
