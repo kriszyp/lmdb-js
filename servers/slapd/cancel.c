@@ -134,9 +134,16 @@ int cancel_extop( Operation *op, SlapReply *rs )
 			}
 		}
 
-		while ( (rc = o->o_cancel) == SLAP_CANCEL_REQ ) {
-			ldap_pvt_thread_yield();
-		}
+		do {
+			/* Fake a cond_wait with thread_yield, then
+			 * verify the result properly mutex-protected.
+			 */
+			while ( o->o_cancel == SLAP_CANCEL_REQ )
+				ldap_pvt_thread_yield();
+			ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
+			rc = o->o_cancel;
+			ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
+		} while ( rc == SLAP_CANCEL_REQ );
 
 		if ( rc == SLAP_CANCEL_ACK ) {
 			rc = LDAP_SUCCESS;
