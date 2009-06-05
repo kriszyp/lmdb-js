@@ -824,6 +824,7 @@ refint_qtask( void *ctx, void *arg )
 			op->o_tmpfree( dp->dn.bv_val, op->o_tmpmemctx );
 			op->o_tmpfree( dp, op->o_tmpmemctx );
 		}
+		op->o_tmpfree( op->ors_filterstr.bv_val, op->o_tmpmemctx );
 
 		if ( !BER_BVISNULL( &rq->newndn )) {
 			ch_free( rq->newndn.bv_val );
