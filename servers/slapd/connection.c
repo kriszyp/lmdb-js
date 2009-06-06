@@ -1021,7 +1021,7 @@ conn_counter_init( Operation *op, void *ctx )
 static void *
 connection_operation( void *ctx, void *arg_v )
 {
-	int rc = LDAP_OTHER;
+	int rc = LDAP_OTHER, cancel;
 	Operation *op = arg_v;
 	SlapReply rs = {REP_RESULT};
 	ber_tag_t tag = op->o_tag;
@@ -1125,21 +1125,28 @@ operations_error:
 		INCR_OP_COMPLETED( opidx );
 	}
 
-	if ( op->o_cancel == SLAP_CANCEL_REQ ) {
-		if ( rc == SLAPD_ABANDON ) {
-			op->o_cancel = SLAP_CANCEL_ACK;
-		} else {
-			op->o_cancel = LDAP_TOO_LATE;
-		}
-	}
-
-	while ( op->o_cancel != SLAP_CANCEL_NONE &&
-		op->o_cancel != SLAP_CANCEL_DONE )
-	{
-		ldap_pvt_thread_yield();
-	}
-
 	ldap_pvt_thread_mutex_lock( &conn->c_mutex );
+
+	cancel = op->o_cancel;
+	if ( cancel != SLAP_CANCEL_NONE && cancel != SLAP_CANCEL_DONE ) {
+		if ( cancel == SLAP_CANCEL_REQ ) {
+			op->o_cancel = rc == SLAPD_ABANDON
+				? SLAP_CANCEL_ACK : LDAP_TOO_LATE;
+		}
+
+		do {
+			/* Fake a cond_wait with thread_yield, then
+			 * verify the result properly mutex-protected.
+			 */
+			ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
+			do {
+				ldap_pvt_thread_yield();
+			} while ( (cancel = op->o_cancel) != SLAP_CANCEL_NONE
+					&& cancel != SLAP_CANCEL_DONE );
+			ldap_pvt_thread_mutex_lock( &conn->c_mutex );
+		} while ( (cancel = op->o_cancel) != SLAP_CANCEL_NONE
+				&& cancel != SLAP_CANCEL_DONE );
+	}
 
 	ber_set_option( op->o_ber, LBER_OPT_BER_MEMCTX, &memctx_null );
 
