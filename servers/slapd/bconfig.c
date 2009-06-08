@@ -2927,7 +2927,7 @@ config_loglevel(ConfigArgs *c) {
 		int	level;
 
 		if ( isdigit((unsigned char)c->argv[i][0]) || c->argv[i][0] == '-' ) {
-			if( lutil_atoi( &level, c->argv[i] ) != 0 ) {
+			if( lutil_atoix( &level, c->argv[i], 0 ) != 0 ) {
 				snprintf( c->cr_msg, sizeof( c->cr_msg ), "<%s> unable to parse level", c->argv[0] );
 				Debug( LDAP_DEBUG_ANY, "%s: %s \"%s\"\n",
 					c->log, c->cr_msg, c->argv[i]);
