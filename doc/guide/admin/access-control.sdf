@@ -988,7 +988,7 @@ E: 52.    olcAccess: to * by users read
 
 H3: Converting from {{slapd.conf}}(5) to a {{B:cn=config}} directory format
 
-Discuss slap* -f slapd.conf -F slapd.d/  (man slapd-config)
+See the related section in {{SECT:Configuring slapd}}.
 
 
 H2: Access Control Common Examples
