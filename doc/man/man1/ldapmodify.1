@@ -37,6 +37,10 @@ ldapmodify, ldapadd \- LDAP modify entry and LDAP add entry tools
 [\c
 .BR \-P \ { 2 \||\| 3 }]
 [\c
+.BR \-e \ [ ! ] \fIext\fP [ =\fIextparam\fP ]]
+[\c
+.BR \-E \ [ ! ] \fIext\fP [ =\fIextparam\fP ]]
+[\c
 .BI \-O \ security-properties\fR]
 [\c
 .BR \-I ]
@@ -201,6 +205,36 @@ Specify the LDAP protocol version to use.
 .TP
 .BI \-O \ security-properties
 Specify SASL security properties.
+.TP
+.BR \-e \ [ ! ] \fIext\fP [ =\fIextparam\fP ]
+.TP
+.BR \-E \ [ ! ] \fIext\fP [ =\fIextparam\fP ]
+
+Specify general extensions with \fB\-e\fP and search extensions with \fB\-E\fP.
+\'\fB!\fP\' indicates criticality.
+
+General extensions:
+.nf
+  [!]assert=<filter>   (an RFC 4515 Filter)
+  [!]authzid=<authzid> ("dn:<dn>" or "u:<user>")
+  [!]manageDSAit
+  [!]noop
+  ppolicy
+  [!]postread[=<attrs>]        (a comma-separated attribute list)
+  [!]preread[=<attrs>] (a comma-separated attribute list)
+  abandon, cancel (SIGINT sends abandon/cancel; not really controls)
+.fi
+
+Search extensions:
+.nf
+  [!]domainScope                               (domain scope)
+  [!]mv=<filter>                               (matched values filter)
+  [!]pr=<size>[/prompt|noprompt]       (paged results/prompt)
+  [!]sss=[\-]<attr[:OID]>[/[\-]<attr[:OID]>...]  (server side sorting)
+  [!]subentries[=true|false]           (subentries)
+  [!]sync=ro[/<cookie>]                        (LDAP Sync refreshOnly)
+          rp[/<cookie>][/<slimit>]     (LDAP Sync refreshAndPersist)
+.fi
 .TP
 .B \-I
 Enable SASL Interactive mode.  Always prompt.  Default is to prompt
