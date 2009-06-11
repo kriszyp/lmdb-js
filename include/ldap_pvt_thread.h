@@ -216,6 +216,12 @@ ldap_pvt_thread_pool_submit LDAP_P((
 	void *arg ));
 
 LDAP_F( int )
+ldap_pvt_thread_pool_retract LDAP_P((
+	ldap_pvt_thread_pool_t *pool,
+	ldap_pvt_thread_start_t *start,
+	void *arg ));
+
+LDAP_F( int )
 ldap_pvt_thread_pool_maxthreads LDAP_P((
 	ldap_pvt_thread_pool_t *pool,
 	int max_threads ));

@@ -373,6 +373,41 @@ ldap_pvt_thread_pool_submit (
 	return(-1);
 }
 
+/* Cancel a pending task that was previously submitted.
+ * Return 1 if the task was successfully cancelled, 0 if
+ * not found, -1 for invalid parameters
+ */
+int
+ldap_pvt_thread_pool_retract (
+	ldap_pvt_thread_pool_t *tpool,
+	ldap_pvt_thread_start_t *start_routine, void *arg )
+{
+	struct ldap_int_thread_pool_s *pool;
+	ldap_int_thread_task_t *task;
+
+	if (tpool == NULL)
+		return(-1);
+
+	pool = *tpool;
+
+	if (pool == NULL)
+		return(-1);
+
+	ldap_pvt_thread_mutex_lock(&pool->ltp_mutex);
+	LDAP_STAILQ_FOREACH(task, &pool->ltp_pending_list, ltt_next.q)
+		if (task->ltt_start_routine == start_routine &&
+			task->ltt_arg == arg) {
+			pool->ltp_pending_count--;
+			LDAP_STAILQ_REMOVE(&pool->ltp_pending_list, task,
+				ldap_int_thread_task_s, ltt_next.q);
+			LDAP_SLIST_INSERT_HEAD(&pool->ltp_free_list, task,
+				ltt_next.l);
+			break;
+		}
+	ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
+	return task != NULL;
+}
+
 /* Set max #threads.  value <= 0 means max supported #threads (LDAP_MAXTHR) */
 int
 ldap_pvt_thread_pool_maxthreads(
