@@ -373,8 +373,8 @@ ldap_pvt_thread_pool_submit (
 	return(-1);
 }
 
-/* Cancel a pending thread that was previously submitted.
- * Return 1 if the thread was successfully cancelled, 0 if
+/* Cancel a pending task that was previously submitted.
+ * Return 1 if the task was successfully cancelled, 0 if
  * not found, -1 for invalid parameters
  */
 int
@@ -402,9 +402,10 @@ ldap_pvt_thread_pool_retract (
 				ldap_int_thread_task_s, ltt_next.q);
 			LDAP_SLIST_INSERT_HEAD(&pool->ltp_free_list, task,
 				ltt_next.l);
-			return 1;
+			break;
 		}
-	return 0;
+	ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
+	return task != NULL;
 }
 
 /* Set max #threads.  value <= 0 means max supported #threads (LDAP_MAXTHR) */
