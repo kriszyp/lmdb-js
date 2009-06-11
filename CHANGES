@@ -31,6 +31,7 @@ OpenLDAP 2.4.17 Engineering
 	Fixed slapd-hdb freeing of already freed entries (ITS#6074)
 	Fixed slapd-hdb entryinfo cleanup (ITS#6088)
 	Fixed slapd-hdb dncache lockups (ITS#6095)
+	Fixed slapd-ldap deadlock with non-responsive TLS URIs (ITS#6167)
 	Fixed slapd-relay to return failure on failure (ITS#5328)
 	Fixed slapd-sql with BACKSQL_ARBITRARY_KEY defined (ITS#6100)
 	Fixed slapo-dds entry expiration (ITS#6169)

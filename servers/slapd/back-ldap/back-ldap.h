@@ -245,6 +245,9 @@ typedef struct ldapinfo_t {
 	 * to be checked for the presence of a certain item */
 	BerVarray		li_bvuri;
 	ldap_pvt_thread_mutex_t	li_uri_mutex;
+	/* hack because when TLS is used we need to lock and let 
+	 * the li_urllist_f function to know it's locked */
+	int			li_uri_mutex_do_not_lock;
 
 	LDAP_REBIND_PROC	*li_rebind_f;
 	LDAP_URLLIST_PROC	*li_urllist_f;
