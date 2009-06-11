@@ -2353,7 +2353,6 @@ typedef struct slap_overinfo {
 } slap_overinfo;
 
 /* Should successive callbacks in a chain be processed? */
-#define	SLAP_CB_FREEME		0x04000
 #define	SLAP_CB_BYPASS		0x08800
 #define	SLAP_CB_CONTINUE	0x08000
 
