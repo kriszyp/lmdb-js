@@ -243,10 +243,9 @@ done_search:;
 					de->de_ndn.bv_val, rs.sr_err );
 				break;
 			}
-	
+
 			if ( de != NULL ) {
 				*dep = de->de_next;
-				dep = &de->de_next;
 				op->o_tmpfree( de, op->o_tmpmemctx );
 			}
 		}
