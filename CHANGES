@@ -33,6 +33,7 @@ OpenLDAP 2.4.17 Engineering
 	Fixed slapd-hdb dncache lockups (ITS#6095)
 	Fixed slapd-relay to return failure on failure (ITS#5328)
 	Fixed slapd-sql with BACKSQL_ARBITRARY_KEY defined (ITS#6100)
+	Fixed slapo-dds entry expiration (ITS#6169)
 	Fixed slapo-refint refint_repair handling (ITS#6056)
 	Added slapo-rwm rwm-drop-unrequested-attrs config option (ITS#6057)
 	Fixed slapo-rwm dn passing (ITS#6070)
