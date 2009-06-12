@@ -634,6 +634,10 @@ int ndb_back_search( Operation *op, SlapReply *rs )
 	}
 
 	scan = txn->getNdbIndexScanOperation( "PRIMARY", DN2ID_TABLE );
+	if ( !scan ) {
+		rs->sr_err = LDAP_OTHER;
+		goto leave;
+	}
 	scan->readTuples( NdbOperation::LM_CommittedRead );
 	rc = ndb_dn2bound( scan, &rdns );
 
