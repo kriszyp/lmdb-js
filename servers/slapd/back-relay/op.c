@@ -65,28 +65,41 @@ static const struct relay_fail_modes_s {
 };
 
 /*
- * Callbacks: Caller set op->o_bd to underlying BackendDB and sc_private
- * to Relay BackendDB. sc_response swaps them, sc_cleanup swaps them back.
+ * Callbacks: Caller changed op->o_bd from Relay to underlying
+ * BackendDB.  sc_response sets it to Relay BackendDB, sc_cleanup puts
+ * back underlying BackendDB.  Caller will restore Relay BackendDB.
  */
-static int
-relay_back_swap_bd( Operation *op, SlapReply *rs )
+
+typedef struct relay_callback {
+	slap_callback rcb_sc;
+	BackendDB *rcb_bd;
+} relay_callback;
+
+int
+relay_back_cleanup_cb( Operation *op, SlapReply *rs )
 {
-	slap_callback	*cb = op->o_callback;
-	BackendDB	*be = op->o_bd;
-
-	op->o_bd = cb->sc_private;
-	cb->sc_private = be;
-
+	op->o_bd = ((relay_callback *) op->o_callback)->rcb_bd;
 	return SLAP_CB_CONTINUE;
 }
 
-#define relay_back_add_cb( cb, op ) \
-	{						\
-		(cb)->sc_next = (op)->o_callback;	\
-		(cb)->sc_response = relay_back_swap_bd;	\
-		(cb)->sc_cleanup = relay_back_swap_bd;	\
-		(cb)->sc_private = (op)->o_bd;		\
-		(op)->o_callback = (cb);		\
+int
+relay_back_response_cb( Operation *op, SlapReply *rs )
+{
+	relay_callback	*rcb = (relay_callback *) op->o_callback;
+
+	rcb->rcb_sc.sc_cleanup = relay_back_cleanup_cb;
+	rcb->rcb_bd = op->o_bd;
+	op->o_bd = op->o_callback->sc_private;
+	return SLAP_CB_CONTINUE;
+}
+
+#define relay_back_add_cb( rcb, op, bd )			\
+	{							\
+		(rcb)->rcb_sc.sc_next = (op)->o_callback;	\
+		(rcb)->rcb_sc.sc_response = relay_back_response_cb; \
+		(rcb)->rcb_sc.sc_cleanup = 0;			\
+		(rcb)->rcb_sc.sc_private = (op)->o_bd;		\
+		(op)->o_callback = (slap_callback *) (rcb);	\
 	}
 
 /*
@@ -117,7 +130,6 @@ relay_back_select_backend( Operation *op, SlapReply *rs, int which )
 			return bd;
 		}
 
-		bd = NULL;
 		Debug( LDAP_DEBUG_ANY,
 			"%s: back-relay for DN=\"%s\" would call self.\n",
 			op->o_log_prefix, op->o_req_dn.bv_val, 0 );
@@ -185,15 +197,15 @@ relay_back_op( Operation *op, SlapReply *rs, int which )
 			return rs->sr_err;	/* sr_err was set above */
 
 	} else if ( (func = (&bd->be_bind)[which]) != 0 ) {
-		slap_callback	cb;
+		relay_callback	rcb;
 
-		relay_back_add_cb( &cb, op );
+		relay_back_add_cb( &rcb, op, bd );
 
 		RELAY_WRAP_OP( op, bd, which, {
 			rc = func( op, rs );
 		});
 
-		if ( op->o_callback == &cb ) {
+		if ( op->o_callback == (slap_callback *) &rcb ) {
 			op->o_callback = op->o_callback->sc_next;
 		}
 
