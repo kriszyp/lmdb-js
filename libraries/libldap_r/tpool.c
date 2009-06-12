@@ -373,6 +373,12 @@ ldap_pvt_thread_pool_submit (
 	return(-1);
 }
 
+static void *
+no_task( void *ctx, void *arg )
+{
+	return NULL;
+}
+
 /* Cancel a pending task that was previously submitted.
  * Return 1 if the task was successfully cancelled, 0 if
  * not found, -1 for invalid parameters
@@ -397,11 +403,11 @@ ldap_pvt_thread_pool_retract (
 	LDAP_STAILQ_FOREACH(task, &pool->ltp_pending_list, ltt_next.q)
 		if (task->ltt_start_routine == start_routine &&
 			task->ltt_arg == arg) {
-			pool->ltp_pending_count--;
-			LDAP_STAILQ_REMOVE(&pool->ltp_pending_list, task,
-				ldap_int_thread_task_s, ltt_next.q);
-			LDAP_SLIST_INSERT_HEAD(&pool->ltp_free_list, task,
-				ltt_next.l);
+			/* Could LDAP_STAILQ_REMOVE the task, but that
+			 * walks ltp_pending_list again to find it.
+			 */
+			task->ltt_start_routine = no_task;
+			task->ltt_arg = NULL;
 			break;
 		}
 	ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
