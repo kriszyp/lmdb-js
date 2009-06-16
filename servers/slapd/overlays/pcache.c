@@ -2399,8 +2399,6 @@ pcache_op_search(
 	op->o_tmpfree( tempstr.bv_val, op->o_tmpmemctx );
 
 	if (answerable) {
-		/* Need to clear the callbacks of the original operation,
-		 * in case there are other overlays */
 		BackendDB	*save_bd = op->o_bd;
 		slap_callback	*save_cb = op->o_callback;
 
@@ -2413,7 +2411,6 @@ pcache_op_search(
 			send_ldap_result( op, rs );
 		} else {
 			op->o_bd = &cm->db;
-			op->o_callback = NULL;
 			i = cm->db.bd_info->bi_op_search( op, rs );
 		}
 		ldap_pvt_thread_rdwr_runlock(&answerable->rwlock);
