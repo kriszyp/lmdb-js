@@ -2411,6 +2411,12 @@ pcache_op_search(
 			send_ldap_result( op, rs );
 		} else {
 			op->o_bd = &cm->db;
+			if ( cm->response_cb == PCACHE_RESPONSE_CB_TAIL ) {
+				/* The cached entry was already processed by any
+				 * other overlays, so don't let it get processed again.
+				 */
+				op->o_callback = NULL;
+			}
 			i = cm->db.bd_info->bi_op_search( op, rs );
 		}
 		ldap_pvt_thread_rdwr_runlock(&answerable->rwlock);
