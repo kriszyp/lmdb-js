@@ -49,6 +49,28 @@ typedef struct collect_info {
 	AttributeDescription *ci_ad[1];
 } collect_info;
 
+static int collect_cf( ConfigArgs *c );
+
+static ConfigTable collectcfg[] = {
+	{ "collectinfo", "dn> <attribute", 3, 3, 0,
+	  ARG_MAGIC, collect_cf,
+	  "( OLcfgOvAt:19.1 NAME 'olcCollectInfo' "
+	  "DESC 'DN of entry and attribute to distribute' "
+	  "EQUALITY caseIgnoreMatch "
+	  "SYNTAX OMsDirectoryString )", NULL, NULL },
+	{ NULL, NULL, 0, 0, 0, ARG_IGNORED }
+};
+
+static ConfigOCs collectocs[] = {
+	{ "( OLcfgOvOc:19.1 "
+	  "NAME 'olcCollectConfig' "
+	  "DESC 'Collective Attribute configuration' "
+	  "SUP olcOverlayConfig "
+	  "MAY olcCollectInfo )",
+	  Cft_Overlay, collectcfg },
+	{ NULL, 0, NULL }
+};
+
 /*
  * inserts a collect_info into on->on_bi.bi_private taking into account
  * order. this means longer dn's (i.e. more specific dn's) will be found
@@ -188,6 +210,26 @@ collect_cf( ConfigArgs *c )
 			return ARG_BAD_CONF;
 		}
 
+		/* check for duplicate DNs */
+		for ( ci = (collect_info *)on->on_bi.bi_private; ci;
+			ci = ci->ci_next ) {
+			/* If new DN is longest, there are no possible matches */
+			if ( dn.bv_len > ci->ci_dn.bv_len ) {
+				ci = NULL;
+				break;
+			}
+			if ( bvmatch( &dn, &ci->ci_dn )) {
+				break;
+			}
+		}
+		if ( ci ) {
+			snprintf( c->cr_msg, sizeof( c->cr_msg ), "%s DN already configured: \"%s\"",
+				c->argv[0], c->argv[1] );
+			Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
+				"%s: %s\n", c->log, c->cr_msg, 0 );
+			return ARG_BAD_CONF;
+		}
+
 		/* allocate config info with room for attribute array */
 		ci = ch_malloc( sizeof( collect_info ) +
 			sizeof( AttributeDescription * ) * count );
@@ -224,31 +266,33 @@ collect_cf( ConfigArgs *c )
 		/* creates list of ci's ordered by dn length */ 
 		insert_ordered ( on, ci );
 
+		/* New ci wasn't simply appended to end, adjust its
+		 * position in the config entry's a_vals
+		 */
+		if ( c->ca_entry && ci->ci_next ) {
+			Attribute *a = attr_find( c->ca_entry->e_attrs,
+				collectcfg[0].ad );
+			if ( a ) {
+				struct berval bv, nbv;
+				collect_info *c2 = (collect_info *)on->on_bi.bi_private;
+				int i, j;
+				for ( i=0; c2 != ci; i++, c2 = c2->ci_next );
+				bv = a->a_vals[a->a_numvals-1];
+				nbv = a->a_nvals[a->a_numvals-1];
+				for ( j=a->a_numvals-1; j>i; j-- ) {
+					a->a_vals[j] = a->a_vals[j-1];
+					a->a_nvals[j] = a->a_nvals[j-1];
+				}
+				a->a_vals[j] = bv;
+				a->a_nvals[j] = nbv;
+			}
+		}
+
 		rc = 0;
 		}
 	}
 	return rc;
 }
-
-static ConfigTable collectcfg[] = {
-	{ "collectinfo", "dn> <attribute", 3, 3, 0,
-	  ARG_MAGIC, collect_cf,
-	  "( OLcfgOvAt:19.1 NAME 'olcCollectInfo' "
-	  "DESC 'DN of entry and attribute to distribute' "
-	  "EQUALITY caseIgnoreMatch "
-	  "SYNTAX OMsDirectoryString )", NULL, NULL },
-	{ NULL, NULL, 0, 0, 0, ARG_IGNORED }
-};
-
-static ConfigOCs collectocs[] = {
-	{ "( OLcfgOvOc:19.1 "
-	  "NAME 'olcCollectConfig' "
-	  "DESC 'Collective Attribute configuration' "
-	  "SUP olcOverlayConfig "
-	  "MAY olcCollectInfo )",
-	  Cft_Overlay, collectcfg },
-	{ NULL, 0, NULL }
-};
 
 static int
 collect_destroy(
