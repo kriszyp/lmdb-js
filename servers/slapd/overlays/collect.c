@@ -72,7 +72,7 @@ insert_ordered( slap_overinst *on, collect_info *ci ) {
 				ci->ci_next = NULL;
 			}
 			found = 1;
-		} else if (find->ci_dn.bv_len <= ci->ci_dn.bv_len) { 
+		} else if (find->ci_dn.bv_len < ci->ci_dn.bv_len) { 
 			/* insert into list here */
 			if (prev == NULL) {
 				/* entry is head of list */
@@ -151,7 +151,11 @@ collect_cf( ConfigArgs *c )
 			collect_info **cip, *ci;
 			int i;
 			cip = (collect_info **)&on->on_bi.bi_private;
-			for ( i=0; i <= c->valx; i++, cip = &ci->ci_next ) ci = *cip;
+			ci = *cip;
+			for ( i=0; i < c->valx; i++ ) {
+				cip = &ci->ci_next;
+				ci = *cip;
+			}
 			*cip = ci->ci_next;
 			ch_free( ci->ci_dn.bv_val );
 			ch_free( ci );
@@ -174,10 +178,6 @@ collect_cf( ConfigArgs *c )
 			arg = strtok(NULL, ",");
 		}
 
-		/* allocate config info with room for attribute array */
-		ci = ch_malloc( sizeof( collect_info ) +
-			sizeof( AttributeDescription * ) * count );
-
 		/* validate and normalize dn */
 		ber_str2bv( c->argv[1], 0, 0, &bv );
 		if ( dnNormalize( 0, NULL, NULL, &bv, &dn, NULL ) ) {
@@ -187,6 +187,10 @@ collect_cf( ConfigArgs *c )
 				"%s: %s\n", c->log, c->cr_msg, 0 );
 			return ARG_BAD_CONF;
 		}
+
+		/* allocate config info with room for attribute array */
+		ci = ch_malloc( sizeof( collect_info ) +
+			sizeof( AttributeDescription * ) * count );
 
 		/* load attribute description for attribute list */
 		arg = c->argv[2];
@@ -199,6 +203,7 @@ collect_cf( ConfigArgs *c )
 					c->argv[0], arg);
 				Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
 					"%s: %s\n", c->log, c->cr_msg, 0 );
+				ch_free( ci );
 				return ARG_BAD_CONF;
 			}
 			while(*arg!='\0') {
@@ -230,6 +235,7 @@ static ConfigTable collectcfg[] = {
 	  ARG_MAGIC, collect_cf,
 	  "( OLcfgOvAt:19.1 NAME 'olcCollectInfo' "
 	  "DESC 'DN of entry and attribute to distribute' "
+	  "EQUALITY caseIgnoreMatch "
 	  "SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ NULL, NULL, 0, 0, 0, ARG_IGNORED }
 };
