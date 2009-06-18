@@ -147,7 +147,10 @@ will return a different result.
 .BI dncachesize \ <integer>
 Specify the maximum number of DNs in the in-memory DN cache. The
 default is twice the \fBcachesize\fP. Ideally this cache should be
-large enough to contain the DNs of every entry in the database.
+large enough to contain the DNs of every entry in the database. If
+set to a smaller value than the \fBcachesize\fP it will be silently
+increased to equal the \fBcachesize\fP.
+
 It should be noted that the \fBDN cache\fP is allowed to temporarily
 grow beyond the configured size. It does this if many entries are 
 locked when it tries to do a purge, because that means they're

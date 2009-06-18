@@ -374,6 +374,11 @@ shm_retry:
 		bdb->bi_cache.c_eimax = bdb->bi_cache.c_maxsize * 2;
 	}
 
+	/* dncache must be >= entrycache */
+	if ( bdb->bi_cache.c_eimax < bdb->bi_cache.c_maxsize ) {
+		bdb->bi_cache.c_eimax = bdb->bi_cache.c_maxsize;
+	}
+
 	if ( bdb->bi_idl_cache_max_size ) {
 		bdb->bi_idl_tree = NULL;
 		bdb->bi_idl_cache_size = 0;
