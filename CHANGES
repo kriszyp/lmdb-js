@@ -29,6 +29,7 @@ OpenLDAP 2.4.17 Engineering
 	Fixed slapd some abandon and cancel race conditions (ITS#6104)
 	Fixed slapd tls context after changes (ITS#6135)
 	Fixed slapd-bdb/hdb adjust dncachesize if too low (ITS#6176)
+	Fixed slapd-bdb/hdb crashes during delete (ITS#6177)
 	Fixed slapd-hdb freeing of already freed entries (ITS#6074)
 	Fixed slapd-hdb entryinfo cleanup (ITS#6088)
 	Fixed slapd-hdb dncache lockups (ITS#6095)

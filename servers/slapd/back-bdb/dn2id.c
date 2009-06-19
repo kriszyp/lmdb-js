@@ -1156,18 +1156,18 @@ gotit:
 					if ( bdb_cache_find_id( cx->op, cx->txn, cx->id, &cx->ei,
 						ID_NOENTRY, NULL ))
 						continue;
-					if ( !cx->ei ||
-						( cx->ei->bei_state & CACHE_ENTRY_NO_KIDS ))
-						continue;
-
-					ei2 = cx->ei;
-					BDB_ID2DISK( cx->id, &cx->nid );
-					hdb_dn2idl_internal( cx );
-					if ( !BDB_IDL_IS_ZERO( cx->tmp ))
-						nokids = 0;
-					bdb_cache_entryinfo_lock( ei2 );
-					ei2->bei_finders--;
-					bdb_cache_entryinfo_unlock( ei2 );
+					if ( cx->ei ) {
+						ei2 = cx->ei;
+						if ( !( ei2->bei_state & CACHE_ENTRY_NO_KIDS )) {
+							BDB_ID2DISK( cx->id, &cx->nid );
+							hdb_dn2idl_internal( cx );
+							if ( !BDB_IDL_IS_ZERO( cx->tmp ))
+								nokids = 0;
+						}
+						bdb_cache_entryinfo_lock( ei2 );
+						ei2->bei_finders--;
+						bdb_cache_entryinfo_unlock( ei2 );
+					}
 				}
 				cx->depth--;
 				cx->op->o_tmpfree( save, cx->op->o_tmpmemctx );
