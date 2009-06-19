@@ -979,6 +979,9 @@ load1:
 			if ( (*eip)->bei_state & CACHE_ENTRY_DELETED ) {
 				rc = DB_NOTFOUND;
 				bdb_cache_entry_db_unlock( bdb, lock );
+				bdb_cache_entryinfo_lock( *eip );
+				(*eip)->bei_finders--;
+				bdb_cache_entryinfo_unlock( *eip );
 			} else if ( rc == 0 ) {
 				if ( load ) {
 					if ( !ep) {
