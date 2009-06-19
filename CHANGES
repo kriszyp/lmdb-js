@@ -34,6 +34,7 @@ OpenLDAP 2.4.17 Engineering
 	Fixed slapd-ldap deadlock with non-responsive TLS URIs (ITS#6167)
 	Fixed slapd-relay to return failure on failure (ITS#5328)
 	Fixed slapd-sql with BACKSQL_ARBITRARY_KEY defined (ITS#6100)
+	Fixed slapo-collect collectinfo ordering (ITS#6076)
 	Fixed slapo-collect missing equality match rule (ITS#6075)
 	Fixed slapo-dds entry expiration (ITS#6169)
 	Fixed slapo-refint refint_repair handling (ITS#6056)
