@@ -61,6 +61,7 @@ OpenLDAP 2.4.17 Engineering
 		ldapsearch(1) output format description (ITS#6146)
 		ldapurl(1) note -e option (ITS#6107)
 		ldapwhoami(1) note -e option (ITS#6107)
+		ldap_result(3) Add RETURN VALUE heading (ITS#6180)
 		ldap.conf(5) improve sizelimit/timelimit limits (ITS#6127)
 		slapd.conf(5) pidfile/argsfile description fix (ITS#5975)
 		slapd-config(5) pidfile/argsfile description fix (ITS#5975)
