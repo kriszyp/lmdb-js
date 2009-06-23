@@ -31,6 +31,9 @@ perl_back_close(
 	perl_destruct(PERL_INTERPRETER);
 	perl_free(PERL_INTERPRETER);
 	PERL_INTERPRETER = NULL;
+#ifdef PERL_SYS_TERM
+	PERL_SYS_TERM();
+#endif
 
 	ldap_pvt_thread_mutex_destroy( &perl_interpreter_mutex );	
 
