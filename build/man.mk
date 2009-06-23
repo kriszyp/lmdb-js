@@ -31,6 +31,7 @@ all-common:
 			-e 's%BINDIR%$(bindir)%' \
 			-e 's%LIBDIR%$(libdir)%' \
 			-e 's%LIBEXECDIR%$(libexecdir)%' \
+			-e 's%MODULEDIR%$(moduledir)%' \
 			-e 's%RELEASEDATE%$(RELEASEDATE)%' \
 				$(srcdir)/$$page \
 			| (cd $(srcdir); $(SOELIM) -) > $$page.$(TMP_SUFFIX); \
