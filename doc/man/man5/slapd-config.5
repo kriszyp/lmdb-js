@@ -913,6 +913,8 @@ option.
 .B olcModulePath: <pathspec>
 Specify a list of directories to search for loadable modules. Typically
 the path is colon-separated but this depends on the operating system.
+The default is MODULEDIR, which is where the standard OpenLDAP install
+will place its modules. 
 .SH SCHEMA OPTIONS
 Schema definitions are created as entries in the
 .B cn=schema,cn=config
