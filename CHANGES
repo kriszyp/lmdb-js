@@ -40,6 +40,7 @@ OpenLDAP 2.4.17 Engineering
 	Fixed slapo-collect collectinfo ordering (ITS#6076)
 	Fixed slapo-collect missing equality match rule (ITS#6075)
 	Fixed slapo-dds entry expiration (ITS#6169)
+	Fixed slapo-perl symbols (ITS#5658)
 	Fixed slapo-refint refint_repair handling (ITS#6056)
 	Added slapo-rwm rwm-drop-unrequested-attrs config option (ITS#6057)
 	Fixed slapo-rwm dn passing (ITS#6070)
