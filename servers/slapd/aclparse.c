@@ -851,16 +851,6 @@ parse_acl(
 					}
 				}
 
-				/* expand in <who> needs regex in <what> */
-				if ( ( sty == ACL_STYLE_EXPAND || expand )
-						&& a->acl_dn_style != ACL_STYLE_REGEX )
-				{
-					Debug( LDAP_DEBUG_CONFIG | LDAP_DEBUG_ACL, "%s: line %d: \"expand\" style "
-						"or modifier used in conjunction with a non-regex <what> clause.\n",
-						fname, lineno, 0 );
-						goto fail;
-				}
-
 				if ( strncasecmp( left, "real", STRLENOF( "real" ) ) == 0 ) {
 					is_realdn = 1;
 					bdn = &b->a_realdn;
