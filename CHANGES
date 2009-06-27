@@ -50,6 +50,7 @@ OpenLDAP 2.4.17 Engineering
 		Added test057-memberof-refint (ITS#5395)
 		Fixed winsock detection for windows (ITS#6102, ITS#6078)
 	Documentation
+		admin24 relocate configuration examples (ITS#6183)
 		admin24 fixed example regex (ITS#6052)
 		admin24 removed temporary back-monitor note (ITS#6130)
 		admin24 slapd.conf to cn=config conversion process (ITS#6060)
