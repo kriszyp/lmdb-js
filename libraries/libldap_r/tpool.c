@@ -234,41 +234,12 @@ ldap_pvt_thread_pool_init (
 	LDAP_STAILQ_INSERT_TAIL(&ldap_int_thread_pool_list, pool, ltp_next);
 	ldap_pvt_thread_mutex_unlock(&ldap_pvt_thread_pool_mutex);
 
-#if 0
-	/* THIS WILL NOT WORK on some systems.  If the process
-	 * forks after starting a thread, there is no guarantee
-	 * that the thread will survive the fork.  For example,
-	 * slapd forks in order to daemonize, and does so after
-	 * calling ldap_pvt_thread_pool_init.  On some systems,
-	 * this initial thread does not run in the child process,
-	 * but ltp_open_count == 1, so two things happen: 
-	 * 1) the first client connection fails, and 2) when
-	 * slapd is kill'ed, it never terminates since it waits
-	 * for all worker threads to exit. */
-
-	/* start up one thread, just so there is one. no need to
-	 * lock the mutex right now, since no threads are running.
+	/* Start no threads just yet.  That can break if the process forks
+	 * later, as slapd does in order to daemonize.  On at least POSIX,
+	 * only the forking thread would survive in the child.  Yet fork()
+	 * can't unlock/clean up other threads' locks and data structures,
+	 * unless pthread_atfork() handlers have been set up to do so.
 	 */
-	pool->ltp_open_count++;
-	SET_VARY_OPEN_COUNT(pool);
-
-	ldap_pvt_thread_t thr;
-	rc = ldap_pvt_thread_create( &thr, 1, ldap_int_thread_pool_wrapper, pool );
-
-	if( rc != 0) {
-		/* couldn't start one?  then don't start any */
-		ldap_pvt_thread_mutex_lock(&ldap_pvt_thread_pool_mutex);
-		LDAP_STAILQ_REMOVE(ldap_int_thread_pool_list, pool, 
-			ldap_int_thread_pool_s, ltp_next);
-		ldap_int_has_thread_pool = 0;
-		ldap_pvt_thread_mutex_unlock(&ldap_pvt_thread_pool_mutex);
-		ldap_pvt_thread_cond_destroy(&pool->ltp_pcond);
-		ldap_pvt_thread_cond_destroy(&pool->ltp_cond);
-		ldap_pvt_thread_mutex_destroy(&pool->ltp_mutex);
-		LDAP_FREE(pool);
-		return(-1);
-	}
-#endif
 
 	*tpool = pool;
 	return(0);
@@ -667,49 +638,56 @@ ldap_int_thread_pool_wrapper (
 	ldap_pvt_thread_mutex_unlock(&ldap_pvt_thread_pool_mutex);
 
 	pool->ltp_starting--;
+	pool->ltp_active_count++;
 
 	for (;;) {
 		work_list = pool->ltp_work_list; /* help the compiler a bit */
 		task = LDAP_STAILQ_FIRST(work_list);
 		if (task == NULL) {	/* paused or no pending tasks */
-			if (pool->ltp_vary_open_count < 0) {
-				/* not paused, and either finishing or too many
-				 * threads running (can happen if ltp_max_count
-				 * was reduced) so let this thread die.
-				 */
-				break;
+			if (--(pool->ltp_active_count) < 2) {
+				/* Notify pool_pause it is the sole active thread. */
+				ldap_pvt_thread_cond_signal(&pool->ltp_pcond);
 			}
 
-			/* we could check an idle timer here, and let the
-			 * thread die if it has been inactive for a while.
-			 * only die if there are other open threads (i.e.,
-			 * always have at least one thread open).  the check
-			 * should be like this:
-			 *   if (pool->ltp_open_count > 1 && pool->ltp_starting == 0)
-			 *       check timer, wait if ltp_pause, leave thread (break;)
-			 *
-			 * Just use pthread_cond_timedwait if we want to
-			 * check idle time.
-			 */
+			do {
+				if (pool->ltp_vary_open_count < 0) {
+					/* Not paused, and either finishing or too many
+					 * threads running (can happen if ltp_max_count
+					 * was reduced).  Let this thread die.
+					 */
+					goto done;
+				}
 
-			ldap_pvt_thread_cond_wait(&pool->ltp_cond, &pool->ltp_mutex);
-			continue;
+				/* We could check an idle timer here, and let the
+				 * thread die if it has been inactive for a while.
+				 * Only die if there are other open threads (i.e.,
+				 * always have at least one thread open).
+				 * The check should be like this:
+				 *   if (pool->ltp_open_count>1 && pool->ltp_starting==0)
+				 *       check timer, wait if ltp_pause, leave thread;
+				 *
+				 * Just use pthread_cond_timedwait() if we want to
+				 * check idle time.
+				 */
+				ldap_pvt_thread_cond_wait(&pool->ltp_cond, &pool->ltp_mutex);
+
+				work_list = pool->ltp_work_list;
+				task = LDAP_STAILQ_FIRST(work_list);
+			} while (task == NULL);
+
+			pool->ltp_active_count++;
 		}
 
 		LDAP_STAILQ_REMOVE_HEAD(work_list, ltt_next.q);
 		pool->ltp_pending_count--;
-		pool->ltp_active_count++;
 		ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
 
 		task->ltt_start_routine(&ctx, task->ltt_arg);
 
 		ldap_pvt_thread_mutex_lock(&pool->ltp_mutex);
 		LDAP_SLIST_INSERT_HEAD(&pool->ltp_free_list, task, ltt_next.l);
-		pool->ltp_active_count--;
-		/* let pool_pause know when it is the sole active thread */
-		if (pool->ltp_active_count < 2)
-			ldap_pvt_thread_cond_signal(&pool->ltp_pcond);
 	}
+ done:
 
 	assert(!pool->ltp_pause); /* thread_keys writable, ltp_open_count >= 0 */
 
