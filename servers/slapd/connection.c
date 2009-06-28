@@ -1537,7 +1537,8 @@ connection_input( Connection *conn , conn_readinfo *cri )
 	ctx = cri->ctx;
 	op = slap_op_alloc( ber, msgid, tag, conn->c_n_ops_received++, ctx );
 
-	Debug( LDAP_DEBUG_TRACE, "op tag %d, time %d\n", tag, op->o_time, 0);
+	Debug( LDAP_DEBUG_TRACE, "op tag 0x%lx, time %ld\n", tag,
+		(long) op->o_time, 0);
 
 	op->o_conn = conn;
 	/* clear state if the connection is being reused from inactive */
