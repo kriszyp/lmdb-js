@@ -12,6 +12,7 @@ OpenLDAP 2.4.17 Engineering
 	Fixed slapd abandon/cancel handling for some ops (ITS#6157)
 	Fixed slapd access setstyle to expand (ITS#6179)
 	Fixed slapd assert with closing connections (ITS#6111)
+	Fixed slapd bind race condition (ITS#6189)
 	Fixed slapd cancel behavior (ITS#6137)
 	Fixed slapd cert validation (ITS#6098)
 	Fixed slapd errno handling (ITS#6037)

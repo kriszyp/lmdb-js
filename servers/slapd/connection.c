@@ -1127,6 +1127,9 @@ operations_error:
 
 	ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 
+	if ( opidx == SLAP_OP_BIND && conn->c_conn_state == SLAP_C_BINDING )
+		conn->c_conn_state = SLAP_C_ACTIVE;
+
 	cancel = op->o_cancel;
 	if ( cancel != SLAP_CANCEL_NONE && cancel != SLAP_CANCEL_DONE ) {
 		if ( cancel == SLAP_CANCEL_REQ ) {
@@ -1534,6 +1537,8 @@ connection_input( Connection *conn , conn_readinfo *cri )
 	ctx = cri->ctx;
 	op = slap_op_alloc( ber, msgid, tag, conn->c_n_ops_received++, ctx );
 
+	Debug( LDAP_DEBUG_TRACE, "op tag %d, time %d\n", tag, op->o_time, 0);
+
 	op->o_conn = conn;
 	/* clear state if the connection is being reused from inactive */
 	if ( conn->c_conn_state == SLAP_C_INACTIVE ) {
@@ -1719,8 +1724,6 @@ static int connection_bind_cleanup_cb( Operation *op, SlapReply *rs )
 static int connection_bind_cb( Operation *op, SlapReply *rs )
 {
 	ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
-	if ( op->o_conn->c_conn_state == SLAP_C_BINDING )
-		op->o_conn->c_conn_state = SLAP_C_ACTIVE;
 	op->o_conn->c_sasl_bind_in_progress =
 		( rs->sr_err == LDAP_SASL_BIND_IN_PROGRESS );
 
