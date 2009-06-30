@@ -324,6 +324,9 @@ account_locked( Operation *op, Entry *e,
 
 	assert(mod != NULL);
 
+	if ( !pp->pwdLockout )
+		return 0;
+
 	if ( (la = attr_find( e->e_attrs, ad_pwdAccountLockedTime )) != NULL ) {
 		BerVarray vals = la->a_nvals;
 
