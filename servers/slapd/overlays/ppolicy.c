@@ -584,7 +584,7 @@ password_scheme( struct berval *cred, struct berval *sch )
 }
 
 static int
-check_password_quality( struct berval *cred, PassPolicy *pp, LDAPPasswordPolicyError *err, Entry *e )
+check_password_quality( struct berval *cred, PassPolicy *pp, LDAPPasswordPolicyError *err, Entry *e, char **txt )
 {
 	int rc = LDAP_SUCCESS, ok = LDAP_SUCCESS;
 	char *ptr = cred->bv_val;
@@ -658,16 +658,14 @@ check_password_quality( struct berval *cred, PassPolicy *pp, LDAPPasswordPolicyE
 					pp->pwdCheckModule, err, 0 );
 				ok = LDAP_OTHER;
 			} else {
-				char *txt = NULL;
-
+				*txt = NULL;
 				ldap_pvt_thread_mutex_lock( &chk_syntax_mutex );
-				ok = prog( ptr, &txt, e );
+				ok = prog( ptr, txt, e );
 				ldap_pvt_thread_mutex_unlock( &chk_syntax_mutex );
 				if (ok != LDAP_SUCCESS) {
 					Debug(LDAP_DEBUG_ANY,
 						"check_password_quality: module error: (%s) %s.[%d]\n",
-						pp->pwdCheckModule, txt ? txt : "", ok );
-					free(txt);
+						pp->pwdCheckModule, *txt ? *txt : "", ok );
 				}
 			}
 			    
@@ -1328,12 +1326,13 @@ ppolicy_add(
 			struct berval *bv = &(pa->a_vals[0]);
 			int rc, send_ctrl = 0;
 			LDAPPasswordPolicyError pErr = PP_noError;
+			char *txt;
 
 			/* Did we receive a password policy request control? */
 			if ( op->o_ctrlflag[ppolicy_cid] ) {
 				send_ctrl = 1;
 			}
-			rc = check_password_quality( bv, &pp, &pErr, op->ora_e );
+			rc = check_password_quality( bv, &pp, &pErr, op->ora_e, &txt );
 			if (rc != LDAP_SUCCESS) {
 				LDAPControl **oldctrls = NULL;
 				op->o_bd->bd_info = (BackendInfo *)on->on_info;
@@ -1342,7 +1341,10 @@ ppolicy_add(
 					ctrl = create_passcontrol( op, -1, -1, pErr );
 					oldctrls = add_passcontrol( op, rs, ctrl );
 				}
-				send_ldap_error( op, rs, rc, "Password fails quality checking policy" );
+				send_ldap_error( op, rs, rc, txt ? txt : "Password fails quality checking policy" );
+				if ( txt ) {
+					free( txt );
+				}
 				if ( send_ctrl ) {
 					ctrls_cleanup( op, rs, oldctrls );
 				}
@@ -1423,7 +1425,7 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 	Attribute		*pa, *ha, at;
 	const char		*txt;
 	pw_hist			*tl = NULL, *p;
-	int			zapReset, send_ctrl = 0;
+	int			zapReset, send_ctrl = 0, free_txt = 0;
 	Entry			*e;
 	struct berval		newpw = BER_BVNULL, oldpw = BER_BVNULL,
 				*bv, cr[2];
@@ -1748,8 +1750,6 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 		/*
 		 * we have a password to check
 		 */
-		const char *txt;
-		
 		bv = oldpw.bv_val ? &oldpw : delmod->sml_values;
 		/* FIXME: no access checking? */
 		rc = slap_passwd_check( op, NULL, pa, bv, &txt );
@@ -1783,10 +1783,15 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 	bv = newpw.bv_val ? &newpw : &addmod->sml_values[0];
 	if (pp.pwdCheckQuality > 0) {
 
-		rc = check_password_quality( bv, &pp, &pErr, e );
+		rc = check_password_quality( bv, &pp, &pErr, e, (char **)&txt );
 		if (rc != LDAP_SUCCESS) {
 			rs->sr_err = rc;
-			rs->sr_text = "Password fails quality checking policy";
+			if ( txt ) {
+				rs->sr_text = txt;
+				free_txt = 1;
+			} else {
+				rs->sr_text = "Password fails quality checking policy";
+			}
 			goto return_results;
 		}
 	}
@@ -2039,6 +2044,10 @@ return_results:
 		oldctrls = add_passcontrol( op, rs, ctrl );
 	}
 	send_ldap_result( op, rs );
+	if ( free_txt ) {
+		free( (char *)txt );
+		rs->sr_text = NULL;
+	}
 	if ( send_ctrl ) {
 		if ( is_pwdexop ) {
 			if ( rs->sr_flags & REP_CTRLS_MUSTBEFREED ) {
