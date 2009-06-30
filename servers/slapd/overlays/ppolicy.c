@@ -643,6 +643,11 @@ check_password_quality( struct berval *cred, PassPolicy *pp, LDAPPasswordPolicyE
 				pp->pwdCheckModule, err, 0 );
 			ok = LDAP_OTHER; /* internal error */
 		} else {
+			/* FIXME: the error message ought to be passed thru a
+			 * struct berval, with preallocated buffer and size
+			 * passed in. Module can still allocate a buffer for
+			 * it if the provided one is too small.
+			 */
 			int (*prog)( char *passwd, char **text, Entry *ent );
 
 			if ((prog = lt_dlsym( mod, "check_password" )) == NULL) {
@@ -656,7 +661,7 @@ check_password_quality( struct berval *cred, PassPolicy *pp, LDAPPasswordPolicyE
 				char *txt = NULL;
 
 				ldap_pvt_thread_mutex_lock( &chk_syntax_mutex );
-				ok = prog( cred->bv_val, &txt, e );
+				ok = prog( ptr, &txt, e );
 				ldap_pvt_thread_mutex_unlock( &chk_syntax_mutex );
 				if (ok != LDAP_SUCCESS) {
 					Debug(LDAP_DEBUG_ANY,
