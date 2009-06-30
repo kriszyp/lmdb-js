@@ -49,6 +49,17 @@ Specify the DN of the pwdPolicy object to use when no specific policy is
 set on a given user's entry. If there is no specific policy for an entry
 and no default is given, then no policies will be enforced.
 .TP
+.B ppolicy_forward_updates
+Specify that policy state changes that result from Bind operations (such
+as recording failures, lockout, etc.) on a consumer should be forwarded
+to a master instead of being written directly into the consumer's local
+database. This setting is only useful on a replication consumer, and
+also requires the
+.B updateref
+setting and
+.B chain
+overlay to be appropriately configured.
+.TP
 .B ppolicy_hash_cleartext
 Specify that cleartext passwords present in Add and Modify requests should
 be hashed before being stored in the database. This violates the X.500/LDAP
@@ -742,7 +753,8 @@ ppolicy_default "cn=Standard,ou=Policies,dc=example,dc=com"
 .SH SEE ALSO
 .BR ldap (3),
 .BR slapd.conf (5),
-.BR slapd\-config (5).
+.BR slapd\-config (5),
+.BR slapo\-chain (5).
 .LP
 "OpenLDAP Administrator's Guide" (http://www.OpenLDAP.org/doc/admin/)
 .LP
