@@ -592,6 +592,9 @@ check_password_quality( struct berval *cred, PassPolicy *pp, LDAPPasswordPolicyE
 
 	assert( cred != NULL );
 	assert( pp != NULL );
+	assert( txt != NULL );
+
+	*txt = NULL;
 
 	if ((cred->bv_len == 0) || (pp->pwdMinLength > cred->bv_len)) {
 		rc = LDAP_CONSTRAINT_VIOLATION;
@@ -658,7 +661,6 @@ check_password_quality( struct berval *cred, PassPolicy *pp, LDAPPasswordPolicyE
 					pp->pwdCheckModule, err, 0 );
 				ok = LDAP_OTHER;
 			} else {
-				*txt = NULL;
 				ldap_pvt_thread_mutex_lock( &chk_syntax_mutex );
 				ok = prog( ptr, txt, e );
 				ldap_pvt_thread_mutex_unlock( &chk_syntax_mutex );
