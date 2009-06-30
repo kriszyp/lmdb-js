@@ -50,6 +50,7 @@ typedef struct pp_info {
 	struct berval def_policy;	/* DN of default policy subentry */
 	int use_lockout;		/* send AccountLocked result? */
 	int hash_passwords;		/* transparently hash cleartext pwds */
+	int forward_updates;	/* use frontend for policy state updates */
 } pp_info;
 
 /* Our per-connection info - note, it is not per-instance, it is 
@@ -224,6 +225,12 @@ static ConfigTable ppolicycfg[] = {
 	  "( OLcfgOvAt:12.2 NAME 'olcPPolicyHashCleartext' "
 	  "DESC 'Hash passwords on add or modify' "
 	  "SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
+	{ "ppolicy_forward_updates", "on|off", 1, 2, 0,
+	  ARG_ON_OFF|ARG_OFFSET,
+	  (void *)offsetof(pp_info,forward_updates),
+	  "( OLcfgOvAt:12.4 NAME 'olcPPolicyForwardUpdates' "
+	  "DESC 'Allow policy state updates to be forwarded via updateref' "
+	  "SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
 	{ "ppolicy_use_lockout", "on|off", 1, 2, 0,
 	  ARG_ON_OFF|ARG_OFFSET|PPOLICY_USE_LOCKOUT,
 	  (void *)offsetof(pp_info,use_lockout),
@@ -239,7 +246,7 @@ static ConfigOCs ppolicyocs[] = {
 	  "DESC 'Password Policy configuration' "
 	  "SUP olcOverlayConfig "
 	  "MAY ( olcPPolicyDefault $ olcPPolicyHashCleartext $ "
-	  "olcPPolicyUseLockout ) )",
+	  "olcPPolicyUseLockout $ olcPPolicyForwardUpdates ) )",
 	  Cft_Overlay, ppolicycfg },
 	{ NULL, 0, NULL }
 };
@@ -1115,17 +1122,25 @@ locked:
 		Operation op2 = *op;
 		SlapReply r2 = { REP_RESULT };
 		slap_callback cb = { NULL, slap_null_cb, NULL, NULL };
+		pp_info *pi = on->on_bi.bi_private;
 
-		/* FIXME: Need to handle replication of some (but not all)
-		 * of the operational attributes...
-		 */
 		op2.o_tag = LDAP_REQ_MODIFY;
 		op2.o_callback = &cb;
 		op2.orm_modlist = mod;
 		op2.o_dn = op->o_bd->be_rootdn;
 		op2.o_ndn = op->o_bd->be_rootndn;
-		op2.o_bd->bd_info = (BackendInfo *)on->on_info;
-		rc = op->o_bd->be_modify( &op2, &r2 );
+
+		/* If this server is a shadow and forward_updates is true,
+		 * use the frontend to perform this modify. That will trigger
+		 * the update referral, which can then be forwarded by the
+		 * chain overlay. Obviously the updateref and chain overlay
+		 * must be configured appropriately for this to be useful.
+		 */
+		if ( SLAP_SHADOW( op->o_bd ) && pi->forward_updates )
+			op2.o_bd = frontendDB;
+		else
+			op2.o_bd->bd_info = (BackendInfo *)on->on_info;
+		rc = op2.o_bd->be_modify( &op2, &r2 );
 		slap_mods_free( mod, 1 );
 	}
 
