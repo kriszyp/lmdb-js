@@ -71,6 +71,7 @@ usage( char *name, char o )
 		"[-C] "
 		"[-F] "
 		"[-N] "
+		"[-S] "
 		"[-i <ignore>] "
 		"[-l <loops>] "
 		"[-L <outerloops>] "
@@ -81,6 +82,9 @@ usage( char *name, char o )
 			name );
 	exit( EXIT_FAILURE );
 }
+
+/* Just send requests without reading responses */
+static int swamp;
 
 int
 main( int argc, char **argv )
@@ -111,7 +115,7 @@ main( int argc, char **argv )
 	/* by default, tolerate referrals and no such object */
 	tester_ignore_str2errlist( "REFERRAL,NO_SUCH_OBJECT" );
 
-	while ( ( i = getopt( argc, argv, "Aa:b:CD:f:FH:h:i:l:L:Np:r:s:t:T:w:" ) ) != EOF )
+	while ( ( i = getopt( argc, argv, "Aa:b:CD:f:FH:h:i:l:L:Np:r:Ss:t:T:w:" ) ) != EOF )
 	{
 		switch ( i ) {
 		case 'A':
@@ -199,6 +203,10 @@ main( int argc, char **argv )
 			if ( attrs == NULL ) {
 				usage( argv[0], i );
 			}
+			break;
+
+		case 'S':
+			swamp++;
 			break;
 
 		case 's':
@@ -434,6 +442,15 @@ retry:;
 
 	for ( ; i < innerloop; i++ ) {
 		LDAPMessage *res = NULL;
+
+		if (swamp) {
+			int msgid;
+			rc = ldap_search_ext( ld, sbase, scope,
+					filter, NULL, noattrs, NULL, NULL,
+					NULL, LDAP_NO_LIMIT, &msgid );
+			if ( rc == LDAP_SUCCESS ) continue;
+			else break;
+		}
 
 		rc = ldap_search_ext_s( ld, sbase, scope,
 				filter, attrs, noattrs, NULL, NULL,
