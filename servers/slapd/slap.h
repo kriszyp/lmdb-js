@@ -2809,6 +2809,7 @@ struct Connection {
 
 	BerElement	*c_currentber;	/* ber we're attempting to read */
 	int			c_writers;		/* number of writers waiting */
+	char		c_writing;		/* someone is writing */
 
 	char		c_sasl_bind_in_progress;	/* multi-op bind in progress */
 	char		c_writewaiter;	/* true if blocked on write */
