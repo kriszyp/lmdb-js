@@ -1,4 +1,4 @@
-/* tls_o.c - Handle tls/ssl using SSLeay or OpenSSL */
+/* tls_o.c - Handle tls/ssl using OpenSSL */
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
@@ -77,7 +77,7 @@ static int tlso_seed_PRNG( const char *randfile );
 
 #ifdef LDAP_R_COMPILE
 /*
- * provide mutexes for the SSLeay library.
+ * provide mutexes for the OpenSSL library.
  */
 static ldap_pvt_thread_mutex_t	tlso_mutexes[CRYPTO_NUM_LOCKS];
 static ldap_pvt_thread_mutex_t	tlso_dh_mutex;
@@ -162,7 +162,8 @@ tlso_init( void )
 #endif
 
 	SSL_load_error_strings();
-	SSLeay_add_ssl_algorithms();
+	SSL_library_init();
+	OpenSSL_add_all_digests();
 
 	/* FIXME: mod_ssl does this */
 	X509V3_add_standard_extensions();
