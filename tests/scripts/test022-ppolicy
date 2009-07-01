@@ -23,6 +23,9 @@ fi
 
 mkdir -p $TESTDIR $DBDIR1
 
+$SLAPPASSWD -g -n >$CONFIGPWF
+echo "rootpw `$SLAPPASSWD -T $CONFIGPWF`" >$TESTDIR/configpw.conf
+
 echo "Starting slapd on TCP/IP port $PORT1..."
 . $CONFFILTER $BACKEND $MONITORDB < $PPOLICYCONF > $CONF1
 $SLAPD -f $CONF1 -h $URI1 -d $LVL $TIMING > $LOG1 2>&1 &
@@ -400,6 +403,151 @@ if test $RC = 0 ; then
 	echo "Multiple password modify replace test failed ($RC)!"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit 1
+fi
+
+if test "$BACKLDAP" != "ldapno" && test "$SYNCPROV" != "syncprovno"  ; then 
+echo ""
+echo "Setting up policy state forwarding test..."
+
+mkdir $DBDIR2
+sed -e "s,$DBDIR1,$DBDIR2," < $CONF1 > $CONF2
+echo "Starting slapd consumer on TCP/IP port $PORT2..."
+$SLAPD -f $CONF2 -h $URI2 -d $LVL $TIMING > $LOG2 2>&1 &
+PID=$!
+if test $WAIT != 0 ; then
+    echo PID $PID
+    read foo
+fi
+KILLPIDS="$KILLPIDS $PID"
+
+echo "Configuring syncprov on provider..."
+if [ "$SYNCPROV" = syncprovmod ]; then
+	$LDAPADD -D cn=config -H $URI1 -y $CONFIGPWF <<EOF >> $TESTOUT 2>&1
+dn: cn=module,cn=config
+objectclass: olcModuleList
+cn: module
+olcModulePath: $TESTWD/../servers/slapd/overlays
+olcModuleLoad: syncprov.la
+
+EOF
+	RC=$?
+	if test $RC != 0 ; then
+		echo "ldapadd failed for moduleLoad ($RC)!"
+		test $KILLSERVERS != no && kill -HUP $KILLPIDS
+		exit $RC
+	fi
+fi
+
+$LDAPADD -D cn=config -H $URI1 -y $CONFIGPWF <<EOF >> $TESTOUT 2>&1
+dn: olcOverlay={1}syncprov,olcDatabase={1}$BACKEND,cn=config
+objectClass: olcOverlayConfig
+objectClass: olcSyncProvConfig
+olcOverlay: {1}syncprov
+
+EOF
+RC=$?
+if test $RC != 0 ; then
+    echo "ldapadd failed for provider database config ($RC)!"
+    test $KILLSERVERS != no && kill -HUP $KILLPIDS
+    exit $RC
+fi
+
+echo "Using ldapsearch to check that slapd is running..."
+for i in 0 1 2 3 4 5; do
+	$LDAPSEARCH -s base -b "$MONITOR" -H $URI2 \
+		'objectclass=*' > /dev/null 2>&1
+	RC=$?
+	if test $RC = 0 ; then
+		break
+	fi
+	echo "Waiting 5 seconds for slapd to start..."
+	sleep 5
+done
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+echo "Configuring syncrepl on consumer..."
+if [ "$BACKLDAP" = ldapmod ]; then
+	$LDAPADD -D cn=config -H $URI2 -y $CONFIGPWF <<EOF >> $TESTOUT 2>&1
+dn: cn=module,cn=config
+objectclass: olcModuleList
+cn: module
+olcModulePath: $TESTWD/../servers/slapd/back-ldap
+olcModuleLoad: back_ldap.la
+
+EOF
+	RC=$?
+	if test $RC != 0 ; then
+		echo "ldapadd failed for moduleLoad ($RC)!"
+		test $KILLSERVERS != no && kill -HUP $KILLPIDS
+		exit $RC
+	fi
+fi
+$LDAPMODIFY -D cn=config -H $URI2 -y $CONFIGPWF <<EOF >> $TESTOUT 2>&1
+dn: olcOverlay={0}chain,olcDatabase={-1}frontend,cn=config
+changetype: add
+objectClass: olcOverlayConfig
+objectClass: olcChainConfig
+olcOverlay: {0}chain
+
+dn: olcDatabase=ldap,olcOverlay={0}chain,olcDatabase={-1}frontend,cn=config
+changetype: add
+objectClass: olcLDAPConfig
+objectClass: olcChainDatabase
+olcDBURI: $URI1
+olcDbIDAssertBind: bindmethod=simple
+  binddn="cn=manager,dc=example,dc=com"
+  credentials=secret
+  mode=self
+
+dn: olcDatabase={1}$BACKEND,cn=config
+changetype: modify
+add: olcSyncrepl
+olcSyncrepl: rid=1
+  provider=$URI1
+  binddn="cn=manager,dc=example,dc=com"
+  bindmethod=simple
+  credentials=secret
+  searchbase="dc=example,dc=com"
+  type=refreshAndPersist
+  retry="3 5 300 5"
+-
+add: olcUpdateref
+olcUpdateref: $URI1
+-
+
+dn: olcOverlay={0}ppolicy,olcDatabase={1}$BACKEND,cn=config
+changetype: modify
+replace: olcPPolicyForwardUpdates
+olcPPolicyForwardUpdates: TRUE
+-
+
+EOF
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapmodify failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+echo "Waiting for consumer to sync..."
+sleep $SLEEP1
+
+echo "Testing policy state forwarding..."
+$LDAPSEARCH -H $URI2 -D "$USER" -w wrongpw >$SEARCHOUT 2>&1
+$LDAPSEARCH -H $URI1 -D "$MANAGERDN" -w $PASSWD -b "$USER" \* \+ >> $SEARCHOUT 2>&1
+COUNT=`grep "pwdFailureTime" $SEARCHOUT | wc -l`
+if test $COUNT != 1 ; then
+	echo "Policy state forwarding failed"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit 1
+fi
+
+# End of chaining test
+
 fi
 
 test $KILLSERVERS != no && kill -HUP $KILLPIDS
