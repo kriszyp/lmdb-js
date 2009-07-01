@@ -139,33 +139,35 @@ static long send_ldap_ber(
 	Connection *conn = op->o_conn;
 	ber_len_t bytes;
 	long ret = 0;
-	int closing = 0;
 
 	ber_get_option( ber, LBER_OPT_BER_BYTES_TO_WRITE, &bytes );
 
 	/* write only one pdu at a time - wait til it's our turn */
 	ldap_pvt_thread_mutex_lock( &conn->c_write1_mutex );
-	if (( op->o_abandon && !op->o_cancel ) || !connection_valid( conn )) {
+	if (( op->o_abandon && !op->o_cancel ) || !connection_valid( conn ) ||
+		conn->c_writers < 0 ) {
 		ldap_pvt_thread_mutex_unlock( &conn->c_write1_mutex );
 		return 0;
-	}
-	while ( conn->c_writers > 0 ) {
-		ldap_pvt_thread_cond_wait( &conn->c_write1_cv, &conn->c_write1_mutex );
-	}
-	/* connection was closed under us */
-	if ( conn->c_writers < 0 ) {
-		closing = 1;
-		/* we're the last waiter, let the closer continue */
-		if ( conn->c_writers == -1 )
-			ldap_pvt_thread_cond_signal( &conn->c_write1_cv );
 	}
 
 	conn->c_writers++;
 
-	if ( closing ) {
+	while ( conn->c_writers > 0 && conn->c_writing ) {
+		ldap_pvt_thread_cond_wait( &conn->c_write1_cv, &conn->c_write1_mutex );
+	}
+
+	/* connection was closed under us */
+	if ( conn->c_writers < 0 ) {
+		/* we're the last waiter, let the closer continue */
+		if ( conn->c_writers == -1 )
+			ldap_pvt_thread_cond_signal( &conn->c_write1_cv );
+		conn->c_writers++;
 		ldap_pvt_thread_mutex_unlock( &conn->c_write1_mutex );
 		return 0;
 	}
+
+	/* Our turn */
+	conn->c_writing = 1;
 
 	/* write the pdu */
 	while( 1 ) {
@@ -173,6 +175,10 @@ static long send_ldap_ber(
 
 		/* lock the connection */ 
 		if ( ldap_pvt_thread_mutex_trylock( &conn->c_mutex )) {
+			if ( !connection_valid(conn)) {
+				ret = 0;
+				break;
+			}
 			ldap_pvt_thread_mutex_unlock( &conn->c_write1_mutex );
 			ldap_pvt_thread_mutex_lock( &conn->c_write1_mutex );
 			if ( conn->c_writers < 0 ) {
@@ -201,6 +207,7 @@ static long send_ldap_ber(
 
 		if ( err != EWOULDBLOCK && err != EAGAIN ) {
 			conn->c_writers--;
+			conn->c_writing = 0;
 			ldap_pvt_thread_mutex_unlock( &conn->c_write1_mutex );
 			connection_closing( conn, "connection lost on write" );
 
@@ -225,6 +232,7 @@ static long send_ldap_ber(
 		}
 	}
 
+	conn->c_writing = 0;
 	if ( conn->c_writers < 0 ) {
 		conn->c_writers++;
 		if ( !conn->c_writers )
