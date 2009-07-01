@@ -46,6 +46,7 @@ OpenLDAP 2.4.17 Engineering
 	Fixed slapo-perl symbols (ITS#5658)
 	Fixed slapo-ppolicy to honor pwdLockout (ITS#6168)
 	Fixed slapo-ppolicy to return check modules error message (ITS#6082)
+	Fixed slapo-ppolicy with future lockout times (ITS#6084)
 	Fixed slapo-refint refint_repair handling (ITS#6056)
 	Added slapo-rwm rwm-drop-unrequested-attrs config option (ITS#6057)
 	Fixed slapo-rwm dn passing (ITS#6070)
