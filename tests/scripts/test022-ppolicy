@@ -405,7 +405,7 @@ if test $RC = 0 ; then
 	exit 1
 fi
 
-if test $BACKLDAP != "ldapno" -a $SYNCPROV != "syncprovno"  ; then 
+if test "$BACKLDAP" != "ldapno" && test "$SYNCPROV" != "syncprovno"  ; then 
 echo ""
 echo "Setting up policy state forwarding test..."
 
@@ -471,7 +471,7 @@ fi
 
 echo "Configuring syncrepl on consumer..."
 if [ "$BACKLDAP" = ldapmod ]; then
-	$LDAPADD -D cn=config -H $URI1 -y $CONFIGPWF <<EOF >> $TESTOUT 2>&1
+	$LDAPADD -D cn=config -H $URI2 -y $CONFIGPWF <<EOF >> $TESTOUT 2>&1
 dn: cn=module,cn=config
 objectclass: olcModuleList
 cn: module
