@@ -1135,6 +1135,7 @@ locked:
 		SlapReply r2 = { REP_RESULT };
 		slap_callback cb = { NULL, slap_null_cb, NULL, NULL };
 		pp_info *pi = on->on_bi.bi_private;
+		LDAPControl c, *ca[2];
 
 		op2.o_tag = LDAP_REQ_MODIFY;
 		op2.o_callback = &cb;
@@ -1148,10 +1149,20 @@ locked:
 		 * chain overlay. Obviously the updateref and chain overlay
 		 * must be configured appropriately for this to be useful.
 		 */
-		if ( SLAP_SHADOW( op->o_bd ) && pi->forward_updates )
+		if ( SLAP_SHADOW( op->o_bd ) && pi->forward_updates ) {
 			op2.o_bd = frontendDB;
-		else
+
+			/* Must use Relax control since these are no-user-mod */
+			op2.o_relax = SLAP_CONTROL_CRITICAL;
+			op2.o_ctrls = ca;
+			ca[0] = &c;
+			ca[1] = NULL;
+			BER_BVZERO( &c.ldctl_value );
+			c.ldctl_iscritical = 1;
+			c.ldctl_oid = LDAP_CONTROL_RELAX;
+		} else {
 			op2.o_bd->bd_info = (BackendInfo *)on->on_info;
+		}
 		rc = op2.o_bd->be_modify( &op2, &r2 );
 		slap_mods_free( mod, 1 );
 	}
