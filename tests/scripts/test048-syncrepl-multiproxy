@@ -454,8 +454,8 @@ if test $WAIT != 0 ; then
 fi
 KILLPIDS="$MASTERPID $P1SLAVEPID $R1SLAVEPID"
 
-echo "Waiting $SLEEP1 seconds for syncrepl to receive changes..."
-sleep $SLEEP1
+echo "Waiting $SLEEP2 seconds for syncrepl to receive changes..."
+sleep $SLEEP2
 
 #echo "Using ldapsearch to read all the entries from the master..."
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
