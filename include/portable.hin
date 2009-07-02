@@ -397,6 +397,9 @@
 /* define if you have OpenSSL */
 #undef HAVE_OPENSSL
 
+/* define if you have MozNSS */
+#undef HAVE_MOZNSS
+
 /* Define to 1 if you have the <openssl/bn.h> header file. */
 #undef HAVE_OPENSSL_BN_H
 

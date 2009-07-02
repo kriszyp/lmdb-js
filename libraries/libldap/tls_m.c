@@ -24,6 +24,10 @@
 
 #include <stdio.h>
 
+#if defined( HAVE_FCNTL_H )
+#include <fcntl.h>
+#endif
+
 #include <ac/stdlib.h>
 #include <ac/errno.h>
 #include <ac/socket.h>
@@ -41,13 +45,33 @@
 #include <ldap_pvt_thread.h>
 #endif
 
+#define READ_PASSWORD_FROM_STDIN
+#define READ_PASSWORD_FROM_FILE
+
+#ifdef READ_PASSWORD_FROM_STDIN
+#include <termios.h> /* for echo on/off */
+#endif
+
 #include <nspr.h>
+#include <private/pprio.h>
 #include <nss.h>
 #include <ssl.h>
+#include <sslproto.h>
+#include <pk11pub.h>
+#include <secerr.h>
+#include <keyhi.h>
 
 typedef struct tlsm_ctx {
 	PRFileDesc *tc_model;
 	int tc_refcnt;
+	PRBool tc_verify_cert;
+	CERTCertDBHandle *tc_certdb;
+	char *tc_certname;
+	char *tc_pin_file;
+	struct ldaptls *tc_config;
+	int tc_is_server;
+	int tc_require_cert;
+	PRCallOnceType tc_callonce;
 #ifdef LDAP_R_COMPILE
 	ldap_pvt_thread_mutex_t tc_refmutex;
 #endif
@@ -59,9 +83,12 @@ static PRDescIdentity	tlsm_layer_id;
 
 static const PRIOMethods tlsm_PR_methods;
 
-extern tls_impl ldap_int_tls_impl;
+static int tlsm_did_init;
 
-static int tslm_did_init;
+#define DEFAULT_TOKEN_NAME "default"
+
+/* forward declaration */
+static int tlsm_init( void );
 
 #ifdef LDAP_R_COMPILE
 
@@ -72,27 +99,1069 @@ tlsm_thr_init( void )
 
 #endif /* LDAP_R_COMPILE */
 
-/*
- * Initialize TLS subsystem. Should be called only once.
- */
-static int
-tlsm_init( void )
+static const char *
+tlsm_dump_cipher_info(PRFileDesc *fd)
 {
-	PR_Init(0, 0, 0);
+	PRUint16 ii;
 
-	tlsm_layer_id = PR_GetUniqueIdentity("OpenLDAP");
+	for (ii = 0; ii < SSL_NumImplementedCiphers; ++ii) {
+		PRInt32 cipher = (PRInt32)SSL_ImplementedCiphers[ii];
+		PRBool enabled = PR_FALSE;
+		PRInt32 policy = 0;
+		SSLCipherSuiteInfo info;
 
-	if ( !NSS_IsInitialized() ) {
-		tlsm_did_init = 1;
-
-		NSS_NoDB_Init("");
-
-		NSS_SetDomesticPolicy();
+		if (fd) {
+			SSL_CipherPrefGet(fd, cipher, &enabled);
+		} else {
+			SSL_CipherPrefGetDefault(cipher, &enabled);
+		}
+		SSL_CipherPolicyGet(cipher, &policy);
+		SSL_GetCipherSuiteInfo(cipher, &info, (PRUintn)sizeof(info));
+		Debug( LDAP_DEBUG_TRACE,
+			   "TLS: cipher: %d - %s, enabled: %d, ",
+			   info.cipherSuite, info.cipherSuiteName, enabled );
+		Debug( LDAP_DEBUG_TRACE,
+			   "policy: %d\n", policy, 0, 0 );
 	}
 
-	/* No cipher suite handling for now */
+	return "";
+}
+
+/* Cipher definitions */
+typedef struct {
+	char *ossl_name;    /* The OpenSSL cipher name */
+	int num;            /* The cipher id */
+	int attr;           /* cipher attributes: algorithms, etc */
+	int version;        /* protocol version valid for this cipher */
+	int bits;           /* bits of strength */
+	int alg_bits;       /* bits of the algorithm */
+	int strength;       /* LOW, MEDIUM, HIGH */
+	int enabled;        /* Enabled by default? */
+} cipher_properties;
+
+#define ciphernum 18
+
+/* cipher attributes  */
+#define SSL_kRSA  0x00000001L
+#define SSL_aRSA  0x00000002L
+#define SSL_aDSS  0x00000004L
+#define SSL_DSS   SSL_aDSS
+#define SSL_eNULL 0x00000008L
+#define SSL_DES   0x00000010L
+#define SSL_3DES  0x00000020L
+#define SSL_RC4   0x00000040L
+#define SSL_RC2   0x00000080L
+#define SSL_AES   0x00000100L
+#define SSL_MD5   0x00000200L
+#define SSL_SHA1  0x00000400L
+#define SSL_SHA   SSL_SHA1
+#define SSL_RSA   (SSL_kRSA|SSL_aRSA)
+
+/* cipher strength */
+#define SSL_NULL      0x00000001L
+#define SSL_EXPORT40  0x00000002L
+#define SSL_EXPORT56  0x00000004L
+#define SSL_LOW       0x00000008L
+#define SSL_MEDIUM    0x00000010L
+#define SSL_HIGH      0x00000020L
+
+#define SSL2  0x00000001L
+#define SSL3  0x00000002L
+/* OpenSSL treats SSL3 and TLSv1 the same */
+#define TLS1  SSL3
+
+/* Cipher translation */
+#define ciphernum 18
+static cipher_properties ciphers_def[ciphernum] = {
+	/* SSL 2 ciphers */
+	{"DES-CBC3-MD5", SSL_EN_DES_192_EDE3_CBC_WITH_MD5, SSL_kRSA|SSL_aRSA|SSL_3DES|SSL_MD5, SSL2, 168, 168, SSL_HIGH, SSL_ALLOWED},
+	{"RC2-CBC-MD5", SSL_EN_RC2_128_CBC_WITH_MD5, SSL_kRSA|SSL_aRSA|SSL_RC2|SSL_MD5, SSL2, 128, 128, SSL_MEDIUM, SSL_ALLOWED},
+	{"RC4-MD5", SSL_EN_RC4_128_WITH_MD5, SSL_kRSA|SSL_aRSA|SSL_RC4|SSL_MD5, SSL2, 128, 128, SSL_MEDIUM, SSL_ALLOWED},
+	{"DES-CBC-MD5", SSL_EN_DES_64_CBC_WITH_MD5, SSL_kRSA|SSL_aRSA|SSL_DES|SSL_MD5, SSL2, 56, 56, SSL_LOW, SSL_ALLOWED},
+	{"EXP-RC2-CBC-MD5", SSL_EN_RC2_128_CBC_EXPORT40_WITH_MD5, SSL_kRSA|SSL_aRSA|SSL_RC2|SSL_MD5, SSL2, 40, 128, SSL_EXPORT40, SSL_ALLOWED},
+	{"EXP-RC4-MD5", SSL_EN_RC4_128_EXPORT40_WITH_MD5, SSL_kRSA|SSL_aRSA|SSL_RC4|SSL_MD5, SSL2, 40, 128, SSL_EXPORT40, SSL_ALLOWED},
+
+	/* SSL3 ciphers */
+	{"RC4-MD5", SSL_RSA_WITH_RC4_128_MD5, SSL_kRSA|SSL_aRSA|SSL_RC4|SSL_MD5, SSL3, 128, 128, SSL_MEDIUM, SSL_ALLOWED},
+	{"RC4-SHA", SSL_RSA_WITH_RC4_128_SHA, SSL_kRSA|SSL_aRSA|SSL_RC4|SSL_SHA1, SSL3, 128, 128, SSL_MEDIUM, SSL_NOT_ALLOWED},
+	{"DES-CBC3-SHA", SSL_RSA_WITH_3DES_EDE_CBC_SHA, SSL_kRSA|SSL_aRSA|SSL_3DES|SSL_SHA1, SSL3, 168, 168, SSL_HIGH, SSL_ALLOWED},
+	{"DES-CBC-SHA", SSL_RSA_WITH_DES_CBC_SHA, SSL_kRSA|SSL_aRSA|SSL_DES|SSL_SHA1, SSL3, 56, 56, SSL_LOW, SSL_ALLOWED},
+	{"EXP-RC4-MD5", SSL_RSA_EXPORT_WITH_RC4_40_MD5, SSL_kRSA|SSL_aRSA|SSL_RC4|SSL_MD5, SSL3, 40, 128, SSL_EXPORT40, SSL_ALLOWED},
+	{"EXP-RC2-CBC-MD5", SSL_RSA_EXPORT_WITH_RC2_CBC_40_MD5, SSL_kRSA|SSL_aRSA|SSL_RC2|SSL_MD5, SSL3, 0, 0, SSL_EXPORT40, SSL_ALLOWED},
+	{"NULL-MD5", SSL_RSA_WITH_NULL_MD5, SSL_kRSA|SSL_aRSA|SSL_eNULL|SSL_MD5, SSL3, 0, 0, SSL_NULL, SSL_NOT_ALLOWED},
+	{"NULL-SHA", SSL_RSA_WITH_NULL_SHA, SSL_kRSA|SSL_aRSA|SSL_eNULL|SSL_SHA1, SSL3, 0, 0, SSL_NULL, SSL_NOT_ALLOWED},
+
+	/* TLSv1 ciphers */
+	{"EXP1024-DES-CBC-SHA", TLS_RSA_EXPORT1024_WITH_DES_CBC_SHA, SSL_kRSA|SSL_aRSA|SSL_DES|SSL_SHA, TLS1, 56, 56, SSL_EXPORT56, SSL_ALLOWED},
+	{"EXP1024-RC4-SHA", TLS_RSA_EXPORT1024_WITH_RC4_56_SHA, SSL_kRSA|SSL_aRSA|SSL_RC4|SSL_SHA, TLS1, 56, 56, SSL_EXPORT56, SSL_ALLOWED},
+	{"AES128-SHA", TLS_RSA_WITH_AES_128_CBC_SHA, SSL_kRSA|SSL_aRSA|SSL_AES|SSL_SHA, TLS1, 128, 128, SSL_HIGH, SSL_NOT_ALLOWED},
+	{"AES256-SHA", TLS_RSA_WITH_AES_256_CBC_SHA, SSL_kRSA|SSL_aRSA|SSL_AES|SSL_SHA, TLS1, 256, 256, SSL_HIGH, SSL_NOT_ALLOWED},
+};
+
+/* given err which is the current errno, calls PR_SetError with
+   the corresponding NSPR error code */
+static void 
+tlsm_map_error(int err)
+{
+	PRErrorCode prError;
+
+	switch ( err ) {
+	case EACCES:
+		prError = PR_NO_ACCESS_RIGHTS_ERROR;
+		break;
+	case EADDRINUSE:
+		prError = PR_ADDRESS_IN_USE_ERROR;
+		break;
+	case EADDRNOTAVAIL:
+		prError = PR_ADDRESS_NOT_AVAILABLE_ERROR;
+		break;
+	case EAFNOSUPPORT:
+		prError = PR_ADDRESS_NOT_SUPPORTED_ERROR;
+		break;
+	case EAGAIN:
+		prError = PR_WOULD_BLOCK_ERROR;
+		break;
+	/*
+	 * On QNX and Neutrino, EALREADY is defined as EBUSY.
+	 */
+#if EALREADY != EBUSY
+	case EALREADY:
+		prError = PR_ALREADY_INITIATED_ERROR;
+		break;
+#endif
+	case EBADF:
+		prError = PR_BAD_DESCRIPTOR_ERROR;
+		break;
+#ifdef EBADMSG
+	case EBADMSG:
+		prError = PR_IO_ERROR;
+		break;
+#endif
+	case EBUSY:
+		prError = PR_FILESYSTEM_MOUNTED_ERROR;
+		break;
+	case ECONNABORTED:
+		prError = PR_CONNECT_ABORTED_ERROR;
+		break;
+	case ECONNREFUSED:
+		prError = PR_CONNECT_REFUSED_ERROR;
+		break;
+	case ECONNRESET:
+		prError = PR_CONNECT_RESET_ERROR;
+		break;
+	case EDEADLK:
+		prError = PR_DEADLOCK_ERROR;
+		break;
+#ifdef EDIRCORRUPTED
+	case EDIRCORRUPTED:
+		prError = PR_DIRECTORY_CORRUPTED_ERROR;
+		break;
+#endif
+#ifdef EDQUOT
+	case EDQUOT:
+		prError = PR_NO_DEVICE_SPACE_ERROR;
+		break;
+#endif
+	case EEXIST:
+		prError = PR_FILE_EXISTS_ERROR;
+		break;
+	case EFAULT:
+		prError = PR_ACCESS_FAULT_ERROR;
+		break;
+	case EFBIG:
+		prError = PR_FILE_TOO_BIG_ERROR;
+		break;
+	case EHOSTUNREACH:
+		prError = PR_HOST_UNREACHABLE_ERROR;
+		break;
+	case EINPROGRESS:
+		prError = PR_IN_PROGRESS_ERROR;
+		break;
+	case EINTR:
+		prError = PR_PENDING_INTERRUPT_ERROR;
+		break;
+	case EINVAL:
+		prError = PR_INVALID_ARGUMENT_ERROR;
+		break;
+	case EIO:
+		prError = PR_IO_ERROR;
+		break;
+	case EISCONN:
+		prError = PR_IS_CONNECTED_ERROR;
+		break;
+	case EISDIR:
+		prError = PR_IS_DIRECTORY_ERROR;
+		break;
+	case ELOOP:
+		prError = PR_LOOP_ERROR;
+		break;
+	case EMFILE:
+		prError = PR_PROC_DESC_TABLE_FULL_ERROR;
+		break;
+	case EMLINK:
+		prError = PR_MAX_DIRECTORY_ENTRIES_ERROR;
+		break;
+	case EMSGSIZE:
+		prError = PR_INVALID_ARGUMENT_ERROR;
+		break;
+#ifdef EMULTIHOP
+	case EMULTIHOP:
+		prError = PR_REMOTE_FILE_ERROR;
+		break;
+#endif
+	case ENAMETOOLONG:
+		prError = PR_NAME_TOO_LONG_ERROR;
+		break;
+	case ENETUNREACH:
+		prError = PR_NETWORK_UNREACHABLE_ERROR;
+		break;
+	case ENFILE:
+		prError = PR_SYS_DESC_TABLE_FULL_ERROR;
+		break;
+	/*
+	 * On SCO OpenServer 5, ENOBUFS is defined as ENOSR.
+	 */
+#if defined(ENOBUFS) && (ENOBUFS != ENOSR)
+	case ENOBUFS:
+		prError = PR_INSUFFICIENT_RESOURCES_ERROR;
+		break;
+#endif
+	case ENODEV:
+		prError = PR_FILE_NOT_FOUND_ERROR;
+		break;
+	case ENOENT:
+		prError = PR_FILE_NOT_FOUND_ERROR;
+		break;
+	case ENOLCK:
+		prError = PR_FILE_IS_LOCKED_ERROR;
+		break;
+#ifdef ENOLINK 
+	case ENOLINK:
+		prError = PR_REMOTE_FILE_ERROR;
+		break;
+#endif
+	case ENOMEM:
+		prError = PR_OUT_OF_MEMORY_ERROR;
+		break;
+	case ENOPROTOOPT:
+		prError = PR_INVALID_ARGUMENT_ERROR;
+		break;
+	case ENOSPC:
+		prError = PR_NO_DEVICE_SPACE_ERROR;
+		break;
+#ifdef ENOSR
+	case ENOSR:
+		prError = PR_INSUFFICIENT_RESOURCES_ERROR;
+		break;
+#endif
+	case ENOTCONN:
+		prError = PR_NOT_CONNECTED_ERROR;
+		break;
+	case ENOTDIR:
+		prError = PR_NOT_DIRECTORY_ERROR;
+		break;
+	case ENOTSOCK:
+		prError = PR_NOT_SOCKET_ERROR;
+		break;
+	case ENXIO:
+		prError = PR_FILE_NOT_FOUND_ERROR;
+		break;
+	case EOPNOTSUPP:
+		prError = PR_NOT_TCP_SOCKET_ERROR;
+		break;
+#ifdef EOVERFLOW
+	case EOVERFLOW:
+		prError = PR_BUFFER_OVERFLOW_ERROR;
+		break;
+#endif
+	case EPERM:
+		prError = PR_NO_ACCESS_RIGHTS_ERROR;
+		break;
+	case EPIPE:
+		prError = PR_CONNECT_RESET_ERROR;
+		break;
+#ifdef EPROTO
+	case EPROTO:
+		prError = PR_IO_ERROR;
+		break;
+#endif
+	case EPROTONOSUPPORT:
+		prError = PR_PROTOCOL_NOT_SUPPORTED_ERROR;
+		break;
+	case EPROTOTYPE:
+		prError = PR_ADDRESS_NOT_SUPPORTED_ERROR;
+		break;
+	case ERANGE:
+		prError = PR_INVALID_METHOD_ERROR;
+		break;
+	case EROFS:
+		prError = PR_READ_ONLY_FILESYSTEM_ERROR;
+		break;
+	case ESPIPE:
+		prError = PR_INVALID_METHOD_ERROR;
+		break;
+	case ETIMEDOUT:
+		prError = PR_IO_TIMEOUT_ERROR;
+		break;
+#if EWOULDBLOCK != EAGAIN
+	case EWOULDBLOCK:
+		prError = PR_WOULD_BLOCK_ERROR;
+		break;
+#endif
+	case EXDEV:
+		prError = PR_NOT_SAME_DEVICE_ERROR;
+		break;
+	default:
+		prError = PR_UNKNOWN_ERROR;
+		break;
+	}
+	PR_SetError( prError, err );
+}
+
+/*
+ * cipher_list is an integer array with the following values:
+ *   -1: never enable this cipher
+ *    0: cipher disabled
+ *    1: cipher enabled
+ */
+static int
+nss_parse_ciphers(const char *cipherstr, int cipher_list[ciphernum])
+{
+	int i;
+	char *cipher;
+	char *ciphers;
+	char *ciphertip;
+	int action;
+	int rv;
+
+	/* All disabled to start */
+	for (i=0; i<ciphernum; i++)
+		cipher_list[i] = 0;
+
+	ciphertip = strdup(cipherstr);
+	cipher = ciphers = ciphertip;
+
+	while (ciphers && (strlen(ciphers))) {
+		while ((*cipher) && (isspace(*cipher)))
+			++cipher;
+
+		action = 1;
+		switch(*cipher) {
+		case '+': /* Add something */
+			action = 1;
+			cipher++;
+			break;
+		case '-': /* Subtract something */
+			action = 0;
+			cipher++;
+			break;
+		case '!':  /* Disable something */
+			action = -1;
+			cipher++;
+			break;
+		default:
+			/* do nothing */
+			break;
+		}
+
+		if ((ciphers = strchr(cipher, ':'))) {
+			*ciphers++ = '\0';
+		}
+
+		/* Do the easy one first */
+		if (!strcmp(cipher, "ALL")) {
+			for (i=0; i<ciphernum; i++) {
+				if (!(ciphers_def[i].attr & SSL_eNULL))
+					cipher_list[i] = action;
+			}
+		} else if (!strcmp(cipher, "COMPLEMENTOFALL")) {
+			for (i=0; i<ciphernum; i++) {
+				if ((ciphers_def[i].attr & SSL_eNULL))
+					cipher_list[i] = action;
+			}
+		} else if (!strcmp(cipher, "DEFAULT")) {
+			for (i=0; i<ciphernum; i++) {
+				cipher_list[i] = ciphers_def[i].enabled == SSL_ALLOWED ? 1 : 0;
+			}
+		} else {
+			int mask = 0;
+			int strength = 0;
+			int protocol = 0;
+			char *c;
+
+			c = cipher;
+			while (c && (strlen(c))) {
+
+				if ((c = strchr(cipher, '+'))) {
+					*c++ = '\0';
+				}
+
+				if (!strcmp(cipher, "RSA")) {
+					mask |= SSL_RSA;
+				} else if ((!strcmp(cipher, "NULL")) || (!strcmp(cipher, "eNULL"))) {
+					mask |= SSL_eNULL;
+				} else if (!strcmp(cipher, "AES")) {
+					mask |= SSL_AES;
+				} else if (!strcmp(cipher, "3DES")) {
+					mask |= SSL_3DES;
+				} else if (!strcmp(cipher, "DES")) {
+					mask |= SSL_DES;
+				} else if (!strcmp(cipher, "RC4")) {
+					mask |= SSL_RC4;
+				} else if (!strcmp(cipher, "RC2")) {
+					mask |= SSL_RC2;
+				} else if (!strcmp(cipher, "MD5")) {
+					mask |= SSL_MD5;
+				} else if ((!strcmp(cipher, "SHA")) || (!strcmp(cipher, "SHA1"))) {
+					mask |= SSL_SHA1;
+				} else if (!strcmp(cipher, "SSLv2")) {
+					protocol |= SSL2;
+				} else if (!strcmp(cipher, "SSLv3")) {
+					protocol |= SSL3;
+				} else if (!strcmp(cipher, "TLSv1")) {
+					protocol |= TLS1;
+				} else if (!strcmp(cipher, "HIGH")) {
+					strength |= SSL_HIGH;
+				} else if (!strcmp(cipher, "MEDIUM")) {
+					strength |= SSL_MEDIUM;
+				} else if (!strcmp(cipher, "LOW")) {
+					strength |= SSL_LOW;
+				} else if ((!strcmp(cipher, "EXPORT")) || (!strcmp(cipher, "EXP"))) {
+					strength |= SSL_EXPORT40|SSL_EXPORT56;
+				} else if (!strcmp(cipher, "EXPORT40")) {
+					strength |= SSL_EXPORT40;
+				} else if (!strcmp(cipher, "EXPORT56")) {
+					strength |= SSL_EXPORT56;
+				}
+
+				if (c)
+					cipher = c;
+
+			} /* while */
+
+			/* If we have a mask, apply it. If not then perhaps they provided
+			 * a specific cipher to enable.
+			 */
+			if (mask || strength || protocol) {
+				for (i=0; i<ciphernum; i++) {
+					if (((ciphers_def[i].attr & mask) ||
+						 (ciphers_def[i].strength & strength) ||
+						 (ciphers_def[i].version & protocol)) &&
+						(cipher_list[i] != -1)) {
+						/* Enable the NULL ciphers only if explicity
+						 * requested */
+						if (ciphers_def[i].attr & SSL_eNULL) {
+							if (mask & SSL_eNULL)
+								cipher_list[i] = action;
+						} else
+							cipher_list[i] = action;
+					}
+				}
+			} else {
+				for (i=0; i<ciphernum; i++) {
+					if (!strcmp(ciphers_def[i].ossl_name, cipher) &&
+						cipher_list[1] != -1)
+						cipher_list[i] = action;
+				}
+			}
+		}
+
+		if (ciphers)
+			cipher = ciphers;
+	}
+
+	/* See if any ciphers were enabled */
+	rv = 0;
+	for (i=0; i<ciphernum; i++) {
+		if (cipher_list[i] == 1)
+			rv = 1;
+	}
+
+	free(ciphertip);
+
+	return rv;
+}
+
+static int
+tlsm_parse_ciphers(tlsm_ctx *ctx, const char *str)
+{
+	int cipher_state[ciphernum];
+	int rv, i;
+
+	if (!ctx)
+		return 0;
+
+	rv = nss_parse_ciphers(str, cipher_state);
+
+	if (rv) {
+		/* First disable everything */
+		for (i = 0; i < SSL_NumImplementedCiphers; i++)
+			SSL_CipherPrefSet(ctx->tc_model, SSL_ImplementedCiphers[i], SSL_NOT_ALLOWED);
+
+		/* Now enable what was requested */
+		for (i=0; i<ciphernum; i++) {
+			SSLCipherSuiteInfo suite;
+			PRBool enabled;
+
+			if (SSL_GetCipherSuiteInfo(ciphers_def[i].num, &suite, sizeof suite)
+				== SECSuccess) {
+				enabled = cipher_state[i] < 0 ? 0 : cipher_state[i];
+				if (enabled == SSL_ALLOWED) {
+					if (PK11_IsFIPS() && !suite.isFIPS)    
+						enabled = SSL_NOT_ALLOWED;
+				}
+				SSL_CipherPrefSet(ctx->tc_model, ciphers_def[i].num, enabled);
+			}
+		}
+	}
+
+	return rv == 1 ? 0 : -1;
+}
+
+static SECStatus
+tlsm_bad_cert_handler(void *arg, PRFileDesc *ssl)
+{
+	SECStatus success = SECSuccess;
+	PRErrorCode err;
+	tlsm_ctx *ctx = (tlsm_ctx *)arg;
+
+	if (!ssl || !ctx) {
+		return SECFailure;
+	}
+
+	err = PORT_GetError();
+
+	switch (err) {
+	case SEC_ERROR_UNTRUSTED_ISSUER:
+	case SEC_ERROR_UNKNOWN_ISSUER:
+	case SEC_ERROR_EXPIRED_CERTIFICATE:
+		if (ctx->tc_verify_cert) {
+			success = SECFailure;
+		}
+		break;
+	default:
+		success = SECFailure;
+		break;
+	}
+
+	return success;
+}
+
+static const char *
+tlsm_dump_security_status(PRFileDesc *fd)
+{
+	char * cp;	/* bulk cipher name */
+	char * ip;	/* cert issuer DN */
+	char * sp;	/* cert subject DN */
+	int    op;	/* High, Low, Off */
+	int    kp0;	/* total key bits */
+	int    kp1;	/* secret key bits */
+	SSL3Statistics * ssl3stats = SSL_GetStatistics();
+
+	SSL_SecurityStatus( fd, &op, &cp, &kp0, &kp1, &ip, &sp );
+	Debug( LDAP_DEBUG_TRACE,
+		   "TLS certificate verification: subject: %s, issuer: %s, cipher: %s, ",
+		   sp ? sp : "-unknown-", ip ? ip : "-unknown-", cp ? cp : "-unknown-" );
+	PR_Free(cp);
+	PR_Free(ip);
+	PR_Free(sp);
+	Debug( LDAP_DEBUG_TRACE,
+		   "security level: %s, secret key bits: %d, total key bits: %d, ",
+		   ((op == SSL_SECURITY_STATUS_ON_HIGH) ? "high" :
+			((op == SSL_SECURITY_STATUS_ON_LOW) ? "low" : "off")),
+		   kp1, kp0 );
+
+	Debug( LDAP_DEBUG_TRACE,
+		   "cache hits: %ld, cache misses: %ld, cache not reusable: %ld\n",
+		   ssl3stats->hch_sid_cache_hits, ssl3stats->hch_sid_cache_misses,
+		   ssl3stats->hch_sid_cache_not_ok );
+
+	return "";
+}
+
+static SECStatus
+tlsm_auth_cert_handler(void *arg, PRFileDesc *fd,
+                       PRBool checksig, PRBool isServer)
+{
+	SECStatus ret = SSL_AuthCertificate(arg, fd, checksig, isServer);
+
+	Debug( LDAP_DEBUG_TRACE,
+		   "TLS certificate verification: %s: %s,",
+		   ret == SECSuccess ? "ok" : "bad",
+		   tlsm_dump_security_status( fd ), 0 );
+
+	if ( ret != SECSuccess ) {
+		PRErrorCode errcode = PORT_GetError();
+		Debug( LDAP_DEBUG_ANY,
+			   "TLS certificate verification: Error, %d: %s\n",
+			   errcode, PR_ErrorToString( errcode, PR_LANGUAGE_I_DEFAULT ), 0 ) ;
+	}
+
+	return ret;
+}
+
+static char *
+tlsm_dirname(const char *pathname)
+{
+	char *ret = NULL;
+	char *p = NULL;
+	char sep = PR_GetDirectorySeparator();
+
+	if (pathname && (p = PL_strrchr(pathname, sep)) && (p > pathname)) {
+		ret = PL_strndup(pathname, (p - pathname));
+	}
+
+	return ret;
+}
+
+/*
+ * This is the part of the init we defer until we get the
+ * actual security configuration information.  This is
+ * only called once, protected by a PRCallOnce
+ * NOTE: This must be done before the first call to SSL_ImportFD,
+ * especially the setting of the policy
+ * NOTE: This must be called after fork()
+ */
+static int
+tlsm_deferred_init( void *arg )
+{
+	tlsm_ctx *ctx = (tlsm_ctx *)arg;
+	struct ldaptls *lt = ctx->tc_config;
+	char *securitydir = NULL;
+	int needfree = 0;
+	char *val;
+	PRErrorCode errcode;
+
+	/* NSS support for multi-init is coming */
+#ifndef NSS_MULTI_INIT
+	if ( !NSS_IsInitialized() ) {
+#endif /* NSS_MULTI_INIT */
+		/*
+		  MOZNSS_DIR will override everything else - you can
+		  always set MOZNSS_DIR to force the use of this
+		  directory
+		  DEFAULT_MOZNSS_DIR will only be used if the code cannot
+		  find a security dir to use based on the current
+		  settings
+		*/
+		if ( (val = PR_GetEnv( "MOZNSS_DIR" ) ) && (*val) ) {
+			securitydir = PL_strdup( val );
+			needfree = 1;
+		} else if ( lt->lt_cacertdir ) {
+			securitydir = lt->lt_cacertdir;
+		} else if ( lt->lt_cacertfile ) {
+			securitydir = tlsm_dirname( lt->lt_cacertfile );
+			needfree = 1;
+		} else if ( lt->lt_certfile ) {
+			securitydir = tlsm_dirname( lt->lt_certfile );
+			needfree = 1;
+		} else if ( lt->lt_keyfile ) {
+			securitydir = tlsm_dirname( lt->lt_keyfile );
+			needfree = 1;
+		} else if ( (val = PR_GetEnv( "DEFAULT_MOZNSS_DIR" ) ) && (*val) ) {
+			securitydir = PL_strdup( val );
+			needfree = 1;
+		} else {
+			securitydir = "/etc/pki/nssdb";
+		}
+
+		if ( NSS_Initialize( securitydir, "", "", SECMOD_DB, NSS_INIT_READONLY ) ) {
+			errcode = PORT_GetError();
+			Debug( LDAP_DEBUG_ANY,
+				   "TLS: could not initialize moznss using security dir %s - error %d:%s.\n",
+				   securitydir, errcode, PR_ErrorToString( errcode, PR_LANGUAGE_I_DEFAULT ) );
+			if ( needfree ) {
+				PL_strfree( securitydir );
+			}
+			return -1;
+		}
+
+		if ( needfree ) {
+			PL_strfree( securitydir );
+		}
+
+		NSS_SetDomesticPolicy();
+		tlsm_did_init = 1; /* we did the init - we should also clean up */
+#ifndef NSS_MULTI_INIT
+	}
+#endif /* NSS_MULTI_INIT */
 
 	return 0;
+}
+
+#ifdef READ_PASSWORD_FROM_FILE
+static char *
+tlsm_get_pin_from_file(const char *token_name, tlsm_ctx *ctx)
+{
+	char *pwdstr = NULL;
+	char *contents = NULL;
+	char *lasts = NULL;
+	char *line = NULL;
+	char *candidate = NULL;
+	PRFileInfo file_info;
+	PRFileDesc *pwd_fileptr = PR_Open( ctx->tc_pin_file, PR_RDONLY, 00400 );
+
+	/* open the password file */
+	if ( !pwd_fileptr ) {
+		PRErrorCode errcode = PR_GetError();
+		Debug( LDAP_DEBUG_ANY,
+		       "TLS: could not open security pin file %s - error %d:%s.\n",
+		       ctx->tc_pin_file, errcode,
+		       PR_ErrorToString( errcode, PR_LANGUAGE_I_DEFAULT ) );
+		goto done;
+	}
+
+	/* get the file size */
+	if ( PR_SUCCESS != PR_GetFileInfo( ctx->tc_pin_file, &file_info ) ) {
+		PRErrorCode errcode = PR_GetError();
+		Debug( LDAP_DEBUG_ANY,
+		       "TLS: could not get file info from pin file %s - error %d:%s.\n",
+		       ctx->tc_pin_file, errcode,
+		       PR_ErrorToString( errcode, PR_LANGUAGE_I_DEFAULT ) );
+		goto done;
+	}
+
+	/* create a buffer to hold the file contents */
+	if ( !( contents = PR_MALLOC( file_info.size + 1 ) ) ) {
+		PRErrorCode errcode = PR_GetError();
+		Debug( LDAP_DEBUG_ANY,
+		       "TLS: could not alloc a buffer for contents of pin file %s - error %d:%s.\n",
+		       ctx->tc_pin_file, errcode,
+		       PR_ErrorToString( errcode, PR_LANGUAGE_I_DEFAULT ) );
+		goto done;
+	}
+
+	/* read file into the buffer */
+	if( PR_Read( pwd_fileptr, contents, file_info.size ) <= 0 ) {
+		PRErrorCode errcode = PR_GetError();
+		Debug( LDAP_DEBUG_ANY,
+		       "TLS: could not read the file contents from pin file %s - error %d:%s.\n",
+		       ctx->tc_pin_file, errcode,
+		       PR_ErrorToString( errcode, PR_LANGUAGE_I_DEFAULT ) );
+		goto done;
+	}
+
+	/* format is [tokenname:]password EOL [tokenname:]password EOL ... */
+	/* if you want to use a password containing a colon character, use
+	   the special tokenname "default" */
+	for ( line = PL_strtok_r( contents, "\r\n", &lasts ); line;
+	      line = PL_strtok_r( NULL, "\r\n", &lasts ) ) {
+		char *colon;
+
+		if ( !*line ) {
+			continue; /* skip blank lines */
+		}
+		colon = PL_strchr( line, ':' );
+		if ( colon ) {
+			if ( *(colon + 1) && token_name &&
+			     !PL_strncmp( token_name, line, colon-line ) ) {
+				candidate = colon + 1; /* found a definite match */
+				break;
+			} else if ( !PL_strncmp( DEFAULT_TOKEN_NAME, line, colon-line ) ) {
+				candidate = colon + 1; /* found possible match */
+			}
+		} else { /* no token name */
+			candidate = line;
+		}
+	}
+done:
+	if ( pwd_fileptr ) {
+		PR_Close( pwd_fileptr );
+	}
+	if ( candidate ) {
+		pwdstr = PL_strdup( candidate );
+	}
+	PL_strfree( contents );
+
+	return pwdstr;
+}
+#endif /* READ_PASSWORD_FROM_FILE */
+
+#ifdef READ_PASSWORD_FROM_STDIN
+/*
+ * Turn the echoing off on a tty.
+ */
+static void
+echoOff(int fd)
+{
+	if ( isatty( fd ) ) {
+		struct termios tio;
+		tcgetattr( fd, &tio );
+		tio.c_lflag &= ~ECHO;
+		tcsetattr( fd, TCSAFLUSH, &tio );
+	}
+}
+
+/*
+ * Turn the echoing on on a tty.
+ */
+static void
+echoOn(int fd)
+{
+	if ( isatty( fd ) ) {
+		struct termios tio;
+		tcgetattr( fd, &tio );
+		tio.c_lflag |= ECHO;
+		tcsetattr( fd, TCSAFLUSH, &tio );
+		tcsetattr( fd, TCSAFLUSH, &tio );
+	}
+}
+#endif /* READ_PASSWORD_FROM_STDIN */
+
+/*
+ * This does the actual work of reading the pin/password/pass phrase
+ */
+static char *
+tlsm_get_pin(PK11SlotInfo *slot, PRBool retry, tlsm_ctx *ctx)
+{
+	char *token_name = NULL;
+	char *pwdstr = NULL;
+
+	token_name = PK11_GetTokenName( slot );
+#ifdef READ_PASSWORD_FROM_FILE
+	/* Try to get the passwords from the password file if it exists.
+	 * THIS IS UNSAFE and is provided for convenience only. Without this
+	 * capability the server would have to be started in foreground mode
+	 * if using an encrypted key.
+	 */
+	if ( ctx->tc_pin_file ) {
+		pwdstr = tlsm_get_pin_from_file( token_name, ctx );
+	}
+#endif /* RETRIEVE_PASSWORD_FROM_FILE */
+#ifdef READ_PASSWORD_FROM_STDIN
+	if ( !pwdstr ) {
+		int infd = PR_FileDesc2NativeHandle( PR_STDIN );
+		int isTTY = isatty( infd );
+		unsigned char phrase[200];
+		/* Prompt for password */
+		if ( isTTY ) {
+			fprintf( stdout,
+				 "Please enter pin, password, or pass phrase for security token '%s': ",
+				 token_name ? token_name : DEFAULT_TOKEN_NAME );
+			echoOff( infd );
+		}
+		fgets( (char*)phrase, sizeof(phrase), stdin );
+		if ( isTTY ) {
+			fprintf( stdout, "\n" );
+			echoOn( infd );
+		}
+		/* stomp on newline */
+		phrase[strlen((char*)phrase)-1] = 0;
+
+		pwdstr = PL_strdup( (char*)phrase );
+	}
+
+#endif /* READ_PASSWORD_FROM_STDIN */
+	return pwdstr;
+}
+
+/*
+ * PKCS11 devices (including the internal softokn cert/key database)
+ * may be protected by a pin or password or even pass phrase
+ * MozNSS needs a way for the user to provide that
+ */
+static char *
+tlsm_pin_prompt(PK11SlotInfo *slot, PRBool retry, void *arg)
+{
+	tlsm_ctx *ctx = (tlsm_ctx *)arg;
+
+	return tlsm_get_pin( slot, retry, ctx );
+}
+
+static int
+tlsm_authenticate( tlsm_ctx *ctx, const char *certname, const char *pininfo )
+{
+	const char *colon = NULL;
+	char *token_name = NULL;
+	PK11SlotInfo *slot = NULL;
+	int rc = -1;
+
+	if ( !certname || !*certname ) {
+		return 0;
+	}
+
+	PK11_SetPasswordFunc( tlsm_pin_prompt );
+
+	if ( ( colon = PL_strchr( certname, ':' ) ) ) {
+		token_name = PL_strndup( certname, colon-certname );
+	}
+
+	if ( token_name ) {
+		slot = PK11_FindSlotByName( token_name );
+	} else {
+		slot = PK11_GetInternalKeySlot();
+	}
+
+	if ( !slot ) {
+		PRErrorCode errcode = PR_GetError();
+		Debug( LDAP_DEBUG_ANY,
+			   "TLS: could not find the slot for security token %s - error %d:%s.\n",
+			   token_name ? token_name : DEFAULT_TOKEN_NAME, errcode,
+			   PR_ErrorToString( errcode, PR_LANGUAGE_I_DEFAULT ) );
+		goto done;
+	}
+
+	if ( pininfo ) {
+		PL_strfree( ctx->tc_pin_file );
+		ctx->tc_pin_file = PL_strdup( pininfo );
+	}
+
+	if ( PK11_NeedLogin( slot ) &&
+		 ( SECSuccess != PK11_Authenticate( slot, PR_FALSE, ctx ) ) ) {
+		PRErrorCode errcode = PR_GetError();
+		Debug( LDAP_DEBUG_ANY,
+			   "TLS: could not authenticate to the security token %s - error %d:%s.\n",
+			   token_name ? token_name : DEFAULT_TOKEN_NAME, errcode,
+			   PR_ErrorToString( errcode, PR_LANGUAGE_I_DEFAULT ) );
+		goto done;
+	} else {
+		rc = 0; /* success */
+	}
+
+done:
+	PL_strfree( token_name );
+	if ( slot ) {
+		PK11_FreeSlot( slot );
+	}
+
+	return rc;
+}
+
+/*
+ * Find and verify the certificate.
+ * Either fd is given, in which case the cert will be taken from it via SSL_PeerCertificate
+ * or certname is given, and it will be searched for by name
+ */
+static int
+tlsm_find_and_verify_cert_key(tlsm_ctx *ctx, PRFileDesc *fd, const char *certname, int isServer, CERTCertificate **pRetCert, SECKEYPrivateKey **pRetKey)
+{
+	CERTCertificate *cert = NULL;
+	int rc = -1;
+	void *pin_arg = NULL;
+	SECKEYPrivateKey *key = NULL;
+
+	pin_arg = SSL_RevealPinArg( fd );
+	if ( certname ) {
+		cert = PK11_FindCertFromNickname( certname, pin_arg );
+		if ( !cert ) {
+			PRErrorCode errcode = PR_GetError();
+			Debug( LDAP_DEBUG_ANY,
+				   "TLS: error: the certificate %s could not be found in the database - error %d:%s\n",
+				   certname, errcode, PR_ErrorToString( errcode, PR_LANGUAGE_I_DEFAULT ) );
+			return -1;
+		}
+	} else {
+		/* we are verifying the peer cert
+		   we also need to swap the isServer meaning */
+		cert = SSL_PeerCertificate( fd );
+		if ( !cert ) {
+			PRErrorCode errcode = PR_GetError();
+			Debug( LDAP_DEBUG_ANY,
+				   "TLS: error: could not get the certificate from the peer connection - error %d:%s\n",
+				   errcode, PR_ErrorToString( errcode, PR_LANGUAGE_I_DEFAULT ), NULL );
+			return -1;
+		}
+		isServer = !isServer; /* verify the peer's cert instead */
+	}
+
+	key = PK11_FindKeyByAnyCert( cert, pin_arg );
+	if (key) {
+		SECCertificateUsage certUsage;
+		PRBool checkSig = PR_TRUE;
+		SECStatus status;
+
+		if ( pRetKey ) {
+			*pRetKey = key; /* caller will deal with this */
+		} else {
+			SECKEY_DestroyPrivateKey( key );
+		}
+		if ( isServer ) {
+			certUsage = certificateUsageSSLServer;
+		} else {
+			certUsage = certificateUsageSSLClient;
+		}
+		if ( ctx->tc_verify_cert ) {
+			checkSig = PR_TRUE;
+		} else {
+			checkSig = PR_FALSE;
+		}
+		status = CERT_VerifyCertificateNow( ctx->tc_certdb, cert,
+											checkSig, certUsage,
+											pin_arg, NULL );
+		if (status != SECSuccess) {
+			PRErrorCode errcode = PR_GetError();
+			Debug( LDAP_DEBUG_ANY,
+				   "TLS: error: the certificate %s is not valid - error %d:%s\n",
+				   certname, errcode, PR_ErrorToString( errcode, PR_LANGUAGE_I_DEFAULT ) );
+		} else {
+			rc = 0; /* success */
+		}
+	} else {
+		PRErrorCode errcode = PR_GetError();
+		Debug( LDAP_DEBUG_ANY,
+			   "TLS: error: could not find the private key for certificate %s - error %d:%s\n",
+			   certname, errcode, PR_ErrorToString( errcode, PR_LANGUAGE_I_DEFAULT ) );
+	}
+
+	if ( pRetCert ) {
+		*pRetCert = cert; /* caller will deal with this */
+	} else {
+		CERT_DestroyCertificate( cert );
+	}
+
+    return rc;
+}
+
+static int
+tlsm_get_client_auth_data( void *arg, PRFileDesc *fd,
+						   CERTDistNames *caNames, CERTCertificate **pRetCert,
+						   SECKEYPrivateKey **pRetKey )
+{
+	tlsm_ctx *ctx = (tlsm_ctx *)arg;
+	int rc;
+
+	/* don't need caNames - this function will call CERT_VerifyCertificateNow
+	   which will verify the cert against the known CAs */
+	rc = tlsm_find_and_verify_cert_key( ctx, fd, ctx->tc_certname, 0, pRetCert, pRetKey );
+	if ( rc ) {
+		Debug( LDAP_DEBUG_ANY,
+			   "TLS: error: unable to perform client certificate authentication for "
+			   "certificate named %s\n", ctx->tc_certname, 0, 0 );
+		return SECFailure;
+	}
+
+	return SECSuccess;
+}
+
+/*
+ * ctx must have a tc_model that is valid
+ * certname is in the form [<tokenname>:]<certnickname>
+ * where <tokenname> is the name of the PKCS11 token
+ * and <certnickname> is the nickname of the cert/key in
+ * the database
+*/
+static int
+tlsm_clientauth_init( tlsm_ctx *ctx, const char *certname )
+{
+	SECStatus status = SECFailure;
+	int rc;
+
+	PL_strfree( ctx->tc_certname );
+	rc = tlsm_find_and_verify_cert_key( ctx, ctx->tc_model, certname, 0, NULL, NULL );
+	if ( rc ) {
+		Debug( LDAP_DEBUG_ANY,
+			   "TLS: error: unable to set up client certificate authentication for "
+			   "certificate named %s\n", certname, 0, 0 );
+		return -1;
+	}
+
+	ctx->tc_certname = PL_strdup( certname );
+
+	status = SSL_GetClientAuthDataHook( ctx->tc_model,
+										tlsm_get_client_auth_data,
+										(void *)ctx );
+
+	return ( status == SECSuccess ? 0 : -1 );
 }
 
 /*
@@ -105,6 +1174,8 @@ tlsm_destroy( void )
 	if ( tlsm_did_init ) {
 		tlsm_did_init = 0;
 
+		SSL_ShutdownServerSessionIDCache();
+		SSL_ClearSessionCache();
 		NSS_Shutdown();
 	}
 
@@ -118,23 +1189,20 @@ tlsm_ctx_new ( struct ldapoptions *lo )
 
 	ctx = LDAP_MALLOC( sizeof (*ctx) );
 	if ( ctx ) {
-		PRFileDesc *fd = PR_CreateIOLayerStub(tlsm_layer_id, &tlsm_PR_methods);
-		if ( fd ) {
-			ctx->tc_model = SSL_ImportFD( NULL, fd );
-			if ( ctx->tc_model ) {
-				ctx->tc_refcnt = 1;
+		ctx->tc_refcnt = 1;
 #ifdef LDAP_R_COMPILE
-				ldap_pvt_thread_mutex_init( &ctx->tc_refmutex );
+		ldap_pvt_thread_mutex_init( &ctx->tc_refmutex );
 #endif
-			} else {
-				PR_DELETE( fd );
-				LDAP_FREE( ctx );
-				ctx = NULL;
-			}
-		} else {
-			LDAP_FREE( ctx );
-			ctx = NULL;
-		}
+		ctx->tc_config = &lo->ldo_tls_info; /* pointer into lo structure - must have global scope and must not go away before we can do real init */
+		ctx->tc_certdb = NULL;
+		ctx->tc_certname = NULL;
+		ctx->tc_pin_file = NULL;
+		ctx->tc_model = NULL;
+		memset(&ctx->tc_callonce, 0, sizeof(ctx->tc_callonce));
+		ctx->tc_require_cert = lo->ldo_tls_require_cert;
+	} else {
+		LDAP_FREE( ctx );
+		ctx = NULL;
 	}
 	return (tls_ctx *)ctx;
 }
@@ -170,6 +1238,11 @@ tlsm_ctx_free ( tls_ctx *ctx )
 	if ( refcount )
 		return;
 	PR_Close( c->tc_model );
+	c->tc_certdb = NULL; /* if not the default, may have to clean up */
+	PL_strfree( c->tc_certname );
+	c->tc_certname = NULL;
+	PL_strfree( c->tc_pin_file );
+	c->tc_pin_file = NULL;
 #ifdef LDAP_R_COMPILE
 	ldap_pvt_thread_mutex_destroy( &c->tc_refmutex );
 #endif
@@ -182,71 +1255,289 @@ tlsm_ctx_free ( tls_ctx *ctx )
 static int
 tlsm_ctx_init( struct ldapoptions *lo, struct ldaptls *lt, int is_server )
 {
-	tlsm_ctx *ctx = lo->ldo_tls_ctx;
-	int rc;
+	tlsm_ctx *ctx = (tlsm_ctx *)lo->ldo_tls_ctx;
+	ctx->tc_is_server = is_server;
 
-	SSL_OptionSet( ctx->tc_model, SSL_SECURITY, PR_TRUE );
-	SSL_OptionSet( ctx->tc_model, SSL_HANDSHAKE_AS_CLIENT, !is_server );
-	SSL_OptionSet( ctx->tc_model, SSL_HANDSHAKE_AS_SERVER, is_server );
+	return 0;
+}
 
-	/* See SECMOD_OpenUserDB() */
-#if 0
- 	if ( lo->ldo_tls_ciphersuite &&
-		tlsm_parse_ciphers( ctx, lt->lt_ciphersuite )) {
+static int
+tlsm_deferred_ctx_init( void *arg )
+{
+	tlsm_ctx *ctx = (tlsm_ctx *)arg;
+	PRBool sslv2 = PR_FALSE;
+	PRBool sslv3 = PR_TRUE;
+	PRBool tlsv1 = PR_TRUE;
+	PRBool request_cert = PR_FALSE;
+	PRInt32 require_cert = PR_FALSE;
+	PRFileDesc *fd;
+	struct ldaptls *lt;
+
+	if ( tlsm_deferred_init( ctx ) ) {
+	    Debug( LDAP_DEBUG_ANY,
+			   "TLS: could perform TLS system initialization.\n",
+			   0, 0, 0 );
+	    return -1;
+	}
+
+	ctx->tc_certdb = CERT_GetDefaultCertDB(); /* replace with multi-init db call */
+
+	fd = PR_CreateIOLayerStub( tlsm_layer_id, &tlsm_PR_methods );
+	if ( fd ) {
+		ctx->tc_model = SSL_ImportFD( NULL, fd );
+	}
+
+	if ( !ctx->tc_model ) {
+		PRErrorCode err = PR_GetError();
+		Debug( LDAP_DEBUG_ANY,
+			   "TLS: could perform TLS socket I/O layer initialization - error %d:%s.\n",
+			   err, PR_ErrorToString( err, PR_LANGUAGE_I_DEFAULT ), NULL );
+
+		if ( fd ) {
+			PR_Close( fd );
+		}
+		return -1;
+	}
+
+	if ( SECSuccess != SSL_OptionSet( ctx->tc_model, SSL_SECURITY, PR_TRUE ) ) {
+		Debug( LDAP_DEBUG_ANY,
+		       "TLS: could not set secure mode on.\n",
+		       0, 0, 0 );
+		return -1;
+	}
+
+	lt = ctx->tc_config;
+
+	/* default is sslv3 and tlsv1 */
+	if ( lt->lt_protocol_min ) {
+		if ( lt->lt_protocol_min > LDAP_OPT_X_TLS_PROTOCOL_SSL3 ) {
+			sslv3 = PR_FALSE;
+		} else if ( lt->lt_protocol_min <= LDAP_OPT_X_TLS_PROTOCOL_SSL2 ) {
+			sslv2 = PR_TRUE;
+			Debug( LDAP_DEBUG_ANY,
+			       "TLS: warning: minimum TLS protocol level set to "
+			       "include SSLv2 - SSLv2 is insecure - do not use\n", 0, 0, 0 );
+		}
+	}
+	if ( SECSuccess != SSL_OptionSet( ctx->tc_model, SSL_ENABLE_SSL2, sslv2 ) ) {
  		Debug( LDAP_DEBUG_ANY,
- 			   "TLS: could not set cipher list %s.\n",
- 			   lo->ldo_tls_ciphersuite, 0, 0 );
+		       "TLS: could not set SSLv2 mode on.\n",
+		       0, 0, 0 );
+		return -1;
+	}
+	if ( SECSuccess != SSL_OptionSet( ctx->tc_model, SSL_ENABLE_SSL3, sslv3 ) ) {
+ 		Debug( LDAP_DEBUG_ANY,
+		       "TLS: could not set SSLv3 mode on.\n",
+		       0, 0, 0 );
+		return -1;
+	}
+	if ( SECSuccess != SSL_OptionSet( ctx->tc_model, SSL_ENABLE_TLS, tlsv1 ) ) {
+ 		Debug( LDAP_DEBUG_ANY,
+		       "TLS: could not set TLSv1 mode on.\n",
+		       0, 0, 0 );
+		return -1;
+	}
+
+	if ( SECSuccess != SSL_OptionSet( ctx->tc_model, SSL_HANDSHAKE_AS_CLIENT, !ctx->tc_is_server ) ) {
+ 		Debug( LDAP_DEBUG_ANY,
+		       "TLS: could not set handshake as client.\n",
+		       0, 0, 0 );
+		return -1;
+	}
+	if ( SECSuccess != SSL_OptionSet( ctx->tc_model, SSL_HANDSHAKE_AS_SERVER, ctx->tc_is_server ) ) {
+ 		Debug( LDAP_DEBUG_ANY,
+		       "TLS: could not set handshake as server.\n",
+		       0, 0, 0 );
+		return -1;
+	}
+
+ 	if ( lt->lt_ciphersuite &&
+	     tlsm_parse_ciphers( ctx, lt->lt_ciphersuite )) {
+ 		Debug( LDAP_DEBUG_ANY,
+		       "TLS: could not set cipher list %s.\n",
+		       lt->lt_ciphersuite, 0, 0 );
 		return -1;
  	}
 
-	if (lo->ldo_tls_cacertdir != NULL) {
-		Debug( LDAP_DEBUG_ANY, 
-		       "TLS: warning: cacertdir not implemented for gnutls\n",
-		       NULL, NULL, NULL );
+	if ( ctx->tc_require_cert ) {
+		request_cert = PR_TRUE;
+		require_cert = SSL_REQUIRE_NO_ERROR;
+		if ( ctx->tc_require_cert == LDAP_OPT_X_TLS_DEMAND ||
+		     ctx->tc_require_cert == LDAP_OPT_X_TLS_HARD ) {
+			require_cert = SSL_REQUIRE_ALWAYS;
+		}
+		ctx->tc_verify_cert = PR_TRUE;
+	} else {
+		ctx->tc_verify_cert = PR_FALSE;
 	}
 
-	if (lo->ldo_tls_cacertfile != NULL) {
-		rc = gnutls_certificate_set_x509_trust_file( 
-			ctx->cred,
-			lt->lt_cacertfile,
-			GNUTLS_X509_FMT_PEM );
-		if ( rc < 0 ) return -1;
+	if ( SECSuccess != SSL_OptionSet( ctx->tc_model, SSL_REQUEST_CERTIFICATE, request_cert ) ) {
+ 		Debug( LDAP_DEBUG_ANY,
+		       "TLS: could not set request certificate mode.\n",
+		       0, 0, 0 );
+		return -1;
 	}
-
-	if ( lo->ldo_tls_certfile && lo->ldo_tls_keyfile ) {
-		rc = gnutls_certificate_set_x509_key_file( 
-			ctx->cred,
-			lt->lt_certfile,
-			lt->lt_keyfile,
-			GNUTLS_X509_FMT_PEM );
-		if ( rc ) return -1;
-	} else if ( lo->ldo_tls_certfile || lo->ldo_tls_keyfile ) {
-		Debug( LDAP_DEBUG_ANY, 
-		       "TLS: only one of certfile and keyfile specified\n",
-		       NULL, NULL, NULL );
+		
+	if ( SECSuccess != SSL_OptionSet( ctx->tc_model, SSL_REQUIRE_CERTIFICATE, require_cert ) ) {
+ 		Debug( LDAP_DEBUG_ANY,
+		       "TLS: could not set require certificate mode.\n",
+		       0, 0, 0 );
 		return -1;
 	}
 
-	if ( lo->ldo_tls_dhfile ) {
-		Debug( LDAP_DEBUG_ANY, 
-		       "TLS: warning: ignoring dhfile\n", 
-		       NULL, NULL, NULL );
+	/* Set up callbacks for use by clients */
+	if ( !ctx->tc_is_server ) {
+		if ( SSL_OptionSet( ctx->tc_model, SSL_NO_CACHE, PR_TRUE ) != SECSuccess ) {
+			PRErrorCode err = PR_GetError();
+			Debug( LDAP_DEBUG_ANY, 
+			       "TLS: error: could not set nocache option for moznss - error %d:%s\n",
+			       err, PR_ErrorToString( err, PR_LANGUAGE_I_DEFAULT ), NULL );
+			return -1;
+		}
+
+		if ( SSL_BadCertHook( ctx->tc_model, tlsm_bad_cert_handler, ctx ) != SECSuccess ) {
+			PRErrorCode err = PR_GetError();
+			Debug( LDAP_DEBUG_ANY, 
+			       "TLS: error: could not set bad cert handler for moznss - error %d:%s\n",
+			       err, PR_ErrorToString( err, PR_LANGUAGE_I_DEFAULT ), NULL );
+			return -1;
+		}
+
+		/* we don't currently support import of cert/key pair - assume the certfile
+		   is really the name of a cert/key in the database in the form of
+		   tokenname:certname - also assume since this is specified, the caller
+		   wants to attempt client cert auth */
+		if ( lt->lt_certfile ) {
+			if ( tlsm_authenticate( ctx, lt->lt_certfile, lt->lt_keyfile ) ) {
+				Debug( LDAP_DEBUG_ANY, 
+				       "TLS: error: unable to authenticate to the security device for certificate %s\n",
+				       lt->lt_certfile, 0, 0 );
+				return -1;
+			}
+			if ( tlsm_clientauth_init( ctx, lt->lt_certfile ) ) {
+				Debug( LDAP_DEBUG_ANY, 
+				       "TLS: error: unable to set up client certificate authentication using %s\n",
+				       lt->lt_certfile, 0, 0 );
+				return -1;
+			}
+		}
+	} else { /* set up secure server */
+		SSLKEAType certKEA;
+		CERTCertificate *serverCert;
+		SECKEYPrivateKey *serverKey;
+		SECStatus status;
+
+		/* must have a certificate for the server to use */
+		if ( !lt->lt_certfile ) {
+			Debug( LDAP_DEBUG_ANY, 
+			       "TLS: error: no server certificate: must specify a certificate for the server to use\n",
+			       0, 0, 0 );
+			return -1;
+		}
+
+		/* authenticate to the server's token - this will do nothing
+		   if the key/cert db is not password protected */
+		if ( tlsm_authenticate( ctx, lt->lt_certfile, lt->lt_keyfile ) ) {
+			Debug( LDAP_DEBUG_ANY, 
+			       "TLS: error: unable to authenticate to the security device for certificate %s\n",
+			       lt->lt_certfile, 0, 0 );
+			return -1;
+		}
+
+		/* get the server's key and cert */
+		if ( tlsm_find_and_verify_cert_key( ctx, ctx->tc_model, lt->lt_certfile, ctx->tc_is_server,
+						    &serverCert, &serverKey ) ) {
+			Debug( LDAP_DEBUG_ANY, 
+			       "TLS: error: unable to find and verify server's cert and key for certificate %s\n",
+			       lt->lt_certfile, 0, 0 );
+			return -1;
+		}
+
+		certKEA = NSS_FindCertKEAType( serverCert );
+		/* configure the socket to be a secure server socket */
+		status = SSL_ConfigSecureServer( ctx->tc_model, serverCert, serverKey, certKEA );
+		/* SSL_ConfigSecureServer copies these */
+		CERT_DestroyCertificate( serverCert );
+		SECKEY_DestroyPrivateKey( serverKey );
+
+		if ( SECSuccess != status ) {
+			PRErrorCode err = PR_GetError();
+			Debug( LDAP_DEBUG_ANY, 
+			       "TLS: error: unable to configure secure server using certificate %s - error %d:%s\n",
+			       lt->lt_certfile, err, PR_ErrorToString( err, PR_LANGUAGE_I_DEFAULT ) );
+			return -1;
+		}
 	}
 
-	if ( lo->ldo_tls_crlfile ) {
-		rc = gnutls_certificate_set_x509_crl_file( 
-			ctx->cred,
-			lt->lt_crlfile,
-			GNUTLS_X509_FMT_PEM );
-		if ( rc < 0 ) return -1;
-		rc = 0;
+	/* Callback for authenticating certificate */
+	if ( SSL_AuthCertificateHook( ctx->tc_model, tlsm_auth_cert_handler,
+                                  ctx->tc_certdb ) != SECSuccess ) {
+		PRErrorCode err = PR_GetError();
+		Debug( LDAP_DEBUG_ANY, 
+		       "TLS: error: could not set auth cert handler for moznss - error %d:%s\n",
+		       err, PR_ErrorToString( err, PR_LANGUAGE_I_DEFAULT ), NULL );
+		return -1;
 	}
-	if ( is_server ) {
-		gnutls_dh_params_init(&ctx->dh_params);
-		gnutls_dh_params_generate2(ctx->dh_params, DH_BITS);
-	}
-#endif
+
 	return 0;
+}
+
+struct tls_data {
+	tlsm_session		*session;
+	Sockbuf_IO_Desc		*sbiod;
+	/* there seems to be no portable way to determine if the
+	   sockbuf sd has been set to nonblocking mode - the
+	   call to ber_pvt_socket_set_nonblock() takes place
+	   before the tls socket is set up, so we cannot
+	   intercept that call either.
+	   On systems where fcntl is available, we can just
+	   F_GETFL and test for O_NONBLOCK.  On other systems,
+	   we will just see if the IO op returns EAGAIN or EWOULDBLOCK,
+	   and just set this flag */
+	PRBool              nonblock;
+};
+
+static int
+tlsm_is_io_ready( PRFileDesc *fd, PRInt16 in_flags, PRInt16 *out_flags )
+{
+	struct tls_data		*p;
+	PRFileDesc *pollfd = NULL;
+	PRFileDesc *myfd;
+	PRPollDesc polldesc;
+	int rc;
+
+	myfd = PR_GetIdentitiesLayer( fd, tlsm_layer_id );
+
+	if ( !myfd ) {
+		return 0;
+	}
+
+	p = (struct tls_data *)myfd->secret;
+
+	if ( p == NULL || p->sbiod == NULL ) {
+		return 0;
+	}
+
+	/* wrap the sockbuf fd with a NSPR FD created especially
+	   for use with polling, and only with polling */
+	pollfd = PR_CreateSocketPollFd( p->sbiod->sbiod_sb->sb_fd );
+	polldesc.fd = pollfd;
+	polldesc.in_flags = in_flags;
+	polldesc.out_flags = 0;
+
+	/* do the poll - no waiting, no blocking */
+	rc = PR_Poll( &polldesc, 1, PR_INTERVAL_NO_WAIT );
+
+	/* unwrap the socket */
+	PR_DestroySocketPollFd( pollfd );
+
+	/* rc will be either 1 if IO is ready, 0 if IO is not
+	   ready, or -1 if there was some error (and the caller
+	   should use PR_GetError() to figure out what */
+	if (out_flags) {
+		*out_flags = polldesc.out_flags;
+	}
+	return rc;
 }
 
 static tls_session *
@@ -255,8 +1546,19 @@ tlsm_session_new ( tls_ctx * ctx, int is_server )
 	tlsm_ctx *c = (tlsm_ctx *)ctx;
 	tlsm_session *session;
 	PRFileDesc *fd;
+	PRStatus status;
 
-	fd = PR_CreateIOLayerStub(tlsm_layer_id, &tlsm_PR_methods);
+	c->tc_is_server = is_server;
+	status = PR_CallOnceWithArg( &c->tc_callonce, tlsm_deferred_ctx_init, c );
+	if ( PR_SUCCESS != status ) {
+		PRErrorCode err = PR_GetError();
+		Debug( LDAP_DEBUG_ANY, 
+		       "TLS: error: could not initialize moznss security context - error %d:%s\n",
+		       err, PR_ErrorToString(err, PR_LANGUAGE_I_DEFAULT), NULL );
+		return NULL;
+	}
+
+	fd = PR_CreateIOLayerStub( tlsm_layer_id, &tlsm_PR_methods );
 	if ( !fd ) {
 		return NULL;
 	}
@@ -267,7 +1569,10 @@ tlsm_session_new ( tls_ctx * ctx, int is_server )
 		return NULL;
 	}
 
-	SSL_ResetHandshake( session, is_server );
+	if ( is_server ) {
+		/* 0 means use the defaults here */
+		SSL_ConfigServerSessionIDCache( 0, 0, 0, NULL );
+	}
 
 	return (tls_session *)session;
 } 
@@ -276,8 +1581,79 @@ static int
 tlsm_session_accept( tls_session *session )
 {
 	tlsm_session *s = (tlsm_session *)session;
+	int rc;
+	PRErrorCode err;
+	int waitcounter = 0;
 
-	return SSL_ForceHandshake( s );
+	rc = SSL_ResetHandshake( s, PR_TRUE /* server */ );
+	if (rc) {
+		err = PR_GetError();
+		Debug( LDAP_DEBUG_TRACE, 
+			   "TLS: error: accept - reset handshake failure %d - error %d:%s\n",
+			   rc, err,
+			   err ? PR_ErrorToString( err, PR_LANGUAGE_I_DEFAULT ) : "unknown" );
+	}
+
+	do {
+		PRInt32 filesReady;
+		PRInt16 in_flags;
+		PRInt16 out_flags;
+
+		errno = 0;
+		rc = SSL_ForceHandshake( s );
+		if (rc == SECSuccess) {
+			rc = 0;
+			break; /* done */
+		}
+		err = PR_GetError();
+		Debug( LDAP_DEBUG_TRACE, 
+			   "TLS: error: accept - force handshake failure %d - error %d waitcounter %d\n",
+			   errno, err, waitcounter );
+		if ( errno == EAGAIN || errno == EWOULDBLOCK ) {
+			waitcounter++;
+			in_flags = PR_POLL_READ | PR_POLL_EXCEPT;
+			out_flags = 0;
+			errno = 0;
+			filesReady = tlsm_is_io_ready( s, in_flags, &out_flags );
+			if ( filesReady < 0 ) {
+				err = PR_GetError();
+				Debug( LDAP_DEBUG_ANY, 
+					   "TLS: error: accept - error waiting for socket to be ready: %d - error %d:%s\n",
+					   errno, err,
+					   err ? PR_ErrorToString( err, PR_LANGUAGE_I_DEFAULT ) : "unknown" );
+				rc = -1;
+				break; /* hard error */
+			} else if ( out_flags & PR_POLL_NVAL ) {
+				PR_SetError(PR_BAD_DESCRIPTOR_ERROR, 0);
+				Debug( LDAP_DEBUG_ANY, 
+					   "TLS: error: accept failure - invalid socket\n",
+					   NULL, NULL, NULL );
+				rc = -1;
+				break;
+			} else if ( out_flags & PR_POLL_EXCEPT ) {
+				err = PR_GetError();
+				Debug( LDAP_DEBUG_ANY, 
+					   "TLS: error: accept - error waiting for socket to be ready: %d - error %d:%s\n",
+					   errno, err,
+					   err ? PR_ErrorToString( err, PR_LANGUAGE_I_DEFAULT ) : "unknown" );
+				rc = -1;
+				break; /* hard error */
+			}
+		} else { /* hard error */
+			err = PR_GetError();
+			Debug( LDAP_DEBUG_ANY, 
+				   "TLS: error: accept - force handshake failure: %d - error %d:%s\n",
+				   errno, err,
+				   err ? PR_ErrorToString( err, PR_LANGUAGE_I_DEFAULT ) : "unknown" );
+			rc = -1;
+			break; /* hard error */
+		}
+	} while (rc == SECFailure);
+
+	Debug( LDAP_DEBUG_TRACE, 
+		   "TLS: accept completed after %d waits\n", waitcounter, NULL, NULL );
+
+	return rc;
 }
 
 static int
@@ -285,10 +1661,37 @@ tlsm_session_connect( LDAP *ld, tls_session *session )
 {
 	tlsm_session *s = (tlsm_session *)session;
 	int rc;
+	PRErrorCode err;
 
 	/* By default, NSS checks the cert hostname for us */
+	rc = SSL_ResetHandshake( s, PR_FALSE /* server */ );
+	if (rc) {
+		err = PR_GetError();
+		Debug( LDAP_DEBUG_TRACE, 
+			   "TLS: error: connect - reset handshake failure %d - error %d:%s\n",
+			   rc, err,
+			   err ? PR_ErrorToString( err, PR_LANGUAGE_I_DEFAULT ) : "unknown" );
+	}
+
 	rc = SSL_SetURL( s, ld->ld_options.ldo_defludp->lud_host );
-	return SSL_ForceHandshake( s );
+	if (rc) {
+		err = PR_GetError();
+		Debug( LDAP_DEBUG_TRACE, 
+			   "TLS: error: connect - seturl failure %d - error %d:%s\n",
+			   rc, err,
+			   err ? PR_ErrorToString( err, PR_LANGUAGE_I_DEFAULT ) : "unknown" );
+	}
+
+	rc = SSL_ForceHandshake( s );
+	if (rc) {
+		err = PR_GetError();
+		Debug( LDAP_DEBUG_TRACE, 
+			   "TLS: error: connect - force handshake failure %d - error %d:%s\n",
+			   rc, err,
+			   err ? PR_ErrorToString( err, PR_LANGUAGE_I_DEFAULT ) : "unknown" );
+	}
+
+	return rc;
 }
 
 static int
@@ -351,172 +1754,11 @@ tlsm_session_peer_dn( tls_session *session, struct berval *der_dn )
 	return 0;
 }
 
-/* what kind of hostname were we given? */
-#define	IS_DNS	0
-#define	IS_IP4	1
-#define	IS_IP6	2
-
 static int
 tlsm_session_chkhost( LDAP *ld, tls_session *session, const char *name_in )
 {
 /* NSS already does a hostname check */
-#if 0
-	int i, ret;
-	const gnutls_datum_t *peer_cert_list;
-	int list_size;
-	struct berval bv;
-	char altname[NI_MAXHOST];
-	size_t altnamesize;
-
-	gnutls_x509_crt_t cert;
-	gnutls_datum_t *x;
-	const char *name;
-	char *ptr;
-	char *domain = NULL;
-#ifdef LDAP_PF_INET6
-	struct in6_addr addr;
-#else
-	struct in_addr addr;
-#endif
-	int n, len1 = 0, len2 = 0;
-	int ntype = IS_DNS;
-	time_t now = time(0);
-
-	if( ldap_int_hostname &&
-		( !name_in || !strcasecmp( name_in, "localhost" ) ) )
-	{
-		name = ldap_int_hostname;
-	} else {
-		name = name_in;
-	}
-
-	peer_cert_list = gnutls_certificate_get_peers( session->session, 
-						&list_size );
-	if ( !peer_cert_list ) {
-		Debug( LDAP_DEBUG_ANY,
-			"TLS: unable to get peer certificate.\n",
-			0, 0, 0 );
-		/* If this was a fatal condition, things would have
-		 * aborted long before now.
-		 */
-		return LDAP_SUCCESS;
-	}
-	ret = gnutls_x509_crt_init( &cert );
-	if ( ret < 0 )
-		return LDAP_LOCAL_ERROR;
-	ret = gnutls_x509_crt_import( cert, peer_cert_list, GNUTLS_X509_FMT_DER );
-	if ( ret ) {
-		gnutls_x509_crt_deinit( cert );
-		return LDAP_LOCAL_ERROR;
-	}
-
-#ifdef LDAP_PF_INET6
-	if (name[0] == '[' && strchr(name, ']')) {
-		char *n2 = ldap_strdup(name+1);
-		*strchr(n2, ']') = 0;
-		if (inet_pton(AF_INET6, n2, &addr))
-			ntype = IS_IP6;
-		LDAP_FREE(n2);
-	} else 
-#endif
-	if ((ptr = strrchr(name, '.')) && isdigit((unsigned char)ptr[1])) {
-		if (inet_aton(name, (struct in_addr *)&addr)) ntype = IS_IP4;
-	}
-	
-	if (ntype == IS_DNS) {
-		len1 = strlen(name);
-		domain = strchr(name, '.');
-		if (domain) {
-			len2 = len1 - (domain-name);
-		}
-	}
-
-	for ( i=0, ret=0; ret >= 0; i++ ) {
-		altnamesize = sizeof(altname);
-		ret = gnutls_x509_crt_get_subject_alt_name( cert, i, 
-			altname, &altnamesize, NULL );
-		if ( ret < 0 ) break;
-
-		/* ignore empty */
-		if ( altnamesize == 0 ) continue;
-
-		if ( ret == GNUTLS_SAN_DNSNAME ) {
-			if (ntype != IS_DNS) continue;
-	
-			/* Is this an exact match? */
-			if ((len1 == altnamesize) && !strncasecmp(name, altname, len1)) {
-				break;
-			}
-
-			/* Is this a wildcard match? */
-			if (domain && (altname[0] == '*') && (altname[1] == '.') &&
-				(len2 == altnamesize-1) && !strncasecmp(domain, &altname[1], len2))
-			{
-				break;
-			}
-		} else if ( ret == GNUTLS_SAN_IPADDRESS ) {
-			if (ntype == IS_DNS) continue;
-
-#ifdef LDAP_PF_INET6
-			if (ntype == IS_IP6 && altnamesize != sizeof(struct in6_addr)) {
-				continue;
-			} else
-#endif
-			if (ntype == IS_IP4 && altnamesize != sizeof(struct in_addr)) {
-				continue;
-			}
-			if (!memcmp(altname, &addr, altnamesize)) {
-				break;
-			}
-		}
-	}
-	if ( ret >= 0 ) {
-		ret = LDAP_SUCCESS;
-	} else {
-		altnamesize = sizeof(altname);
-		ret = gnutls_x509_crt_get_dn_by_oid( cert, CN_OID,
-			0, 0, altname, &altnamesize );
-		if ( ret < 0 ) {
-			Debug( LDAP_DEBUG_ANY,
-				"TLS: unable to get common name from peer certificate.\n",
-				0, 0, 0 );
-			ret = LDAP_CONNECT_ERROR;
-			if ( ld->ld_error ) {
-				LDAP_FREE( ld->ld_error );
-			}
-			ld->ld_error = LDAP_STRDUP(
-				_("TLS: unable to get CN from peer certificate"));
-
-		} else {
-			ret = LDAP_LOCAL_ERROR;
-			if ( len1 == altnamesize && strncasecmp(name, altname, altnamesize) == 0 ) {
-				ret = LDAP_SUCCESS;
-
-			} else if (( altname[0] == '*' ) && ( altname[1] == '.' )) {
-					/* Is this a wildcard match? */
-				if( domain &&
-					(len2 == altnamesize-1) && !strncasecmp(domain, &altname[1], len2)) {
-					ret = LDAP_SUCCESS;
-				}
-			}
-		}
-
-		if( ret == LDAP_LOCAL_ERROR ) {
-			altname[altnamesize] = '\0';
-			Debug( LDAP_DEBUG_ANY, "TLS: hostname (%s) does not match "
-				"common name in certificate (%s).\n", 
-				name, altname, 0 );
-			ret = LDAP_CONNECT_ERROR;
-			if ( ld->ld_error ) {
-				LDAP_FREE( ld->ld_error );
-			}
-			ld->ld_error = LDAP_STRDUP(
-				_("TLS: hostname does not match CN in peer certificate"));
-		}
-	}
-	gnutls_x509_crt_deinit( cert );
-	return ret;
-#endif
+	return LDAP_SUCCESS;
 }
 
 static int
@@ -534,16 +1776,41 @@ tlsm_session_strength( tls_session *session )
  * TLS support for LBER Sockbufs
  */
 
-struct tls_data {
-	tlsm_session		*session;
-	Sockbuf_IO_Desc		*sbiod;
-};
-
-
 static PRStatus PR_CALLBACK
 tlsm_PR_Close(PRFileDesc *fd)
 {
-	return PR_SUCCESS;
+	int rc = PR_SUCCESS;
+
+	/* we don't need to actually close anything here, just
+	   pop our io layer off the stack */
+	fd->secret = NULL; /* must have been freed before calling PR_Close */
+	if ( fd->lower ) {
+		fd = PR_PopIOLayer( fd, tlsm_layer_id );
+		/* if we are not the last layer, pass the close along */
+		if ( fd ) {
+			if ( fd->dtor ) {
+				fd->dtor( fd );
+			}
+			rc = fd->methods->close( fd );
+		}
+	} else {
+		/* we are the last layer - just call our dtor */
+		fd->dtor(fd);
+	}
+
+	return rc;
+}
+
+static PRStatus PR_CALLBACK
+tlsm_PR_Shutdown(PRFileDesc *fd, PRShutdownHow how)
+{
+	int rc = PR_SUCCESS;
+
+	if ( fd->lower ) {
+		rc = PR_Shutdown( fd->lower, how );
+	}
+
+	return rc;
 }
 
 static int PR_CALLBACK
@@ -551,6 +1818,7 @@ tlsm_PR_Recv(PRFileDesc *fd, void *buf, PRInt32 len, PRIntn flags,
 	 PRIntervalTime timeout)
 {
 	struct tls_data		*p;
+	int rc;
 
 	if ( buf == NULL || len <= 0 ) return 0;
 
@@ -560,7 +1828,19 @@ tlsm_PR_Recv(PRFileDesc *fd, void *buf, PRInt32 len, PRIntn flags,
 		return 0;
 	}
 
-	return LBER_SBIOD_READ_NEXT( p->sbiod, buf, len );
+	rc = LBER_SBIOD_READ_NEXT( p->sbiod, buf, len );
+	if (rc <= 0) {
+		tlsm_map_error( errno );
+		if ( errno == EAGAIN || errno == EWOULDBLOCK ) {
+			p->nonblock = PR_TRUE; /* fd is using non-blocking io */
+		} else if ( errno ) { /* real error */
+			Debug( LDAP_DEBUG_TRACE, 
+			       "TLS: error: tlsm_PR_Recv returned %d - error %d:%s\n",
+			       rc, errno, STRERROR(errno) );
+		}
+	}
+
+	return rc;
 }
 
 static int PR_CALLBACK
@@ -568,6 +1848,7 @@ tlsm_PR_Send(PRFileDesc *fd, const void *buf, PRInt32 len, PRIntn flags,
 	 PRIntervalTime timeout)
 {
 	struct tls_data		*p;
+	int rc;
 
 	if ( buf == NULL || len <= 0 ) return 0;
 
@@ -577,7 +1858,19 @@ tlsm_PR_Send(PRFileDesc *fd, const void *buf, PRInt32 len, PRIntn flags,
 		return 0;
 	}
 
-	return LBER_SBIOD_WRITE_NEXT( p->sbiod, (char *)buf, len );
+	rc = LBER_SBIOD_WRITE_NEXT( p->sbiod, (char *)buf, len );
+	if (rc <= 0) {
+		tlsm_map_error( errno );
+		if ( errno == EAGAIN || errno == EWOULDBLOCK ) {
+			p->nonblock = PR_TRUE;
+		} else if ( errno ) { /* real error */
+			Debug( LDAP_DEBUG_TRACE, 
+			       "TLS: error: tlsm_PR_Send returned %d - error %d:%s\n",
+			       rc, errno, STRERROR(errno) );
+		}
+	}
+
+	return rc;
 }
 
 static int PR_CALLBACK
@@ -606,6 +1899,31 @@ tlsm_PR_GetPeerName(PRFileDesc *fd, PRNetAddr *addr)
 	}
 	len = sizeof(PRNetAddr);
 	return getpeername( p->sbiod->sbiod_sb->sb_fd, (struct sockaddr *)addr, &len );
+}
+
+static PRStatus PR_CALLBACK
+tlsm_PR_GetSocketOption(PRFileDesc *fd, PRSocketOptionData *data)
+{
+	struct tls_data		*p;
+	p = (struct tls_data *)fd->secret;
+
+	if ( !data ) {
+		return PR_FAILURE;
+	}
+
+	/* only the nonblocking option is supported at this time
+	   MozNSS SSL code needs it */
+	if ( data->option != PR_SockOpt_Nonblocking ) {
+		PR_SetError(PR_NOT_IMPLEMENTED_ERROR, 0);
+		return PR_FAILURE;
+	}
+#ifdef HAVE_FCNTL
+	int flags = fcntl( p->sbiod->sbiod_sb->sb_fd, F_GETFL );
+	data->value.non_blocking = (flags & O_NONBLOCK) ? PR_TRUE : PR_FALSE;		
+#else /* punt :P */
+	data->value.non_blocking = p->nonblock;
+#endif
+	return PR_SUCCESS;
 }
 
 static PRStatus PR_CALLBACK
@@ -663,7 +1981,7 @@ static const PRIOMethods tlsm_PR_methods = {
     tlsm_PR_pfd_unimp,		/* accept       */
     tlsm_PR_prs_unimp,		/* bind         */
     tlsm_PR_prs_unimp,		/* listen       */
-    (PRShutdownFN)tlsm_PR_Close,			/* shutdown     */
+    (PRShutdownFN)tlsm_PR_Shutdown,			/* shutdown     */
     tlsm_PR_Recv,			/* recv         */
     tlsm_PR_Send,			/* send         */
     tlsm_PR_i32_unimp,		/* recvfrom     */
@@ -675,7 +1993,7 @@ static const PRIOMethods tlsm_PR_methods = {
     tlsm_PR_GetPeerName,	/* getpeername  */
     tlsm_PR_i32_unimp,		/* getsockopt   OBSOLETE */
     tlsm_PR_i32_unimp,		/* setsockopt   OBSOLETE */
-    tlsm_PR_i32_unimp,		/* getsocketoption   */
+    tlsm_PR_GetSocketOption,		/* getsocketoption   */
     tlsm_PR_i32_unimp,		/* setsocketoption   */
     tlsm_PR_i32_unimp,		/* Send a (partial) file with header/trailer*/
     (PRConnectcontinueFN)tlsm_PR_prs_unimp,		/* connectcontinue */
@@ -684,6 +2002,20 @@ static const PRIOMethods tlsm_PR_methods = {
     tlsm_PR_i32_unimp,		/* reserved for future use */
     tlsm_PR_i32_unimp		/* reserved for future use */
 };
+
+/*
+ * Initialize TLS subsystem. Should be called only once.
+ */
+static int
+tlsm_init( void )
+{
+	PR_Init(0, 0, 0);
+
+	tlsm_layer_id = PR_GetUniqueIdentity( "OpenLDAP" );
+
+	/* see deferred init */
+	return 0;
+}
 
 static int
 tlsm_sb_setup( Sockbuf_IO_Desc *sbiod, void *arg )
@@ -755,10 +2087,10 @@ tlsm_sb_ctrl( Sockbuf_IO_Desc *sbiod, int opt, void *arg )
 		return 1;
 		
 	} else if ( opt == LBER_SB_OPT_DATA_READY ) {
-        PRPollDesc pd = { p->session, PR_POLL_READ, 0 };
-        if( PR_Poll( &pd, 1, 1 ) > 0 ) {
-            return 1;
+		if ( tlsm_is_io_ready( p->session, PR_POLL_READ, NULL ) > 0 ) {
+			return 1;
 		}
+		
 	}
 	
 	return LBER_SBIOD_CTRL_NEXT( sbiod, opt, arg );
@@ -825,7 +2157,7 @@ static Sockbuf_IO tlsm_sbio =
 	tlsm_sb_close		/* sbi_close */
 };
 
-tls_impl ldap_int_moznss_impl = {
+tls_impl ldap_int_tls_impl = {
 	"MozNSS",
 
 	tlsm_init,
