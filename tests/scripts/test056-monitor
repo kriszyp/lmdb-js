@@ -61,11 +61,14 @@ if test $RC != 0 ; then
         exit $RC
 fi
 
+# Compare results, ignoring possible difference of IPv4/IPv6 localhost address
+localrewrite='s/=127\.0\.0\.1:/=LOCAL:/; s/=\[::1\]:/=LOCAL:/'
 echo "Filtering ldapsearch results..."
-. $LDIFFILTER < $SEARCHOUT > $SEARCHFLT
-
+sed -e "$localrewrite" < $SEARCHOUT   | . $LDIFFILTER > $SEARCHFLT
+echo "Filtering expected data..."
+sed -e "$localrewrite" < $MONITOROUT1 | . $LDIFFILTER > $LDIFFLT
 echo "Comparing filter output..."
-$CMP $SEARCHFLT $MONITOROUT1 > $CMPOUT
+$CMP $SEARCHFLT $LDIFFLT > $CMPOUT
 
 if test $? != 0 ; then
         echo "comparison failed - connection monitor output is not correct"
