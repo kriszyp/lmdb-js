@@ -657,7 +657,7 @@ static int chk_md5(
  * abstract away setting the parity.
  */
 static void
-des_set_key( des_key *key, unsigned char *keyData)
+des_set_key_and_parity( des_key *key, unsigned char *keyData)
 {
     memcpy(key, keyData, 8);
     des_set_odd_parity( key );
@@ -670,7 +670,7 @@ des_set_key( des_key *key, unsigned char *keyData)
  * implement MozNSS wrappers for the openSSL calls 
  */
 static void
-des_set_key( des_key *key, unsigned char *keyData)
+des_set_key_and_parity( des_key *key, unsigned char *keyData)
 {
     SECItem keyDataItem;
     PK11SlotInfo *slot;
@@ -825,7 +825,7 @@ static void lmPasswd_to_key(
 	k[6] = ((lpw[5] & 0x3F) << 2) | (lpw[6] >> 6);
 	k[7] = ((lpw[6] & 0x7F) << 1);
 		
-	des_set_key( key, k );
+	des_set_key_and_parity( key, k );
 }	
 
 static int chk_lanman(
