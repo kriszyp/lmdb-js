@@ -140,8 +140,6 @@ typedef struct {
 	int enabled;        /* Enabled by default? */
 } cipher_properties;
 
-#define ciphernum 18
-
 /* cipher attributes  */
 #define SSL_kRSA  0x00000001L
 #define SSL_aRSA  0x00000002L
@@ -172,8 +170,7 @@ typedef struct {
 #define TLS1  SSL3
 
 /* Cipher translation */
-#define ciphernum 18
-static cipher_properties ciphers_def[ciphernum] = {
+static cipher_properties ciphers_def[] = {
 	/* SSL 2 ciphers */
 	{"DES-CBC3-MD5", SSL_EN_DES_192_EDE3_CBC_WITH_MD5, SSL_kRSA|SSL_aRSA|SSL_3DES|SSL_MD5, SSL2, 168, 168, SSL_HIGH, SSL_ALLOWED},
 	{"RC2-CBC-MD5", SSL_EN_RC2_128_CBC_WITH_MD5, SSL_kRSA|SSL_aRSA|SSL_RC2|SSL_MD5, SSL2, 128, 128, SSL_MEDIUM, SSL_ALLOWED},
@@ -198,6 +195,8 @@ static cipher_properties ciphers_def[ciphernum] = {
 	{"AES128-SHA", TLS_RSA_WITH_AES_128_CBC_SHA, SSL_kRSA|SSL_aRSA|SSL_AES|SSL_SHA, TLS1, 128, 128, SSL_HIGH, SSL_NOT_ALLOWED},
 	{"AES256-SHA", TLS_RSA_WITH_AES_256_CBC_SHA, SSL_kRSA|SSL_aRSA|SSL_AES|SSL_SHA, TLS1, 256, 256, SSL_HIGH, SSL_NOT_ALLOWED},
 };
+
+#define ciphernum (sizeof(ciphers_def)/sizeof(cipher_properties))
 
 /* given err which is the current errno, calls PR_SetError with
    the corresponding NSPR error code */
