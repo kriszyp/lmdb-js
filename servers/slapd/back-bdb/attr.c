@@ -319,15 +319,20 @@ bdb_attr_index_config(
 		if( rc ) {
 			if ( bdb->bi_flags & BDB_IS_OPEN ) {
 				AttrInfo *b = bdb_attr_mask( bdb, ad );
-				/* If we were editing this attr, reset it */
-				b->ai_indexmask &= ~BDB_INDEX_DELETING;
-				/* If this is leftover from a previous add, commit it */
-				if ( b->ai_newmask )
-					b->ai_indexmask = b->ai_newmask;
-				b->ai_newmask = a->ai_newmask;
-				ch_free( a );
-				rc = 0;
-				continue;
+				/* If there is already an index defined for this attribute
+				 * it must be replaced. Otherwise we end up with multiple 
+				 * olcIndex values for the same attribute */
+				if ( b->ai_indexmask & BDB_INDEX_DELETING ) {
+					/* If we were editing this attr, reset it */
+					b->ai_indexmask &= ~BDB_INDEX_DELETING;
+					/* If this is leftover from a previous add, commit it */
+					if ( b->ai_newmask )
+						b->ai_indexmask = b->ai_newmask;
+					b->ai_newmask = a->ai_newmask;
+					ch_free( a );
+					rc = 0;
+					continue;
+				}
 			}
 			if (c_reply) {
 				snprintf(c_reply->msg, sizeof(c_reply->msg),
