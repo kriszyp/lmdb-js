@@ -242,8 +242,6 @@ OL_ARG_WITH(cyrus_sasl,[  --with-cyrus-sasl	  with Cyrus SASL support],
 	auto, [auto yes no] )
 OL_ARG_WITH(fetch,[  --with-fetch		  with fetch(3) URL support],
 	auto, [auto yes no] )
-OL_ARG_WITH(gssapi,[  --with-gssapi		  with GSSAPI support],
-	auto, [auto yes no] )
 OL_ARG_WITH(threads,[  --with-threads	  with threads],
 	auto, [auto nt posix mach pth lwp yes no manual] )
 OL_ARG_WITH(tls,[  --with-tls		  with TLS/SSL support auto|openssl|gnutls|moznss],
@@ -581,7 +579,6 @@ SLAPD_SQL_INCLUDES=
 KRB4_LIBS=
 KRB5_LIBS=
 SASL_LIBS=
-GSSAPI_LIBS=
 TLS_LIBS=
 MODULES_LIBS=
 SLAPI_LIBS=
@@ -1143,63 +1140,6 @@ if test $ol_enable_local != no ; then
 	elif test $ac_cv_header_sys_un_h = no ; then
 		AC_MSG_ERROR([AF_LOCAL domain support requires sys/un.h])
 	fi
-fi
-
-dnl ----------------------------------------------------------------
-dnl GSSAPI
-ol_link_gssapi=no
-
-case $ol_with_gssapi in yes | auto)
-
-	ol_header_gssapi=no
-	AC_CHECK_HEADERS(gssapi/gssapi.h)
-	if test $ac_cv_header_gssapi_gssapi_h = yes ; then
-		ol_header_gssapi=yes
-	else
-		AC_CHECK_HEADERS(gssapi.h)
-		if test $ac_cv_header_gssapi_h = yes ; then
-			ol_header_gssapi=yes
-		fi
-
-		dnl## not every gssapi has gss_oid_to_str()
-		dnl## as it's not defined in the GSSAPI V2 API
-		dnl## anymore
-		saveLIBS="$LIBS"
-		LIBS="$LIBS $GSSAPI_LIBS"
-		AC_CHECK_FUNCS(gss_oid_to_str)
-		LIBS="$saveLIBS"
-	fi
-
-	if test $ol_header_gssapi = yes ; then
-		dnl## we check for gss_wrap
-		dnl## as it's new to the GSSAPI V2 API
-		AC_CHECK_LIB(gssapi, gss_wrap,
-		             [ol_link_gssapi=yes;GSSAPI_LIBS="-lgssapi"],
-		             [ol_link_gssapi=no])
-		if test $ol_link_gssapi != yes ; then
-			AC_CHECK_LIB(gssapi_krb5, gss_wrap,
-			             [ol_link_gssapi=yes;GSSAPI_LIBS="-lgssapi_krb5"],
-			             [ol_link_gssapi=no])
-		fi
-		if test $ol_link_gssapi != yes ; then
-			AC_CHECK_LIB(gss, gss_wrap,
-			             [ol_link_gssapi=yes;GSSAPI_LIBS="-lgss"],
-			             [ol_link_gssapi=no])
-		fi
-	fi
-
-	;;
-esac
-
-WITH_GSSAPI=no
-if test $ol_link_gssapi = yes; then
-	AC_DEFINE(HAVE_GSSAPI, 1, [define if you have GSSAPI])
-	WITH_GSSAPI=yes
-elif test $ol_with_gssapi = auto ; then
-	AC_MSG_WARN([Could not locate GSSAPI package])
-	AC_MSG_WARN([GSSAPI authentication not supported!])
-elif test $ol_with_gssapi = yes ; then
-	AC_MSG_ERROR([GSSAPI detection failed])
 fi
 
 dnl ----------------------------------------------------------------
@@ -3170,7 +3110,6 @@ AC_SUBST(MOD_PERL_LDFLAGS)
 AC_SUBST(KRB4_LIBS)
 AC_SUBST(KRB5_LIBS)
 AC_SUBST(SASL_LIBS)
-AC_SUBST(GSSAPI_LIBS)
 AC_SUBST(TLS_LIBS)
 AC_SUBST(MODULES_LIBS)
 AC_SUBST(SLAPI_LIBS)
