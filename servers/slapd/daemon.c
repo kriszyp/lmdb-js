@@ -957,7 +957,7 @@ slapd_set_write( ber_socket_t s, int wake )
 		SLAP_SOCK_SET_WRITE( s );
 		slap_daemon.sd_nwriters++;
 	}
-	if (( wake & 2 ) && global_writetimeout ) {
+	if (( wake & 2 ) && global_writetimeout && !chk_writetime ) {
 		chk_writetime = slap_get_time();
 	}
 
@@ -2177,7 +2177,7 @@ slapd_daemon_task(
 			 */
 			if ( chk_writetime ) {
 				tv.tv_sec = global_writetimeout;
-				tv.tv_usec = global_writetimeout;
+				tv.tv_usec = 0;
 				if ( difftime( chk_writetime, now ) < 0 )
 					check = 2;
 			} else {
@@ -2245,7 +2245,7 @@ slapd_daemon_task(
 
 		nfds = SLAP_EVENT_MAX;
 
-		if ( global_idletimeout && slap_daemon.sd_nactives ) at = 1;
+		if (( chk_writetime || global_idletimeout ) && slap_daemon.sd_nactives ) at = 1;
 
 		ldap_pvt_thread_mutex_unlock( &slap_daemon.sd_mutex );
 
