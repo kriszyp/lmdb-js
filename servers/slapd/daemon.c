@@ -1478,7 +1478,7 @@ slap_open_listener(
 		 * create/unlink the socket; likely need exec perms to access
 		 * the socket (ITS#4709) */
 		{
-			mode_t old_umask;
+			mode_t old_umask = 0;
 
 			if ( (*sal)->sa_family == AF_LOCAL ) {
 				old_umask = umask( 0 );
@@ -1486,7 +1486,7 @@ slap_open_listener(
 #endif /* LDAP_PF_LOCAL */
 			rc = bind( s, *sal, addrlen );
 #ifdef LDAP_PF_LOCAL
-			if ( (*sal)->sa_family == AF_LOCAL ) {
+			if ( old_umask != 0 ) {
 				umask( old_umask );
 			}
 		}
