@@ -2062,9 +2062,9 @@ struct SlapReply {
 	BerVarray sr_ref;
 	LDAPControl **sr_ctrls;
 	union sr_u {
+		rep_search_s sru_search;
 		rep_sasl_s sru_sasl;
 		rep_extended_s sru_extended;
-		rep_search_s sru_search;
 	} sr_un;
 	slap_mask_t sr_flags;
 #define REP_ENTRY_MODIFIABLE	0x0001U
