@@ -616,6 +616,7 @@ send_ldap_disconnect( Operation	*op, SlapReply *rs )
 	assert( LDAP_UNSOLICITED_ERROR( rs->sr_err ) );
 
 	rs->sr_type = REP_EXTENDED;
+	rs->sr_rspdata = NULL;
 
 	Debug( LDAP_DEBUG_TRACE,
 		"send_ldap_disconnect %d:%s\n",
