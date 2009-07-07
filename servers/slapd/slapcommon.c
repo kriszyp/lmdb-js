@@ -233,6 +233,7 @@ slap_tool_init(
 	/* tools default to "none", so that at least LDAP_DEBUG_ANY 
 	 * messages show up; use -d 0 to reset */
 	slap_debug = LDAP_DEBUG_NONE;
+	ldif_debug = slap_debug;
 #endif
 	ldap_syslog = 0;
 
