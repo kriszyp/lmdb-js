@@ -17,6 +17,7 @@ OpenLDAP 2.4.17 Engineering
 	Fixed slapd cancel behavior (ITS#6137)
 	Fixed slapd cert validation (ITS#6098)
 	Fixed slapd connection_destroy assert (ITS#6089)
+	Fixed slapd csn normalization (ITS#6195)
 	Fixed slapd errno handling (ITS#6037)
 	Fixed slapd global alloc handling (ITS#6054)
 	Fixed slapd hung writers (ITS#5836)
