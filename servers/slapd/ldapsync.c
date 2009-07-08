@@ -176,7 +176,7 @@ slap_parse_sync_cookie(
 	char *csn_str;
 	char *cval;
 	char *next, *end;
-	AttributeDescription *ad = slap_schema.si_ad_entryCSN;
+	AttributeDescription *ad = slap_schema.si_ad_modifyTimestamp;
 
 	if ( cookie == NULL )
 		return -1;
@@ -230,11 +230,13 @@ slap_parse_sync_cookie(
 			continue;
 		}
 		if ( !strncmp( next, "csn=", STRLENOF("csn=") )) {
+			slap_syntax_validate_func *validate;
 			struct berval stamp;
 
 			next += STRLENOF("csn=");
 			while ( next < end ) {
 				csn_str = next;
+				/* FIXME use csnValidate when it gets implemented */
 				csn_ptr = strchr( csn_str, '#' );
 				if ( !csn_ptr || csn_ptr > end )
 					break;
@@ -242,6 +244,14 @@ slap_parse_sync_cookie(
 				 * want to parse the rid then. But we still iterate
 				 * through the string to find the end.
 				 */
+				if ( ad ) {
+					stamp.bv_val = csn_str;
+					stamp.bv_len = csn_ptr - csn_str;
+					validate = ad->ad_type->sat_syntax->ssyn_validate;
+					if ( validate( ad->ad_type->sat_syntax, &stamp )
+						!= LDAP_SUCCESS )
+						break;
+				}
 				cval = strchr( csn_ptr, ';' );
 				if ( !cval )
 					cval = strchr(csn_ptr, ',' );
@@ -251,16 +261,7 @@ slap_parse_sync_cookie(
 					stamp.bv_len = end - csn_str;
 				if ( ad ) {
 					struct berval bv;
-					stamp.bv_val = csn_str;
-					if ( ad->ad_type->sat_syntax->ssyn_validate(
-						ad->ad_type->sat_syntax, &stamp ) != LDAP_SUCCESS )
-						break;
-					if ( ad->ad_type->sat_equality->smr_normalize(
-						SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
-						ad->ad_type->sat_syntax,
-						ad->ad_type->sat_equality,
-						&stamp, &bv, memctx ) != LDAP_SUCCESS )
-						break;
+					ber_dupbv_x( &bv, &stamp, memctx );
 					ber_bvarray_add_x( &cookie->ctxcsn, &bv, memctx );
 					cookie->numcsns++;
 				}
