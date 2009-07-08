@@ -54,6 +54,7 @@ OpenLDAP 2.4.17 Engineering
 	Fixed slapo-rwm entry free (ITS#6058)
 	Fixed slapo-rwm entry release (ITS#6081)
 	Fixed slapo-translucent entry gathering (ITS#6156)
+	Fixed tools returning ldif errors (ITS#5892)
 	Fixed contrib/smbk5pwd use of private functions (ITS#5535)
 	Build Environment
 		Added test056-monitor (ITS#5540)

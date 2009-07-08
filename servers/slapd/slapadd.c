@@ -64,7 +64,7 @@ slapadd( int argc, char **argv )
 
 	int match;
 	int checkvals;
-	int lineno, nextline;
+	int lineno, nextline, ldifrc;
 	int lmax;
 	int rc = EXIT_SUCCESS;
 	int manage = 0;	
@@ -142,7 +142,7 @@ slapadd( int argc, char **argv )
 	}
 
 	/* nextline is the line number of the end of the current entry */
-	for( lineno=1; ldif_read_record( ldiffp, &nextline, &buf, &lmax );
+	for( lineno=1; ( ldifrc = ldif_read_record( ldiffp, &nextline, &buf, &lmax )) > 0;
 		lineno=nextline+1 )
 	{
 		BackendDB *bd;
@@ -402,6 +402,9 @@ slapadd( int argc, char **argv )
 
 		entry_free( e );
 	}
+
+	if ( ldifrc < 0 )
+		rc = EXIT_FAILURE;
 
 	bvtext.bv_len = textlen;
 	bvtext.bv_val = textbuf;

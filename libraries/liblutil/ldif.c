@@ -780,7 +780,8 @@ ldif_close(
 #define	LDIF_MAXLINE	4096
 
 /*
- * ldif_read_record - read an ldif record.  Return 1 for success, 0 for EOF.
+ * ldif_read_record - read an ldif record.  Return 1 for success, 0 for EOF,
+ * -1 for error.
  */
 int
 ldif_read_record(
@@ -882,7 +883,7 @@ ldif_read_record(
 							 */
 							ber_pvt_log_printf( LDAP_DEBUG_ANY, ldif_debug,
 								_("ldif_read_record: include %s failed\n"), ptr );
-							return 0;
+							return -1;
 						}
 					}
 				}

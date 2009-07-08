@@ -401,7 +401,7 @@ int
 root_dse_read_file( const char *fname )
 {
 	struct LDIFFP	*fp;
-	int rc = 0, lineno = 0, lmax = 0;
+	int rc = 0, lineno = 0, lmax = 0, ldifrc;
 	char	*buf = NULL;
 
 	if ( (fp = ldif_open( fname, "r" )) == NULL ) {
@@ -421,7 +421,7 @@ root_dse_read_file( const char *fname )
 	}
 	usr_attr->e_attrs = NULL;
 
-	while( ldif_read_record( fp, &lineno, &buf, &lmax ) ) {
+	while(( ldifrc = ldif_read_record( fp, &lineno, &buf, &lmax )) > 0 ) {
 		Entry *e = str2entry( buf );
 		Attribute *a;
 
@@ -429,7 +429,7 @@ root_dse_read_file( const char *fname )
 			Debug( LDAP_DEBUG_ANY, "root_dse_read_file: "
 				"could not parse entry (file=\"%s\" line=%d)\n",
 				fname, lineno, 0 );
-			rc = EXIT_FAILURE;
+			rc = LDAP_OTHER;
 			break;
 		}
 
@@ -440,7 +440,7 @@ root_dse_read_file( const char *fname )
 				"- dn=\"%s\" (file=\"%s\" line=%d)\n",
 				e->e_dn, fname, lineno );
 			entry_free( e );
-			rc = EXIT_FAILURE;
+			rc = LDAP_OTHER;
 			break;
 		}
 
@@ -462,6 +462,9 @@ root_dse_read_file( const char *fname )
 		entry_free( e );
 		if (rc) break;
 	}
+
+	if ( ldifrc < 0 )
+		rc = LDAP_OTHER;
 
 	if (rc) {
 		entry_free( usr_attr );

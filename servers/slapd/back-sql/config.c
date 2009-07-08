@@ -659,7 +659,7 @@ read_baseObject(
 {
 	backsql_info 	*bi = (backsql_info *)be->be_private;
 	LDIFFP		*fp;
-	int		rc = 0, lineno = 0, lmax = 0;
+	int		rc = 0, lineno = 0, lmax = 0, ldifrc;
 	char		*buf = NULL;
 
 	assert( fname != NULL );
@@ -685,7 +685,7 @@ read_baseObject(
 	bi->sql_baseObject->e_nname = be->be_nsuffix[0];
 	bi->sql_baseObject->e_attrs = NULL;
 
-	while ( ldif_read_record( fp, &lineno, &buf, &lmax ) ) {
+	while (( ldifrc = ldif_read_record( fp, &lineno, &buf, &lmax )) > 0 ) {
 		Entry		*e = str2entry( buf );
 		Attribute	*a;
 
@@ -704,7 +704,7 @@ read_baseObject(
 				"dn=\"%s\" (line=%d)\n",
 				e->e_name.bv_val, lineno );
 			entry_free( e );
-			rc = EXIT_FAILURE;
+			rc = LDAP_OTHER;
 			break;
 		}
 
@@ -728,6 +728,9 @@ read_baseObject(
 			break;
 		}
 	}
+
+	if ( ldifrc < 0 )
+		rc = LDAP_OTHER;
 
 	if ( rc ) {
 		entry_free( bi->sql_baseObject );

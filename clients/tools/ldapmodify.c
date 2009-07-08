@@ -240,7 +240,7 @@ main( int argc, char **argv )
 	FILE		*rejfp;
 	struct LDIFFP *ldiffp, ldifdummy = {0};
 	char		*matched_msg, *error_msg;
-	int		rc, retval;
+	int		rc, retval, ldifrc;
 	int		len;
 	int		i = 0;
 	int		lineno, nextline = 0, lmax = 0;
@@ -326,8 +326,8 @@ main( int argc, char **argv )
 	rc = 0;
 	retval = 0;
 	lineno = 1;
-	while (( rc == 0 || contoper ) && ldif_read_record( ldiffp, &nextline,
-		&rbuf, &lmax ))
+	while (( rc == 0 || contoper ) && ( ldifrc = ldif_read_record( ldiffp, &nextline,
+		&rbuf, &lmax )) > 0 )
 	{
 		if ( rejfp ) {
 			len = strlen( rbuf );
@@ -368,6 +368,9 @@ main( int argc, char **argv )
 		if (rejfp) ber_memfree( rejbuf );
 	}
 	ber_memfree( rbuf );
+
+	if ( ldifrc < 0 )
+		retval = LDAP_OTHER;
 
 #ifdef LDAP_X_TXN
 	if( retval == 0 && txn ) {
