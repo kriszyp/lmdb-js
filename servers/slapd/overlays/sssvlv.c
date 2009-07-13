@@ -536,6 +536,9 @@ static void send_entry(
 		"%s: response control: status=%d, text=%s\n",
 		debug_header, rs->sr_err, SAFESTR(rs->sr_text, "<None>"));
 
+	if ( !so->so_tree )
+		return;
+
 	/* RFC 2891: If critical then send the entries iff they were
 	 * succesfully sorted.  If non-critical send all entries
 	 * whether they were sorted or not.
@@ -811,8 +814,11 @@ static int sssvlv_op_search(
 			} else {
 				so->so_paged = 0;
 				so->so_page_size = 0;
-				if ( vc )
+				if ( vc ) {
 					so->so_vlv = op->o_ctrlflag[vlv_cid];
+					so->so_vlv_target = 0;
+					so->so_vlv_rc = 0;
+				}
 			}
 			so->so_vcontext = (unsigned long)so;
 			so->so_nentries = 0;
