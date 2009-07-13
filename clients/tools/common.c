@@ -1941,8 +1941,8 @@ print_sss( LDAP *ld, LDAPControl *ctrl )
 	rc = ldap_parse_sortresponse_control( ld, ctrl, &err, &attr );
 	if ( rc == LDAP_SUCCESS ) {
 		char buf[ BUFSIZ ];
-		rc = snprintf( buf, sizeof(buf), "(%d) %s %s",
-			err, ldap_err2string(err), attr ? attr : "" );
+		rc = snprintf( buf, sizeof(buf), "(%d) %s%s%s",
+			err, ldap_err2string(err), attr ? " " : "", attr ? attr : "" );
 
 		tool_write_ldif( ldif ? LDIF_PUT_COMMENT : LDIF_PUT_VALUE,
 			"sortResult", buf, rc );
