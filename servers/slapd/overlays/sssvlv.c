@@ -189,7 +189,6 @@ static int pack_vlv_response_control(
 	LDAPControl			*ctrl;
 	BerElementBuffer	berbuf;
 	BerElement			*ber		= (BerElement *)&berbuf;
-	PagedResultsCookie	resp_cookie;
 	struct berval		cookie, bv;
 	int					rc;
 
@@ -634,23 +633,24 @@ static int sssvlv_op_response(
 		sn2->sn_vals = (struct berval *)(sn2+1);
 		AC_MEMCPY( sn2->sn_vals, sn->sn_vals,
 				sc->sc_nkeys * sizeof(struct berval));
-		sn = sn2;
 
-		ptr = (char *)(sn->sn_vals + sc->sc_nkeys);
-		sn->sn_dn.bv_val = ptr;
-		sn->sn_dn.bv_len = rs->sr_entry->e_nname.bv_len;
+		ptr = (char *)(sn2->sn_vals + sc->sc_nkeys);
+		sn2->sn_dn.bv_val = ptr;
+		sn2->sn_dn.bv_len = rs->sr_entry->e_nname.bv_len;
 		AC_MEMCPY( ptr, rs->sr_entry->e_nname.bv_val,
 			rs->sr_entry->e_nname.bv_len );
 		ptr += rs->sr_entry->e_nname.bv_len;
 		*ptr++ = '\0';
 		for ( i=0; i<sc->sc_nkeys; i++ ) {
-			if ( !BER_BVISNULL( &sn->sn_vals[i] )) {
-				AC_MEMCPY( ptr, sn->sn_vals[i].bv_val, sn->sn_vals[i].bv_len );
-				sn->sn_vals[i].bv_val = ptr;
-				ptr += sn->sn_vals[i].bv_len;
+			if ( !BER_BVISNULL( &sn2->sn_vals[i] )) {
+				AC_MEMCPY(ptr, sn2->sn_vals[i].bv_val, sn2->sn_vals[i].bv_len);
+				sn2->sn_vals[i].bv_val = ptr;
+				ptr += sn2->sn_vals[i].bv_len;
 				*ptr++ = '\0';
 			}
 		}
+		op->o_tmpfree( sn, op->o_tmpmemctx );
+		sn = sn2;
 		sn->sn_conn = op->o_conn->c_conn_idx;
 
 		/* Insert into the AVL tree */
