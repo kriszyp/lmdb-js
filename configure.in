@@ -386,9 +386,9 @@ OL_ARG_ENABLE(retcode,[    --enable-retcode	  Return Code testing overlay],
 OL_ARG_ENABLE(rwm,[    --enable-rwm       	  Rewrite/Remap overlay],
 	no, [no yes mod], ol_enable_overlays)
 OL_ARG_ENABLE(seqmod,[    --enable-seqmod	  Sequential Modify overlay],
-	yes, [no yes mod], ol_enable_overlays)
+	no, [no yes mod], ol_enable_overlays)
 OL_ARG_ENABLE(sssvlv,[    --enable-sssvlv	  ServerSideSort/VLV overlay],
-	yes, [no yes mod], ol_enable_overlays)
+	no, [no yes mod], ol_enable_overlays)
 OL_ARG_ENABLE(syncprov,[    --enable-syncprov	  Syncrepl Provider overlay],
 	yes, [no yes mod], ol_enable_overlays)
 OL_ARG_ENABLE(translucent,[    --enable-translucent  Translucent Proxy overlay],
