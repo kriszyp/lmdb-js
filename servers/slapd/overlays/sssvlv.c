@@ -166,6 +166,8 @@ static int node_cmp( const void* val1, const void* val2 )
 			mr = sc->sc_keys[i].sk_ordering;
 			mr->smr_match( &cmp, 0, mr->smr_syntax, mr,
 				&sn1->sn_vals[i], &sn2->sn_vals[i] );
+			if ( cmp )
+				cmp *= sc->sc_keys[i].sk_direction;
 		}
 	}
 	return cmp;
@@ -470,7 +472,9 @@ range_err:
 				break;
 		}
 		cur_node = tavl_next( cur_node, TAVL_DIR_RIGHT );
+		if ( !cur_node ) break;
 	}
+	so->so_vlv_rc = LDAP_SUCCESS;
 
 	op->o_bd = be;
 }
@@ -559,8 +563,12 @@ static void send_result(
 	int rc;
 
 	rc = pack_sss_response_control( op, rs, ctrls );
-	if ( rc == LDAP_SUCCESS && so->so_paged > SLAP_CONTROL_IGNORED ) {
-		rc = pack_pagedresult_response_control( op, rs, so, ctrls+1 );
+	if ( rc == LDAP_SUCCESS ) {
+		if ( so->so_paged > SLAP_CONTROL_IGNORED ) {
+			rc = pack_pagedresult_response_control( op, rs, so, ctrls+1 );
+		} else if ( so->so_vlv > SLAP_CONTROL_IGNORED ) {
+			rc = pack_vlv_response_control( op, rs, so, ctrls+1 );
+		}
 		ctrls[2] = NULL;
 	} else {
 		ctrls[1] = NULL;
@@ -1032,7 +1040,7 @@ static int vlv_parseCtrl(
 
 	tag = ber_peek_tag( ber, &len );
 	if ( tag == LDAP_VLVBYINDEX_IDENTIFIER ) {
-		tag = ber_scanf( ber, "ii", &vc2.vc_offset, &vc2.vc_count );
+		tag = ber_scanf( ber, "{ii}", &vc2.vc_offset, &vc2.vc_count );
 		if ( tag == LBER_ERROR )
 			return rs->sr_err;
 		BER_BVZERO( &vc2.vc_value );
