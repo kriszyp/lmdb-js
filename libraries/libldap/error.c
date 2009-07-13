@@ -86,6 +86,9 @@ ldap_err2string( int err )
 
 	C(LDAP_AFFECTS_MULTIPLE_DSAS,	N_("Operation affects multiple DSAs"));
 
+	/* Virtual List View draft */
+	C(LDAP_VLV_ERROR,				N_("Virtual List View error"));
+
 	C(LDAP_OTHER, N_("Other (e.g., implementation specific) error"));
 
 	/* LDAPv2 (RFC 1777) codes */
