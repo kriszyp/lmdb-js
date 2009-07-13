@@ -168,8 +168,13 @@ static int node_cmp( const void* val1, const void* val2 )
 				&sn1->sn_vals[i], &sn2->sn_vals[i] );
 		}
 	}
+	return cmp;
+}
+
+static int node_insert( const void *val1, const void *val2 )
+{
 	/* Never return equal so that new entries are always inserted */
-	return cmp < 0 ? -1 : 1;
+	return node_cmp( val1, val2 ) < 0 ? -1 : 1;
 }
 
 static int pack_vlv_response_control(
@@ -332,6 +337,144 @@ static void free_sort_op( Connection *conn, sort_op *so )
 	ch_free( so );
 }
 
+static int send_list(
+	Operation		*op,
+	SlapReply		*rs,
+	sort_op			*so)
+{
+	Avlnode	*cur_node, *tmp_node;
+	vlv_ctrl *vc = op->o_controls[vlv_cid];
+	int i, j, dir, rc;
+	BackendDB *be;
+	Entry *e;
+	LDAPControl *ctrls[2];
+
+	/* FIXME: it may be better to just flatten the tree into
+	 * an array before doing all of this...
+	 */
+
+	/* Are we just counting an offset? */
+	if ( BER_BVISNULL( &vc->vc_value )) {
+		if ( vc->vc_offset == vc->vc_count ) {
+			/* wants the last entry in the list */
+			cur_node = tavl_end(so->so_tree, TAVL_DIR_RIGHT);
+			so->so_vlv_target = so->so_nentries;
+		} else if ( vc->vc_offset == 1 ) {
+			/* wants the first entry in the list */
+			cur_node = tavl_end(so->so_tree, TAVL_DIR_LEFT);
+			so->so_vlv_target = 1;
+		} else {
+			int target;
+			/* Just iterate to the right spot */
+			if ( vc->vc_count && vc->vc_count != so->so_nentries ) {
+				if ( vc->vc_offset > vc->vc_count )
+					goto range_err;
+				target = so->so_nentries * vc->vc_offset / vc->vc_count;
+			} else {
+				if ( vc->vc_offset > so->so_nentries ) {
+range_err:
+					so->so_vlv_rc = LDAP_VLV_RANGE_ERROR;
+					pack_vlv_response_control( op, rs, so, ctrls );
+					ctrls[1] = NULL;
+					slap_add_ctrls( op, rs, ctrls );
+					rs->sr_err = LDAP_VLV_ERROR;
+					return;
+				}
+				target = vc->vc_offset;
+			}
+			so->so_vlv_target = target;
+			/* Start at left and go right, or start at right and go left? */
+			if ( target < so->so_nentries / 2 ) {
+				cur_node = tavl_end(so->so_tree, TAVL_DIR_LEFT);
+				dir = TAVL_DIR_RIGHT;
+			} else {
+				cur_node = tavl_end(so->so_tree, TAVL_DIR_RIGHT);
+				dir = TAVL_DIR_LEFT;
+				target = so->so_nentries - target;
+			}
+			for ( i=0; i<target; i++ )
+				cur_node = tavl_next( cur_node, dir );
+		}
+	} else {
+	/* we're looking for a specific value */
+		sort_ctrl *sc = so->so_ctrl;
+		MatchingRule *mr = sc->sc_keys[0].sk_ordering;
+		sort_node *sn;
+		struct berval bv;
+
+		if ( mr->smr_normalize ) {
+			rc = mr->smr_normalize( SLAP_MR_VALUE_OF_SYNTAX,
+				mr->smr_syntax, mr, &vc->vc_value, &bv, op->o_tmpmemctx );
+			if ( rc ) {
+				so->so_vlv_rc = LDAP_INAPPROPRIATE_MATCHING;
+				pack_vlv_response_control( op, rs, so, ctrls );
+				ctrls[1] = NULL;
+				slap_add_ctrls( op, rs, ctrls );
+				rs->sr_err = LDAP_VLV_ERROR;
+				return;
+			}
+		} else {
+			bv = vc->vc_value;
+		}
+
+		sn = op->o_tmpalloc( sizeof(sort_node) +
+			sc->sc_nkeys * sizeof(struct berval), op->o_tmpmemctx );
+		sn->sn_vals = (struct berval *)(sn+1);
+		sn->sn_conn = op->o_conn->c_conn_idx;
+		sn->sn_vals[0] = bv;
+		for (i=1; i<sc->sc_nkeys; i++) {
+			BER_BVZERO( &sn->sn_vals[i] );
+		}
+		cur_node = tavl_find2( so->so_tree, sn, node_cmp );
+		op->o_tmpfree( sn, op->o_tmpmemctx );
+
+		if ( !cur_node ) {
+			so->so_vlv_target = so->so_nentries + 1;
+		} else {
+			sort_node *sn = so->so_tree->avl_data;
+			/* start from the left or the right side? */
+			mr->smr_match( &i, 0, mr->smr_syntax, mr, &bv, &sn->sn_vals[0] );
+			if ( i > 0 ) {
+				tmp_node = tavl_end(so->so_tree, TAVL_DIR_RIGHT);
+				dir = TAVL_DIR_LEFT;
+			} else {
+				tmp_node = tavl_end(so->so_tree, TAVL_DIR_LEFT);
+				dir = TAVL_DIR_RIGHT;
+			}
+			for (i=0; tmp_node != cur_node;
+				tmp_node = tavl_next( tmp_node, dir ), i++);
+			so->so_vlv_target = i;
+		}
+		if ( bv.bv_val != vc->vc_value.bv_val )
+			op->o_tmpfree( bv.bv_val, op->o_tmpmemctx );
+	}
+	for ( i=0; i<vc->vc_before; i++ ) {
+		tmp_node = tavl_next( cur_node, TAVL_DIR_LEFT );
+		if ( !tmp_node ) break;
+		cur_node = tmp_node;
+	}
+	j = i + vc->vc_after + 1;
+	be = op->o_bd;
+	for ( i=0; i<j; i++ ) {
+		sort_node *sn = cur_node->avl_data;
+		
+		op->o_bd = select_backend( &sn->sn_dn, 0 );
+		e = NULL;
+		rc = be_entry_get_rw( op, &sn->sn_dn, NULL, NULL, 0, &e );
+
+		if ( e && rc == LDAP_SUCCESS ) {
+			rs->sr_entry = e;
+			rs->sr_flags = REP_ENTRY_MUSTRELEASE;
+			rs->sr_err = send_search_entry( op, rs );
+			if ( rs->sr_err == LDAP_UNAVAILABLE )
+				break;
+		}
+		cur_node = tavl_next( cur_node, TAVL_DIR_RIGHT );
+	}
+
+	op->o_bd = be;
+}
+
 static void send_page( Operation *op, SlapReply *rs, sort_op *so )
 {
 	Avlnode		*cur_node		= so->so_tree;
@@ -345,7 +488,6 @@ static void send_page( Operation *op, SlapReply *rs, sort_op *so )
 		sort_node *sn = cur_node->avl_data;
 
 		next_node = tavl_next( cur_node, TAVL_DIR_RIGHT );
-
 
 		op->o_bd = select_backend( &sn->sn_dn, 0 );
 		e = NULL;
@@ -372,7 +514,7 @@ static void send_page( Operation *op, SlapReply *rs, sort_op *so )
 	op->o_bd = be;
 }
 
-static int send_entry(
+static void send_entry(
 	Operation		*op,
 	SlapReply		*rs,
 	sort_op			*so)
@@ -388,22 +530,24 @@ static int send_entry(
 	if ( (op->o_ctrlflag[sss_cid] != SLAP_CONTROL_CRITICAL) ||
 		 (rs->sr_err == LDAP_SUCCESS) )
 	{
-		/* Get the first node to send */
-		Avlnode *start_node = tavl_end(so->so_tree, TAVL_DIR_LEFT);
-		so->so_tree = start_node;
+		if ( so->so_vlv > SLAP_CONTROL_IGNORED ) {
+			send_list( op, rs, so );
+		} else {
+			/* Get the first node to send */
+			Avlnode *start_node = tavl_end(so->so_tree, TAVL_DIR_LEFT);
+			so->so_tree = start_node;
 
-		if ( so->so_paged <= SLAP_CONTROL_IGNORED ) {
-			/* Not paged result search.  Send all entries.
-			 * Set the page size to the number of entries
-			 * so that send_page() will send all entries.
-			 */
-			so->so_page_size = so->so_nentries;
+			if ( so->so_paged <= SLAP_CONTROL_IGNORED ) {
+				/* Not paged result search.  Send all entries.
+				 * Set the page size to the number of entries
+				 * so that send_page() will send all entries.
+				 */
+				so->so_page_size = so->so_nentries;
+			}
+
+			send_page( op, rs, so );
 		}
-
-		send_page( op, rs, so );
 	}
-
-	return SLAP_CB_CONTINUE;
 }
 
 static void send_result(
@@ -438,7 +582,6 @@ static int sssvlv_op_response(
 {
 	sort_ctrl *sc = op->o_controls[sss_cid];
 	sort_op *so = op->o_callback->sc_private;
-	int rc = SLAP_CB_CONTINUE;
 
 	if ( rs->sr_type == REP_SEARCH ) {
 		int i;
@@ -494,14 +637,14 @@ static int sssvlv_op_response(
 		sn->sn_conn = op->o_conn->c_conn_idx;
 
 		/* Insert into the AVL tree */
-		tavl_insert(&(so->so_tree), sn, node_cmp, avl_dup_ok);
+		tavl_insert(&(so->so_tree), sn, node_insert, avl_dup_error);
 
 		so->so_nentries++;
 
 		/* Collected the keys so that they can be sorted.  Thus, stop
 		 * the entry from propagating.
 		 */
-		rc = LDAP_SUCCESS;
+		rs->sr_err = LDAP_SUCCESS;
 	}
 	else if ( rs->sr_type == REP_RESULT ) {
 		/* Remove serversort response callback.
@@ -512,11 +655,11 @@ static int sssvlv_op_response(
 			op->o_callback = op->o_callback->sc_next;
 		}
 
-		rc = send_entry( op, rs, so );
+		send_entry( op, rs, so );
 		send_result( op, rs, so );
 	}
 
-	return rc;
+	return rs->sr_err;
 }
 
 static int sssvlv_op_search(
@@ -589,7 +732,16 @@ static int sssvlv_op_search(
 			} else if ( !ps->ps_size ) {
 			/* Abandoning current request */
 				ok = 0;
+				so->so_nentries = 0;
+				rs->sr_err = LDAP_SUCCESS;
 			}
+		}
+		if (( vc && so->so_paged > SLAP_CONTROL_IGNORED ) ||
+			( ps && so->so_vlv > SLAP_CONTROL_IGNORED )) {
+			/* changed from paged to vlv or vice versa, abandon */
+			ok = 0;
+			so->so_nentries = 0;
+			rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
 		}
 	/* Are there too many running overall? */
 	} else if ( si->svi_num >= si->svi_max ) {
@@ -601,18 +753,23 @@ static int sssvlv_op_search(
 	}
 	ldap_pvt_thread_mutex_unlock( &sort_conns_mutex );
 	if ( ok ) {
+		/* are we continuing a VLV search? */
+		if ( vc && vc->vc_context ) {
+			so->so_ctrl = sc;
+			send_list( op, rs, so );
+			send_result( op, rs, so );
+			rc = LDAP_SUCCESS;
 		/* are we continuing a paged search? */
-		if ( ps && ps->ps_cookie ) {
+		} else if ( ps && ps->ps_cookie ) {
 			so->so_ctrl = sc;
 			send_page( op, rs, so );
 			send_result( op, rs, so );
 			rc = LDAP_SUCCESS;
-		}
-		else {
+		} else {
 			slap_callback *cb = op->o_tmpalloc( sizeof(slap_callback),
 				op->o_tmpmemctx );
 			/* Install serversort response callback to handle a new search */
-			if ( ps ) {
+			if ( ps || vc ) {
 				so = ch_malloc( sizeof(sort_op));
 			} else {
 				so = op->o_tmpalloc( sizeof(sort_op), op->o_tmpmemctx );
@@ -634,15 +791,17 @@ static int sssvlv_op_search(
 			} else {
 				so->so_paged = 0;
 				so->so_page_size = 0;
+				if ( vc )
+					so->so_vlv = op->o_ctrlflag[vlv_cid];
 			}
+			so->so_vcontext = (unsigned long)so;
 			so->so_nentries = 0;
 
 			op->o_callback		= cb;
 		}
 	} else {
-		if ( ps && !ps->ps_size ) {
+		if ( so && !so->so_nentries ) {
 			free_sort_op( op->o_conn, so );
-			rs->sr_err = LDAP_SUCCESS;
 		} else {
 			rs->sr_text = "Other sort requests already in progress";
 			rs->sr_err = LDAP_BUSY;
