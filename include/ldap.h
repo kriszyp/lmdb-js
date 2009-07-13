@@ -253,7 +253,6 @@ typedef struct ldapcontrol {
 #define LDAP_CONTROL_PRE_READ			"1.3.6.1.1.13.1"		/* RFC 4527 */
 #define LDAP_CONTROL_POST_READ			"1.3.6.1.1.13.2"		/* RFC 4527 */
 
-/*  standard track - not implemented in slapd(8) */
 #define LDAP_CONTROL_SORTREQUEST    "1.2.840.113556.1.4.473" /* RFC 2891 */
 #define LDAP_CONTROL_SORTRESPONSE	"1.2.840.113556.1.4.474" /* RFC 2891 */
 
@@ -356,10 +355,9 @@ typedef struct ldapcontrol {
 #define LDAP_CONTROL_PERSIST_ENTRY_CHANGE_MODIFY	0x4
 #define LDAP_CONTROL_PERSIST_ENTRY_CHANGE_RENAME	0x8
 
-/* LDAP VLV *//* not implemented in slapd(8) */
+/* LDAP VLV */
 #define LDAP_CONTROL_VLVREQUEST    	"2.16.840.1.113730.3.4.9"
 #define LDAP_CONTROL_VLVRESPONSE    "2.16.840.1.113730.3.4.10"
-
 
 /* LDAP Unsolicited Notifications */
 #define	LDAP_NOTICE_OF_DISCONNECTION	"1.3.6.1.4.1.1466.20036" /* RFC 4511 */
@@ -624,6 +622,8 @@ typedef struct ldapcontrol {
 #define LDAP_NO_OBJECT_CLASS_MODS	0x45
 #define LDAP_RESULTS_TOO_LARGE		0x46 /* CLDAP */
 #define LDAP_AFFECTS_MULTIPLE_DSAS	0x47
+
+#define	LDAP_VLV_ERROR				0x4C
 
 #define LDAP_OTHER					0x50
 
