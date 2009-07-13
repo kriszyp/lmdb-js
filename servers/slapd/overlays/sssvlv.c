@@ -427,7 +427,10 @@ range_err:
 		for (i=1; i<sc->sc_nkeys; i++) {
 			BER_BVZERO( &sn->sn_vals[i] );
 		}
-		cur_node = tavl_find2( so->so_tree, sn, node_cmp );
+		cur_node = tavl_find3( so->so_tree, sn, node_cmp, &j );
+		/* didn't find >= match */
+		if ( j > 0 )
+			cur_node = NULL;
 		op->o_tmpfree( sn, op->o_tmpmemctx );
 
 		if ( !cur_node ) {
