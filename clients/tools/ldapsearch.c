@@ -1117,9 +1117,9 @@ getNextPage:
 				sss > 1 ? _("critical ") : "" );
 		}
 #ifdef LDAP_CONTROL_X_DEREF
-		if ( sss ) {
+		if ( derefcrit ) {
 			printf(_("\n# with dereference %scontrol"),
-				sss > 1 ? _("critical ") : "" );
+				derefcrit > 1 ? _("critical ") : "" );
 		}
 #endif
 
