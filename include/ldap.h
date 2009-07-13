@@ -623,7 +623,7 @@ typedef struct ldapcontrol {
 #define LDAP_RESULTS_TOO_LARGE		0x46 /* CLDAP */
 #define LDAP_AFFECTS_MULTIPLE_DSAS	0x47
 
-#define	LDAP_VLV_ERROR				0x4C
+#define LDAP_VLV_ERROR				0x4C
 
 #define LDAP_OTHER					0x50
 
