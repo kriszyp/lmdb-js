@@ -133,6 +133,8 @@ usage( void )
 	fprintf( stderr, _("             [!]subentries[=true|false]  (RFC 3672 subentries)\n"));
 	fprintf( stderr, _("             [!]sync=ro[/<cookie>]       (RFC 4533 LDAP Sync refreshOnly)\n"));
 	fprintf( stderr, _("                     rp[/<cookie>][/<slimit>] (refreshAndPersist)\n"));
+	fprintf( stderr, _("             [!]vlv=<before>/<after>(/<offset>/<count>|:<value>)\n"));
+	fprintf( stderr, _("                                         (ldapv3-vlv-09 virtual list views)\n"));
 #ifdef LDAP_CONTROL_X_DEREF
 	fprintf( stderr, _("             [!]deref=derefAttr:attr[,...][;derefAttr:attr[,...][;...]]\n"));
 #endif
@@ -207,6 +209,10 @@ static int domainScope = 0;
 static int sss = 0;
 static LDAPSortKey **sss_keys = NULL;
 
+static int vlv = 0;
+static LDAPVLVInfo vlvInfo;
+static struct berval vlvValue;
+
 static int ldapsync = 0;
 static struct berval sync_cookie = { 0, NULL };
 static int sync_slimit = -1;
@@ -263,6 +269,47 @@ urlize(char *url)
 	}
 }
 
+static int
+parse_vlv(char *cvalue)
+{
+	char *keyp, *key2;
+	int num1, num2;
+
+	keyp = cvalue;
+	if ( sscanf( keyp, "%d/%d", &num1, &num2 ) != 2 ) {
+		fprintf( stderr,
+			_("VLV control value \"%s\" invalid\n"),
+			cvalue );
+		return -1;
+	}
+	vlvInfo.ldvlv_before_count = num1;
+	vlvInfo.ldvlv_after_count = num2;
+	keyp = strchr( keyp, '/' ) + 1;
+	key2 = strchr( keyp, '/' );
+	if ( key2 ) {
+		keyp = key2 + 1;
+		if ( sscanf( keyp, "%d/%d", &num1, &num2 ) != 2 ) {
+			fprintf( stderr,
+				_("VLV control value \"%s\" invalid\n"),
+				cvalue );
+			return -1;
+		}
+		vlvInfo.ldvlv_offset = num1;
+		vlvInfo.ldvlv_count = num2;
+		vlvInfo.ldvlv_attrvalue = NULL;
+	} else {
+		key2 = strchr( keyp, ':' );
+		if ( !key2 ) {
+			fprintf( stderr,
+				_("VLV control value \"%s\" invalid\n"),
+				cvalue );
+			return -1;
+		}
+		ber_str2bv( key2+1, 0, 0, &vlvValue );
+		vlvInfo.ldvlv_attrvalue = &vlvValue;
+	}
+	return 0;
+}
 
 const char options[] = "a:Ab:cE:F:l:Ls:S:tT:uz:"
 	"Cd:D:e:f:h:H:IMnNO:o:p:P:QR:U:vVw:WxX:y:Y:Z";
@@ -341,6 +388,11 @@ handle_private_option( int i )
 			if ( pagedResults != 0 ) {
 				fprintf( stderr,
 					_("PagedResultsControl previously specified\n") );
+				exit( EXIT_FAILURE );
+			}
+			if ( vlv != 0 ) {
+				fprintf( stderr,
+					_("PagedResultsControl incompatible with VLV\n") );
 				exit( EXIT_FAILURE );
 			}
 
@@ -499,6 +551,27 @@ handle_private_option( int i )
 				exit( EXIT_FAILURE );
 			}
 			if ( crit ) ldapsync *= -1;
+
+		} else if ( strcasecmp( control, "vlv" ) == 0 ) {
+			if( vlv ) {
+				fprintf( stderr,
+					_("virtual list view control previously specified\n"));
+				exit( EXIT_FAILURE );
+			}
+			if ( pagedResults != 0 ) {
+				fprintf( stderr,
+					_("PagedResultsControl incompatible with VLV\n") );
+				exit( EXIT_FAILURE );
+			}
+			if( cvalue == NULL ) {
+				fprintf( stderr,
+			         _("missing specification of vlv control\n") );
+				exit( EXIT_FAILURE );
+			}
+			if ( parse_vlv( cvalue ))
+				exit( EXIT_FAILURE );
+
+			vlv = 1 + crit;
 
 #ifdef LDAP_CONTROL_X_DEREF
 		} else if ( strcasecmp( control, "deref" ) == 0 ) {
@@ -758,6 +831,12 @@ main( int argc, char **argv )
 
 	tool_args( argc, argv );
 
+	if ( vlv && !sss ) {
+		fprintf( stderr,
+			_("VLV control requires server side sort control\n" ));
+		return EXIT_FAILURE;
+	}
+
 	if (( argc - optind < 1 ) ||
 		( *argv[optind] != '(' /*')'*/ &&
 		( strchr( argv[optind], '=' ) == NULL ) ) )
@@ -853,7 +932,8 @@ getNextPage:
 		|| ldapsync
 		|| sss
 		|| subentries
-		|| valuesReturnFilter )
+		|| valuesReturnFilter
+		|| vlv )
 	{
 
 #ifdef LDAP_CONTROL_DONTUSECOPY
@@ -1001,6 +1081,21 @@ getNextPage:
 			i++;
 		}
 
+		if ( vlv ) {
+			if ( ctrl_add() ) {
+				return EXIT_FAILURE;
+			}
+
+			if ( ldap_create_vlv_control_value( ld,
+				&vlvInfo, &c[i].ldctl_value ) )
+			{
+				return EXIT_FAILURE;
+			}
+
+			c[i].ldctl_oid = LDAP_CONTROL_VLVREQUEST;
+			c[i].ldctl_iscritical = sss > 1;
+			i++;
+		}
 #ifdef LDAP_CONTROL_X_DEREF
 		if ( derefcrit ) {
 			if ( derefval.bv_val == NULL ) {
@@ -1116,6 +1211,15 @@ getNextPage:
 			printf(_("\n# with server side sorting %scontrol"),
 				sss > 1 ? _("critical ") : "" );
 		}
+		if ( vlv ) {
+			printf(_("\n# with virtual list view %scontrol: %d/%d"),
+				vlv > 1 ? _("critical ") : "",
+				vlvInfo.ldvlv_before_count, vlvInfo.ldvlv_after_count);
+			if ( vlvInfo.ldvlv_attrvalue )
+				printf(":%s", vlvInfo.ldvlv_attrvalue->bv_val );
+			else
+				printf("/%d/%d", vlvInfo.ldvlv_offset, vlvInfo.ldvlv_count );
+		}
 #ifdef LDAP_CONTROL_X_DEREF
 		if ( derefcrit ) {
 			printf(_("\n# with dereference %scontrol"),
@@ -1159,7 +1263,7 @@ getNextPage:
 	}
 
 	if (( rc == LDAP_SUCCESS ) && pageSize && pr_morePagedResults ) {
-		char	buf[6];
+		char	buf[12];
 		int	i, moreEntries, tmpSize;
 
 		/* Loop to get the next pages when 
@@ -1193,6 +1297,41 @@ getNextPage:
 				pageSize = (ber_int_t)tmpSize;
 			}
 		}
+
+		goto getNextPage;
+	}
+
+	if (( rc == LDAP_SUCCESS ) && vlv ) {
+		char	buf[BUFSIZ];
+		int	i, moreEntries, tmpSize;
+
+		/* Loop to get the next window when 
+		 * enter is pressed on the terminal.
+		 */
+		printf( _("Press [before/after(/offset/count|:value)] Enter for the next window.\n"));
+		i = 0;
+		moreEntries = getchar();
+		while ( moreEntries != EOF && moreEntries != '\n' ) { 
+			if ( i < (int)sizeof(buf) - 1 ) {
+				buf[i] = moreEntries;
+				i++;
+			}
+			moreEntries = getchar();
+		}
+		buf[i] = '\0';
+		if ( buf[0] ) {
+			i = parse_vlv( strdup( buf ));
+			if ( i )
+				return EXIT_FAILURE;
+		} else {
+			vlvInfo.ldvlv_attrvalue = NULL;
+			vlvInfo.ldvlv_count = vlvCount;
+			vlvInfo.ldvlv_offset += vlvInfo.ldvlv_after_count;
+		}
+
+		if ( vlvInfo.ldvlv_context )
+			ber_bvfree( vlvInfo.ldvlv_context );
+		vlvInfo.ldvlv_context = vlvContext;
 
 		goto getNextPage;
 	}

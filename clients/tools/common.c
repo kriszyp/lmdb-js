@@ -121,6 +121,9 @@ static int	chainingContinuation = -1;
 static int	sessionTracking = 0;
 struct berval	stValue;
 #endif /* LDAP_CONTROL_X_SESSION_TRACKING */
+ber_int_t vlvPos;
+ber_int_t vlvCount;
+struct berval *vlvContext;
 
 LDAPControl	*unknown_ctrls = NULL;
 int		unknown_ctrls_num = 0;
@@ -137,6 +140,7 @@ static int print_paged_results( LDAP *ld, LDAPControl *ctrl );
 static int print_ppolicy( LDAP *ld, LDAPControl *ctrl );
 #endif
 static int print_sss( LDAP *ld, LDAPControl *ctrl );
+static int print_vlv( LDAP *ld, LDAPControl *ctrl );
 #ifdef LDAP_CONTROL_X_DEREF
 static int print_deref( LDAP *ld, LDAPControl *ctrl );
 #endif
@@ -156,6 +160,7 @@ static struct tool_ctrls_t {
 	{ LDAP_CONTROL_PASSWORDPOLICYRESPONSE,		TOOL_ALL,	print_ppolicy },
 #endif
 	{ LDAP_CONTROL_SORTRESPONSE,	TOOL_SEARCH,	print_sss },
+	{ LDAP_CONTROL_VLVRESPONSE,		TOOL_SEARCH,	print_vlv },
 #ifdef LDAP_CONTROL_X_DEREF
 	{ LDAP_CONTROL_X_DEREF,				TOOL_SEARCH,	print_deref },
 #endif
@@ -1946,6 +1951,46 @@ print_sss( LDAP *ld, LDAPControl *ctrl )
 
 		tool_write_ldif( ldif ? LDIF_PUT_COMMENT : LDIF_PUT_VALUE,
 			"sortResult", buf, rc );
+	}
+
+	return rc;
+}
+
+static int
+print_vlv( LDAP *ld, LDAPControl *ctrl )
+{
+	int rc;
+	ber_int_t err;
+	struct berval bv;
+
+	rc = ldap_parse_vlvresponse_control( ld, ctrl, &vlvPos, &vlvCount,
+		&vlvContext, &err );
+	if ( rc == LDAP_SUCCESS ) {
+		char buf[ BUFSIZ ];
+
+		if ( vlvContext && vlvContext->bv_len > 0 ) {
+			bv.bv_len = LUTIL_BASE64_ENCODE_LEN(
+				vlvContext->bv_len ) + 1;
+			bv.bv_val = ber_memalloc( bv.bv_len + 1 );
+
+			bv.bv_len = lutil_b64_ntop(
+				(unsigned char *) vlvContext->bv_val,
+				vlvContext->bv_len,
+				bv.bv_val, bv.bv_len );
+		} else {
+			bv.bv_val = "";
+			bv.bv_len = 0;
+		}
+
+		rc = snprintf( buf, sizeof(buf), "pos=%d count=%d context=%s (%d) %s",
+			vlvPos, vlvCount, bv.bv_val,
+			err, ldap_err2string(err));
+
+		if ( bv.bv_len )
+			ber_memfree( bv.bv_val );
+
+		tool_write_ldif( ldif ? LDIF_PUT_COMMENT : LDIF_PUT_VALUE,
+			"vlvResult", buf, rc );
 	}
 
 	return rc;
