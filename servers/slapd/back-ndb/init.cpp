@@ -130,7 +130,7 @@ ndb_db_open( BackendDB *be, ConfigReply *cr )
 		}
 	}
 	for ( i=0; i<ni->ni_nconns; i++ ) {
-		rc = ni->ni_cluster[i]->wait_until_ready( 30, 0 );
+		rc = ni->ni_cluster[i]->wait_until_ready( 30, 30 );
 		if ( rc ) {
 			snprintf( cr->msg, sizeof( cr->msg ),
 				"ndb_db_open: ni_cluster[%d]->wait failed (%d)",
