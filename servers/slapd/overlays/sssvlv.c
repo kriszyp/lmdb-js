@@ -21,8 +21,6 @@
 
 #include "portable.h"
 
-#define SLAPD_OVER_SSSVLV	SLAPD_MOD_DYNAMIC
-
 #ifdef SLAPD_OVER_SSSVLV
 
 #include <stdio.h>
