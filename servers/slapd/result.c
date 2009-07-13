@@ -302,11 +302,11 @@ send_ldap_controls( Operation *o, BerElement *ber, LDAPControl **c )
 
 		ber_printf( sber, "{e}", LDAP_UNWILLING_TO_PERFORM );
 
-		if( ber_flatten2( ber, &sorted.ldctl_value, 0 ) == -1 ) {
+		if( ber_flatten2( sber, &sorted.ldctl_value, 0 ) == -1 ) {
 			return -1;
 		}
 
-		(void) ber_free_buf( ber );
+		(void) ber_free_buf( sber );
 
 		rc = send_ldap_control( ber, &sorted );
 		if( rc == -1 ) return rc;
