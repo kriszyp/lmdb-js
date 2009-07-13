@@ -346,6 +346,7 @@ Overlays="accesslog \
 	retcode \
 	rwm \
 	seqmod \
+	sssvlv \
 	syncprov \
 	translucent \
 	unique \
@@ -385,6 +386,8 @@ OL_ARG_ENABLE(retcode,[    --enable-retcode	  Return Code testing overlay],
 OL_ARG_ENABLE(rwm,[    --enable-rwm       	  Rewrite/Remap overlay],
 	no, [no yes mod], ol_enable_overlays)
 OL_ARG_ENABLE(seqmod,[    --enable-seqmod	  Sequential Modify overlay],
+	yes, [no yes mod], ol_enable_overlays)
+OL_ARG_ENABLE(sssvlv,[    --enable-sssvlv	  ServerSideSort/VLV overlay],
 	yes, [no yes mod], ol_enable_overlays)
 OL_ARG_ENABLE(syncprov,[    --enable-syncprov	  Syncrepl Provider overlay],
 	yes, [no yes mod], ol_enable_overlays)
@@ -554,6 +557,7 @@ BUILD_REFINT=no
 BUILD_RETCODE=no
 BUILD_RWM=no
 BUILD_SEQMOD=no
+BUILD_SSSVLV=no
 BUILD_SYNCPROV=no
 BUILD_TRANSLUCENT=no
 BUILD_UNIQUE=no
@@ -2962,6 +2966,18 @@ if test "$ol_enable_seqmod" != no ; then
 	AC_DEFINE_UNQUOTED(SLAPD_OVER_SEQMOD,$MFLAG,[define for Sequential Modify overlay])
 fi
 
+if test "$ol_enable_sssvlv" != no ; then
+	BUILD_SSSVLV=$ol_enable_sssvlv
+	if test "$ol_enable_sssvlv" = mod ; then
+		MFLAG=SLAPD_MOD_DYNAMIC
+		SLAPD_DYNAMIC_OVERLAYS="$SLAPD_DYNAMIC_OVERLAYS sssvlv.la"
+	else
+		MFLAG=SLAPD_MOD_STATIC
+		SLAPD_STATIC_OVERLAYS="$SLAPD_STATIC_OVERLAYS sssvlv.o"
+	fi
+	AC_DEFINE_UNQUOTED(SLAPD_OVER_SSSVLV,$MFLAG,[define for ServerSideSort/VLV overlay])
+fi
+
 if test "$ol_enable_syncprov" != no ; then
 	BUILD_SYNCPROV=$ol_enable_syncprov
 	if test "$ol_enable_syncprov" = mod ; then
@@ -3080,6 +3096,7 @@ dnl overlays
   AC_SUBST(BUILD_RETCODE)
   AC_SUBST(BUILD_RWM)
   AC_SUBST(BUILD_SEQMOD)
+  AC_SUBST(BUILD_SSSVLV)
   AC_SUBST(BUILD_SYNCPROV)
   AC_SUBST(BUILD_TRANSLUCENT)
   AC_SUBST(BUILD_UNIQUE)
