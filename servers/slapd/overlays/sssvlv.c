@@ -392,9 +392,9 @@ range_err:
 			} else {
 				cur_node = tavl_end(so->so_tree, TAVL_DIR_RIGHT);
 				dir = TAVL_DIR_LEFT;
-				target = so->so_nentries - target;
+				target = so->so_nentries - target + 1;
 			}
-			for ( i=0; i<target; i++ )
+			for ( i=1; i<target; i++ )
 				cur_node = tavl_next( cur_node, dir );
 		}
 	} else {
@@ -450,7 +450,13 @@ range_err:
 		if ( bv.bv_val != vc->vc_value.bv_val )
 			op->o_tmpfree( bv.bv_val, op->o_tmpmemctx );
 	}
-	for ( i=0; i<vc->vc_before; i++ ) {
+	if ( !cur_node ) {
+		i = 1;
+		cur_node = tavl_end(so->so_tree, TAVL_DIR_RIGHT);
+	} else {
+		i = 0;
+	}
+	for ( ; i<vc->vc_before; i++ ) {
 		tmp_node = tavl_next( cur_node, TAVL_DIR_LEFT );
 		if ( !tmp_node ) break;
 		cur_node = tmp_node;
@@ -560,19 +566,21 @@ static void send_result(
 	sort_op			*so)
 {
 	LDAPControl *ctrls[3];
-	int rc;
+	int rc, i = 0;
 
 	rc = pack_sss_response_control( op, rs, ctrls );
 	if ( rc == LDAP_SUCCESS ) {
+		i++;
+		rc = -1;
 		if ( so->so_paged > SLAP_CONTROL_IGNORED ) {
 			rc = pack_pagedresult_response_control( op, rs, so, ctrls+1 );
 		} else if ( so->so_vlv > SLAP_CONTROL_IGNORED ) {
 			rc = pack_vlv_response_control( op, rs, so, ctrls+1 );
 		}
-		ctrls[2] = NULL;
-	} else {
-		ctrls[1] = NULL;
+		if ( rc == LDAP_SUCCESS )
+			i++;
 	}
+	ctrls[i] = NULL;
 
 	if ( ctrls[0] != NULL )
 		slap_add_ctrls( op, rs, ctrls );
