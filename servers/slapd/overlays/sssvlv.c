@@ -32,6 +32,7 @@
 
 #include "slap.h"
 #include "lutil.h"
+#include "config.h"
 
 /* RFC2891: Server Side Sorting
  * RFC2696: Paged Results
@@ -54,6 +55,8 @@
 #endif
 
 #define SAFESTR(macro_str, macro_def) ((macro_str) ? (macro_str) : (macro_def))
+
+#define SSSVLV_DEFAULT_MAX_KEYS	5
 
 typedef struct vlv_ctrl {
 	int vc_before;
@@ -1090,11 +1093,44 @@ static int sssvlv_db_open(
 	BackendDB		*be,
 	ConfigReply		*cr )
 {
+	slap_overinst	*on = (slap_overinst *)be->bd_info;
+	sssvlv_info *si = on->on_bi.bi_private;
+
+	/* If not set, default to 1/2 of available threads */
+	if ( !si->svi_max )
+		si->svi_max = connection_pool_max / 2;
+
 	int rc = overlay_register_control( be, LDAP_CONTROL_SORTREQUEST );
 	if ( rc == LDAP_SUCCESS )
 		rc = overlay_register_control( be, LDAP_CONTROL_VLVREQUEST );
 	return rc;
 }
+
+static ConfigTable sssvlv_cfg[] = {
+	{ "sssvlv-max", "num",
+		2, 2, 0, ARG_INT|ARG_OFFSET,
+			(void *)offsetof(sssvlv_info, svi_max),
+		"( OLcfgOvAt:21.1 NAME 'olcSssVlvMax' "
+			"DESC 'Maximum number of concurrent Sort requests' "
+			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
+	{ "sssvlv-maxkeys", "num",
+		2, 2, 0, ARG_INT|ARG_OFFSET,
+			(void *)offsetof(sssvlv_info, svi_max_keys),
+		"( OLcfgOvAt:21.2 NAME 'olcSssVlvMaxKeys' "
+			"DESC 'Maximum number of Keys in a Sort request' "
+			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
+	{ NULL, NULL, 0, 0, 0, ARG_IGNORED }
+};
+
+static ConfigOCs sssvlv_ocs[] = {
+	{ "( OLcfgOvOc:21.1 "
+		"NAME 'olcSssVlvConfig' "
+		"DESC 'SSS VLV configuration' "
+		"SUP olcOverlayConfig "
+		"MAY ( olcSssVlvMax $ olcSssVlvMaxKeys ) )",
+		Cft_Overlay, sssvlv_cfg, NULL, NULL },
+	{ NULL, 0, NULL }
+};
 
 static int sssvlv_db_init(
 	BackendDB		*be,
@@ -1106,9 +1142,9 @@ static int sssvlv_db_init(
 	si = (sssvlv_info *)ch_malloc(sizeof(sssvlv_info));
 	on->on_bi.bi_private = si;
 
-	si->svi_max = 5;
+	si->svi_max = 0;
 	si->svi_num = 0;
-	si->svi_max_keys = 5;
+	si->svi_max_keys = SSSVLV_DEFAULT_MAX_KEYS;
 
 	if ( dtblsize && !sort_conns ) {
 		ldap_pvt_thread_mutex_init( &sort_conns_mutex );
@@ -1146,6 +1182,12 @@ int sssvlv_initialize()
 	sssvlv.on_bi.bi_db_open				= sssvlv_db_open;
 	sssvlv.on_bi.bi_connection_destroy	= sssvlv_connection_destroy;
 	sssvlv.on_bi.bi_op_search			= sssvlv_op_search;
+
+	sssvlv.on_bi.bi_cf_ocs = sssvlv_ocs;
+
+	rc = config_register_schema( sssvlv_cfg, sssvlv_ocs );
+	if ( rc )
+		return rc;
 
 	rc = register_supported_control2( LDAP_CONTROL_SORTREQUEST,
 			SLAP_CTRL_SEARCH,
