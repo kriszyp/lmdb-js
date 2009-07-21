@@ -249,7 +249,7 @@ int connections_timeout_idle(time_t now)
 			i++;
 			continue;
 		}
-		if ( c->c_writewaiter ) {
+		if ( c->c_writewaiter && global_writetimeout ) {
 			writers = 1;
 			if( difftime( c->c_activitytime+global_writetimeout, now) < 0 ) {
 				/* close it */
@@ -260,7 +260,7 @@ int connections_timeout_idle(time_t now)
 		}
 	}
 	connection_done( c );
-	if ( !writers )
+	if ( old && !writers )
 		slapd_clr_writetime( old );
 
 	return i;
