@@ -2325,7 +2325,7 @@ static int
 config_subordinate(ConfigArgs *c)
 {
 	int rc = 1;
-	int advertise;
+	int advertise = 0;
 
 	switch( c->op ) {
 	case SLAP_CONFIG_EMIT:
@@ -2350,10 +2350,37 @@ config_subordinate(ConfigArgs *c)
 		break;
 	case LDAP_MOD_ADD:
 	case SLAP_CONFIG_ADD:
-		advertise = ( c->argc == 2 && !strcasecmp( c->argv[1], "advertise" ));
+		if ( c->be->be_nsuffix == NULL ) {
+			/* log error */
+			snprintf( c->cr_msg, sizeof( c->cr_msg),
+				"subordinate configuration needs a suffix" );
+			Debug( LDAP_DEBUG_ANY,
+				"%s: %s.\n",
+				c->log, c->cr_msg, 0 );
+			rc = 1;
+			break;
+		}
+
+		if ( c->argc == 2 ) {
+			if ( strcasecmp( c->argv[1], "advertise" ) == 0 ) {
+				advertise = 1;
+
+			} else if ( strcasecmp( c->argv[1], "TRUE" ) != 0 ) {
+				/* log error */
+				snprintf( c->cr_msg, sizeof( c->cr_msg),
+					"subordinate must be \"TRUE\" or \"advertise\"" );
+				Debug( LDAP_DEBUG_ANY,
+					"%s: suffix \"%s\": %s.\n",
+					c->log, c->be->be_suffix[0].bv_val, c->cr_msg );
+				rc = 1;
+				break;
+			}
+		}
+
 		rc = glue_sub_add( c->be, advertise, CONFIG_ONLINE_ADD( c ));
 		break;
 	}
+
 	return rc;
 }
 
