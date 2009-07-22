@@ -6626,7 +6626,7 @@ static slap_mrule_defs_rec mrule_defs[] = {
 	{"( 1.3.6.1.4.1.4203.666.11.2.3 NAME 'CSNOrderingMatch' "
 		"SYNTAX 1.3.6.1.4.1.4203.666.11.2.1 )",
 		SLAP_MR_HIDE | SLAP_MR_ORDERING | SLAP_MR_ORDERED_INDEX, NULL,
-		NULL, NULL, csnOrderingMatch,
+		NULL, csnNormalize, csnOrderingMatch,
 		NULL, NULL,
 		"CSNMatch" },
 
