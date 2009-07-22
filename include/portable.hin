@@ -48,6 +48,9 @@
 /* end of portable.h.pre */
 
 
+/* Define if building universal (internal helper macro) */
+#undef AC_APPLE_UNIVERSAL_BUILD
+
 /* define to use both <string.h> and <strings.h> */
 #undef BOTH_STRINGS_H
 
@@ -214,9 +217,6 @@
 /* Define to 1 if you have the <getopt.h> header file. */
 #undef HAVE_GETOPT_H
 
-/* Define to 1 if you have the `getpass' function. */
-#undef HAVE_GETPASS
-
 /* Define to 1 if you have the `getpassphrase' function. */
 #undef HAVE_GETPASSPHRASE
 
@@ -252,18 +252,6 @@
 
 /* Define to 1 if you have the <grp.h> header file. */
 #undef HAVE_GRP_H
-
-/* define if you have GSSAPI */
-#undef HAVE_GSSAPI
-
-/* Define to 1 if you have the <gssapi/gssapi.h> header file. */
-#undef HAVE_GSSAPI_GSSAPI_H
-
-/* Define to 1 if you have the <gssapi.h> header file. */
-#undef HAVE_GSSAPI_H
-
-/* Define to 1 if you have the `gss_oid_to_str' function. */
-#undef HAVE_GSS_OID_TO_STR
 
 /* Define to 1 if you have the `hstrerror' function. */
 #undef HAVE_HSTRERROR
@@ -376,6 +364,9 @@
 /* define this if you have mkversion */
 #undef HAVE_MKVERSION
 
+/* define if you have MozNSS */
+#undef HAVE_MOZNSS
+
 /* Define to 1 if you have the <ndir.h> header file, and it defines `DIR'. */
 #undef HAVE_NDIR_H
 
@@ -384,6 +375,9 @@
 
 /* define if strerror_r returns char* instead of int */
 #undef HAVE_NONPOSIX_STRERROR_R
+
+/* Define to 1 if you have the <nssutil.h> header file. */
+#undef HAVE_NSSUTIL_H
 
 /* if you have NT Event Log */
 #undef HAVE_NT_EVENT_LOG
@@ -396,9 +390,6 @@
 
 /* define if you have OpenSSL */
 #undef HAVE_OPENSSL
-
-/* define if you have MozNSS */
-#undef HAVE_MOZNSS
 
 /* Define to 1 if you have the <openssl/bn.h> header file. */
 #undef HAVE_OPENSSL_BN_H
@@ -813,6 +804,9 @@
 /* define if select implicitly yields */
 #undef HAVE_YIELDING_SELECT
 
+/* Define to 1 if you have the `_vsnprintf' function. */
+#undef HAVE__VSNPRINTF
+
 /* define to 32-bit or greater integer type */
 #undef LBER_INT_T
 
@@ -909,19 +903,19 @@
 /* Define to the type of arg 5 for `select'. */
 #undef SELECT_TYPE_ARG5
 
-/* The size of a `int', as computed by sizeof. */
+/* The size of `int', as computed by sizeof. */
 #undef SIZEOF_INT
 
-/* The size of a `long', as computed by sizeof. */
+/* The size of `long', as computed by sizeof. */
 #undef SIZEOF_LONG
 
-/* The size of a `long long', as computed by sizeof. */
+/* The size of `long long', as computed by sizeof. */
 #undef SIZEOF_LONG_LONG
 
-/* The size of a `short', as computed by sizeof. */
+/* The size of `short', as computed by sizeof. */
 #undef SIZEOF_SHORT
 
-/* The size of a `wchar_t', as computed by sizeof. */
+/* The size of `wchar_t', as computed by sizeof. */
 #undef SIZEOF_WCHAR_T
 
 /* define to support per-object ACIs */
@@ -1080,9 +1074,17 @@
 /* define to use 'long long' for MP */
 #undef USE_MP_LONG_LONG
 
-/* Define to 1 if your processor stores words with the most significant byte
-   first (like Motorola and SPARC, unlike Intel and VAX). */
-#undef WORDS_BIGENDIAN
+/* Define WORDS_BIGENDIAN to 1 if your processor stores words with the most
+   significant byte first (like Motorola and SPARC, unlike Intel). */
+#if defined AC_APPLE_UNIVERSAL_BUILD
+# if defined __BIG_ENDIAN__
+#  define WORDS_BIGENDIAN 1
+# endif
+#else
+# ifndef WORDS_BIGENDIAN
+#  undef WORDS_BIGENDIAN
+# endif
+#endif
 
 /* Define to the type of arg 3 for `accept'. */
 #undef ber_socklen_t
