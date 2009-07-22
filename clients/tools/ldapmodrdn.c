@@ -38,8 +38,8 @@
  * This work was originally developed by the University of Michigan
  * (as part of U-MICH LDAP).  Additional significant contributors
  * include:
- *    Kurt D. Zeilenga
- *    Juan C Gomez
+ *	Kurt D. Zeilenga
+ *	Juan C Gomez
  */
 
 
@@ -68,11 +68,11 @@ static int   remove_old_RDN = 0;
 
 
 static int domodrdn(
-    LDAP	*ld,
-    char	*dn,
-    char	*rdn,
-    char	*newSuperior,
-    int		remove );	/* flag: remove old RDN */
+	LDAP	*ld,
+	char	*dn,
+	char	*rdn,
+	char	*newSuperior,
+	int		remove );	/* flag: remove old RDN */
 
 void
 usage( void )
@@ -83,7 +83,7 @@ usage( void )
 	fprintf( stderr, _("		If not given, the list of modifications is read from stdin or\n"));
 	fprintf( stderr, _("		from the file specified by \"-f file\" (see man page).\n"));
 	fprintf( stderr, _("Rename options:\n"));
-	fprintf( stderr, _("  -r         remove old RDN\n"));
+	fprintf( stderr, _("  -r		 remove old RDN\n"));
 	fprintf( stderr, _("  -s newsup  new superior entry\n"));
 	tool_common_usage();
 	exit( EXIT_FAILURE );
@@ -127,8 +127,8 @@ handle_private_option( int i )
 #endif
 
 	case 'r':	/* remove old RDN */
-	    remove_old_RDN++;
-	    break;
+		remove_old_RDN++;
+		break;
 
 	case 's':	/* newSuperior */
 		if( protocol == LDAP_VERSION2 ) {
@@ -136,9 +136,9 @@ handle_private_option( int i )
 				prog, protocol );
 			exit( EXIT_FAILURE );
 		}
-	    newSuperior = strdup( optarg );
-	    protocol = LDAP_VERSION3;
-	    break;
+		newSuperior = strdup( optarg );
+		protocol = LDAP_VERSION3;
+		break;
 
 	default:
 		return 0;
@@ -150,47 +150,53 @@ handle_private_option( int i )
 int
 main(int argc, char **argv)
 {
-    char		*entrydn = NULL, *rdn = NULL, buf[ 4096 ];
-    FILE		*fp;
-    LDAP		*ld;
+	char		*entrydn = NULL, *rdn = NULL, buf[ 4096 ];
+	FILE		*fp = NULL;
+	LDAP		*ld;
 	int		rc, retval, havedn;
 
-    tool_init( TOOL_MODRDN );
-    prog = lutil_progname( "ldapmodrdn", argc, argv );
+	tool_init( TOOL_MODRDN );
+	prog = lutil_progname( "ldapmodrdn", argc, argv );
 
 	tool_args( argc, argv );
 
-    havedn = 0;
-    if (argc - optind == 2) {
-	if (( rdn = strdup( argv[argc - 1] )) == NULL ) {
-	    perror( "strdup" );
-	    return( EXIT_FAILURE );
+	havedn = 0;
+	if (argc - optind == 2) {
+		if (( rdn = strdup( argv[argc - 1] )) == NULL ) {
+			perror( "strdup" );
+			retval = EXIT_FAILURE;
+			goto fail;
+		}
+		if (( entrydn = strdup( argv[argc - 2] )) == NULL ) {
+			perror( "strdup" );
+			retval = EXIT_FAILURE;
+			goto fail;
+		}
+		++havedn;
+	} else if ( argc - optind != 0 ) {
+		fprintf( stderr, _("%s: invalid number of arguments (%d), only two allowed\n"), prog, argc-optind );
+		usage();
 	}
-        if (( entrydn = strdup( argv[argc - 2] )) == NULL ) {
-	    perror( "strdup" );
-	    return( EXIT_FAILURE );
-        }
-	++havedn;
-    } else if ( argc - optind != 0 ) {
-	fprintf( stderr, _("%s: invalid number of arguments (%d), only two allowed\n"), prog, argc-optind );
-	usage();
-    }
 
-    if ( infile != NULL ) {
-	if (( fp = fopen( infile, "r" )) == NULL ) {
-	    perror( infile );
-	    return( EXIT_FAILURE );
+	if ( infile != NULL ) {
+		if (( fp = fopen( infile, "r" )) == NULL ) {
+			perror( infile );
+			retval = EXIT_FAILURE;
+			goto fail;
+		}
+	} else {
+		fp = stdin;
 	}
-    } else {
-	fp = stdin;
-    }
 
 	ld = tool_conn_setup( 0, 0 );
 
 	if ( pw_file || want_bindpw ) {
 		if ( pw_file ) {
 			rc = lutil_get_filed_password( pw_file, &passwd );
-			if( rc ) return EXIT_FAILURE;
+			if( rc ) {
+				retval = EXIT_FAILURE;
+				goto fail;
+			}
 		} else {
 			passwd.bv_val = getpassphrase( _("Enter LDAP Password: ") );
 			passwd.bv_len = passwd.bv_val ? strlen( passwd.bv_val ) : 0;
@@ -201,50 +207,57 @@ main(int argc, char **argv)
 
 	tool_server_controls( ld, NULL, 0 );
 
-    retval = rc = 0;
-    if (havedn)
-	retval = domodrdn( ld, entrydn, rdn, newSuperior, remove_old_RDN );
-    else while ((rc == 0 || contoper) && fgets(buf, sizeof(buf), fp) != NULL) {
-	if ( *buf != '\n' ) {	/* blank lines optional, skip */
-	    buf[ strlen( buf ) - 1 ] = '\0';	/* remove nl */
+	retval = rc = 0;
+	if (havedn)
+		retval = domodrdn( ld, entrydn, rdn, newSuperior, remove_old_RDN );
+	else while ((rc == 0 || contoper) && fgets(buf, sizeof(buf), fp) != NULL) {
+		if ( *buf != '\n' ) {	/* blank lines optional, skip */
+			buf[ strlen( buf ) - 1 ] = '\0';	/* remove nl */
 
-	    if ( havedn ) {	/* have DN, get RDN */
-		if (( rdn = strdup( buf )) == NULL ) {
-                    perror( "strdup" );
-                    return( EXIT_FAILURE );
+			if ( havedn ) {	/* have DN, get RDN */
+				if (( rdn = strdup( buf )) == NULL ) {
+					perror( "strdup" );
+					retval = EXIT_FAILURE;
+					goto fail;
+				}
+				rc = domodrdn(ld, entrydn, rdn, newSuperior, remove_old_RDN );
+				if ( rc != 0 )
+					retval = rc;
+				havedn = 0;
+				free( rdn ); rdn = NULL;
+				free( entrydn ); entrydn = NULL;
+			} else if ( !havedn ) {	/* don't have DN yet */
+				if (( entrydn = strdup( buf )) == NULL ) {
+					retval = EXIT_FAILURE;
+					goto fail;
+				}
+				++havedn;
+			}
 		}
-		rc = domodrdn(ld, entrydn, rdn, newSuperior, remove_old_RDN );
-		if ( rc != 0 )
-			retval = rc;
-		havedn = 0;
-	    } else if ( !havedn ) {	/* don't have DN yet */
-	        if (( entrydn = strdup( buf )) == NULL ) {
-		    perror( "strdup" );
-		    return( EXIT_FAILURE );
-	        }
-		++havedn;
-	    }
 	}
-    }
 
 	tool_unbind( ld );
 	tool_destroy();
-    return( retval );
+fail:
+	if ( fp && fp != stdin ) fclose( fp );
+	if ( entrydn ) free( entrydn );
+	if ( rdn ) free( rdn );
+	return( retval );
 }
 
 static int domodrdn(
-    LDAP	*ld,
-    char	*dn,
-    char	*rdn,
-    char	*newSuperior,
-    int		remove ) /* flag: remove old RDN */
+	LDAP	*ld,
+	char	*dn,
+	char	*rdn,
+	char	*newSuperior,
+	int		remove ) /* flag: remove old RDN */
 {
 	int rc, code, id;
 	char *matcheddn=NULL, *text=NULL, **refs=NULL;
 	LDAPControl **ctrls = NULL;
 	LDAPMessage *res;
 
-    if ( verbose ) {
+	if ( verbose ) {
 		printf( _("Renaming \"%s\"\n"), dn );
 		printf( _("\tnew rdn=\"%s\" (%s old rdn)\n"),
 			rdn, remove ? _("delete") : _("keep") );
@@ -318,7 +331,7 @@ static int domodrdn(
 	if (ctrls) {
 		tool_print_ctrls( ld, ctrls );
 		ldap_controls_free( ctrls );
-    }
+	}
 
 	ber_memfree( text );
 	ber_memfree( matcheddn );

@@ -5,6 +5,7 @@ OpenLDAP 2.4.18 Engineering
 	Fixed slapd subordinate needs a suffix (ITS#6216)
 	Fixed slapd tools to properly close database (ITS#6214)
 	Fixed slapd-ndb startup (ITS#6203)
+	Fixed tools resource leaks (ITS#6145)
 	Build Environment
 		Fixed test056-monitor with custom ports (ITS#6213)
 
