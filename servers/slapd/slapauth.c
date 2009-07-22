@@ -83,13 +83,15 @@ slapauth( int argc, char **argv )
 	Connection		conn = {0};
 	OperationBuffer	opbuf;
 	Operation		*op;
+	void			*thrctx;
 
 	slap_tool_init( progname, SLAPAUTH, argc, argv );
 
 	argv = &argv[ optind ];
 	argc -= optind;
 
-	connection_fake_init( &conn, &opbuf, &conn );
+	thrctx = ldap_pvt_thread_pool_context();
+	connection_fake_init( &conn, &opbuf, thrctx );
 	op = &opbuf.ob_op;
 
 	conn.c_sasl_bind_mech = mech;
