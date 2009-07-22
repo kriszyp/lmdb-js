@@ -1014,6 +1014,9 @@
 /* define for Sequential Modify overlay */
 #undef SLAPD_OVER_SEQMOD
 
+/* define for ServerSideSort/VLV overlay */
+#undef SLAPD_OVER_SSSVLV
+
 /* define for Syncrepl Provider overlay */
 #undef SLAPD_OVER_SYNCPROV
 

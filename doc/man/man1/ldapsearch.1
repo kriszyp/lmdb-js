@@ -93,13 +93,13 @@ library call.
 opens a connection to an LDAP server, binds, and performs a search
 using specified parameters.   The \fIfilter\fP should conform to
 the string representation for search filters as defined in RFC 4515.
-If not provided, the default filter, (objectClass=*), is used.
+If not provided, the default filter, \fB(objectClass=*)\fP, is used.
 .LP
 If
 .B ldapsearch
 finds one or more entries, the attributes specified by
-\fIattrs\fP are returned.  If * is listed, all user attributes are
-returned.  If + is listed, all operational attributes are returned.
+\fIattrs\fP are returned.  If \fB*\fP is listed, all user attributes are
+returned.  If \fB+\fP is listed, all operational attributes are returned.
 If no \fIattrs\fP are listed, all user attributes are returned.  If only
 1.1 is listed, no attributes will be returned.
 .LP
@@ -109,12 +109,12 @@ Option \fI\-L\fP controls the format of the output.
 .TP
 .B \-n
 Show what would be done, but don't actually perform the search.  Useful for
-debugging in conjunction with -v.
+debugging in conjunction with \fB\-v\fP.
 .TP
 .B \-c
 Continuous operation mode. Errors are reported, but ldapsearch will continue
 with searches. The default is to exit after reporting an error.  Only useful
-in conjunction with -f.
+in conjunction with \fB\-f\fP.
 .TP
 .B \-u
 Include the User Friendly Name form of the Distinguished Name (DN)
@@ -274,13 +274,14 @@ General extensions:
 
 Search extensions:
 .nf
-  [!]domainScope                               (domain scope)
-  [!]mv=<filter>                               (matched values filter)
+  [!]domainScope                       (domain scope)
+  [!]mv=<filter>                       (matched values filter)
   [!]pr=<size>[/prompt|noprompt]       (paged results/prompt)
   [!]sss=[\-]<attr[:OID]>[/[\-]<attr[:OID]>...]  (server side sorting)
   [!]subentries[=true|false]           (subentries)
-  [!]sync=ro[/<cookie>]                        (LDAP Sync refreshOnly)
+  [!]sync=ro[/<cookie>]                (LDAP Sync refreshOnly)
           rp[/<cookie>][/<slimit>]     (LDAP Sync refreshAndPersist)
+  [!]vlv=<before>/<after>(/<offset>/<count>|:<value>)  (virtual list view)
 .fi
 .TP
 .BI \-l \ timelimit

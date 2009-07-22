@@ -93,6 +93,9 @@ extern struct berval	pr_cookie;
 #ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
 extern int		chaining;
 #endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
+extern ber_int_t	vlvPos;
+extern ber_int_t	vlvCount;
+extern struct berval	*vlvContext;
 
 /* options */
 extern struct timeval	nettimeout;

@@ -79,6 +79,9 @@ static struct ldaperror ldap_builtin_errlist[] = {
 	{LDAP_RESULTS_TOO_LARGE,		N_("Results too large")},
 	{LDAP_AFFECTS_MULTIPLE_DSAS,	N_("Operation affects multiple DSAs")},
 
+	/* Virtual List View draft */
+	{LDAP_VLV_ERROR,				N_("Virtual List View error")},
+
 	{LDAP_OTHER, 					N_("Other (e.g., implementation specific) error")},
 
 	{LDAP_CANCELLED,				N_("Cancelled")},
