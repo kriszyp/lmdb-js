@@ -9,8 +9,8 @@ monitorConnectionGet: 2
 monitorConnectionRead: 2
 monitorConnectionWrite: 0
 monitorConnectionMask: rx
-monitorConnectionListener: ldap://localhost:9011/
-monitorConnectionLocalAddress: IP=127.0.0.1:9011
+monitorConnectionListener: ldap://localhost:@PORT1@/
+monitorConnectionLocalAddress: IP=127.0.0.1:@PORT1@
 entryDN: cn=Connection 1,cn=Connections,cn=Monitor
 
 dn: cn=Connections,cn=Monitor

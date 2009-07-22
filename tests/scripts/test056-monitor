@@ -66,7 +66,7 @@ localrewrite='s/=127\.0\.0\.1:/=LOCAL:/; s/=\[::1\]:/=LOCAL:/'
 echo "Filtering ldapsearch results..."
 sed -e "$localrewrite" < $SEARCHOUT   | . $LDIFFILTER > $SEARCHFLT
 echo "Filtering expected data..."
-sed -e "$localrewrite" < $MONITOROUT1 | . $LDIFFILTER > $LDIFFLT
+. $CONFFILTER < $MONITOROUT1 | sed -e "$localrewrite" | . $LDIFFILTER > $LDIFFLT
 echo "Comparing filter output..."
 $CMP $SEARCHFLT $LDIFFLT > $CMPOUT
 
