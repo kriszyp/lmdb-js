@@ -73,6 +73,7 @@ slapacl( int argc, char **argv )
 	char			*attr = NULL;
 	int			doclose = 0;
 	BackendDB		*bd;
+	void			*thrctx;
 
 	slap_tool_init( progname, SLAPACL, argc, argv );
 
@@ -96,7 +97,8 @@ slapacl( int argc, char **argv )
 	argv = &argv[ optind ];
 	argc -= optind;
 
-	connection_fake_init( &conn, &opbuf, &conn );
+	thrctx = ldap_pvt_thread_pool_context();
+	connection_fake_init( &conn, &opbuf, thrctx );
 	op = &opbuf.ob_op;
 	op->o_tmpmemctx = NULL;
 

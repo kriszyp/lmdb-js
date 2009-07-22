@@ -49,6 +49,7 @@ slapschema( int argc, char **argv )
 	Connection conn = { 0 };
 	OperationBuffer	opbuf;
 	Operation *op = NULL;
+	void *thrctx;
 
 	slap_tool_init( progname, SLAPCAT, argc, argv );
 
@@ -78,7 +79,8 @@ slapschema( int argc, char **argv )
 		exit( EXIT_FAILURE );
 	}
 
-	connection_fake_init( &conn, &opbuf, &conn );
+	thrctx = ldap_pvt_thread_pool_context();
+	connection_fake_init( &conn, &opbuf, thrctx );
 	op = &opbuf.ob_op;
 	op->o_tmpmemctx = NULL;
 	op->o_bd = be;
