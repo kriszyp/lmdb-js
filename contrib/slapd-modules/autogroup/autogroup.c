@@ -2,6 +2,7 @@
 /* $OpenLDAP$ */
 /*
  * Copyright 2007 Michał Szulczyński.
+ * Portions Copyright 2009 Howard Chu.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -55,6 +56,7 @@ typedef struct autogroup_entry_t {
 typedef struct autogroup_info_t {
 	autogroup_def_t		*agi_def;	/* Group attributes definitions. */
 	autogroup_entry_t	*agi_entry;	/* Group entries.  */
+	ldap_pvt_thread_mutex_t agi_mutex;
 } autogroup_info_t;
 
 /* Search callback for adding groups initially. */
@@ -530,6 +532,8 @@ autogroup_add_entry( Operation *op, SlapReply *rs)
 	Debug( LDAP_DEBUG_TRACE, "==> autogroup_add_entry <%s>\n", 
 		op->ora_e->e_name.bv_val, 0, 0);
 
+	ldap_pvt_thread_mutex_lock( &agi->agi_mutex );		
+
 	/* Check if it's a group. */
 	for ( ; agd ; agd = agd->agd_next ) {
 		if ( is_entry_objectclass_or_sub( op->ora_e, agd->agd_oc ) ) {
@@ -547,6 +551,7 @@ autogroup_add_entry( Operation *op, SlapReply *rs)
 			modify_delete_values( op->ora_e, &mod, /* permissive */ 1, &text, textbuf, sizeof( textbuf ) );
 
 			autogroup_add_group( op, agi, agd, op->ora_e, NULL, 1 , 0);
+			ldap_pvt_thread_mutex_unlock( &agi->agi_mutex );		
 			return SLAP_CB_CONTINUE;
 		}
 	}
@@ -568,6 +573,8 @@ autogroup_add_entry( Operation *op, SlapReply *rs)
 		}
 		ldap_pvt_thread_mutex_unlock( &age->age_mutex );		
 	}
+
+	ldap_pvt_thread_mutex_unlock( &agi->agi_mutex );		
 
 	return SLAP_CB_CONTINUE;
 }
@@ -641,9 +648,12 @@ autogroup_delete_entry( Operation *op, SlapReply *rs)
 
 	Debug( LDAP_DEBUG_TRACE, "==> autogroup_delete_entry <%s>\n", op->o_req_dn.bv_val, 0, 0);
 
+	ldap_pvt_thread_mutex_lock( &agi->agi_mutex );
+
 	if ( overlay_entry_get_ov( op, &op->o_req_ndn, NULL, NULL, 0, &e, on ) !=
 		LDAP_SUCCESS || e == NULL ) {
 		Debug( LDAP_DEBUG_TRACE, "autogroup_delete_entry: cannot get entry for <%s>\n", op->o_req_dn.bv_val, 0, 0);
+		ldap_pvt_thread_mutex_unlock( &agi->agi_mutex );			
 		return SLAP_CB_CONTINUE;
 	}
 
@@ -670,6 +680,7 @@ autogroup_delete_entry( Operation *op, SlapReply *rs)
 
 	if ( matched_group == 1 ) {
 		overlay_entry_release_ov( op, e, 0, on );
+		ldap_pvt_thread_mutex_unlock( &agi->agi_mutex );		
 		return SLAP_CB_CONTINUE;
 	}
 
@@ -692,6 +703,7 @@ autogroup_delete_entry( Operation *op, SlapReply *rs)
 	}
 
 	overlay_entry_release_ov( op, e, 0, on );
+	ldap_pvt_thread_mutex_unlock( &agi->agi_mutex );		
 
 	return SLAP_CB_CONTINUE;
 }
@@ -714,6 +726,8 @@ autogroup_response( Operation *op, SlapReply *rs )
 
 			Debug( LDAP_DEBUG_TRACE, "==> autogroup_response MODRDN from <%s>\n", op->o_req_dn.bv_val, 0, 0);
 
+			ldap_pvt_thread_mutex_lock( &agi->agi_mutex );			
+
 			if ( op->oq_modrdn.rs_newSup ) {
 				pdn = *op->oq_modrdn.rs_newSup;
 			} else {
@@ -735,6 +749,7 @@ autogroup_response( Operation *op, SlapReply *rs )
 			if ( overlay_entry_get_ov( op, &new_ndn, NULL, NULL, 0, &e, on ) !=
 				LDAP_SUCCESS || e == NULL ) {
 				Debug( LDAP_DEBUG_TRACE, "autogroup_response MODRDN cannot get entry for <%s>\n", new_dn.bv_val, 0, 0);
+				ldap_pvt_thread_mutex_unlock( &agi->agi_mutex );
 				return SLAP_CB_CONTINUE;
 			}
 
@@ -744,6 +759,7 @@ autogroup_response( Operation *op, SlapReply *rs )
 			if ( a == NULL ) {
 				Debug( LDAP_DEBUG_TRACE, "autogroup_response MODRDN entry <%s> has no objectClass\n", new_dn.bv_val, 0, 0);
 				overlay_entry_release_ov( op, e, 0, on );
+				ldap_pvt_thread_mutex_unlock( &agi->agi_mutex );		
 				return SLAP_CB_CONTINUE;
 			}
 
@@ -769,6 +785,7 @@ autogroup_response( Operation *op, SlapReply *rs )
 							op->o_tmpfree( new_dn.bv_val, op->o_tmpmemctx  );
 							op->o_tmpfree( new_ndn.bv_val, op->o_tmpmemctx );
 							overlay_entry_release_ov( op, e, 0, on );
+							ldap_pvt_thread_mutex_unlock( &agi->agi_mutex );		
 							return SLAP_CB_CONTINUE;
 						}
 					}
@@ -803,6 +820,7 @@ autogroup_response( Operation *op, SlapReply *rs )
 					op->o_tmpfree( new_ndn.bv_val, op->o_tmpmemctx );
 
 					ldap_pvt_thread_mutex_unlock( &age->age_mutex );
+					ldap_pvt_thread_mutex_unlock( &agi->agi_mutex );
 					return SLAP_CB_CONTINUE;
 				}
 
@@ -850,6 +868,8 @@ autogroup_response( Operation *op, SlapReply *rs )
 
 			op->o_tmpfree( new_dn.bv_val, op->o_tmpmemctx );
 			op->o_tmpfree( new_ndn.bv_val, op->o_tmpmemctx );
+
+			ldap_pvt_thread_mutex_unlock( &agi->agi_mutex );			
 		}
 	}
 
@@ -857,9 +877,12 @@ autogroup_response( Operation *op, SlapReply *rs )
 		if ( rs->sr_type == REP_RESULT && rs->sr_err == LDAP_SUCCESS  && !get_manageDSAit( op ) ) {
 			Debug( LDAP_DEBUG_TRACE, "==> autogroup_response MODIFY <%s>\n", op->o_req_dn.bv_val, 0, 0);
 
+			ldap_pvt_thread_mutex_lock( &agi->agi_mutex );			
+
 			if ( overlay_entry_get_ov( op, &op->o_req_ndn, NULL, NULL, 0, &e, on ) !=
 				LDAP_SUCCESS || e == NULL ) {
 				Debug( LDAP_DEBUG_TRACE, "autogroup_response MODIFY cannot get entry for <%s>\n", op->o_req_dn.bv_val, 0, 0);
+				ldap_pvt_thread_mutex_unlock( &agi->agi_mutex );
 				return SLAP_CB_CONTINUE;
 			}
 
@@ -869,6 +892,7 @@ autogroup_response( Operation *op, SlapReply *rs )
 			if ( a == NULL ) {
 				Debug( LDAP_DEBUG_TRACE, "autogroup_response MODIFY entry <%s> has no objectClass\n", op->o_req_dn.bv_val, 0, 0);
 				overlay_entry_release_ov( op, e, 0, on );
+				ldap_pvt_thread_mutex_unlock( &agi->agi_mutex );		
 				return SLAP_CB_CONTINUE;
 			}
 
@@ -907,6 +931,7 @@ autogroup_response( Operation *op, SlapReply *rs )
 
 									autogroup_add_group( op, agi, group_agd, NULL, &op->o_req_ndn, 1, 1);
 
+									ldap_pvt_thread_mutex_unlock( &agi->agi_mutex );
 									return SLAP_CB_CONTINUE;
 								}
 							}
@@ -919,6 +944,7 @@ autogroup_response( Operation *op, SlapReply *rs )
 					}
 
 					overlay_entry_release_ov( op, e, 0, on );
+					ldap_pvt_thread_mutex_unlock( &agi->agi_mutex );
 					return SLAP_CB_CONTINUE;
 				}
 			}
@@ -947,6 +973,7 @@ autogroup_response( Operation *op, SlapReply *rs )
 						age->age_dn.bv_val, 0, 0);
 
 					ldap_pvt_thread_mutex_unlock( &age->age_mutex );
+					ldap_pvt_thread_mutex_unlock( &agi->agi_mutex );
 					return SLAP_CB_CONTINUE;
 				}
 
@@ -983,6 +1010,8 @@ autogroup_response( Operation *op, SlapReply *rs )
 
 				ldap_pvt_thread_mutex_unlock( &age->age_mutex );
 			}
+
+			ldap_pvt_thread_mutex_unlock( &agi->agi_mutex );
 		}
 	}
 
@@ -1008,10 +1037,12 @@ autogroup_modify_entry( Operation *op, SlapReply *rs)
 	}
 
 	Debug( LDAP_DEBUG_TRACE, "==> autogroup_modify_entry <%s>\n", op->o_req_dn.bv_val, 0, 0);
+	ldap_pvt_thread_mutex_lock( &agi->agi_mutex );			
 
 	if ( overlay_entry_get_ov( op, &op->o_req_ndn, NULL, NULL, 0, &e, on ) !=
 		LDAP_SUCCESS || e == NULL ) {
 		Debug( LDAP_DEBUG_TRACE, "autogroup_modify_entry cannot get entry for <%s>\n", op->o_req_dn.bv_val, 0, 0);
+		ldap_pvt_thread_mutex_unlock( &agi->agi_mutex );
 		return SLAP_CB_CONTINUE;
 	}
 
@@ -1019,6 +1050,7 @@ autogroup_modify_entry( Operation *op, SlapReply *rs)
 
 	if ( a == NULL ) {
 		Debug( LDAP_DEBUG_TRACE, "autogroup_modify_entry entry <%s> has no objectClass\n", op->o_req_dn.bv_val, 0, 0);
+		ldap_pvt_thread_mutex_unlock( &agi->agi_mutex );		
 		return SLAP_CB_CONTINUE;
 	}
 
@@ -1043,6 +1075,7 @@ autogroup_modify_entry( Operation *op, SlapReply *rs)
 					for ( ; m ; m = m->sml_next ) {
 						if ( m->sml_desc == age->age_def->agd_member_ad ) {
 							overlay_entry_release_ov( op, e, 0, on );
+							ldap_pvt_thread_mutex_unlock( &agi->agi_mutex );
 							Debug( LDAP_DEBUG_TRACE, "autogroup_modify_entry attempted to modify group's <%s> member attribute\n", op->o_req_dn.bv_val, 0, 0);
 							send_ldap_error(op, rs, LDAP_CONSTRAINT_VIOLATION, "attempt to modify dynamic group member attribute");
 							return LDAP_CONSTRAINT_VIOLATION;
@@ -1053,11 +1086,13 @@ autogroup_modify_entry( Operation *op, SlapReply *rs)
 			}
 
 			overlay_entry_release_ov( op, e, 0, on );
+			ldap_pvt_thread_mutex_unlock( &agi->agi_mutex );
 			return SLAP_CB_CONTINUE;
 		}
 	}
 
 	overlay_entry_release_ov( op, e, 0, on );
+	ldap_pvt_thread_mutex_unlock( &agi->agi_mutex );			
 	return SLAP_CB_CONTINUE;
 }
 
@@ -1134,6 +1169,7 @@ ag_cfgen( ConfigArgs *c )
 
 	if( agi == NULL ) {
 		agi = (autogroup_info_t*)ch_calloc( 1, sizeof(autogroup_info_t) );
+		ldap_pvt_thread_mutex_init( &agi->agi_mutex );
 		agi->agi_def = NULL;
 		agi->agi_entry = NULL;
 		on->on_bi.bi_private = (void *)agi;
@@ -1143,6 +1179,8 @@ ag_cfgen( ConfigArgs *c )
 	age = agi->agi_entry;
 
 	if ( c->op == SLAP_CONFIG_EMIT ) {
+
+		ldap_pvt_thread_mutex_lock( &agi->agi_mutex );
 
 		for ( i = 0 ; agd ; i++, agd = agd->agd_next ) {
 			struct berval	bv;
@@ -1163,6 +1201,8 @@ ag_cfgen( ConfigArgs *c )
 			value_add_one ( &c->rvalue_vals, &bv );
 
 		}
+		ldap_pvt_thread_mutex_unlock( &agi->agi_mutex );
+
 		return rc;
 
 	}else if ( c->op == LDAP_MOD_DELETE ) {
@@ -1171,6 +1211,8 @@ ag_cfgen( ConfigArgs *c )
 			autogroup_entry_t	*age_next;
 			autogroup_filter_t	*agf = age->age_filter,
 						*agf_next;
+
+			ldap_pvt_thread_mutex_lock( &agi->agi_mutex );
 
 			for ( agd_next = agd; agd_next; agd = agd_next ) {
 				agd_next = agd->agd_next;
@@ -1196,6 +1238,10 @@ ag_cfgen( ConfigArgs *c )
 				ldap_pvt_thread_mutex_init( &age->age_mutex );
 				ch_free( age );
 			}
+
+			ldap_pvt_thread_mutex_unlock( &agi->agi_mutex );
+
+			ldap_pvt_thread_mutex_destroy( &agi->agi_mutex );
 			ch_free( agi );
 			on->on_bi.bi_private = NULL;
 
@@ -1204,6 +1250,8 @@ ag_cfgen( ConfigArgs *c )
 			autogroup_entry_t	*age_next, *age_prev;
 			autogroup_filter_t	*agf,
 						*agf_next;
+
+			ldap_pvt_thread_mutex_lock( &agi->agi_mutex );
 
 			for ( i = 0, agdp = &agi->agi_def;
 				i < c->valx; i++ ) 
@@ -1247,6 +1295,8 @@ ag_cfgen( ConfigArgs *c )
 
 			ch_free( agd );
 			agd = agi->agi_def;
+			ldap_pvt_thread_mutex_unlock( &agi->agi_mutex );
+
 		}
 
 		return rc;
@@ -1307,6 +1357,8 @@ ag_cfgen( ConfigArgs *c )
 			return 1;
 		}
 
+		ldap_pvt_thread_mutex_lock( &agi->agi_mutex );
+
 		for ( agdp = &agi->agi_def ; *agdp ; agdp = &(*agdp)->agd_next ) {
 			/* The same URL attribute / member attribute pair
 			* cannot be repeated */
@@ -1335,6 +1387,8 @@ ag_cfgen( ConfigArgs *c )
 						c->valx );
 					Debug( LDAP_DEBUG_ANY, "%s: %s.\n",
 						c->log, c->cr_msg, 0 );
+
+					ldap_pvt_thread_mutex_unlock( &agi->agi_mutex );		
 					return 1;
 				}
 				agdp = &(*agdp)->agd_next;
@@ -1353,6 +1407,8 @@ ag_cfgen( ConfigArgs *c )
 		(*agdp)->agd_member_url_ad = member_url_ad;
 		(*agdp)->agd_member_ad = member_ad;
 		(*agdp)->agd_next = agd_next;
+
+		ldap_pvt_thread_mutex_unlock( &agi->agi_mutex );
 
 		} break;
 
@@ -1492,6 +1548,7 @@ autogroup_db_destroy(
 			ch_free( agd );
 		}
 
+		ldap_pvt_thread_mutex_destroy( &agi->agi_mutex );
 		ch_free( agi );
 	}
 
