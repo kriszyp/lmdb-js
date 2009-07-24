@@ -47,6 +47,7 @@ typedef struct unique_domain_uri_s {
 	struct berval dn;
 	struct berval ndn;
 	struct berval filter;
+	Filter *f;
 	struct unique_attrs_s *attrs;
 	int scope;
 } unique_domain_uri;
@@ -141,6 +142,7 @@ unique_free_domain_uri ( unique_domain_uri *uri )
 		ch_free ( uri->dn.bv_val );
 		ch_free ( uri->ndn.bv_val );
 		ch_free ( uri->filter.bv_val );
+		filter_free( uri->f );
 		attr = uri->attrs;
 		while ( attr ) {
 			next_attr = attr->next;
@@ -214,6 +216,13 @@ unique_new_domain_uri ( unique_domain_uri **urip,
 			rc = ARG_BAD_CONF;
 			goto exit;
 		}
+
+		if ( BER_BVISNULL( &be->be_rootndn ) || BER_BVISEMPTY( &be->be_rootndn ) ) {
+			Debug( LDAP_DEBUG_ANY,
+				"slapo-unique needs a rootdn; "
+				"backend <%s> has none, YMMV.\n",
+				be->be_nsuffix[0].bv_val, 0, 0 );
+		}
 	}
 
 	attr_str = url_desc->lud_attrs;
@@ -247,17 +256,16 @@ unique_new_domain_uri ( unique_domain_uri **urip,
 	}
 
 	if (url_desc->lud_filter) {
-		Filter *f = str2filter( url_desc->lud_filter );
+		uri->f = str2filter( url_desc->lud_filter );
 		char *ptr;
-		if ( !f ) {
+		if ( !uri->f ) {
 			snprintf( c->cr_msg, sizeof( c->cr_msg ),
 				  "unique: bad filter");
 			rc = ARG_BAD_CONF;
 			goto exit;
 		}
 		/* make sure the strfilter is in normal form (ITS#5581) */
-		filter2bv( f, &uri->filter );
-		filter_free( f );
+		filter2bv( uri->f, &uri->filter );
 		ptr = strstr( uri->filter.bv_val, "(?=" /*)*/ );
 		if ( ptr != NULL && ptr <= ( uri->filter.bv_val - STRLENOF( "(?=" /*)*/ ) + uri->filter.bv_len ) )
 		{
@@ -457,6 +465,13 @@ unique_cf_base( ConfigArgs *c )
 		break;
 	default:
 		abort();
+	}
+
+	if ( rc ) {
+		ch_free( c->value_dn.bv_val );
+		BER_BVZERO( &c->value_dn );
+		ch_free( c->value_ndn.bv_val );
+		BER_BVZERO( &c->value_ndn );
 	}
 
 	return rc;
@@ -1070,6 +1085,17 @@ unique_add(
 			if ( uri->ndn.bv_val
 			     && !dnIsSuffix( &op->o_req_ndn, &uri->ndn ))
 				continue;
+
+			if ( uri->f ) {
+				if ( test_filter( NULL, op->ora_e, uri->f )
+					== LDAP_COMPARE_FALSE )
+				{
+					Debug( LDAP_DEBUG_TRACE,
+						"==> unique_add_skip<%s>\n",
+						op->o_req_dn.bv_val, 0, 0 );
+					continue;
+				}
+			}
 
 			if(!(a = op->ora_e->e_attrs)) {
 				op->o_bd->bd_info = (BackendInfo *) on->on_info;
