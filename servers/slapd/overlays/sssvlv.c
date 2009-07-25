@@ -339,7 +339,7 @@ static void free_sort_op( Connection *conn, sort_op *so )
 	ch_free( so );
 }
 
-static int send_list(
+static void send_list(
 	Operation		*op,
 	SlapReply		*rs,
 	sort_op			*so)
@@ -1104,12 +1104,13 @@ static int sssvlv_db_open(
 {
 	slap_overinst	*on = (slap_overinst *)be->bd_info;
 	sssvlv_info *si = on->on_bi.bi_private;
+	int rc;
 
 	/* If not set, default to 1/2 of available threads */
 	if ( !si->svi_max )
 		si->svi_max = connection_pool_max / 2;
 
-	int rc = overlay_register_control( be, LDAP_CONTROL_SORTREQUEST );
+	rc = overlay_register_control( be, LDAP_CONTROL_SORTREQUEST );
 	if ( rc == LDAP_SUCCESS )
 		rc = overlay_register_control( be, LDAP_CONTROL_VLVREQUEST );
 	return rc;
