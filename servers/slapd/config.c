@@ -481,7 +481,7 @@ config_get_vals(ConfigTable *cf, ConfigArgs *c)
 		case ARG_INT: bv.bv_len = snprintf(bv.bv_val, sizeof( c->log ), "%d", c->value_int); break;
 		case ARG_UINT: bv.bv_len = snprintf(bv.bv_val, sizeof( c->log ), "%u", c->value_uint); break;
 		case ARG_LONG: bv.bv_len = snprintf(bv.bv_val, sizeof( c->log ), "%ld", c->value_long); break;
-		case ARG_ULONG: bv.bv_len = snprintf(bv.bv_val, sizeof( c->log ), "%lud", c->value_ulong); break;
+		case ARG_ULONG: bv.bv_len = snprintf(bv.bv_val, sizeof( c->log ), "%lu", c->value_ulong); break;
 		case ARG_BER_LEN_T: bv.bv_len = snprintf(bv.bv_val, sizeof( c->log ), "%ld", c->value_ber_t); break;
 		case ARG_ON_OFF: bv.bv_len = snprintf(bv.bv_val, sizeof( c->log ), "%s",
 			c->value_int ? "TRUE" : "FALSE"); break;
