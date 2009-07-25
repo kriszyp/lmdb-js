@@ -34,6 +34,8 @@
 #include "lutil.h"
 #include "config.h"
 
+#include "../../../libraries/liblber/lber-int.h"	/* ber_rewind */
+
 /* RFC2891: Server Side Sorting
  * RFC2696: Paged Results
  */
@@ -76,7 +78,7 @@ typedef struct sort_key
 
 typedef struct sort_ctrl {
 	int sc_nkeys;
-	sort_key sc_keys[0];
+	sort_key sc_keys[1];
 } sort_ctrl;
 
 
@@ -1000,7 +1002,7 @@ static int sss_parseCtrl(
 	i = count_key( ber );
 
 	sc = op->o_tmpalloc( sizeof(sort_ctrl) +
-		i * sizeof(sort_key), op->o_tmpmemctx );
+		(i-1) * sizeof(sort_key), op->o_tmpmemctx );
 	sc->sc_nkeys = i;
 	op->o_controls[sss_cid] = sc;
 
