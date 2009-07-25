@@ -125,12 +125,12 @@ typedef struct bdb_cache {
 	EntryInfo	*c_lruhead;	/* lru - add accessed entries here */
 	EntryInfo	*c_lrutail;	/* lru - rem lru entries from here */
 	EntryInfo	c_dntree;
-	unsigned	c_maxsize;
-	int		c_cursize;
-	unsigned	c_minfree;
-	unsigned	c_eimax;
-	int		c_eiused;	/* EntryInfo's in use */
-	int		c_leaves;	/* EntryInfo leaf nodes */
+	ID		c_maxsize;
+	ID		c_cursize;
+	ID		c_minfree;
+	ID		c_eimax;
+	ID		c_eiused;	/* EntryInfo's in use */
+	ID		c_leaves;	/* EntryInfo leaf nodes */
 	int		c_purging;
 	DB_TXN	*c_txn;	/* used by lru cleaner */
 	ldap_pvt_thread_rdwr_t c_rwlock;
@@ -204,8 +204,8 @@ struct bdb_info {
 
 	ID			bi_lastid;
 	ldap_pvt_thread_mutex_t	bi_lastid_mutex;
-	unsigned	bi_idl_cache_max_size;
-	int		bi_idl_cache_size;
+	ID	bi_idl_cache_max_size;
+	ID		bi_idl_cache_size;
 	Avlnode		*bi_idl_tree;
 	bdb_idl_cache_entry_t	*bi_idl_lru_head;
 	bdb_idl_cache_entry_t	*bi_idl_lru_tail;

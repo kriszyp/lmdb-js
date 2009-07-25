@@ -158,17 +158,17 @@ bdb_monitor_update(
 	a = attr_find( e->e_attrs, ad_olmBDBEntryCache );
 	assert( a != NULL );
 	bv.bv_val = buf;
-	bv.bv_len = snprintf( buf, sizeof( buf ), "%d", bdb->bi_cache.c_cursize );
+	bv.bv_len = snprintf( buf, sizeof( buf ), "%lud", bdb->bi_cache.c_cursize );
 	ber_bvreplace( &a->a_vals[ 0 ], &bv );
 
 	a = attr_find( e->e_attrs, ad_olmBDBDNCache );
 	assert( a != NULL );
-	bv.bv_len = snprintf( buf, sizeof( buf ), "%d", bdb->bi_cache.c_eiused );
+	bv.bv_len = snprintf( buf, sizeof( buf ), "%lud", bdb->bi_cache.c_eiused );
 	ber_bvreplace( &a->a_vals[ 0 ], &bv );
 
 	a = attr_find( e->e_attrs, ad_olmBDBIDLCache );
 	assert( a != NULL );
-	bv.bv_len = snprintf( buf, sizeof( buf ), "%d", bdb->bi_idl_cache_size );
+	bv.bv_len = snprintf( buf, sizeof( buf ), "%lud", bdb->bi_idl_cache_size );
 	ber_bvreplace( &a->a_vals[ 0 ], &bv );
 	
 #ifdef BDB_MONITOR_IDX

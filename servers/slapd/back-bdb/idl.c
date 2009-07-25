@@ -376,7 +376,7 @@ bdb_idl_cache_put(
 	}
 	bdb->bi_idl_lru_head = ee;
 
-	if ( ++bdb->bi_idl_cache_size > bdb->bi_idl_cache_max_size ) {
+	if ( bdb->bi_idl_cache_size >= bdb->bi_idl_cache_max_size ) {
 		int i;
 		ee = bdb->bi_idl_lru_tail;
 		for ( i = 0; ee != NULL && i < 10; i++, ee = eprev ) {
@@ -405,6 +405,7 @@ bdb_idl_cache_put(
 		assert( bdb->bi_idl_lru_tail != NULL
 			|| bdb->bi_idl_lru_head == NULL );
 	}
+	bdb->bi_idl_cache_size++;
 	ldap_pvt_thread_mutex_unlock( &bdb->bi_idl_tree_lrulock );
 	ldap_pvt_thread_rdwr_wunlock( &bdb->bi_idl_tree_rwlock );
 }
