@@ -594,29 +594,33 @@ int ad_inlist(
 		 * else if requested description is !objectClass, return
 		 * attributes which the class does not require/allow
 		 */
-		oc = attrs->an_oc;
-		if( oc == NULL && attrs->an_name.bv_val ) {
-			switch( attrs->an_name.bv_val[0] ) {
-			case '@': /* @objectClass */
-			case '+': /* +objectClass (deprecated) */
-			case '!': { /* exclude */
-					struct berval ocname;
-					ocname.bv_len = attrs->an_name.bv_len - 1;
-					ocname.bv_val = &attrs->an_name.bv_val[1];
-					oc = oc_bvfind( &ocname );
-					attrs->an_oc_exclude = 0;
-					if ( oc && attrs->an_name.bv_val[0] == '!' ) {
-						attrs->an_oc_exclude = 1;
-					}
-				} break;
+		if ( !( attrs->an_flags & SLAP_AN_OCINITED )) {
+			if( attrs->an_name.bv_val ) {
+				switch( attrs->an_name.bv_val[0] ) {
+				case '@': /* @objectClass */
+				case '+': /* +objectClass (deprecated) */
+				case '!': { /* exclude */
+						struct berval ocname;
+						ocname.bv_len = attrs->an_name.bv_len - 1;
+						ocname.bv_val = &attrs->an_name.bv_val[1];
+						oc = oc_bvfind( &ocname );
+						if ( oc && attrs->an_name.bv_val[0] == '!' ) {
+							attrs->an_flags |= SLAP_AN_OCEXCLUDE;
+						} else {
+							attrs->an_flags &= ~SLAP_AN_OCEXCLUDE;
+						}
+					} break;
 
-			default: /* old (deprecated) way */
-				oc = oc_bvfind( &attrs->an_name );
+				default: /* old (deprecated) way */
+					oc = oc_bvfind( &attrs->an_name );
+				}
+				attrs->an_oc = oc;
 			}
-			attrs->an_oc = oc;
+			attrs->an_flags |= SLAP_AN_OCINITED;
 		}
+		oc = attrs->an_oc;
 		if( oc != NULL ) {
-			if ( attrs->an_oc_exclude ) {
+			if ( attrs->an_flags & SLAP_AN_OCEXCLUDE ) {
 				if ( oc == slap_schema.si_oc_extensibleObject ) {
 					/* extensibleObject allows the return of anything */
 					return 0;
@@ -932,7 +936,7 @@ str2anlist( AttributeName *an, char *in, const char *brkstr )
 
 		anew->an_desc = NULL;
 		anew->an_oc = NULL;
-		anew->an_oc_exclude = 0;
+		anew->an_flags = 0;
 		ber_str2bv(s, 0, 1, &anew->an_name);
 		slap_bv2ad(&anew->an_name, &anew->an_desc, &text);
 		if ( !anew->an_desc ) {
@@ -959,7 +963,7 @@ str2anlist( AttributeName *an, char *in, const char *brkstr )
 					}
 
 					if ( anew->an_name.bv_val[0] == '!' ) {
-						anew->an_oc_exclude = 1;
+						anew->an_flags |= SLAP_AN_OCEXCLUDE;
 					}
 				} break;
 
@@ -971,6 +975,7 @@ str2anlist( AttributeName *an, char *in, const char *brkstr )
 				}
 			}
 		}
+		anew->an_flags |= SLAP_AN_OCINITED;
 		anew++;
 	}
 

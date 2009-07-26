@@ -152,7 +152,7 @@ do_search(
 		const char *dummy;	/* ignore msgs from bv2ad */
 		op->ors_attrs[i].an_desc = NULL;
 		op->ors_attrs[i].an_oc = NULL;
-		op->ors_attrs[i].an_oc_exclude = 0;
+		op->ors_attrs[i].an_flags = 0;
 		if ( slap_bv2ad( &op->ors_attrs[i].an_name,
 			&op->ors_attrs[i].an_desc, &dummy ) != LDAP_SUCCESS )
 		{

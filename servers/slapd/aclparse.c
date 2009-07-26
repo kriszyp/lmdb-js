@@ -2774,7 +2774,7 @@ acl_unparse( AccessControl *a, struct berval *bv )
 		for ( an = a->acl_attrs; an && !BER_BVISNULL( &an->an_name ); an++ ) {
 			if ( ! first ) *ptr++ = ',';
 			if (an->an_oc) {
-				*ptr++ = an->an_oc_exclude ? '!' : '@';
+				*ptr++ = ( an->an_flags & SLAP_AN_OCEXCLUDE ) ? '!' : '@';
 				ptr = lutil_strcopy( ptr, an->an_oc->soc_cname.bv_val );
 
 			} else {

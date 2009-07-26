@@ -842,10 +842,13 @@ struct AttributeDescription {
 #define SLAP_AD_PROXIED		0x01U
 #define	SLAP_AD_NOINSERT	0x02U
 
+#define	SLAP_AN_OCEXCLUDE	0x01
+#define	SLAP_AN_OCINITED	0x02
+
 struct AttributeName {
 	struct berval		an_name;
 	AttributeDescription	*an_desc;
-	int			an_oc_exclude;
+	int			an_flags;
 	ObjectClass		*an_oc;
 };
 
