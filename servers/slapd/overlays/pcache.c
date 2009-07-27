@@ -1605,7 +1605,7 @@ filter2template(
 		(*filter_attrs)[*filter_cnt].an_desc = ad;
 		(*filter_attrs)[*filter_cnt].an_name = ad->ad_cname;
 		(*filter_attrs)[*filter_cnt].an_oc = NULL;
-		(*filter_attrs)[*filter_cnt].an_oc_exclude = 0;
+		(*filter_attrs)[*filter_cnt].an_flags = 0;
 		BER_BVZERO( &(*filter_attrs)[*filter_cnt+1].an_name );
 		(*filter_cnt)++;
 		if ( ad == slap_schema.si_ad_objectClass )
@@ -2202,14 +2202,14 @@ add_filter_attrs(
 		(*new_attrs)[j].an_name = filter_attrs[i].an_name;
 		(*new_attrs)[j].an_desc = filter_attrs[i].an_desc;
 		(*new_attrs)[j].an_oc = NULL;
-		(*new_attrs)[j].an_oc_exclude = 0;
+		(*new_attrs)[j].an_flags = 0;
 		j++;
 	}
 	if ( addoc ) {
 		(*new_attrs)[j].an_name = slap_schema.si_ad_objectClass->ad_cname;
 		(*new_attrs)[j].an_desc = slap_schema.si_ad_objectClass;
 		(*new_attrs)[j].an_oc = NULL;
-		(*new_attrs)[j].an_oc_exclude = 0;
+		(*new_attrs)[j].an_flags = 0;
 		j++;
 	}
 	BER_BVZERO( &(*new_attrs)[j].an_name );
@@ -3039,7 +3039,7 @@ pc_cf_gen( ConfigArgs *c )
 					attr_name->an_name = attr_name->an_desc->ad_cname;
 				}
 				attr_name->an_oc = NULL;
-				attr_name->an_oc_exclude = 0;
+				attr_name->an_flags = 0;
 				if ( attr_name->an_desc == slap_schema.si_ad_objectClass )
 					qm->attr_sets[num].flags |= PC_GOT_OC;
 				attr_name++;

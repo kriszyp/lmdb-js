@@ -1414,7 +1414,7 @@ parseReadAttrs(
 
 		an[i].an_desc = NULL;
 		an[i].an_oc = NULL;
-		an[i].an_oc_exclude = 0;
+		an[i].an_flags = 0;
 		rc = slap_bv2ad( &an[i].an_name, &an[i].an_desc, &dummy );
 		if ( rc == LDAP_SUCCESS ) {
 			an[i].an_name = an[i].an_desc->ad_cname;
