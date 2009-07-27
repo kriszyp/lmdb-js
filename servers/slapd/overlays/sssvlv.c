@@ -34,6 +34,8 @@
 #include "lutil.h"
 #include "config.h"
 
+#include "../../../libraries/liblber/lber-int.h"	/* ber_rewind */
+
 /* RFC2891: Server Side Sorting
  * RFC2696: Paged Results
  */
@@ -76,7 +78,7 @@ typedef struct sort_key
 
 typedef struct sort_ctrl {
 	int sc_nkeys;
-	sort_key sc_keys[0];
+	sort_key sc_keys[1];
 } sort_ctrl;
 
 
@@ -339,7 +341,7 @@ static void free_sort_op( Connection *conn, sort_op *so )
 	ch_free( so );
 }
 
-static int send_list(
+static void send_list(
 	Operation		*op,
 	SlapReply		*rs,
 	sort_op			*so)
@@ -1000,7 +1002,7 @@ static int sss_parseCtrl(
 	i = count_key( ber );
 
 	sc = op->o_tmpalloc( sizeof(sort_ctrl) +
-		i * sizeof(sort_key), op->o_tmpmemctx );
+		(i-1) * sizeof(sort_key), op->o_tmpmemctx );
 	sc->sc_nkeys = i;
 	op->o_controls[sss_cid] = sc;
 
@@ -1104,12 +1106,13 @@ static int sssvlv_db_open(
 {
 	slap_overinst	*on = (slap_overinst *)be->bd_info;
 	sssvlv_info *si = on->on_bi.bi_private;
+	int rc;
 
 	/* If not set, default to 1/2 of available threads */
 	if ( !si->svi_max )
 		si->svi_max = connection_pool_max / 2;
 
-	int rc = overlay_register_control( be, LDAP_CONTROL_SORTREQUEST );
+	rc = overlay_register_control( be, LDAP_CONTROL_SORTREQUEST );
 	if ( rc == LDAP_SUCCESS )
 		rc = overlay_register_control( be, LDAP_CONTROL_VLVREQUEST );
 	return rc;
