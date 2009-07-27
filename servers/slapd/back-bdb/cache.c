@@ -689,8 +689,9 @@ bdb_cache_lru_purge( struct bdb_info *bdb )
 {
 	DB_LOCK		lock, *lockp;
 	EntryInfo *elru, *elnext = NULL;
-	int count, islocked, eimax;
-	int efree = 0, eifree = 0, eicount, ecount;
+	int islocked;
+	ID eicount, ecount;
+	ID count, efree, eifree = 0;
 #ifdef LDAP_DEBUG
 	int iter;
 #endif
@@ -698,24 +699,24 @@ bdb_cache_lru_purge( struct bdb_info *bdb )
 	/* Wait for the mutex; we're the only one trying to purge. */
 	ldap_pvt_thread_mutex_lock( &bdb->bi_cache.c_lru_mutex );
 
+	if ( bdb->bi_cache.c_cursize > bdb->bi_cache.c_maxsize ) {
+		efree = bdb->bi_cache.c_cursize - bdb->bi_cache.c_maxsize;
+		efree += bdb->bi_cache.c_minfree;
+	} else {
+		efree = 0;
+	}
+
 	/* maximum number of EntryInfo leaves to cache. In slapcat
 	 * we always free all leaf nodes.
 	 */
-	if ( slapMode & SLAP_TOOL_READONLY )
-		eimax = 0;
-	else
-		eimax = bdb->bi_cache.c_eimax;
 
-	efree = bdb->bi_cache.c_cursize - bdb->bi_cache.c_maxsize;
-	if ( efree < 1 )
-		efree = 0;
-	else 
-		efree += bdb->bi_cache.c_minfree;
-
-	if ( bdb->bi_cache.c_leaves > eimax ) {
+	if ( slapMode & SLAP_TOOL_READONLY ) {
+		eifree = bdb->bi_cache.c_leaves;
+	} else if ( bdb->bi_cache.c_eimax &&
+		bdb->bi_cache.c_leaves > bdb->bi_cache.c_eimax ) {
 		eifree = bdb->bi_cache.c_minfree * 10;
-		if ( eifree >= eimax )
-			eifree = eimax / 2;
+		if ( eifree >= bdb->bi_cache.c_leaves )
+			eifree /= 2;
 	}
 
 	if ( !efree && !eifree ) {
@@ -1065,7 +1066,7 @@ load1:
 		int purge = 0;
 
 		if ( bdb->bi_cache.c_cursize > bdb->bi_cache.c_maxsize ||
-			bdb->bi_cache.c_leaves > bdb->bi_cache.c_eimax ) {
+			( bdb->bi_cache.c_eimax && bdb->bi_cache.c_leaves > bdb->bi_cache.c_eimax )) {
 			ldap_pvt_thread_mutex_lock( &bdb->bi_cache.c_count_mutex );
 			if ( !bdb->bi_cache.c_purging ) {
 				if ( load && !( flag & ID_NOCACHE )) {
@@ -1074,7 +1075,7 @@ load1:
 						purge = 1;
 						bdb->bi_cache.c_purging = 1;
 					}
-				} else if ( bdb->bi_cache.c_leaves > bdb->bi_cache.c_eimax ) {
+				} else if ( bdb->bi_cache.c_eimax && bdb->bi_cache.c_leaves > bdb->bi_cache.c_eimax ) {
 					purge = 1;
 					bdb->bi_cache.c_purging = 1;
 				}

@@ -369,13 +369,10 @@ shm_retry:
 	}
 #endif
 
-	/* Default dncache to 2x entrycache */
-	if ( bdb->bi_cache.c_maxsize && !bdb->bi_cache.c_eimax ) {
-		bdb->bi_cache.c_eimax = bdb->bi_cache.c_maxsize * 2;
-	}
-
-	/* dncache must be >= entrycache */
-	if ( bdb->bi_cache.c_eimax < bdb->bi_cache.c_maxsize ) {
+	/* dncache defaults to 0 == unlimited
+	 * must be >= entrycache
+	 */
+	if ( bdb->bi_cache.c_eimax && bdb->bi_cache.c_eimax < bdb->bi_cache.c_maxsize ) {
 		bdb->bi_cache.c_eimax = bdb->bi_cache.c_maxsize;
 	}
 

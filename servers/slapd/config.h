@@ -59,6 +59,7 @@ typedef enum {
 #define ARG_DN		0x00007000
 #define ARG_UINT	0x00008000
 #define ARG_ATDESC	0x00009000
+#define ARG_ULONG	0x0000a000
 
 #define ARGS_SYNTAX	0xffff0000
 #define ARG_IGNORED	0x00080000
@@ -134,6 +135,7 @@ typedef struct config_args_s {
 		int v_int;
 		unsigned v_uint;
 		long v_long;
+		unsigned long v_ulong;
 		ber_len_t v_ber_t;
 		char *v_string;
 		struct berval v_bv;
@@ -167,6 +169,7 @@ typedef struct config_args_s {
 #define value_int values.v_int
 #define value_uint values.v_uint
 #define value_long values.v_long
+#define value_ulong values.v_ulong
 #define value_ber_t values.v_ber_t
 #define value_string values.v_string
 #define value_bv values.v_bv
