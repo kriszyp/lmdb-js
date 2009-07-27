@@ -7,6 +7,7 @@ OpenLDAP 2.4.18 Engineering
 	Fixed slapd tools to properly close database (ITS#6214)
 	Fixed slapd-ndb startup (ITS#6203)
 	Fixed tools resource leaks (ITS#6145)
+	Fixed contrib/autogroup with RE24 (ITS#6227)
 	Build Environment
 		Fixed test056-monitor with custom ports (ITS#6213)
 
