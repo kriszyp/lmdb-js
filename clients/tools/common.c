@@ -2073,7 +2073,7 @@ print_deref( LDAP *ld, LDAPControl *ctrl )
 		}
 		ptr = lutil_strncopy( ptr, dr->derefVal.bv_val, dr->derefVal.bv_len );
 		*ptr++ = '\n';
-		*ptr++ = '\0';
+		*ptr = '\0';
 		assert( ptr <= buf + len );
 
 		tool_write_ldif( LDIF_PUT_COMMENT, NULL, buf, ptr - buf);
