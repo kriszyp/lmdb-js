@@ -55,7 +55,6 @@ ber_skip_data(
 	ber_len_t	actuallen, nleft;
 
 	assert( ber != NULL );
-
 	assert( LBER_VALID( ber ) );
 
 	nleft = ber_pvt_ber_remaining( ber );
@@ -66,6 +65,10 @@ ber_skip_data(
 	return( (ber_slen_t) actuallen );
 }
 
+/*
+ * Read from the ber buffer.  The caller must maintain ber->ber_tag.
+ * Do not use to read whole tags.  See ber_get_tag() and ber_skip_data().
+ */
 ber_slen_t
 ber_read(
 	BerElement *ber,
@@ -76,7 +79,6 @@ ber_read(
 
 	assert( ber != NULL );
 	assert( buf != NULL );
-
 	assert( LBER_VALID( ber ) );
 
 	nleft = ber_pvt_ber_remaining( ber );
@@ -89,44 +91,46 @@ ber_read(
 	return( (ber_slen_t) actuallen );
 }
 
+/*
+ * Write to the ber buffer.
+ * Note that ber_start_seqorset/ber_put_seqorset() bypass ber_write().
+ */
 ber_slen_t
 ber_write(
 	BerElement *ber,
 	LDAP_CONST char *buf,
 	ber_len_t len,
-	int nosos )
+	int zero )	/* nonzero is unsupported from OpenLDAP 2.4.18 */
 {
+	char **p;
+
 	assert( ber != NULL );
 	assert( buf != NULL );
-
 	assert( LBER_VALID( ber ) );
 
-	if ( nosos || ber->ber_sos == NULL ) {
-		if ( ber->ber_ptr + len > ber->ber_end ) {
-			if ( ber_realloc( ber, len ) != 0 ) return( -1 );
-		}
-		AC_MEMCPY( ber->ber_ptr, buf, (size_t)len );
-		ber->ber_ptr += len;
-		return( (ber_slen_t) len );
-
-	} else {
-		if ( ber->ber_sos->sos_ptr + len > ber->ber_end ) {
-			if ( ber_realloc( ber, len ) != 0 ) return( -1 );
-		}
-		AC_MEMCPY( ber->ber_sos->sos_ptr, buf, (size_t)len );
-		ber->ber_sos->sos_ptr += len;
-		ber->ber_sos->sos_clen += len;
-		return( (ber_slen_t) len );
+	if ( zero != 0 ) {
+		ber_log_printf( LDAP_DEBUG_ANY, ber->ber_debug, "%s",
+			"ber_write: nonzero 4th argument not supported\n" );
+		return( -1 );
 	}
+
+	p = ber->ber_sos_ptr == NULL ? &ber->ber_ptr : &ber->ber_sos_ptr;
+	if ( len > (ber_len_t) (ber->ber_end - *p) ) {
+		if ( ber_realloc( ber, len ) != 0 ) return( -1 );
+	}
+	AC_MEMCPY( *p, buf, len );
+	*p += len;
+
+	return( (ber_slen_t) len );
 }
 
+/* Resize the ber buffer */
 int
 ber_realloc( BerElement *ber, ber_len_t len )
 {
-	ber_len_t	total;
+	ber_len_t	total, offset, sos_offset;
 	Seqorset	*s;
-	long		off;
-	char		*oldbuf;
+	char		*buf;
 
 	assert( ber != NULL );
 	assert( LBER_VALID( ber ) );
@@ -144,7 +148,7 @@ ber_realloc( BerElement *ber, ber_len_t len )
 	/* don't realloc by small amounts */
 	total += len < LBER_EXBUFSIZ ? LBER_EXBUFSIZ : len;
 # else
-	{	/* not sure what value this adds */
+	{	/* not sure what value this adds.  reduce fragmentation? */
 		ber_len_t have = (total + (LBER_EXBUFSIZE - 1)) / LBER_EXBUFSIZ;
 		ber_len_t need = (len + (LBER_EXBUFSIZ - 1)) / LBER_EXBUFSIZ;
 		total = ( have + need ) * LBER_EXBUFSIZ;
@@ -154,34 +158,25 @@ ber_realloc( BerElement *ber, ber_len_t len )
 	total += len;	/* realloc just what's needed */
 #endif
 
-	oldbuf = ber->ber_buf;
-
-	ber->ber_buf = (char *) ber_memrealloc_x( oldbuf, total, ber->ber_memctx );
-	
-	if ( ber->ber_buf == NULL ) {
-		ber->ber_buf = oldbuf;
+	if ( total < len || total > (ber_len_t)-1 / 2 /* max ber_slen_t */ ) {
 		return( -1 );
 	}
 
-	ber->ber_end = ber->ber_buf + total;
+	buf = ber->ber_buf;
+	offset = ber->ber_ptr - buf;
+	sos_offset = ber->ber_sos_ptr ? ber->ber_sos_ptr - buf : 0;
+	/* if ber_sos_ptr != NULL, it is > ber_buf so that sos_offset > 0 */
 
-	/*
-	 * If the stinking thing was moved, we need to go through and
-	 * reset all the sos and ber pointers.	Offsets would've been
-	 * a better idea... oh well.
-	 */
-
-	if ( ber->ber_buf != oldbuf ) {
-		ber->ber_ptr = ber->ber_buf + (ber->ber_ptr - oldbuf);
-
-		for ( s = ber->ber_sos; s != NULL; s = s->sos_next ) {
-			off = s->sos_first - oldbuf;
-			s->sos_first = ber->ber_buf + off;
-
-			off = s->sos_ptr - oldbuf;
-			s->sos_ptr = ber->ber_buf + off;
-		}
+	buf = (char *) ber_memrealloc_x( buf, total, ber->ber_memctx );
+	if ( buf == NULL ) {
+		return( -1 );
 	}
+
+	ber->ber_buf = buf;
+	ber->ber_end = buf + total;
+	ber->ber_ptr = buf + offset;
+	if ( sos_offset )
+		ber->ber_sos_ptr = buf + sos_offset;
 
 	return( 0 );
 }
@@ -195,13 +190,8 @@ ber_free_buf( BerElement *ber )
 
 	if ( ber->ber_buf) ber_memfree_x( ber->ber_buf, ber->ber_memctx );
 
-	for( s = ber->ber_sos ; s != NULL ; s = next ) {
-		next = s->sos_next;
-		ber_memfree_x( s, ber->ber_memctx );
-	}
-
 	ber->ber_buf = NULL;
-	ber->ber_sos = NULL;
+	ber->ber_sos_ptr = NULL;
 	ber->ber_valid = LBER_UNINITIALIZED;
 }
 
@@ -234,7 +224,6 @@ ber_flush2( Sockbuf *sb, BerElement *ber, int freeit )
 
 	assert( sb != NULL );
 	assert( ber != NULL );
-
 	assert( SOCKBUF_VALID( sb ) );
 	assert( LBER_VALID( ber ) );
 
@@ -491,7 +480,6 @@ ber_get_next(
 	assert( sb != NULL );
 	assert( len != NULL );
 	assert( ber != NULL );
-
 	assert( SOCKBUF_VALID( sb ) );
 	assert( LBER_VALID( ber ) );
 
@@ -732,9 +720,13 @@ void
 ber_rewind ( BerElement * ber )
 {
 	ber->ber_rwptr = NULL;
-	ber->ber_sos = NULL;
+	ber->ber_sos_ptr = NULL;
 	ber->ber_end = ber->ber_ptr;
 	ber->ber_ptr = ber->ber_buf;
+#if 0	/* TODO: Should we add this? */
+	ber->ber_tag = LBER_DEFAULT;
+	ber->ber_usertag = 0;
+#endif
 }
 
 int
