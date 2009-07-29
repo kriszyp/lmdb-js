@@ -2126,3 +2126,66 @@ int config_generic_wrapper( Backend *be, const char *fname, int lineno,
 	}
 	return rc;
 }
+
+/* See if the given URL (in plain and parsed form) matches
+ * any of the server's listener addresses. Return matching
+ * Listener or NULL for no match.
+ */
+Listener *config_check_my_url( const char *url, LDAPURLDesc *lud )
+{
+	Listener **l = slapd_get_listeners();
+	int i, isMe;
+
+	/* Try a straight compare with Listener strings */
+	for ( i=0; l && l[i]; i++ ) {
+		if ( !strcasecmp( url, l[i]->sl_url.bv_val )) {
+			return l[i];
+		}
+	}
+
+	isMe = 0;
+	/* If hostname is empty, or is localhost, or matches
+	 * our hostname, this url refers to this host.
+	 * Compare it against listeners and ports.
+	 */
+	if ( !lud->lud_host || !lud->lud_host[0] ||
+		!strncasecmp("localhost", lud->lud_host,
+			STRLENOF("localhost")) ||
+		!strcasecmp( global_host, lud->lud_host )) {
+
+		for ( i=0; l && l[i]; i++ ) {
+			LDAPURLDesc *lu2;
+			ldap_url_parse( l[i]->sl_url.bv_val, &lu2 );
+			do {
+				if ( strcasecmp( lud->lud_scheme,
+					lu2->lud_scheme ))
+					break;
+				if ( lud->lud_port != lu2->lud_port )
+					break;
+				/* Listener on ANY address */
+				if ( !lu2->lud_host || !lu2->lud_host[0] ) {
+					isMe = 1;
+					break;
+				}
+				/* URL on ANY address */
+				if ( !lud->lud_host || !lud->lud_host[0] ) {
+					isMe = 1;
+					break;
+				}
+				/* Listener has specific host, must
+				 * match it
+				 */
+				if ( !strcasecmp( lud->lud_host,
+					lu2->lud_host )) {
+					isMe = 1;
+					break;
+				}
+			} while(0);
+			ldap_free_urldesc( lu2 );
+			if ( isMe ) {
+				return l[i];
+			}
+		}
+	}
+	return NULL;
+}

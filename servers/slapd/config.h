@@ -196,6 +196,7 @@ ConfigTable * config_find_keyword(ConfigTable *ct, ConfigArgs *c);
 Entry * config_build_entry( Operation *op, SlapReply *rs, CfEntryInfo *parent,
 	ConfigArgs *c, struct berval *rdn, ConfigOCs *main, ConfigOCs *extra );
 
+Listener *config_check_my_url(const char *url, LDAPURLDesc *lud);
 int config_shadow( ConfigArgs *c, int flag );
 #define	config_slurp_shadow(c)	config_shadow((c), SLAP_DBFLAG_SLURP_SHADOW)
 #define	config_sync_shadow(c)	config_shadow((c), SLAP_DBFLAG_SYNC_SHADOW)
