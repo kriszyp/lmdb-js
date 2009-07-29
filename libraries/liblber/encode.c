@@ -519,10 +519,16 @@ ber_printf( BerElement *ber, LDAP_CONST char *fmt, ... )
 				BEREncodeCallback *f;
 				void *p;
 
+				ber->ber_usertag = 0;
+
 				f = va_arg( ap, BEREncodeCallback * );
 				p = va_arg( ap, void * );
-
 				rc = (*f)( ber, p );
+
+				if ( ber->ber_usertag ) {
+					ber->ber_usertag = 0;
+					goto next;
+				}
 			} break;
 
 		case 'b':	/* boolean */
@@ -579,7 +585,7 @@ ber_printf( BerElement *ber, LDAP_CONST char *fmt, ... )
 		case 't':	/* tag for the next element */
 			ber->ber_tag = va_arg( ap, ber_tag_t );
 			ber->ber_usertag = 1;
-			break;
+			goto next;
 
 		case 'v':	/* vector of strings */
 			if ( (ss = va_arg( ap, char ** )) == NULL )
@@ -636,11 +642,8 @@ ber_printf( BerElement *ber, LDAP_CONST char *fmt, ... )
 			break;
 		}
 
-		if ( ber->ber_usertag == 0 ) {
-			ber->ber_tag = LBER_DEFAULT;
-		} else {
-			ber->ber_usertag = 0;
-		}
+		ber->ber_tag = LBER_DEFAULT;
+	next:;
 	}
 
 	va_end( ap );
