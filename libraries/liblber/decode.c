@@ -33,17 +33,12 @@
 #include <stdio.h>
 
 #include <ac/stdlib.h>
-
 #include <ac/stdarg.h>
 #include <ac/string.h>
 #include <ac/socket.h>
 
 #include "lber-int.h"
 
-static ber_len_t ber_getnint LDAP_P((
-	BerElement *ber,
-	ber_int_t *num,
-	ber_len_t len ));
 
 /* out->bv_len should be the buffer size on input */
 int
@@ -97,7 +92,6 @@ ber_get_tag( BerElement *ber )
 {
 	unsigned char	xbyte;
 	ber_tag_t	tag;
-	unsigned int	i;
 
 	assert( ber != NULL );
 	assert( LBER_VALID( ber ) );
@@ -117,48 +111,44 @@ ber_get_tag( BerElement *ber )
 		return tag;
 	}
 
-	for ( i = 1; i < sizeof(ber_tag_t); i++ ) {
+	do {
 		if ( ber_read( ber, (char *) &xbyte, 1 ) != 1 ) {
-			return LBER_DEFAULT;
+			break;
 		}
 
 		tag <<= 8;
 		tag |= 0x00ffUL & (ber_tag_t) xbyte;
 
 		if ( ! (xbyte & LBER_MORE_TAG_MASK) ) {
-			break;
+			return tag;
 		}
-	}
+	} while ( tag <= (ber_tag_t)-1 / 256 );
 
-	/* tag too big! */
-	if ( i == sizeof(ber_tag_t) ) {
-		return LBER_DEFAULT;
-	}
-
-	return tag;
+	return LBER_DEFAULT;		/* error or tag too big */
 }
 
 ber_tag_t
-ber_skip_tag( BerElement *ber, ber_len_t *len )
+ber_skip_tag( BerElement *ber, ber_len_t *lenp )
 {
 	ber_tag_t	tag;
+	ber_len_t	len;
+	unsigned	i, noctets;
 	unsigned char	lc;
-	ber_len_t	i, noctets;
 	unsigned char netlen[sizeof(ber_len_t)];
 
-	assert( len != NULL );
+	assert( lenp != NULL );
 
 	/*
 	 * Any ber element looks like this: tag length contents.
 	 * Assuming everything's ok, we return the tag byte (we
-	 * can assume a single byte), and return the length in len.
+	 * can assume a single byte), and return the length in lenp.
 	 *
 	 * Assumptions:
 	 *	1) definite lengths
 	 *	2) primitive encodings used whenever possible
 	 */
 
-	*len = 0;
+	*lenp = 0;
 
 	/*
 	 * First, we read the tag.
@@ -169,20 +159,23 @@ ber_skip_tag( BerElement *ber, ber_len_t *len )
 	}
 
 	/*
-	 * Next, read the length.  The first byte contains the length of
-	 * the length.	If bit 8 is set, the length is the long form,
-	 * otherwise it's the short form.  We don't allow a length that's
-	 * greater than what we can hold in a ber_len_t.
+	 * Next, read the length.  The first octet determines the length
+	 * of the length.	If bit 8 is 0, the length is the short form,
+	 * otherwise if the octet != 0x80 it's the long form, otherwise
+	 * the ber element has the unsupported indefinite-length format.
+	 * Lengths that do not fit in a ber_len_t are not accepted.
 	 */
 
 	if ( ber_read( ber, (char *) &lc, 1 ) != 1 ) {
 		return LBER_DEFAULT;
 	}
 
+	len = lc;
 	if ( lc & 0x80U ) {
 		noctets = (lc & 0x7fU);
 
-		if ( noctets > sizeof(ber_len_t) ) {
+		if ( noctets - 1U > sizeof(ber_len_t) - 1U ) {
+			/* Indefinite-length or too long length */
 			return LBER_DEFAULT;
 		}
 
@@ -190,17 +183,17 @@ ber_skip_tag( BerElement *ber, ber_len_t *len )
 			return LBER_DEFAULT;
 		}
 
-		for( i = 0; i < noctets; i++ ) {
-			*len <<= 8;
-			*len |= netlen[i];
+		len = netlen[0];
+		for( i = 1; i < noctets; i++ ) {
+			len <<= 8;
+			len |= netlen[i];
 		}
 
-	} else {
-		*len = lc;
 	}
+	*lenp = len;
 
 	/* BER element should have enough data left */
-	if( *len > (ber_len_t) ber_pvt_ber_remaining( ber ) ) {
+	if( len > (ber_len_t) ber_pvt_ber_remaining( ber ) ) {
 		return LBER_DEFAULT;
 	}
 	ber->ber_tag = *(unsigned char *)ber->ber_ptr;
@@ -230,39 +223,40 @@ ber_peek_tag(
 	return tag;
 }
 
-static ber_len_t
-ber_getnint(
+ber_tag_t
+ber_get_int(
 	BerElement *ber,
-	ber_int_t *num,
-	ber_len_t len )
+	ber_int_t *num )
 {
+	ber_tag_t	tag;
+	ber_len_t	len;
 	unsigned char buf[sizeof(ber_int_t)];
 
 	assert( num != NULL );
 
-	/*
-	 * The tag and length have already been stripped off.  We should
-	 * be sitting right before len bytes of 2's complement integer,
-	 * ready to be read straight into an int.  We may have to sign
-	 * extend after we read it in.
-	 */
+	if ( (tag = ber_skip_tag( ber, &len )) == LBER_DEFAULT ) {
+		return LBER_DEFAULT;
+	}
 
 	if ( len > sizeof(ber_int_t) ) {
-		return -1;
+		return LBER_DEFAULT;
 	}
 
 	/* read into the low-order bytes of our buffer */
 	if ( (ber_len_t) ber_read( ber, (char *) buf, len ) != len ) {
-		return -1;
+		return LBER_DEFAULT;
 	}
 
+	/* parse two's complement integer */
 	if( len ) {
-		/* sign extend if necessary */
 		ber_len_t i;
-		ber_int_t netnum = 0x80 & buf[0] ? -1 : 0;
+		ber_int_t netnum = buf[0] & 0xff;
+
+		/* sign extend */
+		netnum -= (netnum & 0x80) << 1;
 
 		/* shift in the bytes */
-		for( i=0 ; i<len; i++ ) {
+		for( i = 1; i < len; i++ ) {
 			netnum = (netnum << 8 ) | buf[i];
 		}
 
@@ -271,27 +265,9 @@ ber_getnint(
 	} else {
 		*num = 0;
 	}
+
 	ber->ber_tag = *(unsigned char *)ber->ber_ptr;
 
-	return len;
-}
-
-ber_tag_t
-ber_get_int(
-	BerElement *ber,
-	ber_int_t *num )
-{
-	ber_tag_t	tag;
-	ber_len_t	len;
-
-	if ( (tag = ber_skip_tag( ber, &len )) == LBER_DEFAULT ) {
-		return LBER_DEFAULT;
-	}
-
-	if ( ber_getnint( ber, num, len ) != len ) {
-		return LBER_DEFAULT;
-	}
-	
 	return tag;
 }
 
@@ -479,13 +455,10 @@ ber_get_stringbv( BerElement *ber, struct berval *bv, int option )
 
 	assert( bv != NULL );
 
-	if ( (tag = ber_skip_tag( ber, &bv->bv_len )) == LBER_DEFAULT ) {
+	tag = ber_skip_tag( ber, &bv->bv_len );
+	if ( tag == LBER_DEFAULT ) {
 		bv->bv_val = NULL;
-		return LBER_DEFAULT;
-	}
-
-	if ( (ber_len_t) ber_pvt_ber_remaining( ber ) < bv->bv_len ) {
-		return LBER_DEFAULT;
+		return tag;
 	}
 
 	if ( option & LBER_BV_ALLOC ) {
@@ -520,18 +493,9 @@ ber_get_stringbv_null( BerElement *ber, struct berval *bv, int option )
 
 	assert( bv != NULL );
 
-	if ( (tag = ber_skip_tag( ber, &bv->bv_len )) == LBER_DEFAULT ) {
+	tag = ber_skip_tag( ber, &bv->bv_len );
+	if ( tag == LBER_DEFAULT || bv->bv_len == 0 ) {
 		bv->bv_val = NULL;
-		return LBER_DEFAULT;
-	}
-
-	if ( (ber_len_t) ber_pvt_ber_remaining( ber ) < bv->bv_len ) {
-		return LBER_DEFAULT;
-	}
-
-	if ( bv->bv_len == 0 ) {
-		bv->bv_val = NULL;
-		ber->ber_tag = *(unsigned char *)ber->ber_ptr;
 		return tag;
 	}
 
@@ -624,19 +588,21 @@ ber_get_bitstringa(
 	assert( blen != NULL );
 
 	if ( (tag = ber_skip_tag( ber, &datalen )) == LBER_DEFAULT ) {
-		*buf = NULL;
-		return LBER_DEFAULT;
+		goto fail;
 	}
-	--datalen;
+
+	if ( --datalen > (ber_len_t)-1 / 8 ) {
+		goto fail;
+	}
+	if ( ber_read( ber, (char *)&unusedbits, 1 ) != 1 ) {
+		goto fail;
+	}
+	if ( unusedbits > 7 ) {
+		goto fail;
+	}
 
 	*buf = (char *) ber_memalloc_x( datalen, ber->ber_memctx );
 	if ( *buf == NULL ) {
-		return LBER_DEFAULT;
-	}
-
-	if ( ber_read( ber, (char *)&unusedbits, 1 ) != 1 ) {
-		LBER_FREE( buf );
-		*buf = NULL;
 		return LBER_DEFAULT;
 	}
 
@@ -649,24 +615,19 @@ ber_get_bitstringa(
 
 	*blen = datalen * 8 - unusedbits;
 	return tag;
+
+ fail:
+	*buf = NULL;
+	return LBER_DEFAULT;
 }
 
 ber_tag_t
 ber_get_null( BerElement *ber )
 {
 	ber_len_t	len;
-	ber_tag_t	tag;
+	ber_tag_t	tag = ber_skip_tag( ber, &len );
 
-	if ( (tag = ber_skip_tag( ber, &len )) == LBER_DEFAULT ) {
-		return LBER_DEFAULT;
-	}
-
-	if ( len != 0 ) {
-		return LBER_DEFAULT;
-	}
-	ber->ber_tag = *(unsigned char *)ber->ber_ptr;
-
-	return( tag );
+	return( len == 0 ? tag : LBER_DEFAULT );
 }
 
 ber_tag_t
@@ -674,15 +635,7 @@ ber_get_boolean(
 	BerElement *ber,
 	ber_int_t *boolval )
 {
-	ber_int_t	longbool;
-	ber_tag_t	rc;
-
-	assert( boolval != NULL );
-
-	rc = ber_get_int( ber, &longbool );
-	*boolval = longbool;
-
-	return rc;
+	return ber_get_int( ber, boolval );
 }
 
 ber_tag_t
@@ -698,11 +651,10 @@ ber_first_element(
 		*last = NULL;
 		return LBER_DEFAULT;
 	}
-	ber->ber_tag = *(unsigned char *)ber->ber_ptr;
 
 	*last = ber->ber_ptr + *len;
 
-	if ( *last == ber->ber_ptr ) {
+	if ( *len == 0 ) {
 		return LBER_DEFAULT;
 	}
 
@@ -716,7 +668,6 @@ ber_next_element(
 	LDAP_CONST char *last )
 {
 	assert( ber != NULL );
-	assert( len != NULL );
 	assert( last != NULL );
 	assert( LBER_VALID( ber ) );
 
@@ -895,9 +846,13 @@ ber_scanf ( BerElement *ber,
 
 		case '{':	/* begin sequence */
 		case '[':	/* begin set */
-			if ( *(fmt + 1) != 'v' && *(fmt + 1) != 'V'
-				&& *(fmt + 1) != 'W' && *(fmt + 1) != 'M' )
+			switch ( fmt[1] ) {
+			case 'v': case 'V': case 'W': case 'M':
+				break;
+			default:
 				rc = ber_skip_tag( ber, &len );
+				break;
+			}
 			break;
 
 		case '}':	/* end sequence */
