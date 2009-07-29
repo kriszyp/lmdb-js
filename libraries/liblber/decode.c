@@ -745,7 +745,7 @@ ber_scanf ( BerElement *ber,
 			break;
 
 		case 'e':	/* enumerated */
-		case 'i':	/* int */
+		case 'i':	/* integer */
 			i = va_arg( ap, ber_int_t * );
 			rc = ber_get_int( ber, i );
 			break;
@@ -899,8 +899,8 @@ ber_scanf ( BerElement *ber,
 
 		case 'b':	/* boolean */
 		case 'e':	/* enumerated */
-		case 'i':	/* int */
-			(void) va_arg( ap, int * );
+		case 'i':	/* integer */
+			(void) va_arg( ap, ber_int_t * );
 			break;
 
 		case 'l':	/* length of next item */
