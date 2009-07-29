@@ -129,7 +129,6 @@ int
 ber_realloc( BerElement *ber, ber_len_t len )
 {
 	ber_len_t	total, offset, sos_offset;
-	Seqorset	*s;
 	char		*buf;
 
 	assert( ber != NULL );
@@ -184,8 +183,6 @@ ber_realloc( BerElement *ber, ber_len_t len )
 void
 ber_free_buf( BerElement *ber )
 {
-	Seqorset *s, *next;
-
 	assert( LBER_VALID( ber ) );
 
 	if ( ber->ber_buf) ber_memfree_x( ber->ber_buf, ber->ber_memctx );

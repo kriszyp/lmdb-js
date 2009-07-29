@@ -185,12 +185,6 @@ ber_log_dump LDAP_P((
 	BerElement *ber,
 	int inout ));
 
-LBER_F( int )
-ber_log_sos_dump LDAP_P((
-	int errlvl,
-	int loglvl,
-	Seqorset *sos ));
-
 LBER_V (BER_LOG_FN) ber_int_log_proc;
 LBER_V (FILE *) ber_pvt_err_file;
 

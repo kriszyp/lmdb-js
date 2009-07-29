@@ -276,6 +276,8 @@ ber_dump(
 	ber_bprint( ber->ber_ptr, len );
 }
 
+typedef struct seqorset Seqorset;
+
 /* Exists for binary compatibility with OpenLDAP 2.4.17-- */
 int
 ber_log_sos_dump(
