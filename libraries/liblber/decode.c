@@ -686,8 +686,8 @@ ber_scanf ( BerElement *ber,
 {
 	va_list		ap;
 	LDAP_CONST char		*fmt_reset;
-	char		*s, **ss;
-	struct berval	**bvp, *bval;
+	char		*s, **ss, ***sss;
+	struct berval	*bval, **bvp, ***bvpp;
 	ber_int_t	*i;
 	ber_len_t	*l;
 	ber_tag_t	*t;
@@ -893,10 +893,8 @@ ber_scanf ( BerElement *ber,
 		case 'a':	/* octet string - allocate storage as needed */
 		case 'A':
 			ss = va_arg( ap, char ** );
-			if ( *ss ) {
-				ber_memfree_x( *ss, ber->ber_memctx );
-				*ss = NULL;
-			}
+			ber_memfree_x( *ss, ber->ber_memctx );
+			*ss = NULL;
 			break;
 
 		case 'b':	/* boolean */
@@ -906,29 +904,37 @@ ber_scanf ( BerElement *ber,
 			break;
 
 		case 'l':	/* length of next item */
-			(void) va_arg( ap, ber_len_t * );
+			*(va_arg( ap, ber_len_t * )) = 0;
+			break;
+
+		case 'm':	/* berval in-place */
+			bval = va_arg( ap, struct berval * );
+			BER_BVZERO( bval );
+			break;
+
+		case 'M':	/* BVoff array in-place */
+			bvp = va_arg( ap, struct berval ** );
+			ber_memfree_x( bvp, ber->ber_memctx );
+			*bvp = NULL;
+			*(va_arg( ap, ber_len_t * )) = 0;
+			(void) va_arg( ap, ber_len_t );
 			break;
 
 		case 'o':	/* octet string in a supplied berval */
 			bval = va_arg( ap, struct berval * );
-			if ( bval->bv_val != NULL ) {
-				ber_memfree_x( bval->bv_val, ber->ber_memctx );
-				bval->bv_val = NULL;
-			}
-			bval->bv_len = 0;
+			ber_memfree_x( bval->bv_val, ber->ber_memctx );
+			BER_BVZERO( bval );
 			break;
 
 		case 'O':	/* octet string - allocate & include length */
 			bvp = va_arg( ap, struct berval ** );
-			if ( *bvp ) {
-				ber_bvfree( *bvp );
-				*bvp = NULL;
-			}
+			ber_bvfree_x( *bvp, ber->ber_memctx );
+			*bvp = NULL;
 			break;
 
 		case 's':	/* octet string - in a buffer */
 			(void) va_arg( ap, char * );
-			(void) va_arg( ap, ber_len_t * );
+			*(va_arg( ap, ber_len_t * )) = 0;
 			break;
 
 		case 't':	/* tag of next item */
@@ -938,19 +944,30 @@ ber_scanf ( BerElement *ber,
 
 		case 'B':	/* bit string - allocate storage as needed */
 			ss = va_arg( ap, char ** );
-			if ( *ss ) {
-				ber_memfree_x( *ss, ber->ber_memctx );
-				*ss = NULL;
-			}
+			ber_memfree_x( *ss, ber->ber_memctx );
+			*ss = NULL;
 			*(va_arg( ap, ber_len_t * )) = 0; /* for length, in bits */
 			break;
 
-		case 'm':	/* berval in-place */
-		case 'M':	/* BVoff array in-place */
-		case 'n':	/* null */
 		case 'v':	/* sequence of strings */
+			sss = va_arg( ap, char *** );
+			ber_memvfree_x( (void **) *sss, ber->ber_memctx );
+			*sss = NULL;
+			break;
+
 		case 'V':	/* sequence of strings + lengths */
+			bvpp = va_arg( ap, struct berval *** );
+			ber_bvecfree_x( *bvpp, ber->ber_memctx );
+			*bvpp = NULL;
+			break;
+
 		case 'W':	/* BerVarray */
+			bvp = va_arg( ap, struct berval ** );
+			ber_bvarray_free_x( *bvp, ber->ber_memctx );
+			*bvp = NULL;
+			break;
+
+		case 'n':	/* null */
 		case 'x':	/* skip the next element - whatever it is */
 		case '{':	/* begin sequence */
 		case '[':	/* begin set */
