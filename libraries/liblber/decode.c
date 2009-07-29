@@ -411,7 +411,7 @@ ber_get_stringbvl( bgbvr *b, ber_len_t *rlen )
 		case BvVec:
 			bvp = ber_memalloc_x( sizeof( struct berval ), b->ber->ber_memctx);
 			if ( !bvp ) {
-				LBER_FREE(bv.bv_val);
+				ber_memfree_x( bv.bv_val, b->ber->ber_memctx );
 				goto nomem;
 			}
 			(*b->res.bv)[n] = bvp;
@@ -429,21 +429,21 @@ nomem:
 		for (--n; n>=0; n--) {
 			switch(b->choice) {
 			case ChArray:
-				LBER_FREE((*b->res.c)[n]);
+				ber_memfree_x((*b->res.c)[n], b->ber->ber_memctx);
 				break;
 			case BvArray:
-				LBER_FREE((*b->res.ba)[n].bv_val);
+				ber_memfree_x((*b->res.ba)[n].bv_val, b->ber->ber_memctx);
 				break;
 			case BvVec:
-				LBER_FREE((*b->res.bv)[n]->bv_val);
-				LBER_FREE((*b->res.bv)[n]);
+				ber_memfree_x((*b->res.bv)[n]->bv_val, b->ber->ber_memctx);
+				ber_memfree_x((*b->res.bv)[n], b->ber->ber_memctx);
 				break;
 			default:
 				break;
 			}
 		}
 	}
-	LBER_FREE(*b->res.c);
+	ber_memfree_x(*b->res.c, b->ber->ber_memctx);
 	*b->res.c = NULL;
 	return LBER_DEFAULT;
 }
@@ -471,7 +471,7 @@ ber_get_stringbv( BerElement *ber, struct berval *bv, int option )
 		if ( bv->bv_len > 0 && (ber_len_t) ber_read( ber, bv->bv_val,
 			bv->bv_len ) != bv->bv_len )
 		{
-			LBER_FREE( bv->bv_val );
+			ber_memfree_x( bv->bv_val, ber->ber_memctx );
 			bv->bv_val = NULL;
 			return LBER_DEFAULT;
 		}
@@ -509,7 +509,7 @@ ber_get_stringbv_null( BerElement *ber, struct berval *bv, int option )
 		if ( bv->bv_len > 0 && (ber_len_t) ber_read( ber, bv->bv_val,
 			bv->bv_len ) != bv->bv_len )
 		{
-			LBER_FREE( bv->bv_val );
+			ber_memfree_x( bv->bv_val, ber->ber_memctx );
 			bv->bv_val = NULL;
 			return LBER_DEFAULT;
 		}
@@ -568,7 +568,7 @@ ber_get_stringal( BerElement *ber, struct berval **bv )
 
 	tag = ber_get_stringbv( ber, *bv, LBER_BV_ALLOC );
 	if ( tag == LBER_DEFAULT ) {
-		LBER_FREE( *bv );
+		ber_memfree_x( *bv, ber->ber_memctx );
 		*bv = NULL;
 	}
 	return tag;
@@ -607,7 +607,7 @@ ber_get_bitstringa(
 	}
 
 	if ( (ber_len_t) ber_read( ber, *buf, datalen ) != datalen ) {
-		LBER_FREE( buf );
+		ber_memfree_x( buf, ber->ber_memctx );
 		*buf = NULL;
 		return LBER_DEFAULT;
 	}
@@ -894,7 +894,7 @@ ber_scanf ( BerElement *ber,
 		case 'A':
 			ss = va_arg( ap, char ** );
 			if ( *ss ) {
-				LBER_FREE( *ss );
+				ber_memfree_x( *ss, ber->ber_memctx );
 				*ss = NULL;
 			}
 			break;
@@ -912,7 +912,7 @@ ber_scanf ( BerElement *ber,
 		case 'o':	/* octet string in a supplied berval */
 			bval = va_arg( ap, struct berval * );
 			if ( bval->bv_val != NULL ) {
-				LBER_FREE( bval->bv_val );
+				ber_memfree_x( bval->bv_val, ber->ber_memctx );
 				bval->bv_val = NULL;
 			}
 			bval->bv_len = 0;
@@ -939,7 +939,7 @@ ber_scanf ( BerElement *ber,
 		case 'B':	/* bit string - allocate storage as needed */
 			ss = va_arg( ap, char ** );
 			if ( *ss ) {
-				LBER_FREE( *ss );
+				ber_memfree_x( *ss, ber->ber_memctx );
 				*ss = NULL;
 			}
 			*(va_arg( ap, ber_len_t * )) = 0; /* for length, in bits */
