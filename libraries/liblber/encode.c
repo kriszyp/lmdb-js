@@ -247,9 +247,6 @@ ber_put_int_or_enum(
 	ber_uint_t	unum, mask;
 	unsigned char netnum[sizeof(ber_uint_t)];
 
-	assert( ber != NULL );
-	assert( LBER_VALID( ber ) );
-
 	sign = (num < 0);
 	unum = num;	/* Bit fiddling should be done with unsigned values */
 
@@ -307,9 +304,6 @@ ber_put_enum(
 	ber_int_t num,
 	ber_tag_t tag )
 {
-	assert( ber != NULL );
-	assert( LBER_VALID( ber ) );
-
 	if ( tag == LBER_DEFAULT ) {
 		tag = LBER_ENUMERATED;
 	}
@@ -323,9 +317,6 @@ ber_put_int(
 	ber_int_t num,
 	ber_tag_t tag )
 {
-	assert( ber != NULL );
-	assert( LBER_VALID( ber ) );
-
 	if ( tag == LBER_DEFAULT ) {
 		tag = LBER_INTEGER;
 	}
@@ -341,11 +332,6 @@ ber_put_ostring(
 	ber_tag_t tag )
 {
 	int taglen, lenlen, rc;
-
-	assert( ber != NULL );
-	assert( str != NULL );
-
-	assert( LBER_VALID( ber ) );
 
 	if ( tag == LBER_DEFAULT ) {
 		tag = LBER_OCTETSTRING;
@@ -372,9 +358,6 @@ ber_put_berval(
 	struct berval *bv,
 	ber_tag_t tag )
 {
-	assert( ber != NULL );
-	assert( LBER_VALID( ber ) );
-
 	if( bv == NULL || bv->bv_len == 0 ) {
 		return ber_put_ostring( ber, "", (ber_len_t) 0, tag );
 	}
@@ -388,10 +371,7 @@ ber_put_string(
 	LDAP_CONST char *str,
 	ber_tag_t tag )
 {
-	assert( ber != NULL );
 	assert( str != NULL );
-
-	assert( LBER_VALID( ber ) );
 
 	return ber_put_ostring( ber, str, strlen( str ), tag );
 }
@@ -406,11 +386,6 @@ ber_put_bitstring(
 	int				taglen, lenlen;
 	ber_len_t		len;
 	unsigned char	unusedbits;
-
-	assert( ber != NULL );
-	assert( str != NULL );
-
-	assert( LBER_VALID( ber ) );
 
 	if ( tag == LBER_DEFAULT ) {
 		tag = LBER_BITSTRING;
@@ -443,9 +418,6 @@ ber_put_null( BerElement *ber, ber_tag_t tag )
 {
 	int	taglen;
 
-	assert( ber != NULL );
-	assert( LBER_VALID( ber ) );
-
 	if ( tag == LBER_DEFAULT ) {
 		tag = LBER_NULL;
 	}
@@ -469,9 +441,6 @@ ber_put_boolean(
 {
 	int				taglen;
 	unsigned char	c;
-
-	assert( ber != NULL );
-	assert( LBER_VALID( ber ) );
 
 	if ( tag == LBER_DEFAULT )
 		tag = LBER_BOOLEAN;
@@ -531,9 +500,6 @@ ber_start_seqorset(
 int
 ber_start_seq( BerElement *ber, ber_tag_t tag )
 {
-	assert( ber != NULL );
-	assert( LBER_VALID( ber ) );
-
 	if ( tag == LBER_DEFAULT ) {
 		tag = LBER_SEQUENCE;
 	}
@@ -544,9 +510,6 @@ ber_start_seq( BerElement *ber, ber_tag_t tag )
 int
 ber_start_set( BerElement *ber, ber_tag_t tag )
 {
-	assert( ber != NULL );
-	assert( LBER_VALID( ber ) );
-
 	if ( tag == LBER_DEFAULT ) {
 		tag = LBER_SET;
 	}
@@ -716,18 +679,12 @@ ber_put_seqorset( BerElement *ber )
 int
 ber_put_seq( BerElement *ber )
 {
-	assert( ber != NULL );
-	assert( LBER_VALID( ber ) );
-
 	return ber_put_seqorset( ber );
 }
 
 int
 ber_put_set( BerElement *ber )
 {
-	assert( ber != NULL );
-	assert( LBER_VALID( ber ) );
-
 	return ber_put_seqorset( ber );
 }
 
@@ -747,7 +704,6 @@ ber_printf( BerElement *ber, LDAP_CONST char *fmt, ... )
 
 	assert( ber != NULL );
 	assert( fmt != NULL );
-
 	assert( LBER_VALID( ber ) );
 
 	va_start( ap, fmt );

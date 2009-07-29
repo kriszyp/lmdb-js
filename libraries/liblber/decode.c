@@ -146,9 +146,7 @@ ber_skip_tag( BerElement *ber, ber_len_t *len )
 	ber_len_t	i, noctets;
 	unsigned char netlen[sizeof(ber_len_t)];
 
-	assert( ber != NULL );
 	assert( len != NULL );
-	assert( LBER_VALID( ber ) );
 
 	/*
 	 * Any ber element looks like this: tag length contents.
@@ -240,9 +238,7 @@ ber_getnint(
 {
 	unsigned char buf[sizeof(ber_int_t)];
 
-	assert( ber != NULL );
 	assert( num != NULL );
-	assert( LBER_VALID( ber ) );
 
 	/*
 	 * The tag and length have already been stripped off.  We should
@@ -288,9 +284,6 @@ ber_get_int(
 	ber_tag_t	tag;
 	ber_len_t	len;
 
-	assert( ber != NULL );
-	assert( LBER_VALID( ber ) );
-
 	if ( (tag = ber_skip_tag( ber, &len )) == LBER_DEFAULT ) {
 		return LBER_DEFAULT;
 	}
@@ -318,9 +311,6 @@ ber_get_stringb(
 {
 	ber_len_t	datalen;
 	ber_tag_t	tag;
-
-	assert( ber != NULL );
-	assert( LBER_VALID( ber ) );
 
 	if ( (tag = ber_skip_tag( ber, &datalen )) == LBER_DEFAULT ) {
 		return LBER_DEFAULT;
@@ -487,10 +477,7 @@ ber_get_stringbv( BerElement *ber, struct berval *bv, int option )
 {
 	ber_tag_t	tag;
 
-	assert( ber != NULL );
 	assert( bv != NULL );
-
-	assert( LBER_VALID( ber ) );
 
 	if ( (tag = ber_skip_tag( ber, &bv->bv_len )) == LBER_DEFAULT ) {
 		bv->bv_val = NULL;
@@ -531,10 +518,7 @@ ber_get_stringbv_null( BerElement *ber, struct berval *bv, int option )
 {
 	ber_tag_t	tag;
 
-	assert( ber != NULL );
 	assert( bv != NULL );
-
-	assert( LBER_VALID( ber ) );
 
 	if ( (tag = ber_skip_tag( ber, &bv->bv_len )) == LBER_DEFAULT ) {
 		bv->bv_val = NULL;
@@ -636,11 +620,8 @@ ber_get_bitstringa(
 	ber_tag_t	tag;
 	unsigned char	unusedbits;
 
-	assert( ber != NULL );
 	assert( buf != NULL );
 	assert( blen != NULL );
-
-	assert( LBER_VALID( ber ) );
 
 	if ( (tag = ber_skip_tag( ber, &datalen )) == LBER_DEFAULT ) {
 		*buf = NULL;
@@ -676,9 +657,6 @@ ber_get_null( BerElement *ber )
 	ber_len_t	len;
 	ber_tag_t	tag;
 
-	assert( ber != NULL );
-	assert( LBER_VALID( ber ) );
-
 	if ( (tag = ber_skip_tag( ber, &len )) == LBER_DEFAULT ) {
 		return LBER_DEFAULT;
 	}
@@ -699,10 +677,7 @@ ber_get_boolean(
 	ber_int_t	longbool;
 	ber_tag_t	rc;
 
-	assert( ber != NULL );
 	assert( boolval != NULL );
-
-	assert( LBER_VALID( ber ) );
 
 	rc = ber_get_int( ber, &longbool );
 	*boolval = longbool;
@@ -716,8 +691,6 @@ ber_first_element(
 	ber_len_t *len,
 	char **last )
 {
-	assert( ber != NULL );
-	assert( len != NULL );
 	assert( last != NULL );
 
 	/* skip the sequence header, use the len to mark where to stop */
@@ -745,7 +718,6 @@ ber_next_element(
 	assert( ber != NULL );
 	assert( len != NULL );
 	assert( last != NULL );
-
 	assert( LBER_VALID( ber ) );
 
 	if ( ber->ber_ptr >= last ) {
@@ -775,7 +747,6 @@ ber_scanf ( BerElement *ber,
 
 	assert( ber != NULL );
 	assert( fmt != NULL );
-
 	assert( LBER_VALID( ber ) );
 
 	fmt_reset = fmt;
@@ -944,6 +915,7 @@ ber_scanf ( BerElement *ber,
 	}
 
 	va_end( ap );
+
 	if ( rc == LBER_DEFAULT ) {
 		/*
 		 * Error.  Reclaim malloced memory that was given to the caller.
