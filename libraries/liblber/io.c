@@ -129,8 +129,12 @@ ber_realloc( BerElement *ber, ber_len_t len )
 	char		*oldbuf;
 
 	assert( ber != NULL );
-	assert( len > 0 );
 	assert( LBER_VALID( ber ) );
+
+	/* leave room for ber_flatten() to \0-terminate ber_buf */
+	if ( ++len == 0 ) {
+		return( -1 );
+	}
 
 	total = ber_pvt_ber_total( ber );
 
@@ -415,10 +419,13 @@ int ber_flatten2(
 				return -1;
 			}
 			AC_MEMCPY( bv->bv_val, ber->ber_buf, len );
-		} else {
+			bv->bv_val[len] = '\0';
+		} else if ( ber->ber_buf != NULL ) {
 			bv->bv_val = ber->ber_buf;
+			bv->bv_val[len] = '\0';
+		} else {
+			bv->bv_val = "";
 		}
-		bv->bv_val[len] = '\0';
 		bv->bv_len = len;
 	}
 	return 0;
