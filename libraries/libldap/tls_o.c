@@ -466,7 +466,7 @@ tlso_session_chkhost( LDAP *ld, tls_session *sess, const char *name_in )
 	X509 *x;
 	const char *name;
 	char *ptr;
-	int ntype = IS_DNS;
+	int ntype = IS_DNS, nlen;
 #ifdef LDAP_PF_INET6
 	struct in6_addr addr;
 #else
@@ -480,6 +480,7 @@ tlso_session_chkhost( LDAP *ld, tls_session *sess, const char *name_in )
 	} else {
 		name = name_in;
 	}
+	nlen = strlen(name);
 
 	x = tlso_get_cert(s);
 	if (!x) {
@@ -513,15 +514,14 @@ tlso_session_chkhost( LDAP *ld, tls_session *sess, const char *name_in )
 		ex = X509_get_ext(x, i);
 		alt = X509V3_EXT_d2i(ex);
 		if (alt) {
-			int n, len1 = 0, len2 = 0;
+			int n, len2 = 0;
 			char *domain = NULL;
 			GENERAL_NAME *gn;
 
 			if (ntype == IS_DNS) {
-				len1 = strlen(name);
 				domain = strchr(name, '.');
 				if (domain) {
-					len2 = len1 - (domain-name);
+					len2 = nlen - (domain-name);
 				}
 			}
 			n = sk_GENERAL_NAME_num(alt);
@@ -539,7 +539,7 @@ tlso_session_chkhost( LDAP *ld, tls_session *sess, const char *name_in )
 					if (sl == 0) continue;
 
 					/* Is this an exact match? */
-					if ((len1 == sl) && !strncasecmp(name, sn, len1)) {
+					if ((nlen == sl) && !strncasecmp(name, sn, nlen)) {
 						break;
 					}
 
@@ -580,11 +580,13 @@ tlso_session_chkhost( LDAP *ld, tls_session *sess, const char *name_in )
 	if (ret != LDAP_SUCCESS) {
 		X509_NAME *xn;
 		char buf[2048];
+		int clen;
 		buf[0] = '\0';
 
 		xn = X509_get_subject_name(x);
-		if( X509_NAME_get_text_by_NID( xn, NID_commonName,
-			buf, sizeof(buf)) == -1)
+		clen = X509_NAME_get_text_by_NID( xn, NID_commonName,
+			buf, sizeof(buf));
+		if( clen == -1 )
 		{
 			Debug( LDAP_DEBUG_ANY,
 				"TLS: unable to get common name from peer certificate.\n",
@@ -596,21 +598,18 @@ tlso_session_chkhost( LDAP *ld, tls_session *sess, const char *name_in )
 			ld->ld_error = LDAP_STRDUP(
 				_("TLS: unable to get CN from peer certificate"));
 
-		} else if (strcasecmp(name, buf) == 0 ) {
+		} else if (clen == nlen && strcasecmp(name, buf) == 0 ) {
 			ret = LDAP_SUCCESS;
 
 		} else if (( buf[0] == '*' ) && ( buf[1] == '.' )) {
 			char *domain = strchr(name, '.');
 			if( domain ) {
-				size_t dlen = 0;
-				size_t sl;
+				size_t dlen;
 
-				sl = strlen(name);
-				dlen = sl - (domain-name);
-				sl = strlen(buf);
+				dlen = nlen - (domain-name);
 
 				/* Is this a wildcard match? */
-				if ((dlen == sl-1) && !strncasecmp(domain, &buf[1], dlen)) {
+				if ((dlen == clen-1) && !strncasecmp(domain, &buf[1], dlen)) {
 					ret = LDAP_SUCCESS;
 				}
 			}
