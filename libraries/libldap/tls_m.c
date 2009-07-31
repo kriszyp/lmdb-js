@@ -1371,7 +1371,8 @@ tlsm_deferred_ctx_init( void *arg )
 		     ctx->tc_require_cert == LDAP_OPT_X_TLS_HARD ) {
 			require_cert = SSL_REQUIRE_ALWAYS;
 		}
-		ctx->tc_verify_cert = PR_TRUE;
+		if ( ctx->tc_require_cert != LDAP_OPT_X_TLS_ALLOW )
+			ctx->tc_verify_cert = PR_TRUE;
 	} else {
 		ctx->tc_verify_cert = PR_FALSE;
 	}
@@ -1888,22 +1889,22 @@ altfail:
 			}
 		}
 		if ( lastava ) {
-			SECItem *avaValue = CERT_DecodeAVAValue( &lastava->value );
-			if ( avaValue ) {
-				char *val = avaValue->data;
-				int len = avaValue->len;;
-				if ( len == nlen && !strncasecmp( name, val, nlen )) {
+			SECItem *av = CERT_DecodeAVAValue( &lastava->value );
+			if ( av ) {
+				if ( av->len == nlen && !strncasecmp( name, av->data, nlen )) {
 					ret = LDAP_SUCCESS;
-				} else if ( val[0] == '*' && val[1] == '.' && domain && 
-					dlen == len - 1 && !strncasecmp( name,
-						val+1, dlen )) {
+				} else if ( av->data[0] == '*' && av->data[1] == '.' &&
+					domain && dlen == av->len - 1 && !strncasecmp( name,
+						av->data+1, dlen )) {
 					ret = LDAP_SUCCESS;
+				} else {
+					int len = av->len;
+					if ( len >= sizeof(buf) )
+						len = sizeof(buf)-1;
+					memcpy( buf, av->data, len );
+					buf[len] = '\0';
 				}
-				if ( len >= sizeof(buf) )
-					len = sizeof(buf)-1;
-				memcpy( buf, val, len );
-				buf[len] = '\0';
-				SECITEM_FreeItem( avaValue, PR_TRUE );
+				SECITEM_FreeItem( av, PR_TRUE );
 			}
 		}
 		if ( ret != LDAP_SUCCESS ) {
