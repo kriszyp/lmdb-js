@@ -555,18 +555,21 @@ add_thread_info(
 	int detached )
 {
 	ldap_debug_thread_t *t;
+
 	if( thread_info_used >= thread_info_size ) {
 		unsigned int more = thread_info_size + 8;
 		unsigned int new_size = thread_info_size + more;
+
 		t = calloc( more, sizeof(ldap_debug_thread_t) );
 		assert( t != NULL );
 		thread_info = realloc( thread_info, new_size * sizeof(*thread_info) );
 		assert( thread_info != NULL );
-		while( thread_info_size < new_size ) {
+		do {
 			t->idx = thread_info_size;
 			thread_info[thread_info_size++] = t++;
-		}
+		} while( thread_info_size < new_size );
 	}
+
 	t = thread_info[thread_info_used];
 	init_usage( &t->usage, msg );
 	t->wrapped = *thread;
@@ -779,6 +782,7 @@ ldap_pvt_thread_create(
 	if( !options_done )
 		get_options();
 	ERROR_IF( !threading_enabled, "ldap_pvt_thread_create" );
+
 	if( wrap_threads ) {
 		ldap_debug_thread_call_t *call = malloc(
 			sizeof( ldap_debug_thread_call_t ) );
@@ -843,6 +847,7 @@ ldap_pvt_thread_join( ldap_pvt_thread_t thread, void **thread_return )
 				remove_thread_info( t, "ldap_pvt_thread_join" ) );
 		adjust_count( Idx_unjoined_thread, -1 );
 	}
+
 	return rc;
 }
 
