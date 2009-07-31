@@ -57,6 +57,7 @@
 #include <private/pprio.h>
 #include <nss.h>
 #include <ssl.h>
+#include <sslerr.h>
 #include <sslproto.h>
 #include <pk11pub.h>
 #include <secerr.h>
@@ -639,6 +640,9 @@ tlsm_bad_cert_handler(void *arg, PRFileDesc *ssl)
 			success = SECFailure;
 		}
 		break;
+	/* we bypass NSS's hostname checks and do our own */
+	case SSL_ERROR_BAD_CERT_DOMAIN:
+		break;
 	default:
 		success = SECFailure;
 		break;
@@ -685,10 +689,10 @@ tlsm_auth_cert_handler(void *arg, PRFileDesc *fd,
 {
 	SECStatus ret = SSL_AuthCertificate(arg, fd, checksig, isServer);
 
+	tlsm_dump_security_status( fd );
 	Debug( LDAP_DEBUG_TRACE,
-		   "TLS certificate verification: %s: %s,",
-		   ret == SECSuccess ? "ok" : "bad",
-		   tlsm_dump_security_status( fd ), 0 );
+		   "TLS certificate verification: %s\n",
+		   ret == SECSuccess ? "ok" : "bad", 0, 0 );
 
 	if ( ret != SECSuccess ) {
 		PRErrorCode errcode = PORT_GetError();
@@ -1237,7 +1241,8 @@ tlsm_ctx_free ( tls_ctx *ctx )
 #endif
 	if ( refcount )
 		return;
-	PR_Close( c->tc_model );
+	if ( c->tc_model )
+		PR_Close( c->tc_model );
 	c->tc_certdb = NULL; /* if not the default, may have to clean up */
 	PL_strfree( c->tc_certname );
 	c->tc_certname = NULL;
@@ -1663,21 +1668,11 @@ tlsm_session_connect( LDAP *ld, tls_session *session )
 	int rc;
 	PRErrorCode err;
 
-	/* By default, NSS checks the cert hostname for us */
 	rc = SSL_ResetHandshake( s, PR_FALSE /* server */ );
 	if (rc) {
 		err = PR_GetError();
 		Debug( LDAP_DEBUG_TRACE, 
 			   "TLS: error: connect - reset handshake failure %d - error %d:%s\n",
-			   rc, err,
-			   err ? PR_ErrorToString( err, PR_LANGUAGE_I_DEFAULT ) : "unknown" );
-	}
-
-	rc = SSL_SetURL( s, ld->ld_options.ldo_defludp->lud_host );
-	if (rc) {
-		err = PR_GetError();
-		Debug( LDAP_DEBUG_TRACE, 
-			   "TLS: error: connect - seturl failure %d - error %d:%s\n",
 			   rc, err,
 			   err ? PR_ErrorToString( err, PR_LANGUAGE_I_DEFAULT ) : "unknown" );
 	}
@@ -1754,11 +1749,179 @@ tlsm_session_peer_dn( tls_session *session, struct berval *der_dn )
 	return 0;
 }
 
+/* what kind of hostname were we given? */
+#define	IS_DNS	0
+#define	IS_IP4	1
+#define	IS_IP6	2
+
 static int
 tlsm_session_chkhost( LDAP *ld, tls_session *session, const char *name_in )
 {
-/* NSS already does a hostname check */
-	return LDAP_SUCCESS;
+	tlsm_session *s = (tlsm_session *)session;
+	CERTCertificate *cert;
+	const char *name, *domain = NULL, *ptr;
+	int i, ret, ntype = IS_DNS, nlen, dlen;
+#ifdef LDAP_PF_INET6
+	struct in6_addr addr;
+#else
+	struct in_addr addr;
+#endif
+	SECItem altname;
+	SECStatus rv;
+
+	if( ldap_int_hostname &&
+		( !name_in || !strcasecmp( name_in, "localhost" ) ) )
+	{
+		name = ldap_int_hostname;
+	} else {
+		name = name_in;
+	}
+	nlen = strlen( name );
+
+	cert = SSL_PeerCertificate( s );
+	if (!cert) {
+		Debug( LDAP_DEBUG_ANY,
+			"TLS: unable to get peer certificate.\n",
+			0, 0, 0 );
+		/* if this was a fatal condition, things would have
+		 * aborted long before now.
+		 */
+		return LDAP_SUCCESS;
+	}
+
+#ifdef LDAP_PF_INET6
+	if (name[0] == '[' && strchr(name, ']')) {
+		char *n2 = ldap_strdup(name+1);
+		*strchr(n2, ']') = 0;
+		if (inet_pton(AF_INET6, n2, &addr))
+			ntype = IS_IP6;
+		LDAP_FREE(n2);
+	} else 
+#endif
+	if ((ptr = strrchr(name, '.')) && isdigit((unsigned char)ptr[1])) {
+		if (inet_aton(name, (struct in_addr *)&addr)) ntype = IS_IP4;
+	}
+	if (ntype == IS_DNS ) {
+		domain = strchr( name, '.' );
+		if ( domain )
+			dlen = nlen - ( domain - name );
+	}
+
+	ret = LDAP_LOCAL_ERROR;
+
+	rv = CERT_FindCertExtension( cert, SEC_OID_X509_SUBJECT_ALT_NAME,
+		&altname );
+	if ( rv == SECSuccess && altname.data ) {
+		PRArenaPool *arena;
+		CERTGeneralName *names, *cur;
+
+		arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
+		if ( !arena ) {
+			ret = LDAP_NO_MEMORY;
+			goto fail;
+		}
+
+		names = cur = CERT_DecodeAltNameExtension(arena, &altname);
+		if ( !cur )
+			goto altfail;
+
+		do {
+			char *host;
+			int hlen;
+
+			/* ignore empty */
+			if ( !cur->name.other.len ) continue;
+
+			host = cur->name.other.data;
+			hlen = cur->name.other.len;
+
+			if ( cur->type == certDNSName ) {
+				if ( ntype != IS_DNS )	continue;
+
+				/* is this an exact match? */
+				if ( nlen == hlen && !strncasecmp( name, host, nlen )) {
+					ret = LDAP_SUCCESS;
+					break;
+				}
+
+				/* is this a wildcard match? */
+				if ( domain && host[0] == '*' && host[1] == '.' &&
+					dlen == hlen-1 && !strncasecmp( domain, host+1, dlen )) {
+					ret = LDAP_SUCCESS;
+					break;
+				}
+			} else if ( cur->type == certIPAddress ) {
+				if ( ntype == IS_DNS )	continue;
+				
+#ifdef LDAP_PF_INET6
+				if (ntype == IS_IP6 && hlen != sizeof(struct in6_addr)) {
+					continue;
+				} else
+#endif
+				if (ntype == IS_IP4 && hlen != sizeof(struct in_addr)) {
+					continue;
+				}
+				if (!memcmp(host, &addr, hlen)) {
+					ret = LDAP_SUCCESS;
+					break;
+				}
+			}
+		} while (( cur = CERT_GetNextGeneralName( cur )) != names );
+altfail:
+		PORT_FreeArena( arena, PR_FALSE );
+		SECITEM_FreeItem( &altname, PR_FALSE );
+	}
+	/* no altnames matched, try the CN */
+	if ( ret != LDAP_SUCCESS ) {
+		/* find the last CN */
+		CERTRDN *rdn, **rdns;
+		CERTAVA *lastava = NULL;
+		char buf[2048];
+
+		buf[0] = '\0';
+		rdns = cert->subject.rdns;
+		while ( rdns && ( rdn = *rdns++ )) {
+			CERTAVA *ava, **avas = rdn->avas;
+			while ( avas && ( ava = *avas++ )) {
+				if ( CERT_GetAVATag( ava ) == SEC_OID_AVA_COMMON_NAME )
+					lastava = ava;
+			}
+		}
+		if ( lastava ) {
+			SECItem *avaValue = CERT_DecodeAVAValue( &lastava->value );
+			if ( avaValue ) {
+				char *val = avaValue->data;
+				int len = avaValue->len;;
+				if ( len == nlen && !strncasecmp( name, val, nlen )) {
+					ret = LDAP_SUCCESS;
+				} else if ( val[0] == '*' && val[1] == '.' && domain && 
+					dlen == len - 1 && !strncasecmp( name,
+						val+1, dlen )) {
+					ret = LDAP_SUCCESS;
+				}
+				if ( len >= sizeof(buf) )
+					len = sizeof(buf)-1;
+				memcpy( buf, val, len );
+				buf[len] = '\0';
+				SECITEM_FreeItem( avaValue, PR_TRUE );
+			}
+		}
+		if ( ret != LDAP_SUCCESS ) {
+			Debug( LDAP_DEBUG_ANY, "TLS: hostname (%s) does not match "
+				"common name in certificate (%s).\n", 
+				name, buf, 0 );
+			ret = LDAP_CONNECT_ERROR;
+			if ( ld->ld_error ) {
+				LDAP_FREE( ld->ld_error );
+			}
+			ld->ld_error = LDAP_STRDUP(
+				_("TLS: hostname does not match CN in peer certificate"));
+		}
+	}
+
+fail:
+	CERT_DestroyCertificate( cert );
+	return ret;
 }
 
 static int
