@@ -389,7 +389,7 @@ attributeCertificateValidate( Syntax *syntax, struct berval *in )
 	if ( tag != LBER_SEQUENCE ) return LDAP_INVALID_SYNTAX;
 	ber_skip_data( ber, len );
 
-	ber_peek_tag( ber, &len );
+	tag = ber_peek_tag( ber, &len );
 
 	if ( tag == LBER_BITSTRING ) {	/* issuerUniqueID */
 		tag = ber_skip_tag( ber, &len );
