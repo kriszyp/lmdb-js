@@ -319,10 +319,11 @@ certificateListValidate( Syntax *syntax, struct berval *in )
 			tag = ber_skip_tag( ber, &len );
 		}
 	}
-	/* Optional Extensions */
+	/* Optional Extensions - Sequence of Sequence */
 	if ( tag == SLAP_X509_OPT_CL_CRLEXTENSIONS ) { /* ? */
+		ber_len_t seqlen;
 		if ( version != SLAP_X509_V2 ) return LDAP_INVALID_SYNTAX;
-		tag = ber_skip_tag( ber, &len );
+		tag = ber_peek_tag( ber, &seqlen );
 		if ( tag != LBER_SEQUENCE ) return LDAP_INVALID_SYNTAX;
 		ber_skip_data( ber, len );
 		tag = ber_skip_tag( ber, &len );
