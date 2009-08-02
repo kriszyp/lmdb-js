@@ -256,8 +256,8 @@ unique_new_domain_uri ( unique_domain_uri **urip,
 	}
 
 	if (url_desc->lud_filter) {
-		uri->f = str2filter( url_desc->lud_filter );
 		char *ptr;
+		uri->f = str2filter( url_desc->lud_filter );
 		if ( !uri->f ) {
 			snprintf( c->cr_msg, sizeof( c->cr_msg ),
 				  "unique: bad filter");
