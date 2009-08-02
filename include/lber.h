@@ -165,7 +165,6 @@ LBER_V( char ) ber_pvt_opt_on;
 
 typedef struct berelement BerElement;
 typedef struct sockbuf Sockbuf;
-typedef struct seqorset Seqorset;
 
 typedef struct sockbuf_io Sockbuf_IO;
 
@@ -228,10 +227,6 @@ ber_bprint LDAP_P((
 LBER_F( void )
 ber_dump LDAP_P((
 	BerElement *ber, int inout ));
-
-LBER_F( void )
-ber_sos_dump LDAP_P((
-	Seqorset *sos ));
 
 /*
  * in decode.c:
@@ -434,7 +429,7 @@ ber_write LDAP_P((
 	BerElement *ber,
 	LDAP_CONST char *buf,
 	ber_len_t len,
-	int nosos ));
+	int zero ));	/* nonzero is unsupported from OpenLDAP 2.4.18 */
 
 LBER_F( void )
 ber_free LDAP_P((
