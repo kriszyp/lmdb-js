@@ -4332,6 +4332,8 @@ add_syncrepl(
 	rc = parse_syncrepl_line( c, si );
 
 	if ( rc == 0 ) {
+		LDAPURLDesc *lud;
+
 		/* Must be LDAPv3 because we need controls */
 		switch ( si->si_bindconf.sb_version ) {
 		case 0:
@@ -4349,24 +4351,35 @@ add_syncrepl(
 			return 1;
 		}
 
+		if ( ldap_url_parse( si->si_bindconf.sb_uri.bv_val, &lud )) {
+			snprintf( c->cr_msg, sizeof( c->cr_msg ),
+				"<%s> invalid URL", c->argv[0] );
+			Debug( LDAP_DEBUG_ANY, "%s: %s %s\n",
+				c->log, c->cr_msg, si->si_bindconf.sb_uri.bv_val );
+			return 1;
+		}
+
 		si->si_be = c->be;
 		if ( slapMode & SLAP_SERVER_MODE ) {
-			Listener **l = slapd_get_listeners();
 			int isMe = 0;
-
-			/* check if URL points to current server. If so, ignore
-			 * this configuration. We require an exact match. Just
-			 * in case they really want to do this, they can vary
-			 * the case of the URL to allow it.
+			/* check if consumer points to current server and database.
+			 * If so, ignore this configuration.
 			 */
-			if ( l && !SLAP_DBHIDDEN( c->be ) ) {
+			if ( !SLAP_DBHIDDEN( c->be ) ) {
 				int i;
-				for ( i=0; l[i]; i++ ) {
-					if ( bvmatch( &l[i]->sl_url, &si->si_bindconf.sb_uri ) ) {
+				/* if searchbase doesn't match current DB suffix,
+				 * assume it's different
+				 */
+				for ( i=0; !BER_BVISNULL( &c->be->be_nsuffix[i] ); i++ ) {
+					if ( bvmatch( &si->si_base, &c->be->be_nsuffix[i] )) {
 						isMe = 1;
 						break;
 					}
 				}
+				/* if searchbase matches, see if URLs match */
+				if ( isMe && config_check_my_url( si->si_bindconf.sb_uri.bv_val,
+						lud ) == NULL )
+					isMe = 0;
 			}
 
 			if ( !isMe ) {
@@ -4385,6 +4398,7 @@ add_syncrepl(
 			/* mirrormode still needs to see this flag in tool mode */
 			rc = config_sync_shadow( c ) ? -1 : 0;
 		}
+		ldap_free_urldesc( lud );
 	}
 
 #ifdef HAVE_TLS
