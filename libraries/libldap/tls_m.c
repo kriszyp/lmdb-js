@@ -1204,9 +1204,7 @@ tlsm_ctx_new ( struct ldapoptions *lo )
 		ctx->tc_model = NULL;
 		memset(&ctx->tc_callonce, 0, sizeof(ctx->tc_callonce));
 		ctx->tc_require_cert = lo->ldo_tls_require_cert;
-	} else {
-		LDAP_FREE( ctx );
-		ctx = NULL;
+		ctx->tc_verify_cert = PR_FALSE;
 	}
 	return (tls_ctx *)ctx;
 }
