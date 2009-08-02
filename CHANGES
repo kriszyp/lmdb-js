@@ -3,6 +3,7 @@ OpenLDAP 2.4 Change Log
 OpenLDAP 2.4.18 Engineering
 	Fixed liblber speed and other problems (ITS#6215)
 	Fixed libldap tls_check_hostname for OpenSSL and MozNSS (ITS#6239)
+	Fixed slapd allow mirrormode to be set to FALSE (ITS#5946)
 	Fixed slapd dncachesize behavior to unlimited by default (ITS#6222)
 	Fixed slapd incorrectly applying writetimeout when not set (ITS#6220)
 	Fixed slapd server URL matching (ITS#5942)

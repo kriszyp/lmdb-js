@@ -1859,7 +1859,7 @@ sortval_reject:
 			break;
 
 		case CFG_MIRRORMODE:
-			if(!SLAP_SHADOW(c->be)) {
+			if(c->value_int && !SLAP_SHADOW(c->be)) {
 				snprintf( c->cr_msg, sizeof( c->cr_msg ), "<%s> database is not a shadow",
 					c->argv[0] );
 				Debug(LDAP_DEBUG_ANY, "%s: %s\n",
