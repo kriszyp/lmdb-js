@@ -137,8 +137,12 @@ usage( void )
 	fprintf( stderr, _("Add or modify options:\n"));
 	fprintf( stderr, _("  -a         add values (%s)\n"),
 		(ldapadd ? _("default") : _("default is to replace")));
+	fprintf( stderr, _("  -c         continuous operation mode (do not stop on errors)\n"));
 	fprintf( stderr, _("  -E [!]ext=extparam	modify extensions"
 		" (! indicate s criticality)\n"));
+	fprintf( stderr, _("  -f file    read operations from `file'\n"));
+	fprintf( stderr, _("  -M         enable Manage DSA IT control (-MM to make critical)\n"));
+	fprintf( stderr, _("  -P version protocol version (default: 3)\n"));
 #ifdef LDAP_X_TXN
  	fprintf( stderr,
 		_("             [!]txn=<commit|abort>         (transaction)\n"));

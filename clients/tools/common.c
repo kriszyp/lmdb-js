@@ -272,7 +272,6 @@ void
 tool_common_usage( void )
 {
 	static const char *const descriptions[] = {
-N_("  -c         continuous operation mode (do not stop on errors)\n"),
 N_("  -d level   set LDAP debugging level to `level'\n"),
 N_("  -D binddn  bind DN\n"),
 N_("  -e [!]<ext>[=<extparam>] general extensions (! indicates criticality)\n")
@@ -303,18 +302,15 @@ N_("             [!]sessiontracking\n")
 N_("             abandon, cancel, ignore (SIGINT sends abandon/cancel,\n"
    "             or ignores response; if critical, doesn't wait for SIGINT.\n"
    "             not really controls)\n")
-N_("  -f file    read operations from `file'\n"),
 N_("  -h host    LDAP server\n"),
 N_("  -H URI     LDAP Uniform Resource Identifier(s)\n"),
 N_("  -I         use SASL Interactive mode\n"),
-N_("  -M         enable Manage DSA IT control (-MM to make critical)\n"),
 N_("  -n         show what would be done but don't actually do it\n"),
 N_("  -N         do not use reverse DNS to canonicalize SASL host name\n"),
 N_("  -O props   SASL security properties\n"),
 N_("  -o <opt>[=<optparam] general options\n"),
 N_("             nettimeout=<timeout> (in seconds, or \"none\" or \"max\")\n"),
 N_("  -p port    port on LDAP server\n"),
-N_("  -P version protocol version (default: 3)\n"),
 N_("  -Q         use SASL Quiet mode\n"),
 N_("  -R realm   SASL realm\n"),
 N_("  -U authcid SASL authentication identity\n"),
