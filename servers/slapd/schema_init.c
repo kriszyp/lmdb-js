@@ -337,6 +337,7 @@ certificateListValidate( Syntax *syntax, struct berval *in )
 	ber_skip_data( ber, len );
 	tag = ber_skip_tag( ber, &len );
 	/* Must be at end now */
+	/* NOTE: OpenSSL tolerates CL with garbage past the end */
 	if ( len || tag != LBER_DEFAULT ) return LDAP_INVALID_SYNTAX;
 	return LDAP_SUCCESS;
 }
