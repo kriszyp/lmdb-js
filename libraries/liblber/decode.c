@@ -320,131 +320,127 @@ enum bgbvc { ChArray, BvArray, BvVec, BvOff };
  * stack use to the absolute minimum.
  */
 typedef struct bgbvr {
-	enum bgbvc choice;
-	BerElement *ber;
-	int alloc;
-	ber_len_t siz;
-	ber_len_t off;
-	union {
-		char ***c;
-		BerVarray *ba;
-		struct berval ***bv;
-	} res;
+	const enum bgbvc choice;
+	const int alloc;	/* choice == BvOff ? 0 : LBER_ALLOC */
+	ber_len_t siz;		/* input array element size, output count */
+	ber_len_t off;		/* BvOff offset to the struct berval */
+	void *result;
 } bgbvr;
 
 static ber_tag_t
-ber_get_stringbvl( bgbvr *b, ber_len_t *rlen )
+ber_get_stringbvl( BerElement *ber, bgbvr *b )
 {
 	int i = 0, n;
 	ber_tag_t tag;
-	ber_len_t len;
+	ber_len_t len, tot_size = 0, siz = b->siz;
 	char *last, *orig;
 	struct berval bv, *bvp = NULL;
+	union stringbvl_u {
+		char **ca;				/* ChArray */
+		BerVarray ba;			/* BvArray */
+		struct berval **bv;		/* BvVec */
+		char *bo;				/* BvOff */
+	} res;
 
 	/* For rewinding, just like ber_peek_tag() */
-	orig = b->ber->ber_ptr;
-	tag = b->ber->ber_tag;
+	orig = ber->ber_ptr;
+	tag = ber->ber_tag;
 
-	if ( ber_first_element( b->ber, &len, &last ) != LBER_DEFAULT ) {
-		for ( ; b->ber->ber_ptr < last; i++ ) {
-			if (ber_skip_tag( b->ber, &len ) == LBER_DEFAULT) break;
-			b->ber->ber_ptr += len;
-			b->ber->ber_tag = *(unsigned char *)b->ber->ber_ptr;
+	if ( ber_first_element( ber, &len, &last ) != LBER_DEFAULT ) {
+		for ( ; ber->ber_ptr < last; i++, tot_size += siz ) {
+			if ( ber_skip_tag( ber, &len ) == LBER_DEFAULT ) break;
+			ber->ber_ptr += len;
+			ber->ber_tag = *(unsigned char *) ber->ber_ptr;
 		}
 	}
 
-	if ( rlen ) *rlen = i;
-
+	b->siz = i;
 	if ( i == 0 ) {
-		*b->res.c = NULL;
 		return 0;
 	}
 
-	n = i;
-
-	/* Allocate the result vector */
+	/* Allocate and NULL-terminate the result vector */
+	b->result = ber_memalloc_x( tot_size + siz, ber->ber_memctx );
+	if ( b->result == NULL ) {
+		return LBER_DEFAULT;
+	}
 	switch (b->choice) {
 	case ChArray:
-		*b->res.c = ber_memalloc_x( (n+1)*sizeof( char * ),
-			b->ber->ber_memctx);
-		if ( *b->res.c == NULL ) return LBER_DEFAULT;
-		(*b->res.c)[n] = NULL;
+		res.ca = b->result;
+		res.ca[i] = NULL;
 		break;
 	case BvArray:
-		*b->res.ba = ber_memalloc_x( (n+1)*sizeof( struct berval ),
-			b->ber->ber_memctx);
-		if ( *b->res.ba == NULL ) return LBER_DEFAULT;
-		(*b->res.ba)[n].bv_val = NULL;
+		res.ba = b->result;
+		res.ba[i].bv_val = NULL;
 		break;
 	case BvVec:
-		*b->res.bv = ber_memalloc_x( (n+1)*sizeof( struct berval *),
-			b->ber->ber_memctx);
-		if ( *b->res.bv == NULL ) return LBER_DEFAULT;
-		(*b->res.bv)[n] = NULL;
+		res.bv = b->result;
+		res.bv[i] = NULL;
 		break;
 	case BvOff:
-		*b->res.ba = ber_memalloc_x( (n+1) * b->siz, b->ber->ber_memctx );
-		if ( *b->res.ba == NULL ) return LBER_DEFAULT;
-		((struct berval *)((char *)(*b->res.ba) + n*b->siz +
-			b->off))->bv_val = NULL;
+		res.bo = (char *) b->result + b->off;
+		((struct berval *) (res.bo + tot_size))->bv_val = NULL;
 		break;
 	}
-	b->ber->ber_ptr = orig;
-	b->ber->ber_tag = tag;
-	ber_skip_tag( b->ber, &len );
-	
-	for (n=0; n<i; n++)
-	{
-		tag = ber_next_element( b->ber, &len, last );
-		if ( ber_get_stringbv( b->ber, &bv, b->alloc ) == LBER_DEFAULT ) {
+	ber->ber_ptr = orig;
+	ber->ber_tag = tag;
+	ber_skip_tag( ber, &len );
+
+	tot_size = 0;
+	n = 0;
+	do {
+		tag = ber_next_element( ber, &len, last );
+		if ( ber_get_stringbv( ber, &bv, b->alloc ) == LBER_DEFAULT ) {
 			goto nomem;
 		}
 
 		/* store my result */
 		switch (b->choice) {
 		case ChArray:
-			(*b->res.c)[n] = bv.bv_val;
+			res.ca[n] = bv.bv_val;
 			break;
 		case BvArray:
-			(*b->res.ba)[n] = bv;
+			res.ba[n] = bv;
 			break;
 		case BvVec:
-			bvp = ber_memalloc_x( sizeof( struct berval ), b->ber->ber_memctx);
+			bvp = ber_memalloc_x( sizeof( struct berval ),
+				ber->ber_memctx );
 			if ( !bvp ) {
-				ber_memfree_x( bv.bv_val, b->ber->ber_memctx );
+				ber_memfree_x( bv.bv_val, ber->ber_memctx );
 				goto nomem;
 			}
-			(*b->res.bv)[n] = bvp;
+			res.bv[n] = bvp;
 			*bvp = bv;
 			break;
 		case BvOff:
-			*(BerVarray)((char *)(*b->res.ba)+n*b->siz+b->off) = bv;
+			*(struct berval *)(res.bo + tot_size) = bv;
+			tot_size += siz;
 			break;
 		}
-	}
+	} while (++n < i);
 	return tag;
 
 nomem:
-	if (b->alloc || b->choice == BvVec) {
-		for (--n; n>=0; n--) {
+	if (b->choice != BvOff) {	/* BvOff does not have b->alloc set */
+		while (--n >= 0) {
 			switch(b->choice) {
 			case ChArray:
-				ber_memfree_x((*b->res.c)[n], b->ber->ber_memctx);
+				ber_memfree_x(res.ca[n], ber->ber_memctx);
 				break;
 			case BvArray:
-				ber_memfree_x((*b->res.ba)[n].bv_val, b->ber->ber_memctx);
+				ber_memfree_x(res.ba[n].bv_val, ber->ber_memctx);
 				break;
 			case BvVec:
-				ber_memfree_x((*b->res.bv)[n]->bv_val, b->ber->ber_memctx);
-				ber_memfree_x((*b->res.bv)[n], b->ber->ber_memctx);
+				ber_memfree_x(res.bv[n]->bv_val, ber->ber_memctx);
+				ber_memfree_x(res.bv[n], ber->ber_memctx);
 				break;
 			default:
 				break;
 			}
 		}
 	}
-	ber_memfree_x(*b->res.c, b->ber->ber_memctx);
-	*b->res.c = NULL;
+	ber_memfree_x(b->result, ber->ber_memctx);
+	b->result = NULL;
 	return LBER_DEFAULT;
 }
 
@@ -766,14 +762,14 @@ ber_scanf ( BerElement *ber,
 				 * len ptr on finish. parsed in-place.
 				 */
 		{
-			bgbvr cookie = { BvOff };
-			cookie.ber = ber;
-			cookie.res.ba = va_arg( ap, struct berval ** );
-			cookie.alloc = 0;
+			bgbvr cookie = { BvOff, 0 };
+			bvp = va_arg( ap, struct berval ** );
 			l = va_arg( ap, ber_len_t * );
 			cookie.siz = *l;
 			cookie.off = va_arg( ap, ber_len_t );
-			rc = ber_get_stringbvl( &cookie, l );
+			rc = ber_get_stringbvl( ber, &cookie );
+			*bvp = cookie.result;
+			*l = cookie.siz;
 			break;
 		}
 
@@ -809,31 +805,31 @@ ber_scanf ( BerElement *ber,
 
 		case 'v':	/* sequence of strings */
 		{
-			bgbvr cookie = { ChArray };
-			cookie.ber = ber;
-			cookie.res.c = va_arg( ap, char *** );
-			cookie.alloc = LBER_BV_ALLOC;
-			rc = ber_get_stringbvl( &cookie, NULL );
+			bgbvr cookie = {
+				ChArray, LBER_BV_ALLOC, sizeof( char * )
+			};
+			rc = ber_get_stringbvl( ber, &cookie );
+			*(va_arg( ap, char *** )) = cookie.result;
 			break;
 		}
 
 		case 'V':	/* sequence of strings + lengths */
 		{
-			bgbvr cookie = { BvVec };
-			cookie.ber = ber;
-			cookie.res.bv = va_arg( ap, struct berval *** );
-			cookie.alloc = LBER_BV_ALLOC;
-			rc = ber_get_stringbvl( &cookie, NULL );
+			bgbvr cookie = {
+				BvVec, LBER_BV_ALLOC, sizeof( struct berval * )
+			};
+			rc = ber_get_stringbvl( ber, &cookie );
+			*(va_arg( ap, struct berval *** )) = cookie.result;
 			break;
 		}
 
 		case 'W':	/* bvarray */
 		{
-			bgbvr cookie = { BvArray };
-			cookie.ber = ber;
-			cookie.res.ba = va_arg( ap, struct berval ** );
-			cookie.alloc = LBER_BV_ALLOC;
-			rc = ber_get_stringbvl( &cookie, NULL );
+			bgbvr cookie = {
+				BvArray, LBER_BV_ALLOC, sizeof( struct berval )
+			};
+			rc = ber_get_stringbvl( ber, &cookie );
+			*(va_arg( ap, struct berval ** )) = cookie.result;
 			break;
 		}
 
