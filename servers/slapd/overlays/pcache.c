@@ -3254,6 +3254,10 @@ pc_cf_gen( ConfigArgs *c )
 
 			ct = config_find_keyword( cm->db.bd_info->bi_cf_ocs->co_table, c );
 			if ( ct == NULL ) {
+				snprintf( c->cr_msg, sizeof( c->cr_msg ),
+					"private database does not recognize specific option '%s'",
+					c->argv[ 0 ] );
+				Debug( LDAP_DEBUG_CONFIG, "%s: %s.\n", c->log, c->cr_msg, 0 );
 				rc = 1;
 
 			} else {
