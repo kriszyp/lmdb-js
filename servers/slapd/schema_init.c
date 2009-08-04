@@ -353,7 +353,7 @@ certificateListValidate( Syntax *syntax, struct berval *in )
 	/* Must be at end now */
 	/* NOTE: OpenSSL tolerates CL with garbage past the end */
 	if ( len || tag != LBER_DEFAULT ) {
-		struct berval issuer_dn, thisUpdate;
+		struct berval issuer_dn = BER_BVNULL, thisUpdate;
 		char tubuf[STRLENOF("YYYYmmddHHMMSSZ") + 1];
 		int rc;
 
@@ -379,7 +379,9 @@ certificateListValidate( Syntax *syntax, struct berval *in )
 			issuer_dn.bv_val, thisUpdate.bv_val, 0 );
 
 done:;
-		ber_memfree( issuer_dn.bv_val );
+		if ( ! BER_BVISNULL( &issuer_dn ) ) {
+			ber_memfree( issuer_dn.bv_val );
+		}
 
 		return rc;
 	}
@@ -3663,6 +3665,9 @@ checkTime( struct berval *in, struct berval *out )
 
 	rc = generalizedTimeValidate( NULL, &bv );
 	if ( rc == LDAP_SUCCESS && out != NULL ) {
+		if ( out->bv_len > bv.bv_len ) {
+			out->bv_val[ bv.bv_len ] = '\0';
+		}
 		out->bv_len = bv.bv_len;
 	}
 
