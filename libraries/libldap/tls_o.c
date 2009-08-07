@@ -579,15 +579,28 @@ tlso_session_chkhost( LDAP *ld, tls_session *sess, const char *name_in )
 
 	if (ret != LDAP_SUCCESS) {
 		X509_NAME *xn;
-		char buf[2048];
-		int clen;
-		buf[0] = '\0';
+		X509_NAME_ENTRY *ne;
+		ASN1_OBJECT *obj;
+		ASN1_STRING *cn = NULL;
+		int navas;
+
+		/* find the last CN */
+		obj = OBJ_nid2obj( NID_commonName );
+		if ( !obj ) goto no_cn;	/* should never happen */
 
 		xn = X509_get_subject_name(x);
-		clen = X509_NAME_get_text_by_NID( xn, NID_commonName,
-			buf, sizeof(buf));
-		if( clen == -1 )
+		navas = X509_NAME_entry_count( xn );
+		for ( i=navas-1; i>=0; i-- ) {
+			ne = X509_NAME_get_entry( xn, i );
+			if ( !OBJ_cmp( ne->object, obj )) {
+				cn = X509_NAME_ENTRY_get_data( ne );
+				break;
+			}
+		}
+
+		if( !cn )
 		{
+no_cn:
 			Debug( LDAP_DEBUG_ANY,
 				"TLS: unable to get common name from peer certificate.\n",
 				0, 0, 0 );
@@ -598,10 +611,11 @@ tlso_session_chkhost( LDAP *ld, tls_session *sess, const char *name_in )
 			ld->ld_error = LDAP_STRDUP(
 				_("TLS: unable to get CN from peer certificate"));
 
-		} else if (clen == nlen && strcasecmp(name, buf) == 0 ) {
+		} else if ( cn->length == nlen &&
+			strncasecmp( name, cn->data, nlen ) == 0 ) {
 			ret = LDAP_SUCCESS;
 
-		} else if (( buf[0] == '*' ) && ( buf[1] == '.' )) {
+		} else if (( cn->data[0] == '*' ) && ( cn->data[1] == '.' )) {
 			char *domain = strchr(name, '.');
 			if( domain ) {
 				size_t dlen;
@@ -609,7 +623,8 @@ tlso_session_chkhost( LDAP *ld, tls_session *sess, const char *name_in )
 				dlen = nlen - (domain-name);
 
 				/* Is this a wildcard match? */
-				if ((dlen == clen-1) && !strncasecmp(domain, &buf[1], dlen)) {
+				if ((dlen == cn->length-1) &&
+					!strncasecmp(domain, &cn->data[1], dlen)) {
 					ret = LDAP_SUCCESS;
 				}
 			}
@@ -617,8 +632,8 @@ tlso_session_chkhost( LDAP *ld, tls_session *sess, const char *name_in )
 
 		if( ret == LDAP_LOCAL_ERROR ) {
 			Debug( LDAP_DEBUG_ANY, "TLS: hostname (%s) does not match "
-				"common name in certificate (%s).\n", 
-				name, buf, 0 );
+				"common name in certificate (%.*s).\n", 
+				name, cn->length, cn->data );
 			ret = LDAP_CONNECT_ERROR;
 			if ( ld->ld_error ) {
 				LDAP_FREE( ld->ld_error );
