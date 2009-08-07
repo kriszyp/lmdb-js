@@ -612,7 +612,7 @@ no_cn:
 				_("TLS: unable to get CN from peer certificate"));
 
 		} else if ( cn->length == nlen &&
-			strncasecmp( name, cn->data, nlen ) == 0 ) {
+			strncasecmp( name, (char *) cn->data, nlen ) == 0 ) {
 			ret = LDAP_SUCCESS;
 
 		} else if (( cn->data[0] == '*' ) && ( cn->data[1] == '.' )) {
@@ -624,7 +624,7 @@ no_cn:
 
 				/* Is this a wildcard match? */
 				if ((dlen == cn->length-1) &&
-					!strncasecmp(domain, &cn->data[1], dlen)) {
+					!strncasecmp(domain, (char *) &cn->data[1], dlen)) {
 					ret = LDAP_SUCCESS;
 				}
 			}
