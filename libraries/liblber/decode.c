@@ -910,7 +910,7 @@ ber_scanf ( BerElement *ber,
 
 		case 'M':	/* BVoff array in-place */
 			bvp = va_arg( ap, struct berval ** );
-			ber_memfree_x( bvp, ber->ber_memctx );
+			ber_memfree_x( *bvp, ber->ber_memctx );
 			*bvp = NULL;
 			*(va_arg( ap, ber_len_t * )) = 0;
 			(void) va_arg( ap, ber_len_t );
