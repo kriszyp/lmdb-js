@@ -366,20 +366,29 @@ ber_get_stringbvl( BerElement *ber, bgbvr *b )
 		char *bo;				/* BvOff */
 	} res;
 
-	/* For rewinding, just like ber_peek_tag() */
-	orig = ber->ber_ptr;
-	tag = ber->ber_tag;
+	tag = ber_skip_tag( ber, &bv.bv_len );
 
-	if ( ber_first_element( ber, &bv.bv_len, &last ) != LBER_DEFAULT ) {
+	if ( tag != LBER_DEFAULT ) {
+		tag = 0;
+		orig = ber->ber_ptr;
+		last = orig + bv.bv_len;
+
 		for ( ; ber->ber_ptr < last; i++, tot_size += siz ) {
 			if ( ber_skip_element( ber, &bv ) == LBER_DEFAULT )
 				break;
 		}
+		if ( ber->ber_ptr != last ) {
+			i = 0;
+			tag = LBER_DEFAULT;
+		}
+
+		ber->ber_ptr = orig;
+		ber->ber_tag = *(unsigned char *) orig;
 	}
 
 	b->siz = i;
 	if ( i == 0 ) {
-		return 0;
+		return tag;
 	}
 
 	/* Allocate and NULL-terminate the result vector */
@@ -406,14 +415,11 @@ ber_get_stringbvl( BerElement *ber, bgbvr *b )
 		tot_size = 0;
 		break;
 	}
-	ber->ber_ptr = orig;
-	ber->ber_tag = tag;
-	ber_skip_tag( ber, &bv.bv_len );
 
 	n = 0;
 	do {
-		tag = ber_next_element( ber, &bv.bv_len, last );
-		if ( ber_get_stringbv( ber, &bv, b->alloc ) == LBER_DEFAULT ) {
+		tag = ber_get_stringbv( ber, &bv, b->alloc );
+		if ( tag == LBER_DEFAULT ) {
 			goto nomem;
 		}
 
