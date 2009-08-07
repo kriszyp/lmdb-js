@@ -86,76 +86,99 @@ ber_decode_oid( BerValue *in, BerValue *out )
 	return 0;
 }
 
-/* return the tag - LBER_DEFAULT returned means trouble */
-ber_tag_t
-ber_get_tag( BerElement *ber )
+/* Return tag, with *bv = rest of element (starting at length octets) */
+static ber_tag_t
+ber_tag_and_rest( const BerElement *ber, struct berval *bv )
 {
-	unsigned char	xbyte;
 	ber_tag_t	tag;
+	ptrdiff_t	rest;
+	unsigned char	*ptr;
 
 	assert( ber != NULL );
 	assert( LBER_VALID( ber ) );
 
-	if ( ber_pvt_ber_remaining( ber ) < 1 ) {
-		return LBER_DEFAULT;
+	ptr = (unsigned char *) ber->ber_ptr;
+	rest = (unsigned char *) ber->ber_end - ptr;
+	if ( rest <= 0 ) {
+		goto fail;
 	}
 
-	if ( ber->ber_ptr == ber->ber_buf ) {
-		tag = *(unsigned char *)ber->ber_ptr;
-	} else {
-		tag = ber->ber_tag;
+	tag = ber->ber_tag;
+	if ( (char *) ptr == ber->ber_buf ) {
+		tag = *ptr;
 	}
-	ber->ber_ptr++;
-
+	ptr++;
+	rest--;
 	if ( (tag & LBER_BIG_TAG_MASK) != LBER_BIG_TAG_MASK ) {
-		return tag;
+		goto done;
 	}
 
 	do {
-		if ( ber_read( ber, (char *) &xbyte, 1 ) != 1 ) {
+		if ( rest <= 0 ) {
 			break;
 		}
-
 		tag <<= 8;
-		tag |= 0x00ffUL & (ber_tag_t) xbyte;
+		tag |= *ptr++ & 0xffU;
+		rest--;
 
-		if ( ! (xbyte & LBER_MORE_TAG_MASK) ) {
-			return tag;
+		if ( ! (tag & LBER_MORE_TAG_MASK) ) {
+			goto done;
 		}
 	} while ( tag <= (ber_tag_t)-1 / 256 );
 
-	return LBER_DEFAULT;		/* error or tag too big */
+ fail:
+	/* Error or unsupported tag size */
+	tag = LBER_DEFAULT;
+
+ done:
+	bv->bv_len = rest;
+	bv->bv_val = (char *) ptr;
+	return tag;
 }
 
+/* Return the tag - LBER_DEFAULT returned means trouble */
 ber_tag_t
-ber_skip_tag( BerElement *ber, ber_len_t *lenp )
+ber_get_tag( BerElement *ber )
+{
+	struct berval bv;
+	ber_tag_t tag = ber_tag_and_rest( ber, &bv );
+
+	ber->ber_ptr = bv.bv_val;
+	return tag;
+}
+
+/* Return next element's tag and point *bv at its contents in-place */
+ber_tag_t
+ber_peek_element( const BerElement *ber, struct berval *bv )
 {
 	ber_tag_t	tag;
-	ber_len_t	len;
-	unsigned	i, noctets;
-	unsigned char	lc;
-	unsigned char netlen[sizeof(ber_len_t)];
+	ber_len_t	len, rest;
+	unsigned	i;
+	unsigned char *ptr;
 
-	assert( lenp != NULL );
+	assert( bv != NULL );
 
 	/*
 	 * Any ber element looks like this: tag length contents.
-	 * Assuming everything's ok, we return the tag byte (we
-	 * can assume a single byte), and return the length in lenp.
+	 * Assuming everything's ok, we return the tag, and point
+	 * bv at the contents.
 	 *
 	 * Assumptions:
 	 *	1) definite lengths
 	 *	2) primitive encodings used whenever possible
 	 */
 
-	*lenp = 0;
+	len = 0;
 
 	/*
 	 * First, we read the tag.
 	 */
+	tag = ber_tag_and_rest( ber, bv );
 
-	if ( (tag = ber_get_tag( ber )) == LBER_DEFAULT ) {
-		return LBER_DEFAULT;
+	rest = bv->bv_len;
+	ptr = (unsigned char *) bv->bv_val;
+	if ( tag == LBER_DEFAULT || rest == 0 ) {
+		goto fail;
 	}
 
 	/*
@@ -166,37 +189,47 @@ ber_skip_tag( BerElement *ber, ber_len_t *lenp )
 	 * Lengths that do not fit in a ber_len_t are not accepted.
 	 */
 
-	if ( ber_read( ber, (char *) &lc, 1 ) != 1 ) {
-		return LBER_DEFAULT;
-	}
+	len = *ptr++;
+	rest--;
 
-	len = lc;
-	if ( lc & 0x80U ) {
-		noctets = (lc & 0x7fU);
-
-		if ( noctets - 1U > sizeof(ber_len_t) - 1U ) {
-			/* Indefinite-length or too long length */
-			return LBER_DEFAULT;
+	if ( len & 0x80U ) {
+		len &= 0x7fU;
+		if ( len - 1U > sizeof(ber_len_t) - 1U || rest < len ) {
+			/* Indefinite-length/too long length/not enough data */
+			goto fail;
 		}
 
-		if( (unsigned) ber_read( ber, (char *) netlen, noctets ) != noctets ) {
-			return LBER_DEFAULT;
-		}
-
-		len = netlen[0];
-		for( i = 1; i < noctets; i++ ) {
+		rest -= len;
+		i = len;
+		for( len = *ptr++ & 0xffU; --i; len |= *ptr++ & 0xffU ) {
 			len <<= 8;
-			len |= netlen[i];
 		}
-
 	}
-	*lenp = len;
 
 	/* BER element should have enough data left */
-	if( len > (ber_len_t) ber_pvt_ber_remaining( ber ) ) {
-		return LBER_DEFAULT;
+	if( len > rest ) {
+	fail:
+		tag = LBER_DEFAULT;
 	}
-	ber->ber_tag = *(unsigned char *)ber->ber_ptr;
+
+	bv->bv_len = len;
+	bv->bv_val = (char *) ptr;
+	return tag;
+}
+
+/* Move past next element, point *bv at it in-place, and return its tag.
+ * The caller may \0-terminate *bv, as next octet is saved in ber->ber_tag.
+ * See ber_get_stringbv(ber, bv, LBER_BV_NOTERM) for an exported wrapper.
+ */
+static ber_tag_t
+ber_skip_element( BerElement *ber, struct berval *bv )
+{
+	ber_tag_t tag = ber_peek_element( ber, bv );
+
+	if ( tag != LBER_DEFAULT ) {
+		ber->ber_ptr = bv->bv_val + bv->bv_len;
+		ber->ber_tag = *(unsigned char *) ber->ber_ptr;
+	}
 
 	return tag;
 }
@@ -206,20 +239,23 @@ ber_peek_tag(
 	BerElement *ber,
 	ber_len_t *len )
 {
-	/*
-	 * This implementation assumes ber_skip_tag() only
-	 * modifies ber_ptr field of the BerElement.
-	 */
+	struct berval bv;
+	ber_tag_t tag = ber_peek_element( ber, &bv );
 
-	char *save;
-	ber_tag_t	tag, old;
+	*len = bv.bv_len;
+	return tag;
+}
 
-	old = ber->ber_tag;
-	save = ber->ber_ptr;
-	tag = ber_skip_tag( ber, len );
-	ber->ber_ptr = save;
-	ber->ber_tag = old;
+ber_tag_t
+ber_skip_tag( BerElement *ber, ber_len_t *lenp )
+{
+	struct berval bv;
+	ber_tag_t tag = ber_peek_element( ber, &bv );
 
+	ber->ber_ptr = bv.bv_val;
+	ber->ber_tag = *(unsigned char *) ber->ber_ptr;
+
+	*lenp = bv.bv_len;
 	return tag;
 }
 
@@ -230,30 +266,24 @@ ber_get_int(
 {
 	ber_tag_t	tag;
 	ber_len_t	len;
-	unsigned char buf[sizeof(ber_int_t)];
+	struct berval bv;
 
 	assert( num != NULL );
 
-	if ( (tag = ber_skip_tag( ber, &len )) == LBER_DEFAULT ) {
-		return LBER_DEFAULT;
-	}
-
-	if ( len > sizeof(ber_int_t) ) {
-		return LBER_DEFAULT;
-	}
-
-	/* read into the low-order bytes of our buffer */
-	if ( (ber_len_t) ber_read( ber, (char *) buf, len ) != len ) {
+	tag = ber_skip_element( ber, &bv );
+	len = bv.bv_len;
+	if ( tag == LBER_DEFAULT || len > sizeof(ber_int_t) ) {
 		return LBER_DEFAULT;
 	}
 
 	/* parse two's complement integer */
 	if( len ) {
+		unsigned char *buf = (unsigned char *) bv.bv_val;
 		ber_len_t i;
 		ber_int_t netnum = buf[0] & 0xff;
 
 		/* sign extend */
-		netnum -= (netnum & 0x80) << 1;
+		netnum = (netnum ^ 0x80) - 0x80;
 
 		/* shift in the bytes */
 		for( i = 1; i < len; i++ ) {
@@ -265,8 +295,6 @@ ber_get_int(
 	} else {
 		*num = 0;
 	}
-
-	ber->ber_tag = *(unsigned char *)ber->ber_ptr;
 
 	return tag;
 }
@@ -285,26 +313,22 @@ ber_get_stringb(
 	char *buf,
 	ber_len_t *len )
 {
-	ber_len_t	datalen;
+	struct berval bv;
 	ber_tag_t	tag;
 
-	if ( (tag = ber_skip_tag( ber, &datalen )) == LBER_DEFAULT ) {
+	if ( (tag = ber_skip_element( ber, &bv )) == LBER_DEFAULT ) {
 		return LBER_DEFAULT;
 	}
 
 	/* must fit within allocated space with termination */
-	if ( datalen >= *len ) {
+	if ( bv.bv_len >= *len ) {
 		return LBER_DEFAULT;
 	}
 
-	if ( (ber_len_t) ber_read( ber, buf, datalen ) != datalen ) {
-		return LBER_DEFAULT;
-	}
-	ber->ber_tag = *(unsigned char *)ber->ber_ptr;
+	memcpy( buf, bv.bv_val, bv.bv_len );
+	buf[bv.bv_len] = '\0';
 
-	buf[datalen] = '\0';
-
-	*len = datalen;
+	*len = bv.bv_len;
 	return tag;
 }
 
@@ -332,7 +356,7 @@ ber_get_stringbvl( BerElement *ber, bgbvr *b )
 {
 	int i = 0, n;
 	ber_tag_t tag;
-	ber_len_t len, tot_size = 0, siz = b->siz;
+	ber_len_t tot_size = 0, siz = b->siz;
 	char *last, *orig;
 	struct berval bv, *bvp = NULL;
 	union stringbvl_u {
@@ -346,11 +370,10 @@ ber_get_stringbvl( BerElement *ber, bgbvr *b )
 	orig = ber->ber_ptr;
 	tag = ber->ber_tag;
 
-	if ( ber_first_element( ber, &len, &last ) != LBER_DEFAULT ) {
+	if ( ber_first_element( ber, &bv.bv_len, &last ) != LBER_DEFAULT ) {
 		for ( ; ber->ber_ptr < last; i++, tot_size += siz ) {
-			if ( ber_skip_tag( ber, &len ) == LBER_DEFAULT ) break;
-			ber->ber_ptr += len;
-			ber->ber_tag = *(unsigned char *) ber->ber_ptr;
+			if ( ber_skip_element( ber, &bv ) == LBER_DEFAULT )
+				break;
 		}
 	}
 
@@ -380,16 +403,16 @@ ber_get_stringbvl( BerElement *ber, bgbvr *b )
 	case BvOff:
 		res.bo = (char *) b->result + b->off;
 		((struct berval *) (res.bo + tot_size))->bv_val = NULL;
+		tot_size = 0;
 		break;
 	}
 	ber->ber_ptr = orig;
 	ber->ber_tag = tag;
-	ber_skip_tag( ber, &len );
+	ber_skip_tag( ber, &bv.bv_len );
 
-	tot_size = 0;
 	n = 0;
 	do {
-		tag = ber_next_element( ber, &len, last );
+		tag = ber_next_element( ber, &bv.bv_len, last );
 		if ( ber_get_stringbv( ber, &bv, b->alloc ) == LBER_DEFAULT ) {
 			goto nomem;
 		}
@@ -448,15 +471,15 @@ ber_tag_t
 ber_get_stringbv( BerElement *ber, struct berval *bv, int option )
 {
 	ber_tag_t	tag;
+	char		*data;
 
-	assert( bv != NULL );
-
-	tag = ber_skip_tag( ber, &bv->bv_len );
+	tag = ber_skip_element( ber, bv );
 	if ( tag == LBER_DEFAULT ) {
 		bv->bv_val = NULL;
 		return tag;
 	}
 
+	data = bv->bv_val;
 	if ( option & LBER_BV_ALLOC ) {
 		bv->bv_val = (char *) ber_memalloc_x( bv->bv_len + 1,
 			ber->ber_memctx );
@@ -464,20 +487,13 @@ ber_get_stringbv( BerElement *ber, struct berval *bv, int option )
 			return LBER_DEFAULT;
 		}
 
-		if ( bv->bv_len > 0 && (ber_len_t) ber_read( ber, bv->bv_val,
-			bv->bv_len ) != bv->bv_len )
-		{
-			ber_memfree_x( bv->bv_val, ber->ber_memctx );
-			bv->bv_val = NULL;
-			return LBER_DEFAULT;
+		if ( bv->bv_len != 0 ) {
+			memcpy( bv->bv_val, data, bv->bv_len );
 		}
-	} else {
-		bv->bv_val = ber->ber_ptr;
-		ber->ber_ptr += bv->bv_len;
+		data = bv->bv_val;
 	}
-	ber->ber_tag = *(unsigned char *)ber->ber_ptr;
 	if ( !( option & LBER_BV_NOTERM ))
-		bv->bv_val[bv->bv_len] = '\0';
+		data[bv->bv_len] = '\0';
 
 	return tag;
 }
@@ -486,15 +502,15 @@ ber_tag_t
 ber_get_stringbv_null( BerElement *ber, struct berval *bv, int option )
 {
 	ber_tag_t	tag;
+	char		*data;
 
-	assert( bv != NULL );
-
-	tag = ber_skip_tag( ber, &bv->bv_len );
+	tag = ber_skip_element( ber, bv );
 	if ( tag == LBER_DEFAULT || bv->bv_len == 0 ) {
 		bv->bv_val = NULL;
 		return tag;
 	}
 
+	data = bv->bv_val;
 	if ( option & LBER_BV_ALLOC ) {
 		bv->bv_val = (char *) ber_memalloc_x( bv->bv_len + 1,
 			ber->ber_memctx );
@@ -502,20 +518,11 @@ ber_get_stringbv_null( BerElement *ber, struct berval *bv, int option )
 			return LBER_DEFAULT;
 		}
 
-		if ( bv->bv_len > 0 && (ber_len_t) ber_read( ber, bv->bv_val,
-			bv->bv_len ) != bv->bv_len )
-		{
-			ber_memfree_x( bv->bv_val, ber->ber_memctx );
-			bv->bv_val = NULL;
-			return LBER_DEFAULT;
-		}
-	} else {
-		bv->bv_val = ber->ber_ptr;
-		ber->ber_ptr += bv->bv_len;
+		memcpy( bv->bv_val, data, bv->bv_len );
+		data = bv->bv_val;
 	}
-	ber->ber_tag = *(unsigned char *)ber->ber_ptr;
 	if ( !( option & LBER_BV_NOTERM ))
-		bv->bv_val[bv->bv_len] = '\0';
+		data[bv->bv_len] = '\0';
 
 	return tag;
 }
@@ -576,40 +583,32 @@ ber_get_bitstringa(
 	char **buf,
 	ber_len_t *blen )
 {
-	ber_len_t	datalen;
 	ber_tag_t	tag;
+	struct berval	data;
 	unsigned char	unusedbits;
 
 	assert( buf != NULL );
 	assert( blen != NULL );
 
-	if ( (tag = ber_skip_tag( ber, &datalen )) == LBER_DEFAULT ) {
+	if ( (tag = ber_skip_element( ber, &data )) == LBER_DEFAULT ) {
 		goto fail;
 	}
 
-	if ( --datalen > (ber_len_t)-1 / 8 ) {
+	if ( --data.bv_len > (ber_len_t)-1 / 8 ) {
 		goto fail;
 	}
-	if ( ber_read( ber, (char *)&unusedbits, 1 ) != 1 ) {
-		goto fail;
-	}
+	unusedbits = *(unsigned char *) data.bv_val++;
 	if ( unusedbits > 7 ) {
 		goto fail;
 	}
 
-	*buf = (char *) ber_memalloc_x( datalen, ber->ber_memctx );
+	*buf = (char *) ber_memalloc_x( data.bv_len, ber->ber_memctx );
 	if ( *buf == NULL ) {
 		return LBER_DEFAULT;
 	}
+	memcpy( *buf, data.bv_val, data.bv_len );
 
-	if ( (ber_len_t) ber_read( ber, *buf, datalen ) != datalen ) {
-		ber_memfree_x( buf, ber->ber_memctx );
-		*buf = NULL;
-		return LBER_DEFAULT;
-	}
-	ber->ber_tag = *(unsigned char *)ber->ber_ptr;
-
-	*blen = datalen * 8 - unusedbits;
+	*blen = data.bv_len * 8 - unusedbits;
 	return tag;
 
  fail:
@@ -683,7 +682,7 @@ ber_scanf ( BerElement *ber,
 	va_list		ap;
 	LDAP_CONST char		*fmt_reset;
 	char		*s, **ss, ***sss;
-	struct berval	*bval, **bvp, ***bvpp;
+	struct berval	data, *bval, **bvp, ***bvpp;
 	ber_int_t	*i;
 	ber_len_t	*l;
 	ber_tag_t	*t;
@@ -834,10 +833,7 @@ ber_scanf ( BerElement *ber,
 		}
 
 		case 'x':	/* skip the next element - whatever it is */
-			if ( (rc = ber_skip_tag( ber, &len )) == LBER_DEFAULT )
-				break;
-			ber->ber_ptr += len;
-			ber->ber_tag = *(unsigned char *)ber->ber_ptr;
+			rc = ber_skip_element( ber, &data );
 			break;
 
 		case '{':	/* begin sequence */
