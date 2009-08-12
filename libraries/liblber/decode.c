@@ -219,9 +219,9 @@ ber_peek_element( const BerElement *ber, struct berval *bv )
 
 /* Move past next element, point *bv at it in-place, and return its tag.
  * The caller may \0-terminate *bv, as next octet is saved in ber->ber_tag.
- * See ber_get_stringbv(ber, bv, LBER_BV_NOTERM) for an exported wrapper.
+ * Similar to ber_get_stringbv(ber, bv, LBER_BV_NOTERM) except on error.
  */
-static ber_tag_t
+ber_tag_t
 ber_skip_element( BerElement *ber, struct berval *bv )
 {
 	ber_tag_t tag = ber_peek_element( ber, bv );
