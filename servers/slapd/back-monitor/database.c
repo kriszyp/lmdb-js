@@ -126,11 +126,6 @@ monitor_subsys_database_init_one(
 		bi = oi->oi_orig;
 	}
 
-	/* Subordinates are not exposed as their own naming context */
-	if ( SLAP_GLUE_SUBORDINATE( be ) ) {
-		return 0;
-	}
-
 	e = monitor_entry_stub( &ms->mss_dn, &ms->mss_ndn, rdn,
 		mi->mi_oc_monitoredObject, mi, NULL, NULL );
 
@@ -165,6 +160,21 @@ monitor_subsys_database_init_one(
 				be->be_suffix, NULL );
 			attr_merge( e_database, slap_schema.si_ad_namingContexts,
 				be->be_suffix, NULL );
+		}
+
+		/* Subordinates are not exposed as their own naming context */
+		if ( SLAP_GLUE_SUBORDINATE( be ) ) {
+			BackendDB *sup_be = select_backend( &be->be_nsuffix[ 0 ], 1 );
+			if ( sup_be == NULL ) {
+				Debug( LDAP_DEBUG_ANY,
+					"monitor_subsys_database_init: "
+					"unable to get superior for %s\n",
+					be->be_suffix[ 0 ].bv_val, 0, 0 );
+
+			} else {
+				attr_merge( e, mi->mi_ad_monitorSuperiorDN,
+					sup_be->be_suffix, sup_be->be_nsuffix );
+			}
 		}
 	}
 
