@@ -145,11 +145,7 @@ ldap_int_prepare_socket(LDAP *ld, int s, int proto )
 		if ( ld->ld_options.ldo_keepalive_idle > 0 )
 		{
 #ifdef TCP_KEEPIDLE
-/* AIX uses protocol numbers for everything besides SOL_SOCKET */
-#ifndef SOL_TCP
-#define	SOL_TCP	IPPROTO_TCP
-#endif
-			if ( setsockopt( s, SOL_TCP, TCP_KEEPIDLE,
+			if ( setsockopt( s, IPPROTO_TCP, TCP_KEEPIDLE,
 					(void*) &ld->ld_options.ldo_keepalive_idle,
 					sizeof(ld->ld_options.ldo_keepalive_idle) ) == AC_SOCKET_ERROR )
 			{
