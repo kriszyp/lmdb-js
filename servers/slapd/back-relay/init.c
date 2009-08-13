@@ -151,26 +151,17 @@ relay_back_initialize( BackendInfo *bi )
 	bi->bi_db_destroy = relay_back_db_destroy;
 
 	bi->bi_op_bind = relay_back_op_bind;
-	bi->bi_op_unbind = relay_back_op_unbind;
 	bi->bi_op_search = relay_back_op_search;
 	bi->bi_op_compare = relay_back_op_compare;
 	bi->bi_op_modify = relay_back_op_modify;
 	bi->bi_op_modrdn = relay_back_op_modrdn;
 	bi->bi_op_add = relay_back_op_add;
 	bi->bi_op_delete = relay_back_op_delete;
-	bi->bi_op_abandon = relay_back_op_abandon;
-	bi->bi_op_cancel = relay_back_op_cancel;
 	bi->bi_extended = relay_back_op_extended;
 	bi->bi_entry_release_rw = relay_back_entry_release_rw;
 	bi->bi_entry_get_rw = relay_back_entry_get_rw;
-#if 0	/* see comment in op.c */
-	bi->bi_chk_referrals = relay_back_chk_referrals;
-#endif
 	bi->bi_operational = relay_back_operational;
 	bi->bi_has_subordinates = relay_back_has_subordinates;
-
-	bi->bi_connection_init = relay_back_connection_init;
-	bi->bi_connection_destroy = relay_back_connection_destroy;
 
 	bi->bi_cf_ocs = relayocs;
 
@@ -184,7 +175,7 @@ relay_back_db_init( Backend *be, ConfigReply *cr)
 
 	be->be_private = NULL;
 
-	ri = (relay_back_info *)ch_calloc( 1, sizeof( relay_back_info ) );
+	ri = (relay_back_info *) ch_calloc( 1, RELAY_INFO_SIZE );
 	if ( ri == NULL ) {
  		return -1;
  	}
@@ -261,4 +252,3 @@ relay_back_db_destroy( Backend *be, ConfigReply *cr)
 SLAP_BACKEND_INIT_MODULE( relay )
 
 #endif /* SLAPD_RELAY == SLAPD_MOD_DYNAMIC */
-
