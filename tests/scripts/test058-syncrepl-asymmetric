@@ -2089,6 +2089,8 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
+sleep $SLEEP1
+
 echo "Checking contextCSN after site2 servers repopulated..."
 . $TESTDIR/checkcsn.sh
 
