@@ -3245,7 +3245,32 @@ pc_cf_gen( ConfigArgs *c )
 			return( 1 );
 		}
 
-		if ( cm->db.be_config != NULL ) {
+		if ( cm->db.bd_info->bi_cf_ocs ) {
+			ConfigTable	*ct;
+			ConfigArgs	c2 = *c;
+			char		*argv0 = c->argv[ 0 ];
+
+			c->argv[ 0 ] = &argv0[ STRLENOF( "proxycache-" ) ];
+
+			ct = config_find_keyword( cm->db.bd_info->bi_cf_ocs->co_table, c );
+			if ( ct == NULL ) {
+				rc = 1;
+
+			} else {
+				c->table = cm->db.bd_info->bi_cf_ocs->co_type;
+				c->be = &cm->db;
+				c->bi = c->be->bd_info;
+
+				rc = config_add_vals( ct, c );
+
+				c->bi = c2.bi;
+				c->be = c2.be;
+				c->table = c2.table;
+			}
+
+			c->argv[ 0 ] = argv0;
+
+		} else if ( cm->db.be_config != NULL ) {
 			char	*argv0 = c->argv[ 0 ];
 
 			c->argv[ 0 ] = &argv0[ STRLENOF( "proxycache-" ) ];
