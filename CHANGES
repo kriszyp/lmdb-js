@@ -15,6 +15,7 @@ OpenLDAP 2.4.18 Engineering
 	Fixed slapd-ndb startup (ITS#6203)
 	Fixed slapd-relay various issues (ITS#6133)
 	Fixed slapd-relay response/cleanup callback mismatch (ITS#6154)
+	Fixed slapd-sql with baseObject query (ITS#6172)
 	Fixed slapd-sql with empty attribute (ITS#6163)
 	Added slapo-pcache olcProxyCacheOffline (ITS#6152)
 	Fixed slapo-unique filter matching (ITS#6077)
