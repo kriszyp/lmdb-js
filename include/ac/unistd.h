@@ -34,12 +34,7 @@
 #if defined(HAVE_GETPASSPHRASE)
 LDAP_LIBC_F(char*)(getpassphrase)();
 
-#elif defined(HAVE_GETPASS)
-#define getpassphrase(p) getpass(p)
-LDAP_LIBC_F(char*)(getpass)();
-
 #else
-#define NEED_GETPASSPHRASE 1
 #define getpassphrase(p) lutil_getpass(p)
 LDAP_LUTIL_F(char*)(lutil_getpass) LDAP_P((const char *getpass));
 #endif
