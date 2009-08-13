@@ -1540,7 +1540,7 @@ int slap_sasl_bind( Operation *op, SlapReply *rs )
 		}
 
 		/* Must send response using old security layer */
-		if (response.bv_len) rs->sr_sasldata = &response;
+		rs->sr_sasldata = (response.bv_len ? &response : NULL);
 		send_ldap_sasl( op, rs );
 		
 		/* Now dispose of the old security layer.
