@@ -195,6 +195,8 @@ typedef struct cache_manager_s {
 	char	defer_db_open;			/* defer open for online add */
 
 	time_t	cc_period;		/* interval between successive consistency checks (sec) */
+#define PCACHE_CC_PAUSED	1
+#define PCACHE_CC_OFFLINE	2
 	int 	cc_paused;
 	void	*cc_arg;
 
@@ -2083,9 +2085,9 @@ over:;
 				/* If the consistency checker suspended itself,
 				 * wake it back up
 				 */
-				if ( cm->cc_paused ) {
+				if ( cm->cc_paused == PCACHE_CC_PAUSED ) {
 					ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
-					if ( cm->cc_paused ) {
+					if ( cm->cc_paused == PCACHE_CC_PAUSED ) {
 						cm->cc_paused = 0;
 						ldap_pvt_runqueue_resched( &slapd_rq, cm->cc_arg, 0 );
 					}
@@ -2574,8 +2576,14 @@ consistency_check(
 
 	SlapReply rs = {REP_RESULT};
 	CachedQuery* query;
-	int return_val, pause = 1;
+	int return_val, pause = PCACHE_CC_PAUSED;
 	QueryTemplate* templ;
+
+	/* Don't expire anything when we're offline */
+	if ( cm->cc_paused & PCACHE_CC_OFFLINE ) {
+		pause = PCACHE_CC_OFFLINE;
+		goto leave;
+	}
 
 	connection_fake_init( &conn, &opbuf, ctx );
 	op = &opbuf.ob_op;
@@ -2631,12 +2639,15 @@ consistency_check(
 			query = templ->query_last;
 		}
 	}
+
+leave:
 	ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
 	if ( ldap_pvt_runqueue_isrunning( &slapd_rq, rtask )) {
 		ldap_pvt_runqueue_stoptask( &slapd_rq, rtask );
 	}
 	/* If there were no queries, defer processing for a while */
-	cm->cc_paused = pause;
+	if ( cm->cc_paused != pause )
+		cm->cc_paused = pause;
 	ldap_pvt_runqueue_resched( &slapd_rq, rtask, pause );
 
 	ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
@@ -2651,7 +2662,8 @@ enum {
 	PC_ATTR,
 	PC_TEMP,
 	PC_RESP,
-	PC_QUERIES
+	PC_QUERIES,
+	PC_OFFLINE
 };
 
 static ConfigDriver pc_cf_gen;
@@ -2696,6 +2708,11 @@ static ConfigTable pccfg[] = {
 		"( OLcfgOvAt:2.7 NAME 'olcProxyCheckCacheability' "
 			"DESC 'Check whether the results of a query are cacheable, e.g. for schema issues' "
 			"SYNTAX OMsBoolean )", NULL, NULL },
+	{ "proxyCacheOffline", "TRUE|FALSE",
+		2, 2, 0, ARG_ON_OFF|ARG_MAGIC|PC_OFFLINE, pc_cf_gen,
+		"( OLcfgOvAt:2.8 NAME 'olcProxyCacheOffline' "
+			"DESC 'Set cache to offline mode and disable expiration' "
+			"SYNTAX OMsBoolean )", NULL, NULL },
 
 	{ NULL, NULL, 0, 0, 0, ARG_IGNORED }
 };
@@ -2706,7 +2723,7 @@ static ConfigOCs pcocs[] = {
 		"DESC 'ProxyCache configuration' "
 		"SUP olcOverlayConfig "
 		"MUST ( olcProxyCache $ olcProxyAttrset $ olcProxyTemplate ) "
-		"MAY ( olcProxyResponseCB $ olcProxyCacheQueries $ olcProxySaveQueries $ olcProxyCheckCacheability ) )",
+		"MAY ( olcProxyResponseCB $ olcProxyCacheQueries $ olcProxySaveQueries $ olcProxyCheckCacheability $ olcProxyCacheOffline ) )",
 		Cft_Overlay, pccfg, NULL, pc_cfadd },
 	{ "( OLcfgOvOc:2.2 "
 		"NAME 'olcPcacheDatabase' "
@@ -2854,17 +2871,23 @@ pc_cf_gen( ConfigArgs *c )
 		case PC_QUERIES:
 			c->value_int = cm->max_queries;
 			break;
+		case PC_OFFLINE:
+			c->value_int = (cm->cc_paused & PCACHE_CC_OFFLINE) != 0;
+			break;
 		}
 		return rc;
 	} else if ( c->op == LDAP_MOD_DELETE ) {
-		return 1;	/* FIXME */
-#if 0
+		rc = 1;
 		switch( c->type ) {
-		case PC_ATTR:
+		case PC_ATTR: /* FIXME */
 		case PC_TEMP:
+			break;
+		case PC_OFFLINE:
+			cm->cc_paused &= ~PCACHE_CC_OFFLINE;
+			rc = 0;
+			break;
 		}
 		return rc;
-#endif
 	}
 
 	switch( c->type ) {
@@ -3150,6 +3173,12 @@ pc_cf_gen( ConfigArgs *c )
 			return( 1 );
 		}
 		cm->max_queries = c->value_int;
+		break;
+	case PC_OFFLINE:
+		if ( c->value_int )
+			cm->cc_paused |= PCACHE_CC_OFFLINE;
+		else
+			cm->cc_paused &= ~PCACHE_CC_OFFLINE;
 		break;
 	}
 	return rc;
