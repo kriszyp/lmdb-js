@@ -162,7 +162,6 @@ monitor_subsys_database_init_one(
 				be->be_suffix, NULL );
 		}
 
-		/* Subordinates are not exposed as their own naming context */
 		if ( SLAP_GLUE_SUBORDINATE( be ) ) {
 			BackendDB *sup_be = select_backend( &be->be_nsuffix[ 0 ], 1 );
 			if ( sup_be == NULL ) {
