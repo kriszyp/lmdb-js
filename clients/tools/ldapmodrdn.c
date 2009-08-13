@@ -83,6 +83,10 @@ usage( void )
 	fprintf( stderr, _("		If not given, the list of modifications is read from stdin or\n"));
 	fprintf( stderr, _("		from the file specified by \"-f file\" (see man page).\n"));
 	fprintf( stderr, _("Rename options:\n"));
+ 	fprintf( stderr, _("  -c         continuous operation mode (do not stop on errors)\n"));
+ 	fprintf( stderr, _("  -f file    read operations from `file'\n"));
+ 	fprintf( stderr, _("  -M         enable Manage DSA IT control (-MM to make critical)\n"));
+ 	fprintf( stderr, _("  -P version protocol version (default: 3)\n"));
 	fprintf( stderr, _("  -r		 remove old RDN\n"));
 	fprintf( stderr, _("  -s newsup  new superior entry\n"));
 	tool_common_usage();

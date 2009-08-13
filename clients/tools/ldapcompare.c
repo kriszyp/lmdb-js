@@ -85,6 +85,8 @@ usage( void )
 	fprintf( stderr, _("Compare options:\n"));
 	fprintf( stderr, _("  -E [!]<ext>[=<extparam>] compare extensions (! indicates criticality)\n"));
 	fprintf( stderr, _("             !dontUseCopy                (Don't Use Copy)\n"));
+	fprintf( stderr, _("  -M         enable Manage DSA IT control (-MM to make critical)\n"));
+	fprintf( stderr, _("  -P version protocol version (default: 3)\n"));
 	fprintf( stderr, _("  -z         Quiet mode,"
 		" don't print anything, use return values\n"));
 	tool_common_usage();

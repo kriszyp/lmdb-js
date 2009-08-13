@@ -123,6 +123,7 @@ usage( void )
 	fprintf( stderr, _("  -a deref   one of never (default), always, search, or find\n"));
 	fprintf( stderr, _("  -A         retrieve attribute names only (no values)\n"));
 	fprintf( stderr, _("  -b basedn  base dn for search\n"));
+	fprintf( stderr, _("  -c         continuous operation mode (do not stop on errors)\n"));
 	fprintf( stderr, _("  -E [!]<ext>[=<extparam>] search extensions (! indicates criticality)\n"));
 	fprintf( stderr, _("             [!]domainScope              (domain scope)\n"));
 	fprintf( stderr, _("             !dontUseCopy                (Don't Use Copy)\n"));
@@ -139,12 +140,15 @@ usage( void )
 	fprintf( stderr, _("             [!]deref=derefAttr:attr[,...][;derefAttr:attr[,...][;...]]\n"));
 #endif
 	fprintf( stderr, _("             [!]<oid>=:<value>           (generic control; no response handling)\n"));
+	fprintf( stderr, _("  -f file    read operations from `file'\n"));
 	fprintf( stderr, _("  -F prefix  URL prefix for files (default: %s)\n"), def_urlpre);
 	fprintf( stderr, _("  -l limit   time limit (in seconds, or \"none\" or \"max\") for search\n"));
 	fprintf( stderr, _("  -L         print responses in LDIFv1 format\n"));
 	fprintf( stderr, _("  -LL        print responses in LDIF format without comments\n"));
 	fprintf( stderr, _("  -LLL       print responses in LDIF format without comments\n"));
 	fprintf( stderr, _("             and version\n"));
+	fprintf( stderr, _("  -M         enable Manage DSA IT control (-MM to make critical)\n"));
+	fprintf( stderr, _("  -P version protocol version (default: 3)\n"));
 	fprintf( stderr, _("  -s scope   one of base, one, sub or children (search scope)\n"));
 	fprintf( stderr, _("  -S attr    sort the results by attribute `attr'\n"));
 	fprintf( stderr, _("  -t         write binary values to files in temporary directory\n"));

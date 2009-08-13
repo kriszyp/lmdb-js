@@ -71,6 +71,10 @@ usage( void )
 	fprintf( stderr, _("	dn: list of DNs to delete. If not given, it will be readed from stdin\n"));
 	fprintf( stderr, _("	    or from the file specified with \"-f file\".\n"));
 	fprintf( stderr, _("Delete Options:\n"));
+	fprintf( stderr, _("  -c         continuous operation mode (do not stop on errors)\n"));
+	fprintf( stderr, _("  -f file    read operations from `file'\n"));
+	fprintf( stderr, _("  -M         enable Manage DSA IT control (-MM to make critical)\n"));
+	fprintf( stderr, _("  -P version protocol version (default: 3)\n"));
 	fprintf( stderr, _("  -r         delete recursively\n"));
 	tool_common_usage();
 	exit( EXIT_FAILURE );
