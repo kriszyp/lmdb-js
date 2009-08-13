@@ -19,6 +19,7 @@ OpenLDAP 2.4.18 Engineering
 	Fixed tools resource leaks (ITS#6145)
 	Fixed contrib/autogroup with RE24 (ITS#6227)
 	Build Environment
+		Tests note which backend is being tested (ITS#5810)
 		Fixed test056-monitor with custom ports (ITS#6213)
 
 OpenLDAP 2.4.17 Release (2009/07/13)

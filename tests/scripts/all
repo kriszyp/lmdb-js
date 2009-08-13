@@ -51,13 +51,13 @@ for CMD in $SRCDIR/scripts/test*; do
 EOF
 	fi
 
-	echo ">>>>> Starting ${TB}`basename $CMD`${TN} ..."
+	echo ">>>>> Starting ${TB}`basename $CMD`${TN} for $BACKEND..."
 	$CMD
 	RC=$?
 	if test $RC -eq 0 ; then
-		echo ">>>>> $CMD completed ${TB}OK${TN}."
+		echo ">>>>> $CMD completed ${TB}OK${TN} for $BACKEND."
 	else
-		echo ">>>>> $CMD ${TB}failed${TN} (exit $RC)"
+		echo ">>>>> $CMD ${TB}failed${TN} for $BACKEND (exit $RC)"
 		exit $RC
 	fi
 
