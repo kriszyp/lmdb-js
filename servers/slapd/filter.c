@@ -348,7 +348,7 @@ get_ssa(
 {
 	ber_tag_t	tag;
 	ber_len_t	len;
-	ber_tag_t	rc;
+	int	rc;
 	struct berval desc, value, nvalue;
 	char		*last;
 	SubstringsAssertion ssa;
@@ -385,17 +385,15 @@ get_ssa(
 
 	rc = LDAP_PROTOCOL_ERROR;
 
+	/* If there is no substring matching rule, there's nothing
+	 * we can do with this filter. But we continue to parse it
+	 * for logging purposes.
+	 */
 	if ( ssa.sa_desc->ad_type->sat_substr == NULL ) {
-		for ( tag = ber_first_element( ber, &len, &last );
-			tag != LBER_DEFAULT;
-			tag = ber_next_element( ber, &len, last ) )
-		{
-			/* eat all */
-			rc = ber_scanf( ber, "x" );
-		}
-
-		rc = LDAP_INVALID_SYNTAX;
-		goto return_error;
+		f->f_choice |= SLAPD_FILTER_UNDEFINED;
+		Debug( LDAP_DEBUG_FILTER,
+		"get_ssa: no substring matching rule for attributeType %s\n",
+			desc.bv_val, 0, 0 );
 	}
 
 	for ( tag = ber_first_element( ber, &len, &last );
@@ -457,7 +455,13 @@ get_ssa(
 		rc = asserted_value_validate_normalize(
 			ssa.sa_desc, ssa.sa_desc->ad_type->sat_equality,
 			usage, &value, &nvalue, text, op->o_tmpmemctx );
-		if( rc != LDAP_SUCCESS ) goto return_error;
+		if( rc != LDAP_SUCCESS ) {
+			f->f_choice |= SLAPD_FILTER_UNDEFINED;
+			Debug( LDAP_DEBUG_FILTER,
+			"get_ssa: illegal value for attributeType %s (%d) %s\n",
+				desc.bv_val, rc, *text );
+			ber_dupbv_x( &nvalue, &value, op->o_tmpmemctx );
+		}
 
 		switch ( tag ) {
 		case LDAP_SUBSTRING_INITIAL:
