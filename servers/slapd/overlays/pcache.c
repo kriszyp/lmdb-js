@@ -75,6 +75,8 @@ typedef struct cached_query_s {
 	int						q_sizelimit;
 	struct query_template_s		*qtemp;	/* template of the query */
 	time_t						expiry_time;	/* time till the query is considered valid */
+	unsigned long			answerable_cnt; /* how many times it was answerable */
+	ldap_pvt_thread_mutex_t		answerable_cnt_mutex;
 	struct cached_query_s  		*next;  	/* next query in the template */
 	struct cached_query_s  		*prev;  	/* previous query in the template */
 	struct cached_query_s		*lru_up;	/* previous query in the LRU list */
@@ -263,15 +265,21 @@ remove_query_data(
  * Turn a cached query into its URL representation
  */
 static int
-query2url( Operation *op, CachedQuery *q, struct berval *urlbv )
+query2url( Operation *op, CachedQuery *q, struct berval *urlbv, int dolock )
 {
 	struct berval	bv_scope,
 			bv_filter;
 	char		attrset_buf[ LDAP_PVT_INTTYPE_CHARS( unsigned long ) ],
 			expiry_buf[ LDAP_PVT_INTTYPE_CHARS( unsigned long ) ],
+			answerable_buf[ LDAP_PVT_INTTYPE_CHARS( unsigned long ) ],
 			*ptr;
 	ber_len_t	attrset_len,
-			expiry_len;
+			expiry_len,
+			answerable_len;
+
+	if ( dolock ) {
+		ldap_pvt_thread_rdwr_rlock( &q->rwlock );
+	}
 
 	ldap_pvt_scope2bv( q->scope, &bv_scope );
 	filter2bv_x( op, q->filter, &bv_filter );
@@ -279,6 +287,8 @@ query2url( Operation *op, CachedQuery *q, struct berval *urlbv )
 		"%lu", (unsigned long)q->qtemp->attr_set_index );
 	expiry_len = sprintf( expiry_buf,
 		"%lu", (unsigned long)q->expiry_time );
+	answerable_len = snprintf( answerable_buf, sizeof( answerable_buf ),
+		"%lu", q->answerable_cnt );
 
 	urlbv->bv_len = STRLENOF( "ldap:///" )
 		+ q->qbase->base.bv_len
@@ -291,7 +301,9 @@ query2url( Operation *op, CachedQuery *q, struct berval *urlbv )
 		+ STRLENOF( ",x-attrset=" )
 		+ attrset_len
 		+ STRLENOF( ",x-expiry=" )
-		+ expiry_len;
+		+ expiry_len
+		+ STRLENOF( ",x-answerable=" )
+		+ answerable_len;
 	ptr = urlbv->bv_val = ber_memalloc_x( urlbv->bv_len + 1, op->o_tmpmemctx );
 	ptr = lutil_strcopy( ptr, "ldap:///" );
 	ptr = lutil_strcopy( ptr, q->qbase->base.bv_val );
@@ -305,8 +317,14 @@ query2url( Operation *op, CachedQuery *q, struct berval *urlbv )
 	ptr = lutil_strcopy( ptr, attrset_buf );
 	ptr = lutil_strcopy( ptr, ",x-expiry=" );
 	ptr = lutil_strcopy( ptr, expiry_buf );
+	ptr = lutil_strcopy( ptr, ",x-answerable=" );
+	ptr = lutil_strcopy( ptr, answerable_buf );
 
 	ber_memfree_x( bv_filter.bv_val, op->o_tmpmemctx );
+
+	if ( dolock ) {
+		ldap_pvt_thread_rdwr_runlock( &q->rwlock );
+	}
 
 	return 0;
 }
@@ -330,10 +348,14 @@ url2query(
 			uuid;
 	int		attrset;
 	time_t		expiry_time;
+	unsigned long	answerable_cnt;
 	int		i,
-			got_uuid = 0,
-			got_attrset = 0,
-			got_expiry = 0,
+			got = 0,
+#define GOT_UUID	0x1U
+#define GOT_ATTRSET	0x2U
+#define GOT_EXPIRY	0x4U
+#define GOT_ANSWERABLE	0x8U
+#define GOT_ALL		(GOT_UUID|GOT_ATTRSET|GOT_EXPIRY|GOT_ANSWERABLE)
 			rc = 0;
 
 	rc = ldap_url_parse( url, &lud );
@@ -391,29 +413,56 @@ url2query(
 			struct berval	tmpUUID;
 			Syntax		*syn_UUID = slap_schema.si_ad_entryUUID->ad_type->sat_syntax;
 
+			if ( got & GOT_UUID ) {
+				rc = 1;
+				goto error;
+			}
+
 			ber_str2bv( &lud->lud_exts[ i ][ STRLENOF( "x-uuid=" ) ], 0, 0, &tmpUUID );
 			rc = syn_UUID->ssyn_pretty( syn_UUID, &tmpUUID, &uuid, NULL );
 			if ( rc != LDAP_SUCCESS ) {
 				goto error;
 			}
-			got_uuid = 1;
+			got |= GOT_UUID;
 
 		} else if ( strncmp( lud->lud_exts[ i ], "x-attrset=", STRLENOF( "x-attrset=" ) ) == 0 ) {
+			if ( got & GOT_ATTRSET ) {
+				rc = 1;
+				goto error;
+			}
+
 			rc = lutil_atoi( &attrset, &lud->lud_exts[ i ][ STRLENOF( "x-attrset=" ) ] );
 			if ( rc ) {
 				goto error;
 			}
-			got_attrset = 1;
+			got |= GOT_ATTRSET;
 
 		} else if ( strncmp( lud->lud_exts[ i ], "x-expiry=", STRLENOF( "x-expiry=" ) ) == 0 ) {
 			unsigned long l;
+
+			if ( got & GOT_EXPIRY ) {
+				rc = 1;
+				goto error;
+			}
 
 			rc = lutil_atoul( &l, &lud->lud_exts[ i ][ STRLENOF( "x-expiry=" ) ] );
 			if ( rc ) {
 				goto error;
 			}
 			expiry_time = (time_t)l;
-			got_expiry = 1;
+			got |= GOT_EXPIRY;
+
+		} else if ( strncmp( lud->lud_exts[ i ], "x-answerable=", STRLENOF( "x-answerable=" ) ) == 0 ) {
+			if ( got & GOT_ANSWERABLE ) {
+				rc = 1;
+				goto error;
+			}
+
+			rc = lutil_atoul( &answerable_cnt, &lud->lud_exts[ i ][ STRLENOF( "x-answerable=" ) ] );
+			if ( rc ) {
+				goto error;
+			}
+			got |= GOT_ANSWERABLE;
 
 		} else {
 			rc = -1;
@@ -421,17 +470,7 @@ url2query(
 		}
 	}
 
-	if ( !got_uuid ) {
-		rc = 1;
-		goto error;
-	}
-
-	if ( !got_attrset ) {
-		rc = 1;
-		goto error;
-	}
-
-	if ( !got_expiry ) {
+	if ( got != GOT_ALL ) {
 		rc = 1;
 		goto error;
 	}
@@ -482,6 +521,7 @@ url2query(
 		if ( cq != NULL ) {
 			cq->expiry_time = expiry_time;
 			cq->q_uuid = uuid;
+			cq->answerable_cnt = answerable_cnt;
 
 			/* it's now into cq->filter */
 			BER_BVZERO( &uuid );
@@ -1177,6 +1217,7 @@ free_query (CachedQuery* qc)
 {
 	free(qc->q_uuid.bv_val);
 	filter_free(qc->filter);
+	ldap_pvt_thread_mutex_destroy(&qc->answerable_cnt_mutex);
 	ldap_pvt_thread_rdwr_destroy( &qc->rwlock );
 	memset(qc, 0, sizeof(*qc));
 	free(qc);
@@ -1221,6 +1262,10 @@ add_query(
 		break;
 	}
 	new_cached_query->expiry_time = slap_get_time() + ttl;
+
+	new_cached_query->answerable_cnt = 0;
+	ldap_pvt_thread_mutex_init(&new_cached_query->answerable_cnt_mutex);
+
 	new_cached_query->lru_up = NULL;
 	new_cached_query->lru_down = NULL;
 	Debug( pcache_debug, "Added query expires at %ld (%s)\n",
@@ -2041,7 +2086,8 @@ over:;
 			op->ors_attrs = si->save_attrs;
 		}
 		if ( (op->o_abandon || rs->sr_err == SLAPD_ABANDON) && 
-				si->caching_reason == PC_IGNORE ) {
+				si->caching_reason == PC_IGNORE )
+		{
 			filter_free( si->query.filter );
 			if ( si->count ) {
 				/* duplicate query, free it */
@@ -2363,7 +2409,8 @@ pcache_op_search(
 	tempstr.bv_val = op->o_tmpalloc( op->ors_filterstr.bv_len+1, op->o_tmpmemctx );
 	tempstr.bv_len = 0;
 	if ( filter2template( op, op->ors_filter, &tempstr, &filter_attrs,
-		&fattr_cnt, &fattr_got_oc )) {
+		&fattr_cnt, &fattr_got_oc ))
+	{
 		op->o_tmpfree( tempstr.bv_val, op->o_tmpmemctx );
 		return SLAP_CB_CONTINUE;
 	}
@@ -2385,15 +2432,15 @@ pcache_op_search(
 		QueryTemplate *qt = qm->attr_sets[attr_set].templates;
 		for (; qt; qt = qt->qtnext ) {
 			/* find if template i can potentially answer tempstr */
-			if (qt->querystr.bv_len != tempstr.bv_len ||
-				strcasecmp( qt->querystr.bv_val, tempstr.bv_val ))
+			if ( ber_bvstrcasecmp( &qt->querystr, &tempstr ) != 0 )
 				continue;
 			cacheable = 1;
 			qtemp = qt;
 			Debug( pcache_debug, "Entering QC, querystr = %s\n",
 			 		op->ors_filterstr.bv_val, 0, 0 );
-			answerable = (*(qm->qcfunc))(op, qm, &query, qt);
+			answerable = qm->qcfunc(op, qm, &query, qt);
 
+			/* if != NULL, rlocks qtemp->t_rwlock */
 			if (answerable)
 				break;
 		}
@@ -2404,7 +2451,12 @@ pcache_op_search(
 		BackendDB	*save_bd = op->o_bd;
 		slap_callback	*save_cb = op->o_callback;
 
-		Debug( pcache_debug, "QUERY ANSWERABLE\n", 0, 0, 0 );
+		ldap_pvt_thread_mutex_lock( &answerable->answerable_cnt_mutex );
+		answerable->answerable_cnt++;
+		Debug( pcache_debug, "QUERY ANSWERABLE (answered %lu times)\n",
+			answerable->answerable_cnt, 0, 0 );
+		ldap_pvt_thread_mutex_unlock( &answerable->answerable_cnt_mutex );
+
 		op->o_tmpfree( filter_attrs, op->o_tmpmemctx );
 		ldap_pvt_thread_rdwr_rlock(&answerable->rwlock);
 		if ( BER_BVISNULL( &answerable->q_uuid )) {
@@ -2422,6 +2474,7 @@ pcache_op_search(
 			i = cm->db.bd_info->bi_op_search( op, rs );
 		}
 		ldap_pvt_thread_rdwr_runlock(&answerable->rwlock);
+		/* locked by qtemp->qcfunc (query_containment) */
 		ldap_pvt_thread_rdwr_runlock(&qtemp->t_rwlock);
 		op->o_bd = save_bd;
 		op->o_callback = save_cb;
@@ -2522,7 +2575,7 @@ get_attr_set(
 		count = 1;
 		attrs = slap_anlist_all_user_attributes;
 
-	} else if ( count == 1 && strcmp( attrs[0].an_name.bv_val, LDAP_NO_ATTRS ) == 0 ) {
+	} else if ( count == 1 && bvmatch( &attrs[0].an_name, slap_bv_no_attrs ) ) {
 		count = 0;
 		attrs = NULL;
 	}
@@ -2663,7 +2716,8 @@ enum {
 	PC_TEMP,
 	PC_RESP,
 	PC_QUERIES,
-	PC_OFFLINE
+	PC_OFFLINE,
+	PC_PRIVATE_DB
 };
 
 static ConfigDriver pc_cf_gen;
@@ -2713,6 +2767,9 @@ static ConfigTable pccfg[] = {
 		"( OLcfgOvAt:2.8 NAME 'olcProxyCacheOffline' "
 			"DESC 'Set cache to offline mode and disable expiration' "
 			"SYNTAX OMsBoolean )", NULL, NULL },
+	{ "proxycache-", "private database args",
+		1, 0, STRLENOF("proxycache-"), ARG_MAGIC|PC_PRIVATE_DB, pc_cf_gen,
+		NULL, NULL, NULL },
 
 	{ NULL, NULL, 0, 0, 0, ARG_IGNORED }
 };
@@ -3180,7 +3237,33 @@ pc_cf_gen( ConfigArgs *c )
 		else
 			cm->cc_paused &= ~PCACHE_CC_OFFLINE;
 		break;
+	case PC_PRIVATE_DB:
+		if ( cm->db.be_private == NULL ) {
+			snprintf( c->cr_msg, sizeof( c->cr_msg ),
+				"private database must be defined before setting database specific options" );
+			Debug( LDAP_DEBUG_CONFIG, "%s: %s.\n", c->log, c->cr_msg, 0 );
+			return( 1 );
+		}
+
+		if ( cm->db.be_config != NULL ) {
+			char	*argv0 = c->argv[ 0 ];
+
+			c->argv[ 0 ] = &argv0[ STRLENOF( "proxycache-" ) ];
+			rc = cm->db.be_config( &cm->db, c->fname, c->lineno, c->argc, c->argv );
+			c->argv[ 0 ] = argv0;
+
+		} else {
+			snprintf( c->cr_msg, sizeof( c->cr_msg ),
+				"no means to set private database specific options" );
+			Debug( LDAP_DEBUG_CONFIG, "%s: %s.\n", c->log, c->cr_msg, 0 );
+			return 1;
+		}
+		break;
+	default:
+		rc = SLAP_CONF_UNKNOWN;
+		break;
 	}
+
 	return rc;
 }
 
@@ -3511,7 +3594,7 @@ pcache_db_close(
 				for ( qc = tm->query; qc; qc = qc->next ) {
 					struct berval	bv;
 
-					if ( query2url( op, qc, &bv ) == 0 ) {
+					if ( query2url( op, qc, &bv, 0 ) == 0 ) {
 						ber_bvarray_add_x( &vals, &bv, op->o_tmpmemctx );
 					}
 				}
