@@ -418,13 +418,13 @@ retry_lock:;
 
 	/* automatically chase referrals ("chase-referrals [{yes|no}]" statement) */
 	ldap_set_option( msc->msc_ld, LDAP_OPT_REFERRALS,
-		LDAP_BACK_CHASE_REFERRALS( mi ) ? LDAP_OPT_ON : LDAP_OPT_OFF );
+		META_BACK_TGT_CHASE_REFERRALS( mt ) ? LDAP_OPT_ON : LDAP_OPT_OFF );
 
 #ifdef HAVE_TLS
 	/* start TLS ("tls [try-]{start|propagate}" statement) */
-	if ( ( LDAP_BACK_USE_TLS( mi )
+	if ( ( META_BACK_TGT_USE_TLS( mt )
 		|| ( op->o_conn->c_is_tls
-			&& LDAP_BACK_PROPAGATE_TLS( mi ) ) )
+			&& META_BACK_TGT_PROPAGATE_TLS( mt ) ) )
 		&& !is_ldaps )
 	{
 #ifdef SLAP_STARTTLS_ASYNCHRONOUS
@@ -526,7 +526,7 @@ retry:;
 		 * overlay, where the "uri" can be parsed out of a referral */
 		if ( rs->sr_err == LDAP_SERVER_DOWN
 			|| ( rs->sr_err != LDAP_SUCCESS
-				&& LDAP_BACK_TLS_CRITICAL( mi ) ) )
+				&& META_BACK_TGT_TLS_CRITICAL( mt ) ) )
 		{
 
 #ifdef DEBUG_205
