@@ -1197,6 +1197,70 @@ dnIsSuffix(
 	return( strcmp( dn->bv_val + d, suffix->bv_val ) == 0 );
 }
 
+/*
+ * In place; assumes:
+ * - ndn is normalized
+ * - nbase is normalized
+ * - dnIsSuffix( ndn, nbase ) == TRUE
+ * - LDAP_SCOPE_DEFAULT == LDAP_SCOPE_SUBTREE
+ */
+int
+dnIsWithinScope( struct berval *ndn, struct berval *nbase, int scope )
+{
+	assert( ndn != NULL );
+	assert( nbase != NULL );
+	assert( !BER_BVISNULL( ndn ) );
+	assert( !BER_BVISNULL( nbase ) );
+
+	switch ( scope ) {
+	case LDAP_SCOPE_DEFAULT:
+	case LDAP_SCOPE_SUBTREE:
+		break;
+
+	case LDAP_SCOPE_BASE:
+		if ( ndn->bv_len != nbase->bv_len ) {
+			return 0;
+		}
+		break;
+
+	case LDAP_SCOPE_ONELEVEL: {
+		struct berval pndn;
+		dnParent( ndn, &pndn );
+		if ( pndn.bv_len != nbase->bv_len ) {
+			return 0;
+		}
+		} break;
+
+	case LDAP_SCOPE_SUBORDINATE:
+		if ( ndn->bv_len == nbase->bv_len ) {
+			return 0;
+		}
+		break;
+
+	/* unknown scope */
+	default:
+		return -1;
+	}
+
+	return 1;
+}
+
+/*
+ * In place; assumes:
+ * - ndn is normalized
+ * - nbase is normalized
+ * - LDAP_SCOPE_DEFAULT == LDAP_SCOPE_SUBTREE
+ */
+int
+dnIsSuffixScope( struct berval *ndn, struct berval *nbase, int scope )
+{
+	if ( !dnIsSuffix( ndn, nbase ) ) {
+		return 0;
+	}
+
+	return dnIsWithinScope( ndn, nbase, scope );
+}
+
 int
 dnIsOneLevelRDN( struct berval *rdn )
 {
