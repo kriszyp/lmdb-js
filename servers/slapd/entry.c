@@ -936,24 +936,27 @@ int entry_decode(EntryHeader *eh, Entry **e)
 	return 0;
 }
 
-int entry_dup_to( Entry *source, Entry *dest )
+Entry *
+entry_dup2( Entry *dest, Entry *source )
 {
+	assert( dest != NULL );
+	assert( source != NULL );
+
+	assert( dest->e_private == NULL );
+
 	dest->e_id = source->e_id;
 	ber_dupbv( &dest->e_name, &source->e_name );
 	ber_dupbv( &dest->e_nname, &source->e_nname );
 	dest->e_attrs = attrs_dup( source->e_attrs );
 	dest->e_ocflags = source->e_ocflags;
-	return LDAP_SUCCESS;
+
+	return dest;
 }
 
-Entry *entry_dup( Entry *e )
+Entry *
+entry_dup( Entry *e )
 {
-	Entry *ret;
-
-	ret = entry_alloc();
-	entry_dup_to(e, ret);
-
-	return ret;
+	return entry_dup2( entry_alloc(), e );
 }
 
 #if 1
