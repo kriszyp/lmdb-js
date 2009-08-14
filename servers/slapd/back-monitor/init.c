@@ -1903,6 +1903,15 @@ monitor_back_initialize(
 			"SINGLE-VALUE "
 			"USAGE dSAOperation )", SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorRuntimeConfig) },
+		{ "( 1.3.6.1.4.1.4203.666.1.55.30 "
+			"NAME 'monitorSuperiorDN' "
+			"DESC 'monitor superior DN' "
+			/* "SUP distinguishedName " */
+			"EQUALITY distinguishedNameMatch "
+			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 "
+			"NO-USER-MODIFICATION "
+			"USAGE dSAOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
+			offsetof(monitor_info_t, mi_ad_monitorSuperiorDN) },
 		{ NULL, 0, -1 }
 	};
 
