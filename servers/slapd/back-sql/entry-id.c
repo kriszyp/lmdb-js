@@ -934,11 +934,7 @@ backsql_id2entry( backsql_srch_info *bsi, backsql_entryID *eid )
 	memset( bsi->bsi_e, 0, sizeof( Entry ) );
 
 	if ( bi->sql_baseObject && BACKSQL_IS_BASEOBJECT_ID( &eid->eid_id ) ) {
-		rc = entry_dup_to( bi->sql_baseObject, bsi->bsi_e );
-		if ( rc != LDAP_SUCCESS ) {
-			return rc;
-		}
-			
+		(void)entry_dup2( bsi->bsi_e, bi->sql_baseObject );
 		goto done;
 	}
 
