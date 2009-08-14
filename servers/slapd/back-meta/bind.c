@@ -538,7 +538,7 @@ meta_back_single_bind(
 	LDAP_BACK_CONN_ISBOUND_SET( msc );
 	mc->mc_authz_target = candidate;
 
-	if ( LDAP_BACK_SAVECRED( mi ) ) {
+	if ( META_BACK_TGT_SAVECRED( mt ) ) {
 		if ( !BER_BVISNULL( &msc->msc_cred ) ) {
 			memset( msc->msc_cred.bv_val, 0,
 				msc->msc_cred.bv_len );
@@ -1539,7 +1539,7 @@ meta_back_proxy_authz_bind( metaconn_t *mc, int candidate, Operation *op, SlapRe
 				LDAP_BACK_CONN_ISBOUND_SET( msc );
 				ber_bvreplace( &msc->msc_bound_ndn, &binddn );
 
-				if ( LDAP_BACK_SAVECRED( mi ) ) {
+				if ( META_BACK_TGT_SAVECRED( mt ) ) {
 					if ( !BER_BVISNULL( &msc->msc_cred ) ) {
 						memset( msc->msc_cred.bv_val, 0,
 							msc->msc_cred.bv_len );
