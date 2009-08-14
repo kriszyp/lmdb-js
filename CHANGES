@@ -23,6 +23,7 @@ OpenLDAP 2.4.18 Engineering
 	Fixed slapd-sql with baseObject query (ITS#6172)
 	Fixed slapd-sql with empty attribute (ITS#6163)
 	Added slapo-pcache olcProxyCacheOffline (ITS#6152)
+	Fixed slapo-translucent to honor sizelimit (ITS#6253)
 	Fixed slapo-unique filter matching (ITS#6077)
 	Fixed tools off by one error (ITS#6233)
 	Fixed tools resource leaks (ITS#6145)

@@ -769,6 +769,7 @@ typedef struct trans_ctx {
 	Filter *orig;
 	Avlnode *list;
 	int step;
+	int slimit;
 } trans_ctx;
 
 static int translucent_search_cb(Operation *op, SlapReply *rs) {
@@ -792,6 +793,8 @@ static int translucent_search_cb(Operation *op, SlapReply *rs) {
 
 	Debug(LDAP_DEBUG_TRACE, "==> translucent_search_cb: %s\n",
 		rs->sr_entry->e_name.bv_val, 0, 0);
+
+	op->ors_slimit = tc->slimit;
 
 	on = tc->on;
 	ov = on->on_bi.bi_private;
@@ -1098,6 +1101,8 @@ static int translucent_search(Operation *op, SlapReply *rs) {
 
 	if ( fr || !fl ) {
 		AttributeName *attrs = op->ors_attrs;
+		tc.slimit = op->ors_slimit;
+		op->ors_slimit = SLAP_NO_LIMIT;
 		op->ors_attrs = NULL;
 		op->o_bd = &ov->db;
 		tc.step |= RMT_SIDE;
@@ -1107,6 +1112,7 @@ static int translucent_search(Operation *op, SlapReply *rs) {
 			filter2bv_x( op, fr, &op->ors_filterstr );
 		}
 		rc = ov->db.bd_info->bi_op_search(op, rs);
+		op->ors_slimit = tc.slimit;
 		op->ors_attrs = attrs;
 		op->o_bd = tc.db;
 		if ( fl ) {
