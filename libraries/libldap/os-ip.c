@@ -162,7 +162,7 @@ ldap_int_prepare_socket(LDAP *ld, int s, int proto )
 		if ( ld->ld_options.ldo_keepalive_probes > 0 )
 		{
 #ifdef TCP_KEEPCNT
-			if ( setsockopt( s, SOL_TCP, TCP_KEEPCNT,
+			if ( setsockopt( s, IPPROTO_TCP, TCP_KEEPCNT,
 					(void*) &ld->ld_options.ldo_keepalive_probes,
 					sizeof(ld->ld_options.ldo_keepalive_probes) ) == AC_SOCKET_ERROR )
 			{
@@ -179,7 +179,7 @@ ldap_int_prepare_socket(LDAP *ld, int s, int proto )
 		if ( ld->ld_options.ldo_keepalive_interval > 0 )
 		{
 #ifdef TCP_KEEPINTVL
-			if ( setsockopt( s, SOL_TCP, TCP_KEEPINTVL,
+			if ( setsockopt( s, IPPROTO_TCP, TCP_KEEPINTVL,
 					(void*) &ld->ld_options.ldo_keepalive_interval,
 					sizeof(ld->ld_options.ldo_keepalive_interval) ) == AC_SOCKET_ERROR )
 			{
