@@ -770,6 +770,7 @@ typedef struct trans_ctx {
 	Avlnode *list;
 	int step;
 	int slimit;
+	AttributeName *attrs;
 } trans_ctx;
 
 static int translucent_search_cb(Operation *op, SlapReply *rs) {
@@ -795,6 +796,11 @@ static int translucent_search_cb(Operation *op, SlapReply *rs) {
 		rs->sr_entry->e_name.bv_val, 0, 0);
 
 	op->ors_slimit = tc->slimit + ( tc->slimit > 0 ? 1 : 0 );
+	if ( op->ors_attrs == slap_anlist_all_attributes ) {
+		op->ors_attrs = tc->attrs;
+		rs->sr_attrs = tc->attrs;
+		rs->sr_attr_flags = slap_attr_flags( rs->sr_attrs );
+	}
 
 	on = tc->on;
 	ov = on->on_bi.bi_private;
@@ -1106,16 +1112,16 @@ static int translucent_search(Operation *op, SlapReply *rs) {
 	tc.orig = op->ors_filter;
 	tc.list = NULL;
 	tc.step = 0;
+	tc.slimit = op->ors_slimit;
+	tc.attrs = NULL;
 	fbv = op->ors_filterstr;
 
 	op->o_callback = &cb;
 
-	tc.slimit = op->ors_slimit;
-
 	if ( fr || !fl ) {
-		AttributeName *attrs = op->ors_attrs;
+		tc.attrs = op->ors_attrs;
 		op->ors_slimit = SLAP_NO_LIMIT;
-		op->ors_attrs = NULL;
+		op->ors_attrs = slap_anlist_all_attributes;
 		op->o_bd = &ov->db;
 		tc.step |= RMT_SIDE;
 		if ( fl ) {
@@ -1124,7 +1130,7 @@ static int translucent_search(Operation *op, SlapReply *rs) {
 			filter2bv_x( op, fr, &op->ors_filterstr );
 		}
 		rc = ov->db.bd_info->bi_op_search(op, rs);
-		op->ors_attrs = attrs;
+		op->ors_attrs = tc.attrs;
 		op->o_bd = tc.db;
 		if ( fl ) {
 			op->o_tmpfree( op->ors_filterstr.bv_val, op->o_tmpmemctx );
@@ -1141,6 +1147,7 @@ static int translucent_search(Operation *op, SlapReply *rs) {
 	op->ors_filter = tc.orig;
 	op->o_callback = cb.sc_next;
 	rs->sr_attrs = op->ors_attrs;
+	rs->sr_attr_flags = slap_attr_flags( rs->sr_attrs );
 
 	/* Send out anything remaining on the list and finish */
 	if ( tc.step & USE_LIST ) {
