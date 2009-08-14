@@ -794,7 +794,7 @@ static int translucent_search_cb(Operation *op, SlapReply *rs) {
 	Debug(LDAP_DEBUG_TRACE, "==> translucent_search_cb: %s\n",
 		rs->sr_entry->e_name.bv_val, 0, 0);
 
-	op->ors_slimit = tc->slimit;
+	op->ors_slimit = tc->slimit + ( tc->slimit > 0 ? 1 : 0 );
 
 	on = tc->on;
 	ov = on->on_bi.bi_private;
@@ -821,6 +821,11 @@ static int translucent_search_cb(Operation *op, SlapReply *rs) {
 				if ( rc == LDAP_COMPARE_TRUE ) {
 					rs->sr_flags |= REP_ENTRY_MUSTBEFREED;
 					rs->sr_entry = re;
+
+					if ( tc->slimit >= 0 && rs->sr_nentries >= tc->slimit ) {
+						return LDAP_SIZELIMIT_EXCEEDED;
+					}
+
 					return SLAP_CB_CONTINUE;
 				} else {
 					entry_free( re );
@@ -870,6 +875,7 @@ static int translucent_search_cb(Operation *op, SlapReply *rs) {
 		for(ax = le->e_attrs; ax; ax = ax->a_next) {
 			for(a = re->e_attrs; a; a = a->a_next) {
 				if(a->a_desc == ax->a_desc) {
+					test_f = 1;
 					if(a->a_vals != a->a_nvals)
 						ber_bvarray_free(a->a_nvals);
 					ber_bvarray_free(a->a_vals);
@@ -953,6 +959,11 @@ static int translucent_search_cb(Operation *op, SlapReply *rs) {
 	}
 
 	op->o_bd = db;
+
+	if ( rc == SLAP_CB_CONTINUE && tc->slimit >= 0 && rs->sr_nentries >= tc->slimit ) {
+		return LDAP_SIZELIMIT_EXCEEDED;
+	}
+
 	return rc;
 }
 
@@ -1099,9 +1110,10 @@ static int translucent_search(Operation *op, SlapReply *rs) {
 
 	op->o_callback = &cb;
 
+	tc.slimit = op->ors_slimit;
+
 	if ( fr || !fl ) {
 		AttributeName *attrs = op->ors_attrs;
-		tc.slimit = op->ors_slimit;
 		op->ors_slimit = SLAP_NO_LIMIT;
 		op->ors_attrs = NULL;
 		op->o_bd = &ov->db;
@@ -1112,7 +1124,6 @@ static int translucent_search(Operation *op, SlapReply *rs) {
 			filter2bv_x( op, fr, &op->ors_filterstr );
 		}
 		rc = ov->db.bd_info->bi_op_search(op, rs);
-		op->ors_slimit = tc.slimit;
 		op->ors_attrs = attrs;
 		op->o_bd = tc.db;
 		if ( fl ) {
@@ -1154,6 +1165,8 @@ static int translucent_search(Operation *op, SlapReply *rs) {
 		}
 		send_ldap_result( op, rs );
 	}
+
+	op->ors_slimit = tc.slimit;
 
 	/* Free in reverse order */
 	if ( fl )
