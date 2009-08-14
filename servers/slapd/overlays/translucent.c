@@ -282,22 +282,6 @@ void glue_parent(Operation *op) {
 }
 
 /*
-** dup_bervarray()
-**	copy a BerVarray;
-*/
-
-BerVarray dup_bervarray(BerVarray b) {
-	int i, len;
-	BerVarray nb;
-	for(len = 0; b[len].bv_val; len++);
-	nb = ch_malloc((len+1) * sizeof(BerValue));
-	for(i = 0; i < len; i++) ber_dupbv(&nb[i], &b[i]);
-	nb[len].bv_val = NULL;
-	nb[len].bv_len = 0;
-	return(nb);
-}
-
-/*
 ** free_attr_chain()
 **	free only the Attribute*, not the contents;
 **
@@ -886,9 +870,12 @@ static int translucent_search_cb(Operation *op, SlapReply *rs) {
 					if(a->a_vals != a->a_nvals)
 						ber_bvarray_free(a->a_nvals);
 					ber_bvarray_free(a->a_vals);
-					a->a_vals = dup_bervarray(ax->a_vals);
-					a->a_nvals = (ax->a_vals == ax->a_nvals) ?
-						a->a_vals : dup_bervarray(ax->a_nvals);
+					ber_bvarray_dup_x( &a->a_vals, ax->a_vals, NULL );
+					if ( ax->a_vals == ax->a_nvals ) {
+						a->a_nvals = a->a_vals;
+					} else {
+						ber_bvarray_dup_x( &a->a_nvals, ax->a_nvals, NULL );
+					}
 					break;
 				}
 			}
