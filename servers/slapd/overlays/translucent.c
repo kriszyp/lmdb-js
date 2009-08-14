@@ -870,6 +870,7 @@ static int translucent_search_cb(Operation *op, SlapReply *rs) {
 		for(ax = le->e_attrs; ax; ax = ax->a_next) {
 			for(a = re->e_attrs; a; a = a->a_next) {
 				if(a->a_desc == ax->a_desc) {
+					test_f = 1;
 					if(a->a_vals != a->a_nvals)
 						ber_bvarray_free(a->a_nvals);
 					ber_bvarray_free(a->a_vals);
