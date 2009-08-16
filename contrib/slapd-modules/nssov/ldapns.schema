@@ -1,5 +1,4 @@
 # $OpenLDAP$
-# $Id: ldapns.schema,v 1.3 2003/05/29 12:57:29 lukeh Exp $
 # LDAP Name Service Additional Schema
 # http://www.iana.org/assignments/gssapi-service-names
 
