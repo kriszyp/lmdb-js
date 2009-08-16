@@ -132,6 +132,7 @@ typedef struct query_template_s {
 	time_t		ttl;		/* TTL for the queries of this template */
 	time_t		negttl;		/* TTL for negative results */
 	time_t		limitttl;	/* TTL for sizelimit exceeding results */
+	time_t		ttr;	/* time to refresh */
 	struct attr_set t_attrs;	/* filter attrs + attr_set */
 } QueryTemplate;
 
@@ -2725,50 +2726,76 @@ static ConfigLDAPadd pc_ldadd;
 static ConfigCfAdd pc_cfadd;
 
 static ConfigTable pccfg[] = {
+	{ "pcache", "backend> <max_entries> <numattrsets> <entry limit> "
+				"<cycle_time",
+		6, 6, 0, ARG_MAGIC|ARG_NO_DELETE|PC_MAIN, pc_cf_gen,
+		"( OLcfgOvAt:2.1 NAME ( 'olcPcache' 'olcProxyCache' ) "
+			"DESC 'Proxy Cache basic parameters' "
+			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
+	{ "pcacheAttrset", "index> <attributes...",
+		2, 0, 0, ARG_MAGIC|PC_ATTR, pc_cf_gen,
+		"( OLcfgOvAt:2.2 NAME ( 'olcPcacheAttrset' 'olcProxyAttrset' ) "
+			"DESC 'A set of attributes to cache' "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
+	{ "pcacheTemplate", "filter> <attrset-index> <TTL> <negTTL> "
+			"<limitTTL> <TTR",
+		4, 7, 0, ARG_MAGIC|PC_TEMP, pc_cf_gen,
+		"( OLcfgOvAt:2.3 NAME ( 'olcPcacheTemplate' 'olcProxyCacheTemplate' ) "
+			"DESC 'Filter template, attrset, cache TTL, "
+				"optional negative TTL, optional sizelimit TTL, "
+				"optional TTR' "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
+	{ "pcachePosition", "head|tail(default)",
+		2, 2, 0, ARG_MAGIC|PC_RESP, pc_cf_gen,
+		"( OLcfgOvAt:2.4 NAME 'olcPcachePosition' "
+			"DESC 'Response callback position in overlay stack' "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
+	{ "pcacheMaxQueries", "queries",
+		2, 2, 0, ARG_INT|ARG_MAGIC|PC_QUERIES, pc_cf_gen,
+		"( OLcfgOvAt:2.5 NAME ( 'olcPcacheMaxQueries' 'olcProxyCacheQueries' ) "
+			"DESC 'Maximum number of queries to cache' "
+			"SYNTAX OMsInteger )", NULL, NULL },
+	{ "pcachePersist", "TRUE|FALSE",
+		2, 2, 0, ARG_ON_OFF|ARG_OFFSET, (void *)offsetof(cache_manager, save_queries),
+		"( OLcfgOvAt:2.6 NAME ( 'olcPcachePersist' 'olcProxySaveQueries' ) "
+			"DESC 'Save cached queries for hot restart' "
+			"SYNTAX OMsBoolean )", NULL, NULL },
+	{ "pcacheValidate", "TRUE|FALSE",
+		2, 2, 0, ARG_ON_OFF|ARG_OFFSET, (void *)offsetof(cache_manager, check_cacheability),
+		"( OLcfgOvAt:2.7 NAME ( 'olcPcacheValidate' 'olcProxyCheckCacheability' ) "
+			"DESC 'Check whether the results of a query are cacheable, e.g. for schema issues' "
+			"SYNTAX OMsBoolean )", NULL, NULL },
+	{ "pcacheOffline", "TRUE|FALSE",
+		2, 2, 0, ARG_ON_OFF|ARG_MAGIC|PC_OFFLINE, pc_cf_gen,
+		"( OLcfgOvAt:2.8 NAME 'olcPcacheOffline' "
+			"DESC 'Set cache to offline mode and disable expiration' "
+			"SYNTAX OMsBoolean )", NULL, NULL },
+	{ "pcache-", "private database args",
+		1, 0, STRLENOF("pcache-"), ARG_MAGIC|PC_PRIVATE_DB, pc_cf_gen,
+		NULL, NULL, NULL },
+
+	/* Legacy keywords */
 	{ "proxycache", "backend> <max_entries> <numattrsets> <entry limit> "
 				"<cycle_time",
 		6, 6, 0, ARG_MAGIC|ARG_NO_DELETE|PC_MAIN, pc_cf_gen,
-		"( OLcfgOvAt:2.1 NAME 'olcProxyCache' "
-			"DESC 'ProxyCache basic parameters' "
-			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
+		NULL, NULL, NULL },
 	{ "proxyattrset", "index> <attributes...",
 		2, 0, 0, ARG_MAGIC|PC_ATTR, pc_cf_gen,
-		"( OLcfgOvAt:2.2 NAME 'olcProxyAttrset' "
-			"DESC 'A set of attributes to cache' "
-			"SYNTAX OMsDirectoryString )", NULL, NULL },
+		NULL, NULL, NULL },
 	{ "proxytemplate", "filter> <attrset-index> <TTL> <negTTL",
 		4, 6, 0, ARG_MAGIC|PC_TEMP, pc_cf_gen,
-		"( OLcfgOvAt:2.3 NAME 'olcProxyTemplate' "
-			"DESC 'Filter template, attrset, cache TTL, "
-				"optional negative TTL, optional sizelimit TTL' "
-			"SYNTAX OMsDirectoryString )", NULL, NULL },
+		NULL, NULL, NULL },
 	{ "response-callback", "head|tail(default)",
 		2, 2, 0, ARG_MAGIC|PC_RESP, pc_cf_gen,
-		"( OLcfgOvAt:2.4 NAME 'olcProxyResponseCB' "
-			"DESC 'Response callback position in overlay stack' "
-			"SYNTAX OMsDirectoryString )", NULL, NULL },
+		NULL, NULL, NULL },
 	{ "proxyCacheQueries", "queries",
 		2, 2, 0, ARG_INT|ARG_MAGIC|PC_QUERIES, pc_cf_gen,
-		"( OLcfgOvAt:2.5 NAME 'olcProxyCacheQueries' "
-			"DESC 'Maximum number of queries to cache' "
-			"SYNTAX OMsInteger )", NULL, NULL },
+		NULL, NULL, NULL },
 	{ "proxySaveQueries", "TRUE|FALSE",
 		2, 2, 0, ARG_ON_OFF|ARG_OFFSET, (void *)offsetof(cache_manager, save_queries),
-		"( OLcfgOvAt:2.6 NAME 'olcProxySaveQueries' "
-			"DESC 'Save cached queries for hot restart' "
-			"SYNTAX OMsBoolean )", NULL, NULL },
+		NULL, NULL, NULL },
 	{ "proxyCheckCacheability", "TRUE|FALSE",
 		2, 2, 0, ARG_ON_OFF|ARG_OFFSET, (void *)offsetof(cache_manager, check_cacheability),
-		"( OLcfgOvAt:2.7 NAME 'olcProxyCheckCacheability' "
-			"DESC 'Check whether the results of a query are cacheable, e.g. for schema issues' "
-			"SYNTAX OMsBoolean )", NULL, NULL },
-	{ "proxyCacheOffline", "TRUE|FALSE",
-		2, 2, 0, ARG_ON_OFF|ARG_MAGIC|PC_OFFLINE, pc_cf_gen,
-		"( OLcfgOvAt:2.8 NAME 'olcProxyCacheOffline' "
-			"DESC 'Set cache to offline mode and disable expiration' "
-			"SYNTAX OMsBoolean )", NULL, NULL },
-	{ "proxycache-", "private database args",
-		1, 0, STRLENOF("proxycache-"), ARG_MAGIC|PC_PRIVATE_DB, pc_cf_gen,
 		NULL, NULL, NULL },
 
 	{ NULL, NULL, 0, 0, 0, ARG_IGNORED }
@@ -2779,8 +2806,9 @@ static ConfigOCs pcocs[] = {
 		"NAME 'olcPcacheConfig' "
 		"DESC 'ProxyCache configuration' "
 		"SUP olcOverlayConfig "
-		"MUST ( olcProxyCache $ olcProxyAttrset $ olcProxyTemplate ) "
-		"MAY ( olcProxyResponseCB $ olcProxyCacheQueries $ olcProxySaveQueries $ olcProxyCheckCacheability $ olcProxyCacheOffline ) )",
+		"MUST ( olcPcache $ olcPcacheAttrset $ olcPcacheSet ) "
+		"MAY ( olcPcachePosition $ olcPcacheMaxQueries $ olcPcachePersist $ "
+			"olcPcacheValidate $ olcPcacheOffline ) )",
 		Cft_Overlay, pccfg, NULL, pc_cfadd },
 	{ "( OLcfgOvOc:2.2 "
 		"NAME 'olcPcacheDatabase' "
@@ -2900,11 +2928,12 @@ pc_cf_gen( ConfigArgs *c )
 				/* HEADS-UP: always print all;
 				 * if optional == 0, ignore */
 				bv.bv_len = snprintf( c->cr_msg, sizeof( c->cr_msg ),
-					" %d %ld %ld %ld",
+					" %d %ld %ld %ld %ld",
 					temp->attr_set_index,
 					temp->ttl,
 					temp->negttl,
-					temp->limitttl );
+					temp->limitttl,
+					temp->ttr );
 				bv.bv_len += temp->querystr.bv_len + 2;
 				bv.bv_val = ch_malloc( bv.bv_len+1 );
 				ptr = bv.bv_val;
@@ -3169,7 +3198,19 @@ pc_cf_gen( ConfigArgs *c )
 		temp->ttl = (time_t)t;
 		temp->negttl = (time_t)0;
 		temp->limitttl = (time_t)0;
+		temp->ttr = (time_t)0;
 		switch ( c->argc ) {
+		case 7:
+			if ( lutil_parse_time( c->argv[6], &t ) != 0 ) {
+				snprintf( c->cr_msg, sizeof( c->cr_msg ),
+					"unable to parse template ttr=\"%s\"",
+					c->argv[6] );
+				Debug( LDAP_DEBUG_CONFIG, "%s: %s.\n", c->log, c->cr_msg, 0 );
+					return( 1 );
+			}
+			temp->ttr = (time_t)t;
+			/* fallthru */
+
 		case 6:
 			if ( lutil_parse_time( c->argv[5], &t ) != 0 ) {
 				snprintf( c->cr_msg, sizeof( c->cr_msg ),
