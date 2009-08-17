@@ -2809,6 +2809,10 @@ refresh_query( Operation *op, SlapReply *rs, CachedQuery *query,
 	dnlist *dn;
 	int i, rc;
 
+	ldap_pvt_thread_mutex_lock( &query->answerable_cnt_mutex );
+	query->refcnt = 0;
+	ldap_pvt_thread_mutex_unlock( &query->answerable_cnt_mutex );
+
 	cb.sc_response = refresh_merge;
 	cb.sc_private = &ri;
 
@@ -3263,6 +3267,15 @@ pc_cf_gen( ConfigArgs *c )
 			break;
 		case PC_OFFLINE:
 			cm->cc_paused &= ~PCACHE_CC_OFFLINE;
+			/* If there were cached queries when we went offline,
+			 * restart the checker now.
+			 */
+			if ( cm->num_cached_queries ) {
+				ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
+				cm->cc_paused = 0;
+				ldap_pvt_runqueue_resched( &slapd_rq, cm->cc_arg, 0 );
+				ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
+			}
 			rc = 0;
 			break;
 		}
