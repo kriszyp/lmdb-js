@@ -74,8 +74,10 @@ typedef struct cached_query_s {
 	struct berval			q_uuid;		/* query identifier */
 	int						q_sizelimit;
 	struct query_template_s		*qtemp;	/* template of the query */
-	time_t						expiry_time;	/* time till the query is considered valid */
+	time_t						expiry_time;	/* time till the query is considered invalid */
+	time_t						refresh_time;	/* time till the query is refreshed */
 	unsigned long			answerable_cnt; /* how many times it was answerable */
+	int						refcnt;	/* references since last refresh */
 	ldap_pvt_thread_mutex_t		answerable_cnt_mutex;
 	struct cached_query_s  		*next;  	/* next query in the template */
 	struct cached_query_s  		*prev;  	/* previous query in the template */
@@ -87,7 +89,7 @@ typedef struct cached_query_s {
 /*
  * URL representation:
  *
- * ldap:///<base>??<scope>?<filter>?x-uuid=<uid>,x-template=<template>,x-attrset=<attrset>,x-expiry=<expiry>
+ * ldap:///<base>??<scope>?<filter>?x-uuid=<uid>,x-template=<template>,x-attrset=<attrset>,x-expiry=<expiry>,x-refresh=<refresh>
  *
  * <base> ::= CachedQuery.qbase->base
  * <scope> ::= CachedQuery.scope
@@ -95,6 +97,7 @@ typedef struct cached_query_s {
  * <uuid> ::= CachedQuery.q_uuid
  * <attrset> ::= CachedQuery.qtemp->attr_set_index
  * <expiry> ::= CachedQuery.expiry_time
+ * <refresh> ::= CachedQuery.refresh_time
  *
  * quick hack: parse URI, call add_query() and then fix
  * CachedQuery.expiry_time and CachedQuery.q_uuid
@@ -272,10 +275,12 @@ query2url( Operation *op, CachedQuery *q, struct berval *urlbv, int dolock )
 			bv_filter;
 	char		attrset_buf[ LDAP_PVT_INTTYPE_CHARS( unsigned long ) ],
 			expiry_buf[ LDAP_PVT_INTTYPE_CHARS( unsigned long ) ],
+			refresh_buf[ LDAP_PVT_INTTYPE_CHARS( unsigned long ) ],
 			answerable_buf[ LDAP_PVT_INTTYPE_CHARS( unsigned long ) ],
 			*ptr;
 	ber_len_t	attrset_len,
 			expiry_len,
+			refresh_len,
 			answerable_len;
 
 	if ( dolock ) {
@@ -290,6 +295,11 @@ query2url( Operation *op, CachedQuery *q, struct berval *urlbv, int dolock )
 		"%lu", (unsigned long)q->expiry_time );
 	answerable_len = snprintf( answerable_buf, sizeof( answerable_buf ),
 		"%lu", q->answerable_cnt );
+	if ( q->refresh_time )
+		refresh_len = sprintf( refresh_buf,
+			"%lu", (unsigned long)q->refresh_time );
+	else
+		refresh_len = 0;
 
 	urlbv->bv_len = STRLENOF( "ldap:///" )
 		+ q->qbase->base.bv_len
@@ -305,6 +315,10 @@ query2url( Operation *op, CachedQuery *q, struct berval *urlbv, int dolock )
 		+ expiry_len
 		+ STRLENOF( ",x-answerable=" )
 		+ answerable_len;
+	if ( refresh_len )
+		urlbv->bv_len += STRLENOF( ",x-refresh=" )
+		+ refresh_len;
+
 	ptr = urlbv->bv_val = ber_memalloc_x( urlbv->bv_len + 1, op->o_tmpmemctx );
 	ptr = lutil_strcopy( ptr, "ldap:///" );
 	ptr = lutil_strcopy( ptr, q->qbase->base.bv_val );
@@ -320,6 +334,10 @@ query2url( Operation *op, CachedQuery *q, struct berval *urlbv, int dolock )
 	ptr = lutil_strcopy( ptr, expiry_buf );
 	ptr = lutil_strcopy( ptr, ",x-answerable=" );
 	ptr = lutil_strcopy( ptr, answerable_buf );
+	if ( refresh_len ) {
+		ptr = lutil_strcopy( ptr, ",x-refresh=" );
+		ptr = lutil_strcopy( ptr, refresh_buf );
+	}
 
 	ber_memfree_x( bv_filter.bv_val, op->o_tmpmemctx );
 
@@ -349,6 +367,7 @@ url2query(
 			uuid;
 	int		attrset;
 	time_t		expiry_time;
+	time_t		refresh_time;
 	unsigned long	answerable_cnt;
 	int		i,
 			got = 0,
@@ -356,6 +375,7 @@ url2query(
 #define GOT_ATTRSET	0x2U
 #define GOT_EXPIRY	0x4U
 #define GOT_ANSWERABLE	0x8U
+#define GOT_REFRESH	0x10U
 #define GOT_ALL		(GOT_UUID|GOT_ATTRSET|GOT_EXPIRY|GOT_ANSWERABLE)
 			rc = 0;
 
@@ -465,6 +485,21 @@ url2query(
 			}
 			got |= GOT_ANSWERABLE;
 
+		} else if ( strncmp( lud->lud_exts[ i ], "x-refresh=", STRLENOF( "x-refresh=" ) ) == 0 ) {
+			unsigned long l;
+
+			if ( got & GOT_REFRESH ) {
+				rc = 1;
+				goto error;
+			}
+
+			rc = lutil_atoul( &l, &lud->lud_exts[ i ][ STRLENOF( "x-refresh=" ) ] );
+			if ( rc ) {
+				goto error;
+			}
+			refresh_time = (time_t)l;
+			got |= GOT_REFRESH;
+
 		} else {
 			rc = -1;
 			goto error;
@@ -475,6 +510,9 @@ url2query(
 		rc = 1;
 		goto error;
 	}
+
+	if ( !(got & GOT_REFRESH ))
+		refresh_time = 0;
 
 	/* ignore expired queries */
 	if ( expiry_time <= slap_get_time()) {
@@ -521,8 +559,10 @@ url2query(
 		cq = add_query( op, qm, &query, qt, PC_POSITIVE, 0 );
 		if ( cq != NULL ) {
 			cq->expiry_time = expiry_time;
+			cq->refresh_time = refresh_time;
 			cq->q_uuid = uuid;
 			cq->answerable_cnt = answerable_cnt;
+			cq->refcnt = 0;
 
 			/* it's now into cq->filter */
 			BER_BVZERO( &uuid );
@@ -1239,15 +1279,19 @@ add_query(
 	Qbase *qbase, qb;
 	Filter *first;
 	int rc;
-	time_t ttl = 0;;
+	time_t ttl = 0, ttr = 0;
+	time_t now;
 
 	new_cached_query->qtemp = templ;
 	BER_BVZERO( &new_cached_query->q_uuid );
 	new_cached_query->q_sizelimit = 0;
 
+	now = slap_get_time();
 	switch ( why ) {
 	case PC_POSITIVE:
 		ttl = templ->ttl;
+		if ( templ->ttr )
+			ttr = now + templ->ttr;
 		break;
 
 	case PC_NEGATIVE:
@@ -1262,9 +1306,11 @@ add_query(
 		assert( 0 );
 		break;
 	}
-	new_cached_query->expiry_time = slap_get_time() + ttl;
+	new_cached_query->expiry_time = now + ttl;
+	new_cached_query->refresh_time = ttr;
 
 	new_cached_query->answerable_cnt = 0;
+	new_cached_query->refcnt = 1;
 	ldap_pvt_thread_mutex_init(&new_cached_query->answerable_cnt_mutex);
 
 	new_cached_query->lru_up = NULL;
@@ -2454,6 +2500,9 @@ pcache_op_search(
 
 		ldap_pvt_thread_mutex_lock( &answerable->answerable_cnt_mutex );
 		answerable->answerable_cnt++;
+		/* we only care about refcnts if we're refreshing */
+		if ( answerable->refresh_time )
+			answerable->refcnt++;
 		Debug( pcache_debug, "QUERY ANSWERABLE (answered %lu times)\n",
 			answerable->answerable_cnt, 0, 0 );
 		ldap_pvt_thread_mutex_unlock( &answerable->answerable_cnt_mutex );
@@ -2629,9 +2678,9 @@ consistency_check(
 	Operation *op;
 
 	SlapReply rs = {REP_RESULT};
-	CachedQuery* query;
+	CachedQuery *query, *qprev;
 	int return_val, pause = PCACHE_CC_PAUSED;
-	QueryTemplate* templ;
+	QueryTemplate *templ;
 
 	/* Don't expire anything when we're offline */
 	if ( cm->cc_paused & PCACHE_CC_OFFLINE ) {
@@ -2649,48 +2698,96 @@ consistency_check(
 	cm->cc_arg = arg;
 
 	for (templ = qm->templates; templ; templ=templ->qmnext) {
-		query = templ->query_last;
-		if ( query ) pause = 0;
+		time_t ttl;
+		if ( !templ->query_last ) continue;
+		pause = 0;
 		op->o_time = slap_get_time();
-		while (query && (query->expiry_time < op->o_time)) {
-			int rem = 0;
-			Debug( pcache_debug, "Lock CR index = %p\n",
-					(void *) templ, 0, 0 );
-			ldap_pvt_thread_rdwr_wlock(&templ->t_rwlock);
-			if ( query == templ->query_last ) {
-				rem = 1;
-				remove_from_template(query, templ);
-				Debug( pcache_debug, "TEMPLATE %p QUERIES-- %d\n",
-						(void *) templ, templ->no_of_queries, 0 );
-				Debug( pcache_debug, "Unlock CR index = %p\n",
-						(void *) templ, 0, 0 );
-			}
-			ldap_pvt_thread_rdwr_wunlock(&templ->t_rwlock);
-			if ( !rem ) {
-				query = templ->query_last;
+		if ( !templ->ttr ) {
+			ttl = templ->ttl;
+			if ( templ->negttl && templ->negttl < ttl )
+				ttl = templ->negttl;
+			if ( templ->limitttl && templ->limitttl < ttl )
+				ttl = templ->limitttl;
+			/* The oldest timestamp that needs expiration checking */
+			ttl += op->o_time;
+		}
+
+		for ( query=templ->query_last; query; query=qprev ) {
+			qprev = query->prev;
+			if ( query->refresh_time && query->refresh_time < op->o_time ) {
+				/* A refresh will extend the expiry if the query has been
+				 * referenced, but not if it's unreferenced. If the
+				 * expiration has been hit, then skip the refresh since
+				 * we're just going to discard the result anyway.
+				 */
+				if ( query->refcnt ) {
+					query->expiry_time = op->o_time + templ->ttl;
+				} else if ( query->expiry_time < op->o_time ) {
+					goto expire;
+				}
+				/* Do the refresh */
+				/* FIXME: and then a miracle occurs...
+				 * the next step requires firing off a search request
+				 * for a single entry and merging the result into any
+				 * already existing entry in the DB. This is similar
+				 * to what syncrepl already does, but using the wrong
+				 * data structures. Need to see what refactoring can be
+				 * done to share the code...
+				 */
+				query->refcnt = 0;
+
+
 				continue;
 			}
-			ldap_pvt_thread_mutex_lock(&qm->lru_mutex);
-			remove_query(qm, query);
-			ldap_pvt_thread_mutex_unlock(&qm->lru_mutex);
-			if ( BER_BVISNULL( &query->q_uuid ))
-				return_val = 0;
-			else
-				return_val = remove_query_data(op, &rs, &query->q_uuid);
-			Debug( pcache_debug, "STALE QUERY REMOVED, SIZE=%d\n",
-						return_val, 0, 0 );
-			ldap_pvt_thread_mutex_lock(&cm->cache_mutex);
-			cm->cur_entries -= return_val;
-			cm->num_cached_queries--;
-			Debug( pcache_debug, "STORED QUERIES = %lu\n",
-					cm->num_cached_queries, 0, 0 );
-			ldap_pvt_thread_mutex_unlock(&cm->cache_mutex);
-			Debug( pcache_debug,
-				"STALE QUERY REMOVED, CACHE ="
-				"%d entries\n",
-				cm->cur_entries, 0, 0 );
-			free_query(query);
-			query = templ->query_last;
+
+expire:
+			if (query->expiry_time < op->o_time) {
+				int rem = 0;
+				Debug( pcache_debug, "Lock CR index = %p\n",
+						(void *) templ, 0, 0 );
+				ldap_pvt_thread_rdwr_wlock(&templ->t_rwlock);
+				if ( query == templ->query_last ) {
+					rem = 1;
+					remove_from_template(query, templ);
+					Debug( pcache_debug, "TEMPLATE %p QUERIES-- %d\n",
+							(void *) templ, templ->no_of_queries, 0 );
+					Debug( pcache_debug, "Unlock CR index = %p\n",
+							(void *) templ, 0, 0 );
+				}
+				ldap_pvt_thread_rdwr_wunlock(&templ->t_rwlock);
+				if ( !rem ) {
+					continue;
+				}
+				ldap_pvt_thread_mutex_lock(&qm->lru_mutex);
+				remove_query(qm, query);
+				ldap_pvt_thread_mutex_unlock(&qm->lru_mutex);
+				if ( BER_BVISNULL( &query->q_uuid ))
+					return_val = 0;
+				else
+					return_val = remove_query_data(op, &rs, &query->q_uuid);
+				Debug( pcache_debug, "STALE QUERY REMOVED, SIZE=%d\n",
+							return_val, 0, 0 );
+				ldap_pvt_thread_mutex_lock(&cm->cache_mutex);
+				cm->cur_entries -= return_val;
+				cm->num_cached_queries--;
+				Debug( pcache_debug, "STORED QUERIES = %lu\n",
+						cm->num_cached_queries, 0, 0 );
+				ldap_pvt_thread_mutex_unlock(&cm->cache_mutex);
+				Debug( pcache_debug,
+					"STALE QUERY REMOVED, CACHE ="
+					"%d entries\n",
+					cm->cur_entries, 0, 0 );
+				free_query(query);
+			} else if ( !templ->ttr && query->expiry_time > ttl ) {
+				/* We don't need to check for refreshes, and this
+				 * query's expiry is too new, and all subsequent queries
+				 * will be newer yet. So stop looking.
+				 *
+				 * If we have refreshes, then we always have to walk the
+				 * entire query list.
+				 */
+				break;
+			}
 		}
 	}
 
