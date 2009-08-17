@@ -242,7 +242,8 @@ int connections_timeout_idle(time_t now)
 			continue;
 		}
 
-		if( difftime( c->c_activitytime+global_idletimeout, now) < 0 ) {
+		if( global_idletimeout && 
+			difftime( c->c_activitytime+global_idletimeout, now) < 0 ) {
 			/* close it */
 			connection_closing( c, "idletimeout" );
 			connection_close( c );
