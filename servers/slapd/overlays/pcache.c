@@ -2806,7 +2806,7 @@ static ConfigOCs pcocs[] = {
 		"NAME 'olcPcacheConfig' "
 		"DESC 'ProxyCache configuration' "
 		"SUP olcOverlayConfig "
-		"MUST ( olcPcache $ olcPcacheAttrset $ olcPcacheSet ) "
+		"MUST ( olcPcache $ olcPcacheAttrset $ olcPcacheTemplate ) "
 		"MAY ( olcPcachePosition $ olcPcacheMaxQueries $ olcPcachePersist $ "
 			"olcPcacheValidate $ olcPcacheOffline ) )",
 		Cft_Overlay, pccfg, NULL, pc_cfadd },
