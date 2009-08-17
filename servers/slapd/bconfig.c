@@ -3500,7 +3500,7 @@ config_updatedn(ConfigArgs *c) {
 }
 
 int
-config_shadow( ConfigArgs *c, int flag )
+config_shadow( ConfigArgs *c, slap_mask_t flag )
 {
 	char	*notallowed = NULL;
 
