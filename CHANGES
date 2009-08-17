@@ -13,6 +13,7 @@ OpenLDAP 2.4.18 Engineering
 	Fixed slapd with duplicate empty lines for olcDbConfig (ITS#6240)
 	Fixed slapd server URL matching (ITS#5942)
 	Fixed slapd subordinate needs a suffix (ITS#6216)
+	Fixed slapd syncrepl decrement on possible NULL value (ITS#6256)
 	Fixed slapd tools to properly close database (ITS#6214)
 	Fixed slapd uninitialized SlapReply components (ITS#6101)
 	Fixed slapd-meta starttls with targets (ITS#6190)

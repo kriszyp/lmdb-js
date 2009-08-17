@@ -3729,12 +3729,14 @@ syncinfo_free( syncinfo_t *sie, int free_all )
 			}
 			ch_free( npe );
 		}
-		sie->si_cookieState->cs_ref--;
-		if ( !sie->si_cookieState->cs_ref ) {
-			ch_free( sie->si_cookieState->cs_sids );
-			ber_bvarray_free( sie->si_cookieState->cs_vals );
-			ldap_pvt_thread_mutex_destroy( &sie->si_cookieState->cs_mutex );
-			ch_free( sie->si_cookieState );
+		if ( sie->si_cookieState ) {
+			sie->si_cookieState->cs_ref--;
+			if ( !sie->si_cookieState->cs_ref ) {
+				ch_free( sie->si_cookieState->cs_sids );
+				ber_bvarray_free( sie->si_cookieState->cs_vals );
+				ldap_pvt_thread_mutex_destroy( &sie->si_cookieState->cs_mutex );
+				ch_free( sie->si_cookieState );
+			}
 		}
 		ch_free( sie );
 		sie = si_next;
