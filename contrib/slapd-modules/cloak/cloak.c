@@ -1,7 +1,9 @@
-/* $OpenLDAP$ */
 /* cloak.c - Overlay to hide some attribute except if explicitely requested */
-/* 
- * Copyright 2008 Emmanuel Dreyfus
+/* $OpenLDAP$ */
+/* This work is part of OpenLDAP Software <http://www.openldap.org/>.
+ *
+ * Copyright 2008-2009 The OpenLDAP Foundation.
+ * Portions Copyright 2008 Emmanuel Dreyfus
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -12,6 +14,11 @@
  * top-level directory of the distribution or, alternatively, at
  * <http://www.OpenLDAP.org/license.html>.
  */
+/* ACKNOWLEDGEMENTS:
+ * This work was originally developed by the Emmanuel Dreyfus for
+ * inclusion in OpenLDAP Software.
+ */
+
 #include "portable.h"
 
 #ifdef SLAPD_OVER_CLOAK

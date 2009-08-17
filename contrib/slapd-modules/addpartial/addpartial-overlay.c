@@ -1,7 +1,9 @@
-/**
- * $Id: addpartial-overlay.c 6588 2007-11-07 18:29:25Z dhawes $
+/* addpartial-overlay.c */
+/* $OpenLDAP$ */
+/* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright (C) 2004 Virginia Tech, David Hawes.
+ * Copyright 2004-2009 The OpenLDAP Foundation.
+ * Portions Copyright (C) 2004 Virginia Tech, David Hawes.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -11,15 +13,12 @@
  * A copy of this license is available in file LICENSE in the
  * top-level directory of the distribution or, alternatively, at
  * http://www.OpenLDAP.org/license.html.
- *
- * SEE LICENSE FOR MORE INFORMATION
- *
- * Author:  David H. Hawes, Jr.
- * Email:   dhawes@vt.edu
- * Version: $Revision: 8385 $
- * Updated: $Date: 2008-11-04 12:19:52 -0500 (Tue, 04 Nov 2008) $
- * 
- * addpartial-overlay
+ */
+/* ACKNOLEDGEDMENTS:
+ * This work was initially developed by David Hawes of Virginia Tech
+ * for inclusion in OpenLDAP Software.
+ */
+/* addpartial-overlay
  *
  * This is an OpenLDAP overlay that intercepts ADD requests, determines if a
  * change has actually taken place for that record, and then performs a modify

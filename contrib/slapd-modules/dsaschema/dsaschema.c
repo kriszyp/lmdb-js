@@ -1,5 +1,7 @@
+/* dsaschema.c */
 /* $OpenLDAP$ */
-/*
+/* This work is part of OpenLDAP Software <http://www.openldap.org/>.
+ *
  * Copyright 2004-2009 The OpenLDAP Foundation.
  * All rights reserved.
  *

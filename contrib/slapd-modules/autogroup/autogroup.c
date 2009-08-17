@@ -1,7 +1,10 @@
 /* autogroup.c - automatic group overlay */
 /* $OpenLDAP$ */
-/*
- * Copyright 2007 Michał Szulczyński.
+/* This work is part of OpenLDAP Software <http://www.openldap.org/>.
+ *
+ * Copyright 2007-2009 The OpenLDAP Foundation.
+ * Portions Copyright 2007 Michał Szulczyński.
+ * Portions Copyright 2009 Howard Chu.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -11,6 +14,11 @@
  * A copy of this license is available in the file LICENSE in the
  * top-level directory of the distribution or, alternatively, at
  * <http://www.OpenLDAP.org/license.html>.
+ */
+/* ACKNOWLEDGEMENTS:
+ * This work was initially developed by Michał Szulczyński for inclusion in
+ * OpenLDAP Software.  Additional significant contributors include:
+ *   Howard Chu
  */
 
 #include "portable.h"

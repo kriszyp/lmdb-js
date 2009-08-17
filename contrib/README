@@ -1,10 +1,11 @@
 OpenLDAP Contributed Software README
 
 OpenLDAP Project provides a number of freely-distributable LDAP
-software packages.  Though distributed with OpenLDAP Software, they
-are not part of OpenLDAP Software.  Some packages may be out of
-date.  Each package in this directory has it's own use and
-redistribution restrictions as documented within the package.
+software packages.  While distributed as part of OpenLDAP Software,
+they are not necessarily supported by the OpenLDAP Project.  Some
+packages may be out of date.  Each package in this directory has its
+own use and may have different redistribution restrictions than typical
+for OpenLDAP Software.
 
 Current contributions:
 	ldapc++

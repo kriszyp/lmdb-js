@@ -1,7 +1,9 @@
 /* smbk5pwd.c - Overlay for managing Samba and Heimdal passwords */
 /* $OpenLDAP$ */
-/*
- * Copyright 2004-2005 by Howard Chu, Symas Corp.
+/* This work is part of OpenLDAP Software <http://www.openldap.org/>.
+ *
+ * Copyright 2004-2009 The OpenLDAP Foundation.
+ * Portions Copyright 2004-2005 by Howard Chu, Symas Corp.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -12,11 +14,9 @@
  * top-level directory of the distribution or, alternatively, at
  * <http://www.OpenLDAP.org/license.html>.
  */
-/*
+/* ACKNOWLEDGEMENTS:
  * Support for table-driven configuration added by Pierangelo Masarati.
  * Support for sambaPwdMustChange and sambaPwdCanChange added by Marco D'Ettorre.
- *
- * The conditions of the OpenLDAP Public License apply.
  */
 
 #include <portable.h>
