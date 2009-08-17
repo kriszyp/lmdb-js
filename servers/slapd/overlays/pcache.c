@@ -2718,7 +2718,7 @@ refresh_merge( Operation *op, SlapReply *rs )
 			/* Entry exists, update it */
 			Entry ne;
 			Attribute *a, **b;
-			Modifications *modlist, *mods;
+			Modifications *modlist, *mods = NULL;
 			const char* 	text = NULL;
 			char			textbuf[SLAP_TEXT_BUFLEN];
 			size_t			textlen = sizeof(textbuf);
@@ -2731,6 +2731,9 @@ refresh_merge( Operation *op, SlapReply *rs )
 				if ( ad_inlist( a->a_desc, rs->sr_attrs )) {
 					*b = attr_alloc( a->a_desc );
 					*(*b) = *a;
+					/* The actual values still belong to e */
+					(*b)->a_flags |= SLAP_ATTR_DONT_FREE_VALS |
+						SLAP_ATTR_DONT_FREE_DATA;
 					b = &((*b)->a_next);
 				}
 			}
@@ -2739,6 +2742,8 @@ refresh_merge( Operation *op, SlapReply *rs )
 			syncrepl_diff_entry( op, ne.e_attrs, rs->sr_entry->e_attrs,
 				&mods, &modlist, 0 );
 			be_entry_release_r( op, e );
+			attrs_free( ne.e_attrs );
+			slap_mods_free( modlist, 1 );
 			/* mods is NULL if there are no changes */
 			if ( mods ) {
 				struct berval dn = op->o_req_dn;
