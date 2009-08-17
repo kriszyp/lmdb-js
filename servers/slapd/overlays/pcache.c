@@ -2735,7 +2735,7 @@ refresh_merge( Operation *op, SlapReply *rs )
 				}
 			}
 			*b = NULL;
-			slap_entry2mods( &ne, &modlist, &text, textbuf, textlen );
+			slap_entry2mods( rs->sr_entry, &modlist, &text, textbuf, textlen );
 			syncrepl_diff_entry( op, ne.e_attrs, rs->sr_entry->e_attrs,
 				&mods, &modlist, 0 );
 			be_entry_release_r( op, e );
