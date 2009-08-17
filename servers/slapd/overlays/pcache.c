@@ -2673,6 +2673,7 @@ get_attr_set(
 typedef struct dnlist {
 	struct dnlist *next;
 	struct berval dn;
+	char delete;
 } dnlist;
 
 typedef struct refresh_info {
@@ -2794,9 +2795,13 @@ refresh_purge( Operation *op, SlapReply *rs )
 		}
 		/* No, so put it on the list to delete */
 		if ( del ) {
+			Attribute *a;
 			dnlist *dnl = dnl_alloc( op, &rs->sr_entry->e_nname );
 			dnl->next = ri->ri_dels;
 			ri->ri_dels = dnl;
+			a = attr_find( rs->sr_entry->e_attrs, ad_queryId );
+			/* If ours is the only queryId, delete entry */
+			dnl->delete = ( a->a_numvals == 1 );
 		}
 	}
 	return 0;
@@ -2811,6 +2816,7 @@ refresh_query( Operation *op, SlapReply *rs, CachedQuery *query,
 	char filter_str[ LDAP_LUTIL_UUIDSTR_BUFSIZE + STRLENOF( "(queryId=)" ) ];
 	AttributeAssertion	ava = ATTRIBUTEASSERTION_INIT;
 	Filter filter = {LDAP_FILTER_EQUALITY};
+	AttributeName attrs[ 2 ] = {{{ 0 }}};
 	dnlist *dn;
 	int i, rc;
 
@@ -2860,18 +2866,40 @@ refresh_query( Operation *op, SlapReply *rs, CachedQuery *query,
 	filter.f_ava = &ava;
 	filter.f_av_desc = ad_queryId;
 	filter.f_av_value = query->q_uuid;
-	op->ors_attrs = slap_anlist_no_attrs;
-	op->ors_attrsonly = 1;
+	attrs[ 0 ].an_desc = ad_queryId;
+	attrs[ 0 ].an_name = ad_queryId->ad_cname;
+	op->ors_attrs = attrs;
+	op->ors_attrsonly = 0;
 	rs->sr_entry = NULL;
 	rs->sr_nentries = 0;
 	rc = op->o_bd->be_search( op, rs );
 	if ( rc ) goto leave;
 
-	op->o_tag = LDAP_REQ_DELETE;
 	while (( dn = ri.ri_dels )) {
 		op->o_req_dn = dn->dn;
 		op->o_req_ndn = dn->dn;
-		op->o_bd->be_delete( op, rs );
+		if ( dn->delete ) {
+			op->o_tag = LDAP_REQ_DELETE;
+			op->o_bd->be_delete( op, rs );
+		} else {
+			Modifications mod;
+			struct berval vals[2];
+
+			vals[0] = query->q_uuid;
+			BER_BVZERO( &vals[1] );
+			mod.sml_op = LDAP_MOD_DELETE;
+			mod.sml_flags = 0;
+			mod.sml_desc = ad_queryId;
+			mod.sml_type = ad_queryId->ad_cname;
+			mod.sml_values = vals;
+			mod.sml_nvalues = NULL;
+			mod.sml_numvals = 1;
+			mod.sml_next = NULL;
+
+			op->o_tag = LDAP_REQ_MODIFY;
+			op->orm_modlist = &mod;
+			op->o_bd->be_modify( op, rs );
+		}
 		ri.ri_dels = dn->next;
 		op->o_tmpfree( dn, op->o_tmpmemctx );
 	}
