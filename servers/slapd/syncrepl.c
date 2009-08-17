@@ -3088,6 +3088,10 @@ syncrepl_updateCookie(
 	return rc;
 }
 
+/* Compare the attribute from the old entry to the one in the new
+ * entry. The Modifications from the new entry will either be left
+ * in place, or changed to an Add or Delete as needed.
+ */
 static void
 attr_cmp( Operation *op, Attribute *old, Attribute *new,
 	Modifications ***mret, Modifications ***mcur )
@@ -3231,6 +3235,86 @@ attr_cmp( Operation *op, Attribute *old, Attribute *new,
 	*mret = modtail;
 }
 
+/* Generate a set of modifications to change the old entry into the
+ * new one. On input ml is a list of modifications equivalent to
+ * the new entry. It will be massaged and the result will be stored
+ * in mods.
+ */
+void syncrepl_diff_entry( Operation *op, Attribute *old, Attribute *new,
+	Modifications **mods, Modifications **ml, int is_ctx)
+{
+	Modifications **modtail = mods;
+
+	/* We assume that attributes are saved in the same order
+	 * in the remote and local databases. So if we walk through
+	 * the attributeDescriptions one by one they should match in
+	 * lock step. If not, look for an add or delete.
+	 */
+	while ( old && new )
+	{
+		/* If we've seen this before, use its mod now */
+		if ( new->a_flags & SLAP_ATTR_IXADD ) {
+			attr_cmp( op, NULL, new, &modtail, &ml );
+			new = new->a_next;
+			continue;
+		}
+		/* Skip contextCSN */
+		if ( is_ctx && old->a_desc ==
+			slap_schema.si_ad_contextCSN ) {
+			old = old->a_next;
+			continue;
+		}
+
+		if ( old->a_desc != new->a_desc ) {
+			Modifications *mod;
+			Attribute *tmp;
+
+			/* If it's just been re-added later,
+			 * remember that we've seen it.
+			 */
+			tmp = attr_find( new, old->a_desc );
+			if ( tmp ) {
+				tmp->a_flags |= SLAP_ATTR_IXADD;
+			} else {
+				/* If it's a new attribute, pull it in.
+				 */
+				tmp = attr_find( old, new->a_desc );
+				if ( !tmp ) {
+					attr_cmp( op, NULL, new, &modtail, &ml );
+					new = new->a_next;
+					continue;
+				}
+				/* Delete old attr */
+				mod = ch_malloc( sizeof( Modifications ) );
+				mod->sml_op = LDAP_MOD_DELETE;
+				mod->sml_flags = 0;
+				mod->sml_desc = old->a_desc;
+				mod->sml_type = mod->sml_desc->ad_cname;
+				mod->sml_numvals = 0;
+				mod->sml_values = NULL;
+				mod->sml_nvalues = NULL;
+				*modtail = mod;
+				modtail = &mod->sml_next;
+			}
+			old = old->a_next;
+			continue;
+		}
+		/* kludge - always update modifiersName so that it
+		 * stays co-located with the other mod opattrs. But only
+		 * if we know there are other valid mods.
+		 */
+		if ( *mods && ( old->a_desc == slap_schema.si_ad_modifiersName ||
+			old->a_desc == slap_schema.si_ad_modifyTimestamp ))
+			attr_cmp( op, NULL, new, &modtail, &ml );
+		else
+			attr_cmp( op, old, new, &modtail, &ml );
+		new = new->a_next;
+		old = old->a_next;
+	}
+	*modtail = *ml;
+	*ml = NULL;
+}
+
 static int
 dn_callback(
 	Operation*	op,
@@ -3351,78 +3435,9 @@ dn_callback(
 					 */
 				}
 
-				modtail = &dni->mods;
-				ml = dni->modlist;
-
-				/* We assume that attributes are saved in the same order
-				 * in the remote and local databases. So if we walk through
-				 * the attributeDescriptions one by one they should match in
-				 * lock step. If not, look for an add or delete.
-				 */
-				for ( old = rs->sr_entry->e_attrs, new = dni->new_entry->e_attrs;
-						old && new; )
-				{
-					/* If we've seen this before, use its mod now */
-					if ( new->a_flags & SLAP_ATTR_IXADD ) {
-						attr_cmp( op, NULL, new, &modtail, &ml );
-						new = new->a_next;
-						continue;
-					}
-					/* Skip contextCSN */
-					if ( is_ctx && old->a_desc ==
-						slap_schema.si_ad_contextCSN ) {
-						old = old->a_next;
-						continue;
-					}
-
-					if ( old->a_desc != new->a_desc ) {
-						Modifications *mod;
-						Attribute *tmp;
-
-						/* If it's just been re-added later,
-						 * remember that we've seen it.
-						 */
-						tmp = attr_find( new, old->a_desc );
-						if ( tmp ) {
-							tmp->a_flags |= SLAP_ATTR_IXADD;
-						} else {
-							/* If it's a new attribute, pull it in.
-							 */
-							tmp = attr_find( old, new->a_desc );
-							if ( !tmp ) {
-								attr_cmp( op, NULL, new, &modtail, &ml );
-								new = new->a_next;
-								continue;
-							}
-							/* Delete old attr */
-							mod = ch_malloc( sizeof( Modifications ) );
-							mod->sml_op = LDAP_MOD_DELETE;
-							mod->sml_flags = 0;
-							mod->sml_desc = old->a_desc;
-							mod->sml_type = mod->sml_desc->ad_cname;
-							mod->sml_numvals = 0;
-							mod->sml_values = NULL;
-							mod->sml_nvalues = NULL;
-							*modtail = mod;
-							modtail = &mod->sml_next;
-						}
-						old = old->a_next;
-						continue;
-					}
-					/* kludge - always update modifiersName so that it
-					 * stays co-located with the other mod opattrs. But only
-					 * if we know there are other valid mods.
-					 */
-					if ( dni->mods && ( old->a_desc == slap_schema.si_ad_modifiersName ||
-						old->a_desc == slap_schema.si_ad_modifyTimestamp ))
-						attr_cmp( op, NULL, new, &modtail, &ml );
-					else
-						attr_cmp( op, old, new, &modtail, &ml );
-					new = new->a_next;
-					old = old->a_next;
-				}
-				*modtail = *ml;
-				*ml = NULL;
+				syncrepl_diff_entry( op, rs->sr_entry->e_attrs,
+					dni->new_entry->e_attrs, &dni->mods, dni->modlist,
+					is_ctx );
 			}
 		}
 	} else if ( rs->sr_type == REP_RESULT ) {
