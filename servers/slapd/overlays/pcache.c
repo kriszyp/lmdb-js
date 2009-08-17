@@ -2701,7 +2701,7 @@ refresh_merge( Operation *op, SlapReply *rs )
 		refresh_info *ri = op->o_callback->sc_private;
 		BackendDB *be = op->o_bd;
 		Entry *e;
-		dnlist *dn;
+		dnlist *dnl;
 		slap_callback *ocb;
 		int rc;
 
@@ -2739,22 +2739,31 @@ refresh_merge( Operation *op, SlapReply *rs )
 			syncrepl_diff_entry( op, ne.e_attrs, rs->sr_entry->e_attrs,
 				&mods, &modlist, 0 );
 			be_entry_release_r( op, e );
-			op->o_tag = LDAP_REQ_MODIFY;
-			op->orm_modlist = mods;
-			op->o_callback = &cb;
-			op->o_bd->be_modify( op, rs );
-			slap_mods_free( mods, 1 );
+			/* mods is NULL if there are no changes */
+			if ( mods ) {
+				struct berval dn = op->o_req_dn;
+				struct berval ndn = op->o_req_ndn;
+				op->o_tag = LDAP_REQ_MODIFY;
+				op->orm_modlist = mods;
+				op->o_req_dn = rs->sr_entry->e_name;
+				op->o_req_ndn = rs->sr_entry->e_nname;
+				op->o_callback = &cb;
+				op->o_bd->be_modify( op, rs );
+				slap_mods_free( mods, 1 );
+				op->o_req_dn = dn;
+				op->o_req_ndn = ndn;
+			}
 		}
 
 		/* Add DN to list */
-		dn = dnl_alloc( op, &rs->sr_entry->e_nname );
-		dn->next = NULL;
+		dnl = dnl_alloc( op, &rs->sr_entry->e_nname );
+		dnl->next = NULL;
 		if ( ri->ri_tail ) {
-			ri->ri_tail->next = dn;
+			ri->ri_tail->next = dnl;
 		} else {
-			ri->ri_dns = dn;
+			ri->ri_dns = dnl;
 		}
-		ri->ri_tail = dn;
+		ri->ri_tail = dnl;
 		op->o_callback = ocb;
 	}
 	return 0;
@@ -2770,7 +2779,7 @@ refresh_purge( Operation *op, SlapReply *rs )
 
 		/* Did the entry exist on the remote? */
 		for ( dn=&ri->ri_dns; *dn; dn = &(*dn)->next ) {
-			if ( dnmatch( &(*dn)->dn, &rs->sr_entry->e_nname )) {
+			if ( dn_match( &(*dn)->dn, &rs->sr_entry->e_nname )) {
 				dnlist *dnext = (*dn)->next;
 				op->o_tmpfree( *dn, op->o_tmpmemctx );
 				*dn = dnext;
@@ -3067,7 +3076,7 @@ static ConfigTable pccfg[] = {
 		2, 0, 0, ARG_MAGIC|PC_ATTR, pc_cf_gen,
 		NULL, NULL, NULL },
 	{ "proxytemplate", "filter> <attrset-index> <TTL> <negTTL",
-		4, 6, 0, ARG_MAGIC|PC_TEMP, pc_cf_gen,
+		4, 7, 0, ARG_MAGIC|PC_TEMP, pc_cf_gen,
 		NULL, NULL, NULL },
 	{ "response-callback", "head|tail(default)",
 		2, 2, 0, ARG_MAGIC|PC_RESP, pc_cf_gen,
