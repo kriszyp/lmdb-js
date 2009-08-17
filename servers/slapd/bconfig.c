@@ -374,10 +374,10 @@ static ConfigTable config_back_cf_table[] = {
 	{ "include", "file", 2, 2, 0, ARG_MAGIC,
 		&config_include, "( OLcfgGlAt:19 NAME 'olcInclude' "
 			"SUP labeledURI )", NULL, NULL },
-	{ "index_substr_if_minlen", "min", 2, 2, 0, ARG_INT|ARG_NONZERO|ARG_MAGIC|CFG_SSTR_IF_MIN,
+	{ "index_substr_if_minlen", "min", 2, 2, 0, ARG_UINT|ARG_NONZERO|ARG_MAGIC|CFG_SSTR_IF_MIN,
 		&config_generic, "( OLcfgGlAt:20 NAME 'olcIndexSubstrIfMinLen' "
 			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
-	{ "index_substr_if_maxlen", "max", 2, 2, 0, ARG_INT|ARG_NONZERO|ARG_MAGIC|CFG_SSTR_IF_MAX,
+	{ "index_substr_if_maxlen", "max", 2, 2, 0, ARG_UINT|ARG_NONZERO|ARG_MAGIC|CFG_SSTR_IF_MAX,
 		&config_generic, "( OLcfgGlAt:21 NAME 'olcIndexSubstrIfMaxLen' "
 			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
 	{ "index_substr_any_len", "len", 2, 2, 0, ARG_INT|ARG_NONZERO,
@@ -1081,10 +1081,10 @@ config_generic(ConfigArgs *c) {
 			c->value_int = (SLAP_DBMONITORING(c->be) != 0);
 			break;
 		case CFG_SSTR_IF_MAX:
-			c->value_int = index_substr_if_maxlen;
+			c->value_uint = index_substr_if_maxlen;
 			break;
 		case CFG_SSTR_IF_MIN:
-			c->value_int = index_substr_if_minlen;
+			c->value_uint = index_substr_if_minlen;
 			break;
 		case CFG_IX_INTLEN:
 			c->value_int = index_intlen;
@@ -1887,23 +1887,23 @@ sortval_reject:
 			break;
 
 		case CFG_SSTR_IF_MAX:
-			if (c->value_int < index_substr_if_minlen) {
+			if (c->value_uint < index_substr_if_minlen) {
 				snprintf( c->cr_msg, sizeof( c->cr_msg ), "<%s> invalid value", c->argv[0] );
 				Debug(LDAP_DEBUG_ANY, "%s: %s (%d)\n",
 					c->log, c->cr_msg, c->value_int );
 				return(1);
 			}
-			index_substr_if_maxlen = c->value_int;
+			index_substr_if_maxlen = c->value_uint;
 			break;
 
 		case CFG_SSTR_IF_MIN:
-			if (c->value_int > index_substr_if_maxlen) {
+			if (c->value_uint > index_substr_if_maxlen) {
 				snprintf( c->cr_msg, sizeof( c->cr_msg ), "<%s> invalid value", c->argv[0] );
 				Debug(LDAP_DEBUG_ANY, "%s: %s (%d)\n",
 					c->log, c->cr_msg, c->value_int );
 				return(1);
 			}
-			index_substr_if_minlen = c->value_int;
+			index_substr_if_minlen = c->value_uint;
 			break;
 
 #ifdef SLAPD_MODULES
