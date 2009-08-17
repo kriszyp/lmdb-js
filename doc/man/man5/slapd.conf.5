@@ -961,6 +961,16 @@ more efficiently. The resulting sort order depends on the
 attributes' syntax and matching rules and may not correspond to
 lexical order or any other recognizable order.
 .TP
+.B tcp-buffer [listener=<URL>] [{read|write}=]<size>
+Specify the size of the TCP buffer.
+A global value for both read and write TCP buffers related to any listener
+is defined, unless the listener is explicitly specified,
+or either the read or write qualifiers are used.
+See
+.BR tcp (7)
+for details.
+Note that some OS-es implement automatic TCP buffer tuning.
+.TP
 .B threads <integer>
 Specify the maximum size of the primary thread pool.
 The default is 16; the minimum value is 2.

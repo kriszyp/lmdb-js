@@ -2755,7 +2755,7 @@ typedef void (SEND_LDAP_INTERMEDIATE)(
 #define send_ldap_intermediate( op, rs ) \
 	((op)->o_conn->c_send_ldap_intermediate)( op, rs )
 
-typedef struct slap_listener Listener;
+typedef struct Listener Listener;
 
 /*
  * represents a connection from an ldap client
@@ -2902,7 +2902,7 @@ struct Connection {
 /*
  * listener; need to access it from monitor backend
  */
-struct slap_listener {
+struct Listener {
 	struct berval sl_url;
 	struct berval sl_name;
 	mode_t	sl_perms;
@@ -2917,6 +2917,13 @@ struct slap_listener {
 	ber_socket_t sl_sd;
 	Sockaddr sl_sa;
 #define sl_addr	sl_sa.sa_in_addr
+#ifdef LDAP_DEVEL
+#define LDAP_TCP_BUFFER
+#endif
+#ifdef LDAP_TCP_BUFFER
+	int	sl_tcp_rmem;	/* custom TCP read buffer size */
+	int	sl_tcp_wmem;	/* custom TCP write buffer size */
+#endif
 };
 
 /*

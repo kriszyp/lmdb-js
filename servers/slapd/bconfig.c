@@ -120,6 +120,10 @@ static ConfigDriver config_timelimit;
 static ConfigDriver config_overlay;
 static ConfigDriver config_subordinate; 
 static ConfigDriver config_suffix; 
+#ifdef LDAP_TCP_BUFFER
+//#define LDAP_TCP_BUFFER_X_ORDERED
+static ConfigDriver config_tcp_buffer; 
+#endif /* LDAP_TCP_BUFFER */
 static ConfigDriver config_rootdn;
 static ConfigDriver config_rootpw;
 static ConfigDriver config_restrict;
@@ -604,6 +608,19 @@ static ConfigTable config_back_cf_table[] = {
 		&syncrepl_config, "( OLcfgDbAt:0.11 NAME 'olcSyncrepl' "
 			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString X-ORDERED 'VALUES' )", NULL, NULL },
+	{ "tcp-buffer", "[listener=<listener>] [{read|write}=]size", 0, 0, 0,
+#ifndef LDAP_TCP_BUFFER
+		ARG_IGNORED, NULL,
+#else /* LDAP_TCP_BUFFER */
+		ARG_MAGIC, &config_tcp_buffer,
+#endif /* LDAP_TCP_BUFFER */
+			"( OLcfgGlAt:90 NAME 'olcTCPBuffer' "
+			"DESC 'Custom TCP buffer size' "
+			"SYNTAX OMsDirectoryString "
+#ifdef LDAP_TCP_BUFFER_X_ORDERED
+			"X-ORDERED 'VALUES' "
+#endif /* LDAP_TCP_BUFFER_X_ORDERED */
+			")", NULL, NULL },
 	{ "threads", "count", 2, 2, 0,
 #ifdef NO_THREADS
 		ARG_IGNORED, NULL,
@@ -772,6 +789,7 @@ static ConfigOCs cf_ocs[] = {
 		 "olcSaslAuxprops $ olcSaslHost $ olcSaslRealm $ olcSaslSecProps $ "
 		 "olcSecurity $ olcServerID $ olcSizeLimit $ "
 		 "olcSockbufMaxIncoming $ olcSockbufMaxIncomingAuth $ "
+		 "olcTCPBuffer $ "
 		 "olcThreads $ olcTimeLimit $ olcTLSCACertificateFile $ "
 		 "olcTLSCACertificatePath $ olcTLSCertificateFile $ "
 		 "olcTLSCertificateKeyFile $ olcTLSCipherSuite $ olcTLSCRLCheck $ "
@@ -2330,6 +2348,401 @@ config_subordinate(ConfigArgs *c)
 
 	return rc;
 }
+
+/*
+ * [listener=<listener>] [{read|write}=]<size>
+ */
+
+#ifdef LDAP_TCP_BUFFER
+static BerVarray tcp_buffer;
+int tcp_buffer_num;
+
+#define SLAP_TCP_RMEM (0x1U)
+#define SLAP_TCP_WMEM (0x2U)
+
+static int
+tcp_buffer_parse( struct berval *val, int argc, char **argv,
+		int *size, int *rw, Listener **l )
+{
+	int i, rc = LDAP_SUCCESS;
+	LDAPURLDesc *lud = NULL;
+	char *ptr;
+
+	if ( val != NULL && argv == NULL ) {
+		char *s = val->bv_val;
+
+#ifdef LDAP_TCP_BUFFER_X_ORDERED
+		if ( s[0] == '{' ) {
+			s = strchr( s, '}' );
+			if ( s == NULL ) {
+				return 1;
+			}
+			s++;
+		}
+#endif /* LDAP_TCP_BUFFER_X_ORDERED */
+
+		argv = ldap_str2charray( s, " \t" );
+		if ( argv == NULL ) {
+			return LDAP_OTHER;
+		}
+	}
+
+	i = 0;
+	if ( strncasecmp( argv[ i ], "listener=", STRLENOF( "listener=" ) )
+		== 0 )
+	{
+		char *url = argv[ i ] + STRLENOF( "listener=" );
+		
+		if ( ldap_url_parse( url, &lud ) ) {
+			rc = LDAP_INVALID_SYNTAX;
+			goto done;
+		}
+
+		*l = config_check_my_url( url, lud );
+		if ( *l == NULL ) {
+			rc = LDAP_NO_SUCH_ATTRIBUTE;
+			goto done;
+		}
+
+		i++;
+	}
+
+	ptr = argv[ i ];
+	if ( strncasecmp( ptr, "read=", STRLENOF( "read=" ) ) == 0 ) {
+		*rw |= SLAP_TCP_RMEM;
+		ptr += STRLENOF( "read=" );
+
+	} else if ( strncasecmp( ptr, "write=", STRLENOF( "write=" ) ) == 0 ) {
+		*rw |= SLAP_TCP_WMEM;
+		ptr += STRLENOF( "write=" );
+
+	} else {
+		*rw |= ( SLAP_TCP_RMEM | SLAP_TCP_WMEM );
+	}
+
+	/* accept any base */
+	if ( lutil_atoix( size, ptr, 0 ) ) {
+		rc = LDAP_INVALID_SYNTAX;
+		goto done;
+	}
+
+done:;
+	if ( val != NULL && argv != NULL ) {
+		ldap_charray_free( argv );
+	}
+
+	if ( lud != NULL ) {
+		ldap_free_urldesc( lud );
+	}
+
+	return rc;
+}
+
+static int
+tcp_buffer_delete_one( struct berval *val )
+{
+	int rc = 0;
+	int size = -1, rw = 0;
+	Listener *l = NULL;
+
+	rc = tcp_buffer_parse( val, 0, NULL, &size, &rw, &l );
+	if ( rc != 0 ) {
+		return rc;
+	}
+
+	if ( l != NULL ) {
+		int i;
+		Listener **ll = slapd_get_listeners();
+
+		for ( i = 0; ll[ i ] != NULL; i++ ) {
+			if ( ll[ i ] == l ) break;
+		}
+
+		if ( ll[ i ] == NULL ) {
+			return LDAP_NO_SUCH_ATTRIBUTE;
+		}
+
+		if ( rw & SLAP_TCP_RMEM ) l->sl_tcp_rmem = -1;
+		if ( rw & SLAP_TCP_WMEM ) l->sl_tcp_wmem = -1;
+
+		for ( i++ ; ll[ i ] != NULL && bvmatch( &l->sl_url, &ll[ i ]->sl_url ); i++ ) {
+			if ( rw & SLAP_TCP_RMEM ) ll[ i ]->sl_tcp_rmem = -1;
+			if ( rw & SLAP_TCP_WMEM ) ll[ i ]->sl_tcp_wmem = -1;
+		}
+
+	} else {
+		/* NOTE: this affects listeners without a specific setting,
+		 * does not reset all listeners.  If a listener without
+		 * specific settings was assigned a buffer because of
+		 * a global setting, it will not be reset.  In any case,
+		 * buffer changes will only take place at restart. */
+		if ( rw & SLAP_TCP_RMEM ) slapd_tcp_rmem = -1;
+		if ( rw & SLAP_TCP_WMEM ) slapd_tcp_wmem = -1;
+	}
+
+	return rc;
+}
+
+static int
+tcp_buffer_delete( BerVarray vals )
+{
+	int i;
+
+	for ( i = 0; !BER_BVISNULL( &vals[ i ] ); i++ ) {
+		tcp_buffer_delete_one( &vals[ i ] );
+	}
+
+	return 0;
+}
+
+static int
+tcp_buffer_unparse( int idx, int size, int rw, Listener *l, struct berval *val )
+{
+	char buf[sizeof("2147483648")], *ptr;
+#ifdef LDAP_TCP_BUFFER_X_ORDERED
+	char fmtbuf[sizeof("{2147483648}")];
+#endif /* LDAP_TCP_BUFFER_X_ORDERED */
+
+	/* unparse for later use */
+	val->bv_len = snprintf( buf, sizeof( buf ), "%d", size );
+#ifdef LDAP_TCP_BUFFER_X_ORDERED
+	val->bv_len += snprintf( fmtbuf, sizeof( fmtbuf ), SLAP_X_ORDERED_FMT, idx );
+#endif /* LDAP_TCP_BUFFER_X_ORDERED */
+	if ( l != NULL ) {
+		val->bv_len += STRLENOF( "listener=" " " ) + l->sl_url.bv_len;
+	}
+
+	if ( rw != ( SLAP_TCP_RMEM | SLAP_TCP_WMEM ) ) {
+		if ( rw & SLAP_TCP_RMEM ) {
+			val->bv_len += STRLENOF( "read=" );
+		} else if ( rw & SLAP_TCP_WMEM ) {
+			val->bv_len += STRLENOF( "write=" );
+		}
+	}
+
+	val->bv_val = SLAP_MALLOC( val->bv_len + 1 );
+
+	ptr = val->bv_val;
+
+#ifdef LDAP_TCP_BUFFER_X_ORDERED
+	ptr = lutil_strcopy( ptr, fmtbuf );
+#endif /* LDAP_TCP_BUFFER_X_ORDERED */
+
+	if ( l != NULL ) {
+		ptr = lutil_strcopy( ptr, "listener=" );
+		ptr = lutil_strncopy( ptr, l->sl_url.bv_val, l->sl_url.bv_len );
+		*ptr++ = ' ';
+	}
+
+	if ( rw != ( SLAP_TCP_RMEM | SLAP_TCP_WMEM ) ) {
+		if ( rw & SLAP_TCP_RMEM ) {
+			ptr = lutil_strcopy( ptr, "read=" );
+		} else if ( rw & SLAP_TCP_WMEM ) {
+			ptr = lutil_strcopy( ptr, "write=" );
+		}
+	}
+
+	ptr = lutil_strcopy( ptr, buf );
+	*ptr = '\0';
+
+	assert( val->bv_val + val->bv_len == ptr );
+
+	return LDAP_SUCCESS;
+}
+
+static int
+tcp_buffer_add_one( int argc, char **argv, int idx )
+{
+	int rc = 0;
+	int size = -1, rw = 0;
+	Listener *l = NULL;
+
+	struct berval val;
+
+	/* parse */
+	rc = tcp_buffer_parse( NULL, argc, argv, &size, &rw, &l );
+	if ( rc != 0 ) {
+		return rc;
+	}
+
+	/* unparse for later use */
+	rc = tcp_buffer_unparse( idx, size, rw, l, &val );
+	if ( rc != LDAP_SUCCESS ) {
+		return rc;
+	}
+
+	/* use parsed values */
+	if ( l != NULL ) {
+		int i;
+		Listener **ll = slapd_get_listeners();
+
+		for ( i = 0; ll[ i ] != NULL; i++ ) {
+			if ( ll[ i ] == l ) break;
+		}
+
+		if ( ll[ i ] == NULL ) {
+			return LDAP_NO_SUCH_ATTRIBUTE;
+		}
+
+		/* buffer only applies to TCP listeners;
+		 * we do not do any check here, and delegate them
+		 * to setsockopt(2) */
+		if ( rw & SLAP_TCP_RMEM ) l->sl_tcp_rmem = size;
+		if ( rw & SLAP_TCP_WMEM ) l->sl_tcp_wmem = size;
+
+		for ( i++ ; ll[ i ] != NULL && bvmatch( &l->sl_url, &ll[ i ]->sl_url ); i++ ) {
+			if ( rw & SLAP_TCP_RMEM ) ll[ i ]->sl_tcp_rmem = size;
+			if ( rw & SLAP_TCP_WMEM ) ll[ i ]->sl_tcp_wmem = size;
+		}
+
+	} else {
+		/* NOTE: this affects listeners without a specific setting,
+		 * does not set all listeners */
+		if ( rw & SLAP_TCP_RMEM ) slapd_tcp_rmem = size;
+		if ( rw & SLAP_TCP_WMEM ) slapd_tcp_wmem = size;
+	}
+
+	tcp_buffer = SLAP_REALLOC( tcp_buffer, sizeof( struct berval ) * ( tcp_buffer_num + 2 ) );
+#ifndef LDAP_TCP_BUFFER_X_ORDERED
+	/* append */
+	idx = tcp_buffer_num;
+#else /* LDAP_TCP_BUFFER_X_ORDERED */
+	if ( idx < tcp_buffer_num ) {
+		int i;
+
+		for ( i = tcp_buffer_num; i > idx; i-- ) {
+			tcp_buffer[ i ] = tcp_buffer[ i - 1 ];
+		}
+	}
+#endif /* LDAP_TCP_BUFFER_X_ORDERED */
+	tcp_buffer[ idx ] = val;
+
+	tcp_buffer_num++;
+	BER_BVZERO( &tcp_buffer[ tcp_buffer_num ] );
+
+	return rc;
+}
+
+static int
+config_tcp_buffer( ConfigArgs *c )
+{
+	if ( c->op == SLAP_CONFIG_EMIT ) {
+		if ( tcp_buffer == NULL || BER_BVISNULL( &tcp_buffer[ 0 ] ) ) {
+			return 1;
+		}
+		value_add( &c->rvalue_vals, tcp_buffer );
+		value_add( &c->rvalue_nvals, tcp_buffer );
+		
+	} else if ( c->op == LDAP_MOD_DELETE ) {
+#ifndef LDAP_TCP_BUFFER_X_ORDERED
+		if ( !c->line  ) {
+			tcp_buffer_delete( tcp_buffer );
+			ber_bvarray_free( tcp_buffer );
+			tcp_buffer = NULL;
+			tcp_buffer_num = 0;
+
+		} else {
+			int rc = 0;
+			int size = -1, rw = 0;
+			Listener *l = NULL;
+
+			struct berval val = BER_BVNULL;
+
+			int i;
+
+			if ( tcp_buffer_num == 0 ) {
+				return 1;
+			}
+
+			/* parse */
+			rc = tcp_buffer_parse( NULL, c->argc - 1, &c->argv[ 1 ], &size, &rw, &l );
+			if ( rc != 0 ) {
+				return 1;
+			}
+
+			/* unparse for later use */
+			rc = tcp_buffer_unparse( tcp_buffer_num, size, rw, l, &val );
+			if ( rc != LDAP_SUCCESS ) {
+				return 1;
+			}
+
+			for ( i = 0; !BER_BVISNULL( &tcp_buffer[ i ] ); i++ ) {
+				if ( bvmatch( &tcp_buffer[ i ], &val ) ) {
+					break;
+				}
+			}
+
+			if ( BER_BVISNULL( &tcp_buffer[ i ] ) ) {
+				/* not found */
+				rc = 1;
+				goto done;
+			}
+
+			tcp_buffer_delete_one( &tcp_buffer[ i ] );
+			ber_memfree( tcp_buffer[ i ].bv_val );
+			for ( ; i < tcp_buffer_num; i++ ) {
+				tcp_buffer[ i ] = tcp_buffer[ i + 1 ];
+			}
+			tcp_buffer_num--;
+
+done:;
+			if ( !BER_BVISNULL( &val ) ) {
+				SLAP_FREE( val.bv_val );
+			}
+	
+		}
+#else /* LDAP_TCP_BUFFER_X_ORDERED */
+		if ( c->valx == -1 ) {
+			tcp_buffer_delete( tcp_buffer );
+			ber_bvarray_free( tcp_buffer );
+			tcp_buffer = NULL;
+			tcp_buffer_num = 0;
+
+		} else if ( c->valx >= tcp_buffer_num ) {
+			snprintf( c->cr_msg, sizeof( c->cr_msg ),
+				"<%s> invalid value #%d",
+				c->argv[0], c->valx );
+			Debug( LDAP_DEBUG_ANY, "%s: %s\n",
+				c->log, c->cr_msg, 0 );
+			return 1;
+
+		} else {
+			int i;
+
+			tcp_buffer_delete_one( &tcp_buffer[ c->valx ] );
+			ber_memfree( tcp_buffer[ c->valx ].bv_val );
+			for ( i = c->valx; i < tcp_buffer_num; i++ ) {
+				tcp_buffer[ i ] = tcp_buffer[ i + 1 ];
+			}
+			tcp_buffer_num--;
+		}
+#endif /* LDAP_TCP_BUFFER_X_ORDERED */
+
+	} else {
+		int rc;
+		int idx;
+
+#ifdef LDAP_TCP_BUFFER_X_ORDERED
+		idx = c->valx;
+		if ( c->valx == -1 ) {
+			idx = tcp_buffer_num;
+		}
+#endif /* LDAP_TCP_BUFFER_X_ORDERED */
+
+		rc = tcp_buffer_add_one( c->argc - 1, &c->argv[ 1 ], idx );
+		if ( rc ) {
+			snprintf( c->cr_msg, sizeof( c->cr_msg ),
+				"<%s> unable to add value #%d",
+				c->argv[0], idx );
+			Debug( LDAP_DEBUG_ANY, "%s: %s\n",
+				c->log, c->cr_msg, 0 );
+			return 1;
+		}
+	}
+
+	return 0;
+}
+#endif /* LDAP_TCP_BUFFER */
 
 static int
 config_suffix(ConfigArgs *c)

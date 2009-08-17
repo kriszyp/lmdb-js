@@ -33,7 +33,7 @@
 
 #ifdef LDAP_SLAPI
 
-static struct slap_listener slapi_listener = {
+static struct Listener slapi_listener = {
 	BER_BVC("slapi://"),
 	BER_BVC("slapi://")
 };

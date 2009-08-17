@@ -851,6 +851,10 @@ LDAP_SLAPD_V (int) slapd_register_slp;
 LDAP_SLAPD_V (const char *) slapd_slp_attrs;
 LDAP_SLAPD_V (slap_ssf_t) local_ssf;
 LDAP_SLAPD_V (struct runqueue_s) slapd_rq;
+#ifdef LDAP_TCP_BUFFER
+LDAP_SLAPD_V (int) slapd_tcp_rmem;
+LDAP_SLAPD_V (int) slapd_tcp_wmem;
+#endif /* LDAP_TCP_BUFFER */
 
 #ifdef HAVE_WINSOCK
 LDAP_SLAPD_F (ber_socket_t) slapd_socknew(ber_socket_t s);

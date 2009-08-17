@@ -73,6 +73,11 @@ ber_socket_t dtblsize;
 slap_ssf_t local_ssf = LDAP_PVT_SASL_LOCAL_SSF;
 struct runqueue_s slapd_rq;
 
+#ifdef LDAP_TCP_BUFFER
+int slapd_tcp_rmem;
+int slapd_tcp_wmem;
+#endif /* LDAP_TCP_BUFFER */
+
 Listener **slap_listeners = NULL;
 
 #ifndef SLAPD_LISTEN_BACKLOG
@@ -1315,6 +1320,11 @@ slap_open_listener(
 	}
 #endif /* HAVE_TLS */
 
+#ifdef LDAP_TCP_BUFFER
+	l.sl_tcp_rmem = 0;
+	l.sl_tcp_wmem = 0;
+#endif /* LDAP_TCP_BUFFER */
+
 	port = (unsigned short) lud->lud_port;
 
 	tmp = ldap_pvt_url_scheme2proto(lud->lud_scheme);
@@ -2080,6 +2090,131 @@ slapd_daemon_task(
 		if ( slap_listeners[l]->sl_is_udp )
 			continue;
 #endif /* LDAP_CONNECTIONLESS */
+
+		/* FIXME: TCP-only! */
+#ifdef LDAP_TCP_BUFFER
+		if ( 1 ) {
+			int origsize, size, realsize, rc;
+			socklen_t optlen;
+			char buf[ SLAP_TEXT_BUFLEN ];
+
+			size = 0;
+			if ( slap_listeners[l]->sl_tcp_rmem > 0 ) {
+				size = slap_listeners[l]->sl_tcp_rmem;
+			} else if ( slapd_tcp_rmem > 0 ) {
+				size = slapd_tcp_rmem;
+			}
+
+			if ( size > 0 ) {
+				optlen = sizeof( origsize );
+				rc = getsockopt( SLAP_FD2SOCK( slap_listeners[l]->sl_sd ),
+					SOL_SOCKET,
+					SO_RCVBUF,
+					(void *)&origsize,
+					&optlen );
+
+				if ( rc ) {
+					int err = sock_errno();
+					Debug( LDAP_DEBUG_ANY,
+						"slapd_daemon_task: getsockopt(SO_RCVBUF) failed errno=%d (%s)\n",
+						err, sock_errstr(err), 0 );
+				}
+
+				optlen = sizeof( size );
+				rc = setsockopt( SLAP_FD2SOCK( slap_listeners[l]->sl_sd ),
+					SOL_SOCKET,
+					SO_RCVBUF,
+					(const void *)&size,
+					optlen );
+
+				if ( rc ) {
+					int err = sock_errno();
+					Debug( LDAP_DEBUG_ANY,
+						"slapd_daemon_task: setsockopt(SO_RCVBUF) failed errno=%d (%s)\n",
+						err, sock_errstr(err), 0 );
+				}
+
+				optlen = sizeof( realsize );
+				rc = getsockopt( SLAP_FD2SOCK( slap_listeners[l]->sl_sd ),
+					SOL_SOCKET,
+					SO_RCVBUF,
+					(void *)&realsize,
+					&optlen );
+
+				if ( rc ) {
+					int err = sock_errno();
+					Debug( LDAP_DEBUG_ANY,
+						"slapd_daemon_task: getsockopt(SO_RCVBUF) failed errno=%d (%s)\n",
+						err, sock_errstr(err), 0 );
+				}
+
+				snprintf( buf, sizeof( buf ),
+					"url=%s (#%d) RCVBUF original size=%d requested size=%d real size=%d", 
+					slap_listeners[l]->sl_url.bv_val, l, origsize, size, realsize );
+				Debug( LDAP_DEBUG_ANY,
+					"slapd_daemon_task: %s\n",
+					buf, 0, 0 );
+			}
+
+			size = 0;
+			if ( slap_listeners[l]->sl_tcp_wmem > 0 ) {
+				size = slap_listeners[l]->sl_tcp_wmem;
+			} else if ( slapd_tcp_wmem > 0 ) {
+				size = slapd_tcp_wmem;
+			}
+
+			if ( size > 0 ) {
+				optlen = sizeof( origsize );
+				rc = getsockopt( SLAP_FD2SOCK( slap_listeners[l]->sl_sd ),
+					SOL_SOCKET,
+					SO_SNDBUF,
+					(void *)&origsize,
+					&optlen );
+
+				if ( rc ) {
+					int err = sock_errno();
+					Debug( LDAP_DEBUG_ANY,
+						"slapd_daemon_task: getsockopt(SO_SNDBUF) failed errno=%d (%s)\n",
+						err, sock_errstr(err), 0 );
+				}
+
+				optlen = sizeof( size );
+				rc = setsockopt( SLAP_FD2SOCK( slap_listeners[l]->sl_sd ),
+					SOL_SOCKET,
+					SO_SNDBUF,
+					(const void *)&size,
+					optlen );
+
+				if ( rc ) {
+					int err = sock_errno();
+					Debug( LDAP_DEBUG_ANY,
+						"slapd_daemon_task: setsockopt(SO_SNDBUF) failed errno=%d (%s)",
+						err, sock_errstr(err), 0 );
+				}
+
+				optlen = sizeof( realsize );
+				rc = getsockopt( SLAP_FD2SOCK( slap_listeners[l]->sl_sd ),
+					SOL_SOCKET,
+					SO_SNDBUF,
+					(void *)&realsize,
+					&optlen );
+
+				if ( rc ) {
+					int err = sock_errno();
+					Debug( LDAP_DEBUG_ANY,
+						"slapd_daemon_task: getsockopt(SO_SNDBUF) failed errno=%d (%s)\n",
+						err, sock_errstr(err), 0 );
+				}
+
+				snprintf( buf, sizeof( buf ),
+					"url=%s (#%d) SNDBUF original size=%d requested size=%d real size=%d", 
+					slap_listeners[l]->sl_url.bv_val, l, origsize, size, realsize );
+				Debug( LDAP_DEBUG_ANY,
+					"slapd_daemon_task: %s\n",
+					buf, 0, 0 );
+			}
+		}
+#endif /* LDAP_TCP_BUFFER */
 
 		if ( listen( SLAP_FD2SOCK( slap_listeners[l]->sl_sd ), SLAPD_LISTEN_BACKLOG ) == -1 ) {
 			int err = sock_errno();
