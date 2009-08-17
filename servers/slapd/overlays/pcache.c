@@ -33,6 +33,8 @@
 #include "ldap_rq.h"
 #include "avl.h"
 
+#include "../back-monitor/back-monitor.h"
+
 #include "config.h"
 
 #ifdef LDAP_DEVEL
@@ -46,6 +48,11 @@
  * Extended Operation that allows to remove a query from the cache
  */
 #define PCACHE_EXOP_QUERY_DELETE	"1.3.6.1.4.1.4203.666.11.9.6.1"
+
+/*
+ * Monitoring
+ */
+#define PCACHE_MONITOR
 #endif
 
 /* query cache structs */
@@ -101,6 +108,8 @@ typedef struct cached_query_s {
  *
  * quick hack: parse URI, call add_query() and then fix
  * CachedQuery.expiry_time and CachedQuery.q_uuid
+ *
+ * NOTE: if the <attrset> changes, all stored URLs will be invalidated.
  */
 
 /*
@@ -209,7 +218,19 @@ typedef struct cache_manager_s {
 	ldap_pvt_thread_mutex_t		cache_mutex;
 
 	query_manager*   qm;	/* query cache managed by the cache manager */
+
+#ifdef PCACHE_MONITOR
+	void		*monitor_cb;
+	struct berval	monitor_ndn;
+#endif /* PCACHE_MONITOR */
 } cache_manager;
+
+#ifdef PCACHE_MONITOR
+static int pcache_monitor_db_init( BackendDB *be );
+static int pcache_monitor_db_open( BackendDB *be );
+static int pcache_monitor_db_close( BackendDB *be );
+static int pcache_monitor_db_destroy( BackendDB *be );
+#endif /* PCACHE_MONITOR */
 
 static int pcache_debug;
 
@@ -217,12 +238,28 @@ static int pcache_debug;
 static int privDB_cid;
 #endif /* PCACHE_CONTROL_PRIVDB */
 
-static AttributeDescription *ad_queryId, *ad_cachedQueryURL;
+static AttributeDescription	*ad_queryId, *ad_cachedQueryURL;
+
+#ifdef PCACHE_MONITOR
+static ObjectClass		*oc_olmPCache;
+#endif /* PCACHE_MONITOR */
+
+static struct {
+	char			*name;
+	char			*oid;
+}		s_oid[] = {
+	{ "PCacheOID",			"1.3.6.1.4.1.4203.666.11.9.1" },
+	{ "PCacheAttributes",		"PCacheOID:1" },
+	{ "PCacheObjectClasses",	"PCacheOID:2" },
+
+	{ NULL }
+};
+
 static struct {
 	char	*desc;
 	AttributeDescription **adp;
-} as[] = {
-	{ "( 1.3.6.1.4.1.4203.666.11.9.1.1 "
+} s_ad[] = {
+	{ "( PCacheAttributes:1 "
 		"NAME 'queryId' "
 		"DESC 'ID of query the entry belongs to, formatted as a UUID' "
 		"EQUALITY octetStringMatch "
@@ -230,7 +267,7 @@ static struct {
 		"NO-USER-MODIFICATION "
 		"USAGE directoryOperation )",
 		&ad_queryId },
-	{ "( 1.3.6.1.4.1.4203.666.11.9.1.2 "
+	{ "( PCacheAttributes:2 "
 		"NAME 'cachedQueryURL' "
 		"DESC 'URI describing a cached query' "
 		"EQUALITY caseExactMatch "
@@ -238,6 +275,25 @@ static struct {
 		"NO-USER-MODIFICATION "
 		"USAGE directoryOperation )",
 		&ad_cachedQueryURL },
+
+	{ NULL }
+};
+
+static struct {
+	char		*desc;
+	ObjectClass	**ocp;
+}		s_oc[] = {
+#ifdef PCACHE_MONITOR
+	/* augments an existing object, so it must be AUXILIARY */
+	{ "( PCacheObjectClasses:1 "
+		"NAME ( 'olmPCache' ) "
+		"SUP top AUXILIARY "
+		"MAY ( "
+			"cachedQueryURL"
+			") )",
+		&oc_olmPCache },
+#endif /* PCACHE_MONITOR */
+
 	{ NULL }
 };
 
@@ -2399,6 +2455,8 @@ pcache_op_privdb(
 			if ( type == SLAP_OP_BIND && rc == LDAP_SUCCESS ) {
 				op->o_conn->c_authz_cookie = cm->db.be_private;
 			}
+
+			return rs->sr_err;
 		}
 	}
 
@@ -3739,7 +3797,12 @@ pcache_db_init(
 	ldap_pvt_thread_mutex_init(&qm->lru_mutex);
 
 	ldap_pvt_thread_mutex_init(&cm->cache_mutex);
+
+#ifndef PCACHE_MONITOR
 	return 0;
+#else /* PCACHE_MONITOR */
+	return pcache_monitor_db_init( be );
+#endif /* PCACHE_MONITOR */
 }
 
 static int
@@ -3951,8 +4014,15 @@ pcache_db_open(
 		SLAP_DBFLAGS( &cm->db ) &= ~SLAP_DBFLAG_MONITORING;
 	}
 
-	if ( !cm->defer_db_open )
+	if ( !cm->defer_db_open ) {
 		rc = pcache_db_open2( on, cr );
+	}
+
+#ifdef PCACHE_MONITOR
+	if ( rc == LDAP_SUCCESS ) {
+		rc = pcache_monitor_db_open( be );
+	}
+#endif /* PCACHE_MONITOR */
 
 	return rc;
 }
@@ -4081,6 +4151,12 @@ pcache_db_close(
 	free( qm->attr_sets );
 	qm->attr_sets = NULL;
 
+#ifdef PCACHE_MONITOR
+	if ( rc == LDAP_SUCCESS ) {
+		rc = pcache_monitor_db_close( be );
+	}
+#endif /* PCACHE_MONITOR */
+
 	return rc;
 }
 
@@ -4102,6 +4178,10 @@ pcache_db_destroy(
 	ldap_pvt_thread_mutex_destroy( &cm->cache_mutex );
 	free( qm );
 	free( cm );
+
+#ifdef PCACHE_MONITOR
+	pcache_monitor_db_destroy( be );
+#endif /* PCACHE_MONITOR */
 
 	return 0;
 }
@@ -4468,6 +4548,235 @@ pcache_op_extended( Operation *op, SlapReply *rs )
 }
 #endif /* PCACHE_EXOP_QUERY_DELETE */
 
+#ifdef PCACHE_MONITOR
+
+static int
+pcache_monitor_update(
+	Operation	*op,
+	SlapReply	*rs,
+	Entry		*e,
+	void		*priv )
+{
+	cache_manager	*cm = (cache_manager *) priv;
+	query_manager	*qm = cm->qm;
+
+	CachedQuery	*qc;
+	BerVarray	vals = NULL;
+
+	Attribute	*a;
+	int		num = 0;
+
+	if ( qm->templates != NULL ) {
+		QueryTemplate *tm;
+
+		for ( tm = qm->templates; tm != NULL; tm = tm->qmnext ) {
+			for ( qc = tm->query; qc; qc = qc->next ) {
+				struct berval	bv;
+
+				if ( query2url( op, qc, &bv, 1 ) == 0 ) {
+					ber_bvarray_add_x( &vals, &bv, op->o_tmpmemctx );
+					num++;
+				}
+			}
+		}
+	}
+
+	assert( ad_cachedQueryURL != NULL );
+
+	attr_delete( &e->e_attrs, ad_cachedQueryURL );
+	if ( vals == NULL ) {
+		return SLAP_CB_CONTINUE;
+	}
+
+	attr_merge_normalize( e, ad_cachedQueryURL, vals, NULL );
+	ber_bvarray_free_x( vals, op->o_tmpmemctx );
+
+	return SLAP_CB_CONTINUE;
+}
+
+static int
+pcache_monitor_free(
+	Entry		*e,
+	void		**priv )
+{
+	struct berval	values[ 2 ];
+	Modification	mod = { 0 };
+
+	const char	*text;
+	char		textbuf[ SLAP_TEXT_BUFLEN ];
+
+	int		rc;
+
+	/* NOTE: if slap_shutdown != 0, priv might have already been freed */
+	*priv = NULL;
+
+	/* Remove objectClass */
+	mod.sm_op = LDAP_MOD_DELETE;
+	mod.sm_desc = slap_schema.si_ad_objectClass;
+	mod.sm_values = values;
+	mod.sm_numvals = 1;
+	values[ 0 ] = oc_olmPCache->soc_cname;
+	BER_BVZERO( &values[ 1 ] );
+
+	rc = modify_delete_values( e, &mod, 1, &text,
+		textbuf, sizeof( textbuf ) );
+	/* don't care too much about return code... */
+
+	/* remove attrs */
+	mod.sm_values = NULL;
+	mod.sm_desc = ad_cachedQueryURL;
+	mod.sm_numvals = 0;
+	rc = modify_delete_values( e, &mod, 1, &text,
+		textbuf, sizeof( textbuf ) );
+	/* don't care too much about return code... */
+
+	return SLAP_CB_CONTINUE;
+}
+
+/*
+ * call from within pcache_initialize()
+ */
+static int
+pcache_monitor_initialize( void )
+{
+	static int	pcache_monitor_initialized = 0;
+
+	if ( backend_info( "monitor" ) == NULL ) {
+		return -1;
+	}
+
+	if ( pcache_monitor_initialized++ ) {
+		return 0;
+	}
+
+	return 0;
+}
+
+static int
+pcache_monitor_db_init( BackendDB *be )
+{
+	if ( pcache_monitor_initialize() == LDAP_SUCCESS ) {
+		SLAP_DBFLAGS( be ) |= SLAP_DBFLAG_MONITORING;
+	}
+
+	return 0;
+}
+
+static int
+pcache_monitor_db_open( BackendDB *be )
+{
+	slap_overinst		*on = (slap_overinst *)be->bd_info;
+	cache_manager		*cm = on->on_bi.bi_private;
+	Attribute		*a, *next;
+	monitor_callback_t	*cb = NULL;
+	int			rc = 0;
+	BackendInfo		*mi;
+	monitor_extra_t		*mbe;
+	struct berval		dummy = BER_BVC( "" );
+
+	if ( !SLAP_DBMONITORING( be ) ) {
+		return 0;
+	}
+
+	mi = backend_info( "monitor" );
+	if ( !mi || !mi->bi_extra ) {
+		SLAP_DBFLAGS( be ) ^= SLAP_DBFLAG_MONITORING;
+		return 0;
+	}
+	mbe = mi->bi_extra;
+
+	/* don't bother if monitor is not configured */
+	if ( !mbe->is_configured() ) {
+		static int warning = 0;
+
+		if ( warning++ == 0 ) {
+			Debug( LDAP_DEBUG_ANY, "pcache_monitor_db_open: "
+				"monitoring disabled; "
+				"configure monitor database to enable\n",
+				0, 0, 0 );
+		}
+
+		return 0;
+	}
+
+	/* alloc as many as required (plus 1 for objectClass) */
+	a = attrs_alloc( 1 + 0 );
+	if ( a == NULL ) {
+		rc = 1;
+		goto cleanup;
+	}
+
+	a->a_desc = slap_schema.si_ad_objectClass;
+	attr_valadd( a, &oc_olmPCache->soc_cname, NULL, 1 );
+	next = a->a_next;
+
+	cb = ch_calloc( sizeof( monitor_callback_t ), 1 );
+	cb->mc_update = pcache_monitor_update;
+	cb->mc_free = pcache_monitor_free;
+	cb->mc_private = (void *)cm;
+
+	/* make sure the database is registered; then add monitor attributes */
+	BER_BVZERO( &cm->monitor_ndn );
+	rc = mbe->register_overlay( be, on, &cm->monitor_ndn );
+	if ( rc == 0 ) {
+		rc = mbe->register_entry_attrs( &cm->monitor_ndn, a, cb,
+			&dummy, -1, &dummy);
+	}
+
+cleanup:;
+	if ( rc != 0 ) {
+		if ( cb != NULL ) {
+			ch_free( cb );
+			cb = NULL;
+		}
+
+		if ( a != NULL ) {
+			attrs_free( a );
+			a = NULL;
+		}
+	}
+
+	/* store for cleanup */
+	cm->monitor_cb = (void *)cb;
+
+	/* we don't need to keep track of the attributes, because
+	 * bdb_monitor_free() takes care of everything */
+	if ( a != NULL ) {
+		attrs_free( a );
+	}
+
+	return rc;
+}
+
+static int
+pcache_monitor_db_close( BackendDB *be )
+{
+	slap_overinst *on = (slap_overinst *)be->bd_info;
+	cache_manager *cm = on->on_bi.bi_private;
+
+	if ( cm->monitor_cb != NULL ) {
+		BackendInfo		*mi = backend_info( "monitor" );
+		monitor_extra_t		*mbe;
+
+		if ( mi && &mi->bi_extra ) {
+			mbe = mi->bi_extra;
+			mbe->unregister_entry_callback( NULL,
+				(monitor_callback_t *)cm->monitor_cb,
+				NULL, 0, NULL );
+		}
+	}
+
+	return 0;
+}
+
+static int
+pcache_monitor_db_destroy( BackendDB *be )
+{
+	return 0;
+}
+
+#endif /* PCACHE_MONITOR */
+
 static slap_overinst pcache;
 
 static char *obsolete_names[] = {
@@ -4483,6 +4792,8 @@ pcache_initialize()
 {
 	int i, code;
 	struct berval debugbv = BER_BVC("pcache");
+	ConfigArgs c;
+	char *argv[ 4 ];
 
 	code = slap_loglevel_get( &debugbv, &pcache_debug );
 	if ( code ) {
@@ -4513,14 +4824,42 @@ pcache_initialize()
 	}
 #endif /* PCACHE_EXOP_QUERY_DELETE */
 
-	for ( i = 0; as[i].desc != NULL; i++ ) {
-		code = register_at( as[i].desc, as[i].adp, 0 );
+	argv[ 0 ] = "back-bdb/back-hdb monitor";
+	c.argv = argv;
+	c.argc = 3;
+	c.fname = argv[0];
+
+	for ( i = 0; s_oid[ i ].name; i++ ) {
+		c.lineno = i;
+		argv[ 1 ] = s_oid[ i ].name;
+		argv[ 2 ] = s_oid[ i ].oid;
+
+		if ( parse_oidm( &c, 0, NULL ) != 0 ) {
+			Debug( LDAP_DEBUG_ANY, "pcache_initialize: "
+				"unable to add objectIdentifier \"%s=%s\"\n",
+				s_oid[ i ].name, s_oid[ i ].oid, 0 );
+			return 1;
+		}
+	}
+
+	for ( i = 0; s_ad[i].desc != NULL; i++ ) {
+		code = register_at( s_ad[i].desc, s_ad[i].adp, 0 );
 		if ( code ) {
 			Debug( LDAP_DEBUG_ANY,
 				"pcache_initialize: register_at #%d failed\n", i, 0, 0 );
 			return code;
 		}
-		(*as[i].adp)->ad_type->sat_flags |= SLAP_AT_HIDE;
+		(*s_ad[i].adp)->ad_type->sat_flags |= SLAP_AT_HIDE;
+	}
+
+	for ( i = 0; s_oc[i].desc != NULL; i++ ) {
+		code = register_oc( s_oc[i].desc, s_oc[i].ocp, 0 );
+		if ( code ) {
+			Debug( LDAP_DEBUG_ANY,
+				"pcache_initialize: register_oc #%d failed\n", i, 0, 0 );
+			return code;
+		}
+		(*s_oc[i].ocp)->soc_flags |= SLAP_OC_HIDE;
 	}
 
 	pcache.on_bi.bi_type = "pcache";
