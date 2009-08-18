@@ -3830,6 +3830,29 @@ static slap_verbmasks datamodes[] = {
 	{ BER_BVNULL, 0 }
 };
 
+int
+slapd_str2scope( char *str )
+{
+	int i;
+	for ( i = 0; !BER_BVISNULL(&scopes[i].key); i++ ) {
+		if (!strcasecmp( str, scopes[i].key.bv_val ) ) {
+			return scopes[i].val;
+		}
+	}
+	return -1;
+}
+
+struct berval *
+slapd_scope2bv( int scope )
+{
+	int i;
+	for (i=0; !BER_BVISNULL(&scopes[i].key);i++) {
+		if ( scope == scopes[i].val )
+			return &scopes[i].key;
+	}
+	return NULL;
+}
+
 static int
 parse_syncrepl_retry(
 	ConfigArgs	*c,
@@ -4040,19 +4063,15 @@ parse_syncrepl_line(
 		{
 			int j;
 			val = c->argv[ i ] + STRLENOF( SCOPESTR "=" );
-			for ( j = 0; !BER_BVISNULL(&scopes[j].key); j++ ) {
-				if (!strcasecmp( val, scopes[j].key.bv_val ) ) {
-					si->si_scope = scopes[j].val;
-					break;
-				}
-			}
-			if ( BER_BVISNULL(&scopes[j].key) ) {
+			j = slapd_str2scope( val );
+			if ( j < 0 ) {
 				snprintf( c->cr_msg, sizeof( c->cr_msg ),
 					"Error: parse_syncrepl_line: "
 					"unknown scope \"%s\"", val);
 				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
 				return -1;
 			}
+			si->si_scope = j;
 			si->si_got |= GOT_SCOPE;
 		} else if ( !strncasecmp( c->argv[ i ], ATTRSONLYSTR,
 					STRLENOF( ATTRSONLYSTR ) ) )
@@ -4456,7 +4475,7 @@ add_syncrepl(
 static void
 syncrepl_unparse( syncinfo_t *si, struct berval *bv )
 {
-	struct berval bc, uri;
+	struct berval bc, uri, *bs;
 	char buf[BUFSIZ*2], *ptr;
 	ber_len_t len;
 	int i;
@@ -4510,13 +4529,11 @@ syncrepl_unparse( syncinfo_t *si, struct berval *bv )
 		ptr = lutil_strcopy( ptr, si->si_logbase.bv_val );
 		*ptr++ = '"';
 	}
-	for (i=0; !BER_BVISNULL(&scopes[i].key);i++) {
-		if ( si->si_scope == scopes[i].val ) {
-			if ( WHATSLEFT <= STRLENOF( " " SCOPESTR "=" ) + scopes[i].key.bv_len ) return;
-			ptr = lutil_strcopy( ptr, " " SCOPESTR "=" );
-			ptr = lutil_strcopy( ptr, scopes[i].key.bv_val );
-			break;
-		}
+	bs = slapd_scope2bv( si->si_scope );
+	if ( bs ) {
+		if ( WHATSLEFT <= STRLENOF( " " SCOPESTR "=" ) + bs->bv_len ) return;
+		ptr = lutil_strcopy( ptr, " " SCOPESTR "=" );
+		ptr = lutil_strcopy( ptr, bs->bv_val );
 	}
 	if ( si->si_attrsonly ) {
 		if ( WHATSLEFT <= STRLENOF( " " ATTRSONLYSTR "=\"" "\"" ) ) return;
