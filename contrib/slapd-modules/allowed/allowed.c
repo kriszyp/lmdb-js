@@ -371,7 +371,7 @@ aa_initialize( void )
 {
 	int i;
 
-	aa.on_bi.bi_type = "aa";
+	aa.on_bi.bi_type = "allowed";
 
 	aa.on_bi.bi_operational = aa_operational;
 

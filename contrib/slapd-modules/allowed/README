@@ -1,4 +1,4 @@
-This directory contains a slapd overlay, aa.
+This directory contains a slapd overlay, "allowed".
 
     --- o --- o --- o ---
 
@@ -33,21 +33,21 @@ Usage: add to slapd.conf(5)
 
 
 moduleload	path/to/allowed.so
-overlay		aa
+overlay		allowed
 
 or add
 
-dn: olcOverlay={0}aa,olcDatabase={1}bdb,cn=config
+dn: olcOverlay={0}allowed,olcDatabase={1}bdb,cn=config
 objectClass: olcOverlayConfig
-olcOverlay: {0}aa
+olcOverlay: {0}allowed
 
 as a child of the database that's intended to support this feature
 (replace "olcDatabase={1}bdb,cn=config" with the appropriate parent);
 or use
 
-dn: olcOverlay={0}aa,olcDatabase={-1}frontend,cn=config
+dn: olcOverlay={0}allowed,olcDatabase={-1}frontend,cn=config
 objectClass: olcOverlayConfig
-olcOverlay: {0}aa
+olcOverlay: {0}allowed
 
 if it's supposed to be global.
 
@@ -56,7 +56,7 @@ if it's supposed to be global.
 No Makefile is provided. Use a command line similar to:
 
 gcc -shared -I../../../include -I../../../servers/slapd -Wall -g \
-	-o allop.so allop.c
+	-o allowed.so allowed.c
 
 to compile this overlay, or even better use OpenLDAP's libtool as appropriate.
 
