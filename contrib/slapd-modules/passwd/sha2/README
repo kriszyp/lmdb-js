@@ -1,11 +1,6 @@
 SHA-512 OpenLDAP support
 ------------------------
 
-  Based on SHA2 implementation by Aaron D. Gifford (http://www.aarongifford.com/), also used in OpenBSD.
-  Adapted for OpenLDAP use by Jeff Turner <jeff@atlassian.com>
-  Distributed under open source BSD license - see code for details.
-
-
 slapd-sha2.c provides support for SHA-512, SHA-384 and SHA-256 hashed passwords in
 OpenLDAP. For instance, one could have the LDAP attribute:
 
@@ -25,20 +20,16 @@ all of which encode the password 'secret'.
 Building
 --------
 
-1) Obtain the OpenLDAP source, eg. 'apt-get source slapd'.  Really we
-only want the headers, but there doesn't seem to be a Debian package
-with them.
-
-2) Customize the OPENLDAP variable in Makefile to point to the OpenLDAP
+1) Customize the OPENLDAP variable in Makefile to point to the OpenLDAP
 source root.
 
 For initial testing you might also want to edit CCFLAGS to define
 SLAPD_SHA2_DEBUG, which enables logging to stderr (don't leave this on
 in production, as it prints passwords in cleartext).
 
-3) Run 'make' to produce slapd-sha2.so
+2) Run 'make' to produce slapd-sha2.so
 
-4) Copy slapd-sha2.so somewhere permanent.
+3) Copy slapd-sha2.so somewhere permanent.
 
 4) Edit your slapd.conf (eg. /etc/ldap/slapd.conf), and add:
 
@@ -122,10 +113,25 @@ conn=0 op=0 RESULT tag=97 err=0 text=
 conn=0 op=1 SRCH base="dc=example,dc=com" scope=2 deref=0 filter="(objectClass=*)"
 conn=0 fd=12 closed (connection lost)
 
+---
 
+This work is part of OpenLDAP Software <http://www.openldap.org/>.
 
-Origin
-------
+Copyright 2009 The OpenLDAP Foundation.
+All rights reserved.
 
-Based on code maintained at:
-http://confluence.atlassian.com/display/JIRAEXT/OpenLDAP+support+for+SHA-2+(SHA-256%2C+SHA-384%2C+SHA-512)+and+atlassian-sha1+passwords
+Redistribution and use in source and binary forms, with or without
+modification, are permitted only as authorized by the OpenLDAP
+Public License.
+
+A copy of this license is available in the file LICENSE in the
+top-level directory of the distribution or, alternatively, at
+<http://www.OpenLDAP.org/license.html>.
+
+---
+
+ACKNOWLEDGEMENT:
+This work was initially developed by Jeff Turner for inclusion in
+OpenLDAP Software, based upon the SHA2 implementation independently
+developed by Aaron Gifford.
+

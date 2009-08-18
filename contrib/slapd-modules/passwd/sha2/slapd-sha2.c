@@ -12,14 +12,18 @@
  * top-level directory of the distribution or, alternatively, at
  * <http://www.OpenLDAP.org/license.html>.
  */
+/* ACKNOWLEDGEMENT:
+ * This work was initially developed by Jeff Turner for inclusion
+ * in OpenLDAP Software.
+ */
 
 #include <lber.h>
-#include <lber_pvt.h> // Required for BER_BVC
-#include <ac/string.h> // Required for BER_BVC dep
+#include <lber_pvt.h>
+#include <ac/string.h>
 #include "lutil.h"
 #include <stdint.h>
-#include <string.h>	/* memcpy()/memset() or bcopy()/bzero() */
-#include <assert.h>	/* assert() */
+#include <string.h>
+#include <assert.h>
 #include "sha2.h"
 
 #ifdef SLAPD_SHA2_DEBUG
