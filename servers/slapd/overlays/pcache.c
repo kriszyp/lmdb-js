@@ -2876,7 +2876,7 @@ refresh_query( Operation *op, SlapReply *rs, CachedQuery *query,
 	Filter filter = {LDAP_FILTER_EQUALITY};
 	AttributeName attrs[ 2 ] = {{{ 0 }}};
 	dnlist *dn;
-	int i, rc;
+	int rc;
 
 	ldap_pvt_thread_mutex_lock( &query->answerable_cnt_mutex );
 	query->refcnt = 0;
@@ -4563,10 +4563,12 @@ pcache_monitor_update(
 	CachedQuery	*qc;
 	BerVarray	vals = NULL;
 
-	Attribute	*a;
-	int		num = 0;
+	assert( ad_cachedQueryURL != NULL );
 
-	if ( qm->templates != NULL ) {
+	attr_delete( &e->e_attrs, ad_cachedQueryURL );
+	if ( ( SLAP_OPATTRS( rs->sr_attr_flags ) || ad_inlist( ad_cachedQueryURL, rs->sr_attrs ) )
+		&& qm->templates != NULL )
+	{
 		QueryTemplate *tm;
 
 		for ( tm = qm->templates; tm != NULL; tm = tm->qmnext ) {
@@ -4575,21 +4577,16 @@ pcache_monitor_update(
 
 				if ( query2url( op, qc, &bv, 1 ) == 0 ) {
 					ber_bvarray_add_x( &vals, &bv, op->o_tmpmemctx );
-					num++;
 				}
 			}
 		}
+
+
+		if ( vals != NULL ) {
+			attr_merge_normalize( e, ad_cachedQueryURL, vals, NULL );
+			ber_bvarray_free_x( vals, op->o_tmpmemctx );
+		}
 	}
-
-	assert( ad_cachedQueryURL != NULL );
-
-	attr_delete( &e->e_attrs, ad_cachedQueryURL );
-	if ( vals == NULL ) {
-		return SLAP_CB_CONTINUE;
-	}
-
-	attr_merge_normalize( e, ad_cachedQueryURL, vals, NULL );
-	ber_bvarray_free_x( vals, op->o_tmpmemctx );
 
 	return SLAP_CB_CONTINUE;
 }
