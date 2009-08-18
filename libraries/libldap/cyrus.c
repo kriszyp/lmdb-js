@@ -1022,7 +1022,7 @@ ldap_int_sasl_get_option( LDAP *ld, int option, void *arg )
 				return -1;
 			}
 
-			ctx = ld->ld_defconn->lconn_sasl_sockctx;
+			ctx = ld->ld_defconn->lconn_sasl_authctx;
 
 			if ( ctx == NULL ) {
 				return -1;
