@@ -3808,50 +3808,12 @@ enum {
 	GOT_REQUIRED		= (GOT_RID|GOT_PROVIDER|GOT_SEARCHBASE)
 };
 
-static struct {
-	struct berval key;
-	int val;
-} scopes[] = {
-	{ BER_BVC("base"), LDAP_SCOPE_BASE },
-	{ BER_BVC("one"), LDAP_SCOPE_ONELEVEL },
-	{ BER_BVC("onelevel"), LDAP_SCOPE_ONELEVEL },	/* OpenLDAP extension */
-	{ BER_BVC("children"), LDAP_SCOPE_SUBORDINATE },
-	{ BER_BVC("subord"), LDAP_SCOPE_SUBORDINATE },
-	{ BER_BVC("subordinate"), LDAP_SCOPE_SUBORDINATE },
-	{ BER_BVC("sub"), LDAP_SCOPE_SUBTREE },
-	{ BER_BVC("subtree"), LDAP_SCOPE_SUBTREE },	/* OpenLDAP extension */
-	{ BER_BVNULL, 0 }
-};
-
 static slap_verbmasks datamodes[] = {
 	{ BER_BVC("default"), SYNCDATA_DEFAULT },
 	{ BER_BVC("accesslog"), SYNCDATA_ACCESSLOG },
 	{ BER_BVC("changelog"), SYNCDATA_CHANGELOG },
 	{ BER_BVNULL, 0 }
 };
-
-int
-slapd_str2scope( char *str )
-{
-	int i;
-	for ( i = 0; !BER_BVISNULL(&scopes[i].key); i++ ) {
-		if (!strcasecmp( str, scopes[i].key.bv_val ) ) {
-			return scopes[i].val;
-		}
-	}
-	return -1;
-}
-
-struct berval *
-slapd_scope2bv( int scope )
-{
-	int i;
-	for (i=0; !BER_BVISNULL(&scopes[i].key);i++) {
-		if ( scope == scopes[i].val )
-			return &scopes[i].key;
-	}
-	return NULL;
-}
 
 static int
 parse_syncrepl_retry(
@@ -4063,7 +4025,7 @@ parse_syncrepl_line(
 		{
 			int j;
 			val = c->argv[ i ] + STRLENOF( SCOPESTR "=" );
-			j = slapd_str2scope( val );
+			j = ldap_pvt_str2scope( val );
 			if ( j < 0 ) {
 				snprintf( c->cr_msg, sizeof( c->cr_msg ),
 					"Error: parse_syncrepl_line: "
@@ -4475,7 +4437,7 @@ add_syncrepl(
 static void
 syncrepl_unparse( syncinfo_t *si, struct berval *bv )
 {
-	struct berval bc, uri, *bs;
+	struct berval bc, uri, bs;
 	char buf[BUFSIZ*2], *ptr;
 	ber_len_t len;
 	int i;
@@ -4529,11 +4491,10 @@ syncrepl_unparse( syncinfo_t *si, struct berval *bv )
 		ptr = lutil_strcopy( ptr, si->si_logbase.bv_val );
 		*ptr++ = '"';
 	}
-	bs = slapd_scope2bv( si->si_scope );
-	if ( bs ) {
-		if ( WHATSLEFT <= STRLENOF( " " SCOPESTR "=" ) + bs->bv_len ) return;
+	if ( ldap_pvt_scope2bv( si->si_scope, &bs ) == LDAP_SUCCESS ) {
+		if ( WHATSLEFT <= STRLENOF( " " SCOPESTR "=" ) + bs.bv_len ) return;
 		ptr = lutil_strcopy( ptr, " " SCOPESTR "=" );
-		ptr = lutil_strcopy( ptr, bs->bv_val );
+		ptr = lutil_strcopy( ptr, bs.bv_val );
 	}
 	if ( si->si_attrsonly ) {
 		if ( WHATSLEFT <= STRLENOF( " " ATTRSONLYSTR "=\"" "\"" ) ) return;

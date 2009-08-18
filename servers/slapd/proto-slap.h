@@ -1778,8 +1778,6 @@ LDAP_SLAPD_F (Filter *) str2filter_x LDAP_P(( Operation *op, const char *str ));
  * syncrepl.c
  */
 
-LDAP_SLAPD_F (int) slapd_str2scope LDAP_P(( char *str ));
-LDAP_SLAPD_F (struct berval *) slapd_scope2bv LDAP_P(( int scope ));
 LDAP_SLAPD_F (int)  syncrepl_add_glue LDAP_P(( 
 					Operation*, Entry* ));
 LDAP_SLAPD_F (void) syncrepl_diff_entry LDAP_P((
