@@ -178,7 +178,7 @@ aa_operational( Operation *op, SlapReply *rs )
 	ObjectClass		**ocp = NULL;
 	BerVarray		bv_allowed = NULL,
 				bv_effective = NULL;
-	int			i, ja, je;
+	int			i, ja = 0, je = 0;
 
 #define	GOT_NONE	(0x0U)
 #define	GOT_C		(0x1U)
@@ -290,19 +290,21 @@ aa_operational( Operation *op, SlapReply *rs )
 		for ( ap = &rs->sr_operational_attrs; *ap != NULL; ap = &(*ap)->a_next )
 			/* go to last */ ;
 
-		if ( got & GOT_A ) {
+		if ( ( got & GOT_A ) && ja > 0 ) {
 			BER_BVZERO( &bv_allowed[ ja ] );
 			*ap = attr_alloc( ad_allowedAttributes );
 			(*ap)->a_vals = bv_allowed;
 			(*ap)->a_nvals = bv_allowed;
+			(*ap)->a_numvals = ja;
 			ap = &(*ap)->a_next;
 		}
 	
-		if ( got & GOT_AE ) {
+		if ( ( got & GOT_AE ) && je > 0 ) {
 			BER_BVZERO( &bv_effective[ je ] );
 			*ap = attr_alloc( ad_allowedAttributesEffective );
 			(*ap)->a_vals = bv_effective;
 			(*ap)->a_nvals = bv_effective;
+			(*ap)->a_numvals = je;
 			ap = &(*ap)->a_next;
 		}
 	
