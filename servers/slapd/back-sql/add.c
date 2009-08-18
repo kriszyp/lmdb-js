@@ -939,7 +939,7 @@ backsql_add( Operation *op, SlapReply *rs )
 	 * NOTE: fake successful result to force contextCSN to be bumped up
 	 */
 	if ( op->o_sync ) {
-		char		buf[ LDAP_LUTIL_CSNSTR_BUFSIZE ];
+		char		buf[ LDAP_PVT_CSNSTR_BUFSIZE ];
 		struct berval	csn;
 
 		csn.bv_val = buf;

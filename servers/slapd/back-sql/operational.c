@@ -70,7 +70,7 @@ backsql_operational_entryUUID( backsql_info *bi, backsql_entryID *id )
 Attribute *
 backsql_operational_entryCSN( Operation *op )
 {
-	char		csnbuf[ LDAP_LUTIL_CSNSTR_BUFSIZE ];
+	char		csnbuf[ LDAP_PVT_CSNSTR_BUFSIZE ];
 	struct berval	entryCSN;
 	Attribute	*a;
 

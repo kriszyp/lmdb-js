@@ -27,14 +27,14 @@ UNIX_OBJS = detach.o
 
 XLIBS = $(LIBRARY) $(LDAP_LIBLBER_LA)
 
-SRCS	= base64.c csn.c entropy.c sasl.c signal.c hash.c passfile.c \
+SRCS	= base64.c entropy.c sasl.c signal.c hash.c passfile.c \
 	md5.c passwd.c sha1.c getpass.c lockf.c utils.c uuid.c sockpair.c \
 	avl.c tavl.c ldif.c fetch.c \
 	testavl.c \
 	meter.c \
 	@LIBSRCS@ $(@PLAT@_SRCS)
 
-OBJS	= base64.o csn.o entropy.o sasl.o signal.o hash.o passfile.o \
+OBJS	= base64.o entropy.o sasl.o signal.o hash.o passfile.o \
 	md5.o passwd.o sha1.o getpass.o lockf.o utils.o uuid.o sockpair.o \
 	avl.o tavl.o ldif.o fetch.o \
 	meter.o \

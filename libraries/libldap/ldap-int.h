@@ -25,6 +25,7 @@
 #endif
 
 #include "../liblber/lber-int.h"
+#include "lutil.h"
 
 #ifdef LDAP_R_COMPILE
 #include <ldap_pvt_thread.h>
