@@ -502,7 +502,7 @@ done:;
 
 			mp = ( monitor_entry_t * ) (*ep)->e_private;
 			for ( e_ov = mp->mp_children; e_ov; ) {
-				Attribute *a = attr_find( e_ov, mi->mi_ad_monitoredInfo );
+				Attribute *a = attr_find( e_ov->e_attrs, mi->mi_ad_monitoredInfo );
 
 				if ( a != NULL && bvmatch( &a->a_nvals[ 0 ], &ov_type ) ) {
 					*ndn_out = e_ov->e_nname;
