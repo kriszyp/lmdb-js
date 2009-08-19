@@ -494,6 +494,38 @@ Gets the SASL username;
 must be a
 .BR "char **" .
 Its content needs to be freed by the caller.
+.SH TCP OPTIONS
+The TCP options are OpenLDAP specific.
+Mainly intended for use with Linux, they may not be portable.
+.TP
+.B LDAP_OPT_X_KEEPALIVE_IDLE
+Sets/gets the number of seconds a connection needs to remain idle
+before TCP starts sending keepalive probes.
+.BR invalue
+must be
+.BR "const int *" ;
+.BR outvalue
+must be
+.BR "int *" .
+.TP
+.B LDAP_OPT_X_KEEPALIVE_PROBES
+Sets/gets the maximum number of keepalive probes TCP should send
+before dropping the connection.
+.BR invalue
+must be
+.BR "const int *" ;
+.BR outvalue
+must be
+.BR "int *" .
+.TP
+.B LDAP_OPT_X_KEEPALIVE_INTERVAL
+Sets/gets the interval in seconds between individual keepalive probes.
+.BR invalue
+must be
+.BR "const int *" ;
+.BR outvalue
+must be
+.BR "int *" .
 .SH TLS OPTIONS
 The TLS options are OpenLDAP specific.
 .\".TP
