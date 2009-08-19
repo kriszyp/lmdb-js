@@ -146,7 +146,7 @@ template "(&(objectClass=posixAccount)(uid=))" should be used here. When
 converted to a regular template e.g. "(&(objectClass=)(uid=))" this
 template and the <attrset_index> must match an already defined
 \fBpcacheTemplate\fP clause. The "time to refresh" <ttr> determines the
-time interval after which the cached credentials will be refreshed. The
+time interval after which the cached credentials may be refreshed. The
 first Bind request that occurs after that time will trigger the refresh
 attempt. Refreshes are not performed when the overlay is Offline. There
 is no "time to live" parameter for the Bind credentials; the credentials
