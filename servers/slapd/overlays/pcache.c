@@ -251,6 +251,7 @@ static int privDB_cid;
 static AttributeDescription	*ad_queryId, *ad_cachedQueryURL;
 
 #ifdef PCACHE_MONITOR
+static AttributeDescription	*ad_numQueries, *ad_numEntries;
 static ObjectClass		*oc_olmPCache;
 #endif /* PCACHE_MONITOR */
 
@@ -285,6 +286,24 @@ static struct {
 		"NO-USER-MODIFICATION "
 		"USAGE directoryOperation )",
 		&ad_cachedQueryURL },
+#ifdef PCACHE_MONITOR
+	{ "( PCacheAttributes:3 "
+		"NAME 'pcacheNumQueries' "
+		"DESC 'Number of cached queries' "
+		"EQUALITY integerMatch "
+		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 "
+		"NO-USER-MODIFICATION "
+		"USAGE directoryOperation )",
+		&ad_numQueries },
+	{ "( PCacheAttributes:4 "
+		"NAME 'pcacheNumEntries' "
+		"DESC 'Number of cached entries' "
+		"EQUALITY integerMatch "
+		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 "
+		"NO-USER-MODIFICATION "
+		"USAGE directoryOperation )",
+		&ad_numEntries },
+#endif /* PCACHE_MONITOR */
 
 	{ NULL }
 };
@@ -299,8 +318,10 @@ static struct {
 		"NAME ( 'olmPCache' ) "
 		"SUP top AUXILIARY "
 		"MAY ( "
-			"pcacheQueryURL"
-			") )",
+			"pcacheQueryURL "
+			"$ pcacheNumQueries "
+			"$ pcacheNumEntries "
+			" ) )",
 		&oc_olmPCache },
 #endif /* PCACHE_MONITOR */
 
@@ -5176,8 +5197,6 @@ pcache_monitor_update(
 	CachedQuery	*qc;
 	BerVarray	vals = NULL;
 
-	assert( ad_cachedQueryURL != NULL );
-
 	attr_delete( &e->e_attrs, ad_cachedQueryURL );
 	if ( ( SLAP_OPATTRS( rs->sr_attr_flags ) || ad_inlist( ad_cachedQueryURL, rs->sr_attrs ) )
 		&& qm->templates != NULL )
@@ -5199,6 +5218,36 @@ pcache_monitor_update(
 			attr_merge_normalize( e, ad_cachedQueryURL, vals, NULL );
 			ber_bvarray_free_x( vals, op->o_tmpmemctx );
 		}
+	}
+
+	{
+		Attribute	*a;
+		char		*buf[ SLAP_TEXT_BUFLEN ];
+		struct berval	bv;
+
+		/* number of cached queries */
+		a = attr_find( e->e_attrs, ad_numQueries );
+		assert( a != NULL );
+
+		bv.bv_val = buf;
+		bv.bv_len = snprintf( buf, sizeof( buf ), "%lu", cm->num_cached_queries );
+
+		if ( a->a_nvals != a->a_vals ) {
+			ber_bvreplace( &a->a_nvals[ 0 ], &bv );
+		}
+		ber_bvreplace( &a->a_vals[ 0 ], &bv );
+
+		/* number of cached entries */
+		a = attr_find( e->e_attrs, ad_numEntries );
+		assert( a != NULL );
+
+		bv.bv_val = buf;
+		bv.bv_len = snprintf( buf, sizeof( buf ), "%d", cm->cur_entries );
+
+		if ( a->a_nvals != a->a_vals ) {
+			ber_bvreplace( &a->a_nvals[ 0 ], &bv );
+		}
+		ber_bvreplace( &a->a_vals[ 0 ], &bv );
 	}
 
 	return SLAP_CB_CONTINUE;
@@ -5235,6 +5284,22 @@ pcache_monitor_free(
 	/* remove attrs */
 	mod.sm_values = NULL;
 	mod.sm_desc = ad_cachedQueryURL;
+	mod.sm_numvals = 0;
+	rc = modify_delete_values( e, &mod, 1, &text,
+		textbuf, sizeof( textbuf ) );
+	/* don't care too much about return code... */
+
+	/* remove attrs */
+	mod.sm_values = NULL;
+	mod.sm_desc = ad_numQueries;
+	mod.sm_numvals = 0;
+	rc = modify_delete_values( e, &mod, 1, &text,
+		textbuf, sizeof( textbuf ) );
+	/* don't care too much about return code... */
+
+	/* remove attrs */
+	mod.sm_values = NULL;
+	mod.sm_desc = ad_numEntries;
 	mod.sm_numvals = 0;
 	rc = modify_delete_values( e, &mod, 1, &text,
 		textbuf, sizeof( textbuf ) );
@@ -5310,7 +5375,7 @@ pcache_monitor_db_open( BackendDB *be )
 	}
 
 	/* alloc as many as required (plus 1 for objectClass) */
-	a = attrs_alloc( 1 + 0 );
+	a = attrs_alloc( 1 + 2 );
 	if ( a == NULL ) {
 		rc = 1;
 		goto cleanup;
@@ -5319,6 +5384,18 @@ pcache_monitor_db_open( BackendDB *be )
 	a->a_desc = slap_schema.si_ad_objectClass;
 	attr_valadd( a, &oc_olmPCache->soc_cname, NULL, 1 );
 	next = a->a_next;
+
+	{
+		struct berval	bv = BER_BVC( "0" );
+
+		next->a_desc = ad_numQueries;
+		attr_valadd( next, &bv, NULL, 1 );
+		next = next->a_next;
+
+		next->a_desc = ad_numEntries;
+		attr_valadd( next, &bv, NULL, 1 );
+		next = next->a_next;
+	}
 
 	cb = ch_calloc( sizeof( monitor_callback_t ), 1 );
 	cb->mc_update = pcache_monitor_update;
