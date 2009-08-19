@@ -64,8 +64,8 @@ enum {
 typedef struct ldapconn_t {
 	Connection		*lc_conn;
 #define	LDAP_BACK_CONN2PRIV(lc)		((unsigned long)(lc)->lc_conn)
-#define LDAP_BACK_PCONN_ISPRIV(lc)	((void *)(lc)->lc_conn >= (void *)LDAP_BACK_PCONN_FIRST \
-						&& (void *)(lc)->lc_conn < (void *)LDAP_BACK_PCONN_LAST)
+#define LDAP_BACK_PCONN_ISPRIV(lc)	(((void *)(lc)->lc_conn) >= ((void *)LDAP_BACK_PCONN_FIRST) \
+						&& ((void *)(lc)->lc_conn) < ((void *)LDAP_BACK_PCONN_LAST))
 #define LDAP_BACK_PCONN_ISROOTDN(lc)	(LDAP_BACK_PCONN_ISPRIV((lc)) \
 						&& (LDAP_BACK_CONN2PRIV((lc)) < LDAP_BACK_PCONN_ANON))
 #define LDAP_BACK_PCONN_ISANON(lc)	(LDAP_BACK_PCONN_ISPRIV((lc)) \
@@ -75,8 +75,6 @@ typedef struct ldapconn_t {
 						&& (LDAP_BACK_CONN2PRIV((lc)) >= LDAP_BACK_PCONN_BIND))
 #define LDAP_BACK_PCONN_ISTLS(lc)	(LDAP_BACK_PCONN_ISPRIV((lc)) \
 						&& (LDAP_BACK_CONN2PRIV((lc)) & LDAP_BACK_PCONN_TLS))
-#define	LDAP_BACK_PCONN_ID(lc)		(LDAP_BACK_PCONN_ISPRIV((lc)) ? \
-						( -1 - (long)(lc)->lc_conn ) : (lc)->lc_conn->c_connid )
 #ifdef HAVE_TLS
 #define	LDAP_BACK_PCONN_ROOTDN_SET(lc, op) \
 	((lc)->lc_conn = (void *)((op)->o_conn->c_is_tls ? (void *) LDAP_BACK_PCONN_ROOTDN_TLS : (void *) LDAP_BACK_PCONN_ROOTDN))

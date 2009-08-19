@@ -1168,8 +1168,14 @@ retry_lock:;
 					LDAP_BACK_CONN_TAINTED_SET( mc );
 					LDAP_BACK_CONN_CACHED_CLEAR( mc );
 
-					Debug( LDAP_DEBUG_TRACE, "%s meta_back_getconn: mc=%p conn=%ld expired (tainted).\n",
-						op->o_log_prefix, (void *)mc, LDAP_BACK_PCONN_ID( mc ) );
+					if ( LogTest( LDAP_DEBUG_TRACE ) ) {
+						char buf[STRLENOF("4294967295U") + 1] = { 0 };
+						ldap_back_conn2str( (ldapconn_t *)mc, buf, sizeof(buf) );
+
+						Debug( LDAP_DEBUG_TRACE,
+							"%s meta_back_getconn: mc=%p conn=%s expired (tainted).\n",
+							op->o_log_prefix, (void *)mc, buf );
+					}
 				}
 
 				mc->mc_refcnt++;
@@ -1654,10 +1660,14 @@ done:;
 
 			default:
 				LDAP_BACK_CONN_CACHED_CLEAR( mc );
-				Debug( LDAP_DEBUG_ANY,
-					"%s meta_back_getconn: candidates=%d conn=%ld insert failed\n",
-					op->o_log_prefix, ncandidates,
-					LDAP_BACK_PCONN_ID( mc ) );
+				if ( LogTest( LDAP_DEBUG_ANY ) ) {
+					char buf[STRLENOF("4294967295U") + 1] = { 0 };
+					ldap_back_conn2str( (ldapconn_t *)mc, buf, sizeof(buf) );
+
+					Debug( LDAP_DEBUG_ANY,
+						"%s meta_back_getconn: candidates=%d conn=%s insert failed\n",
+						op->o_log_prefix, ncandidates, buf );
+				}
 	
 				mc->mc_refcnt = 0;	
 				meta_back_conn_free( mc );
@@ -1671,16 +1681,24 @@ done:;
 			}
 		}
 
-		Debug( LDAP_DEBUG_TRACE,
-			"%s meta_back_getconn: candidates=%d conn=%ld inserted\n",
-			op->o_log_prefix, ncandidates,
-			LDAP_BACK_PCONN_ID( mc ) );
+		if ( LogTest( LDAP_DEBUG_TRACE ) ) {
+			char buf[STRLENOF("4294967295U") + 1] = { 0 };
+			ldap_back_conn2str( (ldapconn_t *)mc, buf, sizeof(buf) );
+
+			Debug( LDAP_DEBUG_TRACE,
+				"%s meta_back_getconn: candidates=%d conn=%s inserted\n",
+				op->o_log_prefix, ncandidates, buf );
+		}
 
 	} else {
-		Debug( LDAP_DEBUG_TRACE,
-			"%s meta_back_getconn: candidates=%d conn=%ld fetched\n",
-			op->o_log_prefix, ncandidates,
-			LDAP_BACK_PCONN_ID( mc ) );
+		if ( LogTest( LDAP_DEBUG_TRACE ) ) {
+			char buf[STRLENOF("4294967295U") + 1] = { 0 };
+			ldap_back_conn2str( (ldapconn_t *)mc, buf, sizeof(buf) );
+
+			Debug( LDAP_DEBUG_TRACE,
+				"%s meta_back_getconn: candidates=%d conn=%s fetched\n",
+				op->o_log_prefix, ncandidates, buf );
+		}
 	}
 
 	return mc;

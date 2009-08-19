@@ -303,9 +303,10 @@ retry_lock:;
 		if ( LDAP_BACK_SINGLECONN( li ) ) {
 			while ( ( tmplc = avl_delete( &li->li_conninfo.lai_tree, (caddr_t)lc, ldap_back_conn_cmp ) ) != NULL )
 			{
+				assert( !LDAP_BACK_PCONN_ISPRIV( lc ) );
 				Debug( LDAP_DEBUG_TRACE,
-					"=>ldap_back_bind: destroying conn %ld (refcnt=%u)\n",
-					LDAP_BACK_PCONN_ID( lc ), lc->lc_refcnt, 0 );
+					"=>ldap_back_bind: destroying conn %lu (refcnt=%u)\n",
+					lc->lc_conn->c_connid, lc->lc_refcnt, 0 );
 
 				if ( tmplc->lc_refcnt != 0 ) {
 					/* taint it */
@@ -2713,4 +2714,42 @@ ldap_back_controls_free( Operation *op, SlapReply *rs, LDAPControl ***pctrls )
 	*pctrls = NULL;
 
 	return 0;
+}
+
+int
+ldap_back_conn2str( ldapconn_t *lc, char *buf, ber_len_t buflen )
+{
+	static struct berval conns[] = {
+		BER_BVC("ROOTDN"),
+		BER_BVC("ROOTDN-TLS"),
+		BER_BVC("ANON"),
+		BER_BVC("ANON-TLS"),
+		BER_BVC("BIND"),
+		BER_BVC("BIND-TLS"),
+		BER_BVNULL
+	};
+
+	int len = 0;
+
+	if ( LDAP_BACK_PCONN_ISPRIV( lc ) ) {
+		long cid;
+		struct berval *bv;
+
+		cid = (long)lc->lc_conn;
+		assert( cid >= LDAP_BACK_PCONN_FIRST && cid < LDAP_BACK_PCONN_LAST );
+
+		bv = &conns[ cid ];
+
+		if ( bv->bv_len >= buflen ) {
+			return bv->bv_len + 1;
+		}
+
+		len = bv->bv_len;
+		lutil_strncopy( buf, bv->bv_val, bv->bv_len + 1 );
+
+	} else {
+		len = snprintf( buf, buflen, "%lu", lc->lc_conn->c_connid );
+	}
+
+	return len;
 }

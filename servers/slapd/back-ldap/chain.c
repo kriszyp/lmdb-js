@@ -2063,7 +2063,6 @@ int
 chain_initialize( void )
 {
 	int rc;
-	const char *text;
 
 	/* Make sure we don't exceed the bits reserved for userland */
 	config_check_userland( CH_LAST );
