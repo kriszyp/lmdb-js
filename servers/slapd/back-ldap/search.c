@@ -832,7 +832,9 @@ ldap_build_entry(
 					LBER_FREE( attr->a_nvals[i].bv_val );
 				LBER_FREE( attr->a_vals[i].bv_val );
 				attr->a_numvals--;
-				if ( i < attr->a_numvals ) {
+
+				assert( i >= 0 );
+				if ( (unsigned)i < attr->a_numvals ) {
 					attr->a_vals[i] = attr->a_vals[attr->a_numvals];
 					if ( attr->a_nvals != attr->a_vals )
 						attr->a_nvals[i] = attr->a_nvals[attr->a_numvals];
