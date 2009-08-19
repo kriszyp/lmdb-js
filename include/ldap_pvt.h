@@ -93,16 +93,8 @@ ldap_pvt_ctime LDAP_P((
 
 # if defined( HAVE_GMTIME_R )
 #   define USE_GMTIME_R
-#   define ldap_pvt_gmtime_lock() (0)
-#   define ldap_pvt_gmtime_unlock() (0)
 #   define ldap_pvt_gmtime(timep, result) gmtime_r((timep), (result))
 # else
-LDAP_F( int )
-ldap_pvt_gmtime_lock LDAP_P(( void ));
-
-LDAP_F( int )
-ldap_pvt_gmtime_unlock LDAP_P(( void ));
-
 LDAP_F( struct tm * )
 ldap_pvt_gmtime LDAP_P((
 	LDAP_CONST time_t *timep,
@@ -118,6 +110,17 @@ ldap_pvt_localtime LDAP_P((
 	LDAP_CONST time_t *timep,
 	struct tm *result ));
 # endif
+
+#if defined( USE_GMTIME_R ) && defined( USE_LOCALTIME_R )
+#   define ldap_pvt_gmtime_lock() (0)
+#   define ldap_pvt_gmtime_unlock() (0)
+#else
+LDAP_F( int )
+ldap_pvt_gmtime_lock LDAP_P(( void ));
+
+LDAP_F( int )
+ldap_pvt_gmtime_unlock LDAP_P(( void ));
+#endif /* USE_GMTIME_R && USE_LOCALTIME_R */
 
 /* Get current time as a structured time */
 struct lutil_tm;

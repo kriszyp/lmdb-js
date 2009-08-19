@@ -116,7 +116,7 @@ char *ldap_pvt_ctime( const time_t *tp, char *buf )
 #endif	
 }
 
-#ifndef USE_GMTIME_R
+#if !defined( USE_GMTIME_R ) || !defined( USE_LOCALTIME_R )
 int
 ldap_pvt_gmtime_lock( void )
 {
@@ -136,7 +136,9 @@ ldap_pvt_gmtime_unlock( void )
 	return ldap_pvt_thread_mutex_unlock( &ldap_int_gmtime_mutex );
 # endif /* LDAP_R_COMPILE */
 }
+#endif /* !USE_GMTIME_R || !USE_LOCALTIME_R */
 
+#ifndef USE_GMTIME_R
 struct tm *
 ldap_pvt_gmtime( const time_t *timep, struct tm *result )
 {
