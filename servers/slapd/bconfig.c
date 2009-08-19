@@ -3519,7 +3519,8 @@ config_shadow( ConfigArgs *c, slap_mask_t flag )
 	if ( SLAP_SHADOW(c->be) ) {
 		/* if already shadow, only check consistency */
 		if ( ( SLAP_DBFLAGS(c->be) & flag ) != flag ) {
-			Debug( LDAP_DEBUG_ANY, "%s: inconsistent shadow flag 0x%x.\n", c->log, flag, 0 );
+			Debug( LDAP_DEBUG_ANY, "%s: inconsistent shadow flag 0x%lx.\n",
+				c->log, flag, 0 );
 			return 1;
 		}
 
