@@ -3,7 +3,7 @@
  *
  * Copyright 2003-2009 The OpenLDAP Foundation.
  * Portions Copyright 2003 IBM Corporation.
- * Portions Copyright 2003 Symas Corporation.
+ * Portions Copyright 2003-2009 Symas Corporation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -83,6 +83,7 @@ typedef struct cached_query_s {
 	struct query_template_s		*qtemp;	/* template of the query */
 	time_t						expiry_time;	/* time till the query is considered invalid */
 	time_t						refresh_time;	/* time till the query is refreshed */
+	time_t						bindref_time;	/* time till the bind is refreshed */
 	unsigned long			answerable_cnt; /* how many times it was answerable */
 	int						refcnt;	/* references since last refresh */
 	ldap_pvt_thread_mutex_t		answerable_cnt_mutex;
@@ -138,13 +139,18 @@ typedef struct query_template_s {
 	CachedQuery* 	query_last;     /* oldest query cached for the template */
 	ldap_pvt_thread_rdwr_t t_rwlock; /* Rd/wr lock for accessing queries in the template */
 	struct berval	querystr;	/* Filter string corresponding to the QT */
+	struct berval	bindbase;	/* base DN for Bind request */
+	struct berval	bindfilterstr;	/* Filter string for Bind request */
+	Filter		*bindfilter;
 
+	int			bindscope;
 	int 		attr_set_index; /* determines the projected attributes */
 	int 		no_of_queries;  /* Total number of queries in the template */
 	time_t		ttl;		/* TTL for the queries of this template */
 	time_t		negttl;		/* TTL for negative results */
 	time_t		limitttl;	/* TTL for sizelimit exceeding results */
 	time_t		ttr;	/* time to refresh */
+	time_t		bindttr;	/* TTR for cached binds */
 	struct attr_set t_attrs;	/* filter attrs + attr_set */
 } QueryTemplate;
 
@@ -208,6 +214,7 @@ typedef struct cache_manager_s {
 #define PCACHE_RESPONSE_CB_HEAD	0
 #define PCACHE_RESPONSE_CB_TAIL	1
 	char	defer_db_open;			/* defer open for online add */
+	char	cache_binds;			/* cache binds or just passthru */
 
 	time_t	cc_period;		/* interval between successive consistency checks (sec) */
 #define PCACHE_CC_PAUSED	1
@@ -260,7 +267,7 @@ static struct {
 	AttributeDescription **adp;
 } s_ad[] = {
 	{ "( PCacheAttributes:1 "
-		"NAME 'queryId' "
+		"NAME 'pcacheQueryID' "
 		"DESC 'ID of query the entry belongs to, formatted as a UUID' "
 		"EQUALITY octetStringMatch "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.40{64} "
@@ -268,7 +275,7 @@ static struct {
 		"USAGE directoryOperation )",
 		&ad_queryId },
 	{ "( PCacheAttributes:2 "
-		"NAME 'cachedQueryURL' "
+		"NAME 'pcacheQueryURL' "
 		"DESC 'URI describing a cached query' "
 		"EQUALITY caseExactMatch "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 "
@@ -301,10 +308,7 @@ static int
 filter2template(
 	Operation		*op,
 	Filter			*f,
-	struct			berval *fstr,
-	AttributeName**		filter_attrs,
-	int*			filter_cnt,
-	int*			filter_got_oc );
+	struct			berval *fstr );
 
 static CachedQuery *
 add_query(
@@ -402,6 +406,93 @@ query2url( Operation *op, CachedQuery *q, struct berval *urlbv, int dolock )
 	}
 
 	return 0;
+}
+
+static int
+template_attrs( char *template, struct attr_set *set, AttributeName **ret,
+	const char **text )
+{
+	int got_oc = 0;
+	int alluser = 0;
+	int allop = 0;
+	int i;
+	int attr_cnt;
+	int t_cnt = 0;
+	struct berval bv;
+	char *p1, *p2;
+	AttributeDescription *ad;
+	AttributeName *attrs;
+
+	p1 = template;
+
+	*ret = NULL;
+
+	attrs = ch_malloc(( set->count+1 )*sizeof(AttributeName));
+	for ( i=0; i < set->count; i++ )
+		attrs[i] = set->attrs[i];
+	attr_cnt = i;
+	alluser = an_find( attrs, slap_bv_all_user_attrs );
+	allop = an_find( attrs, slap_bv_all_operational_attrs );
+
+	for (;;) {
+		while ( *p1 == '(' || *p1 == '&' || *p1 == '|' ) p1++;
+		p2 = strchr( p1, '=' );
+		if ( !p2 )
+			break;
+		if ( p2[-1] == '<' || p2[-1] == '>' ) p2--;
+		bv.bv_val = p1;
+		bv.bv_len = p2 - p1;
+		ad = NULL;
+		i = slap_bv2ad( &bv, &ad, text );
+		if ( i ) {
+			ch_free( attrs );
+			return -1;
+		}
+		t_cnt++;
+
+		if ( ad == slap_schema.si_ad_objectClass )
+			got_oc = 1;
+
+		if ( is_at_operational(ad->ad_type)) {
+			if ( allop ) {
+				goto bottom;
+			}
+		} else if ( alluser ) {
+			goto bottom;
+		}
+		if ( !ad_inlist( ad, attrs )) {
+			attrs = (AttributeName *)ch_realloc(attrs,
+					(attr_cnt + 2)*sizeof(AttributeName));
+
+			attrs[attr_cnt].an_desc = ad;
+			attrs[attr_cnt].an_name = ad->ad_cname;
+			attrs[attr_cnt].an_oc = NULL;
+			attrs[attr_cnt].an_flags = 0;
+			BER_BVZERO( &attrs[attr_cnt+1].an_name );
+			attr_cnt++;
+		}
+
+bottom:
+		p1 = p2+2;
+	}
+	if ( !t_cnt ) {
+		*text = "couldn't parse template";
+		return -1;
+	}
+	if ( !got_oc && !( set->flags & PC_GOT_OC )) {
+		attrs = (AttributeName *)ch_realloc(attrs,
+				(attr_cnt + 2)*sizeof(AttributeName));
+
+		ad = slap_schema.si_ad_objectClass;
+		attrs[attr_cnt].an_desc = ad;
+		attrs[attr_cnt].an_name = ad->ad_cname;
+		attrs[attr_cnt].an_oc = NULL;
+		attrs[attr_cnt].an_flags = 0;
+		BER_BVZERO( &attrs[attr_cnt+1].an_name );
+		attr_cnt++;
+	}
+	*ret = attrs;
+	return attr_cnt;
 }
 
 /*
@@ -592,7 +683,7 @@ url2query(
 
 		tempstr.bv_val = ch_malloc( strlen( lud->lud_filter ) + 1 );
 		tempstr.bv_len = 0;
-		if ( filter2template( op, query.filter, &tempstr, NULL, NULL, NULL ) ) {
+		if ( filter2template( op, query.filter, &tempstr ) ) {
 			ch_free( tempstr.bv_val );
 			rc = -1;
 			goto error;
@@ -1590,6 +1681,7 @@ remove_query_data(
 	op->ors_deref = LDAP_DEREF_NEVER;
 	op->ors_slimit = SLAP_NO_LIMIT;
 	op->ors_tlimit = SLAP_NO_LIMIT;
+	op->ors_limit = NULL;
 	op->ors_filter = &filter;
 	op->ors_filterstr.bv_val = filter_str;
 	op->ors_filterstr.bv_len = strlen(filter_str);
@@ -1654,10 +1746,7 @@ static int
 filter2template(
 	Operation		*op,
 	Filter			*f,
-	struct			berval *fstr,
-	AttributeName**		filter_attrs,
-	int*			filter_cnt,
-	int*			filter_got_oc )
+	struct			berval *fstr )
 {
 	AttributeDescription *ad;
 	int len, ret;
@@ -1730,8 +1819,7 @@ filter2template(
 		fstr->bv_len++;
 
 		for ( f = f->f_list; f != NULL; f = f->f_next ) {
-			rc = filter2template( op, f, fstr, filter_attrs, filter_cnt,
-				filter_got_oc );
+			rc = filter2template( op, f, fstr );
 			if ( rc ) break;
 		}
 		fstr->bv_val[fstr->bv_len++] = ')';
@@ -1748,22 +1836,19 @@ filter2template(
 		return -1;
 	}
 
-	if ( filter_attrs != NULL ) {
-		*filter_attrs = (AttributeName *)op->o_tmprealloc(*filter_attrs,
-				(*filter_cnt + 2)*sizeof(AttributeName), op->o_tmpmemctx);
-
-		(*filter_attrs)[*filter_cnt].an_desc = ad;
-		(*filter_attrs)[*filter_cnt].an_name = ad->ad_cname;
-		(*filter_attrs)[*filter_cnt].an_oc = NULL;
-		(*filter_attrs)[*filter_cnt].an_flags = 0;
-		BER_BVZERO( &(*filter_attrs)[*filter_cnt+1].an_name );
-		(*filter_cnt)++;
-		if ( ad == slap_schema.si_ad_objectClass )
-			*filter_got_oc = 1;
-	}
-
 	return 0;
 }
+
+typedef struct bindinfo {
+	CachedQuery *bi_query;
+	struct berval *bi_querystr;
+	struct berval *bi_base;
+	Filter *bi_filter;
+	int bi_scope;
+	int bi_hashed;
+	int bi_didcb;
+	slap_callback bi_cb;
+} bindinfo;
 
 struct search_info {
 	slap_overinst *on;
@@ -1778,6 +1863,7 @@ struct search_info {
 	int slimit_exceeded;
 	pc_caching_reason_t caching_reason;
 	Entry *head, *tail;
+	bindinfo *pbi;
 };
 
 static void
@@ -1896,6 +1982,7 @@ pcache_remove_entries_from_cache(
 	op->ors_filter = &f;
 	op->ors_slimit = 1;
 	op->ors_tlimit = SLAP_NO_LIMIT;
+	op->ors_limit = NULL;
 	attrs[ 0 ].an_desc = ad_queryId;
 	attrs[ 0 ].an_name = ad_queryId->ad_cname;
 	op->ors_attrs = attrs;
@@ -2024,6 +2111,7 @@ pcache_remove_entry_queries_from_cache(
 	op->ors_filter = &f;
 	op->ors_slimit = 1;
 	op->ors_tlimit = SLAP_NO_LIMIT;
+	op->ors_limit = NULL;
 	attrs[ 0 ].an_desc = ad_queryId;
 	attrs[ 0 ].an_name = ad_queryId->ad_cname;
 	op->ors_attrs = attrs;
@@ -2211,6 +2299,8 @@ over:;
 				switch ( si->caching_reason ) {
 				case PC_POSITIVE:
 					cache_entries( op, rs, &qc->q_uuid );
+					if ( si->pbi )
+						si->pbi->bi_query = qc;
 					break;
 
 				case PC_SIZELIMIT:
@@ -2306,68 +2396,6 @@ pcache_response(
 	return SLAP_CB_CONTINUE;
 }
 
-static int
-add_filter_attrs(
-	Operation *op,
-	AttributeName** new_attrs,
-	struct attr_set *attrs,
-	AttributeName* filter_attrs,
-	int fattr_cnt,
-	int fattr_got_oc)
-{
-	int alluser = 0;
-	int allop = 0;
-	int i, j;
-	int count;
-	int addoc = 0;
-
-	/* duplicate attrs */
-	count = attrs->count + fattr_cnt;
-	if ( !fattr_got_oc && !(attrs->flags & PC_GOT_OC)) {
-		addoc = 1;
-		count++;
-	}
-
-	*new_attrs = (AttributeName*)ch_calloc( count + 1,
-		sizeof(AttributeName) );
-	for (i=0; i<attrs->count; i++) {
-		(*new_attrs)[i].an_name = attrs->attrs[i].an_name;
-		(*new_attrs)[i].an_desc = attrs->attrs[i].an_desc;
-	}
-	BER_BVZERO( &(*new_attrs)[i].an_name );
-	alluser = an_find( *new_attrs, slap_bv_all_user_attrs );
-	allop = an_find( *new_attrs, slap_bv_all_operational_attrs );
-
-	j = i;
-	for ( i=0; i<fattr_cnt; i++ ) {
-		if ( an_find(*new_attrs, &filter_attrs[i].an_name ) ) {
-			continue;
-		}
-		if ( is_at_operational(filter_attrs[i].an_desc->ad_type) ) {
-			if ( allop ) {
-				continue;
-			}
-		} else if ( alluser ) {
-			continue;
-		}
-		(*new_attrs)[j].an_name = filter_attrs[i].an_name;
-		(*new_attrs)[j].an_desc = filter_attrs[i].an_desc;
-		(*new_attrs)[j].an_oc = NULL;
-		(*new_attrs)[j].an_flags = 0;
-		j++;
-	}
-	if ( addoc ) {
-		(*new_attrs)[j].an_name = slap_schema.si_ad_objectClass->ad_cname;
-		(*new_attrs)[j].an_desc = slap_schema.si_ad_objectClass;
-		(*new_attrs)[j].an_oc = NULL;
-		(*new_attrs)[j].an_flags = 0;
-		j++;
-	}
-	BER_BVZERO( &(*new_attrs)[j].an_name );
-
-	return j;
-}
-
 /* NOTE: this is a quick workaround to let pcache minimally interact
  * with pagedResults.  A more articulated solutions would be to
  * perform the remote query without control and cache all results,
@@ -2402,6 +2430,240 @@ pcache_chk_controls(
 	}
 
 	return rs->sr_err;
+}
+
+typedef struct bindcacheinfo {
+	slap_overinst *on;
+	CachedQuery *qc;
+} bindcacheinfo;
+	
+static int
+pc_bind_save( Operation *op, SlapReply *rs )
+{
+	if ( rs->sr_err == LDAP_SUCCESS ) {
+		bindcacheinfo *bci = op->o_callback->sc_private;
+		slap_overinst *on = bci->on;
+		cache_manager *cm = on->on_bi.bi_private;
+		struct berval vals[2];
+		const char *text = NULL;
+
+		BER_BVZERO( &vals[0] );
+		BER_BVZERO( &vals[1] );
+		slap_passwd_hash( &op->orb_cred, &vals[0], &text );
+		if ( BER_BVISEMPTY( &vals[0] )) {
+			Debug( pcache_debug, "pcache_bind_save: hash failed %s\n",
+				text, 0, 0 );
+		} else {
+			Operation op2 = *op;
+			Modifications mod;
+			SlapReply sr = { REP_RESULT };
+			slap_callback cb = { 0, slap_null_cb, 0, 0 };
+			
+			mod.sml_op = LDAP_MOD_REPLACE;
+			mod.sml_flags = 0;
+			mod.sml_desc = slap_schema.si_ad_userPassword;
+			mod.sml_type = mod.sml_desc->ad_cname;
+			mod.sml_values = vals;
+			mod.sml_nvalues = NULL;
+			mod.sml_numvals = 1;
+			mod.sml_next = NULL;
+
+			op2.o_tag = LDAP_REQ_MODIFY;
+			op2.orm_modlist = &mod;
+			op2.o_bd = &cm->db;
+			op2.o_dn = op2.o_bd->be_rootdn;
+			op2.o_ndn = op2.o_bd->be_rootndn;
+			op2.o_callback = &cb;
+			if ( op2.o_bd->be_modify( &op2, &sr ) == LDAP_SUCCESS )
+				bci->qc->bindref_time = op->o_time + bci->qc->qtemp->bindttr;
+		}
+	}
+	return SLAP_CB_CONTINUE;
+}
+
+/* Check if the requested entry is from the cache and has a valid
+ * ttr and password hash
+ */
+static int
+pc_bind_search( Operation *op, SlapReply *rs )
+{
+	if ( rs->sr_type == REP_SEARCH ) {
+		bindinfo *pbi = op->o_callback->sc_private;
+
+		/* We only care if this is an already cached result and we're
+		 * below the refresh time.
+		 */
+		if ( pbi->bi_query && op->o_time < pbi->bi_query->bindref_time ) {
+			Attribute *a;
+
+			/* See if a recognized password is hashed here */
+			a = attr_find( rs->sr_entry->e_attrs,
+				slap_schema.si_ad_userPassword );
+			if ( a && a->a_vals[0].bv_val[0] == '{' &&
+				lutil_passwd_scheme( a->a_vals[0].bv_val ))
+				pbi->bi_hashed = 1;
+		}
+	}
+	return 0;
+}
+
+/* We always want pc_bind_search to run after the search handlers */
+static int
+pc_bind_resp( Operation *op, SlapReply *rs )
+{
+	bindinfo *pbi = op->o_callback->sc_private;
+	if ( !pbi->bi_didcb ) {
+		slap_callback *sc = op->o_callback;
+		while ( sc && sc->sc_response != pcache_response )
+			sc = sc->sc_next;
+		if ( !sc )
+			sc = op->o_callback;
+		pbi->bi_cb.sc_next = sc->sc_next;
+		sc->sc_next = &pbi->bi_cb;
+		pbi->bi_didcb = 1;
+	}
+	return SLAP_CB_CONTINUE;
+}
+
+static int
+pcache_op_bind(
+	Operation		*op,
+	SlapReply		*rs )
+{
+	slap_overinst 	*on = (slap_overinst *)op->o_bd->bd_info;
+	cache_manager 	*cm = on->on_bi.bi_private;
+	QueryTemplate *temp;
+	slap_callback	cb = { 0 }, *sc;
+	bindinfo bi;
+	bindcacheinfo *bci;
+	Operation op2;
+	int is_priv = 0;
+
+#ifdef PCACHE_CONTROL_PRIVDB
+	if ( op->o_ctrlflag[ privDB_cid ] == SLAP_CONTROL_CRITICAL )
+		is_priv = 1;
+#endif
+
+	/* Skip if we're not configured for Binds, and no priv control */
+	if ( !cm->cache_binds && !is_priv )
+		return SLAP_CB_CONTINUE;
+
+	/* The cache DB isn't open yet */
+	if ( cm->defer_db_open ) {
+		if ( !is_priv ) {
+			/* Just passthru for now */
+			return SLAP_CB_CONTINUE;
+		} else {
+			send_ldap_error( op, rs, LDAP_UNAVAILABLE,
+				"pcachePrivDB: cacheDB not available" );
+			return rs->sr_err;
+		}
+	}
+
+	if ( is_priv ) {
+		int		rc;
+		slap_callback	*save_cb;
+
+		/* FIXME: might be a little bit exaggerated... */
+		if ( !be_isroot( op ) ) {
+			save_cb = op->o_callback;
+			op->o_callback = NULL;
+			send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
+				"pcachePrivDB: operation not allowed" );
+			op->o_callback = save_cb;
+
+			return rs->sr_err;
+		}
+
+		/* execute, if possible */
+		if ( cm->db.be_bind != NULL ) {
+			op2 = *op;
+			op2.o_bd = &cm->db;
+
+			rc = op2.o_bd->be_bind( &op2, rs );
+			if ( rc == LDAP_SUCCESS ) {
+				op->o_conn->c_authz_cookie = cm->db.be_private;
+			}
+		} else {
+			/* otherwise fall back to error */
+			save_cb = op->o_callback;
+			op->o_callback = NULL;
+			send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
+				"operation not supported with pcachePrivDB control" );
+			op->o_callback = save_cb;
+		}
+
+		return rs->sr_err;
+	}
+
+	/* First search for the target entry and userPassword. This will
+	 * give us a cached_query to work with. Find a matching template
+	 * to use for the search.
+	 */
+	for ( temp=cm->qm->templates; temp; temp=temp->qmnext ) {
+		if ( temp->bindttr && dnIsSuffix( &op->o_req_ndn, &temp->bindbase ))
+			break;
+	}
+	/* Didn't find a suitable template, just passthru */
+	if ( !temp )
+		return SLAP_CB_CONTINUE;
+
+	op2 = *op;
+	op2.o_dn = op->o_bd->be_rootdn;
+	op2.o_ndn = op->o_bd->be_rootndn;
+
+	op2.o_tag = LDAP_REQ_SEARCH;
+	op2.ors_scope = LDAP_SCOPE_BASE;
+	op2.ors_deref = LDAP_DEREF_NEVER;
+	op2.ors_slimit = 1;
+	op2.ors_tlimit = SLAP_NO_LIMIT;
+	op2.ors_limit = NULL;
+	op2.ors_filter = temp->bindfilter;
+	op2.ors_filterstr = temp->bindfilterstr;
+	op2.ors_attrs = cm->qm->attr_sets[temp->attr_set_index].attrs;
+	op2.ors_attrsonly = 0;
+
+	/* We want to invoke search at the same level of the stack
+	 * as we're already at...
+	 */
+	bi.bi_query = NULL;
+	bi.bi_querystr = &temp->querystr;
+	bi.bi_hashed = 0;
+	bi.bi_didcb = 0;
+	bi.bi_cb.sc_response = pc_bind_search;
+	bi.bi_cb.sc_cleanup = NULL;
+	bi.bi_cb.sc_private = &bi;
+	cb.sc_private = &bi;
+	cb.sc_response = pc_bind_resp;
+	op2.o_callback = &cb;
+	overlay_op_walk( &op2, rs, op_search, on->on_info, on );
+
+	/* OK, just bind locally */
+	if ( bi.bi_hashed ) {
+		BackendDB *be = op->o_bd;
+		op->o_bd = &cm->db;
+
+		if ( op->o_bd->be_bind( op, rs ) == LDAP_SUCCESS ) {
+			op->o_conn->c_authz_cookie = cm->db.be_private;
+		}
+		op->o_bd = be;
+		return rs->sr_err;
+	}
+
+	/* We have a cached query to work with */
+	if ( bi.bi_query ) {
+		sc = op->o_tmpalloc( sizeof(slap_callback) + sizeof(bindcacheinfo),
+			op->o_tmpmemctx );
+		sc->sc_response = pc_bind_save;
+		sc->sc_cleanup = NULL;
+		sc->sc_private = sc+1;
+		bci = sc->sc_private;
+		sc->sc_next = op->o_callback;
+		op->o_callback = sc;
+		bci->on = on;
+		bci->qc = bi.bi_query;
+	}
+	return SLAP_CB_CONTINUE;
 }
 
 #ifdef PCACHE_CONTROL_PRIVDB
@@ -2482,16 +2744,13 @@ pcache_op_search(
 
 	int i = -1;
 
-	AttributeName	*filter_attrs = NULL;
-
 	Query		query;
 	QueryTemplate	*qtemp = NULL;
+	bindinfo *pbi = NULL;
 
 	int 		attr_set = -1;
 	CachedQuery 	*answerable = NULL;
 	int 		cacheable = 0;
-	int		fattr_cnt=0;
-	int		fattr_got_oc = 0;
 
 	struct berval	tempstr;
 
@@ -2511,13 +2770,29 @@ pcache_op_search(
 	/* pickup runtime ACL changes */
 	cm->db.be_acl = op->o_bd->be_acl;
 
-	tempstr.bv_val = op->o_tmpalloc( op->ors_filterstr.bv_len+1, op->o_tmpmemctx );
-	tempstr.bv_len = 0;
-	if ( filter2template( op, op->ors_filter, &tempstr, &filter_attrs,
-		&fattr_cnt, &fattr_got_oc ))
 	{
-		op->o_tmpfree( tempstr.bv_val, op->o_tmpmemctx );
-		return SLAP_CB_CONTINUE;
+		/* See if we're processing a Bind request */
+		slap_callback *cb = op->o_callback;
+
+		for ( ; cb; cb=cb->sc_next ) {
+			if ( cb->sc_response == pc_bind_resp ) {
+				pbi = cb->sc_private;
+				break;
+			}
+		}
+	}
+
+	if ( pbi ) {
+		tempstr = *pbi->bi_querystr;
+	} else {
+		tempstr.bv_val = op->o_tmpalloc( op->ors_filterstr.bv_len+1,
+			op->o_tmpmemctx );
+		tempstr.bv_len = 0;
+		if ( filter2template( op, op->ors_filter, &tempstr ))
+		{
+			op->o_tmpfree( tempstr.bv_val, op->o_tmpmemctx );
+			return SLAP_CB_CONTINUE;
+		}
 	}
 
 	Debug( pcache_debug, "query template of incoming query = %s\n",
@@ -2550,11 +2825,12 @@ pcache_op_search(
 				break;
 		}
 	}
-	op->o_tmpfree( tempstr.bv_val, op->o_tmpmemctx );
+	if ( !pbi )
+		op->o_tmpfree( tempstr.bv_val, op->o_tmpmemctx );
+
 
 	if (answerable) {
 		BackendDB	*save_bd = op->o_bd;
-		slap_callback	*save_cb = op->o_callback;
 
 		ldap_pvt_thread_mutex_lock( &answerable->answerable_cnt_mutex );
 		answerable->answerable_cnt++;
@@ -2565,27 +2841,31 @@ pcache_op_search(
 			answerable->answerable_cnt, 0, 0 );
 		ldap_pvt_thread_mutex_unlock( &answerable->answerable_cnt_mutex );
 
-		op->o_tmpfree( filter_attrs, op->o_tmpmemctx );
 		ldap_pvt_thread_rdwr_rlock(&answerable->rwlock);
 		if ( BER_BVISNULL( &answerable->q_uuid )) {
 			/* No entries cached, just an empty result set */
 			i = rs->sr_err = 0;
 			send_ldap_result( op, rs );
 		} else {
+			/* Let Bind know we used a cached query */
+			if ( pbi )
+				pbi->bi_query = answerable;
+
 			op->o_bd = &cm->db;
+#if 0
 			if ( cm->response_cb == PCACHE_RESPONSE_CB_TAIL ) {
 				/* The cached entry was already processed by any
 				 * other overlays, so don't let it get processed again.
 				 */
 				op->o_callback = NULL;
 			}
+#endif
 			i = cm->db.bd_info->bi_op_search( op, rs );
 		}
 		ldap_pvt_thread_rdwr_runlock(&answerable->rwlock);
 		/* locked by qtemp->qcfunc (query_containment) */
 		ldap_pvt_thread_rdwr_runlock(&qtemp->t_rwlock);
 		op->o_bd = save_bd;
-		op->o_callback = save_cb;
 		return i;
 	}
 
@@ -2606,14 +2886,6 @@ pcache_op_search(
 
 		Debug( pcache_debug, "QUERY CACHEABLE\n", 0, 0, 0 );
 		query.filter = filter_dup(op->ors_filter, NULL);
-		ldap_pvt_thread_rdwr_wlock(&qtemp->t_rwlock);
-		if ( !qtemp->t_attrs.count ) {
-			qtemp->t_attrs.count = add_filter_attrs(op,
-				&qtemp->t_attrs.attrs,
-				&qm->attr_sets[attr_set],
-				filter_attrs, fattr_cnt, fattr_got_oc);
-		}
-		ldap_pvt_thread_rdwr_wunlock(&qtemp->t_rwlock);
 
 		cb = op->o_tmpalloc( sizeof(*cb) + sizeof(*si), op->o_tmpmemctx );
 		cb->sc_response = pcache_response;
@@ -2637,6 +2909,7 @@ pcache_op_search(
 		si->tail = NULL;
 		si->swap_saved_attrs = 1;
 		si->save_attrs = op->ors_attrs;
+		si->pbi = pbi;
 
 		op->ors_attrs = qtemp->t_attrs.attrs;
 
@@ -2659,8 +2932,6 @@ pcache_op_search(
 		Debug( pcache_debug, "QUERY NOT CACHEABLE\n",
 					0, 0, 0);
 	}
-
-	op->o_tmpfree( filter_attrs, op->o_tmpmemctx );
 
 	return SLAP_CB_CONTINUE;
 }
@@ -2899,6 +3170,7 @@ refresh_query( Operation *op, SlapReply *rs, CachedQuery *query,
 	op->ors_scope = query->scope;
 	op->ors_slimit = SLAP_NO_LIMIT;
 	op->ors_tlimit = SLAP_NO_LIMIT;
+	op->ors_limit = NULL;
 	op->ors_filter = query->filter;
 	filter2bv_x( op, query->filter, &op->ors_filterstr );
 	op->ors_attrs = query->qtemp->t_attrs.attrs;
@@ -3106,6 +3378,7 @@ enum {
 	PC_RESP,
 	PC_QUERIES,
 	PC_OFFLINE,
+	PC_BIND,
 	PC_PRIVATE_DB
 };
 
@@ -3158,6 +3431,11 @@ static ConfigTable pccfg[] = {
 		"( OLcfgOvAt:2.8 NAME 'olcPcacheOffline' "
 			"DESC 'Set cache to offline mode and disable expiration' "
 			"SYNTAX OMsBoolean )", NULL, NULL },
+	{ "pcacheBind", "filter> <attrset-index> <TTR> <scope> <base",
+		6, 6, 0, ARG_MAGIC|PC_BIND, pc_cf_gen,
+		"( OLcfgOvAt:2.9 NAME 'olcPcacheBind' "
+			"DESC 'Parameters for caching Binds' "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ "pcache-", "private database args",
 		1, 0, STRLENOF("pcache-"), ARG_MAGIC|PC_PRIVATE_DB, pc_cf_gen,
 		NULL, NULL, NULL },
@@ -3196,7 +3474,7 @@ static ConfigOCs pcocs[] = {
 		"SUP olcOverlayConfig "
 		"MUST ( olcPcache $ olcPcacheAttrset $ olcPcacheTemplate ) "
 		"MAY ( olcPcachePosition $ olcPcacheMaxQueries $ olcPcachePersist $ "
-			"olcPcacheValidate $ olcPcacheOffline ) )",
+			"olcPcacheValidate $ olcPcacheOffline $ olcPcacheBind ) )",
 		Cft_Overlay, pccfg, NULL, pc_cfadd },
 	{ "( OLcfgOvOc:2.2 "
 		"NAME 'olcPcacheDatabase' "
@@ -3334,6 +3612,30 @@ pc_cf_gen( ConfigArgs *c )
 			if ( !c->rvalue_vals )
 				rc = 1;
 			break;
+		case PC_BIND:
+			for (temp=qm->templates; temp; temp=temp->qmnext) {
+				if ( !temp->bindttr ) continue;
+				bv.bv_len = snprintf( c->cr_msg, sizeof( c->cr_msg ),
+					" %d %ld %s ",
+					temp->attr_set_index,
+					temp->bindttr,
+					ldap_pvt_scope2str( temp->bindscope ));
+				bv.bv_len += temp->bindbase.bv_len + temp->querystr.bv_len + 3;
+				bv.bv_val = ch_malloc( bv.bv_len+1 );
+				ptr = bv.bv_val;
+				*ptr++ = '"';
+				ptr = lutil_strcopy( ptr, temp->querystr.bv_val );
+				*ptr++ = '"';
+				ptr = lutil_strcopy( ptr, c->cr_msg );
+				*ptr++ = '"';
+				ptr = lutil_strcopy( ptr, temp->bindbase.bv_val );
+				*ptr++ = '"';
+				*ptr = '\0';
+				ber_bvarray_add( &c->rvalue_vals, &bv );
+			}
+			if ( !c->rvalue_vals )
+				rc = 1;
+			break;
 		case PC_RESP:
 			if ( cm->response_cb == PCACHE_RESPONSE_CB_HEAD ) {
 				BER_BVSTR( &bv, "head" );
@@ -3355,6 +3657,7 @@ pc_cf_gen( ConfigArgs *c )
 		switch( c->type ) {
 		case PC_ATTR: /* FIXME */
 		case PC_TEMP:
+		case PC_BIND:
 			break;
 		case PC_OFFLINE:
 			cm->cc_paused &= ~PCACHE_CC_OFFLINE;
@@ -3376,7 +3679,7 @@ pc_cf_gen( ConfigArgs *c )
 	switch( c->type ) {
 	case PC_MAIN:
 		if ( cm->numattrsets > 0 ) {
-			snprintf( c->cr_msg, sizeof( c->cr_msg ), "\"proxycache\" directive already provided" );
+			snprintf( c->cr_msg, sizeof( c->cr_msg ), "\"pcache\" directive already provided" );
 			Debug( LDAP_DEBUG_CONFIG, "%s: %s.\n", c->log, c->cr_msg, 0 );
 			return( 1 );
 		}
@@ -3449,7 +3752,7 @@ pc_cf_gen( ConfigArgs *c )
 		break;
 	case PC_ATTR:
 		if ( cm->numattrsets == 0 ) {
-			snprintf( c->cr_msg, sizeof( c->cr_msg ), "\"proxycache\" directive not provided yet" );
+			snprintf( c->cr_msg, sizeof( c->cr_msg ), "\"pcache\" directive not provided yet" );
 			Debug( LDAP_DEBUG_CONFIG, "%s: %s.\n", c->log, c->cr_msg, 0 );
 			return( 1 );
 		}
@@ -3562,7 +3865,7 @@ pc_cf_gen( ConfigArgs *c )
 		break;
 	case PC_TEMP:
 		if ( cm->numattrsets == 0 ) {
-			snprintf( c->cr_msg, sizeof( c->cr_msg ), "\"proxycache\" directive not provided yet" );
+			snprintf( c->cr_msg, sizeof( c->cr_msg ), "\"pcache\" directive not provided yet" );
 			Debug( LDAP_DEBUG_CONFIG, "%s: %s.\n", c->log, c->cr_msg, 0 );
 			return( 1 );
 		}
@@ -3580,9 +3883,22 @@ pc_cf_gen( ConfigArgs *c )
 			Debug( LDAP_DEBUG_CONFIG, "%s: %s.\n", c->log, c->cr_msg, 0 );
 			return 1;
 		}
-		temp = ch_calloc( 1, sizeof( QueryTemplate ));
-		temp->qmnext = qm->templates;
-		qm->templates = temp;
+		{
+			AttributeName *attrs;
+			int cnt;
+			cnt = template_attrs( c->argv[1], &qm->attr_sets[i], &attrs, &text );
+			if ( cnt < 0 ) {
+				snprintf( c->cr_msg, sizeof( c->cr_msg ), "unable to parse template: %s",
+					text );
+				Debug( LDAP_DEBUG_CONFIG, "%s: %s.\n", c->log, c->cr_msg, 0 );
+				return 1;
+			}
+			temp = ch_calloc( 1, sizeof( QueryTemplate ));
+			temp->qmnext = qm->templates;
+			qm->templates = temp;
+			temp->t_attrs.attrs = attrs;
+			temp->t_attrs.count = cnt;
+		}
 		ldap_pvt_thread_rdwr_init( &temp->t_rwlock );
 		temp->query = temp->query_last = NULL;
 		if ( lutil_parse_time( c->argv[3], &t ) != 0 ) {
@@ -3590,6 +3906,9 @@ pc_cf_gen( ConfigArgs *c )
 				"unable to parse template ttl=\"%s\"",
 				c->argv[3] );
 			Debug( LDAP_DEBUG_CONFIG, "%s: %s.\n", c->log, c->cr_msg, 0 );
+pc_temp_fail:
+			ch_free( temp->t_attrs.attrs );
+			ch_free( temp );
 			return( 1 );
 		}
 		temp->ttl = (time_t)t;
@@ -3603,7 +3922,7 @@ pc_cf_gen( ConfigArgs *c )
 					"unable to parse template ttr=\"%s\"",
 					c->argv[6] );
 				Debug( LDAP_DEBUG_CONFIG, "%s: %s.\n", c->log, c->cr_msg, 0 );
-					return( 1 );
+				goto pc_temp_fail;
 			}
 			temp->ttr = (time_t)t;
 			/* fallthru */
@@ -3614,7 +3933,7 @@ pc_cf_gen( ConfigArgs *c )
 					"unable to parse template sizelimit ttl=\"%s\"",
 					c->argv[5] );
 				Debug( LDAP_DEBUG_CONFIG, "%s: %s.\n", c->log, c->cr_msg, 0 );
-					return( 1 );
+				goto pc_temp_fail;
 			}
 			temp->limitttl = (time_t)t;
 			/* fallthru */
@@ -3625,7 +3944,7 @@ pc_cf_gen( ConfigArgs *c )
 					"unable to parse template negative ttl=\"%s\"",
 					c->argv[4] );
 				Debug( LDAP_DEBUG_CONFIG, "%s: %s.\n", c->log, c->cr_msg, 0 );
-					return( 1 );
+				goto pc_temp_fail;
 			}
 			temp->negttl = (time_t)t;
 			break;
@@ -3648,6 +3967,112 @@ pc_cf_gen( ConfigArgs *c )
 					attrarray[i].an_name.bv_val, 0, 0 );
 		}
 		break;
+	case PC_BIND:
+		if ( !qm->templates ) {
+			snprintf( c->cr_msg, sizeof( c->cr_msg ), "\"pcacheTemplate\" directive not provided yet" );
+			Debug( LDAP_DEBUG_CONFIG, "%s: %s.\n", c->log, c->cr_msg, 0 );
+			return( 1 );
+		}
+		if ( lutil_atoi( &i, c->argv[2] ) != 0 ) {
+			snprintf( c->cr_msg, sizeof( c->cr_msg ), "unable to parse Bind index #=\"%s\"",
+				c->argv[2] );
+			Debug( LDAP_DEBUG_CONFIG, "%s: %s.\n", c->log, c->cr_msg, 0 );
+			return( 1 );
+		}
+
+		if ( i < 0 || i >= cm->numattrsets || 
+			!(qm->attr_sets[i].flags & PC_CONFIGURED )) {
+			snprintf( c->cr_msg, sizeof( c->cr_msg ), "Bind index %d invalid (%s%d)",
+				i, cm->numattrsets > 1 ? "0->" : "", cm->numattrsets - 1 );
+			Debug( LDAP_DEBUG_CONFIG, "%s: %s.\n", c->log, c->cr_msg, 0 );
+			return 1;
+		}
+		{ struct berval bv;
+			ber_str2bv( c->argv[1], 0, 0, &bv );
+			for ( temp = qm->templates; temp; temp=temp->qmnext ) {
+				if ( temp->attr_set_index == i && bvmatch( &bv,
+					&temp->querystr ))
+					break;
+			}
+			if ( !temp ) {
+				snprintf( c->cr_msg, sizeof( c->cr_msg ), "Bind template %s %d invalid",
+					c->argv[1], i );
+				Debug( LDAP_DEBUG_CONFIG, "%s: %s.\n", c->log, c->cr_msg, 0 );
+				return 1;
+			}
+		}
+		if ( lutil_parse_time( c->argv[3], &t ) != 0 ) {
+			snprintf( c->cr_msg, sizeof( c->cr_msg ),
+				"unable to parse bind ttr=\"%s\"",
+				c->argv[3] );
+			Debug( LDAP_DEBUG_CONFIG, "%s: %s.\n", c->log, c->cr_msg, 0 );
+				return( 1 );
+		}
+		i = ldap_pvt_str2scope( c->argv[4] );
+		if ( i < 0 ) {
+			snprintf( c->cr_msg, sizeof( c->cr_msg ),
+				"unable to parse bind scope=\"%s\"",
+				c->argv[4] );
+			Debug( LDAP_DEBUG_CONFIG, "%s: %s.\n", c->log, c->cr_msg, 0 );
+			return( 1 );
+		}
+		{
+			struct berval dn, ndn;
+			ber_str2bv( c->argv[5], 0, 0, &dn );
+			rc = dnNormalize( 0, NULL, NULL, &dn, &ndn, NULL );
+			if ( rc ) {
+				snprintf( c->cr_msg, sizeof( c->cr_msg ),
+					"invalid bind baseDN=\"%s\"",
+					c->argv[5] );
+				Debug( LDAP_DEBUG_CONFIG, "%s: %s.\n", c->log, c->cr_msg, 0 );
+					return( 1 );
+			}
+			if ( temp->bindbase.bv_val )
+				ch_free( temp->bindbase.bv_val );
+			temp->bindbase = ndn;
+		}
+		{
+			/* convert the template into all presence filters */
+			struct berval bv;
+			char *eq = temp->querystr.bv_val, *e2;
+			Filter *f;
+			i = 0;
+			while ((eq = strchr(eq, '=' ))) {
+				eq++;
+				i++;
+			}
+			bv.bv_len = temp->querystr.bv_len + i;
+			bv.bv_val = ch_malloc( bv.bv_len + 1 );
+			for ( e2 = bv.bv_val, eq = temp->querystr.bv_val;
+				*eq; eq++ ) {
+				if ( *eq == '=' ) {
+					*e2++ = '=';
+					*e2++ = '*';
+				} else {
+					*e2++ = *eq;
+				}
+			}
+			*e2 = '\0';
+			f = str2filter( bv.bv_val );
+			if ( !f ) {
+				ch_free( bv.bv_val );
+				snprintf( c->cr_msg, sizeof( c->cr_msg ),
+					"unable to parse bindfilter=\"%s\"", bv.bv_val );
+				Debug( LDAP_DEBUG_CONFIG, "%s: %s.\n", c->log, c->cr_msg, 0 );
+					return( 1 );
+			}
+			if ( temp->bindfilter )
+				filter_free( temp->bindfilter );
+			if ( temp->bindfilterstr.bv_val )
+				ch_free( temp->bindfilterstr.bv_val );
+			temp->bindfilterstr = bv;
+			temp->bindfilter = f;
+		}
+		temp->bindttr = (time_t)t;
+		temp->bindscope = i;
+		cm->cache_binds = 1;
+		break;
+
 	case PC_RESP:
 		if ( strcasecmp( c->argv[1], "head" ) == 0 ) {
 			cm->response_cb = PCACHE_RESPONSE_CB_HEAD;
@@ -3688,7 +4113,7 @@ pc_cf_gen( ConfigArgs *c )
 			ConfigArgs	c2 = *c;
 			char		*argv0 = c->argv[ 0 ];
 
-			c->argv[ 0 ] = &argv0[ STRLENOF( "proxycache-" ) ];
+			c->argv[ 0 ] = &argv0[ STRLENOF( "pcache-" ) ];
 
 			ct = config_find_keyword( cm->db.bd_info->bi_cf_ocs->co_table, c );
 			if ( ct == NULL ) {
@@ -3715,7 +4140,7 @@ pc_cf_gen( ConfigArgs *c )
 		} else if ( cm->db.be_config != NULL ) {
 			char	*argv0 = c->argv[ 0 ];
 
-			c->argv[ 0 ] = &argv0[ STRLENOF( "proxycache-" ) ];
+			c->argv[ 0 ] = &argv0[ STRLENOF( "pcache-" ) ];
 			rc = cm->db.be_config( &cm->db, c->fname, c->lineno, c->argc, c->argv );
 			c->argv[ 0 ] = argv0;
 
@@ -3872,7 +4297,7 @@ pcache_db_open2(
 			Debug( LDAP_DEBUG_ANY, "pcache_db_open(): "
 				"underlying database of type \"%s\"\n"
 				"    serving naming context \"%s\"\n"
-				"    has no \"rootdn\", required by \"proxycache\".\n",
+				"    has no \"rootdn\", required by \"pcache\".\n",
 				on->on_info->oi_orig->bi_type,
 				cm->db.be_suffix[0].bv_val, 0 );
 			return 1;
@@ -3913,6 +4338,7 @@ pcache_db_open2(
 			op->ors_deref = LDAP_DEREF_NEVER;
 			op->ors_slimit = 1;
 			op->ors_tlimit = SLAP_NO_LIMIT;
+			op->ors_limit = NULL;
 			ber_str2bv( "(cachedQueryURL=*)", 0, 0, &op->ors_filterstr );
 			f.f_choice = LDAP_FILTER_PRESENT;
 			f.f_desc = ad_cachedQueryURL;
@@ -4868,8 +5294,8 @@ pcache_initialize()
 	pcache.on_bi.bi_db_destroy = pcache_db_destroy;
 
 	pcache.on_bi.bi_op_search = pcache_op_search;
+	pcache.on_bi.bi_op_bind = pcache_op_bind;
 #ifdef PCACHE_CONTROL_PRIVDB
-	pcache.on_bi.bi_op_bind = pcache_op_privdb;
 	pcache.on_bi.bi_op_compare = pcache_op_privdb;
 	pcache.on_bi.bi_op_modrdn = pcache_op_privdb;
 	pcache.on_bi.bi_op_modify = pcache_op_privdb;
