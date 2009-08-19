@@ -121,7 +121,7 @@ static ConfigDriver config_overlay;
 static ConfigDriver config_subordinate; 
 static ConfigDriver config_suffix; 
 #ifdef LDAP_TCP_BUFFER
-//#define LDAP_TCP_BUFFER_X_ORDERED
+/* #define LDAP_TCP_BUFFER_X_ORDERED */
 static ConfigDriver config_tcp_buffer; 
 #endif /* LDAP_TCP_BUFFER */
 static ConfigDriver config_rootdn;
