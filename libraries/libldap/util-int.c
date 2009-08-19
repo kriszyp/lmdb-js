@@ -147,7 +147,10 @@ ldap_pvt_gmtime( const time_t *timep, struct tm *result )
 # endif /* LDAP_R_COMPILE */
 
 	tm_ptr = gmtime( timep );
-	if ( tm_ptr != NULL ) {
+	if ( tm_ptr == NULL ) {
+		result = NULL;
+
+	} else {
 		*result = *tm_ptr;
 	}
 
@@ -155,7 +158,7 @@ ldap_pvt_gmtime( const time_t *timep, struct tm *result )
 	ldap_pvt_thread_mutex_unlock( &ldap_int_gmtime_mutex );
 # endif /* LDAP_R_COMPILE */
 
-	return tm_ptr;
+	return result;
 }
 #endif /* !USE_GMTIME_R */
 
@@ -170,7 +173,10 @@ ldap_pvt_localtime( const time_t *timep, struct tm *result )
 # endif /* LDAP_R_COMPILE */
 
 	tm_ptr = localtime( timep );
-	if ( tm_ptr != NULL ) {
+	if ( tm_ptr == NULL ) {
+		result = NULL;
+
+	} else {
 		*result = *tm_ptr;
 	}
 
@@ -178,7 +184,7 @@ ldap_pvt_localtime( const time_t *timep, struct tm *result )
 	ldap_pvt_thread_mutex_unlock( &ldap_int_gmtime_mutex );
 # endif /* LDAP_R_COMPILE */
 
-	return tm_ptr;
+	return result;
 }
 #endif /* !USE_LOCALTIME_R */
 
