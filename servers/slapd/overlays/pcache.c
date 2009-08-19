@@ -1721,7 +1721,7 @@ remove_query_data(
 	struct berval	*query_uuid )
 {
 	struct query_info	*qi, *qnext;
-	char			filter_str[ LDAP_LUTIL_UUIDSTR_BUFSIZE + STRLENOF( "(queryId=)" ) ];
+	char			filter_str[ LDAP_LUTIL_UUIDSTR_BUFSIZE + STRLENOF( "(pcacheQueryID=)" ) ];
 	AttributeAssertion	ava = ATTRIBUTEASSERTION_INIT;
 	Filter			filter = {LDAP_FILTER_EQUALITY};
 	SlapReply 		sreply = {REP_RESULT};
@@ -2144,7 +2144,7 @@ pcache_remove_entry_queries_from_cache(
 	slap_callback		sc = { 0 };
 	SlapReply		rs = { REP_RESULT };
 	Filter			f = { 0 };
-	char			filter_str[ LDAP_LUTIL_UUIDSTR_BUFSIZE + STRLENOF( "(queryId=)" ) ];
+	char			filter_str[ LDAP_LUTIL_UUIDSTR_BUFSIZE + STRLENOF( "(pcacheQueryID=)" ) ];
 	AttributeAssertion	ava = ATTRIBUTEASSERTION_INIT;
 	AttributeName		attrs[ 2 ] = {{{ 0 }}};
 	int			rc;
@@ -3300,7 +3300,7 @@ refresh_query( Operation *op, SlapReply *rs, CachedQuery *query,
 {
 	slap_callback cb = { 0 };
 	refresh_info ri = { 0 };
-	char filter_str[ LDAP_LUTIL_UUIDSTR_BUFSIZE + STRLENOF( "(queryId=)" ) ];
+	char filter_str[ LDAP_LUTIL_UUIDSTR_BUFSIZE + STRLENOF( "(pcacheQueryID=)" ) ];
 	AttributeAssertion	ava = ATTRIBUTEASSERTION_INIT;
 	Filter filter = {LDAP_FILTER_EQUALITY};
 	AttributeName attrs[ 2 ] = {{{ 0 }}};
@@ -5077,7 +5077,7 @@ pcache_exop_query_delete(
 		len = snprintf( buf, sizeof( buf ), " dn=\"%s\"", op->o_req_ndn.bv_val );
 
 		if ( !BER_BVISNULL( &uuid ) && len < sizeof( buf ) ) {
-			snprintf( &buf[ len ], sizeof( buf ) - len, " queryId=\"%s\"", uuid.bv_val );
+			snprintf( &buf[ len ], sizeof( buf ) - len, " pcacheQueryId=\"%s\"", uuid.bv_val );
 		}
 
 		Debug( LDAP_DEBUG_STATS, "%s QUERY DELETE%s\n",
