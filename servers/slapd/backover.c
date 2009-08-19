@@ -699,7 +699,7 @@ over_op_func(
 	slap_overinfo *oi;
 	slap_overinst *on;
 	BackendDB *be = op->o_bd, db;
-	slap_callback cb = {NULL, over_back_response, NULL, NULL};
+	slap_callback cb = {NULL, over_back_response, NULL, NULL}, **sc;
 	int rc = SLAP_CB_CONTINUE;
 
 	/* FIXME: used to happen for instance during abandon
@@ -719,9 +719,14 @@ over_op_func(
 	op->o_callback = &cb;
 
 	rc = overlay_op_walk( op, rs, which, oi, on );
+	for ( sc = &op->o_callback; *sc; sc = &(*sc)->sc_next ) {
+		if ( *sc == &cb ) {
+			*sc = cb.sc_next;
+			break;
+		}
+	}
 
 	op->o_bd = be;
-	op->o_callback = cb.sc_next;
 	return rc;
 }
 
