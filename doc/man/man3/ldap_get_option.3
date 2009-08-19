@@ -40,10 +40,10 @@ This is a read-only option.
 .TP
 .B LDAP_OPT_API_INFO
 Fills-in a 
-.BR "struct ldapapiinfo" ;
+.BR "LDAPAPIInfo" ;
 .BR outvalue 
 must be a 
-.BR "struct ldapapiinfo *" ,
+.BR "LDAPAPIInfo *" ,
 pointing to an already allocated struct.
 This is a read-only option.
 .TP
@@ -65,16 +65,20 @@ by calling
 while
 .BR invalue
 must be 
-.BR "LDAPControl **" ;
+.BR "LDAPControl *const *" ;
 the library duplicates the controls passed via
 .BR invalue .
 .TP
 .B LDAP_OPT_CONNECT_ASYNC
 Sets/gets the status of the asynchronous connect flag.
-The value should either be
+.BR invalue
+should either be
 .BR LDAP_OPT_OFF
 or
-.BR LDAP_OPT_ON .
+.BR LDAP_OPT_ON ;
+.BR outvalue
+must be
+.BR "int *" .
 When set, the library will call
 .BR connect (2)
 and return, without waiting for response.
@@ -89,17 +93,16 @@ This option is OpenLDAP specific.
 .TP
 .B LDAP_OPT_CONNECT_CB
 This option allows to set a connect callback.
-The 
 .B invalue
-must be a pointer to a
-.IR "struct ldap_conncb" .
+must be a 
+.BR "const struct ldap_conncb *" .
 Callbacks are executed in last in-first served order.
 Hanlder-specific callbacks are executed first, followed by global ones.
 Right before freeing the callback structure, the
-.I lc_del
+.B lc_del
 callback handler is passed a 
 .B NULL
-.IR Sockbuf .
+.BR Sockbuf .
 Calling
 .BR ldap_get_option (3)
 for this option removes the callback whose pointer matches
@@ -108,12 +111,22 @@ This option is OpenLDAP specific.
 .TP
 .B LDAP_OPT_DEBUG_LEVEL
 Sets/gets the debug level of the client library.
-Both
-.BR outvalue
-and
 .BR invalue
 must be a 
+.BR "const int *" ;
+.BR outvalue
+must be a
 .BR "int *" .
+Valid debug levels are 
+.BR LDAP_DEBUG_ANY ,
+.BR LDAP_DEBUG_ARGS ,
+.BR LDAP_DEBUG_BER ,
+.BR LDAP_DEBUG_CONNS ,
+.BR LDAP_DEBUG_NONE ,
+.BR LDAP_DEBUG_PACKETS ,
+.BR LDAP_DEBUG_PARSE ,
+and
+.BR LDAP_DEBUG_TRACE .
 This option is OpenLDAP specific.
 .TP
 .B LDAP_OPT_DEFBASE
@@ -127,18 +140,19 @@ and the caller is responsible of freeing the returned string by calling
 while
 .BR invalue
 must be a 
-.BR "char *" ;
+.BR "const char *" ;
 the library duplicates the corresponding string.
 This option is OpenLDAP specific.
 .TP
 .B LDAP_OPT_DEREF
 Sets/gets the value that defines when alias dereferencing must occur.
-.BR outvalue 
-and 
 .BR invalue
 must be
-.BR "int *" ,
-and they cannot be NULL.
+.BR "const int *" ;
+.BR outvalue 
+must be
+.BR "int *" .
+They cannot be NULL.
 The value of 
 .BR *invalue
 should be one of
@@ -188,7 +202,7 @@ and the caller is responsible of freeing the resulting string by calling
 while
 .BR invalue
 must be a 
-.BR "char *" ;
+.BR "const char *" ;
 the library duplicates the corresponding string.
 .TP
 .B LDAP_OPT_MATCHED_DN
@@ -201,7 +215,7 @@ and the caller is responsible of freeing the returned string by calling
 while
 .BR invalue
 must be a 
-.BR "char *" ;
+.BR "const char *" ;
 the library duplicates the corresponding string.
 .TP
 .B LDAP_OPT_NETWORK_TIMEOUT
@@ -218,8 +232,8 @@ must be a
 and
 .B invalue
 must be a 
-.BR "struct timeval *" ,
-and they cannot be NULL. Using a struct with seconds set to \-1 results
+.BR "const struct timeval *" .
+They cannot be NULL. Using a struct with seconds set to \-1 results
 in an infinite timeout, which is the default.
 This option is OpenLDAP specific.
 .TP
@@ -237,51 +251,53 @@ Sets/gets an array containing the referral URIs associated to the LDAP handle.
 must be a
 .BR "char ***" ,
 and the caller is responsible of freeing the returned string by calling
-.BR ber_memvfree (3),
+.BR ldap_memvfree (3),
 while
 .BR invalue
 must be a NULL-terminated
-.BR "char **" ;
+.BR "char *const *" ;
 the library duplicates the corresponding string.
 This option is OpenLDAP specific.
 .TP
 .B LDAP_OPT_REFERRALS
 Determines whether the library should implicitly chase referrals or not.
-.BR outvalue
-and
 .BR invalue
 must be 
-.BR "int *" ;
-their value should either be
+.BR "const int *" ;
+its value should either be
 .BR LDAP_OPT_OFF
 or
 .BR LDAP_OPT_ON .
-.TP
-.B LDAP_OPT_REFHOPLIMIT
-This option is OpenLDAP specific.
-It is not currently implemented.
+.BR outvalue
+must be
+.BR "int *" .
+.\".TP
+.\".B LDAP_OPT_REFHOPLIMIT
+.\"This option is OpenLDAP specific.
+.\"It is not currently implemented.
 .TP
 .B LDAP_OPT_RESTART
 Determines whether the library should implicitly restart connections (FIXME).
-.BR outvalue
-and
 .BR invalue
 must be 
-.BR "int *" ;
-their value should either be
+.BR "const int *" ;
+its value should either be
 .BR LDAP_OPT_OFF
 or
 .BR LDAP_OPT_ON .
+.BR outvalue
+must be
+.BR "int *" .
 .TP
 .B LDAP_OPT_RESULT_CODE
 Sets/gets the LDAP result code associated to the handle.
 This option was formerly known as
 .BR LDAP_OPT_ERROR_NUMBER .
-Both
-.BR outvalue
-and
 .BR invalue
 must be a 
+.BR "const int *" .
+.BR outvalue
+must be a
 .BR "int *" .
 .TP
 .B LDAP_OPT_SERVER_CONTROLS
@@ -302,19 +318,21 @@ by calling
 while
 .BR invalue
 must be 
-.BR "LDAPControl **" ;
+.BR "LDAPControl *const *" ;
 the library duplicates the controls passed via
 .BR invalue .
 .TP
 .B LDAP_OPT_SIZELIMIT
 Sets/gets the value that defines the maximum number of entries
 to be returned by a search operation.
-.BR outvalue 
-and 
 .BR invalue
 must be
-.BR "int *" ,
-and they cannot be NULL.
+.BR "const int *" ,
+while
+.BR outvalue
+must be
+.BR "int *" ;
+They cannot be NULL.
 .TP
 .B LDAP_OPT_SOCKBUF
 Returns a pointer to the socket buffer of the LDAP handle passed in as
@@ -328,9 +346,11 @@ This option is OpenLDAP specific.
 .B LDAP_OPT_TIMELIMIT
 Sets/gets the value that defines the time limit after which
 a search operation should be terminated by the server.
-.BR outvalue 
-and 
 .BR invalue
+must be
+.BR "const int *" ,
+while
+.BR outvalue
 must be
 .BR "int *" ,
 and they cannot be NULL.
@@ -361,7 +381,7 @@ and the caller is responsible of freeing the resulting string by calling
 while
 .BR invalue
 must be a 
-.BR "char *" ;
+.BR "const char *" ;
 the library parses the string into a list of 
 .BR LDAPURLDesc
 structures, so the invocation of 
@@ -383,14 +403,16 @@ Gets the SASL authentication identity;
 .BR outvalue
 must be a
 .BR "char **" ,
-its content needs to be freed by the caller.
+its content needs to be freed by the caller using
+.BR ldap_memfree (3).
 .TP
 .B LDAP_OPT_X_SASL_AUTHZID
 Gets the SASL authorization identity;
 .BR outvalue
 must be a
 .BR "char **" ,
-its content needs to be freed by the caller.
+its content needs to be freed by the caller using
+.BR ldap_memfree (3).
 .TP
 .B LDAP_OPT_X_SASL_MAXBUFSIZE
 Gets/sets SASL maximum buffer size;
@@ -409,7 +431,8 @@ Gets the SASL mechanism;
 .BR outvalue
 must be a
 .BR "char **" ,
-its content needs to be freed by the caller.
+its content needs to be freed by the caller using
+.BR ldap_memfree (3).
 .TP
 .B LDAP_OPT_X_SASL_MECHLIST
 Gets the list of the available mechanisms,
@@ -417,21 +440,29 @@ in form of a NULL-terminated array of strings;
 .BR outvalue
 must be
 .BR "char ***" .
+The caller must not free nor otherwise muck with it.
 .TP
 .B LDAP_OPT_X_SASL_NOCANON	
 Sets/gets the NOCANON flag.
 When unset, the hostname is canonicalized.
-The value should either be
+.BR invalue
+must be
+.BR "const int *" ;
+its value should either be
 .BR LDAP_OPT_OFF
 or
 .BR LDAP_OPT_ON .
+.BR outvalue
+must be
+.BR "int *" .
 .TP
 .B LDAP_OPT_X_SASL_REALM
 Gets the SASL realm;
 .BR outvalue
 must be a
 .BR "char **" ,
-its content needs to be freed by the caller.
+its content needs to be freed by the caller using
+.BR ldap_memfree (3).
 .TP
 .B LDAP_OPT_X_SASL_SECPROPS
 Sets the SASL secprops;
@@ -462,7 +493,7 @@ Sets the SASL SSF value related to an authentication
 performed using an EXTERNAL mechanism;
 .BR invalue
 must be a
-.BR "ber_len_t *" .
+.BR "const ber_len_t *" .
 .TP
 .B LDAP_OPT_X_SASL_SSF_MAX
 Gets/sets SASL maximum SSF;
@@ -493,7 +524,8 @@ Gets the SASL username;
 .BR outvalue
 must be a
 .BR "char **" .
-Its content needs to be freed by the caller.
+Its content needs to be freed by the caller using
+.BR ldap_memfree (3).
 .SH TCP OPTIONS
 The TCP options are OpenLDAP specific.
 Mainly intended for use with Linux, they may not be portable.
@@ -540,7 +572,8 @@ must be
 .BR outvalue
 must be
 .BR "char **" ,
-and its contents need to be freed by the caller.
+and its contents need to be freed by the caller using
+.BR ldap_memfree (3).
 .TP
 .B LDAP_OPT_X_TLS_CACERTFILE
 Sets/gets the full-path CA certificate file.
@@ -550,7 +583,8 @@ must be
 .BR outvalue
 must be
 .BR "char **" ,
-and its contents need to be freed by the caller.
+and its contents need to be freed by the caller using
+.BR ldap_memfree (3).
 .TP
 .B LDAP_OPT_X_TLS_CERTFILE
 Sets/gets the full-path certificate file.
@@ -560,7 +594,8 @@ must be
 .BR outvalue
 must be
 .BR "char **" ,
-and its contents need to be freed by the caller.
+and its contents need to be freed by the caller using
+.BR ldap_memfree (3).
 .TP
 .B LDAP_OPT_X_TLS_CIPHER_SUITE
 Sets/gets the allowed cipher suite.
@@ -570,7 +605,8 @@ must be
 .BR outvalue
 must be
 .BR "char **" ,
-and its contents need to be freed by the caller.
+and its contents need to be freed by the caller using
+.BR ldap_memfree (3).
 .TP
 .B LDAP_OPT_X_TLS_CONNECT_ARG
 Sets/gets the connection callback argument.
@@ -612,7 +648,8 @@ must be
 .BR outvalue
 must be
 .BR "char **" ,
-and its contents need to be freed by the caller.
+and its contents need to be freed by the caller using
+.BR ldap_memfree (3).
 This option is only valid for GNUtls.
 .TP
 .B LDAP_OPT_X_TLS_CTX
@@ -633,7 +670,8 @@ must be
 .BR outvalue
 must be
 .BR "char **" ,
-and its contents need to be freed by the caller.
+and its contents need to be freed by the caller using
+.BR ldap_memfree (3).
 Ignored by GNUtls.
 .TP
 .B LDAP_OPT_X_TLS_KEYFILE
@@ -644,7 +682,8 @@ must be
 .BR outvalue
 must be
 .BR "char **" ,
-and its contents need to be freed by the caller.
+and its contents need to be freed by the caller using
+.BR ldap_memfree (3).
 .TP
 .B LDAP_OPT_X_TLS_NEWCTX
 Instructs the library to create a new TLS CTX.
@@ -666,9 +705,9 @@ must be
 .TP
 .B LDAP_OPT_X_TLS_RANDOM_FILE
 Sets/gets the random file when
-.I /dev/random
+.B /dev/random
 and
-.I /dev/urandom
+.B /dev/urandom
 are not available.
 .BR invalue
 must be
@@ -676,7 +715,8 @@ must be
 .BR outvalue
 must be
 .BR "char **" ,
-and its contents need to be freed by the caller.
+and its contents need to be freed by the caller using
+.BR ldap_memfree (3).
 Ignored by GNUtls.
 .TP
 .B LDAP_OPT_X_TLS_REQUIRE_CERT
