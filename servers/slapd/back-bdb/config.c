@@ -487,7 +487,7 @@ bdb_cf_gen( ConfigArgs *c )
 			if ( bdb->bi_lock_detect != DB_LOCK_DEFAULT ) {
 				int i;
 				for (i=0; !BER_BVISNULL(&bdb_lockd[i].word); i++) {
-					if ( bdb->bi_lock_detect == bdb_lockd[i].mask ) {
+					if ( bdb->bi_lock_detect == (u_int32_t)bdb_lockd[i].mask ) {
 						value_add_one( &c->rvalue_vals, &bdb_lockd[i].word );
 						rc = 0;
 						break;
@@ -890,7 +890,7 @@ bdb_cf_gen( ConfigArgs *c )
 				c->log, c->argv[1] );
 			return 1;
 		}
-		bdb->bi_lock_detect = rc;
+		bdb->bi_lock_detect = (u_int32_t)rc;
 		break;
 
 	case BDB_SSTACK:

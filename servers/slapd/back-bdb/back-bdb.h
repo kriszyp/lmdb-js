@@ -199,7 +199,7 @@ struct bdb_info {
 	struct re_s		*bi_txn_cp_task;
 	struct re_s		*bi_index_task;
 
-	int			bi_lock_detect;
+	u_int32_t		bi_lock_detect;
 	long		bi_shm_key;
 
 	ID			bi_lastid;
