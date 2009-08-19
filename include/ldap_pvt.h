@@ -120,6 +120,7 @@ ldap_pvt_localtime LDAP_P((
 # endif
 
 /* Get current time as a structured time */
+struct lutil_tm;
 LDAP_F( void )
 ldap_pvt_gettime LDAP_P(( struct lutil_tm * ));
 
