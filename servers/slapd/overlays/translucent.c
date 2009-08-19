@@ -158,7 +158,8 @@ translucent_cfadd( Operation *op, SlapReply *rs, Entry *e, ConfigArgs *ca )
 
 	/* FIXME: should not hardcode "olcDatabase" here */
 	bv.bv_len = snprintf( ca->cr_msg, sizeof( ca->cr_msg ),
-		"olcDatabase=%s", ov->db.bd_info->bi_type );
+		"olcDatabase=" SLAP_X_ORDERED_FMT "%s",
+		0, ov->db.bd_info->bi_type );
 	if ( bv.bv_len >= sizeof( ca->cr_msg ) ) {
 		return -1;
 	}
