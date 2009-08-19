@@ -57,6 +57,7 @@ int passwd_extop(
 	int rc;
 	BackendDB *op_be;
 	int freenewpw = 0;
+	struct berval dn = BER_BVNULL, ndn = BER_BVNULL;
 
 	assert( ber_bvcmp( &slap_EXOP_MODIFY_PASSWD, &op->ore_reqoid ) == 0 );
 
@@ -100,19 +101,22 @@ int passwd_extop(
 	}
 
 	if ( !BER_BVISEMPTY( &id ) ) {
-		rs->sr_err = dnPrettyNormal( NULL, &id, &op->o_req_dn,
-				&op->o_req_ndn, op->o_tmpmemctx );
+		rs->sr_err = dnPrettyNormal( NULL, &id, &dn, &ndn, op->o_tmpmemctx );
 		id.bv_val[id.bv_len] = idNul;
 		if ( rs->sr_err != LDAP_SUCCESS ) {
 			rs->sr_text = "Invalid DN";
 			rc = rs->sr_err;
 			goto error_return;
 		}
+		op->o_req_dn = dn;
+		op->o_req_ndn = ndn;
 		op->o_bd = select_backend( &op->o_req_ndn, 1 );
 
 	} else {
-		ber_dupbv_x( &op->o_req_dn, &op->o_dn, op->o_tmpmemctx );
-		ber_dupbv_x( &op->o_req_ndn, &op->o_ndn, op->o_tmpmemctx );
+		ber_dupbv_x( &dn, &op->o_dn, op->o_tmpmemctx );
+		ber_dupbv_x( &ndn, &op->o_ndn, op->o_tmpmemctx );
+		op->o_req_dn = dn;
+		op->o_req_ndn = ndn;
 		ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
 		op->o_bd = op->o_conn->c_authz_backend;
 		ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
@@ -313,12 +317,12 @@ error_return:;
 	if ( freenewpw ) {
 		free( qpw->rs_new.bv_val );
 	}
-	if ( !BER_BVISNULL( &op->o_req_dn ) ) {
-		op->o_tmpfree( op->o_req_dn.bv_val, op->o_tmpmemctx );
+	if ( !BER_BVISNULL( &dn ) ) {
+		op->o_tmpfree( dn.bv_val, op->o_tmpmemctx );
 		BER_BVZERO( &op->o_req_dn );
 	}
-	if ( !BER_BVISNULL( &op->o_req_ndn ) ) {
-		op->o_tmpfree( op->o_req_ndn.bv_val, op->o_tmpmemctx );
+	if ( !BER_BVISNULL( &ndn ) ) {
+		op->o_tmpfree( ndn.bv_val, op->o_tmpmemctx );
 		BER_BVZERO( &op->o_req_ndn );
 	}
 
