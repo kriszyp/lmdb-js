@@ -134,6 +134,29 @@ be larger than the <ttr> for this option to be useful. Entries are not
 refreshed by default (<ttr> set to 0).
 
 .TP
+.B pcacheBind <filter_template> <attrset_index> <ttr> <scope> <base>
+Specifies a template for caching Simple Bind credentials based on an
+already defined \fBpcacheTemplate\fP. The <filter_template> is similar
+to a <template_string> except that it may have some values present. Its
+purpose is to allow the overlay to generate filters similar to what other
+applications do when they do a Search immediately before a Bind. E.g.,
+if a client like nss_ldap is configured to search for a user with the
+filter "(&(objectClass=posixAccount)(uid=<username>))" then the corresponding
+template "(&(objectClass=posixAccount)(uid=))" should be used here. When
+converted to a regular template e.g. "(&(objectClass=)(uid=))" this
+template and the <attrset_index> must match an already defined
+\fBpcacheTemplate\fP clause. The "time to refresh" <ttr> determines the
+time interval after which the cached credentials will be refreshed. The
+first Bind request that occurs after that time will trigger the refresh
+attempt. Refreshes are not performed when the overlay is Offline. There
+is no "time to live" parameter for the Bind credentials; the credentials
+will expire according to the \fBpcacheTemplate\fP ttl. The <scope> and
+<base> should match the search scope and base used by the authentication
+clients. The cached credentials are not stored in cleartext, they are
+hashed using the default password hash.
+By default Bind caching is not enabled.
+
+.TP
 .B pcachePosition { head | tail }
 Specifies whether the response callback should be placed at the
 .B tail
