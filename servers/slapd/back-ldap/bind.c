@@ -783,7 +783,7 @@ ldap_back_getconn(
 {
 	ldapinfo_t	*li = (ldapinfo_t *)op->o_bd->be_private;
 	ldapconn_t	*lc = NULL,
-			lc_curr = { 0 };
+			lc_curr = {{ 0 }};
 	int		refcnt = 1,
 			lookupconn = !( sendok & LDAP_BACK_BINDING );
 

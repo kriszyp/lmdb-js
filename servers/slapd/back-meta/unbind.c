@@ -39,7 +39,7 @@ meta_back_conn_destroy(
 {
 	metainfo_t	*mi = ( metainfo_t * )be->be_private;
 	metaconn_t	*mc,
-			mc_curr = { 0 };
+			mc_curr = {{ 0 }};
 	int		i;
 
 

@@ -1024,7 +1024,7 @@ meta_back_getconn(
 {
 	metainfo_t	*mi = ( metainfo_t * )op->o_bd->be_private;
 	metaconn_t	*mc = NULL,
-			mc_curr = { 0 };
+			mc_curr = {{ 0 }};
 	int		cached = META_TARGET_NONE,
 			i = META_TARGET_NONE,
 			err = LDAP_SUCCESS,
