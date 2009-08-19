@@ -192,7 +192,8 @@ ldap_x_wc_to_utf8 ( char *utf8char, wchar_t wchar, size_t count )
 		if( wchar < 0x4000000 ) 
 			return 5;
 #if SIZEOF_WCHAR_T > 4
-		if( wchar < 0x80000000LL )
+		/* UL is not strictly needed by ANSI C */
+		if( wchar < (wchar_t)0x80000000UL )
 #endif /* SIZEOF_WCHAR_T > 4 */
 			return 6;
 		return -1;
@@ -239,7 +240,8 @@ ldap_x_wc_to_utf8 ( char *utf8char, wchar_t wchar, size_t count )
 
 	} else
 #if SIZEOF_WCHAR_T > 4
-		if( wchar < 0x80000000LL )
+		/* UL is not strictly needed by ANSI C */
+		if( wchar < (wchar_t)0x80000000UL )
 #endif /* SIZEOF_WCHAR_T > 4 */
 	{
 		if (count >= 6) {
