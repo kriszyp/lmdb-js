@@ -925,7 +925,7 @@ default policy object and if that object exists, then the policy defined in
 that object is applied.
 
 Please see {{slapo-ppolicy(5)}} for complete explanations of features and discussion of
- "Password Management Issues" at {{URL:http://www.connexitor.com/forums/viewtopic.php?f=6&t=25}}
+ "Password Management Issues" at {{URL:http://www.symas.com/blog/?page_id=66}}
 
 
 H3: Further Information
