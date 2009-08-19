@@ -375,6 +375,130 @@ and the
 .BR port
 fields.
 This option is OpenLDAP specific.
+.SH SASL OPTIONS
+The SASL options are OpenLDAP specific.
+.TP
+.B LDAP_OPT_X_SASL_MECH
+Gets the SASL mechanism;
+.BR outvalue
+must be a
+.BR "char **" ,
+its content needs to be freed by the caller.
+.TP
+.B LDAP_OPT_X_SASL_REALM
+Gets the SASL realm;
+.BR outvalue
+must be a
+.BR "char **" ,
+its content needs to be freed by the caller.
+.TP
+.B LDAP_OPT_X_SASL_AUTHCID
+Gets the SASL authentication identity;
+.BR outvalue
+must be a
+.BR "char **" ,
+its content needs to be freed by the caller.
+.TP
+.B LDAP_OPT_X_SASL_AUTHZID
+Gets the SASL authorization identity;
+.BR outvalue
+must be a
+.BR "char **" ,
+its content needs to be freed by the caller.
+.TP
+.B LDAP_OPT_X_SASL_SSF
+Gets the SASL SSF;
+.BR outvalue
+must be a
+.BR "int *" .
+.TP
+.B LDAP_OPT_X_SASL_SSF_EXTERNAL
+Sets the SASL SSF value related to an authentication
+performed using an EXTERNAL mechanism;
+.BR invalue
+must be a
+.BR "ber_len_t *" .
+.TP
+.B LDAP_OPT_X_SASL_SECPROPS
+Set the SASL secprops;
+.BR invalue
+must be a
+.BR "char *" ,
+containing a comma-separated list of properties.
+Legal values are:
+.BR none ,
+.BR nodict ,
+.BR noplain ,
+.BR noactive ,
+.BR passcred ,
+.BR forwardsec ,
+.BR noanonymous ,
+.BR minssf=<minssf> ,
+.BR maxssf=<maxssf> ,
+.BR maxbufsize=<maxbufsize> ,
+with
+.BR "minssf >= 0" ,
+.BR "maxssf <= 2**31 - 1" ,
+.BR "maxbufsize <= 65536" .
+.TP
+.B LDAP_OPT_X_SASL_SSF_MIN
+Gets/sets SASL minimum SSF;
+.BR invalue
+must be
+.BR "const ber_len_t *" ,
+while
+.BR outvalue
+must be
+.BR "ber_len_t *" .
+See also
+.BR LDAP_OPT_X_SASL_SECPROPS .
+.TP
+.B LDAP_OPT_X_SASL_SSF_MAX
+Gets/sets SASL maximum SSF;
+.BR invalue
+must be
+.BR "const ber_len_t *" ,
+while
+.BR outvalue
+must be
+.BR "ber_len_t *" .
+See also
+.BR LDAP_OPT_X_SASL_SECPROPS .
+.TP
+.B LDAP_OPT_X_SASL_MAXBUFSIZE
+Gets/sets SASL maximum buffer size;
+.BR invalue
+must be
+.BR "const ber_len_t *" ,
+while
+.BR outvalue
+must be
+.BR "ber_len_t *" .
+See also
+.BR LDAP_OPT_X_SASL_SECPROPS .
+.TP
+.B LDAP_OPT_X_SASL_MECHLIST
+Gets the list of the available mechanisms,
+in form of a NULL-terminated array of strings;
+.BR outvalue
+must be
+.BR "char ***" .
+.TP
+.B LDAP_OPT_X_SASL_NOCANON	
+Sets/gets the NOCANON flag.
+When unset, the hostname is canonicalized.
+The value should either be
+.BR LDAP_OPT_OFF
+or
+.BR LDAP_OPT_ON .
+.TP
+.B LDAP_OPT_X_SASL_USERNAME
+Gets the SASL username;
+.BR outvalue
+must be a
+.BR "char **" .
+It points to memory that belongs to the handle;
+the caller must not muck with it.
 .SH TLS OPTIONS
 The TLS options are OpenLDAP specific.
 .TP
@@ -457,38 +581,6 @@ tells the library to create a CTX for a server.
 .B LDAP_OPT_X_TLS_CRLFILE
 Sets/gets the full-path of the CRL file.
 This option is only valid for GNUtls.
-.SH SASL OPTIONS
-.TP
-.B LDAP_OPT_X_SASL_MECH
-.TP
-.B LDAP_OPT_X_SASL_REALM
-.TP
-.B LDAP_OPT_X_SASL_AUTHCID
-.TP
-.B LDAP_OPT_X_SASL_AUTHZID
-.TP
-.B LDAP_OPT_X_SASL_SSF
-read-only
-.TP
-.B LDAP_OPT_X_SASL_SSF_EXTERNAL
-write-only
-.TP
-.B LDAP_OPT_X_SASL_SECPROPS
-write-only
-.TP
-.B LDAP_OPT_X_SASL_SSF_MIN
-.TP
-.B LDAP_OPT_X_SASL_SSF_MAX
-.TP
-.B LDAP_OPT_X_SASL_MAXBUFSIZE
-.TP
-.B LDAP_OPT_X_SASL_MECHLIST
-read-only
-.TP
-.B LDAP_OPT_X_SASL_NOCANON	
-.TP
-.B LDAP_OPT_X_SASL_USERNAME
-read-only
 .SH ERRORS
 On success, the functions return
 .BR LDAP_OPT_SUCCESS ,
