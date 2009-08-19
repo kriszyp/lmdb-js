@@ -1781,7 +1781,7 @@ LDAP_SLAPD_F (Filter *) str2filter_x LDAP_P(( Operation *op, const char *str ));
 LDAP_SLAPD_F (int)  syncrepl_add_glue LDAP_P(( 
 					Operation*, Entry* ));
 LDAP_SLAPD_F (void) syncrepl_diff_entry LDAP_P((
-	Operation *op, Attribute *old, Attribute *new,
+	Operation *op, Attribute *old, Attribute *anew,
 	Modifications **mods, Modifications **ml, int is_ctx ));
 LDAP_SLAPD_F (void) syncinfo_free LDAP_P(( struct syncinfo_s *, int all ));
 
