@@ -4541,7 +4541,7 @@ pcache_db_open2(
 			op->ors_slimit = 1;
 			op->ors_tlimit = SLAP_NO_LIMIT;
 			op->ors_limit = NULL;
-			ber_str2bv( "(cachedQueryURL=*)", 0, 0, &op->ors_filterstr );
+			ber_str2bv( "(pcacheQueryURL=*)", 0, 0, &op->ors_filterstr );
 			f.f_choice = LDAP_FILTER_PRESENT;
 			f.f_desc = ad_cachedQueryURL;
 			op->ors_filter = &f;
