@@ -5222,7 +5222,7 @@ pcache_monitor_update(
 
 	{
 		Attribute	*a;
-		char		*buf[ SLAP_TEXT_BUFLEN ];
+		char		buf[ SLAP_TEXT_BUFLEN ];
 		struct berval	bv;
 
 		/* number of cached queries */
