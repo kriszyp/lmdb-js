@@ -2524,11 +2524,58 @@ pcache_chk_controls(
 	return rs->sr_err;
 }
 
+static int
+pc_setpw( Operation *op, struct berval *pwd, cache_manager *cm )
+{
+	struct berval vals[2];
+
+	{
+		const char *text = NULL;
+		BER_BVZERO( &vals[0] );
+		slap_passwd_hash( pwd, &vals[0], &text );
+		if ( BER_BVISEMPTY( &vals[0] )) {
+			Debug( pcache_debug, "pc_setpw: hash failed %s\n",
+				text, 0, 0 );
+			return LDAP_OTHER;
+		}
+	}
+
+	BER_BVZERO( &vals[1] );
+
+	{
+		Modifications mod;
+		SlapReply sr = { REP_RESULT };
+		slap_callback cb = { 0, slap_null_cb, 0, 0 };
+		int rc;
+
+		mod.sml_op = LDAP_MOD_REPLACE;
+		mod.sml_flags = 0;
+		mod.sml_desc = slap_schema.si_ad_userPassword;
+		mod.sml_type = mod.sml_desc->ad_cname;
+		mod.sml_values = vals;
+		mod.sml_nvalues = NULL;
+		mod.sml_numvals = 1;
+		mod.sml_next = NULL;
+
+		op->o_tag = LDAP_REQ_MODIFY;
+		op->orm_modlist = &mod;
+		op->o_bd = &cm->db;
+		op->o_dn = op->o_bd->be_rootdn;
+		op->o_ndn = op->o_bd->be_rootndn;
+		op->o_callback = &cb;
+		Debug( pcache_debug, "pc_setpw: caching bind for %s\n",
+			op->o_req_dn.bv_val, 0, 0 );
+		rc = op->o_bd->be_modify( op, &sr );
+		ch_free( vals[0].bv_val );
+		return rc;
+	}
+}
+
 typedef struct bindcacheinfo {
 	slap_overinst *on;
 	CachedQuery *qc;
 } bindcacheinfo;
-	
+
 static int
 pc_bind_save( Operation *op, SlapReply *rs )
 {
@@ -2536,42 +2583,10 @@ pc_bind_save( Operation *op, SlapReply *rs )
 		bindcacheinfo *bci = op->o_callback->sc_private;
 		slap_overinst *on = bci->on;
 		cache_manager *cm = on->on_bi.bi_private;
-		struct berval vals[2];
-		const char *text = NULL;
 
-		BER_BVZERO( &vals[0] );
-		BER_BVZERO( &vals[1] );
-		slap_passwd_hash( &op->orb_cred, &vals[0], &text );
-		if ( BER_BVISEMPTY( &vals[0] )) {
-			Debug( pcache_debug, "pcache_bind_save: hash failed %s\n",
-				text, 0, 0 );
-		} else {
-			Operation op2 = *op;
-			Modifications mod;
-			SlapReply sr = { REP_RESULT };
-			slap_callback cb = { 0, slap_null_cb, 0, 0 };
-			
-			mod.sml_op = LDAP_MOD_REPLACE;
-			mod.sml_flags = 0;
-			mod.sml_desc = slap_schema.si_ad_userPassword;
-			mod.sml_type = mod.sml_desc->ad_cname;
-			mod.sml_values = vals;
-			mod.sml_nvalues = NULL;
-			mod.sml_numvals = 1;
-			mod.sml_next = NULL;
-
-			op2.o_tag = LDAP_REQ_MODIFY;
-			op2.orm_modlist = &mod;
-			op2.o_bd = &cm->db;
-			op2.o_dn = op2.o_bd->be_rootdn;
-			op2.o_ndn = op2.o_bd->be_rootndn;
-			op2.o_callback = &cb;
-			Debug( pcache_debug, "pcache_bind_save: caching bind for %s\n",
-				op->o_req_dn.bv_val, 0, 0 );
-			if ( op2.o_bd->be_modify( &op2, &sr ) == LDAP_SUCCESS )
-				bci->qc->bindref_time = op->o_time + bci->qc->qtemp->bindttr;
-			ch_free( vals[0].bv_val );
-		}
+		Operation op2 = *op;
+		if ( pc_setpw( &op2, &op->orb_cred, cm ) == LDAP_SUCCESS )
+			bci->qc->bindref_time = op->o_time + bci->qc->qtemp->bindttr;
 	}
 	return SLAP_CB_CONTINUE;
 }
@@ -2678,165 +2693,6 @@ pc_bind_resp( Operation *op, SlapReply *rs )
 	return SLAP_CB_CONTINUE;
 }
 
-static int
-pcache_op_bind(
-	Operation		*op,
-	SlapReply		*rs )
-{
-	slap_overinst 	*on = (slap_overinst *)op->o_bd->bd_info;
-	cache_manager 	*cm = on->on_bi.bi_private;
-	QueryTemplate *temp;
-	Entry *e;
-	slap_callback	cb = { 0 }, *sc;
-	bindinfo bi;
-	bindcacheinfo *bci;
-	Operation op2;
-	int is_priv = 0, rc;
-
-#ifdef PCACHE_CONTROL_PRIVDB
-	if ( op->o_ctrlflag[ privDB_cid ] == SLAP_CONTROL_CRITICAL )
-		is_priv = 1;
-#endif
-
-	/* Skip if we're not configured for Binds, and no priv control */
-	if ( !cm->cache_binds && !is_priv )
-		return SLAP_CB_CONTINUE;
-
-	/* The cache DB isn't open yet */
-	if ( cm->defer_db_open ) {
-		if ( !is_priv ) {
-			/* Just passthru for now */
-			return SLAP_CB_CONTINUE;
-		} else {
-			send_ldap_error( op, rs, LDAP_UNAVAILABLE,
-				"pcachePrivDB: cacheDB not available" );
-			return rs->sr_err;
-		}
-	}
-
-	if ( is_priv ) {
-		int		rc;
-		slap_callback	*save_cb;
-
-		/* FIXME: might be a little bit exaggerated... */
-		if ( !be_isroot( op ) ) {
-			save_cb = op->o_callback;
-			op->o_callback = NULL;
-			send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
-				"pcachePrivDB: operation not allowed" );
-			op->o_callback = save_cb;
-
-			return rs->sr_err;
-		}
-
-		/* execute, if possible */
-		if ( cm->db.be_bind != NULL ) {
-			op2 = *op;
-			op2.o_bd = &cm->db;
-
-			rc = op2.o_bd->be_bind( &op2, rs );
-			if ( rc == LDAP_SUCCESS ) {
-				op->o_conn->c_authz_cookie = cm->db.be_private;
-			}
-		} else {
-			/* otherwise fall back to error */
-			save_cb = op->o_callback;
-			op->o_callback = NULL;
-			send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
-				"operation not supported with pcachePrivDB control" );
-			op->o_callback = save_cb;
-		}
-
-		return rs->sr_err;
-	}
-
-	/* First find a matching template with Bind info */
-	for ( temp=cm->qm->templates; temp; temp=temp->qmnext ) {
-		if ( temp->bindttr && dnIsSuffix( &op->o_req_ndn, &temp->bindbase ))
-			break;
-	}
-	/* Didn't find a suitable template, just passthru */
-	if ( !temp )
-		return SLAP_CB_CONTINUE;
-
-	/* See if the entry is already locally cached. If so, we can
-	 * populate the query filter to retrieve the cached query. We
-	 * need to check the bindrefresh time in the query.
-	 */
-	op2 = *op;
-	op2.o_dn = op->o_bd->be_rootdn;
-	op2.o_ndn = op->o_bd->be_rootndn;
-	bi.bi_flags = 0;
-
-	op2.o_bd = &cm->db;
-	e = NULL;
-	rc = be_entry_get_rw( &op2, &op->o_req_ndn, NULL, NULL, 0, &e );
-	if ( rc == LDAP_SUCCESS && e ) {
-		int i;
-		Attribute *a;
-
-		bi.bi_flags |= BI_LOOKUP;
-		op2.ors_filter = pc_bind_attrs( op, e, temp, &op2.ors_filterstr );
-		be_entry_release_r( &op2, e );
-	} else {
-		op2.ors_filter = temp->bindfilter;
-		op2.ors_filterstr = temp->bindfilterstr;
-	}
-
-	op2.o_bd = op->o_bd;
-	op2.o_tag = LDAP_REQ_SEARCH;
-	op2.ors_scope = LDAP_SCOPE_BASE;
-	op2.ors_deref = LDAP_DEREF_NEVER;
-	op2.ors_slimit = 1;
-	op2.ors_tlimit = SLAP_NO_LIMIT;
-	op2.ors_limit = NULL;
-	op2.ors_attrs = cm->qm->attr_sets[temp->attr_set_index].attrs;
-	op2.ors_attrsonly = 0;
-
-	/* We want to invoke search at the same level of the stack
-	 * as we're already at...
-	 */
-	bi.bi_cm = cm;
-	bi.bi_templ = temp;
-	bi.bi_cq = NULL;
-	bi.bi_si = NULL;
-
-	bi.bi_cb.sc_response = pc_bind_search;
-	bi.bi_cb.sc_cleanup = NULL;
-	bi.bi_cb.sc_private = &bi;
-	cb.sc_private = &bi;
-	cb.sc_response = pc_bind_resp;
-	op2.o_callback = &cb;
-	overlay_op_walk( &op2, rs, op_search, on->on_info, on );
-
-	/* OK, just bind locally */
-	if ( bi.bi_flags & BI_HASHED ) {
-		BackendDB *be = op->o_bd;
-		op->o_bd = &cm->db;
-
-		if ( op->o_bd->be_bind( op, rs ) == LDAP_SUCCESS ) {
-			op->o_conn->c_authz_cookie = cm->db.be_private;
-		}
-		op->o_bd = be;
-		return rs->sr_err;
-	}
-
-	/* We have a cached query to work with */
-	if ( bi.bi_cq ) {
-		sc = op->o_tmpalloc( sizeof(slap_callback) + sizeof(bindcacheinfo),
-			op->o_tmpmemctx );
-		sc->sc_response = pc_bind_save;
-		sc->sc_cleanup = NULL;
-		sc->sc_private = sc+1;
-		bci = sc->sc_private;
-		sc->sc_next = op->o_callback;
-		op->o_callback = sc;
-		bci->on = on;
-		bci->qc = bi.bi_cq;
-	}
-	return SLAP_CB_CONTINUE;
-}
-
 #ifdef PCACHE_CONTROL_PRIVDB
 static int
 pcache_op_privdb(
@@ -2903,6 +2759,114 @@ pcache_op_privdb(
 	return rs->sr_err;
 }
 #endif /* PCACHE_CONTROL_PRIVDB */
+
+static int
+pcache_op_bind(
+	Operation		*op,
+	SlapReply		*rs )
+{
+	slap_overinst 	*on = (slap_overinst *)op->o_bd->bd_info;
+	cache_manager 	*cm = on->on_bi.bi_private;
+	QueryTemplate *temp;
+	Entry *e;
+	slap_callback	cb = { 0 }, *sc;
+	bindinfo bi;
+	bindcacheinfo *bci;
+	Operation op2;
+	int rc;
+
+#ifdef PCACHE_CONTROL_PRIVDB
+	if ( op->o_ctrlflag[ privDB_cid ] == SLAP_CONTROL_CRITICAL )
+		return pcache_op_privdb( op, rs );
+#endif /* PCACHE_CONTROL_PRIVDB */
+
+	/* Skip if we're not configured for Binds, or cache DB isn't open yet */
+	if ( !cm->cache_binds || cm->defer_db_open )
+		return SLAP_CB_CONTINUE;
+
+	/* First find a matching template with Bind info */
+	for ( temp=cm->qm->templates; temp; temp=temp->qmnext ) {
+		if ( temp->bindttr && dnIsSuffix( &op->o_req_ndn, &temp->bindbase ))
+			break;
+	}
+	/* Didn't find a suitable template, just passthru */
+	if ( !temp )
+		return SLAP_CB_CONTINUE;
+
+	/* See if the entry is already locally cached. If so, we can
+	 * populate the query filter to retrieve the cached query. We
+	 * need to check the bindrefresh time in the query.
+	 */
+	op2 = *op;
+	op2.o_dn = op->o_bd->be_rootdn;
+	op2.o_ndn = op->o_bd->be_rootndn;
+	bi.bi_flags = 0;
+
+	op2.o_bd = &cm->db;
+	e = NULL;
+	rc = be_entry_get_rw( &op2, &op->o_req_ndn, NULL, NULL, 0, &e );
+	if ( rc == LDAP_SUCCESS && e ) {
+		bi.bi_flags |= BI_LOOKUP;
+		op2.ors_filter = pc_bind_attrs( op, e, temp, &op2.ors_filterstr );
+		be_entry_release_r( &op2, e );
+	} else {
+		op2.ors_filter = temp->bindfilter;
+		op2.ors_filterstr = temp->bindfilterstr;
+	}
+
+	op2.o_bd = op->o_bd;
+	op2.o_tag = LDAP_REQ_SEARCH;
+	op2.ors_scope = LDAP_SCOPE_BASE;
+	op2.ors_deref = LDAP_DEREF_NEVER;
+	op2.ors_slimit = 1;
+	op2.ors_tlimit = SLAP_NO_LIMIT;
+	op2.ors_limit = NULL;
+	op2.ors_attrs = cm->qm->attr_sets[temp->attr_set_index].attrs;
+	op2.ors_attrsonly = 0;
+
+	/* We want to invoke search at the same level of the stack
+	 * as we're already at...
+	 */
+	bi.bi_cm = cm;
+	bi.bi_templ = temp;
+	bi.bi_cq = NULL;
+	bi.bi_si = NULL;
+
+	bi.bi_cb.sc_response = pc_bind_search;
+	bi.bi_cb.sc_cleanup = NULL;
+	bi.bi_cb.sc_private = &bi;
+	cb.sc_private = &bi;
+	cb.sc_response = pc_bind_resp;
+	op2.o_callback = &cb;
+	overlay_op_walk( &op2, rs, op_search, on->on_info, on );
+
+	/* OK, just bind locally */
+	if ( bi.bi_flags & BI_HASHED ) {
+		BackendDB *be = op->o_bd;
+		op->o_bd = &cm->db;
+
+		if ( op->o_bd->be_bind( op, rs ) == LDAP_SUCCESS ) {
+			op->o_conn->c_authz_cookie = cm->db.be_private;
+		}
+		op->o_bd = be;
+		return rs->sr_err;
+	}
+
+	/* We have a cached query to work with */
+	if ( bi.bi_cq ) {
+		sc = op->o_tmpalloc( sizeof(slap_callback) + sizeof(bindcacheinfo),
+			op->o_tmpmemctx );
+		sc->sc_response = pc_bind_save;
+		sc->sc_cleanup = NULL;
+		sc->sc_private = sc+1;
+		bci = sc->sc_private;
+		sc->sc_next = op->o_callback;
+		op->o_callback = sc;
+		bci->on = on;
+		bci->qc = bi.bi_cq;
+	}
+	return SLAP_CB_CONTINUE;
+}
 
 static int
 pcache_op_search(
@@ -4863,6 +4827,7 @@ static char *extops[] = {
 };
 #endif /* PCACHE_CONTROL_PRIVDB */
 
+static struct berval pcache_exop_MODIFY_PASSWD = BER_BVC( LDAP_EXOP_MODIFY_PASSWD );
 #ifdef PCACHE_EXOP_QUERY_DELETE
 static struct berval pcache_exop_QUERY_DELETE = BER_BVC( PCACHE_EXOP_QUERY_DELETE );
 
@@ -5136,6 +5101,7 @@ done:;
 
         return rs->sr_err;
 }
+#endif /* PCACHE_EXOP_QUERY_DELETE */
 
 static int
 pcache_op_extended( Operation *op, SlapReply *rs )
@@ -5149,6 +5115,7 @@ pcache_op_extended( Operation *op, SlapReply *rs )
 	}
 #endif /* PCACHE_CONTROL_PRIVDB */
 
+#ifdef PCACHE_EXOP_QUERY_DELETE
 	if ( bvmatch( &op->ore_reqoid, &pcache_exop_QUERY_DELETE ) ) {
 		struct berval	uuid = BER_BVNULL;
 		ber_tag_t	tag = LBER_DEFAULT;
@@ -5176,11 +5143,52 @@ pcache_op_extended( Operation *op, SlapReply *rs )
 		}
 
 		op->o_tmpfree( uuid.bv_val, op->o_tmpmemctx );
+		return rs->sr_err;
 	}
-
-	return rs->sr_err;
-}
 #endif /* PCACHE_EXOP_QUERY_DELETE */
+
+	/* We only care if we're configured for Bind caching */
+	if ( bvmatch( &op->ore_reqoid, &pcache_exop_MODIFY_PASSWD ) &&
+		cm->cache_binds ) {
+		/* See if the local entry exists and has a password.
+		 * It's too much work to find the matching query, so
+		 * we just see if there's a hashed password to update.
+		 */
+		Operation op2 = *op;
+		Entry *e = NULL;
+		int rc;
+		int doit = 0;
+
+		op2.o_bd = &cm->db;
+		op2.o_dn = op->o_bd->be_rootdn;
+		op2.o_ndn = op->o_bd->be_rootndn;
+		rc = be_entry_get_rw( &op2, &op->o_req_ndn, NULL,
+			slap_schema.si_ad_userPassword, 0, &e );
+		if ( rc == LDAP_SUCCESS && e ) {
+			/* See if a recognized password is hashed here */
+			Attribute *a = attr_find( e->e_attrs,
+				slap_schema.si_ad_userPassword );
+			if ( a && a->a_vals[0].bv_val[0] == '{' &&
+				lutil_passwd_scheme( a->a_vals[0].bv_val )) {
+				doit = 1;
+			}
+			be_entry_release_r( &op2, e );
+		}
+
+		if ( doit ) {
+			rc = overlay_op_walk( op, rs, op_extended, on->on_info,
+				on->on_next );
+			if ( rc == LDAP_SUCCESS ) {
+				req_pwdexop_s *qpw = &op->oq_pwdexop;
+
+				/* We don't care if it succeeds or not */
+				pc_setpw( &op2, &qpw->rs_new, cm );
+			}
+			return rc;
+		}
+	}
+	return SLAP_CB_CONTINUE;
+}
 
 #ifdef PCACHE_MONITOR
 
@@ -5566,11 +5574,7 @@ pcache_initialize()
 	pcache.on_bi.bi_op_add = pcache_op_privdb;
 	pcache.on_bi.bi_op_delete = pcache_op_privdb;
 #endif /* PCACHE_CONTROL_PRIVDB */
-#ifdef PCACHE_EXOP_QUERY_DELETE
 	pcache.on_bi.bi_extended = pcache_op_extended;
-#elif defined( PCACHE_CONTROL_PRIVDB )
-	pcache.on_bi.bi_extended = pcache_op_privdb;
-#endif
 
 	pcache.on_bi.bi_chk_controls = pcache_chk_controls;
 
