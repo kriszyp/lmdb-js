@@ -121,7 +121,6 @@ static ConfigDriver config_overlay;
 static ConfigDriver config_subordinate; 
 static ConfigDriver config_suffix; 
 #ifdef LDAP_TCP_BUFFER
-/* #define LDAP_TCP_BUFFER_X_ORDERED */
 static ConfigDriver config_tcp_buffer; 
 #endif /* LDAP_TCP_BUFFER */
 static ConfigDriver config_rootdn;
@@ -616,11 +615,7 @@ static ConfigTable config_back_cf_table[] = {
 #endif /* LDAP_TCP_BUFFER */
 			"( OLcfgGlAt:90 NAME 'olcTCPBuffer' "
 			"DESC 'Custom TCP buffer size' "
-			"SYNTAX OMsDirectoryString "
-#ifdef LDAP_TCP_BUFFER_X_ORDERED
-			"X-ORDERED 'VALUES' "
-#endif /* LDAP_TCP_BUFFER_X_ORDERED */
-			")", NULL, NULL },
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ "threads", "count", 2, 2, 0,
 #ifdef NO_THREADS
 		ARG_IGNORED, NULL,
@@ -2371,16 +2366,6 @@ tcp_buffer_parse( struct berval *val, int argc, char **argv,
 	if ( val != NULL && argv == NULL ) {
 		char *s = val->bv_val;
 
-#ifdef LDAP_TCP_BUFFER_X_ORDERED
-		if ( s[0] == '{' ) {
-			s = strchr( s, '}' );
-			if ( s == NULL ) {
-				return 1;
-			}
-			s++;
-		}
-#endif /* LDAP_TCP_BUFFER_X_ORDERED */
-
 		argv = ldap_str2charray( s, " \t" );
 		if ( argv == NULL ) {
 			return LDAP_OTHER;
@@ -2499,15 +2484,9 @@ static int
 tcp_buffer_unparse( int idx, int size, int rw, Listener *l, struct berval *val )
 {
 	char buf[sizeof("2147483648")], *ptr;
-#ifdef LDAP_TCP_BUFFER_X_ORDERED
-	char fmtbuf[sizeof("{2147483648}")];
-#endif /* LDAP_TCP_BUFFER_X_ORDERED */
 
 	/* unparse for later use */
 	val->bv_len = snprintf( buf, sizeof( buf ), "%d", size );
-#ifdef LDAP_TCP_BUFFER_X_ORDERED
-	val->bv_len += snprintf( fmtbuf, sizeof( fmtbuf ), SLAP_X_ORDERED_FMT, idx );
-#endif /* LDAP_TCP_BUFFER_X_ORDERED */
 	if ( l != NULL ) {
 		val->bv_len += STRLENOF( "listener=" " " ) + l->sl_url.bv_len;
 	}
@@ -2523,10 +2502,6 @@ tcp_buffer_unparse( int idx, int size, int rw, Listener *l, struct berval *val )
 	val->bv_val = SLAP_MALLOC( val->bv_len + 1 );
 
 	ptr = val->bv_val;
-
-#ifdef LDAP_TCP_BUFFER_X_ORDERED
-	ptr = lutil_strcopy( ptr, fmtbuf );
-#endif /* LDAP_TCP_BUFFER_X_ORDERED */
 
 	if ( l != NULL ) {
 		ptr = lutil_strcopy( ptr, "listener=" );
@@ -2603,18 +2578,8 @@ tcp_buffer_add_one( int argc, char **argv, int idx )
 	}
 
 	tcp_buffer = SLAP_REALLOC( tcp_buffer, sizeof( struct berval ) * ( tcp_buffer_num + 2 ) );
-#ifndef LDAP_TCP_BUFFER_X_ORDERED
 	/* append */
 	idx = tcp_buffer_num;
-#else /* LDAP_TCP_BUFFER_X_ORDERED */
-	if ( idx < tcp_buffer_num ) {
-		int i;
-
-		for ( i = tcp_buffer_num; i > idx; i-- ) {
-			tcp_buffer[ i ] = tcp_buffer[ i - 1 ];
-		}
-	}
-#endif /* LDAP_TCP_BUFFER_X_ORDERED */
 	tcp_buffer[ idx ] = val;
 
 	tcp_buffer_num++;
@@ -2634,7 +2599,6 @@ config_tcp_buffer( ConfigArgs *c )
 		value_add( &c->rvalue_nvals, tcp_buffer );
 		
 	} else if ( c->op == LDAP_MOD_DELETE ) {
-#ifndef LDAP_TCP_BUFFER_X_ORDERED
 		if ( !c->line  ) {
 			tcp_buffer_delete( tcp_buffer );
 			ber_bvarray_free( tcp_buffer );
@@ -2691,43 +2655,10 @@ done:;
 			}
 	
 		}
-#else /* LDAP_TCP_BUFFER_X_ORDERED */
-		if ( c->valx == -1 ) {
-			tcp_buffer_delete( tcp_buffer );
-			ber_bvarray_free( tcp_buffer );
-			tcp_buffer = NULL;
-			tcp_buffer_num = 0;
-
-		} else if ( c->valx >= tcp_buffer_num ) {
-			snprintf( c->cr_msg, sizeof( c->cr_msg ),
-				"<%s> invalid value #%d",
-				c->argv[0], c->valx );
-			Debug( LDAP_DEBUG_ANY, "%s: %s\n",
-				c->log, c->cr_msg, 0 );
-			return 1;
-
-		} else {
-			int i;
-
-			tcp_buffer_delete_one( &tcp_buffer[ c->valx ] );
-			ber_memfree( tcp_buffer[ c->valx ].bv_val );
-			for ( i = c->valx; i < tcp_buffer_num; i++ ) {
-				tcp_buffer[ i ] = tcp_buffer[ i + 1 ];
-			}
-			tcp_buffer_num--;
-		}
-#endif /* LDAP_TCP_BUFFER_X_ORDERED */
 
 	} else {
 		int rc;
 		int idx;
-
-#ifdef LDAP_TCP_BUFFER_X_ORDERED
-		idx = c->valx;
-		if ( c->valx == -1 ) {
-			idx = tcp_buffer_num;
-		}
-#endif /* LDAP_TCP_BUFFER_X_ORDERED */
 
 		rc = tcp_buffer_add_one( c->argc - 1, &c->argv[ 1 ], idx );
 		if ( rc ) {
