@@ -515,7 +515,7 @@ template_attrs( char *template, struct attr_set *set, AttributeName **ret,
 
 	*ret = NULL;
 
-	attrs = ch_malloc(( set->count+1 )*sizeof(AttributeName));
+	attrs = ch_calloc( set->count + 1, sizeof(AttributeName) );
 	for ( i=0; i < set->count; i++ )
 		attrs[i] = set->attrs[i];
 	attr_cnt = i;
@@ -3766,8 +3766,8 @@ pc_cf_gen( ConfigArgs *c )
 					temp->attr_set_index,
 					temp->bindttr,
 					ldap_pvt_scope2str( temp->bindscope ));
-				bv.bv_len += temp->bindbase.bv_len + temp->bindftemp.bv_len + 3;
-				bv.bv_val = ch_malloc( bv.bv_len+1 );
+				bv.bv_len += temp->bindbase.bv_len + temp->bindftemp.bv_len + 4;
+				bv.bv_val = ch_malloc( bv.bv_len + 1 );
 				ptr = bv.bv_val;
 				*ptr++ = '"';
 				ptr = lutil_strcopy( ptr, temp->bindftemp.bv_val );
