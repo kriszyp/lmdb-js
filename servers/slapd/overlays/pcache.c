@@ -2563,7 +2563,7 @@ pc_setpw( Operation *op, struct berval *pwd, cache_manager *cm )
 		op->o_dn = op->o_bd->be_rootdn;
 		op->o_ndn = op->o_bd->be_rootndn;
 		op->o_callback = &cb;
-		Debug( pcache_debug, "pc_setpw: caching bind for %s\n",
+		Debug( pcache_debug, "pc_setpw: CACHING BIND for %s\n",
 			op->o_req_dn.bv_val, 0, 0 );
 		rc = op->o_bd->be_modify( op, &sr );
 		ch_free( vals[0].bv_val );
@@ -2844,6 +2844,9 @@ pcache_op_bind(
 	if ( bi.bi_flags & BI_HASHED ) {
 		BackendDB *be = op->o_bd;
 		op->o_bd = &cm->db;
+
+		Debug( pcache_debug, "pcache_op_bind: CACHED BIND for %s\n",
+			op->o_req_dn.bv_val, 0, 0 );
 
 		if ( op->o_bd->be_bind( op, rs ) == LDAP_SUCCESS ) {
 			op->o_conn->c_authz_cookie = cm->db.be_private;
