@@ -1620,6 +1620,13 @@ syncrepl_message_to_op(
 	op->o_tag = LBER_DEFAULT;
 	op->o_bd = si->si_wbe;
 
+	if ( BER_BVISEMPTY( &bdn ) && !BER_BVISEMPTY( &op->o_bd->be_nsuffix[0] ) ) {
+		Debug( LDAP_DEBUG_ANY,
+			"syncrepl_message_to_op: %s got empty dn",
+			si->si_ridtxt, 0, 0 );
+		return LDAP_OTHER;
+	}
+
 	while (( rc = ldap_get_attribute_ber( si->si_ld, msg, ber, &bv, &bvals ) )
 		== LDAP_SUCCESS ) {
 		if ( bv.bv_val == NULL )
@@ -1855,6 +1862,13 @@ syncrepl_message_to_entry(
 			"syncrepl_message_to_entry: %s dn get failed (%d)",
 			si->si_ridtxt, rc, 0 );
 		return rc;
+	}
+
+	if ( BER_BVISEMPTY( &bdn ) && !BER_BVISEMPTY( &op->o_bd->be_nsuffix[0] ) ) {
+		Debug( LDAP_DEBUG_ANY,
+			"syncrepl_message_to_entry: %s got empty dn",
+			si->si_ridtxt, 0, 0 );
+		return LDAP_OTHER;
 	}
 
 	if ( syncstate == LDAP_SYNC_PRESENT || syncstate == LDAP_SYNC_DELETE ) {
