@@ -74,7 +74,7 @@ static int write_host(nssov_host_cbp *cbp,Entry *entry)
 	} else {
 		dupname = -1;
 		for (i=0; i<numname; i++) {
-			if ( ber_bvmatch(&name, &a->a_nvals[i])) {
+			if ( bvmatch(&name, &a->a_nvals[i])) {
 				dupname = i;
 				break;
 			}

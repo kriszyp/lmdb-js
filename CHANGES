@@ -31,6 +31,7 @@ OpenLDAP 2.4.18 Engineering
 	Fixed tools off by one error (ITS#6233)
 	Fixed tools resource leaks (ITS#6145)
 	Fixed contrib/autogroup with RE24 (ITS#6227)
+	Fixed contrib/nss symbols (ITS#6273)
 	Build Environment
 		Tests note which backend is being tested (ITS#5810)
 		Fixed test056-monitor with custom ports (ITS#6213)
