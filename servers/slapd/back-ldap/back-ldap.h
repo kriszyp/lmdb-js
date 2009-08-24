@@ -452,6 +452,7 @@ typedef struct ldap_extra_t {
 	void (*retry_info_destroy)( slap_retry_info_t *ri );
 	int (*retry_info_parse)( char *in, slap_retry_info_t *ri, char *buf, ber_len_t buflen );
 	int (*retry_info_unparse)( slap_retry_info_t *ri, struct berval *bvout );
+	int (*connid2str)( const ldapconn_base_t *lc, char *buf, ber_len_t buflen );
 } ldap_extra_t;
 
 LDAP_END_DECL

@@ -39,7 +39,8 @@ static const ldap_extra_t ldap_extra = {
 	slap_idassert_parse_cf,
 	slap_retry_info_destroy,
 	slap_retry_info_parse,
-	slap_retry_info_unparse
+	slap_retry_info_unparse,
+	ldap_back_connid2str
 };
 
 int

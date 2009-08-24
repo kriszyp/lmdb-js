@@ -1170,7 +1170,7 @@ retry_lock:;
 
 					if ( LogTest( LDAP_DEBUG_TRACE ) ) {
 						char buf[STRLENOF("4294967295U") + 1] = { 0 };
-						ldap_back_connid2str( &mc->mc_base, buf, sizeof(buf) );
+						mi->mi_ldap_extra->connid2str( &mc->mc_base, buf, sizeof(buf) );
 
 						Debug( LDAP_DEBUG_TRACE,
 							"%s meta_back_getconn: mc=%p conn=%s expired (tainted).\n",
@@ -1662,7 +1662,7 @@ done:;
 				LDAP_BACK_CONN_CACHED_CLEAR( mc );
 				if ( LogTest( LDAP_DEBUG_ANY ) ) {
 					char buf[STRLENOF("4294967295U") + 1] = { 0 };
-					ldap_back_connid2str( &mc->mc_base, buf, sizeof(buf) );
+					mi->mi_ldap_extra->connid2str( &mc->mc_base, buf, sizeof(buf) );
 
 					Debug( LDAP_DEBUG_ANY,
 						"%s meta_back_getconn: candidates=%d conn=%s insert failed\n",
@@ -1683,7 +1683,7 @@ done:;
 
 		if ( LogTest( LDAP_DEBUG_TRACE ) ) {
 			char buf[STRLENOF("4294967295U") + 1] = { 0 };
-			ldap_back_connid2str( &mc->mc_base, buf, sizeof(buf) );
+			mi->mi_ldap_extra->connid2str( &mc->mc_base, buf, sizeof(buf) );
 
 			Debug( LDAP_DEBUG_TRACE,
 				"%s meta_back_getconn: candidates=%d conn=%s inserted\n",
@@ -1693,7 +1693,7 @@ done:;
 	} else {
 		if ( LogTest( LDAP_DEBUG_TRACE ) ) {
 			char buf[STRLENOF("4294967295U") + 1] = { 0 };
-			ldap_back_connid2str( &mc->mc_base, buf, sizeof(buf) );
+			mi->mi_ldap_extra->connid2str( &mc->mc_base, buf, sizeof(buf) );
 
 			Debug( LDAP_DEBUG_TRACE,
 				"%s meta_back_getconn: candidates=%d conn=%s fetched\n",

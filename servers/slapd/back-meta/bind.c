@@ -663,7 +663,7 @@ meta_back_dobind(
 
 	if ( LogTest( LDAP_DEBUG_TRACE ) ) {
 		char buf[STRLENOF("4294967295U") + 1] = { 0 };
-		ldap_back_connid2str( &mc->mc_base, buf, sizeof(buf) );
+		mi->mi_ldap_extra->connid2str( &mc->mc_base, buf, sizeof(buf) );
 
 		Debug( LDAP_DEBUG_TRACE,
 			"%s meta_back_dobind: conn=%s%s\n",
@@ -803,7 +803,7 @@ retry_ok:;
 done:;
 	if ( LogTest( LDAP_DEBUG_TRACE ) ) {
 		char buf[STRLENOF("4294967295U") + 1] = { 0 };
-		ldap_back_connid2str( &mc->mc_base, buf, sizeof(buf) );
+		mi->mi_ldap_extra->connid2str( &mc->mc_base, buf, sizeof(buf) );
 
 		Debug( LDAP_DEBUG_TRACE,
 			"%s meta_back_dobind: conn=%s bound=%d\n",
