@@ -23,7 +23,7 @@ OpenLDAP 2.4.18 Engineering
 	Fixed slapd-relay response/cleanup callback mismatch (ITS#6154)
 	Fixed slapd-sql with baseObject query (ITS#6172)
 	Fixed slapd-sql with empty attribute (ITS#6163)
-	Fixed slapo-pcache multiple enhancements (ITS#6152)
+	Fixed slapo-pcache multiple enhancements (ITS#6152,ITS#5178)
 	Fixed slapo-translucent attribute return (ITS#6254)
 	Fixed slapo-translucent filter matching (ITS#6255)
 	Fixed slapo-translucent to honor sizelimit (ITS#6253)
