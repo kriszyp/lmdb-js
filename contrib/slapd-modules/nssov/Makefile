@@ -40,7 +40,7 @@ OBJS = alias.lo ether.lo group.lo host.lo netgroup.lo network.lo \
 .SUFFIXES: .c .o .lo
 
 .c.lo:
-	$(LIBTOOL) --mode=compile $(CC) $(OPT) $(DEFS) $(INCS) -c $?
+	$(LIBTOOL) --mode=compile $(CC) $(OPT) $(DEFS) $(INCS) -c $<
 
 tio.lo:	nss-ldapd/common/tio.c
 	$(LIBTOOL) --mode=compile $(CC) $(OPT) $(DEFS) $(NLDAPD_INC) -c $?
