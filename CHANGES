@@ -6,6 +6,7 @@ OpenLDAP 2.4.18 Engineering
 	Fixed libldap error parsing (ITS#6197)
 	Fixed libldap native getpass usage (ITS#4643)
 	Fixed libldap tls_check_hostname for OpenSSL and MozNSS (ITS#6239)
+	Added slapd tcp buffers support (ITS#6234)
 	Fixed slapd allow mirrormode to be set to FALSE (ITS#5946)
 	Fixed slapd certificate list parsing (ITS#6241)
 	Fixed slapd dncachesize behavior to unlimited by default (ITS#6222)

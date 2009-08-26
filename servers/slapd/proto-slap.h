@@ -851,6 +851,10 @@ LDAP_SLAPD_V (int) slapd_register_slp;
 LDAP_SLAPD_V (const char *) slapd_slp_attrs;
 LDAP_SLAPD_V (slap_ssf_t) local_ssf;
 LDAP_SLAPD_V (struct runqueue_s) slapd_rq;
+#ifdef LDAP_TCP_BUFFER
+LDAP_SLAPD_V (int) slapd_tcp_rmem;
+LDAP_SLAPD_V (int) slapd_tcp_wmem;
+#endif /* LDAP_TCP_BUFFER */
 
 #ifdef HAVE_WINSOCK
 LDAP_SLAPD_F (ber_socket_t) slapd_socknew(ber_socket_t s);
@@ -1775,7 +1779,7 @@ LDAP_SLAPD_F (Filter *) str2filter_x LDAP_P(( Operation *op, const char *str ));
 LDAP_SLAPD_F (int)  syncrepl_add_glue LDAP_P(( 
 					Operation*, Entry* ));
 LDAP_SLAPD_F (void) syncrepl_diff_entry LDAP_P((
-	Operation *op, Attribute *old, Attribute *new,
+	Operation *op, Attribute *old, Attribute *anew,
 	Modifications **mods, Modifications **ml, int is_ctx ));
 LDAP_SLAPD_F (void) syncinfo_free LDAP_P(( struct syncinfo_s *, int all ));
 
