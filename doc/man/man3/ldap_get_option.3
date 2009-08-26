@@ -653,8 +653,8 @@ and its contents need to be freed by the caller using
 This option is only valid for GnuTLS.
 .TP
 .B LDAP_OPT_X_TLS_CTX
-Sets/gets the TLS library context associated with this handle.  New TLS
-sessions will inherit their default settings from this library context.
+Sets/gets the TLS library context. New TLS sessions will inherit their
+default settings from this library context.
 .BR invalue
 must be
 .BR "const void *" ;
@@ -691,13 +691,13 @@ and its contents need to be freed by the caller using
 .BR ldap_memfree (3).
 .TP
 .B LDAP_OPT_X_TLS_NEWCTX
-Instructs the library to create a new TLS CTX.
+Instructs the library to create a new TLS library context.
 .BR invalue
 must be
 .BR "const int *" .
 A non-zero value pointed to by
 .BR invalue
-tells the library to create a CTX for a server.
+tells the library to create a context for a server.
 .TP
 .B LDAP_OPT_X_TLS_PROTOCOL_MIN
 Sets/gets the minimum protocol version.
