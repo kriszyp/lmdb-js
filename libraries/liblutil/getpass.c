@@ -70,7 +70,8 @@ lutil_getpass( const char *prompt )
 {
 	static char pbuf[PBUF];
 	FILE *fi;
-	int i, c;
+	int c;
+	unsigned i;
 #if defined(HAVE_TERMIOS_H) || defined(HAVE_SGTTY_H)
 	TERMIO_TYPE ttyb;
 	TERMFLAG_TYPE flags;
