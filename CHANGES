@@ -38,6 +38,8 @@ OpenLDAP 2.4.18 Engineering
 	Build Environment
 		Tests note which backend is being tested (ITS#5810)
 		Fixed test056-monitor with custom ports (ITS#6213)
+	Documentation
+		ldap_open(3) document URI (ITS#6261)
 
 OpenLDAP 2.4.17 Release (2009/07/13)
 	Fixed liblber to use ber_strnlen (ITS#6080)
