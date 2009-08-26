@@ -653,7 +653,8 @@ and its contents need to be freed by the caller using
 This option is only valid for GnuTLS.
 .TP
 .B LDAP_OPT_X_TLS_CTX
-Sets/gets the TLS library context associated with this handle.
+Sets/gets the TLS library context associated with this handle.  New TLS
+sessions will inherit their default settings from this library context.
 .BR invalue
 must be
 .BR "const void *" ;
@@ -661,8 +662,9 @@ must be
 must be
 .BR "void **" .
 When using the OpenSSL library this is an SSL_CTX*. When using other
-crypto libraries this is an OpenLDAP private structure. Applications
-generally should not use this option.
+crypto libraries this is a pointer to an OpenLDAP private structure.
+Applications generally should not use this option or attempt to
+manipulate this structure.
 .TP
 .B LDAP_OPT_X_TLS_DHFILE
 Gets/sets the full-path of the file containing the parameters
@@ -732,13 +734,13 @@ one of
 .BR LDAP_OPT_X_TLS_TRY .
 .TP
 .B LDAP_OPT_X_TLS_SSL_CTX
-Gets the OpenSSL SSL CTX associated with this handle.
+Gets the TLS session context associated with this handle.
 .BR outvalue
 must be
 .BR "void **" .
 When using the OpenSSL library this is an SSL*. When using other
-crypto libraries this is an OpenLDAP private structure. Applications
-generally should not use this option.
+crypto libraries this is a pointer to an OpenLDAP private structure.
+Applications generally should not use this option.
 .SH ERRORS
 On success, the functions return
 .BR LDAP_OPT_SUCCESS ,
