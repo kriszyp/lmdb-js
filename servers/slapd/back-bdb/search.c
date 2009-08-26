@@ -326,7 +326,8 @@ bdb_search( Operation *op, SlapReply *rs )
 	slap_mask_t	mask;
 	time_t		stoptime;
 	int		manageDSAit;
-	int		tentries = 0, nentries = 0;
+	int		tentries = 0;
+	unsigned	nentries = 0;
 	int		idflag = 0;
 
 	DB_LOCK		lock;

@@ -1297,7 +1297,7 @@ getNextPage:
 
 	if (( rc == LDAP_SUCCESS ) && vlv ) {
 		char	buf[BUFSIZ];
-		int	i, moreEntries, tmpSize;
+		int	i, moreEntries;
 
 		/* Loop to get the next window when 
 		 * enter is pressed on the terminal.

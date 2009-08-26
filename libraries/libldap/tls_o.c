@@ -618,7 +618,7 @@ no_cn:
 		} else if (( cn->data[0] == '*' ) && ( cn->data[1] == '.' )) {
 			char *domain = strchr(name, '.');
 			if( domain ) {
-				size_t dlen;
+				int dlen;
 
 				dlen = nlen - (domain-name);
 

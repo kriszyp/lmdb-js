@@ -2012,22 +2012,15 @@ print_deref( LDAP *ld, LDAPControl *ctrl )
 			if ( dv->vals != NULL ) {
 				int j;
 				for ( j = 0; dv->vals[ j ].bv_val != NULL; j++ ) {
-					int k;
-
-					for ( k = 0; k < dv->vals[ j ].bv_len; k++ ) {
-						if ( !isprint( dv->vals[ j ].bv_val[k] ) ) {
-							k = -1;
-							break;
-						}
-					}
+					int k = ldif_is_not_printable( dv->vals[ j ].bv_val, dv->vals[ j ].bv_len );
 
 					*ptr++ = '<';
 					ptr = lutil_strcopy( ptr, dv->type );
-					if ( k == -1 ) {
+					if ( k ) {
 						*ptr++ = ':';
 					}
 					*ptr++ = '=';
-					if ( k == -1 ) {
+					if ( k ) {
 						k = lutil_b64_ntop(
 							(unsigned char *) dv->vals[ j ].bv_val,
 							dv->vals[ j ].bv_len,
