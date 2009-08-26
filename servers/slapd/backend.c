@@ -226,9 +226,22 @@ int backend_startup_one(Backend *be, ConfigReply *cr)
 			(void)backend_set_controls( be );
 
 		} else {
+			char *type = be->bd_info->bi_type;
+			char *suffix = "(null)";
+
+			if ( overlay_is_over( be ) ) {
+				slap_overinfo	*oi = (slap_overinfo *)be->bd_info->bi_private;
+				type = oi->oi_orig->bi_type;
+			}
+
+			if ( be->be_suffix != NULL && !BER_BVISNULL( &be->be_suffix[0] ) ) {
+				suffix = be->be_suffix[0].bv_val;
+			}
+
 			Debug( LDAP_DEBUG_ANY,
-				"backend_startup_one: bi_db_open failed! (%d)\n",
-				rc, 0, 0 );
+				"backend_startup_one (type=%s, suffix=\"%s\"): "
+				"bi_db_open failed! (%d)\n",
+				type, suffix, rc );
 		}
 	}
 
