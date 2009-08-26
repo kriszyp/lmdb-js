@@ -82,7 +82,7 @@ must be
 When set, the library will call
 .BR connect (2)
 and return, without waiting for response.
-This leaves the handler in a connecting state.
+This leaves the handle in a connecting state.
 Subsequent calls to library routines will poll for completion
 of the connect before performing further operations.
 As a consequence, library calls that need to establish a connection
@@ -97,7 +97,7 @@ This option allows to set a connect callback.
 must be a 
 .BR "const struct ldap_conncb *" .
 Callbacks are executed in last in-first served order.
-Hanlder-specific callbacks are executed first, followed by global ones.
+Handle-specific callbacks are executed first, followed by global ones.
 Right before freeing the callback structure, the
 .B lc_del
 callback handler is passed a 
@@ -172,7 +172,7 @@ of the LDAP handle passed in as
 .BR outvalue
 must be a 
 .BR "int *" .
-This is a read-only, handler-specific option.
+This is a read-only, handle-specific option.
 .TP
 .B LDAP_OPT_DIAGNOSTIC_MESSAGE
 Sets/gets a string containing the error string associated to the LDAP handle.
@@ -340,7 +340,7 @@ Returns a pointer to the socket buffer of the LDAP handle passed in as
 .BR outvalue
 must be a 
 .BR "Sockbuf **" .
-This is a read-only, handler-specific option.
+This is a read-only, handle-specific option.
 This option is OpenLDAP specific.
 .TP
 .B LDAP_OPT_TIMELIMIT
@@ -440,7 +440,7 @@ in form of a NULL-terminated array of strings;
 .BR outvalue
 must be
 .BR "char ***" .
-The caller must not free nor otherwise muck with it.
+The caller must not free or otherwise muck with it.
 .TP
 .B LDAP_OPT_X_SASL_NOCANON	
 Sets/gets the NOCANON flag.
