@@ -1035,7 +1035,7 @@ ldap_int_sasl_get_option( LDAP *ld, int option, void *arg )
 				return -1;
 			}
 
-			*(char **)arg = username;
+			*(char **)arg = username ? LDAP_STRDUP( username ) : NULL;
 		} break;
 
 		case LDAP_OPT_X_SASL_SECPROPS:
