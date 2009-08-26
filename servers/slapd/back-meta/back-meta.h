@@ -221,14 +221,16 @@ typedef struct metasingleconn_t {
 } metasingleconn_t;
 
 typedef struct metaconn_t {
-	Connection		*mc_conn;
-#define	lc_conn			mc_conn
-	unsigned		mc_refcnt;
-
-	time_t			mc_create_time;
-	time_t			mc_time;
+	ldapconn_base_t		lc_base;
+#define	mc_base			lc_base
+#define	mc_conn			mc_base.lcb_conn
+#define	mc_local_ndn		mc_base.lcb_local_ndn
+#define	mc_refcnt		mc_base.lcb_refcnt
+#define	mc_create_time		mc_base.lcb_create_time
+#define	mc_time			mc_base.lcb_time
 	
-	struct berval          	mc_local_ndn;
+	LDAP_TAILQ_ENTRY(metaconn_t)	mc_q;
+
 	/* NOTE: msc_mscflags is used to recycle the #define
 	 * in metasingleconn_t */
 	unsigned		msc_mscflags;
@@ -242,8 +244,6 @@ typedef struct metaconn_t {
 #define META_BOUND_ALL		(-2)
 
 	struct metainfo_t	*mc_info;
-
-	LDAP_TAILQ_ENTRY(metaconn_t)	mc_q;
 
 	/* supersedes the connection stuff */
 	metasingleconn_t	mc_conns[ 1 ];

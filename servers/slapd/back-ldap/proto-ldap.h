@@ -63,6 +63,9 @@ extern void ldap_back_conn_free( void *c );
 
 extern ldapconn_t * ldap_back_conn_delete( ldapinfo_t *li, ldapconn_t *lc );
 
+extern int ldap_back_conn2str( const ldapconn_base_t *lc, char *buf, ber_len_t buflen );
+extern int ldap_back_connid2str( const ldapconn_base_t *lc, char *buf, ber_len_t buflen );
+
 extern int
 ldap_back_proxy_authz_ctrl(
 		Operation	*op,

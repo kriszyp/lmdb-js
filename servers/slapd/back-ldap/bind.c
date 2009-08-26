@@ -40,6 +40,45 @@
 #define LDAP_CONTROL_OBSOLETE_PROXY_AUTHZ	"2.16.840.1.113730.3.4.12"
 
 #if LDAP_BACK_PRINT_CONNTREE > 0
+
+static const struct {
+	slap_mask_t	f;
+	char		c;
+} flagsmap[] = {
+	{ LDAP_BACK_FCONN_ISBOUND,	'B' },
+	{ LDAP_BACK_FCONN_ISANON,	'A' },
+	{ LDAP_BACK_FCONN_ISPRIV,	'P' },
+	{ LDAP_BACK_FCONN_ISTLS,	'T' },
+	{ LDAP_BACK_FCONN_BINDING,	'X' },
+	{ LDAP_BACK_FCONN_TAINTED,	'E' },
+	{ LDAP_BACK_FCONN_ABANDON,	'N' },
+	{ LDAP_BACK_FCONN_ISIDASR,	'S' },
+	{ LDAP_BACK_FCONN_CACHED,	'C' },
+	{ 0,				'\0' }
+};
+
+static void
+ldap_back_conn_print( ldapconn_t *lc, const char *avlstr )
+{
+	char buf[ SLAP_TEXT_BUFLEN ];
+	char fbuf[ sizeof("BAPTIENSC") ];
+	int i;
+
+	ldap_back_conn2str( &lc->lc_base, buf, sizeof( buf ) );
+	for ( i = 0; flagsmap[ i ].c != '\0'; i++ ) {
+		if ( lc->lc_lcflags & flagsmap[i].f ) {
+			fbuf[i] = flagsmap[i].c;
+
+		} else {
+			fbuf[i] = '.';
+		}
+	}
+	fbuf[i] = '\0';
+	
+	fprintf( stderr, "lc=%p %s %s flags=0x%08x (%s)\n",
+		(void *)lc, buf, avlstr, lc->lc_lcflags, fbuf );
+}
+
 static void
 ldap_back_ravl_print( Avlnode *root, int depth )
 {
@@ -57,13 +96,9 @@ ldap_back_ravl_print( Avlnode *root, int depth )
 	}
 
 	lc = root->avl_data;
-	fprintf( stderr, "lc=%p local=\"%s\" conn=%p %s refcnt=%d flags=0x%08x\n",
-		(void *)lc,
-		lc->lc_local_ndn.bv_val ? lc->lc_local_ndn.bv_val : "",
-		(void *)lc->lc_conn,
-		avl_bf2str( root->avl_bf ), lc->lc_refcnt, lc->lc_lcflags );
-	
-	ldap_back_ravl_print( root->avl_left, depth+1 );
+	ldap_back_conn_print( lc, avl_bf2str( root->avl_bf ) );
+
+	ldap_back_ravl_print( root->avl_left, depth + 1 );
 }
 
 static char* priv2str[] = {
@@ -91,11 +126,8 @@ ldap_back_print_conntree( ldapinfo_t *li, char *msg )
 
 		LDAP_TAILQ_FOREACH( lc, &li->li_conn_priv[ c ].lic_priv, lc_q )
 		{
-			fprintf( stderr, "    [%d] lc=%p local=\"%s\" conn=%p refcnt=%d flags=0x%08x\n",
-				i,
-				(void *)lc,
-				lc->lc_local_ndn.bv_val ? lc->lc_local_ndn.bv_val : "",
-				(void *)lc->lc_conn, lc->lc_refcnt, lc->lc_lcflags );
+			fprintf( stderr, "    [%d] ", i );
+			ldap_back_conn_print( lc, "" );
 			i++;
 		}
 	}
@@ -303,9 +335,10 @@ retry_lock:;
 		if ( LDAP_BACK_SINGLECONN( li ) ) {
 			while ( ( tmplc = avl_delete( &li->li_conninfo.lai_tree, (caddr_t)lc, ldap_back_conn_cmp ) ) != NULL )
 			{
+				assert( !LDAP_BACK_PCONN_ISPRIV( lc ) );
 				Debug( LDAP_DEBUG_TRACE,
-					"=>ldap_back_bind: destroying conn %ld (refcnt=%u)\n",
-					LDAP_BACK_PCONN_ID( lc ), lc->lc_refcnt, 0 );
+					"=>ldap_back_bind: destroying conn %lu (refcnt=%u)\n",
+					lc->lc_conn->c_connid, lc->lc_refcnt, 0 );
 
 				if ( tmplc->lc_refcnt != 0 ) {
 					/* taint it */
@@ -631,7 +664,7 @@ ldap_back_prepare_conn( ldapconn_t *lc, Operation *op, SlapReply *rs, ldap_back_
 	LDAP		*ld = NULL;
 #ifdef HAVE_TLS
 	int		is_tls = op->o_conn->c_is_tls;
-	time_t		lc_time = (time_t)(-1);
+	time_t		lctime = (time_t)(-1);
 	slap_bindconf *sb;
 #endif /* HAVE_TLS */
 
@@ -704,7 +737,7 @@ ldap_back_prepare_conn( ldapconn_t *lc, Operation *op, SlapReply *rs, ldap_back_
 
 	} else if ( li->li_idle_timeout ) {
 		/* only touch when activity actually took place... */
-		lc_time = op->o_time;
+		lctime = op->o_time;
 	}
 #endif /* HAVE_TLS */
 
@@ -716,8 +749,8 @@ ldap_back_prepare_conn( ldapconn_t *lc, Operation *op, SlapReply *rs, ldap_back_
 	} else {
 		LDAP_BACK_CONN_ISTLS_CLEAR( lc );
 	}
-	if ( lc_time != (time_t)(-1) ) {
-		lc->lc_time = lc_time;
+	if ( lctime != (time_t)(-1) ) {
+		lc->lc_time = lctime;
 	}
 #endif /* HAVE_TLS */
 
@@ -750,7 +783,7 @@ ldap_back_getconn(
 {
 	ldapinfo_t	*li = (ldapinfo_t *)op->o_bd->be_private;
 	ldapconn_t	*lc = NULL,
-			lc_curr = { 0 };
+			lc_curr = {{ 0 }};
 	int		refcnt = 1,
 			lookupconn = !( sendok & LDAP_BACK_BINDING );
 
@@ -2713,4 +2746,85 @@ ldap_back_controls_free( Operation *op, SlapReply *rs, LDAPControl ***pctrls )
 	*pctrls = NULL;
 
 	return 0;
+}
+
+int
+ldap_back_conn2str( const ldapconn_base_t *lc, char *buf, ber_len_t buflen )
+{
+	char tbuf[ SLAP_TEXT_BUFLEN ];
+	char *ptr = buf, *end = buf + buflen;
+	int len;
+
+	if ( ptr + sizeof("conn=") > end ) return -1;
+	ptr = lutil_strcopy( ptr, "conn=" );
+
+	len = ldap_back_connid2str( lc, ptr, (ber_len_t)(end - ptr) );
+	ptr += len;
+	if ( ptr >= end ) return -1;
+
+	if ( !BER_BVISNULL( &lc->lcb_local_ndn ) ) {
+		if ( ptr + sizeof(" DN=\"\"") + lc->lcb_local_ndn.bv_len > end ) return -1;
+		ptr = lutil_strcopy( ptr, " DN=\"" );
+		ptr = lutil_strncopy( ptr, lc->lcb_local_ndn.bv_val, lc->lcb_local_ndn.bv_len );
+		*ptr++ = '"';
+	}
+
+	if ( lc->lcb_create_time != 0 ) {
+		len = snprintf( tbuf, sizeof(tbuf), "%ld", lc->lcb_create_time );
+		if ( ptr + sizeof(" created=") + len >= end ) return -1;
+		ptr = lutil_strcopy( ptr, " created=" );
+		ptr = lutil_strcopy( ptr, tbuf );
+	}
+
+	if ( lc->lcb_time != 0 ) {
+		len = snprintf( tbuf, sizeof(tbuf), "%ld", lc->lcb_time );
+		if ( ptr + sizeof(" modified=") + len >= end ) return -1;
+		ptr = lutil_strcopy( ptr, " modified=" );
+		ptr = lutil_strcopy( ptr, tbuf );
+	}
+
+	len = snprintf( tbuf, sizeof(tbuf), "%u", lc->lcb_refcnt );
+	if ( ptr + sizeof(" refcnt=") + len >= end ) return -1;
+	ptr = lutil_strcopy( ptr, " refcnt=" );
+	ptr = lutil_strcopy( ptr, tbuf );
+
+	return ptr - buf;
+}
+
+int
+ldap_back_connid2str( const ldapconn_base_t *lc, char *buf, ber_len_t buflen )
+{
+	static struct berval conns[] = {
+		BER_BVC("ROOTDN"),
+		BER_BVC("ROOTDN-TLS"),
+		BER_BVC("ANON"),
+		BER_BVC("ANON-TLS"),
+		BER_BVC("BIND"),
+		BER_BVC("BIND-TLS"),
+		BER_BVNULL
+	};
+
+	int len = 0;
+
+	if ( LDAP_BACK_PCONN_ISPRIV( (const ldapconn_t *)lc ) ) {
+		long cid;
+		struct berval *bv;
+
+		cid = (long)lc->lcb_conn;
+		assert( cid >= LDAP_BACK_PCONN_FIRST && cid < LDAP_BACK_PCONN_LAST );
+
+		bv = &conns[ cid ];
+
+		if ( bv->bv_len >= buflen ) {
+			return bv->bv_len + 1;
+		}
+
+		len = bv->bv_len;
+		lutil_strncopy( buf, bv->bv_val, bv->bv_len + 1 );
+
+	} else {
+		len = snprintf( buf, buflen, "%lu", lc->lcb_conn->c_connid );
+	}
+
+	return len;
 }

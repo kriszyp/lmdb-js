@@ -61,11 +61,11 @@ enum {
 	LDAP_BACK_PCONN_LAST
 };
 
-typedef struct ldapconn_t {
-	Connection		*lc_conn;
+typedef struct ldapconn_base_t {
+	Connection		*lcb_conn;
 #define	LDAP_BACK_CONN2PRIV(lc)		((unsigned long)(lc)->lc_conn)
-#define LDAP_BACK_PCONN_ISPRIV(lc)	((void *)(lc)->lc_conn >= (void *)LDAP_BACK_PCONN_FIRST \
-						&& (void *)(lc)->lc_conn < (void *)LDAP_BACK_PCONN_LAST)
+#define LDAP_BACK_PCONN_ISPRIV(lc)	(((void *)(lc)->lc_conn) >= ((void *)LDAP_BACK_PCONN_FIRST) \
+						&& ((void *)(lc)->lc_conn) < ((void *)LDAP_BACK_PCONN_LAST))
 #define LDAP_BACK_PCONN_ISROOTDN(lc)	(LDAP_BACK_PCONN_ISPRIV((lc)) \
 						&& (LDAP_BACK_CONN2PRIV((lc)) < LDAP_BACK_PCONN_ANON))
 #define LDAP_BACK_PCONN_ISANON(lc)	(LDAP_BACK_PCONN_ISPRIV((lc)) \
@@ -75,8 +75,6 @@ typedef struct ldapconn_t {
 						&& (LDAP_BACK_CONN2PRIV((lc)) >= LDAP_BACK_PCONN_BIND))
 #define LDAP_BACK_PCONN_ISTLS(lc)	(LDAP_BACK_PCONN_ISPRIV((lc)) \
 						&& (LDAP_BACK_CONN2PRIV((lc)) & LDAP_BACK_PCONN_TLS))
-#define	LDAP_BACK_PCONN_ID(lc)		(LDAP_BACK_PCONN_ISPRIV((lc)) ? \
-						( -1 - (long)(lc)->lc_conn ) : (lc)->lc_conn->c_connid )
 #ifdef HAVE_TLS
 #define	LDAP_BACK_PCONN_ROOTDN_SET(lc, op) \
 	((lc)->lc_conn = (void *)((op)->o_conn->c_is_tls ? (void *) LDAP_BACK_PCONN_ROOTDN_TLS : (void *) LDAP_BACK_PCONN_ROOTDN))
@@ -96,10 +94,22 @@ typedef struct ldapconn_t {
 	(BER_BVISEMPTY(&(op)->o_ndn) ? \
 		LDAP_BACK_PCONN_ANON_SET((lc), (op)) : LDAP_BACK_PCONN_ROOTDN_SET((lc), (op)))
 
-	LDAP			*lc_ld;
-	struct berval		lc_cred;
-	struct berval 		lc_bound_ndn;
-	struct berval		lc_local_ndn;
+	struct berval		lcb_local_ndn;
+	unsigned		lcb_refcnt;
+	time_t			lcb_create_time;
+	time_t			lcb_time;
+} ldapconn_base_t;
+
+typedef struct ldapconn_t {
+	ldapconn_base_t		lc_base;
+#define	lc_conn			lc_base.lcb_conn
+#define	lc_local_ndn		lc_base.lcb_local_ndn
+#define	lc_refcnt		lc_base.lcb_refcnt
+#define	lc_create_time		lc_base.lcb_create_time
+#define	lc_time			lc_base.lcb_time
+
+	LDAP_TAILQ_ENTRY(ldapconn_t)	lc_q;
+
 	unsigned		lc_lcflags;
 #define LDAP_BACK_CONN_ISSET_F(fp,f)	(*(fp) & (f))
 #define	LDAP_BACK_CONN_SET_F(fp,f)	(*(fp) |= (f))
@@ -164,12 +174,10 @@ typedef struct ldapconn_t {
 #define	LDAP_BACK_CONN_CACHED_SET(lc)		LDAP_BACK_CONN_SET((lc), LDAP_BACK_FCONN_CACHED)
 #define	LDAP_BACK_CONN_CACHED_CLEAR(lc)		LDAP_BACK_CONN_CLEAR((lc), LDAP_BACK_FCONN_CACHED)
 
-	unsigned		lc_refcnt;
+	LDAP			*lc_ld;
+	struct berval		lc_cred;
+	struct berval 		lc_bound_ndn;
 	unsigned		lc_flags;
-	time_t			lc_create_time;
-	time_t			lc_time;
-
-	LDAP_TAILQ_ENTRY(ldapconn_t)	lc_q;
 } ldapconn_t;
 
 typedef struct ldap_avl_info_t {
@@ -444,6 +452,7 @@ typedef struct ldap_extra_t {
 	void (*retry_info_destroy)( slap_retry_info_t *ri );
 	int (*retry_info_parse)( char *in, slap_retry_info_t *ri, char *buf, ber_len_t buflen );
 	int (*retry_info_unparse)( slap_retry_info_t *ri, struct berval *bvout );
+	int (*connid2str)( const ldapconn_base_t *lc, char *buf, ber_len_t buflen );
 } ldap_extra_t;
 
 LDAP_END_DECL
