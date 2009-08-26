@@ -3,6 +3,7 @@ OpenLDAP 2.4 Change Log
 OpenLDAP 2.4.18 Engineering
 	Fixed client tools common options (ITS#6049)
 	Fixed liblber speed and other problems (ITS#6215)
+	Added libldap option for SASL_USERNAME (ITS#6257)
 	Fixed libldap error parsing (ITS#6197)
 	Fixed libldap native getpass usage (ITS#4643)
 	Fixed libldap tls_check_hostname for OpenSSL and MozNSS (ITS#6239)

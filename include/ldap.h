@@ -186,6 +186,7 @@ LDAP_BEGIN_DECL
 #define LDAP_OPT_X_SASL_MAXBUFSIZE		0x6109
 #define LDAP_OPT_X_SASL_MECHLIST		0x610a /* read-only */
 #define LDAP_OPT_X_SASL_NOCANON			0x610b
+#define LDAP_OPT_X_SASL_USERNAME		0x610c /* read-only */
 
 /* OpenLDAP GSSAPI options */
 #define LDAP_OPT_X_GSSAPI_DO_NOT_FREE_CONTEXT      0x6200
