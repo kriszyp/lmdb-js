@@ -52,7 +52,7 @@ typedef des_key_schedule des_context;
   one in lutil_sha1.h to blow up
 */
 #define PROTYPES_H 1
-#	include <pk11pub.h>
+#	include <nss/pk11pub.h>
 typedef PK11SymKey *des_key;
 typedef unsigned char des_data_block[8];
 typedef PK11Context *des_context[1];
