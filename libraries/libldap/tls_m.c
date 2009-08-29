@@ -53,15 +53,16 @@
 #include <termios.h> /* for echo on/off */
 #endif
 
-#include <nspr.h>
-#include <private/pprio.h>
-#include <nss.h>
-#include <ssl.h>
-#include <sslerr.h>
-#include <sslproto.h>
-#include <pk11pub.h>
-#include <secerr.h>
-#include <keyhi.h>
+#include <nspr/nspr.h>
+#include <nspr/private/pprio.h>
+#include <nss/nss.h>
+#include <nss/ssl.h>
+#include <nss/sslerr.h>
+#include <nss/sslproto.h>
+#include <nss/pk11pub.h>
+#include <nss/secerr.h>
+#include <nss/keyhi.h>
+#include <nss/secmod.h>
 
 typedef struct tlsm_ctx {
 	PRFileDesc *tc_model;
@@ -74,6 +75,8 @@ typedef struct tlsm_ctx {
 	int tc_is_server;
 	int tc_require_cert;
 	PRCallOnceType tc_callonce;
+	PRBool tc_using_pem;
+	char *tc_slotname; /* if using pem */
 #ifdef LDAP_R_COMPILE
 	ldap_pvt_thread_mutex_t tc_refmutex;
 #endif
@@ -87,7 +90,17 @@ static const PRIOMethods tlsm_PR_methods;
 
 static int tlsm_did_init;
 
+static const char* pem_library = "nsspem";
+static SECMODModule* pemMod = NULL;
+
 #define DEFAULT_TOKEN_NAME "default"
+/* sprintf format used to create token name */
+#define TLSM_PEM_TOKEN_FMT "PEM Token #%ld"
+
+static int tlsm_slot_count;
+
+#define PK11_SETATTRS(x,id,v,l) (x)->type = (id); \
+                (x)->pValue=(v); (x)->ulValueLen = (l);
 
 /* forward declaration */
 static int tlsm_init( void );
@@ -683,116 +696,6 @@ tlsm_dump_security_status(PRFileDesc *fd)
 	return "";
 }
 
-static SECStatus
-tlsm_auth_cert_handler(void *arg, PRFileDesc *fd,
-                       PRBool checksig, PRBool isServer)
-{
-	SECStatus ret = SSL_AuthCertificate(arg, fd, checksig, isServer);
-
-	tlsm_dump_security_status( fd );
-	Debug( LDAP_DEBUG_TRACE,
-		   "TLS certificate verification: %s\n",
-		   ret == SECSuccess ? "ok" : "bad", 0, 0 );
-
-	if ( ret != SECSuccess ) {
-		PRErrorCode errcode = PORT_GetError();
-		Debug( LDAP_DEBUG_ANY,
-			   "TLS certificate verification: Error, %d: %s\n",
-			   errcode, PR_ErrorToString( errcode, PR_LANGUAGE_I_DEFAULT ), 0 ) ;
-	}
-
-	return ret;
-}
-
-static char *
-tlsm_dirname(const char *pathname)
-{
-	char *ret = NULL;
-	char *p = NULL;
-	char sep = PR_GetDirectorySeparator();
-
-	if (pathname && (p = PL_strrchr(pathname, sep)) && (p > pathname)) {
-		ret = PL_strndup(pathname, (p - pathname));
-	}
-
-	return ret;
-}
-
-/*
- * This is the part of the init we defer until we get the
- * actual security configuration information.  This is
- * only called once, protected by a PRCallOnce
- * NOTE: This must be done before the first call to SSL_ImportFD,
- * especially the setting of the policy
- * NOTE: This must be called after fork()
- */
-static int
-tlsm_deferred_init( void *arg )
-{
-	tlsm_ctx *ctx = (tlsm_ctx *)arg;
-	struct ldaptls *lt = ctx->tc_config;
-	char *securitydir = NULL;
-	int needfree = 0;
-	char *val;
-	PRErrorCode errcode;
-
-	/* NSS support for multi-init is coming */
-#ifndef NSS_MULTI_INIT
-	if ( !NSS_IsInitialized() ) {
-#endif /* NSS_MULTI_INIT */
-		/*
-		  MOZNSS_DIR will override everything else - you can
-		  always set MOZNSS_DIR to force the use of this
-		  directory
-		  DEFAULT_MOZNSS_DIR will only be used if the code cannot
-		  find a security dir to use based on the current
-		  settings
-		*/
-		if ( (val = PR_GetEnv( "MOZNSS_DIR" ) ) && (*val) ) {
-			securitydir = PL_strdup( val );
-			needfree = 1;
-		} else if ( lt->lt_cacertdir ) {
-			securitydir = lt->lt_cacertdir;
-		} else if ( lt->lt_cacertfile ) {
-			securitydir = tlsm_dirname( lt->lt_cacertfile );
-			needfree = 1;
-		} else if ( lt->lt_certfile ) {
-			securitydir = tlsm_dirname( lt->lt_certfile );
-			needfree = 1;
-		} else if ( lt->lt_keyfile ) {
-			securitydir = tlsm_dirname( lt->lt_keyfile );
-			needfree = 1;
-		} else if ( (val = PR_GetEnv( "DEFAULT_MOZNSS_DIR" ) ) && (*val) ) {
-			securitydir = PL_strdup( val );
-			needfree = 1;
-		} else {
-			securitydir = "/etc/pki/nssdb";
-		}
-
-		if ( NSS_Initialize( securitydir, "", "", SECMOD_DB, NSS_INIT_READONLY ) ) {
-			errcode = PORT_GetError();
-			Debug( LDAP_DEBUG_ANY,
-				   "TLS: could not initialize moznss using security dir %s - error %d:%s.\n",
-				   securitydir, errcode, PR_ErrorToString( errcode, PR_LANGUAGE_I_DEFAULT ) );
-			if ( needfree ) {
-				PL_strfree( securitydir );
-			}
-			return -1;
-		}
-
-		if ( needfree ) {
-			PL_strfree( securitydir );
-		}
-
-		NSS_SetDomesticPolicy();
-		tlsm_did_init = 1; /* we did the init - we should also clean up */
-#ifndef NSS_MULTI_INIT
-	}
-#endif /* NSS_MULTI_INIT */
-
-	return 0;
-}
-
 #ifdef READ_PASSWORD_FROM_FILE
 static char *
 tlsm_get_pin_from_file(const char *token_name, tlsm_ctx *ctx)
@@ -972,6 +875,388 @@ tlsm_pin_prompt(PK11SlotInfo *slot, PRBool retry, void *arg)
 	return tlsm_get_pin( slot, retry, ctx );
 }
 
+static SECStatus
+tlsm_auth_cert_handler(void *arg, PRFileDesc *fd,
+                       PRBool checksig, PRBool isServer)
+{
+	SECStatus ret = SSL_AuthCertificate(arg, fd, checksig, isServer);
+
+	tlsm_dump_security_status( fd );
+	Debug( LDAP_DEBUG_TRACE,
+		   "TLS certificate verification: %s\n",
+		   ret == SECSuccess ? "ok" : "bad", 0, 0 );
+
+	if ( ret != SECSuccess ) {
+		PRErrorCode errcode = PORT_GetError();
+		Debug( LDAP_DEBUG_ANY,
+			   "TLS certificate verification: Error, %d: %s\n",
+			   errcode, PR_ErrorToString( errcode, PR_LANGUAGE_I_DEFAULT ), 0 ) ;
+	}
+
+	return ret;
+}
+
+static int
+tlsm_authenticate_to_slot( tlsm_ctx *ctx, PK11SlotInfo *slot )
+{
+	int rc = -1;
+
+	if ( SECSuccess != PK11_Authenticate( slot, PR_FALSE, ctx ) ) {
+		char *token_name = PK11_GetTokenName( slot );
+		PRErrorCode errcode = PR_GetError();
+		Debug( LDAP_DEBUG_ANY,
+			   "TLS: could not authenticate to the security token %s - error %d:%s.\n",
+			   token_name ? token_name : DEFAULT_TOKEN_NAME, errcode,
+			   PR_ErrorToString( errcode, PR_LANGUAGE_I_DEFAULT ) );
+	} else {
+		rc = 0; /* success */
+	}
+
+	return rc;
+}
+
+static int
+tlsm_init_tokens( tlsm_ctx *ctx )
+{
+	PK11SlotList *slotList;
+	PK11SlotListElement *listEntry;
+	int rc = 0;
+
+	slotList = PK11_GetAllTokens( CKM_INVALID_MECHANISM, PR_FALSE, PR_TRUE, NULL );
+
+	for ( listEntry = PK11_GetFirstSafe( slotList ); !rc && listEntry;
+		  listEntry = listEntry->next) {
+		PK11SlotInfo *slot = listEntry->slot;
+		rc = tlsm_authenticate_to_slot( ctx, slot );
+		PK11_FreeSlot(slot);
+	}
+
+	return rc;
+}
+
+static int
+tlsm_init_pem_module( void )
+{
+	int rc = 0;
+	char *fullname = NULL;
+	char *configstring = NULL;
+
+	/* get the system dependent library name */
+	fullname = PR_GetLibraryName( NULL, pem_library );
+	/* Load our PKCS#11 module */
+	configstring = PR_smprintf( "library=%s name=PEM parameters=\"\"", fullname );
+	PR_smprintf_free( fullname );
+
+	pemMod = SECMOD_LoadUserModule( configstring, NULL, PR_FALSE );
+	PR_smprintf_free( configstring );
+
+	if ( !pemMod || !pemMod->loaded ) {
+		if ( pemMod ) {
+			SECMOD_DestroyModule( pemMod );
+			pemMod = NULL;
+		}
+		rc = -1;
+	}
+
+	return rc;
+}
+
+static int
+tlsm_add_cert_from_file( tlsm_ctx *ctx, const char *filename, PRBool isca )
+{
+	CK_SLOT_ID slotID;
+	PK11SlotInfo *slot = NULL;
+	PK11GenericObject *rv;
+	CK_ATTRIBUTE *attrs;
+	CK_ATTRIBUTE theTemplate[20];
+	CK_BBOOL cktrue = CK_TRUE;
+	CK_BBOOL ckfalse = CK_FALSE;
+	CK_OBJECT_CLASS objClass = CKO_CERTIFICATE;
+	char tmpslotname[64];
+	char *slotname = NULL;
+	const char *ptr = NULL;
+	char sep = PR_GetDirectorySeparator();
+
+	attrs = theTemplate;
+
+	if ( isca ) {
+		slotID = 0; /* CA and trust objects use slot 0 */
+		PR_snprintf( tmpslotname, sizeof(tmpslotname), TLSM_PEM_TOKEN_FMT, slotID );
+		slotname = tmpslotname;
+	} else {
+		if ( ctx->tc_slotname == NULL ) { /* need new slot */
+			slotID = ++tlsm_slot_count;
+			ctx->tc_slotname = PR_smprintf( TLSM_PEM_TOKEN_FMT, slotID );
+		}
+		slotname = ctx->tc_slotname;
+
+		if ( ( ptr = PL_strrchr( filename, sep ) ) ) {
+			PL_strfree( ctx->tc_certname );
+			++ptr;
+			ctx->tc_certname = PR_smprintf( "%s:%s", slotname, ptr );
+		}
+	}
+
+	slot = PK11_FindSlotByName( slotname );
+
+	if ( !slot ) {
+		PRErrorCode errcode = PR_GetError();
+		Debug( LDAP_DEBUG_ANY,
+			   "TLS: could not find the slot for certificate %s - error %d:%s.\n",
+			   ctx->tc_certname, errcode,
+			   PR_ErrorToString( errcode, PR_LANGUAGE_I_DEFAULT ) );
+		return -1;
+	}
+
+	PK11_SETATTRS( attrs, CKA_CLASS, &objClass, sizeof(objClass) ); attrs++;
+	PK11_SETATTRS( attrs, CKA_TOKEN, &cktrue, sizeof(CK_BBOOL) ); attrs++;
+	PK11_SETATTRS( attrs, CKA_LABEL, (unsigned char *)filename, strlen(filename)+1 ); attrs++;
+	if ( isca ) {
+		PK11_SETATTRS( attrs, CKA_TRUST, &cktrue, sizeof(CK_BBOOL) ); attrs++;
+	} else {
+		PK11_SETATTRS( attrs, CKA_TRUST, &ckfalse, sizeof(CK_BBOOL) ); attrs++;
+	}
+	/* This loads the certificate in our PEM module into the appropriate
+	 * slot.
+	 */
+	rv = PK11_CreateGenericObject( slot, theTemplate, 4, PR_FALSE /* isPerm */ );
+
+	PK11_FreeSlot( slot );
+
+	if ( !rv ) {
+		PRErrorCode errcode = PR_GetError();
+		Debug( LDAP_DEBUG_ANY,
+			   "TLS: could not add the certificate %s - error %d:%s.\n",
+			   ctx->tc_certname, errcode,
+			   PR_ErrorToString( errcode, PR_LANGUAGE_I_DEFAULT ) );
+		return -1;
+	}
+
+	return 0;
+}
+
+static int
+tlsm_add_key_from_file( tlsm_ctx *ctx, const char *filename )
+{
+	CK_SLOT_ID slotID;
+	PK11SlotInfo * slot = NULL;
+	PK11GenericObject *rv;
+	CK_ATTRIBUTE *attrs;
+	CK_ATTRIBUTE theTemplate[20];
+	CK_BBOOL cktrue = CK_TRUE;
+	CK_OBJECT_CLASS objClass = CKO_PRIVATE_KEY;
+	int retcode = 0;
+
+	attrs = theTemplate;
+
+	if ( ctx->tc_slotname == NULL ) { /* need new slot */
+		slotID = ++tlsm_slot_count;
+		ctx->tc_slotname = PR_smprintf( TLSM_PEM_TOKEN_FMT, slotID );
+	}
+	slot = PK11_FindSlotByName( ctx->tc_slotname );
+
+	if ( !slot ) {
+		PRErrorCode errcode = PR_GetError();
+		Debug( LDAP_DEBUG_ANY,
+			   "TLS: could not find the slot %s for the private key - error %d:%s.\n",
+			   ctx->tc_slotname, errcode,
+			   PR_ErrorToString( errcode, PR_LANGUAGE_I_DEFAULT ) );
+		return -1;
+	}
+
+	PK11_SETATTRS( attrs, CKA_CLASS, &objClass, sizeof(objClass) ); attrs++;
+	PK11_SETATTRS( attrs, CKA_TOKEN, &cktrue, sizeof(CK_BBOOL) ); attrs++;
+	PK11_SETATTRS( attrs, CKA_LABEL, (unsigned char *)filename, strlen(filename)+1 ); attrs++;
+	rv = PK11_CreateGenericObject( slot, theTemplate, 3, PR_FALSE /* isPerm */ );
+
+	if ( !rv ) {
+		PRErrorCode errcode = PR_GetError();
+		Debug( LDAP_DEBUG_ANY,
+			   "TLS: could not add the certificate %s - error %d:%s.\n",
+			   ctx->tc_certname, errcode,
+			   PR_ErrorToString( errcode, PR_LANGUAGE_I_DEFAULT ) );
+		retcode = -1;
+	} else {
+		/* When adding an encrypted key the PKCS#11 will be set as removed */
+		/* This will force the token to be seen as re-inserted */
+		SECMOD_WaitForAnyTokenEvent( pemMod, 0, 0 );
+		PK11_IsPresent( slot );
+		retcode = 0;
+	}
+
+	PK11_FreeSlot( slot );
+
+	return retcode;
+}
+
+static int
+tlsm_init_ca_certs( tlsm_ctx *ctx, const char *cacertfile, const char *cacertdir )
+{
+	PRBool isca = PR_TRUE;
+
+	if ( cacertfile ) {
+		int rc = tlsm_add_cert_from_file( ctx, cacertfile, isca );
+		if ( rc ) {
+			return rc;
+		}
+	}
+
+	if ( cacertdir ) {
+		PRFileInfo fi;
+		PRStatus status;
+		PRDir *dir;
+		PRDirEntry *entry;
+
+		memset( &fi, 0, sizeof(fi) );
+		status = PR_GetFileInfo( cacertdir, &fi );
+		if ( PR_SUCCESS != status) {
+			PRErrorCode errcode = PR_GetError();
+			Debug( LDAP_DEBUG_ANY,
+				   "TLS: could not get info about the CA certificate directory %s - error %d:%s.\n",
+				   cacertdir, errcode,
+				   PR_ErrorToString( errcode, PR_LANGUAGE_I_DEFAULT ) );
+			return -1;
+		}
+
+		if ( fi.type != PR_FILE_DIRECTORY ) {
+			Debug( LDAP_DEBUG_ANY,
+				   "TLS: error: the CA certificate directory %s is not a directory.\n",
+				   cacertdir, 0 ,0 );
+			return -1;
+		}
+
+		dir = PR_OpenDir( cacertdir );
+		if ( NULL == dir ) {
+			PRErrorCode errcode = PR_GetError();
+			Debug( LDAP_DEBUG_ANY,
+				   "TLS: could not open the CA certificate directory %s - error %d:%s.\n",
+				   cacertdir, errcode,
+				   PR_ErrorToString( errcode, PR_LANGUAGE_I_DEFAULT ) );
+			return -1;
+		}
+
+		status = -1;
+		do {
+			entry = PR_ReadDir( dir, PR_SKIP_BOTH | PR_SKIP_HIDDEN );
+			if ( NULL != entry ) {
+				char *fullpath = PR_smprintf( "%s/%s", cacertdir, entry->name );
+				if ( !tlsm_add_cert_from_file( ctx, fullpath, isca ) ) {
+					status = 0; /* found at least 1 valid CA file in the dir */
+				}
+				PR_smprintf_free( fullpath );
+			}
+		} while ( NULL != entry );
+		PR_CloseDir( dir );
+
+		if ( status ) {
+			PRErrorCode errcode = PR_GetError();
+			Debug( LDAP_DEBUG_ANY,
+				   "TLS: did not find any valid CA certificate files in the CA certificate directory %s - error %d:%s.\n",
+				   cacertdir, errcode,
+				   PR_ErrorToString( errcode, PR_LANGUAGE_I_DEFAULT ) );
+			return -1;
+		}
+	}
+
+	return 0;
+}
+
+/*
+ * This is the part of the init we defer until we get the
+ * actual security configuration information.  This is
+ * only called once, protected by a PRCallOnce
+ * NOTE: This must be done before the first call to SSL_ImportFD,
+ * especially the setting of the policy
+ * NOTE: This must be called after fork()
+ */
+static int
+tlsm_deferred_init( void *arg )
+{
+	tlsm_ctx *ctx = (tlsm_ctx *)arg;
+	struct ldaptls *lt = ctx->tc_config;
+	const char *securitydirs[3];
+	int ii;
+	int nn;
+	PRErrorCode errcode = 1;
+
+	/* NSS support for multi-init is coming */
+#ifndef NSS_MULTI_INIT
+	if ( !NSS_IsInitialized() ) {
+#endif /* NSS_MULTI_INIT */
+		/*
+		  MOZNSS_DIR will override everything else - you can
+		  always set MOZNSS_DIR to force the use of this
+		  directory
+		  If using MOZNSS, specify the location of the moznss db dir
+		  in the cacertdir directive of the OpenLDAP configuration.
+		  DEFAULT_MOZNSS_DIR will only be used if the code cannot
+		  find a security dir to use based on the current
+		  settings
+		*/
+		nn = 0;
+		securitydirs[nn++] = PR_GetEnv( "MOZNSS_DIR" );
+		securitydirs[nn++] = lt->lt_cacertdir;
+		securitydirs[nn++] = PR_GetEnv( "DEFAULT_MOZNSS_DIR" );
+		for (ii = 0; ii < nn; ++ii) {
+			const char *securitydir = securitydirs[ii];
+			if ( NULL == securitydir ) {
+				continue;
+			}
+			if ( NSS_Initialize( securitydir, "", "", SECMOD_DB, NSS_INIT_READONLY ) ) {
+				errcode = PORT_GetError();
+				Debug( LDAP_DEBUG_TRACE,
+					   "TLS: could not initialize moznss using security dir %s - error %d:%s.\n",
+					   securitydir, errcode, PR_ErrorToString( errcode, PR_LANGUAGE_I_DEFAULT ) );
+			} else {
+				/* success */
+				Debug( LDAP_DEBUG_TRACE, "TLS: using moznss security dir %s.\n",
+					   securitydir, 0, 0 );
+				errcode = 0;
+				break;
+			}
+		}
+
+		if ( errcode ) { /* no moznss db found, or not using moznss db */
+			if ( NSS_NoDB_Init( NULL ) ) {
+				errcode = PORT_GetError();
+				Debug( LDAP_DEBUG_ANY,
+					   "TLS: could not initialize moznss - error %d:%s.\n",
+					   errcode, PR_ErrorToString( errcode, PR_LANGUAGE_I_DEFAULT ), 0 );
+				return -1;
+			}
+
+			/* initialize the PEM module */
+			if ( tlsm_init_pem_module() ) {
+				errcode = PORT_GetError();
+				Debug( LDAP_DEBUG_ANY,
+					   "TLS: could not initialize moznss PEM module - error %d:%s.\n",
+					   errcode, PR_ErrorToString( errcode, PR_LANGUAGE_I_DEFAULT ), 0 );
+				return -1;
+			}
+
+			if ( tlsm_init_ca_certs( ctx, lt->lt_cacertfile, lt->lt_cacertdir ) ) {
+				return -1;
+			}
+
+			ctx->tc_using_pem = PR_TRUE;
+		}
+
+		NSS_SetDomesticPolicy();
+
+		PK11_SetPasswordFunc( tlsm_pin_prompt );
+
+		if ( tlsm_init_tokens( ctx ) ) {
+			return -1;
+		}
+
+		tlsm_did_init = 1; /* we did the init - we should also clean up */
+#ifndef NSS_MULTI_INIT
+	}
+#endif /* NSS_MULTI_INIT */
+
+	return 0;
+}
+
 static int
 tlsm_authenticate( tlsm_ctx *ctx, const char *certname, const char *pininfo )
 {
@@ -983,8 +1268,6 @@ tlsm_authenticate( tlsm_ctx *ctx, const char *certname, const char *pininfo )
 	if ( !certname || !*certname ) {
 		return 0;
 	}
-
-	PK11_SetPasswordFunc( tlsm_pin_prompt );
 
 	if ( ( colon = PL_strchr( certname, ':' ) ) ) {
 		token_name = PL_strndup( certname, colon-certname );
@@ -1005,22 +1288,7 @@ tlsm_authenticate( tlsm_ctx *ctx, const char *certname, const char *pininfo )
 		goto done;
 	}
 
-	if ( pininfo ) {
-		PL_strfree( ctx->tc_pin_file );
-		ctx->tc_pin_file = PL_strdup( pininfo );
-	}
-
-	if ( PK11_NeedLogin( slot ) &&
-		 ( SECSuccess != PK11_Authenticate( slot, PR_FALSE, ctx ) ) ) {
-		PRErrorCode errcode = PR_GetError();
-		Debug( LDAP_DEBUG_ANY,
-			   "TLS: could not authenticate to the security token %s - error %d:%s.\n",
-			   token_name ? token_name : DEFAULT_TOKEN_NAME, errcode,
-			   PR_ErrorToString( errcode, PR_LANGUAGE_I_DEFAULT ) );
-		goto done;
-	} else {
-		rc = 0; /* success */
-	}
+	rc = tlsm_authenticate_to_slot( ctx, slot );
 
 done:
 	PL_strfree( token_name );
@@ -1068,7 +1336,14 @@ tlsm_find_and_verify_cert_key(tlsm_ctx *ctx, PRFileDesc *fd, const char *certnam
 		isServer = !isServer; /* verify the peer's cert instead */
 	}
 
-	key = PK11_FindKeyByAnyCert( cert, pin_arg );
+	if ( ctx->tc_slotname ) {
+		PK11SlotInfo *slot = PK11_FindSlotByName( ctx->tc_slotname );
+		key = PK11_FindPrivateKeyFromCert( slot, cert, NULL );
+		PK11_FreeSlot( slot );
+	} else {
+		key = PK11_FindKeyByAnyCert( cert, pin_arg );
+	}
+
 	if (key) {
 		SECCertificateUsage certUsage;
 		PRBool checkSig = PR_TRUE;
@@ -1174,6 +1449,11 @@ tlsm_clientauth_init( tlsm_ctx *ctx, const char *certname )
 static void
 tlsm_destroy( void )
 {
+	if (pemMod) {
+		SECMOD_DestroyModule(pemMod);
+		pemMod = NULL;
+	}
+
 	/* Only if we did the actual initialization */
 	if ( tlsm_did_init ) {
 		tlsm_did_init = 0;
@@ -1205,6 +1485,8 @@ tlsm_ctx_new ( struct ldapoptions *lo )
 		memset(&ctx->tc_callonce, 0, sizeof(ctx->tc_callonce));
 		ctx->tc_require_cert = lo->ldo_tls_require_cert;
 		ctx->tc_verify_cert = PR_FALSE;
+		ctx->tc_using_pem = PR_FALSE;
+		ctx->tc_slotname = NULL;
 	}
 	return (tls_ctx *)ctx;
 }
@@ -1246,6 +1528,7 @@ tlsm_ctx_free ( tls_ctx *ctx )
 	c->tc_certname = NULL;
 	PL_strfree( c->tc_pin_file );
 	c->tc_pin_file = NULL;
+	PL_strfree( c->tc_slotname );
 #ifdef LDAP_R_COMPILE
 	ldap_pvt_thread_mutex_destroy( &c->tc_refmutex );
 #endif
@@ -1389,6 +1672,37 @@ tlsm_deferred_ctx_init( void *arg )
 		return -1;
 	}
 
+	/* set up our cert and key, if any */
+	if ( lt->lt_certfile ) {
+		/* if using the PEM module, load the PEM file specified by lt_certfile */
+		/* otherwise, assume this is the name of a cert already in the db */
+		if ( ctx->tc_using_pem ) {
+			/* this sets ctx->tc_certname to the correct value */
+			int rc = tlsm_add_cert_from_file( ctx, lt->lt_certfile, PR_FALSE /* not a ca */ );
+			if ( rc ) {
+				return rc;
+			}
+		} else {
+			PL_strfree( ctx->tc_certname );
+			ctx->tc_certname = PL_strdup( lt->lt_certfile );
+		}
+	}
+
+	if ( lt->lt_keyfile ) {
+		/* if using the PEM module, load the PEM file specified by lt_keyfile */
+		/* otherwise, assume this is the pininfo for the key */
+		if ( ctx->tc_using_pem ) {
+			/* this sets ctx->tc_certname to the correct value */
+			int rc = tlsm_add_key_from_file( ctx, lt->lt_keyfile );
+			if ( rc ) {
+				return rc;
+			}
+		} else {
+			PL_strfree( ctx->tc_pin_file );
+			ctx->tc_pin_file = PL_strdup( lt->lt_keyfile );
+		}
+	}
+
 	/* Set up callbacks for use by clients */
 	if ( !ctx->tc_is_server ) {
 		if ( SSL_OptionSet( ctx->tc_model, SSL_NO_CACHE, PR_TRUE ) != SECSuccess ) {
@@ -1407,21 +1721,20 @@ tlsm_deferred_ctx_init( void *arg )
 			return -1;
 		}
 
-		/* we don't currently support import of cert/key pair - assume the certfile
-		   is really the name of a cert/key in the database in the form of
-		   tokenname:certname - also assume since this is specified, the caller
-		   wants to attempt client cert auth */
-		if ( lt->lt_certfile ) {
-			if ( tlsm_authenticate( ctx, lt->lt_certfile, lt->lt_keyfile ) ) {
+		/* 
+		   since a cert has been specified, assume the client wants to do cert auth
+		*/
+		if ( ctx->tc_certname ) {
+			if ( tlsm_authenticate( ctx, ctx->tc_certname, ctx->tc_pin_file ) ) {
 				Debug( LDAP_DEBUG_ANY, 
 				       "TLS: error: unable to authenticate to the security device for certificate %s\n",
-				       lt->lt_certfile, 0, 0 );
+				       ctx->tc_certname, 0, 0 );
 				return -1;
 			}
-			if ( tlsm_clientauth_init( ctx, lt->lt_certfile ) ) {
+			if ( tlsm_clientauth_init( ctx, ctx->tc_certname ) ) {
 				Debug( LDAP_DEBUG_ANY, 
 				       "TLS: error: unable to set up client certificate authentication using %s\n",
-				       lt->lt_certfile, 0, 0 );
+				       ctx->tc_certname, 0, 0 );
 				return -1;
 			}
 		}
@@ -1432,7 +1745,7 @@ tlsm_deferred_ctx_init( void *arg )
 		SECStatus status;
 
 		/* must have a certificate for the server to use */
-		if ( !lt->lt_certfile ) {
+		if ( !ctx->tc_certname ) {
 			Debug( LDAP_DEBUG_ANY, 
 			       "TLS: error: no server certificate: must specify a certificate for the server to use\n",
 			       0, 0, 0 );
@@ -1441,19 +1754,19 @@ tlsm_deferred_ctx_init( void *arg )
 
 		/* authenticate to the server's token - this will do nothing
 		   if the key/cert db is not password protected */
-		if ( tlsm_authenticate( ctx, lt->lt_certfile, lt->lt_keyfile ) ) {
+		if ( tlsm_authenticate( ctx, ctx->tc_certname, ctx->tc_pin_file ) ) {
 			Debug( LDAP_DEBUG_ANY, 
 			       "TLS: error: unable to authenticate to the security device for certificate %s\n",
-			       lt->lt_certfile, 0, 0 );
+			       ctx->tc_certname, 0, 0 );
 			return -1;
 		}
 
 		/* get the server's key and cert */
-		if ( tlsm_find_and_verify_cert_key( ctx, ctx->tc_model, lt->lt_certfile, ctx->tc_is_server,
+		if ( tlsm_find_and_verify_cert_key( ctx, ctx->tc_model, ctx->tc_certname, ctx->tc_is_server,
 						    &serverCert, &serverKey ) ) {
 			Debug( LDAP_DEBUG_ANY, 
 			       "TLS: error: unable to find and verify server's cert and key for certificate %s\n",
-			       lt->lt_certfile, 0, 0 );
+			       ctx->tc_certname, 0, 0 );
 			return -1;
 		}
 
@@ -1468,7 +1781,7 @@ tlsm_deferred_ctx_init( void *arg )
 			PRErrorCode err = PR_GetError();
 			Debug( LDAP_DEBUG_ANY, 
 			       "TLS: error: unable to configure secure server using certificate %s - error %d:%s\n",
-			       lt->lt_certfile, err, PR_ErrorToString( err, PR_LANGUAGE_I_DEFAULT ) );
+			       ctx->tc_certname, err, PR_ErrorToString( err, PR_LANGUAGE_I_DEFAULT ) );
 			return -1;
 		}
 	}
@@ -2167,6 +2480,7 @@ static const PRIOMethods tlsm_PR_methods = {
 
 /*
  * Initialize TLS subsystem. Should be called only once.
+ * See tlsm_deferred_init for the bulk of the init process
  */
 static int
 tlsm_init( void )
@@ -2175,7 +2489,6 @@ tlsm_init( void )
 
 	tlsm_layer_id = PR_GetUniqueIdentity( "OpenLDAP" );
 
-	/* see deferred init */
 	return 0;
 }
 
@@ -2352,3 +2665,10 @@ tls_impl ldap_int_tls_impl = {
 };
 
 #endif /* HAVE_MOZNSS */
+/*
+  emacs settings
+  Local Variables:
+  indent-tabs-mode: t
+  tab-width: 4
+  End:
+*/
