@@ -753,6 +753,32 @@ static void connection_abandon( Connection *c )
 	}
 }
 
+static void
+connection_wake_writers( Connection *c )
+{
+	/* wake write blocked operations */
+	ldap_pvt_thread_mutex_lock( &c->c_write1_mutex );
+	if ( c->c_writers > 0 ) {
+		c->c_writers = -c->c_writers;
+		ldap_pvt_thread_cond_broadcast( &c->c_write1_cv );
+		ldap_pvt_thread_mutex_unlock( &c->c_write1_mutex );
+		if ( c->c_writewaiter ) {
+			ldap_pvt_thread_mutex_lock( &c->c_write2_mutex );
+			ldap_pvt_thread_cond_signal( &c->c_write2_cv );
+			slapd_clr_write( c->c_sd, 1 );
+			ldap_pvt_thread_mutex_unlock( &c->c_write2_mutex );
+		}
+		ldap_pvt_thread_mutex_lock( &c->c_write1_mutex );
+		while ( c->c_writers ) {
+			ldap_pvt_thread_cond_wait( &c->c_write1_cv, &c->c_write1_mutex );
+		}
+		ldap_pvt_thread_mutex_unlock( &c->c_write1_mutex );
+	} else {
+		ldap_pvt_thread_mutex_unlock( &c->c_write1_mutex );
+		slapd_clr_write( c->c_sd, 1 );
+	}
+}
+
 void connection_closing( Connection *c, const char *why )
 {
 	assert( connections != NULL );
@@ -777,26 +803,7 @@ void connection_closing( Connection *c, const char *why )
 		connection_abandon( c );
 
 		/* wake write blocked operations */
-		ldap_pvt_thread_mutex_lock( &c->c_write1_mutex );
-		if ( c->c_writers > 0 ) {
-			c->c_writers = -c->c_writers;
-			ldap_pvt_thread_cond_broadcast( &c->c_write1_cv );
-			ldap_pvt_thread_mutex_unlock( &c->c_write1_mutex );
-			if ( c->c_writewaiter ) {
-				ldap_pvt_thread_mutex_lock( &c->c_write2_mutex );
-				ldap_pvt_thread_cond_signal( &c->c_write2_cv );
-				slapd_clr_write( c->c_sd, 1 );
-				ldap_pvt_thread_mutex_unlock( &c->c_write2_mutex );
-			}
-			ldap_pvt_thread_mutex_lock( &c->c_write1_mutex );
-			while ( c->c_writers ) {
-				ldap_pvt_thread_cond_wait( &c->c_write1_cv, &c->c_write1_mutex );
-			}
-			ldap_pvt_thread_mutex_unlock( &c->c_write1_mutex );
-		} else {
-			ldap_pvt_thread_mutex_unlock( &c->c_write1_mutex );
-			slapd_clr_write( c->c_sd, 1 );
-		}
+		connection_wake_writers( c );
 
 	} else if( why == NULL && c->c_close_reason == conn_lost_str ) {
 		/* Client closed connection after doing Unbind. */
@@ -1269,6 +1276,11 @@ int connection_read_activate( ber_socket_t s )
 	rc = slapd_clr_read( s, 0 );
 	if ( rc )
 		return rc;
+
+	/* Don't let blocked writers block a pause request */
+	if ( connections[s].c_writewaiter &&
+		ldap_pvt_thread_pool_pausing( &connection_pool ))
+		connection_wake_writers( &connections[s] );
 
 	rc = ldap_pvt_thread_pool_submit( &connection_pool,
 		connection_read_thread, (void *)(long)s );
