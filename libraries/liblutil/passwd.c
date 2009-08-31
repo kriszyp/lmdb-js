@@ -45,7 +45,14 @@ typedef des_key_schedule des_context;
 #define des_finish(key, schedule) 
 
 #elif defined(HAVE_MOZNSS)
-#	include <pk11pub.h>
+/*
+  hack hack hack
+  We need to define this here so that nspr/obsolete/protypes.h will not be included
+  if that file is included, it will create a uint32 typedef that will cause the
+  one in lutil_sha1.h to blow up
+*/
+#define PROTYPES_H 1
+#	include <nss/pk11pub.h>
 typedef PK11SymKey *des_key;
 typedef unsigned char des_data_block[8];
 typedef PK11Context *des_context[1];
