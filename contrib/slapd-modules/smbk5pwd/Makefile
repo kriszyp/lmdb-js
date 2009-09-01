@@ -30,10 +30,11 @@ LDAP_LIB=-lldap_r -llber
 LIBS=$(LDAP_LIB) $(HEIMDAL_LIB) $(SSL_LIB)
 
 prefix=/usr/local
-ldap_subdir=/openldap
 exec_prefix=$(prefix)
+ldap_subdir=/openldap
+
 libdir=$(exec_prefix)/lib
-libexecdir=$(prefix)/libexec
+libexecdir=$(exec_prefix)/libexec
 moduledir = $(libexecdir)$(ldap_subdir)
 
 all:	smbk5pwd.la
