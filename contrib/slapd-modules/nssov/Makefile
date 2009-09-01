@@ -37,6 +37,8 @@ ldap_subdir=/openldap
 libdir=$(exec_prefix)/lib
 libexecdir=$(exec_prefix)/libexec
 moduledir = $(libexecdir)$(ldap_subdir)
+sysconfdir = $(prefix)/etc$(ldap_subdir)
+schemadir = $(sysconfdir)/schema
 
 all:	install
 
@@ -62,6 +64,7 @@ nssov.la:	$(OBJS) $(XOBJS)
 install: nssov.la
 	mkdir -p $(DESTDIR)$(moduledir)
 	$(LIBTOOL) --mode=install cp nssov.la $(DESTDIR)$(moduledir)
+	cp ldapns.schema $(DESTDIR)$(schemadir)
 
 clean:
 	rm -f *.*o *.la .libs/*
