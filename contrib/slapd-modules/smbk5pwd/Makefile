@@ -29,6 +29,14 @@ SSL_LIB=-lcrypto
 LDAP_LIB=-lldap_r -llber
 LIBS=$(LDAP_LIB) $(HEIMDAL_LIB) $(SSL_LIB)
 
+prefix=/usr/local
+exec_prefix=$(prefix)
+ldap_subdir=/openldap
+
+libdir=$(exec_prefix)/lib
+libexecdir=$(exec_prefix)/libexec
+moduledir = $(libexecdir)$(ldap_subdir)
+
 all:	smbk5pwd.la
 
 
@@ -37,12 +45,11 @@ smbk5pwd.lo:	smbk5pwd.c
 
 smbk5pwd.la:	smbk5pwd.lo
 	$(LIBTOOL) --mode=link $(CC) $(OPT) -version-info 0:0:0 \
-	-rpath $(PREFIX)/lib -module -o $@ $? $(LIBS)
+	-rpath $(libdir) -module -o $@ $? $(LIBS)
 
 clean:
 	rm -f smbk5pwd.lo smbk5pwd.la
 
 install: smbk5pwd.la
-	mkdir -p $(PREFIX)/lib/openldap
-	$(LIBTOOL) --mode=install cp smbk5pwd.la $(PREFIX)/lib/openldap
-	$(LIBTOOL) --finish $(PREFIX)/lib
+	mkdir -p $(DESTDIR)$(moduledir)
+	$(LIBTOOL) --mode=install cp smbk5pwd.la $(DESTDIR)$(moduledir)

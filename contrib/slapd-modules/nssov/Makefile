@@ -30,7 +30,17 @@ INCS=$(LDAP_INC) $(NLDAPD_INC)
 LDAP_LIB=-lldap_r -llber
 LIBS=$(LDAP_LIB)
 
-all:	nssov.la
+prefix=/usr/local
+exec_prefix=$(prefix)
+ldap_subdir=/openldap
+
+libdir=$(exec_prefix)/lib
+libexecdir=$(exec_prefix)/libexec
+moduledir = $(libexecdir)$(ldap_subdir)
+sysconfdir = $(prefix)/etc$(ldap_subdir)
+schemadir = $(sysconfdir)/schema
+
+all:	install
 
 XOBJS = tio.lo
 
@@ -49,4 +59,12 @@ $(OBJS):	nssov.h
 
 nssov.la:	$(OBJS) $(XOBJS)
 	$(LIBTOOL) --mode=link $(CC) $(OPT) -version-info 0:0:0 \
-	-rpath /usr/local/libexec/openldap -module -o $@ $(OBJS) $(XOBJS) $(LIBS)
+	-rpath $(libdir) -module -o $@ $(OBJS) $(XOBJS) $(LIBS)
+
+install: nssov.la
+	mkdir -p $(DESTDIR)$(moduledir)
+	$(LIBTOOL) --mode=install cp nssov.la $(DESTDIR)$(moduledir)
+	cp ldapns.schema $(DESTDIR)$(schemadir)
+
+clean:
+	rm -f *.*o *.la .libs/*
