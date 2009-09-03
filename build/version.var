@@ -15,9 +15,9 @@
 ol_package=OpenLDAP
 ol_major=2
 ol_minor=4
-ol_patch=X
-ol_api_inc=20417
+ol_patch=18
+ol_api_inc=20418
 ol_api_current=7
-ol_api_revision=0
+ol_api_revision=1
 ol_api_age=5
-ol_release_date="2009/07/13"
+ol_release_date="2009/09/03"
