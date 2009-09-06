@@ -1,6 +1,6 @@
 OpenLDAP 2.4 Change Log
 
-OpenLDAP 2.4.18 Release (2009/09/03)
+OpenLDAP 2.4.18 Release (2009/09/06)
 	Fixed client tools common options (ITS#6049)
 	Fixed liblber speed and other problems (ITS#6215)
 	Added libldap MozNSS PEM support (ITS#6278)
