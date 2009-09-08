@@ -280,6 +280,13 @@ slapadd( int argc, char **argv )
 			struct berval nname;
 			char timebuf[ LDAP_LUTIL_GENTIME_BUFSIZE ];
 
+			enum {
+				GOT_NONE = 0x0,
+				GOT_CSN = 0x1,
+				GOT_UUID = 0x2,
+				GOT_ALL = (GOT_CSN|GOT_UUID)
+			} got = GOT_ALL;
+
 			vals[1].bv_len = 0;
 			vals[1].bv_val = NULL;
 
@@ -305,6 +312,7 @@ slapadd( int argc, char **argv )
 			if( attr_find( e->e_attrs, slap_schema.si_ad_entryUUID )
 				== NULL )
 			{
+				got &= ~GOT_UUID;
 				vals[0].bv_len = lutil_uuidstr( uuidbuf, sizeof( uuidbuf ) );
 				vals[0].bv_val = uuidbuf;
 				attr_merge_normalize_one( e, slap_schema.si_ad_entryUUID, vals, NULL );
@@ -328,6 +336,7 @@ slapadd( int argc, char **argv )
 			if( attr_find( e->e_attrs, slap_schema.si_ad_entryCSN )
 				== NULL )
 			{
+				got &= ~GOT_CSN;
 				vals[0] = csn;
 				attr_merge( e, slap_schema.si_ad_entryCSN, vals, NULL );
 			}
@@ -347,6 +356,19 @@ slapadd( int argc, char **argv )
 				attr_merge( e, slap_schema.si_ad_modifyTimestamp, vals, NULL );
 			}
 
+			if ( SLAP_SINGLE_SHADOW(be) && got != GOT_ALL ) {
+				char buf[SLAP_TEXT_BUFLEN];
+
+				snprintf( buf, sizeof(buf),
+					"%s%s%s",
+					( !(got & GOT_UUID) ? slap_schema.si_ad_entryUUID->ad_cname.bv_val : "" ),
+					( !(got & GOT_CSN) ? "," : "" ),
+					( !(got & GOT_CSN) ? slap_schema.si_ad_entryCSN->ad_cname.bv_val : "" ) );
+
+				Debug( LDAP_DEBUG_ANY, "%s: warning, missing attrs %s from entry dn=\"%s\"\n",
+					progname, buf, e->e_name.bv_val );
+			}
+
 			if ( update_ctxcsn ) {
 				int rc_sid;
 
@@ -356,8 +378,8 @@ slapadd( int argc, char **argv )
 				rc_sid = slap_parse_csn_sid( &attr->a_nvals[ 0 ] );
 				if ( rc_sid < 0 ) {
 					Debug( LDAP_DEBUG_ANY, "%s: could not "
-						"extract SID from entryCSN=%s\n",
-						progname, attr->a_nvals[ 0 ].bv_val, 0 );
+						"extract SID from entryCSN=%s, entry dn=\"%s\"\n",
+						progname, attr->a_nvals[ 0 ].bv_val, e->e_name.bv_val );
 
 				} else {
 					assert( rc_sid <= SLAP_SYNC_SID_MAX );
