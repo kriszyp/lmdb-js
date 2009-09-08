@@ -53,6 +53,7 @@ static AccessControl * slap_acl_get(
 	AttributeDescription *desc,
 	struct berval *val,
 	AclRegexMatches *matches,
+	slap_mask_t *mask,
 	AccessControlState *state );
 
 static slap_control_t slap_acl_mask(
@@ -151,6 +152,7 @@ slap_access_allowed(
 	const char			*attr;
 	AclRegexMatches			matches;
 	AccessControlState		acl_state = ACL_STATE_INIT;
+	static AccessControlState	state_init = ACL_STATE_INIT;
 
 	assert( op != NULL );
 	assert( e != NULL );
@@ -216,25 +218,27 @@ slap_access_allowed(
 
 	if ( state == NULL )
 		state = &acl_state;
-	if ( state->as_vd_ad == desc ) {
+	if ( state->as_desc == desc &&
+		state->as_access == access &&
+		state->as_vd_acl != NULL )
+	{
 		a = state->as_vd_acl;
 		count = state->as_vd_acl_count;
 		if ( state->as_fe_done )
 			state->as_fe_done--;
+		ACL_PRIV_ASSIGN( mask, state->as_vd_mask );
 	} else {
-		state->as_vi_acl = NULL;
+		*state = state_init;
 
 		a = NULL;
 		count = 0;
+		ACL_PRIV_ASSIGN( mask, *maskp );
 	}
-	if ( a == NULL )
-		state->as_fe_done = 0;
 
-	ACL_PRIV_ASSIGN( mask, *maskp );
 	MATCHES_MEMSET( &matches );
 
 	while ( ( a = slap_acl_get( a, &count, op, e, desc, val,
-		&matches, state ) ) != NULL )
+		&matches, &mask, state ) ) != NULL )
 	{
 		int i; 
 		int dnmaxcount = MATCHES_DNMAXCOUNT( &matches );
@@ -276,22 +280,6 @@ slap_access_allowed(
 				}
 			}
 			Debug( LDAP_DEBUG_ACL, "\n", 0, 0, 0 );
-		}
-
-		if ( state ) {
-			if ( state->as_vi_acl == a &&
-				( state->as_recorded & ACL_STATE_RECORDED_NV ) )
-			{
-				Debug( LDAP_DEBUG_ACL,
-					"=> slap_access_allowed: result was in cache (%s)\n",
-					attr, 0, 0 );
-				ret = state->as_result;
-				goto done;
-			} else {
-				Debug( LDAP_DEBUG_ACL,
-					"=> slap_access_allowed: result not in cache (%s)\n",
-					attr, 0, 0 );
-			}
 		}
 
 		control = slap_acl_mask( a, &mask, op,
@@ -374,7 +362,6 @@ access_allowed_mask(
 	slap_mask_t		*maskp )
 {
 	int				ret = 1;
-	AccessControl			*a = NULL;
 	int				be_null = 0;
 
 #ifdef LDAP_DEBUG
@@ -383,7 +370,6 @@ access_allowed_mask(
 	slap_mask_t			mask;
 	slap_access_t			access_level;
 	const char			*attr;
-	static AccessControlState	state_init = ACL_STATE_INIT;
 
 	assert( e != NULL );
 	assert( desc != NULL );
@@ -415,16 +401,20 @@ access_allowed_mask(
 		}
 	}
 
-	if ( state ) {
-		if ( state->as_vd_ad == desc ) {
-			if ( ( state->as_recorded & ACL_STATE_RECORDED_NV ) &&
-				val == NULL )
+	if ( state != NULL ) {
+		if ( state->as_desc == desc &&
+			state->as_access == access &&
+			state->as_result != -1 &&
+			state->as_vd_acl == NULL )
 			{
+			Debug( LDAP_DEBUG_ACL,
+				"=> access_allowed: result was in cache (%s)\n",
+				attr, 0, 0 );
 				return state->as_result;
-
-			}
 		} else {
-			*state = state_init;
+			Debug( LDAP_DEBUG_ACL,
+				"=> access_allowed: result not in cache (%s)\n",
+				attr, 0, 0 );
 		}
 	}
 
@@ -485,13 +475,9 @@ access_allowed_mask(
 
 done:
 	if ( state != NULL ) {
-		/* If not value-dependent, save ACL in case of more attrs */
-		if ( !( state->as_recorded & ACL_STATE_RECORDED_VD ) ) {
-			state->as_vi_acl = a;
+		state->as_access = access;
 			state->as_result = ret;
-		}
-		state->as_recorded |= ACL_STATE_RECORDED;
-		state->as_vd_ad = desc;
+		state->as_desc = desc;
 	}
 	if ( be_null ) op->o_bd = NULL;
 	if ( maskp ) ACL_PRIV_ASSIGN( *maskp, mask );
@@ -514,6 +500,7 @@ slap_acl_get(
 	AttributeDescription *desc,
 	struct berval	*val,
 	AclRegexMatches	*matches,
+	slap_mask_t *mask,
 	AccessControlState *state )
 {
 	const char *attr;
@@ -628,10 +615,10 @@ slap_acl_get(
 				continue;
 			}
 
-			if( !( state->as_recorded & ACL_STATE_RECORDED_VD )) {
-				state->as_recorded |= ACL_STATE_RECORDED_VD;
+			if ( state->as_vd_acl == NULL ) {
 				state->as_vd_acl = prev;
 				state->as_vd_acl_count = *count - 1;
+				ACL_PRIV_ASSIGN ( state->as_vd_mask, *mask );
 			}
 
 			if ( a->acl_attrval_style == ACL_STYLE_REGEX ) {
@@ -727,10 +714,10 @@ slap_acl_get(
  * Record value-dependent access control state
  */
 #define ACL_RECORD_VALUE_STATE do { \
-		if( state && !( state->as_recorded & ACL_STATE_RECORDED_VD )) { \
-			state->as_recorded |= ACL_STATE_RECORDED_VD; \
+		if( state && state->as_vd_acl == NULL ) { \
 			state->as_vd_acl = a; \
 			state->as_vd_acl_count = count; \
+			ACL_PRIV_ASSIGN( state->as_vd_mask, *mask ); \
 		} \
 	} while( 0 )
 
@@ -1024,6 +1011,7 @@ acl_mask_dnattr(
 	AccessControl		*a,
 	int			count,
 	AccessControlState	*state,
+	slap_mask_t			*mask,
 	slap_dn_access		*bdn,
 	struct berval		*opndn )
 {
@@ -1504,7 +1492,7 @@ slap_acl_mask(
 
 		if ( b->a_dn_at != NULL ) {
 			if ( acl_mask_dnattr( op, e, val, a,
-					count, state,
+					count, state, mask,
 					&b->a_dn, &op->o_ndn ) )
 			{
 				continue;
@@ -1522,7 +1510,7 @@ slap_acl_mask(
 			}
 
 			if ( acl_mask_dnattr( op, e, val, a,
-					count, state,
+					count, state, mask,
 					&b->a_realdn, &ndn ) )
 			{
 				continue;
@@ -2019,7 +2007,7 @@ acl_check_modlist(
 				if ( ! access_allowed( op, e,
 					mlist->sml_desc, NULL,
 					( mlist->sml_flags & SLAP_MOD_MANAGING ) ? ACL_MANAGE : ACL_WDEL,
-					NULL ) )
+					&state ) )
 				{
 					ret = 0;
 					goto done;
