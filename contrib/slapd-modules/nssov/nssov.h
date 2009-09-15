@@ -323,6 +323,7 @@ int pam_pwmod(nssov_info *ni,TFILE *fp,Operation *op);
     /* do the internal search */ \
 	op->o_bd->be_search( op, &rs ); \
 	filter_free_x( op, op->ors_filter, 1 ); \
+	WRITE_INT32(fp,NSLCD_RESULT_END); \
     return 0; \
   }
 
