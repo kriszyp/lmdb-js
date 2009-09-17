@@ -425,7 +425,7 @@ int pam_authz(nssov_info *ni,TFILE *fp,Operation *op)
 	if (ni->ni_pam_min_uid || ni->ni_pam_max_uid) {
 		int id;
 		char *tmp;
-		nssov_mapinfo *mi = &ni->ni_maps[NM_host];
+		nssov_mapinfo *mi = &ni->ni_maps[NM_passwd];
 		a = attr_find(e->e_attrs, mi->mi_attrs[UIDN_KEY].an_desc);
 		if (!a) {
 			rc = NSLCD_PAM_PERM_DENIED;
