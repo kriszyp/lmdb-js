@@ -915,7 +915,8 @@ e.g. ldapi:// (and eventually IPSEC).  It is not normally used.
 .TP
 .B serverID <integer> [<URL>]
 Specify an integer ID from 0 to 4095 for this server (limited
-to 3 hexadecimal digits).
+to 3 hexadecimal digits).  The ID may also be specified as a
+hexadecimal ID by prefixing the value with "0x".
 These IDs are
 required when using multimaster replication and each master must have a
 unique ID. Note that this requirement also applies to separate masters
