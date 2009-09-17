@@ -277,6 +277,8 @@ retry:;
 	ldap_back_controls_free( op, rs, &ctrls );
 
 	if ( rc == LDAP_SUCCESS ) {
+		op->o_conn->c_authz_cookie = op->o_bd->be_private;
+
 		/* If defined, proxyAuthz will be used also when
 		 * back-ldap is the authorizing backend; for this
 		 * purpose, after a successful bind the connection
@@ -1523,6 +1525,7 @@ retry:;
 	rc = ldap_back_op_result( lc, op, rs, msgid,
 		-1, ( sendok | LDAP_BACK_BINDING ) );
 	if ( rc == LDAP_SUCCESS ) {
+		op->o_conn->c_authz_cookie = op->o_bd->be_private;
 		LDAP_BACK_CONN_ISBOUND_SET( lc );
 	}
 
@@ -2249,6 +2252,7 @@ ldap_back_proxy_authz_bind(
 		 * so that referral chasing is attempted using the right
 		 * identity */
 		LDAP_BACK_CONN_ISBOUND_SET( lc );
+		op->o_conn->c_authz_cookie = op->o_bd->be_private;
 		if ( !BER_BVISNULL( binddn ) ) {
 			ber_bvreplace( &lc->lc_bound_ndn, binddn );
 		}
