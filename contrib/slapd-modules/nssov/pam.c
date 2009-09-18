@@ -400,9 +400,9 @@ int pam_authz(nssov_info *ni,TFILE *fp,Operation *op)
 	}
 	if ((ni->ni_pam_opts & NI_PAM_USERHOST) && nssov_pam_host_ad) {
 		a = attr_find(e->e_attrs, nssov_pam_host_ad);
-		if (!a || value_find_ex( nssov_pam_host_ad,
+		if (!a || attr_valfind( a,
 			SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH,
-			a->a_vals, &global_host_bv, op->o_tmpmemctx )) {
+			&global_host_bv, NULL, op->o_tmpmemctx )) {
 			rc = NSLCD_PAM_PERM_DENIED;
 			authzmsg = hostmsg;
 			goto finish;
@@ -410,9 +410,9 @@ int pam_authz(nssov_info *ni,TFILE *fp,Operation *op)
 	}
 	if ((ni->ni_pam_opts & NI_PAM_USERSVC) && nssov_pam_svc_ad) {
 		a = attr_find(e->e_attrs, nssov_pam_svc_ad);
-		if (!a || value_find_ex( nssov_pam_svc_ad,
+		if (!a || attr_valfind( a,
 			SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH,
-			a->a_vals, &svc, op->o_tmpmemctx )) {
+			&svc, NULL, op->o_tmpmemctx )) {
 			rc = NSLCD_PAM_PERM_DENIED;
 			authzmsg = svcmsg;
 			goto finish;
