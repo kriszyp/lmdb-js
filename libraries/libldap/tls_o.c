@@ -1066,10 +1066,25 @@ static RSA *
 tlso_tmp_rsa_cb( SSL *ssl, int is_export, int key_length )
 {
 	RSA *tmp_rsa;
-
 	/* FIXME:  Pregenerate the key on startup */
 	/* FIXME:  Who frees the key? */
+#if OPENSSL_VERSION_NUMBER > 0x00908000
+	BIGNUM *bn = BN_new();
+	if ( bn ) {
+		if ( BN_set_word( bn, RSA_F4 )) {
+			tmp_rsa = RSA_new();
+			if ( tmp_rsa && !RSA_generate_key_ex( tmp_rsa, key_length, bn, NULL )) {
+				RSA_free( tmp_rsa );
+				tmp_rsa = NULL;
+			}
+		}
+		BN_free( bn );
+	} else {
+		tmp_rsa = NULL;
+	}
+#else
 	tmp_rsa = RSA_generate_key( key_length, RSA_F4, NULL, NULL );
+#endif
 
 	if ( !tmp_rsa ) {
 		Debug( LDAP_DEBUG_ANY,
