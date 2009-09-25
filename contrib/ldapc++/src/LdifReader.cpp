@@ -179,11 +179,12 @@ int LdifReader::readNextRecord( bool first )
 
 LDAPEntry LdifReader::getEntryRecord()
 {
+    std::list<stringpair>::const_iterator i = m_currentRecord.begin();
     if ( m_curRecType != LDAPMsg::SEARCH_ENTRY )
     {
-        // Error
+        throw( std::runtime_error( "The LDIF record: '" + i->second +
+                                   "' is not a valid LDAP Entry" ));
     }
-    std::list<stringpair>::const_iterator i = m_currentRecord.begin();
     LDAPEntry resEntry(i->second);
     i++;
     LDAPAttribute curAttr(i->first);
