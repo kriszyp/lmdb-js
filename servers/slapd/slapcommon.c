@@ -92,7 +92,7 @@ usage( int tool, const char *progname )
 		break;
 
 	case SLAPTEST:
-		options = " [-u]\n";
+		options = " [-n databasenumber] [-u]\n";
 		break;
 
 	case SLAPSCHEMA:
@@ -268,7 +268,7 @@ slap_tool_init(
 		break;
 
 	case SLAPTEST:
-		options = "d:f:F:o:Quv";
+		options = "d:f:F:n:o:Quv";
 		mode |= SLAP_TOOL_READMAIN | SLAP_TOOL_READONLY;
 		break;
 
@@ -608,8 +608,11 @@ slap_tool_init(
 	}
 
 	switch ( tool ) {
-	case SLAPDN:
 	case SLAPTEST:
+		if ( dbnum >= 0 )
+			goto get_db;
+		/* FALLTHRU */
+	case SLAPDN:
 	case SLAPAUTH:
 		be = NULL;
 		goto startup;
@@ -733,6 +736,7 @@ slap_tool_init(
 		exit( EXIT_FAILURE );
 
 	} else {
+get_db:
 		LDAP_STAILQ_FOREACH( be, &backendDB, be_next ) {
 			if ( dbnum == 0 ) break;
 			dbnum--;
