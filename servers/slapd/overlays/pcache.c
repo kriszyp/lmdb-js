@@ -862,6 +862,7 @@ merge_entry(
 			modlist->sml_op = LDAP_MOD_ADD;
 			op->o_tag = LDAP_REQ_MODIFY;
 			op->orm_modlist = modlist;
+			op->o_managedsait = SLAP_CONTROL_CRITICAL;
 			op->o_bd->be_modify( op, &sreply );
 			slap_mods_free( modlist, 1 );
 		} else if ( rc == LDAP_REFERRAL ||
