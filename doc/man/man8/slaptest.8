@@ -13,6 +13,8 @@ slaptest \- Check the suitability of the OpenLDAP slapd.conf file
 [\c
 .BI \-F \ confdir\fR]
 [\c
+.BI \-n dbnum\fR]
+[\c
 .BI \-o \ option\fR[ = value\fR]]
 [\c
 .BR \-Q ]
@@ -61,6 +63,15 @@ default config directory before trying to use the default
 config file. If a valid config directory exists then the
 default config file is ignored. If dry-run mode is also specified,
 no conversion will occur.
+.TP
+.BI \-n \ dbnum
+Just open and test the \fIdbnum\fR-th database listed in the
+configuration file. 
+To only test the config database
+.BR slapd\-config (5),
+use 
+.B \-n 0
+as it is always the first database.
 .TP
 .BI \-o \ option\fR[ = value\fR]
 Specify an
