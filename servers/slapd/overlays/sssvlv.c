@@ -696,7 +696,7 @@ static int sssvlv_op_search(
 	int						rc			= SLAP_CB_CONTINUE;
 	int	ok;
 	sort_op *so, so2;
-	sort_ctrl *sc = op->o_controls[sss_cid];
+	sort_ctrl *sc;
 	PagedResultsState *ps;
 	vlv_ctrl *vc;
 
@@ -725,6 +725,7 @@ static int sssvlv_op_search(
 		op->o_req_dn.bv_val, op->ors_filterstr.bv_val,
 		op->o_ctrlflag[sss_cid]);
 
+	sc = op->o_controls[sss_cid];
 	if ( sc->sc_nkeys > si->svi_max_keys ) {
 		rs->sr_text = "Too many sort keys";
 		rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
