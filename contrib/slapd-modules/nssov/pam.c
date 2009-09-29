@@ -266,7 +266,7 @@ int pam_authz(nssov_info *ni,TFILE *fp,Operation *op)
 	char ruserc[32];
 	char rhostc[256];
 	char ttyc[256];
-	int rc = NSLCD_PAM_SUCCESS;
+	int rc;
 	Entry *e = NULL;
 	Attribute *a;
 	SlapReply rs = {REP_RESULT};
@@ -455,6 +455,7 @@ int pam_authz(nssov_info *ni,TFILE *fp,Operation *op)
 		else if (!BER_BVISEMPTY(&ni->ni_pam_template))
 			uid = ni->ni_pam_template;
 	}
+	rc = NSLCD_PAM_SUCCESS;
 
 finish:
 	WRITE_INT32(fp,NSLCD_VERSION);
