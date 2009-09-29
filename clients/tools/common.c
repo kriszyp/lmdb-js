@@ -1420,8 +1420,14 @@ tool_bind( LDAP *ld )
 			}
 		}
 
-		if ( ldap_result( ld, msgid, LDAP_MSG_ALL, NULL, &result ) == -1 ) {
+		rc = ldap_result( ld, msgid, LDAP_MSG_ALL, NULL, &result );
+		if ( rc == -1 ) {
 			tool_perror( "ldap_result", -1, NULL, NULL, NULL, NULL );
+			exit( LDAP_LOCAL_ERROR );
+		}
+
+		if ( rc == 0 ) {
+			tool_perror( "ldap_result", LDAP_TIMEOUT, NULL, NULL, NULL, NULL );
 			exit( LDAP_LOCAL_ERROR );
 		}
 

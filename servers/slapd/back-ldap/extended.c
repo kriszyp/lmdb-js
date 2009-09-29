@@ -190,7 +190,10 @@ retry:
 
 	if ( rc == LDAP_SUCCESS ) {
 		/* TODO: set timeout? */
-		if ( ldap_result( lc->lc_ld, msgid, LDAP_MSG_ALL, NULL, &res ) == -1 ) {
+		/* by now, make sure no timeout is used (ITS#6282) */
+		struct timeval tv;
+		tv.tv_sec = -1;
+		if ( ldap_result( lc->lc_ld, msgid, LDAP_MSG_ALL, &tv, &res ) == -1 ) {
 			ldap_get_option( lc->lc_ld, LDAP_OPT_ERROR_NUMBER, &rc );
 			rs->sr_err = rc;
 
@@ -316,7 +319,10 @@ retry:
 
 	if ( rc == LDAP_SUCCESS ) {
 		/* TODO: set timeout? */
-		if ( ldap_result( lc->lc_ld, msgid, LDAP_MSG_ALL, NULL, &res ) == -1 ) {
+		/* by now, make sure no timeout is used (ITS#6282) */
+		struct timeval tv;
+		tv.tv_sec = -1;
+		if ( ldap_result( lc->lc_ld, msgid, LDAP_MSG_ALL, &tv, &res ) == -1 ) {
 			ldap_get_option( lc->lc_ld, LDAP_OPT_ERROR_NUMBER, &rc );
 			rs->sr_err = rc;
 
