@@ -863,7 +863,7 @@ done:;
 
 release:;
 	if ( e != NULL ) {
-		overlay_entry_release_ov( op, e, 0, on );
+		overlay_entry_release_ov( &o, e, 0, on );
 	}
 
 	return SLAP_CB_CONTINUE;
