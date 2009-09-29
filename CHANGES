@@ -3,6 +3,7 @@ OpenLDAP 2.4 Change Log
 OpenLDAP 2.4.19 Engineering
 	Fixed client tools with null timeouts (ITS#6282)
 	Fixed slapadd to warn about missing attrs for replicas (ITS#6281)
+	Fixed slapd acl cache (ITS#6287)
 	Fixed slapd tools to allow -n for conversion (ITS#6258)
 	Fixed slapd-ldap with null timeouts (ITS#6282)
 	Fixed slapd-ldif buffer overflow (ITS#6303)

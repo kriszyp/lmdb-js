@@ -1527,27 +1527,27 @@ typedef struct AccessControl {
 	struct AccessControl	*acl_next;
 } AccessControl;
 
-typedef enum {
-	ACL_STATE_NOT_RECORDED			= 0x0,
-	ACL_STATE_RECORDED_VD			= 0x1,
-	ACL_STATE_RECORDED_NV			= 0x2,
-	ACL_STATE_RECORDED			= ( ACL_STATE_RECORDED_VD | ACL_STATE_RECORDED_NV )
-} slap_acl_state_t;
-
 typedef struct AccessControlState {
 	/* Access state */
-	AccessControl *as_vi_acl;
-	AccessControl *as_vd_acl;
-	AttributeDescription *as_vd_ad;
 
+	/* The stored state is valid when requesting as_access access
+	 * to the as_desc attributes.	 */
+	AttributeDescription *as_desc;
+	slap_access_t	as_access;
 
-	slap_acl_state_t as_recorded;
+	/* Value dependent acl where processing can restart */
+	AccessControl  *as_vd_acl;
 	int as_vd_acl_count;
+	slap_mask_t		as_vd_mask;
+
+	/* The cached result after evaluating a value independent attr.
+	 * Only valid when != -1 and as_vd_acl == NULL */
 	int as_result;
+
+	/* True if started to process frontend ACLs */
 	int as_fe_done;
 } AccessControlState;
-#define ACL_STATE_INIT { NULL, NULL, NULL, \
-	ACL_STATE_NOT_RECORDED, 0, 0, 0 }
+#define ACL_STATE_INIT { NULL, ACL_NONE, NULL, 0, ACL_PRIV_NONE, -1, 0 }
 
 typedef struct AclRegexMatches {        
 	int dn_count;
