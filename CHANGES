@@ -2,6 +2,7 @@ OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.19 Engineering
 	Fixed slapd tools to allow -n for conversion (ITS#6258)
+	Fixed slapd-ldif buffer overflow (ITS#6303)
 	Fixed slapo-dynlist lock leak (ITS#6308)
 	Fixed slapo-pcache cache corruption (ITS#6242)
 	Fixed slapo-sssvlv sort control dereferencing (ITS#6288)
