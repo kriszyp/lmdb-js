@@ -1452,6 +1452,10 @@ autogroup_db_open(
 
 	Debug( LDAP_DEBUG_TRACE, "==> autogroup_db_open\n", 0, 0, 0);
 
+	if ( agi == NULL ) {
+		return 0;
+	}
+
 	connection_fake_init( &conn, &opbuf, thrctx );
 	op = &opbuf.ob_op;
 
