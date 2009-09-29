@@ -266,7 +266,7 @@ int pam_authz(nssov_info *ni,TFILE *fp,Operation *op)
 	char ruserc[32];
 	char rhostc[256];
 	char ttyc[256];
-	int rc = NSLCD_PAM_SUCCESS;
+	int rc;
 	Entry *e = NULL;
 	Attribute *a;
 	SlapReply rs = {REP_RESULT};
@@ -400,9 +400,10 @@ int pam_authz(nssov_info *ni,TFILE *fp,Operation *op)
 	}
 	if ((ni->ni_pam_opts & NI_PAM_USERHOST) && nssov_pam_host_ad) {
 		a = attr_find(e->e_attrs, nssov_pam_host_ad);
-		if (!a || value_find_ex( nssov_pam_host_ad,
-			SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH,
-			a->a_vals, &global_host_bv, op->o_tmpmemctx )) {
+		if (!a || attr_valfind( a,
+			SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH |
+			SLAP_MR_VALUE_OF_SYNTAX,
+			&global_host_bv, NULL, op->o_tmpmemctx )) {
 			rc = NSLCD_PAM_PERM_DENIED;
 			authzmsg = hostmsg;
 			goto finish;
@@ -410,9 +411,10 @@ int pam_authz(nssov_info *ni,TFILE *fp,Operation *op)
 	}
 	if ((ni->ni_pam_opts & NI_PAM_USERSVC) && nssov_pam_svc_ad) {
 		a = attr_find(e->e_attrs, nssov_pam_svc_ad);
-		if (!a || value_find_ex( nssov_pam_svc_ad,
-			SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH,
-			a->a_vals, &svc, op->o_tmpmemctx )) {
+		if (!a || attr_valfind( a,
+			SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH |
+			SLAP_MR_VALUE_OF_SYNTAX,
+			&svc, NULL, op->o_tmpmemctx )) {
 			rc = NSLCD_PAM_PERM_DENIED;
 			authzmsg = svcmsg;
 			goto finish;
@@ -425,7 +427,7 @@ int pam_authz(nssov_info *ni,TFILE *fp,Operation *op)
 	if (ni->ni_pam_min_uid || ni->ni_pam_max_uid) {
 		int id;
 		char *tmp;
-		nssov_mapinfo *mi = &ni->ni_maps[NM_host];
+		nssov_mapinfo *mi = &ni->ni_maps[NM_passwd];
 		a = attr_find(e->e_attrs, mi->mi_attrs[UIDN_KEY].an_desc);
 		if (!a) {
 			rc = NSLCD_PAM_PERM_DENIED;
@@ -453,6 +455,7 @@ int pam_authz(nssov_info *ni,TFILE *fp,Operation *op)
 		else if (!BER_BVISEMPTY(&ni->ni_pam_template))
 			uid = ni->ni_pam_template;
 	}
+	rc = NSLCD_PAM_SUCCESS;
 
 finish:
 	WRITE_INT32(fp,NSLCD_VERSION);
