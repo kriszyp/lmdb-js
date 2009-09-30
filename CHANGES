@@ -6,6 +6,7 @@ OpenLDAP 2.4.19 Engineering
 	Fixed slapd acl cache (ITS#6287)
 	Fixed slapd tools to allow -n for conversion (ITS#6258)
 	Fixed slapd-ldap with null timeouts (ITS#6282)
+	Fixed slapd-ldap with strong binds with relay/translucent (ITS#6296)
 	Fixed slapd-ldif buffer overflow (ITS#6303)
 	Fixed slapo-auditlog comments when modifying (ITS#6286)
 	Fixed slapo-dynlist lock leak (ITS#6308)
