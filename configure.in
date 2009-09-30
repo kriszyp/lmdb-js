@@ -547,6 +547,7 @@ BUILD_AUDITLOG=no
 BUILD_CONSTRAINT=no
 BUILD_DDS=no
 BUILD_DENYOP=no
+BUILD_DEREF=no
 BUILD_DYNGROUP=no
 BUILD_DYNLIST=no
 BUILD_LASTMOD=no
@@ -2821,7 +2822,7 @@ if test "$ol_enable_dds" != no ; then
 fi
 
 if test "$ol_enable_deref" != no ; then
-	BUILD_DDS=$ol_enable_deref
+	BUILD_DEREF=$ol_enable_deref
 	if test "$ol_enable_deref" = mod ; then
 		MFLAG=SLAPD_MOD_DYNAMIC
 		SLAPD_DYNAMIC_OVERLAYS="$SLAPD_DYNAMIC_OVERLAYS deref.la"
@@ -3061,6 +3062,7 @@ dnl overlays
   AC_SUBST(BUILD_CONSTRAINT)
   AC_SUBST(BUILD_DDS)
   AC_SUBST(BUILD_DENYOP)
+  AC_SUBST(BUILD_DEREF)
   AC_SUBST(BUILD_DYNGROUP)
   AC_SUBST(BUILD_DYNLIST)
   AC_SUBST(BUILD_LASTMOD)
