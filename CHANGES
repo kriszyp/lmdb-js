@@ -12,8 +12,9 @@ OpenLDAP 2.4.19 Engineering
 	Fixed slapo-dynlist lock leak (ITS#6308)
 	Fixed slapo-pcache cache corruption (ITS#6242)
 	Fixed slapo-sssvlv sort control dereferencing (ITS#6288)
-	Fixed contrib/nssov getgroupbymembers (ITS#6291)
+	Fixed contrib/autogroup default libtool path (ITS#6284)
 	Fixed contrib/autogroup segfaults (ITS#6279)
+	Fixed contrib/nssov getgroupbymembers (ITS#6291)
 	Build Environment
 		Fixed --enable-deref support (ITS#6311)
 

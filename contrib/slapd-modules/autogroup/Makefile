@@ -1,3 +1,5 @@
+LIBTOOL=../../../libtool
+
 CPPFLAGS+=-I../../../include -I../../../servers/slapd
 
 all: autogroup.la
