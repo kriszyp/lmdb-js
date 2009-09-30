@@ -2013,7 +2013,7 @@ tlsm_session_upflags( Sockbuf *sb, tls_session *session, int rc )
 }
 
 static char *
-tlsm_session_errmsg( int rc, char *buf, size_t len )
+tlsm_session_errmsg( tls_session *sess, int rc, char *buf, size_t len )
 {
 	int i;
 

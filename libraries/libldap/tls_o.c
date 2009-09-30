@@ -398,11 +398,22 @@ tlso_session_upflags( Sockbuf *sb, tls_session *sess, int rc )
 }
 
 static char *
-tlso_session_errmsg( int rc, char *buf, size_t len )
+tlso_session_errmsg( tls_session *sess, int rc, char *buf, size_t len )
 {
+	char err[256] = "";
+	const char *certerr=NULL;
+	tlso_session *s = (tlso_session *)sess;
+
 	rc = ERR_peek_error();
 	if ( rc ) {
-		ERR_error_string_n( rc, buf, len );
+		ERR_error_string_n( rc, err, sizeof(err) );
+		if ( ( ERR_GET_LIB(rc) == ERR_LIB_SSL ) && 
+				( ERR_GET_REASON(rc) == SSL_R_CERTIFICATE_VERIFY_FAILED ) ) {
+			int certrc = SSL_get_verify_result(s);
+			certerr = (char *)X509_verify_cert_error_string(certrc);
+		}
+		snprintf(buf, len, "%s%s%s%s", err, certerr ? " (" :"", 
+				certerr ? certerr : "", certerr ?  ")" : "" );
 		return buf;
 	}
 	return NULL;

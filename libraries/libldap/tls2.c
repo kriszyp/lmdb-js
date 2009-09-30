@@ -376,7 +376,7 @@ ldap_int_tls_connect( LDAP *ld, LDAPConn *conn )
 			return 1;
 		}
 
-		msg = tls_imp->ti_session_errmsg( err, buf, sizeof(buf) );
+		msg = tls_imp->ti_session_errmsg( ssl, err, buf, sizeof(buf) );
 		if ( msg ) {
 			if ( ld->ld_error ) {
 				LDAP_FREE( ld->ld_error );
@@ -438,7 +438,7 @@ ldap_pvt_tls_accept( Sockbuf *sb, void *ctx_arg )
 
 		if ( DebugTest( LDAP_DEBUG_ANY ) ) {
 			char buf[256], *msg;
-			msg = tls_imp->ti_session_errmsg( err, buf, sizeof(buf) );
+			msg = tls_imp->ti_session_errmsg( ssl, err, buf, sizeof(buf) );
 			Debug( LDAP_DEBUG_ANY,"TLS: can't accept: %s.\n",
 				msg ? msg : "(unknown)", 0, 0 );
 		}
