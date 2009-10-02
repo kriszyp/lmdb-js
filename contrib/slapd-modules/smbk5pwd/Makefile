@@ -45,7 +45,7 @@ smbk5pwd.lo:	smbk5pwd.c
 
 smbk5pwd.la:	smbk5pwd.lo
 	$(LIBTOOL) --mode=link $(CC) $(OPT) -version-info 0:0:0 \
-	-rpath $(libdir) -module -o $@ $? $(LIBS)
+	-rpath $(moduledir) -module -o $@ $? $(LIBS)
 
 clean:
 	rm -f smbk5pwd.lo smbk5pwd.la
