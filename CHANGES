@@ -17,6 +17,7 @@ OpenLDAP 2.4.19 Release (2009/10/03)
 	Build Environment
 		Fixed --enable-deref support (ITS#6311)
 		Fixed contrib/autogroup default libtool path (ITS#6284)
+		Deleted nadf.schema (ITS#6140)
 
 OpenLDAP 2.4.18 Release (2009/09/06)
 	Fixed client tools common options (ITS#6049)
