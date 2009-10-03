@@ -21,16 +21,6 @@
 static int ppolicy_cid;
 static AttributeDescription *ad_loginStatus;
 
-const char *at_loginStatus =
-	"( 1.3.6.1.4.1.4745.1.20.1 "
-	"NAME ( 'loginStatus' ) "
-	"DESC 'Currently logged in sessions for a user' "
-	"EQUALITY caseIgnoreMatch "
-	"SUBSTR caseIgnoreSubstringsMatch "
-	"ORDERING caseIgnoreOrderingMatch "
-	"SYNTAX OMsDirectoryString "
-	"USAGE directoryOperation )";
-
 struct paminfo {
 	struct berval uid;
 	struct berval dn;
@@ -667,7 +657,9 @@ int pam_pwmod(nssov_info *ni,TFILE *fp,Operation *op)
 int nssov_pam_init()
 {
 	int code = 0;
+	const char *text;
 	if (!ad_loginStatus)
-		code = register_at( at_loginStatus, &ad_loginStatus, 0 );
+		code = slap_str2ad( "loginStatus", &ad_loginStatus, &text );
+
 	return code;
 }
