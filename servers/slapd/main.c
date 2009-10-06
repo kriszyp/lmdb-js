@@ -270,7 +270,18 @@ parse_debug_level( const char *arg, int *levelp, char ***unknowns )
 		ldap_charray_free( levels );
 
 	} else {
-		if ( lutil_atoix( &level, arg, 0 ) != 0 ) {
+		int rc;
+
+		if ( arg[0] == '-' ) {
+			rc = lutil_atoix( &level, arg, 0 );
+		} else {
+			unsigned ulevel;
+
+			rc = lutil_atoux( &ulevel, arg, 0 );
+			level = (int)ulevel;
+		}
+
+		if ( rc ) {
 			fprintf( stderr,
 				"unrecognized log level "
 				"\"%s\"\n", arg );

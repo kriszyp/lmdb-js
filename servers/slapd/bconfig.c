@@ -3051,7 +3051,7 @@ static int
 loglevel_init( void )
 {
 	slap_verbmasks	lo[] = {
-		{ BER_BVC("Any"),	-1 },
+		{ BER_BVC("Any"),	LDAP_DEBUG_ANY },
 		{ BER_BVC("Trace"),	LDAP_DEBUG_TRACE },
 		{ BER_BVC("Packets"),	LDAP_DEBUG_PACKETS },
 		{ BER_BVC("Args"),	LDAP_DEBUG_ARGS },
