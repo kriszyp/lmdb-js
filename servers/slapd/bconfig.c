@@ -3203,8 +3203,9 @@ loglevel_print( FILE *out )
 
 	fprintf( out, "Installed log subsystems:\n\n" );
 	for ( i = 0; !BER_BVISNULL( &loglevel_ops[ i ].word ); i++ ) {
-		fprintf( out, "\t%-30s (%lu)\n",
+		fprintf( out, "\t%-30s (%u, 0x%x)\n",
 			loglevel_ops[ i ].word.bv_val,
+			loglevel_ops[ i ].mask,
 			loglevel_ops[ i ].mask );
 	}
 
