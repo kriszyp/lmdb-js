@@ -759,6 +759,7 @@ ldap_build_entry(
 						( oc = oc_bvfind_undef( &attr->a_vals[i] ) ) != NULL )
 				{
 					ber_dupbv( &pval, &oc->soc_cname );
+					rc = LDAP_SUCCESS;
 
 				} else {
 					LBER_FREE( attr->a_vals[i].bv_val );
@@ -770,8 +771,9 @@ ldap_build_entry(
 					BER_BVZERO( &attr->a_vals[last] );
 					i--;
 				}
+			}
 
-			} else if ( pretty ) {
+			if ( rc == LDAP_SUCCESS && pretty ) {
 				LBER_FREE( attr->a_vals[i].bv_val );
 				attr->a_vals[i] = pval;
 			}
