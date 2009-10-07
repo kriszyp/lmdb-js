@@ -4377,9 +4377,13 @@ pcache_db_init(
 	cm->check_cacheability = 0;
 	cm->response_cb = PCACHE_RESPONSE_CB_TAIL;
 	cm->defer_db_open = 1;
+	cm->cache_binds = 0;
 	cm->cc_period = 1000;
 	cm->cc_paused = 0;
 	cm->cc_arg = NULL;
+#ifdef PCACHE_MONITOR
+	cm->monitor_cb = NULL;
+#endif /* PCACHE_MONITOR */
 
 	qm->attr_sets = NULL;
 	qm->templates = NULL;
