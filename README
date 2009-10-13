@@ -20,8 +20,8 @@ REQUIRED SOFTWARE
 
     SLAPD:
         BDB and HDB backends require Oracle Berkeley DB 4.4, 4.5,
-        4.6, or 4.7.  It is highly recommended to apply the patches
-        from Oracle for a given release.
+        4.6, 4.7, or 4.8.  It is highly recommended to apply the
+        patches from Oracle for a given release.
 
     CLIENTS/CONTRIB ware:
         Depends on package.  See per package README.
