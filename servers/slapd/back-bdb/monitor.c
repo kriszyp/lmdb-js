@@ -280,8 +280,9 @@ bdb_monitor_initialize( void )
 			Debug( LDAP_DEBUG_ANY, LDAP_XSTRING(bdb_monitor_initialize)
 				": register_at failed\n",
 				0, 0, 0 );
+		} else {
+			(*s_at[ i ].ad)->ad_type->sat_flags |= SLAP_AT_HIDE;
 		}
-		(*s_at[ i ].ad)->ad_type->sat_flags |= SLAP_AT_HIDE;
 	}
 
 	for ( i = 0; s_oc[ i ].desc != NULL; i++ ) {
@@ -290,8 +291,9 @@ bdb_monitor_initialize( void )
 			Debug( LDAP_DEBUG_ANY, LDAP_XSTRING(bdb_monitor_initialize)
 				": register_oc failed\n",
 				0, 0, 0 );
+		} else {
+			(*s_oc[ i ].oc)->soc_flags |= SLAP_OC_HIDE;
 		}
-		(*s_oc[ i ].oc)->soc_flags |= SLAP_OC_HIDE;
 	}
 
 	return 0;
