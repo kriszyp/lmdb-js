@@ -807,6 +807,10 @@ done:;
 			ch_free( soc->soc_allowed );
 		}
 
+		if ( soc->soc_oidmacro ) {
+			ch_free( soc->soc_oidmacro );
+		}
+
 		ch_free( soc );
 
 	} else if ( rsoc ) {
