@@ -964,8 +964,8 @@ dnParent(
 
 	/* one-level dn */
 	if ( p == NULL ) {
-		pdn->bv_len = 0;
 		pdn->bv_val = dn->bv_val + dn->bv_len;
+		pdn->bv_len = 0;
 		return;
 	}
 
