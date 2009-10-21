@@ -151,6 +151,7 @@ ber_encode_oid( BerValue *in, BerValue *out )
 			der[j] = tmp;
 		}
 		der += len;
+
 		if ( ptr == inend )
 			break;
 
@@ -242,10 +243,10 @@ ber_put_ostring(
 	rc = ber_write( ber, (char *) ptr, &header[sizeof(header)] - ptr, 0 );
 	if ( rc >= 0 && ber_write( ber, str, len, 0 ) >= 0 ) {
 		/* length(tag + length + contents) */
-		rc += (int) len;
+		return rc + (int) len;
 	}
 
-	return rc;
+	return -1;
 }
 
 int
@@ -300,10 +301,10 @@ ber_put_bitstring(
 	rc = ber_write( ber, (char *) ptr, &header[sizeof(header)] - ptr, 0 );
 	if ( rc >= 0 && ber_write( ber, str, len, 0 ) >= 0 ) {
 		/* length(tag + length + unused bit count + bitstring) */
-		rc += (int) len;
+		return rc + (int) len;
 	}
 
-	return rc;
+	return -1;
 }
 
 int
