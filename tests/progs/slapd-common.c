@@ -209,7 +209,7 @@ tester_ignore_err( int err )
 				ignore_client[ -err ]++;
 
 			} else if ( rc < 0 ) {
-				ignore_server[ err ]--;
+				ignore_client[ -err ]--;
 			}
 		}
 	}
