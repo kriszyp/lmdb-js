@@ -22,6 +22,11 @@ if test $MEMBEROF = memberofno; then
 	exit 0
 fi 
 
+if test $REFINT = refintno; then 
+	echo "Referential Integrity overlay not available, test skipped"
+	exit 0
+fi 
+
 if test "$BACKEND" != "hdb" ; then
 	echo "Test does not support $BACKEND"
 	exit 0
