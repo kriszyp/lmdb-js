@@ -455,7 +455,7 @@ ber_put_seqorset( BerElement *ber )
 
 	/* Store length, and close gap of leftover reserved length octets */
 	len = xlen - SOS_LENLEN;
-	if ( ber->ber_options & LBER_USE_DER ) {
+	if ( !(ber->ber_options & LBER_USE_DER) ) {
 		int i;
 		lenptr[0] = SOS_LENLEN - 1 + 0x80; /* length(length)-1 */
 		for( i = SOS_LENLEN; --i > 0; len >>= 8 ) {
