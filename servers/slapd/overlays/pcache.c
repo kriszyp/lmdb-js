@@ -836,6 +836,7 @@ merge_entry(
 
 	slap_callback cb = { NULL, slap_null_cb, NULL, NULL };
 
+	e = entry_dup( e );
 	attr = e->e_attrs;
 	e->e_attrs = NULL;
 
@@ -877,7 +878,7 @@ merge_entry(
 		}
 	} else {
 		if ( op->ora_e == e )
-			be_entry_release_w( op, e );
+			entry_free( e );
 		rc = 1;
 	}
 
