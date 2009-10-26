@@ -303,7 +303,7 @@ struct sb_sasl_generic_data {
 	Sockbuf_Buf				sec_buf_in;
 	Sockbuf_Buf				buf_in;
 	Sockbuf_Buf				buf_out;
-	int					flags;
+	unsigned int				flags;
 #define LDAP_PVT_SASL_PARTIAL_WRITE	1
 };
  
