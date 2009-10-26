@@ -728,7 +728,7 @@ sb_sasl_generic_write( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len)
 		/* error? */
 		int err = sock_errno();
 		/* caller can retry this */
-		if ( err == EAGAIN )
+		if ( err == EAGAIN || errno == EWOULDBLOCK || errno == EINTR )
 			p->flags |= LDAP_PVT_SASL_PARTIAL_WRITE;
 		return ret;
 	} else if ( p->buf_out.buf_ptr != p->buf_out.buf_end ) {
