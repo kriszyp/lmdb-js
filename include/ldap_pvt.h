@@ -297,14 +297,14 @@ struct sb_sasl_generic_data {
 	const struct sb_sasl_generic_ops 	*ops;
 	void					*ops_private;
 	Sockbuf_IO_Desc				*sbiod;
-	int					flags;
-#define LDAP_PVT_SASL_PARTIAL_WRITE	1
 	ber_len_t				min_send;
 	ber_len_t				max_send;
 	ber_len_t				max_recv;
 	Sockbuf_Buf				sec_buf_in;
 	Sockbuf_Buf				buf_in;
 	Sockbuf_Buf				buf_out;
+	int					flags;
+#define LDAP_PVT_SASL_PARTIAL_WRITE	1
 };
  
 #ifndef LDAP_PVT_SASL_LOCAL_SSF
