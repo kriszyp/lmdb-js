@@ -679,14 +679,14 @@ sb_sasl_generic_write( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len)
 {
 	struct sb_sasl_generic_data	*p;
 	int				ret;
-	ber_len_t			len2, sent;
+	ber_len_t			len2;
 
 	assert( sbiod != NULL );
 	assert( SOCKBUF_VALID( sbiod->sbiod_sb ) );
 
 	p = (struct sb_sasl_generic_data *)sbiod->sbiod_pvt;
 
-	/* Are there anything left in the buffer? */
+	/* Is there anything left in the buffer? */
 	if ( p->buf_out.buf_ptr != p->buf_out.buf_end ) {
 		ret = ber_pvt_sb_do_write( sbiod, &p->buf_out );
 		if ( ret < 0 ) return ret;
@@ -725,12 +725,12 @@ sb_sasl_generic_write( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len)
 		return -1;
 	}
 
-	sent = ber_pvt_sb_do_write( sbiod, &p->buf_out );
+	ret = ber_pvt_sb_do_write( sbiod, &p->buf_out );
 
-	if ( sent < 0 ) {
+	if ( ret < 0 ) {
 		/* error? */
-		len2 = sent;
-	} else if ( sent != p->buf_out.buf_end ) {
+		return ret;
+	} else if ( p->buf_out.buf_ptr != p->buf_out.buf_end ) {
 		/* partial write? */
 		len2--;
 		p->flags |= LDAP_PVT_SASL_PARTIAL_WRITE;
