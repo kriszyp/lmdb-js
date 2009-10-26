@@ -698,23 +698,20 @@ sb_sasl_generic_write( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len)
 		}
 	}
 
-	/* If we're just retrying a partial write, ignore
-	 * the first byte of this request since we fudged it
-	 * below on the previous call.
+	len2 = p->max_send - 100;	/* For safety margin */
+	len2 = len > len2 ? len2 : len;
+
+	/* If we're just retrying a partial write, tell the
+	 * caller it's done. Let them call again if there's
+	 * still more left to write.
 	 */
 	if ( p->flags & LDAP_PVT_SASL_PARTIAL_WRITE ) {
 		p->flags ^= LDAP_PVT_SASL_PARTIAL_WRITE;
-		len--;
-		if ( !len )
-			return 1;
-		buf = (char *)buf + 1;
+		return len2;
 	}
 
 	/* now encode the next packet. */
 	p->ops->reset_buf( p, &p->buf_out );
-
-	len2 = p->max_send - 100;	/* For safety margin */
-	len2 = len > len2 ? len2 : len;
 
 	ret = p->ops->encode( p, buf, len2, &p->buf_out );
 
@@ -729,10 +726,14 @@ sb_sasl_generic_write( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len)
 
 	if ( ret < 0 ) {
 		/* error? */
+		int err = sock_errno();
+		/* caller can retry this */
+		if ( err == EAGAIN )
+			p->flags |= LDAP_PVT_SASL_PARTIAL_WRITE;
 		return ret;
 	} else if ( p->buf_out.buf_ptr != p->buf_out.buf_end ) {
-		/* partial write? */
-		len2--;
+		/* partial write? pretend nothing got written */
+		len2 = 0;
 		p->flags |= LDAP_PVT_SASL_PARTIAL_WRITE;
 	}
 
