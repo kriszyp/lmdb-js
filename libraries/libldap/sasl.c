@@ -503,6 +503,7 @@ sb_sasl_generic_setup( Sockbuf_IO_Desc *sbiod, void *arg )
 	p->ops = i->ops;
 	p->ops_private = i->ops_private;
 	p->sbiod = sbiod;
+	p->flags = 0;
 	ber_pvt_sb_buf_init( &p->sec_buf_in );
 	ber_pvt_sb_buf_init( &p->buf_in );
 	ber_pvt_sb_buf_init( &p->buf_out );
@@ -678,6 +679,7 @@ sb_sasl_generic_write( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len)
 {
 	struct sb_sasl_generic_data	*p;
 	int				ret;
+	ber_len_t			len2, sent;
 
 	assert( sbiod != NULL );
 	assert( SOCKBUF_VALID( sbiod->sbiod_sb ) );
@@ -696,14 +698,25 @@ sb_sasl_generic_write( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len)
 		}
 	}
 
+	/* If we're just retrying a partial write, ignore
+	 * the first byte of this request since we fudged it
+	 * below on the previous call.
+	 */
+	if ( p->flags & LDAP_PVT_SASL_PARTIAL_WRITE ) {
+		p->flags ^= LDAP_PVT_SASL_PARTIAL_WRITE;
+		len--;
+		if ( !len )
+			return 1;
+		buf = (char *)buf + 1;
+	}
+
 	/* now encode the next packet. */
 	p->ops->reset_buf( p, &p->buf_out );
 
-	if ( len > p->max_send - 100 ) {
-		len = p->max_send - 100;	/* For safety margin */
-	}
+	len2 = p->max_send - 100;	/* For safety margin */
+	len2 = len > len2 ? len2 : len;
 
-	ret = p->ops->encode( p, buf, len, &p->buf_out );
+	ret = p->ops->encode( p, buf, len2, &p->buf_out );
 
 	if ( ret != 0 ) {
 		ber_log_printf( LDAP_DEBUG_ANY, sbiod->sbiod_sb->sb_debug,
@@ -712,12 +725,21 @@ sb_sasl_generic_write( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len)
 		return -1;
 	}
 
-	ret = ber_pvt_sb_do_write( sbiod, &p->buf_out );
+	sent = ber_pvt_sb_do_write( sbiod, &p->buf_out );
+
+	if ( sent < 0 ) {
+		/* error? */
+		len2 = sent;
+	} else if ( sent != p->buf_out.buf_end ) {
+		/* partial write? */
+		len2--;
+		p->flags |= LDAP_PVT_SASL_PARTIAL_WRITE;
+	}
 
 	/* return number of bytes encoded, not written, to ensure
 	 * no byte is encoded twice (even if only sent once).
 	 */
-	return len;
+	return len2;
 }
 
 static int
