@@ -1,6 +1,7 @@
 <?xml version="1.0"?>
 <!DOCTYPE rfc SYSTEM "rfc2629.dtd" [
 	<!ENTITY rfc2119 PUBLIC '' 'http://xml.resource.org/public/rfc/bibxml/reference.RFC.2119.xml'>
+	<!ENTITY rfc3961 PUBLIC '' 'http://xml.resource.org/public/rfc/bibxml/reference.RFC.3961.xml'>
 	<!ENTITY rfc4120 PUBLIC '' 'http://xml.resource.org/public/rfc/bibxml/reference.RFC.4120.xml'>
 	<!ENTITY rfc4511 PUBLIC '' 'http://xml.resource.org/public/rfc/bibxml/reference.RFC.4511.xml'>
 	<!ENTITY rfc4513 PUBLIC '' 'http://xml.resource.org/public/rfc/bibxml/reference.RFC.4513.xml'>
@@ -21,7 +22,7 @@
 <rfc 
   ipr="trust200902" 
   category="info"
-  docName="draft-chu-ldap-kdc-schema-00">
+  docName="draft-chu-ldap-kdc-schema-01">
   <front>
     <title abbrev="LDAP KDC Schema">
       An LDAP Schema for Kerberos KDC Information
@@ -239,9 +240,22 @@
 	This attribute implements section 6.1.1.13 of the Information Model.
 	Holds the allowed encryption/salt type combinations for this principal.
 	If empty or absent any combination supported by the implementation is allowed.
-	<vspace/>
-	Note that sections 6.1.1.4 thru 6.1.1.10 are implemented using the
-	LDAP Password Policy schema.
+
+	Values are stored in the form of key:salt strings.
+	The supported encryption types are mentioned in
+	<xref target="RFC3961"/>.  The supported salt types are:
+	<list style='empty'>
+	<t>NORMAL</t>
+	<t>V4</t>
+	<t>NOREALM</t>
+	<t>ONLYREALM</t>
+	<t>SPECIAL</t>
+	<t>AFS3</t>
+	</list>
+	Example: <spanx style='verb'>des-cbc-crc:normal</spanx>
+	<vspace blankLines='1'/>
+	Note that sections 6.1.1.4 thru 6.1.1.10 of the Information Model
+	are implemented using the LDAP Password Policy schema.
 	</t>
 	<t>
       <figure>
@@ -597,6 +611,7 @@
     <references title="Normative References">
 	  &rfc2119;
 	  &rfc3062;
+	  &rfc3961;
 	  &rfc4120;
 	  &rfc4511;
 	  &rfc4516;
