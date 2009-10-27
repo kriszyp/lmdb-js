@@ -41,6 +41,21 @@
 			<uri>http://www.symas.com</uri>
 		</address>
 	</author>
+	<author initials="S." fullname="Simo Sorce" surname="Sorce">
+		<organization>Red Hat, Inc.</organization>
+		<address>
+			<postal>
+				<street>140 Broadway, 24th Floor</street>
+				<city>New York</city>
+				<region>New York</region>
+				<code>10005</code>
+				<country>US</country>
+			</postal>
+			<phone>+1 212 344-2501</phone>
+			<email>ssorce@redhat.com</email>
+			<uri>http://www.redhat.com</uri>
+		</address>
+	</author>
     <date month="October" year="2009"/>
     <abstract>
       <t>This document describes an <xref target="RFC4511">LDAP</xref> schema for implementing the
@@ -537,8 +552,8 @@
 	</section>
     </section>
     <section anchor="acks" title="Acknowledgements">
-      <t>Thanks to Simo Sorce from Red Hat Inc. and Love H&ouml;rnquist &Aring;strand
-	from Apple Corp. for their feedback on this document.</t>
+      <t>Thanks to Love H&ouml;rnquist &Aring;strand
+	from Apple Corp. for the initial feedback on this document.</t>
     </section>
   </middle>
   <back>
