@@ -175,6 +175,32 @@
       <figure>
         <artwork>
   ( KRBATTR.3
+                NAME 'krbPrincStartTime'
+                EQUALITY generalizedTimeMatch
+                ORDERING generalizedTimeOrderingMatch
+                SYNTAX 1.3.6.1.4.1.1466.115.121.1.24
+                SINGLE-VALUE )
+        </artwork></figure>
+	This attribute impelents section 6.1.1.2 of the Information Model.
+	It holds the date the principal becomes valid.
+	</t>
+	<t>
+      <figure>
+        <artwork>
+  ( KRBATTR.4
+                NAME 'krbPrincEndTime'
+                EQUALITY generalizedTimeMatch
+                ORDERING generalizedTimeOrderingMatch
+                SYNTAX 1.3.6.1.4.1.1466.115.121.1.24
+                SINGLE-VALUE )
+        </artwork></figure>
+	This attribute impelents section 6.1.1.3 of the Information Model.
+	It holds the date the principal becomes invalid.
+	</t>
+	<t>
+      <figure>
+        <artwork>
+  ( KRBATTR.5
                 NAME 'krbTicketMaxLife'
                 EQUALITY integerMatch
 		ORDERING integerOrderingMatch
@@ -188,7 +214,7 @@
 	<t>
       <figure>
         <artwork>
-  ( KRBATTR.4
+  ( KRBATTR.6
                 NAME 'krbTicketMaxRenewal'
                 EQUALITY integerMatch
 		ORDERING integerOrderingMatch
@@ -202,7 +228,7 @@
 	<t>
       <figure>
         <artwork>
-  ( KRBATTR.5
+  ( KRBATTR.7
                 NAME 'krbEncSaltTypes'
                 EQUALITY caseIgnoreMatch
                 SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )
@@ -212,13 +238,13 @@
 	Holds the allowed encryption/salt type combinations for this principal.
 	If empty or absent any combination supported by the implementation is allowed.
 	<vspace/>
-	Note that sections 6.1.1.2 thru 6.1.1.10 are implemented using the
+	Note that sections 6.1.1.4 thru 6.1.1.10 are implemented using the
 	LDAP Password Policy schema.
 	</t>
 	<t>
       <figure>
         <artwork>
-  ( KRBATTR.6
+  ( KRBATTR.8
                 NAME 'krbRealmName'
                 EQUALITY octetStringMatch
                 SYNTAX 1.3.6.1.4.1.1466.115.121.1.40 )
@@ -226,7 +252,7 @@
       </figure>
       <figure>
         <artwork>
-  ( KRBATTR.7
+  ( KRBATTR.9
                 NAME 'krbPrincipalRealm'
 		DESC 'DN of krbRealm entry'
 		SUP distinguishedName )
@@ -239,12 +265,12 @@
 	<t>
       <figure>
         <artwork>
-  ( KRBATTR.8
+  ( KRBATTR.10
                 NAME 'krbKeyVersion'
                 EQUALITY integerMatch
-		ORDERING integerOrderingMatch
+            	ORDERING integerOrderingMatch
                 SYNTAX 1.3.6.1.4.1.1466.115.121.1.27
-		SINGLE-VALUE )
+            	SINGLE-VALUE )
         </artwork>
       </figure>
 	This attribute implements section 6.2.1.1 of the Information Model.
@@ -253,7 +279,7 @@
 	<t>
       <figure>
         <artwork>
-  ( KRBATTR.9
+  ( KRBATTR.11
                 NAME 'krbKeySet'
                 EQUALITY octetStringMatch
                 SYNTAX 1.3.6.1.4.1.1466.115.121.1.40 )
@@ -293,7 +319,7 @@
 	<t>
       <figure>
         <artwork>
-  ( KRBATTR.10
+  ( KRBATTR.12
                 NAME 'krbTicketPolicy'
                 EQUALITY integerMatch
                 SYNTAX 1.3.6.1.4.1.1466.115.121.1.27
@@ -327,7 +353,7 @@
 	<t>
       <figure>
         <artwork>
-  ( KRBATTR.11
+  ( KRBATTR.13
                 NAME 'krbExtraData'
                 EQUALITY octetStringMatch
                 SYNTAX 1.3.6.1.4.1.1466.115.121.1.40 )
@@ -347,7 +373,7 @@
 	but may be useful in some deployments.
       <figure>
         <artwork>
-  ( KRBATTR.12
+  ( KRBATTR.14
                 NAME 'krbPrincNamingAttr'
                 EQUALITY objectIdentifierMatch
                 SYNTAX 1.3.6.1.4.1.1466.115.121.1.38
@@ -357,7 +383,7 @@
 	newly created principal entries.
       <figure>
         <artwork>
-  ( KRBATTR.13
+  ( KRBATTR.15
                 NAME 'krbPrincContainer'
 		DESC 'DN of container entry for principals'
 		SUP distinguishedName
@@ -367,7 +393,7 @@
 	new principal entries will be created.
       <figure>
         <artwork>
-  ( KRBATTR.14
+  ( KRBATTR.16
                 NAME 'krbPwdPolicy'
 		DESC 'DN of password policy subentry'
 		SUP distinguishedName
@@ -382,7 +408,7 @@
 	informational purposes.
       <figure>
         <artwork>
-  ( KRBATTR.15
+  ( KRBATTR.17
                 NAME 'krbLDAPURI'
 		DESC 'LDAP search parameters for locating principals'
 		SUP labeledURI )
@@ -409,7 +435,8 @@
         <artwork>
   ( KRBOC.2 NAME 'krbPrincipal' SUP krbKDCInfo AUXILIARY
       MUST ( krbPrincipalName )
-      MAY ( krbPrincipalAliases $ krbPrincipalRealm $ 
+      MAY ( krbPrincipalAliases $ krbPrincipalRealm $
+            krbPrincStartTime $ krbPrincEndTime $
 	krbExtraData ) )
 	</artwork>
 	</figure>
