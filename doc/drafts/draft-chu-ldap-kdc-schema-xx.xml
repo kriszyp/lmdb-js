@@ -151,18 +151,18 @@
         <artwork>
   ( KRBATTR.1
                 NAME 'krbPrincipalName'
-		DESC 'Canonical principal name'
+                DESC 'Canonical principal name'
                 EQUALITY caseExactIA5Match
                 SUBSTR caseExactSubstringsMatch
                 SYNTAX 1.3.6.1.4.1.1466.115.121.1.26
-		SINGLE-VALUE )
+                SINGLE-VALUE )
         </artwork>
       </figure>
       <figure>
         <artwork>
   ( KRBATTR.2
                 NAME 'krbPrincipalAliases'
-		SUP krbPrincipalName )
+                SUP krbPrincipalName )
         </artwork>
       </figure>
 	These attributes implement section 6.1.1.1 of the Information Model. The
@@ -203,9 +203,9 @@
   ( KRBATTR.5
                 NAME 'krbTicketMaxLife'
                 EQUALITY integerMatch
-		ORDERING integerOrderingMatch
+                ORDERING integerOrderingMatch
                 SYNTAX 1.3.6.1.4.1.1466.115.121.1.27
-		SINGLE-VALUE )
+                SINGLE-VALUE )
         </artwork>
       </figure>
 	This attribute implements section 6.1.1.11 of the Information Model.
@@ -217,9 +217,9 @@
   ( KRBATTR.6
                 NAME 'krbTicketMaxRenewal'
                 EQUALITY integerMatch
-		ORDERING integerOrderingMatch
+                ORDERING integerOrderingMatch
                 SYNTAX 1.3.6.1.4.1.1466.115.121.1.27
-		SINGLE-VALUE )
+                SINGLE-VALUE )
         </artwork>
       </figure>
 	This attribute implements section 6.1.1.12 of the Information Model.
@@ -254,8 +254,8 @@
         <artwork>
   ( KRBATTR.9
                 NAME 'krbPrincipalRealm'
-		DESC 'DN of krbRealm entry'
-		SUP distinguishedName )
+                DESC 'DN of krbRealm entry'
+                SUP distinguishedName )
         </artwork>
       </figure>
 	These attributes provide information about the current realm. They provide
@@ -268,9 +268,9 @@
   ( KRBATTR.10
                 NAME 'krbKeyVersion'
                 EQUALITY integerMatch
-            	ORDERING integerOrderingMatch
+                ORDERING integerOrderingMatch
                 SYNTAX 1.3.6.1.4.1.1466.115.121.1.27
-            	SINGLE-VALUE )
+                SINGLE-VALUE )
         </artwork>
       </figure>
 	This attribute implements section 6.2.1.1 of the Information Model.
@@ -323,7 +323,7 @@
                 NAME 'krbTicketPolicy'
                 EQUALITY integerMatch
                 SYNTAX 1.3.6.1.4.1.1466.115.121.1.27
-		SINGLE-VALUE )
+                SINGLE-VALUE )
         </artwork>
       </figure>
 	This attribute is related to section 6.4 of the Information Model. It
@@ -377,7 +377,7 @@
                 NAME 'krbPrincNamingAttr'
                 EQUALITY objectIdentifierMatch
                 SYNTAX 1.3.6.1.4.1.1466.115.121.1.38
-		SINGLE-VALUE )
+                SINGLE-VALUE )
         </artwork></figure>
 	This attribute records what attribute will be used to name
 	newly created principal entries.
@@ -385,9 +385,9 @@
         <artwork>
   ( KRBATTR.15
                 NAME 'krbPrincContainer'
-		DESC 'DN of container entry for principals'
-		SUP distinguishedName
-		SINGLE-VALUE )
+                DESC 'DN of container entry for principals'
+                SUP distinguishedName
+                SINGLE-VALUE )
         </artwork></figure>
 	This attribute points to the container entry under which
 	new principal entries will be created.
@@ -395,9 +395,9 @@
         <artwork>
   ( KRBATTR.16
                 NAME 'krbPwdPolicy'
-		DESC 'DN of password policy subentry'
-		SUP distinguishedName
-		SINGLE-VALUE )
+                DESC 'DN of password policy subentry'
+                SUP distinguishedName
+                SINGLE-VALUE )
         </artwork></figure>
 	This attribute points to the LDAP password policy subentry
 	containing the policy that should be applied to Kerberos principals.
@@ -410,8 +410,8 @@
         <artwork>
   ( KRBATTR.17
                 NAME 'krbLDAPURI'
-		DESC 'LDAP search parameters for locating principals'
-		SUP labeledURI )
+                DESC 'LDAP search parameters for locating principals'
+                SUP labeledURI )
         </artwork></figure>
 	This attribute contains LDAP URIs that the KDC will search when
 	locating principals. The URI values must conform to the syntax
@@ -427,8 +427,8 @@
         <artwork>
   ( KRBOC.1 NAME 'krbKDCInfo' SUP top AUXILIARY
       MAY ( krbTicketMaxLife $ krbTicketMaxRenewal $
-	krbEncSaltTypes $ krbTicketPolicy $
-	krbKeySet $ krbKeyVersion ) )
+            krbEncSaltTypes $ krbTicketPolicy $
+            krbKeySet $ krbKeyVersion ) )
 	</artwork>
 	</figure>
       <figure>
@@ -437,7 +437,7 @@
       MUST ( krbPrincipalName )
       MAY ( krbPrincipalAliases $ krbPrincipalRealm $
             krbPrincStartTime $ krbPrincEndTime $
-	krbExtraData ) )
+            krbExtraData ) )
 	</artwork>
 	</figure>
 	</t>
@@ -447,7 +447,7 @@
   ( KRBOC.3 NAME 'krbRealm' SUP krbKDCInfo AUXILIARY
       MUST ( krbRealmName )
       MAY ( krbPrincNamingAttr $ krbPrincContainer $
-	krbPwdPolicy $ krbLDAPURI ) )
+            krbPwdPolicy $ krbLDAPURI ) )
 	</artwork>
 	</figure>
 	Note that in a krbRealm object the krbKeySet and krbKeyVersion
