@@ -278,6 +278,7 @@ ber_get_stringb LDAP_P((
 
 #define	LBER_BV_ALLOC	0x01	/* allocate/copy result, otherwise in-place */
 #define	LBER_BV_NOTERM	0x02	/* omit NUL-terminator if parsing in-place */
+#define	LBER_BV_STRING	0x04	/* fail if berval contains embedded \0 */
 
 LBER_F( ber_tag_t )
 ber_get_stringbv LDAP_P((
