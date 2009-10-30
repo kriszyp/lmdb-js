@@ -108,7 +108,7 @@ bdb_cache_entryinfo_free( Cache *cache, EntryInfo *ei )
 #define LRU_DEL( c, e ) do { \
 	if ( e == e->bei_lruprev ) { \
 		(c)->c_lruhead = (c)->c_lrutail = NULL; \
-	} else { \	
+	} else { \
 		if ( e == (c)->c_lruhead ) (c)->c_lruhead = e->bei_lruprev; \
 		if ( e == (c)->c_lrutail ) (c)->c_lrutail = e->bei_lruprev; \
 		e->bei_lrunext->bei_lruprev = e->bei_lruprev; \
