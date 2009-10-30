@@ -525,7 +525,7 @@ tlsg_session_upflags( Sockbuf *sb, tls_session *session, int rc )
 }
 
 static char *
-tlsg_session_errmsg( int rc, char *buf, size_t len )
+tlsg_session_errmsg( tls_session *sess, int rc, char *buf, size_t len )
 {
 	return (char *)gnutls_strerror( rc );
 }
