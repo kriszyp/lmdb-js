@@ -21,6 +21,9 @@
 #include <sys/param.h>
 #endif
 
+/* MAXPATHLEN should come from <unistd.h> */
+#include <ac/unistd.h>
+
 #ifndef MAXPATHLEN
 #	if defined(PATH_MAX)
 #		define MAXPATHLEN	PATH_MAX
