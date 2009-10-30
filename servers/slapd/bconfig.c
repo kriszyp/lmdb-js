@@ -25,6 +25,7 @@
 #include <ac/ctype.h>
 #include <ac/errno.h>
 #include <sys/stat.h>
+#include <ac/unistd.h>
 
 #include "slap.h"
 

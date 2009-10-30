@@ -33,16 +33,13 @@
 #include <ac/signal.h>
 #include <ac/socket.h>
 #include <ac/errno.h>
+#include <ac/unistd.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
 
 #ifndef S_ISREG
 #define	S_ISREG(m)	(((m) & _S_IFMT) == _S_IFREG)
-#endif
-
-#ifdef HAVE_UNISTD_H
-#include <unistd.h>
 #endif
 
 #include "slap.h"
