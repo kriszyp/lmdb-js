@@ -2483,7 +2483,7 @@ tcp_buffer_delete( BerVarray vals )
 }
 
 static int
-tcp_buffer_unparse( int idx, int size, int rw, Listener *l, struct berval *val )
+tcp_buffer_unparse( int size, int rw, Listener *l, struct berval *val )
 {
 	char buf[sizeof("2147483648")], *ptr;
 
@@ -2528,7 +2528,7 @@ tcp_buffer_unparse( int idx, int size, int rw, Listener *l, struct berval *val )
 }
 
 static int
-tcp_buffer_add_one( int argc, char **argv, int idx )
+tcp_buffer_add_one( int argc, char **argv )
 {
 	int rc = 0;
 	int size = -1, rw = 0;
@@ -2543,7 +2543,7 @@ tcp_buffer_add_one( int argc, char **argv, int idx )
 	}
 
 	/* unparse for later use */
-	rc = tcp_buffer_unparse( idx, size, rw, l, &val );
+	rc = tcp_buffer_unparse( size, rw, l, &val );
 	if ( rc != LDAP_SUCCESS ) {
 		return rc;
 	}
@@ -2581,8 +2581,7 @@ tcp_buffer_add_one( int argc, char **argv, int idx )
 
 	tcp_buffer = SLAP_REALLOC( tcp_buffer, sizeof( struct berval ) * ( tcp_buffer_num + 2 ) );
 	/* append */
-	idx = tcp_buffer_num;
-	tcp_buffer[ idx ] = val;
+	tcp_buffer[ tcp_buffer_num ] = val;
 
 	tcp_buffer_num++;
 	BER_BVZERO( &tcp_buffer[ tcp_buffer_num ] );
@@ -2627,7 +2626,7 @@ config_tcp_buffer( ConfigArgs *c )
 			}
 
 			/* unparse for later use */
-			rc = tcp_buffer_unparse( tcp_buffer_num, size, rw, l, &val );
+			rc = tcp_buffer_unparse( size, rw, l, &val );
 			if ( rc != LDAP_SUCCESS ) {
 				return 1;
 			}
@@ -2660,13 +2659,12 @@ done:;
 
 	} else {
 		int rc;
-		int idx;
 
-		rc = tcp_buffer_add_one( c->argc - 1, &c->argv[ 1 ], idx );
+		rc = tcp_buffer_add_one( c->argc - 1, &c->argv[ 1 ] );
 		if ( rc ) {
 			snprintf( c->cr_msg, sizeof( c->cr_msg ),
 				"<%s> unable to add value #%d",
-				c->argv[0], idx );
+				c->argv[0], tcp_buffer_num );
 			Debug( LDAP_DEBUG_ANY, "%s: %s\n",
 				c->log, c->cr_msg, 0 );
 			return 1;
