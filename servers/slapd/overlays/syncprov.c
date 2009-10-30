@@ -1324,15 +1324,14 @@ syncprov_op_cleanup( Operation *op, SlapReply *rs )
 	/* Remove op from lock table */
 	mt = opc->smt;
 	if ( mt ) {
-		modinst *mi = mt->mt_mods;
-
+		ldap_pvt_thread_mutex_lock( &mt->mt_mutex );
+		mt->mt_mods = mt->mt_mods->mi_next;
 		/* If there are more, promote the next one */
-		if ( mi->mi_next ) {
-			ldap_pvt_thread_mutex_lock( &mt->mt_mutex );
-			mt->mt_mods = mi->mi_next;
+		if ( mt->mt_mods ) {
 			mt->mt_op = mt->mt_mods->mi_op;
 			ldap_pvt_thread_mutex_unlock( &mt->mt_mutex );
 		} else {
+			ldap_pvt_thread_mutex_unlock( &mt->mt_mutex );
 			ldap_pvt_thread_mutex_lock( &si->si_mods_mutex );
 			avl_delete( &si->si_mods, mt, sp_avl_cmp );
 			ldap_pvt_thread_mutex_unlock( &si->si_mods_mutex );
@@ -1946,6 +1945,15 @@ syncprov_op_mod( Operation *op, SlapReply *rs )
 		mt = avl_find( si->si_mods, &mtdummy, sp_avl_cmp );
 		if ( mt ) {
 			ldap_pvt_thread_mutex_lock( &mt->mt_mutex );
+			if ( mt->mt_mods == NULL ) {
+				/* Cannot reuse this mt, as another thread is about
+				 * to release it in syncprov_op_cleanup.
+				 */
+				ldap_pvt_thread_mutex_unlock( &mt->mt_mutex );
+				mt = NULL;
+			}
+		}
+		if ( mt ) {
 			ldap_pvt_thread_mutex_unlock( &si->si_mods_mutex );
 			mt->mt_tail->mi_next = mi;
 			mt->mt_tail = mi;
