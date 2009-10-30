@@ -24,8 +24,6 @@
 
 #include "proto-back-relay.h"
 
-/* String rewrite library */
-
 LDAP_BEGIN_DECL
 
 typedef enum relay_operation_e {
