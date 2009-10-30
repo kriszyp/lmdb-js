@@ -1,6 +1,7 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.20 Engineering
+	Fixed libldap uninitialized return value (ITS#6355)
 	Fixed slapd debug handling of LDAP_DEBUG_ANY (ITS#6324)
 
 OpenLDAP 2.4.19 Release (2009/10/06)

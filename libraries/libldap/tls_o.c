@@ -1081,6 +1081,7 @@ tlso_tmp_rsa_cb( SSL *ssl, int is_export, int key_length )
 	/* FIXME:  Who frees the key? */
 #if OPENSSL_VERSION_NUMBER > 0x00908000
 	BIGNUM *bn = BN_new();
+	tmp_rsa = NULL;
 	if ( bn ) {
 		if ( BN_set_word( bn, RSA_F4 )) {
 			tmp_rsa = RSA_new();
@@ -1090,8 +1091,6 @@ tlso_tmp_rsa_cb( SSL *ssl, int is_export, int key_length )
 			}
 		}
 		BN_free( bn );
-	} else {
-		tmp_rsa = NULL;
 	}
 #else
 	tmp_rsa = RSA_generate_key( key_length, RSA_F4, NULL, NULL );
@@ -1101,7 +1100,6 @@ tlso_tmp_rsa_cb( SSL *ssl, int is_export, int key_length )
 		Debug( LDAP_DEBUG_ANY,
 			"TLS: Failed to generate temporary %d-bit %s RSA key\n",
 			key_length, is_export ? "export" : "domestic", 0 );
-		return NULL;
 	}
 	return tmp_rsa;
 }
