@@ -4,6 +4,7 @@ OpenLDAP 2.4.20 Engineering
 	Fixed libldap uninitialized return value (ITS#6355)
 	Fixed slapd debug handling of LDAP_DEBUG_ANY (ITS#6324)
 	Fixed slapd termination for one level dns (ITS#6338)
+	Fixed slapd-bdb cache corruption (ITS#6341)
 	Fixed slapd-ldap leak (ITS#6326)
 	Fixed slapd-relay bind segfault (ITS#6337)
 	Fixed slapo-memberof operational attr updates (ITS#6329)
