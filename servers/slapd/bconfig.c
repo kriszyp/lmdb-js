@@ -3050,7 +3050,7 @@ static int
 loglevel_init( void )
 {
 	slap_verbmasks	lo[] = {
-		{ BER_BVC("Any"),	-1 },
+		{ BER_BVC("Any"),	(slap_mask_t) LDAP_DEBUG_ANY },
 		{ BER_BVC("Trace"),	LDAP_DEBUG_TRACE },
 		{ BER_BVC("Packets"),	LDAP_DEBUG_PACKETS },
 		{ BER_BVC("Args"),	LDAP_DEBUG_ARGS },
@@ -3202,9 +3202,11 @@ loglevel_print( FILE *out )
 
 	fprintf( out, "Installed log subsystems:\n\n" );
 	for ( i = 0; !BER_BVISNULL( &loglevel_ops[ i ].word ); i++ ) {
-		fprintf( out, "\t%-30s (%lu)\n",
-			loglevel_ops[ i ].word.bv_val,
-			loglevel_ops[ i ].mask );
+		unsigned mask = loglevel_ops[ i ].mask & 0xffffffffUL;
+		fprintf( out,
+			(mask == ((slap_mask_t) -1 & 0xffffffffUL)
+			 ? "\t%-30s (-1, 0xffffffff)\n" : "\t%-30s (%u, 0x%x)\n"),
+			loglevel_ops[ i ].word.bv_val, mask, mask );
 	}
 
 	fprintf( out, "\nNOTE: custom log subsystems may be later installed "

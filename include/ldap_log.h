@@ -123,7 +123,7 @@ LDAP_BEGIN_DECL
 #define LDAP_DEBUG_SYNC		0x4000
 
 #define LDAP_DEBUG_NONE		0x8000
-#define LDAP_DEBUG_ANY		-1
+#define LDAP_DEBUG_ANY		(-1)
 
 /* debugging stuff */
 #ifdef LDAP_DEBUG
