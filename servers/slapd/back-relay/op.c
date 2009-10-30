@@ -93,6 +93,27 @@ relay_back_response_cb( Operation *op, SlapReply *rs )
 	return SLAP_CB_CONTINUE;
 }
 
+/* quick hack for ITS#6337: use malloc'ed callback for bind */
+int
+relay_back_cleanup2_cb( Operation *op, SlapReply *rs )
+{
+	op->o_bd = ((relay_callback *) op->o_callback)->rcb_bd;
+	op->o_tmpfree( op->o_callback, op->o_tmpmemctx );
+	op->o_callback = NULL;
+	return SLAP_CB_CONTINUE;
+}
+
+int
+relay_back_response2_cb( Operation *op, SlapReply *rs )
+{
+	relay_callback	*rcb = (relay_callback *) op->o_callback;
+
+	rcb->rcb_sc.sc_cleanup = relay_back_cleanup2_cb;
+	rcb->rcb_bd = op->o_bd;
+	op->o_bd = op->o_callback->sc_private;
+	return SLAP_CB_CONTINUE;
+}
+
 #define relay_back_add_cb( rcb, op, bd )			\
 	{							\
 		(rcb)->rcb_sc.sc_next = (op)->o_callback;	\
@@ -199,7 +220,15 @@ relay_back_op( Operation *op, SlapReply *rs, int which )
 	} else if ( (func = (&bd->be_bind)[which]) != 0 ) {
 		relay_callback	rcb;
 
-		relay_back_add_cb( &rcb, op, bd );
+		if ( which == op_bind ) {
+			/* quick hack for ITS#6337: use malloc'ed callback for bind */
+			relay_callback *rcbp = op->o_tmpcalloc( sizeof( relay_callback ), 1, op->o_tmpmemctx );
+			relay_back_add_cb( rcbp, op, bd );
+			rcbp->rcb_sc.sc_response = relay_back_response2_cb;
+
+		} else {
+			relay_back_add_cb( &rcb, op, bd );
+		}
 
 		RELAY_WRAP_OP( op, bd, which, {
 			rc = func( op, rs );
