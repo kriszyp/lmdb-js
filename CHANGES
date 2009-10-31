@@ -11,6 +11,7 @@ OpenLDAP 2.4.20 Engineering
 	Fixed slapd inclusion of ac/unistd.h (ITS#6342)
 	Fixed slapd debug handling of LDAP_DEBUG_ANY (ITS#6324)
 	Fixed slapd termination for one level DNs (ITS#6338)
+	Fixed slapd unused parameter (ITS#6356)
 	Fixed slapd-bdb cache corruption (ITS#6341)
 	Fixed slapd-ldap leak (ITS#6326)
 	Fixed slapd-relay bind segfault (ITS#6337)
