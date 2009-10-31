@@ -13,6 +13,7 @@ OpenLDAP 2.4.20 Engineering
 	Fixed slapd-ldap leak (ITS#6326)
 	Fixed slapd-relay bind segfault (ITS#6337)
 	Fixed slapo-memberof operational attr updates (ITS#6329)
+	Fixed slapo-pcache entry dupe (ITS#6310)
 	Fixed slapo-syncprov deadlock (ITS#6335)
 	Build Environment
 		Fixed slapd MAXPATHLEN handling (ITS#6342)
