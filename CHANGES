@@ -1,6 +1,7 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.20 Engineering
+	Fixed liblber to return failure on certain failures (ITS#6344)
 	Fixed libldap uninitialized return value (ITS#6355)
 	Fixed liblutil constant (ITS#5909)
 	Added slapd handling of hex server IDs (ITS#6297)
