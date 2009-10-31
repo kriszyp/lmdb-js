@@ -14,6 +14,7 @@ OpenLDAP 2.4.20 Engineering
 	Fixed slapo-syncprov deadlock (ITS#6335)
 	Build Environment
 		Fixed slapd MAXPATHLEN handling (ITS#6342)
+		Fixed test057 handling of memberof/refint (ITS#6343)
 	Documentation
 		ldap_get_dn(3) typos (ITS#5366)
 		slapd.conf(5) note hex server IDs (ITS#6297)
