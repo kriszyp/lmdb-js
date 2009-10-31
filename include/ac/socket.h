@@ -82,14 +82,14 @@
 #undef	sock_errstr
 #define sock_errno()	errno
 #define sock_errstr(e)	STRERROR(e)
-#define sock_errset(e)	errno = (e)
+#define sock_errset(e)	((void) (errno = (e)))
 
 #ifdef HAVE_WINSOCK
 #	define tcp_read( s, buf, len )	recv( s, buf, len, 0 )
 #	define tcp_write( s, buf, len )	send( s, buf, len, 0 )
 #	define ioctl( s, c, a )		ioctlsocket( (s), (c), (a) )
 #	define ioctl_t				u_long
-#	define AC_SOCKET_INVALID	((unsigned int) ~0)
+#	define AC_SOCKET_INVALID	((unsigned int) -1)
 
 #	ifdef SD_BOTH
 #		define tcp_close( s )	(shutdown( s, SD_BOTH ), closesocket( s ))
