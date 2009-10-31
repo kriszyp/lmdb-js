@@ -1784,7 +1784,8 @@ sortval_reject:
 				ServerID *si, **sip;
 				LDAPURLDesc *lud;
 				int num;
-				if ( lutil_atoi( &num, c->argv[1] ) ||
+				if (( lutil_atoi( &num, c->argv[1] ) &&	
+					lutil_atoix( &num, c->argv[1], 16 )) ||
 					num < 0 || num > SLAP_SYNC_SID_MAX )
 				{
 					snprintf( c->cr_msg, sizeof( c->cr_msg ),
@@ -1829,7 +1830,7 @@ sortval_reject:
 					BER_BVZERO( &si->si_url );
 					slap_serverID = num;
 					Debug( LDAP_DEBUG_CONFIG,
-						"%s: SID=%d\n",
+						"%s: SID=0x%03x\n",
 						c->log, slap_serverID, 0 );
 				}
 				si->si_next = NULL;
@@ -1842,7 +1843,7 @@ sortval_reject:
 					if ( l ) {
 						slap_serverID = si->si_num;
 						Debug( LDAP_DEBUG_CONFIG,
-							"%s: SID=%d (listener=%s)\n",
+							"%s: SID=0x%03x (listener=%s)\n",
 							c->log, slap_serverID,
 							l->sl_url.bv_val );
 					}

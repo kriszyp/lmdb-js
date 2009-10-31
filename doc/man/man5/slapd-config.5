@@ -723,7 +723,10 @@ property specifies the maximum security layer receive buffer
 size allowed.  0 disables security layers.  The default is 65536.
 .TP
 .B olcServerID: <integer> [<URL>]
-Specify an integer ID from 0 to 4095 for this server. These IDs are
+Specify an integer ID from 0 to 4095 for this server (limited
+to 3 hexadecimal digits).  The ID may also be specified as a
+hexadecimal ID by prefixing the value with "0x".
+These IDs are
 required when using multimaster replication and each master must have a
 unique ID. Note that this requirement also applies to separate masters
 contributing to a glued set of databases.

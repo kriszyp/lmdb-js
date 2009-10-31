@@ -3,9 +3,10 @@ OpenLDAP 2.4 Change Log
 OpenLDAP 2.4.20 Engineering
 	Fixed libldap uninitialized return value (ITS#6355)
 	Fixed liblutil constant (ITS#5909)
+	Added slapd handling of hex server IDs (ITS#6297)
 	Fixed slapd inclusion of ac/unistd.h (ITS#6342)
 	Fixed slapd debug handling of LDAP_DEBUG_ANY (ITS#6324)
-	Fixed slapd termination for one level dns (ITS#6338)
+	Fixed slapd termination for one level DNs (ITS#6338)
 	Fixed slapd-bdb cache corruption (ITS#6341)
 	Fixed slapd-ldap leak (ITS#6326)
 	Fixed slapd-relay bind segfault (ITS#6337)
@@ -15,6 +16,8 @@ OpenLDAP 2.4.20 Engineering
 		Fixed slapd MAXPATHLEN handling (ITS#6342)
 	Documentation
 		ldap_get_dn(3) typos (ITS#5366)
+		slapd.conf(5) note hex server IDs (ITS#6297)
+		slapd-config(5) note hex server IDs (ITS#6297)
 
 OpenLDAP 2.4.19 Release (2009/10/06)
 	Fixed client tools with null timeouts (ITS#6282)
