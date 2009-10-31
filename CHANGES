@@ -1,6 +1,7 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.20 Engineering
+	Fixed liblber embedded NUL values in BerValues (ITS#6353)
 	Fixed liblber inverted LBER_USE_DER test (ITS#6348)
 	Fixed liblber to return failure on certain failures (ITS#6344)
 	Fixed libldap sasl buffer sizing (ITS#6327,ITS#6334)

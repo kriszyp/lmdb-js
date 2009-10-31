@@ -345,7 +345,7 @@ enum bgbvc { ChArray, BvArray, BvVec, BvOff };
  */
 typedef struct bgbvr {
 	const enum bgbvc choice;
-	const int alloc;	/* choice == BvOff ? 0 : LBER_ALLOC */
+	const int option;	/* (ALLOC unless BvOff) | (STRING if ChArray) */
 	ber_len_t siz;		/* input array element size, output count */
 	ber_len_t off;		/* BvOff offset to the struct berval */
 	void *result;
@@ -418,9 +418,9 @@ ber_get_stringbvl( BerElement *ber, bgbvr *b )
 
 	n = 0;
 	do {
-		tag = ber_get_stringbv( ber, &bv, b->alloc );
+		tag = ber_get_stringbv( ber, &bv, b->option );
 		if ( tag == LBER_DEFAULT ) {
-			goto nomem;
+			goto failed;
 		}
 
 		/* store my result */
@@ -436,7 +436,7 @@ ber_get_stringbvl( BerElement *ber, bgbvr *b )
 				ber->ber_memctx );
 			if ( !bvp ) {
 				ber_memfree_x( bv.bv_val, ber->ber_memctx );
-				goto nomem;
+				goto failed;
 			}
 			res.bv[n] = bvp;
 			*bvp = bv;
@@ -449,8 +449,8 @@ ber_get_stringbvl( BerElement *ber, bgbvr *b )
 	} while (++n < i);
 	return tag;
 
-nomem:
-	if (b->choice != BvOff) {	/* BvOff does not have b->alloc set */
+failed:
+	if (b->choice != BvOff) { /* BvOff does not have LBER_BV_ALLOC set */
 		while (--n >= 0) {
 			switch(b->choice) {
 			case ChArray:
@@ -480,9 +480,11 @@ ber_get_stringbv( BerElement *ber, struct berval *bv, int option )
 	char		*data;
 
 	tag = ber_skip_element( ber, bv );
-	if ( tag == LBER_DEFAULT ) {
+	if ( tag == LBER_DEFAULT ||
+		(( option & LBER_BV_STRING ) && memchr( bv->bv_val, 0, bv->bv_len )))
+	{
 		bv->bv_val = NULL;
-		return tag;
+		return LBER_DEFAULT;
 	}
 
 	data = bv->bv_val;
@@ -516,6 +518,11 @@ ber_get_stringbv_null( BerElement *ber, struct berval *bv, int option )
 		return tag;
 	}
 
+	if (( option & LBER_BV_STRING ) && memchr( bv->bv_val, 0, bv->bv_len )) {
+		bv->bv_val = NULL;
+		return LBER_DEFAULT;
+	}
+
 	data = bv->bv_val;
 	if ( option & LBER_BV_ALLOC ) {
 		bv->bv_val = (char *) ber_memalloc_x( bv->bv_len + 1,
@@ -541,7 +548,7 @@ ber_get_stringa( BerElement *ber, char **buf )
 
 	assert( buf != NULL );
 
-	tag = ber_get_stringbv( ber, &bv, LBER_BV_ALLOC );
+	tag = ber_get_stringbv( ber, &bv, LBER_BV_ALLOC | LBER_BV_STRING );
 	*buf = bv.bv_val;
 
 	return tag;
@@ -555,7 +562,7 @@ ber_get_stringa_null( BerElement *ber, char **buf )
 
 	assert( buf != NULL );
 
-	tag = ber_get_stringbv_null( ber, &bv, LBER_BV_ALLOC );
+	tag = ber_get_stringbv_null( ber, &bv, LBER_BV_ALLOC | LBER_BV_STRING );
 	*buf = bv.bv_val;
 
 	return tag;
@@ -605,6 +612,10 @@ ber_get_bitstringa(
 	}
 	unusedbits = *(unsigned char *) data.bv_val++;
 	if ( unusedbits > 7 ) {
+		goto fail;
+	}
+
+	if ( memchr( data.bv_val, 0, data.bv_len )) {
 		goto fail;
 	}
 
@@ -811,7 +822,7 @@ ber_scanf ( BerElement *ber,
 		case 'v':	/* sequence of strings */
 		{
 			bgbvr cookie = {
-				ChArray, LBER_BV_ALLOC, sizeof( char * )
+				ChArray, LBER_BV_ALLOC | LBER_BV_STRING, sizeof( char * )
 			};
 			rc = ber_get_stringbvl( ber, &cookie );
 			*(va_arg( ap, char *** )) = cookie.result;
