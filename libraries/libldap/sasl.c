@@ -503,6 +503,7 @@ sb_sasl_generic_setup( Sockbuf_IO_Desc *sbiod, void *arg )
 	p->ops = i->ops;
 	p->ops_private = i->ops_private;
 	p->sbiod = sbiod;
+	p->flags = 0;
 	ber_pvt_sb_buf_init( &p->sec_buf_in );
 	ber_pvt_sb_buf_init( &p->buf_in );
 	ber_pvt_sb_buf_init( &p->buf_out );
@@ -678,13 +679,14 @@ sb_sasl_generic_write( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len)
 {
 	struct sb_sasl_generic_data	*p;
 	int				ret;
+	ber_len_t			len2;
 
 	assert( sbiod != NULL );
 	assert( SOCKBUF_VALID( sbiod->sbiod_sb ) );
 
 	p = (struct sb_sasl_generic_data *)sbiod->sbiod_pvt;
 
-	/* Are there anything left in the buffer? */
+	/* Is there anything left in the buffer? */
 	if ( p->buf_out.buf_ptr != p->buf_out.buf_end ) {
 		ret = ber_pvt_sb_do_write( sbiod, &p->buf_out );
 		if ( ret < 0 ) return ret;
@@ -696,14 +698,22 @@ sb_sasl_generic_write( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len)
 		}
 	}
 
+	len2 = p->max_send - 100;	/* For safety margin */
+	len2 = len > len2 ? len2 : len;
+
+	/* If we're just retrying a partial write, tell the
+	 * caller it's done. Let them call again if there's
+	 * still more left to write.
+	 */
+	if ( p->flags & LDAP_PVT_SASL_PARTIAL_WRITE ) {
+		p->flags ^= LDAP_PVT_SASL_PARTIAL_WRITE;
+		return len2;
+	}
+
 	/* now encode the next packet. */
 	p->ops->reset_buf( p, &p->buf_out );
 
-	if ( len > p->max_send - 100 ) {
-		len = p->max_send - 100;	/* For safety margin */
-	}
-
-	ret = p->ops->encode( p, buf, len, &p->buf_out );
+	ret = p->ops->encode( p, buf, len2, &p->buf_out );
 
 	if ( ret != 0 ) {
 		ber_log_printf( LDAP_DEBUG_ANY, sbiod->sbiod_sb->sb_debug,
@@ -714,10 +724,23 @@ sb_sasl_generic_write( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len)
 
 	ret = ber_pvt_sb_do_write( sbiod, &p->buf_out );
 
+	if ( ret < 0 ) {
+		/* error? */
+		int err = sock_errno();
+		/* caller can retry this */
+		if ( err == EAGAIN || err == EWOULDBLOCK || err == EINTR )
+			p->flags |= LDAP_PVT_SASL_PARTIAL_WRITE;
+		return ret;
+	} else if ( p->buf_out.buf_ptr != p->buf_out.buf_end ) {
+		/* partial write? pretend nothing got written */
+		len2 = 0;
+		p->flags |= LDAP_PVT_SASL_PARTIAL_WRITE;
+	}
+
 	/* return number of bytes encoded, not written, to ensure
 	 * no byte is encoded twice (even if only sent once).
 	 */
-	return len;
+	return len2;
 }
 
 static int
