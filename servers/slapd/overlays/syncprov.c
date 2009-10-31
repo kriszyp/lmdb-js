@@ -137,6 +137,7 @@ typedef struct syncprov_info_t {
 	ldap_pvt_thread_rdwr_t	si_csn_rwlock;
 	ldap_pvt_thread_mutex_t	si_ops_mutex;
 	ldap_pvt_thread_mutex_t	si_mods_mutex;
+	ldap_pvt_thread_mutex_t	si_resp_mutex;
 } syncprov_info_t;
 
 typedef struct opcookie {
@@ -1645,6 +1646,8 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 		char cbuf[LDAP_LUTIL_CSNSTR_BUFSIZE];
 		int do_check = 0, have_psearches, foundit, csn_changed = 0;
 
+		ldap_pvt_thread_mutex_lock( &si->si_resp_mutex );
+
 		/* Update our context CSN */
 		cbuf[0] = '\0';
 		maxcsn.bv_val = cbuf;
@@ -1698,7 +1701,7 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 					}
 				}
 			}
-			return SLAP_CB_CONTINUE;
+			goto leave;
 		}
 
 		slap_get_commit_csn( op, &maxcsn, &foundit );
@@ -1751,7 +1754,7 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 		/* Don't do any processing for consumer contextCSN updates */
 		if ( op->o_dont_replicate ) {
 			ldap_pvt_thread_rdwr_wunlock( &si->si_csn_rwlock );
-			return SLAP_CB_CONTINUE;
+			goto leave;
 		}
 
 		si->si_numops++;
@@ -1818,7 +1821,7 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 		if ( si->si_logs && op->o_tag != LDAP_REQ_ADD ) {
 			syncprov_add_slog( op );
 		}
-
+leave:		ldap_pvt_thread_mutex_unlock( &si->si_resp_mutex );
 	}
 	return SLAP_CB_CONTINUE;
 }
@@ -2975,6 +2978,7 @@ syncprov_db_init(
 	ldap_pvt_thread_rdwr_init( &si->si_csn_rwlock );
 	ldap_pvt_thread_mutex_init( &si->si_ops_mutex );
 	ldap_pvt_thread_mutex_init( &si->si_mods_mutex );
+	ldap_pvt_thread_mutex_init( &si->si_resp_mutex );
 
 	csn_anlist[0].an_desc = slap_schema.si_ad_entryCSN;
 	csn_anlist[0].an_name = slap_schema.si_ad_entryCSN->ad_cname;
@@ -3012,6 +3016,7 @@ syncprov_db_destroy(
 			ber_bvarray_free( si->si_ctxcsn );
 		if ( si->si_sids )
 			ch_free( si->si_sids );
+		ldap_pvt_thread_mutex_destroy( &si->si_resp_mutex );
 		ldap_pvt_thread_mutex_destroy( &si->si_mods_mutex );
 		ldap_pvt_thread_mutex_destroy( &si->si_ops_mutex );
 		ldap_pvt_thread_rdwr_destroy( &si->si_csn_rwlock );

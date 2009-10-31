@@ -17,6 +17,7 @@ OpenLDAP 2.4.20 Engineering
 	Fixed slapo-memberof operational attr updates (ITS#6329)
 	Fixed slapo-pcache entry dupe (ITS#6310)
 	Fixed slapo-syncprov deadlock (ITS#6335)
+	Fixed slapo-syncprov out of order changes (ITS#6346)
 	Build Environment
 		Fixed slapd MAXPATHLEN handling (ITS#6342)
 		Fixed test057 handling of memberof/refint (ITS#6343)
