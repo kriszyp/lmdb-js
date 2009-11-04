@@ -481,7 +481,8 @@ ber_get_stringbv( BerElement *ber, struct berval *bv, int option )
 
 	tag = ber_skip_element( ber, bv );
 	if ( tag == LBER_DEFAULT ||
-		(( option & LBER_BV_STRING ) && memchr( bv->bv_val, 0, bv->bv_len )))
+		(( option & LBER_BV_STRING ) &&
+		 bv->bv_len && memchr( bv->bv_val, 0, bv->bv_len - 1 )))
 	{
 		bv->bv_val = NULL;
 		return LBER_DEFAULT;
@@ -518,7 +519,9 @@ ber_get_stringbv_null( BerElement *ber, struct berval *bv, int option )
 		return tag;
 	}
 
-	if (( option & LBER_BV_STRING ) && memchr( bv->bv_val, 0, bv->bv_len )) {
+	if (( option & LBER_BV_STRING ) &&
+		memchr( bv->bv_val, 0, bv->bv_len - 1 ))
+	{
 		bv->bv_val = NULL;
 		return LBER_DEFAULT;
 	}
