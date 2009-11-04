@@ -972,6 +972,9 @@ load1:
 				 */
 				if ( (*eip)->bei_state & CACHE_ENTRY_NOT_CACHED ) {
 					(*eip)->bei_state &= ~CACHE_ENTRY_NOT_CACHED;
+					ldap_pvt_thread_mutex_lock( &bdb->bi_cache.c_count_mutex );
+					++bdb->bi_cache.c_cursize;
+					ldap_pvt_thread_mutex_unlock( &bdb->bi_cache.c_count_mutex );
 				}
 				flag &= ~ID_NOCACHE;
 			}
