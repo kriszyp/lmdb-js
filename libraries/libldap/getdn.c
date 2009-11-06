@@ -2131,16 +2131,15 @@ strval2str( struct berval *val, char *str, unsigned flags, ber_len_t *len )
 		
 		/*
 		 * The length was checked in strval2strlen();
-		 * LDAP_UTF8_CHARLEN() should suffice
 		 */
-		cl = LDAP_UTF8_CHARLEN2( &val->bv_val[ s ], cl );
-		assert( cl > 0 );
-		
+		cl = LDAP_UTF8_CHARLEN( &val->bv_val[ s ] );
+
 		/* 
 		 * there might be some chars we want to escape in form
 		 * of a couple of hexdigits for optimization purposes
 		 */
-		if ( ( cl > 1 && !LDAP_DN_IS_PRETTY( flags ) ) 
+		if ( cl > 1 ) {
+ 			if ( !LDAP_DN_IS_PRETTY( flags )
 #ifdef PRETTY_ESCAPE
 #if 0
 				|| LDAP_DN_WILLESCAPE_HEX( flags, val->bv_val[ s ] ) 
@@ -2155,16 +2154,17 @@ strval2str( struct berval *val, char *str, unsigned flags, ber_len_t *len )
 
 #endif /* ! PRETTY_ESCAPE */
 				) {
-			for ( ; cl--; ) {
-				str[ d++ ] = '\\';
-				byte2hexpair( &val->bv_val[ s ], &str[ d ] );
-				s++;
-				d += 2;
-			}
+				for ( ; cl--; ) {
+					str[ d++ ] = '\\';
+					byte2hexpair( &val->bv_val[ s ], &str[ d ] );
+					s++;
+					d += 2;
+				}
 
-		} else if ( cl > 1 ) {
-			for ( ; cl--; ) {
-				str[ d++ ] = val->bv_val[ s++ ];
+			} else {
+				for ( ; cl--; ) {
+					str[ d++ ] = val->bv_val[ s++ ];
+				}
 			}
 
 		} else {
