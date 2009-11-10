@@ -2690,8 +2690,11 @@ sp_cf_gen(ConfigArgs *c)
 		case SP_CHKPT:
 			if ( si->si_chkops || si->si_chktime ) {
 				struct berval bv;
+				/* we assume si_chktime is a multiple of 60
+				 * because the parsed value was originally
+				 * multiplied by 60 */
 				bv.bv_len = snprintf( c->cr_msg, sizeof( c->cr_msg ),
-					"%d %d", si->si_chkops, si->si_chktime );
+					"%d %d", si->si_chkops, si->si_chktime/60 );
 				if ( bv.bv_len >= sizeof( c->cr_msg ) ) {
 					rc = 1;
 				} else {
