@@ -18,6 +18,7 @@ OpenLDAP 2.4.20 Engineering
 	Fixed slapd-relay bind segfault (ITS#6337)
 	Fixed slapo-memberof operational attr updates (ITS#6329)
 	Fixed slapo-pcache entry dupe (ITS#6310)
+	Fixed slapo-syncprov checkpoint conversion (ITS#6370)
 	Fixed slapo-syncprov deadlock (ITS#6335)
 	Fixed slapo-syncprov out of order changes (ITS#6346)
 	Build Environment
