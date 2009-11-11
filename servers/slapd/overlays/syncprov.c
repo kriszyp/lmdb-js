@@ -1399,6 +1399,20 @@ syncprov_checkpoint( Operation *op, SlapReply *rs, slap_overinst *on )
 	opm.o_managedsait = SLAP_CONTROL_NONCRITICAL;
 	opm.o_no_schema_check = 1;
 	opm.o_bd->be_modify( &opm, &rsm );
+
+	/* Should only happen with SYNC_USE_SUBENTRY */
+	if ( rsm.sr_err == LDAP_NO_SUCH_OBJECT ) {
+		const char	*text;
+		char txtbuf[SLAP_TEXT_BUFLEN];
+		size_t textlen = sizeof txtbuf;
+		Entry *e = slap_create_context_csn_entry( opm.o_bd, NULL );
+		slap_mods2entry( &mod, &e, 0, 1, &text, txtbuf, textlen);
+		opm.ora_e = e;
+		opm.o_bd->be_add( &opm, &rsm );
+		if ( e == opm.ora_e )
+			be_entry_release_w( &opm, opm.ora_e );
+	}
+
 	if ( mod.sml_next != NULL ) {
 		slap_mods_free( mod.sml_next, 1 );
 	}

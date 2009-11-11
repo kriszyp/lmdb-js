@@ -3061,6 +3061,20 @@ syncrepl_updateCookie(
 	op->orm_modlist = &mod;
 	op->orm_no_opattrs = 1;
 	rc = op->o_bd->be_modify( op, &rs_modify );
+
+	/* Should only happen when SYNC_USE_SUBENTRY */
+	if ( rs_modify.sr_err == LDAP_NO_SUCH_OBJECT ) {
+		const char	*text;
+		char txtbuf[SLAP_TEXT_BUFLEN];
+		size_t textlen = sizeof txtbuf;
+		Entry *e = slap_create_context_csn_entry( op->o_bd, NULL );
+		rc = slap_mods2entry( &mod, &e, 0, 1, &text, txtbuf, textlen);
+		op->ora_e = e;
+		rc = op->o_bd->be_add( op, &rs_modify );
+		if ( e == op->ora_e )
+			be_entry_release_w( op, op->ora_e );
+	}
+
 	op->orm_no_opattrs = 0;
 	op->o_dont_replicate = 0;
 
