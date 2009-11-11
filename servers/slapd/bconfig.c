@@ -605,7 +605,7 @@ static ConfigTable config_back_cf_table[] = {
 		&config_suffix, "( OLcfgDbAt:0.10 NAME 'olcSuffix' "
 			"EQUALITY distinguishedNameMatch "
 			"SYNTAX OMsDN )", NULL, NULL },
-	{ "sync_use_subentry", NULL, 0, 0, 0, ARG_ON_OFF|ARG_DB|ARG_MAGIC,
+	{ "sync_use_subentry", NULL, 0, 0, 0, ARG_ON_OFF|ARG_DB|ARG_MAGIC|CFG_SYNC_SUBENTRY,
 		&config_generic, "( OLcfgDbAt:0.19 NAME 'olcSyncUseSubentry' "
 			"DESC 'Store sync context in a subentry' "
 			"SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
