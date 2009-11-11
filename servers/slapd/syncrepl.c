@@ -70,6 +70,7 @@ typedef struct syncinfo_s {
 	struct berval		si_logbase;
 	struct berval		si_filterstr;
 	struct berval		si_logfilterstr;
+	struct berval		si_contextdn;
 	int			si_scope;
 	int			si_attrsonly;
 	char			*si_anfile;
@@ -119,7 +120,7 @@ static int syncrepl_entry(
 					Modifications**,int, struct berval*,
 					struct berval *cookieCSN );
 static int syncrepl_updateCookie(
-					syncinfo_t *, Operation *, struct berval *,
+					syncinfo_t *, Operation *,
 					struct sync_cookie * );
 static struct berval * slap_uuidstr_from_normalized(
 					struct berval *, struct berval *, void * );
@@ -162,6 +163,13 @@ init_syncrepl(syncinfo_t *si)
 		sync_descs[1] = slap_schema.si_ad_structuralObjectClass;
 		sync_descs[2] = slap_schema.si_ad_entryCSN;
 		sync_descs[3] = NULL;
+	}
+
+	if ( SLAP_SYNC_SUBENTRY( si->si_be )) {
+		build_new_dn( &si->si_contextdn, &si->si_be->be_nsuffix[0],
+			(struct berval *)&slap_ldapsync_cn_bv, NULL );
+	} else {
+		si->si_contextdn = si->si_be->be_nsuffix[0];
 	}
 
 	if ( si->si_allattrs && si->si_allopattrs )
@@ -458,8 +466,8 @@ check_syncprov(
 	 */
 	a.a_desc = slap_schema.si_ad_contextCSN;
 	e.e_attrs = &a;
-	e.e_name = op->o_bd->be_suffix[0];
-	e.e_nname = op->o_bd->be_nsuffix[0];
+	e.e_name = si->si_contextdn;
+	e.e_nname = si->si_contextdn;
 	at[0].an_name = a.a_desc->ad_cname;
 	at[0].an_desc = a.a_desc;
 	BER_BVZERO( &at[1].an_name );
@@ -627,7 +635,7 @@ do_syncrep1(
 				BerVarray csn = NULL;
 				void *ctx = op->o_tmpmemctx;
 
-				op->o_req_ndn = op->o_bd->be_nsuffix[0];
+				op->o_req_ndn = si->si_contextdn;
 				op->o_req_dn = op->o_req_ndn;
 
 				/* try to read stored contextCSN */
@@ -753,7 +761,6 @@ do_syncrep2(
 			err = LDAP_SUCCESS;
 	ber_len_t	len;
 
-	struct berval	*psub;
 	Modifications	*modlist = NULL;
 
 	int				match, m;
@@ -774,8 +781,6 @@ do_syncrep2(
 	ber_set_option( ber, LBER_OPT_BER_MEMCTX, &op->o_tmpmemctx );
 
 	Debug( LDAP_DEBUG_TRACE, "=>do_syncrep2 %s\n", si->si_ridtxt, 0, 0 );
-
-	psub = &si->si_be->be_nsuffix[0];
 
 	slap_dup_sync_cookie( &syncCookie_req, &si->si_syncCookie );
 
@@ -873,7 +878,7 @@ do_syncrep2(
 				if ( ( rc = syncrepl_message_to_op( si, op, msg ) ) == LDAP_SUCCESS &&
 					syncCookie.ctxcsn )
 				{
-					rc = syncrepl_updateCookie( si, op, psub, &syncCookie );
+					rc = syncrepl_updateCookie( si, op, &syncCookie );
 				} else switch ( rc ) {
 					case LDAP_ALREADY_EXISTS:
 					case LDAP_NO_SUCH_OBJECT:
@@ -893,7 +898,7 @@ do_syncrep2(
 					syncstate, &syncUUID, syncCookie.ctxcsn ) ) == LDAP_SUCCESS &&
 					syncCookie.ctxcsn )
 				{
-					rc = syncrepl_updateCookie( si, op, psub, &syncCookie );
+					rc = syncrepl_updateCookie( si, op, &syncCookie );
 				}
 			}
 			ldap_controls_free( rctrls );
@@ -1013,7 +1018,7 @@ do_syncrep2(
 			}
 			if ( syncCookie.ctxcsn && match < 0 && err == LDAP_SUCCESS )
 			{
-				rc = syncrepl_updateCookie( si, op, psub, &syncCookie );
+				rc = syncrepl_updateCookie( si, op, &syncCookie );
 			}
 			if ( err == LDAP_SUCCESS
 				&& si->si_logstate == SYNCLOG_FALLBACK ) {
@@ -1174,7 +1179,7 @@ do_syncrep2(
 
 					if ( syncCookie.ctxcsn )
 					{
-						rc = syncrepl_updateCookie( si, op, psub, &syncCookie);
+						rc = syncrepl_updateCookie( si, op, &syncCookie);
 					}
 				} 
 
@@ -2957,7 +2962,6 @@ static int
 syncrepl_updateCookie(
 	syncinfo_t *si,
 	Operation *op,
-	struct berval *pdn,
 	struct sync_cookie *syncCookie )
 {
 	Backend *be = op->o_bd;
@@ -3048,8 +3052,8 @@ syncrepl_updateCookie(
 	cb.sc_private = si;
 
 	op->o_callback = &cb;
-	op->o_req_dn = op->o_bd->be_suffix[0];
-	op->o_req_ndn = op->o_bd->be_nsuffix[0];
+	op->o_req_dn = si->si_contextdn;
+	op->o_req_ndn = si->si_contextdn;
 
 	/* update contextCSN */
 	op->o_dont_replicate = 1;
@@ -3694,6 +3698,9 @@ syncinfo_free( syncinfo_t *sie, int free_all )
 		}
 		if ( sie->si_logbase.bv_val ) {
 			ch_free( sie->si_logbase.bv_val );
+		}
+		if ( SLAP_SYNC_SUBENTRY( sie->si_be )) {
+			ch_free( sie->si_contextdn.bv_val );
 		}
 		if ( sie->si_attrs ) {
 			int i = 0;
