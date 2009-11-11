@@ -438,10 +438,32 @@ slapadd( int argc, char **argv )
 	}
 
 	if ( rc == EXIT_SUCCESS && update_ctxcsn && !dryrun && sid != SLAP_SYNC_SID_MAX + 1 ) {
-		ctxcsn_id = be->be_dn2id_get( be, be->be_nsuffix );
+		struct berval ctxdn;
+		if ( SLAP_SYNC_SUBENTRY( be )) {
+			build_new_dn( &ctxdn, &be->be_nsuffix[0],
+				(struct berval *)&slap_ldapsync_cn_bv, NULL );
+		} else {
+			ctxdn = be->be_nsuffix[0];
+		}
+		ctxcsn_id = be->be_dn2id_get( be, &ctxdn );
 		if ( ctxcsn_id == NOID ) {
-			fprintf( stderr, "%s: context entry is missing\n", progname );
-			rc = EXIT_FAILURE;
+			if ( SLAP_SYNC_SUBENTRY( be )) {
+				ctxcsn_e = slap_create_context_csn_entry( be, NULL );
+				for ( sid = 0; sid <= SLAP_SYNC_SID_MAX; sid++ ) {
+					if ( maxcsn[ sid ].bv_len ) {
+						attr_merge_one( ctxcsn_e, slap_schema.si_ad_contextCSN,
+							&maxcsn[ sid ], NULL );
+					}
+				}
+				ctxcsn_id = be->be_entry_put( be, ctxcsn_e, &bvtext );
+				if ( ctxcsn_id == NOID ) {
+					fprintf( stderr, "%s: couldn't create context entry\n", progname );
+					rc = EXIT_FAILURE;
+				}
+			} else {
+				fprintf( stderr, "%s: context entry is missing\n", progname );
+				rc = EXIT_FAILURE;
+			}
 		} else {
 			ctxcsn_e = be->be_entry_get( be, ctxcsn_id );
 			if ( ctxcsn_e != NULL ) {

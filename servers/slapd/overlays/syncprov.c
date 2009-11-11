@@ -1400,8 +1400,8 @@ syncprov_checkpoint( Operation *op, SlapReply *rs, slap_overinst *on )
 	opm.o_no_schema_check = 1;
 	opm.o_bd->be_modify( &opm, &rsm );
 
-	/* Should only happen with SYNC_USE_SUBENTRY */
-	if ( rsm.sr_err == LDAP_NO_SUCH_OBJECT ) {
+	if ( rsm.sr_err == LDAP_NO_SUCH_OBJECT &&
+		SLAP_SYNC_SUBENTRY( opm.o_bd )) {
 		const char	*text;
 		char txtbuf[SLAP_TEXT_BUFLEN];
 		size_t textlen = sizeof txtbuf;

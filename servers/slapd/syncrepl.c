@@ -3062,8 +3062,8 @@ syncrepl_updateCookie(
 	op->orm_no_opattrs = 1;
 	rc = op->o_bd->be_modify( op, &rs_modify );
 
-	/* Should only happen when SYNC_USE_SUBENTRY */
-	if ( rs_modify.sr_err == LDAP_NO_SUCH_OBJECT ) {
+	if ( rs_modify.sr_err == LDAP_NO_SUCH_OBJECT &&
+		SLAP_SYNC_SUBENTRY( op->o_bd )) {
 		const char	*text;
 		char txtbuf[SLAP_TEXT_BUFLEN];
 		size_t textlen = sizeof txtbuf;
