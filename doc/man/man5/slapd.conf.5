@@ -1602,6 +1602,11 @@ in order to work over all of the glued databases. E.g.
 	overlay syncprov
 .fi
 .RE
+.TP
+.B sync_use_subentry 
+Store the syncrepl contextCSN in a subentry instead of the context entry
+of the database. The subentry's RDN will be "cn=ldapsync". By default
+the contextCSN is stored in the context entry.
 .HP
 .hy 0
 .B syncrepl rid=<replica ID>

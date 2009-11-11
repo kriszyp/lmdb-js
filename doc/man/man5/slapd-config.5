@@ -1614,6 +1614,11 @@ with the inner suffix must come first in the configuration file.
 You may also want to glue such databases together with the
 .B olcSubordinate
 attribute.
+.TP
+.B olcSyncUseSubentry: TRUE | FALSE
+Store the syncrepl contextCSN in a subentry instead of the context entry
+of the database. The subentry's RDN will be "cn=ldapsync". The default is
+FALSE, meaning the contextCSN is stored in the context entry.
 .HP
 .hy 0
 .B olcSyncrepl: rid=<replica ID>
