@@ -266,7 +266,8 @@ slap_auxprop_lookup(
 	const char *user,
 	unsigned ulen)
 {
-	Operation op = {0};
+	OperationBuffer opbuf = {0};
+	Operation *op = (Operation *)&opbuf;
 	int i, doit = 0;
 	Connection *conn = NULL;
 	lookup_info sl;
@@ -286,22 +287,22 @@ slap_auxprop_lookup(
 			if ( flags & SASL_AUXPROP_AUTHZID ) {
 				if ( !strcmp( sl.list[i].name, slap_propnames[SLAP_SASL_PROP_AUTHZLEN] )) {
 					if ( sl.list[i].values && sl.list[i].values[0] )
-						AC_MEMCPY( &op.o_req_ndn.bv_len, sl.list[i].values[0],
-							sizeof( op.o_req_ndn.bv_len ) );
+						AC_MEMCPY( &op->o_req_ndn.bv_len, sl.list[i].values[0],
+							sizeof( op->o_req_ndn.bv_len ) );
 				} else if ( !strcmp( sl.list[i].name, slap_propnames[SLAP_SASL_PROP_AUTHZ] )) {
 					if ( sl.list[i].values )
-						op.o_req_ndn.bv_val = (char *)sl.list[i].values[0];
+						op->o_req_ndn.bv_val = (char *)sl.list[i].values[0];
 					break;
 				}
 			}
 
 			if ( !strcmp( sl.list[i].name, slap_propnames[SLAP_SASL_PROP_AUTHCLEN] )) {
 				if ( sl.list[i].values && sl.list[i].values[0] )
-					AC_MEMCPY( &op.o_req_ndn.bv_len, sl.list[i].values[0],
-						sizeof( op.o_req_ndn.bv_len ) );
+					AC_MEMCPY( &op->o_req_ndn.bv_len, sl.list[i].values[0],
+						sizeof( op->o_req_ndn.bv_len ) );
 			} else if ( !strcmp( sl.list[i].name, slap_propnames[SLAP_SASL_PROP_AUTHC] ) ) {
 				if ( sl.list[i].values ) {
-					op.o_req_ndn.bv_val = (char *)sl.list[i].values[0];
+					op->o_req_ndn.bv_val = (char *)sl.list[i].values[0];
 					if ( !(flags & SASL_AUXPROP_AUTHZID) )
 						break;
 				}
@@ -336,30 +337,30 @@ slap_auxprop_lookup(
 
 		cb.sc_private = &sl;
 
-		op.o_bd = select_backend( &op.o_req_ndn, 1 );
+		op->o_bd = select_backend( &op->o_req_ndn, 1 );
 
-		if ( op.o_bd ) {
+		if ( op->o_bd ) {
 			/* For rootdn, see if we can use the rootpw */
-			if ( be_isroot_dn( op.o_bd, &op.o_req_ndn ) &&
-				!BER_BVISEMPTY( &op.o_bd->be_rootpw )) {
+			if ( be_isroot_dn( op->o_bd, &op->o_req_ndn ) &&
+				!BER_BVISEMPTY( &op->o_bd->be_rootpw )) {
 				struct berval cbv = BER_BVNULL;
 
 				/* If there's a recognized scheme, see if it's CLEARTEXT */
-				if ( lutil_passwd_scheme( op.o_bd->be_rootpw.bv_val )) {
-					if ( !strncasecmp( op.o_bd->be_rootpw.bv_val,
+				if ( lutil_passwd_scheme( op->o_bd->be_rootpw.bv_val )) {
+					if ( !strncasecmp( op->o_bd->be_rootpw.bv_val,
 						sc_cleartext.bv_val, sc_cleartext.bv_len )) {
 
 						/* If it's CLEARTEXT, skip past scheme spec */
-						cbv.bv_len = op.o_bd->be_rootpw.bv_len -
+						cbv.bv_len = op->o_bd->be_rootpw.bv_len -
 							sc_cleartext.bv_len;
 						if ( cbv.bv_len ) {
-							cbv.bv_val = op.o_bd->be_rootpw.bv_val +
+							cbv.bv_val = op->o_bd->be_rootpw.bv_val +
 								sc_cleartext.bv_len;
 						}
 					}
 				/* No scheme, use the whole value */
 				} else {
-					cbv = op.o_bd->be_rootpw;
+					cbv = op->o_bd->be_rootpw;
 				}
 				if ( !BER_BVISEMPTY( &cbv )) {
 					for( i = 0; sl.list[i].name; i++ ) {
@@ -380,27 +381,28 @@ slap_auxprop_lookup(
 				}
 			}
 
-			if ( op.o_bd->be_search ) {
+			if ( op->o_bd->be_search ) {
 				SlapReply rs = {REP_RESULT};
-				op.o_hdr = conn->c_sasl_bindop->o_hdr;
-				op.o_tag = LDAP_REQ_SEARCH;
-				op.o_dn = conn->c_ndn;
-				op.o_ndn = conn->c_ndn;
-				op.o_callback = &cb;
-				slap_op_time( &op.o_time, &op.o_tincr );
-				op.o_do_not_cache = 1;
-				op.o_is_auth_check = 1;
-				op.o_req_dn = op.o_req_ndn;
-				op.ors_scope = LDAP_SCOPE_BASE;
-				op.ors_deref = LDAP_DEREF_NEVER;
-				op.ors_tlimit = SLAP_NO_LIMIT;
-				op.ors_slimit = 1;
-				op.ors_filter = &generic_filter;
-				op.ors_filterstr = generic_filterstr;
+				op->o_hdr = conn->c_sasl_bindop->o_hdr;
+				op->o_controls = opbuf.ob_controls;
+				op->o_tag = LDAP_REQ_SEARCH;
+				op->o_dn = conn->c_ndn;
+				op->o_ndn = conn->c_ndn;
+				op->o_callback = &cb;
+				slap_op_time( &op->o_time, &op->o_tincr );
+				op->o_do_not_cache = 1;
+				op->o_is_auth_check = 1;
+				op->o_req_dn = op->o_req_ndn;
+				op->ors_scope = LDAP_SCOPE_BASE;
+				op->ors_deref = LDAP_DEREF_NEVER;
+				op->ors_tlimit = SLAP_NO_LIMIT;
+				op->ors_slimit = 1;
+				op->ors_filter = &generic_filter;
+				op->ors_filterstr = generic_filterstr;
 				/* FIXME: we want all attributes, right? */
-				op.ors_attrs = NULL;
+				op->ors_attrs = NULL;
 
-				op.o_bd->be_search( &op, &rs );
+				op->o_bd->be_search( op, &rs );
 			}
 		}
 	}
