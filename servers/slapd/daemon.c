@@ -1620,6 +1620,7 @@ slapd_daemon_init( const char *urls )
 			"daemon: lutil_pair() failed rc=%d\n", rc, 0, 0 );
 		return rc;
 	}
+	ber_pvt_socket_set_nonblock( wake_sds[1], 1 );
 
 	SLAP_SOCK_INIT;
 
