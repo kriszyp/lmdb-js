@@ -989,13 +989,17 @@ slapd_clr_read( ber_socket_t s, int wake )
 void
 slapd_set_read( ber_socket_t s, int wake )
 {
+	int do_wake = 1;
 	ldap_pvt_thread_mutex_lock( &slap_daemon.sd_mutex );
 
-	assert( SLAP_SOCK_IS_ACTIVE( s ));
-	if (!SLAP_SOCK_IS_READ( s )) SLAP_SOCK_SET_READ( s );
-
+	if( SLAP_SOCK_IS_ACTIVE( s ) && !SLAP_SOCK_IS_READ( s )) {
+		SLAP_SOCK_SET_READ( s );
+	} else {
+		do_wake = 0;
+	}
 	ldap_pvt_thread_mutex_unlock( &slap_daemon.sd_mutex );
-	WAKE_LISTENER(wake);
+	if ( do_wake )
+		WAKE_LISTENER(wake);
 }
 
 time_t
