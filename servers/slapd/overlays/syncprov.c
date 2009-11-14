@@ -863,7 +863,6 @@ syncprov_sendresp( Operation *op, opcookie *opc, syncops *so,
 				break;
 			}
 		}
-		slap_free_ctrls( op, rs.sr_ctrls );
 		rs.sr_ctrls = NULL;
 	}
 
