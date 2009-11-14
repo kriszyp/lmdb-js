@@ -165,13 +165,6 @@ init_syncrepl(syncinfo_t *si)
 		sync_descs[3] = NULL;
 	}
 
-	if ( SLAP_SYNC_SUBENTRY( si->si_be )) {
-		build_new_dn( &si->si_contextdn, &si->si_be->be_nsuffix[0],
-			(struct berval *)&slap_ldapsync_cn_bv, NULL );
-	} else {
-		si->si_contextdn = si->si_be->be_nsuffix[0];
-	}
-
 	if ( si->si_allattrs && si->si_allopattrs )
 		attrs = NULL;
 	else
@@ -1334,6 +1327,12 @@ do_syncrepl(
 				si->si_wbe = be;
 		} else {
 			si->si_wbe = be;
+		}
+		if ( SLAP_SYNC_SUBENTRY( si->si_wbe )) {
+			build_new_dn( &si->si_contextdn, &si->si_wbe->be_nsuffix[0],
+				(struct berval *)&slap_ldapsync_cn_bv, NULL );
+		} else {
+			si->si_contextdn = si->si_wbe->be_nsuffix[0];
 		}
 	}
 	if ( !si->si_schemachecking )
