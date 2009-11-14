@@ -1369,7 +1369,6 @@ syncprov_checkpoint( Operation *op, SlapReply *rs, slap_overinst *on )
 	SlapReply rsm = { 0 };
 	slap_callback cb = {0};
 	BackendDB be;
-	struct berval ctxdn;
 
 #ifdef CHECK_CSN
 	Syntax *syn = slap_schema.si_ad_contextCSN->ad_type->sat_syntax;
@@ -1396,12 +1395,9 @@ syncprov_checkpoint( Operation *op, SlapReply *rs, slap_overinst *on )
 	if ( SLAP_GLUE_SUBORDINATE( op->o_bd )) {
 		be = *on->on_info->oi_origdb;
 		opm.o_bd = &be;
-		ctxdn = be.be_nsuffix[0];
-	} else {
-		ctxdn = si->si_contextdn;
 	}
-	opm.o_req_dn = ctxdn;
-	opm.o_req_ndn = ctxdn;
+	opm.o_req_dn = si->si_contextdn;
+	opm.o_req_ndn = si->si_contextdn;
 	opm.o_bd->bd_info = on->on_info->oi_orig;
 	opm.o_managedsait = SLAP_CONTROL_NONCRITICAL;
 	opm.o_no_schema_check = 1;
