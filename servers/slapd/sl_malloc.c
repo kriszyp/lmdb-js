@@ -138,7 +138,12 @@ slap_sl_mem_create(
 			if ( newptr == NULL ) return NULL;
 			sh->sh_base = newptr;
 		}
-		sh->sh_last = sh->sh_base;
+		/* insert dummy len */
+		{
+			ber_len_t *i = sh->sh_base;
+			*i++ = 0;
+			sh->sh_last = i;
+		}
 		sh->sh_end = (char *) sh->sh_base + size;
 		sh->sh_stack = stack;
 		return sh;
@@ -258,13 +263,8 @@ slap_sl_malloc(
 )
 {
 	struct slab_heap *sh = ctx;
-	ber_len_t size_shift;
 	int pad = 2*sizeof(int)-1, pad_shift;
-	int order = -1, order_start = -1;
-	struct slab_object *so_new, *so_left, *so_right;
 	ber_len_t *ptr, *newptr;
-	unsigned long diff;
-	int i, j;
 
 #ifdef SLAP_NO_SL_MALLOC
 	newptr = ber_memalloc_x( size, NULL );
@@ -281,8 +281,8 @@ slap_sl_malloc(
 		exit( EXIT_FAILURE );
 	}
 
-	/* round up to doubleword boundary */
-	size += sizeof(ber_len_t) + pad;
+	/* round up to doubleword boundary, plus space for len at head and tail */
+	size += 2*sizeof(ber_len_t) + pad;
 	size &= ~pad;
 
 	if (sh->sh_stack) {
@@ -295,8 +295,16 @@ slap_sl_malloc(
 		newptr = sh->sh_last;
 		*newptr++ = size - sizeof(ber_len_t);
 		sh->sh_last = (char *) sh->sh_last + size;
+		ptr = sh->sh_last;
+		ptr[-1] = size - sizeof(ber_len_t);
 		return( (void *)newptr );
 	} else {
+		struct slab_object *so_new, *so_left, *so_right;
+		ber_len_t size_shift;
+		int order = -1, order_start = -1;
+		unsigned long diff;
+		int i, j;
+
 		size_shift = size - 1;
 		do {
 			order++;
@@ -422,11 +430,16 @@ slap_sl_realloc(void *ptr, ber_len_t size, void *ctx)
 			newptr = p;
 			sh->sh_last = (char *)sh->sh_last + size - p[-1];
 			p[-1] = size;
+			p = sh->sh_last;
+			p[-1] = size;
+			
 	
 		/* Nowhere to grow, need to alloc and copy */
 		} else {
-			newptr = slap_sl_malloc(size, ctx);
-			AC_MEMCPY(newptr, ptr, p[-1]);
+			newptr = slap_sl_malloc(size-2*sizeof(ber_len_t), ctx);
+			AC_MEMCPY(newptr, ptr, p[-1]-sizeof(ber_len_t));
+			/* mark old region as free */
+			p[p[-1]/sizeof(ber_len_t)-1] |= 1;
 		}
 		return newptr;
 	} else {
@@ -465,10 +478,24 @@ slap_sl_free(void *ptr, void *ctx)
 
 	if (!sh || ptr < sh->sh_base || ptr >= sh->sh_end) {
 		ber_memfree_x(ptr, NULL);
-	} else if (sh->sh_stack && (char *)ptr + p[-1] == sh->sh_last) {
-		p--;
-		sh->sh_last = p;
-	} else if (!sh->sh_stack) {
+	} else if (sh->sh_stack) {
+		tmpp = (ber_len_t *)((char *)ptr + p[-1]);
+		/* mark it free */
+		tmpp[-1] |= 1;
+		/* reclaim free space off tail */
+		while ( tmpp == sh->sh_last ) {
+			if ( tmpp[-1] & 1 ) {
+				size = tmpp[-1] ^ 1;
+				ptr = (char *)tmpp - size;
+				p = (ber_len_t *)ptr;
+				p--;
+				sh->sh_last = p;
+				tmpp = sh->sh_last;
+			} else {
+				break;
+			}
+		}
+	} else {
 		size = *(--p);
 		size_shift = size + sizeof(ber_len_t) - 1;
 		do {
