@@ -90,6 +90,14 @@ slap_sl_mem_init()
 static struct slab_heap *slheap;
 #endif
 
+/* This allocator always returns memory aligned on a 2-int boundary.
+ *
+ * The stack-based allocator stores the size as a ber_len_t at both
+ * the head and tail of the allocated block. When freeing a block, the
+ * tail length is ORed with 1 to mark it as free. Freed space can only
+ * be reclaimed from the tail forward. If the tail block is never freed,
+ * nothing else will be reclaimed until the slab is reset...
+ */
 void *
 slap_sl_mem_create(
 	ber_len_t size,
