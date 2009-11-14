@@ -2265,7 +2265,7 @@ postalAddressNormalize(
 
 	p = normalized->bv_val;
 	for ( l = 0; !BER_BVISNULL( &nlines[l] ); l++ ) {
-		p = lutil_strncopy( p, nlines[l].bv_val, nlines[l].bv_len );
+		p = lutil_memcopy( p, nlines[l].bv_val, nlines[l].bv_len );
 
 		*p++ = '$';
 	}
