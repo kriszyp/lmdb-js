@@ -169,7 +169,7 @@ static int test_mra_filter(
 
 	if ( op == NULL ) {
 		memctx = NULL;
-		memfree = slap_sl_free;
+		memfree = slap_sl_mfuncs.bmf_free;
 	} else {
 		memctx = op->o_tmpmemctx;
 		memfree = op->o_tmpfree;
