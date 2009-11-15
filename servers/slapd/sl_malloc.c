@@ -444,7 +444,7 @@ slap_sl_realloc(void *ptr, ber_len_t size, void *ctx)
 	
 		/* Nowhere to grow, need to alloc and copy */
 		} else {
-			newptr = slap_sl_malloc(size-2*sizeof(ber_len_t), ctx);
+			newptr = slap_sl_malloc(size-sizeof(ber_len_t), ctx);
 			AC_MEMCPY(newptr, ptr, p[-1]-sizeof(ber_len_t));
 			/* mark old region as free */
 			p[p[-1]/sizeof(ber_len_t)-1] |= 1;
