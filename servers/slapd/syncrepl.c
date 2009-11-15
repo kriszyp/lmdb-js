@@ -665,6 +665,11 @@ do_syncrep1(
 			si->si_syncCookie.ctxcsn, si->si_syncCookie.rid,
 			si->si_syncCookie.sid );
 	} else {
+		/* ITS#6367: recreate the cookie so it has our SID, not our peer's */
+		ch_free( si->si_syncCookie.octet_str.bv_val );
+		slap_compose_sync_cookie( NULL, &si->si_syncCookie.octet_str,
+			si->si_syncCookie.ctxcsn, si->si_syncCookie.rid,
+			si->si_syncCookie.sid );
 		/* Look for contextCSN from syncprov overlay. */
 		check_syncprov( op, si );
 	}
