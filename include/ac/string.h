@@ -98,8 +98,8 @@ int (strncasecmp)();
 #ifndef HAVE_MEMRCHR
 #undef memrchr
 #define memrchr lutil_memrchr
-#endif /* ! HAVE_MEMRCHR */
 void * memrchr(const void *b, int c, size_t len);
+#endif /* ! HAVE_MEMRCHR */
 
 #define STRLENOF(s)	(sizeof(s)-1)
 
