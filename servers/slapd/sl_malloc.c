@@ -122,7 +122,7 @@ slap_sl_mem_create(
 	sh = sh_tmp;
 #endif
 
-	if ( !new )
+	if ( sh && !new )
 		return sh;
 
 	/* round up to doubleword boundary */
@@ -301,10 +301,10 @@ slap_sl_malloc(
 			return ch_malloc(size);
 		}
 		newptr = sh->sh_last;
-		*newptr++ = size - sizeof(ber_len_t);
 		sh->sh_last = (char *) sh->sh_last + size;
-		ptr = sh->sh_last;
-		ptr[-1] = size - sizeof(ber_len_t);
+		size -= sizeof(ber_len_t);
+		*newptr++ = size;
+		*(ber_len_t *)((char *)sh->sh_last - sizeof(ber_len_t)) = size;
 		return( (void *)newptr );
 	} else {
 		struct slab_object *so_new, *so_left, *so_right;
@@ -428,26 +428,26 @@ slap_sl_realloc(void *ptr, ber_len_t size, void *ctx)
 		size += pad + sizeof( ber_len_t );
 		size &= ~pad;
 
+		p--;
+
 		/* Never shrink blocks */
-		if (size <= p[-1]) {
-			newptr = p;
+		if (size <= p[0]) {
+			newptr = ptr;
 	
 		/* If reallocing the last block, we can grow it */
-		} else if ((char *)ptr + p[-1] == sh->sh_last &&
+		} else if ((char *)ptr + p[0] == sh->sh_last &&
 			(char *)ptr + size < (char *)sh->sh_end ) {
-			newptr = p;
-			sh->sh_last = (char *)sh->sh_last + size - p[-1];
-			p[-1] = size;
-			p = sh->sh_last;
-			p[-1] = size;
-			
-	
+			newptr = ptr;
+			sh->sh_last = (char *)ptr + size;
+			p[0] = size;
+			p[size/sizeof(ber_len_t)] = size;
+
 		/* Nowhere to grow, need to alloc and copy */
 		} else {
 			newptr = slap_sl_malloc(size-sizeof(ber_len_t), ctx);
-			AC_MEMCPY(newptr, ptr, p[-1]-sizeof(ber_len_t));
+			AC_MEMCPY(newptr, ptr, p[0]-sizeof(ber_len_t));
 			/* mark old region as free */
-			p[p[-1]/sizeof(ber_len_t)-1] |= 1;
+			p[p[0]/sizeof(ber_len_t)] |= 1;
 		}
 		return newptr;
 	} else {
@@ -468,13 +468,8 @@ void
 slap_sl_free(void *ptr, void *ctx)
 {
 	struct slab_heap *sh = ctx;
-	int size, size_shift, order_size;
-	int pad = 2*sizeof(int)-1, pad_shift;
+	ber_len_t size;
 	ber_len_t *p = (ber_len_t *)ptr, *tmpp;
-	int order_start = -1, order = -1;
-	struct slab_object *so;
-	unsigned long diff;
-	int i, inserted = 0;
 
 	if (!ptr)
 		return;
@@ -504,6 +499,13 @@ slap_sl_free(void *ptr, void *ctx)
 			}
 		}
 	} else {
+		int size_shift, order_size;
+		int pad = 2*sizeof(int)-1, pad_shift;
+		int order_start = -1, order = -1;
+		struct slab_object *so;
+		unsigned long diff;
+		int i, inserted = 0;
+
 		size = *(--p);
 		size_shift = size + sizeof(ber_len_t) - 1;
 		do {
