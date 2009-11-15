@@ -2893,7 +2893,7 @@ syncprov_db_open(
 	}
 
 	thrctx = ldap_pvt_thread_pool_context();
-	connection_fake_init( &conn, &opbuf, thrctx );
+	connection_fake_init2( &conn, &opbuf, thrctx, 0 );
 	op = &opbuf.ob_op;
 	op->o_bd = be;
 	op->o_dn = be->be_rootdn;
@@ -2978,7 +2978,7 @@ syncprov_db_close(
 		void *thrctx;
 
 		thrctx = ldap_pvt_thread_pool_context();
-		connection_fake_init( &conn, &opbuf, thrctx );
+		connection_fake_init2( &conn, &opbuf, thrctx, 0 );
 		op = &opbuf.ob_op;
 		op->o_bd = be;
 		op->o_dn = be->be_rootdn;

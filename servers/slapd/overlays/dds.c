@@ -137,7 +137,7 @@ dds_expire( void *ctx, dds_info_t *di )
 	int		rc;
 	char		*extra = "";
 
-	connection_fake_init( &conn, &opbuf, ctx );
+	connection_fake_init2( &conn, &opbuf, ctx, 0 );
 	op = &opbuf.ob_op;
 
 	op->o_tag = LDAP_REQ_SEARCH;
@@ -1627,7 +1627,7 @@ dds_count( void *ctx, BackendDB *be )
 	int		rc;
 	char		*extra = "";
 
-	connection_fake_init( &conn, &opbuf, ctx );
+	connection_fake_init2( &conn, &opbuf, ctx, 0 );
 	op = &opbuf.ob_op;
 
 	op->o_tag = LDAP_REQ_SEARCH;
