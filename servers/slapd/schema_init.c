@@ -5555,7 +5555,7 @@ generalizedTimeValidate(
 	return check_time_syntax(in, 0, parts, &fraction);
 }
 
-int
+static int
 generalizedTimeNormalize(
 	slap_mask_t usage,
 	Syntax *syntax,
