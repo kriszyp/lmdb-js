@@ -1380,6 +1380,11 @@ connection_read( ber_socket_t s, conn_readinfo *cri )
 			    c->c_connid, (int) s, c->c_tls_ssf, c->c_ssf, 0 );
 			slap_sasl_external( c, c->c_tls_ssf, &authid );
 			if ( authid.bv_val ) free( authid.bv_val );
+		} else if ( rc == 1 ) {	/* need to retry */
+			slapd_set_read( s, 0 );
+			slapd_set_write( s, 1 );
+			connection_return( c );
+			return 0;
 		}
 
 		/* if success and data is ready, fall thru to data input loop */
@@ -1878,6 +1883,14 @@ int connection_write(ber_socket_t s)
 			(long)s, 0, 0 );
 		return -1;
 	}
+
+#ifdef HAVE_TLS
+	if ( c->c_is_tls && c->c_needs_tls_accept ) {
+		connection_return( c );
+		connection_read_activate( s );
+		return 0;
+	}
+#endif
 
 	c->c_n_write++;
 
