@@ -11,6 +11,7 @@ OpenLDAP 2.4.20 Engineering
 	Fixed slapd asserts in minimal environment (ITS#6361)
 	Fixed slapd configArgs initialization (ITS#6363)
 	Fixed slapd debug handling of LDAP_DEBUG_ANY (ITS#6324)
+	Fixed slapd with embedded \0 in bervals (ITS#6378,ITS#6379)
 	Fixed slapd inclusion of ac/unistd.h (ITS#6342)
 	Fixed slapd invalid dn log message (ITS#6309)
 	Fixed slapd lockup on shutdown (ITS#6372)

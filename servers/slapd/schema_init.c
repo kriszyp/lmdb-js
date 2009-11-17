@@ -2265,8 +2265,7 @@ postalAddressNormalize(
 
 	p = normalized->bv_val;
 	for ( l = 0; !BER_BVISNULL( &nlines[l] ); l++ ) {
-		p = lutil_strncopy( p, nlines[l].bv_val, nlines[l].bv_len );
-
+		p = lutil_strbvcopy( p, &nlines[l] );
 		*p++ = '$';
 	}
 	*--p = '\0';
@@ -3329,9 +3328,9 @@ serialNumberAndIssuerPretty(
 
 	p = out->bv_val;
 	p = lutil_strcopy( p, "{ serialNumber " /*}*/ );
-	p = lutil_strncopy( p, sn.bv_val, sn.bv_len );
+	p = lutil_strbvcopy( p, &sn );
 	p = lutil_strcopy( p, ", issuer rdnSequence:\"" );
-	p = lutil_strncopy( p, ni.bv_val, ni.bv_len );
+	p = lutil_strbvcopy( p, &ni );
 	p = lutil_strcopy( p, /*{*/ "\" }" );
 
 	assert( p == &out->bv_val[out->bv_len] );
@@ -3491,9 +3490,9 @@ serialNumberAndIssuerNormalize(
 	p = out->bv_val;
 
 	p = lutil_strcopy( p, "{ serialNumber " /*}*/ );
-	p = lutil_strncopy( p, sn3.bv_val, sn3.bv_len );
+	p = lutil_strbvcopy( p, &sn3 );
 	p = lutil_strcopy( p, ", issuer rdnSequence:\"" );
-	p = lutil_strncopy( p, ni.bv_val, ni.bv_len );
+	p = lutil_strbvcopy( p, &ni );
 	p = lutil_strcopy( p, /*{*/ "\" }" );
 
 	assert( p == &out->bv_val[out->bv_len] );
@@ -3588,9 +3587,9 @@ certificateExactNormalize(
 	p = normalized->bv_val;
 
 	p = lutil_strcopy( p, "{ serialNumber " /*}*/ );
-	p = lutil_strncopy( p, sn2.bv_val, sn2.bv_len );
+	p = lutil_strbvcopy( p, &sn2 );
 	p = lutil_strcopy( p, ", issuer rdnSequence:\"" );
-	p = lutil_strncopy( p, issuer_dn.bv_val, issuer_dn.bv_len );
+	p = lutil_strbvcopy( p, &issuer_dn );
 	p = lutil_strcopy( p, /*{*/ "\" }" );
 
 	rc = LDAP_SUCCESS;
@@ -3920,9 +3919,9 @@ issuerAndThisUpdatePretty(
 
 	p = out->bv_val;
 	p = lutil_strcopy( p, "{ issuer rdnSequence:\"" /*}*/ );
-	p = lutil_strncopy( p, ni.bv_val, ni.bv_len );
+	p = lutil_strbvcopy( p, &ni );
 	p = lutil_strcopy( p, "\", thisUpdate \"" );
-	p = lutil_strncopy( p, tu.bv_val, tu.bv_len );
+	p = lutil_strbvcopy( p, &tu );
 	p = lutil_strcopy( p, /*{*/ "\" }" );
 
 	assert( p == &out->bv_val[out->bv_len] );
@@ -3986,9 +3985,9 @@ issuerAndThisUpdateNormalize(
 	p = out->bv_val;
 
 	p = lutil_strcopy( p, "{ issuer rdnSequence:\"" /*}*/ );
-	p = lutil_strncopy( p, ni.bv_val, ni.bv_len );
+	p = lutil_strbvcopy( p, &ni );
 	p = lutil_strcopy( p, "\", thisUpdate \"" );
-	p = lutil_strncopy( p, tu2.bv_val, tu2.bv_len );
+	p = lutil_strbvcopy( p, &tu2 );
 	p = lutil_strcopy( p, /*{*/ "\" }" );
 
 	assert( p == &out->bv_val[out->bv_len] );
@@ -4081,9 +4080,9 @@ certificateListExactNormalize(
 	p = normalized->bv_val;
 
 	p = lutil_strcopy( p, "{ issuer rdnSequence:\"" );
-	p = lutil_strncopy( p, issuer_dn.bv_val, issuer_dn.bv_len );
+	p = lutil_strbvcopy( p, &issuer_dn );
 	p = lutil_strcopy( p, "\", thisUpdate \"" );
-	p = lutil_strncopy( p, thisUpdate.bv_val, thisUpdate.bv_len );
+	p = lutil_strbvcopy( p, &thisUpdate );
 	p = lutil_strcopy( p, /*{*/ "\" }" );
 
 	rc = LDAP_SUCCESS;
@@ -4516,11 +4515,11 @@ serialNumberAndIssuerSerialPretty(
 
 	p = out->bv_val;
 	p = lutil_strcopy( p, "{ serialNumber " );
-	p = lutil_strncopy( p, sn.bv_val, sn.bv_len );
+	p = lutil_strbvcopy( p, &sn );
 	p = lutil_strcopy( p, ", issuer { baseCertificateID { issuer { directoryName:rdnSequence:\"" );
-	p = lutil_strncopy( p, ni.bv_val, ni.bv_len );
+	p = lutil_strbvcopy( p, &ni );
 	p = lutil_strcopy( p, "\" }, serial " );
-	p = lutil_strncopy( p, i_sn.bv_val, i_sn.bv_len );
+	p = lutil_strbvcopy( p, &i_sn );
 	p = lutil_strcopy( p, " } } }" );
 
 	assert( p == &out->bv_val[out->bv_len] );
@@ -4630,11 +4629,11 @@ serialNumberAndIssuerSerialNormalize(
 	p = out->bv_val;
 
 	p = lutil_strcopy( p, "{ serialNumber " );
-	p = lutil_strncopy( p, sn3.bv_val, sn3.bv_len );
+	p = lutil_strbvcopy( p, &sn3 );
 	p = lutil_strcopy( p, ", issuer { baseCertificateID { issuer { directoryName:rdnSequence:\"" );
-	p = lutil_strncopy( p, ni.bv_val, ni.bv_len );
+	p = lutil_strbvcopy( p, &ni );
 	p = lutil_strcopy( p, "\" }, serial " );
-	p = lutil_strncopy( p, i_sn3.bv_val, i_sn3.bv_len );
+	p = lutil_strbvcopy( p, &i_sn3 );
 	p = lutil_strcopy( p, " } } }" );
 
 	assert( p == &out->bv_val[out->bv_len] );
@@ -4763,11 +4762,11 @@ attributeCertificateExactNormalize(
 	p = normalized->bv_val;
 
 	p = lutil_strcopy( p, "{ serialNumber " );
-	p = lutil_strncopy( p, sn2.bv_val, sn2.bv_len );
+	p = lutil_strbvcopy( p, &sn2 );
 	p = lutil_strcopy( p, ", issuer { baseCertificateID { issuer { directoryName:rdnSequence:\"" );
-	p = lutil_strncopy( p, issuer_dn.bv_val, issuer_dn.bv_len );
+	p = lutil_strbvcopy( p, &issuer_dn );
 	p = lutil_strcopy( p, "\" }, serial " );
-	p = lutil_strncopy( p, i_sn2.bv_val, i_sn2.bv_len );
+	p = lutil_strbvcopy( p, &i_sn2 );
 	p = lutil_strcopy( p, " } } }" );
 
 	Debug( LDAP_DEBUG_TRACE, "attributeCertificateExactNormalize: %s\n",
@@ -5108,7 +5107,7 @@ csnNormalize21(
 	ptr = lutil_strncopy( ptr, &gt.bv_val[ STRLENOF( "YYYYmmddHH:MM:" ) ],
 		STRLENOF( "SS" ) );
 	ptr = lutil_strcopy( ptr, ".000000Z#00" );
-	ptr = lutil_strncopy( ptr, cnt.bv_val, cnt.bv_len );
+	ptr = lutil_strbvcopy( ptr, &cnt );
 	*ptr++ = '#';
 	*ptr++ = '0';
 	*ptr++ = '0';
@@ -5201,7 +5200,7 @@ csnNormalize23(
 	ptr = bv.bv_val;
 	ptr = lutil_strncopy( ptr, gt.bv_val, gt.bv_len - 1 );
 	ptr = lutil_strcopy( ptr, ".000000Z#" );
-	ptr = lutil_strncopy( ptr, cnt.bv_val, cnt.bv_len );
+	ptr = lutil_strbvcopy( ptr, &cnt );
 	*ptr++ = '#';
 	*ptr++ = '0';
 	for ( i = 0; i < sid.bv_len; i++ ) {
