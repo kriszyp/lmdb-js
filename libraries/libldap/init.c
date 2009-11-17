@@ -427,11 +427,34 @@ static void openldap_ldap_init_w_env(
 		   	ldap_int_sasl_config( gopts, attrs[i].offset, value );
 #endif			 	
 		   	break;
+		case ATTR_GSSAPI:
+#ifdef HAVE_GSSAPI
+			ldap_int_gssapi_config( gopts, attrs[i].offset, value );
+#endif
+			break;
 		case ATTR_TLS:
 #ifdef HAVE_TLS
 		   	ldap_int_tls_config( NULL, attrs[i].offset, value );
 #endif			 	
 		   	break;
+		case ATTR_OPT_TV: {
+			struct timeval tv;
+			char *next;
+			tv.tv_usec = 0;
+			tv.tv_sec = strtol( value, &next, 10 );
+			if ( next != value && next[ 0 ] == '\0' && tv.tv_sec > 0 ) {
+				(void)ldap_set_option( NULL, attrs[i].offset, (const void *)&tv );
+			}
+			} break;
+		case ATTR_OPT_INT: {
+			long l;
+			char *next;
+			l = strtol( value, &next, 10 );
+			if ( next != value && next[ 0 ] == '\0' && l > 0 && (long)((int)l) == l ) {
+				int v = (int)l;
+				(void)ldap_set_option( NULL, attrs[i].offset, (const void *)&v );
+			}
+			} break;
 		}
 	}
 }
