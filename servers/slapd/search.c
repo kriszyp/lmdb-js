@@ -112,7 +112,7 @@ do_search(
 
 	rs->sr_err = dnPrettyNormal( NULL, &base, &op->o_req_dn, &op->o_req_ndn, op->o_tmpmemctx );
 	if( rs->sr_err != LDAP_SUCCESS ) {
-		Debug( LDAP_DEBUG_ANY, "%s do_search: invalid dn (%s)\n",
+		Debug( LDAP_DEBUG_ANY, "%s do_search: invalid dn: \"%s\"\n",
 			op->o_log_prefix, base.bv_val, 0 );
 		send_ldap_error( op, rs, LDAP_INVALID_DN_SYNTAX, "invalid DN" );
 		goto return_results;
