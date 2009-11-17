@@ -27,6 +27,7 @@ OpenLDAP 2.4.20 Engineering
 	Fixed slapo-syncprov deadlock (ITS#6335)
 	Fixed slapo-syncprov out of order changes (ITS#6346)
 	Build Environment
+		Fixed memrchr define (ITS#6351)
 		Fixed slapd MAXPATHLEN handling (ITS#6342)
 		Fixed test057 handling of memberof/refint (ITS#6343)
 		Fixed slapd test error ignoring (ITS#6345)
