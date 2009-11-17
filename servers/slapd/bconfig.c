@@ -4578,6 +4578,7 @@ schema_destroy_one( ConfigArgs *ca, ConfigOCs **colst, int nocs,
 
 	ca->valx = -1;
 	ca->line = NULL;
+	ca->argc = 1;
 	if ( cfn->c_cr_head ) {
 		struct berval bv = BER_BVC("olcDitContentRules");
 		ad = NULL;
@@ -5393,6 +5394,7 @@ config_modify_internal( CfEntryInfo *ce, Operation *op, SlapReply *rs,
 					}
 					ca->line = bv.bv_val;
 					ca->valx = d->idx[i];
+					config_parse_vals(ct, ca, d->idx[i] );
 					rc = config_del_vals( ct, ca );
 					if ( rc != LDAP_SUCCESS ) break;
 					if ( s )
@@ -5404,6 +5406,7 @@ config_modify_internal( CfEntryInfo *ce, Operation *op, SlapReply *rs,
 			} else {
 				ca->valx = -1;
 				ca->line = NULL;
+				ca->argc = 1;
 				rc = config_del_vals( ct, ca );
 				if ( rc ) rc = LDAP_OTHER;
 				if ( s )
@@ -5450,6 +5453,7 @@ out:
 					a->a_flags &= ~(SLAP_ATTR_IXDEL|SLAP_ATTR_IXADD);
 					ca->valx = -1;
 					ca->line = NULL;
+					ca->argc = 1;
 					config_del_vals( ct, ca );
 				}
 				for ( i=0; !BER_BVISNULL( &s->a_vals[i] ); i++ ) {
@@ -5464,6 +5468,7 @@ out:
 				ct = config_find_table( colst, nocs, a->a_desc, ca );
 				ca->valx = -1;
 				ca->line = NULL;
+				ca->argc = 1;
 				config_del_vals( ct, ca );
 				s = attr_find( save_attrs, a->a_desc );
 				if ( s ) {

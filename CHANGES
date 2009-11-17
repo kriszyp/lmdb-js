@@ -9,6 +9,7 @@ OpenLDAP 2.4.20 Engineering
 	Fixed liblutil constant (ITS#5909)
 	Added slapd handling of hex server IDs (ITS#6297)
 	Fixed slapd inclusion of ac/unistd.h (ITS#6342)
+	Fixed slapd configArgs initialization (ITS#6363)
 	Fixed slapd debug handling of LDAP_DEBUG_ANY (ITS#6324)
 	Fixed slapd termination for one level DNs (ITS#6338)
 	Fixed slapd unused parameter (ITS#6356)

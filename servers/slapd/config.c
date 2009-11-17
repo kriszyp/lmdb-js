@@ -414,6 +414,7 @@ config_del_vals(ConfigTable *cf, ConfigArgs *c)
 
 	/* If there is no handler, just ignore it */
 	if ( cf->arg_type & ARG_MAGIC ) {
+		c->argv[0] = cf->ad->ad_cname.bv_val;
 		c->op = LDAP_MOD_DELETE;
 		c->type = cf->arg_type & ARGS_USERLAND;
 		rc = (*((ConfigDriver*)cf->arg_item))(c);
