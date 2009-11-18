@@ -857,6 +857,7 @@ do_syncrep2(
 					slap_parse_sync_cookie( &syncCookie, NULL );
 					if ( syncCookie.ctxcsn ) {
 						int i, sid = slap_parse_csn_sid( syncCookie.ctxcsn );
+						check_syncprov( op, si );
 						for ( i =0; i<si->si_cookieState->cs_num; i++ ) {
 							if ( si->si_cookieState->cs_sids[i] == sid && 
 								ber_bvcmp( syncCookie.ctxcsn, &si->si_cookieState->cs_vals[i] ) <= 0 ) {
