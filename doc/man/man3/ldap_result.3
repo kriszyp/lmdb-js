@@ -48,7 +48,11 @@ is a NULL  pointer, the LDAP_OPT_TIMEOUT value set by
 is used. With the default setting,
 the  select  blocks  indefinitely.   To
 effect  a  poll,  the  timeout argument should be a non-NULL
-pointer, pointing to a zero-valued timeval structure.  See
+pointer, pointing to a zero-valued timeval structure.
+To obtain the behavior of the default setting, bypassing any value set by 
+.BR ldap_set_option (3),
+set to -1 the \fItv_sec\fP field of the \fItimeout\fP parameter.
+See
 .BR select (2)
 for further details.
 .LP
