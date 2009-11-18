@@ -42,6 +42,7 @@ OpenLDAP 2.4.20 Engineering
 		Fixed slapd test error ignoring (ITS#6345)
 	Documentation
 		ldap_get_dn(3) typos (ITS#5366)
+		ldap.conf(5) clarify comment usage (ITS#6384)
 		slapd.conf(5) note hex server IDs (ITS#6297)
 		slapd-config(5) note hex server IDs (ITS#6297)
 
