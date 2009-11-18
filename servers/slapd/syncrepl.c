@@ -3718,7 +3718,7 @@ syncinfo_free( syncinfo_t *sie, int free_all )
 		if ( sie->si_logbase.bv_val ) {
 			ch_free( sie->si_logbase.bv_val );
 		}
-		if ( SLAP_SYNC_SUBENTRY( sie->si_be )) {
+		if ( sie->si_be && SLAP_SYNC_SUBENTRY( sie->si_be )) {
 			ch_free( sie->si_contextdn.bv_val );
 		}
 		if ( sie->si_attrs ) {
