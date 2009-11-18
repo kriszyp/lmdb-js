@@ -409,7 +409,8 @@ alock_open ( alock_info_t * info,
 				++live_count;
 
 			} else if (res == ALOCK_UNIQUE
-				&& locktype == ALOCK_UNIQUE) {
+				&& (( locktype & ALOCK_SMASK ) == ALOCK_UNIQUE
+				|| nosave )) {
 				close (info->al_fd);
 				ber_memfree (slot_data.al_appname);
 				return ALOCK_BUSY;
