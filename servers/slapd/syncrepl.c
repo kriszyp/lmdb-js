@@ -3930,6 +3930,12 @@ parse_syncrepl_retry(
 			}
 		}
 	}
+	if ( j < 1 || si->si_retrynum_init[j-1] != RETRYNUM_FOREVER ) {
+		Debug( LDAP_DEBUG_CONFIG,
+			"%s: syncrepl will eventually stop retrying; the \"retry\" parameter should end with a '+'.\n",
+			c->log, 0, 0 );
+	}
+
 	si->si_retrynum_init[j] = RETRYNUM_TAIL;
 	si->si_retrynum[j] = RETRYNUM_TAIL;
 	si->si_retryinterval[j] = 0;
