@@ -2131,10 +2131,8 @@ strval2str( struct berval *val, char *str, unsigned flags, ber_len_t *len )
 		
 		/*
 		 * The length was checked in strval2strlen();
-		 * LDAP_UTF8_CHARLEN() should suffice
 		 */
-		cl = LDAP_UTF8_CHARLEN2( &val->bv_val[ s ], cl );
-		assert( cl > 0 );
+		cl = LDAP_UTF8_CHARLEN( &val->bv_val[ s ] );
 		
 		/* 
 		 * there might be some chars we want to escape in form
