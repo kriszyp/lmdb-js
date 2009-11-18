@@ -579,8 +579,9 @@ do_syncrep1(
 	{
 		ber_len_t ssf; /* ITS#5403, 3864 LDAP_OPT_X_SASL_SSF probably ought
 						  to use sasl_ssf_t but currently uses ber_len_t */
-		ldap_get_option( si->si_ld, LDAP_OPT_X_SASL_SSF, &ssf );
-		op->o_sasl_ssf = ssf;
+		if ( ldap_get_option( si->si_ld, LDAP_OPT_X_SASL_SSF, &ssf )
+			== LDAP_SUCCESS )
+			op->o_sasl_ssf = ssf;
 	}
 	op->o_ssf = ( op->o_sasl_ssf > op->o_tls_ssf )
 		?  op->o_sasl_ssf : op->o_tls_ssf;
@@ -1322,7 +1323,7 @@ do_syncrepl(
 		if ( SLAP_GLUE_SUBORDINATE( be ) && !overlay_is_inst( be, "syncprov" )) {
 			BackendDB * top_be = select_backend( &be->be_nsuffix[0], 1 );
 			if ( overlay_is_inst( top_be, "syncprov" ))
-				si->si_wbe = select_backend( &be->be_nsuffix[0], 1 );
+				si->si_wbe = top_be;
 			else
 				si->si_wbe = be;
 		} else {

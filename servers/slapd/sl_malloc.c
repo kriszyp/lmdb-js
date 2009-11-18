@@ -90,6 +90,14 @@ slap_sl_mem_init()
 static struct slab_heap *slheap;
 #endif
 
+/* This allocator always returns memory aligned on a 2-int boundary.
+ *
+ * The stack-based allocator stores the size as a ber_len_t at both
+ * the head and tail of the allocated block. When freeing a block, the
+ * tail length is ORed with 1 to mark it as free. Freed space can only
+ * be reclaimed from the tail forward. If the tail block is never freed,
+ * nothing else will be reclaimed until the slab is reset...
+ */
 void *
 slap_sl_mem_create(
 	ber_len_t size,
@@ -114,7 +122,7 @@ slap_sl_mem_create(
 	sh = sh_tmp;
 #endif
 
-	if ( !new )
+	if ( sh && !new )
 		return sh;
 
 	/* round up to doubleword boundary */
@@ -138,7 +146,12 @@ slap_sl_mem_create(
 			if ( newptr == NULL ) return NULL;
 			sh->sh_base = newptr;
 		}
-		sh->sh_last = sh->sh_base;
+		/* insert dummy len */
+		{
+			ber_len_t *i = sh->sh_base;
+			*i++ = 0;
+			sh->sh_last = i;
+		}
 		sh->sh_end = (char *) sh->sh_base + size;
 		sh->sh_stack = stack;
 		return sh;
@@ -258,13 +271,8 @@ slap_sl_malloc(
 )
 {
 	struct slab_heap *sh = ctx;
-	ber_len_t size_shift;
 	int pad = 2*sizeof(int)-1, pad_shift;
-	int order = -1, order_start = -1;
-	struct slab_object *so_new, *so_left, *so_right;
 	ber_len_t *ptr, *newptr;
-	unsigned long diff;
-	int i, j;
 
 #ifdef SLAP_NO_SL_MALLOC
 	newptr = ber_memalloc_x( size, NULL );
@@ -281,8 +289,8 @@ slap_sl_malloc(
 		exit( EXIT_FAILURE );
 	}
 
-	/* round up to doubleword boundary */
-	size += sizeof(ber_len_t) + pad;
+	/* round up to doubleword boundary, plus space for len at head and tail */
+	size += 2*sizeof(ber_len_t) + pad;
 	size &= ~pad;
 
 	if (sh->sh_stack) {
@@ -293,10 +301,18 @@ slap_sl_malloc(
 			return ch_malloc(size);
 		}
 		newptr = sh->sh_last;
-		*newptr++ = size - sizeof(ber_len_t);
 		sh->sh_last = (char *) sh->sh_last + size;
+		size -= sizeof(ber_len_t);
+		*newptr++ = size;
+		*(ber_len_t *)((char *)sh->sh_last - sizeof(ber_len_t)) = size;
 		return( (void *)newptr );
 	} else {
+		struct slab_object *so_new, *so_left, *so_right;
+		ber_len_t size_shift;
+		int order = -1, order_start = -1;
+		unsigned long diff;
+		int i, j;
+
 		size_shift = size - 1;
 		do {
 			order++;
@@ -412,21 +428,26 @@ slap_sl_realloc(void *ptr, ber_len_t size, void *ctx)
 		size += pad + sizeof( ber_len_t );
 		size &= ~pad;
 
+		p--;
+
 		/* Never shrink blocks */
-		if (size <= p[-1]) {
-			newptr = p;
+		if (size <= p[0]) {
+			newptr = ptr;
 	
 		/* If reallocing the last block, we can grow it */
-		} else if ((char *)ptr + p[-1] == sh->sh_last &&
+		} else if ((char *)ptr + p[0] == sh->sh_last &&
 			(char *)ptr + size < (char *)sh->sh_end ) {
-			newptr = p;
-			sh->sh_last = (char *)sh->sh_last + size - p[-1];
-			p[-1] = size;
-	
+			newptr = ptr;
+			sh->sh_last = (char *)ptr + size;
+			p[0] = size;
+			p[size/sizeof(ber_len_t)] = size;
+
 		/* Nowhere to grow, need to alloc and copy */
 		} else {
-			newptr = slap_sl_malloc(size, ctx);
-			AC_MEMCPY(newptr, ptr, p[-1]);
+			newptr = slap_sl_malloc(size-sizeof(ber_len_t), ctx);
+			AC_MEMCPY(newptr, ptr, p[0]-sizeof(ber_len_t));
+			/* mark old region as free */
+			p[p[0]/sizeof(ber_len_t)] |= 1;
 		}
 		return newptr;
 	} else {
@@ -447,13 +468,8 @@ void
 slap_sl_free(void *ptr, void *ctx)
 {
 	struct slab_heap *sh = ctx;
-	int size, size_shift, order_size;
-	int pad = 2*sizeof(int)-1, pad_shift;
+	ber_len_t size;
 	ber_len_t *p = (ber_len_t *)ptr, *tmpp;
-	int order_start = -1, order = -1;
-	struct slab_object *so;
-	unsigned long diff;
-	int i, inserted = 0;
 
 	if (!ptr)
 		return;
@@ -465,10 +481,31 @@ slap_sl_free(void *ptr, void *ctx)
 
 	if (!sh || ptr < sh->sh_base || ptr >= sh->sh_end) {
 		ber_memfree_x(ptr, NULL);
-	} else if (sh->sh_stack && (char *)ptr + p[-1] == sh->sh_last) {
-		p--;
-		sh->sh_last = p;
-	} else if (!sh->sh_stack) {
+	} else if (sh->sh_stack) {
+		tmpp = (ber_len_t *)((char *)ptr + p[-1]);
+		/* mark it free */
+		tmpp[-1] |= 1;
+		/* reclaim free space off tail */
+		while ( tmpp == sh->sh_last ) {
+			if ( tmpp[-1] & 1 ) {
+				size = tmpp[-1] ^ 1;
+				ptr = (char *)tmpp - size;
+				p = (ber_len_t *)ptr;
+				p--;
+				sh->sh_last = p;
+				tmpp = sh->sh_last;
+			} else {
+				break;
+			}
+		}
+	} else {
+		int size_shift, order_size;
+		int pad = 2*sizeof(int)-1, pad_shift;
+		int order_start = -1, order = -1;
+		struct slab_object *so;
+		unsigned long diff;
+		int i, inserted = 0;
+
 		size = *(--p);
 		size_shift = size + sizeof(ber_len_t) - 1;
 		do {

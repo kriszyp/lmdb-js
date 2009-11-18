@@ -17,6 +17,7 @@ OpenLDAP 2.4.20 Engineering
 	Fixed slapd inclusion of ac/unistd.h (ITS#6342)
 	Fixed slapd invalid dn log message (ITS#6309)
 	Fixed slapd lockup on shutdown (ITS#6372)
+	Fixed slapd sl_free to better reclaim memory (ITS#6380)
 	Fixed slapd termination for one level DNs (ITS#6338)
 	Fixed slapd tls_accept to retry in certain cases (ITS#6304)
 	Fixed slapd unused parameter (ITS#6356)
