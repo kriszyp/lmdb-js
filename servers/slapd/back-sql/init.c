@@ -548,7 +548,7 @@ backsql_db_open(
 	}
 
 	/* This should just be to force schema loading */
-	connection_fake_init( &conn, &opbuf, thrctx );
+	connection_fake_init2( &conn, &opbuf, thrctx, 0 );
 	op = &opbuf.ob_op;
 	op->o_bd = bd;
 	if ( backsql_get_db_conn( op, &dbh ) != LDAP_SUCCESS ) {
