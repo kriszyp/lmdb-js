@@ -271,6 +271,7 @@ ldap_init_fd(
 		ldap_unbind_ext( ld, NULL, NULL );
 		return( LDAP_NO_MEMORY );
 	}
+	conn->lconn_server = ldap_url_dup( ld->ld_options.ldo_defludp );
 	ber_sockbuf_ctrl( conn->lconn_sb, LBER_SB_OPT_SET_FD, &fd );
 	ld->ld_defconn = conn;
 	++ld->ld_defconn->lconn_refcnt;	/* so it never gets closed/freed */
