@@ -53,15 +53,16 @@ Thus the following files and variables are read, in order:
     user files   $HOME/ldaprc,  $HOME/.ldaprc,  ./ldaprc,
     system file  $LDAPCONF,
     user files   $HOME/$LDAPRC, $HOME/.$LDAPRC, ./$LDAPRC,
-    variables    $LDAP<option-name>.
+    variables    $LDAP<uppercase option name>.
 .fi
 Settings late in the list override earlier ones.
-.SH OPTIONS
+.SH SYNTAX
 The configuration options are case-insensitive;
 their value, on a case by case basis, may be case-sensitive.
 .LP
-Blank lines and lines beginning with a hash mark (`#')
-are ignored up to their end.
+Blank lines are ignored.
+.br
+Lines beginning with a hash mark (`#') are comments, and ignored.
 .LP
 Valid lines are made of an option's name (a sequence of non-blanks,
 conventionally written in uppercase, although not required), 
@@ -74,19 +75,27 @@ for that option, if any.  Quoting values that contain blanks
 may be incorrect, as the quotes would become part of the value.
 For example,
 
-	URI	"ldap:// ldaps://"
+.nf
+	# Wrong - erroneous quotes:
+	URI     "ldap:// ldaps://"
 
-is incorrect, while
+	# Right - space-separated list of URIs, without quotes:
+	URI     ldap:// ldaps://
 
-	URI	ldap:// ldaps://
+	# Right - DN syntax needs quoting for Example, Inc:
+	BASE    ou=IT staff,o="Example, Inc",c=US
+	# or:
+	BASE    ou=IT staff,o=Example2C Inc,c=US
 
-is correct (note the absence of the double quotes).
+	# Wrong - comment on same line as option:
+	DEREF   never           # Never follow aliases
+.fi
 .LP
 A line cannot be longer than LINE_MAX, which should be more than 2000 bytes
 on all platforms.
 There is no mechanism to split a long line on multiple lines, either for
 beautification or to overcome the above limit.
-.LP
+.SH OPTIONS
 The different configuration options are:
 .TP
 .B URI <ldap[si]://[name[:port]] ...>
