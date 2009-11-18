@@ -124,6 +124,7 @@ typedef struct sessionlog {
 typedef struct syncprov_info_t {
 	syncops		*si_ops;
 	BerVarray	si_ctxcsn;	/* ldapsync context */
+	struct berval	si_contextdn;
 	int		*si_sids;
 	int		si_numcsns;
 	int		si_chkops;	/* checkpointing info */
@@ -1361,6 +1362,7 @@ syncprov_checkpoint( Operation *op, SlapReply *rs, slap_overinst *on )
 	SlapReply rsm = { 0 };
 	slap_callback cb = {0};
 	BackendDB be;
+
 #ifdef CHECK_CSN
 	Syntax *syn = slap_schema.si_ad_contextCSN->ad_type->sat_syntax;
 
@@ -1387,12 +1389,26 @@ syncprov_checkpoint( Operation *op, SlapReply *rs, slap_overinst *on )
 		be = *on->on_info->oi_origdb;
 		opm.o_bd = &be;
 	}
-	opm.o_req_dn = opm.o_bd->be_suffix[0];
-	opm.o_req_ndn = opm.o_bd->be_nsuffix[0];
+	opm.o_req_dn = si->si_contextdn;
+	opm.o_req_ndn = si->si_contextdn;
 	opm.o_bd->bd_info = on->on_info->oi_orig;
 	opm.o_managedsait = SLAP_CONTROL_NONCRITICAL;
 	opm.o_no_schema_check = 1;
 	opm.o_bd->be_modify( &opm, &rsm );
+
+	if ( rsm.sr_err == LDAP_NO_SUCH_OBJECT &&
+		SLAP_SYNC_SUBENTRY( opm.o_bd )) {
+		const char	*text;
+		char txtbuf[SLAP_TEXT_BUFLEN];
+		size_t textlen = sizeof txtbuf;
+		Entry *e = slap_create_context_csn_entry( opm.o_bd, NULL );
+		slap_mods2entry( &mod, &e, 0, 1, &text, txtbuf, textlen);
+		opm.ora_e = e;
+		opm.o_bd->be_add( &opm, &rsm );
+		if ( e == opm.ora_e )
+			be_entry_release_w( &opm, opm.ora_e );
+	}
+
 	if ( mod.sml_next != NULL ) {
 		slap_mods_free( mod.sml_next, 1 );
 	}
@@ -1763,7 +1779,7 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 			 * it will deadlock
 			 */
 			if ( op->o_tag != LDAP_REQ_ADD ||
-				!dn_match( &op->o_req_ndn, &op->o_bd->be_nsuffix[0] )) {
+				!dn_match( &op->o_req_ndn, &si->si_contextdn )) {
 				if ( si->si_chkops && si->si_numops >= si->si_chkops ) {
 					do_check = 1;
 					si->si_numops = 0;
@@ -1837,14 +1853,14 @@ syncprov_op_compare( Operation *op, SlapReply *rs )
 	syncprov_info_t		*si = on->on_bi.bi_private;
 	int rc = SLAP_CB_CONTINUE;
 
-	if ( dn_match( &op->o_req_ndn, op->o_bd->be_nsuffix ) &&
+	if ( dn_match( &op->o_req_ndn, &si->si_contextdn ) &&
 		op->oq_compare.rs_ava->aa_desc == slap_schema.si_ad_contextCSN )
 	{
 		Entry e = {0};
 		Attribute a = {0};
 
-		e.e_name = op->o_bd->be_suffix[0];
-		e.e_nname = op->o_bd->be_nsuffix[0];
+		e.e_name = si->si_contextdn;
+		e.e_nname = si->si_contextdn;
 		e.e_attrs = &a;
 
 		a.a_desc = slap_schema.si_ad_contextCSN;
@@ -2583,7 +2599,7 @@ syncprov_operational(
 		return SLAP_CB_CONTINUE;
 
 	if ( rs->sr_entry &&
-		dn_match( &rs->sr_entry->e_nname, op->o_bd->be_nsuffix )) {
+		dn_match( &rs->sr_entry->e_nname, &si->si_contextdn )) {
 
 		if ( SLAP_OPATTRS( rs->sr_attr_flags ) ||
 			ad_inlist( slap_schema.si_ad_contextCSN, rs->sr_attrs )) {
@@ -2876,7 +2892,13 @@ syncprov_db_open(
 	op->o_dn = be->be_rootdn;
 	op->o_ndn = be->be_rootndn;
 
-	rc = overlay_entry_get_ov( op, be->be_nsuffix, NULL,
+	if ( SLAP_SYNC_SUBENTRY( be )) {
+		build_new_dn( &si->si_contextdn, be->be_nsuffix,
+			(struct berval *)&slap_ldapsync_cn_bv, NULL );
+	} else {
+		si->si_contextdn = be->be_nsuffix[0];
+	}
+	rc = overlay_entry_get_ov( op, &si->si_contextdn, NULL,
 		slap_schema.si_ad_contextCSN, 0, &e, on );
 
 	if ( e ) {

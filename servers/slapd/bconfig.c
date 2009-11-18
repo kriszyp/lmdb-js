@@ -190,6 +190,7 @@ enum {
 	CFG_IX_INTLEN,
 	CFG_SYNTAX,
 	CFG_ACL_ADD,
+	CFG_SYNC_SUBENTRY,
 
 	CFG_LAST
 };
@@ -604,6 +605,10 @@ static ConfigTable config_back_cf_table[] = {
 		&config_suffix, "( OLcfgDbAt:0.10 NAME 'olcSuffix' "
 			"EQUALITY distinguishedNameMatch "
 			"SYNTAX OMsDN )", NULL, NULL },
+	{ "sync_use_subentry", NULL, 0, 0, 0, ARG_ON_OFF|ARG_DB|ARG_MAGIC|CFG_SYNC_SUBENTRY,
+		&config_generic, "( OLcfgDbAt:0.19 NAME 'olcSyncUseSubentry' "
+			"DESC 'Store sync context in a subentry' "
+			"SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
 	{ "syncrepl", NULL, 0, 0, 0, ARG_DB|ARG_MAGIC,
 		&syncrepl_config, "( OLcfgDbAt:0.11 NAME 'olcSyncrepl' "
 			"EQUALITY caseIgnoreMatch "
@@ -815,7 +820,7 @@ static ConfigOCs cf_ocs[] = {
 		 "olcMaxDerefDepth $ olcPlugin $ olcReadOnly $ olcReplica $ "
 		 "olcReplicaArgsFile $ olcReplicaPidFile $ olcReplicationInterval $ "
 		 "olcReplogFile $ olcRequires $ olcRestrict $ olcRootDN $ olcRootPW $ "
-		 "olcSchemaDN $ olcSecurity $ olcSizeLimit $ olcSyncrepl $ "
+		 "olcSchemaDN $ olcSecurity $ olcSizeLimit $ olcSyncUseSubentry $ olcSyncrepl $ "
 		 "olcTimeLimit $ olcUpdateDN $ olcUpdateRef $ olcMirrorMode $ "
 		 "olcMonitoring ) )",
 		 	Cft_Database, NULL, cfAddDatabase },
@@ -1085,6 +1090,9 @@ config_generic(ConfigArgs *c) {
 		case CFG_LASTMOD:
 			c->value_int = (SLAP_NOLASTMOD(c->be) == 0);
 			break;
+		case CFG_SYNC_SUBENTRY:
+			c->value_int = (SLAP_SYNC_SUBENTRY(c->be) != 0);
+			break;
 		case CFG_MIRRORMODE:
 			if ( SLAP_SHADOW(c->be))
 				c->value_int = (SLAP_SINGLE_SHADOW(c->be) == 0);
@@ -1197,6 +1205,7 @@ config_generic(ConfigArgs *c) {
 		case CFG_SSTR_IF_MAX:
 		case CFG_SSTR_IF_MIN:
 		case CFG_ACL_ADD:
+		case CFG_SYNC_SUBENTRY:
 			break;
 
 		/* no-ops, requires slapd restart */
@@ -1899,6 +1908,13 @@ sortval_reject:
 				SLAP_DBFLAGS(c->be) |= SLAP_DBFLAG_HIDDEN;
 			else
 				SLAP_DBFLAGS(c->be) &= ~SLAP_DBFLAG_HIDDEN;
+			break;
+
+		case CFG_SYNC_SUBENTRY:
+			if (c->value_int)
+				SLAP_DBFLAGS(c->be) |= SLAP_DBFLAG_SYNC_SUBENTRY;
+			else
+				SLAP_DBFLAGS(c->be) &= ~SLAP_DBFLAG_SYNC_SUBENTRY;
 			break;
 
 		case CFG_SSTR_IF_MAX:

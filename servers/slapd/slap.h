@@ -1804,6 +1804,7 @@ struct BackendDB {
 #define SLAP_DBFLAG_SHADOW_MASK		(SLAP_DBFLAG_SHADOW|SLAP_DBFLAG_SINGLE_SHADOW|SLAP_DBFLAG_SYNC_SHADOW|SLAP_DBFLAG_SLURP_SHADOW)
 #define SLAP_DBFLAG_CLEAN		0x10000U /* was cleanly shutdown */
 #define SLAP_DBFLAG_ACL_ADD		0x20000U /* check attr ACLs on adds */
+#define SLAP_DBFLAG_SYNC_SUBENTRY	0x40000U /* use subentry for context */
 	slap_mask_t	be_flags;
 #define SLAP_DBFLAGS(be)			((be)->be_flags)
 #define SLAP_NOLASTMOD(be)			(SLAP_DBFLAGS(be) & SLAP_DBFLAG_NOLASTMOD)
@@ -1830,6 +1831,7 @@ struct BackendDB {
 #define SLAP_MULTIMASTER(be)			(!SLAP_SINGLE_SHADOW(be))
 #define SLAP_DBCLEAN(be)			(SLAP_DBFLAGS(be) & SLAP_DBFLAG_CLEAN)
 #define SLAP_DBACL_ADD(be)			(SLAP_DBFLAGS(be) & SLAP_DBFLAG_ACL_ADD)
+#define SLAP_SYNC_SUBENTRY(be)			(SLAP_DBFLAGS(be) & SLAP_DBFLAG_SYNC_SUBENTRY)
 
 	slap_mask_t	be_restrictops;		/* restriction operations */
 #define SLAP_RESTRICT_OP_ADD		0x0001U
