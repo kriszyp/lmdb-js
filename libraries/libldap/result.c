@@ -276,7 +276,7 @@ wait4msg(
 	}
 #endif /* LDAP_DEBUG */
 
-	if ( timeout != NULL ) {
+	if ( timeout != NULL && timeout->tv_sec != -1 ) {
 		tv0 = *timeout;
 		tv = *timeout;
 		tvp = &tv;
