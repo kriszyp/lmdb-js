@@ -855,7 +855,14 @@ syncprov_sendresp( Operation *op, opcookie *opc, syncops *so,
 	}
 	/* In case someone else freed it already? */
 	if ( rs.sr_ctrls ) {
-		op->o_tmpfree( rs.sr_ctrls[0], op->o_tmpmemctx );
+		int i;
+		for ( i=0; rs.sr_ctrls[i]; i++ ) {
+			if ( rs.sr_ctrls[i] == ctrls[0] ) {
+				op->o_tmpfree( ctrls[0]->ldctl_value.bv_val, op->o_tmpmemctx );
+				ctrls[0]->ldctl_value.bv_val = NULL;
+				break;
+			}
+		}
 		rs.sr_ctrls = NULL;
 	}
 
