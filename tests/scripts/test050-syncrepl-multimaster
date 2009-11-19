@@ -674,8 +674,70 @@ n=`expr $n + 1`
 done
 
 # Insert modifications and more tests here.
+echo "Waiting $SLEEP2 seconds for servers to resync..."
+sleep $SLEEP2
+
+echo "Using ldapmodify to add/modify/delete entries from server 1..."
+for i in 1 2 3 4 5 6 7 8 9 10; do
+echo "  iteration $i"
+$LDAPMODIFY -D "$MANAGERDN" -H $URI1 -w $PASSWD \
+	>> $TESTOUT 2>&1 << EOMODS
+dn: cn=Add-Mod-Del,dc=example,dc=com
+changetype: add
+cn: Add/Mod/Del
+objectclass: organizationalRole
+
+dn: cn=Add-Mod-Del,dc=example,dc=com
+changetype: modify
+replace: description
+description: guinea pig
+-
+
+dn: cn=Add-Mod-Del,dc=example,dc=com
+changetype: delete
+EOMODS
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapmodify failed for server 1 database ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+done
+
 echo "Waiting $SLEEP1 seconds for servers to resync..."
 sleep $SLEEP1
+
+n=1
+while [ $n -le $MMR ]; do
+PORT=`expr $BASEPORT + $n`
+URI="ldap://${LOCALHOST}:$PORT/"
+
+echo "Using ldapsearch to read all the entries from server $n..."
+$LDAPSEARCH -S "" -b "$BASEDN" -D "$MANAGERDN" -H $URI -w $PASSWD  \
+	'objectclass=*' > $TESTDIR/server$n.out 2>&1
+RC=$?
+
+if test $RC != 0 ; then
+	echo "ldapsearch failed at server $n ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+. $LDIFFILTER < $TESTDIR/server$n.out > $TESTDIR/server$n.flt
+n=`expr $n + 1`
+done
+
+n=2
+while [ $n -le $MMR ]; do
+echo "Comparing retrieved entries from server 1 and server $n..."
+$CMP $MASTERFLT $TESTDIR/server$n.flt > $CMPOUT
+
+if test $? != 0 ; then
+	echo "test failed - server 1 and server $n databases differ"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit 1
+fi
+n=`expr $n + 1`
+done
 
 test $KILLSERVERS != no && kill -HUP $KILLPIDS
 
