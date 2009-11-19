@@ -9,7 +9,6 @@ OpenLDAP 2.4.20 Engineering
 	Fixed libldap sasl buffer sizing (ITS#6327,ITS#6334)
 	Fixed libldap uninitialized return value (ITS#6355)
 	Fixed libldap unlimited timeout (ITS#6388)
-	Fixed liblutil constant (ITS#5909)
 	Added slapd handling of hex server IDs (ITS#6297)
 	Added slapd syncrepl contextCSN storing in subentry (ITS#6373)
 	Fixed slapd asserts in minimal environment (ITS#6361)
@@ -42,6 +41,7 @@ OpenLDAP 2.4.20 Engineering
 		Fixed slapd MAXPATHLEN handling (ITS#6342)
 		Fixed test057 handling of memberof/refint (ITS#6343)
 		Fixed slapd test error ignoring (ITS#6345)
+		Fixed liblutil constant (ITS#5909)
 	Documentation
 		ldap_get_dn(3) typos (ITS#5366)
 		ldap.conf(5) clarify comment usage (ITS#6384)
