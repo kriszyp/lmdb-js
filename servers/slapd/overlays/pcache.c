@@ -823,6 +823,7 @@ static int
 merge_entry(
 	Operation		*op,
 	Entry			*e,
+	int			dup,
 	struct berval*		query_uuid )
 {
 	int		rc;
@@ -836,7 +837,8 @@ merge_entry(
 
 	slap_callback cb = { NULL, slap_null_cb, NULL, NULL };
 
-	e = entry_dup( e );
+	if ( dup )
+		e = entry_dup( e );
 	attr = e->e_attrs;
 	e->e_attrs = NULL;
 
@@ -2286,7 +2288,7 @@ cache_entries(
 			remove_query_and_data( op_tmp, rs, cm, &crp_uuid );
 		}
 
-		return_val = merge_entry(op_tmp, e, query_uuid);
+		return_val = merge_entry(op_tmp, e, 0, query_uuid);
 		ldap_pvt_thread_mutex_lock(&cm->cache_mutex);
 		cm->cur_entries += return_val;
 		Debug( pcache_debug,
@@ -2473,6 +2475,12 @@ pcache_response(
 				&& si->qtemp->limitttl )
 			{
 				si->caching_reason = PC_SIZELIMIT;
+				Entry *e;
+				for (;si->head; si->head=e) {
+					e = si->head->e_private;
+					si->head->e_private = NULL;
+					entry_free(si->head);
+				}
 			}
 
 		} else if ( si->qtemp->negttl && !si->count && !si->over &&
@@ -3191,7 +3199,7 @@ refresh_merge( Operation *op, SlapReply *rs )
 			/* No local entry, just add it. FIXME: we are not checking
 			 * the cache entry limit here
 			 */
-			 merge_entry( op, rs->sr_entry, &ri->ri_q->q_uuid );
+			 merge_entry( op, rs->sr_entry, 1, &ri->ri_q->q_uuid );
 		} else {
 			/* Entry exists, update it */
 			Entry ne;
