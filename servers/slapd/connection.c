@@ -52,24 +52,6 @@ static unsigned long conn_nextid = 0;
 
 static const char conn_lost_str[] = "connection lost";
 
-/* structure state (protected by connections_mutex) */
-enum sc_struct_state {
-	SLAP_C_UNINITIALIZED = 0,	/* MUST BE ZERO (0) */
-	SLAP_C_UNUSED,
-	SLAP_C_USED,
-	SLAP_C_PENDING
-};
-
-/* connection state (protected by c_mutex ) */
-enum sc_conn_state {
-	SLAP_C_INVALID = 0,		/* MUST BE ZERO (0) */
-	SLAP_C_INACTIVE,		/* zero threads */
-	SLAP_C_CLOSING,			/* closing */
-	SLAP_C_ACTIVE,			/* one or more threads */
-	SLAP_C_BINDING,			/* binding */
-	SLAP_C_CLIENT			/* outbound client conn */
-};
-
 const char *
 connection_state2str( int state )
 {
