@@ -2762,9 +2762,26 @@ typedef struct Listener Listener;
 /*
  * represents a connection from an ldap client
  */
+/* structure state (protected by connections_mutex) */
+enum sc_struct_state {
+	SLAP_C_UNINITIALIZED = 0,	/* MUST BE ZERO (0) */
+	SLAP_C_UNUSED,
+	SLAP_C_USED,
+	SLAP_C_PENDING
+};
+
+/* connection state (protected by c_mutex ) */
+enum sc_conn_state {
+	SLAP_C_INVALID = 0,		/* MUST BE ZERO (0) */
+	SLAP_C_INACTIVE,		/* zero threads */
+	SLAP_C_CLOSING,			/* closing */
+	SLAP_C_ACTIVE,			/* one or more threads */
+	SLAP_C_BINDING,			/* binding */
+	SLAP_C_CLIENT			/* outbound client conn */
+};
 struct Connection {
-	int			c_struct_state; /* structure management state */
-	int			c_conn_state;	/* connection state */
+	enum sc_struct_state	c_struct_state; /* structure management state */
+	enum sc_conn_state	c_conn_state;	/* connection state */
 	int			c_conn_idx;		/* slot in connections array */
 	ber_socket_t	c_sd;
 	const char	*c_close_reason; /* why connection is closing */
