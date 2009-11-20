@@ -567,7 +567,7 @@ int closedir(DIR *dir)
  * Memory Reverse Search
  */
 void *
-lutil_memrchr(const void *b, int c, size_t n)
+(lutil_memrchr)(const void *b, int c, size_t n)
 {
 	if (n != 0) {
 		const unsigned char *s, *bb = b, cc = c;
