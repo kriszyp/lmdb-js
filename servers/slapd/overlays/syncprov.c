@@ -1198,22 +1198,18 @@ syncprov_matchops( Operation *op, opcookie *opc, int saveit )
 		if ( ss->s_op->o_abandon )
 			continue;
 
-		/* First time thru, check for possible skips */
-		if ( saveit || op->o_tag == LDAP_REQ_ADD ) {
+		/* Don't send ops back to the originator */
+		if ( opc->osid > 0 && opc->osid == ss->s_sid ) {
+			Debug( LDAP_DEBUG_SYNC, "syncprov_matchops: skipping original sid %03x\n",
+				opc->osid, 0, 0 );
+			continue;
+		}
 
-			/* Don't send ops back to the originator */
-			if ( opc->osid > 0 && opc->osid == ss->s_sid ) {
-				Debug( LDAP_DEBUG_SYNC, "syncprov_matchops: skipping original sid %03x\n",
-					opc->osid, 0, 0 );
-				continue;
-			}
-
-			/* Don't send ops back to the messenger */
-			if ( opc->rsid > 0 && opc->rsid == ss->s_sid ) {
-				Debug( LDAP_DEBUG_SYNC, "syncprov_matchops: skipping relayed sid %03x\n",
-					opc->rsid, 0, 0 );
-				continue;
-			}
+		/* Don't send ops back to the messenger */
+		if ( opc->rsid > 0 && opc->rsid == ss->s_sid ) {
+			Debug( LDAP_DEBUG_SYNC, "syncprov_matchops: skipping relayed sid %03x\n",
+				opc->rsid, 0, 0 );
+			continue;
 		}
 
 		/* validate base */
