@@ -684,7 +684,7 @@ $LDAPMODIFY -D "$MANAGERDN" -H $URI1 -w $PASSWD \
 	>> $TESTOUT 2>&1 << EOMODS
 dn: cn=Add-Mod-Del,dc=example,dc=com
 changetype: add
-cn: Add/Mod/Del
+cn: Add-Mod-Del
 objectclass: organizationalRole
 
 dn: cn=Add-Mod-Del,dc=example,dc=com
