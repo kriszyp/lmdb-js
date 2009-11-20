@@ -94,11 +94,10 @@ int (strncasecmp)();
 #define memcmp lutil_memcmp
 #endif
 
+void *(lutil_memrchr)(const void *b, int c, size_t n);
 /* GNU extension (glibc >= 2.1.91), only declared when defined(_GNU_SOURCE) */
-#ifndef HAVE_MEMRCHR
-#undef memrchr
-#define memrchr lutil_memrchr
-void * memrchr(const void *b, int c, size_t len);
+#if defined(HAVE_MEMRCHR) && defined(_GNU_SOURCE)
+#define lutil_memrchr(b, c, n) memrchr(b, c, n)
 #endif /* ! HAVE_MEMRCHR */
 
 #define STRLENOF(s)	(sizeof(s)-1)
