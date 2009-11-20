@@ -39,6 +39,7 @@ OpenLDAP 2.4.20 Engineering
 		Added additional operations for ITS#6332
 		Fixed memrchr define (ITS#6351)
 		Fixed slapd MAXPATHLEN handling (ITS#6342)
+		Added test050 rapid add/mod/del sequence (ITS#6368)
 		Fixed test057 handling of memberof/refint (ITS#6343)
 		Fixed slapd test error ignoring (ITS#6345)
 		Fixed liblutil constant (ITS#5909)
