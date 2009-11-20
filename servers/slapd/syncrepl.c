@@ -897,7 +897,7 @@ do_syncrep2(
 						if ( i == si->si_cookieState->cs_pnum ) {
 							value_add( &si->si_cookieState->cs_pvals, syncCookie.ctxcsn );
 							si->si_cookieState->cs_pnum++;
-							si->si_cookieState->cs_psids = ch_realloc( si->si_cookieState->cs_psids, si->si_cookieState->cs_num * sizeof(int));
+							si->si_cookieState->cs_psids = ch_realloc( si->si_cookieState->cs_psids, si->si_cookieState->cs_pnum * sizeof(int));
 							si->si_cookieState->cs_psids[i] = sid;
 						}
 						ldap_pvt_thread_mutex_unlock( &si->si_cookieState->cs_pmutex );
