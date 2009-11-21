@@ -792,15 +792,13 @@ syncprov_sendresp( Operation *op, opcookie *opc, syncops *so,
 	}
 
 #ifdef LDAP_DEBUG
-	if ( !BER_BVISNULL( &cookie )) {
-		if ( so->s_sid > 0 ) {
-			Debug( LDAP_DEBUG_SYNC, "syncprov_sendresp: to=%03x, cookie=%s\n",
-				so->s_sid, cookie.bv_val , 0 );
-		} else {
-			Debug( LDAP_DEBUG_SYNC, "syncprov_sendresp: cookie=%s\n",
-				cookie.bv_val, 0, 0 );
-		}
-	}		
+	if ( so->s_sid > 0 ) {
+		Debug( LDAP_DEBUG_SYNC, "syncprov_sendresp: to=%03x, cookie=%s\n",
+			so->s_sid, cookie.bv_val ? cookie.bv_val : "", 0 );
+	} else {
+		Debug( LDAP_DEBUG_SYNC, "syncprov_sendresp: cookie=%s\n",
+			cookie.bv_val ? cookie.bv_val : "", 0, 0 );
+	}
 #endif
 
 	e_uuid.e_attrs = &a_uuid;
