@@ -637,7 +637,40 @@ wait
 
 echo "Restarting servers..."
 KILLPIDS=""
-n=1
+
+echo "Starting server 1 on TCP/IP port $PORT1..."
+echo "======================= RESTART =======================" >> $LOG1
+cd ${XDIR}1
+$SLAPD -F slapd.d -h $URI1 -d $LVL $TIMING >> $LOG1 2>&1 &
+PID=$!
+if test $WAIT != 0 ; then
+    echo PID $PID
+    read foo
+fi
+KILLPIDS="$PID"
+cd $TESTWD
+
+sleep 1
+
+echo "Using ldapsearch to check that server 1 is running..."
+for i in 0 1 2 3 4 5; do
+	$LDAPSEARCH -s base -b "" -H $URI1 \
+		'objectclass=*' > /dev/null 2>&1
+	RC=$?
+	if test $RC = 0 ; then
+		break
+	fi
+	echo "Waiting 5 seconds for slapd to start..."
+	sleep 5
+done
+
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+n=2
 while [ $n -le $MMR ]; do
 PORT=`expr $BASEPORT + $n`
 URI="ldap://${LOCALHOST}:$PORT/"
@@ -653,6 +686,13 @@ if test $WAIT != 0 ; then
 fi
 KILLPIDS="$KILLPIDS $PID"
 cd $TESTWD
+n=`expr $n + 1`
+done
+
+n=2
+while [ $n -le $MMR ]; do
+PORT=`expr $BASEPORT + $n`
+URI="ldap://${LOCALHOST}:$PORT/"
 echo "Using ldapsearch to check that server $n is running..."
 for i in 0 1 2 3 4 5; do
 	$LDAPSEARCH -s base -b "" -H $URI \
@@ -674,8 +714,8 @@ n=`expr $n + 1`
 done
 
 # Insert modifications and more tests here.
-echo "Waiting $SLEEP2 seconds for servers to resync..."
-sleep $SLEEP2
+echo "Waiting $SLEEP1 seconds for servers to resync..."
+sleep $SLEEP1
 
 echo "Using ldapmodify to add/modify/delete entries from server 1..."
 for i in 1 2 3 4 5 6 7 8 9 10; do
