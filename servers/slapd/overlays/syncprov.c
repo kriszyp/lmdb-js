@@ -1671,6 +1671,7 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 		maxcsn.bv_len = sizeof(cbuf);
 		ldap_pvt_thread_rdwr_wlock( &si->si_csn_rwlock );
 
+		slap_get_commit_csn( op, &maxcsn, &foundit );
 		if ( BER_BVISEMPTY( &maxcsn ) && SLAP_GLUE_SUBORDINATE( op->o_bd )) {
 			/* syncrepl queues the CSN values in the db where
 			 * it is configured , not where the changes are made.
