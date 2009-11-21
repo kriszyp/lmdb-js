@@ -12,6 +12,7 @@ OpenLDAP 2.4.20 Engineering
 	Added slapd handling of hex server IDs (ITS#6297)
 	Added slapd syncrepl contextCSN storing in subentry (ITS#6373)
 	Fixed slapd asserts in minimal environment (ITS#6361)
+	Fixed slapd authid-rewrite parsing (ITS#6392) 
 	Fixed slapd configArgs initialization (ITS#6363)
 	Fixed slapd debug handling of LDAP_DEBUG_ANY (ITS#6324)
 	Fixed slapd db_open with connection_fake_init (ITS#6381)

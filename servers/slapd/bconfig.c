@@ -2010,29 +2010,40 @@ sortval_reject:
 		case CFG_REWRITE: {
 			struct berval bv;
 			char *line;
-			
+			int rc = 0;
+
+			if ( c->op == LDAP_MOD_ADD ) {
+				c->argv++;
+				c->argc--;
+			}
 			if(slap_sasl_rewrite_config(c->fname, c->lineno, c->argc, c->argv))
-				return(1);
+				rc = 1;
+			if ( rc == 0 ) {
 
-			if ( c->argc > 1 ) {
-				char	*s;
+				if ( c->argc > 1 ) {
+					char	*s;
 
-				/* quote all args but the first */
-				line = ldap_charray2str( c->argv, "\" \"" );
-				ber_str2bv( line, 0, 0, &bv );
-				s = ber_bvchr( &bv, '"' );
-				assert( s != NULL );
-				/* move the trailing quote of argv[0] to the end */
-				AC_MEMCPY( s, s + 1, bv.bv_len - ( s - bv.bv_val ) );
-				bv.bv_val[ bv.bv_len - 1 ] = '"';
+					/* quote all args but the first */
+					line = ldap_charray2str( c->argv, "\" \"" );
+					ber_str2bv( line, 0, 0, &bv );
+					s = ber_bvchr( &bv, '"' );
+					assert( s != NULL );
+					/* move the trailing quote of argv[0] to the end */
+					AC_MEMCPY( s, s + 1, bv.bv_len - ( s - bv.bv_val ) );
+					bv.bv_val[ bv.bv_len - 1 ] = '"';
 
-			} else {
-				ber_str2bv( c->argv[ 0 ], 0, 1, &bv );
+				} else {
+					ber_str2bv( c->argv[ 0 ], 0, 1, &bv );
+				}
+
+				ber_bvarray_add( &authz_rewrites, &bv );
 			}
-			
-			ber_bvarray_add( &authz_rewrites, &bv );
+			if ( c->op == LDAP_MOD_ADD ) {
+				c->argv--;
+				c->argc++;
 			}
-			break;
+			return rc;
+			}
 #endif
 
 
