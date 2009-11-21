@@ -1661,7 +1661,7 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 	{
 		struct berval maxcsn;
 		char cbuf[LDAP_PVT_CSNSTR_BUFSIZE];
-		int do_check = 0, have_psearches;
+		int do_check = 0, have_psearches, foundit, csn_changed = 0;
 
 		ldap_pvt_thread_mutex_lock( &si->si_resp_mutex );
 
@@ -1679,7 +1679,7 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 			 * that changed, and only one can be passed in the csn queue.
 			 */
 			Modifications *mod = op->orm_modlist;
-			int i, j, sid, csn_changed = 0;
+			int i, j, sid;
 
 			for ( i=0; i<mod->sml_numvals; i++ ) {
 				sid = slap_parse_csn_sid( &mod->sml_values[i] );
@@ -1721,7 +1721,20 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 			goto leave;
 		}
 
-		maxcsn = op->o_csn;
+		slap_get_commit_csn( op, &maxcsn, &foundit );
+		if ( BER_BVISEMPTY( &maxcsn ) && SLAP_GLUE_SUBORDINATE( op->o_bd )) {
+			/* syncrepl queues the CSN values in the db where
+			 * it is configured , not where the changes are made.
+			 * So look for a value in the glue db if we didn't
+			 * find any in this db.
+			 */
+			BackendDB *be = op->o_bd;
+			op->o_bd = select_backend( &be->be_nsuffix[0], 1);
+			maxcsn.bv_val = cbuf;
+			maxcsn.bv_len = sizeof(cbuf);
+			slap_get_commit_csn( op, &maxcsn, &foundit );
+			op->o_bd = be;
+		}
 		if ( !BER_BVISEMPTY( &maxcsn ) ) {
 			int i, sid;
 #ifdef CHECK_CSN
@@ -1733,6 +1746,7 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 				if ( sid == si->si_sids[i] ) {
 					if ( ber_bvcmp( &maxcsn, &si->si_ctxcsn[i] ) > 0 ) {
 						ber_bvreplace( &si->si_ctxcsn[i], &maxcsn );
+						csn_changed = 1;
 					}
 					break;
 				}
@@ -1740,11 +1754,18 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 			/* It's a new SID for us */
 			if ( i == si->si_numcsns ) {
 				value_add_one( &si->si_ctxcsn, &maxcsn );
+				csn_changed = 1;
 				si->si_numcsns++;
 				si->si_sids = ch_realloc( si->si_sids, si->si_numcsns *
 					sizeof(int));
 				si->si_sids[i] = sid;
 			}
+#if 0
+		} else if ( !foundit ) {
+			/* internal ops that aren't meant to be replicated */
+			ldap_pvt_thread_rdwr_wunlock( &si->si_csn_rwlock );
+			return SLAP_CB_CONTINUE;
+#endif
 		}
 
 		/* Don't do any processing for consumer contextCSN updates */
@@ -1783,8 +1804,10 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 			ldap_pvt_thread_rdwr_runlock( &si->si_csn_rwlock );
 		}
 
-		/* always update consumer ctx even if this is an old csn */
-		opc->sctxcsn = maxcsn;
+		/* only update consumer ctx if this is a newer csn */
+		if ( csn_changed ) {
+			opc->sctxcsn = maxcsn;
+		}
 
 		/* Handle any persistent searches */
 		ldap_pvt_thread_mutex_lock( &si->si_ops_mutex );
