@@ -48,7 +48,7 @@ static ldap_pvt_thread_mutex_t connections_mutex;
 static Connection *connections = NULL;
 
 static ldap_pvt_thread_mutex_t conn_nextid_mutex;
-static unsigned long conn_nextid = 0;
+static unsigned long conn_nextid = SLAPD_SYNC_SYNCCONN_OFFSET;
 
 static const char conn_lost_str[] = "connection lost";
 
