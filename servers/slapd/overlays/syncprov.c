@@ -1671,56 +1671,6 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 		maxcsn.bv_len = sizeof(cbuf);
 		ldap_pvt_thread_rdwr_wlock( &si->si_csn_rwlock );
 
-		if ( op->o_dont_replicate && op->o_tag == LDAP_REQ_MODIFY &&
-				op->orm_modlist->sml_op == LDAP_MOD_REPLACE &&
-				op->orm_modlist->sml_desc == slap_schema.si_ad_contextCSN ) {
-			/* Catch contextCSN updates from syncrepl. We have to look at
-			 * all the attribute values, as there may be more than one csn
-			 * that changed, and only one can be passed in the csn queue.
-			 */
-			Modifications *mod = op->orm_modlist;
-			int i, j, sid;
-
-			for ( i=0; i<mod->sml_numvals; i++ ) {
-				sid = slap_parse_csn_sid( &mod->sml_values[i] );
-
-				for ( j=0; j<si->si_numcsns; j++ ) {
-					if ( sid == si->si_sids[j] ) {
-						if ( ber_bvcmp( &mod->sml_values[i], &si->si_ctxcsn[j] ) > 0 ) {
-							ber_bvreplace( &si->si_ctxcsn[j], &mod->sml_values[i] );
-							csn_changed = 1;
-						}
-						break;
-					}
-				}
-
-				if ( j == si->si_numcsns ) {
-					value_add_one( &si->si_ctxcsn, &mod->sml_values[i] );
-					si->si_numcsns++;
-					si->si_sids = ch_realloc( si->si_sids, si->si_numcsns *
-						sizeof(int));
-					si->si_sids[j] = sid;
-					csn_changed = 1;
-				}
-			}
-			ldap_pvt_thread_rdwr_wunlock( &si->si_csn_rwlock );
-
-			if ( csn_changed ) {
-				ldap_pvt_thread_mutex_lock( &si->si_ops_mutex );
-				have_psearches = ( si->si_ops != NULL );
-				ldap_pvt_thread_mutex_unlock( &si->si_ops_mutex );
-
-				if ( have_psearches ) {
-					for ( sm = opc->smatches; sm; sm=sm->sm_next ) {
-						if ( sm->sm_op->s_op->o_abandon )
-							continue;
-						syncprov_qresp( opc, sm->sm_op, LDAP_SYNC_NEW_COOKIE );
-					}
-				}
-			}
-			goto leave;
-		}
-
 		slap_get_commit_csn( op, &maxcsn, &foundit );
 		if ( BER_BVISEMPTY( &maxcsn ) && SLAP_GLUE_SUBORDINATE( op->o_bd )) {
 			/* syncrepl queues the CSN values in the db where
@@ -1760,17 +1710,59 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 					sizeof(int));
 				si->si_sids[i] = sid;
 			}
-#if 0
-		} else if ( !foundit ) {
-			/* internal ops that aren't meant to be replicated */
-			ldap_pvt_thread_rdwr_wunlock( &si->si_csn_rwlock );
-			return SLAP_CB_CONTINUE;
-#endif
 		}
 
 		/* Don't do any processing for consumer contextCSN updates */
 		if ( op->o_dont_replicate ) {
+			if ( op->o_tag == LDAP_REQ_MODIFY &&
+				op->orm_modlist->sml_op == LDAP_MOD_REPLACE &&
+				op->orm_modlist->sml_desc == slap_schema.si_ad_contextCSN ) {
+			/* Catch contextCSN updates from syncrepl. We have to look at
+			 * all the attribute values, as there may be more than one csn
+			 * that changed, and only one can be passed in the csn queue.
+			 */
+			Modifications *mod = op->orm_modlist;
+			int i, j, sid;
+
+			for ( i=0; i<mod->sml_numvals; i++ ) {
+				sid = slap_parse_csn_sid( &mod->sml_values[i] );
+				for ( j=0; j<si->si_numcsns; j++ ) {
+					if ( sid == si->si_sids[j] ) {
+						if ( ber_bvcmp( &mod->sml_values[i], &si->si_ctxcsn[j] ) > 0 ) {
+							ber_bvreplace( &si->si_ctxcsn[j], &mod->sml_values[i] );
+							csn_changed = 1;
+						}
+						break;
+					}
+				}
+
+				if ( j == si->si_numcsns ) {
+					value_add_one( &si->si_ctxcsn, &mod->sml_values[i] );
+					si->si_numcsns++;
+					si->si_sids = ch_realloc( si->si_sids, si->si_numcsns *
+						sizeof(int));
+					si->si_sids[j] = sid;
+					csn_changed = 1;
+				}
+			}
 			ldap_pvt_thread_rdwr_wunlock( &si->si_csn_rwlock );
+
+			if ( csn_changed ) {
+				ldap_pvt_thread_mutex_lock( &si->si_ops_mutex );
+				have_psearches = ( si->si_ops != NULL );
+				ldap_pvt_thread_mutex_unlock( &si->si_ops_mutex );
+
+				if ( have_psearches ) {
+					for ( sm = opc->smatches; sm; sm=sm->sm_next ) {
+						if ( sm->sm_op->s_op->o_abandon )
+							continue;
+						syncprov_qresp( opc, sm->sm_op, LDAP_SYNC_NEW_COOKIE );
+					}
+				}
+			}
+			} else {
+			ldap_pvt_thread_rdwr_wunlock( &si->si_csn_rwlock );
+			}
 			goto leave;
 		}
 
