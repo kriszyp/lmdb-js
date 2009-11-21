@@ -851,8 +851,9 @@ do_syncrep2(
 			if ( ber_peek_tag( ber, &len ) == LDAP_TAG_SYNC_COOKIE ) {
 				ber_scanf( ber, /*"{"*/ "m}", &cookie );
 
-				Debug( LDAP_DEBUG_SYNC, "do_syncrep2: cookie=%s\n",
-					BER_BVISNULL( &cookie ) ? "" : cookie.bv_val, 0, 0 );
+				Debug( LDAP_DEBUG_SYNC, "do_syncrep2: %s cookie=%s\n",
+					si->si_ridtxt,
+					BER_BVISNULL( &cookie ) ? "" : cookie.bv_val, 0 );
 
 				if ( !BER_BVISNULL( &cookie ) ) {
 					ch_free( syncCookie.octet_str.bv_val );
@@ -999,8 +1000,9 @@ do_syncrep2(
 				if ( ber_peek_tag( ber, &len ) == LDAP_TAG_SYNC_COOKIE ) {
 					ber_scanf( ber, "m", &cookie );
 
-					Debug( LDAP_DEBUG_SYNC, "do_syncrep2: cookie=%s\n",
-						BER_BVISNULL( &cookie ) ? "" : cookie.bv_val, 0, 0 );
+					Debug( LDAP_DEBUG_SYNC, "do_syncrep2: %s cookie=%s\n",
+						si->si_ridtxt, 
+						BER_BVISNULL( &cookie ) ? "" : cookie.bv_val, 0 );
 
 					if ( !BER_BVISNULL( &cookie ) ) {
 						ch_free( syncCookie.octet_str.bv_val );
@@ -1109,8 +1111,9 @@ do_syncrep2(
 					{
 						ber_scanf( ber, "m", &cookie );
 
-						Debug( LDAP_DEBUG_SYNC, "do_syncrep2: cookie=%s\n",
-							BER_BVISNULL( &cookie ) ? "" : cookie.bv_val, 0, 0 );
+						Debug( LDAP_DEBUG_SYNC, "do_syncrep2: %s cookie=%s\n",
+							si->si_ridtxt, 
+							BER_BVISNULL( &cookie ) ? "" : cookie.bv_val, 0 );
 
 						if ( !BER_BVISNULL( &cookie ) ) {
 							ch_free( syncCookie.octet_str.bv_val );
@@ -1145,8 +1148,9 @@ do_syncrep2(
 					{
 						ber_scanf( ber, "m", &cookie );
 
-						Debug( LDAP_DEBUG_SYNC, "do_syncrep2: cookie=%s\n",
-							BER_BVISNULL( &cookie ) ? "" : cookie.bv_val, 0, 0 );
+						Debug( LDAP_DEBUG_SYNC, "do_syncrep2: %s cookie=%s\n",
+							si->si_ridtxt,
+							BER_BVISNULL( &cookie ) ? "" : cookie.bv_val, 0 );
 
 						if ( !BER_BVISNULL( &cookie ) ) {
 							ch_free( syncCookie.octet_str.bv_val );
