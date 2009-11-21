@@ -4705,6 +4705,9 @@ config_add_internal( CfBackInfo *cfb, Entry *e, ConfigArgs *ca, SlapReply *rs,
 			Debug( LDAP_DEBUG_TRACE, "%s: config_add_internal: "
 				"DN=\"%s\" already exists\n",
 				log_prefix, e->e_name.bv_val, 0 );
+			/* global schema ignores all writes */
+			if ( ce->ce_type == Cft_Schema && ce->ce_parent->ce_type == Cft_Global )
+				return LDAP_COMPARE_TRUE;
 			return LDAP_ALREADY_EXISTS;
 		}
 	}
@@ -5190,7 +5193,14 @@ out2:;
 	ldap_pvt_thread_pool_resume( &connection_pool );
 
 out:;
-	send_ldap_result( op, rs );
+	{	int repl = op->o_dont_replicate;
+		if ( rs->sr_err == LDAP_COMPARE_TRUE ) {
+			rs->sr_err = LDAP_SUCCESS;
+			op->o_dont_replicate = 1;
+		}
+		send_ldap_result( op, rs );
+		op->o_dont_replicate = repl;
+	}
 	slap_graduate_commit_csn( op );
 	return rs->sr_err;
 }
