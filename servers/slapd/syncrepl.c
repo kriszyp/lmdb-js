@@ -768,7 +768,7 @@ do_syncrep2(
 
 	Modifications	*modlist = NULL;
 
-	int				match, m;
+	int				match, m, punlock = 0;
 
 	struct timeval *tout_p = NULL;
 	struct timeval tout = { 0, 0 };
@@ -878,7 +878,14 @@ do_syncrep2(
 							}
 						}
 						/* check pending CSNs too */
-						ldap_pvt_thread_mutex_lock( &si->si_cookieState->cs_pmutex );
+						while ( ldap_pvt_thread_mutex_trylock( &si->si_cookieState->cs_pmutex )) {
+							if ( slapd_shutdown ) {
+								rc = -2;
+								goto done;
+							}
+							if ( !ldap_pvt_thread_pool_pausecheck( &connection_pool ))
+								ldap_pvt_thread_yield();
+						}
 						for ( i =0; i<si->si_cookieState->cs_pnum; i++ ) {
 							if ( si->si_cookieState->cs_psids[i] == sid ) {
 								if ( ber_bvcmp( syncCookie.ctxcsn, &si->si_cookieState->cs_pvals[i] ) <= 0 ) {
@@ -901,7 +908,7 @@ do_syncrep2(
 							si->si_cookieState->cs_psids = ch_realloc( si->si_cookieState->cs_psids, si->si_cookieState->cs_pnum * sizeof(int));
 							si->si_cookieState->cs_psids[i] = sid;
 						}
-						ldap_pvt_thread_mutex_unlock( &si->si_cookieState->cs_pmutex );
+						punlock = 1;
 					}
 					op->o_controls[slap_cids.sc_LDAPsync] = &syncCookie;
 				}
@@ -935,6 +942,8 @@ do_syncrep2(
 					rc = syncrepl_updateCookie( si, op, &syncCookie );
 				}
 			}
+			if ( punlock );
+				ldap_pvt_thread_mutex_unlock( &si->si_cookieState->cs_pmutex );
 			ldap_controls_free( rctrls );
 			if ( modlist ) {
 				slap_mods_free( modlist, 1 );
