@@ -762,7 +762,7 @@ be_shadow_update( Operation *op )
 	/* This assumes that all internal ops (connid <= -1000) on a syncrepl
 	 * database are syncrepl operations.
 	 */
-	return (( SLAP_SYNC_SHADOW( op->o_bd ) && op->o_connid <= -1000 ) ||
+	return ( ( SLAP_SYNC_SHADOW( op->o_bd ) && SLAPD_SYNC_IS_SYNCCONN( op->o_connid ) ) ||
 		( SLAP_SHADOW( op->o_bd ) && be_isupdate_dn( op->o_bd, &op->o_ndn ) ) );
 }
 
