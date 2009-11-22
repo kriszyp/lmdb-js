@@ -981,6 +981,7 @@ syncprov_qtask( void *ctx, void *arg )
 	Operation *op;
 	BackendDB be;
 	int rc;
+	OpExtra	oex;
 
 	op = &opbuf.ob_op;
 	*op = *so->s_op;
@@ -999,6 +1000,11 @@ syncprov_qtask( void *ctx, void *arg )
 	be.be_flags |= SLAP_DBFLAG_OVERLAY;
 	op->o_bd = &be;
 	LDAP_SLIST_FIRST(&op->o_extra) = NULL;
+
+	/* Let syncprov_operational know it's us */
+	oex.oe_key = (void *)syncprov_qtask;
+	LDAP_SLIST_INSERT_HEAD(&op->o_extra, &oex, oe_next);
+
 	op->o_callback = NULL;
 
 	rc = syncprov_qplay( op, so );
@@ -2631,6 +2637,13 @@ syncprov_operational(
 {
 	slap_overinst		*on = (slap_overinst *)op->o_bd->bd_info;
 	syncprov_info_t		*si = (syncprov_info_t *)on->on_bi.bi_private;
+	OpExtra		*oex;
+
+	/* short-circuit, don't want backends handling this */
+	LDAP_SLIST_FOREACH(oex, &op->o_extra, oe_next) {
+		if ( oex->oe_key == (void *)syncprov_qtask )
+			return LDAP_SUCCESS;
+	}
 
 	/* This prevents generating unnecessarily; frontend will strip
 	 * any statically stored copy.
