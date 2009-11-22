@@ -779,7 +779,7 @@ read_config_file(const char *fname, int depth, ConfigArgs *cf, ConfigTable *cft)
 				rc = 1;
 				goto done;
 
-			} else if ( (unsigned long)rc == ARG_BAD_CONF ) {
+			} else if ( rc == ARG_BAD_CONF ) {
 				rc = 1;
 				goto done;
 			}
@@ -1482,7 +1482,7 @@ slap_cf_aux_table_unparse( void *src, struct berval *bv, slap_cf_aux_table *tab0
 				slap_verbmasks *aux = (slap_verbmasks *)tab->aux;
 
 				for ( i = 0; !BER_BVISNULL( &aux[i].word ); i++ ) {
-					if ( (slap_mask_t)*iptr == aux[i].mask ) {
+					if ( *iptr == aux[i].mask ) {
 						*ptr++ = ' ';
 						ptr = lutil_strcopy( ptr, tab->key.bv_val );
 						ptr = lutil_strcopy( ptr, aux[i].word.bv_val );
@@ -1576,7 +1576,7 @@ slap_tls_get_config( LDAP *ld, int opt, char **val )
 	}
 	ldap_pvt_tls_get_option( ld, opt, &ival );
 	for (i=0; !BER_BVISNULL(&keys[i].word); i++) {
-		if (keys[i].mask == (slap_mask_t)ival) {
+		if (keys[i].mask == ival) {
 			*val = ch_strdup( keys[i].word.bv_val );
 			return 0;
 		}
