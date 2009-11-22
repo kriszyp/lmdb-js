@@ -1354,7 +1354,7 @@ do_syncrepl(
 	connection_fake_init( &conn, &opbuf, ctx );
 	op = &opbuf.ob_op;
 	/* o_connids must be unique for slap_graduate_commit_csn */
-	op->o_connid = -1000 - si->si_rid;
+	op->o_connid = SLAPD_SYNC_RID2SYNCCONN(si->si_rid);
 
 	op->o_managedsait = SLAP_CONTROL_NONCRITICAL;
 	be = si->si_be;

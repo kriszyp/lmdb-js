@@ -1703,6 +1703,13 @@ struct syncinfo_s;
 
 #define SLAP_SYNC_RID_MAX	999
 #define SLAP_SYNC_SID_MAX	4095	/* based on liblutil/csn.c field width */
+
+/* fake conn connid constructed as rid; real connids start
+ * at SLAPD_SYNC_CONN_OFFSET */
+#define SLAPD_SYNC_SYNCCONN_OFFSET (SLAP_SYNC_RID_MAX + 1)
+#define SLAPD_SYNC_IS_SYNCCONN(connid) ((connid) < SLAPD_SYNC_SYNCCONN_OFFSET)
+#define SLAPD_SYNC_RID2SYNCCONN(rid) (rid)
+
 #define SLAP_SYNCUUID_SET_SIZE 256
 
 struct sync_cookie {
