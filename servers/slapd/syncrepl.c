@@ -4027,10 +4027,10 @@ parse_syncrepl_line(
 				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
 				return -1;
 			}
-			if ( tmp > SLAP_SYNC_SID_MAX || tmp < 0 ) {
+			if ( tmp > SLAP_SYNC_RID_MAX || tmp < 0 ) {
 				snprintf( c->cr_msg, sizeof( c->cr_msg ),
 					"Error: parse_syncrepl_line: "
-					"syncrepl id %d is out of range [0..4095]", tmp );
+					"syncrepl id %d is out of range [0..%d]", tmp, SLAP_SYNC_RID_MAX );
 				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
 				return -1;
 			}
@@ -4555,7 +4555,7 @@ syncrepl_unparse( syncinfo_t *si, struct berval *bv )
 	si->si_bindconf.sb_version = LDAP_VERSION3;
 
 	ptr = buf;
-	assert( si->si_rid >= 0 && si->si_rid <= SLAP_SYNC_SID_MAX );
+	assert( si->si_rid >= 0 && si->si_rid <= SLAP_SYNC_RID_MAX );
 	len = snprintf( ptr, WHATSLEFT, IDSTR "=%03d " PROVIDERSTR "=%s",
 		si->si_rid, si->si_bindconf.sb_uri.bv_val );
 	if ( len >= sizeof( buf ) ) return;
