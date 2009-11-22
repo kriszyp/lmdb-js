@@ -769,7 +769,7 @@ do_syncrep2(
 
 	Modifications	*modlist = NULL;
 
-	int				match, m, punlock = 0;
+	int				match, m, punlock = -1;
 
 	struct timeval *tout_p = NULL;
 	struct timeval tout = { 0, 0 };
@@ -890,7 +890,7 @@ do_syncrep2(
 						for ( i =0; i<si->si_cookieState->cs_pnum; i++ ) {
 							if ( si->si_cookieState->cs_psids[i] == sid ) {
 								if ( ber_bvcmp( syncCookie.ctxcsn, &si->si_cookieState->cs_pvals[i] ) <= 0 ) {
-									Debug( LDAP_DEBUG_SYNC, "do_syncrep2: %s CSN too old, ignoring %s\n",
+									Debug( LDAP_DEBUG_SYNC, "do_syncrep2: %s CSN pending, ignoring %s\n",
 										si->si_ridtxt, syncCookie.ctxcsn->bv_val, 0 );
 									ldap_controls_free( rctrls );
 									rc = 0;
@@ -909,7 +909,7 @@ do_syncrep2(
 							si->si_cookieState->cs_psids = ch_realloc( si->si_cookieState->cs_psids, si->si_cookieState->cs_pnum * sizeof(int));
 							si->si_cookieState->cs_psids[i] = sid;
 						}
-						punlock = 1;
+						punlock = i;
 					}
 					op->o_controls[slap_cids.sc_LDAPsync] = &syncCookie;
 				}
@@ -943,8 +943,22 @@ do_syncrep2(
 					rc = syncrepl_updateCookie( si, op, &syncCookie );
 				}
 			}
-			if ( punlock );
+			if ( punlock >= 0 ) {
+				/* on failure, revert pending CSN */
+				if ( rc != LDAP_SUCCESS ) {
+					int i;
+					for ( i = 0; i<si->si_cookieState->cs_num; i++ ) {
+						if ( si->si_cookieState->cs_sids[i] == si->si_cookieState->cs_psids[punlock] ) {
+							ber_bvreplace( &si->si_cookieState->cs_pvals[punlock],
+								&si->si_cookieState->cs_vals[i] );
+							break;
+						}
+					}
+					if ( i == si->si_cookieState->cs_num )
+						si->si_cookieState->cs_pvals[punlock].bv_val[0] = '\0';
+				}
 				ldap_pvt_thread_mutex_unlock( &si->si_cookieState->cs_pmutex );
+			}
 			ldap_controls_free( rctrls );
 			if ( modlist ) {
 				slap_mods_free( modlist, 1 );
