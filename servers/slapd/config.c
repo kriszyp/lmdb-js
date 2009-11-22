@@ -1852,6 +1852,18 @@ slap_client_connect( LDAP **ldp, slap_bindconf *sb )
 		ldap_set_option( ld, LDAP_OPT_NETWORK_TIMEOUT, &tv );
 	}
 
+	if ( sb->sb_keepalive.sk_idle ) {
+		ldap_set_option( ld, LDAP_OPT_X_KEEPALIVE_IDLE, &sb->sb_keepalive.sk_idle );
+	}
+
+	if ( sb->sb_keepalive.sk_probes ) {
+		ldap_set_option( ld, LDAP_OPT_X_KEEPALIVE_PROBES, &sb->sb_keepalive.sk_probes );
+	}
+
+	if ( sb->sb_keepalive.sk_interval ) {
+		ldap_set_option( ld, LDAP_OPT_X_KEEPALIVE_INTERVAL, &sb->sb_keepalive.sk_interval );
+	}
+
 #ifdef HAVE_TLS
 	if ( sb->sb_tls_do_init ) {
 		rc = bindconf_tls_set( sb, ld );
