@@ -768,6 +768,10 @@ url2query(
 		}
 		query.scope = lud->lud_scope;
 		query.filter = str2filter( lud->lud_filter );
+		if ( query.filter == NULL ) {
+			rc = -1;
+			goto error;
+		}
 
 		tempstr.bv_val = ch_malloc( strlen( lud->lud_filter ) + 1 );
 		tempstr.bv_len = 0;
@@ -2639,7 +2643,14 @@ pc_bind_attrs( Operation *op, Entry *e, QueryTemplate *temp,
 	}
 	*p2 = '\0';
 	op->o_tmpfree( vals, op->o_tmpmemctx );
-	return str2filter_x( op, fbv->bv_val );
+
+	/* FIXME: are we sure str2filter_x can't fail?
+	 * caller needs to check */
+	{
+		Filter *f = str2filter_x( op, fbv->bv_val );
+		assert( f != NULL );
+		return f;
+	}
 }
 
 /* Check if the requested entry is from the cache and has a valid
