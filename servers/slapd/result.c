@@ -927,7 +927,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 			if( e_flags == NULL ) {
 		    	Debug( LDAP_DEBUG_ANY, 
 					"send_search_entry: conn %lu slap_sl_calloc failed\n",
-					op->o_connid ? op->o_connid : 0, 0, 0 );
+					op->o_connid, 0, 0 );
 				ber_free( ber, 1 );
 	
 				send_ldap_error( op, rs, LDAP_OTHER, "out of memory" );
@@ -945,7 +945,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 			if ( rc == -1 ) {
 			    	Debug( LDAP_DEBUG_ANY, "send_search_entry: "
 					"conn %lu matched values filtering failed\n",
-					op->o_connid ? op->o_connid : 0, 0, 0 );
+					op->o_connid, 0, 0 );
 				if ( op->o_res_ber == NULL ) ber_free_buf( ber );
 				send_ldap_error( op, rs, LDAP_OTHER,
 					"matched values filtering error" );
@@ -1112,7 +1112,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 			    	Debug( LDAP_DEBUG_ANY,
 					"send_search_entry: conn %lu "
 					"matched values filtering failed\n", 
-					op->o_connid ? op->o_connid : 0, 0, 0);
+					op->o_connid, 0, 0);
 				if ( op->o_res_ber == NULL ) ber_free_buf( ber );
 				send_ldap_error( op, rs, LDAP_OTHER,
 					"matched values filtering error" );
