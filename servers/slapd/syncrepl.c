@@ -75,6 +75,7 @@ typedef struct syncinfo_s {
 	struct berval		si_base;
 	struct berval		si_logbase;
 	struct berval		si_filterstr;
+	Filter			*si_filter;
 	struct berval		si_logfilterstr;
 	struct berval		si_contextdn;
 	int			si_scope;
@@ -2724,7 +2725,7 @@ syncrepl_del_nonpresent(
 		op->ors_tlimit = SLAP_NO_LIMIT;
 		op->ors_limit = NULL;
 		op->ors_attrsonly = 0;
-		op->ors_filter = str2filter_x( op, si->si_filterstr.bv_val );
+		op->ors_filter = filter_dup( si->si_filter, op->o_tmpmemctx );
 		/* In multimaster, updates can continue to arrive while
 		 * we're searching. Limit the search result to entries
 		 * older than our newest cookie CSN.
@@ -3760,6 +3761,9 @@ syncinfo_free( syncinfo_t *sie, int free_all )
 		if ( sie->si_filterstr.bv_val ) {
 			ch_free( sie->si_filterstr.bv_val );
 		}
+		if ( sie->si_filter ) {
+			filter_free( sie->si_filter );
+		}
 		if ( sie->si_logfilterstr.bv_val ) {
 			ch_free( sie->si_logfilterstr.bv_val );
 		}
@@ -4370,6 +4374,13 @@ parse_syncrepl_line(
 				return 1;
 			}
 		}
+	}
+
+	si->si_filter = str2filter( si->si_filterstr.bv_val );
+	if ( si->si_filter == NULL ) {
+		Debug( LDAP_DEBUG_ANY, "syncrepl %s " SEARCHBASESTR "=\"%s\": unable to parse filter=\"%s\"\n", 
+			si->si_ridtxt, c->be->be_suffix ? c->be->be_suffix[ 0 ].bv_val : "(null)", si->si_filterstr.bv_val );
+		return 1;
 	}
 
 	return 0;

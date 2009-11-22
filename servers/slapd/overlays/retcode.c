@@ -257,6 +257,9 @@ retcode_op_internal( Operation *op, SlapReply *rs )
 		1, &op2.ors_filterstr, op2.o_tmpmemctx );
 	op2.ors_filter = str2filter_x( &op2, op2.ors_filterstr.bv_val );
 
+	/* errAbsObject is defined by this overlay! */
+	assert( op2.ors_filter != NULL );
+
 	db.bd_info = on->on_info->oi_orig;
 	op2.o_bd = &db;
 
