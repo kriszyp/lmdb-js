@@ -172,6 +172,22 @@ Other options should be registered with IANA, see RFC 4520 section 3.5.
 OpenLDAP also has the `binary' option built in, but this is a transfer
 option, not a tagging option.
 .TP
+.B olcAuthIDRewrite: <rewrite\-rule>
+Used by the authentication framework to convert simple user names
+to an LDAP DN used for authorization purposes.
+Its purpose is analogous to that of
+.BR olcAuthzRegexp
+(see below).
+The
+.B rewrite\-rule
+is a set of rules analogous to those described in
+.BR slapo\-rwm (5)
+for data rewriting (after stripping the \fIrwm\-\fP prefix).
+.B olcAuthIDRewrite
+and
+.B olcAuthzRegexp
+should not be intermixed.
+.TP
 .B olcAuthzPolicy: <policy>
 Used to specify which rules to use for Proxy Authorization.  Proxy
 authorization allows a client to authenticate to the server using one
