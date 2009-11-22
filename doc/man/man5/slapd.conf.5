@@ -162,6 +162,21 @@ attribute syntax OID.
 description.) 
 .RE
 .TP
+.B authid\-rewrite<cmd> <args>
+Used by the authentication framework to convert simple user names
+to an LDAP DN used for authorization purposes.
+Its purpose is analogous to that of
+.BR authz-regexp
+(see below).
+The prefix \fIauthid\-\fP is followed by a set of rules analogous
+to those described in
+.BR slapo\-rwm (5)
+for data rewriting (replace the \fIrwm\-\fP prefix with \fIauthid\-\fP).
+.B authid\-rewrite<cmd>
+and
+.B authz\-regexp
+rules should not be intermixed.
+.TP
 .B authz\-policy <policy>
 Used to specify which rules to use for Proxy Authorization.  Proxy
 authorization allows a client to authenticate to the server using one
