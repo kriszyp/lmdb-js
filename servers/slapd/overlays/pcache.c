@@ -2478,8 +2478,9 @@ pcache_response(
 			} else if ( rs->sr_err == LDAP_SIZELIMIT_EXCEEDED
 				&& si->qtemp->limitttl )
 			{
-				si->caching_reason = PC_SIZELIMIT;
 				Entry *e;
+
+				si->caching_reason = PC_SIZELIMIT;
 				for (;si->head; si->head=e) {
 					e = si->head->e_private;
 					si->head->e_private = NULL;
