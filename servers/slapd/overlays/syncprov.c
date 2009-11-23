@@ -2561,8 +2561,7 @@ no_change:		if ( !(op->o_sync_mode & SLAP_SYNC_PERSIST) ) {
 					ber_bvarray_free_x( ctxcsn, op->o_tmpmemctx );
 				if ( sids )
 					op->o_tmpfree( sids, op->o_tmpmemctx );
-				send_ldap_result( op, rs );
-				return rs->sr_err;
+				goto bailout;
 			}
 		}
 	} else {
