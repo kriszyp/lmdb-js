@@ -48,6 +48,7 @@ OpenLDAP 2.4.20 Engineering
 		Fixed slapd test error ignoring (ITS#6345)
 		Fixed liblutil constant (ITS#5909)
 	Documentation
+		admin24 fix RFC4511 and other references (ITS#6399)
 		ldap_get_dn(3) typos (ITS#5366)
 		ldap.conf(5) clarify comment usage (ITS#6384)
 		slapd.conf(5) note hex server IDs (ITS#6297)
