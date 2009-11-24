@@ -2473,6 +2473,8 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 						changed = SS_CHANGED;
 					else if ( newer > 0 ) {
 					/* our state is older, tell consumer nothing */
+						rs->sr_err = LDAP_SUCCESS;
+bailout:
 						if ( sop ) {
 							syncops **sp = &si->si_ops;
 							
@@ -2483,7 +2485,6 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 							ldap_pvt_thread_mutex_unlock( &si->si_ops_mutex );
 							ch_free( sop );
 						}
-						rs->sr_err = LDAP_SUCCESS;
 						rs->sr_ctrls = NULL;
 						send_ldap_result( op, rs );
 						return rs->sr_err;
@@ -2538,8 +2539,9 @@ no_change:		if ( !(op->o_sync_mode & SLAP_SYNC_PERSIST) ) {
 					ber_bvarray_free_x( ctxcsn, op->o_tmpmemctx );
 				if ( sids )
 					op->o_tmpfree( sids, op->o_tmpmemctx );
-				send_ldap_error( op, rs, LDAP_SYNC_REFRESH_REQUIRED, "sync cookie is stale" );
-				return rs->sr_err;
+				rs->sr_err = LDAP_SYNC_REFRESH_REQUIRED;
+				rs->sr_text = "sync cookie is stale";
+				goto bailout;
 			}
 			if ( srs->sr_state.ctxcsn ) {
 				ber_bvarray_free_x( srs->sr_state.ctxcsn, op->o_tmpmemctx );
@@ -2559,8 +2561,7 @@ no_change:		if ( !(op->o_sync_mode & SLAP_SYNC_PERSIST) ) {
 					ber_bvarray_free_x( ctxcsn, op->o_tmpmemctx );
 				if ( sids )
 					op->o_tmpfree( sids, op->o_tmpmemctx );
-				send_ldap_result( op, rs );
-				return rs->sr_err;
+				goto bailout;
 			}
 		}
 	} else {

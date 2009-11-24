@@ -38,6 +38,7 @@ OpenLDAP 2.4.20 Engineering
 	Fixed slapo-syncprov deadlock (ITS#6335)
 	Fixed slapo-syncprov memory leak (ITS#6376)
 	Fixed slapo-syncprov out of order changes (ITS#6346)
+	Fixed slapo-syncprov psearch with stale cookie (ITS#6397)
 	Build Environment
 		Added additional operations for ITS#6332
 		Fixed memrchr define (ITS#6351)
