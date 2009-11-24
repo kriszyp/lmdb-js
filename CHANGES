@@ -32,6 +32,7 @@ OpenLDAP 2.4.20 Engineering
 	Fixed slapd-bdb/hdb entry cache (ITS#6360)
 	Fixed slapd-ldap leak (ITS#6326)
 	Fixed slapd-relay bind segfault (ITS#6337)
+	Fixed slapo-accesslog ensure CSNs are normalized (ITS#6400)
 	Fixed slapo-memberof operational attr updates (ITS#6329)
 	Fixed slapo-pcache entry dupe (ITS#6310)
 	Fixed slapo-syncprov checkpoint conversion (ITS#6370)
