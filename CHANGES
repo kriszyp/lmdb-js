@@ -21,6 +21,7 @@ OpenLDAP 2.4.20 Engineering
 	Fixed slapd inclusion of ac/unistd.h (ITS#6342)
 	Fixed slapd invalid dn log message (ITS#6309)
 	Fixed slapd lockup on shutdown (ITS#6372)
+	Fixed slapd onetime leak (ITS#6398)
 	Fixed slapd RID range to be decimal only (ITS#6394)
 	Fixed slapd sl_free to better reclaim memory (ITS#6380)
 	Fixed slapd syncrepl deletes in MirrorMode (ITS#6368)

@@ -763,6 +763,11 @@ startup:;
 		conffile = NULL;
 	}
 
+	if ( confdir != NULL ) {
+		ch_free( confdir );
+		confdir = NULL;
+	}
+
 	if ( ldiffile != NULL ) {
 		ch_free( ldiffile );
 		ldiffile = NULL;
