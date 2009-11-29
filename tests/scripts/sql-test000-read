@@ -550,9 +550,9 @@ case $RC in
 esac
 
 echo "Filtering ldapsearch results..."
-. $LDIFFILTER < $SEARCHOUT > $SEARCHFLT
+$LDIFFILTER < $SEARCHOUT > $SEARCHFLT
 echo "Filtering original ldif..."
-. $LDIFFILTER < $SQLREAD > $LDIFFLT
+$LDIFFILTER < $SQLREAD > $LDIFFLT
 echo "Comparing filter output..."
 $CMP $SEARCHFLT $LDIFFLT > $CMPOUT
 

@@ -355,7 +355,7 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-. $LDIFFILTER < $TESTDIR/server$n.out > $TESTDIR/server$n.flt
+$LDIFFILTER < $TESTDIR/server$n.out > $TESTDIR/server$n.flt
 
 n=`expr $n + 1`
 done
@@ -388,7 +388,7 @@ if test $RC != 0 ; then
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
 fi
-. $LDIFFILTER < $TESTDIR/server$n.out > $TESTDIR/server$n.flt
+$LDIFFILTER < $TESTDIR/server$n.out > $TESTDIR/server$n.flt
 n=`expr $n + 1`
 done
 
@@ -433,7 +433,7 @@ if test $RC != 0 ; then
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
 fi
-. $LDIFFILTER < $TESTDIR/server$n.out > $TESTDIR/server$n.flt
+$LDIFFILTER < $TESTDIR/server$n.out > $TESTDIR/server$n.flt
 n=`expr $n + 1`
 done
 
@@ -483,7 +483,7 @@ if test $RC != 0 ; then
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
 fi
-. $LDIFFILTER < $TESTDIR/server$n.out > $TESTDIR/server$n.flt
+$LDIFFILTER < $TESTDIR/server$n.out > $TESTDIR/server$n.flt
 n=`expr $n + 1`
 done
 
@@ -546,7 +546,7 @@ if test $RC != 0 ; then
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
 fi
-. $LDIFFILTER < $TESTDIR/server$n.out > $TESTDIR/server$n.flt
+$LDIFFILTER < $TESTDIR/server$n.out > $TESTDIR/server$n.flt
 n=`expr $n + 1`
 done
 
@@ -610,7 +610,7 @@ if test $RC != 0 ; then
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
 fi
-. $LDIFFILTER < $TESTDIR/server$n.out > $TESTDIR/server$n.flt
+$LDIFFILTER < $TESTDIR/server$n.out > $TESTDIR/server$n.flt
 n=`expr $n + 1`
 done
 
@@ -762,7 +762,7 @@ if test $RC != 0 ; then
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
 fi
-. $LDIFFILTER < $TESTDIR/server$n.out > $TESTDIR/server$n.flt
+$LDIFFILTER < $TESTDIR/server$n.out > $TESTDIR/server$n.flt
 n=`expr $n + 1`
 done
 

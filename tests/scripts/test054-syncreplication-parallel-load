@@ -363,9 +363,9 @@ fi
 test $KILLSERVERS != no && kill -HUP $KILLPIDS
 
 echo "Filtering producer results..."
-. $LDIFFILTER < $MASTEROUT > $MASTERFLT
+$LDIFFILTER < $MASTEROUT > $MASTERFLT
 echo "Filtering consumer results..."
-. $LDIFFILTER < $SLAVEOUT > $SLAVEFLT
+$LDIFFILTER < $SLAVEOUT > $SLAVEFLT
 
 echo "Comparing retrieved entries from producer and consumer..."
 $CMP $MASTERFLT $SLAVEFLT > $CMPOUT

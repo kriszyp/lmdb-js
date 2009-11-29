@@ -137,7 +137,7 @@ echo "Waiting $SLEEP1 seconds for shadow subtrees to sync..."
 sleep $SLEEP1
 
 echo "Filtering original ldif used to create database..."
-. $LDIFFILTER < $GLUESYNCOUT > $LDIFFLT
+$LDIFFILTER < $GLUESYNCOUT > $LDIFFLT
 
 for P in $PORT1 $PORT2 ; do
 	echo "Using ldapsearch to read all the entries from port $P..."
@@ -152,7 +152,7 @@ for P in $PORT1 $PORT2 ; do
 	fi
 
 	echo "Filtering ldapsearch results..."
-	. $LDIFFILTER < "${SEARCHOUT}.${P}" > $SEARCHFLT
+	$LDIFFILTER < "${SEARCHOUT}.${P}" > $SEARCHFLT
 	echo "Comparing filter output..."
 	$CMP $SEARCHFLT $LDIFFLT > $CMPOUT
 

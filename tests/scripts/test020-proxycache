@@ -455,9 +455,9 @@ else
 fi
 
 echo "Filtering ldapsearch results..."
-. $LDIFFILTER < $SEARCHOUT > $SEARCHFLT
+$LDIFFILTER < $SEARCHOUT > $SEARCHFLT
 echo "Filtering original ldif..."
-. $LDIFFILTER < $PROXYCACHEOUT > $LDIFFLT
+$LDIFFILTER < $PROXYCACHEOUT > $LDIFFLT
 echo "Comparing filter output..."
 $CMP $SEARCHFLT $LDIFFLT > $CMPOUT
 

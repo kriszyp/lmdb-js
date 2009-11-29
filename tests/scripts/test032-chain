@@ -116,9 +116,9 @@ for P in $PORT1 $PORT2 ; do
 	fi
 
 	echo "Filtering ldapsearch results..."
-	. $LDIFFILTER < $SEARCHOUT > $SEARCHFLT
+	$LDIFFILTER < $SEARCHOUT > $SEARCHFLT
 	echo "Filtering original ldif used to create database..."
-	. $LDIFFILTER < $CHAINOUT > $LDIFFLT
+	$LDIFFILTER < $CHAINOUT > $LDIFFLT
 	echo "Comparing filter output..."
 	$CMP $SEARCHFLT $LDIFFLT > $CMPOUT
 	
@@ -140,9 +140,9 @@ for P in $PORT1 $PORT2 ; do
 	fi
 
 	echo "Filtering ldapsearch results..."
-	. $LDIFFILTER < $SEARCHOUT > $SEARCHFLT
+	$LDIFFILTER < $SEARCHOUT > $SEARCHFLT
 	echo "Filtering original ldif used to create database..."
-	. $LDIFFILTER < $CHAINREFOUT > $LDIFFLT
+	$LDIFFILTER < $CHAINREFOUT > $LDIFFLT
 	echo "Comparing filter output..."
 	$CMP $SEARCHFLT $LDIFFLT > $CMPOUT
 		
@@ -269,9 +269,9 @@ for P in $PORT1 $PORT2 ; do
 	fi
 
 	echo "Filtering ldapsearch results..."
-	. $LDIFFILTER < $SEARCHOUT > $SEARCHFLT
+	$LDIFFILTER < $SEARCHOUT > $SEARCHFLT
 	echo "Filtering original ldif used to create database..."
-	. $LDIFFILTER < $CHAINMODOUT > $LDIFFLT
+	$LDIFFILTER < $CHAINMODOUT > $LDIFFLT
 	echo "Comparing filter output..."
 	$CMP $SEARCHFLT $LDIFFLT > $CMPOUT
 	

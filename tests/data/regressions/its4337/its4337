@@ -139,9 +139,9 @@ test $KILLSERVERS != no && kill -HUP $KILLPIDS
 LDIF=$ITSDIR/config.out
 
 echo "Filtering ldapsearch results..."
-. $LDIFFILTER < $SEARCHOUT > $SEARCHFLT
+$LDIFFILTER < $SEARCHOUT > $SEARCHFLT
 echo "Filtering original ldif..."
-. $LDIFFILTER < $LDIF > $LDIFFLT
+$LDIFFILTER < $LDIF > $LDIFFLT
 echo "Comparing filter output..."
 $CMP $SEARCHFLT $LDIFFLT > $CMPOUT
 

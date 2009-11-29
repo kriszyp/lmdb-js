@@ -79,7 +79,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Filtering original ldif used to create database..."
-. $LDIFFILTER < $SEARCHOUT > $LDIFFLT
+$LDIFFILTER < $SEARCHOUT > $LDIFFLT
 
 if test "${RDBMSWRITE}" != "yes"; then
 	echo "write test disabled for ${RDBMS}; set SLAPD_USE_SQLWRITE=yes to enable"
@@ -124,7 +124,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Filtering ldapsearch results..."
-. $LDIFFILTER < $SEARCHOUT > $SEARCHFLT
+$LDIFFILTER < $SEARCHOUT > $SEARCHFLT
 echo "Comparing filter output..."
 $CMP $SEARCHFLT $LDIFFLT > $CMPOUT
 

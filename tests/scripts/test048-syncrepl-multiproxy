@@ -185,9 +185,9 @@ if test $RC != 0 ; then
 fi
 
 #echo "Filtering master results..."
-. $LDIFFILTER < "${MASTEROUT}.1" > $MASTERFLT
+$LDIFFILTER < "${MASTEROUT}.1" > $MASTERFLT
 #echo "Filtering slave results..."
-. $LDIFFILTER < "${SLAVEOUT}.1" > $SLAVEFLT
+$LDIFFILTER < "${SLAVEOUT}.1" > $SLAVEFLT
 
 echo "$CHECK < Comparing retrieved entries from master and P1 slave..."
 $CMP $MASTERFLT $SLAVEFLT > $CMPOUT
@@ -210,7 +210,7 @@ if test $RC != 0 ; then
 fi
 
 #echo "Filtering slave results..."
-. $LDIFFILTER < "${SLAVEOUT}.1" > $SLAVEFLT
+$LDIFFILTER < "${SLAVEOUT}.1" > $SLAVEFLT
 
 echo "$CHECK < Comparing retrieved entries from master and R1 slave..."
 $CMP $MASTERFLT $SLAVEFLT > $CMPOUT
@@ -369,9 +369,9 @@ if test $RC != 0 ; then
 fi
 
 #echo "Filtering master results..."
-. $LDIFFILTER < "${MASTEROUT}.2" > $MASTERFLT
+$LDIFFILTER < "${MASTEROUT}.2" > $MASTERFLT
 #echo "Filtering P1 slave results..."
-. $LDIFFILTER < "${SLAVEOUT}.2" > $SLAVEFLT
+$LDIFFILTER < "${SLAVEOUT}.2" > $SLAVEFLT
 
 echo "$CHECK < Comparing retrieved entries from master and P1 slave..."
 $CMP $MASTERFLT $SLAVEFLT > $CMPOUT
@@ -394,7 +394,7 @@ if test $RC != 0 ; then
 fi
 
 #echo "Filtering slave results..."
-. $LDIFFILTER < "${SLAVEOUT}.2" > $SLAVEFLT
+$LDIFFILTER < "${SLAVEOUT}.2" > $SLAVEFLT
 
 echo "$CHECK < Comparing retrieved entries from master and R1 slave..."
 $CMP $MASTERFLT $SLAVEFLT > $CMPOUT
@@ -480,9 +480,9 @@ if test $RC != 0 ; then
 fi
 
 #echo "Filtering master results..."
-. $LDIFFILTER < "${MASTEROUT}.3" > $MASTERFLT
+$LDIFFILTER < "${MASTEROUT}.3" > $MASTERFLT
 #echo "Filtering slave results..."
-. $LDIFFILTER < "${SLAVEOUT}.3" > $SLAVEFLT
+$LDIFFILTER < "${SLAVEOUT}.3" > $SLAVEFLT
 
 echo "$CHECK < Comparing retrieved entries from master and P1 slave..."
 $CMP $MASTERFLT $SLAVEFLT > $CMPOUT
@@ -505,7 +505,7 @@ if test $RC != 0 ; then
 fi
 
 #echo "Filtering slave results..."
-. $LDIFFILTER < "${SLAVEOUT}.3" > $SLAVEFLT
+$LDIFFILTER < "${SLAVEOUT}.3" > $SLAVEFLT
 
 echo "$CHECK < Comparing retrieved entries from master and R1 slave..."
 $CMP $MASTERFLT $SLAVEFLT > $CMPOUT
@@ -561,9 +561,9 @@ if test $RC != 0 ; then
 fi
 
 #echo "Filtering master results..."
-. $LDIFFILTER < "${MASTEROUT}.4" > $MASTERFLT
+$LDIFFILTER < "${MASTEROUT}.4" > $MASTERFLT
 #echo "Filtering slave results..."
-. $LDIFFILTER < "${SLAVEOUT}.4" > $SLAVEFLT
+$LDIFFILTER < "${SLAVEOUT}.4" > $SLAVEFLT
 
 echo "$CHECK < Comparing retrieved entries from master and P1 slave..."
 $CMP $MASTERFLT $SLAVEFLT > $CMPOUT
@@ -586,7 +586,7 @@ if test $RC != 0 ; then
 fi
 
 #echo "Filtering slave results..."
-. $LDIFFILTER < "${SLAVEOUT}.4" > $SLAVEFLT
+$LDIFFILTER < "${SLAVEOUT}.4" > $SLAVEFLT
 
 echo "$CHECK < Comparing retrieved entries from master and R1 slave..."
 $CMP $MASTERFLT $SLAVEFLT > $CMPOUT

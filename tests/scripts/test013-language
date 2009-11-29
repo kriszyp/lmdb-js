@@ -99,9 +99,9 @@ fi
 test $KILLSERVERS != no && kill -HUP $KILLPIDS
 
 echo "Filtering ldapsearch results..."
-. $LDIFFILTER < $SEARCHOUT > $SEARCHFLT
+$LDIFFILTER < $SEARCHOUT > $SEARCHFLT
 echo "Filtering language ldif ..."
-. $LDIFFILTER < $LDIFLANGOUT > $LDIFFLT
+$LDIFFILTER < $LDIFLANGOUT > $LDIFFLT
 echo "Comparing filter output..."
 $CMP $SEARCHFLT $LDIFFLT > $CMPOUT
 

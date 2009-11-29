@@ -81,7 +81,7 @@ wait
 LDIFOUT=$EMPTYDNOUT1
 
 echo "Filtering ldapsearch results..."
-. $LDIFFILTER < $SEARCHOUT > $SEARCHFLT
+$LDIFFILTER < $SEARCHOUT > $SEARCHFLT
 echo "Comparing ldapsearch results against original..."
 $CMP $SEARCHFLT $LDIFOUT > $CMPOUT
 
@@ -157,7 +157,7 @@ test $KILLSERVERS != no && kill -HUP $KILLPIDS
 LDIFOUT=$EMPTYDNOUT2
 
 echo "Filtering ldapsearch results..."
-. $LDIFFILTER < $SEARCHOUT > $SEARCHFLT
+$LDIFFILTER < $SEARCHOUT > $SEARCHFLT
 echo "Comparing ldapsearch results against original..."
 $CMP $SEARCHFLT $LDIFOUT > $CMPOUT
 

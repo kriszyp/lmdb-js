@@ -78,7 +78,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Filtering ldapsearch results..."
-. $LDIFFILTER < $SEARCHOUT > $SEARCHFLT
+$LDIFFILTER < $SEARCHOUT > $SEARCHFLT
 echo "Comparing filter output..."
 $CMP $SEARCHFLT $VALSORTOUT1 > $CMPOUT
 
@@ -124,7 +124,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Filtering ldapsearch results..."
-. $LDIFFILTER < $SEARCHOUT > $SEARCHFLT
+$LDIFFILTER < $SEARCHOUT > $SEARCHFLT
 echo "Comparing filter output..."
 $CMP $SEARCHFLT $VALSORTOUT2 > $CMPOUT
 
@@ -204,7 +204,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Filtering ldapsearch results..."
-. $LDIFFILTER < $SEARCHOUT > $SEARCHFLT
+$LDIFFILTER < $SEARCHOUT > $SEARCHFLT
 echo "Comparing filter output..."
 $CMP $SEARCHFLT $VALSORTOUT3 > $CMPOUT
 
