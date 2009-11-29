@@ -20,6 +20,12 @@ if test $DYNLIST = "dynlistno" ; then
 	exit 0
 fi 
 
+if test $BACKEND = ldif ; then
+	# dynlist+ldif fails because back-ldif lacks bi_op_compare()
+	echo "Test does not support $BACKEND backend, test skipped"
+	exit 0
+fi
+
 mkdir -p $TESTDIR $DBDIR1
 
 $SLAPPASSWD -g -n >$CONFIGPWF
