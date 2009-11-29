@@ -20,6 +20,7 @@
 #include <ac/ctype.h>
 #include <ac/stdlib.h>
 #include <ac/string.h>
+#include <ac/unistd.h>
 
 #define DEFAULT_SPECS "ndb=a,null=n"
 
@@ -37,7 +38,7 @@ static void
 usage( void )
 {
 	fprintf( stderr, "\
-Usage: %s [backend] [spec[,spec]...]\n\
+Usage: %s [-b backend] [-s spec[,spec]...]\n\
 Filter standard input by first <spec> matching '[<backend>]=[a][e][n]':\n\
   - Remove LDIF comments.\n\
   - 'a': Sort attributes in entries.\n\
@@ -205,17 +206,31 @@ filter_stdin( unsigned flags )
 int
 main( int argc, char **argv )
 {
-	const char *backend, *specs, *tmp;
+	const char *backend = getenv( "BACKEND" ), *specs = "", *tmp;
 	unsigned flags;
+	int i;
 
 	if ( argc > 0 ) {
 		progname = (tmp = strrchr( argv[0], '/' )) ? tmp+1 : argv[0];
 	}
-	specs = (argc > 1 && strchr( argv[argc-1], '=' )) ? argv[--argc] : "";
-	backend = (argc > 1 && isalnum( (unsigned char) *argv[argc-1] ))
-		? argv[--argc] : (tmp = getenv( "BACKEND" )) ? tmp : "";
-	if ( argc > 1 ) {
+
+	while ( (i = getopt( argc, argv, "b:s:" )) != EOF ) {
+		switch ( i ) {
+		case 'b':
+			backend = optarg;
+			break;
+		case 's':
+			specs = optarg;
+			break;
+		default:
+			usage();
+		}
+	}
+	if ( optind < argc ) {
 		usage();
+	}
+	if ( backend == NULL ) {
+		backend = "";
 	}
 
 	flags = get_flags( backend, specs );
