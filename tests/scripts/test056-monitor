@@ -97,7 +97,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Filtering ldapsearch results..."
-$LDIFFILTER < $SEARCHOUT > $SEARCHFLT
+$LDIFFILTER -b monitor < $SEARCHOUT > $SEARCHFLT
 
 TMPMONITOROUT2=$MONITOROUT2
 case $BACKEND in
@@ -132,7 +132,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Filtering ldapsearch results..."
-$LDIFFILTER < $SEARCHOUT > $SEARCHFLT
+$LDIFFILTER -b monitor < $SEARCHOUT > $SEARCHFLT
 
 echo "Comparing filter output..."
 $CMP $SEARCHFLT $MONITOROUT3 > $CMPOUT
@@ -157,7 +157,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Filtering ldapsearch results..."
-$LDIFFILTER < $SEARCHOUT > $SEARCHFLT
+$LDIFFILTER -b monitor < $SEARCHOUT > $SEARCHFLT
 
 echo "Comparing filter output..."
 $CMP $SEARCHFLT $MONITOROUT4 > $CMPOUT
