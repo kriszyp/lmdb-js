@@ -14,6 +14,7 @@
 ## <http://www.OpenLDAP.org/license.html>.
 
 RCODE=10
+test $BACKEND = null && RCODE=0
 
 echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
