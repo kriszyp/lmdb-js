@@ -245,7 +245,8 @@ if test $RC != 0 ; then
 fi
 
 $LDIFFILTER < $SEARCHOUT > $SEARCHFLT
-$CMP $SEARCHFLT $LDIFTRANSLUCENTMERGED > $CMPOUT
+$LDIFFILTER < $LDIFTRANSLUCENTMERGED > $LDIFFLT
+$CMP $SEARCHFLT $LDIFFLT > $CMPOUT
 
 if test $? != 0 ; then
 	echo "Comparison failed -- local data failed to merge with remote!"
