@@ -33,6 +33,8 @@ else
 fi
 sed -e "s/@BACKEND@/${BACKEND}/"			\
 	-e "s/^#${BACKEND}#//"				\
+	-e "/^#~/s/^#[^#]*~${BACKEND}~[^#]*#/#omit: /"	\
+		-e "s/^#~[^#]*~#//"			\
 	-e "s/@RELAY@/${RELAY}/"			\
 	-e "s/^#relay-${RELAY}#//"			\
 	-e "s/^#${BACKENDTYPE}#//"			\
