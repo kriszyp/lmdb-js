@@ -307,7 +307,7 @@ RC=$?
 if test $RC != 10 ; then
 	echo "ldapmodify should have returned referral ($RC)!"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
-	exit $RC
+	exit 1
 fi
 
 OPATTRS="entryUUID creatorsName createTimestamp modifiersName modifyTimestamp"

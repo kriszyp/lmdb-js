@@ -77,7 +77,7 @@ RC=$?
 if test $RC != 3 ; then
 	echo "ldapsearch failed ($RC)!"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
-	exit $RC
+	exit 1
 fi
 
 echo "Testing modify for unwillingToPerform..."
@@ -90,7 +90,7 @@ RC=$?
 if test $RC != 53 ; then
 	echo "ldapmodify failed ($RC)!"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
-	exit $RC
+	exit 1
 fi
 
 echo "Testing compare for success after sleep (2 s)..."

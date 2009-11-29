@@ -437,7 +437,7 @@ RC=$?
 if test $RC != 1 ; then
 	echo "ldapwhoami failed ($RC)!"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
-	exit $RC
+	exit 1
 fi
 
 BINDDN="dc=example,dc=com"

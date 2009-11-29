@@ -726,7 +726,7 @@ case $RC,$BACKEND in
 	*)
 		echo "Compare failed ($RC)!"
 		test $KILLSERVERS != no && kill -HUP $KILLPIDS
-		exit $RC
+		exit 1
 	;;
 esac
 
