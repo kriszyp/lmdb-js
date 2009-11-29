@@ -53,6 +53,10 @@ sql-yes sql-mod:	FORCE
 	@echo "Initiating LDAP tests for SQL..."
 	@$(RUN) -b sql sql-all
 
+ldif test-ldif: FORCE
+	@echo "Initiating LDAP tests for LDIF..."
+	@$(RUN) -b ldif all
+
 regressions:	FORCE
 	@echo "Testing (available) ITS regressions"
 	@$(RUN) its-all

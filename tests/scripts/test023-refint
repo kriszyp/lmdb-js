@@ -13,11 +13,6 @@
 ## top-level directory of the distribution or, alternatively, at
 ## <http://www.OpenLDAP.org/license.html>.
 
-if test "$BACKEND" != "bdb" && test "$BACKEND" != "hdb" ; then
-	echo "Test does not support $BACKEND"
-	exit 0
-fi
-
 echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
 
@@ -194,7 +189,7 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-if test $BACKEND = "hdb" ; then
+if test $BACKEND != "bdb" ; then
 	$LDAPMODIFY -v -D "$REFINTDN" -h $LOCALHOST -p $PORT1 -w $PASSWD > \
 		$TESTOUT 2>&1 << EDEL
 version: 1

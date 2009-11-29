@@ -205,12 +205,12 @@ if test $RC != 0 ; then
 fi
 
 echo "Filtering ldapsearch results..."
-$LDIFFILTER < $SEARCHOUT > $SEARCHFLT
+$LDIFFILTER -s ldif=e < $SEARCHOUT > $SEARCHFLT
 echo "Filtering original ldif used to create database..."
-$LDIFFILTER < $IDASSERTOUT > $LDIFFLT
+$LDIFFILTER -s ldif=e < $IDASSERTOUT > $LDIFFLT
 echo "Comparing filter output..."
 $CMP $SEARCHFLT $LDIFFLT > $CMPOUT
-	
+
 if test $? != 0 ; then
 	echo "comparison failed - search with identity assertion didn't succeed"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS

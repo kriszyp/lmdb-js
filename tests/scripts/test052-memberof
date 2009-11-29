@@ -72,6 +72,16 @@ EOF
 	fi
 fi
 
+bdb_conf=""
+case $BACKEND in bdb | hdb)
+bdb_conf="olcDbCacheSize: 1000
+olcDbIndex: objectClass eq
+olcDbIndex: cn pres,eq,sub
+olcDbIndex: uid pres,eq,sub
+olcDbIndex: sn pres,eq,sub
+olcDbMode: 384"
+esac
+
 echo "Running ldapadd to build slapd config database..."
 $LDAPADD -h $LOCALHOST -p $PORT1 -D 'cn=config' -w `cat $CONFIGPWF` \
 	>> $TESTOUT 2>&1 <<EOF
@@ -104,12 +114,7 @@ olcRootDN: cn=Manager,$BASEDN
 olcRootPW:: c2VjcmV0
 olcMonitoring: TRUE
 olcDbDirectory: $TESTDIR/db.1.a/
-olcDbCacheSize: 1000
-olcDbIndex: objectClass eq
-olcDbIndex: cn pres,eq,sub
-olcDbIndex: uid pres,eq,sub
-olcDbIndex: sn pres,eq,sub
-olcDbMode: 384
+$bdb_conf
 
 dn: olcOverlay={0}memberof,olcDatabase={1}$BACKEND,cn=config
 objectClass: olcOverlayConfig
