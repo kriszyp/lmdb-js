@@ -29,6 +29,11 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
+if test $BACKEND = null; then
+	echo "Limits irrelevant to $BACKEND backend, test skipped"
+	exit 0
+fi
+
 echo "Running slapindex to index slapd database..."
 . $CONFFILTER $BACKEND $MONITORDB < $LIMITSCONF > $CONF1
 $SLAPINDEX -f $CONF1

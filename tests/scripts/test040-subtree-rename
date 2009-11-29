@@ -16,13 +16,10 @@
 echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
 
-case $BACKEND in
-hdb | ldif)
-	;;
-*)
+if test $BACKEND = bdb ; then
 	echo "subtree rename not supported by back-$BACKEND"
 	exit 0
-esac
+fi
 
 mkdir -p $TESTDIR $DBDIR1
 

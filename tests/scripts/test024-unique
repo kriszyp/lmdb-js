@@ -21,6 +21,11 @@ if test $UNIQUE = uniqueno; then
 	exit 0
 fi
 
+if test $BACKEND = null; then
+	echo "Test does not support $BACKEND backend, test skipped"
+	exit 0
+fi
+
 mkdir -p $TESTDIR $DBDIR1
 
 $SLAPPASSWD -g -n >$CONFIGPWF

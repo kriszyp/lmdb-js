@@ -13,11 +13,6 @@
 ## top-level directory of the distribution or, alternatively, at
 ## <http://www.OpenLDAP.org/license.html>.
 
-case $BACKEND in bdb | hdb | ldif) : ;; *)
-	echo "Test does not support $BACKEND backend, test skipped"
-	exit 0
-esac
-
 echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
 
@@ -178,7 +173,7 @@ sleep 1
 
 $LDAPSEARCH -H $URI2 -b "$BABSDN" > $TESTOUT 2>&1
 RC=$?
-if test $RC = 0 ; then
+if test $RC = 0 && test $BACKEND != null ; then
 	echo "ldapsearch should have failed ($RC)!"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit -1
