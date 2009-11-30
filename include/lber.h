@@ -31,9 +31,13 @@
 
 LDAP_BEGIN_DECL
 
-/* Overview of LBER tag construction
+/*
+ * ber_tag_t represents the identifier octets at the beginning of BER
+ * elements.  OpenLDAP treats them as mere big-endian unsigned integers.
  *
- *	Bits
+ * Actually the BER identifier octets look like this:
+ *
+ *	Bits of 1st octet:
  *	______
  *	8 7 | CLASS
  *	0 0 = UNIVERSAL
@@ -46,16 +50,20 @@ LDAP_BEGIN_DECL
  *		  1 = CONSTRUCTED
  *			___________
  *			| 5 ... 1 | TAG-NUMBER
+ *
+ *  For ASN.1 tag numbers >= 0x1F, TAG-NUMBER above is 0x1F and the next
+ *  BER octets contain the actual ASN.1 tag number:  Big-endian, base
+ *  128, 8.bit = 1 in all but the last octet, minimum number of octets.
  */
 
-/* BER classes and mask */
+/* BER classes and mask (in 1st identifier octet) */
 #define LBER_CLASS_UNIVERSAL	((ber_tag_t) 0x00U)
 #define LBER_CLASS_APPLICATION	((ber_tag_t) 0x40U)
 #define LBER_CLASS_CONTEXT		((ber_tag_t) 0x80U)
 #define LBER_CLASS_PRIVATE		((ber_tag_t) 0xc0U)
 #define LBER_CLASS_MASK			((ber_tag_t) 0xc0U)
 
-/* BER encoding type and mask */
+/* BER encoding type and mask (in 1st identifier octet) */
 #define LBER_PRIMITIVE			((ber_tag_t) 0x00U)
 #define LBER_CONSTRUCTED		((ber_tag_t) 0x20U)
 #define LBER_ENCODING_MASK		((ber_tag_t) 0x20U)
@@ -64,13 +72,10 @@ LDAP_BEGIN_DECL
 #define LBER_MORE_TAG_MASK		((ber_tag_t) 0x80U)
 
 /*
- * Note that LBER_ERROR and LBER_DEFAULT are values that can never appear
- * as valid BER tags, and so it is safe to use them to report errors.  In
- * fact, any tag for which the following is true is invalid:
+ * LBER_ERROR and LBER_DEFAULT are values that can never appear
+ * as valid BER tags, so it is safe to use them to report errors.
+ * Valid tags have (tag & (ber_tag_t) 0xFF) != 0xFF.
  */
-#define LBER_INVALID(t)     (((t) & (ber_tag_t) 0x080UL) \
-	&& (((t) & (ber_tag_t) ~ 0x0FF))
-
 #define LBER_ERROR			((ber_tag_t) -1)
 #define LBER_DEFAULT		((ber_tag_t) -1)
 
