@@ -4932,10 +4932,10 @@ config_add_internal( CfBackInfo *cfb, Entry *e, ConfigArgs *ca, SlapReply *rs,
 ok:
 	/* Newly added databases and overlays need to be started up */
 	if ( CONFIG_ONLINE_ADD( ca )) {
-		if ( colst[0]->co_type == Cft_Database ) {
+		if ( coptr->co_type == Cft_Database ) {
 			rc = backend_startup_one( ca->be, &ca->reply );
 
-		} else if ( colst[0]->co_type == Cft_Overlay ) {
+		} else if ( coptr->co_type == Cft_Overlay ) {
 			if ( ca->bi->bi_db_open ) {
 				BackendInfo *bi_orig = ca->be->bd_info;
 				ca->be->bd_info = ca->bi;
@@ -4961,7 +4961,7 @@ ok:
 	ce->ce_parent = last;
 	ce->ce_entry = entry_dup( e );
 	ce->ce_entry->e_private = ce;
-	ce->ce_type = colst[0]->co_type;
+	ce->ce_type = coptr->co_type;
 	ce->ce_be = ca->be;
 	ce->ce_bi = ca->bi;
 	ce->ce_private = ca->ca_private;
@@ -5006,12 +5006,12 @@ ok:
 
 done:
 	if ( rc ) {
-		if ( (colst[0]->co_type == Cft_Database) && ca->be ) {
+		if ( (coptr->co_type == Cft_Database) && ca->be ) {
 			if ( ca->be != frontendDB )
 				backend_destroy_one( ca->be, 1 );
-		} else if ( (colst[0]->co_type == Cft_Overlay) && ca->bi ) {
+		} else if ( (coptr->co_type == Cft_Overlay) && ca->bi ) {
 			overlay_destroy_one( ca->be, (slap_overinst *)ca->bi );
-		} else if ( colst[0]->co_type == Cft_Schema ) {
+		} else if ( coptr->co_type == Cft_Schema ) {
 			schema_destroy_one( ca, colst, nocs, last );
 		}
 	}
