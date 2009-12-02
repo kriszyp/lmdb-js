@@ -2,6 +2,8 @@ OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.21 Engineering
 	Fixed slapo-unique conflict with ppolicy (ITS#6270)
+	Build Environment
+		Fixed broken LBER_INVALID macro (ITS#6402)
 
 OpenLDAP 2.4.20 Release (2009/11/27)
 	Fixed client tools with LDAP options (ITS#6283)
