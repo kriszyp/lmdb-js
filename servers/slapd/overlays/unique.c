@@ -1074,13 +1074,13 @@ unique_add(
 	      domain = domain->next )
 	{
 		unique_domain_uri *uri;
-		int ks = STRLENOF("(|)");
 
 		for ( uri = domain->uri;
 		      uri;
 		      uri = uri->next )
 		{
 			int len;
+			int ks = 0;
 
 			if ( uri->ndn.bv_val
 			     && !dnIsSuffix( &op->o_req_ndn, &uri->ndn ))
@@ -1117,7 +1117,7 @@ unique_add(
 			if ( !ks ) continue;
 
 			/* terminating NUL */
-			ks++;
+			ks += sizeof("(|)");
 
 			if ( uri->filter.bv_val && uri->filter.bv_len )
 				ks += uri->filter.bv_len + STRLENOF ("(&)");
@@ -1195,13 +1195,13 @@ unique_modify(
 	      domain = domain->next )
 	{
 		unique_domain_uri *uri;
-		int ks = STRLENOF("(|)");
 
 		for ( uri = domain->uri;
 		      uri;
 		      uri = uri->next )
 		{
 			int len;
+			int ks = 0;
 
 			if ( uri->ndn.bv_val
 			     && !dnIsSuffix( &op->o_req_ndn, &uri->ndn ))
@@ -1228,7 +1228,7 @@ unique_modify(
 			if ( !ks ) continue;
 
 			/* terminating NUL */
-			ks++;
+			ks += sizeof("(|)");
 
 			if ( uri->filter.bv_val && uri->filter.bv_len )
 				ks += uri->filter.bv_len + STRLENOF ("(&)");
@@ -1309,13 +1309,13 @@ unique_modrdn(
 	      domain = domain->next )
 	{
 		unique_domain_uri *uri;
-		int ks = STRLENOF("(|)");
 
 		for ( uri = domain->uri;
 		      uri;
 		      uri = uri->next )
 		{
 			int i, len;
+			int ks = 0;
 
 			if ( uri->ndn.bv_val
 			     && !dnIsSuffix( &op->o_req_ndn, &uri->ndn )
@@ -1364,7 +1364,7 @@ unique_modrdn(
 			if ( !ks ) continue;
 
 			/* terminating NUL */
-			ks++;
+			ks += sizeof("(|)");
 
 			if ( uri->filter.bv_val && uri->filter.bv_len )
 				ks += uri->filter.bv_len + STRLENOF ("(&)");
