@@ -1,6 +1,7 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.21 Engineering
+	Fixed liblutil for negative time offsets (ITS#6405)
 	Fixed slapd use correct ce_type (ITS#6408)
 	Fixed slapo-unique conflict with ppolicy (ITS#6270)
 	Build Environment
