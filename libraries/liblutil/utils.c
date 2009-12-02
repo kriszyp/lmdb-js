@@ -379,7 +379,7 @@ lutil_gettime( struct lutil_tm *ltm )
 	t = tv.tv_sec;
 
 	if ( tv.tv_sec < prevTv.tv_sec
-		|| ( tv.tv_sec == prevTv.tv_sec && tv.tv_usec == prevTv.tv_usec )) {
+		|| ( tv.tv_sec == prevTv.tv_sec && tv.tv_usec <= prevTv.tv_usec )) {
 		subs++;
 	} else {
 		subs = 0;
