@@ -266,7 +266,7 @@ slap_auxprop_lookup(
 	const char *user,
 	unsigned ulen)
 {
-	OperationBuffer opbuf = {0};
+	OperationBuffer opbuf = {{ NULL }};
 	Operation *op = (Operation *)&opbuf;
 	int i, doit = 0;
 	Connection *conn = NULL;
