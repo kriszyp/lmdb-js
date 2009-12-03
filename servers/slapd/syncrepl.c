@@ -4757,6 +4757,8 @@ syncrepl_config( ConfigArgs *c )
 				si = *sip;
 				if ( c->valx == -1 || i == c->valx ) {
 					*sip = si->si_next;
+					si->si_ctype = -1;
+					si->si_next = NULL;
 					/* If the task is currently active, we have to leave
 					 * it running. It will exit on its own. This will only
 					 * happen when running on the cn=config DB.
@@ -4765,22 +4767,34 @@ syncrepl_config( ConfigArgs *c )
 						if ( ldap_pvt_thread_mutex_trylock( &si->si_mutex )) {
 							isrunning = 1;
 						} else {
+							/* There is no active thread, but we must still
+							 * ensure that no thread is (or will be) queued
+							 * while we removes the task.
+							 */
+							struct re_s *re = si->si_re;
+							si->si_re = NULL;
+
 							if ( si->si_conn ) {
-								/* If there's a persistent connection, it may
-								 * already have a thread queued. We know it's
-								 * not active, so it must be pending and we
-								 * can simply cancel it now.
-								 */
-								ldap_pvt_thread_pool_retract( &connection_pool,
-									si->si_re->routine, si->si_re );
+								connection_client_stop( si->si_conn );
+								si->si_conn = NULL;
 							}
+
+							ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
+							if ( ldap_pvt_runqueue_isrunning( &slapd_rq, re ) ) {
+								ldap_pvt_runqueue_stoptask( &slapd_rq, re );
+								isrunning = 1;
+							}
+							ldap_pvt_runqueue_remove( &slapd_rq, re );
+							ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
+
+							if ( ldap_pvt_thread_pool_retract( &connection_pool,
+									re->routine, re ) > 0 )
+								isrunning = 0;
+
 							ldap_pvt_thread_mutex_unlock( &si->si_mutex );
 						}
 					}
-					if ( isrunning ) {
-						si->si_ctype = -1;
-						si->si_next = NULL;
-					} else {
+					if ( !isrunning ) {
 						syncinfo_free( si, 0 );
 					}
 					if ( i == c->valx )
