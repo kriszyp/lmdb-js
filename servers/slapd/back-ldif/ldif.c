@@ -184,9 +184,10 @@ static ConfigOCs ldifocs[] = {
  */
 
 /* Set *res = LDIF filename path for the normalized DN */
-static void
-dn2path( BackendDB *be, struct berval *dn, struct berval *res )
+static int
+ndn2path( Operation *op, struct berval *dn, struct berval *res, int empty_ok )
 {
+	BackendDB *be = op->o_bd;
 	struct ldif_info *li = (struct ldif_info *) be->be_private;
 	struct berval *suffixdn = &be->be_nsuffix[0];
 	const char *start, *end, *next, *p;
@@ -199,6 +200,10 @@ dn2path( BackendDB *be, struct berval *dn, struct berval *res )
 	assert( suffixdn != NULL );
 	assert( !BER_BVISNULL( suffixdn ) );
 	assert( dnIsSuffix( dn, suffixdn ) );
+
+	if ( dn->bv_len == 0 && !empty_ok ) {
+		return LDAP_UNWILLING_TO_PERFORM;
+	}
 
 	start = dn->bv_val;
 	end = start + dn->bv_len;
@@ -240,6 +245,8 @@ dn2path( BackendDB *be, struct berval *dn, struct berval *res )
 	res->bv_len = ptr - res->bv_val;
 
 	assert( res->bv_len <= len );
+
+	return LDAP_SUCCESS;
 }
 
 /*
@@ -570,7 +577,11 @@ get_entry(
 
 	dnParent( &op->o_req_dn, &pdn );
 	dnParent( &op->o_req_ndn, &pndn );
-	dn2path( op->o_bd, &op->o_req_ndn, &path );
+	rc = ndn2path( op, &op->o_req_ndn, &path, 0 );
+	if ( rc != LDAP_SUCCESS ) {
+		goto done;
+	}
+
 	rc = ldif_read_entry( op, path.bv_val, &pdn, &pndn, entryp, text );
 
 	if ( rc == LDAP_SUCCESS && pathp != NULL ) {
@@ -578,6 +589,7 @@ get_entry(
 	} else {
 		SLAP_FREE( path.bv_val );
 	}
+ done:
 	return rc;
 }
 
@@ -736,6 +748,7 @@ ldif_readdir(
 			bvl->savech = *trunc;
 			*trunc = '\0';
 
+			/* Insertion sort */
 			for ( prev = listp; (ptr = *prev) != NULL; prev = &ptr->next ) {
 				int cmp = strcmp( BVL_NAME( bvl ), BVL_NAME( ptr ));
 				if ( cmp < 0 || (cmp == 0 && bvl->inum < ptr->inum) )
@@ -872,7 +885,7 @@ search_tree( Operation *op, SlapReply *rs )
 	struct berval path;
 	struct berval pdn, pndn;
 
-	dn2path( op->o_bd, &op->o_req_ndn, &path );
+	(void) ndn2path( op, &op->o_req_ndn, &path, 1 );
 	if ( !BER_BVISEMPTY( &op->o_req_ndn ) ) {
 		/* Read baseObject */
 		dnParent( &op->o_req_dn, &pdn );
@@ -906,18 +919,20 @@ ldif_prepare_create(
 	char **need_dir,
 	const char **text )
 {
-	BackendDB *be = op->o_bd;
-	struct ldif_info *li = (struct ldif_info *) be->be_private;
+	struct ldif_info *li = (struct ldif_info *) op->o_bd->be_private;
 	struct berval *ndn = &e->e_nname;
 	struct berval ppath = BER_BVNULL;
 	struct stat st;
 	Entry *parent = NULL;
-	int rc = LDAP_SUCCESS;
+	int rc;
 
 	if ( op->o_abandon )
 		return SLAPD_ABANDON;
 
-	dn2path( be, ndn, dnpath );
+	rc = ndn2path( op, ndn, dnpath, 0 );
+	if ( rc != LDAP_SUCCESS ) {
+		return rc;
+	}
 
 	if ( stat( dnpath->bv_val, &st ) == 0 ) { /* entry .ldif file */
 		rc = LDAP_ALREADY_EXISTS;
@@ -1087,12 +1102,12 @@ ldif_back_referrals( Operation *op, SlapReply *rs )
 	if ( min_dnlen == 0 ) {
 		/* Catch root DSE (empty DN), it is not a referral */
 		min_dnlen = 1;
-		if ( BER_BVISEMPTY( &ndn ) )
-			return LDAP_SUCCESS;
+	}
+	if ( ndn2path( op, &ndn, &path, 0 ) != LDAP_SUCCESS ) {
+		return LDAP_SUCCESS;	/* Root DSE again */
 	}
 
 	entryp = get_manageDSAit( op ) ? NULL : &entry;
-	dn2path( op->o_bd, &ndn, &path );
 	ldap_pvt_thread_rdwr_rlock( &li->li_rdwr );
 
 	for (;;) {
@@ -1320,7 +1335,11 @@ ldif_back_delete( Operation *op, SlapReply *rs )
 		goto done;
 	}
 
-	dn2path( op->o_bd, &op->o_req_ndn, &path );
+	rc = ndn2path( op, &op->o_req_ndn, &path, 0 );
+	if ( rc != LDAP_SUCCESS ) {
+		goto done;
+	}
+
 	ldif2dir_len( path );
 	ldif2dir_name( path );
 	if ( rmdir( path.bv_val ) < 0 ) {
