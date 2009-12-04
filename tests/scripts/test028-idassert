@@ -106,7 +106,7 @@ AUTHZID="u:it/jaj"
 echo "Testing ldapwhoami as proxy US, $AUTHZID..."
 $LDAPWHOAMI -h $LOCALHOST -p $PORT1 -D "cn=proxy US,ou=Admin,dc=example,dc=com" -w proxy -e\!"authzid=$AUTHZID"
 RC=$?
-if test $RC != 0 ; then
+if test $RC != 0 && test $BACKEND != null ; then
 	echo "ldapwhoami failed ($RC)!"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
@@ -165,7 +165,7 @@ AUTHZID="dn:cn=Sandbox,ou=Admin,dc=example,dc=com"
 echo "Testing ldapwhoami as proxy IT, $AUTHZID..."
 $LDAPWHOAMI -h $LOCALHOST -p $PORT1 -D "cn=proxy IT,ou=Admin,dc=example,dc=com" -w proxy -e\!"authzid=$AUTHZID"
 RC=$?
-if test $RC != 0 ; then
+if test $RC != 0 && test $BACKEND != null ; then
 	echo "ldapwhoami failed ($RC)!"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
@@ -198,7 +198,7 @@ $LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASE" \
 	-D "$ID" -w jaj > $SEARCHOUT 2>&1
 
 RC=$?
-if test $RC != 0 ; then
+if test $RC != 0 && test $BACKEND != null ; then
 	echo "ldapsearch failed ($RC)!"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
