@@ -16,10 +16,11 @@
 echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
 
-if test $BACKEND = "ldif" ; then
-        echo "LDIF backend does not support acls, test skipped"
+case $BACKEND in ldif | null)
+	# LDIF lacks ACL support, NULL cannot hold dynamic entries
+        echo "Test does not support $BACKEND backend, test skipped"
         exit 0
-fi
+esac
 
 if test $DDS = ddsno; then 
 	echo "Dynamic Directory Services overlay not available, test skipped"

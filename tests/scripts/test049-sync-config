@@ -21,6 +21,11 @@ if test $SYNCPROV = syncprovno; then
 	exit 0
 fi 
 
+if test $BACKEND = null; then
+	echo "$BACKEND backend does not support cn=config, test skipped"
+	exit 0
+fi
+
 PRODIR=$TESTDIR/pro
 CONDIR=$TESTDIR/con1
 DBPRO=$PRODIR/db

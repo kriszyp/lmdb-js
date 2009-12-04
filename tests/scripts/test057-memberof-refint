@@ -27,10 +27,10 @@ if test $REFINT = refintno; then
 	exit 0
 fi 
 
-if test "$BACKEND" = "bdb" ; then
-	echo "Test does not support $BACKEND"
+case $BACKEND in bdb | null)
+	echo "Test does not support $BACKEND, test skipped"
 	exit 0
-fi
+esac
 
 mkdir -p $TESTDIR $DBDIR1 $TESTDIR/confdir
 

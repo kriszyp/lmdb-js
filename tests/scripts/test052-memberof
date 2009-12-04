@@ -21,6 +21,11 @@ if test $MEMBEROF = memberofno; then
 	exit 0
 fi 
 
+if test $BACKEND = null; then
+	echo "$BACKEND backend does not support cn=config, test skipped"
+	exit 0
+fi
+
 mkdir -p $TESTDIR $DBDIR1 $TESTDIR/confdir
 
 $SLAPPASSWD -g -n >$CONFIGPWF
