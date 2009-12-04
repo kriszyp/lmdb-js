@@ -1362,8 +1362,8 @@ connection_read( ber_socket_t s, conn_readinfo *cri )
 			    c->c_connid, (int) s, c->c_tls_ssf, c->c_ssf, 0 );
 			slap_sasl_external( c, c->c_tls_ssf, &authid );
 			if ( authid.bv_val ) free( authid.bv_val );
-		} else if ( rc == 1 ) {	/* need to retry */
-			slapd_set_read( s, 0 );
+		} else if ( rc == 1 && ber_sockbuf_ctrl( c->c_sb,
+			LBER_SB_OPT_NEEDS_WRITE, NULL )) {	/* need to retry */
 			slapd_set_write( s, 1 );
 			connection_return( c );
 			return 0;
