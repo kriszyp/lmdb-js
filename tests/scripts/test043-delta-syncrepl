@@ -24,6 +24,11 @@ if test $ACCESSLOG = accesslogno; then
 	echo "Accesslog overlay not available, test skipped"
 	exit 0
 fi 
+if test $BACKEND = ldif ; then
+	# Onelevel search does not return entries in order of creation or CSN.
+	echo "$BACKEND backend unsuitable for syncprov logdb, test skipped"
+	exit 0
+fi
 
 mkdir -p $TESTDIR $DBDIR1A $DBDIR1B $DBDIR2
 
