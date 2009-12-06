@@ -27,11 +27,10 @@ if test $REFINT = refintno; then
 	exit 0
 fi 
 
-case $BACKEND in bdb | null)
-	# BDB lacks subtree rename, NULL lacks cn=config support
-	echo "Test does not support $BACKEND, test skipped"
+if test $BACKEND = bdb; then
+	echo "$BACKEND backend does not support subtree rename, test skipped"
 	exit 0
-esac
+fi
 
 mkdir -p $TESTDIR $DBDIR1 $TESTDIR/confdir
 
@@ -67,6 +66,12 @@ fi
 
 cat /dev/null > $TESTOUT
 
+bdbInclude="# " nullExclude=""
+case $BACKEND in
+bdb | hdb) bdbInclude="" ;;
+null) nullExclude="# " ;;
+esac
+
 if [ "$MEMBEROF" = memberofmod ]; then
 	echo "Inserting memberof overlay on producer..."
 	$LDAPADD -D cn=config -H $URI1 -y $CONFIGPWF <<EOF > $TESTOUT 2>&1
@@ -85,29 +90,24 @@ EOF
 	fi
 fi
 
-bdb_conf=""
-case $BACKEND in bdb | hdb)
-bdb_conf="olcDbCacheSize: 1000
-olcDbIndex: objectClass eq
-olcDbIndex: cn pres,eq,sub
-olcDbIndex: uid pres,eq,sub
-olcDbIndex: sn pres,eq,sub
-olcDbMode: 384"
-esac
-
 echo "Running ldapadd to build slapd config database..."
 $LDAPADD -h $LOCALHOST -p $PORT1 -D 'cn=config' -w `cat $CONFIGPWF` \
 	>> $TESTOUT 2>&1 <<EOF
 dn: olcDatabase={1}$BACKEND,cn=config
 objectClass: olcDatabaseConfig
-objectClass: olc${BACKEND}Config
+${nullExclude}objectClass: olc${BACKEND}Config
 olcDatabase: {1}$BACKEND
 olcSuffix: $BASEDN
 olcRootDN: cn=Manager,$BASEDN
 olcRootPW:: c2VjcmV0
 olcMonitoring: TRUE
-olcDbDirectory: $TESTDIR/db.1.a/
-$bdb_conf
+${nullExclude}olcDbDirectory: $TESTDIR/db.1.a/
+${bdbInclude}olcDbCacheSize: 1000
+${bdbInclude}olcDbIndex: objectClass eq
+${bdbInclude}olcDbIndex: cn pres,eq,sub
+${bdbInclude}olcDbIndex: uid pres,eq,sub
+${bdbInclude}olcDbIndex: sn pres,eq,sub
+${bdbInclude}olcDbMode: 384
 
 # {0}memberof, {1}$BACKEND, config
 dn: olcOverlay={0}memberof,olcDatabase={1}$BACKEND,cn=config

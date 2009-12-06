@@ -21,11 +21,6 @@ if test $SYNCPROV = syncprovno; then
 	exit 0
 fi 
 
-if test $BACKEND = null; then
-	echo "$BACKEND backend does not support cn=config, test skipped"
-	exit 0
-fi
-
 PRODIR=$TESTDIR/pro
 CONDIR=$TESTDIR/con1
 DBPRO=$PRODIR/db
@@ -224,6 +219,9 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
+nullExclude="" nullOK=""
+test $BACKEND = null && nullExclude="# " nullOK="OK"
+
 if [ "$BACKENDTYPE" = mod ]; then
 	$LDAPADD -D cn=config -H $URI1 -y $CONFIGPWF <<EOF >>$TESTOUT 2>&1
 dn: cn=module,cn=config
@@ -243,10 +241,10 @@ fi
 $LDAPADD -D cn=config -H $URI1 -y $CONFIGPWF <<EOF >>$TESTOUT 2>&1
 dn: olcDatabase={1}$BACKEND,cn=config
 objectClass: olcDatabaseConfig
-objectClass: olc${BACKEND}Config
+${nullExclude}objectClass: olc${BACKEND}Config
 olcDatabase: {1}$BACKEND
 olcSuffix: $BASEDN
-olcDbDirectory: ./db
+${nullExclude}olcDbDirectory: ./db
 olcRootDN: $MANAGERDN
 olcRootPW: $PASSWD
 olcSyncRepl: rid=002 provider=$URI1 binddn="$MANAGERDN" bindmethod=simple
@@ -304,7 +302,7 @@ for i in 0 1 2 3 4 5; do
 	RESULT=`$LDAPSEARCH -H $URI2 \
 		-s base -b "cn=Ursula Hampster,ou=Alumni Association,ou=People,dc=example,dc=com" \
 		'(objectClass=*)' 2>&1 | awk '/^dn:/ {print "OK"}'`
-	if test "x$RESULT" = "xOK" ; then
+	if test "x$RESULT$nullOK" = "xOK" ; then
 		RC=0
 		break
 	fi

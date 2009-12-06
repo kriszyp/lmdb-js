@@ -27,11 +27,6 @@ if test $SYNCPROV = syncprovno; then
 	exit 0
 fi 
 
-if test $BACKEND = null; then
-	echo "$BACKEND backend does not support cn=config, test skipped"
-	exit 0
-fi
-
 PRODDIR=$TESTDIR/prod
 PRO2DIR=$TESTDIR/pro2
 CONSDIR=$TESTDIR/cons
@@ -244,12 +239,15 @@ EOF
 	fi
 fi
 
+nullExclude="" nullOK=""
+test $BACKEND = null && nullExclude="# " nullOK="OK"
+
 $LDAPADD -D cn=config -H $URI1 -y $CONFIGPWF <<EOF >> $TESTOUT 2>&1
 dn: olcDatabase={1}$BACKEND,cn=config
 objectClass: olcDatabaseConfig
-objectClass: olc${BACKEND}Config
+${nullExclude}objectClass: olc${BACKEND}Config
 olcDatabase: {1}$BACKEND
-olcDbDirectory: $PRODDIR/db
+${nullExclude}olcDbDirectory: $PRODDIR/db
 olcSuffix: $BASEDN
 olcRootDN: $MANAGERDN
 olcRootPW: $PASSWD
@@ -274,9 +272,9 @@ olcOverlay: {1}syncprov
 
 dn: olcDatabase={1}$BACKEND,cn=config
 objectClass: olcDatabaseConfig
-objectClass: olc${BACKEND}Config
+${nullExclude}objectClass: olc${BACKEND}Config
 olcDatabase: {1}$BACKEND
-olcDbDirectory: $PRODDIR/ou1
+${nullExclude}olcDbDirectory: $PRODDIR/ou1
 olcSubordinate: TRUE
 olcSuffix: ou=ou1,$BASEDN
 olcRootDN: $MANAGERDN
@@ -310,9 +308,9 @@ fi
 $LDAPADD -D cn=config -H $URI2 -y $CONFIGPWF <<EOF >> $TESTOUT 2>&1
 dn: olcDatabase={1}$BACKEND,cn=config
 objectClass: olcDatabaseConfig
-objectClass: olc${BACKEND}Config
+${nullExclude}objectClass: olc${BACKEND}Config
 olcDatabase: {1}$BACKEND
-olcDbDirectory: $PRO2DIR/db
+${nullExclude}olcDbDirectory: $PRO2DIR/db
 olcSuffix: $BASEDN
 olcRootDN: $MANAGERDN
 olcRootPW: $PASSWD
@@ -334,9 +332,9 @@ echo "Adding databases on consumer..."
 $LDAPADD -D cn=config -H $URI3 -y $CONFIGPWF <<EOF >> $TESTOUT 2>&1
 dn: olcDatabase={1}$BACKEND,cn=config
 objectClass: olcDatabaseConfig
-objectClass: olc${BACKEND}Config
+${nullExclude}objectClass: olc${BACKEND}Config
 olcDatabase: {1}$BACKEND
-olcDbDirectory: $CONSDIR/db
+${nullExclude}olcDbDirectory: $CONSDIR/db
 olcSuffix: $BASEDN
 olcRootDN: $MANAGERDN
 
@@ -432,7 +430,7 @@ for i in 0 1 2 3 4 5; do
 	RESULT=`$LDAPSEARCH -H $URI3 \
 		-s base -b "ou=ou1,$BASEDN" \
 		'(objectClass=*)' 2>&1 | awk '/^dn:/ {print "OK"}'`
-	if test "x$RESULT" = "xOK" ; then
+	if test "x$RESULT$nullOK" = "xOK" ; then
 		RC=0
 		break
 	fi
@@ -468,7 +466,7 @@ for i in 0 1 2 3 4 5; do
 	RESULT=`$LDAPSEARCH -H $URI3 \
 		-s base -b "ou=ou1,$BASEDN" \
 		'(description=Modify1)' 2>&1 | awk '/^dn:/ {print "OK"}'`
-	if test "x$RESULT" = "xOK" ; then
+	if test "x$RESULT$nullOK" = "xOK" ; then
 		RC=0
 		break
 	fi
@@ -481,6 +479,7 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
+case $BACKEND in bdb | hdb)
 db_stat=
 for path in `echo "$PATH" | sed -e 's/:/ /g'`; do
 	if test -f "$path/db_stat" && \
@@ -501,6 +500,7 @@ else
 	echo "Glue lock bug not found :-)"
 	lock_bug=0
 fi
+esac
 
 echo "Using ldapmodify to modify glue suffix on producer..."
 $LDAPADD -D "$MANAGERDN" -H $URI1 -w $PASSWD <<EOF >> $TESTOUT 2>&1

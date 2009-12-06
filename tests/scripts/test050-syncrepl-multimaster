@@ -21,11 +21,6 @@ if test $SYNCPROV = syncprovno; then
 	exit 0
 fi 
 
-if test $BACKEND = null; then
-	echo "$BACKEND backend does not support cn=config, test skipped"
-	exit 0
-fi
-
 MMR=${MMR-4}
 
 if [ $MMR -gt 9 ]; then
@@ -263,6 +258,9 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
+nullExclude=""
+test $BACKEND = null && nullExclude="# "
+
 echo "" > $TMP
 if [ "$BACKENDTYPE" = mod ]; then
 cat <<EOF >> $TMP
@@ -278,10 +276,10 @@ fi
 cat <<EOF >> $TMP
 dn: olcDatabase={1}$BACKEND,cn=config
 objectClass: olcDatabaseConfig
-objectClass: olc${BACKEND}Config
+${nullExclude}objectClass: olc${BACKEND}Config
 olcDatabase: {1}$BACKEND
 olcSuffix: $BASEDN
-olcDbDirectory: ./db
+${nullExclude}olcDbDirectory: ./db
 olcRootDN: $MANAGERDN
 olcRootPW: $PASSWD
 EOF
