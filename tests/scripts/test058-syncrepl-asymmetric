@@ -111,10 +111,8 @@
 # environment variable RACE_TESTS can be set to the number of race test
 # iterations the script should perform.
 
-case "$BACKEND" in
-bdb|hdb)
-	;;
-*)
+case "$BACKEND" in ldif | null)
+	# LDIF lacks ACL support, NULL lacks cn=config support
 	echo "This test does not support the $BACKEND backend"
 	exit 0;;
 esac
