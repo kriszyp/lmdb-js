@@ -28,6 +28,7 @@ if test $REFINT = refintno; then
 fi 
 
 case $BACKEND in bdb | null)
+	# BDB lacks subtree rename, NULL lacks cn=config support
 	echo "Test does not support $BACKEND, test skipped"
 	exit 0
 esac
