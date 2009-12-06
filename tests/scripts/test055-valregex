@@ -74,9 +74,11 @@ case $RC in
 	echo "ldapmodify failed as expected"
 	;;
 0)
-	echo "ldapmodify should have failed ($RC)!"
-	test $KILLSERVERS != no && kill -HUP $KILLPIDS
-	exit -1
+	if test $BACKEND != null ; then
+		echo "ldapmodify should have failed ($RC)!"
+		test $KILLSERVERS != no && kill -HUP $KILLPIDS
+		exit -1
+	fi
 	;;
 *)
 	echo "ldapmodify failed ($RC)!"

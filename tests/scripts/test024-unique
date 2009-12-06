@@ -21,10 +21,8 @@ if test $UNIQUE = uniqueno; then
 	exit 0
 fi
 
-if test $BACKEND = null; then
-	echo "Test does not support $BACKEND backend, test skipped"
-	exit 0
-fi
+RCODEconstraint=19
+test $BACKEND = null && RCODEconstraint=0
 
 mkdir -p $TESTDIR $DBDIR1
 
@@ -112,7 +110,7 @@ employeeType: contractor
 givenName: Bill
 EOTUNIQ2
 RC=$?
-if test $RC != 19 ; then
+if test $RC != $RCODEconstraint ; then
 	echo "unique check failed ($RC)!"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit -1
@@ -228,7 +226,7 @@ employeeType: contractor
 givenName: Bill
 EOTUNIQ2
 RC=$?
-if test $RC != 19 ; then
+if test $RC != $RCODEconstraint ; then
 	echo "unique check failed ($RC)!"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit -1
@@ -285,7 +283,7 @@ employeeType: contractor
 givenName: Bill
 EOTUNIQ2
 RC=$?
-if test $RC != 19 ; then
+if test $RC != $RCODEconstraint ; then
 	echo "olcUniqueAttribtue single deletion hit the wrong value"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit -1
@@ -345,7 +343,7 @@ employeeType: contractor
 givenName: Bill
 EOTUNIQ2
 RC=$?
-if test $RC != 19 ; then
+if test $RC != $RCODEconstraint ; then
 	echo "unique check failed ($RC)!"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit -1
@@ -510,7 +508,7 @@ cn: elvis
 EOF
 
 RC=$?
-if test $RC != 19 ; then
+if test $RC != $RCODEconstraint ; then
 	echo "unique check failed ($RC)!"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit -1
@@ -582,7 +580,7 @@ description: left the building
 EOF
 
 RC=$?
-if test $RC != 19 ; then
+if test $RC != $RCODEconstraint ; then
 	echo "unique check failed ($RC)!"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit -1

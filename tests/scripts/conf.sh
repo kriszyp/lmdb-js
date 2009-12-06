@@ -40,6 +40,7 @@ sed -e "s/@BACKEND@/${BACKEND}/"			\
 	-e "s/^#${BACKENDTYPE}#//"			\
 	-e "s/^#${AC_ldap}#//"				\
 	-e "s/^#${AC_meta}#//"				\
+	-e "s/^#${AC_null}#//"				\
 	-e "s/^#${AC_relay}#//"				\
 	-e "s/^#${AC_sql}#//"				\
 		-e "s/^#${RDBMS}#//"			\
