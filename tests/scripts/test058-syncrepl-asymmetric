@@ -2352,11 +2352,16 @@ EOF
 	for i in 1 2 3 4 5; do
 		$LDAPSEARCH -s base -b "$SUB_DN" -H $URI1 > /dev/null 2>&1
 		RC=$?
-		if test $RC != 0; then break; fi
+		if test $RC = 32; then break; fi
 		sleep $i
 	done
 
-	if test $RC = 0; then
+	if test $RC != 32; then
+		if test $RC != 0; then
+			echo "ldapsearch failed ($RC)!"
+			test $KILLSERVERS != no && kill -HUP $KILLPIDS
+			exit $RC
+		fi
 		echo "ERROR: Entry not removed on central master!"
 		RACE_ERROR=1
 		break
@@ -2371,8 +2376,8 @@ EOF
 		sleep $i
 	done
 
-	if test $RC = 0; then
-		echo "ERROR: Entry not removed on central search!"
+	if test $RC != 32; then
+		echo "ERROR: Entry not removed on central search! (RC=$RC)"
 		RACE_ERROR=1
 		break
 	fi
