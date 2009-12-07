@@ -10,6 +10,7 @@ OpenLDAP 2.4.21 Engineering
 	Fixed slapo-unique criteria checking (ITS#6270)
 	Build Environment
 		Deleted broken LBER_INVALID macro (ITS#6402)
+		Fixed test058 kill usage (ITS#6420)
 
 OpenLDAP 2.4.20 Release (2009/11/27)
 	Fixed client tools with LDAP options (ITS#6283)

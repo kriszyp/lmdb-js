@@ -1643,7 +1643,7 @@ for i in 1 2 3 4 5; do
 		"(description=Modify$NMUM)" 2>&1 | awk '/^dn:/ {print "NOK"}'`
 	if test "x$RESULT" = "xNOK" ; then
 		echo "Change was replicated to site1 search!"
-		test $KILLSERVERS != no && KILL -HUP $KILLPIDS
+		test $KILLSERVERS != no && kill -HUP $KILLPIDS
 		exit 1
 	fi
 	sleep 1
@@ -1656,7 +1656,7 @@ for i in 1 2 3 4 5; do
 		"(description=Modify$MNUM)" 2>&1 | awk '/^dn:/ {print "NOK"}'`
 	if test "x$RESULT" = "xNOK" ; then
 		echo "Change was replicated to central search!"
-		test $KILLSERVERS != no && KILL -HUP $KILLPIDS
+		test $KILLSERVERS != no && kill -HUP $KILLPIDS
 		exit 1
 	fi
 	sleep 1
@@ -1731,7 +1731,7 @@ for i in 1 2 3 4 5; do
 		"(description=Modify$MNUM)" 2>&1 | awk '/^dn:/ {print "NOK"}'`
 	if test "x$RESULT" = "xNOK" ; then
 		echo "Change was replicated to central search!"
-		test $KILLSERVERS != no && KILL -HUP $KILLPIDS
+		test $KILLSERVERS != no && kill -HUP $KILLPIDS
 		exit 1
 	fi
 	sleep 1
@@ -1744,7 +1744,7 @@ for i in 1 2 3 4 5; do
 		"(description=Modify$MNUM)" 2>&1 | awk '/^dn:/ {print "NOK"}'`
 	if test "x$RESULT" = "xNOK" ; then
 		echo "Change was replicated to central search!"
-		test $KILLSERVERS != no && KILL -HUP $KILLPIDS
+		test $KILLSERVERS != no && kill -HUP $KILLPIDS
 		exit 1
 	fi
 	sleep 1
@@ -1801,7 +1801,7 @@ for i in 1 2 3 4 5; do
 		"(description=Modify$NMUM)" 2>&1 | awk '/^dn:/ {print "NOK"}'`
 	if test "x$RESULT" = "xNOK" ; then
 		echo "Change was replicated to site2 search!"
-		test $KILLSERVERS != no && KILL -HUP $KILLPIDS
+		test $KILLSERVERS != no && kill -HUP $KILLPIDS
 		exit 1
 	fi
 	sleep 1
@@ -1877,7 +1877,7 @@ for i in 1 2 3 4 5; do
 		"(description=Modify$MNUM)" 2>&1 | awk '/^dn:/ {print "NOK"}'`
 	if test "x$RESULT" = "xNOK" ; then
 		echo "Change was replicated to site2 search!"
-		test $KILLSERVERS != no && KILL -HUP $KILLPIDS
+		test $KILLSERVERS != no && kill -HUP $KILLPIDS
 		exit 1
 	fi
 	sleep 1
@@ -1890,7 +1890,7 @@ for i in 1 2 3 4 5; do
 		"(description=Modify$MNUM)" 2>&1 | awk '/^dn:/ {print "NOK"}'`
 	if test "x$RESULT" = "xNOK" ; then
 		echo "Change was replicated to site2 search!"
-		test $KILLSERVERS != no && KILL -HUP $KILLPIDS
+		test $KILLSERVERS != no && kill -HUP $KILLPIDS
 		exit 1
 	fi
 	sleep 1
@@ -1947,7 +1947,7 @@ for i in 1 2 3 4 5; do
 		"(description=Modify$MNUM)" 2>&1 | awk '/^dn:/ {print "NOK"}'`
 	if test "x$RESULT" = "xNOK" ; then
 		echo "Change was replicated to central search!"
-		test $KILLSERVERS != no && KILL -HUP $KILLPIDS
+		test $KILLSERVERS != no && kill -HUP $KILLPIDS
 		exit 1
 	fi
 	sleep 1
