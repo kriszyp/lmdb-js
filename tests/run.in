@@ -23,13 +23,16 @@ EGREP_CMD="@EGREP@"
 
 export SRCDIR TOPSRCDIR LN_S EGREP_CMD
 
-# backends
+# backends known to ./run -b <backend> (used to deduce $BACKENDTYPE)
 AC_bdb=@BUILD_BDB@
 AC_hdb=@BUILD_HDB@
+AC_ldif=yes
+AC_null=@BUILD_NULL@
+
+# other backends
 AC_ldap=ldap@BUILD_LDAP@
 AC_meta=meta@BUILD_META@
 AC_monitor=@BUILD_MONITOR@
-AC_null=null@BUILD_NULL@
 AC_relay=relay@BUILD_RELAY@
 AC_sql=sql@BUILD_SQL@
 
