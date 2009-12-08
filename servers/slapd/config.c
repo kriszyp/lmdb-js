@@ -1303,7 +1303,10 @@ slap_sb_uri(
 {
 	slap_bindconf *bc = bcp;
 	if ( unparse ) {
-		*val = bc->sb_uri;
+		if ( bc->sb_uri.bv_len >= val->bv_len )
+			return -1;
+		val->bv_len = bc->sb_uri.bv_len;
+		AC_MEMCPY( val->bv_val, bc->sb_uri.bv_val, val->bv_len );
 	} else {
 		bc->sb_uri = *val;
 #ifdef HAVE_TLS
