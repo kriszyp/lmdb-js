@@ -465,6 +465,7 @@ dynlist_prepare_entry( Operation *op, SlapReply *rs, dynlist_info_t *dli )
 	if ( !( rs->sr_flags & REP_ENTRY_MODIFIABLE ) ) {
 		e = entry_dup( rs->sr_entry );
 		e_flags |= ( REP_ENTRY_MODIFIABLE | REP_ENTRY_MUSTBEFREED );
+		e_flags &= ~REP_ENTRY_MUSTRELEASE;
 	} else {
 		e = rs->sr_entry;
 	}
