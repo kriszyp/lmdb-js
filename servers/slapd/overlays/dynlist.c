@@ -176,14 +176,19 @@ dynlist_make_filter( Operation *op, struct berval *oldf, struct berval *newf )
 	dynlist_info_t	*dli = (dynlist_info_t *)on->on_bi.bi_private;
 
 	char		*ptr;
+	int		needBrackets = 0;
 
 	assert( oldf != NULL );
 	assert( newf != NULL );
 	assert( !BER_BVISNULL( oldf ) );
 	assert( !BER_BVISEMPTY( oldf ) );
 
+	if ( oldf->bv_val[0] != '(' ) {
+		needBrackets = 2;
+	}
+
 	newf->bv_len = STRLENOF( "(&(!(objectClass=" "))" ")" )
-		+ dli->dli_oc->soc_cname.bv_len + oldf->bv_len;
+		+ dli->dli_oc->soc_cname.bv_len + oldf->bv_len + needBrackets;
 	newf->bv_val = op->o_tmpalloc( newf->bv_len + 1, op->o_tmpmemctx );
 	if ( newf->bv_val == NULL ) {
 		return -1;
@@ -191,7 +196,9 @@ dynlist_make_filter( Operation *op, struct berval *oldf, struct berval *newf )
 	ptr = lutil_strcopy( newf->bv_val, "(&(!(objectClass=" );
 	ptr = lutil_strcopy( ptr, dli->dli_oc->soc_cname.bv_val );
 	ptr = lutil_strcopy( ptr, "))" );
+	if ( needBrackets ) *ptr++ = '(';
 	ptr = lutil_strcopy( ptr, oldf->bv_val );
+	if ( needBrackets ) *ptr++ = ')';
 	ptr = lutil_strcopy( ptr, ")" );
 	newf->bv_len = ptr - newf->bv_val;
 
