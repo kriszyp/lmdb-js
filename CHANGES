@@ -6,6 +6,7 @@ OpenLDAP 2.4.21 Engineering
 	Fixed slapd syncrepl freeing tasks from queue (ITS#6413)
 	Fixed slapd syncrepl parsing of tls defaults (ITS#6419)
 	Fixed slapd-config Adds with Abstract classes (ITS#6408)
+	Fixed slapo-dynlist behavior with simple filters (ITS#6421)
 	Fixed slapd-ldif access outside database directory (ITS#6414)
 	Fixed slapo-translucent with back-null (ITS#6403)
 	Fixed slapo-unique criteria checking (ITS#6270)

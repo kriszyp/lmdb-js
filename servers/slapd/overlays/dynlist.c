@@ -170,20 +170,27 @@ dynlist_is_dynlist_next( Operation *op, SlapReply *rs, dynlist_info_t *old_dli )
 }
 
 static int
-dynlist_make_filter( Operation *op, struct berval *oldf, struct berval *newf )
+dynlist_make_filter( Operation *op, Entry *e, const char *url, struct berval *oldf, struct berval *newf )
 {
 	slap_overinst	*on = (slap_overinst *)op->o_bd->bd_info;
 	dynlist_info_t	*dli = (dynlist_info_t *)on->on_bi.bi_private;
 
 	char		*ptr;
+	int		needBrackets = 0;
 
 	assert( oldf != NULL );
 	assert( newf != NULL );
 	assert( !BER_BVISNULL( oldf ) );
 	assert( !BER_BVISEMPTY( oldf ) );
 
+	if ( oldf->bv_val[0] != '(' ) {
+		Debug( LDAP_DEBUG_ANY, "%s: dynlist, DN=\"%s\": missing brackets in URI=\"%s\" filter\n",
+			op->o_log_prefix, e->e_name.bv_val, url );
+		needBrackets = 2;
+	}
+
 	newf->bv_len = STRLENOF( "(&(!(objectClass=" "))" ")" )
-		+ dli->dli_oc->soc_cname.bv_len + oldf->bv_len;
+		+ dli->dli_oc->soc_cname.bv_len + oldf->bv_len + needBrackets;
 	newf->bv_val = op->o_tmpalloc( newf->bv_len + 1, op->o_tmpmemctx );
 	if ( newf->bv_val == NULL ) {
 		return -1;
@@ -191,7 +198,9 @@ dynlist_make_filter( Operation *op, struct berval *oldf, struct berval *newf )
 	ptr = lutil_strcopy( newf->bv_val, "(&(!(objectClass=" );
 	ptr = lutil_strcopy( ptr, dli->dli_oc->soc_cname.bv_val );
 	ptr = lutil_strcopy( ptr, "))" );
+	if ( needBrackets ) *ptr++ = '(';
 	ptr = lutil_strcopy( ptr, oldf->bv_val );
+	if ( needBrackets ) *ptr++ = ')';
 	ptr = lutil_strcopy( ptr, ")" );
 	newf->bv_len = ptr - newf->bv_val;
 
@@ -611,7 +620,7 @@ dynlist_prepare_entry( Operation *op, SlapReply *rs, dynlist_info_t *dli )
 		} else {
 			struct berval	flt;
 			ber_str2bv( lud->lud_filter, 0, 0, &flt );
-			if ( dynlist_make_filter( op, &flt, &o.ors_filterstr ) ) {
+			if ( dynlist_make_filter( op, rs->sr_entry, url->bv_val, &flt, &o.ors_filterstr ) ) {
 				/* error */
 				goto cleanup;
 			}
