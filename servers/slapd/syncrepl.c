@@ -4060,6 +4060,10 @@ parse_syncrepl_line(
 		{
 			val = c->argv[ i ] + STRLENOF( PROVIDERSTR "=" );
 			ber_str2bv( val, 0, 1, &si->si_bindconf.sb_uri );
+#ifdef HAVE_TLS
+			if ( ldap_is_ldaps_url( val ))
+				si->si_bindconf.sb_tls_do_init = 1;
+#endif
 			si->si_got |= GOT_PROVIDER;
 		} else if ( !strncasecmp( c->argv[ i ], SCHEMASTR "=",
 					STRLENOF( SCHEMASTR "=" ) ) )

@@ -1293,8 +1293,29 @@ slap_keepalive_parse(
 	return 0;
 }
 
+static int
+slap_sb_uri(
+	struct berval *val,
+	void *bcp,
+	slap_cf_aux_table *tab0,
+	const char *tabmsg,
+	int unparse )
+{
+	slap_bindconf *bc = bcp;
+	if ( unparse ) {
+		*val = bc->sb_uri;
+	} else {
+		bc->sb_uri = *val;
+#ifdef HAVE_TLS
+		if ( ldap_is_ldaps_url( val->bv_val ))
+			bc->sb_tls_do_init = 1;
+#endif
+	}
+	return 0;
+}
+
 static slap_cf_aux_table bindkey[] = {
-	{ BER_BVC("uri="), offsetof(slap_bindconf, sb_uri), 'b', 1, NULL },
+	{ BER_BVC("uri="), 0, 'x', 1, slap_sb_uri },
 	{ BER_BVC("version="), offsetof(slap_bindconf, sb_version), 'i', 0, versionkey },
 	{ BER_BVC("bindmethod="), offsetof(slap_bindconf, sb_method), 'i', 0, methkey },
 	{ BER_BVC("timeout="), offsetof(slap_bindconf, sb_timeout_api), 'i', 0, NULL },
@@ -1317,11 +1338,11 @@ static slap_cf_aux_table bindkey[] = {
 	{ BER_BVC("tls_key="), offsetof(slap_bindconf, sb_tls_key), 's', 1, NULL },
 	{ BER_BVC("tls_cacert="), offsetof(slap_bindconf, sb_tls_cacert), 's', 1, NULL },
 	{ BER_BVC("tls_cacertdir="), offsetof(slap_bindconf, sb_tls_cacertdir), 's', 1, NULL },
-	{ BER_BVC("tls_reqcert="), offsetof(slap_bindconf, sb_tls_reqcert), 's', 1, NULL },
-	{ BER_BVC("tls_cipher_suite="), offsetof(slap_bindconf, sb_tls_cipher_suite), 's', 1, NULL },
-	{ BER_BVC("tls_protocol_min="), offsetof(slap_bindconf, sb_tls_protocol_min), 's', 1, NULL },
+	{ BER_BVC("tls_reqcert="), offsetof(slap_bindconf, sb_tls_reqcert), 's', 0, NULL },
+	{ BER_BVC("tls_cipher_suite="), offsetof(slap_bindconf, sb_tls_cipher_suite), 's', 0, NULL },
+	{ BER_BVC("tls_protocol_min="), offsetof(slap_bindconf, sb_tls_protocol_min), 's', 0, NULL },
 #ifdef HAVE_OPENSSL_CRL
-	{ BER_BVC("tls_crlcheck="), offsetof(slap_bindconf, sb_tls_crlcheck), 's', 1, NULL },
+	{ BER_BVC("tls_crlcheck="), offsetof(slap_bindconf, sb_tls_crlcheck), 's', 0, NULL },
 #endif
 #endif
 	{ BER_BVNULL, 0, 0, 0, NULL }
