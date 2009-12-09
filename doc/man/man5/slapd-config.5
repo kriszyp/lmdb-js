@@ -1661,6 +1661,7 @@ FALSE, meaning the contextCSN is stored in the context entry.
 .B [credentials=<passwd>]
 .B [realm=<realm>]
 .B [secprops=<properties>]
+.B [keepalive=<idle>:<probes>:<interval>]
 .B [starttls=yes|critical]
 .B [tls_cert=<file>]
 .B [tls_key=<file>]
@@ -1802,6 +1803,22 @@ should grant that identity appropriate access privileges to the data
 that is being replicated (\fBaccess\fP directive), and appropriate time 
 and size limits (\fBlimits\fP directive).
 
+The
+.B keepalive
+parameter sets the values of \fIidle\fP, \fIprobes\fP, and \fIinterval\fP
+used to check whether a socket is alive;
+.I idle
+is the number of seconds a connection needs to remain idle before TCP 
+starts sending keepalive probes;
+.I probes
+is the maximum number of keepalive probes TCP should send before dropping
+the connection;
+.I interval
+is interval in seconds between individual keepalive probes.
+Only some systems support the customization of these values;
+the
+.B keepalive
+parameter is ignored otherwise, and system-wide settings are used.
 
 The
 .B starttls
