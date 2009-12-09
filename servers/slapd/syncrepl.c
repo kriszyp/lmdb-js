@@ -810,7 +810,7 @@ do_syncrep2(
 			ldap_get_entry_controls( si->si_ld, msg, &rctrls );
 			/* we can't work without the control */
 			if ( rctrls ) {
-				LDAPControl **next;
+				LDAPControl **next = NULL;
 				/* NOTE: make sure we use the right one;
 				 * a better approach would be to run thru
 				 * the whole list and take care of all */
@@ -998,7 +998,7 @@ do_syncrep2(
 					si->si_ridtxt, err, ldap_err2string( err ) );
 			}
 			if ( rctrls ) {
-				LDAPControl **next;
+				LDAPControl **next = NULL;
 				/* NOTE: make sure we use the right one;
 				 * a better approach would be to run thru
 				 * the whole list and take care of all */
