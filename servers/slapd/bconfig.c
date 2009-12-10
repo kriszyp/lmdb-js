@@ -2296,10 +2296,15 @@ config_timelimit(ConfigArgs *c) {
 			rc = 1;
 		return rc;
 	} else if ( c->op == LDAP_MOD_DELETE ) {
-		/* Reset to defaults */
-		lim->lms_t_soft = SLAPD_DEFAULT_TIMELIMIT;
-		lim->lms_t_hard = 0;
-		return 0;
+		/* Reset to defaults or values from frontend */
+		if ( c->be == frontendDB ) {
+			lim->lms_t_soft = SLAPD_DEFAULT_TIMELIMIT;
+			lim->lms_t_hard = 0;
+		} else {
+			lim->lms_t_soft = frontendDB->be_def_limit.lms_t_soft;
+			lim->lms_t_hard = frontendDB->be_def_limit.lms_t_hard;
+		}
+		goto ok;
 	}
 	for(i = 1; i < c->argc; i++) {
 		if(!strncasecmp(c->argv[i], "time", 4)) {
@@ -2322,6 +2327,30 @@ config_timelimit(ConfigArgs *c) {
 				}
 			}
 			lim->lms_t_hard = 0;
+		}
+	}
+
+ok:
+	if ( ( c->be == frontendDB ) && ( c->ca_entry ) ) {
+		/* This is a modification to the global limits apply it to
+		 * the other databases as needed */
+		AttributeDescription *ad=NULL;
+		const char *text = NULL;
+		slap_str2ad(c->argv[0], &ad, &text);
+		/* if we got here... */
+		assert( ad != NULL );
+
+		CfEntryInfo *ce = c->ca_entry->e_private;
+		if ( ce->ce_type == Cft_Global ){
+			ce = ce->ce_kids;
+		}
+		for (; ce; ce=ce->ce_sibs) {
+			Entry *dbe = ce->ce_entry;
+			if ( (ce->ce_type == Cft_Database) && (ce->ce_be != frontendDB)
+					&& (!attr_find(dbe->e_attrs, ad)) ) {
+				ce->ce_be->be_def_limit.lms_t_soft = lim->lms_t_soft;
+				ce->ce_be->be_def_limit.lms_t_hard = lim->lms_t_hard;
+			}
 		}
 	}
 	return(0);
