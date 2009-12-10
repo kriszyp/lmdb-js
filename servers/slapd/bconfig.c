@@ -2261,9 +2261,13 @@ ok:
 		assert( ad != NULL );
 
 		CfEntryInfo *ce = c->ca_entry->e_private;
-		for ( ce=ce->ce_sibs ;ce;ce=ce->ce_sibs) {
+		if ( ce->ce_type == Cft_Global ){
+			ce = ce->ce_kids;
+		}
+		for (; ce; ce=ce->ce_sibs) {
 			Entry *dbe = ce->ce_entry;
-			if (! attr_find( dbe->e_attrs, ad ) ) {
+			if ( (ce->ce_type == Cft_Database) && (ce->ce_be != frontendDB)
+					&& (!attr_find(dbe->e_attrs, ad)) ) {
 				ce->ce_be->be_def_limit.lms_s_soft = lim->lms_s_soft;
 				ce->ce_be->be_def_limit.lms_s_hard = lim->lms_s_hard;
 				ce->ce_be->be_def_limit.lms_s_unchecked =lim->lms_s_unchecked;
