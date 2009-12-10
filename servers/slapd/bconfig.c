@@ -2208,13 +2208,22 @@ config_sizelimit(ConfigArgs *c) {
 			rc = 1;
 		return rc;
 	} else if ( c->op == LDAP_MOD_DELETE ) {
-		/* Reset to defaults */
-		lim->lms_s_soft = SLAPD_DEFAULT_SIZELIMIT;
-		lim->lms_s_hard = 0;
-		lim->lms_s_unchecked = -1;
-		lim->lms_s_pr = 0;
-		lim->lms_s_pr_hide = 0;
-		lim->lms_s_pr_total = 0;
+		/* Reset to defaults or values from frontend */
+		if ( c->be == frontendDB ) {
+			lim->lms_s_soft = SLAPD_DEFAULT_SIZELIMIT;
+			lim->lms_s_hard = 0;
+			lim->lms_s_unchecked = -1;
+			lim->lms_s_pr = 0;
+			lim->lms_s_pr_hide = 0;
+			lim->lms_s_pr_total = 0;
+		} else {
+			lim->lms_s_soft = frontendDB->be_def_limit.lms_s_soft;
+			lim->lms_s_hard = frontendDB->be_def_limit.lms_s_hard;
+			lim->lms_s_unchecked = frontendDB->be_def_limit.lms_s_unchecked;
+			lim->lms_s_pr = frontendDB->be_def_limit.lms_s_pr;
+			lim->lms_s_pr_hide = frontendDB->be_def_limit.lms_s_pr_hide;
+			lim->lms_s_pr_total = frontendDB->be_def_limit.lms_s_pr_total;
+		}
 		goto ok;
 	}
 	for(i = 1; i < c->argc; i++) {
