@@ -2215,7 +2215,7 @@ config_sizelimit(ConfigArgs *c) {
 		lim->lms_s_pr = 0;
 		lim->lms_s_pr_hide = 0;
 		lim->lms_s_pr_total = 0;
-		return 0;
+		goto ok;
 	}
 	for(i = 1; i < c->argc; i++) {
 		if(!strncasecmp(c->argv[i], "size", 4)) {
@@ -2238,6 +2238,30 @@ config_sizelimit(ConfigArgs *c) {
 				}
 			}
 			lim->lms_s_hard = 0;
+		}
+	}
+
+ok:
+	if ( ( c->be == frontendDB ) && ( c->ca_entry ) ) {
+		/* This is a modification to the global limits apply it to
+		 * the other databases as needed */
+		AttributeDescription *ad=NULL;
+		const char *text = NULL;
+		slap_str2ad(c->argv[0], &ad, &text);
+		/* if we got here... */
+		assert( ad != NULL );
+
+		CfEntryInfo *ce = c->ca_entry->e_private;
+		for ( ce=ce->ce_sibs ;ce;ce=ce->ce_sibs) {
+			Entry *dbe = ce->ce_entry;
+			if (! attr_find( dbe->e_attrs, ad ) ) {
+				ce->ce_be->be_def_limit.lms_s_soft = lim->lms_s_soft;
+				ce->ce_be->be_def_limit.lms_s_hard = lim->lms_s_hard;
+				ce->ce_be->be_def_limit.lms_s_unchecked =lim->lms_s_unchecked;
+				ce->ce_be->be_def_limit.lms_s_pr =lim->lms_s_pr;
+				ce->ce_be->be_def_limit.lms_s_pr_hide =lim->lms_s_pr_hide;
+				ce->ce_be->be_def_limit.lms_s_pr_total =lim->lms_s_pr_total;
+			}
 		}
 	}
 	return(0);
