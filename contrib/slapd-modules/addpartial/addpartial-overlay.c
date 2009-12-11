@@ -48,7 +48,6 @@ static int addpartial_add( Operation *op, SlapReply *rs)
     Entry *found = NULL;
     slap_overinst *on = (slap_overinst *) op->o_bd->bd_info;
     int rc;
-	AclCheck ak = { op->ora_e. slap_schema.si_ad_entry, NULL, ACL_WRITE };
 
     toAdd = op->oq_add.rs_e;
 
@@ -56,7 +55,8 @@ static int addpartial_add( Operation *op, SlapReply *rs)
           addpartial.on_bi.bi_type, toAdd->e_nname.bv_val,0);
 
     /* if the user doesn't have access, fall through to the normal ADD */
-    if(!access_allowed(op, &ak ))
+    if(!access_allowed(op, toAdd, slap_schema.si_ad_entry,
+                       NULL, ACL_WRITE, NULL))
     {
         return SLAP_CB_CONTINUE;
     }

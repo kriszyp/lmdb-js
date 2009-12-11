@@ -148,7 +148,6 @@ lastmod_compare( Operation *op, SlapReply *rs )
 	slap_overinst		*on = (slap_overinst *)op->o_bd->bd_info;
 	lastmod_info_t		*lmi = (lastmod_info_t *)on->on_bi.bi_private;
 	Attribute		*a;
-	AclCheck		ak;
 
 	ldap_pvt_thread_mutex_lock( &lmi->lmi_entry_mutex );
 
@@ -159,12 +158,8 @@ lastmod_compare( Operation *op, SlapReply *rs )
 		goto return_results;
 	}
 
-	ak.ak_e = lmi->lmi_e;
-	ak.ak_desc = op->oq_compare.rs_ava->aa_desc;
-	ak.ak_val = &op->oq_compare.rs_ava->aa_value;
-	ak.ak_access = ACL_COMPARE;
-	ak.ak_state = NULL;
-	rs->sr_err = access_allowed( op, &ak );
+	rs->sr_err = access_allowed( op, lmi->lmi_e, op->oq_compare.rs_ava->aa_desc,
+		&op->oq_compare.rs_ava->aa_value, ACL_COMPARE, NULL );
 	if ( ! rs->sr_err ) {
 		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
 		goto return_results;
