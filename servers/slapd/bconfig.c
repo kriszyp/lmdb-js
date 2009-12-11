@@ -2337,11 +2337,12 @@ ok:
 		 * the other databases as needed */
 		AttributeDescription *ad=NULL;
 		const char *text = NULL;
+		CfEntryInfo *ce = c->ca_entry->e_private;
+
 		slap_str2ad(c->argv[0], &ad, &text);
 		/* if we got here... */
 		assert( ad != NULL );
 
-		CfEntryInfo *ce = c->ca_entry->e_private;
 		if ( ce->ce_type == Cft_Global ){
 			ce = ce->ce_kids;
 		}
