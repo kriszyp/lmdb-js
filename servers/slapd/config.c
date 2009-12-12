@@ -1353,6 +1353,20 @@ slap_cf_aux_table_parse( const char *word, void *dst, slap_cf_aux_table *tab0, L
 
 				rc = lutil_atoulx( ulptr, val, 0 );
 				break;
+
+			case 'x':
+				if ( tab->aux != NULL ) {
+					struct berval value;
+					slap_cf_aux_table_parse_x *func = (slap_cf_aux_table_parse_x *)tab->aux;
+
+					ber_str2bv( val, 0, 1, &value );
+
+					rc = func( &value, (void *)((char *)dst + tab->off), tab, tabmsg, 0 );
+
+				} else {
+					rc = 1;
+				}
+				break;
 			}
 
 			if ( rc ) {
@@ -1441,6 +1455,26 @@ slap_cf_aux_table_unparse( void *src, struct berval *bv, slap_cf_aux_table *tab0
 			*ptr++ = ' ';
 			ptr = lutil_strcopy( ptr, tab->key.bv_val );
 			ptr += snprintf( ptr, sizeof( buf ) - ( ptr - buf ), "%lu", *ulptr );
+			break;
+
+		case 'x':
+			*ptr++ = ' ';
+			ptr = lutil_strcopy( ptr, tab->key.bv_val );
+			if ( tab->quote ) *ptr++ = '"';
+			if ( tab->aux != NULL ) {
+				struct berval value;
+				slap_cf_aux_table_parse_x *func = (slap_cf_aux_table_parse_x *)tab->aux;
+				int rc;
+
+				value.bv_val = ptr;
+				value.bv_len = buf + sizeof( buf ) - ptr;
+
+				rc = func( &value, (void *)((char *)src + tab->off), tab, "(unparse)", 1 );
+				if ( rc == 0 ) {
+					ptr += value.bv_len;
+				}
+			}
+			if ( tab->quote ) *ptr++ = '"';
 			break;
 
 		default:

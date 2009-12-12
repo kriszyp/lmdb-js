@@ -1630,6 +1630,14 @@ typedef struct slap_cf_aux_table {
 	void *aux;
 } slap_cf_aux_table;
 
+typedef int 
+slap_cf_aux_table_parse_x LDAP_P((
+	struct berval *val,
+	void *bc,
+	slap_cf_aux_table *tab0,
+	const char *tabmsg,
+	int unparse ));
+
 #define SLAP_LIMIT_TIME	1
 #define SLAP_LIMIT_SIZE	2
 
