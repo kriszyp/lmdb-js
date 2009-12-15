@@ -2208,14 +2208,23 @@ config_sizelimit(ConfigArgs *c) {
 			rc = 1;
 		return rc;
 	} else if ( c->op == LDAP_MOD_DELETE ) {
-		/* Reset to defaults */
-		lim->lms_s_soft = SLAPD_DEFAULT_SIZELIMIT;
-		lim->lms_s_hard = 0;
-		lim->lms_s_unchecked = -1;
-		lim->lms_s_pr = 0;
-		lim->lms_s_pr_hide = 0;
-		lim->lms_s_pr_total = 0;
-		return 0;
+		/* Reset to defaults or values from frontend */
+		if ( c->be == frontendDB ) {
+			lim->lms_s_soft = SLAPD_DEFAULT_SIZELIMIT;
+			lim->lms_s_hard = 0;
+			lim->lms_s_unchecked = -1;
+			lim->lms_s_pr = 0;
+			lim->lms_s_pr_hide = 0;
+			lim->lms_s_pr_total = 0;
+		} else {
+			lim->lms_s_soft = frontendDB->be_def_limit.lms_s_soft;
+			lim->lms_s_hard = frontendDB->be_def_limit.lms_s_hard;
+			lim->lms_s_unchecked = frontendDB->be_def_limit.lms_s_unchecked;
+			lim->lms_s_pr = frontendDB->be_def_limit.lms_s_pr;
+			lim->lms_s_pr_hide = frontendDB->be_def_limit.lms_s_pr_hide;
+			lim->lms_s_pr_total = frontendDB->be_def_limit.lms_s_pr_total;
+		}
+		goto ok;
 	}
 	for(i = 1; i < c->argc; i++) {
 		if(!strncasecmp(c->argv[i], "size", 4)) {
@@ -2240,6 +2249,35 @@ config_sizelimit(ConfigArgs *c) {
 			lim->lms_s_hard = 0;
 		}
 	}
+
+ok:
+	if ( ( c->be == frontendDB ) && ( c->ca_entry ) ) {
+		/* This is a modification to the global limits apply it to
+		 * the other databases as needed */
+		AttributeDescription *ad=NULL;
+		const char *text = NULL;
+		CfEntryInfo *ce = c->ca_entry->e_private;
+
+		slap_str2ad(c->argv[0], &ad, &text);
+		/* if we got here... */
+		assert( ad != NULL );
+
+		if ( ce->ce_type == Cft_Global ){
+			ce = ce->ce_kids;
+		}
+		for (; ce; ce=ce->ce_sibs) {
+			Entry *dbe = ce->ce_entry;
+			if ( (ce->ce_type == Cft_Database) && (ce->ce_be != frontendDB)
+					&& (!attr_find(dbe->e_attrs, ad)) ) {
+				ce->ce_be->be_def_limit.lms_s_soft = lim->lms_s_soft;
+				ce->ce_be->be_def_limit.lms_s_hard = lim->lms_s_hard;
+				ce->ce_be->be_def_limit.lms_s_unchecked =lim->lms_s_unchecked;
+				ce->ce_be->be_def_limit.lms_s_pr =lim->lms_s_pr;
+				ce->ce_be->be_def_limit.lms_s_pr_hide =lim->lms_s_pr_hide;
+				ce->ce_be->be_def_limit.lms_s_pr_total =lim->lms_s_pr_total;
+			}
+		}
+	}
 	return(0);
 }
 
@@ -2259,10 +2297,15 @@ config_timelimit(ConfigArgs *c) {
 			rc = 1;
 		return rc;
 	} else if ( c->op == LDAP_MOD_DELETE ) {
-		/* Reset to defaults */
-		lim->lms_t_soft = SLAPD_DEFAULT_TIMELIMIT;
-		lim->lms_t_hard = 0;
-		return 0;
+		/* Reset to defaults or values from frontend */
+		if ( c->be == frontendDB ) {
+			lim->lms_t_soft = SLAPD_DEFAULT_TIMELIMIT;
+			lim->lms_t_hard = 0;
+		} else {
+			lim->lms_t_soft = frontendDB->be_def_limit.lms_t_soft;
+			lim->lms_t_hard = frontendDB->be_def_limit.lms_t_hard;
+		}
+		goto ok;
 	}
 	for(i = 1; i < c->argc; i++) {
 		if(!strncasecmp(c->argv[i], "time", 4)) {
@@ -2285,6 +2328,31 @@ config_timelimit(ConfigArgs *c) {
 				}
 			}
 			lim->lms_t_hard = 0;
+		}
+	}
+
+ok:
+	if ( ( c->be == frontendDB ) && ( c->ca_entry ) ) {
+		/* This is a modification to the global limits apply it to
+		 * the other databases as needed */
+		AttributeDescription *ad=NULL;
+		const char *text = NULL;
+		CfEntryInfo *ce = c->ca_entry->e_private;
+
+		slap_str2ad(c->argv[0], &ad, &text);
+		/* if we got here... */
+		assert( ad != NULL );
+
+		if ( ce->ce_type == Cft_Global ){
+			ce = ce->ce_kids;
+		}
+		for (; ce; ce=ce->ce_sibs) {
+			Entry *dbe = ce->ce_entry;
+			if ( (ce->ce_type == Cft_Database) && (ce->ce_be != frontendDB)
+					&& (!attr_find(dbe->e_attrs, ad)) ) {
+				ce->ce_be->be_def_limit.lms_t_soft = lim->lms_t_soft;
+				ce->ce_be->be_def_limit.lms_t_hard = lim->lms_t_hard;
+			}
 		}
 	}
 	return(0);
