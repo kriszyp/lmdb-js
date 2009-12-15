@@ -297,7 +297,7 @@ fi
 
 echo "Using ldapsearch to retrieve all the entries..."
 $LDAPSEARCH -S "" -b "$METABASEDN" -h $LOCALHOST -p $PORT3 \
-			'objectClass=*' > $SEARCHOUT 2>&1
+			'(objectClass=*)' > $SEARCHOUT 2>&1
 RC=$?
 
 test $KILLSERVERS != no && kill -HUP $KILLPIDS
@@ -312,7 +312,7 @@ echo "Filtering ldapsearch results..."
 echo "Filtering original ldif used to create database..."
 . $LDIFFILTER < $METACONCURRENCYOUT > $LDIFFLT
 echo "Comparing filter output..."
-$CMP $SEARCHFLT $LDIFFLT > $CMPOUT
+$BCMP $SEARCHFLT $LDIFFLT > $CMPOUT
 
 if test $? != 0 ; then
 	echo "comparison failed - slapd-meta search/modification didn't succeed"

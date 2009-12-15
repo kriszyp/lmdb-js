@@ -174,7 +174,9 @@ overridden by any per-target directive.
 This directive, when set to 
 .BR yes ,
 causes the authentication to the remote servers with the pseudo-root
-identity to be deferred until actually needed by subsequent operations.
+identity (the identity defined in each
+.B idassert-bind
+directive) to be deferred until actually needed by subsequent operations.
 Otherwise, all binds as the rootdn are propagated to the targets.
 
 .TP
@@ -539,19 +541,15 @@ specification.
 
 .TP
 .B pseudorootdn "<substitute DN in case of rootdn bind>"
-This directive, if present, sets the DN that will be substituted to
-the bind DN if a bind with the backend's "rootdn" succeeds.
-The true "rootdn" of the target server ought not be used; an arbitrary
-administrative DN should used instead.
+Deprecated; use
+.B idassert\-bind
+instead.
 
 .TP
 .B pseudorootpw "<substitute password in case of rootdn bind>"
-This directive sets the credential that will be used in case a bind
-with the backend's "rootdn" succeeds, and the bind is propagated to
-the target using the "pseudorootdn" DN.
-
-Note: cleartext credentials must be supplied here; as a consequence,
-using the pseudorootdn/pseudorootpw directives is inherently unsafe.
+Deprecated; use
+.B idassert\-bind
+instead.
 
 .TP
 .B rewrite* ...

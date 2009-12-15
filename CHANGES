@@ -14,6 +14,9 @@ OpenLDAP 2.4.21 Engineering
 	Build Environment
 		Deleted broken LBER_INVALID macro (ITS#6402)
 		Fixed test058 kill usage (ITS#6420)
+		Fixed meta regression test (ITS#6418)
+	Documentation
+		slapd-meta(5) Note deprecated functions (ITS#6424)
 
 OpenLDAP 2.4.20 Release (2009/11/27)
 	Fixed client tools with LDAP options (ITS#6283)
