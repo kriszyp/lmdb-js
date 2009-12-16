@@ -19,6 +19,7 @@ OpenLDAP 2.4.21 Engineering
 	Documentation
 		slapd-meta(5) Note deprecated functions (ITS#6424)
 		admin24 fix set example for group of groups (ITS#6382)
+		admin24 fix dynamic group documentation (ITS#6290)
 
 OpenLDAP 2.4.20 Release (2009/11/27)
 	Fixed client tools with LDAP options (ITS#6283)

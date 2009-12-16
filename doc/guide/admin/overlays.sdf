@@ -551,18 +551,23 @@ directory.
 
 In {{F:slapd.conf}}(5):
 
+>       include /path/to/dyngroup.schema
+>       ...
 >       overlay dynlist
->       dynlist-attrset groupOfNames labeledURI member
+>       dynlist-attrset groupOfURLs labeledURI member
++
++Note: We must include the {{F:dyngroup.schema}} file that defines the
++{{F:groupOfURLs}} objectClass used in this example.
 
 Let's apply it to the following entry:
 
 >       cn=allusers,ou=group,dc=example,dc=com
 >       cn: all
->       objectClass: groupOfNames
+>       objectClass: groupOfURLs
 >       labeledURI: ldap:///ou=people,dc=example,dc=com??one?(objectClass=inetOrgPerson)
 
 The behavior is similar to the dynamic list configuration we had before:
-whenever an entry with the {{F:groupOfNames}} object class is retrieved, the
+whenever an entry with the {{F:groupOfURLs}} object class is retrieved, the
 search specified in the {{F:labeledURI}} attribute is performed. But this time,
 only the distinguished names of the results are added, and as values of the
 {{F:member}} attribute.
