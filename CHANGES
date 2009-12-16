@@ -18,6 +18,7 @@ OpenLDAP 2.4.21 Engineering
 		Fixed meta regression test (ITS#6418)
 	Documentation
 		slapd-meta(5) Note deprecated functions (ITS#6424)
+		admin24 fix set example for group of groups (ITS#6382)
 
 OpenLDAP 2.4.20 Release (2009/11/27)
 	Fixed client tools with LDAP options (ITS#6283)
