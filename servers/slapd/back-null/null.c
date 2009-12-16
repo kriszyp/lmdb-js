@@ -234,8 +234,6 @@ null_back_entry_get(
 	int rw,
 	Entry **ent )
 {
-	assert( *ent == NULL );
-
 	/* don't admit the object isn't there */
 	return oc || at ? LDAP_NO_SUCH_ATTRIBUTE : LDAP_BUSY;
 }
