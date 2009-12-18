@@ -1288,6 +1288,9 @@ slap_keepalive_parse(
 		}
 
 		*sk = sk2;
+
+		ber_memfree( val->bv_val );
+		BER_BVZERO( val );
 	}
 
 	return 0;
