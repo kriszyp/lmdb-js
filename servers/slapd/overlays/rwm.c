@@ -2323,11 +2323,18 @@ rwm_cf_gen( ConfigArgs *c )
 		rc = 0;
 		break;
 
-	case RWM_CF_MAP:
-		if ( c->valx >= 0 ) {
-			return 1;
+	case RWM_CF_MAP: {
+		int cnt = 0;
+
+		if ( rwmap->rwm_bva_map ) {
+			for ( ; !BER_BVISNULL( &rwmap->rwm_bva_map[ cnt ]); cnt++ )
+				/* just count */ ;
 		}
 
+		/* can only append */
+		if ( c->valx >= 0 && c->valx != cnt ) return 1;
+
+		/* try to configure; FIXME: modifications not atomic! */
 		argv0 = c->argv[ 0 ];
 		c->argv[ 0 ] += STRLENOF( "rwm-" );
 		rc = rwm_m_config( &db, c->fname, c->lineno, c->argc, c->argv );
@@ -2337,15 +2344,31 @@ rwm_cf_gen( ConfigArgs *c )
 
 		} else {
 			char		*line;
-			struct berval	bv;
 
 			line = ldap_charray2str( &c->argv[ 1 ], " " );
 			if ( line != NULL ) {
-				ber_str2bv( line, 0, 0, &bv );
+				char buf[SLAP_TEXT_BUFLEN];
+				struct berval	bv, idx;
+				char *ptr;
+
+				/* cook X-ORDERED value and add it */
+				idx.bv_val = buf;
+				idx.bv_len = snprintf( idx.bv_val, sizeof( buf ), "{%d}", cnt );
+				if ( idx.bv_len >= sizeof( buf ) ) {
+					ch_free( line );
+					return 1;
+				}
+
+				bv.bv_len = idx.bv_len + strlen( line );
+				bv.bv_val = ch_malloc( bv.bv_len + 1 );
+				ptr = bv.bv_val;
+				ptr = lutil_strbvcopy( ptr, &idx );
+				ptr = lutil_strcopy( ptr, line );
 				ber_bvarray_add( &rwmap->rwm_bva_map, &bv );
+				ch_free( line );
 			}
 		}
-		break;
+		} break;
 
 	case RWM_CF_NORMALIZE_MAPPED:
 		if ( c->value_int ) {
