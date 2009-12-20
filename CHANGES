@@ -1,6 +1,6 @@
 OpenLDAP 2.4 Change Log
 
-OpenLDAP 2.4.21 Engineering
+OpenLDAP 2.4.21 Release (2009/12/20)
 	Fixed liblutil for negative microsecond offsets (ITS#6405)
 	Fixed slapd global settings to work without restart (ITS#6428)
 	Fixed slapd looping with SSL/TLS connections (ITS#6412)
