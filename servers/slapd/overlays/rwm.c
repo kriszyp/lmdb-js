@@ -1924,7 +1924,7 @@ static ConfigOCs rwmocs[] = {
 };
 
 static void
-slap_rewrite_unparse( BerVarray in, BerVarray *out )
+slap_bv_x_ordered_unparse( BerVarray in, BerVarray *out )
 {
 	int		i;
 	BerVarray	bva = NULL;
@@ -2041,7 +2041,7 @@ rwm_cf_gen( ConfigArgs *c )
 				rc = 1;
 
 			} else {
-				slap_rewrite_unparse( rwmap->rwm_bva_rewrite, &c->rvalue_vals );
+				slap_bv_x_ordered_unparse( rwmap->rwm_bva_rewrite, &c->rvalue_vals );
 				if ( !c->rvalue_vals ) {
 					rc = 1;
 				}
@@ -2065,7 +2065,10 @@ rwm_cf_gen( ConfigArgs *c )
 				rc = 1;
 
 			} else {
-				value_add( &c->rvalue_vals, rwmap->rwm_bva_map );
+				slap_bv_x_ordered_unparse( rwmap->rwm_bva_map, &c->rvalue_vals );
+				if ( !c->rvalue_vals ) {
+					rc = 1;
+				}
 			}
 			break;
 
@@ -2344,28 +2347,12 @@ rwm_cf_gen( ConfigArgs *c )
 
 		} else {
 			char		*line;
+			struct berval	bv;
 
 			line = ldap_charray2str( &c->argv[ 1 ], " " );
 			if ( line != NULL ) {
-				char buf[SLAP_TEXT_BUFLEN];
-				struct berval	bv, idx;
-				char *ptr;
-
-				/* cook X-ORDERED value and add it */
-				idx.bv_val = buf;
-				idx.bv_len = snprintf( idx.bv_val, sizeof( buf ), "{%d}", cnt );
-				if ( idx.bv_len >= sizeof( buf ) ) {
-					ch_free( line );
-					return 1;
-				}
-
-				bv.bv_len = idx.bv_len + strlen( line );
-				bv.bv_val = ch_malloc( bv.bv_len + 1 );
-				ptr = bv.bv_val;
-				ptr = lutil_strbvcopy( ptr, &idx );
-				ptr = lutil_strcopy( ptr, line );
+				ber_str2bv( line, 0, 0, &bv );
 				ber_bvarray_add( &rwmap->rwm_bva_map, &bv );
-				ch_free( line );
 			}
 		}
 		} break;
