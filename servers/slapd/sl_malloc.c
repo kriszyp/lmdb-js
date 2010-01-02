@@ -129,8 +129,7 @@ slap_sl_mem_create(
 		return sh;
 
 	/* round up to doubleword boundary */
-	size += pad;
-	size &= ~pad;
+	size = (size + Align-1) & -Align;
 
 	if (!sh) {
 			sh = ch_malloc(sizeof(struct slab_heap));
@@ -243,8 +242,7 @@ slap_sl_malloc(
 	}
 
 	/* round up to doubleword boundary, plus space for len at head and tail */
-	size += 2*sizeof(ber_len_t) + pad;
-	size &= ~pad;
+	size = (size + 2*sizeof(ber_len_t) + Align-1) & -Align;
 
 	if (sh->sh_stack) {
 		if ((char *)sh->sh_last + size >= (char *)sh->sh_end) {
@@ -370,9 +368,8 @@ slap_sl_realloc(void *ptr, ber_len_t size, void *ctx)
 	}
 
 	if (sh->sh_stack) {
-		/* round up to doubleword boundary */
-		size += pad + sizeof( ber_len_t );
-		size &= ~pad;
+		/* Round up to doubleword boundary, add room for head */
+		size = ((size + Align-1) & -Align) + sizeof( ber_len_t );
 
 		p--;
 
