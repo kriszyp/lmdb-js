@@ -427,23 +427,21 @@ slap_sl_free(void *ptr, void *ctx)
 
 	if (!sh || ptr < sh->sh_base || ptr >= sh->sh_end) {
 		ber_memfree_x(ptr, NULL);
+
 	} else if (sh->sh_stack) {
-		tmpp = (ber_len_t *)((char *)ptr + p[-1]);
+		size = p[-1];
+		p = (ber_len_t *) ((char *) ptr + size);
 		/* mark it free */
-		tmpp[-1] |= 1;
+		p[-1] = size |= 1;
 		/* reclaim free space off tail */
-		while ( tmpp == sh->sh_last ) {
-			if ( tmpp[-1] & 1 ) {
-				size = tmpp[-1] ^ 1;
-				ptr = (char *)tmpp - size;
-				p = (ber_len_t *)ptr;
-				p--;
-				sh->sh_last = p;
-				tmpp = sh->sh_last;
-			} else {
-				break;
-			}
+		if (sh->sh_last == p) {
+			do {
+				p = (ber_len_t *) ((char *) p - size + 1) - 1;
+				size = p[-1];
+			} while (size & 1);
+			sh->sh_last = p;
 		}
+
 	} else {
 		int size_shift, order_size;
 		struct slab_object *so;
