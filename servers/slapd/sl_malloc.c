@@ -26,6 +26,7 @@ static struct slab_object * slap_replenish_sopool(struct slab_heap* sh);
 static void print_slheap(int level, void *ctx);
 #endif
 
+/* Destroy the context, or if key==NULL clean it up for reuse. */
 void
 slap_sl_mem_destroy(
 	void *key,
@@ -37,10 +38,7 @@ slap_sl_mem_destroy(
 	int order_start = -1, i;
 	struct slab_object *so;
 
-	if (sh->sh_stack) {
-		ber_memfree_x(sh->sh_base, NULL);
-		ber_memfree_x(sh, NULL);
-	} else {
+	if (!sh->sh_stack) {
 		pad_shift = pad - 1;
 		do {
 			order_start++;
@@ -72,6 +70,9 @@ slap_sl_mem_destroy(
 			so = LDAP_LIST_NEXT(so, so_link);
 			ch_free(so_tmp);
 		}
+	}
+
+	if (key != NULL) {
 		ber_memfree_x(sh->sh_base, NULL);
 		ber_memfree_x(sh, NULL);
 	}
@@ -129,8 +130,7 @@ slap_sl_mem_create(
 	size += pad;
 	size &= ~pad;
 
-	if (stack) {
-		if (!sh) {
+	if (!sh) {
 			sh = ch_malloc(sizeof(struct slab_heap));
 			sh->sh_base = ch_malloc(size);
 #ifdef NO_THREADS
@@ -139,22 +139,26 @@ slap_sl_mem_create(
 			ldap_pvt_thread_pool_setkey(ctx, (void *)slap_sl_mem_init,
 				(void *)sh, slap_sl_mem_destroy, NULL, NULL);
 #endif
-		} else if ( size > (char *)sh->sh_end - (char *)sh->sh_base ) {
+	} else {
+		slap_sl_mem_destroy(NULL, sh);
+		if ( size > (char *)sh->sh_end - (char *)sh->sh_base ) {
 			void	*newptr;
 
 			newptr = ch_realloc( sh->sh_base, size );
 			if ( newptr == NULL ) return NULL;
 			sh->sh_base = newptr;
 		}
+	}
+	sh->sh_end = (char *) sh->sh_base + size;
+
+	sh->sh_stack = stack;
+	if (stack) {
 		/* insert dummy len */
 		{
 			ber_len_t *i = sh->sh_base;
 			*i++ = 0;
 			sh->sh_last = i;
 		}
-		sh->sh_end = (char *) sh->sh_base + size;
-		sh->sh_stack = stack;
-		return sh;
 	} else {
 		size_shift = size - 1;
 		do {
@@ -165,55 +169,7 @@ slap_sl_mem_create(
 		do {
 			order_start++;
 		} while (pad_shift >>= 1);
-
 		order = order_end - order_start + 1;
-
-		if (!sh) {
-			sh = (struct slab_heap *) ch_malloc(sizeof(struct slab_heap));
-			sh->sh_base = ch_malloc(size);
-#ifdef NO_THREADS
-			slheap = sh;
-#else
-			ldap_pvt_thread_pool_setkey(ctx, (void *)slap_sl_mem_init,
-				(void *)sh, slap_sl_mem_destroy, NULL, NULL);
-#endif
-		} else {
-			for (i = 0; i <= sh->sh_maxorder - order_start; i++) {
-				so = LDAP_LIST_FIRST(&sh->sh_free[i]);
-				while (so) {
-					struct slab_object *so_tmp = so;
-					so = LDAP_LIST_NEXT(so, so_link);
-					LDAP_LIST_INSERT_HEAD(&sh->sh_sopool, so_tmp, so_link);
-				}
-				ch_free(sh->sh_map[i]);
-			}
-			ch_free(sh->sh_free);
-			ch_free(sh->sh_map);
-
-			so = LDAP_LIST_FIRST(&sh->sh_sopool);
-			while (so) {
-				struct slab_object *so_tmp = so;
-				so = LDAP_LIST_NEXT(so, so_link);
-				if (!so_tmp->so_blockhead) {
-					LDAP_LIST_REMOVE(so_tmp, so_link);
-				}
-			}
-			so = LDAP_LIST_FIRST(&sh->sh_sopool);
-			while (so) {
-				struct slab_object *so_tmp = so;
-				so = LDAP_LIST_NEXT(so, so_link);
-				ch_free(so_tmp);
-			}
-
-			if (size > (char *)sh->sh_end - (char *)sh->sh_base) {
-				void	*newptr;
-
-				newptr = ch_realloc( sh->sh_base, size );
-				if ( newptr == NULL ) return NULL;
-				sh->sh_base = newptr;
-			}
-		}
-		sh->sh_end = (char *)sh->sh_base + size;
 		sh->sh_maxorder = order_end;
 
 		sh->sh_free = (struct sh_freelist *)
@@ -244,9 +200,8 @@ slap_sl_mem_create(
 			sh->sh_map[i] = (unsigned char *) ch_malloc(nummaps);
 			memset(sh->sh_map[i], 0, nummaps);
 		}
-		sh->sh_stack = stack;
-		return sh;
 	}
+	return sh;
 }
 
 void
