@@ -319,14 +319,25 @@ slap_sl_malloc(
 	return ch_malloc(size);
 }
 
+#define LIM_SQRT(t) /* some value < sqrt(max value of unsigned type t) */ \
+	((0UL|(t)-1) >>31>>31 > 1 ? ((t)1 <<32) - 1 : \
+	 (0UL|(t)-1) >>31 ? 65535U : (0UL|(t)-1) >>15 ? 255U : 15U)
+
 void *
 slap_sl_calloc( ber_len_t n, ber_len_t size, void *ctx )
 {
 	void *newptr;
+	ber_len_t total = n * size;
 
-	newptr = slap_sl_malloc( n*size, ctx );
-	if ( newptr ) {
+	/* The sqrt test is a slight optimization: often avoids the division */
+	if ((n | size) <= LIM_SQRT(ber_len_t) || n == 0 || total/n == size) {
+		newptr = slap_sl_malloc( total, ctx );
 		memset( newptr, 0, n*size );
+	} else {
+		Debug(LDAP_DEBUG_ANY, "slap_sl_calloc(%lu,%lu) out of range\n",
+			(unsigned long) n, (unsigned long) size, 0);
+		assert(0);
+		exit(EXIT_FAILURE);
 	}
 	return newptr;
 }
