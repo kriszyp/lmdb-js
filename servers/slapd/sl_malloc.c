@@ -21,6 +21,41 @@
 
 #include "slap.h"
 
+/*
+ * This allocator returns temporary memory from a slab in a given memory
+ * context, aligned on a 2-int boundary.  It cannot be used for data
+ * which will outlive the task allocating it.
+ *
+ * A new memory context attaches to the creator's thread context, if any.
+ * Threads cannot use other threads' memory contexts; there are no locks.
+ *
+ * The caller of slap_sl_malloc, usually a thread pool task, must
+ * slap_sl_free the memory before finishing: New tasks reuse the context
+ * and normally reset it, reclaiming memory left over from last task.
+ *
+ * The allocator helps memory fragmentation, speed and memory leaks.
+ * It is not (yet) reliable as a garbage collector:
+ *
+ * It falls back to context NULL - plain ber_memalloc() - when the
+ * context's slab is full.  A reset does not reclaim such memory.
+ * Conversely, free/realloc of data not from the given context assumes
+ * context NULL.  The data must not belong to another memory context.
+ *
+ * Code which has lost track of the current memory context can try
+ * slap_sl_context() or ch_malloc.c:ch_free/ch_realloc().
+ *
+ * Allocations cannot yet return failure.  Like ch_malloc, they succeed
+ * or abort slapd.  This will change, do fix code which assumes success.
+ */
+
+/*
+ * The stack-based allocator stores (ber_len_t)sizeof(head+block) at
+ * the head and tail of each allocated block. The tail length of a freed
+ * block is ORed with 1 to mark it free. Freed blocks are only reclaimed
+ * from the last block forward.  This is fast, but when a block is never
+ * freed, older blocks will not be reclaimed until the slab is reset...
+ */
+
 enum {
 	Align = 2 * sizeof(int),
 	Align_log2 = 1 + (Align>2) + (Align>4) + (Align>8) + (Align>16),
@@ -108,14 +143,7 @@ slap_sl_mem_init()
 	ber_set_option( NULL, LBER_OPT_MEMORY_FNS, &slap_sl_mfuncs );
 }
 
-/* This allocator always returns memory aligned on a 2-int boundary.
- *
- * The stack-based allocator stores the size as a ber_len_t at both
- * the head and tail of the allocated block. When freeing a block, the
- * tail length is ORed with 1 to mark it as free. Freed space can only
- * be reclaimed from the tail forward. If the tail block is never freed,
- * nothing else will be reclaimed until the slab is reset...
- */
+/* Create, reset or just return the memory context of the current thread. */
 void *
 slap_sl_mem_create(
 	ber_len_t size,
@@ -202,13 +230,16 @@ slap_sl_mem_create(
 	return sh;
 }
 
+/*
+ * Separate memory context from thread context.  Future users must
+ * know the context, since ch_free/slap_sl_context() cannot find it.
+ */
 void
 slap_sl_mem_detach(
 	void *thrctx,
 	void *memctx
 )
 {
-	/* separate from context */
 	SET_MEMCTX(thrctx, NULL, 0);
 }
 
@@ -578,6 +609,10 @@ slap_sl_free(void *ptr, void *ctx)
 	}
 }
 
+/*
+ * Return the memory context of the current thread if the given block of
+ * memory belongs to it, otherwise return NULL.
+ */
 void *
 slap_sl_context( void *ptr )
 {
