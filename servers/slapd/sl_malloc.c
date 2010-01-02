@@ -33,6 +33,22 @@ static struct slab_object * slap_replenish_sopool(struct slab_heap* sh);
 static void print_slheap(int level, void *ctx);
 #endif
 
+/* Keep memory context in a thread-local var, or in a global when no threads */
+#ifdef NO_THREADS
+static struct slab_heap *slheap;
+# define SET_MEMCTX(thrctx, memctx, sfree)	((void) (slheap = (memctx)))
+# define GET_MEMCTX(thrctx, memctxp)		(*(memctxp) = slheap))
+#else
+# define memctx_key ((void *) slap_sl_mem_init)
+# define SET_MEMCTX(thrctx, memctx, kfree) \
+	ldap_pvt_thread_pool_setkey(thrctx,memctx_key, memctx,kfree, NULL,NULL)
+# define GET_MEMCTX(thrctx, memctxp) \
+	((void) (*(memctxp) = NULL), \
+	 (void) ldap_pvt_thread_pool_getkey(thrctx,memctx_key, memctxp,NULL), \
+	 *(memctxp))
+#endif /* NO_THREADS */
+
+
 /* Destroy the context, or if key==NULL clean it up for reuse. */
 void
 slap_sl_mem_destroy(
@@ -92,10 +108,6 @@ slap_sl_mem_init()
 	ber_set_option( NULL, LBER_OPT_MEMORY_FNS, &slap_sl_mfuncs );
 }
 
-#ifdef NO_THREADS
-static struct slab_heap *slheap;
-#endif
-
 /* This allocator always returns memory aligned on a 2-int boundary.
  *
  * The stack-based allocator stores the size as a ber_len_t at both
@@ -108,23 +120,16 @@ void *
 slap_sl_mem_create(
 	ber_len_t size,
 	int stack,
-	void *ctx,
+	void *thrctx,
 	int new
 )
 {
+	void *memctx;
 	struct slab_heap *sh;
 	ber_len_t size_shift;
 	struct slab_object *so;
 
-#ifdef NO_THREADS
-	sh = slheap;
-#else
-	void *sh_tmp = NULL;
-	ldap_pvt_thread_pool_getkey(
-		ctx, (void *)slap_sl_mem_init, &sh_tmp, NULL );
-	sh = sh_tmp;
-#endif
-
+	sh = GET_MEMCTX(thrctx, &memctx);
 	if ( sh && !new )
 		return sh;
 
@@ -132,14 +137,9 @@ slap_sl_mem_create(
 	size = (size + Align-1) & -Align;
 
 	if (!sh) {
-			sh = ch_malloc(sizeof(struct slab_heap));
-			sh->sh_base = ch_malloc(size);
-#ifdef NO_THREADS
-			slheap = sh;
-#else
-			ldap_pvt_thread_pool_setkey(ctx, (void *)slap_sl_mem_init,
-				(void *)sh, slap_sl_mem_destroy, NULL, NULL);
-#endif
+		sh = ch_malloc(sizeof(struct slab_heap));
+		sh->sh_base = ch_malloc(size);
+		SET_MEMCTX(thrctx, sh, slap_sl_mem_destroy);
 	} else {
 		slap_sl_mem_destroy(NULL, sh);
 		if ( size > (char *)sh->sh_end - (char *)sh->sh_base ) {
@@ -204,17 +204,12 @@ slap_sl_mem_create(
 
 void
 slap_sl_mem_detach(
-	void *ctx,
+	void *thrctx,
 	void *memctx
 )
 {
-#ifdef NO_THREADS
-	slheap = NULL;
-#else
 	/* separate from context */
-	ldap_pvt_thread_pool_setkey( ctx, (void *)slap_sl_mem_init,
-		NULL, 0, NULL, NULL );
-#endif
+	SET_MEMCTX(thrctx, NULL, 0);
 }
 
 void *
@@ -572,22 +567,12 @@ slap_sl_free(void *ptr, void *ctx)
 void *
 slap_sl_context( void *ptr )
 {
+	void *memctx;
 	struct slab_heap *sh;
-	void *ctx, *sh_tmp;
 
 	if ( slapMode & SLAP_TOOL_MODE ) return NULL;
 
-#ifdef NO_THREADS
-	sh = slheap;
-#else
-	ctx = ldap_pvt_thread_pool_context();
-
-	sh_tmp = NULL;
-	ldap_pvt_thread_pool_getkey(
-		ctx, (void *)slap_sl_mem_init, &sh_tmp, NULL);
-	sh = sh_tmp;
-#endif
-
+	sh = GET_MEMCTX(ldap_pvt_thread_pool_context(), &memctx);
 	if (sh && ptr >= sh->sh_base && ptr <= sh->sh_end) {
 		return sh;
 	}
