@@ -21,6 +21,13 @@
 
 #include "slap.h"
 
+enum {
+	Align = 2 * sizeof(int),
+	Align_log2 = 1 + (Align>2) + (Align>4) + (Align>8) + (Align>16),
+	order_start = Align_log2 - 1,
+	pad = Align - 1
+};
+
 static struct slab_object * slap_replenish_sopool(struct slab_heap* sh);
 #ifdef SLAPD_UNUSED
 static void print_slheap(int level, void *ctx);
@@ -34,16 +41,10 @@ slap_sl_mem_destroy(
 )
 {
 	struct slab_heap *sh = data;
-	int pad = 2*sizeof(int)-1, pad_shift;
-	int order_start = -1, i;
 	struct slab_object *so;
+	int i;
 
 	if (!sh->sh_stack) {
-		pad_shift = pad - 1;
-		do {
-			order_start++;
-		} while (pad_shift >>= 1);
-
 		for (i = 0; i <= sh->sh_maxorder - order_start; i++) {
 			so = LDAP_LIST_FIRST(&sh->sh_free[i]);
 			while (so) {
@@ -84,6 +85,10 @@ BerMemoryFunctions slap_sl_mfuncs =
 void
 slap_sl_mem_init()
 {
+	assert( Align == 1 << Align_log2 );
+	/* Adding head+tail preserves alignment */
+	assert( 2*sizeof(ber_len_t) % Align == 0 );
+
 	ber_set_option( NULL, LBER_OPT_MEMORY_FNS, &slap_sl_mfuncs );
 }
 
@@ -109,9 +114,6 @@ slap_sl_mem_create(
 {
 	struct slab_heap *sh;
 	ber_len_t size_shift;
-	int pad = 2*sizeof(int)-1, pad_shift;
-	int order = -1, order_start = -1, order_end = -1;
-	int i;
 	struct slab_object *so;
 
 #ifdef NO_THREADS
@@ -160,15 +162,12 @@ slap_sl_mem_create(
 			sh->sh_last = i;
 		}
 	} else {
+		int i, order = -1, order_end = -1;
+
 		size_shift = size - 1;
 		do {
 			order_end++;
 		} while (size_shift >>= 1);
-
-		pad_shift = pad - 1;
-		do {
-			order_start++;
-		} while (pad_shift >>= 1);
 		order = order_end - order_start + 1;
 		sh->sh_maxorder = order_end;
 
@@ -226,7 +225,6 @@ slap_sl_malloc(
 )
 {
 	struct slab_heap *sh = ctx;
-	int pad = 2*sizeof(int)-1, pad_shift;
 	ber_len_t *ptr, *newptr;
 
 #ifdef SLAP_NO_SL_MALLOC
@@ -264,19 +262,13 @@ slap_sl_malloc(
 	} else {
 		struct slab_object *so_new, *so_left, *so_right;
 		ber_len_t size_shift;
-		int order = -1, order_start = -1;
 		unsigned long diff;
-		int i, j;
+		int i, j, order = -1;
 
 		size_shift = size - 1;
 		do {
 			order++;
 		} while (size_shift >>= 1);
-
-		pad_shift = pad - 1;
-		do {
-			order_start++;
-		} while (pad_shift >>= 1);
 
 		for (i = order; i <= sh->sh_maxorder &&
 				LDAP_LIST_EMPTY(&sh->sh_free[i-order_start]); i++);
@@ -347,7 +339,6 @@ void *
 slap_sl_realloc(void *ptr, ber_len_t size, void *ctx)
 {
 	struct slab_heap *sh = ctx;
-	int pad = 2*sizeof(int) -1;
 	ber_len_t *p = (ber_len_t *)ptr, *newptr;
 
 	if (ptr == NULL)
@@ -455,22 +446,15 @@ slap_sl_free(void *ptr, void *ctx)
 		}
 	} else {
 		int size_shift, order_size;
-		int pad = 2*sizeof(int)-1, pad_shift;
-		int order_start = -1, order = -1;
 		struct slab_object *so;
 		unsigned long diff;
-		int i, inserted = 0;
+		int i, inserted = 0, order = -1;
 
 		size = *(--p);
 		size_shift = size + sizeof(ber_len_t) - 1;
 		do {
 			order++;
 		} while (size_shift >>= 1);
-
-		pad_shift = pad - 1;
-		do {
-			order_start++;
-		} while (pad_shift >>= 1);
 
 		for (i = order, tmpp = p; i <= sh->sh_maxorder; i++) {
 			order_size = 1 << (i+1);
@@ -638,8 +622,6 @@ static void
 print_slheap(int level, void *ctx)
 {
 	struct slab_heap *sh = ctx;
-	int order_start = -1;
-	int pad = 2*sizeof(int)-1, pad_shift;
 	struct slab_object *so;
 	int i, j, once = 0;
 
@@ -647,11 +629,6 @@ print_slheap(int level, void *ctx)
 		Debug(level, "NULL memctx\n", 0, 0, 0);
 		return;
 	}
-
-	pad_shift = pad - 1;
-	do {
-		order_start++;
-	} while (pad_shift >>= 1);
 
 	Debug(level, "sh->sh_maxorder=%d\n", sh->sh_maxorder, 0, 0);
 
