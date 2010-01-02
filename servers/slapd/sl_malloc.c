@@ -337,7 +337,8 @@ void *
 slap_sl_realloc(void *ptr, ber_len_t size, void *ctx)
 {
 	struct slab_heap *sh = ctx;
-	ber_len_t *p = (ber_len_t *)ptr, *newptr;
+	ber_len_t oldsize, *p = (ber_len_t *) ptr;
+	void *newptr;
 
 	if (ptr == NULL)
 		return slap_sl_malloc(size, ctx);
@@ -367,6 +368,8 @@ slap_sl_realloc(void *ptr, ber_len_t size, void *ctx)
 		return NULL;
 	}
 
+	oldsize = p[-1];
+
 	if (sh->sh_stack) {
 		/* Round up to doubleword boundary, add room for head */
 		size = ((size + Align-1) & -Align) + sizeof( ber_len_t );
@@ -374,37 +377,41 @@ slap_sl_realloc(void *ptr, ber_len_t size, void *ctx)
 		p--;
 
 		/* Never shrink blocks */
-		if (size <= p[0]) {
-			newptr = ptr;
+		if (size <= oldsize) {
+			return ptr;
 	
-		/* If reallocing the last block, we can grow it */
-		} else if ((char *)ptr + p[0] == sh->sh_last &&
-			(char *)ptr + size < (char *)sh->sh_end ) {
-			newptr = ptr;
-			sh->sh_last = (char *)ptr + size;
-			p[0] = size;
-			p[size/sizeof(ber_len_t)] = size;
+		/* If reallocing the last block, try to grow it */
+		} else if ((char *) ptr + oldsize == sh->sh_last) {
+			if (size < (char *) sh->sh_end - (char *) ptr) {
+				sh->sh_last = (char *) ptr + size;
+				p[0] = size;
+				p[size/sizeof(ber_len_t)] = size;
+				return ptr;
+			}
 
 		/* Nowhere to grow, need to alloc and copy */
 		} else {
-			newptr = slap_sl_malloc(size-sizeof(ber_len_t), ctx);
-			AC_MEMCPY(newptr, ptr, p[0]-sizeof(ber_len_t));
-			/* mark old region as free */
+			/* Slight optimization of the final realloc variant */
+			size -= sizeof(ber_len_t);
+			oldsize -= sizeof(ber_len_t);
+			newptr = slap_sl_malloc(size, ctx);
+			AC_MEMCPY(newptr, ptr, oldsize);
+			/* Not last block, can just mark old region as free */
 			p[p[0]/sizeof(ber_len_t)] |= 1;
+			return newptr;
 		}
-		return newptr;
-	} else {
-		void *newptr2;
 
-		newptr2 = slap_sl_malloc(size, ctx);
-		if (size < p[-1]) {
-			AC_MEMCPY(newptr2, ptr, size);
-		} else {
-			AC_MEMCPY(newptr2, ptr, p[-1]);
-		}
-		slap_sl_free(ptr, ctx);
-		return newptr2;
+		size -= sizeof(ber_len_t);
+		oldsize -= sizeof(ber_len_t);
+
+	} else if (oldsize > size) {
+		oldsize = size;
 	}
+
+	newptr = slap_sl_malloc(size, ctx);
+	AC_MEMCPY(newptr, ptr, oldsize);
+	slap_sl_free(ptr, ctx);
+	return newptr;
 }
 
 void
