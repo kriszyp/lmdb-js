@@ -3038,7 +3038,6 @@ typedef int (*SLAP_ENTRY_INFO_FN) LDAP_P(( void *arg, Entry *e ));
 
 #define SLAP_SLAB_SIZE	(1024*1024)
 #define SLAP_SLAB_STACK 1
-#define SLAP_SLAB_SOBLOCK 64
 
 #define SLAP_ZONE_ALLOC 1
 #undef SLAP_ZONE_ALLOC
@@ -3267,25 +3266,6 @@ struct ComponentSyntaxInfo {
 };
 
 #endif /* LDAP_COMP_MATCH */
-
-/* slab heap data structures */
-
-struct slab_object {
-    void *so_ptr;
-	int so_blockhead;
-    LDAP_LIST_ENTRY(slab_object) so_link;
-};
-
-struct slab_heap {
-    void *sh_base;
-    void *sh_last;
-    void *sh_end;
-	int sh_stack;
-	int sh_maxorder;
-    unsigned char **sh_map;
-    LDAP_LIST_HEAD( sh_freelist, slab_object ) *sh_free;
-	LDAP_LIST_HEAD( sh_so, slab_object ) sh_sopool;
-};
 
 #ifdef SLAP_ZONE_ALLOC
 #define SLAP_ZONE_SIZE 0x80000		/* 512KB */

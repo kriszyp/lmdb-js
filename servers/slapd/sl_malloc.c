@@ -62,6 +62,25 @@ enum { No_sl_malloc = 1 };
 enum { No_sl_malloc = 0 };
 #endif
 
+#define SLAP_SLAB_SOBLOCK 64
+
+struct slab_object {
+    void *so_ptr;
+	int so_blockhead;
+    LDAP_LIST_ENTRY(slab_object) so_link;
+};
+
+struct slab_heap {
+    void *sh_base;
+    void *sh_last;
+    void *sh_end;
+	int sh_stack;
+	int sh_maxorder;
+    unsigned char **sh_map;
+    LDAP_LIST_HEAD(sh_freelist, slab_object) *sh_free;
+	LDAP_LIST_HEAD(sh_so, slab_object) sh_sopool;
+};
+
 enum {
 	Align = sizeof(ber_len_t) > 2*sizeof(int)
 		? sizeof(ber_len_t) : 2*sizeof(int),
