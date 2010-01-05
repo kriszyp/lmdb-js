@@ -57,7 +57,8 @@
  */
 
 enum {
-	Align = 2 * sizeof(int),
+	Align = sizeof(ber_len_t) > 2*sizeof(int)
+		? sizeof(ber_len_t) : 2*sizeof(int),
 	Align_log2 = 1 + (Align>2) + (Align>4) + (Align>8) + (Align>16),
 	order_start = Align_log2 - 1,
 	pad = Align - 1
@@ -273,19 +274,17 @@ slap_sl_malloc(
 	size = (size + 2*sizeof(ber_len_t) + Align-1) & -Align;
 
 	if (sh->sh_stack) {
-		if ((char *)sh->sh_last + size >= (char *)sh->sh_end) {
-			size -= 2*sizeof(ber_len_t);
-			Debug(LDAP_DEBUG_TRACE,
-				"slap_sl_malloc of %lu bytes failed, using ch_malloc\n",
-				(unsigned long) size, 0, 0);
-			return ch_malloc(size);
+		if (size < (ber_len_t) ((char *) sh->sh_end - (char *) sh->sh_last)) {
+			newptr = sh->sh_last;
+			sh->sh_last = (char *) sh->sh_last + size;
+			size -= sizeof(ber_len_t);
+			*newptr++ = size;
+			((ber_len_t *) sh->sh_last)[-1] = size;
+			return( (void *)newptr );
 		}
-		newptr = sh->sh_last;
-		sh->sh_last = (char *) sh->sh_last + size;
-		size -= sizeof(ber_len_t);
-		*newptr++ = size;
-		*(ber_len_t *)((char *)sh->sh_last - sizeof(ber_len_t)) = size;
-		return( (void *)newptr );
+
+		size -= 2*sizeof(ber_len_t);
+
 	} else {
 		struct slab_object *so_new, *so_left, *so_right;
 		ber_len_t size_shift;
@@ -397,7 +396,7 @@ slap_sl_realloc(void *ptr, ber_len_t size, void *ctx)
 		if (newptr) {
 			return newptr;
 		}
-		Debug(LDAP_DEBUG_ANY, "ch_realloc of %lu bytes failed\n",
+		Debug(LDAP_DEBUG_ANY, "slap_sl_realloc of %lu bytes failed\n",
 			(unsigned long) size, 0, 0);
 		assert(0);
 		exit( EXIT_FAILURE );
