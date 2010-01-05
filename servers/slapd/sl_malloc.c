@@ -56,6 +56,12 @@
  * freed, older blocks will not be reclaimed until the slab is reset...
  */
 
+#ifdef SLAP_NO_SL_MALLOC /* Useful with memory debuggers like Valgrind */
+enum { No_sl_malloc = 1 };
+#else
+enum { No_sl_malloc = 0 };
+#endif
+
 enum {
 	Align = sizeof(ber_len_t) > 2*sizeof(int)
 		? sizeof(ber_len_t) : 2*sizeof(int),
@@ -253,15 +259,8 @@ slap_sl_malloc(
 	struct slab_heap *sh = ctx;
 	ber_len_t *ptr, *newptr;
 
-#ifdef SLAP_NO_SL_MALLOC
-	newptr = ber_memalloc_x( size, NULL );
-	if ( newptr ) return newptr;
-	assert( 0 );
-	exit( EXIT_FAILURE );
-#endif
-
 	/* ber_set_option calls us like this */
-	if (!ctx) {
+	if (No_sl_malloc || !ctx) {
 		newptr = ber_memalloc_x( size, NULL );
 		if ( newptr ) return newptr;
 		Debug(LDAP_DEBUG_ANY, "slap_sl_malloc of %lu bytes failed\n",
@@ -382,15 +381,8 @@ slap_sl_realloc(void *ptr, ber_len_t size, void *ctx)
 	if (ptr == NULL)
 		return slap_sl_malloc(size, ctx);
 
-#ifdef SLAP_NO_SL_MALLOC
-	newptr = ber_memrealloc_x( ptr, size, NULL );
-	if ( newptr ) return newptr;
-	assert( 0 );
-	exit( EXIT_FAILURE );
-#endif
-
 	/* Not our memory? */
-	if (!sh || ptr < sh->sh_base || ptr >= sh->sh_end) {
+	if (No_sl_malloc || !sh || ptr < sh->sh_base || ptr >= sh->sh_end) {
 		/* Like ch_realloc(), except not trying a new context */
 		newptr = ber_memrealloc_x(ptr, size, NULL);
 		if (newptr) {
@@ -463,12 +455,7 @@ slap_sl_free(void *ptr, void *ctx)
 	if (!ptr)
 		return;
 
-#ifdef SLAP_NO_SL_MALLOC
-	ber_memfree_x( ptr, NULL );
-	return;
-#endif
-
-	if (!sh || ptr < sh->sh_base || ptr >= sh->sh_end) {
+	if (No_sl_malloc || !sh || ptr < sh->sh_base || ptr >= sh->sh_end) {
 		ber_memfree_x(ptr, NULL);
 
 	} else if (sh->sh_stack) {
