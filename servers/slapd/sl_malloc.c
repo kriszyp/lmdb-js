@@ -180,35 +180,40 @@ slap_sl_mem_create(
 	struct slab_heap *sh;
 	ber_len_t size_shift;
 	struct slab_object *so;
+	char *base, *newptr;
 	enum { Base_offset = (unsigned) -sizeof(ber_len_t) % Align };
 
 	sh = GET_MEMCTX(thrctx, &memctx);
 	if ( sh && !new )
 		return sh;
 
-	/* round up to doubleword boundary */
-	size = (size + Align-1) & -Align;
+	/* Round up to doubleword boundary, then make room for initial
+	 * padding, preserving expected available size for pool version */
+	size = ((size + Align-1) & -Align) + Base_offset;
 
 	if (!sh) {
 		sh = ch_malloc(sizeof(struct slab_heap));
-		sh->sh_base = ch_malloc(size);
+		base = ch_malloc(size);
 		SET_MEMCTX(thrctx, sh, slap_sl_mem_destroy);
 	} else {
 		slap_sl_mem_destroy(NULL, sh);
-		if ( size > (char *)sh->sh_end - (char *)sh->sh_base ) {
-			void	*newptr;
-
-			newptr = ch_realloc( sh->sh_base, size );
+		base = sh->sh_base;
+		if (size > (ber_len_t) ((char *) sh->sh_end - base)) {
+			newptr = ch_realloc(base, size);
 			if ( newptr == NULL ) return NULL;
-			sh->sh_base = newptr;
+			base = newptr;
 		}
 	}
-	sh->sh_end = (char *) sh->sh_base + size;
+	sh->sh_base = base;
+	sh->sh_end = base + size;
+
+	/* Align (base + head of first block) == first returned block */
+	base += Base_offset;
+	size -= Base_offset;
 
 	sh->sh_stack = stack;
 	if (stack) {
-		/* Align first returned block (sh_last + head) */
-		sh->sh_last = (char *) sh->sh_base + Base_offset;
+		sh->sh_last = base;
 
 	} else {
 		int i, order = -1, order_end = -1;
@@ -233,7 +238,7 @@ slap_sl_mem_create(
 		}
 		so = LDAP_LIST_FIRST(&sh->sh_sopool);
 		LDAP_LIST_REMOVE(so, so_link);
-		so->so_ptr = sh->sh_base;
+		so->so_ptr = base;
 
 		LDAP_LIST_INSERT_HEAD(&sh->sh_free[order-1], so, so_link);
 
@@ -249,6 +254,7 @@ slap_sl_mem_create(
 			memset(sh->sh_map[i], 0, nummaps);
 		}
 	}
+
 	return sh;
 }
 
