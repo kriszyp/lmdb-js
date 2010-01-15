@@ -363,7 +363,7 @@ slap_sl_malloc(
 	}
 
 	Debug(LDAP_DEBUG_TRACE,
-		"slap_sl_malloc of %lu bytes failed, using ch_malloc\n",
+		"slap_sl_malloc of %lu bytes falling back to ch_malloc\n",
 		(unsigned long) size, 0, 0);
 	return ch_malloc(size);
 }
