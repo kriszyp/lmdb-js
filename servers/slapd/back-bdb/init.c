@@ -830,7 +830,8 @@ bdb_back_initialize(
 	 */
 	bi->bi_tool_entry_open = bdb_tool_entry_open;
 	bi->bi_tool_entry_close = bdb_tool_entry_close;
-	bi->bi_tool_entry_first = bdb_tool_entry_next;
+	bi->bi_tool_entry_first = backend_tool_entry_first;
+	bi->bi_tool_entry_first_x = bdb_tool_entry_first_x;
 	bi->bi_tool_entry_next = bdb_tool_entry_next;
 	bi->bi_tool_entry_get = bdb_tool_entry_get;
 	bi->bi_tool_entry_put = bdb_tool_entry_put;

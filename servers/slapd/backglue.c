@@ -735,6 +735,10 @@ glue_entry_release_rw (
 	return rc;
 }
 
+static struct berval *glue_base;
+static int glue_scope;
+static Filter *glue_filter;
+
 static ID
 glue_tool_entry_first (
 	BackendDB *b0
@@ -786,6 +790,66 @@ glue_tool_entry_first (
 }
 
 static ID
+glue_tool_entry_first_x (
+	BackendDB *b0,
+	struct berval *base,
+	int scope,
+	Filter *f
+)
+{
+	slap_overinst	*on = glue_tool_inst( b0->bd_info );
+	glueinfo		*gi = on->on_bi.bi_private;
+	int i;
+	ID rc;
+
+	glue_base = base;
+	glue_scope = scope;
+	glue_filter = f;
+
+	/* If we're starting from scratch, start at the most general */
+	if (!glueBack) {
+		if ( toolDB.be_entry_open && toolDB.be_entry_first_x ) {
+			glueBack = &toolDB;
+		} else {
+			for (i = gi->gi_nodes-1; i >= 0; i--) {
+				if (gi->gi_n[i].gn_be->be_entry_open &&
+					gi->gi_n[i].gn_be->be_entry_first_x)
+				{
+					glueBack = gi->gi_n[i].gn_be;
+					break;
+				}
+			}
+		}
+	}
+	if (!glueBack || !glueBack->be_entry_open || !glueBack->be_entry_first_x ||
+		glueBack->be_entry_open (glueBack, glueMode) != 0)
+		return NOID;
+
+	rc = glueBack->be_entry_first_x (glueBack,
+		glue_base, glue_scope, glue_filter);
+	while ( rc == NOID ) {
+		if ( glueBack && glueBack->be_entry_close )
+			glueBack->be_entry_close (glueBack);
+		for (i=0; i<gi->gi_nodes; i++) {
+			if (gi->gi_n[i].gn_be == glueBack)
+				break;
+		}
+		if (i == 0) {
+			glueBack = GLUEBACK_DONE;
+			break;
+		} else {
+			glueBack = gi->gi_n[i-1].gn_be;
+			rc = glue_tool_entry_first_x (b0,
+				glue_base, glue_scope, glue_filter);
+			if ( glueBack == GLUEBACK_DONE ) {
+				break;
+			}
+		}
+	}
+	return rc;
+}
+
+static ID
 glue_tool_entry_next (
 	BackendDB *b0
 )
@@ -813,7 +877,15 @@ glue_tool_entry_next (
 			break;
 		} else {
 			glueBack = gi->gi_n[i-1].gn_be;
-			rc = glue_tool_entry_first (b0);
+			if ( glue_base || glue_filter ) {
+				/* using entry_first_x() */
+				rc = glue_tool_entry_first_x (b0,
+					glue_base, glue_scope, glue_filter);
+
+			} else {
+				/* using entry_first() */
+				rc = glue_tool_entry_first (b0);
+			}
 			if ( glueBack == GLUEBACK_DONE ) {
 				break;
 			}
@@ -1012,6 +1084,9 @@ glue_db_init(
 		oi->oi_bi.bi_tool_entry_close = glue_tool_entry_close;
 	if ( bi->bi_tool_entry_first )
 		oi->oi_bi.bi_tool_entry_first = glue_tool_entry_first;
+	/* FIXME: check whether all support bi_tool_entry_first_x() ? */
+	if ( bi->bi_tool_entry_first_x )
+		oi->oi_bi.bi_tool_entry_first_x = glue_tool_entry_first_x;
 	if ( bi->bi_tool_entry_next )
 		oi->oi_bi.bi_tool_entry_next = glue_tool_entry_next;
 	if ( bi->bi_tool_entry_get )

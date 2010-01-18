@@ -1965,3 +1965,12 @@ int backend_operational( Operation *op, SlapReply *rs )
 	return rc;
 }
 
+/* helper that calls the bi_tool_entry_first_x() variant with default args;
+ * use to initialize a backend's bi_tool_entry_first() when appropriate
+ */
+ID
+backend_tool_entry_first( BackendDB *be )
+{
+	return be->bd_info->bi_tool_entry_first_x( be,
+		NULL, LDAP_SCOPE_DEFAULT, NULL );
+}

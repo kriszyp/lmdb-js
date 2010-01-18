@@ -47,8 +47,12 @@ slapcat( int argc, char **argv )
 	int rc = EXIT_SUCCESS;
 	Operation op = {0};
 	const char *progname = "slapcat";
+	int requestBSF;
+	int doBSF = 0;
 
 	slap_tool_init( progname, SLAPCAT, argc, argv );
+
+	requestBSF = ( sub_ndn.bv_len || filter );
 
 #ifdef SIGPIPE
 	(void) SIGNAL( SIGPIPE, slapcat_sig );
@@ -61,7 +65,7 @@ slapcat( int argc, char **argv )
 
 	if( !be->be_entry_open ||
 		!be->be_entry_close ||
-		!be->be_entry_first ||
+		!( be->be_entry_first_x || be->be_entry_first ) ||
 		!be->be_entry_next ||
 		!be->be_entry_get )
 	{
@@ -77,9 +81,22 @@ slapcat( int argc, char **argv )
 	}
 
 	op.o_bd = be;
-	for ( id = be->be_entry_first( be );
-		id != NOID;
-		id = be->be_entry_next( be ) )
+	if ( !requestBSF && be->be_entry_first ) {
+		id = be->be_entry_first( be );
+
+	} else {
+		if ( be->be_entry_first_x ) {
+			id = be->be_entry_first_x( be,
+				sub_ndn.bv_len ? &sub_ndn : NULL, scope, filter );
+
+		} else {
+			assert( be->be_entry_first != NULL );
+			doBSF = 1;
+			id = be->be_entry_first( be );
+		}
+	}
+
+	for ( ; id != NOID; id = be->be_entry_next( be ) )
 	{
 		char *data;
 		int len;
@@ -96,20 +113,24 @@ slapcat( int argc, char **argv )
 			break;
 		}
 
-		if( sub_ndn.bv_len && !dnIsSuffix( &e->e_nname, &sub_ndn ) ) {
-			be_entry_release_r( &op, e );
-			continue;
-		}
-
-		if( filter != NULL ) {
-			int rc = test_filter( NULL, e, filter );
-			if( rc != LDAP_COMPARE_TRUE ) {
+		if ( doBSF ) {
+			if ( sub_ndn.bv_len && !dnIsSuffixScope( &e->e_nname, &sub_ndn, scope ) )
+			{
 				be_entry_release_r( &op, e );
 				continue;
 			}
+
+
+			if ( filter != NULL ) {
+				int rc = test_filter( NULL, e, filter );
+				if ( rc != LDAP_COMPARE_TRUE ) {
+					be_entry_release_r( &op, e );
+					continue;
+				}
+			}
 		}
 
-		if( verbose ) {
+		if ( verbose ) {
 			printf( "# id=%08lx\n", (long) id );
 		}
 

@@ -2061,6 +2061,7 @@ monitor_back_initialize(
 	bi->bi_tool_entry_open = 0;
 	bi->bi_tool_entry_close = 0;
 	bi->bi_tool_entry_first = 0;
+	bi->bi_tool_entry_first_x = 0;
 	bi->bi_tool_entry_next = 0;
 	bi->bi_tool_entry_get = 0;
 	bi->bi_tool_entry_put = 0;

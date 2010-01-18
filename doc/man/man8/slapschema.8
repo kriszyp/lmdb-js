@@ -21,6 +21,8 @@ slapschema \- SLAPD in-database schema checking utility
 [\c
 .BR \-g ]
 [\c
+.BI \-H URI\fR]
+[\c
 .BI \-l error-file\fR]
 [\c
 .BI \-n dbnum\fR]
@@ -72,6 +74,7 @@ slapschema \-a \\
 
 will check all but the "ou=People,dc=example,dc=com" subtree
 of the "dc=example,dc=com" database.
+Deprecated; use \fB-H\fP \fIldap:///???(filter)\fP instead.
 .TP
 .BI \-b \ suffix 
 Use the specified \fIsuffix\fR to determine which database to
@@ -112,6 +115,9 @@ default config file is ignored.
 disable subordinate gluing.  Only the specified database will be
 processed, and not its glued subordinates (if any).
 .TP
+.B \-H \ URI
+use dn, scope and filter from URI to only handle matching entries.
+.TP
 .BI \-l \ error-file
 Write errors to specified file instead of standard output.
 .TP
@@ -149,6 +155,7 @@ Implies \fB\-b\fP \fIsubtree-dn\fP if no
 nor
 .B \-n
 option is given.
+Deprecated; use \fB-H\fP \fIldap:///subtree-dn\fP instead.
 .TP
 .B \-v
 Enable verbose mode.

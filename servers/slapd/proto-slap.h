@@ -428,6 +428,8 @@ LDAP_SLAPD_F (int) backend_operational LDAP_P((
 	SlapReply *rs 
 ));
 
+LDAP_SLAPD_F (ID) backend_tool_entry_first LDAP_P(( BackendDB *be ));
+
 LDAP_SLAPD_V(BackendInfo) slap_binfo[]; 
 
 /*

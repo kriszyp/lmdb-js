@@ -627,6 +627,7 @@ bdb_trans_backoff( int num_retries );
 #define bdb_hasSubordinates		BDB_SYMBOL(hasSubordinates)
 #define bdb_tool_entry_open		BDB_SYMBOL(tool_entry_open)
 #define bdb_tool_entry_close		BDB_SYMBOL(tool_entry_close)
+#define bdb_tool_entry_first_x		BDB_SYMBOL(tool_entry_first_x)
 #define bdb_tool_entry_next		BDB_SYMBOL(tool_entry_next)
 #define bdb_tool_entry_get		BDB_SYMBOL(tool_entry_get)
 #define bdb_tool_entry_put		BDB_SYMBOL(tool_entry_put)
@@ -657,6 +658,7 @@ extern BI_has_subordinates 		bdb_hasSubordinates;
 /* tools.c */
 extern BI_tool_entry_open		bdb_tool_entry_open;
 extern BI_tool_entry_close		bdb_tool_entry_close;
+extern BI_tool_entry_first_x		bdb_tool_entry_first_x;
 extern BI_tool_entry_next		bdb_tool_entry_next;
 extern BI_tool_entry_get		bdb_tool_entry_get;
 extern BI_tool_entry_put		bdb_tool_entry_put;

@@ -43,8 +43,9 @@ typedef struct tool_vars {
 	int tv_nosubordinates;
 	int tv_dryrun;
 	int tv_jumpline;
-	Filter *tv_filter;
 	struct berval tv_sub_ndn;
+	int tv_scope;
+	Filter *tv_filter;
 	struct LDIFFP	*tv_ldiffp;
 	struct berval tv_baseDN;
 	struct berval tv_authcDN;
@@ -76,8 +77,9 @@ extern tool_vars tool_globals;
 #define continuemode tool_globals.tv_continuemode
 #define nosubordinates tool_globals.tv_nosubordinates
 #define dryrun tool_globals.tv_dryrun
-#define filter tool_globals.tv_filter
 #define sub_ndn tool_globals.tv_sub_ndn
+#define scope tool_globals.tv_scope
+#define filter tool_globals.tv_filter
 #define ldiffp tool_globals.tv_ldiffp
 #define baseDN tool_globals.tv_baseDN
 #define authcDN tool_globals.tv_authcDN
