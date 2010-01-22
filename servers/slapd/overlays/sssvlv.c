@@ -113,6 +113,7 @@ typedef struct sort_op
 /* There is only one conn table for all overlay instances */
 static sort_op **sort_conns;
 static ldap_pvt_thread_mutex_t sort_conns_mutex;
+static int ov_count;
 static const char *debug_header = "sssvlv";
 
 static int sss_cid;
@@ -1165,6 +1166,7 @@ static int sssvlv_db_init(
 		sort_conns = ch_calloc( sizeof(sort_op *), dtblsize + 1 );
 		sort_conns++;
 	}
+	ov_count++;
 
 	return LDAP_SUCCESS;
 }
@@ -1175,6 +1177,13 @@ static int sssvlv_db_destroy(
 {
 	slap_overinst	*on = (slap_overinst *)be->bd_info;
 	sssvlv_info *si = (sssvlv_info *)on->on_bi.bi_private;
+	
+	ov_count--;
+	if ( !ov_count && sort_conns) {
+		sort_conns--;
+		ch_free(sort_conns);
+		ldap_pvt_thread_mutex_destroy( &sort_conns_mutex );
+	}
 	
 	if ( si ) {
 		ch_free( si );
