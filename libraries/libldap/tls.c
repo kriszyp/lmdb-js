@@ -1677,7 +1677,8 @@ x509_cert_get_dn( struct berval *cert, struct berval *dn, int get_subject )
 	tag = ber_skip_tag( ber, &len );	/* Context + Constructed (version) */
 	if ( tag == 0xa0 )	/* Version is optional */
 		tag = ber_get_int( ber, &i );	/* Int: Version */
-	tag = ber_get_int( ber, &i );	/* Int: Serial */
+	tag = ber_skip_tag( ber, &len );	/* Int: Serial (can be longer than ber_int_t) */
+	ber_skip_data( ber, len );
 	tag = ber_skip_tag( ber, &len );	/* Sequence: Signature */
 	ber_skip_data( ber, len );
 	if ( !get_subject ) {
