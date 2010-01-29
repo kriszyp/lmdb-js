@@ -169,6 +169,8 @@ ldap_pvt_search_s(
 	int rc;
 	int	msgid;
 
+    *res = NULL;
+
 	rc = ldap_pvt_search( ld, base, scope, filter, attrs, attrsonly,
 		sctrls, cctrls, timeout, sizelimit, deref, &msgid );
 
@@ -393,6 +395,8 @@ ldap_search_st(
 {
 	int	msgid;
 
+    *res = NULL;
+
 	if ( (msgid = ldap_search( ld, base, scope, filter, attrs, attrsonly ))
 	    == -1 )
 		return( ld->ld_errno );
@@ -420,6 +424,8 @@ ldap_search_s(
 	LDAPMessage **res )
 {
 	int	msgid;
+
+    *res = NULL;
 
 	if ( (msgid = ldap_search( ld, base, scope, filter, attrs, attrsonly ))
 	    == -1 )

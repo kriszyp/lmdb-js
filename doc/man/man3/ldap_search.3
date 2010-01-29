@@ -114,6 +114,14 @@ emulate read) or LDAP_SCOPE_ONELEVEL (to emulate list).
 These routines may dynamically allocate memory. The caller is
 responsible for freeing such memory using supplied deallocation
 routines. Return values are contained in <ldap.h>.
+.LP
+Note that \fIres\fR parameter of
+.B ldap_search_ext_s()
+and
+.B ldap_search_s()
+should be freed with
+.B ldap_msgfree()
+regardless of return value of these functions.
 .SH DEPRECATED INTERFACES
 The 
 .B ldap_search()
