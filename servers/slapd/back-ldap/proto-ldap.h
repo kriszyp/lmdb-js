@@ -55,6 +55,7 @@ int ldap_back_op_result( ldapconn_t *lc, Operation *op, SlapReply *rs,
 int ldap_back_cancel( ldapconn_t *lc, Operation *op, SlapReply *rs, ber_int_t msgid, ldap_back_send_t sendok );
 
 int ldap_back_init_cf( BackendInfo *bi );
+int ldap_pbind_init_cf( BackendInfo *bi );
 
 extern int ldap_back_conndn_cmp( const void *c1, const void *c2);
 extern int ldap_back_conn_cmp( const void *c1, const void *c2);
@@ -104,6 +105,7 @@ extern int slap_idassert_authzfrom_parse_cf( const char *fname, int lineno, cons
 extern int slap_idassert_parse_cf( const char *fname, int lineno, int argc, char *argv[], slap_idassert_t *si );
 
 extern int chain_initialize( void );
+extern int pbind_initialize( void );
 #ifdef SLAP_DISTPROC
 extern int distproc_initialize( void );
 #endif
