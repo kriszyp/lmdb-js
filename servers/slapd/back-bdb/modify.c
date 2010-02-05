@@ -422,7 +422,13 @@ txnReturn:
 
 	ctrls[num_ctrls] = NULL;
 
-	slap_mods_opattrs( op, &op->orm_modlist, 1 );
+	/* Don't touch the opattrs, if this is a contextCSN update
+	 * initiated from updatedn */
+	if ( !be_isupdate(op) || !op->orm_modlist || op->orm_modlist->sml_next ||
+		 op->orm_modlist->sml_desc != slap_schema.si_ad_contextCSN ) {
+
+		slap_mods_opattrs( op, &op->orm_modlist, 1 );
+	}
 
 	if( 0 ) {
 retry:	/* transaction retry */
