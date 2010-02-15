@@ -680,7 +680,7 @@ hdb_dn2id_delete(
 	d->nrdnlen[0] = (BEI(e)->bei_nrdn.bv_len >> 8) | 0x80;
 	dlen[0] = d->nrdnlen[0];
 	dlen[1] = d->nrdnlen[1];
-	strcpy( d->nrdn, BEI(e)->bei_nrdn.bv_val );
+	memcpy( d->nrdn, BEI(e)->bei_nrdn.bv_val, BEI(e)->bei_nrdn.bv_len+1 );
 	data.data = d;
 
 	rc = db->cursor( db, txn, &cursor, bdb->bi_db_opflags );
