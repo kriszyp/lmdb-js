@@ -26,13 +26,13 @@ class TlsOptions {
         };
 
         TlsOptions( LDAP* ld=NULL );
-        void setOption(tls_option opt, const std::string& value);
-        void setOption(tls_option opt, int value);
-        void setOption(tls_option opt, void *value);
+        void setOption(tls_option opt, const std::string& value) const;
+        void setOption(tls_option opt, int value) const;
+        void setOption(tls_option opt, void *value) const;
 
         int getIntOption(tls_option opt) const;
         std::string getStringOption(tls_option opt) const;
-        void getOption(tls_option opt, void *value );
+        void getOption(tls_option opt, void *value ) const;
         
         enum verifyMode {
             NEVER=0,

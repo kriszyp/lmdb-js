@@ -38,7 +38,7 @@ static tls_optmap_t optmap[] = {
         static const int TLS_CONNECT_ARG
 #endif 
 
-void checkOpt( TlsOptions::tls_option opt, opttype type ){
+static void checkOpt( TlsOptions::tls_option opt, opttype type ) {
     if ( opt < TlsOptions::CACERTFILE || opt >= TlsOptions::LASTOPT ){
         throw( LDAPException( LDAP_PARAM_ERROR, "unknown Option" ) );
     }
@@ -50,17 +50,17 @@ void checkOpt( TlsOptions::tls_option opt, opttype type ){
 
 TlsOptions::TlsOptions( LDAP* ld ): m_ld(ld) { }
 
-void TlsOptions::setOption( tls_option opt, const std::string& value ) {
+void TlsOptions::setOption( tls_option opt, const std::string& value ) const {
     checkOpt(opt, STRING);
-    this->setOption( opt, (void*) value.c_str());
+    this->setOption( opt, value.empty() ? NULL : (void*) value.c_str() );
 }
 
-void TlsOptions::setOption( tls_option opt, int value ) {
+void TlsOptions::setOption( tls_option opt, int value ) const {
     checkOpt(opt, INT);
     this->setOption( opt, (void*) &value);
 }
 
-void TlsOptions::setOption( tls_option opt, void *value ) {
+void TlsOptions::setOption( tls_option opt, void *value ) const {
     int ret = ldap_set_option( m_ld, optmap[opt].optval, value);
     if ( ret != LDAP_OPT_SUCCESS )
     {
@@ -72,7 +72,7 @@ void TlsOptions::setOption( tls_option opt, void *value ) {
     }
 }
 
-void TlsOptions::getOption( tls_option opt, void* value ){
+void TlsOptions::getOption( tls_option opt, void* value ) const {
     int ret = ldap_get_option( m_ld, optmap[opt].optval, value);
     if ( ret != LDAP_OPT_SUCCESS )
     {
