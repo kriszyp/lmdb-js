@@ -70,6 +70,9 @@ void TlsOptions::setOption( tls_option opt, void *value ) const {
             throw( LDAPException( LDAP_PARAM_ERROR, "error while setting TLS option" ) );
         }
     }
+    if ( m_ld ){
+        this->newCtx();
+    }
 }
 
 void TlsOptions::getOption( tls_option opt, void* value ) const {
@@ -104,3 +107,14 @@ std::string TlsOptions::getStringOption( tls_option opt ) const {
     return strval;
 }
 
+void TlsOptions::newCtx() const {
+    int ret = ldap_set_option( m_ld, LDAP_OPT_X_TLS_NEWCTX, LDAP_OPT_ON);
+    if ( ret != LDAP_OPT_SUCCESS )
+    {
+        if ( ret != LDAP_OPT_ERROR ){
+            throw( LDAPException( ret ));
+        } else {
+            throw( LDAPException( LDAP_LOCAL_ERROR, "error while renewing TLS context" ) );
+        }
+    }
+}

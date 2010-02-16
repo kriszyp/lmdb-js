@@ -21,7 +21,6 @@ class TlsOptions {
             RANDOM_FILE,
             CRLCHECK,
             DHFILE,
-            NEWCTX,
             LASTOPT /* dummy */
         };
 
@@ -49,6 +48,7 @@ class TlsOptions {
         };
 
     private:
+        void newCtx() const;
         LDAP *m_ld;        
 };
 
