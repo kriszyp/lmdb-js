@@ -195,8 +195,7 @@ void LDAPUrl::parseUrl()
         // no hostname and port
         startpos++;
     } else {
-        std::string::size_type hostend;
-        std::string::size_type portstart;
+        std::string::size_type hostend, portstart=0;
         pos = m_urlString.find('/', startpos);
 
         // IPv6 Address?
