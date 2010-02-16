@@ -42,13 +42,6 @@ LDAPAsynConnection::LDAPAsynConnection(const string& url, int port,
     this->setConstraints(cons);
 }
 
-LDAPAsynConnection::~LDAPAsynConnection(){
-    DEBUG(LDAP_DEBUG_DESTROY,
-            "LDAPAsynConnection::~LDAPAsynConnection()" << endl);
-    unbind();
-    //delete m_constr;        
-}
-
 void LDAPAsynConnection::init(const string& hostname, int port){
     DEBUG(LDAP_DEBUG_TRACE,"LDAPAsynConnection::init" << endl);
     DEBUG(LDAP_DEBUG_TRACE | LDAP_DEBUG_PARAMETER,
