@@ -21,7 +21,8 @@ class TlsOptions {
             RANDOM_FILE,
             CRLCHECK,
             DHFILE,
-            NEWCTX
+            NEWCTX,
+            LASTOPT /* dummy */
         };
 
         TlsOptions( LDAP* ld=NULL );

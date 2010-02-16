@@ -39,7 +39,7 @@ static tls_optmap_t optmap[] = {
 #endif 
 
 void checkOpt( TlsOptions::tls_option opt, opttype type ){
-    if ( opt >= sizeof(optmap) ){
+    if ( opt < TlsOptions::CACERTFILE || opt >= TlsOptions::LASTOPT ){
         throw( LDAPException( LDAP_PARAM_ERROR, "unknown Option" ) );
     }
 
