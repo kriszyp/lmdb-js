@@ -81,8 +81,9 @@ void LDAPAsynConnection::initialize(const std::string& uri){
 }
 
 void LDAPAsynConnection::start_tls(){
-    if( ldap_start_tls_s( cur_session, NULL, NULL ) != LDAP_SUCCESS ) {
-        throw LDAPException(this);
+    int ret = ldap_start_tls_s( cur_session, NULL, NULL );
+    if( ret != LDAP_SUCCESS ) {
+        throw LDAPException(ret);
     }
 }
 
