@@ -21,6 +21,7 @@
 #include "LDAPRebind.h"
 #include "LDAPRebindAuth.h"
 #include "LDAPSearchRequest.h"
+#include <lber.h>
 #include <sstream>
 
 using namespace std;
@@ -282,6 +283,10 @@ const LDAPConstraints* LDAPAsynConnection::getConstraints() const {
     return m_constr;
 }
  
+TlsOptions LDAPAsynConnection::getTlsOptions() const {
+    return TlsOptions( cur_session );
+}
+
 LDAP* LDAPAsynConnection::getSessionHandle() const{ 
     DEBUG(LDAP_DEBUG_TRACE,"LDAPAsynConnection::getSessionHandle()" << endl);
     return cur_session;
