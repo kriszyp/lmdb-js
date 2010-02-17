@@ -440,12 +440,9 @@ Entry*
 bdb_tool_entry_get( BackendDB *be, ID id )
 {
 	Entry *e = NULL;
-	int rc;
 
-	rc = bdb_tool_entry_get_int( be, id, &e );
-	if ( rc == LDAP_SUCCESS ) {
-		return e;
-	}
+	(void)bdb_tool_entry_get_int( be, id, &e );
+	return e;
 }
 
 static int bdb_tool_next_id(
