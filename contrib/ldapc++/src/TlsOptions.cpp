@@ -48,6 +48,8 @@ static void checkOpt( TlsOptions::tls_option opt, opttype type ) {
     }
 }
 
+TlsOptions::TlsOptions() : m_ld(NULL) {}
+
 TlsOptions::TlsOptions( LDAP* ld ): m_ld(ld) { }
 
 void TlsOptions::setOption( tls_option opt, const std::string& value ) const {

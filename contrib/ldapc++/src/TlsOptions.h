@@ -24,7 +24,7 @@ class TlsOptions {
             LASTOPT /* dummy */
         };
 
-        TlsOptions( LDAP* ld=NULL );
+        TlsOptions();
         void setOption(tls_option opt, const std::string& value) const;
         void setOption(tls_option opt, int value) const;
         void setOption(tls_option opt, void *value) const;
@@ -48,8 +48,11 @@ class TlsOptions {
         };
 
     private:
+        TlsOptions( LDAP* ld );
         void newCtx() const;
-        LDAP *m_ld;        
+        LDAP *m_ld;
+
+    friend class LDAPAsynConnection;
 };
 
 #endif /* TLS_OPTIONS_H */
