@@ -71,6 +71,8 @@ class LDAPAsynConnection{
         LDAPAsynConnection(const std::string& url=std::string("localhost"),
                 int port=0, LDAPConstraints *cons=new LDAPConstraints() );
 
+        //* Destructor
+        virtual ~LDAPAsynConnection();
         /** 
          * Initializes a connection to a server. 
          * 
