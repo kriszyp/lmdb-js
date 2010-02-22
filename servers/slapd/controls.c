@@ -1671,6 +1671,24 @@ static int parseSearchOptions (
 		return LDAP_PROTOCOL_ERROR;
 	}
 
+	if ( search_flags & ~(LDAP_SEARCH_FLAG_DOMAIN_SCOPE) ) {
+		/* Search flags not recognised so far,
+		 * including:
+		 *		LDAP_SEARCH_FLAG_PHANTOM_ROOT
+		 */
+		if ( ctrl->ldctl_iscritical ) {
+			rs->sr_text = "searchOptions contained unrecognized flag";
+			return LDAP_UNWILLING_TO_PERFORM;
+		}
+
+		/* Ignore */
+		Debug( LDAP_DEBUG_TRACE,
+			"searchOptions: conn=%lu unrecognized flag(s) 0x%x (non-critical)\n", 
+			op->o_connid, (unsigned)search_flags, 0 );
+
+		return LDAP_SUCCESS;
+	}
+
 	if ( search_flags & LDAP_SEARCH_FLAG_DOMAIN_SCOPE ) {
 		if ( op->o_domain_scope != SLAP_CONTROL_NONE ) {
 			rs->sr_text = "searchOptions control specified multiple times "
@@ -1681,15 +1699,6 @@ static int parseSearchOptions (
 		op->o_domain_scope = ctrl->ldctl_iscritical
 			? SLAP_CONTROL_CRITICAL
 			: SLAP_CONTROL_NONCRITICAL;
-	}
-
-	if ( search_flags & ~(LDAP_SEARCH_FLAG_DOMAIN_SCOPE) ) {
-		/* Other search flags not recognised so far,
-		 * including:
-		 *		LDAP_SEARCH_FLAG_PHANTOM_ROOM
-		 */
-		rs->sr_text = "searchOptions contained unrecognized flag";
-		return LDAP_UNWILLING_TO_PERFORM;
 	}
 
 	return LDAP_SUCCESS;
