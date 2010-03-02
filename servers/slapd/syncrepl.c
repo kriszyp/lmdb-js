@@ -1559,10 +1559,11 @@ static slap_verbmasks modops[] = {
 	{ BER_BVNULL, 0 }
 };
 
-static Modifications *
+static int
 syncrepl_accesslog_mods(
 	syncinfo_t *si,
-	struct berval *vals
+	struct berval *vals,
+	struct Modifications **modres
 )
 {
 	char *colon;
@@ -1571,7 +1572,7 @@ syncrepl_accesslog_mods(
 	struct berval bv, bv2;
 	short op;
 	Modifications *mod = NULL, *modlist = NULL, **modtail;
-	int i;
+	int i, rc = 0;
 
 	modtail = &modlist;
 
@@ -1588,7 +1589,13 @@ syncrepl_accesslog_mods(
 		bv.bv_len = colon - bv.bv_val;
 		if ( slap_bv2ad( &bv, &ad, &text ) ) {
 			/* Invalid */
-			continue;
+			Debug( LDAP_DEBUG_ANY, "syncrepl_accesslog_mods: %s "
+				"Invalid attribute %s, %s\n",
+				si->si_ridtxt, bv.bv_val, text );
+			slap_mods_free( modlist, 1 );
+			modlist = NULL;
+			rc = -1;
+			break;
 		}
 
 		/* Ignore dynamically generated attrs */
@@ -1633,16 +1640,18 @@ syncrepl_accesslog_mods(
 			mod->sml_numvals++;
 		}
 	}
-	return modlist;
+	*modres = modlist;
+	return rc;
 }
 
-static Modifications *
+static int
 syncrepl_changelog_mods(
 	syncinfo_t *si,
-	struct berval *vals
+	struct berval *vals,
+	struct Modifications **modres
 )
 {
-	return NULL;	/* FIXME */
+	return -1;	/* FIXME */
 }
 
 static int
@@ -1737,10 +1746,11 @@ syncrepl_message_to_op(
 		} else if ( !ber_bvstrcasecmp( &bv, &ls->ls_mod ) ) {
 			/* Parse attribute into modlist */
 			if ( si->si_syncdata == SYNCDATA_ACCESSLOG ) {
-				modlist = syncrepl_accesslog_mods( si, bvals );
+				rc = syncrepl_accesslog_mods( si, bvals, &modlist );
 			} else {
-				modlist = syncrepl_changelog_mods( si, bvals );
+				rc = syncrepl_changelog_mods( si, bvals, &modlist );
 			}
+			if ( rc ) goto done;
 		} else if ( !ber_bvstrcasecmp( &bv, &ls->ls_newRdn ) ) {
 			rdn = bvals[0];
 		} else if ( !ber_bvstrcasecmp( &bv, &ls->ls_delRdn ) ) {
