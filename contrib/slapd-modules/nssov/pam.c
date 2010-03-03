@@ -271,13 +271,13 @@ int pam_authz(nssov_info *ni,TFILE *fp,Operation *op)
 	READ_STRING_BUF2(fp,svcc,sizeof(svcc));
 	svc.bv_val = svcc;
 	svc.bv_len = tmpint32;
-	READ_STRING_BUF2(fp,svcc,sizeof(ruserc));
+	READ_STRING_BUF2(fp,ruserc,sizeof(ruserc));
 	ruser.bv_val = ruserc;
 	ruser.bv_len = tmpint32;
-	READ_STRING_BUF2(fp,svcc,sizeof(rhostc));
+	READ_STRING_BUF2(fp,rhostc,sizeof(rhostc));
 	rhost.bv_val = rhostc;
 	rhost.bv_len = tmpint32;
-	READ_STRING_BUF2(fp,svcc,sizeof(ttyc));
+	READ_STRING_BUF2(fp,ttyc,sizeof(ttyc));
 	tty.bv_val = ttyc;
 	tty.bv_len = tmpint32;
 
