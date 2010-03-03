@@ -253,6 +253,13 @@ static struct berval svcmsg =
 static struct berval uidmsg =
 	BER_BVC("Access denied by UID check");
 
+static int pam_compare_cb(Operation *op, SlapReply *rs)
+{
+	if (rs->sr_err == LDAP_COMPARE_TRUE)
+		op->o_callback->sc_private = (void *)1;
+	return LDAP_SUCCESS;
+}
+
 int pam_authz(nssov_info *ni,TFILE *fp,Operation *op)
 {
 	struct berval dn, uid, svc, ruser, rhost, tty;
@@ -352,7 +359,7 @@ int pam_authz(nssov_info *ni,TFILE *fp,Operation *op)
 			}
 		}
 
-		cb.sc_response = slap_null_cb;
+		cb.sc_response = pam_compare_cb;
 		cb.sc_private = NULL;
 		op->o_tag = LDAP_REQ_COMPARE;
 		op->o_req_dn = hostdn;
@@ -361,7 +368,7 @@ int pam_authz(nssov_info *ni,TFILE *fp,Operation *op)
 		ava.aa_value = svc;
 		op->orc_ava = &ava;
 		rc = op->o_bd->be_compare( op, &rs );
-		if ( rs.sr_err != LDAP_COMPARE_TRUE ) {
+		if ( cb.sc_private == NULL ) {
 			authzmsg = svcmsg;
 			rc = NSLCD_PAM_PERM_DENIED;
 			goto finish;
