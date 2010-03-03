@@ -1512,7 +1512,9 @@ rwm_send_entry( Operation *op, SlapReply *rs )
 			goto fail;
 		}
 
-		overlay_entry_release_ov( op, rs->sr_entry, 0, on );
+		op->o_bd->bd_info = (BackendInfo *)on->on_info;
+		be_entry_release_r( op, rs->sr_entry );
+		op->o_bd->bd_info = (BackendInfo *)on;
 	}
 
 	rs->sr_entry = e;
