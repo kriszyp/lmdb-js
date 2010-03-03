@@ -100,24 +100,17 @@ static int pam_bindcb(
 	return LDAP_SUCCESS;
 }
 
-int pam_do_bind(nssov_info *ni,TFILE *fp,Operation *op,
+static int pam_uid2dn(nssov_info *ni, Operation *op,
 	struct paminfo *pi)
 {
-	int rc;
-	slap_callback cb = {0};
-	SlapReply rs = {REP_RESULT};
 	struct berval sdn;
 
-	pi->msg.bv_val = pi->pwd.bv_val;
-	pi->msg.bv_len = 0;
-	pi->authz = NSLCD_PAM_SUCCESS;
 	BER_BVZERO(&pi->dn);
 
 	if (!isvalidusername(&pi->uid)) {
-		Debug(LDAP_DEBUG_ANY,"nssov_pam_do_bind(%s): invalid user name\n",
+		Debug(LDAP_DEBUG_ANY,"nssov_pam_uid2dn(%s): invalid user name\n",
 			pi->uid.bv_val,0,0);
-		rc = NSLCD_PAM_USER_UNKNOWN;
-		goto finish;
+		return NSLCD_PAM_USER_UNKNOWN;
 	}
 
 	if (ni->ni_pam_opts & NI_PAM_SASL2DN) {
@@ -141,11 +134,26 @@ int pam_do_bind(nssov_info *ni,TFILE *fp,Operation *op,
 			dnNormalize( 0, NULL, NULL, &sdn, &pi->dn, op->o_tmpmemctx );
 		}
 	}
-	BER_BVZERO(&sdn);
 	if (BER_BVISEMPTY(&pi->dn)) {
-		rc = NSLCD_PAM_USER_UNKNOWN;
-		goto finish;
+		return NSLCD_PAM_USER_UNKNOWN;
 	}
+	return 0;
+}
+
+int pam_do_bind(nssov_info *ni,TFILE *fp,Operation *op,
+	struct paminfo *pi)
+{
+	int rc;
+	slap_callback cb = {0};
+	SlapReply rs = {REP_RESULT};
+
+	pi->msg.bv_val = pi->pwd.bv_val;
+	pi->msg.bv_len = 0;
+	pi->authz = NSLCD_PAM_SUCCESS;
+	BER_BVZERO(&pi->dn);
+
+	rc = pam_uid2dn(ni, op, pi);
+	if (rc) goto finish;
 
 	if (BER_BVISEMPTY(&pi->pwd)) {
 		rc = NSLCD_PAM_IGNORE;
@@ -283,10 +291,15 @@ int pam_authz(nssov_info *ni,TFILE *fp,Operation *op)
 
 	Debug(LDAP_DEBUG_TRACE,"nssov_pam_authz(%s)\n",dn.bv_val,0,0);
 
-	/* We don't do authorization if they weren't authenticated by us */
+	/* If we didn't do authc, we don't have a DN yet */
 	if (BER_BVISEMPTY(&dn)) {
-		rc = NSLCD_PAM_USER_UNKNOWN;
-		goto finish;
+		struct paminfo pi;
+		pi.uid = uid;
+		pi.svc = svc;
+
+		rc = pam_uid2dn(ni, op, &pi);
+		if (rc) goto finish;
+		dn = pi.dn;
 	}
 
 	/* See if they have access to the host and service */
