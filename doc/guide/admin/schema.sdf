@@ -105,7 +105,7 @@ You are, of course, free to design a hierarchy suitable to your
 organizational needs under your organization's OID. No matter what hierarchy you choose, you should maintain a registry of assignments you make.  This can be a simple flat file or something more sophisticated such as the {{OpenLDAP OID Registry}} ({{URL:http://www.openldap.org/faq/index.cgi?file=197}}).
 
 For more information about Object Identifiers (and a listing service)
-see {{URL:http://www.alvestrand.no/harald/objectid/}}.
+see {{URL:http://www.alvestrand.no/objectid/}}.
 
 .{{Under no circumstances should you hijack OID namespace!}}
 
