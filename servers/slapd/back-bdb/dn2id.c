@@ -23,6 +23,7 @@
 #include "idl.h"
 #include "lutil.h"
 
+#if 0
 #define bdb_dn2id_lock					BDB_SYMBOL(dn2id_lock)
 
 static int
@@ -48,6 +49,9 @@ bdb_dn2id_lock( struct bdb_info *bdb, struct berval *dn,
 					&lockobj, db_rw, lock);
 	return rc;
 }
+#else
+#define	bdb_dn2id_lock(a,b,c,d,e)	0
+#endif
 
 #ifndef BDB_HIER
 int
