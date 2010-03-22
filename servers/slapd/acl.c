@@ -2132,7 +2132,16 @@ acl_set_cb_gather( Operation *op, SlapReply *rs )
 		}
 
 	} else {
-		assert( rs->sr_type == REP_RESULT );
+		switch ( rs->sr_type ) {
+		case REP_SEARCHREF:
+		case REP_INTERMEDIATE:
+			/* ignore */
+			break;
+
+		default:
+			assert( rs->sr_type == REP_RESULT );
+			break;
+		}
 	}
 
 	return 0;
