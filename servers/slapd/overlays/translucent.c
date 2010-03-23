@@ -206,6 +206,7 @@ translucent_cf_gen( ConfigArgs *c )
 			ch_free( (*an)[i].an_name.bv_val );
 			do {
 				(*an)[i] = (*an)[i+1];
+				i++;
 			} while ( !BER_BVISNULL( &(*an)[i].an_name ));
 		}
 		return 0;
