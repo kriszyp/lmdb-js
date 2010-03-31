@@ -184,6 +184,7 @@ bdb_cache_entry_db_relock(
 
 	if ( !lock ) return 0;
 
+	DBTzero( &lockobj );
 	lockobj.data = &ei->bei_id;
 	lockobj.size = sizeof(ei->bei_id) + 1;
 
@@ -225,6 +226,7 @@ bdb_cache_entry_db_lock( struct bdb_info *bdb, DB_TXN *txn, EntryInfo *ei,
 	else
 		db_rw = DB_LOCK_READ;
 
+	DBTzero( &lockobj );
 	lockobj.data = &ei->bei_id;
 	lockobj.size = sizeof(ei->bei_id) + 1;
 
