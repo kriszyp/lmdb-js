@@ -56,6 +56,8 @@ static BackendDB *glueBack;
 static BackendDB glueBackDone;
 #define GLUEBACK_DONE (&glueBackDone)
 
+static slap_overinst * glue_tool_inst( BackendInfo *bi);
+
 static slap_response glue_op_response;
 
 /* Just like select_backend, but only for our backends */
@@ -619,6 +621,49 @@ glue_tool_entry_open (
 	toolDB = *b0;
 	toolDB.bd_info = oi->oi_orig;
 
+	/* Sanity checks */
+	{
+		slap_overinst *on = glue_tool_inst( b0->bd_info );
+		glueinfo	*gi = on->on_bi.bi_private;
+
+		int i;
+		for (i = 0; i < gi->gi_nodes; i++) {
+			BackendDB *bd;
+			struct berval pdn;
+	
+			dnParent( &gi->gi_n[i].gn_be->be_nsuffix[0], &pdn );
+			bd = select_backend( &pdn, 0 );
+			if ( bd ) {
+				ID id;
+				BackendDB db;
+	
+				if ( overlay_is_over( bd ) ) {
+					slap_overinfo *oi = (slap_overinfo *)bd->bd_info;
+					db = *bd;
+					db.bd_info = oi->oi_orig;
+					bd = &db;
+				}
+	
+				if ( !bd->bd_info->bi_tool_dn2id_get
+					|| !bd->bd_info->bi_tool_entry_open
+					|| !bd->bd_info->bi_tool_entry_close )
+				{
+					continue;
+				}
+	
+				bd->bd_info->bi_tool_entry_open( bd, 0 );
+				id = bd->bd_info->bi_tool_dn2id_get( bd, &gi->gi_n[i].gn_be->be_nsuffix[0] );
+				bd->bd_info->bi_tool_entry_close( bd );
+				if ( id != NOID ) {
+					Debug( LDAP_DEBUG_ANY,
+						"glue_tool_entry_open: subordinate database suffix entry DN=\"%s\" also present in superior database rooted at DN=\"%s\"\n",
+						gi->gi_n[i].gn_be->be_suffix[0].bv_val, bd->be_suffix[0].bv_val, 0 );
+					return LDAP_OTHER;
+				}
+			}
+		}
+	}
+	
 	return 0;
 }
 
