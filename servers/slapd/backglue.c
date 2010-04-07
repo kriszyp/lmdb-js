@@ -553,14 +553,18 @@ glue_op_search ( Operation *op, SlapReply *rs )
 						 * Only remember the last one if there's more state left.
 						 */
 						if ( op->o_bd != b0 &&
-							( op->o_conn->c_pagedresults_state.ps_cookie ||
+							( !BER_BVISNULL( &op->o_conn->c_pagedresults_state.ps_cookieval ) ||
 							op->o_bd != gi->gi_n[0].gn_be ))
+						{
 							op->o_conn->c_pagedresults_state.ps_be = op->o_bd;
+						}
 
 						/* Check whether the cookie is empty,
 						 * and give remaining databases a chance
 						 */
-						if ( op->o_bd != gi->gi_n[0].gn_be ) {
+						if ( op->o_bd != gi->gi_n[0].gn_be ||
+							BER_BVISNULL( &op->o_conn->c_pagedresults_state.ps_cookieval ) )
+						{
 							int		c;
 
 							for ( c = 0; gs.ctrls[c] != NULL; c++ ) {
@@ -585,8 +589,8 @@ glue_op_search ( Operation *op, SlapReply *rs )
 									if ( btmp == b0 ) {
 										op->o_conn->c_pagedresults_state.ps_be = gi->gi_n[gi->gi_nodes - 1].gn_be;
 
-									} else if (i > 0 ) {
-										op->o_conn->c_pagedresults_state.ps_be = gi->gi_n[i - 1].gn_be;
+									} else {
+										op->o_conn->c_pagedresults_state.ps_be = gi->gi_n[(i > 0 ? i - 1: 0)].gn_be;
 									}
 
 									/* delete old, create new cookie with NOID */
@@ -614,6 +618,9 @@ glue_op_search ( Operation *op, SlapReply *rs )
 									gs.ctrls[c] = newctrl;
 
 									ber_free_buf( ber );
+
+								} else {
+									op->o_conn->c_pagedresults_state.ps_be = op->o_bd;
 								}
 							}
 						}
