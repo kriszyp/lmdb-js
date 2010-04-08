@@ -1234,6 +1234,8 @@ static int parsePagedResults (
 	if ( !cookie.bv_len ) {
 		ps->ps_count = 0;
 		ps->ps_cookie = 0;
+		/* taint ps_cookie, to detect whether it's set */
+		op->o_conn->c_pagedresults_state.ps_cookie = NOID;
 	}
 
 	/* NOTE: according to RFC 2696 3.:

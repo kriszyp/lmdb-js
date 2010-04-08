@@ -549,12 +549,15 @@ glue_op_search ( Operation *op, SlapReply *rs )
 					 * from here on a subsequent request.
 					 */
 					if ( rs->sr_nentries >= ps->ps_size ) {
+						PagedResultsState *cps = &op->o_conn->c_pagedresults_state;
+						
 						/* Don't bother to remember the first backend.
 						 * Only remember the last one if there's more state left.
 						 */
 						if ( op->o_bd != b0 &&
-							( !BER_BVISNULL( &op->o_conn->c_pagedresults_state.ps_cookieval ) ||
-							op->o_bd != gi->gi_n[0].gn_be ))
+							( cps->ps_cookie != NOID
+								|| !BER_BVISNULL( &cps->ps_cookieval )
+								|| op->o_bd != gi->gi_n[0].gn_be ) )
 						{
 							op->o_conn->c_pagedresults_state.ps_be = op->o_bd;
 						}
@@ -562,9 +565,7 @@ glue_op_search ( Operation *op, SlapReply *rs )
 						/* Check whether the cookie is empty,
 						 * and give remaining databases a chance
 						 */
-						if ( op->o_bd != gi->gi_n[0].gn_be ||
-							BER_BVISNULL( &op->o_conn->c_pagedresults_state.ps_cookieval ) )
-						{
+						if ( op->o_bd != gi->gi_n[0].gn_be || cps->ps_cookie == NOID ) {
 							int		c;
 
 							for ( c = 0; gs.ctrls[c] != NULL; c++ ) {
@@ -620,7 +621,7 @@ glue_op_search ( Operation *op, SlapReply *rs )
 
 									ber_free_buf( ber );
 
-								} else if ( op->o_bd != gi->gi_n[0].gn_be ) {
+								} else if ( !BER_BVISEMPTY( &cookie ) && op->o_bd != b0 ) {
 									/* if cookie not empty, it's again this database's turn */
 									op->o_conn->c_pagedresults_state.ps_be = op->o_bd;
 								}
@@ -635,14 +636,8 @@ glue_op_search ( Operation *op, SlapReply *rs )
 					 * next backend will start up properly. Only back-[bh]db
 					 * and back-sql look at this state info.
 					 */
-					if ( ps->ps_cookieval.bv_len == sizeof( PagedResultsCookie )) {
-						ps->ps_cookie = (PagedResultsCookie)0;
-#if 0
-						memset( ps->ps_cookieval.bv_val, 0,
-							sizeof( PagedResultsCookie ));
-#endif
-						BER_BVZERO( &ps->ps_cookieval );
-					}
+					ps->ps_cookie = (PagedResultsCookie)0;
+					BER_BVZERO( &ps->ps_cookieval );
 
 					{
 						/* change the size of the page in the request
