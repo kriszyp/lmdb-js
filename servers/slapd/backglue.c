@@ -586,17 +586,17 @@ glue_op_search ( Operation *op, SlapReply *rs )
 								assert( tag != LBER_ERROR );
 
 								if ( BER_BVISEMPTY( &cookie ) ) {
+									/* delete old, create new cookie with NOID */
+									PagedResultsCookie respcookie = (PagedResultsCookie)NOID;
+									ber_len_t oidlen = strlen( gs.ctrls[c]->ldctl_oid );
+									LDAPControl *newctrl;
+
 									if ( btmp == b0 ) {
 										op->o_conn->c_pagedresults_state.ps_be = gi->gi_n[gi->gi_nodes - 1].gn_be;
 
 									} else {
 										op->o_conn->c_pagedresults_state.ps_be = gi->gi_n[(i > 0 ? i - 1: 0)].gn_be;
 									}
-
-									/* delete old, create new cookie with NOID */
-									PagedResultsCookie respcookie = (PagedResultsCookie)NOID;
-									ber_len_t oidlen = strlen( gs.ctrls[c]->ldctl_oid );
-									LDAPControl *newctrl;
 
 									cookie.bv_val = (char *)&respcookie;
 									cookie.bv_len = sizeof( PagedResultsCookie );
