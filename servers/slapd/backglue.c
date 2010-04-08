@@ -585,12 +585,13 @@ glue_op_search ( Operation *op, SlapReply *rs )
 								tag = ber_scanf( ber, "{im}", &size, &cookie );
 								assert( tag != LBER_ERROR );
 
-								if ( BER_BVISEMPTY( &cookie ) ) {
+								if ( BER_BVISEMPTY( &cookie ) && op->o_bd != gi->gi_n[0].gn_be ) {
 									/* delete old, create new cookie with NOID */
 									PagedResultsCookie respcookie = (PagedResultsCookie)NOID;
 									ber_len_t oidlen = strlen( gs.ctrls[c]->ldctl_oid );
 									LDAPControl *newctrl;
 
+									/* it's next database's turn */
 									if ( btmp == b0 ) {
 										op->o_conn->c_pagedresults_state.ps_be = gi->gi_n[gi->gi_nodes - 1].gn_be;
 
@@ -619,7 +620,8 @@ glue_op_search ( Operation *op, SlapReply *rs )
 
 									ber_free_buf( ber );
 
-								} else {
+								} else if ( op->o_bd != gi->gi_n[0].gn_be ) {
+									/* if cookie not empty, it's again this database's turn */
 									op->o_conn->c_pagedresults_state.ps_be = op->o_bd;
 								}
 							}
