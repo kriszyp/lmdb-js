@@ -238,6 +238,9 @@ typedef struct slap_idassert_t {
 
 	BerVarray	si_authz;
 #define	li_idassert_authz	li_idassert.si_authz
+
+	BerVarray	si_passthru;
+#define	li_idassert_passthru	li_idassert.si_passthru
 } slap_idassert_t;
 
 /*
@@ -448,6 +451,7 @@ typedef struct ldap_extra_t {
 		int version, slap_idassert_t *si, LDAPControl	*ctrl );
 	int (*controls_free)( Operation *op, SlapReply *rs, LDAPControl ***pctrls );
 	int (*idassert_authzfrom_parse_cf)( const char *fname, int lineno, const char *arg, slap_idassert_t *si );
+	int (*idassert_passthru_parse_cf)( const char *fname, int lineno, const char *arg, slap_idassert_t *si );
 	int (*idassert_parse_cf)( const char *fname, int lineno, int argc, char *argv[], slap_idassert_t *si );
 	void (*retry_info_destroy)( slap_retry_info_t *ri );
 	int (*retry_info_parse)( char *in, slap_retry_info_t *ri, char *buf, ber_len_t buflen );
