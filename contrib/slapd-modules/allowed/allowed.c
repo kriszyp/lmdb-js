@@ -176,9 +176,6 @@ aa_operational( Operation *op, SlapReply *rs )
 	struct berval		*v;
 	AttributeType		**atp = NULL;
 	ObjectClass		**ocp = NULL;
-	BerVarray		bv_allowed = NULL,
-				bv_effective = NULL;
-	int			i, ja = 0, je = 0;
 
 #define	GOT_NONE	(0x0U)
 #define	GOT_C		(0x1U)
@@ -217,10 +214,21 @@ aa_operational( Operation *op, SlapReply *rs )
 	/* shouldn't be called without an entry; please check */
 	assert( rs->sr_entry != NULL );
 
+	/* if client has no access to objectClass attribute; don't compute */
+	if ( ( got & GOT_CE ) &&
+		!access_allowed( op, rs->sr_entry, slap_schema.si_ad_children,
+				NULL, ACL_WRITE, &acl_state ) )
+	{
+		got &= ~GOT_CE;
+	}
+
+	for ( ap = &rs->sr_operational_attrs; *ap != NULL; ap = &(*ap)->a_next )
+		/* go to last */ ;
+
 	/* see caveats; this is not guaranteed for all backends */
 	a = attr_find( rs->sr_entry->e_attrs, slap_schema.si_ad_objectClass );
 	if ( a == NULL ) {
-		return SLAP_CB_CONTINUE;
+		goto do_oc;
 	}
 
 	/* if client has no access to objectClass attribute; don't compute */
@@ -246,13 +254,21 @@ aa_operational( Operation *op, SlapReply *rs )
 		aa_add_oc( oc, &ocp, &atp );
 
 		if ( oc->soc_sups ) {
+			int i;
+
 			for ( i = 0; oc->soc_sups[ i ] != NULL; i++ ) {
 				aa_add_oc( oc->soc_sups[ i ], &ocp, &atp );
 			}
 		}
 	}
 
+	ch_free( ocp );
+
 	if ( atp != NULL ) {
+		BerVarray	bv_allowed = NULL,
+				bv_effective = NULL;
+		int		i, ja = 0, je = 0;
+
 		for ( i = 0; atp[ i ] != NULL; i++ )
 			/* just count */ ;
 	
@@ -287,8 +303,7 @@ aa_operational( Operation *op, SlapReply *rs )
 			}
 		}
 
-		for ( ap = &rs->sr_operational_attrs; *ap != NULL; ap = &(*ap)->a_next )
-			/* go to last */ ;
+		ch_free( atp );
 
 		if ( ( got & GOT_A ) && ja > 0 ) {
 			BER_BVZERO( &bv_allowed[ ja ] );
@@ -298,7 +313,7 @@ aa_operational( Operation *op, SlapReply *rs )
 			(*ap)->a_numvals = ja;
 			ap = &(*ap)->a_next;
 		}
-	
+
 		if ( ( got & GOT_AE ) && je > 0 ) {
 			BER_BVZERO( &bv_effective[ je ] );
 			*ap = attr_alloc( ad_allowedAttributesEffective );
@@ -307,12 +322,75 @@ aa_operational( Operation *op, SlapReply *rs )
 			(*ap)->a_numvals = je;
 			ap = &(*ap)->a_next;
 		}
-	
+
 		*ap = NULL;
 	}
 
-	ch_free( atp );
-	ch_free( ocp );
+do_oc:;
+	if ( ( got & GOT_C ) || ( got & GOT_CE ) ) {
+		BerVarray	bv_allowed = NULL,
+				bv_effective = NULL;
+		int		i, na, ne, ja = 0, je = 0;
+
+		ObjectClass	*oc;
+
+		for ( oc_start( &oc ); oc != NULL; oc_next( &oc ) ) {
+			/* we can only add STRCUCTURAL objectClasses */
+			if ( oc->soc_kind != LDAP_SCHEMA_STRUCTURAL ) {
+				continue;
+			}
+
+			i++;
+		}
+
+		if ( got & GOT_C ) {
+			na = i;
+			bv_allowed = ber_memalloc( sizeof( struct berval ) * ( na + 1 ) );
+		}
+		if ( got & GOT_CE ) {
+			ne = i;
+			bv_effective = ber_memalloc( sizeof( struct berval ) * ( ne + 1 ) );
+		}
+
+		for ( oc_start( &oc ); oc != NULL; oc_next( &oc ) ) {
+			/* we can only add STRCUCTURAL objectClasses */
+			if ( oc->soc_kind != LDAP_SCHEMA_STRUCTURAL ) {
+				continue;
+			}
+
+			if ( got & GOT_C ) {
+				ber_dupbv( &bv_allowed[ ja ], &oc->soc_cname );
+				assert( ja < na );
+				ja++;
+			}
+
+			if ( got & GOT_CE ) {
+				ber_dupbv( &bv_effective[ je ], &oc->soc_cname );
+				assert( je < ne );
+				je++;
+			}
+		}
+
+		if ( ( got & GOT_C ) && ja > 0 ) {
+			BER_BVZERO( &bv_allowed[ ja ] );
+			*ap = attr_alloc( ad_allowedChildClasses );
+			(*ap)->a_vals = bv_allowed;
+			(*ap)->a_nvals = bv_allowed;
+			(*ap)->a_numvals = ja;
+			ap = &(*ap)->a_next;
+		}
+
+		if ( ( got & GOT_CE ) && je > 0 ) {
+			BER_BVZERO( &bv_effective[ je ] );
+			*ap = attr_alloc( ad_allowedChildClassesEffective );
+			(*ap)->a_vals = bv_effective;
+			(*ap)->a_nvals = bv_effective;
+			(*ap)->a_numvals = je;
+			ap = &(*ap)->a_next;
+		}
+
+		*ap = NULL;
+	}
 
 	return SLAP_CB_CONTINUE;
 }
