@@ -214,14 +214,6 @@ aa_operational( Operation *op, SlapReply *rs )
 	/* shouldn't be called without an entry; please check */
 	assert( rs->sr_entry != NULL );
 
-	/* if client has no access to objectClass attribute; don't compute */
-	if ( ( got & GOT_CE ) &&
-		!access_allowed( op, rs->sr_entry, slap_schema.si_ad_children,
-				NULL, ACL_WRITE, &acl_state ) )
-	{
-		got &= ~GOT_CE;
-	}
-
 	for ( ap = &rs->sr_operational_attrs; *ap != NULL; ap = &(*ap)->a_next )
 		/* go to last */ ;
 
@@ -330,13 +322,13 @@ do_oc:;
 	if ( ( got & GOT_C ) || ( got & GOT_CE ) ) {
 		BerVarray	bv_allowed = NULL,
 				bv_effective = NULL;
-		int		i, na, ne, ja = 0, je = 0;
+		int		i, ja = 0, je = 0;
 
 		ObjectClass	*oc;
 
 		for ( oc_start( &oc ); oc != NULL; oc_next( &oc ) ) {
-			/* we can only add STRCUCTURAL objectClasses */
-			if ( oc->soc_kind != LDAP_SCHEMA_STRUCTURAL ) {
+			/* we can only add AUXILIARY objectClasses */
+			if ( oc->soc_kind != LDAP_SCHEMA_AUXILIARY ) {
 				continue;
 			}
 
@@ -344,31 +336,53 @@ do_oc:;
 		}
 
 		if ( got & GOT_C ) {
-			na = i;
-			bv_allowed = ber_memalloc( sizeof( struct berval ) * ( na + 1 ) );
+			bv_allowed = ber_memalloc( sizeof( struct berval ) * ( i + 1 ) );
 		}
 		if ( got & GOT_CE ) {
-			ne = i;
-			bv_effective = ber_memalloc( sizeof( struct berval ) * ( ne + 1 ) );
+			bv_effective = ber_memalloc( sizeof( struct berval ) * ( i + 1 ) );
 		}
 
 		for ( oc_start( &oc ); oc != NULL; oc_next( &oc ) ) {
-			/* we can only add STRCUCTURAL objectClasses */
-			if ( oc->soc_kind != LDAP_SCHEMA_STRUCTURAL ) {
+			/* we can only add AUXILIARY objectClasses */
+			if ( oc->soc_kind != LDAP_SCHEMA_AUXILIARY ) {
 				continue;
 			}
 
 			if ( got & GOT_C ) {
 				ber_dupbv( &bv_allowed[ ja ], &oc->soc_cname );
-				assert( ja < na );
 				ja++;
 			}
 
 			if ( got & GOT_CE ) {
+				if ( !access_allowed( op, rs->sr_entry,
+					slap_schema.si_ad_objectClass,
+					&oc->soc_cname, ACL_WRITE, NULL ) )
+				{
+					goto done_ce;
+				}
+
+				if ( oc->soc_required ) {
+					for ( i = 0; oc->soc_required[ i ] != NULL; i++ ) {
+						AttributeDescription	*ad = NULL;
+						const char		*text = NULL;
+	
+						if ( slap_bv2ad( &oc->soc_required[ i ]->sat_cname, &ad, &text ) ) {
+							/* log? */
+							continue;
+						}
+
+						if ( !access_allowed( op, rs->sr_entry,
+							ad, NULL, ACL_WRITE, NULL ) )
+						{
+							goto done_ce;
+						}
+					}
+				}
+
 				ber_dupbv( &bv_effective[ je ], &oc->soc_cname );
-				assert( je < ne );
 				je++;
 			}
+done_ce:;
 		}
 
 		if ( ( got & GOT_C ) && ja > 0 ) {
