@@ -29,9 +29,9 @@
 #include <stdio.h>
 
 #include "nslcd.h"
-#include "nslcd-common.h"
-#include "common/tio.h"
-#include "compat/attrs.h"
+#include "nslcd-prot.h"
+#include "tio.h"
+#include "attrs.h"
 
 #undef PACKAGE_BUGREPORT
 #undef PACKAGE_NAME

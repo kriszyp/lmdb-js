@@ -24,7 +24,7 @@ OPT=-g -O2
 CC=gcc
 
 LDAP_INC=-I$(LDAPOBJ)/include -I$(LDAPSRC)/include -I$(LDAPSRC)/servers/slapd
-NLDAPD_INC=-Inss-ldapd
+NLDAPD_INC=-Inss-pam-ldapd
 INCS=$(LDAP_INC) $(NLDAPD_INC)
 
 LDAP_LIB=-lldap_r -llber
@@ -40,7 +40,7 @@ moduledir = $(libexecdir)$(ldap_subdir)
 sysconfdir = $(prefix)/etc$(ldap_subdir)
 schemadir = $(sysconfdir)/schema
 
-all:	install
+all:	nssov.la
 
 XOBJS = tio.lo
 
@@ -52,8 +52,8 @@ OBJS = alias.lo ether.lo group.lo host.lo netgroup.lo network.lo \
 .c.lo:
 	$(LIBTOOL) --mode=compile $(CC) $(OPT) $(DEFS) $(INCS) -c $<
 
-tio.lo:	nss-ldapd/common/tio.c
-	$(LIBTOOL) --mode=compile $(CC) $(OPT) $(DEFS) $(NLDAPD_INC) -c $?
+tio.lo:	nss-pam-ldapd/tio.c
+	$(LIBTOOL) --mode=compile $(CC) $(OPT) $(DEFS) $(INCS) -c $?
 
 $(OBJS):	nssov.h
 
@@ -68,3 +68,4 @@ install: nssov.la
 
 clean:
 	rm -f *.*o *.la .libs/*
+	rm -rf .libs

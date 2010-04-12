@@ -83,7 +83,7 @@ static int write_alias(nssov_alias_cbp *cbp,Entry *entry)
 	/* for each name, write an entry */
 	for (i=0;!BER_BVISNULL(&names[i]);i++)
 	{
-		WRITE_INT32(cbp->fp,NSLCD_RESULT_SUCCESS);
+		WRITE_INT32(cbp->fp,NSLCD_RESULT_BEGIN);
 		WRITE_BERVAL(cbp->fp,&names[i]);
 		WRITE_BVARRAY(cbp->fp,members);
 	}
@@ -97,7 +97,7 @@ NSSOV_HANDLE(
 	char fbuf[1024];
 	struct berval filter = {sizeof(fbuf)};
 	filter.bv_val = fbuf;
-	READ_STRING_BUF2(fp,cbp.buf,sizeof(cbp.buf));
+	READ_STRING(fp,cbp.buf);
 	cbp.name.bv_len = tmpint32;
 	cbp.name.bv_val = cbp.buf;,
 	Debug(LDAP_DEBUG_TRACE,"nssov_alias_byname(%s)\n",cbp.name.bv_val,0,0);,
