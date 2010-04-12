@@ -2045,12 +2045,12 @@ remove_oc:;
 				int		rc;
 
 				if ( pretty ) {
-					rc = pretty( attr->a_desc->ad_type->sat_syntax,
+					rc = ordered_value_pretty( attr->a_desc,
 						&attr->a_vals[i], &pval, NULL );
 
 				} else {
-					rc = validate( attr->a_desc->ad_type->sat_syntax,
-						&attr->a_vals[i] );
+					rc = ordered_value_validate( attr->a_desc,
+						&attr->a_vals[i], 0 );
 				}
 
 				if ( rc ) {
@@ -2085,9 +2085,9 @@ remove_oc:;
 			attr->a_nvals = ch_malloc( ( last + 1 ) * sizeof( struct berval ) );
 			for ( i = 0; i<last; i++ ) {
 				/* if normalizer fails, drop this value */
-				if ( attr->a_desc->ad_type->sat_equality->smr_normalize(
+				if ( ordered_value_normalize(
 					SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
-					attr->a_desc->ad_type->sat_syntax,
+					attr->a_desc,
 					attr->a_desc->ad_type->sat_equality,
 					&attr->a_vals[i], &attr->a_nvals[i],
 					NULL )) {
