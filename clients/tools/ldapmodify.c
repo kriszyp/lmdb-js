@@ -239,7 +239,8 @@ main( int argc, char **argv )
 	if ( rejfile != NULL ) {
 		if (( rejfp = fopen( rejfile, "w" )) == NULL ) {
 			perror( rejfile );
-			return( EXIT_FAILURE );
+			retval = EXIT_FAILURE;
+			goto fail;
 		}
 	} else {
 		rejfp = NULL;
@@ -248,7 +249,8 @@ main( int argc, char **argv )
 	if ( infile != NULL ) {
 		if (( ldiffp = ldif_open( infile, "r" )) == NULL ) {
 			perror( infile );
-			return( EXIT_FAILURE );
+			retval = EXIT_FAILURE;
+			goto fail;
 		}
 	} else {
 		ldifdummy.fp = stdin;
@@ -263,7 +265,10 @@ main( int argc, char **argv )
 		if ( pw_file || want_bindpw ) {
 			if ( pw_file ) {
 				rc = lutil_get_filed_password( pw_file, &passwd );
-				if( rc ) return EXIT_FAILURE;
+				if ( rc ) {
+					retval = EXIT_FAILURE;
+					goto fail;
+				}
 			} else {
 				passwd.bv_val = getpassphrase( _("Enter LDAP Password: ") );
 				passwd.bv_len = passwd.bv_val ? strlen( passwd.bv_val ) : 0;
@@ -278,7 +283,10 @@ main( int argc, char **argv )
 		rc = ldap_txn_start_s( ld, NULL, NULL, &txn_id );
 		if( rc != LDAP_SUCCESS ) {
 			tool_perror( "ldap_txn_start_s", rc, NULL, NULL, NULL, NULL );
-			if( txn > 1 ) return EXIT_FAILURE;
+			if( txn > 1 ) {
+				retval = EXIT_FAILURE;
+				goto fail;
+			}
 			txn = 0;
 		}
 	}
@@ -312,7 +320,8 @@ main( int argc, char **argv )
 			len = strlen( rbuf );
 			if (( rejbuf = (char *)ber_memalloc( len+1 )) == NULL ) {
 				perror( "malloc" );
-				exit( EXIT_FAILURE );
+				retval = EXIT_FAILURE;
+				goto fail;
 			}
 			memcpy( rejbuf, rbuf, len+1 );
 		}
@@ -367,15 +376,21 @@ main( int argc, char **argv )
 	}
 #endif
 
-	if ( !dont ) {
+	if ( !dont && ld != NULL ) {
 		tool_unbind( ld );
 	}
 
+	tool_destroy();
+
+fail:;
 	if ( rejfp != NULL ) {
 		fclose( rejfp );
 	}
 
-	tool_destroy();
+	if ( ldiffp != NULL && ldiffp != &ldifdummy ) {
+		ldif_close( ldiffp );
+	}
+
 	return( retval );
 }
 
