@@ -854,7 +854,6 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 
 	/* we need this to know if back-ldap returned any result */
 	lb.lb_lc = lc;
-	sc2.sc_next = sc->sc_next;
 	sc2.sc_private = &lb;
 	sc2.sc_response = ldap_chain_cb_response;
 	op->o_callback = &sc2;
@@ -948,7 +947,6 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 
 	case LDAP_SUCCESS:
 	case LDAP_REFERRAL:
-		sr_err = rs->sr_err;
 		/* slapd-ldap sent response */
 		if ( !op->o_abandon && lb.lb_status != LDAP_CH_RES ) {
 			/* FIXME: should we send response? */
