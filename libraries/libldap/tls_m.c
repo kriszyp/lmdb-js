@@ -103,9 +103,10 @@ static PRDescIdentity	tlsm_layer_id;
 
 static const PRIOMethods tlsm_PR_methods;
 
-static const char* pem_library = "nsspem";
-static const char *pem_mod_name = "PEM";
-static SECMODModule* pem_module;
+#define PEM_LIBRARY	"nsspem"
+#define PEM_MODULE	"PEM"
+
+static SECMODModule *pem_module;
 
 #define DEFAULT_TOKEN_NAME "default"
 /* sprintf format used to create token name */
@@ -978,9 +979,9 @@ tlsm_init_pem_module( void )
 
 	/* not loaded - load it */
 	/* get the system dependent library name */
-	fullname = PR_GetLibraryName( NULL, pem_library );
+	fullname = PR_GetLibraryName( NULL, PEM_LIBRARY );
 	/* Load our PKCS#11 module */
-	configstring = PR_smprintf( "library=%s name=%s parameters=\"\"", fullname, pem_mod_name );
+	configstring = PR_smprintf( "library=%s name=" PEM_MODULE " parameters=\"\"", fullname );
 	PL_strfree( fullname );
 
 	pem_module = SECMOD_LoadUserModule( configstring, NULL, PR_FALSE );
