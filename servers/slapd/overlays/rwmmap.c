@@ -789,9 +789,6 @@ rwm_filter_map_rewrite(
 	case REWRITE_REGEXEC_OK:
 		if ( !BER_BVISNULL( fstr ) ) {
 			fstr->bv_len = strlen( fstr->bv_val );
-			if ( fstr->bv_val != ftmp.bv_val ) {
-				ch_free( ftmp.bv_val );
-			}
 
 		} else {
 			*fstr = ftmp;
@@ -800,6 +797,9 @@ rwm_filter_map_rewrite(
 		Debug( LDAP_DEBUG_ARGS,
 			"[rw] %s: \"%s\" -> \"%s\"\n",
 			fdc.ctx, ftmp.bv_val, fstr->bv_val );		
+		if ( fstr->bv_val != ftmp.bv_val ) {
+			ch_free( ftmp.bv_val );
+		}
 		rc = LDAP_SUCCESS;
 		break;
  		
