@@ -14,6 +14,9 @@
 ## <http://www.OpenLDAP.org/license.html>.
 
 LIBRARY	= liblutil.a
+
+SHAREDLIB = libldif.la
+
 PROGRAM = testavl
 
 LDAP_INCDIR= ../../include       
@@ -40,6 +43,8 @@ OBJS	= base64.o entropy.o sasl.o signal.o hash.o passfile.o \
 	meter.o \
 	@LIBOBJS@ $(@PLAT@_OBJS)
 
+SHAREDLIBOBJS = ldif.lo fetch.lo
+
 testavl: $(XLIBS) testavl.o
 	(LTLINK) -o $@ testavl.o $(LIBS)
 
@@ -59,3 +64,17 @@ slapdmsg.res: slapdmsg.rc slapdmsg.bin
 clean-local:
 	$(RM) *.res
 
+all-local: $(SHAREDLIB)
+
+.SUFFIXES: .c .o .lo
+
+.c.lo:
+	$(LTCOMPILE_LIB) $<
+
+$(SHAREDLIB): $(LIBRARY) $(SHAREDLIBOBJS) version.lo
+	$(LTLINK_LIB) -o $(SHAREDLIB) $(SHAREDLIBOBJS) version.lo $(LINK_LIBS)
+
+install-local: FORCE
+	-$(MKDIR) $(DESTDIR)$(libdir)
+	$(LTINSTALL) $(INSTALLFLAGS) -m 644 $(SHAREDLIB) $(DESTDIR)$(libdir)
+	$(LTFINISH) $(DESTDIR)$(libdir)

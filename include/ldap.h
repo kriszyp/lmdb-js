@@ -2486,5 +2486,57 @@ ldap_parse_deref_control LDAP_P((
 	LDAPControl	**ctrls,
 	LDAPDerefRes	**drp ));
 
+/*
+ * high level LDIF to LDAP structure support
+ */
+#define LDIF_DEFAULT_ADD  0x01 /* if changetype missing, assume LDAP_ADD */
+#define LDIF_ENTRIES_ONLY 0x02 /* ignore changetypes other than add */
+#define LDIF_NO_CONTROLS  0x04 /* ignore control specifications */
+
+typedef struct ldifrecord {
+	ber_tag_t lr_op; /* type of operation - LDAP_REQ_MODIFY, LDAP_REQ_ADD, etc. */
+	struct berval lr_dn; /* DN of operation */
+	LDAPControl **lr_ctrls; /* controls specified for operation */
+	/* some ops such as LDAP_REQ_DELETE require only a DN */
+	LDAPMod **lr_mods; /* list of mods for LDAP_REQ_MODIFY, LDAP_REQ_ADD */
+	struct berval lr_newrdn; /* LDAP_REQ_MODDN, LDAP_REQ_MODRDN, LDAP_REQ_RENAME */
+	struct berval lr_newsuperior; /* LDAP_REQ_MODDN, LDAP_REQ_MODRDN, LDAP_REQ_RENAME */
+	int lr_deleteoldrdn; /* LDAP_REQ_MODDN, LDAP_REQ_MODRDN, LDAP_REQ_RENAME */
+	/* the following are for future support */
+	struct berval lr_extop_oid; /* LDAP_REQ_EXTENDED */
+	struct berval lr_extop_data; /* LDAP_REQ_EXTENDED */
+	struct berval lr_cmp_attr; /* LDAP_REQ_COMPARE */
+	struct berval lr_cmp_bvalue; /* LDAP_REQ_COMPARE */
+	/* PRIVATE STUFF - DO NOT TOUCH */
+	/* for efficiency, the implementation allocates memory */
+	/* in large blobs, and makes the above fields point to */
+	/* locations inside those blobs - one consequence is that */
+	/* you cannot simply free the above allocated fields, nor */
+	/* assign them to be owned by another memory context which */
+	/* might free them (unless providing your own mem ctx) */
+	/* we use the fields below to keep track of those blobs */
+	/* so we that we can free them later */
+	void *lr_ctx; /* the memory context or NULL */
+	int lr_lines;
+	LDAPMod	*lr_lm;
+	unsigned char *lr_mops;
+	char *lr_freeval;
+	struct berval *lr_vals;
+	struct berval *lr_btype;
+} LDIFRecord;
+
+/* free internal fields - does not free the LDIFRecord */
+LDAP_F( void )
+ldap_ldif_record_done LDAP_P((
+	LDIFRecord *lr ));
+
+LDAP_F( int )
+ldap_parse_ldif_record LDAP_P((
+	struct berval *rbuf,
+	int linenum,
+	LDIFRecord *lr,
+	const char *errstr,
+	unsigned int flags ));
+
 LDAP_END_DECL
 #endif /* _LDAP_H */

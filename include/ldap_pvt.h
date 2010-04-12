@@ -313,10 +313,21 @@ struct sb_sasl_generic_data {
 
 struct ldap;
 struct ldapmsg;
+struct ldifrecord;
 
 /* abandon */
 LDAP_F ( int ) ldap_pvt_discard LDAP_P((
 	struct ldap *ld, ber_int_t msgid ));
+
+/* ldifutil.c */
+LDAP_F( int )
+ldap_parse_ldif_record_x LDAP_P((
+	struct berval *rbuf,
+	int linenum,
+	struct ldifrecord *lr,
+	const char *errstr,
+	unsigned int flags,
+	void *ctx ));
 
 /* messages.c */
 LDAP_F( BerElement * )
