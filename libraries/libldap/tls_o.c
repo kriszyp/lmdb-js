@@ -1079,7 +1079,7 @@ tlso_tmp_rsa_cb( SSL *ssl, int is_export, int key_length )
 	RSA *tmp_rsa;
 	/* FIXME:  Pregenerate the key on startup */
 	/* FIXME:  Who frees the key? */
-#if OPENSSL_VERSION_NUMBER > 0x00908000
+#if OPENSSL_VERSION_NUMBER >= 0x00908000
 	BIGNUM *bn = BN_new();
 	tmp_rsa = NULL;
 	if ( bn ) {
