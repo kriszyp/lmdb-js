@@ -444,9 +444,9 @@ process_ldif_rec( char *rbuf, int linenum )
 		if ( LDAP_REQ_DELETE == lr.lr_op ) {
 			rc = dodelete( &lr.lr_dn, lr.lr_ctrls );
 		} else if ( LDAP_REQ_RENAME == lr.lr_op ) {
-			rc = dorename( &lr.lr_dn, &lr.lr_newrdn, &lr.lr_newsuperior, lr.lr_deleteoldrdn, lr.lr_ctrls );
+			rc = dorename( &lr.lr_dn, &lr.lrop_newrdn, &lr.lrop_newsup, lr.lrop_delold, lr.lr_ctrls );
 		} else if ( ( LDAP_REQ_ADD == lr.lr_op ) || ( LDAP_REQ_MODIFY == lr.lr_op ) ) {
-			rc = domodify( &lr.lr_dn, lr.lr_mods, lr.lr_ctrls, LDAP_REQ_ADD == lr.lr_op );
+			rc = domodify( &lr.lr_dn, lr.lrop_mods, lr.lr_ctrls, LDAP_REQ_ADD == lr.lr_op );
 		} else {
 			/* record skipped e.g. version: or comment or something we don't handle yet */
 		}

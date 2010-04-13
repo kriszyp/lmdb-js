@@ -276,7 +276,7 @@ short_input:
 				rc = LDAP_PARAM_ERROR;
 				goto leave;
 			}
-			lr->lr_newrdn = lr->lr_vals[i];
+			lr->lrop_newrdn = lr->lr_vals[i];
 			i++;
 			if ( i >= lr->lr_lines )
 				goto short_input;
@@ -287,7 +287,7 @@ short_input:
 				rc = LDAP_PARAM_ERROR;
 				goto leave;
 			}
-			lr->lr_deleteoldrdn = ( lr->lr_vals[i].bv_val[0] == '0' ) ? 0 : 1;
+			lr->lrop_delold = ( lr->lr_vals[i].bv_val[0] == '0' ) ? 0 : 1;
 			i++;
 			if ( i < lr->lr_lines ) {
 				if ( !BV_CASEMATCH( lr->lr_btype+i, &BV_NEWSUP )) {
@@ -297,7 +297,7 @@ short_input:
 					rc = LDAP_PARAM_ERROR;
 					goto leave;
 				}
-				lr->lr_newsuperior = lr->lr_vals[i];
+				lr->lrop_newsup = lr->lr_vals[i];
 				i++;
 			}
 			got_all = 1;
@@ -523,11 +523,11 @@ doit:
 	/* next, set the op */
 	if ( delete_entry ) {
 		lr->lr_op = LDAP_REQ_DELETE;
-	} else if ( lr->lr_newrdn.bv_val != NULL ) {
+	} else if ( lr->lrop_newrdn.bv_val != NULL ) {
 		lr->lr_op = LDAP_REQ_MODDN;
 	} else {
 		/* for now, either add or modify */
-		lr->lr_mods = pmods;
+		lr->lrop_mods = pmods;
 		if ( new_entry ) {
 			lr->lr_op = LDAP_REQ_ADD;
 		} else {

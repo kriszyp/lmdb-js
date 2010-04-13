@@ -2498,15 +2498,33 @@ typedef struct ldifrecord {
 	struct berval lr_dn; /* DN of operation */
 	LDAPControl **lr_ctrls; /* controls specified for operation */
 	/* some ops such as LDAP_REQ_DELETE require only a DN */
-	LDAPMod **lr_mods; /* list of mods for LDAP_REQ_MODIFY, LDAP_REQ_ADD */
-	struct berval lr_newrdn; /* LDAP_REQ_MODDN, LDAP_REQ_MODRDN, LDAP_REQ_RENAME */
-	struct berval lr_newsuperior; /* LDAP_REQ_MODDN, LDAP_REQ_MODRDN, LDAP_REQ_RENAME */
-	int lr_deleteoldrdn; /* LDAP_REQ_MODDN, LDAP_REQ_MODRDN, LDAP_REQ_RENAME */
-	/* the following are for future support */
-	struct berval lr_extop_oid; /* LDAP_REQ_EXTENDED */
-	struct berval lr_extop_data; /* LDAP_REQ_EXTENDED */
-	struct berval lr_cmp_attr; /* LDAP_REQ_COMPARE */
-	struct berval lr_cmp_bvalue; /* LDAP_REQ_COMPARE */
+	/* other ops require different data - the ldif_ops union
+	   is used to specify the data for each type of operation */
+	union ldif_ops_u {
+		LDAPMod **lr_mods; /* list of mods for LDAP_REQ_MODIFY, LDAP_REQ_ADD */
+#define lrop_mods ldif_ops.lr_mods
+		struct ldif_op_rename_s {
+			struct berval lr_newrdn; /* LDAP_REQ_MODDN, LDAP_REQ_MODRDN, LDAP_REQ_RENAME */
+#define lrop_newrdn ldif_ops.ldif_op_rename.lr_newrdn
+			struct berval lr_newsuperior; /* LDAP_REQ_MODDN, LDAP_REQ_MODRDN, LDAP_REQ_RENAME */
+#define lrop_newsup ldif_ops.ldif_op_rename.lr_newsuperior
+			int lr_deleteoldrdn; /* LDAP_REQ_MODDN, LDAP_REQ_MODRDN, LDAP_REQ_RENAME */
+#define lrop_delold ldif_ops.ldif_op_rename.lr_deleteoldrdn
+		} ldif_op_rename; /* rename/moddn/modrdn */
+		/* the following are for future support */
+		struct ldif_op_ext_s {
+			struct berval lr_extop_oid; /* LDAP_REQ_EXTENDED */
+#define lrop_extop_oid ldif_ops.ldif_op_ext.lr_extop_oid
+			struct berval lr_extop_data; /* LDAP_REQ_EXTENDED */
+#define lrop_extop_data ldif_ops.ldif_op_ext.lr_extop_data
+		} ldif_op_ext; /* extended operation */
+		struct ldif_op_cmp_s {
+			struct berval lr_cmp_attr; /* LDAP_REQ_COMPARE */
+#define lrop_cmp_attr ldif_ops.ldif_op_cmp.lr_cmp_attr
+			struct berval lr_cmp_bvalue; /* LDAP_REQ_COMPARE */
+#define lrop_cmp_bval ldif_ops.ldif_op_cmp.lr_cmp_bvalue
+		} ldif_op_cmp; /* compare operation */
+	} ldif_ops;
 	/* PRIVATE STUFF - DO NOT TOUCH */
 	/* for efficiency, the implementation allocates memory */
 	/* in large blobs, and makes the above fields point to */
