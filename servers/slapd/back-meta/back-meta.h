@@ -117,7 +117,8 @@ ldap_back_map_attrs(
 	struct ldapmap *at_map,
 	AttributeName *a,
 	int remap,
-	char ***mapped_attrs );
+	char ***mapped_attrs,
+	void *memctx );
 
 extern int ldap_back_map_config(
 	struct ldapmap	*oc_map,
@@ -132,7 +133,8 @@ ldap_back_filter_map_rewrite(
 	dncookie	*dc,
 	Filter		*f,
 	struct berval	*fstr,
-	int		remap );
+	int		remap,
+	void		*memctx );
 
 /* suffix massaging by means of librewrite */
 #ifdef ENABLE_REWRITE
@@ -146,7 +148,8 @@ suffix_massage_config( struct rewrite_info *info,
 extern int
 ldap_back_referral_result_rewrite(
 	dncookie	*dc,
-	BerVarray	a_vals );
+	BerVarray	a_vals,
+	void		*memctx );
 extern int
 ldap_dnattr_rewrite(
 	dncookie	*dc,
