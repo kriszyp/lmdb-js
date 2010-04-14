@@ -740,6 +740,11 @@ slap_idassert_parse( ConfigArgs *c, slap_idassert_t *si )
 			}
 
 		} else if ( bindconf_parse( c->argv[ i ], &si->si_bc ) ) {
+			snprintf( c->cr_msg, sizeof( c->cr_msg ),
+				"\"idassert-bind <args>\": "
+				"unable to parse field \"%s\"",
+				c->argv[ i ] );
+			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
 			return 1;
 		}
 	}
