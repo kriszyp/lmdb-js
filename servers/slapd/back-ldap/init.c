@@ -298,50 +298,11 @@ ldap_back_db_destroy( Backend *be, ConfigReply *cr )
 			ber_bvarray_free( li->li_bvuri );
 			li->li_bvuri = NULL;
 		}
-		if ( !BER_BVISNULL( &li->li_acl_authcID ) ) {
-			ch_free( li->li_acl_authcID.bv_val );
-			BER_BVZERO( &li->li_acl_authcID );
-		}
-		if ( !BER_BVISNULL( &li->li_acl_authcDN ) ) {
-			ch_free( li->li_acl_authcDN.bv_val );
-			BER_BVZERO( &li->li_acl_authcDN );
-		}
-		if ( !BER_BVISNULL( &li->li_acl_passwd ) ) {
-			ch_free( li->li_acl_passwd.bv_val );
-			BER_BVZERO( &li->li_acl_passwd );
-		}
-		if ( !BER_BVISNULL( &li->li_acl_sasl_mech ) ) {
-			ch_free( li->li_acl_sasl_mech.bv_val );
-			BER_BVZERO( &li->li_acl_sasl_mech );
-		}
-		if ( !BER_BVISNULL( &li->li_acl_sasl_realm ) ) {
-			ch_free( li->li_acl_sasl_realm.bv_val );
-			BER_BVZERO( &li->li_acl_sasl_realm );
-		}
-		if ( !BER_BVISNULL( &li->li_idassert_authcID ) ) {
-			ch_free( li->li_idassert_authcID.bv_val );
-			BER_BVZERO( &li->li_idassert_authcID );
-		}
-		if ( !BER_BVISNULL( &li->li_idassert_authcDN ) ) {
-			ch_free( li->li_idassert_authcDN.bv_val );
-			BER_BVZERO( &li->li_idassert_authcDN );
-		}
-		if ( !BER_BVISNULL( &li->li_idassert_passwd ) ) {
-			ch_free( li->li_idassert_passwd.bv_val );
-			BER_BVZERO( &li->li_idassert_passwd );
-		}
-		if ( !BER_BVISNULL( &li->li_idassert_authzID ) ) {
-			ch_free( li->li_idassert_authzID.bv_val );
-			BER_BVZERO( &li->li_idassert_authzID );
-		}
-		if ( !BER_BVISNULL( &li->li_idassert_sasl_mech ) ) {
-			ch_free( li->li_idassert_sasl_mech.bv_val );
-			BER_BVZERO( &li->li_idassert_sasl_mech );
-		}
-		if ( !BER_BVISNULL( &li->li_idassert_sasl_realm ) ) {
-			ch_free( li->li_idassert_sasl_realm.bv_val );
-			BER_BVZERO( &li->li_idassert_sasl_realm );
-		}
+
+		bindconf_free( &li->li_tls );
+		bindconf_free( &li->li_acl );
+		bindconf_free( &li->li_idassert.si_bc );
+
 		if ( li->li_idassert_authz != NULL ) {
 			ber_bvarray_free( li->li_idassert_authz );
 			li->li_idassert_authz = NULL;
