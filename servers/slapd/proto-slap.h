@@ -1512,6 +1512,10 @@ LDAP_SLAPD_F (int) get_alias_dn LDAP_P((
 /*
  * result.c
  */
+LDAP_SLAPD_F (void) rs_replace_entry LDAP_P(( Operation *op,
+	SlapReply *rs, slap_overinst *on, Entry *e ));
+LDAP_SLAPD_F (int) rs_ensure_entry_modifiable LDAP_P(( Operation *op,
+	SlapReply *rs, slap_overinst *on ));
 LDAP_SLAPD_F (void) slap_send_ldap_result LDAP_P(( Operation *op, SlapReply *rs ));
 LDAP_SLAPD_F (void) send_ldap_sasl LDAP_P(( Operation *op, SlapReply *rs ));
 LDAP_SLAPD_F (void) send_ldap_disconnect LDAP_P(( Operation *op, SlapReply *rs ));
