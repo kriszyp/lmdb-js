@@ -1885,6 +1885,7 @@ static ConfigTable rwmcfg[] = {
 		2, 4, 0, ARG_MAGIC|RWM_CF_MAP, rwm_cf_gen,
 		"( OLcfgOvAt:16.3 NAME 'olcRwmMap' "
 			"DESC 'maps attributes/objectClasses' "
+			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString "
 			"X-ORDERED 'VALUES' )",
 		NULL, NULL },
@@ -1964,8 +1965,8 @@ slap_bv_x_ordered_unparse( BerVarray in, BerVarray *out )
 }
 
 static int
-rwm_bva_rewrite_add(
-	struct ldaprwmap	*rwmap,
+rwm_bva_add(
+	BerVarray		*bva,
 	int			idx,
 	char			**argv )
 {
@@ -1982,14 +1983,34 @@ rwm_bva_rewrite_add(
 		bv.bv_val[ bv.bv_len - 1 ] = '"';
 
 		if ( idx == -1 ) {
-			ber_bvarray_add( &rwmap->rwm_bva_rewrite, &bv );
+			ber_bvarray_add( bva, &bv );
 
 		} else {
-			rwmap->rwm_bva_rewrite[ idx ] = bv;
+			(*bva)[ idx ] = bv;
 		}
+
+		return 0;
 	}
 
-	return 0;
+	return -1;
+}
+
+static int
+rwm_bva_rewrite_add(
+	struct ldaprwmap	*rwmap,
+	int			idx,
+	char			**argv )
+{
+	return rwm_bva_add( &rwmap->rwm_bva_rewrite, idx, argv );
+}
+
+static int
+rwm_bva_map_add(
+	struct ldaprwmap	*rwmap,
+	int			idx,
+	char			**argv )
+{
+	return rwm_bva_add( &rwmap->rwm_bva_map, idx, argv );
 }
 
 static int
@@ -2097,7 +2118,7 @@ rwm_cf_gen( ConfigArgs *c )
 				for ( i = 0; !BER_BVISNULL( &rwmap->rwm_bva_rewrite[ i ] ); i++ )
 					/* count'em */ ;
 
-				if ( i >= c->valx ) {
+				if ( c->valx >= i ) {
 					rc = 1;
 					break;
 				}
@@ -2130,6 +2151,7 @@ rwm_cf_gen( ConfigArgs *c )
 					}
 
 					ch_free( ca.tline );
+					ch_free( ca.argv );
 
 					assert( rc == 0 );
 				}
@@ -2151,8 +2173,74 @@ rwm_cf_gen( ConfigArgs *c )
 
 		case RWM_CF_MAP:
 			if ( c->valx >= 0 ) {
-				/* single modification is not allowed */
-				rc = 1;
+				struct ldapmap rwm_oc = rwmap->rwm_oc;
+				struct ldapmap rwm_at = rwmap->rwm_at;
+				char *argv[5];
+				int cnt = 0;
+
+				if ( rwmap->rwm_bva_map ) {
+					for ( ; !BER_BVISNULL( &rwmap->rwm_bva_map[ cnt ] ); cnt++ )
+						/* count */ ;
+				}
+
+				if ( c->valx >= cnt ) {
+					rc = 1;
+					break;
+				}
+
+				memset( &rwmap->rwm_oc, 0, sizeof( rwmap->rwm_oc ) );
+				memset( &rwmap->rwm_at, 0, sizeof( rwmap->rwm_at ) );
+
+				/* re-parse all mappings except the one
+				 * that needs to be eliminated */
+				argv[0] = "map";
+				for ( cnt = 0; !BER_BVISNULL( &rwmap->rwm_bva_map[ cnt ] ); cnt++ ) {
+					ConfigArgs ca = { 0 };
+
+					if ( cnt == c->valx ) {
+						continue;
+					}
+
+					ca.line = rwmap->rwm_bva_map[ cnt ].bv_val;
+					ca.argc = 0;
+					config_fp_parse_line( &ca );
+					
+					argv[1] = ca.argv[0];
+					argv[2] = ca.argv[1];
+					argv[3] = ca.argv[2];
+					argv[4] = ca.argv[3];
+			
+					rc = rwm_m_config( &db, c->fname, c->lineno, ca.argc + 1, argv );
+
+					ch_free( ca.tline );
+					ch_free( ca.argv );
+
+					/* in case of failure, restore
+					 * the existing mapping */
+					if ( rc ) {
+						avl_free( rwmap->rwm_oc.remap, rwm_mapping_dst_free );
+						avl_free( rwmap->rwm_oc.map, rwm_mapping_free );
+						avl_free( rwmap->rwm_at.remap, rwm_mapping_dst_free );
+						avl_free( rwmap->rwm_at.map, rwm_mapping_free );
+						rwmap->rwm_oc = rwm_oc;
+						rwmap->rwm_at = rwm_at;
+						break;
+					}
+				}
+
+				/* in case of success, destroy the old mapping
+				 * and eliminate the deleted one */
+				if ( rc == 0 ) {
+					avl_free( rwm_oc.remap, rwm_mapping_dst_free );
+					avl_free( rwm_oc.map, rwm_mapping_free );
+					avl_free( rwm_at.remap, rwm_mapping_dst_free );
+					avl_free( rwm_at.map, rwm_mapping_free );
+
+					ber_memfree( rwmap->rwm_bva_map[ c->valx ].bv_val );
+					for ( cnt = c->valx; !BER_BVISNULL( &rwmap->rwm_bva_map[ cnt ] ); cnt++ ) {
+						rwmap->rwm_bva_map[ cnt ] = rwmap->rwm_bva_map[ cnt + 1 ];
+					}
+				}
 
 			} else {
 				avl_free( rwmap->rwm_oc.remap, rwm_mapping_dst_free );
@@ -2225,6 +2313,7 @@ rwm_cf_gen( ConfigArgs *c )
 				ca.argv[ 0 ] = argv0;
 
 				ch_free( ca.tline );
+				ch_free( ca.argv );
 
 				assert( rc == 0 );
 			}
@@ -2272,6 +2361,7 @@ rwm_cf_gen( ConfigArgs *c )
 				ca.argv[ 0 ] = argv0;
 
 				ch_free( ca.tline );
+				ch_free( ca.argv );
 
 				assert( rc == 0 );
 			}
@@ -2326,18 +2416,130 @@ rwm_cf_gen( ConfigArgs *c )
 		rc = 0;
 		break;
 
-	case RWM_CF_MAP: {
-		int cnt = 0;
+	case RWM_CF_MAP:
+		if ( c->valx >= 0 ) {
+			struct ldapmap rwm_oc = rwmap->rwm_oc;
+			struct ldapmap rwm_at = rwmap->rwm_at;
+			char *argv[5];
+			int cnt = 0;
 
-		if ( rwmap->rwm_bva_map ) {
-			for ( ; !BER_BVISNULL( &rwmap->rwm_bva_map[ cnt ]); cnt++ )
-				/* just count */ ;
+			if ( rwmap->rwm_bva_map ) {
+				for ( ; !BER_BVISNULL( &rwmap->rwm_bva_map[ cnt ] ); cnt++ )
+					/* count */ ;
+			}
+
+			if ( c->valx >= cnt ) {
+				c->valx = cnt;
+			}
+
+			memset( &rwmap->rwm_oc, 0, sizeof( rwmap->rwm_oc ) );
+			memset( &rwmap->rwm_at, 0, sizeof( rwmap->rwm_at ) );
+
+			/* re-parse all mappings, including the one
+			 * that needs to be added */
+			argv[0] = "map";
+			for ( cnt = 0; cnt < c->valx; cnt++ ) {
+				ConfigArgs ca = { 0 };
+
+				ca.line = rwmap->rwm_bva_map[ cnt ].bv_val;
+				ca.argc = 0;
+				config_fp_parse_line( &ca );
+
+				argv[1] = ca.argv[0];
+				argv[2] = ca.argv[1];
+				argv[3] = ca.argv[2];
+				argv[4] = ca.argv[3];
+			
+				rc = rwm_m_config( &db, c->fname, c->lineno, ca.argc + 1, argv );
+
+				ch_free( ca.tline );
+				ch_free( ca.argv );
+
+				/* in case of failure, restore
+				 * the existing mapping */
+				if ( rc ) {
+					goto rwmmap_fail;
+				}
+			}
+
+			argv0 = c->argv[0];
+			c->argv[0] = "map";
+			rc = rwm_m_config( &db, c->fname, c->lineno, c->argc, c->argv );
+			c->argv[0] = argv0;
+			if ( rc ) {
+				goto rwmmap_fail;
+			}
+
+			if ( rwmap->rwm_bva_map ) {
+				for ( ; !BER_BVISNULL( &rwmap->rwm_bva_map[ cnt ] ); cnt++ ) {
+					ConfigArgs ca = { 0 };
+
+					ca.line = rwmap->rwm_bva_map[ cnt ].bv_val;
+					ca.argc = 0;
+					config_fp_parse_line( &ca );
+			
+					argv[1] = ca.argv[0];
+					argv[2] = ca.argv[1];
+					argv[3] = ca.argv[2];
+					argv[4] = ca.argv[3];
+			
+					rc = rwm_m_config( &db, c->fname, c->lineno, ca.argc + 1, argv );
+
+					ch_free( ca.tline );
+					ch_free( ca.argv );
+
+					/* in case of failure, restore
+					 * the existing mapping */
+					if ( rc ) {
+						goto rwmmap_fail;
+					}
+				}
+			}
+
+			/* in case of success, destroy the old mapping
+			 * and add the new one */
+			if ( rc == 0 ) {
+				BerVarray tmp;
+				struct berval bv, *bvp = &bv;
+
+				if ( rwm_bva_add( &bvp, 0, &c->argv[ idx0 ] ) ) {
+					rc = 1;
+					goto rwmmap_fail;
+				}
+					
+				tmp = ber_memrealloc( rwmap->rwm_bva_map,
+					sizeof( struct berval )*( cnt + 2 ) );
+				if ( tmp == NULL ) {
+					ber_memfree( bv.bv_val );
+					rc = 1;
+					goto rwmmap_fail;
+				}
+				rwmap->rwm_bva_map = tmp;
+				BER_BVZERO( &rwmap->rwm_bva_map[ cnt + 1 ] );
+
+				avl_free( rwm_oc.remap, rwm_mapping_dst_free );
+				avl_free( rwm_oc.map, rwm_mapping_free );
+				avl_free( rwm_at.remap, rwm_mapping_dst_free );
+				avl_free( rwm_at.map, rwm_mapping_free );
+
+				for ( ; cnt-- > c->valx; ) {
+					rwmap->rwm_bva_map[ cnt + 1 ] = rwmap->rwm_bva_map[ cnt ];
+				}
+				rwmap->rwm_bva_map[ c->valx ] = bv;
+
+			} else {
+rwmmap_fail:;
+				avl_free( rwmap->rwm_oc.remap, rwm_mapping_dst_free );
+				avl_free( rwmap->rwm_oc.map, rwm_mapping_free );
+				avl_free( rwmap->rwm_at.remap, rwm_mapping_dst_free );
+				avl_free( rwmap->rwm_at.map, rwm_mapping_free );
+				rwmap->rwm_oc = rwm_oc;
+				rwmap->rwm_at = rwm_at;
+			}
+
+			break;
 		}
 
-		/* can only append */
-		if ( c->valx >= 0 && c->valx != cnt ) return 1;
-
-		/* try to configure; FIXME: modifications not atomic! */
 		argv0 = c->argv[ 0 ];
 		c->argv[ 0 ] += STRLENOF( "rwm-" );
 		rc = rwm_m_config( &db, c->fname, c->lineno, c->argc, c->argv );
@@ -2355,7 +2557,7 @@ rwm_cf_gen( ConfigArgs *c )
 				ber_bvarray_add( &rwmap->rwm_bva_map, &bv );
 			}
 		}
-		} break;
+		break;
 
 	case RWM_CF_NORMALIZE_MAPPED:
 		if ( c->value_int ) {
