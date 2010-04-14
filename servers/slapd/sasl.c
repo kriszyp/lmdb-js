@@ -258,7 +258,11 @@ sasl_ap_lookup( Operation *op, SlapReply *rs )
 	return LDAP_SUCCESS;
 }
 
+#if SASL_VERSION_FULL >= 0x020118
+static int
+#else
 static void
+#endif
 slap_auxprop_lookup(
 	void *glob_context,
 	sasl_server_params_t *sparams,
@@ -271,6 +275,7 @@ slap_auxprop_lookup(
 	int i, doit = 0;
 	Connection *conn = NULL;
 	lookup_info sl;
+	int rc = LDAP_SUCCESS;
 
 	sl.list = sparams->utils->prop_get( sparams->propctx );
 	sl.sparams = sparams;
@@ -402,10 +407,13 @@ slap_auxprop_lookup(
 				/* FIXME: we want all attributes, right? */
 				op->ors_attrs = NULL;
 
-				op->o_bd->be_search( op, &rs );
+				rc = op->o_bd->be_search( op, &rs );
 			}
 		}
 	}
+#if SASL_VERSION_FULL >= 0x020118
+	return rc != LDAP_SUCCESS ? SASL_FAIL : SASL_OK;
+#endif
 }
 
 #if SASL_VERSION_FULL >= 0x020110

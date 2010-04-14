@@ -3,6 +3,7 @@ OpenLDAP 2.4 Change Log
 OpenLDAP 2.4.22 Engineering
 	Added slapd SLAP_SCHEMA_EXPOSE flag for hidden schema elements (ITS#6435)
 	Fixed slapd REP_ENTRY flag handling (ITS#5340)
+	Fixed slapd sasl auxprop_lookup (ITS#6441)
 	Fixed slapo-collect REP_ENTRY flag handling (ITS#5340,ITS#6423)
 	Fixed slapo-dynlist REP_ENTRY flag handling (ITS#5340,ITS#6423)
 	Fixed slapo-rwm olcRwmMap handling (ITS#6436)
