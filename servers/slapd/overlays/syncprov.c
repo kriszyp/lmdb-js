@@ -931,9 +931,9 @@ syncprov_qplay( Operation *op, syncops *so )
 		ldap_pvt_thread_mutex_unlock( &so->s_mutex );
 
 		if ( sr->s_mode == LDAP_SYNC_NEW_COOKIE ) {
-		    SlapReply rs = { REP_INTERMEDIATE };
+			SlapReply rs = { REP_INTERMEDIATE };
 
-		    rc = syncprov_sendinfo( op, &rs, LDAP_TAG_SYNC_NEW_COOKIE,
+			rc = syncprov_sendinfo( op, &rs, LDAP_TAG_SYNC_NEW_COOKIE,
 				&sr->s_csn, 0, NULL, 0 );
 		} else {
 			opc.sdn = sr->s_dn;
@@ -945,11 +945,11 @@ syncprov_qplay( Operation *op, syncops *so )
 
 			rc = syncprov_sendresp( op, &opc, so, sr->s_mode );
 
-			if ( opc.se ) {
-				if ( !dec_mutexint( opc.se->e_private )) {
-					opc.se->e_private = NULL;
-					entry_free ( opc.se );
-				}
+		}
+		if ( sr->s_e ) {
+			if ( !dec_mutexint( sr->s_e->e_private )) {
+				sr->s_e->e_private = NULL;
+				entry_free ( sr->s_e );
 			}
 		}
 
