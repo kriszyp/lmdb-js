@@ -1,12 +1,18 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.22 Engineering
+	Added slapd SLAP_SCHEMA_EXPOSE flag for hidden schema elements (ITS#6435)
+	Fixed slapd REP_ENTRY flag handling (ITS#5340)
+	Fixed slapo-collect REP_ENTRY flag handling (ITS#5340,ITS#6423)
+	Fixed slapo-dynlist REP_ENTRY flag handling (ITS#5340,ITS#6423)
+	Fixed slapo-rwm olcRwmMap handling (ITS#6434)
+	Fixed slapo-rwm REP_ENTRY flag handling (ITS#5340,ITS#6423)
+	Fixed slapo-valsort REP_ENTRY flag handling (ITS#5340,ITS#6423)
 
 OpenLDAP 2.4.21 Release (2009/12/20)
 	Fixed liblutil for negative microsecond offsets (ITS#6405)
 	Fixed slapd global settings to work without restart (ITS#6428)
 	Fixed slapd looping with SSL/TLS connections (ITS#6412)
-	Fixed slapd REP_ENTRY flag handling (ITS#5340)
 	Fixed slapd syncrepl freeing tasks from queue (ITS#6413)
 	Fixed slapd syncrepl parsing of tls defaults (ITS#6419)
 	Fixed slapd syncrepl uninitialized variables (ITS#6425)
@@ -14,13 +20,8 @@ OpenLDAP 2.4.21 Release (2009/12/20)
 	Fixed slapo-dynlist behavior with simple filters (ITS#6421)
 	Fixed slapd-ldif access outside database directory (ITS#6414)
 	Fixed slapd-null extraneous assert (ITS#6403)
-	Fixed slapo-collect REP_ENTRY flag handling (ITS#5340,ITS#6423)
-	Fixed slapo-dynlist REP_ENTRY flag handling (ITS#5340,ITS#6423)
-	Fixed slapo-rwm REP_ENTRY flag handling (ITS#5340,ITS#6423)
-	Fixed slapo-rwm olcRwmMap handling (ITS#6434)
 	Fixed slapo-translucent with back-null (ITS#6403)
 	Fixed slapo-unique criteria checking (ITS#6270)
-	Fixed slapo-valsort REP_ENTRY flag handling (ITS#5340,ITS#6423)
 	Build Environment
 		Deleted broken LBER_INVALID macro (ITS#6402)
 		Fixed test058 kill usage (ITS#6420)

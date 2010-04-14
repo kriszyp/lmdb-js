@@ -65,6 +65,9 @@ LDAP_BEGIN_DECL
 #define SLAP_CONTROL_X_SESSION_TRACKING
 #define SLAP_CONTROL_X_WHATFAILED
 #define SLAP_CONFIG_DELETE
+#ifndef SLAP_SCHEMA_EXPOSE
+#define SLAP_SCHEMA_EXPOSE
+#endif
 #endif
 
 #define LDAP_DYNAMIC_OBJECTS
@@ -412,7 +415,7 @@ struct Syntax {
 #define SLAP_SYNTAX_BLOB	0x0001U /* syntax treated as blob (audio) */
 #define SLAP_SYNTAX_BINARY	0x0002U /* binary transfer required (certificate) */
 #define SLAP_SYNTAX_BER		0x0004U /* stored in BER encoding (certificate) */
-#ifdef LDAP_DEVEL
+#ifdef SLAP_SCHEMA_EXPOSE
 #define SLAP_SYNTAX_HIDE	0x0000U /* publish everything */
 #else
 #define SLAP_SYNTAX_HIDE	0x8000U /* hide (do not publish) */
@@ -519,7 +522,7 @@ struct MatchingRule {
 
 	slap_mask_t			smr_usage;
 
-#ifdef LDAP_DEVEL
+#ifdef SLAP_SCHEMA_EXPOSE
 #define SLAP_MR_HIDE			0x0000U
 #else
 #define SLAP_MR_HIDE			0x8000U
@@ -690,7 +693,7 @@ struct AttributeType {
 #define SLAP_AT_NONE			0x0000U
 #define SLAP_AT_ABSTRACT		0x0100U /* cannot be instantiated */
 #define SLAP_AT_FINAL			0x0200U /* cannot be subtyped */
-#ifdef LDAP_DEVEL
+#ifdef SLAP_SCHEMA_EXPOSE
 #define SLAP_AT_HIDE			0x0000U /* publish everything */
 #else
 #define SLAP_AT_HIDE			0x8000U /* hide attribute */
@@ -788,7 +791,7 @@ struct ObjectClass {
 #define	SLAP_OC__MASK		0x00FF
 #define	SLAP_OC__END		0x0100
 #define SLAP_OC_OPERATIONAL	0x4000
-#ifdef LDAP_DEVEL
+#ifdef SLAP_SCHEMA_EXPOSE
 #define SLAP_OC_HIDE		0x0000
 #else
 #define SLAP_OC_HIDE		0x8000
@@ -2011,7 +2014,7 @@ typedef struct req_abandon_s {
 	ber_int_t rs_msgid;
 } req_abandon_s;
 
-#ifdef LDAP_DEVEL
+#ifdef SLAP_SCHEMA_EXPOSE
 #define SLAP_EXOP_HIDE 0x0000
 #else
 #define SLAP_EXOP_HIDE 0x8000
@@ -2970,7 +2973,7 @@ struct Listener {
 /* number of response controls supported */
 #define SLAP_MAX_RESPONSE_CONTROLS   6
 
-#ifdef LDAP_DEVEL
+#ifdef SLAP_SCHEMA_EXPOSE
 #define SLAP_CTRL_HIDE				0x00000000U
 #else
 #define SLAP_CTRL_HIDE				0x80000000U
