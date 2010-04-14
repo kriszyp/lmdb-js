@@ -1505,6 +1505,13 @@ rwm_send_entry( Operation *op, SlapReply *rs )
 	(void)rwm_attrs( op, rs, &e->e_attrs, 1 );
 
 	if ( rs->sr_flags & REP_ENTRY_MUSTRELEASE ) {
+		/* ITS#6423: REP_ENTRY_MUSTRELEASE incompatible
+		 * with REP_ENTRY_MODIFIABLE */
+		if ( rs->sr_entry == e ) {
+			rc = 1;
+			goto fail;
+		}
+
 		overlay_entry_release_ov( op, rs->sr_entry, 0, on );
 	}
 
