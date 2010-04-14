@@ -1285,7 +1285,9 @@ typedef enum slap_style_e {
 	ACL_STYLE_SELF,
 	ACL_STYLE_IP,
 	ACL_STYLE_IPV6,
-	ACL_STYLE_PATH
+	ACL_STYLE_PATH,
+
+	ACL_STYLE_NONE
 } slap_style_t;
 
 typedef struct AuthorizationInformation {
