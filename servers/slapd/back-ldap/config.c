@@ -863,6 +863,12 @@ slap_idassert_parse( ConfigArgs *c, slap_idassert_t *si )
 						si->si_flags |= LDAP_BACK_AUTH_OBSOLETE_ENCODING_WORKAROUND;
 					}
 
+				} else if ( strcasecmp( flags[ j ], "proxy-authz-critical" ) == 0 ) {
+					si->si_flags |= LDAP_BACK_AUTH_PROXYAUTHZ_CRITICAL;
+
+				} else if ( strcasecmp( flags[ j ], "proxy-authz-non-critical" ) == 0 ) {
+					si->si_flags &= ~LDAP_BACK_AUTH_PROXYAUTHZ_CRITICAL;
+
 				} else {
 					snprintf( c->cr_msg, sizeof( c->cr_msg ),
 						"\"idassert-bind <args>\": "
@@ -1137,7 +1143,7 @@ ldap_back_cf_gen( ConfigArgs *c )
 					(void)lutil_strcopy( ptr, "authz=native" );
 				}
 
-				len = bv.bv_len + STRLENOF( "flags=non-prescriptive,override,obsolete-encoding-workaround" );
+				len = bv.bv_len + STRLENOF( "flags=non-prescriptive,override,obsolete-encoding-workaround,proxy-authz-non-critical" );
 				/* flags */
 				if ( !BER_BVISEMPTY( &bv ) ) {
 					len += STRLENOF( " " );
@@ -1168,6 +1174,13 @@ ldap_back_cf_gen( ConfigArgs *c )
 
 				} else if ( li->li_idassert_flags & LDAP_BACK_AUTH_OBSOLETE_ENCODING_WORKAROUND ) {
 					ptr = lutil_strcopy( ptr, ",obsolete-encoding-workaround" );
+				}
+
+				if ( li->li_idassert_flags & LDAP_BACK_AUTH_PROXYAUTHZ_CRITICAL ) {
+					ptr = lutil_strcopy( ptr, ",proxy-authz-critical" );
+
+				} else {
+					ptr = lutil_strcopy( ptr, ",proxy-authz-non-critical" );
 				}
 
 				bv.bv_len = ( ptr - bv.bv_val );
@@ -1452,6 +1465,7 @@ ldap_back_cf_gen( ConfigArgs *c )
 
 		case LDAP_BACK_CFG_IDASSERT_BIND:
 			bindconf_free( &li->li_idassert.si_bc );
+			memset( &li->li_idassert, 0, sizeof( slap_idassert_t ) );
 			break;
 
 		case LDAP_BACK_CFG_REBIND:
