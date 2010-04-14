@@ -326,9 +326,12 @@ certificateListValidate( Syntax *syntax, struct berval *in )
 	/* revokedCertificates - Sequence of Sequence, Optional */
 	if ( tag == LBER_SEQUENCE ) {
 		ber_len_t seqlen;
-		if ( ber_peek_tag( ber, &seqlen ) == LBER_SEQUENCE ) {
-			/* Should NOT be empty */
-			ber_skip_data( ber, len );
+		ber_tag_t stag;
+		stag = ber_peek_tag( ber, &seqlen );
+		if ( stag == LBER_SEQUENCE || !len ) {
+			/* RFC5280 requires non-empty, but X.509(2005) allows empty. */
+			if ( len )
+				ber_skip_data( ber, len );
 			tag = ber_skip_tag( ber, &len );
 		}
 	}
