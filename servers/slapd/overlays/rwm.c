@@ -1924,7 +1924,7 @@ static ConfigOCs rwmocs[] = {
 };
 
 static void
-slap_rewrite_unparse( BerVarray in, BerVarray *out )
+slap_bv_x_ordered_unparse( BerVarray in, BerVarray *out )
 {
 	int		i;
 	BerVarray	bva = NULL;
@@ -2041,7 +2041,7 @@ rwm_cf_gen( ConfigArgs *c )
 				rc = 1;
 
 			} else {
-				slap_rewrite_unparse( rwmap->rwm_bva_rewrite, &c->rvalue_vals );
+				slap_bv_x_ordered_unparse( rwmap->rwm_bva_rewrite, &c->rvalue_vals );
 				if ( !c->rvalue_vals ) {
 					rc = 1;
 				}
@@ -2065,7 +2065,10 @@ rwm_cf_gen( ConfigArgs *c )
 				rc = 1;
 
 			} else {
-				value_add( &c->rvalue_vals, rwmap->rwm_bva_map );
+				slap_bv_x_ordered_unparse( rwmap->rwm_bva_map, &c->rvalue_vals );
+				if ( !c->rvalue_vals ) {
+					rc = 1;
+				}
 			}
 			break;
 
@@ -2323,11 +2326,18 @@ rwm_cf_gen( ConfigArgs *c )
 		rc = 0;
 		break;
 
-	case RWM_CF_MAP:
-		if ( c->valx >= 0 ) {
-			return 1;
+	case RWM_CF_MAP: {
+		int cnt = 0;
+
+		if ( rwmap->rwm_bva_map ) {
+			for ( ; !BER_BVISNULL( &rwmap->rwm_bva_map[ cnt ]); cnt++ )
+				/* just count */ ;
 		}
 
+		/* can only append */
+		if ( c->valx >= 0 && c->valx != cnt ) return 1;
+
+		/* try to configure; FIXME: modifications not atomic! */
 		argv0 = c->argv[ 0 ];
 		c->argv[ 0 ] += STRLENOF( "rwm-" );
 		rc = rwm_m_config( &db, c->fname, c->lineno, c->argc, c->argv );
@@ -2345,7 +2355,7 @@ rwm_cf_gen( ConfigArgs *c )
 				ber_bvarray_add( &rwmap->rwm_bva_map, &bv );
 			}
 		}
-		break;
+		} break;
 
 	case RWM_CF_NORMALIZE_MAPPED:
 		if ( c->value_int ) {
