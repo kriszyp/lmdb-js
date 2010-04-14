@@ -5,7 +5,7 @@ OpenLDAP 2.4.22 Engineering
 	Fixed slapd REP_ENTRY flag handling (ITS#5340)
 	Fixed slapo-collect REP_ENTRY flag handling (ITS#5340,ITS#6423)
 	Fixed slapo-dynlist REP_ENTRY flag handling (ITS#5340,ITS#6423)
-	Fixed slapo-rwm olcRwmMap handling (ITS#6434)
+	Fixed slapo-rwm olcRwmMap handling (ITS#6436)
 	Fixed slapo-rwm REP_ENTRY flag handling (ITS#5340,ITS#6423)
 	Fixed slapo-valsort REP_ENTRY flag handling (ITS#5340,ITS#6423)
 
