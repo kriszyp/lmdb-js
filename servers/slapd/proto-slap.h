@@ -1965,6 +1965,10 @@ LDAP_SLAPD_V (struct berval)	global_host_bv;
 LDAP_SLAPD_V (char *)	global_realm;
 LDAP_SLAPD_V (char *)	sasl_host;
 LDAP_SLAPD_V (char *)	slap_sasl_auxprops;
+#ifdef SLAP_AUXPROP_DONTUSECOPY
+LDAP_SLAPD_V (int)		slap_dontUseCopy_ignore;
+LDAP_SLAPD_V (BerVarray)	slap_dontUseCopy_propnames;
+#endif /* SLAP_AUXPROP_DONTUSECOPY */
 LDAP_SLAPD_V (char **)	default_passwd_hash;
 LDAP_SLAPD_V (int)		lber_debug;
 LDAP_SLAPD_V (int)		ldap_syslog;

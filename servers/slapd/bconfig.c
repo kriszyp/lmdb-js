@@ -179,6 +179,8 @@ enum {
 	CFG_LASTMOD,
 	CFG_AZPOLICY,
 	CFG_AZREGEXP,
+	CFG_AZDUC,
+	CFG_AZDUC_IGNORE,
 	CFG_SASLSECP,
 	CFG_SSTR_IF_MAX,
 	CFG_SSTR_IF_MIN,
@@ -549,6 +551,24 @@ static ConfigTable config_back_cf_table[] = {
 #endif
 		"( OLcfgGlAt:89 NAME 'olcSaslAuxprops' "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
+	{ "sasl-auxprops-dontusecopy", NULL, 2, 0, 0,
+#if defined(HAVE_CYRUS_SASL) && defined(SLAP_AUXPROP_DONTUSECOPY)
+		ARG_MAGIC|CFG_AZDUC, &config_generic,
+#else
+		ARG_IGNORED, NULL,
+#endif
+		"( OLcfgGlAt:91 NAME 'olcSaslAuxpropsDontUseCopy' "
+			"EQUALITY caseIgnoreMatch "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
+	{ "sasl-auxprops-dontusecopy-ignore", "true|FALSE", 2, 0, 0,
+#if defined(HAVE_CYRUS_SASL) && defined(SLAP_AUXPROP_DONTUSECOPY)
+		ARG_ON_OFF|CFG_AZDUC_IGNORE, &slap_dontUseCopy_ignore,
+#else
+		ARG_IGNORED, NULL,
+#endif
+		"( OLcfgGlAt:92 NAME 'olcSaslAuxpropsDontUseCopyIgnore' "
+			"EQUALITY booleanMatch "
+			"SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
 	{ "sasl-host", "host", 2, 2, 0,
 #ifdef HAVE_CYRUS_SASL
 		ARG_STRING|ARG_UNIQUE, &sasl_host,
@@ -792,7 +812,8 @@ static ConfigOCs cf_ocs[] = {
 		 "olcPluginLogFile $ olcReadOnly $ olcReferral $ "
 		 "olcReplogFile $ olcRequires $ olcRestrict $ olcReverseLookup $ "
 		 "olcRootDSE $ "
-		 "olcSaslAuxprops $ olcSaslHost $ olcSaslRealm $ olcSaslSecProps $ "
+		 "olcSaslAuxprops $ olcSaslAuxpropsDontUseCopy $ olcSaslAuxpropsDontUseCopyIgnore $ "
+		 "olcSaslHost $ olcSaslRealm $ olcSaslSecProps $ "
 		 "olcSecurity $ olcServerID $ olcSizeLimit $ "
 		 "olcSockbufMaxIncoming $ olcSockbufMaxIncomingAuth $ "
 		 "olcTCPBuffer $ "
@@ -939,6 +960,47 @@ config_generic(ConfigArgs *c) {
 			if ( !c->rvalue_vals ) rc = 1;
 			break;
 #ifdef HAVE_CYRUS_SASL
+#ifdef SLAP_AUXPROP_DONTUSECOPY
+		case CFG_AZDUC: {
+			static int duc_done = 0;
+
+			/* take the opportunity to initialize with known values */
+			if ( !duc_done ) {
+				struct berval duc[] = { BER_BVC("cmusaslsecretOTP"), BER_BVNULL };
+				int i;
+				
+				for ( i = 0; !BER_BVISNULL( &duc[ i ] ); i++ ) {
+					const char *text = NULL;
+					AttributeDescription *ad = NULL;
+
+					if ( slap_bv2ad( &duc[ i ], &ad, &text ) == LDAP_SUCCESS ) {
+						int gotit = 0;
+						if ( slap_dontUseCopy_propnames ) {
+							int j;
+
+							for ( j = 0; !BER_BVISNULL( &slap_dontUseCopy_propnames[ j ] ); j++ ) {
+								if ( bvmatch( &slap_dontUseCopy_propnames[ j ], &ad->ad_cname ) ) {
+									gotit = 1;
+								}
+							}
+						}
+
+						if ( !gotit ) {
+							value_add_one( &slap_dontUseCopy_propnames, &ad->ad_cname );
+						}
+					}
+				}
+
+				duc_done = 1;
+			}
+
+			if ( slap_dontUseCopy_propnames != NULL ) {
+				ber_bvarray_dup_x( &c->rvalue_vals, slap_dontUseCopy_propnames, NULL );
+			} else {
+				rc = 1;
+			}
+			} break;
+#endif /* SLAP_AUXPROP_DONTUSECOPY */
 		case CFG_SASLSECP: {
 			struct berval bv = BER_BVNULL;
 			slap_sasl_secprops_unparse( &bv );
@@ -1221,6 +1283,35 @@ config_generic(ConfigArgs *c) {
 			snprintf(c->log, sizeof( c->log ), "change requires slapd restart");
 			break;
 
+#if defined(HAVE_CYRUS_SASL) && defined(SLAP_AUXPROP_DONTUSECOPY)
+		case CFG_AZDUC:
+			if ( c->valx < 0 ) {
+				if ( slap_dontUseCopy_propnames != NULL ) {
+					ber_bvarray_free( slap_dontUseCopy_propnames );
+					slap_dontUseCopy_propnames = NULL;
+				}
+	
+			} else {
+				int i;
+
+				if ( slap_dontUseCopy_propnames == NULL ) {
+					rc = 1;
+					break;
+				}
+
+				for ( i = 0; !BER_BVISNULL( &slap_dontUseCopy_propnames[ i ] ) && i < c->valx; i++ );
+				if ( i < c->valx ) {
+					rc = 1;
+					break;
+				}
+				ber_memfree( slap_dontUseCopy_propnames[ i ].bv_val );
+				for ( ; !BER_BVISNULL( &slap_dontUseCopy_propnames[ i + 1 ] ); i++ ) {
+					slap_dontUseCopy_propnames[ i ] = slap_dontUseCopy_propnames[ i + 1 ];
+				}
+				BER_BVZERO( &slap_dontUseCopy_propnames[ i ] );
+			}
+			break;
+#endif /* SLAP_AUXPROP_DONTUSECOPY */
 		case CFG_SALT:
 			ch_free( passwd_salt );
 			passwd_salt = NULL;
@@ -1556,6 +1647,47 @@ config_generic(ConfigArgs *c) {
 			break;
 				
 #ifdef HAVE_CYRUS_SASL
+#ifdef SLAP_AUXPROP_DONTUSECOPY
+		case CFG_AZDUC: {
+			int arg, cnt;
+
+			for ( arg = 1; arg < c->argc; arg++ ) {
+				int duplicate = 0, err;
+				AttributeDescription *ad = NULL;
+				const char *text = NULL;
+
+				err = slap_str2ad( c->argv[ arg ], &ad, &text );
+				if ( err != LDAP_SUCCESS ) {
+					snprintf( c->cr_msg, sizeof( c->cr_msg ), "<%s>: attr #%d (\"%s\") unknown (err=%d \"%s\"; ignored)",
+						c->argv[0], arg, c->argv[ arg ], err, text );
+					Debug(LDAP_DEBUG_ANY, "%s: %s\n",
+						c->log, c->cr_msg, 0 );
+
+				} else {
+					if ( slap_dontUseCopy_propnames != NULL ) {
+						for ( cnt = 0; !BER_BVISNULL( &slap_dontUseCopy_propnames[ cnt ] ); cnt++ ) {
+							if ( bvmatch( &slap_dontUseCopy_propnames[ cnt ], &ad->ad_cname ) ) {
+								duplicate = 1;
+								break;
+							}
+						}
+					}
+
+					if ( duplicate ) {
+						snprintf( c->cr_msg, sizeof( c->cr_msg ), "<%s>: attr #%d (\"%s\") already defined (ignored)",
+							c->argv[0], arg, ad->ad_cname.bv_val);
+						Debug(LDAP_DEBUG_ANY, "%s: %s\n",
+							c->log, c->cr_msg, 0 );
+						continue;
+					}
+
+					value_add_one( &slap_dontUseCopy_propnames, &ad->ad_cname );
+				}
+			}
+			
+			} break;
+#endif /* SLAP_AUXPROP_DONTUSECOPY */
+
 		case CFG_SASLSECP:
 			{
 			char *txt = slap_sasl_secprops( c->argv[1] );
