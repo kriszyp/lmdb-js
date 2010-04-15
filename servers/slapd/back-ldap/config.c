@@ -686,9 +686,11 @@ slap_idassert_authzfrom_parse( ConfigArgs *c, slap_idassert_t *si )
 		ber_bvarray_add( &si->si_authz, &bv );
 
 	} else {
-		int i;
-		for ( i = 0; !BER_BVISNULL( &si->si_authz[ i ] ); i++ )
-			;
+		int i = 0;
+		if ( si->si_authz != NULL ) {
+			for ( ; !BER_BVISNULL( &si->si_authz[ i ] ); i++ )
+				;
+		}
 
 		if ( i <= c->valx ) {
 			ber_bvarray_add( &si->si_authz, &bv );
@@ -731,9 +733,11 @@ slap_idassert_passthru_parse( ConfigArgs *c, slap_idassert_t *si )
 		ber_bvarray_add( &si->si_passthru, &bv );
 
 	} else {
-		int i;
-		for ( i = 0; !BER_BVISNULL( &si->si_passthru[ i ] ); i++ )
-			;
+		int i = 0;
+		if ( si->si_passthru != NULL ) {
+			for ( ; !BER_BVISNULL( &si->si_passthru[ i ] ); i++ )
+				;
+		}
 
 		if ( i <= c->valx ) {
 			ber_bvarray_add( &si->si_passthru, &bv );
