@@ -2057,32 +2057,51 @@ ldap_back_is_proxy_authz( Operation *op, SlapReply *rs, ldap_back_send_t sendok,
 
 			goto done;
 
-		} else if ( li->li_idassert_authz && !be_isroot( op ) ) {
-			struct berval authcDN;
+		} else if ( !be_isroot( op ) ) {
+			if ( li->li_idassert_passthru ) {
+				struct berval authcDN;
 
-			if ( BER_BVISNULL( &ndn ) ) {
-				authcDN = slap_empty_bv;
-
-			} else {
-				authcDN = ndn;
-			}	
-			rs->sr_err = slap_sasl_matches( op, li->li_idassert_authz,
-					&authcDN, &authcDN );
-			if ( rs->sr_err != LDAP_SUCCESS ) {
-				if ( li->li_idassert_flags & LDAP_BACK_AUTH_PRESCRIPTIVE ) {
-					if ( sendok & LDAP_BACK_SENDERR ) {
-						send_ldap_result( op, rs );
-						dobind = -1;
-					}
+				if ( BER_BVISNULL( &ndn ) ) {
+					authcDN = slap_empty_bv;
 
 				} else {
-					rs->sr_err = LDAP_SUCCESS;
-					*binddn = slap_empty_bv;
-					*bindcred = slap_empty_bv;
+					authcDN = ndn;
+				}	
+				rs->sr_err = slap_sasl_matches( op, li->li_idassert_passthru,
+						&authcDN, &authcDN );
+				if ( rs->sr_err == LDAP_SUCCESS ) {
+					dobind = 0;
 					break;
 				}
+			}
 
-				goto done;
+			if ( li->li_idassert_authz ) {
+				struct berval authcDN;
+
+				if ( BER_BVISNULL( &ndn ) ) {
+					authcDN = slap_empty_bv;
+
+				} else {
+					authcDN = ndn;
+				}	
+				rs->sr_err = slap_sasl_matches( op, li->li_idassert_authz,
+						&authcDN, &authcDN );
+				if ( rs->sr_err != LDAP_SUCCESS ) {
+					if ( li->li_idassert_flags & LDAP_BACK_AUTH_PRESCRIPTIVE ) {
+						if ( sendok & LDAP_BACK_SENDERR ) {
+							send_ldap_result( op, rs );
+							dobind = -1;
+						}
+
+					} else {
+						rs->sr_err = LDAP_SUCCESS;
+						*binddn = slap_empty_bv;
+						*bindcred = slap_empty_bv;
+						break;
+					}
+
+					goto done;
+				}
 			}
 		}
 

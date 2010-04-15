@@ -383,6 +383,24 @@ and
 .RE
 
 .TP
+.B idassert-passthru <authz-regexp>
+if defined, selects what
+.I local
+identities bypass the identity assertion feature.
+Those identities need to be known by the remote host.
+The string
+.B <authz-regexp>
+follows the rules defined for the
+.I authzFrom
+attribute.
+See 
+.BR slapd.conf (5),
+section related to
+.BR authz\-policy ,
+for details on the syntax of this field.
+
+
+.TP
 .B idle\-timeout <time>
 This directive causes a cached connection to be dropped an recreated
 after it has been idle for the specified time.

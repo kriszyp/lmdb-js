@@ -54,6 +54,7 @@ enum {
 	LDAP_BACK_CFG_IDASSERT_AUTHCDN,
 	LDAP_BACK_CFG_IDASSERT_PASSWD,
 	LDAP_BACK_CFG_IDASSERT_AUTHZFROM,
+	LDAP_BACK_CFG_IDASSERT_PASSTHRU,
 	LDAP_BACK_CFG_IDASSERT_METHOD,
 	LDAP_BACK_CFG_IDASSERT_BIND,
 	LDAP_BACK_CFG_REBIND,
@@ -185,6 +186,7 @@ static ConfigTable ldapcfg[] = {
 		ldap_back_cf_gen, "( OLcfgDbAt:3.9 "
 			"NAME 'olcDbIDAssertAuthzFrom' "
 			"DESC 'Remote Identity Assertion authz rules' "
+			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString "
 			"X-ORDERED 'VALUES' )",
 		NULL, NULL },
@@ -326,6 +328,16 @@ static ConfigTable ldapcfg[] = {
 			"SYNTAX OMsBoolean "
 			"SINGLE-VALUE )",
 		NULL, NULL },
+	{ "idassert-passThru", "authzRule", 2, 2, 0,
+		ARG_MAGIC|LDAP_BACK_CFG_IDASSERT_PASSTHRU,
+		ldap_back_cf_gen, "( OLcfgDbAt:3.27 "
+			"NAME 'olcDbIDAssertPassThru' "
+			"DESC 'Remote Identity Assertion passthru rules' "
+			"EQUALITY caseIgnoreMatch "
+			"SYNTAX OMsDirectoryString "
+			"X-ORDERED 'VALUES' )",
+		NULL, NULL },
+
 	{ "suffixmassage", "[virtual]> <real", 2, 3, 0,
 		ARG_STRING|ARG_MAGIC|LDAP_BACK_CFG_REWRITE,
 		ldap_back_cf_gen, NULL, NULL, NULL },
@@ -354,6 +366,7 @@ static ConfigOCs ldapocs[] = {
 			"$ olcDbIDAssertBind "
 			"$ olcDbIDAssertMode "
 			"$ olcDbIDAssertAuthzFrom "
+			"$ olcDbIDAssertPassThru "
 			"$ olcDbRebindAsUser "
 			"$ olcDbChaseReferrals "
 			"$ olcDbTFSupport "
@@ -668,8 +681,76 @@ slap_idassert_authzfrom_parse( ConfigArgs *c, slap_idassert_t *si )
  		Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
  		return 1;
  	}
+
+	if ( c->valx == -1 ) {
+		ber_bvarray_add( &si->si_authz, &bv );
+
+	} else {
+		int i;
+		for ( i = 0; !BER_BVISNULL( &si->si_authz[ i ] ); i++ )
+			;
+
+		if ( i <= c->valx ) {
+			ber_bvarray_add( &si->si_authz, &bv );
+
+		} else {
+			BerVarray tmp = ber_memrealloc( si->si_authz,
+				sizeof( struct berval )*( i + 2 ) );
+			if ( tmp == NULL ) {
+				return -1;
+			}
+			si->si_authz = tmp;
+			for ( ; i > c->valx; i-- ) {
+				si->si_authz[ i ] = si->si_authz[ i - 1 ];
+			}
+			si->si_authz[ c->valx ] = bv;
+		}
+	}
+
+	return 0;
+}
+
+static int
+slap_idassert_passthru_parse( ConfigArgs *c, slap_idassert_t *si )
+{
+	struct berval	bv;
+	struct berval	in;
+	int		rc;
+
+ 	ber_str2bv( c->argv[ 1 ], 0, 0, &in );
+ 	rc = authzNormalize( 0, NULL, NULL, &in, &bv, NULL );
+ 	if ( rc != LDAP_SUCCESS ) {
+ 		snprintf( c->cr_msg, sizeof( c->cr_msg ),
+ 			"\"idassert-passThru <authz>\": "
+ 			"invalid syntax" );
+ 		Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
+ 		return 1;
+ 	}
   
-	ber_bvarray_add( &si->si_authz, &bv );
+	if ( c->valx == -1 ) {
+		ber_bvarray_add( &si->si_passthru, &bv );
+
+	} else {
+		int i;
+		for ( i = 0; !BER_BVISNULL( &si->si_passthru[ i ] ); i++ )
+			;
+
+		if ( i <= c->valx ) {
+			ber_bvarray_add( &si->si_passthru, &bv );
+
+		} else {
+			BerVarray tmp = ber_memrealloc( si->si_passthru,
+				sizeof( struct berval )*( i + 2 ) );
+			if ( tmp == NULL ) {
+				return -1;
+			}
+			si->si_passthru = tmp;
+			for ( ; i > c->valx; i-- ) {
+				si->si_passthru[ i ] = si->si_passthru[ i - 1 ];
+			}
+			si->si_passthru[ c->valx ] = bv;
+		}
+	}
 
 	return 0;
 }
@@ -836,6 +917,22 @@ slap_idassert_authzfrom_parse_cf( const char *fname, int lineno, const char *arg
 }
 
 int
+slap_idassert_passthru_parse_cf( const char *fname, int lineno, const char *arg, slap_idassert_t *si )
+{
+	ConfigArgs	c = { 0 };
+	char		*argv[ 3 ];
+
+	snprintf( c.log, sizeof( c.log ), "%s: line %d", fname, lineno );
+	c.argc = 2;
+	c.argv = argv;
+	argv[ 0 ] = "idassert-passThru";
+	argv[ 1 ] = (char *)arg;
+	argv[ 2 ] = NULL;
+
+	return slap_idassert_passthru_parse( &c, si );
+}
+
+int
 slap_idassert_parse_cf( const char *fname, int lineno, int argc, char *argv[], slap_idassert_t *si )
 {
 	ConfigArgs	c = { 0 };
@@ -936,11 +1033,23 @@ ldap_back_cf_gen( ConfigArgs *c )
 			rc = 1;
 			break;
 
-		case LDAP_BACK_CFG_IDASSERT_AUTHZFROM: {
+		case LDAP_BACK_CFG_IDASSERT_AUTHZFROM:
+		case LDAP_BACK_CFG_IDASSERT_PASSTHRU: {
+			BerVarray	*bvp;
 			int		i;
+			struct berval	bv = BER_BVNULL;
+			char		buf[SLAP_TEXT_BUFLEN];
 
-			if ( li->li_idassert_authz == NULL ) {
-				if ( ( li->li_idassert_flags & LDAP_BACK_AUTH_AUTHZ_ALL ) ) {
+			switch ( c->type ) {
+			case LDAP_BACK_CFG_IDASSERT_AUTHZFROM: bvp = &li->li_idassert_authz; break;
+			case LDAP_BACK_CFG_IDASSERT_PASSTHRU: bvp = &li->li_idassert_passthru; break;
+			default: assert( 0 ); break;
+			}
+
+			if ( *bvp == NULL ) {
+				if ( *bvp == li->li_idassert_authz
+					&& ( li->li_idassert_flags & LDAP_BACK_AUTH_AUTHZ_ALL ) )
+				{
 					BER_BVSTR( &bv, "*" );
 					value_add_one( &c->rvalue_vals, &bv );
 
@@ -950,9 +1059,18 @@ ldap_back_cf_gen( ConfigArgs *c )
 				break;
 			}
 
-			for ( i = 0; !BER_BVISNULL( &li->li_idassert_authz[ i ] ); i++ )
-			{
-				value_add_one( &c->rvalue_vals, &li->li_idassert_authz[ i ] );
+			for ( i = 0; !BER_BVISNULL( &((*bvp)[ i ]) ); i++ ) {
+				char *ptr;
+				int len = snprintf( buf, sizeof( buf ), SLAP_X_ORDERED_FMT, i );
+				bv.bv_len = ((*bvp)[ i ]).bv_len + len;
+				bv.bv_val = ber_memrealloc( bv.bv_val, bv.bv_len + 1 );
+				ptr = bv.bv_val;
+				ptr = lutil_strcopy( ptr, buf );
+				ptr = lutil_strncopy( ptr, ((*bvp)[ i ]).bv_val, ((*bvp)[ i ]).bv_len );
+				value_add_one( &c->rvalue_vals, &bv );
+			}
+			if ( bv.bv_val ) {
+				ber_memfree( bv.bv_val );
 			}
 			break;
 		}
@@ -1287,11 +1405,43 @@ ldap_back_cf_gen( ConfigArgs *c )
 			break;
 
 		case LDAP_BACK_CFG_IDASSERT_AUTHZFROM:
-			if ( li->li_idassert_authz != NULL ) {
-				ber_bvarray_free( li->li_idassert_authz );
-				li->li_idassert_authz = NULL;
+		case LDAP_BACK_CFG_IDASSERT_PASSTHRU: {
+			BerVarray *bvp;
+
+			switch ( c->type ) {
+			case LDAP_BACK_CFG_IDASSERT_AUTHZFROM: bvp = &li->li_idassert_authz; break;
+			case LDAP_BACK_CFG_IDASSERT_PASSTHRU: bvp = &li->li_idassert_passthru; break;
+			default: assert( 0 ); break;
 			}
-			break;
+
+			if ( c->valx < 0 ) {
+				if ( *bvp != NULL ) {
+					ber_bvarray_free( *bvp );
+					*bvp = NULL;
+				}
+
+			} else {
+				int i;
+
+				if ( *bvp == NULL ) {
+					rc = 1;
+					break;
+				}
+
+				for ( i = 0; !BER_BVISNULL( &((*bvp)[ i ]) ); i++ )
+					;
+
+				if ( i >= c->valx ) {
+					rc = 1;
+					break;
+				}
+				ber_memfree( ((*bvp)[ c->valx ]).bv_val );
+				for ( i = c->valx; !BER_BVISNULL( &((*bvp)[ i + 1 ]) ); i++ ) {
+					(*bvp)[ i ] = (*bvp)[ i + 1 ];
+				}
+				BER_BVZERO( &((*bvp)[ i ]) );
+			}
+			} break;
 
 		case LDAP_BACK_CFG_IDASSERT_BIND:
 			bindconf_free( &li->li_idassert.si_bc );
@@ -1730,6 +1880,10 @@ done_url:;
 
 	case LDAP_BACK_CFG_IDASSERT_AUTHZFROM:
 		rc = slap_idassert_authzfrom_parse( c, &li->li_idassert );
+		break;
+
+	case LDAP_BACK_CFG_IDASSERT_PASSTHRU:
+		rc = slap_idassert_passthru_parse( c, &li->li_idassert );
 		break;
 
 	case LDAP_BACK_CFG_IDASSERT_METHOD:
