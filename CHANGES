@@ -2,6 +2,7 @@ OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.22 Engineering
 	Added slapd SLAP_SCHEMA_EXPOSE flag for hidden schema elements (ITS#6435)
+	Fixed libldap GnuTLS serial length (ITS#6460)
 	Fixed slapd certificateListValidate (ITS#6466)
 	Fixed slapd empty URI parsing (ITS#6465)
 	Fixed slapd REP_ENTRY flag handling (ITS#5340)
