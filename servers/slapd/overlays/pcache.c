@@ -3029,8 +3029,10 @@ pcache_op_search(
 					slap_callback **scp;
 					for ( scp = &op->o_callback; *scp != NULL;
 						scp = &(*scp)->sc_next ) {
-						if ( (*scp)->sc_next == &cb )
+						if ( (*scp)->sc_next == &cb ) {
 							*scp = cb.sc_next;
+							break;
+						}
 					}
 				}
 			}
