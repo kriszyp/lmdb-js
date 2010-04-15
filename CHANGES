@@ -15,6 +15,7 @@ OpenLDAP 2.4.22 Engineering
 	Fixed slapo-collect REP_ENTRY flag handling (ITS#5340,ITS#6423)
 	Fixed slapo-dynlist REP_ENTRY flag handling (ITS#5340,ITS#6423)
 	Fixed slapo-pcache to release its own entries (ITS#6484)
+	Fixed slapo-rwm entry release handling (ITS#6484)
 	Fixed slapo-rwm olcRwmMap handling (ITS#6436)
 	Fixed slapo-rwm REP_ENTRY flag handling (ITS#5340,ITS#6423)
 	Fixed slapo-syncprov memory leak (ITS#6459)
