@@ -152,7 +152,7 @@ class LDAPAsynConnection{
                                  const StringList& attrs=StringList(), 
                                  bool attrsOnly=false,
                                  const LDAPConstraints *cons=0);
-        
+
         /** Delete an entry from the directory
          *
          * This method sends a delete request to the server
@@ -164,7 +164,7 @@ class LDAPAsynConnection{
          *              request
          */
         LDAPMessageQueue* del(const std::string& dn, const LDAPConstraints *cons=0);
-        
+
         /** 
          * Perform the COMPARE-operation on an attribute 
          *
@@ -225,7 +225,7 @@ class LDAPAsynConnection{
                 const std::string& newRDN,
                 bool delOldRDN=false, const std::string& newParentDN="",
                 const LDAPConstraints* cons=0);
-        
+
         /** Perform a LDAP extended Operation
          *
          * @throws LDAPException If the Request could not be sent to the
@@ -239,14 +239,14 @@ class LDAPAsynConnection{
          */
         LDAPMessageQueue* extOperation(const std::string& oid, 
                 const std::string& value="", const LDAPConstraints *cons=0);
-        
+
         /** End an outstanding request
          *
          * @param q All outstanding request related to this LDAPMessageQueue 
          *      will be abandoned
          */
         void abandon(LDAPMessageQueue *q);
-        
+
         /**
          * Performs the UNBIND-operation on the destination server
          * 
@@ -271,13 +271,13 @@ class LDAPAsynConnection{
          *      the remote server. 
          */
         int getPort() const;
-        
+
         /** Change the default constraints of the connection
          *
          * @parameter cons cons New LDAPConstraints to use with the connection
          */
         void setConstraints(LDAPConstraints *cons);
-        
+
         /** Get the default constraints of the connection
          *
          * @return Pointer to the LDAPConstraints-Object that is currently
@@ -309,7 +309,7 @@ class LDAPAsynConnection{
          * Private copy constructor. So nobody can call it.
          */
         LDAPAsynConnection(const LDAPAsynConnection& lc){};
-        
+
         /**
          * A pointer to the C-API LDAP-structure that is associated with
          * this connection
@@ -328,7 +328,7 @@ class LDAPAsynConnection{
          */
         LDAPUrl m_uri;
 
- protected:
+    protected:
         /**
          * Is caching enabled?
          */
