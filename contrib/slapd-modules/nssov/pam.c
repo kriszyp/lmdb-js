@@ -215,16 +215,16 @@ int pam_authc(nssov_info *ni,TFILE *fp,Operation *op)
 	struct paminfo pi;
 
 
-	READ_STRING_BUF2(fp,uidc,sizeof(uidc));
+	READ_STRING(fp,uidc);
 	pi.uid.bv_val = uidc;
 	pi.uid.bv_len = tmpint32;
-	READ_STRING_BUF2(fp,dnc,sizeof(dnc));
+	READ_STRING(fp,dnc);
 	pi.dn.bv_val = dnc;
 	pi.dn.bv_len = tmpint32;
-	READ_STRING_BUF2(fp,svcc,sizeof(svcc));
+	READ_STRING(fp,svcc);
 	pi.svc.bv_val = svcc;
 	pi.svc.bv_len = tmpint32;
-	READ_STRING_BUF2(fp,pwdc,sizeof(pwdc));
+	READ_STRING(fp,pwdc);
 	pi.pwd.bv_val = pwdc;
 	pi.pwd.bv_len = tmpint32;
 
@@ -235,7 +235,7 @@ int pam_authc(nssov_info *ni,TFILE *fp,Operation *op)
 finish:
 	WRITE_INT32(fp,NSLCD_VERSION);
 	WRITE_INT32(fp,NSLCD_ACTION_PAM_AUTHC);
-	WRITE_INT32(fp,NSLCD_RESULT_SUCCESS);
+	WRITE_INT32(fp,NSLCD_RESULT_BEGIN);
 	WRITE_BERVAL(fp,&pi.uid);
 	WRITE_BERVAL(fp,&pi.dn);
 	WRITE_INT32(fp,rc);
@@ -277,22 +277,22 @@ int pam_authz(nssov_info *ni,TFILE *fp,Operation *op)
 	SlapReply rs = {REP_RESULT};
 	slap_callback cb = {0};
 
-	READ_STRING_BUF2(fp,uidc,sizeof(uidc));
+	READ_STRING(fp,uidc);
 	uid.bv_val = uidc;
 	uid.bv_len = tmpint32;
-	READ_STRING_BUF2(fp,dnc,sizeof(dnc));
+	READ_STRING(fp,dnc);
 	dn.bv_val = dnc;
 	dn.bv_len = tmpint32;
-	READ_STRING_BUF2(fp,svcc,sizeof(svcc));
+	READ_STRING(fp,svcc);
 	svc.bv_val = svcc;
 	svc.bv_len = tmpint32;
-	READ_STRING_BUF2(fp,ruserc,sizeof(ruserc));
+	READ_STRING(fp,ruserc);
 	ruser.bv_val = ruserc;
 	ruser.bv_len = tmpint32;
-	READ_STRING_BUF2(fp,rhostc,sizeof(rhostc));
+	READ_STRING(fp,rhostc);
 	rhost.bv_val = rhostc;
 	rhost.bv_len = tmpint32;
-	READ_STRING_BUF2(fp,ttyc,sizeof(ttyc));
+	READ_STRING(fp,ttyc);
 	tty.bv_val = ttyc;
 	tty.bv_len = tmpint32;
 
@@ -470,7 +470,7 @@ int pam_authz(nssov_info *ni,TFILE *fp,Operation *op)
 finish:
 	WRITE_INT32(fp,NSLCD_VERSION);
 	WRITE_INT32(fp,NSLCD_ACTION_PAM_AUTHZ);
-	WRITE_INT32(fp,NSLCD_RESULT_SUCCESS);
+	WRITE_INT32(fp,NSLCD_RESULT_BEGIN);
 	WRITE_BERVAL(fp,&uid);
 	WRITE_BERVAL(fp,&dn);
 	WRITE_INT32(fp,rc);
@@ -498,22 +498,22 @@ static int pam_sess(nssov_info *ni,TFILE *fp,Operation *op,int action)
 	time_t stamp;
 	Modifications mod;
 
-	READ_STRING_BUF2(fp,uidc,sizeof(uidc));
+	READ_STRING(fp,uidc);
 	uid.bv_val = uidc;
 	uid.bv_len = tmpint32;
-	READ_STRING_BUF2(fp,dnc,sizeof(dnc));
+	READ_STRING(fp,dnc);
 	dn.bv_val = dnc;
 	dn.bv_len = tmpint32;
-	READ_STRING_BUF2(fp,svcc,sizeof(svcc));
+	READ_STRING(fp,svcc);
 	svc.bv_val = svcc;
 	svc.bv_len = tmpint32;
-	READ_STRING_BUF2(fp,ttyc,sizeof(ttyc));
+	READ_STRING(fp,ttyc);
 	tty.bv_val = ttyc;
 	tty.bv_len = tmpint32;
-	READ_STRING_BUF2(fp,rhostc,sizeof(rhostc));
+	READ_STRING(fp,rhostc);
 	rhost.bv_val = rhostc;
 	rhost.bv_len = tmpint32;
-	READ_STRING_BUF2(fp,ruserc,sizeof(ruserc));
+	READ_STRING(fp,ruserc);
 	ruser.bv_val = ruserc;
 	ruser.bv_len = tmpint32;
 	READ_INT32(fp,stamp);
@@ -577,7 +577,7 @@ static int pam_sess(nssov_info *ni,TFILE *fp,Operation *op,int action)
 
 	WRITE_INT32(fp,NSLCD_VERSION);
 	WRITE_INT32(fp,action);
-	WRITE_INT32(fp,NSLCD_RESULT_SUCCESS);
+	WRITE_INT32(fp,NSLCD_RESULT_BEGIN);
 	WRITE_INT32(fp,op->o_time);
 	return 0;
 }
@@ -604,19 +604,19 @@ int pam_pwmod(nssov_info *ni,TFILE *fp,Operation *op)
 	struct paminfo pi;
 	int rc;
 
-	READ_STRING_BUF2(fp,uidc,sizeof(uidc));
+	READ_STRING(fp,uidc);
 	pi.uid.bv_val = uidc;
 	pi.uid.bv_len = tmpint32;
-	READ_STRING_BUF2(fp,dnc,sizeof(dnc));
+	READ_STRING(fp,dnc);
 	pi.dn.bv_val = dnc;
 	pi.dn.bv_len = tmpint32;
-	READ_STRING_BUF2(fp,svcc,sizeof(svcc));
+	READ_STRING(fp,svcc);
 	pi.svc.bv_val = svcc;
 	pi.svc.bv_len = tmpint32;
-	READ_STRING_BUF2(fp,opwc,sizeof(opwc));
+	READ_STRING(fp,opwc);
 	pi.pwd.bv_val = opwc;
 	pi.pwd.bv_len = tmpint32;
-	READ_STRING_BUF2(fp,npwc,sizeof(npwc));
+	READ_STRING(fp,npwc);
 	npw.bv_val = npwc;
 	npw.bv_len = tmpint32;
 
@@ -666,7 +666,7 @@ int pam_pwmod(nssov_info *ni,TFILE *fp,Operation *op)
 	}
 	WRITE_INT32(fp,NSLCD_VERSION);
 	WRITE_INT32(fp,NSLCD_ACTION_PAM_PWMOD);
-	WRITE_INT32(fp,NSLCD_RESULT_SUCCESS);
+	WRITE_INT32(fp,NSLCD_RESULT_BEGIN);
 	WRITE_BERVAL(fp,&pi.uid);
 	WRITE_BERVAL(fp,&pi.dn);
 	WRITE_INT32(fp,rc);

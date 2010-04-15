@@ -1,6 +1,6 @@
 /*
    tio.c - timed io functions
-   This file is part of the nss-ldapd library.
+   This file is part of the nss-pam-ldapd library.
 
    Copyright (C) 2007, 2008 Arthur de Jong
 
@@ -20,7 +20,8 @@
    02110-1301 USA
 */
 
-#include "config.h"
+//#include "config.h"
+#include "portable.h"
 
 #ifdef HAVE_STDINT_H
 #include <stdint.h>
@@ -29,6 +30,7 @@
 #include <unistd.h>
 #include <sys/time.h>
 #include <sys/types.h>
+#include <sys/socket.h>
 #include <errno.h>
 #include <string.h>
 #include <signal.h>
@@ -174,7 +176,7 @@ TFILE *tio_fdopen(int fd,struct timeval *readtimeout,struct timeval *writetimeou
 
 /* wait for any activity on the specified file descriptor using
    the specified deadline */
-static int tio_select(int fd, int readfd, const struct timeval *deadline)
+static int tio_select(TFILE *fp, int readfd, const struct timeval *deadline)
 {
   struct timeval tv;
   fd_set fdset;
@@ -183,7 +185,7 @@ static int tio_select(int fd, int readfd, const struct timeval *deadline)
   {
     /* prepare our filedescriptorset */
     FD_ZERO(&fdset);
-    FD_SET(fd,&fdset);
+    FD_SET(fp->fd,&fdset);
     /* figure out the time we need to wait */
     if (tio_tv_remaining(&tv,deadline))
     {
@@ -192,9 +194,19 @@ static int tio_select(int fd, int readfd, const struct timeval *deadline)
     }
     /* wait for activity */
     if (readfd)
+    {
+      /* santiy check for moving clock */
+      if (tv.tv_sec>fp->readtimeout.tv_sec)
+        tv.tv_sec=fp->readtimeout.tv_sec;
       rv=select(FD_SETSIZE,&fdset,NULL,NULL,&tv);
+    }
     else
+    {
+      /* santiy check for moving clock */
+      if (tv.tv_sec>fp->writetimeout.tv_sec)
+        tv.tv_sec=fp->writetimeout.tv_sec;
       rv=select(FD_SETSIZE,NULL,&fdset,NULL,&tv);
+    }
     if (rv>0)
       return 0; /* we have activity */
     else if (rv==0)
@@ -221,6 +233,7 @@ int tio_read(TFILE *fp, void *buf, size_t count)
   /* have a more convenient storage type for the buffer */
   uint8_t *ptr=(uint8_t *)buf;
   /* build a time by which we should be finished */
+  /* TODO: probably only set up deadline if we have to do select() */
   tio_tv_prepare(&deadline,&(fp->readtimeout));
   /* loop until we have returned all the needed data */
   while (1)
@@ -279,7 +292,7 @@ int tio_read(TFILE *fp, void *buf, size_t count)
       }
     }
     /* wait until we have input */
-    if (tio_select(fp->fd,1,&deadline))
+    if (tio_select(fp,1,&deadline))
       return -1;
     /* read the input in the buffer */
     rv=read(fp->fd,fp->readbuffer.buffer+fp->readbuffer.start,fp->readbuffer.size-fp->readbuffer.start);
@@ -305,8 +318,14 @@ int tio_skip(TFILE *fp, size_t count)
 static int tio_writebuf(TFILE *fp)
 {
   int rv;
+  /* write the buffer */
+#ifdef MSG_NOSIGNAL
+  rv=send(fp->fd,fp->writebuffer.buffer+fp->writebuffer.start,fp->writebuffer.len,MSG_NOSIGNAL);
+#else /* not MSG_NOSIGNAL */
+  /* on platforms that cannot use send() with masked signals, we change the
+     signal mask and change it back after the write (note that there is a
+     race condition here) */
   struct sigaction act,oldact;
-  /* FIXME: we have a race condition here (setting and restoring the signal mask), this is a critical region that should be locked */
   /* set up sigaction */
   memset(&act,0,sizeof(struct sigaction));
   act.sa_sigaction=NULL;
@@ -321,6 +340,7 @@ static int tio_writebuf(TFILE *fp)
   /* restore the old handler for SIGPIPE */
   if (sigaction(SIGPIPE,&oldact,NULL)!=0)
     return -1; /* error restoring signal handler */
+#endif
   /* check for errors */
   if ((rv==0)||((rv<0)&&(errno!=EINTR)&&(errno!=EAGAIN)))
     return -1; /* something went wrong with the write */
@@ -355,7 +375,7 @@ int tio_flush(TFILE *fp)
   while (fp->writebuffer.len > 0)
   {
     /* wait until we can write */
-    if (tio_select(fp->fd,0,&deadline))
+    if (tio_select(fp,0,&deadline))
       return -1;
     /* write one block */
     if (tio_writebuf(fp))

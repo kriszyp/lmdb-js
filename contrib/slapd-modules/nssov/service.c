@@ -187,7 +187,7 @@ static int write_service(nssov_service_cbp *cbp,Entry *entry)
 	for (i=0;i<numprot;i++)
 	{
 		int j;
-		WRITE_INT32(cbp->fp,NSLCD_RESULT_SUCCESS);
+		WRITE_INT32(cbp->fp,NSLCD_RESULT_BEGIN);
 		WRITE_BERVAL(cbp->fp,&name);
 		if ( dupname >= 0 ) {
 			WRITE_INT32(cbp->fp,numname-1);
@@ -211,10 +211,10 @@ NSSOV_HANDLE(
 	char fbuf[1024];
 	struct berval filter = {sizeof(fbuf)};
 	filter.bv_val = fbuf;
-	READ_STRING_BUF2(fp,cbp.nbuf,sizeof(cbp.nbuf));
+	READ_STRING(fp,cbp.nbuf);
 	cbp.name.bv_len = tmpint32;
 	cbp.name.bv_val = cbp.nbuf;
-	READ_STRING_BUF2(fp,cbp.pbuf,sizeof(cbp.pbuf));
+	READ_STRING(fp,cbp.pbuf);
 	cbp.prot.bv_len = tmpint32;
 	cbp.prot.bv_val = tmpint32 ? cbp.pbuf : NULL;,
 	Debug(LDAP_DEBUG_TRACE,"nssov_service_byname(%s,%s)\n",cbp.name.bv_val,cbp.prot.bv_val,0);,
@@ -231,7 +231,7 @@ NSSOV_HANDLE(
 	READ_INT32(fp,number);
 	cbp.name.bv_val = cbp.nbuf;
 	cbp.name.bv_len = snprintf(cbp.nbuf,sizeof(cbp.nbuf),"%d",number);
-	READ_STRING_BUF2(fp,cbp.pbuf,sizeof(cbp.pbuf));
+	READ_STRING(fp,cbp.pbuf);
 	cbp.prot.bv_len = tmpint32;
 	cbp.prot.bv_val = tmpint32 ? cbp.pbuf : NULL;,
 	Debug(LDAP_DEBUG_TRACE,"nssov_service_bynumber(%s,%s)\n",cbp.name.bv_val,cbp.prot.bv_val,0);,

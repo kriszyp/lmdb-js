@@ -102,7 +102,7 @@ static int write_rpc(nssov_rpc_cbp *cbp,Entry *entry)
 		return 0;
 	}
 	/* write the entry */
-	WRITE_INT32(cbp->fp,NSLCD_RESULT_SUCCESS);
+	WRITE_INT32(cbp->fp,NSLCD_RESULT_BEGIN);
 	WRITE_BERVAL(cbp->fp,&name);
 	if ( dupname >= 0 ) {
 		WRITE_INT32(cbp->fp,numname-1);
@@ -125,7 +125,7 @@ NSSOV_HANDLE(
     struct berval filter = {sizeof(fbuf)};
     filter.bv_val = fbuf;
     BER_BVZERO(&cbp.numb);
-    READ_STRING_BUF2(fp,cbp.buf,sizeof(cbp.buf));
+    READ_STRING(fp,cbp.buf);
     cbp.name.bv_len = tmpint32;
     cbp.name.bv_val = cbp.buf;,
 	Debug(LDAP_DEBUG_TRACE,"nssov_rpc_byname(%s)\n",cbp.name.bv_val,0,0);,

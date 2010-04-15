@@ -1,6 +1,6 @@
 /*
    tio.h - timed io functions
-   This file is part of the nss-ldapd library.
+   This file is part of the nss-pam-ldapd library.
 
    Copyright (C) 2007, 2008 Arthur de Jong
 
@@ -39,7 +39,7 @@
 #include <sys/time.h>
 #include <sys/types.h>
 
-#include "compat/attrs.h"
+#include "attrs.h"
 
 /* This is a generic file handle used for reading and writing
    (something like FILE from stdio.h). */

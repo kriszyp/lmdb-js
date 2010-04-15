@@ -111,7 +111,7 @@ static int write_ether(nssov_ether_cbp *cbp,Entry *entry)
 	for (i=0;!BER_BVISNULL(&names[i]);i++)
 		for (j=0;!BER_BVISNULL(&ethers[j]);j++)
 		{
-			WRITE_INT32(cbp->fp,NSLCD_RESULT_SUCCESS);
+			WRITE_INT32(cbp->fp,NSLCD_RESULT_BEGIN);
 			WRITE_BERVAL(cbp->fp,&names[i]);
 			WRITE_ETHER(cbp->fp,ethers[j]);
 		}
@@ -126,7 +126,7 @@ NSSOV_HANDLE(
 	struct berval filter = {sizeof(fbuf)};
 	filter.bv_val = fbuf;
 	BER_BVZERO(&cbp.addr);
-	READ_STRING_BUF2(fp,cbp.buf,sizeof(cbp.buf));
+	READ_STRING(fp,cbp.buf);
 	cbp.name.bv_len = tmpint32;
 	cbp.name.bv_val = cbp.buf;,
 	Debug(LDAP_DEBUG_TRACE,"nssov_ether_byname(%s)\n",cbp.name.bv_val,0,0);,
