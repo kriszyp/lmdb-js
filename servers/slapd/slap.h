@@ -1788,6 +1788,7 @@ struct BackendDB {
 #define		be_entry_open bd_info->bi_tool_entry_open
 #define		be_entry_close bd_info->bi_tool_entry_close
 #define		be_entry_first bd_info->bi_tool_entry_first
+#define		be_entry_first_x bd_info->bi_tool_entry_first_x
 #define		be_entry_next bd_info->bi_tool_entry_next
 #define		be_entry_reindex bd_info->bi_tool_entry_reindex
 #define		be_entry_get bd_info->bi_tool_entry_get
@@ -2158,6 +2159,7 @@ typedef BI_conn_func BI_connection_destroy;
 typedef int (BI_tool_entry_open) LDAP_P(( BackendDB *be, int mode ));
 typedef int (BI_tool_entry_close) LDAP_P(( BackendDB *be ));
 typedef ID (BI_tool_entry_first) LDAP_P(( BackendDB *be ));
+typedef ID (BI_tool_entry_first_x) LDAP_P(( BackendDB *be, struct berval *base, int scope, Filter *f ));
 typedef ID (BI_tool_entry_next) LDAP_P(( BackendDB *be ));
 typedef Entry* (BI_tool_entry_get) LDAP_P(( BackendDB *be, ID id ));
 typedef ID (BI_tool_entry_put) LDAP_P(( BackendDB *be, Entry *e, 
@@ -2257,7 +2259,8 @@ struct BackendInfo {
 	/* hooks for slap tools */
 	BI_tool_entry_open	*bi_tool_entry_open;
 	BI_tool_entry_close	*bi_tool_entry_close;
-	BI_tool_entry_first	*bi_tool_entry_first;
+	BI_tool_entry_first	*bi_tool_entry_first;	/* deprecated */
+	BI_tool_entry_first_x	*bi_tool_entry_first_x;
 	BI_tool_entry_next	*bi_tool_entry_next;
 	BI_tool_entry_get	*bi_tool_entry_get;
 	BI_tool_entry_put	*bi_tool_entry_put;

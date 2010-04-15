@@ -42,6 +42,11 @@ static unsigned nholes;
 
 static int index_nattrs;
 
+static struct berval	*tool_base;
+static int		tool_scope;
+static Filter		*tool_filter;
+static Entry		*tool_next_entry;
+
 #ifdef BDB_TOOL_IDL_CACHING
 #define bdb_tool_idl_cmp		BDB_SYMBOL(tool_idl_cmp)
 #define bdb_tool_idl_flush_one		BDB_SYMBOL(tool_idl_flush_one)
@@ -90,6 +95,9 @@ static void * bdb_tool_trickle_task( void *ctx, void *ptr );
 #endif
 
 static void * bdb_tool_index_task( void *ctx, void *ptr );
+
+static int
+bdb_tool_entry_get_int( BackendDB *be, ID id, Entry **ep );
 
 int bdb_tool_entry_open(
 	BackendDB *be, int mode )
@@ -187,6 +195,20 @@ int bdb_tool_entry_close(
 	return 0;
 }
 
+ID
+bdb_tool_entry_first_x(
+	BackendDB *be,
+	struct berval *base,
+	int scope,
+	Filter *f )
+{
+	tool_base = base;
+	tool_scope = scope;
+	tool_filter = f;
+	
+	return bdb_tool_entry_next( be );
+}
+
 ID bdb_tool_entry_next(
 	BackendDB *be )
 {
@@ -198,6 +220,7 @@ ID bdb_tool_entry_next(
 	assert( slapMode & SLAP_TOOL_MODE );
 	assert( bdb != NULL );
 
+next:;
 	/* Get the header */
 	data.ulen = data.dlen = sizeof( ehbuf );
 	data.data = ehbuf;
@@ -224,6 +247,47 @@ ID bdb_tool_entry_next(
 
 	BDB_DISK2ID( key.data, &id );
 	previd = id;
+
+	if ( tool_filter || tool_base ) {
+		static Operation op = {0};
+		static Opheader ohdr = {0};
+
+		op.o_hdr = &ohdr;
+		op.o_bd = be;
+		op.o_tmpmemctx = NULL;
+		op.o_tmpmfuncs = &ch_mfuncs;
+
+		if ( tool_next_entry ) {
+			bdb_entry_release( &op, tool_next_entry, 0 );
+			tool_next_entry = NULL;
+		}
+
+		rc = bdb_tool_entry_get_int( be, id, &tool_next_entry );
+		if ( rc == LDAP_NO_SUCH_OBJECT ) {
+			goto next;
+		}
+
+		assert( tool_next_entry != NULL );
+
+#ifdef BDB_HIER
+		/* TODO: needed until BDB_HIER is handled accordingly
+		 * in bdb_tool_entry_get_int() */
+		if ( tool_base && !dnIsSuffixScope( &tool_next_entry->e_nname, tool_base, tool_scope ) )
+		{
+			bdb_entry_release( &op, tool_next_entry, 0 );
+			tool_next_entry = NULL;
+			goto next;
+		}
+#endif
+
+		if ( tool_filter && test_filter( NULL, tool_next_entry, tool_filter ) != LDAP_COMPARE_TRUE )
+		{
+			bdb_entry_release( &op, tool_next_entry, 0 );
+			tool_next_entry = NULL;
+			goto next;
+		}
+	}
+
 	return id;
 }
 
@@ -253,7 +317,8 @@ ID bdb_tool_dn2id_get(
 	return ei->bei_id;
 }
 
-Entry* bdb_tool_entry_get( BackendDB *be, ID id )
+static int
+bdb_tool_entry_get_int( BackendDB *be, ID id, Entry **ep )
 {
 	Entry *e = NULL;
 	char *dptr;
@@ -262,6 +327,12 @@ Entry* bdb_tool_entry_get( BackendDB *be, ID id )
 	assert( be != NULL );
 	assert( slapMode & SLAP_TOOL_MODE );
 
+	if ( ( tool_filter || tool_base ) && id == previd && tool_next_entry != NULL ) {
+		*ep = tool_next_entry;
+		tool_next_entry = NULL;
+		return LDAP_SUCCESS;
+	}
+
 	if ( id != previd ) {
 		data.ulen = data.dlen = sizeof( ehbuf );
 		data.data = ehbuf;
@@ -269,7 +340,10 @@ Entry* bdb_tool_entry_get( BackendDB *be, ID id )
 
 		BDB_ID2DISK( id, &nid );
 		rc = cursor->c_get( cursor, &key, &data, DB_SET );
-		if ( rc ) goto done;
+		if ( rc ) {
+			rc = LDAP_OTHER;
+			goto done;
+		}
 	}
 
 	/* Get the header */
@@ -279,13 +353,19 @@ Entry* bdb_tool_entry_get( BackendDB *be, ID id )
 	rc = entry_header( &eh );
 	eoff = eh.data - eh.bv.bv_val;
 	eh.bv.bv_val = dptr;
-	if ( rc ) goto done;
+	if ( rc ) {
+		rc = LDAP_OTHER;
+		goto done;
+	}
 
 	/* Get the size */
 	data.flags &= ~DB_DBT_PARTIAL;
 	data.ulen = 0;
-    rc = cursor->c_get( cursor, &key, &data, DB_CURRENT );
-	if ( rc != DB_BUFFER_SMALL ) goto done;
+	rc = cursor->c_get( cursor, &key, &data, DB_CURRENT );
+	if ( rc != DB_BUFFER_SMALL ) {
+		rc = LDAP_OTHER;
+		goto done;
+	}
 
 	/* Allocate a block and retrieve the data */
 	eh.bv.bv_len = eh.nvals * sizeof( struct berval ) + data.size;
@@ -297,8 +377,23 @@ Entry* bdb_tool_entry_get( BackendDB *be, ID id )
 	/* Skip past already parsed nattr/nvals */
 	eh.data += eoff;
 
-    rc = cursor->c_get( cursor, &key, &data, DB_CURRENT );
-	if ( rc ) goto done;
+	rc = cursor->c_get( cursor, &key, &data, DB_CURRENT );
+	if ( rc ) {
+		rc = LDAP_OTHER;
+		goto done;
+	}
+
+#ifndef BDB_HIER
+	/* TODO: handle BDB_HIER accordingly */
+	if ( tool_base != NULL ) {
+		struct berval ndn;
+		entry_decode_dn( &eh, NULL, &ndn );
+
+		if ( !dnIsSuffixScope( &ndn, tool_base, tool_scope ) ) {
+			return LDAP_NO_SUCH_OBJECT;
+		}
+	}
+#endif
 
 #ifdef SLAP_ZONE_ALLOC
 	/* FIXME: will add ctx later */
@@ -334,7 +429,23 @@ Entry* bdb_tool_entry_get( BackendDB *be, ID id )
 #endif
 	}
 done:
-	return e;
+	if ( e != NULL ) {
+		*ep = e;
+	}
+
+	return rc;
+}
+
+Entry*
+bdb_tool_entry_get( BackendDB *be, ID id )
+{
+	Entry *e = NULL;
+	int rc;
+
+	rc = bdb_tool_entry_get_int( be, id, &e );
+	if ( rc == LDAP_SUCCESS ) {
+		return e;
+	}
 }
 
 static int bdb_tool_next_id(
@@ -609,6 +720,9 @@ int bdb_tool_entry_reindex(
 	DB_TXN *tid = NULL;
 	Operation op = {0};
 	Opheader ohdr = {0};
+
+	assert( tool_base == NULL );
+	assert( tool_filter == NULL );
 
 	Debug( LDAP_DEBUG_ARGS,
 		"=> " LDAP_XSTRING(bdb_tool_entry_reindex) "( %ld )\n",

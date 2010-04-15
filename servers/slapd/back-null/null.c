@@ -255,6 +255,12 @@ null_tool_entry_close( BackendDB *be )
 }
 
 static ID
+null_tool_entry_first_x( BackendDB *be, struct berval *base, int scope, Filter *f )
+{
+	return NOID;
+}
+
+static ID
 null_tool_entry_next( BackendDB *be )
 {
 	return NOID;
@@ -392,7 +398,8 @@ null_back_initialize( BackendInfo *bi )
 
 	bi->bi_tool_entry_open = null_tool_entry_open;
 	bi->bi_tool_entry_close = null_tool_entry_close;
-	bi->bi_tool_entry_first = null_tool_entry_next;
+	bi->bi_tool_entry_first = backend_tool_entry_first;
+	bi->bi_tool_entry_first_x = null_tool_entry_first_x;
 	bi->bi_tool_entry_next = null_tool_entry_next;
 	bi->bi_tool_entry_get = null_tool_entry_get;
 	bi->bi_tool_entry_put = null_tool_entry_put;

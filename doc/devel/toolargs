@@ -2,11 +2,11 @@ Tools           ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz
 slapacl            D F              U  X   b d f        o     uv
 slapadd              F            S        bcd fg  j l no q s uvw
 slapauth             F      M    R  U  X     d f        o      v
-slapcat              F                    abcd fg    l no   s  v
+slapcat              F H                  abcd fg    l no   s  v
 slapdn               F       N P             d f        o      v
 slapindex            F                     bcd fg      no q  t v
 slappasswd                         T        c    h          s uv
-slapschema	     F                    abcd fg    l no   s  v
+slapschema	     F H                  abcd fg    l no   s  v
 slaptest             F          Q            d f       no     uv
 
 * General flags:

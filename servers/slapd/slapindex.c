@@ -43,7 +43,7 @@ slapindex( int argc, char **argv )
 
 	if( !be->be_entry_open ||
 		!be->be_entry_close ||
-		!be->be_entry_first ||
+		!( be->be_entry_first || be->be_entry_first_x ) ||
 		!be->be_entry_next  ||
 		!be->be_entry_reindex )
 	{
@@ -77,11 +77,16 @@ slapindex( int argc, char **argv )
 			progname );
 		exit( EXIT_FAILURE );
 	}
-	
-	for ( id = be->be_entry_first( be );
-		id != NOID;
-		id = be->be_entry_next( be ) )
-	{
+
+	if ( be->be_entry_first ) {
+		id = be->be_entry_first( be );
+
+	} else {
+		assert( be->be_entry_first_x != NULL );
+		id = be->be_entry_first_x( be, NULL, LDAP_SCOPE_DEFAULT, NULL );
+	}
+
+	for ( ; id != NOID; id = be->be_entry_next( be ) ) {
 		int rtn;
 
 		if( verbose ) {

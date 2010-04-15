@@ -6789,10 +6789,30 @@ config_tool_entry_first( BackendDB *be )
 	CfBackInfo *cfb = be->be_private;
 	BackendInfo *bi = cfb->cb_db.bd_info;
 
-	if ( bi && bi->bi_tool_entry_first )
+	if ( bi && bi->bi_tool_entry_first ) {
 		return bi->bi_tool_entry_first( &cfb->cb_db );
-	else
-		return NOID;
+	}
+	if ( bi && bi->bi_tool_entry_first_x ) {
+		return bi->bi_tool_entry_first_x( &cfb->cb_db,
+			NULL, LDAP_SCOPE_DEFAULT, NULL );
+	}
+	return NOID;
+}
+
+static ID
+config_tool_entry_first_x(
+	BackendDB *be,
+	struct berval *base,
+	int scope,
+	Filter *f )
+{
+	CfBackInfo *cfb = be->be_private;
+	BackendInfo *bi = cfb->cb_db.bd_info;
+
+	if ( bi && bi->bi_tool_entry_first_x ) {
+		return bi->bi_tool_entry_first_x( &cfb->cb_db, base, scope, f );
+	}
+	return NOID;
 }
 
 static ID
@@ -7039,6 +7059,7 @@ config_back_initialize( BackendInfo *bi )
 	bi->bi_tool_entry_open = config_tool_entry_open;
 	bi->bi_tool_entry_close = config_tool_entry_close;
 	bi->bi_tool_entry_first = config_tool_entry_first;
+	bi->bi_tool_entry_first_x = config_tool_entry_first_x;
 	bi->bi_tool_entry_next = config_tool_entry_next;
 	bi->bi_tool_entry_get = config_tool_entry_get;
 	bi->bi_tool_entry_put = config_tool_entry_put;

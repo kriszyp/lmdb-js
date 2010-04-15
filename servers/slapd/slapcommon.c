@@ -80,7 +80,7 @@ usage( int tool, const char *progname )
 
 	case SLAPCAT:
 		options = " [-c]\n\t[-g] [-n databasenumber | -b suffix]"
-			" [-l ldiffile] [-a filter] [-s subtree]\n";
+			" [-l ldiffile] [-a filter] [-s subtree] [-H url]\n";
 		break;
 
 	case SLAPDN:
@@ -97,7 +97,7 @@ usage( int tool, const char *progname )
 
 	case SLAPSCHEMA:
 		options = " [-c]\n\t[-g] [-n databasenumber | -b suffix]"
-			" [-l errorfile] [-a filter] [-s subtree]\n";
+			" [-l errorfile] [-a filter] [-s subtree] [-H url]\n";
 		break;
 	}
 
@@ -247,13 +247,15 @@ slap_tool_init(
 	leakfilename = NULL;
 #endif
 
+	scope = LDAP_SCOPE_DEFAULT;
+
 	switch( tool ) {
 	case SLAPADD:
 		options = "b:cd:f:F:gj:l:n:o:qsS:uvw";
 		break;
 
 	case SLAPCAT:
-		options = "a:b:cd:f:F:gl:n:o:s:v";
+		options = "a:b:cd:f:F:gH:l:n:o:s:v";
 		mode |= SLAP_TOOL_READMAIN | SLAP_TOOL_READONLY;
 		break;
 
@@ -263,7 +265,7 @@ slap_tool_init(
 		break;
 
 	case SLAPSCHEMA:
-		options = "a:b:cd:f:F:gl:n:o:s:v";
+		options = "a:b:cd:f:F:gH:l:n:o:s:v";
 		mode |= SLAP_TOOL_READMAIN | SLAP_TOOL_READONLY;
 		break;
 
@@ -343,6 +345,52 @@ slap_tool_init(
 		case 'g':	/* disable subordinate glue */
 			use_glue = 0;
 			break;
+
+		case 'H': {
+			LDAPURLDesc *ludp;
+			int rc;
+
+			rc = ldap_url_parse_ext( optarg, &ludp,
+				LDAP_PVT_URL_PARSE_NOEMPTY_HOST | LDAP_PVT_URL_PARSE_NOEMPTY_DN );
+			if ( rc != LDAP_URL_SUCCESS ) {
+				usage( tool, progname );
+			}
+
+			/* don't accept host, port, attrs, extensions */
+			if ( ldap_pvt_url_scheme2proto( ludp->lud_scheme ) != LDAP_PROTO_TCP ) {
+				usage( tool, progname );
+			}
+
+			if ( ludp->lud_host != NULL ) {
+				usage( tool, progname );
+			}
+
+			if ( ludp->lud_port != 0 ) {
+				usage( tool, progname );
+			}
+
+			if ( ludp->lud_attrs != NULL ) {
+				usage( tool, progname );
+			}
+
+			if ( ludp->lud_exts != NULL ) {
+				usage( tool, progname );
+			}
+
+			if ( ludp->lud_dn != NULL && ludp->lud_dn[0] != '\0' ) {
+				subtree = ludp->lud_dn;
+				ludp->lud_dn = NULL;
+			}
+
+			if ( ludp->lud_filter != NULL && ludp->lud_filter[0] != '\0' ) {
+				filterstr = ludp->lud_filter;
+				ludp->lud_filter = NULL;
+			}
+
+			scope = ludp->lud_scope;
+
+			ldap_free_urldesc( ludp );
+			} break;
 
 		case 'j':	/* jump to linenumber */
 			if ( lutil_atoi( &jumpline, optarg ) ) {
@@ -743,6 +791,17 @@ get_db:
 		}
 	}
 
+	if ( scope != LDAP_SCOPE_DEFAULT && BER_BVISNULL( &sub_ndn ) ) {
+		if ( be && be->be_nsuffix ) {
+			ber_dupbv( &sub_ndn, be->be_nsuffix );
+
+		} else {
+			fprintf( stderr,
+				"<scope> needs a DN or a valid database\n" );
+			exit( EXIT_FAILURE );
+		}
+	}
+
 startup:;
 	if ( be ) {
 		BackendDB *bdtmp;
@@ -833,3 +892,5 @@ int slap_tool_destroy( void )
 	}
 	return rc;
 }
+
+
