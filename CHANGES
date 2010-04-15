@@ -5,6 +5,7 @@ OpenLDAP 2.4.22 Engineering
 	Added slapd tools selective iterations (ITS#6442)
 	Added slapo-pbind
 	Fixed libldap GnuTLS serial length (ITS#6460)
+	Fixed slapd acl non-entry internal searches (ITS#6481)
 	Fixed slapd certificateListValidate (ITS#6466)
 	Fixed slapd empty URI parsing (ITS#6465)
 	Fixed slapd ignore controls with unrecognized flags (ITS#6480)
