@@ -5219,6 +5219,20 @@ pcache_op_extended( Operation *op, SlapReply *rs )
 	return SLAP_CB_CONTINUE;
 }
 
+static int
+pcache_entry_release( Operation  *op, Entry *e, int rw )
+{
+	slap_overinst	*on = (slap_overinst *)op->o_bd->bd_info;
+	cache_manager	*cm = on->on_bi.bi_private;
+	BackendDB *db = op->o_bd;
+	int rc;
+
+	op->o_bd = &cm->db;
+	rc = be_entry_release_rw( op, e, rw );
+	op->o_bd = db;
+	return rc;
+}
+
 #ifdef PCACHE_MONITOR
 
 static int
@@ -5605,6 +5619,7 @@ pcache_initialize()
 #endif /* PCACHE_CONTROL_PRIVDB */
 	pcache.on_bi.bi_extended = pcache_op_extended;
 
+	pcache.on_bi.bi_entry_release_rw = pcache_entry_release;
 	pcache.on_bi.bi_chk_controls = pcache_chk_controls;
 
 	pcache.on_bi.bi_cf_ocs = pcocs;
