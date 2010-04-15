@@ -3018,14 +3018,22 @@ pcache_op_search(
 				pbi->bi_cq = answerable;
 
 			op->o_bd = &cm->db;
-#if 0
 			if ( cm->response_cb == PCACHE_RESPONSE_CB_TAIL ) {
+				slap_callback cb;
 				/* The cached entry was already processed by any
 				 * other overlays, so don't let it get processed again.
+				 *
+				 * This loop removes over_back_response from the stack.
 				 */
-				op->o_callback = NULL;
+				if ( overlay_callback_after_backover( op, &cb, 0) == 0 ) {
+					slap_callback **scp;
+					for ( scp = &op->o_callback; *scp != NULL;
+						scp = &(*scp)->sc_next ) {
+						if ( (*scp)->sc_next == &cb )
+							*scp = cb.sc_next;
+					}
+				}
 			}
-#endif
 			i = cm->db.bd_info->bi_op_search( op, rs );
 		}
 		ldap_pvt_thread_rdwr_runlock(&answerable->rwlock);
