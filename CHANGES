@@ -14,6 +14,7 @@ OpenLDAP 2.4.22 Engineering
 	Fixed slapd sasl auxprop ssf (ITS#5195)
 	Fixed slapd syncrepl for unknown attrs and delta-sync (ITS#6473)
 	Fixed slapd-bdb contextCSN updates from updatedn (ITS#6469)
+	Fixed slapd-bdb lockobj zeroing (ITS#6501)
 	Fixed slapo-collect REP_ENTRY flag handling (ITS#5340,ITS#6423)
 	Fixed slapo-dds with NULL backend (ITS#6490)
 	Fixed slapo-dynlist REP_ENTRY flag handling (ITS#5340,ITS#6423)
