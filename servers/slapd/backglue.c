@@ -35,6 +35,7 @@
 
 #define SLAPD_TOOLS
 #include "slap.h"
+#include "lutil.h"
 #include "config.h"
 
 typedef struct gluenode {
@@ -161,7 +162,8 @@ glue_op_response ( Operation *op, SlapReply *rs )
 
 			j = gs->nctrls;
 			if (!j) {
-				newctrls = ch_malloc((i+1)*sizeof(LDAPControl *));
+				newctrls = op->o_tmpalloc((i+1)*sizeof(LDAPControl *),
+					op->o_tmpmemctx);
 			} else {
 				/* Forget old pagedResults response if we're sending
 				 * a new one now
@@ -178,25 +180,35 @@ glue_op_response ( Operation *op, SlapReply *rs )
 					if ( newpage ) {
 						for ( k=0; k<j; k++ ) {
 							if ( !strcmp(gs->ctrls[k]->ldctl_oid,
-								LDAP_CONTROL_PAGEDRESULTS )) {
-									gs->ctrls[k]->ldctl_oid = NULL;
-									ldap_control_free( gs->ctrls[k] );
-									gs->ctrls[k] = gs->ctrls[--j];
-									gs->ctrls[j] = NULL;
-									break;
+								LDAP_CONTROL_PAGEDRESULTS ))
+							{
+								op->o_tmpfree(gs->ctrls[k], op->o_tmpmemctx);
+								gs->ctrls[k] = gs->ctrls[--j];
+								gs->ctrls[j] = NULL;
+								break;
 							}
 						}
 					}
 				}
-				newctrls = ch_realloc(gs->ctrls,
-					(j+i+1)*sizeof(LDAPControl *));
+				newctrls = op->o_tmprealloc(gs->ctrls,
+					(j+i+1)*sizeof(LDAPControl *), op->o_tmpmemctx);
 			}
 			for (k=0; k<i; j++,k++) {
-				newctrls[j] = ch_malloc(sizeof(LDAPControl));
-				*newctrls[j] = *rs->sr_ctrls[k];
-				if ( !BER_BVISNULL( &rs->sr_ctrls[k]->ldctl_value ))
-					ber_dupbv( &newctrls[j]->ldctl_value,
-						&rs->sr_ctrls[k]->ldctl_value );
+				ber_len_t oidlen = strlen( rs->sr_ctrls[k]->ldctl_oid );
+				newctrls[j] = op->o_tmpalloc(sizeof(LDAPControl) + oidlen + 1 + rs->sr_ctrls[k]->ldctl_value.bv_len + 1,
+					op->o_tmpmemctx);
+				newctrls[j]->ldctl_iscritical = rs->sr_ctrls[k]->ldctl_iscritical;
+				newctrls[j]->ldctl_oid = (char *)&newctrls[j][1];
+				lutil_strcopy( newctrls[j]->ldctl_oid, rs->sr_ctrls[k]->ldctl_oid );
+				if ( !BER_BVISNULL( &rs->sr_ctrls[k]->ldctl_value ) ) {
+					newctrls[j]->ldctl_value.bv_val = &newctrls[j]->ldctl_oid[oidlen + 1];
+					newctrls[j]->ldctl_value.bv_len = rs->sr_ctrls[k]->ldctl_value.bv_len;
+					lutil_memcopy( newctrls[j]->ldctl_value.bv_val,
+						rs->sr_ctrls[k]->ldctl_value.bv_val,
+						rs->sr_ctrls[k]->ldctl_value.bv_len + 1 );
+				} else {
+					BER_BVZERO( &newctrls[j]->ldctl_value );
+				}
 			}
 			newctrls[j] = NULL;
 			gs->nctrls = j;
@@ -522,6 +534,31 @@ glue_op_search ( Operation *op, SlapReply *rs )
 						memset( ps->ps_cookieval.bv_val, 0,
 							sizeof( PagedResultsCookie ));
 					}
+
+
+					{
+						/* change the size of the page in the request
+						 * that will be propagated */
+						BerElementBuffer berbuf;
+						BerElement *ber = (BerElement *)&berbuf;
+						int size = ps->ps_size - rs->sr_nentries;
+						struct berval cookie = BER_BVC(""), value;
+						int c;
+
+						for (c = 0; op->o_ctrls[c] != NULL; c++) {
+							if (strcmp(op->o_ctrls[c]->ldctl_oid, LDAP_CONTROL_PAGEDRESULTS) == 0)
+								break;
+						}
+
+						ber_init2( ber, NULL, LBER_USE_DER );
+						ber_printf( ber, "{iO}", size, &cookie );
+						ber_flatten2( ber, &value, 0 );
+						assert( op->o_ctrls[c]->ldctl_value.bv_len >= value.bv_len );
+						op->o_ctrls[c]->ldctl_value.bv_len = value.bv_len;
+						lutil_memcopy( op->o_ctrls[c]->ldctl_value.bv_val,
+							value.bv_val, value.bv_len );
+						ber_free_buf( ber );
+					}
 				}
 				
 			default:
@@ -556,11 +593,9 @@ end_of_loop:;
 		ber_bvarray_free(gs.refs);
 	if (gs.ctrls) {
 		for (i = gs.nctrls; --i >= 0; ) {
-			if (!BER_BVISNULL( &gs.ctrls[i]->ldctl_value ))
-				free(gs.ctrls[i]->ldctl_value.bv_val);
-			free(gs.ctrls[i]);
+			op->o_tmpfree(gs.ctrls[i], op->o_tmpmemctx);
 		}
-		free(gs.ctrls);
+		op->o_tmpfree(gs.ctrls, op->o_tmpmemctx);
 	}
 	return rs->sr_err;
 }
