@@ -108,46 +108,12 @@ dynlist_is_dynlist_next( Operation *op, SlapReply *rs, dynlist_info_t *old_dli )
 	for ( ; dli; dli = dli->dli_next ) {
 		if ( dli->dli_lud != NULL ) {
 			/* check base and scope */
-			if ( !BER_BVISNULL( &dli->dli_uri_nbase ) ) {
-				int d = rs->sr_entry->e_nname.bv_len - dli->dli_uri_nbase.bv_len;
-
-				if ( d < 0 ) {
-					continue;
-				}
-
-				if ( !dnIsSuffix( &rs->sr_entry->e_nname, &dli->dli_uri_nbase ) ) {
-					continue;
-				}
-
-				switch ( dli->dli_lud->lud_scope ) {
-				case LDAP_SCOPE_BASE:
-					if ( d != 0 ) {
-						continue;
-					}
-					break;
-
-				case LDAP_SCOPE_ONELEVEL: {
-					struct berval pdn;
-
-					dnParent( &rs->sr_entry->e_nname, &pdn );
-					if ( pdn.bv_len != dli->dli_uri_nbase.bv_len ) {
-						continue;
-					}
-					} break;
-
-				case LDAP_SCOPE_SUBORDINATE:
-					if ( d == 0 ) {
-						continue;
-					}
-					break;
-
-				case LDAP_SCOPE_SUBTREE:
-				case LDAP_SCOPE_DEFAULT:
-					break;
-
-				default:
-					continue;
-				}
+			if ( !BER_BVISNULL( &dli->dli_uri_nbase )
+				&& !dnIsSuffixScope( &rs->sr_entry->e_nname,
+					&dli->dli_uri_nbase,
+					dli->dli_lud->lud_scope ) )
+			{
+				continue;
 			}
 
 			/* check filter */
