@@ -5111,6 +5111,10 @@ pcache_exop_query_delete(
 	op->o_req_dn = op->o_req_ndn;
 
 	op->o_bd = select_backend( &op->o_req_ndn, 0 );
+	if ( op->o_bd == NULL ) {
+		send_ldap_error( op, rs, LDAP_NO_SUCH_OBJECT,
+			"no global superior knowledge" );
+	}
 	rs->sr_err = backend_check_restrictions( op, rs,
 		(struct berval *)&pcache_exop_QUERY_DELETE );
 	if ( rs->sr_err != LDAP_SUCCESS ) {

@@ -1821,6 +1821,12 @@ slap_exop_refresh(
 	op->o_req_dn = op->o_req_ndn;
 
 	op->o_bd = select_backend( &op->o_req_ndn, 0 );
+	if ( op->o_bd == NULL ) {
+		send_ldap_error( op, rs, LDAP_NO_SUCH_OBJECT,
+			"no global superior knowledge" );
+		goto done;
+	}
+
 	if ( !SLAP_DYNAMIC( op->o_bd ) ) {
 		send_ldap_error( op, rs, LDAP_UNAVAILABLE_CRITICAL_EXTENSION,
 			"backend does not support dynamic directory services" );
