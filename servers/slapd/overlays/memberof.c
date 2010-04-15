@@ -580,6 +580,7 @@ memberof_op_add( Operation *op, SlapReply *rs )
 							sizeof( struct berval ) * ( j - i ) );
 					}
 					i--;
+					a->a_numvals--;
 				}
 			}
 
