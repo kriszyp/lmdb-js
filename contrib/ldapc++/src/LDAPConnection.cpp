@@ -376,3 +376,7 @@ void LDAPConnection::setConstraints(LDAPConstraints* cons){
 const LDAPConstraints* LDAPConnection::getConstraints() const{
     return LDAPAsynConnection::getConstraints();
 }
+
+TlsOptions LDAPConnection::getTlsOptions() const {
+    return LDAPAsynConnection::getTlsOptions();
+}

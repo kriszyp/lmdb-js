@@ -12,7 +12,6 @@
 #include<string>
 
 #include<ldap.h>
-#include<lber.h>
 
 #include <LDAPEntry.h>
 #include <LDAPException.h>
@@ -23,6 +22,7 @@
 #include <LDAPUrl.h>
 #include <LDAPUrlList.h>
 #include <SaslInteractionHandler.h>
+#include <TlsOptions.h>
 
 //* Main class for an asynchronous LDAP connection 
 /**
@@ -73,7 +73,6 @@ class LDAPAsynConnection{
 
         //* Destructor
         virtual ~LDAPAsynConnection();
-
         /** 
          * Initializes a connection to a server. 
          * 
@@ -284,7 +283,7 @@ class LDAPAsynConnection{
          *      used with the Connection
          */
         const LDAPConstraints* getConstraints() const;
-
+        TlsOptions getTlsOptions() const;
         /**
          * This method is used internally for automatic referral chasing.
          * It tries to bind to a destination server of the URLs of a

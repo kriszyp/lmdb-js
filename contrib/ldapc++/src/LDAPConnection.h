@@ -235,6 +235,7 @@ class LDAPConnection : private LDAPAsynConnection {
         void setConstraints(LDAPConstraints *cons);
         
         const LDAPConstraints* getConstraints() const ;
+        TlsOptions getTlsOptions() const;
 };
 
 #endif //LDAP_CONNECTION_H

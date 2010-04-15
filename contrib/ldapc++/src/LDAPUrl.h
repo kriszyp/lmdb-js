@@ -178,10 +178,12 @@ class LDAPUrl{
         enum mode { base, attrs, scope, filter, extensions };
 };
 
+/// @cond
 struct code2string_s {
     int code;
     const char* string;
 };
+/// @endcond
 
 class LDAPUrlException {
     public :
