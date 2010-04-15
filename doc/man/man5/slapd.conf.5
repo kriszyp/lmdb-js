@@ -1278,6 +1278,19 @@ by default. See the
 manual page for more details on ACL requirements for
 Add operations.
 .TP
+.B extra_attrs <attrlist>
+Lists what attributes need to be added to search requests.
+Local storage backends return the entire entry to the frontend.
+The frontend takes care of only returning the requested attributes
+that are allowed by ACLs.
+However, features like access checking and so may need specific
+attributes that are not automatically returned by remote storage
+backends, like proxy backends and so on.
+.B <attrlist>
+is a list of attributes that are needed for internal purposes
+and thus always need to be collected, even when not explicitly
+requested by clients.
+.TP
 .B hidden on | off
 Controls whether the database will be used to answer
 queries. A database that is hidden will never be

@@ -603,9 +603,8 @@ meta_back_search_start(
 	/*
 	 * Maps required attributes
 	 */
-	rc = ldap_back_map_attrs( &mt->mt_rwmap.rwm_at,
-			op->ors_attrs, BACKLDAP_MAP, &mapped_attrs,
-			op->o_tmpmemctx );
+	rc = ldap_back_map_attrs( op, &mt->mt_rwmap.rwm_at,
+			op->ors_attrs, BACKLDAP_MAP, &mapped_attrs );
 	if ( rc != LDAP_SUCCESS ) {
 		/*
 		 * this target is no longer candidate

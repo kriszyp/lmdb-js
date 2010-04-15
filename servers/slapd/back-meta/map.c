@@ -171,42 +171,73 @@ ldap_back_map ( struct ldapmap *map, struct berval *s, struct berval *bv,
 
 int
 ldap_back_map_attrs(
+		Operation *op,
 		struct ldapmap *at_map,
 		AttributeName *an,
 		int remap,
-		char ***mapped_attrs,
-		void *memctx )
+		char ***mapped_attrs )
 {
-	int i, j;
+	int i, x, j;
 	char **na;
 	struct berval mapped;
 
-	if ( an == NULL ) {
+	if ( an == NULL && op->o_bd->be_extra_anlist == NULL ) {
 		*mapped_attrs = NULL;
 		return LDAP_SUCCESS;
 	}
 
-	for ( i = 0; !BER_BVISNULL( &an[i].an_name ); i++ )
-		/*  */ ;
+	i = 0;
+	if ( an != NULL ) {
+		for ( ; !BER_BVISNULL( &an[i].an_name ); i++ )
+			/*  */ ;
+	}
 
-	na = (char **)ber_memcalloc_x( i + 1, sizeof(char *), memctx );
+	x = 0;
+	if ( op->o_bd->be_extra_anlist != NULL ) {
+		for ( ; !BER_BVISNULL( &op->o_bd->be_extra_anlist[x].an_name ); x++ )
+			/*  */ ;
+	}
+
+	assert( i > 0 || x > 0 );
+	
+	na = (char **)ber_memcalloc_x( i + x + 1, sizeof(char *), op->o_tmpmemctx );
 	if ( na == NULL ) {
 		*mapped_attrs = NULL;
 		return LDAP_NO_MEMORY;
 	}
 
-	for ( i = j = 0; !BER_BVISNULL( &an[i].an_name ); i++ ) {
-		ldap_back_map( at_map, &an[i].an_name, &mapped, remap );
-		if ( !BER_BVISNULL( &mapped ) && !BER_BVISEMPTY( &mapped ) ) {
-			na[j++] = mapped.bv_val;
+	j = 0;
+	if ( i > 0 ) {
+		for ( i = 0; !BER_BVISNULL( &an[i].an_name ); i++ ) {
+			ldap_back_map( at_map, &an[i].an_name, &mapped, remap );
+			if ( !BER_BVISNULL( &mapped ) && !BER_BVISEMPTY( &mapped ) ) {
+				na[j++] = mapped.bv_val;
+			}
 		}
 	}
-	if ( j == 0 && i != 0 ) {
+
+	if ( x > 0 ) {
+		for ( x = 0; !BER_BVISNULL( &op->o_bd->be_extra_anlist[x].an_name ); x++ ) {
+			if ( op->o_bd->be_extra_anlist[x].an_desc &&
+				ad_inlist( op->o_bd->be_extra_anlist[x].an_desc, an ) )
+			{
+				continue;
+			}
+
+			ldap_back_map( at_map, &op->o_bd->be_extra_anlist[x].an_name, &mapped, remap );
+			if ( !BER_BVISNULL( &mapped ) && !BER_BVISEMPTY( &mapped ) ) {
+				na[j++] = mapped.bv_val;
+			}
+		}
+	}
+
+	if ( j == 0 && ( i > 0 || x > 0 ) ) {
 		na[j++] = LDAP_NO_ATTRS;
 	}
 	na[j] = NULL;
 
 	*mapped_attrs = na;
+
 	return LDAP_SUCCESS;
 }
 

@@ -141,7 +141,7 @@ ldap_back_search(
 			msgid; 
 	struct berval	match = BER_BVNULL,
 			filter = BER_BVNULL;
-	int		i;
+	int		i, x;
 	char		**attrs = NULL;
 	int		freetext = 0, filter_undef = 0;
 	int		do_retry = 1, dont_retry = 0;
@@ -169,22 +169,48 @@ ldap_back_search(
 		LDAP_BACK_TV_SET( &tv );
 	}
 
+	i = 0;
 	if ( op->ors_attrs ) {
-		for ( i = 0; !BER_BVISNULL( &op->ors_attrs[i].an_name ); i++ )
+		for ( ; !BER_BVISNULL( &op->ors_attrs[i].an_name ); i++ )
 			/* just count attrs */ ;
+	}
 
-		attrs = op->o_tmpalloc( ( i + 1 )*sizeof( char * ),
+	x = 0;
+	if ( op->o_bd->be_extra_anlist ) {
+		for ( ; !BER_BVISNULL( &op->o_bd->be_extra_anlist[x].an_name ); x++ )
+			/* just count attrs */ ;
+	}
+
+	if ( i > 0 || x > 0 ) {
+		int j = 0;
+
+		attrs = op->o_tmpalloc( ( i + x + 1 )*sizeof( char * ),
 			op->o_tmpmemctx );
 		if ( attrs == NULL ) {
 			rs->sr_err = LDAP_NO_MEMORY;
 			rc = -1;
 			goto finish;
 		}
-	
-		for ( i = 0; !BER_BVISNULL( &op->ors_attrs[i].an_name ); i++ ) {
-			attrs[ i ] = op->ors_attrs[i].an_name.bv_val;
+
+		if ( i > 0 ) {	
+			for ( i = 0; !BER_BVISNULL( &op->ors_attrs[i].an_name ); i++, j++ ) {
+				attrs[ j ] = op->ors_attrs[i].an_name.bv_val;
+			}
 		}
-		attrs[ i ] = NULL;
+
+		if ( x > 0 ) {
+			for ( x = 0; !BER_BVISNULL( &op->o_bd->be_extra_anlist[x].an_name ); x++, j++ ) {
+				if ( op->o_bd->be_extra_anlist[x].an_desc &&
+					ad_inlist( op->o_bd->be_extra_anlist[x].an_desc, op->ors_attrs ) )
+				{
+					continue;
+				}
+
+				attrs[ j ] = op->o_bd->be_extra_anlist[x].an_name.bv_val;
+			}
+		}
+
+		attrs[ j ] = NULL;
 	}
 
 	ctrls = op->o_ctrls;

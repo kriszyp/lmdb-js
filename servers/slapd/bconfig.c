@@ -135,6 +135,7 @@ static ConfigDriver config_referral;
 static ConfigDriver config_loglevel;
 static ConfigDriver config_updatedn;
 static ConfigDriver config_updateref;
+static ConfigDriver config_extra_attrs;
 static ConfigDriver config_include;
 static ConfigDriver config_obsolete;
 #ifdef HAVE_TLS
@@ -366,6 +367,10 @@ static ConfigTable config_back_cf_table[] = {
 			"SUBSTR caseIgnoreSubstringsMatch "
 			"SYNTAX OMsDirectoryString X-ORDERED 'VALUES' )",
 			NULL, NULL },
+	{ "extra_attrs", "attrlist", 2, 2, 0, ARG_DB|ARG_MAGIC,
+		&config_extra_attrs, "( OLcfgDbAt:0.20 NAME 'olcExtraAttrs' "
+			"EQUALITY caseIgnoreMatch "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ "gentlehup", "on|off", 2, 2, 0,
 #ifdef SIGHUP
 		ARG_ON_OFF, &global_gentlehup,
@@ -837,7 +842,7 @@ static ConfigOCs cf_ocs[] = {
 		 "olcReplogFile $ olcRequires $ olcRestrict $ olcRootDN $ olcRootPW $ "
 		 "olcSchemaDN $ olcSecurity $ olcSizeLimit $ olcSyncUseSubentry $ olcSyncrepl $ "
 		 "olcTimeLimit $ olcUpdateDN $ olcUpdateRef $ olcMirrorMode $ "
-		 "olcMonitoring ) )",
+		 "olcMonitoring $ olcExtraAttrs ) )",
 		 	Cft_Database, NULL, cfAddDatabase },
 	{ "( OLcfgGlOc:5 "
 		"NAME 'olcOverlayConfig' "
@@ -3172,6 +3177,58 @@ config_requires(ConfigArgs *c) {
 	}
 	c->be->be_requires = requires;
 	return(0);
+}
+
+static int
+config_extra_attrs(ConfigArgs *c)
+{
+	assert( c->be != NULL );
+
+	if ( c->op == SLAP_CONFIG_EMIT ) {
+		int i;
+
+		if ( c->be->be_extra_anlist == NULL ) {
+			return 1;
+		}
+
+		for ( i = 0; !BER_BVISNULL( &c->be->be_extra_anlist[i].an_name ); i++ ) {
+			value_add_one( &c->rvalue_vals, &c->be->be_extra_anlist[i].an_name );
+		}
+
+	} else if ( c->op == LDAP_MOD_DELETE ) {
+		if ( c->be->be_extra_anlist == NULL ) {
+			return 1;
+		}
+
+		if ( c->valx < 0 ) {
+			anlist_free( c->be->be_extra_anlist, 1, NULL );
+			c->be->be_extra_anlist = NULL;
+
+		} else {
+			int i;
+
+			for ( i = 0; i < c->valx && !BER_BVISNULL( &c->be->be_extra_anlist[i + 1].an_name ); i++ )
+				;
+
+			if ( BER_BVISNULL( &c->be->be_extra_anlist[i].an_name ) ) {
+				return 1;
+			}
+
+			ch_free( c->be->be_extra_anlist[i].an_name.bv_val );
+
+			for ( ; !BER_BVISNULL( &c->be->be_extra_anlist[i].an_name ); i++ ) {
+				c->be->be_extra_anlist[i] = c->be->be_extra_anlist[i + 1];
+			}
+		}
+
+	} else {
+		c->be->be_extra_anlist = str2anlist( c->be->be_extra_anlist, c->argv[1], " ,\t" );
+		if ( c->be->be_extra_anlist == NULL ) {
+			return 1;
+		}
+	}
+
+	return 0;
 }
 
 static slap_verbmasks	*loglevel_ops;

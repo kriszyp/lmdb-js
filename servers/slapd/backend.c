@@ -464,6 +464,9 @@ void backend_destroy_one( BackendDB *bd, int dynamic )
 	}
 	acl_destroy( bd->be_acl );
 	limits_destroy( bd->be_limits );
+	if ( bd->be_extra_anlist ) {
+		anlist_free( bd->be_extra_anlist, 1, NULL );
+	}
 	if ( !BER_BVISNULL( &bd->be_update_ndn ) ) {
 		ch_free( bd->be_update_ndn.bv_val );
 	}

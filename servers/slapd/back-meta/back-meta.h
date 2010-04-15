@@ -118,11 +118,11 @@ ldap_back_map_filter(
 
 int
 ldap_back_map_attrs(
+	Operation *op,
 	struct ldapmap *at_map,
 	AttributeName *a,
 	int remap,
-	char ***mapped_attrs,
-	void *memctx );
+	char ***mapped_attrs );
 
 extern int ldap_back_map_config(
 	struct ldapmap	*oc_map,
