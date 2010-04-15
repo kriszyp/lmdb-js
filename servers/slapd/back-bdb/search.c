@@ -1262,6 +1262,9 @@ parse_paged_cookie( Operation *op, SlapReply *rs )
 			goto done;
 		}
 
+	} else {
+		/* we're going to use ps_cookie */
+		op->o_conn->c_pagedresults_state.ps_cookie = 0;
 	}
 
 done:;

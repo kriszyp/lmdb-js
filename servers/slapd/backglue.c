@@ -356,6 +356,9 @@ glue_sub_search( Operation *op, SlapReply *rs, BackendDB *b0,
 	return op->o_bd->be_search( op, rs );
 }
 
+static const ID glueID = NOID;
+static const struct berval gluecookie = { sizeof( glueID ), (char *)&glueID };
+
 static int
 glue_op_search ( Operation *op, SlapReply *rs )
 {
@@ -377,6 +380,36 @@ glue_op_search ( Operation *op, SlapReply *rs )
 
 	starttime = op->o_time;
 	stoptime = slap_get_time () + op->ors_tlimit;
+
+	/* reset dummy cookie used to keep paged results going across databases */
+	if ( get_pagedresults( op ) > SLAP_CONTROL_IGNORED
+		&& bvmatch( &((PagedResultsState *)op->o_pagedresults_state)->ps_cookieval, &gluecookie ) )
+	{
+		PagedResultsState *ps = op->o_pagedresults_state;
+		BerElementBuffer berbuf;
+		BerElement *ber = (BerElement *)&berbuf;
+		struct berval cookie = BER_BVC(""), value;
+		int c;
+
+		for (c = 0; op->o_ctrls[c] != NULL; c++) {
+			if (strcmp(op->o_ctrls[c]->ldctl_oid, LDAP_CONTROL_PAGEDRESULTS) == 0)
+				break;
+		}
+
+		assert( op->o_ctrls[c] != NULL );
+
+		ber_init2( ber, NULL, LBER_USE_DER );
+		ber_printf( ber, "{iO}", ps->ps_size, &cookie );
+		ber_flatten2( ber, &value, 0 );
+		assert( op->o_ctrls[c]->ldctl_value.bv_len >= value.bv_len );
+		op->o_ctrls[c]->ldctl_value.bv_len = value.bv_len;
+		lutil_memcopy( op->o_ctrls[c]->ldctl_value.bv_val,
+			value.bv_val, value.bv_len );
+		ber_free_buf( ber );
+
+		ps->ps_cookie = (PagedResultsCookie)0;
+		BER_BVZERO( &ps->ps_cookieval );
+	}
 
 	op->o_bd = glue_back_select (b0, &op->o_req_ndn);
 	b0->bd_info = on->on_info->oi_orig;
@@ -516,13 +549,85 @@ glue_op_search ( Operation *op, SlapReply *rs )
 					 * from here on a subsequent request.
 					 */
 					if ( rs->sr_nentries >= ps->ps_size ) {
+						PagedResultsState *cps = &op->o_conn->c_pagedresults_state;
+						
 						/* Don't bother to remember the first backend.
 						 * Only remember the last one if there's more state left.
 						 */
 						if ( op->o_bd != b0 &&
-							( op->o_conn->c_pagedresults_state.ps_cookie ||
-							op->o_bd != gi->gi_n[0].gn_be ))
+							( cps->ps_cookie != NOID
+								|| !BER_BVISNULL( &cps->ps_cookieval )
+								|| op->o_bd != gi->gi_n[0].gn_be ) )
+						{
 							op->o_conn->c_pagedresults_state.ps_be = op->o_bd;
+						}
+
+						/* Check whether the cookie is empty,
+						 * and give remaining databases a chance
+						 */
+						if ( op->o_bd != gi->gi_n[0].gn_be || cps->ps_cookie == NOID ) {
+							int		c;
+
+							for ( c = 0; gs.ctrls[c] != NULL; c++ ) {
+								if ( strcmp( gs.ctrls[c]->ldctl_oid, LDAP_CONTROL_PAGEDRESULTS ) == 0 ) {
+									break;
+								}
+							}
+
+							if ( gs.ctrls[c] != NULL ) {
+								BerElementBuffer berbuf;
+								BerElement	*ber = (BerElement *)&berbuf;
+								ber_tag_t	tag;
+								ber_int_t	size;
+								struct berval	cookie, value;
+							
+								ber_init2( ber, &gs.ctrls[c]->ldctl_value, LBER_USE_DER );
+
+								tag = ber_scanf( ber, "{im}", &size, &cookie );
+								assert( tag != LBER_ERROR );
+
+								if ( BER_BVISEMPTY( &cookie ) && op->o_bd != gi->gi_n[0].gn_be ) {
+									/* delete old, create new cookie with NOID */
+									PagedResultsCookie respcookie = (PagedResultsCookie)NOID;
+									ber_len_t oidlen = strlen( gs.ctrls[c]->ldctl_oid );
+									LDAPControl *newctrl;
+
+									/* it's next database's turn */
+									if ( btmp == b0 ) {
+										op->o_conn->c_pagedresults_state.ps_be = gi->gi_n[gi->gi_nodes - 1].gn_be;
+
+									} else {
+										op->o_conn->c_pagedresults_state.ps_be = gi->gi_n[(i > 0 ? i - 1: 0)].gn_be;
+									}
+
+									cookie.bv_val = (char *)&respcookie;
+									cookie.bv_len = sizeof( PagedResultsCookie );
+
+									ber_init2( ber, NULL, LBER_USE_DER );
+									ber_printf( ber, "{iO}", 0, &cookie );
+									ber_flatten2( ber, &value, 0 );
+
+									newctrl = op->o_tmprealloc( gs.ctrls[c],
+										sizeof(LDAPControl) + oidlen + 1 + value.bv_len + 1,
+										op->o_tmpmemctx);
+									newctrl->ldctl_iscritical = gs.ctrls[c]->ldctl_iscritical;
+									newctrl->ldctl_oid = (char *)&newctrl[1];
+									lutil_strcopy( newctrl->ldctl_oid, gs.ctrls[c]->ldctl_oid );
+									newctrl->ldctl_value.bv_len = value.bv_len;
+									lutil_memcopy( newctrl->ldctl_value.bv_val,
+										value.bv_val, value.bv_len );
+
+									gs.ctrls[c] = newctrl;
+
+									ber_free_buf( ber );
+
+								} else if ( !BER_BVISEMPTY( &cookie ) && op->o_bd != b0 ) {
+									/* if cookie not empty, it's again this database's turn */
+									op->o_conn->c_pagedresults_state.ps_be = op->o_bd;
+								}
+							}
+						}
+
 						goto end_of_loop;
 					}
 
@@ -531,16 +636,12 @@ glue_op_search ( Operation *op, SlapReply *rs )
 					 * next backend will start up properly. Only back-[bh]db
 					 * and back-sql look at this state info.
 					 */
-					if ( ps->ps_cookieval.bv_len == sizeof( PagedResultsCookie )) {
-						ps->ps_cookie = 0;
-						memset( ps->ps_cookieval.bv_val, 0,
-							sizeof( PagedResultsCookie ));
-					}
-
+					ps->ps_cookie = (PagedResultsCookie)0;
+					BER_BVZERO( &ps->ps_cookieval );
 
 					{
 						/* change the size of the page in the request
-						 * that will be propagated */
+						 * that will be propagated, and reset the cookie */
 						BerElementBuffer berbuf;
 						BerElement *ber = (BerElement *)&berbuf;
 						int size = ps->ps_size - rs->sr_nentries;
@@ -551,6 +652,8 @@ glue_op_search ( Operation *op, SlapReply *rs )
 							if (strcmp(op->o_ctrls[c]->ldctl_oid, LDAP_CONTROL_PAGEDRESULTS) == 0)
 								break;
 						}
+
+						assert( op->o_ctrls[c] != NULL );
 
 						ber_init2( ber, NULL, LBER_USE_DER );
 						ber_printf( ber, "{iO}", size, &cookie );
