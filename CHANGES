@@ -19,6 +19,8 @@ OpenLDAP 2.4.22 Engineering
 	Fixed slapo-rwm REP_ENTRY flag handling (ITS#5340,ITS#6423)
 	Fixed slapo-syncprov memory leak (ITS#6459)
 	Fixed slapo-valsort REP_ENTRY flag handling (ITS#5340,ITS#6423)
+	Documentation
+		admin24 avoid explicity moduleload statements (ITS#6486)
 
 OpenLDAP 2.4.21 Release (2009/12/20)
 	Fixed liblutil for negative microsecond offsets (ITS#6405)
