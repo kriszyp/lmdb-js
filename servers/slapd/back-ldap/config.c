@@ -41,6 +41,7 @@
 static SLAP_EXTOP_MAIN_FN ldap_back_exop_whoami;
 
 static ConfigDriver ldap_back_cf_gen;
+static ConfigDriver ldap_pbind_cf_gen;
 
 enum {
 	LDAP_BACK_CFG_URI = 1,
@@ -371,6 +372,57 @@ static ConfigOCs ldapocs[] = {
 			"$ olcDbNoUndefFilter "
 		") )",
 		 	Cft_Database, ldapcfg},
+	{ NULL, 0, NULL }
+};
+
+static ConfigTable pbindcfg[] = {
+	{ "uri", "uri", 2, 2, 0,
+		ARG_MAGIC|LDAP_BACK_CFG_URI,
+		ldap_pbind_cf_gen, "( OLcfgDbAt:0.14 "
+			"NAME 'olcDbURI' "
+			"DESC 'URI (list) for remote DSA' "
+			"SYNTAX OMsDirectoryString "
+			"SINGLE-VALUE )",
+		NULL, NULL },
+	{ "tls", "what", 2, 0, 0,
+		ARG_MAGIC|LDAP_BACK_CFG_TLS,
+		ldap_pbind_cf_gen, "( OLcfgDbAt:3.1 "
+			"NAME 'olcDbStartTLS' "
+			"DESC 'StartTLS' "
+			"SYNTAX OMsDirectoryString "
+			"SINGLE-VALUE )",
+		NULL, NULL },
+	{ "network-timeout", "timeout", 2, 2, 0,
+		ARG_MAGIC|LDAP_BACK_CFG_NETWORK_TIMEOUT,
+		ldap_pbind_cf_gen, "( OLcfgDbAt:3.17 "
+			"NAME 'olcDbNetworkTimeout' "
+			"DESC 'connection network timeout' "
+			"SYNTAX OMsDirectoryString "
+			"SINGLE-VALUE )",
+		NULL, NULL },
+	{ "quarantine", "retrylist", 2, 2, 0,
+		ARG_MAGIC|LDAP_BACK_CFG_QUARANTINE,
+		ldap_pbind_cf_gen, "( OLcfgDbAt:3.21 "
+			"NAME 'olcDbQuarantine' "
+			"DESC 'Quarantine database if connection fails and retry according to rule' "
+			"SYNTAX OMsDirectoryString "
+			"SINGLE-VALUE )",
+		NULL, NULL },
+	{ NULL, NULL, 0, 0, 0, ARG_IGNORED,
+		NULL, NULL, NULL, NULL }
+};
+
+static ConfigOCs pbindocs[] = {
+	{ "( OLcfgOvOc:3.3 "
+		"NAME 'olcPBindConfig' "
+		"DESC 'Proxy Bind configuration' "
+		"SUP olcOverlayConfig "
+		"MUST olcDbURI "
+		"MAY ( olcDbStartTLS "
+			"$ olcDbNetworkTimeout "
+			"$ olcDbQuarantine "
+		") )",
+		 	Cft_Overlay, pbindcfg},
 	{ NULL, 0, NULL }
 };
 
@@ -2038,6 +2090,26 @@ ldap_back_init_cf( BackendInfo *bi )
 	return 0;
 }
 
+static int
+ldap_pbind_cf_gen( ConfigArgs *c )
+{
+	slap_overinst	*on = (slap_overinst *)c->bi;
+	void	*private = c->be->be_private;
+	int		rc;
+
+	c->be->be_private = on->on_bi.bi_private;
+	rc = ldap_back_cf_gen( c );
+	c->be->be_private = private;
+	return rc;
+}
+
+int
+ldap_pbind_init_cf( BackendInfo *bi )
+{
+	bi->bi_cf_ocs = pbindocs;
+
+	return config_register_schema( pbindcfg, pbindocs );
+}
 
 static int
 ldap_back_exop_whoami(

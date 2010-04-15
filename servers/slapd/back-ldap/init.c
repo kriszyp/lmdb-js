@@ -104,6 +104,11 @@ ldap_back_initialize( BackendInfo *bi )
 		return rc;
 	}
 
+	rc = pbind_initialize();
+	if ( rc ) {
+		return rc;
+	}
+
 #ifdef SLAP_DISTPROC
 	rc = distproc_initialize();
 	if ( rc ) {
