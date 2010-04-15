@@ -281,11 +281,11 @@ ldap_parse_result(
 	}
 
 	if( lm == NULL ) {
-		ld->ld_errno = LDAP_NO_RESULTS_RETURNED;
+		errcode = ld->ld_errno = LDAP_NO_RESULTS_RETURNED;
 #ifdef LDAP_R_COMPILE
 		ldap_pvt_thread_mutex_unlock( &ld->ld_res_mutex );
 #endif
-		return ld->ld_errno;
+	    goto done;
 	}
 
 	if ( ld->ld_error ) {
@@ -391,12 +391,14 @@ ldap_parse_result(
 		}
 	}
 
-	if ( freeit ) {
-		ldap_msgfree( r );
-	}
 #ifdef LDAP_R_COMPILE
 	ldap_pvt_thread_mutex_unlock( &ld->ld_res_mutex );
 #endif
 
-	return( errcode );
+done:
+	if ( freeit ) {
+		ldap_msgfree( r );
+	}
+
+	return errcode;
 }
