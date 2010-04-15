@@ -104,9 +104,9 @@ rwm_op_rollback( Operation *op, SlapReply *rs, rwm_op_state *ros )
 		}
 		break;
 	case LDAP_REQ_SEARCH:
-		ch_free( ros->mapped_attrs );
+		op->o_tmpfree( ros->mapped_attrs, op->o_tmpmemctx );
 		filter_free_x( op, op->ors_filter, 1 );
-		ch_free( op->ors_filterstr.bv_val );
+		op->o_tmpfree( op->ors_filterstr.bv_val, op->o_tmpmemctx );
 		op->ors_attrs = ros->ors_attrs;
 		op->ors_filter = ros->ors_filter;
 		op->ors_filterstr = ros->ors_filterstr;
@@ -951,7 +951,7 @@ rwm_op_search( Operation *op, SlapReply *rs )
 	op->ors_filter = f;
 	op->ors_filterstr = fstr;
 
-	rc = rwm_map_attrnames( &rwmap->rwm_at, &rwmap->rwm_oc,
+	rc = rwm_map_attrnames( op, &rwmap->rwm_at, &rwmap->rwm_oc,
 			op->ors_attrs, &an, RWM_MAP );
 	if ( rc != LDAP_SUCCESS ) {
 		text = "attribute list mapping error";
@@ -978,7 +978,7 @@ error_return:;
 	}
 
 	if ( !BER_BVISNULL( &fstr ) ) {
-		ch_free( fstr.bv_val );
+		op->o_tmpfree( fstr.bv_val, op->o_tmpmemctx );
 	}
 
 	rwm_op_rollback( op, rs, &roc->ros );

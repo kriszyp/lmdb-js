@@ -120,15 +120,18 @@ rwm_map_filter(
 		struct ldapmap *oc_map,
 		struct berval *f );
 
+#if 0 /* unused! */
 int
 rwm_map_attrs(
 		struct ldapmap *at_map,
 		AttributeName *a,
 		int remap,
 		char ***mapped_attrs );
+#endif
 
 int
 rwm_map_attrnames(
+		Operation *op,
 		struct ldapmap *at_map,
 		struct ldapmap *oc_map,
 		AttributeName *an,
