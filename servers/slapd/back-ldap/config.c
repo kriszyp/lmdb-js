@@ -1051,7 +1051,7 @@ ldap_back_cf_gen( ConfigArgs *c )
 			}
 
 			if ( *bvp == NULL ) {
-				if ( *bvp == li->li_idassert_authz
+				if ( bvp == &li->li_idassert_authz
 					&& ( li->li_idassert_flags & LDAP_BACK_AUTH_AUTHZ_ALL ) )
 				{
 					BER_BVSTR( &bv, "*" );
