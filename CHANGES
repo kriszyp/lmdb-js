@@ -7,6 +7,7 @@ OpenLDAP 2.4.22 Engineering
 	Fixed libldap GnuTLS serial length (ITS#6460)
 	Fixed slapd certificateListValidate (ITS#6466)
 	Fixed slapd empty URI parsing (ITS#6465)
+	Fixed slapd ignore controls with unrecognized flags (ITS#6480)
 	Fixed slapd REP_ENTRY flag handling (ITS#5340)
 	Fixed slapd sasl auxprop_lookup (ITS#6441)
 	Fixed slapd-bdb contextCSN updates from updatedn (ITS#6469)
