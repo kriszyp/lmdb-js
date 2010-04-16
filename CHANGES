@@ -21,6 +21,7 @@ OpenLDAP 2.4.22 Engineering
 	Fixed slapo-accesslog to not replicate internal purges (ITS#6519)
 	Fixed slapd-bdb contextCSN updates from updatedn (ITS#6469)
 	Fixed slapd-bdb lockobj zeroing (ITS#6501)
+	Fixed slapd-ldap/meta with ordered values (ITS#6516)
 	Fixed slapo-collect REP_ENTRY flag handling (ITS#5340,ITS#6423)
 	Fixed slapo-dds with NULL backend (ITS#6490)
 	Fixed slapo-dynlist REP_ENTRY flag handling (ITS#5340,ITS#6423)
