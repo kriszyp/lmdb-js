@@ -260,11 +260,13 @@ tool_destroy( void )
 		ber_memfree( binddn );
 	}
 
-#if 0	/* not yet */
 	if ( passwd.bv_val != NULL ) {
 		ber_memfree( passwd.bv_val );
 	}
-#endif
+
+	if ( infile != NULL ) {
+		ber_memfree( infile );
+	}
 }
 
 void
@@ -1356,6 +1358,23 @@ tool_bind( LDAP *ld )
 	}
 
 	assert( nsctrls < (int) (sizeof(sctrls)/sizeof(sctrls[0])) );
+
+	if ( pw_file || want_bindpw ) {
+		assert( passwd.bv_val == NULL && passwd.bv_len == 0 );
+
+		if ( pw_file ) {
+			if ( lutil_get_filed_password( pw_file, &passwd ) ) {
+				exit( EXIT_FAILURE );
+			}
+
+		} else {
+			char *pw = getpassphrase( _("Enter LDAP Password: ") );
+			if ( pw ) {
+				passwd.bv_val = ber_strdup( pw );
+				passwd.bv_len = strlen( passwd.bv_val );
+			}
+		}
+	}
 
 	if ( authmethod == LDAP_AUTH_SASL ) {
 #ifdef HAVE_CYRUS_SASL

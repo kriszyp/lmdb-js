@@ -184,23 +184,9 @@ main( int argc, char **argv )
 		if ( optind >= argc ) {
 			fp = stdin;
 		}
-    }
+	}
 
 	ld = tool_conn_setup( 0, &private_conn_setup );
-
-	if ( pw_file || want_bindpw ) {
-		if ( pw_file ) {
-			rc = lutil_get_filed_password( pw_file, &passwd );
-			if( rc ) {
-				if ( fp && fp != stdin )
-					fclose( fp );
-				return EXIT_FAILURE;
-			}
-		} else {
-			passwd.bv_val = getpassphrase( _("Enter LDAP Password: ") );
-			passwd.bv_len = passwd.bv_val ? strlen( passwd.bv_val ) : 0;
-		}
-	}
 
 	tool_bind( ld );
 
