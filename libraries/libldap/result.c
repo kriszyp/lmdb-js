@@ -747,8 +747,9 @@ nextresp2:
 			}
 
 			/* Do we need to check for referrals? */
-			if ( LDAP_BOOL_GET(&ld->ld_options, LDAP_BOOL_REFERRALS) ||
-					lr->lr_parent != NULL )
+			if ( tag != LDAP_RES_BIND &&
+				( LDAP_BOOL_GET(&ld->ld_options, LDAP_BOOL_REFERRALS) ||
+					lr->lr_parent != NULL ))
 			{
 				char		**refs = NULL;
 				ber_len_t	len;

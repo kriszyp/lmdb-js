@@ -7,6 +7,7 @@ OpenLDAP 2.4.22 Engineering
 	Added slapo-pbind
 	Fixed libldap GnuTLS serial length (ITS#6460)
 	Fixed libldap MozNSS context and PEM support (ITS#6432)
+	Fixed libldap referral on bind behavior(ITS#6510)
 	Fixed slapd acl non-entry internal searches (ITS#6481)
 	Fixed slapd acl attrval style initialization (ITS#6520)
 	Fixed slapd certificateListValidate (ITS#6466)
