@@ -985,6 +985,8 @@ LDAP_SLAPD_F (void) entry_partsize LDAP_P(( Entry *e, ber_len_t *len,
 	int *nattrs, int *nvals, int norm ));
 
 LDAP_SLAPD_F (int) entry_header LDAP_P(( EntryHeader *eh ));
+LDAP_SLAPD_F (int) entry_decode_dn LDAP_P((
+	EntryHeader *eh, struct berval *dn, struct berval *ndn ));
 #ifdef SLAP_ZONE_ALLOC
 LDAP_SLAPD_F (int) entry_decode LDAP_P((
 						EntryHeader *eh, Entry **e, void *ctx ));

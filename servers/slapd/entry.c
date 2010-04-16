@@ -820,6 +820,35 @@ int entry_header(EntryHeader *eh)
 	return LDAP_SUCCESS;
 }
 
+int
+entry_decode_dn( EntryHeader *eh, struct berval *dn, struct berval *ndn )
+{
+	int i;
+	unsigned char *ptr = (unsigned char *)eh->bv.bv_val;
+
+	assert( dn != NULL || ndn != NULL );
+
+	ptr = (unsigned char *)eh->data;
+	i = entry_getlen(&ptr);
+	if ( dn != NULL ) {
+		dn->bv_val = (char *) ptr;
+		dn->bv_len = i;
+	}
+
+	if ( ndn != NULL ) {
+		ptr += i + 1;
+		i = entry_getlen(&ptr);
+		ndn->bv_val = (char *) ptr;
+		ndn->bv_len = i;
+	}
+
+	Debug( LDAP_DEBUG_TRACE,
+		"entry_decode_dn: \"%s\"\n",
+		dn ? dn->bv_val : ndn->bv_val, 0, 0 );
+
+	return 0;
+}
+
 #ifdef SLAP_ZONE_ALLOC
 int entry_decode(EntryHeader *eh, Entry **e, void *ctx)
 #else
