@@ -1262,7 +1262,7 @@ static Entry *accesslog_entry( Operation *op, SlapReply *rs, int logop,
 	}
 
 	rdn.bv_len = snprintf( rdn.bv_val, sizeof( rdnbuf ), "%lu", op->o_connid );
-	if ( rdn.bv_len >= 0 || rdn.bv_len < sizeof( rdnbuf ) ) {
+	if ( rdn.bv_len < sizeof( rdnbuf ) ) {
 		attr_merge_one( e, ad_reqSession, &rdn, NULL );
 	} /* else? */
 
