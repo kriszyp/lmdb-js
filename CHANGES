@@ -8,6 +8,7 @@ OpenLDAP 2.4.22 Engineering
 	Fixed libldap GnuTLS serial length (ITS#6460)
 	Fixed libldap MozNSS context and PEM support (ITS#6432)
 	Fixed slapd acl non-entry internal searches (ITS#6481)
+	Fixed slapd acl attrval style initialization (ITS#6520)
 	Fixed slapd certificateListValidate (ITS#6466)
 	Fixed slapd empty URI parsing (ITS#6465)
 	Fixed slapd glued misplaced entries (ITS#6506)

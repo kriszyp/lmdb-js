@@ -344,6 +344,7 @@ parse_acl(
 				goto fail;
 			}
 			a = (AccessControl *) ch_calloc( 1, sizeof(AccessControl) );
+			a->acl_attrval_style = ACL_STYLE_NONE;
 			for ( ++i; i < argc; i++ ) {
 				if ( strcasecmp( argv[i], "by" ) == 0 ) {
 					i--;
