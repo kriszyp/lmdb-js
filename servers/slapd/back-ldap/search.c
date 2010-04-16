@@ -195,7 +195,8 @@ ldap_back_search(
 		for ( i = 0; !BER_BVISNULL( &op->ors_attrs[i].an_name ); i++ )
 			/* just count attrs */ ;
 
-		attrs = ch_malloc( ( i + 1 )*sizeof( char * ) );
+		attrs = op->o_tmpalloc( ( i + 1 )*sizeof( char * ),
+			op->o_tmpmemctx );
 		if ( attrs == NULL ) {
 			rs->sr_err = LDAP_NO_MEMORY;
 			rc = -1;
@@ -609,7 +610,7 @@ finish:;
 	}
 
 	if ( attrs ) {
-		ch_free( attrs );
+		op->o_tmpfree( attrs, op->o_tmpmemctx );
 	}
 
 	if ( lc != NULL ) {
