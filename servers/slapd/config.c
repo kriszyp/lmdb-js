@@ -303,8 +303,8 @@ int config_check_vals(ConfigTable *Conf, ConfigArgs *c, int check_only ) {
 				break;
 		}
 		j = (arg_type & ARG_NONZERO) ? 1 : 0;
-		if(iarg < j && larg < j && barg < j ) {
-			larg = larg ? larg : (barg ? barg : iarg);
+		if(iarg < j && larg < j && barg < (unsigned)j ) {
+			larg = larg ? larg : (barg ? (long)barg : iarg);
 			snprintf( c->cr_msg, sizeof( c->cr_msg ), "<%s> invalid value",
 				c->argv[0] );
 			Debug(LDAP_DEBUG_ANY|LDAP_DEBUG_NONE, "%s: %s\n",
@@ -1234,6 +1234,92 @@ slap_sb_uri(
 	return 0;
 }
 
+static int 
+slap_keepalive_parse(
+	struct berval *val,
+	void *bc,
+	slap_cf_aux_table *tab0,
+	const char *tabmsg,
+	int unparse )
+{
+	if ( unparse ) {
+		slap_keepalive *sk = (slap_keepalive *)bc;
+		int rc = snprintf( val->bv_val, val->bv_len, "%d:%d:%d",
+			sk->sk_idle, sk->sk_probes, sk->sk_interval );
+		if ( rc < 0 ) {
+			return -1;
+		}
+
+		if ( (unsigned)rc >= val->bv_len ) {
+			return -1;
+		}
+
+		val->bv_len = rc;
+
+	} else {
+		char *s = val->bv_val;
+		char *next;
+		slap_keepalive *sk = (slap_keepalive *)bc;
+		slap_keepalive sk2;
+
+		if ( s[0] == ':' ) {
+			sk2.sk_idle = 0;
+			s++;
+			
+		} else {
+			sk2.sk_idle = strtol( s, &next, 10 );
+			if ( next == s || next[0] != ':' ) {
+				return -1;
+			}
+
+			if ( sk2.sk_idle < 0 ) {
+				return -1;
+			}
+
+			s = ++next;
+		}
+
+		if ( s[0] == ':' ) {
+			sk2.sk_probes = 0;
+			s++;
+
+		} else {
+			sk2.sk_probes = strtol( s, &next, 10 );
+			if ( next == s || next[0] != ':' ) {
+				return -1;
+			}
+
+			if ( sk2.sk_probes < 0 ) {
+				return -1;
+			}
+
+			s = ++next;
+		}
+
+		if ( s == '\0' ) {
+			sk2.sk_interval = 0;
+			s++;
+
+		} else {
+			sk2.sk_interval = strtol( s, &next, 10 );
+			if ( next == s || next[0] != '\0' ) {
+				return -1;
+			}
+
+			if ( sk2.sk_interval < 0 ) {
+				return -1;
+			}
+		}
+
+		*sk = sk2;
+
+		ber_memfree( val->bv_val );
+		BER_BVZERO( val );
+	}
+
+	return 0;
+}
+
 static slap_cf_aux_table bindkey[] = {
 	{ BER_BVC("uri="), 0, 'x', 1, slap_sb_uri },
 	{ BER_BVC("version="), offsetof(slap_bindconf, sb_version), 'i', 0, versionkey },
@@ -1247,10 +1333,11 @@ static slap_cf_aux_table bindkey[] = {
 	{ BER_BVC("realm="), offsetof(slap_bindconf, sb_realm), 'b', 0, NULL },
 	{ BER_BVC("authcID="), offsetof(slap_bindconf, sb_authcId), 'b', 1, NULL },
 	{ BER_BVC("authzID="), offsetof(slap_bindconf, sb_authzId), 'b', 1, (slap_verbmasks *)authzNormalize },
+	{ BER_BVC("keepalive="), offsetof(slap_bindconf, sb_keepalive), 'x', 0, (slap_verbmasks *)slap_keepalive_parse },
 #ifdef HAVE_TLS
-	/* NOTE: replace "12" with the actual index
+	/* NOTE: replace "13" with the actual index
 	 * of the first TLS-related line */
-#define aux_TLS (bindkey+12)	/* beginning of TLS keywords */
+#define aux_TLS (bindkey+13)	/* beginning of TLS keywords */
 
 	{ BER_BVC("starttls="), offsetof(slap_bindconf, sb_tls), 'i', 0, tlskey },
 	{ BER_BVC("tls_cert="), offsetof(slap_bindconf, sb_tls_cert), 's', 1, NULL },
@@ -1352,6 +1439,20 @@ slap_cf_aux_table_parse( const char *word, void *dst, slap_cf_aux_table *tab0, L
 				ulptr = (unsigned long *)((char *)dst + tab->off);
 
 				rc = lutil_atoulx( ulptr, val, 0 );
+				break;
+
+			case 'x':
+				if ( tab->aux != NULL ) {
+					struct berval value;
+					slap_cf_aux_table_parse_x *func = (slap_cf_aux_table_parse_x *)tab->aux;
+
+					ber_str2bv( val, 0, 1, &value );
+
+					rc = func( &value, (void *)((char *)dst + tab->off), tab, tabmsg, 0 );
+
+				} else {
+					rc = 1;
+				}
 				break;
 
 			case 'x':
@@ -1483,6 +1584,26 @@ slap_cf_aux_table_unparse( void *src, struct berval *bv, slap_cf_aux_table *tab0
 				}
 				if ( tab->quote ) *ptr++ = '"';
 			}
+			break;
+
+		case 'x':
+			*ptr++ = ' ';
+			ptr = lutil_strcopy( ptr, tab->key.bv_val );
+			if ( tab->quote ) *ptr++ = '"';
+			if ( tab->aux != NULL ) {
+				struct berval value;
+				slap_cf_aux_table_parse_x *func = (slap_cf_aux_table_parse_x *)tab->aux;
+				int rc;
+
+				value.bv_val = ptr;
+				value.bv_len = buf + sizeof( buf ) - ptr;
+
+				rc = func( &value, (void *)((char *)src + tab->off), tab, "(unparse)", 1 );
+				if ( rc == 0 ) {
+					ptr += value.bv_len;
+				}
+			}
+			if ( tab->quote ) *ptr++ = '"';
 			break;
 
 		default:
@@ -1797,6 +1918,18 @@ slap_client_connect( LDAP **ldp, slap_bindconf *sb )
 		tv.tv_sec = sb->sb_timeout_net;
 		tv.tv_usec = 0;
 		ldap_set_option( ld, LDAP_OPT_NETWORK_TIMEOUT, &tv );
+	}
+
+	if ( sb->sb_keepalive.sk_idle ) {
+		ldap_set_option( ld, LDAP_OPT_X_KEEPALIVE_IDLE, &sb->sb_keepalive.sk_idle );
+	}
+
+	if ( sb->sb_keepalive.sk_probes ) {
+		ldap_set_option( ld, LDAP_OPT_X_KEEPALIVE_PROBES, &sb->sb_keepalive.sk_probes );
+	}
+
+	if ( sb->sb_keepalive.sk_interval ) {
+		ldap_set_option( ld, LDAP_OPT_X_KEEPALIVE_INTERVAL, &sb->sb_keepalive.sk_interval );
 	}
 
 #ifdef HAVE_TLS

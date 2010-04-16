@@ -3,6 +3,7 @@ OpenLDAP 2.4 Change Log
 OpenLDAP 2.4.22 Engineering
 	Added slapd SLAP_SCHEMA_EXPOSE flag for hidden schema elements (ITS#6435)
 	Added slapd tools selective iterations (ITS#6442)
+	Added slapd syncrepl TCP keepalive (ITS#6389)
 	Added slapo-ldap idassert-passthru (ITS#6456)
 	Added slapo-pbind
 	Fixed libldap GnuTLS serial length (ITS#6460)
