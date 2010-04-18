@@ -3286,10 +3286,12 @@ attr_cmp( Operation *op, Attribute *old, Attribute *new,
 		 * Also use replace op if attr has no equality matching rule.
 		 * (ITS#5781)
 		 */
-		if ( nn && no < o &&
+		if ( ( nn || ( no > 0 && no < o ) ) &&
 			( old->a_desc == slap_schema.si_ad_objectClass ||
-			 !old->a_desc->ad_type->sat_equality ))
+			 !old->a_desc->ad_type->sat_equality ) )
+		{
 			no = o;
+		}
 
 		i = j;
 		/* all old values were deleted, just use the replace op */
