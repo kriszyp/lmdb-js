@@ -390,6 +390,18 @@ changetype: modify
 replace: description
 description: Example, Inc. itsdomain2 test domain
 
+# rename with a newly added newSuperior while the consumer is down (ITS#6472)
+dn: ou=New Branch,dc=example,dc=com
+changetype: add
+objectClass: organizationalUnit
+ou: New Branch
+
+dn: cn=Dorothy Stevens, ou=Alumni Association, ou=People, dc=example,dc=com
+changetype: modrdn
+newrdn: cn=Dorothy Stevens
+deleteoldrdn: 0
+newsuperior: ou=New Branch,dc=example,dc=com
+
 EOMODS
 
 RC=$?
