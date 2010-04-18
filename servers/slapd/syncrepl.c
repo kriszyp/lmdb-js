@@ -2903,9 +2903,10 @@ syncrepl_del_nonpresent(
 
 static int
 syncrepl_add_glue_ancestors(
-	Operation* op,
+	Operation* o,
 	Entry *e )
 {
+	Operation op2 = *o, *op = &op2;
 	Backend *be = op->o_bd;
 	slap_callback cb = { NULL };
 	Attribute	*a;
@@ -3041,12 +3042,19 @@ syncrepl_add_glue_ancestors(
 
 int
 syncrepl_add_glue(
-	Operation* op,
+	Operation* o,
 	Entry *e )
 {
+	Operation op2 = *o, *op = &op2;
+	slap_callback cb = { NULL };
 	int	rc;
 	Backend *be = op->o_bd;
 	SlapReply	rs_add = {REP_RESULT};
+
+	op->o_tag = LDAP_REQ_ADD;
+	op->o_callback = &cb;
+	cb.sc_response = null_callback;
+	cb.sc_private = NULL;
 
 	rc = syncrepl_add_glue_ancestors( op, e );
 	if ( rc != LDAP_SUCCESS ) {
