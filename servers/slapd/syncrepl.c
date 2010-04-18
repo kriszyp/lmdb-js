@@ -2570,7 +2570,8 @@ retry_modrdn:;
 			/* NOTE: noSuchObject should result because the new superior
 			 * has not been added yet (ITS#6472) */
 			if ( rc == LDAP_NO_SUCH_OBJECT && !BER_BVISNULL( op->orr_nnewSup )) {
-				rc = syncrepl_add_glue_ancestors( op, entry );
+				Operation op2 = *op;
+				rc = syncrepl_add_glue_ancestors( &op2, entry );
 				if ( rc == LDAP_SUCCESS ) {
 					goto retry_modrdn;
 				}
@@ -2903,10 +2904,9 @@ syncrepl_del_nonpresent(
 
 static int
 syncrepl_add_glue_ancestors(
-	Operation* o,
+	Operation* op,
 	Entry *e )
 {
-	Operation op2 = *o, *op = &op2;
 	Backend *be = op->o_bd;
 	slap_callback cb = { NULL };
 	Attribute	*a;
@@ -3012,6 +3012,8 @@ syncrepl_add_glue_ancestors(
 				be_entry_release_w( op, glue );
 		} else {
 		/* incl. ALREADY EXIST */
+			Debug(LDAP_DEBUG_TRACE, "syncrepl_add_glue_ancestors: add of ancestor DN=\"%s\" of entry DN=\"%s\" failed (%d)\n",
+				dn.bv_val, e->e_name.bv_val, rc );
 			entry_free( glue );
 			if ( rs_add.sr_err != LDAP_ALREADY_EXISTS ) {
 				entry_free( e );
@@ -3042,24 +3044,30 @@ syncrepl_add_glue_ancestors(
 
 int
 syncrepl_add_glue(
-	Operation* o,
+	Operation* op,
 	Entry *e )
 {
-	Operation op2 = *o, *op = &op2;
 	slap_callback cb = { NULL };
 	int	rc;
 	Backend *be = op->o_bd;
 	SlapReply	rs_add = {REP_RESULT};
 
+	rc = syncrepl_add_glue_ancestors( op, e );
+	switch ( rc ) {
+	case LDAP_SUCCESS:
+	case LDAP_ALREADY_EXISTS:
+		Debug(LDAP_DEBUG_TRACE, "syncrepl_add_glue: add DN=\"%s\" ancestors (%d)\n",
+			e->e_name.bv_val, rc, 0 );
+		break;
+
+	default:
+		return rc;
+	}
+
 	op->o_tag = LDAP_REQ_ADD;
 	op->o_callback = &cb;
 	cb.sc_response = null_callback;
 	cb.sc_private = NULL;
-
-	rc = syncrepl_add_glue_ancestors( op, e );
-	if ( rc != LDAP_SUCCESS ) {
-		return rc;
-	}
 
 	op->o_req_dn = e->e_name;
 	op->o_req_ndn = e->e_nname;
