@@ -3012,8 +3012,6 @@ syncrepl_add_glue_ancestors(
 				be_entry_release_w( op, glue );
 		} else {
 		/* incl. ALREADY EXIST */
-			Debug(LDAP_DEBUG_TRACE, "syncrepl_add_glue_ancestors: add of ancestor DN=\"%s\" of entry DN=\"%s\" failed (%d)\n",
-				dn.bv_val, e->e_name.bv_val, rc );
 			entry_free( glue );
 			if ( rs_add.sr_err != LDAP_ALREADY_EXISTS ) {
 				entry_free( e );
@@ -3056,8 +3054,6 @@ syncrepl_add_glue(
 	switch ( rc ) {
 	case LDAP_SUCCESS:
 	case LDAP_ALREADY_EXISTS:
-		Debug(LDAP_DEBUG_TRACE, "syncrepl_add_glue: add DN=\"%s\" ancestors (%d)\n",
-			e->e_name.bv_val, rc, 0 );
 		break;
 
 	default:
