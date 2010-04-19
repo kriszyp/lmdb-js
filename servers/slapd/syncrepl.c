@@ -131,6 +131,8 @@ static int syncrepl_updateCookie(
 					struct sync_cookie * );
 static struct berval * slap_uuidstr_from_normalized(
 					struct berval *, struct berval *, void * );
+static int syncrepl_add_glue_ancestors(
+	Operation* op, Entry *e );
 
 /* callback functions */
 static int dn_callback( Operation *, SlapReply * );
@@ -2562,7 +2564,19 @@ retry_add:;
 				mod->sml_next = m2;
 			}
 			op->o_bd = si->si_wbe;
+retry_modrdn:;
 			rc = op->o_bd->be_modrdn( op, &rs_modify );
+
+			/* NOTE: noSuchObject should result because the new superior
+			 * has not been added yet (ITS#6472) */
+			if ( rc == LDAP_NO_SUCH_OBJECT && !BER_BVISNULL( op->orr_nnewSup )) {
+				Operation op2 = *op;
+				rc = syncrepl_add_glue_ancestors( &op2, entry );
+				if ( rc == LDAP_SUCCESS ) {
+					goto retry_modrdn;
+				}
+			}
+		
 			op->o_tmpfree( op->orr_nnewrdn.bv_val, op->o_tmpmemctx );
 			op->o_tmpfree( op->orr_newrdn.bv_val, op->o_tmpmemctx );
 
@@ -2888,8 +2902,8 @@ syncrepl_del_nonpresent(
 	return;
 }
 
-int
-syncrepl_add_glue(
+static int
+syncrepl_add_glue_ancestors(
 	Operation* op,
 	Entry *e )
 {
@@ -3022,6 +3036,34 @@ syncrepl_add_glue(
 		ndn.bv_val = ++comma;
 		ndn.bv_len = e->e_nname.bv_len - (ndn.bv_val - e->e_nname.bv_val);
 	}
+
+	return rc;
+}
+
+int
+syncrepl_add_glue(
+	Operation* op,
+	Entry *e )
+{
+	slap_callback cb = { NULL };
+	int	rc;
+	Backend *be = op->o_bd;
+	SlapReply	rs_add = {REP_RESULT};
+
+	rc = syncrepl_add_glue_ancestors( op, e );
+	switch ( rc ) {
+	case LDAP_SUCCESS:
+	case LDAP_ALREADY_EXISTS:
+		break;
+
+	default:
+		return rc;
+	}
+
+	op->o_tag = LDAP_REQ_ADD;
+	op->o_callback = &cb;
+	cb.sc_response = null_callback;
+	cb.sc_private = NULL;
 
 	op->o_req_dn = e->e_name;
 	op->o_req_ndn = e->e_nname;
@@ -3256,10 +3298,12 @@ attr_cmp( Operation *op, Attribute *old, Attribute *new,
 		 * Also use replace op if attr has no equality matching rule.
 		 * (ITS#5781)
 		 */
-		if ( nn && no < o &&
+		if ( ( nn || ( no > 0 && no < o ) ) &&
 			( old->a_desc == slap_schema.si_ad_objectClass ||
-			 !old->a_desc->ad_type->sat_equality ))
+			 !old->a_desc->ad_type->sat_equality ) )
+		{
 			no = o;
+		}
 
 		i = j;
 		/* all old values were deleted, just use the replace op */
