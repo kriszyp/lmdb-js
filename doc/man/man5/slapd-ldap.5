@@ -341,7 +341,7 @@ useful when the asserted identities do not exist on the remote server.
 
 Flags can be
 
-\fBoverride,[non\-]prescriptive\fP
+\fBoverride,[non\-]prescriptive,proxy\-authz\-[non\-]critical\fP
 
 When the 
 .B override
@@ -364,6 +364,13 @@ flag is used, operations are performed anonymously for those identities
 whose assertion is not allowed by the
 .B idassert\-authzFrom
 patterns.
+
+When the
+.B proxy\-authz\-non\-critical
+flag is used (the default), the proxyAuthz control is not marked as critical,
+in violation of RFC 4370.  Use of
+.B proxy\-authz\-critical
+is recommended.
 
 The TLS settings default to the same as the main slapd TLS settings,
 except for
