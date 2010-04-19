@@ -41,6 +41,7 @@ OpenLDAP 2.4.22 Engineering
 	Fixed contrib/nssov to use nss-pam-ldapd (ITS#6488)
 	Documentation
 		admin24 avoid explicity moduleload statements (ITS#6486)
+		admin24 broken link fixes (ITS#6493,ITS#6515)
 
 OpenLDAP 2.4.21 Release (2009/12/20)
 	Fixed liblutil for negative microsecond offsets (ITS#6405)
