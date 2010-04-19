@@ -1836,6 +1836,7 @@ dnl ----------------------------------------------------------------
 dnl Tests for reentrant functions necessary to build -lldap_r
 AC_CHECK_FUNCS(		\
 	ctime_r			\
+	gmtime_r localtime_r \
 	gethostbyname_r	gethostbyaddr_r \
 )
 

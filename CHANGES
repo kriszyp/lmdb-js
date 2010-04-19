@@ -6,6 +6,7 @@ OpenLDAP 2.4.22 Engineering
 	Added slapd syncrepl TCP keepalive (ITS#6389)
 	Added slapo-ldap idassert-passthru (ITS#6456)
 	Added slapo-pbind
+	Fixed libldap gmtime re-entrancy (ITS#6262)
 	Fixed libldap GnuTLS serial length (ITS#6460)
 	Fixed libldap MozNSS context and PEM support (ITS#6432)
 	Fixed libldap referral on bind behavior(ITS#6510)
@@ -16,6 +17,7 @@ OpenLDAP 2.4.22 Engineering
 	Fixed slapd glued misplaced entries (ITS#6506)
 	Fixed slapd glued paged cookies (ITS#6507)
 	Fixed slapd glued paged results (ITS#6504)
+	Fixed slapd gmtime re-entrancy (ITS#6262)
 	Fixed slapd ignore controls with unrecognized flags (ITS#6480)
 	Fixed slapd REP_ENTRY flag handling (ITS#5340)
 	Fixed slapd sasl auxprop_lookup (ITS#6441)

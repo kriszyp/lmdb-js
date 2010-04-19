@@ -30,7 +30,7 @@ const struct berval slap_ldapsync_bv = BER_BVC("ldapsync");
 const struct berval slap_ldapsync_cn_bv = BER_BVC("cn=ldapsync");
 int slap_serverID;
 
-/* maxcsn->bv_val must point to a char buf[LDAP_LUTIL_CSNSTR_BUFSIZE] */
+/* maxcsn->bv_val must point to a char buf[LDAP_PVT_CSNSTR_BUFSIZE] */
 void
 slap_get_commit_csn(
 	Operation *op,
@@ -44,7 +44,7 @@ slap_get_commit_csn(
 
 	if ( maxcsn ) {
 		assert( maxcsn->bv_val != NULL );
-		assert( maxcsn->bv_len >= LDAP_LUTIL_CSNSTR_BUFSIZE );
+		assert( maxcsn->bv_len >= LDAP_PVT_CSNSTR_BUFSIZE );
 	}
 	if ( foundit ) {
 		*foundit = 0;
@@ -209,13 +209,9 @@ slap_get_csn(
 {
 	if ( csn == NULL ) return LDAP_OTHER;
 
-	/* gmtime doesn't always need a mutex, but lutil_csnstr does */
-	ldap_pvt_thread_mutex_lock( &gmtime_mutex );
-	csn->bv_len = lutil_csnstr( csn->bv_val, csn->bv_len, slap_serverID, 0 );
+	csn->bv_len = ldap_pvt_csnstr( csn->bv_val, csn->bv_len, slap_serverID, 0 );
 	if ( manage_ctxcsn )
 		slap_queue_csn( op, csn );
-
-	ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
 
 	return LDAP_SUCCESS;
 }

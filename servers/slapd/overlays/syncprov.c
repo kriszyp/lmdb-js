@@ -591,8 +591,8 @@ syncprov_findcsn( Operation *op, find_csn_t mode )
 	slap_callback cb = {0};
 	Operation fop;
 	SlapReply frs = { REP_RESULT };
-	char buf[LDAP_LUTIL_CSNSTR_BUFSIZE + STRLENOF("(entryCSN<=)")];
-	char cbuf[LDAP_LUTIL_CSNSTR_BUFSIZE];
+	char buf[LDAP_PVT_CSNSTR_BUFSIZE + STRLENOF("(entryCSN<=)")];
+	char cbuf[LDAP_PVT_CSNSTR_BUFSIZE];
 	struct berval maxcsn;
 	Filter cf;
 	AttributeAssertion eq = ATTRIBUTEASSERTION_INIT;
@@ -1535,7 +1535,7 @@ syncprov_playlog( Operation *op, SlapReply *rs, sessionlog *sl,
 	slap_overinst		*on = (slap_overinst *)op->o_bd->bd_info;
 	slog_entry *se;
 	int i, j, ndel, num, nmods, mmods;
-	char cbuf[LDAP_LUTIL_CSNSTR_BUFSIZE];
+	char cbuf[LDAP_PVT_CSNSTR_BUFSIZE];
 	BerVarray uuids;
 	struct berval delcsn[2];
 
@@ -1710,7 +1710,7 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 	if ( rs->sr_err == LDAP_SUCCESS )
 	{
 		struct berval maxcsn;
-		char cbuf[LDAP_LUTIL_CSNSTR_BUFSIZE];
+		char cbuf[LDAP_PVT_CSNSTR_BUFSIZE];
 		int do_check = 0, have_psearches, foundit, csn_changed = 0;
 
 		ldap_pvt_thread_mutex_lock( &si->si_resp_mutex );
@@ -2860,7 +2860,7 @@ sp_cf_gen(ConfigArgs *c)
 		}
 		sl = si->si_logs;
 		if ( !sl ) {
-			sl = ch_malloc( sizeof( sessionlog ) + LDAP_LUTIL_CSNSTR_BUFSIZE );
+			sl = ch_malloc( sizeof( sessionlog ) + LDAP_PVT_CSNSTR_BUFSIZE );
 			sl->sl_mincsn.bv_val = (char *)(sl+1);
 			sl->sl_mincsn.bv_len = 0;
 			sl->sl_num = 0;
@@ -2966,7 +2966,7 @@ syncprov_db_open(
 
 	/* Didn't find a contextCSN, should we generate one? */
 	if ( !si->si_ctxcsn ) {
-		char csnbuf[ LDAP_LUTIL_CSNSTR_BUFSIZE ];
+		char csnbuf[ LDAP_PVT_CSNSTR_BUFSIZE ];
 		struct berval csn;
 
 		if ( SLAP_SYNC_SHADOW( op->o_bd )) {

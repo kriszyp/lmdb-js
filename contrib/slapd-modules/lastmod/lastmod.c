@@ -367,7 +367,7 @@ best_guess( Operation *op,
 		struct berval *bv_modifiersName, struct berval *bv_nmodifiersName )
 {
 	if ( bv_entryCSN ) {
-		char		csnbuf[ LDAP_LUTIL_CSNSTR_BUFSIZE ];
+		char		csnbuf[ LDAP_PVT_CSNSTR_BUFSIZE ];
 		struct berval	entryCSN;
 	
 		entryCSN.bv_val = csnbuf;
@@ -836,7 +836,7 @@ lastmod_db_open(
 	char		buf[ 8192 ];
 	static char		tmbuf[ LDAP_LUTIL_GENTIME_BUFSIZE ];
 
-	char			csnbuf[ LDAP_LUTIL_CSNSTR_BUFSIZE ];
+	char			csnbuf[ LDAP_PVT_CSNSTR_BUFSIZE ];
 	struct berval		entryCSN;
 	struct berval timestamp;
 

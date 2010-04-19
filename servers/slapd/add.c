@@ -592,7 +592,7 @@ int slap_add_opattrs(
 	struct berval name, timestamp, csn = BER_BVNULL;
 	struct berval nname, tmp;
 	char timebuf[ LDAP_LUTIL_GENTIME_BUFSIZE ];
-	char csnbuf[ LDAP_LUTIL_CSNSTR_BUFSIZE ];
+	char csnbuf[ LDAP_PVT_CSNSTR_BUFSIZE ];
 	Attribute *a;
 
 	if ( SLAP_LASTMOD( op->o_bd ) ) {

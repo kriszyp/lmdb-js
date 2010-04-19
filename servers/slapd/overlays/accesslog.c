@@ -616,7 +616,7 @@ accesslog_purge( void *ctx, void *arg )
 	AttributeAssertion ava = ATTRIBUTEASSERTION_INIT;
 	purge_data pd = {0};
 	char timebuf[LDAP_LUTIL_GENTIME_BUFSIZE];
-	char csnbuf[LDAP_LUTIL_CSNSTR_BUFSIZE];
+	char csnbuf[LDAP_PVT_CSNSTR_BUFSIZE];
 	time_t old = slap_get_time();
 
 	connection_fake_init( &conn, &opbuf, ctx );

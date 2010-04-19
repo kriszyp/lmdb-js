@@ -40,8 +40,8 @@
 
 #include "slapcommon.h"
 
-static char csnbuf[ LDAP_LUTIL_CSNSTR_BUFSIZE ];
-static char maxcsnbuf[ LDAP_LUTIL_CSNSTR_BUFSIZE * ( SLAP_SYNC_SID_MAX + 1 ) ];
+static char csnbuf[ LDAP_PVT_CSNSTR_BUFSIZE ];
+static char maxcsnbuf[ LDAP_PVT_CSNSTR_BUFSIZE * ( SLAP_SYNC_SID_MAX + 1 ) ];
 
 int
 slapadd( int argc, char **argv )
@@ -120,7 +120,7 @@ slapadd( int argc, char **argv )
 	if ( update_ctxcsn ) {
 		maxcsn[ 0 ].bv_val = maxcsnbuf;
 		for ( sid = 1; sid <= SLAP_SYNC_SID_MAX; sid++ ) {
-			maxcsn[ sid ].bv_val = maxcsn[ sid - 1 ].bv_val + LDAP_LUTIL_CSNSTR_BUFSIZE;
+			maxcsn[ sid ].bv_val = maxcsn[ sid - 1 ].bv_val + LDAP_PVT_CSNSTR_BUFSIZE;
 			maxcsn[ sid ].bv_len = 0;
 		}
 	}
@@ -293,7 +293,7 @@ slapadd( int argc, char **argv )
 			nvals[1].bv_len = 0;
 			nvals[1].bv_val = NULL;
 
-			csn.bv_len = lutil_csnstr( csnbuf, sizeof( csnbuf ), csnsid, 0 );
+			csn.bv_len = ldap_pvt_csnstr( csnbuf, sizeof( csnbuf ), csnsid, 0 );
 			csn.bv_val = csnbuf;
 
 			timestamp.bv_val = timebuf;

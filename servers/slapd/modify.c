@@ -848,21 +848,11 @@ slap_sort_vals(
  */
 void slap_timestamp( time_t *tm, struct berval *bv )
 {
-	struct tm *ltm;
-#ifdef HAVE_GMTIME_R
-	struct tm ltm_buf;
+	struct tm ltm;
 
-	ltm = gmtime_r( tm, &ltm_buf );
-#else
-	ldap_pvt_thread_mutex_lock( &gmtime_mutex );
-	ltm = gmtime( tm );
-#endif
+	ldap_pvt_gmtime( tm, &ltm );
 
-	bv->bv_len = lutil_gentime( bv->bv_val, bv->bv_len, ltm );
-
-#ifndef HAVE_GMTIME_R
-	ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
-#endif
+	bv->bv_len = lutil_gentime( bv->bv_val, bv->bv_len, &ltm );
 }
 
 /* Called for all modify and modrdn ops. If the current op was replicated
@@ -876,7 +866,7 @@ void slap_mods_opattrs(
 	struct berval name, timestamp, csn = BER_BVNULL;
 	struct berval nname;
 	char timebuf[ LDAP_LUTIL_GENTIME_BUFSIZE ];
-	char csnbuf[ LDAP_LUTIL_CSNSTR_BUFSIZE ];
+	char csnbuf[ LDAP_PVT_CSNSTR_BUFSIZE ];
 	Modifications *mod, **modtail, *modlast;
 	int gotcsn = 0, gotmname = 0, gotmtime = 0;
 

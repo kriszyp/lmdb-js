@@ -58,7 +58,7 @@ ndb_back_delete( Operation *op, SlapReply *rs )
 	/* allocate CSN */
 	if ( BER_BVISNULL( &op->o_csn ) ) {
 		struct berval csn;
-		char csnbuf[LDAP_LUTIL_CSNSTR_BUFSIZE];
+		char csnbuf[LDAP_PVT_CSNSTR_BUFSIZE];
 
 		csn.bv_val = csnbuf;
 		csn.bv_len = sizeof(csnbuf);

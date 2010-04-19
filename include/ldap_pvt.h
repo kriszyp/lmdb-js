@@ -91,6 +91,47 @@ ldap_pvt_ctime LDAP_P((
 	const time_t *tp,
 	char *buf ));
 
+# if defined( HAVE_GMTIME_R )
+#   define USE_GMTIME_R
+#   define ldap_pvt_gmtime(timep, result) gmtime_r((timep), (result))
+# else
+LDAP_F( struct tm * )
+ldap_pvt_gmtime LDAP_P((
+	LDAP_CONST time_t *timep,
+	struct tm *result ));
+#endif
+
+# if defined( HAVE_LOCALTIME_R )
+#   define USE_LOCALTIME_R
+#   define ldap_pvt_localtime(timep, result) localtime_r((timep), (result))
+# else
+LDAP_F( struct tm * )
+ldap_pvt_localtime LDAP_P((
+	LDAP_CONST time_t *timep,
+	struct tm *result ));
+# endif
+
+#if defined( USE_GMTIME_R ) && defined( USE_LOCALTIME_R )
+#   define ldap_pvt_gmtime_lock() (0)
+#   define ldap_pvt_gmtime_unlock() (0)
+#else
+LDAP_F( int )
+ldap_pvt_gmtime_lock LDAP_P(( void ));
+
+LDAP_F( int )
+ldap_pvt_gmtime_unlock LDAP_P(( void ));
+#endif /* USE_GMTIME_R && USE_LOCALTIME_R */
+
+/* Get current time as a structured time */
+struct lutil_tm;
+LDAP_F( void )
+ldap_pvt_gettime LDAP_P(( struct lutil_tm * ));
+
+/* use this macro to allocate buffer for ldap_pvt_csnstr */
+#define LDAP_PVT_CSNSTR_BUFSIZE	64
+LDAP_F( size_t )
+ldap_pvt_csnstr( char *buf, size_t len, unsigned int replica, unsigned int mod );
+
 LDAP_F( char *) ldap_pvt_get_fqdn LDAP_P(( char * ));
 
 struct hostent;	/* avoid pulling in <netdb.h> */
