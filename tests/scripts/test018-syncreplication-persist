@@ -13,11 +13,6 @@
 ## top-level directory of the distribution or, alternatively, at
 ## <http://www.OpenLDAP.org/license.html>.
 
-if test "$BACKEND" != "bdb" && test "$BACKEND" != "hdb" && test "$BACKEND" != "ldif"; then
-	echo "Test does not support $BACKEND"
-	exit 0
-fi
-
 echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
 
@@ -383,9 +378,9 @@ fi
 test $KILLSERVERS != no && kill -HUP $KILLPIDS
 
 echo "Filtering producer results..."
-. $LDIFFILTER < $MASTEROUT > $MASTERFLT
+$LDIFFILTER < $MASTEROUT > $MASTERFLT
 echo "Filtering consumer results..."
-. $LDIFFILTER < $SLAVEOUT > $SLAVEFLT
+$LDIFFILTER < $SLAVEOUT > $SLAVEFLT
 
 echo "Comparing retrieved entries from producer and consumer..."
 $CMP $MASTERFLT $SLAVEFLT > $CMPOUT

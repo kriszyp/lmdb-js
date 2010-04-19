@@ -78,9 +78,11 @@ if test $RC != 0 ; then
 fi
 
 echo "Filtering ldapsearch results..."
-. $LDIFFILTER < $SEARCHOUT > $SEARCHFLT
+$LDIFFILTER < $SEARCHOUT > $SEARCHFLT
+echo "Filtering expected ldif..."
+$LDIFFILTER < $VALSORTOUT1 > $LDIFFLT
 echo "Comparing filter output..."
-$CMP $SEARCHFLT $VALSORTOUT1 > $CMPOUT
+$CMP $SEARCHFLT $LDIFFLT > $CMPOUT
 
 if test $? != 0 ; then
 	echo "Comparison failed"
@@ -124,9 +126,11 @@ if test $RC != 0 ; then
 fi
 
 echo "Filtering ldapsearch results..."
-. $LDIFFILTER < $SEARCHOUT > $SEARCHFLT
+$LDIFFILTER < $SEARCHOUT > $SEARCHFLT
+echo "Filtering expected ldif..."
+$LDIFFILTER < $VALSORTOUT2 > $LDIFFLT
 echo "Comparing filter output..."
-$CMP $SEARCHFLT $VALSORTOUT2 > $CMPOUT
+$CMP $SEARCHFLT $LDIFFLT > $CMPOUT
 
 if test $? != 0 ; then
 	echo "Comparison failed"
@@ -204,9 +208,11 @@ if test $RC != 0 ; then
 fi
 
 echo "Filtering ldapsearch results..."
-. $LDIFFILTER < $SEARCHOUT > $SEARCHFLT
+$LDIFFILTER -s ldif=e < $SEARCHOUT > $SEARCHFLT
+echo "Filtering expected ldif..."
+$LDIFFILTER -s ldif=e < $VALSORTOUT3 > $LDIFFLT
 echo "Comparing filter output..."
-$CMP $SEARCHFLT $VALSORTOUT3 > $CMPOUT
+$CMP $SEARCHFLT $LDIFFLT > $CMPOUT
 
 if test $? != 0 ; then
 	echo "Comparison failed"

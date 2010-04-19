@@ -116,9 +116,9 @@ for P in $PORT1 $PORT2 ; do
 	fi
 
 	echo "Filtering ldapsearch results..."
-	. $LDIFFILTER < $SEARCHOUT > $SEARCHFLT
+	$LDIFFILTER < $SEARCHOUT > $SEARCHFLT
 	echo "Filtering original ldif used to create database..."
-	. $LDIFFILTER < $CHAINOUT > $LDIFFLT
+	$LDIFFILTER < $CHAINOUT > $LDIFFLT
 	echo "Comparing filter output..."
 	$CMP $SEARCHFLT $LDIFFLT > $CMPOUT
 	
@@ -140,9 +140,9 @@ for P in $PORT1 $PORT2 ; do
 	fi
 
 	echo "Filtering ldapsearch results..."
-	. $LDIFFILTER < $SEARCHOUT > $SEARCHFLT
+	$LDIFFILTER < $SEARCHOUT > $SEARCHFLT
 	echo "Filtering original ldif used to create database..."
-	. $LDIFFILTER < $CHAINREFOUT > $LDIFFLT
+	$LDIFFILTER < $CHAINREFOUT > $LDIFFLT
 	echo "Comparing filter output..."
 	$CMP $SEARCHFLT $LDIFFLT > $CMPOUT
 		
@@ -158,10 +158,10 @@ for P in $PORT1 $PORT2 ; do
 		 > $TESTOUT 2>&1
 
 	RC=$?
-	if test $RC != 6 ; then
+	if test $RC != 6 && test $RC,$BACKEND != 5,null ; then
 		echo "ldapcompare failed ($RC)!"
 		test $KILLSERVERS != no && kill -HUP $KILLPIDS
-		exit $RC
+		exit 1
 	fi
 
 	DN="ou=Other,$BASEDN"
@@ -170,10 +170,10 @@ for P in $PORT1 $PORT2 ; do
 		 > $TESTOUT 2>&1
 
 	RC=$?
-	if test $RC != 6 ; then
+	if test $RC != 6 && test $RC,$BACKEND != 5,null ; then
 		echo "ldapcompare failed ($RC)!"
 		test $KILLSERVERS != no && kill -HUP $KILLPIDS
-		exit $RC
+		exit 1
 	fi
 done
 
@@ -269,9 +269,9 @@ for P in $PORT1 $PORT2 ; do
 	fi
 
 	echo "Filtering ldapsearch results..."
-	. $LDIFFILTER < $SEARCHOUT > $SEARCHFLT
+	$LDIFFILTER < $SEARCHOUT > $SEARCHFLT
 	echo "Filtering original ldif used to create database..."
-	. $LDIFFILTER < $CHAINMODOUT > $LDIFFLT
+	$LDIFFILTER < $CHAINMODOUT > $LDIFFLT
 	echo "Comparing filter output..."
 	$CMP $SEARCHFLT $LDIFFLT > $CMPOUT
 	

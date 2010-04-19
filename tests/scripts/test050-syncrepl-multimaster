@@ -258,6 +258,9 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
+nullExclude=""
+test $BACKEND = null && nullExclude="# "
+
 echo "" > $TMP
 if [ "$BACKENDTYPE" = mod ]; then
 cat <<EOF >> $TMP
@@ -273,10 +276,10 @@ fi
 cat <<EOF >> $TMP
 dn: olcDatabase={1}$BACKEND,cn=config
 objectClass: olcDatabaseConfig
-objectClass: olc${BACKEND}Config
+${nullExclude}objectClass: olc${BACKEND}Config
 olcDatabase: {1}$BACKEND
 olcSuffix: $BASEDN
-olcDbDirectory: ./db
+${nullExclude}olcDbDirectory: ./db
 olcRootDN: $MANAGERDN
 olcRootPW: $PASSWD
 EOF
@@ -355,7 +358,7 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-. $LDIFFILTER < $TESTDIR/server$n.out > $TESTDIR/server$n.flt
+$LDIFFILTER < $TESTDIR/server$n.out > $TESTDIR/server$n.flt
 
 n=`expr $n + 1`
 done
@@ -388,7 +391,7 @@ if test $RC != 0 ; then
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
 fi
-. $LDIFFILTER < $TESTDIR/server$n.out > $TESTDIR/server$n.flt
+$LDIFFILTER < $TESTDIR/server$n.out > $TESTDIR/server$n.flt
 n=`expr $n + 1`
 done
 
@@ -433,7 +436,7 @@ if test $RC != 0 ; then
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
 fi
-. $LDIFFILTER < $TESTDIR/server$n.out > $TESTDIR/server$n.flt
+$LDIFFILTER < $TESTDIR/server$n.out > $TESTDIR/server$n.flt
 n=`expr $n + 1`
 done
 
@@ -483,7 +486,7 @@ if test $RC != 0 ; then
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
 fi
-. $LDIFFILTER < $TESTDIR/server$n.out > $TESTDIR/server$n.flt
+$LDIFFILTER < $TESTDIR/server$n.out > $TESTDIR/server$n.flt
 n=`expr $n + 1`
 done
 
@@ -546,7 +549,7 @@ if test $RC != 0 ; then
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
 fi
-. $LDIFFILTER < $TESTDIR/server$n.out > $TESTDIR/server$n.flt
+$LDIFFILTER < $TESTDIR/server$n.out > $TESTDIR/server$n.flt
 n=`expr $n + 1`
 done
 
@@ -610,7 +613,7 @@ if test $RC != 0 ; then
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
 fi
-. $LDIFFILTER < $TESTDIR/server$n.out > $TESTDIR/server$n.flt
+$LDIFFILTER < $TESTDIR/server$n.out > $TESTDIR/server$n.flt
 n=`expr $n + 1`
 done
 
@@ -762,7 +765,7 @@ if test $RC != 0 ; then
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
 fi
-. $LDIFFILTER < $TESTDIR/server$n.out > $TESTDIR/server$n.flt
+$LDIFFILTER < $TESTDIR/server$n.out > $TESTDIR/server$n.flt
 n=`expr $n + 1`
 done
 

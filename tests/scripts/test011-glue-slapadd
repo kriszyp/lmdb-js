@@ -56,9 +56,9 @@ if test $RC != 0 ; then
 fi
 
 echo "Filtering ldapsearch results..."
-. $LDIFFILTER < $SEARCHOUT > $SEARCHFLT
+$LDIFFILTER -s ldif=e < $SEARCHOUT > $SEARCHFLT
 echo "Filtering original ldif used to create database..."
-. $LDIFFILTER < $LDIFGLUED > $LDIFFLT
+$LDIFFILTER -s ldif=e < $LDIFGLUED > $LDIFFLT
 echo "Comparing filter output..."
 $CMP $SEARCHFLT $LDIFFLT > $CMPOUT
 
@@ -70,6 +70,7 @@ if test $? != 0 ; then
 	exit 1
 fi
 
+if test $BACKEND != null ; then
 echo "Testing sizelimit..."
 $LDAPSEARCH -b "$BASEDN" -h $LOCALHOST -p $PORT1 -s one -z 2 > $SEARCHOUT 2>&1
 RC=$?
@@ -85,6 +86,7 @@ if test $RC = 0 ; then
 	echo "sizelimit not detected at middle of search."
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit 1
+fi
 fi
 
 test $KILLSERVERS != no && kill -HUP $KILLPIDS

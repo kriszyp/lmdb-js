@@ -41,6 +41,8 @@ OpenLDAP 2.4.22 Engineering
 	Fixed slapo-valsort REP_ENTRY flag handling (ITS#5340,ITS#6423)	
 	Fixed contrib/sha2 adds mechs for more hashes (ITS#6433)
 	Fixed contrib/nssov to use nss-pam-ldapd (ITS#6488)
+	Build Environment
+		Added back-ldif, back-null test support (ITS#5810)
 	Documentation
 		admin24 avoid explicity moduleload statements (ITS#6486)
 		admin24 broken link fixes (ITS#6493,ITS#6515)

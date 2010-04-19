@@ -13,11 +13,6 @@
 ## top-level directory of the distribution or, alternatively, at
 ## <http://www.OpenLDAP.org/license.html>.
 
-case $BACKEND in bdb | hdb | ldif) : ;; *)
-	echo "Test does not support $BACKEND backend, test skipped"
-	exit 0
-esac
-
 echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
 
@@ -137,7 +132,7 @@ echo "Waiting $SLEEP1 seconds for shadow subtrees to sync..."
 sleep $SLEEP1
 
 echo "Filtering original ldif used to create database..."
-. $LDIFFILTER < $GLUESYNCOUT > $LDIFFLT
+$LDIFFILTER < $GLUESYNCOUT > $LDIFFLT
 
 for P in $PORT1 $PORT2 ; do
 	echo "Using ldapsearch to read all the entries from port $P..."
@@ -152,7 +147,7 @@ for P in $PORT1 $PORT2 ; do
 	fi
 
 	echo "Filtering ldapsearch results..."
-	. $LDIFFILTER < "${SEARCHOUT}.${P}" > $SEARCHFLT
+	$LDIFFILTER < "${SEARCHOUT}.${P}" > $SEARCHFLT
 	echo "Comparing filter output..."
 	$CMP $SEARCHFLT $LDIFFLT > $CMPOUT
 
@@ -178,7 +173,7 @@ sleep 1
 
 $LDAPSEARCH -H $URI2 -b "$BABSDN" > $TESTOUT 2>&1
 RC=$?
-if test $RC = 0 ; then
+if test $RC = 0 && test $BACKEND != null ; then
 	echo "ldapsearch should have failed ($RC)!"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit -1

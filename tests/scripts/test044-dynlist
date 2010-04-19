@@ -20,6 +20,12 @@ if test $DYNLIST = "dynlistno" ; then
 	exit 0
 fi 
 
+if test $BACKEND = ldif ; then
+	# dynlist+ldif fails because back-ldif lacks bi_op_compare()
+	echo "$BACKEND backend unsuitable for dynlist overlay, test skipped"
+	exit 0
+fi
+
 mkdir -p $TESTDIR $DBDIR1
 
 $SLAPPASSWD -g -n >$CONFIGPWF
@@ -603,9 +609,9 @@ test $KILLSERVERS != no && kill -HUP $KILLPIDS
 LDIF=$DYNLISTOUT
 
 echo "Filtering ldapsearch results..."
-. $LDIFFILTER < $SEARCHOUT > $SEARCHFLT
+$LDIFFILTER < $SEARCHOUT > $SEARCHFLT
 echo "Filtering original ldif used to create database..."
-. $LDIFFILTER < $LDIF > $LDIFFLT
+$LDIFFILTER < $LDIF > $LDIFFLT
 echo "Comparing filter output..."
 $CMP $SEARCHFLT $LDIFFLT > $CMPOUT
 

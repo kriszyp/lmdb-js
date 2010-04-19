@@ -122,9 +122,9 @@ if test $RC != 0 ; then
 fi
 
 echo "Filtering ldapsearch results from master..."
-. $LDIFFILTER < $SEARCHOUT > $SEARCHFLT
+$LDIFFILTER < $SEARCHOUT > $SEARCHFLT
 echo "Filtering ldapsearch results from slave..."
-. $LDIFFILTER < $SEARCHOUT2 > $SEARCHFLT2
+$LDIFFILTER < $SEARCHOUT2 > $SEARCHFLT2
 echo "Comparing filter output..."
 $CMP $SEARCHFLT $SEARCHFLT2 > $CMPOUT
 
@@ -620,9 +620,9 @@ EOMODS
 	fi
 
 	echo "Filtering ldapsearch results..."
-	. $LDIFFILTER < $SEARCHOUT > $SEARCHFLT
+	$LDIFFILTER < $SEARCHOUT > $SEARCHFLT
 	echo "Filtering modified ldif..."
-	. $LDIFFILTER < $SQLWRITE > $LDIFFLT
+	$LDIFFILTER < $SQLWRITE > $LDIFFLT
 	echo "Comparing filter output..."
 	$CMP $SEARCHFLT $LDIFFLT > $CMPOUT
 
@@ -668,9 +668,9 @@ EOMODS
 	fi
 
 	echo "Filtering ldapsearch results from master..."
-	. $LDIFFILTER < $SEARCHOUT > $SEARCHFLT
+	$LDIFFILTER < $SEARCHOUT > $SEARCHFLT
 	echo "Filtering ldapsearch results from slave..."
-	. $LDIFFILTER < $SEARCHOUT2 > $SEARCHFLT2
+	$LDIFFILTER < $SEARCHOUT2 > $SEARCHFLT2
 	echo "Comparing filter output..."
 	$CMP $SEARCHFLT $SEARCHFLT2 > $CMPOUT
 

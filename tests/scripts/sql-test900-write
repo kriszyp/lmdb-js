@@ -549,9 +549,9 @@ EOMODS
 	fi
 
 	echo "Filtering ldapsearch results..."
-	. $LDIFFILTER < $SEARCHOUT > $SEARCHFLT
+	$LDIFFILTER < $SEARCHOUT > $SEARCHFLT
 	echo "Filtering modified ldif..."
-	. $LDIFFILTER < $SQLWRITE > $LDIFFLT
+	$LDIFFILTER < $SQLWRITE > $LDIFFLT
 	echo "Comparing filter output..."
 	$CMP $SEARCHFLT $LDIFFLT > $CMPOUT
 

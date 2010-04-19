@@ -33,6 +33,13 @@ if test $BACKLDAP = "ldapno" ; then
 	exit 0
 fi 
 
+if test $BACKEND = ldif ; then
+	# The (mail=example.com*) queries hit a sizelimit, so which
+	# entry is returned depends on the ordering in the backend.
+	echo "Test does not support $BACKEND backend, test skipped"
+	exit 0
+fi
+
 mkdir -p $TESTDIR $DBDIR1 $DBDIR2
 
 # Test proxy caching:
@@ -455,9 +462,9 @@ else
 fi
 
 echo "Filtering ldapsearch results..."
-. $LDIFFILTER < $SEARCHOUT > $SEARCHFLT
+$LDIFFILTER < $SEARCHOUT > $SEARCHFLT
 echo "Filtering original ldif..."
-. $LDIFFILTER < $PROXYCACHEOUT > $LDIFFLT
+$LDIFFILTER < $PROXYCACHEOUT > $LDIFFLT
 echo "Comparing filter output..."
 $CMP $SEARCHFLT $LDIFFLT > $CMPOUT
 

@@ -344,9 +344,9 @@ if test $RC != 0 ; then
 fi
 
 echo "Filtering ldapsearch results..."
-. $LDIFFILTER < $SEARCHOUT > $SEARCHFLT
+$LDIFFILTER < $SEARCHOUT > $SEARCHFLT
 echo "Filtering original ldif used to create database..."
-. $LDIFFILTER < $RELAYOUT > $LDIFFLT
+$LDIFFILTER < $RELAYOUT > $LDIFFLT
 echo "Comparing filter output..."
 $CMP $SEARCHFLT $LDIFFLT > $CMPOUT
 	
@@ -386,11 +386,10 @@ $LDAPCOMPARE -h $LOCALHOST -p $PORT1 \
 	"cn=Added User,ou=Alumni Association,ou=People,$BASEDN" \
 	"seeAlso:cn=All Staff,ou=Groups,$BASEDN" >> $TESTOUT 2>&1
 RC=$?
-if test $RC != 6 ; then
+if test $RC != 6 && test $RC,$BACKEND != 5,null ; then
 	echo "Compare failed ($RC)!"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
-	exit $RC
+	exit 1
 fi
 
 test $KILLSERVERS != no && kill -HUP $KILLPIDS
-

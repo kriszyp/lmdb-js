@@ -160,9 +160,9 @@ fi
 test $KILLSERVERS != no && kill -HUP $KILLPIDS
 
 echo "Filtering ldapsearch results..."
-. $LDIFFILTER < $SEARCHOUT > $SEARCHFLT
+$LDIFFILTER < $SEARCHOUT > $SEARCHFLT
 echo "Filtering original data..."
-. $LDIFFILTER < $DNOUT > $LDIFFLT
+$LDIFFILTER < $DNOUT > $LDIFFLT
 echo "Comparing ldapsearch results against original..."
 $CMP $SEARCHFLT $LDIFFLT > $CMPOUT
 

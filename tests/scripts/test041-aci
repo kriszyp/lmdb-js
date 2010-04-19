@@ -13,11 +13,8 @@
 ## top-level directory of the distribution or, alternatively, at
 ## <http://www.OpenLDAP.org/license.html>.
 
-case "$BACKEND" in
-bdb|hdb)
-	;;
-*)
-	echo "Test does not support $BACKEND backend"
+case "$BACKEND" in ldif | null)
+	echo "$BACKEND backend does not support access controls, test skipped"
 	exit 0
 	;;
 esac
@@ -243,9 +240,9 @@ test $KILLSERVERS != no && kill -HUP $KILLPIDS
 LDIF=$ACIOUT
 
 echo "Filtering ldapsearch results..."
-. $LDIFFILTER < $SEARCHOUT > $SEARCHFLT
+$LDIFFILTER < $SEARCHOUT > $SEARCHFLT
 echo "Filtering original ldif used to create database..."
-. $LDIFFILTER < $LDIF > $LDIFFLT
+$LDIFFILTER < $LDIF > $LDIFFLT
 echo "Comparing filter output..."
 $CMP $SEARCHFLT $LDIFFLT > $CMPOUT
 

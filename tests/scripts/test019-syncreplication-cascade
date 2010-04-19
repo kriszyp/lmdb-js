@@ -13,11 +13,6 @@
 ## top-level directory of the distribution or, alternatively, at
 ## <http://www.OpenLDAP.org/license.html>.
 
-if test "$BACKEND" != "bdb" && test "$BACKEND" != "hdb" ; then
-	echo "Test does not support $BACKEND"
-	exit 0
-fi
-
 echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
 
@@ -433,17 +428,17 @@ fi
 test $KILLSERVERS != no && kill -HUP $KILLPIDS
 
 echo "Filtering master ldapsearch results..."
-. $LDIFFILTER < $MASTEROUT > $MASTERFLT
+$LDIFFILTER < $MASTEROUT > $MASTERFLT
 echo "Filtering R1 slave ldapsearch results..."
-. $LDIFFILTER < $SERVER2OUT > $SERVER2FLT
+$LDIFFILTER < $SERVER2OUT > $SERVER2FLT
 echo "Filtering R2 slave ldapsearch results..."
-. $LDIFFILTER < $SERVER3OUT > $SERVER3FLT
+$LDIFFILTER < $SERVER3OUT > $SERVER3FLT
 echo "Filtering P1 slave ldapsearch results..."
-. $LDIFFILTER < $SERVER4OUT > $SERVER4FLT
+$LDIFFILTER < $SERVER4OUT > $SERVER4FLT
 echo "Filtering P2 slave ldapsearch results..."
-. $LDIFFILTER < $SERVER5OUT > $SERVER5FLT
+$LDIFFILTER < $SERVER5OUT > $SERVER5FLT
 echo "Filtering P3 slave ldapsearch results..."
-. $LDIFFILTER < $SERVER6OUT > $SERVER6FLT
+$LDIFFILTER < $SERVER6OUT > $SERVER6FLT
 
 echo "Comparing retrieved entries from master and R1 slave..."
 $CMP $MASTERFLT $SERVER2FLT > $CMPOUT

@@ -13,14 +13,6 @@
 ## top-level directory of the distribution or, alternatively, at
 ## <http://www.OpenLDAP.org/license.html>.
 
-case "$BACKEND" in
-bdb|hdb)
-	;;
-*)
-	echo "Test does not support $BACKEND backend"
-	exit 0
-esac
-
 echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
 LVL=acl
@@ -82,9 +74,11 @@ case $RC in
 	echo "ldapmodify failed as expected"
 	;;
 0)
-	echo "ldapmodify should have failed ($RC)!"
-	test $KILLSERVERS != no && kill -HUP $KILLPIDS
-	exit -1
+	if test $BACKEND != null ; then
+		echo "ldapmodify should have failed ($RC)!"
+		test $KILLSERVERS != no && kill -HUP $KILLPIDS
+		exit -1
+	fi
 	;;
 *)
 	echo "ldapmodify failed ($RC)!"

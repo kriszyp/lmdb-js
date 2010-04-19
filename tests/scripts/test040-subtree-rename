@@ -16,13 +16,10 @@
 echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
 
-case $BACKEND in
-hdb | ldif)
-	;;
-*)
+if test $BACKEND = bdb ; then
 	echo "subtree rename not supported by back-$BACKEND"
 	exit 0
-esac
+fi
 
 mkdir -p $TESTDIR $DBDIR1
 
@@ -194,9 +191,9 @@ test $KILLSERVERS != no && kill -HUP $KILLPIDS
 LDIF=$SUBTREERENAMEOUT
 
 echo "Filtering ldapsearch results..."
-. $LDIFFILTER < $SEARCHOUT > $SEARCHFLT
+$LDIFFILTER < $SEARCHOUT > $SEARCHFLT
 echo "Filtering original ldif used to create database..."
-. $LDIFFILTER < $LDIF > $LDIFFLT
+$LDIFFILTER < $LDIF > $LDIFFLT
 echo "Comparing filter output..."
 $CMP $SEARCHFLT $LDIFFLT > $CMPOUT
 
