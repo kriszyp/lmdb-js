@@ -329,7 +329,7 @@ retry:
 		if ( zh->zh_maxzones < zh->zh_numzones + zh->zh_deltazones ) {
 			ldap_pvt_thread_mutex_unlock( &zh->zh_mutex );
 			Debug( LDAP_DEBUG_TRACE,
-				"slap_zn_malloc of %lu bytes, falling back to ch_malloc\n",
+				"zn_malloc %lu: ch_malloc\n\n",
 				(long)size, 0, 0);
 			Debug(LDAP_DEBUG_NONE,
 				"slap_zn_malloc: returning 0x%x, 0x%x\n",

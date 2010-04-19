@@ -366,7 +366,7 @@ slap_sl_malloc(
 			}
 		} else {
 			Debug( LDAP_DEBUG_TRACE,
-				"slap_sl_malloc of %lu bytes, falling back to ch_malloc\n",
+				"sl_malloc %lu: ch_malloc\n",
 				(long)size, 0, 0);
 			return (void*)ch_malloc(size);
 		}
