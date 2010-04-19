@@ -1572,26 +1572,6 @@ slap_cf_aux_table_unparse( void *src, struct berval *bv, slap_cf_aux_table *tab0
 			}
 			break;
 
-		case 'x':
-			*ptr++ = ' ';
-			ptr = lutil_strcopy( ptr, tab->key.bv_val );
-			if ( tab->quote ) *ptr++ = '"';
-			if ( tab->aux != NULL ) {
-				struct berval value;
-				slap_cf_aux_table_parse_x *func = (slap_cf_aux_table_parse_x *)tab->aux;
-				int rc;
-
-				value.bv_val = ptr;
-				value.bv_len = buf + sizeof( buf ) - ptr;
-
-				rc = func( &value, (void *)((char *)src + tab->off), tab, "(unparse)", 1 );
-				if ( rc == 0 ) {
-					ptr += value.bv_len;
-				}
-			}
-			if ( tab->quote ) *ptr++ = '"';
-			break;
-
 		default:
 			assert( 0 );
 		}
