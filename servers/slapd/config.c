@@ -1210,30 +1210,6 @@ static slap_verbmasks versionkey[] = {
 	{ BER_BVNULL, 0 }
 };
 
-static int
-slap_sb_uri(
-	struct berval *val,
-	void *bcp,
-	slap_cf_aux_table *tab0,
-	const char *tabmsg,
-	int unparse )
-{
-	slap_bindconf *bc = bcp;
-	if ( unparse ) {
-		if ( bc->sb_uri.bv_len >= val->bv_len )
-			return -1;
-		val->bv_len = bc->sb_uri.bv_len;
-		AC_MEMCPY( val->bv_val, bc->sb_uri.bv_val, val->bv_len );
-	} else {
-		bc->sb_uri = *val;
-#ifdef HAVE_TLS
-		if ( ldap_is_ldaps_url( val->bv_val ))
-			bc->sb_tls_do_init = 1;
-#endif
-	}
-	return 0;
-}
-
 static int 
 slap_keepalive_parse(
 	struct berval *val,
@@ -1317,6 +1293,30 @@ slap_keepalive_parse(
 		BER_BVZERO( val );
 	}
 
+	return 0;
+}
+
+static int
+slap_sb_uri(
+	struct berval *val,
+	void *bcp,
+	slap_cf_aux_table *tab0,
+	const char *tabmsg,
+	int unparse )
+{
+	slap_bindconf *bc = bcp;
+	if ( unparse ) {
+		if ( bc->sb_uri.bv_len >= val->bv_len )
+			return -1;
+		val->bv_len = bc->sb_uri.bv_len;
+		AC_MEMCPY( val->bv_val, bc->sb_uri.bv_val, val->bv_len );
+	} else {
+		bc->sb_uri = *val;
+#ifdef HAVE_TLS
+		if ( ldap_is_ldaps_url( val->bv_val ))
+			bc->sb_tls_do_init = 1;
+#endif
+	}
 	return 0;
 }
 
