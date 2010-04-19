@@ -2114,7 +2114,6 @@ rwm_cf_gen( ConfigArgs *c )
 		switch ( c->type ) {
 		case RWM_CF_REWRITE:
 			if ( c->valx >= 0 ) {
-				ConfigArgs ca = { 0 };
 				int i;
 
 				for ( i = 0; !BER_BVISNULL( &rwmap->rwm_bva_rewrite[ i ] ); i++ )
@@ -2139,6 +2138,8 @@ rwm_cf_gen( ConfigArgs *c )
 
 				for ( i = 0; !BER_BVISNULL( &rwmap->rwm_bva_rewrite[ i ] ); i++ )
 				{
+					ConfigArgs ca = { 0 };
+
 					ca.line = rwmap->rwm_bva_rewrite[ i ].bv_val;
 					ca.argc = 0;
 					config_fp_parse_line( &ca );
@@ -2282,7 +2283,6 @@ rwm_cf_gen( ConfigArgs *c )
 	case RWM_CF_REWRITE:
 		if ( c->valx >= 0 ) {
 			struct rewrite_info *rwm_rw = rwmap->rwm_rw;
-			ConfigArgs ca = { 0 };
 			int i, last;
 
 			for ( last = 0; rwmap->rwm_bva_rewrite && !BER_BVISNULL( &rwmap->rwm_bva_rewrite[ last ] ); last++ )
@@ -2296,6 +2296,8 @@ rwm_cf_gen( ConfigArgs *c )
 			rc = rwm_info_init( &rwmap->rwm_rw );
 
 			for ( i = 0; i < c->valx; i++ ) {
+				ConfigArgs ca = { 0 };
+
 				ca.line = rwmap->rwm_bva_rewrite[ i ].bv_val;
 				ca.argc = 0;
 				config_fp_parse_line( &ca );
@@ -2344,6 +2346,8 @@ rwm_cf_gen( ConfigArgs *c )
 
 			for ( i = c->valx; rwmap->rwm_bva_rewrite && !BER_BVISNULL( &rwmap->rwm_bva_rewrite[ i ] ); i++ )
 			{
+				ConfigArgs ca = { 0 };
+
 				ca.line = rwmap->rwm_bva_rewrite[ i ].bv_val;
 				ca.argc = 0;
 				config_fp_parse_line( &ca );
