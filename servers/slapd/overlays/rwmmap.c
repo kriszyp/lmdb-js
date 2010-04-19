@@ -179,6 +179,7 @@ rwm_map( struct ldapmap *map, struct berval *s, struct berval *bv, int remap )
  */
 int
 rwm_map_attrnames(
+	Operation	*op,
 	struct ldapmap	*at_map,
 	struct ldapmap	*oc_map,
 	AttributeName	*an,
@@ -197,7 +198,8 @@ rwm_map_attrnames(
 
 	for ( i = 0; !BER_BVISNULL( &an[i].an_name ); i++ )
 		/* just count */ ;
-	*anp = ch_malloc( ( i + 1 )* sizeof( AttributeName ) );
+	*anp = op->o_tmpalloc( ( i + 1 )* sizeof( AttributeName ),
+		op->o_tmpmemctx );
 	if ( *anp == NULL ) {
 		return LDAP_NO_MEMORY;
 	}
@@ -329,6 +331,7 @@ rwm_map_attrnames(
 	return LDAP_SUCCESS;
 }
 
+#if 0 /* unused! */
 int
 rwm_map_attrs(
 	struct ldapmap	*at_map,
@@ -378,6 +381,7 @@ rwm_map_attrs(
 
 	return LDAP_SUCCESS;
 }
+#endif
 
 static int
 map_attr_value(
@@ -386,7 +390,8 @@ map_attr_value(
 	struct berval		*mapped_attr,
 	struct berval		*value,
 	struct berval		*mapped_value,
-	int			remap )
+	int			remap,
+	void			*memctx )
 {
 	struct berval		vtmp = BER_BVNULL;
 	int			freeval = 0;
@@ -434,11 +439,11 @@ map_attr_value(
 		} else if ( ad->ad_type->sat_equality->smr_usage & SLAP_MR_MUTATION_NORMALIZER ) {
 			if ( ad->ad_type->sat_equality->smr_normalize(
 				(SLAP_MR_DENORMALIZE|SLAP_MR_VALUE_OF_ASSERTION_SYNTAX),
-				NULL, NULL, value, &vtmp, NULL ) )
+				NULL, NULL, value, &vtmp, memctx ) )
 			{
 				return -1;
 			}
-			freeval = 1;
+			freeval = 2;
 
 		} else if ( ad == slap_schema.si_ad_objectClass
 				|| ad == slap_schema.si_ad_structuralObjectClass )
@@ -452,10 +457,16 @@ map_attr_value(
 			vtmp = *value;
 		}
 
-		filter_escape_value( &vtmp, mapped_value );
+		filter_escape_value_x( &vtmp, mapped_value, memctx );
 
-		if ( freeval ) {
+		switch ( freeval ) {
+		case 1:
 			ch_free( vtmp.bv_val );
+			break;
+
+		case 2:
+			ber_memfree_x( vtmp.bv_val, memctx );
+			break;
 		}
 	}
 	
@@ -500,7 +511,7 @@ rwm_int_filter_map_rewrite(
 	BER_BVZERO( fstr );
 
 	if ( f == NULL ) {
-		ber_dupbv( fstr, &ber_bvnone );
+		ber_dupbv_x( fstr, &ber_bvnone, op->o_tmpmemctx );
 		return LDAP_OTHER;
 	}
 
@@ -512,75 +523,75 @@ rwm_int_filter_map_rewrite(
 	case LDAP_FILTER_EQUALITY:
 		ad = f->f_av_desc;
 		if ( map_attr_value( dc, &ad, &atmp,
-					&f->f_av_value, &vtmp, RWM_MAP ) )
+			&f->f_av_value, &vtmp, RWM_MAP, op->o_tmpmemctx ) )
 		{
 			goto computed;
 		}
 
 		fstr->bv_len = atmp.bv_len + vtmp.bv_len + STRLENOF( "(=)" );
-		fstr->bv_val = ch_malloc( fstr->bv_len + 1 );
+		fstr->bv_val = op->o_tmpalloc( fstr->bv_len + 1, op->o_tmpmemctx );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s=%s)",
 			atmp.bv_val, vtmp.bv_len ? vtmp.bv_val : "" );
 
-		ch_free( vtmp.bv_val );
+		op->o_tmpfree( vtmp.bv_val, op->o_tmpmemctx );
 		break;
 
 	case LDAP_FILTER_GE:
 		ad = f->f_av_desc;
 		if ( map_attr_value( dc, &ad, &atmp,
-					&f->f_av_value, &vtmp, RWM_MAP ) )
+			&f->f_av_value, &vtmp, RWM_MAP, op->o_tmpmemctx ) )
 		{
 			goto computed;
 		}
 
 		fstr->bv_len = atmp.bv_len + vtmp.bv_len + STRLENOF( "(>=)" );
-		fstr->bv_val = ch_malloc( fstr->bv_len + 1 );
+		fstr->bv_val = op->o_tmpalloc( fstr->bv_len + 1, op->o_tmpmemctx );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s>=%s)",
 			atmp.bv_val, vtmp.bv_len ? vtmp.bv_val : "" );
 
-		ch_free( vtmp.bv_val );
+		op->o_tmpfree( vtmp.bv_val, op->o_tmpmemctx );
 		break;
 
 	case LDAP_FILTER_LE:
 		ad = f->f_av_desc;
 		if ( map_attr_value( dc, &ad, &atmp,
-					&f->f_av_value, &vtmp, RWM_MAP ) )
+			&f->f_av_value, &vtmp, RWM_MAP, op->o_tmpmemctx ) )
 		{
 			goto computed;
 		}
 
 		fstr->bv_len = atmp.bv_len + vtmp.bv_len + STRLENOF( "(<=)" );
-		fstr->bv_val = ch_malloc( fstr->bv_len + 1 );
+		fstr->bv_val = op->o_tmpalloc( fstr->bv_len + 1, op->o_tmpmemctx );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s<=%s)",
 			atmp.bv_val, vtmp.bv_len ? vtmp.bv_val : "" );
 
-		ch_free( vtmp.bv_val );
+		op->o_tmpfree( vtmp.bv_val, op->o_tmpmemctx );
 		break;
 
 	case LDAP_FILTER_APPROX:
 		ad = f->f_av_desc;
 		if ( map_attr_value( dc, &ad, &atmp,
-					&f->f_av_value, &vtmp, RWM_MAP ) )
+			&f->f_av_value, &vtmp, RWM_MAP, op->o_tmpmemctx ) )
 		{
 			goto computed;
 		}
 
 		fstr->bv_len = atmp.bv_len + vtmp.bv_len + STRLENOF( "(~=)" );
-		fstr->bv_val = ch_malloc( fstr->bv_len + 1 );
+		fstr->bv_val = op->o_tmpalloc( fstr->bv_len + 1, op->o_tmpmemctx );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s~=%s)",
 			atmp.bv_val, vtmp.bv_len ? vtmp.bv_val : "" );
 
-		ch_free( vtmp.bv_val );
+		op->o_tmpfree( vtmp.bv_val, op->o_tmpmemctx );
 		break;
 
 	case LDAP_FILTER_SUBSTRINGS:
 		ad = f->f_sub_desc;
 		if ( map_attr_value( dc, &ad, &atmp,
-					NULL, NULL, RWM_MAP ) )
+			NULL, NULL, RWM_MAP, op->o_tmpmemctx ) )
 		{
 			goto computed;
 		}
@@ -588,7 +599,7 @@ rwm_int_filter_map_rewrite(
 		/* cannot be a DN ... */
 
 		fstr->bv_len = atmp.bv_len + STRLENOF( "(=*)" );
-		fstr->bv_val = ch_malloc( fstr->bv_len + 128 );
+		fstr->bv_val = op->o_tmpalloc( fstr->bv_len + 128, op->o_tmpmemctx );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s=*)",
 			atmp.bv_val );
@@ -596,46 +607,50 @@ rwm_int_filter_map_rewrite(
 		if ( !BER_BVISNULL( &f->f_sub_initial ) ) {
 			len = fstr->bv_len;
 
-			filter_escape_value( &f->f_sub_initial, &vtmp );
+			filter_escape_value_x( &f->f_sub_initial, &vtmp, op->o_tmpmemctx );
 
 			fstr->bv_len += vtmp.bv_len;
-			fstr->bv_val = ch_realloc( fstr->bv_val, fstr->bv_len + 1 );
+			fstr->bv_val = op->o_tmprealloc( fstr->bv_val, fstr->bv_len + 1,
+				op->o_tmpmemctx );
 
 			snprintf( &fstr->bv_val[len - 2], vtmp.bv_len + 3,
 				/* "(attr=" */ "%s*)",
 				vtmp.bv_len ? vtmp.bv_val : "" );
 
-			ch_free( vtmp.bv_val );
+			op->o_tmpfree( vtmp.bv_val, op->o_tmpmemctx );
 		}
 
 		if ( f->f_sub_any != NULL ) {
 			for ( i = 0; !BER_BVISNULL( &f->f_sub_any[i] ); i++ ) {
 				len = fstr->bv_len;
-				filter_escape_value( &f->f_sub_any[i], &vtmp );
+				filter_escape_value_x( &f->f_sub_any[i], &vtmp,
+					op->o_tmpmemctx );
 
 				fstr->bv_len += vtmp.bv_len + 1;
-				fstr->bv_val = ch_realloc( fstr->bv_val, fstr->bv_len + 1 );
+				fstr->bv_val = op->o_tmprealloc( fstr->bv_val, fstr->bv_len + 1,
+					op->o_tmpmemctx );
 
 				snprintf( &fstr->bv_val[len - 1], vtmp.bv_len + 3,
 					/* "(attr=[init]*[any*]" */ "%s*)",
 					vtmp.bv_len ? vtmp.bv_val : "" );
-				ch_free( vtmp.bv_val );
+				op->o_tmpfree( vtmp.bv_val, op->o_tmpmemctx );
 			}
 		}
 
 		if ( !BER_BVISNULL( &f->f_sub_final ) ) {
 			len = fstr->bv_len;
 
-			filter_escape_value( &f->f_sub_final, &vtmp );
+			filter_escape_value_x( &f->f_sub_final, &vtmp, op->o_tmpmemctx );
 
 			fstr->bv_len += vtmp.bv_len;
-			fstr->bv_val = ch_realloc( fstr->bv_val, fstr->bv_len + 1 );
+			fstr->bv_val = op->o_tmprealloc( fstr->bv_val, fstr->bv_len + 1,
+				op->o_tmpmemctx );
 
 			snprintf( &fstr->bv_val[len - 1], vtmp.bv_len + 3,
 				/* "(attr=[init*][any*]" */ "%s)",
 				vtmp.bv_len ? vtmp.bv_val : "" );
 
-			ch_free( vtmp.bv_val );
+			op->o_tmpfree( vtmp.bv_val, op->o_tmpmemctx );
 		}
 
 		break;
@@ -643,13 +658,13 @@ rwm_int_filter_map_rewrite(
 	case LDAP_FILTER_PRESENT:
 		ad = f->f_desc;
 		if ( map_attr_value( dc, &ad, &atmp,
-					NULL, NULL, RWM_MAP ) )
+			NULL, NULL, RWM_MAP, op->o_tmpmemctx ) )
 		{
 			goto computed;
 		}
 
 		fstr->bv_len = atmp.bv_len + STRLENOF( "(=*)" );
-		fstr->bv_val = ch_malloc( fstr->bv_len + 1 );
+		fstr->bv_val = op->o_tmpalloc( fstr->bv_len + 1, op->o_tmpmemctx );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s=*)",
 			atmp.bv_val );
@@ -659,7 +674,7 @@ rwm_int_filter_map_rewrite(
 	case LDAP_FILTER_OR:
 	case LDAP_FILTER_NOT:
 		fstr->bv_len = STRLENOF( "(%)" );
-		fstr->bv_val = ch_malloc( fstr->bv_len + 128 );
+		fstr->bv_val = op->o_tmpalloc( fstr->bv_len + 128, op->o_tmpmemctx );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%c)",
 			f->f_choice == LDAP_FILTER_AND ? '&' :
@@ -676,12 +691,13 @@ rwm_int_filter_map_rewrite(
 			}
 			
 			fstr->bv_len += vtmp.bv_len;
-			fstr->bv_val = ch_realloc( fstr->bv_val, fstr->bv_len + 1 );
+			fstr->bv_val = op->o_tmprealloc( fstr->bv_val, fstr->bv_len + 1,
+				op->o_tmpmemctx );
 
 			snprintf( &fstr->bv_val[len-1], vtmp.bv_len + 2, 
 				/*"("*/ "%s)", vtmp.bv_len ? vtmp.bv_val : "" );
 
-			ch_free( vtmp.bv_val );
+			op->o_tmpfree( vtmp.bv_val, op->o_tmpmemctx );
 		}
 
 		break;
@@ -690,14 +706,14 @@ rwm_int_filter_map_rewrite(
 		if ( f->f_mr_desc ) {
 			ad = f->f_mr_desc;
 			if ( map_attr_value( dc, &ad, &atmp,
-						&f->f_mr_value, &vtmp, RWM_MAP ) )
+				&f->f_mr_value, &vtmp, RWM_MAP, op->o_tmpmemctx ) )
 			{
 				goto computed;
 			}
 
 		} else {
 			BER_BVSTR( &atmp, "" );
-			filter_escape_value( &f->f_mr_value, &vtmp );
+			filter_escape_value_x( &f->f_mr_value, &vtmp, op->o_tmpmemctx );
 		}
 			
 
@@ -705,7 +721,7 @@ rwm_int_filter_map_rewrite(
 			( f->f_mr_dnattrs ? STRLENOF( ":dn" ) : 0 ) +
 			( f->f_mr_rule_text.bv_len ? f->f_mr_rule_text.bv_len + 1 : 0 ) +
 			vtmp.bv_len + STRLENOF( "(:=)" );
-		fstr->bv_val = ch_malloc( fstr->bv_len + 1 );
+		fstr->bv_val = op->o_tmpalloc( fstr->bv_len + 1, op->o_tmpmemctx );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s%s%s%s:=%s)",
 			atmp.bv_val,
@@ -713,7 +729,7 @@ rwm_int_filter_map_rewrite(
 			!BER_BVISEMPTY( &f->f_mr_rule_text ) ? ":" : "",
 			!BER_BVISEMPTY( &f->f_mr_rule_text ) ? f->f_mr_rule_text.bv_val : "",
 			vtmp.bv_len ? vtmp.bv_val : "" );
-		ch_free( vtmp.bv_val );
+		op->o_tmpfree( vtmp.bv_val, op->o_tmpmemctx );
 		break;
 	}
 
@@ -749,11 +765,11 @@ computed:;
 			break;
 		}
 
-		ber_dupbv( fstr, tmp );
+		ber_dupbv_x( fstr, tmp, op->o_tmpmemctx );
 		break;
 		
 	default:
-		ber_dupbv( fstr, &ber_bvunknown );
+		ber_dupbv_x( fstr, &ber_bvunknown, op->o_tmpmemctx );
 		break;
 	}
 
@@ -798,7 +814,9 @@ rwm_filter_map_rewrite(
 			"[rw] %s: \"%s\" -> \"%s\"\n",
 			fdc.ctx, ftmp.bv_val, fstr->bv_val );		
 		if ( fstr->bv_val != ftmp.bv_val ) {
-			ch_free( ftmp.bv_val );
+			ber_bvreplace_x( &ftmp, fstr, op->o_tmpmemctx );
+			ch_free( fstr->bv_val );
+			*fstr = ftmp;
 		}
 		rc = LDAP_SUCCESS;
 		break;
@@ -808,6 +826,7 @@ rwm_filter_map_rewrite(
 			fdc.rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
 			fdc.rs->sr_text = "Operation not allowed";
 		}
+		op->o_tmpfree( ftmp.bv_val, op->o_tmpmemctx );
 		rc = LDAP_UNWILLING_TO_PERFORM;
 		break;
 	       	
@@ -816,6 +835,7 @@ rwm_filter_map_rewrite(
 			fdc.rs->sr_err = LDAP_OTHER;
 			fdc.rs->sr_text = "Rewrite error";
 		}
+		op->o_tmpfree( ftmp.bv_val, op->o_tmpmemctx );
 		rc = LDAP_OTHER;
 		break;
 	}
