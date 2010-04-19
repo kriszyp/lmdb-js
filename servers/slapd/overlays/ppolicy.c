@@ -853,6 +853,7 @@ free_pwd_history_list( pw_hist **l )
 typedef struct ppbind {
 	slap_overinst *on;
 	int send_ctrl;
+	int set_restrict;
 	LDAPControl **oldctrls;
 	Modifications *mod;
 	LDAPPasswordPolicyError pErr;
@@ -1021,8 +1022,10 @@ ppolicy_bind_response( Operation *op, SlapReply *rs )
 			 * that we are disallowed from doing anything
 			 * other than change password.
 			 */
-			ber_dupbv( &pwcons[op->o_conn->c_conn_idx].dn,
-				&op->o_conn->c_ndn );
+			if ( ppb->set_restrict ) {
+				ber_dupbv( &pwcons[op->o_conn->c_conn_idx].dn,
+					&op->o_conn->c_ndn );
+			}
 
 			ppb->pErr = PP_changeAfterReset;
 
@@ -1210,6 +1213,7 @@ ppolicy_bind( Operation *op, SlapReply *rs )
 		ppb = (ppbind *)(cb+1);
 		ppb->on = on;
 		ppb->pErr = PP_noError;
+		ppb->set_restrict = 1;
 
 		/* Setup a callback so we can munge the result */
 
@@ -1232,7 +1236,6 @@ ppolicy_bind( Operation *op, SlapReply *rs )
 		be_entry_release_r( op, e );
 
 		if ( rc ) {
-			/* This will be the Draft 8 response, Unwilling is bogus */
 			ppb->pErr = PP_accountLocked;
 			send_ldap_error( op, rs, LDAP_INVALID_CREDENTIALS, NULL );
 			return rs->sr_err;
@@ -1297,6 +1300,88 @@ ppolicy_restrict(
 		return rs->sr_err;
 	}
 
+	return SLAP_CB_CONTINUE;
+}
+
+static int
+ppolicy_compare_response(
+	Operation *op,
+	SlapReply *rs )
+{
+	/* map compare responses to bind responses */
+	if ( rs->sr_err == LDAP_COMPARE_TRUE )
+		rs->sr_err = LDAP_SUCCESS;
+	else if ( rs->sr_err == LDAP_COMPARE_FALSE )
+		rs->sr_err = LDAP_INVALID_CREDENTIALS;
+
+	ppolicy_bind_response( op, rs );
+
+	/* map back to compare */
+	if ( rs->sr_err == LDAP_SUCCESS )
+		rs->sr_err = LDAP_COMPARE_TRUE;
+	else if ( rs->sr_err == LDAP_INVALID_CREDENTIALS )
+		rs->sr_err = LDAP_COMPARE_FALSE;
+
+	return SLAP_CB_CONTINUE;
+}
+
+static int
+ppolicy_compare(
+	Operation *op,
+	SlapReply *rs )
+{
+	slap_overinst *on = (slap_overinst *)op->o_bd->bd_info;
+
+	if ( ppolicy_restrict( op, rs ) != SLAP_CB_CONTINUE )
+		return rs->sr_err;
+
+	/* Did we receive a password policy request control?
+	 * Are we testing the userPassword?
+	 */
+	if ( op->o_ctrlflag[ppolicy_cid] && 
+		op->orc_ava->aa_desc == slap_schema.si_ad_userPassword ) {
+		Entry *e;
+		int rc;
+		ppbind *ppb;
+		slap_callback *cb;
+
+		op->o_bd->bd_info = (BackendInfo *)on->on_info;
+		rc = be_entry_get_rw( op, &op->o_req_ndn, NULL, NULL, 0, &e );
+
+		if ( rc != LDAP_SUCCESS ) {
+			return SLAP_CB_CONTINUE;
+		}
+
+		cb = op->o_tmpcalloc( sizeof(ppbind)+sizeof(slap_callback),
+			1, op->o_tmpmemctx );
+		ppb = (ppbind *)(cb+1);
+		ppb->on = on;
+		ppb->pErr = PP_noError;
+		ppb->send_ctrl = 1;
+		/* failures here don't lockout the connection */
+		ppb->set_restrict = 0;
+
+		/* Setup a callback so we can munge the result */
+
+		cb->sc_response = ppolicy_compare_response;
+		cb->sc_next = op->o_callback->sc_next;
+		cb->sc_private = ppb;
+		op->o_callback->sc_next = cb;
+
+		op->o_bd->bd_info = (BackendInfo *)on;
+		ppolicy_get( op, e, &ppb->pp );
+
+		rc = account_locked( op, e, &ppb->pp, &ppb->mod );
+
+		op->o_bd->bd_info = (BackendInfo *)on->on_info;
+		be_entry_release_r( op, e );
+
+		if ( rc ) {
+			ppb->pErr = PP_accountLocked;
+			send_ldap_error( op, rs, LDAP_COMPARE_FALSE, NULL );
+			return rs->sr_err;
+		}
+	}
 	return SLAP_CB_CONTINUE;
 }
 
@@ -2268,7 +2353,7 @@ int ppolicy_initialize()
 
 	ppolicy.on_bi.bi_op_add = ppolicy_add;
 	ppolicy.on_bi.bi_op_bind = ppolicy_bind;
-	ppolicy.on_bi.bi_op_compare = ppolicy_restrict;
+	ppolicy.on_bi.bi_op_compare = ppolicy_compare;
 	ppolicy.on_bi.bi_op_delete = ppolicy_restrict;
 	ppolicy.on_bi.bi_op_modify = ppolicy_modify;
 	ppolicy.on_bi.bi_op_search = ppolicy_restrict;
