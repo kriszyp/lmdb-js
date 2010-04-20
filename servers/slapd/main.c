@@ -65,7 +65,7 @@ static struct sockaddr_in	bind_addr;
 
 typedef int (MainFunc) LDAP_P(( int argc, char *argv[] ));
 extern MainFunc slapadd, slapcat, slapdn, slapindex, slappasswd,
-	slaptest, slapauth, slapacl, slapschema;
+	slaptest, slapauth, slapacl, slapschema, slapmodify;
 
 static struct {
 	char *name;
@@ -75,6 +75,7 @@ static struct {
 	{"slapcat", slapcat},
 	{"slapdn", slapdn},
 	{"slapindex", slapindex},
+	{"slapmodify", slapmodify},
 	{"slappasswd", slappasswd},
 	{"slapschema", slapschema},
 	{"slaptest", slaptest},
@@ -307,7 +308,7 @@ usage( char *name )
 	fprintf( stderr,
 		"\t-4\t\tIPv4 only\n"
 		"\t-6\t\tIPv6 only\n"
-		"\t-T {acl|add|auth|cat|dn|index|passwd|test}\n"
+		"\t-T {acl|add|auth|cat|dn|index|modify|passwd|test}\n"
 		"\t\t\tRun in Tool mode\n"
 		"\t-c cookie\tSync cookie of consumer\n"
 		"\t-d level\tDebug level" "\n"

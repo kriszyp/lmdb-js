@@ -25,6 +25,7 @@ enum slaptool {
 	SLAPCAT,	/* database -> LDIF tool */
 	SLAPDN,		/* DN check w/ syntax tool */
 	SLAPINDEX,	/* database index tool */
+	SLAPMODIFY,	/* database modify tool */
 	SLAPPASSWD,	/* password generation tool */
 	SLAPSCHEMA,	/* schema checking tool */
 	SLAPTEST,	/* slapd.conf test tool */
