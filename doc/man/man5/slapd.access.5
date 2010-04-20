@@ -257,6 +257,24 @@ resulting in base, onelevel, subtree or children match, respectively.
 The dn, filter, and attrs statements are additive; they can be used in sequence 
 to select entities the access rule applies to based on naming context,
 value and attribute type simultaneously.
+Submatches resulting from
+.B regex
+matching can be dereferenced in the
+.B <who>
+field using the syntax
+.IR ${v<n>} ,
+where
+.I <n>
+is the submatch number.
+The default syntax,
+.IR $<n> ,
+is actually an alias for
+.IR ${d<n>} ,
+that corresponds to dereferencing submatches from the
+.B dnpattern
+portion of the
+.B <what>
+field.
 .SH THE <WHO> FIELD
 The field
 .B <who>
