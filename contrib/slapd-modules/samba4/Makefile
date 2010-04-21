@@ -20,7 +20,7 @@ LIBTOOL=$(LDAP_BUILD)/libtool
 OPT=-g -O2
 CC=gcc
 
-DEFS=-DSLAPD_OVER_RDNVAL=2
+DEFS=-DSLAPD_OVER_RDNVAL=2 -DSLAPD_OVER_PGUID=2
 
 LDAP_INC=-I$(LDAP_SRC)/include -I$(LDAP_SRC)/servers/slapd \
 	-I$(LDAP_BUILD)/include
@@ -37,7 +37,16 @@ libdir=$(exec_prefix)/lib
 libexecdir=$(exec_prefix)/libexec
 moduledir = $(libexecdir)$(ldap_subdir)
 
-all:	rdnval.la
+PROGRAMS = pguid.la rdnval.la
+
+all:	$(PROGRAMS)
+
+pguid.lo:	pguid.c
+	$(LIBTOOL) --mode=compile $(CC) $(OPT) $(DEFS) $(INCS) -c $?
+
+pguid.la:	pguid.lo
+	$(LIBTOOL) --mode=link $(CC) $(OPT) -version-info 0:0:0 \
+	-rpath $(moduledir) -module -o $@ $? $(LIBS)
 
 rdnval.lo:	rdnval.c
 	$(LIBTOOL) --mode=compile $(CC) $(OPT) $(DEFS) $(INCS) -c $?
@@ -47,9 +56,13 @@ rdnval.la:	rdnval.lo
 	-rpath $(moduledir) -module -o $@ $? $(LIBS)
 
 clean:
-	rm -f rdnval.o rdnval.lo rdnval.la
+	rm -f \
+		pguid.o pguid.lo pguid.la \
+		rdnval.o rdnval.lo rdnval.la 
 
-install: rdnval.la
+install: $(PROGRAMS)
 	mkdir -p $(DESTDIR)$(moduledir)
-	$(LIBTOOL) --mode=install cp rdnval.la $(DESTDIR)$(moduledir)
+	for p in $(PROGRAMS) ; do \
+		$(LIBTOOL) --mode=install cp $$p $(DESTDIR)$(moduledir) ; \
+	done
 

@@ -2,7 +2,15 @@
 
 This directory contains slapd overlays specific to samba4 LDAP backend:
 
-	- rdnval
+	- pguid (not used)
+	- rdnval (under evaluation)
+
+
+  - PGUID
+
+This overlay maintains the operational attribute "parentUUID".  It contains
+the entryUUID of the parent entry.  This overlay is not being considered
+right now.
 
 
   - RDNVAL
