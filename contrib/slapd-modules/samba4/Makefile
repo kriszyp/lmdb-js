@@ -1,0 +1,55 @@
+# $OpenLDAP$
+# This work is part of OpenLDAP Software <http://www.openldap.org/>.
+#
+# Copyright 1998-2010 The OpenLDAP Foundation.
+# Copyright 2004 Howard Chu, Symas Corp. All Rights Reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted only as authorized by the OpenLDAP
+# Public License.
+#
+# A copy of this license is available in the file LICENSE in the
+# top-level directory of the distribution or, alternatively, at
+# <http://www.OpenLDAP.org/license.html>.
+
+LDAP_SRC=../../..
+# craft according to your installation
+LDAP_BUILD=../../../../ldap-devel
+
+LIBTOOL=$(LDAP_BUILD)/libtool
+OPT=-g -O2
+CC=gcc
+
+DEFS=-DSLAPD_OVER_RDNVAL=2
+
+LDAP_INC=-I$(LDAP_SRC)/include -I$(LDAP_SRC)/servers/slapd \
+	-I$(LDAP_BUILD)/include
+INCS=$(LDAP_INC)
+
+LDAP_LIB=-lldap_r -llber
+LIBS=$(LDAP_LIB)
+
+prefix=/usr/local
+exec_prefix=$(prefix)
+ldap_subdir=/openldap
+
+libdir=$(exec_prefix)/lib
+libexecdir=$(exec_prefix)/libexec
+moduledir = $(libexecdir)$(ldap_subdir)
+
+all:	rdnval.la
+
+rdnval.lo:	rdnval.c
+	$(LIBTOOL) --mode=compile $(CC) $(OPT) $(DEFS) $(INCS) -c $?
+
+rdnval.la:	rdnval.lo
+	$(LIBTOOL) --mode=link $(CC) $(OPT) -version-info 0:0:0 \
+	-rpath $(moduledir) -module -o $@ $? $(LIBS)
+
+clean:
+	rm -f rdnval.o rdnval.lo rdnval.la
+
+install: rdnval.la
+	mkdir -p $(DESTDIR)$(moduledir)
+	$(LIBTOOL) --mode=install cp rdnval.la $(DESTDIR)$(moduledir)
+
