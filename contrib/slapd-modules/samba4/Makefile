@@ -14,7 +14,7 @@
 
 LDAP_SRC=../../..
 # craft according to your installation
-LDAP_BUILD=../../../../ldap-devel
+LDAP_BUILD=../../..
 
 LIBTOOL=$(LDAP_BUILD)/libtool
 OPT=-g -O2
