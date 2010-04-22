@@ -1886,19 +1886,12 @@ retry:;
 		send_ldap_result( op, rs );
 	}
 
-	if ( match ) {
-		if ( rs->sr_matched != match ) {
-			free( (char *)rs->sr_matched );
-		}
-		rs->sr_matched = NULL;
-		ldap_memfree( match );
-	}
-
 	if ( text ) {
 		ldap_memfree( text );
 	}
 	rs->sr_text = NULL;
 
+	/* there can't be refs with a (successful) bind */
 	if ( rs->sr_ref ) {
 		op->o_tmpfree( rs->sr_ref, op->o_tmpmemctx );
 		rs->sr_ref = NULL;
@@ -1908,10 +1901,50 @@ retry:;
 		ber_memvfree( (void **)refs );
 	}
 
-	if ( ctrls ) {
-		assert( rs->sr_ctrls != NULL );
+		/* match should not be possible with a successful bind */
+		if ( match ) {
+			if ( rs->sr_matched != match ) {
+				free( (char *)rs->sr_matched );
+			}
+			rs->sr_matched = NULL;
+			ldap_memfree( match );
+		}
+
+	if ( ctrls != NULL ) {
+		if ( op->o_tag == LDAP_REQ_BIND && rs->sr_err == LDAP_SUCCESS ) {
+			int i;
+
+			for ( i = 0; ctrls[i] != NULL; i++ );
+
+			rs->sr_ctrls = op->o_tmpalloc( sizeof( LDAPControl * )*( i + 1 ),
+				op->o_tmpmemctx );
+			for ( i = 0; ctrls[ i ] != NULL; i++ ) {
+				char *ptr;
+				ber_len_t oidlen = strlen( ctrls[i]->ldctl_oid );
+				ber_len_t size = sizeof( LDAPControl )
+					+ oidlen + 1
+					+ ctrls[i]->ldctl_value.bv_len + 1;
+	
+				rs->sr_ctrls[ i ] = op->o_tmpalloc( size, op->o_tmpmemctx );
+				rs->sr_ctrls[ i ]->ldctl_oid = (char *)&rs->sr_ctrls[ i ][ 1 ];
+				lutil_strcopy( rs->sr_ctrls[ i ]->ldctl_oid, ctrls[i]->ldctl_oid );
+				rs->sr_ctrls[ i ]->ldctl_value.bv_val
+						= (char *)&rs->sr_ctrls[ i ]->ldctl_oid[oidlen + 1];
+				rs->sr_ctrls[ i ]->ldctl_value.bv_len
+					= ctrls[i]->ldctl_value.bv_len;
+				ptr = lutil_memcopy( rs->sr_ctrls[ i ]->ldctl_value.bv_val,
+					ctrls[i]->ldctl_value.bv_val, ctrls[i]->ldctl_value.bv_len );
+				*ptr = '\0';
+			}
+			rs->sr_ctrls[ i ] = NULL;
+			rs->sr_flags |= REP_CTRLS_MUSTBEFREED;
+
+		} else {
+			assert( rs->sr_ctrls != NULL );
+			rs->sr_ctrls = NULL;
+		}
+
 		ldap_controls_free( ctrls );
-		rs->sr_ctrls = NULL;
 	}
 
 	return( LDAP_ERR_OK( rs->sr_err ) ? LDAP_SUCCESS : rs->sr_err );
