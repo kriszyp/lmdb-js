@@ -1,5 +1,7 @@
 OpenLDAP 2.4 Change Log
 
+OpenLDAP 2.4.23 Engineering
+
 OpenLDAP 2.4.22 Release (2010/04/24)
 	Added slapd SLAP_SCHEMA_EXPOSE flag for hidden schema elements (ITS#6435)
 	Added slapd tools selective iterations (ITS#6442)
@@ -49,7 +51,7 @@ OpenLDAP 2.4.22 Release (2010/04/24)
 	Build Environment
 		Added back-ldif, back-null test support (ITS#5810)
 	Documentation
-		admin24 avoid explicity moduleload statements (ITS#6486)
+		admin24 avoid explicit moduleload statements (ITS#6486)
 		admin24 broken link fixes (ITS#6493,ITS#6515)
 	        slapd.access(5) val.regex explanation (ITS#5804)
 
