@@ -71,7 +71,7 @@ all-local: $(SHAREDLIB)
 .c.lo:
 	$(LTCOMPILE_LIB) $<
 
-$(SHAREDLIBOBJS) verion.lo: $(LIBRARY)
+$(LIBRARY): $(SHAREDLIBOBJS) version.lo
 
 $(SHAREDLIB): $(SHAREDLIBOBJS) version.lo
 	$(LTLINK_LIB) -o $(SHAREDLIB) $(SHAREDLIBOBJS) version.lo $(LINK_LIBS)
