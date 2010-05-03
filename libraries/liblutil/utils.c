@@ -147,7 +147,7 @@ size_t lutil_localtime( char *s, size_t smax, const struct tm *tm, long delta )
 	snprintf( p, smax - 15, "%02ld%02ld", delta / 3600,
 			( delta % 3600 ) / 60 );
 
-	return ret + 5;
+	return ret + 4;
 }
 
 int lutil_tm2time( struct lutil_tm *tm, struct lutil_timet *tt )
