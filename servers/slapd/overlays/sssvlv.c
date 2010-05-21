@@ -471,7 +471,9 @@ range_err:
 	be = op->o_bd;
 	for ( i=0; i<j; i++ ) {
 		sort_node *sn = cur_node->avl_data;
-		
+
+		if ( slapd_shutdown ) break;
+
 		op->o_bd = select_backend( &sn->sn_dn, 0 );
 		e = NULL;
 		rc = be_entry_get_rw( op, &sn->sn_dn, NULL, NULL, 0, &e );
@@ -502,6 +504,8 @@ static void send_page( Operation *op, SlapReply *rs, sort_op *so )
 
 	while ( cur_node && rs->sr_nentries < so->so_page_size ) {
 		sort_node *sn = cur_node->avl_data;
+
+		if ( slapd_shutdown ) break;
 
 		next_node = tavl_next( cur_node, TAVL_DIR_RIGHT );
 
