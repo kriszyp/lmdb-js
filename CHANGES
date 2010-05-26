@@ -1,6 +1,7 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.23 Engineering
+ 	Fixed contrib/nssov network.c missing patch (ITS#6562)
 
 OpenLDAP 2.4.22 Release (2010/04/24)
 	Added slapd SLAP_SCHEMA_EXPOSE flag for hidden schema elements (ITS#6435)
