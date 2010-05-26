@@ -45,6 +45,7 @@ typedef struct vernum_t {
 
 static AttributeDescription	*ad_msDS_KeyVersionNumber;
 
+static struct berval		val_init = BER_BVC( "0" );
 static slap_overinst 		vernum;
 
 static int
@@ -54,7 +55,6 @@ vernum_op_add( Operation *op, SlapReply *rs )
 	vernum_t	*vn = (vernum_t *)on->on_bi.bi_private;
 
 	Attribute *a, **ap;
-	struct berval val = BER_BVC( "0" );
 	int rc;
 
 	/* NOTE: should we accept an entry still in mods format? */
@@ -76,7 +76,7 @@ vernum_op_add( Operation *op, SlapReply *rs )
 
 	a = attr_alloc( vn->vn_vernum );
 
-	value_add_one( &a->a_vals, &val );
+	value_add_one( &a->a_vals, &val_init );
 	a->a_nvals = a->a_vals;
 	a->a_numvals = 1;
 
@@ -115,20 +115,36 @@ vernum_op_modify( Operation *op, SlapReply *rs )
 		return SLAP_CB_CONTINUE;
 	}
 
+	for ( mlp = &op->orm_modlist; *mlp != NULL; mlp = &(*mlp)->sml_next )
+		/* goto tail */ ;
+
+	/* ITS#6561 */
+#ifdef SLAP_MOD_ADD_IF_NOT_PRESENT
+	/* the initial value is only added if the vernum attr is not present */
 	ml = SLAP_CALLOC( sizeof( Modifications ), 1 );
 	ml->sml_values = SLAP_CALLOC( sizeof( struct berval ) , 2 );
-	value_add_one( &ml->sml_values, &val );
+	value_add_one( &ml->sml_values, &val_init );
 	ml->sml_nvalues = NULL;
-
 	ml->sml_numvals = 1;
-
-	ml->sml_op = LDAP_MOD_INCREMENT;
+	ml->sml_op = SLAP_MOD_ADD_IF_NOT_PRESENT;
 	ml->sml_flags = SLAP_MOD_INTERNAL;
 	ml->sml_desc = vn->vn_vernum;
 	ml->sml_type = vn->vn_vernum->ad_cname;
 
-	for ( mlp = &op->orm_modlist; *mlp != NULL; mlp = &(*mlp)->sml_next )
-		/* goto tail */ ;
+	*mlp = ml;
+	mlp = &ml->sml_next;
+#endif /* SLAP_MOD_ADD_IF_NOT_PRESENT */
+
+	/* this increments by 1 the vernum attr */
+	ml = SLAP_CALLOC( sizeof( Modifications ), 1 );
+	ml->sml_values = SLAP_CALLOC( sizeof( struct berval ) , 2 );
+	value_add_one( &ml->sml_values, &val );
+	ml->sml_nvalues = NULL;
+	ml->sml_numvals = 1;
+	ml->sml_op = LDAP_MOD_INCREMENT;
+	ml->sml_flags = SLAP_MOD_INTERNAL;
+	ml->sml_desc = vn->vn_vernum;
+	ml->sml_type = vn->vn_vernum->ad_cname;
 
 	*mlp = ml;
 
@@ -287,7 +303,7 @@ vernum_repair( BackendDB *be )
 	for ( rmod = rcb.mods; rmod != NULL; ) {
 		vernum_mod_t *rnext;
 		Modifications mod;
-		struct berval vals[2] = { BER_BVC("0"), BER_BVNULL };
+		struct berval vals[2] = { BER_BVNULL };
 		SlapReply rs2 = { REP_RESULT };
 
 		mod.sml_flags = SLAP_MOD_INTERNAL;
@@ -295,6 +311,7 @@ vernum_repair( BackendDB *be )
 		mod.sml_desc = vn->vn_vernum;
 		mod.sml_type = vn->vn_vernum->ad_cname;
 		mod.sml_values = vals;
+		mod.sml_values[0] = val_init;
 		mod.sml_nvalues = NULL;
 		mod.sml_numvals = 1;
 		mod.sml_next = NULL;
