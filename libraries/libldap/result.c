@@ -994,6 +994,7 @@ nextresp2:
 
 			/* need to return -1, because otherwise
 			 * a valid result is expected */
+			ld->ld_errno = lderr;
 			return -1;
 		}
 	}
