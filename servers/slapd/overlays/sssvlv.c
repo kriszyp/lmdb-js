@@ -1236,11 +1236,11 @@ int sssvlv_initialize()
 	if ( rc == LDAP_SUCCESS ) {
 		rc = overlay_register( &sssvlv );
 		if ( rc != LDAP_SUCCESS ) {
-			fprintf( stderr, "Failed to register server side sort overlay\n" );
+			Debug( LDAP_DEBUG_ANY, "Failed to register server side sort overlay\n", 0, 0, 0 );
 		}
 	}
 	else {
-		fprintf( stderr, "Failed to register control %d\n", rc );
+		Debug( LDAP_DEBUG_ANY, "Failed to register control %d\n", rc, 0, 0 );
 	}
 
 	return rc;
