@@ -124,10 +124,14 @@ ldap_send_initial_request(
 			if (ld->ld_options.ldo_cldapdn)
 				ldap_memfree(ld->ld_options.ldo_cldapdn);
 			ld->ld_options.ldo_cldapdn = ldap_strdup(dn);
+			ber_free( ber, 1 );
 			return 0;
 		}
 		if (msgtype != LDAP_REQ_ABANDON && msgtype != LDAP_REQ_SEARCH)
+		{
+			ber_free( ber, 1 );
 			return LDAP_PARAM_ERROR;
+		}
 	}
 #endif
 #ifdef LDAP_R_COMPILE
