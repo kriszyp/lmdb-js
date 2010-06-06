@@ -379,6 +379,10 @@ LDAPRDN_rewrite( LDAPRDN rdn, unsigned flags, void *ctx )
 			ava->la_value = bv;
 			ava->la_flags |= LDAP_AVA_FREE_VALUE;
 		}
+		/* reject empty values */
+		if (!ava->la_value.bv_len) {
+			return LDAP_INVALID_SYNTAX;
+		}
 	}
 	rc = LDAP_SUCCESS;
 
