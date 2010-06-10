@@ -4,6 +4,10 @@ OpenLDAP 2.4.23 Engineering
 	Fixed liblutil off-by-one with delta (ITS#6541)
 	Fixed slapd syncrepl rid logging (ITS#6533)
 	Fixed slapd-bdb hasSubordinates computation (ITS#6549)
+	Fixed slapo-ppolicy to use Debug (ITS#6566)
+	Fixed slapo-rwm to use Debug (ITS#6566)
+	Fixed slapo-sssvlv to use Debug (ITS#6566)
+	Fixed slapo-valsort to use Debug (ITS#6566)
  	Fixed contrib/nssov network.c missing patch (ITS#6562)
 	Build Environment
 		Fixed test043 attribute sorting (ITS#6553)

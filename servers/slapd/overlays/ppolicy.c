@@ -2230,7 +2230,7 @@ ppolicy_db_init(
 		if ( cr ){
 			snprintf( cr->msg, sizeof(cr->msg), 
 				"slapo-ppolicy cannot be global" );
-			fprintf( stderr, "%s\n", cr->msg );
+			Debug( LDAP_DEBUG_ANY, "%s\n", cr->msg, 0, 0 );
 		}
 		return 1;
 	}
@@ -2247,7 +2247,7 @@ ppolicy_db_init(
 					snprintf( cr->msg, sizeof(cr->msg), 
 						"User Schema load failed for attribute \"%s\". Error code %d: %s",
 						pwd_UsSchema[i].def, code, err );
-					fprintf( stderr, "%s\n", cr->msg );
+					Debug( LDAP_DEBUG_ANY, "%s\n", cr->msg, 0, 0 );
 				}
 				return code;
 			}
@@ -2340,7 +2340,7 @@ int ppolicy_initialize()
 		SLAP_CTRL_ADD|SLAP_CTRL_BIND|SLAP_CTRL_MODIFY|SLAP_CTRL_HIDE, extops,
 		ppolicy_parseCtrl, &ppolicy_cid );
 	if ( code != LDAP_SUCCESS ) {
-		fprintf( stderr, "Failed to register control %d\n", code );
+		Debug( LDAP_DEBUG_ANY, "Failed to register control %d\n", code, 0, 0 );
 		return code;
 	}
 

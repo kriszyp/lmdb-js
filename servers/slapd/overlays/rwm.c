@@ -122,7 +122,7 @@ rwm_op_rollback( Operation *op, SlapReply *rs, rwm_op_state *ros )
 #if 0
 			ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
 			/* too late, c_mutex released */
-			fprintf( stderr, "*** DN: \"%s\" => \"%s\"\n",
+			Debug( LDAP_DEBUG_ANY, "*** DN: \"%s\" => \"%s\"\n",
 				op->o_conn->c_ndn.bv_val,
 				op->o_req_ndn.bv_val );
 			ber_bvreplace( &op->o_conn->c_ndn,
@@ -1626,12 +1626,12 @@ rwm_suffixmassage_config(
 	 */
 	if ( argc == 2 ) {
 		if ( be->be_suffix == NULL ) {
- 			fprintf( stderr, "%s: line %d: "
+ 			Debug( LDAP_DEBUG_ANY, "%s: line %d: "
 				       " \"suffixMassage [<suffix>]"
 				       " <massaged suffix>\" without "
 				       "<suffix> part requires database "
 				       "suffix be defined first.\n",
-				fname, lineno );
+				fname, lineno, 0 );
 			return 1;
 		}
 		bvnc = be->be_suffix[ 0 ];
@@ -1642,22 +1642,22 @@ rwm_suffixmassage_config(
 		massaged = 2;
 
 	} else  {
- 		fprintf( stderr, "%s: line %d: syntax is"
+ 		Debug( LDAP_DEBUG_ANY, "%s: line %d: syntax is"
 			       " \"suffixMassage [<suffix>]"
 			       " <massaged suffix>\"\n",
-			fname, lineno );
+			fname, lineno, 0 );
 		return 1;
 	}
 
 	if ( dnPrettyNormal( NULL, &bvnc, &pvnc, &nvnc, NULL ) != LDAP_SUCCESS ) {
-		fprintf( stderr, "%s: line %d: suffix DN %s is invalid\n",
+		Debug( LDAP_DEBUG_ANY, "%s: line %d: suffix DN %s is invalid\n",
 			fname, lineno, bvnc.bv_val );
 		return 1;
 	}
 
 	ber_str2bv( argv[ massaged ], 0, 0, &brnc );
 	if ( dnPrettyNormal( NULL, &brnc, &prnc, &nrnc, NULL ) != LDAP_SUCCESS ) {
-		fprintf( stderr, "%s: line %d: suffix DN %s is invalid\n",
+		Debug( LDAP_DEBUG_ANY, "%s: line %d: suffix DN %s is invalid\n",
 				fname, lineno, brnc.bv_val );
 		free( nvnc.bv_val );
 		free( pvnc.bv_val );
@@ -1776,9 +1776,9 @@ rwm_db_config(
 
 	} else if ( strcasecmp( argv[0], "t-f-support" ) == 0 ) {
 		if ( argc != 2 ) {
-			fprintf( stderr,
+			Debug( LDAP_DEBUG_ANY,
 		"%s: line %d: \"t-f-support {no|yes|discover}\" needs 1 argument.\n",
-					fname, lineno );
+					fname, lineno, 0 );
 			return( 1 );
 		}
 
@@ -1790,17 +1790,17 @@ rwm_db_config(
 
 		/* TODO: not implemented yet */
 		} else if ( strcasecmp( argv[ 1 ], "discover" ) == 0 ) {
-			fprintf( stderr,
+			Debug( LDAP_DEBUG_ANY,
 		"%s: line %d: \"discover\" not supported yet "
 		"in \"t-f-support {no|yes|discover}\".\n",
-					fname, lineno );
+					fname, lineno, 0 );
 			return( 1 );
 #if 0
 			rwmap->rwm_flags |= RWM_F_SUPPORT_T_F_DISCOVER;
 #endif
 
 		} else {
-			fprintf( stderr,
+			Debug( LDAP_DEBUG_ANY,
 	"%s: line %d: unknown value \"%s\" for \"t-f-support {no|yes|discover}\".\n",
 				fname, lineno, argv[ 1 ] );
 			return 1;
@@ -1808,9 +1808,9 @@ rwm_db_config(
 
 	} else if ( strcasecmp( argv[0], "normalize-mapped-attrs" ) ==  0 ) {
 		if ( argc !=2 ) { 
-			fprintf( stderr,
+			Debug( LDAP_DEBUG_ANY,
 		"%s: line %d: \"normalize-mapped-attrs {no|yes}\" needs 1 argument.\n",
-					fname, lineno );
+					fname, lineno, 0 );
 			return( 1 );
 		}
 

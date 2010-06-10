@@ -568,7 +568,7 @@ int valsort_initialize( void )
 		SLAP_CTRL_SEARCH | SLAP_CTRL_HIDE, NULL, valsort_parseCtrl,
 		&valsort_cid );
 	if ( rc != LDAP_SUCCESS ) {
-		fprintf( stderr, "Failed to register control %d\n", rc );
+		Debug( LDAP_DEBUG_ANY, "Failed to register control %d\n", rc, 0, 0 );
 		return rc;
 	}
 
