@@ -822,6 +822,8 @@ static int sssvlv_op_search(
 					so->so_vlv = op->o_ctrlflag[vlv_cid];
 					so->so_vlv_target = 0;
 					so->so_vlv_rc = 0;
+				} else {
+					so->so_vlv = SLAP_CONTROL_NONE;
 				}
 			}
 			so->so_vcontext = (unsigned long)so;
