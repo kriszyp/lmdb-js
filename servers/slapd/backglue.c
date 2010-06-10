@@ -1472,6 +1472,29 @@ glue_sub_add( BackendDB *be, int advert, int online )
 	return rc;
 }
 
+static int
+glue_access_allowed(
+	Operation		*op,
+	Entry			*e,
+	AttributeDescription	*desc,
+	struct berval		*val,
+	slap_access_t		access,
+	AccessControlState	*state,
+	slap_mask_t		*maskp )
+{
+	BackendDB *b0, *be = glue_back_select( op->o_bd, &e->e_nname );
+	int rc;
+
+	if ( be == NULL || be == op->o_bd || be->bd_info->bi_access_allowed == NULL )
+		return SLAP_CB_CONTINUE;
+
+	b0 = op->o_bd;
+	op->o_bd = be;
+	rc = be->bd_info->bi_access_allowed ( op, e, desc, val, access, state, maskp );
+	op->o_bd = b0;
+	return rc;
+}
+
 int
 glue_sub_init()
 {
@@ -1492,6 +1515,7 @@ glue_sub_init()
 	glue.on_bi.bi_chk_controls = glue_chk_controls;
 	glue.on_bi.bi_entry_get_rw = glue_entry_get_rw;
 	glue.on_bi.bi_entry_release_rw = glue_entry_release_rw;
+	glue.on_bi.bi_access_allowed = glue_access_allowed;
 
 	glue.on_response = glue_response;
 
