@@ -1413,6 +1413,7 @@ syncprov_checkpoint( Operation *op, SlapReply *rs, slap_overinst *on )
 	SlapReply rsm = { 0 };
 	slap_callback cb = {0};
 	BackendDB be;
+	BackendInfo *bi;
 
 #ifdef CHECK_CSN
 	Syntax *syn = slap_schema.si_ad_contextCSN->ad_type->sat_syntax;
@@ -1442,6 +1443,7 @@ syncprov_checkpoint( Operation *op, SlapReply *rs, slap_overinst *on )
 	}
 	opm.o_req_dn = si->si_contextdn;
 	opm.o_req_ndn = si->si_contextdn;
+	bi = opm.o_bd->bd_info;
 	opm.o_bd->bd_info = on->on_info->oi_orig;
 	opm.o_managedsait = SLAP_CONTROL_NONCRITICAL;
 	opm.o_no_schema_check = 1;
@@ -1459,6 +1461,7 @@ syncprov_checkpoint( Operation *op, SlapReply *rs, slap_overinst *on )
 		if ( e == opm.ora_e )
 			be_entry_release_w( &opm, opm.ora_e );
 	}
+	opm.o_bd->bd_info = bi;
 
 	if ( mod.sml_next != NULL ) {
 		slap_mods_free( mod.sml_next, 1 );
