@@ -9,6 +9,7 @@ OpenLDAP 2.4.23 Engineering
 	Fixed slapd modrdn handling of invalid values (ITS#6570)
 	Fixed slapd-bdb hasSubordinates computation (ITS#6549)
 	Fixed slapd-bdb to use memcpy instead for strcpy (ITS#6474)
+	Fixed slapd-ldap to return control responses (ITS#6530)
 	Fixed slapo-ppolicy to use Debug (ITS#6566)
 	Fixed slapo-rwm to use Debug (ITS#6566)
 	Fixed slapo-sssvlv to use Debug (ITS#6566)
