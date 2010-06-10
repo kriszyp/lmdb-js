@@ -4592,9 +4592,10 @@ add_syncrepl(
 		return 1;
 	} else {
 		Debug( LDAP_DEBUG_CONFIG,
-			"Config: ** successfully added syncrepl \"%s\"\n",
+			"Config: ** successfully added syncrepl %s \"%s\"\n",
+			si->si_ridtxt,
 			BER_BVISNULL( &si->si_bindconf.sb_uri ) ?
-			"(null)" : si->si_bindconf.sb_uri.bv_val, 0, 0 );
+			"(null)" : si->si_bindconf.sb_uri.bv_val, 0 );
 		if ( c->be->be_syncinfo ) {
 			syncinfo_t *sip;
 

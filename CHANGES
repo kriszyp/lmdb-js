@@ -1,6 +1,7 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.23 Engineering
+	Fixed slapd syncrepl rid logging (ITS#6533)
  	Fixed contrib/nssov network.c missing patch (ITS#6562)
 
 OpenLDAP 2.4.22 Release (2010/04/24)
