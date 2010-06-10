@@ -1552,6 +1552,13 @@ a namingContext (suffix) of the database, a simple bind password
 may also be provided using the
 .B olcRootPW
 directive. Note that the rootdn is always needed when using syncrepl.
+The
+.B olcRootDN
+of the
+.B cn=config
+database defaults to
+.B cn=config
+itself.
 .TP
 .B olcRootPW: <password>
 Specify a password (or hash of the password) for the rootdn.  The
