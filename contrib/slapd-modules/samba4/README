@@ -41,14 +41,21 @@ To use the overlay, add:
 to your slapd configuration file.  An instance is required for each database
 that needs to maintain this attribute.
 
-This overlay is only set up to be built as a dynamically loaded module.
-On most platforms, in order for the module to be usable, all of the 
+
+  - VERNUM
+
+This overlay increments a counter any time an attribute is modified.
+It is intended to increment the counter 'msDS-KeyVersionNumber' when
+the attribute 'unicodePwd' is modified.
+ 
+
+These overlays are only set up to be built as a dynamically loaded modules.
+On most platforms, in order for the modules to be usable, all of the 
 library dependencies must also be available as shared libraries.
 
-If you need to build the overlay statically, you will have to move it into the
-slapd/overlays directory and edit the Makefile and overlays.c to reference
-it. You will also have to define SLAPD_OVER_SMBK5PWD to SLAPD_MOD_STATIC,
-and add the relevant libraries to the main slapd link command.
+If you need to build the overlays statically, you will have to move them
+into the slapd/overlays directory and edit the Makefile and overlays.c
+to reference them. 
 
 ---
 This work is part of OpenLDAP Software <http://www.openldap.org/>.
