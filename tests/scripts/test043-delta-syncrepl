@@ -339,9 +339,9 @@ fi
 test $KILLSERVERS != no && kill -HUP $KILLPIDS
 
 echo "Filtering producer results..."
-$LDIFFILTER < $MASTEROUT | grep -iv "^auditcontext:" > $MASTERFLT
+$LDIFFILTER -s bdb=a,hdb=a < $MASTEROUT | grep -iv "^auditcontext:" > $MASTERFLT
 echo "Filtering consumer results..."
-$LDIFFILTER < $SLAVEOUT | grep -iv "^auditcontext:" > $SLAVEFLT
+$LDIFFILTER -s bdb=a,hdb=a < $SLAVEOUT | grep -iv "^auditcontext:" > $SLAVEFLT
 
 echo "Comparing retrieved entries from producer and consumer..."
 $CMP $MASTERFLT $SLAVEFLT > $CMPOUT
