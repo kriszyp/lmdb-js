@@ -232,6 +232,21 @@ meta_search_dobind_init(
 
 	assert( msc->msc_ld != NULL );
 
+	if ( !BER_BVISEMPTY( &binddn ) && BER_BVISEMPTY( &cred ) ) {
+		/* bind anonymously? */
+		Debug( LDAP_DEBUG_ANY, "%s meta_search_dobind_init[%d] mc=%p: "
+			"non-empty dn with empty cred; binding anonymously\n",
+			op->o_log_prefix, candidate, (void *)mc );
+		cred = slap_empty_bv;
+		
+	} else if ( BER_BVISEMPTY( &binddn ) && !BER_BVISEMPTY( &cred ) ) {
+		/* error */
+		Debug( LDAP_DEBUG_ANY, "%s meta_search_dobind_init[%d] mc=%p: "
+			"empty dn with non-empty cred: error\n",
+			op->o_log_prefix, candidate, (void *)mc );
+		goto other;
+	}
+
 	/* connect must be async only the first time... */
 	ldap_set_option( msc->msc_ld, LDAP_OPT_CONNECT_ASYNC, LDAP_OPT_ON );
 
