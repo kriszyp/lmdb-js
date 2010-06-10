@@ -1,6 +1,7 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.23 Engineering
+	Fixed libldap to return server's error code (ITS#6569)
 	Fixed libldap memleaks (ITS#6568)
 	Fixed liblutil off-by-one with delta (ITS#6541)
 	Fixed slapd syncrepl rid logging (ITS#6533)
