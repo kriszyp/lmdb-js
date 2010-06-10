@@ -1735,8 +1735,9 @@ UTF8StringNormalize(
 		? LDAP_UTF8_APPROX : 0;
 
 	val = UTF8bvnormalize( val, &tmp, flags, ctx );
+	/* out of memory or syntax error, the former is unlikely */
 	if( val == NULL ) {
-		return LDAP_OTHER;
+		return LDAP_INVALID_SYNTAX;
 	}
 	
 	/* collapse spaces (in place) */
