@@ -39,6 +39,7 @@ bdb_hasSubordinates(
 	OpExtra *oex;
 	DB_TXN		*rtxn;
 	int		rc;
+	int		release = 0;
 	
 	assert( e != NULL );
 
@@ -48,7 +49,18 @@ bdb_hasSubordinates(
 	 * let's disable the hasSubordinate feature for back-relay.
 	 */
 	if ( BEI( e ) == NULL ) {
-		return LDAP_OTHER;
+		Entry *ee = NULL;
+		rc = be_entry_get_rw( op, &e->e_nname, NULL, NULL, 0, &ee );
+		if ( rc != LDAP_SUCCESS || ee == NULL ) {
+			rc = LDAP_OTHER;
+			goto done;
+		}
+		e = ee;
+		release = 1;
+		if ( BEI( ee ) == NULL ) {
+			rc = LDAP_OTHER;
+			goto done;
+		}
 	}
 
 	/* Check for a txn in a parent op, otherwise use reader txn */
@@ -61,7 +73,10 @@ bdb_hasSubordinates(
 		rtxn = opinfo->boi_txn;
 	} else {
 		rc = bdb_reader_get(op, bdb->bi_dbenv, &rtxn);
-		if ( rc ) return LDAP_OTHER;
+		if ( rc ) {
+			rc = LDAP_OTHER;
+			goto done;
+		}
 	}
 
 retry:
@@ -92,6 +107,8 @@ retry:
 		rc = LDAP_OTHER;
 	}
 
+done:;
+	if ( release && e != NULL ) be_entry_release_r( op, e );
 	return rc;
 }
 
