@@ -10,6 +10,7 @@ OpenLDAP 2.4.23 Engineering
 	Fixed slapo-ppolicy to use Debug (ITS#6566)
 	Fixed slapo-rwm to use Debug (ITS#6566)
 	Fixed slapo-sssvlv to use Debug (ITS#6566)
+	Fixed slapo-syncprov lost deletes in refresh phase (ITS#6555)
 	Fixed slapo-valsort to use Debug (ITS#6566)
  	Fixed contrib/nssov network.c missing patch (ITS#6562)
 	Build Environment

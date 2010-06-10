@@ -1301,7 +1301,15 @@ syncprov_matchops( Operation *op, opcookie *opc, int saveit )
 			op2.o_hdr = &oh;
 			op2.o_extra = op->o_extra;
 			op2.o_callback = NULL;
-			rc = test_filter( &op2, e, ss->s_op->ors_filter );
+			ldap_pvt_thread_mutex_lock( &ss->s_mutex );
+			if (ss->s_flags & PS_FIX_FILTER) {
+				/* Skip the AND/GE clause that we stuck on in front. We
+				   would lose deletes/mods that happen during the refresh
+				   phase otherwise (ITS#6555) */
+				op2.ors_filter = ss->s_op->ors_filter->f_and->f_next;
+			}
+			ldap_pvt_thread_mutex_unlock( &ss->s_mutex );
+			rc = test_filter( &op2, e, op2.ors_filter );
 		}
 
 		Debug( LDAP_DEBUG_TRACE, "syncprov_matchops: sid %03x fscope %d rc %d\n",
