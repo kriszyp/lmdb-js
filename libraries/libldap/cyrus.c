@@ -1042,6 +1042,7 @@ ldap_int_sasl_get_option( LDAP *ld, int option, void *arg )
 			/* this option is write only */
 			return -1;
 
+#ifdef SASL_GSS_CREDS
 		case LDAP_OPT_X_SASL_GSS_CREDS: {
 			sasl_conn_t *ctx;
 			int sc;
@@ -1058,6 +1059,7 @@ ldap_int_sasl_get_option( LDAP *ld, int option, void *arg )
 				return -1;
 			}
 			break;
+#endif
 
 		default:
 			return -1;
@@ -1141,6 +1143,7 @@ ldap_int_sasl_set_option( LDAP *ld, int option, void *arg )
 		return sc == LDAP_SUCCESS ? 0 : -1;
 		}
 
+#ifdef SASL_GSS_CREDS
 	case LDAP_OPT_X_SASL_GSS_CREDS: {
 		sasl_conn_t *ctx;
 		int sc;
@@ -1157,6 +1160,7 @@ ldap_int_sasl_set_option( LDAP *ld, int option, void *arg )
 			return -1;
 		}
 		break;
+#endif
 
 	default:
 		return -1;
