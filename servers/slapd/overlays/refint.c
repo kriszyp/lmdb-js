@@ -263,8 +263,8 @@ refint_cf_gen(ConfigArgs *c)
 			break;
 		case REFINT_MODIFIERSNAME:
 			if ( !BER_BVISNULL( &c->value_ndn )) {
-				ch_free( &dd->refint_dn.bv_val );
-				ch_free( &dd->refint_ndn.bv_val );
+				ch_free( dd->refint_dn.bv_val );
+				ch_free( dd->refint_ndn.bv_val );
 				dd->refint_dn = c->value_dn;
 				dd->refint_ndn = c->value_ndn;
 				rc = 0;
