@@ -29,6 +29,7 @@
 #include "slap.h"
 #include "proto-dnssrv.h"
 
+#if 0
 int
 dnssrv_back_db_config(
     BackendDB	*be,
@@ -50,3 +51,4 @@ dnssrv_back_db_config(
 	/* no configuration options (yet) */
 	return SLAP_CONF_UNKNOWN;
 }
+#endif
