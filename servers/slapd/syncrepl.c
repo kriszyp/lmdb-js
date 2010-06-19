@@ -31,6 +31,10 @@
 
 #include "ldap_rq.h"
 
+#ifdef ENABLE_REWRITE
+#include "rewrite.h"
+#endif
+
 struct nonpresent_entry {
 	struct berval *npe_name;
 	struct berval *npe_nname;
@@ -111,6 +115,10 @@ typedef struct syncinfo_s {
 	LDAP			*si_ld;
 	Connection		*si_conn;
 	LDAP_LIST_HEAD(np, nonpresent_entry)	si_nonpresentlist;
+#ifdef ENABLE_REWRITE
+	struct rewrite_info *si_rewrite;
+	struct berval	si_suffixm;
+#endif
 	ldap_pvt_thread_mutex_t	si_mutex;
 } syncinfo_t;
 
@@ -3943,6 +3951,7 @@ syncinfo_free( syncinfo_t *sie, int free_all )
 #define SYNCDATASTR		"syncdata"
 #define LOGBASESTR		"logbase"
 #define LOGFILTERSTR	"logfilter"
+#define SUFFIXMSTR		"suffixmassage"
 
 /* FIXME: undocumented */
 #define EXATTRSSTR		"exattrs"
@@ -3969,6 +3978,7 @@ enum {
 	GOT_EXATTRS		= 0x00010000U,
 	GOT_MANAGEDSAIT		= 0x00020000U,
 	GOT_BINDCONF		= 0x00040000U,
+	GOT_SUFFIXM		= 0x00080000U,
 
 /* check */
 	GOT_REQUIRED		= (GOT_RID|GOT_PROVIDER|GOT_SEARCHBASE)
@@ -4166,16 +4176,38 @@ parse_syncrepl_line(
 				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
 				return -1;
 			}
-			if ( !be_issubordinate( c->be, &si->si_base ) ) {
-				ch_free( si->si_base.bv_val );
-				BER_BVZERO( &si->si_base );
+			si->si_got |= GOT_SEARCHBASE;
+#ifdef ENABLE_REWRITE
+		} else if ( !strncasecmp( c->argv[ i ], SUFFIXMSTR "=",
+					STRLENOF( SUFFIXMSTR "=" ) ) )
+		{
+			struct berval	bv;
+			int		rc;
+
+			val = c->argv[ i ] + STRLENOF( SUFFIXMSTR "=" );
+			if ( si->si_suffixm.bv_val ) {
+				ch_free( si->si_suffixm.bv_val );
+			}
+			ber_str2bv( val, 0, 0, &bv );
+			rc = dnNormalize( 0, NULL, NULL, &bv, &si->si_suffixm, NULL );
+			if ( rc != LDAP_SUCCESS ) {
 				snprintf( c->cr_msg, sizeof( c->cr_msg ),
-					"Base DN \"%s\" is not within the database naming context",
+					"Invalid massage DN \"%s\": %d (%s)",
+					val, rc, ldap_err2string( rc ) );
+				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
+				return -1;
+			}
+			if ( !be_issubordinate( c->be, &si->si_suffixm )) {
+				ch_free( si->si_suffixm.bv_val );
+				BER_BVZERO( &si->si_suffixm );
+				snprintf( c->cr_msg, sizeof( c->cr_msg ),
+					"Massage DN \"%s\" is not within the database naming context",
 					val );
 				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
 				return -1;
 			}
-			si->si_got |= GOT_SEARCHBASE;
+			si->si_got |= GOT_SUFFIXM;
+#endif
 		} else if ( !strncasecmp( c->argv[ i ], LOGBASESTR "=",
 					STRLENOF( LOGBASESTR "=" ) ) )
 		{
@@ -4438,6 +4470,21 @@ parse_syncrepl_line(
 		return -1;
 	}
 
+	if ( !be_issubordinate( c->be, &si->si_base ) && !( si->si_got & GOT_SUFFIXM )) {
+		ch_free( si->si_base.bv_val );
+		BER_BVZERO( &si->si_base );
+		snprintf( c->cr_msg, sizeof( c->cr_msg ),
+			"Base DN \"%s\" is not within the database naming context",
+			val );
+		Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
+		return -1;
+	}
+
+#ifdef ENABLE_REWRITE
+	if ( si->si_got & GOT_SUFFIXM ) {
+	}
+#endif
+
 	if ( !( si->si_got & GOT_RETRY ) ) {
 		Debug( LDAP_DEBUG_ANY, "syncrepl %s " SEARCHBASESTR "=\"%s\": no retry defined, using default\n", 
 			si->si_ridtxt, c->be->be_suffix ? c->be->be_suffix[ 0 ].bv_val : "(null)", 0 );
@@ -4664,6 +4711,14 @@ syncrepl_unparse( syncinfo_t *si, struct berval *bv )
 		ptr = lutil_strcopy( ptr, si->si_base.bv_val );
 		*ptr++ = '"';
 	}
+#ifdef ENABLE_REWRITE
+	if ( !BER_BVISNULL( &si->si_suffixm ) ) {
+		if ( WHATSLEFT <= STRLENOF( " " SUFFIXMSTR "=\"" "\"" ) + si->si_suffixm.bv_len ) return;
+		ptr = lutil_strcopy( ptr, " " SUFFIXMSTR "=\"" );
+		ptr = lutil_strcopy( ptr, si->si_suffixm.bv_val );
+		*ptr++ = '"';
+	}
+#endif
 	if ( !BER_BVISEMPTY( &si->si_logfilterstr ) ) {
 		if ( WHATSLEFT <= STRLENOF( " " LOGFILTERSTR "=\"" "\"" ) + si->si_logfilterstr.bv_len ) return;
 		ptr = lutil_strcopy( ptr, " " LOGFILTERSTR "=\"" );
