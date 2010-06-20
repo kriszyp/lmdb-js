@@ -482,17 +482,19 @@ bdb_cache_find_ndn(
 				*res = eip;
 				return rc;
 			}
-		} else if ( ei2->bei_state & CACHE_ENTRY_DELETED ) {
+		}
+		bdb_cache_entryinfo_lock( ei2 );
+		if ( ei2->bei_state & CACHE_ENTRY_DELETED ) {
 			/* In the midst of deleting? Give it a chance to
 			 * complete.
 			 */
+			bdb_cache_entryinfo_unlock( ei2 );
 			bdb_cache_entryinfo_unlock( eip );
 			ldap_pvt_thread_yield();
 			bdb_cache_entryinfo_lock( eip );
 			*res = eip;
 			return DB_NOTFOUND;
 		}
-		bdb_cache_entryinfo_lock( ei2 );
 		bdb_cache_entryinfo_unlock( eip );
 
 		eip = ei2;
