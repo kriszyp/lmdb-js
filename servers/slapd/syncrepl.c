@@ -2304,8 +2304,16 @@ syncrepl_entry(
 	op->ors_deref = LDAP_DEREF_NEVER;
 
 	/* get the entry for this UUID */
-	op->o_req_dn = si->si_base;
-	op->o_req_ndn = si->si_base;
+#ifdef ENABLE_REWRITE
+	if ( si->si_rewrite ) {
+		op->o_req_dn = si->si_suffixm;
+		op->o_req_ndn = si->si_suffixm;
+	} else
+#endif
+	{
+		op->o_req_dn = si->si_base;
+		op->o_req_ndn = si->si_base;
+	}
 
 	op->o_time = slap_get_time();
 	op->ors_tlimit = SLAP_NO_LIMIT;
@@ -2781,8 +2789,16 @@ syncrepl_del_nonpresent(
 	struct berval pdn = BER_BVNULL;
 	struct berval csn;
 
-	op->o_req_dn = si->si_base;
-	op->o_req_ndn = si->si_base;
+#ifdef ENABLE_REWRITE
+	if ( si->si_rewrite ) {
+		op->o_req_dn = si->si_suffixm;
+		op->o_req_ndn = si->si_suffixm;
+	} else
+#endif
+	{
+		op->o_req_dn = si->si_base;
+		op->o_req_ndn = si->si_base;
+	}
 
 	cb.sc_response = nonpresent_callback;
 	cb.sc_private = si;
@@ -3988,6 +4004,12 @@ syncinfo_free( syncinfo_t *sie, int free_all )
 				ch_free( sie->si_cookieState );
 			}
 		}
+#ifdef ENABLE_REWRITE
+		if ( sie->si_rewrite )
+			rewrite_info_delete( &sie->si_rewrite );
+		if ( sie->si_suffixm.bv_val )
+			ch_free( sie->si_suffixm.bv_val );
+#endif
 		ch_free( sie );
 		sie = si_next;
 	} while ( free_all && si_next );
@@ -3999,8 +4021,8 @@ config_suffixm( ConfigArgs *c, syncinfo_t *si )
 {
 	char *argvEngine[] = { "rewriteEngine", "on", NULL };
 	char *argvContext[] = { "rewriteContext", SUFFIXM_CTX, NULL };
-	char *argvRule[] = { "rewriteRule", NULL, si->si_suffixm.bv_val, ":", NULL };
-	char *vnc;
+	char *argvRule[] = { "rewriteRule", NULL, NULL, ":", NULL };
+	char *vnc, *rnc;
 	int rc;
 
 	if ( si->si_rewrite )
@@ -4015,10 +4037,16 @@ config_suffixm( ConfigArgs *c, syncinfo_t *si )
 	if ( rc != LDAP_SUCCESS )
 		return rc;
 
-	vnc = ch_malloc( si->si_base.bv_len + 2 );
-	lutil_strcopy( lutil_strcopy( vnc, si->si_base.bv_val ), "$" );
-
+	vnc = ch_malloc( si->si_base.bv_len + 6 );
+	strcpy( vnc, "(.*)" );
+	lutil_strcopy( lutil_strcopy( vnc+4, si->si_base.bv_val ), "$" );
 	argvRule[1] = vnc;
+
+	rnc = ch_malloc( si->si_suffixm.bv_len + 3 );
+	strcpy( rnc, "%1" );
+	strcpy( rnc+2, si->si_suffixm.bv_val );
+	argvRule[2] = rnc;
+
 	rc = rewrite_parse( si->si_rewrite, c->fname, c->lineno, 4, argvRule );
 	ch_free( vnc );
 	return rc;
