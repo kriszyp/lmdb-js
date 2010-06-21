@@ -1137,14 +1137,13 @@ static int parseProxyAuthz (
 	}
 
 	ch_free( op->o_ndn.bv_val );
-	ch_free( op->o_dn.bv_val );
 
 	/*
 	 * NOTE: since slap_sasl_getdn() returns a normalized dn,
 	 * from now on op->o_dn is normalized
 	 */
 	op->o_ndn = dn;
-	ber_dupbv( &op->o_dn, &dn );
+	ber_bvreplace( &op->o_dn, &dn );
 
 	Statslog( LDAP_DEBUG_STATS, "%s PROXYAUTHZ dn=\"%s\"\n",
 	    op->o_log_prefix, dn.bv_val, 0, 0, 0 );
