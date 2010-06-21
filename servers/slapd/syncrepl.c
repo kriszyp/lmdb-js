@@ -1577,7 +1577,9 @@ syncrepl_rewrite_dn(
 	rc = rewrite( si->si_rewrite, SUFFIXM_CTX, dn->bv_val, &sdn->bv_val );
 	dn->bv_val[dn->bv_len] = nul;
 
-	if ( rc == REWRITE_REGEXEC_OK && sdn->bv_val )
+	if ( sdn->bv_val == dn->bv_val )
+		sdn->bv_val = NULL;
+	else if ( rc == REWRITE_REGEXEC_OK && sdn->bv_val )
 		sdn->bv_len = strlen( sdn->bv_val );
 	return rc;
 }
