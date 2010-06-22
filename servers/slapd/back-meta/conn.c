@@ -485,6 +485,7 @@ retry:;
 					if ( rs->sr_err == LDAP_SUCCESS ) {
 						rs->sr_err = err;
 					}
+					rs->sr_err = slap_map_api2result( rs );
 					
 					/* FIXME: in case a referral 
 					 * is returned, should we try

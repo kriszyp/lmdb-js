@@ -425,6 +425,7 @@ retry:;
 			if ( rc != LDAP_SUCCESS ) {
 				rs->sr_err = rc;
 			}
+			rs->sr_err = slap_map_api2result( rs );
 			break;
 		}
 	}
@@ -1042,10 +1043,12 @@ retry:;
 				rc = ldap_parse_result( msc->msc_ld, res, &rs->sr_err,
 						&matched, &text, &refs, &ctrls, 1 );
 				res = NULL;
-				rs->sr_text = text;
-				if ( rc != LDAP_SUCCESS ) {
+				if ( rc == LDAP_SUCCESS ) {
+					rs->sr_text = text;
+				} else {
 					rs->sr_err = rc;
 				}
+				rs->sr_err = slap_map_api2result( rs );
 
 				/* RFC 4511: referrals can only appear
 				 * if result code is LDAP_REFERRAL */
