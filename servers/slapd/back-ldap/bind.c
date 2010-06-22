@@ -584,12 +584,13 @@ retry:;
 				rc = ldap_parse_extended_result( ld, res,
 						NULL, &data, 0 );
 				if ( rc == LDAP_SUCCESS ) {
-					int err;
-					rc = ldap_parse_result( ld, res, &err,
+					SlapReply rs;
+					rc = ldap_parse_result( ld, res, &rs.sr_err,
 						NULL, NULL, NULL, NULL, 1 );
-					if ( rc == LDAP_SUCCESS ) {
-						rc = err;
+					if ( rc != LDAP_SUCCESS ) {
+						rs.sr_err = rc;
 					}
+					rc = slap_map_api2result( &rs );
 					res = NULL;
 					
 					/* FIXME: in case a referral 
@@ -1804,10 +1805,12 @@ retry:;
 
 			rc = ldap_parse_result( lc->lc_ld, res, &rs->sr_err,
 					&match, &text, &refs, &ctrls, 1 );
-			rs->sr_text = text;
-			if ( rc != LDAP_SUCCESS ) {
+			if ( rc == LDAP_SUCCESS ) {
+				rs->sr_text = text;
+			} else {
 				rs->sr_err = rc;
 			}
+			rs->sr_err = slap_map_api2result( rs );
 
 			/* RFC 4511: referrals can only appear
 			 * if result code is LDAP_REFERRAL */
@@ -1901,14 +1904,14 @@ retry:;
 		ber_memvfree( (void **)refs );
 	}
 
-		/* match should not be possible with a successful bind */
-		if ( match ) {
-			if ( rs->sr_matched != match ) {
-				free( (char *)rs->sr_matched );
-			}
-			rs->sr_matched = NULL;
-			ldap_memfree( match );
+	/* match should not be possible with a successful bind */
+	if ( match ) {
+		if ( rs->sr_matched != match ) {
+			free( (char *)rs->sr_matched );
 		}
+		rs->sr_matched = NULL;
+		ldap_memfree( match );
+	}
 
 	if ( ctrls != NULL ) {
 		if ( op->o_tag == LDAP_REQ_BIND && rs->sr_err == LDAP_SUCCESS ) {
