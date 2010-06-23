@@ -3015,6 +3015,9 @@ syncprov_db_close(
 {
     slap_overinst   *on = (slap_overinst *) be->bd_info;
     syncprov_info_t *si = (syncprov_info_t *)on->on_bi.bi_private;
+#ifdef SLAP_CONFIG_DELETE
+	syncops *so, *sonext;
+#endif /* SLAP_CONFIG_DELETE */
 
 	if ( slapMode & SLAP_TOOL_MODE ) {
 		return 0;
@@ -3034,6 +3037,19 @@ syncprov_db_close(
 		op->o_ndn = be->be_rootndn;
 		syncprov_checkpoint( op, &rs, on );
 	}
+
+#ifdef SLAP_CONFIG_DELETE
+	ldap_pvt_thread_mutex_lock( &si->si_ops_mutex );
+	for ( so=si->si_ops, sonext=so;  so; so=sonext  ) {
+		SlapReply rs = {REP_RESULT};
+		rs.sr_err = LDAP_UNAVAILABLE;
+		send_ldap_result( so->s_op, &rs );
+		sonext=so->s_next;
+		syncprov_drop_psearch( so, 0);
+	}
+	si->si_ops=NULL;
+	ldap_pvt_thread_mutex_unlock( &si->si_ops_mutex );
+#endif /* SLAP_CONFIG_DELETE */
 
     return 0;
 }
