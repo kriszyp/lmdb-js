@@ -586,7 +586,6 @@ meta_back_single_dobind(
 	metatarget_t		*mt = mi->mi_targets[ candidate ];
 	metaconn_t		*mc = *mcp;
 	metasingleconn_t	*msc = &mc->mc_conns[ candidate ];
-	static struct berval	cred = BER_BVC( "" );
 	int			msgid;
 
 	assert( !LDAP_BACK_CONN_ISBOUND( msc ) );
@@ -602,12 +601,22 @@ meta_back_single_dobind(
 		(void)meta_back_proxy_authz_bind( mc, candidate, op, rs, sendok );
 
 	} else {
+		char *binddn = "";
+		struct berval cred = BER_BVC( "" );
+
+		/* use credentials if available */
+		if ( !BER_BVISNULL( &msc->msc_bound_ndn )
+			&& !BER_BVISNULL( &msc->msc_cred ) )
+		{
+			binddn = msc->msc_bound_ndn.bv_val;
+			cred = msc->msc_cred;
+		}
 
 		/* FIXME: should we check if at least some of the op->o_ctrls
 		 * can/should be passed? */
 		for (;;) {
 			rs->sr_err = ldap_sasl_bind( msc->msc_ld,
-				"", LDAP_SASL_SIMPLE, &cred,
+				binddn, LDAP_SASL_SIMPLE, &cred,
 				NULL, NULL, &msgid );
 			if ( rs->sr_err != LDAP_X_CONNECTING ) {
 				break;
@@ -616,15 +625,26 @@ meta_back_single_dobind(
 		}
 
 		rs->sr_err = meta_back_bind_op_result( op, rs, mc, candidate, msgid, sendok );
+
+		/* if bind succeeded, but anonymous, clear msc_bound_ndn */
+		if ( rs->sr_err == LDAP_SUCCESS ) {
+			if ( binddn[0] == '\0' &&
+				!BER_BVISNULL( &msc->msc_bound_ndn ) && 
+				!BER_BVISEMPTY( &msc->msc_bound_ndn ) )
+			{
+				ber_memfree( msc->msc_bound_ndn.bv_val );
+				BER_BVZERO( &msc->msc_bound_ndn );
+			}
+		}
 	}
 
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		if ( dolock ) {
 			ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
 		}
-	        LDAP_BACK_CONN_BINDING_CLEAR( msc );
+		LDAP_BACK_CONN_BINDING_CLEAR( msc );
 		if ( META_BACK_ONERR_STOP( mi ) ) {
-	        	LDAP_BACK_CONN_TAINTED_SET( mc );
+			LDAP_BACK_CONN_TAINTED_SET( mc );
 			meta_back_release_conn_lock( mi, mc, 0 );
 			*mcp = NULL;
 		}
@@ -1124,6 +1144,10 @@ retry:;
 			char			*xtext = NULL;
 			char			*xmatched = NULL;
 
+			if ( msc->msc_ld == NULL ) {
+				continue;
+			}
+
 			rs->sr_err = LDAP_SUCCESS;
 
 			ldap_get_option( msc->msc_ld, LDAP_OPT_RESULT_CODE, &rs->sr_err );
@@ -1514,6 +1538,11 @@ meta_back_proxy_authz_cred(
 	}
 
 done:;
+
+	if ( !BER_BVISEMPTY( binddn ) ) {
+		LDAP_BACK_CONN_ISIDASSERT_SET( msc );
+	}
+
 	return rs->sr_err;
 }
 

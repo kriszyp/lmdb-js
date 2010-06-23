@@ -572,6 +572,7 @@ retry:;
 				}
 				ber_bvreplace( &msc->msc_cred, &mt->mt_idassert_passwd );
 			}
+			LDAP_BACK_CONN_ISIDASSERT_SET( msc );
 
 		} else {
 			ber_bvreplace( &msc->msc_bound_ndn, &slap_empty_bv );
@@ -685,6 +686,8 @@ meta_back_retry(
 
 	assert( mc->mc_refcnt > 0 );
 	if ( mc->mc_refcnt == 1 ) {
+		struct berval save_cred;
+
 		if ( LogTest( LDAP_DEBUG_ANY ) ) {
 			char	buf[ SLAP_TEXT_BUFLEN ];
 
@@ -703,6 +706,11 @@ meta_back_retry(
 				op->o_log_prefix, candidate, buf );
 		}
 
+		/* save credentials, if any, for later use;
+		 * meta_clear_one_candidate() would free them */
+		save_cred = msc->msc_cred;
+		BER_BVZERO( &msc->msc_cred );
+
 		meta_clear_one_candidate( op, mc, candidate );
 		LDAP_BACK_CONN_ISBOUND_CLEAR( msc );
 
@@ -711,6 +719,17 @@ meta_back_retry(
 		/* mc here must be the regular mc, reset and ready for init */
 		rc = meta_back_init_one_conn( op, rs, mc, candidate,
 			LDAP_BACK_CONN_ISPRIV( mc ), sendok, 0 );
+
+		/* restore credentials, if any;
+		 * meta_back_init_one_conn() restores msc_bound_ndn, if any;
+		 * if no msc_bound_ndn is restored, destroy credentials */
+		if ( !BER_BVISNULL( &msc->msc_bound_ndn ) ) {
+			msc->msc_cred = save_cred;
+
+		} else if ( !BER_BVISNULL( &save_cred ) ) {
+			memset( save_cred.bv_val, 0, save_cred.bv_len );
+			ber_memfree( save_cred.bv_val );
+		}
 
 		/* restore the "binding" flag, in case */
 		if ( binding ) {
@@ -1095,6 +1114,7 @@ retry_lock:;
 			}
 
 			if ( mc != NULL ) {
+				/* move to tail of queue */
 				if ( mc != LDAP_TAILQ_LAST( &mi->mi_conn_priv[ LDAP_BACK_CONN2PRIV( mc ) ].mic_priv,
 					metaconn_t, mc_q ) )
 				{
