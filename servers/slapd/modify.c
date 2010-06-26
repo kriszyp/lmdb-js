@@ -89,7 +89,7 @@ do_modify(
 	if( get_ctrls( op, rs, 1 ) != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY, "%s do_modify: get_ctrls failed\n",
 			op->o_log_prefix, 0, 0 );
-		send_ldap_result( op, rs );
+		/* get_ctrls has sent results.	Now clean up. */
 		goto cleanup;
 	}
 
