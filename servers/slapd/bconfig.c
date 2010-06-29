@@ -6120,7 +6120,19 @@ config_back_delete( Operation *op, SlapReply *rs )
 		ldap_pvt_thread_pool_pause( &connection_pool );
 
 		if ( ce->ce_type == Cft_Overlay ){
-			overlay_remove( ce->ce_be, (slap_overinst *)ce->ce_bi );
+			if ( SLAP_ISGLOBALOVERLAY(ce->ce_be ) ) {
+				rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
+				rs->sr_text = "Cannot delete global overlays";
+				ldap_pvt_thread_pool_resume( &connection_pool );
+				goto out;
+			} else if ( ce->ce_be == op->o_bd->bd_self ) {
+				rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
+				rs->sr_text = "Cannot delete cn=config overlays";
+				ldap_pvt_thread_pool_resume( &connection_pool );
+				goto out;
+			} else {
+				overlay_remove( ce->ce_be, (slap_overinst *)ce->ce_bi );
+			}
 		} else { /* Cft_Database*/
 			if ( ce->ce_be == frontendDB || ce->ce_be == op->o_bd ){
 				rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
