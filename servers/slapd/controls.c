@@ -344,6 +344,38 @@ register_supported_control2(const char *controloid,
 	return LDAP_SUCCESS;
 }
 
+#ifdef SLAP_CONFIG_DELETE
+int
+unregister_supported_control( const char *controloid )
+{
+	struct slap_control *sc;
+	int i;
+
+	if ( controloid == NULL || (sc = find_ctrl( controloid )) == NULL ){
+		return -1;
+	}
+
+	for ( i = 0; slap_known_controls[ i ]; i++ ) {
+		if ( strcmp( controloid, slap_known_controls[ i ] ) == 0 ) {
+			while ( slap_known_controls[i] ) {
+				slap_known_controls[i++] = slap_known_controls[i];
+			}
+			num_known_controls--;
+			break;
+		}
+	}
+
+	LDAP_SLIST_REMOVE(&controls_list, sc, slap_control, sc_next);
+	ch_free( sc->sc_oid );
+	if ( sc->sc_extendedopsbv != NULL ) {
+		ber_bvarray_free( sc->sc_extendedopsbv );
+	}
+	ch_free( sc );
+
+	return 0;
+}
+#endif /* SLAP_CONFIG_DELETE */
+
 /*
  * One-time initialization of internal controls.
  */
