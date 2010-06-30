@@ -1035,6 +1035,10 @@ LDAP_SLAPD_F (int) load_extop2 LDAP_P((
 	unsigned tmpflags ));
 #define load_extop(ext_oid, flags, ext_main) \
 	load_extop2((ext_oid), (flags), (ext_main), 0)
+LDAP_SLAPD_F (int) unload_extop LDAP_P((
+	const struct berval *ext_oid,
+	SLAP_EXTOP_MAIN_FN *ext_main,
+	unsigned tmpflags ));
 
 LDAP_SLAPD_F (int) extops_init LDAP_P(( void ));
 

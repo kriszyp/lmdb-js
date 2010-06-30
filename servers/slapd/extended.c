@@ -325,6 +325,57 @@ load_extop2(
 }
 
 int
+unload_extop(
+	const struct berval *ext_oid,
+	SLAP_EXTOP_MAIN_FN *ext_main,
+	unsigned flags )
+{
+	struct berval		oidm = BER_BVNULL;
+	struct extop_list	*ext, **extp;
+
+	/* oid must be given */
+	if ( ext_oid == NULL || BER_BVISNULL( ext_oid ) ||
+		BER_BVISEMPTY( ext_oid ) )
+	{
+		return -1; 
+	}
+
+	/* if it's not an oid, check if it's a macto */
+	if ( numericoidValidate( NULL, (struct berval *)ext_oid ) !=
+		LDAP_SUCCESS )
+	{
+		oidm.bv_val = oidm_find( ext_oid->bv_val );
+		if ( oidm.bv_val == NULL ) {
+			return -1;
+		}
+		oidm.bv_len = strlen( oidm.bv_val );
+		ext_oid = &oidm;
+	}
+
+	/* lookup the oid */
+	for ( extp = &supp_ext_list; *extp; extp = &(*extp)->next ) {
+		if ( bvmatch( ext_oid, &(*extp)->oid ) ) {
+			/* if ext_main is given, only remove if it matches */
+			if ( ext_main != NULL && (*extp)->ext_main != ext_main ) {
+				return -1;
+			}
+			break;
+		}
+	}
+
+	if ( *extp == NULL ) {
+		return -1;
+	}
+
+	ext = *extp;
+	*extp = (*extp)->next;
+
+	ch_free( ext );
+
+	return 0;
+}
+
+int
 extops_init (void)
 {
 	int i;
@@ -334,6 +385,7 @@ extops_init (void)
 			builtin_extops[i].flags,
 			builtin_extops[i].ext_main );
 	}
+
 	return(0);
 }
 
