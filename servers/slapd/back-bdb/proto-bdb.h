@@ -106,7 +106,7 @@ int bdb_dn2id(
 	struct berval *dn,
 	EntryInfo *ei,
 	DB_TXN *txn,
-	DB_LOCK *lock );
+	DBC **cursor );
 
 int bdb_dn2id_add(
 	Operation *op,
