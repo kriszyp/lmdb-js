@@ -3049,6 +3049,7 @@ syncprov_db_close(
 	}
 	si->si_ops=NULL;
 	ldap_pvt_thread_mutex_unlock( &si->si_ops_mutex );
+	overlay_unregister_control( be, LDAP_CONTROL_SYNC );
 #endif /* SLAP_CONFIG_DELETE */
 
     return 0;
