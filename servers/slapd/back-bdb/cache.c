@@ -442,7 +442,7 @@ bdb_cache_find_ndn(
 		ei.bei_parent = eip;
 		ei2 = (EntryInfo *)avl_find( eip->bei_kids, &ei, bdb_rdn_cmp );
 		if ( !ei2 ) {
-			DB_LOCK lock;
+			DBC *cursor;
 			int len = ei.bei_nrdn.bv_len;
 				
 			if ( BER_BVISEMPTY( ndn )) {
@@ -458,12 +458,12 @@ bdb_cache_find_ndn(
 			BDB_LOG_PRINTF( bdb->bi_dbenv, NULL, "slapd Reading %s",
 				ei.bei_nrdn.bv_val );
 
-			lock.mode = DB_LOCK_NG;
-			rc = bdb_dn2id( op, &ei.bei_nrdn, &ei, txn, &lock );
+			cursor = NULL;
+			rc = bdb_dn2id( op, &ei.bei_nrdn, &ei, txn, &cursor );
 			if (rc) {
 				bdb_cache_entryinfo_lock( eip );
 				eip->bei_finders--;
-				bdb_cache_entry_db_unlock( bdb, &lock );
+				if ( cursor ) cursor->c_close( cursor );
 				*res = eip;
 				return rc;
 			}
@@ -477,22 +477,24 @@ bdb_cache_find_ndn(
 			/* add_internal left eip and c_rwlock locked */
 			eip->bei_finders--;
 			ldap_pvt_thread_rdwr_wunlock( &bdb->bi_cache.c_rwlock );
-			bdb_cache_entry_db_unlock( bdb, &lock );
+			if ( cursor ) cursor->c_close( cursor );
 			if ( rc ) {
 				*res = eip;
 				return rc;
 			}
-		} else if ( ei2->bei_state & CACHE_ENTRY_DELETED ) {
+		}
+		bdb_cache_entryinfo_lock( ei2 );
+		if ( ei2->bei_state & CACHE_ENTRY_DELETED ) {
 			/* In the midst of deleting? Give it a chance to
 			 * complete.
 			 */
+			bdb_cache_entryinfo_unlock( ei2 );
 			bdb_cache_entryinfo_unlock( eip );
 			ldap_pvt_thread_yield();
 			bdb_cache_entryinfo_lock( eip );
 			*res = eip;
 			return DB_NOTFOUND;
 		}
-		bdb_cache_entryinfo_lock( ei2 );
 		bdb_cache_entryinfo_unlock( eip );
 
 		eip = ei2;

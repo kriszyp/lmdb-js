@@ -492,7 +492,6 @@ retry:	/* transaction retry */
 return_results:
 	success = rs->sr_err;
 	send_ldap_result( op, rs );
-	slap_graduate_commit_csn( op );
 
 	if( ltid != NULL ) {
 		TXN_ABORT( ltid );
@@ -517,10 +516,11 @@ return_results:
 		}
 	}
 
+	slap_graduate_commit_csn( op );
+
 	if( postread_ctrl != NULL && (*postread_ctrl) != NULL ) {
 		slap_sl_free( (*postread_ctrl)->ldctl_value.bv_val, op->o_tmpmemctx );
 		slap_sl_free( *postread_ctrl, op->o_tmpmemctx );
 	}
-
 	return rs->sr_err;
 }
