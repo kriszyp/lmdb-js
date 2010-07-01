@@ -1090,6 +1090,36 @@ overlay_register_control( BackendDB *be, const char *oid )
 	return 0;
 }
 
+#ifdef SLAP_CONFIG_DELETE
+void
+overlay_unregister_control( BackendDB *be, const char *oid )
+{
+	int		gotit = 0;
+	int		cid;
+
+	if ( slap_find_control_id( oid, &cid ) == LDAP_CONTROL_NOT_FOUND ) {
+		return;
+	}
+
+	if ( SLAP_ISGLOBALOVERLAY( be ) ) {
+		BackendDB *bd;
+
+		/* remove from all backends... */
+		LDAP_STAILQ_FOREACH( bd, &backendDB, be_next ) {
+			if ( bd == be->bd_self ) {
+				gotit = 1;
+			}
+
+			bd->be_ctrls[ cid ] = 0;
+		}
+	}
+
+	if ( !gotit ) {
+		be->bd_self->be_ctrls[ cid ] = 0;
+	}
+}
+#endif /* SLAP_CONFIG_DELETE */
+
 void
 overlay_destroy_one( BackendDB *be, slap_overinst *on )
 {
