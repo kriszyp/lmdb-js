@@ -1,6 +1,7 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.24 Engineering
+	Fixed slapd modify to return actual error (ITS#6581)
 	Fixed slapd-bdb entry cache delete failure (ITS#6577)
 
 OpenLDAP 2.4.23 Release (2010/06/30)

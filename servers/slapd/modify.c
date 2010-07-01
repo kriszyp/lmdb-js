@@ -82,12 +82,14 @@ do_modify(
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY, "%s do_modify: slap_parse_modlist failed err=%d msg=%s\n",
 			op->o_log_prefix, rs->sr_err, rs->sr_text );
+		send_ldap_result( op, rs );
 		goto cleanup;
 	}
 
 	if( get_ctrls( op, rs, 1 ) != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY, "%s do_modify: get_ctrls failed\n",
 			op->o_log_prefix, 0, 0 );
+		/* get_ctrls has sent results.	Now clean up. */
 		goto cleanup;
 	}
 
