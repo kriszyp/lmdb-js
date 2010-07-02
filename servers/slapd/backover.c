@@ -1076,14 +1076,22 @@ overlay_register_control( BackendDB *be, const char *oid )
 				gotit = 1;
 			}
 
-			bd->be_ctrls[ cid ] = 1;
+			/* overlays can be instanciated multiple times, use
+			 * be_ctrls[ cid ] as an instance counter, so that the
+			 * overlay's controls are only really disabled after the
+			 * last instance called overlay_register_control() */
+			bd->be_ctrls[ cid ]++;
 			bd->be_ctrls[ SLAP_MAX_CIDS ] = 1;
 		}
 
 	}
 	
 	if ( !gotit ) {
-		be->bd_self->be_ctrls[ cid ] = 1;
+		/* overlays can be instanciated multiple times, use
+		 * be_ctrls[ cid ] as an instance counter, so that the
+		 * overlay's controls are only really unregistered after the
+		 * last instance called overlay_register_control() */
+		be->bd_self->be_ctrls[ cid ]++;
 		be->bd_self->be_ctrls[ SLAP_MAX_CIDS ] = 1;
 	}
 
@@ -1110,12 +1118,12 @@ overlay_unregister_control( BackendDB *be, const char *oid )
 				gotit = 1;
 			}
 
-			bd->be_ctrls[ cid ] = 0;
+			bd->be_ctrls[ cid ]--;
 		}
 	}
 
 	if ( !gotit ) {
-		be->bd_self->be_ctrls[ cid ] = 0;
+		be->bd_self->be_ctrls[ cid ]--;
 	}
 }
 #endif /* SLAP_CONFIG_DELETE */
