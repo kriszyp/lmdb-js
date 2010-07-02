@@ -357,9 +357,9 @@ unregister_supported_control( const char *controloid )
 
 	for ( i = 0; slap_known_controls[ i ]; i++ ) {
 		if ( strcmp( controloid, slap_known_controls[ i ] ) == 0 ) {
-			while ( slap_known_controls[i] ) {
-				slap_known_controls[i++] = slap_known_controls[i];
-			}
+			do {
+				slap_known_controls[ i ] = slap_known_controls[ i+1 ];
+			} while ( slap_known_controls[ i++ ] );
 			num_known_controls--;
 			break;
 		}
