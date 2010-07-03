@@ -767,8 +767,8 @@ retry_binding:;
 				if ( mc != NULL ) {
 					ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
 					LDAP_BACK_CONN_BINDING_CLEAR( msc );
+					meta_back_release_conn_lock( mi, mc, 0 );
 					ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
-					meta_back_release_conn( mi, mc );
 				}
 
 				return 0;
