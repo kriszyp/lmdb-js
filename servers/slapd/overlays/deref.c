@@ -210,7 +210,7 @@ deref_parseCtrl (
 			}
 		}
 
-		if ( ds->ds_derefAttr->ad_type->sat_syntax != slap_schema.si_syn_distinguishedName ) {
+		if ( !( ds->ds_derefAttr->ad_type->sat_syntax->ssyn_flags & SLAP_SYNTAX_DN )) {
 			if ( ctrl->ldctl_iscritical ) {
 				rs->sr_text = "Dereference control: derefAttr syntax not distinguishedName";
 				rs->sr_err = LDAP_PROTOCOL_ERROR;
