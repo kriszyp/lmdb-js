@@ -6058,7 +6058,7 @@ static slap_syntax_defs_rec syntax_defs[] = {
 		countryStringValidate, NULL},
 #endif
 	{"( 1.3.6.1.4.1.1466.115.121.1.12 DESC 'Distinguished Name' )",
-		0, NULL, dnValidate, dnPretty},
+		SLAP_SYNTAX_DN, NULL, dnValidate, dnPretty},
 	{"( 1.2.36.79672281.1.5.0 DESC 'RDN' )",
 		0, NULL, rdnValidate, rdnPretty},
 #ifdef LDAP_COMP_MATCH
@@ -6108,7 +6108,7 @@ static slap_syntax_defs_rec syntax_defs[] = {
 	{"( 1.3.6.1.4.1.1466.115.121.1.33 DESC 'MHS OR Address' )",
 		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.34 DESC 'Name And Optional UID' )",
-		0, NULL, nameUIDValidate, nameUIDPretty },
+		SLAP_SYNTAX_DN, NULL, nameUIDValidate, nameUIDPretty },
 	{"( 1.3.6.1.4.1.1466.115.121.1.35 DESC 'Name Form Description' )",
 		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.36 DESC 'Numeric String' )",
