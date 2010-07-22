@@ -417,12 +417,16 @@ ldap_chain_op(
 	for ( ; !BER_BVISNULL( ref ); ref++ ) {
 		SlapReply	rs2 = { 0 };
 		LDAPURLDesc	*srv = NULL;
+		req_search_s	save_oq_search = op->oq_search,
+				tmp_oq_search = { 0 };
 		struct berval	save_req_dn = op->o_req_dn,
 				save_req_ndn = op->o_req_ndn,
 				dn = BER_BVNULL,
 				pdn = BER_BVNULL,
 				ndn = BER_BVNULL;
+		char		*filter = NULL;
 		int		temporary = 0;
+		int		free_dn = 0;
 			
 		/* We're setting the URI of the first referral;
 		 * what if there are more?
@@ -449,10 +453,32 @@ Document: RFC 4511
 			continue;
 		}
 
-		/* normalize DN */
+		if ( op->o_tag == LDAP_REQ_SEARCH ) {
+			if ( srv->lud_scope != LDAP_SCOPE_DEFAULT ) {
+				/* RFC 4511: if scope is present, use it */
+				tmp_oq_search.rs_scope = srv->lud_scope;
+
+			} else {
+				/* RFC 4511: if scope is absent, use original */
+				tmp_oq_search.rs_scope = op->ors_scope;
+			}
+		}
+
 		rc = LDAP_SUCCESS;
 		srv->lud_scope = LDAP_SCOPE_DEFAULT;
-		if ( srv->lud_dn != NULL ) {
+		dn.bv_val = srv->lud_dn;
+		filter = srv->lud_filter;
+
+		/* normalize DN */
+		if ( srv->lud_dn == NULL || srv->lud_dn[0] == '\0' ) {
+			if ( srv->lud_dn == NULL ) {
+				srv->lud_dn = "";
+			}
+
+			pdn = save_req_dn;
+			ndn = save_req_ndn;
+
+		} else {
 			ber_str2bv( srv->lud_dn, 0, 0, &dn );
 			rc = dnPrettyNormal( NULL, &dn, &pdn, &ndn, op->o_tmpmemctx );
 			if ( rc == LDAP_SUCCESS ) {
@@ -460,14 +486,36 @@ Document: RFC 4511
 				 * ldap_initialize() will parse the URL 
 				 * as a comma-separated URL list */
 				srv->lud_dn = "";
+				free_dn = 1;
 			}
-
-		} else {
-			srv->lud_dn = "";
 		}
 
-		li.li_uri = ldap_url_desc2str( srv );
+		/* prepare filter */
+		if ( rc == LDAP_SUCCESS && op->o_tag == LDAP_REQ_SEARCH ) {
+			/* filter */
+			if ( srv->lud_filter != NULL
+				&& srv->lud_filter[0] != '\0'
+				&& strcasecmp( srv->lud_filter, "(objectClass=*)" ) != 0 )
+			{
+				/* RFC 4511: if filter is present, use it;
+				 * otherwise, use original */
+				tmp_oq_search.rs_filter = str2filter_x( op, srv->lud_filter );
+				if ( tmp_oq_search.rs_filter != NULL ) {
+					filter2bv_x( op, tmp_oq_search.rs_filter, &tmp_oq_search.rs_filterstr );
+
+				} else {
+					rc = LDAP_OTHER;
+				}
+			}
+		}
+		srv->lud_filter = NULL;
+
+		if ( rc == LDAP_SUCCESS ) {
+			li.li_uri = ldap_url_desc2str( srv );
+		}
+
 		srv->lud_dn = dn.bv_val;
+		srv->lud_filter = filter;
 		ldap_free_urldesc( srv );
 
 		if ( rc != LDAP_SUCCESS ) {
@@ -484,6 +532,14 @@ Document: RFC 4511
 
 		op->o_req_dn = pdn;
 		op->o_req_ndn = ndn;
+
+		if ( op->o_tag == LDAP_REQ_SEARCH ) {
+			op->ors_scope = tmp_oq_search.rs_scope;
+			if ( tmp_oq_search.rs_filter != NULL ) {
+				op->ors_filter = tmp_oq_search.rs_filter;
+				op->ors_filterstr = tmp_oq_search.rs_filterstr;
+			}
+		}
 
 		ber_str2bv( li.li_uri, 0, 0, &li.li_bvuri[ 0 ] );
 
@@ -551,16 +607,25 @@ cleanup:;
 		}
 
 further_cleanup:;
-		if ( !BER_BVISNULL( &pdn ) ) {
+		if ( free_dn ) {
 			op->o_tmpfree( pdn.bv_val, op->o_tmpmemctx );
-		}
-		op->o_req_dn = save_req_dn;
-
-		if ( !BER_BVISNULL( &ndn ) ) {
 			op->o_tmpfree( ndn.bv_val, op->o_tmpmemctx );
 		}
+		op->o_req_dn = save_req_dn;
 		op->o_req_ndn = save_req_ndn;
-		
+	
+		if ( op->o_tag == LDAP_REQ_SEARCH ) {	
+			if ( tmp_oq_search.rs_filter != NULL ) {
+				filter_free_x( op, tmp_oq_search.rs_filter, 1 );
+			}
+
+			if ( !BER_BVISNULL( &tmp_oq_search.rs_filterstr ) ) {
+				slap_sl_free( tmp_oq_search.rs_filterstr.bv_val, op->o_tmpmemctx );
+			}
+
+			op->oq_search = save_oq_search;
+		}
+
 		if ( rc == LDAP_SUCCESS && rs2.sr_err == LDAP_SUCCESS ) {
 			*rs = rs2;
 			break;
@@ -609,6 +674,8 @@ ldap_chain_search(
 	(void)chaining_control_add( lc, op, &ctrls );
 #endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
 
+	assert( rs->sr_type == REP_SEARCHREF );
+
 	rs->sr_type = REP_SEARCH;
 
 	op->o_callback->sc_response = ldap_chain_cb_search_response;
@@ -622,12 +689,16 @@ ldap_chain_search(
 	for ( ; !BER_BVISNULL( &ref[0] ); ref++ ) {
 		SlapReply	rs2 = { 0 };
 		LDAPURLDesc	*srv;
+		req_search_s	save_oq_search = op->oq_search,
+				tmp_oq_search = { 0 };
 		struct berval	save_req_dn = op->o_req_dn,
 				save_req_ndn = op->o_req_ndn,
 				dn,
 				pdn = BER_BVNULL,
 				ndn = BER_BVNULL;
+		char		*filter = NULL;
 		int		temporary = 0;
+		int		free_dn = 0;
 
 		/* parse reference and use
 		 * proto://[host][:port]/ only */
@@ -638,9 +709,39 @@ ldap_chain_search(
 			continue;
 		}
 
+		if ( srv->lud_scope != LDAP_SCOPE_DEFAULT ) {
+			/* RFC 4511: if scope is present, use it */
+			tmp_oq_search.rs_scope = srv->lud_scope;
+
+		} else {
+			/* RFC 4511: if scope is absent, use original */
+			tmp_oq_search.rs_scope = op->ors_scope;
+		}
+
+		rc = LDAP_SUCCESS;
+		srv->lud_scope = LDAP_SCOPE_DEFAULT;
+		dn.bv_val = srv->lud_dn;
+		filter = srv->lud_filter;
+
 		/* normalize DN */
-		rc = LDAP_INVALID_SYNTAX;
-		if ( srv->lud_dn != NULL ) {
+		if ( srv->lud_dn == NULL || srv->lud_dn[0] == '\0' ) {
+			if ( srv->lud_dn == NULL ) {
+				srv->lud_dn = "";
+			}
+
+			/* RFC 4511: if DN is absent, use original */
+			if ( save_entry == NULL ) {
+				pdn = save_req_dn;
+				ndn = save_req_ndn;
+
+			} else {
+				/* use the "right" DN, if available */
+				pdn = save_entry->e_name;
+				ndn = save_entry->e_nname;
+			}
+			
+		} else {
+			/* RFC 4511: if DN is present, use it */
 			ber_str2bv( srv->lud_dn, 0, 0, &dn );
 			rc = dnPrettyNormal( NULL, &dn, &pdn, &ndn, op->o_tmpmemctx );
 			if ( rc == LDAP_SUCCESS ) {
@@ -648,20 +749,38 @@ ldap_chain_search(
 				 * ldap_initialize() will parse the URL 
 				 * as a comma-separated URL list */
 				srv->lud_dn = "";
-				srv->lud_scope = LDAP_SCOPE_DEFAULT;
-				li.li_uri = ldap_url_desc2str( srv );
-				srv->lud_dn = dn.bv_val;
 			}
 		}
-		ldap_free_urldesc( srv );
 
-		if ( rc != LDAP_SUCCESS ) {
-			/* try next */
-			rc = LDAP_OTHER;
-			continue;
+		/* prepare filter */
+		if ( rc == LDAP_SUCCESS ) {
+			/* filter */
+			if ( srv->lud_filter != NULL
+				&& srv->lud_filter[0] != '\0'
+				&& strcasecmp( srv->lud_filter, "(objectClass=*)" ) != 0 )
+			{
+				/* RFC 4511: if filter is present, use it;
+				 * otherwise, use original */
+				tmp_oq_search.rs_filter = str2filter_x( op, srv->lud_filter );
+				if ( tmp_oq_search.rs_filter != NULL ) {
+					filter2bv_x( op, tmp_oq_search.rs_filter, &tmp_oq_search.rs_filterstr );
+
+				} else {
+					rc = LDAP_OTHER;
+				}
+			}
+		}
+		srv->lud_filter = NULL;
+
+		if ( rc == LDAP_SUCCESS ) {
+			li.li_uri = ldap_url_desc2str( srv );
 		}
 
-		if ( li.li_uri == NULL ) {
+		srv->lud_dn = dn.bv_val;
+		srv->lud_filter = filter;
+		ldap_free_urldesc( srv );
+
+		if ( rc != LDAP_SUCCESS || li.li_uri == NULL ) {
 			/* try next */
 			rc = LDAP_OTHER;
 			goto further_cleanup;
@@ -669,6 +788,11 @@ ldap_chain_search(
 
 		op->o_req_dn = pdn;
 		op->o_req_ndn = ndn;
+		op->ors_scope = tmp_oq_search.rs_scope;
+		if ( tmp_oq_search.rs_filter != NULL ) {
+			op->ors_filter = tmp_oq_search.rs_filter;
+			op->ors_filterstr = tmp_oq_search.rs_filterstr;
+		}
 
 		ber_str2bv( li.li_uri, 0, 0, &li.li_bvuri[ 0 ] );
 
@@ -737,15 +861,23 @@ cleanup:;
 		}
 		
 further_cleanup:;
-		if ( !BER_BVISNULL( &pdn ) ) {
+		if ( free_dn ) {
 			op->o_tmpfree( pdn.bv_val, op->o_tmpmemctx );
-		}
-		op->o_req_dn = save_req_dn;
-
-		if ( !BER_BVISNULL( &ndn ) ) {
 			op->o_tmpfree( ndn.bv_val, op->o_tmpmemctx );
 		}
+
+		op->o_req_dn = save_req_dn;
 		op->o_req_ndn = save_req_ndn;
+
+		if ( tmp_oq_search.rs_filter != NULL ) {
+			filter_free_x( op, tmp_oq_search.rs_filter, 1 );
+		}
+
+		if ( !BER_BVISNULL( &tmp_oq_search.rs_filterstr ) ) {
+			slap_sl_free( tmp_oq_search.rs_filterstr.bv_val, op->o_tmpmemctx );
+		}
+
+		op->oq_search = save_oq_search;
 		
 		if ( rc == LDAP_SUCCESS && rs2.sr_err == LDAP_SUCCESS ) {
 			*rs = rs2;
