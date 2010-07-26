@@ -382,12 +382,21 @@ find_tls_ext( LDAPURLDesc *srv )
 	return 0;
 }
 
+/*
+ * caller must hold ld_req_mutex
+ * if ( connect != 0 ) or ( bind != NULL ) caller must also hold ld_res_mutex
+ */
+
 LDAPConn *
 ldap_new_connection( LDAP *ld, LDAPURLDesc **srvlist, int use_ldsb,
 	int connect, LDAPreqinfo *bind )
 {
 	LDAPConn	*lc;
 	int		async = 0;
+
+#ifdef LDAP_R_COMPILE
+	LDAP_PVT_THREAD_ASSERT_MUTEX_OWNER( &ld->ld_req_mutex );
+#endif
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_new_connection %d %d %d\n",
 		use_ldsb, connect, (bind != NULL) );
@@ -457,6 +466,10 @@ ldap_new_connection( LDAP *ld, LDAPURLDesc **srvlist, int use_ldsb,
 #endif
 
 	if ( connect ) {
+#ifdef LDAP_R_COMPILE
+		LDAP_PVT_THREAD_ASSERT_MUTEX_OWNER( &ld->ld_res_mutex );
+#endif
+
 #ifdef HAVE_TLS
 		if ( lc->lconn_server->lud_exts ) {
 			int rc, ext = find_tls_ext( lc->lconn_server );
@@ -491,6 +504,10 @@ ldap_new_connection( LDAP *ld, LDAPURLDesc **srvlist, int use_ldsb,
 	if ( bind != NULL ) {
 		int		err = 0;
 		LDAPConn	*savedefconn;
+
+#ifdef LDAP_R_COMPILE
+		LDAP_PVT_THREAD_ASSERT_MUTEX_OWNER( &ld->ld_res_mutex );
+#endif
 
 		/* Set flag to prevent additional referrals
 		 * from being processed on this
@@ -658,6 +675,9 @@ find_connection( LDAP *ld, LDAPURLDesc *srv, int any )
 }
 
 
+/*
+ * NOTE: the caller holds ld_req_mutex
+ */
 
 static void
 use_connection( LDAP *ld, LDAPConn *lc )
