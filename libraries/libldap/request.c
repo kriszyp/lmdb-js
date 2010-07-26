@@ -383,8 +383,9 @@ find_tls_ext( LDAPURLDesc *srv )
 }
 
 /*
- * caller must hold ld_req_mutex
- * if ( connect != 0 ) or ( bind != NULL ) caller must also hold ld_res_mutex
+ * caller must hold ld_req_mutex or be exclusive user of ld
+ * if ( connect != 0 ) or ( bind != NULL ) caller must also hold
+ * ld_req_mutex and ld_res_mutex
  */
 
 LDAPConn *
@@ -393,10 +394,6 @@ ldap_new_connection( LDAP *ld, LDAPURLDesc **srvlist, int use_ldsb,
 {
 	LDAPConn	*lc;
 	int		async = 0;
-
-#ifdef LDAP_R_COMPILE
-	LDAP_PVT_THREAD_ASSERT_MUTEX_OWNER( &ld->ld_req_mutex );
-#endif
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_new_connection %d %d %d\n",
 		use_ldsb, connect, (bind != NULL) );
@@ -467,6 +464,7 @@ ldap_new_connection( LDAP *ld, LDAPURLDesc **srvlist, int use_ldsb,
 
 	if ( connect ) {
 #ifdef LDAP_R_COMPILE
+		LDAP_PVT_THREAD_ASSERT_MUTEX_OWNER( &ld->ld_req_mutex );
 		LDAP_PVT_THREAD_ASSERT_MUTEX_OWNER( &ld->ld_res_mutex );
 #endif
 
@@ -506,6 +504,7 @@ ldap_new_connection( LDAP *ld, LDAPURLDesc **srvlist, int use_ldsb,
 		LDAPConn	*savedefconn;
 
 #ifdef LDAP_R_COMPILE
+		LDAP_PVT_THREAD_ASSERT_MUTEX_OWNER( &ld->ld_req_mutex );
 		LDAP_PVT_THREAD_ASSERT_MUTEX_OWNER( &ld->ld_res_mutex );
 #endif
 
