@@ -171,7 +171,19 @@ The function may manipulate the URI list; the typical use consists
 in moving the successful URI to the head of the list,
 so that subsequent attempts to connect to one of the URIs using the same LDAP handle
 will try it first.
-By default, this function is not defined.
+If
+.I ld
+is null,
+.I proc
+is set as a global parameter that is inherited by all handlers
+within the process that are created after the call to
+.BR ldap_set_urllist_proc() .
+By default, no 
+.I LDAP_URLLIST_PROC
+is set.
+In a multithreaded environment,
+.B ldap_set_urllist_proc()
+must be called before any concurrent operation using the LDAP handle is started.
 
 Note: the first call into the LDAP library also initializes the global
 options for the library. As such the first call should be single-threaded
