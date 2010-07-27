@@ -1044,6 +1044,7 @@ ldap_chase_v3referrals( LDAP *ld, LDAPRequest *lr, char **refs, int sref, char *
 	LDAPConn	*lc;
 	int			 rc, count, i, j, id;
 	LDAPreqinfo  rinfo;
+	LDAP_NEXTREF_PROC	*nextref_proc = ld->ld_nextref_proc ? ld->ld_nextref_proc : ldap_int_nextref;
 
 	ld->ld_errno = LDAP_SUCCESS;	/* optimistic */
 	*hadrefp = 0;
@@ -1079,15 +1080,12 @@ ldap_chase_v3referrals( LDAP *ld, LDAPRequest *lr, char **refs, int sref, char *
 	refarray = refs;
 	refs = NULL;
 
-	if ( ld->ld_nextref_proc == NULL ) {
-		ld->ld_nextref_proc = ldap_int_nextref;
-	}
-
 	/* parse out & follow referrals */
+	/* NOTE: if nextref_proc == ldap_int_nextref, params is ignored */
 	i = -1;
-	for ( ld->ld_nextref_proc( ld, &refarray, &i, ld->ld_nextref_params );
+	for ( nextref_proc( ld, &refarray, &i, ld->ld_nextref_params );
 			i != -1;
-			ld->ld_nextref_proc( ld, &refarray, &i, ld->ld_nextref_params ) )
+			nextref_proc( ld, &refarray, &i, ld->ld_nextref_params ) )
 	{
 
 		/* Parse the referral URL */
