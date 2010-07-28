@@ -260,9 +260,11 @@ static void handleconnection(nssov_info *ni,int sock,Operation *op)
   uid_t uid;
   gid_t gid;
   char authid[sizeof("gidNumber=4294967295+uidNumber=424967295,cn=peercred,cn=external,cn=auth")];
+  char peerbuf[8];
+  struct berval peerbv = { sizeof(peerbuf), peerbuf };
 
   /* log connection */
-  if (lutil_getpeereid(sock,&uid,&gid))
+  if (LUTIL_GETPEEREID(sock,&uid,&gid,&peerbv))
     Debug( LDAP_DEBUG_TRACE,"nssov: connection from unknown client: %s\n",strerror(errno),0,0);
   else
     Debug( LDAP_DEBUG_TRACE,"nssov: connection from uid=%d gid=%d\n",
