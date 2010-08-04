@@ -1388,6 +1388,8 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 			}
 		}
 		ldap_pvt_thread_rmutex_unlock( &li->li_op_rmutex, op->o_tid );
+		if ( op->o_dont_replicate && op->orm_no_opattrs )
+			goto done;
 	}
 
 	if ( li->li_success && rs->sr_err != LDAP_SUCCESS )
