@@ -554,11 +554,11 @@ static slap_daemon_st slap_daemon[MAX_DAEMON_THREADS];
 	slap_daemon[t].sd_flags = (char *)(slapd_ws_sockets + dtblsize); \
 	slap_daemon[t].sd_rflags = slap_daemon[t].sd_flags + dtblsize; \
 	memset( slap_daemon[t].sd_flags, 0, dtblsize ); \
-	slapd_ws_sockets[0] = wake_sds[t][0]; \
-	slapd_ws_sockets[1] = wake_sds[t][1]; \
-	wake_sds[0] = 0; \
-	wake_sds[1] = 1; \
-	slap_daemon[t].sd_nfds = 2; \
+	slapd_ws_sockets[t*2] = wake_sds[t][0]; \
+	slapd_ws_sockets[t*2+1] = wake_sds[t][1]; \
+	wake_sds[0] = t*2; \
+	wake_sds[1] = t*2+1; \
+	slap_daemon[t].sd_nfds = t*2 + 2; \
 	} while ( 0 )
 
 # define SLAP_SOCK_DESTROY(t)	do { \
@@ -1611,8 +1611,7 @@ slapd_daemon_init( const char *urls )
 		wake_sds[i][1] = AC_SOCKET_INVALID;
 	}
 
-	for ( i=0; i<MAX_DAEMON_THREADS; i++ )
-		ldap_pvt_thread_mutex_init( &slap_daemon[i].sd_mutex );
+	ldap_pvt_thread_mutex_init( &slap_daemon[0].sd_mutex );
 #ifdef HAVE_TCPD
 	ldap_pvt_thread_mutex_init( &sd_tcpd_mutex );
 #endif /* TCP Wrappers */
@@ -2872,20 +2871,24 @@ slapd_daemon( void )
 #endif /* LDAP_CONNECTIONLESS */
 
 	listener_tid = ch_malloc(slapd_daemon_threads * sizeof(ldap_pvt_thread_t));
+
+	/* daemon_init only inits element 0 */
+	for ( i=1; i<slapd_daemon_threads; i++ )
+	{
+		ldap_pvt_thread_mutex_init( &slap_daemon[i].sd_mutex );
+
+		if( (rc = lutil_pair( wake_sds[i] )) < 0 ) {
+			Debug( LDAP_DEBUG_ANY,
+				"daemon: lutil_pair() failed rc=%d\n", rc, 0, 0 );
+			return rc;
+		}
+		ber_pvt_socket_set_nonblock( wake_sds[i][1], 1 );
+
+		SLAP_SOCK_INIT(i);
+	}
+
 	for ( i=0; i<slapd_daemon_threads; i++ )
 	{
-		if (i) {
-			/* daemon_init only inits element 0 */
-			if( (rc = lutil_pair( wake_sds[i] )) < 0 ) {
-				Debug( LDAP_DEBUG_ANY,
-					"daemon: lutil_pair() failed rc=%d\n", rc, 0, 0 );
-				return rc;
-			}
-			ber_pvt_socket_set_nonblock( wake_sds[i][1], 1 );
-
-			SLAP_SOCK_INIT(i);
-		}
-
 		/* listener as a separate THREAD */
 		rc = ldap_pvt_thread_create( &listener_tid[i],
 			0, slapd_daemon_task, (void *)i );
@@ -2895,7 +2898,6 @@ slapd_daemon( void )
 			"listener ldap_pvt_thread_create failed (%d)\n", rc, 0, 0 );
 			return rc;
 		}
- 
 	}
 
   	/* wait for the listener threads to complete */
