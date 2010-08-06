@@ -194,6 +194,7 @@ enum {
 	CFG_SYNTAX,
 	CFG_ACL_ADD,
 	CFG_SYNC_SUBENTRY,
+	CFG_LTHREADS,
 
 	CFG_LAST
 };
@@ -415,6 +416,14 @@ static ConfigTable config_back_cf_table[] = {
 		&config_generic, "( OLcfgDbAt:0.5 NAME 'olcLimits' "
 			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString X-ORDERED 'VALUES' )", NULL, NULL },
+	{ "listener-threads", "count", 2, 0, 0,
+#ifdef NO_THREADS
+		ARG_IGNORED, NULL,
+#else
+		ARG_UINT|ARG_MAGIC|CFG_LTHREADS, &config_generic,
+#endif
+		"( OLcfgGlAt:93 NAME 'olcListenerThreads' "
+			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
 	{ "localSSF", "ssf", 2, 2, 0, ARG_INT,
 		&local_ssf, "( OLcfgGlAt:26 NAME 'olcLocalSSF' "
 			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
@@ -920,6 +929,9 @@ config_generic(ConfigArgs *c) {
 		case CFG_TTHREADS:
 			c->value_int = slap_tool_thread_max;
 			break;
+		case CFG_LTHREADS:
+			c->value_uint = slapd_daemon_threads;
+			break;
 		case CFG_SALT:
 			if ( passwd_salt )
 				c->value_string = ch_strdup( passwd_salt );
@@ -1262,6 +1274,7 @@ config_generic(ConfigArgs *c) {
 		case CFG_CONCUR:
 		case CFG_THREADS:
 		case CFG_TTHREADS:
+		case CFG_LTHREADS:
 		case CFG_RO:
 		case CFG_AZPOLICY:
 		case CFG_DEPTH:
@@ -1611,6 +1624,19 @@ config_generic(ConfigArgs *c) {
 			if ( slapMode & SLAP_TOOL_MODE )
 				ldap_pvt_thread_pool_maxthreads(&connection_pool, c->value_int);
 			slap_tool_thread_max = c->value_int;	/* save for reference */
+			break;
+
+		case CFG_LTHREADS:
+			{ int mask = 0;
+			/* use a power of two */
+			while (c->value_uint > 1) {
+				c->value_uint >>= 1;
+				mask <<= 1;
+				mask |= 1;
+			}
+			slapd_daemon_mask = mask;
+			slapd_daemon_threads = mask+1;
+			}
 			break;
 
 		case CFG_SALT:
