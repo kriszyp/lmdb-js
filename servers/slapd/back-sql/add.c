@@ -190,17 +190,12 @@ backsql_modify_delete_all_values(
 				rs->sr_err = LDAP_OTHER;
 				goto done;
 			}
-#ifdef BACKSQL_ARBITRARY_KEY
+
 			Debug( LDAP_DEBUG_TRACE,
 				"   backsql_modify_delete_all_values() "
-				"arg(%d)=%s\n",
-				pno + 1 + po, e_id->eid_keyval.bv_val, 0 );
-#else /* ! BACKSQL_ARBITRARY_KEY */
-			Debug( LDAP_DEBUG_TRACE,
-				"   backsql_modify_delete_all_values() "
-				"arg(%d)=%lu\n",
-				pno + 1 + po, e_id->eid_keyval, 0 );
-#endif /* ! BACKSQL_ARBITRARY_KEY */
+				"arg(%d)=" BACKSQL_IDFMT "\n",
+				pno + 1 + po,
+				BACKSQL_IDARG(e_id->eid_keyval), 0 );
 
 			/*
 			 * check for syntax needed here 
@@ -477,17 +472,12 @@ add_only:;
 					rs->sr_err = LDAP_OTHER;
 					goto done;
 				}
-#ifdef BACKSQL_ARBITRARY_KEY
+
 				Debug( LDAP_DEBUG_TRACE,
 					"   backsql_modify_internal(): "
-					"arg(%d)=\"%s\"\n", 
-					pno + 1 + po, e_id->eid_keyval.bv_val, 0 );
-#else /* ! BACKSQL_ARBITRARY_KEY */
-				Debug( LDAP_DEBUG_TRACE,
-					"   backsql_modify_internal(): "
-					"arg(%d)=\"%lu\"\n", 
-					pno + 1 + po, e_id->eid_keyval, 0 );
-#endif /* ! BACKSQL_ARBITRARY_KEY */
+					"arg(%d)=" BACKSQL_IDFMT "\n", 
+					pno + 1 + po,
+					BACKSQL_IDARG(e_id->eid_keyval), 0 );
 
 				/*
 				 * check for syntax needed here
@@ -640,17 +630,12 @@ add_only:;
 					rs->sr_err = LDAP_OTHER;
 					goto done;
 				}
-#ifdef BACKSQL_ARBITRARY_KEY
+
 				Debug( LDAP_DEBUG_TRACE,
 					"   backsql_modify_internal(): "
-					"arg(%d)=\"%s\"\n", 
-					pno + 1 + po, e_id->eid_keyval.bv_val, 0 );
-#else /* ! BACKSQL_ARBITRARY_KEY */
-				Debug( LDAP_DEBUG_TRACE,
-					"   backsql_modify_internal(): "
-					"arg(%d)=\"%lu\"\n", 
-					pno + 1 + po, e_id->eid_keyval, 0 );
-#endif /* ! BACKSQL_ARBITRARY_KEY */
+					"arg(%d)=" BACKSQL_IDFMT "\n", 
+					pno + 1 + po,
+					BACKSQL_IDARG(e_id->eid_keyval), 0 );
 
 				/*
 				 * check for syntax needed here 
@@ -1399,17 +1384,17 @@ backsql_add( Operation *op, SlapReply *rs )
 		goto done;
 	}
 
-	Debug( LDAP_DEBUG_TRACE, "   backsql_add(): executing \"%s\" for dn \"%s\"\n",
-			bi->sql_insentry_stmt, op->ora_e->e_name.bv_val, 0 );
-#ifdef BACKSQL_ARBITRARY_KEY
-	Debug( LDAP_DEBUG_TRACE, "                  for oc_map_id=%ld, "
-			"p_id=%s, keyval=%ld\n",
-			oc->bom_id, bsi.bsi_base_id.eid_id.bv_val, new_keyval );
-#else /* ! BACKSQL_ARBITRARY_KEY */
-	Debug( LDAP_DEBUG_TRACE, "                  for oc_map_id=%ld, "
-			"p_id=%ld, keyval=%ld\n",
-			oc->bom_id, bsi.bsi_base_id.eid_id, new_keyval );
-#endif /* ! BACKSQL_ARBITRARY_KEY */
+	if ( LogTest( LDAP_DEBUG_TRACE ) ) {
+		char buf[ SLAP_TEXT_BUFLEN ];
+
+		snprintf( buf, sizeof(buf),
+			"executing \"%s\" for dn=\"%s\"  oc_map_id=%ld p_id=" BACKSQL_IDFMT " keyval=%ld",
+			bi->sql_insentry_stmt, op->ora_e->e_name.bv_val,
+			oc->bom_id, BACKSQL_IDARG(bsi.bsi_base_id.eid_id),
+			new_keyval );
+		Debug( LDAP_DEBUG_TRACE, "   backsql_add(): %s\n", buf, 0, 0 );
+	}
+
 	rc = SQLExecute( sth );
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "   backsql_add(\"%s\"): "

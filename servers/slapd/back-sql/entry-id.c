@@ -532,17 +532,10 @@ backsql_get_attr_vals( void *v_at, void *v_bsi )
 	assert( at != NULL );
 	assert( bsi != NULL );
 
-#ifdef BACKSQL_ARBITRARY_KEY
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_get_attr_vals(): "
-		"oc=\"%s\" attr=\"%s\" keyval=%s\n",
+		"oc=\"%s\" attr=\"%s\" keyval=" BACKSQL_IDFMT "\n",
 		BACKSQL_OC_NAME( bsi->bsi_oc ), at->bam_ad->ad_cname.bv_val, 
-		bsi->bsi_c_eid->eid_keyval.bv_val );
-#else /* ! BACKSQL_ARBITRARY_KEY */
-	Debug( LDAP_DEBUG_TRACE, "==>backsql_get_attr_vals(): "
-		"oc=\"%s\" attr=\"%s\" keyval=%ld\n",
-		BACKSQL_OC_NAME( bsi->bsi_oc ), at->bam_ad->ad_cname.bv_val, 
-		bsi->bsi_c_eid->eid_keyval );
-#endif /* ! BACKSQL_ARBITRARY_KEY */
+		BACKSQL_IDARG(bsi->bsi_c_eid->eid_keyval) );
 
 #ifdef BACKSQL_PRETTY_VALIDATE
 	validate = at->bam_true_ad->ad_type->sat_syntax->ssyn_validate;
@@ -694,15 +687,9 @@ backsql_get_attr_vals( void *v_at, void *v_bsi )
 	}
 
 #ifdef BACKSQL_TRACE
-#ifdef BACKSQL_ARBITRARY_KEY
 	Debug( LDAP_DEBUG_TRACE, "backsql_get_attr_vals(): "
-		"query=\"%s\" keyval=%s\n", at->bam_query,
-		bsi->bsi_c_eid->eid_keyval.bv_val, 0 );
-#else /* !BACKSQL_ARBITRARY_KEY */
-	Debug( LDAP_DEBUG_TRACE, "backsql_get_attr_vals(): "
-		"query=\"%s\" keyval=%d\n", at->bam_query,
-		bsi->bsi_c_eid->eid_keyval, 0 );
-#endif /* ! BACKSQL_ARBITRARY_KEY */
+		"query=\"%s\" keyval=" BACKSQL_IDFMT "\n", at->bam_query,
+		BACKSQL_IDARG(bsi->bsi_c_eid->eid_keyval), 0 );
 #endif /* BACKSQL_TRACE */
 
 	rc = SQLExecute( sth );

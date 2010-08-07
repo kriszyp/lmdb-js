@@ -596,5 +596,13 @@ typedef struct backsql_info {
 	  || (ct) == SQL_VARBINARY \
 	  || (ct) == SQL_LONGVARBINARY)
 
+#ifdef BACKSQL_ARBITRARY_KEY
+#define BACKSQL_IDFMT "%s"
+#define BACKSQL_IDARG(arg) ((arg).bv_val)
+#else /* ! BACKSQL_ARBITRARY_KEY */
+#define BACKSQL_IDFMT "%lu"
+#define BACKSQL_IDARG(arg) (arg)
+#endif /* ! BACKSQL_ARBITRARY_KEY */
+
 #endif /* __BACKSQL_H__ */
 
