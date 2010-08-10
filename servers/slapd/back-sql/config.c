@@ -639,6 +639,37 @@ backsql_db_config(
 
 		ber_str2bv( argv[ 1 ], 0, 1, &bi->sql_aliasing_quote );
 
+	} else if ( !strcasecmp( argv[ 0 ], "autocommit" ) ) {
+		if ( argc != 2 ) {
+			Debug( LDAP_DEBUG_TRACE,
+				"<==backsql_db_config (%s line %d): "
+				"missing arg "
+				"in \"autocommit {NO|yes}\" directive\n",
+				fname, lineno, 0 );
+			return 1;
+		}
+
+		if ( !strcasecmp( argv[ 1 ], "yes" ) ||
+			!strcasecmp( argv[ 1 ], "TRUE" ) ||
+			!strcasecmp( argv[ 1 ], "on" ) )
+		{
+			bi->sql_flags |= BSQLF_AUTOCOMMIT_ON;
+
+		} else if ( !strcasecmp( argv[ 1 ], "no" ) ||
+			!strcasecmp( argv[ 1 ], "FALSE" ) ||
+			!strcasecmp( argv[ 1 ], "off" ) )
+		{
+			bi->sql_flags &= ~BSQLF_AUTOCOMMIT_ON;
+
+		} else {
+			Debug( LDAP_DEBUG_TRACE,
+				"<==backsql_db_config (%s line %d): "
+				"invalid arg "
+				"in \"autocommit {NO|yes}\" directive\n",
+				fname, lineno, 0 );
+			return 1;
+		}
+
 	} else {
 		return SLAP_CONF_UNKNOWN;
 	}

@@ -517,6 +517,7 @@ typedef struct backsql_info {
 #define BSQLF_FETCH_ALL_OPATTRS		0x0400
 #define	BSQLF_FETCH_ALL_ATTRS		(BSQLF_FETCH_ALL_USERATTRS|BSQLF_FETCH_ALL_OPATTRS)
 #define BSQLF_CHECK_SCHEMA		0x0800
+#define BSQLF_AUTOCOMMIT_ON		0x1000
 
 #define BACKSQL_ISF(si, f) \
 	(((si)->sql_flags & f) == f)
@@ -549,6 +550,8 @@ typedef struct backsql_info {
 	BACKSQL_ISF(si, BSQLF_FETCH_ALL_ATTRS)
 #define BACKSQL_CHECK_SCHEMA(si) \
 	BACKSQL_ISF(si, BSQLF_CHECK_SCHEMA)
+#define BACKSQL_AUTOCOMMIT_ON(si) \
+	BACKSQL_ISF(si, BSQLF_AUTOCOMMIT_ON)
 
 	Entry		*sql_baseObject;
 #ifdef BACKSQL_ARBITRARY_KEY
