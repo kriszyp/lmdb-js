@@ -2458,6 +2458,7 @@ AC_CHECK_FUNCS(			\
 	strtoq			\
 	strtouq			\
 	strtoll			\
+	strtoull		\
 	strspn			\
 	sysconf			\
 	waitpid			\
