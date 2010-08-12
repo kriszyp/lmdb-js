@@ -224,6 +224,22 @@ typedef struct {
 #undef BACKSQL_ARBITRARY_KEY
 
 /*
+ * type used for keys
+ */
+#if defined(HAVE_LONG_LONG) && defined(SQL_C_UBIGINT) && \
+	( defined(HAVE_STRTOULL) || defined(HAVE_STRTOUQ) )
+typedef unsigned long long backsql_key_t;
+#define BACKSQL_C_NUMID	SQL_C_UBIGINT
+#define BACKSQL_IDNUMFMT "%llu"
+#define BACKSQL_STR2ID lutil_atoullx
+#else /* ! HAVE_LONG_LONG || ! SQL_C_UBIGINT */
+typedef unsigned long backsql_key_t;
+#define BACKSQL_C_NUMID	SQL_C_ULONG
+#define BACKSQL_IDNUMFMT "%lu"
+#define BACKSQL_STR2ID lutil_atoulx
+#endif /* ! HAVE_LONG_LONG */
+
+/*
  * define to enable support for syncprov overlay
  */
 #define BACKSQL_SYNCPROV
@@ -289,7 +305,7 @@ typedef struct backsql_oc_map_rec {
 	/* flags whether delete_proc is a function (whether back-sql 
 	 * should bind first parameter as output for return code) */
 	int			bom_expect_return;
-	unsigned long		bom_id;
+	backsql_key_t		bom_id;
 	Avlnode			*bom_attrs;
 	AttributeDescription	*bom_create_hint;
 } backsql_oc_map_rec;
@@ -381,11 +397,11 @@ typedef struct backsql_entryID {
 #define BACKSQL_MAX_KEY_LEN	64
 #else /* ! BACKSQL_ARBITRARY_KEY */
 	/* The original numeric key is maintained as default. */
-	unsigned long		eid_id;
-	unsigned long		eid_keyval;
+	backsql_key_t		eid_id;
+	backsql_key_t		eid_keyval;
 #endif /* ! BACKSQL_ARBITRARY_KEY */
 
-	unsigned long		eid_oc_id;
+	backsql_key_t		eid_oc_id;
 	backsql_oc_map_rec	*eid_oc;
 	struct berval		eid_dn;
 	struct berval		eid_ndn;
@@ -603,7 +619,7 @@ typedef struct backsql_info {
 #define BACKSQL_IDFMT "%s"
 #define BACKSQL_IDARG(arg) ((arg).bv_val)
 #else /* ! BACKSQL_ARBITRARY_KEY */
-#define BACKSQL_IDFMT "%lu"
+#define BACKSQL_IDFMT BACKSQL_IDNUMFMT
 #define BACKSQL_IDARG(arg) (arg)
 #endif /* ! BACKSQL_ARBITRARY_KEY */
 

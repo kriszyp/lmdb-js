@@ -1746,9 +1746,10 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 		return BACKSQL_AVL_CONTINUE;
 	}
 	
-	Debug( LDAP_DEBUG_TRACE, "id: '%ld'\n", bsi->bsi_oc->bom_id, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "id: '" BACKSQL_IDNUMFMT "'\n",
+		bsi->bsi_oc->bom_id, 0, 0 );
 
-	rc = backsql_BindParamInt( sth, 1, SQL_PARAM_INPUT,
+	rc = backsql_BindParamNumID( sth, 1, SQL_PARAM_INPUT,
 			&bsi->bsi_oc->bom_id );
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_oc_get_candidates(): "
@@ -1940,10 +1941,10 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 		ber_str2bv_x( row.cols[ 1 ], 0, 1, &c_id->eid_keyval,
 				op->o_tmpmemctx );
 #else /* ! BACKSQL_ARBITRARY_KEY */
-		if ( lutil_atoulx( &c_id->eid_id, row.cols[ 0 ], 0 ) != 0 ) {
+		if ( BACKSQL_STR2ID( &c_id->eid_id, row.cols[ 0 ], 0 ) != 0 ) {
 			goto cleanup;
 		}
-		if ( lutil_atoulx( &c_id->eid_keyval, row.cols[ 1 ], 0 ) != 0 ) {
+		if ( BACKSQL_STR2ID( &c_id->eid_keyval, row.cols[ 1 ], 0 ) != 0 ) {
 			goto cleanup;
 		}
 #endif /* ! BACKSQL_ARBITRARY_KEY */
@@ -2237,7 +2238,7 @@ backsql_search( Operation *op, SlapReply *rs )
 		}
 
 		Debug(LDAP_DEBUG_TRACE, "backsql_search(): loading data "
-			"for entry id=" BACKSQL_IDFMT " oc_id=%ld, keyval=" BACKSQL_IDFMT "\n",
+			"for entry id=" BACKSQL_IDFMT " oc_id=" BACKSQL_IDNUMFMT ", keyval=" BACKSQL_IDFMT "\n",
 			BACKSQL_IDARG(eid->eid_id),
 			eid->eid_oc_id,
 			BACKSQL_IDARG(eid->eid_keyval) );
