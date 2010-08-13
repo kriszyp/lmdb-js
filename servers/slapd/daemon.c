@@ -521,7 +521,7 @@ static slap_daemon_st slap_daemon[MAX_DAEMON_THREADS];
 
 # define SLAP_EVENT_WAIT(t, tvp, nsp)	do { \
 	int i; \
-	*(nsp) = select( SLAP_EVENT_MAX, &readfds, \
+	*(nsp) = select( SLAP_EVENT_MAX(t), &readfds, \
 		nwriters > 0 ? &writefds : NULL, NULL, (tvp) ); \
 	for ( i=0; i<readfds.fd_count; i++) { \
 		int fd = slapd_sock2fd(readfds.fd_array[i]); \
@@ -666,7 +666,7 @@ static slap_daemon_st slap_daemon[MAX_DAEMON_THREADS];
 # define SLAP_EVENT_CLR_WRITE(fd)	FD_CLR((fd), &writefds)
 
 # define SLAP_EVENT_WAIT(t, tvp, nsp)	do { \
-	*(nsp) = select( SLAP_EVENT_MAX, &readfds, \
+	*(nsp) = select( SLAP_EVENT_MAX(t), &readfds, \
 		nwriters > 0 ? &writefds : NULL, NULL, (tvp) ); \
 } while (0)
 # endif /* !HAVE_WINSOCK */
