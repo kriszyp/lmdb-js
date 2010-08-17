@@ -2538,7 +2538,7 @@ str2access( const char *str )
 static char *
 safe_strncopy( char *ptr, const char *src, size_t n, struct berval *buf )
 {
-	while ( &ptr[n] >= &buf->bv_val[buf->bv_len] ) {
+	while ( ptr + n >= buf->bv_val + buf->bv_len ) {
 		char *tmp = ch_realloc( buf->bv_val, 2*buf->bv_len );
 		if ( tmp == NULL ) {
 			return NULL;
@@ -2782,10 +2782,9 @@ acl_unparse( AccessControl *a, struct berval *bv )
 		aclbuf.bv_len = ACLBUF_CHUNKSIZE;
 	}
 
-	bv->bv_val = aclbuf.bv_val;
 	bv->bv_len = 0;
 
-	ptr = bv->bv_val;
+	ptr = aclbuf.bv_val;
 
 	ptr = acl_safe_strcopy( ptr, "to" );
 	if ( !BER_BVISNULL( &a->acl_dn_pat ) ) {
@@ -2853,6 +2852,7 @@ acl_unparse( AccessControl *a, struct berval *bv )
 		ptr = access2text( b, ptr );
 	}
 	*ptr = '\0';
+	bv->bv_val = aclbuf.bv_val;
 	bv->bv_len = ptr - bv->bv_val;
 }
 
