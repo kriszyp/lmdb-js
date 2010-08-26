@@ -74,7 +74,7 @@ dupent_parseCtrl (
 	ber_len_t off = 0;
 	ber_int_t PartialApplicationAllowed = 1;
 	dupent_t *ds = NULL;
-	int i, c;
+	int i;
 
 	if ( op->o_dupent != SLAP_CONTROL_NONE ) {
 		rs->sr_text = "Dupent control specified multiple times";
@@ -136,74 +136,76 @@ dupent_parseCtrl (
 		goto done;
 	}
 
-	/* FIXME: temporary */
-	if ( cnt == 0 ) {
-		rs->sr_text = "Dupent control: no attrs not supported";
-		rs->sr_err = LDAP_UNAVAILABLE_CRITICAL_EXTENSION;
-		goto done;
-	}
-
 	ds = (dupent_t *)op->o_tmpcalloc( 1,
-		sizeof(dupent_t) + sizeof(AttributeName)*(cnt + 1),
+		sizeof(dupent_t) + sizeof(AttributeName)*cnt,
 		op->o_tmpmemctx );
 
-	ds->ds_an = (AttributeName *)&ds[ 1 ];
-	ds->ds_flags = 0;
 	ds->ds_paa = PartialApplicationAllowed;
 
-	for ( i = 0, c = 0; i < cnt; i++ ) {
-		const char *text;
-		int j;
-		int rc;
-		AttributeDescription *ad = NULL;
+	if ( cnt == 0 ) {
+		ds->ds_flags |= SLAP_USERATTRS_YES;
 
-		if ( bvmatch( &AttributeDescriptionList[i],
-			slap_bv_all_user_attrs ) )
-		{
-			if ( ds->ds_flags & SLAP_USERATTRS_YES ) {
-				rs->sr_text = "Dupent control: AttributeDescription decoding error";
-				rs->sr_err = LDAP_PROTOCOL_ERROR;
-				goto done;
+	} else {
+		int c;
+
+		ds->ds_an = (AttributeName *)&ds[ 1 ];
+
+		for ( i = 0, c = 0; i < cnt; i++ ) {
+			const char *text;
+			int j;
+			int rc;
+			AttributeDescription *ad = NULL;
+
+			if ( bvmatch( &AttributeDescriptionList[i],
+				slap_bv_all_user_attrs ) )
+			{
+				if ( ds->ds_flags & SLAP_USERATTRS_YES ) {
+					rs->sr_text = "Dupent control: AttributeDescription decoding error";
+					rs->sr_err = LDAP_PROTOCOL_ERROR;
+					goto done;
+				}
+
+				ds->ds_flags |= SLAP_USERATTRS_YES;
+				continue;
 			}
 
-			/* FIXME: temporary */
-			rs->sr_text = "Dupent control: all user attrs not supported";
-			rs->sr_err = LDAP_UNAVAILABLE_CRITICAL_EXTENSION;
-			goto done;
+			rc = slap_bv2ad( &AttributeDescriptionList[i], &ad, &text );
+			if ( rc != LDAP_SUCCESS ) {
+				continue;
+			}
 
-			ds->ds_flags |= SLAP_USERATTRS_YES;
-			continue;
+			ds->ds_an[c].an_desc = ad;
+			ds->ds_an[c].an_name = ad->ad_cname;
+
+			/* FIXME: not specified; consider this an error, just in case */
+			for ( j = 0; j < c; j++ ) {
+				if ( ds->ds_an[c].an_desc == ds->ds_an[j].an_desc ) {
+					rs->sr_text = "Dupent control: AttributeDescription must be unique within AttributeDescriptionList";
+					rs->sr_err = LDAP_PROTOCOL_ERROR;
+					goto done;
+				}
+			}
+
+			c++;
 		}
 
-		rc = slap_bv2ad( &AttributeDescriptionList[i], &ad, &text );
-		if ( rc != LDAP_SUCCESS ) {
-#if 0
-			rs->sr_text = "Dupent control: AttributeDescription decoding error";
-			rs->sr_err = LDAP_PROTOCOL_ERROR;
-			goto done;
-#endif
-			continue;
-		}
+		ds->ds_nattrs = c;
 
-		ds->ds_an[c].an_desc = ad;
-		ds->ds_an[c].an_name = ad->ad_cname;
+		if ( ds->ds_flags & SLAP_USERATTRS_YES ) {
+			/* purge user attrs */
+			for ( i = 0; i < ds->ds_nattrs;  ) {
+				if ( is_at_operational( ds->ds_an[i].an_desc->ad_type ) ) {
+					i++;
+					continue;
+				}
 
-		/* FIXME: not specified; we avoid it just in case */
-		for ( j = 0; j < c; j++ ) {
-			if ( ds->ds_an[c].an_desc == ds->ds_an[j].an_desc ) {
-				rs->sr_text = "Dupent control: AttributeDescription must be unique within AttributeDescriptionList";
-				rs->sr_err = LDAP_PROTOCOL_ERROR;
-				goto done;
+				ds->ds_nattrs--;
+				if ( i < ds->ds_nattrs ) {
+					ds->ds_an[i] = ds->ds_an[ds->ds_nattrs];
+				}
 			}
 		}
-
-		c++;
 	}
-
-	ds->ds_nattrs = c;
-
-	ber_memfree_x( AttributeDescriptionList, op->o_tmpmemctx );
-	AttributeDescriptionList = NULL;
 
 	op->o_ctrldupent = (void *)ds;
 
@@ -339,6 +341,32 @@ dupent_response_entry_1level(
 }
 
 static int
+dupent_attr_prepare( dupent_t *ds, Entry *e, valnum_t *valnum, int nattrs, int c, Attribute **app, Attribute **ap_listp )
+{
+	valnum[c].ap = *app;
+	*app = (*app)->a_next;
+
+	valnum[c].ap->a_next = *ap_listp;
+	*ap_listp = valnum[c].ap;
+
+	valnum[c].a = *valnum[c].ap;
+	if ( c < nattrs - 1 ) {
+		valnum[c].a.a_next = &valnum[c + 1].a;
+	} else {
+		valnum[c].a.a_next = NULL;
+	}
+	valnum[c].a.a_numvals = 1;
+	valnum[c].a.a_vals = valnum[c].vals;
+	BER_BVZERO( &valnum[c].vals[1] );
+	if ( valnum[c].ap->a_nvals != valnum[c].ap->a_vals ) {
+		valnum[c].a.a_nvals = valnum[c].nvals;
+		BER_BVZERO( &valnum[c].nvals[1] );
+	} else {
+		valnum[c].a.a_nvals = valnum[c].a.a_vals;
+	}
+}
+
+static int
 dupent_response_entry( Operation *op, SlapReply *rs )
 {
 	dupent_cb_t	*dc = (dupent_cb_t *)op->o_callback->sc_private;
@@ -352,12 +380,22 @@ dupent_response_entry( Operation *op, SlapReply *rs )
 	assert( rs->sr_type == REP_SEARCH );
 
 	for ( i = 0; i < dc->dc_ds->ds_nattrs; i++ ) {
-		Attribute *a;
+		Attribute *ap;
 
-		a = attr_find( rs->sr_entry->e_attrs,
+		ap = attr_find( rs->sr_entry->e_attrs,
 			dc->dc_ds->ds_an[ i ].an_desc );
-		if ( a && a->a_numvals > 1 ) {
+		if ( ap && ap->a_numvals > 1 ) {
 			nattrs++;
+		}
+	}
+
+	if ( dc->dc_ds->ds_flags & SLAP_USERATTRS_YES ) {
+		Attribute *ap;
+
+		for ( ap = rs->sr_entry->e_attrs; ap != NULL; ap = ap->a_next ) {
+			if ( !is_at_operational( ap->a_desc->ad_type ) && ap->a_numvals > 1 ) {
+				nattrs++;
+			}
 		}
 	}
 
@@ -379,28 +417,19 @@ dupent_response_entry( Operation *op, SlapReply *rs )
 		}
 
 		if ( *app != NULL && (*app)->a_numvals > 1 ) {
-			valnum[c].ap = *app;
-			*app = (*app)->a_next;
-
-			valnum[c].ap->a_next = ap_list;
-			ap_list = valnum[c].ap;
-
-			valnum[c].a = *valnum[c].ap;
-			if ( c < nattrs - 1 ) {
-				valnum[c].a.a_next = &valnum[c + 1].a;
-			} else {
-				valnum[c].a.a_next = NULL;
-			}
-			valnum[c].a.a_numvals = 1;
-			valnum[c].a.a_vals = valnum[c].vals;
-			BER_BVZERO( &valnum[c].vals[1] );
-			if ( valnum[c].ap->a_nvals != valnum[c].ap->a_vals ) {
-				valnum[c].a.a_nvals = valnum[c].nvals;
-				BER_BVZERO( &valnum[c].nvals[1] );
-			} else {
-				valnum[c].a.a_nvals = valnum[c].a.a_vals;
-			}
+			assert( c < nattrs );
+			dupent_attr_prepare( dc->dc_ds, e, valnum, nattrs, c, app, &ap_list );
 			c++;
+		}
+	}
+
+	if ( dc->dc_ds->ds_flags & SLAP_USERATTRS_YES ) {
+		for ( app = &e->e_attrs; *app != NULL; app = &(*app)->a_next ) {
+			if ( !is_at_operational( (*app)->a_desc->ad_type ) && (*app)->a_numvals > 1 ) {
+				assert( c < nattrs );
+				dupent_attr_prepare( dc->dc_ds, e, valnum, nattrs, c, app, &ap_list );
+				c++;
+			}
 		}
 	}
 
