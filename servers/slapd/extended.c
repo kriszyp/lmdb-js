@@ -120,7 +120,6 @@ do_extended(
 )
 {
 	struct berval reqdata = {0, NULL};
-	ber_tag_t tag;
 	ber_len_t len;
 
 	Debug( LDAP_DEBUG_TRACE, "%s do_extended\n",
@@ -142,8 +141,6 @@ do_extended(
 		goto done;
 	}
 
-	tag = ber_peek_tag( op->o_ber, &len );
-	
 	if( ber_peek_tag( op->o_ber, &len ) == LDAP_TAG_EXOP_REQ_VALUE ) {
 		if( ber_scanf( op->o_ber, "m", &reqdata ) == LBER_ERROR ) {
 			Debug( LDAP_DEBUG_ANY, "%s do_extended: ber_scanf failed\n",
