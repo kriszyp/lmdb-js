@@ -482,7 +482,6 @@ main( int argc, char **argv )
 	}
 
 	/* setup friendly option */
-
 	switch ( friendly ) {
 	case 0:
 		break;
@@ -498,6 +497,15 @@ main( int argc, char **argv )
 		break;
 	}
 
+	/* setup swamp option */
+	if ( swamp ) {
+		swampopt[0] = '-';
+		if ( swamp > 3 ) swamp = 3;
+		swampopt[swamp + 1] = '\0';
+		for ( ; swamp-- > 0; ) swampopt[swamp + 1] = 'S';
+	}
+
+	/* setup loop options */
 	if ( sloops[0] == '\0' ) snprintf( sloops, sizeof( sloops ), "%d", 10 * loops );
 	if ( rloops[0] == '\0' ) snprintf( rloops, sizeof( rloops ), "%d", 20 * loops );
 	if ( aloops[0] == '\0' ) snprintf( aloops, sizeof( aloops ), "%d", loops );
@@ -551,10 +559,6 @@ main( int argc, char **argv )
 		sargs[sanum++] = ignore;
 	}
 	if ( swamp ) {
-		swampopt[0] = '-';
-		if ( swamp > 3 ) swamp = 3;
-		swampopt[swamp + 1] = '\0';
-		for ( ; swamp-- > 0; ) swampopt[swamp + 1] = 'S';
 		sargs[sanum++] = swampopt;
 	}
 	sargs[sanum++] = "-b";
@@ -611,6 +615,9 @@ main( int argc, char **argv )
 	if ( ignore ) {
 		rargs[ranum++] = "-i";
 		rargs[ranum++] = ignore;
+	}
+	if ( swamp ) {
+		rargs[ranum++] = swampopt;
 	}
 	rargs[ranum++] = "-e";
 	rargs[ranum++] = NULL;		/* will hold the read entry */
