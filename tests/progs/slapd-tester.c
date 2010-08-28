@@ -139,6 +139,8 @@ main( int argc, char **argv )
 	int		sanum;
 	int		sextra_args = 0;
 	char		scmd[MAXPATHLEN];
+	int		swamp = 0;
+	char		swampopt[sizeof("-SSS")];
 	/* static so that its address can be used in initializer below. */
 	static char	sloops[LDAP_PVT_INTTYPE_CHARS(unsigned long)];
 	/* read */
@@ -209,7 +211,7 @@ main( int argc, char **argv )
 	mloops[0] = '\0';
 	bloops[0] = '\0';
 
-	while ( ( i = getopt( argc, argv, "AB:CD:d:FH:h:Ii:j:L:l:NP:p:r:t:Ww:y:" ) ) != EOF )
+	while ( ( i = getopt( argc, argv, "AB:CD:d:FH:h:Ii:j:L:l:NP:p:r:St:Ww:y:" ) ) != EOF )
 	{
 		switch ( i ) {
 		case 'A':
@@ -334,6 +336,10 @@ main( int argc, char **argv )
 
 		case 'r':		/* the number of retries in case of error */
 			retries = strdup( optarg );
+			break;
+
+		case 'S':
+			swamp++;
 			break;
 
 		case 't':		/* the delay in seconds between each retry */
@@ -543,6 +549,13 @@ main( int argc, char **argv )
 	if ( ignore ) {
 		sargs[sanum++] = "-i";
 		sargs[sanum++] = ignore;
+	}
+	if ( swamp ) {
+		swampopt[0] = '-';
+		if ( swamp > 3 ) swamp = 3;
+		swampopt[swamp + 1] = '\0';
+		for ( ; swamp-- > 0; ) swampopt[swamp + 1] = 'S';
+		sargs[sanum++] = swampopt;
 	}
 	sargs[sanum++] = "-b";
 	sargs[sanum++] = NULL;		/* will hold the search base */
