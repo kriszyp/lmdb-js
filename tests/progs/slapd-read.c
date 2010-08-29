@@ -329,7 +329,7 @@ do_random( char *uri, char *manager, struct berval *passwd,
 		break;
 	}
 
-	fprintf( stderr, "  PID=%ld - Search done (%d).\n", (long) pid, rc );
+	fprintf( stderr, "  PID=%ld - Read done (%d).\n", (long) pid, rc );
 
 	if ( ld != NULL ) {
 		ldap_unbind_ext( ld, NULL, NULL );
@@ -407,10 +407,10 @@ retry:;
 				active++;
 #if 0
 				fprintf( stderr,
-					">>> PID=%ld - Search(%d, %d, %d, %d): "
-					"base=\"%s\" scope=%s filter=\"%s\"\n",
+					">>> PID=%ld - Read maxloop=%d cnt=%d active=%d msgid=%d: "
+					"entry=\"%s\"\n",
 					(long) pid, maxloop, i, active, msgids[i],
-					entry, ldap_pvt_scope2str( scope ), filter );
+					entry );
 #endif
 				i++;
 
@@ -447,6 +447,12 @@ retry:;
 			switch ( rc ) {
 			case -1:
 				/* gone really bad */
+#if 0
+				fprintf( stderr,
+					">>> PID=%ld - Read maxloop=%d cnt=%d active=%d: "
+					"entry=\"%s\" ldap_result()=%d\n",
+					(long) pid, maxloop, i, active, entry, rc );
+#endif
 				goto cleanup;
 	
 			case 0:
@@ -461,6 +467,8 @@ retry:;
 			case LDAP_RES_SEARCH_RESULT:
 				/* just remove, no error checking (TODO?) */
 				msgid = ldap_msgid( res );
+				ldap_parse_result( ld, res, &rc, NULL, NULL, NULL, NULL, 1 );
+				res = NULL;
 
 				/* linear search, bah */
 				for ( j = 0; j < i; j++ ) {
@@ -469,7 +477,7 @@ retry:;
 						active--;
 #if 0
 						fprintf( stderr,
-							"<<< PID=%ld - SearchDone(%d, %d, %d, %d): "
+							"<<< PID=%ld - ReadDone maxloop=%d cnt=%d active=%d msgid=%d: "
 							"entry=\"%s\"\n",
 							(long) pid, maxloop, j, active, msgid, entry );
 #endif
@@ -481,7 +489,7 @@ retry:;
 			default:
 				/* other messages unexpected */
 				fprintf( stderr,
-					"### PID=%ld - Search(%d): "
+					"### PID=%ld - Read(%d): "
 					"entry=\"%s\" attrs=%s%s. unexpected response tag=%d\n",
 					(long) pid, maxloop,
 					entry, attrs[0], attrs[1] ? " (more...)" : "", rc );

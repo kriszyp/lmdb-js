@@ -461,7 +461,7 @@ retry:;
 				active++;
 #if 0
 				fprintf( stderr,
-					">>> PID=%ld - Search(%d, %d, %d, %d): "
+					">>> PID=%ld - Search maxloop=%d cnt=%d active=%d msgid=%d: "
 					"base=\"%s\" scope=%s filter=\"%s\"\n",
 					(long) pid, innerloop, i, active, msgids[i],
 					sbase, ldap_pvt_scope2str( scope ), filter );
@@ -526,7 +526,7 @@ retry:;
 						active--;
 #if 0
 						fprintf( stderr,
-							"<<< PID=%ld - SearchDone(%d, %d, %d, %d): "
+							"<<< PID=%ld - SearchDone maxloop=%d cnt=%d active=%d msgid=%d: "
 							"base=\"%s\" scope=%s filter=\"%s\"\n",
 							(long) pid, innerloop, j, active, msgid,
 							sbase, ldap_pvt_scope2str( scope ), filter );
