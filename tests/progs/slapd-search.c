@@ -516,6 +516,8 @@ retry:;
 			case LDAP_RES_SEARCH_RESULT:
 				/* just remove, no error checking (TODO?) */
 				msgid = ldap_msgid( res );
+				ldap_parse_result( ld, res, &rc, NULL, NULL, NULL, NULL, 1 );
+				res = NULL;
 
 				/* linear search, bah */
 				for ( j = 0; j < i; j++ ) {
