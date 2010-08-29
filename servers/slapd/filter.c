@@ -521,6 +521,8 @@ filter_free_x( Operation *op, Filter *f, int freeme )
 
 	switch ( f->f_choice ) {
 	case LDAP_FILTER_PRESENT:
+		if ( f->f_desc->ad_flags & SLAP_DESC_TEMPORARY )
+			op->o_tmpfree( f->f_desc, op->o_tmpmemctx );
 		break;
 
 	case LDAP_FILTER_EQUALITY:
