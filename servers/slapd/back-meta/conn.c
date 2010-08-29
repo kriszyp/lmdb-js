@@ -720,15 +720,17 @@ meta_back_retry(
 		rc = meta_back_init_one_conn( op, rs, mc, candidate,
 			LDAP_BACK_CONN_ISPRIV( mc ), sendok, 0 );
 
-		/* restore credentials, if any;
+		/* restore credentials, if any and if needed;
 		 * meta_back_init_one_conn() restores msc_bound_ndn, if any;
 		 * if no msc_bound_ndn is restored, destroy credentials */
-		if ( !BER_BVISNULL( &msc->msc_bound_ndn ) ) {
+		if ( !BER_BVISNULL( &msc->msc_bound_ndn )
+			&& BER_BVISNULL( &msc->msc_cred ) )
+		{
 			msc->msc_cred = save_cred;
 
 		} else if ( !BER_BVISNULL( &save_cred ) ) {
 			memset( save_cred.bv_val, 0, save_cred.bv_len );
-			ber_memfree( save_cred.bv_val );
+			ber_memfree_x( save_cred.bv_val, NULL );
 		}
 
 		/* restore the "binding" flag, in case */
