@@ -1124,17 +1124,17 @@ wait4kids( int nkidval )
 	int		status;
 
 	while ( nkids >= nkidval ) {
-		wait( &status );
+		pid_t pid = wait( &status );
 
 		if ( WIFSTOPPED(status) ) {
 			fprintf( stderr,
-			    "stopping: child stopped with signal %d\n",
-			    (int) WSTOPSIG(status) );
+			    "stopping: child PID=%ld stopped with signal %d\n",
+			    (long) pid, (int) WSTOPSIG(status) );
 
 		} else if ( WIFSIGNALED(status) ) {
 			fprintf( stderr, 
-			    "stopping: child terminated with signal %d%s\n",
-			    (int) WTERMSIG(status),
+			    "stopping: child PID=%ld terminated with signal %d%s\n",
+			    (long) pid, (int) WTERMSIG(status),
 #ifdef WCOREDUMP
 				WCOREDUMP(status) ? ", core dumped" : ""
 #else
@@ -1145,8 +1145,8 @@ wait4kids( int nkidval )
 
 		} else if ( WEXITSTATUS(status) != 0 ) {
 			fprintf( stderr, 
-			    "stopping: child exited with status %d\n",
-			    (int) WEXITSTATUS(status) );
+			    "stopping: child PID=%ld exited with status %d\n",
+			    (long) pid, (int) WEXITSTATUS(status) );
 			exit( WEXITSTATUS(status) );
 
 		} else {
