@@ -467,7 +467,7 @@ config_get_vals(ConfigTable *cf, ConfigArgs *c)
 				c->value_string = ch_strdup(*(char **)ptr);
 			break;
 		case ARG_BERVAL:
-			ber_dupbv( &c->value_bv, (struct berval *)ptr ); break;
+			c->value_bv = *((struct berval *)ptr); break;
 		case ARG_ATDESC:
 			c->value_ad = *(AttributeDescription **)ptr; break;
 		}
