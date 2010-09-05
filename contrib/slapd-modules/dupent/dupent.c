@@ -260,7 +260,7 @@ dupent_response_done( Operation *op, SlapReply *rs )
 
 	 */
 
-	ber_printf( ber, "{i}", &rs->sr_err );
+	ber_printf( ber, "{i}", rs->sr_err );
 	if ( ber_flatten2( ber, &ctrlval, 0 ) == -1 ) {
 		ber_free_buf( ber );
 		if ( op->o_dupent == SLAP_CONTROL_CRITICAL ) {
