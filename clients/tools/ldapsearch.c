@@ -1344,6 +1344,9 @@ getNextPage:
 	if ( derefval.bv_val != NULL ) {
 		ldap_memfree( derefval.bv_val );
 	}
+	if ( def_urlpre != NULL ) {
+		ber_memfree( def_urlpre );
+	}
 
 	if ( c ) {
 		for ( ; save_nctrls-- > 0; ) {
