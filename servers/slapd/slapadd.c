@@ -103,6 +103,14 @@ slapadd( int argc, char **argv )
 
 	checkvals = (slapMode & SLAP_TOOL_QUICK) ? 0 : 1;
 
+	/* do not check values in quick mode */
+	if ( slapMode & SLAP_TOOL_QUICK ) {
+		if ( slapMode & SLAP_TOOL_VALUE_CHECK ) {
+			fprintf( stderr, "%s: value-check incompatible with quick mode; disabled.\n", progname );
+			slapMode &= ~SLAP_TOOL_VALUE_CHECK;
+		}
+	}
+
 	lmax = 0;
 	nextline = 0;
 
@@ -258,6 +266,34 @@ slapadd( int argc, char **argv )
 					&text, textbuf, textlen );
 
 				if( rc != LDAP_SUCCESS ) {
+					fprintf( stderr, "%s: dn=\"%s\" (line=%d): (%d) %s\n",
+						progname, e->e_dn, lineno, rc, text );
+					rc = EXIT_FAILURE;
+					entry_free( e );
+					if( continuemode ) continue;
+					break;
+				}
+				textbuf[ 0 ] = '\0';
+			}
+
+			if ( (slapMode & SLAP_TOOL_VALUE_CHECK) != 0) {
+				Modifications *ml = NULL;
+
+				if ( slap_entry2mods( e, &ml, &text, textbuf, textlen )
+					!= LDAP_SUCCESS )
+				{
+					fprintf( stderr, "%s: dn=\"%s\" (line=%d): (%d) %s\n",
+						progname, e->e_dn, lineno, rc, text );
+					rc = EXIT_FAILURE;
+					entry_free( e );
+					if( continuemode ) continue;
+					break;
+				}
+				textbuf[ 0 ] = '\0';
+
+				rc = slap_mods_check( op, ml, &text, textbuf, textlen, NULL );
+				slap_mods_free( ml, 1 );
+				if ( rc != LDAP_SUCCESS ) {
 					fprintf( stderr, "%s: dn=\"%s\" (line=%d): (%d) %s\n",
 						progname, e->e_dn, lineno, rc, text );
 					rc = EXIT_FAILURE;

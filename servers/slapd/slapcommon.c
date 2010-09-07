@@ -192,6 +192,42 @@ parse_slapopt( int tool, int *mode )
 #endif /* LOG_LOCAL4 */
 #endif /* LDAP_DEBUG && LDAP_SYSLOG */
 
+	} else if ( strncasecmp( optarg, "schema-check", len ) == 0 ) {
+		switch ( tool ) {
+		case SLAPADD:
+			if ( strcasecmp( p, "yes" ) == 0 ) {
+				*mode &= ~SLAP_TOOL_NO_SCHEMA_CHECK;
+			} else if ( strcasecmp( p, "no" ) == 0 ) {
+				*mode |= SLAP_TOOL_NO_SCHEMA_CHECK;
+			} else {
+				Debug( LDAP_DEBUG_ANY, "unable to parse schema-check=\"%s\".\n", p, 0, 0 );
+				return -1;
+			}
+			break;
+
+		default:
+			Debug( LDAP_DEBUG_ANY, "schema-check meaningless for tool.\n", 0, 0, 0 );
+			break;
+		}
+
+	} else if ( strncasecmp( optarg, "value-check", len ) == 0 ) {
+		switch ( tool ) {
+		case SLAPADD:
+			if ( strcasecmp( p, "yes" ) == 0 ) {
+				*mode |= SLAP_TOOL_VALUE_CHECK;
+			} else if ( strcasecmp( p, "no" ) == 0 ) {
+				*mode &= ~SLAP_TOOL_VALUE_CHECK;
+			} else {
+				Debug( LDAP_DEBUG_ANY, "unable to parse value-check=\"%s\".\n", p, 0, 0 );
+				return -1;
+			}
+			break;
+
+		default:
+			Debug( LDAP_DEBUG_ANY, "value-check meaningless for tool.\n", 0, 0, 0 );
+			break;
+		}
+
 	} else {
 		return -1;
 	}
