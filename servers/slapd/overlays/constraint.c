@@ -1022,6 +1022,29 @@ constraint_update( Operation *op, SlapReply *rs )
  							}
 							break;
 
+						case SLAP_MOD_SOFTDEL:
+ 							mod->sm_op = LDAP_MOD_ADD;
+							err = modify_delete_values( target_entry_copy,
+								mod, get_permissiveModify(op),
+								&text, textbuf, textlen );
+ 							mod->sm_op = SLAP_MOD_SOFTDEL;
+ 							if ( err == LDAP_NO_SUCH_ATTRIBUTE ) {
+ 								err = LDAP_SUCCESS;
+ 							}
+							break;
+
+						case SLAP_MOD_ADD_IF_NOT_PRESENT:
+							if ( attr_find( target_entry_copy->e_attrs, mod->sm_desc ) ) {
+								err = LDAP_SUCCESS;
+								break;
+							}
+ 							mod->sm_op = LDAP_MOD_ADD;
+							err = modify_add_values( target_entry_copy,
+								mod, get_permissiveModify(op),
+								&text, textbuf, textlen );
+ 							mod->sm_op = SLAP_MOD_ADD_IF_NOT_PRESENT;
+							break;
+
 						default:
 							err = LDAP_OTHER;
 							break;

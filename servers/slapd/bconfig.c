@@ -5468,7 +5468,9 @@ config_modify_internal( CfEntryInfo *ce, Operation *op, SlapReply *rs,
 		ct = config_find_table( colst, nocs, ml->sml_desc, ca );
 		switch (ml->sml_op) {
 		case LDAP_MOD_DELETE:
-		case LDAP_MOD_REPLACE: {
+		case LDAP_MOD_REPLACE:
+		case SLAP_MOD_SOFTDEL:
+		{
 			BerVarray vals = NULL, nvals = NULL;
 			int *idx = NULL;
 			if ( ct && ( ct->arg_type & ARG_NO_DELETE )) {
@@ -5507,10 +5509,23 @@ config_modify_internal( CfEntryInfo *ce, Operation *op, SlapReply *rs,
 				ml->sml_values = vals;
 				ml->sml_nvalues = nvals;
 			}
+			if ( rc == LDAP_NO_SUCH_ATTRIBUTE && ml->sml_op == SLAP_MOD_SOFTDEL )
+			{
+				rc = LDAP_SUCCESS;
+			}
+			/* FIXME: check rc before fallthru? */
 			if ( !vals )
 				break;
-			}
+		}
 			/* FALLTHRU: LDAP_MOD_REPLACE && vals */
+
+		case SLAP_MOD_ADD_IF_NOT_PRESENT:
+			if ( ml->sml_op == SLAP_MOD_ADD_IF_NOT_PRESENT
+				&& attr_find( e->e_attrs, ml->sml_desc ) )
+			{
+				rc = LDAP_SUCCESS;
+				break;
+			}
 
 		case LDAP_MOD_ADD:
 		case SLAP_MOD_SOFTADD: {

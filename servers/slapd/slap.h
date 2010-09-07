@@ -110,12 +110,25 @@ LDAP_BEGIN_DECL
 # define SLAP_STRING_UNKNOWN	"unknown"
 #endif /* ! TCP Wrappers */
 
-/* LDAPMod.mod_op value ===> Must be kept in sync with ldap.h!
- * This is a value used internally by the backends. It is needed to allow
- * adding values that already exist without getting an error as required by
- * modrdn when the new rdn was already an attribute value itself.
+/* LDAPMod.mod_op value ===> Must be kept in sync with ldap.h! */
+/* These values are used internally by the backends. */
+/* SLAP_MOD_SOFTADD allows adding values that already exist without getting
+ * an error as required by modrdn when the new rdn was already an attribute
+ * value itself.
  */
-#define SLAP_MOD_SOFTADD	0x1000
+#define SLAP_MOD_SOFTADD		0x1000
+/* SLAP_MOD_SOFTDEL allows deleting values if they exist without getting
+ * an error otherwise.
+ */
+#define SLAP_MOD_SOFTDEL		0x1001
+/* SLAP_MOD_ADD_IF_NOT_PRESENT allows adding values unless the attribute
+ * is already present without getting an error.
+ */
+#define SLAP_MOD_ADD_IF_NOT_PRESENT	0x1002
+/* SLAP_MOD_DEL_IF_PRESENT allows deleting values if the attribute
+ * is present, without getting an error otherwise.
+ * The semantics can be obtained using SLAP_MOD_SOFTDEL with NULL values.
+ */
 
 #define MAXREMATCHES (100)
 

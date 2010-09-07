@@ -1198,6 +1198,31 @@ apply_modify_to_entry(
 				rc = LDAP_SUCCESS;
 			}
 			break;
+
+		case SLAP_MOD_SOFTDEL:
+			mods->sm_op = LDAP_MOD_DELETE;
+			rc = modify_delete_values(entry, mods,
+				   get_permissiveModify(op),
+				   &rs->sr_text, textbuf,
+				   sizeof( textbuf ) );
+			mods->sm_op = SLAP_MOD_SOFTDEL;
+			if (rc == LDAP_NO_SUCH_ATTRIBUTE) {
+				rc = LDAP_SUCCESS;
+			}
+			break;
+
+		case SLAP_MOD_ADD_IF_NOT_PRESENT:
+			if ( attr_find( entry->e_attrs, mods->sm_desc ) ) {
+				rc = LDAP_SUCCESS;
+				break;
+			}
+			mods->sm_op = LDAP_MOD_ADD;
+			rc = modify_add_values(entry, mods,
+				   get_permissiveModify(op),
+				   &rs->sr_text, textbuf,
+				   sizeof( textbuf ) );
+			mods->sm_op = SLAP_MOD_ADD_IF_NOT_PRESENT;
+			break;
 		}
 		if(rc != LDAP_SUCCESS) break;
 	}
