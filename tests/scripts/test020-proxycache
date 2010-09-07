@@ -295,10 +295,24 @@ case $RC in
 	;;
 esac
 
+CNT=`expr $CNT + 1`
+FILTER="(|(cn=All Staff)(sn=All Staff))"
+ATTRS="sn cn title uid undefinedAttr"
+echo "Query $CNT: filter:$FILTER attrs:$ATTRS"  
+echo "# Query $CNT: filter:$FILTER attrs:$ATTRS" >> $SEARCHOUT
+$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
+	"$FILTER" $ATTRS >> $SEARCHOUT 2>> $TESTOUT
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
 FIRST=$CNT
 
-# queries 2-6,8-9 are cacheable
-CACHEABILITY=011111011
+# queries 2-6,8-10 are cacheable
+CACHEABILITY=0111110111
 grep CACHEABLE $LOG2 | awk '{ 
 		if ($2 == "NOT") 
 			printf "Query %d not cacheable\n",NR
@@ -431,11 +445,25 @@ case $RC in
 	;;
 esac
 
-#queries 10-12,15 are answerable, 13-14 are not
-#actually, 12 would be answerable, but since 8 made mail=*example.com
+CNT=`expr $CNT + 1`
+FILTER="(|(cn=All Staff)(sn=All Staff))"
+ATTRS="sn cn title uid undefinedAttr"
+echo "Query $CNT: filter:$FILTER attrs:$ATTRS"  
+echo "# Query $CNT: filter:$FILTER attrs:$ATTRS" >> $SEARCHOUT
+$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
+	"$FILTER" $ATTRS >> $SEARCHOUT 2>> $TESTOUT
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+#queries 11-13,16-17 are answerable, 14-15 are not
+#actually, 14 would be answerable, but since 8 made mail=*example.com
 #not answerable because of sizelimit, queries contained in it are no longer
 #answerable as well
-ANSWERABILITY=111001
+ANSWERABILITY=1110011
 grep ANSWERABLE $LOG2 | awk "BEGIN {FIRST=$FIRST}"'{ 
 		if (NR > FIRST) { 
 			if ($2 == "NOT") 
@@ -462,9 +490,9 @@ else
 fi
 
 echo "Filtering ldapsearch results..."
-$LDIFFILTER < $SEARCHOUT > $SEARCHFLT
+$LDIFFILTER -s ldif=a < $SEARCHOUT > $SEARCHFLT
 echo "Filtering original ldif..."
-$LDIFFILTER < $PROXYCACHEOUT > $LDIFFLT
+$LDIFFILTER -s ldif=a < $PROXYCACHEOUT > $LDIFFLT
 echo "Comparing filter output..."
 $CMP $SEARCHFLT $LDIFFLT > $CMPOUT
 
