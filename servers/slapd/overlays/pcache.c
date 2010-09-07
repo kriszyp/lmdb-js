@@ -2389,8 +2389,7 @@ over:;
 					entry_free(si->head);
 				}
 			}
-			op->o_callback = op->o_callback->sc_next;
-			op->o_tmpfree( cb, op->o_tmpmemctx );
+
 		} else if ( si->caching_reason != PC_IGNORE ) {
 			CachedQuery *qc = qm->addfunc(op, qm, &si->query,
 				si->qtemp, si->caching_reason, 1 );
@@ -2446,6 +2445,9 @@ over:;
 		} else {
 			filter_free( si->query.filter );
 		}
+
+		op->o_callback = op->o_callback->sc_next;
+		op->o_tmpfree( cb, op->o_tmpmemctx );
 	}
 
 	return SLAP_CB_CONTINUE;
