@@ -389,6 +389,7 @@ del_all:
 		 */
 		case LDAP_MOD_ADD:
 		/* case SLAP_MOD_SOFTADD: */
+		/* case SLAP_MOD_ADD_IF_NOT_PRESENT: */
 add_only:;
 			if ( at->bam_add_proc == NULL ) {
 				Debug( LDAP_DEBUG_TRACE,
@@ -541,6 +542,7 @@ add_only:;
 			break;
 			
 	      	case LDAP_MOD_DELETE:
+		/* case SLAP_MOD_SOFTDEL: */
 			if ( at->bam_delete_proc == NULL ) {
 				Debug( LDAP_DEBUG_TRACE,
 					"   backsql_modify_internal(): "

@@ -215,6 +215,56 @@ int bdb_modify_internal(
 			}
  			break;
 
+		case SLAP_MOD_SOFTDEL:
+			Debug(LDAP_DEBUG_ARGS,
+				"bdb_modify_internal: softdel %s\n",
+				mod->sm_desc->ad_cname.bv_val, 0, 0);
+ 			/* Avoid problems in index_delete_mods()
+ 			 * We need to add index if necessary.
+ 			 */
+ 			mod->sm_op = LDAP_MOD_DELETE;
+
+			err = modify_delete_values( e, mod, get_permissiveModify(op),
+				text, textbuf, textlen );
+
+ 			mod->sm_op = SLAP_MOD_SOFTDEL;
+
+ 			if ( err == LDAP_TYPE_OR_VALUE_EXISTS ) {
+ 				err = LDAP_SUCCESS;
+ 			}
+
+			if( err != LDAP_SUCCESS ) {
+				Debug(LDAP_DEBUG_ARGS, "bdb_modify_internal: %d %s\n",
+					err, *text, 0);
+			}
+ 			break;
+
+		case SLAP_MOD_ADD_IF_NOT_PRESENT:
+			if ( attr_find( e->e_attrs, mod->sm_desc ) != NULL ) {
+				/* skip */
+				err = LDAP_SUCCESS;
+				break;
+			}
+
+			Debug(LDAP_DEBUG_ARGS,
+				"bdb_modify_internal: add_if_not_present %s\n",
+				mod->sm_desc->ad_cname.bv_val, 0, 0);
+ 			/* Avoid problems in index_add_mods()
+ 			 * We need to add index if necessary.
+ 			 */
+ 			mod->sm_op = LDAP_MOD_ADD;
+
+			err = modify_add_values( e, mod, get_permissiveModify(op),
+				text, textbuf, textlen );
+
+ 			mod->sm_op = SLAP_MOD_ADD_IF_NOT_PRESENT;
+
+			if( err != LDAP_SUCCESS ) {
+				Debug(LDAP_DEBUG_ARGS, "bdb_modify_internal: %d %s\n",
+					err, *text, 0);
+			}
+ 			break;
+
 		default:
 			Debug(LDAP_DEBUG_ANY, "bdb_modify_internal: invalid op %d\n",
 				mod->sm_op, 0, 0);

@@ -587,6 +587,7 @@ dds_op_modify( Operation *op, SlapReply *rs )
 
 			switch ( mod->sml_op ) {
 			case LDAP_MOD_DELETE:
+			case SLAP_MOD_SOFTDEL: /* FIXME? */
 				if ( mod->sml_values != NULL ) {
 					if ( BER_BVISEMPTY( &bv_entryTtl ) 
 						|| !bvmatch( &bv_entryTtl, &mod->sml_values[ 0 ] ) )
@@ -611,8 +612,9 @@ dds_op_modify( Operation *op, SlapReply *rs )
 				entryTtl = -1;
 				/* fallthru */
 
-			case SLAP_MOD_SOFTADD: /* FIXME? */
 			case LDAP_MOD_ADD:
+			case SLAP_MOD_SOFTADD: /* FIXME? */
+			case SLAP_MOD_ADD_IF_NOT_PRESENT: /* FIXME? */
 				assert( mod->sml_values != NULL );
 				assert( BER_BVISNULL( &mod->sml_values[ 1 ] ) );
 
