@@ -191,8 +191,13 @@ meta_search_dobind_init(
 			( mt->mt_idassert_flags & LDAP_BACK_AUTH_OVERRIDE ) ) )
 	{
 		rc = meta_back_proxy_authz_cred( mc, candidate, op, rs, LDAP_BACK_DONTSEND, &binddn, &cred, &method );
-		if ( rc != LDAP_SUCCESS ) {
+		switch ( rc ) {
+		case LDAP_SUCCESS:
+			break;
+		case LDAP_UNAVAILABLE:
 			goto down;
+		default:
+			goto other;
 		}
 
 		/* NOTE: we copy things here, even if bind didn't succeed yet,
