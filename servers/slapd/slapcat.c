@@ -109,8 +109,22 @@ slapcat( int argc, char **argv )
 		if ( e == NULL ) {
 			printf("# no data for entry id=%08lx\n\n", (long) id );
 			rc = EXIT_FAILURE;
-			if( continuemode ) continue;
-			break;
+			if ( continuemode == 0 ) {
+				break;
+
+			} else if ( continuemode == 1 ) {
+				continue;
+			}
+
+			/* this is a last resort: linearly scan all ids
+			 * trying to recover as much as possible (ITS#6482) */
+			while ( ++id != NOID ) {
+				e = be->be_entry_get( be, id );
+				if ( e != NULL ) break;
+				printf("# no data for entry id=%08lx\n\n", (long) id );
+			}
+
+			if ( e == NULL ) break;
 		}
 
 		if ( doBSF ) {
