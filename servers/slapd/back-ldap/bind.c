@@ -730,7 +730,7 @@ ldap_back_prepare_conn( ldapconn_t *lc, Operation *op, SlapReply *rs, ldap_back_
 
 	/* if required by the bindconf configuration, force TLS */
 	if ( ( sb == &li->li_acl || sb == &li->li_idassert.si_bc ) &&
-		( sb->sb_tls_do_init || sb->sb_tls_ctx ) )
+		sb->sb_tls_ctx )
 	{
 		flags |= LDAP_BACK_F_USE_TLS;
 	}
