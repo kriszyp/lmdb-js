@@ -274,6 +274,9 @@ typedef struct metatarget_t {
 	struct berval		mt_binddn;
 	struct berval		mt_bindpw;
 
+	/* we only care about the TLS options here */
+	slap_bindconf		mt_tls;
+
 	slap_idassert_t		mt_idassert;
 #define	mt_idassert_mode	mt_idassert.si_mode
 #define	mt_idassert_authcID	mt_idassert.si_bc.sb_authcId

@@ -281,6 +281,7 @@ meta_back_init_one_conn(
 	int			do_return = 0;
 #ifdef HAVE_TLS
 	int			is_ldaps = 0;
+	int			do_start_tls = 0;
 #endif /* HAVE_TLS */
 
 	/* if the server is quarantined, and
@@ -421,12 +422,33 @@ retry_lock:;
 		META_BACK_TGT_CHASE_REFERRALS( mt ) ? LDAP_OPT_ON : LDAP_OPT_OFF );
 
 #ifdef HAVE_TLS
+	if ( !is_ldaps ) {
+		slap_bindconf *sb = NULL;
+
+		if ( ispriv ) {
+			sb = &mt->mt_idassert.si_bc;
+		} else {
+			sb = &mt->mt_tls;
+		}
+
+		if ( sb->sb_tls_do_init ) {
+			bindconf_tls_set( sb, msc->msc_ld );
+		} else if ( sb->sb_tls_ctx ) {
+			ldap_set_option( msc->msc_ld, LDAP_OPT_X_TLS_CTX, sb->sb_tls_ctx );
+		}
+
+		if ( sb == &mt->mt_idassert.si_bc && sb->sb_tls_ctx ) {
+			do_start_tls = 1;
+
+		} else if ( META_BACK_TGT_USE_TLS( mt )
+			|| ( op->o_conn->c_is_tls && META_BACK_TGT_PROPAGATE_TLS( mt ) ) )
+		{
+			do_start_tls = 1;
+		}
+	}
+
 	/* start TLS ("tls [try-]{start|propagate}" statement) */
-	if ( ( META_BACK_TGT_USE_TLS( mt )
-		|| ( op->o_conn->c_is_tls
-			&& META_BACK_TGT_PROPAGATE_TLS( mt ) ) )
-		&& !is_ldaps )
-	{
+	if ( do_start_tls ) {
 #ifdef SLAP_STARTTLS_ASYNCHRONOUS
 		/*
 		 * use asynchronous StartTLS; in case, chase referral
