@@ -303,9 +303,6 @@ mechanism and are used to identify the account whose password is to be
 verified. This allows arbitrary mapping between entries in OpenLDAP
 and accounts known to the backend authentication service.
 
-Note: There is no support for changing passwords in the backend
-via {{slapd}}.
-
 It would be wise to use access control to prevent users from changing 
 their passwords through LDAP where they have pass-through authentication 
 enabled.
