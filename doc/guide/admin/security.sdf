@@ -274,19 +274,6 @@ verification to another process. See below for more information.
 Note: This is not the same as using SASL to authenticate the LDAP
 session.
 
-H3: KERBEROS password storage scheme
-
-This is not really a password storage scheme at all. It uses the
-value of the {{userPassword}} attribute to delegate password
-verification to Kerberos. 
-
-Note: This is not the same as using Kerberos authentication of 
-the LDAP session.
-
-This scheme could be said to defeat the advantages of Kerberos by 
-causing the Kerberos password to be exposed to the {{slapd}} server 
-(and possibly on the network as well).
-
 H2: Pass-Through authentication
 
 Since OpenLDAP 2.0 {{slapd}} has had the ability to delegate password
