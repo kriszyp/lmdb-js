@@ -733,8 +733,9 @@ sb_sasl_generic_write( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len)
 		return ret;
 	} else if ( p->buf_out.buf_ptr != p->buf_out.buf_end ) {
 		/* partial write? pretend nothing got written */
-		len2 = 0;
 		p->flags |= LDAP_PVT_SASL_PARTIAL_WRITE;
+		sock_errset(EAGAIN);
+		len2 = -1;
 	}
 
 	/* return number of bytes encoded, not written, to ensure
