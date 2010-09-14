@@ -190,26 +190,55 @@ noopsrch_op_search( Operation *op, SlapReply *rs )
 	return SLAP_CB_CONTINUE;
 }
 
+static int noopsrch_cnt;
+
+static int
+noopsrch_db_init( BackendDB *be, ConfigReply *cr)
+{
+	if ( noopsrch_cnt++ == 0 ) {
+		int rc;
+
+		rc = register_supported_control( LDAP_CONTROL_X_NOOPSRCH,
+			SLAP_CTRL_SEARCH, NULL,
+			noopsrch_parseCtrl, &noopsrch_cid );
+		if ( rc != LDAP_SUCCESS ) {
+			Debug( LDAP_DEBUG_ANY,
+				"noopsrch_initialize: Failed to register control '%s' (%d)\n",
+				LDAP_CONTROL_X_NOOPSRCH, rc, 0 );
+			return rc;
+		}
+	}
+
+	return LDAP_SUCCESS;
+}
+
+static int
+noopsrch_db_destroy( BackendDB *be, ConfigReply *cr )
+{
+	assert( noopsrch_cnt > 0 );
+
+#ifdef SLAP_CONFIG_DELETE
+	overlay_unregister_control( be, LDAP_CONTROL_X_NOOPSRCH );
+#endif /* SLAP_CONFIG_DELETE */
+
+	if ( --noopsrch_cnt == 0 ) {
+		unregister_supported_control( LDAP_CONTROL_X_NOOPSRCH );
+	}
+
+	return 0;
+}
+
 #if SLAPD_OVER_NOOPSRCH == SLAPD_MOD_DYNAMIC
 static
 #endif /* SLAPD_OVER_NOOPSRCH == SLAPD_MOD_DYNAMIC */
 int
 noopsrch_initialize( void )
 {
-	int rc;
-
-	rc = register_supported_control( LDAP_CONTROL_X_NOOPSRCH,
-		SLAP_CTRL_SEARCH, NULL,
-		noopsrch_parseCtrl, &noopsrch_cid );
-	if ( rc != LDAP_SUCCESS ) {
-		Debug( LDAP_DEBUG_ANY,
-			"noopsrch_initialize: Failed to register control (%d)\n",
-			rc, 0, 0 );
-		return -1;
-	}
 
 	noopsrch.on_bi.bi_type = "noopsrch";
 
+	noopsrch.on_bi.bi_db_init = noopsrch_db_init;
+	noopsrch.on_bi.bi_db_destroy = noopsrch_db_destroy;
 	noopsrch.on_bi.bi_op_search = noopsrch_op_search;
 
 	return overlay_register( &noopsrch );
