@@ -801,9 +801,9 @@ static int sssvlv_op_search(
 				op->o_tmpmemctx );
 			/* Install serversort response callback to handle a new search */
 			if ( ps || vc ) {
-				so = ch_malloc( sizeof(sort_op));
+				so = ch_calloc( 1, sizeof(sort_op));
 			} else {
-				so = op->o_tmpalloc( sizeof(sort_op), op->o_tmpmemctx );
+				so = op->o_tmpcalloc( 1, sizeof(sort_op), op->o_tmpmemctx );
 			}
 			sort_conns[op->o_conn->c_conn_idx] = so;
 
