@@ -826,7 +826,7 @@ This ACL grants read permissions to authenticated users while denying others
 
 H3: Controlling rootdn access
 
-You could specify the {{rootdn}} in {{slapd.conf}}(5) or {[slapd.d}} without 
+You could specify the {{rootdn}} in {{slapd.conf}}(5) or {{slapd.d}} without 
 specifying a {{rootpw}}. Then you have to add an actual directory entry with 
 the same dn, e.g.:
 
@@ -876,7 +876,7 @@ One can then grant access to the members of this this group by adding appropriat
 >        by group.exact="cn=Administrators,dc=example,dc=com" write  
 >        by * auth
 
-Like by {[dn}} clauses, one can also use {{expand}} to expand the group name 
+Like by {{dn}} clauses, one can also use {{expand}} to expand the group name 
 based upon the regular expression matching of the target, that is, the to {{dn.regex}}). 
 For instance,
 
