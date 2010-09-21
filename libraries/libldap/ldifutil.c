@@ -164,8 +164,16 @@ ldap_parse_ldif_record_x(
 
 		if ( dn == NULL ) {
 			if ( linenum+i == 1 && BV_CASEMATCH( lr->lr_btype+i, &BV_VERSION )) {
+				/* lutil_atoi() introduces a dependence of libldap
+				 * on liblutil; we only allow version 1 by now (ITS#6654)
+				 */
+#if 0
 				int	v;
-				if( lr->lr_vals[i].bv_len == 0 || lutil_atoi( &v, lr->lr_vals[i].bv_val) != 0 || v != 1 ) {
+				if( lr->lr_vals[i].bv_len == 0 || lutil_atoi( &v, lr->lr_vals[i].bv_val) != 0 || v != 1 )
+#endif
+				static const struct berval version1 = { 1, "1" };
+				if ( lr->lr_vals[i].bv_len != version1.bv_len || strncmp( lr->lr_vals[i].bv_val, version1.bv_val, version1.bv_len ) != 0 )
+				{
 					fprintf( stderr,
 						_("%s: invalid version %s, line %d (ignored)\n"),
 						errstr, lr->lr_vals[i].bv_val, linenum );
