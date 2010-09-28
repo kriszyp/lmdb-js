@@ -116,6 +116,11 @@ slap_op_free( Operation *op, void *ctx )
 		BER_BVZERO( &op->o_csn );
 	}
 
+	if ( op->o_pagedresults_state != NULL ) {
+		op->o_tmpfree( op->o_pagedresults_state, op->o_tmpmemctx );
+		op->o_pagedresults_state = NULL;
+	}
+
 	opbuf = (OperationBuffer *) op;
 	memset( opbuf, 0, sizeof(*opbuf) );
 	op->o_hdr = &opbuf->ob_hdr;
