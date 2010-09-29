@@ -42,11 +42,8 @@ ndb_back_bind( Operation *op, SlapReply *rs )
 		op->o_req_dn.bv_val, 0, 0);
 
 	/* allow noauth binds */
-	switch ( be_rootdn_bind( op, NULL ) ) {
-	case SLAP_CB_CONTINUE:
-		break;
-
-	default:
+	rs->sr_err = be_rootdn_bind( op, NULL );
+	if ( rs->sr_err != SLAP_CB_CONTINUE ) {
 		return rs->sr_err;
 	}
 
