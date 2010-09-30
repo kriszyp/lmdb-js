@@ -43,10 +43,10 @@ bdb_bind( Operation *op, SlapReply *rs )
 	switch ( be_rootdn_bind( op, NULL ) ) {
 	case LDAP_SUCCESS:
 		/* frontend will send result */
-		return rs->sr_err;
+		return rs->sr_err = LDAP_SUCCESS;
 
 	default:
-		/* give the database a chanche */
+		/* give the database a chance */
 		/* NOTE: this behavior departs from that of other backends,
 		 * since the others, in case of password checking failure
 		 * do not give the database a chance.  If an entry with
