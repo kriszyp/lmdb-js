@@ -42,18 +42,14 @@ ndb_back_bind( Operation *op, SlapReply *rs )
 		op->o_req_dn.bv_val, 0, 0);
 
 	/* allow noauth binds */
-	rs->sr_err = be_rootdn_bind( op, NULL );
-	switch ( rs->sr_err ) {
-	case SLAP_CB_CONTINUE:
-		break;
-
-	case LDAP_INVALID_CREDENTIALS:
-		send_ldap_result( op, rs );
-		/* fallthru */
-
+	switch ( be_rootdn_bind( op, NULL ) ) {
 	case LDAP_SUCCESS:
 		/* frontend will send result */
-		return rs->sr_err;
+		return rs->sr_err = LDAP_SUCCESS;
+
+	default:
+		/* give the database a chance */
+		break;
 	}
 
 	/* Get our NDB handle */
