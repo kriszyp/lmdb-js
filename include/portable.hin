@@ -331,12 +331,6 @@
 /* Define to 1 if you have the <ltdl.h> header file. */
 #undef HAVE_LTDL_H
 
-/* if you have SunOS LWP package */
-#undef HAVE_LWP
-
-/* Define to 1 if you have the <lwp/lwp.h> header file. */
-#undef HAVE_LWP_LWP_H
-
 /* define if you have Mach Cthreads */
 #undef HAVE_MACH_CTHREADS
 
