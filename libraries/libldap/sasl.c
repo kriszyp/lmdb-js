@@ -422,8 +422,8 @@ ldap_sasl_interactive_bind_s(
 	int rc;
 	char *smechs = NULL;
 
-#if defined( LDAP_R_COMPILE ) && defined( HAVE_CYRUS_SASL )
-	ldap_pvt_thread_mutex_lock( &ldap_int_sasl_mutex );
+#if defined( HAVE_CYRUS_SASL )
+	LDAP_MUTEX_LOCK( &ldap_int_sasl_mutex );
 #endif
 #ifdef LDAP_CONNECTIONLESS
 	if( LDAP_IS_UDP(ld) ) {
@@ -466,8 +466,8 @@ ldap_sasl_interactive_bind_s(
 		flags, interact, defaults );
 
 done:
-#if defined( LDAP_R_COMPILE ) && defined( HAVE_CYRUS_SASL )
-	ldap_pvt_thread_mutex_unlock( &ldap_int_sasl_mutex );
+#if defined( HAVE_CYRUS_SASL )
+	LDAP_MUTEX_UNLOCK( &ldap_int_sasl_mutex );
 #endif
 	if ( smechs ) LDAP_FREE( smechs );
 

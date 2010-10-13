@@ -436,10 +436,21 @@ LDAP_V( ldap_pvt_thread_mutex_t ) ldap_int_gssapi_mutex;
 #endif
 
 #ifdef LDAP_R_COMPILE
+#define LDAP_MUTEX_LOCK(mutex)    ldap_pvt_thread_mutex_lock( mutex )
+#define LDAP_MUTEX_UNLOCK(mutex)  ldap_pvt_thread_mutex_unlock( mutex )
+#define LDAP_ASSERT_MUTEX_OWNER(mutex) \
+	LDAP_PVT_THREAD_ASSERT_MUTEX_OWNER(mutex)
+#else
+#define LDAP_MUTEX_LOCK(mutex)
+#define LDAP_MUTEX_UNLOCK(mutex)
+#define LDAP_ASSERT_MUTEX_OWNER(mutex)
+#endif
+
+#ifdef LDAP_R_COMPILE
 #define	LDAP_NEXT_MSGID(ld, id) \
-	ldap_pvt_thread_mutex_lock( &(ld)->ld_req_mutex ); \
+	LDAP_MUTEX_LOCK( &(ld)->ld_req_mutex ); \
 	id = ++(ld)->ld_msgid; \
-	ldap_pvt_thread_mutex_unlock( &(ld)->ld_req_mutex )
+	LDAP_MUTEX_UNLOCK( &(ld)->ld_req_mutex )
 #else
 #define	LDAP_NEXT_MSGID(ld, id)	id = ++(ld)->ld_msgid
 #endif

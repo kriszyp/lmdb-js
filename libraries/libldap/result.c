@@ -113,15 +113,9 @@ ldap_result(
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_result ld %p msgid %d\n", (void *)ld, msgid, 0 );
 
-#ifdef LDAP_R_COMPILE
-	ldap_pvt_thread_mutex_lock( &ld->ld_res_mutex );
-#endif
-
+	LDAP_MUTEX_LOCK( &ld->ld_res_mutex );
 	rc = wait4msg( ld, msgid, all, timeout, result );
-
-#ifdef LDAP_R_COMPILE
-	ldap_pvt_thread_mutex_unlock( &ld->ld_res_mutex );
-#endif
+	LDAP_MUTEX_UNLOCK( &ld->ld_res_mutex );
 
 	return rc;
 }
@@ -142,9 +136,7 @@ chkResponseList(
 	 * wait until it arrives or timeout occurs.
 	 */
 
-#ifdef LDAP_R_COMPILE
-	LDAP_PVT_THREAD_ASSERT_MUTEX_OWNER( &ld->ld_res_mutex );
-#endif
+	LDAP_ASSERT_MUTEX_OWNER( &ld->ld_res_mutex );
 
 	Debug( LDAP_DEBUG_TRACE,
 		"ldap_chkResponseList ld %p msgid %d all %d\n",
@@ -257,9 +249,7 @@ wait4msg(
 	assert( ld != NULL );
 	assert( result != NULL );
 
-#ifdef LDAP_R_COMPILE
-	LDAP_PVT_THREAD_ASSERT_MUTEX_OWNER( &ld->ld_res_mutex );
-#endif
+	LDAP_ASSERT_MUTEX_OWNER( &ld->ld_res_mutex );
 
 	if ( timeout == NULL && ld->ld_options.ldo_tm_api.tv_sec >= 0 ) {
 		tv = ld->ld_options.ldo_tm_api;
@@ -294,18 +284,12 @@ wait4msg(
 		if ( ldap_debug & LDAP_DEBUG_TRACE ) {
 			Debug( LDAP_DEBUG_TRACE, "wait4msg continue ld %p msgid %d all %d\n",
 				(void *)ld, msgid, all );
-#ifdef LDAP_R_COMPILE
-			ldap_pvt_thread_mutex_lock( &ld->ld_conn_mutex );
-#endif
+			LDAP_MUTEX_LOCK( &ld->ld_conn_mutex );
 			ldap_dump_connection( ld, ld->ld_conns, 1 );
-#ifdef LDAP_R_COMPILE
-			ldap_pvt_thread_mutex_unlock( &ld->ld_conn_mutex );
-			ldap_pvt_thread_mutex_lock( &ld->ld_req_mutex );
-#endif
+			LDAP_MUTEX_UNLOCK( &ld->ld_conn_mutex );
+			LDAP_MUTEX_LOCK( &ld->ld_req_mutex );
 			ldap_dump_requests_and_responses( ld );
-#ifdef LDAP_R_COMPILE
-			ldap_pvt_thread_mutex_unlock( &ld->ld_req_mutex );
-#endif
+			LDAP_MUTEX_UNLOCK( &ld->ld_req_mutex );
 		}
 #endif /* LDAP_DEBUG */
 
@@ -315,9 +299,7 @@ wait4msg(
 		} else {
 			int lc_ready = 0;
 
-#ifdef LDAP_R_COMPILE
-			ldap_pvt_thread_mutex_lock( &ld->ld_conn_mutex );
-#endif
+			LDAP_MUTEX_LOCK( &ld->ld_conn_mutex );
 			for ( lc = ld->ld_conns; lc != NULL; lc = lc->lconn_next ) {
 				if ( ber_sockbuf_ctrl( lc->lconn_sb,
 					LBER_SB_OPT_DATA_READY, NULL ) )
@@ -326,9 +308,7 @@ wait4msg(
 					break;
 				}
 			}
-#ifdef LDAP_R_COMPILE
-			ldap_pvt_thread_mutex_unlock( &ld->ld_conn_mutex );
-#endif
+			LDAP_MUTEX_UNLOCK( &ld->ld_conn_mutex );
 
 			if ( !lc_ready ) {
 				int err;
@@ -361,9 +341,7 @@ wait4msg(
 			if ( lc_ready ) {
 				LDAPConn *lnext;
 				rc = LDAP_MSG_X_KEEP_LOOKING;
-#ifdef LDAP_R_COMPILE
-				ldap_pvt_thread_mutex_lock( &ld->ld_req_mutex );
-#endif
+				LDAP_MUTEX_LOCK( &ld->ld_req_mutex );
 				if ( ld->ld_requests &&
 					ld->ld_requests->lr_status == LDAP_REQST_WRITING &&
 					ldap_is_write_ready( ld,
@@ -371,10 +349,8 @@ wait4msg(
 				{
 					ldap_int_flush_request( ld, ld->ld_requests );
 				}
-#ifdef LDAP_R_COMPILE
-				ldap_pvt_thread_mutex_unlock( &ld->ld_req_mutex );
-				ldap_pvt_thread_mutex_lock( &ld->ld_conn_mutex );
-#endif
+				LDAP_MUTEX_UNLOCK( &ld->ld_req_mutex );
+				LDAP_MUTEX_LOCK( &ld->ld_conn_mutex );
 				for ( lc = ld->ld_conns;
 					rc == LDAP_MSG_X_KEEP_LOOKING && lc != NULL;
 					lc = lnext )
@@ -384,34 +360,24 @@ wait4msg(
 					{
 						/* Don't let it get freed out from under us */
 						++lc->lconn_refcnt;
-#ifdef LDAP_R_COMPILE
-						ldap_pvt_thread_mutex_unlock( &ld->ld_conn_mutex );
-#endif
+						LDAP_MUTEX_UNLOCK( &ld->ld_conn_mutex );
 						rc = try_read1msg( ld, msgid, all, lc, result );
 						lnext = lc->lconn_next;
 
 						/* Only take locks if we're really freeing */
 						if ( lc->lconn_refcnt <= 1 ) {
-#ifdef LDAP_R_COMPILE
-							ldap_pvt_thread_mutex_lock( &ld->ld_req_mutex );
-#endif
+							LDAP_MUTEX_LOCK( &ld->ld_req_mutex );
 							ldap_free_connection( ld, lc, 0, 1 );
-#ifdef LDAP_R_COMPILE
-							ldap_pvt_thread_mutex_unlock( &ld->ld_req_mutex );
-#endif
+							LDAP_MUTEX_UNLOCK( &ld->ld_req_mutex );
 						} else {
 							--lc->lconn_refcnt;
 						}
-#ifdef LDAP_R_COMPILE
-						ldap_pvt_thread_mutex_lock( &ld->ld_conn_mutex );
-#endif
+						LDAP_MUTEX_LOCK( &ld->ld_conn_mutex );
 					} else {
 						lnext = lc->lconn_next;
 					}
 				}
-#ifdef LDAP_R_COMPILE
-				ldap_pvt_thread_mutex_unlock( &ld->ld_conn_mutex );
-#endif
+				LDAP_MUTEX_UNLOCK( &ld->ld_conn_mutex );
 			}
 		}
 
@@ -494,9 +460,7 @@ try_read1msg(
 	assert( ld != NULL );
 	assert( lc != NULL );
 	
-#ifdef LDAP_R_COMPILE
-	LDAP_PVT_THREAD_ASSERT_MUTEX_OWNER( &ld->ld_res_mutex );
-#endif
+	LDAP_ASSERT_MUTEX_OWNER( &ld->ld_res_mutex );
 
 	Debug( LDAP_DEBUG_TRACE, "read1msg: ld %p msgid %d all %d\n",
 		(void *)ld, msgid, all );
@@ -1331,9 +1295,7 @@ ldap_msgdelete( LDAP *ld, int msgid )
 	Debug( LDAP_DEBUG_TRACE, "ldap_msgdelete ld=%p msgid=%d\n",
 		(void *)ld, msgid, 0 );
 
-#ifdef LDAP_R_COMPILE
-	ldap_pvt_thread_mutex_lock( &ld->ld_res_mutex );
-#endif
+	LDAP_MUTEX_LOCK( &ld->ld_res_mutex );
 	prev = NULL;
 	for ( lm = ld->ld_responses; lm != NULL; lm = lm->lm_next ) {
 		if ( lm->lm_msgid == msgid ) {
@@ -1352,9 +1314,7 @@ ldap_msgdelete( LDAP *ld, int msgid )
 			prev->lm_next = lm->lm_next;
 		}
 	}
-#ifdef LDAP_R_COMPILE
-	ldap_pvt_thread_mutex_unlock( &ld->ld_res_mutex );
-#endif
+	LDAP_MUTEX_UNLOCK( &ld->ld_res_mutex );
 	if ( lm ) {
 		switch ( ldap_msgfree( lm ) ) {
 		case LDAP_RES_SEARCH_ENTRY:
@@ -1383,9 +1343,7 @@ ldap_msgdelete( LDAP *ld, int msgid )
 static int
 ldap_abandoned( LDAP *ld, ber_int_t msgid, int *idxp )
 {
-#ifdef LDAP_R_COMPILE
-	LDAP_PVT_THREAD_ASSERT_MUTEX_OWNER( &ld->ld_res_mutex );
-#endif
+	LDAP_ASSERT_MUTEX_OWNER( &ld->ld_res_mutex );
 
 	assert( idxp != NULL );
 	assert( msgid >= 0 );
@@ -1401,9 +1359,7 @@ ldap_abandoned( LDAP *ld, ber_int_t msgid, int *idxp )
 static int
 ldap_mark_abandoned( LDAP *ld, ber_int_t msgid, int idx )
 {
-#ifdef LDAP_R_COMPILE
-	LDAP_PVT_THREAD_ASSERT_MUTEX_OWNER( &ld->ld_res_mutex );
-#endif
+	LDAP_ASSERT_MUTEX_OWNER( &ld->ld_res_mutex );
 
 	/* NOTE: those assertions are repeated in ldap_int_bisect_delete() */
 	assert( idx >= 0 );

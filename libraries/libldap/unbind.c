@@ -81,9 +81,7 @@ ldap_ld_free(
 	int		err = LDAP_SUCCESS;
 
 	/* free LDAP structure and outstanding requests/responses */
-#ifdef LDAP_R_COMPILE
-	ldap_pvt_thread_mutex_lock( &ld->ld_req_mutex );
-#endif
+	LDAP_MUTEX_LOCK( &ld->ld_req_mutex );
 	while ( ld->ld_requests != NULL ) {
 		ldap_free_request( ld, ld->ld_requests );
 	}
@@ -92,13 +90,9 @@ ldap_ld_free(
 	while ( ld->ld_conns != NULL ) {
 		ldap_free_connection( ld, ld->ld_conns, 1, close );
 	}
-#ifdef LDAP_R_COMPILE
-	ldap_pvt_thread_mutex_unlock( &ld->ld_req_mutex );
-#endif
+	LDAP_MUTEX_UNLOCK( &ld->ld_req_mutex );
 
-#ifdef LDAP_R_COMPILE
-	ldap_pvt_thread_mutex_lock( &ld->ld_res_mutex );
-#endif
+	LDAP_MUTEX_LOCK( &ld->ld_res_mutex );
 	for ( lm = ld->ld_responses; lm != NULL; lm = next ) {
 		next = lm->lm_next;
 		ldap_msgfree( lm );
@@ -108,9 +102,7 @@ ldap_ld_free(
 		LDAP_FREE( ld->ld_abandoned );
 		ld->ld_abandoned = NULL;
 	}
-#ifdef LDAP_R_COMPILE
-	ldap_pvt_thread_mutex_unlock( &ld->ld_res_mutex );
-#endif
+	LDAP_MUTEX_UNLOCK( &ld->ld_res_mutex );
 
 	/* final close callbacks */
 	{

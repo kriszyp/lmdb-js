@@ -592,16 +592,12 @@ ldap_connect_to_host(LDAP *ld, Sockbuf *sb,
 	hints.ai_socktype = socktype;
 	snprintf(serv, sizeof serv, "%d", port );
 
-#ifdef LDAP_R_COMPILE
 	/* most getaddrinfo(3) use non-threadsafe resolver libraries */
-	ldap_pvt_thread_mutex_lock(&ldap_int_resolv_mutex);
-#endif
+	LDAP_MUTEX_LOCK(&ldap_int_resolv_mutex);
 
 	err = getaddrinfo( host, serv, &hints, &res );
 
-#ifdef LDAP_R_COMPILE
-	ldap_pvt_thread_mutex_unlock(&ldap_int_resolv_mutex);
-#endif
+	LDAP_MUTEX_UNLOCK(&ldap_int_resolv_mutex);
 
 	if ( err != 0 ) {
 		osip_debug(ld, "ldap_connect_to_host: getaddrinfo failed: %s\n",

@@ -202,9 +202,7 @@ int ldap_domain2hostlist(
     }
     sprintf(request, "_ldap._tcp.%s", domain);
 
-#ifdef LDAP_R_COMPILE
-    ldap_pvt_thread_mutex_lock(&ldap_int_resolv_mutex);
-#endif
+    LDAP_MUTEX_LOCK(&ldap_int_resolv_mutex);
 
     rc = LDAP_UNAVAILABLE;
 #ifdef NS_HFIXEDSZ
@@ -305,9 +303,7 @@ add_size:;
 	*list = hostlist;
 
   out:
-#ifdef LDAP_R_COMPILE
-    ldap_pvt_thread_mutex_unlock(&ldap_int_resolv_mutex);
-#endif
+    LDAP_MUTEX_UNLOCK(&ldap_int_resolv_mutex);
 
     if (request != NULL) {
 	LDAP_FREE(request);

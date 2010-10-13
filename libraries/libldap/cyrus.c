@@ -410,9 +410,7 @@ ldap_int_sasl_bind(
 	}
 
 	rc = 0;
-#ifdef LDAP_R_COMPILE
-	ldap_pvt_thread_mutex_lock( &ld->ld_req_mutex );
-#endif
+	LDAP_MUTEX_LOCK( &ld->ld_req_mutex );
 	ber_sockbuf_ctrl( ld->ld_sb, LBER_SB_OPT_GET_FD, &sd );
 
 	if ( sd == AC_SOCKET_INVALID ) {
@@ -430,9 +428,7 @@ ldap_int_sasl_bind(
 			}
 		}
 	}   
-#ifdef LDAP_R_COMPILE
-	ldap_pvt_thread_mutex_unlock( &ld->ld_req_mutex );
-#endif
+	LDAP_MUTEX_UNLOCK( &ld->ld_req_mutex );
 	if( rc != 0 ) return ld->ld_errno;
 
 	oldctx = ld->ld_defconn->lconn_sasl_authctx;
