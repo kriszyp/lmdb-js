@@ -401,15 +401,16 @@ ldap_pvt_sasl_getmechs ( LDAP *ld, char **pmechlist )
 }
 
 /*
- * ldap_sasl_interactive_bind_s - interactive SASL authentication
+ * ldap_sasl_interactive_bind - interactive SASL authentication
  *
  * This routine uses interactive callbacks.
  *
  * LDAP_SUCCESS is returned upon success, the ldap error code
- * otherwise.
+ * otherwise. LDAP_SASL_BIND_IN_PROGRESS is returned if further
+ * calls are needed.
  */
 int
-ldap_sasl_interactive_bind_s(
+ldap_sasl_interactive_bind(
 	LDAP *ld,
 	LDAP_CONST char *dn, /* usually NULL */
 	LDAP_CONST char *mechs,
@@ -417,10 +418,13 @@ ldap_sasl_interactive_bind_s(
 	LDAPControl **clientControls,
 	unsigned flags,
 	LDAP_SASL_INTERACT_PROC *interact,
-	void *defaults )
+	void *defaults,
+	LDAPMessage *result,
+	const char **rmech,
+	int *msgid )
 {
-	int rc;
 	char *smechs = NULL;
+	int rc;
 
 #if defined( HAVE_CYRUS_SASL )
 	LDAP_MUTEX_LOCK( &ldap_int_sasl_mutex );
@@ -436,6 +440,9 @@ ldap_sasl_interactive_bind_s(
 		goto done;
 	} else
 #endif
+
+	/* First time */
+	if ( !result ) {
 
 #ifdef HAVE_CYRUS_SASL
 	if( mechs == NULL || *mechs == '\0' ) {
@@ -460,16 +467,61 @@ ldap_sasl_interactive_bind_s(
 			"ldap_sasl_interactive_bind_s: user selected: %s\n",
 			mechs, 0, 0 );
 	}
-
+	}
 	rc = ldap_int_sasl_bind( ld, dn, mechs,
 		serverControls, clientControls,
-		flags, interact, defaults );
+		flags, interact, defaults, result, rmech, msgid );
 
 done:
 #if defined( HAVE_CYRUS_SASL )
 	LDAP_MUTEX_UNLOCK( &ldap_int_sasl_mutex );
 #endif
 	if ( smechs ) LDAP_FREE( smechs );
+
+	return rc;
+}
+
+/*
+ * ldap_sasl_interactive_bind_s - interactive SASL authentication
+ *
+ * This routine uses interactive callbacks.
+ *
+ * LDAP_SUCCESS is returned upon success, the ldap error code
+ * otherwise.
+ */
+int
+ldap_sasl_interactive_bind_s(
+	LDAP *ld,
+	LDAP_CONST char *dn, /* usually NULL */
+	LDAP_CONST char *mechs,
+	LDAPControl **serverControls,
+	LDAPControl **clientControls,
+	unsigned flags,
+	LDAP_SASL_INTERACT_PROC *interact,
+	void *defaults )
+{
+	const char *rmech = NULL;
+	LDAPMessage *result = NULL;
+	int rc, msgid;
+
+	do {
+		rc = ldap_sasl_interactive_bind( ld, dn, mechs,
+			serverControls, clientControls,
+			flags, interact, defaults, result, &rmech, &msgid );
+
+		if ( rc != LDAP_SASL_BIND_IN_PROGRESS )
+			break;
+
+#ifdef LDAP_CONNECTIONLESS
+		if (LDAP_IS_UDP(ld)) {
+			break;
+		}
+#endif
+
+		if ( ldap_result( ld, msgid, LDAP_MSG_ALL, NULL, &result ) == -1 || !result ) {
+			return( ld->ld_errno );	/* ldap_result sets ld_errno */
+		}
+	} while ( rc == LDAP_SASL_BIND_IN_PROGRESS );
 
 	return rc;
 }
