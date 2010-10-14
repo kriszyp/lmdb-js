@@ -451,20 +451,23 @@ ldap_sasl_interactive_bind(
 #endif
 		
 	if( mechs == NULL || *mechs == '\0' ) {
+		/* FIXME: this needs to be asynchronous too;
+		 * perhaps NULL should be disallowed for async usage?
+		 */
 		rc = ldap_pvt_sasl_getmechs( ld, &smechs );
 		if( rc != LDAP_SUCCESS ) {
 			goto done;
 		}
 
 		Debug( LDAP_DEBUG_TRACE,
-			"ldap_sasl_interactive_bind_s: server supports: %s\n",
+			"ldap_sasl_interactive_bind: server supports: %s\n",
 			smechs, 0, 0 );
 
 		mechs = smechs;
 
 	} else {
 		Debug( LDAP_DEBUG_TRACE,
-			"ldap_sasl_interactive_bind_s: user selected: %s\n",
+			"ldap_sasl_interactive_bind: user selected: %s\n",
 			mechs, 0, 0 );
 	}
 	}
@@ -508,6 +511,8 @@ ldap_sasl_interactive_bind_s(
 		rc = ldap_sasl_interactive_bind( ld, dn, mechs,
 			serverControls, clientControls,
 			flags, interact, defaults, result, &rmech, &msgid );
+
+		ldap_msgfree( result );
 
 		if ( rc != LDAP_SASL_BIND_IN_PROGRESS )
 			break;
