@@ -395,7 +395,7 @@ ldap_int_sasl_bind(
 	sasl_ssf_t		*ssf;
 	sasl_conn_t		*ctx;
 	sasl_interact_t *prompts = NULL;
-	struct berval	ccred;
+	struct berval	ccred = BER_BVNULL;
 	int saslrc, rc;
 	unsigned credlen;
 
@@ -504,8 +504,6 @@ ldap_int_sasl_bind(
 		sasl_setprop( ctx, SASL_SEC_PROPS,
 			&ld->ld_options.ldo_sasl_secprops );
 
-		ccred.bv_val = NULL;
-		ccred.bv_len = 0;
 		mech = NULL;
 
 		do {
@@ -521,6 +519,7 @@ ldap_int_sasl_bind(
 
 			if( pmech == NULL && mech != NULL ) {
 				pmech = mech;
+				*rmech = mech;
 
 				if( flags != LDAP_SASL_QUIET ) {
 					fprintf(stderr,
@@ -536,7 +535,6 @@ ldap_int_sasl_bind(
 
 				if( res != LDAP_SUCCESS ) break;
 			}
-			*rmech = mech;
 		} while ( saslrc == SASL_INTERACT );
 
 	} else {
