@@ -536,12 +536,14 @@ ldap_int_sasl_bind(
 				if( res != LDAP_SUCCESS ) break;
 			}
 		} while ( saslrc == SASL_INTERACT );
+		rc = LDAP_SASL_BIND_IN_PROGRESS;
 
 	} else {
 		/* continuing an in-progress Bind */
 		struct berval *scred = NULL;
 
-		scred = NULL;
+		ctx = ld->ld_defconn->lconn_sasl_authctx;
+
 		rc = ldap_parse_sasl_bind_result( ld, result, &scred, 0 );
 		if ( rc != LDAP_SUCCESS )
 			goto done;
@@ -559,8 +561,10 @@ ldap_int_sasl_bind(
 			goto done;
 		}
 
-		ctx = ld->ld_defconn->lconn_sasl_authctx;
 		mech = *rmech;
+		if ( rc == LDAP_SUCCESS && mech == NULL )
+			goto success;
+
 		do {
 			if( ! scred ) {
 				/* no data! */
@@ -601,12 +605,12 @@ ldap_int_sasl_bind(
 		goto done;
 	}
 
+	if ( saslrc == SASL_OK )
+		*rmech = NULL;
+
 	ccred.bv_len = credlen;
 
-	/* Always send a request on first Bind; only send subsequent if
-	 * saslrc == SASL_CONTINUE
-	 */
-	if ( !result || saslrc == SASL_CONTINUE ) {
+	if ( rc == LDAP_SASL_BIND_IN_PROGRESS ) {
 		rc = ldap_sasl_bind( ld, dn, mech, &ccred, sctrls, cctrls, msgid );
 
 		if ( ccred.bv_val != NULL ) {
@@ -620,6 +624,7 @@ ldap_int_sasl_bind(
 		goto done;
 	}
 
+success:
 	/* Conversation was completed successfully by now */
 	if( flags != LDAP_SASL_QUIET ) {
 		char *data;
