@@ -967,7 +967,7 @@ tlsg_sb_close( Sockbuf_IO_Desc *sbiod )
 	assert( sbiod->sbiod_pvt != NULL );
 
 	p = (struct tls_data *)sbiod->sbiod_pvt;
-	gnutls_bye ( p->session->session, GNUTLS_SHUT_RDWR );
+	gnutls_bye ( p->session->session, GNUTLS_SHUT_WR );
 	return 0;
 }
 
