@@ -1185,8 +1185,8 @@ static int sssvlv_db_init(
 				LDAP_CONTROL_VLVREQUEST, rc, 0 );
 #ifdef SLAP_CONFIG_DELETE
 			overlay_unregister_control( be, LDAP_CONTROL_SORTREQUEST );
-#endif /* SLAP_CONFIG_DELETE */
 			unregister_supported_control( LDAP_CONTROL_SORTREQUEST );
+#endif /* SLAP_CONFIG_DELETE */
 			return rc;
 		}
 	}
