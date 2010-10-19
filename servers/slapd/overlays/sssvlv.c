@@ -1226,10 +1226,10 @@ static int sssvlv_db_destroy(
 #ifdef SLAP_CONFIG_DELETE
 	overlay_unregister_control( be, LDAP_CONTROL_SORTREQUEST );
 	overlay_unregister_control( be, LDAP_CONTROL_VLVREQUEST );
-#endif /* SLAP_CONFIG_DELETE */
 	if ( ov_count == 0 ) {
 		unregister_supported_control( LDAP_CONTROL_SORTREQUEST );
 	}
+#endif /* SLAP_CONFIG_DELETE */
 
 	if ( si ) {
 		ch_free( si );
