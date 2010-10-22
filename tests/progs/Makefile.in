@@ -14,17 +14,21 @@
 ## <http://www.OpenLDAP.org/license.html>.
 
 PROGRAMS = slapd-tester slapd-search slapd-read slapd-addel slapd-modrdn \
-		slapd-modify slapd-bind ldif-filter
+		slapd-modify slapd-bind slapd-mtread ldif-filter
 
 SRCS     = slapd-common.c \
 		slapd-tester.c slapd-search.c slapd-read.c slapd-addel.c \
-		slapd-modrdn.c slapd-modify.c slapd-bind.c ldif-filter.c
+		slapd-modrdn.c slapd-modify.c slapd-bind.c slapd-mtread.c \
+		ldif-filter.c
 
 LDAP_INCDIR= ../../include
 LDAP_LIBDIR= ../../libraries
 
 XLIBS    = $(LDAP_LIBLDAP_LA) $(LDAP_LIBLUTIL_A) $(LDAP_LIBLBER_LA)
+XRLIBS    = $(LDAP_LIBLDAP_R_LA) $(LDAP_LIBLUTIL_A) $(LDAP_LIBLBER_LA)
 XXLIBS	 = $(SECURITY_LIBS) $(LUTIL_LIBS)
+RLIBS = $(XRLIBS) $(XXLIBS) $(AC_LIBS) $(XXXLIBS)
+
 
 OBJS     = slapd-common.o
 
@@ -56,4 +60,7 @@ slapd-bind: slapd-bind.o $(OBJS) $(XLIBS)
 
 ldif-filter: ldif-filter.o $(XLIBS)
 	$(LTLINK) -o $@ ldif-filter.o $(LIBS)
+
+slapd-mtread: slapd-mtread.o $(OBJS) $(XRLIBS)
+	$(LTLINK) -o $@ slapd-mtread.o $(OBJS) $(RLIBS)
 

@@ -59,7 +59,9 @@ LDAP_BEGIN_DECL
 		defined( LDAP_API_FEATURE_X_OPENLDAP_THREAD_SAFE ) )
 	/* -lldap may or may not be thread safe */
 	/* -lldap_r, if available, is always thread safe */
-#	define	LDAP_API_FEATURE_THREAD_SAFE 1
+#	define	LDAP_API_FEATURE_THREAD_SAFE 		1
+#	define  LDAP_API_FEATURE_SESSION_THREAD_SAFE	1
+#	define  LDAP_API_FEATURE_OPERATION_THREAD_SAFE	1
 #endif
 #if defined( LDAP_THREAD_SAFE ) && \
 	defined( LDAP_API_FEATURE_X_OPENLDAP_THREAD_SAFE )
@@ -135,6 +137,7 @@ LDAP_BEGIN_DECL
 #define LDAP_OPT_DEFBASE		0x5009	/* searchbase */
 #define	LDAP_OPT_CONNECT_ASYNC		0x5010	/* create connections asynchronously */
 #define	LDAP_OPT_CONNECT_CB			0x5011	/* connection callbacks */
+#define	LDAP_OPT_SESSION_REFCNT		0x5012	/* session reference count */
 
 /* OpenLDAP TLS options */
 #define LDAP_OPT_X_TLS				0x6000
@@ -1519,6 +1522,10 @@ ldap_initialize LDAP_P((
 	LDAP **ldp,
 	LDAP_CONST char *url ));
 
+LDAP_F( LDAP * )
+ldap_dup LDAP_P((
+	LDAP *old ));
+
 /*
  * in tls.c
  */
@@ -1930,6 +1937,10 @@ ldap_unbind_ext_s LDAP_P((
 	LDAP			*ld,
 	LDAPControl		**serverctrls,
 	LDAPControl		**clientctrls));
+
+LDAP_F( int )
+ldap_destroy LDAP_P((
+	LDAP			*ld));
 
 #if LDAP_DEPRECATED
 LDAP_F( int )

@@ -206,7 +206,7 @@ start_again:;
 			 *		LDAP_NEXT_MSGID(ld, i);
 			 */
 
-			i = ++(ld)->ld_msgid;
+			LDAP_NEXT_MSGID(ld, i);
 #ifdef LDAP_CONNECTIONLESS
 			if ( LDAP_IS_UDP(ld) ) {
 				struct sockaddr sa = {0};
@@ -216,11 +216,14 @@ start_again:;
 			if ( LDAP_IS_UDP(ld) && ld->ld_options.ldo_version ==
 				LDAP_VERSION2 )
 			{
-				char *dn = ld->ld_options.ldo_cldapdn;
+				char *dn;
+				LDAP_MUTEX_LOCK( &ld->ld_options.ldo_mutex );
+				dn = ld->ld_options.ldo_cldapdn;
 				if (!dn) dn = "";
 				err = ber_printf( ber, "{isti",  /* '}' */
 					i, dn,
 					LDAP_REQ_ABANDON, msgid );
+				LDAP_MUTEX_UNLOCK( &ld->ld_options.ldo_mutex );
 			} else
 #endif
 			{
@@ -287,10 +290,7 @@ start_again:;
 		}
 	}
 
-	/* ld_abandoned is actually protected by the ld_res_mutex;
-	 * give up the ld_req_mutex and get the other */
-	LDAP_MUTEX_UNLOCK( &ld->ld_req_mutex );
-	LDAP_MUTEX_LOCK( &ld->ld_res_mutex );
+	LDAP_MUTEX_LOCK( &ld->ld_abandon_mutex );
 
 	/* use bisection */
 	i = 0;
@@ -304,8 +304,7 @@ start_again:;
 		ld->ld_errno = LDAP_SUCCESS;
 	}
 
-	LDAP_MUTEX_UNLOCK( &ld->ld_res_mutex );
-	LDAP_MUTEX_LOCK( &ld->ld_req_mutex );
+	LDAP_MUTEX_UNLOCK( &ld->ld_abandon_mutex );
 	return( ld->ld_errno );
 }
 
