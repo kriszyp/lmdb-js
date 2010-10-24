@@ -20,7 +20,7 @@
 /*
  * This tool is a MT reader.  It behaves like slapd-read however
  * with one or more threads simultaneously using the same connection.
- * If -M is enabled, then M threads will also perfrom write operations.
+ * If -M is enabled, then M threads will also perform write operations.
  */
 
 #include "portable.h"
