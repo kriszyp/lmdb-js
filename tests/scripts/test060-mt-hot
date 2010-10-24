@@ -55,7 +55,7 @@ sleep 1
 # Perform a basic search, make sure of a functional setup
 echo "Testing basic monitor search..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -s base -b "$MONITORDN" -h $LOCALHOST -p $PORT1 \
+	$LDAPSEARCH -s base -b "$MONITORDN" -H $URI1 \
 		'(objectclass=*)' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 0 ; then
@@ -79,10 +79,10 @@ THR=1
 OUTER=1
 INNER=50000
 echo "Testing basic mt-hot search: $THR threads ($OUTER x $INNER) loops..."
-echo $SLAPDMTREAD -h $LOCALHOST -p $PORT1 -D "$MANAGERDN" -w $PASSWD \
+echo $SLAPDMTREAD -H $URI1 -D "$MANAGERDN" -w $PASSWD \
 	-e "$MONITORDN" \
 	-m $THR -L $OUTER -l $INNER
-$SLAPDMTREAD -h $LOCALHOST -p $PORT1 -D "$MANAGERDN" -w $PASSWD \
+$SLAPDMTREAD -H $URI1 -D "$MANAGERDN" -w $PASSWD \
 	-e "$MONITORDN" -f "(objectclass=*)" \
 	-m $THR -L $OUTER -l $INNER >> $MTREADOUT 2>&1
 RC=$?
@@ -97,10 +97,10 @@ THR=5
 OUTER=1
 INNER=10000
 echo "Testing basic mt-hot search: $THR threads ($OUTER x $INNER) loops..."
-echo $SLAPDMTREAD -h $LOCALHOST -p $PORT1 -D "$MANAGERDN" -w $PASSWD \
+echo $SLAPDMTREAD -H $URI1 -D "$MANAGERDN" -w $PASSWD \
 	-e "$MONITORDN" \
 	-m $THR -L $OUTER -l $INNER
-$SLAPDMTREAD -h $LOCALHOST -p $PORT1 -D "$MANAGERDN" -w $PASSWD \
+$SLAPDMTREAD -H $URI1 -D "$MANAGERDN" -w $PASSWD \
 	-e "$MONITORDN" -f "(objectclass=*)" \
 	-m $THR -L $OUTER -l $INNER >> $MTREADOUT 2>&1
 RC=$?
@@ -115,10 +115,10 @@ THR=100
 OUTER=5
 INNER=100
 echo "Testing basic mt-hot search: $THR threads ($OUTER x $INNER) loops..."
-echo $SLAPDMTREAD -h $LOCALHOST -p $PORT1 -D "$MANAGERDN" -w $PASSWD \
+echo $SLAPDMTREAD -H $URI1 -D "$MANAGERDN" -w $PASSWD \
 	-e "$MONITORDN" \
 	-m $THR -L $OUTER -l $INNER
-$SLAPDMTREAD -h $LOCALHOST -p $PORT1 -D "$MANAGERDN" -w $PASSWD \
+$SLAPDMTREAD -H $URI1 -D "$MANAGERDN" -w $PASSWD \
 	-e "$MONITORDN" -f "(objectclass=*)" \
 	-m $THR -L $OUTER -l $INNER >> $MTREADOUT 2>&1
 RC=$?
@@ -134,10 +134,10 @@ THR=1
 OUTER=1
 INNER=50000
 echo "Testing random mt-hot search: $THR threads ($OUTER x $INNER) loops..."
-echo $SLAPDMTREAD -h $LOCALHOST -p $PORT1 -D "$MANAGERDN" -w $PASSWD \
+echo $SLAPDMTREAD -H $URI1 -D "$MANAGERDN" -w $PASSWD \
 	-e "$BASEDN" -f "(objectclass=*)" \
 	-m $THR -L $OUTER -l $INNER
-$SLAPDMTREAD -h $LOCALHOST -p $PORT1 -D "$MANAGERDN" -w $PASSWD \
+$SLAPDMTREAD -H $URI1 -D "$MANAGERDN" -w $PASSWD \
 	-e "$BASEDN" -f "(objectclass=*)" \
 	-m $THR -L $OUTER -l $INNER >> $MTREADOUT 2>&1
 RC=$?
@@ -152,10 +152,10 @@ THR=5
 OUTER=1
 INNER=10000
 echo "Testing random mt-hot search: $THR threads ($OUTER x $INNER) loops..."
-echo $SLAPDMTREAD -h $LOCALHOST -p $PORT1 -D "$MANAGERDN" -w $PASSWD \
+echo $SLAPDMTREAD -H $URI1 -D "$MANAGERDN" -w $PASSWD \
 	-e "$BASEDN" -f "(objectclass=*)" \
 	-m $THR -L $OUTER -l $INNER
-$SLAPDMTREAD -h $LOCALHOST -p $PORT1 -D "$MANAGERDN" -w $PASSWD \
+$SLAPDMTREAD -H $URI1 -D "$MANAGERDN" -w $PASSWD \
 	-e "$BASEDN" -f "(objectclass=*)" \
 	-m $THR -L $OUTER -l $INNER >> $MTREADOUT 2>&1
 RC=$?
@@ -170,10 +170,10 @@ THR=100
 OUTER=5
 INNER=100
 echo "Testing random mt-hot search: $THR threads ($OUTER x $INNER) loops..."
-echo $SLAPDMTREAD -h $LOCALHOST -p $PORT1 -D "$MANAGERDN" -w $PASSWD \
+echo $SLAPDMTREAD -H $URI1 -D "$MANAGERDN" -w $PASSWD \
 	-e "$BASEDN" -f "(objectclass=*)" \
 	-m $THR -L $OUTER -l $INNER
-$SLAPDMTREAD -h $LOCALHOST -p $PORT1 -D "$MANAGERDN" -w $PASSWD \
+$SLAPDMTREAD -H $URI1 -D "$MANAGERDN" -w $PASSWD \
 	-e "$BASEDN" -f "(objectclass=*)" \
 	-m $THR -L $OUTER -l $INNER >> $MTREADOUT 2>&1
 RC=$?
@@ -190,10 +190,10 @@ THR=5
 OUTER=1
 INNER=10000
 echo "Testing basic mt-hot search: $THR threads $CONN conns ($OUTER x $INNER) loops..."
-echo $SLAPDMTREAD -h $LOCALHOST -p $PORT1 -D "$MANAGERDN" -w $PASSWD \
+echo $SLAPDMTREAD -H $URI1 -D "$MANAGERDN" -w $PASSWD \
 	-e "$MONITORDN" \
 	-c $CONN -m $THR -L $OUTER -l $INNER
-$SLAPDMTREAD -h $LOCALHOST -p $PORT1 -D "$MANAGERDN" -w $PASSWD \
+$SLAPDMTREAD -H $URI1 -D "$MANAGERDN" -w $PASSWD \
 	-e "$MONITORDN" -f "(objectclass=*)" \
 	-c $CONN -m $THR -L $OUTER -l $INNER >> $MTREADOUT 2>&1
 RC=$?
@@ -209,10 +209,10 @@ THR=50
 OUTER=5
 INNER=1000
 echo "Testing basic mt-hot search: $THR threads $CONN conns ($OUTER x $INNER) loops..."
-echo $SLAPDMTREAD -h $LOCALHOST -p $PORT1 -D "$MANAGERDN" -w $PASSWD \
+echo $SLAPDMTREAD -H $URI1 -D "$MANAGERDN" -w $PASSWD \
 	-e "$MONITORDN" \
 	-c $CONN -m $THR -L $OUTER -l $INNER
-$SLAPDMTREAD -h $LOCALHOST -p $PORT1 -D "$MANAGERDN" -w $PASSWD \
+$SLAPDMTREAD -H $URI1 -D "$MANAGERDN" -w $PASSWD \
 	-e "$MONITORDN" -f "(objectclass=*)" \
 	-c $CONN -m $THR -L $OUTER -l $INNER >> $MTREADOUT 2>&1
 RC=$?
@@ -228,10 +228,10 @@ THR=100
 OUTER=5
 INNER=100
 echo "Testing random mt-hot search: $THR threads $CONN conns ($OUTER x $INNER) loops..."
-echo $SLAPDMTREAD -h $LOCALHOST -p $PORT1 -D "$MANAGERDN" -w $PASSWD \
+echo $SLAPDMTREAD -H $URI1 -D "$MANAGERDN" -w $PASSWD \
 	-e "$BASEDN" -f "(objectclass=*)" \
 	-c $CONN -m $THR -L $OUTER -l $INNER
-$SLAPDMTREAD -h $LOCALHOST -p $PORT1 -D "$MANAGERDN" -w $PASSWD \
+$SLAPDMTREAD -H $URI1 -D "$MANAGERDN" -w $PASSWD \
 	-e "$BASEDN" -f "(objectclass=*)" \
 	-c $CONN -m $THR -L $OUTER -l $INNER >> $MTREADOUT 2>&1
 RC=$?
@@ -248,10 +248,10 @@ WTHR=10
 OUTER=5
 INNER=100
 echo "Testing random mt-hot r/w search: $THR read threads $WTHR write threads $CONN conns ($OUTER x $INNER) loops..."
-echo $SLAPDMTREAD -h $LOCALHOST -p $PORT1 -D "$MANAGERDN" -w $PASSWD \
+echo $SLAPDMTREAD -H $URI1 -D "$MANAGERDN" -w $PASSWD \
 	-e "$BASEDN" -f "(&(!(cn=rwtest*))(objectclass=*))" \
 	-c $CONN -m $THR -M $WTHR -L $OUTER -l $INNER
-$SLAPDMTREAD -h $LOCALHOST -p $PORT1 -D "$MANAGERDN" -w $PASSWD \
+$SLAPDMTREAD -H $URI1 -D "$MANAGERDN" -w $PASSWD \
 	-e "$BASEDN" -f "(&(!(cn=rwtest*))(objectclass=*))" \
 	-c $CONN -m $THR -M $WTHR -L $OUTER -l $INNER >> $MTREADOUT 2>&1
 RC=$?
@@ -268,10 +268,10 @@ WTHR=10
 OUTER=5
 INNER=100
 echo "Testing random mt-hot r/w search: $THR read threads $WTHR write threads $CONN conns ($OUTER x $INNER) loops..."
-echo $SLAPDMTREAD -h $LOCALHOST -p $PORT1 -D "$MANAGERDN" -w $PASSWD \
+echo $SLAPDMTREAD -H $URI1 -D "$MANAGERDN" -w $PASSWD \
 	-e "$BASEDN" -f "(&(!(cn=rwtest*))(objectclass=*))" \
 	-c $CONN -m $THR -M $WTHR -L $OUTER -l $INNER
-$SLAPDMTREAD -h $LOCALHOST -p $PORT1 -D "$MANAGERDN" -w $PASSWD \
+$SLAPDMTREAD -H $URI1 -D "$MANAGERDN" -w $PASSWD \
 	-e "$BASEDN" -f "(&(!(cn=rwtest*))(objectclass=*))" \
 	-c $CONN -m $THR -M $WTHR -L $OUTER -l $INNER >> $MTREADOUT 2>&1
 RC=$?
