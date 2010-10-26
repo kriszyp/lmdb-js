@@ -198,7 +198,7 @@ static int pack_vlv_response_control(
 	ber_init2( ber, NULL, LBER_USE_DER );
 	ber_set_option( ber, LBER_OPT_BER_MEMCTX, &op->o_tmpmemctx );
 
-	rc = ber_printf( ber, "{iii", so->so_vlv_target, so->so_nentries,
+	rc = ber_printf( ber, "{iie", so->so_vlv_target, so->so_nentries,
 		so->so_vlv_rc );
 
 	if ( rc != -1 && so->so_vcontext ) {
