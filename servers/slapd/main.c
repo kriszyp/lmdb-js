@@ -100,6 +100,9 @@ const char Versionstr[] =
 	OPENLDAP_PACKAGE " " OPENLDAP_VERSION " Standalone LDAP Server (slapd)";
 #endif
 
+extern OverlayInit slap_oinfo[];
+extern BackendInfo slap_binfo[];
+
 #define	CHECK_NONE	0x00
 #define	CHECK_CONFIG	0x01
 #define	CHECK_LOGLEVEL	0x02
@@ -685,6 +688,21 @@ unhandled_option:;
 
 	if ( version ) {
 		fprintf( stderr, "%s\n", Versionstr );
+		if ( version > 2 ) {
+			if ( slap_oinfo[0].ov_type ) {
+				fprintf( stderr, "Included static overlays:\n");
+				for ( i= 0 ; slap_oinfo[i].ov_type; i++ ) {
+					fprintf( stderr, "    %s\n", slap_oinfo[i].ov_type );
+				}
+			}
+			if ( slap_binfo[0].bi_type ) {
+				fprintf( stderr, "Included static backends:\n");
+				for ( i= 0 ; slap_binfo[i].bi_type; i++ ) {
+					fprintf( stderr, "    %s\n", slap_binfo[i].bi_type );
+				}
+			}
+		}
+
 		if ( version > 1 ) goto stop;
 	}
 
