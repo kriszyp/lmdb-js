@@ -344,7 +344,8 @@ usage( char *name )
 #if defined(HAVE_SETUID) && defined(HAVE_SETGID)
 		"\t-u user\t\tUser (id or name) to run as\n"
 #endif
-		"\t-V\t\tprint version info (-VV only)\n"
+		"\t-V\t\tprint version info (-VV exit afterwards, -VVV print\n"
+		"\t\t\tinfo about static overlays and backends)\n"
     );
 }
 
