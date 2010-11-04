@@ -1211,19 +1211,20 @@ static int sssvlv_db_destroy(
 {
 	slap_overinst	*on = (slap_overinst *)be->bd_info;
 	sssvlv_info *si = (sssvlv_info *)on->on_bi.bi_private;
-	
+
 	ov_count--;
 	if ( !ov_count && sort_conns) {
 		sort_conns--;
 		ch_free(sort_conns);
 		ldap_pvt_thread_mutex_destroy( &sort_conns_mutex );
 	}
-	
+
 #ifdef SLAP_CONFIG_DELETE
 	overlay_unregister_control( be, LDAP_CONTROL_SORTREQUEST );
 	overlay_unregister_control( be, LDAP_CONTROL_VLVREQUEST );
 	if ( ov_count == 0 ) {
 		unregister_supported_control( LDAP_CONTROL_SORTREQUEST );
+		unregister_supported_control( LDAP_CONTROL_VLVREQUEST );
 	}
 #endif /* SLAP_CONFIG_DELETE */
 
