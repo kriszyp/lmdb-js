@@ -714,6 +714,12 @@ tlsm_dump_security_status(PRFileDesc *fd)
 	return "";
 }
 
+static void
+tlsm_handshake_complete_cb( PRFileDesc *fd, void *client_data )
+{
+	tlsm_dump_security_status( fd );
+}
+
 #ifdef READ_PASSWORD_FROM_FILE
 static char *
 tlsm_get_pin_from_file(const char *token_name, tlsm_ctx *ctx)
@@ -899,16 +905,22 @@ tlsm_auth_cert_handler(void *arg, PRFileDesc *fd,
 {
 	SECStatus ret = SSL_AuthCertificate(arg, fd, checksig, isServer);
 
-	tlsm_dump_security_status( fd );
-	Debug( LDAP_DEBUG_TRACE,
-		   "TLS certificate verification: %s\n",
-		   ret == SECSuccess ? "ok" : "bad", 0, 0 );
-
 	if ( ret != SECSuccess ) {
 		PRErrorCode errcode = PORT_GetError();
-		Debug( LDAP_DEBUG_ANY,
-			   "TLS certificate verification: Error, %d: %s\n",
-			   errcode, PR_ErrorToString( errcode, PR_LANGUAGE_I_DEFAULT ), 0 ) ;
+		/* we bypass NSS's hostname checks and do our own - tlsm_session_chkhost will handle it */
+		if ( errcode == SSL_ERROR_BAD_CERT_DOMAIN ) {
+			Debug( LDAP_DEBUG_TRACE,
+				   "TLS certificate verification: defer\n",
+				   0, 0, 0 );
+		} else {
+			Debug( LDAP_DEBUG_ANY,
+				   "TLS certificate verification: Error, %d: %s\n",
+				   errcode, PR_ErrorToString( errcode, PR_LANGUAGE_I_DEFAULT ), 0 ) ;
+		}
+	} else {
+		Debug( LDAP_DEBUG_TRACE,
+			   "TLS certificate verification: ok\n",
+			   0, 0, 0 );
 	}
 
 	return ret;
@@ -1186,6 +1198,11 @@ tlsm_init_ca_certs( tlsm_ctx *ctx, const char *cacertfile, const char *cacertdir
 	PRStatus status = PR_FAILURE;
 	PRErrorCode errcode = PR_SUCCESS;
 
+	if ( !cacertfile && !cacertdir ) {
+		/* no checking - not good, but allowed */
+		return 0;
+	}
+
 	if ( cacertfile ) {
 		int rc = tlsm_add_cert_from_file( ctx, cacertfile, isca );
 		if ( rc ) {
@@ -1399,9 +1416,11 @@ tlsm_deferred_init( void *arg )
 
 			if ( rc != SECSuccess ) {
 				errcode = PORT_GetError();
-				Debug( LDAP_DEBUG_TRACE,
-					   "TLS: could not initialize moznss using security dir %s prefix %s - error %d.\n",
-					   realcertdir, prefix, errcode );
+				if ( securitydirs[ii] != lt->lt_cacertdir) {
+					Debug( LDAP_DEBUG_TRACE,
+						   "TLS: could not initialize moznss using security dir %s prefix %s - error %d.\n",
+						   realcertdir, prefix, errcode );
+				}
 			} else {
 				/* success */
 				Debug( LDAP_DEBUG_TRACE, "TLS: using moznss security dir %s prefix %s.\n",
@@ -1458,6 +1477,21 @@ tlsm_deferred_init( void *arg )
 			}
 
 			if ( tlsm_init_ca_certs( ctx, lt->lt_cacertfile, lt->lt_cacertdir ) ) {
+				/* if we tried to use lt->lt_cacertdir as an NSS key/cert db, errcode 
+				   will be a value other than 1 - print an error message so that the
+				   user will know that failed too */
+				if ( ( errcode != 1 ) && ( lt->lt_cacertdir ) ) {
+					char *realcertdir = NULL;
+					char *prefix = NULL;
+					tlsm_get_certdb_prefix( lt->lt_cacertdir, &realcertdir, &prefix );
+					Debug( LDAP_DEBUG_TRACE,
+						   "TLS: could not initialize moznss using security dir %s prefix %s - error %d.\n",
+						   realcertdir, prefix ? prefix : "", errcode );
+					if ( realcertdir != lt->lt_cacertdir ) {
+						PL_strfree( realcertdir );
+					}
+					PL_strfree( prefix );
+				}
 				return -1;
 			}
 
@@ -2041,6 +2075,14 @@ tlsm_deferred_ctx_init( void *arg )
 		PRErrorCode err = PR_GetError();
 		Debug( LDAP_DEBUG_ANY, 
 		       "TLS: error: could not set auth cert handler for moznss - error %d:%s\n",
+		       err, PR_ErrorToString( err, PR_LANGUAGE_I_DEFAULT ), NULL );
+		return -1;
+	}
+
+	if ( SSL_HandshakeCallback( ctx->tc_model, tlsm_handshake_complete_cb, ctx ) ) {
+		PRErrorCode err = PR_GetError();
+		Debug( LDAP_DEBUG_ANY, 
+		       "TLS: error: could not set handshake callback for moznss - error %d:%s\n",
 		       err, PR_ErrorToString( err, PR_LANGUAGE_I_DEFAULT ), NULL );
 		return -1;
 	}
