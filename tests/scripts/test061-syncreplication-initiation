@@ -23,7 +23,7 @@
 echo "Running defines.sh"
 . $SRCDIR/scripts/defines.sh
 
-test "$INITIATION_RACE_TESTS" = "x" && INITIATION_RACE_TESTS=1
+test "x$INITIATION_RACE_TESTS" = "x" && INITIATION_RACE_TESTS=1
 
 if test $SYNCPROV = syncprovno; then
 	echo "Syncrepl provider overlay not available, test skipped"
@@ -59,6 +59,11 @@ done
 KILLPIDS=
 
 $SLAPPASSWD -g -n >$CONFIGPWF
+
+case "$BACKEND" in
+	bdb|hdb)	olcDbCheckpoint="olcDbCheckpoint";;
+	*)		olcDbCheckpoint="# olcDbCheckpoint";;
+esac
 
 echo "Initializing server configurations"
 for dir in $DIRS; do
@@ -201,6 +206,7 @@ objectClass: olcDatabaseConfig
 objectClass: olc${BACKEND}Config
 olcDatabase: {1}$BACKEND
 olcDbDirectory: ./db
+$olcDbCheckpoint: 1024 5
 olcSuffix: $BASEDN
 olcRootDN: $MANAGERDN
 olcRootPW: $PASSWD
@@ -251,6 +257,7 @@ objectClass: olcDatabaseConfig
 objectClass: olc${BACKEND}Config
 olcDatabase: {1}$BACKEND
 olcDbDirectory: ./db
+$olcDbCheckpoint: 1024 5
 olcSuffix: $BASEDN
 olcRootDN: $MANAGERDN
 olcRootPW: $PASSWD
@@ -287,6 +294,7 @@ objectClass: olcDatabaseConfig
 objectClass: olc${BACKEND}Config
 olcDatabase: {1}$BACKEND
 olcDbDirectory: ./db
+$olcDbCheckpoint: 1024 5
 olcSuffix: $BASEDN
 olcRootDN: $MANAGERDN
 olcRootPW: $PASSWD
