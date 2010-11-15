@@ -1031,6 +1031,7 @@ tlsm_add_cert_from_file( tlsm_ctx *ctx, const char *filename, PRBool isca )
 	}
 
 	if ( fi.type != PR_FILE_FILE ) {
+		PR_SetError(PR_IS_DIRECTORY_ERROR, 0);
 		Debug( LDAP_DEBUG_ANY,
 			   "TLS: error: the certificate file %s is not a file.\n",
 			   filename, 0 ,0 );
@@ -1123,6 +1124,7 @@ tlsm_add_key_from_file( tlsm_ctx *ctx, const char *filename )
 	}
 
 	if ( fi.type != PR_FILE_FILE ) {
+		PR_SetError(PR_IS_DIRECTORY_ERROR, 0);
 		Debug( LDAP_DEBUG_ANY,
 			   "TLS: error: the key file %s is not a file.\n",
 			   filename, 0 ,0 );
@@ -1178,69 +1180,91 @@ static int
 tlsm_init_ca_certs( tlsm_ctx *ctx, const char *cacertfile, const char *cacertdir )
 {
 	PRBool isca = PR_TRUE;
+	PRStatus status = PR_FAILURE;
+	PRErrorCode errcode = PR_SUCCESS;
 
 	if ( cacertfile ) {
 		int rc = tlsm_add_cert_from_file( ctx, cacertfile, isca );
 		if ( rc ) {
-			return rc;
+			errcode = PR_GetError();
+			Debug( LDAP_DEBUG_ANY,
+				   "TLS: %s is not a valid CA certificate file - error %d:%s.\n",
+				   cacertfile, errcode,
+				   PR_ErrorToString( errcode, PR_LANGUAGE_I_DEFAULT ) );
+		} else {
+			Debug( LDAP_DEBUG_TRACE,
+				   "TLS: loaded CA certificate file %s.\n",
+				   cacertfile, 0, 0 );
+			status = PR_SUCCESS; /* have at least one good CA - we can proceed */
 		}
 	}
 
 	if ( cacertdir ) {
 		PRFileInfo fi;
-		PRStatus status;
 		PRDir *dir;
 		PRDirEntry *entry;
+		PRStatus fistatus = PR_FAILURE;
 
 		memset( &fi, 0, sizeof(fi) );
-		status = PR_GetFileInfo( cacertdir, &fi );
-		if ( PR_SUCCESS != status) {
-			PRErrorCode errcode = PR_GetError();
+		fistatus = PR_GetFileInfo( cacertdir, &fi );
+		if ( PR_SUCCESS != fistatus) {
+			errcode = PR_GetError();
 			Debug( LDAP_DEBUG_ANY,
 				   "TLS: could not get info about the CA certificate directory %s - error %d:%s.\n",
 				   cacertdir, errcode,
 				   PR_ErrorToString( errcode, PR_LANGUAGE_I_DEFAULT ) );
-			return -1;
+			goto done;
 		}
 
 		if ( fi.type != PR_FILE_DIRECTORY ) {
 			Debug( LDAP_DEBUG_ANY,
 				   "TLS: error: the CA certificate directory %s is not a directory.\n",
 				   cacertdir, 0 ,0 );
-			return -1;
+			goto done;
 		}
 
 		dir = PR_OpenDir( cacertdir );
 		if ( NULL == dir ) {
-			PRErrorCode errcode = PR_GetError();
+			errcode = PR_GetError();
 			Debug( LDAP_DEBUG_ANY,
 				   "TLS: could not open the CA certificate directory %s - error %d:%s.\n",
 				   cacertdir, errcode,
 				   PR_ErrorToString( errcode, PR_LANGUAGE_I_DEFAULT ) );
-			return -1;
+			goto done;
 		}
 
-		status = -1;
 		do {
 			entry = PR_ReadDir( dir, PR_SKIP_BOTH | PR_SKIP_HIDDEN );
 			if ( NULL != entry ) {
 				char *fullpath = PR_smprintf( "%s/%s", cacertdir, entry->name );
 				if ( !tlsm_add_cert_from_file( ctx, fullpath, isca ) ) {
-					status = 0; /* found at least 1 valid CA file in the dir */
+					Debug( LDAP_DEBUG_TRACE,
+						   "TLS: loaded CA certificate file %s from CA certificate directory %s.\n",
+						   fullpath, cacertdir, 0 );
+					status = PR_SUCCESS; /* found at least 1 valid CA file in the dir */
+				} else {
+					errcode = PR_GetError();
+					Debug( LDAP_DEBUG_TRACE,
+						   "TLS: %s is not a valid CA certificate file - error %d:%s.\n",
+						   fullpath, errcode,
+						   PR_ErrorToString( errcode, PR_LANGUAGE_I_DEFAULT ) );
 				}
 				PR_smprintf_free( fullpath );
 			}
 		} while ( NULL != entry );
 		PR_CloseDir( dir );
-
-		if ( status ) {
-			PRErrorCode errcode = PR_GetError();
-			Debug( LDAP_DEBUG_ANY,
-				   "TLS: did not find any valid CA certificate files in the CA certificate directory %s - error %d:%s.\n",
-				   cacertdir, errcode,
-				   PR_ErrorToString( errcode, PR_LANGUAGE_I_DEFAULT ) );
-			return -1;
+	}
+done:
+	if ( status != PR_SUCCESS ) {
+		const char *fmtstr = NULL;
+		if ( cacertfile && cacertdir ) {
+			fmtstr = "TLS: did not find any valid CA certificates in %s or %s\n";
+		} else {
+			fmtstr = "TLS: did not find any valid CA certificates in %s%s\n";
 		}
+		Debug( LDAP_DEBUG_ANY, fmtstr, cacertdir ? cacertdir : "",
+			   cacertfile ? cacertfile : "", 0 );
+		return -1;
 	}
 
 	return 0;
