@@ -826,7 +826,7 @@ ndb_operational(
 
 	assert( rs->sr_entry != NULL );
 
-	for ( ap = &rs->sr_operational_attrs; *ap; ap = &(*ap)->a_next )
+	for ( ap = &rs->sr_operational_attrs; *ap; ap = &(*ap)->a_next ) {
 		if ( (*ap)->a_desc == slap_schema.si_ad_hasSubordinates ) {
 			break;
 		}
