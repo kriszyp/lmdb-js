@@ -198,6 +198,14 @@ EOF
 	fi
 done
 
+syncprov_module=''
+[ "$AC_syncprov" = syncprovmod ] && syncprov_module='
+dn: cn=module,cn=config
+objectClass: olcModuleList
+cn: module
+olcModulePath: ../../../servers/slapd/overlays
+olcModuleLoad: syncprov.la'
+
 for uri in $PROV_URI; do
 	echo "Adding database configuration on $uri"
 	$LDAPADD -D cn=config -H $uri -y $CONFIGPWF <<EOF > $TESTOUT 2>&1
@@ -211,11 +219,7 @@ olcSuffix: $BASEDN
 olcRootDN: $MANAGERDN
 olcRootPW: $PASSWD
 
-dn: cn=module,cn=config
-objectClass: olcModuleList
-cn: module
-olcModulePath: ../../../servers/slapd/overlays
-olcModuleLoad: syncprov.la
+$syncprov_module
 
 dn: olcOverlay={0}syncprov,olcDatabase={1}$BACKEND,cn=config
 objectClass: olcOverlayConfig
@@ -265,11 +269,7 @@ olcSyncRepl: rid=1 provider=$PROV_URI searchbase="$BASEDN"
   binddn="$MANAGERDN" bindmethod=simple credentials=$PASSWD
   type=refreshAndPersist retry="$RETRY" timeout=1
 
-dn: cn=module,cn=config
-objectClass: olcModuleList
-cn: module
-olcModulePath: ../../../servers/slapd/overlays
-olcModuleLoad: syncprov.la
+$syncprov_module
 
 dn: olcOverlay={0}syncprov,olcDatabase={1}$BACKEND,cn=config
 objectClass: olcOverlayConfig
