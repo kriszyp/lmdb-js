@@ -1205,7 +1205,10 @@ ldap_int_sasl_bind(
 	LDAPControl		**cctrls,
 	unsigned		flags,
 	LDAP_SASL_INTERACT_PROC *interact,
-	void * defaults )
+	void			*defaults,
+	LDAPMessage		*result,
+	const char		**rmech,
+	int				*msgid )
 { return LDAP_NOT_SUPPORTED; }
 
 int
