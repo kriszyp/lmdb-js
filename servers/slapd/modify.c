@@ -684,7 +684,7 @@ slap_sort_vals(
 	AttributeDescription *ad;
 	MatchingRule *mr;
 	int istack[sizeof(int)*16];
-	int i, j, k, l, ir, jstack, match, *ix, itmp, nvals, rc;
+	int i, j, k, l, ir, jstack, match, *ix, itmp, nvals, rc = LDAP_SUCCESS;
 	int is_norm;
 	struct berval a, *cv;
 
@@ -705,6 +705,8 @@ slap_sort_vals(
 
 	ad = ml->sml_desc;
 	nvals = ml->sml_numvals;
+	if ( nvals <= 1 )
+		goto ret;
 
 	/* For Modifications, sml_nvalues is NULL if normalization wasn't needed.
 	 * For Attributes, sml_nvalues == sml_values when normalization isn't needed.
@@ -834,15 +836,14 @@ slap_sort_vals(
 
 	slap_sl_free( ix, ctx );
 
-	if ( rc != LDAP_SUCCESS ) {
-		return rc;
-	} else if ( match == 0 ) {
+	if ( rc == LDAP_SUCCESS && match == 0 ) {
 		/* value exists already */
 		assert( i >= 0 );
 		assert( i < nvals );
-		return LDAP_TYPE_OR_VALUE_EXISTS;
+		rc = LDAP_TYPE_OR_VALUE_EXISTS;
 	}
-	return LDAP_SUCCESS;
+ ret:
+	return rc;
 }
 
 /* Enter with bv->bv_len = sizeof buffer, returns with
