@@ -49,6 +49,8 @@ DIRS="$PROV_DIR $CONS_DIR $FWD1_DIR"
 URIS="$PROV_URI $CONS_URI $FWD1_URI"
 
 noObj=32
+nullExclude="" nullOK=""
+test $BACKEND = null && nullExclude="# " nullOK="OK" noObj=0
 
 mkdir -p $TESTDIR
 
@@ -213,7 +215,7 @@ dn: olcDatabase={1}$BACKEND,cn=config
 objectClass: olcDatabaseConfig
 objectClass: olc${BACKEND}Config
 olcDatabase: {1}$BACKEND
-olcDbDirectory: ./db
+${nullExclude}olcDbDirectory: ./db
 $olcDbCheckpoint: 1024 5
 olcSuffix: $BASEDN
 olcRootDN: $MANAGERDN
@@ -260,7 +262,7 @@ dn: olcDatabase={1}$BACKEND,cn=config
 objectClass: olcDatabaseConfig
 objectClass: olc${BACKEND}Config
 olcDatabase: {1}$BACKEND
-olcDbDirectory: ./db
+${nullExclude}olcDbDirectory: ./db
 $olcDbCheckpoint: 1024 5
 olcSuffix: $BASEDN
 olcRootDN: $MANAGERDN
@@ -293,7 +295,7 @@ dn: olcDatabase={1}$BACKEND,cn=config
 objectClass: olcDatabaseConfig
 objectClass: olc${BACKEND}Config
 olcDatabase: {1}$BACKEND
-olcDbDirectory: ./db
+${nullExclude}olcDbDirectory: ./db
 $olcDbCheckpoint: 1024 5
 olcSuffix: $BASEDN
 olcRootDN: $MANAGERDN
@@ -406,7 +408,7 @@ EOF
 			for j in 1 2 3 4 5; do
 				RESULT=`$LDAPSEARCH -H $uri -s base -b "ou=$i,$BASEDN" 2>&1 \
 					| awk '/^dn:/ {print "OK"}'`
-				if test "x$RESULT" = "xOK" ; then
+				if test "x$RESULT$nullOK" = "xOK" ; then
 					RC=0
 					break
 				fi
@@ -515,7 +517,7 @@ EOF
 			for j in 1 2 3 4 5; do
 				RESULT=`$LDAPSEARCH -H $uri -s base -b "ou=$i,$BASEDN" 2>&1 \
 					| awk '/^dn:/ {print "OK"}'`
-				if test "x$RESULT" = "xOK" ; then
+				if test "x$RESULT$nullOK" = "xOK" ; then
 					RC=0
 					break
 				fi
@@ -624,6 +626,7 @@ EOF
 	CSN3=`$LDAPSEARCH -H $URI3 -b $BASEDN -s base contextCSN | grep contextCSN`
 
 	if test -z "$CSN1" ; then
+		test $BACKEND = null && break
 		echo "ERROR: contextCSN empty on provider"
 		ERROR=1
 		break
