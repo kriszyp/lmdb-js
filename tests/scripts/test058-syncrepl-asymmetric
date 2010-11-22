@@ -112,7 +112,7 @@
 # iterations the script should perform.
 
 if test "$BACKEND" = ldif ; then
-	echo "$backend backend does not support access controls, test skipped"
+	echo "$BACKEND backend does not support access controls, test skipped"
 	exit 0
 fi
 
