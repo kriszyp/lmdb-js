@@ -293,7 +293,7 @@ attr_valfind(
 	MatchingRule *mr;
 	const char *text;
 	int match = -1, rc;
-	unsigned i;
+	unsigned i, n;
 
 	if ( flags & SLAP_MR_ORDERING )
 		mr = a->a_desc->ad_type->sat_ordering;
@@ -316,9 +316,10 @@ attr_valfind(
 		cval = val;
 	}
 
+	n = a->a_numvals;
 	if ( a->a_flags & SLAP_ATTR_SORTED_VALS ) {
 		/* Binary search */
-		unsigned base = 0, n = a->a_numvals;
+		unsigned base = 0;
 
 		while ( 0 < n ) {
 			unsigned pivot = n >> 1;
@@ -338,7 +339,7 @@ attr_valfind(
 			i++;
 	} else {
 	/* Linear search */
-		for ( i = 0; i < a->a_numvals; i++ ) {
+		for ( i = 0; i < n; i++ ) {
 			const char *text;
 
 			rc = ordered_value_match( &match, a->a_desc, mr, flags,
@@ -347,10 +348,10 @@ attr_valfind(
 				break;
 		}
 	}
-	if ( slot )
-		*slot = i;
 	if ( match )
 		rc = LDAP_NO_SUCH_ATTRIBUTE;
+	if ( slot )
+		*slot = i;
 	if ( nval.bv_val )
 		slap_sl_free( nval.bv_val, ctx );
 
