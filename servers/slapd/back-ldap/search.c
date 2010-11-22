@@ -790,7 +790,7 @@ ldap_build_entry(
 					rc = LDAP_SUCCESS;
 
 				} else {
-					LBER_FREE( attr->a_vals[i].bv_val );
+					ber_memfree( attr->a_vals[i].bv_val );
 					if ( --last == i ) {
 						BER_BVZERO( &attr->a_vals[i] );
 						break;
@@ -802,7 +802,7 @@ ldap_build_entry(
 			}
 
 			if ( rc == LDAP_SUCCESS && pretty ) {
-				LBER_FREE( attr->a_vals[i].bv_val );
+				ber_memfree( attr->a_vals[i].bv_val );
 				attr->a_vals[i] = pval;
 			}
 		}
@@ -828,7 +828,7 @@ ldap_build_entry(
 					NULL );
 
 				if ( rc != LDAP_SUCCESS ) {
-					LBER_FREE( attr->a_vals[i].bv_val );
+					ber_memfree( attr->a_vals[i].bv_val );
 					if ( --last == i ) {
 						BER_BVZERO( &attr->a_vals[i] );
 						break;
@@ -859,8 +859,8 @@ ldap_build_entry(
 
 				/* Strip duplicate values */
 				if ( attr->a_nvals != attr->a_vals )
-					LBER_FREE( attr->a_nvals[i].bv_val );
-				LBER_FREE( attr->a_vals[i].bv_val );
+					ber_memfree( attr->a_nvals[i].bv_val );
+				ber_memfree( attr->a_vals[i].bv_val );
 				attr->a_numvals--;
 
 				assert( i >= 0 );

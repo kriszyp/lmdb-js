@@ -2098,7 +2098,7 @@ remove_oc:;
 				}
 
 				if ( rc ) {
-					LBER_FREE( attr->a_vals[i].bv_val );
+					ber_memfree( attr->a_vals[i].bv_val );
 					if ( --last == i ) {
 						BER_BVZERO( &attr->a_vals[ i ] );
 						break;
@@ -2110,7 +2110,7 @@ remove_oc:;
 				}
 
 				if ( pretty ) {
-					LBER_FREE( attr->a_vals[i].bv_val );
+					ber_memfree( attr->a_vals[i].bv_val );
 					attr->a_vals[i] = pval;
 				}
 			}
@@ -2135,7 +2135,7 @@ remove_oc:;
 					attr->a_desc->ad_type->sat_equality,
 					&attr->a_vals[i], &attr->a_nvals[i],
 					NULL )) {
-					LBER_FREE( attr->a_vals[i].bv_val );
+					ber_memfree( attr->a_vals[i].bv_val );
 					if ( --last == i ) {
 						BER_BVZERO( &attr->a_vals[ i ] );
 						break;
@@ -2217,8 +2217,8 @@ next_attr:;
 
 					/* Strip duplicate values */
 					if ( attr->a_nvals != attr->a_vals )
-						LBER_FREE( attr->a_nvals[i].bv_val );
-					LBER_FREE( attr->a_vals[i].bv_val );
+						ber_memfree( attr->a_nvals[i].bv_val );
+					ber_memfree( attr->a_vals[i].bv_val );
 					attr->a_numvals--;
 					if ( (unsigned)i < attr->a_numvals ) {
 						attr->a_vals[i] = attr->a_vals[attr->a_numvals];
