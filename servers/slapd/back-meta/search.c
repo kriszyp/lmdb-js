@@ -1848,7 +1848,7 @@ meta_send_entry(
 	int			check_duplicate_attrs = 0;
 	int			check_sorted_attrs = 0;
 	Entry 			ent = { 0 };
-	BerElement 		ber = *e->lm_ber;
+	BerElement 		ber = *ldap_get_message_ber( e );
 	Attribute 		*attr, **attrp;
 	struct berval 		bdn,
 				dn = BER_BVNULL;

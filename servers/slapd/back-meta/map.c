@@ -769,7 +769,7 @@ ldap_back_referral_result_rewrite(
 
 				ber_memfree_x( a_vals[ i ].bv_val, memctx );
 				ber_str2bv_x( newurl, 0, 1, &a_vals[ i ], memctx );
-				LDAP_FREE( newurl );
+				ber_memfree( newurl );
 				ludp->lud_dn = olddn.bv_val;
 			}
 			break;
