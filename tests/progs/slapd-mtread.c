@@ -82,6 +82,7 @@ int	rt_pass[MAX_THREAD];
 int	rt_fail[MAX_THREAD];
 int	rwt_pass[MAX_THREAD];
 int	rwt_fail[MAX_THREAD];
+ldap_pvt_thread_t	rtid[MAX_THREAD], rwtid[MAX_THREAD];
 
 /*
  * Shared globals (command line args)
@@ -174,7 +175,6 @@ main( int argc, char **argv )
 	int		port = -1;
 	char		*manager = NULL;
 	struct berval	passwd = { 0, NULL };
-	ldap_pvt_thread_t	rtid[MAX_THREAD], rwtid[MAX_THREAD];
 	char		outstr[BUFSIZ];
 	int		ptpass;
 	int		testfail = 0;
@@ -342,13 +342,13 @@ main( int argc, char **argv )
 
 	/* Set up read only threads */
 	for ( i = 0; i < threads; i++ ) {
-		ldap_pvt_thread_create( &rtid[i], 0, do_onethread, (void*)i);
+		ldap_pvt_thread_create( &rtid[i], 0, do_onethread, &rtid[i]);
 		snprintf(outstr, BUFSIZ, "Created RO thread %d [%d]", i, (int)rtid[i]);
 		thread_verbose(outstr);
 	}
 	/* Set up read/write threads */
 	for ( i = 0; i < rwthreads; i++ ) {
-		ldap_pvt_thread_create( &rwtid[i], 0, do_onerwthread, (void*)i);
+		ldap_pvt_thread_create( &rwtid[i], 0, do_onerwthread, &rwtid[i]);
 		snprintf(outstr, BUFSIZ, "Created RW thread %d [%d]", i, (int)rwtid[i]);
 		thread_verbose(outstr);
 	}
@@ -405,7 +405,7 @@ do_onethread( void *arg )
 	int		me = whoami();
 	char		thrstr[BUFSIZ];
 	int		rc, refcnt = 0;
-	int		myidx = (int)arg;
+	int		myidx = (ldap_pvt_thread_t *)arg - rtid;
 
 	mlds = (LDAP **) calloc( sizeof(LDAP *), noconns);
 	if (mlds == NULL) {
@@ -472,7 +472,7 @@ do_onerwthread( void *arg )
 	int		adds = 0;
 	int		dels = 0;
 	int		rc, refcnt = 0;
-	int		myidx = (int)arg;
+	int		myidx = (ldap_pvt_thread_t *)arg - rwtid;
 
 	mlds = (LDAP **) calloc( sizeof(LDAP *), noconns);
 	if (mlds == NULL) {
