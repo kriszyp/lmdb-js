@@ -564,11 +564,9 @@ lutil_atoulx( unsigned long *v, const char *s, int x )
 		return -1;
 	}
 
-//#ifdef ULONG_MAX
 	if ( ( ul == 0 || ul == ULONG_MAX ) && save_errno != 0 ) {
 		return -1;
 	}
-//#endif /* ULONG_MAX */
 
 	*v = ul;
 
