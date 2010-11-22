@@ -343,13 +343,13 @@ main( int argc, char **argv )
 	/* Set up read only threads */
 	for ( i = 0; i < threads; i++ ) {
 		ldap_pvt_thread_create( &rtid[i], 0, do_onethread, (void*)i);
-		snprintf(outstr, BUFSIZ, "Created RO thread %d [%d]", i, rtid[i]);
+		snprintf(outstr, BUFSIZ, "Created RO thread %d [%d]", i, (int)rtid[i]);
 		thread_verbose(outstr);
 	}
 	/* Set up read/write threads */
 	for ( i = 0; i < rwthreads; i++ ) {
 		ldap_pvt_thread_create( &rwtid[i], 0, do_onerwthread, (void*)i);
-		snprintf(outstr, BUFSIZ, "Created RW thread %d [%d]", i, rwtid[i]);
+		snprintf(outstr, BUFSIZ, "Created RW thread %d [%d]", i, (int)rwtid[i]);
 		thread_verbose(outstr);
 	}
 
@@ -684,7 +684,7 @@ do_random( LDAP *ld,
 		}
 		for( i = 0; i < nvalues; i++) {
 			if (values[i] != NULL)
-				free( values[i] );
+				ldap_memfree( values[i] );
 		}
 		free( values );
 		break;
@@ -714,8 +714,8 @@ retry:;
 		thread_verbose( thrstr );
 	}
 
-	snprintf(thrstr, BUFSIZ, "tid: %d LD %x cnt: %d (retried %d) (%s)", \
-		 whoami(), ld, maxloop, (do_retry - maxretries), entry);
+	snprintf(thrstr, BUFSIZ, "tid: %d LD %p cnt: %d (retried %d) (%s)", \
+		 whoami(), (void *) ld, maxloop, (do_retry - maxretries), entry);
 	thread_verbose( thrstr );
 
 	for ( ; i < maxloop; i++ ) {
