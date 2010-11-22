@@ -317,11 +317,11 @@ attr_valfind(
 	}
 
 	n = a->a_numvals;
-	if ( a->a_flags & SLAP_ATTR_SORTED_VALS ) {
+	if ( (a->a_flags & SLAP_ATTR_SORTED_VALS) && n ) {
 		/* Binary search */
 		unsigned base = 0;
 
-		while ( 0 < n ) {
+		do {
 			unsigned pivot = n >> 1;
 			i = base + pivot;
 			rc = value_match( &match, a->a_desc, mr, flags,
@@ -334,7 +334,7 @@ attr_valfind(
 			} else {
 				n = pivot;
 			}
-		}
+		} while ( n );
 		if ( match < 0 )
 			i++;
 	} else {
