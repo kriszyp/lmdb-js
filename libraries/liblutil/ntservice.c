@@ -31,9 +31,7 @@
 
 #include <ldap.h>
 
-#include "ldap_log.h"
 #include "ldap_pvt_thread.h"
-
 
 #include "ldap_defaults.h"
 
