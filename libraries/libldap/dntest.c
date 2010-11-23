@@ -81,11 +81,9 @@ main( int argc, char *argv[] )
 	}
 
 	if ( strcmp( argv[ 1 ], "-" ) == 0 ) {
-		size_t len;
-		
-		fgets( buf, sizeof( buf ), stdin );
-		len = strlen( buf );
-		if ( len > 0 && buf[ --len ] == '\n' ) {
+		size_t len = fgets( buf, sizeof( buf ), stdin ) ? strlen( buf ) : 0;
+
+		if ( len == 0 || buf[ --len ] == '\n' ) {
 			buf[ len ] = '\0';
 		}
 		strin = buf;
@@ -296,4 +294,3 @@ main( int argc, char *argv[] )
 
 	return( 0 );
 }
-

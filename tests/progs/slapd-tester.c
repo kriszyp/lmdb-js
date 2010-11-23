@@ -990,7 +990,8 @@ get_search_filters( char *filename, char *filters[], char *attrs[], char *bases[
 			} else {
 				bases[filter] = ArgDup( line );
 			}
-			fgets( line, BUFSIZ, fp );
+			if ( fgets( line, BUFSIZ, fp ) == NULL )
+				*line = '\0';
 			if (( nl = strchr( line, '\r' )) || ( nl = strchr( line, '\n' )))
 				*nl = '\0';
 
