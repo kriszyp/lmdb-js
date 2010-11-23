@@ -2339,8 +2339,7 @@ retry:
 		rs->sr_err = ldap_whoami( lc->lc_ld, ctrls, NULL, &msgid );
 		if ( rs->sr_err == LDAP_SUCCESS ) {
 			/* by now, make sure no timeout is used (ITS#6282) */
-			struct timeval tv;
-			tv.tv_sec = -1;
+			struct timeval tv = { -1, 0 };
 			if ( ldap_result( lc->lc_ld, msgid, LDAP_MSG_ALL, &tv, &res ) == -1 ) {
 				ldap_get_option( lc->lc_ld, LDAP_OPT_ERROR_NUMBER,
 					&rs->sr_err );
