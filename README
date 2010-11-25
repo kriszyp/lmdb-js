@@ -19,8 +19,8 @@ REQUIRED SOFTWARE
         Reentrant POSIX REGEX software (required)
 
     SLAPD:
-        BDB and HDB backends require Oracle Berkeley DB 4.4, 4.5,
-        4.6, 4.7, or 4.8.  It is highly recommended to apply the
+        BDB and HDB backends require Oracle Berkeley DB 4.4 - 4.8,
+		or 5.0 - 5.1.  It is highly recommended to apply the
         patches from Oracle for a given release.
 
     CLIENTS/CONTRIB ware:
