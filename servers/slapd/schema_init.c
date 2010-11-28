@@ -55,7 +55,7 @@
  *
  *   EQUALITY rules may order values differently than ORDERING rules for
  *   speed, since EQUALITY ordering is only used for SLAP_AT_SORTED_VAL.
- *   Some EQUALITY rules do not order values (ITS#????).
+ *   Some EQUALITY rules do not order values (ITS#6722).
  *
  * Indexer function(...attribute values, *output keysp,...):
  *   Generates index keys for the attribute values.  Backends can store
