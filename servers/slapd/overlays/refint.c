@@ -55,6 +55,7 @@ typedef struct refint_attrs_s {
 	BerVarray		new_vals;
 	BerVarray		new_nvals;
 	int				ra_numvals;
+	int				dont_empty;
 } refint_attrs;
 
 typedef struct dependents_s {
@@ -415,8 +416,7 @@ refint_search_cb(
 	**	if this attr exists in the search result,
 	**	and it has a value matching the target:
 	**		allocate an attr;
-	**		if this is a delete and there's only one value:
-	**			allocate the same attr again;
+	**		handle olcRefintNothing;
 	**
 	*/
 
@@ -433,8 +433,6 @@ refint_search_cb(
 			na = NULL;
 
 			for(i = 0, b = a->a_nvals; b[i].bv_val; i++) {
-				count++;
-
 				if(dnIsSuffix(&b[i], &rq->oldndn)) {
 					/* first match? create structure */
 					if ( na == NULL ) {
@@ -512,23 +510,14 @@ refint_search_cb(
 						deleted++;
 					}
 				}
-
-				/* If this is a delete and no value would be left, and
-				 * we have a nothing DN configured, allocate the attr again.
-				 */
-				if ( count == deleted && !BER_BVISNULL(&dd->nothing) )
-				{
-					na = op->o_tmpcalloc( 1,
-						sizeof( refint_attrs ),
-						op->o_tmpmemctx );
-					na->next = ip->attrs;
-					ip->attrs = na;
-					na->attr = ia->attr;
-				}
-
-				Debug( LDAP_DEBUG_TRACE, "refint_search_cb: %s: %s (#%d)\n",
-					a->a_desc->ad_cname.bv_val, rq->olddn.bv_val, count );
 			}
+
+			/* Deleting/replacing all values and a nothing DN is configured? */
+			if ( deleted == i && na && !BER_BVISNULL(&dd->nothing) )
+				na->dont_empty = 1;
+
+			Debug( LDAP_DEBUG_TRACE, "refint_search_cb: %s: %s (#%d)\n",
+				a->a_desc->ad_cname.bv_val, rq->olddn.bv_val, i );
 		}
 	}
 
@@ -621,9 +610,9 @@ refint_repair(
 				m->sml_values[0] = id->refint_dn;
 				m->sml_nvalues[0] = id->refint_ndn;
 			}
-			if ( !BER_BVISEMPTY( &rq->newdn ) || ( ra->next &&
-				ra->attr == ra->next->attr ) )
-			{
+
+			/* Add values */
+			if ( ra->dont_empty || !BER_BVISEMPTY( &rq->newdn ) ) {
 				len = sizeof(Modifications);
 
 				if ( ra->new_vals == NULL ) {
@@ -657,11 +646,11 @@ refint_repair(
 				}
 			}
 
+			/* Delete values */
 			len = sizeof(Modifications);
 			if ( ra->old_vals == NULL ) {
 				len += 4*sizeof(BerValue);
 			}
-
 			m = op2.o_tmpalloc( len, op2.o_tmpmemctx );
 			m->sml_next = op2.orm_modlist;
 			op2.orm_modlist = m;
