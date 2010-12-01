@@ -566,9 +566,11 @@ refint_repair(
 
 	for ( dp = rq->attrs; dp; dp = dp->next ) {
 		Operation	op2 = *op;
-		SlapReply	rs2 = { 0 };
+		SlapReply	rs2 = {REP_RESULT};
 		refint_attrs	*ra;
 		Modifications	*m;
+
+		if ( dp->attrs == NULL ) continue; /* TODO: Is this needed? */
 
 		op2.o_tag = LDAP_REQ_MODIFY;
 		op2.orm_modlist = NULL;
@@ -582,12 +584,8 @@ refint_repair(
 			continue;
 		}
 
-		rs2.sr_type = REP_RESULT;
-		for ( ra = dp->attrs; ra; ra = ra->next ) {
-			size_t	len;
-
-			/* Set our ModifiersName */
-			if ( SLAP_LASTMOD( op->o_bd ) ) {
+		/* Set our ModifiersName */
+		if ( SLAP_LASTMOD( op->o_bd ) ) {
 				m = op2.o_tmpalloc( sizeof(Modifications) +
 					4*sizeof(BerValue), op2.o_tmpmemctx );
 				m->sml_next = op2.orm_modlist;
@@ -603,7 +601,10 @@ refint_repair(
 				BER_BVZERO( &m->sml_nvalues[1] );
 				m->sml_values[0] = id->refint_dn;
 				m->sml_nvalues[0] = id->refint_ndn;
-			}
+		}
+
+		for ( ra = dp->attrs; ra; ra = ra->next ) {
+			size_t	len;
 
 			/* Add values */
 			if ( ra->dont_empty || !BER_BVISEMPTY( &rq->newdn ) ) {
