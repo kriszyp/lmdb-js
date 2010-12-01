@@ -548,7 +548,7 @@ slap_auxprop_store(
 					op.o_req_ndn.bv_val = (char *)pr[i].values[0];
 			}
 #ifdef SLAP_AUXPROP_DONTUSECOPY
-			{
+			if ( slap_dontUseCopy_propnames != NULL ) {
 				struct berval bv;
 				ber_str2bv( &pr[i].name[1], 0, 1, &bv );
 				for ( j = 0; !BER_BVISNULL( &slap_dontUseCopy_propnames[ j ] ); j++ ) {
