@@ -31,6 +31,12 @@ attribute containing that DN.
 Entries matching that search would have their
 .B manager
 attribute deleted and replaced by the new DN.
+.LP
+.B rootdn
+must be set for the database.  refint runs as the rootdn
+to gain access to make its updates.
+.B rootpw
+is not needed.
 .SH CONFIGURATION
 These
 .B slapd.conf
