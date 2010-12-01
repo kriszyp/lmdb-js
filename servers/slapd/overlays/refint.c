@@ -416,6 +416,8 @@ refint_search_cb(
 	**	if this attr exists in the search result,
 	**	and it has a value matching the target:
 	**		allocate an attr;
+	**		save/build DNs of any subordinate matches;
+	**		handle special case: found exact + subordinate match;
 	**		handle olcRefintNothing;
 	**
 	*/
@@ -428,12 +430,20 @@ refint_search_cb(
 	ip->attrs = NULL;
 	for(ia = da; ia; ia = ia->next) {
 		if ( (a = attr_find(rs->sr_entry->e_attrs, ia->attr) ) ) {
-			int		first = -1, count = 0, deleted = 0;
+			int exact = -1, is_exact;
 
 			na = NULL;
 
 			for(i = 0, b = a->a_nvals; b[i].bv_val; i++) {
 				if(dnIsSuffix(&b[i], &rq->oldndn)) {
+					is_exact = b[i].bv_len == rq->oldndn.bv_len;
+
+					/* Paranoia: skip buggy duplicate exact match,
+					 * it would break ra_numvals
+					 */
+					if ( is_exact && exact >= 0 )
+						continue;
+
 					/* first match? create structure */
 					if ( na == NULL ) {
 						na = op->o_tmpcalloc( 1,
@@ -442,78 +452,62 @@ refint_search_cb(
 						na->next = ip->attrs;
 						ip->attrs = na;
 						na->attr = ia->attr;
-
-						/* delete, or exact match? note it's first match */
-						if ( BER_BVISEMPTY( &rq->newdn ) &&
-							b[i].bv_len == rq->oldndn.bv_len )
-						{
-							first = i;
-						}
 					}
 
-					/* if it's a rename, or a subordinate match,
-					 * save old and build new dn */
-					if ( !BER_BVISEMPTY( &rq->newdn ) &&
-						b[i].bv_len != rq->oldndn.bv_len )
-					{
+					na->ra_numvals++;
+
+					if ( is_exact ) {
+						/* Exact match: refint_repair will deduce the DNs */
+						exact = i;
+
+					} else {
+						/* Subordinate match */
 						struct berval	newsub, newdn, olddn, oldndn;
 
-						/* if not first, save first as well */
-						if ( first != -1 ) {
-
-							ber_dupbv_x( &olddn, &a->a_vals[first], op->o_tmpmemctx );
-							ber_bvarray_add_x( &na->old_vals, &olddn, op->o_tmpmemctx );
-							ber_dupbv_x( &oldndn, &a->a_nvals[first], op->o_tmpmemctx );
-							ber_bvarray_add_x( &na->old_nvals, &oldndn, op->o_tmpmemctx );
-							na->ra_numvals++;
-
-							newsub = a->a_vals[first];
-							newsub.bv_len -= rq->olddn.bv_len + 1;
-
-							build_new_dn( &newdn, &rq->newdn, &newsub, op->o_tmpmemctx );
-
-							ber_bvarray_add_x( &na->new_vals, &newdn, op->o_tmpmemctx );
-
-							newsub = a->a_nvals[first];
-							newsub.bv_len -= rq->oldndn.bv_len + 1;
-
-							build_new_dn( &newdn, &rq->newndn, &newsub, op->o_tmpmemctx );
-
-							ber_bvarray_add_x( &na->new_nvals, &newdn, op->o_tmpmemctx );
-							
-							first = -1;
-						}
-
+						/* Save old DN */
 						ber_dupbv_x( &olddn, &a->a_vals[i], op->o_tmpmemctx );
 						ber_bvarray_add_x( &na->old_vals, &olddn, op->o_tmpmemctx );
+
 						ber_dupbv_x( &oldndn, &a->a_nvals[i], op->o_tmpmemctx );
 						ber_bvarray_add_x( &na->old_nvals, &oldndn, op->o_tmpmemctx );
-						na->ra_numvals++;
 
+						if ( BER_BVISEMPTY( &rq->newdn ) )
+							continue;
+
+						/* Rename subordinate match: Build new DN */
 						newsub = a->a_vals[i];
 						newsub.bv_len -= rq->olddn.bv_len + 1;
-
 						build_new_dn( &newdn, &rq->newdn, &newsub, op->o_tmpmemctx );
-
 						ber_bvarray_add_x( &na->new_vals, &newdn, op->o_tmpmemctx );
 
 						newsub = a->a_nvals[i];
 						newsub.bv_len -= rq->oldndn.bv_len + 1;
-
 						build_new_dn( &newdn, &rq->newndn, &newsub, op->o_tmpmemctx );
-
 						ber_bvarray_add_x( &na->new_nvals, &newdn, op->o_tmpmemctx );
-					}
-
-					/* count deletes */
-					if ( BER_BVISEMPTY( &rq->newdn ) ) {
-						deleted++;
 					}
 				}
 			}
 
+			/* If we got both subordinate and exact match,
+			 * refint_repair won't special-case the exact match */
+			if ( exact >= 0 && na->old_vals ) {
+				struct berval	dn;
+
+				ber_dupbv_x( &dn, &a->a_vals[exact], op->o_tmpmemctx );
+				ber_bvarray_add_x( &na->old_vals, &dn, op->o_tmpmemctx );
+				ber_dupbv_x( &dn, &a->a_nvals[exact], op->o_tmpmemctx );
+				ber_bvarray_add_x( &na->old_nvals, &dn, op->o_tmpmemctx );
+
+				if ( !BER_BVISEMPTY( &rq->newdn ) ) {
+					ber_dupbv_x( &dn, &rq->newdn, op->o_tmpmemctx );
+					ber_bvarray_add_x( &na->new_vals, &dn, op->o_tmpmemctx );
+					ber_dupbv_x( &dn, &rq->newndn, op->o_tmpmemctx );
+					ber_bvarray_add_x( &na->new_nvals, &dn, op->o_tmpmemctx );
+				}
+			}
+
 			/* Deleting/replacing all values and a nothing DN is configured? */
-			if ( deleted == i && na && !BER_BVISNULL(&dd->nothing) )
+			if ( na && na->ra_numvals == i && !BER_BVISNULL(&dd->nothing) )
 				na->dont_empty = 1;
 
 			Debug( LDAP_DEBUG_TRACE, "refint_search_cb: %s: %s (#%d)\n",
