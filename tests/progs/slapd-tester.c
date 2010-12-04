@@ -1060,6 +1060,9 @@ get_read_entries( char *filename, char *entries[], char *filters[] )
 				ldap_free_urldesc( lud );
 
 			} else {
+				if ( filters != NULL )
+					filters[entry] = NULL;
+
 				entries[entry] = ArgDup( line );
 			}
 
