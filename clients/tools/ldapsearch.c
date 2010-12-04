@@ -1350,8 +1350,10 @@ getNextPage:
 	if ( derefval.bv_val != NULL ) {
 		ldap_memfree( derefval.bv_val );
 	}
-	if ( def_urlpre != NULL ) {
-		ber_memfree( def_urlpre );
+	if ( urlpre != NULL ) {
+		if ( def_urlpre != urlpre )
+			free( def_urlpre );
+		free( urlpre );
 	}
 
 	if ( c ) {
@@ -1906,4 +1908,3 @@ static int print_result(
 
 	return err;
 }
-
