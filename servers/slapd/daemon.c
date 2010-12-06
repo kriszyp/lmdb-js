@@ -83,6 +83,7 @@ int slapd_tcp_wmem;
 #endif /* LDAP_TCP_BUFFER */
 
 Listener **slap_listeners = NULL;
+static volatile sig_atomic_t listening = 1; /* 0 when slap_listeners closed */
 
 #ifndef SLAPD_LISTEN_BACKLOG
 #define SLAPD_LISTEN_BACKLOG 1024
@@ -907,7 +908,7 @@ slapd_remove(
 	 * the select() loop. Now that we're removing a session from our
 	 * control, we can try to resume a dropped listener to use.
 	 */
-	if ( emfile ) {
+	if ( emfile && listening ) {
 		int i;
 		for ( i = 0; slap_listeners[i] != NULL; i++ ) {
 			Listener *lr = slap_listeners[i];
@@ -1739,9 +1740,12 @@ close_listeners(
 {
 	int l;
 
+	if ( !listening )
+		return;
+	listening = 0;
+
 	for ( l = 0; slap_listeners[l] != NULL; l++ ) {
 		Listener *lr = slap_listeners[l];
-		slap_listeners[l] = NULL;
 
 		if ( lr->sl_sd != AC_SOCKET_INVALID ) {
 			int s = lr->sl_sd;
@@ -1756,7 +1760,18 @@ close_listeners(
 
 			slapd_close( s );
 		}
+	}
+}
 
+static void
+destroy_listeners( void )
+{
+	Listener *lr, **ll = slap_listeners;
+
+	if ( ll == NULL )
+		return;
+
+	while ( (lr = *ll++) != NULL ) {
 		if ( lr->sl_url.bv_val ) {
 			ber_memfree( lr->sl_url.bv_val );
 		}
@@ -1767,6 +1782,9 @@ close_listeners(
 
 		free( lr );
 	}
+
+	free( slap_listeners );
+	slap_listeners = NULL;
 }
 
 static int
@@ -2408,6 +2426,7 @@ loop:
 
 		nwriters = slap_daemon[tid].sd_nwriters;
 
+		if ( listening )
 		for ( l = 0; slap_listeners[l] != NULL; l++ ) {
 			Listener *lr = slap_listeners[l];
 
@@ -2566,6 +2585,7 @@ loop:
 		 * true for Unix select and poll. We treat Windows select
 		 * like this too, even though it's a kludge.
 		 */
+		if ( listening )
 		for ( l = 0; slap_listeners[l] != NULL; l++ ) {
 			int rc;
 
@@ -2807,7 +2827,7 @@ loop:
 		       0, 0, 0 );
 	}
 
-	if ( slapd_gentle_shutdown != 2 ) close_listeners ( 0 );
+	close_listeners( 0 );
 
 	if ( !slapd_gentle_shutdown ) {
 		slapd_abrupt_shutdown = 1;
@@ -2821,9 +2841,6 @@ loop:
 			t, 0, 0 );
 	}
 	ldap_pvt_thread_pool_destroy( &connection_pool, 1 );
-
-	free( slap_listeners );
-	slap_listeners = NULL;
 
 	return NULL;
 }
@@ -2904,6 +2921,7 @@ slapd_daemon( void )
 	for ( i=0; i<slapd_daemon_threads; i++ )
   		ldap_pvt_thread_join( listener_tid[i], (void *)NULL );
 
+	destroy_listeners();
 	ch_free( listener_tid );
 
 	return 0;
@@ -3023,6 +3041,10 @@ slapd_add_internal( ber_socket_t s, int isactive )
 Listener **
 slapd_get_listeners( void )
 {
+	/* Could return array with no listeners if !listening, but current
+	 * callers mostly look at the URLs.  E.g. syncrepl uses this to
+	 * identify the server, which means it wants the startup arguments.
+	 */
 	return slap_listeners;
 }
 
