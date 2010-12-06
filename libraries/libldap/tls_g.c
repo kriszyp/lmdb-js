@@ -41,10 +41,6 @@
 #include "ldap-int.h"
 #include "ldap-tls.h"
 
-#ifdef LDAP_R_COMPILE
-#include <ldap_pvt_thread.h>
-#endif
-
 #include <gnutls/gnutls.h>
 #include <gnutls/x509.h>
 #include <gcrypt.h>
@@ -257,13 +253,9 @@ static void
 tlsg_ctx_ref( tls_ctx *ctx )
 {
 	tlsg_ctx *c = (tlsg_ctx *)ctx;
-#ifdef LDAP_R_COMPILE
-	ldap_pvt_thread_mutex_lock( &c->ref_mutex );
-#endif
+	LDAP_MUTEX_LOCK( &c->ref_mutex );
 	c->refcount++;
-#ifdef LDAP_R_COMPILE
-	ldap_pvt_thread_mutex_unlock( &c->ref_mutex );
-#endif
+	LDAP_MUTEX_UNLOCK( &c->ref_mutex );
 }
 
 static void
@@ -274,13 +266,9 @@ tlsg_ctx_free ( tls_ctx *ctx )
 
 	if ( !c ) return;
 
-#ifdef LDAP_R_COMPILE
-	ldap_pvt_thread_mutex_lock( &c->ref_mutex );
-#endif
+	LDAP_MUTEX_LOCK( &c->ref_mutex );
 	refcount = --c->refcount;
-#ifdef LDAP_R_COMPILE
-	ldap_pvt_thread_mutex_unlock( &c->ref_mutex );
-#endif
+	LDAP_MUTEX_UNLOCK( &c->ref_mutex );
 	if ( refcount )
 		return;
 #ifdef HAVE_CIPHERSUITES

@@ -37,10 +37,6 @@
 
 #include "ldap-tls.h"
 
-#ifdef LDAP_R_COMPILE
-#include <ldap_pvt_thread.h>
-#endif
-
 static tls_impl *tls_imp = &ldap_int_tls_impl;
 #define HAS_TLS( sb )	ber_sockbuf_ctrl( sb, LBER_SB_OPT_HAS_IO, \
 				(void *)tls_imp->ti_sbio )
@@ -269,13 +265,9 @@ ldap_pvt_tls_init_def_ctx( int is_server )
 {
 	struct ldapoptions *lo = LDAP_INT_GLOBAL_OPT();   
 	int rc;
-#ifdef LDAP_R_COMPILE
-	ldap_pvt_thread_mutex_lock( &tls_def_ctx_mutex );
-#endif
+	LDAP_MUTEX_LOCK( &tls_def_ctx_mutex );
 	rc = ldap_int_tls_init_ctx( lo, is_server );
-#ifdef LDAP_R_COMPILE
-	ldap_pvt_thread_mutex_unlock( &tls_def_ctx_mutex );
-#endif
+	LDAP_MUTEX_UNLOCK( &tls_def_ctx_mutex );
 	return rc;
 }
 

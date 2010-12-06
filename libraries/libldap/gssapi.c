@@ -664,9 +664,7 @@ ldap_int_gss_spnego_bind_s( LDAP *ld )
 	gss_buffer_desc input_token, output_token = GSS_C_EMPTY_BUFFER;
 	struct berval cred, *scred = NULL;
 
-#ifdef LDAP_R_COMPILE
-	ldap_pvt_thread_mutex_lock( &ldap_int_gssapi_mutex );
-#endif
+	LDAP_MUTEX_LOCK( &ldap_int_gssapi_mutex );
 
 	/* get information from RootDSE entry */
 	rc = ldap_gssapi_get_rootdse_infos ( ld, &mechlist,
@@ -784,9 +782,7 @@ gss_error:
 			      (ret_mech != GSS_C_NO_OID ? ret_mech : req_mech ),
 			      gss_rc, minor_status );
 rc_error:
-#ifdef LDAP_R_COMPILE
-	ldap_pvt_thread_mutex_unlock( &ldap_int_gssapi_mutex );
-#endif
+	LDAP_MUTEX_UNLOCK( &ldap_int_gssapi_mutex );
 	LDAP_FREE( mechlist );
 	LDAP_FREE( ldapServiceName );
 	LDAP_FREE( dnsHostName );
