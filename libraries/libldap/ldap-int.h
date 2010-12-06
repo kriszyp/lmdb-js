@@ -183,12 +183,15 @@ struct ldapoptions {
 #define LDAP_VALID_SESSION	0x2
 #define LDAP_TRASHED_SESSION	0xFF
 	int   ldo_debug;
+
 #ifdef LDAP_R_COMPILE
 	ldap_pvt_thread_mutex_t	ldo_mutex;
+#define LDAP_LDO_MUTEX_NULLARG	, LDAP_PVT_MUTEX_NULL
 #else
-#define LDO_MUTEX_NULL
-#define MUTEX_FIRSTCREATE(m)
+#define LDAP_LDO_MUTEX_NULLARG
+#define LDAP_PVT_MUTEX_FIRSTCREATE(m)	((void) 0)
 #endif
+
 #ifdef LDAP_CONNECTIONLESS
 #define	LDAP_IS_UDP(ld)		((ld)->ld_options.ldo_is_udp)
 	void*			ldo_peer;	/* struct sockaddr* */
@@ -494,19 +497,16 @@ LDAP_V( ldap_pvt_thread_mutex_t ) ldap_int_gssapi_mutex;
 #define LDAP_ASSERT_MUTEX_OWNER(mutex) \
 	LDAP_PVT_THREAD_ASSERT_MUTEX_OWNER(mutex)
 #else
-#define LDAP_MUTEX_LOCK(mutex)
-#define LDAP_MUTEX_UNLOCK(mutex)
-#define LDAP_ASSERT_MUTEX_OWNER(mutex)
+#define LDAP_MUTEX_LOCK(mutex)    ((void) 0)
+#define LDAP_MUTEX_UNLOCK(mutex)  ((void) 0)
+#define LDAP_ASSERT_MUTEX_OWNER(mutex) ((void) 0)
 #endif
 
-#ifdef LDAP_R_COMPILE
-#define	LDAP_NEXT_MSGID(ld, id) \
+#define	LDAP_NEXT_MSGID(ld, id) do { \
 	LDAP_MUTEX_LOCK( &(ld)->ld_msgid_mutex ); \
-	id = ++(ld)->ld_msgid; \
-	LDAP_MUTEX_UNLOCK( &(ld)->ld_msgid_mutex )
-#else
-#define	LDAP_NEXT_MSGID(ld, id)	id = ++(ld)->ld_msgid
-#endif
+	(id) = ++(ld)->ld_msgid; \
+	LDAP_MUTEX_UNLOCK( &(ld)->ld_msgid_mutex ); \
+} while (0)
 
 /*
  * in abandon.c

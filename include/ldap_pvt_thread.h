@@ -28,10 +28,14 @@ typedef ldap_int_thread_t			ldap_pvt_thread_t;
 typedef ldap_debug_thread_mutex_t	ldap_pvt_thread_mutex_t;
 typedef ldap_debug_thread_cond_t	ldap_pvt_thread_cond_t;
 typedef ldap_debug_thread_rdwr_t	ldap_pvt_thread_rdwr_t;
+#define LDAP_PVT_MUTEX_FIRSTCREATE	LDAP_DEBUG_MUTEX_FIRSTCREATE
+#define LDAP_PVT_MUTEX_NULL			LDAP_DEBUG_MUTEX_NULL
 #else
 typedef ldap_int_thread_mutex_t		ldap_pvt_thread_mutex_t;
 typedef ldap_int_thread_cond_t		ldap_pvt_thread_cond_t;
 typedef ldap_int_thread_rdwr_t		ldap_pvt_thread_rdwr_t;
+#define LDAP_PVT_MUTEX_FIRSTCREATE	LDAP_INT_MUTEX_FIRSTCREATE
+#define LDAP_PVT_MUTEX_NULL			LDAP_INT_MUTEX_NULL
 #endif
 typedef ldap_int_thread_rmutex_t	ldap_pvt_thread_rmutex_t;
 typedef ldap_int_thread_key_t	ldap_pvt_thread_key_t;

@@ -69,9 +69,9 @@ typedef pthread_key_t		ldap_int_thread_key_t;
 typedef pthread_rwlock_t ldap_int_thread_rdwr_t;
 #endif
 
-#ifndef	LDO_MUTEX_NULL
-#define LDO_MUTEX_NULL	,PTHREAD_MUTEX_INITIALIZER
-#define MUTEX_FIRSTCREATE(m)
+#ifndef LDAP_INT_MUTEX_NULL
+#define LDAP_INT_MUTEX_NULL	PTHREAD_MUTEX_INITIALIZER
+#define LDAP_INT_MUTEX_FIRSTCREATE(m)	((void) 0)
 #endif
 
 LDAP_END_DECL
@@ -96,9 +96,9 @@ typedef struct mutex		ldap_int_thread_mutex_t;
 typedef struct condition	ldap_int_thread_cond_t;
 typedef cthread_key_t		ldap_int_thread_key_t;
 
-#ifndef	LDO_MUTEX_NULL
-#define LDO_MUTEX_NULL	,MUTEX_INITIALIZER
-#define MUTEX_FIRSTCREATE(m)
+#ifndef LDAP_INT_MUTEX_NULL
+#define LDAP_INT_MUTEX_NULL	MUTEX_INITIALIZER
+#define LDAP_INT_MUTEX_FIRSTCREATE(m)	((void) 0)
 #endif
 
 LDAP_END_DECL
@@ -125,9 +125,9 @@ typedef pth_key_t	ldap_int_thread_key_t;
 typedef pth_rwlock_t ldap_int_thread_rdwr_t;
 #endif
 
-#ifndef	LDO_MUTEX_NULL
-#define LDO_MUTEX_NULL	,PTH_MUTEX_INIT
-#define MUTEX_FIRSTCREATE(m)
+#ifndef LDAP_INT_MUTEX_NULL
+#define LDAP_INT_MUTEX_NULL	PTH_MUTEX_INIT
+#define LDAP_INT_MUTEX_FIRSTCREATE(m)	((void) 0)
 #endif
 
 LDAP_END_DECL
@@ -158,9 +158,9 @@ typedef thread_key_t	ldap_int_thread_key_t;
 #define LDAP_THREAD_HAVE_SETCONCURRENCY 1
 #endif
 
-#ifndef	LDO_MUTEX_NULL
-#define LDO_MUTEX_NULL	,DEFAULTMUTEX
-#define MUTEX_FIRSTCREATE(m)
+#ifndef LDAP_INT_MUTEX_NULL
+#define LDAP_INT_MUTEX_NULL	DEFAULTMUTEX
+#define LDAP_INT_MUTEX_FIRSTCREATE(m)	((void) 0)
 #endif
 
 #elif defined(HAVE_NT_THREADS)
@@ -180,9 +180,10 @@ typedef HANDLE	ldap_int_thread_mutex_t;
 typedef HANDLE	ldap_int_thread_cond_t;
 typedef DWORD	ldap_int_thread_key_t;
 
-#ifndef	LDO_MUTEX_NULL
-#define LDO_MUTEX_NULL		,(HANDLE)0
-#define MUTEX_FIRSTCREATE(m)	(!m ? 0 : ldap_pvt_thread_mutex_init(&m) )
+#ifndef LDAP_INT_MUTEX_NULL
+#define LDAP_INT_MUTEX_NULL		((HANDLE)0)
+#define LDAP_INT_MUTEX_FIRSTCREATE(m) \
+		((void) ((m) && ldap_int_thread_mutex_init(&(m))))
 #endif
 
 LDAP_END_DECL
@@ -209,9 +210,9 @@ typedef int			ldap_int_thread_key_t;
 #define LDAP_THREAD_HAVE_TPOOL 1
 typedef int			ldap_int_thread_pool_t;
 
-#ifndef	LDO_MUTEX_NULL
-#define LDO_MUTEX_NULL
-#define MUTEX_FIRSTCREATE(m)
+#ifndef LDAP_INT_MUTEX_NULL
+#define LDAP_INT_MUTEX_NULL				0
+#define LDAP_INT_MUTEX_FIRSTCREATE(m)	((void) 0)
 #endif
 
 LDAP_END_DECL
@@ -283,6 +284,10 @@ typedef struct {
 	ldap_debug_usage_info_t	usage;
 	ldap_int_thread_t	owner;
 } ldap_debug_thread_mutex_t;
+
+#define	LDAP_DEBUG_MUTEX_NULL	{LDAP_INT_MUTEX_NULL, {0,0,{0},0} /*,owner*/}
+#define	LDAP_DEBUG_MUTEX_FIRSTCREATE(m) \
+	((void) ((m).usage.state || ldap_pvt_thread_mutex_init(&(m))))
 
 typedef struct {
 	ldap_int_thread_cond_t	wrapped;
