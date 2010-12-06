@@ -1202,9 +1202,7 @@ do_syncrep2(
 							op->o_controls[slap_cids.sc_LDAPsync] = &syncCookie;
 							compare_csns( &syncCookie_req, &syncCookie, &m );
 						}
-						else assert(!refreshDeletes); /*TEST: m uninitialized*/
 					}
-					else assert(!refreshDeletes); /* TEST:m uninitialized */
 					if ( ber_peek_tag( ber, &len ) ==
 						LDAP_TAG_REFRESHDELETES )
 					{
