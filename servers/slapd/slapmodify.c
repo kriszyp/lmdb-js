@@ -39,7 +39,6 @@
 #include "slapcommon.h"
 
 static char csnbuf[ LDAP_PVT_CSNSTR_BUFSIZE ];
-static char maxcsnbuf[ LDAP_PVT_CSNSTR_BUFSIZE * ( SLAP_SYNC_SID_MAX + 1 ) ];
 
 int
 slapmodify( int argc, char **argv )
@@ -51,20 +50,16 @@ slapmodify( int argc, char **argv )
 	const char *progname = "slapmodify";
 
 	struct berval csn;
-	struct berval maxcsn[ SLAP_SYNC_SID_MAX + 1 ];
 	unsigned long sid;
 	struct berval bvtext;
-	Entry *ctxcsn_e;
-	ID	ctxcsn_id, id;
+	ID id;
 	OperationBuffer opbuf;
 	Operation *op;
 
-	int match;
 	int checkvals;
 	int lineno, nextline, ldifrc;
 	int lmax;
 	int rc = EXIT_SUCCESS;
-	int manage = 0;	
 
 	int enable_meter = 0;
 	lutil_meter_t meter;
@@ -112,6 +107,8 @@ slapmodify( int argc, char **argv )
 			progname );
 		exit( EXIT_FAILURE );
 	}
+
+	(void)slap_tool_update_ctxcsn_init();
 
 	if ( enable_meter 
 #ifdef LDAP_DEBUG
@@ -438,6 +435,16 @@ slapmodify( int argc, char **argv )
 			}
 		}
 
+		rc = slap_tool_entry_check( progname, op, e, lineno, &text, textbuf, textlen );
+		if ( rc != LDAP_SUCCESS ) {
+			rc = EXIT_FAILURE;
+			SLAP_FREE( ndn.bv_val );
+			ldap_ldif_record_done( &lr );
+			if( continuemode ) continue;
+			entry_free( e );
+			break;
+		}
+
 		if ( SLAP_LASTMOD(be) ) {
 			time_t now = slap_get_time();
 			char uuidbuf[ LDAP_LUTIL_UUIDSTR_BUFSIZE ];
@@ -565,6 +572,8 @@ slapmodify( int argc, char **argv )
 				break;
 			}
 
+			sid = slap_tool_update_ctxcsn_check( progname, e );
+
 			if ( verbose )
 				fprintf( stderr, "%s: \"%s\" (%08lx)\n",
 					request, e->e_dn, (long) id );
@@ -590,116 +599,8 @@ done:;
 		lutil_meter_close( &meter );
 	}
 
-	if ( rc == EXIT_SUCCESS && update_ctxcsn && !dryrun && sid != SLAP_SYNC_SID_MAX + 1 ) {
-		struct berval ctxdn;
-		if ( SLAP_SYNC_SUBENTRY( be )) {
-			build_new_dn( &ctxdn, &be->be_nsuffix[0],
-				(struct berval *)&slap_ldapsync_cn_bv, NULL );
-		} else {
-			ctxdn = be->be_nsuffix[0];
-		}
-		ctxcsn_id = be->be_dn2id_get( be, &ctxdn );
-		if ( ctxcsn_id == NOID ) {
-			if ( SLAP_SYNC_SUBENTRY( be )) {
-				ctxcsn_e = slap_create_context_csn_entry( be, NULL );
-				for ( sid = 0; sid <= SLAP_SYNC_SID_MAX; sid++ ) {
-					if ( maxcsn[ sid ].bv_len ) {
-						attr_merge_one( ctxcsn_e, slap_schema.si_ad_contextCSN,
-							&maxcsn[ sid ], NULL );
-					}
-				}
-				ctxcsn_id = be->be_entry_put( be, ctxcsn_e, &bvtext );
-				if ( ctxcsn_id == NOID ) {
-					fprintf( stderr, "%s: couldn't create context entry\n", progname );
-					rc = EXIT_FAILURE;
-				}
-			} else {
-				fprintf( stderr, "%s: context entry is missing\n", progname );
-				rc = EXIT_FAILURE;
-			}
-		} else {
-			ctxcsn_e = be->be_entry_get( be, ctxcsn_id );
-			if ( ctxcsn_e != NULL ) {
-				Entry *e = entry_dup( ctxcsn_e );
-				int change;
-				Attribute *attr = attr_find( e->e_attrs, slap_schema.si_ad_contextCSN );
-				if ( attr ) {
-					int		i;
-
-					change = 0;
-
-					for ( i = 0; !BER_BVISNULL( &attr->a_nvals[ i ] ); i++ ) {
-						int rc_sid;
-
-						rc_sid = slap_parse_csn_sid( &attr->a_nvals[ i ] );
-						if ( rc_sid < 0 ) {
-							Debug( LDAP_DEBUG_ANY,
-								"%s: unable to extract SID "
-								"from #%d contextCSN=%s\n",
-								progname, i,
-								attr->a_nvals[ i ].bv_val );
-							continue;
-						}
-
-						assert( rc_sid <= SLAP_SYNC_SID_MAX );
-
-						sid = (unsigned)rc_sid;
-
-						if ( maxcsn[ sid ].bv_len == 0 ) {
-							match = -1;
-
-						} else {
-							value_match( &match, slap_schema.si_ad_entryCSN,
-								slap_schema.si_ad_entryCSN->ad_type->sat_ordering,
-								SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
-								&maxcsn[ sid ], &attr->a_nvals[i], &text );
-						}
-
-						if ( match > 0 ) {
-							change = 1;
-						} else {
-							AC_MEMCPY( maxcsn[ sid ].bv_val,
-								attr->a_nvals[ i ].bv_val,
-								attr->a_nvals[ i ].bv_len );
-							maxcsn[ sid ].bv_val[ attr->a_nvals[ i ].bv_len ] = '\0';
-							maxcsn[ sid ].bv_len = attr->a_nvals[ i ].bv_len;
-						}
-					}
-
-					if ( change ) {
-						if ( attr->a_nvals != attr->a_vals ) {
-							ber_bvarray_free( attr->a_nvals );
-						}
-						attr->a_nvals = NULL;
-						ber_bvarray_free( attr->a_vals );
-						attr->a_vals = NULL;
-						attr->a_numvals = 0;
-					}
-				} else {
-					change = 1;
-				}
-
-				if ( change ) {
-					for ( sid = 0; sid <= SLAP_SYNC_SID_MAX; sid++ ) {
-						if ( maxcsn[ sid ].bv_len ) {
-							attr_merge_one( e, slap_schema.si_ad_contextCSN,
-								&maxcsn[ sid], NULL );
-						}
-					}
-
-					ctxcsn_id = be->be_entry_modify( be, e, &bvtext );
-					if( ctxcsn_id == NOID ) {
-						fprintf( stderr, "%s: could not modify ctxcsn\n",
-							progname);
-						rc = EXIT_FAILURE;
-					} else if ( verbose ) {
-						fprintf( stderr, "modified: \"%s\" (%08lx)\n",
-							e->e_dn, (long) ctxcsn_id );
-					}
-				}
-				entry_free( e );
-			}
-		} 
+	if ( rc == EXIT_SUCCESS ) {
+		rc = slap_tool_update_ctxcsn( progname, sid, &bvtext );
 	}
 
 	ch_free( buf );
