@@ -234,9 +234,13 @@ parse_slapopt( int tool, int *mode )
 			if ( strcasecmp( p, "no" ) == 0 ) {
 				ldif_wrap = LDIF_LINE_WIDTH_MAX;
 
-			} else if ( lutil_atou( &ldif_wrap, p ) ) {
-				Debug( LDAP_DEBUG_ANY, "unable to parse ldif-wrap=\"%s\".\n", p, 0, 0 );
-				return -1;
+			} else {
+				unsigned int u;
+				if ( lutil_atou( &u, p ) ) {
+					Debug( LDAP_DEBUG_ANY, "unable to parse ldif-wrap=\"%s\".\n", p, 0, 0 );
+					return -1;
+				}
+				ldif_wrap = (ber_len_t)u;
 			}
 			break;
 

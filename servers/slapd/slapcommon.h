@@ -65,7 +65,7 @@ typedef struct tool_vars {
 	slap_ssf_t tv_sasl_ssf;
 	unsigned tv_dn_mode;
 	unsigned int tv_csnsid;
-	unsigned int tv_ldif_wrap;
+	ber_len_t tv_ldif_wrap;
 	char tv_maxcsnbuf[ LDAP_PVT_CSNSTR_BUFSIZE * ( SLAP_SYNC_SID_MAX + 1 ) ];
 	struct berval tv_maxcsn[ SLAP_SYNC_SID_MAX + 1 ];
 } tool_vars;
