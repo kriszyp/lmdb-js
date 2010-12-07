@@ -228,6 +228,23 @@ parse_slapopt( int tool, int *mode )
 			break;
 		}
 
+	} else if ( strncasecmp( optarg, "ldif-wrap", len ) == 0 ) {
+		switch ( tool ) {
+		case SLAPCAT:
+			if ( strcasecmp( p, "no" ) == 0 ) {
+				ldif_wrap = LDIF_LINE_WIDTH_MAX;
+
+			} else if ( lutil_atou( &ldif_wrap, p ) ) {
+				Debug( LDAP_DEBUG_ANY, "unable to parse ldif-wrap=\"%s\".\n", p, 0, 0 );
+				return -1;
+			}
+			break;
+
+		default:
+			Debug( LDAP_DEBUG_ANY, "value-check meaningless for tool.\n", 0, 0, 0 );
+			break;
+		}
+
 	} else {
 		return -1;
 	}
@@ -282,6 +299,8 @@ slap_tool_init(
 	free( leakfilename );
 	leakfilename = NULL;
 #endif
+
+	ldif_wrap = LDIF_LINE_WIDTH;
 
 	scope = LDAP_SCOPE_DEFAULT;
 

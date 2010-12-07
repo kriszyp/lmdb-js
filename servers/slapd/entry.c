@@ -426,10 +426,20 @@ fail:
 		} \
 	}
 
+/* NOTE: only preserved for binary compatibility */
 char *
 entry2str(
 	Entry	*e,
 	int		*len )
+{
+	return entry2str_wrap( e, len, LDIF_LINE_WIDTH );
+}
+
+char *
+entry2str_wrap(
+	Entry		*e,
+	int			*len,
+	ber_len_t	wrap )
 {
 	Attribute	*a;
 	struct berval	*bv;
@@ -451,7 +461,7 @@ entry2str(
 		/* put "dn: <dn>" */
 		tmplen = e->e_name.bv_len;
 		MAKE_SPACE( LDIF_SIZE_NEEDED( 2, tmplen ));
-		ldif_sput( &ecur, LDIF_PUT_VALUE, "dn", e->e_dn, tmplen );
+		ldif_sput_wrap( &ecur, LDIF_PUT_VALUE, "dn", e->e_dn, tmplen, wrap );
 	}
 
 	/* put the attributes */
@@ -461,9 +471,9 @@ entry2str(
 			bv = &a->a_vals[i];
 			tmplen = a->a_desc->ad_cname.bv_len;
 			MAKE_SPACE( LDIF_SIZE_NEEDED( tmplen, bv->bv_len ));
-			ldif_sput( &ecur, LDIF_PUT_VALUE,
+			ldif_sput_wrap( &ecur, LDIF_PUT_VALUE,
 				a->a_desc->ad_cname.bv_val,
-				bv->bv_val, bv->bv_len );
+				bv->bv_val, bv->bv_len, wrap );
 		}
 	}
 	MAKE_SPACE( 1 );

@@ -489,6 +489,7 @@ ldif_must_b64_encode( LDAP_CONST char *s )
 /* compatibility with U-Mich off by one bug */
 #define LDIF_KLUDGE 1
 
+/* NOTE: only preserved for binary compatibility */
 void
 ldif_sput(
 	char **out,
@@ -496,6 +497,18 @@ ldif_sput(
 	LDAP_CONST char *name,
 	LDAP_CONST char *val,
 	ber_len_t vlen )
+{
+	ldif_sput_wrap( out, type, name, val, vlen, LDIF_LINE_WIDTH );
+}
+
+void
+ldif_sput_wrap(
+	char **out,
+	int type,
+	LDAP_CONST char *name,
+	LDAP_CONST char *val,
+	ber_len_t vlen,
+        ber_len_t wrap )
 {
 	const unsigned char *byte, *stop;
 	unsigned char	buf[3];
@@ -507,6 +520,8 @@ ldif_sput(
 	ber_len_t savelen;
 	ber_len_t len=0;
 	ber_len_t i;
+
+	wrap = LDIF_LINE_WIDTH_WRAP( wrap );
 
 	/* prefix */
 	switch( type ) {
@@ -578,7 +593,7 @@ ldif_sput(
 	case LDIF_PUT_COMMENT:
 		/* pre-encoded names */
 		for ( i=0; i < vlen; i++ ) {
-			if ( len > LDIF_LINE_WIDTH ) {
+			if ( len > wrap ) {
 				*(*out)++ = '\n';
 				*(*out)++ = ' ';
 				len = 1;
@@ -618,7 +633,7 @@ ldif_sput(
 				b64 = 1;
 				break;
 			}
-			if ( len > LDIF_LINE_WIDTH+LDIF_KLUDGE ) {
+			if ( len - LDIF_KLUDGE > wrap ) {
 				*(*out)++ = '\n';
 				*(*out)++ = ' ';
 				len = 1;
@@ -647,7 +662,7 @@ ldif_sput(
 		bits |= (byte[2] & 0xff);
 
 		for ( i = 0; i < 4; i++, len++, bits <<= 6 ) {
-			if ( len > LDIF_LINE_WIDTH+LDIF_KLUDGE ) {
+			if ( len - LDIF_KLUDGE > wrap ) {
 				*(*out)++ = '\n';
 				*(*out)++ = ' ';
 				len = 1;
@@ -672,7 +687,7 @@ ldif_sput(
 		bits |= (byte[2] & 0xff);
 
 		for ( i = 0; i < 4; i++, len++, bits <<= 6 ) {
-			if ( len > LDIF_LINE_WIDTH+LDIF_KLUDGE ) {
+			if ( len - LDIF_KLUDGE > wrap ) {
 				*(*out)++ = '\n';
 				*(*out)++ = ' ';
 				len = 1;
@@ -693,6 +708,8 @@ ldif_sput(
 /*
  * ldif_type_and_value return BER malloc'd, zero-terminated LDIF line
  */
+
+/* NOTE: only preserved for binary compatibility */
 char *
 ldif_put(
 	int type,
@@ -700,12 +717,23 @@ ldif_put(
 	LDAP_CONST char *val,
 	ber_len_t vlen )
 {
+	return ldif_put_wrap( type, name, val, vlen, LDIF_LINE_WIDTH );
+}
+
+char *
+ldif_put_wrap(
+	int type,
+	LDAP_CONST char *name,
+	LDAP_CONST char *val,
+	ber_len_t vlen,
+	ber_len_t wrap )
+{
     char	*buf, *p;
     ber_len_t nlen;
 
     nlen = ( name != NULL ) ? strlen( name ) : 0;
 
-	buf = (char *) ber_memalloc( LDIF_SIZE_NEEDED( nlen, vlen ) + 1 );
+	buf = (char *) ber_memalloc( LDIF_SIZE_NEEDED_WRAP( nlen, vlen, wrap ) + 1 );
 
     if ( buf == NULL ) {
 		ber_pvt_log_printf( LDAP_DEBUG_ANY, ldif_debug,
