@@ -807,6 +807,7 @@ nextresp2:
 			}
 
 		} else {
+			LDAPRequest *lrf = lr;
 			if ( lr->lr_outrefcnt <= 0 && lr->lr_parent == NULL ) {
 				/* request without any referrals */
 				simple_request = ( hadref ? 0 : 1 );
@@ -828,6 +829,12 @@ nextresp2:
 				if ( --lr->lr_outrefcnt > 0 ) {
 					break;	/* not completely done yet */
 				}
+			}
+			/* ITS#6744: Original lr was refcounted when we retrieved it,
+			 * must release it now that we're working with the parent
+			 */
+			if ( lrf != &dummy_lr ) {
+				ldap_return_request( ld, lrf, 0 );
 			}
 
 			/* Check if all requests are finished, lr is now parent */
