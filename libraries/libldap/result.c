@@ -807,7 +807,6 @@ nextresp2:
 			}
 
 		} else {
-			LDAPRequest *lrf = lr;
 			if ( lr->lr_outrefcnt <= 0 && lr->lr_parent == NULL ) {
 				/* request without any referrals */
 				simple_request = ( hadref ? 0 : 1 );
@@ -822,6 +821,7 @@ nextresp2:
 			Debug( LDAP_DEBUG_TRACE,
 				"read1msg:  mark request completed, ld %p msgid %d\n",
 				(void *)ld, lr->lr_msgid, 0);
+			tmplr = lr;
 			while ( lr->lr_parent != NULL ) {
 				merge_error_info( ld, lr->lr_parent, lr );
 
@@ -833,8 +833,8 @@ nextresp2:
 			/* ITS#6744: Original lr was refcounted when we retrieved it,
 			 * must release it now that we're working with the parent
 			 */
-			if ( lrf != &dummy_lr ) {
-				ldap_return_request( ld, lrf, 0 );
+			if ( tmplr->lr_parent ) {
+				ldap_return_request( ld, tmplr, 0 );
 			}
 
 			/* Check if all requests are finished, lr is now parent */
