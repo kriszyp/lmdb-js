@@ -378,6 +378,7 @@ meta_search_dobind_result(
 	LDAPMessage		*res )
 {
 	metainfo_t		*mi = ( metainfo_t * )op->o_bd->be_private;
+	metatarget_t		*mt = mi->mi_targets[ candidate ];
 	metaconn_t		*mc = *mcp;
 	metasingleconn_t	*msc = &mc->mc_conns[ candidate ];
 
@@ -418,6 +419,12 @@ meta_search_dobind_result(
 			LDAP_BACK_CONN_ISANON_SET( msc );
 
 		} else {
+			if ( META_BACK_TGT_SAVECRED( mt ) &&
+				!BER_BVISNULL( &msc->msc_cred ) &&
+				!BER_BVISEMPTY( &msc->msc_cred ) )
+			{
+				ldap_set_rebind_proc( msc->msc_ld, mt->mt_rebind_f, msc );
+			}
 			LDAP_BACK_CONN_ISBOUND_SET( msc );
 		}
 		retcode = META_SEARCH_CANDIDATE;
