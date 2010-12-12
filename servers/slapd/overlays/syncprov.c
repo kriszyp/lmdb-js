@@ -2483,8 +2483,9 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 					if ( newer < 0 )
 						changed = SS_CHANGED;
 					else if ( newer > 0 ) {
-					/* our state is older, tell consumer nothing */
-						rs->sr_err = LDAP_SUCCESS;
+					/* our state is older, complain to consumer */
+						rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
+						rs->sr_text = "consumer state is newer than provider!";
 bailout:
 						if ( sop ) {
 							syncops **sp = &si->si_ops;
