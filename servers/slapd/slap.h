@@ -1542,6 +1542,7 @@ typedef struct AccessControlState {
 
 	/* Value dependent acl where processing can restart */
 	AccessControl  *as_vd_acl;
+	int as_vd_acl_present;
 	int as_vd_acl_count;
 	slap_mask_t		as_vd_mask;
 
@@ -1552,7 +1553,7 @@ typedef struct AccessControlState {
 	/* True if started to process frontend ACLs */
 	int as_fe_done;
 } AccessControlState;
-#define ACL_STATE_INIT { NULL, ACL_NONE, NULL, 0, ACL_PRIV_NONE, -1, 0 }
+#define ACL_STATE_INIT { NULL, ACL_NONE, NULL, 0, 0, ACL_PRIV_NONE, -1, 0 }
 
 typedef struct AclRegexMatches {        
 	int dn_count;
