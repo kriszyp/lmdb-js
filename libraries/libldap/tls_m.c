@@ -1016,6 +1016,26 @@ tlsm_add_cert_from_file( tlsm_ctx *ctx, const char *filename, PRBool isca )
 	char *slotname = NULL;
 	const char *ptr = NULL;
 	char sep = PR_GetDirectorySeparator();
+	PRFileInfo fi;
+	PRStatus status;
+
+	memset( &fi, 0, sizeof(fi) );
+	status = PR_GetFileInfo( filename, &fi );
+	if ( PR_SUCCESS != status) {
+		PRErrorCode errcode = PR_GetError();
+		Debug( LDAP_DEBUG_ANY,
+			   "TLS: could not read certificate file %s - error %d:%s.\n",
+			   filename, errcode,
+			   PR_ErrorToString( errcode, PR_LANGUAGE_I_DEFAULT ) );
+		return -1;
+	}
+
+	if ( fi.type != PR_FILE_FILE ) {
+		Debug( LDAP_DEBUG_ANY,
+			   "TLS: error: the certificate file %s is not a file.\n",
+			   filename, 0 ,0 );
+		return -1;
+	}
 
 	attrs = theTemplate;
 
@@ -1088,6 +1108,26 @@ tlsm_add_key_from_file( tlsm_ctx *ctx, const char *filename )
 	CK_BBOOL cktrue = CK_TRUE;
 	CK_OBJECT_CLASS objClass = CKO_PRIVATE_KEY;
 	int retcode = 0;
+	PRFileInfo fi;
+	PRStatus status;
+
+	memset( &fi, 0, sizeof(fi) );
+	status = PR_GetFileInfo( filename, &fi );
+	if ( PR_SUCCESS != status) {
+		PRErrorCode errcode = PR_GetError();
+		Debug( LDAP_DEBUG_ANY,
+			   "TLS: could not read key file %s - error %d:%s.\n",
+			   filename, errcode,
+			   PR_ErrorToString( errcode, PR_LANGUAGE_I_DEFAULT ) );
+		return -1;
+	}
+
+	if ( fi.type != PR_FILE_FILE ) {
+		Debug( LDAP_DEBUG_ANY,
+			   "TLS: error: the key file %s is not a file.\n",
+			   filename, 0 ,0 );
+		return -1;
+	}
 
 	attrs = theTemplate;
 
