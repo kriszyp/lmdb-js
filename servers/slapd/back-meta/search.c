@@ -1838,7 +1838,6 @@ meta_send_entry(
 	const char 		*text;
 	dncookie		dc;
 	ber_len_t		len;
-	ber_tag_t		tag;
 	int			rc;
 
 	if ( ber_scanf( &ber, "l{", &len ) == LBER_ERROR ) {
@@ -2204,7 +2203,7 @@ next_attr:;
 						LBER_FREE( attr->a_nvals[i].bv_val );
 					LBER_FREE( attr->a_vals[i].bv_val );
 					attr->a_numvals--;
-					if ( i < attr->a_numvals ) {
+					if ( (unsigned)i < attr->a_numvals ) {
 						attr->a_vals[i] = attr->a_vals[attr->a_numvals];
 						if ( attr->a_nvals != attr->a_vals )
 							attr->a_nvals[i] = attr->a_nvals[attr->a_numvals];
