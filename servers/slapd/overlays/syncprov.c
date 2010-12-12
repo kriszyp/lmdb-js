@@ -1293,6 +1293,7 @@ syncprov_matchops( Operation *op, opcookie *opc, int saveit )
 		}
 
 		if ( fc.fscope ) {
+			ldap_pvt_thread_mutex_lock( &ss->s_mutex );
 			op2 = *ss->s_op;
 			oh = *op->o_hdr;
 			oh.oh_conn = ss->s_op->o_conn;
@@ -1301,7 +1302,6 @@ syncprov_matchops( Operation *op, opcookie *opc, int saveit )
 			op2.o_hdr = &oh;
 			op2.o_extra = op->o_extra;
 			op2.o_callback = NULL;
-			ldap_pvt_thread_mutex_lock( &ss->s_mutex );
 			if (ss->s_flags & PS_FIX_FILTER) {
 				/* Skip the AND/GE clause that we stuck on in front. We
 				   would lose deletes/mods that happen during the refresh
@@ -2606,10 +2606,14 @@ shortcut:
 #endif
 		ber_dupbv_x( &fava->f_ava->aa_value, &mincsn, op->o_tmpmemctx );
 		fava->f_next = op->ors_filter;
+		if ( sop )
+			ldap_pvt_thread_mutex_lock( &sop->s_mutex );
 		op->ors_filter = fand;
 		filter2bv_x( op, op->ors_filter, &op->ors_filterstr );
-		if ( sop )
+		if ( sop ) {
 			sop->s_flags |= PS_FIX_FILTER;
+			ldap_pvt_thread_mutex_unlock( &sop->s_mutex );
+		}
 	}
 
 	/* Let our callback add needed info to returned entries */
