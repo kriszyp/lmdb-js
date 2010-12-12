@@ -3122,19 +3122,30 @@ get_attr_set(
 	query_manager* qm,
 	int num )
 {
-	int i;
+	int i = 0;
 	int count = 0;
 
 	if ( attrs ) {
-		for ( ; attrs[count].an_name.bv_val; count++ );
+		for ( ; attrs[i].an_name.bv_val; i++ ) {
+			/* only count valid attribute names
+			 * (searches ignore others, this overlay does the same) */
+			if ( attrs[i].an_desc ) {
+				count++;
+			}
+		}
 	}
 
-	/* recognize a single "*" or a "1.1" */
-	if ( count == 0 ) {
+	/* recognize default or explicit single "*" */
+	if ( ! attrs ||
+		( i == 1 && bvmatch( &attrs[0].an_name, slap_bv_all_user_attrs ) ) )
+	{
 		count = 1;
 		attrs = slap_anlist_all_user_attributes;
 
-	} else if ( count == 1 && bvmatch( &attrs[0].an_name, slap_bv_no_attrs ) ) {
+	/* recognize implicit (no valid attributes) or explicit single "1.1" */
+	} else if ( count == 0 ||
+		( i == 1 && bvmatch( &attrs[0].an_name, slap_bv_no_attrs ) ) )
+	{
 		count = 0;
 		attrs = NULL;
 	}
@@ -3155,6 +3166,8 @@ get_attr_set(
 		}
 
 		for ( a2 = attrs; a2->an_name.bv_val; a2++ ) {
+			if ( !a2->an_desc && !bvmatch( &a2->an_name, slap_bv_all_user_attrs ) ) continue;
+
 			if ( !an_find( qm->attr_sets[i].attrs, &a2->an_name ) ) {
 				found = 0;
 				break;
