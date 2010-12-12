@@ -594,7 +594,7 @@ handle_private_option( int i )
 				exit( EXIT_FAILURE );
 			}
 			for ( ispecs = 0; specs[ ispecs ] != NULL; ispecs++ )
-				/* count'em */
+				/* count'em */ ;
 
 			ds = ldap_memcalloc( ispecs + 1, sizeof( LDAPDerefSpec ) );
 			if ( ds == NULL ) {
@@ -1333,6 +1333,9 @@ getNextPage:
 	}
 	if ( derefval.bv_val != NULL ) {
 		ldap_memfree( derefval.bv_val );
+	}
+	if ( def_urlpre != NULL ) {
+		ber_memfree( def_urlpre );
 	}
 
 	if ( c ) {
