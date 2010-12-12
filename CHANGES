@@ -4,6 +4,7 @@ OpenLDAP 2.4.24 Engineering
 	Fixed liblber to not close invalid sockets (ITS#6585)
 	Fixed libldap dnssrv port format specifier (ITS#6644)
 	Fixed libldap sasl partial write handling (ITS#6639)
+	Fixed libldap url parsing with NULL host (ITS#6653)
 	Fixed ldapsearch segfault with deref (ITS#6638)
 	Fixed slapd acl parsing overflow (ITS#6611)
 	Fixed slapd modify to return actual error (ITS#6581)
