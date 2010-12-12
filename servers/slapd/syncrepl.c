@@ -1415,6 +1415,11 @@ do_syncrepl(
 		si->si_refreshDelete = 0;
 		si->si_refreshPresent = 0;
 
+		if ( si->si_presentlist ) {
+		    avl_free( si->si_presentlist, ch_free );
+		    si->si_presentlist = NULL;
+		}
+
 		/* use main DB when retrieving contextCSN */
 		op->o_bd = si->si_wbe;
 		op->o_dn = op->o_bd->be_rootdn;

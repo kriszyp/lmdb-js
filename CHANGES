@@ -10,6 +10,7 @@ OpenLDAP 2.4.24 Engineering
 	Fixed ldapsearch segfault with deref (ITS#6638)
 	Fixed slapd acl parsing overflow (ITS#6611)
 	Fixed slapd modify to return actual error (ITS#6581)
+	Fixed slapd syncrepl reuse of presence list (ITS#6707)
 	Fixed slapd-bdb entry cache delete failure (ITS#6577)
 	Fixed slapd-ndb to honor rootpw setting (ITS#6661)
 	Fixed slapd-meta anon retry with failed auth method (ITS#6643)
