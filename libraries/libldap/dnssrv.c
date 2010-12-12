@@ -289,7 +289,7 @@ int ldap_domain2hostlist(
 		    /* not first time around */
 		    hostlist[cur++] = ' ';
 		}
-		cur += sprintf(&hostlist[cur], "%s:%hd", host, port);
+		cur += sprintf(&hostlist[cur], "%s:%hu", host, port);
 	    }
 add_size:;
 	    p += size;
