@@ -249,10 +249,6 @@ main( int argc, char *argv[] )
 
 	tool_bind( ld );
 
-	if ( assertion || authzid || manageDSAit || noop ) {
-		tool_server_controls( ld, NULL, 0 );
-	}
-
 	if( user != NULL || oldpw.bv_val != NULL || newpw.bv_val != NULL ) {
 		/* build the password modify request data */
 		ber = ber_alloc_t( LBER_USE_DER );
