@@ -242,6 +242,7 @@ static OidRec OidMacros[] = {
  * OLcfg{Bk|Db}{Oc|At}:5		-> back-relay
  * OLcfg{Bk|Db}{Oc|At}:6		-> back-sql
  * OLcfg{Bk|Db}{Oc|At}:7		-> back-sock
+ * OLcfg{Bk|Db}{Oc|At}:8		-> back-null
  */
 
 /*

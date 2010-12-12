@@ -31,6 +31,28 @@ struct null_info {
 	ID	ni_nextid;
 };
 
+static ConfigDriver null_cf_gen;
+
+static ConfigTable nullcfg[] = {
+	{ "bind", "true|FALSE", 1, 2, 0, ARG_ON_OFF|ARG_MAGIC,
+		null_cf_gen,
+		"( OLcfgDbAt:8.1 NAME 'olcDbBindAllowed' "
+		"DESC 'Allow binds to this database' "
+		"SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
+	{ NULL, NULL, 0, 0, 0, ARG_IGNORED,
+		NULL, NULL, NULL, NULL }
+};
+
+static ConfigOCs nullocs[] = {
+	{ "( OLcfgDbOc:8.1 "
+		"NAME 'olcNullConfig' "
+		"DESC 'Null backend ocnfiguration' "
+		"SUP olcDatabaseConfig "
+		"MAY ( olcDbBindAllowed ) )",
+		Cft_Database, nullcfg },
+	{ NULL, 0, NULL }
+};
+
 
 /* LDAP operations */
 
@@ -289,37 +311,20 @@ null_tool_entry_put( BackendDB *be, Entry *e, struct berval *text )
 /* Setup */
 
 static int
-null_back_db_config(
-	BackendDB	*be,
-	const char	*fname,
-	int		lineno,
-	int		argc,
-	char		**argv )
+null_cf_gen( ConfigArgs *c )
 {
-	struct null_info *ni = (struct null_info *) be->be_private;
+	struct null_info *ni = (struct null_info *) c->be->be_private;
 
-	if ( ni == NULL ) {
-		fprintf( stderr, "%s: line %d: null database info is null!\n",
-			fname, lineno );
-		return 1;
+	if ( c->op == SLAP_CONFIG_EMIT ) {
+		c->value_int = ni->ni_bind_allowed;
+		return LDAP_SUCCESS;
+	} else if ( c->op == LDAP_MOD_DELETE ) {
+		ni->ni_bind_allowed = 0;
+		return LDAP_SUCCESS;
 	}
 
-	/* bind requests allowed */
-	if ( strcasecmp( argv[0], "bind" ) == 0 ) {
-		if ( argc < 2 ) {
-			fprintf( stderr,
-	"%s: line %d: missing <on/off> in \"bind <on/off>\" line\n",
-			         fname, lineno );
-			return 1;
-		}
-		ni->ni_bind_allowed = strcasecmp( argv[1], "off" );
-
-	/* anything else */
-	} else {
-		return SLAP_CONF_UNKNOWN;
-	}
-
-	return 0;
+	ni->ni_bind_allowed = c->value_int;
+	return LDAP_SUCCESS;
 }
 
 static int
@@ -329,6 +334,7 @@ null_back_db_init( BackendDB *be, ConfigReply *cr )
 	ni->ni_bind_allowed = 0;
 	ni->ni_nextid = 1;
 	be->be_private = ni;
+	be->be_cf_ocs = be->bd_info->bi_cf_ocs;
 	return 0;
 }
 
@@ -372,7 +378,7 @@ null_back_initialize( BackendInfo *bi )
 	bi->bi_destroy = 0;
 
 	bi->bi_db_init = null_back_db_init;
-	bi->bi_db_config = null_back_db_config;
+	bi->bi_db_config = config_generic_wrapper;
 	bi->bi_db_open = 0;
 	bi->bi_db_close = 0;
 	bi->bi_db_destroy = null_back_db_destroy;
@@ -404,7 +410,8 @@ null_back_initialize( BackendInfo *bi )
 	bi->bi_tool_entry_get = null_tool_entry_get;
 	bi->bi_tool_entry_put = null_tool_entry_put;
 
-	return 0;
+	bi->bi_cf_ocs = nullocs;
+	return config_register_schema( nullcfg, nullocs );
 }
 
 #if SLAPD_NULL == SLAPD_MOD_DYNAMIC
