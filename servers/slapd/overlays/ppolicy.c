@@ -1161,6 +1161,9 @@ locked:
 			c.ldctl_iscritical = 1;
 			c.ldctl_oid = LDAP_CONTROL_RELAX;
 		} else {
+			/* If not forwarding, don't update opattrs */
+			if ( SLAP_SINGLE_SHADOW( op->o_bd ))
+				op2.orm_no_opattrs = 1;
 			op2.o_bd->bd_info = (BackendInfo *)on->on_info;
 		}
 		rc = op2.o_bd->be_modify( &op2, &r2 );

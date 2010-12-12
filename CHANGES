@@ -4,6 +4,7 @@ OpenLDAP 2.4.24 Engineering
 	Fixed liblber to not close invalid sockets (ITS#6585)
 	Fixed slapd modify to return actual error (ITS#6581)
 	Fixed slapd-bdb entry cache delete failure (ITS#6577)
+	Fixed slapo-ppolicy don't update opattrs on consumers (ITS#6608)
 	Fixed slapo-syncprov to send error if consumer is newer (ITS#6606)
 
 OpenLDAP 2.4.23 Release (2010/06/30)
