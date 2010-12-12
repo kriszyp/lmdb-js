@@ -930,26 +930,6 @@ tlsm_authenticate_to_slot( tlsm_ctx *ctx, PK11SlotInfo *slot )
 	return rc;
 }
 
-static int
-tlsm_init_tokens( tlsm_ctx *ctx )
-{
-	PK11SlotList *slotList;
-	PK11SlotListElement *listEntry;
-	int rc = 0;
-
-	slotList = PK11_GetAllTokens( CKM_INVALID_MECHANISM, PR_FALSE, PR_TRUE, NULL );
-
-	for ( listEntry = PK11_GetFirstSafe( slotList ); !rc && listEntry;
-		  listEntry = PK11_GetNextSafe( slotList, listEntry, PR_FALSE ) ) {
-		PK11SlotInfo *slot = listEntry->slot;
-		rc = tlsm_authenticate_to_slot( ctx, slot );
-	}
-
-	PK11_FreeSlotList( slotList );
-
-	return rc;
-}
-
 static SECStatus
 tlsm_nss_shutdown_cb( void *appData, void *nssData )
 {
@@ -1364,10 +1344,6 @@ tlsm_deferred_init( void *arg )
 		NSS_SetDomesticPolicy();
 
 		PK11_SetPasswordFunc( tlsm_pin_prompt );
-
-		if ( tlsm_init_tokens( ctx ) ) {
-			return -1;
-		}
 
 		/* register cleanup function */
 		/* delete the old one, if any */
