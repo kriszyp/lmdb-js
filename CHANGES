@@ -14,6 +14,7 @@ OpenLDAP 2.4.24 Engineering
 	Fixed slapd modify leaving rc uninitialized (ITS#6715)
 	Fixed slapd syncrepl reuse of presence list (ITS#6707)
 	Fixed slapd-bdb entry cache delete failure (ITS#6577)
+	Fixed slapd-ldap uninitialized tv_usec (ITS#6721)
 	Fixed slapd-ndb to honor rootpw setting (ITS#6661)
 	Fixed slapd-meta anon retry with failed auth method (ITS#6643)
 	Fixed slapd-meta rebind proc (ITS#6665)
