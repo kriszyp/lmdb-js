@@ -11,6 +11,7 @@ OpenLDAP 2.4.24 Engineering
 	Fixed slapd acl parsing overflow (ITS#6611)
 	Fixed slapd when first acl is value dependent (ITS#6693)
 	Fixed slapd modify to return actual error (ITS#6581)
+	Fixed slapd modify leaving rc uninitialized (ITS#6715)
 	Fixed slapd syncrepl reuse of presence list (ITS#6707)
 	Fixed slapd-bdb entry cache delete failure (ITS#6577)
 	Fixed slapd-ndb to honor rootpw setting (ITS#6661)
