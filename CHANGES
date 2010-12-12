@@ -1,6 +1,7 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.24 Engineering
+	Fixed liblber to not close invalid sockets (ITS#6585)
 	Fixed slapd modify to return actual error (ITS#6581)
 	Fixed slapd-bdb entry cache delete failure (ITS#6577)
 

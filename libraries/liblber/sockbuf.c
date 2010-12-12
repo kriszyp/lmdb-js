@@ -541,7 +541,8 @@ sb_stream_close( Sockbuf_IO_Desc *sbiod )
 {
 	assert( sbiod != NULL );
 	assert( SOCKBUF_VALID( sbiod->sbiod_sb ) );
-	tcp_close( sbiod->sbiod_sb->sb_fd );
+	if ( sbiod->sbiod_sb->sb_fd != AC_SOCKET_INVALID )
+		tcp_close( sbiod->sbiod_sb->sb_fd );
    return 0;
 }
 
@@ -754,7 +755,8 @@ sb_fd_close( Sockbuf_IO_Desc *sbiod )
 	assert( sbiod != NULL );
 	assert( SOCKBUF_VALID( sbiod->sbiod_sb ) );
 
-	close( sbiod->sbiod_sb->sb_fd );
+	if ( sbiod->sbiod_sb->sb_fd != AC_SOCKET_INVALID )
+		close( sbiod->sbiod_sb->sb_fd );
 	return 0;
 }
 
@@ -956,8 +958,9 @@ sb_dgram_close( Sockbuf_IO_Desc *sbiod )
 {
 	assert( sbiod != NULL );
 	assert( SOCKBUF_VALID( sbiod->sbiod_sb ) );
-
-	tcp_close( sbiod->sbiod_sb->sb_fd );
+  
+	if ( sbiod->sbiod_sb->sb_fd != AC_SOCKET_INVALID )
+		tcp_close( sbiod->sbiod_sb->sb_fd );
 	return 0;
 }
 
