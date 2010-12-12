@@ -133,6 +133,7 @@ typedef struct syncprov_info_t {
 	int		si_numops;	/* number of ops since last checkpoint */
 	int		si_nopres;	/* Skip present phase */
 	int		si_usehint;	/* use reload hint */
+	int		si_active;	/* True if there are active mods */
 	time_t	si_chklast;	/* time of last checkpoint */
 	Avlnode	*si_mods;	/* entries being modified */
 	sessionlog	*si_logs;
@@ -1376,6 +1377,11 @@ syncprov_op_cleanup( Operation *op, SlapReply *rs )
 	syncmatches *sm, *snext;
 	modtarget *mt, mtdummy;
 
+	ldap_pvt_thread_mutex_lock( &si->si_ops_mutex );
+	if ( si->si_active )
+		si->si_active--;
+	ldap_pvt_thread_mutex_unlock( &si->si_ops_mutex );
+
 	for (sm = opc->smatches; sm; sm=snext) {
 		snext = sm->sm_next;
 		syncprov_free_syncop( sm->sm_op );
@@ -1976,6 +1982,7 @@ syncprov_op_mod( Operation *op, SlapReply *rs )
 
 	ldap_pvt_thread_mutex_lock( &si->si_ops_mutex );
 	have_psearches = ( si->si_ops != NULL );
+	si->si_active++;
 	ldap_pvt_thread_mutex_unlock( &si->si_ops_mutex );
 
 	cbsize = sizeof(slap_callback) + sizeof(opcookie) +
@@ -2410,6 +2417,20 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 		sop->s_inuse = 1;
 
 		ldap_pvt_thread_mutex_lock( &si->si_ops_mutex );
+		while ( si->si_active ) {
+			/* Wait for active mods to finish before proceeding, as they
+			 * may already have inspected the si_ops list looking for
+			 * consumers to replicate the change to.  Using the log
+			 * doesn't help, as we may finish playing it before the
+			 * active mods gets added to it.
+			 */
+			ldap_pvt_thread_mutex_unlock( &si->si_ops_mutex );
+			if ( slapd_shutdown )
+				return SLAPD_ABANDON;
+			if ( !ldap_pvt_thread_pool_pausecheck( &connection_pool ))
+				ldap_pvt_thread_yield();
+			ldap_pvt_thread_mutex_lock( &si->si_ops_mutex );
+		}
 		sop->s_next = si->si_ops;
 		si->si_ops = sop;
 		ldap_pvt_thread_mutex_unlock( &si->si_ops_mutex );
