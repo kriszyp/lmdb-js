@@ -11,7 +11,7 @@ H2: Common causes of LDAP errors
 
 H3: ldap_*: Can't contact LDAP server
 
-The {[B:Can't contact LDAP server}} error is usually returned when the LDAP 
+The {{B:Can't contact LDAP server}} error is usually returned when the LDAP 
 server cannot be contacted. This may occur for many reasons:
 
 * the LDAP server is not running; this can be checked by running, for example,

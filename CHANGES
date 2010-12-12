@@ -14,6 +14,8 @@ OpenLDAP 2.4.24 Engineering
 	Fixed slapo-pcache to ignore undefined attrs (ITS#6600)
 	Fixed slapo-ppolicy don't update opattrs on consumers (ITS#6608)
 	Fixed slapo-syncprov to send error if consumer is newer (ITS#6606)
+	Documentation
+		admin24 guide typo fixes (ITS#6609)
 
 OpenLDAP 2.4.23 Release (2010/06/30)
 	Fixed libldap to return server's error code (ITS#6569)
