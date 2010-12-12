@@ -102,8 +102,8 @@ lutil_getpass( const char *prompt )
 #else
 	fi = stdin;
 #endif
-	fprintf(stdout, "%s", prompt); 
-	fflush(stdout);
+	fprintf(stderr, "%s", prompt); 
+	fflush(stderr);
 	i = 0;
 	while ( (c = getc(fi)) != EOF && c != '\n' && c != '\r' )
 		if ( i < (sizeof(pbuf)-1) )
@@ -111,8 +111,8 @@ lutil_getpass( const char *prompt )
 #if defined(HAVE_TERMIOS_H) || defined(HAVE_SGTTY_H)
 	/* tidy up */
 	if (fi != stdin) {
-		fprintf(stdout, "\n"); 
-		fflush(stdout);
+		fprintf(stderr, "\n"); 
+		fflush(stderr);
 		SETFLAGS( ttyb, flags );
 		if (SETATTR(fileno(fi), &ttyb) < 0)
 			perror("SETATTR");
