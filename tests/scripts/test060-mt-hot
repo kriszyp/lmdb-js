@@ -13,6 +13,9 @@
 ## top-level directory of the distribution or, alternatively, at
 ## <http://www.OpenLDAP.org/license.html>.
 
+# The default debug level logs more than 1Gb:
+SLAPD_DEBUG=${SLAPD_DEBUG_MT_HOT-stats}
+
 echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
 
