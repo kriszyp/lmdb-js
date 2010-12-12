@@ -105,6 +105,9 @@ static const PRIOMethods tlsm_PR_methods;
 
 #define PEM_LIBRARY	"nsspem"
 #define PEM_MODULE	"PEM"
+/* hash files for use with cacertdir have this file name suffix */
+#define PEM_CA_HASH_FILE_SUFFIX	".0"
+#define PEM_CA_HASH_FILE_SUFFIX_LEN 2
 
 static SECMODModule *pem_module;
 
@@ -711,6 +714,12 @@ tlsm_dump_security_status(PRFileDesc *fd)
 	return "";
 }
 
+static void
+tlsm_handshake_complete_cb( PRFileDesc *fd, void *client_data )
+{
+	tlsm_dump_security_status( fd );
+}
+
 #ifdef READ_PASSWORD_FROM_FILE
 static char *
 tlsm_get_pin_from_file(const char *token_name, tlsm_ctx *ctx)
@@ -896,16 +905,22 @@ tlsm_auth_cert_handler(void *arg, PRFileDesc *fd,
 {
 	SECStatus ret = SSL_AuthCertificate(arg, fd, checksig, isServer);
 
-	tlsm_dump_security_status( fd );
-	Debug( LDAP_DEBUG_TRACE,
-		   "TLS certificate verification: %s\n",
-		   ret == SECSuccess ? "ok" : "bad", 0, 0 );
-
 	if ( ret != SECSuccess ) {
 		PRErrorCode errcode = PORT_GetError();
-		Debug( LDAP_DEBUG_ANY,
-			   "TLS certificate verification: Error, %d: %s\n",
-			   errcode, PR_ErrorToString( errcode, PR_LANGUAGE_I_DEFAULT ), 0 ) ;
+		/* we bypass NSS's hostname checks and do our own - tlsm_session_chkhost will handle it */
+		if ( errcode == SSL_ERROR_BAD_CERT_DOMAIN ) {
+			Debug( LDAP_DEBUG_TRACE,
+				   "TLS certificate verification: defer\n",
+				   0, 0, 0 );
+		} else {
+			Debug( LDAP_DEBUG_ANY,
+				   "TLS certificate verification: Error, %d: %s\n",
+				   errcode, PR_ErrorToString( errcode, PR_LANGUAGE_I_DEFAULT ), 0 ) ;
+		}
+	} else {
+		Debug( LDAP_DEBUG_TRACE,
+			   "TLS certificate verification: ok\n",
+			   0, 0, 0 );
 	}
 
 	return ret;
@@ -1031,6 +1046,7 @@ tlsm_add_cert_from_file( tlsm_ctx *ctx, const char *filename, PRBool isca )
 	}
 
 	if ( fi.type != PR_FILE_FILE ) {
+		PR_SetError(PR_IS_DIRECTORY_ERROR, 0);
 		Debug( LDAP_DEBUG_ANY,
 			   "TLS: error: the certificate file %s is not a file.\n",
 			   filename, 0 ,0 );
@@ -1123,6 +1139,7 @@ tlsm_add_key_from_file( tlsm_ctx *ctx, const char *filename )
 	}
 
 	if ( fi.type != PR_FILE_FILE ) {
+		PR_SetError(PR_IS_DIRECTORY_ERROR, 0);
 		Debug( LDAP_DEBUG_ANY,
 			   "TLS: error: the key file %s is not a file.\n",
 			   filename, 0 ,0 );
@@ -1178,69 +1195,107 @@ static int
 tlsm_init_ca_certs( tlsm_ctx *ctx, const char *cacertfile, const char *cacertdir )
 {
 	PRBool isca = PR_TRUE;
+	PRStatus status = PR_FAILURE;
+	PRErrorCode errcode = PR_SUCCESS;
+
+	if ( !cacertfile && !cacertdir ) {
+		/* no checking - not good, but allowed */
+		return 0;
+	}
 
 	if ( cacertfile ) {
 		int rc = tlsm_add_cert_from_file( ctx, cacertfile, isca );
 		if ( rc ) {
-			return rc;
+			errcode = PR_GetError();
+			Debug( LDAP_DEBUG_ANY,
+				   "TLS: %s is not a valid CA certificate file - error %d:%s.\n",
+				   cacertfile, errcode,
+				   PR_ErrorToString( errcode, PR_LANGUAGE_I_DEFAULT ) );
+		} else {
+			Debug( LDAP_DEBUG_TRACE,
+				   "TLS: loaded CA certificate file %s.\n",
+				   cacertfile, 0, 0 );
+			status = PR_SUCCESS; /* have at least one good CA - we can proceed */
 		}
 	}
 
 	if ( cacertdir ) {
 		PRFileInfo fi;
-		PRStatus status;
 		PRDir *dir;
 		PRDirEntry *entry;
+		PRStatus fistatus = PR_FAILURE;
 
 		memset( &fi, 0, sizeof(fi) );
-		status = PR_GetFileInfo( cacertdir, &fi );
-		if ( PR_SUCCESS != status) {
-			PRErrorCode errcode = PR_GetError();
+		fistatus = PR_GetFileInfo( cacertdir, &fi );
+		if ( PR_SUCCESS != fistatus) {
+			errcode = PR_GetError();
 			Debug( LDAP_DEBUG_ANY,
 				   "TLS: could not get info about the CA certificate directory %s - error %d:%s.\n",
 				   cacertdir, errcode,
 				   PR_ErrorToString( errcode, PR_LANGUAGE_I_DEFAULT ) );
-			return -1;
+			goto done;
 		}
 
 		if ( fi.type != PR_FILE_DIRECTORY ) {
 			Debug( LDAP_DEBUG_ANY,
 				   "TLS: error: the CA certificate directory %s is not a directory.\n",
 				   cacertdir, 0 ,0 );
-			return -1;
+			goto done;
 		}
 
 		dir = PR_OpenDir( cacertdir );
 		if ( NULL == dir ) {
-			PRErrorCode errcode = PR_GetError();
+			errcode = PR_GetError();
 			Debug( LDAP_DEBUG_ANY,
 				   "TLS: could not open the CA certificate directory %s - error %d:%s.\n",
 				   cacertdir, errcode,
 				   PR_ErrorToString( errcode, PR_LANGUAGE_I_DEFAULT ) );
-			return -1;
+			goto done;
 		}
 
-		status = -1;
 		do {
 			entry = PR_ReadDir( dir, PR_SKIP_BOTH | PR_SKIP_HIDDEN );
-			if ( NULL != entry ) {
-				char *fullpath = PR_smprintf( "%s/%s", cacertdir, entry->name );
+			if ( ( NULL != entry ) && ( NULL != entry->name ) ) {
+				char *fullpath = NULL;
+				char *ptr;
+
+				ptr = PL_strrstr( entry->name, PEM_CA_HASH_FILE_SUFFIX );
+				if ( ( ptr == NULL ) || ( *(ptr + PEM_CA_HASH_FILE_SUFFIX_LEN) != '\0' ) ) {
+					Debug( LDAP_DEBUG_TRACE,
+						   "TLS: file %s does not end in [%s] - does not appear to be a CA certificate "
+						   "directory file with a properly hashed file name - skipping.\n",
+						   entry->name, PEM_CA_HASH_FILE_SUFFIX, 0 );
+					continue;
+				}
+				fullpath = PR_smprintf( "%s/%s", cacertdir, entry->name );
 				if ( !tlsm_add_cert_from_file( ctx, fullpath, isca ) ) {
-					status = 0; /* found at least 1 valid CA file in the dir */
+					Debug( LDAP_DEBUG_TRACE,
+						   "TLS: loaded CA certificate file %s from CA certificate directory %s.\n",
+						   fullpath, cacertdir, 0 );
+					status = PR_SUCCESS; /* found at least 1 valid CA file in the dir */
+				} else {
+					errcode = PR_GetError();
+					Debug( LDAP_DEBUG_TRACE,
+						   "TLS: %s is not a valid CA certificate file - error %d:%s.\n",
+						   fullpath, errcode,
+						   PR_ErrorToString( errcode, PR_LANGUAGE_I_DEFAULT ) );
 				}
 				PR_smprintf_free( fullpath );
 			}
 		} while ( NULL != entry );
 		PR_CloseDir( dir );
-
-		if ( status ) {
-			PRErrorCode errcode = PR_GetError();
-			Debug( LDAP_DEBUG_ANY,
-				   "TLS: did not find any valid CA certificate files in the CA certificate directory %s - error %d:%s.\n",
-				   cacertdir, errcode,
-				   PR_ErrorToString( errcode, PR_LANGUAGE_I_DEFAULT ) );
-			return -1;
+	}
+done:
+	if ( status != PR_SUCCESS ) {
+		const char *fmtstr = NULL;
+		if ( cacertfile && cacertdir ) {
+			fmtstr = "TLS: did not find any valid CA certificates in %s or %s\n";
+		} else {
+			fmtstr = "TLS: did not find any valid CA certificates in %s%s\n";
 		}
+		Debug( LDAP_DEBUG_ANY, fmtstr, cacertdir ? cacertdir : "",
+			   cacertfile ? cacertfile : "", 0 );
+		return -1;
 	}
 
 	return 0;
@@ -1361,9 +1416,11 @@ tlsm_deferred_init( void *arg )
 
 			if ( rc != SECSuccess ) {
 				errcode = PORT_GetError();
-				Debug( LDAP_DEBUG_TRACE,
-					   "TLS: could not initialize moznss using security dir %s prefix %s - error %d.\n",
-					   realcertdir, prefix, errcode );
+				if ( securitydirs[ii] != lt->lt_cacertdir) {
+					Debug( LDAP_DEBUG_TRACE,
+						   "TLS: could not initialize moznss using security dir %s prefix %s - error %d.\n",
+						   realcertdir, prefix, errcode );
+				}
 			} else {
 				/* success */
 				Debug( LDAP_DEBUG_TRACE, "TLS: using moznss security dir %s prefix %s.\n",
@@ -1420,6 +1477,21 @@ tlsm_deferred_init( void *arg )
 			}
 
 			if ( tlsm_init_ca_certs( ctx, lt->lt_cacertfile, lt->lt_cacertdir ) ) {
+				/* if we tried to use lt->lt_cacertdir as an NSS key/cert db, errcode 
+				   will be a value other than 1 - print an error message so that the
+				   user will know that failed too */
+				if ( ( errcode != 1 ) && ( lt->lt_cacertdir ) ) {
+					char *realcertdir = NULL;
+					char *prefix = NULL;
+					tlsm_get_certdb_prefix( lt->lt_cacertdir, &realcertdir, &prefix );
+					Debug( LDAP_DEBUG_TRACE,
+						   "TLS: could not initialize moznss using security dir %s prefix %s - error %d.\n",
+						   realcertdir, prefix ? prefix : "", errcode );
+					if ( realcertdir != lt->lt_cacertdir ) {
+						PL_strfree( realcertdir );
+					}
+					PL_strfree( prefix );
+				}
 				return -1;
 			}
 
@@ -2003,6 +2075,14 @@ tlsm_deferred_ctx_init( void *arg )
 		PRErrorCode err = PR_GetError();
 		Debug( LDAP_DEBUG_ANY, 
 		       "TLS: error: could not set auth cert handler for moznss - error %d:%s\n",
+		       err, PR_ErrorToString( err, PR_LANGUAGE_I_DEFAULT ), NULL );
+		return -1;
+	}
+
+	if ( SSL_HandshakeCallback( ctx->tc_model, tlsm_handshake_complete_cb, ctx ) ) {
+		PRErrorCode err = PR_GetError();
+		Debug( LDAP_DEBUG_ANY, 
+		       "TLS: error: could not set handshake callback for moznss - error %d:%s\n",
 		       err, PR_ErrorToString( err, PR_LANGUAGE_I_DEFAULT ), NULL );
 		return -1;
 	}
