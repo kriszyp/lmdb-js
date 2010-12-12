@@ -1377,6 +1377,11 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 
 	if ( lo->mask & LOG_OP_WRITES ) {
 		slap_callback *cb;
+
+		/* These internal ops are not logged */
+		if ( op->o_dont_replicate && op->orm_no_opattrs )
+			return SLAP_CB_CONTINUE;
+
 		ldap_pvt_thread_mutex_lock( &li->li_log_mutex );
 		old = li->li_old;
 		li->li_old = NULL;
@@ -1757,6 +1762,10 @@ accesslog_op_mod( Operation *op, SlapReply *rs )
 {
 	slap_overinst *on = (slap_overinst *)op->o_bd->bd_info;
 	log_info *li = on->on_bi.bi_private;
+
+	/* These internal ops are not logged */
+	if ( op->o_dont_replicate && op->orm_no_opattrs )
+		return SLAP_CB_CONTINUE;
 
 	if ( li->li_ops & LOG_OP_WRITES ) {
 		slap_callback *cb = op->o_tmpalloc( sizeof( slap_callback ), op->o_tmpmemctx ), *cb2;
