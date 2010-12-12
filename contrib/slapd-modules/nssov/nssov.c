@@ -879,18 +879,20 @@ nssov_db_close(
 	slap_overinst *on = (slap_overinst *)be->bd_info;
 	nssov_info *ni = on->on_bi.bi_private;
 
-	/* close socket if it's still in use */
-	if (ni->ni_socket >= 0);
-	{
-		if (close(ni->ni_socket))
-			Debug( LDAP_DEBUG_ANY,"problem closing server socket (ignored): %s",strerror(errno),0,0);
-		ni->ni_socket = -1;
-	}
-	/* remove existing named socket */
-	if (unlink(NSLCD_SOCKET)<0)
-	{
-		Debug( LDAP_DEBUG_TRACE,"unlink() of "NSLCD_SOCKET" failed (ignored): %s",
-			strerror(errno),0,0);
+	if ( slapMode & SLAP_SERVER_MODE ) {
+		/* close socket if it's still in use */
+		if (ni->ni_socket >= 0);
+		{
+			if (close(ni->ni_socket))
+				Debug( LDAP_DEBUG_ANY,"problem closing server socket (ignored): %s",strerror(errno),0,0);
+			ni->ni_socket = -1;
+		}
+		/* remove existing named socket */
+		if (unlink(NSLCD_SOCKET)<0)
+		{
+			Debug( LDAP_DEBUG_TRACE,"unlink() of "NSLCD_SOCKET" failed (ignored): %s",
+				strerror(errno),0,0);
+		}
 	}
 }
 

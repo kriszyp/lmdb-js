@@ -19,6 +19,7 @@ OpenLDAP 2.4.24 Engineering
 	Fixed slapo-ppolicy don't update opattrs on consumers (ITS#6608)
 	Fixed slapo-sssvlv initialization (ITS#6649)
 	Fixed slapo-syncprov to send error if consumer is newer (ITS#6606)
+	Fixed contrib/nssov to only close socket on shutdown (ITS#6676)
 	Documentation
 		admin24 guide typo fixes (ITS#6609)
 
