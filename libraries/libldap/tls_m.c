@@ -1207,6 +1207,45 @@ tlsm_init_ca_certs( tlsm_ctx *ctx, const char *cacertfile, const char *cacertdir
 }
 
 /*
+ * NSS supports having multiple cert/key databases in the same
+ * directory, each one having a unique string prefix e.g.
+ * slapd-01-cert8.db - the prefix here is "slapd-01-"
+ * this function examines the given certdir - if it looks like
+ * /path/to/directory/prefix it will return the
+ * /path/to/directory part in realcertdir, and the prefix in prefix
+ */
+static void
+tlsm_get_certdb_prefix( const char *certdir, char **realcertdir, char **prefix )
+{
+	char sep = PR_GetDirectorySeparator();
+	char *ptr = NULL;
+	struct PRFileInfo prfi;
+	PRStatus prc;
+
+	*realcertdir = (char *)certdir; /* default is the one passed in */
+
+	/* if certdir is not given, just return */
+	if ( !certdir ) {
+		return;
+	}
+
+	prc = PR_GetFileInfo( certdir, &prfi );
+	/* if certdir exists (file or directory) then it cannot specify a prefix */
+	if ( prc == PR_SUCCESS ) {
+		return;
+	}
+
+	/* if certdir was given, and there is a '/' in certdir, see if there
+	   is anything after the last '/' - if so, assume it is the prefix */
+	if ( ( ( ptr = strrchr( certdir, sep ) ) ) && *(ptr+1) ) {
+		*realcertdir = PL_strndup( certdir, ptr-certdir );
+		*prefix = PL_strdup( ptr+1 );
+	}
+
+	return;
+}
+
+/*
  * This is the part of the init we defer until we get the
  * actual security configuration information.  This is
  * only called once, protected by a PRCallOnce
@@ -1228,6 +1267,7 @@ tlsm_deferred_init( void *arg )
 	NSSInitContext *initctx = NULL;
 #endif
 	SECStatus rc;
+	int done = 0;
 
 #ifdef HAVE_NSS_INITCONTEXT
 	memset( &initParams, 0, sizeof( initParams ) );
@@ -1251,40 +1291,51 @@ tlsm_deferred_init( void *arg )
 		securitydirs[nn++] = PR_GetEnv( "MOZNSS_DIR" );
 		securitydirs[nn++] = lt->lt_cacertdir;
 		securitydirs[nn++] = PR_GetEnv( "DEFAULT_MOZNSS_DIR" );
-		for ( ii = 0; ii < nn; ++ii ) {
+		for ( ii = 0; !done && ( ii < nn ); ++ii ) {
+			char *realcertdir = NULL;
+			const char *defprefix = "";
+			char *prefix = (char *)defprefix;
 			const char *securitydir = securitydirs[ii];
 			if ( NULL == securitydir ) {
 				continue;
 			}
+
+			tlsm_get_certdb_prefix( securitydir, &realcertdir, &prefix );
 #ifdef HAVE_NSS_INITCONTEXT
 #ifdef INITCONTEXT_HACK
 			if ( !NSS_IsInitialized() && ctx->tc_is_server ) {
-				rc = NSS_Initialize( securitydir, "", "", SECMOD_DB, NSS_INIT_READONLY );
+				rc = NSS_Initialize( realcertdir, prefix, prefix, SECMOD_DB, NSS_INIT_READONLY );
 			} else {
-				initctx = NSS_InitContext( securitydir, "", "", SECMOD_DB,
+				initctx = NSS_InitContext( realcertdir, prefix, prefix, SECMOD_DB,
 										   &initParams, NSS_INIT_READONLY );
 				rc = (initctx == NULL) ? SECFailure : SECSuccess;
 			}
 #else
-			initctx = NSS_InitContext( securitydir, "", "", SECMOD_DB,
+			initctx = NSS_InitContext( realcertdir, prefix, prefix, SECMOD_DB,
 									   &initParams, NSS_INIT_READONLY );
 			rc = (initctx == NULL) ? SECFailure : SECSuccess;
 #endif
 #else
-			rc = NSS_Initialize( securitydir, "", "", SECMOD_DB, NSS_INIT_READONLY );
+			rc = NSS_Initialize( realcertdir, prefix, prefix, SECMOD_DB, NSS_INIT_READONLY );
 #endif
 
 			if ( rc != SECSuccess ) {
 				errcode = PORT_GetError();
 				Debug( LDAP_DEBUG_TRACE,
-					   "TLS: could not initialize moznss using security dir %s - error %d:%s.\n",
-					   securitydir, errcode, PR_ErrorToString( errcode, PR_LANGUAGE_I_DEFAULT ) );
+					   "TLS: could not initialize moznss using security dir %s prefix %s - error %d.\n",
+					   realcertdir, prefix, errcode );
 			} else {
 				/* success */
-				Debug( LDAP_DEBUG_TRACE, "TLS: using moznss security dir %s.\n",
-					   securitydir, 0, 0 );
+				Debug( LDAP_DEBUG_TRACE, "TLS: using moznss security dir %s prefix %s.\n",
+					   realcertdir, prefix, 0 );
 				errcode = 0;
-				break;
+				done = 1;
+			}
+			if ( realcertdir != securitydir ) {
+				PL_strfree( realcertdir );
+			}
+			if ( prefix != defprefix ) {
+				PL_strfree( prefix );
 			}
 		}
 
@@ -2043,9 +2094,6 @@ tlsm_session_accept( tls_session *session )
 			break; /* done */
 		}
 		err = PR_GetError();
-		Debug( LDAP_DEBUG_TRACE, 
-			   "TLS: error: accept - force handshake failure %d - error %d waitcounter %d\n",
-			   errno, err, waitcounter );
 		if ( errno == EAGAIN || errno == EWOULDBLOCK ) {
 			waitcounter++;
 			in_flags = PR_POLL_READ | PR_POLL_EXCEPT;
@@ -2160,7 +2208,7 @@ tlsm_session_my_dn( tls_session *session, struct berval *der_dn )
 	cert = SSL_LocalCertificate( s );
 	if (!cert) return LDAP_INVALID_CREDENTIALS;
 
-	der_dn->bv_val = cert->derSubject.data;
+	der_dn->bv_val = (char *)cert->derSubject.data;
 	der_dn->bv_len = cert->derSubject.len;
 	CERT_DestroyCertificate( cert );
 	return 0;
@@ -2175,7 +2223,7 @@ tlsm_session_peer_dn( tls_session *session, struct berval *der_dn )
 	cert = SSL_PeerCertificate( s );
 	if (!cert) return LDAP_INVALID_CREDENTIALS;
 	
-	der_dn->bv_val = cert->derSubject.data;
+	der_dn->bv_val = (char *)cert->derSubject.data;
 	der_dn->bv_len = cert->derSubject.len;
 	CERT_DestroyCertificate( cert );
 	return 0;
@@ -2192,7 +2240,7 @@ tlsm_session_chkhost( LDAP *ld, tls_session *session, const char *name_in )
 	tlsm_session *s = (tlsm_session *)session;
 	CERTCertificate *cert;
 	const char *name, *domain = NULL, *ptr;
-	int i, ret, ntype = IS_DNS, nlen, dlen;
+	int ret, ntype = IS_DNS, nlen, dlen;
 #ifdef LDAP_PF_INET6
 	struct in6_addr addr;
 #else
@@ -2264,7 +2312,7 @@ tlsm_session_chkhost( LDAP *ld, tls_session *session, const char *name_in )
 			/* ignore empty */
 			if ( !cur->name.other.len ) continue;
 
-			host = cur->name.other.data;
+			host = (char *)cur->name.other.data;
 			hlen = cur->name.other.len;
 
 			if ( cur->type == certDNSName ) {
@@ -2322,11 +2370,11 @@ altfail:
 		if ( lastava ) {
 			SECItem *av = CERT_DecodeAVAValue( &lastava->value );
 			if ( av ) {
-				if ( av->len == nlen && !strncasecmp( name, av->data, nlen )) {
+				if ( av->len == nlen && !strncasecmp( name, (char *)av->data, nlen )) {
 					ret = LDAP_SUCCESS;
 				} else if ( av->data[0] == '*' && av->data[1] == '.' &&
 					domain && dlen == av->len - 1 && !strncasecmp( name,
-						av->data+1, dlen )) {
+						(char *)(av->data+1), dlen )) {
 					ret = LDAP_SUCCESS;
 				} else {
 					int len = av->len;
@@ -2484,7 +2532,6 @@ static PRStatus PR_CALLBACK
 tlsm_PR_GetPeerName(PRFileDesc *fd, PRNetAddr *addr)
 {
 	struct tls_data		*p;
-	int rc;
 	ber_socklen_t len;
 
 	p = (struct tls_data *)fd->secret;
