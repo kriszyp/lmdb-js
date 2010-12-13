@@ -462,14 +462,15 @@ retry:
 			rc = ldap_parse_result( lc->lc_ld, res, &rs->sr_err,
 					&match.bv_val, &err,
 					&references, &rs->sr_ctrls, 1 );
-			if ( rc != LDAP_SUCCESS ) {
+			if ( rc == LDAP_SUCCESS ) {
+				if ( err ) {
+					rs->sr_text = err;
+					freetext = 1;
+				}
+			} else {
 				rs->sr_err = rc;
 			}
 			rs->sr_err = slap_map_api2result( rs );
-			if ( err ) {
-				rs->sr_text = err;
-				freetext = 1;
-			}
 
 			/* RFC 4511: referrals can only appear
 			 * if result code is LDAP_REFERRAL */

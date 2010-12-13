@@ -393,10 +393,8 @@ meta_search_dobind_result(
 		NULL, NULL, NULL, NULL, 0 );
 	if ( rc != LDAP_SUCCESS ) {
 		candidates[ candidate ].sr_err = rc;
-
-	} else {
-		rc = slap_map_api2result( &candidates[ candidate ] );
 	}
+	rc = slap_map_api2result( &candidates[ candidate ] );
 
 	ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
 	LDAP_BACK_CONN_BINDING_CLEAR( msc );
@@ -701,6 +699,7 @@ meta_back_search( Operation *op, SlapReply *rs )
 	int		is_ok = 0;
 	void		*savepriv;
 	SlapReply	*candidates = NULL;
+	int		do_taint = 0;
 
 	/*
 	 * controls are set in ldap_back_dobind()
@@ -1305,11 +1304,12 @@ really_bad:;
 						msg,
 						&candidates[ i ].sr_err,
 						(char **)&candidates[ i ].sr_matched,
-						NULL /* (char **)&candidates[ i ].sr_text */ ,
+						(char **)&candidates[ i ].sr_text,
 						&references,
 						NULL /* &candidates[ i ].sr_ctrls (unused) */ ,
 						0 );
 					if ( rs->sr_err != LDAP_SUCCESS ) {
+						candidates[ i ].sr_err = rs->sr_err;
 						sres = slap_map_api2result( &candidates[ i ] );
 						candidates[ i ].sr_type = REP_RESULT;
 						ldap_msgfree( res );
@@ -1451,9 +1451,12 @@ really_bad:;
 						if ( rs->sr_nentries == op->ors_slimit
 							|| META_BACK_ONERR_STOP( mi ) )
 						{
+							const char *save_text = rs->sr_text;
 							savepriv = op->o_private;
 							op->o_private = (void *)i;
+							rs->sr_text = candidates[ i ].sr_text;
 							send_ldap_result( op, rs );
+							rs->sr_text = save_text;
 							op->o_private = savepriv;
 							ldap_msgfree( res );
 							res = NULL;
@@ -1464,9 +1467,12 @@ really_bad:;
 					default:
 						candidates[ i ].sr_err = rs->sr_err;
 						if ( META_BACK_ONERR_STOP( mi ) ) {
+							const char *save_text = rs->sr_text;
 							savepriv = op->o_private;
 							op->o_private = (void *)i;
+							rs->sr_text = candidates[ i ].sr_text;
 							send_ldap_result( op, rs );
+							rs->sr_text = save_text;
 							op->o_private = savepriv;
 							ldap_msgfree( res );
 							res = NULL;
@@ -1814,12 +1820,17 @@ finish:;
 			&& op->o_time > mc->mc_conns[ i ].msc_time )
 		{
 			/* don't let anyone else use this expired connection */
-			LDAP_BACK_CONN_TAINTED_SET( mc );
+			do_taint++;
 		}
 	}
 
 	if ( mc ) {
-		meta_back_release_conn( mi, mc );
+		ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
+		if ( do_taint ) {
+			LDAP_BACK_CONN_TAINTED_SET( mc );
+		}
+		meta_back_release_conn_lock( mi, mc, 0 );
+		ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
 	}
 
 	return rs->sr_err;
