@@ -27,7 +27,26 @@
 #include "ldap-int.h"
 
 /*
- * LDAP Verify Credentials
+ * LDAP Verify Credentials operation
+ *
+ * The request is an extended request with OID 1.3.6.1.4.1.4203.666.6.5 with value of
+ * the BER encoding of:
+ *
+ * VCRequest ::= SEQUENCE {
+ *		Cookie [0] OCTET STRING OPTIONAL,
+ *		name	LDAPDN,
+ *		authentication	AuthenticationChoice
+ * }
+ *
+ * where LDAPDN and AuthenticationChoice are as defined in RFC 4511.
+ *
+ * The response is an extended response with no OID and a value of the BER encoding of
+ *
+ * VCRequest ::= SEQUENCE {
+ *		Cookie [0] OCTET STRING OPTIONAL,
+ *		serverSaslCreds [1] OCTET STRING OPTIONAL
+ * }
+ *
  */
 
 int ldap_parse_verify_credentials(
@@ -89,21 +108,21 @@ ldap_verify_credentials(LDAP *ld,
 	} else {
 		if (!cred || BER_BVISNULL(cred)) {
 			if (cookie) {
-				rc = ber_printf(ber, "{t0ist{sN}N}",
+				rc = ber_printf(ber, "{t0st{sN}N}",
 					LDAP_TAG_EXOP_VERIFY_CREDENTIALS_COOKIE, cookie,
-					3, dn, LDAP_AUTH_SASL, mechanism);
+					dn, LDAP_AUTH_SASL, mechanism);
 			} else {
-				rc = ber_printf(ber, "{ist{sN}N}",
-					3, dn, LDAP_AUTH_SASL, mechanism);
+				rc = ber_printf(ber, "{st{sN}N}",
+					dn, LDAP_AUTH_SASL, mechanism);
 			}
 		} else {
 			if (cookie) {
-				rc = ber_printf(ber, "{tOist{sON}N}",
+				rc = ber_printf(ber, "{tOst{sON}N}",
 					LDAP_TAG_EXOP_VERIFY_CREDENTIALS_COOKIE, cookie,
-					3, dn, LDAP_AUTH_SASL, mechanism, cred);
+					dn, LDAP_AUTH_SASL, mechanism, cred);
 			} else {
-				rc = ber_printf(ber, "{ist{sON}N}",
-					3, dn, LDAP_AUTH_SASL, mechanism, cred);
+				rc = ber_printf(ber, "{st{sON}N}",
+					dn, LDAP_AUTH_SASL, mechanism, cred);
 			}
 		}
 	}
