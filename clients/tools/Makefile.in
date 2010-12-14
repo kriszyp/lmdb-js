@@ -14,10 +14,10 @@
 ## <http://www.OpenLDAP.org/license.html>.
 
 SRCS	= ldapsearch.c ldapmodify.c ldapdelete.c ldapmodrdn.c \
-		ldappasswd.c ldapwhoami.c ldapcompare.c \
+		ldappasswd.c ldapwhoami.c ldapvc.c ldapcompare.c \
 		ldapexop.c ldapurl.c common.c
 OBJS	= ldapsearch.o ldapmodify.o ldapdelete.o ldapmodrdn.o \
-		ldappasswd.o ldapwhoami.o ldapcompare.o \
+		ldappasswd.o ldapwhoami.o ldapvc.o ldapcompare.o \
 		ldapexop.o ldapurl.o common.o
 
 LDAP_INCDIR= ../../include       
@@ -32,7 +32,7 @@ XSRCS	= ldsversion.c ldmversion.c lddversion.c ldrversion.c \
 	ldpversion.c ldwversion.c ldcversion.c ldeversion.c lduversion.c
 
 PROGRAMS = ldapsearch ldapmodify ldapdelete ldapmodrdn \
-	ldappasswd ldapwhoami ldapcompare ldapexop ldapurl
+	ldappasswd ldapwhoami ldapvc ldapcompare ldapexop ldapurl
 
 
 ldapsearch:	ldsversion.o
@@ -52,6 +52,9 @@ ldappasswd:	ldpversion.o
 
 ldapwhoami:	ldwversion.o
 	$(LTLINK) -o $@ ldapwhoami.o common.o ldwversion.o $(LIBS)
+
+ldapvc:	ldvversion.o
+	$(LTLINK) -o $@ ldapvc.o common.o ldvversion.o $(LIBS)
 
 ldapcompare: ldcversion.o
 	$(LTLINK) -o $@ ldapcompare.o common.o ldcversion.o $(LIBS)
@@ -97,6 +100,12 @@ ldwversion.c: Makefile
 	$(MKVERSION) $(MKVOPTS) ldapwhoami > $@
 
 ldwversion.o: ldapwhoami.o common.o $(XLIBS)
+
+ldvversion.c: Makefile
+	@-$(RM) $@
+	$(MKVERSION) $(MKVOPTS) ldapvc > $@
+
+ldvversion.o: ldapvc.o common.o $(XLIBS)
 
 ldcversion.c: Makefile
 	@-$(RM) $@
