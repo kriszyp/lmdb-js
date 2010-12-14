@@ -111,8 +111,7 @@ main( int argc, char *argv[] )
 	int		rc;
 	LDAP		*ld = NULL;
 	char		*matcheddn = NULL, *text = NULL, **refs = NULL;
-	char		*retoid = NULL;
-	struct berval	*retdata = NULL;
+	struct berval	*authzid = NULL;
 	int		id, code = 0;
 	LDAPMessage	*res;
 	LDAPControl	**ctrls = NULL;
@@ -182,7 +181,8 @@ main( int argc, char *argv[] )
 		goto skip;
 	}
 
-	rc = ldap_parse_extended_result( ld, res, &retoid, &retdata, 1 );
+	rc = ldap_parse_whoami( ld, res, &authzid );
+	ldap_msgfree(res);
 
 	if( rc != LDAP_SUCCESS ) {
 		tool_perror( "ldap_parse_extended_result", rc, NULL, NULL, NULL, NULL );
@@ -190,11 +190,11 @@ main( int argc, char *argv[] )
 		goto skip;
 	}
 
-	if( retdata != NULL ) {
-		if( retdata->bv_len == 0 ) {
+	if( authzid != NULL ) {
+		if( authzid->bv_len == 0 ) {
 			printf(_("anonymous\n") );
 		} else {
-			printf("%s\n", retdata->bv_val );
+			printf("%s\n", authzid->bv_val );
 		}
 	}
 
@@ -228,8 +228,7 @@ skip:
 	ber_memfree( text );
 	ber_memfree( matcheddn );
 	ber_memvfree( (void **) refs );
-	ber_memfree( retoid );
-	ber_bvfree( retdata );
+	ber_bvfree( authzid );
 
 	/* disconnect from server */
 	tool_unbind( ld );
