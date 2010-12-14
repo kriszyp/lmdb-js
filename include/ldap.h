@@ -385,6 +385,11 @@ typedef struct ldapcontrol {
 #define	LDAP_TAG_EXOP_REFRESH_REQ_TTL	((ber_tag_t) 0x81U)
 #define	LDAP_TAG_EXOP_REFRESH_RES_TTL	((ber_tag_t) 0x80U)
 
+#define LDAP_EXOP_VERIFY_CREDENTIALS	"1.1.1"
+#define LDAP_EXOP_X_VERIFY_CREDENTIALS	LDAP_EXOP_X_VERIFY_CREDENTIALS
+
+#define LDAP_TAG_EXOP_VERIFY_CREDENTIALS_COOKIE	((ber_tag_t) 0x80U)
+
 #define LDAP_EXOP_WHO_AM_I		"1.3.6.1.4.1.4203.1.11.3"		/* RFC 4532 */
 #define LDAP_EXOP_X_WHO_AM_I	LDAP_EXOP_WHO_AM_I
 
@@ -2213,6 +2218,42 @@ ldap_parse_vlvresponse_control LDAP_P((
 	ber_int_t *list_countp,
 	struct berval **contextp,
 	int           *errcodep ));
+
+/*
+ * LDAP Verify Credentials
+ */
+#define LDAP_API_FEATURE_VERIFY_CREDENTIALS 1000
+
+LDAP_F( int )
+ldap_verify_credentials LDAP_P((
+	LDAP		*ld,
+	struct berval	*cookie,
+	LDAP_CONST char	*dn,
+	LDAP_CONST char	*mechanism,
+	struct berval	*cred,
+	LDAPControl	**serverctrls,
+	LDAPControl	**clientctrls,
+	int		*msgidp ));
+
+LDAP_F( int )
+ldap_verify_credentials_s LDAP_P((
+	LDAP		*ld,
+	struct berval	*cookie,
+	LDAP_CONST char	*dn,
+	LDAP_CONST char	*mechanism,
+	struct berval	*cred,
+	LDAPControl	**serverctrls,
+	LDAPControl	**clientctrls,
+	struct berval	**servercredp,
+	struct berval	**authzid ));
+
+LDAP_F( int )
+ldap_parse_verify_credentials_result LDAP_P((
+	LDAP		*ld,
+	LDAPMessage	*res,
+	struct berval	**cookie,
+	struct berval	**servercredp,
+	struct berval	**authzid));
 
 /*
  * LDAP Who Am I?
