@@ -185,7 +185,7 @@ main( int argc, char *argv[] )
 	ldap_msgfree(res);
 
 	if( rc != LDAP_SUCCESS ) {
-		tool_perror( "ldap_parse_extended_result", rc, NULL, NULL, NULL, NULL );
+		tool_perror( "ldap_parse_whoami", rc, NULL, NULL, NULL, NULL );
 		rc = EXIT_FAILURE;
 		goto skip;
 	}
