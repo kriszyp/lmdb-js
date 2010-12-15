@@ -45,6 +45,7 @@
  * VCRequest ::= SEQUENCE {
  *		Cookie [0] OCTET STRING OPTIONAL,
  *		serverSaslCreds [1] OCTET STRING OPTIONAL
+ *		authzid [2] OCTET STRING OPTIONAL
  * }
  *
  */
@@ -52,12 +53,13 @@
 int ldap_parse_verify_credentials(
 	LDAP *ld,
 	LDAPMessage *res,
-	struct berval **servercred,
+    struct berval **cookie,
+	struct berval **screds,
 	struct berval **authzid)
 {
 	int rc;
 	char *retoid = NULL;
-	struct berval *reqdata = NULL;
+	struct berval *retdata = NULL;
 
 	assert(ld != NULL);
 	assert(LDAP_VALID(ld));
@@ -66,13 +68,44 @@ int ldap_parse_verify_credentials(
 
 	*authzid = NULL;
 
-	rc = ldap_parse_extended_result(ld, res, &retoid, &reqdata, 0);
+	rc = ldap_parse_extended_result(ld, res, &retoid, &retdata, 0);
 
 	if( rc != LDAP_SUCCESS ) {
 		ldap_perror(ld, "ldap_parse_whoami");
 		return rc;
 	}
 
+    if (retdata) {
+	    ber_tag_t tag;
+		ber_len_t len;
+	    BerElement * ber = ber_init(retdata);
+		if (!ber) {
+		    rc = ld->ld_errno = LDAP_NO_MEMORY;
+			goto done;
+		}
+
+		ber_scanf(ber, "{" /*"}"*/);
+
+		tag = ber_peek_tag(ber, &len);
+		if (tag == LDAP_TAG_EXOP_VERIFY_CREDENTIALS_COOKIE) {
+			ber_scanf(ber, "O", cookie);
+		    tag = ber_peek_tag(ber, &len);
+		}
+
+		if (tag == LDAP_TAG_EXOP_VERIFY_CREDENTIALS_SCREDS) {
+			ber_scanf(ber, "O", screds);
+		    tag = ber_peek_tag(ber, &len);
+		}
+
+		if (tag == LDAP_TAG_EXOP_VERIFY_CREDENTIALS_AUTHZID) {
+			ber_scanf(ber, "O", authzid);
+		}
+
+	    ber_free(ber, 1);
+    }
+
+done:
+	ber_bvfree(retdata);
 	ber_memfree(retoid);
 	return rc;
 }
@@ -145,6 +178,7 @@ ldap_verify_credentials_s(
 	struct berval	*cred,
 	LDAPControl		**sctrls,
 	LDAPControl		**cctrls,
+	struct berval	**scookie,
 	struct berval	**scred,
 	struct berval	**authzid)
 {
@@ -159,7 +193,7 @@ ldap_verify_credentials_s(
 		return ld->ld_errno;
 	}
 
-	rc = ldap_parse_verify_credentials(ld, res, scred, authzid);
+	rc = ldap_parse_verify_credentials(ld, res, scookie, scred, authzid);
 	if (rc != LDAP_SUCCESS) {
 		ldap_msgfree(res);
 		return rc;
