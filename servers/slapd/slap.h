@@ -421,6 +421,7 @@ struct Syntax {
 #define SLAP_SYNTAX_HIDE	0x8000U /* hide (do not publish) */
 #endif
 #define	SLAP_SYNTAX_HARDCODE	0x10000U	/* This is hardcoded schema */
+#define	SLAP_SYNTAX_DN		0x20000U	/* Treat like a DN */
 
 	Syntax				**ssyn_sups;
 
