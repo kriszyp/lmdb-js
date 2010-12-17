@@ -304,7 +304,7 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 	rc = backsql_BindParamBerVal( sth, 1, SQL_PARAM_INPUT, &realnew_dn );
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE,
-			"   backsql_add_attr(): "
+			"   backsql_modrdn(): "
 			"error binding DN parameter for objectClass %s\n",
 			oc->bom_oc->soc_cname.bv_val, 0, 0 );
 		backsql_PrintErrors( bi->sql_db_env, dbh, 
@@ -320,7 +320,7 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 	rc = backsql_BindParamID( sth, 2, SQL_PARAM_INPUT, &n_id.eid_id );
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE,
-			"   backsql_add_attr(): "
+			"   backsql_modrdn(): "
 			"error binding parent ID parameter for objectClass %s\n",
 			oc->bom_oc->soc_cname.bv_val, 0, 0 );
 		backsql_PrintErrors( bi->sql_db_env, dbh, 
@@ -336,7 +336,7 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 	rc = backsql_BindParamID( sth, 3, SQL_PARAM_INPUT, &e_id.eid_keyval );
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE,
-			"   backsql_add_attr(): "
+			"   backsql_modrdn(): "
 			"error binding entry ID parameter for objectClass %s\n",
 			oc->bom_oc->soc_cname.bv_val, 0, 0 );
 		backsql_PrintErrors( bi->sql_db_env, dbh, 
@@ -352,7 +352,7 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 	rc = backsql_BindParamID( sth, 4, SQL_PARAM_INPUT, &e_id.eid_id );
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE,
-			"   backsql_add_attr(): "
+			"   backsql_modrdn(): "
 			"error binding ID parameter for objectClass %s\n",
 			oc->bom_oc->soc_cname.bv_val, 0, 0 );
 		backsql_PrintErrors( bi->sql_db_env, dbh, 
