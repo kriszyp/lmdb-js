@@ -22,6 +22,7 @@ OpenLDAP 2.4.24 Engineering
 	Fixed slapd-meta anon retry with failed auth method (ITS#6643)
 	Fixed slapd-meta rebind proc (ITS#6665)
 	Fixed slapd-meta to correctly rebind as user (ITS#6574)
+	Fixed slapd-sql with null objectClass (ITS#6616)
 	Fixed slapo-pcache callback freeing (ITS#6640)
 	Fixed slapo-pcache to ignore undefined attrs (ITS#6600)
 	Fixed slapo-ppolicy don't update opattrs on consumers (ITS#6608)

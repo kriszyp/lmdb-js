@@ -925,18 +925,25 @@ backsql_id2entry( backsql_srch_info *bsi, backsql_entryID *eid )
 		goto done;
 	}
 
-	ber_dupbv_x( &bsi->bsi_e->e_name, &eid->eid_dn, op->o_tmpmemctx );
-	ber_dupbv_x( &bsi->bsi_e->e_nname, &eid->eid_ndn, op->o_tmpmemctx );
-
 	bsi->bsi_e->e_attrs = NULL;
 	bsi->bsi_e->e_private = NULL;
 
 	if ( eid->eid_oc == NULL ) {
 		eid->eid_oc = backsql_id2oc( bsi->bsi_op->o_bd->be_private,
 			eid->eid_oc_id );
+		if ( eid->eid_oc == NULL ) {
+			Debug( LDAP_DEBUG_TRACE,
+				"backsql_id2entry(): unable to fetch objectClass with id=%lu for entry id=" BACKSQL_IDFMT " dn=\"%s\"\n",
+				eid->eid_oc_id, BACKSQL_IDARG(eid->eid_id),
+				eid->eid_dn.bv_val );
+			return LDAP_OTHER;
+		}
 	}
 	bsi->bsi_oc = eid->eid_oc;
 	bsi->bsi_c_eid = eid;
+
+	ber_dupbv_x( &bsi->bsi_e->e_name, &eid->eid_dn, op->o_tmpmemctx );
+	ber_dupbv_x( &bsi->bsi_e->e_nname, &eid->eid_ndn, op->o_tmpmemctx );
 
 #ifndef BACKSQL_ARBITRARY_KEY	
 	/* FIXME: unused */
