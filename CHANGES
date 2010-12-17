@@ -16,6 +16,7 @@ OpenLDAP 2.4.24 Engineering
 	Fixed slapd syncrepl reuse of presence list (ITS#6707)
 	Fixed slapd-bdb entry cache delete failure (ITS#6577)
 	Fixed slapd-ldap debug output of timeout (ITS#6721)
+	Fixed slapd-ldap DNSSRV referral chaining (ITS#6565)
 	Fixed slapd-ndb to honor rootpw setting (ITS#6661)
 	Fixed slapd-meta anon retry with failed auth method (ITS#6643)
 	Fixed slapd-meta rebind proc (ITS#6665)
