@@ -160,7 +160,12 @@ backsql_make_attr_query(
 	at_map->bam_query = bb.bb_val.bv_val;
 
 #ifdef BACKSQL_COUNTQUERY
-	/* Query to count how many rows will be returned. */
+	/* Query to count how many rows will be returned.
+
+	SELECT COUNT(*) FROM <from_tbls> WHERE <keytbl>.<keycol>=?
+		[ AND <join_where> ]
+
+	 */
 	BER_BVZERO( &bb.bb_val );
 	bb.bb_len = 0;
 	backsql_strfcat_x( &bb, NULL, "lblbcbl", 
@@ -817,7 +822,7 @@ backsql_id2oc( backsql_info *bi, unsigned long id )
  
 #ifdef BACKSQL_TRACE
 	Debug( LDAP_DEBUG_TRACE, "==>oc_with_id(): "
-		"searching for objectclass with id='%d'\n", id, 0, 0 );
+		"searching for objectclass with id=%lu\n", id, 0, 0 );
 #endif /* BACKSQL_TRACE */
 
 	tmp.bom_id = id;
@@ -826,12 +831,12 @@ backsql_id2oc( backsql_info *bi, unsigned long id )
 
 #ifdef BACKSQL_TRACE
 	if ( res != NULL ) {
-		Debug( LDAP_DEBUG_TRACE, "<==oc_with_name(): "
-			"found name=\"%s\", id=%d\n",
+		Debug( LDAP_DEBUG_TRACE, "<==oc_with_id(): "
+			"found name=\"%s\", id=%lu\n",
 			BACKSQL_OC_NAME( res ), res->bom_id, 0 );
 	} else {
-		Debug( LDAP_DEBUG_TRACE, "<==oc_with_name(): "
-			"not found\n", 0, 0, 0 );
+		Debug( LDAP_DEBUG_TRACE, "<==oc_with_id(): "
+			"id=%lu not found\n", res->bom_id, 0, 0 );
 	}
 #endif /* BACKSQL_TRACE */
 	

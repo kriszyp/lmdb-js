@@ -1883,13 +1883,8 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
  	case LDAP_SCOPE_ONELEVEL:
 		assert( !BER_BVISNULL( &bsi->bsi_base_id.eid_ndn ) );
 
-#ifdef BACKSQL_ARBITRARY_KEY
-		Debug( LDAP_DEBUG_TRACE, "(one)id: \"%s\"\n",
-				bsi->bsi_base_id.eid_id.bv_val, 0, 0 );
-#else /* ! BACKSQL_ARBITRARY_KEY */
-		Debug( LDAP_DEBUG_TRACE, "(one)id: '%lu'\n",
-				bsi->bsi_base_id.eid_id, 0, 0 );
-#endif /* ! BACKSQL_ARBITRARY_KEY */
+		Debug( LDAP_DEBUG_TRACE, "(one)id=" BACKSQL_IDFMT "\n",
+			BACKSQL_IDARG(bsi->bsi_base_id.eid_id), 0, 0 );
 		rc = backsql_BindParamID( sth, 2, SQL_PARAM_INPUT,
 				&bsi->bsi_base_id.eid_id );
 		if ( rc != SQL_SUCCESS ) {
@@ -1963,16 +1958,11 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 		*bsi->bsi_id_listtail = c_id;
 		bsi->bsi_id_listtail = &c_id->eid_next;
 
-#ifdef BACKSQL_ARBITRARY_KEY
 		Debug( LDAP_DEBUG_TRACE, "backsql_oc_get_candidates(): "
-			"added entry id=%s, keyval=%s dn=\"%s\"\n",
-			c_id->eid_id.bv_val, c_id->eid_keyval.bv_val,
+			"added entry id=" BACKSQL_IDFMT " keyval=" BACKSQL_IDFMT " dn=\"%s\"\n",
+			BACKSQL_IDARG(c_id->eid_id),
+			BACKSQL_IDARG(c_id->eid_keyval),
 			row.cols[ 3 ] );
-#else /* ! BACKSQL_ARBITRARY_KEY */
-		Debug( LDAP_DEBUG_TRACE, "backsql_oc_get_candidates(): "
-			"added entry id=%ld, keyval=%ld dn=\"%s\"\n",
-			c_id->eid_id, c_id->eid_keyval, row.cols[ 3 ] );
-#endif /* ! BACKSQL_ARBITRARY_KEY */
 
 		/* count candidates, for unchecked limit */
 		bsi->bsi_n_candidates--;
@@ -2246,16 +2236,11 @@ backsql_search( Operation *op, SlapReply *rs )
 			goto send_results;
 		}
 
-#ifdef BACKSQL_ARBITRARY_KEY
 		Debug(LDAP_DEBUG_TRACE, "backsql_search(): loading data "
-			"for entry id=%s, oc_id=%ld, keyval=%s\n",
-			eid->eid_id.bv_val, eid->eid_oc_id,
-			eid->eid_keyval.bv_val );
-#else /* ! BACKSQL_ARBITRARY_KEY */
-		Debug(LDAP_DEBUG_TRACE, "backsql_search(): loading data "
-			"for entry id=%ld, oc_id=%ld, keyval=%ld\n",
-			eid->eid_id, eid->eid_oc_id, eid->eid_keyval );
-#endif /* ! BACKSQL_ARBITRARY_KEY */
+			"for entry id=" BACKSQL_IDFMT " oc_id=%ld, keyval=" BACKSQL_IDFMT "\n",
+			BACKSQL_IDARG(eid->eid_id),
+			eid->eid_oc_id,
+			BACKSQL_IDARG(eid->eid_keyval) );
 
 		/* check scope */
 		switch ( op->ors_scope ) {
