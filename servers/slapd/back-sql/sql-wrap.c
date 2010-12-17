@@ -424,7 +424,8 @@ backsql_open_db_handle(
 	 * TimesTen : Turn off autocommit.  We must explicitly
 	 * commit any transactions. 
 	 */
-	SQLSetConnectOption( *dbhp, SQL_AUTOCOMMIT, SQL_AUTOCOMMIT_OFF );
+	SQLSetConnectOption( *dbhp, SQL_AUTOCOMMIT,
+		BACKSQL_AUTOCOMMIT_ON( bi ) ?  SQL_AUTOCOMMIT_ON : SQL_AUTOCOMMIT_OFF );
 
 	/* 
 	 * See if this connection is to TimesTen.  If it is,
