@@ -31,6 +31,7 @@ OpenLDAP 2.4.24 Engineering
 	Fixed contrib/nssov to only close socket on shutdown (ITS#6676)
 	Documentation
 		admin24 guide typo fixes (ITS#6609)
+		ldap_open(3) document ldap_set_urllist_proc (ITS#6601)
 
 OpenLDAP 2.4.23 Release (2010/06/30)
 	Fixed libldap to return server's error code (ITS#6569)
