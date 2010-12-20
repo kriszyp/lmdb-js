@@ -657,13 +657,14 @@ dynlist_compare( Operation *op, SlapReply *rs )
 	Operation o = *op;
 	Entry *e = NULL;
 	dynlist_map_t *dlm;
+	BackendDB *be;
 
 	for ( ; dli != NULL; dli = dli->dli_next ) {
 		for ( dlm = dli->dli_dlm; dlm; dlm = dlm->dlm_next )
 			if ( op->oq_compare.rs_ava->aa_desc == dlm->dlm_member_ad )
 				break;
 
-		if ( dli->dli_dlm && dlm ) {
+		if ( dlm ) {
 			/* This compare is for one of the attributes we're
 			 * interested in. We'll use slapd's existing dyngroup
 			 * evaluator to get the answer we want.
@@ -721,10 +722,24 @@ done:;
 		}
 	}
 
+	be = select_backend( &o.o_req_ndn, 1 );
+	if ( !be || !be->be_search ) {
+		return SLAP_CB_CONTINUE;
+	}
+
 	if ( overlay_entry_get_ov( &o, &o.o_req_ndn, NULL, NULL, 0, &e, on ) !=
 		LDAP_SUCCESS || e == NULL )
 	{
 		return SLAP_CB_CONTINUE;
+	}
+
+	/* check for dynlist objectClass; done if not found */
+	dli = (dynlist_info_t *)on->on_bi.bi_private;
+	while ( dli != NULL && !is_entry_objectclass_or_sub( e, dli->dli_oc ) ) {
+		dli = dli->dli_next;
+	}
+	if ( dli == NULL ) {
+		goto release;
 	}
 
 	if ( ad_dgIdentity ) {
@@ -750,8 +765,8 @@ done:;
 		}
 	}
 
-	dli = (dynlist_info_t *)on->on_bi.bi_private;
-	for ( ; dli != NULL && rs->sr_err != LDAP_COMPARE_TRUE; dli = dli->dli_next ) {
+	/* generate dynamic list with dynlist_response() and compare */
+	{
 		Attribute	*a;
 		slap_callback	cb;
 		SlapReply	r = { REP_SEARCH };
@@ -759,12 +774,6 @@ done:;
 		int		rc;
 		dynlist_sc_t	dlc = { 0 };
 
-		if ( !is_entry_objectclass_or_sub( e, dli->dli_oc ))
-			continue;
-
-		/* if the entry has the right objectClass, generate
-		 * the dynamic list and compare */
-		dlc.dlc_dli = dli;
 		cb.sc_private = &dlc;
 		cb.sc_response = dynlist_sc_save_entry;
 		cb.sc_cleanup = NULL;
@@ -775,11 +784,6 @@ done:;
 		o.ors_limit = NULL;
 		o.ors_tlimit = SLAP_NO_LIMIT;
 		o.ors_slimit = SLAP_NO_LIMIT;
-
-		o.o_bd = select_backend( &o.o_req_ndn, 1 );
-		if ( !o.o_bd || !o.o_bd->be_search ) {
-			goto release;
-		}
 
 		o.ors_filterstr = *slap_filterstr_objectClass_pres;
 		o.ors_filter = (Filter *) slap_filter_objectClass_pres;
@@ -794,6 +798,7 @@ done:;
 
 		o.o_acl_priv = ACL_COMPARE;
 
+		o.o_bd = be;
 		rc = o.o_bd->be_search( &o, &r );
 
 		if ( o.o_dn.bv_val != op->o_dn.bv_val ) {
@@ -848,24 +853,18 @@ release:;
 static int
 dynlist_response( Operation *op, SlapReply *rs )
 {
-	dynlist_info_t	*dli;
-
 	switch ( op->o_tag ) {
 	case LDAP_REQ_SEARCH:
 		if ( rs->sr_type == REP_SEARCH && !get_manageDSAit( op ) )
 		{
-			int	rc = LDAP_OTHER;
+			int	rc = SLAP_CB_CONTINUE;
+			dynlist_info_t	*dli = NULL;
 
-			for ( dli = dynlist_is_dynlist_next( op, rs, NULL );
-				dli;
-				dli = dynlist_is_dynlist_next( op, rs, dli ) )
-			{
+			while ( (dli = dynlist_is_dynlist_next( op, rs, dli )) != NULL ) {
 				rc = dynlist_prepare_entry( op, rs, dli );
 			}
 
-			if ( rc != LDAP_OTHER ) {
-				return rc;
-			}
+			return rc;
 		}
 		break;
 
@@ -883,9 +882,6 @@ dynlist_response( Operation *op, SlapReply *rs )
 		case LDAP_NO_SUCH_ATTRIBUTE:
 			return dynlist_compare( op, rs );
 		}
-		break;
-
-	default:
 		break;
 	}
 
