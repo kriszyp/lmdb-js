@@ -4059,6 +4059,7 @@ config_suffixm( ConfigArgs *c, syncinfo_t *si )
 
 	rc = rewrite_parse( si->si_rewrite, c->fname, c->lineno, 4, argvRule );
 	ch_free( vnc );
+	ch_free( rnc );
 	return rc;
 }
 #endif
