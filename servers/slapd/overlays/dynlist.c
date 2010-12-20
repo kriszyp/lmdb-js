@@ -364,7 +364,7 @@ done:;
 	if ( rs->sr_flags & REP_ENTRY_MUSTBEFREED ) {
 		entry_free( rs->sr_entry );
 		rs->sr_entry = NULL;
-		rs->sr_flags ^= REP_ENTRY_MUSTBEFREED;
+		rs->sr_flags &= ~REP_ENTRY_MASK;
 	}
 
 	return 0;
@@ -379,7 +379,6 @@ dynlist_prepare_entry( Operation *op, SlapReply *rs, dynlist_info_t *dli )
 	SlapReply	r = { REP_SEARCH };
 	struct berval	*url;
 	Entry		*e;
-	slap_mask_t	e_flags;
 	int		opattrs,
 			userattrs;
 	dynlist_sc_t	dlc = { 0 };
@@ -428,13 +427,11 @@ dynlist_prepare_entry( Operation *op, SlapReply *rs, dynlist_info_t *dli )
 		o.o_groups = NULL;
 	}
 
-	e_flags = rs->sr_flags;
+	e = rs->sr_entry;
+	/* ensure e is modifiable, but do not replace
+	 * sr_entry yet since we have pointers into it */
 	if ( !( rs->sr_flags & REP_ENTRY_MODIFIABLE ) ) {
 		e = entry_dup( rs->sr_entry );
-		e_flags |= ( REP_ENTRY_MODIFIABLE | REP_ENTRY_MUSTBEFREED );
-		e_flags &= ~REP_ENTRY_MUSTRELEASE;
-	} else {
-		e = rs->sr_entry;
 	}
 
 	dlc.dlc_e = e;
@@ -630,8 +627,10 @@ cleanup:;
 		ldap_free_urldesc( lud );
 	}
 
-	rs->sr_entry = e;
-	rs->sr_flags = e_flags;
+	if ( e != rs->sr_entry ) {
+		rs_replace_entry( op, rs, (slap_overinst *)op->o_bd->bd_info, e );
+		rs->sr_flags |= REP_ENTRY_MODIFIABLE | REP_ENTRY_MUSTBEFREED;
+	}
 
 	return SLAP_CB_CONTINUE;
 }
