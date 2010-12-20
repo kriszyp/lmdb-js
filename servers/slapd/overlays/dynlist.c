@@ -173,6 +173,7 @@ dynlist_make_filter( Operation *op, Entry *e, const char *url, struct berval *ol
 	return 0;
 }
 
+/* dynlist_sc_update() callback info set by dynlist_prepare_entry() */
 typedef struct dynlist_sc_t {
 	dynlist_info_t    *dlc_dli;
 	Entry		*dlc_e;
@@ -635,15 +636,30 @@ cleanup:;
 	return SLAP_CB_CONTINUE;
 }
 
+/* dynlist_sc_compare_entry() callback set by dynlist_compare() */
+typedef struct dynlist_cc_t {
+	slap_callback dc_cb;
+#	define dc_ava	dc_cb.sc_private /* attr:val to compare with */
+	int *dc_res;
+} dynlist_cc_t;
+
 static int
-dynlist_sc_save_entry( Operation *op, SlapReply *rs )
+dynlist_sc_compare_entry( Operation *op, SlapReply *rs )
 {
-	/* save the entry in the private field of the callback,
-	 * so it doesn't get freed (it's temporary!) */
-	if ( rs->sr_entry != NULL ) {
-		dynlist_sc_t	*dlc = (dynlist_sc_t *)op->o_callback->sc_private;
-		dlc->dlc_e = rs->sr_entry;
-		rs->sr_entry = NULL;
+	if ( rs->sr_type == REP_SEARCH && rs->sr_entry != NULL ) {
+		dynlist_cc_t *dc = (dynlist_cc_t *)op->o_callback;
+		AttributeAssertion *ava = dc->dc_ava;
+		Attribute *a = attrs_find( rs->sr_entry->e_attrs, ava->aa_desc );
+
+		if ( a != NULL ) {
+			while ( LDAP_SUCCESS != attr_valfind( a,
+					SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH |
+						SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH,
+					&ava->aa_value, NULL, op->o_tmpmemctx )
+				&& (a = attrs_find( a->a_next, ava->aa_desc )) != NULL )
+				;
+			*dc->dc_res = a ? LDAP_COMPARE_TRUE : LDAP_COMPARE_FALSE;
+		}
 	}
 
 	return 0;
@@ -767,18 +783,13 @@ done:;
 
 	/* generate dynamic list with dynlist_response() and compare */
 	{
-		Attribute	*a;
-		slap_callback	cb;
 		SlapReply	r = { REP_SEARCH };
+		dynlist_cc_t	dc = { { 0, dynlist_sc_compare_entry, 0, 0 }, 0 };
 		AttributeName	an[2];
-		int		rc;
-		dynlist_sc_t	dlc = { 0 };
 
-		cb.sc_private = &dlc;
-		cb.sc_response = dynlist_sc_save_entry;
-		cb.sc_cleanup = NULL;
-		cb.sc_next = NULL;
-		o.o_callback = &cb;
+		dc.dc_ava = op->orc_ava;
+		dc.dc_res = &rs->sr_err;
+		o.o_callback = (slap_callback *) &dc;
 
 		o.o_tag = LDAP_REQ_SEARCH;
 		o.ors_limit = NULL;
@@ -799,46 +810,10 @@ done:;
 		o.o_acl_priv = ACL_COMPARE;
 
 		o.o_bd = be;
-		rc = o.o_bd->be_search( &o, &r );
+		(void)be->be_search( &o, &r );
 
 		if ( o.o_dn.bv_val != op->o_dn.bv_val ) {
 			slap_op_groups_free( &o );
-		}
-
-		if ( rc != 0 ) {
-			goto release;
-		}
-
-		if ( dlc.dlc_e != NULL ) {
-			r.sr_entry = dlc.dlc_e;
-		}
-
-		if ( r.sr_err != LDAP_SUCCESS || r.sr_entry == NULL ) {
-			/* error? */
-			goto release;
-		}
-
-		for ( a = attrs_find( r.sr_entry->e_attrs, op->orc_ava->aa_desc );
-			a != NULL;
-			a = attrs_find( a->a_next, op->orc_ava->aa_desc ) )
-		{
-			/* if we're here, we got a match... */
-			rs->sr_err = LDAP_COMPARE_FALSE;
-
-			if ( attr_valfind( a,
-				SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH |
-					SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH,
-				&op->orc_ava->aa_value, NULL, op->o_tmpmemctx ) == 0 )
-			{
-				rs->sr_err = LDAP_COMPARE_TRUE;
-				break;
-			}
-		}
-
-		if ( r.sr_flags & REP_ENTRY_MUSTBEFREED ) {
-			entry_free( r.sr_entry );
-			r.sr_entry = NULL;
-			r.sr_flags ^= REP_ENTRY_MUSTBEFREED;
 		}
 	}
 
