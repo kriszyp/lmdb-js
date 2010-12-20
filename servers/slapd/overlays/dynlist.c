@@ -24,14 +24,8 @@
 
 #ifdef SLAPD_OVER_DYNLIST
 
-#if LDAP_VENDOR_VERSION_MINOR == X || LDAP_VENDOR_VERSION_MINOR > 3
 #if SLAPD_OVER_DYNGROUP != SLAPD_MOD_STATIC
 #define TAKEOVER_DYNGROUP
-#endif
-#else
-#if LDAP_VENDOR_VERSION_MINOR < 3
-#define OL_2_2_COMPAT
-#endif
 #endif
 
 #include <stdio.h>
@@ -39,25 +33,8 @@
 #include <ac/string.h>
 
 #include "slap.h"
-#ifndef OL_2_2_COMPAT
 #include "config.h"
-#endif
 #include "lutil.h"
-
-/* FIXME: the code differs if SLAP_OPATTRS is defined or not;
- * SLAP_OPATTRS is not defined in 2.2 yet, while this overlay
- * expects HEAD code at least later than August 6, 2004. */
-/* FIXME: slap_anlist_no_attrs was introduced in 2.3; here it
- * is anticipated to allow using this overlay with 2.2. */
-
-#ifdef OL_2_2_COMPAT
-static AttributeName anlist_no_attrs[] = {
-	{ BER_BVC( LDAP_NO_ATTRS ), NULL, 0, NULL },
-	{ BER_BVNULL, NULL, 0, NULL }
-};
-
-static AttributeName *slap_anlist_no_attrs = anlist_no_attrs;
-#endif
 
 static AttributeDescription *ad_dgIdentity, *ad_dgAuthz;
 
@@ -241,13 +218,8 @@ dynlist_sc_update( Operation *op, SlapReply *rs )
 		goto done;
 	}
 
-#ifndef SLAP_OPATTRS
-	opattrs = ( rs->sr_attrs == NULL ) ? 0 : an_find( rs->sr_attrs, slap_bv_operational_attrs );
-	userattrs = ( rs->sr_attrs == NULL ) ? 1 : an_find( rs->sr_attrs, slap_bv_user_attrs );
-#else /* SLAP_OPATTRS */
 	opattrs = SLAP_OPATTRS( rs->sr_attr_flags );
 	userattrs = SLAP_USERATTRS( rs->sr_attr_flags );
-#endif /* SLAP_OPATTRS */
 
 	for ( a = rs->sr_entry->e_attrs; a != NULL; a = a->a_next ) {
 		BerVarray	vals, nvals = NULL;
@@ -390,13 +362,8 @@ dynlist_prepare_entry( Operation *op, SlapReply *rs, dynlist_info_t *dli )
 		return SLAP_CB_CONTINUE;
 	}
 
-#ifndef SLAP_OPATTRS
-	opattrs = ( rs->sr_attrs == NULL ) ? 0 : an_find( rs->sr_attrs, slap_bv_operational_attrs );
-	userattrs = ( rs->sr_attrs == NULL ) ? 1 : an_find( rs->sr_attrs, slap_bv_user_attrs );
-#else /* SLAP_OPATTRS */
 	opattrs = SLAP_OPATTRS( rs->sr_attr_flags );
 	userattrs = SLAP_USERATTRS( rs->sr_attr_flags );
-#endif /* SLAP_OPATTRS */
 
 	/* Don't generate member list if it wasn't requested */
 	for ( dlm = dli->dli_dlm; dlm; dlm = dlm->dlm_next ) {
@@ -597,9 +564,7 @@ dynlist_prepare_entry( Operation *op, SlapReply *rs, dynlist_info_t *dli )
 		
 		o.o_bd = select_backend( &o.o_req_ndn, 1 );
 		if ( o.o_bd && o.o_bd->be_search ) {
-#ifdef SLAP_OPATTRS
 			r.sr_attr_flags = slap_attr_flags( o.ors_attrs );
-#endif /* SLAP_OPATTRS */
 			(void)o.o_bd->be_search( &o, &r );
 		}
 
@@ -885,254 +850,6 @@ dynlist_build_def_filter( dynlist_info_t *dli )
 	return 0;
 }
 
-#ifdef OL_2_2_COMPAT
-static int
-dynlist_db_config(
-	BackendDB	*be,
-	const char	*fname,
-	int		lineno,
-	int		argc,
-	char		**argv )
-{
-	slap_overinst	*on = (slap_overinst *)be->bd_info;
-
-	int		rc = 0;
-
-	if ( strcasecmp( argv[0], "dynlist-attrset" ) == 0 ) {
-		dynlist_info_t		**dlip;
-		ObjectClass		*oc;
-		AttributeDescription	*ad = NULL,
-					*member_ad = NULL;
-		dynlist_map_t		*dlm = NULL, *dlml = NULL;
-		const char		*text;
-
-		if ( argc < 3 ) {
-			Debug( LDAP_DEBUG_ANY, "%s: line %d: " DYNLIST_USAGE
-				"invalid arg number #%d.\n",
-				fname, lineno, argc );
-			return 1;
-		}
-
-		oc = oc_find( argv[1] );
-		if ( oc == NULL ) {
-			Debug( LDAP_DEBUG_ANY, "%s: line %d: " DYNLIST_USAGE
-				"unable to find ObjectClass \"%s\"\n",
-				fname, lineno, argv[ 1 ] );
-			return 1;
-		}
-
-		rc = slap_str2ad( argv[2], &ad, &text );
-		if ( rc != LDAP_SUCCESS ) {
-			Debug( LDAP_DEBUG_ANY, "%s: line %d: " DYNLIST_USAGE
-				"unable to find AttributeDescription \"%s\"\n",
-				fname, lineno, argv[2] );
-			return 1;
-		}
-
-		if ( !is_at_subtype( ad->ad_type, slap_schema.si_ad_labeledURI->ad_type ) ) {
-			Debug( LDAP_DEBUG_ANY, "%s: line %d: " DYNLIST_USAGE
-				"AttributeDescription \"%s\" "
-				"must be a subtype of \"labeledURI\"\n",
-				fname, lineno, argv[2] );
-			return 1;
-		}
-
-		for ( i = 3; i < argc; i++ ) {
-			char *arg; 
-			char *cp;
-			AttributeDescription *member_ad = NULL;
-			AttributeDescription *mapped_ad = NULL;
-			dynlist_map_t *dlmp;
-
-
-			/*
-			 * If no mapped attribute is given, dn is used 
-			 * for backward compatibility.
-			 */
-			arg = argv[i];
-			if ( cp = strchr( arg, (int)':' ) != NULL ) {
-				struct berval bv;
-				ber_str2bv( arg, cp - arg, 0, &bv );
-				rc = slap_bv2ad( &bv, &mapped_ad, &text );
-				if ( rc != LDAP_SUCCESS ) {
-					Debug( LDAP_DEBUG_ANY, "%s: line %d: "
-						DYNLIST_USAGE
-						"unable to find mapped AttributeDescription \"%s\"\n",
-						fname, lineno, arg );
-					return 1;
-				}
-				
-				arg = cp + 1;
-			}
-
-			rc = slap_str2ad( arg, &member_ad, &text );
-			if ( rc != LDAP_SUCCESS ) {
-				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
-					DYNLIST_USAGE
-					"unable to find AttributeDescription \"%s\"\n",
-					fname, lineno, arg );
-				return 1;
-			}
-
-			dlmp = (dynlist_map_t *)ch_calloc( 1, sizeof( dynlist_map_t ) );
-			if ( dlm == NULL ) {
-				dlm = dlmp;
-			}
-			dlmp->dlm_member_ad = member_ad;
-			dlmp->dlm_mapped_ad = mapped_ad;
-			dlmp->dlm_next = NULL;
-		
-			if ( dlml != NULL )
-				dlml->dlm_next = dlmp;
-			dlml = dlmp;
-		}
-
-		for ( dlip = (dynlist_info_t **)&on->on_bi.bi_private;
-			*dlip; dlip = &(*dlip)->dli_next )
-		{
-			/* 
-			 * The same URL attribute / member attribute pair
-			 * cannot be repeated, but we enforce this only 
-			 * when the member attribute is unique. Performing
-			 * the check for multiple values would require
-			 * sorting and comparing the lists, which is left
-			 * as a future improvement
-			 */
-			if ( (*dlip)->dli_ad == ad &&
-			     (*dlip)->dli_dlm->dlm_next == NULL &&
-			     dlm->dlm_next == NULL &&
-			     dlm->dlm_member_ad == (*dlip)->dli_dlm->dlm_member_ad &&
-			     dlm->dlm_mapped_ad == (*dlip)->dli_dlm->dlm_mapped_ad ) {
-				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
-					DYNLIST_USAGE
-					"URL attributeDescription \"%s\" already mapped.\n",
-					fname, lineno, ad->ad_cname.bv_val );
-#if 0
-				/* make it a warning... */
-				return 1;
-#endif
-			}
-		}
-
-		*dlip = (dynlist_info_t *)ch_calloc( 1, sizeof( dynlist_info_t ) );
-		(*dlip)->dli_oc = oc;
-		(*dlip)->dli_ad = ad;
-		(*dlip)->dli_dlm = dlm;
-
-		if ( dynlist_build_def_filter( *dlip ) ) {
-			dynlist_map_t *dlm = (*dlip)->ldi_dlm;
-			dynlist_map_t *dlm_next;
-
-			while ( dlm != NULL ) {
-				dlm_next = dlm->dlm_next;
-				ch_free( dlm );
-				dlm = dlm_next;
-			}
-
-			ch_free( *dlip );
-			*dlip = NULL;
-			return 1;
-		}
-
-	/* allow dyngroup syntax */
-	} else if ( strcasecmp( argv[0], "dynlist-attrpair" ) == 0 ) {
-		dynlist_info_t		**dlip;
-		ObjectClass		*oc;
-		AttributeDescription	*ad = NULL,
-					*member_ad = NULL;
-		const char		*text;
-
-		if ( argc != 3 ) {
-			Debug( LDAP_DEBUG_ANY, "%s: line %d: "
-				"\"dynlist-attrpair <member-ad> <URL-ad>\": "
-				"invalid arg number #%d.\n",
-				fname, lineno, argc );
-			return 1;
-		}
-
-		oc = oc_find( "groupOfURLs" );
-		if ( oc == NULL ) {
-			Debug( LDAP_DEBUG_ANY, "%s: line %d: "
-				"\"dynlist-attrpair <member-ad> <URL-ad>\": "
-				"unable to find default ObjectClass \"groupOfURLs\"\n",
-				fname, lineno, 0 );
-			return 1;
-		}
-
-		rc = slap_str2ad( argv[1], &member_ad, &text );
-		if ( rc != LDAP_SUCCESS ) {
-			Debug( LDAP_DEBUG_ANY, "%s: line %d: "
-				"\"dynlist-attrpair <member-ad> <URL-ad>\": "
-				"unable to find AttributeDescription \"%s\"\n",
-				fname, lineno, argv[1] );
-			return 1;
-		}
-
-		rc = slap_str2ad( argv[2], &ad, &text );
-		if ( rc != LDAP_SUCCESS ) {
-			Debug( LDAP_DEBUG_ANY, "%s: line %d: "
-				"\"dynlist-attrpair <member-ad> <URL-ad>\": "
-				"unable to find AttributeDescription \"%s\"\n",
-				fname, lineno, argv[2] );
-			return 1;
-		}
-
-		if ( !is_at_subtype( ad->ad_type, slap_schema.si_ad_labeledURI->ad_type ) ) {
-			Debug( LDAP_DEBUG_ANY, "%s: line %d: "
-				"\"dynlist-attrpair <member-ad> <URL-ad>\": "
-				"AttributeDescription \"%s\" "
-				"must be a subtype of \"labeledURI\"\n",
-				fname, lineno, argv[2] );
-			return 1;
-		}
-
-		for ( dlip = (dynlist_info_t **)&on->on_bi.bi_private;
-			*dlip; dlip = &(*dlip)->dli_next )
-		{
-			/* 
-			 * The same URL attribute / member attribute pair
-			 * cannot be repeated, but we enforce this only 
-			 * when the member attribute is unique. Performing
-			 * the check for multiple values would require
-			 * sorting and comparing the lists, which is left
-			 * as a future improvement
-			 */
-			if ( (*dlip)->dli_ad == ad &&
-			     (*dlip)->dli_dlm->dlm_next == NULL &&
-			     member_ad == (*dlip)->dli_dlm->dlm_member_ad ) {
-				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
-					"\"dynlist-attrpair <member-ad> <URL-ad>\": "
-					"URL attributeDescription \"%s\" already mapped.\n",
-					fname, lineno, ad->ad_cname.bv_val );
-#if 0
-				/* make it a warning... */
-				return 1;
-#endif
-			}
-		}
-
-		*dlip = (dynlist_info_t *)ch_calloc( 1, sizeof( dynlist_info_t ) );
-		(*dlip)->dli_oc = oc;
-		(*dlip)->dli_ad = ad;
-		(*dlip)->dli_dlm = (dynlist_map_t *)ch_calloc( 1, sizeof( dynlist_map_t ) );
-		(*dlip)->dli_dlm->dlm_member_ad = member_ad;
-		(*dlip)->dli_dlm->dlm_mapped_ad = NULL;
-
-		if ( dynlist_build_def_filter( *dlip ) ) {
-			ch_free( (*dlip)->dli_dlm );
-			ch_free( *dlip );
-			*dlip = NULL;
-			return 1;
-		}
-
-	} else {
-		rc = SLAP_CONF_UNKNOWN;
-	}
-
-	return rc;
-}
-
-#else
 enum {
 	DL_ATTRSET = 1,
 	DL_ATTRPAIR,
@@ -1669,7 +1386,6 @@ done_uri:;
 
 	return rc;
 }
-#endif
 
 static int
 dynlist_db_open(
@@ -1813,9 +1529,7 @@ static
 int
 dynlist_initialize(void)
 {
-#ifndef OL_2_2_COMPAT
 	int	rc = 0;
-#endif
 
 	dynlist.on_bi.bi_type = "dynlist";
 
@@ -1824,24 +1538,18 @@ dynlist_initialize(void)
 	dynlist.on_bi.bi_obsolete_names = obsolete_names;
 #endif
 
-#ifdef OL_2_2_COMPAT
-	dynlist.on_bi.bi_db_config = dynlist_db_config;
-#else
 	dynlist.on_bi.bi_db_config = config_generic_wrapper;
-#endif
 	dynlist.on_bi.bi_db_open = dynlist_db_open;
 	dynlist.on_bi.bi_db_destroy = dynlist_db_destroy;
 
 	dynlist.on_response = dynlist_response;
 
-#ifndef OL_2_2_COMPAT
 	dynlist.on_bi.bi_cf_ocs = dlocs;
 
 	rc = config_register_schema( dlcfg, dlocs );
 	if ( rc ) {
 		return rc;
 	}
-#endif
 
 	return overlay_register( &dynlist );
 }
