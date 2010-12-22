@@ -32,6 +32,10 @@ if test x$TESTLOOPS = x ; then
 	TESTLOOPS=50
 fi
 
+if test x$TESTCHILDREN = x ; then
+	TESTCHILDREN=20
+fi
+
 rm -rf $TESTDIR
 
 mkdir -p $TESTDIR $DBDIR1 $DBDIR2
@@ -193,10 +197,12 @@ done
 # NOTE: copies do_* files from $TESTDIR/$DATADIR to $TESTDIR
 $MONITORDATA "$MONITORDB" "$TESTDIR/$DATADIR" "$TESTDIR"
 
+BINDDN="cn=Manager,o=Local"
+PASSWD="secret"
 echo "Using tester for concurrent server access..."
 $SLAPDTESTER -P "$PROGDIR" -d "$TESTDIR" -h $LOCALHOST -p $PORT3 \
-	-D "cn=Manager,$METABASEDN" -w $PASSWD -l $TESTLOOPS -r 20 \
-	-i '!REFERRAL' -i '*INVALID_CREDENTIALS'
+	-D "$BINDDN" -w $PASSWD -l $TESTLOOPS -j $TESTCHILDREN \
+	-r 20 -i '!REFERRAL' -i '*INVALID_CREDENTIALS' -SS
 RC=$?
 
 if test $RC != 0 ; then
