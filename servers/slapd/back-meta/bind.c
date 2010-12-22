@@ -627,13 +627,16 @@ meta_back_single_dobind(
 		rs->sr_err = meta_back_bind_op_result( op, rs, mc, candidate, msgid, sendok );
 
 		/* if bind succeeded, but anonymous, clear msc_bound_ndn */
-		if ( rs->sr_err == LDAP_SUCCESS ) {
-			if ( binddn[0] == '\0' &&
-				!BER_BVISNULL( &msc->msc_bound_ndn ) && 
-				!BER_BVISEMPTY( &msc->msc_bound_ndn ) )
-			{
+		if ( rs->sr_err != LDAP_SUCCESS || binddn[0] == '\0' ) {
+			if ( !BER_BVISNULL( &msc->msc_bound_ndn ) ) {
 				ber_memfree( msc->msc_bound_ndn.bv_val );
 				BER_BVZERO( &msc->msc_bound_ndn );
+			}
+
+			if ( !BER_BVISNULL( &msc->msc_cred ) ) {
+				memset( msc->msc_cred.bv_val, 0, msc->msc_cred.bv_len );
+				ber_memfree( msc->msc_cred.bv_val );
+				BER_BVZERO( &msc->msc_cred );
 			}
 		}
 	}
