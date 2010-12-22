@@ -204,12 +204,17 @@ RETCODE backsql_Prepare( SQLHDBC dbh, SQLHSTMT *sth, const char* query, int time
 			(io), SQL_C_ULONG, SQL_INTEGER,			\
 			0, 0, (SQLPOINTER)(val), 0, (SQLINTEGER*)NULL )
 
+#define backsql_BindParamNumID( sth, par_ind, io, val )			\
+	SQLBindParameter( (sth), (SQLUSMALLINT)(par_ind),		\
+			(io), BACKSQL_C_NUMID, SQL_INTEGER,		\
+			0, 0, (SQLPOINTER)(val), 0, (SQLINTEGER*)NULL )
+
 #ifdef BACKSQL_ARBITRARY_KEY
 #define backsql_BindParamID( sth, par_ind, io, id )			\
 	backsql_BindParamBerVal( (sth), (par_ind), (io), (id) )
 #else /* ! BACKSQL_ARBITRARY_KEY */
 #define backsql_BindParamID( sth, par_ind, io, id )			\
-	backsql_BindParamInt( (sth), (par_ind), (io), (id) )
+	backsql_BindParamNumID( (sth), (par_ind), (io), (id) )
 #endif /* ! BACKSQL_ARBITRARY_KEY */
 
 RETCODE backsql_BindRowAsStrings_x( SQLHSTMT sth, BACKSQL_ROW_NTS *row, void *ctx );

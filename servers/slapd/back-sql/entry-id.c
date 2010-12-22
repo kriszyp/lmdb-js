@@ -288,16 +288,16 @@ backsql_dn2id(
 			ber_str2bv_x( row.cols[ 1 ], 0, 1, &id->eid_keyval,
 					op->o_tmpmemctx );
 #else /* ! BACKSQL_ARBITRARY_KEY */
-			if ( lutil_atoulx( &id->eid_id, row.cols[ 0 ], 0 ) != 0 ) {
+			if ( BACKSQL_STR2ID( &id->eid_id, row.cols[ 0 ], 0 ) != 0 ) {
 				res = LDAP_OTHER;
 				goto done;
 			}
-			if ( lutil_atoulx( &id->eid_keyval, row.cols[ 1 ], 0 ) != 0 ) {
+			if ( BACKSQL_STR2ID( &id->eid_keyval, row.cols[ 1 ], 0 ) != 0 ) {
 				res = LDAP_OTHER;
 				goto done;
 			}
 #endif /* ! BACKSQL_ARBITRARY_KEY */
-			if ( lutil_atoulx( &id->eid_oc_id, row.cols[ 2 ], 0 ) != 0 ) {
+			if ( BACKSQL_STR2ID( &id->eid_oc_id, row.cols[ 2 ], 0 ) != 0 ) {
 				res = LDAP_OTHER;
 				goto done;
 			}
@@ -933,7 +933,7 @@ backsql_id2entry( backsql_srch_info *bsi, backsql_entryID *eid )
 			eid->eid_oc_id );
 		if ( eid->eid_oc == NULL ) {
 			Debug( LDAP_DEBUG_TRACE,
-				"backsql_id2entry(): unable to fetch objectClass with id=%lu for entry id=" BACKSQL_IDFMT " dn=\"%s\"\n",
+				"backsql_id2entry(): unable to fetch objectClass with id=" BACKSQL_IDNUMFMT " for entry id=" BACKSQL_IDFMT " dn=\"%s\"\n",
 				eid->eid_oc_id, BACKSQL_IDARG(eid->eid_id),
 				eid->eid_dn.bv_val );
 			return LDAP_OTHER;

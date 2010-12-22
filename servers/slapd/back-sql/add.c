@@ -724,7 +724,7 @@ backsql_add_attr(
 	SQLHDBC 		dbh,
 	backsql_oc_map_rec 	*oc,
 	Attribute		*at,
-	unsigned long		new_keyval )
+	backsql_key_t		new_keyval )
 {
 	backsql_info		*bi = (backsql_info*)op->o_bd->be_private;
 	backsql_at_map_rec	*at_rec = NULL;
@@ -820,7 +820,7 @@ backsql_add_attr(
 
 		po = ( BACKSQL_IS_ADD( at_rec->bam_param_order ) ) > 0;
 		currpos = pno + 1 + po;
-		rc = backsql_BindParamInt( sth, currpos,
+		rc = backsql_BindParamNumID( sth, currpos,
 				SQL_PARAM_INPUT, &new_keyval );
 		if ( rc != SQL_SUCCESS ) {
 			Debug( LDAP_DEBUG_TRACE,
@@ -857,12 +857,14 @@ backsql_add_attr(
 		}
 
 #ifdef LDAP_DEBUG
-		snprintf( logbuf, sizeof( logbuf ), "val[%lu], id=%lu",
-				i, new_keyval );
-		Debug( LDAP_DEBUG_TRACE, "   backsql_add_attr(\"%s\"): "
-			"executing \"%s\" %s\n", 
-			op->ora_e->e_name.bv_val,
-			at_rec->bam_add_proc, logbuf );
+		if ( LogTest( LDAP_DEBUG_TRACE ) ) {
+			snprintf( logbuf, sizeof( logbuf ), "val[%lu], id=" BACKSQL_IDNUMFMT,
+					i, new_keyval );
+			Debug( LDAP_DEBUG_TRACE, "   backsql_add_attr(\"%s\"): "
+				"executing \"%s\" %s\n", 
+				op->ora_e->e_name.bv_val,
+				at_rec->bam_add_proc, logbuf );
+		}
 #endif
 		rc = SQLExecute( sth );
 		if ( rc == SQL_SUCCESS && prc == LDAP_SUCCESS ) {
@@ -902,7 +904,7 @@ backsql_add( Operation *op, SlapReply *rs )
 	backsql_info		*bi = (backsql_info*)op->o_bd->be_private;
 	SQLHDBC 		dbh = SQL_NULL_HDBC;
 	SQLHSTMT 		sth = SQL_NULL_HSTMT;
-	unsigned long		new_keyval = 0;
+	backsql_key_t		new_keyval = 0;
 	RETCODE			rc;
 	backsql_oc_map_rec 	*oc = NULL;
 	backsql_srch_info	bsi = { 0 };
@@ -1155,7 +1157,7 @@ backsql_add( Operation *op, SlapReply *rs )
 
 	colnum = 1;
 	if ( BACKSQL_IS_ADD( oc->bom_expect_return ) ) {
-		rc = backsql_BindParamInt( sth, 1, SQL_PARAM_OUTPUT, &new_keyval );
+		rc = backsql_BindParamNumID( sth, 1, SQL_PARAM_OUTPUT, &new_keyval );
 		if ( rc != SQL_SUCCESS ) {
 			Debug( LDAP_DEBUG_TRACE, "   backsql_add(\"%s\"): "
 				"error binding keyval parameter "
@@ -1306,7 +1308,7 @@ backsql_add( Operation *op, SlapReply *rs )
 	SQLFreeStmt( sth, SQL_DROP );
 
 	Debug( LDAP_DEBUG_TRACE, "   backsql_add(\"%s\"): "
-		"create_proc returned keyval=%ld\n",
+		"create_proc returned keyval=" BACKSQL_IDNUMFMT "\n",
 		op->ora_e->e_name.bv_val, new_keyval, 0 );
 
 	rc = backsql_Prepare( dbh, &sth, bi->sql_insentry_stmt, 0 );
@@ -1333,7 +1335,7 @@ backsql_add( Operation *op, SlapReply *rs )
 		goto done;
 	}
 
-	rc = backsql_BindParamInt( sth, 2, SQL_PARAM_INPUT, &oc->bom_id );
+	rc = backsql_BindParamNumID( sth, 2, SQL_PARAM_INPUT, &oc->bom_id );
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "   backsql_add(\"%s\"): "
 			"error binding objectClass ID parameter "
@@ -1367,7 +1369,7 @@ backsql_add( Operation *op, SlapReply *rs )
 		goto done;
 	}
 
-	rc = backsql_BindParamInt( sth, 4, SQL_PARAM_INPUT, &new_keyval );
+	rc = backsql_BindParamNumID( sth, 4, SQL_PARAM_INPUT, &new_keyval );
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "   backsql_add(\"%s\"): "
 			"error binding entry ID parameter "
@@ -1388,7 +1390,7 @@ backsql_add( Operation *op, SlapReply *rs )
 		char buf[ SLAP_TEXT_BUFLEN ];
 
 		snprintf( buf, sizeof(buf),
-			"executing \"%s\" for dn=\"%s\"  oc_map_id=%ld p_id=" BACKSQL_IDFMT " keyval=%ld",
+			"executing \"%s\" for dn=\"%s\"  oc_map_id=" BACKSQL_IDNUMFMT " p_id=" BACKSQL_IDFMT " keyval=" BACKSQL_IDNUMFMT,
 			bi->sql_insentry_stmt, op->ora_e->e_name.bv_val,
 			oc->bom_id, BACKSQL_IDARG(bsi.bsi_base_id.eid_id),
 			new_keyval );
