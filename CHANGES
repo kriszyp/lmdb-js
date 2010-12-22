@@ -5,6 +5,7 @@ OpenLDAP 2.4.24 Engineering
 	Added slapd-sql autocommit support (ITS#6612)
 	Fixed liblber to not close invalid sockets (ITS#6585)
 	Fixed libldap dnssrv port format specifier (ITS#6644)
+	Fixed libldap EOF handling (ITS#6723)
 	Fixed libldap GnuTLS hang on socket close (ITS#6673)
 	Fixed libldap sasl partial write handling (ITS#6639)
 	Fixed libldap referral chasing (ITS#6602)
@@ -34,6 +35,9 @@ OpenLDAP 2.4.24 Engineering
 	Fixed contrib/autogroup LDAP URI with attribute filter (ITS#6536)
 	Fixed contrib/nssov to only close socket on shutdown (ITS#6676)
 	Fixed contrib/nssov multi platform support (ITS#6604)
+	Build Environment
+		Fixed slapd-tester EOF handling (ITS#6723)
+		Fixed slapd-tesster filter initialization (ITS#6735)
 	Documentation
 		admin24 guide typo fixes (ITS#6609)
 		ldap_open(3) document ldap_set_urllist_proc (ITS#6601)
