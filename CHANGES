@@ -36,6 +36,7 @@ OpenLDAP 2.4.24 Engineering
 	Fixed contrib/nssov to only close socket on shutdown (ITS#6676)
 	Fixed contrib/nssov multi platform support (ITS#6604)
 	Build Environment
+		Added support for [unsigned] long long (ITS#6622)
 		Fixed slapd-tester EOF handling (ITS#6723)
 		Fixed slapd-tesster filter initialization (ITS#6735)
 	Documentation

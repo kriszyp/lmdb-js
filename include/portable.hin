@@ -604,6 +604,9 @@
 /* Define to 1 if you have the `strtoul' function. */
 #undef HAVE_STRTOUL
 
+/* Define to 1 if you have the `strtoull' function. */
+#undef HAVE_STRTOULL
+
 /* Define to 1 if you have the `strtouq' function. */
 #undef HAVE_STRTOUQ
 

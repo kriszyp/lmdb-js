@@ -15,6 +15,7 @@
 
 #include "portable.h"
 
+#include <limits.h>
 #include <stdio.h>
 #include <ac/stdlib.h>
 #include <ac/stdarg.h>
@@ -514,14 +515,25 @@ lutil_atoux( unsigned *v, const char *s, int x )
 int
 lutil_atolx( long *v, const char *s, int x )
 {
-	char		*next;
-	long		l;
+	char *next;
+	long l;
+	int save_errno;
 
 	assert( s != NULL );
 	assert( v != NULL );
 
+	if ( isspace( s[ 0 ] ) ) {
+		return -1;
+	}
+
+	errno = 0;
 	l = strtol( s, &next, x );
+	save_errno = errno;
 	if ( next == s || next[ 0 ] != '\0' ) {
+		return -1;
+	}
+
+	if ( ( l == LONG_MIN || l == LONG_MAX ) && save_errno != 0 ) {
 		return -1;
 	}
 
@@ -533,26 +545,116 @@ lutil_atolx( long *v, const char *s, int x )
 int
 lutil_atoulx( unsigned long *v, const char *s, int x )
 {
-	char		*next;
-	unsigned long	ul;
+	char *next;
+	unsigned long ul;
+	int save_errno;
 
 	assert( s != NULL );
 	assert( v != NULL );
 
 	/* strtoul() has an odd interface */
-	if ( s[ 0 ] == '-' ) {
+	if ( s[ 0 ] == '-' || isspace( s[ 0 ] ) ) {
 		return -1;
 	}
 
+	errno = 0;
 	ul = strtoul( s, &next, x );
+	save_errno = errno;
 	if ( next == s || next[ 0 ] != '\0' ) {
 		return -1;
 	}
+
+//#ifdef ULONG_MAX
+	if ( ( ul == 0 || ul == ULONG_MAX ) && save_errno != 0 ) {
+		return -1;
+	}
+//#endif /* ULONG_MAX */
 
 	*v = ul;
 
 	return 0;
 }
+
+#ifdef HAVE_LONG_LONG
+#if defined(HAVE_STRTOLL) || defined(HAVE_STRTOQ)
+int
+lutil_atollx( long long *v, const char *s, int x )
+{
+	char *next;
+	long long ll;
+	int save_errno;
+
+	assert( s != NULL );
+	assert( v != NULL );
+
+	if ( isspace( s[ 0 ] ) ) {
+		return -1;
+	}
+
+	errno = 0;
+#ifdef HAVE_STRTOLL
+	ll = strtoll( s, &next, x );
+#else /* HAVE_STRTOQ */
+	ll = (unsigned long long)strtoq( s, &next, x );
+#endif /* HAVE_STRTOQ */
+	save_errno = errno;
+	if ( next == s || next[ 0 ] != '\0' ) {
+		return -1;
+	}
+
+	/* LLONG_MIN, LLONG_MAX are C99 only */
+#if defined (LLONG_MIN) && defined(LLONG_MAX)
+	if ( ( ll == LLONG_MIN || ll == LLONG_MAX ) && save_errno != 0 ) {
+		return -1;
+	}
+#endif /* LLONG_MIN && LLONG_MAX */
+
+	*v = ll;
+
+	return 0;
+}
+#endif /* HAVE_STRTOLL || HAVE_STRTOQ */
+
+#if defined(HAVE_STRTOULL) || defined(HAVE_STRTOUQ)
+int
+lutil_atoullx( unsigned long long *v, const char *s, int x )
+{
+	char *next;
+	unsigned long long ull;
+	int save_errno;
+
+	assert( s != NULL );
+	assert( v != NULL );
+
+	/* strtoull() has an odd interface */
+	if ( s[ 0 ] == '-' || isspace( s[ 0 ] ) ) {
+		return -1;
+	}
+
+	errno = 0;
+#ifdef HAVE_STRTOULL
+	ull = strtoull( s, &next, x );
+#else /* HAVE_STRTOUQ */
+	ull = (unsigned long long)strtouq( s, &next, x );
+#endif /* HAVE_STRTOUQ */
+	save_errno = errno;
+	if ( next == s || next[ 0 ] != '\0' ) {
+		return -1;
+	}
+
+	/* ULLONG_MAX is C99 only */
+#if defined(ULLONG_MAX)
+	if ( ( ull == 0 || ull == ULLONG_MAX ) && save_errno != 0 ) {
+		return -1;
+	}
+#endif /* ULLONG_MAX */
+
+	*v = ull;
+
+	return 0;
+}
+#endif /* HAVE_STRTOULL || HAVE_STRTOUQ */
+#endif /* HAVE_LONG_LONG */
 
 /* Multiply an integer by 100000000 and add new */
 typedef struct lutil_int_decnum {

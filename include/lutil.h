@@ -299,6 +299,20 @@ lutil_atoulx( unsigned long *v, const char *s, int x );
 #define lutil_atol(v, s)	lutil_atolx((v), (s), 10)
 #define lutil_atoul(v, s)	lutil_atoulx((v), (s), 10)
 
+#ifdef HAVE_LONG_LONG
+#if defined(HAVE_STRTOLL) || defined(HAVE_STRTOQ)
+LDAP_LUTIL_F (int)
+lutil_atollx( long long *v, const char *s, int x );
+#define lutil_atoll(v, s)	lutil_atollx((v), (s), 10)
+#endif /* HAVE_STRTOLL || HAVE_STRTOQ */
+
+#if defined(HAVE_STRTOULL) || defined(HAVE_STRTOUQ)
+LDAP_LUTIL_F (int)
+lutil_atoullx( unsigned long long *v, const char *s, int x );
+#define lutil_atoull(v, s)	lutil_atoullx((v), (s), 10)
+#endif /* HAVE_STRTOULL || HAVE_STRTOUQ */
+#endif /* HAVE_LONG_LONG */
+
 LDAP_LUTIL_F (int)
 lutil_str2bin( struct berval *in, struct berval *out, void *ctx );
 
