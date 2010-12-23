@@ -57,30 +57,7 @@ monitor_back_compare( Operation *op, SlapReply *rs )
 		return rs->sr_err;
 	}
 
-	rs->sr_err = access_allowed( op, e, op->oq_compare.rs_ava->aa_desc,
-			&op->oq_compare.rs_ava->aa_value, ACL_COMPARE, NULL );
-	if ( !rs->sr_err ) {
-		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
-		goto return_results;
-	}
-
-	rs->sr_err = LDAP_NO_SUCH_ATTRIBUTE;
-
-	for ( a = attrs_find( e->e_attrs, op->oq_compare.rs_ava->aa_desc );
-			a != NULL;
-			a = attrs_find( a->a_next, op->oq_compare.rs_ava->aa_desc )) {
-		rs->sr_err = LDAP_COMPARE_FALSE;
-
-		if ( attr_valfind( a,
-			SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH |
-				SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH,
-			&op->oq_compare.rs_ava->aa_value, NULL,
-			op->o_tmpmemctx ) == 0 )
-		{
-			rs->sr_err = LDAP_COMPARE_TRUE;
-			break;
-		}
-	}
+	rs->sr_err = slap_compare_entry( op, e, op->orc_ava );
 
 return_results:;
 	rc = rs->sr_err;
@@ -90,15 +67,7 @@ return_results:;
 		rc = LDAP_SUCCESS;
 		break;
 
-	case LDAP_NO_SUCH_ATTRIBUTE:
-		break;
-
 	default:
-		if ( !access_allowed_mask( op, e, slap_schema.si_ad_entry,
-				NULL, ACL_DISCLOSE, NULL, NULL ) )
-		{
-			rs->sr_err = LDAP_NO_SUCH_OBJECT;
-		}
 		break;
 	}
 		
