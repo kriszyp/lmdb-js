@@ -547,6 +547,7 @@ int bdb_cache_find_ndn(
 #define	ID_LOCKED	1
 #define	ID_NOCACHE	2
 #define	ID_NOENTRY	4
+#define	ID_CHKPURGE	8
 int bdb_cache_find_id(
 	Operation *op,
 	DB_TXN	*tid,
