@@ -257,11 +257,6 @@ bdb_cache_entry_db_unlock ( struct bdb_info *bdb, DB_LOCK *lock )
 #endif
 }
 
-/* These should move behind SLAPD_UNUSED */
-static ldap_pvt_thread_mutex_t bdb_ncmutex;
-static int bdb_notcached;
-static int bdb_ncfreed;
-
 void
 bdb_cache_return_entry_rw( struct bdb_info *bdb, Entry *e,
 	int rw, DB_LOCK *lock )
@@ -271,8 +266,6 @@ bdb_cache_return_entry_rw( struct bdb_info *bdb, Entry *e,
 
 	ei = e->e_private;
 	if ( ei && ( ei->bei_state & CACHE_ENTRY_NOT_CACHED )) {
-		ldap_pvt_thread_mutex_lock(&bdb_ncmutex);
-		bdb_notcached++;
 		bdb_cache_entryinfo_lock( ei );
 		if ( ei->bei_state & CACHE_ENTRY_NOT_CACHED ) {
 			/* Releasing the entry can only be done when
@@ -288,10 +281,8 @@ bdb_cache_return_entry_rw( struct bdb_info *bdb, Entry *e,
 			ei->bei_e = NULL;
 			ei->bei_state ^= CACHE_ENTRY_NOT_CACHED;
 			free = 1;
-			bdb_ncfreed++;
 		}
 		bdb_cache_entryinfo_unlock( ei );
-		ldap_pvt_thread_mutex_unlock(&bdb_ncmutex);
 	}
 	bdb_cache_entry_db_unlock( bdb, lock );
 	if ( free ) {
@@ -979,6 +970,17 @@ load1:
 				flag |= ID_CHKPURGE;
 			}
 
+			if ( !load ) {
+				/* Clear the uncached state if we are not
+				 * loading it, i.e it is already cached or
+				 * another thread is currently loading it.
+				 */
+				if ( (*eip)->bei_state & CACHE_ENTRY_NOT_CACHED ) {
+					(*eip)->bei_state ^= CACHE_ENTRY_NOT_CACHED;
+					flag |= ID_CHKPURGE;
+				}
+			}
+
 			if ( flag & ID_LOCKED ) {
 				bdb_cache_entryinfo_unlock( *eip );
 				flag ^= ID_LOCKED;
@@ -1055,17 +1057,8 @@ load1:
 				}
 				bdb_cache_entryinfo_lock( *eip );
 				(*eip)->bei_finders--;
-				if ( load ) {
+				if ( load )
 					(*eip)->bei_state ^= CACHE_ENTRY_LOADING;
-				} else {
-					/* Clear the uncached state if we didn't
-					 * load it, i.e it was already cached.
-					 */
-					if ( (*eip)->bei_state & CACHE_ENTRY_NOT_CACHED ) {
-						(*eip)->bei_state ^= CACHE_ENTRY_NOT_CACHED;
-						flag |= ID_CHKPURGE;
-					}
-				}
 				bdb_cache_entryinfo_unlock( *eip );
 			}
 		}
