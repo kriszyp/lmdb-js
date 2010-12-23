@@ -362,6 +362,13 @@ int slap_compare_entry(
 		goto done;
 	}
 
+	if ( get_assert( op ) &&
+		( test_filter( op, e, get_assertion( op )) != LDAP_COMPARE_TRUE ))
+	{
+		rc = LDAP_ASSERTION_FAILED;
+		goto done;
+	}
+
 	a = attrs_find( e->e_attrs, ava->aa_desc );
 	if( a == NULL ) {
 		rc = LDAP_NO_SUCH_ATTRIBUTE;

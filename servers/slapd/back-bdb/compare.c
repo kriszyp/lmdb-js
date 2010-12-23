@@ -122,19 +122,6 @@ dn2entry_retry:
 		goto done;
 	}
 
-	if ( get_assert( op ) &&
-		( test_filter( op, e, get_assertion( op )) != LDAP_COMPARE_TRUE ))
-	{
-		if ( !access_allowed( op, e, slap_schema.si_ad_entry,
-			NULL, ACL_DISCLOSE, NULL ) )
-		{
-			rs->sr_err = LDAP_NO_SUCH_OBJECT;
-		} else {
-			rs->sr_err = LDAP_ASSERTION_FAILED;
-		}
-		goto return_results;
-	}
-
 	rs->sr_err = slap_compare_entry( op, e, op->orc_ava );
 
 return_results:
