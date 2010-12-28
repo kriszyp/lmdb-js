@@ -2251,7 +2251,7 @@ ldap_verify_credentials_s LDAP_P((
 	struct berval	**authzid ));
 
 LDAP_F( int )
-ldap_parse_verify_credentials_result LDAP_P((
+ldap_parse_verify_credentials LDAP_P((
 	LDAP		*ld,
 	LDAPMessage	*res,
 	struct berval	**cookie,
