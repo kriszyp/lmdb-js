@@ -249,7 +249,7 @@ vc_exop(
 	} else {
 		void *thrctx;
 
-		conn = (vc_conn_t *)SLAP_MALLOC( sizeof( vc_conn_t ) );
+		conn = (vc_conn_t *)SLAP_CALLOC( 1, sizeof( vc_conn_t ) );
 		conn->refcnt = 1;
 
 		thrctx = ldap_pvt_thread_pool_context();
