@@ -657,14 +657,13 @@ send_ldap_disconnect( Operation	*op, SlapReply *rs )
 	|| (e) == LDAP_STRONG_AUTH_REQUIRED \
 	|| (e) == LDAP_UNAVAILABLE )
 
+	Debug( LDAP_DEBUG_TRACE,
+		"send_ldap_disconnect %d:%s\n",
+		rs->sr_err, rs->sr_text ? rs->sr_text : "", NULL );
 	assert( LDAP_UNSOLICITED_ERROR( rs->sr_err ) );
 
 	rs->sr_type = REP_EXTENDED;
 	rs->sr_rspdata = NULL;
-
-	Debug( LDAP_DEBUG_TRACE,
-		"send_ldap_disconnect %d:%s\n",
-		rs->sr_err, rs->sr_text ? rs->sr_text : "", NULL );
 
 	if ( op->o_protocol < LDAP_VERSION3 ) {
 		rs->sr_rspoid = NULL;
@@ -698,25 +697,20 @@ slap_send_ldap_result( Operation *op, SlapReply *rs )
 	if ( rs->sr_err == SLAPD_ABANDON || op->o_abandon )
 		goto abandon;
 
-	assert( !LDAP_API_ERROR( rs->sr_err ) );
-
 	Debug( LDAP_DEBUG_TRACE,
 		"send_ldap_result: %s p=%d\n",
 		op->o_log_prefix, op->o_protocol, 0 );
-
 	Debug( LDAP_DEBUG_ARGS,
 		"send_ldap_result: err=%d matched=\"%s\" text=\"%s\"\n",
 		rs->sr_err, rs->sr_matched ? rs->sr_matched : "",
 		rs->sr_text ? rs->sr_text : "" );
-
-
 	if( rs->sr_ref ) {
 		Debug( LDAP_DEBUG_ARGS,
 			"send_ldap_result: referral=\"%s\"\n",
 			rs->sr_ref[0].bv_val ? rs->sr_ref[0].bv_val : "NULL",
 			NULL, NULL );
 	}
-
+	assert( !LDAP_API_ERROR( rs->sr_err ) );
 	assert( rs->sr_err != LDAP_PARTIAL_RESULTS );
 
 	if ( rs->sr_err == LDAP_REFERRAL ) {
@@ -769,11 +763,11 @@ abandon:
 void
 send_ldap_sasl( Operation *op, SlapReply *rs )
 {
-	rs->sr_type = REP_SASL;
 	Debug( LDAP_DEBUG_TRACE, "send_ldap_sasl: err=%d len=%ld\n",
 		rs->sr_err,
 		rs->sr_sasldata ? (long) rs->sr_sasldata->bv_len : -1, NULL );
 
+	rs->sr_type = REP_SASL;
 	rs->sr_tag = slap_req2res( op->o_tag );
 	rs->sr_msgid = (rs->sr_tag != LBER_SEQUENCE) ? op->o_msgid : 0;
 
@@ -788,14 +782,13 @@ send_ldap_sasl( Operation *op, SlapReply *rs )
 void
 slap_send_ldap_extended( Operation *op, SlapReply *rs )
 {
-	rs->sr_type = REP_EXTENDED;
-
 	Debug( LDAP_DEBUG_TRACE,
 		"send_ldap_extended: err=%d oid=%s len=%ld\n",
 		rs->sr_err,
 		rs->sr_rspoid ? rs->sr_rspoid : "",
 		rs->sr_rspdata != NULL ? rs->sr_rspdata->bv_len : 0 );
 
+	rs->sr_type = REP_EXTENDED;
 	rs->sr_tag = slap_req2res( op->o_tag );
 	rs->sr_msgid = (rs->sr_tag != LBER_SEQUENCE) ? op->o_msgid : 0;
 
@@ -810,12 +803,13 @@ slap_send_ldap_extended( Operation *op, SlapReply *rs )
 void
 slap_send_ldap_intermediate( Operation *op, SlapReply *rs )
 {
-	rs->sr_type = REP_INTERMEDIATE;
 	Debug( LDAP_DEBUG_TRACE,
 		"send_ldap_intermediate: err=%d oid=%s len=%ld\n",
 		rs->sr_err,
 		rs->sr_rspoid ? rs->sr_rspoid : "",
 		rs->sr_rspdata != NULL ? rs->sr_rspdata->bv_len : 0 );
+
+	rs->sr_type = REP_INTERMEDIATE;
 	rs->sr_tag = LDAP_RES_INTERMEDIATE;
 	rs->sr_msgid = op->o_msgid;
 	if ( send_ldap_response( op, rs ) == SLAP_CB_CONTINUE ) {

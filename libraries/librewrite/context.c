@@ -215,11 +215,11 @@ rewrite_context_apply(
 	assert( result != NULL );
 
 	op->lo_depth++;
-	assert( op->lo_depth > 0 );
 
 	Debug( LDAP_DEBUG_TRACE, "==> rewrite_context_apply"
 			" [depth=%d] string='%s'\n",
 			op->lo_depth, string, 0 );
+	assert( op->lo_depth > 0 );
 	
 	s = (char *)string;
 	
