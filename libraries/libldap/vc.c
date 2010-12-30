@@ -42,7 +42,7 @@
  *
  * The response is an extended response with no OID and a value of the BER encoding of
  *
- * VCRequest ::= SEQUENCE {
+ * VCResponse ::= SEQUENCE {
  *		Cookie [0] OCTET STRING OPTIONAL,
  *		serverSaslCreds [1] OCTET STRING OPTIONAL
  *		authzid [2] OCTET STRING OPTIONAL
