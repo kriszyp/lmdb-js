@@ -143,7 +143,7 @@ ldap_verify_credentials(LDAP *ld,
 	} else {
 		if (!cred || BER_BVISNULL(cred)) {
 			if (cookie) {
-				rc = ber_printf(ber, "{t0st{sN}N}",
+				rc = ber_printf(ber, "{tOst{sN}N}",
 					LDAP_TAG_EXOP_VERIFY_CREDENTIALS_COOKIE, cookie,
 					dn, LDAP_AUTH_SASL, mechanism);
 			} else {
