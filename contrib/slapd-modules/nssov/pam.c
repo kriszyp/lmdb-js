@@ -206,7 +206,6 @@ int pam_authc(nssov_info *ni,TFILE *fp,Operation *op)
 	int32_t tmpint32;
 	int rc;
 	slap_callback cb = {0};
-	SlapReply rs = {REP_RESULT};
 	char dnc[1024];
 	char uidc[32];
 	char svcc[256];

@@ -107,6 +107,7 @@ typedef struct ContinuationReference_t {
 } ContinuationReference_t;
 #define	CR_INIT		{ NULL, BER_BVNULL, LDAP_DP_RT_UNKNOWN, BER_BVNULL, LDAP_DP_SS_UNKNOWN, NULL, BER_BVNULL }
 
+#ifdef unused
 static struct berval	bv2rt[] = {
 	BER_BVC( "superior" ),
 	BER_BVC( "subordinate" ),
@@ -196,6 +197,7 @@ ldap_distproc_str2ss( const char *s )
 	ber_str2bv( s, 0, 0, &bv );
 	return ldap_distproc_bv2ss( &bv );
 }
+#endif /* unused */
 
 /*
  * NOTE: this overlay assumes that the chainingBehavior control
@@ -238,12 +240,6 @@ static int ldap_distproc_db_init_one( BackendDB *be );
 #define	ldap_distproc_db_open_one(be)		(lback)->bi_db_open( (be) )
 #define	ldap_distproc_db_close_one(be)		(0)
 #define	ldap_distproc_db_destroy_one(be, ca)	(lback)->bi_db_destroy( (be), (ca) )
-
-static int
-ldap_distproc_parse_ctrl(
-	Operation	*op,
-	SlapReply	*rs,
-	LDAPControl	*ctrl );
 
 static int
 ldap_distproc_uri_cmp( const void *c1, const void *c2 )

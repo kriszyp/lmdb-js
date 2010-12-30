@@ -2616,7 +2616,7 @@ pc_bind_attrs( Operation *op, Entry *e, QueryTemplate *temp,
 {
 	int i, len = 0;
 	struct berval *vals, pres = BER_BVC("*");
-	char *p1, *p2, *t1;
+	char *p1, *p2;
 	Attribute *a;
 
 	vals = op->o_tmpalloc( temp->bindnattrs * sizeof( struct berval ),
@@ -3224,7 +3224,6 @@ refresh_merge( Operation *op, SlapReply *rs )
 {
 	if ( rs->sr_type == REP_SEARCH ) {
 		refresh_info *ri = op->o_callback->sc_private;
-		BackendDB *be = op->o_bd;
 		Entry *e;
 		dnlist *dnl;
 		slap_callback *ocb;

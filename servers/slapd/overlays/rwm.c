@@ -866,12 +866,7 @@ rwm_entry_get_rw( Operation *op, struct berval *ndn,
 	ObjectClass *oc, AttributeDescription *at, int rw, Entry **ep )
 {
 	slap_overinst		*on = (slap_overinst *) op->o_bd->bd_info;
-	struct ldaprwmap	*rwmap = 
-			(struct ldaprwmap *)on->on_bi.bi_private;
-
 	int			rc;
-	dncookie		dc;
-
 	BackendDB		db;
 	Operation		op2;
 	SlapReply		rs = { REP_SEARCH };
@@ -2036,6 +2031,7 @@ rwm_bva_rewrite_add(
 	return rwm_bva_add( &rwmap->rwm_bva_rewrite, idx, argv );
 }
 
+#ifdef unused
 static int
 rwm_bva_map_add(
 	struct ldaprwmap	*rwmap,
@@ -2044,6 +2040,7 @@ rwm_bva_map_add(
 {
 	return rwm_bva_add( &rwmap->rwm_bva_map, idx, argv );
 }
+#endif /* unused */
 
 static int
 rwm_info_init( struct rewrite_info ** rwm_rw )

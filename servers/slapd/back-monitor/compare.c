@@ -31,7 +31,6 @@ monitor_back_compare( Operation *op, SlapReply *rs )
 {
 	monitor_info_t	*mi = ( monitor_info_t * ) op->o_bd->be_private;
 	Entry           *e, *matched = NULL;
-	Attribute	*a;
 	int		rc;
 
 	/* get entry with reader lock */
@@ -58,16 +57,11 @@ monitor_back_compare( Operation *op, SlapReply *rs )
 	}
 
 	rs->sr_err = slap_compare_entry( op, e, op->orc_ava );
-
-return_results:;
 	rc = rs->sr_err;
 	switch ( rc ) {
 	case LDAP_COMPARE_FALSE:
 	case LDAP_COMPARE_TRUE:
 		rc = LDAP_SUCCESS;
-		break;
-
-	default:
 		break;
 	}
 		

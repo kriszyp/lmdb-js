@@ -3587,7 +3587,6 @@ dn_callback(
 			 * in the provider are always propagated.
 			 */
 			if ( dni->new_entry ) {
-				Modifications **modtail, **ml;
 				Attribute *old, *new;
 				struct berval old_rdn, new_rdn;
 				struct berval old_p, new_p;

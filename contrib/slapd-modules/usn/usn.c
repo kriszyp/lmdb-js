@@ -233,7 +233,6 @@ usn_db_close(
 	void *thrctx;
 
 	Modifications mod;
-	SlapReply rsm = { 0 };
 	slap_callback cb = {0};
 	char intbuf[64];
 	struct berval bv[2];

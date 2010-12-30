@@ -818,8 +818,6 @@ syncprov_free_syncop( syncops *so )
 static int
 syncprov_sendresp( Operation *op, opcookie *opc, syncops *so, int mode )
 {
-	slap_overinst *on = opc->son;
-
 	SlapReply rs = { REP_SEARCH };
 	LDAPControl *ctrls[2];
 	struct berval cookie = BER_BVNULL, csns[2];
@@ -915,7 +913,6 @@ syncprov_qplay( Operation *op, syncops *so )
 {
 	slap_overinst *on = LDAP_SLIST_FIRST(&so->s_op->o_extra)->oe_key;
 	syncres *sr;
-	Entry *e;
 	opcookie opc;
 	int rc = 0;
 
@@ -1377,7 +1374,7 @@ syncprov_op_cleanup( Operation *op, SlapReply *rs )
 	slap_overinst *on = opc->son;
 	syncprov_info_t		*si = on->on_bi.bi_private;
 	syncmatches *sm, *snext;
-	modtarget *mt, mtdummy;
+	modtarget *mt;
 
 	ldap_pvt_thread_mutex_lock( &si->si_ops_mutex );
 	if ( si->si_active )
