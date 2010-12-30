@@ -541,7 +541,7 @@ constraint_uri_cb( Operation *op, SlapReply *rs )
 }
 
 static int
-constraint_violation( constraint *c, struct berval *bv, Operation *op, SlapReply *rs)
+constraint_violation( constraint *c, struct berval *bv, Operation *op )
 {
 	if ((!c) || (!bv)) return LDAP_SUCCESS;
 	
@@ -558,16 +558,11 @@ constraint_violation( constraint *c, struct berval *bv, Operation *op, SlapReply
 		slap_callback cb;
 		SlapReply nrs = { REP_RESULT };
 		int i;
-		int found;
+		int found = 0;
 		int rc;
 		size_t len;
 		struct berval filterstr;
 		char *ptr;
-
-		found = 0;
-
-		nrs.sr_entry = NULL;
-		nrs.sr_nentries = 0;
 
 		cb.sc_next = NULL;
 		cb.sc_response = constraint_uri_cb;
@@ -663,7 +658,6 @@ constraint_violation( constraint *c, struct berval *bv, Operation *op, SlapReply
 
 		if (!found)
 			return LDAP_CONSTRAINT_VIOLATION; /* constraint violation */
-			
 	}
 
 	return LDAP_SUCCESS;
@@ -796,7 +790,7 @@ constraint_add( Operation *op, SlapReply *rs )
 			}
 
 			for ( i = 0; b[i].bv_val; i++ ) {
-				rc = constraint_violation( cp, &b[i], op, rs );
+				rc = constraint_violation( cp, &b[i], op );
 				if ( rc ) {
 					goto add_violation;
 				}
@@ -949,7 +943,7 @@ constraint_update( Operation *op, SlapReply *rs )
 				continue;
 
 			for ( i = 0; b[i].bv_val; i++ ) {
-				rc = constraint_violation( cp, &b[i], op, rs );
+				rc = constraint_violation( cp, &b[i], op );
 				if ( rc ) {
 					goto mod_violation;
 				}

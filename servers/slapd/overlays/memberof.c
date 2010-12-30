@@ -323,10 +323,9 @@ memberof_isGroupOrMember( Operation *op, memberof_cbinfo_t *mci )
 /*
  * response callback that adds memberof values when a group is modified.
  */
-static int
+static void
 memberof_value_modify(
 	Operation		*op,
-	SlapReply		*rs,
 	struct berval		*ndn,
 	AttributeDescription	*ad,
 	struct berval		*old_dn,
@@ -456,8 +455,6 @@ memberof_value_modify(
 	 * add will fail; better split in two operations, although
 	 * not optimal in terms of performance.  At least it would
 	 * move towards self-repairing capabilities. */
-
-	return rs2.sr_err;
 }
 
 static int
@@ -1194,7 +1191,7 @@ memberof_res_add( Operation *op, SlapReply *rs )
 		
 				/* the modification is attempted
 				 * with the original identity */
-				(void)memberof_value_modify( op, rs,
+				memberof_value_modify( op,
 					&ma->a_nvals[ i ], mo->mo_ad_member,
 					NULL, NULL, &op->o_req_dn, &op->o_req_ndn );
 			}
@@ -1209,7 +1206,7 @@ memberof_res_add( Operation *op, SlapReply *rs )
 				a = attrs_find( a->a_next, mo->mo_ad_member ) )
 		{
 			for ( i = 0; !BER_BVISNULL( &a->a_nvals[ i ] ); i++ ) {
-				(void)memberof_value_modify( op, rs,
+				memberof_value_modify( op,
 						&a->a_nvals[ i ],
 						mo->mo_ad_memberof,
 						NULL, NULL,
@@ -1242,7 +1239,7 @@ memberof_res_delete( Operation *op, SlapReply *rs )
 	vals = mci->member;
 	if ( vals != NULL ) {
 		for ( i = 0; !BER_BVISNULL( &vals[ i ] ); i++ ) {
-			(void)memberof_value_modify( op, rs,
+			memberof_value_modify( op,
 					&vals[ i ], mo->mo_ad_memberof,
 					&op->o_req_dn, &op->o_req_ndn,
 					NULL, NULL );
@@ -1253,7 +1250,7 @@ memberof_res_delete( Operation *op, SlapReply *rs )
 		vals = mci->memberof;
 		if ( vals != NULL ) {
 			for ( i = 0; !BER_BVISNULL( &vals[ i ] ); i++ ) {
-				(void)memberof_value_modify( op, rs,
+				memberof_value_modify( op,
 						&vals[ i ], mo->mo_ad_member,
 						&op->o_req_dn, &op->o_req_ndn,
 						NULL, NULL );
@@ -1299,7 +1296,7 @@ memberof_res_modify( Operation *op, SlapReply *rs )
 		case LDAP_MOD_DELETE:
 			if ( vals != NULL ) {
 				for ( i = 0; !BER_BVISNULL( &vals[ i ] ); i++ ) {
-					memberof_value_modify( op, rs,
+					memberof_value_modify( op,
 							&vals[ i ], mo->mo_ad_member,
 							&op->o_req_dn, &op->o_req_ndn,
 							NULL, NULL );
@@ -1316,7 +1313,7 @@ memberof_res_modify( Operation *op, SlapReply *rs )
 			op->o_bd->bd_info = (BackendInfo *)on;
 			if ( rc == LDAP_SUCCESS ) {
 				for ( i = 0; !BER_BVISNULL( &vals[ i ] ); i++ ) {
-					(void)memberof_value_modify( op, rs,
+					memberof_value_modify( op,
 							&vals[ i ], mo->mo_ad_member,
 							&op->o_req_dn, &op->o_req_ndn,
 							NULL, NULL );
@@ -1333,7 +1330,7 @@ memberof_res_modify( Operation *op, SlapReply *rs )
 			assert( vals != NULL );
 
 			for ( i = 0; !BER_BVISNULL( &vals[ i ] ); i++ ) {
-				memberof_value_modify( op, rs,
+				memberof_value_modify( op,
 						&vals[ i ], mo->mo_ad_member,
 						NULL, NULL,
 						&op->o_req_dn, &op->o_req_ndn );
@@ -1357,7 +1354,7 @@ memberof_res_modify( Operation *op, SlapReply *rs )
 				vals = ml->sml_nvalues;
 				if ( vals != NULL ) {
 					for ( i = 0; !BER_BVISNULL( &vals[ i ] ); i++ ) {
-						memberof_value_modify( op, rs,
+						memberof_value_modify( op,
 								&vals[ i ], mo->mo_ad_memberof,
 								&op->o_req_dn, &op->o_req_ndn,
 								NULL, NULL );
@@ -1372,7 +1369,7 @@ memberof_res_modify( Operation *op, SlapReply *rs )
 				/* delete all ... */
 				if ( vals != NULL ) {
 					for ( i = 0; !BER_BVISNULL( &vals[ i ] ); i++ ) {
-						(void)memberof_value_modify( op, rs,
+						memberof_value_modify( op,
 								&vals[ i ], mo->mo_ad_memberof,
 								&op->o_req_dn, &op->o_req_ndn,
 								NULL, NULL );
@@ -1388,7 +1385,7 @@ memberof_res_modify( Operation *op, SlapReply *rs )
 				assert( ml->sml_nvalues != NULL );
 				vals = ml->sml_nvalues;
 				for ( i = 0; !BER_BVISNULL( &vals[ i ] ); i++ ) {
-					memberof_value_modify( op, rs,
+					memberof_value_modify( op,
 							&vals[ i ], mo->mo_ad_memberof,
 							NULL, NULL,
 							&op->o_req_dn, &op->o_req_ndn );
@@ -1469,7 +1466,7 @@ memberof_res_modrdn( Operation *op, SlapReply *rs )
 
 		if ( rc == LDAP_SUCCESS ) {
 			for ( i = 0; !BER_BVISNULL( &vals[ i ] ); i++ ) {
-				(void)memberof_value_modify( op, rs,
+				memberof_value_modify( op,
 						&vals[ i ], mo->mo_ad_memberof,
 						&op->o_req_dn, &op->o_req_ndn,
 						&newDN, &newNDN );
@@ -1486,7 +1483,7 @@ memberof_res_modrdn( Operation *op, SlapReply *rs )
 
 		if ( rc == LDAP_SUCCESS ) {
 			for ( i = 0; !BER_BVISNULL( &vals[ i ] ); i++ ) {
-				(void)memberof_value_modify( op, rs,
+				memberof_value_modify( op,
 						&vals[ i ], mo->mo_ad_member,
 						&op->o_req_dn, &op->o_req_ndn,
 						&newDN, &newNDN );

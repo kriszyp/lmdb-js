@@ -346,7 +346,6 @@ add_query(
 static int
 remove_query_data(
 	Operation	*op,
-	SlapReply	*rs,
 	struct berval	*query_uuid );
 
 /*
@@ -752,11 +751,10 @@ url2query(
 	/* ignore expired queries */
 	if ( expiry_time <= slap_get_time()) {
 		Operation	op2 = *op;
-		SlapReply	rs2 = { 0 };
 
 		memset( &op2.oq_search, 0, sizeof( op2.oq_search ) );
 
-		(void)remove_query_data( &op2, &rs2, &uuid );
+		(void)remove_query_data( &op2, &uuid );
 
 		rc = 0;
 
@@ -1748,7 +1746,6 @@ remove_func (
 static int
 remove_query_data(
 	Operation	*op,
-	SlapReply	*rs,
 	struct berval	*query_uuid )
 {
 	struct query_info	*qi, *qnext;
@@ -1759,8 +1756,6 @@ remove_query_data(
 	slap_callback cb = { NULL, remove_func, NULL, NULL };
 	int deleted = 0;
 
-	sreply.sr_entry = NULL;
-	sreply.sr_nentries = 0;
 	op->ors_filterstr.bv_len = snprintf(filter_str, sizeof(filter_str),
 		"(%s=%s)", ad_queryId->ad_cname.bv_val, query_uuid->bv_val);
 	filter.f_ava = &ava;
@@ -1971,7 +1966,6 @@ struct search_info {
 static void
 remove_query_and_data(
 	Operation	*op,
-	SlapReply	*rs,
 	cache_manager	*cm,
 	struct berval	*uuid )
 {
@@ -1984,7 +1978,7 @@ remove_query_and_data(
 		Debug( pcache_debug,
 			"Removing query UUID %s\n",
 			uuid->bv_val, 0, 0 );
-		return_val = remove_query_data( op, rs, uuid );
+		return_val = remove_query_data( op, uuid );
 		Debug( pcache_debug,
 			"QUERY REMOVED, SIZE=%d\n",
 			return_val, 0, 0);
@@ -2122,7 +2116,7 @@ pcache_remove_entries_from_cache(
 			for ( i = 0; !BER_BVISNULL( &vals[ i ] ); i++ ) {
 				struct berval	val = vals[ i ];
 
-				remove_query_and_data( op, &rs, cm, &val );
+				remove_query_and_data( op, cm, &val );
 
 				if ( !BER_BVISNULL( &val ) && val.bv_val != vals[ i ].bv_val ) {
 					ch_free( val.bv_val );
@@ -2147,12 +2141,11 @@ pcache_remove_query_from_cache(
 	struct berval	*queryid )
 {
 	Operation	op2 = *op;
-	SlapReply	rs2 = { 0 };
 
 	op2.o_bd = &cm->db;
 
 	/* remove the selected query */
-	remove_query_and_data( &op2, &rs2, cm, queryid );
+	remove_query_and_data( &op2, cm, queryid );
 
 	return LDAP_SUCCESS;
 }
@@ -2243,7 +2236,7 @@ pcache_remove_entry_queries_from_cache(
 		for ( i = 0; !BER_BVISNULL( &vals[ i ] ); i++ ) {
 			struct berval	val = vals[ i ];
 
-			remove_query_and_data( op, &rs, cm, &val );
+			remove_query_and_data( op, cm, &val );
 
 			if ( !BER_BVISNULL( &val ) && val.bv_val != vals[ i ].bv_val ) {
 				ch_free( val.bv_val );
@@ -2259,7 +2252,6 @@ pcache_remove_entry_queries_from_cache(
 static int
 cache_entries(
 	Operation	*op,
-	SlapReply	*rs,
 	struct berval *query_uuid )
 {
 	struct search_info *si = op->o_callback->sc_private;
@@ -2291,7 +2283,7 @@ cache_entries(
 		e->e_private = NULL;
 		while ( cm->cur_entries > (cm->max_entries) ) {
 			BER_BVZERO( &crp_uuid );
-			remove_query_and_data( op_tmp, rs, cm, &crp_uuid );
+			remove_query_and_data( op_tmp, cm, &crp_uuid );
 		}
 
 		return_val = merge_entry(op_tmp, e, 0, query_uuid);
@@ -2399,7 +2391,7 @@ over:;
 			if ( qc != NULL ) {
 				switch ( si->caching_reason ) {
 				case PC_POSITIVE:
-					cache_entries( op, rs, &qc->q_uuid );
+					cache_entries( op, &qc->q_uuid );
 					if ( si->pbi )
 						si->pbi->bi_cq = qc;
 					break;
@@ -3521,7 +3513,7 @@ consistency_check(
 				if ( BER_BVISNULL( &query->q_uuid ))
 					return_val = 0;
 				else
-					return_val = remove_query_data(op, &rs, &query->q_uuid);
+					return_val = remove_query_data(op, &query->q_uuid);
 				Debug( pcache_debug, "STALE QUERY REMOVED, SIZE=%d\n",
 							return_val, 0, 0 );
 				ldap_pvt_thread_mutex_lock(&cm->cache_mutex);

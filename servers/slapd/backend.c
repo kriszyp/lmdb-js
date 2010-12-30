@@ -1689,8 +1689,7 @@ fe_acl_attribute(
  			 * to do no harm to entries */
  			rs.sr_entry = e;
   			rc = backend_operational( op, &rs );
- 			rs.sr_entry = NULL;
- 
+
 			if ( rc == LDAP_SUCCESS ) {
 				if ( rs.sr_operational_attrs ) {
 					freeattr = 1;
@@ -1856,7 +1855,6 @@ backend_access(
 				 * to do no harm to entries */
 				rs.sr_entry = e;
 				rc = backend_operational( op, &rs );
-				rs.sr_entry = NULL;
 
 				if ( rc == LDAP_SUCCESS ) {
 					if ( rs.sr_operational_attrs ) {

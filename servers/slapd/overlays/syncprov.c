@@ -1418,7 +1418,7 @@ syncprov_op_cleanup( Operation *op, SlapReply *rs )
 }
 
 static void
-syncprov_checkpoint( Operation *op, SlapReply *rs, slap_overinst *on )
+syncprov_checkpoint( Operation *op, slap_overinst *on )
 {
 	syncprov_info_t *si = (syncprov_info_t *)on->on_bi.bi_private;
 	Modifications mod;
@@ -1893,7 +1893,7 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 
 		if ( do_check ) {
 			ldap_pvt_thread_rdwr_rlock( &si->si_csn_rwlock );
-			syncprov_checkpoint( op, rs, on );
+			syncprov_checkpoint( op, on );
 			ldap_pvt_thread_rdwr_runlock( &si->si_csn_rwlock );
 		}
 
@@ -3085,7 +3085,6 @@ syncprov_db_close(
 		Connection conn = {0};
 		OperationBuffer opbuf;
 		Operation *op;
-		SlapReply rs = {REP_RESULT};
 		void *thrctx;
 
 		thrctx = ldap_pvt_thread_pool_context();
@@ -3094,7 +3093,7 @@ syncprov_db_close(
 		op->o_bd = be;
 		op->o_dn = be->be_rootdn;
 		op->o_ndn = be->be_rootndn;
-		syncprov_checkpoint( op, &rs, on );
+		syncprov_checkpoint( op, on );
 	}
 
 #ifdef SLAP_CONFIG_DELETE
