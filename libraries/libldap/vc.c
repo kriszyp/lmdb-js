@@ -71,7 +71,7 @@ int ldap_parse_verify_credentials(
 	rc = ldap_parse_extended_result(ld, res, &retoid, &retdata, 0);
 
 	if( rc != LDAP_SUCCESS ) {
-		ldap_perror(ld, "ldap_parse_whoami");
+		ldap_perror(ld, "ldap_parse_verify_credentials");
 		return rc;
 	}
 
@@ -129,7 +129,9 @@ ldap_verify_credentials(LDAP *ld,
 	assert(msgidp != NULL);
 
 	ber = ber_alloc_t(LBER_USE_DER);
-	ber_printf(ber, "{");
+#if 0
+	ber_printf(ber, "{" /*}*/ );
+#endif
 	if (dn == NULL) dn = "";
 
 	if (mechanism == LDAP_SASL_SIMPLE) {
@@ -159,6 +161,9 @@ ldap_verify_credentials(LDAP *ld,
 			}
 		}
 	}
+#if 0
+	ber_printf(ber, /*{*/ "N}" );
+#endif
 
 	ber_flatten(ber, &reqdata);
 
