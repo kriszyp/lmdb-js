@@ -92,8 +92,10 @@ perl_back_search(
 						rs->sr_flags = REP_ENTRY_MODIFIABLE;
 						rs->sr_err = LDAP_SUCCESS;
 						rs->sr_err = send_search_entry( op, rs );
+						rs->sr_flags = 0;
+						rs->sr_attrs = NULL;
+						rs->sr_entry = NULL;
 						if ( rs->sr_err == LDAP_SIZELIMIT_EXCEEDED ) {
-							rs->sr_entry = NULL;
 							goto done;
 						}
 					}
@@ -124,4 +126,3 @@ done:;
 
 	return 0;
 }
-

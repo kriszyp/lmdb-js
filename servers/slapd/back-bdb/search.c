@@ -959,6 +959,7 @@ fetch_entry_retry:
 				rs->sr_flags = REP_ENTRY_MUSTRELEASE;
 				rs->sr_err = LDAP_SUCCESS;
 				rs->sr_err = send_search_entry( op, rs );
+				rs->sr_attrs = NULL;
 
 				/* send_search_entry will usually free it.
 				 * an overlay might leave its own copy here;

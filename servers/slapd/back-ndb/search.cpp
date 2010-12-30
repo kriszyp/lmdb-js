@@ -483,6 +483,7 @@ static int ndb_oc_search( Operation *op, SlapReply *rs, Ndb *ndb, NdbTransaction
 				rs->sr_flags = 0;
 				rc = send_search_entry( op, rs );
 				rs->sr_entry = NULL;
+				rs->sr_attrs = NULL;
 			} else {
 				rc = 0;
 			}

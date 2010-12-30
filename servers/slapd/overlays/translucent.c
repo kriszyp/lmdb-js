@@ -1169,6 +1169,7 @@ static int translucent_search(Operation *op, SlapReply *rs) {
 				av = tavl_next( av, TAVL_DIR_RIGHT );
 			}
 			tavl_free( tc.list, NULL );
+			rs->sr_flags = 0;
 			rs->sr_entry = NULL;
 		}
 		send_ldap_result( op, rs );

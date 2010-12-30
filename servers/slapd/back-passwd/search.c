@@ -123,6 +123,8 @@ passwd_back_search(
 				rs->sr_attrs = op->ors_attrs;
 				rs->sr_flags = REP_ENTRY_MODIFIABLE;
 				send_search_entry( op, rs );
+				rs->sr_flags = 0;
+				rs->sr_attrs = NULL;
 			}
 
 			entry_clean( &e );
@@ -173,6 +175,8 @@ passwd_back_search(
 					rs->sr_attrs = op->ors_attrs;
 					rs->sr_flags = REP_ENTRY_MODIFIABLE;
 					send_search_entry( op, rs );
+					rs->sr_flags = 0;
+					rs->sr_entry = NULL;
 				}
 
 				entry_clean( &e );
@@ -238,6 +242,9 @@ passwd_back_search(
 			rs->sr_attrs = op->ors_attrs;
 			rs->sr_flags = REP_ENTRY_MODIFIABLE;
 			send_search_entry( op, rs );
+			rs->sr_flags = 0;
+			rs->sr_entry = NULL;
+			rs->sr_attrs = NULL;
 		}
 
 		entry_clean( &e );
