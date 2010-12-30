@@ -274,6 +274,12 @@ fe_op_search( Operation *op, SlapReply *rs )
 			goto return_results;
 
 		} else if ( entry != NULL ) {
+			if ( get_assert( op ) &&
+				( test_filter( op, entry, get_assertion( op )) != LDAP_COMPARE_TRUE )) {
+				rs->sr_err = LDAP_ASSERTION_FAILED;
+				goto fail1;
+			}
+
 			rs->sr_err = test_filter( op, entry, op->ors_filter );
 
 			if( rs->sr_err == LDAP_COMPARE_TRUE ) {
@@ -292,9 +298,9 @@ fe_op_search( Operation *op, SlapReply *rs )
 				rs->sr_entry = NULL;
 				rs->sr_operational_attrs = NULL;
 			}
-			entry_free( entry );
-
 			rs->sr_err = LDAP_SUCCESS;
+fail1:
+			entry_free( entry );
 			send_ldap_result( op, rs );
 			goto return_results;
 		}
