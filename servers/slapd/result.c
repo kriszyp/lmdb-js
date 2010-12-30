@@ -190,23 +190,39 @@ void
 }
 #endif /* LDAP_TEST || USE_RS_ASSERT */
 
-/* Set rs->sr_entry after obyeing and clearing sr_flags & REP_ENTRY_MASK. */
+/* Reset a used SlapReply whose contents has been flushed (freed/released) */
 void
-rs_replace_entry( Operation *op, SlapReply *rs, slap_overinst *on, Entry *e )
+(rs_reinit)( SlapReply *rs )
 {
-	slap_mask_t e_flags = rs->sr_flags & REP_ENTRY_MUSTFLUSH;
+	rs_assert_done( rs );
+	memset( rs, 0, sizeof(SlapReply) );
+}
 
-	if ( e_flags && rs->sr_entry != NULL ) {
-		RS_ASSERT( e_flags != REP_ENTRY_MUSTFLUSH );
-		if ( !(e_flags & REP_ENTRY_MUSTRELEASE) ) {
+/* Obey and clear rs->sr_flags & REP_ENTRY_MASK.  Clear sr_entry if freed. */
+void
+rs_flush_entry( Operation *op, SlapReply *rs, slap_overinst *on )
+{
+	rs_assert_ok( rs );
+
+	if ( (rs->sr_flags & REP_ENTRY_MUSTFLUSH) && rs->sr_entry != NULL ) {
+		if ( !(rs->sr_flags & REP_ENTRY_MUSTRELEASE) ) {
 			entry_free( rs->sr_entry );
 		} else if ( on != NULL ) {
 			overlay_entry_release_ov( op, rs->sr_entry, 0, on );
 		} else {
 			be_entry_release_rw( op, rs->sr_entry, 0 );
 		}
+		rs->sr_entry = NULL;
 	}
+
 	rs->sr_flags &= ~REP_ENTRY_MASK;
+}
+
+/* Set rs->sr_entry after obeying and clearing sr_flags & REP_ENTRY_MASK. */
+void
+rs_replace_entry( Operation *op, SlapReply *rs, slap_overinst *on, Entry *e )
+{
+	rs_flush_entry( op, rs, on );
 	rs->sr_entry = e;
 }
 
@@ -219,7 +235,7 @@ int
 rs_ensure_entry_modifiable( Operation *op, SlapReply *rs, slap_overinst *on )
 {
 	if ( rs->sr_flags & REP_ENTRY_MODIFIABLE ) {
-		RS_ASSERT((rs->sr_flags & REP_ENTRY_MUSTFLUSH)==REP_ENTRY_MUSTBEFREED);
+		rs_assert_ok( rs );
 		return 0;
 	}
 	rs_replace_entry( op, rs, on, entry_dup( rs->sr_entry ));
