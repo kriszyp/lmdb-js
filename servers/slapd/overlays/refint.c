@@ -671,7 +671,8 @@ refint_repair(
 		op2.o_dn = op2.o_bd->be_rootdn;
 		op2.o_ndn = op2.o_bd->be_rootndn;
 		slap_op_time( &op2.o_time, &op2.o_tincr );
-		if ( ( rc = op2.o_bd->be_modify( &op2, &rs2 ) ) != LDAP_SUCCESS ) {
+		rc = op2.o_bd->be_modify( &op2, &rs2 );
+		if ( rc != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_TRACE,
 				"refint_repair: dependent modify failed: %d\n",
 				rs2.sr_err, 0, 0 );

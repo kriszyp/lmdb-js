@@ -623,20 +623,22 @@ slap_auxprop_store(
 			op.o_req_dn = op.o_req_ndn;
 			op.orm_modlist = modlist;
 
-retry_dontUseCopy:;
-			rc = op.o_bd->be_modify( &op, &rs );
+			for (;;) {
+				rc = op.o_bd->be_modify( &op, &rs );
 
 #ifdef SLAP_AUXPROP_DONTUSECOPY
-			if ( dontUseCopy &&
-				rs.sr_err == LDAP_UNAVAILABLE &&
-				slap_dontUseCopy_ignore )
-			{
-				op.o_bd = dontUseCopy_bd;
-				op.o_dontUseCopy = SLAP_CONTROL_NONE;
-				dontUseCopy = 0;
-				goto retry_dontUseCopy;
-			}
+				if ( dontUseCopy &&
+					rs.sr_err == LDAP_UNAVAILABLE &&
+					slap_dontUseCopy_ignore )
+				{
+					op.o_bd = dontUseCopy_bd;
+					op.o_dontUseCopy = SLAP_CONTROL_NONE;
+					dontUseCopy = 0;
+					continue;
+				}
 #endif /* SLAP_AUXPROP_DONTUSECOPY */
+				break;
+			}
 		}
 	}
 	slap_mods_free( modlist, 1 );

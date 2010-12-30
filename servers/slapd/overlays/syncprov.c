@@ -1709,7 +1709,7 @@ syncprov_playlog( Operation *op, SlapReply *rs, sessionlog *sl,
 		fop.o_bd->bd_info = (BackendInfo *)on->on_info;
 
 		for ( i=ndel; i<num; i++ ) {
-			if ( uuids[i].bv_len == 0 ) continue;
+		  if ( uuids[i].bv_len != 0 ) {
 
 			mf.f_av_value = uuids[i];
 			cb.sc_private = NULL;
@@ -1721,6 +1721,7 @@ syncprov_playlog( Operation *op, SlapReply *rs, sessionlog *sl,
 			if ( !cb.sc_private ) {
 				uuids[ndel++] = uuids[i];
 			}
+		  }
 		}
 		fop.o_bd->bd_info = (BackendInfo *)on;
 	}

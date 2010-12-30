@@ -6778,9 +6778,11 @@ config_back_db_open( BackendDB *be, ConfigReply *cr )
 
 	/* Create schema nodes for included schema... */
 	if ( cfb->cb_config->c_kids ) {
+		int rc;
 		c.depth = 0;
 		c.ca_private = cfb->cb_config->c_kids;
-		if (config_build_schema_inc( &c, ce, op, &rs )) {
+		rc = config_build_schema_inc( &c, ce, op, &rs );
+		if ( rc ) {
 			return -1;
 		}
 	}
