@@ -1537,6 +1537,18 @@ LDAP_SLAPD_F (int) get_alias_dn LDAP_P((
 /*
  * result.c
  */
+#if USE_RS_ASSERT /*defined(USE_RS_ASSERT)?(USE_RS_ASSERT):defined(LDAP_TEST)*/
+# define RS_ASSERT				assert
+#else
+# define RS_ASSERT(cond)		((void) 0)
+# define rs_assert_ok(rs)		((void) (rs))
+# define rs_assert_ready(rs)	((void) (rs))
+# define rs_assert_done(rs)		((void) (rs))
+#endif
+LDAP_SLAPD_F (void) (rs_assert_ok)		LDAP_P(( const SlapReply *rs ));
+LDAP_SLAPD_F (void) (rs_assert_ready)	LDAP_P(( const SlapReply *rs ));
+LDAP_SLAPD_F (void) (rs_assert_done)	LDAP_P(( const SlapReply *rs ));
+
 LDAP_SLAPD_F (void) rs_replace_entry LDAP_P(( Operation *op,
 	SlapReply *rs, slap_overinst *on, Entry *e ));
 LDAP_SLAPD_F (int) rs_ensure_entry_modifiable LDAP_P(( Operation *op,
@@ -2146,4 +2158,3 @@ LDAP_SLAPD_F (int) fe_access_allowed LDAP_P((
 LDAP_END_DECL
 
 #endif /* PROTO_SLAP_H */
-

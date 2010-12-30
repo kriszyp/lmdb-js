@@ -132,12 +132,63 @@ slap_req2res( ber_tag_t tag )
 	return tag;
 }
 
-#ifdef RS_ASSERT
-#elif 0 && defined LDAP_DEVEL /* FIXME: this should not crash. ITS#5340. */
-#define RS_ASSERT assert
-#else
-#define RS_ASSERT(cond) ((void) 0)
+/* SlapReply debugging, prodo-slap.h overrides it in OpenLDAP releases */
+#if defined(LDAP_TEST) || (defined(USE_RS_ASSERT) && (USE_RS_ASSERT))
+void
+(rs_assert_ok)( const SlapReply *rs )
+{
+	const slap_mask_t flags = rs->sr_flags;
+
+	if ( flags & REP_ENTRY_MASK ) {
+		RS_ASSERT( !(flags & REP_ENTRY_MUSTRELEASE)
+			|| !(flags & (REP_ENTRY_MASK ^ REP_ENTRY_MUSTRELEASE)) );
+		RS_ASSERT( rs->sr_entry != NULL );
+		RS_ASSERT( (1 << rs->sr_type) &
+			((1 << REP_SEARCH) | (1 << REP_SEARCHREF) |
+			 (1 << REP_RESULT) | (1 << REP_GLUE_RESULT)) );
+	}
+#if defined(USE_RS_ASSERT) && (USE_RS_ASSERT) > 1 /* TODO: Enable when safe */
+	if ( (flags & (REP_MATCHED_MASK | REP_REF_MASK | REP_CTRLS_MASK)) ) {
+		RS_ASSERT( !(flags & REP_MATCHED_MASK) || rs->sr_matched );
+		RS_ASSERT( !(flags & REP_CTRLS_MASK  ) || rs->sr_ctrls   );
+		/* Note: LDAP_REFERRAL + !sr_ref is OK, becomes LDAP_NO_SUCH_OBJECT */
+	}
+#if (USE_RS_ASSERT) > 2
+	if ( rs->sr_err == LDAP_SUCCESS ) {
+		RS_ASSERT( rs->sr_text == NULL );
+		RS_ASSERT( rs->sr_matched == NULL );
+	}
 #endif
+#endif
+}
+void
+(rs_assert_ready)( const SlapReply *rs )
+{
+	RS_ASSERT( !rs->sr_entry   );
+#if defined(USE_RS_ASSERT) && (USE_RS_ASSERT) > 1 /* TODO: Enable when safe */
+	RS_ASSERT( !rs->sr_text    );
+	RS_ASSERT( !rs->sr_ref     );
+	RS_ASSERT( !rs->sr_matched );
+	RS_ASSERT( !rs->sr_ctrls   );
+	RS_ASSERT( !rs->sr_flags   );
+#if (USE_RS_ASSERT) > 2
+	RS_ASSERT( rs->sr_err == LDAP_SUCCESS );
+#endif
+#else
+	RS_ASSERT( !(rs->sr_flags & REP_ENTRY_MASK) );
+#endif
+}
+void
+(rs_assert_done)( const SlapReply *rs )
+{
+#if defined(USE_RS_ASSERT) && (USE_RS_ASSERT) > 1 /* TODO: Enable when safe */
+	RS_ASSERT( !(rs->sr_flags & ~(REP_ENTRY_MODIFIABLE|REP_NO_OPERATIONALS)) );
+	rs_assert_ok( rs );
+#else
+	RS_ASSERT( !(rs->sr_flags & REP_ENTRY_MUSTFLUSH) );
+#endif
+}
+#endif /* LDAP_TEST || USE_RS_ASSERT */
 
 /* Set rs->sr_entry after obyeing and clearing sr_flags & REP_ENTRY_MASK. */
 void
