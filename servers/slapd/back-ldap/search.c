@@ -173,6 +173,9 @@ ldap_back_search(
 	/* FIXME: shouldn't this be null? */
 	const char	*save_matched = rs->sr_matched;
 
+	rs_assert_ready( rs );
+	rs->sr_flags &= ~REP_ENTRY_MASK; /* paranoia, we can set rs = non-entry */
+
 	if ( !ldap_back_dobind( &lc, op, rs, LDAP_BACK_SENDERR ) ) {
 		return rs->sr_err;
 	}

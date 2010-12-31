@@ -728,6 +728,10 @@ send_ldap_disconnect( Operation	*op, SlapReply *rs )
 		rs->sr_err, rs->sr_text ? rs->sr_text : "", NULL );
 	assert( LDAP_UNSOLICITED_ERROR( rs->sr_err ) );
 
+	/* TODO: Flush the entry if sr_type == REP_SEARCH/REP_SEARCHREF? */
+	RS_ASSERT( !(rs->sr_flags & REP_ENTRY_MASK) );
+	rs->sr_flags &= ~REP_ENTRY_MASK;	/* paranoia */
+
 	rs->sr_type = REP_EXTENDED;
 	rs->sr_rspdata = NULL;
 
@@ -833,6 +837,9 @@ send_ldap_sasl( Operation *op, SlapReply *rs )
 		rs->sr_err,
 		rs->sr_sasldata ? (long) rs->sr_sasldata->bv_len : -1, NULL );
 
+	RS_ASSERT( !(rs->sr_flags & REP_ENTRY_MASK) );
+	rs->sr_flags &= ~REP_ENTRY_MASK;	/* paranoia */
+
 	rs->sr_type = REP_SASL;
 	rs->sr_tag = slap_req2res( op->o_tag );
 	rs->sr_msgid = (rs->sr_tag != LBER_SEQUENCE) ? op->o_msgid : 0;
@@ -854,6 +861,9 @@ slap_send_ldap_extended( Operation *op, SlapReply *rs )
 		rs->sr_rspoid ? rs->sr_rspoid : "",
 		rs->sr_rspdata != NULL ? rs->sr_rspdata->bv_len : 0 );
 
+	RS_ASSERT( !(rs->sr_flags & REP_ENTRY_MASK) );
+	rs->sr_flags &= ~REP_ENTRY_MASK;	/* paranoia */
+
 	rs->sr_type = REP_EXTENDED;
 	rs->sr_tag = slap_req2res( op->o_tag );
 	rs->sr_msgid = (rs->sr_tag != LBER_SEQUENCE) ? op->o_msgid : 0;
@@ -874,6 +884,9 @@ slap_send_ldap_intermediate( Operation *op, SlapReply *rs )
 		rs->sr_err,
 		rs->sr_rspoid ? rs->sr_rspoid : "",
 		rs->sr_rspdata != NULL ? rs->sr_rspdata->bv_len : 0 );
+
+	RS_ASSERT( !(rs->sr_flags & REP_ENTRY_MASK) );
+	rs->sr_flags &= ~REP_ENTRY_MASK;	/* paranoia */
 
 	rs->sr_type = REP_INTERMEDIATE;
 	rs->sr_tag = LDAP_RES_INTERMEDIATE;
