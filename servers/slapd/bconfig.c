@@ -6402,6 +6402,8 @@ config_build_attrs( Entry *e, AttributeType **at, AttributeDescription *ad,
 	return 0;
 }
 
+/* currently (2010) does not access rs except possibly writing rs->sr_err */
+
 Entry *
 config_build_entry( Operation *op, SlapReply *rs, CfEntryInfo *parent,
 	ConfigArgs *c, struct berval *rdn, ConfigOCs *main, ConfigOCs *extra )
@@ -6499,9 +6501,12 @@ fail:
 		op->ora_modlist = NULL;
 		slap_add_opattrs( op, NULL, NULL, 0, 0 );
 		if ( !op->o_noop ) {
-			op->o_bd->be_add( op, rs );
-			if ( ( rs->sr_err != LDAP_SUCCESS ) 
-					&& (rs->sr_err != LDAP_ALREADY_EXISTS) ) {
+			SlapReply rs2 = {REP_RESULT};
+			op->o_bd->be_add( op, &rs2 );
+			rs->sr_err = rs2.sr_err;
+			rs_assert_done( &rs2 );
+			if ( ( rs2.sr_err != LDAP_SUCCESS ) 
+					&& (rs2.sr_err != LDAP_ALREADY_EXISTS) ) {
 				goto fail;
 			}
 		}
