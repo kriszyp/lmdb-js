@@ -1354,11 +1354,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 	Statslog( LDAP_DEBUG_STATS2, "%s ENTRY dn=\"%s\"\n",
 	    op->o_log_prefix, rs->sr_entry->e_nname.bv_val, 0, 0, 0 );
 
-	if ( rs->sr_flags & REP_ENTRY_MUSTRELEASE ) {
-		be_entry_release_rw( op, rs->sr_entry, 0 );
-		rs->sr_flags ^= REP_ENTRY_MUSTRELEASE;
-		rs->sr_entry = NULL;
-	}
+	rs_flush_entry( op, rs, NULL );
 
 	if ( op->o_res_ber == NULL ) {
 		bytes = send_ldap_ber( op, ber );
@@ -1529,12 +1525,7 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 	}
 
 	rc = 0;
-	if ( rs->sr_flags & REP_ENTRY_MUSTRELEASE ) {
-		assert( rs->sr_entry != NULL );
-		be_entry_release_rw( op, rs->sr_entry, 0 );
-		rs->sr_flags ^= REP_ENTRY_MUSTRELEASE;
-		rs->sr_entry = NULL;
-	}
+	rs_flush_entry( op, rs, NULL );
 
 #ifdef LDAP_CONNECTIONLESS
 	if (!op->o_conn || op->o_conn->c_is_udp == 0) {
