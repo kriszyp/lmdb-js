@@ -2513,7 +2513,7 @@ send_results:;
 #ifdef BACKSQL_SYNCPROV
 	if ( op->o_sync ) {
 		Operation	op2 = *op;
-		SlapReply	rs2 = { 0 };
+		SlapReply	rs2 = { REP_RESULT };
 		Entry		*e = entry_alloc();
 		slap_callback	cb = { 0 };
 

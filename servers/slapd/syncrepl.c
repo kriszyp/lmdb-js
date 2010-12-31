@@ -2423,7 +2423,7 @@ retry_add:;
 			case LDAP_ALREADY_EXISTS:
 				if ( retry ) {
 					Operation	op2 = *op;
-					SlapReply	rs2 = { 0 };
+					SlapReply	rs2 = { REP_RESULT };
 					slap_callback	cb2 = { 0 };
 
 					op2.o_bd = be;
