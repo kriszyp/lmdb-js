@@ -3264,6 +3264,7 @@ refresh_merge( Operation *op, SlapReply *rs )
 			slap_mods_free( modlist, 1 );
 			/* mods is NULL if there are no changes */
 			if ( mods ) {
+				SlapReply rs2 = { REP_RESULT };
 				struct berval dn = op->o_req_dn;
 				struct berval ndn = op->o_req_ndn;
 				op->o_tag = LDAP_REQ_MODIFY;
@@ -3271,7 +3272,9 @@ refresh_merge( Operation *op, SlapReply *rs )
 				op->o_req_dn = rs->sr_entry->e_name;
 				op->o_req_ndn = rs->sr_entry->e_nname;
 				op->o_callback = &cb;
-				op->o_bd->be_modify( op, rs );
+				op->o_bd->be_modify( op, &rs2 );
+				rs->sr_err = rs2.sr_err;
+				rs_assert_done( &rs2 );
 				slap_mods_free( mods, 1 );
 				op->o_req_dn = dn;
 				op->o_req_ndn = ndn;
@@ -3325,9 +3328,9 @@ refresh_purge( Operation *op, SlapReply *rs )
 }
 
 static int
-refresh_query( Operation *op, SlapReply *rs, CachedQuery *query,
-	slap_overinst *on )
+refresh_query( Operation *op, CachedQuery *query, slap_overinst *on )
 {
+	SlapReply rs = {REP_RESULT};
 	slap_callback cb = { 0 };
 	refresh_info ri = { 0 };
 	char filter_str[ LDAP_LUTIL_UUIDSTR_BUFSIZE + STRLENOF( "(pcacheQueryID=)" ) ];
@@ -3365,7 +3368,7 @@ refresh_query( Operation *op, SlapReply *rs, CachedQuery *query,
 	op->ors_attrsonly = 0;
 
 	op->o_bd = on->on_info->oi_origdb;
-	rc = op->o_bd->be_search( op, rs );
+	rc = op->o_bd->be_search( op, &rs );
 	if ( rc ) {
 		op->o_bd = ri.ri_be;
 		goto leave;
@@ -3388,17 +3391,17 @@ refresh_query( Operation *op, SlapReply *rs, CachedQuery *query,
 	attrs[ 0 ].an_name = ad_queryId->ad_cname;
 	op->ors_attrs = attrs;
 	op->ors_attrsonly = 0;
-	rs->sr_entry = NULL;
-	rs->sr_nentries = 0;
-	rc = op->o_bd->be_search( op, rs );
+	rs_reinit( &rs, REP_RESULT );
+	rc = op->o_bd->be_search( op, &rs );
 	if ( rc ) goto leave;
 
 	while (( dn = ri.ri_dels )) {
 		op->o_req_dn = dn->dn;
 		op->o_req_ndn = dn->dn;
+		rs_reinit( &rs, REP_RESULT );
 		if ( dn->delete ) {
 			op->o_tag = LDAP_REQ_DELETE;
-			op->o_bd->be_delete( op, rs );
+			op->o_bd->be_delete( op, &rs );
 		} else {
 			Modifications mod;
 			struct berval vals[2];
@@ -3416,7 +3419,7 @@ refresh_query( Operation *op, SlapReply *rs, CachedQuery *query,
 
 			op->o_tag = LDAP_REQ_MODIFY;
 			op->orm_modlist = &mod;
-			op->o_bd->be_modify( op, rs );
+			op->o_bd->be_modify( op, &rs );
 		}
 		ri.ri_dels = dn->next;
 		op->o_tmpfree( dn, op->o_tmpmemctx );
@@ -3441,7 +3444,6 @@ consistency_check(
 	OperationBuffer opbuf;
 	Operation *op;
 
-	SlapReply rs = {REP_RESULT};
 	CachedQuery *query, *qprev;
 	int return_val, pause = PCACHE_CC_PAUSED;
 	QueryTemplate *templ;
@@ -3487,7 +3489,7 @@ consistency_check(
 				if ( query->refcnt )
 					query->expiry_time = op->o_time + templ->ttl;
 				if ( query->expiry_time > op->o_time ) {
-					refresh_query( op, &rs, query, on );
+					refresh_query( op, query, on );
 					continue;
 				}
 			}
