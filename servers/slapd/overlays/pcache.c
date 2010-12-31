@@ -2030,11 +2030,7 @@ fetch_queryId_cb( Operation *op, SlapReply *rs )
 	}
 
 	/* clear entry if required */
-	if ( rs->sr_flags & REP_ENTRY_MUSTBEFREED ) {
-		entry_free( rs->sr_entry );
-		rs->sr_entry = NULL;
-		rs->sr_flags ^= REP_ENTRY_MUSTBEFREED;
-	}
+	rs_flush_entry( op, rs, (slap_overinst *) op->o_bd->bd_info );
 
 	return rc;
 }

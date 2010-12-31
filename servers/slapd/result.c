@@ -1407,13 +1407,10 @@ error_return:;
 	 * should set it back so that the cleanup functions know
 	 * what they're doing.
 	 */
-	if ( op->o_tag == LDAP_REQ_SEARCH && rs->sr_type == REP_SEARCH 
-		&& rs->sr_entry 
-		&& ( rs->sr_flags & REP_ENTRY_MUSTBEFREED ) ) 
-	{
-		entry_free( rs->sr_entry );
-		rs->sr_entry = NULL;
-		rs->sr_flags &= ~REP_ENTRY_MUSTBEFREED;
+	if ( op->o_tag == LDAP_REQ_SEARCH && rs->sr_type == REP_SEARCH ) {
+		rs_flush_entry( op, rs, NULL );
+	} else {
+		RS_ASSERT( (rs->sr_flags & REP_ENTRY_MASK) == 0 );
 	}
 
 	if ( rs->sr_flags & REP_CTRLS_MUSTBEFREED ) {

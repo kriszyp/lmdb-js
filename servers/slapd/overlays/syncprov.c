@@ -2740,17 +2740,7 @@ syncprov_operational(
 				}
 
 				if ( !ap ) {
-					if ( !(rs->sr_flags & REP_ENTRY_MODIFIABLE) ) {
-						Entry *e = entry_dup( rs->sr_entry );
-						if ( rs->sr_flags & REP_ENTRY_MUSTRELEASE ) {
-							overlay_entry_release_ov( op, rs->sr_entry, 0, on );
-							rs->sr_flags ^= REP_ENTRY_MUSTRELEASE;
-						} else if ( rs->sr_flags & REP_ENTRY_MUSTBEFREED ) {
-							entry_free( rs->sr_entry );
-						}
-						rs->sr_entry = e;
-						rs->sr_flags |=
-							REP_ENTRY_MODIFIABLE|REP_ENTRY_MUSTBEFREED;
+					if ( rs_ensure_entry_modifiable( op, rs, on )) {
 						a = attr_find( rs->sr_entry->e_attrs,
 							slap_schema.si_ad_contextCSN );
 					}

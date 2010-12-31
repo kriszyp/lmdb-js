@@ -386,19 +386,7 @@ collect_response( Operation *op, SlapReply *rs )
 			* don't modify it directly. Make a copy and
 			* work with that instead.
 			*/
-			if ( !( rs->sr_flags & REP_ENTRY_MODIFIABLE ) ) {
-				Entry *e;
-
-				e = entry_dup( rs->sr_entry );
-				if ( rs->sr_flags & REP_ENTRY_MUSTRELEASE ) {
-					overlay_entry_release_ov( op, rs->sr_entry, 0, on );
-					rs->sr_flags &= ~REP_ENTRY_MUSTRELEASE;
-				} else if ( rs->sr_flags & REP_ENTRY_MUSTBEFREED ) {
-					entry_free( rs->sr_entry );
-				}
-				rs->sr_entry = e;
-				rs->sr_flags |= REP_ENTRY_MODIFIABLE|REP_ENTRY_MUSTBEFREED;
-			}
+			rs_ensure_entry_modifiable( op, rs, on );
 
 			/* Loop for each attribute in this collectinfo */
 			for(idx=0; idx<ci->ci_ad_num; idx++) {

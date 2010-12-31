@@ -135,10 +135,7 @@ usn_operational(
 				}
 
 			if ( !ap ) {
-				if ( !rs->sr_flags & REP_ENTRY_MODIFIABLE ) {
-					rs->sr_entry = entry_dup( rs->sr_entry );
-					rs->sr_flags |=
-						REP_ENTRY_MODIFIABLE|REP_ENTRY_MUSTBEFREED;
+				if ( rs_ensure_entry_modifiable( op,rs, on )) {
 					a = attr_find( rs->sr_entry->e_attrs,
 						ad_usnChanged );
 				}
