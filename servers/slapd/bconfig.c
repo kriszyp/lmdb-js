@@ -5825,6 +5825,7 @@ out:
 out_noop:
 	if ( rc == LDAP_SUCCESS ) {
 		attrs_free( save_attrs );
+		rs->sr_text = NULL;
 	} else {
 		attrs_free( e->e_attrs );
 		e->e_attrs = save_attrs;
@@ -5871,7 +5872,10 @@ config_back_modify( Operation *op, SlapReply *rs )
 	rdn = ce->ce_entry->e_nname;
 	ptr = strchr( rdn.bv_val, '=' );
 	rdn.bv_len = ptr - rdn.bv_val;
-	slap_bv2ad( &rdn, &rad, &rs->sr_text );
+	rs->sr_err = slap_bv2ad( &rdn, &rad, &rs->sr_text );
+	if ( rs->sr_err != LDAP_SUCCESS ) {
+		goto out;
+	}
 
 	/* Some basic validation... */
 	for ( ml = op->orm_modlist; ml; ml = ml->sml_next ) {
