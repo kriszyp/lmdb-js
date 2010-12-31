@@ -509,7 +509,6 @@ slap_auxprop_store(
 {
 	Operation op = {0};
 	Opheader oph;
-	SlapReply rs = {REP_RESULT};
 	int rc, i;
 	unsigned j;
 	Connection *conn = NULL;
@@ -624,6 +623,7 @@ slap_auxprop_store(
 			op.orm_modlist = modlist;
 
 			for (;;) {
+				SlapReply rs = {REP_RESULT};
 				rc = op.o_bd->be_modify( &op, &rs );
 
 #ifdef SLAP_AUXPROP_DONTUSECOPY

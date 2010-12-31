@@ -4524,7 +4524,7 @@ pcache_db_open2(
 			OperationBuffer	opbuf;
 			Operation	*op;
 			slap_callback	cb = { 0 };
-			SlapReply	rs = { 0 };
+			SlapReply	rs = { REP_RESULT };
 			BerVarray	vals = NULL;
 			Filter		f = { 0 }, f2 = { 0 };
 			AttributeAssertion	ava = ATTRIBUTEASSERTION_INIT;
@@ -4589,8 +4589,8 @@ pcache_db_open2(
 			op->ors_scope = LDAP_SCOPE_SUBTREE;
 			op->ors_attrs = slap_anlist_no_attrs;
 
+			rs_reinit( &rs, REP_RESULT );
 			op->o_callback->sc_response = pcache_cachedquery_count_cb;
-			rs.sr_nentries = 0;
 			op->o_callback->sc_private = &rs.sr_nentries;
 
 			rc = op->o_bd->be_search( op, &rs );
