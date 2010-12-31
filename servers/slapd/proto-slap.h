@@ -1544,13 +1544,18 @@ LDAP_SLAPD_F (int) get_alias_dn LDAP_P((
 # define rs_assert_ok(rs)		((void) (rs))
 # define rs_assert_ready(rs)	((void) (rs))
 # define rs_assert_done(rs)		((void) (rs))
-# define rs_reinit(rs)			((void) memset( rs, 0, sizeof(SlapReply) ))
 #endif
 LDAP_SLAPD_F (void) (rs_assert_ok)		LDAP_P(( const SlapReply *rs ));
 LDAP_SLAPD_F (void) (rs_assert_ready)	LDAP_P(( const SlapReply *rs ));
 LDAP_SLAPD_F (void) (rs_assert_done)	LDAP_P(( const SlapReply *rs ));
 
-LDAP_SLAPD_F (void) (rs_reinit)	LDAP_P(( SlapReply *rs ));
+#define rs_reinit(rs, type)	do {			\
+		SlapReply *const rsRI = (rs);		\
+		rs_assert_done( rsRI );				\
+		memset( rsRI, 0, sizeof(*rsRI) );	\
+		rsRI->sr_type = (type);				\
+	} while ( 0 )
+LDAP_SLAPD_F (void) (rs_reinit)	LDAP_P(( SlapReply *rs, slap_reply_t type ));
 LDAP_SLAPD_F (void) rs_flush_entry LDAP_P(( Operation *op,
 	SlapReply *rs, slap_overinst *on ));
 LDAP_SLAPD_F (void) rs_replace_entry LDAP_P(( Operation *op,

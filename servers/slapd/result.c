@@ -192,10 +192,9 @@ void
 
 /* Reset a used SlapReply whose contents has been flushed (freed/released) */
 void
-(rs_reinit)( SlapReply *rs )
+(rs_reinit)( SlapReply *rs, slap_reply_t type )
 {
-	rs_assert_done( rs );
-	memset( rs, 0, sizeof(SlapReply) );
+	rs_reinit( rs, type );		/* proto-slap.h macro */
 }
 
 /* Obey and clear rs->sr_flags & REP_ENTRY_MASK.  Clear sr_entry if freed. */
