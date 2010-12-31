@@ -1391,6 +1391,7 @@ error_return:;
 		slap_sl_free( e_flags, op->o_tmpmemctx );
 	}
 
+	/* FIXME: Can break if rs now contains an extended response */
 	if ( rs->sr_operational_attrs ) {
 		attrs_free( rs->sr_operational_attrs );
 		rs->sr_operational_attrs = NULL;
@@ -1402,6 +1403,10 @@ error_return:;
 	 * function. send_ldap_error may have changed it, but we
 	 * should set it back so that the cleanup functions know
 	 * what they're doing.
+	 *
+	 * ...No, that's what we set it to on entering this function.
+	 * And we may have to clear out rs->sr_un.sru_search first,
+	 * if it can contain data from sr_un.sru_extended.
 	 */
 	if ( op->o_tag == LDAP_REQ_SEARCH && rs->sr_type == REP_SEARCH ) {
 		rs_flush_entry( op, rs, NULL );
