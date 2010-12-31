@@ -735,6 +735,7 @@ again:
 			/* If we didn't find an exact match, then try for <= */
 			if ( findcsn_retry ) {
 				findcsn_retry = 0;
+				rs_reinit( &frs, REP_RESULT );
 				goto again;
 			}
 			rc = LDAP_NO_SUCH_OBJECT;
@@ -1423,7 +1424,7 @@ syncprov_checkpoint( Operation *op, slap_overinst *on )
 	syncprov_info_t *si = (syncprov_info_t *)on->on_bi.bi_private;
 	Modifications mod;
 	Operation opm;
-	SlapReply rsm = { 0 };
+	SlapReply rsm = {REP_RESULT};
 	slap_callback cb = {0};
 	BackendDB be;
 	BackendInfo *bi;
@@ -1468,6 +1469,7 @@ syncprov_checkpoint( Operation *op, slap_overinst *on )
 		char txtbuf[SLAP_TEXT_BUFLEN];
 		size_t textlen = sizeof txtbuf;
 		Entry *e = slap_create_context_csn_entry( opm.o_bd, NULL );
+		rs_reinit( &rsm, REP_RESULT );
 		slap_mods2entry( &mod, &e, 0, 1, &text, txtbuf, textlen);
 		opm.ora_e = e;
 		opm.o_bd->be_add( &opm, &rsm );
@@ -1679,7 +1681,6 @@ syncprov_playlog( Operation *op, SlapReply *rs, sessionlog *sl,
 
 	if ( mmods ) {
 		Operation fop;
-		SlapReply frs = { REP_RESULT };
 		int rc;
 		Filter mf, af;
 		AttributeAssertion eq = ATTRIBUTEASSERTION_INIT;
@@ -1710,11 +1711,11 @@ syncprov_playlog( Operation *op, SlapReply *rs, sessionlog *sl,
 
 		for ( i=ndel; i<num; i++ ) {
 		  if ( uuids[i].bv_len != 0 ) {
+			SlapReply frs = { REP_RESULT };
 
 			mf.f_av_value = uuids[i];
 			cb.sc_private = NULL;
 			fop.ors_slimit = 1;
-			frs.sr_nentries = 0;
 			rc = fop.o_bd->be_search( &fop, &frs );
 
 			/* If entry was not found, add to delete list */

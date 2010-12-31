@@ -43,7 +43,6 @@ static slap_overinst addpartial;
 static int addpartial_add( Operation *op, SlapReply *rs)
 {
     Operation nop = *op;
-    SlapReply nrs = { REP_RESULT };
     Entry *toAdd = NULL;
     Entry *found = NULL;
     slap_overinst *on = (slap_overinst *) op->o_bd->bd_info;
@@ -258,12 +257,6 @@ static int addpartial_add( Operation *op, SlapReply *rs)
                 Debug(LDAP_DEBUG_TRACE, "%s: mods to do...\n",
                       addpartial.on_bi.bi_type, 0, 0);
 
-                memset(&nrs, 0, sizeof(nrs));
-                nrs.sr_type = REP_RESULT;
-                nrs.sr_err = LDAP_SUCCESS;
-                nrs.sr_entry = NULL;
-                nrs.sr_text = NULL;
-
                 nop.o_tag = LDAP_REQ_MODIFY;
                 nop.orm_modlist = mods;
                 nop.orm_no_opattrs = 0;
@@ -281,6 +274,7 @@ static int addpartial_add( Operation *op, SlapReply *rs)
 
                 if(nop.o_bd->be_modify)
                 {
+                    SlapReply nrs = { REP_RESULT };
                     rc = (nop.o_bd->be_modify)(&nop, &nrs);
                 }
 

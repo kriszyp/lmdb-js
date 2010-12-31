@@ -2789,9 +2789,7 @@ syncrepl_del_nonpresent(
 {
 	Backend* be = op->o_bd;
 	slap_callback	cb = { NULL };
-	SlapReply	rs_search = {REP_RESULT};
 	SlapReply	rs_delete = {REP_RESULT};
-	SlapReply	rs_modify = {REP_RESULT};
 	struct nonpresent_entry *np_list, *np_prev;
 	int rc;
 	AttributeName	an[2];
@@ -2838,6 +2836,8 @@ syncrepl_del_nonpresent(
 		si->si_refreshDelete |= NP_DELETE_ONE;
 
 		for (i=0; uuids[i].bv_val; i++) {
+			SlapReply rs_search = {REP_RESULT};
+
 			op->ors_slimit = 1;
 			uf.f_av_value = uuids[i];
 			filter2bv_x( op, op->ors_filter, &op->ors_filterstr );
@@ -2849,6 +2849,7 @@ syncrepl_del_nonpresent(
 		Filter *cf, *of;
 		Filter mmf[2];
 		AttributeAssertion mmaa;
+		SlapReply rs_search = {REP_RESULT};
 
 		memset( &an[0], 0, 2 * sizeof( AttributeName ) );
 		an[0].an_name = slap_schema.si_ad_entryUUID->ad_cname;
@@ -2933,6 +2934,7 @@ syncrepl_del_nonpresent(
 				si->si_ridtxt, op->o_req_dn.bv_val, rc );
 
 			if ( rs_delete.sr_err == LDAP_NOT_ALLOWED_ON_NONLEAF ) {
+				SlapReply rs_modify = {REP_RESULT};
 				Modifications mod1, mod2;
 				mod1.sml_op = LDAP_MOD_REPLACE;
 				mod1.sml_flags = 0;

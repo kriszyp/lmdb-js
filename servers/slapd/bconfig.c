@@ -4193,10 +4193,12 @@ config_setup_ldif( BackendDB *be, const char *dir, int readit ) {
 
 		op->o_tag = LDAP_REQ_ADD;
 		if ( rc == LDAP_SUCCESS && sc.frontend ) {
+			rs_reinit( &rs, REP_RESULT );
 			op->ora_e = sc.frontend;
 			rc = op->o_bd->be_add( op, &rs );
 		}
 		if ( rc == LDAP_SUCCESS && sc.config ) {
+			rs_reinit( &rs, REP_RESULT );
 			op->ora_e = sc.config;
 			rc = op->o_bd->be_add( op, &rs );
 		}
@@ -6866,8 +6868,10 @@ config_back_db_open( BackendDB *be, ConfigReply *cr )
 			return -1;
 		}
 		ce = e->e_private;
-		if ( be->be_cf_ocs && be->be_cf_ocs->co_cfadd )
+		if ( be->be_cf_ocs && be->be_cf_ocs->co_cfadd ) {
+			rs_reinit( &rs, REP_RESULT );
 			be->be_cf_ocs->co_cfadd( op, &rs, e, &c );
+		}
 		/* Iterate through overlays */
 		if ( oi ) {
 			slap_overinst *on;
@@ -6906,8 +6910,10 @@ config_back_db_open( BackendDB *be, ConfigReply *cr )
 				if ( !oe ) {
 					return -1;
 				}
-				if ( c.bi->bi_cf_ocs && c.bi->bi_cf_ocs->co_cfadd )
+				if ( c.bi->bi_cf_ocs && c.bi->bi_cf_ocs->co_cfadd ) {
+					rs_reinit( &rs, REP_RESULT );
 					c.bi->bi_cf_ocs->co_cfadd( op, &rs, oe, &c );
+				}
 			}
 		}
 	}

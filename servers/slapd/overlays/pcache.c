@@ -863,6 +863,7 @@ merge_entry(
 
 	if ( rc != LDAP_SUCCESS ) {
 		if ( rc == LDAP_ALREADY_EXISTS ) {
+			rs_reinit( &sreply, REP_RESULT );
 			slap_entry2mods( e, &modlist, &text, textbuf, textlen );
 			modlist->sml_op = LDAP_MOD_ADD;
 			op->o_tag = LDAP_REQ_MODIFY;
@@ -1788,6 +1789,7 @@ remove_query_data(
 
 		op->o_req_dn = qi->xdn;
 		op->o_req_ndn = qi->xdn;
+		rs_reinit( &sreply, REP_RESULT );
 
 		if ( qi->del ) {
 			Debug( pcache_debug, "DELETING ENTRY TEMPLATE=%s\n",
@@ -2051,7 +2053,6 @@ pcache_remove_entries_from_cache(
 	OperationBuffer opbuf;
 	Operation	op2;
 	slap_callback	sc = { 0 };
-	SlapReply	rs = { REP_RESULT };
 	Filter		f = { 0 };
 	char		filtbuf[ LDAP_LUTIL_UUIDSTR_BUFSIZE + STRLENOF( "(entryUUID=)" ) ];
 	AttributeAssertion ava = ATTRIBUTEASSERTION_INIT;
@@ -2098,6 +2099,7 @@ pcache_remove_entries_from_cache(
 
 	for ( s = 0; !BER_BVISNULL( &entryUUIDs[ s ] ); s++ ) {
 		BerVarray	vals = NULL;
+		SlapReply	rs = { REP_RESULT };
 
 		op->ors_filterstr.bv_len = snprintf( filtbuf, sizeof( filtbuf ),
 			"(entryUUID=%s)", entryUUIDs[ s ].bv_val );

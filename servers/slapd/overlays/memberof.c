@@ -243,7 +243,6 @@ memberof_isGroupOrMember( Operation *op, memberof_cbinfo_t *mci )
 	memberof_t		*mo = (memberof_t *)on->on_bi.bi_private;
 
 	Operation		op2 = *op;
-	SlapReply		rs2 = { REP_RESULT };
 	slap_callback		cb = { 0 };
 	BackendInfo	*bi = op->o_bd->bd_info;
 	AttributeName		an[ 2 ];
@@ -276,6 +275,8 @@ memberof_isGroupOrMember( Operation *op, memberof_cbinfo_t *mci )
 	op2.ors_tlimit = SLAP_NO_LIMIT;
 
 	if ( mci->what & MEMBEROF_IS_GROUP ) {
+		SlapReply	rs2 = { REP_RESULT };
+
 		mc.ad = mo->mo_ad_member;
 		mc.foundit = 0;
 		mc.vals = NULL;
@@ -296,6 +297,8 @@ memberof_isGroupOrMember( Operation *op, memberof_cbinfo_t *mci )
 	}
 
 	if ( mci->what & MEMBEROF_IS_MEMBER ) {
+		SlapReply	rs2 = { REP_RESULT };
+
 		mc.ad = mo->mo_ad_memberof;
 		mc.foundit = 0;
 		mc.vals = NULL;

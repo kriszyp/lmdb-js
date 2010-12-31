@@ -521,11 +521,11 @@ refint_search_cb(
 static int
 refint_repair(
 	Operation	*op,
-	SlapReply	*rs,
 	refint_data	*id,
 	refint_q	*rq )
 {
 	dependent_data	*dp;
+	SlapReply		rs = {REP_RESULT};
 	int		rc;
 
 	op->o_callback->sc_response = refint_search_cb;
@@ -535,7 +535,7 @@ refint_repair(
 	op->o_ndn = op->o_bd->be_rootndn;
 
 	/* search */
-	rc = op->o_bd->be_search( op, rs );
+	rc = op->o_bd->be_search( op, &rs );
 
 	if ( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE,
@@ -695,7 +695,6 @@ refint_qtask( void *ctx, void *arg )
 	Connection conn = {0};
 	OperationBuffer opbuf;
 	Operation *op;
-	SlapReply rs = {REP_RESULT};
 	slap_callback cb = { NULL, NULL, NULL, NULL };
 	Filter ftop, *fptr;
 	refint_q *rq;
@@ -772,7 +771,7 @@ refint_qtask( void *ctx, void *arg )
 
 		if ( rq->db != NULL ) {
 			op->o_bd = rq->db;
-			refint_repair( op, &rs, id, rq );
+			refint_repair( op, id, rq );
 
 		} else {
 			BackendDB	*be;
@@ -785,7 +784,7 @@ refint_qtask( void *ctx, void *arg )
 
 				if ( be->be_search && be->be_modify ) {
 					op->o_bd = be;
-					refint_repair( op, &rs, id, rq );
+					refint_repair( op, id, rq );
 				}
 			}
 		}

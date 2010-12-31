@@ -556,7 +556,6 @@ constraint_violation( constraint *c, struct berval *bv, Operation *op )
 		Operation nop = *op;
 		slap_overinst *on = (slap_overinst *) op->o_bd->bd_info;
 		slap_callback cb;
-		SlapReply nrs = { REP_RESULT };
 		int i;
 		int found = 0;
 		int rc;
@@ -640,6 +639,8 @@ constraint_violation( constraint *c, struct berval *bv, Operation *op )
 			rc = LDAP_OTHER;
 
 		} else {
+			SlapReply nrs = { REP_RESULT };
+
 			Debug(LDAP_DEBUG_TRACE, 
 				"==> constraint_violation uri filter = %s\n",
 				filterstr.bv_val, 0, 0);

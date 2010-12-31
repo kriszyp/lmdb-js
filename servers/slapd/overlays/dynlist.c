@@ -348,7 +348,6 @@ dynlist_prepare_entry( Operation *op, SlapReply *rs, dynlist_info_t *dli )
 	Attribute	*a, *id = NULL;
 	slap_callback	cb;
 	Operation	o = *op;
-	SlapReply	r = { REP_SEARCH };
 	struct berval	*url;
 	Entry		*e;
 	int		opattrs,
@@ -564,6 +563,7 @@ dynlist_prepare_entry( Operation *op, SlapReply *rs, dynlist_info_t *dli )
 		
 		o.o_bd = select_backend( &o.o_req_ndn, 1 );
 		if ( o.o_bd && o.o_bd->be_search ) {
+			SlapReply	r = { REP_SEARCH };
 			r.sr_attr_flags = slap_attr_flags( o.ors_attrs );
 			(void)o.o_bd->be_search( &o, &r );
 		}
