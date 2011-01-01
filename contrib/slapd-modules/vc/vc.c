@@ -282,12 +282,18 @@ vc_exop(
 	rs->sr_err = frontendDB->be_bind( conn->op, &rs2 );
 
 	if ( conn->op->o_conn->c_sasl_bind_in_progress ) {
-		vc_create_response( conn,
+		rc = vc_create_response( conn,
 			!BER_BVISEMPTY( &sasldata ) ? &sasldata : NULL,
 			NULL, &rs->sr_rspdata );
+
 	} else {
-		vc_create_response( NULL, NULL,
+		rc = vc_create_response( NULL, NULL,
 			&conn->op->o_conn->c_dn, &rs->sr_rspdata );
+	}
+
+	if ( rc != 0 ) {
+		rs->sr_err = LDAP_OTHER;
+		goto done;
 	}
 
 	if ( !BER_BVISNULL( &conn->op->o_conn->c_dn ) &&
