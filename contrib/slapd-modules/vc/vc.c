@@ -255,6 +255,8 @@ vc_exop(
 		thrctx = ldap_pvt_thread_pool_context();
 		connection_fake_init2( &conn->connbuf, &conn->opbuf, thrctx, 1 );
 		conn->op = &conn->opbuf.ob_op;
+		snprintf( conn->op->o_log_prefix, sizeof( conn->op->o_log_prefix ),
+			"%s VERIFYCREDENTIALS", op->o_log_prefix );
 	}
 
 	conn->op->o_tag = LDAP_REQ_BIND;
