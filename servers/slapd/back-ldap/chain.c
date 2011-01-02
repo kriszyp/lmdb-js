@@ -448,6 +448,9 @@ Document: RFC 4511
 		 * proto://[host][:port]/ only */
 		rc = ldap_url_parse_ext( ref->bv_val, &srv, LDAP_PVT_URL_PARSE_NONE );
 		if ( rc != LDAP_URL_SUCCESS ) {
+			Debug( LDAP_DEBUG_TRACE, "%s ldap_chain_op: unable to parse ref=\"%s\"\n",
+				op->o_log_prefix, ref->bv_val, 0 );
+
 			/* try next */
 			rc = LDAP_OTHER;
 			continue;
@@ -501,6 +504,8 @@ Document: RFC 4511
 					filter2bv_x( op, tmp_oq_search.rs_filter, &tmp_oq_search.rs_filterstr );
 
 				} else {
+					Debug( LDAP_DEBUG_TRACE, "%s ldap_chain_op: ref=\"%s\": unable to parse filter=\"%s\"\n",
+						op->o_log_prefix, ref->bv_val, srv->lud_filter );
 					rc = LDAP_OTHER;
 				}
 			}
@@ -522,10 +527,16 @@ Document: RFC 4511
 		}
 
 		if ( li.li_uri == NULL ) {
+			Debug( LDAP_DEBUG_TRACE, "%s ldap_chain_op: ref=\"%s\" unable to reconstruct URI\n",
+				op->o_log_prefix, ref->bv_val, 0 );
+
 			/* try next */
 			rc = LDAP_OTHER;
 			goto further_cleanup;
 		}
+
+		Debug( LDAP_DEBUG_TRACE, "%s ldap_chain_op: ref=\"%s\" -> \"%s\"\n",
+			op->o_log_prefix, ref->bv_val, li.li_uri );
 
 		op->o_req_dn = pdn;
 		op->o_req_ndn = ndn;
@@ -549,9 +560,14 @@ Document: RFC 4511
 		if ( lip != NULL ) {
 			op->o_bd->be_private = (void *)lip;
 
+			Debug( LDAP_DEBUG_TRACE, "%s ldap_chain_op: ref=\"%s\": URI=\"%s\" found in cache\n",
+				op->o_log_prefix, ref->bv_val, li.li_uri );
+
 		} else {
 			rc = ldap_chain_db_init_one( op->o_bd );
 			if ( rc != 0 ) {
+				Debug( LDAP_DEBUG_TRACE, "%s ldap_chain_op: ref=\"%s\" unable to init back-ldap for URI=\"%s\"\n",
+					op->o_log_prefix, ref->bv_val, li.li_uri );
 				goto cleanup;
 			}
 			lip = (ldapinfo_t *)op->o_bd->be_private;
@@ -559,6 +575,8 @@ Document: RFC 4511
 			lip->li_bvuri = bvuri;
 			rc = ldap_chain_db_open_one( op->o_bd );
 			if ( rc != 0 ) {
+				Debug( LDAP_DEBUG_TRACE, "%s ldap_chain_op: ref=\"%s\" unable to open back-ldap for URI=\"%s\"\n",
+					op->o_log_prefix, ref->bv_val, li.li_uri );
 				lip->li_uri = NULL;
 				lip->li_bvuri = NULL;
 				(void)ldap_chain_db_destroy_one( op->o_bd, NULL);
@@ -580,6 +598,9 @@ Document: RFC 4511
 			} else {
 				temporary = 1;
 			}
+
+			Debug( LDAP_DEBUG_TRACE, "%s ldap_chain_op: ref=\"%s\" %s\n",
+				op->o_log_prefix, ref->bv_val, temporary ? "temporary" : "caching" );
 		}
 
 		lb->lb_op_f = op_f;
@@ -697,6 +718,9 @@ ldap_chain_search(
 		 * proto://[host][:port]/ only */
 		rc = ldap_url_parse_ext( ref[0].bv_val, &srv, LDAP_PVT_URL_PARSE_NONE );
 		if ( rc != LDAP_URL_SUCCESS ) {
+			Debug( LDAP_DEBUG_TRACE, "%s ldap_chain_search: unable to parse ref=\"%s\"\n",
+				op->o_log_prefix, ref->bv_val, 0 );
+
 			/* try next */
 			rs->sr_err = LDAP_OTHER;
 			continue;
@@ -759,6 +783,8 @@ ldap_chain_search(
 					filter2bv_x( op, tmp_oq_search.rs_filter, &tmp_oq_search.rs_filterstr );
 
 				} else {
+					Debug( LDAP_DEBUG_TRACE, "%s ldap_chain_search: ref=\"%s\": unable to parse filter=\"%s\"\n",
+						op->o_log_prefix, ref->bv_val, srv->lud_filter );
 					rc = LDAP_OTHER;
 				}
 			}
@@ -774,10 +800,16 @@ ldap_chain_search(
 		ldap_free_urldesc( srv );
 
 		if ( rc != LDAP_SUCCESS || li.li_uri == NULL ) {
+			Debug( LDAP_DEBUG_TRACE, "%s ldap_chain_search: ref=\"%s\" unable to reconstruct URI\n",
+				op->o_log_prefix, ref->bv_val, 0 );
+
 			/* try next */
 			rc = LDAP_OTHER;
 			goto further_cleanup;
 		}
+
+		Debug( LDAP_DEBUG_TRACE, "%s ldap_chain_search: ref=\"%s\" -> \"%s\"\n",
+			op->o_log_prefix, ref->bv_val, li.li_uri );
 
 		op->o_req_dn = pdn;
 		op->o_req_ndn = ndn;
@@ -798,10 +830,15 @@ ldap_chain_search(
 		if ( lip != NULL ) {
 			op->o_bd->be_private = (void *)lip;
 
+			Debug( LDAP_DEBUG_TRACE, "%s ldap_chain_search: ref=\"%s\": URI=\"%s\" found in cache\n",
+				op->o_log_prefix, ref->bv_val, li.li_uri );
+
 		} else {
 			/* if none is found, create a temporary... */
 			rc = ldap_chain_db_init_one( op->o_bd );
 			if ( rc != 0 ) {
+				Debug( LDAP_DEBUG_TRACE, "%s ldap_chain_search: ref=\"%s\" unable to init back-ldap for URI=\"%s\"\n",
+					op->o_log_prefix, ref->bv_val, li.li_uri );
 				goto cleanup;
 			}
 			lip = (ldapinfo_t *)op->o_bd->be_private;
@@ -809,6 +846,8 @@ ldap_chain_search(
 			lip->li_bvuri = bvuri;
 			rc = ldap_chain_db_open_one( op->o_bd );
 			if ( rc != 0 ) {
+				Debug( LDAP_DEBUG_TRACE, "%s ldap_chain_search: ref=\"%s\" unable to open back-ldap for URI=\"%s\"\n",
+					op->o_log_prefix, ref->bv_val, li.li_uri );
 				lip->li_uri = NULL;
 				lip->li_bvuri = NULL;
 				(void)ldap_chain_db_destroy_one( op->o_bd, NULL );
@@ -830,6 +869,9 @@ ldap_chain_search(
 			} else {
 				temporary = 1;
 			}
+
+			Debug( LDAP_DEBUG_TRACE, "%s ldap_chain_search: ref=\"%s\" %s\n",
+				op->o_log_prefix, ref->bv_val, temporary ? "temporary" : "caching" );
 		}
 
 		lb->lb_op_f = lback->bi_op_search;
