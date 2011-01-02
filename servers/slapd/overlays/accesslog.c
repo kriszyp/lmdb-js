@@ -1173,25 +1173,9 @@ accesslog_ctrls(
 			ber_len_t	j;
 
 			ptr = lutil_strcopy( ptr, " controlValue \"" );
-			for ( j = 0; j < ctrls[ i ]->ldctl_value.bv_len; j++ )
-			{
-				unsigned char	o;
-
-				o = ( ( ctrls[ i ]->ldctl_value.bv_val[ j ] >> 4 ) & 0xF );
-				if ( o < 10 ) {
-					*ptr++ = '0' + o;
-
-				} else {
-					*ptr++ = 'A' + o;
-				}
-
-				o = ( ctrls[ i ]->ldctl_value.bv_val[ j ] & 0xF );
-				if ( o < 10 ) {
-					*ptr++ = '0' + o;
-
-				} else {
-					*ptr++ = 'A' + o;
-				}
+			for ( j = 0; j < ctrls[ i ]->ldctl_value.bv_len; j++ ) {
+				*ptr++ = SLAP_ESCAPE_HI(ctrls[ i ]->ldctl_value.bv_val[ j ]);
+				*ptr++ = SLAP_ESCAPE_LO(ctrls[ i ]->ldctl_value.bv_val[ j ]);
 			}
 
 			*ptr++ = '"';
