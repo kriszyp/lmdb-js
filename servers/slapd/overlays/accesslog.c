@@ -1066,7 +1066,7 @@ logSchemaControlValidate(
 			return LDAP_INVALID_SYNTAX;
 		}
 
-		for ( ; i < val.bv_len; i++ ) {
+		for ( i++; i < val.bv_len; i++ ) {
 			if ( val.bv_val[ i ] == '"' ) {
 				break;
 			}
@@ -1080,7 +1080,7 @@ logSchemaControlValidate(
 			return LDAP_INVALID_SYNTAX;
 		}
 
-		for ( ; i < val.bv_len; i++ ) {
+		for ( i++; i < val.bv_len; i++ ) {
 			if ( !ASCII_SPACE( val.bv_val[ i ] ) ) {
 				break;
 			}
