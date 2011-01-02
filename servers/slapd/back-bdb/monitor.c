@@ -245,12 +245,15 @@ bdb_monitor_initialize( void )
 
 	static int	bdb_monitor_initialized = 0;
 
-	if ( backend_info( "monitor" ) == NULL ) {
-		return -1;
-	}
+	/* set to 0 when successfully initialized; otherwise, remember failure */
+	static int	bdb_monitor_initialized_failure = 1;
 
 	if ( bdb_monitor_initialized++ ) {
-		return 0;
+		return bdb_monitor_initialized_failure;
+	}
+
+	if ( backend_info( "monitor" ) == NULL ) {
+		return -1;
 	}
 
 	/* register schema here */
@@ -270,7 +273,7 @@ bdb_monitor_initialize( void )
 				": unable to add "
 				"objectIdentifier \"%s=%s\"\n",
 				s_oid[ i ].name, s_oid[ i ].oid, 0 );
-			return 1;
+			return 2;
 		}
 	}
 
@@ -278,8 +281,10 @@ bdb_monitor_initialize( void )
 		code = register_at( s_at[ i ].desc, s_at[ i ].ad, 1 );
 		if ( code != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_ANY, LDAP_XSTRING(bdb_monitor_initialize)
-				": register_at failed\n",
-				0, 0, 0 );
+				": register_at failed for attributeType (%s)\n",
+				s_at[ i ].desc, 0, 0 );
+			return 3;
+
 		} else {
 			(*s_at[ i ].ad)->ad_type->sat_flags |= SLAP_AT_HIDE;
 		}
@@ -289,14 +294,16 @@ bdb_monitor_initialize( void )
 		code = register_oc( s_oc[ i ].desc, s_oc[ i ].oc, 1 );
 		if ( code != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_ANY, LDAP_XSTRING(bdb_monitor_initialize)
-				": register_oc failed\n",
-				0, 0, 0 );
+				": register_oc failed for objectClass (%s)\n",
+				s_oc[ i ].desc, 0, 0 );
+			return 4;
+
 		} else {
 			(*s_oc[ i ].oc)->soc_flags |= SLAP_OC_HIDE;
 		}
 	}
 
-	return 0;
+	return ( bdb_monitor_initialized_failure = LDAP_SUCCESS );
 }
 
 /*
