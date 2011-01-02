@@ -390,6 +390,8 @@ memberof_value_modify(
 	op2.orm_no_opattrs = 0;
 
 	if ( new_ndn != NULL ) {
+		BackendInfo *bi = op2.o_bd->bd_info;
+
 		assert( !BER_BVISNULL( new_dn ) );
 		assert( !BER_BVISNULL( new_ndn ) );
 
@@ -399,12 +401,14 @@ memberof_value_modify(
 		ml->sml_values[ 0 ] = *new_dn;
 		ml->sml_nvalues[ 0 ] = *new_ndn;
 
+		op2.o_bd->bd_info = (BackendInfo *)on->on_info;
 		(void)op->o_bd->be_modify( &op2, &rs2 );
+		op2.o_bd->bd_info = bi;
 		if ( rs2.sr_err != LDAP_SUCCESS ) {
 			char buf[ SLAP_TEXT_BUFLEN ];
 			snprintf( buf, sizeof( buf ),
-				"memberof_value_modify %s=\"%s\" failed err=%d",
-				ad->ad_cname.bv_val, new_dn->bv_val, rs2.sr_err );
+				"memberof_value_modify DN=\"%s\" add %s=\"%s\" failed err=%d",
+				op2.o_req_dn.bv_val, ad->ad_cname.bv_val, new_dn->bv_val, rs2.sr_err );
 			Debug( LDAP_DEBUG_ANY, "%s: %s\n",
 				op->o_log_prefix, buf, 0 );
 		}
@@ -424,6 +428,8 @@ memberof_value_modify(
 	}
 
 	if ( old_ndn != NULL ) {
+		BackendInfo *bi = op2.o_bd->bd_info;
+
 		assert( !BER_BVISNULL( old_dn ) );
 		assert( !BER_BVISNULL( old_ndn ) );
 
@@ -433,12 +439,14 @@ memberof_value_modify(
 		ml->sml_values[ 0 ] = *old_dn;
 		ml->sml_nvalues[ 0 ] = *old_ndn;
 
+		op2.o_bd->bd_info = (BackendInfo *)on->on_info;
 		(void)op->o_bd->be_modify( &op2, &rs2 );
+		op2.o_bd->bd_info = bi;
 		if ( rs2.sr_err != LDAP_SUCCESS ) {
 			char buf[ SLAP_TEXT_BUFLEN ];
 			snprintf( buf, sizeof( buf ),
-				"memberof_value_modify %s=\"%s\" failed err=%d",
-				ad->ad_cname.bv_val, old_dn->bv_val, rs2.sr_err );
+				"memberof_value_modify DN=\"%s\" delete %s=\"%s\" failed err=%d",
+				op2.o_req_dn.bv_val, ad->ad_cname.bv_val, old_dn->bv_val, rs2.sr_err );
 			Debug( LDAP_DEBUG_ANY, "%s: %s\n",
 				op->o_log_prefix, buf, 0 );
 		}
