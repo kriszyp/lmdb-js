@@ -1051,6 +1051,8 @@ logSchemaControlValidate(
 	/* extract and check controlValue */
 	if ( strncasecmp( &val.bv_val[ i ], "controlValue ", STRLENOF( "controlValue " ) ) == 0 )
 	{
+		ber_len_t valueStart, valueLen;
+
 		i += STRLENOF( "controlValue " );
 		for ( ; i < val.bv_len; i++ ) {
 			if ( !ASCII_SPACE( val.bv_val[ i ] ) ) {
@@ -1066,7 +1068,10 @@ logSchemaControlValidate(
 			return LDAP_INVALID_SYNTAX;
 		}
 
-		for ( i++; i < val.bv_len; i++ ) {
+		i++;
+		valueStart = i;
+
+		for ( ; i < val.bv_len; i++ ) {
 			if ( val.bv_val[ i ] == '"' ) {
 				break;
 			}
@@ -1077,6 +1082,11 @@ logSchemaControlValidate(
 		}
 
 		if ( val.bv_val[ i ] != '"' ) {
+			return LDAP_INVALID_SYNTAX;
+		}
+
+		valueLen = i - valueStart;
+		if ( (valueLen/2)*2 != valueLen ) {
 			return LDAP_INVALID_SYNTAX;
 		}
 
