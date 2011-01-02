@@ -391,6 +391,7 @@ memberof_value_modify(
 
 	if ( new_ndn != NULL ) {
 		BackendInfo *bi = op2.o_bd->bd_info;
+		OpExtra	oex;
 
 		assert( !BER_BVISNULL( new_dn ) );
 		assert( !BER_BVISNULL( new_ndn ) );
@@ -401,9 +402,12 @@ memberof_value_modify(
 		ml->sml_values[ 0 ] = *new_dn;
 		ml->sml_nvalues[ 0 ] = *new_ndn;
 
+		oex.oe_key = (void *)&memberof;
+		LDAP_SLIST_INSERT_HEAD(&op2.o_extra, &oex, oe_next);
 		op2.o_bd->bd_info = (BackendInfo *)on->on_info;
 		(void)op->o_bd->be_modify( &op2, &rs2 );
 		op2.o_bd->bd_info = bi;
+		LDAP_SLIST_REMOVE(&op2.o_extra, &oex, OpExtra, oe_next);
 		if ( rs2.sr_err != LDAP_SUCCESS ) {
 			char buf[ SLAP_TEXT_BUFLEN ];
 			snprintf( buf, sizeof( buf ),
@@ -429,6 +433,7 @@ memberof_value_modify(
 
 	if ( old_ndn != NULL ) {
 		BackendInfo *bi = op2.o_bd->bd_info;
+		OpExtra	oex;
 
 		assert( !BER_BVISNULL( old_dn ) );
 		assert( !BER_BVISNULL( old_ndn ) );
@@ -439,9 +444,12 @@ memberof_value_modify(
 		ml->sml_values[ 0 ] = *old_dn;
 		ml->sml_nvalues[ 0 ] = *old_ndn;
 
+		oex.oe_key = (void *)&memberof;
+		LDAP_SLIST_INSERT_HEAD(&op2.o_extra, &oex, oe_next);
 		op2.o_bd->bd_info = (BackendInfo *)on->on_info;
 		(void)op->o_bd->be_modify( &op2, &rs2 );
 		op2.o_bd->bd_info = bi;
+		LDAP_SLIST_REMOVE(&op2.o_extra, &oex, OpExtra, oe_next);
 		if ( rs2.sr_err != LDAP_SUCCESS ) {
 			char buf[ SLAP_TEXT_BUFLEN ];
 			snprintf( buf, sizeof( buf ),
@@ -500,6 +508,12 @@ memberof_op_add( Operation *op, SlapReply *rs )
 	struct berval	save_dn, save_ndn;
 	slap_callback *sc;
 	memberof_cbinfo_t *mci;
+	OpExtra		*oex;
+
+	LDAP_SLIST_FOREACH( oex, &op->o_extra, oe_next ) {
+		if ( oex->oe_key == (void *)&memberof )
+			return SLAP_CB_CONTINUE;
+	}
 
 	if ( op->ora_e->e_attrs == NULL ) {
 		/* FIXME: global overlay; need to deal with */
@@ -728,7 +742,12 @@ memberof_op_delete( Operation *op, SlapReply *rs )
 
 	slap_callback *sc;
 	memberof_cbinfo_t *mci;
+	OpExtra		*oex;
 
+	LDAP_SLIST_FOREACH( oex, &op->o_extra, oe_next ) {
+		if ( oex->oe_key == (void *)&memberof )
+			return SLAP_CB_CONTINUE;
+	}
 
 	sc = op->o_tmpalloc( sizeof(slap_callback)+sizeof(*mci), op->o_tmpmemctx );
 	sc->sc_private = sc+1;
@@ -762,6 +781,12 @@ memberof_op_modify( Operation *op, SlapReply *rs )
 	struct berval	save_dn, save_ndn;
 	slap_callback *sc;
 	memberof_cbinfo_t *mci, mcis;
+	OpExtra		*oex;
+
+	LDAP_SLIST_FOREACH( oex, &op->o_extra, oe_next ) {
+		if ( oex->oe_key == (void *)&memberof )
+			return SLAP_CB_CONTINUE;
+	}
 
 	if ( MEMBEROF_REVERSE( mo ) ) {
 		for ( mlp = &op->orm_modlist; *mlp; mlp = &(*mlp)->sml_next ) {
@@ -1173,6 +1198,12 @@ memberof_op_modrdn( Operation *op, SlapReply *rs )
 	slap_overinst	*on = (slap_overinst *)op->o_bd->bd_info;
 	slap_callback *sc;
 	memberof_cbinfo_t *mci;
+	OpExtra		*oex;
+
+	LDAP_SLIST_FOREACH( oex, &op->o_extra, oe_next ) {
+		if ( oex->oe_key == (void *)&memberof )
+			return SLAP_CB_CONTINUE;
+	}
 
 	sc = op->o_tmpalloc( sizeof(slap_callback)+sizeof(*mci), op->o_tmpmemctx );
 	sc->sc_private = sc+1;
