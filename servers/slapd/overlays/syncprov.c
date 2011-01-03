@@ -1819,17 +1819,20 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 			ldap_pvt_thread_rdwr_wunlock( &si->si_csn_rwlock );
 
 			if ( csn_changed ) {
+				syncops *ss;
 				ldap_pvt_thread_mutex_lock( &si->si_ops_mutex );
-				have_psearches = ( si->si_ops != NULL );
-				ldap_pvt_thread_mutex_unlock( &si->si_ops_mutex );
-
-				if ( have_psearches ) {
-					for ( sm = opc->smatches; sm; sm=sm->sm_next ) {
-						if ( sm->sm_op->s_op->o_abandon )
-							continue;
-						syncprov_qresp( opc, sm->sm_op, LDAP_SYNC_NEW_COOKIE );
-					}
+				for ( ss = si->si_ops; ss; ss = ss->s_next ) {
+					if ( ss->s_op->o_abandon )
+						continue;
+					/* Send the updated csn to all syncrepl consumers,
+					 * including the server from which it originated.
+					 * The syncrepl consumer and syncprov provider on
+					 * the originating server may be configured to store
+					 * their csn values in different entries.
+					 */
+					syncprov_qresp( opc, ss, LDAP_SYNC_NEW_COOKIE );
 				}
+				ldap_pvt_thread_mutex_unlock( &si->si_ops_mutex );
 			}
 			} else {
 			ldap_pvt_thread_rdwr_wunlock( &si->si_csn_rwlock );
