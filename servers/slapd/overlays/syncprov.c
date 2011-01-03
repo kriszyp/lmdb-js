@@ -134,6 +134,8 @@ typedef struct syncprov_info_t {
 	int		si_nopres;	/* Skip present phase */
 	int		si_usehint;	/* use reload hint */
 	int		si_active;	/* True if there are active mods */
+	int		si_dirty;	/* True if the context is dirty, i.e changes
+						 * have been made without updating the csn. */
 	time_t	si_chklast;	/* time of last checkpoint */
 	Avlnode	*si_mods;	/* entries being modified */
 	sessionlog	*si_logs;
@@ -1812,6 +1814,8 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 					csn_changed = 1;
 				}
 			}
+			if ( csn_changed )
+				si->si_dirty = 0;
 			ldap_pvt_thread_rdwr_wunlock( &si->si_csn_rwlock );
 
 			if ( csn_changed ) {
@@ -1855,6 +1859,7 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 				}
 			}
 		}
+		si->si_dirty = !csn_changed;
 		ldap_pvt_thread_rdwr_wunlock( &si->si_csn_rwlock );
 
 		if ( do_check ) {
@@ -2373,6 +2378,7 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 	BerVarray ctxcsn;
 	int i, *sids, numcsns;
 	struct berval mincsn;
+	int dirty = 0;
 
 	if ( !(op->o_sync_mode & SLAP_SYNC_REFRESH) ) return SLAP_CB_CONTINUE;
 
@@ -2448,6 +2454,7 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 		ctxcsn = NULL;
 		sids = NULL;
 	}
+	dirty = si->si_dirty;
 	ldap_pvt_thread_rdwr_runlock( &si->si_csn_rwlock );
 	
 	/* If we have a cookie, handle the PRESENT lookups */
@@ -2527,7 +2534,7 @@ bailout:
 				if ( changed )
 					break;
 			}
-			if ( !changed ) {
+			if ( !changed && !dirty ) {
 				do_present = 0;
 no_change:		if ( !(op->o_sync_mode & SLAP_SYNC_PERSIST) ) {
 					LDAPControl	*ctrls[2];
@@ -2611,7 +2618,7 @@ shortcut:
 	}
 
 	/* If something changed, find the changes */
-	if ( gotstate && changed ) {
+	if ( gotstate && ( changed || dirty ) ) {
 		Filter *fand, *fava;
 
 		fand = op->o_tmpalloc( sizeof(Filter), op->o_tmpmemctx );
@@ -2656,7 +2663,7 @@ shortcut:
 	 * the refresh phase, just invoke the response callback to transition
 	 * us into persist phase
 	 */
-	if ( !changed ) {
+	if ( !changed && !dirty ) {
 		rs->sr_err = LDAP_SUCCESS;
 		rs->sr_nentries = 0;
 		send_ldap_result( op, rs );
