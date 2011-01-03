@@ -81,17 +81,23 @@ int ldap_parse_verify_credentials(
 		return rc;
 	}
 
-    if (retdata) {
-	    ber_tag_t tag;
+	if (retdata) {
+		ber_tag_t tag;
 		ber_len_t len;
 		ber_int_t i;
-	    BerElement * ber = ber_init(retdata);
+		BerElement * ber = ber_init(retdata);
+		struct berval diagmsg_bv = BER_BVNULL;
 		if (!ber) {
 		    rc = ld->ld_errno = LDAP_NO_MEMORY;
 			goto done;
 		}
 
-		ber_scanf(ber, "{is" /*"}"*/, &i, diagmsg);
+		ber_scanf(ber, "{im" /*"}"*/, &i, &diagmsg_bv);
+		if ( diagmsg != NULL ) {
+			*diagmsg = LDAP_MALLOC( diagmsg_bv.bv_len + 1 );
+			AC_MEMCPY( *diagmsg, diagmsg_bv.bv_val, diagmsg_bv.bv_len );
+			(*diagmsg)[diagmsg_bv.bv_len] = '\0';
+		}
 		*code = i;
 
 		tag = ber_peek_tag(ber, &len);
@@ -229,31 +235,41 @@ ldap_verify_credentials(LDAP *ld,
 		}
 	}
 
-    if (rc) goto done;
+	if (rc == LBER_ERROR) {
+		rc = ld->ld_errno = LDAP_ENCODING_ERROR;
+		goto done;
+	}
 
-    if (!rc && vcctrls && *vcctrls) {
+	if (vcctrls && *vcctrls) {
 		LDAPControl *const *c;
 
 		rc = ber_printf(ber, "t{" /*"}"*/, LDAP_TAG_EXOP_VERIFY_CREDENTIALS_CONTROLS);
 
-	    for (c=vcctrls; *c; c++) {
+		for (c=vcctrls; *c; c++) {
 			rc = ldap_pvt_put_control(*c, ber);
 			if (rc != LDAP_SUCCESS) {
-			    rc = -1;
+				rc = ld->ld_errno = LDAP_ENCODING_ERROR;
 				goto done;
 			}
 		}
 
 		rc = ber_printf(ber, /*"{{"*/ "}N}");
 
-    } else {
+	} else {
 		rc = ber_printf(ber, /*"{"*/ "N}");
 	}
 
-    if (rc) goto done;
+	if (rc == LBER_ERROR) {
+		rc = ld->ld_errno = LDAP_ENCODING_ERROR;
+		goto done;
+	}
 
 
-	ber_flatten(ber, &reqdata);
+	rc = ber_flatten(ber, &reqdata);
+	if (rc == LBER_ERROR) {
+		rc = ld->ld_errno = LDAP_ENCODING_ERROR;
+		goto done;
+	}
 
 	rc = ldap_extended_operation(ld, LDAP_EXOP_VERIFY_CREDENTIALS,
 		reqdata, sctrls, cctrls, msgidp);
