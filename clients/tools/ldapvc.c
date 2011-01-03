@@ -268,7 +268,7 @@ main( int argc, char *argv[] )
 		goto skip;
 	}
 
-	if (!rcode) {
+	if (rcode != LDAP_SUCCESS) {
 		printf(_("Failed: %s (%d)\n"), ldap_err2string(rcode), rcode);
 	}
 
