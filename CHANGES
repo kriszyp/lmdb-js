@@ -1,7 +1,8 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.24 Engineering
-	Addes slapadd attribute value checking (ITS#6592)
+	Added contrib/noopsrch for entry counting (ITS#6598)
+	Added slapadd attribute value checking (ITS#6592)
 	Added slapd-null back-config support (ITS#6624)
 	Added slapd-sql autocommit support (ITS#6612)
 	Addes slapd-sql support for long long keys (ITS#6617)
