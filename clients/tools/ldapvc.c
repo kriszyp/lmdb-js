@@ -121,6 +121,8 @@ main( int argc, char *argv[] )
 	int		rc;
 	LDAP		*ld = NULL;
 	char		*matcheddn = NULL, *text = NULL, **refs = NULL;
+	int rcode;
+	char * diag = NULL;
 	struct berval	*scookie = NULL;
 	struct berval	*scred = NULL;
 	struct berval	*authzid = NULL;
@@ -177,7 +179,7 @@ main( int argc, char *argv[] )
 
 	rc = ldap_verify_credentials( ld,
 		NULL,
-		dn, mech, cred.bv_val ? &cred: NULL,
+		dn, mech, cred.bv_val ? &cred: NULL, NULL,
 		NULL, NULL, &id ); 
 
 	if( rc != LDAP_SUCCESS ) {
@@ -220,7 +222,7 @@ main( int argc, char *argv[] )
 		goto skip;
 	}
 
-	rc = ldap_parse_verify_credentials( ld, res, &scookie, &scred, &authzid );
+	rc = ldap_parse_verify_credentials( ld, res, &rcode, &diag, &scookie, &scred, &authzid, NULL );
 	ldap_msgfree(res);
 
 	if( rc != LDAP_SUCCESS ) {
@@ -229,13 +231,23 @@ main( int argc, char *argv[] )
 		goto skip;
 	}
 
-	if( authzid != NULL ) {
-		if( authzid->bv_len == 0 ) {
-			printf(_("anonymous\n") );
-		} else {
-			printf("%s\n", authzid->bv_val );
-		}
+	if (!rcode) {
+		printf(_("Failed: %s (%d)\n"), ldap_err2string(rcode), rcode);
+    } else {
+	    if( authzid != NULL ) {
+	    	if( authzid->bv_len == 0 ) {
+	    		printf(_("anonymous\n") );
+	    	} else {
+	    		printf("%s\n", authzid->bv_val );
+	    	}
+	    }
 	}
+
+	if (diag && *diag) {
+	    printf(_("Diagnostic: %s\n"), diag);
+	}
+
+    /* print vc controls here (once added) */
 
 skip:
 	if ( verbose || ( code != LDAP_SUCCESS ) ||

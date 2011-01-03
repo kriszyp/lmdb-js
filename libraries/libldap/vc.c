@@ -33,29 +33,38 @@
  * the BER encoding of:
  *
  * VCRequest ::= SEQUENCE {
- *		Cookie [0] OCTET STRING OPTIONAL,
+ *		cookie [0] OCTET STRING OPTIONAL,
  *		name	LDAPDN,
  *		authentication	AuthenticationChoice
+ *	    controls [3] Controls OPTIONAL
  * }
  *
- * where LDAPDN and AuthenticationChoice are as defined in RFC 4511.
+ * where LDAPDN, AuthenticationChoice, and Controls are as defined in RFC 4511.
  *
  * The response is an extended response with no OID and a value of the BER encoding of
  *
  * VCResponse ::= SEQUENCE {
- *		Cookie [0] OCTET STRING OPTIONAL,
+ *		resultCode ResultCode,
+ *		diagnosticMessage LDAPString,
+ *		cookie [0] OCTET STRING OPTIONAL,
  *		serverSaslCreds [1] OCTET STRING OPTIONAL
  *		authzid [2] OCTET STRING OPTIONAL
+ *	    controls [3] Controls OPTIONAL
  * }
  *
+ * where ResultCode is the result code enumeration from RFC 4511, and LDAPString and Controls are as
+ * defined in RFC 4511.
  */
 
 int ldap_parse_verify_credentials(
 	LDAP *ld,
 	LDAPMessage *res,
+	int * code,
+	char ** diagmsg,
     struct berval **cookie,
 	struct berval **screds,
-	struct berval **authzid)
+	struct berval **authzid,
+	LDAPControl ***ctrls)
 {
 	int rc;
 	char *retoid = NULL;
@@ -78,13 +87,15 @@ int ldap_parse_verify_credentials(
     if (retdata) {
 	    ber_tag_t tag;
 		ber_len_t len;
+		ber_int_t i;
 	    BerElement * ber = ber_init(retdata);
 		if (!ber) {
 		    rc = ld->ld_errno = LDAP_NO_MEMORY;
 			goto done;
 		}
 
-		ber_scanf(ber, "{" /*"}"*/);
+		ber_scanf(ber, "{is" /*"}"*/, &i, diagmsg);
+		*code = i;
 
 		tag = ber_peek_tag(ber, &len);
 		if (tag == LDAP_TAG_EXOP_VERIFY_CREDENTIALS_COOKIE) {
@@ -101,6 +112,71 @@ int ldap_parse_verify_credentials(
 			ber_scanf(ber, "O", authzid);
 		}
 
+		if (tag == LDAP_TAG_EXOP_VERIFY_CREDENTIALS_CONTROLS) {
+		    int nctrls = 0;
+			char * opaque;
+
+		    *ctrls = LDAP_MALLOC(1 * sizeof(LDAPControl *));
+
+			if (*ctrls) {
+				rc = LDAP_NO_MEMORY;
+				goto done;
+			}
+
+			*ctrls[nctrls] = NULL;
+
+			for(tag = ber_first_element(ber, &len, &opaque);
+				tag != LBER_ERROR;
+				tag = ber_next_element(ber, &len, opaque))
+		    {
+				LDAPControl *tctrl;
+				LDAPControl **tctrls;
+
+				tctrl = LDAP_CALLOC(1, sizeof(LDAPControl));
+
+				/* allocate pointer space for current controls (nctrls)
+				 * + this control + extra NULL
+				 */
+				tctrls = !tctrl ? NULL : LDAP_REALLOC(*ctrls, (nctrls+2) * sizeof(LDAPControl *));
+
+				if (!tctrls) {
+					/* allocation failure */
+					if (tctrl) LDAP_FREE(tctrl);
+					ldap_controls_free(*ctrls);
+					*ctrls = NULL;
+				    rc = LDAP_NO_MEMORY;
+				    goto done;
+				}
+
+				tctrls[nctrls++] = tctrl;
+				tctrls[nctrls] = NULL;
+
+				tag = ber_scanf(ber, "{a" /*"}"*/, &tctrl->ldctl_oid);
+				if (tag == LBER_ERROR) {
+					*ctrls = NULL;
+					ldap_controls_free(tctrls);
+					rc = LDAP_DECODING_ERROR;
+					goto done;
+				}
+
+				tag = ber_peek_tag(ber, &len);
+				if (tag == LBER_BOOLEAN) {
+					ber_int_t crit;
+					tag = ber_scanf(ber, "b", &crit);
+					tctrl->ldctl_iscritical = crit ? (char) 0 : (char) ~0;
+				    tag = ber_peek_tag(ber, &len);
+				}
+
+			    if (tag == LBER_OCTETSTRING) {
+                    tag = ber_scanf( ber, "o", &tctrl->ldctl_value );
+                } else {
+                    BER_BVZERO( &tctrl->ldctl_value );
+                }
+
+                *ctrls = tctrls;
+			}
+	    }
+
 	    ber_free(ber, 1);
     }
 
@@ -116,6 +192,7 @@ ldap_verify_credentials(LDAP *ld,
 	LDAP_CONST char *dn,
 	LDAP_CONST char *mechanism,
 	struct berval	*cred,
+    LDAPControl		**vcctrls,
 	LDAPControl		**sctrls,
 	LDAPControl		**cctrls,
 	int				*msgidp)
@@ -134,36 +211,61 @@ ldap_verify_credentials(LDAP *ld,
 	if (mechanism == LDAP_SASL_SIMPLE) {
 		assert(!cookie);
 
-		rc = ber_printf(ber, "{stON}",
+		rc = ber_printf(ber, "{stO" /*"}"*/,
 			dn, LDAP_AUTH_SIMPLE, cred);
 
 	} else {
 		if (!cred || BER_BVISNULL(cred)) {
 			if (cookie) {
-				rc = ber_printf(ber, "{tOst{sN}N}",
+				rc = ber_printf(ber, "{tOst{sN}" /*"}"*/,
 					LDAP_TAG_EXOP_VERIFY_CREDENTIALS_COOKIE, cookie,
 					dn, LDAP_AUTH_SASL, mechanism);
 			} else {
-				rc = ber_printf(ber, "{st{sN}N}",
+				rc = ber_printf(ber, "{st{sN}N" /*"}"*/,
 					dn, LDAP_AUTH_SASL, mechanism);
 			}
 		} else {
 			if (cookie) {
-				rc = ber_printf(ber, "{tOst{sON}N}",
+				rc = ber_printf(ber, "{tOst{sON}" /*"}"*/,
 					LDAP_TAG_EXOP_VERIFY_CREDENTIALS_COOKIE, cookie,
 					dn, LDAP_AUTH_SASL, mechanism, cred);
 			} else {
-				rc = ber_printf(ber, "{st{sON}N}",
+				rc = ber_printf(ber, "{st{sON}" /*"}"*/,
 					dn, LDAP_AUTH_SASL, mechanism, cred);
 			}
 		}
 	}
+
+    if (rc) goto done;
+
+    if (!rc && vcctrls && *vcctrls) {
+		LDAPControl *const *c;
+
+		rc = ber_printf(ber, "t{" /*"}"*/, LDAP_TAG_EXOP_VERIFY_CREDENTIALS_CONTROLS);
+
+	    for (c=vcctrls; *c; c++) {
+			rc = ldap_pvt_put_control(*c, ber);
+			if (rc != LDAP_SUCCESS) {
+			    rc = -1;
+				goto done;
+			}
+		}
+
+		rc = ber_printf(ber, /*"{{"*/ "}N}");
+
+    } else {
+		rc = ber_printf(ber, /*"{"*/ "N}");
+	}
+
+    if (rc) goto done;
+
 
 	ber_flatten(ber, &reqdata);
 
 	rc = ldap_extended_operation(ld, LDAP_EXOP_VERIFY_CREDENTIALS,
 		reqdata, sctrls, cctrls, msgidp);
 
+done:
 	ber_free(ber, 1);
 	return rc;
 }
@@ -175,24 +277,28 @@ ldap_verify_credentials_s(
 	LDAP_CONST char *dn,
 	LDAP_CONST char *mechanism,
 	struct berval	*cred,
+    LDAPControl		**vcictrls,
 	LDAPControl		**sctrls,
 	LDAPControl		**cctrls,
+	int				*rcode,
+	char 			**diagmsg,
 	struct berval	**scookie,
 	struct berval	**scred,
-	struct berval	**authzid)
+	struct berval	**authzid,
+    LDAPControl		***vcoctrls)
 {
 	int				rc;
 	int				msgid;
 	LDAPMessage		*res;
 
-	rc = ldap_verify_credentials(ld, cookie, dn, mechanism, cred, sctrls, cctrls, &msgid);
+	rc = ldap_verify_credentials(ld, cookie, dn, mechanism, cred, vcictrls, sctrls, cctrls, &msgid);
 	if (rc != LDAP_SUCCESS) return rc;
 
 	if (ldap_result(ld, msgid, LDAP_MSG_ALL, (struct timeval *) NULL, &res) == -1 || !res) {
 		return ld->ld_errno;
 	}
 
-	rc = ldap_parse_verify_credentials(ld, res, scookie, scred, authzid);
+	rc = ldap_parse_verify_credentials(ld, res, rcode, diagmsg, scookie, scred, authzid, vcoctrls);
 	if (rc != LDAP_SUCCESS) {
 		ldap_msgfree(res);
 		return rc;
