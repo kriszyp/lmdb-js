@@ -264,6 +264,9 @@ typedef struct ldapcontrol {
 /*	non-standard track controls */
 #define LDAP_CONTROL_PAGEDRESULTS	"1.2.840.113556.1.4.319"   /* RFC 2696 */
 
+#define LDAP_CONTROL_AUTHZID_REQUEST	"2.16.840.1.113730.4.16"   /* RFC 3829 */
+#define LDAP_CONTROL_AUTHZID_RESPONSE   "2.16.840.1.113730.4.15"   /* RFC 3829 */
+
 /* LDAP Content Synchronization Operation -- RFC 4533 */
 #define LDAP_SYNC_OID			"1.3.6.1.4.1.4203.1.9.1"
 #define LDAP_CONTROL_SYNC		LDAP_SYNC_OID ".1"

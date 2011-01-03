@@ -137,6 +137,9 @@ typedef int (*print_ctrl_fn)( LDAP *ld, LDAPControl *ctrl );
 static int print_preread( LDAP *ld, LDAPControl *ctrl );
 static int print_postread( LDAP *ld, LDAPControl *ctrl );
 static int print_paged_results( LDAP *ld, LDAPControl *ctrl );
+#ifdef LDAP_CONTROL_AUTHZID_RESPONSE
+static int print_authzid( LDAP *ld, LDAPControl *ctrl );
+#endif
 #ifdef LDAP_CONTROL_PASSWORDPOLICYREQUEST
 static int print_ppolicy( LDAP *ld, LDAPControl *ctrl );
 #endif
@@ -157,6 +160,10 @@ static struct tool_ctrls_t {
 	{ LDAP_CONTROL_PRE_READ,			TOOL_ALL,	print_preread },
 	{ LDAP_CONTROL_POST_READ,			TOOL_ALL,	print_postread },
 	{ LDAP_CONTROL_PAGEDRESULTS,			TOOL_SEARCH,	print_paged_results },
+#ifdef LDAP_CONTROL_AUTHZID_RESPONSE
+	/* this is generally deprecated in favor of LDAP WhoAmI? operation, hence only supported as a VC inner control */
+	{ LDAP_CONTROL_PASSWORDPOLICYRESPONSE,		TOOL_VC,	print_authzid },
+#endif
 #ifdef LDAP_CONTROL_PASSWORDPOLICYREQUEST
 	{ LDAP_CONTROL_PASSWORDPOLICYRESPONSE,		TOOL_ALL,	print_ppolicy },
 #endif
@@ -2165,6 +2172,20 @@ print_whatfailed( LDAP *ld, LDAPControl *ctrl )
 
 
 	return 0;
+}
+#endif
+
+#ifdef LDAP_CONTROL_AUTHZID_RESPONSE
+static int
+print_authzid( LDAP *ld, LDAPControl *ctrl )
+{
+    if (ctrl->ldctl_value.bv_len) {
+	    tool_write_ldif( ldif ? LDIF_PUT_COMMENT : LDIF_PUT_VALUE,
+		    "authzid", ctrl->ldctl_value.bv_val,  ctrl->ldctl_value.bv_len );
+	} else {
+	    tool_write_ldif( ldif ? LDIF_PUT_COMMENT : LDIF_PUT_VALUE,
+		    "authzid", "anonymous",  sizeof("anonymous")-1);
+	}
 }
 #endif
 

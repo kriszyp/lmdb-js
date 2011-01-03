@@ -48,6 +48,9 @@
 
 #include "common.h"
 
+static int req_authzid = 0;
+static int req_pp = 0;
+
 static char * mech = NULL;
 static char * dn = NULL;
 static struct berval cred = {0, NULL};
@@ -61,13 +64,15 @@ usage( void )
 	fprintf( stderr, _("    DN\tDistinguished Name\n"));
 	fprintf( stderr, _("    cred\tCredentials (prompt if not present)\n"));
 	fprintf( stderr, _("options:\n"));
+	fprintf( stderr, _("    -a\tRequest AuthzId\n"));
+	fprintf( stderr, _("    -b\tRequest Password Policy Information\n"));
 	fprintf( stderr, _("    -S mech\tSASL mechanism (default "" e.g. Simple)\n"));
 	tool_common_usage();
 	exit( EXIT_FAILURE );
 }
 
 
-const char options[] = "S"
+const char options[] = "abS:"
 	"d:D:e:h:H:InNO:o:p:QR:U:vVw:WxX:y:Y:Z";
 
 int
@@ -104,6 +109,14 @@ handle_private_option( int i )
 		usage();
 #endif
 
+	case 'a':  /* request authzid */
+		req_authzid++;
+		break;
+
+	case 'b':  /* request authzid */
+		req_pp++;
+		break;
+
 	case 'S':  /* SASL mechanism */
 		mech = optarg;
 		break;
@@ -128,6 +141,8 @@ main( int argc, char *argv[] )
 	int		id, code = 0;
 	LDAPMessage	*res;
 	LDAPControl	**ctrls = NULL;
+	LDAPControl	**vcctrls = NULL;
+	int nvcctrls = 0;
 
 	tool_init( TOOL_VC );
 	prog = lutil_progname( "ldapvc", argc, argv );
@@ -176,9 +191,29 @@ main( int argc, char *argv[] )
 
 	tool_server_controls( ld, NULL, 0 );
 
+    if (req_authzid) {
+		vcctrls = (LDAPControl **) malloc(3*sizeof(LDAPControl *));
+		vcctrls[nvcctrls] = (LDAPControl *) malloc(sizeof(LDAPControl));
+		vcctrls[nvcctrls]->ldctl_oid = LDAP_CONTROL_AUTHZID_REQUEST;
+		vcctrls[nvcctrls]->ldctl_iscritical = 0;
+		vcctrls[nvcctrls]->ldctl_value.bv_val = NULL;
+		vcctrls[nvcctrls]->ldctl_value.bv_len = 0;
+		vcctrls[++nvcctrls] = NULL;
+    }
+
+    if (req_pp) {
+		if (vcctrls) vcctrls = (LDAPControl **) malloc(3*sizeof(LDAPControl *));
+		vcctrls[nvcctrls] = (LDAPControl *) malloc(sizeof(LDAPControl));
+		vcctrls[nvcctrls]->ldctl_oid = LDAP_CONTROL_PASSWORDPOLICYREQUEST;
+		vcctrls[nvcctrls]->ldctl_iscritical = 0;
+		vcctrls[nvcctrls]->ldctl_value.bv_val = NULL;
+		vcctrls[nvcctrls]->ldctl_value.bv_len = 0;
+		vcctrls[++nvcctrls] = NULL;
+    }
+
 	rc = ldap_verify_credentials( ld,
 		NULL,
-		dn, mech, cred.bv_val ? &cred: NULL, NULL,
+		dn, mech, cred.bv_val ? &cred: NULL, vcctrls,
 		NULL, NULL, &id ); 
 
 	if( rc != LDAP_SUCCESS ) {
@@ -186,6 +221,9 @@ main( int argc, char *argv[] )
 		rc = EXIT_FAILURE;
 		goto skip;
 	}
+
+	ldap_controls_free(vcctrls);
+	vcctrls = NULL;
 
 	for ( ; ; ) {
 		struct timeval	tv;
@@ -221,7 +259,7 @@ main( int argc, char *argv[] )
 		goto skip;
 	}
 
-	rc = ldap_parse_verify_credentials( ld, res, &rcode, &diag, &scookie, &scred, NULL );
+	rc = ldap_parse_verify_credentials( ld, res, &rcode, &diag, &scookie, &scred, &vcctrls );
 	ldap_msgfree(res);
 
 	if( rc != LDAP_SUCCESS ) {
@@ -238,7 +276,9 @@ main( int argc, char *argv[] )
 	    printf(_("Diagnostic: %s\n"), diag);
 	}
 
-    /* print vc controls here (once added) */
+	if (vcctrls) {
+		tool_print_ctrls( ld, vcctrls );
+	}
 
 skip:
 	if ( verbose || ( code != LDAP_SUCCESS ) ||
