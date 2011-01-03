@@ -485,13 +485,11 @@ octetStringMatch(
 	void *assertedValue )
 {
 	struct berval *asserted = (struct berval *) assertedValue;
-	int match = value->bv_len - asserted->bv_len;
+	ber_slen_t d = (ber_slen_t) value->bv_len - (ber_slen_t) asserted->bv_len;
 
-	if( match == 0 ) {
-		match = memcmp( value->bv_val, asserted->bv_val, value->bv_len );
-	}
+	*matchp = d ? (sizeof(d) == sizeof(int) ? d : d < 0 ? -1 : 1)
+		: memcmp( value->bv_val, asserted->bv_val, value->bv_len );
 
-	*matchp = match;
 	return LDAP_SUCCESS;
 }
 
@@ -511,7 +509,10 @@ octetStringOrderingMatch(
 	int match = memcmp( value->bv_val, asserted->bv_val,
 		(v_len < av_len ? v_len : av_len) );
 
-	if( match == 0 ) match = v_len - av_len;
+	if( match == 0 )
+		match = sizeof(v_len) == sizeof(int)
+			? (int) v_len - (int) av_len
+			: v_len < av_len ? -1 : v_len > av_len;
 
 	*matchp = match;
 	return LDAP_SUCCESS;
@@ -1419,9 +1420,10 @@ uniqueMemberMatch(
 	}
 
 	if( valueUID.bv_len && assertedUID.bv_len ) {
-		match = valueUID.bv_len - assertedUID.bv_len;
-		if ( match ) {
-			*matchp = match;
+		ber_slen_t d;
+		d = (ber_slen_t) valueUID.bv_len - (ber_slen_t) assertedUID.bv_len;
+		if ( d ) {
+			*matchp = sizeof(d) == sizeof(int) ? d : d < 0 ? -1 : 1;
 			return LDAP_SUCCESS;
 		}
 
@@ -1572,7 +1574,7 @@ booleanMatch(
 {
 	/* simplistic matching allowed by rigid validation */
 	struct berval *asserted = (struct berval *) assertedValue;
-	*matchp = value->bv_len != asserted->bv_len;
+	*matchp = (int) asserted->bv_len - (int) value->bv_len;
 	return LDAP_SUCCESS;
 }
 
