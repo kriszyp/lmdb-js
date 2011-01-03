@@ -549,11 +549,7 @@ ber_get_next(
 				}
 				/* Did we run out of bytes? */
 				if ((char *)p == ber->ber_rwptr) {
-#if defined( EWOULDBLOCK )
 					sock_errset(EWOULDBLOCK);
-#elif defined( EAGAIN )
-					sock_errset(EAGAIN);
-#endif			
 					return LBER_DEFAULT;
 				}
 			}
@@ -562,11 +558,7 @@ ber_get_next(
 		}
 
 		if ( ber->ber_ptr == ber->ber_rwptr ) {
-#if defined( EWOULDBLOCK )
 			sock_errset(EWOULDBLOCK);
-#elif defined( EAGAIN )
-			sock_errset(EAGAIN);
-#endif			
 			return LBER_DEFAULT;
 		}
 
@@ -581,11 +573,7 @@ ber_get_next(
 			}
 			/* Not enough bytes? */
 			if (ber->ber_rwptr - (char *)p < llen) {
-#if defined( EWOULDBLOCK )
 				sock_errset(EWOULDBLOCK);
-#elif defined( EAGAIN )
-				sock_errset(EAGAIN);
-#endif			
 				return LBER_DEFAULT;
 			}
 			for (i=0; i<llen; i++) {
@@ -672,11 +660,7 @@ ber_get_next(
 		ber->ber_rwptr+=res;
 		
 		if (res<to_go) {
-#if defined( EWOULDBLOCK )
 			sock_errset(EWOULDBLOCK);
-#elif defined( EAGAIN )
-			sock_errset(EAGAIN);
-#endif			
 			return LBER_DEFAULT;
 		}
 done:
