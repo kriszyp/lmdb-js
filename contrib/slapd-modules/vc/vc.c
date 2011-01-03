@@ -65,8 +65,11 @@ vc_conn_dup( void *c1, void *c2 )
 static int
 vc_create_response(
 	void *conn,
+	int resultCode,
+	const char *diagnosticMessage,
 	struct berval *servercred,
 	struct berval *authzid,
+	LDAPControl **ctrls,
 	struct berval **val )
 {
 	BerElementBuffer berbuf;
@@ -76,16 +79,22 @@ vc_create_response(
 
 	assert( val != NULL );
 
+	BER_BVZERO( *val );
+
 	ber_init2( ber, NULL, LBER_USE_DER );
 
-	ber_printf( ber, "{" /*}*/ ); 
+#ifdef TODO
+	(void)ber_printf( ber, "{is" /*}*/ , resultCode, diagnosticMessage ? diagnosticMessage : "" );
+#else
+	(void)ber_printf( ber, "{" /*}*/ );
+#endif
 
 	if ( conn ) {
 		struct berval cookie;
 
 		cookie.bv_len = sizeof( conn );
 		cookie.bv_val = (char *)&conn;
-		ber_printf( ber, "tO", 0, LDAP_TAG_EXOP_VERIFY_CREDENTIALS_COOKIE, &cookie ); 
+		(void)ber_printf( ber, "tO", 0, LDAP_TAG_EXOP_VERIFY_CREDENTIALS_COOKIE, &cookie ); 
 	}
 
 	if ( servercred ) {
@@ -96,12 +105,42 @@ vc_create_response(
 		ber_printf( ber, "tO", LDAP_TAG_EXOP_VERIFY_CREDENTIALS_AUTHZID, authzid ); 
 	}
 
+#ifdef TODO
+	if ( ctrls ) {
+		int c;
+
+		rc = ber_printf( ber, "t{"/*}*/, LDAP_TAG_EXOP_VERIFY_CREDENTIALS_CONTROLS );
+		if ( rc == -1 ) goto done;
+
+		for ( c = 0; ctrls[c] != NULL; c++ ) {
+			rc = ber_printf( ber, "{s" /*}*/, ctrls[c]->ldctl_oid );
+
+			if ( ctrls[c]->ldctl_iscritical ) {
+				rc = ber_printf( ber, "b", (ber_int_t)ctrls[c]->ldctl_iscritical ) ;
+				if ( rc == -1 ) goto done;
+			}
+
+			if ( ctrls[c]->ldctl_value.bv_val != NULL ) {
+				rc = ber_printf( ber, "O", &ctrls[c]->ldctl_value ); 
+				if( rc == -1 ) goto done;
+			}
+
+			rc = ber_printf( ber, /*{*/"N}" );
+			if ( rc == -1 ) goto done;
+		}
+
+		rc = ber_printf( ber, /*{*/"N}" );
+		if ( rc == -1 ) goto done;
+	}
+#endif
+
 	ber_printf( ber, /*{*/ "}" );
 
 	rc = ber_flatten2( ber, &bv, 0 );
 
 	*val = ber_bvdup( &bv );
 
+done:;
 	ber_free_buf( ber );
 
 	return rc;
@@ -207,7 +246,7 @@ vc_exop(
 		break;
 
 	case LDAP_AUTH_SASL:
-		tag = ber_scanf( ber, "{s", &mechanism );
+		tag = ber_scanf( ber, "{s" /*}*/ , &mechanism );
 		if ( tag == LBER_ERROR || 
 			BER_BVISNULL( &mechanism ) || BER_BVISEMPTY( &mechanism ) )
 		{
@@ -219,15 +258,11 @@ vc_exop(
 		if ( tag == LBER_OCTETSTRING ) {
 			ber_scanf( ber, "m", &cred );
 		}
+
+		tag = ber_scanf( ber, /*{*/ "}" );
 		break;
 
 	default:
-		rs->sr_err = LDAP_PROTOCOL_ERROR;
-		goto done;
-	}
-
-	tag = ber_skip_tag( ber, &len );
-	if ( len || tag != LBER_DEFAULT ) {
 		rs->sr_err = LDAP_PROTOCOL_ERROR;
 		goto done;
 	}
@@ -239,6 +274,7 @@ vc_exop(
 		ldap_pvt_mutex_lock( &vc_mutex );
 		conn = (vc_conn_t *)avl_find( vc_tree, (caddr_t)&tmp, vc_conn_cmp );
 		if ( conn == NULL || ( conn != NULL && conn->refcnt != 0 ) ) {
+			conn = NULL;
 			ldap_pvt_mutex_unlock( &vc_mutex );
 			rs->sr_err = LDAP_PROTOCOL_ERROR;
 			goto done;
@@ -257,6 +293,26 @@ vc_exop(
 		conn->op = &conn->opbuf.ob_op;
 		snprintf( conn->op->o_log_prefix, sizeof( conn->op->o_log_prefix ),
 			"%s VERIFYCREDENTIALS", op->o_log_prefix );
+	}
+
+#ifdef TODO
+	/* TODO: controls */
+	tag = ber_peek_tag( ber, &len );
+	if ( tag == LDAP_TAG_EXOP_VERIFY_CREDENTIALS_CONTROLS ) {
+		conn->op->o_ber = ber;
+		rc = get_ctrls( conn->op, &rs2, 0 );
+		(void)ber_free( conn->op->o_ber, 1 );
+		if ( rc != LDAP_SUCCESS ) {
+			rs->sr_err = LDAP_PROTOCOL_ERROR;
+			goto done;
+		}
+	}
+#endif
+
+	tag = ber_skip_tag( ber, &len );
+	if ( len || tag != LBER_DEFAULT ) {
+		rs->sr_err = LDAP_PROTOCOL_ERROR;
+		goto done;
 	}
 
 	conn->op->o_tag = LDAP_REQ_BIND;
@@ -284,13 +340,16 @@ vc_exop(
 	rs->sr_err = frontendDB->be_bind( conn->op, &rs2 );
 
 	if ( conn->op->o_conn->c_sasl_bind_in_progress ) {
-		rc = vc_create_response( conn,
+		rc = vc_create_response( conn, rs2.sr_err, rs2.sr_text,
 			!BER_BVISEMPTY( &sasldata ) ? &sasldata : NULL,
-			NULL, &rs->sr_rspdata );
+			NULL,
+			rs2.sr_ctrls, &rs->sr_rspdata );
 
 	} else {
-		rc = vc_create_response( NULL, NULL,
-			&conn->op->o_conn->c_dn, &rs->sr_rspdata );
+		rc = vc_create_response( NULL, rs2.sr_err, rs2.sr_text,
+			NULL,
+			&conn->op->o_conn->c_dn,
+			rs2.sr_ctrls, &rs->sr_rspdata );
 	}
 
 	if ( rc != 0 ) {
@@ -304,34 +363,36 @@ vc_exop(
 	if ( !BER_BVISNULL( &conn->op->o_conn->c_ndn ) )
 		ber_memfree( conn->op->o_conn->c_ndn.bv_val );
 
-	if ( conn->op->o_conn->c_sasl_bind_in_progress ) {
-		if ( conn->conn == NULL ) {
-			conn->conn = conn;
-			conn->refcnt--;
-			ldap_pvt_mutex_lock( &vc_mutex );
-			rc = avl_insert( &vc_tree, (caddr_t)conn,
-				vc_conn_cmp, vc_conn_dup );
-			ldap_pvt_mutex_unlock( &vc_mutex );
-			assert( rc == 0 );
+done:;
+	if ( conn ) {
+		if ( conn->op->o_conn->c_sasl_bind_in_progress ) {
+			if ( conn->conn == NULL ) {
+				conn->conn = conn;
+				conn->refcnt--;
+				ldap_pvt_mutex_lock( &vc_mutex );
+				rc = avl_insert( &vc_tree, (caddr_t)conn,
+					vc_conn_cmp, vc_conn_dup );
+				ldap_pvt_mutex_unlock( &vc_mutex );
+				assert( rc == 0 );
+
+			} else {
+				ldap_pvt_mutex_lock( &vc_mutex );
+				conn->refcnt--;
+				ldap_pvt_mutex_unlock( &vc_mutex );
+			}
 
 		} else {
-			ldap_pvt_mutex_lock( &vc_mutex );
-			conn->refcnt--;
-			ldap_pvt_mutex_unlock( &vc_mutex );
-		}
+			if ( conn->conn != NULL ) {
+				vc_conn_t *tmp;
 
-	} else {
-		if ( conn->conn != NULL ) {
-			vc_conn_t *tmp;
-
-			ldap_pvt_mutex_lock( &vc_mutex );
-			tmp = avl_delete( &vc_tree, (caddr_t)conn, vc_conn_cmp );
-			ldap_pvt_mutex_unlock( &vc_mutex );
+				ldap_pvt_mutex_lock( &vc_mutex );
+				tmp = avl_delete( &vc_tree, (caddr_t)conn, vc_conn_cmp );
+				ldap_pvt_mutex_unlock( &vc_mutex );
+			}
+			SLAP_FREE( conn );
 		}
-		SLAP_FREE( conn );
 	}
 
-done:;
 	if ( !BER_BVISNULL( &ndn ) ) {
 		op->o_tmpfree( ndn.bv_val, op->o_tmpmemctx );
 	}
