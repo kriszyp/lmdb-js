@@ -2915,7 +2915,7 @@ syncrepl_add_glue_ancestors(
 	Backend *be = op->o_bd;
 	slap_callback cb = { NULL };
 	Attribute	*a;
-	int	rc;
+	int	rc = LDAP_SUCCESS;
 	int suffrdns;
 	int i;
 	struct berval dn = BER_BVNULL;

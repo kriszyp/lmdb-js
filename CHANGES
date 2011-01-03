@@ -26,6 +26,7 @@ OpenLDAP 2.4.24 Engineering
 	Fixed slapd modify to return actual error (ITS#6581)
 	Fixed slapd sortvals of attributes with 1 value (ITS#6715)
 	Fixed slapd syncrepl reuse of presence list (ITS#6707)
+	Fixed slapd syncrepl unitialized return code (ITS#6719)
 	Fixed slapd-bdb hasSubordinates generation (ITS#6712)
 	Fixed slapd-bdb entry cache delete failure (ITS#6577)
 	Fixed slapd-bdb error propogation to overlays (ITS#6633)
