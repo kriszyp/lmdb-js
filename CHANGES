@@ -19,6 +19,7 @@ OpenLDAP 2.4.24 Engineering
 	Fixed slapd sortvals of attributes with 1 value (ITS#6715)
 	Fixed slapd syncrepl reuse of presence list (ITS#6707)
 	Fixed slapd-bdb entry cache delete failure (ITS#6577)
+	Fixed slapd-bdb error propogation to overlays (ITS#6633)
 	Fixed slapd-ldap debug output of timeout (ITS#6721)
 	Fixed slapd-ldap DNSSRV referral chaining (ITS#6565)
 	Fixed slapd-ndb to honor rootpw setting (ITS#6661)
