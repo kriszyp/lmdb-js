@@ -165,50 +165,51 @@ vc_exop(
 	}
 
 	tag = ber_peek_tag( ber, &len );
-	if ( tag == LBER_INTEGER ) {
-		ber_int_t version;
+	if ( tag == LDAP_TAG_EXOP_VERIFY_CREDENTIALS_COOKIE ) {
+		/*
+		 * cookie: the pointer to the connection
+		 * of this operation
+		 */
 
-		/* simple */
+		ber_scanf( ber, "m", &cookie );
+		if ( cookie.bv_len != sizeof(Connection *) ) {
+			rs->sr_err = LDAP_PROTOCOL_ERROR;
+			goto done;
+		}
+	}
 
-		/* version */
-		tag = ber_scanf( ber, "i", &version );
-		if ( tag == LBER_ERROR || version != 3 ) {
+	/* DN, authtag */
+	tag = ber_scanf( ber, "mt", &bdn, &authtag );
+	if ( tag == LBER_ERROR ) {
+		rs->sr_err = LDAP_PROTOCOL_ERROR;
+		goto done;
+	}
+
+	rc = dnNormalize( 0, NULL, NULL, &bdn, &ndn, op->o_tmpmemctx );
+	if ( rc != LDAP_SUCCESS ) {
+		rs->sr_err = LDAP_PROTOCOL_ERROR;
+		goto done;
+	}
+
+	switch ( authtag ) {
+	case LDAP_AUTH_SIMPLE:
+		/* cookie only makes sense for SASL bind (so far) */
+		if ( !BER_BVISNULL( &cookie ) ) {
 			rs->sr_err = LDAP_PROTOCOL_ERROR;
 			goto done;
 		}
 
-		/* DN, authtag, cred */
-		tag = ber_scanf( ber, "mtm", &bdn, &authtag, &cred );
-		if ( tag == LBER_ERROR || authtag != LDAP_AUTH_SIMPLE ) {
+		tag = ber_scanf( ber, "m", &cred );
+		if ( tag == LBER_ERROR ) {
 			rs->sr_err = LDAP_PROTOCOL_ERROR;
 			goto done;
 		}
+		break;
 
-		rc = dnNormalize( 0, NULL, NULL, &bdn, &ndn, op->o_tmpmemctx );
-		if ( rc != LDAP_SUCCESS ) {
-			rs->sr_err = LDAP_PROTOCOL_ERROR;
-			goto done;
-		}
-
-	} else {
-		/* SASL */
-		if ( tag == LDAP_TAG_EXOP_VERIFY_CREDENTIALS_COOKIE ) {
-			/*
-			 * cookie: the pointer to the connection
-			 * of this operation
-			 */
-
-			ber_scanf( ber, "m", &cookie );
-			if ( cookie.bv_len != sizeof(Connection *) ) {
-				rs->sr_err = LDAP_PROTOCOL_ERROR;
-				goto done;
-			}
-
-		}
-
-		tag = ber_scanf( ber, "mt{s", &bdn, &authtag, &mechanism );
-		if ( tag == LBER_ERROR || authtag != LDAP_AUTH_SASL ||
-			BER_BVISNULL( &mechanism ) || BER_BVISEMPTY( &mechanism) )
+	case LDAP_AUTH_SASL:
+		tag = ber_scanf( ber, "{s", &mechanism );
+		if ( tag == LBER_ERROR || 
+			BER_BVISNULL( &mechanism ) || BER_BVISEMPTY( &mechanism ) )
 		{
 			rs->sr_err = LDAP_PROTOCOL_ERROR;
 			goto done;
@@ -218,12 +219,11 @@ vc_exop(
 		if ( tag == LBER_OCTETSTRING ) {
 			ber_scanf( ber, "m", &cred );
 		}
+		break;
 
-		rc = dnNormalize( 0, NULL, NULL, &bdn, &ndn, op->o_tmpmemctx );
-		if ( rc != LDAP_SUCCESS ) {
-			rs->sr_err = LDAP_PROTOCOL_ERROR;
-			goto done;
-		}
+	default:
+		rs->sr_err = LDAP_PROTOCOL_ERROR;
+		goto done;
 	}
 
 	tag = ber_skip_tag( ber, &len );
