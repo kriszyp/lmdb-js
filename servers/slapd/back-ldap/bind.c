@@ -668,6 +668,7 @@ ldap_back_prepare_conn( ldapconn_t *lc, Operation *op, SlapReply *rs, ldap_back_
 	LDAP		*ld = NULL;
 #ifdef HAVE_TLS
 	int		is_tls = op->o_conn->c_is_tls;
+	int		flags = li->li_flags;
 	time_t		lctime = (time_t)(-1);
 	slap_bindconf *sb;
 #endif /* HAVE_TLS */
@@ -727,11 +728,18 @@ ldap_back_prepare_conn( ldapconn_t *lc, Operation *op, SlapReply *rs, ldap_back_
 		ldap_set_option( ld, LDAP_OPT_X_TLS_CTX, sb->sb_tls_ctx );
 	}
 
+	/* if required by the bindconf configuration, force TLS */
+	if ( ( sb == &li->li_acl || sb == &li->li_idassert.si_bc ) &&
+		sb->sb_tls_ctx )
+	{
+		flags |= LDAP_BACK_F_USE_TLS;
+	}
+
 	ldap_pvt_thread_mutex_lock( &li->li_uri_mutex );
 	assert( li->li_uri_mutex_do_not_lock == 0 );
 	li->li_uri_mutex_do_not_lock = 1;
 	rs->sr_err = ldap_back_start_tls( ld, op->o_protocol, &is_tls,
-			li->li_uri, li->li_flags, li->li_nretries, &rs->sr_text );
+			li->li_uri, flags, li->li_nretries, &rs->sr_text );
 	li->li_uri_mutex_do_not_lock = 0;
 	ldap_pvt_thread_mutex_unlock( &li->li_uri_mutex );
 	if ( rs->sr_err != LDAP_SUCCESS ) {

@@ -620,7 +620,7 @@ meta_back_db_config(
 				fname, lineno, 0 );
 			return 1;
 		}
-		
+
 		if ( argc != 2 ) {
 			Debug( LDAP_DEBUG_ANY,
 	"%s: line %d: missing password in \"bindpw <password>\" line\n",
@@ -709,13 +709,6 @@ meta_back_db_config(
 				&mi->mi_targets[ mi->mi_ntargets - 1 ]->mt_flags
 				: &mi->mi_flags;
 
-		if ( argc != 2 ) {
-			Debug( LDAP_DEBUG_ANY,
-		"%s: line %d: \"tls <what>\" needs 1 argument.\n",
-				fname, lineno, 0 );
-			return( 1 );
-		}
-
 		/* start */
 		if ( strcasecmp( argv[ 1 ], "start" ) == 0 ) {
 			*flagsp |= ( LDAP_BACK_F_USE_TLS | LDAP_BACK_F_TLS_CRITICAL );
@@ -739,6 +732,26 @@ meta_back_db_config(
 		"%s: line %d: \"tls <what>\": unknown argument \"%s\".\n",
 				fname, lineno, argv[ 1 ] );
 			return( 1 );
+		}
+
+		if ( argc > 2 ) {
+			metatarget_t	*mt = NULL;
+			int 		i;
+
+			if ( mi->mi_ntargets - 1 < 0 ) {
+				Debug( LDAP_DEBUG_ANY,
+		"%s: line %d: need \"uri\" directive first\n",
+					fname, lineno, 0 );
+				return 1;
+			}
+
+			mt = mi->mi_targets[ mi->mi_ntargets - 1 ];
+
+			for ( i = 2; i < argc; i++ ) {
+				if ( bindconf_tls_parse( argv[i], &mt->mt_tls ))
+					return 1;
+			}
+			bindconf_tls_defaults( &mt->mt_tls );
 		}
 
 	} else if ( strcasecmp( argv[ 0 ], "t-f-support" ) == 0 ) {
