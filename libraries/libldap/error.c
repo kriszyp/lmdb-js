@@ -260,9 +260,7 @@ ldap_parse_result(
 	if(referralsp != NULL) *referralsp = NULL;
 	if(serverctrls != NULL) *serverctrls = NULL;
 
-#ifdef LDAP_R_COMPILE
-	ldap_pvt_thread_mutex_lock( &ld->ld_res_mutex );
-#endif
+	LDAP_MUTEX_LOCK( &ld->ld_res_mutex );
 	/* Find the result, last msg in chain... */
 	lm = r->lm_chain_tail;
 	/* FIXME: either this is not possible (assert?)
@@ -282,9 +280,7 @@ ldap_parse_result(
 
 	if( lm == NULL ) {
 		errcode = ld->ld_errno = LDAP_NO_RESULTS_RETURNED;
-#ifdef LDAP_R_COMPILE
-		ldap_pvt_thread_mutex_unlock( &ld->ld_res_mutex );
-#endif
+		LDAP_MUTEX_UNLOCK( &ld->ld_res_mutex );
 	    goto done;
 	}
 
@@ -390,10 +386,7 @@ ldap_parse_result(
 			*referralsp = ldap_value_dup( ld->ld_referrals );
 		}
 	}
-
-#ifdef LDAP_R_COMPILE
-	ldap_pvt_thread_mutex_unlock( &ld->ld_res_mutex );
-#endif
+	LDAP_MUTEX_UNLOCK( &ld->ld_res_mutex );
 
 done:
 	if ( freeit ) {

@@ -107,15 +107,9 @@ char *ldap_pvt_ctime( const time_t *tp, char *buf )
 
 #else
 
-# ifdef LDAP_R_COMPILE
-	ldap_pvt_thread_mutex_lock( &ldap_int_ctime_mutex );
-# endif
-
+	LDAP_MUTEX_LOCK( &ldap_int_ctime_mutex );
 	AC_MEMCPY( buf, ctime(tp), 26 );
-
-# ifdef LDAP_R_COMPILE
-	ldap_pvt_thread_mutex_unlock( &ldap_int_ctime_mutex );
-# endif
+	LDAP_MUTEX_UNLOCK( &ldap_int_ctime_mutex );
 
 	return buf;
 #endif	
@@ -128,7 +122,7 @@ ldap_pvt_gmtime_lock( void )
 # ifndef LDAP_R_COMPILE
 	return 0;
 # else /* LDAP_R_COMPILE */
-	return ldap_pvt_thread_mutex_lock( &ldap_int_gmtime_mutex );
+	return LDAP_MUTEX_LOCK( &ldap_int_gmtime_mutex );
 # endif /* LDAP_R_COMPILE */
 }
 
@@ -138,7 +132,7 @@ ldap_pvt_gmtime_unlock( void )
 # ifndef LDAP_R_COMPILE
 	return 0;
 # else /* LDAP_R_COMPILE */
-	return ldap_pvt_thread_mutex_unlock( &ldap_int_gmtime_mutex );
+	return LDAP_MUTEX_UNLOCK( &ldap_int_gmtime_mutex );
 # endif /* LDAP_R_COMPILE */
 }
 #endif /* !USE_GMTIME_R || !USE_LOCALTIME_R */
@@ -149,10 +143,7 @@ ldap_pvt_gmtime( const time_t *timep, struct tm *result )
 {
 	struct tm *tm_ptr;
 
-# ifdef LDAP_R_COMPILE
-	ldap_pvt_thread_mutex_lock( &ldap_int_gmtime_mutex );
-# endif /* LDAP_R_COMPILE */
-
+	LDAP_MUTEX_LOCK( &ldap_int_gmtime_mutex );
 	tm_ptr = gmtime( timep );
 	if ( tm_ptr == NULL ) {
 		result = NULL;
@@ -160,10 +151,7 @@ ldap_pvt_gmtime( const time_t *timep, struct tm *result )
 	} else {
 		*result = *tm_ptr;
 	}
-
-# ifdef LDAP_R_COMPILE
-	ldap_pvt_thread_mutex_unlock( &ldap_int_gmtime_mutex );
-# endif /* LDAP_R_COMPILE */
+	LDAP_MUTEX_UNLOCK( &ldap_int_gmtime_mutex );
 
 	return result;
 }
@@ -175,10 +163,7 @@ ldap_pvt_localtime( const time_t *timep, struct tm *result )
 {
 	struct tm *tm_ptr;
 
-# ifdef LDAP_R_COMPILE
-	ldap_pvt_thread_mutex_lock( &ldap_int_gmtime_mutex );
-# endif /* LDAP_R_COMPILE */
-
+	LDAP_MUTEX_LOCK( &ldap_int_gmtime_mutex );
 	tm_ptr = localtime( timep );
 	if ( tm_ptr == NULL ) {
 		result = NULL;
@@ -186,10 +171,7 @@ ldap_pvt_localtime( const time_t *timep, struct tm *result )
 	} else {
 		*result = *tm_ptr;
 	}
-
-# ifdef LDAP_R_COMPILE
-	ldap_pvt_thread_mutex_unlock( &ldap_int_gmtime_mutex );
-# endif /* LDAP_R_COMPILE */
+	LDAP_MUTEX_UNLOCK( &ldap_int_gmtime_mutex );
 
 	return result;
 }
@@ -385,7 +367,7 @@ int ldap_pvt_gethostbyname_a(
 	int	retval;
 	*buf = NULL;
 	
-	ldap_pvt_thread_mutex_lock( &ldap_int_resolv_mutex );
+	LDAP_MUTEX_LOCK( &ldap_int_resolv_mutex );
 	
 	he = gethostbyname( name );
 	
@@ -400,7 +382,7 @@ int ldap_pvt_gethostbyname_a(
 		retval = 0;
 	}
 	
-	ldap_pvt_thread_mutex_unlock( &ldap_int_resolv_mutex );
+	LDAP_MUTEX_UNLOCK( &ldap_int_resolv_mutex );
 	
 	return retval;
 #else	
@@ -444,13 +426,9 @@ int ldap_pvt_get_hname(
 	int rc;
 #if defined( HAVE_GETNAMEINFO )
 
-#if defined( LDAP_R_COMPILE )
-	ldap_pvt_thread_mutex_lock( &ldap_int_resolv_mutex );
-#endif
+	LDAP_MUTEX_LOCK( &ldap_int_resolv_mutex );
 	rc = getnameinfo( sa, len, name, namelen, NULL, 0, 0 );
-#if defined( LDAP_R_COMPILE )
-	ldap_pvt_thread_mutex_unlock( &ldap_int_resolv_mutex );
-#endif
+	LDAP_MUTEX_UNLOCK( &ldap_int_resolv_mutex );
 	if ( rc ) *err = (char *)AC_GAI_STRERROR( rc );
 	return rc;
 
@@ -514,9 +492,7 @@ int ldap_pvt_get_hname(
 	LDAP_FREE(buf);
 #else /* HAVE_GETHOSTBYADDR_R */
 
-#if defined( LDAP_R_COMPILE )
-	ldap_pvt_thread_mutex_lock( &ldap_int_resolv_mutex );
-#endif
+	LDAP_MUTEX_LOCK( &ldap_int_resolv_mutex );
 	hp = gethostbyaddr( addr, alen, sa->sa_family );
 	if (hp) {
 		strncpy( name, hp->h_name, namelen );
@@ -525,9 +501,7 @@ int ldap_pvt_get_hname(
 		rc = h_errno;
 		*err = (char *)HSTRERROR( h_errno );
 	}
-#if defined( LDAP_R_COMPILE )
-	ldap_pvt_thread_mutex_unlock( &ldap_int_resolv_mutex );
-#endif
+	LDAP_MUTEX_UNLOCK( &ldap_int_resolv_mutex );
 
 #endif	/* !HAVE_GETHOSTBYADDR_R */
 	return rc;
@@ -582,8 +556,7 @@ int ldap_pvt_gethostbyaddr_a(
 	int	retval;
 	*buf = NULL;   
 	
-	ldap_pvt_thread_mutex_lock( &ldap_int_resolv_mutex );
-	
+	LDAP_MUTEX_LOCK( &ldap_int_resolv_mutex );
 	he = gethostbyaddr( addr, len, type );
 	
 	if (he==NULL) {
@@ -596,8 +569,7 @@ int ldap_pvt_gethostbyaddr_a(
 		*result = resbuf;
 		retval = 0;
 	}
-	
-	ldap_pvt_thread_mutex_unlock( &ldap_int_resolv_mutex );
+	LDAP_MUTEX_UNLOCK( &ldap_int_resolv_mutex );
 	
 	return retval;
 

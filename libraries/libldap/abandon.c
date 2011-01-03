@@ -71,18 +71,14 @@ ldap_abandon_ext(
 	Debug( LDAP_DEBUG_TRACE, "ldap_abandon_ext %d\n", msgid, 0, 0 );
 
 	/* check client controls */
-#ifdef LDAP_R_COMPILE
-	ldap_pvt_thread_mutex_lock( &ld->ld_req_mutex );
-#endif
+	LDAP_MUTEX_LOCK( &ld->ld_req_mutex );
 
 	rc = ldap_int_client_controls( ld, cctrls );
 	if ( rc == LDAP_SUCCESS ) {
 		rc = do_abandon( ld, msgid, msgid, sctrls, 1 );
 	}
 
-#ifdef LDAP_R_COMPILE
-	ldap_pvt_thread_mutex_unlock( &ld->ld_req_mutex );
-#endif
+	LDAP_MUTEX_UNLOCK( &ld->ld_req_mutex );
 
 	return rc;
 }
@@ -115,16 +111,9 @@ ldap_pvt_discard(
 {
 	int	rc;
 
-#ifdef LDAP_R_COMPILE
-	ldap_pvt_thread_mutex_lock( &ld->ld_req_mutex );
-#endif
-
+	LDAP_MUTEX_LOCK( &ld->ld_req_mutex );
 	rc = do_abandon( ld, msgid, msgid, NULL, 0 );
-
-#ifdef LDAP_R_COMPILE
-	ldap_pvt_thread_mutex_unlock( &ld->ld_req_mutex );
-#endif
-
+	LDAP_MUTEX_UNLOCK( &ld->ld_req_mutex );
 	return rc;
 }
 
@@ -180,13 +169,9 @@ start_again:;
 	/* ldap_msgdelete locks the res_mutex. Give up the req_mutex
 	 * while we're in there.
 	 */
-#ifdef LDAP_R_COMPILE
-	ldap_pvt_thread_mutex_unlock( &ld->ld_req_mutex );
-#endif
+	LDAP_MUTEX_UNLOCK( &ld->ld_req_mutex );
 	err = ldap_msgdelete( ld, msgid );
-#ifdef LDAP_R_COMPILE
-	ldap_pvt_thread_mutex_lock( &ld->ld_req_mutex );
-#endif
+	LDAP_MUTEX_LOCK( &ld->ld_req_mutex );
 	if ( err == 0 ) {
 		ld->ld_errno = LDAP_SUCCESS;
 		return LDAP_SUCCESS;
@@ -302,12 +287,10 @@ start_again:;
 		}
 	}
 
-#ifdef LDAP_R_COMPILE
 	/* ld_abandoned is actually protected by the ld_res_mutex;
 	 * give up the ld_req_mutex and get the other */
-	ldap_pvt_thread_mutex_unlock( &ld->ld_req_mutex );
-	ldap_pvt_thread_mutex_lock( &ld->ld_res_mutex );
-#endif
+	LDAP_MUTEX_UNLOCK( &ld->ld_req_mutex );
+	LDAP_MUTEX_LOCK( &ld->ld_res_mutex );
 
 	/* use bisection */
 	i = 0;
@@ -321,10 +304,8 @@ start_again:;
 		ld->ld_errno = LDAP_SUCCESS;
 	}
 
-#ifdef LDAP_R_COMPILE
-	ldap_pvt_thread_mutex_unlock( &ld->ld_res_mutex );
-	ldap_pvt_thread_mutex_lock( &ld->ld_req_mutex );
-#endif
+	LDAP_MUTEX_UNLOCK( &ld->ld_res_mutex );
+	LDAP_MUTEX_LOCK( &ld->ld_req_mutex );
 	return( ld->ld_errno );
 }
 

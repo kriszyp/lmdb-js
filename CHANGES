@@ -47,6 +47,7 @@ OpenLDAP 2.4.24 Engineering
 	Fixed contrib/nssov multi platform support (ITS#6604)
 	Build Environment
 		Added support for [unsigned] long long (ITS#6622)
+		Fixed libldap mutex code - cleanup (ITS#6672)
 		Fixed slapd-tester EOF handling (ITS#6723)
 		Fixed slapd-tesster filter initialization (ITS#6735)
 		Removed antiquated SunOS LWP support (ITS#6669)
