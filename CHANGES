@@ -14,6 +14,7 @@ OpenLDAP 2.4.24 Engineering
 	Fixed liblutil getpass prompts (ITS#6702)
 	Fixed ldapsearch segfault with deref (ITS#6638)
 	Fixed slapd acl parsing overflow (ITS#6611)
+	Fixed slapd filter leak (ITS#6635)
 	Fixed slapd when first acl is value dependent (ITS#6693)
 	Fixed slapd modify to return actual error (ITS#6581)
 	Fixed slapd sortvals of attributes with 1 value (ITS#6715)
