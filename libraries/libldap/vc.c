@@ -134,8 +134,8 @@ ldap_verify_credentials(LDAP *ld,
 	if (mechanism == LDAP_SASL_SIMPLE) {
 		assert(!cookie);
 
-		rc = ber_printf(ber, "{istON}",
-			3, dn, LDAP_AUTH_SIMPLE, cred);
+		rc = ber_printf(ber, "{stON}",
+			dn, LDAP_AUTH_SIMPLE, cred);
 
 	} else {
 		if (!cred || BER_BVISNULL(cred)) {
