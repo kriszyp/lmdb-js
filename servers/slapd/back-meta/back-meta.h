@@ -27,6 +27,10 @@
 #ifndef SLAPD_META_H
 #define SLAPD_META_H
 
+#ifdef LDAP_DEVEL
+#define SLAPD_META_CLIENT_PR 1
+#endif /* LDAP_DEVEL */
+
 #include "proto-meta.h"
 
 /* String rewrite library */
@@ -335,6 +339,19 @@ typedef struct metatarget_t {
 	slap_mask_t		mt_rep_flags;
 
 	int			mt_version;
+
+#ifdef SLAPD_META_CLIENT_PR
+	/*
+	 * client-side paged results:
+	 * -1: accept unsolicited paged results responses
+	 *  0: off
+	 * >0: always request paged results with size == mt_ps
+	 */
+#define META_CLIENT_PR_DISABLE			(0)
+#define META_CLIENT_PR_ACCEPT_UNSOLICITED	(-1)
+	ber_int_t		mt_ps;
+#endif /* SLAPD_META_CLIENT_PR */
+
 	time_t			mt_network_timeout;
 	struct timeval		mt_bind_timeout;
 #define META_BIND_TIMEOUT	LDAP_BACK_RESULT_UTIMEOUT
@@ -411,6 +428,12 @@ typedef struct metainfo_t {
 #define META_BACK_QUARANTINE(mi)	LDAP_BACK_ISSET( (mi), LDAP_BACK_F_QUARANTINE )
 
 	int			mi_version;
+
+#ifdef SLAPD_META_CLIENT_PR
+	ber_int_t		mi_ps;
+#endif /* SLAPD_META_CLIENT_PR */
+
+
 	time_t			mi_network_timeout;
 	time_t			mi_conn_ttl;
 	time_t			mi_idle_timeout;
