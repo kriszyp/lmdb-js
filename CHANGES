@@ -18,6 +18,7 @@ OpenLDAP 2.4.24 Engineering
 	Fixed liblutil getpass prompts (ITS#6702)
 	Fixed ldapsearch segfault with deref (ITS#6638)
 	Fixed slapd acl parsing overflow (ITS#6611)
+	Fixed slapd support for BDB 5.0+ (ITS#6698)
 	Fixed slapd config leak with olcDbDirectory (ITS#6634)
 	Fixed slapd to free controls if needed (ITS#6629)
 	Fixed slapd filter leak (ITS#6635)

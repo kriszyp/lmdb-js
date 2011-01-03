@@ -20281,7 +20281,386 @@ $as_echo "$ol_cv_bdb_compat" >&6; }
 
 	ol_cv_lib_db=no
 
-if test $ol_cv_bdb_major = 4 ; then
+if test $ol_cv_bdb_major = 5 ; then
+	if test $ol_cv_lib_db = no ; then
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for Berkeley DB link (-ldb-5.$ol_cv_bdb_minor)" >&5
+$as_echo_n "checking for Berkeley DB link (-ldb-5.$ol_cv_bdb_minor)... " >&6; }
+if test "${ol_cv_db_db_5_dot_m+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+
+	ol_DB_LIB=-ldb-5.$ol_cv_bdb_minor
+	ol_LIBS=$LIBS
+	LIBS="$ol_DB_LIB $LTHREAD_LIBS $LIBS"
+
+	cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+#ifdef HAVE_DB_185_H
+# include <db_185.h>
+#else
+# include <db.h>
+#endif
+
+#ifndef DB_VERSION_MAJOR
+# define DB_VERSION_MAJOR 1
+#endif
+
+#ifndef NULL
+#define NULL ((void*)0)
+#endif
+
+int
+main ()
+{
+
+#if DB_VERSION_MAJOR > 2
+	db_env_create( NULL, 0 );
+#elif DB_VERSION_MAJOR > 1
+	db_appexit( NULL );
+#else
+	(void) dbopen( NULL, 0, 0, 0, NULL);
+#endif
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ol_cv_db_db_5_dot_m=yes
+else
+  ol_cv_db_db_5_dot_m=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+
+	LIBS="$ol_LIBS"
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ol_cv_db_db_5_dot_m" >&5
+$as_echo "$ol_cv_db_db_5_dot_m" >&6; }
+
+	if test $ol_cv_db_db_5_dot_m = yes ; then
+		ol_cv_lib_db=-ldb-5.$ol_cv_bdb_minor
+	fi
+fi
+
+	if test $ol_cv_lib_db = no ; then
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for Berkeley DB link (-ldb5$ol_cv_bdb_minor)" >&5
+$as_echo_n "checking for Berkeley DB link (-ldb5$ol_cv_bdb_minor)... " >&6; }
+if test "${ol_cv_db_db5m+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+
+	ol_DB_LIB=-ldb5$ol_cv_bdb_minor
+	ol_LIBS=$LIBS
+	LIBS="$ol_DB_LIB $LTHREAD_LIBS $LIBS"
+
+	cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+#ifdef HAVE_DB_185_H
+# include <db_185.h>
+#else
+# include <db.h>
+#endif
+
+#ifndef DB_VERSION_MAJOR
+# define DB_VERSION_MAJOR 1
+#endif
+
+#ifndef NULL
+#define NULL ((void*)0)
+#endif
+
+int
+main ()
+{
+
+#if DB_VERSION_MAJOR > 2
+	db_env_create( NULL, 0 );
+#elif DB_VERSION_MAJOR > 1
+	db_appexit( NULL );
+#else
+	(void) dbopen( NULL, 0, 0, 0, NULL);
+#endif
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ol_cv_db_db5m=yes
+else
+  ol_cv_db_db5m=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+
+	LIBS="$ol_LIBS"
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ol_cv_db_db5m" >&5
+$as_echo "$ol_cv_db_db5m" >&6; }
+
+	if test $ol_cv_db_db5m = yes ; then
+		ol_cv_lib_db=-ldb5$ol_cv_bdb_minor
+	fi
+fi
+
+	if test $ol_cv_lib_db = no ; then
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for Berkeley DB link (-ldb-5$ol_cv_bdb_minor)" >&5
+$as_echo_n "checking for Berkeley DB link (-ldb-5$ol_cv_bdb_minor)... " >&6; }
+if test "${ol_cv_db_db_5m+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+
+	ol_DB_LIB=-ldb-5$ol_cv_bdb_minor
+	ol_LIBS=$LIBS
+	LIBS="$ol_DB_LIB $LTHREAD_LIBS $LIBS"
+
+	cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+#ifdef HAVE_DB_185_H
+# include <db_185.h>
+#else
+# include <db.h>
+#endif
+
+#ifndef DB_VERSION_MAJOR
+# define DB_VERSION_MAJOR 1
+#endif
+
+#ifndef NULL
+#define NULL ((void*)0)
+#endif
+
+int
+main ()
+{
+
+#if DB_VERSION_MAJOR > 2
+	db_env_create( NULL, 0 );
+#elif DB_VERSION_MAJOR > 1
+	db_appexit( NULL );
+#else
+	(void) dbopen( NULL, 0, 0, 0, NULL);
+#endif
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ol_cv_db_db_5m=yes
+else
+  ol_cv_db_db_5m=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+
+	LIBS="$ol_LIBS"
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ol_cv_db_db_5m" >&5
+$as_echo "$ol_cv_db_db_5m" >&6; }
+
+	if test $ol_cv_db_db_5m = yes ; then
+		ol_cv_lib_db=-ldb-5$ol_cv_bdb_minor
+	fi
+fi
+
+	if test $ol_cv_lib_db = no ; then
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for Berkeley DB link (-ldb-5-$ol_cv_bdb_minor)" >&5
+$as_echo_n "checking for Berkeley DB link (-ldb-5-$ol_cv_bdb_minor)... " >&6; }
+if test "${ol_cv_db_db_5_m+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+
+	ol_DB_LIB=-ldb-5-$ol_cv_bdb_minor
+	ol_LIBS=$LIBS
+	LIBS="$ol_DB_LIB $LTHREAD_LIBS $LIBS"
+
+	cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+#ifdef HAVE_DB_185_H
+# include <db_185.h>
+#else
+# include <db.h>
+#endif
+
+#ifndef DB_VERSION_MAJOR
+# define DB_VERSION_MAJOR 1
+#endif
+
+#ifndef NULL
+#define NULL ((void*)0)
+#endif
+
+int
+main ()
+{
+
+#if DB_VERSION_MAJOR > 2
+	db_env_create( NULL, 0 );
+#elif DB_VERSION_MAJOR > 1
+	db_appexit( NULL );
+#else
+	(void) dbopen( NULL, 0, 0, 0, NULL);
+#endif
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ol_cv_db_db_5_m=yes
+else
+  ol_cv_db_db_5_m=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+
+	LIBS="$ol_LIBS"
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ol_cv_db_db_5_m" >&5
+$as_echo "$ol_cv_db_db_5_m" >&6; }
+
+	if test $ol_cv_db_db_5_m = yes ; then
+		ol_cv_lib_db=-ldb-5-$ol_cv_bdb_minor
+	fi
+fi
+
+	if test $ol_cv_lib_db = no ; then
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for Berkeley DB link (-ldb-5)" >&5
+$as_echo_n "checking for Berkeley DB link (-ldb-5)... " >&6; }
+if test "${ol_cv_db_db_5+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+
+	ol_DB_LIB=-ldb-5
+	ol_LIBS=$LIBS
+	LIBS="$ol_DB_LIB $LTHREAD_LIBS $LIBS"
+
+	cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+#ifdef HAVE_DB_185_H
+# include <db_185.h>
+#else
+# include <db.h>
+#endif
+
+#ifndef DB_VERSION_MAJOR
+# define DB_VERSION_MAJOR 1
+#endif
+
+#ifndef NULL
+#define NULL ((void*)0)
+#endif
+
+int
+main ()
+{
+
+#if DB_VERSION_MAJOR > 2
+	db_env_create( NULL, 0 );
+#elif DB_VERSION_MAJOR > 1
+	db_appexit( NULL );
+#else
+	(void) dbopen( NULL, 0, 0, 0, NULL);
+#endif
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ol_cv_db_db_5=yes
+else
+  ol_cv_db_db_5=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+
+	LIBS="$ol_LIBS"
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ol_cv_db_db_5" >&5
+$as_echo "$ol_cv_db_db_5" >&6; }
+
+	if test $ol_cv_db_db_5 = yes ; then
+		ol_cv_lib_db=-ldb-5
+	fi
+fi
+
+	if test $ol_cv_lib_db = no ; then
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for Berkeley DB link (-ldb5)" >&5
+$as_echo_n "checking for Berkeley DB link (-ldb5)... " >&6; }
+if test "${ol_cv_db_db5+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+
+	ol_DB_LIB=-ldb5
+	ol_LIBS=$LIBS
+	LIBS="$ol_DB_LIB $LTHREAD_LIBS $LIBS"
+
+	cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+#ifdef HAVE_DB_185_H
+# include <db_185.h>
+#else
+# include <db.h>
+#endif
+
+#ifndef DB_VERSION_MAJOR
+# define DB_VERSION_MAJOR 1
+#endif
+
+#ifndef NULL
+#define NULL ((void*)0)
+#endif
+
+int
+main ()
+{
+
+#if DB_VERSION_MAJOR > 2
+	db_env_create( NULL, 0 );
+#elif DB_VERSION_MAJOR > 1
+	db_appexit( NULL );
+#else
+	(void) dbopen( NULL, 0, 0, 0, NULL);
+#endif
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ol_cv_db_db5=yes
+else
+  ol_cv_db_db5=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+
+	LIBS="$ol_LIBS"
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ol_cv_db_db5" >&5
+$as_echo "$ol_cv_db_db5" >&6; }
+
+	if test $ol_cv_db_db5 = yes ; then
+		ol_cv_lib_db=-ldb5
+	fi
+fi
+
+elif test $ol_cv_bdb_major = 4 ; then
 	if test $ol_cv_lib_db = no ; then
 	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for Berkeley DB link (-ldb-4.$ol_cv_bdb_minor)" >&5
 $as_echo_n "checking for Berkeley DB link (-ldb-4.$ol_cv_bdb_minor)... " >&6; }
@@ -20660,7 +21039,8 @@ $as_echo "$ol_cv_db_db4" >&6; }
 	fi
 fi
 
-	if test $ol_cv_lib_db = no ; then
+fi
+if test $ol_cv_lib_db = no ; then
 	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for Berkeley DB link (-ldb)" >&5
 $as_echo_n "checking for Berkeley DB link (-ldb)... " >&6; }
 if test "${ol_cv_db_db+set}" = set; then :
@@ -20723,7 +21103,6 @@ $as_echo "$ol_cv_db_db" >&6; }
 	fi
 fi
 
-fi
 if test $ol_cv_lib_db = no ; then
 	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for Berkeley DB link (default)" >&5
 $as_echo_n "checking for Berkeley DB link (default)... " >&6; }
