@@ -1356,6 +1356,14 @@ error_return:;
 		rs->sr_flags &= ~REP_ENTRY_MUSTBEFREED;
 	}
 
+	if ( rs->sr_flags & REP_CTRLS_MUSTBEFREED ) {
+		rs->sr_flags ^= REP_CTRLS_MUSTBEFREED; /* paranoia */
+		if ( rs->sr_ctrls ) {
+			slap_free_ctrls( op, rs->sr_ctrls );
+			rs->sr_ctrls = NULL;
+		}
+	}
+
 	return( rc );
 }
 
@@ -1508,6 +1516,14 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 rel:
 	if ( op->o_callback ) {
 		(void)slap_cleanup_play( op, rs );
+	}
+
+	if ( rs->sr_flags & REP_CTRLS_MUSTBEFREED ) {
+		rs->sr_flags ^= REP_CTRLS_MUSTBEFREED; /* paranoia */
+		if ( rs->sr_ctrls ) {
+			slap_free_ctrls( op, rs->sr_ctrls );
+			rs->sr_ctrls = NULL;
+		}
 	}
 
 	return rc;
