@@ -23,6 +23,7 @@ OpenLDAP 2.4.24 Engineering
 	Fixed slapd to free controls if needed (ITS#6629)
 	Fixed slapd filter leak (ITS#6635)
 	Fixed slapd matching rules for strict ordering (ITS#6722)
+	Fixed slapd extensible match for ordering rules (ITS#6532)
 	Fixed slapd when first acl is value dependent (ITS#6693)
 	Fixed slapd modify to return actual error (ITS#6581)
 	Fixed slapd sortvals of attributes with 1 value (ITS#6715)
