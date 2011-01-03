@@ -49,6 +49,7 @@ OpenLDAP 2.4.24 Engineering
 		Added support for [unsigned] long long (ITS#6622)
 		Fixed slapd-tester EOF handling (ITS#6723)
 		Fixed slapd-tesster filter initialization (ITS#6735)
+		Removed antiquated SunOS LWP support (ITS#6669)
 	Documentation
 		admin24 guide typo fixes (ITS#6609)
 		ldap_open(3) document ldap_set_urllist_proc (ITS#6601)

@@ -1687,23 +1687,6 @@ case $ol_with_threads in auto | yes | lwp)
 			)
 		fi
 	fi
-
-	dnl check for SunOS4 LWP
-	AC_CHECK_HEADERS(lwp/lwp.h)
-	if test $ac_cv_header_lwp_lwp_h = yes ; then
-		AC_CHECK_LIB(lwp, lwp_create, [have_lwp=yes], [have_lwp=no])
-
-		if test $have_lwp = yes ; then
-			AC_DEFINE(HAVE_LWP,1,
-				[if you have SunOS LWP package])
-			LTHREAD_LIBS="$LTHREAD_LIBS -llwp"
-			ol_link_threads=lwp
-
-			if test $ol_with_yielding_select = auto ; then
-				ol_with_yielding_select=no
-			fi
-		fi
-	fi
 	;;
 esac
 
@@ -1723,7 +1706,6 @@ if test $ol_with_threads = manual ; then
 	OL_HEADER_LINUX_THREADS
 
 	AC_CHECK_HEADERS(mach/cthreads.h)
-	AC_CHECK_HEADERS(lwp/lwp.h)
 	AC_CHECK_HEADERS(thread.h synch.h)
 fi
 

@@ -32,10 +32,10 @@ XXSRCS    = apitest.c test.c \
 	turn.c ppolicy.c dds.c txn.c ldap_sync.c stctrl.c \
 	assertion.c deref.c
 SRCS	= threads.c rdwr.c rmutex.c tpool.c rq.c \
-	thr_posix.c thr_cthreads.c thr_thr.c thr_lwp.c thr_nt.c \
+	thr_posix.c thr_cthreads.c thr_thr.c thr_nt.c \
 	thr_pth.c thr_stub.c thr_debug.c
 OBJS	= threads.lo rdwr.lo rmutex.lo tpool.lo  rq.lo \
-	thr_posix.lo thr_cthreads.lo thr_thr.lo thr_lwp.lo thr_nt.lo \
+	thr_posix.lo thr_cthreads.lo thr_thr.lo thr_nt.lo \
 	thr_pth.lo thr_stub.lo thr_debug.lo \
 	bind.lo open.lo result.lo error.lo compare.lo search.lo \
 	controls.lo messages.lo references.lo extended.lo cyrus.lo \

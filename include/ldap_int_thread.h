@@ -145,31 +145,6 @@ typedef thread_key_t	ldap_int_thread_key_t;
 
 LDAP_END_DECL
 
-#elif defined( HAVE_LWP )
-/*************************************
- *                                   *
- * thread definitions for SunOS LWP  *
- *                                   *
- *************************************/
-
-#include <lwp/lwp.h>
-#include <lwp/stackdep.h>
-#define LDAP_THREAD_HAVE_SLEEP 1
-
-LDAP_BEGIN_DECL
-
-typedef thread_t		ldap_int_thread_t;
-typedef mon_t			ldap_int_thread_mutex_t;
-struct ldap_int_thread_lwp_cv {
-	int		lcv_created;
-	cv_t		lcv_cv;
-};
-typedef struct ldap_int_thread_lwp_cv ldap_int_thread_cond_t;
-
-#define HAVE_REENTRANT_FUNCTIONS 1
-
-LDAP_END_DECL
-
 #elif defined(HAVE_NT_THREADS)
 /*************************************
  *                                   *

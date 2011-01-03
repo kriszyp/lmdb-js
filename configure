@@ -19692,75 +19692,6 @@ done
 
 		fi
 	fi
-
-		for ac_header in lwp/lwp.h
-do :
-  ac_fn_c_check_header_mongrel "$LINENO" "lwp/lwp.h" "ac_cv_header_lwp_lwp_h" "$ac_includes_default"
-if test "x$ac_cv_header_lwp_lwp_h" = x""yes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LWP_LWP_H 1
-_ACEOF
-
-fi
-
-done
-
-	if test $ac_cv_header_lwp_lwp_h = yes ; then
-		{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for lwp_create in -llwp" >&5
-$as_echo_n "checking for lwp_create in -llwp... " >&6; }
-if test "${ac_cv_lib_lwp_lwp_create+set}" = set; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-llwp  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char lwp_create ();
-int
-main ()
-{
-return lwp_create ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_lwp_lwp_create=yes
-else
-  ac_cv_lib_lwp_lwp_create=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_lwp_lwp_create" >&5
-$as_echo "$ac_cv_lib_lwp_lwp_create" >&6; }
-if test "x$ac_cv_lib_lwp_lwp_create" = x""yes; then :
-  have_lwp=yes
-else
-  have_lwp=no
-fi
-
-
-		if test $have_lwp = yes ; then
-
-$as_echo "#define HAVE_LWP 1" >>confdefs.h
-
-			LTHREAD_LIBS="$LTHREAD_LIBS -llwp"
-			ol_link_threads=lwp
-
-			if test $ol_with_yielding_select = auto ; then
-				ol_with_yielding_select=no
-			fi
-		fi
-	fi
 	;;
 esac
 
@@ -19838,18 +19769,6 @@ do :
 if test "x$ac_cv_header_mach_cthreads_h" = x""yes; then :
   cat >>confdefs.h <<_ACEOF
 #define HAVE_MACH_CTHREADS_H 1
-_ACEOF
-
-fi
-
-done
-
-	for ac_header in lwp/lwp.h
-do :
-  ac_fn_c_check_header_mongrel "$LINENO" "lwp/lwp.h" "ac_cv_header_lwp_lwp_h" "$ac_includes_default"
-if test "x$ac_cv_header_lwp_lwp_h" = x""yes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LWP_LWP_H 1
 _ACEOF
 
 fi
