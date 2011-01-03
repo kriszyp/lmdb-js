@@ -108,7 +108,7 @@ usage( int tool, const char *progname )
 }
 
 static int
-parse_slapopt( void )
+parse_slapopt( int tool, int *mode )
 {
 	size_t	len = 0;
 	char	*p;
@@ -420,7 +420,7 @@ slap_tool_init(
 			break;
 
 		case 'o':
-			if ( parse_slapopt() ) {
+			if ( parse_slapopt( tool, &mode ) ) {
 				usage( tool, progname );
 			}
 			break;
@@ -453,11 +453,20 @@ slap_tool_init(
 			}
 			break;
 
-		case 's':	/* dump subtree */
-			if ( tool == SLAPADD )
+		case 's':
+			switch ( tool ) {
+			case SLAPADD:
+			case SLAPMODIFY:
+				/* no schema check */
 				mode |= SLAP_TOOL_NO_SCHEMA_CHECK;
-			else if ( tool == SLAPCAT || tool == SLAPSCHEMA )
+				break;
+
+			case SLAPCAT:
+			case SLAPSCHEMA:
+				/* dump subtree */
 				subtree = ch_strdup( optarg );
+				break;
+			}
 			break;
 
 		case 't':	/* turn on truncate */
