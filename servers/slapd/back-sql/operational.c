@@ -123,7 +123,7 @@ backsql_operational(
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_operational(): entry \"%s\"\n",
 			rs->sr_entry->e_nname.bv_val, 0, 0 );
 
-	for ( ap = &rs->sr_operational_attrs; *ap; ap = &(*ap)->a_next ) {
+	for ( ap = &rs->sr_entry->e_attrs; *ap; ap = &(*ap)->a_next ) {
 		if ( (*ap)->a_desc == slap_schema.si_ad_hasSubordinates ) {
 			get_conn--;
 			got[ BACKSQL_OP_HASSUBORDINATES ] = 1;
@@ -133,6 +133,27 @@ backsql_operational(
 			got[ BACKSQL_OP_ENTRYUUID ] = 1;
 
 		} else if ( (*ap)->a_desc == slap_schema.si_ad_entryCSN ) {
+			get_conn--;
+			got[ BACKSQL_OP_ENTRYCSN ] = 1;
+		}
+	}
+
+	for ( ap = &rs->sr_operational_attrs; *ap; ap = &(*ap)->a_next ) {
+		if ( !got[ BACKSQL_OP_HASSUBORDINATES ] &&
+			(*ap)->a_desc == slap_schema.si_ad_hasSubordinates )
+		{
+			get_conn--;
+			got[ BACKSQL_OP_HASSUBORDINATES ] = 1;
+
+		} else if ( !got[ BACKSQL_OP_ENTRYUUID ] && 
+			(*ap)->a_desc == slap_schema.si_ad_entryUUID )
+		{
+			get_conn--;
+			got[ BACKSQL_OP_ENTRYUUID ] = 1;
+
+		} else if ( !got[ BACKSQL_OP_ENTRYCSN ] &&
+			(*ap)->a_desc == slap_schema.si_ad_entryCSN )
+		{
 			get_conn--;
 			got[ BACKSQL_OP_ENTRYCSN ] = 1;
 		}
