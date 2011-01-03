@@ -48,7 +48,6 @@
  *		diagnosticMessage LDAPString,
  *		cookie [0] OCTET STRING OPTIONAL,
  *		serverSaslCreds [1] OCTET STRING OPTIONAL
- *		authzid [2] OCTET STRING OPTIONAL
  *	    controls [3] Controls OPTIONAL
  * }
  *
@@ -63,7 +62,6 @@ int ldap_parse_verify_credentials(
 	char ** diagmsg,
     struct berval **cookie,
 	struct berval **screds,
-	struct berval **authzid,
 	LDAPControl ***ctrls)
 {
 	int rc;
@@ -73,9 +71,8 @@ int ldap_parse_verify_credentials(
 	assert(ld != NULL);
 	assert(LDAP_VALID(ld));
 	assert(res != NULL);
-	assert(authzid != NULL);
-
-	*authzid = NULL;
+	assert(code != NULL);
+	assert(diagmsg != NULL);
 
 	rc = ldap_parse_extended_result(ld, res, &retoid, &retdata, 0);
 
@@ -106,10 +103,6 @@ int ldap_parse_verify_credentials(
 		if (tag == LDAP_TAG_EXOP_VERIFY_CREDENTIALS_SCREDS) {
 			ber_scanf(ber, "O", screds);
 		    tag = ber_peek_tag(ber, &len);
-		}
-
-		if (tag == LDAP_TAG_EXOP_VERIFY_CREDENTIALS_AUTHZID) {
-			ber_scanf(ber, "O", authzid);
 		}
 
 		if (tag == LDAP_TAG_EXOP_VERIFY_CREDENTIALS_CONTROLS) {
@@ -284,7 +277,6 @@ ldap_verify_credentials_s(
 	char 			**diagmsg,
 	struct berval	**scookie,
 	struct berval	**scred,
-	struct berval	**authzid,
     LDAPControl		***vcoctrls)
 {
 	int				rc;
@@ -298,7 +290,7 @@ ldap_verify_credentials_s(
 		return ld->ld_errno;
 	}
 
-	rc = ldap_parse_verify_credentials(ld, res, rcode, diagmsg, scookie, scred, authzid, vcoctrls);
+	rc = ldap_parse_verify_credentials(ld, res, rcode, diagmsg, scookie, scred, vcoctrls);
 	if (rc != LDAP_SUCCESS) {
 		ldap_msgfree(res);
 		return rc;

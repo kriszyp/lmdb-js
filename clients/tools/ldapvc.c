@@ -125,7 +125,6 @@ main( int argc, char *argv[] )
 	char * diag = NULL;
 	struct berval	*scookie = NULL;
 	struct berval	*scred = NULL;
-	struct berval	*authzid = NULL;
 	int		id, code = 0;
 	LDAPMessage	*res;
 	LDAPControl	**ctrls = NULL;
@@ -222,7 +221,7 @@ main( int argc, char *argv[] )
 		goto skip;
 	}
 
-	rc = ldap_parse_verify_credentials( ld, res, &rcode, &diag, &scookie, &scred, &authzid, NULL );
+	rc = ldap_parse_verify_credentials( ld, res, &rcode, &diag, &scookie, &scred, NULL );
 	ldap_msgfree(res);
 
 	if( rc != LDAP_SUCCESS ) {
@@ -233,14 +232,6 @@ main( int argc, char *argv[] )
 
 	if (!rcode) {
 		printf(_("Failed: %s (%d)\n"), ldap_err2string(rcode), rcode);
-    } else {
-	    if( authzid != NULL ) {
-	    	if( authzid->bv_len == 0 ) {
-	    		printf(_("anonymous\n") );
-	    	} else {
-	    		printf("%s\n", authzid->bv_val );
-	    	}
-	    }
 	}
 
 	if (diag && *diag) {
@@ -281,7 +272,7 @@ skip:
 	ber_memvfree( (void **) refs );
 	ber_bvfree( scookie );
 	ber_bvfree( scred );
-	ber_bvfree( authzid );
+	ber_memfree( diag );
 
 	/* disconnect from server */
 	tool_unbind( ld );

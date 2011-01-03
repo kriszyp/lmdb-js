@@ -390,7 +390,6 @@ typedef struct ldapcontrol {
 
 #define LDAP_TAG_EXOP_VERIFY_CREDENTIALS_COOKIE	 ((ber_tag_t) 0x80U)
 #define LDAP_TAG_EXOP_VERIFY_CREDENTIALS_SCREDS	 ((ber_tag_t) 0x81U)
-#define LDAP_TAG_EXOP_VERIFY_CREDENTIALS_AUTHZID ((ber_tag_t) 0x82U)
 #define LDAP_TAG_EXOP_VERIFY_CREDENTIALS_CONTROLS ((ber_tag_t) 0xa3U) /* context specific + constructed + 3 */
 
 #define LDAP_EXOP_WHO_AM_I		"1.3.6.1.4.1.4203.1.11.3"		/* RFC 4532 */
@@ -2253,7 +2252,6 @@ ldap_verify_credentials_s LDAP_P((
 	char			**diagmsgp,
 	struct berval	**scookie,
 	struct berval	**servercredp,
-	struct berval	**authzid,
 	LDAPControl	***vcoctrls));
 	
 
@@ -2265,7 +2263,6 @@ ldap_parse_verify_credentials LDAP_P((
 	char			**diagmsgp,
 	struct berval	**cookie,
 	struct berval	**servercredp,
-	struct berval	**authzid,
 	LDAPControl	***vcctrls));
 
 /*
