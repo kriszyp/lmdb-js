@@ -399,6 +399,8 @@ ldap_chain_op(
 	slap_overinst	*on = (slap_overinst *) op->o_bd->bd_info;
 	ldap_chain_cb_t	*lb = (ldap_chain_cb_t *)op->o_callback->sc_private;
 	ldap_chain_t	*lc = (ldap_chain_t *)on->on_bi.bi_private;
+	struct berval	odn = op->o_req_dn,
+			ondn = op->o_req_ndn;
 	ldapinfo_t	li = { 0 }, *lip = NULL;
 	struct berval	bvuri[ 2 ] = { { 0 } };
 
@@ -419,11 +421,9 @@ ldap_chain_op(
 		LDAPURLDesc	*srv = NULL;
 		req_search_s	save_oq_search = op->oq_search,
 				tmp_oq_search = { 0 };
-		struct berval	save_req_dn = op->o_req_dn,
-				save_req_ndn = op->o_req_ndn,
-				dn = BER_BVNULL,
-				pdn = BER_BVNULL,
-				ndn = BER_BVNULL;
+		struct berval	dn = BER_BVNULL,
+				pdn = odn,
+				ndn = ondn;
 		char		*filter = NULL;
 		int		temporary = 0;
 		int		free_dn = 0;
@@ -474,9 +474,6 @@ Document: RFC 4511
 			if ( srv->lud_dn == NULL ) {
 				srv->lud_dn = "";
 			}
-
-			pdn = save_req_dn;
-			ndn = save_req_ndn;
 
 		} else {
 			ber_str2bv( srv->lud_dn, 0, 0, &dn );
@@ -611,8 +608,6 @@ further_cleanup:;
 			op->o_tmpfree( pdn.bv_val, op->o_tmpmemctx );
 			op->o_tmpfree( ndn.bv_val, op->o_tmpmemctx );
 		}
-		op->o_req_dn = save_req_dn;
-		op->o_req_ndn = save_req_ndn;
 	
 		if ( op->o_tag == LDAP_REQ_SEARCH ) {	
 			if ( tmp_oq_search.rs_filter != NULL ) {
@@ -633,6 +628,9 @@ further_cleanup:;
 
 		rc = rs2.sr_err;
 	}
+
+	op->o_req_dn = odn;
+	op->o_req_ndn = ondn;
 
 #ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
 	(void)chaining_control_remove( op, &ctrls );
@@ -661,7 +659,6 @@ ldap_chain_search(
 
 	struct berval	odn = op->o_req_dn,
 			ondn = op->o_req_ndn;
-	slap_response	*save_response = op->o_callback->sc_response;
 	Entry		*save_entry = rs->sr_entry;
 	slap_mask_t	save_flags = rs->sr_flags;
 
@@ -678,8 +675,6 @@ ldap_chain_search(
 
 	rs->sr_type = REP_SEARCH;
 
-	op->o_callback->sc_response = ldap_chain_cb_search_response;
-
 	/* if we parse the URI then by no means 
 	 * we can cache stuff or reuse connections, 
 	 * because in back-ldap there's no caching
@@ -691,11 +686,9 @@ ldap_chain_search(
 		LDAPURLDesc	*srv;
 		req_search_s	save_oq_search = op->oq_search,
 				tmp_oq_search = { 0 };
-		struct berval	save_req_dn = op->o_req_dn,
-				save_req_ndn = op->o_req_ndn,
-				dn,
-				pdn = BER_BVNULL,
-				ndn = BER_BVNULL;
+		struct berval	dn,
+				pdn = op->o_req_dn,
+				ndn = op->o_req_ndn;
 		char		*filter = NULL;
 		int		temporary = 0;
 		int		free_dn = 0;
@@ -729,16 +722,11 @@ ldap_chain_search(
 				srv->lud_dn = "";
 			}
 
-			/* RFC 4511: if DN is absent, use original */
-			if ( save_entry == NULL ) {
-				pdn = save_req_dn;
-				ndn = save_req_ndn;
-
-			} else {
+			if ( save_entry != NULL ) {
 				/* use the "right" DN, if available */
 				pdn = save_entry->e_name;
 				ndn = save_entry->e_nname;
-			}
+			} /* else leave the original req DN in place, if any RFC 4511 */
 			
 		} else {
 			/* RFC 4511: if DN is present, use it */
@@ -749,6 +737,7 @@ ldap_chain_search(
 				 * ldap_initialize() will parse the URL 
 				 * as a comma-separated URL list */
 				srv->lud_dn = "";
+				free_dn = 1;
 			}
 		}
 
@@ -866,8 +855,8 @@ further_cleanup:;
 			op->o_tmpfree( ndn.bv_val, op->o_tmpmemctx );
 		}
 
-		op->o_req_dn = save_req_dn;
-		op->o_req_ndn = save_req_ndn;
+		op->o_req_dn = odn;
+		op->o_req_ndn = ondn;
 
 		if ( tmp_oq_search.rs_filter != NULL ) {
 			filter_free_x( op, tmp_oq_search.rs_filter, 1 );
@@ -893,7 +882,6 @@ further_cleanup:;
 
 	op->o_req_dn = odn;
 	op->o_req_ndn = ondn;
-	op->o_callback->sc_response = save_response;
 	rs->sr_type = REP_SEARCHREF;
 	rs->sr_entry = save_entry;
 	rs->sr_flags = save_flags;
@@ -1038,6 +1026,7 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 
 	case LDAP_REQ_SEARCH:
 		if ( rs->sr_type == REP_SEARCHREF ) {
+			sc2.sc_response = ldap_chain_cb_search_response;
 			rc = ldap_chain_search( op, rs, ref, 0 );
 			
 		} else {
