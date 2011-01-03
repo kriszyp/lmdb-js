@@ -14,6 +14,78 @@
  * <http://www.OpenLDAP.org/license.html>.
  */
 
+/*
+ * Syntaxes - implementation notes:
+ *
+ * Validate function(syntax, value):
+ *   Called before the other functions here to check if the value
+ *   is valid according to the syntax.
+ *
+ * Pretty function(syntax, input value, output prettified...):
+ *   If it exists, maps different notations of the same value to a
+ *   unique representation which can be stored in the directory and
+ *   possibly be passed to the Match/Indexer/Filter() functions.
+ *
+ *   E.g. DN "2.5.4.3 = foo\,bar, o = BAZ" -> "cn=foo\2Cbar,o=BAZ",
+ *   but unlike DN normalization, "BAZ" is not mapped to "baz".
+ */
+
+/*
+ * Matching rules - implementation notes:
+ *
+ * Matching rules match an attribute value (often from the directory)
+ * against an asserted value (e.g. from a filter).
+ *
+ * Invoked with validated and commonly pretty/normalized arguments, thus
+ * a number of matching rules can simply use the octetString functions.
+ *
+ * Normalize function(...input value, output normalized...):
+ *   If it exists, maps matching values to a unique representation
+ *   which is passed to the Match/Indexer/Filter() functions.
+ *
+ *   Different matching rules can normalize values of the same syntax
+ *   differently.  E.g. caseIgnore rules normalize to lowercase,
+ *   caseExact rules do not.
+ *
+ * Match function(*output matchp, ...value, asserted value):
+ *   On success, set *matchp.  0 means match.  For ORDERING/most EQUALITY,
+ *   less/greater than 0 means value less/greater than asserted.  However:
+ *
+ *   In extensible match filters, ORDERING rules match if value<asserted.
+ *
+ *   EQUALITY rules may order values differently than ORDERING rules for
+ *   speed, since EQUALITY ordering is only used for SLAP_AT_SORTED_VAL.
+ *   Some EQUALITY rules do not order values (ITS#6722).
+ *
+ * Indexer function(...attribute values, *output keysp,...):
+ *   Generates index keys for the attribute values.  Backends can store
+ *   them in an index, a {key->entry ID set} mapping, for the attribute.
+ *
+ *   A search can look up the DN/scope and asserted values in the
+ *   indexes, if any, to narrow down the number of entires to check
+ *   against the search criteria.
+ *
+ * Filter function(...asserted value, *output keysp,...):
+ *   Generates index key(s) for the asserted value, to be looked up in
+ *   the index from the Indexer function.  *keysp is an array because
+ *   substring matching rules can generate multiple lookup keys.
+ *
+ * Index keys:
+ *   A key is usually a hash of match type, attribute value and schema
+ *   info, because one index can contain keys for many filtering types.
+ *
+ *   Some indexes instead have EQUALITY keys ordered so that if
+ *   key(val1) < key(val2), then val1 < val2 by the ORDERING rule.
+ *   That way the ORDERING rule can use the EQUALITY index.
+ *
+ * Substring indexing:
+ *   This chops the attribute values up in small chunks and indexes all
+ *   possible chunks of certain sizes.  Substring filtering looks up
+ *   SOME of the asserted value's chunks, and the caller uses the
+ *   intersection of the resulting entry ID sets.
+ *   See the index_substr_* keywords in slapd.conf(5).
+ */
+
 #include "portable.h"
 
 #include <stdio.h>
@@ -487,6 +559,7 @@ octetStringMatch(
 	struct berval *asserted = (struct berval *) assertedValue;
 	ber_slen_t d = (ber_slen_t) value->bv_len - (ber_slen_t) asserted->bv_len;
 
+	/* For speed, order first by length, then by contents */
 	*matchp = d ? (sizeof(d) == sizeof(int) ? d : d < 0 ? -1 : 1)
 		: memcmp( value->bv_val, asserted->bv_val, value->bv_len );
 
@@ -514,6 +587,7 @@ octetStringOrderingMatch(
 			? (int) v_len - (int) av_len
 			: v_len < av_len ? -1 : v_len > av_len;
 
+	/* If used in extensible match filter, match if value < asserted */
 	if ( flags & SLAP_MR_EXT )
 		match = (match >= 0);
 
@@ -521,6 +595,7 @@ octetStringOrderingMatch(
 	return LDAP_SUCCESS;
 }
 
+/* Initialize HASHcontext from match type and schema info */
 static void
 hashPreset(
 	HASH_CONTEXT *HASHcontext,
@@ -540,6 +615,7 @@ hashPreset(
 	return;
 }
 
+/* Set HASHdigest from HASHcontext and value:len */
 static void
 hashIter(
 	HASH_CONTEXT *HASHcontext,
@@ -552,7 +628,7 @@ hashIter(
 	HASH_Final( HASHdigest, &ctx );
 }
 
-/* Index generation function */
+/* Index generation function: Attribute values -> index hash keys */
 int octetStringIndexer(
 	slap_mask_t use,
 	slap_mask_t flags,
@@ -598,7 +674,7 @@ int octetStringIndexer(
 	return LDAP_SUCCESS;
 }
 
-/* Index generation function */
+/* Index generation function: Asserted value -> index hash key */
 int octetStringFilter(
 	slap_mask_t use,
 	slap_mask_t flags,
@@ -759,7 +835,7 @@ done:
 	return LDAP_SUCCESS;
 }
 
-/* Substrings Index generation function */
+/* Substring index generation function: Attribute values -> index hash keys */
 static int
 octetStringSubstringsIndexer(
 	slap_mask_t use,
@@ -879,6 +955,7 @@ octetStringSubstringsIndexer(
 	return LDAP_SUCCESS;
 }
 
+/* Substring index generation function: Assertion value -> index hash keys */
 static int
 octetStringSubstringsFilter (
 	slap_mask_t use,
@@ -2416,6 +2493,7 @@ integerMatch(
 		if( vsign < 0 ) match = -match;
 	}
 
+	/* Ordering rule used in extensible match filter? */
 	if ( (flags & SLAP_MR_EXT) && (mr->smr_usage & SLAP_MR_ORDERING) )
 		match = (match >= 0);
 
@@ -2434,11 +2512,11 @@ integerVal2Key(
 	struct berval *tmp,
 	void *ctx )
 {
-	/* index format:
-	 * only if too large: one's complement <sign*exponent (chopped bytes)>,
+	/* Integer index key format, designed for memcmp to collate correctly:
+	 * if too large: one's complement sign*<approx exponent=chopped bytes>,
 	 * two's complement value (sign-extended or chopped as needed),
-	 * however the top <number of exponent-bytes + 1> bits of first byte
-	 * above is the inverse sign.   The next bit is the sign as delimiter.
+	 * however in first byte above, the top <number of exponent-bytes + 1>
+	 * bits are the inverse sign and next bit is the sign as delimiter.
 	 */
 	ber_slen_t k = index_intlen_strlen;
 	ber_len_t chop = 0;
@@ -2473,6 +2551,7 @@ integerVal2Key(
 		assert( chop == 0 );
 		memset( key->bv_val, neg, k );	/* sign-extend */
 	} else if ( k != 0 || ((itmp.bv_val[0] ^ neg) & 0xc0) ) {
+		/* Got exponent -k, or no room for 2 sign bits */
 		lenp = lenbuf + sizeof(lenbuf);
 		chop = - (ber_len_t) k;
 		do {
@@ -2480,7 +2559,7 @@ integerVal2Key(
 			signmask >>= 1;
 		} while ( (chop >>= 8) != 0 || (signmask >> 1) & (*lenp ^ neg) );
 		/* With n bytes in lenbuf, the top n+1 bits of (signmask&0xff)
-		 * are 1, and the top n+2 bits of lenp[] are the sign bit. */
+		 * are 1, and the top n+2 bits of lenp[0] are the sign bit. */
 		k = (lenbuf + sizeof(lenbuf)) - lenp;
 		if ( k > (ber_slen_t) index_intlen )
 			k = index_intlen;
@@ -2492,7 +2571,7 @@ integerVal2Key(
 	return 0;
 }
 
-/* Index generation function */
+/* Index generation function: Ordered index */
 static int
 integerIndexer(
 	slap_mask_t use,
@@ -2558,7 +2637,7 @@ func_leave:
 	return rc;
 }
 
-/* Index generation function */
+/* Index generation function: Ordered index */
 static int
 integerFilter(
 	slap_mask_t use,
@@ -5623,6 +5702,7 @@ generalizedTimeOrderingMatch(
 		(v_len < av_len ? v_len : av_len) - 1 );
 	if ( match == 0 ) match = v_len - av_len;
 
+	/* If used in extensible match filter, match if value < asserted */
 	if ( flags & SLAP_MR_EXT )
 		match = (match >= 0);
 
@@ -5630,7 +5710,7 @@ generalizedTimeOrderingMatch(
 	return LDAP_SUCCESS;
 }
 
-/* Index generation function */
+/* Index generation function: Ordered index */
 int generalizedTimeIndexer(
 	slap_mask_t use,
 	slap_mask_t flags,
@@ -5686,7 +5766,7 @@ int generalizedTimeIndexer(
 	return LDAP_SUCCESS;
 }
 
-/* Index generation function */
+/* Index generation function: Ordered index */
 int generalizedTimeFilter(
 	slap_mask_t use,
 	slap_mask_t flags,
@@ -6020,9 +6100,9 @@ firstComponentNormalize(
 }
 
 static char *country_gen_syn[] = {
-	"1.3.6.1.4.1.1466.115.121.1.15",
-	"1.3.6.1.4.1.1466.115.121.1.26",
-	"1.3.6.1.4.1.1466.115.121.1.44",
+	"1.3.6.1.4.1.1466.115.121.1.15",	/* Directory String */
+	"1.3.6.1.4.1.1466.115.121.1.26",	/* IA5 String */
+	"1.3.6.1.4.1.1466.115.121.1.44",	/* Printable String */
 	NULL
 };
 
@@ -6369,21 +6449,21 @@ static slap_mrule_defs_rec mrule_defs[] = {
 
 #ifdef LDAP_COMP_MATCH
 	{"( 1.2.36.79672281.1.13.2 NAME 'componentFilterMatch' "
-		"SYNTAX 1.2.36.79672281.1.5.2 )",
+		"SYNTAX 1.2.36.79672281.1.5.2 )", /* componentFilterMatch assertion */
 		SLAP_MR_EXT|SLAP_MR_COMPONENT, componentFilterMatchSyntaxes,
 		NULL, NULL , componentFilterMatch,
 		octetStringIndexer, octetStringFilter,
 		NULL },
 
         {"( 1.2.36.79672281.1.13.6 NAME 'allComponentsMatch' "
-                "SYNTAX 1.2.36.79672281.1.5.3 )",
+                "SYNTAX 1.2.36.79672281.1.5.3 )", /* allComponents */
                 SLAP_MR_EQUALITY|SLAP_MR_EXT|SLAP_MR_COMPONENT, NULL,
                 NULL, NULL , allComponentsMatch,
                 octetStringIndexer, octetStringFilter,
                 NULL },
 
         {"( 1.2.36.79672281.1.13.7 NAME 'directoryComponentsMatch' "
-                "SYNTAX 1.2.36.79672281.1.5.3 )",
+                "SYNTAX 1.2.36.79672281.1.5.3 )", /* allComponents */
                 SLAP_MR_EQUALITY|SLAP_MR_EXT|SLAP_MR_COMPONENT, NULL,
                 NULL, NULL , directoryComponentsMatch,
                 octetStringIndexer, octetStringFilter,
@@ -6405,7 +6485,7 @@ static slap_mrule_defs_rec mrule_defs[] = {
 		"caseIgnoreMatch" },
 
 	{"( 2.5.13.4 NAME 'caseIgnoreSubstringsMatch' "
-		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )",
+		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )", /* Substring Assertion */
 		SLAP_MR_SUBSTR, directoryStringSyntaxes,
 		NULL, UTF8StringNormalize, directoryStringSubstringsMatch,
 		octetStringSubstringsIndexer, octetStringSubstringsFilter,
@@ -6426,7 +6506,7 @@ static slap_mrule_defs_rec mrule_defs[] = {
 		"caseExactMatch" },
 
 	{"( 2.5.13.7 NAME 'caseExactSubstringsMatch' "
-		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )",
+		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )", /* Substring Assertion */
 		SLAP_MR_SUBSTR, directoryStringSyntaxes,
 		NULL, UTF8StringNormalize, directoryStringSubstringsMatch,
 		octetStringSubstringsIndexer, octetStringSubstringsFilter,
@@ -6447,21 +6527,21 @@ static slap_mrule_defs_rec mrule_defs[] = {
 		"numericStringMatch" },
 
 	{"( 2.5.13.10 NAME 'numericStringSubstringsMatch' "
-		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )",
+		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )", /* Substring Assertion */
 		SLAP_MR_SUBSTR, NULL,
 		NULL, numericStringNormalize, octetStringSubstringsMatch,
 		octetStringSubstringsIndexer, octetStringSubstringsFilter,
 		"numericStringMatch" },
 
 	{"( 2.5.13.11 NAME 'caseIgnoreListMatch' "
-		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.41 )",
+		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.41 )", /* Postal Address */
 		SLAP_MR_EQUALITY | SLAP_MR_EXT, NULL,
 		NULL, postalAddressNormalize, octetStringMatch,
 		octetStringIndexer, octetStringFilter,
 		NULL },
 
 	{"( 2.5.13.12 NAME 'caseIgnoreListSubstringsMatch' "
-		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )",
+		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )", /* Substring Assertion */
 		SLAP_MR_SUBSTR, NULL,
 		NULL, NULL, NULL, NULL, NULL,
 		"caseIgnoreListMatch" },
@@ -6524,7 +6604,7 @@ static slap_mrule_defs_rec mrule_defs[] = {
 		NULL },
 
 	{"( 2.5.13.21 NAME 'telephoneNumberSubstringsMatch' "
-		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )",
+		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )", /* Substring Assertion */
 		SLAP_MR_SUBSTR, NULL,
 		NULL, telephoneNumberNormalize, octetStringSubstringsMatch,
 		octetStringSubstringsIndexer, octetStringSubstringsFilter,
@@ -6536,7 +6616,7 @@ static slap_mrule_defs_rec mrule_defs[] = {
 		NULL, NULL, NULL, NULL, NULL, NULL },
 
 	{"( 2.5.13.23 NAME 'uniqueMemberMatch' "
-		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.34 )",
+		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.34 )", /* Name And Optional UID */
 		SLAP_MR_EQUALITY | SLAP_MR_EXT, NULL,
 		NULL, uniqueMemberNormalize, uniqueMemberMatch,
 		uniqueMemberIndexer, uniqueMemberFilter,
@@ -6562,7 +6642,7 @@ static slap_mrule_defs_rec mrule_defs[] = {
 		"generalizedTimeMatch" },
 
 	{"( 2.5.13.29 NAME 'integerFirstComponentMatch' "
-		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 )",
+		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 )", /* Integer */
 		SLAP_MR_EQUALITY | SLAP_MR_EXT,
 			integerFirstComponentMatchSyntaxes,
 		NULL, firstComponentNormalize, integerMatch,
@@ -6570,7 +6650,7 @@ static slap_mrule_defs_rec mrule_defs[] = {
 		NULL },
 
 	{"( 2.5.13.30 NAME 'objectIdentifierFirstComponentMatch' "
-		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.38 )",
+		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.38 )", /* OID */
 		SLAP_MR_EQUALITY | SLAP_MR_EXT,
 			objectIdentifierFirstComponentMatchSyntaxes,
 		NULL, firstComponentNormalize, octetStringMatch,
@@ -6578,27 +6658,27 @@ static slap_mrule_defs_rec mrule_defs[] = {
 		NULL },
 
 	{"( 2.5.13.34 NAME 'certificateExactMatch' "
-		"SYNTAX 1.3.6.1.1.15.1 )",
+		"SYNTAX 1.3.6.1.1.15.1 )", /* Certificate Exact Assertion */
 		SLAP_MR_EQUALITY | SLAP_MR_EXT, certificateExactMatchSyntaxes,
 		NULL, certificateExactNormalize, octetStringMatch,
 		octetStringIndexer, octetStringFilter,
 		NULL },
 
 	{"( 2.5.13.35 NAME 'certificateMatch' "
-		"SYNTAX 1.3.6.1.1.15.2 )",
+		"SYNTAX 1.3.6.1.1.15.2 )", /* Certificate Assertion */
 		SLAP_MR_EQUALITY | SLAP_MR_EXT, NULL,
 		NULL, NULL, NULL, NULL, NULL,
 		NULL },
 
 	{"( 2.5.13.38 NAME 'certificateListExactMatch' "
-		"SYNTAX 1.3.6.1.1.15.5 )",
+		"SYNTAX 1.3.6.1.1.15.5 )", /* Certificate List Exact Assertion */
 		SLAP_MR_EQUALITY | SLAP_MR_EXT, certificateListExactMatchSyntaxes,
 		NULL, certificateListExactNormalize, octetStringMatch,
 		octetStringIndexer, octetStringFilter,
 		NULL },
 
 	{"( 2.5.13.39 NAME 'certificateListMatch' "
-		"SYNTAX 1.3.6.1.1.15.6 )",
+		"SYNTAX 1.3.6.1.1.15.6 )", /* Certificate List Assertion */
 		SLAP_MR_EQUALITY | SLAP_MR_EXT, NULL,
 		NULL, NULL, NULL, NULL, NULL,
 		NULL },
@@ -6647,7 +6727,7 @@ static slap_mrule_defs_rec mrule_defs[] = {
 #ifdef SLAPD_AUTHPASSWD
 	/* needs updating */
 	{"( 1.3.6.1.4.1.4203.666.4.1 NAME 'authPasswordMatch' "
-		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.40 )",
+		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.40 )", /* Octet String */
 		SLAP_MR_HIDE | SLAP_MR_EQUALITY, NULL,
 		NULL, NULL, authPasswordMatch,
 		NULL, NULL,
@@ -6655,14 +6735,14 @@ static slap_mrule_defs_rec mrule_defs[] = {
 #endif
 
 	{"( 1.2.840.113556.1.4.803 NAME 'integerBitAndMatch' "
-		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 )",
+		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 )", /* Integer */
 		SLAP_MR_EXT, NULL,
 		NULL, NULL, integerBitAndMatch,
 		NULL, NULL,
 		"integerMatch" },
 
 	{"( 1.2.840.113556.1.4.804 NAME 'integerBitOrMatch' "
-		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 )",
+		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 )", /* Integer */
 		SLAP_MR_EXT, NULL,
 		NULL, NULL, integerBitOrMatch,
 		NULL, NULL,
@@ -6705,7 +6785,7 @@ static slap_mrule_defs_rec mrule_defs[] = {
 
 	/* FIXME: OID is unused, but not registered yet */
 	{"( 1.3.6.1.4.1.4203.666.4.12 NAME 'authzMatch' "
-		"SYNTAX 1.3.6.1.4.1.4203.666.2.7 )",
+		"SYNTAX 1.3.6.1.4.1.4203.666.2.7 )", /* OpenLDAP authz */
 		SLAP_MR_HIDE | SLAP_MR_EQUALITY, NULL,
 		NULL, authzNormalize, authzMatch,
 		NULL, NULL,
