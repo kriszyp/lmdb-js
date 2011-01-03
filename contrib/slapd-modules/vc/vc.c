@@ -79,15 +79,11 @@ vc_create_response(
 
 	assert( val != NULL );
 
-	BER_BVZERO( *val );
+	*val = NULL;
 
 	ber_init2( ber, NULL, LBER_USE_DER );
 
-#ifdef TODO
 	(void)ber_printf( ber, "{is" /*}*/ , resultCode, diagnosticMessage ? diagnosticMessage : "" );
-#else
-	(void)ber_printf( ber, "{" /*}*/ );
-#endif
 
 	if ( conn ) {
 		struct berval cookie;
@@ -101,11 +97,12 @@ vc_create_response(
 		ber_printf( ber, "tO", LDAP_TAG_EXOP_VERIFY_CREDENTIALS_SCREDS, servercred ); 
 	}
 
+#if 0
 	if ( authzid ) {
 		ber_printf( ber, "tO", LDAP_TAG_EXOP_VERIFY_CREDENTIALS_AUTHZID, authzid ); 
 	}
+#endif
 
-#ifdef TODO
 	if ( ctrls ) {
 		int c;
 
@@ -132,7 +129,6 @@ vc_create_response(
 		rc = ber_printf( ber, /*{*/"N}" );
 		if ( rc == -1 ) goto done;
 	}
-#endif
 
 	ber_printf( ber, /*{*/ "}" );
 
@@ -295,7 +291,6 @@ vc_exop(
 			"%s VERIFYCREDENTIALS", op->o_log_prefix );
 	}
 
-#ifdef TODO
 	/* TODO: controls */
 	tag = ber_peek_tag( ber, &len );
 	if ( tag == LDAP_TAG_EXOP_VERIFY_CREDENTIALS_CONTROLS ) {
@@ -307,7 +302,6 @@ vc_exop(
 			goto done;
 		}
 	}
-#endif
 
 	tag = ber_skip_tag( ber, &len );
 	if ( len || tag != LBER_DEFAULT ) {
