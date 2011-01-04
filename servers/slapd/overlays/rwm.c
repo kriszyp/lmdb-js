@@ -34,6 +34,8 @@ typedef struct rwm_op_state {
 	struct berval ro_ndn;
 	struct berval r_dn;
 	struct berval r_ndn;
+	struct berval rx_dn;
+	struct berval rx_ndn;
 	AttributeName *mapped_attrs;
 	OpRequest o_request;
 } rwm_op_state;
@@ -52,30 +54,46 @@ rwm_send_entry( Operation *op, SlapReply *rs );
 static void
 rwm_op_rollback( Operation *op, SlapReply *rs, rwm_op_state *ros )
 {
-	if ( !BER_BVISNULL( &ros->ro_dn ) ) {
-		op->o_req_dn = ros->ro_dn;
-	}
-	if ( !BER_BVISNULL( &ros->ro_ndn ) ) {
-		op->o_req_ndn = ros->ro_ndn;
+	/* in case of successful extended operation cleanup
+	 * gets called *after* (ITS#6632); this hack counts
+	 * on others to cleanup our o_req_dn/o_req_ndn,
+	 * while we cleanup theirs. */
+	if ( ros->r_tag == LDAP_REQ_EXTENDED && rs->sr_err == LDAP_SUCCESS ) {
+		if ( !BER_BVISNULL( &ros->rx_dn ) ) {
+			ch_free( ros->rx_dn.bv_val );
+		}
+		if ( !BER_BVISNULL( &ros->rx_ndn ) ) {
+			ch_free( ros->rx_ndn.bv_val );
+		}
+
+	} else {
+		if ( !BER_BVISNULL( &ros->ro_dn ) ) {
+			op->o_req_dn = ros->ro_dn;
+		}
+		if ( !BER_BVISNULL( &ros->ro_ndn ) ) {
+			op->o_req_ndn = ros->ro_ndn;
+		}
+
+		if ( !BER_BVISNULL( &ros->r_dn )
+			&& ros->r_dn.bv_val != ros->ro_dn.bv_val )
+		{
+			assert( ros->r_dn.bv_val != ros->r_ndn.bv_val );
+			ch_free( ros->r_dn.bv_val );
+		}
+
+		if ( !BER_BVISNULL( &ros->r_ndn )
+			&& ros->r_ndn.bv_val != ros->ro_ndn.bv_val )
+		{
+			ch_free( ros->r_ndn.bv_val );
+		}
 	}
 
-	if ( !BER_BVISNULL( &ros->r_dn )
-		&& ros->r_dn.bv_val != ros->ro_dn.bv_val )
-	{
-		assert( ros->r_dn.bv_val != ros->r_ndn.bv_val );
-		ch_free( ros->r_dn.bv_val );
-		BER_BVZERO( &ros->r_dn );
-	}
-
-	if ( !BER_BVISNULL( &ros->r_ndn )
-		&& ros->r_ndn.bv_val != ros->ro_ndn.bv_val )
-	{
-		ch_free( ros->r_ndn.bv_val );
-		BER_BVZERO( &ros->r_ndn );
-	}
-
+	BER_BVZERO( &ros->r_dn );
+	BER_BVZERO( &ros->r_ndn );
 	BER_BVZERO( &ros->ro_dn );
 	BER_BVZERO( &ros->ro_ndn );
+	BER_BVZERO( &ros->rx_dn );
+	BER_BVZERO( &ros->rx_ndn );
 
 	switch( ros->r_tag ) {
 	case LDAP_REQ_COMPARE:
@@ -227,6 +245,11 @@ rwm_op_dn_massage( Operation *op, SlapReply *rs, void *cookie,
 	op->o_req_ndn = ndn;
 	assert( BER_BVISNULL( &ros->r_ndn ) );
 	ros->r_ndn = ndn;
+
+	if ( ros->r_tag == LDAP_REQ_EXTENDED ) {
+		ros->rx_dn = ros->r_dn;
+		ros->rx_ndn = ros->r_ndn;
+	}
 
 	return LDAP_SUCCESS;
 }
