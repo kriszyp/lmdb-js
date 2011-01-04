@@ -1158,6 +1158,38 @@ static int sssvlv_db_init(
 {
 	slap_overinst	*on = (slap_overinst *)be->bd_info;
 	sssvlv_info *si;
+
+	if ( ov_count == 0 ) {
+		int rc;
+
+		rc = register_supported_control2( LDAP_CONTROL_SORTREQUEST,
+			SLAP_CTRL_SEARCH,
+			NULL,
+			sss_parseCtrl,
+			1 /* replace */,
+			&sss_cid );
+		if ( rc != LDAP_SUCCESS ) {
+			Debug( LDAP_DEBUG_ANY, "Failed to register Sort Request control '%s' (%d)\n",
+				LDAP_CONTROL_SORTREQUEST, rc, 0 );
+			return rc;
+		}
+
+		rc = register_supported_control2( LDAP_CONTROL_VLVREQUEST,
+			SLAP_CTRL_SEARCH,
+			NULL,
+			vlv_parseCtrl,
+			1 /* replace */,
+			&vlv_cid );
+		if ( rc != LDAP_SUCCESS ) {
+			Debug( LDAP_DEBUG_ANY, "Failed to register VLV Request control '%s' (%d)\n",
+				LDAP_CONTROL_VLVREQUEST, rc, 0 );
+#ifdef SLAP_CONFIG_DELETE
+			overlay_unregister_control( be, LDAP_CONTROL_SORTREQUEST );
+#endif /* SLAP_CONFIG_DELETE */
+			unregister_supported_control( LDAP_CONTROL_SORTREQUEST );
+			return rc;
+		}
+	}
 	
 	si = (sssvlv_info *)ch_malloc(sizeof(sssvlv_info));
 	on->on_bi.bi_private = si;
@@ -1190,6 +1222,10 @@ static int sssvlv_db_destroy(
 		ch_free(sort_conns);
 		ldap_pvt_thread_mutex_destroy( &sort_conns_mutex );
 	}
+
+	if ( ov_count == 0 ) {
+		unregister_supported_control( LDAP_CONTROL_SORTREQUEST );
+	}
 	
 	if ( si ) {
 		ch_free( si );
@@ -1217,30 +1253,9 @@ int sssvlv_initialize()
 	if ( rc )
 		return rc;
 
-	rc = register_supported_control2( LDAP_CONTROL_SORTREQUEST,
-			SLAP_CTRL_SEARCH,
-			NULL,
-			sss_parseCtrl,
-			1 /* replace */,
-			&sss_cid );
-
-	if ( rc == LDAP_SUCCESS ) {
-		rc = register_supported_control2( LDAP_CONTROL_VLVREQUEST,
-			SLAP_CTRL_SEARCH,
-			NULL,
-			vlv_parseCtrl,
-			1 /* replace */,
-			&vlv_cid );
-	}
-
-	if ( rc == LDAP_SUCCESS ) {
-		rc = overlay_register( &sssvlv );
-		if ( rc != LDAP_SUCCESS ) {
-			Debug( LDAP_DEBUG_ANY, "Failed to register server side sort overlay\n", 0, 0, 0 );
-		}
-	}
-	else {
-		Debug( LDAP_DEBUG_ANY, "Failed to register control %d\n", rc, 0, 0 );
+	rc = overlay_register( &sssvlv );
+	if ( rc != LDAP_SUCCESS ) {
+		Debug( LDAP_DEBUG_ANY, "Failed to register server side sort overlay\n", 0, 0, 0 );
 	}
 
 	return rc;

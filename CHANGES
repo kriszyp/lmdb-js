@@ -56,6 +56,7 @@ OpenLDAP 2.4.24 Engineering
 	Fixed slapo-rwm double free (ITS#6720)
 	Fixed slapo-rwm crasher (ITS#6632)
 	Fixed slapo-sssvlv initialization (ITS#6649)
+	Fixed slapo-sssvlv to not advertise when unused (ITS#6647)
 	Fixed slapo-syncprov to send error if consumer is newer (ITS#6606)
 	Fixed slapo-syncprov filter race condition (ITS#6708)
 	Fixed slapo-syncprov active mod race (ITS#6709)
