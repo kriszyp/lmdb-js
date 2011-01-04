@@ -42,6 +42,7 @@ OpenLDAP 2.4.24 Engineering
 	Fixed slapd extensible match for ordering rules (ITS#6532)
 	Fixed slapd when first acl is value dependent (ITS#6693)
 	Fixed slapd modify to return actual error (ITS#6581)
+	Fixed slapd modrdn with empty DN (ITS#6768)
 	Fixed slapd sortvals of attributes with 1 value (ITS#6715)
 	Fixed slapd syncrepl reuse of presence list (ITS#6707)
 	Fixed slapd syncrepl unitialized return code (ITS#6719)

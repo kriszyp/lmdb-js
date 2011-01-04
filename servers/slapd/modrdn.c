@@ -392,7 +392,9 @@ slap_modrdn2mods(
 	LDAPRDN		new_rdn = NULL;
 
 	assert( !BER_BVISEMPTY( &op->oq_modrdn.rs_newrdn ) );
-	assert( !op->orr_deleteoldrdn || !BER_BVISEMPTY( &op->o_req_dn ) );
+
+	/* if requestDN is empty, silently reset deleteOldRDN */
+	if ( BER_BVISEMPTY( &op->o_req_dn ) ) op->orr_deleteoldrdn = 0;
 
 	if ( ldap_bv2rdn_x( &op->oq_modrdn.rs_newrdn, &new_rdn,
 		(char **)&rs->sr_text, LDAP_DN_FORMAT_LDAP, op->o_tmpmemctx ) ) {
