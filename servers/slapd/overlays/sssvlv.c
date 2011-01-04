@@ -131,7 +131,8 @@ static struct berval* select_value(
 {
 	struct berval* ber1, *ber2;
 	MatchingRule *mr = key->sk_ordering;
-	int i, cmp;
+	unsigned i;
+	int cmp;
 
 	ber1 = &(attr->a_nvals[0]);
 	ber2 = ber1+1;
