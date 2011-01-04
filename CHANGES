@@ -84,6 +84,7 @@ OpenLDAP 2.4.24 Engineering
 	Fixed contrib/nssov multi platform support (ITS#6604)
 	Build Environment
 		Added support for [unsigned] long long (ITS#6622)
+		Fixed config.guess/sub to pick up newer OSes (ITS#6547)
 		Fixed libldap mutex code - cleanup (ITS#6672)
 		Fixed libldap unnecessary ifdef's (ITS#6603)
 		Fixed slapd-tester EOF handling (ITS#6723)
