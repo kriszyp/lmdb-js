@@ -98,7 +98,7 @@ backsql_compare( Operation *op, SlapReply *rs )
 	}
 
 	if ( is_at_operational( op->oq_compare.rs_ava->aa_desc->ad_type ) ) {
-		SlapReply	nrs = { 0 };
+		SlapReply	nrs = { REP_SEARCH };
 		Attribute	**ap;
 
 		for ( ap = &e.e_attrs; *ap; ap = &(*ap)->a_next )

@@ -1676,7 +1676,7 @@ fe_acl_attribute(
 
 		a = attr_find( e->e_attrs, entry_at );
 		if ( a == NULL ) {
-			SlapReply	rs = { 0 };
+			SlapReply	rs = { REP_SEARCH };
 			AttributeName	anlist[ 2 ];
 
 			anlist[ 0 ].an_name = entry_at->ad_cname;
@@ -1840,7 +1840,7 @@ backend_access(
 		} else {
 			a = attr_find( e->e_attrs, entry_at );
 			if ( a == NULL ) {
-				SlapReply	rs = { 0 };
+				SlapReply	rs = { REP_SEARCH };
 				AttributeName	anlist[ 2 ];
 
 				anlist[ 0 ].an_name = entry_at->ad_cname;

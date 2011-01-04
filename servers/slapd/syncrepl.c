@@ -466,7 +466,7 @@ check_syncprov(
 	AttributeName at[2];
 	Attribute a = {0};
 	Entry e = {0};
-	SlapReply rs = {0};
+	SlapReply rs = {REP_SEARCH};
 	int i, j, changed = 0;
 
 	/* Look for contextCSN from syncprov overlay. If
