@@ -492,7 +492,6 @@ slap_tool_init(
 		case 's':
 			switch ( tool ) {
 			case SLAPADD:
-			case SLAPMODIFY:
 				/* no schema check */
 				mode |= SLAP_TOOL_NO_SCHEMA_CHECK;
 				break;
