@@ -130,18 +130,18 @@ Use the Distinguished Name \fIbinddn\fP to bind to the LDAP directory.
 .BR \-e \ [ ! ] \fIext\fP [ =\fIextparam\fP ]
 Specify general extensions.  \'!\' indicates criticality.
 .nf
-  [!]assert=<filter>     (RFC 4528; a RFC 4515 Filter string)
-  [!]authzid=<authzid>   (RFC 4370; "dn:<dn>" or "u:<user>")
-  [!]chaining[=<resolveBehavior>[/<continuationBehavior>]]
-     one of "chainingPreferred", "chainingRequired",
-     "referralsPreferred", "referralsRequired"
-  [!]manageDSAit         (RFC 3296)
+  [!]assert=<filter>    (an RFC 4515 Filter)
+  !authzid=<authzid>    ("dn:<dn>" or "u:<user>")
+  [!]bauthzid           (RFC 3829 authzid control)
+  [!]chaining[=<resolve>[/<cont>]]
+  [!]manageDSAit
   [!]noop
   ppolicy
-  [!]postread[=<attrs>]  (RFC 4527; comma-separated attr list)
-  [!]preread[=<attrs>]   (RFC 4527; comma-separated attr list)
+  [!]postread[=<attrs>] (a comma-separated attribute list)
+  [!]preread[=<attrs>]  (a comma-separated attribute list)
   [!]relax
-  abandon, cancel, ignore (SIGINT sends abandon/cancel,
+  sessiontracking
+  abandon,cancel,ignore (SIGINT sends abandon/cancel,
   or ignores response; if critical, doesn't wait for SIGINT.
   not really controls)
 .fi
