@@ -1969,23 +1969,26 @@ do_modify:
 		timestamp.bv_len = sizeof(timebuf);
 		slap_timestamp( &now, &timestamp );
 
-		mods = (Modifications *) ch_calloc( sizeof( Modifications ), 1 );
-		mods->sml_desc = ad_pwdChangedTime;
+		mods = NULL;
 		if (pwmop != LDAP_MOD_DELETE) {
+			mods = (Modifications *) ch_calloc( sizeof( Modifications ), 1 );
 			mods->sml_op = LDAP_MOD_REPLACE;
 			mods->sml_numvals = 1;
 			mods->sml_values = (BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
 			ber_dupbv( &mods->sml_values[0], &timestamp );
 			BER_BVZERO( &mods->sml_values[1] );
 			assert( !BER_BVISNULL( &mods->sml_values[0] ) );
-
-		} else {
+		} else if (attr_find(e->e_attrs, ad_pwdChangedTime )) {
+			mods = (Modifications *) ch_calloc( sizeof( Modifications ), 1 );
 			mods->sml_op = LDAP_MOD_DELETE;
 		}
-		mods->sml_flags = SLAP_MOD_INTERNAL;
-		mods->sml_next = NULL;
-		modtail->sml_next = mods;
-		modtail = mods;
+		if (mods) {
+			mods->sml_desc = ad_pwdChangedTime;
+			mods->sml_flags = SLAP_MOD_INTERNAL;
+			mods->sml_next = NULL;
+			modtail->sml_next = mods;
+			modtail = mods;
+		}
 
 		if (attr_find(e->e_attrs, ad_pwdGraceUseTime )) {
 			mods = (Modifications *) ch_calloc( sizeof( Modifications ), 1 );
