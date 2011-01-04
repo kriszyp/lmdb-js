@@ -418,7 +418,8 @@ fe_op_bind_success( Operation *op, SlapReply *rs )
 
 	ber_dupbv( &op->o_conn->c_ndn, &op->o_req_ndn );
 
-	if( !BER_BVISEMPTY( &op->o_conn->c_dn ) ) {
+	/* op->o_conn->c_sb may be 0 for internal operations */
+	if( !BER_BVISEMPTY( &op->o_conn->c_dn ) && op->o_conn->c_sb != 0 ) {
 		ber_len_t max = sockbuf_max_incoming_auth;
 		ber_sockbuf_ctrl( op->o_conn->c_sb,
 			LBER_SB_OPT_SET_MAX_INCOMING, &max );
