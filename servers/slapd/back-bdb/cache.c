@@ -265,9 +265,8 @@ bdb_cache_return_entry_rw( struct bdb_info *bdb, Entry *e,
 	int free = 0;
 
 	ei = e->e_private;
-	if ( ei &&
-		( ei->bei_state & CACHE_ENTRY_NOT_CACHED ) &&
-		( bdb_cache_entryinfo_trylock( ei ) == 0 )) {
+	if ( ei && ( ei->bei_state & CACHE_ENTRY_NOT_CACHED )) {
+		bdb_cache_entryinfo_lock( ei );
 		if ( ei->bei_state & CACHE_ENTRY_NOT_CACHED ) {
 			/* Releasing the entry can only be done when
 			 * we know that nobody else is using it, i.e we
@@ -968,6 +967,7 @@ load1:
 			if ( !(*eip)->bei_e && !((*eip)->bei_state & CACHE_ENTRY_LOADING)) {
 				load = 1;
 				(*eip)->bei_state |= CACHE_ENTRY_LOADING;
+				flag |= ID_CHKPURGE;
 			}
 
 			if ( !load ) {
@@ -976,12 +976,9 @@ load1:
 				 * another thread is currently loading it.
 				 */
 				if ( (*eip)->bei_state & CACHE_ENTRY_NOT_CACHED ) {
-					(*eip)->bei_state &= ~CACHE_ENTRY_NOT_CACHED;
-					ldap_pvt_thread_mutex_lock( &bdb->bi_cache.c_count_mutex );
-					++bdb->bi_cache.c_cursize;
-					ldap_pvt_thread_mutex_unlock( &bdb->bi_cache.c_count_mutex );
+					(*eip)->bei_state ^= CACHE_ENTRY_NOT_CACHED;
+					flag |= ID_CHKPURGE;
 				}
-				flag &= ~ID_NOCACHE;
 			}
 
 			if ( flag & ID_LOCKED ) {
@@ -1007,21 +1004,24 @@ load1:
 							ldap_pvt_thread_yield();
 						bdb_fix_dn( ep, 0 );
 #endif
+						bdb_cache_entryinfo_lock( *eip );
+
 						(*eip)->bei_e = ep;
 #ifdef SLAP_ZONE_ALLOC
 						(*eip)->bei_zseq = *((ber_len_t *)ep - 2);
 #endif
 						ep = NULL;
-						bdb_cache_lru_link( bdb, *eip );
-						if (( flag & ID_NOCACHE ) &&
-							( bdb_cache_entryinfo_trylock( *eip ) == 0 )) {
+						if ( flag & ID_NOCACHE ) {
 							/* Set the cached state only if no other thread
 							 * found the info while we were loading the entry.
 							 */
-							if ( (*eip)->bei_finders == 1 )
+							if ( (*eip)->bei_finders == 1 ) {
 								(*eip)->bei_state |= CACHE_ENTRY_NOT_CACHED;
-							bdb_cache_entryinfo_unlock( *eip );
+								flag ^= ID_CHKPURGE;
+							}
 						}
+						bdb_cache_entryinfo_unlock( *eip );
+						bdb_cache_lru_link( bdb, *eip );
 					}
 					if ( rc == 0 ) {
 						/* If we succeeded, downgrade back to a readlock. */
@@ -1077,9 +1077,9 @@ load1:
 	if ( rc == 0 ) {
 		int purge = 0;
 
-		if (( load && !( flag & ID_NOCACHE )) || bdb->bi_cache.c_eimax ) {
+		if (( flag & ID_CHKPURGE ) || bdb->bi_cache.c_eimax ) {
 			ldap_pvt_thread_mutex_lock( &bdb->bi_cache.c_count_mutex );
-			if ( load && !( flag & ID_NOCACHE )) {
+			if ( flag & ID_CHKPURGE ) {
 				bdb->bi_cache.c_cursize++;
 				if ( !bdb->bi_cache.c_purging && bdb->bi_cache.c_cursize > bdb->bi_cache.c_maxsize ) {
 					purge = 1;
@@ -1533,6 +1533,36 @@ bdb_cache_release_all( Cache *cache )
 }
 
 #ifdef LDAP_DEBUG
+static void
+bdb_lru_count( Cache *cache )
+{
+	EntryInfo	*e;
+	int ei = 0, ent = 0, nc = 0;
+
+	for ( e = cache->c_lrutail; ; ) {
+		ei++;
+		if ( e->bei_e ) {
+			ent++;
+			if ( e->bei_state & CACHE_ENTRY_NOT_CACHED )
+				nc++;
+			fprintf( stderr, "ei %d entry %p dn %s\n", ei, e->bei_e, e->bei_e->e_name.bv_val );
+		}
+		e = e->bei_lrunext;
+		if ( e == cache->c_lrutail )
+			break;
+	}
+	fprintf( stderr, "counted %d entryInfos and %d entries, %d notcached\n",
+		ei, ent, nc );
+	ei = 0;
+	for ( e = cache->c_lrutail; ; ) {
+		ei++;
+		e = e->bei_lruprev;
+		if ( e == cache->c_lrutail )
+			break;
+	}
+	fprintf( stderr, "counted %d entryInfos (on lruprev)\n", ei );
+}
+
 #ifdef SLAPD_UNUSED
 static void
 bdb_lru_print( Cache *cache )
