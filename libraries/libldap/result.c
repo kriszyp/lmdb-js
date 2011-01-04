@@ -878,7 +878,7 @@ nextresp2:
 			}
 
 			/*
-			 * RF 4511 unsolicited (id == 0) responses
+			 * RFC 4511 unsolicited (id == 0) responses
 			 * shouldn't necessarily end the connection
 			 */
 			if ( lc != NULL && id != 0 ) {
