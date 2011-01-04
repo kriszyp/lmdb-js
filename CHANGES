@@ -14,6 +14,7 @@ OpenLDAP 2.4.24 Engineering
 	Added contrib/kinit for kerberos tickets
 	Added contrib/noopsrch for entry counting (ITS#6598)
 	Fixed liblber to not close invalid sockets (ITS#6585)
+	Fixed liblber unmatched brace handling (ITS#6764)
 	Fixed liblber error setting (ITS#6732)
 	Fixed liblber memory debugging (ITS#6733)
 	Fixed libldap connectionless warnings (ITS#6747)

@@ -390,6 +390,11 @@ int ber_flatten2(
 		return -1;
 	}
 
+	/* unmatched "{" and "}" */
+	if ( ber->ber_sos_ptr != NULL ) {
+		return -1;
+	}
+
 	if ( ber == NULL ) {
 		/* ber is null, create an empty berval */
 		bv->bv_val = NULL;
