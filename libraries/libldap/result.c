@@ -826,6 +826,7 @@ nextresp2:
 			Debug( LDAP_DEBUG_TRACE,
 				"read1msg:  mark request completed, ld %p msgid %d\n",
 				(void *)ld, lr->lr_msgid, 0);
+			tmplr = lr;
 			while ( lr->lr_parent != NULL ) {
 				merge_error_info( ld, lr->lr_parent, lr );
 
@@ -833,6 +834,12 @@ nextresp2:
 				if ( --lr->lr_outrefcnt > 0 ) {
 					break;	/* not completely done yet */
 				}
+			}
+			/* ITS#6744: Original lr was refcounted when we retrieved it,
+			 * must release it now that we're working with the parent
+			 */
+			if ( tmplr->lr_parent ) {
+				ldap_return_request( ld, tmplr, 0 );
 			}
 
 			/* Check if all requests are finished, lr is now parent */

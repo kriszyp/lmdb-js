@@ -16,6 +16,7 @@ OpenLDAP 2.4.24 Engineering
 	Fixed libldap GnuTLS hang on socket close (ITS#6673)
 	Fixed libldap sasl partial write handling (ITS#6639)
 	Fixed libldap referral chasing (ITS#6602)
+	Fixed libldap leak when chasing referrals (ITS#6744)
 	Fixed libldap url parsing with NULL host (ITS#6653)
 	Fixed liblutil getpass prompts (ITS#6702)
 	Fixed ldapsearch segfault with deref (ITS#6638)
