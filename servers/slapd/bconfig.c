@@ -5481,6 +5481,7 @@ out2:;
 out:;
 	{	int repl = op->o_dont_replicate;
 		if ( rs->sr_err == LDAP_COMPARE_TRUE ) {
+			rs->sr_text = NULL; /* Set after config_add_internal */
 			rs->sr_err = LDAP_SUCCESS;
 			op->o_dont_replicate = 1;
 		}
