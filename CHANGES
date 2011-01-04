@@ -8,6 +8,7 @@ OpenLDAP 2.4.24 Engineering
 	Added slapd-null back-config support (ITS#6624)
 	Added slapd-sql autocommit support (ITS#6612)
 	Added slapd-sql support for long long keys (ITS#6617)
+	Added slapo-sssvlv multiple sorts per connection (ITS#6686)
 	Added contrib/kinit for kerberos tickets
 	Added contrib/noopsrch for entry counting (ITS#6598)
 	Fixed liblber to not close invalid sockets (ITS#6585)
