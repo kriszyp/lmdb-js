@@ -291,12 +291,19 @@ vc_exop(
 			"%s VERIFYCREDENTIALS", op->o_log_prefix );
 	}
 
+	conn->op->o_tag = LDAP_REQ_BIND;
+	memset( &conn->op->oq_bind, 0, sizeof( conn->op->oq_bind ) );
+	conn->op->o_req_dn = ndn;
+	conn->op->o_req_ndn = ndn;
+	conn->op->o_protocol = LDAP_VERSION3;
+	conn->op->orb_method = authtag;
+	conn->op->o_callback = &sc;
+
 	/* TODO: controls */
 	tag = ber_peek_tag( ber, &len );
 	if ( tag == LDAP_TAG_EXOP_VERIFY_CREDENTIALS_CONTROLS ) {
 		conn->op->o_ber = ber;
-		rc = get_ctrls( conn->op, &rs2, 0 );
-		(void)ber_free( conn->op->o_ber, 1 );
+		rc = get_ctrls2( conn->op, &rs2, 0, LDAP_TAG_EXOP_VERIFY_CREDENTIALS_CONTROLS );
 		if ( rc != LDAP_SUCCESS ) {
 			rs->sr_err = LDAP_PROTOCOL_ERROR;
 			goto done;
@@ -308,14 +315,6 @@ vc_exop(
 		rs->sr_err = LDAP_PROTOCOL_ERROR;
 		goto done;
 	}
-
-	conn->op->o_tag = LDAP_REQ_BIND;
-	memset( &conn->op->oq_bind, 0, sizeof( conn->op->oq_bind ) );
-	conn->op->o_req_dn = ndn;
-	conn->op->o_req_ndn = ndn;
-	conn->op->o_protocol = LDAP_VERSION3;
-	conn->op->orb_method = authtag;
-	conn->op->o_callback = &sc;
 
 	switch ( authtag ) {
 	case LDAP_AUTH_SIMPLE:
