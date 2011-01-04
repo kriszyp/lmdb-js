@@ -1117,6 +1117,8 @@ ldap_X509dn2bv( void *x509_name, struct berval *bv, LDAPDN_rewrite_func *func,
 					newAVA->la_attr = oidname->name;
 				}
 			}
+			newAVA->la_private = NULL;
+			newAVA->la_flags = LDAP_AVA_STRING;
 			tag = ber_get_stringbv( ber, &Val, LBER_BV_NOTERM );
 			switch(tag) {
 			case LBER_TAG_UNIVERSAL:
@@ -1131,20 +1133,22 @@ ldap_X509dn2bv( void *x509_name, struct berval *bv, LDAPDN_rewrite_func *func,
 to_utf8:		rc = ldap_ucs_to_utf8s( &Val, csize, &newAVA->la_value );
 				newAVA->la_flags |= LDAP_AVA_FREE_VALUE;
 				if (rc != LDAP_SUCCESS) goto nomem;
-				newAVA->la_flags = LDAP_AVA_NONPRINTABLE;
+				newAVA->la_flags |= LDAP_AVA_NONPRINTABLE;
 				break;
 			case LBER_TAG_UTF8:
-				newAVA->la_flags = LDAP_AVA_NONPRINTABLE;
+				newAVA->la_flags |= LDAP_AVA_NONPRINTABLE;
 				/* This is already in UTF-8 encoding */
 			case LBER_TAG_IA5:
 			case LBER_TAG_PRINTABLE:
 				/* These are always 7-bit strings */
 				newAVA->la_value = Val;
+				break;
 			default:
-				;
+				/* Not a string type at all */
+				newAVA->la_flags = 0;
+				newAVA->la_value = Val;
+				break;
 			}
-			newAVA->la_private = NULL;
-			newAVA->la_flags = LDAP_AVA_STRING;
 			newAVA++;
 		}
 		*newRDN++ = NULL;
