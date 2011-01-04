@@ -2103,49 +2103,74 @@ struct tls_data {
 	   we will just see if the IO op returns EAGAIN or EWOULDBLOCK,
 	   and just set this flag */
 	PRBool              nonblock;
+	/*
+	 * NSS tries hard to be backwards compatible with SSLv2 clients, or
+	 * clients that send an SSLv2 client hello.  This message is not
+	 * tagged in any way, so NSS has no way to know if the incoming
+	 * message is a valid SSLv2 client hello or just some bogus data
+	 * (or cleartext LDAP).  We store the first byte read from the
+	 * client here.  The most common case will be a client sending
+	 * LDAP data instead of SSL encrypted LDAP data.  This can happen,
+	 * for example, if using ldapsearch -Z - if the starttls fails,
+	 * the client will fallback to plain cleartext LDAP.  So if we
+	 * see that the firstbyte is a valid LDAP tag, we can be
+	 * pretty sure this is happening.
+	 */
+	ber_tag_t           firsttag;
+	/*
+	 * NSS doesn't return SSL_ERROR_WANT_READ, SSL_ERROR_WANT_WRITE, etc.
+	 * when it is blocked, so we have to set a flag in the wrapped send
+	 * and recv calls that tells us what operation NSS was last blocked
+	 * on
+	 */
+#define TLSM_READ  1
+#define TLSM_WRITE 2
+	int io_flag;
 };
 
-static int
-tlsm_is_io_ready( PRFileDesc *fd, PRInt16 in_flags, PRInt16 *out_flags )
+static struct tls_data *
+tlsm_get_pvt_tls_data( PRFileDesc *fd )
 {
 	struct tls_data		*p;
-	PRFileDesc *pollfd = NULL;
 	PRFileDesc *myfd;
-	PRPollDesc polldesc;
-	int rc;
+
+	if ( !fd ) {
+		return NULL;
+	}
 
 	myfd = PR_GetIdentitiesLayer( fd, tlsm_layer_id );
 
 	if ( !myfd ) {
-		return 0;
+		return NULL;
 	}
 
 	p = (struct tls_data *)myfd->secret;
 
+	return p;
+}
+
+static int
+tlsm_is_non_ssl_message( PRFileDesc *fd, ber_tag_t *thebyte )
+{
+	struct tls_data		*p;
+
+	if ( thebyte ) {
+		*thebyte = LBER_DEFAULT;
+	}
+
+	p = tlsm_get_pvt_tls_data( fd );
 	if ( p == NULL || p->sbiod == NULL ) {
 		return 0;
 	}
 
-	/* wrap the sockbuf fd with a NSPR FD created especially
-	   for use with polling, and only with polling */
-	pollfd = PR_CreateSocketPollFd( p->sbiod->sbiod_sb->sb_fd );
-	polldesc.fd = pollfd;
-	polldesc.in_flags = in_flags;
-	polldesc.out_flags = 0;
-
-	/* do the poll - no waiting, no blocking */
-	rc = PR_Poll( &polldesc, 1, PR_INTERVAL_NO_WAIT );
-
-	/* unwrap the socket */
-	PR_DestroySocketPollFd( pollfd );
-
-	/* rc will be either 1 if IO is ready, 0 if IO is not
-	   ready, or -1 if there was some error (and the caller
-	   should use PR_GetError() to figure out what */
-	if (out_flags) {
-		*out_flags = polldesc.out_flags;
+	if ( p->firsttag == LBER_SEQUENCE ) {
+		if ( *thebyte ) {
+			*thebyte = p->firsttag;
+		}
+		return 1;
 	}
-	return rc;
+
+	return 0;
 }
 
 static tls_session *
@@ -2155,6 +2180,7 @@ tlsm_session_new ( tls_ctx * ctx, int is_server )
 	tlsm_session *session;
 	PRFileDesc *fd;
 	PRStatus status;
+	int rc;
 
 	c->tc_is_server = is_server;
 	status = PR_CallOnceWithArg( &c->tc_callonce, tlsm_deferred_ctx_init, c );
@@ -2182,121 +2208,80 @@ tlsm_session_new ( tls_ctx * ctx, int is_server )
 		SSL_ConfigServerSessionIDCache( 0, 0, 0, NULL );
 	}
 
+	rc = SSL_ResetHandshake( session, is_server );
+	if ( rc ) {
+		PRErrorCode err = PR_GetError();
+		Debug( LDAP_DEBUG_TRACE, 
+			   "TLS: error: new session - reset handshake failure %d - error %d:%s\n",
+			   rc, err,
+			   err ? PR_ErrorToString( err, PR_LANGUAGE_I_DEFAULT ) : "unknown" );
+		PR_DELETE( fd );
+		PR_Close( session );
+		session = NULL;
+	}
+
 	return (tls_session *)session;
 } 
 
 static int
-tlsm_session_accept( tls_session *session )
+tlsm_session_accept_or_connect( tls_session *session, int is_accept )
 {
 	tlsm_session *s = (tlsm_session *)session;
-	int rc;
-	PRErrorCode err;
-	int waitcounter = 0;
+	int rc = SSL_ForceHandshake( s );
+	const char *op = is_accept ? "accept" : "connect";
 
-	rc = SSL_ResetHandshake( s, PR_TRUE /* server */ );
-	if (rc) {
-		err = PR_GetError();
-		Debug( LDAP_DEBUG_TRACE, 
-			   "TLS: error: accept - reset handshake failure %d - error %d:%s\n",
-			   rc, err,
-			   err ? PR_ErrorToString( err, PR_LANGUAGE_I_DEFAULT ) : "unknown" );
+	if ( rc ) {
+		PRErrorCode err = PR_GetError();
+		rc = -1;
+		if ( err == PR_WOULD_BLOCK_ERROR ) {
+			ber_tag_t thetag = LBER_DEFAULT;
+			/* see if we are blocked because of a bogus packet */
+			if ( tlsm_is_non_ssl_message( s, &thetag ) ) { /* see if we received a non-SSL message */
+				Debug( LDAP_DEBUG_ANY, 
+					   "TLS: error: %s - error - received non-SSL message [0x%x]\n",
+					   op, (unsigned int)thetag, 0 );
+				/* reset error to something more descriptive */
+				PR_SetError( SSL_ERROR_RX_MALFORMED_HELLO_REQUEST, EPROTO );
+			}
+		} else {
+			Debug( LDAP_DEBUG_ANY, 
+				   "TLS: error: %s - force handshake failure: errno %d - moznss error %d\n",
+				   op, errno, err );
+		}
 	}
 
-	do {
-		PRInt32 filesReady;
-		PRInt16 in_flags;
-		PRInt16 out_flags;
-
-		errno = 0;
-		rc = SSL_ForceHandshake( s );
-		if (rc == SECSuccess) {
-			rc = 0;
-			break; /* done */
-		}
-		err = PR_GetError();
-		if ( errno == EAGAIN || errno == EWOULDBLOCK ) {
-			waitcounter++;
-			in_flags = PR_POLL_READ | PR_POLL_EXCEPT;
-			out_flags = 0;
-			errno = 0;
-			filesReady = tlsm_is_io_ready( s, in_flags, &out_flags );
-			if ( filesReady < 0 ) {
-				err = PR_GetError();
-				Debug( LDAP_DEBUG_ANY, 
-					   "TLS: error: accept - error waiting for socket to be ready: %d - error %d:%s\n",
-					   errno, err,
-					   err ? PR_ErrorToString( err, PR_LANGUAGE_I_DEFAULT ) : "unknown" );
-				rc = -1;
-				break; /* hard error */
-			} else if ( out_flags & PR_POLL_NVAL ) {
-				PR_SetError(PR_BAD_DESCRIPTOR_ERROR, 0);
-				Debug( LDAP_DEBUG_ANY, 
-					   "TLS: error: accept failure - invalid socket\n",
-					   NULL, NULL, NULL );
-				rc = -1;
-				break;
-			} else if ( out_flags & PR_POLL_EXCEPT ) {
-				err = PR_GetError();
-				Debug( LDAP_DEBUG_ANY, 
-					   "TLS: error: accept - error waiting for socket to be ready: %d - error %d:%s\n",
-					   errno, err,
-					   err ? PR_ErrorToString( err, PR_LANGUAGE_I_DEFAULT ) : "unknown" );
-				rc = -1;
-				break; /* hard error */
-			}
-		} else { /* hard error */
-			err = PR_GetError();
-			Debug( LDAP_DEBUG_ANY, 
-				   "TLS: error: accept - force handshake failure: %d - error %d:%s\n",
-				   errno, err,
-				   err ? PR_ErrorToString( err, PR_LANGUAGE_I_DEFAULT ) : "unknown" );
-			rc = -1;
-			break; /* hard error */
-		}
-	} while (rc == SECFailure);
-
-	Debug( LDAP_DEBUG_TRACE, 
-		   "TLS: accept completed after %d waits\n", waitcounter, NULL, NULL );
-
 	return rc;
+}
+static int
+tlsm_session_accept( tls_session *session )
+{
+	return tlsm_session_accept_or_connect( session, 1 );
 }
 
 static int
 tlsm_session_connect( LDAP *ld, tls_session *session )
 {
-	tlsm_session *s = (tlsm_session *)session;
-	int rc;
-	PRErrorCode err;
-
-	rc = SSL_ResetHandshake( s, PR_FALSE /* server */ );
-	if (rc) {
-		err = PR_GetError();
-		Debug( LDAP_DEBUG_TRACE, 
-			   "TLS: error: connect - reset handshake failure %d - error %d:%s\n",
-			   rc, err,
-			   err ? PR_ErrorToString( err, PR_LANGUAGE_I_DEFAULT ) : "unknown" );
-	}
-
-	rc = SSL_ForceHandshake( s );
-	if (rc) {
-		err = PR_GetError();
-		Debug( LDAP_DEBUG_TRACE, 
-			   "TLS: error: connect - force handshake failure %d - error %d:%s\n",
-			   rc, err,
-			   err ? PR_ErrorToString( err, PR_LANGUAGE_I_DEFAULT ) : "unknown" );
-	}
-
-	return rc;
+	return tlsm_session_accept_or_connect( session, 0 );
 }
 
 static int
 tlsm_session_upflags( Sockbuf *sb, tls_session *session, int rc )
 {
-	/* Should never happen */
-	rc = PR_GetError();
+	int prerror = PR_GetError();
 
-	if ( rc != PR_PENDING_INTERRUPT_ERROR && rc != PR_WOULD_BLOCK_ERROR )
-		return 0;
+	if ( ( prerror == PR_PENDING_INTERRUPT_ERROR ) || ( prerror == PR_WOULD_BLOCK_ERROR ) ) {
+		tlsm_session *s = (tlsm_session *)session;
+		struct tls_data *p = tlsm_get_pvt_tls_data( s );
+
+		if ( p && ( p->io_flag == TLSM_READ ) ) {
+			sb->sb_trans_needs_read = 1;
+			return 1;
+		} else if ( p && ( p->io_flag == TLSM_WRITE ) ) {
+			sb->sb_trans_needs_write = 1;
+			return 1;
+		}
+	}
+
 	return 0;
 }
 
@@ -2585,7 +2570,7 @@ tlsm_PR_Recv(PRFileDesc *fd, void *buf, PRInt32 len, PRIntn flags,
 
 	if ( buf == NULL || len <= 0 ) return 0;
 
-	p = (struct tls_data *)fd->secret;
+	p = tlsm_get_pvt_tls_data( fd );
 
 	if ( p == NULL || p->sbiod == NULL ) {
 		return 0;
@@ -2601,7 +2586,10 @@ tlsm_PR_Recv(PRFileDesc *fd, void *buf, PRInt32 len, PRIntn flags,
 			       "TLS: error: tlsm_PR_Recv returned %d - error %d:%s\n",
 			       rc, errno, STRERROR(errno) );
 		}
+	} else if ( ( rc > 0 ) && ( len > 0 ) && ( p->firsttag == LBER_DEFAULT ) ) {
+		p->firsttag = (ber_tag_t)*((char *)buf);
 	}
+	p->io_flag = TLSM_READ;
 
 	return rc;
 }
@@ -2615,7 +2603,7 @@ tlsm_PR_Send(PRFileDesc *fd, const void *buf, PRInt32 len, PRIntn flags,
 
 	if ( buf == NULL || len <= 0 ) return 0;
 
-	p = (struct tls_data *)fd->secret;
+	p = tlsm_get_pvt_tls_data( fd );
 
 	if ( p == NULL || p->sbiod == NULL ) {
 		return 0;
@@ -2632,6 +2620,7 @@ tlsm_PR_Send(PRFileDesc *fd, const void *buf, PRInt32 len, PRIntn flags,
 			       rc, errno, STRERROR(errno) );
 		}
 	}
+	p->io_flag = TLSM_WRITE;
 
 	return rc;
 }
@@ -2654,7 +2643,7 @@ tlsm_PR_GetPeerName(PRFileDesc *fd, PRNetAddr *addr)
 	struct tls_data		*p;
 	ber_socklen_t len;
 
-	p = (struct tls_data *)fd->secret;
+ 	p = tlsm_get_pvt_tls_data( fd );
 
 	if ( p == NULL || p->sbiod == NULL ) {
 		return PR_FAILURE;
@@ -2667,7 +2656,7 @@ static PRStatus PR_CALLBACK
 tlsm_PR_GetSocketOption(PRFileDesc *fd, PRSocketOptionData *data)
 {
 	struct tls_data		*p;
-	p = (struct tls_data *)fd->secret;
+ 	p = tlsm_get_pvt_tls_data( fd );
 
 	if ( !data ) {
 		return PR_FAILURE;
@@ -2802,6 +2791,7 @@ tlsm_sb_setup( Sockbuf_IO_Desc *sbiod, void *arg )
 	fd->secret = (PRFilePrivate *)p;
 	p->session = session;
 	p->sbiod = sbiod;
+	p->firsttag = LBER_DEFAULT;
 	sbiod->sbiod_pvt = p;
 	return 0;
 }
@@ -2849,7 +2839,7 @@ tlsm_sb_ctrl( Sockbuf_IO_Desc *sbiod, int opt, void *arg )
 		return 1;
 		
 	} else if ( opt == LBER_SB_OPT_DATA_READY ) {
-		if ( tlsm_is_io_ready( p->session, PR_POLL_READ, NULL ) > 0 ) {
+		if ( p && ( SSL_DataPending( p->session ) > 0 ) ) {
 			return 1;
 		}
 		

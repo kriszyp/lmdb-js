@@ -3,6 +3,7 @@ OpenLDAP 2.4 Change Log
 OpenLDAP 2.4.24 Engineering
 	Added contrib/kinit for kerberos tickets
 	Added contrib/noopsrch for entry counting (ITS#6598)
+	Added libldap MozNSS non-blocking support (ITS#6714)
 	Added slapadd attribute value checking (ITS#6592)
 	Added slapcat continue mode for problematic DBs (ITS#6482)
 	Added slapd-null back-config support (ITS#6624)
