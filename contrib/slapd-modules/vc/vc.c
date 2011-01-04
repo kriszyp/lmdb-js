@@ -397,10 +397,18 @@ done:;
 		}
 	}
 
+	if ( vc.ctrls ) {
+		ldap_controls_free( vc.ctrls );
+		vc.ctrls = NULL;
+	}
+
 	if ( !BER_BVISNULL( &ndn ) ) {
 		op->o_tmpfree( ndn.bv_val, op->o_tmpmemctx );
+		BER_BVZERO( &ndn );
 	}
+
 	op->o_tmpfree( reqdata.bv_val, op->o_tmpmemctx );
+	BER_BVZERO( &reqdata );
 
         return rs->sr_err;
 }
