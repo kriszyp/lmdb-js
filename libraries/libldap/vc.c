@@ -117,7 +117,7 @@ int ldap_parse_verify_credentials(
 
 		    *ctrls = LDAP_MALLOC(1 * sizeof(LDAPControl *));
 
-			if (*ctrls) {
+			if (!*ctrls) {
 				rc = LDAP_NO_MEMORY;
 				goto done;
 			}

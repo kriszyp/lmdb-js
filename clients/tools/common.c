@@ -162,7 +162,7 @@ static struct tool_ctrls_t {
 	{ LDAP_CONTROL_PAGEDRESULTS,			TOOL_SEARCH,	print_paged_results },
 #ifdef LDAP_CONTROL_AUTHZID_RESPONSE
 	/* this is generally deprecated in favor of LDAP WhoAmI? operation, hence only supported as a VC inner control */
-	{ LDAP_CONTROL_PASSWORDPOLICYRESPONSE,		TOOL_VC,	print_authzid },
+	{ LDAP_CONTROL_AUTHZID_RESPONSE,		TOOL_VC,	print_authzid },
 #endif
 #ifdef LDAP_CONTROL_PASSWORDPOLICYREQUEST
 	{ LDAP_CONTROL_PASSWORDPOLICYRESPONSE,		TOOL_ALL,	print_ppolicy },
