@@ -54,6 +54,7 @@ OpenLDAP 2.4.24 Engineering
 	Fixed slapd-monitor hasSubordinates generation (ITS#6712)
 	Fixed slapd-sql with null objectClass (ITS#6616)
 	Fixed slapd-sql hasSubordinates generation (ITS#6712)
+	Fixed slapo-memberof log messages (ITS#6748)
 	Fixed slapo-pcache callback freeing (ITS#6640)
 	Fixed slapo-pcache to ignore undefined attrs (ITS#6600)
 	Fixed slapo-ppolicy don't update opattrs on consumers (ITS#6608)
