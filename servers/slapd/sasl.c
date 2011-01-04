@@ -1590,7 +1590,7 @@ int slap_sasl_bind( Operation *op, SlapReply *rs )
 		/* EXTERNAL */
 
 		if( op->orb_cred.bv_len ) {
-			rs->sr_text = "proxy authorization not support";
+			rs->sr_text = "proxy authorization not supported";
 			rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
 			send_ldap_result( op, rs );
 
