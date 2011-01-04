@@ -39,6 +39,10 @@
 #include "lutil.h"
 #include "slap.h"
 
+#ifdef LDAP_CONNECTIONLESS
+#include "../../libraries/liblber/lber-int.h"	/* ber_int_sb_read() */
+#endif
+
 #ifdef LDAP_SLAPI
 #include "slapi/slapi.h"
 #endif

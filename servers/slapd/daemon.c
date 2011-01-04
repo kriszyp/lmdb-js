@@ -2804,7 +2804,7 @@ connectionless_init( void )
 		if ( !c ) {
 			Debug( LDAP_DEBUG_TRACE,
 				"connectionless_init: failed on %s (%d)\n",
-				lr->sl_url, lr->sl_sd, 0 );
+				lr->sl_url.bv_val, lr->sl_sd, 0 );
 			return -1;
 		}
 		lr->sl_is_udp++;

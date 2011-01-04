@@ -1,17 +1,18 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.24 Engineering
-	Added contrib/kinit for kerberos tickets
-	Added contrib/noopsrch for entry counting (ITS#6598)
 	Added libldap MozNSS non-blocking support (ITS#6714)
 	Added slapadd attribute value checking (ITS#6592)
 	Added slapcat continue mode for problematic DBs (ITS#6482)
 	Added slapd-null back-config support (ITS#6624)
 	Added slapd-sql autocommit support (ITS#6612)
 	Added slapd-sql support for long long keys (ITS#6617)
+	Added contrib/kinit for kerberos tickets
+	Added contrib/noopsrch for entry counting (ITS#6598)
 	Fixed liblber to not close invalid sockets (ITS#6585)
 	Fixed liblber error setting (ITS#6732)
 	Fixed liblber memory debugging (ITS#6733)
+	Fixed libldap connectionless warnings (ITS#6747)
 	Fixed libldap dnssrv port format specifier (ITS#6644)
 	Fixed libldap EOF handling (ITS#6723)
 	Fixed libldap GnuTLS hang on socket close (ITS#6673)
@@ -25,6 +26,7 @@ OpenLDAP 2.4.24 Engineering
 	Fixed slapd acl parsing overflow (ITS#6611)
 	Fixed slapd support for BDB 5.0+ (ITS#6698)
 	Fixed slapd config leak with olcDbDirectory (ITS#6634)
+	Fixed slapd connectionless warnings (ITS#6747)
 	Fixed slapd to free controls if needed (ITS#6629)
 	Fixed slapd filter leak (ITS#6635)
 	Fixed slapd matching rules for strict ordering (ITS#6722)
