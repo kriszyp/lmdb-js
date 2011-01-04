@@ -326,7 +326,7 @@ H3: Read-Back of Chained Modifications
 
 Occasionally, applications want to read back the data that they just wrote.
 If a modification requested to a shadow server was silently chained to its 
-producer, an immediate read could result in receiving data not yet synchronized.  
+provider, an immediate read could result in receiving data not yet synchronized.  
 In those cases, clients should use the {{B:dontusecopy}} control to ensure 
 they are directed to the authoritative source for that piece of data.
 
