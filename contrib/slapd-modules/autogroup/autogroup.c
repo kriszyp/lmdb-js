@@ -1714,7 +1714,7 @@ autogroup_db_open(
 
 	Debug( LDAP_DEBUG_TRACE, "==> autogroup_db_open\n", 0, 0, 0);
 
-	if ( agi == NULL ) {
+	if ( agi == NULL || !( slapMode & SLAP_SERVER_MODE )) {
 		return 0;
 	}
 
