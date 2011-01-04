@@ -143,30 +143,30 @@ Specify the LDAP protocol version to use.
 .TP
 .BR \-E \ [ ! ] \fIext\fP [ =\fIextparam\fP ]
 
-Specify general extensions with \fB\-e\fP and search extensions with \fB\-E\fP.
+Specify general extensions with \fB\-e\fP and delete extensions with \fB\-E\fP.
 \'\fB!\fP\' indicates criticality.
 
 General extensions:
 .nf
-  [!]assert=<filter>   (an RFC 4515 Filter)
-  [!]authzid=<authzid> ("dn:<dn>" or "u:<user>")
+  [!]assert=<filter>    (an RFC 4515 Filter)
+  !authzid=<authzid>    ("dn:<dn>" or "u:<user>")
+  [!]bauthzid           (RFC 3829 authzid control)
+  [!]chaining[=<resolve>[/<cont>]]
   [!]manageDSAit
   [!]noop
   ppolicy
-  [!]postread[=<attrs>]        (a comma-separated attribute list)
-  [!]preread[=<attrs>] (a comma-separated attribute list)
-  abandon, cancel (SIGINT sends abandon/cancel; not really controls)
+  [!]postread[=<attrs>] (a comma-separated attribute list)
+  [!]preread[=<attrs>]  (a comma-separated attribute list)
+  [!]relax
+  sessiontracking
+  abandon,cancel,ignore (SIGINT sends abandon/cancel,
+  or ignores response; if critical, doesn't wait for SIGINT.
+  not really controls)
 .fi
 
-Search extensions:
+Delete extensions:
 .nf
-  [!]domainScope                               (domain scope)
-  [!]mv=<filter>                               (matched values filter)
-  [!]pr=<size>[/prompt|noprompt]       (paged results/prompt)
-  [!]sss=[\-]<attr[:OID]>[/[\-]<attr[:OID]>...]  (server side sorting)
-  [!]subentries[=true|false]           (subentries)
-  [!]sync=ro[/<cookie>]                        (LDAP Sync refreshOnly)
-          rp[/<cookie>][/<slimit>]     (LDAP Sync refreshAndPersist)
+  (none)
 .fi
 .TP
 .B \-r
