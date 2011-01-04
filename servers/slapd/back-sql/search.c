@@ -928,7 +928,7 @@ backsql_process_filter( backsql_srch_info *bsi, Filter *f )
 #ifdef BACKSQL_SYNCPROV
 	} else if ( ad == slap_schema.si_ad_entryCSN ) {
 		/*
-		 * support for syncrepl as producer...
+		 * support for syncrepl as provider...
 		 */
 #if 0
 		if ( !bsi->bsi_op->o_sync ) {

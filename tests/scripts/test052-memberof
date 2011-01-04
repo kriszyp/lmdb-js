@@ -56,7 +56,7 @@ fi
 cat /dev/null > $TESTOUT
 
 if [ "$MEMBEROF" = memberofmod ]; then
-	echo "Inserting memberof overlay on producer..."
+	echo "Inserting memberof overlay on provider..."
 	$LDAPADD -D cn=config -H $URI1 -y $CONFIGPWF <<EOF > $TESTOUT 2>&1
 dn: cn=module,cn=config
 objectClass: olcModuleList

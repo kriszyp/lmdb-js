@@ -2259,7 +2259,7 @@ fi
 
 # TEST:
 # Run race tests when more than one backend is replicated from the same
-# producer.  This will usually fail long before 100 iterations unless
+# provider.  This will usually fail long before 100 iterations unless
 # syncrepl stores the contextCSN in the suffix of its own database, and
 # that syncprov follows these rules before updating its own CSN when it
 # detects updates from syncrepl:
