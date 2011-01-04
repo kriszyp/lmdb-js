@@ -650,6 +650,11 @@ LDAP_SLAPD_F (int) get_ctrls LDAP_P((
 	Operation *op,
 	SlapReply *rs,
 	int senderrors ));
+LDAP_SLAPD_F (int) get_ctrls2 LDAP_P((
+	Operation *op,
+	SlapReply *rs,
+	int senderrors,
+	ber_tag_t ctag ));
 LDAP_SLAPD_F (int) register_supported_control2 LDAP_P((
 	const char *controloid,
 	slap_mask_t controlmask,

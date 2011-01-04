@@ -690,10 +690,21 @@ int slap_parse_ctrl(
 	return rc;
 }
 
-int get_ctrls(
+int
+get_ctrls(
 	Operation *op,
 	SlapReply *rs,
 	int sendres )
+{
+	return get_ctrls2( op, rs, sendres, LDAP_TAG_CONTROLS );
+}
+
+int
+get_ctrls2(
+	Operation *op,
+	SlapReply *rs,
+	int sendres,
+	ber_tag_t ctag )
 {
 	int nctrls = 0;
 	ber_tag_t tag;
@@ -719,7 +730,7 @@ int get_ctrls(
 		return rs->sr_err;
 	}
 
-	if(( tag = ber_peek_tag( ber, &len )) != LDAP_TAG_CONTROLS ) {
+	if(( tag = ber_peek_tag( ber, &len )) != ctag ) {
 		if( tag == LBER_ERROR ) {
 			rs->sr_err = SLAPD_DISCONNECT;
 			rs->sr_text = "unexpected data in PDU";
