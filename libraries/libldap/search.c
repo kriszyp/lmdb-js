@@ -182,6 +182,11 @@ ldap_pvt_search_s(
 
 	if( rc <= 0 ) {
 		/* error(-1) or timeout(0) */
+		if ( ld->ld_errno == LDAP_TIMEOUT ) {
+			/* cleanup request */
+			(void) ldap_abandon( ld, msgid );
+			ld->ld_errno = LDAP_TIMEOUT;
+		}
 		return( ld->ld_errno );
 	}
 
