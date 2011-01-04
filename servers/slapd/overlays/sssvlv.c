@@ -498,7 +498,6 @@ static void send_page( Operation *op, SlapReply *rs, sort_op *so )
 	Avlnode		*cur_node		= so->so_tree;
 	Avlnode		*next_node		= NULL;
 	BackendDB *be = op->o_bd;
-	sort_node *sn;
 	Entry *e;
 	int rc;
 
@@ -1037,7 +1036,6 @@ static int vlv_parseCtrl(
 	BerElement			*ber;
 	ber_tag_t		tag;
 	ber_len_t		len;
-	int					i;
 	vlv_ctrl	*vc, vc2;
 
 	rs->sr_err = LDAP_PROTOCOL_ERROR;
@@ -1100,8 +1098,6 @@ static int vlv_parseCtrl(
 
 static int sssvlv_connection_destroy( BackendDB *be, Connection *conn )
 {
-	slap_overinst	*on		= (slap_overinst *)be->bd_info;
-
 	if ( sort_conns[conn->c_conn_idx] )
 		free_sort_op( conn, sort_conns[conn->c_conn_idx] );
 
