@@ -1916,7 +1916,7 @@ free_message:;
 	}
 
 	rs->sr_err = sres;
-	rs->sr_matched = matched;
+	rs->sr_matched = ( sres == LDAP_SUCCESS ? NULL : matched );
 	rs->sr_ref = ( sres == LDAP_REFERRAL ? rs->sr_v2ref : NULL );
 	send_ldap_result( op, rs );
 	op->o_private = savepriv;
