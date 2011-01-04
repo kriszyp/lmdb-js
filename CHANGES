@@ -9,6 +9,7 @@ OpenLDAP 2.4.24 Engineering
 	Added slapd-sql autocommit support (ITS#6612)
 	Added slapd-sql support for long long keys (ITS#6617)
 	Fixed liblber to not close invalid sockets (ITS#6585)
+	Fixed liblber error setting (ITS#6732)
 	Fixed libldap dnssrv port format specifier (ITS#6644)
 	Fixed libldap EOF handling (ITS#6723)
 	Fixed libldap GnuTLS hang on socket close (ITS#6673)
