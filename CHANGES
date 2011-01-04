@@ -87,6 +87,7 @@ OpenLDAP 2.4.24 Engineering
 		Fixed slapd-tester filter initialization (ITS#6735)
 		Removed antiquated SunOS LWP support (ITS#6669)
 	Documentation
+		admin24 guide fix examples (ITS#6681)
 		admin24 guide typo fixes (ITS#6609)
 		admin24 guide refint rootdn requirement (ITS#6364)
 		ldap_open(3) document ldap_set_urllist_proc (ITS#6601)
