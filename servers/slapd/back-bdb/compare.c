@@ -122,52 +122,7 @@ dn2entry_retry:
 		goto done;
 	}
 
-	if ( get_assert( op ) &&
-		( test_filter( op, e, get_assertion( op )) != LDAP_COMPARE_TRUE ))
-	{
-		if ( !access_allowed( op, e, slap_schema.si_ad_entry,
-			NULL, ACL_DISCLOSE, NULL ) )
-		{
-			rs->sr_err = LDAP_NO_SUCH_OBJECT;
-		} else {
-			rs->sr_err = LDAP_ASSERTION_FAILED;
-		}
-		goto return_results;
-	}
-
-	if ( !access_allowed( op, e, op->oq_compare.rs_ava->aa_desc,
-		&op->oq_compare.rs_ava->aa_value, ACL_COMPARE, NULL ) )
-	{
-		/* return error only if "disclose"
-		 * is granted on the object */
-		if ( !access_allowed( op, e, slap_schema.si_ad_entry,
-					NULL, ACL_DISCLOSE, NULL ) )
-		{
-			rs->sr_err = LDAP_NO_SUCH_OBJECT;
-		} else {
-			rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
-		}
-		goto return_results;
-	}
-
-	rs->sr_err = LDAP_NO_SUCH_ATTRIBUTE;
-
-	for ( a = attrs_find( e->e_attrs, op->oq_compare.rs_ava->aa_desc );
-		a != NULL;
-		a = attrs_find( a->a_next, op->oq_compare.rs_ava->aa_desc ) )
-	{
-		rs->sr_err = LDAP_COMPARE_FALSE;
-
-		if ( attr_valfind( a,
-			SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH |
-				SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH,
-			&op->oq_compare.rs_ava->aa_value, NULL,
-			op->o_tmpmemctx ) == 0 )
-		{
-			rs->sr_err = LDAP_COMPARE_TRUE;
-			break;
-		}
-	}
+	rs->sr_err = slap_compare_entry( op, e, op->orc_ava );
 
 return_results:
 	send_ldap_result( op, rs );

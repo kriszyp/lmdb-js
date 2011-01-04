@@ -516,6 +516,15 @@ LDAP_SLAPD_F (void) ch_free LDAP_P(( void * ));
 #endif
 
 /*
+ * compare.c
+ */
+
+LDAP_SLAPD_F (int) slap_compare_entry LDAP_P((
+	Operation *op,
+	Entry *e,
+	AttributeAssertion *ava ));
+
+/*
  * component.c
  */
 #ifdef LDAP_COMP_MATCH
