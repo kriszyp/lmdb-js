@@ -1860,6 +1860,7 @@ print_prepostread( LDAP *ld, LDAPControl *ctrl, struct berval *what)
 		while ( ber_scanf( ber, "{m" /*}*/, &bv ) != LBER_ERROR ) {
 			int		i;
 			BerVarray	vals = NULL;
+			char		*str = NULL;
 
 			if ( ber_scanf( ber, "[W]", &vals ) == LBER_ERROR ||
 				vals == NULL )
@@ -1867,14 +1868,25 @@ print_prepostread( LDAP *ld, LDAPControl *ctrl, struct berval *what)
 				/* error? */
 				return 1;
 			}
+
+			if ( ldif ) {
+				char *ptr;
+
+				str = malloc( bv.bv_len + STRLENOF(": ") + 1 );
+
+				ptr = str;
+				ptr = lutil_strncopy( ptr, bv.bv_val, bv.bv_len );
+				ptr = lutil_strcopy( ptr, ": " );
+			}
 		
 			for ( i = 0; vals[ i ].bv_val != NULL; i++ ) {
 				tool_write_ldif(
 					ldif ? LDIF_PUT_COMMENT : LDIF_PUT_VALUE,
-					bv.bv_val, vals[ i ].bv_val, vals[ i ].bv_len );
+					ldif ? str : bv.bv_val, vals[ i ].bv_val, vals[ i ].bv_len );
 			}
 
 			ber_bvarray_free( vals );
+			if ( str ) free( str );
 		}
 	}
 
@@ -1954,7 +1966,8 @@ print_paged_results( LDAP *ld, LDAPControl *ctrl )
 		}
 
 		tool_write_ldif( ldif ? LDIF_PUT_COMMENT : LDIF_PUT_VALUE,
-			"pagedresults", buf, ptr - buf );
+			ldif ? "pagedresults: " : "pagedresults",
+			buf, ptr - buf );
 	}
 
 	return 0;
@@ -1974,7 +1987,7 @@ print_sss( LDAP *ld, LDAPControl *ctrl )
 			err, ldap_err2string(err), attr ? " " : "", attr ? attr : "" );
 
 		tool_write_ldif( ldif ? LDIF_PUT_COMMENT : LDIF_PUT_VALUE,
-			"sortResult", buf, rc );
+			ldif ? "sortResult: " : "sortResult", buf, rc );
 	}
 
 	return rc;
@@ -2014,7 +2027,7 @@ print_vlv( LDAP *ld, LDAPControl *ctrl )
 			ber_memfree( bv.bv_val );
 
 		tool_write_ldif( ldif ? LDIF_PUT_COMMENT : LDIF_PUT_VALUE,
-			"vlvResult", buf, rc );
+			ldif ? "vlvResult" : "vlvResult", buf, rc );
 	}
 
 	return rc;
@@ -2174,7 +2187,7 @@ print_ppolicy( LDAP *ld, LDAPControl *ctrl )
 		}
 
 		tool_write_ldif( ldif ? LDIF_PUT_COMMENT : LDIF_PUT_VALUE,
-			"ppolicy", buf, ptr - buf );
+			ldif ? "ppolicy: " : "ppolicy", buf, ptr - buf );
 	}
 
 	return rc;

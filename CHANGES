@@ -14,6 +14,7 @@ OpenLDAP 2.4.24 Engineering
 	Added slapo-sssvlv multiple sorts per connection (ITS#6686)
 	Added contrib/kinit for kerberos tickets
 	Added contrib/noopsrch for entry counting (ITS#6598)
+	Fixed client tools control logging (ITS#6775)
 	Fixed liblber to not close invalid sockets (ITS#6585)
 	Fixed liblber unmatched brace handling (ITS#6764)
 	Fixed liblber error setting (ITS#6732)
