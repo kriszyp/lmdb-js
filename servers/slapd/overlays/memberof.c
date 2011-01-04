@@ -537,6 +537,10 @@ memberof_op_add( Operation *op, SlapReply *rs )
 			for ( i = 0; !BER_BVISNULL( &a->a_nvals[ i ] ); i++ ) {
 				Entry		*e = NULL;
 
+				/* ITS#6670 Ignore member pointing to this entry */
+				if ( dn_match( &a->a_nvals[i], &save_ndn ))
+					continue;
+
 				rc = be_entry_get_rw( op, &a->a_nvals[ i ],
 						NULL, NULL, 0, &e );
 				if ( rc == LDAP_SUCCESS ) {
@@ -615,6 +619,10 @@ memberof_op_add( Operation *op, SlapReply *rs )
 				send_ldap_result( op, rs );
 				goto done;
 			}
+			/* ITS#6670 Ignore member pointing to this entry */
+			if ( dn_match( &a->a_nvals[i], &save_ndn ))
+				continue;
+
 			rc = be_entry_get_rw( op, &a->a_nvals[ i ],
 					NULL, NULL, 0, &e );
 			op->o_bd->bd_info = (BackendInfo *)on;
@@ -822,6 +830,10 @@ memberof_op_modify( Operation *op, SlapReply *rs )
 						int		rc;
 						Entry		*e;
 		
+						/* ITS#6670 Ignore member pointing to this entry */
+						if ( dn_match( &ml->sml_nvalues[i], &save_ndn ))
+							continue;
+
 						if ( be_entry_get_rw( op, &ml->sml_nvalues[ i ],
 								NULL, NULL, 0, &e ) == LDAP_SUCCESS )
 						{
@@ -1033,6 +1045,10 @@ memberof_op_modify( Operation *op, SlapReply *rs )
 					goto done2;
 				}
 
+				/* ITS#6670 Ignore member pointing to this entry */
+				if ( dn_match( &ml->sml_nvalues[i], &save_ndn ))
+					continue;
+
 				rc = be_entry_get_rw( op, &ml->sml_nvalues[ i ],
 						NULL, NULL, 0, &e );
 				op->o_bd->bd_info = (BackendInfo *)on;
@@ -1194,6 +1210,10 @@ memberof_res_add( Operation *op, SlapReply *rs )
 
 			for ( i = 0; !BER_BVISNULL( &ma->a_nvals[ i ] ); i++ ) {
 		
+				/* ITS#6670 Ignore member pointing to this entry */
+				if ( dn_match( &ma->a_nvals[i], &op->o_req_ndn ))
+					continue;
+
 				/* the modification is attempted
 				 * with the original identity */
 				(void)memberof_value_modify( op, rs,
@@ -1211,6 +1231,10 @@ memberof_res_add( Operation *op, SlapReply *rs )
 				a = attrs_find( a->a_next, mo->mo_ad_member ) )
 		{
 			for ( i = 0; !BER_BVISNULL( &a->a_nvals[ i ] ); i++ ) {
+				/* ITS#6670 Ignore member pointing to this entry */
+				if ( dn_match( &a->a_nvals[i], &op->o_req_ndn ))
+					continue;
+
 				(void)memberof_value_modify( op, rs,
 						&a->a_nvals[ i ],
 						mo->mo_ad_memberof,
