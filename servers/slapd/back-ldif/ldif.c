@@ -1016,9 +1016,9 @@ apply_modify_to_entry(
 	Entry *entry,
 	Modifications *modlist,
 	Operation *op,
-	SlapReply *rs )
+	SlapReply *rs,
+	char *textbuf )
 {
-	char textbuf[SLAP_TEXT_BUFLEN];
 	int rc = modlist ? LDAP_UNWILLING_TO_PERFORM : LDAP_SUCCESS;
 	int is_oc = 0;
 	Modification *mods;
@@ -1038,28 +1038,28 @@ apply_modify_to_entry(
 			rc = modify_add_values(entry, mods,
 				   get_permissiveModify(op),
 				   &rs->sr_text, textbuf,
-				   sizeof( textbuf ) );
+				   SLAP_TEXT_BUFLEN );
 			break;
 
 		case LDAP_MOD_DELETE:
 			rc = modify_delete_values(entry, mods,
 				get_permissiveModify(op),
 				&rs->sr_text, textbuf,
-				sizeof( textbuf ) );
+				SLAP_TEXT_BUFLEN );
 			break;
 
 		case LDAP_MOD_REPLACE:
 			rc = modify_replace_values(entry, mods,
 				 get_permissiveModify(op),
 				 &rs->sr_text, textbuf,
-				 sizeof( textbuf ) );
+				 SLAP_TEXT_BUFLEN );
 			break;
 
 		case LDAP_MOD_INCREMENT:
 			rc = modify_increment_values( entry,
 				mods, get_permissiveModify(op),
 				&rs->sr_text, textbuf,
-				sizeof( textbuf ) );
+				SLAP_TEXT_BUFLEN );
 			break;
 
 		case SLAP_MOD_SOFTADD:
@@ -1067,7 +1067,7 @@ apply_modify_to_entry(
 			rc = modify_add_values(entry, mods,
 				   get_permissiveModify(op),
 				   &rs->sr_text, textbuf,
-				   sizeof( textbuf ) );
+				   SLAP_TEXT_BUFLEN );
 			mods->sm_op = SLAP_MOD_SOFTADD;
 			if (rc == LDAP_TYPE_OR_VALUE_EXISTS) {
 				rc = LDAP_SUCCESS;
@@ -1084,7 +1084,7 @@ apply_modify_to_entry(
 		}
 		/* check that the entry still obeys the schema */
 		rc = entry_schema_check( op, entry, NULL, 0, 0, NULL,
-			  &rs->sr_text, textbuf, sizeof( textbuf ) );
+			  &rs->sr_text, textbuf, SLAP_TEXT_BUFLEN );
 	}
 
 	return rc;
@@ -1278,6 +1278,7 @@ ldif_back_add( Operation *op, SlapReply *rs )
 		rc, rs->sr_text ? rs->sr_text : "", 0 );
 	send_ldap_result( op, rs );
 	slap_graduate_commit_csn( op );
+	rs->sr_text = NULL;	/* remove possible pointer to textbuf */
 	return rs->sr_err;
 }
 
@@ -1288,6 +1289,7 @@ ldif_back_modify( Operation *op, SlapReply *rs )
 	Modifications * modlst = op->orm_modlist;
 	struct berval path;
 	Entry *entry;
+	char textbuf[SLAP_TEXT_BUFLEN];
 	int rc;
 
 	slap_mods_opattrs( op, &op->orm_modlist, 1 );
@@ -1296,7 +1298,7 @@ ldif_back_modify( Operation *op, SlapReply *rs )
 
 	rc = get_entry( op, &entry, &path, &rs->sr_text );
 	if ( rc == LDAP_SUCCESS ) {
-		rc = apply_modify_to_entry( entry, modlst, op, rs );
+		rc = apply_modify_to_entry( entry, modlst, op, rs, textbuf );
 		if ( rc == LDAP_SUCCESS ) {
 			ldap_pvt_thread_rdwr_wlock( &li->li_rdwr );
 			rc = ldif_write_entry( op, entry, &path, NULL, &rs->sr_text );
@@ -1312,6 +1314,7 @@ ldif_back_modify( Operation *op, SlapReply *rs )
 	rs->sr_err = rc;
 	send_ldap_result( op, rs );
 	slap_graduate_commit_csn( op );
+	rs->sr_text = NULL;	/* remove possible pointer to textbuf */
 	return rs->sr_err;
 }
 
@@ -1477,6 +1480,7 @@ ldif_back_modrdn( Operation *op, SlapReply *rs )
 	struct berval new_dn = BER_BVNULL, new_ndn = BER_BVNULL;
 	struct berval p_dn, old_path;
 	Entry *entry;
+	char textbuf[SLAP_TEXT_BUFLEN];
 	int rc, same_ndn;
 
 	slap_mods_opattrs( op, &op->orr_modlist, 1 );
@@ -1500,7 +1504,7 @@ ldif_back_modrdn( Operation *op, SlapReply *rs )
 		entry->e_nname = new_ndn;
 
 		/* perform the modifications */
-		rc = apply_modify_to_entry( entry, op->orr_modlist, op, rs );
+		rc = apply_modify_to_entry( entry, op->orr_modlist, op, rs, textbuf );
 		if ( rc == LDAP_SUCCESS )
 			rc = ldif_move_entry( op, entry, same_ndn, &old_path,
 				&rs->sr_text );
@@ -1513,6 +1517,7 @@ ldif_back_modrdn( Operation *op, SlapReply *rs )
 	rs->sr_err = rc;
 	send_ldap_result( op, rs );
 	slap_graduate_commit_csn( op );
+	rs->sr_text = NULL;	/* remove possible pointer to textbuf */
 	return rs->sr_err;
 }
 
