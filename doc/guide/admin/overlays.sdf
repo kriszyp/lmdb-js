@@ -1009,6 +1009,8 @@ If we removed all users from the directory who are a member of this group, then 
 would be a single member in the group: {{F:cn=admin,dc=example,dc=com}}. This is the
 {{F:refint_nothing}} parameter kicking into action so that the schema is not violated.
 
+The {{rootdn}} must be set for the database as refint runs as the {{rootdn}} to gain access to
+make its updates.  The {{rootpw}} does not need to be set.
 
 H3: Further Information
 
