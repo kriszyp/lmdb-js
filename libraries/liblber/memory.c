@@ -62,9 +62,9 @@ struct ber_mem_hdr {
 };
 
 /* Pattern at top of allocated space */
-#define LBER_MEM_JUNK 0xdeaddadaU
+#define LBER_MEM_JUNK ((ber_int_t) 0xdeaddada)
 
-static const struct ber_mem_hdr ber_int_mem_hdr = { LBER_MEM_JUNK, 0, 0 };
+static const struct ber_mem_hdr ber_int_mem_hdr = { LBER_MEM_JUNK };
 
 /* Note sequence and ber_int_meminuse are counters, but are not
  * thread safe.  If you want to use these values for multithreaded applications,
@@ -256,7 +256,9 @@ ber_memcalloc_x( ber_len_t n, ber_len_t s, void *ctx )
 
 	if( ber_int_memory_fns == NULL || ctx == NULL ) {
 #ifdef LDAP_MEMORY_DEBUG
-		new = calloc(1, n*s + sizeof(struct ber_mem_hdr) + sizeof(ber_int_t));
+		new = n < (-sizeof(struct ber_mem_hdr) - sizeof(ber_int_t)) / s
+			? calloc(1, n*s + sizeof(struct ber_mem_hdr) + sizeof(ber_int_t))
+			: NULL;
 		if( new )
 		{
 		struct ber_mem_hdr *mh = new;
