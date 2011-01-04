@@ -63,6 +63,7 @@
 #include <nss/secerr.h>
 #include <nss/keyhi.h>
 #include <nss/secmod.h>
+#include <nss/cert.h>
 
 /* NSS 3.12.5 and later have NSS_InitContext */
 #if NSS_VMAJOR <= 3 && NSS_VMINOR <= 12 && NSS_VPATCH < 5
@@ -900,28 +901,136 @@ tlsm_pin_prompt(PK11SlotInfo *slot, PRBool retry, void *arg)
 }
 
 static SECStatus
+tlsm_get_basic_constraint_extension( CERTCertificate *cert,
+									 CERTBasicConstraints *cbcval )
+{
+	SECItem encodedVal = { 0, NULL };
+	SECStatus rc;
+
+	rc = CERT_FindCertExtension( cert, SEC_OID_X509_BASIC_CONSTRAINTS,
+								 &encodedVal);
+	if ( rc != SECSuccess ) {
+		return rc;
+	}
+
+	rc = CERT_DecodeBasicConstraintValue( cbcval, &encodedVal );
+
+	/* free the raw extension data */
+	PORT_Free( encodedVal.data );
+
+	return rc;
+}
+
+static PRBool
+tlsm_cert_is_self_issued( CERTCertificate *cert )
+{
+	/* A cert is self-issued if its subject and issuer are equal and
+	 * both are of non-zero length. 
+	 */
+	PRBool is_self_issued = cert &&
+		(PRBool)SECITEM_ItemsAreEqual( &cert->derIssuer, 
+									   &cert->derSubject ) &&
+		cert->derSubject.len > 0;
+	return is_self_issued;
+}
+
+static SECStatus
+tlsm_verify_cert(CERTCertDBHandle *handle, CERTCertificate *cert, void *pinarg,
+				 PRBool checksig, SECCertUsage certUsage, int errorToIgnore )
+{
+	CERTVerifyLog verifylog;
+	SECStatus ret = SECSuccess;
+	const char *name;
+
+	/* the log captures information about every cert in the chain, so we can tell
+	   which cert caused the problem and what the problem was */
+	memset( &verifylog, 0, sizeof( verifylog ) );
+	verifylog.arena = PORT_NewArena( DER_DEFAULT_CHUNKSIZE );
+	if ( verifylog.arena == NULL ) {
+		Debug( LDAP_DEBUG_ANY,
+			   "TLS certificate verification: Out of memory for certificate verification logger\n",
+			   0, 0, 0 );
+		return SECFailure;
+	}
+	ret = CERT_VerifyCertificate( handle, cert, checksig, certUsage, PR_Now(), pinarg, &verifylog,
+								  NULL );
+	if ( ( name = cert->subjectName ) == NULL ) {
+		name = cert->nickname;
+	}
+	if ( verifylog.head == NULL ) {
+		/* it is possible for CERT_VerifyCertificate return with an error with no logging */
+		if ( ret != SECSuccess ) {
+			PRErrorCode errcode = PR_GetError();
+			Debug( LDAP_DEBUG_ANY,
+				   "TLS: certificate [%s] is not valid - error %d:%s.\n",
+				   name ? name : "(unknown)",
+				   errcode, PR_ErrorToString( errcode, PR_LANGUAGE_I_DEFAULT ) );
+		}
+	} else {
+		const char *name;
+		CERTVerifyLogNode *node;
+
+		ret = SECSuccess; /* reset */
+		node = verifylog.head;
+		while ( node ) {
+			if ( ( name = node->cert->subjectName ) == NULL ) {
+				name = node->cert->nickname;
+			}
+			if ( node->error ) {
+				/* NSS does not like CA certs that have the basic constraints extension
+				   with the CA flag set to FALSE - openssl doesn't check if the cert
+				   is self issued */
+				if ( ( node->error == SEC_ERROR_CA_CERT_INVALID ) &&
+					 tlsm_cert_is_self_issued( node->cert ) ) {
+					CERTBasicConstraints basicConstraint;
+					SECStatus rv = tlsm_get_basic_constraint_extension( node->cert, &basicConstraint );
+					if ( ( rv == SECSuccess ) && ( basicConstraint.isCA == PR_FALSE ) ) {
+						Debug( LDAP_DEBUG_TRACE,
+							   "TLS: certificate [%s] is not correct because it is a CA cert and the "
+							   "BasicConstraint CA flag is set to FALSE - allowing for now, but "
+							   "please fix your certs if possible\n", name, 0, 0 );
+					} else { /* does not have basicconstraint, or some other error */
+						ret = SECFailure;
+						Debug( LDAP_DEBUG_ANY,
+							   "TLS: certificate [%s] is not valid - CA cert is not valid\n",
+							   name, 0, 0 );
+					}
+				} else if ( errorToIgnore && ( node->error == errorToIgnore ) ) {
+					Debug( LDAP_DEBUG_ANY,
+						   "TLS: Warning: ignoring error for certificate [%s] - error %ld:%s.\n",
+						   name, node->error, PR_ErrorToString( node->error, PR_LANGUAGE_I_DEFAULT ) );
+				} else {
+					ret = SECFailure;
+					Debug( LDAP_DEBUG_ANY,
+						   "TLS: certificate [%s] is not valid - error %ld:%s.\n",
+						   name, node->error, PR_ErrorToString( node->error, PR_LANGUAGE_I_DEFAULT ) );
+				}
+			}
+			CERT_DestroyCertificate( node->cert );
+			node = node->next;
+		}
+	}
+
+	PORT_FreeArena( verifylog.arena, PR_FALSE );
+
+	if ( ret == SECSuccess ) {
+		Debug( LDAP_DEBUG_TRACE,
+			   "TLS: certificate [%s] is valid\n", name, 0, 0 );
+	}		
+
+	return ret;
+}
+
+static SECStatus
 tlsm_auth_cert_handler(void *arg, PRFileDesc *fd,
                        PRBool checksig, PRBool isServer)
 {
-	SECStatus ret = SSL_AuthCertificate(arg, fd, checksig, isServer);
+	SECCertUsage certUsage = isServer ? certUsageSSLClient : certUsageSSLServer;
+	SECStatus ret = SECSuccess;
 
-	if ( ret != SECSuccess ) {
-		PRErrorCode errcode = PORT_GetError();
-		/* we bypass NSS's hostname checks and do our own - tlsm_session_chkhost will handle it */
-		if ( errcode == SSL_ERROR_BAD_CERT_DOMAIN ) {
-			Debug( LDAP_DEBUG_TRACE,
-				   "TLS certificate verification: defer\n",
-				   0, 0, 0 );
-		} else {
-			Debug( LDAP_DEBUG_ANY,
-				   "TLS certificate verification: Error, %d: %s\n",
-				   errcode, PR_ErrorToString( errcode, PR_LANGUAGE_I_DEFAULT ), 0 ) ;
-		}
-	} else {
-		Debug( LDAP_DEBUG_TRACE,
-			   "TLS certificate verification: ok\n",
-			   0, 0, 0 );
-	}
+	ret = tlsm_verify_cert( (CERTCertDBHandle *)arg, SSL_PeerCertificate( fd ),
+							SSL_RevealPinArg( fd ),
+							checksig, certUsage, 0 );
 
 	return ret;
 }
@@ -1017,7 +1126,7 @@ tlsm_free_pem_objs( tlsm_ctx *ctx )
 }
 
 static int
-tlsm_add_cert_from_file( tlsm_ctx *ctx, const char *filename, PRBool isca )
+tlsm_add_cert_from_file( tlsm_ctx *ctx, const char *filename, PRBool isca, PRBool istrusted )
 {
 	CK_SLOT_ID slotID;
 	PK11SlotInfo *slot = NULL;
@@ -1059,9 +1168,14 @@ tlsm_add_cert_from_file( tlsm_ctx *ctx, const char *filename, PRBool isca )
 		slotID = 0; /* CA and trust objects use slot 0 */
 		PR_snprintf( tmpslotname, sizeof(tmpslotname), TLSM_PEM_TOKEN_FMT, slotID );
 		slotname = tmpslotname;
+		istrusted = PR_TRUE;
 	} else {
 		if ( ctx->tc_slotname == NULL ) { /* need new slot */
-			slotID = ++tlsm_slot_count;
+			if ( istrusted ) {
+				slotID = 0;
+			} else {
+				slotID = ++tlsm_slot_count;
+			}
 			ctx->tc_slotname = PR_smprintf( TLSM_PEM_TOKEN_FMT, slotID );
 		}
 		slotname = ctx->tc_slotname;
@@ -1069,7 +1183,15 @@ tlsm_add_cert_from_file( tlsm_ctx *ctx, const char *filename, PRBool isca )
 		if ( ( ptr = PL_strrchr( filename, sep ) ) ) {
 			PL_strfree( ctx->tc_certname );
 			++ptr;
-			ctx->tc_certname = PR_smprintf( "%s:%s", slotname, ptr );
+			if ( istrusted ) {
+				/* pemnss conflates trusted certs with CA certs - since there can
+				   be more than one CA cert in a file (e.g. ca-bundle.crt) pemnss
+				   numbers each trusted cert - in the case of a server cert, there will be
+				   only one, so it will be number 0 */
+				ctx->tc_certname = PR_smprintf( "%s:%s - 0", slotname, ptr );
+			} else {
+				ctx->tc_certname = PR_smprintf( "%s:%s", slotname, ptr );
+			}
 		}
 	}
 
@@ -1087,7 +1209,7 @@ tlsm_add_cert_from_file( tlsm_ctx *ctx, const char *filename, PRBool isca )
 	PK11_SETATTRS( attrs, CKA_CLASS, &objClass, sizeof(objClass) ); attrs++;
 	PK11_SETATTRS( attrs, CKA_TOKEN, &cktrue, sizeof(CK_BBOOL) ); attrs++;
 	PK11_SETATTRS( attrs, CKA_LABEL, (unsigned char *)filename, strlen(filename)+1 ); attrs++;
-	if ( isca ) {
+	if ( istrusted ) {
 		PK11_SETATTRS( attrs, CKA_TRUST, &cktrue, sizeof(CK_BBOOL) ); attrs++;
 	} else {
 		PK11_SETATTRS( attrs, CKA_TRUST, &ckfalse, sizeof(CK_BBOOL) ); attrs++;
@@ -1204,7 +1326,7 @@ tlsm_init_ca_certs( tlsm_ctx *ctx, const char *cacertfile, const char *cacertdir
 	}
 
 	if ( cacertfile ) {
-		int rc = tlsm_add_cert_from_file( ctx, cacertfile, isca );
+		int rc = tlsm_add_cert_from_file( ctx, cacertfile, isca, PR_TRUE );
 		if ( rc ) {
 			errcode = PR_GetError();
 			Debug( LDAP_DEBUG_ANY,
@@ -1268,7 +1390,7 @@ tlsm_init_ca_certs( tlsm_ctx *ctx, const char *cacertfile, const char *cacertdir
 					continue;
 				}
 				fullpath = PR_smprintf( "%s/%s", cacertdir, entry->name );
-				if ( !tlsm_add_cert_from_file( ctx, fullpath, isca ) ) {
+				if ( !tlsm_add_cert_from_file( ctx, fullpath, isca, PR_TRUE ) ) {
 					Debug( LDAP_DEBUG_TRACE,
 						   "TLS: loaded CA certificate file %s from CA certificate directory %s.\n",
 						   fullpath, cacertdir, 0 );
@@ -1627,43 +1749,11 @@ tlsm_find_and_verify_cert_key(tlsm_ctx *ctx, PRFileDesc *fd, const char *certnam
 		} else {
 			checkSig = PR_FALSE;
 		}
-		status = CERT_VerifyCertificateNow( ctx->tc_certdb, cert,
-											checkSig, certUsage,
-											pin_arg, NULL );
-		if ( status != SECSuccess ) {
-			/* NSS doesn't like self-signed CA certs that are also used for 
-			   TLS/SSL server certs (such as generated by openssl req -x509)
-			   CERT_VerifyCertificateNow returns SEC_ERROR_UNTRUSTED_ISSUER in that case
-			   so, see if the cert and issuer are the same cert
-			*/
-			PRErrorCode errcode = PR_GetError();
-
-			if ( errcode == SEC_ERROR_UNTRUSTED_ISSUER ) {
-				CERTCertificate *issuer = CERT_FindCertIssuer( cert, PR_Now(), certUsageSSLServer );
-				if ( NULL == issuer ) {
-					/* no issuer - fail */
-					Debug( LDAP_DEBUG_ANY,
-						   "TLS: error: the server certificate %s has no issuer - "
-						   "please check this certificate for validity\n",
-						   certname, 0, 0 );
-				} else if ( CERT_CompareCerts( cert, issuer ) ) {
-					/* self signed - warn and allow */
-					status = SECSuccess;
-					rc = 0;
-					Debug( LDAP_DEBUG_ANY,
-						   "TLS: warning: using self-signed server certificate %s\n",
-						   certname, 0, 0 );
-				}
-				CERT_DestroyCertificate( issuer );
-			}
-
-			if ( status != SECSuccess ) {
-				Debug( LDAP_DEBUG_ANY,
-					   "TLS: error: the certificate %s is not valid - error %d:%s\n",
-					   certname, errcode, PR_ErrorToString( errcode, PR_LANGUAGE_I_DEFAULT ) );
-			}
-		} else {
-			rc = 0; /* success */
+		/* may not have a CA cert - ok - ignore SEC_ERROR_UNKNOWN_ISSUER */
+		status = tlsm_verify_cert( ctx->tc_certdb, cert, pin_arg,
+								   checkSig, certUsage, SEC_ERROR_UNKNOWN_ISSUER );
+		if ( status == SECSuccess ) {
+			rc = 0;
 		}
 	} else {
 		PRErrorCode errcode = PR_GetError();
@@ -1961,7 +2051,7 @@ tlsm_deferred_ctx_init( void *arg )
 		/* otherwise, assume this is the name of a cert already in the db */
 		if ( ctx->tc_using_pem ) {
 			/* this sets ctx->tc_certname to the correct value */
-			int rc = tlsm_add_cert_from_file( ctx, lt->lt_certfile, PR_FALSE /* not a ca */ );
+			int rc = tlsm_add_cert_from_file( ctx, lt->lt_certfile, PR_FALSE, PR_TRUE );
 			if ( rc ) {
 				return rc;
 			}
@@ -2289,8 +2379,8 @@ static char *
 tlsm_session_errmsg( tls_session *sess, int rc, char *buf, size_t len )
 {
 	int i;
+	int prerror = PR_GetError();
 
-	rc = PR_GetError();
 	i = PR_GetErrorTextLength();
 	if ( i > len ) {
 		char *msg = LDAP_MALLOC( i+1 );
@@ -2299,9 +2389,12 @@ tlsm_session_errmsg( tls_session *sess, int rc, char *buf, size_t len )
 		LDAP_FREE( msg );
 	} else if ( i ) {
 		PR_GetErrorText( buf );
+	} else if ( prerror ) {
+		i = PR_snprintf( buf, len, "TLS error %d:%s",
+						 prerror, PR_ErrorToString( prerror, PR_LANGUAGE_I_DEFAULT ) );
 	}
 
-	return i ? buf : NULL;
+	return ( i > 0 ) ? buf : NULL;
 }
 
 static int
