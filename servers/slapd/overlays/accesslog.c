@@ -1048,6 +1048,8 @@ logSchemaControlValidate(
 	/* extract and check controlValue */
 	if ( strncasecmp( &val.bv_val[ i ], "controlValue ", STRLENOF( "controlValue " ) ) == 0 )
 	{
+		ber_len_t valueStart, valueLen;
+
 		i += STRLENOF( "controlValue " );
 		for ( ; i < val.bv_len; i++ ) {
 			if ( !ASCII_SPACE( val.bv_val[ i ] ) ) {
@@ -1063,6 +1065,9 @@ logSchemaControlValidate(
 			return LDAP_INVALID_SYNTAX;
 		}
 
+		i++;
+		valueStart = i;
+
 		for ( ; i < val.bv_len; i++ ) {
 			if ( val.bv_val[ i ] == '"' ) {
 				break;
@@ -1077,7 +1082,12 @@ logSchemaControlValidate(
 			return LDAP_INVALID_SYNTAX;
 		}
 
-		for ( ; i < val.bv_len; i++ ) {
+		valueLen = i - valueStart;
+		if ( (valueLen/2)*2 != valueLen ) {
+			return LDAP_INVALID_SYNTAX;
+		}
+
+		for ( i++; i < val.bv_len; i++ ) {
 			if ( !ASCII_SPACE( val.bv_val[ i ] ) ) {
 				break;
 			}
@@ -1160,25 +1170,9 @@ accesslog_ctrls(
 			ber_len_t	j;
 
 			ptr = lutil_strcopy( ptr, " controlValue \"" );
-			for ( j = 0; j < ctrls[ i ]->ldctl_value.bv_len; j++ )
-			{
-				unsigned char	o;
-
-				o = ( ( ctrls[ i ]->ldctl_value.bv_val[ j ] >> 4 ) & 0xF );
-				if ( o < 10 ) {
-					*ptr++ = '0' + o;
-
-				} else {
-					*ptr++ = 'A' + o;
-				}
-
-				o = ( ctrls[ i ]->ldctl_value.bv_val[ j ] & 0xF );
-				if ( o < 10 ) {
-					*ptr++ = '0' + o;
-
-				} else {
-					*ptr++ = 'A' + o;
-				}
+			for ( j = 0; j < ctrls[ i ]->ldctl_value.bv_len; j++ ) {
+				*ptr++ = SLAP_ESCAPE_HI(ctrls[ i ]->ldctl_value.bv_val[ j ]);
+				*ptr++ = SLAP_ESCAPE_LO(ctrls[ i ]->ldctl_value.bv_val[ j ]);
 			}
 
 			*ptr++ = '"';
