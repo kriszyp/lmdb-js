@@ -770,6 +770,12 @@ retcode_item_destroy( retcode_item_t *rdi )
 
 	entry_clean( &rdi->rdi_e );
 
+	if ( !BER_BVISNULL( &rdi->rdi_unsolicited_oid ) ) {
+		ber_memfree( rdi->rdi_unsolicited_oid.bv_val );
+		if ( !BER_BVISNULL( &rdi->rdi_unsolicited_data ) )
+			ber_memfree( rdi->rdi_unsolicited_data.bv_val );
+	}
+
 	ch_free( rdi );
 }
 

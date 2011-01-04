@@ -303,6 +303,8 @@ done:;
 	fprintf( stderr, "  PID=%ld - Modrdn done (%d).\n", (long) pid, rc );
 
 	ldap_unbind_ext( ld, NULL, NULL );
+
+	free( DNs[1] );
+	free( rdns[0] );
+	free( rdns[1] );
 }
-
-

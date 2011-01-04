@@ -1259,7 +1259,7 @@ static int process_response(
 
 	if ( text ) ldap_memfree( text );
 	if ( matched ) ldap_memfree( matched );
-	if ( text ) ber_memvfree( (void **)refs );
+	if ( refs ) ber_memvfree( (void **)refs );
 
 	if ( ctrls ) {
 		tool_print_ctrls( ld, ctrls );
