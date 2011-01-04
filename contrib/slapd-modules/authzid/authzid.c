@@ -52,6 +52,10 @@ authzid_response(
 		}
 		/* end of TEMPORARY! */
 
+		if ( rs->sr_err != LDAP_SUCCESS ) {
+			return SLAP_CB_CONTINUE;
+		}
+
 		if ( !BER_BVISEMPTY( &op->o_conn->c_dn ) ) {
 			len = STRLENOF("dn:") + op->o_conn->c_dn.bv_len;
 		}
