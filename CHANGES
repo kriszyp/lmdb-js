@@ -34,6 +34,7 @@ OpenLDAP 2.4.24 Engineering
 	Fixed slapd config leak with olcDbDirectory (ITS#6634)
 	Fixed slapd connectionless warnings (ITS#6747)
 	Fixed slapd to free controls if needed (ITS#6629)
+	Fixed slapd to stop if given unknown options (ITS#6754)
 	Fixed slapd entry comparisons (ITS#6753)
 	Fixed slapd filter leak (ITS#6635)
 	Fixed slapd matching rules for strict ordering (ITS#6722)

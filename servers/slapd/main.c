@@ -682,6 +682,9 @@ unhandled_option:;
 		}
 	}
 
+	if ( optind != argc )
+		goto unhandled_option;
+
 	ber_set_option(NULL, LBER_OPT_DEBUG_LEVEL, &slap_debug);
 	ldap_set_option(NULL, LDAP_OPT_DEBUG_LEVEL, &slap_debug);
 	ldif_debug = slap_debug;
