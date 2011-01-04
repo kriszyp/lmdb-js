@@ -790,12 +790,9 @@ ldif_read_record(
 	char        **bufp,     /* ptr to malloced output buffer           */
 	int         *buflenp )  /* ptr to length of *bufp                  */
 {
-	char        linebuf[LDIF_MAXLINE], *line, *nbufp;
-	ber_len_t   lcur = 0, len, linesize;
+	char        line[LDIF_MAXLINE], *nbufp;
+	ber_len_t   lcur = 0, len;
 	int         last_ch = '\n', found_entry = 0, stop, top_comment = 0;
-
-	line     = linebuf;
-	linesize = sizeof( linebuf );
 
 	for ( stop = 0;  !stop;  last_ch = line[len-1] ) {
 		/* If we're at the end of this file, see if we should pop
@@ -815,10 +812,11 @@ ldif_read_record(
 		if ( stop )
 			break;
 
-		if ( fgets( line, linesize, lfp->fp ) == NULL ) {
+		if ( fgets( line, sizeof( line ), lfp->fp ) == NULL ) {
 			stop = 1;
 			/* Add \n in case the file does not end with newline */
-			line = "\n";
+			line[0] = '\n';
+			line[1] = '\0';
 		}
 		len = strlen( line );
 
