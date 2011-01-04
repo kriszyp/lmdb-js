@@ -672,6 +672,8 @@ tool_args( int argc, char **argv )
 					control );
 				usage();
 			}
+			ber_memfree( control );
+			control = NULL;
 			break;
 		case 'f':	/* read from file */
 			if( infile != NULL ) {
