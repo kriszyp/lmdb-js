@@ -139,7 +139,7 @@ usage( void )
 #ifdef LDAP_CONTROL_X_DEREF
 	fprintf( stderr, _("             [!]deref=derefAttr:attr[,...][;derefAttr:attr[,...][;...]]\n"));
 #endif
-	fprintf( stderr, _("             [!]<oid>=:<value>           (generic control; no response handling)\n"));
+	fprintf( stderr, _("             [!]<oid>[=:<b64value>] (generic control; no response handling)\n"));
 	fprintf( stderr, _("  -f file    read operations from `file'\n"));
 	fprintf( stderr, _("  -F prefix  URL prefix for files (default: %s)\n"), def_urlpre);
 	fprintf( stderr, _("  -l limit   time limit (in seconds, or \"none\" or \"max\") for search\n"));
@@ -636,18 +636,20 @@ handle_private_option( int i )
 				c[ nctrls - 1 ].ldctl_value.bv_len = 0;
 
 			} else if ( cvalue[ 0 ] == ':' ) {
-				struct berval	type;
-				struct berval	value;
-				int		freeval;
+				struct berval type;
+				struct berval value;
+				int freeval;
+				char save_c;
 
 				cvalue++;
 
 				/* dummy type "x"
 				 * to use ldif_parse_line2() */
+				save_c = cvalue[ -2 ];
 				cvalue[ -2 ] = 'x';
 				ldif_parse_line2( &cvalue[ -2 ], &type,
 					&value, &freeval );
-				cvalue[ -2 ] = '\0';
+				cvalue[ -2 ] = save_c;
 
 				if ( freeval ) {
 					c[ nctrls - 1 ].ldctl_value = value;
@@ -655,6 +657,11 @@ handle_private_option( int i )
 				} else {
 					ber_dupbv( &c[ nctrls - 1 ].ldctl_value, &value );
 				}
+
+			} else {
+				fprintf( stderr, "unable to parse %s control value\n", control );
+				exit( EXIT_FAILURE );
+				
 			}
 
 			/* criticality */

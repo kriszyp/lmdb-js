@@ -17,6 +17,7 @@ OpenLDAP 2.4.24 Engineering
 	Fixed libldap url parsing with NULL host (ITS#6653)
 	Fixed liblutil getpass prompts (ITS#6702)
 	Fixed ldapsearch segfault with deref (ITS#6638)
+	Fixed ldapsearch multiple controls parsing (ITS#6651)
 	Fixed slapd acl parsing overflow (ITS#6611)
 	Fixed slapd support for BDB 5.0+ (ITS#6698)
 	Fixed slapd config leak with olcDbDirectory (ITS#6634)
