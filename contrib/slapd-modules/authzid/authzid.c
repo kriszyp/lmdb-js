@@ -1,4 +1,4 @@
-/* vc.c - LDAP Verify Credentials extop (no spec yet) */
+/* authzid.c - RFC 3829 Authzid Control */
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
@@ -28,54 +28,122 @@
 #include "lutil.h"
 #include "ac/string.h"
 
-typedef struct ConnExtraAuthzID {
-	ConnExtra ce;
+typedef struct authzid_conn_t {
+	Connection *conn;
+	int refcnt;
 	char authzid_flag;
-} ConnExtraAuthzID;
+} authzid_conn_t;
+
+static ldap_pvt_thread_mutex_t authzid_mutex;
+static Avlnode *authzid_tree;
+
+static int
+authzid_conn_cmp( const void *c1, const void *c2 )
+{
+	const authzid_conn_t *ac1 = (const authzid_conn_t *)c1;
+	const authzid_conn_t *ac2 = (const authzid_conn_t *)c2;
+
+	return SLAP_PTRCMP( ac1->conn, ac2->conn );
+}
+
+static int
+authzid_conn_dup( void *c1, void *c2 )
+{
+	authzid_conn_t *ac1 = (authzid_conn_t *)c1;
+	authzid_conn_t *ac2 = (authzid_conn_t *)c2;
+
+	if ( ac1->conn == ac2->conn ) {
+		return -1;
+	}
+
+	return 0;
+}
 
 static int authzid_cid;
 static slap_overinst authzid;
 
-static ConnExtraAuthzID *
-authzid_extra_find( Connection *c )
+static authzid_conn_t *
+authzid_conn_find( Connection *c )
 {
-	ConnExtra *cex;
+	authzid_conn_t *ac = NULL, tmp = { 0 };
 
-	LDAP_SLIST_FOREACH( cex, &c->c_extra, ce_next ) {
-		if ( cex->ce_key == (void *)&authzid_cid )
-			break;
+	tmp.conn = c;
+	ac = (authzid_conn_t *)avl_find( authzid_tree, (caddr_t)&tmp, authzid_conn_cmp );
+	if ( ac == NULL || ( ac != NULL && ac->refcnt != 0 ) ) {
+		ac = NULL;
+		ldap_pvt_thread_mutex_unlock( &authzid_mutex );
+	}
+	if ( ac ) {
+		ac->refcnt++;
 	}
 
-	return (ConnExtraAuthzID *)cex;
+	return ac;
 }
 
-static ConnExtraAuthzID *
-authzid_extra_insert( Connection *c )
+static authzid_conn_t *
+authzid_conn_get( Connection *c )
 {
-	ConnExtraAuthzID *cex;
+	authzid_conn_t *ac = NULL;
 
-	cex = SLAP_CALLOC( 1, sizeof( ConnExtraAuthzID ) );
-	cex->ce.ce_key = (void *)&authzid_cid;
+	ldap_pvt_thread_mutex_lock( &authzid_mutex );
+	ac = authzid_conn_find( c );
+	if ( ac && ac->refcnt ) ac = NULL;
+	if ( ac ) ac->refcnt++;
+	ldap_pvt_thread_mutex_unlock( &authzid_mutex );
 
-	LDAP_SLIST_INSERT_HEAD( &c->c_extra, &cex->ce, ce_next );
+	return ac;
+}
 
-	return cex;
+static void
+authzid_conn_release( authzid_conn_t *ac )
+{
+	ldap_pvt_thread_mutex_lock( &authzid_mutex );
+	ac->refcnt--;
+	ldap_pvt_thread_mutex_unlock( &authzid_mutex );
 }
 
 static int
-authzid_extra_remove( Connection *c )
+authzid_conn_insert( Connection *c, char flag )
 {
-	ConnExtra *cex;
-	int found = 0;
+	authzid_conn_t *ac;
+	int rc;
 
-	cex = (ConnExtra *)authzid_extra_find( c );
-	if ( cex ) {
-		found = 1;
-		LDAP_SLIST_REMOVE( &c->c_extra, cex, ConnExtra, ce_next );
-		SLAP_FREE( cex );
+	ldap_pvt_thread_mutex_lock( &authzid_mutex );
+	ac = authzid_conn_find( c );
+	if ( ac ) {
+		ldap_pvt_thread_mutex_unlock( &authzid_mutex );
+		return -1;
 	}
 
-	return found;
+	ac = SLAP_MALLOC( sizeof( authzid_conn_t ) );
+	ac->conn = c;
+	ac->refcnt = 0;
+	ac->authzid_flag = flag;
+	rc = avl_insert( &authzid_tree, (caddr_t)ac,
+		authzid_conn_cmp, authzid_conn_dup );
+	ldap_pvt_thread_mutex_unlock( &authzid_mutex );
+
+	return rc;
+}
+
+static int
+authzid_conn_remove( Connection *c )
+{
+	authzid_conn_t *ac, *tmp;
+
+	ldap_pvt_thread_mutex_lock( &authzid_mutex );
+	ac = authzid_conn_find( c );
+	if ( !ac ) {
+		ldap_pvt_thread_mutex_unlock( &authzid_mutex );
+		return -1;
+	}
+	tmp = avl_delete( &authzid_tree, (caddr_t)ac, authzid_conn_cmp );
+	ldap_pvt_thread_mutex_unlock( &authzid_mutex );
+
+	assert( tmp == ac );
+	SLAP_FREE( ac );
+
+	return 0;
 }
 
 static int
@@ -83,7 +151,6 @@ authzid_response(
 	Operation *op,
 	SlapReply *rs )
 {
-	ConnExtraAuthzID *cex;
 	LDAPControl **ctrls;
 	struct berval edn = BER_BVNULL;
 	ber_len_t len = 0;
@@ -91,20 +158,17 @@ authzid_response(
 
 	assert( rs->sr_tag = LDAP_RES_BIND );
 
-	cex = authzid_extra_find( op->o_conn );
 	if ( rs->sr_err == LDAP_SASL_BIND_IN_PROGRESS ) {
-		if ( !cex ) {
-			cex = authzid_extra_insert( op->o_conn );
-			cex->authzid_flag = op->o_ctrlflag[ authzid_cid ];
+		authzid_conn_t *ac = op->o_controls[ authzid_cid ];
+		if ( ac ) {
+			authzid_conn_release( ac );
+		} else {
+			(void)authzid_conn_insert( op->o_conn, op->o_ctrlflag[ authzid_cid ] );
 		}
-
 		return SLAP_CB_CONTINUE;
-
 	}
 
-	if ( cex ) {
-		authzid_extra_remove( op->o_conn );
-	}
+	(void)authzid_conn_remove( op->o_conn );
 
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		return SLAP_CB_CONTINUE;
@@ -168,7 +232,7 @@ authzid_cleanup(
 		/* if ours, cleanup */
 		ctrl = ldap_control_find( LDAP_CONTROL_AUTHZID_RESPONSE, rs->sr_ctrls, NULL );
 		if ( ctrl ) {
-			op->o_tmpfree( ctrl, op->o_tmpmemctx );
+			
 			op->o_tmpfree( rs->sr_ctrls, op->o_tmpmemctx );
 		}
 
@@ -192,9 +256,10 @@ authzid_op_bind(
 	slap_callback *sc;
 
 	if ( op->o_ctrlflag[ authzid_cid ] <= SLAP_CONTROL_IGNORED ) {
-		ConnExtraAuthzID *cex = authzid_extra_find( op->o_conn );
-		if ( cex ) {
-			op->o_ctrlflag[ authzid_cid ] = cex->authzid_flag;
+		authzid_conn_t *ac = authzid_conn_get( op->o_conn );
+		if ( ac ) {
+			op->o_ctrlflag[ authzid_cid ] = ac->authzid_flag;
+			op->o_controls[ authzid_cid] = ac;
 		}
 	}
 
@@ -227,7 +292,7 @@ parse_authzid_ctrl(
 	}
 
 	/* drop ongoing requests */
-	(void)authzid_extra_remove( op->o_conn );
+	(void)authzid_conn_remove( op->o_conn );
 
 	op->o_ctrlflag[ authzid_cid ] = ctrl->ldctl_iscritical ?  SLAP_CONTROL_CRITICAL : SLAP_CONTROL_NONCRITICAL;
 
@@ -275,6 +340,8 @@ authzid_db_destroy( BackendDB *be, ConfigReply *cr )
 static int
 authzid_initialize( void )
 {
+	ldap_pvt_thread_mutex_init( &authzid_mutex );
+
 	authzid.on_bi.bi_type = "authzid";
 
 	authzid.on_bi.bi_db_init = authzid_db_init;
