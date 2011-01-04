@@ -164,11 +164,13 @@ static int node_cmp( const void* val1, const void* val2 )
 {
 	sort_node *sn1 = (sort_node *)val1;
 	sort_node *sn2 = (sort_node *)val2;
-	assert( sort_conns[sn1->sn_conn] && sort_conns[sn1->sn_conn][sn1->sn_session]
-		&& sort_conns[sn1->sn_conn][sn1->sn_session]->so_ctrl );
-	sort_ctrl *sc = sort_conns[sn1->sn_conn][sn1->sn_session]->so_ctrl;
+	sort_ctrl *sc;
 	MatchingRule *mr;
 	int i, cmp = 0;
+	assert( sort_conns[sn1->sn_conn]
+		&& sort_conns[sn1->sn_conn][sn1->sn_session]
+		&& sort_conns[sn1->sn_conn][sn1->sn_session]->so_ctrl );
+	sc = sort_conns[sn1->sn_conn][sn1->sn_session]->so_ctrl;
 
 	for ( i=0; cmp == 0 && i<sc->sc_nkeys; i++ ) {
 		if ( BER_BVISNULL( &sn1->sn_vals[i] )) {
