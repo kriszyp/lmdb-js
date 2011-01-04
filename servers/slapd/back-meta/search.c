@@ -622,13 +622,13 @@ meta_back_search_start(
 #ifdef SLAPD_META_CLIENT_PR
 	save_ctrls = op->o_ctrls;
 	{
-		LDAPControl *pr_c = NULL, **next_c = NULL;
+		LDAPControl *pr_c = NULL;
 		int i = 0, nc = 0;
 
 		if ( save_ctrls ) {
 			for ( ; save_ctrls[i] != NULL; i++ );
 			nc = i;
-			pr_c = ldap_control_find( LDAP_CONTROL_PAGEDRESULTS, save_ctrls, &next_c );
+			pr_c = ldap_control_find( LDAP_CONTROL_PAGEDRESULTS, save_ctrls, NULL );
 		}
 
 		if ( pr_c != NULL ) nc--;
@@ -1533,9 +1533,9 @@ really_bad:;
 					case LDAP_SUCCESS:
 						if ( ctrls != NULL && ctrls[0] != NULL ) {
 #ifdef SLAPD_META_CLIENT_PR
-							LDAPControl *pr_c, **next_c;
+							LDAPControl *pr_c;
 
-							pr_c = ldap_control_find( LDAP_CONTROL_PAGEDRESULTS, ctrls, &next_c );
+							pr_c = ldap_control_find( LDAP_CONTROL_PAGEDRESULTS, ctrls, NULL );
 							if ( pr_c != NULL ) {
 								BerElementBuffer berbuf;
 								BerElement *ber = (BerElement *)&berbuf;
