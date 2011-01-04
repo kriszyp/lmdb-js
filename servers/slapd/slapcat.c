@@ -148,7 +148,7 @@ slapcat( int argc, char **argv )
 			printf( "# id=%08lx\n", (long) id );
 		}
 
-		data = entry2str( e, &len );
+		data = entry2str_wrap( e, &len, ldif_wrap );
 		be_entry_release_r( &op, e );
 
 		if ( data == NULL ) {

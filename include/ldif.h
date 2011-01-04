@@ -33,7 +33,9 @@ LDAP_BEGIN_DECL
 /* This is NOT a bogus extern declaration (unlike ldap_debug) */
 LDAP_LDIF_V (int) ldif_debug;
 
-#define LDIF_LINE_WIDTH      76      /* maximum length of LDIF lines */
+#define LDIF_LINE_WIDTH      76      /* default maximum length of LDIF lines */
+#define LDIF_LINE_WIDTH_MAX  ((ber_len_t)-1) /* maximum length of LDIF lines */
+#define LDIF_LINE_WIDTH_WRAP(wrap) ((wrap) == 0 ? LDIF_LINE_WIDTH : (wrap))
 
 /*
  * Macro to calculate maximum number of bytes that the base64 equivalent
@@ -51,6 +53,11 @@ LDAP_LDIF_V (int) ldif_debug;
 #define LDIF_SIZE_NEEDED(nlen,vlen) \
     ((nlen) + 4 + LDIF_BASE64_LEN(vlen) \
     + ((LDIF_BASE64_LEN(vlen) + (nlen) + 3) / LDIF_LINE_WIDTH * 2 ))
+
+#define LDIF_SIZE_NEEDED_WRAP(nlen,vlen,wrap) \
+    ((nlen) + 4 + LDIF_BASE64_LEN(vlen) \
+    + ((wrap) == 0 ? ((LDIF_BASE64_LEN(vlen) + (nlen) + 3) / ( LDIF_LINE_WIDTH ) * 2 ) : \
+	((wrap) == LDIF_LINE_WIDTH_MAX ? 0 : ((LDIF_BASE64_LEN(vlen) + (nlen) + 3) / (wrap) * 2 ))))
 
 LDAP_LDIF_F( int )
 ldif_parse_line LDAP_P((
@@ -128,12 +135,29 @@ ldif_sput LDAP_P((
 	LDAP_CONST char *val,
 	ber_len_t vlen ));
 
+LDAP_LDIF_F( void )
+ldif_sput_wrap LDAP_P((
+	char **out,
+	int type,
+	LDAP_CONST char *name,
+	LDAP_CONST char *val,
+	ber_len_t vlen,
+        ber_len_t wrap ));
+
 LDAP_LDIF_F( char * )
 ldif_put LDAP_P((
 	int type,
 	LDAP_CONST char *name,
 	LDAP_CONST char *val,
 	ber_len_t vlen ));
+
+LDAP_LDIF_F( char * )
+ldif_put_wrap LDAP_P((
+	int type,
+	LDAP_CONST char *name,
+	LDAP_CONST char *val,
+	ber_len_t vlen,
+	ber_len_t wrap ));
 
 LDAP_LDIF_F( int )
 ldif_is_not_printable LDAP_P((

@@ -149,7 +149,12 @@ Possible generic options/values are:
               syslog\-level=<level> (see `\-S' in slapd(8))
               syslog\-user=<user>   (see `\-l' in slapd(8))
 
-.fi
+              ldif-wrap={no|<n>}
+
+.in
+\fIn\fP is the number of columns allowed for the LDIF output
+(\fIn\fP equal to \fI0\fP uses the default, corresponding to 76).
+Use \fIno\fP for no wrap.
 .TP
 .BI \-s \ subtree-dn
 Only dump entries in the subtree specified by this DN.
