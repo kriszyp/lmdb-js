@@ -505,7 +505,7 @@ tool_args( int argc, char **argv )
 					fprintf( stderr, "bauthzid: no control value expected\n" );
 					usage();
 				}
-				bauthzid = crit ? 2 : 1;
+				bauthzid = 1 + crit;
 #endif
 
 			} else if ( ( strcasecmp( control, "relax" ) == 0 ) ||
@@ -637,6 +637,19 @@ tool_args( int argc, char **argv )
 				}
 #endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
 
+#ifdef LDAP_CONTROL_X_SESSION_TRACKING
+			} else if ( strcasecmp( control, "sessiontracking" ) == 0 ) {
+				if ( sessionTracking ) {
+					fprintf( stderr, "%s: session tracking can be only specified once\n", prog );
+					exit( EXIT_FAILURE );
+				}
+				sessionTracking = 1;
+				if( crit ) {
+					fprintf( stderr, "sessiontracking: critical flag not allowed\n" );
+					usage();
+				}
+#endif /* LDAP_CONTROL_X_SESSION_TRACKING */
+
 			/* this shouldn't go here, really; but it's a feature... */
 			} else if ( strcasecmp( control, "abandon" ) == 0 ) {
 				abcan = Intr_Abandon;
@@ -655,15 +668,6 @@ tool_args( int argc, char **argv )
 				if ( crit ) {
 					gotintr = abcan;
 				}
-
-#ifdef LDAP_CONTROL_X_SESSION_TRACKING
-			} else if ( strcasecmp( control, "sessiontracking" ) == 0 ) {
-				if ( sessionTracking ) {
-					fprintf( stderr, "%s: session tracking can be only specified once\n", prog );
-					exit( EXIT_FAILURE );
-				}
-				sessionTracking = 1;
-#endif /* LDAP_CONTROL_X_SESSION_TRACKING */
 
 			} else if ( tool_is_oid( control ) ) {
 				LDAPControl	*tmpctrls, ctrl;
