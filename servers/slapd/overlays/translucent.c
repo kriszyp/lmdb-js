@@ -1160,11 +1160,11 @@ static int translucent_search(Operation *op, SlapReply *rs) {
 			av = tavl_end( tc.list, TAVL_DIR_LEFT );
 			while ( av ) {
 				rs->sr_entry = av->avl_data;
-				rc = test_filter( op, rs->sr_entry, op->ors_filter );
-				if ( rc == LDAP_COMPARE_TRUE ) {
+				if ( rc == LDAP_SUCCESS && LDAP_COMPARE_TRUE ==
+					test_filter( op, rs->sr_entry, op->ors_filter ))
+				{
 					rs->sr_flags = REP_ENTRY_MUSTBEFREED;
 					rc = send_search_entry( op, rs );
-					if ( rc ) break;
 				} else {
 					entry_free( rs->sr_entry );
 				}

@@ -77,6 +77,7 @@ OpenLDAP 2.4.24 Engineering
 	Fixed slapo-syncprov to refresh if context is dirty (ITS#6710)
 	Fixed slapo-syncprov CSN updates to all replicas (ITS#6718)
 	Fixed slapo-syncprov sessionlog ordering (ITS#6716)
+	Fixed slapo-translucent entry leak (ITS#6746)
 	Fixed contrib/autogroup LDAP URI with attribute filter (ITS#6536)
 	Fixed contrib/nssov to only close socket on shutdown (ITS#6676)
 	Fixed contrib/nssov multi platform support (ITS#6604)
