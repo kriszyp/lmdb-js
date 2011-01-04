@@ -168,6 +168,9 @@ meta_back_db_config(
 		}
 		mt->mt_flags = mi->mi_flags;
 		mt->mt_version = mi->mi_version;
+#ifdef SLAPD_META_CLIENT_PR
+		mt->mt_ps = mi->mi_ps;
+#endif /* SLAPD_META_CLIENT_PR */
 		mt->mt_network_timeout = mi->mi_network_timeout;
 		mt->mt_bind_timeout = mi->mi_bind_timeout;
 		for ( c = 0; c < SLAP_OP_LAST; c++ ) {
@@ -1531,6 +1534,33 @@ idassert-authzFrom	"dn:<rootdn>"
 				fname, lineno, argv[ 1 ] );
 			return( 1 );
 		}
+
+#ifdef SLAPD_META_CLIENT_PR
+	} else if ( strcasecmp( argv[ 0 ], "client-pr" ) == 0 ) {
+		int *ps = mi->mi_ntargets ?
+				&mi->mi_targets[ mi->mi_ntargets - 1 ]->mt_ps
+				: &mi->mi_ps;
+
+		if ( argc != 2 ) {
+			Debug( LDAP_DEBUG_ANY,
+	"%s: line %d: \"client-pr {accept-unsolicited|disable|<size>}\" needs 1 argument.\n",
+				fname, lineno, 0 );
+			return( 1 );
+		}
+
+		if ( strcasecmp( argv[ 1 ], "accept-unsolicited" ) == 0 ) {
+			*ps = META_CLIENT_PR_ACCEPT_UNSOLICITED;
+
+		} else if ( strcasecmp( argv[ 1 ], "disable" ) == 0 ) {
+			*ps = META_CLIENT_PR_DISABLE;
+
+		} else if ( lutil_atoi( ps, argv[ 1 ] ) || *ps < -1 ) {
+			Debug( LDAP_DEBUG_ANY,
+	"%s: line %d: \"client-pr {accept-unsolicited|disable|<size>}\" invalid arg \"%s\".\n",
+				fname, lineno, argv[ 1 ] );
+			return( 1 );
+		}
+#endif /* SLAPD_META_CLIENT_PR */
 
 	/* anything else */
 	} else {
