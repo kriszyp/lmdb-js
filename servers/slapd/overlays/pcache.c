@@ -1599,6 +1599,8 @@ add_query(
 		templ->query = new_cached_query;
 		templ->no_of_queries++;
 	} else {
+		ldap_pvt_thread_mutex_destroy(&new_cached_query->answerable_cnt_mutex);
+		ldap_pvt_thread_rdwr_destroy( &new_cached_query->rwlock );
 		ch_free( new_cached_query );
 		new_cached_query = find_filter( op, qbase->scopes[query->scope],
 							query->filter, first );

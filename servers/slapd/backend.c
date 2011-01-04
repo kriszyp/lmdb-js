@@ -471,6 +471,8 @@ void backend_destroy_one( BackendDB *bd, int dynamic )
 		ber_bvarray_free( bd->be_update_refs );
 	}
 
+	ldap_pvt_thread_mutex_destroy( &bd->be_pcl_mutex );
+
 	if ( dynamic ) {
 		free( bd );
 	}
@@ -620,6 +622,7 @@ backend_db_init(
 		/* If we created and linked this be, remove it and free it */
 		if ( !b0 ) {
 			LDAP_STAILQ_REMOVE(&backendDB, be, BackendDB, be_next);
+			ldap_pvt_thread_mutex_destroy( &be->be_pcl_mutex );
 			ch_free( be );
 			be = NULL;
 			nbackends--;

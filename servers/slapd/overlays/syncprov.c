@@ -3152,6 +3152,7 @@ syncprov_db_destroy(
 				se = se_next;
 			}
 				
+			ldap_pvt_thread_mutex_destroy(&si->si_logs->sl_mutex);
 			ch_free( si->si_logs );
 		}
 		if ( si->si_ctxcsn )

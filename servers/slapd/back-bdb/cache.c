@@ -101,6 +101,7 @@ bdb_cache_entryinfo_free( Cache *cache, EntryInfo *ei )
 	cache->c_eifree = ei;
 	ldap_pvt_thread_mutex_unlock( &cache->c_eifree_mutex );
 #else
+	ldap_pvt_thread_mutex_destroy( &ei->bei_kids_mutex );
 	ch_free( ei );
 #endif
 }
