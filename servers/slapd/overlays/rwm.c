@@ -598,7 +598,7 @@ rwm_op_modify( Operation *op, SlapReply *rs )
 					&mapping, RWM_MAP );
 			if ( drop_missing || ( mapping != NULL && BER_BVISNULL( &mapping->m_dst ) ) )
 			{
-				goto cleanup_mod;
+				goto skip_mod;
 			}
 		}
 
@@ -691,6 +691,10 @@ next_mod:;
 		}
 
 		mlp = &ml->sml_next;
+		continue;
+
+skip_mod:;
+		*mlp = (*mlp)->sml_next;
 		continue;
 
 cleanup_mod:;

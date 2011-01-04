@@ -53,6 +53,7 @@ OpenLDAP 2.4.24 Engineering
 	Fixed slapo-ppolicy to allow userPassword deletion (ITS#6620)
 	Fixed slapo-refint when last group member is deleted (ITS#6663)
 	Fixed slapo-refint with subtree rename (ITS#6730)
+	Fixed slapo-rwm double free (ITS#6720)
 	Fixed slapo-sssvlv initialization (ITS#6649)
 	Fixed slapo-syncprov to send error if consumer is newer (ITS#6606)
 	Fixed slapo-syncprov filter race condition (ITS#6708)
