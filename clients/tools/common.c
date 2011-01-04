@@ -264,20 +264,47 @@ tool_destroy( void )
 
 	if ( pr_cookie.bv_val != NULL ) {
 		ber_memfree( pr_cookie.bv_val );
-		pr_cookie.bv_val = NULL;
-		pr_cookie.bv_len = 0;
+		BER_BVZERO( &pr_cookie );
 	}
 
 	if ( binddn != NULL ) {
 		ber_memfree( binddn );
+		binddn = NULL;
 	}
 
 	if ( passwd.bv_val != NULL ) {
 		ber_memfree( passwd.bv_val );
+		BER_BVZERO( &passwd );
 	}
 
 	if ( infile != NULL ) {
 		ber_memfree( infile );
+		infile = NULL;
+	}
+
+	if ( assertion ) {
+		ber_memfree( assertion );
+		assertion = NULL;
+	}
+
+	if ( authzid ) {
+		ber_memfree( authzid );
+		authzid = NULL;
+	}
+
+	if ( proxydn ) {
+		ber_memfree( proxydn );
+		proxydn = NULL;
+	}
+
+	if ( preread_attrs ) {
+		ber_memfree( preread_attrs );
+		preread_attrs = NULL;
+	}
+
+	if ( postread_attrs ) {
+		ber_memfree( postread_attrs );
+		postread_attrs = NULL;
 	}
 }
 
@@ -439,7 +466,7 @@ tool_args( int argc, char **argv )
 				assertctl = 1 + crit;
 
 				assert( assertion == NULL );
-				assertion = cvalue;
+				assertion = ber_strdup( cvalue );
 
 			} else if ( strcasecmp( control, "authzid" ) == 0 ) {
 				if( authzid != NULL ) {
@@ -466,7 +493,7 @@ tool_args( int argc, char **argv )
 				}
 
 				assert( authzid == NULL );
-				authzid = cvalue;
+				authzid = ber_strdup( cvalue );
 
 #ifdef LDAP_CONTROL_OBSOLETE_PROXY_AUTHZ
 			} else if ( strcasecmp( control, "proxydn" ) == 0 ) {
@@ -492,7 +519,7 @@ tool_args( int argc, char **argv )
 				}
 
 				assert( proxydn == NULL );
-				proxydn = cvalue;
+				proxydn = ber_strdup( cvalue );
 #endif /* LDAP_CONTROL_OBSOLETE_PROXY_AUTHZ */
 
 #ifdef LDAP_CONTROL_AUTHZID_REQUEST
@@ -575,7 +602,7 @@ tool_args( int argc, char **argv )
 				}
 
 				preread = 1 + crit;
-				preread_attrs = cvalue;
+				preread_attrs = ber_strdup( cvalue );
 
 			} else if ( strcasecmp( control, "postread" ) == 0 ) {
 				if( postread ) {
@@ -584,7 +611,7 @@ tool_args( int argc, char **argv )
 				}
 
 				postread = 1 + crit;
-				postread_attrs = cvalue;
+				postread_attrs = ber_strdup( cvalue );
 
 #ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
 			} else if ( strcasecmp( control, "chaining" ) == 0 ) {
@@ -690,6 +717,8 @@ tool_args( int argc, char **argv )
 				}
 				unknown_ctrls = tmpctrls;
 				ctrl.ldctl_oid = control;
+				/* don't free it */
+				control = NULL;
 				ctrl.ldctl_value.bv_val = NULL;
 				ctrl.ldctl_value.bv_len = 0;
 				ctrl.ldctl_iscritical = crit;
@@ -723,6 +752,10 @@ tool_args( int argc, char **argv )
 				fprintf( stderr, "Invalid general control name: %s\n",
 					control );
 				usage();
+			}
+			if ( control ) {
+				ber_memfree( control );	 
+				control = NULL;
 			}
 			break;
 		case 'f':	/* read from file */
