@@ -975,6 +975,93 @@ find_oid( struct berval *oid )
 	return NULL;
 }
 
+/* Converts BER Bitstring value to LDAP BitString value (RFC4517)
+ *
+ * berValue    : IN
+ * rfc4517Value: OUT
+ *
+ * berValue and ldapValue should not be NULL
+ */
+
+#define BITS_PER_BYTE	8
+#define SQUOTE_LENGTH	1
+#define B_CHAR_LENGTH	1
+#define STR_OVERHEAD    (2*SQUOTE_LENGTH + B_CHAR_LENGTH)
+
+static int
+der_to_ldap_BitString (struct berval *berValue,
+                                   struct berval *ldapValue)
+{
+	ber_len_t bitPadding=0;
+	ber_len_t bits, maxBits;
+	char *tmpStr;
+	unsigned char byte;
+	ber_len_t bitLength;
+	ber_len_t valLen;
+	unsigned char* valPtr;
+
+	ldapValue->bv_len=0;
+	ldapValue->bv_val=NULL;
+
+	/* Gets padding and points to binary data */
+	valLen=berValue->bv_len;
+	valPtr=(unsigned char*)berValue->bv_val;
+	if (valLen) {
+		bitPadding=(ber_len_t)(valPtr[0]);
+		valLen--;
+		valPtr++;
+	}
+	/* If Block is non DER encoding fixes to DER encoding */
+	if (bitPadding >= BITS_PER_BYTE) {
+		if (valLen*BITS_PER_BYTE > bitPadding ) {
+			valLen-=(bitPadding/BITS_PER_BYTE);
+			bitPadding%=BITS_PER_BYTE;
+		} else {
+			valLen=0;
+			bitPadding=0;
+		}
+	}
+	/* Just in case bad encoding */
+	if (valLen*BITS_PER_BYTE < bitPadding ) {
+		bitPadding=0;
+		valLen=0;
+	}
+
+	/* Gets buffer to hold RFC4517 Bit String format */
+	bitLength=valLen*BITS_PER_BYTE-bitPadding;
+	tmpStr=LDAP_MALLOC(bitLength + STR_OVERHEAD + 1);
+
+	if (!tmpStr)
+		return LDAP_NO_MEMORY;
+
+	ldapValue->bv_val=tmpStr;
+	ldapValue->bv_len=bitLength + STR_OVERHEAD;
+
+	/* Formatting in '*binary-digit'B format */
+	maxBits=BITS_PER_BYTE;
+	*tmpStr++ ='\'';
+	while(valLen) {
+		byte=*valPtr;
+		if (valLen==1)
+			maxBits-=bitPadding;
+		for (bits=0; bits<maxBits; bits++) {
+			if (0x80 & byte)
+				*tmpStr='1';
+			else
+				*tmpStr='0';
+			tmpStr++;
+			byte<<=1;
+		}
+		valPtr++;
+		valLen--;
+	}
+	*tmpStr++ ='\'';
+	*tmpStr++ ='B';
+	*tmpStr=0;
+
+	return LDAP_SUCCESS;
+}
+
 /* Convert a structured DN from an X.509 certificate into an LDAPV3 DN.
  * x509_name must be raw DER. If func is non-NULL, the
  * constructed DN will use numeric OIDs to identify attributeTypes,
@@ -1131,9 +1218,10 @@ ldap_X509dn2bv( void *x509_name, struct berval *bv, LDAPDN_rewrite_func *func,
 				/* This uses 8-bit, assume ISO 8859-1 */
 				csize = 1;
 to_utf8:		rc = ldap_ucs_to_utf8s( &Val, csize, &newAVA->la_value );
+				newAVA->la_flags |= LDAP_AVA_NONPRINTABLE;
+allocd:
 				newAVA->la_flags |= LDAP_AVA_FREE_VALUE;
 				if (rc != LDAP_SUCCESS) goto nomem;
-				newAVA->la_flags |= LDAP_AVA_NONPRINTABLE;
 				break;
 			case LBER_TAG_UTF8:
 				newAVA->la_flags |= LDAP_AVA_NONPRINTABLE;
@@ -1143,6 +1231,10 @@ to_utf8:		rc = ldap_ucs_to_utf8s( &Val, csize, &newAVA->la_value );
 				/* These are always 7-bit strings */
 				newAVA->la_value = Val;
 				break;
+			case LBER_BITSTRING:
+				/* X.690 bitString value converted to RFC4517 Bit String */
+				rc = der_to_ldap_BitString( &Val, &newAVA->la_value );
+				goto allocd;
 			default:
 				/* Not a string type at all */
 				newAVA->la_flags = 0;
