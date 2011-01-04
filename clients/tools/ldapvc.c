@@ -194,7 +194,7 @@ main( int argc, char *argv[] )
     if (req_authzid) {
 		vcctrls = (LDAPControl **) malloc(3*sizeof(LDAPControl *));
 		vcctrls[nvcctrls] = (LDAPControl *) malloc(sizeof(LDAPControl));
-		vcctrls[nvcctrls]->ldctl_oid = LDAP_CONTROL_AUTHZID_REQUEST;
+		vcctrls[nvcctrls]->ldctl_oid = ldap_strdup(LDAP_CONTROL_AUTHZID_REQUEST);
 		vcctrls[nvcctrls]->ldctl_iscritical = 0;
 		vcctrls[nvcctrls]->ldctl_value.bv_val = NULL;
 		vcctrls[nvcctrls]->ldctl_value.bv_len = 0;
@@ -202,9 +202,9 @@ main( int argc, char *argv[] )
     }
 
     if (req_pp) {
-		if (vcctrls) vcctrls = (LDAPControl **) malloc(3*sizeof(LDAPControl *));
+		if (!vcctrls) vcctrls = (LDAPControl **) malloc(3*sizeof(LDAPControl *));
 		vcctrls[nvcctrls] = (LDAPControl *) malloc(sizeof(LDAPControl));
-		vcctrls[nvcctrls]->ldctl_oid = LDAP_CONTROL_PASSWORDPOLICYREQUEST;
+		vcctrls[nvcctrls]->ldctl_oid = ldap_strdup(LDAP_CONTROL_PASSWORDPOLICYREQUEST);
 		vcctrls[nvcctrls]->ldctl_iscritical = 0;
 		vcctrls[nvcctrls]->ldctl_value.bv_val = NULL;
 		vcctrls[nvcctrls]->ldctl_value.bv_len = 0;
