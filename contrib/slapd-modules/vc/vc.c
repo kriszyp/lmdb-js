@@ -142,15 +142,26 @@ done:;
 	return rc;
 }
 
+typedef struct vc_cb_t {
+	struct berval sasldata;
+	LDAPControl **ctrls;
+} vc_cb_t;
+
 static int
-vc_exop_sasl_cb(
+vc_cb(
 	Operation	*op,
 	SlapReply	*rs )
 {
-	struct berval *sasldata = (struct berval *)op->o_callback->sc_private;
+	vc_cb_t *vc = (vc_cb_t *)op->o_callback->sc_private;
 
-	if ( rs->sr_tag == LDAP_REQ_BIND && sasldata != NULL && rs->sr_sasldata != NULL ) {
-		ber_dupbv( sasldata, rs->sr_sasldata );
+	if ( rs->sr_tag == LDAP_RES_BIND ) {
+		if ( rs->sr_sasldata != NULL ) {
+			ber_dupbv( &vc->sasldata, rs->sr_sasldata );
+		}
+
+		if ( rs->sr_ctrls != NULL ) {
+			vc->ctrls = ldap_controls_dup( rs->sr_ctrls );
+		}
 	}
 
 	return 0;
@@ -176,9 +187,9 @@ vc_exop(
 	struct berval mechanism = BER_BVNULL;
 
 	vc_conn_t *conn = NULL;
+	vc_cb_t vc = { 0 };
 	slap_callback sc = { 0 };
 	SlapReply rs2 = { 0 };
-	struct berval sasldata = BER_BVNULL;
 
 	if ( op->ore_reqdata == NULL || op->ore_reqdata->bv_len == 0 ) {
 		rs->sr_text = "empty request data field in VerifyCredentials exop";
@@ -285,7 +296,7 @@ vc_exop(
 		conn->refcnt = 1;
 
 		thrctx = ldap_pvt_thread_pool_context();
-		connection_fake_init2( &conn->connbuf, &conn->opbuf, thrctx, 1 );
+		connection_fake_init2( &conn->connbuf, &conn->opbuf, thrctx, 0 );
 		conn->op = &conn->opbuf.ob_op;
 		snprintf( conn->op->o_log_prefix, sizeof( conn->op->o_log_prefix ),
 			"%s VERIFYCREDENTIALS", op->o_log_prefix );
@@ -318,31 +329,31 @@ vc_exop(
 
 	switch ( authtag ) {
 	case LDAP_AUTH_SIMPLE:
-		sc.sc_response = slap_null_cb;
 		break;
 
 	case LDAP_AUTH_SASL:
 		conn->op->orb_mech = mechanism;
-		sc.sc_response = vc_exop_sasl_cb;
-		sc.sc_private = &sasldata;
 		break;
 	}
+
 	conn->op->orb_cred = cred;
+	sc.sc_response = vc_cb;
+	sc.sc_private = &vc;
 
 	conn->op->o_bd = frontendDB;
 	rs->sr_err = frontendDB->be_bind( conn->op, &rs2 );
 
 	if ( conn->op->o_conn->c_sasl_bind_in_progress ) {
 		rc = vc_create_response( conn, rs2.sr_err, rs2.sr_text,
-			!BER_BVISEMPTY( &sasldata ) ? &sasldata : NULL,
+			!BER_BVISEMPTY( &vc.sasldata ) ? &vc.sasldata : NULL,
 			NULL,
-			rs2.sr_ctrls, &rs->sr_rspdata );
+			vc.ctrls, &rs->sr_rspdata );
 
 	} else {
 		rc = vc_create_response( NULL, rs2.sr_err, rs2.sr_text,
 			NULL,
 			&conn->op->o_conn->c_dn,
-			rs2.sr_ctrls, &rs->sr_rspdata );
+			vc.ctrls, &rs->sr_rspdata );
 	}
 
 	if ( rc != 0 ) {
