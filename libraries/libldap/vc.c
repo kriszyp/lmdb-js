@@ -35,8 +35,8 @@
  * VCRequest ::= SEQUENCE {
  *		cookie [0] OCTET STRING OPTIONAL,
  *		name	LDAPDN,
- *		authentication	AuthenticationChoice
- *	    controls [3] Controls OPTIONAL
+ *		authentication	AuthenticationChoice,
+ *	    controls [2] Controls OPTIONAL
  * }
  *
  * where LDAPDN, AuthenticationChoice, and Controls are as defined in RFC 4511.
@@ -47,8 +47,8 @@
  *		resultCode ResultCode,
  *		diagnosticMessage LDAPString,
  *		cookie [0] OCTET STRING OPTIONAL,
- *		serverSaslCreds [1] OCTET STRING OPTIONAL
- *	    controls [3] Controls OPTIONAL
+ *		serverSaslCreds [1] OCTET STRING OPTIONAL,
+ *	    controls [2] Controls OPTIONAL
  * }
  *
  * where ResultCode is the result code enumeration from RFC 4511, and LDAPString and Controls are as
