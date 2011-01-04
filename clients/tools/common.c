@@ -66,6 +66,7 @@ int		nocanon = 0;
 int		referrals = 0;
 int		verbose = 0;
 int		ldif = 0;
+ber_len_t	ldif_wrap = LDIF_LINE_WIDTH;
 char		*prog = NULL;
 
 /* connection */
@@ -311,6 +312,7 @@ N_("  -N         do not use reverse DNS to canonicalize SASL host name\n"),
 N_("  -O props   SASL security properties\n"),
 N_("  -o <opt>[=<optparam] general options\n"),
 N_("             nettimeout=<timeout> (in seconds, or \"none\" or \"max\")\n"),
+N_("             ldif-wrap=<width> (in columns, or \"no\" for no wrapping)\n"),
 N_("  -p port    port on LDAP server\n"),
 N_("  -Q         use SASL Quiet mode\n"),
 N_("  -R realm   SASL realm\n"),
@@ -751,11 +753,30 @@ tool_args( int argc, char **argv )
 		 				prog, (long)nettimeout.tv_sec );
 	 				exit( EXIT_FAILURE );
  				}
+
+			} else if ( strcasecmp( control, "ldif-wrap" ) == 0 ) {
+				if ( cvalue == 0 ) {
+					ldif_wrap = LDIF_LINE_WIDTH;
+
+				} else if ( strcasecmp( cvalue, "no" ) == 0 ) {
+					ldif_wrap = LDIF_LINE_WIDTH_MAX;
+
+				} else {
+					unsigned int u;
+					if ( lutil_atou( &u, cvalue ) ) {
+						fprintf( stderr,
+							_("Unable to parse ldif-wrap=\"%s\"\n"), cvalue );
+		 				exit( EXIT_FAILURE );
+					}
+					ldif_wrap = (ber_len_t)u;
+				}
+
 			} else {
 				fprintf( stderr, "Invalid general option name: %s\n",
 					control );
 				usage();
 			}
+			ber_memfree(control);
 			break;
 		case 'O':
 #ifdef HAVE_CYRUS_SASL
@@ -2249,7 +2270,7 @@ tool_write_ldif( int type, char *name, char *value, ber_len_t vallen )
 {
 	char	*ldif;
 
-	if (( ldif = ldif_put( type, name, value, vallen )) == NULL ) {
+	if (( ldif = ldif_put_wrap( type, name, value, vallen, ldif_wrap )) == NULL ) {
 		return( -1 );
 	}
 

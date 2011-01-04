@@ -742,7 +742,7 @@ ldif_put_wrap(
     }
 
     p = buf;
-    ldif_sput( &p, type, name, val, vlen );
+    ldif_sput_wrap( &p, type, name, val, vlen, wrap );
     *p = '\0';
 
     return( buf );

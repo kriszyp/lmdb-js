@@ -55,6 +55,7 @@ extern int		dont;
 extern int		referrals;
 extern int		verbose;
 extern int		ldif;
+extern ber_len_t	ldif_wrap;
 extern char		*prog;
 
 /* connection */
