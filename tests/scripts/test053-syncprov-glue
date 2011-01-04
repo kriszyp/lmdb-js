@@ -61,7 +61,7 @@ case "$SYNCMODE" in
 		;;
 esac
 
-echo "Initializing producer configurations..."
+echo "Initializing provider configurations..."
 $SLAPADD -F $CFPROD -n 0 <<EOF
 dn: cn=config
 objectClass: olcGlobal
@@ -75,7 +75,7 @@ olcRootPW:< file://$CONFIGPWF
 
 EOF
 
-echo "Initializing producer2 configurations..."
+echo "Initializing provider2 configurations..."
 $SLAPADD -F $CFPRO2 -n 0 <<EOF
 dn: cn=config
 objectClass: olcGlobal
@@ -99,7 +99,7 @@ olcDatabase: {0}config
 olcRootPW:< file://$CONFIGPWF
 EOF
 
-echo "Starting producer slapd on TCP/IP port $PORT1..."
+echo "Starting provider slapd on TCP/IP port $PORT1..."
 cd $PRODDIR
 $SLAPD -F slapd.d -h $URI1 -d $LVL $TIMING > $LOG1 2>&1 &
 PID=$!
@@ -110,7 +110,7 @@ fi
 KILLPIDS="$KILLPIDS $PID"
 cd $TESTWD
 sleep 1
-echo "Using ldapsearch to check that producer slapd is running..."
+echo "Using ldapsearch to check that provider slapd is running..."
 for i in 0 1 2 3 4 5; do
 	$LDAPSEARCH -s base -b "" -H $URI1 \
 		'objectclass=*' > /dev/null 2>&1
@@ -127,7 +127,7 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-echo "Starting producer2 slapd on TCP/IP port $PORT2..."
+echo "Starting provider2 slapd on TCP/IP port $PORT2..."
 cd $PRO2DIR
 $SLAPD -F slapd.d -h $URI2 -d $LVL $TIMING > $LOG2 2>&1 &
 PID=$!
@@ -138,7 +138,7 @@ fi
 KILLPIDS="$KILLPIDS $PID"
 cd $TESTWD
 sleep 1
-echo "Using ldapsearch to check that producer slapd is running..."
+echo "Using ldapsearch to check that provider slapd is running..."
 for i in 0 1 2 3 4 5; do
 	$LDAPSEARCH -s base -b "" -H $URI2 \
 		'objectclass=*' > /dev/null 2>&1
@@ -221,7 +221,7 @@ EOF
 	fi
 done
 
-echo "Adding databases on producer..."
+echo "Adding databases on provider..."
 if [ "$SYNCPROV" = syncprovmod ]; then
 	$LDAPADD -D cn=config -H $URI1 -y $CONFIGPWF <<EOF >> $TESTOUT 2>&1
 dn: cn=module,cn=config
@@ -255,7 +255,7 @@ olcRootPW: $PASSWD
 EOF
 RC=$?
 if test $RC != 0 ; then
-	echo "ldapadd failed for producer database config1 ($RC)!"
+	echo "ldapadd failed for provider database config1 ($RC)!"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
 fi
@@ -282,12 +282,12 @@ olcRootDN: $MANAGERDN
 EOF
 RC=$?
 if test $RC != 0 ; then
-	echo "ldapadd failed for producer database config ($RC)!"
+	echo "ldapadd failed for provider database config ($RC)!"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
 fi
 
-echo "Adding databases on producer2..."
+echo "Adding databases on provider2..."
 if [ "$SYNCPROV" = syncprovmod ]; then
 	$LDAPADD -D cn=config -H $URI2 -y $CONFIGPWF <<EOF >> $TESTOUT 2>&1
 dn: cn=module,cn=config
@@ -323,7 +323,7 @@ olcOverlay: {0}syncprov
 EOF
 RC=$?
 if test $RC != 0 ; then
-	echo "ldapadd failed for producer database config ($RC)!"
+	echo "ldapadd failed for provider database config ($RC)!"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
 fi
@@ -346,7 +346,7 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-echo "Populating producer..."
+echo "Populating provider..."
 $LDAPADD -D "$MANAGERDN" -H $URI1 -w $PASSWD <<EOF >> $TESTOUT 2>&1
 dn: dc=example,dc=com
 objectClass: top
@@ -363,12 +363,12 @@ ou: ou1
 EOF
 RC=$?
 if test $RC != 0 ; then
-	echo "ldapadd failed to populate producer entry ($RC)!"
+	echo "ldapadd failed to populate provider entry ($RC)!"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
 fi
 
-echo "Populating producer2..."
+echo "Populating provider2..."
 $LDAPADD -D "$MANAGERDN" -H $URI2 -w $PASSWD <<EOF >> $TESTOUT 2>&1
 dn: dc=example,dc=com
 objectClass: top
@@ -385,12 +385,12 @@ ou: ou1
 EOF
 RC=$?
 if test $RC != 0 ; then
-	echo "ldapadd failed to populate producer entry ($RC)!"
+	echo "ldapadd failed to populate provider entry ($RC)!"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
 fi
 
-echo "Adding syncrepl on producer..."
+echo "Adding syncrepl on provider..."
 $LDAPMODIFY -D cn=config -H $URI1 -y $CONFIGPWF <<EOF >> $TESTOUT 2>&1
 dn: olcDatabase={1}$BACKEND,cn=config
 changetype: modify
@@ -443,7 +443,7 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-echo "Using ldapmodify to modify producer2..."
+echo "Using ldapmodify to modify provider2..."
 $LDAPADD -D "$MANAGERDN" -H $URI2 -w $PASSWD <<EOF >> $TESTOUT 2>&1
 dn: ou=ou1,dc=example,dc=com
 changetype: modify
@@ -502,7 +502,7 @@ else
 fi
 esac
 
-echo "Using ldapmodify to modify glue suffix on producer..."
+echo "Using ldapmodify to modify glue suffix on provider..."
 $LDAPADD -D "$MANAGERDN" -H $URI1 -w $PASSWD <<EOF >> $TESTOUT 2>&1
 dn: dc=example,dc=com
 changetype: modify
