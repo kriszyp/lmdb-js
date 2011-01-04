@@ -74,7 +74,7 @@ OpenLDAP 2.4.24 Engineering
 		Fixed libldap mutex code - cleanup (ITS#6672)
 		Fixed libldap unnecessary ifdef's (ITS#6603)
 		Fixed slapd-tester EOF handling (ITS#6723)
-		Fixed slapd-tesster filter initialization (ITS#6735)
+		Fixed slapd-tester filter initialization (ITS#6735)
 		Removed antiquated SunOS LWP support (ITS#6669)
 	Documentation
 		admin24 guide typo fixes (ITS#6609)
