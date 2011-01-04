@@ -113,7 +113,6 @@ typedef struct slog_entry {
 } slog_entry;
 
 typedef struct sessionlog {
-	struct berval	sl_mincsn;
 	int		sl_num;
 	int		sl_size;
 	slog_entry *sl_head;
@@ -1500,6 +1499,23 @@ syncprov_add_slog( Operation *op )
 
 	sl = si->si_logs;
 	{
+		if ( BER_BVISEMPTY( &op->o_csn ) ) {
+			/* During the syncrepl refresh phase we can receive operations
+			 * without a csn.  We cannot reliably determine the consumers
+			 * state with respect to such operations, so we ignore them and
+			 * wipe out anything in the log if we see them.
+			 */
+			ldap_pvt_thread_mutex_lock( &sl->sl_mutex );
+			while ( se = sl->sl_head ) {
+				sl->sl_head = se->se_next;
+				ch_free( se );
+			}
+			sl->sl_tail = NULL;
+			sl->sl_num = 0;
+			ldap_pvt_thread_mutex_unlock( &sl->sl_mutex );
+			return;
+		}
+
 		/* Allocate a record. UUIDs are not NUL-terminated. */
 		se = ch_malloc( sizeof( slog_entry ) + opc->suuid.bv_len + 
 			op->o_csn.bv_len + 1 );
@@ -1518,17 +1534,29 @@ syncprov_add_slog( Operation *op )
 
 		ldap_pvt_thread_mutex_lock( &sl->sl_mutex );
 		if ( sl->sl_head ) {
-			sl->sl_tail->se_next = se;
+			/* Keep the list in csn order. */
+			if ( ber_bvcmp( &sl->sl_tail->se_csn, &se->se_csn ) <= 0 ) {
+				sl->sl_tail->se_next = se;
+				sl->sl_tail = se;
+			} else {
+				slog_entry **sep;
+
+				for ( sep = &sl->sl_head; *sep; sep = &(*sep)->se_next ) {
+					if ( ber_bvcmp( &se->se_csn, &(*sep)->se_csn ) < 0 ) {
+						se->se_next = *sep;
+						*sep = se;
+						break;
+					}
+				}
+			}
 		} else {
 			sl->sl_head = se;
+			sl->sl_tail = se;
 		}
-		sl->sl_tail = se;
 		sl->sl_num++;
 		while ( sl->sl_num > sl->sl_size ) {
 			se = sl->sl_head;
 			sl->sl_head = se->se_next;
-			strcpy( sl->sl_mincsn.bv_val, se->se_csn.bv_val );
-			sl->sl_mincsn.bv_len = se->se_csn.bv_len;
 			ch_free( se );
 			sl->sl_num--;
 		}
@@ -2565,7 +2593,7 @@ no_change:		if ( !(op->o_sync_mode & SLAP_SYNC_PERSIST) ) {
 			/* Are there any log entries, and is the consumer state
 			 * present in the session log?
 			 */
-			if ( sl->sl_num > 0 && ber_bvcmp( &mincsn, &sl->sl_mincsn ) >= 0 ) {
+			if ( sl->sl_num > 0 && ber_bvcmp( &mincsn, &sl->sl_head->se_csn ) >= 0 ) {
 				do_present = 0;
 				/* mutex is unlocked in playlog */
 				syncprov_playlog( op, rs, sl, srs, ctxcsn, numcsns, sids );
@@ -2907,9 +2935,7 @@ sp_cf_gen(ConfigArgs *c)
 		}
 		sl = si->si_logs;
 		if ( !sl ) {
-			sl = ch_malloc( sizeof( sessionlog ) + LDAP_PVT_CSNSTR_BUFSIZE );
-			sl->sl_mincsn.bv_val = (char *)(sl+1);
-			sl->sl_mincsn.bv_len = 0;
+			sl = ch_malloc( sizeof( sessionlog ) );
 			sl->sl_num = 0;
 			sl->sl_head = sl->sl_tail = NULL;
 			ldap_pvt_thread_mutex_init( &sl->sl_mutex );
