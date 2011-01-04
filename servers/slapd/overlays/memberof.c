@@ -402,6 +402,7 @@ memberof_value_modify(
 
 		oex.oe_key = (void *)&memberof;
 		LDAP_SLIST_INSERT_HEAD(&op2.o_extra, &oex, oe_next);
+		BER_BVZERO( &op2.o_csn );
 		op2.o_bd->bd_info = (BackendInfo *)on->on_info;
 		(void)op->o_bd->be_modify( &op2, &rs2 );
 		op2.o_bd->bd_info = bi;
@@ -444,6 +445,7 @@ memberof_value_modify(
 
 		oex.oe_key = (void *)&memberof;
 		LDAP_SLIST_INSERT_HEAD(&op2.o_extra, &oex, oe_next);
+		BER_BVZERO( &op2.o_csn );
 		op2.o_bd->bd_info = (BackendInfo *)on->on_info;
 		(void)op->o_bd->be_modify( &op2, &rs2 );
 		op2.o_bd->bd_info = bi;

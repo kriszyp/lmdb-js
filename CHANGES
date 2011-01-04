@@ -68,6 +68,7 @@ OpenLDAP 2.4.24 Engineering
 	Fixed slapo-accesslog with controls (ITS#6652)
 	Fixed slapo-dynlist callbacks (ITS#6752)
 	Fixed slapo-dynlist entry handling (ITS#6752)
+	Fixed slapo-memberof CSN generation (ITS#6766)
 	Fixed slapo-memberof log messages (ITS#6748)
 	Fixed slapo-memberof with an empty groupOfNames (ITS#6670)
 	Fixed slapo-memberof with modrdn operations (ITS#6700)
