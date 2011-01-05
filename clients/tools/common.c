@@ -398,6 +398,8 @@ NULL
 			fputs( _(*cpp), stderr );
 		}
 	}
+
+	tool_destroy();
 }
 
 void tool_perror(
