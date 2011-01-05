@@ -1276,10 +1276,6 @@ static int sssvlv_db_init(
 		if ( rc != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_ANY, "Failed to register VLV Request control '%s' (%d)\n",
 				LDAP_CONTROL_VLVREQUEST, rc, 0 );
-#ifdef SLAP_CONFIG_DELETE
-			overlay_unregister_control( be, LDAP_CONTROL_SORTREQUEST );
-#endif /* SLAP_CONFIG_DELETE */
-			unregister_supported_control( LDAP_CONTROL_SORTREQUEST );
 			return rc;
 		}
 	}
@@ -1315,10 +1311,6 @@ static int sssvlv_db_destroy(
 		ldap_pvt_thread_mutex_destroy( &sort_conns_mutex );
 	}
 
-	if ( ov_count == 0 ) {
-		unregister_supported_control( LDAP_CONTROL_SORTREQUEST );
-	}
-	
 	if ( si ) {
 		ch_free( si );
 		on->on_bi.bi_private = NULL;
