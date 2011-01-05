@@ -120,6 +120,7 @@ static int	chainingContinuation = -1;
 #endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
 #ifdef LDAP_CONTROL_X_SESSION_TRACKING
 static int	sessionTracking = 0;
+static char	*sessionTrackingName;
 struct berval	stValue;
 #endif /* LDAP_CONTROL_X_SESSION_TRACKING */
 ber_int_t vlvPos;
@@ -207,6 +208,9 @@ st_value( LDAP *ld, struct berval *value )
 		}
 	}
 
+	if ( sessionTrackingName != NULL ) {
+		ber_str2bv( sessionTrackingName , 0, 0, &id );
+	} else
 #ifdef HAVE_CYRUS_SASL
 	if ( sasl_authz_id != NULL ) {
 		ber_str2bv( sasl_authz_id, 0, 0, &id );
@@ -277,6 +281,13 @@ tool_destroy( void )
 		BER_BVZERO( &passwd );
 	}
 
+#ifdef HAVE_CYRUS_SASL
+	if ( sasl_mech != NULL ) {
+		ber_memfree( sasl_mech );
+		sasl_mech = NULL;
+	}
+#endif /* HAVE_CYRUS_SASL */
+
 	if ( infile != NULL ) {
 		ber_memfree( infile );
 		infile = NULL;
@@ -306,6 +317,18 @@ tool_destroy( void )
 		ber_memfree( postread_attrs );
 		postread_attrs = NULL;
 	}
+
+#ifdef LDAP_CONTROL_X_SESSION_TRACKING
+	if ( !BER_BVISNULL( &stValue ) ) {
+		ber_memfree( stValue.bv_val );
+		BER_BVZERO( &stValue );
+	}
+
+	if ( sessionTrackingName ) {
+		ber_memfree( sessionTrackingName );
+		sessionTrackingName = NULL;
+	}
+#endif /* LDAP_CONTROL_X_SESSION_TRACKING */
 }
 
 void
@@ -338,7 +361,7 @@ N_("             [!]postread[=<attrs>]  (RFC 4527; comma-separated attr list)\n"
 N_("             [!]preread[=<attrs>]   (RFC 4527; comma-separated attr list)\n")
 N_("             [!]relax\n")
 #ifdef LDAP_CONTROL_X_SESSION_TRACKING
-N_("             [!]sessiontracking\n")
+N_("             [!]sessiontracking[=<username>]\n")
 #endif /* LDAP_CONTROL_X_SESSION_TRACKING */
 N_("             abandon, cancel, ignore (SIGINT sends abandon/cancel,\n"
    "             or ignores response; if critical, doesn't wait for SIGINT.\n"
@@ -671,9 +694,12 @@ tool_args( int argc, char **argv )
 					exit( EXIT_FAILURE );
 				}
 				sessionTracking = 1;
-				if( crit ) {
+				if ( crit ) {
 					fprintf( stderr, "sessiontracking: critical flag not allowed\n" );
 					usage();
+				}
+				if ( cvalue ) {
+					sessionTrackingName = ber_strdup( cvalue );
 				}
 #endif /* LDAP_CONTROL_X_SESSION_TRACKING */
 
@@ -1471,13 +1497,13 @@ tool_bind( LDAP *ld )
 	if ( sessionTracking ) {
 		LDAPControl c;
 
-		if (stValue.bv_val == NULL && st_value( ld, &stValue ) ) {
+		if ( BER_BVISNULL( &stValue) && st_value( ld, &stValue ) ) {
 			exit( EXIT_FAILURE );
 		}
 
 		c.ldctl_oid = LDAP_CONTROL_X_SESSION_TRACKING;
 		c.ldctl_iscritical = 0;
-		ber_dupbv( &c.ldctl_value, &stValue );
+		c.ldctl_value = stValue;
 
 		sctrl[nsctrls] = c;
 		sctrls[nsctrls] = &sctrl[nsctrls];
@@ -1904,13 +1930,13 @@ tool_server_controls( LDAP *ld, LDAPControl *extra_c, int count )
 
 #ifdef LDAP_CONTROL_X_SESSION_TRACKING
 	if ( sessionTracking ) {
-		if ( stValue.bv_val == NULL && st_value( ld, &stValue ) ) {
+		if ( BER_BVISNULL( &stValue ) && st_value( ld, &stValue ) ) {
 			exit( EXIT_FAILURE );
 		}
 
 		c[i].ldctl_oid = LDAP_CONTROL_X_SESSION_TRACKING;
 		c[i].ldctl_iscritical = 0;
-		ber_dupbv( &c[i].ldctl_value, &stValue );
+		c[i].ldctl_value = stValue;
 
 		ctrls[i] = &c[i];
 		i++;
