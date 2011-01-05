@@ -390,15 +390,14 @@ int ber_flatten2(
 		return -1;
 	}
 
-	/* unmatched "{" and "}" */
-	if ( ber->ber_sos_ptr != NULL ) {
-		return -1;
-	}
-
 	if ( ber == NULL ) {
 		/* ber is null, create an empty berval */
 		bv->bv_val = NULL;
 		bv->bv_len = 0;
+
+	} else if ( ber->ber_sos_ptr != NULL ) {
+		/* unmatched "{" and "}" */
+		return -1;
 
 	} else {
 		/* copy the berval */
