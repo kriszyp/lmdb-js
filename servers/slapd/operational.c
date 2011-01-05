@@ -1,7 +1,7 @@
 /* operational.c - routines to deal with on-the-fly operational attrs */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2001-2010 The OpenLDAP Foundation.
+ * Copyright 2001-2011 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without

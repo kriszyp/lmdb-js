@@ -5,7 +5,7 @@ dnl COPYING RESTRICTIONS APPLY, see COPYRIGHT file
 
 dnl Process this file with autoconf to produce a configure script.
 
-AC_COPYRIGHT([[Copyright 2000-2010 The OpenLDAP Foundation. All rights reserved.
+AC_COPYRIGHT([[Copyright 2000-2011 The OpenLDAP Foundation. All rights reserved.
 Restrictions apply, see COPYRIGHT and LICENSE files.]])
 AC_REVISION([$OpenLDAP$])
 AC_INIT(ldapcpplib, [] , [http://www.openldap.org/its/] )
