@@ -52,7 +52,7 @@ OpenLDAP 2.4.24 Engineering
 	Fixed slapd-bdb hasSubordinates generation (ITS#6712)
 	Fixed slapd-bdb entry cache delete failure (ITS#6577)
 	Fixed slapd-bdb entry cache leak on multi-core systems (ITS#6660)
-	Fixed slapd-bdb error propogation to overlays (ITS#6633)
+	Fixed slapd-bdb error propagation to overlays (ITS#6633)
 	Fixed slapd-ldap debug output of timeout (ITS#6721)
 	Fixed slapd-ldap DNSSRV referral chaining (ITS#6565)
 	Fixed slapd-ldap chaining with onelevel scope (ITS#6699)
