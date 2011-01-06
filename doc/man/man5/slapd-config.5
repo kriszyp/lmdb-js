@@ -1677,6 +1677,7 @@ FALSE, meaning the contextCSN is stored in the context entry.
 .B [tls_reqcert=never|allow|try|demand]
 .B [tls_ciphersuite=<ciphers>]
 .B [tls_crlcheck=none|peer|all]
+.B [suffixmassage=<real DN>]
 .B [logbase=<base DN>]
 .B [logfilter=<filter str>]
 .B [syncdata=default|accesslog|changelog]
@@ -1836,6 +1837,13 @@ argument is supplied, the session will be aborted if the StartTLS request
 fails. Otherwise the syncrepl session continues without TLS. The
 tls_reqcert setting defaults to "demand" and the other TLS settings
 default to the same as the main slapd TLS settings.
+
+The
+.B suffixmassage
+parameter allows the consumer to pull entries from a remote directory
+whose DN suffix differs from the local directory. The portion of the
+remote entries' DNs that matches the \fIsearchbase\fP will be replaced
+with the suffixmassage DN.
 
 Rather than replicating whole entries, the consumer can query logs of
 data modifications. This mode of operation is referred to as \fIdelta

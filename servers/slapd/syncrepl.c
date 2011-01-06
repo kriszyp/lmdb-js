@@ -31,6 +31,11 @@
 
 #include "ldap_rq.h"
 
+#ifdef ENABLE_REWRITE
+#include "rewrite.h"
+#define SUFFIXM_CTX	"<suffix massage>"
+#endif
+
 struct nonpresent_entry {
 	struct berval *npe_name;
 	struct berval *npe_nname;
@@ -111,6 +116,10 @@ typedef struct syncinfo_s {
 	LDAP			*si_ld;
 	Connection		*si_conn;
 	LDAP_LIST_HEAD(np, nonpresent_entry)	si_nonpresentlist;
+#ifdef ENABLE_REWRITE
+	struct rewrite_info *si_rewrite;
+	struct berval	si_suffixm;
+#endif
 	ldap_pvt_thread_mutex_t	si_mutex;
 } syncinfo_t;
 
@@ -1558,6 +1567,46 @@ deleted:
 	return NULL;
 }
 
+#ifdef ENABLE_REWRITE
+static int
+syncrepl_rewrite_dn(
+	syncinfo_t *si,
+	struct berval *dn,
+	struct berval *sdn )
+{
+	char nul;
+	int rc;
+
+	nul = dn->bv_val[dn->bv_len];
+	dn->bv_val[dn->bv_len] = 0;
+	rc = rewrite( si->si_rewrite, SUFFIXM_CTX, dn->bv_val, &sdn->bv_val );
+	dn->bv_val[dn->bv_len] = nul;
+
+	if ( sdn->bv_val == dn->bv_val )
+		sdn->bv_val = NULL;
+	else if ( rc == REWRITE_REGEXEC_OK && sdn->bv_val )
+		sdn->bv_len = strlen( sdn->bv_val );
+	return rc;
+}
+#define	REWRITE_VAL(si, ad, bv, bv2)	\
+	BER_BVZERO( &bv2 );	\
+	if ( si->si_rewrite && ad->ad_type->sat_syntax == slap_schema.si_syn_distinguishedName) \
+		syncrepl_rewrite_dn( si, &bv, &bv2); \
+	if ( BER_BVISNULL( &bv2 ))  \
+		ber_dupbv( &bv2, &bv )
+#define REWRITE_DN(si, bv, bv2, dn, ndn) \
+	BER_BVZERO( &bv2 );	\
+	if (si->si_rewrite) \
+		syncrepl_rewrite_dn(si, &bv, &bv2); \
+	rc = dnPrettyNormal( NULL, bv2.bv_val ? &bv2 : &bv, &dn, &ndn, op->o_tmpmemctx ); \
+	ch_free(bv2.bv_val)
+#else
+#define REWRITE_VAL(si, ad, bv, bv2)	ber_dupbv(&bv2, &bv)
+#define REWRITE_DN(si, bv, bv2, dn, ndn) \
+	rc = dnPrettyNormal( NULL, &bv, &dn, &ndn, op->o_tmpmemctx )
+#endif
+
+
 static slap_verbmasks modops[] = {
 	{ BER_BVC("add"), LDAP_REQ_ADD },
 	{ BER_BVC("delete"), LDAP_REQ_DELETE },
@@ -1642,7 +1691,7 @@ syncrepl_accesslog_mods(
 		if ( colon[2] == ' ' ) {
 			bv.bv_val = colon + 3;
 			bv.bv_len = vals[i].bv_len - ( bv.bv_val - vals[i].bv_val );
-			ber_dupbv( &bv2, &bv );
+			REWRITE_VAL( si, ad, bv, bv2 );
 			ber_bvarray_add( &mod->sml_values, &bv2 );
 			mod->sml_numvals++;
 		}
@@ -1679,7 +1728,7 @@ syncrepl_message_to_op(
 	size_t textlen = sizeof txtbuf;
 
 	struct berval	bdn, dn = BER_BVNULL, ndn;
-	struct berval	bv, *bvals = NULL;
+	struct berval	bv, bv2, *bvals = NULL;
 	struct berval	rdn = BER_BVNULL, sup = BER_BVNULL,
 		prdn = BER_BVNULL, nrdn = BER_BVNULL,
 		psup = BER_BVNULL, nsup = BER_BVNULL;
@@ -1710,7 +1759,7 @@ syncrepl_message_to_op(
 	op->o_tag = LBER_DEFAULT;
 	op->o_bd = si->si_wbe;
 
-	if ( BER_BVISEMPTY( &bdn ) && !BER_BVISEMPTY( &op->o_bd->be_nsuffix[0] ) ) {
+	if ( BER_BVISEMPTY( &bdn )) {
 		Debug( LDAP_DEBUG_ANY,
 			"syncrepl_message_to_op: %s got empty dn",
 			si->si_ridtxt, 0, 0 );
@@ -1724,7 +1773,7 @@ syncrepl_message_to_op(
 
 		if ( !ber_bvstrcasecmp( &bv, &ls->ls_dn ) ) {
 			bdn = bvals[0];
-			rc = dnPrettyNormal( NULL, &bdn, &dn, &ndn, op->o_tmpmemctx );
+			REWRITE_DN( si, bdn, bv2, dn, ndn );
 			if ( rc != LDAP_SUCCESS ) {
 				Debug( LDAP_DEBUG_ANY,
 					"syncrepl_message_to_op: %s "
@@ -1841,9 +1890,9 @@ syncrepl_message_to_op(
 			goto done;
 		}
 		if ( !BER_BVISNULL( &sup ) ) {
-			if ( dnPrettyNormal( NULL, &sup, &psup, &nsup, NULL ) ) {
+			REWRITE_DN( si, sup, bv2, psup, nsup );
+			if ( rc )
 				goto done;
-			}
 			op->orr_newSup = &psup;
 			op->orr_nnewSup = &nsup;
 		} else {
@@ -1933,7 +1982,7 @@ syncrepl_message_to_entry(
 	char txtbuf[SLAP_TEXT_BUFLEN];
 	size_t textlen = sizeof txtbuf;
 
-	struct berval	bdn = BER_BVNULL, dn, ndn;
+	struct berval	bdn = BER_BVNULL, dn, ndn, bv2;
 	int		rc, is_ctx;
 
 	*modlist = NULL;
@@ -1973,7 +2022,7 @@ syncrepl_message_to_entry(
 		return -1;
 	}
 
-	rc = dnPrettyNormal( NULL, &bdn, &dn, &ndn, op->o_tmpmemctx );
+	REWRITE_DN( si, bdn, bv2, dn, ndn );
 	if ( rc != LDAP_SUCCESS ) {
 		/* One of the things that could happen is that the schema
 		 * is not lined-up; this could result in unknown attributes.
@@ -2026,6 +2075,26 @@ syncrepl_message_to_entry(
 		mod->sml_nvalues = NULL;
 		mod->sml_numvals = 0;	/* slap_mods_check will set this */
 
+#ifdef ENABLE_REWRITE
+		if (si->si_rewrite) {
+			AttributeDescription *ad = NULL;
+			slap_bv2ad( &tmp.sml_type, &ad, &text );
+			if ( ad ) {
+				mod->sml_desc = ad;
+				mod->sml_type = ad->ad_cname;
+				if ( ad->ad_type->sat_syntax == slap_schema.si_syn_distinguishedName ) {
+					int i;
+					for ( i = 0; tmp.sml_values[i].bv_val; i++ ) {
+						syncrepl_rewrite_dn( si, &tmp.sml_values[i], &bv2);
+						if ( !BER_BVISNULL( &bv2 )) {
+							ber_memfree( tmp.sml_values[i].bv_val );
+							tmp.sml_values[i] = bv2;
+						}
+					}
+				}
+			}
+		}
+#endif
 		*modtail = mod;
 		modtail = &mod->sml_next;
 	}
@@ -2240,8 +2309,16 @@ syncrepl_entry(
 	op->ors_deref = LDAP_DEREF_NEVER;
 
 	/* get the entry for this UUID */
-	op->o_req_dn = si->si_base;
-	op->o_req_ndn = si->si_base;
+#ifdef ENABLE_REWRITE
+	if ( si->si_rewrite ) {
+		op->o_req_dn = si->si_suffixm;
+		op->o_req_ndn = si->si_suffixm;
+	} else
+#endif
+	{
+		op->o_req_dn = si->si_base;
+		op->o_req_ndn = si->si_base;
+	}
 
 	op->o_time = slap_get_time();
 	op->ors_tlimit = SLAP_NO_LIMIT;
@@ -2717,8 +2794,16 @@ syncrepl_del_nonpresent(
 	struct berval pdn = BER_BVNULL;
 	struct berval csn;
 
-	op->o_req_dn = si->si_base;
-	op->o_req_ndn = si->si_base;
+#ifdef ENABLE_REWRITE
+	if ( si->si_rewrite ) {
+		op->o_req_dn = si->si_suffixm;
+		op->o_req_ndn = si->si_suffixm;
+	} else
+#endif
+	{
+		op->o_req_dn = si->si_base;
+		op->o_req_ndn = si->si_base;
+	}
 
 	cb.sc_response = nonpresent_callback;
 	cb.sc_private = si;
@@ -3924,12 +4009,54 @@ syncinfo_free( syncinfo_t *sie, int free_all )
 				ch_free( sie->si_cookieState );
 			}
 		}
+#ifdef ENABLE_REWRITE
+		if ( sie->si_rewrite )
+			rewrite_info_delete( &sie->si_rewrite );
+		if ( sie->si_suffixm.bv_val )
+			ch_free( sie->si_suffixm.bv_val );
+#endif
 		ch_free( sie );
 		sie = si_next;
 	} while ( free_all && si_next );
 }
 
+#ifdef ENABLE_REWRITE
+static int
+config_suffixm( ConfigArgs *c, syncinfo_t *si )
+{
+	char *argvEngine[] = { "rewriteEngine", "on", NULL };
+	char *argvContext[] = { "rewriteContext", SUFFIXM_CTX, NULL };
+	char *argvRule[] = { "rewriteRule", NULL, NULL, ":", NULL };
+	char *vnc, *rnc;
+	int rc;
 
+	if ( si->si_rewrite )
+		rewrite_info_delete( &si->si_rewrite );
+	si->si_rewrite = rewrite_info_init( REWRITE_MODE_USE_DEFAULT );
+
+	rc = rewrite_parse( si->si_rewrite, c->fname, c->lineno, 2, argvEngine );
+	if ( rc != LDAP_SUCCESS )
+		return rc;
+
+	rc = rewrite_parse( si->si_rewrite, c->fname, c->lineno, 2, argvContext );
+	if ( rc != LDAP_SUCCESS )
+		return rc;
+
+	vnc = ch_malloc( si->si_base.bv_len + 6 );
+	strcpy( vnc, "(.*)" );
+	lutil_strcopy( lutil_strcopy( vnc+4, si->si_base.bv_val ), "$" );
+	argvRule[1] = vnc;
+
+	rnc = ch_malloc( si->si_suffixm.bv_len + 3 );
+	strcpy( rnc, "%1" );
+	strcpy( rnc+2, si->si_suffixm.bv_val );
+	argvRule[2] = rnc;
+
+	rc = rewrite_parse( si->si_rewrite, c->fname, c->lineno, 4, argvRule );
+	ch_free( vnc );
+	return rc;
+}
+#endif
 
 /* NOTE: used & documented in slapd.conf(5) */
 #define IDSTR			"rid"
@@ -3948,6 +4075,7 @@ syncinfo_free( syncinfo_t *sie, int free_all )
 #define SYNCDATASTR		"syncdata"
 #define LOGBASESTR		"logbase"
 #define LOGFILTERSTR	"logfilter"
+#define SUFFIXMSTR		"suffixmassage"
 
 /* FIXME: undocumented */
 #define EXATTRSSTR		"exattrs"
@@ -3974,6 +4102,7 @@ enum {
 	GOT_EXATTRS		= 0x00010000U,
 	GOT_MANAGEDSAIT		= 0x00020000U,
 	GOT_BINDCONF		= 0x00040000U,
+	GOT_SUFFIXM		= 0x00080000U,
 
 /* check */
 	GOT_REQUIRED		= (GOT_RID|GOT_PROVIDER|GOT_SEARCHBASE)
@@ -4171,16 +4300,38 @@ parse_syncrepl_line(
 				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
 				return -1;
 			}
-			if ( !be_issubordinate( c->be, &si->si_base ) ) {
-				ch_free( si->si_base.bv_val );
-				BER_BVZERO( &si->si_base );
+			si->si_got |= GOT_SEARCHBASE;
+#ifdef ENABLE_REWRITE
+		} else if ( !strncasecmp( c->argv[ i ], SUFFIXMSTR "=",
+					STRLENOF( SUFFIXMSTR "=" ) ) )
+		{
+			struct berval	bv;
+			int		rc;
+
+			val = c->argv[ i ] + STRLENOF( SUFFIXMSTR "=" );
+			if ( si->si_suffixm.bv_val ) {
+				ch_free( si->si_suffixm.bv_val );
+			}
+			ber_str2bv( val, 0, 0, &bv );
+			rc = dnNormalize( 0, NULL, NULL, &bv, &si->si_suffixm, NULL );
+			if ( rc != LDAP_SUCCESS ) {
 				snprintf( c->cr_msg, sizeof( c->cr_msg ),
-					"Base DN \"%s\" is not within the database naming context",
+					"Invalid massage DN \"%s\": %d (%s)",
+					val, rc, ldap_err2string( rc ) );
+				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
+				return -1;
+			}
+			if ( !be_issubordinate( c->be, &si->si_suffixm )) {
+				ch_free( si->si_suffixm.bv_val );
+				BER_BVZERO( &si->si_suffixm );
+				snprintf( c->cr_msg, sizeof( c->cr_msg ),
+					"Massage DN \"%s\" is not within the database naming context",
 					val );
 				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
 				return -1;
 			}
-			si->si_got |= GOT_SEARCHBASE;
+			si->si_got |= GOT_SUFFIXM;
+#endif
 		} else if ( !strncasecmp( c->argv[ i ], LOGBASESTR "=",
 					STRLENOF( LOGBASESTR "=" ) ) )
 		{
@@ -4443,6 +4594,29 @@ parse_syncrepl_line(
 		return -1;
 	}
 
+	if ( !be_issubordinate( c->be, &si->si_base ) && !( si->si_got & GOT_SUFFIXM )) {
+		ch_free( si->si_base.bv_val );
+		BER_BVZERO( &si->si_base );
+		snprintf( c->cr_msg, sizeof( c->cr_msg ),
+			"Base DN \"%s\" is not within the database naming context",
+			val );
+		Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
+		return -1;
+	}
+
+#ifdef ENABLE_REWRITE
+	if ( si->si_got & GOT_SUFFIXM ) {
+		if (config_suffixm( c, si )) {
+			ch_free( si->si_suffixm.bv_val );
+			BER_BVZERO( &si->si_suffixm );
+			snprintf( c->cr_msg, sizeof( c->cr_msg ),
+				"Error configuring rewrite engine" );
+			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
+			return -1;
+		}
+	}
+#endif
+
 	if ( !( si->si_got & GOT_RETRY ) ) {
 		Debug( LDAP_DEBUG_ANY, "syncrepl %s " SEARCHBASESTR "=\"%s\": no retry defined, using default\n", 
 			si->si_ridtxt, c->be->be_suffix ? c->be->be_suffix[ 0 ].bv_val : "(null)", 0 );
@@ -4669,6 +4843,14 @@ syncrepl_unparse( syncinfo_t *si, struct berval *bv )
 		ptr = lutil_strcopy( ptr, si->si_base.bv_val );
 		*ptr++ = '"';
 	}
+#ifdef ENABLE_REWRITE
+	if ( !BER_BVISNULL( &si->si_suffixm ) ) {
+		if ( WHATSLEFT <= STRLENOF( " " SUFFIXMSTR "=\"" "\"" ) + si->si_suffixm.bv_len ) return;
+		ptr = lutil_strcopy( ptr, " " SUFFIXMSTR "=\"" );
+		ptr = lutil_strcopy( ptr, si->si_suffixm.bv_val );
+		*ptr++ = '"';
+	}
+#endif
 	if ( !BER_BVISEMPTY( &si->si_logfilterstr ) ) {
 		if ( WHATSLEFT <= STRLENOF( " " LOGFILTERSTR "=\"" "\"" ) + si->si_logfilterstr.bv_len ) return;
 		ptr = lutil_strcopy( ptr, " " LOGFILTERSTR "=\"" );
