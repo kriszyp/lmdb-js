@@ -8,6 +8,7 @@ OpenLDAP 2.4.24 Engineering
 	Added slapadd attribute value checking (ITS#6592)
 	Added slapcat continue mode for problematic DBs (ITS#6482)
 	Added slapd syncrepl suffixmassage support
+	Added slapd multiple listener threads (ITS#6780)
 	Added slapd-meta paged results control fowarding (ITS#6664)
 	Added slapd-null back-config support (ITS#6624)
 	Added slapd-sql autocommit support (ITS#6612)
