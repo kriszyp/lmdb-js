@@ -916,7 +916,7 @@ rwm_entry_get_rw( Operation *op, struct berval *ndn,
 		/* duplicate & release */
 		op2.o_bd->bd_info = (BackendInfo *)on;
 		rc = rwm_send_entry( &op2, &rs );
-		RS_ASSERT( rs.sr_flags & REP_ENTRY_MUSTFLUSH );
+		assert( rs.sr_flags & REP_ENTRY_MUSTFLUSH );
 		if ( rc == SLAP_CB_CONTINUE ) {
 			*ep = rs.sr_entry;
 			rc = LDAP_SUCCESS;
@@ -1508,7 +1508,7 @@ rwm_send_entry( Operation *op, SlapReply *rs )
 	} else if ( rs->sr_flags & REP_ENTRY_MUSTRELEASE ) {
 		/* ITS#6423: REP_ENTRY_MUSTRELEASE incompatible
 		 * with REP_ENTRY_MODIFIABLE */
-		RS_ASSERT( 0 );
+		assert( 0 );
 		rc = 1;
 		goto fail;
 	}
