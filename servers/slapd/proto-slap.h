@@ -845,8 +845,6 @@ LDAP_SLAPD_F (int) slapd_daemon(void);
 LDAP_SLAPD_F (Listener **)	slapd_get_listeners LDAP_P((void));
 LDAP_SLAPD_F (void) slapd_remove LDAP_P((ber_socket_t s, Sockbuf *sb,
 	int wasactive, int wake, int locked ));
-LDAP_SLAPD_F (void) slapd_sd_lock LDAP_P((void));
-LDAP_SLAPD_F (void) slapd_sd_unlock LDAP_P((void));
 
 LDAP_SLAPD_F (RETSIGTYPE) slap_sig_shutdown LDAP_P((int sig));
 LDAP_SLAPD_F (RETSIGTYPE) slap_sig_wake LDAP_P((int sig));
@@ -865,6 +863,8 @@ LDAP_SLAPD_V (int) slapd_register_slp;
 LDAP_SLAPD_V (const char *) slapd_slp_attrs;
 LDAP_SLAPD_V (slap_ssf_t) local_ssf;
 LDAP_SLAPD_V (struct runqueue_s) slapd_rq;
+LDAP_SLAPD_V (int) slapd_daemon_threads;
+LDAP_SLAPD_V (int) slapd_daemon_mask;
 #ifdef LDAP_TCP_BUFFER
 LDAP_SLAPD_V (int) slapd_tcp_rmem;
 LDAP_SLAPD_V (int) slapd_tcp_wmem;
