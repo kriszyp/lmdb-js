@@ -276,12 +276,11 @@ static Connection* connection_get( ber_socket_t s )
 		if( c->c_struct_state != SLAP_C_USED ) {
 			/* connection must have been closed due to resched */
 
-			assert( c->c_conn_state == SLAP_C_INVALID );
-			assert( c->c_sd == AC_SOCKET_INVALID );
-
 			Debug( LDAP_DEBUG_CONNS,
 				"connection_get(%d): connection not used\n",
 				s, 0, 0 );
+			assert( c->c_conn_state == SLAP_C_INVALID );
+			assert( c->c_sd == AC_SOCKET_INVALID );
 
 			ldap_pvt_thread_mutex_unlock( &c->c_mutex );
 			return NULL;

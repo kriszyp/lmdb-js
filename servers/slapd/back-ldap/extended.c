@@ -305,11 +305,10 @@ ldap_back_exop_generic(
 	int		do_retry = 1;
 	char		*text = NULL;
 
-	assert( lc != NULL );
-	assert( rs->sr_ctrls == NULL );
-
 	Debug( LDAP_DEBUG_ARGS, "==> ldap_back_exop_generic(%s, \"%s\")\n",
 		op->ore_reqoid.bv_val, op->o_req_dn.bv_val, 0 );
+	assert( lc != NULL );
+	assert( rs->sr_ctrls == NULL );
 
 retry:
 	rc = ldap_extended_operation( lc->lc_ld,

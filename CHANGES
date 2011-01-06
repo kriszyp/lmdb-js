@@ -38,6 +38,7 @@ OpenLDAP 2.4.24 Engineering
 	Fixed ldapsearch multiple controls parsing (ITS#6651)
 	Fixed slapd acl parsing overflow (ITS#6611)
 	Fixed slapd assert control (ITS#5862)
+	Fixed slapd assertions and debugging (ITS#6759)
 	Fixed slapd support for BDB 5.0+ (ITS#6698)
 	Fixed slapd config leak with olcDbDirectory (ITS#6634)
 	Fixed slapd connectionless warnings (ITS#6747)

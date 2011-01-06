@@ -718,12 +718,11 @@ int bdb_tool_entry_reindex(
 	Operation op = {0};
 	Opheader ohdr = {0};
 
-	assert( tool_base == NULL );
-	assert( tool_filter == NULL );
-
 	Debug( LDAP_DEBUG_ARGS,
 		"=> " LDAP_XSTRING(bdb_tool_entry_reindex) "( %ld )\n",
 		(long) id, 0, 0 );
+	assert( tool_base == NULL );
+	assert( tool_filter == NULL );
 
 	/* No indexes configured, nothing to do. Could return an
 	 * error here to shortcut things.
