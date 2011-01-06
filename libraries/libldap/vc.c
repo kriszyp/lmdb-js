@@ -314,3 +314,47 @@ ldap_verify_credentials_s(
 
 	return( ldap_result2error(ld, res, 1));
 }
+
+#ifdef LDAP_API_FEATURE_VERIFY_CREDENTIALS_INTERACTIVE
+int
+ldap_verify_credentials_interactive (
+	LDAP *ld,
+	LDAP_CONST char *dn, /* usually NULL */
+	LDAP_CONST char *mech,
+	LDAPControl **vcControls,
+	LDAPControl **serverControls,
+	LDAPControl **clientControls,
+
+	/* should be client controls */
+	unsigned flags,
+	LDAP_SASL_INTERACT_PROC *proc,
+	void *defaults,
+    void *context;
+	
+	/* as obtained from ldap_result() */
+	LDAPMessage *result,
+
+	/* returned during bind processing */
+	const char **rmech,
+	int *msgid )
+{
+	if (!ld && context) {
+		assert(!dn);
+		assert(!mech);
+		assert(!vcControls);
+		assert(!serverControls);
+		assert(!defaults);
+		assert(!result);
+		assert(!rmech);
+		assert(!msgid);
+
+		/* special case to avoid having to expose a separate dispose context API */
+		sasl_dispose((sasl_conn_t)context);
+        return LDAP_SUCCESS;
+    }
+
+    ld->ld_errno = LDAP_NOT_SUPPORTED;
+    return ld->ld_errno;
+}
+#endif
+

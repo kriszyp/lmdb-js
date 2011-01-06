@@ -2268,6 +2268,32 @@ ldap_parse_verify_credentials LDAP_P((
 	struct berval	**servercredp,
 	LDAPControl	***vcctrls));
 
+/* not yet implemented */
+/* #define LDAP_API_FEATURE_VERIFY_CREDENTIALS_INTERACTIVE 1000 */
+#ifdef LDAP_API_FEATURE_VERIFY_CREDENTIALS_INTERACTIVE
+LDAP_F( int )
+ldap_verify_credentials_interactive LDAP_P((
+	LDAP *ld,
+	LDAP_CONST char *dn, /* usually NULL */
+	LDAP_CONST char *saslMechanism,
+	LDAPControl **vcControls,
+	LDAPControl **serverControls,
+	LDAPControl **clientControls,
+
+	/* should be client controls */
+	unsigned flags,
+	LDAP_SASL_INTERACT_PROC *proc,
+	void *defaults,
+	void *context,
+	
+	/* as obtained from ldap_result() */
+	LDAPMessage *result,
+
+	/* returned during bind processing */
+	const char **rmech,
+	int *msgid ));
+#endif
+
 /*
  * LDAP Who Am I?
  *	in whoami.c

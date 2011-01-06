@@ -51,7 +51,15 @@
 static int req_authzid = 0;
 static int req_pp = 0;
 
-static char * mech = NULL;
+#if defined(LDAP_API_FEATURES_VERIFY_CREDENTIALS_INTERACTIVE) && defined(HAVE_CYRUS_SASL)
+#define LDAP_SASL_NONE (~0U)
+static unsigned vc_sasl = LDAP_SASL_NONE;
+static char *vc_sasl_realm = NULL;
+static char *vc_sasl_authcid = NULL;
+static char *vc_sasl_authzid = NULL;
+static char *vc_sasl_mech = NULL;
+static char *vc_sasl_secprops = NULL;
+#endif
 static char * dn = NULL;
 static struct berval cred = {0, NULL};
 
@@ -59,27 +67,31 @@ void
 usage( void )
 {
 	fprintf( stderr, _("Issue LDAP Verify Credentials operation to verify a user's credentials\n\n"));
-	fprintf( stderr, _("usage: %s [options] (-S mech|[DN [cred]])\n"), prog);
+	fprintf( stderr, _("usage: %s [options] [DN [cred]])\n"), prog);
 	fprintf( stderr, _("where:\n"));
 	fprintf( stderr, _("    DN\tDistinguished Name\n"));
 	fprintf( stderr, _("    cred\tCredentials (prompt if not present)\n"));
 	fprintf( stderr, _("options:\n"));
 	fprintf( stderr, _("    -a\tRequest AuthzId\n"));
 	fprintf( stderr, _("    -b\tRequest Password Policy Information\n"));
-	fprintf( stderr, _("    -S mech\tSASL mechanism (default "" e.g. Simple)\n"));
+	fprintf( stderr, _("    -E sasl=(a[utomatic]|i[nteractive]|q[uiet]>\tSASL mode (defaults to automatic if any other -E option provided, otherwise none))\n"));
+	fprintf( stderr, _("    -E mech=<mech>\tSASL mechanism (default "" e.g. Simple)\n"));
+	fprintf( stderr, _("    -E realm=<realm>\tSASL Realm (defaults to none)\n"));
+	fprintf( stderr, _("    -E authcid=<authcid>\tSASL Authenication Identity (defaults to USER)\n"));
+	fprintf( stderr, _("    -E authzid=<authzid>\tSASL Authorization Identity (defaults to none)\n"));
+	fprintf( stderr, _("    -E secprops=<secprops>\tSASL Security Properties (defaults to none)\n"));
 	tool_common_usage();
 	exit( EXIT_FAILURE );
 }
 
 
-const char options[] = "abS:"
+const char options[] = "abE:"
 	"d:D:e:h:H:InNO:o:p:QR:U:vVw:WxX:y:Y:Z";
 
 int
 handle_private_option( int i )
 {
 	switch ( i ) {
-#if 0
 		char	*control, *cvalue;
 		int		crit;
 	case 'E': /* vc extension */
@@ -105,9 +117,144 @@ handle_private_option( int i )
 			*cvalue++ = '\0';
 		}
 
-		fprintf( stderr, _("Invalid Verify Credentials extension name: %s\n"), control );
-		usage();
+		if (strcasecmp(control, "sasl") == 0) {
+#if defined(LDAP_API_FEATURES_VERIFY_CREDENTIALS_INTERACTIVE) && defined(HAVE_CYRUS_SASL)
+			if (vc_sasl != LDAP_SASL_NONE) {
+				fprintf(stderr,
+				    _("SASL option previously specified\n"));
+				exit(EXIT_FAILURE);
+			}
+			if (cvalue == NULL) {
+				fprintf(stderr,
+					_("missing mode in SASL option\n"));
+				exit(EXIT_FAILURE);
+			}
+
+			switch (*cvalue) {
+			case 'a':
+			case 'A':
+				vc_sasl = LDAP_SASL_AUTOMATIC;
+				break;
+			case 'i':
+			case 'I':
+				vc_sasl = LDAP_SASL_INTERACTIVE;
+				break;
+			case 'q':
+			case 'Q':
+				vc_sasl = LDAP_SASL_QUIET;
+				break;
+			default:
+				fprintf(stderr,
+					_("unknown mode %s in SASL option\n"), cvalue);
+				exit(EXIT_FAILURE);
+			}
+#else
+			fprintf(stderr,
+				_("%s: not compiled with SASL support\n"), prog);
+			exit(EXIT_FAILURE);
 #endif
+
+		} else if (strcasecmp(control, "mech") == 0) {
+#if defined(LDAP_API_FEATURES_VERIFY_CREDENTIALS_INTERACTIVE) && defined(HAVE_CYRUS_SASL)
+			if (vc_sasl_mech) {
+				fprintf(stderr,
+				    _("SASL mech previously specified\n"));
+				exit(EXIT_FAILURE);
+			}
+			if (cvalue == NULL) {
+				fprintf(stderr,
+					_("missing mech in SASL option\n"));
+				exit(EXIT_FAILURE);
+			}
+
+			vc_sasl_mech = ber_strdup(cvalue);
+#else
+#endif
+
+		} else if (strcasecmp(control, "realm") == 0) {
+#if defined(LDAP_API_FEATURES_VERIFY_CREDENTIALS_INTERACTIVE) && defined(HAVE_CYRUS_SASL)
+			if (vc_sasl_realm) {
+				fprintf(stderr,
+				    _("SASL realm previously specified\n"));
+				exit(EXIT_FAILURE);
+			}
+			if (cvalue == NULL) {
+				fprintf(stderr,
+					_("missing realm in SASL option\n"));
+				exit(EXIT_FAILURE);
+			}
+
+			vc_sasl_realm = ber_strdup(cvalue);
+#else
+			fprintf(stderr,
+				_("%s: not compiled with SASL support\n"), prog);
+			exit(EXIT_FAILURE);
+#endif
+
+		} else if (strcasecmp(control, "authcid") == 0) {
+#if defined(LDAP_API_FEATURES_VERIFY_CREDENTIALS_INTERACTIVE) && defined(HAVE_CYRUS_SASL)
+			if (vc_sasl_authcid) {
+				fprintf(stderr,
+				    _("SASL authcid previously specified\n"));
+				exit(EXIT_FAILURE);
+			}
+			if (cvalue == NULL) {
+				fprintf(stderr,
+					_("missing authcid in SASL option\n"));
+				exit(EXIT_FAILURE);
+			}
+
+			vc_sasl_authcid = ber_strdup(cvalue);
+#else
+			fprintf(stderr,
+				_("%s: not compiled with SASL support\n"), prog);
+			exit(EXIT_FAILURE);
+#endif
+
+		} else if (strcasecmp(control, "authzid") == 0) {
+#if defined(LDAP_API_FEATURES_VERIFY_CREDENTIALS_INTERACTIVE) && defined(HAVE_CYRUS_SASL)
+			if (vc_sasl_authzid) {
+				fprintf(stderr,
+				    _("SASL authzid previously specified\n"));
+				exit(EXIT_FAILURE);
+			}
+			if (cvalue == NULL) {
+				fprintf(stderr,
+					_("missing authzid in SASL option\n"));
+				exit(EXIT_FAILURE);
+			}
+
+			vc_sasl_authzid = ber_strdup(cvalue);
+#else
+			fprintf(stderr,
+				_("%s: not compiled with SASL support\n"), prog);
+			exit(EXIT_FAILURE);
+#endif
+
+		} else if (strcasecmp(control, "secprops") == 0) {
+#if defined(LDAP_API_FEATURES_VERIFY_CREDENTIALS_INTERACTIVE) && defined(HAVE_CYRUS_SASL)
+			if (vc_sasl_secprops) {
+				fprintf(stderr,
+				    _("SASL secprops previously specified\n"));
+				exit(EXIT_FAILURE);
+			}
+			if (cvalue == NULL) {
+				fprintf(stderr,
+					_("missing secprops in SASL option\n"));
+				exit(EXIT_FAILURE);
+			}
+
+			vc_sasl_secprops = ber_strdup(cvalue);
+#else
+			fprintf(stderr,
+				_("%s: not compiled with SASL support\n"), prog);
+			exit(EXIT_FAILURE);
+#endif
+
+		} else {
+		    fprintf( stderr, _("Invalid Verify Credentials extension name: %s\n"), control );
+		    usage();
+		}
 
 	case 'a':  /* request authzid */
 		req_authzid++;
@@ -115,10 +262,6 @@ handle_private_option( int i )
 
 	case 'b':  /* request authzid */
 		req_pp++;
-		break;
-
-	case 'S':  /* SASL mechanism */
-		mech = optarg;
 		break;
 
 	default:
@@ -152,33 +295,31 @@ main( int argc, char *argv[] )
 
 	tool_args( argc, argv );
 
-	if (mech) {
-		if (argc - optind > 0) {
-			usage();
-		}
-
-		fprintf(stderr, "SASL credential verification not yet implemented!\n");
-		rc = EXIT_FAILURE;
-		goto skip;
-
-	} else {
-		if (argc - optind > 0) {
-		 	dn = argv[optind++];
-		}
-		if (argc - optind > 0) {
-		 	cred.bv_val = argv[optind++];
-			cred.bv_len = strlen(cred.bv_val);
-		}
-
-		if (argc - optind > 0) {
-		    usage();
-	    }
-
-	    if (!cred.bv_val) {
-		    cred.bv_val = strdup(getpassphrase(_("User's password: ")));
-	    }
+	if (argc - optind > 0) {
+		dn = argv[optind++];
+	}
+	if (argc - optind > 0) {
+		cred.bv_val = argv[optind++];
 		cred.bv_len = strlen(cred.bv_val);
 	}
+	if (argc - optind > 0) {
+		usage();
+	}
+	if (dn 
+#ifdef LDAP_API_FEATURE_VERIFY_CREDENTIALS_INTERACTIVE
+           && !vc_sasl_mech 
+#endif
+           && !cred.bv_val)
+	{
+		cred.bv_val = strdup(getpassphrase(_("User's password: ")));
+	    cred.bv_len = strlen(cred.bv_val);
+	}
+
+#ifdef LDAP_API_FEATURE_VERIFY_CREDENTIALS_INTERACTIVE
+    if (vc_sasl_mech && (vc_sasl == LDAP_SASL_NONE)) {
+		vc_sasl = LDAP_SASL_AUTOMATIC;
+	}
+#endif
 
 	ld = tool_conn_setup( 0, 0 );
 
@@ -211,49 +352,96 @@ main( int argc, char *argv[] )
 		vcctrls[++nvcctrls] = NULL;
     }
 
-	rc = ldap_verify_credentials( ld,
-		NULL,
-		dn, mech, cred.bv_val ? &cred: NULL, vcctrls,
-		NULL, NULL, &id ); 
+#ifdef LDAP_API_FEATURE_VERIFY_CREDENTIALS_INTERACTIVE
+#ifdef HAVE_CYRUS_SASL
+    if (vc_sasl_mech) {
+		int msgid;
+		void * defaults;
+		void * context = NULL;
+		const char *rmech = NULL;
 
-	if( rc != LDAP_SUCCESS ) {
-		tool_perror( "ldap_verify_credentials", rc, NULL, NULL, NULL, NULL );
-		rc = EXIT_FAILURE;
-		goto skip;
+		defaults = lutil_sasl_defaults(ld,
+			vc_sasl_mech,
+			vc_sasl_realm,
+			vc_sasl_authcid,
+			cred.bv_val,
+			sasl_authz_id);
+
+		do {
+			rc = ldap_verify_credentials_interactive(ld, dn, vc_sasl_mech,
+				vcctrls, NULL, NULL,
+				vc_sasl, lutil_sasl_interact, defaults, context,
+				res, &rmech, &msgid); 
+
+			if (rc != LDAP_SASL_BIND_IN_PROGRESS) break;
+
+			ldap_msgfree(res);
+
+			if (ldap_result(ld, msgid, LDAP_MSG_ALL, NULL, &res) == -1 || !res) {
+				ldap_get_option(ld, LDAP_OPT_RESULT_CODE, (void*) &rc);
+				ldap_get_option(ld, LDAP_OPT_DIAGNOSTIC_MESSAGE, (void*) &text);
+				tool_perror( "ldap_verify_credentials_interactive", rc, NULL, NULL, text, NULL);
+				ldap_memfree(text);
+				exit(rc);
+			}
+		} while (rc == LDAP_SASL_BIND_IN_PROGRESS);
+
+	    lutil_sasl_freedefs(defaults);
+
+	    if( rc != LDAP_SUCCESS ) {
+			ldap_get_option(ld, LDAP_OPT_DIAGNOSTIC_MESSAGE, (void*) &text);
+		    tool_perror( "ldap_verify_credentials", rc, NULL, NULL, text, NULL );
+		    rc = EXIT_FAILURE;
+		    goto skip;
+	    }
+
+	} else
+#endif
+#endif
+    {
+	    rc = ldap_verify_credentials( ld,
+		    NULL,
+		    dn, NULL, cred.bv_val ? &cred: NULL, vcctrls,
+		    NULL, NULL, &id ); 
+    
+	    if( rc != LDAP_SUCCESS ) {
+			ldap_get_option(ld, LDAP_OPT_DIAGNOSTIC_MESSAGE, (void*) &text);
+		    tool_perror( "ldap_verify_credentials", rc, NULL, NULL, text, NULL );
+		    rc = EXIT_FAILURE;
+		    goto skip;
+	    }
+
+	    for ( ; ; ) {
+		    struct timeval	tv;
+
+		    if ( tool_check_abandon( ld, id ) ) {
+			    return LDAP_CANCELLED;
+		    }
+
+		    tv.tv_sec = 0;
+		    tv.tv_usec = 100000;
+
+		    rc = ldap_result( ld, LDAP_RES_ANY, LDAP_MSG_ALL, &tv, &res );
+		    if ( rc < 0 ) {
+			    tool_perror( "ldap_result", rc, NULL, NULL, NULL, NULL );
+			    return rc;
+		    }
+
+		    if ( rc != 0 ) {
+			    break;
+		    }
+	    }
 	}
 
 	ldap_controls_free(vcctrls);
 	vcctrls = NULL;
 
-	for ( ; ; ) {
-		struct timeval	tv;
-
-		if ( tool_check_abandon( ld, id ) ) {
-			return LDAP_CANCELLED;
-		}
-
-		tv.tv_sec = 0;
-		tv.tv_usec = 100000;
-
-		rc = ldap_result( ld, LDAP_RES_ANY, LDAP_MSG_ALL, &tv, &res );
-		if ( rc < 0 ) {
-			tool_perror( "ldap_result", rc, NULL, NULL, NULL, NULL );
-			return rc;
-		}
-
-		if ( rc != 0 ) {
-			break;
-		}
-	}
-
 	rc = ldap_parse_result( ld, res,
 		&code, &matcheddn, &text, &refs, &ctrls, 0 );
 
-	if ( rc == LDAP_SUCCESS ) {
-		rc = code;
-	}
+	if (rc == LDAP_SUCCESS) rc = code;
 
-	if ( rc != LDAP_SUCCESS ) {
+	if (rc != LDAP_SUCCESS) {
 		tool_perror( "ldap_parse_result", rc, NULL, matcheddn, text, refs );
 		rc = EXIT_FAILURE;
 		goto skip;
@@ -262,7 +450,7 @@ main( int argc, char *argv[] )
 	rc = ldap_parse_verify_credentials( ld, res, &rcode, &diag, &scookie, &scred, &vcctrls );
 	ldap_msgfree(res);
 
-	if( rc != LDAP_SUCCESS ) {
+	if (rc != LDAP_SUCCESS) {
 		tool_perror( "ldap_parse_verify_credentials", rc, NULL, NULL, NULL, NULL );
 		rc = EXIT_FAILURE;
 		goto skip;
