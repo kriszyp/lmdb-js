@@ -42,10 +42,6 @@
 #include "ldap-int.h"
 #include "ldap-tls.h"
 
-#ifdef LDAP_R_COMPILE
-#include <ldap_pvt_thread.h>
-#endif
-
 #define READ_PASSWORD_FROM_STDIN
 #define READ_PASSWORD_FROM_FILE
 
@@ -1862,13 +1858,9 @@ static void
 tlsm_ctx_ref( tls_ctx *ctx )
 {
 	tlsm_ctx *c = (tlsm_ctx *)ctx;
-#ifdef LDAP_R_COMPILE
-	ldap_pvt_thread_mutex_lock( &c->tc_refmutex );
-#endif
+	LDAP_MUTEX_LOCK( &c->tc_refmutex );
 	c->tc_refcnt++;
-#ifdef LDAP_R_COMPILE
-	ldap_pvt_thread_mutex_unlock( &c->tc_refmutex );
-#endif
+	LDAP_MUTEX_UNLOCK( &c->tc_refmutex );
 }
 
 static void
@@ -1879,13 +1871,9 @@ tlsm_ctx_free ( tls_ctx *ctx )
 
 	if ( !c ) return;
 
-#ifdef LDAP_R_COMPILE
-	ldap_pvt_thread_mutex_lock( &c->tc_refmutex );
-#endif
+	LDAP_MUTEX_LOCK( &c->tc_refmutex );
 	refcount = --c->tc_refcnt;
-#ifdef LDAP_R_COMPILE
-	ldap_pvt_thread_mutex_unlock( &c->tc_refmutex );
-#endif
+	LDAP_MUTEX_UNLOCK( &c->tc_refmutex );
 	if ( refcount )
 		return;
 	if ( c->tc_model )

@@ -711,7 +711,7 @@ ldap_back_referral_result_rewrite(
 			 * legal to trim values when adding/modifying;
 			 * it should be when searching (e.g. ACLs).
 			 */
-			LBER_FREE( a_vals[ i ].bv_val );
+			ber_memfree( a_vals[ i ].bv_val );
 			if ( last > i ) {
 				a_vals[ i ] = a_vals[ last ];
 			}
@@ -738,7 +738,7 @@ ldap_back_referral_result_rewrite(
 
 				ber_memfree_x( a_vals[ i ].bv_val, memctx );
 				ber_str2bv_x( newurl, 0, 1, &a_vals[ i ], memctx );
-				LDAP_FREE( newurl );
+				ber_memfree( newurl );
 				ludp->lud_dn = olddn.bv_val;
 			}
 			break;
@@ -824,7 +824,7 @@ ldap_dnattr_result_rewrite(
 			 * legal to trim values when adding/modifying;
 			 * it should be when searching (e.g. ACLs).
 			 */
-			LBER_FREE( a_vals[i].bv_val );
+			ber_memfree( a_vals[i].bv_val );
 			if ( last > i ) {
 				a_vals[i] = a_vals[last];
 			}
@@ -835,7 +835,7 @@ ldap_dnattr_result_rewrite(
 		default:
 			/* leave attr untouched if massage failed */
 			if ( !BER_BVISNULL( &bv ) && a_vals[i].bv_val != bv.bv_val ) {
-				LBER_FREE( a_vals[i].bv_val );
+				ber_memfree( a_vals[i].bv_val );
 				a_vals[i] = bv;
 			}
 			break;

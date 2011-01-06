@@ -322,6 +322,15 @@ must be
 the library duplicates the controls passed via
 .BR invalue .
 .TP
+.B LDAP_OPT_SESSION_REFCNT
+Returns the reference count associated with the LDAP handle passed in as
+.BR ld ;
+.BR outvalue
+must be a
+.BR "int *" .
+This is a read-only, handle-specific option.
+This option is OpenLDAP specific.
+.TP
 .B LDAP_OPT_SIZELIMIT
 Sets/gets the value that defines the maximum number of entries
 to be returned by a search operation.

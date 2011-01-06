@@ -174,6 +174,7 @@ typedef struct ldaplist {
 /*
  * structure representing get/set'able options
  * which have global defaults.
+ * Protect access to this struct with ldo_mutex
  */
 struct ldapoptions {
 	short ldo_valid;
@@ -182,6 +183,15 @@ struct ldapoptions {
 #define LDAP_VALID_SESSION	0x2
 #define LDAP_TRASHED_SESSION	0xFF
 	int   ldo_debug;
+
+#ifdef LDAP_R_COMPILE
+	ldap_pvt_thread_mutex_t	ldo_mutex;
+#define LDAP_LDO_MUTEX_NULLARG	, LDAP_PVT_MUTEX_NULL
+#else
+#define LDAP_LDO_MUTEX_NULLARG
+#define LDAP_PVT_MUTEX_FIRSTCREATE(m)	((void) 0)
+#endif
+
 #ifdef LDAP_CONNECTIONLESS
 #define	LDAP_IS_UDP(ld)		((ld)->ld_options.ldo_is_udp)
 	void*			ldo_peer;	/* struct sockaddr* */
@@ -361,24 +371,27 @@ typedef struct ldapreqinfo {
  * structure representing an ldap connection
  */
 
-struct ldap {
-	Sockbuf		*ld_sb;		/* socket descriptor & buffer */
+struct ldap_common {
+	Sockbuf		*ldc_sb;	/* socket descriptor & buffer */
+#define ld_sb			ldc->ldc_sb
 
-	struct ldapoptions ld_options;
+	/* protected by ldo_mutex */
+	struct ldapoptions ldc_options;
+#define ld_options		ldc->ldc_options
 
 #define ld_valid		ld_options.ldo_valid
 #define ld_debug		ld_options.ldo_debug
 
 #define ld_deref		ld_options.ldo_deref
-#define ld_timelimit	ld_options.ldo_timelimit
-#define ld_sizelimit	ld_options.ldo_sizelimit
+#define ld_timelimit		ld_options.ldo_timelimit
+#define ld_sizelimit		ld_options.ldo_sizelimit
 
-#define ld_defbinddn	ld_options.ldo_defbinddn
+#define ld_defbinddn		ld_options.ldo_defbinddn
 #define ld_defbase		ld_options.ldo_defbase
 #define ld_defhost		ld_options.ldo_defhost
 #define ld_defport		ld_options.ldo_defport
 
-#define ld_refhoplimit	ld_options.ldo_refhoplimit
+#define ld_refhoplimit		ld_options.ldo_refhoplimit
 
 #define ld_sctrls		ld_options.ldo_sctrls
 #define ld_cctrls		ld_options.ldo_cctrls
@@ -390,36 +403,79 @@ struct ldap {
 #define ld_urllist_params	ld_options.ldo_urllist_params
 
 #define ld_version		ld_options.ldo_version
-
-	unsigned short	ld_lberoptions;
-
-	ber_int_t	ld_errno;
-	char	*ld_error;
-	char	*ld_matched;
-	char	**ld_referrals;
-	ber_len_t		ld_msgid;
-
-	/* do not mess with these */
-	LDAPRequest	*ld_requests;	/* list of outstanding requests */
-	LDAPMessage	*ld_responses;	/* list of outstanding responses */
-
 #ifdef LDAP_R_COMPILE
-	ldap_pvt_thread_mutex_t	ld_conn_mutex;
-	ldap_pvt_thread_mutex_t	ld_req_mutex;
-	ldap_pvt_thread_mutex_t	ld_res_mutex;
+#define	ld_ldopts_mutex		ld_options.ldo_mutex
 #endif
 
-	ber_len_t	ld_nabandoned;
-	ber_int_t	*ld_abandoned;	/* array of abandoned requests */
+	unsigned short	ldc_lberoptions;
+#define	ld_lberoptions		ldc->ldc_lberoptions
 
-	LDAPCache	*ld_cache;	/* non-null if cache is initialized */
+	/* protected by msgid_mutex */
+	ber_len_t		ldc_msgid;
+#define	ld_msgid		ldc->ldc_msgid
+
+	/* do not mess with these */
+	/* protected by req_mutex */
+	LDAPRequest	*ldc_requests;	/* list of outstanding requests */
+	/* protected by res_mutex */
+	LDAPMessage	*ldc_responses;	/* list of outstanding responses */
+#define	ld_requests		ldc->ldc_requests
+#define	ld_responses		ldc->ldc_responses
+
+#ifdef LDAP_R_COMPILE
+	ldap_pvt_thread_mutex_t	ldc_msgid_mutex;
+	ldap_pvt_thread_mutex_t	ldc_conn_mutex;
+	ldap_pvt_thread_mutex_t	ldc_req_mutex;
+	ldap_pvt_thread_mutex_t	ldc_res_mutex;
+	ldap_pvt_thread_mutex_t	ldc_abandon_mutex;
+#define	ld_msgid_mutex		ldc->ldc_msgid_mutex
+#define	ld_conn_mutex		ldc->ldc_conn_mutex
+#define	ld_req_mutex		ldc->ldc_req_mutex
+#define	ld_res_mutex		ldc->ldc_res_mutex
+#define	ld_abandon_mutex	ldc->ldc_abandon_mutex
+#endif
+
+	/* protected by abandon_mutex */
+	ber_len_t	ldc_nabandoned;
+	ber_int_t	*ldc_abandoned;	/* array of abandoned requests */
+#define	ld_nabandoned		ldc->ldc_nabandoned
+#define	ld_abandoned		ldc->ldc_abandoned
+
+	/* unused by libldap */
+	LDAPCache	*ldc_cache;	/* non-null if cache is initialized */
+#define	ld_cache		ldc->ldc_cache
 
 	/* do not mess with the rest though */
 
-	LDAPConn	*ld_defconn;	/* default connection */
-	LDAPConn	*ld_conns;	/* list of server connections */
-	void		*ld_selectinfo;	/* platform specifics for select */
+	/* protected by conn_mutex */
+	LDAPConn	*ldc_defconn;	/* default connection */
+#define	ld_defconn		ldc->ldc_defconn
+	LDAPConn	*ldc_conns;	/* list of server connections */
+#define	ld_conns		ldc->ldc_conns
+	void		*ldc_selectinfo;/* platform specifics for select */
+#define	ld_selectinfo		ldc->ldc_selectinfo
+
+	/* ldap_common refcnt - free only if 0 */
+#ifdef LDAP_R_COMPILE
+	ldap_pvt_thread_mutex_t	ldc_mutex;
+#define	ld_ldcmutex		ldc->ldc_mutex
+#endif
+	/* protected by ldc_mutex */
+	unsigned int		ldc_refcnt;
+#define	ld_ldcrefcnt		ldc->ldc_refcnt
 };
+
+struct ldap {
+	/* thread shared */
+	struct ldap_common	*ldc;
+
+	/* thread specific */
+	ber_int_t		ld_errno;
+	char			*ld_error;
+	char			*ld_matched;
+	char			**ld_referrals;
+};
+
 #define LDAP_VALID(ld)		( (ld)->ld_valid == LDAP_VALID_SESSION )
 #define LDAP_TRASHED(ld)	( (ld)->ld_valid == LDAP_TRASHED_SESSION )
 #define LDAP_TRASH(ld)		( (ld)->ld_valid = LDAP_TRASHED_SESSION )
@@ -441,19 +497,16 @@ LDAP_V( ldap_pvt_thread_mutex_t ) ldap_int_gssapi_mutex;
 #define LDAP_ASSERT_MUTEX_OWNER(mutex) \
 	LDAP_PVT_THREAD_ASSERT_MUTEX_OWNER(mutex)
 #else
-#define LDAP_MUTEX_LOCK(mutex)
-#define LDAP_MUTEX_UNLOCK(mutex)
-#define LDAP_ASSERT_MUTEX_OWNER(mutex)
+#define LDAP_MUTEX_LOCK(mutex)    ((void) 0)
+#define LDAP_MUTEX_UNLOCK(mutex)  ((void) 0)
+#define LDAP_ASSERT_MUTEX_OWNER(mutex) ((void) 0)
 #endif
 
-#ifdef LDAP_R_COMPILE
-#define	LDAP_NEXT_MSGID(ld, id) \
-	LDAP_MUTEX_LOCK( &(ld)->ld_req_mutex ); \
-	id = ++(ld)->ld_msgid; \
-	LDAP_MUTEX_UNLOCK( &(ld)->ld_req_mutex )
-#else
-#define	LDAP_NEXT_MSGID(ld, id)	id = ++(ld)->ld_msgid
-#endif
+#define	LDAP_NEXT_MSGID(ld, id) do { \
+	LDAP_MUTEX_LOCK( &(ld)->ld_msgid_mutex ); \
+	(id) = ++(ld)->ld_msgid; \
+	LDAP_MUTEX_UNLOCK( &(ld)->ld_msgid_mutex ); \
+} while (0)
 
 /*
  * in abandon.c
@@ -592,8 +645,11 @@ LDAP_F (ber_int_t) ldap_send_initial_request( LDAP *ld, ber_tag_t msgtype,
 LDAP_F (BerElement *) ldap_alloc_ber_with_options( LDAP *ld );
 LDAP_F (void) ldap_set_ber_options( LDAP *ld, BerElement *ber );
 
-LDAP_F (int) ldap_send_server_request( LDAP *ld, BerElement *ber, ber_int_t msgid, LDAPRequest *parentreq, LDAPURLDesc **srvlist, LDAPConn *lc, LDAPreqinfo *bind );
-LDAP_F (LDAPConn *) ldap_new_connection( LDAP *ld, LDAPURLDesc **srvlist, int use_ldsb, int connect, LDAPreqinfo *bind );
+LDAP_F (int) ldap_send_server_request( LDAP *ld, BerElement *ber,
+	ber_int_t msgid, LDAPRequest *parentreq, LDAPURLDesc **srvlist,
+	LDAPConn *lc, LDAPreqinfo *bind, int noconn, int m_res );
+LDAP_F (LDAPConn *) ldap_new_connection( LDAP *ld, LDAPURLDesc **srvlist,
+	int use_ldsb, int connect, LDAPreqinfo *bind, int m_req, int m_res );
 LDAP_F (LDAPRequest *) ldap_find_request_by_msgid( LDAP *ld, ber_int_t msgid );
 LDAP_F (void) ldap_return_request( LDAP *ld, LDAPRequest *lr, int freeit );
 LDAP_F (void) ldap_free_request( LDAP *ld, LDAPRequest *lr );

@@ -2,6 +2,7 @@ OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.24 Engineering
 	Added LDIF line wrapping setting (ITS#6645)
+	Added libldap concurrency support (ITS#6625,ITS#5421)
 	Added libldap MozNSS non-blocking support (ITS#6714)
 	Added libldap MozNSS cert centralization (ITS#6742)
 	Added libldap x500UniqueIdentifier handling (ITS#6741)

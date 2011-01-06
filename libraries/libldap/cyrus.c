@@ -416,7 +416,7 @@ ldap_int_sasl_bind(
 		void	*ssl;
 
 		rc = 0;
-		LDAP_MUTEX_LOCK( &ld->ld_req_mutex );
+		LDAP_MUTEX_LOCK( &ld->ld_conn_mutex );
 		ber_sockbuf_ctrl( ld->ld_sb, LBER_SB_OPT_GET_FD, &sd );
 
 		if ( sd == AC_SOCKET_INVALID ) {
@@ -434,7 +434,7 @@ ldap_int_sasl_bind(
 				}
 			}
 		}   
-		LDAP_MUTEX_UNLOCK( &ld->ld_req_mutex );
+		LDAP_MUTEX_UNLOCK( &ld->ld_conn_mutex );
 		if( rc != 0 ) return ld->ld_errno;
 
 		oldctx = ld->ld_defconn->lconn_sasl_authctx;
@@ -1205,7 +1205,10 @@ ldap_int_sasl_bind(
 	LDAPControl		**cctrls,
 	unsigned		flags,
 	LDAP_SASL_INTERACT_PROC *interact,
-	void * defaults )
+	void			*defaults,
+	LDAPMessage		*result,
+	const char		**rmech,
+	int				*msgid )
 { return LDAP_NOT_SUPPORTED; }
 
 int

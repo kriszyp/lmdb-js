@@ -549,7 +549,7 @@ retry:
 
 		if ( dnPretty( NULL, &match, &pmatch, op->o_tmpmemctx ) == LDAP_SUCCESS ) {
 			rs->sr_matched = pmatch.bv_val;
-			LDAP_FREE( match.bv_val );
+			ber_memfree( match.bv_val );
 
 		} else {
 			rs->sr_matched = match.bv_val;
@@ -589,14 +589,14 @@ finish:;
 			ber_memfree_x( (char *)rs->sr_matched, op->o_tmpmemctx );
 
 		} else {
-			LDAP_FREE( match.bv_val );
+			ber_memfree( match.bv_val );
 		}
 		rs->sr_matched = save_matched;
 	}
 
 	if ( rs->sr_text ) {
 		if ( freetext ) {
-			LDAP_FREE( (char *)rs->sr_text );
+			ber_memfree( (char *)rs->sr_text );
 		}
 		rs->sr_text = NULL;
 	}
@@ -629,7 +629,7 @@ ldap_build_entry(
 		struct berval	*bdn )
 {
 	struct berval	a;
-	BerElement	ber = *e->lm_ber;
+	BerElement	ber = *ldap_get_message_ber( e );
 	Attribute	*attr, **attrp;
 	const char	*text;
 	int		last;
@@ -764,7 +764,7 @@ ldap_build_entry(
 					rc = LDAP_SUCCESS;
 
 				} else {
-					LBER_FREE( attr->a_vals[i].bv_val );
+					ber_memfree( attr->a_vals[i].bv_val );
 					if ( --last == i ) {
 						BER_BVZERO( &attr->a_vals[i] );
 						break;
@@ -776,7 +776,7 @@ ldap_build_entry(
 			}
 
 			if ( rc == LDAP_SUCCESS && pretty ) {
-				LBER_FREE( attr->a_vals[i].bv_val );
+				ber_memfree( attr->a_vals[i].bv_val );
 				attr->a_vals[i] = pval;
 			}
 		}
@@ -802,7 +802,7 @@ ldap_build_entry(
 					NULL );
 
 				if ( rc != LDAP_SUCCESS ) {
-					LBER_FREE( attr->a_vals[i].bv_val );
+					ber_memfree( attr->a_vals[i].bv_val );
 					if ( --last == i ) {
 						BER_BVZERO( &attr->a_vals[i] );
 						break;
@@ -833,8 +833,8 @@ ldap_build_entry(
 
 				/* Strip duplicate values */
 				if ( attr->a_nvals != attr->a_vals )
-					LBER_FREE( attr->a_nvals[i].bv_val );
-				LBER_FREE( attr->a_vals[i].bv_val );
+					ber_memfree( attr->a_nvals[i].bv_val );
+				ber_memfree( attr->a_vals[i].bv_val );
 				attr->a_numvals--;
 
 				assert( i >= 0 );

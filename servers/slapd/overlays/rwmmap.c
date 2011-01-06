@@ -961,7 +961,7 @@ rwm_referral_rewrite(
 				}
 
 				ber_str2bv( newurl, 0, 1, &a_vals[i] );
-				LDAP_FREE( newurl );
+				ber_memfree( newurl );
 
 				if ( pa_nvals ) {
 					ludp->lud_dn = ndn.bv_val;
@@ -981,7 +981,7 @@ rwm_referral_rewrite(
 						ch_free( (*pa_nvals)[i].bv_val );
 					}
 					ber_str2bv( newurl, 0, 1, &(*pa_nvals)[i] );
-					LDAP_FREE( newurl );
+					ber_memfree( newurl );
 				}
 
 				ch_free( oldval.bv_val );
@@ -1192,7 +1192,7 @@ rwm_referral_result_rewrite(
 
 				ch_free( a_vals[i].bv_val );
 				ber_str2bv( newurl, 0, 1, &a_vals[i] );
-				LDAP_FREE( newurl );
+				ber_memfree( newurl );
 				ludp->lud_dn = olddn.bv_val;
 			}
 			break;
