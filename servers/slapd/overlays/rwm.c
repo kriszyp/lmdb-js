@@ -916,9 +916,16 @@ rwm_entry_get_rw( Operation *op, struct berval *ndn,
 		/* duplicate & release */
 		op2.o_bd->bd_info = (BackendInfo *)on;
 		rc = rwm_send_entry( &op2, &rs );
+		RS_ASSERT( rs.sr_flags & REP_ENTRY_MUSTFLUSH );
 		if ( rc == SLAP_CB_CONTINUE ) {
 			*ep = rs.sr_entry;
 			rc = LDAP_SUCCESS;
+		} else {
+			assert( rc != LDAP_SUCCESS && rs.sr_entry == *ep );
+			*ep = NULL;
+			op2.o_bd->bd_info = (BackendInfo *)on->on_info;
+			be_entry_release_r( &op2, rs.sr_entry );
+			op2.o_bd->bd_info = (BackendInfo *)on;
 		}
 	}
 
@@ -1461,6 +1468,7 @@ cleanup_attr:;
 	return 0;
 }
 
+/* Should return SLAP_CB_CONTINUE or failure, never LDAP_SUCCESS. */
 static int
 rwm_send_entry( Operation *op, SlapReply *rs )
 {
@@ -1469,7 +1477,6 @@ rwm_send_entry( Operation *op, SlapReply *rs )
 			(struct ldaprwmap *)on->on_bi.bi_private;
 
 	Entry			*e = NULL;
-	slap_mask_t		flags;
 	struct berval		dn = BER_BVNULL,
 				ndn = BER_BVNULL;
 	dncookie		dc;
@@ -1486,7 +1493,6 @@ rwm_send_entry( Operation *op, SlapReply *rs )
 	dc.ctx = "searchEntryDN";
 
 	e = rs->sr_entry;
-	flags = rs->sr_flags;
 	if ( !( rs->sr_flags & REP_ENTRY_MODIFIABLE ) ) {
 		/* FIXME: all we need to duplicate are:
 		 * - dn
@@ -1494,15 +1500,17 @@ rwm_send_entry( Operation *op, SlapReply *rs )
 		 * - attributes that are requested
 		 * - no values if attrsonly is set
 		 */
-
 		e = entry_dup( e );
 		if ( e == NULL ) {
 			rc = LDAP_NO_MEMORY;
 			goto fail;
 		}
-
-		flags &= ~REP_ENTRY_MUSTRELEASE;
-		flags |= ( REP_ENTRY_MODIFIABLE | REP_ENTRY_MUSTBEFREED );
+	} else if ( rs->sr_flags & REP_ENTRY_MUSTRELEASE ) {
+		/* ITS#6423: REP_ENTRY_MUSTRELEASE incompatible
+		 * with REP_ENTRY_MODIFIABLE */
+		RS_ASSERT( 0 );
+		rc = 1;
+		goto fail;
 	}
 
 	/*
@@ -1534,21 +1542,20 @@ rwm_send_entry( Operation *op, SlapReply *rs )
 	 * to return, and remap them accordingly */
 	(void)rwm_attrs( op, rs, &e->e_attrs, 1 );
 
-	if ( rs->sr_flags & REP_ENTRY_MUSTRELEASE ) {
-		/* ITS#6423: REP_ENTRY_MUSTRELEASE incompatible
-		 * with REP_ENTRY_MODIFIABLE */
-		if ( rs->sr_entry == e ) {
-			rc = 1;
-			goto fail;
+	if ( e != rs->sr_entry ) {
+		/* Reimplementing rs_replace_entry(), I suppose to
+		 * bypass our own dubious rwm_entry_release_rw() */
+		if ( rs->sr_flags & REP_ENTRY_MUSTRELEASE ) {
+			rs->sr_flags ^= REP_ENTRY_MUSTRELEASE;
+			op->o_bd->bd_info = (BackendInfo *)on->on_info;
+			be_entry_release_r( op, rs->sr_entry );
+			op->o_bd->bd_info = (BackendInfo *)on;
+		} else if ( rs->sr_flags & REP_ENTRY_MUSTBEFREED ) {
+			entry_free( rs->sr_entry );
 		}
-
-		op->o_bd->bd_info = (BackendInfo *)on->on_info;
-		be_entry_release_r( op, rs->sr_entry );
-		op->o_bd->bd_info = (BackendInfo *)on;
+		rs->sr_entry = e;
+		rs->sr_flags |= REP_ENTRY_MODIFIABLE | REP_ENTRY_MUSTBEFREED;
 	}
-
-	rs->sr_entry = e;
-	rs->sr_flags = flags;
 
 	return SLAP_CB_CONTINUE;
 
