@@ -1930,7 +1930,7 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 		}
 
 		/* Add any log records */
-		if ( si->si_logs && op->o_tag != LDAP_REQ_ADD ) {
+		if ( si->si_logs ) {
 			syncprov_add_slog( op );
 		}
 leave:		ldap_pvt_thread_mutex_unlock( &si->si_resp_mutex );
