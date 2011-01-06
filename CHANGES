@@ -8,7 +8,7 @@ OpenLDAP 2.4.24 Engineering
 	Added libldap x500UniqueIdentifier handling (ITS#6741)
 	Added slapadd attribute value checking (ITS#6592)
 	Added slapcat continue mode for problematic DBs (ITS#6482)
-	Added slapd syncrepl suffixmassage support
+	Added slapd syncrepl suffixmassage support (ITS#6781)
 	Added slapd multiple listener threads (ITS#6780)
 	Added slapd-meta paged results control fowarding (ITS#6664)
 	Added slapd-null back-config support (ITS#6624)
