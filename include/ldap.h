@@ -1187,6 +1187,26 @@ typedef int (LDAP_SASL_INTERACT_PROC) LDAP_P((
 	LDAP *ld, unsigned flags, void* defaults, void *interact ));
 
 LDAP_F( int )
+ldap_sasl_interactive_bind LDAP_P((
+	LDAP *ld,
+	LDAP_CONST char *dn, /* usually NULL */
+	LDAP_CONST char *saslMechanism,
+	LDAPControl **serverControls,
+	LDAPControl **clientControls,
+
+	/* should be client controls */
+	unsigned flags,
+	LDAP_SASL_INTERACT_PROC *proc,
+	void *defaults,
+	
+	/* as obtained from ldap_result() */
+	LDAPMessage *result,
+
+	/* returned during bind processing */
+	const char **rmech,
+	int *msgid ));
+
+LDAP_F( int )
 ldap_sasl_interactive_bind_s LDAP_P((
 	LDAP *ld,
 	LDAP_CONST char *dn, /* usually NULL */

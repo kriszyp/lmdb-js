@@ -693,7 +693,10 @@ LDAP_F (int) ldap_int_sasl_bind LDAP_P((
 	/* should be passed in client controls */
 	unsigned flags,
 	LDAP_SASL_INTERACT_PROC *interact,
-	void *defaults ));
+	void *defaults,
+	LDAPMessage *result,
+	const char **rmech,
+	int *msgid ));
 
 /* in schema.c */
 LDAP_F (char *) ldap_int_parse_numericoid LDAP_P((

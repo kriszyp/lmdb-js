@@ -401,6 +401,90 @@ ldap_pvt_sasl_getmechs ( LDAP *ld, char **pmechlist )
 }
 
 /*
+ * ldap_sasl_interactive_bind - interactive SASL authentication
+ *
+ * This routine uses interactive callbacks.
+ *
+ * LDAP_SUCCESS is returned upon success, the ldap error code
+ * otherwise. LDAP_SASL_BIND_IN_PROGRESS is returned if further
+ * calls are needed.
+ */
+int
+ldap_sasl_interactive_bind(
+	LDAP *ld,
+	LDAP_CONST char *dn, /* usually NULL */
+	LDAP_CONST char *mechs,
+	LDAPControl **serverControls,
+	LDAPControl **clientControls,
+	unsigned flags,
+	LDAP_SASL_INTERACT_PROC *interact,
+	void *defaults,
+	LDAPMessage *result,
+	const char **rmech,
+	int *msgid )
+{
+	char *smechs = NULL;
+	int rc;
+
+#if defined( HAVE_CYRUS_SASL )
+	LDAP_MUTEX_LOCK( &ldap_int_sasl_mutex );
+#endif
+#ifdef LDAP_CONNECTIONLESS
+	if( LDAP_IS_UDP(ld) ) {
+		/* Just force it to simple bind, silly to make the user
+		 * ask all the time. No, we don't ever actually bind, but I'll
+		 * let the final bind handler take care of saving the cdn.
+		 */
+		rc = ldap_simple_bind( ld, dn, NULL );
+		rc = rc < 0 ? rc : 0;
+		goto done;
+	} else
+#endif
+
+	/* First time */
+	if ( !result ) {
+
+#ifdef HAVE_CYRUS_SASL
+	if( mechs == NULL || *mechs == '\0' ) {
+		mechs = ld->ld_options.ldo_def_sasl_mech;
+	}
+#endif
+		
+	if( mechs == NULL || *mechs == '\0' ) {
+		/* FIXME: this needs to be asynchronous too;
+		 * perhaps NULL should be disallowed for async usage?
+		 */
+		rc = ldap_pvt_sasl_getmechs( ld, &smechs );
+		if( rc != LDAP_SUCCESS ) {
+			goto done;
+		}
+
+		Debug( LDAP_DEBUG_TRACE,
+			"ldap_sasl_interactive_bind: server supports: %s\n",
+			smechs, 0, 0 );
+
+		mechs = smechs;
+
+	} else {
+		Debug( LDAP_DEBUG_TRACE,
+			"ldap_sasl_interactive_bind: user selected: %s\n",
+			mechs, 0, 0 );
+	}
+	}
+	rc = ldap_int_sasl_bind( ld, dn, mechs,
+		serverControls, clientControls,
+		flags, interact, defaults, result, rmech, msgid );
+
+done:
+#if defined( HAVE_CYRUS_SASL )
+	LDAP_MUTEX_UNLOCK( &ldap_int_sasl_mutex );
+#endif
+	if ( smechs ) LDAP_FREE( smechs );
+
+	return rc;
+}
+
+/*
  * ldap_sasl_interactive_bind_s - interactive SASL authentication
  *
  * This routine uses interactive callbacks.
@@ -419,57 +503,30 @@ ldap_sasl_interactive_bind_s(
 	LDAP_SASL_INTERACT_PROC *interact,
 	void *defaults )
 {
-	int rc;
-	char *smechs = NULL;
+	const char *rmech = NULL;
+	LDAPMessage *result = NULL;
+	int rc, msgid;
 
-#if defined( HAVE_CYRUS_SASL )
-	LDAP_MUTEX_LOCK( &ldap_int_sasl_mutex );
-#endif
+	do {
+		rc = ldap_sasl_interactive_bind( ld, dn, mechs,
+			serverControls, clientControls,
+			flags, interact, defaults, result, &rmech, &msgid );
+
+		ldap_msgfree( result );
+
+		if ( rc != LDAP_SASL_BIND_IN_PROGRESS )
+			break;
+
 #ifdef LDAP_CONNECTIONLESS
-	if( LDAP_IS_UDP(ld) ) {
-		/* Just force it to simple bind, silly to make the user
-		 * ask all the time. No, we don't ever actually bind, but I'll
-		 * let the final bind handler take care of saving the cdn.
-		 */
-		rc = ldap_simple_bind( ld, dn, NULL );
-		rc = rc < 0 ? rc : 0;
-		goto done;
-	} else
-#endif
-
-#ifdef HAVE_CYRUS_SASL
-	if( mechs == NULL || *mechs == '\0' ) {
-		mechs = ld->ld_options.ldo_def_sasl_mech;
-	}
-#endif
-		
-	if( mechs == NULL || *mechs == '\0' ) {
-		rc = ldap_pvt_sasl_getmechs( ld, &smechs );
-		if( rc != LDAP_SUCCESS ) {
-			goto done;
+		if (LDAP_IS_UDP(ld)) {
+			break;
 		}
-
-		Debug( LDAP_DEBUG_TRACE,
-			"ldap_sasl_interactive_bind_s: server supports: %s\n",
-			smechs, 0, 0 );
-
-		mechs = smechs;
-
-	} else {
-		Debug( LDAP_DEBUG_TRACE,
-			"ldap_sasl_interactive_bind_s: user selected: %s\n",
-			mechs, 0, 0 );
-	}
-
-	rc = ldap_int_sasl_bind( ld, dn, mechs,
-		serverControls, clientControls,
-		flags, interact, defaults );
-
-done:
-#if defined( HAVE_CYRUS_SASL )
-	LDAP_MUTEX_UNLOCK( &ldap_int_sasl_mutex );
 #endif
-	if ( smechs ) LDAP_FREE( smechs );
+
+		if ( ldap_result( ld, msgid, LDAP_MSG_ALL, NULL, &result ) == -1 || !result ) {
+			return( ld->ld_errno );	/* ldap_result sets ld_errno */
+		}
+	} while ( rc == LDAP_SASL_BIND_IN_PROGRESS );
 
 	return rc;
 }
