@@ -1641,6 +1641,8 @@ syncprov_playlog( Operation *op, SlapReply *rs, sessionlog *sl,
 			delcsn[0].bv_len = se->se_csn.bv_len;
 			delcsn[0].bv_val[delcsn[0].bv_len] = '\0';
 		} else {
+			if ( se->se_tag == LDAP_REQ_ADD )
+				continue;
 			nmods++;
 			j = num - nmods;
 		}
