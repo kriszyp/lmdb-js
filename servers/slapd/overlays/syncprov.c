@@ -1641,6 +1641,8 @@ syncprov_playlog( Operation *op, SlapReply *rs, sessionlog *sl,
 			delcsn[0].bv_len = se->se_csn.bv_len;
 			delcsn[0].bv_val[delcsn[0].bv_len] = '\0';
 		} else {
+			if ( se->se_tag == LDAP_REQ_ADD )
+				continue;
 			nmods++;
 			j = num - nmods;
 		}
@@ -1930,7 +1932,7 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 		}
 
 		/* Add any log records */
-		if ( si->si_logs && op->o_tag != LDAP_REQ_ADD ) {
+		if ( si->si_logs ) {
 			syncprov_add_slog( op );
 		}
 leave:		ldap_pvt_thread_mutex_unlock( &si->si_resp_mutex );
