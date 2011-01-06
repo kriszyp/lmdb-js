@@ -334,19 +334,37 @@ it is of critical importance that the key file is protected carefully.
 .B TLS_CIPHER_SUITE <cipher-suite-spec>
 Specifies acceptable cipher suite and preference order.
 <cipher-suite-spec> should be a cipher specification for OpenSSL,
-e.g., HIGH:MEDIUM:+SSLv2.
+<cipher-suite-spec> should be a cipher specification for OpenSSL resp. GNUtls.
+Example:
+.RS
+.RS
+.TP
+.I OpenSSL:
+TLS_CIPHER_SUITE HIGH:MEDIUM:+SSLv2
+.TP
+.I GNUtls:
+TLS_CIPHER_SUITE SECURE256:!AES-128-CBC
+.RE
 
-To check what ciphers a given spec selects, use:
+To check what ciphers a given spec selects in OpenSSL, use:
 
 .nf
 	openssl ciphers \-v <cipher-suite-spec>
 .fi
 
-To obtain the list of ciphers in GNUtls use:
+With GNUtls the available specs can be found in the manual page of 
+.BR gnutls\-cli (1)
+(see the description of the 
+option
+.BR \-\-priority ).
+
+In older versions of GNUtls, where gnutls\-cli does not support the option
+\-\-priority, you can obtain the \(em more limited \(em list of ciphers by calling:
 
 .nf
-	gnutls-cli \-l
+	gnutls\-cli \-l
 .fi
+.RE
 .TP
 .B TLS_RANDFILE <filename>
 Specifies the file to obtain random bits from when /dev/[u]random is
