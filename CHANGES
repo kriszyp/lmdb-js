@@ -121,6 +121,9 @@ OpenLDAP 2.4.24 Engineering
 		admin24 guide refint rootdn requirement (ITS#6364)
 		admin24 add pcache overlay section (ITS#6521)
 		ldap_open(3) document ldap_set_urllist_proc (ITS#6601)
+		ldap.conf(5) GNUTls cipher spec info (ITS#6525)
+		slapd.conf(5) GNUTls cipher spec info (ITS#6525)
+		slapd-config(5) GNUTls cipher spec info (ITS#6525)
 		slapo-pcache(5) note rootdn requirement (ITS#6522)
 		slapo-refint(5) rootdn requirement (ITS#6364)
 

@@ -798,9 +798,17 @@ you can specify.
 .TP
 .B olcTLSCipherSuite: <cipher-suite-spec>
 Permits configuring what ciphers will be accepted and the preference order.
-<cipher-suite-spec> should be a cipher specification for OpenSSL.  Example:
-
+<cipher-suite-spec> should be a cipher specification for OpenSSL resp. GNUtls.
+Example:
+.RS
+.RS
+.TP
+.I OpenSSL:
 olcTLSCipherSuite: HIGH:MEDIUM:+SSLv2
+.TP
+.I GNUtls:
+TLSCiphersuite SECURE256:!AES-128-CBC
+.RE
 
 To check what ciphers a given spec selects in OpenSSL, use:
 
@@ -808,11 +816,19 @@ To check what ciphers a given spec selects in OpenSSL, use:
 	openssl ciphers \-v <cipher-suite-spec>
 .fi
 
-To obtain the list of ciphers in GNUtls use:
+With GNUtls the available specs can be found in the manual page of
+.BR gnutls\-cli (1)
+(see the description of the
+option
+.BR \-\-priority ).
+
+In older versions of GNUtls, where gnutls\-cli does not support the option
+\-\-priority, you can obtain the \(em more limited \(em list of ciphers by calling:
 
 .nf
-	gnutls-cli \-l
+	gnutls\-cli \-l
 .fi
+.RE
 .TP
 .B olcTLSCACertificateFile: <filename>
 Specifies the file that contains certificates for all of the Certificate
@@ -1998,6 +2014,7 @@ default slapd configuration directory
 .SH SEE ALSO
 .BR ldap (3),
 .BR ldif (5),
+.BR gnutls\-cli (1),
 .BR slapd.access (5),
 .BR slapd.backends (5),
 .BR slapd.conf (5),
