@@ -509,6 +509,11 @@ depend on these parameters and recreating them with
 .BR slapindex (8).
 
 .TP
+.B olcListenerThreads: <integer>
+Specify the number of threads to use for the connection manager.
+The default is 1 and this is typically adequate for up to 16 CPU cores.
+The value should be set to a power of 2.
+.TP
 .B olcLocalSSF: <SSF>
 Specifies the Security Strength Factor (SSF) to be given local LDAP sessions,
 such as those to the ldapi:// listener.  For a description of SSF values,
