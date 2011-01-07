@@ -122,7 +122,7 @@ dn: cn=module,cn=config
 changetype: add
 objectClass: olcModuleList
 cn: module
-olcModulePath: ../../../servers/slapd/overlays
+olcModulePath: $TESTWD/../servers/slapd/overlays
 olcModuleLoad: syncprov.la
 
 EOF
@@ -267,7 +267,7 @@ cat <<EOF >> $TMP
 dn: cn=module,cn=config
 objectClass: olcModuleList
 cn: module
-olcModulePath: ../../../servers/slapd/back-$BACKEND
+olcModulePath: $TESTWD/../servers/slapd/back-$BACKEND
 olcModuleLoad: back_$BACKEND.la
 
 EOF

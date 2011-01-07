@@ -210,7 +210,7 @@ EOF
 dn: cn=module,cn=config
 objectClass: olcModuleList
 cn: module
-olcModulePath: ../../../servers/slapd/back-$BACKEND
+olcModulePath: $TESTWD/../servers/slapd/back-$BACKEND
 olcModuleLoad: back_$BACKEND.la
 EOF
 	RC=$?
@@ -227,7 +227,7 @@ if [ "$SYNCPROV" = syncprovmod ]; then
 dn: cn=module,cn=config
 objectClass: olcModuleList
 cn: module
-olcModulePath: ../../../servers/slapd/overlays
+olcModulePath: $TESTWD/../servers/slapd/overlays
 olcModuleLoad: syncprov.la
 
 EOF
@@ -293,7 +293,7 @@ if [ "$SYNCPROV" = syncprovmod ]; then
 dn: cn=module,cn=config
 objectClass: olcModuleList
 cn: module
-olcModulePath: ../../../servers/slapd/overlays
+olcModulePath: $TESTWD/../servers/slapd/overlays
 olcModuleLoad: syncprov.la
 
 EOF
