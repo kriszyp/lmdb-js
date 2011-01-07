@@ -97,7 +97,7 @@ if [ "$SYNCPROV" = syncprovmod ]; then
 dn: cn=module,cn=config
 objectClass: olcModuleList
 cn: module
-olcModulePath: ../../../servers/slapd/overlays
+olcModulePath: $TESTWD/../servers/slapd/overlays
 olcModuleLoad: syncprov.la
 EOF
 	RC=$?
