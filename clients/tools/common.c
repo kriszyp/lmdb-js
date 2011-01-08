@@ -126,9 +126,7 @@ struct berval	stValue;
 ber_int_t vlvPos;
 ber_int_t vlvCount;
 struct berval *vlvContext;
-#ifdef LDAP_CONTROL_AUTHZID_REQUEST
 static int	bauthzid;
-#endif /* LDAP_CONTROL_AUTHZID_REQUEST */
 
 LDAPControl	*unknown_ctrls = NULL;
 int		unknown_ctrls_num = 0;
@@ -547,7 +545,6 @@ tool_args( int argc, char **argv )
 				proxydn = ber_strdup( cvalue );
 #endif /* LDAP_CONTROL_OBSOLETE_PROXY_AUTHZ */
 
-#ifdef LDAP_CONTROL_AUTHZID_REQUEST
 			} else if ( strcasecmp( control, "bauthzid" ) == 0 ) {
 				if( bauthzid ) {
 					fprintf( stderr, "bauthzid control previously specified\n");
@@ -558,7 +555,6 @@ tool_args( int argc, char **argv )
 					usage();
 				}
 				bauthzid = 1 + crit;
-#endif
 
 			} else if ( ( strcasecmp( control, "relax" ) == 0 ) ||
 				( strcasecmp( control, "manageDIT" ) == 0 ) )
@@ -1481,7 +1477,6 @@ tool_bind( LDAP *ld )
 	}
 #endif
 
-#ifdef LDAP_CONTROL_AUTHZID_REQUEST
 	if ( bauthzid ) {
 		LDAPControl c;
 
@@ -1493,7 +1488,6 @@ tool_bind( LDAP *ld )
 		sctrls[nsctrls] = &sctrl[nsctrls];
 		sctrls[++nsctrls] = NULL;
 	}
-#endif /* LDAP_CONTROL_AUTHZID_REQUEST */
 
 #ifdef LDAP_CONTROL_X_SESSION_TRACKING
 	if ( sessionTracking ) {
@@ -1653,7 +1647,6 @@ tool_bind( LDAP *ld )
 	}
 #endif
 
-#ifdef LDAP_CONTROL_AUTHZID_REQUEST
 	if ( ctrls && bauthzid ) {
 		LDAPControl *ctrl;
 		
@@ -1666,7 +1659,6 @@ tool_bind( LDAP *ld )
 			tool_print_ctrls( ld, ctmp );
 		}
 	}
-#endif /* LDAP_CONTROL_AUTHZID_REQUEST */
 
 	if ( ctrls ) {
 		ldap_controls_free( ctrls );
