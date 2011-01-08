@@ -182,7 +182,6 @@ main( int argc, char *argv[] )
 	}
 
 	rc = ldap_parse_whoami( ld, res, &authzid );
-	ldap_msgfree(res);
 
 	if( rc != LDAP_SUCCESS ) {
 		tool_perror( "ldap_parse_whoami", rc, NULL, NULL, NULL, NULL );
@@ -199,6 +198,7 @@ main( int argc, char *argv[] )
 	}
 
 skip:
+	ldap_msgfree(res);
 	if ( verbose || ( code != LDAP_SUCCESS ) ||
 		matcheddn || text || refs || ctrls )
 	{
