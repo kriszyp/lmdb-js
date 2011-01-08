@@ -20,11 +20,14 @@
 
 /*
  * RFC 3829 Authzid
+ *
+ * must be instantiated as a global overlay
  */
 
 #include "portable.h"
 
 #include "slap.h"
+#include "config.h"
 #include "lutil.h"
 #include "ac/string.h"
 
@@ -176,11 +179,32 @@ authzid_response(
 
 	if ( !BER_BVISEMPTY( &op->orb_edn ) ) {
 		edn = op->orb_edn;
+
 	} else if ( !BER_BVISEMPTY( &op->o_conn->c_dn ) ) {
 		edn = op->o_conn->c_dn;
 	}
 
 	if ( !BER_BVISEMPTY( &edn ) ) {
+		ber_tag_t save_tag = op->o_tag;
+		struct berval save_dn = op->o_dn;
+		struct berval save_ndn = op->o_ndn;
+		int rc;
+
+		/* pretend it's an extop without data,
+		 * so it is treated as a generic write
+		 */
+		op->o_tag = LDAP_REQ_EXTENDED;
+		op->o_dn = edn;
+		op->o_ndn = edn;
+		rc = backend_check_restrictions( op, rs, NULL );
+		op->o_tag = save_tag;
+		op->o_dn = save_dn;
+		op->o_ndn = save_ndn;
+		if ( rc != LDAP_SUCCESS ) {
+			rs->sr_err = LDAP_CONFIDENTIALITY_REQUIRED;
+			return SLAP_CB_CONTINUE;
+		}
+
 		len = STRLENOF("dn:") + edn.bv_len;
 	}
 
@@ -232,8 +256,8 @@ authzid_cleanup(
 		/* if ours, cleanup */
 		ctrl = ldap_control_find( LDAP_CONTROL_AUTHZID_RESPONSE, rs->sr_ctrls, NULL );
 		if ( ctrl ) {
-			
 			op->o_tmpfree( rs->sr_ctrls, op->o_tmpmemctx );
+			rs->sr_ctrls = NULL;
 		}
 
 		if ( op->o_callback->sc_private != NULL ) {
@@ -299,40 +323,46 @@ parse_authzid_ctrl(
 	return LDAP_SUCCESS;
 }
 
-static int authzid_cnt;
-
 static int
-authzid_db_init( BackendDB *be, ConfigReply *cr)
+authzid_db_init( BackendDB *be, ConfigReply *cr )
 {
-	if ( authzid_cnt++ == 0 ) {
-		int rc;
-
-		rc = register_supported_control( LDAP_CONTROL_AUTHZID_REQUEST,
-			SLAP_CTRL_GLOBAL|SLAP_CTRL_BIND|SLAP_CTRL_HIDE, NULL,
-			parse_authzid_ctrl, &authzid_cid );
-		if ( rc != LDAP_SUCCESS ) {
-			Debug( LDAP_DEBUG_ANY,
-				"authzid_initialize: Failed to register control '%s' (%d)\n",
-				LDAP_CONTROL_AUTHZID_REQUEST, rc, 0 );
-			return rc;
+	if ( !SLAP_ISGLOBALOVERLAY( be ) ) {
+		/* do not allow slapo-ppolicy to be global by now (ITS#5858) */
+		if ( cr ) {
+			snprintf( cr->msg, sizeof(cr->msg), 
+				"slapo-authzid must be global" );
+			Debug( LDAP_DEBUG_ANY, "%s\n", cr->msg, 0, 0 );
 		}
+		return 1;
+	}
+		
+	int rc;
+
+	rc = register_supported_control( LDAP_CONTROL_AUTHZID_REQUEST,
+		SLAP_CTRL_GLOBAL|SLAP_CTRL_BIND|SLAP_CTRL_HIDE, NULL,
+		parse_authzid_ctrl, &authzid_cid );
+	if ( rc != LDAP_SUCCESS ) {
+		Debug( LDAP_DEBUG_ANY,
+			"authzid_initialize: Failed to register control '%s' (%d)\n",
+			LDAP_CONTROL_AUTHZID_REQUEST, rc, 0 );
+		return rc;
 	}
 
 	return LDAP_SUCCESS;
 }
 
+/*
+ * Almost pointless, by now, since this overlay needs to be global,
+ * and global overlays deletion is not supported yet.
+ */
 static int
 authzid_db_destroy( BackendDB *be, ConfigReply *cr )
 {
-	assert( authzid_cnt > 0 );
-
 #ifdef SLAP_CONFIG_DELETE
 	overlay_unregister_control( be, LDAP_CONTROL_AUTHZID_REQUEST );
 #endif /* SLAP_CONFIG_DELETE */
 
-	if ( --authzid_cnt == 0 ) {
-		unregister_supported_control( LDAP_CONTROL_AUTHZID_REQUEST );
-	}
+	unregister_supported_control( LDAP_CONTROL_AUTHZID_REQUEST );
 
 	return 0;
 }
