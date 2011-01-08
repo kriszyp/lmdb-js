@@ -198,7 +198,7 @@ ldap_verify_credentials(LDAP *ld,
 {
 	int rc;
 	BerElement *ber;
-	struct berval * reqdata;
+	struct berval reqdata;
 
 	assert(ld != NULL);
 	assert(LDAP_VALID(ld));
@@ -265,14 +265,14 @@ ldap_verify_credentials(LDAP *ld,
 	}
 
 
-	rc = ber_flatten(ber, &reqdata);
+	rc = ber_flatten2(ber, &reqdata, 0);
 	if (rc == LBER_ERROR) {
 		rc = ld->ld_errno = LDAP_ENCODING_ERROR;
 		goto done;
 	}
 
 	rc = ldap_extended_operation(ld, LDAP_EXOP_VERIFY_CREDENTIALS,
-		reqdata, sctrls, cctrls, msgidp);
+		&reqdata, sctrls, cctrls, msgidp);
 
 done:
 	ber_free(ber, 1);
