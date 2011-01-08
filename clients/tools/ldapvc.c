@@ -299,7 +299,7 @@ main( int argc, char *argv[] )
 		dn = argv[optind++];
 	}
 	if (argc - optind > 0) {
-		cred.bv_val = argv[optind++];
+		cred.bv_val = strdup(argv[optind++]);
 		cred.bv_len = strlen(cred.bv_val);
 	}
 	if (argc - optind > 0) {
@@ -501,6 +501,7 @@ skip:
 	ber_bvfree( scookie );
 	ber_bvfree( scred );
 	ber_memfree( diag );
+	free( cred.bv_val );
 
 	/* disconnect from server */
 	tool_unbind( ld );
