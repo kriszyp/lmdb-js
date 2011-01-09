@@ -314,12 +314,19 @@ overridden by any per-target directive.
 .TP
 .B client\-pr {accept-unsolicited|DISABLE|<size>}
 This feature allows to use RFC 2696 Paged Results control when performing
-search operations with a specific target.
+search operations with a specific target,
+irrespective of the client's request.
 When set to a numeric value, Paged Results control is always
 used with \fIsize\fP as the page size.
 When set to \fIaccept-unsolicited\fP, unsolicited Paged Results
-control responses are accepted and honored.
-By default, Paged Results control is not used and responses are not accepted.
+control responses are accepted and honored
+for compatibility with broken remote DSAs.
+The client is not exposed to paged results handling
+between
+.BR slapd\-meta (5)
+and the remote servers.
+By default (disabled), Paged Results control is not used
+and responses are not accepted.
 If set before any target specification, it affects all targets, unless
 overridden by any per-target directive.
 
