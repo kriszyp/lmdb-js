@@ -1020,6 +1020,7 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 
 	/* we need this to know if back-ldap returned any result */
 	lb.lb_lc = lc;
+	sc2.sc_next = sc->sc_next;
 	sc2.sc_private = &lb;
 	sc2.sc_response = ldap_chain_cb_response;
 	op->o_callback = &sc2;
@@ -1114,6 +1115,7 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 
 	case LDAP_SUCCESS:
 	case LDAP_REFERRAL:
+		sr_err = rs->sr_err;
 		/* slapd-ldap sent response */
 		if ( !op->o_abandon && lb.lb_status != LDAP_CH_RES ) {
 			/* FIXME: should we send response? */
@@ -1141,7 +1143,7 @@ cannot_chain:;
 		default:
 #endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
 			if ( LDAP_CHAIN_RETURN_ERR( lc ) ) {
-				rs->sr_err = rc;
+				sr_err = rs->sr_err = rc;
 				rs->sr_type = sr_type;
 
 			} else {
@@ -1159,7 +1161,8 @@ cannot_chain:;
 	}
 
 	if ( lb.lb_status == LDAP_CH_NONE && rc != SLAPD_ABANDON ) {
-		op->o_callback = NULL;
+		/* give the remaining callbacks a chance */
+		op->o_callback = sc->sc_next;
 		rc = rs->sr_err = slap_map_api2result( rs );
 		send_ldap_result( op, rs );
 	}
