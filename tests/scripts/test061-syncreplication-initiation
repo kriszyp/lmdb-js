@@ -188,7 +188,7 @@ EOF
 dn: cn=module,cn=config
 objectClass: olcModuleList
 cn: module
-olcModulePath: ../../../servers/slapd/back-$BACKEND
+olcModulePath: $TESTWD/../servers/slapd/back-$BACKEND
 olcModuleLoad: back_$BACKEND.la
 
 EOF
@@ -201,12 +201,12 @@ EOF
 done
 
 syncprov_module=''
-[ "$AC_syncprov" = syncprovmod ] && syncprov_module='
+[ "$AC_syncprov" = syncprovmod ] && syncprov_module="
 dn: cn=module,cn=config
 objectClass: olcModuleList
 cn: module
-olcModulePath: ../../../servers/slapd/overlays
-olcModuleLoad: syncprov.la'
+olcModulePath: $TESTWD/../servers/slapd/overlays
+olcModuleLoad: syncprov.la"
 
 for uri in $PROV_URI; do
 	echo "Adding database configuration on $uri"

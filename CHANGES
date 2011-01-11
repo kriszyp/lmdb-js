@@ -117,6 +117,7 @@ OpenLDAP 2.4.24 Engineering
 		Fixed libldap unnecessary ifdef's (ITS#6603)
 		Fixed slapd-tester EOF handling (ITS#6723)
 		Fixed slapd-tester filter initialization (ITS#6735)
+		Fixed test scripts with alternate testdir (ITS#6782)
 		Removed antiquated SunOS LWP support (ITS#6669)
 	Documentation
 		admin24 guide fix examples (ITS#6681)
