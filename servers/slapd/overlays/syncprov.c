@@ -785,7 +785,8 @@ syncprov_free_syncop( syncops *so )
 	GroupAssertion *ga, *gnext;
 
 	ldap_pvt_thread_mutex_lock( &so->s_mutex );
-	if ( --so->s_inuse > 0 ) {
+	/* already being freed, or still in use */
+	if ( !so->s_inuse || --so->s_inuse > 0 ) {
 		ldap_pvt_thread_mutex_unlock( &so->s_mutex );
 		return;
 	}

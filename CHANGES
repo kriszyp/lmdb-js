@@ -102,6 +102,7 @@ OpenLDAP 2.4.24 Engineering
 	Fixed slapo-syncprov CSN updates to all replicas (ITS#6718)
 	Fixed slapo-syncprov sessionlog ordering (ITS#6716)
 	Fixed slapo-syncprov sessionlog with adds (ITS#6503)
+	Fixed slapo-syncprov mutex (ITS#6438)
 	Fixed slapo-translucent entry leak (ITS#6746)
 	Fixed contrib/autogroup LDAP URI with attribute filter (ITS#6536)
 	Fixed contrib/autogroup install location (ITS#6684)
