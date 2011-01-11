@@ -189,7 +189,6 @@ struct ldapoptions {
 #define LDAP_LDO_MUTEX_NULLARG	, LDAP_PVT_MUTEX_NULL
 #else
 #define LDAP_LDO_MUTEX_NULLARG
-#define LDAP_PVT_MUTEX_FIRSTCREATE(m)	((void) 0)
 #endif
 
 #ifdef LDAP_CONNECTIONLESS

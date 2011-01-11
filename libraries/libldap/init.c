@@ -510,7 +510,9 @@ ldap_int_destroy_global_options(void)
  */
 void ldap_int_initialize_global_options( struct ldapoptions *gopts, int *dbglvl )
 {
+#ifdef LDAP_R_COMPILE
 	LDAP_PVT_MUTEX_FIRSTCREATE(gopts->ldo_mutex);
+#endif
 	LDAP_MUTEX_LOCK( &gopts->ldo_mutex );
 	if (gopts->ldo_valid == LDAP_INITIALIZED) {
 		/* someone else got here first */
