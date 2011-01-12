@@ -60,8 +60,7 @@ monitor_send_children(
 		if ( e == NULL ) {
 			return LDAP_SUCCESS;
 		}
-		nonvolatile = 1;
-	
+
 	/* volatile entries */
 	} else {
 		/* if no persistent, return only volatile */
@@ -87,6 +86,9 @@ monitor_send_children(
 	/* return entries */
 	for ( monitor_cache_lock( e ); e != NULL; ) {
 		monitor_entry_update( op, rs, e );
+
+		if ( e == e_nonvolatile )
+			nonvolatile = 1;
 
 		mp = ( monitor_entry_t * )e->e_private;
 		e_tmp = mp->mp_next;
@@ -142,9 +144,6 @@ freeout:
 		}
 
 		e = e_tmp;
-		if ( e == e_nonvolatile ) {
-			nonvolatile = 1;
-		}
 	}
 	
 	return LDAP_SUCCESS;
