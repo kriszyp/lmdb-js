@@ -74,7 +74,6 @@ authzid_conn_find( Connection *c )
 	ac = (authzid_conn_t *)avl_find( authzid_tree, (caddr_t)&tmp, authzid_conn_cmp );
 	if ( ac == NULL || ( ac != NULL && ac->refcnt != 0 ) ) {
 		ac = NULL;
-		ldap_pvt_thread_mutex_unlock( &authzid_mutex );
 	}
 	if ( ac ) {
 		ac->refcnt++;
