@@ -402,8 +402,7 @@ get_ssa(
 	{
 		unsigned usage;
 
-		rc = ber_scanf( ber, "m", &value );
-		if ( rc == LBER_ERROR ) {
+		if ( ber_scanf( ber, "m", &value ) == LBER_ERROR ) {
 			rc = SLAPD_DISCONNECT;
 			goto return_error;
 		}
