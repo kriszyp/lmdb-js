@@ -60,6 +60,7 @@ monitor_send_children(
 		if ( e == NULL ) {
 			return LDAP_SUCCESS;
 		}
+		nonvolatile = 1;
 	
 	/* volatile entries */
 	} else {
@@ -87,47 +88,36 @@ monitor_send_children(
 	for ( monitor_cache_lock( e ); e != NULL; ) {
 		monitor_entry_update( op, rs, e );
 
+		mp = ( monitor_entry_t * )e->e_private;
+		e_tmp = mp->mp_next;
+
 		if ( op->o_abandon ) {
-			/* FIXME: may leak generated children */
-			if ( nonvolatile == 0 ) {
-				for ( e_tmp = e; e_tmp != NULL; ) {
-					mp = ( monitor_entry_t * )e_tmp->e_private;
-					e = e_tmp;
-					e_tmp = mp->mp_next;
-					monitor_cache_release( mi, e );
-
-					if ( e_tmp == e_nonvolatile ) {
-						break;
-					}
-				}
-
-			} else {
-				monitor_cache_release( mi, e );
-			}
-
-			return SLAPD_ABANDON;
+			monitor_cache_release( mi, e );
+			rc = SLAPD_ABANDON;
+			goto freeout;
 		}
-		
+
 		rc = test_filter( op, e, op->oq_search.rs_filter );
 		if ( rc == LDAP_COMPARE_TRUE ) {
 			rs->sr_entry = e;
 			rs->sr_flags = 0;
 			rc = send_search_entry( op, rs );
 			rs->sr_entry = NULL;
+			if ( rc )
+				goto freeout;
 		}
-
-		mp = ( monitor_entry_t * )e->e_private;
-		e_tmp = mp->mp_next;
 
 		if ( sub ) {
 			rc = monitor_send_children( op, rs, e, sub );
 			if ( rc ) {
+freeout:
 				/* FIXME: may leak generated children */
 				if ( nonvolatile == 0 ) {
 					for ( ; e_tmp != NULL; ) {
 						mp = ( monitor_entry_t * )e_tmp->e_private;
 						e = e_tmp;
 						e_tmp = mp->mp_next;
+						monitor_cache_lock( mi, e );
 						monitor_cache_release( mi, e );
 	
 						if ( e_tmp == e_nonvolatile ) {
