@@ -103,8 +103,10 @@ monitor_send_children(
 			rs->sr_flags = 0;
 			rc = send_search_entry( op, rs );
 			rs->sr_entry = NULL;
-			if ( rc )
+			if ( rc ) {
+				monitor_cache_release( mi, e );
 				goto freeout;
+			}
 		}
 
 		if ( sub ) {
