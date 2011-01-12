@@ -235,7 +235,7 @@ ldap_verify_credentials(LDAP *ld,
 		}
 	}
 
-	if (rc == LBER_ERROR) {
+	if (rc < 0) {
 		rc = ld->ld_errno = LDAP_ENCODING_ERROR;
 		goto done;
 	}
@@ -259,14 +259,14 @@ ldap_verify_credentials(LDAP *ld,
 		rc = ber_printf(ber, /*"{"*/ "N}");
 	}
 
-	if (rc == LBER_ERROR) {
+	if (rc < 0) {
 		rc = ld->ld_errno = LDAP_ENCODING_ERROR;
 		goto done;
 	}
 
 
 	rc = ber_flatten2(ber, &reqdata, 0);
-	if (rc == LBER_ERROR) {
+	if (rc < 0) {
 		rc = ld->ld_errno = LDAP_ENCODING_ERROR;
 		goto done;
 	}
