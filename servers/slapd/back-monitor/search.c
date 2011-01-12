@@ -121,7 +121,7 @@ freeout:
 						mp = ( monitor_entry_t * )e_tmp->e_private;
 						e = e_tmp;
 						e_tmp = mp->mp_next;
-						monitor_cache_lock( mi, e );
+						monitor_cache_lock( e );
 						monitor_cache_release( mi, e );
 	
 						if ( e_tmp == e_nonvolatile ) {
