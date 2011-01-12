@@ -122,7 +122,7 @@ ldap_pvt_gmtime_lock( void )
 # ifndef LDAP_R_COMPILE
 	return 0;
 # else /* LDAP_R_COMPILE */
-	return LDAP_MUTEX_LOCK( &ldap_int_gmtime_mutex );
+	return ldap_pvt_thread_mutex_lock( &ldap_int_gmtime_mutex );
 # endif /* LDAP_R_COMPILE */
 }
 
@@ -132,7 +132,7 @@ ldap_pvt_gmtime_unlock( void )
 # ifndef LDAP_R_COMPILE
 	return 0;
 # else /* LDAP_R_COMPILE */
-	return LDAP_MUTEX_UNLOCK( &ldap_int_gmtime_mutex );
+	return ldap_pvt_thread_mutex_unlock( &ldap_int_gmtime_mutex );
 # endif /* LDAP_R_COMPILE */
 }
 #endif /* !USE_GMTIME_R || !USE_LOCALTIME_R */
