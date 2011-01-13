@@ -1525,8 +1525,8 @@ connection_input( Connection *conn , conn_readinfo *cri )
 #ifdef LDAP_CONNECTIONLESS
 	if( conn->c_is_udp ) {
 		if( tag == LBER_OCTETSTRING ) {
-			ber_get_stringa( ber, &cdn );
-			tag = ber_peek_tag(ber, &len);
+			if ( (tag = ber_get_stringa( ber, &cdn )) != LBER_ERROR )
+				tag = ber_peek_tag( ber, &len );
 		}
 		if( tag != LDAP_REQ_ABANDON && tag != LDAP_REQ_SEARCH ) {
 			Debug( LDAP_DEBUG_ANY, "invalid req for UDP 0x%lx\n", tag, 0, 0 );
