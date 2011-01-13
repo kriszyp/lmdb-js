@@ -113,6 +113,7 @@ typedef struct slog_entry {
 } slog_entry;
 
 typedef struct sessionlog {
+	struct berval	sl_mincsn;
 	int		sl_num;
 	int		sl_size;
 	slog_entry *sl_head;
@@ -1558,6 +1559,8 @@ syncprov_add_slog( Operation *op )
 		while ( sl->sl_num > sl->sl_size ) {
 			se = sl->sl_head;
 			sl->sl_head = se->se_next;
+			AC_MEMCPY( sl->sl_mincsn.bv_val, se->se_csn.bv_val, se->se_csn.bv_len );
+			sl->sl_mincsn.bv_len = se->se_csn.bv_len;
 			ch_free( se );
 			sl->sl_num--;
 		}
@@ -2597,7 +2600,7 @@ no_change:		if ( !(op->o_sync_mode & SLAP_SYNC_PERSIST) ) {
 			/* Are there any log entries, and is the consumer state
 			 * present in the session log?
 			 */
-			if ( sl->sl_num > 0 && ber_bvcmp( &mincsn, &sl->sl_head->se_csn ) >= 0 ) {
+			if ( sl->sl_num > 0 && ber_bvcmp( &mincsn, &sl->sl_mincsn ) >= 0 ) {
 				do_present = 0;
 				/* mutex is unlocked in playlog */
 				syncprov_playlog( op, rs, sl, srs, ctxcsn, numcsns, sids );
@@ -2939,7 +2942,9 @@ sp_cf_gen(ConfigArgs *c)
 		}
 		sl = si->si_logs;
 		if ( !sl ) {
-			sl = ch_malloc( sizeof( sessionlog ) );
+			sl = ch_malloc( sizeof( sessionlog ) + LDAP_PVT_CSNSTR_BUFSIZE );
+			sl->sl_mincsn.bv_val = (char *)(sl+1);
+			sl->sl_mincsn.bv_len = 0;
 			sl->sl_num = 0;
 			sl->sl_head = sl->sl_tail = NULL;
 			ldap_pvt_thread_mutex_init( &sl->sl_mutex );
@@ -3063,6 +3068,20 @@ syncprov_db_open(
 
 		/* make sure we do a checkpoint on close */
 		si->si_numops++;
+	}
+
+	/* Initialize the sessionlog mincsn */
+	if ( si->si_logs && si->si_numcsns ) {
+		sessionlog *sl = si->si_logs;
+		int i;
+		/* If there are multiple, find the newest */
+		for ( i=0; i < si->si_numcsns; i++ ) {
+			if ( ber_bvcmp( &sl->sl_mincsn, &si->si_ctxcsn[i] ) < 0 ) {
+				AC_MEMCPY( sl->sl_mincsn.bv_val, si->si_ctxcsn[i].bv_val,
+					si->si_ctxcsn[i].bv_len );
+				sl->sl_mincsn.bv_len = si->si_ctxcsn[i].bv_len;
+			}
+		}
 	}
 
 out:
