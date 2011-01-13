@@ -74,6 +74,7 @@ OpenLDAP 2.4.24 Engineering
 	Fixed slapd-meta with SASL/EXTERNAL (ITS#6642)
 	Fixed slapd-meta matchedDN return code (ITS#6774)
 	Fixed slapd-monitor hasSubordinates generation (ITS#6712)
+	Fixed slapd-monitor abandon processing (ITS#6783)
 	Fixed slapd-sql with null objectClass (ITS#6616)
 	Fixed slapd-sql hasSubordinates generation (ITS#6712)
 	Fixed slapo-accesslog with controls (ITS#6652)
