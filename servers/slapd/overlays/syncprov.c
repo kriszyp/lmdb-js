@@ -2415,7 +2415,7 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 	sync_control *srs;
 	BerVarray ctxcsn;
 	int i, *sids, numcsns;
-	struct berval mincsn;
+	struct berval mincsn, maxcsn;
 	int dirty = 0;
 
 	if ( !(op->o_sync_mode & SLAP_SYNC_REFRESH) ) return SLAP_CB_CONTINUE;
@@ -2530,12 +2530,27 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 			i++;
 		}
 
-		/* Find the smallest CSN */
-		mincsn = srs->sr_state.ctxcsn[0];
-		for ( i=1; i<srs->sr_state.numcsns; i++ ) {
-			if ( ber_bvcmp( &mincsn, &srs->sr_state.ctxcsn[i] ) > 0 )
-				mincsn = srs->sr_state.ctxcsn[i];
-		}
+		/* Find the smallest CSN which differs from contextCSN */
+		mincsn.bv_len = 0;
+		maxcsn.bv_len = 0;
+		for ( i=0; i<srs->sr_state.numcsns; i++ ) {
+			for ( j=0; j<numcsns; j++ ) {
+				if ( srs->sr_state.sids[i] != sids[j] )
+					continue;
+				if ( BER_BVISEMPTY( &maxcsn ) || ber_bvcmp( &maxcsn,
+					&srs->sr_state.ctxcsn[i] ) < 0 ) {
+					maxcsn = srs->sr_state.ctxcsn[i];
+				}
+				if ( ber_bvcmp( &srs->sr_state.ctxcsn[i], &ctxcsn[j] ) < 0) {
+					if ( BER_BVISEMPTY( &mincsn ) || ber_bvcmp( &mincsn,
+						&srs->sr_state.ctxcsn[i] ) > 0 ) {
+						mincsn = srs->sr_state.ctxcsn[i];
+					}
+				}
+			}
+ 		}
+		if ( BER_BVISEMPTY( &mincsn ))
+			mincsn = maxcsn;
 
 		/* If nothing has changed, shortcut it */
 		if ( srs->sr_state.numcsns == numcsns ) {
