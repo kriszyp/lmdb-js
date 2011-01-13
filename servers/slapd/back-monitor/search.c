@@ -30,29 +30,42 @@
 #include "back-monitor.h"
 #include "proto-back-monitor.h"
 
+static void
+monitor_find_children(
+	Operation *op,
+	SlapReply *rs,
+	Entry *e_parent,
+	Entry **nonv,
+	Entry **vol
+)
+{
+	monitor_info_t	*mi = ( monitor_info_t * )op->o_bd->be_private;
+	monitor_entry_t *mp;
+	
+	mp = ( monitor_entry_t * )e_parent->e_private;
+	*nonv = mp->mp_children;
+
+	if ( MONITOR_HAS_VOLATILE_CH( mp ) ) {
+		monitor_entry_create( op, rs, NULL, e_parent, vol );
+	}
+}
+
 static int
 monitor_send_children(
 	Operation	*op,
 	SlapReply	*rs,
-	Entry		*e_parent,
+	Entry		*e_nonvolatile,
+	Entry		*e_ch,
 	int		sub )
 {
 	monitor_info_t	*mi = ( monitor_info_t * )op->o_bd->be_private;
 	Entry 			*e,
-				*e_tmp,
-				*e_ch = NULL,
-				*e_nonvolatile = NULL;
+				*e_tmp;
 	monitor_entry_t *mp;
 	int			rc,
 				nonvolatile = 0;
 
-	mp = ( monitor_entry_t * )e_parent->e_private;
-	e_nonvolatile = e = mp->mp_children;
-
-	if ( MONITOR_HAS_VOLATILE_CH( mp ) ) {
-		monitor_entry_create( op, rs, NULL, e_parent, &e_ch );
-	}
-	monitor_cache_release( mi, e_parent );
+	e = e_nonvolatile;
 
 	/* no volatile entries? */
 	if ( e_ch == NULL ) {
@@ -84,7 +97,10 @@ monitor_send_children(
 	}
 
 	/* return entries */
-	for ( monitor_cache_lock( e ); e != NULL; ) {
+	for ( ; e != NULL; e = e_tmp ) {
+		Entry *sub_nv = NULL, *sub_ch = NULL;
+
+		monitor_cache_lock( e );
 		monitor_entry_update( op, rs, e );
 
 		if ( e == e_nonvolatile )
@@ -99,23 +115,31 @@ monitor_send_children(
 			goto freeout;
 		}
 
+		if ( sub )
+			monitor_find_children( op, rs, e, &sub_nv, &sub_ch );
+
 		rc = test_filter( op, e, op->oq_search.rs_filter );
 		if ( rc == LDAP_COMPARE_TRUE ) {
 			rs->sr_entry = e;
-			rs->sr_flags = 0;
+			rs->sr_flags = REP_ENTRY_MUSTRELEASE;
 			rc = send_search_entry( op, rs );
-			rs->sr_entry = NULL;
 			if ( rc ) {
-				monitor_cache_release( mi, e );
+				for ( e = sub_ch; e != NULL; e = sub_nv ) {
+					mp = ( monitor_entry_t * )e->e_private;
+					sub_nv = mp->mp_next;
+					monitor_cache_lock( e );
+					monitor_cache_release( mi, e );
+				}
 				goto freeout;
 			}
+		} else {
+			monitor_cache_release( mi, e );
 		}
 
 		if ( sub ) {
-			rc = monitor_send_children( op, rs, e, sub );
+			rc = monitor_send_children( op, rs, sub_nv, sub_ch, sub );
 			if ( rc ) {
 freeout:
-				/* FIXME: may leak generated children */
 				if ( nonvolatile == 0 ) {
 					for ( ; e_tmp != NULL; ) {
 						mp = ( monitor_entry_t * )e_tmp->e_private;
@@ -133,17 +157,6 @@ freeout:
 				return( rc );
 			}
 		}
-
-		if ( e_tmp != NULL ) {
-			monitor_cache_lock( e_tmp );
-		}
-
-		if ( !sub ) {
-			/* otherwise the recursive call already released */
-			monitor_cache_release( mi, e );
-		}
-
-		e = e_tmp;
 	}
 	
 	return LDAP_SUCCESS;
@@ -155,6 +168,7 @@ monitor_back_search( Operation *op, SlapReply *rs )
 	monitor_info_t	*mi = ( monitor_info_t * )op->o_bd->be_private;
 	int		rc = LDAP_SUCCESS;
 	Entry		*e = NULL, *matched = NULL;
+	Entry		*e_nv = NULL, *e_ch = NULL;
 	slap_mask_t	mask;
 
 	Debug( LDAP_DEBUG_TRACE, "=> monitor_back_search\n", 0, 0, 0 );
@@ -209,31 +223,37 @@ monitor_back_search( Operation *op, SlapReply *rs )
 		rc = test_filter( op, e, op->oq_search.rs_filter );
  		if ( rc == LDAP_COMPARE_TRUE ) {
 			rs->sr_entry = e;
-			rs->sr_flags = 0;
+			rs->sr_flags = REP_ENTRY_MUSTRELEASE;
 			send_search_entry( op, rs );
 			rs->sr_entry = NULL;
+		} else {
+			monitor_cache_release( mi, e );
 		}
 		rc = LDAP_SUCCESS;
-		monitor_cache_release( mi, e );
 		break;
 
 	case LDAP_SCOPE_ONELEVEL:
 	case LDAP_SCOPE_SUBORDINATE:
-		rc = monitor_send_children( op, rs, e,
+		monitor_find_children( op, rs, e, &e_nv, &e_ch );
+		monitor_cache_release( mi, e );
+		rc = monitor_send_children( op, rs, e_nv, e_ch,
 			op->oq_search.rs_scope == LDAP_SCOPE_SUBORDINATE );
 		break;
 
 	case LDAP_SCOPE_SUBTREE:
 		monitor_entry_update( op, rs, e );
+		monitor_find_children( op, rs, e, &e_nv, &e_ch );
 		rc = test_filter( op, e, op->oq_search.rs_filter );
 		if ( rc == LDAP_COMPARE_TRUE ) {
 			rs->sr_entry = e;
-			rs->sr_flags = 0;
+			rs->sr_flags = REP_ENTRY_MUSTRELEASE;
 			send_search_entry( op, rs );
 			rs->sr_entry = NULL;
+		} else {
+			monitor_cache_release( mi, e );
 		}
 
-		rc = monitor_send_children( op, rs, e, 1 );
+		rc = monitor_send_children( op, rs, e_nv, e_ch, 1 );
 		break;
 
 	default:

@@ -77,6 +77,12 @@ extern int
 monitor_cache_destroy LDAP_P((
 	monitor_info_t		*mi ));
 
+extern int
+monitor_back_release(
+	Operation *op,
+	Entry *e,
+	int rw );
+
 /*
  * connections
  */

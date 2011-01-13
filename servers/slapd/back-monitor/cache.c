@@ -439,3 +439,11 @@ monitor_cache_destroy(
 	return 0;
 }
 
+int monitor_back_release(
+	Operation *op,
+	Entry *e,
+	int rw )
+{
+	monitor_info_t	*mi = ( monitor_info_t * )op->o_bd->be_private;
+	return monitor_cache_release( mi, e );
+}
