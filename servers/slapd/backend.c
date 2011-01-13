@@ -1051,7 +1051,7 @@ backend_check_restrictions(
 		requires |= op->o_bd->be_requires;
 		bssf = &op->o_bd->be_ssf_set.sss_ssf;
 		fssf = &ssfs.sss_ssf;
-		for ( i=0; i<sizeof(ssfs)/sizeof(slap_ssf_t); i++ ) {
+		for ( i=0; i < (int)(sizeof(ssfs)/sizeof(slap_ssf_t)); i++ ) {
 			if ( bssf[i] ) fssf[i] = bssf[i];
 		}
 	}

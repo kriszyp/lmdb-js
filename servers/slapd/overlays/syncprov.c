@@ -1822,7 +1822,8 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 			 * that changed, and only one can be passed in the csn queue.
 			 */
 			Modifications *mod = op->orm_modlist;
-			int i, j, sid;
+			unsigned i;
+			int j, sid;
 
 			for ( i=0; i<mod->sml_numvals; i++ ) {
 				sid = slap_parse_csn_sid( &mod->sml_values[i] );
