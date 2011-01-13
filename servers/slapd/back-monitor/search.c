@@ -97,8 +97,10 @@ monitor_send_children(
 	}
 
 	/* return entries */
-	for ( monitor_cache_lock( e ); e != NULL; ) {
+	for ( ; e != NULL; e = e_tmp ) {
 		Entry *sub_nv = NULL, *sub_ch = NULL;
+
+		monitor_cache_lock( e );
 		monitor_entry_update( op, rs, e );
 
 		if ( e == e_nonvolatile )
@@ -122,6 +124,12 @@ monitor_send_children(
 			rs->sr_flags = REP_ENTRY_MUSTRELEASE;
 			rc = send_search_entry( op, rs );
 			if ( rc ) {
+				for ( e = sub_ch; e != NULL; e = sub_nv ) {
+					mp = ( monitor_entry_t * )e->e_private;
+					sub_nv = mp->mp_next;
+					monitor_cache_lock( e );
+					monitor_cache_release( mi, e );
+				}
 				goto freeout;
 			}
 		} else {
@@ -132,7 +140,6 @@ monitor_send_children(
 			rc = monitor_send_children( op, rs, sub_nv, sub_ch, sub );
 			if ( rc ) {
 freeout:
-				/* FIXME: may leak generated children */
 				if ( nonvolatile == 0 ) {
 					for ( ; e_tmp != NULL; ) {
 						mp = ( monitor_entry_t * )e_tmp->e_private;
@@ -150,10 +157,6 @@ freeout:
 				return( rc );
 			}
 		}
-
-		e = e_tmp;
-		if ( e )
-			monitor_cache_lock( e );
 	}
 	
 	return LDAP_SUCCESS;
