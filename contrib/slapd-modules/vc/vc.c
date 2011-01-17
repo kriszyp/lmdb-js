@@ -82,9 +82,6 @@ vc_create_response(
 	*val = NULL;
 
 	ber_init2( ber, NULL, LBER_USE_DER );
-	if ( ber == NULL ) {
-		return -1;
-	}
 
 	(void)ber_printf( ber, "{is" /*}*/ , resultCode, diagnosticMessage ? diagnosticMessage : "" );
 
