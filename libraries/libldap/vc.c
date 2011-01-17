@@ -92,7 +92,11 @@ int ldap_parse_verify_credentials(
 			goto done;
 		}
 
-		ber_scanf(ber, "{im" /*"}"*/, &i, &diagmsg_bv);
+		rc = LDAP_DECODING_ERROR;
+
+		if (ber_scanf(ber, "{im" /*"}"*/, &i, &diagmsg_bv) == LBER_ERROR) {
+			goto ber_done;
+		}
 		if ( diagmsg != NULL ) {
 			*diagmsg = LDAP_MALLOC( diagmsg_bv.bv_len + 1 );
 			AC_MEMCPY( *diagmsg, diagmsg_bv.bv_val, diagmsg_bv.bv_len );
@@ -102,13 +106,15 @@ int ldap_parse_verify_credentials(
 
 		tag = ber_peek_tag(ber, &len);
 		if (tag == LDAP_TAG_EXOP_VERIFY_CREDENTIALS_COOKIE) {
-			ber_scanf(ber, "O", cookie);
-		    tag = ber_peek_tag(ber, &len);
+			if (ber_scanf(ber, "O", cookie) == LBER_ERROR)
+				goto ber_done;
+			tag = ber_peek_tag(ber, &len);
 		}
 
 		if (tag == LDAP_TAG_EXOP_VERIFY_CREDENTIALS_SCREDS) {
-			ber_scanf(ber, "O", screds);
-		    tag = ber_peek_tag(ber, &len);
+			if (ber_scanf(ber, "O", screds) == LBER_ERROR)
+				goto ber_done;
+			tag = ber_peek_tag(ber, &len);
 		}
 
 		if (tag == LDAP_TAG_EXOP_VERIFY_CREDENTIALS_CONTROLS) {
@@ -119,7 +125,7 @@ int ldap_parse_verify_credentials(
 
 			if (!*ctrls) {
 				rc = LDAP_NO_MEMORY;
-				goto done;
+				goto ber_done;
 			}
 
 			*ctrls[nctrls] = NULL;
@@ -144,7 +150,7 @@ int ldap_parse_verify_credentials(
 					ldap_controls_free(*ctrls);
 					*ctrls = NULL;
 				    rc = LDAP_NO_MEMORY;
-				    goto done;
+				    goto ber_done;
 				}
 
 				tctrls[nctrls++] = tctrl;
@@ -154,8 +160,7 @@ int ldap_parse_verify_credentials(
 				if (tag == LBER_ERROR) {
 					*ctrls = NULL;
 					ldap_controls_free(tctrls);
-					rc = LDAP_DECODING_ERROR;
-					goto done;
+					goto ber_done;
 				}
 
 				tag = ber_peek_tag(ber, &len);
@@ -176,6 +181,9 @@ int ldap_parse_verify_credentials(
 			}
 	    }
 
+		rc = LDAP_SUCCESS;
+
+	ber_done:
 	    ber_free(ber, 1);
     }
 
@@ -357,4 +365,3 @@ ldap_verify_credentials_interactive (
     return ld->ld_errno;
 }
 #endif
-

@@ -82,6 +82,9 @@ vc_create_response(
 	*val = NULL;
 
 	ber_init2( ber, NULL, LBER_USE_DER );
+	if ( ber == NULL ) {
+		return -1;
+	}
 
 	(void)ber_printf( ber, "{is" /*}*/ , resultCode, diagnosticMessage ? diagnosticMessage : "" );
 
@@ -130,11 +133,13 @@ vc_create_response(
 		if ( rc == -1 ) goto done;
 	}
 
-	ber_printf( ber, /*{*/ "}" );
+	rc = ber_printf( ber, /*{*/ "}" );
+	if ( rc == -1 ) goto done;
 
 	rc = ber_flatten2( ber, &bv, 0 );
-
-	*val = ber_bvdup( &bv );
+	if ( rc == 0 ) {
+		*val = ber_bvdup( &bv );
+	}
 
 done:;
 	ber_free_buf( ber );
