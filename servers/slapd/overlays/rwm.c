@@ -1763,9 +1763,7 @@ rwm_response( Operation *op, SlapReply *rs )
 				break;
 			}
 		}
-		/* fallthru */
 
-	default:
 		rwm_matched( op, rs );
 		break;
 	}
