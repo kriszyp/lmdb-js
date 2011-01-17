@@ -128,7 +128,7 @@ static int
 ldap_sync_search_entry( ldap_sync_t *ls, LDAPMessage *res )
 {
 	LDAPControl		**ctrls = NULL;
-	int			rc = LDAP_SUCCESS,
+	int			rc = LDAP_OTHER,
 				i;
 	BerElement		*ber = NULL;
 	struct berval		entryUUID = { 0 },
@@ -159,7 +159,6 @@ ldap_sync_search_entry( ldap_sync_t *ls, LDAPMessage *res )
 	/* extract controls */
 	ldap_get_entry_controls( ls->ls_ld, res, &ctrls );
 	if ( ctrls == NULL ) {
-		rc = LDAP_OTHER;
 		goto done;
 	}
 
@@ -172,22 +171,26 @@ ldap_sync_search_entry( ldap_sync_t *ls, LDAPMessage *res )
 
 	/* control must be present; there might be other... */
 	if ( ctrls[ i ] == NULL ) {
-		rc = LDAP_OTHER;
 		goto done;
 	}
 
 	/* extract data */
 	ber = ber_init( &ctrls[ i ]->ldctl_value );
+	if ( ber == NULL ) {
+		goto done;
+	}
 	/* scan entryUUID in-place ("m") */
-	ber_scanf( ber, "{em" /*"}"*/, &state, &entryUUID );
-	if ( entryUUID.bv_len == 0 ) {
-		rc = LDAP_OTHER;
+	if ( ber_scanf( ber, "{em" /*"}"*/, &state, &entryUUID ) == LBER_ERROR
+		|| entryUUID.bv_len == 0 )
+	{
 		goto done;
 	}
 
 	if ( ber_peek_tag( ber, &len ) == LDAP_TAG_SYNC_COOKIE ) {
 		/* scan cookie in-place ("m") */
-		ber_scanf( ber, /*"{"*/ "m}", &cookie );
+		if ( ber_scanf( ber, /*"{"*/ "m}", &cookie ) == LBER_ERROR ) {
+			goto done;
+		}
 		if ( cookie.bv_val != NULL ) {
 			ber_bvreplace( &ls->ls_cookie, &cookie );
 		}
@@ -212,16 +215,15 @@ ldap_sync_search_entry( ldap_sync_t *ls, LDAPMessage *res )
 		break;
 
 	default:
-		rc = LDAP_OTHER;
 #ifdef LDAP_SYNC_TRACE
 		fprintf( stderr, "\t\tgot unknown syncState=%d\n", state );
 #endif /* LDAP_SYNC_TRACE */
 		goto done;
 	}
 
-	if ( ls->ls_search_entry ) {
-		rc = ls->ls_search_entry( ls, res, &entryUUID, phase );
-	}
+	rc = ls->ls_search_entry
+		? ls->ls_search_entry( ls, res, &entryUUID, phase )
+		: LDAP_SUCCESS;
 
 done:;
 	if ( ber != NULL ) {
@@ -302,9 +304,10 @@ ldap_sync_search_result( ldap_sync_t *ls, LDAPMessage *res )
 		ber_len_t	len;
 		struct berval	cookie = { 0 };
 
+		rc = LDAP_OTHER;
+
 		/* deal with control; then fallthru to handler */
 		if ( ctrls == NULL ) {
-			rc = LDAP_OTHER;
 			goto done;
 		}
 
@@ -319,16 +322,22 @@ ldap_sync_search_result( ldap_sync_t *ls, LDAPMessage *res )
 
 		/* control must be present; there might be other... */
 		if ( ctrls[ i ] == NULL ) {
-			rc = LDAP_OTHER;
 			goto done;
 		}
 
 		/* extract data */
 		ber = ber_init( &ctrls[ i ]->ldctl_value );
+		if ( ber == NULL ) {
+			goto done;
+		}
 
-		ber_scanf( ber, "{" /*"}"*/);
+		if ( ber_scanf( ber, "{" /*"}"*/) == LBER_ERROR ) {
+			goto ber_done;
+		}
 		if ( ber_peek_tag( ber, &len ) == LDAP_TAG_SYNC_COOKIE ) {
-			ber_scanf( ber, "m", &cookie );
+			if ( ber_scanf( ber, "m", &cookie ) == LBER_ERROR ) {
+				goto ber_done;
+			}
 			if ( cookie.bv_val != NULL ) {
 				ber_bvreplace( &ls->ls_cookie, &cookie );
 			}
@@ -340,17 +349,23 @@ ldap_sync_search_result( ldap_sync_t *ls, LDAPMessage *res )
 
 		refreshDeletes = 0;
 		if ( ber_peek_tag( ber, &len ) == LDAP_TAG_REFRESHDELETES ) {
-			ber_scanf( ber, "b", &refreshDeletes );
+			if ( ber_scanf( ber, "b", &refreshDeletes ) == LBER_ERROR ) {
+				goto ber_done;
+			}
 			if ( refreshDeletes ) {
 				refreshDeletes = 1;
 			}
 		}
 
-		ber_scanf( ber, /*"{"*/ "}" );
+		if ( ber_scanf( ber, /*"{"*/ "}" ) != LBER_ERROR ) {
+			rc = LDAP_SUCCESS;
+		}
 
-		/* NOTE: if any goto/return between ber_init() and here
-		 * is introduced, don't forget to ber_free() */
+	ber_done:;
 		ber_free( ber, 1 );
+		if ( rc != LDAP_SUCCESS ) {
+			break;
+		}
 
 #ifdef LDAP_SYNC_TRACE
 		fprintf( stderr, "\t\tgot refreshDeletes=%s\n",
@@ -378,9 +393,6 @@ ldap_sync_search_result( ldap_sync_t *ls, LDAPMessage *res )
 		if ( ls->ls_search_result ) {
 			err = ls->ls_search_result( ls, res, refreshDeletes );
 		}
-		break;
-
-	default:
 		break;
 	}
 
@@ -413,8 +425,7 @@ ldap_sync_search_intermediate( ldap_sync_t *ls, LDAPMessage *res, int *refreshDo
         struct berval		*retdata = NULL;
 	BerElement		*ber = NULL;
 	ber_len_t		len;
-	ber_tag_t		tag,
-				syncinfo_tag;
+	ber_tag_t		syncinfo_tag;
 	struct berval		cookie;
 	int			refreshDeletes = 0;
 	BerVarray		syncUUIDs = NULL;
@@ -444,8 +455,9 @@ ldap_sync_search_intermediate( ldap_sync_t *ls, LDAPMessage *res, int *refreshDo
 		goto done;
 	}
 
+	rc = LDAP_OTHER;
+
 	if ( retoid == NULL || strcmp( retoid, LDAP_SYNC_INFO ) != 0 ) {
-		rc = LDAP_OTHER;
 		goto done;
 	}
 
@@ -458,7 +470,9 @@ ldap_sync_search_intermediate( ldap_sync_t *ls, LDAPMessage *res, int *refreshDo
 	syncinfo_tag = ber_peek_tag( ber, &len );
 	switch ( syncinfo_tag ) {
 	case LDAP_TAG_SYNC_NEW_COOKIE:
-		ber_scanf( ber, "tm", &tag, &cookie );
+		if ( ber_scanf( ber, "m", &cookie ) == LBER_ERROR ) {
+			goto done;
+		}
 		if ( cookie.bv_val != NULL ) {
 			ber_bvreplace( &ls->ls_cookie, &cookie );
 		}
@@ -482,7 +496,6 @@ ldap_sync_search_intermediate( ldap_sync_t *ls, LDAPMessage *res, int *refreshDo
 
 			default:
 				/* TODO: impossible; handle */
-				rc = LDAP_OTHER;
 				goto done;
 			}
 
@@ -497,14 +510,17 @@ ldap_sync_search_intermediate( ldap_sync_t *ls, LDAPMessage *res, int *refreshDo
 
 			default:
 				/* TODO: impossible; handle */
-				rc = LDAP_OTHER;
 				goto done;
 			}
 		}
 
-		ber_scanf( ber, "t{" /*"}"*/, &tag );
+		if ( ber_scanf( ber, "{" /*"}"*/ ) == LBER_ERROR ) {
+			goto done;
+		}
 		if ( ber_peek_tag( ber, &len ) == LDAP_TAG_SYNC_COOKIE ) {
-			ber_scanf( ber, "m", &cookie );
+			if ( ber_scanf( ber, "m", &cookie ) == LBER_ERROR ) {
+				goto done;
+			}
 			if ( cookie.bv_val != NULL ) {
 				ber_bvreplace( &ls->ls_cookie, &cookie );
 			}
@@ -516,7 +532,9 @@ ldap_sync_search_intermediate( ldap_sync_t *ls, LDAPMessage *res, int *refreshDo
 
 		*refreshDone = 1;
 		if ( ber_peek_tag( ber, &len ) == LDAP_TAG_REFRESHDONE ) {
-			ber_scanf( ber, "b", refreshDone );
+			if ( ber_scanf( ber, "b", refreshDone ) == LBER_ERROR ) {
+				goto done;
+			}
 		}
 
 #ifdef LDAP_SYNC_TRACE
@@ -524,7 +542,9 @@ ldap_sync_search_intermediate( ldap_sync_t *ls, LDAPMessage *res, int *refreshDo
 			*refreshDone ? "TRUE" : "FALSE" );
 #endif /* LDAP_SYNC_TRACE */
 
-		ber_scanf( ber, /*"{"*/ "}" );
+		if ( ber_scanf( ber, /*"{"*/ "}" ) == LBER_ERROR ) {
+			goto done;
+		}
 
 		if ( *refreshDone ) {
 			ls->ls_refreshPhase = LDAP_SYNC_CAPI_DONE;
@@ -540,9 +560,13 @@ ldap_sync_search_intermediate( ldap_sync_t *ls, LDAPMessage *res, int *refreshDo
 #ifdef LDAP_SYNC_TRACE
 		fprintf( stderr, "\t\tgot syncIdSet\n" );
 #endif /* LDAP_SYNC_TRACE */
-		ber_scanf( ber, "t{" /*"}"*/, &tag );
+		if ( ber_scanf( ber, "{" /*"}"*/ ) == LBER_ERROR ) {
+			goto done;
+		}
 		if ( ber_peek_tag( ber, &len ) == LDAP_TAG_SYNC_COOKIE ) {
-			ber_scanf( ber, "m", &cookie );
+			if ( ber_scanf( ber, "m", &cookie ) == LBER_ERROR ) {
+				goto done;
+			}
 			if ( cookie.bv_val != NULL ) {
 				ber_bvreplace( &ls->ls_cookie, &cookie );
 			}
@@ -553,13 +577,14 @@ ldap_sync_search_intermediate( ldap_sync_t *ls, LDAPMessage *res, int *refreshDo
 		}
 
 		if ( ber_peek_tag( ber, &len ) == LDAP_TAG_REFRESHDELETES ) {
-			ber_scanf( ber, "b", &refreshDeletes );
+			if ( ber_scanf( ber, "b", &refreshDeletes ) == LBER_ERROR ) {
+				goto done;
+			}
 		}
 
-		ber_scanf( ber, "[W]", &syncUUIDs );
-		ber_scanf( ber, /*"{"*/ "}" );
-		if ( syncUUIDs == NULL ) {
-			rc = LDAP_OTHER;
+		if ( ber_scanf( ber, /*"{"*/ "[W]}", &syncUUIDs ) == LBER_ERROR
+			|| syncUUIDs == NULL )
+		{
 			goto done;
 		}
 
@@ -600,6 +625,8 @@ ldap_sync_search_intermediate( ldap_sync_t *ls, LDAPMessage *res, int *refreshDo
 #endif /* LDAP_SYNC_TRACE */
 		goto done;
 	}
+
+	rc = LDAP_SUCCESS;
 
 done:;
 	if ( ber != NULL ) {
@@ -899,4 +926,3 @@ done_search:;
 done:;
 	return rc;
 }
-
