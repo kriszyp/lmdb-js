@@ -598,7 +598,7 @@ url2query(
 	LDAPURLDesc	*lud = NULL;
 	struct berval	base,
 			tempstr = BER_BVNULL,
-			uuid;
+			uuid = BER_BVNULL;
 	int		attrset;
 	time_t		expiry_time;
 	time_t		refresh_time;
@@ -4717,6 +4717,7 @@ pcache_db_close(
 		connection_fake_init2( &conn, &opbuf, thrctx, 0 );
 		op = &opbuf.ob_op;
 
+                mod.sml_numvals = 0;
 		if ( qm->templates != NULL ) {
 			for ( tm = qm->templates; tm != NULL; tm = tm->qmnext ) {
 				for ( qc = tm->query; qc; qc = qc->next ) {
@@ -4724,6 +4725,7 @@ pcache_db_close(
 
 					if ( query2url( op, qc, &bv, 0 ) == 0 ) {
 						ber_bvarray_add_x( &vals, &bv, op->o_tmpmemctx );
+                				mod.sml_numvals++;
 					}
 				}
 			}
@@ -4750,7 +4752,6 @@ pcache_db_close(
 		mod.sml_type = ad_cachedQueryURL->ad_cname;
 		mod.sml_values = vals;
 		mod.sml_nvalues = NULL;
-                mod.sml_numvals = 1;
 		mod.sml_next = NULL;
 		Debug( pcache_debug,
 			"%sSETTING CACHED QUERY URLS\n",
