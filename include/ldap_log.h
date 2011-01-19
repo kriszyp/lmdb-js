@@ -196,11 +196,26 @@ extern void eb_syslog(int pri, const char *fmt, ...);
 	LogExpand((level), ldap_syslog_level, (fmt) \
 		LogArg(a1) LogArg(a2) LogArg(a3))
 
+/* Actually now in liblber/debug.c */
 LDAP_LUTIL_F(int) lutil_debug_file LDAP_P(( FILE *file ));
 
 LDAP_LUTIL_F(void) lutil_debug LDAP_P((
 	int debug, int level,
 	const char* fmt, ... )) LDAP_GCCATTR((format(printf, 3, 4)));
+
+#ifdef LDAP_DEFINE_LDAP_DEBUG
+/* This struct matches the head of ldapoptions in <ldap-int.h> */
+struct ldapoptions_prefix {
+	short	ldo_valid;
+	int		ldo_debug;
+};
+#define ldap_debug \
+	(*(int *) ((char *)&ldap_int_global_options \
+		 + offsetof(struct ldapoptions_prefix, ldo_debug)))
+
+struct ldapoptions;
+LDAP_V ( struct ldapoptions ) ldap_int_global_options;
+#endif /* LDAP_DEFINE_LDAP_DEBUG */
 
 LDAP_END_DECL
 
