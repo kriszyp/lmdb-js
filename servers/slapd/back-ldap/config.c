@@ -34,9 +34,6 @@
 #include "back-ldap.h"
 #include "lutil.h"
 #include "ldif.h"
-#undef ldap_debug
-/* for advanced URL parsing */
-#include "../../../libraries/libldap/ldap-int.h"
 
 static SLAP_EXTOP_MAIN_FN ldap_back_exop_whoami;
 
