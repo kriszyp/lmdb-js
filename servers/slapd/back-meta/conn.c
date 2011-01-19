@@ -1537,7 +1537,7 @@ retry_lock2:;
 
 			if ( i == cached 
 				|| meta_back_is_candidate( mt, &op->o_req_ndn,
-					LDAP_SCOPE_SUBTREE ) )
+					op->o_tag == LDAP_REQ_SEARCH ? op->ors_scope : LDAP_SCOPE_SUBTREE ) )
 			{
 
 				/*

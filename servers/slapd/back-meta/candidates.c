@@ -63,7 +63,14 @@ meta_back_is_candidate(
 	struct berval	*ndn,
 	int		scope )
 {
-	if ( dnIsSuffix( ndn, &mt->mt_nsuffix ) ) {
+	struct berval rdn;
+	int d = ndn->bv_len - mt->mt_nsuffix.bv_len;
+
+	if ( d >= 0 ) {
+		if ( !dnIsSuffix( ndn, &mt->mt_nsuffix ) ) {
+			return META_NOT_CANDIDATE;
+		}
+			
 		if ( mt->mt_subtree_exclude ) {
 			int	i;
 
@@ -80,18 +87,16 @@ meta_back_is_candidate(
 			return META_CANDIDATE;
 
 		case LDAP_SCOPE_SUBORDINATE:
-			if ( ndn->bv_len > mt->mt_nsuffix.bv_len ) {
+			if ( d > 0 ) {
 				return META_CANDIDATE;
 			}
 			break;
 
 		/* nearly useless; not allowed by config */
 		case LDAP_SCOPE_ONELEVEL:
-			if ( ndn->bv_len > mt->mt_nsuffix.bv_len ) {
-				struct berval	rdn = *ndn;
-
-				rdn.bv_len -= mt->mt_nsuffix.bv_len
-					+ STRLENOF( "," );
+			if ( d > 0 ) {
+				rdn.bv_val = ndn->bv_val;
+				rdn.bv_len = (ber_len_t)d - STRLENOF( "," );
 				if ( dnIsOneLevelRDN( &rdn ) ) {
 					return META_CANDIDATE;
 				}
@@ -100,20 +105,33 @@ meta_back_is_candidate(
 
 		/* nearly useless; not allowed by config */
 		case LDAP_SCOPE_BASE:
-			if ( ndn->bv_len == mt->mt_nsuffix.bv_len ) {
+			if ( d == 0 ) {
 				return META_CANDIDATE;
 			}
 			break;
 		}
 
-		return META_NOT_CANDIDATE;
-	}
+	} else /* if ( d < 0 ) */ {
+		if ( !dnIsSuffix( &mt->mt_nsuffix, ndn ) ) {
+			return META_NOT_CANDIDATE;
+		}
 
-	if ( scope == LDAP_SCOPE_SUBTREE && dnIsSuffix( &mt->mt_nsuffix, ndn ) ) {
-		/*
-		 * suffix longer than dn, but common part matches
-		 */
-		return META_CANDIDATE;
+		switch ( scope ) {
+		case LDAP_SCOPE_SUBTREE:
+		case LDAP_SCOPE_SUBORDINATE:
+			/*
+			 * suffix longer than dn, but common part matches
+			 */
+			return META_CANDIDATE;
+
+		case LDAP_SCOPE_ONELEVEL:
+			rdn.bv_val = mt->mt_nsuffix.bv_val;
+			rdn.bv_len = (ber_len_t)(-d) - STRLENOF( "," );
+			if ( dnIsOneLevelRDN( &rdn ) ) {
+				return META_CANDIDATE;
+			}
+			break;
+		}
 	}
 
 	return META_NOT_CANDIDATE;
