@@ -175,6 +175,7 @@ typedef struct ldaplist {
  * structure representing get/set'able options
  * which have global defaults.
  * Protect access to this struct with ldo_mutex
+ * ldap_log.h:ldapoptions_prefix must match the head of this struct.
  */
 struct ldapoptions {
 	short ldo_valid;
