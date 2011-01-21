@@ -162,7 +162,7 @@ void rs_assert_(const char*file, unsigned line, const char*fn, const char*cond)
 
 	errno = save_errno;
 	/* $NO_RS_ASSERT > 0: ignore rs_asserts, 0: abort, < 0: just warn */
-	if ( !no_assert /* from $NO_RS_ASSERT */ ) abort();		
+	if ( !no_assert /* from $NO_RS_ASSERT */ ) abort();
 }
 
 /* SlapReply is consistent */
