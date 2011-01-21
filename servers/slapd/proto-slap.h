@@ -1543,7 +1543,17 @@ LDAP_SLAPD_F (int) get_alias_dn LDAP_P((
  * result.c
  */
 #if USE_RS_ASSERT /*defined(USE_RS_ASSERT)?(USE_RS_ASSERT):defined(LDAP_TEST)*/
-# define RS_ASSERT				assert
+#ifdef __GNUC__
+# define RS_FUNC_	__FUNCTION__
+#elif defined(__STDC_VERSION__) && (__STDC_VERSION__) >= 199901L
+# define RS_FUNC_	__func__
+#else
+# define rs_assert_(file, line, func, cond) rs_assert__(file, line, cond)
+#endif
+LDAP_SLAPD_V(int)  rs_suppress_assert;
+LDAP_SLAPD_F(void) rs_assert_(const char*, unsigned, const char*, const char*);
+# define RS_ASSERT(cond)		((rs_suppress_assert > 0 || (cond)) \
+	? (void) 0 : rs_assert_(__FILE__, __LINE__, RS_FUNC_, #cond))
 #else
 # define RS_ASSERT(cond)		((void) 0)
 # define rs_assert_ok(rs)		((void) (rs))

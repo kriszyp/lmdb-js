@@ -134,6 +134,38 @@ slap_req2res( ber_tag_t tag )
 
 /* SlapReply debugging, prodo-slap.h overrides it in OpenLDAP releases */
 #if defined(LDAP_TEST) || (defined(USE_RS_ASSERT) && (USE_RS_ASSERT))
+
+int rs_suppress_assert = 0;
+
+/* RS_ASSERT() helper function */
+void rs_assert_(const char*file, unsigned line, const char*fn, const char*cond)
+{
+	int no_assert = rs_suppress_assert, save_errno = errno;
+	const char *s;
+
+	if ( no_assert >= 0 ) {
+		if ( no_assert == 0 && (s = getenv( "NO_RS_ASSERT" )) && *s ) {
+			no_assert = rs_suppress_assert = atoi( s );
+		}
+		if ( no_assert > 0 ) {
+			errno = save_errno;
+			return;
+		}
+	}
+
+#ifdef rs_assert_	/* proto-slap.h #defined away the fn parameter */
+	fprintf( stderr,"%s:%u: "  "RS_ASSERT(%s) failed.\n", file,line,cond );
+#else
+	fprintf( stderr,"%s:%u: %s: RS_ASSERT(%s) failed.\n", file,line,fn,cond );
+#endif
+	fflush( stderr );
+
+	errno = save_errno;
+	/* $NO_RS_ASSERT > 0: ignore rs_asserts, 0: abort, < 0: just warn */
+	if ( !no_assert /* from $NO_RS_ASSERT */ ) abort();		
+}
+
+/* SlapReply is consistent */
 void
 (rs_assert_ok)( const SlapReply *rs )
 {
@@ -161,6 +193,8 @@ void
 #endif
 #endif
 }
+
+/* Ready for calling a new backend operation */
 void
 (rs_assert_ready)( const SlapReply *rs )
 {
@@ -178,6 +212,8 @@ void
 	RS_ASSERT( !(rs->sr_flags & REP_ENTRY_MASK) );
 #endif
 }
+
+/* Backend operation done */
 void
 (rs_assert_done)( const SlapReply *rs )
 {
@@ -188,6 +224,7 @@ void
 	RS_ASSERT( !(rs->sr_flags & REP_ENTRY_MUSTFLUSH) );
 #endif
 }
+
 #endif /* LDAP_TEST || USE_RS_ASSERT */
 
 /* Reset a used SlapReply whose contents has been flushed (freed/released) */
