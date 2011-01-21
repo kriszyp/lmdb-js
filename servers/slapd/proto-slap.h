@@ -1557,8 +1557,11 @@ LDAP_SLAPD_F (void) (rs_assert_done)	LDAP_P(( const SlapReply *rs ));
 #define rs_reinit(rs, type)	do {			\
 		SlapReply *const rsRI = (rs);		\
 		rs_assert_done( rsRI );				\
-		memset( rsRI, 0, sizeof(*rsRI) );	\
 		rsRI->sr_type = (type);				\
+		/* Got type before memset in case of rs_reinit(rs, rs->sr_type) */ \
+		assert( !offsetof( SlapReply, sr_type ) );	\
+		memset( (slap_reply_t *) rsRI + 1, 0,		\
+			sizeof(*rsRI) - sizeof(slap_reply_t) );	\
 	} while ( 0 )
 LDAP_SLAPD_F (void) (rs_reinit)	LDAP_P(( SlapReply *rs, slap_reply_t type ));
 LDAP_SLAPD_F (void) rs_flush_entry LDAP_P(( Operation *op,
