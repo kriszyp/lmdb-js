@@ -163,9 +163,28 @@ int bdb_tool_entry_close(
 		ldap_pvt_thread_mutex_unlock( &bdb_tool_trickle_mutex );
 #endif
 		ldap_pvt_thread_mutex_lock( &bdb_tool_index_mutex );
+
+		/* There might still be some threads starting */
+		while ( bdb_tool_index_tcount ) {
+			ldap_pvt_thread_cond_wait( &bdb_tool_index_cond_main,
+					&bdb_tool_index_mutex );
+		}
+
 		bdb_tool_index_tcount = slap_tool_thread_max - 1;
 		ldap_pvt_thread_cond_broadcast( &bdb_tool_index_cond_work );
+
+		/* Make sure all threads are stopped */
+		while ( bdb_tool_index_tcount ) {
+			ldap_pvt_thread_cond_wait( &bdb_tool_index_cond_main,
+				&bdb_tool_index_mutex );
+		}
 		ldap_pvt_thread_mutex_unlock( &bdb_tool_index_mutex );
+
+		bdb_tool_info = NULL;
+		slapd_shutdown = 0;
+		ch_free( bdb_tool_index_threads );
+		ch_free( bdb_tool_index_rec );
+		bdb_tool_index_tcount = slap_tool_thread_max - 1;
 	}
 
 	if( eh.bv.bv_val ) {
@@ -1256,9 +1275,14 @@ bdb_tool_index_task( void *ctx, void *ptr )
 			ldap_pvt_thread_cond_signal( &bdb_tool_index_cond_main );
 		ldap_pvt_thread_cond_wait( &bdb_tool_index_cond_work,
 			&bdb_tool_index_mutex );
-		ldap_pvt_thread_mutex_unlock( &bdb_tool_index_mutex );
-		if ( slapd_shutdown )
+		if ( slapd_shutdown ) {
+			bdb_tool_index_tcount--;
+			if ( !bdb_tool_index_tcount )
+				ldap_pvt_thread_cond_signal( &bdb_tool_index_cond_main );
+			ldap_pvt_thread_mutex_unlock( &bdb_tool_index_mutex );
 			break;
+		}
+		ldap_pvt_thread_mutex_unlock( &bdb_tool_index_mutex );
 
 		bdb_tool_index_threads[base] = bdb_index_recrun( bdb_tool_ix_op,
 			bdb_tool_info, bdb_tool_index_rec, bdb_tool_ix_id, base );
