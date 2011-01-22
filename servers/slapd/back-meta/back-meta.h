@@ -259,6 +259,31 @@ typedef struct metaconn_t {
 	 * in one block with the metaconn_t structure */
 } metaconn_t;
 
+typedef enum meta_st_t {
+#if 0 /* todo */
+	META_ST_EXACT = LDAP_SCOPE_BASE,
+#endif
+	META_ST_SUBTREE = LDAP_SCOPE_SUBTREE,
+	META_ST_SUBORDINATE = LDAP_SCOPE_SUBORDINATE,
+	META_ST_REGEX /* last + 1 */
+} meta_st_t;
+
+typedef struct metasubtree_t {
+	meta_st_t ms_type;
+	union {
+		struct berval msu_dn;
+		struct {
+			regex_t msr_regex;
+			char *msr_regex_pattern;
+		} msu_regex;
+	} ms_un;
+#define ms_dn ms_un.msu_dn
+#define ms_regex ms_un.msu_regex.msr_regex
+#define ms_regex_pattern ms_un.msu_regex.msr_regex_pattern
+
+	struct metasubtree_t *ms_next;
+} metasubtree_t;
+
 typedef struct metatarget_t {
 	char			*mt_uri;
 	ldap_pvt_thread_mutex_t	mt_uri_mutex;
@@ -269,7 +294,10 @@ typedef struct metatarget_t {
 	LDAP_URLLIST_PROC	*mt_urllist_f;
 	void			*mt_urllist_p;
 
-	BerVarray		mt_subtree_exclude;
+	metasubtree_t		*mt_subtree;
+	/* F: subtree-include; T: subtree-exclude */
+	int			mt_subtree_exclude;
+
 	int			mt_scope;
 
 	struct berval		mt_psuffix;		/* pretty suffix */
@@ -635,6 +663,9 @@ meta_dncache_delete_entry(
 
 extern void
 meta_dncache_free( void *entry );
+
+extern int
+meta_subtree_destroy( metasubtree_t *ms );
 
 extern LDAP_REBIND_PROC		meta_back_default_rebind;
 extern LDAP_URLLIST_PROC	meta_back_default_urllist;
