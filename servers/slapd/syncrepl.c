@@ -756,38 +756,25 @@ do_syncrep2(
 	Operation *op,
 	syncinfo_t *si )
 {
-	LDAPControl	**rctrls = NULL;
-
 	BerElementBuffer berbuf;
 	BerElement	*ber = (BerElement *)&berbuf;
 
 	LDAPMessage	*msg = NULL;
 
-	char		*retoid = NULL;
-	struct berval	*retdata = NULL;
-
-	Entry		*entry = NULL;
-
-	int		syncstate;
-	struct berval	syncUUID = BER_BVNULL;
 	struct sync_cookie	syncCookie = { NULL };
 	struct sync_cookie	syncCookie_req = { NULL };
-	struct berval		cookie = BER_BVNULL;
 
 	int		rc,
 			err = LDAP_SUCCESS;
-	ber_len_t	len;
 
 	Modifications	*modlist = NULL;
 
-	int				match, m, punlock = -1;
+	int				m;
 
 	struct timeval *tout_p = NULL;
 	struct timeval tout = { 0, 0 };
 
 	int		refreshDeletes = 0;
-	BerVarray syncUUIDs = NULL;
-	ber_tag_t si_tag;
 
 	if ( slapd_shutdown ) {
 		rc = -2;
@@ -810,7 +797,14 @@ do_syncrep2(
 	while ( ( rc = ldap_result( si->si_ld, si->si_msgid, LDAP_MSG_ONE,
 		tout_p, &msg ) ) > 0 )
 	{
-		LDAPControl	*rctrlp = NULL;
+		int				match, punlock, syncstate;
+		struct berval	*retdata, syncUUID, cookie = BER_BVNULL;
+		char			*retoid;
+		LDAPControl		**rctrls = NULL, *rctrlp = NULL;
+		BerVarray		syncUUIDs;
+		ber_len_t		len;
+		ber_tag_t		si_tag;
+		Entry			*entry;
 
 		if ( slapd_shutdown ) {
 			rc = -2;
@@ -848,7 +842,14 @@ do_syncrep2(
 				goto done;
 			}
 			ber_init2( ber, &rctrlp->ldctl_value, LBER_USE_DER );
-			ber_scanf( ber, "{em" /*"}"*/, &syncstate, &syncUUID );
+			if ( ber_scanf( ber, "{em" /*"}"*/, &syncstate, &syncUUID )
+					== LBER_ERROR ) {
+				Debug( LDAP_DEBUG_ANY, "do_syncrep2: %s malformed message",
+					si->si_ridtxt, 0, 0 );
+				ldap_controls_free( rctrls );
+				rc = -1;
+				goto done;
+			}
 			/* FIXME: what if syncUUID is NULL or empty?
 			 * (happens with back-sql...) */
 			if ( BER_BVISEMPTY( &syncUUID ) ) {
@@ -860,6 +861,7 @@ do_syncrep2(
 				rc = -1;
 				goto done;
 			}
+			punlock = -1;
 			if ( ber_peek_tag( ber, &len ) == LDAP_TAG_SYNC_COOKIE ) {
 				ber_scanf( ber, /*"{"*/ "m}", &cookie );
 
@@ -920,6 +922,7 @@ do_syncrep2(
 							si->si_cookieState->cs_psids = ch_realloc( si->si_cookieState->cs_psids, si->si_cookieState->cs_pnum * sizeof(int));
 							si->si_cookieState->cs_psids[i] = sid;
 						}
+						assert( punlock < 0 );
 						punlock = i;
 					}
 					op->o_controls[slap_cids.sc_LDAPsync] = &syncCookie;
@@ -988,6 +991,7 @@ do_syncrep2(
 			Debug( LDAP_DEBUG_SYNC,
 				"do_syncrep2: %s LDAP_RES_SEARCH_RESULT\n",
 				si->si_ridtxt, 0, 0 );
+			err = LDAP_OTHER; /* FIXME check parse result properly */
 			ldap_parse_result( si->si_ld, msg, &err, NULL, NULL, NULL,
 				&rctrls, 0 );
 #ifdef LDAP_X_SYNC_REFRESH_REQUIRED
@@ -1098,9 +1102,10 @@ do_syncrep2(
 				rc = -2;
 			}
 			goto done;
-			break;
 
 		case LDAP_RES_INTERMEDIATE:
+			retoid = NULL;
+			retdata = NULL;
 			rc = ldap_parse_intermediate( si->si_ld, msg,
 				&retoid, &retdata, NULL, 0 );
 			if ( !rc && !strcmp( retoid, LDAP_SYNC_INFO ) ) {
@@ -1203,6 +1208,7 @@ do_syncrep2(
 					{
 						ber_scanf( ber, "b", &refreshDeletes );
 					}
+					syncUUIDs = NULL;
 					ber_scanf( ber, "[W]", &syncUUIDs );
 					ber_scanf( ber, /*"{"*/ "}" );
 					if ( refreshDeletes ) {
@@ -1257,7 +1263,6 @@ do_syncrep2(
 
 				ldap_memfree( retoid );
 				ber_bvfree( retdata );
-				break;
 
 			} else {
 				Debug( LDAP_DEBUG_ANY, "do_syncrep2: %s "
@@ -1265,7 +1270,6 @@ do_syncrep2(
 					si->si_ridtxt, rc, 0 );
 				ldap_memfree( retoid );
 				ber_bvfree( retdata );
-				break;
 			}
 			break;
 
@@ -1292,6 +1296,7 @@ do_syncrep2(
 	}
 
 	if ( rc == -1 ) {
+		rc = LDAP_OTHER;
 		ldap_get_option( si->si_ld, LDAP_OPT_ERROR_NUMBER, &rc );
 		err = rc;
 	}
