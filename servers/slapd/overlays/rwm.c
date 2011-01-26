@@ -1158,7 +1158,7 @@ rwm_extended( Operation *op, SlapReply *rs )
 	return SLAP_CB_CONTINUE;
 }
 
-static int
+static void
 rwm_matched( Operation *op, SlapReply *rs )
 {
 	slap_overinst		*on = (slap_overinst *) op->o_bd->bd_info;
@@ -1170,7 +1170,7 @@ rwm_matched( Operation *op, SlapReply *rs )
 	int			rc;
 
 	if ( rs->sr_matched == NULL ) {
-		return SLAP_CB_CONTINUE;
+		return;
 	}
 
 	dc.rwmap = rwmap;
@@ -1183,10 +1183,8 @@ rwm_matched( Operation *op, SlapReply *rs )
 	if ( rc != LDAP_SUCCESS ) {
 		rs->sr_err = rc;
 		rs->sr_text = "Rewrite error";
-		return 1;
-	}
 
-	if ( mdn.bv_val != dn.bv_val ) {
+	} else if ( mdn.bv_val != dn.bv_val ) {
 		if ( rs->sr_flags & REP_MATCHED_MUSTBEFREED ) {
 			ch_free( (void *)rs->sr_matched );
 
@@ -1195,8 +1193,6 @@ rwm_matched( Operation *op, SlapReply *rs )
 		}
 		rs->sr_matched = mdn.bv_val;
 	}
-	
-	return SLAP_CB_CONTINUE;
 }
 
 static int
@@ -1764,20 +1760,18 @@ rwm_response( Operation *op, SlapReply *rs )
 			dc.rs = NULL; 
 			dc.ctx = "referralDN";
 			rc = rwm_referral_result_rewrite( &dc, rs->sr_ref );
+			/* FIXME: impossible, so far */
 			if ( rc != LDAP_SUCCESS ) {
-				rc = 1;
+				rs->sr_err = rc;
 				break;
 			}
 		}
-		rc = rwm_matched( op, rs );
-		break;
 
-	default:
-		rc = SLAP_CB_CONTINUE;
+		rwm_matched( op, rs );
 		break;
 	}
 
-	return rc;
+	return SLAP_CB_CONTINUE;
 }
 
 static int
