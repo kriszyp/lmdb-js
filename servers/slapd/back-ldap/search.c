@@ -169,9 +169,7 @@ ldap_back_search(
 	int		do_retry = 1, dont_retry = 0;
 	LDAPControl	**ctrls = NULL;
 	char		**references = NULL;
-
-	/* FIXME: shouldn't this be null? */
-	const char	*save_matched = rs->sr_matched;
+	void		*matchctx = NULL;
 
 	if ( !ldap_back_dobind( &lc, op, rs, LDAP_BACK_SENDERR ) ) {
 		return rs->sr_err;
@@ -548,12 +546,11 @@ retry:
 		struct berval	pmatch;
 
 		if ( dnPretty( NULL, &match, &pmatch, op->o_tmpmemctx ) == LDAP_SUCCESS ) {
-			rs->sr_matched = pmatch.bv_val;
 			ber_memfree( match.bv_val );
-
-		} else {
-			rs->sr_matched = match.bv_val;
+			matchctx = op->o_tmpmemctx;
+			match.bv_val = pmatch.bv_val;
 		}
+		rs->sr_matched = match.bv_val;
 	}
 
 	if ( rs->sr_v2ref ) {
@@ -584,15 +581,10 @@ finish:;
 		rs->sr_ctrls = NULL;
 	}
 
-	if ( rs->sr_matched != NULL && rs->sr_matched != save_matched ) {
-		if ( rs->sr_matched != match.bv_val ) {
-			ber_memfree_x( (char *)rs->sr_matched, op->o_tmpmemctx );
-
-		} else {
-			ber_memfree( match.bv_val );
-		}
-		rs->sr_matched = save_matched;
+	if ( match.bv_val ) {
+		ber_memfree_x( match.bv_val, matchctx );
 	}
+	rs->sr_matched = NULL;
 
 	if ( rs->sr_text ) {
 		if ( freetext ) {
