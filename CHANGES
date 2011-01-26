@@ -99,7 +99,7 @@ OpenLDAP 2.4.24 Engineering
 	Fixed slapo-refint when last group member is deleted (ITS#6663)
 	Fixed slapo-refint with subtree rename (ITS#6730)
 	Fixed slapo-rwm double free (ITS#6720)
-	Fixed slapo-rwm crasher (ITS#6632)
+	Fixed slapo-rwm crasher (ITS#6632,ITS#6727)
 	Fixed slapo-rwm entry handling (ITS#6760)
 	Fixed slapo-rwm response hang (ITS#6792)
 	Fixed slapo-sssvlv initialization (ITS#6649)
