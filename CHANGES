@@ -33,6 +33,7 @@ OpenLDAP 2.4.24 Engineering
 	Fixed libldap referral chasing (ITS#6602)
 	Fixed libldap leak when chasing referrals (ITS#6744)
 	Fixed libldap url parsing with NULL host (ITS#6653)
+	Fixed libldap ldap_open_internal_connection (ITS#6788)
 	Fixed liblutil getpass prompts (ITS#6702)
 	Fixed ldapsearch segfault with deref (ITS#6638)
 	Fixed ldapsearch multiple controls parsing (ITS#6651)

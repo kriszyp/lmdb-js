@@ -447,6 +447,11 @@ ldap_int_open_connection(
 	return( 0 );
 }
 
+/*
+ * ldap_open_internal_connection - open connection and set file descriptor
+ *
+ * note: ldap_init_fd() may be preferable
+ */
 
 int
 ldap_open_internal_connection( LDAP **ldp, ber_socket_t *fdp )
@@ -503,6 +508,8 @@ ldap_open_internal_connection( LDAP **ldp, ber_socket_t *fdp )
 	rc = LDAP_VERSION3;
 	ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, &rc );
 	*ldp = ld;
+
+	++ld->ld_defconn->lconn_refcnt;	/* so it never gets closed/freed */
 
 	return( LDAP_SUCCESS );
 }
