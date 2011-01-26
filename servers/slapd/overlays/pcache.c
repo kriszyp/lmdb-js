@@ -675,9 +675,11 @@ url2query(
 			}
 
 			ber_str2bv( &lud->lud_exts[ i ][ STRLENOF( "x-uuid=" ) ], 0, 0, &tmpUUID );
-			rc = syn_UUID->ssyn_pretty( syn_UUID, &tmpUUID, &uuid, NULL );
-			if ( rc != LDAP_SUCCESS ) {
-				goto error;
+			if ( !BER_BVISEMPTY( &tmpUUID ) ) {
+				rc = syn_UUID->ssyn_pretty( syn_UUID, &tmpUUID, &uuid, NULL );
+				if ( rc != LDAP_SUCCESS ) {
+					goto error;
+				}
 			}
 			got |= GOT_UUID;
 
