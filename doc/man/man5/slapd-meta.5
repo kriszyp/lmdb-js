@@ -566,18 +566,6 @@ the global value can be overridden by redefinitions inside each target
 specification.
 
 .TP
-.B pseudorootdn "<substitute DN in case of rootdn bind>"
-Deprecated; use
-.B idassert\-bind
-instead.
-
-.TP
-.B pseudorootpw "<substitute password in case of rootdn bind>"
-Deprecated; use
-.B idassert\-bind
-instead.
-
-.TP
 .B rewrite* ...
 The rewrite options are described in the "REWRITING" section.
 
@@ -1225,6 +1213,24 @@ allows caching of LDAP search requests (queries) in a local database.
 See 
 .BR slapo\-pcache (5)
 for details.
+
+.SH DEPRECATED STATEMENTS
+The following statements have been deprecated and should no longer be used.
+
+.TP
+.B pseudorootdn "<substitute DN in case of rootdn bind>"
+Use
+.B idassert\-bind
+instead.
+
+.TP
+.B pseudorootpw "<substitute password in case of rootdn bind>"
+Use
+.B idassert\-bind
+instead.
+
+
+
 .SH FILES
 .TP
 ETCDIR/slapd.conf

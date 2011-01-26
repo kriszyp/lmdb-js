@@ -140,6 +140,7 @@ OpenLDAP 2.4.24 Engineering
 		slapd.conf(5) multi-listener support (ITS#6780)
 		slapd-config(5) GnuTLS cipher spec info (ITS#6525)
 		slapd-config(5) multi-listener support (ITS#6780)
+		slapd-meta(5) note deprecated items (ITS#6800)
 		slapo-pcache(5) note rootdn requirement (ITS#6522)
 		slapo-refint(5) rootdn requirement (ITS#6364)
 
