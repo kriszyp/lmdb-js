@@ -2331,6 +2331,7 @@ syncprov_search_response( Operation *op, SlapReply *rs )
 		rs->sr_ctrls = op->o_tmpalloc( sizeof(LDAPControl *)*2,
 			op->o_tmpmemctx );
 		rs->sr_ctrls[1] = NULL;
+		rs->sr_flags |= REP_CTRLS_MUSTBEFREED;
 		/* If we're in delta-sync mode, always send a cookie */
 		if ( si->si_nopres && si->si_usehint && a ) {
 			struct berval cookie;
