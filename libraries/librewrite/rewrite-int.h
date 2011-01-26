@@ -33,7 +33,8 @@
 
 #include <lber.h>
 #include <ldap.h>
-#include "../libldap/ldap-int.h"
+#define LDAP_DEFINE_LDAP_DEBUG
+#include <ldap_log.h>
 #include <lutil.h>
 #include <avl.h>
 

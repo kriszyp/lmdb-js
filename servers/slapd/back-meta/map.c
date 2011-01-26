@@ -61,9 +61,6 @@
 #include "../back-ldap/back-ldap.h"
 #include "back-meta.h"
 
-#undef ldap_debug	/* silence a warning in ldap-int.h */
-#include "../../../libraries/libldap/ldap-int.h"
-
 int
 mapping_cmp ( const void *c1, const void *c2 )
 {
