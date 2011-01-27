@@ -11,6 +11,7 @@ OpenLDAP 2.4.24 Engineering
 	Added slapd syncrepl suffixmassage support (ITS#6781)
 	Added slapd multiple listener threads (ITS#6780)
 	Added slapd-meta paged results control fowarding (ITS#6664)
+	Added slapd-meta subtree-include support (ITS#6801)
 	Added slapd-null back-config support (ITS#6624)
 	Added slapd-sql autocommit support (ITS#6612)
 	Added slapd-sql support for long long keys (ITS#6617)
@@ -146,6 +147,7 @@ OpenLDAP 2.4.24 Engineering
 		slapd-config(5) GnuTLS cipher spec info (ITS#6525)
 		slapd-config(5) multi-listener support (ITS#6780)
 		slapd-meta(5) note deprecated items (ITS#6800)
+		slapd-meta(5) document subtree-include (ITS#6801)
 		slapo-pcache(5) note rootdn requirement (ITS#6522)
 		slapo-refint(5) rootdn requirement (ITS#6364)
 

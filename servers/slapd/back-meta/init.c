@@ -318,8 +318,9 @@ target_free(
 		free( mt->mt_uri );
 		ldap_pvt_thread_mutex_destroy( &mt->mt_uri_mutex );
 	}
-	if ( mt->mt_subtree_exclude ) {
-		ber_bvarray_free( mt->mt_subtree_exclude );
+	if ( mt->mt_subtree ) {
+		meta_subtree_destroy( mt->mt_subtree );
+		mt->mt_subtree = NULL;
 	}
 	if ( !BER_BVISNULL( &mt->mt_psuffix ) ) {
 		free( mt->mt_psuffix.bv_val );

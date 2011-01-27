@@ -92,6 +92,312 @@ check_true_false( char *str )
 	return -1;
 }
 
+int
+meta_subtree_destroy( metasubtree_t *ms )
+{
+	if ( ms->ms_next ) {
+		meta_subtree_destroy( ms->ms_next );
+	}
+
+	switch ( ms->ms_type ) {
+	case META_ST_SUBTREE:
+	case META_ST_SUBORDINATE:
+		ber_memfree( ms->ms_dn.bv_val );
+		break;
+
+	case META_ST_REGEX:
+		regfree( &ms->ms_regex );
+		ch_free( ms->ms_regex_pattern );
+		break;
+
+	default:
+		return -1;
+	}
+
+	ch_free( ms );
+
+	return 0;
+}
+
+static int
+meta_subtree_config(
+	metatarget_t *mt,
+	int argc,
+	char **argv,
+	char *buf,
+	ber_len_t buflen,
+	char *log_prefix )
+{
+	meta_st_t	type = META_ST_SUBTREE;
+	char		*pattern;
+	struct berval	ndn = BER_BVNULL;
+	metasubtree_t	*ms = NULL;
+
+	if ( strcasecmp( argv[0], "subtree-exclude" ) == 0 ) {
+		if ( mt->mt_subtree && !mt->mt_subtree_exclude ) {
+			snprintf( buf, buflen,
+				"\"subtree-exclude\" incompatible with previous \"subtree-include\" directives" );
+			return 1;
+		}
+
+		mt->mt_subtree_exclude = 1;
+
+	} else {
+		if ( mt->mt_subtree && mt->mt_subtree_exclude ) {
+			snprintf( buf, buflen,
+				"\"subtree-include\" incompatible with previous \"subtree-exclude\" directives" );
+			return 1;
+		}
+	}
+
+	switch ( argc ) {
+	case 1:
+		snprintf( buf, buflen, "missing pattern" );
+		return 1;
+
+	case 2:
+		break;
+
+	default:
+		snprintf( buf, buflen, "too many args" );
+		return 1;
+	}
+
+	pattern = argv[1];
+	if ( strncasecmp( pattern, "dn", STRLENOF( "dn" ) ) == 0 ) {
+		char *style;
+
+		pattern = &pattern[STRLENOF( "dn")];
+
+		if ( pattern[0] == '.' ) {
+			style = &pattern[1];
+
+			if ( strncasecmp( style, "subtree", STRLENOF( "subtree" ) ) == 0 ) {
+				type = META_ST_SUBTREE;
+				pattern = &style[STRLENOF( "subtree" )];
+
+			} else if ( strncasecmp( style, "children", STRLENOF( "children" ) ) == 0 ) {
+				type = META_ST_SUBORDINATE;
+				pattern = &style[STRLENOF( "children" )];
+
+			} else if ( strncasecmp( style, "sub", STRLENOF( "sub" ) ) == 0 ) {
+				type = META_ST_SUBTREE;
+				pattern = &style[STRLENOF( "sub" )];
+
+			} else if ( strncasecmp( style, "regex", STRLENOF( "regex" ) ) == 0 ) {
+				type = META_ST_REGEX;
+				pattern = &style[STRLENOF( "regex" )];
+
+			} else {
+				snprintf( buf, buflen, "unknown style in \"dn.<style>\"" );
+				return 1;
+			}
+		}
+
+		if ( pattern[0] != ':' ) {
+			snprintf( buf, buflen, "missing colon after \"dn.<style>\"" );
+			return 1;
+		}
+		pattern++;
+	}
+
+	switch ( type ) {
+	case META_ST_SUBTREE:
+	case META_ST_SUBORDINATE: {
+		struct berval dn;
+
+		ber_str2bv( pattern, 0, 0, &dn );
+		if ( dnNormalize( 0, NULL, NULL, &dn, &ndn, NULL )
+			!= LDAP_SUCCESS )
+		{
+			snprintf( buf, buflen, "DN=\"%s\" is invalid", pattern );
+			return 1;
+		}
+
+		if ( !dnIsSuffix( &ndn, &mt->mt_nsuffix ) ) {
+			snprintf( buf, buflen,
+				"DN=\"%s\" is not a subtree of target \"%s\"",
+				pattern, mt->mt_nsuffix.bv_val );
+			ber_memfree( ndn.bv_val );
+			return( 1 );
+		}
+		} break;
+
+	default:
+		/* silence warnings */
+		break;
+	}
+
+	ms = ch_calloc( sizeof( metasubtree_t ), 1 );
+	ms->ms_type = type;
+
+	switch ( ms->ms_type ) {
+	case META_ST_SUBTREE:
+	case META_ST_SUBORDINATE:
+		ms->ms_dn = ndn;
+		break;
+
+	case META_ST_REGEX: {
+		int rc;
+
+		rc = regcomp( &ms->ms_regex, pattern, REG_EXTENDED|REG_ICASE );
+		if ( rc != 0 ) {
+			char regerr[ SLAP_TEXT_BUFLEN ];
+
+			regerror( rc, &ms->ms_regex, regerr, sizeof(regerr) );
+
+			snprintf( buf, sizeof( buf ),
+				"regular expression \"%s\" bad because of %s",
+				pattern, regerr );
+			ch_free( ms );
+			return 1;
+		}
+		ms->ms_regex_pattern = ch_strdup( pattern );
+		} break;
+	}
+
+	if ( mt->mt_subtree == NULL ) {
+		 mt->mt_subtree = ms;
+
+	} else {
+		metasubtree_t **msp;
+
+		for ( msp = &mt->mt_subtree; *msp; ) {
+			switch ( ms->ms_type ) {
+			case META_ST_SUBTREE:
+				switch ( (*msp)->ms_type ) {
+				case META_ST_SUBTREE:
+					if ( dnIsSuffix( &(*msp)->ms_dn, &ms->ms_dn ) ) {
+						metasubtree_t *tmp = *msp;
+						Debug( LDAP_DEBUG_CONFIG,
+							"%s: previous rule \"dn.subtree:%s\" is contained in rule \"dn.subtree:%s\" (replaced)\n",
+							log_prefix, pattern, (*msp)->ms_dn.bv_val );
+						*msp = (*msp)->ms_next;
+						tmp->ms_next = NULL;
+						meta_subtree_destroy( tmp );
+						continue;
+
+					} else if ( dnIsSuffix( &ms->ms_dn, &(*msp)->ms_dn ) ) {
+						Debug( LDAP_DEBUG_CONFIG,
+							"%s: previous rule \"dn.subtree:%s\" contains rule \"dn.subtree:%s\" (ignored)\n",
+							log_prefix, (*msp)->ms_dn.bv_val, pattern );
+						meta_subtree_destroy( ms );
+						ms = NULL;
+						return( 0 );
+					}
+					break;
+
+				case META_ST_SUBORDINATE:
+					if ( dnIsSuffix( &(*msp)->ms_dn, &ms->ms_dn ) ) {
+						metasubtree_t *tmp = *msp;
+						Debug( LDAP_DEBUG_CONFIG,
+							"%s: previous rule \"dn.children:%s\" is contained in rule \"dn.subtree:%s\" (replaced)\n",
+							log_prefix, pattern, (*msp)->ms_dn.bv_val );
+						*msp = (*msp)->ms_next;
+						tmp->ms_next = NULL;
+						meta_subtree_destroy( tmp );
+						continue;
+
+					} else if ( dnIsSuffix( &ms->ms_dn, &(*msp)->ms_dn ) && ms->ms_dn.bv_len > (*msp)->ms_dn.bv_len ) {
+						Debug( LDAP_DEBUG_CONFIG,
+							"%s: previous rule \"dn.children:%s\" contains rule \"dn.subtree:%s\" (ignored)\n",
+							log_prefix, (*msp)->ms_dn.bv_val, pattern );
+						meta_subtree_destroy( ms );
+						ms = NULL;
+						return( 0 );
+					}
+					break;
+
+				case META_ST_REGEX:
+					if ( regexec( &(*msp)->ms_regex, ms->ms_dn.bv_val, 0, NULL, 0 ) == 0 ) {
+						Debug( LDAP_DEBUG_CONFIG,
+							"%s: previous rule \"dn.regex:%s\" may contain rule \"dn.subtree:%s\"\n",
+							log_prefix, (*msp)->ms_regex_pattern, ms->ms_dn.bv_val );
+					}
+					break;
+				}
+				break;
+
+			case META_ST_SUBORDINATE:
+				switch ( (*msp)->ms_type ) {
+				case META_ST_SUBTREE:
+					if ( dnIsSuffix( &(*msp)->ms_dn, &ms->ms_dn ) ) {
+						metasubtree_t *tmp = *msp;
+						Debug( LDAP_DEBUG_CONFIG,
+							"%s: previous rule \"dn.children:%s\" is contained in rule \"dn.subtree:%s\" (replaced)\n",
+							log_prefix, pattern, (*msp)->ms_dn.bv_val );
+						*msp = (*msp)->ms_next;
+						tmp->ms_next = NULL;
+						meta_subtree_destroy( tmp );
+						continue;
+
+					} else if ( dnIsSuffix( &ms->ms_dn, &(*msp)->ms_dn ) && ms->ms_dn.bv_len > (*msp)->ms_dn.bv_len ) {
+						Debug( LDAP_DEBUG_CONFIG,
+							"%s: previous rule \"dn.children:%s\" contains rule \"dn.subtree:%s\" (ignored)\n",
+							log_prefix, (*msp)->ms_dn.bv_val, pattern );
+						meta_subtree_destroy( ms );
+						ms = NULL;
+						return( 0 );
+					}
+					break;
+
+				case META_ST_SUBORDINATE:
+					if ( dnIsSuffix( &(*msp)->ms_dn, &ms->ms_dn ) ) {
+						metasubtree_t *tmp = *msp;
+						Debug( LDAP_DEBUG_CONFIG,
+							"%s: previous rule \"dn.children:%s\" is contained in rule \"dn.children:%s\" (replaced)\n",
+							log_prefix, pattern, (*msp)->ms_dn.bv_val );
+						*msp = (*msp)->ms_next;
+						tmp->ms_next = NULL;
+						meta_subtree_destroy( tmp );
+						continue;
+
+					} else if ( dnIsSuffix( &ms->ms_dn, &(*msp)->ms_dn ) ) {
+						Debug( LDAP_DEBUG_CONFIG,
+							"%s: previous rule \"dn.children:%s\" contains rule \"dn.children:%s\" (ignored)\n",
+							log_prefix, (*msp)->ms_dn.bv_val, pattern );
+						meta_subtree_destroy( ms );
+						ms = NULL;
+						return( 0 );
+					}
+					break;
+
+				case META_ST_REGEX:
+					if ( regexec( &(*msp)->ms_regex, ms->ms_dn.bv_val, 0, NULL, 0 ) == 0 ) {
+						Debug( LDAP_DEBUG_CONFIG,
+							"%s: previous rule \"dn.regex:%s\" may contain rule \"dn.subtree:%s\"\n",
+							log_prefix, (*msp)->ms_regex_pattern, ms->ms_dn.bv_val );
+					}
+					break;
+				}
+				break;
+
+			case META_ST_REGEX:
+				switch ( (*msp)->ms_type ) {
+				case META_ST_SUBTREE:
+				case META_ST_SUBORDINATE:
+					if ( regexec( &ms->ms_regex, (*msp)->ms_dn.bv_val, 0, NULL, 0 ) == 0 ) {
+						Debug( LDAP_DEBUG_CONFIG,
+							"%s: previous rule \"dn.subtree:%s\" may be contained in rule \"dn.regex:%s\"\n",
+							log_prefix, (*msp)->ms_dn.bv_val, ms->ms_regex_pattern );
+					}
+					break;
+
+				case META_ST_REGEX:
+					/* no check possible */
+					break;
+				}
+				break;
+			}
+
+			msp = &(*msp)->ms_next;
+		}
+
+		*msp = ms;
+	}
+
+	return 0;
+}
 
 int
 meta_back_db_config(
@@ -99,8 +405,7 @@ meta_back_db_config(
 		const char	*fname,
 		int		lineno,
 		int		argc,
-		char		**argv
-)
+		char		**argv )
 {
 	metainfo_t	*mi = ( metainfo_t * )be->be_private;
 
@@ -315,80 +620,34 @@ meta_back_db_config(
 		}
 
 	/* subtree-exclude */
-	} else if ( strcasecmp( argv[ 0 ], "subtree-exclude" ) == 0 ) {
-		int 		i = mi->mi_ntargets - 1;
-		struct berval	dn, ndn;
+	} else if ( strcasecmp( argv[ 0 ], "subtree-exclude" ) == 0 ||
+		strcasecmp( argv[ 0 ], "subtree-include" ) == 0)
+	{
+		char log_prefix[SLAP_TEXT_BUFLEN];
+		char textbuf[SLAP_TEXT_BUFLEN];
+		char *arg0;
+		int i = mi->mi_ntargets - 1;
 
 		if ( i < 0 ) {
 			Debug( LDAP_DEBUG_ANY,
-	"%s: line %d: need \"uri\" directive first\n",
+		"%s: line %d: need \"uri\" directive first\n",
 				fname, lineno, 0 );
 			return 1;
 		}
-		
-		switch ( argc ) {
-		case 1:
-			Debug( LDAP_DEBUG_ANY,
-	"%s: line %d: missing DN in \"subtree-exclude <DN>\" line\n",
-			    fname, lineno, 0 );
-			return 1;
 
-		case 2:
-			break;
+		if ( strcasecmp( argv[ 0 ], "subtree-exclude" ) == 0 ) {
+			arg0 = "subtree-exclude";
 
-		default:
-			Debug( LDAP_DEBUG_ANY,
-	"%s: line %d: too many args in \"subtree-exclude <DN>\" line\n",
-			    fname, lineno, 0 );
+		} else {
+			arg0 = "subtree-include";
+		}
+
+		snprintf( log_prefix, sizeof(log_prefix), "%s: line %d: %s", fname, lineno, arg0 );
+
+		if ( meta_subtree_config( mi->mi_targets[ i ], argc, argv, textbuf, sizeof(textbuf), log_prefix ) ) {
+			Debug( LDAP_DEBUG_ANY, "%s: %s\n", log_prefix, textbuf, 0 );
 			return 1;
 		}
-
-		ber_str2bv( argv[ 1 ], 0, 0, &dn );
-		if ( dnNormalize( 0, NULL, NULL, &dn, &ndn, NULL )
-			!= LDAP_SUCCESS )
-		{
-			Debug( LDAP_DEBUG_ANY, "%s: line %d: "
-					"subtree-exclude DN=\"%s\" is invalid\n",
-					fname, lineno, argv[ 1 ] );
-			return( 1 );
-		}
-
-		if ( !dnIsSuffix( &ndn, &mi->mi_targets[ i ]->mt_nsuffix ) ) {
-			Debug( LDAP_DEBUG_ANY, "%s: line %d: "
-					"subtree-exclude DN=\"%s\" "
-					"must be subtree of target\n",
-					fname, lineno, argv[ 1 ] );
-			ber_memfree( ndn.bv_val );
-			return( 1 );
-		}
-
-		if ( mi->mi_targets[ i ]->mt_subtree_exclude != NULL ) {
-			int		j;
-
-			for ( j = 0; !BER_BVISNULL( &mi->mi_targets[ i ]->mt_subtree_exclude[ j ] ); j++ )
-			{
-				if ( dnIsSuffix( &mi->mi_targets[ i ]->mt_subtree_exclude[ j ], &ndn ) ) {
-					Debug( LDAP_DEBUG_ANY, "%s: line %d: "
-							"subtree-exclude DN=\"%s\" "
-							"is suffix of another subtree-exclude\n",
-							fname, lineno, argv[ 1 ] );
-					/* reject, because it might be superior
-					 * to more than one subtree-exclude */
-					ber_memfree( ndn.bv_val );
-					return( 1 );
-
-				} else if ( dnIsSuffix( &ndn, &mi->mi_targets[ i ]->mt_subtree_exclude[ j ] ) ) {
-					Debug( LDAP_DEBUG_ANY, "%s: line %d: "
-							"another subtree-exclude is suffix of "
-							"subtree-exclude DN=\"%s\"\n",
-							fname, lineno, argv[ 1 ] );
-					ber_memfree( ndn.bv_val );
-					return( 0 );
-				}
-			}
-		}
-
-		ber_bvarray_add( &mi->mi_targets[ i ]->mt_subtree_exclude, &ndn );
 
 	/* default target directive */
 	} else if ( strcasecmp( argv[ 0 ], "default-target" ) == 0 ) {
@@ -1564,6 +1823,7 @@ idassert-authzFrom	"dn:<rootdn>"
 	} else {
 		return SLAP_CONF_UNKNOWN;
 	}
+
 	return 0;
 }
 
