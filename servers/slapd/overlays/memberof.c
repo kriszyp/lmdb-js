@@ -1243,8 +1243,6 @@ memberof_res_add( Operation *op, SlapReply *rs )
 
 		ma = attr_find( op->ora_e->e_attrs, mo->mo_ad_memberof );
 		if ( ma != NULL ) {
-			char relax = op->o_relax;
-
 			/* relax is required to allow to add
 			 * a non-existing member */
 			op->o_relax = SLAP_CONTROL_CRITICAL;
