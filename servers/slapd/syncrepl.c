@@ -685,11 +685,13 @@ do_syncrep1(
 	} else {
 		/* ITS#6367: recreate the cookie so it has our SID, not our peer's */
 		ch_free( si->si_syncCookie.octet_str.bv_val );
-		slap_compose_sync_cookie( NULL, &si->si_syncCookie.octet_str,
-			si->si_syncCookie.ctxcsn, si->si_syncCookie.rid,
-			si->si_syncCookie.sid );
+		BER_BVZERO( &si->si_syncCookie.octet_str );
 		/* Look for contextCSN from syncprov overlay. */
 		check_syncprov( op, si );
+		if ( BER_BVISNULL( &si->si_syncCookie.octet_str ))
+			slap_compose_sync_cookie( NULL, &si->si_syncCookie.octet_str,
+				si->si_syncCookie.ctxcsn, si->si_syncCookie.rid,
+				si->si_syncCookie.sid );
 	}
 
 	si->si_refreshDone = 0;
@@ -3308,7 +3310,6 @@ syncrepl_updateCookie(
 
 	if ( rs_modify.sr_err == LDAP_SUCCESS ) {
 		slap_sync_cookie_free( &si->si_syncCookie, 0 );
-		slap_dup_sync_cookie( &si->si_syncCookie, syncCookie );
 		/* If we replaced any old values */
 		for ( i=0; i<si->si_cookieState->cs_num; i++ ) {
 			if ( mod.sml_values[i].bv_val != si->si_cookieState->cs_vals[i].bv_val )
@@ -3323,6 +3324,13 @@ syncrepl_updateCookie(
 			si->si_cookieState->cs_sids = slap_parse_csn_sids(
 				si->si_cookieState->cs_vals, si->si_cookieState->cs_num, NULL );
 		}
+
+		/* Don't just dup the provider's cookie, recreate it */
+		si->si_syncCookie.numcsns = si->si_cookieState->cs_num;
+		ber_bvarray_dup_x( &si->si_syncCookie.ctxcsn, si->si_cookieState->cs_vals, NULL );
+		si->si_syncCookie.sids = ch_malloc( si->si_cookieState->cs_num * sizeof(int) );
+		for ( i=0; i<si->si_cookieState->cs_num; i++ )
+			si->si_syncCookie.sids[i] = si->si_cookieState->cs_sids[i];
 
 		si->si_cookieState->cs_age++;
 		si->si_cookieAge = si->si_cookieState->cs_age;
