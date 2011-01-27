@@ -61,17 +61,17 @@
 #include <nss/secmod.h>
 #include <nss/cert.h>
 
+#undef NSS_VERSION_INT
+#define	NSS_VERSION_INT	((NSS_VMAJOR << 24) | (NSS_VMINOR << 16) | \
+	(NSS_VPATCH << 8) | NSS_VBUILD)
+
 /* NSS 3.12.5 and later have NSS_InitContext */
-#if NSS_VMAJOR <= 3 && NSS_VMINOR <= 12 && NSS_VPATCH < 5
-/* do nothing */
-#else
+#if NSS_VERSION_INT >= 0x030c0500
 #define HAVE_NSS_INITCONTEXT 1
 #endif
 
 /* NSS 3.12.9 and later have SECMOD_RestartModules */
-#if NSS_VMAJOR <= 3 && NSS_VMINOR <= 12 && NSS_VPATCH < 9
-/* do nothing */
-#else
+#if NSS_VERSION_INT >= 0x030c0900
 #define HAVE_SECMOD_RESTARTMODULES 1
 #endif
 
