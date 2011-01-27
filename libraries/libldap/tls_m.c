@@ -932,7 +932,7 @@ tlsm_cert_is_self_issued( CERTCertificate *cert )
 
 static SECStatus
 tlsm_verify_cert(CERTCertDBHandle *handle, CERTCertificate *cert, void *pinarg,
-				 PRBool checksig, SECCertUsage certUsage, int errorToIgnore )
+				 PRBool checksig, SECCertificateUsage certUsage, int errorToIgnore )
 {
 	CERTVerifyLog verifylog;
 	SECStatus ret = SECSuccess;
@@ -1021,7 +1021,7 @@ static SECStatus
 tlsm_auth_cert_handler(void *arg, PRFileDesc *fd,
                        PRBool checksig, PRBool isServer)
 {
-	SECCertUsage certUsage = isServer ? certUsageSSLClient : certUsageSSLServer;
+	SECCertificateUsage certUsage = isServer ? certificateUsageSSLClient : certificateUsageSSLServer;
 	SECStatus ret = SECSuccess;
 
 	ret = tlsm_verify_cert( (CERTCertDBHandle *)arg, SSL_PeerCertificate( fd ),
