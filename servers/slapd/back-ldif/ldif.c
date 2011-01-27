@@ -660,9 +660,14 @@ ldif_send_entry( Operation *op, SlapReply *rs, Entry *e, int scope )
 		else if ( test_filter( op, e, op->ors_filter ) == LDAP_COMPARE_TRUE ) {
 			rs->sr_entry = e;
 			rs->sr_attrs = op->ors_attrs;
+			/* Could set REP_ENTRY_MUSTBEFREED too for efficiency,
+			 * but refraining lets us test unFREEable MODIFIABLE
+			 * entries.  Like entries built on the stack.
+			 */
 			rs->sr_flags = REP_ENTRY_MODIFIABLE;
 			rc = send_search_entry( op, rs );
 			rs->sr_entry = NULL;
+			rs->sr_attrs = NULL;
 		}
 	}
 

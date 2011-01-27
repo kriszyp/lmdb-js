@@ -90,6 +90,9 @@ ldap_back_extended(
 {
 	int	i;
 
+	RS_ASSERT( !(rs->sr_flags & REP_ENTRY_MASK) );
+	rs->sr_flags &= ~REP_ENTRY_MASK;	/* paranoia */
+
 	for ( i = 0; exop_table[i].extended != NULL; i++ ) {
 		if ( bvmatch( &exop_table[i].oid, &op->oq_extended.rs_reqoid ) )
 		{
@@ -397,4 +400,3 @@ retry:
 
 	return rc;
 }
-

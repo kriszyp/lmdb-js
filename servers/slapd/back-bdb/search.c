@@ -748,8 +748,6 @@ fetch_entry_retry:
 			goto loop_continue;
 		}
 
-		rs->sr_entry = e;
-
 		if ( is_entry_subentry( e ) ) {
 			if( op->oq_search.rs_scope != LDAP_SCOPE_BASE ) {
 				if(!get_subentries_visibility( op )) {
@@ -881,6 +879,7 @@ fetch_entry_retry:
 			blis.bli_lock = lock;
 			blis.bli_flag = BLI_DONTFREE;
 
+			rs->sr_entry = e;
 			rs->sr_flags = REP_ENTRY_MUSTRELEASE;
 
 			send_search_reference( op, rs );
@@ -912,7 +911,7 @@ fetch_entry_retry:
 		}
 
 		/* if it matches the filter and scope, send it */
-		rs->sr_err = test_filter( op, rs->sr_entry, op->oq_search.rs_filter );
+		rs->sr_err = test_filter( op, e, op->oq_search.rs_filter );
 
 		if ( rs->sr_err == LDAP_COMPARE_TRUE ) {
 			/* check size limit */
@@ -956,9 +955,13 @@ fetch_entry_retry:
 				rs->sr_attrs = op->oq_search.rs_attrs;
 				rs->sr_operational_attrs = NULL;
 				rs->sr_ctrls = NULL;
+				rs->sr_entry = e;
+				RS_ASSERT( e->e_private != NULL );
 				rs->sr_flags = REP_ENTRY_MUSTRELEASE;
 				rs->sr_err = LDAP_SUCCESS;
 				rs->sr_err = send_search_entry( op, rs );
+				rs->sr_attrs = NULL;
+				rs->sr_entry = NULL;
 
 				/* send_search_entry will usually free it.
 				 * an overlay might leave its own copy here;
@@ -976,7 +979,6 @@ fetch_entry_retry:
 							OpExtra, oe_next );
 					}
 				}
-				rs->sr_entry = NULL;
 				e = NULL;
 
 				switch ( rs->sr_err ) {
@@ -1012,6 +1014,7 @@ loop_continue:
 			slap_zn_runlock(bdb->bi_cache.c_zctx, e);
 #endif
 			bdb_cache_return_entry_r( bdb, e , &lock );
+			RS_ASSERT( rs->sr_entry == NULL );
 			e = NULL;
 			rs->sr_entry = NULL;
 		}
@@ -1326,4 +1329,3 @@ send_paged_response(
 done:
 	(void) ber_free_buf( ber );
 }
-

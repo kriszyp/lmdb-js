@@ -27,7 +27,6 @@ bdb_compare( Operation *op, SlapReply *rs )
 	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
 	Entry		*e = NULL;
 	EntryInfo	*ei;
-	Attribute	*a;
 	int		manageDSAit = get_manageDSAit( op );
 
 	DB_TXN		*rtxn;

@@ -1526,6 +1526,40 @@ LDAP_SLAPD_F (int) get_alias_dn LDAP_P((
 /*
  * result.c
  */
+#if USE_RS_ASSERT /*defined(USE_RS_ASSERT)?(USE_RS_ASSERT):defined(LDAP_TEST)*/
+#ifdef __GNUC__
+# define RS_FUNC_	__FUNCTION__
+#elif defined(__STDC_VERSION__) && (__STDC_VERSION__) >= 199901L
+# define RS_FUNC_	__func__
+#else
+# define rs_assert_(file, line, func, cond) rs_assert__(file, line, cond)
+#endif
+LDAP_SLAPD_V(int)  rs_suppress_assert;
+LDAP_SLAPD_F(void) rs_assert_(const char*, unsigned, const char*, const char*);
+# define RS_ASSERT(cond)		((rs_suppress_assert > 0 || (cond)) \
+	? (void) 0 : rs_assert_(__FILE__, __LINE__, RS_FUNC_, #cond))
+#else
+# define RS_ASSERT(cond)		((void) 0)
+# define rs_assert_ok(rs)		((void) (rs))
+# define rs_assert_ready(rs)	((void) (rs))
+# define rs_assert_done(rs)		((void) (rs))
+#endif
+LDAP_SLAPD_F (void) (rs_assert_ok)		LDAP_P(( const SlapReply *rs ));
+LDAP_SLAPD_F (void) (rs_assert_ready)	LDAP_P(( const SlapReply *rs ));
+LDAP_SLAPD_F (void) (rs_assert_done)	LDAP_P(( const SlapReply *rs ));
+
+#define rs_reinit(rs, type)	do {			\
+		SlapReply *const rsRI = (rs);		\
+		rs_assert_done( rsRI );				\
+		rsRI->sr_type = (type);				\
+		/* Got type before memset in case of rs_reinit(rs, rs->sr_type) */ \
+		assert( !offsetof( SlapReply, sr_type ) );	\
+		memset( (slap_reply_t *) rsRI + 1, 0,		\
+			sizeof(*rsRI) - sizeof(slap_reply_t) );	\
+	} while ( 0 )
+LDAP_SLAPD_F (void) (rs_reinit)	LDAP_P(( SlapReply *rs, slap_reply_t type ));
+LDAP_SLAPD_F (void) rs_flush_entry LDAP_P(( Operation *op,
+	SlapReply *rs, slap_overinst *on ));
 LDAP_SLAPD_F (void) rs_replace_entry LDAP_P(( Operation *op,
 	SlapReply *rs, slap_overinst *on, Entry *e ));
 LDAP_SLAPD_F (int) rs_ensure_entry_modifiable LDAP_P(( Operation *op,
@@ -2131,4 +2165,3 @@ LDAP_SLAPD_F (int) fe_access_allowed LDAP_P((
 LDAP_END_DECL
 
 #endif /* PROTO_SLAP_H */
-

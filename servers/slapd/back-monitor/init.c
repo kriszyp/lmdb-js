@@ -830,7 +830,7 @@ monitor_search2ndn(
 	OperationBuffer	opbuf;
 	Operation	*op;
 	void	*thrctx;
-	SlapReply	rs = { 0 };
+	SlapReply	rs = { REP_RESULT };
 	slap_callback	cb = { NULL, monitor_search2ndn_cb, NULL, NULL };
 	int		rc;
 

@@ -669,8 +669,10 @@ accesslog_purge( void *ctx, void *arg )
 		for (i=0; i<pd.used; i++) {
 			op->o_req_dn = pd.dn[i];
 			op->o_req_ndn = pd.ndn[i];
-			if ( !slapd_shutdown )
+			if ( !slapd_shutdown ) {
+				rs_reinit( &rs, REP_RESULT );
 				op->o_bd->be_delete( op, &rs );
+			}
 			ch_free( pd.ndn[i].bv_val );
 			ch_free( pd.dn[i].bv_val );
 		}
@@ -680,6 +682,7 @@ accesslog_purge( void *ctx, void *arg )
 		{
 			Modifications mod;
 			struct berval bv[2];
+			rs_reinit( &rs, REP_RESULT );
 			/* update context's entryCSN to reflect oldest CSN */
 			mod.sml_numvals = 1;
 			mod.sml_values = bv;

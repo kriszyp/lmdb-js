@@ -165,7 +165,9 @@ retcode_send_onelevel( Operation *op, SlapReply *rs )
 			rs->sr_entry = &rdi->rdi_e;
 
 			rs->sr_err = send_search_entry( op, rs );
+			rs->sr_flags = 0;
 			rs->sr_entry = NULL;
+			rs->sr_attrs = NULL;
 
 			switch ( rs->sr_err ) {
 			case LDAP_UNAVAILABLE:	/* connection closed */

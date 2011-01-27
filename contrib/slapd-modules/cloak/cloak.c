@@ -220,10 +220,8 @@ cloak_search_response_cb( Operation *op, SlapReply *rs )
 	/*
 	 * We are now committed to cloak an attribute.
 	 */
-	if ( rs->sr_flags & REP_ENTRY_MODIFIABLE )
-		me = e;
-	else
-		me = entry_dup( e );
+	rs_ensure_entry_modifiable( op, rs, (slap_overinst *) op->o_bd->bd_info );
+	me = rs->sr_entry;
 		
 	for ( ci = (cloak_info_t *)sc->sc_private; ci; ci = ci->ci_next ) {
 		Attribute *a;
@@ -248,14 +246,6 @@ cloak_search_response_cb( Operation *op, SlapReply *rs )
 			attr_clean( a );
 		}
 
-	}
-
-	if ( me != e ) {
-		if ( rs->sr_flags & REP_ENTRY_MUSTBEFREED )
-			entry_free( e );
-
-		rs->sr_entry = me;
-        	rs->sr_flags |= REP_ENTRY_MODIFIABLE | REP_ENTRY_MUSTBEFREED;
 	}
 
 	return ( SLAP_CB_CONTINUE );

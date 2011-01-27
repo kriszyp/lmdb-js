@@ -724,8 +724,6 @@ static int translucent_pwmod(Operation *op, SlapReply *rs) {
 }
 
 static int translucent_exop(Operation *op, SlapReply *rs) {
-	SlapReply nrs = { REP_RESULT };
-
 	slap_overinst *on = (slap_overinst *) op->o_bd->bd_info;
 	translucent_info *ov = on->on_bi.bi_private;
 	const struct berval bv_exop_pwmod = BER_BVC(LDAP_EXOP_MODIFY_PASSWD);
@@ -817,14 +815,7 @@ static int translucent_search_cb(Operation *op, SlapReply *rs) {
 		if ( tc->step & USE_LIST ) {
 			re = tavl_delete( &tc->list, le, entry_dn_cmp );
 			if ( re ) {
-				if ( rs->sr_flags & REP_ENTRY_MUSTRELEASE ) {
-					rs->sr_flags ^= REP_ENTRY_MUSTRELEASE;
-					overlay_entry_release_ov( op, rs->sr_entry, 0, on );
-				}
-				if ( rs->sr_flags & REP_ENTRY_MUSTBEFREED ) {
-					rs->sr_flags ^= REP_ENTRY_MUSTBEFREED;
-					entry_free( rs->sr_entry );
-				}
+				rs_flush_entry( op, rs, on );
 				rc = test_filter( op, re, tc->orig );
 				if ( rc == LDAP_COMPARE_TRUE ) {
 					rs->sr_flags |= REP_ENTRY_MUSTBEFREED;
@@ -857,14 +848,7 @@ static int translucent_search_cb(Operation *op, SlapReply *rs) {
 		rc = overlay_entry_get_ov(op, &rs->sr_entry->e_nname, NULL, NULL, 0, &le, on);
 		if ( rc == LDAP_SUCCESS && le ) {
 			re = entry_dup( rs->sr_entry );
-			if ( rs->sr_flags & REP_ENTRY_MUSTRELEASE ) {
-				rs->sr_flags ^= REP_ENTRY_MUSTRELEASE;
-				overlay_entry_release_ov( op, rs->sr_entry, 0, on );
-			}
-			if ( rs->sr_flags & REP_ENTRY_MUSTBEFREED ) {
-				rs->sr_flags ^= REP_ENTRY_MUSTBEFREED;
-				entry_free( rs->sr_entry );
-			}
+			rs_flush_entry( op, rs, on );
 		} else {
 			le = NULL;
 		}
@@ -904,14 +888,7 @@ static int translucent_search_cb(Operation *op, SlapReply *rs) {
 		}
 		/* Dispose of local entry */
 		if ( tc->step & LCL_SIDE ) {
-			if ( rs->sr_flags & REP_ENTRY_MUSTRELEASE ) {
-				rs->sr_flags ^= REP_ENTRY_MUSTRELEASE;
-				overlay_entry_release_ov( op, rs->sr_entry, 0, on );
-			}
-			if ( rs->sr_flags & REP_ENTRY_MUSTBEFREED ) {
-				rs->sr_flags ^= REP_ENTRY_MUSTBEFREED;
-				entry_free( rs->sr_entry );
-			}
+			rs_flush_entry(op, rs, on);
 		} else {
 			overlay_entry_release_ov(op, le, 0, on);
 		}
@@ -1171,6 +1148,7 @@ static int translucent_search(Operation *op, SlapReply *rs) {
 				av = tavl_next( av, TAVL_DIR_RIGHT );
 			}
 			tavl_free( tc.list, NULL );
+			rs->sr_flags = 0;
 			rs->sr_entry = NULL;
 		}
 		send_ldap_result( op, rs );

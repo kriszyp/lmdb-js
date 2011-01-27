@@ -703,7 +703,7 @@ ldap_chain_search(
 	 * to be set once for all (correct?) */
 	li.li_bvuri = bvuri;
 	for ( ; !BER_BVISNULL( &ref[0] ); ref++ ) {
-		SlapReply	rs2 = { 0 };
+		SlapReply	rs2 = { REP_RESULT };
 		LDAPURLDesc	*srv;
 		req_search_s	save_oq_search = op->oq_search,
 				tmp_oq_search = { 0 };

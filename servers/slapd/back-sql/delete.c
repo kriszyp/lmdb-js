@@ -334,7 +334,7 @@ backsql_tree_delete(
 {
 	Operation		op2 = *op;
 	slap_callback		sc = { 0 };
-	SlapReply		rs2 = { 0 };
+	SlapReply		rs2 = { REP_RESULT };
 	backsql_tree_delete_t	btd = { 0 };
 
 	int			rc;

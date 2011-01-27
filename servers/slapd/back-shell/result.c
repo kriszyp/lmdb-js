@@ -103,6 +103,7 @@ read_and_send_results(
 				rs->sr_flags = REP_ENTRY_MODIFIABLE;
 				send_search_entry( op, rs );
 				entry_free( rs->sr_entry );
+				rs->sr_attrs = NULL;
 			}
 
 			bp = buf;

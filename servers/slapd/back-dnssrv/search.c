@@ -219,6 +219,7 @@ dnssrv_back_search(
 			send_search_entry( op, rs );
 			rs->sr_entry = NULL;
 			rs->sr_attrs = NULL;
+			rs->sr_flags = 0;
 		}
 
 		entry_clean( &e );
@@ -237,4 +238,3 @@ done:
 	if( urls != NULL ) ber_bvarray_free( urls );
 	return 0;
 }
-

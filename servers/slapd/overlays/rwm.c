@@ -172,7 +172,7 @@ rwm_op_cleanup( Operation *op, SlapReply *rs )
 }
 
 static rwm_op_cb *
-rwm_callback_get( Operation *op, SlapReply *rs )
+rwm_callback_get( Operation *op )
 {
 	rwm_op_cb	*roc;
 
@@ -270,7 +270,7 @@ rwm_op_add( Operation *op, SlapReply *rs )
 	char			*olddn = op->o_req_dn.bv_val;
 	int			isupdate;
 
-	rwm_op_cb		*roc = rwm_callback_get( op, rs );
+	rwm_op_cb		*roc = rwm_callback_get( op );
 
 	rc = rwm_op_dn_massage( op, rs, "addDN", &roc->ros );
 	if ( rc != LDAP_SUCCESS ) {
@@ -413,7 +413,7 @@ rwm_op_bind( Operation *op, SlapReply *rs )
 	slap_overinst		*on = (slap_overinst *) op->o_bd->bd_info;
 	int			rc;
 
-	rwm_op_cb		*roc = rwm_callback_get( op, rs );
+	rwm_op_cb		*roc = rwm_callback_get( op );
 
 	rc = rwm_op_dn_massage( op, rs, "bindDN", &roc->ros );
 	if ( rc != LDAP_SUCCESS ) {
@@ -449,7 +449,7 @@ rwm_op_compare( Operation *op, SlapReply *rs )
 	int			rc;
 	struct berval		mapped_vals[2] = { BER_BVNULL, BER_BVNULL };
 
-	rwm_op_cb		*roc = rwm_callback_get( op, rs );
+	rwm_op_cb		*roc = rwm_callback_get( op );
 
 	rc = rwm_op_dn_massage( op, rs, "compareDN", &roc->ros );
 	if ( rc != LDAP_SUCCESS ) {
@@ -534,7 +534,7 @@ rwm_op_delete( Operation *op, SlapReply *rs )
 	slap_overinst		*on = (slap_overinst *) op->o_bd->bd_info;
 	int			rc;
 
-	rwm_op_cb		*roc = rwm_callback_get( op, rs );
+	rwm_op_cb		*roc = rwm_callback_get( op );
 
 	rc = rwm_op_dn_massage( op, rs, "deleteDN", &roc->ros );
 	if ( rc != LDAP_SUCCESS ) {
@@ -559,7 +559,7 @@ rwm_op_modify( Operation *op, SlapReply *rs )
 	Modifications		**mlp;
 	int			rc;
 
-	rwm_op_cb		*roc = rwm_callback_get( op, rs );
+	rwm_op_cb		*roc = rwm_callback_get( op );
 
 	rc = rwm_op_dn_massage( op, rs, "modifyDN", &roc->ros );
 	if ( rc != LDAP_SUCCESS ) {
@@ -722,7 +722,7 @@ rwm_op_modrdn( Operation *op, SlapReply *rs )
 	int			rc;
 	dncookie		dc;
 
-	rwm_op_cb		*roc = rwm_callback_get( op, rs );
+	rwm_op_cb		*roc = rwm_callback_get( op );
 
 	if ( op->orr_newSup ) {
 		struct berval	nnewSup = BER_BVNULL;
@@ -866,12 +866,7 @@ rwm_entry_get_rw( Operation *op, struct berval *ndn,
 	ObjectClass *oc, AttributeDescription *at, int rw, Entry **ep )
 {
 	slap_overinst		*on = (slap_overinst *) op->o_bd->bd_info;
-	struct ldaprwmap	*rwmap = 
-			(struct ldaprwmap *)on->on_bi.bi_private;
-
 	int			rc;
-	dncookie		dc;
-
 	BackendDB		db;
 	Operation		op2;
 	SlapReply		rs = { REP_SEARCH };
@@ -952,7 +947,7 @@ rwm_op_search( Operation *op, SlapReply *rs )
 
 	char			*text = NULL;
 
-	rwm_op_cb		*roc = rwm_callback_get( op, rs );
+	rwm_op_cb		*roc = rwm_callback_get( op );
 
 	rc = rewrite_session_var_set( rwmap->rwm_rw, op->o_conn,
 		"searchFilter", op->ors_filterstr.bv_val );
@@ -1071,7 +1066,7 @@ rwm_exop_passwd( Operation *op, SlapReply *rs )
 		ber_dupbv_x( &op->o_req_ndn, &op->o_ndn, op->o_tmpmemctx );
 	}
 
-	roc = rwm_callback_get( op, rs );
+	roc = rwm_callback_get( op );
 
 	rc = rwm_op_dn_massage( op, rs, "extendedDN", &roc->ros );
 	if ( rc != LDAP_SUCCESS ) {
@@ -1143,7 +1138,7 @@ rwm_extended( Operation *op, SlapReply *rs )
 		}
 	}
 
-	roc = rwm_callback_get( op, rs );
+	roc = rwm_callback_get( op );
 
 	rc = rwm_op_dn_massage( op, rs, "extendedDN", &roc->ros );
 	if ( rc != LDAP_SUCCESS ) {
@@ -2035,6 +2030,7 @@ rwm_bva_rewrite_add(
 	return rwm_bva_add( &rwmap->rwm_bva_rewrite, idx, argv );
 }
 
+#ifdef unused
 static int
 rwm_bva_map_add(
 	struct ldaprwmap	*rwmap,
@@ -2043,6 +2039,7 @@ rwm_bva_map_add(
 {
 	return rwm_bva_add( &rwmap->rwm_bva_map, idx, argv );
 }
+#endif /* unused */
 
 static int
 rwm_info_init( struct rewrite_info ** rwm_rw )

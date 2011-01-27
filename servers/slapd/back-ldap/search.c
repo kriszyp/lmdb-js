@@ -170,6 +170,9 @@ ldap_back_search(
 	char		**references = NULL;
 	void		*matchctx = NULL;
 
+	rs_assert_ready( rs );
+	rs->sr_flags &= ~REP_ENTRY_MASK; /* paranoia, we can set rs = non-entry */
+
 	if ( !ldap_back_dobind( &lc, op, rs, LDAP_BACK_SENDERR ) ) {
 		return rs->sr_err;
 	}
@@ -342,6 +345,7 @@ retry:
 					rs->sr_ctrls = NULL;
 				}
 				rs->sr_entry = NULL;
+				rs->sr_flags = 0;
 				if ( !BER_BVISNULL( &ent.e_name ) ) {
 					assert( ent.e_name.bv_val != bdn.bv_val );
 					op->o_tmpfree( ent.e_name.bv_val, op->o_tmpmemctx );
@@ -399,6 +403,7 @@ retry:
 				BER_BVZERO( &rs->sr_ref[ cnt ] );
 
 				/* ignore return value by now */
+				RS_ASSERT( !(rs->sr_flags & REP_ENTRY_MASK) );
 				rs->sr_entry = NULL;
 				( void )send_search_reference( op, rs );
 
@@ -976,4 +981,3 @@ cleanup:
 
 	return rc;
 }
-

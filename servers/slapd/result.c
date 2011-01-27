@@ -132,30 +132,133 @@ slap_req2res( ber_tag_t tag )
 	return tag;
 }
 
-#ifdef RS_ASSERT
-#elif 0 && defined LDAP_DEVEL /* FIXME: this should not crash. ITS#5340. */
-#define RS_ASSERT assert
-#else
-#define RS_ASSERT(cond) ((void) 0)
-#endif
+/* SlapReply debugging, prodo-slap.h overrides it in OpenLDAP releases */
+#if defined(LDAP_TEST) || (defined(USE_RS_ASSERT) && (USE_RS_ASSERT))
 
-/* Set rs->sr_entry after obyeing and clearing sr_flags & REP_ENTRY_MASK. */
-void
-rs_replace_entry( Operation *op, SlapReply *rs, slap_overinst *on, Entry *e )
+int rs_suppress_assert = 0;
+
+/* RS_ASSERT() helper function */
+void rs_assert_(const char*file, unsigned line, const char*fn, const char*cond)
 {
-	slap_mask_t e_flags = rs->sr_flags & REP_ENTRY_MUSTFLUSH;
+	int no_assert = rs_suppress_assert, save_errno = errno;
+	const char *s;
 
-	if ( e_flags && rs->sr_entry != NULL ) {
-		RS_ASSERT( e_flags != REP_ENTRY_MUSTFLUSH );
-		if ( !(e_flags & REP_ENTRY_MUSTRELEASE) ) {
+	if ( no_assert >= 0 ) {
+		if ( no_assert == 0 && (s = getenv( "NO_RS_ASSERT" )) && *s ) {
+			no_assert = rs_suppress_assert = atoi( s );
+		}
+		if ( no_assert > 0 ) {
+			errno = save_errno;
+			return;
+		}
+	}
+
+#ifdef rs_assert_	/* proto-slap.h #defined away the fn parameter */
+	fprintf( stderr,"%s:%u: "  "RS_ASSERT(%s) failed.\n", file,line,cond );
+#else
+	fprintf( stderr,"%s:%u: %s: RS_ASSERT(%s) failed.\n", file,line,fn,cond );
+#endif
+	fflush( stderr );
+
+	errno = save_errno;
+	/* $NO_RS_ASSERT > 0: ignore rs_asserts, 0: abort, < 0: just warn */
+	if ( !no_assert /* from $NO_RS_ASSERT */ ) abort();
+}
+
+/* SlapReply is consistent */
+void
+(rs_assert_ok)( const SlapReply *rs )
+{
+	const slap_mask_t flags = rs->sr_flags;
+
+	if ( flags & REP_ENTRY_MASK ) {
+		RS_ASSERT( !(flags & REP_ENTRY_MUSTRELEASE)
+			|| !(flags & (REP_ENTRY_MASK ^ REP_ENTRY_MUSTRELEASE)) );
+		RS_ASSERT( rs->sr_entry != NULL );
+		RS_ASSERT( (1 << rs->sr_type) &
+			((1 << REP_SEARCH) | (1 << REP_SEARCHREF) |
+			 (1 << REP_RESULT) | (1 << REP_GLUE_RESULT)) );
+	}
+#if defined(USE_RS_ASSERT) && (USE_RS_ASSERT) > 1 /* TODO: Enable when safe */
+	if ( (flags & (REP_MATCHED_MASK | REP_REF_MASK | REP_CTRLS_MASK)) ) {
+		RS_ASSERT( !(flags & REP_MATCHED_MASK) || rs->sr_matched );
+		RS_ASSERT( !(flags & REP_CTRLS_MASK  ) || rs->sr_ctrls   );
+		/* Note: LDAP_REFERRAL + !sr_ref is OK, becomes LDAP_NO_SUCH_OBJECT */
+	}
+#if (USE_RS_ASSERT) > 2
+	if ( rs->sr_err == LDAP_SUCCESS ) {
+		RS_ASSERT( rs->sr_text == NULL );
+		RS_ASSERT( rs->sr_matched == NULL );
+	}
+#endif
+#endif
+}
+
+/* Ready for calling a new backend operation */
+void
+(rs_assert_ready)( const SlapReply *rs )
+{
+	RS_ASSERT( !rs->sr_entry   );
+#if defined(USE_RS_ASSERT) && (USE_RS_ASSERT) > 1 /* TODO: Enable when safe */
+	RS_ASSERT( !rs->sr_text    );
+	RS_ASSERT( !rs->sr_ref     );
+	RS_ASSERT( !rs->sr_matched );
+	RS_ASSERT( !rs->sr_ctrls   );
+	RS_ASSERT( !rs->sr_flags   );
+#if (USE_RS_ASSERT) > 2
+	RS_ASSERT( rs->sr_err == LDAP_SUCCESS );
+#endif
+#else
+	RS_ASSERT( !(rs->sr_flags & REP_ENTRY_MASK) );
+#endif
+}
+
+/* Backend operation done */
+void
+(rs_assert_done)( const SlapReply *rs )
+{
+#if defined(USE_RS_ASSERT) && (USE_RS_ASSERT) > 1 /* TODO: Enable when safe */
+	RS_ASSERT( !(rs->sr_flags & ~(REP_ENTRY_MODIFIABLE|REP_NO_OPERATIONALS)) );
+	rs_assert_ok( rs );
+#else
+	RS_ASSERT( !(rs->sr_flags & REP_ENTRY_MUSTFLUSH) );
+#endif
+}
+
+#endif /* LDAP_TEST || USE_RS_ASSERT */
+
+/* Reset a used SlapReply whose contents has been flushed (freed/released) */
+void
+(rs_reinit)( SlapReply *rs, slap_reply_t type )
+{
+	rs_reinit( rs, type );		/* proto-slap.h macro */
+}
+
+/* Obey and clear rs->sr_flags & REP_ENTRY_MASK.  Clear sr_entry if freed. */
+void
+rs_flush_entry( Operation *op, SlapReply *rs, slap_overinst *on )
+{
+	rs_assert_ok( rs );
+
+	if ( (rs->sr_flags & REP_ENTRY_MUSTFLUSH) && rs->sr_entry != NULL ) {
+		if ( !(rs->sr_flags & REP_ENTRY_MUSTRELEASE) ) {
 			entry_free( rs->sr_entry );
 		} else if ( on != NULL ) {
 			overlay_entry_release_ov( op, rs->sr_entry, 0, on );
 		} else {
 			be_entry_release_rw( op, rs->sr_entry, 0 );
 		}
+		rs->sr_entry = NULL;
 	}
+
 	rs->sr_flags &= ~REP_ENTRY_MASK;
+}
+
+/* Set rs->sr_entry after obeying and clearing sr_flags & REP_ENTRY_MASK. */
+void
+rs_replace_entry( Operation *op, SlapReply *rs, slap_overinst *on, Entry *e )
+{
+	rs_flush_entry( op, rs, on );
 	rs->sr_entry = e;
 }
 
@@ -168,7 +271,7 @@ int
 rs_ensure_entry_modifiable( Operation *op, SlapReply *rs, slap_overinst *on )
 {
 	if ( rs->sr_flags & REP_ENTRY_MODIFIABLE ) {
-		RS_ASSERT((rs->sr_flags & REP_ENTRY_MUSTFLUSH)==REP_ENTRY_MUSTBEFREED);
+		rs_assert_ok( rs );
 		return 0;
 	}
 	rs_replace_entry( op, rs, on, entry_dup( rs->sr_entry ));
@@ -662,6 +765,10 @@ send_ldap_disconnect( Operation	*op, SlapReply *rs )
 		rs->sr_err, rs->sr_text ? rs->sr_text : "", NULL );
 	assert( LDAP_UNSOLICITED_ERROR( rs->sr_err ) );
 
+	/* TODO: Flush the entry if sr_type == REP_SEARCH/REP_SEARCHREF? */
+	RS_ASSERT( !(rs->sr_flags & REP_ENTRY_MASK) );
+	rs->sr_flags &= ~REP_ENTRY_MASK;	/* paranoia */
+
 	rs->sr_type = REP_EXTENDED;
 	rs->sr_rspdata = NULL;
 
@@ -767,6 +874,9 @@ send_ldap_sasl( Operation *op, SlapReply *rs )
 		rs->sr_err,
 		rs->sr_sasldata ? (long) rs->sr_sasldata->bv_len : -1, NULL );
 
+	RS_ASSERT( !(rs->sr_flags & REP_ENTRY_MASK) );
+	rs->sr_flags &= ~REP_ENTRY_MASK;	/* paranoia */
+
 	rs->sr_type = REP_SASL;
 	rs->sr_tag = slap_req2res( op->o_tag );
 	rs->sr_msgid = (rs->sr_tag != LBER_SEQUENCE) ? op->o_msgid : 0;
@@ -788,6 +898,9 @@ slap_send_ldap_extended( Operation *op, SlapReply *rs )
 		rs->sr_rspoid ? rs->sr_rspoid : "",
 		rs->sr_rspdata != NULL ? rs->sr_rspdata->bv_len : 0 );
 
+	RS_ASSERT( !(rs->sr_flags & REP_ENTRY_MASK) );
+	rs->sr_flags &= ~REP_ENTRY_MASK;	/* paranoia */
+
 	rs->sr_type = REP_EXTENDED;
 	rs->sr_tag = slap_req2res( op->o_tag );
 	rs->sr_msgid = (rs->sr_tag != LBER_SEQUENCE) ? op->o_msgid : 0;
@@ -808,6 +921,9 @@ slap_send_ldap_intermediate( Operation *op, SlapReply *rs )
 		rs->sr_err,
 		rs->sr_rspoid ? rs->sr_rspoid : "",
 		rs->sr_rspdata != NULL ? rs->sr_rspdata->bv_len : 0 );
+
+	RS_ASSERT( !(rs->sr_flags & REP_ENTRY_MASK) );
+	rs->sr_flags &= ~REP_ENTRY_MASK;	/* paranoia */
 
 	rs->sr_type = REP_INTERMEDIATE;
 	rs->sr_tag = LDAP_RES_INTERMEDIATE;
@@ -1288,11 +1404,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 	Statslog( LDAP_DEBUG_STATS2, "%s ENTRY dn=\"%s\"\n",
 	    op->o_log_prefix, rs->sr_entry->e_nname.bv_val, 0, 0, 0 );
 
-	if ( rs->sr_flags & REP_ENTRY_MUSTRELEASE ) {
-		be_entry_release_rw( op, rs->sr_entry, 0 );
-		rs->sr_flags ^= REP_ENTRY_MUSTRELEASE;
-		rs->sr_entry = NULL;
-	}
+	rs_flush_entry( op, rs, NULL );
 
 	if ( op->o_res_ber == NULL ) {
 		bytes = send_ldap_ber( op, ber );
@@ -1329,25 +1441,17 @@ error_return:;
 		slap_sl_free( e_flags, op->o_tmpmemctx );
 	}
 
+	/* FIXME: Can break if rs now contains an extended response */
 	if ( rs->sr_operational_attrs ) {
 		attrs_free( rs->sr_operational_attrs );
 		rs->sr_operational_attrs = NULL;
 	}
 	rs->sr_attr_flags = SLAP_ATTRS_UNDEFINED;
 
-	/* FIXME: I think rs->sr_type should be explicitly set to
-	 * REP_SEARCH here. That's what it was when we entered this
-	 * function. send_ldap_error may have changed it, but we
-	 * should set it back so that the cleanup functions know
-	 * what they're doing.
-	 */
-	if ( op->o_tag == LDAP_REQ_SEARCH && rs->sr_type == REP_SEARCH 
-		&& rs->sr_entry 
-		&& ( rs->sr_flags & REP_ENTRY_MUSTBEFREED ) ) 
-	{
-		entry_free( rs->sr_entry );
-		rs->sr_entry = NULL;
-		rs->sr_flags &= ~REP_ENTRY_MUSTBEFREED;
+	if ( op->o_tag == LDAP_REQ_SEARCH && rs->sr_type == REP_SEARCH ) {
+		rs_flush_entry( op, rs, NULL );
+	} else {
+		RS_ASSERT( (rs->sr_flags & REP_ENTRY_MASK) == 0 );
 	}
 
 	if ( rs->sr_flags & REP_CTRLS_MUSTBEFREED ) {
@@ -1466,12 +1570,7 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 	}
 
 	rc = 0;
-	if ( rs->sr_flags & REP_ENTRY_MUSTRELEASE ) {
-		assert( rs->sr_entry != NULL );
-		be_entry_release_rw( op, rs->sr_entry, 0 );
-		rs->sr_flags ^= REP_ENTRY_MUSTRELEASE;
-		rs->sr_entry = NULL;
-	}
+	rs_flush_entry( op, rs, NULL );
 
 #ifdef LDAP_CONNECTIONLESS
 	if (!op->o_conn || op->o_conn->c_is_udp == 0) {

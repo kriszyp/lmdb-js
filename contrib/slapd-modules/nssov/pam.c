@@ -206,7 +206,6 @@ int pam_authc(nssov_info *ni,TFILE *fp,Operation *op)
 	int32_t tmpint32;
 	int rc;
 	slap_callback cb = {0};
-	SlapReply rs = {REP_RESULT};
 	char dnc[1024];
 	char uidc[32];
 	char svcc[256];
@@ -274,7 +273,6 @@ int pam_authz(nssov_info *ni,TFILE *fp,Operation *op)
 	int rc;
 	Entry *e = NULL;
 	Attribute *a;
-	SlapReply rs = {REP_RESULT};
 	slap_callback cb = {0};
 
 	READ_STRING(fp,uidc);
@@ -314,6 +312,7 @@ int pam_authz(nssov_info *ni,TFILE *fp,Operation *op)
 		AttributeAssertion ava = ATTRIBUTEASSERTION_INIT;
 		struct berval hostdn = BER_BVNULL;
 		struct berval odn = op->o_ndn;
+		SlapReply rs = {REP_RESULT};
 		op->o_dn = dn;
 		op->o_ndn = dn;
 		{
@@ -342,8 +341,7 @@ int pam_authz(nssov_info *ni,TFILE *fp,Operation *op)
 				!BER_BVISEMPTY(&ni->ni_pam_defhost)) {
 				filter.bv_len = sizeof(fbuf);
 				filter.bv_val = fbuf;
-				memset(&rs2, 0, sizeof(rs2));
-				rs2.sr_type = REP_RESULT;
+				rs_reinit(&rs2, REP_RESULT);
 				nssov_filter_byname(mi,0,&ni->ni_pam_defhost,&filter);
 				op->ors_filterstr = filter;
 				op->ors_filter = str2filter_x(op, filter.bv_val);
@@ -382,6 +380,7 @@ int pam_authz(nssov_info *ni,TFILE *fp,Operation *op)
 		!BER_BVISEMPTY(&ni->ni_pam_group_dn) &&
 		ni->ni_pam_group_ad) {
 		AttributeAssertion ava = ATTRIBUTEASSERTION_INIT;
+		SlapReply rs = {REP_RESULT};
 		op->o_callback = &cb;
 		cb.sc_response = slap_null_cb;
 		op->o_tag = LDAP_REQ_COMPARE;

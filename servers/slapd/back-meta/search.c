@@ -789,6 +789,9 @@ meta_back_search( Operation *op, SlapReply *rs )
 	SlapReply	*candidates = NULL;
 	int		do_taint = 0;
 
+	rs_assert_ready( rs );
+	rs->sr_flags &= ~REP_ENTRY_MASK; /* paranoia, we can set rs = non-entry */
+
 	/*
 	 * controls are set in ldap_back_dobind()
 	 * 

@@ -702,7 +702,6 @@ static void connection_abandon( Connection *c )
 
 	Operation *o, *next, op = {0};
 	Opheader ohdr = {0};
-	SlapReply rs = {0};
 
 	op.o_hdr = &ohdr;
 	op.o_conn = c;
@@ -710,6 +709,8 @@ static void connection_abandon( Connection *c )
 	op.o_tag = LDAP_REQ_ABANDON;
 
 	for ( o = LDAP_STAILQ_FIRST( &c->c_ops ); o; o=next ) {
+		SlapReply rs = {REP_RESULT};
+
 		next = LDAP_STAILQ_NEXT( o, o_next );
 		op.orn_msgid = o->o_msgid;
 		o->o_abandon = 1;

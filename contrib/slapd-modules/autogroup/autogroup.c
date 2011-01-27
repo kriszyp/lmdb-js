@@ -450,6 +450,8 @@ autogroup_add_members_from_filter( Operation *op, Entry *e, autogroup_entry_t *a
 	o.o_bd->bd_info = (BackendInfo *)on;	
 
 	if ( modify == 1 && agg.agg_mod ) {
+		rs_reinit( &rs, REP_RESULT );
+
 		o = *op;
 		o.o_callback = &null_cb;
 		o.o_tag = LDAP_REQ_MODIFY;
@@ -1705,7 +1707,6 @@ autogroup_db_open(
 	autogroup_def_t		*agd;
 	autogroup_sc_t		ags;
 	Operation		*op;
-	SlapReply		rs = { REP_RESULT };
 	slap_callback		cb = { 0 };
 
 	void				*thrctx = ldap_pvt_thread_pool_context();
@@ -1748,6 +1749,7 @@ autogroup_db_open(
 	op->o_callback = &cb;
 
 	for (agd = agi->agi_def ; agd ; agd = agd->agd_next) {
+		SlapReply	rs = { REP_RESULT };
 
 		autogroup_build_def_filter(agd, op);
 
