@@ -5523,7 +5523,7 @@ pcache_monitor_db_close( BackendDB *be )
 
 		if ( mi && &mi->bi_extra ) {
 			mbe = mi->bi_extra;
-			mbe->unregister_entry_callback( NULL,
+			mbe->unregister_entry_callback( &cm->monitor_ndn,
 				(monitor_callback_t *)cm->monitor_cb,
 				NULL, 0, NULL );
 		}
