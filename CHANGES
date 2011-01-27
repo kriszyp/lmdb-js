@@ -102,6 +102,7 @@ OpenLDAP 2.4.24 Engineering
 	Fixed slapo-pcache to ignore undefined attrs (ITS#6600)
 	Fixed slapo-pcache pointer freeing (ITS#6797)
 	Fixed slapo-pcache with negative caching (ITS#6796)
+	Fixed slapo-pcache monitoring cleanup (ITS#6808)
 	Fixed slapo-ppolicy don't update opattrs on consumers (ITS#6608)
 	Fixed slapo-ppolicy to allow userPassword deletion (ITS#6620)
 	Fixed slapo-refint when last group member is deleted (ITS#6663)
