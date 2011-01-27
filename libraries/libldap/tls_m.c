@@ -68,6 +68,13 @@
 #define HAVE_NSS_INITCONTEXT 1
 #endif
 
+/* NSS 3.12.9 and later have SECMOD_RestartModules */
+#if NSS_VMAJOR <= 3 && NSS_VMINOR <= 12 && NSS_VPATCH < 9
+/* do nothing */
+#else
+#define HAVE_SECMOD_RESTARTMODULES 1
+#endif
+
 /* InitContext does not currently work in server mode */
 /* #define INITCONTEXT_HACK 1 */
 
@@ -1481,6 +1488,24 @@ tlsm_deferred_init( void *arg )
 #endif
 	SECStatus rc;
 	int done = 0;
+
+#ifdef HAVE_SECMOD_RESTARTMODULES
+	/* NSS enforces the pkcs11 requirement that modules should be unloaded after
+	   a fork() - since there is no portable way to determine if NSS has been
+	   already initialized in a parent process, we just call SECMOD_RestartModules
+	   with force == FALSE - if the module has been unloaded due to a fork, it will
+	   be reloaded, otherwise, it is a no-op */
+	if ( SECFailure == ( rc = SECMOD_RestartModules(PR_FALSE /* do not force */) ) ) {
+		errcode = PORT_GetError();
+		if ( errcode != SEC_ERROR_NOT_INITIALIZED ) {
+			Debug( LDAP_DEBUG_TRACE,
+				   "TLS: could not restart the security modules: %d:%s\n",
+				   errcode, PR_ErrorToString( errcode, PR_LANGUAGE_I_DEFAULT ), 0 );
+		} else {
+			errcode = 1;
+		}
+	}
+#endif
 
 #ifdef HAVE_NSS_INITCONTEXT
 	memset( &initParams, 0, sizeof( initParams ) );
