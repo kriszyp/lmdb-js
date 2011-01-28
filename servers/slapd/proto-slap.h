@@ -1562,8 +1562,9 @@ LDAP_SLAPD_F (void) rs_flush_entry LDAP_P(( Operation *op,
 	SlapReply *rs, slap_overinst *on ));
 LDAP_SLAPD_F (void) rs_replace_entry LDAP_P(( Operation *op,
 	SlapReply *rs, slap_overinst *on, Entry *e ));
-LDAP_SLAPD_F (int) rs_ensure_entry_modifiable LDAP_P(( Operation *op,
+LDAP_SLAPD_F (int) rs_entry2modifiable LDAP_P(( Operation *op,
 	SlapReply *rs, slap_overinst *on ));
+#define rs_ensure_entry_modifiable rs_entry2modifiable /* older name */
 LDAP_SLAPD_F (void) slap_send_ldap_result LDAP_P(( Operation *op, SlapReply *rs ));
 LDAP_SLAPD_F (void) send_ldap_sasl LDAP_P(( Operation *op, SlapReply *rs ));
 LDAP_SLAPD_F (void) send_ldap_disconnect LDAP_P(( Operation *op, SlapReply *rs ));
