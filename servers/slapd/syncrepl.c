@@ -620,7 +620,7 @@ do_syncrep1(
 	/* We've just started up, or the remote server hasn't sent us
 	 * any meaningful state.
 	 */
-	if ( BER_BVISNULL( &si->si_syncCookie.octet_str ) ) {
+	if ( !si->si_syncCookie.ctxcsn ) {
 		int i;
 
 		LDAP_STAILQ_FOREACH( sc, &slap_sync_cookie, sc_next ) {
