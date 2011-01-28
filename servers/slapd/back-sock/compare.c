@@ -71,7 +71,7 @@ sock_back_compare(
 	sock_print_conn( fp, op->o_conn, si );
 	sock_print_suffixes( fp, op->o_bd );
 	fprintf( fp, "dn: %s\n", op->o_req_dn.bv_val );
-	fprintf( fp, "%s: %s\n",
+	fprintf( fp, "%s: %s\n\n",
 		op->oq_compare.rs_ava->aa_desc->ad_cname.bv_val,
 		op->oq_compare.rs_ava->aa_value.bv_val /* could be binary! */ );
 	fclose( fp );
