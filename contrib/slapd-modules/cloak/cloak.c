@@ -220,7 +220,7 @@ cloak_search_response_cb( Operation *op, SlapReply *rs )
 	/*
 	 * We are now committed to cloak an attribute.
 	 */
-	rs_ensure_entry_modifiable( op, rs, (slap_overinst *) op->o_bd->bd_info );
+	rs_entry2modifiable( op, rs, (slap_overinst *) op->o_bd->bd_info );
 	me = rs->sr_entry;
 		
 	for ( ci = (cloak_info_t *)sc->sc_private; ci; ci = ci->ci_next ) {

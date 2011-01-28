@@ -403,7 +403,7 @@ dupent_response_entry( Operation *op, SlapReply *rs )
 		return SLAP_CB_CONTINUE;
 	}
 
-	rs_ensure_entry_modifiable( op, rs, dc->dc_on );
+	rs_entry2modifiable( op, rs, dc->dc_on );
 	rs->sr_flags &= ~(REP_ENTRY_MODIFIABLE | REP_ENTRY_MUSTBEFREED);
 	e = rs->sr_entry;
 

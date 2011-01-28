@@ -386,7 +386,7 @@ collect_response( Operation *op, SlapReply *rs )
 			* don't modify it directly. Make a copy and
 			* work with that instead.
 			*/
-			rs_ensure_entry_modifiable( op, rs, on );
+			rs_entry2modifiable( op, rs, on );
 
 			/* Loop for each attribute in this collectinfo */
 			for(idx=0; idx<ci->ci_ad_num; idx++) {

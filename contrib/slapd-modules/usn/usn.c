@@ -135,7 +135,7 @@ usn_operational(
 				}
 
 			if ( !ap ) {
-				if ( rs_ensure_entry_modifiable( op,rs, on )) {
+				if ( rs_entry2modifiable( op,rs, on )) {
 					a = attr_find( rs->sr_entry->e_attrs,
 						ad_usnChanged );
 				}

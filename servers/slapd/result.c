@@ -268,7 +268,7 @@ rs_replace_entry( Operation *op, SlapReply *rs, slap_overinst *on, Entry *e )
  * Return nonzero if rs->sr_entry was replaced.
  */
 int
-rs_ensure_entry_modifiable( Operation *op, SlapReply *rs, slap_overinst *on )
+rs_entry2modifiable( Operation *op, SlapReply *rs, slap_overinst *on )
 {
 	if ( rs->sr_flags & REP_ENTRY_MODIFIABLE ) {
 		rs_assert_ok( rs );
