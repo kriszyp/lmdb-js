@@ -40,114 +40,61 @@ ldap_build_entry( Operation *op, LDAPMessage *e, Entry *ent,
 	 struct berval *bdn );
 
 /*
- * Quick'n'dirty rewrite of filter in case of error, to deal with
- * <draft-zeilenga-ldap-t-f>.
+ * replaces (&) with (objectClass=*) and (|) with (!(objectClass=*))
+ * as the best replacement for RFC 4526 absolute true/absolute false
+ * filters; the only difference (AFAIK) is that they require search
+ * access to objectClass.
+ *
+ * filter->bv_val may be alloc'd on the thread's slab, if equal to
+ * op->ors_filterstr.bv_val, or realloc'd on the thread's slab otherwise.
  */
 static int
 ldap_back_munge_filter(
 	Operation	*op,
-	struct berval	*filter,
-	int	*freeit )
+	struct berval	*filter )
 {
-	ldapinfo_t	*li = (ldapinfo_t *) op->o_bd->be_private;
-
-	char		*ptr;
-	int		gotit = 0;
+	char *ptr;
+	int gotit = 0;
 
 	Debug( LDAP_DEBUG_ARGS, "=> ldap_back_munge_filter \"%s\"\n",
 			filter->bv_val, 0, 0 );
 
-	for ( ptr = strstr( filter->bv_val, "(?" ); 
+	for ( ptr = strchr( filter->bv_val, '(' ); 
 			ptr;
-			ptr = strstr( ptr, "(?" ) )
+			ptr = strchr( ptr, '(' ) )
 	{
 		static struct berval
-			bv_true = BER_BVC( "(?=true)" ),
-			bv_false = BER_BVC( "(?=false)" ),
-			bv_undefined = BER_BVC( "(?=undefined)" ),
-			bv_oc = BER_BVC( "(?objectClass=" ),
 			bv_t = BER_BVC( "(&)" ),
 			bv_f = BER_BVC( "(|)" ),
 			bv_T = BER_BVC( "(objectClass=*)" ),
 			bv_F = BER_BVC( "(!(objectClass=*))" );
-		struct berval	oldbv = BER_BVNULL,
-				newbv = BER_BVNULL,
-				oldfilter = BER_BVNULL;
-		int free_newbv = 0;
+		struct berval *oldbv = NULL,
+			*newbv = NULL,
+			oldfilter = BER_BVNULL;
 
-		if ( strncmp( ptr, bv_true.bv_val, bv_true.bv_len ) == 0 ) {
-			oldbv = bv_true;
-			if ( LDAP_BACK_T_F( li ) ) {
-				newbv = bv_t;
+		if ( ptr[2] != ')' ) {
+			ptr++;
+			continue;
+		}
 
-			} else {
-				newbv = bv_T;
-			}
+		switch ( ptr[1] ) {
+		case '&':
+			oldbv = &bv_t;
+			newbv = &bv_T;
+			break;
 
-		} else if ( strncmp( ptr, bv_false.bv_val, bv_false.bv_len ) == 0 )
-		{
-			oldbv = bv_false;
-			if ( LDAP_BACK_T_F( li ) ) {
-				newbv = bv_f;
+		case '|':
+			oldbv = &bv_f;
+			newbv = &bv_F;
+			break;
 
-			} else {
-				newbv = bv_F;
-			}
-
-		} else if ( strncmp( ptr, bv_undefined.bv_val, bv_undefined.bv_len ) == 0 )
-		{
-			/* if undef or invalid filter is not allowed,
-			 * don't rewrite filter */
-			if ( LDAP_BACK_NOUNDEFFILTER( li ) ) {
-				if ( filter->bv_val != op->ors_filterstr.bv_val ) {
-					op->o_tmpfree( filter->bv_val, op->o_tmpmemctx );
-				}
-				BER_BVZERO( filter );
-				gotit = -1;
-				goto done;
-			}
-
-			oldbv = bv_undefined;
-			newbv = bv_F;
-
-
-		} else if ( strncmp( ptr, bv_oc.bv_val, bv_oc.bv_len ) == 0 )
-		{
-			char *end;
-
-			/* if undef or invalid filter is not allowed,
-			 * don't rewrite filter */
-			if ( LDAP_BACK_NOUNDEFFILTER( li ) ) {
-err_oc:;
-				if ( filter->bv_val != op->ors_filterstr.bv_val ) {
-					op->o_tmpfree( filter->bv_val, op->o_tmpmemctx );
-				}
-				BER_BVZERO( filter );
-				gotit = -1;
-				goto done;
-			}
-
-			oldbv.bv_val = ptr;
-			end = strchr( oldbv.bv_val, ')' );
-			if ( end == NULL ) {
-				goto err_oc;
-			}
-			end++;
-			oldbv.bv_len = end - oldbv.bv_val;
-
-			newbv.bv_len = oldbv.bv_len - 1;
-			newbv.bv_val = op->o_tmpalloc( newbv.bv_len + 1, op->o_tmpmemctx );
-			newbv.bv_val[0] = '(';
-			AC_MEMCPY( &newbv.bv_val[1], &oldbv.bv_val[2], newbv.bv_len );
-			free_newbv = 1;
-
-		} else {
-			gotit = 0;
-			goto done;
+		default:
+			/* should be an error */
+			continue;
 		}
 
 		oldfilter = *filter;
-		filter->bv_len += newbv.bv_len - oldbv.bv_len;
+		filter->bv_len += newbv->bv_len - oldbv->bv_len;
 		if ( filter->bv_val == op->ors_filterstr.bv_val ) {
 			filter->bv_val = op->o_tmpalloc( filter->bv_len + 1,
 					op->o_tmpmemctx );
@@ -155,7 +102,6 @@ err_oc:;
 			AC_MEMCPY( filter->bv_val, op->ors_filterstr.bv_val,
 					ptr - oldfilter.bv_val );
 
-			*freeit = 1;
 		} else {
 			filter->bv_val = op->o_tmprealloc( filter->bv_val,
 					filter->bv_len + 1, op->o_tmpmemctx );
@@ -163,21 +109,16 @@ err_oc:;
 
 		ptr = filter->bv_val + ( ptr - oldfilter.bv_val );
 
-		AC_MEMCPY( &ptr[ newbv.bv_len ],
-				&ptr[ oldbv.bv_len ], 
-				oldfilter.bv_len - ( ptr - filter->bv_val ) - oldbv.bv_len + 1 );
-		AC_MEMCPY( ptr, newbv.bv_val, newbv.bv_len );
+		AC_MEMCPY( &ptr[ newbv->bv_len ],
+				&ptr[ oldbv->bv_len ], 
+				oldfilter.bv_len - ( ptr - filter->bv_val ) - oldbv->bv_len + 1 );
+		AC_MEMCPY( ptr, newbv->bv_val, newbv->bv_len );
 
-		ptr += newbv.bv_len;
+		ptr += newbv->bv_len;
 
-		if ( free_newbv ) {
-			op->o_tmpfree( newbv.bv_val, op->o_tmpmemctx );
-		}
-
-		gotit = 1;
+		gotit++;
 	}
 
-done:;
 	Debug( LDAP_DEBUG_ARGS, "<= ldap_back_munge_filter \"%s\" (%d)\n",
 			filter->bv_val, gotit, 0 );
 
@@ -202,7 +143,7 @@ ldap_back_search(
 			filter = BER_BVNULL;
 	int		i, x;
 	char		**attrs = NULL;
-	int		freetext = 0, freefilter = 0;
+	int		freetext = 0, filter_undef = 0;
 	int		do_retry = 1, dont_retry = 0;
 	LDAPControl	**ctrls = NULL;
 	char		**references = NULL;
@@ -282,6 +223,14 @@ ldap_back_search(
 	/* deal with <draft-zeilenga-ldap-t-f> filters */
 	filter = op->ors_filterstr;
 retry:
+	/* this goes after retry because ldap_back_munge_filter()
+	 * optionally replaces RFC 4526 T-F filters (&) (|)
+	 * if already computed, they will be re-installed
+	 * by filter2bv_undef_x() later */
+	if ( !LDAP_BACK_T_F( li ) ) {
+		ldap_back_munge_filter( op, &filter );
+	}
+
 	rs->sr_err = ldap_pvt_search( lc->lc_ld, op->o_req_dn.bv_val,
 			op->ors_scope, filter.bv_val,
 			attrs, op->ors_attrsonly, ctrls, NULL,
@@ -310,31 +259,14 @@ retry:
 
 		case LDAP_FILTER_ERROR:
 			/* first try? */
-			if ( filter.bv_val == op->ors_filterstr.bv_val ) {
-				if ( strstr( filter.bv_val, "(?" ) ) {
-					int do_retry = 0;
-					if ( !LDAP_BACK_NOUNDEFFILTER( li ) ) {
-						BER_BVZERO( &filter );
-						filter2bv_undef_x( op, op->ors_filter, 1, &filter );
-						freefilter++;
-						do_retry++;
-					}
-
-					/* if anything survives, try replacing t-f */
-					if ( strstr( filter.bv_val, "(?" ) ) {
-						int dmy = 0;
-						if ( ldap_back_munge_filter( op, &filter, &dmy ) > 0 ) {
-							do_retry++;
-						}
-						if ( dmy ) {
-							freefilter++;
-						}
-					}
-
-					if ( do_retry ) {
-						goto retry;
-					}
-				}
+			if ( !filter_undef &&
+				strstr( filter.bv_val, "(?" ) &&
+				!LDAP_BACK_NOUNDEFFILTER( li ) )
+			{
+				BER_BVZERO( &filter );
+				filter2bv_undef_x( op, op->ors_filter, 1, &filter );
+				filter_undef = 1;
+				goto retry;
 			}
 
 			/* invalid filters return success with no data */
@@ -654,7 +586,7 @@ finish:;
 		ldap_back_quarantine( op, rs );
 	}
 
-	if ( freefilter && filter.bv_val != op->ors_filterstr.bv_val ) {
+	if ( filter.bv_val != op->ors_filterstr.bv_val ) {
 		op->o_tmpfree( filter.bv_val, op->o_tmpmemctx );
 	}
 
