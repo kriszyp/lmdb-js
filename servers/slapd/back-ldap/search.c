@@ -309,8 +309,32 @@ retry:
 			goto finish;
 
 		case LDAP_FILTER_ERROR:
-			if (ldap_back_munge_filter( op, &filter, &freefilter ) > 0 ) {
-				goto retry;
+			/* first try? */
+			if ( filter.bv_val == op->ors_filterstr.bv_val ) {
+				if ( strstr( filter.bv_val, "(?" ) ) {
+					int do_retry = 0;
+					if ( !LDAP_BACK_NOUNDEFFILTER( li ) ) {
+						BER_BVZERO( &filter );
+						filter2bv_undef_x( op, op->ors_filter, 1, &filter );
+						freefilter++;
+						do_retry++;
+					}
+
+					/* if anything survives, try replacing t-f */
+					if ( strstr( filter.bv_val, "(?" ) ) {
+						int dmy = 0;
+						if ( ldap_back_munge_filter( op, &filter, &dmy ) > 0 ) {
+							do_retry++;
+						}
+						if ( dmy ) {
+							freefilter++;
+						}
+					}
+
+					if ( do_retry ) {
+						goto retry;
+					}
+				}
 			}
 
 			/* invalid filters return success with no data */

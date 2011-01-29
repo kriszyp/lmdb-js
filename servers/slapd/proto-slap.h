@@ -1094,7 +1094,8 @@ LDAP_SLAPD_F (int) get_filter LDAP_P((
 LDAP_SLAPD_F (void) filter_free LDAP_P(( Filter *f ));
 LDAP_SLAPD_F (void) filter_free_x LDAP_P(( Operation *op, Filter *f, int freeme ));
 LDAP_SLAPD_F (void) filter2bv LDAP_P(( Filter *f, struct berval *bv ));
-LDAP_SLAPD_F (void) filter2bv_x LDAP_P(( Operation *op, Filter *f, struct berval *bv ));
+LDAP_SLAPD_F (void) filter2bv_undef LDAP_P(( Filter *f, int noundef, struct berval *bv ));
+LDAP_SLAPD_F (void) filter2bv_undef_x LDAP_P(( Operation *op, Filter *f, int noundef, struct berval *bv ));
 LDAP_SLAPD_F (Filter *) filter_dup LDAP_P(( Filter *f, void *memctx ));
 
 LDAP_SLAPD_F (int) get_vrFilter LDAP_P(( Operation *op, BerElement *ber,
