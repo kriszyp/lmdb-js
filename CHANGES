@@ -11,7 +11,7 @@ OpenLDAP 2.4.24 Engineering
 	Added slapd syncrepl suffixmassage support (ITS#6781)
 	Added slapd multiple listener threads (ITS#6780)
 	Added slapd extensible match for ordering rules (ITS#6532)
-	Added slapd-meta paged results control fowarding (ITS#6664)
+	Added slapd-meta paged results control forwarding (ITS#6664)
 	Added slapd-meta subtree-include support (ITS#6801)
 	Added slapd-null back-config support (ITS#6624)
 	Added slapd-sql autocommit support (ITS#6612)
