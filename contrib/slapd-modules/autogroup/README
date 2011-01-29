@@ -85,7 +85,7 @@ EXAMPLE
     #...
 
     overlay memberof
-    memberof memberof-memberof-ad foo
+    memberof-memberof-ad foo
 
     overlay autogroup
     autogroup-attrset groupOfURLs memberURL member
@@ -102,7 +102,9 @@ CAVEATS
     number of entries.
 
 ACKNOWLEDGEMENTS
-    This module was originally written in 2007 by Michał Szulczyński.
+    This module was originally written in 2007 by Michał Szulczyński. Further
+	enhancements were contributed by Howard Chu, Raphael Ouazana,
+	Norbert Pueschel, and Christian Manal.
 
 ---
 Copyright 1998-2011 The OpenLDAP Foundation.
