@@ -2872,9 +2872,26 @@ static const PRIOMethods tlsm_PR_methods = {
 static int
 tlsm_init( void )
 {
+	char *nofork = PR_GetEnv( "NSS_STRICT_NOFORK" );
+
 	PR_Init(0, 0, 0);
 
 	tlsm_layer_id = PR_GetUniqueIdentity( "OpenLDAP" );
+
+	/*
+	 * There are some applications that acquire a crypto context in the parent process
+	 * and expect that crypto context to work after a fork().  This does not work
+	 * with NSS using strict PKCS11 compliance mode.  We set this environment
+	 * variable here to tell the software encryption module/token to allow crypto
+	 * contexts to persist across a fork().  However, if you are using some other
+	 * module or encryption device that supports and expects full PKCS11 semantics,
+	 * the only recourse is to rewrite the application with atfork() handlers to save
+	 * the crypto context in the parent and restore (and SECMOD_RestartModules) the
+	 * context in the child.
+	 */
+	if ( !nofork ) {
+		PR_SetEnv( "NSS_STRICT_NOFORK=DISABLED" );
+	}
 
 	return 0;
 }
