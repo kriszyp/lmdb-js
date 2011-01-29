@@ -5,7 +5,7 @@ OpenLDAP 2.4.24 Engineering
 	Added libldap concurrency support (ITS#6625,ITS#5421)
 	Added libldap MozNSS non-blocking support (ITS#6714)
 	Added libldap MozNSS cert centralization (ITS#6742)
-	Added libldap x500UniqueIdentifier handling (ITS#6741)
+	Added libldap cert x500UniqueIdentifier handling (ITS#6741)
 	Added slapadd attribute value checking (ITS#6592)
 	Added slapcat continue mode for problematic DBs (ITS#6482)
 	Added slapd syncrepl suffixmassage support (ITS#6781)
