@@ -125,7 +125,7 @@ OpenLDAP 2.4.24 Engineering
 	Fixed slapo-syncprov mincsn check with MMR (ITS#6717)
 	Fixed slapo-syncprov control leak (ITS#6795)
 	Fixed slapo-translucent entry leak (ITS#6746)
-	Fixed contrib/autogroup LDAP URI with attribute filter (ITS#6536)
+	Added contrib/autogroup LDAP URI with attribute filter (ITS#6536)
 	Fixed contrib/autogroup install location (ITS#6684)
 	Fixed contrib/autogroup crash with ppolicy (ITS#6684)
 	Fixed contrib/cloak callbacks (ITS#6762)
