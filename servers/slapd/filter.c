@@ -601,7 +601,9 @@ filter2bv_undef_x( Operation *op, Filter *f, int noundef, struct berval *fstr )
 			ber_bvundefined = BER_BVC( "(?=undefined)" ),
 			ber_bverror = BER_BVC( "(?=error)" ),
 			ber_bvunknown = BER_BVC( "(?=unknown)" ),
-			ber_bvnone = BER_BVC( "(?=none)" );
+			ber_bvnone = BER_BVC( "(?=none)" ),
+			ber_bvF = BER_BVC( "(|)" ),
+			ber_bvT = BER_BVC( "(&)" );
 	ber_len_t	len;
 	ber_tag_t	choice;
 	int undef, undef2;
@@ -818,11 +820,11 @@ simple:
 	case SLAPD_FILTER_COMPUTED:
 		switch ( f->f_result ) {
 		case LDAP_COMPARE_FALSE:
-			tmp = ber_bvfalse;
+			tmp = ( noundef ? ber_bvF : ber_bvfalse );
 			break;
 
 		case LDAP_COMPARE_TRUE:
-			tmp = ber_bvtrue;
+			tmp = ( noundef ? ber_bvT : ber_bvtrue );
 			break;
 			
 		case SLAPD_COMPARE_UNDEFINED:
