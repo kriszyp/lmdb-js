@@ -1588,8 +1588,6 @@ ag_cfgen( ConfigArgs *c )
 
 	if ( c->op == SLAP_CONFIG_EMIT ) {
 
-		ldap_pvt_thread_mutex_lock( &agi->agi_mutex );
-
 		switch( c->type ){
 		case AG_ATTRSET:
 			for ( i = 0 ; agd ; i++, agd = agd->agd_next ) {
@@ -1624,8 +1622,6 @@ ag_cfgen( ConfigArgs *c )
 			return 1;
       }
 
-		ldap_pvt_thread_mutex_unlock( &agi->agi_mutex );
-
 		return rc;
 
 	}else if ( c->op == LDAP_MOD_DELETE ) {
@@ -1634,8 +1630,6 @@ ag_cfgen( ConfigArgs *c )
 			autogroup_entry_t	*age_next;
 			autogroup_filter_t	*agf = age->age_filter,
 						*agf_next;
-
-			ldap_pvt_thread_mutex_lock( &agi->agi_mutex );
 
 			for ( agd_next = agd; agd_next; agd = agd_next ) {
 				agd_next = agd->agd_next;
@@ -1664,9 +1658,6 @@ ag_cfgen( ConfigArgs *c )
 				ch_free( age );
 			}
 
-			ldap_pvt_thread_mutex_unlock( &agi->agi_mutex );
-
-			ldap_pvt_thread_mutex_destroy( &agi->agi_mutex );
 			ch_free( agi );
 			on->on_bi.bi_private = NULL;
 
@@ -1675,8 +1666,6 @@ ag_cfgen( ConfigArgs *c )
 			autogroup_entry_t	*age_next, *age_prev;
 			autogroup_filter_t	*agf,
 						*agf_next;
-
-			ldap_pvt_thread_mutex_lock( &agi->agi_mutex );
 
 			for ( i = 0, agdp = &agi->agi_def;
 				i < c->valx; i++ ) 
@@ -1722,7 +1711,6 @@ ag_cfgen( ConfigArgs *c )
 
 			ch_free( agd );
 			agd = agi->agi_def;
-			ldap_pvt_thread_mutex_unlock( &agi->agi_mutex );
 
 		}
 
@@ -1784,8 +1772,6 @@ ag_cfgen( ConfigArgs *c )
 			return 1;
 		}
 
-		ldap_pvt_thread_mutex_lock( &agi->agi_mutex );
-
 		for ( agdp = &agi->agi_def ; *agdp ; agdp = &(*agdp)->agd_next ) {
 			/* The same URL attribute / member attribute pair
 			* cannot be repeated */
@@ -1815,7 +1801,6 @@ ag_cfgen( ConfigArgs *c )
 					Debug( LDAP_DEBUG_ANY, "%s: %s.\n",
 						c->log, c->cr_msg, 0 );
 
-					ldap_pvt_thread_mutex_unlock( &agi->agi_mutex );		
 					return 1;
 				}
 				agdp = &(*agdp)->agd_next;
@@ -1834,8 +1819,6 @@ ag_cfgen( ConfigArgs *c )
 		(*agdp)->agd_member_url_ad = member_url_ad;
 		(*agdp)->agd_member_ad = member_ad;
 		(*agdp)->agd_next = agd_next;
-
-		ldap_pvt_thread_mutex_unlock( &agi->agi_mutex );
 
 		} break;
 	
@@ -1866,11 +1849,7 @@ ag_cfgen( ConfigArgs *c )
 			return 1;
 		}
 
-		ldap_pvt_thread_mutex_lock( &agi->agi_mutex );
-
 		agi->agi_memberof_ad = memberof_ad;
-
-		ldap_pvt_thread_mutex_unlock( &agi->agi_mutex );
 
 		} break;
 
