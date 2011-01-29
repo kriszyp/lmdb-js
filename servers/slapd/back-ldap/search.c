@@ -57,39 +57,41 @@ ldap_back_munge_filter(
 	Debug( LDAP_DEBUG_ARGS, "=> ldap_back_munge_filter \"%s\"\n",
 			filter->bv_val, 0, 0 );
 
-	for ( ptr = strstr( filter->bv_val, "(?=" ); 
+	for ( ptr = strstr( filter->bv_val, "(?" ); 
 			ptr;
-			ptr = strstr( ptr, "(?=" ) )
+			ptr = strstr( ptr, "(?" ) )
 	{
 		static struct berval
 			bv_true = BER_BVC( "(?=true)" ),
 			bv_false = BER_BVC( "(?=false)" ),
 			bv_undefined = BER_BVC( "(?=undefined)" ),
+			bv_oc = BER_BVC( "(?objectClass=" ),
 			bv_t = BER_BVC( "(&)" ),
 			bv_f = BER_BVC( "(|)" ),
 			bv_T = BER_BVC( "(objectClass=*)" ),
 			bv_F = BER_BVC( "(!(objectClass=*))" );
-		struct berval	*oldbv = NULL,
-				*newbv = NULL,
+		struct berval	oldbv = BER_BVNULL,
+				newbv = BER_BVNULL,
 				oldfilter = BER_BVNULL;
+		int free_newbv = 0;
 
 		if ( strncmp( ptr, bv_true.bv_val, bv_true.bv_len ) == 0 ) {
-			oldbv = &bv_true;
+			oldbv = bv_true;
 			if ( LDAP_BACK_T_F( li ) ) {
-				newbv = &bv_t;
+				newbv = bv_t;
 
 			} else {
-				newbv = &bv_T;
+				newbv = bv_T;
 			}
 
 		} else if ( strncmp( ptr, bv_false.bv_val, bv_false.bv_len ) == 0 )
 		{
-			oldbv = &bv_false;
+			oldbv = bv_false;
 			if ( LDAP_BACK_T_F( li ) ) {
-				newbv = &bv_f;
+				newbv = bv_f;
 
 			} else {
-				newbv = &bv_F;
+				newbv = bv_F;
 			}
 
 		} else if ( strncmp( ptr, bv_undefined.bv_val, bv_undefined.bv_len ) == 0 )
@@ -105,8 +107,39 @@ ldap_back_munge_filter(
 				goto done;
 			}
 
-			oldbv = &bv_undefined;
-			newbv = &bv_F;
+			oldbv = bv_undefined;
+			newbv = bv_F;
+
+
+		} else if ( strncmp( ptr, bv_oc.bv_val, bv_oc.bv_len ) == 0 )
+		{
+			char *end;
+
+			/* if undef or invalid filter is not allowed,
+			 * don't rewrite filter */
+			if ( LDAP_BACK_NOUNDEFFILTER( li ) ) {
+err_oc:;
+				if ( filter->bv_val != op->ors_filterstr.bv_val ) {
+					op->o_tmpfree( filter->bv_val, op->o_tmpmemctx );
+				}
+				BER_BVZERO( filter );
+				gotit = -1;
+				goto done;
+			}
+
+			oldbv.bv_val = ptr;
+			end = strchr( oldbv.bv_val, ')' );
+			if ( end == NULL ) {
+				goto err_oc;
+			}
+			end++;
+			oldbv.bv_len = end - oldbv.bv_val;
+
+			newbv.bv_len = oldbv.bv_len - 1;
+			newbv.bv_val = op->o_tmpalloc( newbv.bv_len + 1, op->o_tmpmemctx );
+			newbv.bv_val[0] = '(';
+			AC_MEMCPY( &newbv.bv_val[1], &oldbv.bv_val[2], newbv.bv_len );
+			free_newbv = 1;
 
 		} else {
 			gotit = 0;
@@ -114,13 +147,13 @@ ldap_back_munge_filter(
 		}
 
 		oldfilter = *filter;
-		filter->bv_len += newbv->bv_len - oldbv->bv_len;
+		filter->bv_len += newbv.bv_len - oldbv.bv_len;
 		if ( filter->bv_val == op->ors_filterstr.bv_val ) {
 			filter->bv_val = op->o_tmpalloc( filter->bv_len + 1,
 					op->o_tmpmemctx );
 
 			AC_MEMCPY( filter->bv_val, op->ors_filterstr.bv_val,
-					op->ors_filterstr.bv_len + 1 );
+					ptr - oldfilter.bv_val );
 
 			*freeit = 1;
 		} else {
@@ -130,12 +163,17 @@ ldap_back_munge_filter(
 
 		ptr = filter->bv_val + ( ptr - oldfilter.bv_val );
 
-		AC_MEMCPY( &ptr[ newbv->bv_len ],
-				&ptr[ oldbv->bv_len ], 
-				oldfilter.bv_len - ( ptr - filter->bv_val ) - oldbv->bv_len + 1 );
-		AC_MEMCPY( ptr, newbv->bv_val, newbv->bv_len );
+		AC_MEMCPY( &ptr[ newbv.bv_len ],
+				&ptr[ oldbv.bv_len ], 
+				oldfilter.bv_len - ( ptr - filter->bv_val ) - oldbv.bv_len + 1 );
+		AC_MEMCPY( ptr, newbv.bv_val, newbv.bv_len );
 
-		ptr += newbv->bv_len;
+		ptr += newbv.bv_len;
+
+		if ( free_newbv ) {
+			op->o_tmpfree( newbv.bv_val, op->o_tmpmemctx );
+		}
+
 		gotit = 1;
 	}
 
