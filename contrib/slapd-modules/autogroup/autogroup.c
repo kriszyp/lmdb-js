@@ -719,10 +719,10 @@ autogroup_group_add_cb( Operation *op, SlapReply *rs )
 static int
 autogroup_add_entry( Operation *op, SlapReply *rs)
 {
-		slap_overinst		*on = (slap_overinst *)op->o_bd->bd_info;
-	autogroup_info_t		*agi = (autogroup_info_t *)on->on_bi.bi_private;
+	slap_overinst		*on = (slap_overinst *)op->o_bd->bd_info;
+	autogroup_info_t	*agi = (autogroup_info_t *)on->on_bi.bi_private;
 	autogroup_def_t		*agd = agi->agi_def;
-	autogroup_entry_t	*age = agi->agi_entry;
+	autogroup_entry_t	*age;
 	autogroup_filter_t	*agf;
 	int			rc = 0;
 
@@ -753,7 +753,8 @@ autogroup_add_entry( Operation *op, SlapReply *rs)
 		}
 	}
 
-	for ( ; age ; age = age->age_next ) {
+	
+	for ( age = agi->agi_entry; age ; age = age->age_next ) {
 		ldap_pvt_thread_mutex_lock( &age->age_mutex );		
 
 		/* Check if any of the filters are the suffix to the entry DN. 
@@ -842,9 +843,8 @@ static int
 autogroup_delete_entry( Operation *op, SlapReply *rs)
 {
 	slap_overinst		*on = (slap_overinst *)op->o_bd->bd_info;
-	autogroup_info_t		*agi = (autogroup_info_t *)on->on_bi.bi_private;
-	autogroup_entry_t	*age = agi->agi_entry,
-				*age_prev, *age_next;
+	autogroup_info_t	*agi = (autogroup_info_t *)on->on_bi.bi_private;
+	autogroup_entry_t	*age, *age_prev, *age_next;
 	autogroup_filter_t	*agf;
 	Entry			*e;
 	int			matched_group = 0, rc = 0;
@@ -861,7 +861,8 @@ autogroup_delete_entry( Operation *op, SlapReply *rs)
 	}
 
 	/* Check if the entry to be deleted is one of our groups. */
-	for ( age_next = age ; age_next ; age_prev = age, age = age_next ) {
+	for ( age_next = agi->agi_entry ; age_next ; age_prev = age ) {
+		age = age_next;
 		ldap_pvt_thread_mutex_lock( &age->age_mutex );
 		age_next = age->age_next;
 
@@ -924,9 +925,9 @@ static int
 autogroup_response( Operation *op, SlapReply *rs )
 {
 	slap_overinst		*on = (slap_overinst *)op->o_bd->bd_info;
-	autogroup_info_t		*agi = (autogroup_info_t *)on->on_bi.bi_private;
+	autogroup_info_t	*agi = (autogroup_info_t *)on->on_bi.bi_private;
 	autogroup_def_t		*agd = agi->agi_def;
-	autogroup_entry_t	*age = agi->agi_entry;
+	autogroup_entry_t	*age;
 	autogroup_filter_t	*agf;
 	BerValue		new_dn, new_ndn, pdn;
 	Entry			*e, *group;
@@ -957,8 +958,7 @@ autogroup_response( Operation *op, SlapReply *rs )
 
 			ldap_pvt_thread_mutex_unlock( &agi->agi_mutex );
 		}
-	}
-	if ( op->o_tag == LDAP_REQ_MODRDN ) {
+	} else if ( op->o_tag == LDAP_REQ_MODRDN ) {
 		if ( rs->sr_type == REP_RESULT && rs->sr_err == LDAP_SUCCESS && !get_manageDSAit( op )) {
 
 			Debug( LDAP_DEBUG_TRACE, "==> autogroup_response MODRDN from <%s>\n", op->o_req_dn.bv_val, 0, 0);
@@ -1354,7 +1354,7 @@ autogroup_modify_entry( Operation *op, SlapReply *rs)
 	slap_overinst		*on = (slap_overinst *)op->o_bd->bd_info;
 	autogroup_info_t		*agi = (autogroup_info_t *)on->on_bi.bi_private;
 	autogroup_def_t		*agd = agi->agi_def;
-	autogroup_entry_t	*age = agi->agi_entry;
+	autogroup_entry_t	*age;
 	Entry			*e;
 	Attribute		*a;
 
@@ -1373,7 +1373,7 @@ autogroup_modify_entry( Operation *op, SlapReply *rs)
 	}
 
 	/* Must refresh groups if a matching member value is modified OR filter contains memberOf=DN */
-	for ( ; age ; age = age->age_next ) {
+	for ( age = agi->agi_entry; age ; age = age->age_next ) {
 		autogroup_filter_t	*agf;
 		for ( agf = age->age_filter ; agf ; agf = agf->agf_next ) {
 			if ( agf->agf_anlist ) {
@@ -1453,8 +1453,8 @@ static int
 autogroup_modrdn_entry( Operation *op, SlapReply *rs)
 {
 	slap_overinst		*on = (slap_overinst *)op->o_bd->bd_info;
-	autogroup_info_t		*agi = (autogroup_info_t *)on->on_bi.bi_private;
-	autogroup_entry_t	*age = agi->agi_entry;
+	autogroup_info_t	*agi = (autogroup_info_t *)on->on_bi.bi_private;
+	autogroup_entry_t	*age;
 	Entry			*e;
 
 	if ( get_manageDSAit( op ) ) {
@@ -1472,7 +1472,7 @@ autogroup_modrdn_entry( Operation *op, SlapReply *rs)
 	}
 
 	/* Must check if a dn is modified */
-	for ( ; age ; age = age->age_next ) {
+	for ( age = agi->agi_entry; age ; age = age->age_next ) {
 		autogroup_filter_t	*agf;
 		for ( agf = age->age_filter ; agf ; agf = agf->agf_next ) {
 			if ( agf->agf_anlist ) {
