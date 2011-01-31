@@ -27,6 +27,9 @@ Database Software|{{PRD:Berkeley DB}}:|
 ||4.5
 ||4.6
 ||4.7
+||4.8
+||5.0
+||5.1
 ||Note: It is highly recommended to apply the patches from Oracle for a given release.
 Threads:
 |POSIX {{pthreads}}|Version
