@@ -586,6 +586,12 @@ filter_free( Filter *f )
 void
 filter2bv_x( Operation *op, Filter *f, struct berval *fstr )
 {
+	return filter2bv_undef_x( op, f, 0, fstr );
+}
+
+void
+filter2bv_undef_x( Operation *op, Filter *f, int noundef, struct berval *fstr )
+{
 	int		i;
 	Filter		*p;
 	struct berval	tmp, value;
@@ -595,10 +601,12 @@ filter2bv_x( Operation *op, Filter *f, struct berval *fstr )
 			ber_bvundefined = BER_BVC( "(?=undefined)" ),
 			ber_bverror = BER_BVC( "(?=error)" ),
 			ber_bvunknown = BER_BVC( "(?=unknown)" ),
-			ber_bvnone = BER_BVC( "(?=none)" );
+			ber_bvnone = BER_BVC( "(?=none)" ),
+			ber_bvF = BER_BVC( "(|)" ),
+			ber_bvT = BER_BVC( "(&)" );
 	ber_len_t	len;
 	ber_tag_t	choice;
-	int undef;
+	int undef, undef2;
 	char *sign;
 
 	if ( f == NULL ) {
@@ -607,6 +615,7 @@ filter2bv_x( Operation *op, Filter *f, struct berval *fstr )
 	}
 
 	undef = f->f_choice & SLAPD_FILTER_UNDEFINED;
+	undef2 = (undef && !noundef);
 	choice = f->f_choice & SLAPD_FILTER_MASK;
 
 	switch ( choice ) {
@@ -644,12 +653,12 @@ simple:
 		 * is legal for that attribute's syntax */
 
 		fstr->bv_len += f->f_av_desc->ad_cname.bv_len + tmp.bv_len;
-		if ( undef )
+		if ( undef2 )
 			fstr->bv_len++;
 		fstr->bv_val = op->o_tmpalloc( fstr->bv_len + 1, op->o_tmpmemctx );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s%s%s%s)",
-			undef ? "?" : "",
+			undef2 ? "?" : "",
 			f->f_av_desc->ad_cname.bv_val, sign,
 			tmp.bv_len ? tmp.bv_val : "" );
 
@@ -663,12 +672,12 @@ simple:
 	case LDAP_FILTER_SUBSTRINGS:
 		fstr->bv_len = f->f_sub_desc->ad_cname.bv_len +
 			STRLENOF("(=*)");
-		if ( undef )
+		if ( undef2 )
 			fstr->bv_len++;
 		fstr->bv_val = op->o_tmpalloc( fstr->bv_len + 128, op->o_tmpmemctx );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s%s=*)",
-			undef ? "?" : "",
+			undef2 ? "?" : "",
 			f->f_sub_desc->ad_cname.bv_val );
 
 		if ( f->f_sub_initial.bv_val != NULL ) {
@@ -737,13 +746,13 @@ simple:
 	case LDAP_FILTER_PRESENT:
 		fstr->bv_len = f->f_desc->ad_cname.bv_len +
 			STRLENOF("(=*)");
-		if ( undef )
+		if ( undef2 )
 			fstr->bv_len++;
 
 		fstr->bv_val = op->o_tmpalloc( fstr->bv_len + 1, op->o_tmpmemctx );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s%s=*)",
-			undef ? "?" : "",
+			undef2 ? "?" : "",
 			f->f_desc->ad_cname.bv_val );
 		break;
 
@@ -760,7 +769,7 @@ simple:
 		for ( p = f->f_list; p != NULL; p = p->f_next ) {
 			len = fstr->bv_len;
 
-			filter2bv_x( op, p, &tmp );
+			filter2bv_undef_x( op, p, noundef, &tmp );
 			
 			fstr->bv_len += tmp.bv_len;
 			fstr->bv_val = op->o_tmprealloc( fstr->bv_val, fstr->bv_len + 1,
@@ -792,13 +801,14 @@ simple:
 		}
 		
 		fstr->bv_len = ad.bv_len +
+			( undef2 ? 1 : 0 ) +
 			( f->f_mr_dnattrs ? STRLENOF(":dn") : 0 ) +
-			( f->f_mr_rule_text.bv_len ? f->f_mr_rule_text.bv_len+1 : 0 ) +
+			( f->f_mr_rule_text.bv_len ? f->f_mr_rule_text.bv_len + STRLENOF(":") : 0 ) +
 			tmp.bv_len + STRLENOF("(:=)");
 		fstr->bv_val = op->o_tmpalloc( fstr->bv_len + 1, op->o_tmpmemctx );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s%s%s%s%s:=%s)",
-			undef ? "?" : "",
+			undef2 ? "?" : "",
 			ad.bv_val,
 			f->f_mr_dnattrs ? ":dn" : "",
 			f->f_mr_rule_text.bv_len ? ":" : "",
@@ -810,11 +820,11 @@ simple:
 	case SLAPD_FILTER_COMPUTED:
 		switch ( f->f_result ) {
 		case LDAP_COMPARE_FALSE:
-			tmp = ber_bvfalse;
+			tmp = ( noundef ? ber_bvF : ber_bvfalse );
 			break;
 
 		case LDAP_COMPARE_TRUE:
-			tmp = ber_bvtrue;
+			tmp = ( noundef ? ber_bvT : ber_bvtrue );
 			break;
 			
 		case SLAPD_COMPARE_UNDEFINED:
@@ -838,6 +848,12 @@ simple:
 void
 filter2bv( Filter *f, struct berval *fstr )
 {
+	return filter2bv_undef( f, 0, fstr );
+}
+
+void
+filter2bv_undef( Filter *f, int noundef, struct berval *fstr )
+{
 	Operation op;
 	Opheader ohdr;
 
@@ -845,7 +861,7 @@ filter2bv( Filter *f, struct berval *fstr )
 	op.o_tmpmemctx = NULL;
 	op.o_tmpmfuncs = &ch_mfuncs;
 
-	filter2bv_x( &op, f, fstr );
+	filter2bv_undef_x( &op, f, noundef, fstr );
 }
 
 Filter *
