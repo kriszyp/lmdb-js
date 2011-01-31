@@ -98,7 +98,7 @@ get_ava(
 			aa->aa_desc = slap_bv2tmp_ad( &type, op->o_tmpmemctx );
 			ber_dupbv_x( &aa->aa_value, &value, op->o_tmpmemctx );
 			f->f_ava = aa;
-			return rc;
+			return LDAP_SUCCESS;
 		}
 	}
 
@@ -122,7 +122,7 @@ get_ava(
 			rc = get_aliased_filter_aa ( op, aa, a_alias, text );
 			if( rc != LDAP_SUCCESS ) {
 				Debug( LDAP_DEBUG_FILTER,
-						"get_ava:Invalid Attribute Aliasing\n", 0, 0, 0 );
+						"get_ava: Invalid Attribute Aliasing\n", 0, 0, 0 );
 				return rc;
 			}
 		}
