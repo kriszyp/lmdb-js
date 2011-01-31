@@ -147,7 +147,6 @@ ldap_back_search(
 	int		do_retry = 1, dont_retry = 0;
 	LDAPControl	**ctrls = NULL;
 	char		**references = NULL;
-	void		*matchctx = NULL;
 
 	rs_assert_ready( rs );
 	rs->sr_flags &= ~REP_ENTRY_MASK; /* paranoia, we can set rs = non-entry */
@@ -543,12 +542,15 @@ retry:
 	if ( !BER_BVISNULL( &match ) && !BER_BVISEMPTY( &match ) ) {
 		struct berval	pmatch;
 
-		if ( dnPretty( NULL, &match, &pmatch, op->o_tmpmemctx ) == LDAP_SUCCESS ) {
-			ber_memfree( match.bv_val );
-			matchctx = op->o_tmpmemctx;
-			match.bv_val = pmatch.bv_val;
+		if ( dnPretty( NULL, &match, &pmatch, op->o_tmpmemctx ) != LDAP_SUCCESS ) {
+			pmatch.bv_val = match.bv_val;
+			match.bv_val = NULL;
 		}
-		rs->sr_matched = match.bv_val;
+		rs->sr_matched = pmatch.bv_val;
+		rs->sr_flags |= REP_MATCHED_MUSTBEFREED;
+	}
+	if ( !BER_BVISNULL( &match ) ) {
+		ber_memfree( match.bv_val );
 	}
 
 	if ( rs->sr_v2ref ) {
@@ -578,11 +580,6 @@ finish:;
 		ldap_controls_free( rs->sr_ctrls );
 		rs->sr_ctrls = NULL;
 	}
-
-	if ( match.bv_val ) {
-		ber_memfree_x( match.bv_val, matchctx );
-	}
-	rs->sr_matched = NULL;
 
 	if ( rs->sr_text ) {
 		if ( freetext ) {
