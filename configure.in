@@ -244,8 +244,8 @@ OL_ARG_WITH(fetch,[  --with-fetch		  with fetch(3) URL support],
 	auto, [auto yes no] )
 OL_ARG_WITH(threads,[  --with-threads	  with threads],
 	auto, [auto nt posix mach pth lwp yes no manual] )
-OL_ARG_WITH(tls,[  --with-tls		  with TLS/SSL support auto|openssl|gnutls],
-	auto, [auto openssl gnutls yes no] )
+OL_ARG_WITH(tls,[  --with-tls		  with TLS/SSL support auto|openssl|gnutls|moznss],
+	auto, [auto openssl gnutls moznss yes no] )
 OL_ARG_WITH(yielding_select,
 	[  --with-yielding-select  with implicitly yielding select],
 	auto, [auto yes no manual] )
@@ -1213,6 +1213,30 @@ if test $ol_link_tls = no ; then
 				AC_DEFINE(HAVE_GNUTLS, 1, 
 					[define if you have GNUtls])
 			fi
+		fi
+	fi
+fi
+
+dnl NOTE: caller must specify -I/path/to/nspr4 and -I/path/to/nss3
+dnl and -L/path/to/nspr4 libs and -L/path/to/nss3 libs if those libs
+dnl are not in the default system location
+if test $ol_link_tls = no ; then
+	if test $ol_with_tls = moznss || test $ol_with_tls = auto ; then
+		have_moznss=no
+		AC_CHECK_HEADERS([nssutil.h])
+		if test "$ac_cv_header_nssutil_h" = yes ; then
+			AC_CHECK_LIB([nss3], [NSS_Initialize],
+						 [ have_moznss=yes ], [ have_moznss=no ])
+		fi
+
+		if test "$have_moznss" = yes ; then
+			ol_with_tls=moznss
+			ol_link_tls=yes
+			AC_DEFINE(HAVE_MOZNSS, 1, 
+					  [define if you have MozNSS])
+			TLS_LIBS="-lssl3 -lsmime3 -lnss3 -lnssutil3 -lplds4 -lplc4 -lnspr4"
+		else
+			AC_MSG_ERROR([MozNSS not found - please specify the location to the NSPR and NSS header files in CPPFLAGS and the location to the NSPR and NSS libraries in LDFLAGS (if not in the system location)])
 		fi
 	fi
 fi
