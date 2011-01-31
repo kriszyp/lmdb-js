@@ -338,6 +338,15 @@ permissions, or the asserted identities must have appropriate
 .I authzFrom 
 permissions.  Note, however, that the ID assertion feature is mostly 
 useful when the asserted identities do not exist on the remote server.
+When
+.I bindmethod
+is
+.BR SASL ,
+the 
+.I authcDN
+must be specified in addition to the
+.IR authcID ,
+although it is not used within the authentication process.
 
 Flags can be
 

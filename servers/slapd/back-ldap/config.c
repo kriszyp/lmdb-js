@@ -866,6 +866,17 @@ slap_idassert_parse( ConfigArgs *c, slap_idassert_t *si )
 				} else if ( strcasecmp( flags[ j ], "proxy-authz-non-critical" ) == 0 ) {
 					si->si_flags &= ~LDAP_BACK_AUTH_PROXYAUTHZ_CRITICAL;
 
+				} else if ( strcasecmp( flags[ j ], "dn-none" ) == 0 ) {
+					si->si_flags &= ~LDAP_BACK_AUTH_DN_MASK;
+
+				} else if ( strcasecmp( flags[ j ], "dn-authzid" ) == 0 ) {
+					si->si_flags &= ~LDAP_BACK_AUTH_DN_MASK;
+					si->si_flags |= LDAP_BACK_AUTH_DN_AUTHZID;
+
+				} else if ( strcasecmp( flags[ j ], "dn-whoami" ) == 0 ) {
+					si->si_flags &= ~LDAP_BACK_AUTH_DN_MASK;
+					si->si_flags |= LDAP_BACK_AUTH_DN_WHOAMI;
+
 				} else {
 					snprintf( c->cr_msg, sizeof( c->cr_msg ),
 						"\"idassert-bind <args>\": "
@@ -899,6 +910,17 @@ slap_idassert_parse( ConfigArgs *c, slap_idassert_t *si )
 			snprintf( c->cr_msg, sizeof( c->cr_msg ),
 				"\"idassert-bind <args>\": "
 				"SIMPLE needs \"binddn\" and \"credentials\"" );
+			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
+			return 1;
+		}
+
+	} else if ( si->si_bc.sb_method == LDAP_AUTH_SASL ) {
+		if ( BER_BVISNULL( &si->si_bc.sb_binddn ) &&
+			!(si->si_flags & LDAP_BACK_AUTH_DN_MASK) )
+		{
+			snprintf( c->cr_msg, sizeof( c->cr_msg ),
+				"\"idassert-bind <args>\": "
+				"SASL needs \"binddn\" or either \"dn-authzid\" or \"dn-whoami\" in flags" );
 			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
 			return 1;
 		}
@@ -1140,7 +1162,7 @@ ldap_back_cf_gen( ConfigArgs *c )
 					(void)lutil_strcopy( ptr, "authz=native" );
 				}
 
-				len = bv.bv_len + STRLENOF( "flags=non-prescriptive,override,obsolete-encoding-workaround,proxy-authz-non-critical" );
+				len = bv.bv_len + STRLENOF( "flags=non-prescriptive,override,obsolete-encoding-workaround,proxy-authz-non-critical,dn-authzid" );
 				/* flags */
 				if ( !BER_BVISEMPTY( &bv ) ) {
 					len += STRLENOF( " " );
@@ -1178,6 +1200,20 @@ ldap_back_cf_gen( ConfigArgs *c )
 
 				} else {
 					ptr = lutil_strcopy( ptr, ",proxy-authz-non-critical" );
+				}
+
+				switch ( li->li_idassert_flags & LDAP_BACK_AUTH_DN_MASK ) {
+				case LDAP_BACK_AUTH_DN_AUTHZID:
+					ptr = lutil_strcopy( ptr, ",dn-authzid" );
+					break;
+
+				case LDAP_BACK_AUTH_DN_WHOAMI:
+					ptr = lutil_strcopy( ptr, ",dn-whoami" );
+					break;
+
+				default:
+					ptr = lutil_strcopy( ptr, ",dn-none" );
+					break;
 				}
 
 				bv.bv_len = ( ptr - bv.bv_val );
