@@ -686,7 +686,7 @@ must be
 .BR "char **" ,
 and its contents need to be freed by the caller using
 .BR ldap_memfree (3).
-Ignored by GnuTLS.
+Ignored by GnuTLS and Mozilla NSS.
 .TP
 .B LDAP_OPT_X_TLS_KEYFILE
 Sets/gets the full-path of the certificate key file.
@@ -731,7 +731,7 @@ must be
 .BR "char **" ,
 and its contents need to be freed by the caller using
 .BR ldap_memfree (3).
-Ignored by GnuTLS older than version 2.2.
+Ignored by GnuTLS older than version 2.2.  Ignored by Mozilla NSS.
 .TP
 .B LDAP_OPT_X_TLS_REQUIRE_CERT
 Sets/gets the peer certificate checking strategy,
