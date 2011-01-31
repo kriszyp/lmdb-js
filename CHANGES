@@ -88,6 +88,7 @@ OpenLDAP 2.4.24 Engineering
 	Fixed slapd-meta with SASL/EXTERNAL (ITS#6642)
 	Fixed slapd-meta matchedDN return code (ITS#6774)
 	Fixed slapd-meta candidate selection (ITS#6799)
+	Fixed slapd-meta attribute normalization (ITS#6818)
 	Fixed slapd-monitor hasSubordinates generation (ITS#6712)
 	Fixed slapd-monitor abandon processing (ITS#6783)
 	Fixed slapd-monitor entry locks (ITS#6787)
