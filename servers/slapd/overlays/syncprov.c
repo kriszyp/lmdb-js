@@ -225,10 +225,10 @@ syncprov_state_ctrl(
 
 	if ( ret < 0 ) {
 		Debug( LDAP_DEBUG_TRACE,
-			"slap_build_sync_ctrl: ber_flatten2 failed\n",
-			0, 0, 0 );
+			"slap_build_sync_ctrl: ber_flatten2 failed (%d)\n",
+			ret, 0, 0 );
 		send_ldap_error( op, rs, LDAP_OTHER, "internal error" );
-		return ret;
+		return LDAP_OTHER;
 	}
 
 	return LDAP_SUCCESS;
@@ -271,10 +271,10 @@ syncprov_done_ctrl(
 
 	if ( ret < 0 ) {
 		Debug( LDAP_DEBUG_TRACE,
-			"syncprov_done_ctrl: ber_flatten2 failed\n",
-			0, 0, 0 );
+			"syncprov_done_ctrl: ber_flatten2 failed (%d)\n",
+			ret, 0, 0 );
 		send_ldap_error( op, rs, LDAP_OTHER, "internal error" );
-		return ret;
+		return LDAP_OTHER;
 	}
 
 	return LDAP_SUCCESS;
@@ -338,10 +338,10 @@ syncprov_sendinfo(
 
 	if ( ret < 0 ) {
 		Debug( LDAP_DEBUG_TRACE,
-			"syncprov_sendinfo: ber_flatten2 failed\n",
-			0, 0, 0 );
+			"syncprov_sendinfo: ber_flatten2 failed (%d)\n",
+			ret, 0, 0 );
 		send_ldap_error( op, rs, LDAP_OTHER, "internal error" );
-		return ret;
+		return LDAP_OTHER;
 	}
 
 	rs->sr_rspoid = LDAP_SYNC_INFO;
