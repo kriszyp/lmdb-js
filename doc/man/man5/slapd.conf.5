@@ -1034,7 +1034,8 @@ you can specify.
 .TP
 .B TLSCipherSuite <cipher-suite-spec>
 Permits configuring what ciphers will be accepted and the preference order.
-<cipher-suite-spec> should be a cipher specification for OpenSSL resp. GNUtls.
+<cipher-suite-spec> should be a cipher specification for the TLS library
+in use (OpenSSL, GnuTLS, or Mozilla NSS).
 Example:
 .RS
 .RS
@@ -1042,7 +1043,7 @@ Example:
 .I OpenSSL:
 TLSCipherSuite HIGH:MEDIUM:+SSLv2
 .TP
-.I GNUtls:
+.I GnuTLS:
 TLSCiphersuite SECURE256:!AES-128-CBC
 .RE
 
@@ -1052,18 +1053,19 @@ To check what ciphers a given spec selects in OpenSSL, use:
 	openssl ciphers \-v <cipher-suite-spec>
 .fi
 
-With GNUtls the available specs can be found in the manual page of 
+With GnuTLS the available specs can be found in the manual page of 
 .BR gnutls\-cli (1)
 (see the description of the 
 option
 .BR \-\-priority ).
 
-In older versions of GNUtls, where gnutls\-cli does not support the option
+In older versions of GnuTLS, where gnutls\-cli does not support the option
 \-\-priority, you can obtain the \(em more limited \(em list of ciphers by calling:
 
 .nf
 	gnutls\-cli \-l
 .fi
+
 When using Mozilla NSS, the OpenSSL cipher suite specifications are used and
 translated into the format used internally by Mozilla NSS.  There isn't an easy
 way to list the cipher suites from the command line.  The authoritative list
@@ -1083,7 +1085,8 @@ will recognize.
 Specifies the path of a directory that contains Certificate Authority
 certificates in separate individual files. Usually only one of this
 or the TLSCACertificateFile is used. This directive is not supported
-when using GNUtls.
+when using GnuTLS.
+
 When using Mozilla NSS, <path> may contain a Mozilla NSS cert/key
 database.  If <path> contains a Mozilla NSS cert/key database and
 CA cert files, OpenLDAP will use the cert/key database and will
@@ -1093,6 +1096,7 @@ ignore the CA cert files.
 Specifies the file that contains the
 .B slapd
 server certificate.
+
 When using Mozilla NSS, if using a cert/key database (specified with
 TLSCACertificatePath), TLSCertificateFile specifies
 the name of the certificate to use:
@@ -1116,6 +1120,7 @@ server private key that matches the certificate stored in the
 .B TLSCertificateFile
 file.  Currently, the private key must not be protected with a password, so
 it is of critical importance that it is protected carefully. 
+
 When using Mozilla NSS, TLSCertificateKeyFile specifies the name of
 a file that contains the password for the key for the certificate specified with
 TLSCertificateFile.  The modutil command can be used to turn off password
@@ -1136,14 +1141,14 @@ them will be processed.  Note that setting this option may also enable
 Anonymous Diffie-Hellman key exchanges in certain non-default cipher suites.
 You should append "!ADH" to your cipher suites if you have changed them
 from the default, otherwise no certificate exchanges or verification will
-be done. When using GNUtls these parameters are always generated randomly so
+be done. When using GnuTLS these parameters are always generated randomly so
 this directive is ignored.  This directive is ignored when using Mozilla NSS.
 .TP
 .B TLSRandFile <filename>
 Specifies the file to obtain random bits from when /dev/[u]random
 is not available.  Generally set to the name of the EGD/PRNGD socket.
 The environment variable RANDFILE can also be used to specify the filename.
-This directive is ignored with GNUtls and Mozilla NSS.
+This directive is ignored with GnuTLS and Mozilla NSS.
 .TP
 .B TLSVerifyClient <level>
 Specifies what checks to perform on client certificates in an
@@ -1185,7 +1190,7 @@ Specifies if the Certificate Revocation List (CRL) of the CA should be
 used to verify if the client certificates have not been revoked. This
 requires
 .B TLSCACertificatePath
-parameter to be set. This directive is ignored with GNUtls and Mozilla NSS.
+parameter to be set. This directive is ignored with GnuTLS and Mozilla NSS.
 .B <level>
 can be specified as one of the following keywords:
 .RS
@@ -1203,7 +1208,7 @@ Check the CRL for a whole certificate chain
 .B TLSCRLFile <filename>
 Specifies a file containing a Certificate Revocation List to be used
 for verifying that certificates have not been revoked. This directive is
-only valid when using GNUtls and Mozilla NSS.
+only valid when using GnuTLS and Mozilla NSS.
 .SH GENERAL BACKEND OPTIONS
 Options in this section only apply to the configuration file section
 for the specified backend.  They are supported by every

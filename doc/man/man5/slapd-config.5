@@ -817,7 +817,8 @@ you can specify.
 .TP
 .B olcTLSCipherSuite: <cipher-suite-spec>
 Permits configuring what ciphers will be accepted and the preference order.
-<cipher-suite-spec> should be a cipher specification for OpenSSL resp. GNUtls.
+<cipher-suite-spec> should be a cipher specification for
+the TLS library in use (OpenSSL, GnuTLS, or Mozilla NSS).
 Example:
 .RS
 .RS
@@ -825,7 +826,7 @@ Example:
 .I OpenSSL:
 olcTLSCipherSuite: HIGH:MEDIUM:+SSLv2
 .TP
-.I GNUtls:
+.I GnuTLS:
 TLSCiphersuite SECURE256:!AES-128-CBC
 .RE
 
@@ -835,18 +836,19 @@ To check what ciphers a given spec selects in OpenSSL, use:
 	openssl ciphers \-v <cipher-suite-spec>
 .fi
 
-With GNUtls the available specs can be found in the manual page of
+With GnuTLS the available specs can be found in the manual page of
 .BR gnutls\-cli (1)
 (see the description of the
 option
 .BR \-\-priority ).
 
-In older versions of GNUtls, where gnutls\-cli does not support the option
+In older versions of GnuTLS, where gnutls\-cli does not support the option
 \-\-priority, you can obtain the \(em more limited \(em list of ciphers by calling:
 
 .nf
 	gnutls\-cli \-l
 .fi
+
 When using Mozilla NSS, the OpenSSL cipher suite specifications are used and
 translated into the format used internally by Mozilla NSS.  There isn't an easy
 way to list the cipher suites from the command line.  The authoritative list
@@ -867,7 +869,8 @@ Specifies the path of a directory that contains Certificate Authority
 certificates in separate individual files. Usually only one of this
 or the olcTLSCACertificateFile is defined. If both are specified, both
 locations will be used. This directive is not supported
-when using GNUtls.
+when using GnuTLS.
+
 When using Mozilla NSS, <path> may contain a Mozilla NSS cert/key
 database.  If <path> contains a Mozilla NSS cert/key database and
 CA cert files, OpenLDAP will use the cert/key database and will
@@ -877,6 +880,7 @@ ignore the CA cert files.
 Specifies the file that contains the
 .B slapd
 server certificate.
+
 When using Mozilla NSS, if using a cert/key database (specified with
 olcTLSCACertificatePath), olcTLSCertificateFile specifies
 the name of the certificate to use:
@@ -903,6 +907,7 @@ be manually typed in when slapd starts.  Usually the private key is not
 protected with a password, to allow slapd to start without manual
 intervention, so
 it is of critical importance that the file is protected carefully. 
+
 When using Mozilla NSS, olcTLSCertificateKeyFile specifies the name of
 a file that contains the password for the key for the certificate specified with
 olcTLSCertificateFile.  The modutil command can be used to turn off password
@@ -924,14 +929,14 @@ them will be processed.  Note that setting this option may also enable
 Anonymous Diffie-Hellman key exchanges in certain non-default cipher suites.
 You should append "!ADH" to your cipher suites if you have changed them
 from the default, otherwise no certificate exchanges or verification will
-be done. When using GNUtls or Mozilla NSS these parameters are always generated randomly
+be done. When using GnuTLS or Mozilla NSS these parameters are always generated randomly
 so this directive is ignored.
 .TP
 .B olcTLSRandFile: <filename>
 Specifies the file to obtain random bits from when /dev/[u]random
 is not available.  Generally set to the name of the EGD/PRNGD socket.
 The environment variable RANDFILE can also be used to specify the filename.
-This directive is ignored with GNUtls and Mozilla NSS.
+This directive is ignored with GnuTLS and Mozilla NSS.
 .TP
 .B olcTLSVerifyClient: <level>
 Specifies what checks to perform on client certificates in an
@@ -973,7 +978,7 @@ Specifies if the Certificate Revocation List (CRL) of the CA should be
 used to verify if the client certificates have not been revoked. This
 requires
 .B olcTLSCACertificatePath
-parameter to be set. This parameter is ignored with GNUtls and Mozilla NSS.
+parameter to be set. This parameter is ignored with GnuTLS and Mozilla NSS.
 .B <level>
 can be specified as one of the following keywords:
 .RS
@@ -991,7 +996,7 @@ Check the CRL for a whole certificate chain
 .B olcTLSCRLFile: <filename>
 Specifies a file containing a Certificate Revocation List to be used
 for verifying that certificates have not been revoked. This parameter
-is only valid when using GNUtls.
+is only valid when using GnuTLS or Mozilla NSS.
 .SH DYNAMIC MODULE OPTIONS
 If
 .B slapd
