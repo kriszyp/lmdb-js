@@ -51,6 +51,14 @@ CONFIGURATION
         specifies the member attribute. User modification of this attribute 
         is disabled for consistency.
 
+    autogroup-memberof-ad <memberof-ad>
+        This configuration option is defined for the autogroup overlay.
+
+        It defines the attribute that is used by the memberOf overlay
+        to store the names of groups that an entry is member of; it must be
+        DN-valued. It should be set to the same value as
+        memberof-memberof-ad. It defaults to 'memberOf'.
+
 
 EXAMPLE
     ### slapd.conf
@@ -66,6 +74,24 @@ EXAMPLE
     autogroup-attrset groupOfURLs memberURL member
     ### end slapd.conf
 
+    ### slapd.conf
+    include /path/to/dyngroup.schema
+    # ...
+    moduleload /path/to/autogroup.so
+    moduleload /path/to/memberof.so
+    # ...
+
+    database <database>
+    #...
+
+    overlay memberof
+    memberof-memberof-ad foo
+
+    overlay autogroup
+    autogroup-attrset groupOfURLs memberURL member
+    autogroup-memberof-ad foo
+    ### end slapd.conf
+
 CAVEATS
     As with static groups, update operations on groups with a large number
     of members may be slow.
@@ -76,7 +102,9 @@ CAVEATS
     number of entries.
 
 ACKNOWLEDGEMENTS
-    This module was originally written in 2007 by Michał Szulczyński.
+    This module was originally written in 2007 by Michał Szulczyński. Further
+	enhancements were contributed by Howard Chu, Raphael Ouazana,
+	Norbert Pueschel, and Christian Manal.
 
 ---
 Copyright 1998-2011 The OpenLDAP Foundation.
