@@ -38,6 +38,7 @@ OpenLDAP 2.4.24 Engineering
 	Fixed libldap url parsing with NULL host (ITS#6653)
 	Fixed libldap ldap_open_internal_connection (ITS#6788)
 	Fixed libldap sync checking for BER errors (ITS#6738)	
+	Fixed libldap variable usage (ITS#6813)
 	Fixed libldap MozNSS default cipher suites (ITS#6790)
 	Fixed libldap MozNSS cert usage types/values (ITS#6791)
 	Fixed libldap MozNSS restart module after fork() (ITS#6802)
