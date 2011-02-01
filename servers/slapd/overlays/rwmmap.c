@@ -515,9 +515,12 @@ rwm_int_filter_map_rewrite(
 		return LDAP_OTHER;
 	}
 
+#if 0
+	/* ITS#6814: give the caller a chance to use undefined filters */
 	if ( f->f_choice & SLAPD_FILTER_UNDEFINED ) {
 		goto computed;
 	}
+#endif
 
 	switch ( f->f_choice & SLAPD_FILTER_MASK ) {
 	case LDAP_FILTER_EQUALITY:
