@@ -918,6 +918,15 @@ main( int argc, char **argv )
 	tool_bind( ld );
 
 getNextPage:
+	/* fp may have been closed, need to reopen if code jumps
+	 * back here to getNextPage.
+	 */
+	if ( !fp && infile ) {
+		if (( fp = fopen( infile, "r" )) == NULL ) {
+			perror( infile );
+			return EXIT_FAILURE;
+		}
+	}
 	save_nctrls = nctrls;
 	i = nctrls;
 	if ( nctrls > 0
@@ -1259,6 +1268,7 @@ getNextPage:
 		}
 		if ( fp != stdin ) {
 			fclose( fp );
+			fp = NULL;
 		}
 	}
 
