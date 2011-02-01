@@ -209,7 +209,7 @@ rwm_map_attrnames(
 	}
 
 	assert( i > 0 || x > 0 );
-	*anp = op->o_tmpalloc( ( i + x + 1 )* sizeof( AttributeName ),
+	*anp = op->o_tmpcalloc( ( i + x + 1 ), sizeof( AttributeName ),
 		op->o_tmpmemctx );
 	if ( *anp == NULL ) {
 		return LDAP_NO_MEMORY;
