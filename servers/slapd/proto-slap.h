@@ -129,6 +129,7 @@ LDAP_SLAPD_F (int) slap_bv2ad LDAP_P((
 	const char **text ));
 
 LDAP_SLAPD_F (void) ad_destroy LDAP_P(( AttributeDescription * ));
+LDAP_SLAPD_F (int) ad_keystring LDAP_P(( struct berval *bv ));
 
 #define ad_cmp(l,r)	(((l)->ad_cname.bv_len < (r)->ad_cname.bv_len) \
 	? -1 : (((l)->ad_cname.bv_len > (r)->ad_cname.bv_len) \
