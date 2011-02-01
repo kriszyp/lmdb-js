@@ -1609,15 +1609,19 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 		if ( !BER_BVISEMPTY( &op->ors_filterstr ))
 			attr_merge_one( e, ad_reqFilter, &op->ors_filterstr, NULL );
 		if ( op->ors_attrs ) {
+			int j;
 			/* count them */
 			for (i=0; !BER_BVISNULL(&op->ors_attrs[i].an_name );i++)
 				;
 			vals = op->o_tmpalloc( (i+1) * sizeof(struct berval),
 				op->o_tmpmemctx );
-			for (i=0; !BER_BVISNULL(&op->ors_attrs[i].an_name );i++)
-				vals[i] = op->ors_attrs[i].an_name;
-			vals[i].bv_val = NULL;
-			vals[i].bv_len = 0;
+			for (i=0, j=0; !BER_BVISNULL(&op->ors_attrs[i].an_name );i++) {
+				if (!BER_BVISEMPTY(&op->ors_attrs[i].an_name)) {
+					vals[j] = op->ors_attrs[i].an_name;
+					j++;
+				}
+			}
+			BER_BVZERO(&vals[j]);
 			attr_merge( e, ad_reqAttr, vals, NULL );
 			op->o_tmpfree( vals, op->o_tmpmemctx );
 		}
