@@ -156,10 +156,40 @@ do_search(
 		if ( slap_bv2ad( &op->ors_attrs[i].an_name,
 			&op->ors_attrs[i].an_desc, &dummy ) != LDAP_SUCCESS )
 		{
-			slap_bv2undef_ad( &op->ors_attrs[i].an_name,
+			if ( slap_bv2undef_ad( &op->ors_attrs[i].an_name,
 				&op->ors_attrs[i].an_desc, &dummy,
-				SLAP_AD_PROXIED|SLAP_AD_NOINSERT );
-		};
+				SLAP_AD_PROXIED|SLAP_AD_NOINSERT ) )
+			{
+				struct berval *bv = &op->ors_attrs[i].an_name;
+
+				/* RFC 4511 LDAPv3: All User Attributes */
+				if ( bvmatch( bv, slap_bv_all_user_attrs ) ) {
+					continue;
+				}
+
+				/* RFC 3673 LDAPv3: All Operational Attributes */
+				if ( bvmatch( bv, slap_bv_all_operational_attrs ) ) {
+					continue;
+				}
+
+				/* RFC 4529 LDAP: Requesting Attributes by Object Class */
+				if ( bv->bv_len > 1 && bv->bv_val[0] == '@' ) {
+					/* FIXME: check if remaining is valid oc name? */
+					continue;
+				}
+
+				/* add more "exceptions" to RFC 4511 4.5.1.8. */
+
+				/* invalid attribute description? remove */
+				if ( ad_keystring( bv ) ) {
+					/* NOTE: parsed in-place, don't modify;
+					 * rather add "1.1", which must be ignored */
+					BER_BVSTR( &op->ors_attrs[i].an_name, LDAP_NO_ATTRS );
+				}
+
+				/* otherwise leave in place... */
+			}
+		}
 	}
 
 	if( get_ctrls( op, rs, 1 ) != LDAP_SUCCESS ) {

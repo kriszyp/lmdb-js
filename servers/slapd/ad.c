@@ -76,7 +76,7 @@ static int msad_range_hack = 0;
 
 static Attr_option *ad_find_option_definition( const char *opt, int optlen );
 
-static int ad_keystring(
+int ad_keystring(
 	struct berval *bv )
 {
 	ber_len_t i;
