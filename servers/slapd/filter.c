@@ -586,7 +586,7 @@ filter_free( Filter *f )
 void
 filter2bv_x( Operation *op, Filter *f, struct berval *fstr )
 {
-	return filter2bv_undef_x( op, f, 0, fstr );
+	filter2bv_undef_x( op, f, 0, fstr );
 }
 
 void
@@ -848,7 +848,7 @@ simple:
 void
 filter2bv( Filter *f, struct berval *fstr )
 {
-	return filter2bv_undef( f, 0, fstr );
+	filter2bv_undef( f, 0, fstr );
 }
 
 void
