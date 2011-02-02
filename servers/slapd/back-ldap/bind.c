@@ -1398,28 +1398,33 @@ retry_lock:;
 	}
 
 #ifdef HAVE_CYRUS_SASL
-	if ( LDAP_BACK_CONN_ISPRIV( lc )
-		&& li->li_acl_authmethod == LDAP_AUTH_SASL )
-	{
+	if ( LDAP_BACK_CONN_ISPRIV( lc )) {
+	slap_bindconf *sb;
+	if ( li->li_acl_authmethod != LDAP_AUTH_NONE )
+		sb = &li->li_acl;
+	else
+		sb = &li->li_idassert.si_bc;
+
+	if ( sb->sb_method == LDAP_AUTH_SASL ) {
 		void		*defaults = NULL;
 
-		if ( li->li_acl_secprops != NULL ) {
+		if ( sb->sb_secprops != NULL ) {
 			rc = ldap_set_option( lc->lc_ld,
-				LDAP_OPT_X_SASL_SECPROPS, li->li_acl_secprops );
+				LDAP_OPT_X_SASL_SECPROPS, sb->sb_secprops );
 
 			if ( rc != LDAP_OPT_SUCCESS ) {
 				Debug( LDAP_DEBUG_ANY, "Error: ldap_set_option "
 					"(SECPROPS,\"%s\") failed!\n",
-					li->li_acl_secprops, 0, 0 );
+					sb->sb_secprops, 0, 0 );
 				goto done;
 			}
 		}
 
 		defaults = lutil_sasl_defaults( lc->lc_ld,
-				li->li_acl_sasl_mech.bv_val,
-				li->li_acl_sasl_realm.bv_val,
-				li->li_acl_authcID.bv_val,
-				li->li_acl_passwd.bv_val,
+				sb->sb_saslmech.bv_val,
+				sb->sb_realm.bv_val,
+				sb->sb_authcId.bv_val,
+				sb->sb_cred.bv_val,
 				NULL );
 		if ( defaults == NULL ) {
 			rs->sr_err = LDAP_OTHER;
@@ -1431,8 +1436,8 @@ retry_lock:;
 		}
 
 		rs->sr_err = ldap_sasl_interactive_bind_s( lc->lc_ld,
-				li->li_acl_authcDN.bv_val,
-				li->li_acl_sasl_mech.bv_val, NULL, NULL,
+				sb->sb_binddn.bv_val,
+				sb->sb_saslmech.bv_val, NULL, NULL,
 				LDAP_SASL_QUIET, lutil_sasl_interact,
 				defaults );
 
@@ -1465,6 +1470,7 @@ retry_lock:;
 		}
 
 		goto done;
+	}
 	}
 #endif /* HAVE_CYRUS_SASL */
 
