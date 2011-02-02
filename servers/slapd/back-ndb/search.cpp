@@ -447,7 +447,7 @@ static int ndb_oc_search( Operation *op, SlapReply *rs, Ndb *ndb, NdbTransaction
 		{
 #if 1	/* NDBapi was broken here but seems to work now */
 			Ndb::Key_part_ptr keys[2];
-			char xbuf[32];
+			char xbuf[512];
 			keys[0].ptr = &eid;
 			keys[0].len = sizeof(eid);
 			keys[1].ptr = NULL;
