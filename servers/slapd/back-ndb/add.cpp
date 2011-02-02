@@ -51,6 +51,7 @@ ndb_back_add(Operation *op, SlapReply *rs )
 		op->oq_add.rs_e->e_name.bv_val, 0, 0);
 
 	ctrls[num_ctrls] = 0;
+	NA.txn = NULL;
 
 	/* check entry's schema */
 	rs->sr_err = entry_schema_check( op, op->oq_add.rs_e, NULL,
