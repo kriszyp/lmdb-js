@@ -714,7 +714,12 @@ ldap_back_prepare_conn( ldapconn_t *lc, Operation *op, SlapReply *rs, ldap_back_
 
 #ifdef HAVE_TLS
 	if ( LDAP_BACK_CONN_ISPRIV( lc ) ) {
-		sb = &li->li_acl;
+		/* See "rationale:" comment in ldap_back_getconn() */
+		if ( BER_BVISNULL( &li->li_acl_authcDN ) &&
+			!BER_BVISNULL( &li->li_idassert_authcDN ) )
+			sb = &li->li_idassert.si_bc;
+		else
+			sb = &li->li_acl;
 
 	} else if ( LDAP_BACK_CONN_ISIDASSERT( lc ) ) {
 		sb = &li->li_idassert.si_bc;
