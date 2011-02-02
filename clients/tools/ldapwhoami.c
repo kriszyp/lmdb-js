@@ -113,7 +113,7 @@ main( int argc, char *argv[] )
 	char		*matcheddn = NULL, *text = NULL, **refs = NULL;
 	struct berval	*authzid = NULL;
 	int		id, code = 0;
-	LDAPMessage	*res;
+	LDAPMessage	*res = NULL;
 	LDAPControl	**ctrls = NULL;
 
 	tool_init( TOOL_WHOAMI );
@@ -182,7 +182,6 @@ main( int argc, char *argv[] )
 	}
 
 	rc = ldap_parse_whoami( ld, res, &authzid );
-	ldap_msgfree(res);
 
 	if( rc != LDAP_SUCCESS ) {
 		tool_perror( "ldap_parse_whoami", rc, NULL, NULL, NULL, NULL );
@@ -199,6 +198,7 @@ main( int argc, char *argv[] )
 	}
 
 skip:
+	ldap_msgfree(res);
 	if ( verbose || ( code != LDAP_SUCCESS ) ||
 		matcheddn || text || refs || ctrls )
 	{
