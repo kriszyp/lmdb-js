@@ -113,7 +113,7 @@ main( int argc, char *argv[] )
 	char		*matcheddn = NULL, *text = NULL, **refs = NULL;
 	struct berval	*authzid = NULL;
 	int		id, code = 0;
-	LDAPMessage	*res;
+	LDAPMessage	*res = NULL;
 	LDAPControl	**ctrls = NULL;
 
 	tool_init( TOOL_WHOAMI );
