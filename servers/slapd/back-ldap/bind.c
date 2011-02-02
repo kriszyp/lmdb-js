@@ -714,9 +714,9 @@ ldap_back_prepare_conn( ldapconn_t *lc, Operation *op, SlapReply *rs, ldap_back_
 
 #ifdef HAVE_TLS
 	if ( LDAP_BACK_CONN_ISPRIV( lc ) ) {
-		/* See "rationale:" comment in ldap_back_getconn() */
-		if ( BER_BVISNULL( &li->li_acl_authcDN ) &&
-			!BER_BVISNULL( &li->li_idassert_authcDN ) )
+		/* See "rationale" comment in ldap_back_getconn() */
+		if ( li->li_acl_authmethod == LDAP_AUTH_NONE &&
+			 li->li_idassert_authmethod != LDAP_AUTH_NONE )
 			sb = &li->li_idassert.si_bc;
 		else
 			sb = &li->li_acl;
@@ -985,10 +985,10 @@ retry_lock:
 
 		/*
 		 * the rationale is: connections as the rootdn are privileged,
-		 * so acl_authcDN is to be used; however, in some cases
+		 * so li_acl is to be used; however, in some cases
 		 * one already configured identity assertion with a highly
-		 * privileged idassert_authcDN, so if acl_authcDN is NULL
-		 * and idassert_authcDN is not, use the second instead.
+		 * privileged idassert_authcDN, so if li_acl is not configured
+		 * and idassert is, use idassert instead.
 		 *
 		 * might change in the future, because it's preferable
 		 * to make clear what identity is being used, since
@@ -996,7 +996,8 @@ retry_lock:
 		 * the same identity twice...
 		 */
 		if ( LDAP_BACK_CONN_ISPRIV( &lc_curr ) ) {
-			if ( BER_BVISNULL( &li->li_acl_authcDN ) && !BER_BVISNULL( &li->li_idassert_authcDN ) ) {
+			if ( li->li_acl_authmethod == LDAP_AUTH_NONE &&
+				 li->li_idassert_authmethod != LDAP_AUTH_NONE ) {
 				ber_dupbv( &lc->lc_bound_ndn, &li->li_idassert_authcDN );
 				ber_dupbv( &lc->lc_cred, &li->li_idassert_passwd );
 
