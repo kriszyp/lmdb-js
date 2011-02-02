@@ -6725,8 +6725,8 @@ config_back_db_open( BackendDB *be, ConfigReply *cr )
 	/* If we have no explicitly configured ACLs, don't just use
 	 * the global ACLs. Explicitly deny access to everything.
 	 */
-	if ( !be->be_acl ) {
-		parse_acl(be, "config_back_db_open", 0, 6, (char **)defacl, 0 );
+	if ( !be->bd_self->be_acl ) {
+		parse_acl(be->bd_self, "config_back_db_open", 0, 6, (char **)defacl, 0 );
 	}
 
 	thrctx = ldap_pvt_thread_pool_context();
