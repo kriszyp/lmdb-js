@@ -45,6 +45,7 @@ OpenLDAP 2.4.24 Engineering
 	Fixed slapd SlapReply usage (ITS#6758)
 	Fixed slapd acl parsing overflow (ITS#6611)
 	Fixed slapd acl when resuming parsing (ITS#6804)
+	Fixed slapd default config acls with overlays (ITS#6822)
 	Fixed slapd assert control (ITS#5862)
 	Fixed slapd assertions and debugging (ITS#6759)
 	Fixed slapd config leak with olcDbDirectory (ITS#6634)
