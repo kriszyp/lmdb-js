@@ -6757,7 +6757,7 @@ static slap_mrule_defs_rec mrule_defs[] = {
 
 	{"( 1.3.6.1.1.16.3 NAME 'UUIDOrderingMatch' "
 		"SYNTAX 1.3.6.1.1.16.1 )",
-		SLAP_MR_ORDERING | SLAP_MR_MUTATION_NORMALIZER, NULL,
+		SLAP_MR_ORDERING | SLAP_MR_EXT | SLAP_MR_MUTATION_NORMALIZER, NULL,
 		NULL, UUIDNormalize, octetStringOrderingMatch,
 		octetStringIndexer, octetStringFilter,
 		"UUIDMatch"},
