@@ -3,7 +3,7 @@
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
 .\" $OpenLDAP$
 .SH NAME
-slapd\-sock \- Socket backend to slapd
+slapd\-sock \- Socket backend/overlay to slapd
 .SH SYNOPSIS
 ETCDIR/slapd.conf
 .SH DESCRIPTION
@@ -17,6 +17,10 @@ requests. This allows multithreaded operation and a higher level of
 efficiency. The external program must have been started independently;
 .BR slapd (8)
 itself will not start it.
+
+This module may also be used as an overlay on top of some other database.
+Use as an overlay allows external actions to be triggered in response to
+operations on the main database.
 .SH CONFIGURATION
 These
 .B slapd.conf
@@ -26,13 +30,17 @@ subsequent "backend" or "database" lines.
 Other database options are described in the
 .BR slapd.conf (5)
 manual page.
+
+Alternatively, to use this module as an overlay, these directives must
+follow an "overlay sock" line within an existing database definition.
 .TP
-.B extensions      [ binddn | peername | ssf ]*
+.B extensions      [ binddn | peername | ssf | connid ]*
 Enables the sending of additional meta-attributes with each request.
 .nf
 binddn: <bound DN>
 peername: IP=<address>:<port>
 ssf: <SSF value>
+connid: <connection ID>
 .fi
 .TP
 .B socketpath      <pathname>
@@ -246,4 +254,4 @@ default slapd configuration file
 .BR slapd\-config (5),
 .BR slapd (8).
 .SH AUTHOR
-Brian Candler
+Brian Candler, with enhancements by Howard Chu
