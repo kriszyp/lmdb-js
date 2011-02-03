@@ -30,6 +30,7 @@
 #include "back-sock.h"
 
 static ConfigDriver bs_cf_gen;
+static int sock_over_setup();
 
 enum {
 	BS_EXT = 1
@@ -61,6 +62,17 @@ static ConfigOCs bsocs[] = {
 	{ NULL, 0, NULL }
 };
 
+static ConfigOCs osocs[] = {
+	{ "( OLcfgOvOc:22.1 "
+		"NAME 'olcOvSocketConfig' "
+		"DESC 'Socket overlay configuration' "
+		"SUP olcOverlayConfig "
+		"MUST olcDbSocketPath "
+		"MAY olcDbSocketExtensions )",
+			Cft_Overlay, bscfg },
+	{ NULL, 0, NULL }
+};
+
 static slap_verbmasks bs_exts[] = {
 	{ BER_BVC("binddn"), SOCK_EXT_BINDDN },
 	{ BER_BVC("peername"), SOCK_EXT_PEERNAME },
@@ -71,8 +83,15 @@ static slap_verbmasks bs_exts[] = {
 static int
 bs_cf_gen( ConfigArgs *c )
 {
-	struct sockinfo	*si = c->be->be_private;
+	struct sockinfo	*si;
 	int rc;
+
+	if ( c->be && c->table == Cft_Database )
+		si = c->be->be_private;
+	else if ( c->bi )
+		si = c->bi->bi_private;
+	else
+		return ARG_BAD_CONF;
 
 	if ( c->op == SLAP_CONFIG_EMIT ) {
 		switch( c->type ) {
@@ -106,7 +125,116 @@ bs_cf_gen( ConfigArgs *c )
 int
 sock_back_init_cf( BackendInfo *bi )
 {
+	int rc;
 	bi->bi_cf_ocs = bsocs;
 
-	return config_register_schema( bscfg, bsocs );
+	rc = config_register_schema( bscfg, bsocs );
+	if ( !rc )
+		rc = sock_over_setup();
+	return rc;
+}
+
+/* sock overlay wrapper */
+static slap_overinst sockover;
+
+static int sock_over_db_init( Backend *be, struct config_reply_s *cr );
+static int sock_over_db_destroy( Backend *be, struct config_reply_s *cr );
+
+static BI_op_bind *sockfuncs[] = {
+	sock_back_bind,
+	sock_back_unbind,
+	sock_back_search,
+	sock_back_compare,
+	sock_back_modify,
+	sock_back_modrdn,
+	sock_back_add,
+	sock_back_delete
+};
+
+static int sock_over_op(
+	Operation *op,
+	SlapReply *rs
+)
+{
+	slap_overinst *on = (slap_overinst *)op->o_bd->bd_info;
+	void *private = op->o_bd->be_private;
+	slap_operation_t which;
+	int rc;
+
+	switch (op->o_tag) {
+	case LDAP_REQ_BIND:	which = op_bind; break;
+	case LDAP_REQ_UNBIND:	which = op_unbind; break;
+	case LDAP_REQ_SEARCH:	which = op_search; break;
+	case LDAP_REQ_COMPARE:	which = op_compare; break;
+	case LDAP_REQ_MODIFY:	which = op_modify; break;
+	case LDAP_REQ_MODRDN:	which = op_modrdn; break;
+	case LDAP_REQ_ADD:	which = op_add; break;
+	case LDAP_REQ_DELETE:	which = op_delete; break;
+	default:
+		return SLAP_CB_CONTINUE;
+	}
+	op->o_bd->be_private = on->on_bi.bi_private;
+	rc = sockfuncs[which]( op, rs );
+	op->o_bd->be_private = private;
+	return rc;
+}
+
+static int
+sock_over_setup()
+{
+	int rc;
+
+	sockover.on_bi.bi_type = "sock";
+	sockover.on_bi.bi_db_init = sock_over_db_init;
+	sockover.on_bi.bi_db_destroy = sock_over_db_destroy;
+
+	sockover.on_bi.bi_op_bind = sock_over_op;
+	sockover.on_bi.bi_op_unbind = sock_over_op;
+	sockover.on_bi.bi_op_search = sock_over_op;
+	sockover.on_bi.bi_op_compare = sock_over_op;
+	sockover.on_bi.bi_op_modify = sock_over_op;
+	sockover.on_bi.bi_op_modrdn = sock_over_op;
+	sockover.on_bi.bi_op_add = sock_over_op;
+	sockover.on_bi.bi_op_delete = sock_over_op;
+
+	sockover.on_bi.bi_cf_ocs = osocs;
+
+	rc = config_register_schema( bscfg, osocs );
+	if ( rc ) return rc;
+
+	return overlay_register( &sockover );
+}
+
+static int
+sock_over_db_init(
+    Backend	*be,
+	struct config_reply_s *cr
+)
+{
+	slap_overinst	*on = (slap_overinst *)be->bd_info;
+	void *private = be->be_private;
+	int rc;
+
+	be->be_private = NULL;
+	rc = sock_back_db_init( be, cr );
+	on->on_bi.bi_private = be->be_private;
+	be->be_private = private;
+	return rc;
+}
+
+static int
+sock_over_db_destroy(
+    Backend	*be,
+	struct config_reply_s *cr
+)
+{
+	slap_overinst	*on = (slap_overinst *)be->bd_info;
+	void *private = be->be_private;
+	int rc;
+
+	be->be_private = on->on_bi.bi_private;
+	rc = sock_back_db_destroy( be, cr );
+	on->on_bi.bi_private = be->be_private;
+	be->be_private = private;
+	return rc;
 }
