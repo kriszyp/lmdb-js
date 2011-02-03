@@ -182,7 +182,7 @@ static int sock_over_op(
 	rc = sockfuncs[which]( op, rs );
 	op->o_bd->be_private = private;
 	op->o_callback = cb.sc_next;
-	return rc;
+	return SLAP_CB_CONTINUE;
 }
 
 static int
