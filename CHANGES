@@ -81,6 +81,7 @@ OpenLDAP 2.4.24 Engineering
 	Fixed slapd-ndb to honor rootpw setting (ITS#6661)
 	Fixed slapd-ndb hasSubordinates generation (ITS#6712)
 	Fixed slapd-ndb variable initialization (ITS#6806)
+	Fixed slapd-ndb with out of order attributes (ITS#6821)
 	Fixed slapd-meta anon retry with failed auth method (ITS#6643)
 	Fixed slapd-meta rebind proc (ITS#6665)
 	Fixed slapd-meta to correctly rebind as user (ITS#6574)
