@@ -2322,17 +2322,17 @@ ldap_back_proxy_authz_bind(
 #ifdef SLAP_AUTH_DN
 			/* FIXME: right now, the only reason to check
 			 * response controls is RFC 3829 authzid */
-			ctrlsp = NULL;
-			rc = ldap_parse_result( lc->lc_ld, result, NULL, NULL, NULL, NULL,
-				&ctrlsp, 0 );
-			if ( rc == LDAP_SUCCESS && ctrlsp ) {
-				if ( li->li_idassert_flags & LDAP_BACK_AUTH_DN_AUTHZID ) {
+			if ( li->li_idassert_flags & LDAP_BACK_AUTH_DN_AUTHZID ) {
+				ctrlsp = NULL;
+				rc = ldap_parse_result( lc->lc_ld, result, NULL, NULL, NULL, NULL,
+					&ctrlsp, 0 );
+				if ( rc == LDAP_SUCCESS && ctrlsp ) {
 					LDAPControl *ctrl;
 		
 					ctrl = ldap_control_find( LDAP_CONTROL_AUTHZID_RESPONSE,
 						ctrlsp, NULL );
 					if ( ctrl ) {
-						Debug( LDAP_DEBUG_TRACE, "%s: ldap_back_proxy_authz_bind: authzID=\"%s\"\n",
+						Debug( LDAP_DEBUG_TRACE, "%s: ldap_back_proxy_authz_bind: authzID=\"%s\" (authzid)\n",
 							op->o_log_prefix, ctrl->ldctl_value.bv_val, 0 );
 						if ( ctrl->ldctl_value.bv_len > STRLENOF("dn:") &&
 							strncasecmp( ctrl->ldctl_value.bv_val, "dn:", STRLENOF("dn:") ) == 0 )
@@ -2346,9 +2346,28 @@ ldap_back_proxy_authz_bind(
 				}
 
 				ldap_controls_free( ctrlsp );
+
+			} else if ( li->li_idassert_flags & LDAP_BACK_AUTH_DN_WHOAMI ) {
+				struct berval *val = NULL;
+				rc = ldap_whoami_s( lc->lc_ld, &val, NULL, NULL );
+				if ( rc == LDAP_SUCCESS && val != NULL ) {
+					Debug( LDAP_DEBUG_TRACE, "%s: ldap_back_proxy_authz_bind: authzID=\"%s\" (whoami)\n",
+						op->o_log_prefix, val->bv_val, 0 );
+					if ( val->bv_len > STRLENOF("dn:") &&
+						strncasecmp( val->bv_val, "dn:", STRLENOF("dn:") ) == 0 )
+					{
+						struct berval bv;
+						bv.bv_val = &val->bv_val[STRLENOF("dn:")];
+						bv.bv_len = val->bv_len - STRLENOF("dn:");
+						ber_bvreplace( &lc->lc_bound_ndn, &bv );
+					}
+					ber_bvfree( val );
+				}
 			}
 
-			if ( BER_BVISNULL( &lc->lc_bound_ndn ) ) {
+			if ( ( li->li_idassert_flags & LDAP_BACK_AUTH_DN_MASK ) &&
+				BER_BVISNULL( &lc->lc_bound_ndn ) )
+			{
 				/* all in all, we only need it to be non-null */
 				/* FIXME: should this be configurable? */
 				static struct berval bv = BER_BVC("cn=authzdn");
