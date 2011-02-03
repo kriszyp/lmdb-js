@@ -64,7 +64,7 @@ static ConfigOCs bsocs[] = {
 };
 
 static ConfigOCs osocs[] = {
-	{ "( OLcfgOvOc:22.1 "
+	{ "( OLcfgDbOc:7.2 "
 		"NAME 'olcOvSocketConfig' "
 		"DESC 'Socket overlay configuration' "
 		"SUP olcOverlayConfig "
