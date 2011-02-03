@@ -77,6 +77,7 @@ static slap_verbmasks bs_exts[] = {
 	{ BER_BVC("binddn"), SOCK_EXT_BINDDN },
 	{ BER_BVC("peername"), SOCK_EXT_PEERNAME },
 	{ BER_BVC("ssf"), SOCK_EXT_SSF },
+	{ BER_BVC("connid"), SOCK_EXT_CONNID },
 	{ BER_BVNULL, 0 }
 };
 
@@ -158,6 +159,7 @@ static int sock_over_op(
 {
 	slap_overinst *on = (slap_overinst *)op->o_bd->bd_info;
 	void *private = op->o_bd->be_private;
+	slap_callback cb = { NULL, slap_null_cb, NULL, NULL };
 	slap_operation_t which;
 	int rc;
 
@@ -174,9 +176,20 @@ static int sock_over_op(
 		return SLAP_CB_CONTINUE;
 	}
 	op->o_bd->be_private = on->on_bi.bi_private;
+	cb.sc_next = op->o_callback;
+	op->o_callback = &cb;
 	rc = sockfuncs[which]( op, rs );
 	op->o_bd->be_private = private;
+	op->o_callback = cb.sc_next;
 	return rc;
+}
+
+static int
+sock_over_response( Operatiion *op, SlapReply *rs )
+{
+	slap_overinst *on = (slap_overinst *)op->o_bd->bd_info;
+	struct sockinfo *si = (struct sockinfo *)on->on_bi.bi_private;
+
 }
 
 static int
@@ -196,6 +209,7 @@ sock_over_setup()
 	sockover.on_bi.bi_op_modrdn = sock_over_op;
 	sockover.on_bi.bi_op_add = sock_over_op;
 	sockover.on_bi.bi_op_delete = sock_over_op;
+	sockover.on_response = sock_over_response;
 
 	sockover.on_bi.bi_cf_ocs = osocs;
 
