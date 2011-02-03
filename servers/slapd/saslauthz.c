@@ -2005,7 +2005,7 @@ slap_sasl2dn(
 	op.o_bd->be_search( &op, &rs );
 	
 FINISHED:
-	if( !BER_BVISEMPTY( sasldn ) ) {
+	if( opx == opx->o_conn->c_sasl_bindop && !BER_BVISEMPTY( sasldn ) ) {
 		opx->o_conn->c_authz_backend = op.o_bd;
 	}
 	if( !BER_BVISNULL( &op.o_req_dn ) ) {
