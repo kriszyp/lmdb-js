@@ -33,6 +33,7 @@ struct sockinfo {
 #define	SOCK_EXT_BINDDN	1
 #define	SOCK_EXT_PEERNAME	2
 #define	SOCK_EXT_SSF		4
+#define	SOCK_EXT_CONNID		8
 
 extern FILE *opensock LDAP_P((
 	const char *sockpath));

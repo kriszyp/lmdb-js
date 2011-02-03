@@ -151,4 +151,7 @@ sock_print_conn(
 	if( si->si_extensions & SOCK_EXT_SSF ) {
 		fprintf( fp, "ssf: %d\n", conn->c_ssf );
 	}
+	if( si->si_extensions & SOCK_EXT_CONNID ) {
+		fprintf( fp, "connid: %lu\n", conn->c_connid );
+	}
 }
