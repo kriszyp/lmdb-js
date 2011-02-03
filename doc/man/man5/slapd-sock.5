@@ -162,6 +162,22 @@ where only RESULT is mandatory, and then close the socket.
 The \fBsearch\fP RESULT should be preceded by the entries in LDIF
 format, each entry followed by a blank line.
 Lines starting with `#' or `DEBUG:' are ignored.
+
+When used as an overlay, the result from an operation is also sent,
+so the external program can see if the operation succeeded or not.
+This message is similar to the RESULT message above, but
+will also include any configured extensions:
+.RS
+.nf
+RESULT
+msgid: <message id>
+code: <integer>
+matched: <matched DN>
+info: <text>
+.fi
+.RE
+Typically both the msgid and the connid will be needed to match
+a result message to a request.
 .SH ACCESS CONTROL
 The
 .B sock
