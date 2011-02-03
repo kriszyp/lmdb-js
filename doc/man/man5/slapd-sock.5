@@ -163,10 +163,11 @@ The \fBsearch\fP RESULT should be preceded by the entries in LDIF
 format, each entry followed by a blank line.
 Lines starting with `#' or `DEBUG:' are ignored.
 
-When used as an overlay, the result from an operation is also sent,
-so the external program can see if the operation succeeded or not.
-This message is similar to the RESULT message above, but
-will also include any configured extensions:
+When used as an overlay, the result message from the external
+program is read and ignored. Also, the result from the operation is
+sent to the external program, so the external program can see if the
+operation succeeded or not.  This message is similar to the RESULT
+message above, but will also include any configured extensions:
 .RS
 .nf
 RESULT
