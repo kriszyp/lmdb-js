@@ -48,6 +48,7 @@ extern ldap_pvt_thread_mutex_t  perl_interpreter_mutex;
 # define na	PL_na
 #else
 # define call_method(m, f)	perl_call_method(m, f)
+# define eval_pv(m, f)	perl_eval_pv(m, f)
 # define ERRSV	GvSV(errgv)
 #endif
 
