@@ -24,8 +24,6 @@ extern ldap_pvt_thread_mutex_t passwd_mutex;
 
 extern BI_destroy	passwd_back_destroy;
 
-extern BI_db_config	passwd_back_db_config;
-
 extern BI_op_search	passwd_back_search;
 
 LDAP_END_DECL
