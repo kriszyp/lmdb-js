@@ -104,6 +104,8 @@ perl_back_db_init(
 
 	Debug( LDAP_DEBUG_TRACE, "perl backend db init\n", 0, 0, 0 );
 
+	be->be_cf_ocs = be->bd_info->bi_cf_ocs;
+
 	return 0;
 }
 
