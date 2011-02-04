@@ -46,6 +46,9 @@ extern ldap_pvt_thread_mutex_t  perl_interpreter_mutex;
 /* All the old style variables are prefixed with PL_ now */
 # define errgv	PL_errgv
 # define na	PL_na
+#else
+# define call_method(m, f)	perl_call_method(m, f)
+# define ERRSV	GvSV(errgv)
 #endif
 
 #if defined( HAVE_WIN32_ASPERL ) || defined( USE_ITHREADS )
@@ -63,7 +66,9 @@ extern PerlInterpreter *PERL_INTERPRETER;
 
 
 typedef struct perl_backend_instance {
-	char	*pb_module_name;
+	struct berval	pb_module_name;
+	BerVarray pb_module_path;
+	BerVarray pb_module_config;
 	SV	*pb_obj_ref;
 	int	pb_filter_search_results;
 } PerlBackend;
