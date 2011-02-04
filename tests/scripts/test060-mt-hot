@@ -24,6 +24,10 @@ if test $MONITORDB = "no" ; then
 	exit 0
 fi 
 
+if test x$TESTLOOPS = x ; then
+	TESTLOOPS=50
+fi
+
 mkdir -p $TESTDIR $DBDIR1
 
 #
@@ -85,7 +89,7 @@ echo "Monitor searches"
 # Perform a basic single threaded search on a single connection
 THR=1
 OUTER=1
-INNER=50000
+INNER=`expr $TESTLOOPS \* 1000`
 echo "Testing basic mt-hot search: $THR threads ($OUTER x $INNER) loops..."
 echo $SLAPDMTREAD -H $URI1 -D "$MANAGERDN" -w $PASSWD \
 	-e "$MONITORDN" \
@@ -103,7 +107,7 @@ fi
 # Perform a basic multi-threaded search on a single connection
 THR=5
 OUTER=1
-INNER=10000
+INNER=`expr $TESTLOOPS \* 200`
 echo "Testing basic mt-hot search: $THR threads ($OUTER x $INNER) loops..."
 echo $SLAPDMTREAD -H $URI1 -D "$MANAGERDN" -w $PASSWD \
 	-e "$MONITORDN" \
@@ -121,7 +125,7 @@ fi
 # Perform a basic multi-threaded search on a single connection
 THR=100
 OUTER=5
-INNER=100
+INNER=`expr $TESTLOOPS \* 2`
 echo "Testing basic mt-hot search: $THR threads ($OUTER x $INNER) loops..."
 echo $SLAPDMTREAD -H $URI1 -D "$MANAGERDN" -w $PASSWD \
 	-e "$MONITORDN" \
@@ -140,7 +144,7 @@ fi
 echo "Random searches"
 THR=1
 OUTER=1
-INNER=50000
+INNER=`expr $TESTLOOPS \* 1000`
 echo "Testing random mt-hot search: $THR threads ($OUTER x $INNER) loops..."
 echo $SLAPDMTREAD -H $URI1 -D "$MANAGERDN" -w $PASSWD \
 	-e "$BASEDN" -f "(objectclass=*)" \
@@ -158,7 +162,7 @@ fi
 # Perform a multi-threaded random DB search on a single connection
 THR=5
 OUTER=1
-INNER=10000
+INNER=`expr $TESTLOOPS \* 200`
 echo "Testing random mt-hot search: $THR threads ($OUTER x $INNER) loops..."
 echo $SLAPDMTREAD -H $URI1 -D "$MANAGERDN" -w $PASSWD \
 	-e "$BASEDN" -f "(objectclass=*)" \
@@ -176,7 +180,7 @@ fi
 # Perform a multi-threaded random DB search on a single connection
 THR=100
 OUTER=5
-INNER=100
+INNER=`expr $TESTLOOPS \* 2`
 echo "Testing random mt-hot search: $THR threads ($OUTER x $INNER) loops..."
 echo $SLAPDMTREAD -H $URI1 -D "$MANAGERDN" -w $PASSWD \
 	-e "$BASEDN" -f "(objectclass=*)" \
@@ -196,7 +200,7 @@ echo "Multiple threads and connection searches"
 CONN=5
 THR=5
 OUTER=1
-INNER=10000
+INNER=`expr $TESTLOOPS \* 200`
 echo "Testing basic mt-hot search: $THR threads $CONN conns ($OUTER x $INNER) loops..."
 echo $SLAPDMTREAD -H $URI1 -D "$MANAGERDN" -w $PASSWD \
 	-e "$MONITORDN" \
@@ -215,7 +219,7 @@ fi
 CONN=5
 THR=50
 OUTER=5
-INNER=1000
+INNER=`expr $TESTLOOPS \* 20`
 echo "Testing basic mt-hot search: $THR threads $CONN conns ($OUTER x $INNER) loops..."
 echo $SLAPDMTREAD -H $URI1 -D "$MANAGERDN" -w $PASSWD \
 	-e "$MONITORDN" \
@@ -234,7 +238,7 @@ fi
 CONN=5
 THR=100
 OUTER=5
-INNER=100
+INNER=`expr $TESTLOOPS \* 2`
 echo "Testing random mt-hot search: $THR threads $CONN conns ($OUTER x $INNER) loops..."
 echo $SLAPDMTREAD -H $URI1 -D "$MANAGERDN" -w $PASSWD \
 	-e "$BASEDN" -f "(objectclass=*)" \
@@ -254,7 +258,7 @@ CONN=1
 THR=10
 WTHR=10
 OUTER=5
-INNER=100
+INNER=`expr $TESTLOOPS \* 2`
 echo "Testing random mt-hot r/w search: $THR read threads $WTHR write threads $CONN conns ($OUTER x $INNER) loops..."
 echo $SLAPDMTREAD -H $URI1 -D "$MANAGERDN" -w $PASSWD \
 	-e "$BASEDN" -f "(&(!(cn=rwtest*))(objectclass=*))" \
@@ -274,7 +278,7 @@ CONN=5
 THR=10
 WTHR=10
 OUTER=5
-INNER=100
+INNER=`expr $TESTLOOPS \* 2`
 echo "Testing random mt-hot r/w search: $THR read threads $WTHR write threads $CONN conns ($OUTER x $INNER) loops..."
 echo $SLAPDMTREAD -H $URI1 -D "$MANAGERDN" -w $PASSWD \
 	-e "$BASEDN" -f "(&(!(cn=rwtest*))(objectclass=*))" \
