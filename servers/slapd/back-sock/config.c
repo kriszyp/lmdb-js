@@ -251,7 +251,6 @@ static int sock_over_op(
 	slap_callback *sc;
 	struct sockinfo	*si;
 	slap_operation_t which;
-	int rc;
 
 	switch (op->o_tag) {
 	case LDAP_REQ_BIND:	which = op_bind; break;
@@ -272,10 +271,10 @@ static int sock_over_op(
 	op->o_bd->be_private = si;
 	sc = op->o_callback;
 	op->o_callback = NULL;
-	rc = sockfuncs[which]( op, rs );
+	sockfuncs[which]( op, rs );
 	op->o_bd->be_private = private;
 	op->o_callback = sc;
-	return rc;
+	return rs->sr_err;
 }
 
 static int
