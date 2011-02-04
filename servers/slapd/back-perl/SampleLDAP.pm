@@ -49,7 +49,7 @@ sub search {
     my ( $base, $scope, $deref, $sizeLim, $timeLim, $filterStr, $attrOnly,
         @attrs )
       = @_;
-    print {*STDERR}, "====$filterStr====\n";
+    print {*STDERR} "====$filterStr====\n";
     $filterStr =~ s/\(|\)//gm;
     $filterStr =~ s/=/: /m;
 
