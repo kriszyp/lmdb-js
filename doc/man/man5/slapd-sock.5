@@ -46,6 +46,19 @@ connid: <connection ID>
 .B socketpath      <pathname>
 Gives the path to a Unix domain socket to which the commands will
 be sent and from which replies are received.
+
+When used as an overlay, these additional directives are defined:
+.TP
+.B sockops	[ bind | unbind | search | compare | modify | modrdn | add | delete ]*
+Specify which request types to send to the external program. The default is
+empty (no requests are sent).
+.TP
+.B sockresps       [ result | search ]*
+Specify which response types to send to the external program. "result"
+sends just the results of an operation. "search" sends all entries that
+the database returned for a search request. The default is empty
+(no responses are sent).
+
 .SH PROTOCOL
 The protocol is essentially the same as
 .BR slapd\-shell (5)
@@ -163,11 +176,16 @@ The \fBsearch\fP RESULT should be preceded by the entries in LDIF
 format, each entry followed by a blank line.
 Lines starting with `#' or `DEBUG:' are ignored.
 
-When used as an overlay, the result message from the external
-program is read and ignored. Also, the result from the operation is
-sent to the external program, so the external program can see if the
-operation succeeded or not.  This message is similar to the RESULT
-message above, but will also include any configured extensions:
+When used as an overlay, the external program should return a
+CONTINUE response if request processing should continue normally, or
+a regular RESULT response if the external program wishes to bypass the
+underlying database.
+
+If the overlay is configured to send response messages to the external
+program, they will appear as an extended RESULT message or as an
+ENTRY message, defined below. The RESULT message is similar to
+the one above, but also includes the msgid and any configured
+extensions:
 .RS
 .nf
 RESULT
@@ -175,10 +193,21 @@ msgid: <message id>
 code: <integer>
 matched: <matched DN>
 info: <text>
+<blank line>
 .fi
 .RE
+
 Typically both the msgid and the connid will be needed to match
-a result message to a request.
+a result message to a request. The ENTRY message has the form
+.RS
+.nf
+ENTRY
+msgid: <message id>
+<entry in LDIF format>
+<blank line>
+.fi
+.RE
+
 .SH ACCESS CONTROL
 The
 .B sock
