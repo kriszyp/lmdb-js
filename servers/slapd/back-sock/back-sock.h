@@ -28,6 +28,8 @@ LDAP_BEGIN_DECL
 struct sockinfo {
 	const char	*si_sockpath;
 	slap_mask_t	si_extensions;
+	slap_mask_t	si_ops;		/* overlay: operations to act on */
+	slap_mask_t	si_resps;	/* overlay: responses to forward */
 };
 
 #define	SOCK_EXT_BINDDN	1
