@@ -1545,7 +1545,7 @@ bdb_lru_count( Cache *cache )
 			ent++;
 			if ( e->bei_state & CACHE_ENTRY_NOT_CACHED )
 				nc++;
-			fprintf( stderr, "ei %d entry %p dn %s\n", ei, e->bei_e, e->bei_e->e_name.bv_val );
+			fprintf( stderr, "ei %d entry %p dn %s\n", ei, (void *) e->bei_e, e->bei_e->e_name.bv_val );
 		}
 		e = e->bei_lrunext;
 		if ( e == cache->c_lrutail )
