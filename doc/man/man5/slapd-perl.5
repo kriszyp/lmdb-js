@@ -184,9 +184,11 @@ The interface of this backend to the perl module MAY change.
 Any suggestions would greatly be appreciated.
 
 Note: in previous versions, any unrecognized lines in the slapd.conf
-file were passed to the perl module's config method. Now,
-unrecognized lines are rejected as errors, and the perlModuleConfig
-directive must be used to invoke the module's config method.
+file were passed to the perl module's config method. This behavior is
+deprecated (but still allowed for backward compatibility), and the
+perlModuleConfig directive should instead be used to invoke the
+module's config method. This compatibility feature will be removed at
+some future date.
 .SH FILES
 .TP
 ETCDIR/slapd.conf
