@@ -67,7 +67,7 @@ extern PerlInterpreter *PERL_INTERPRETER;
 
 
 typedef struct perl_backend_instance {
-	struct berval	pb_module_name;
+	char *pb_module_name;
 	BerVarray pb_module_path;
 	BerVarray pb_module_config;
 	SV	*pb_obj_ref;

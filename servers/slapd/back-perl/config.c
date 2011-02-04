@@ -34,7 +34,7 @@ static ConfigTable perlcfg[] = {
 			"EQUALITY caseExactMatch "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
 	{ "perlModulePath", "path", 2, 2, 0,
-		ARG_STRING|ARG_MAGIC|PERL_PATH, perl_cf, 
+		ARG_MAGIC|PERL_PATH, perl_cf, 
 		"( OLcfgDbAt:11.2 NAME 'olcPerlModulePath' "
 			"DESC 'Perl module path' "
 			"EQUALITY caseExactMatch "
@@ -45,7 +45,7 @@ static ConfigTable perlcfg[] = {
 			"DESC 'Filter search results before returning to client' "
 			"SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
 	{ "perlModuleConfig", "args", 2, 0, 0,
-		ARG_STRING|ARG_MAGIC|PERL_CONFIG, perl_cf, 
+		ARG_MAGIC|PERL_CONFIG, perl_cf, 
 		"( OLcfgDbAt:11.4 NAME 'olcPerlModuleConfig' "
 			"DESC 'Perl module config directives' "
 			"EQUALITY caseExactMatch "
@@ -55,7 +55,7 @@ static ConfigTable perlcfg[] = {
 
 static ConfigOCs perlocs[] = {
 	{ "( OLcfgDbOc:11.1 "
-		"NAME 'olcPerlConfig' "
+		"NAME 'olcDbPerlConfig' "
 		"DESC 'Perl DB configuration' "
 		"SUP olcDatabaseConfig "
 		"MUST ( olcPerlModulePath $ olcPerlModule ) "
@@ -64,11 +64,48 @@ static ConfigOCs perlocs[] = {
 	{ NULL }
 };
 
+static ConfigOCs ovperlocs[] = {
+	{ "( OLcfgDbOc:11.2 "
+		"NAME 'olcovPerlConfig' "
+		"DESC 'Perl overlay configuration' "
+		"SUP olcOverlayConfig "
+		"MUST ( olcPerlModulePath $ olcPerlModule ) "
+		"MAY ( olcPerlFilterSearchResults $ olcPerlModuleConfig ) )",
+			Cft_Overlay, perlcfg, NULL, NULL },
+	{ NULL }
+};
+
 /**********************************************************
  *
  * Config
  *
  **********************************************************/
+int
+perl_back_db_config(
+	BackendDB *be,
+	const char *fname,
+	int lineno,
+	int argc,
+	char **argv
+)
+{
+	int rc = config_generic_wrapper( be, fname, lineno, argc, argv );
+	/* backward compatibility: map unknown directives to perlModuleConfig */
+	if ( rc == SLAP_CONF_UNKNOWN ) {
+		char **av = ch_malloc( (argc+2) * sizeof(char *));
+		int i;
+		av[0] = "perlModuleConfig";
+		av++;
+		for ( i=0; i<argc; i++ )
+			av[i] = argv[i];
+		av[i] = NULL;
+		av--;
+		rc = config_generic_wrapper( be, fname, lineno, argc+1, av );
+		ch_free( av );
+	}
+	return rc;
+}
+
 static int
 perl_cf(
 	ConfigArgs *c
@@ -85,9 +122,9 @@ perl_cf(
 	if ( c->op == SLAP_CONFIG_EMIT ) {
 		switch( c-> type ) {
 		case PERL_MODULE:
-			if ( bv.bv_len < 1 )
+			if ( !pb->pb_module_name )
 				return 1;
-			value_add_one( &c->rvalue_vals, &pb->pb_module_name );
+			c->value_string = ch_strdup( pb->pb_module_name );
 			break;
 		case PERL_PATH:
 			if ( !pb->pb_module_path )
@@ -107,8 +144,8 @@ perl_cf(
 		 */
 		switch( c-> type ) {
 		case PERL_MODULE:
-			ch_free( pb->pb_module_name.bv_val );
-			BER_BVZERO( &pb->pb_module_name );
+			ch_free( pb->pb_module_name );
+			pb->pb_module_name = NULL;
 			break;
 		case PERL_PATH:
 			if ( c->valx < 0 ) {
@@ -168,7 +205,7 @@ perl_cf(
 				pb->pb_obj_ref = newSVsv(POPs);
 
 				PUTBACK; FREETMPS; LEAVE ;
-				ber_str2bv( c->argv[1], 0, 1, &pb->pb_module_name );
+				pb->pb_module_name = ch_strdup( c->argv[1] );
 			}
 			break;
 

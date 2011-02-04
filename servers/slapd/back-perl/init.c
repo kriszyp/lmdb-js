@@ -45,7 +45,7 @@ perl_back_initialize(
 	bi->bi_destroy = 0;
 
 	bi->bi_db_init = perl_back_db_init;
-	bi->bi_db_config = 0;
+	bi->bi_db_config = perl_back_db_config;
 	bi->bi_db_open = perl_back_db_open;
 	bi->bi_db_close = 0;
 	bi->bi_db_destroy = perl_back_db_destroy;

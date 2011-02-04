@@ -48,7 +48,7 @@ perl_back_db_destroy(
 {
 	PerlBackend *pb = be->be_private;
 
-	ch_free( pb->pb_module_name.bv_val );
+	ch_free( pb->pb_module_name );
 	ber_bvarray_free( pb->pb_module_path );
 	ber_bvarray_free( pb->pb_module_config );
 
