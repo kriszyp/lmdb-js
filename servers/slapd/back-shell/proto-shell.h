@@ -40,7 +40,6 @@ extern BI_destroy	shell_back_destroy;
 
 extern BI_db_init	shell_back_db_init;
 extern BI_db_destroy	shell_back_db_destroy;
-extern BI_db_config	shell_back_db_config;
 
 extern BI_op_bind	shell_back_bind;
 extern BI_op_unbind	shell_back_unbind;
@@ -51,6 +50,7 @@ extern BI_op_modrdn	shell_back_modrdn;
 extern BI_op_add	shell_back_add;
 extern BI_op_delete	shell_back_delete;
 
+extern int shell_back_init_cf( BackendInfo *bi );
 LDAP_END_DECL
 
 #endif /* PROTO_SHELL_H */

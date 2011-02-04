@@ -51,7 +51,7 @@ shell_back_initialize(
 	bi->bi_destroy = 0;
 
 	bi->bi_db_init = shell_back_db_init;
-	bi->bi_db_config = shell_back_db_config;
+	bi->bi_db_config = 0;
 	bi->bi_db_open = 0;
 	bi->bi_db_close = 0;
 	bi->bi_db_destroy = shell_back_db_destroy;
@@ -73,7 +73,7 @@ shell_back_initialize(
 	bi->bi_connection_init = 0;
 	bi->bi_connection_destroy = 0;
 
-	return 0;
+	return shell_back_init_cf( bi );
 }
 
 int
