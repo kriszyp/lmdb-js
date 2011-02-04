@@ -43,7 +43,7 @@
 static ConfigTable passwdcfg[] = {
 	{ "file", "filename", 2, 2, 0,
 #ifdef HAVE_SETPWFILE
-		ARG_STRING, NULL,
+		ARG_STRING|ARG_OFFSET, NULL,
 #else
 		ARG_IGNORED, NULL,
 #endif
