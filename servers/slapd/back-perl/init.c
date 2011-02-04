@@ -45,7 +45,7 @@ perl_back_initialize(
 	bi->bi_destroy = 0;
 
 	bi->bi_db_init = perl_back_db_init;
-	bi->bi_db_config = perl_back_db_config;
+	bi->bi_db_config = 0;
 	bi->bi_db_open = perl_back_db_open;
 	bi->bi_db_close = 0;
 	bi->bi_db_destroy = perl_back_db_destroy;
@@ -79,7 +79,7 @@ perl_back_initialize(
 	ldap_pvt_thread_mutex_init( &perl_interpreter_mutex );
 
 #ifdef PERL_SYS_INIT3
-	PERL_SYS_INIT3(&argc, &embedding, (char **)NULL);
+	PERL_SYS_INIT3(&argc, &embedding, (char ***)NULL);
 #endif
 	PERL_INTERPRETER = perl_alloc();
 	perl_construct(PERL_INTERPRETER);
@@ -88,7 +88,7 @@ perl_back_initialize(
 #endif
 	perl_parse(PERL_INTERPRETER, perl_back_xs_init, argc, embedding, (char **)NULL);
 	perl_run(PERL_INTERPRETER);
-	return 0;
+	return perl_back_init_cf( bi );
 }
 
 int
