@@ -1148,39 +1148,72 @@ overlay_destroy_one( BackendDB *be, slap_overinst *on )
 }
 
 #ifdef SLAP_CONFIG_DELETE
+typedef struct ov_remove_ctx {
+	BackendDB *be;
+	slap_overinst *on;
+} ov_remove_ctx;
+
+int
+overlay_remove_cb( Operation *op, SlapReply *rs )
+{
+	ov_remove_ctx *rm_ctx = (ov_remove_ctx*) op->o_callback->sc_private;
+	BackendInfo *bi_orig = rm_ctx->be->bd_info;
+
+	rm_ctx->be->bd_info = (BackendInfo*) rm_ctx->on;
+
+	if ( rm_ctx->on->on_bi.bi_db_close ) {
+		rm_ctx->on->on_bi.bi_db_close( rm_ctx->be, NULL );
+	}
+	if ( rm_ctx->on->on_bi.bi_db_destroy ) {
+		rm_ctx->on->on_bi.bi_db_destroy( rm_ctx->be, NULL );
+	}
+
+	/* clean up after removing last overlay */
+	if ( ! rm_ctx->on->on_info->oi_list ) {
+		/* reset db flags and bd_info to orig */
+		SLAP_DBFLAGS( rm_ctx->be ) &= ~SLAP_DBFLAG_GLOBAL_OVERLAY;
+		rm_ctx->be->bd_info = rm_ctx->on->on_info->oi_orig;
+		ch_free(rm_ctx->on->on_info);
+	} else {
+		rm_ctx->be->bd_info = bi_orig;
+	}
+	free( rm_ctx->on );
+	op->o_tmpfree(rm_ctx, op->o_tmpmemctx);
+	return SLAP_CB_CONTINUE;
+}
+
 void
-overlay_remove( BackendDB *be, slap_overinst *on )
+overlay_remove( BackendDB *be, slap_overinst *on, Operation *op )
 {
 	slap_overinfo *oi = on->on_info;
 	slap_overinst **oidx;
-	BackendInfo *bi_orig;
+	ov_remove_ctx *rm_ctx;
+	slap_callback *rm_cb, *cb;
 
-	/* remove overlay from oi_list an call db_close and db_destroy
-	 * handlers */
+	/* remove overlay from oi_list */
 	for ( oidx = &oi->oi_list; *oidx; oidx = &(*oidx)->on_next ) {
 		if ( *oidx == on ) {
 			*oidx = on->on_next;
-			bi_orig = be->bd_info;
-			be->bd_info = (BackendInfo *)on;
-			if ( on->on_bi.bi_db_close ) {
-				on->on_bi.bi_db_close( be, NULL );
-			}
-			if ( on->on_bi.bi_db_destroy ) {
-				on->on_bi.bi_db_destroy( be, NULL );
-			}
-			be->bd_info = bi_orig;
-			free( on );
 			break;
 		}
 	}
-	
-	/* clean up after removing last overlay */
-	if ( ! oi->oi_list ) 
-	{
-		/* reset db flags and bd_info to orig */
-		be->bd_info = oi->oi_orig;
-		ch_free(oi);
-	}
+
+	/* The db_close and db_destroy handlers to cleanup a release
+	 * the overlay's resources are called from the cleanup callback
+	 */
+	rm_ctx = op->o_tmpalloc( sizeof( ov_remove_ctx ), op->o_tmpmemctx );
+	rm_ctx->be = be;
+	rm_ctx->on = on;
+
+	rm_cb = op->o_tmpalloc( sizeof( slap_callback ), op->o_tmpmemctx );
+	rm_cb->sc_next = NULL;
+	rm_cb->sc_cleanup = overlay_remove_cb;
+	rm_cb->sc_response = NULL;
+	rm_cb->sc_private = (void*) rm_ctx;
+
+	/* Append callback to the end of the list */
+	for ( cb = op->o_callback; cb->sc_next; cb = cb->sc_next );
+	cb->sc_next = rm_cb;
 }
 #endif /* SLAP_CONFIG_DELETE */
 
