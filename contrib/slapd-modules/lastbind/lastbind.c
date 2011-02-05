@@ -18,7 +18,7 @@
 #include "portable.h"
 
 /*
- *This file implements an overlay that stores the timestamp of the
+ * This file implements an overlay that stores the timestamp of the
  * last successful bind operation in a directory entry.
  * 
  * Optimization: to avoid performing a write on each bind,
@@ -39,7 +39,7 @@
 
 /* Per-instance configuration information */
 typedef struct lastbind_info {
-	/* precision to update timestamp in bindTimestamp attribute */
+	/* precision to update timestamp in authTimestamp attribute */
 	int timestamp_precision;
 } lastbind_info;
 
@@ -71,7 +71,7 @@ static ConfigTable lastbindcfg[] = {
 	  (void *)offsetof(lastbind_info, timestamp_precision),
 	  "( OLcfgAt:5.1 "
 	  "NAME 'olcLastBindPrecision' "
-	  "DESC 'Precision of bindTimestamp attribute' "
+	  "DESC 'Precision of authTimestamp attribute' "
 	  "SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
 	{ NULL, NULL, 0, 0, 0, ARG_IGNORED }
 };
@@ -125,23 +125,23 @@ lastbind_bind_response( Operation *op, SlapReply *rs )
 		char nowstr[ LDAP_LUTIL_GENTIME_BUFSIZE ];
 		struct berval timestamp;
 
-		// get the current time
+		/* get the current time */
 		now = slap_get_time();
 
-		// get bindTimestamp attribute, if it exists
+		/* get authTimestamp attribute, if it exists */
 		if ((a = attr_find( e->e_attrs, ad_authTimestamp)) != NULL) {
 			bindtime = parse_time( a->a_nvals[0].bv_val );
 
 			if (bindtime != (time_t)-1) {
-				// if the recorded bind time is within our precision, we're done
-				// it doesn't need to be updated (save a write for nothing)
+				/* if the recorded bind time is within our precision, we're done
+				 * it doesn't need to be updated (save a write for nothing) */
 				if ((now - bindtime) < lbi->timestamp_precision) {
 					goto done;
 				}
 			}
 		}
 		
-		// update the bindTimestamp in the user's entry with the current time
+		/* update the authTimestamp in the user's entry with the current time */
 		timestamp.bv_val = nowstr;
 		timestamp.bv_len = sizeof(nowstr);
 		slap_timestamp( &now, &timestamp );
@@ -164,7 +164,7 @@ lastbind_bind_response( Operation *op, SlapReply *rs )
 done:
 	be_entry_release_r( op, e );
 
-	// perform the update, if necessary
+	/* perform the update, if necessary */
 	if ( mod ) {
 		Operation op2 = *op;
 		SlapReply r2 = { REP_RESULT };
@@ -191,8 +191,8 @@ lastbind_bind( Operation *op, SlapReply *rs )
 	slap_callback *cb;
 	slap_overinst *on = (slap_overinst *) op->o_bd->bd_info;
 
-	// setup a callback to intercept result of this bind operation
-	// and pass along the lastbind_info struct
+	/* setup a callback to intercept result of this bind operation
+	 * and pass along the lastbind_info struct */
 	cb = op->o_tmpcalloc( sizeof(slap_callback), 1, op->o_tmpmemctx );
 	cb->sc_response = lastbind_bind_response;
 	cb->sc_next = op->o_callback->sc_next;
@@ -210,7 +210,7 @@ lastbind_db_init(
 {
         slap_overinst *on = (slap_overinst *) be->bd_info;
 	
-	// initialize private structure to store configuration
+	/* initialize private structure to store configuration */
 	on->on_bi.bi_private = ch_calloc( 1, sizeof(lastbind_info) );
 
 	return 0;
@@ -225,7 +225,7 @@ lastbind_db_close(
 	slap_overinst *on = (slap_overinst *) be->bd_info;
 	lastbind_info *lbi = (lastbind_info *) on->on_bi.bi_private;
 
-	// free private structure to store configuration
+	/* free private structure to store configuration */
 	free( lbi );
 
 	return 0;
@@ -237,7 +237,7 @@ int lastbind_initialize()
 {
 	int i, code;
 
-	// register operational schema for this overlay (bindTimestamp attribute)
+	/* register operational schema for this overlay (authTimestamp attribute) */
 	for (i=0; lastBind_OpSchema[i].def; i++) {
 		code = register_at( lastBind_OpSchema[i].def, lastBind_OpSchema[i].ad, 0 );
 		if ( code ) {
@@ -252,7 +252,7 @@ int lastbind_initialize()
 	lastbind.on_bi.bi_db_close = lastbind_db_close;
 	lastbind.on_bi.bi_op_bind = lastbind_bind;
 
-	// register configuration directives
+	/* register configuration directives */
 	lastbind.on_bi.bi_cf_ocs = lastbindocs;
 	code = config_register_schema( lastbindcfg, lastbindocs );
 	if ( code ) return code;
