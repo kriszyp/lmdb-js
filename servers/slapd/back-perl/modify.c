@@ -75,11 +75,7 @@ perl_back_modify(
 
 		PUTBACK;
 
-#ifdef PERL_IS_5_6
 		count = call_method("modify", G_SCALAR);
-#else
-		count = perl_call_method("modify", G_SCALAR);
-#endif
 
 		SPAGAIN;
 

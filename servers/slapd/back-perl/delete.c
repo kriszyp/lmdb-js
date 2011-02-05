@@ -39,11 +39,7 @@ perl_back_delete(
 
 		PUTBACK;
 
-#ifdef PERL_IS_5_6
 		count = call_method("delete", G_SCALAR);
-#else
-		count = perl_call_method("delete", G_SCALAR);
-#endif
 
 		SPAGAIN;
 
