@@ -61,6 +61,7 @@ extern ldap_pvt_thread_mutex_t  perl_interpreter_mutex;
 # define PERL_INTERPRETER			perl_interpreter
 # define PERL_BACK_XS_INIT_PARAMS		void
 # define PERL_BACK_BOOT_DYNALOADER_PARAMS	CV *cv
+# define PERL_SET_CONTEXT(i)
 #endif
 
 extern PerlInterpreter *PERL_INTERPRETER;
