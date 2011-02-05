@@ -19,6 +19,7 @@ OpenLDAP 2.4.24 Engineering
 	Added slapo-sssvlv multiple sorts per connection (ITS#6686)
 	Added contrib/autogroup LDAP URI with attribute filter (ITS#6536)
 	Added contrib/dupent module (ITS#6630)
+	Added contrib/lastbind (ITS#6238)
 	Added contrib/kinit for kerberos tickets
 	Added contrib/noopsrch for entry counting (ITS#6598)
 	Fixed client tools control logging (ITS#6775)
