@@ -37,43 +37,39 @@
 #include <ac/ctype.h>
 #include "config.h"
 
-// Per-instance configuration information
+/* Per-instance configuration information */
 typedef struct lastbind_info {
-	// precision to update timestamp in bindTimestamp attribute
+	/* precision to update timestamp in bindTimestamp attribute */
 	int timestamp_precision;
 } lastbind_info;
 
-// Operational attributes
-static AttributeDescription *ad_bindTimestamp;
+/* Operational attributes */
+static AttributeDescription *ad_authTimestamp;
 
-// TODO: use a real OID
-#define BASE_OID_AT "OLcfgCtAt:99"
-#define BASE_OID_OC "OLcfgCtOc:99"
+/* This is the definition used by ISODE, as supplied to us in
+ * ITS#6238 Followup #9
+ */
 static struct schema_info {
 	char *def;
 	AttributeDescription **ad;
 } lastBind_OpSchema[] = {
-	{	"( "
-		BASE_OID_AT
-		".1 "
-		"NAME ( 'bindTimestamp' ) "
-		"DESC 'The time the last successful bind occured' "
+	{	"( 1.3.6.1.4.1.453.16.2.188 "
+		"NAME 'authTimestamp' "
+		"DESC 'last successful authentication using any method/mech' "
 		"EQUALITY generalizedTimeMatch "
 		"ORDERING generalizedTimeOrderingMatch "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.24 "
-		"SINGLE-VALUE NO-USER-MODIFICATION USAGE directoryOperation )",
-		&ad_bindTimestamp},
+		"SINGLE-VALUE NO-USER-MODIFICATION USAGE dsaOperation )",
+		&ad_authTimestamp},
 	{ NULL, NULL }
 };
 
-// configuration attribute and objectclass
+/* configuration attribute and objectclass */
 static ConfigTable lastbindcfg[] = {
 	{ "lastbind-precision", "seconds", 2, 2, 0,
 	  ARG_INT|ARG_OFFSET,
 	  (void *)offsetof(lastbind_info, timestamp_precision),
-	  "( "
-	  BASE_OID_AT
-	  ".2 "
+	  "( OLcfgAt:5.1 "
 	  "NAME 'olcLastBindPrecision' "
 	  "DESC 'Precision of bindTimestamp attribute' "
 	  "SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
@@ -81,9 +77,7 @@ static ConfigTable lastbindcfg[] = {
 };
 
 static ConfigOCs lastbindocs[] = {
-	{ "( "
-	  BASE_OID_OC
-	  ".1 "
+	{ "( OLcfgOc:5.1 "
 	  "NAME 'olcLastBindConfig' "
 	  "DESC 'Last Bind configuration' "
 	  "SUP olcOverlayConfig "
@@ -121,7 +115,7 @@ lastbind_bind_response( Operation *op, SlapReply *rs )
 		return SLAP_CB_CONTINUE;
 	}
 
-	// we're only interested if the bind was successful
+	/* we're only interested if the bind was successful */
 	if ( rs->sr_err == LDAP_SUCCESS ) {
 		lastbind_info *lbi = (lastbind_info *) op->o_callback->sc_private;
 
@@ -135,7 +129,7 @@ lastbind_bind_response( Operation *op, SlapReply *rs )
 		now = slap_get_time();
 
 		// get bindTimestamp attribute, if it exists
-		if ((a = attr_find( e->e_attrs, ad_bindTimestamp)) != NULL) {
+		if ((a = attr_find( e->e_attrs, ad_authTimestamp)) != NULL) {
 			bindtime = parse_time( a->a_nvals[0].bv_val );
 
 			if (bindtime != (time_t)-1) {
@@ -155,8 +149,8 @@ lastbind_bind_response( Operation *op, SlapReply *rs )
 		m = ch_calloc( sizeof(Modifications), 1 );
 		m->sml_op = LDAP_MOD_REPLACE;
 		m->sml_flags = 0;
-		m->sml_type = ad_bindTimestamp->ad_cname;
-		m->sml_desc = ad_bindTimestamp;
+		m->sml_type = ad_authTimestamp->ad_cname;
+		m->sml_desc = ad_authTimestamp;
 		m->sml_numvals = 1;
 		m->sml_values = ch_calloc( sizeof(struct berval), 2 );
 		m->sml_nvalues = ch_calloc( sizeof(struct berval), 2 );

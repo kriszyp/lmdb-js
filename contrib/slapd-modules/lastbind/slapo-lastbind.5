@@ -11,12 +11,12 @@ overlay to
 .BR slapd (8)
 allows recording the timestamp of the last successful bind to entries
 in the directory, in the
-.B bindTimestamp
+.B authTimestamp
 attribute.
 The overlay can be configured to update this timestamp only if it is
 older than a given value, thus avoiding large numbers of write
 operations penalizing performance.
-One sample use for this would be to detect unused accounts.
+One sample use for this overlay would be to detect unused accounts.
 
 .SH CONFIGURATION
 The config directives that are specific to the
@@ -46,21 +46,21 @@ directive:
 The value 
 .B <seconds>
 is the number of seconds after which to update the
-.B bindTimestamp
+.B authTimestamp
 attribute in an entry. If the existing value of
-.B bindTimestamp
+.B authTimestamp
 is less than 
 .B <seconds>
 old, it will not be changed. 
 If this configuration option is omitted, the
-.B bindTimestamp
+.B authTimestamp
 attribute is updated on each successful bind operation.
 
 .SH EXAMPLE
 This example configures the
 .B lastbind
 overlay to store
-.B bindTimestamp
+.B authTimestamp
 in all entries in a database, with a 1 week precision.
 Add the following to
 .BR slapd.conf (5):
