@@ -174,13 +174,13 @@ done:
 		SlapReply r2 = { REP_RESULT };
 		slap_callback cb = { NULL, slap_null_cb, NULL, NULL };
 
-		/* FIXME: Need to handle replication of the operational attribute...
-		 * See password policy overlay */
+		/* This is a DSA-specific opattr, it never gets replicated. */
 		op2.o_tag = LDAP_REQ_MODIFY;
 		op2.o_callback = &cb;
 		op2.orm_modlist = mod;
 		op2.o_dn = op->o_bd->be_rootdn;
 		op2.o_ndn = op->o_bd->be_rootndn;
+		op2.o_dont_replicate = 1;
 		rc = op->o_bd->be_modify( &op2, &r2 );
 		slap_mods_free( mod, 1 );
 	}
