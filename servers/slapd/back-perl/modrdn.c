@@ -25,10 +25,7 @@ perl_back_modrdn(
 	PerlBackend *perl_back = (PerlBackend *) op->o_bd->be_private;
 	int count;
 
-#if defined(HAVE_WIN32_ASPERL) || defined(USE_ITHREADS)
 	PERL_SET_CONTEXT( PERL_INTERPRETER );
-#endif
-
 	ldap_pvt_thread_mutex_lock( &perl_interpreter_mutex );	
 
 	{

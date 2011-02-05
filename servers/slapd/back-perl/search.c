@@ -34,9 +34,7 @@ perl_back_search(
 	char *buf;
 	int i;
 
-#if defined(HAVE_WIN32_ASPERL) || defined(USE_ITHREADS)
 	PERL_SET_CONTEXT( PERL_INTERPRETER );
-#endif
 	ldap_pvt_thread_mutex_lock( &perl_interpreter_mutex );	
 
 	{
