@@ -1,3 +1,4 @@
+# $OpenLDAP$
 # Copyright 2009 Jonathan Clarke <jonathan@phillipoux.net>.
 # All rights reserved.
 #
