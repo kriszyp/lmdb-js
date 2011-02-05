@@ -21,7 +21,7 @@
 /*
  * This file implements an overlay that stores the timestamp of the
  * last successful bind operation in a directory entry.
- * 
+ *
  * Optimization: to avoid performing a write on each bind,
  * a precision for this timestamp may be configured, causing it to
  * only be updated if it is older than a given number of seconds.
@@ -109,6 +109,10 @@ lastbind_bind_response( Operation *op, SlapReply *rs )
 	Entry *e;
 	int rc;
 
+	/* we're only interested if the bind was successful */
+	if ( rs->sr_err != LDAP_SUCCESS )
+		return SLAP_CB_CONTINUE;
+
 	rc = be_entry_get_rw( op, &op->o_req_ndn, NULL, NULL, 0, &e );
 	op->o_bd->bd_info = bi;
 
@@ -116,8 +120,7 @@ lastbind_bind_response( Operation *op, SlapReply *rs )
 		return SLAP_CB_CONTINUE;
 	}
 
-	/* we're only interested if the bind was successful */
-	if ( rs->sr_err == LDAP_SUCCESS ) {
+	{
 		lastbind_info *lbi = (lastbind_info *) op->o_callback->sc_private;
 
 		time_t now, bindtime = (time_t)-1;
@@ -141,7 +144,7 @@ lastbind_bind_response( Operation *op, SlapReply *rs )
 				}
 			}
 		}
-		
+
 		/* update the authTimestamp in the user's entry with the current time */
 		timestamp.bv_val = nowstr;
 		timestamp.bv_len = sizeof(nowstr);
@@ -171,7 +174,7 @@ done:
 		SlapReply r2 = { REP_RESULT };
 		slap_callback cb = { NULL, slap_null_cb, NULL, NULL };
 
-		/* FIXME: Need to handle replication of the operational attribute... 
+		/* FIXME: Need to handle replication of the operational attribute...
 		 * See password policy overlay */
 		op2.o_tag = LDAP_REQ_MODIFY;
 		op2.o_callback = &cb;
@@ -205,12 +208,12 @@ lastbind_bind( Operation *op, SlapReply *rs )
 
 static int
 lastbind_db_init(
-        BackendDB *be,
-        ConfigReply *cr
+	BackendDB *be,
+	ConfigReply *cr
 )
 {
-        slap_overinst *on = (slap_overinst *) be->bd_info;
-	
+	slap_overinst *on = (slap_overinst *) be->bd_info;
+
 	/* initialize private structure to store configuration */
 	on->on_bi.bi_private = ch_calloc( 1, sizeof(lastbind_info) );
 
