@@ -32,6 +32,9 @@ denyop (overlay)
 dsaschema (plugin)
 	Permit loading DSA-specific schema, including operational attrs.
 
+lastbind (overlay)
+	Record the last successful authentication on an entry.
+
 lastmod (overlay)
 	Track the time of the last write operation to a database.
 
