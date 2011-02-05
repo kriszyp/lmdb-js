@@ -130,11 +130,7 @@ perl_back_db_open(
 
 		PUTBACK;
 
-#ifdef PERL_IS_5_6
 		count = call_method("init", G_SCALAR);
-#else
-		count = perl_call_method("init", G_SCALAR);
-#endif
 
 		SPAGAIN;
 

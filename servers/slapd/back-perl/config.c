@@ -173,13 +173,8 @@ perl_cf(
 	} else {
 		switch( c->type ) {
 		case PERL_MODULE:
-#ifdef PERL_IS_5_6
 			snprintf( eval_str, EVAL_BUF_SIZE, "use %s;", c->argv[1] );
 			eval_pv( eval_str, 0 );
-#else
-			snprintf( eval_str, EVAL_BUF_SIZE, "%s.pm", c->argv[1] );
-			perl_require_pv( eval_str );
-#endif /* PERL_IS_5_6 */
 
 			if (SvTRUE(ERRSV)) {
 				STRLEN len;

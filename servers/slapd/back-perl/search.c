@@ -57,11 +57,7 @@ perl_back_search(
 		}
 		PUTBACK;
 
-#ifdef PERL_IS_5_6
 		count = call_method("search", G_ARRAY );
-#else
-		count = perl_call_method("search", G_ARRAY );
-#endif
 
 		SPAGAIN;
 

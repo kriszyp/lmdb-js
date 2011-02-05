@@ -44,11 +44,7 @@ perl_back_modrdn(
 		}
 		PUTBACK ;
 
-#ifdef PERL_IS_5_6
 		count = call_method("modrdn", G_SCALAR);
-#else
-		count = perl_call_method("modrdn", G_SCALAR);
-#endif
 
 		SPAGAIN ;
 

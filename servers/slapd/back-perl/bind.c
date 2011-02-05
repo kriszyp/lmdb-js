@@ -57,11 +57,7 @@ perl_back_bind(
 		XPUSHs(sv_2mortal(newSVpv( op->orb_cred.bv_val , op->orb_cred.bv_len)));
 		PUTBACK;
 
-#ifdef PERL_IS_5_6
 		count = call_method("bind", G_SCALAR);
-#else
-		count = perl_call_method("bind", G_SCALAR);
-#endif
 
 		SPAGAIN;
 
