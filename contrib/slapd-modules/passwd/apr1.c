@@ -109,7 +109,6 @@ static void do_phk_hash(
 }
 
 static int chk_phk(
-	const struct berval *scheme,
 	const struct berval *magic,
 	const struct berval *passwd,
 	const struct berval *cred,
@@ -141,7 +140,6 @@ static int chk_phk(
 	salt.bv_val = (char *) &orig_pass[sizeof(digest)];
 	salt.bv_len = rc - sizeof(digest);
 
-	/* the only difference between this and straight PHK is the magic */
 	do_phk_hash(cred, magic, &salt, digest);
 
 	if (text)
@@ -159,7 +157,7 @@ static int chk_apr1(
 	const struct berval *cred,
 	const char **text)
 {
-	return chk_phk(scheme, &magic_apr1, passwd, cred, text);
+	return chk_phk(&magic_apr1, passwd, cred, text);
 }
 
 static int chk_bsdmd5(
@@ -168,7 +166,7 @@ static int chk_bsdmd5(
 	const struct berval *cred,
 	const char **text)
 {
-	return chk_phk(scheme, &magic_bsdmd5, passwd, cred, text);
+	return chk_phk(&magic_bsdmd5, passwd, cred, text);
 }
 
 static int hash_phk(
