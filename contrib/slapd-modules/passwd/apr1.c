@@ -32,63 +32,6 @@ static const unsigned char apr64[] =
 
 #define APR_SALT_SIZE	8
 
-/* copied from liblutil/passwd.c */
-static int pw_string64(
-	const struct berval *sc,
-	const struct berval *hash,
-	struct berval *b64,
-	const struct berval *salt )
-{
-	int rc;
-	struct berval string;
-	size_t b64len;
-
-	if( salt ) {
-		/* need to base64 combined string */
-		string.bv_len = hash->bv_len + salt->bv_len;
-		string.bv_val = ber_memalloc( string.bv_len + 1 );
-
-		if( string.bv_val == NULL ) {
-			return LUTIL_PASSWD_ERR;
-		}
-
-		AC_MEMCPY( string.bv_val, hash->bv_val,
-			hash->bv_len );
-		AC_MEMCPY( &string.bv_val[hash->bv_len], salt->bv_val,
-			salt->bv_len );
-		string.bv_val[string.bv_len] = '\0';
-
-	} else {
-		string = *hash;
-	}
-
-	b64len = LUTIL_BASE64_ENCODE_LEN( string.bv_len ) + 1;
-	b64->bv_len = b64len + sc->bv_len;
-	b64->bv_val = ber_memalloc( b64->bv_len + 1 );
-
-	if( b64->bv_val == NULL ) {
-		if( salt ) ber_memfree( string.bv_val );
-		return LUTIL_PASSWD_ERR;
-	}
-
-	AC_MEMCPY(b64->bv_val, sc->bv_val, sc->bv_len);
-
-	rc = lutil_b64_ntop(
-		(unsigned char *) string.bv_val, string.bv_len,
-		&b64->bv_val[sc->bv_len], b64len );
-
-	if( salt ) ber_memfree( string.bv_val );
-	
-	if( rc < 0 ) {
-		return LUTIL_PASSWD_ERR;
-	}
-
-	/* recompute length */
-	b64->bv_len = sc->bv_len + rc;
-	assert( strlen(b64->bv_val) == b64->bv_len );
-	return LUTIL_PASSWD_OK;
-}
-
 /* The algorithm implemented in this function was created by Poul-Henning
  * Kamp and released under the following license:
  * ----------------------------------------------------------------------------
@@ -231,7 +174,7 @@ static int hash_apr1(
 	if (text)
 		*text = NULL;
 
-	return pw_string64(scheme, &digest, hash, &salt);
+	return lutil_passwd_string64(scheme, &digest, hash, &salt);
 }
 
 int init_module(int argc, char *argv[]) {
