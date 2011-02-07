@@ -1,3 +1,4 @@
+/* $OpenLDAP$ */
 /*
  * This file is derived from OpenLDAP Software. All of the modifications to
  * OpenLDAP Software represented in the following file were developed by
@@ -8,12 +9,14 @@
  * notice:
  *
  * Copyright 2011 Devin J. Pohly
+ * Portions Copyright 2011 Howard Chu
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted only as authorized by the OpenLDAP Public
  * License. 
  *
  * A portion of this code is used in accordance with the Beer-ware License,
  * revision 42, as noted.
+ *
  */
 #include <lber.h>
 #include <lber_pvt.h>
