@@ -424,7 +424,7 @@ static int pw_string(
 }
 #endif /* SLAPD_LMHASH || SLAPD_CRYPT */
 
-static int pw_string64(
+int lutil_passwd_string64(
 	const struct berval *sc,
 	const struct berval *hash,
 	struct berval *b64,
@@ -1051,7 +1051,7 @@ static int hash_ssha1(
 		(const unsigned char *)salt.bv_val, salt.bv_len );
 	lutil_SHA1Final( SHA1digest, &SHA1context );
 
-	return pw_string64( scheme, &digest, hash, &salt);
+	return lutil_passwd_string64( scheme, &digest, hash, &salt);
 }
 
 static int hash_sha1(
@@ -1071,7 +1071,7 @@ static int hash_sha1(
 		(const unsigned char *)passwd->bv_val, passwd->bv_len );
 	lutil_SHA1Final( SHA1digest, &SHA1context );
             
-	return pw_string64( scheme, &digest, hash, NULL);
+	return lutil_passwd_string64( scheme, &digest, hash, NULL);
 }
 #endif
 
@@ -1103,7 +1103,7 @@ static int hash_smd5(
 		(const unsigned char *) salt.bv_val, salt.bv_len );
 	lutil_MD5Final( MD5digest, &MD5context );
 
-	return pw_string64( scheme, &digest, hash, &salt );
+	return lutil_passwd_string64( scheme, &digest, hash, &salt );
 }
 
 static int hash_md5(
@@ -1125,7 +1125,7 @@ static int hash_md5(
 		(const unsigned char *) passwd->bv_val, passwd->bv_len );
 	lutil_MD5Final( MD5digest, &MD5context );
 
-	return pw_string64( scheme, &digest, hash, NULL );
+	return lutil_passwd_string64( scheme, &digest, hash, NULL );
 ;
 }
 

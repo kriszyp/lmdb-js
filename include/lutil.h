@@ -143,6 +143,13 @@ LDAP_LUTIL_F( int )
 lutil_salt_format LDAP_P((
 	const char *format ));
 
+LDAP_LUTIL_F( int )
+lutil_passwd_string64 LDAP_P((
+	const struct berval *sc,
+	const struct berval *hash,
+	struct berval *b64,
+	const struct berval *salt ));
+
 /* utils.c */
 LDAP_LUTIL_F( char* )
 lutil_progname LDAP_P((
