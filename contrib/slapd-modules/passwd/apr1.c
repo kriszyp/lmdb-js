@@ -23,9 +23,16 @@
 
 #include <assert.h>
 
+/* the only difference between this and straight PHK is the magic */
 static LUTIL_PASSWD_CHK_FUNC chk_apr1;
 static LUTIL_PASSWD_HASH_FUNC hash_apr1;
-static const struct berval scheme = BER_BVC("{APR1}");
+static const struct berval scheme_apr1 = BER_BVC("{APR1}");
+static const struct berval magic_apr1 = BER_BVC("$apr1$");
+
+static LUTIL_PASSWD_CHK_FUNC chk_bsdmd5;
+static LUTIL_PASSWD_HASH_FUNC hash_bsdmd5;
+static const struct berval scheme_bsdmd5 = BER_BVC("{BSDMD5}");
+static const struct berval magic_bsdmd5 = BER_BVC("$1$");
 
 static const unsigned char apr64[] =
 	"./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
@@ -41,9 +48,10 @@ static const unsigned char apr64[] =
  * this stuff is worth it, you can buy me a beer in return Poul-Henning Kamp
  * ----------------------------------------------------------------------------
  */
-static void do_apr_hash(
+static void do_phk_hash(
 	const struct berval *passwd,
 	const struct berval *salt,
+	const struct berval *magic,
 	unsigned char *digest)
 {
 	lutil_MD5_CTX ctx, ctx1;
@@ -52,7 +60,7 @@ static void do_apr_hash(
 	/* Start hashing */
 	lutil_MD5Init(&ctx);
 	lutil_MD5Update(&ctx, (const unsigned char *) passwd->bv_val, passwd->bv_len);
-	lutil_MD5Update(&ctx, "$apr1$", 6);
+	lutil_MD5Update(&ctx, (const unsigned char *) magic->bv_val, magic->bv_len);
 	lutil_MD5Update(&ctx, (const unsigned char *) salt->bv_val, salt->bv_len);
 	/* Inner hash */
 	lutil_MD5Init(&ctx1);
@@ -100,8 +108,9 @@ static void do_apr_hash(
 	}
 }
 
-static int chk_apr1(
+static int chk_phk(
 	const struct berval *scheme,
+	const struct berval *magic,
 	const struct berval *passwd,
 	const struct berval *cred,
 	const char **text)
@@ -133,7 +142,7 @@ static int chk_apr1(
 	salt.bv_len = rc - sizeof(digest);
 
 	/* the only difference between this and straight PHK is the magic */
-	do_apr_hash(cred, &salt, digest);
+	do_phk_hash(cred, magic, &salt, digest);
 
 	if (text)
 		*text = NULL;
@@ -144,8 +153,27 @@ static int chk_apr1(
 	return rc ?  LUTIL_PASSWD_ERR : LUTIL_PASSWD_OK;
 }
 
-static int hash_apr1(
+static int chk_apr1(
 	const struct berval *scheme,
+	const struct berval *passwd,
+	const struct berval *cred,
+	const char **text)
+{
+	return chk_phk(scheme, &magic_apr1, passwd, cred, text);
+}
+
+static int chk_bsdmd5(
+	const struct berval *scheme,
+	const struct berval *passwd,
+	const struct berval *cred,
+	const char **text)
+{
+	return chk_phk(scheme, &magic_bsdmd5, passwd, cred, text);
+}
+
+static int hash_phk(
+	const struct berval *scheme,
+	const struct berval *magic,
 	const struct berval *passwd,
 	struct berval *hash,
 	const char **text)
@@ -168,8 +196,7 @@ static int hash_apr1(
 	for (n = 0; n < salt.bv_len; n++)
 		salt.bv_val[n] = apr64[salt.bv_val[n] % (sizeof(apr64) - 1)];
 
-	/* the only difference between this and straight PHK is the magic */
-	do_apr_hash(passwd, &salt, digest_buf);
+	do_phk_hash(passwd, magic, &salt, digest_buf);
 
 	if (text)
 		*text = NULL;
@@ -177,6 +204,29 @@ static int hash_apr1(
 	return lutil_passwd_string64(scheme, &digest, hash, &salt);
 }
 
+static int hash_apr1(
+	const struct berval *scheme,
+	const struct berval *passwd,
+	struct berval *hash,
+	const char **text)
+{
+	return hash_phk(scheme, &magic_apr1, passwd, hash, text);
+}
+
+static int hash_bsdmd5(
+	const struct berval *scheme,
+	const struct berval *passwd,
+	struct berval *hash,
+	const char **text)
+{
+	return hash_phk(scheme, &magic_bsdmd5, passwd, hash, text);
+}
+
 int init_module(int argc, char *argv[]) {
-	return lutil_passwd_add((struct berval *) &scheme, chk_apr1, hash_apr1);
+	int rc;
+	rc = lutil_passwd_add((struct berval *) &scheme_apr1, chk_apr1, hash_apr1);
+	if ( !rc )
+		rc = lutil_passwd_add((struct berval *) &scheme_bsdmd5,
+			chk_bsdmd5, hash_bsdmd5);
+	return rc;
 }

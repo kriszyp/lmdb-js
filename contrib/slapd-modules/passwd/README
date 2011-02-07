@@ -1,6 +1,7 @@
 This directory contains native slapd plugins for password mechanisms that
 are not actively supported by the project. Currently this includes the
-Kerberos, Netscape MTA-MD5 and RADIUS password mechanisms.
+Kerberos, Netscape MTA-MD5 and RADIUS password mechanisms. The Apache
+APR1 MD5 and BSD/Paul Henning Kamp MD5 mechanisms are also included.
 
 To use the Kerberos plugin, add:
 
@@ -11,6 +12,12 @@ to your slapd configuration file.
 To use the Netscape plugin, add:
 
 moduleload pw-netscape.so
+
+to your slapd configuration file.
+
+To use the APR1/BSD/MD5 plugin, add:
+
+moduleload pw-apr1.so
 
 to your slapd configuration file.
 
@@ -41,6 +48,10 @@ gcc -shared -I../../../include -Wall -g -o pw-radius.so radius.c -lradius
 
 (Actually, you might want to statically link the RADIUS client library 
 libradius.a into the module).
+
+The corresponding command for the APR1 plugin would be:
+
+gcc -shared -I../../../include -Wall -g -o pw-apr1.so apr1.c
 
 ---
 This work is part of OpenLDAP Software <http://www.openldap.org/>.

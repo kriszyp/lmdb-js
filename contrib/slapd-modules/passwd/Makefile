@@ -1,7 +1,7 @@
 # $OpenLDAP$
 CPPFLAGS+=-I../../../include -I../../../servers/slapd
 
-all: kerberos.la netscape.la radius.la
+all: kerberos.la netscape.la radius.la apr1.la
 
 kerberos.lo:	kerberos.c
 	$(LIBTOOL) --mode=compile $(CC) $(CPPFLAGS) -DHAVE_KRB5 -Wall -c $?
@@ -24,14 +24,23 @@ radius.la:	radius.lo
 	$(LIBTOOL) --mode=link $(CC) -version-info 0:0:0 \
 	-rpath $(PREFIX)/lib -module -o $@ $? -lradius
 
+apr1.lo:	apr1.c
+	$(LIBTOOL) --mode=compile $(CC) $(CPPFLAGS) -Wall -c $?
+
+apr1.la:	apr1.lo
+	$(LIBTOOL) --mode=link $(CC) -version-info 0:0:0 \
+	-rpath $(PREFIX)/lib -module -o $@ $? 
+
 clean:
 	rm -f kerberos.lo kerberos.la
 	rm -f netscape.lo netscape.la
 	rm -f radius.lo radius.la
+	rm -f apr1.lo apr1.la
 
-install: kerberos.la netscape.la radius.la
+install: kerberos.la netscape.la radius.la apr1.la
 	mkdir -p $(PREFIX)/lib/openldap
 	$(LIBTOOL) --mode=install cp kerberos.la $(PREFIX)/lib/openldap
 	$(LIBTOOL) --mode=install cp netscape.la $(PREFIX)/lib/openldap
 	$(LIBTOOL) --mode=install cp radius.la $(PREFIX)/lib/openldap
+	$(LIBTOOL) --mode=install cp apr1.la $(PREFIX)/lib/openldap
 	$(LIBTOOL) --finish $(PREFIX)/lib
