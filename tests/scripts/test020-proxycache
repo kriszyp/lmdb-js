@@ -152,7 +152,7 @@ fi
 grep "query template" $LOG2 > /dev/null
 RC=$?
 if test $RC != 0 ; then
-	echo "Debug messages unavailable, test aborted..."
+	echo "Debug messages unavailable, remaining test skipped..."
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS && wait
 	exit 0
 fi
@@ -256,7 +256,7 @@ case $RC in
 0)
 	echo "ldapsearch should have failed!"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
-	exit $RC
+	exit 1
 	;;
 4)
 	echo "ldapsearch failed ($RC)"
@@ -283,7 +283,7 @@ case $RC in
 0)
 	echo "ldapsearch should have failed!"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
-	exit $RC
+	exit 1
 	;;
 4)
 	echo "ldapsearch failed ($RC)"
@@ -406,7 +406,7 @@ case $RC in
 0)
 	echo "ldapsearch should have failed!"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
-	exit $RC
+	exit 1
 	;;
 4)
 	echo "ldapsearch failed ($RC)"
@@ -433,7 +433,7 @@ case $RC in
 0)
 	echo "ldapsearch should have failed!"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
-	exit $RC
+	exit 1
 	;;
 4)
 	echo "ldapsearch failed ($RC)"
