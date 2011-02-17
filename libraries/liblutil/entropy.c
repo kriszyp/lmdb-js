@@ -73,7 +73,7 @@ int lutil_entropy( unsigned char *buf, ber_len_t nbytes )
 		close(fd);
 		return nbytes > 0 ? -1 : 0;
 	}
-#elif PROV_RSA_FULL
+#elif defined(PROV_RSA_FULL)
 	{
 		/* Not used since _WIN32_WINNT not set... */
 		HCRYPTPROV hProv = 0;

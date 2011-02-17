@@ -626,7 +626,7 @@ void ldap_int_initialize( struct ldapoptions *gopts, int *dbglvl )
 	    return; 
 	}
 }	/* The WinSock DLL is acceptable. Proceed. */
-#elif HAVE_WINSOCK
+#elif defined(HAVE_WINSOCK)
 {	WSADATA wsaData;
 	if ( WSAStartup( 0x0101, &wsaData ) != 0 ) {
 	    return;

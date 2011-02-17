@@ -128,7 +128,7 @@ lutil_detach( int debug, int do_close )
 
 #ifdef HAVE_SETSID
 		(void) setsid();
-#elif TIOCNOTTY
+#elif defined(TIOCNOTTY)
 		if ( (sd = open( "/dev/tty", O_RDWR )) != -1 ) {
 			(void) ioctl( sd, TIOCNOTTY, NULL );
 			(void) close( sd );
