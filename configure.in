@@ -590,7 +590,6 @@ TLS_LIBS=
 MODULES_LIBS=
 SLAPI_LIBS=
 LIBSLAPI=
-LIBSLAPITOOLS=
 AUTH_LIBS=
 ICU_LIBS=
 
@@ -2523,8 +2522,7 @@ if test "$ol_enable_slapi" != no ; then
 	fi
 	AC_CHECK_LIB(ltdl, lt_dlinit, [
 		SLAPI_LIBS=-lltdl
-		LIBSLAPI=libslapi.a
-		LIBSLAPITOOLS=../libslapi.a
+		LIBSLAPI=slapi/libslapi.la
 		AC_DEFINE(HAVE_LIBLTDL,1,[define if you have libtool -ltdl])
 	],[AC_MSG_ERROR([could not locate libtool -lltdl])])
 
@@ -3133,7 +3131,6 @@ AC_SUBST(TLS_LIBS)
 AC_SUBST(MODULES_LIBS)
 AC_SUBST(SLAPI_LIBS)
 AC_SUBST(LIBSLAPI)
-AC_SUBST(LIBSLAPITOOLS)
 AC_SUBST(AUTH_LIBS)
 AC_SUBST(ICU_LIBS)
 
