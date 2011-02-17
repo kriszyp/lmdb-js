@@ -1989,6 +1989,21 @@ if test $ol_enable_sql != no ; then
 
 			odbc32)
 				AC_CHECK_LIB(odbc32, SQLDriverConnect, [have_odbc32=yes], [have_odbc32=no])
+				
+				dnl The windows API uses __stdcall which cannot be detected by AC_CHECK_LIB
+				if test $have_odbc32 = no ; then
+					AC_MSG_CHECKING([for SQLDriverConnect in -lodbc32 with windows.h])
+					save_LIBS="$LIBS"
+					LIBS="$LIBS -lodbc32"
+					AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <windows.h>
+					#include <sqlext.h>
+						]], [[
+						SQLDriverConnect(NULL,NULL,NULL,0,NULL,0,NULL,0);
+						]])],[have_odbc32=yes], [have_odbc32=no])
+					LIBS="$save_LIBS"
+					AC_MSG_RESULT($have_odbc32)
+				fi
+				
 				if test $have_odbc32 = yes ; then
 					ol_link_sql="-lodbc32"
 				fi
