@@ -259,11 +259,8 @@ slapd.exp: libslapd.a
 	dlltool --dllname slapd.exe --input-def slapd.def \
 		--base-file slapd.base --output-exp $@
 
-slapi/.libs/libslapi.a: FORCE
+slapi/libslapi.la: FORCE
 	(cd slapi; $(MAKE) $(MFLAGS) all)
-
-libslapi.a: slapi/.libs/libslapi.a
-	cp slapi/.libs/libslapi.a .
 
 slapd: $(SLAPD_DEPENDS) @LIBSLAPI@
 	$(LTLINK) -o $@ $(SLAPD_OBJECTS) $(LIBS) \
