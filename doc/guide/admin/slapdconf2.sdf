@@ -1104,27 +1104,37 @@ E: 52.    olcAccess: to * by users read
 H2: Converting old style {{slapd.conf}}(5) file to {{cn=config}} format
 
 Before converting to the {{cn=config}} format you should make sure that the
-config backend is properly configured in your existing config file.
+config backend is properly configured in your existing config file. While
+the config backend is always present inside slapd, by default it is only
+accessible by its rootDN, and there are no default credentials assigned
+so unless you explicitly configure a means to authenticate to it, it will be
+unusable.
+
 If you do not already have a {{EX:database config}} section, add something
 like this to the end of {{EX:slapd.conf}}
 
 > database config
-> 
-> rootdn "cn=config"
-> rootpw secret
+> rootpw VerySecret
+
+Note: Since the config backend can be used to load arbitrary code into the
+slapd process, it is extremely important to carefully guard whatever
+credentials are used to access it. Since simple passwords are vulnerable to
+password guessing attacks, it is usually better to omit the rootpw and only
+use SASL authentication for the config rootDN.
 
 An existing {{slapd.conf}}(5) file can be converted to the new format using
 {{slaptest}}(8) or any of the slap tools:
 
 >	slaptest -f /usr/local/etc/openldap/slapd.conf -F /usr/local/etc/openldap/slapd.d
 
-Test that you can access entries under {{EX:cn=config}} using the {{rootdn}}
-and {{rootpw}} configured above:
+Test that you can access entries under {{EX:cn=config}} using the
+default {{rootdn}} and the {{rootpw}} configured above:
 
->	ldapsearch -x -D cn=config -w secret -b cn=config
+>	ldapsearch -x -D cn=config -w VerySecret -b cn=config
 
 You can then discard the old {{slapd.conf}}(5) file. Make sure to launch
-{{slapd}}(8) with the {{-F}} option to specify the configuration directory.
+{{slapd}}(8) with the {{-F}} option to specify the configuration directory
+if you are not using the default directory path.
 
 Note: When converting from the slapd.conf format to slapd.d format, any
 included files will also be integrated into the resulting configuration
