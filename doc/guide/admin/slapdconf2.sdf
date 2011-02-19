@@ -26,8 +26,8 @@ configuration database normally resides in the
 directory (or file) can be specified via a command-line option to
 {{slapd}}(8).
 
-This chapter briefly discusses converting to the new style configuration,
-then describes the general format of the configuration system, followed by
+This chapter
+describes the general format of the configuration system, followed by
 a detailed description of commonly used config settings.
 
 Note: some of the backends and of the distributed overlays
@@ -1103,10 +1103,25 @@ E: 52.    olcAccess: to * by users read
 
 H2: Converting old style {{slapd.conf}}(5) file to {{cn=config}} format
 
+Before converting to the {{cn=config}} format you should make sure that the
+config backend is properly configured in your existing config file.
+If you do not already have a {{EX:database config}} section, add something
+like this to the end of {{EX:slapd.conf}}
+
+> database config
+> 
+> rootdn "cn=config"
+> rootpw secret
+
 An existing {{slapd.conf}}(5) file can be converted to the new format using
 {{slaptest}}(8) or any of the slap tools:
 
 >	slaptest -f /usr/local/etc/openldap/slapd.conf -F /usr/local/etc/openldap/slapd.d
+
+Test that you can access entries under {{EX:cn=config}} using the {{rootdn}}
+and {{rootpw}} configured above:
+
+>	ldapsearch -x -D cn=config -w secret -b cn=config
 
 You can then discard the old {{slapd.conf}}(5) file. Make sure to launch
 {{slapd}}(8) with the {{-F}} option to specify the configuration directory.
