@@ -4760,6 +4760,12 @@ count_oc( ObjectClass *oc, ConfigOCs ***copp, int *nocs )
 	ConfigOCs	co, *cop;
 	ObjectClass	**sups;
 
+	for ( sups = oc->soc_sups; sups && *sups; sups++ ) {
+		if ( count_oc( *sups, copp, nocs ) ) {
+			return -1;
+		}
+	}
+
 	co.co_name = &oc->soc_cname;
 	cop = avl_find( CfOcTree, &co, CfOc_cmp );
 	if ( cop ) {
@@ -4783,27 +4789,18 @@ count_oc( ObjectClass *oc, ConfigOCs ***copp, int *nocs )
 		}
 	}
 
-	for ( sups = oc->soc_sups; sups && *sups; sups++ ) {
-		if ( count_oc( *sups, copp, nocs ) ) {
-			return -1;
-		}
-	}
-
 	return 0;
 }
 
 static ConfigOCs **
 count_ocs( Attribute *oc_at, int *nocs )
 {
-	int		i;
+	int		i, j;
 	ConfigOCs	**colst = NULL;
 
 	*nocs = 0;
 
-	for ( i = 0; !BER_BVISNULL( &oc_at->a_nvals[i] ); i++ )
-		/* count attrs */ ;
-
-	for ( ; i--; ) {
+	for ( i = oc_at->a_numvals; i--; ) {
 		ObjectClass	*oc = oc_bvfind( &oc_at->a_nvals[i] );
 
 		assert( oc != NULL );
@@ -4811,6 +4808,16 @@ count_ocs( Attribute *oc_at, int *nocs )
 			ch_free( colst );
 			return NULL;
 		}
+	}
+
+	/* invert order */
+	i = 0;
+	j = *nocs - 1;
+	while ( i < j ) {
+		ConfigOCs *tmp = colst[i];
+		colst[i] = colst[j];
+		colst[j] = tmp;
+		i++; j--;
 	}
 
 	return colst;
