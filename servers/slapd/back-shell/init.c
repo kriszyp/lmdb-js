@@ -87,6 +87,7 @@ shell_back_db_init(
 	si = (struct shellinfo *) ch_calloc( 1, sizeof(struct shellinfo) );
 
 	be->be_private = si;
+	be->be_cf_ocs = be->bd_info->bi_cf_ocs;
 
 	return si == NULL;
 }
