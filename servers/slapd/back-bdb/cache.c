@@ -1208,7 +1208,7 @@ bdb_cache_add(
 	return rc;
 }
 
-int bdb_cache_deref(
+void bdb_cache_deref(
 	EntryInfo *ei
 	)
 {
