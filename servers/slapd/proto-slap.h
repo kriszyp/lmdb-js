@@ -708,6 +708,10 @@ LDAP_SLAPD_F (int) verbs_to_mask LDAP_P((
 	int argc, char *argv[], slap_verbmasks *v, slap_mask_t *m ));
 LDAP_SLAPD_F (int) mask_to_verbs LDAP_P((
 	slap_verbmasks *v, slap_mask_t m, BerVarray *bva ));
+LDAP_SLAPD_F (int) mask_to_verbstring LDAP_P((
+	slap_verbmasks *v, slap_mask_t m, char delim, struct berval *bv ));
+LDAP_SLAPD_F (int) verbstring_to_mask LDAP_P((
+	slap_verbmasks *v, char *str, char delim, slap_mask_t *m ));
 LDAP_SLAPD_F (int) enum_to_verb LDAP_P((
 	slap_verbmasks *v, slap_mask_t m, struct berval *bv ));
 LDAP_SLAPD_F (int) slap_verbmasks_init LDAP_P(( slap_verbmasks **vp, slap_verbmasks *v ));

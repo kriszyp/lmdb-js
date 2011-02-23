@@ -935,6 +935,66 @@ mask_to_verbs(slap_verbmasks *v, slap_mask_t m, BerVarray *bva) {
 	return rc;
 }
 
+/* Return the verbs as a single string, separated by delim */
+int
+mask_to_verbstring(slap_verbmasks *v, slap_mask_t m0, char delim, struct berval *bv)
+{
+	int i, rc = 1;
+
+	BER_BVZERO( bv );
+	if (m0) {
+		slap_mask_t m = m0;
+		char *ptr;
+		for (i=0; !BER_BVISNULL(&v[i].word); i++) {
+			if (!v[i].mask) continue;
+			if (( m & v[i].mask ) == v[i].mask ) {
+				bv->bv_len += v[i].word.bv_len + 1;
+				rc = 0;
+				m ^= v[i].mask;
+				if ( !m ) break;
+			}
+		}
+		bv->bv_val = ch_malloc(bv->bv_len);
+		bv->bv_len--;
+		ptr = bv->bv_val;
+		m = m0;
+		for (i=0; !BER_BVISNULL(&v[i].word); i++) {
+			if (!v[i].mask) continue;
+			if (( m & v[i].mask ) == v[i].mask ) {
+				ptr = lutil_strcopy(ptr, v[i].word.bv_val);
+				*ptr++ = delim;
+				m ^= v[i].mask;
+				if ( !m ) break;
+			}
+		}
+		ptr[-1] = '\0';
+	}
+	return rc;
+}
+
+/* Parse a verbstring */
+int
+verbstring_to_mask(slap_verbmasks *v, char *str, char delim, slap_mask_t *m) {
+	int j;
+	char *d;
+	struct berval bv;
+
+	do {
+		bv.bv_val = str;
+		d = strchr( str, delim );
+		if ( d )
+			bv.bv_len = d - str;
+		else
+			bv.bv_len = strlen( str );
+		j = bverb_to_mask( &bv, v );
+		if(BER_BVISNULL(&v[j].word)) return 1;
+		while (!v[j].mask) j--;
+		*m |= v[j].mask;
+		str += bv.bv_len + 1;
+	} while ( d );
+	return(0);
+}
+
 int
 slap_verbmasks_init( slap_verbmasks **vp, slap_verbmasks *v )
 {
