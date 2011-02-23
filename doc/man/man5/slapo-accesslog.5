@@ -50,6 +50,13 @@ abandon, bind, unbind
 all operations
 .RE
 .TP
+.B logbase <operations> <baseDN>
+Specify a set of operations that will only be logged if they occur under
+a specific subtree of the database. The operation types are as above for
+the
+.B logops
+setting, and delimited by a '|' character.
+.TP
 .B logold <filter>
 Specify a filter for matching against Deleted and Modified entries. If
 the entry matches the filter, the old contents of the entry will be
@@ -101,6 +108,7 @@ succeed or not. The default is FALSE.
 	overlay accesslog
 	logdb cn=log
 	logops writes reads
+	logbase search|compare ou=testing,dc=example,dc=com
 	logold (objectclass=person)
 
 	database bdb
