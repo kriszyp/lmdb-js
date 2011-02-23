@@ -302,12 +302,14 @@ format:
 
 H4: TLS Authentication Identity Format
 
-This is usually the Subject DN from the client-side certificate.
-The order of the components will be changed to follow LDAP conventions,
-so a certificate issued to {{EX:C=gb, O=The Example Organisation, CN=A Person}}
+This is the Subject DN from the client-side certificate.
+Note that DNs are displayed differently by LDAP and by X.509, so
+a certificate issued to
+>	C=gb, O=The Example Organisation, CN=A Person
+
 will produce an authentication identity of:
 
-> cn=A Person,o=The Example Organisation,c=gb
+>	cn=A Person,o=The Example Organisation,c=gb
 
 Note that you must set a suitable value for TLSVerifyClient to make the server
 request the use of a client-side certificate. Without this, the SASL EXTERNAL
