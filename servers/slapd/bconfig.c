@@ -6935,6 +6935,7 @@ config_tool_entry_put( BackendDB *be, Entry *e, struct berval *text )
 	Operation *op = NULL;
 	void *thrctx;
 	int isFrontend = 0;
+	int isFrontendChild = 0;
 
 	/* Create entry for frontend database if it does not exist already */
 	if ( !entry_put_got_frontend ) {
@@ -6988,8 +6989,34 @@ config_tool_entry_put( BackendDB *be, Entry *e, struct berval *text )
 			}
 		}
 	}
+
+	/* Child entries of the frontend database, e.g. slapo-chain's back-ldap
+	 * instances, may appear before the config database entry in the ldif, skip
+	 * auto-creation of olcDatabase={0}config in such a case */
+	if ( !entry_put_got_config &&
+			!strncmp( e->e_nname.bv_val, "olcDatabase", STRLENOF( "olcDatabase" ))) {
+		struct berval pdn;
+		dnParent( &e->e_nname, &pdn );
+		while ( pdn.bv_len ) {
+			if ( !strncmp( pdn.bv_val, "olcDatabase",
+					STRLENOF( "olcDatabase" ))) {
+				if ( !strncmp( pdn.bv_val +
+						STRLENOF( "olcDatabase" ), "={-1}frontend",
+						STRLENOF( "={-1}frontend" )) ||
+						!strncmp( pdn.bv_val +
+						STRLENOF( "olcDatabase" ), "=frontend",
+						STRLENOF( "=frontend" ))) {
+
+					isFrontendChild = 1;
+					break;
+				}
+			}
+			dnParent( &pdn, &pdn );
+		}
+	}
+
 	/* Create entry for config database if it does not exist already */
-	if ( !entry_put_got_config && !isFrontend ) {
+	if ( !entry_put_got_config && !isFrontend && !isFrontendChild ) {
 		if ( !strncmp( e->e_nname.bv_val, "olcDatabase",
 				STRLENOF( "olcDatabase" ))) {
 			if ( strncmp( e->e_nname.bv_val +
