@@ -972,7 +972,7 @@ log_cf_gen(ConfigArgs *c)
 			}
 			break;
 		case LOG_BASE: {
-			slap_mask_t m;
+			slap_mask_t m = 0;
 			rc = verbstring_to_mask( logops, c->argv[1], '|', &m );
 			if ( rc == 0 ) {
 				struct berval dn, ndn;
