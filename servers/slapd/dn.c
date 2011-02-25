@@ -1195,7 +1195,7 @@ dnIsSuffix(
 	}
 
 	/* compare */
-	return( strcmp( dn->bv_val + d, suffix->bv_val ) == 0 );
+	return( strncmp( dn->bv_val + d, suffix->bv_val, suffix->bv_len ) == 0 );
 }
 
 /*
