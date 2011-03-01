@@ -48,7 +48,7 @@ lutil_b64_pton LDAP_P((
 	size_t));
 
 /* detach.c */
-LDAP_LUTIL_F( void )
+LDAP_LUTIL_F( int )
 lutil_detach LDAP_P((
 	int debug,
 	int do_close));
