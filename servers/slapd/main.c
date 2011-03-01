@@ -346,6 +346,9 @@ usage( char *name )
 #endif
 		"\t-V\t\tprint version info (-VV exit afterwards, -VVV print\n"
 		"\t\t\tinfo about static overlays and backends)\n"
+#ifndef HAVE_WINSOCK
+		"\t-w Wait for database startup before exiting\n"
+#endif
     );
 }
 
@@ -369,6 +372,9 @@ int main( int argc, char **argv )
 	int syslogUser = SLAP_DEFAULT_SYSLOG_USER;
 #endif
 	
+#ifndef HAVE_WINSOCK
+	int pid, wait_for_start = 0, waitfds[2];
+#endif
 	int g_argc = argc;
 	char **g_argv = argv;
 
@@ -472,6 +478,9 @@ int main( int argc, char **argv )
 #endif
 #if defined(HAVE_SETUID) && defined(HAVE_SETGID)
 				"u:g:"
+#endif
+#ifndef HAVE_WINSOCK
+				"w"
 #endif
 			     )) != EOF ) {
 		switch ( i ) {
@@ -639,6 +648,12 @@ int main( int argc, char **argv )
 		case 'V':
 			version++;
 			break;
+
+#ifndef HAVE_WINSOCK
+		case 'w':
+			wait_for_start = 1;
+			break;
+#endif
 
 		case 'T':
 			if ( firstopt == 0 ) {
@@ -849,7 +864,7 @@ unhandled_option:;
 	if( rc != 0) {
 		Debug( LDAP_DEBUG_ANY,
 		    "main: TLS init failed: %d\n",
-		    0, 0, 0 );
+		    rc, 0, 0 );
 		rc = 1;
 		SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 20 );
 		goto destroy;
@@ -904,7 +919,30 @@ unhandled_option:;
 #endif
 
 #ifndef HAVE_WINSOCK
-	lutil_detach( no_detach, 0 );
+	if ( wait_for_start ) {
+		if ( lutil_pair( waitfds ) < 0 ) {
+			Debug( LDAP_DEBUG_ANY,
+				"main: lutil_pair failed: %d\n",
+				0, 0, 0 );
+			rc = 1;
+			goto destroy;
+		}
+	}
+	pid = lutil_detach( no_detach, 0 );
+	if ( pid ) {
+		rc = EXIT_SUCCESS;
+		if ( wait_for_start ) {
+			char buf[4];
+			close( waitfds[1] );
+			if ( read( waitfds[0], buf, 1 ) != 1 )
+				rc = EXIT_FAILURE;
+		}
+		_exit( rc );
+	} else {
+		if ( wait_for_start ) {
+			close( waitfds[0] );
+		}
+	}
 #endif /* HAVE_WINSOCK */
 
 #ifdef CSRIMALLOC
@@ -974,6 +1012,13 @@ unhandled_option:;
 	}
 
 	Debug( LDAP_DEBUG_ANY, "slapd starting\n", 0, 0, 0 );
+
+#ifndef HAVE_WINSOCK
+	if ( wait_for_start ) {
+		write( waitfds[1], "1", 1 );
+		close( waitfds[1] );
+	}
+#endif
 
 #ifdef HAVE_NT_EVENT_LOG
 	if (is_NT_Service)
