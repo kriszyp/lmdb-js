@@ -1,5 +1,7 @@
 OpenLDAP 2.4 Change Log
 
+OpenLDAP 2.4.25 Engineering
+
 OpenLDAP 2.4.24 Release (2011/02/10)
 	Added LDIF line wrapping setting (ITS#6645)
 	Added MozNSS support (ITS#6714,ITS#6742,ITS#6790,ITS#6791)
