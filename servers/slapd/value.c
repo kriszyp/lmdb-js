@@ -712,7 +712,6 @@ ordered_value_add(
 		for ( ap=&e->e_attrs; *ap; ap = &(*ap)->a_next ) ;
 		a = attr_alloc( ad );
 		*ap = a;
-		a->a_flags |= SLAP_ATTR_SORTED_VALS;
 	}
 	anum = a->a_numvals;
 
