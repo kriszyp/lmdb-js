@@ -1153,7 +1153,7 @@ To get what we wanted the file has to read:
 
 The general rule is: "special access rules first, generic access rules last"
 
-See also {{slapd.access}}(8), loglevel 128 and {{slapacl}}(8) for debugging
+See also {{slapd.access}}(5), loglevel 128 and {{slapacl}}(8) for debugging
 information.
 
 
