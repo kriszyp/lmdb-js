@@ -342,6 +342,23 @@ static int pack_sss_response_control(
 }
 
 /* Return the session id or -1 if unknown */
+static int find_session_by_so(
+	int svi_max_percon,
+	int conn_id,
+	sort_op *so )
+{
+	int sess_id;
+	if (so == NULL) {
+		return -1;
+	}
+	for (sess_id = 0; sess_id < svi_max_percon; sess_id++) {
+		if ( sort_conns[conn_id] && sort_conns[conn_id][sess_id] == so )
+			return sess_id;
+	}
+	return -1;
+}
+
+/* Return the session id or -1 if unknown */
 static int find_session_by_context(
 	int svi_max_percon,
 	int conn_id,
@@ -379,14 +396,13 @@ static int find_next_session(
 static void free_sort_op( Connection *conn, sort_op *so )
 {
 	int sess_id;
-	PagedResultsCookie ps_cookie = (PagedResultsCookie) so->so_tree;
 	if ( so->so_tree ) {
 		tavl_free( so->so_tree, ch_free );
 		so->so_tree = NULL;
 	}
 
 	ldap_pvt_thread_mutex_lock( &sort_conns_mutex );
-	sess_id = find_session_by_context( so->so_info->svi_max_percon, conn->c_conn_idx, so->so_vcontext, ps_cookie );
+	sess_id = find_session_by_so( so->so_info->svi_max_percon, conn->c_conn_idx, so );
 	sort_conns[conn->c_conn_idx][sess_id] = NULL;
 	so->so_info->svi_num--;
 	ldap_pvt_thread_mutex_unlock( &sort_conns_mutex );
@@ -492,7 +508,7 @@ range_err:
 			sc->sc_nkeys * sizeof(struct berval), op->o_tmpmemctx );
 		sn->sn_vals = (struct berval *)(sn+1);
 		sn->sn_conn = op->o_conn->c_conn_idx;
-		sn->sn_session = find_session_by_context( so->so_info->svi_max_percon, op->o_conn->c_conn_idx, vc->vc_context, NO_PS_COOKIE );
+		sn->sn_session = find_session_by_so( so->so_info->svi_max_percon, op->o_conn->c_conn_idx, so );
 		sn->sn_vals[0] = bv;
 		for (i=1; i<sc->sc_nkeys; i++) {
 			BER_BVZERO( &sn->sn_vals[i] );
@@ -731,7 +747,7 @@ static int sssvlv_op_response(
 		op->o_tmpfree( sn, op->o_tmpmemctx );
 		sn = sn2;
 		sn->sn_conn = op->o_conn->c_conn_idx;
-		sn->sn_session = find_session_by_context( so->so_info->svi_max_percon, op->o_conn->c_conn_idx, so->so_vcontext, (PagedResultsCookie) so->so_tree );
+		sn->sn_session = find_session_by_so( so->so_info->svi_max_percon, op->o_conn->c_conn_idx, so );
 
 		/* Insert into the AVL tree */
 		tavl_insert(&(so->so_tree), sn, node_insert, avl_dup_error);
