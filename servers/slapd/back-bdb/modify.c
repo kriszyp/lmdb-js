@@ -153,7 +153,6 @@ int bdb_modify_internal(
 				mod->sm_desc->ad_cname.bv_val, 0, 0);
 			err = modify_delete_values( e, mod, get_permissiveModify(op),
 				text, textbuf, textlen );
-			assert( err != LDAP_TYPE_OR_VALUE_EXISTS );
 			if( err != LDAP_SUCCESS ) {
 				Debug(LDAP_DEBUG_ARGS, "bdb_modify_internal: %d %s\n",
 					err, *text, 0);
@@ -229,7 +228,7 @@ int bdb_modify_internal(
 
  			mod->sm_op = SLAP_MOD_SOFTDEL;
 
- 			if ( err == LDAP_TYPE_OR_VALUE_EXISTS ) {
+ 			if ( err == LDAP_NO_SUCH_ATTRIBUTE ) {
  				err = LDAP_SUCCESS;
  			}
 
