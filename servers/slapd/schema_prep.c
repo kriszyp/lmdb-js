@@ -934,6 +934,7 @@ static struct slap_schema_ad_map {
     		"DESC 'RFC2307: An integer uniquely identifying a user "
 				"in an administrative domain' "
     		"EQUALITY integerMatch "
+    		"ORDERING integerOrderingMatch "
     		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 SINGLE-VALUE )",
 		NULL, 0,
 		NULL, NULL,
@@ -944,6 +945,7 @@ static struct slap_schema_ad_map {
     		"DESC 'RFC2307: An integer uniquely identifying a group "
 				"in an administrative domain' "
     		"EQUALITY integerMatch "
+    		"ORDERING integerOrderingMatch "
     		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 SINGLE-VALUE )",
 		NULL, 0,
 		NULL, NULL,
