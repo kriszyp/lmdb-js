@@ -920,12 +920,8 @@ slap_idassert_parse( ConfigArgs *c, slap_idassert_t *si )
 		if ( BER_BVISNULL( &si->si_bc.sb_binddn ) &&
 			!(si->si_flags & LDAP_BACK_AUTH_DN_MASK) )
 		{
-			snprintf( c->cr_msg, sizeof( c->cr_msg ),
-				"\"%s <args>\": "
-				"SASL needs \"binddn\" or either \"dn-authzid\" or \"dn-whoami\" in flags",
-				c->argv[0] );
-			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
-			return 1;
+			static struct berval authid = BER_BVC("cn=auth");
+			ber_dupbv( &si->si_bc.sb_binddn, &authid );
 		}
 	}
 
@@ -1215,7 +1211,9 @@ ldap_back_cf_gen( ConfigArgs *c )
 					break;
 
 				default:
+#if 0 /* implicit */
 					ptr = lutil_strcopy( ptr, ",dn-none" );
+#endif
 					break;
 				}
 
