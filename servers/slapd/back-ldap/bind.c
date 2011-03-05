@@ -2288,11 +2288,6 @@ ldap_back_proxy_authz_bind(
 		}
 #endif /* SLAP_AUTH_DN */
 
-		rs->sr_err = ldap_sasl_interactive_bind_s( lc->lc_ld, binddn->bv_val,
-				li->li_idassert_sasl_mech.bv_val, NULL, NULL,
-				LDAP_SASL_QUIET, lutil_sasl_interact,
-				defaults );
-
 		do {
 			rs->sr_err = ldap_sasl_interactive_bind( lc->lc_ld, binddn->bv_val,
 				li->li_idassert_sasl_mech.bv_val, 
