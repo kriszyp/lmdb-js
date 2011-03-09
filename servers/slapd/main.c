@@ -906,23 +906,25 @@ unhandled_option:;
 #endif
 
 #ifndef HAVE_WINSOCK
-	if ( lutil_pair( waitfds ) < 0 ) {
-		Debug( LDAP_DEBUG_ANY,
-			"main: lutil_pair failed: %d\n",
-			0, 0, 0 );
-		rc = 1;
-		goto destroy;
-	}
-	pid = lutil_detach( no_detach, 0 );
-	if ( pid ) {
-		char buf[4];
-		rc = EXIT_SUCCESS;
-		close( waitfds[1] );
-		if ( read( waitfds[0], buf, 1 ) != 1 )
-			rc = EXIT_FAILURE;
-		_exit( rc );
-	} else {
-		close( waitfds[0] );
+	if ( !no_detach ) {
+		if ( lutil_pair( waitfds ) < 0 ) {
+			Debug( LDAP_DEBUG_ANY,
+				"main: lutil_pair failed: %d\n",
+				0, 0, 0 );
+			rc = 1;
+			goto destroy;
+		}
+		pid = lutil_detach( no_detach, 0 );
+		if ( pid ) {
+			char buf[4];
+			rc = EXIT_SUCCESS;
+			close( waitfds[1] );
+			if ( read( waitfds[0], buf, 1 ) != 1 )
+				rc = EXIT_FAILURE;
+			_exit( rc );
+		} else {
+			close( waitfds[0] );
+		}
 	}
 #endif /* HAVE_WINSOCK */
 
@@ -995,8 +997,10 @@ unhandled_option:;
 	Debug( LDAP_DEBUG_ANY, "slapd starting\n", 0, 0, 0 );
 
 #ifndef HAVE_WINSOCK
-	write( waitfds[1], "1", 1 );
-	close( waitfds[1] );
+	if ( !no_detach ) {
+		write( waitfds[1], "1", 1 );
+		close( waitfds[1] );
+	}
 #endif
 
 #ifdef HAVE_NT_EVENT_LOG
