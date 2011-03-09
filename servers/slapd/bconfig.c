@@ -1766,7 +1766,8 @@ config_generic(ConfigArgs *c) {
 					int i;
 					for (i=0, oc = cfn->c_oc_head; i<c->valx; i++) {
 						prev = oc;
-						oc_next( &oc );
+						if ( !oc_next( &oc ))
+							break;
 					}
 				} else
 				/* If adding the first, and head exists, find its prev */
@@ -1798,7 +1799,8 @@ config_generic(ConfigArgs *c) {
 					int i;
 					for (i=0, at = cfn->c_at_head; i<c->valx; i++) {
 						prev = at;
-						at_next( &at );
+						if ( !at_next( &at ))
+							break;
 					}
 				} else
 				/* If adding the first, and head exists, find its prev */
@@ -1830,7 +1832,8 @@ config_generic(ConfigArgs *c) {
 					int i;
 					for ( i = 0, syn = cfn->c_syn_head; i < c->valx; i++ ) {
 						prev = syn;
-						syn_next( &syn );
+						if ( !syn_next( &syn ))
+							break;
 					}
 				} else
 				/* If adding the first, and head exists, find its prev */
