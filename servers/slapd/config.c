@@ -1786,6 +1786,10 @@ void bindconf_free( slap_bindconf *bc ) {
 		bc->sb_tls_crlcheck = NULL;
 	}
 #endif
+	if ( bc->sb_tls_ctx ) {
+		ldap_pvt_tls_ctx_free( bc->sb_tls_ctx );
+		bc->sb_tls_ctx = NULL;
+	}
 #endif
 }
 
