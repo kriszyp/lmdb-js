@@ -6166,6 +6166,7 @@ config_back_delete( Operation *op, SlapReply *rs )
 	} else {
 		rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
 	}
+out:
 #else
 	rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
 #endif /* SLAP_CONFIG_DELETE */
