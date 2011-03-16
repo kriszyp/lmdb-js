@@ -160,7 +160,7 @@ static struct slap_control control_defs[] = {
 		parseDomainScope, LDAP_SLIST_ENTRY_INITIALIZER(next) },
 	{ LDAP_CONTROL_DONTUSECOPY,
  		(int)offsetof(struct slap_control_ids, sc_dontUseCopy),
-		SLAP_CTRL_GLOBAL|SLAP_CTRL_INTROGATE|SLAP_CTRL_HIDE,
+		SLAP_CTRL_GLOBAL|SLAP_CTRL_INTROGATE,
 		NULL, NULL,
 		parseDontUseCopy, LDAP_SLIST_ENTRY_INITIALIZER(next) },
 	{ LDAP_CONTROL_X_PERMISSIVE_MODIFY,
