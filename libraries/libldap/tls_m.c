@@ -2272,7 +2272,7 @@ tlsm_is_non_ssl_message( PRFileDesc *fd, ber_tag_t *thebyte )
 	}
 
 	if ( p->firsttag == LBER_SEQUENCE ) {
-		if ( *thebyte ) {
+		if ( thebyte ) {
 			*thebyte = p->firsttag;
 		}
 		return 1;
@@ -2769,7 +2769,7 @@ tlsm_PR_GetSocketOption(PRFileDesc *fd, PRSocketOptionData *data)
 	struct tls_data		*p;
  	p = tlsm_get_pvt_tls_data( fd );
 
-	if ( !data ) {
+	if ( p == NULL || data == NULL ) {
 		return PR_FAILURE;
 	}
 
