@@ -43,7 +43,7 @@ OBJS	= base64.o entropy.o sasl.o signal.o hash.o passfile.o \
 	meter.o \
 	@LIBOBJS@ $(@PLAT@_OBJS)
 
-SHAREDLIBOBJS = ldif.lo fetch.lo
+SHAREDLIBOBJS = ldif.lo fetch.lo $(LDAP_LIBLBER_LA)
 
 testavl: $(XLIBS) testavl.o
 	(LTLINK) -o $@ testavl.o $(LIBS)
