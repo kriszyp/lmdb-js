@@ -6177,7 +6177,7 @@ config_back_delete( Operation *op, SlapReply *rs )
 			rs->sr_matched = last->ce_entry->e_name.bv_val;
 		rs->sr_err = LDAP_NO_SUCH_OBJECT;
 	} else if ( ce->ce_kids ) {
-		rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
+		rs->sr_err = LDAP_NOT_ALLOWED_ON_NONLEAF;
 	} else if ( op->o_abandon ) {
 		rs->sr_err = SLAPD_ABANDON;
 	} else if ( ce->ce_type == Cft_Overlay ||
