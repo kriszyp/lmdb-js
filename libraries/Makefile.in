@@ -14,8 +14,8 @@
 ## <http://www.OpenLDAP.org/license.html>.
 
 SUBDIRS= \
-	liblber \
 	liblutil \
+	liblber \
 	liblunicode \
 	libldap libldap_r \
 	librewrite

@@ -34,7 +34,7 @@ PROGRAMS= dtest etest idtest
 LDAP_INCDIR= ../../include
 LDAP_LIBDIR= ../../libraries
 
-XLIBS = $(LIBRARY)
+XLIBS = $(LIBRARY) $(LDAP_LIBLUTIL_A)
 XXLIBS = 
 NT_LINK_LIBS = $(AC_LIBS)
 UNIX_LINK_LIBS = $(AC_LIBS)
