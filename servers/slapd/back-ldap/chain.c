@@ -1448,10 +1448,18 @@ chain_lddel( CfEntryInfo *ce, Operation *op )
 	ldap_chain_t	*lc = (ldap_chain_t *)on->on_bi.bi_private;
 	ldapinfo_t	*li = (ldapinfo_t *) ce->ce_be->be_private;
 
-	if (! avl_delete( &lc->lc_lai.lai_tree, li, ldap_chain_uri_cmp ) ) {
-		Debug( LDAP_DEBUG_ANY, "slapd-chain: avl_delete failed. "
-			"\"%s\" not found.\n", li->li_uri, 0, 0 );
+	if ( li != lc->lc_common_li ) {
+		if (! avl_delete( &lc->lc_lai.lai_tree, li, ldap_chain_uri_cmp ) ) {
+			Debug( LDAP_DEBUG_ANY, "slapd-chain: avl_delete failed. "
+				"\"%s\" not found.\n", li->li_uri, 0, 0 );
+			return -1;
+		}
+	} else if ( lc->lc_lai.lai_tree ) {
+		Debug( LDAP_DEBUG_ANY, "slapd-chain: cannot delete first underlying "
+			"LDAP database when other databases are still present.\n", 0, 0, 0 );
 		return -1;
+	} else {
+		lc->lc_common_li = NULL;
 	}
 
 	ce->ce_be->bd_info = lback;
