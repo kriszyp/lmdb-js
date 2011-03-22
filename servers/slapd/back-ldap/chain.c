@@ -1221,6 +1221,9 @@ enum {
 static ConfigDriver chain_cf_gen;
 static ConfigCfAdd chain_cfadd;
 static ConfigLDAPadd chain_ldadd;
+#ifdef SLAP_CONFIG_DELETE
+static ConfigLDAPdel chain_lddel;
+#endif
 
 static ConfigTable chaincfg[] = {
 #ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
@@ -1268,7 +1271,11 @@ static ConfigOCs chainocs[] = {
 		"NAME 'olcChainDatabase' "
 		"DESC 'Chain remote server configuration' "
 		"SUP olcLDAPConfig )",
-		Cft_Misc, olcDatabaseDummy, chain_ldadd },
+		Cft_Misc, olcDatabaseDummy, chain_ldadd
+#ifdef SLAP_CONFIG_DELETE
+		, NULL, chain_lddel
+#endif
+	},
 	{ NULL, 0, NULL }
 };
 
@@ -1431,6 +1438,37 @@ chain_cfadd( Operation *op, SlapReply *rs, Entry *p, ConfigArgs *ca )
 
 	return 0;
 }
+
+#ifdef SLAP_CONFIG_DELETE
+static int
+chain_lddel( CfEntryInfo *ce, Operation *op )
+{
+	CfEntryInfo	*pe = ce->ce_parent;
+	slap_overinst	*on = (slap_overinst *)pe->ce_bi;
+	ldap_chain_t	*lc = (ldap_chain_t *)on->on_bi.bi_private;
+	ldapinfo_t	*li = (ldapinfo_t *) ce->ce_be->be_private;
+
+	if (! avl_delete( &lc->lc_lai.lai_tree, li, ldap_chain_uri_cmp ) ) {
+		Debug( LDAP_DEBUG_ANY, "slapd-chain: avl_delete failed. "
+			"\"%s\" not found.\n", li->li_uri, 0, 0 );
+		return -1;
+	}
+
+	ce->ce_be->bd_info = lback;
+
+	if ( ce->ce_be->bd_info->bi_db_close ) {
+		ce->ce_be->bd_info->bi_db_close( ce->ce_be, NULL );
+	}
+	if ( ce->ce_be->bd_info->bi_db_destroy ) {
+		ce->ce_be->bd_info->bi_db_destroy( ce->ce_be, NULL );
+	}
+
+	ch_free(ce->ce_be);
+	ce->ce_be = NULL;
+
+	return LDAP_SUCCESS;
+}
+#endif /* SLAP_CONFIG_DELETE */
 
 #ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
 static slap_verbmasks chaining_mode[] = {
