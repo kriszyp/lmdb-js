@@ -629,7 +629,6 @@ static int translucent_pwmod(Operation *op, SlapReply *rs) {
 
 	slap_overinst *on = (slap_overinst *) op->o_bd->bd_info;
 	translucent_info *ov = on->on_bi.bi_private;
-	const struct berval bv_exop_pwmod = BER_BVC(LDAP_EXOP_MODIFY_PASSWD);
 	Entry *e = NULL, *re = NULL;
 	BackendDB *db;
 	int rc = 0;

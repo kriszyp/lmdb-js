@@ -39,9 +39,8 @@ monitor_find_children(
 	Entry **vol
 )
 {
-	monitor_info_t	*mi = ( monitor_info_t * )op->o_bd->be_private;
 	monitor_entry_t *mp;
-	
+
 	mp = ( monitor_entry_t * )e_parent->e_private;
 	*nonv = mp->mp_children;
 
