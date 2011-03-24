@@ -1,6 +1,7 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.25 Engineering
+	Fixed libldap/lberl/util if/else usage (ITS#6832)
 
 OpenLDAP 2.4.24 Release (2011/02/10)
 	Added LDIF line wrapping setting (ITS#6645)

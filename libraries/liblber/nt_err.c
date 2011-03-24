@@ -17,7 +17,7 @@
 
 #ifdef HAVE_WINSOCK2
 #include <winsock2.h>
-#elif HAVE_WINSOCK
+#elif defined(HAVE_WINSOCK)
 #include <winsock.h>
 #endif /* HAVE_WINSOCK(2) */
 
