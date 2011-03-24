@@ -7,6 +7,7 @@ OpenLDAP 2.4.25 Engineering
 		Fixed test020 exit codes (ITS#6404)
 	Documentation
 		admin24 guide ldapi usage (ITS#6839)
+		admin24 guide conversion notes (ITS#6834)
 
 OpenLDAP 2.4.24 Release (2011/02/10)
 	Added LDIF line wrapping setting (ITS#6645)
