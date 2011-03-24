@@ -15,6 +15,7 @@ CPPFLAGS+=-DSLAPD_OVER_LASTBIND=SLAPD_MOD_DYNAMIC
 #LIBTOOL=libtool
 LIBTOOL=../../../libtool
 
+prefix=/usr/local
 
 all: lastbind.la
 
@@ -23,7 +24,11 @@ lastbind.lo:    lastbind.c
 
 lastbind.la:    lastbind.lo
 	$(LIBTOOL) --mode=link $(CC) -version-info 0:0:0 \
-		   -rpath $(PREFIX)/lib -module -o $@ $?
+		   -rpath $(prefix)/lib -module -o $@ $?
 
 clean:
 	rm -rf lastbind.lo lastbind.la lastbind.o .libs/
+
+install: lastbind.la
+	mkdir -p $(prefix)/libexec/openldap
+	$(LIBTOOL) --mode=onstall cp lastbind.la $(prefix)/libexec/openldap
