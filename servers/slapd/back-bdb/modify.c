@@ -289,31 +289,23 @@ int bdb_modify_internal(
 			if ( a2 ) {
 				/* need to detect which values were deleted */
 				int i, j;
-				struct berval tmp;
-				j = ap->a_numvals;
-				for ( i=0; i<j; ) {
+				vals = op->o_tmpalloc( (ap->a_numvals + 1) *
+					sizeof(struct berval), op->o_tmpmemctx );
+				j = 0;
+				for ( i=0; i < ap->a_numvals; i++ ) {
 					rc = attr_valfind( a2, SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH,
 						&ap->a_nvals[i], NULL, op->o_tmpmemctx );
-					/* Move deleted values to end of array */
-					if ( rc == LDAP_NO_SUCH_ATTRIBUTE ) {
-						j--;
-						if ( i != j ) {
-							tmp = ap->a_nvals[j];
-							ap->a_nvals[j] = ap->a_nvals[i];
-							ap->a_nvals[i] = tmp;
-							tmp = ap->a_vals[j];
-							ap->a_vals[j] = ap->a_vals[i];
-							ap->a_vals[i] = tmp;
-						}
-						continue;
-					}
+					/* Save deleted values */
+					if ( rc == LDAP_NO_SUCH_ATTRIBUTE )
+						vals[j++] = ap->a_nvals[i];
 					i++;
 				}
-				vals = &ap->a_nvals[j];
+				BER_BVZERO(vals+j);
 			} else {
 				/* attribute was completely deleted */
 				vals = ap->a_nvals;
 			}
+			rc = 0;
 			if ( !BER_BVISNULL( vals )) {
 				rc = bdb_index_values( op, tid, ap->a_desc,
 					vals, e->e_id, SLAP_INDEX_DELETE_OP );
@@ -323,9 +315,11 @@ int bdb_modify_internal(
 						op->o_log_prefix, ap->a_desc->ad_cname.bv_val, 0 );
 					attrs_free( e->e_attrs );
 					e->e_attrs = save_attrs;
-					return rc;
 				}
 			}
+			if ( vals != ap->a_nvals )
+				op->o_tmpfree( vals, op->o_tmpmemctx );
+			if ( rc ) return rc;
 		}
 	}
 

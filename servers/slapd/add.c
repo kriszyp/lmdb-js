@@ -500,9 +500,6 @@ slap_mods2entry(
 		} else {
 			attr->a_nvals = attr->a_vals;
 		}
-		/* slap_mods_check() gives us sorted results */
-		if ( attr->a_desc->ad_type->sat_flags & SLAP_AT_SORTED_VAL )
-			attr->a_flags |= SLAP_ATTR_SORTED_VALS;
 
 		*tail = attr;
 		tail = &attr->a_next;

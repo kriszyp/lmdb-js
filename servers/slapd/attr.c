@@ -88,6 +88,8 @@ attr_alloc( AttributeDescription *ad )
 	ldap_pvt_thread_mutex_unlock( &attr_mutex );
 	
 	a->a_desc = ad;
+	if ( ad && ( ad->ad_type->sat_flags & SLAP_AT_SORTED_VAL ))
+		a->a_flags |= SLAP_ATTR_SORTED_VALS;
 
 	return a;
 }
