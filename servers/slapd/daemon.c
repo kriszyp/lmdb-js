@@ -2098,7 +2098,7 @@ slap_listener_activate(
 	Debug( LDAP_DEBUG_TRACE, "slap_listener_activate(%d): %s\n",
 		sl->sl_sd, sl->sl_busy ? "busy" : "", 0 );
 
-	sl->sl_busy++;
+	sl->sl_busy = 1;
 
 	rc = ldap_pvt_thread_pool_submit( &connection_pool,
 		slap_listener_thread, (void *) sl );
