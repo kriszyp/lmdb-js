@@ -317,11 +317,11 @@ only the final state of the entry is significant. But this approach
 may have drawbacks when the usage pattern involves single changes to
 multiple objects.
 
-For example, suppose you have a database consisting of 100,000 objects of 1 KB 
+For example, suppose you have a database consisting of 102,400 objects of 1 KB 
 each. Further, suppose you routinely run a batch job to change the value of 
-a single two-byte attribute value that appears in each of the 100,000 objects 
+a single two-byte attribute value that appears in each of the 102,400 objects 
 on the master. Not counting LDAP and TCP/IP protocol overhead, each time you 
-run this job each consumer will transfer and process {{B:1 GB}} of data to
+run this job each consumer will transfer and process {{B:100 MB}} of data to
 process {{B:200KB of changes!}}
 
 99.98% of the data that is transmitted and processed in a case like this will 
