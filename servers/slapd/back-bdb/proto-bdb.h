@@ -507,6 +507,7 @@ void bdb_unlocked_cache_return_entry_rw( struct bdb_info *bdb, Entry *e, int rw 
 #define bdb_cache_modrdn			BDB_SYMBOL(cache_modrdn)
 #define bdb_cache_release_all		BDB_SYMBOL(cache_release_all)
 #define bdb_cache_delete_entry		BDB_SYMBOL(cache_delete_entry)
+#define bdb_cache_deref				BDB_SYMBOL(cache_deref)
 
 int bdb_cache_children(
 	Operation *op,
@@ -574,6 +575,7 @@ void bdb_cache_delete_cleanup(
 	EntryInfo *ei
 );
 void bdb_cache_release_all( Cache *cache );
+void bdb_cache_deref( EntryInfo *ei );
 
 #ifdef BDB_HIER
 int hdb_cache_load(
