@@ -90,8 +90,10 @@ static ldap_pvt_thread_cond_t bdb_tool_index_cond_work;
 #ifdef USE_TRICKLE
 static ldap_pvt_thread_mutex_t bdb_tool_trickle_mutex;
 static ldap_pvt_thread_cond_t bdb_tool_trickle_cond;
+static ldap_pvt_thread_cond_t bdb_tool_trickle_cond_end;
 
 static void * bdb_tool_trickle_task( void *ctx, void *ptr );
+static int bdb_tool_trickle_active;
 #endif
 
 static void * bdb_tool_index_task( void *ctx, void *ptr );
@@ -127,6 +129,7 @@ int bdb_tool_entry_open(
 #ifdef USE_TRICKLE
 			ldap_pvt_thread_mutex_init( &bdb_tool_trickle_mutex );
 			ldap_pvt_thread_cond_init( &bdb_tool_trickle_cond );
+			ldap_pvt_thread_cond_init( &bdb_tool_trickle_cond_end );
 			ldap_pvt_thread_pool_submit( &connection_pool, bdb_tool_trickle_task, bdb->bi_dbenv );
 #endif
 
@@ -159,7 +162,16 @@ int bdb_tool_entry_close(
 		slapd_shutdown = 1;
 #ifdef USE_TRICKLE
 		ldap_pvt_thread_mutex_lock( &bdb_tool_trickle_mutex );
+
+		/* trickle thread may not have started yet */
+		while ( !bdb_tool_trickle_active )
+			ldap_pvt_thread_cond_wait( &bdb_tool_trickle_cond_end,
+					&bdb_tool_trickle_mutex );
+
 		ldap_pvt_thread_cond_signal( &bdb_tool_trickle_cond );
+		while ( bdb_tool_trickle_active )
+			ldap_pvt_thread_cond_wait( &bdb_tool_trickle_cond_end,
+					&bdb_tool_trickle_mutex );
 		ldap_pvt_thread_mutex_unlock( &bdb_tool_trickle_mutex );
 #endif
 		ldap_pvt_thread_mutex_lock( &bdb_tool_index_mutex );
@@ -1249,6 +1261,8 @@ bdb_tool_trickle_task( void *ctx, void *ptr )
 	int wrote;
 
 	ldap_pvt_thread_mutex_lock( &bdb_tool_trickle_mutex );
+	bdb_tool_trickle_active = 1;
+	ldap_pvt_thread_cond_signal( &bdb_tool_trickle_cond_end );
 	while ( 1 ) {
 		ldap_pvt_thread_cond_wait( &bdb_tool_trickle_cond,
 			&bdb_tool_trickle_mutex );
@@ -1256,6 +1270,8 @@ bdb_tool_trickle_task( void *ctx, void *ptr )
 			break;
 		env->memp_trickle( env, 30, &wrote );
 	}
+	bdb_tool_trickle_active = 0;
+	ldap_pvt_thread_cond_signal( &bdb_tool_trickle_cond_end );
 	ldap_pvt_thread_mutex_unlock( &bdb_tool_trickle_mutex );
 
 	return NULL;
