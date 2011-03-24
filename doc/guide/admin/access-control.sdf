@@ -25,8 +25,9 @@ rights (i.e. auth, search, compare, read and write) on everything and anything.
 As a consequence, it's useless (and results in a performance penalty) to explicitly 
 list the {{rootdn}} among the {{<by>}} clauses.
 
-The following sections will describe Access Control Lists in more details and 
-follow with some examples and recommendations. 
+The following sections will describe Access Control Lists in greater depth and 
+follow with some examples and recommendations. See {{slapd.access}}(5) for
+complete details.
 
 H2: Access Control via Static Configuration
 
@@ -1153,7 +1154,7 @@ To get what we wanted the file has to read:
 
 The general rule is: "special access rules first, generic access rules last"
 
-See also {{slapd.access}}(8), loglevel 128 and {{slapacl}}(8) for debugging
+See also {{slapd.access}}(5), loglevel 128 and {{slapacl}}(8) for debugging
 information.
 
 
@@ -1322,7 +1323,7 @@ The end result is that when Jane accesses John's entry, she will be granted
 write access to the specified attributes. Better yet, this will happen to any
 entry she accesses which has Mary as the manager.
 
-This is all cool and nice, but perhaps gives to much power to secretaries. Maybe we need to further
+This is all cool and nice, but perhaps gives too much power to secretaries. Maybe we need to further
 restrict it. For example, let's only allow executive secretaries to have this power:
 
 > access to dn.exact="uid=john,ou=people,dc=example,dc=com"
