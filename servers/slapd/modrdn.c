@@ -403,7 +403,7 @@ slap_modrdn2mods(
 			"type(s)/value(s) of newrdn\n",
 			op->o_log_prefix, 0, 0 );
 		rs->sr_err = LDAP_INVALID_DN_SYNTAX;
-		rs->sr_text = "unknown type(s) used in RDN";
+		rs->sr_text = "unknown type(s)/value(s) used in RDN";
 		goto done;
 	}
 
