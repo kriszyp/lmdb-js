@@ -555,7 +555,7 @@ RC=$?
 if test $RC != 0 ; then
 	echo "Refresh failed"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS && wait
-	exit 0
+	exit 1
 fi
 
 echo ""
@@ -580,7 +580,7 @@ RC=$?
 if test $RC != 0 ; then
 	echo "Refresh failed"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS && wait
-	exit 0
+	exit 1
 fi
 
 CNT=`expr $CNT + 1`
@@ -602,7 +602,7 @@ RC=$?
 if test $RC != 0 ; then
 	echo "Refresh failed"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS && wait
-	exit 0
+	exit 1
 fi
 
 echo ""
@@ -620,7 +620,7 @@ RC=`grep "CACH.* BIND" $LOG2 | wc -l`
 if test $RC != 3 ; then
 	echo "ldappasswd didn't update the cache"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS && wait
-	exit 0
+	exit 1
 fi
 
 CNT=`expr $CNT + 1`
@@ -641,7 +641,7 @@ RC=`grep "CACH.* BIND" $LOG2 | wc -l`
 if test $RC != 4 ; then
 	echo "Bind wasn't answered from cache"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS && wait
-	exit 0
+	exit 1
 fi
 test $KILLSERVERS != no && kill -HUP $KILLPIDS
 
