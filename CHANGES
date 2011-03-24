@@ -1,7 +1,10 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.25 Engineering
-	Fixed libldap/lberl/util if/else usage (ITS#6832)
+	Build Environment
+		Fixed libldap/lberl/util if/else usage (ITS#6832)
+		Fixed Windows odbc32 detection (ITS#6125)
+		Fixed test020 exit codes (ITS#6404)
 
 OpenLDAP 2.4.24 Release (2011/02/10)
 	Added LDIF line wrapping setting (ITS#6645)
