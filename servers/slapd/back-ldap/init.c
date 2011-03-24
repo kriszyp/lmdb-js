@@ -100,6 +100,11 @@ ldap_back_initialize( BackendInfo *bi )
 
 	bi->bi_extra = (void *)&ldap_extra;
 
+	rc =  ldap_back_init_cf( bi );
+	if ( rc ) {
+		return rc;
+	}
+
 	rc = chain_initialize();
 	if ( rc ) {
 		return rc;
@@ -116,8 +121,7 @@ ldap_back_initialize( BackendInfo *bi )
 		return rc;
 	}
 #endif
-
-	return ldap_back_init_cf( bi );
+	return rc;
 }
 
 int

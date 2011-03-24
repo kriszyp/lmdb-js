@@ -1,6 +1,8 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.25 Engineering
+	Fixed slapd add objectclasses in order (ITS#6837)
+	Fixed slapd-ldap chain cn=config support (ITS#6837)
 	Build Environment
 		Fixed libldap/lberl/util if/else usage (ITS#6832)
 		Fixed Windows odbc32 detection (ITS#6125)

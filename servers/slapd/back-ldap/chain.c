@@ -1269,7 +1269,7 @@ static ConfigOCs chainocs[] = {
 	{ "( OLcfgOvOc:3.2 "
 		"NAME 'olcChainDatabase' "
 		"DESC 'Chain remote server configuration' "
-		"AUXILIARY )",
+		"SUP olcLDAPConfig )",
 		Cft_Misc, olcDatabaseDummy, chain_ldadd },
 	{ NULL, 0, NULL }
 };
