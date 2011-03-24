@@ -19,6 +19,7 @@ OpenLDAP 2.4.25 Engineering
 		Fixed windows NT threads build (ITS#6859)
 		Fixed libldap/lberl/util if/else usage (ITS#6832)
 		Fixed Windows odbc32 detection (ITS#6125)
+		Fixed Windows msys build (ITS#6870)
 		Fixed test020 exit codes (ITS#6404)
 	Documentation
 		admin24 guide ldapi usage (ITS#6839)

@@ -557,8 +557,8 @@ static slap_daemon_st slap_daemon[MAX_DAEMON_THREADS];
 	memset( slap_daemon[t].sd_flags, 0, dtblsize ); \
 	slapd_ws_sockets[t*2] = wake_sds[t][0]; \
 	slapd_ws_sockets[t*2+1] = wake_sds[t][1]; \
-	wake_sds[0] = t*2; \
-	wake_sds[1] = t*2+1; \
+	wake_sds[t][0] = t*2; \
+	wake_sds[t][1] = t*2+1; \
 	slap_daemon[t].sd_nfds = t*2 + 2; \
 	} while ( 0 )
 
