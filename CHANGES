@@ -15,6 +15,7 @@ OpenLDAP 2.4.25 Engineering
 	Documentation
 		admin24 guide ldapi usage (ITS#6839)
 		admin24 guide conversion notes (ITS#6834)
+		admin24 guide note manpages are definitive (ITS#6855)
 
 OpenLDAP 2.4.24 Release (2011/02/10)
 	Added LDIF line wrapping setting (ITS#6645)
