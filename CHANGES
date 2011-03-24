@@ -13,6 +13,7 @@ OpenLDAP 2.4.25 Engineering
 	Fixed slapd-ldap chain with slapd.conf (ITS#6857)
 	Fixed slapd-meta deadlock (ITS#6846)
 	Fixed slapo-sssvlv with multiple requests (ITS#6850)
+	Fixed contrib/lastbind install rules (ITS#6238)
 	Build Environment
 		Fixed windows NT threads build (ITS#6859)
 		Fixed libldap/lberl/util if/else usage (ITS#6832)
