@@ -14,9 +14,6 @@
 ## <http://www.OpenLDAP.org/license.html>.
 
 LIBRARY	= liblutil.a
-
-SHAREDLIB = libldif.la
-
 PROGRAM = testavl
 
 LDAP_INCDIR= ../../include       
@@ -32,18 +29,16 @@ XLIBS = $(LIBRARY) $(LDAP_LIBLBER_LA)
 
 SRCS	= base64.c entropy.c sasl.c signal.c hash.c passfile.c \
 	md5.c passwd.c sha1.c getpass.c lockf.c utils.c uuid.c sockpair.c \
-	avl.c tavl.c ldif.c fetch.c \
+	avl.c tavl.c \
 	testavl.c \
 	meter.c \
 	@LIBSRCS@ $(@PLAT@_SRCS)
 
 OBJS	= base64.o entropy.o sasl.o signal.o hash.o passfile.o \
 	md5.o passwd.o sha1.o getpass.o lockf.o utils.o uuid.o sockpair.o \
-	avl.o tavl.o ldif.o fetch.o \
+	avl.o tavl.o \
 	meter.o \
 	@LIBOBJS@ $(@PLAT@_OBJS)
-
-SHAREDLIBOBJS = ldif.lo fetch.lo
 
 testavl: $(XLIBS) testavl.o
 	(LTLINK) -o $@ testavl.o $(LIBS)
@@ -64,19 +59,3 @@ slapdmsg.res: slapdmsg.rc slapdmsg.bin
 clean-local:
 	$(RM) *.res
 
-all-local: $(SHAREDLIB)
-
-.SUFFIXES: .c .o .lo
-
-.c.lo:
-	$(LTCOMPILE_LIB) $<
-
-$(LIBRARY): $(SHAREDLIBOBJS) version.lo
-
-$(SHAREDLIB): $(SHAREDLIBOBJS) version.lo
-	$(LTLINK_LIB) -o $(SHAREDLIB) $(SHAREDLIBOBJS) version.lo $(LINK_LIBS)
-
-install-local: FORCE
-	-$(MKDIR) $(DESTDIR)$(libdir)
-	$(LTINSTALL) $(INSTALLFLAGS) -m 644 $(SHAREDLIB) $(DESTDIR)$(libdir)
-	$(LTFINISH) $(DESTDIR)$(libdir)
