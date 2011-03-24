@@ -2,6 +2,7 @@
 CPPFLAGS+=-I../../../include -I../../../servers/slapd 
 CPPFLAGS+=-DSLAPD_OVER_CLOAK=SLAPD_MOD_DYNAMIC
 LIBS=-lldap_r -llber -lcrypto
+LIBTOOL=../../../libtool
 
 all: cloak.la
 
