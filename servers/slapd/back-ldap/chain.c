@@ -225,7 +225,6 @@ ldap_chain_uri_cmp( const void *c1, const void *c2 )
 	assert( !BER_BVISNULL( &li2->li_bvuri[ 0 ] ) );
 	assert( BER_BVISNULL( &li2->li_bvuri[ 1 ] ) );
 
-	/* If local DNs don't match, it is definitely not a match */
 	return ber_bvcmp( &li1->li_bvuri[ 0 ], &li2->li_bvuri[ 0 ] );
 }
 
@@ -243,11 +242,10 @@ ldap_chain_uri_dup( void *c1, void *c2 )
 	assert( !BER_BVISNULL( &li2->li_bvuri[ 0 ] ) );
 	assert( BER_BVISNULL( &li2->li_bvuri[ 1 ] ) );
 
-	/* Cannot have more than one shared session with same DN */
 	if ( ber_bvcmp( &li1->li_bvuri[ 0 ], &li2->li_bvuri[ 0 ] ) == 0 ) {
 		return -1;
 	}
-		
+
 	return 0;
 }
 
