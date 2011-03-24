@@ -3,6 +3,7 @@ OpenLDAP 2.4 Change Log
 OpenLDAP 2.4.25 Engineering
 	Fixed tools for incompatible args (ITS#6849)
 	Fixed slapd add objectclasses in order (ITS#6837)
+	Added slapd ordering for uidNumber and gidNumber (ITS#6852)
 	Fixed slapd sortval handling (ITS#6845)
 	Fixed slapd-ldap chain cn=config support (ITS#6837)
 	Fixed slapd-meta deadlock (ITS#6846)
