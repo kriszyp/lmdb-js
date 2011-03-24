@@ -1127,6 +1127,12 @@ tool_args( int argc, char **argv )
 		}
 #endif
 	}
+
+	if ( ( pw_file || want_bindpw ) && !BER_BVISNULL( &passwd ) ) {
+		fprintf( stderr, "%s: -%c incompatible with -w\n",
+			prog, ( pw_file ? 'y' : 'W' ) );
+		exit( EXIT_FAILURE );
+	}
 }
 
 
