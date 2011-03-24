@@ -7,6 +7,7 @@ OpenLDAP 2.4.25 Engineering
 	Fixed slapd sortval handling (ITS#6845)
 	Fixed slapd-ldap chain cn=config support (ITS#6837)
 	Fixed slapd-meta deadlock (ITS#6846)
+	Fixed slapo-sssvlv with multiple requests (ITS#6850)
 	Build Environment
 		Fixed libldap/lberl/util if/else usage (ITS#6832)
 		Fixed Windows odbc32 detection (ITS#6125)

@@ -17,8 +17,8 @@ or globally for all backends.
 Since a complete result set must be generated in memory before sorting can
 be performed, processing sort requests can have a large impact on the
 server's memory use. As such, any connection is limited to having only
-one sort request active at a time. Additional limits may be configured
-as described below.
+a limited number of sort requests active at a time. Additional limits may
+be configured as described below.
 
 .SH CONFIGURATION
 These
