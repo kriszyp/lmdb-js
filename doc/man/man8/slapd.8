@@ -193,6 +193,22 @@ options.  Hosts may be specified by name or IPv4 and IPv6 address formats.
 Ports, if specified, must be numeric.  The default ldap:// port is \fB389\fP
 and the default ldaps:// port is \fB636\fP.
 
+For LDAP over IPC,
+.B name 
+is the name of the socket, and no
+.B port
+is required, nor allowed; note that directory separators must be 
+URL-encoded, like any other characters that are special to URLs; 
+so the socket
+
+        /usr/local/var/ldapi
+
+must be specified as
+
+        ldapi://%2Fusr%2Flocal%2Fvar%2Fldapi
+
+The default location for the IPC socket is LOCALSTATEDIR/run/ldapi
+
 The listener permissions are indicated by
 "x\-mod=\-rwxrwxrwx", "x\-mod=0777" or "x\-mod=777", where any 
 of the "rwx" can be "\-" to suppress the related permission, while any 
