@@ -298,7 +298,6 @@ int bdb_modify_internal(
 					/* Save deleted values */
 					if ( rc == LDAP_NO_SUCH_ATTRIBUTE )
 						vals[j++] = ap->a_nvals[i];
-					i++;
 				}
 				BER_BVZERO(vals+j);
 			} else {
