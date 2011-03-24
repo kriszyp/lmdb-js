@@ -183,7 +183,7 @@ typedef DWORD	ldap_int_thread_key_t;
 #ifndef LDAP_INT_MUTEX_NULL
 #define LDAP_INT_MUTEX_NULL		((HANDLE)0)
 #define LDAP_INT_MUTEX_FIRSTCREATE(m) \
-		((void) ((m) || ldap_int_thread_mutex_init(&(m))))
+		((void) ((m) || ldap_pvt_thread_mutex_init(&(m))))
 #endif
 
 LDAP_END_DECL

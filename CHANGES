@@ -7,11 +7,13 @@ OpenLDAP 2.4.25 Engineering
 	Added slapd ordering for uidNumber and gidNumber (ITS#6852)
 	Fixed slapd segfault when adding values out of order (ITS#6858)
 	Fixed slapd sortval handling (ITS#6845)
+	Fixed slapd-bdb with slapadd/index quick option (ITS#6853)
 	Fixed slapd-ldap chain cn=config support (ITS#6837)
 	Fixed slapd-ldap chain with slapd.conf (ITS#6857)
 	Fixed slapd-meta deadlock (ITS#6846)
 	Fixed slapo-sssvlv with multiple requests (ITS#6850)
 	Build Environment
+		Fixed windows NT threads build (ITS#6859)
 		Fixed libldap/lberl/util if/else usage (ITS#6832)
 		Fixed Windows odbc32 detection (ITS#6125)
 		Fixed test020 exit codes (ITS#6404)
