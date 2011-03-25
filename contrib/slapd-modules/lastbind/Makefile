@@ -31,4 +31,4 @@ clean:
 
 install: lastbind.la
 	mkdir -p $(prefix)/libexec/openldap
-	$(LIBTOOL) --mode=onstall cp lastbind.la $(prefix)/libexec/openldap
+	$(LIBTOOL) --mode=install cp lastbind.la $(prefix)/libexec/openldap
