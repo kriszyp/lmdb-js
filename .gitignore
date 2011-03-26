@@ -1,5 +1,4 @@
 # for Unix/Linux
-Makefile
 *~
 *.o
 *.la
@@ -40,6 +39,11 @@ resource.rc
 .links
 
 version.c
+
+Makefile
+!/contrib/slapd-modules/*/Makefile
+!/doc/guide/admin/Makefile
+!/servers/slapd/back-sql/rdbms_depend/timesten/dnreverse/Makefile
 
 /config.status
 /config.log
