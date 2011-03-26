@@ -2134,12 +2134,14 @@ if test -t 1; then
 	TN="`$SHTOOL echo -e '%b' 2>/dev/null`"
 fi
 
-OPENLDAP_CVS=""
-if test -d $ac_aux_dir/CVS; then
-	OPENLDAP_CVS="(from CVS sources) "
+OPENLDAP_REPO=""
+if test -d $ac_aux_dir/../.git; then
+	OPENLDAP_REPO="(from Git clone) "
+elif test -d $ac_aux_dir/CVS; then
+	OPENLDAP_REPO="(from CVS checkout) "
 fi
 
-echo "Configuring ${TB}${OL_STRING}${TN} ${OPENLDAP_CVS}..."
+echo "Configuring ${TB}${OL_STRING}${TN} ${OPENLDAP_REPO}..."
 
 # Make sure we can run config.sub.
 $SHELL "$ac_aux_dir/config.sub" sun4 >/dev/null 2>&1 ||
