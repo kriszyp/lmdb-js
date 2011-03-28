@@ -1,6 +1,6 @@
 OpenLDAP 2.4 Change Log
 
-OpenLDAP 2.4.25 Engineering
+OpenLDAP 2.4.26 Engineering
 
 OpenLDAP 2.4.25 Release (2011/03/26)
 	Fixed ldapsearch pagedresults loop (ITS#6755)
