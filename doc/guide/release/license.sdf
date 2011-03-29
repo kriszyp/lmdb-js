@@ -8,7 +8,7 @@ H1: OpenLDAP Public License
 #<FONT FACE="Courier">
 #!endblock
 
-!include "../LICENSE" ; verbatim
+!include "../../../LICENSE" ; verbatim
 
 #!block inline
 #</FONT>
