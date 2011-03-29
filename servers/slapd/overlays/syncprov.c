@@ -586,7 +586,7 @@ findpres_cb( Operation *op, SlapReply *rs )
 }
 
 static int
-syncprov_findcsn( Operation *op, find_csn_t mode )
+syncprov_findcsn( Operation *op, find_csn_t mode, struct berval *csn )
 {
 	slap_overinst		*on = (slap_overinst *)op->o_bd->bd_info;
 	syncprov_info_t		*si = on->on_bi.bi_private;
@@ -659,15 +659,12 @@ again:
 		break;
 	case FIND_CSN:
 		if ( BER_BVISEMPTY( &cf.f_av_value )) {
-			cf.f_av_value = srs->sr_state.ctxcsn[0];
-			/* If there are multiple CSNs, use the smallest */
-			for ( i=1; i<srs->sr_state.numcsns; i++ ) {
-				if ( ber_bvcmp( &cf.f_av_value, &srs->sr_state.ctxcsn[i] )
-					> 0 ) {
-					cf.f_av_value = srs->sr_state.ctxcsn[i];
-				}
-			}
+			cf.f_av_value = *csn;
 		}
+		fop.o_dn = op->o_bd->be_rootdn;
+		fop.o_ndn = op->o_bd->be_rootndn;
+		fop.o_req_dn = op->o_bd->be_suffix[0];
+		fop.o_req_ndn = op->o_bd->be_nsuffix[0];
 		/* Look for exact match the first time */
 		if ( findcsn_retry ) {
 			cf.f_choice = LDAP_FILTER_EQUALITY;
@@ -2624,7 +2621,7 @@ no_change:		if ( !(op->o_sync_mode & SLAP_SYNC_PERSIST) ) {
 			}
 		}
 		/* Is the CSN still present in the database? */
-		if ( syncprov_findcsn( op, FIND_CSN ) != LDAP_SUCCESS ) {
+		if ( syncprov_findcsn( op, FIND_CSN, &mincsn ) != LDAP_SUCCESS ) {
 			/* No, so a reload is required */
 			/* the 2.2 consumer doesn't send this hint */
 			if ( si->si_usehint && srs->sr_rhint == 0 ) {
@@ -2648,7 +2645,7 @@ no_change:		if ( !(op->o_sync_mode & SLAP_SYNC_PERSIST) ) {
 		} else {
 			gotstate = 1;
 			/* If changed and doing Present lookup, send Present UUIDs */
-			if ( do_present && syncprov_findcsn( op, FIND_PRESENT ) !=
+			if ( do_present && syncprov_findcsn( op, FIND_PRESENT, 0 ) !=
 				LDAP_SUCCESS ) {
 				if ( ctxcsn )
 					ber_bvarray_free_x( ctxcsn, op->o_tmpmemctx );
@@ -2976,7 +2973,7 @@ syncprov_db_otask(
 	void *ptr
 )
 {
-	syncprov_findcsn( ptr, FIND_MAXCSN );
+	syncprov_findcsn( ptr, FIND_MAXCSN, 0 );
 	return NULL;
 }
 
