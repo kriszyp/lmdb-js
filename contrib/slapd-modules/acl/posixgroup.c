@@ -164,7 +164,7 @@ pg_dynacl_unparse(
 static int
 pg_dynacl_mask(
 	void			*priv,
-	struct slap_op		*op,
+	Operation		*op,
 	Entry			*target,
 	AttributeDescription	*desc,
 	struct berval		*val,
@@ -190,7 +190,7 @@ pg_dynacl_mask(
 		rc = LDAP_SUCCESS;
 
 	} else {
-		user_be = op->o_bd = select_backend( &op->o_ndn, 0, 0 );
+		user_be = op->o_bd = select_backend( &op->o_ndn, 0 );
 		if ( op->o_bd == NULL ) {
 			op->o_bd = be;
 			return 0;
@@ -207,13 +207,17 @@ pg_dynacl_mask(
 	if ( pg->pg_style == ACL_STYLE_EXPAND ) {
 		char		buf[ 1024 ];
 		struct berval	bv;
+		AclRegexMatches amatches = { 0 };
+
+		amatches.dn_count = nmatch;
+		AC_MEMCPY( amatches.dn_data, matches, sizeof( amatches.dn_data ) );
 
 		bv.bv_len = sizeof( buf ) - 1;
 		bv.bv_val = buf;
 
 		if ( acl_string_expand( &bv, &pg->pg_pat,
-				target->e_nname.bv_val,
-				nmatch, matches ) )
+				&target->e_nname,
+				NULL, &amatches ) )
 		{
 			goto cleanup;
 		}
@@ -234,7 +238,7 @@ pg_dynacl_mask(
 		rc = LDAP_SUCCESS;
 
 	} else {
-		group_be = op->o_bd = select_backend( &group_ndn, 0, 0 );
+		group_be = op->o_bd = select_backend( &group_ndn, 0 );
 		if ( op->o_bd == NULL ) {
 			goto cleanup;
 		}
