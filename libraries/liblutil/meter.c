@@ -89,7 +89,7 @@ lutil_get_now (double *now)
 
 	assert( now );
 	time( &tm );
-	now = (double) tm;
+	*now = (double) tm;
 	return 0;
 #endif
 }
