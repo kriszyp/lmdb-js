@@ -110,7 +110,8 @@ std::string TlsOptions::getStringOption( tls_option opt ) const {
 }
 
 void TlsOptions::newCtx() const {
-    int ret = ldap_set_option( m_ld, LDAP_OPT_X_TLS_NEWCTX, LDAP_OPT_ON);
+    int val = 0;
+    int ret = ldap_set_option( m_ld, LDAP_OPT_X_TLS_NEWCTX, &val);
     if ( ret != LDAP_OPT_SUCCESS )
     {
         if ( ret != LDAP_OPT_ERROR ){
