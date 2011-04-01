@@ -72,9 +72,7 @@ void TlsOptions::setOption( tls_option opt, void *value ) const {
             throw( LDAPException( LDAP_PARAM_ERROR, "error while setting TLS option" ) );
         }
     }
-    if ( m_ld ){
-        this->newCtx();
-    }
+    this->newCtx();
 }
 
 void TlsOptions::getOption( tls_option opt, void* value ) const {
