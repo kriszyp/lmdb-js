@@ -778,19 +778,22 @@ ldap_set_option(
 
 	default:
 #ifdef HAVE_TLS
-		if ( ldap_pvt_tls_set_option( ld, option, (void *)invalue ) == 0 )
+		if ( ldap_pvt_tls_set_option( ld, option, (void *)invalue ) == 0 ) {
 			LDAP_MUTEX_UNLOCK( &lo->ldo_mutex );
 			return ( LDAP_OPT_SUCCESS );
+		}
 #endif
 #ifdef HAVE_CYRUS_SASL
-		if ( ldap_int_sasl_set_option( ld, option, (void *)invalue ) == 0 )
+		if ( ldap_int_sasl_set_option( ld, option, (void *)invalue ) == 0 ) {
 			LDAP_MUTEX_UNLOCK( &lo->ldo_mutex );
 			return ( LDAP_OPT_SUCCESS );
+		}
 #endif
 #ifdef HAVE_GSSAPI
-		if ( ldap_int_gssapi_set_option( ld, option, (void *)invalue ) == 0 )
+		if ( ldap_int_gssapi_set_option( ld, option, (void *)invalue ) == 0 ) {
 			LDAP_MUTEX_UNLOCK( &lo->ldo_mutex );
 			return ( LDAP_OPT_SUCCESS );
+		}
 #endif
 		/* bad param */
 		break;	/* LDAP_OPT_ERROR */
