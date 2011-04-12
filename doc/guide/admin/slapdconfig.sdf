@@ -4,16 +4,15 @@
 
 H1: The slapd Configuration File
 
-Once the software has been built and installed, you are ready
-to configure {{slapd}}(8) for use at your site. The slapd
-runtime configuration is primarily accomplished through the
-{{slapd.conf}}(5) file, normally installed in the
-{{EX:/usr/local/etc/openldap}} directory.
+This chapter describes configuring {{slapd}}(8) via the {{slapd.conf}}(5)
+configuration file.  {{slapd.conf}}(5) has been deprecated and should
+only be used if your site requires one of the backends that hasn't yet
+been updated to work with the newer {{slapd-config}}(5) system.  Configuring
+{{slapd}}(8) via {{slapd-config}}(5) is described in the previous chapter.
 
-An alternate configuration file location can be specified via a command-line
-option to {{slapd}}(8). This chapter describes the general format
-of the {{slapd.conf}}(5) configuration file, followed by a detailed
-description of commonly used config file directives.
+The {{slapd.conf}}(5) file is normally installed in the
+{{EX:/usr/local/etc/openldap}} directory.  An alternate configuration
+file location can be specified via a command-line option to {{slapd}}(8).
 
 
 H2: Configuration File Format
