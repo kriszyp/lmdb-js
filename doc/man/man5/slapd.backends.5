@@ -20,8 +20,10 @@ corresponding
 manual pages.
 .TP
 .B bdb
-This is the recommended primary backend for a normal slapd database.
-It takes care to configure it properly.
+This was the recommended primary backend through OpenLDAP 2.3, but it has
+since been superseded by the
+.BR hdb
+backend.  It takes care to configure it properly.
 It uses the transactional database interface of the Oracle Berkeley
 DB (BDB) package to store data.
 .TP
@@ -40,14 +42,18 @@ It serves up referrals based upon SRV resource records held in the
 Domain Name System.
 .TP
 .B hdb
-This is a variant of the
+This is the recommended primary backend for a normal slapd database.
+.B hdb
+is a variant of the
 .B bdb
 backend that uses a hierarchical database
-layout. This layout stores entry DNs more efficiently than the
+layout.
+This layout stores entry DNs more efficiently than the
 .B bdb
 backend,
 using less space and requiring less work to create, delete, and rename
 entries. It is also one of the few backends to support subtree renames.
+.BR
 .TP
 .B ldap
 This backend acts as a proxy to forward incoming requests to another
