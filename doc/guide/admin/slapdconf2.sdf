@@ -7,32 +7,42 @@ H1: Configuring slapd
 Once the software has been built and installed, you are ready
 to configure {{slapd}}(8) for use at your site.
 
-Unlike previous
-OpenLDAP releases, the slapd(8) runtime configuration in 2.3 (and later)
-is fully LDAP-enabled and can be managed using the standard LDAP
-operations with data in {{TERM:LDIF}}. The LDAP configuration engine
-allows all of slapd's configuration options to be changed on the fly,
+OpenLDAP 2.3 and later have transitioned to using a dynamic runtime
+configuration engine, {{slapd-config}}(5).  {{slapd-config}}(5)
+* is fully LDAP-enabled
+* is managed using the standard LDAP operations
+* stores its configuration data in an {{TERM:LDIF}} database, generally
+in the {{F:/usr/local/etc/openldap/slapd.d}} directory.
+* allows all of slapd's configuration options to be changed on the fly,
 generally without requiring a server restart for the changes
 to take effect.
 
-The old style {{slapd.conf}}(5) file is still
-supported, but must be converted to the new {{slapd-config}}(5) format
-to allow runtime changes to be saved. While the old style
-configuration uses a single file, normally installed as
-{{F:/usr/local/etc/openldap/slapd.conf}}, the new style
-uses a slapd backend database to store the configuration. The
-configuration database normally resides in the
-{{F:/usr/local/etc/openldap/slapd.d}} directory. An alternate configuration
-directory (or file) can be specified via a command-line option to
-{{slapd}}(8).
+This chapter describes the general format of the {{slapd-config}}(5)
+configuration system, followed by a detailed description of commonly used
+settings.
 
-This chapter
-describes the general format of the configuration system, followed by
-a detailed description of commonly used config settings.
+The older style {{slapd.conf}}(5) file is still supported, but its use
+is deprecated and support for it will be withdrawn in a future OpenLDAP
+release.  Configuring {{slapd}}(8) via {{slapd.conf}}(5) is described in
+the next chapter.
 
-Note: some of the backends 
-do not support runtime configuration yet.  In those cases,
-the old style {{slapd.conf}}(5) file must be used.
+Refer to {{slapd}}(8) for information on how to have slapd automatically
+convert from {{slapd.conf}}(5) to {{slapd-config}}(5).
+
+
+Note: Although the {{slapd-config}}(5) system stores its configuration
+as (text-based) LDIF files, you should {{1:never}} edit any of
+the LDIF files directly.  Configuration changes should be performed via LDAP
+operations, e.g. {{ldapadd}}(1), {{ldapdelete}}(1), or {{ldapmodify}}(1).
+
+
+Note: You will need to continue to use the older {{slapd.conf}}(5)
+configuration system if your OpenLDAP installation requires the use of one
+or more backends or overlays that have not been updated to use the
+{{slapd-config}}(5) system.  As of OpenLDAP 2.4.25, the only official backends
+that have not yet been updated to use {{slapd-config}}(5) are {{slapd-meta}}(5)
+and {{slapd-sql}}(5).  There may be additional contributed or experimental
+overlays that also have not been updated.
 
 
 H2: Configuration Layout
