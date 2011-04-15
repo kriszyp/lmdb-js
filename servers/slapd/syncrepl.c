@@ -777,6 +777,7 @@ do_syncrep2(
 	struct timeval tout = { 0, 0 };
 
 	int		refreshDeletes = 0;
+	char empty[6] = "empty";
 
 	if ( slapd_shutdown ) {
 		rc = -2;
@@ -807,6 +808,7 @@ do_syncrep2(
 		ber_len_t		len;
 		ber_tag_t		si_tag;
 		Entry			*entry;
+		struct berval	bdn;
 
 		if ( slapd_shutdown ) {
 			rc = -2;
@@ -815,6 +817,11 @@ do_syncrep2(
 		switch( ldap_msgtype( msg ) ) {
 		case LDAP_RES_SEARCH_ENTRY:
 			ldap_get_entry_controls( si->si_ld, msg, &rctrls );
+			ldap_get_dn_ber( si->si_ld, msg, NULL, &bdn );
+			if (!bdn.bv_len) {
+				bdn.bv_val = empty;
+				bdn.bv_len = sizeof(empty)-1;
+			}
 			/* we can't work without the control */
 			if ( rctrls ) {
 				LDAPControl **next = NULL;
@@ -828,26 +835,29 @@ do_syncrep2(
 				rctrlp = ldap_control_find( LDAP_CONTROL_SYNC_STATE, rctrls, &next );
 				if ( next && ldap_control_find( LDAP_CONTROL_SYNC_STATE, next, NULL ) )
 				{
+					bdn.bv_val[bdn.bv_len] = '\0';
 					Debug( LDAP_DEBUG_ANY, "do_syncrep2: %s "
 						"got search entry with multiple "
-						"Sync State control\n", si->si_ridtxt, 0, 0 );
+						"Sync State control (%s)\n", si->si_ridtxt, bdn.bv_val, 0 );
 					ldap_controls_free( rctrls );
 					rc = -1;
 					goto done;
 				}
 			}
 			if ( rctrlp == NULL ) {
+				bdn.bv_val[bdn.bv_len] = '\0';
 				Debug( LDAP_DEBUG_ANY, "do_syncrep2: %s "
 					"got search entry without "
-					"Sync State control\n", si->si_ridtxt, 0, 0 );
+					"Sync State control (%s)\n", si->si_ridtxt, bdn.bv_val, 0 );
 				rc = -1;
 				goto done;
 			}
 			ber_init2( ber, &rctrlp->ldctl_value, LBER_USE_DER );
 			if ( ber_scanf( ber, "{em" /*"}"*/, &syncstate, &syncUUID )
 					== LBER_ERROR ) {
-				Debug( LDAP_DEBUG_ANY, "do_syncrep2: %s malformed message",
-					si->si_ridtxt, 0, 0 );
+				bdn.bv_val[bdn.bv_len] = '\0';
+				Debug( LDAP_DEBUG_ANY, "do_syncrep2: %s malformed message (%s)\n",
+					si->si_ridtxt, bdn.bv_val, 0 );
 				ldap_controls_free( rctrls );
 				rc = -1;
 				goto done;
@@ -855,10 +865,11 @@ do_syncrep2(
 			/* FIXME: what if syncUUID is NULL or empty?
 			 * (happens with back-sql...) */
 			if ( BER_BVISEMPTY( &syncUUID ) ) {
+				bdn.bv_val[bdn.bv_len] = '\0';
 				Debug( LDAP_DEBUG_ANY, "do_syncrep2: %s "
-					"got empty syncUUID with LDAP_SYNC_%s\n",
+					"got empty syncUUID with LDAP_SYNC_%s (%s)\n",
 					si->si_ridtxt,
-					syncrepl_state2str( syncstate ), 0 );
+					syncrepl_state2str( syncstate ), bdn.bv_val );
 				ldap_controls_free( rctrls );
 				rc = -1;
 				goto done;
@@ -884,8 +895,9 @@ do_syncrep2(
 						for ( i =0; i<si->si_cookieState->cs_num; i++ ) {
 							if ( si->si_cookieState->cs_sids[i] == sid ) {
 								if ( ber_bvcmp( syncCookie.ctxcsn, &si->si_cookieState->cs_vals[i] ) <= 0 ) {
-									Debug( LDAP_DEBUG_SYNC, "do_syncrep2: %s CSN too old, ignoring %s\n",
-										si->si_ridtxt, syncCookie.ctxcsn->bv_val, 0 );
+									bdn.bv_val[bdn.bv_len] = '\0';
+									Debug( LDAP_DEBUG_SYNC, "do_syncrep2: %s CSN too old, ignoring %s (%s)\n",
+										si->si_ridtxt, syncCookie.ctxcsn->bv_val, bdn.bv_val );
 									ldap_controls_free( rctrls );
 									rc = 0;
 									goto done;
@@ -905,8 +917,9 @@ do_syncrep2(
 						for ( i =0; i<si->si_cookieState->cs_pnum; i++ ) {
 							if ( si->si_cookieState->cs_psids[i] == sid ) {
 								if ( ber_bvcmp( syncCookie.ctxcsn, &si->si_cookieState->cs_pvals[i] ) <= 0 ) {
-									Debug( LDAP_DEBUG_SYNC, "do_syncrep2: %s CSN pending, ignoring %s\n",
-										si->si_ridtxt, syncCookie.ctxcsn->bv_val, 0 );
+									bdn.bv_val[bdn.bv_len] = '\0';
+									Debug( LDAP_DEBUG_SYNC, "do_syncrep2: %s CSN pending, ignoring %s (%s)\n",
+										si->si_ridtxt, syncCookie.ctxcsn->bv_val, bdn.bv_val );
 									ldap_controls_free( rctrls );
 									rc = 0;
 									ldap_pvt_thread_mutex_unlock( &si->si_cookieState->cs_pmutex );
