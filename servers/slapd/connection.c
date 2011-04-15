@@ -225,6 +225,7 @@ int connections_timeout_idle(time_t now)
 		 */
 		if(( c->c_n_ops_executing && !c->c_writewaiter)
 			|| c->c_conn_state == SLAP_C_CLIENT ) {
+			connection_done( c );
 			continue;
 		}
 
@@ -243,14 +244,38 @@ int connections_timeout_idle(time_t now)
 				connection_closing( c, "writetimeout" );
 				connection_close( c );
 				i++;
+				continue;
 			}
 		}
+		connection_done( c );
 	}
-	connection_done( c );
 	if ( old && !writers )
 		slapd_clr_writetime( old );
 
 	return i;
+}
+
+/* Drop all client connections */
+void connections_drop()
+{
+	Connection* c;
+	int connindex;
+
+	for( c = connection_first( &connindex );
+		c != NULL;
+		c = connection_next( c, &connindex ) )
+	{
+		/* Don't close a slow-running request or a persistent
+		 * outbound connection.
+		 */
+		if(( c->c_n_ops_executing && !c->c_writewaiter)
+			|| c->c_conn_state == SLAP_C_CLIENT ) {
+			connection_done( c );
+			continue;
+		}
+		connection_closing( c, "dropping" );
+		connection_close( c );
+	}
 }
 
 static Connection* connection_get( ber_socket_t s )
