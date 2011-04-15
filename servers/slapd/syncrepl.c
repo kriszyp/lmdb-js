@@ -958,6 +958,9 @@ do_syncrep2(
 						rc = LDAP_SYNC_REFRESH_REQUIRED;
 						si->si_logstate = SYNCLOG_FALLBACK;
 						ldap_abandon_ext( si->si_ld, si->si_msgid, NULL, NULL );
+						bdn.bv_val[bdn.bv_len] = '\0';
+						Debug( LDAP_DEBUG_SYNC, "do_syncrep2: %s delta-sync lost sync on (%s), switching to REFRESH\n",
+							si->si_ridtxt, bdn.bv_val, 0 );
 						break;
 					default:
 						break;
@@ -1018,6 +1021,8 @@ do_syncrep2(
 			if ( err == LDAP_SYNC_REFRESH_REQUIRED ) {
 				if ( si->si_logstate == SYNCLOG_LOGGING ) {
 					si->si_logstate = SYNCLOG_FALLBACK;
+					Debug( LDAP_DEBUG_SYNC, "do_syncrep2: %s delta-sync lost sync, switching to REFRESH\n",
+						si->si_ridtxt, 0, 0 );
 				}
 				rc = err;
 				goto done;
