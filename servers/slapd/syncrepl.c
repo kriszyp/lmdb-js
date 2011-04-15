@@ -111,6 +111,7 @@ typedef struct syncinfo_s {
 	int			si_syncdata;
 	int			si_logstate;
 	int			si_got;
+	int			si_strict_refresh;	/* stop listening during fallback refresh */
 	ber_int_t	si_msgid;
 	Avlnode			*si_presentlist;
 	LDAP			*si_ld;
@@ -961,6 +962,10 @@ do_syncrep2(
 						bdn.bv_val[bdn.bv_len] = '\0';
 						Debug( LDAP_DEBUG_SYNC, "do_syncrep2: %s delta-sync lost sync on (%s), switching to REFRESH\n",
 							si->si_ridtxt, bdn.bv_val, 0 );
+						if (si->si_strict_refresh) {
+							slap_suspend_listeners();
+							connections_drop();
+						}
 						break;
 					default:
 						break;
@@ -1023,6 +1028,10 @@ do_syncrep2(
 					si->si_logstate = SYNCLOG_FALLBACK;
 					Debug( LDAP_DEBUG_SYNC, "do_syncrep2: %s delta-sync lost sync, switching to REFRESH\n",
 						si->si_ridtxt, 0, 0 );
+					if (si->si_strict_refresh) {
+						slap_suspend_listeners();
+						connections_drop();
+					}
 				}
 				rc = err;
 				goto done;
@@ -1118,6 +1127,7 @@ do_syncrep2(
 				&& si->si_logstate == SYNCLOG_FALLBACK ) {
 				si->si_logstate = SYNCLOG_LOGGING;
 				rc = LDAP_SYNC_REFRESH_REQUIRED;
+				slap_resume_listeners();
 			} else {
 				rc = -2;
 			}
@@ -4117,6 +4127,7 @@ config_suffixm( ConfigArgs *c, syncinfo_t *si )
 #define LOGBASESTR		"logbase"
 #define LOGFILTERSTR	"logfilter"
 #define SUFFIXMSTR		"suffixmassage"
+#define	STRICT_REFRESH	"strictrefresh"
 
 /* FIXME: undocumented */
 #define EXATTRSSTR		"exattrs"
@@ -4615,6 +4626,10 @@ parse_syncrepl_line(
 			val = c->argv[ i ] + STRLENOF( SYNCDATASTR "=" );
 			si->si_syncdata = verb_to_mask( val, datamodes );
 			si->si_got |= GOT_SYNCDATA;
+		} else if ( !strncasecmp( c->argv[ i ], STRICT_REFRESH,
+					STRLENOF( STRICT_REFRESH ) ) )
+		{
+			si->si_strict_refresh = 1;
 		} else if ( bindconf_parse( c->argv[i], &si->si_bindconf ) ) {
 			snprintf( c->cr_msg, sizeof( c->cr_msg ),
 				"Error: parse_syncrepl_line: "

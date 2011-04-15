@@ -3048,6 +3048,28 @@ slapd_get_listeners( void )
 	return slap_listeners;
 }
 
+/* Reject all incoming requests */
+void
+slap_suspend_listeners( void )
+{
+	int i;
+	for (i=0; slap_listeners[i]; i++) {
+		slap_listeners[i]->sl_mute = 1;
+		listen( slap_listeners[i]->sl_sd, 0 );
+	}
+}
+
+/* Resume after a suspend */
+void
+slap_resume_listeners( void )
+{
+	int i;
+	for (i=0; slap_listeners[i]; i++) {
+		slap_listeners[i]->sl_mute = 0;
+		listen( slap_listeners[i]->sl_sd, SLAPD_LISTEN_BACKLOG );
+	}
+}
+
 void
 slap_wake_listener()
 {
