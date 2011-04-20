@@ -112,11 +112,10 @@ autogroup_add_member_to_group( Operation *op, BerValue *dn, BerValue *ndn, autog
 	slap_callback	cb = { NULL, slap_null_cb, NULL, NULL };
 	Operation	o = *op;
 
-	Debug(LDAP_DEBUG_TRACE, "==> autogroup_add_member_to_group adding <%s> to <%s>\n",
-		dn->bv_val, age->age_dn.bv_val, 0);
-
 	assert( dn != NULL );
 	assert( ndn != NULL );
+	Debug(LDAP_DEBUG_TRACE, "==> autogroup_add_member_to_group adding <%s> to <%s>\n",
+		dn->bv_val, age->age_dn.bv_val, 0);
 
 	vals = (BerValue *)ch_calloc( 2, sizeof( BerValue ) );
 	nvals = (BerValue *)ch_calloc( 2, sizeof( BerValue ) );
@@ -166,10 +165,9 @@ autogroup_add_member_values_to_group( Operation *op, Entry *e, autogroup_entry_t
 	slap_callback	cb = { NULL, slap_null_cb, NULL, NULL };
 	Operation	o = *op;
 
+	assert( e != NULL );
 	Debug(LDAP_DEBUG_TRACE, "==> autogroup_add_member_values_to_group adding <%s> to <%s>\n",
 		e->e_name.bv_val, age->age_dn.bv_val, 0);
-
-	assert( e != NULL );
 
 	attr = attrs_find( e->e_attrs, attrdesc );
 	if (!attr) {
@@ -279,10 +277,9 @@ autogroup_delete_member_values_from_group( Operation *op, Entry *e, autogroup_en
         slap_callback   cb = { NULL, slap_null_cb, NULL, NULL };
         Operation       o = *op;
 
+        assert( e != NULL );
         Debug(LDAP_DEBUG_TRACE, "==> autogroup_delete_member_values_from_group removing <%s> from <%s>\n",
                 e->e_name.bv_val, age->age_dn.bv_val, 0);
-
-        assert( e != NULL );
 
         attr = attrs_find( e->e_attrs, attrdesc );
         if (!attr) {

@@ -469,7 +469,7 @@ ordered_value_pretty(
 	struct berval *out,
 	void *ctx )
 {
-	struct berval	bv = *val,
+	struct berval	bv,
 			idx = BER_BVNULL;
 	int		rc;
 
@@ -477,6 +477,8 @@ ordered_value_pretty(
 	assert( ad->ad_type->sat_syntax->ssyn_pretty != NULL );
 	assert( val != NULL );
 	assert( out != NULL );
+
+	bv = *val;
 
 	if ( ad->ad_type->sat_flags & SLAP_AT_ORDERED ) {
 
@@ -538,7 +540,7 @@ ordered_value_normalize(
 	struct berval *normalized,
 	void *ctx )
 {
-	struct berval	bv = *val,
+	struct berval	bv,
 			idx = BER_BVNULL;
 	int		rc;
 
@@ -546,6 +548,8 @@ ordered_value_normalize(
 	assert( ad->ad_type->sat_equality->smr_normalize != NULL );
 	assert( val != NULL );
 	assert( normalized != NULL );
+
+	bv = *val;
 
 	if ( ad->ad_type->sat_flags & SLAP_AT_ORDERED ) {
 

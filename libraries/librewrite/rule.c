@@ -125,7 +125,7 @@ rewrite_rule_compile(
 {
 	int flags = REWRITE_REGEX_EXTENDED | REWRITE_REGEX_ICASE;
 	int mode = REWRITE_RECURSE;
-	int max_passes = info->li_max_passes_per_rule;
+	int max_passes;
 
 	struct rewrite_rule *rule = NULL;
 	struct rewrite_subst *subst = NULL;
@@ -137,10 +137,11 @@ rewrite_rule_compile(
 	assert( context != NULL );
 	assert( pattern != NULL );
 	assert( result != NULL );
-
 	/*
 	 * A null flagstring should be allowed
 	 */
+
+	max_passes = info->li_max_passes_per_rule;
 
 	/*
 	 * Take care of substitution string

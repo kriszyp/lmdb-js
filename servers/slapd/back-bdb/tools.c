@@ -245,10 +245,12 @@ ID bdb_tool_entry_next(
 {
 	int rc;
 	ID id;
-	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
+	struct bdb_info *bdb;
 
 	assert( be != NULL );
 	assert( slapMode & SLAP_TOOL_MODE );
+
+	bdb = (struct bdb_info *) be->be_private;
 	assert( bdb != NULL );
 
 next:;
@@ -634,7 +636,7 @@ ID bdb_tool_entry_put(
 	struct berval *text )
 {
 	int rc;
-	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
+	struct bdb_info *bdb;
 	DB_TXN *tid = NULL;
 	Operation op = {0};
 	Opheader ohdr = {0};
@@ -648,6 +650,8 @@ ID bdb_tool_entry_put(
 
 	Debug( LDAP_DEBUG_TRACE, "=> " LDAP_XSTRING(bdb_tool_entry_put)
 		"( %ld, \"%s\" )\n", (long) e->e_id, e->e_dn, 0 );
+
+	bdb = (struct bdb_info *) be->be_private;
 
 	if (! (slapMode & SLAP_TOOL_QUICK)) {
 	rc = TXN_BEGIN( bdb->bi_dbenv, NULL, &tid, 
@@ -882,7 +886,7 @@ ID bdb_tool_entry_modify(
 	struct berval *text )
 {
 	int rc;
-	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
+	struct bdb_info *bdb;
 	DB_TXN *tid = NULL;
 	Operation op = {0};
 	Opheader ohdr = {0};
@@ -899,6 +903,8 @@ ID bdb_tool_entry_modify(
 	Debug( LDAP_DEBUG_TRACE,
 		"=> " LDAP_XSTRING(bdb_tool_entry_modify) "( %ld, \"%s\" )\n",
 		(long) e->e_id, e->e_dn, 0 );
+
+	bdb = (struct bdb_info *) be->be_private;
 
 	if (! (slapMode & SLAP_TOOL_QUICK)) {
 		if( cursor ) {
