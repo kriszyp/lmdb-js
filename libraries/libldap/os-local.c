@@ -328,11 +328,6 @@ ldap_connect_to_path(LDAP *ld, Sockbuf *sb, LDAPURLDesc *srv, int async)
 
 	oslocal_debug(ld, "ldap_connect_to_path\n",0,0,0);
 
-	s = ldap_pvt_socket( ld );
-	if ( s == AC_SOCKET_INVALID ) {
-		return -1;
-	}
-
 	if ( path == NULL || path[0] == '\0' ) {
 		path = LDAPI_SOCK;
 	} else {
@@ -340,6 +335,11 @@ ldap_connect_to_path(LDAP *ld, Sockbuf *sb, LDAPURLDesc *srv, int async)
 			ldap_pvt_set_errno( ENAMETOOLONG );
 			return -1;
 		}
+	}
+
+	s = ldap_pvt_socket( ld );
+	if ( s == AC_SOCKET_INVALID ) {
+		return -1;
 	}
 
 	oslocal_debug(ld, "ldap_connect_to_path: Trying %s\n", path, 0, 0);
@@ -351,10 +351,7 @@ ldap_connect_to_path(LDAP *ld, Sockbuf *sb, LDAPURLDesc *srv, int async)
 	rc = ldap_pvt_connect(ld, s, &server, async);
 
 	if (rc == 0) {
-		int err;
-		err = ldap_int_connect_cbs( ld, sb, &s, srv, (struct sockaddr *)&server );
-		if ( err )
-			rc = err;
+		rc = ldap_int_connect_cbs( ld, sb, &s, srv, (struct sockaddr *)&server );
 	}
 	if ( rc ) {
 		ldap_pvt_close_socket(ld, s);
