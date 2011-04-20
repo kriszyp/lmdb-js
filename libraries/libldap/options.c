@@ -367,6 +367,10 @@ ldap_get_option(
 		break;
 	
 	case LDAP_OPT_SESSION_REFCNT:
+		if(ld == NULL) {
+			/* bad param */
+			break;
+		} 
 		* (int *) outvalue = ld->ld_ldcrefcnt;
 		rc = LDAP_OPT_SUCCESS;
 		break;
