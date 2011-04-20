@@ -1807,8 +1807,18 @@ accesslog_unbind( Operation *op, SlapReply *rs )
 		SlapReply rs2 = {REP_RESULT};
 		Entry *e;
 
-		if ( !( li->li_ops & LOG_OP_UNBIND ))
-			return SLAP_CB_CONTINUE;
+		if ( !( li->li_ops & LOG_OP_UNBIND )) {
+			log_base *lb;
+			int i = 0;
+
+			for ( lb = li->li_bases; lb; lb=lb->lb_next )
+				if (( lb->lb_ops & LOG_OP_UNBIND ) && dnIsSuffix( &op->o_ndn, &lb->lb_base )) {
+					i = 1;
+					break;
+				}
+			if ( !i )
+				return SLAP_CB_CONTINUE;
+		}
 
 		e = accesslog_entry( op, rs, LOG_EN_UNBIND, &op2 );
 		op2.o_hdr = op->o_hdr;
@@ -1842,8 +1852,21 @@ accesslog_abandon( Operation *op, SlapReply *rs )
 	char buf[64];
 	struct berval bv;
 
-	if ( !op->o_time || !( li->li_ops & LOG_OP_ABANDON ))
+	if ( !op->o_time )
 		return SLAP_CB_CONTINUE;
+
+	if ( !( li->li_ops & LOG_OP_ABANDON )) {
+		log_base *lb;
+		int i = 0;
+
+		for ( lb = li->li_bases; lb; lb=lb->lb_next )
+			if (( lb->lb_ops & LOG_OP_ABANDON ) && dnIsSuffix( &op->o_ndn, &lb->lb_base )) {
+				i = 1;
+				break;
+			}
+		if ( !i )
+			return SLAP_CB_CONTINUE;
+	}
 
 	e = accesslog_entry( op, rs, LOG_EN_ABANDON, &op2 );
 	bv.bv_val = buf;
