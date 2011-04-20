@@ -120,15 +120,14 @@ cr_insert(
 	struct cindexrec	*cir;
 	char			**names;
 
+	assert( scr != NULL );
+
 	if ( scr->scr_oid ) {
 		cir = (struct cindexrec *)
 			ch_calloc( 1, sizeof(struct cindexrec) );
 		cir->cir_name.bv_val = scr->scr_oid;
 		cir->cir_name.bv_len = strlen( scr->scr_oid );
 		cir->cir_cr = scr;
-
-		assert( cir->cir_name.bv_val != NULL );
-		assert( cir->cir_cr != NULL );
 
 		if ( avl_insert( &cr_index, (caddr_t) cir,
 		                 cr_index_cmp, avl_dup_error ) )
@@ -149,9 +148,6 @@ cr_insert(
 			cir->cir_name.bv_val = *names;
 			cir->cir_name.bv_len = strlen( *names );
 			cir->cir_cr = scr;
-
-			assert( cir->cir_name.bv_val != NULL );
-			assert( cir->cir_cr != NULL );
 
 			if ( avl_insert( &cr_index, (caddr_t) cir,
 			                 cr_index_cmp, avl_dup_error ) )

@@ -474,15 +474,16 @@ over_acl_group(
 {
 	slap_overinfo *oi;
 	slap_overinst *on;
-	BackendInfo *bi = op->o_bd->bd_info;
+	BackendInfo *bi;
 	BackendDB *be = op->o_bd, db;
 	int rc = SLAP_CB_CONTINUE;
 
 	/* FIXME: used to happen for instance during abandon
 	 * when global overlays are used... */
-	assert( op->o_bd != NULL );
+	assert( be != NULL );
 
-	oi = op->o_bd->bd_info->bi_private;
+	bi = be->bd_info;
+	oi = bi->bi_private;
 	on = oi->oi_list;
 
 	for ( ; on; on = on->on_next ) {
@@ -542,15 +543,16 @@ over_acl_attribute(
 {
 	slap_overinfo *oi;
 	slap_overinst *on;
-	BackendInfo *bi = op->o_bd->bd_info;
+	BackendInfo *bi;
 	BackendDB *be = op->o_bd, db;
 	int rc = SLAP_CB_CONTINUE;
 
 	/* FIXME: used to happen for instance during abandon
 	 * when global overlays are used... */
-	assert( op->o_bd != NULL );
+	assert( be != NULL );
 
-	oi = op->o_bd->bd_info->bi_private;
+	bi = be->bd_info;
+	oi = bi->bi_private;
 	on = oi->oi_list;
 
 	for ( ; on; on = on->on_next ) {

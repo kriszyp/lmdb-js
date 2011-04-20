@@ -135,7 +135,7 @@ ldap_sync_search_entry( ldap_sync_t *ls, LDAPMessage *res )
 				cookie = { 0 };
 	int			state = -1;
 	ber_len_t		len;
-	ldap_sync_refresh_t	phase = ls->ls_refreshPhase;
+	ldap_sync_refresh_t	phase;
 
 #ifdef LDAP_SYNC_TRACE
 	fprintf( stderr, "\tgot LDAP_RES_SEARCH_ENTRY\n" );
@@ -143,6 +143,8 @@ ldap_sync_search_entry( ldap_sync_t *ls, LDAPMessage *res )
 
 	assert( ls != NULL );
 	assert( res != NULL );
+
+	phase = ls->ls_refreshPhase;
 
 	/* OK */
 

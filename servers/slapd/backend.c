@@ -1794,15 +1794,18 @@ backend_access(
 	slap_mask_t		*mask )
 {
 	Entry		*e = NULL;
-	void		*o_priv = op->o_private, *e_priv = NULL;
+	void		*o_priv, *e_priv = NULL;
 	int		rc = LDAP_INSUFFICIENT_ACCESS;
-	Backend		*be = op->o_bd;
+	Backend		*be;
 
 	/* pedantic */
 	assert( op != NULL );
 	assert( op->o_conn != NULL );
 	assert( edn != NULL );
 	assert( access > ACL_NONE );
+
+	be = op->o_bd;
+	o_priv = op->o_private;
 
 	if ( !op->o_bd ) {
 		op->o_bd = select_backend( edn, 0 );
