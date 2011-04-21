@@ -84,6 +84,7 @@ libraries/libldap_r/deref.c
 libraries/libldap_r/dnssrv.c
 libraries/libldap_r/error.c
 libraries/libldap_r/extended.c
+libraries/libldap_r/fetch.c
 libraries/libldap_r/filter.c
 libraries/libldap_r/free.c
 libraries/libldap_r/getattr.c
@@ -93,6 +94,7 @@ libraries/libldap_r/getvalues.c
 libraries/libldap_r/gssapi.c
 libraries/libldap_r/init.c
 libraries/libldap_r/ldap_sync.c
+libraries/libldap_r/ldif.c
 libraries/libldap_r/ldifutil.c
 libraries/libldap_r/ltest
 libraries/libldap_r/messages.c
