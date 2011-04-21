@@ -65,6 +65,7 @@ lutil_get_filed_password(
 	passwd->bv_val = (char *) ber_memalloc( passwd->bv_len + 1 );
 	if( passwd->bv_val == NULL ) {
 		perror( filename );
+		fclose( f );
 		return -1;
 	}
 
@@ -79,6 +80,7 @@ lutil_get_filed_password(
 				ber_memfree( passwd->bv_val );
 				passwd->bv_val = NULL;
 				passwd->bv_len = 0;
+				fclose( f );
 				return -1;
 			}
 			nleft = passwd->bv_len;
@@ -92,6 +94,7 @@ lutil_get_filed_password(
 			ber_memfree( passwd->bv_val );
 			passwd->bv_val = NULL;
 			passwd->bv_len = 0;
+			fclose( f );
 			return -1;
 		}
 
