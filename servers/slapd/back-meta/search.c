@@ -235,6 +235,10 @@ meta_search_dobind_init(
 
 	assert( msc->msc_ld != NULL );
 
+	/* connect must be async only the first time... */
+	ldap_set_option( msc->msc_ld, LDAP_OPT_CONNECT_ASYNC, LDAP_OPT_ON );
+
+retry:;
 	if ( !BER_BVISEMPTY( &binddn ) && BER_BVISEMPTY( &cred ) ) {
 		/* bind anonymously? */
 		Debug( LDAP_DEBUG_ANY, "%s meta_search_dobind_init[%d] mc=%p: "
@@ -250,10 +254,6 @@ meta_search_dobind_init(
 		goto other;
 	}
 
-	/* connect must be async only the first time... */
-	ldap_set_option( msc->msc_ld, LDAP_OPT_CONNECT_ASYNC, LDAP_OPT_ON );
-
-retry:;
 	rc = ldap_sasl_bind( msc->msc_ld, binddn.bv_val, LDAP_SASL_SIMPLE, &cred,
 			NULL, NULL, &candidates[ candidate ].sr_msgid );
 
@@ -327,6 +327,8 @@ down:;
 
 			if ( rc == LDAP_SUCCESS ) {
 				candidates[ candidate ].sr_msgid = META_MSGID_IGNORE;
+				binddn = msc->msc_bound_ndn;
+				cred = msc->msc_cred;
 				goto retry;
 			}
 		}
