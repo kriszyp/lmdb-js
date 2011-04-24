@@ -406,6 +406,7 @@ memberof_value_modify(
 		LDAP_SLIST_INSERT_HEAD(&op2.o_extra, &oex, oe_next);
 		BER_BVZERO( &op2.o_csn );
 		op2.o_bd->bd_info = (BackendInfo *)on->on_info;
+		slap_op_time( &op2.o_time, &op2.o_tincr );
 		(void)op->o_bd->be_modify( &op2, &rs2 );
 		op2.o_bd->bd_info = bi;
 		LDAP_SLIST_REMOVE(&op2.o_extra, &oex, OpExtra, oe_next);
@@ -449,6 +450,7 @@ memberof_value_modify(
 		LDAP_SLIST_INSERT_HEAD(&op2.o_extra, &oex, oe_next);
 		BER_BVZERO( &op2.o_csn );
 		op2.o_bd->bd_info = (BackendInfo *)on->on_info;
+		slap_op_time( &op2.o_time, &op2.o_tincr );
 		(void)op->o_bd->be_modify( &op2, &rs2 );
 		op2.o_bd->bd_info = bi;
 		LDAP_SLIST_REMOVE(&op2.o_extra, &oex, OpExtra, oe_next);
