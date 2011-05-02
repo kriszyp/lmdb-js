@@ -182,9 +182,9 @@ backsql_dn2id(
 	}
 	
 	/* begin TimesTen */
+	assert( bi->sql_id_query != NULL );
 	Debug( LDAP_DEBUG_TRACE, "   backsql_dn2id(\"%s\"): id_query \"%s\"\n",
 			ndn->bv_val, bi->sql_id_query, 0 );
-	assert( bi->sql_id_query != NULL );
  	rc = backsql_Prepare( dbh, &sth, bi->sql_id_query, 0 );
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, 
@@ -406,9 +406,9 @@ backsql_count_children(
 	}
 	
 	/* begin TimesTen */
+	assert( bi->sql_has_children_query != NULL );
 	Debug(LDAP_DEBUG_TRACE, "children id query \"%s\"\n", 
 			bi->sql_has_children_query, 0, 0);
-	assert( bi->sql_has_children_query != NULL );
  	rc = backsql_Prepare( dbh, &sth, bi->sql_has_children_query, 0 );
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, 
