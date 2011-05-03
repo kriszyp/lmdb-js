@@ -7,6 +7,7 @@
 #ifndef LDAP_ENTRY_LIST_H
 #define LDAP_ENTRY_LIST_H
 
+#include <cstdio>
 #include <list>
 
 class LDAPEntry;
