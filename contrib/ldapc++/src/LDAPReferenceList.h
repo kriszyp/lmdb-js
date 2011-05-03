@@ -7,6 +7,7 @@
 #ifndef LDAP_REFERENCE_LIST_H
 #define LDAP_REFERENCE_LIST_H
 
+#include <cstdio>
 #include <list>
 
 class LDAPSearchReference;
