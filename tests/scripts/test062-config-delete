@@ -156,7 +156,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Running a refreshOnly search, should fail..."
-$LDAPSEARCH -D cn=config -H $URI1 -y $CONFIGPWF -bcn=config -E \!sync=ro > /dev/null 2>%1
+$LDAPSEARCH -D cn=config -H $URI1 -y $CONFIGPWF -bcn=config -E \!sync=ro > /dev/null 2>&1
 
 RC=$?
 if test $RC != 12 ; then
