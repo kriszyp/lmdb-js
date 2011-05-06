@@ -1069,6 +1069,13 @@ unique_add(
 	Debug(LDAP_DEBUG_TRACE, "==> unique_add <%s>\n",
 	      op->o_req_dn.bv_val, 0, 0);
 
+	/* skip the checks if the operation has manageDsaIt control in it
+	 * (for replication) */
+	if ( op->o_managedsait > SLAP_CONTROL_IGNORED ) {
+		Debug(LDAP_DEBUG_TRACE, "unique_add: administrative bypass, skipping\n", 0, 0, 0);
+		return rc;
+	}
+
 	for ( domain = legacy ? legacy : domains;
 	      domain;
 	      domain = domain->next )
@@ -1190,6 +1197,13 @@ unique_modify(
 	Debug(LDAP_DEBUG_TRACE, "==> unique_modify <%s>\n",
 	      op->o_req_dn.bv_val, 0, 0);
 
+	/* skip the checks if the operation has manageDsaIt control in it
+	 * (for replication) */
+	if ( op->o_managedsait > SLAP_CONTROL_IGNORED ) {
+		Debug(LDAP_DEBUG_TRACE, "unique_modify: administrative bypass, skipping\n", 0, 0, 0);
+		return rc;
+	}
+
 	for ( domain = legacy ? legacy : domains;
 	      domain;
 	      domain = domain->next )
@@ -1303,6 +1317,13 @@ unique_modrdn(
 
 	Debug(LDAP_DEBUG_TRACE, "==> unique_modrdn <%s> <%s>\n",
 		op->o_req_dn.bv_val, op->orr_newrdn.bv_val, 0);
+
+	/* skip the checks if the operation has manageDsaIt control in it
+	 * (for replication) */
+	if ( op->o_managedsait > SLAP_CONTROL_IGNORED ) {
+		Debug(LDAP_DEBUG_TRACE, "unique_modrdn: administrative bypass, skipping\n", 0, 0, 0);
+		return rc;
+	}
 
 	for ( domain = legacy ? legacy : domains;
 	      domain;
