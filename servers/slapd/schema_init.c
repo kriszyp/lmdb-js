@@ -3556,14 +3556,9 @@ serialNumberAndIssuerNormalize(
 		sn2.bv_val = slap_sl_malloc( sn.bv_len, ctx );
 	}
 	sn2.bv_len = sn.bv_len;
-	if ( lutil_str2bin( &sn, &sn2, ctx )) {
-		rc = LDAP_INVALID_SYNTAX;
-		goto func_leave;
-	}
-
 	sn3.bv_val = sbuf3;
 	sn3.bv_len = sizeof(sbuf3);
-	if ( slap_bin2hex( &sn2, &sn3, ctx ) ) {
+	if ( lutil_str2bin( &sn, &sn2, ctx ) || slap_bin2hex( &sn2, &sn3, ctx ) ) {
 		rc = LDAP_INVALID_SYNTAX;
 		goto func_leave;
 	}
@@ -3571,7 +3566,6 @@ serialNumberAndIssuerNormalize(
 	out->bv_len = STRLENOF( "{ serialNumber , issuer rdnSequence:\"\" }" )
 		+ sn3.bv_len + ni.bv_len;
 	out->bv_val = slap_sl_malloc( out->bv_len + 1, ctx );
-
 	if ( out->bv_val == NULL ) {
 		out->bv_len = 0;
 		rc = LDAP_OTHER;
@@ -4769,13 +4763,13 @@ attributeCertificateExactNormalize(
 	ber_tag_t tag;
 	ber_len_t len;
 	char issuer_serialbuf[SLAP_SN_BUFLEN], serialbuf[SLAP_SN_BUFLEN];
-	struct berval sn, i_sn, sn2, i_sn2;
+	struct berval sn, i_sn, sn2 = BER_BVNULL, i_sn2 = BER_BVNULL;
 	struct berval issuer_dn = BER_BVNULL, bvdn;
 	char *p;
 	int rc = LDAP_INVALID_SYNTAX;
 
 	if ( BER_BVISEMPTY( val ) ) {
-		goto done;
+		return rc;
 	}
 
 	if ( SLAP_MR_IS_VALUE_OF_ASSERTION_SYNTAX(usage) ) {
@@ -4799,8 +4793,7 @@ attributeCertificateExactNormalize(
 	tag = ber_skip_tag( ber, &len );	/* GeneralNames (sequence) */
 	tag = ber_skip_tag( ber, &len );	/* directoryName (we only accept this form of GeneralName) */
 	if ( tag != SLAP_X509_GN_DIRECTORYNAME ) { 
-		rc = LDAP_INVALID_SYNTAX; 
-		goto done;
+		return LDAP_INVALID_SYNTAX; 
 	}
 	tag = ber_peek_tag( ber, &len );	/* sequence of RDN */
 	len = ber_ptrlen( ber );
