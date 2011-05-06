@@ -154,6 +154,12 @@ Typical attributes for the
 .B ignore ldap:///...
 URIs are intentionally not hardcoded into the overlay to allow for
 maximum flexibility in meeting site-specific requirements.
+.LP
+Replication and operations with
+.B manageDsaIt
+control are allowed to bypass this enforcement. It is therefore important that
+all servers accepting writes have this overlay configured in order to maintain
+uniqueness in a replicated DIT.
 .SH FILES
 .TP
 ETCDIR/slapd.conf
