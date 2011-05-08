@@ -447,13 +447,13 @@ int main( int argc, char **argv )
 
 		newConfigFile = (char*)lutil_getRegParam( regService, "ConfigFile" );
 		if ( newConfigFile != NULL ) {
-			configfile = newConfigFile;
+			configfile = ch_strdup(newConfigFile);
 			Debug ( LDAP_DEBUG_ANY, "new config file from registry is: %s\n", configfile, 0, 0 );
 		}
 
 		newConfigDir = (char*)lutil_getRegParam( regService, "ConfigDir" );
 		if ( newConfigDir != NULL ) {
-			configdir = newConfigDir;
+			configdir = ch_strdup(newConfigDir);
 			Debug ( LDAP_DEBUG_ANY, "new config dir from registry is: %s\n", configdir, 0, 0 );
 		}
 	}
