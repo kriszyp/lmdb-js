@@ -533,7 +533,7 @@ int ldap_int_client_controls( LDAP *ld, LDAPControl **ctrls )
 	assert( LDAP_VALID( ld ) );
 
 	if( ctrls == NULL ) {
-		/* use default server controls */
+		/* use default client controls */
 		ctrls = ld->ld_cctrls;
 	}
 
