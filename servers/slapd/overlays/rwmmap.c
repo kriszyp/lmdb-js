@@ -462,7 +462,9 @@ map_attr_value(
 				return -1;
 			}
 
-		} else if ( ad->ad_type->sat_equality->smr_usage & SLAP_MR_MUTATION_NORMALIZER ) {
+		} else if ( ad->ad_type->sat_equality &&
+			( ad->ad_type->sat_equality->smr_usage & SLAP_MR_MUTATION_NORMALIZER ) )
+		{
 			if ( ad->ad_type->sat_equality->smr_normalize(
 				(SLAP_MR_DENORMALIZE|SLAP_MR_VALUE_OF_ASSERTION_SYNTAX),
 				NULL, NULL, value, &vtmp, memctx ) )
