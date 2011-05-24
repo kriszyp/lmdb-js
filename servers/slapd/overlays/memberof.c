@@ -387,7 +387,6 @@ memberof_value_modify(
 	ml->sml_flags = SLAP_MOD_INTERNAL;
 	ml->sml_next = op2.orm_modlist;
 	op2.orm_modlist = ml;
-	op2.orm_no_opattrs = 0;
 
 	if ( new_ndn != NULL ) {
 		BackendInfo *bi = op2.o_bd->bd_info;
