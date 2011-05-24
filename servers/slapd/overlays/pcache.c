@@ -3767,7 +3767,8 @@ pc_cf_gen( ConfigArgs *c )
 					attr_name->an_name.bv_val; attr_name++ )
 				{
 					bv.bv_len += attr_name->an_name.bv_len + 1;
-					if ( attr_name->an_desc->ad_flags & SLAP_DESC_TEMPORARY ) {
+					if ( attr_name->an_desc &&
+							( attr_name->an_desc->ad_flags & SLAP_DESC_TEMPORARY ) ) {
 						bv.bv_len += STRLENOF("undef:");
 					}
 				}
@@ -3777,7 +3778,8 @@ pc_cf_gen( ConfigArgs *c )
 				for ( attr_name = qm->attr_sets[i].attrs;
 					attr_name->an_name.bv_val; attr_name++ ) {
 					*ptr++ = ' ';
-					if ( attr_name->an_desc->ad_flags & SLAP_DESC_TEMPORARY ) {
+					if ( attr_name->an_desc &&
+							( attr_name->an_desc->ad_flags & SLAP_DESC_TEMPORARY ) ) {
 						ptr = lutil_strcopy( ptr, "undef:" );
 					}
 					ptr = lutil_strcopy( ptr, attr_name->an_name.bv_val );
@@ -4810,8 +4812,14 @@ pcache_db_close(
 
 	for ( i = 0; i < cm->numattrsets; i++ ) {
 		int j;
+
+		/* Account of LDAP_NO_ATTRS */
+		if ( !qm->attr_sets[i].count ) continue;
+
 		for ( j = 0; !BER_BVISNULL( &qm->attr_sets[i].attrs[j].an_name ); j++ ) {
-			if ( qm->attr_sets[i].attrs[j].an_desc->ad_flags & SLAP_DESC_TEMPORARY ) {
+			if ( qm->attr_sets[i].attrs[j].an_desc &&
+					( qm->attr_sets[i].attrs[j].an_desc->ad_flags &
+					  SLAP_DESC_TEMPORARY ) ) {
 				slap_sl_mfuncs.bmf_free( qm->attr_sets[i].attrs[j].an_desc, NULL );
 			}
 		}
