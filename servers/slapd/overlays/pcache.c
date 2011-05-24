@@ -445,7 +445,7 @@ ftemp_attrs( struct berval *ftemp, struct berval *template,
 	AttributeDescription **descs = NULL;
 	char *temp2;
 
-	temp2 = ch_malloc( ftemp->bv_len );
+	temp2 = ch_malloc( ftemp->bv_len + 1 );
 	p1 = ftemp->bv_val;
 	t1 = temp2;
 
@@ -4263,7 +4263,7 @@ pc_bind_fail:
 			i = 0;
 			while ((eq = strchr(eq, '=' ))) {
 				eq++;
-				if ( eq[1] == ')' )
+				if ( eq[0] == ')' )
 					i++;
 			}
 			bv.bv_len = temp->bindftemp.bv_len + i;
