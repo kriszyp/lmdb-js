@@ -357,6 +357,10 @@ memberof_value_modify(
 	op2.o_ndn = op->o_bd->be_rootndn;
 	op2.orm_modlist = NULL;
 
+	/* Internal ops, never replicate these */
+	op2.orm_no_opattrs = 1;
+	op2.o_dont_replicate = 1;
+
 	if ( !BER_BVISNULL( &mo->mo_ndn ) ) {
 		ml = &mod[ mcnt ];
 		ml->sml_numvals = 1;
