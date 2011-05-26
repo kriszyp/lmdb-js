@@ -84,6 +84,7 @@ typedef struct cached_query_s {
 	time_t						expiry_time;	/* time till the query is considered invalid */
 	time_t						refresh_time;	/* time till the query is refreshed */
 	time_t						bindref_time;	/* time till the bind is refreshed */
+	int						bind_refcnt;	/* number of bind operation referencing this query */
 	unsigned long			answerable_cnt; /* how many times it was answerable */
 	int						refcnt;	/* references since last refresh */
 	ldap_pvt_thread_mutex_t		answerable_cnt_mutex;
@@ -1554,6 +1555,7 @@ add_query(
 	new_cached_query->refresh_time = ttr;
 	new_cached_query->bindref_time = 0;
 
+	new_cached_query->bind_refcnt = 0;
 	new_cached_query->answerable_cnt = 0;
 	new_cached_query->refcnt = 1;
 	ldap_pvt_thread_mutex_init(&new_cached_query->answerable_cnt_mutex);
@@ -1614,16 +1616,16 @@ add_query(
 	Debug( pcache_debug, "TEMPLATE %p QUERIES++ %d\n",
 			(void *) templ, templ->no_of_queries, 0 );
 
-	Debug( pcache_debug, "Unlock AQ index = %p \n",
-			(void *) templ, 0, 0 );
-	ldap_pvt_thread_rdwr_wunlock(&templ->t_rwlock);
-
 	/* Adding on top of LRU list  */
 	if ( rc == 0 ) {
 		ldap_pvt_thread_mutex_lock(&qm->lru_mutex);
 		add_query_on_top(qm, new_cached_query);
 		ldap_pvt_thread_mutex_unlock(&qm->lru_mutex);
 	}
+	Debug( pcache_debug, "Unlock AQ index = %p \n",
+			(void *) templ, 0, 0 );
+	ldap_pvt_thread_rdwr_wunlock(&templ->t_rwlock);
+
 	return rc == 0 ? new_cached_query : NULL;
 }
 
@@ -2395,8 +2397,10 @@ over:;
 				switch ( si->caching_reason ) {
 				case PC_POSITIVE:
 					cache_entries( op, &qc->q_uuid );
-					if ( si->pbi )
+					if ( si->pbi ) {
+						qc->bind_refcnt++;
 						si->pbi->bi_cq = qc;
+					}
 					break;
 
 				case PC_SIZELIMIT:
@@ -2597,10 +2601,20 @@ pc_bind_save( Operation *op, SlapReply *rs )
 		bindcacheinfo *bci = op->o_callback->sc_private;
 		slap_overinst *on = bci->on;
 		cache_manager *cm = on->on_bi.bi_private;
+		CachedQuery *qc = bci->qc;
+		int delete = 0;
 
-		Operation op2 = *op;
-		if ( pc_setpw( &op2, &op->orb_cred, cm ) == LDAP_SUCCESS )
-			bci->qc->bindref_time = op->o_time + bci->qc->qtemp->bindttr;
+		ldap_pvt_thread_rdwr_wlock( &qc->rwlock );
+		if ( qc->bind_refcnt-- ) {
+			Operation op2 = *op;
+			if ( pc_setpw( &op2, &op->orb_cred, cm ) == LDAP_SUCCESS )
+				bci->qc->bindref_time = op->o_time + bci->qc->qtemp->bindttr;
+		} else {
+			bci->qc = NULL;
+			delete = 1;
+		}
+		ldap_pvt_thread_rdwr_wunlock( &qc->rwlock );
+		if ( delete ) free_query(qc);
 	}
 	return SLAP_CB_CONTINUE;
 }
@@ -2865,6 +2879,7 @@ pcache_op_bind(
 	if ( bi.bi_flags & BI_HASHED ) {
 		BackendDB *be = op->o_bd;
 		op->o_bd = &cm->db;
+		int delete = 0;
 
 		Debug( pcache_debug, "pcache_op_bind: CACHED BIND for %s\n",
 			op->o_req_dn.bv_val, 0, 0 );
@@ -2873,6 +2888,12 @@ pcache_op_bind(
 			op->o_conn->c_authz_cookie = cm->db.be_private;
 		}
 		op->o_bd = be;
+		ldap_pvt_thread_rdwr_wlock( &bi.bi_cq->rwlock );
+		if ( !bi.bi_cq->bind_refcnt-- ) {
+			delete = 1;
+		}
+		ldap_pvt_thread_rdwr_wunlock( &bi.bi_cq->rwlock );
+		if ( delete ) free_query( bi.bi_cq );
 		return rs->sr_err;
 	}
 
@@ -3013,15 +3034,17 @@ pcache_op_search(
 			answerable->answerable_cnt, 0, 0 );
 		ldap_pvt_thread_mutex_unlock( &answerable->answerable_cnt_mutex );
 
-		ldap_pvt_thread_rdwr_rlock(&answerable->rwlock);
+		ldap_pvt_thread_rdwr_wlock(&answerable->rwlock);
 		if ( BER_BVISNULL( &answerable->q_uuid )) {
 			/* No entries cached, just an empty result set */
 			i = rs->sr_err = 0;
 			send_ldap_result( op, rs );
 		} else {
 			/* Let Bind know we used a cached query */
-			if ( pbi )
+			if ( pbi ) {
+				answerable->bind_refcnt++;
 				pbi->bi_cq = answerable;
+			}
 
 			op->o_bd = &cm->db;
 			if ( cm->response_cb == PCACHE_RESPONSE_CB_TAIL ) {
@@ -3044,7 +3067,7 @@ pcache_op_search(
 			}
 			i = cm->db.bd_info->bi_op_search( op, rs );
 		}
-		ldap_pvt_thread_rdwr_runlock(&answerable->rwlock);
+		ldap_pvt_thread_rdwr_wunlock(&answerable->rwlock);
 		/* locked by qtemp->qcfunc (query_containment) */
 		ldap_pvt_thread_rdwr_runlock(&qtemp->t_rwlock);
 		op->o_bd = save_bd;
@@ -3515,8 +3538,8 @@ consistency_check(
 					Debug( pcache_debug, "Unlock CR index = %p\n",
 							(void *) templ, 0, 0 );
 				}
-				ldap_pvt_thread_rdwr_wunlock(&templ->t_rwlock);
 				if ( !rem ) {
+					ldap_pvt_thread_rdwr_wunlock(&templ->t_rwlock);
 					continue;
 				}
 				ldap_pvt_thread_mutex_lock(&qm->lru_mutex);
@@ -3538,7 +3561,15 @@ consistency_check(
 					"STALE QUERY REMOVED, CACHE ="
 					"%d entries\n",
 					cm->cur_entries, 0, 0 );
-				free_query(query);
+				ldap_pvt_thread_rdwr_wlock( &query->rwlock );
+				if ( query->bind_refcnt-- ) {
+					rem = 0;
+				} else {
+					rem = 1;
+				}
+				ldap_pvt_thread_rdwr_wunlock( &query->rwlock );
+				if ( rem ) free_query(query);
+				ldap_pvt_thread_rdwr_wunlock(&templ->t_rwlock);
 			} else if ( !templ->ttr && query->expiry_time > ttl ) {
 				/* We don't need to check for refreshes, and this
 				 * query's expiry is too new, and all subsequent queries
