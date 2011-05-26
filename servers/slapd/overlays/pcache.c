@@ -2891,6 +2891,8 @@ pcache_op_bind(
 	return SLAP_CB_CONTINUE;
 }
 
+static slap_response refresh_merge;
+
 static int
 pcache_op_search(
 	Operation	*op,
@@ -2929,13 +2931,18 @@ pcache_op_search(
 	cm->db.be_acl = op->o_bd->be_acl;
 
 	{
-		/* See if we're processing a Bind request */
+		/* See if we're processing a Bind request
+		 * or a cache refresh */
 		slap_callback *cb = op->o_callback;
 
 		for ( ; cb; cb=cb->sc_next ) {
 			if ( cb->sc_response == pc_bind_resp ) {
 				pbi = cb->sc_private;
 				break;
+			}
+			if ( cb->sc_response == refresh_merge ) {
+				/* This is a refresh, do not search the cache */
+				return SLAP_CB_CONTINUE;
 			}
 		}
 	}
