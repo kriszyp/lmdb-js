@@ -1552,6 +1552,7 @@ add_query(
 	}
 	new_cached_query->expiry_time = now + ttl;
 	new_cached_query->refresh_time = ttr;
+	new_cached_query->bindref_time = 0;
 
 	new_cached_query->answerable_cnt = 0;
 	new_cached_query->refcnt = 1;
