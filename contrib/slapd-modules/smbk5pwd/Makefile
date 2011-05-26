@@ -16,8 +16,8 @@ LIBTOOL=../../../libtool
 OPT=-g -O2
 CC=gcc
 
-# Omit DO_KRB5 or DO_SAMBA if you don't want to support it.
-DEFS=-DDO_KRB5 -DDO_SAMBA
+# Omit DO_KRB5, DO_SAMBA or DO_SHADOW if you don't want to support it.
+DEFS=-DDO_KRB5 -DDO_SAMBA -DDO_SHADOW
 
 HEIMDAL_INC=-I/usr/heimdal/include
 SSL_INC=

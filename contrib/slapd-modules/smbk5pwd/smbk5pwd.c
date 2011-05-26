@@ -17,6 +17,7 @@
 /* ACKNOWLEDGEMENTS:
  * Support for table-driven configuration added by Pierangelo Masarati.
  * Support for sambaPwdMustChange and sambaPwdCanChange added by Marco D'Ettorre.
+ * Support for shadowLastChange added by SATOH Fumiyasu @ OSS Technology, Inc.
  */
 
 #include <portable.h>
@@ -81,14 +82,21 @@ static AttributeDescription *ad_sambaPwdCanChange;
 static ObjectClass *oc_sambaSamAccount;
 #endif
 
+#ifdef DO_SHADOW
+static AttributeDescription *ad_shadowLastChange;
+static ObjectClass *oc_shadowAccount;
+#endif
+
 /* Per-instance configuration information */
 typedef struct smbk5pwd_t {
 	unsigned	mode;
 #define	SMBK5PWD_F_KRB5		(0x1U)
 #define	SMBK5PWD_F_SAMBA	(0x2U)
+#define	SMBK5PWD_F_SHADOW	(0x4U)
 
 #define SMBK5PWD_DO_KRB5(pi)	((pi)->mode & SMBK5PWD_F_KRB5)
 #define SMBK5PWD_DO_SAMBA(pi)	((pi)->mode & SMBK5PWD_F_SAMBA)
+#define SMBK5PWD_DO_SHADOW(pi)	((pi)->mode & SMBK5PWD_F_SHADOW)
 
 #ifdef DO_KRB5
 	/* nothing yet */
@@ -100,6 +108,10 @@ typedef struct smbk5pwd_t {
 	/* How many seconds after allowing a password change? */
 	time_t  smb_can_change;
 #endif
+
+#ifdef DO_SHADOW
+	/* nothing yet */
+#endif
 } smbk5pwd_t;
 
 static const unsigned SMBK5PWD_F_ALL	=
@@ -109,6 +121,9 @@ static const unsigned SMBK5PWD_F_ALL	=
 #endif
 #ifdef DO_SAMBA
 	| SMBK5PWD_F_SAMBA
+#endif
+#ifdef DO_SHADOW
+	| SMBK5PWD_F_SHADOW
 #endif
 ;
 
@@ -653,6 +668,34 @@ static int smbk5pwd_exop_passwd(
 		}
 	}
 #endif /* DO_SAMBA */
+
+#ifdef DO_SHADOW
+	/* shadow stuff */
+	if ( SMBK5PWD_DO_SHADOW( pi ) && is_entry_objectclass(e, oc_shadowAccount, 0 ) ) {
+		struct berval *keys;
+
+		ml = ch_malloc(sizeof(Modifications));
+		if (!qpw->rs_modtail) qpw->rs_modtail = &ml->sml_next;
+		ml->sml_next = qpw->rs_mods;
+		qpw->rs_mods = ml;
+
+		keys = ch_malloc( sizeof(struct berval) * 2);
+		keys[0].bv_val = ch_malloc( LDAP_PVT_INTTYPE_CHARS(long) );
+		keys[0].bv_len = snprintf(keys[0].bv_val,
+			LDAP_PVT_INTTYPE_CHARS(long),
+			"%ld", (long)(slap_get_time() / (60 * 60 * 24)));
+
+		ml->sml_desc = ad_shadowLastChange;
+		ml->sml_op = LDAP_MOD_REPLACE;
+#ifdef SLAP_MOD_INTERNAL
+		ml->sml_flags = SLAP_MOD_INTERNAL;
+#endif
+		ml->sml_numvals = 1;
+		ml->sml_values = keys;
+		ml->sml_nvalues = NULL;
+	}
+#endif /* DO_SHADOW */
+
 	be_entry_release_r( op, e );
 	qpw->rs_new.bv_val[qpw->rs_new.bv_len] = term;
 
@@ -715,6 +758,7 @@ static ConfigOCs smbk5pwd_cfocs[] = {
 static slap_verbmasks smbk5pwd_modules[] = {
 	{ BER_BVC( "krb5" ),		SMBK5PWD_F_KRB5	},
 	{ BER_BVC( "samba" ),		SMBK5PWD_F_SAMBA },
+	{ BER_BVC( "shadow" ),		SMBK5PWD_F_SHADOW },
 	{ BER_BVNULL,			-1 }
 };
 
@@ -860,6 +904,16 @@ smbk5pwd_cf_func( ConfigArgs *c )
 		}
 #endif /* ! DO_SAMBA */
 
+#ifndef DO_SHADOW
+		if ( SMBK5PWD_DO_SHADOW( pi ) ) {
+			Debug( LDAP_DEBUG_ANY, "%s: smbk5pwd: "
+				"<%s> module \"%s\" only allowed when compiled with -DDO_SHADOW.\n",
+				c->log, c->argv[ 0 ], c->argv[ rc ] );
+			pi->mode = mode;
+			return 1;
+		}
+#endif /* ! DO_SHADOW */
+
 		{
 			BackendDB	db = *c->be;
 
@@ -908,6 +962,12 @@ smbk5pwd_modules_init( smbk5pwd_t *pi )
 		{ NULL }
 	},
 #endif /* DO_SAMBA */
+#ifdef DO_SHADOW
+	shadow_ad[] = {
+		{ "shadowLastChange",		&ad_shadowLastChange },
+		{ NULL }
+	},
+#endif /* DO_SHADOW */
 	dummy_ad;
 
 	/* this is to silence the unused var warning */
@@ -1006,6 +1066,35 @@ smbk5pwd_modules_init( smbk5pwd_t *pi )
 		}
 	}
 #endif /* DO_SAMBA */
+
+#ifdef DO_SHADOW
+	if ( SMBK5PWD_DO_SHADOW( pi ) && oc_shadowAccount == NULL ) {
+		int		i, rc;
+
+		oc_shadowAccount = oc_find( "shadowAccount" );
+		if ( !oc_shadowAccount ) {
+			Debug( LDAP_DEBUG_ANY, "smbk5pwd: "
+				"unable to find \"shadowAccount\" objectClass.\n",
+				0, 0, 0 );
+			return -1;
+		}
+
+		for ( i = 0; shadow_ad[ i ].name != NULL; i++ ) {
+			const char	*text;
+
+			*(shadow_ad[ i ].adp) = NULL;
+
+			rc = slap_str2ad( shadow_ad[ i ].name, shadow_ad[ i ].adp, &text );
+			if ( rc != LDAP_SUCCESS ) {
+				Debug( LDAP_DEBUG_ANY, "smbk5pwd: "
+					"unable to find \"%s\" attributeType: %s (%d).\n",
+					shadow_ad[ i ].name, text, rc );
+				oc_shadowAccount = NULL;
+				return rc;
+			}
+		}
+	}
+#endif /* DO_SHADOW */
 
 	return 0;
 }
