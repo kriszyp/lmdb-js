@@ -2,6 +2,8 @@ OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.26 Engineering
 	Fixed libldap lockup (ITS#6898)
+	Build Environment
+		Fixed builds that do not have GETTIMEOFDAY (ITS#6885)
 
 OpenLDAP 2.4.25 Release (2011/03/26)
 	Fixed ldapsearch pagedresults loop (ITS#6755)
