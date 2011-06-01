@@ -310,6 +310,36 @@ sameido:
 	return rs->sr_err;
 }
 
+/* Get the next ID from the DB. Used if the candidate list is
+ * a range and simple iteration hits missing entryIDs
+ */
+static ID
+bdb_get_nextid(struct bdb_info *bdb, DB_TXN *ltid, ID *cursor)
+{
+	DBC *curs;
+	DBT key, data;
+	ID id, nid;
+	int rc;
+
+	id = *cursor + 1;
+	BDB_ID2DISK( id, &nid );
+	rc = bdb->bi_id2entry->bdi_db->cursor(
+		bdb->bi_id2entry->bdi_db, ltid, &curs, bdb->bi_db_opflags );
+	if ( rc )
+		return NOID;
+	key.data = &nid;
+	key.size = key.ulen = sizeof(ID);
+	key.flags = DB_DBT_USERMEM;
+	data.flags = DB_DBT_USERMEM | DB_DBT_PARTIAL;
+	data.dlen = data.ulen = 0;
+	rc = curs->c_get( curs, &key, &data, DB_SET_RANGE );
+	curs->c_close( curs );
+	if ( rc )
+		return NOID;
+	BDB_DISK2ID( &nid, cursor );
+	return *cursor;
+}
+
 int
 bdb_search( Operation *op, SlapReply *rs )
 {
@@ -743,6 +773,10 @@ fetch_entry_retry:
 					LDAP_XSTRING(bdb_search)
 					": candidate %ld not found\n",
 					(long) id, 0, 0 );
+			} else {
+				/* get the next ID from the DB */
+				id = bdb_get_nextid( bdb, ltid, &cursor );
+				cursor = id - 1;
 			}
 
 			goto loop_continue;
