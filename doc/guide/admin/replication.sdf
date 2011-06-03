@@ -421,8 +421,6 @@ is needed to manage which provider is currently active
 - If backing up the Berkeley database itself and periodically backing up the 
 transaction log files, then the same member of the mirror pair needs to be 
 used to collect logfiles until the next database backup is taken 
-- To ensure that both databases are consistent, each database might have to be 
-put in read-only mode while performing a slapcat. 
 * Delta-Syncrepl is not yet supported
 
 For configuration, please see the {{SECT:MirrorMode}} section below
