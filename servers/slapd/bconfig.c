@@ -5561,6 +5561,11 @@ config_modify_internal( CfEntryInfo *ce, Operation *op, SlapReply *rs,
 	oc_at = attr_find( e->e_attrs, slap_schema.si_ad_objectClass );
 	if ( !oc_at ) return LDAP_OBJECT_CLASS_VIOLATION;
 
+	for (ml = op->orm_modlist; ml; ml=ml->sml_next) {
+		if (ml->sml_desc == slap_schema.si_ad_objectClass)
+			return rc;
+	}
+
 	colst = count_ocs( oc_at, &nocs );
 
 	/* make sure add/del flags are clear; should always be true */
