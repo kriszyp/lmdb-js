@@ -1251,6 +1251,11 @@ filter_first( Filter *f )
 	return f;
 }
 
+typedef struct fstack {
+	struct fstack *fs_next;
+	Filter *fs_fs;
+	Filter *fs_fi;
+} fstack;
 
 static CachedQuery *
 find_filter( Operation *op, Avlnode *root, Filter *inputf, Filter *first )
@@ -1262,6 +1267,7 @@ find_filter( Operation *op, Avlnode *root, Filter *inputf, Filter *first )
 	int ret, rc, dir;
 	Avlnode *ptr;
 	CachedQuery cq, *qc;
+	fstack *stack = NULL, *fsp;
 
 	cq.filter = inputf;
 	cq.first = first;
@@ -1339,6 +1345,12 @@ nextpass:			eqpass = 1;
 			case LDAP_FILTER_AND:
 				fs = fs->f_and;
 				fi = fi->f_and;
+				/* save our stack position */
+				fsp = op->o_tmpalloc(sizeof(fstack), op->o_tmpmemctx);
+				fsp->fs_next = stack;
+				fsp->fs_fs = fs->f_next;
+				fsp->fs_fi = fi->f_next;
+				stack = fsp;
 				res=1;
 				break;
 			case LDAP_FILTER_SUBSTRINGS:
@@ -1385,6 +1397,13 @@ nextpass:			eqpass = 1;
 				break;
 			default:
 				break;
+			}
+			if (!fs && !fi && stack) {
+				fsp = stack;
+				stack = fsp->fs_next;
+				fs = fsp->fs_fs;
+				fi = fsp->fs_fi;
+				op->o_tmpfree(fsp, op->o_tmpmemctx);
 			}
 		} while((res) && (fi != NULL) && (fs != NULL));
 
