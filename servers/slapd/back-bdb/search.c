@@ -337,6 +337,7 @@ bdb_get_nextid(struct bdb_info *bdb, DB_TXN *ltid, ID *cursor)
 	if ( rc )
 		return rc;
 	BDB_DISK2ID( &nid, cursor );
+	return 0;
 }
 
 int
