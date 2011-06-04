@@ -247,7 +247,7 @@ main( int argc, char *argv[] )
 		char		*retoid = NULL;
 		struct berval	*retdata = NULL;
 
-		rc = ldap_parse_extended_result( ld, res, &retoid, &retdata, 1 );
+		rc = ldap_parse_extended_result( ld, res, &retoid, &retdata, 0 );
 
 		if ( rc != LDAP_SUCCESS ) {
 			tool_perror( "ldap_parse_extended_result", rc, NULL, NULL, NULL, NULL );
@@ -294,7 +294,7 @@ main( int argc, char *argv[] )
 			printf(_("# extended operation response\n"));
 		}
 
-		rc = ldap_parse_extended_result( ld, res, &retoid, &retdata, 1 );
+		rc = ldap_parse_extended_result( ld, res, &retoid, &retdata, 0 );
 		if ( rc != LDAP_SUCCESS ) {
 			tool_perror( "ldap_parse_extended_result", rc, NULL, NULL, NULL, NULL );
 			rc = EXIT_FAILURE;
