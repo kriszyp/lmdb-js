@@ -1352,14 +1352,16 @@ nextpass:			eqpass = 1;
 			switch (fs->f_choice) {
 			case LDAP_FILTER_OR:
 			case LDAP_FILTER_AND:
+				if ( fs->f_next ) {
+					/* save our stack position */
+					fsp = op->o_tmpalloc(sizeof(fstack), op->o_tmpmemctx);
+					fsp->fs_next = stack;
+					fsp->fs_fs = fs->f_next;
+					fsp->fs_fi = fi->f_next;
+					stack = fsp;
+				}
 				fs = fs->f_and;
 				fi = fi->f_and;
-				/* save our stack position */
-				fsp = op->o_tmpalloc(sizeof(fstack), op->o_tmpmemctx);
-				fsp->fs_next = stack;
-				fsp->fs_fs = fs->f_next;
-				fsp->fs_fi = fi->f_next;
-				stack = fsp;
 				res=1;
 				break;
 			case LDAP_FILTER_SUBSTRINGS:
@@ -1408,6 +1410,7 @@ nextpass:			eqpass = 1;
 				break;
 			}
 			if (!fs && !fi && stack) {
+				/* pop the stack */
 				fsp = stack;
 				stack = fsp->fs_next;
 				fs = fsp->fs_fs;
