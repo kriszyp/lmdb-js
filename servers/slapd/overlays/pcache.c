@@ -922,38 +922,49 @@ static int pcache_filter_cmp( Filter *f1, Filter *f2 )
 	int rc, weight1, weight2;
 
 	switch( f1->f_choice ) {
-	case LDAP_FILTER_PRESENT:
+	case LDAP_FILTER_AND:
+	case LDAP_FILTER_OR:
 		weight1 = 0;
 		break;
-	case LDAP_FILTER_EQUALITY:
-	case LDAP_FILTER_GE:
-	case LDAP_FILTER_LE:
+	case LDAP_FILTER_PRESENT:
 		weight1 = 1;
 		break;
-	default:
+	case LDAP_FILTER_EQUALITY:
+	case LDAP_FILTER_GE:
+	case LDAP_FILTER_LE:
 		weight1 = 2;
+		break;
+	default:
+		weight1 = 3;
 	}
 	switch( f2->f_choice ) {
-	case LDAP_FILTER_PRESENT:
+	case LDAP_FILTER_AND:
+	case LDAP_FILTER_OR:
 		weight2 = 0;
+		break;
+	case LDAP_FILTER_PRESENT:
+		weight2 = 1;
 		break;
 	case LDAP_FILTER_EQUALITY:
 	case LDAP_FILTER_GE:
 	case LDAP_FILTER_LE:
-		weight2 = 1;
+		weight2 = 2;
 		break;
 	default:
-		weight2 = 2;
+		weight2 = 3;
 	}
 	rc = weight1 - weight2;
 	if ( !rc ) {
 		switch( weight1 ) {
 		case 0:
+			rc = pcache_filter_cmp( f1->f_and, f2->f_and );
 			break;
 		case 1:
-			rc = lex_bvcmp( &f1->f_av_value, &f2->f_av_value );
 			break;
 		case 2:
+			rc = lex_bvcmp( &f1->f_av_value, &f2->f_av_value );
+			break;
+		case 3:
 			if ( f1->f_choice == LDAP_FILTER_SUBSTRINGS ) {
 				rc = 0;
 				if ( !BER_BVISNULL( &f1->f_sub_initial )) {
@@ -994,7 +1005,7 @@ static int pcache_filter_cmp( Filter *f1, Filter *f2 )
 			}
 			break;
 		}
-		if ( !rc ) {
+		while ( !rc ) {
 			f1 = f1->f_next;
 			f2 = f2->f_next;
 			if ( f1 || f2 ) {
@@ -1003,12 +1014,10 @@ static int pcache_filter_cmp( Filter *f1, Filter *f2 )
 				else if ( !f2 )
 					rc = 1;
 				else {
-					while ( f1->f_choice == LDAP_FILTER_AND || f1->f_choice == LDAP_FILTER_OR )
-						f1 = f1->f_and;
-					while ( f2->f_choice == LDAP_FILTER_AND || f2->f_choice == LDAP_FILTER_OR )
-						f2 = f2->f_and;
 					rc = pcache_filter_cmp( f1, f2 );
 				}
+			} else {
+				break;
 			}
 		}
 	}
@@ -1019,7 +1028,7 @@ static int pcache_filter_cmp( Filter *f1, Filter *f2 )
 static int pcache_query_cmp( const void *v1, const void *v2 )
 {
 	const CachedQuery *q1 = v1, *q2 =v2;
-	return pcache_filter_cmp( q1->first, q2->first );
+	return pcache_filter_cmp( q1->filter, q2->filter );
 }
 
 /* add query on top of LRU list */
