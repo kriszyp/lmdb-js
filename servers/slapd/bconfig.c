@@ -4757,6 +4757,7 @@ check_name_index( CfEntryInfo *parent, ConfigType ce_type, Entry *e,
 	return rc;
 }
 
+/* Insert all superior classes of the given class */
 static int
 count_oc( ObjectClass *oc, ConfigOCs ***copp, int *nocs )
 {
@@ -4795,10 +4796,15 @@ count_oc( ObjectClass *oc, ConfigOCs ***copp, int *nocs )
 	return 0;
 }
 
+/* Find all superior classes of the given objectclasses,
+ * return list in order of most-subordinate first.
+ *
+ * Special / auxiliary / Cft_Misc classes always take precedence.
+ */
 static ConfigOCs **
 count_ocs( Attribute *oc_at, int *nocs )
 {
-	int		i, j;
+	int		i, j, misc = -1;
 	ConfigOCs	**colst = NULL;
 
 	*nocs = 0;
@@ -4820,7 +4826,16 @@ count_ocs( Attribute *oc_at, int *nocs )
 		ConfigOCs *tmp = colst[i];
 		colst[i] = colst[j];
 		colst[j] = tmp;
+		if (tmp->co_type == Cft_Misc)
+			misc = j;
 		i++; j--;
+	}
+	/* Move misc class to front of list */
+	if (misc > 0) {
+		ConfigOCs *tmp = colst[misc];
+		for (i=misc; i>0; i--)
+			colst[i] = colst[i-1];
+		colst[0] = tmp;
 	}
 
 	return colst;
