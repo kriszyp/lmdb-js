@@ -9,7 +9,7 @@ OpenLDAP 2.4.26 Engineering
 	Fixed slapd configfile param on windows (ITS#6933)
 	Fixed slapd uninitialized variables (ITS#6935)
 	Fixed slapd-meta reentry issues (ITS#6909)
-	Fixed slapo-memberof with accesslog (ITS#6915)
+	Fixed slapo-memberof with accesslog (ITS#6329,ITS#6766,ITS#6915)
 	Fixed slapo-pcache with unknown attrs (ITS#6823)
 	Fixed slapo-pcache with '1.1', '+', and '*' attrs (ITS#6950)
 	Fixed slapo-pcache buffersize issues (ITS#6951)
