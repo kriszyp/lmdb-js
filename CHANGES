@@ -10,6 +10,7 @@ OpenLDAP 2.4.26 Engineering
 	Fixed slapd configfile param on windows (ITS#6933)
 	Fixed slapd uninitialized variables (ITS#6935)
 	Fixed slapd config objectclass is readonly (ITS#6963)
+	Fixed slapd entry response with control (ITS#6899)
 	Fixed slapd-bdb/hdb with sparse index ranges (ITS#6961)
 	Fixed slapd-meta reentry issues (ITS#6909)
 	Fixed slapo-memberof with accesslog (ITS#6329,ITS#6766,ITS#6915)
