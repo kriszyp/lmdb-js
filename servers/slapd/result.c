@@ -1042,7 +1042,8 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 #endif
 	if ( op->o_res_ber ) {
 		/* read back control */
-	    rc = ber_printf( ber, "{O{" /*}}*/, &rs->sr_entry->e_name );
+	    rc = ber_printf( ber, "t{O{" /*}}*/,
+			LDAP_RES_SEARCH_ENTRY, &rs->sr_entry->e_name );
 	} else {
 	    rc = ber_printf( ber, "{it{O{" /*}}}*/, op->o_msgid,
 			LDAP_RES_SEARCH_ENTRY, &rs->sr_entry->e_name );
@@ -1744,6 +1745,7 @@ int slap_read_controls(
 	myop.o_res_ber = ber;
 	myop.o_callback = NULL;
 	myop.ors_slimit = 1;
+	myop.ors_attrsonly = 0;
 
 	rc = slap_send_search_entry( &myop, rs );
 	if( rc ) return rc;
