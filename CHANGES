@@ -14,6 +14,7 @@ OpenLDAP 2.4.26 Engineering
 	Fixed slapd entry response with control (ITS#6899)
 	Fixed slapd with unknown attrs (ITS#6819)
 	Fixed slapd-bdb/hdb with sparse index ranges (ITS#6961)
+	Fixed back-ldap ppolicy updates (ITS#6711)
 	Fixed slapd-meta reentry issues (ITS#6909)
 	Added slapo-accesslog filter matching (ITS#6815)
 	Fixed slapo-accesslog with invalid attrs (ITS#6819)
