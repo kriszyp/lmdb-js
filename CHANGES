@@ -13,6 +13,7 @@ OpenLDAP 2.4.26 Engineering
 	Fixed slapo-pcache with unknown attrs (ITS#6823)
 	Fixed slapo-pcache with '1.1', '+', and '*' attrs (ITS#6950)
 	Fixed slapo-pcache buffersize issues (ITS#6951)
+	Fixed slapo-pcache refresh (ITS#6953)
 	Fixed slapo-rwm with attributes with no equality rule (ITS#6943)
 	Added contrib/slapd-modules/acl GSS naming extensions ACL plugin
 	Build Environment
