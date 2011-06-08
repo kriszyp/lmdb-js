@@ -1,6 +1,8 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.26 Engineering
+	Fixed libldap descriptor leak (ITS#6929)
+	Fixed libldap socket leak (ITS#6930)
 	Fixed libldap lockup (ITS#6898)
 	Fixed slapd-meta reentry issues (ITS#6909)
 	Fixed slapo-memberof with accesslog (ITS#6915)
