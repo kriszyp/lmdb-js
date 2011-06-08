@@ -5,6 +5,7 @@ OpenLDAP 2.4.26 Engineering
 	Fixed libldap socket leak (ITS#6930)
 	Fixed libldap get option crash (ITS#6931)
 	Fixed libldap lockup (ITS#6898)
+	Fixed tools double free (ITS#6946)
 	Fixed slapd asserts (ITS#6932)
 	Fixed slapd configfile param on windows (ITS#6933)
 	Fixed slapd uninitialized variables (ITS#6935)
