@@ -7,6 +7,7 @@ OpenLDAP 2.4.26 Engineering
 	Fixed libldap lockup (ITS#6898)
 	Fixed slapd asserts (ITS#6932)
 	Fixed slapd configfile param on windows (ITS#6933)
+	Fixed slapd uninitialized variables (ITS#6935)
 	Fixed slapd-meta reentry issues (ITS#6909)
 	Fixed slapo-memberof with accesslog (ITS#6915)
 	Fixed slapo-pcache with unknown attrs (ITS#6823)
