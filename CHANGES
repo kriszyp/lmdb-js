@@ -4,6 +4,7 @@ OpenLDAP 2.4.26 Engineering
 	Fixed libldap lockup (ITS#6898)
 	Fixed slapd-meta reentry issues (ITS#6909)
 	Fixed slapo-memberof with accesslog (ITS#6915)
+	Fixed slapo-rwm with attributes with no equality rule (ITS#6943)
 	Build Environment
 		Fixed builds that do not have GETTIMEOFDAY (ITS#6885)
 
