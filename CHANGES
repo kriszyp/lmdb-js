@@ -31,6 +31,7 @@ OpenLDAP 2.4.26 Engineering
 	Added contrib/slapd-modules/acl GSS naming extensions ACL plugin
 	Build Environment
 		Fixed builds that do not have GETTIMEOFDAY (ITS#6885)
+		Fixed libldap libfetch dependancy (ITS#6889)
 	Documentation
 		ldap_get_dn(3) add man page (ITS#6959)
 
