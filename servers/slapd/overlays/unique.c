@@ -963,6 +963,8 @@ build_filter(
 				int len;
 
 				ldap_bv2escaped_filter_value_x( &b[i], &bv, 1, ctx );
+				if (!b[i].bv_len)
+					bv.bv_val = b[i].bv_val;
 				len = snprintf( kp, ks, "(%s=%s)", ad->ad_cname.bv_val, bv.bv_val );
 				assert( len >= 0 && len < ks );
 				kp += len;
