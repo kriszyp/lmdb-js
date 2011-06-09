@@ -35,6 +35,27 @@ perl_back_search(
 	int i;
 
 	PERL_SET_CONTEXT( PERL_INTERPRETER );
+
+	{
+		Entry base = {0};
+		slap_mask_t mask;
+		/* Require search access to base */
+		base.e_name = op->o_req_dn;
+		base.e_nname = op->o_req_ndn;
+		if ( !access_allowed_mask( op, &base, slap_schema.si_ad_entry,
+					NULL, ACL_SEARCH, NULL, &mask ))
+		{
+			if ( !ACL_GRANT( mask, ACL_DISCLOSE )) {
+				rs->sr_err = LDAP_NO_SUCH_OBJECT;
+			} else {
+				rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
+			}
+
+			send_ldap_result( op, rs );
+			return rs->sr_err;
+		}
+	}
+
 	ldap_pvt_thread_mutex_lock( &perl_interpreter_mutex );	
 
 	{
