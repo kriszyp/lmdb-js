@@ -429,7 +429,7 @@ ldap_int_open_connection(
 #endif
 
 #ifdef HAVE_TLS
-	if (ld->ld_options.ldo_tls_mode == LDAP_OPT_X_TLS_HARD ||
+	if (rc == 0 && ld->ld_options.ldo_tls_mode == LDAP_OPT_X_TLS_HARD ||
 		strcmp( srv->lud_scheme, "ldaps" ) == 0 )
 	{
 		++conn->lconn_refcnt;	/* avoid premature free */
@@ -534,4 +534,40 @@ ldap_dup( LDAP *old )
 	old->ld_ldcrefcnt++;
 	LDAP_MUTEX_UNLOCK( &old->ld_ldcmutex );
 	return ( ld );
+}
+
+int
+ldap_int_check_async_open( LDAP *ld, ber_socket_t sd )
+{
+	struct timeval tv = { 0 };
+	int rc;
+
+	rc = ldap_int_poll( ld, sd, &tv );
+	switch ( rc ) {
+	case 0:
+		/* now ready to start tls */
+		ld->ld_defconn->lconn_status = LDAP_CONNST_CONNECTED;
+		break;
+
+	default:
+		return -1;
+
+	case -2:
+		/* connect not completed yet */
+		ld->ld_errno = LDAP_X_CONNECTING;
+		return rc;
+	}
+
+#ifdef HAVE_TLS
+	if ( ld->ld_options.ldo_tls_mode == LDAP_OPT_X_TLS_HARD ||
+		!strcmp( ld->ld_defconn->lconn_server->lud_scheme, "ldaps" )) {
+
+		++ld->ld_defconn->lconn_refcnt;	/* avoid premature free */
+
+		rc = ldap_int_tls_start( ld, ld->ld_defconn, ld->ld_defconn->lconn_server );
+
+		--ld->ld_defconn->lconn_refcnt;
+	}
+#endif
+	return rc;
 }
