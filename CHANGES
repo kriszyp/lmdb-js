@@ -39,6 +39,7 @@ OpenLDAP 2.4.26 Engineering
 		slapd-backends(5) update recommended database backend (ITS#6904)
 		slapd-bdb(5) update recommended database backend (ITS#6904)
 		slapd-hdb(5) update recommended database backend (ITS#6904)
+		admin24 update that cn=config is preferred (ITS#6905)
 
 OpenLDAP 2.4.25 Release (2011/03/26)
 	Fixed ldapsearch pagedresults loop (ITS#6755)
