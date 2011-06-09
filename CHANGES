@@ -36,6 +36,9 @@ OpenLDAP 2.4.26 Engineering
 	Documentation
 		ldap_get_dn(3) add man page (ITS#6959)
 		slapo-nssov(5) Fixed typo (ITS#6934)
+		slapd-backends(5) update recommended database backend (ITS#6904)
+		slapd-bdb(5) update recommended database backend (ITS#6904)
+		slapd-hdb(5) update recommended database backend (ITS#6904)
 
 OpenLDAP 2.4.25 Release (2011/03/26)
 	Fixed ldapsearch pagedresults loop (ITS#6755)
