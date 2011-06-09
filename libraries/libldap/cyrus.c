@@ -433,7 +433,11 @@ ldap_int_sasl_bind(
 					rc = ld->ld_errno;
 				}
 			}
-		}   
+		}
+		if ( rc == 0 && ld->ld_defconn &&
+			ld->ld_defconn->lconn_status == LDAP_CONNST_CONNECTING ) {
+			rc = ldap_int_check_async_open( ld, sd );
+		}
 		LDAP_MUTEX_UNLOCK( &ld->ld_conn_mutex );
 		if( rc != 0 ) return ld->ld_errno;
 
