@@ -2164,7 +2164,7 @@ if test $ol_with_fetch != no ; then
 	OL_LIB_FETCH
 
 	if test $ol_cv_lib_fetch != no ; then
-		LUTIL_LIBS="$LUTIL_LIBS $ol_link_fetch"
+		LIBS="$LIBS $ol_link_fetch"
 		ol_link_fetch=freebsd
 
 	elif test $ol_with_fetch != auto ; then
