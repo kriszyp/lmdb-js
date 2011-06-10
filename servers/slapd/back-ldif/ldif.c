@@ -395,8 +395,10 @@ ldif_read_file( const char *path, char **datap )
 static int
 spew_file( int fd, const char *spew, int len, int *save_errno )
 {
-	int writeres = 0;
+	int writeres;
+#define HEADER	"# AUTO-GENERATED FILE - DO NOT EDIT!! Use ldapmodify.\n"
 
+	writeres = write(fd, HEADER, sizeof(HEADER));
 	while(len > 0) {
 		writeres = write(fd, spew, len);
 		if(writeres == -1) {
