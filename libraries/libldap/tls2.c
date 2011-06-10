@@ -578,6 +578,11 @@ ldap_pvt_tls_get_option( LDAP *ld, int option, void *arg )
 {
 	struct ldapoptions *lo;
 
+	if( option == LDAP_OPT_X_TLS_PACKAGE ) {
+		*(char **)arg = LDAP_STRDUP( tls_imp->ti_name );
+		return 0;
+	}
+
 	if( ld != NULL ) {
 		assert( LDAP_VALID( ld ) );
 
