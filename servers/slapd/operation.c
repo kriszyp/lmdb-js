@@ -127,10 +127,21 @@ slap_op_free( Operation *op, void *ctx )
 	op->o_controls = opbuf->ob_controls;
 
 	if ( ctx ) {
-		void *op2 = NULL;
+		Operation *op2 = NULL;
 		ldap_pvt_thread_pool_setkey( ctx, (void *)slap_op_free,
 			op, slap_op_q_destroy, &op2, NULL );
 		LDAP_STAILQ_NEXT( op, o_next ) = op2;
+		if ( op2 ) {
+			op->o_tincr = op2->o_tincr + 1;
+			/* No more than 10 ops on per-thread free list */
+			if ( op->o_tincr > 10 ) {
+				ldap_pvt_thread_pool_setkey( ctx, (void *)slap_op_free,
+					op2, slap_op_q_destroy, NULL, NULL );
+				ber_memfree_x( op, NULL );
+			}
+		} else {
+			op->o_tincr = 1;
+		}
 	} else {
 		ber_memfree_x( op, NULL );
 	}
