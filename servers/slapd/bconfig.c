@@ -6625,11 +6625,12 @@ config_build_schema_inc( ConfigArgs *c, CfEntryInfo *ceparent,
 			bv.bv_len );
 		c->value_dn.bv_len += bv.bv_len;
 		c->value_dn.bv_val[c->value_dn.bv_len] ='\0';
-		rdn = c->value_dn;
+		rdnNormalize( 0, NULL, NULL, &c->value_dn, &rdn, NULL );
 
 		c->ca_private = cf;
 		e = config_build_entry( op, rs, ceparent, c, &rdn,
 			&CFOC_SCHEMA, NULL );
+		ch_free( rdn.bv_val );
 		if ( !e ) {
 			return -1;
 		} else if ( e && cf->c_kids ) {
