@@ -2048,6 +2048,9 @@ syncprov_op_mod( Operation *op, SlapReply *rs )
 			opc->rsid = scook->sid;
 	}
 
+	if ( op->o_dont_replicate )
+		return SLAP_CB_CONTINUE;
+
 	/* If there are active persistent searches, lock this operation.
 	 * See seqmod.c for the locking logic on its own.
 	 */
