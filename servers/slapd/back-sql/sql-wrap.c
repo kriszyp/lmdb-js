@@ -148,7 +148,7 @@ backsql_BindRowAsStrings_x( SQLHSTMT sth, BACKSQL_ROW_NTS *row, void *ctx )
 	} else {
 		SQLCHAR		colname[ 64 ];
 		SQLSMALLINT	name_len, col_type, col_scale, col_null;
-		UDWORD		col_prec;
+		SQLLEN		col_prec;
 		int		i;
 
 #ifdef BACKSQL_TRACE
@@ -180,8 +180,8 @@ backsql_BindRowAsStrings_x( SQLHSTMT sth, BACKSQL_ROW_NTS *row, void *ctx )
 			goto nomem;
 		}
 
-		row->value_len = (SQLINTEGER *)ber_memcalloc_x( row->ncols,
-				sizeof( SQLINTEGER ), ctx );
+		row->value_len = (SQLLEN *)ber_memcalloc_x( row->ncols,
+				sizeof( SQLLEN ), ctx );
 		if ( row->value_len == NULL ) {
 			goto nomem;
 		}

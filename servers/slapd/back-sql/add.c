@@ -1219,7 +1219,7 @@ backsql_add( Operation *op, SlapReply *rs )
 
 	if ( !BACKSQL_IS_ADD( oc->bom_expect_return ) ) {
 		SWORD		ncols;
-		SQLINTEGER	value_len;
+		SQLLEN		value_len;
 
 		if ( BACKSQL_CREATE_NEEDS_SELECT( bi ) ) {
 			SQLFreeStmt( sth, SQL_DROP );
