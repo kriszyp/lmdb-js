@@ -187,9 +187,9 @@ environment variables.
 As an example, let's assume that we want to install OpenLDAP with
 BDB backend and TCP Wrappers support.  By default, BDB
 is enabled and TCP Wrappers is not.  So, we just need to specify
-{{EX:--with-wrappers}} to include TCP Wrappers support:
+{{EX:--enable-wrappers}} to include TCP Wrappers support:
 
->	./configure --with-wrappers
+>	./configure --enable-wrappers
 
 However, this will fail to locate dependent software not
 installed in system directories.  For example, if TCP Wrappers
@@ -198,7 +198,7 @@ and {{F:/usr/local/lib}} respectively, the {{EX:configure}}
 script should be called as follows:
 
 >	env CPPFLAGS="-I/usr/local/include" LDFLAGS="-L/usr/local/lib" \
->		./configure --with-wrappers
+>		./configure --enable-wrappers
 
 Note: Some shells, such as those derived from the Bourne {{sh}}(1),
 do not require use of the {{env}}(1) command.  In some cases, environmental
