@@ -20,6 +20,7 @@ OpenLDAP 2.4.26 Engineering
 	Fixed slapd-bdb/hdb with sparse index ranges (ITS#6961)
 	Fixed back-ldap ppolicy updates (ITS#6711)
 	Fixed slapd-meta reentry issues (ITS#6909)
+	Fixed slapd-sql length of data type (ITS#6657,ITS#6691)
 	Added slapo-accesslog filter matching (ITS#6815)
 	Fixed slapo-accesslog with invalid attrs (ITS#6819)
 	Added slapo-auditlog connID and peername logging (ITS#6936)
