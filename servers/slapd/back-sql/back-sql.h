@@ -183,7 +183,7 @@ typedef struct {
 	UDWORD		*col_prec;
 	SQLSMALLINT	*col_type;
 	char		**cols;
-	SQLINTEGER	*value_len;
+	SQLLEN		*value_len;
 } BACKSQL_ROW_NTS;
 
 /*
