@@ -18,6 +18,7 @@ OpenLDAP 2.4.26 Engineering
 	Fixed slapd with unknown attrs (ITS#6819)
 	Fixed slapd normalization of schema RDN (ITS#6967)
 	Fixed slapd operations cache to 10 op limit (ITS#6944)
+	Fixed slapd syncrepl crash with non-replicated ops (ITS#6892)
 	Fixed slapd-bdb/hdb with sparse index ranges (ITS#6961)
 	Fixed back-ldap ppolicy updates (ITS#6711)
 	Fixed slapd-meta reentry issues (ITS#6909)
