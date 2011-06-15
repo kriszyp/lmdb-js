@@ -18,6 +18,9 @@ class LDAPModification{
 		LDAPModification(const LDAPAttribute& attr, mod_op op);
 		LDAPMod *toLDAPMod() const;
 
+		const LDAPAttribute* getAttribute() const;
+		mod_op getOperation() const;
+
 	private:
 		LDAPAttribute m_attr;
 		mod_op m_mod_op;
