@@ -38,3 +38,11 @@ LDAPMod* LDAPModification::toLDAPMod() const  {
     }
     return ret;
 }
+
+const LDAPAttribute* LDAPModification::getAttribute() const {
+	return &m_attr;
+}
+
+LDAPModification::mod_op LDAPModification::getOperation() const {
+	return m_mod_op;
+}
