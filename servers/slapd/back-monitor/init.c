@@ -1108,16 +1108,6 @@ done:;
 
 		*elpp = (entry_limbo_t *)ch_malloc( sizeof( entry_limbo_t ) );
 		if ( *elpp == NULL ) {
-			el.el_e->e_private = NULL;
-			entry_free( el.el_e );
-			return -1;
-		}
-
-		if ( *elpp != NULL ) {
-			el.el_next = NULL;
-			**elpp = el;
-
-		} else {
 			if ( !BER_BVISNULL( &el.el_filter ) ) {
 				ch_free( el.el_filter.bv_val );
 			}
@@ -1129,6 +1119,9 @@ done:;
 			}
 			return -1;
 		}
+
+		el.el_next = NULL;
+		**elpp = el;
 	}
 
 	return 0;
