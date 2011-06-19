@@ -144,6 +144,9 @@ static struct berval * slap_uuidstr_from_normalized(
 static int syncrepl_add_glue_ancestors(
 	Operation* op, Entry *e );
 
+/* delta-mmr overlay handler */
+static int syncrepl_op_modify( Operation *op, SlapReply *rs );
+
 /* callback functions */
 static int dn_callback( Operation *, SlapReply * );
 static int nonpresent_callback( Operation *, SlapReply * );
@@ -171,11 +174,27 @@ syncrepl_state2str( int state )
 	return "UNKNOWN";
 }
 
+static slap_overinst syncrepl_ov;
+
 static void
 init_syncrepl(syncinfo_t *si)
 {
 	int i, j, k, l, n;
 	char **attrs, **exattrs;
+
+	if ( !syncrepl_ov.on_bi.bi_type ) {
+		syncrepl_ov.on_bi.bi_type = "syncrepl";
+		syncrepl_ov.on_bi.bi_op_modify = syncrepl_op_modify;
+		overlay_register( &syncrepl_ov );
+	}
+
+	/* delta-MMR needs the overlay, nothing else does.
+	 * This must happen before accesslog overlay is configured.
+	 */
+	if ( si->si_syncdata &&
+		!overlay_is_inst( si->si_be, syncrepl_ov.on_bi.bi_type )) {
+		overlay_config( si->si_be, syncrepl_ov.on_bi.bi_type, -1, NULL, NULL );
+	}
 
 	if ( !sync_descs[0] ) {
 		sync_descs[0] = slap_schema.si_ad_objectClass;
@@ -1745,6 +1764,32 @@ syncrepl_changelog_mods(
 	return -1;	/* FIXME */
 }
 
+typedef struct OpExtraSync {
+	OpExtra oe;
+	syncinfo_t *oe_si;
+} OpExtraSync;
+
+static int
+syncrepl_op_modify( Operation *op, SlapReply *rs )
+{
+	OpExtra *oex;
+
+	LDAP_SLIST_FOREACH( oex, &op->o_extra, oe_next ) {
+		if ( oex->oe_key == (void *)syncrepl_message_to_op )
+			break;
+	}
+	if ( !oex )
+		return SLAP_CB_CONTINUE;
+
+	/* Check if entryCSN in modlist is newer than entryCSN in entry.
+	 * We do it here because the op has been serialized by accesslog
+	 * by the time we get here. If the CSN is new enough, just do the
+	 * mod. If not, we need to resolve conflicts.
+	 */
+
+	return SLAP_CB_CONTINUE;
+}
+
 static int
 syncrepl_message_to_op(
 	syncinfo_t	*si,
@@ -1904,9 +1949,19 @@ syncrepl_message_to_op(
 			if ( e == op->ora_e )
 				be_entry_release_w( op, op->ora_e );
 		} else {
+			OpExtraSync oes;
 			op->orm_modlist = modlist;
 			op->o_bd = si->si_wbe;
+			/* delta-mmr needs additional checks in syncrepl_op_modify */
+			if ( SLAP_MULTIMASTER( op->o_bd )) {
+				oes.oe.oe_key = (void *)syncrepl_message_to_op;
+				oes.oe_si = si;
+				LDAP_SLIST_INSERT_HEAD( &op->o_extra, &oes.oe, oe_next );
+			}
 			rc = op->o_bd->be_modify( op, &rs );
+			if ( SLAP_MULTIMASTER( op->o_bd )) {
+				LDAP_SLIST_REMOVE( &op->o_extra, &oes.oe, OpExtra, oe_next );
+			}
 			modlist = op->orm_modlist;
 			Debug( rc ? LDAP_DEBUG_ANY : LDAP_DEBUG_SYNC,
 				"syncrepl_message_to_op: %s be_modify %s (%d)\n", 
