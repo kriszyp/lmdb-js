@@ -58,6 +58,8 @@ struct ldif_info {
 	ldap_pvt_thread_rdwr_t	li_rdwr;	/* no other I/O when writing */
 };
 
+static int write_data( int fd, const char *spew, int len, int *save_errno );
+
 #ifdef _WIN32
 #define mkdir(a,b)	mkdir(a)
 #define move_file(from, to) (!MoveFileEx(from, to, MOVEFILE_REPLACE_EXISTING))
@@ -331,7 +333,7 @@ ldif_tempname( const struct berval *dnpath )
  * As used by zlib
  */
 
-static const unsigned int crctab[256] = {
+static const ber_uint_t crctab[256] = {
 	0x00000000L, 0x77073096L, 0xee0e612cL, 0x990951baL, 0x076dc419L,
 	0x706af48fL, 0xe963a535L, 0x9e6495a3L, 0x0edb8832L, 0x79dcb8a4L,
 	0xe0d5e91eL, 0x97d2d988L, 0x09b64c2bL, 0x7eb17cbdL, 0xe7b82d07L,
@@ -388,9 +390,11 @@ static const unsigned int crctab[256] = {
 
 #define CRC1	crc = crctab[(crc ^ *buf++) & 0xff] ^ (crc >> 8)
 #define CRC8	CRC1; CRC1; CRC1; CRC1; CRC1; CRC1; CRC1; CRC1
-unsigned int crc32(unsigned char *buf, int len)
+unsigned int
+crc32(const void *vbuf, int len)
 {
-	unsigned int	crc = 0xffffffff;
+	const unsigned char	*buf = vbuf;
+	ber_uint_t		crc = 0xffffffff;
 	int				i;
 
 	while (len > 7) {
@@ -412,10 +416,10 @@ unsigned int crc32(unsigned char *buf, int len)
 static int
 ldif_read_file( const char *path, char **datap )
 {
-	int rc, fd, len;
+	int rc = LDAP_SUCCESS, fd, len;
 	int res = -1;	/* 0:success, <0:error, >0:file too big/growing. */
 	struct stat st;
-	char *data = NULL, *ptr;
+	char *data = NULL, *ptr = NULL;
 
 	if ( datap == NULL ) {
 		res = stat( path, &st );
@@ -448,9 +452,9 @@ ldif_read_file( const char *path, char **datap )
 
  done:
 	if ( res == 0 ) {
+#ifdef LDAP_DEBUG
 		Debug( LDAP_DEBUG_TRACE, "ldif_read_file: %s: \"%s\"\n",
 			datap ? "read entry file" : "entry file exists", path, 0 );
-		rc = LDAP_SUCCESS;
 		if ( datap ) {
 			len = ptr - data;
 			ptr = strstr( data, "\n# CRC32" );
@@ -473,6 +477,7 @@ ldif_read_file( const char *path, char **datap )
 				}
 			}
 		}
+#endif /* LDAP_DEBUG */
 	} else {
 		if ( res < 0 && errno == ENOENT ) {
 			Debug( LDAP_DEBUG_TRACE, "ldif_read_file: "
@@ -502,7 +507,14 @@ spew_file( int fd, const char *spew, int len, int *save_errno )
 	char header[sizeof(HEADER "# CRC32 12345678\n")];
 
 	sprintf(header, HEADER "# CRC32 %08x\n", crc32(spew, len));
-	writeres = write(fd, header, sizeof(header)-1);
+	writeres = write_data(fd, header, sizeof(header)-1, save_errno);
+	return writeres < 0 ? writeres : write_data(fd, spew, len, save_errno);
+}
+
+static int
+write_data( int fd, const char *spew, int len, int *save_errno )
+{
+	int writeres = 0;
 	while(len > 0) {
 		writeres = write(fd, spew, len);
 		if(writeres == -1) {
