@@ -1789,28 +1789,31 @@ typedef struct OpExtraSync {
 /* Copy the original modlist, split Replace ops into Delete/Add,
  * and drop mod opattrs since this modification is in the past.
  */
-static Modifications *mods_dup( Operation *op, Modifications *modlist )
+static Modifications *mods_dup( Operation *op, Modifications *modlist, int match )
 {
 	Modifications *mod, *modnew = NULL, *modtail = NULL;
 	int size;
 	for ( ; modlist; modlist = modlist->sml_next ) {
-		if ( modlist->sml_desc == slap_schema.si_ad_modifiersName ||
-			modlist->sml_desc == slap_schema.si_ad_modifyTimestamp ||
-			modlist->sml_desc == slap_schema.si_ad_entryCSN )
-			continue;
-		if ( modlist->sml_op == LDAP_MOD_REPLACE ) {
-			mod = op->o_tmpalloc( sizeof(Modifications), op->o_tmpmemctx );
-			mod->sml_desc = modlist->sml_desc;
-			mod->sml_values = NULL;
-			mod->sml_nvalues = NULL;
-			mod->sml_op = LDAP_MOD_DELETE;
-			mod->sml_numvals = 0;
-			mod->sml_flags = 0;
-			if ( !modnew )
-				modnew = mod;
-			if ( modtail )
-				modtail->sml_next = mod;
-			modtail = mod;
+		/* older ops */
+		if ( match < 0 ) {
+			if ( modlist->sml_desc == slap_schema.si_ad_modifiersName ||
+				modlist->sml_desc == slap_schema.si_ad_modifyTimestamp ||
+				modlist->sml_desc == slap_schema.si_ad_entryCSN )
+				continue;
+			if ( modlist->sml_op == LDAP_MOD_REPLACE ) {
+				mod = op->o_tmpalloc( sizeof(Modifications), op->o_tmpmemctx );
+				mod->sml_desc = modlist->sml_desc;
+				mod->sml_values = NULL;
+				mod->sml_nvalues = NULL;
+				mod->sml_op = LDAP_MOD_DELETE;
+				mod->sml_numvals = 0;
+				mod->sml_flags = 0;
+				if ( !modnew )
+					modnew = mod;
+				if ( modtail )
+					modtail->sml_next = mod;
+				modtail = mod;
+			}
 		}
 		if ( modlist->sml_numvals ) {
 			size = (modlist->sml_numvals+1) * sizeof(struct berval);
@@ -1833,13 +1836,15 @@ static Modifications *mods_dup( Operation *op, Modifications *modlist )
 			mod->sml_values = (BerVarray)(mod+1);
 			for (i=0; i<mod->sml_numvals; i++)
 				mod->sml_values[i] = modlist->sml_values[i];
+			BER_BVZERO(&mod->sml_values[i]);
 			if ( modlist->sml_nvalues ) {
 				mod->sml_nvalues = mod->sml_values + mod->sml_numvals + 1;
 				for (i=0; i<mod->sml_numvals; i++)
 					mod->sml_nvalues[i] = modlist->sml_nvalues[i];
+				BER_BVZERO(&mod->sml_nvalues[i]);
 			}
 		}
-		if ( modlist->sml_op == LDAP_MOD_REPLACE )
+		if ( match < 0 && modlist->sml_op == LDAP_MOD_REPLACE )
 			mod->sml_op = LDAP_MOD_ADD;
 		else
 			mod->sml_op = modlist->sml_op;
@@ -1874,6 +1879,10 @@ compare_vals( Modifications *m1, Modifications *m2 )
 					m1->sml_values[k] = m1->sml_values[k+1];
 					if ( m1->sml_nvalues )
 						m1->sml_nvalues[k] = m1->sml_nvalues[k+1];
+				}
+				BER_BVZERO(&m1->sml_values[k]);
+				if ( m1->sml_nvalues ) {
+					BER_BVZERO(&m1->sml_nvalues[k]);
 				}
 				m1->sml_numvals--;
 				i--;
@@ -1961,15 +1970,14 @@ syncrepl_modify_cb( Operation *op, SlapReply *rs )
 	modify_ctxt *mx = sc->sc_private;
 	Modifications *ml;
 
-	op->o_callback = sc->sc_next;
-	op->o_tmpfree( sc, op->o_tmpmemctx );
-
 	op->orm_no_opattrs = 0;
 	op->orm_modlist = mx->mx_orig;
 	for ( ml = mx->mx_free; ml; ml = mx->mx_free ) {
 		mx->mx_free = ml->sml_next;
 		op->o_tmpfree( ml, op->o_tmpmemctx );
 	}
+	op->o_callback = sc->sc_next;
+	op->o_tmpfree( sc, op->o_tmpmemctx );
 	return SLAP_CB_CONTINUE;
 }
 
@@ -2016,14 +2024,6 @@ syncrepl_op_modify( Operation *op, SlapReply *rs )
 			&mod->sml_nvalues[0], &a->a_nvals[0], &text );
 		overlay_entry_release_ov( op, e, 0, on );
 	}
-	/* mod is newer, let it go */
-	if ( match > 0 ) {
-		for ( mod = op->orm_modlist; mod; mod=mod->sml_next ) {
-			if ( mod->sml_op == LDAP_MOD_DELETE )
-				mod->sml_op = SLAP_MOD_SOFTDEL;
-		}
-		return SLAP_CB_CONTINUE;
-	}
 	/* equal? Should never happen */
 	if ( match == 0 )
 		return LDAP_SUCCESS;
@@ -2049,20 +2049,28 @@ syncrepl_op_modify( Operation *op, SlapReply *rs )
 	 *
 	 * 4. Swap original modlist back in response callback so
 	 *    that accesslog logs the original mod.
+	 *
+	 * Even if the mod is newer, other out-of-order changes may
+	 * have been committed, forcing us to tweak the modlist:
+	 * 1. Save/copy original modlist.
+	 * 2. Change deletes to soft deletes.
+	 * 3. Change Adds of single-valued attrs to Replace.
 	 */
 
-	newlist = mods_dup( op, op->orm_modlist );
+	newlist = mods_dup( op, op->orm_modlist, match );
 
-	{
+	/* mod is older */
+	if ( match < 0 ) {
 		Operation op2 = *op;
 		AttributeName an[2];
 		const char *text;
-		slap_callback cb;
 		struct berval bv;
 		char *ptr;
+		Modifications *ml;
 		int size, rc;
 		SlapReply rs1 = {0};
 		resolve_ctxt rx = { si, newlist };
+		slap_callback cb = { NULL, syncrepl_resolve_cb, NULL, &rx };
 
 		op2.o_tag = LDAP_REQ_SEARCH;
 		op2.ors_scope = LDAP_SCOPE_SUBTREE;
@@ -2089,8 +2097,6 @@ syncrepl_op_modify( Operation *op, SlapReply *rs )
 		op2.ors_filter = str2filter_x( op, op2.ors_filterstr.bv_val );
 
 		op2.o_callback = &cb;
-		cb.sc_response = syncrepl_resolve_cb;
-		cb.sc_private = &rx;
 		op2.o_bd = select_backend( &op2.o_req_ndn, 1 );
 		op2.o_bd->be_search( &op2, &rs1 );
 		newlist = rx.rx_mods;
@@ -2105,6 +2111,7 @@ syncrepl_op_modify( Operation *op, SlapReply *rs )
 		sc->sc_response = syncrepl_modify_cb;
 		sc->sc_private = mx;
 		sc->sc_next = op->o_callback;
+		sc->sc_cleanup = NULL;
 		op->o_callback = sc;
 		op->orm_no_opattrs = 1;
 		mx->mx_orig = op->orm_modlist;
@@ -2114,6 +2121,11 @@ syncrepl_op_modify( Operation *op, SlapReply *rs )
 				ml->sml_flags = 0;
 				ml->sml_op = SLAP_MOD_SOFTDEL;
 			}
+			else if ( ml->sml_op == LDAP_MOD_DELETE )
+				ml->sml_op = SLAP_MOD_SOFTDEL;
+			else if ( ml->sml_op == LDAP_MOD_ADD &&
+				ml->sml_desc->ad_type->sat_atype.at_single_value )
+				ml->sml_op = LDAP_MOD_REPLACE;
 		}
 		op->orm_modlist = newlist;
 		op->o_csn = mod->sml_nvalues[0];
@@ -2292,6 +2304,7 @@ syncrepl_message_to_op(
 			rc = op->o_bd->be_modify( op, &rs );
 			if ( SLAP_MULTIMASTER( op->o_bd )) {
 				LDAP_SLIST_REMOVE( &op->o_extra, &oes.oe, OpExtra, oe_next );
+				BER_BVZERO( &op->o_csn );
 			}
 			modlist = op->orm_modlist;
 			Debug( rc ? LDAP_DEBUG_ANY : LDAP_DEBUG_SYNC,
