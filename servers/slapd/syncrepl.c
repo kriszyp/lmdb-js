@@ -2016,8 +2016,13 @@ syncrepl_op_modify( Operation *op, SlapReply *rs )
 		overlay_entry_release_ov( op, e, 0, on );
 	}
 	/* mod is newer, let it go */
-	if ( match > 0 )
+	if ( match > 0 ) {
+		for ( mod = op->orm_modlist; mod; mod=mod->sml_next ) {
+			if ( mod->sml_op == LDAP_MOD_DELETE )
+				mod->sml_op = SLAP_MOD_SOFTDEL;
+		}
 		return SLAP_CB_CONTINUE;
+	}
 	/* equal? Should never happen */
 	if ( match == 0 )
 		return LDAP_SUCCESS;
@@ -2073,15 +2078,13 @@ syncrepl_op_modify( Operation *op, SlapReply *rs )
 		op2.ors_attrsonly = 0;
 
 		bv = mod->sml_nvalues[0];
-		ptr = strchr(bv.bv_val, '.');
-		bv.bv_len = ptr - bv.bv_val;
 
-		size = sizeof("(&(reqStart>=)(reqDN=))");
+		size = sizeof("(&(entryCSN>=)(reqDN=))");
 		size += bv.bv_len + op->o_req_ndn.bv_len + si->si_logfilterstr.bv_len;
 		op2.ors_filterstr.bv_val = op->o_tmpalloc( size, op->o_tmpmemctx );
 		op2.ors_filterstr.bv_len = sprintf(op2.ors_filterstr.bv_val,
-			"(&(reqStart>=%.*s)(reqDN=%s)%s)",
-			(int)bv.bv_len, bv.bv_val, op->o_req_ndn.bv_val, si->si_logfilterstr.bv_val );
+			"(&(entryCSN>=%s)(reqDN=%s)%s)",
+			bv.bv_val, op->o_req_ndn.bv_val, si->si_logfilterstr.bv_val );
 		op2.ors_filter = str2filter_x( op, op2.ors_filterstr.bv_val );
 
 		op2.o_callback = &cb;
@@ -2112,6 +2115,7 @@ syncrepl_op_modify( Operation *op, SlapReply *rs )
 			}
 		}
 		op->orm_modlist = newlist;
+		op->o_csn = mod->sml_nvalues[0];
 	}
 	return SLAP_CB_CONTINUE;
 }
