@@ -1778,7 +1778,12 @@ typedef struct OpExtraSync {
 static int
 syncrepl_op_modify( Operation *op, SlapReply *rs )
 {
+	slap_overinst *on = (slap_overinst *)op->o_bd->bd_info;
 	OpExtra *oex;
+	syncinfo_t *si;
+	Entry *e;
+	int rc, match = 0;
+	Modifications *mod;
 
 	LDAP_SLIST_FOREACH( oex, &op->o_extra, oe_next ) {
 		if ( oex->oe_key == (void *)syncrepl_message_to_op )
@@ -1787,10 +1792,59 @@ syncrepl_op_modify( Operation *op, SlapReply *rs )
 	if ( !oex )
 		return SLAP_CB_CONTINUE;
 
+	si = ((OpExtraSync *)oex)->oe_si;
+
 	/* Check if entryCSN in modlist is newer than entryCSN in entry.
 	 * We do it here because the op has been serialized by accesslog
 	 * by the time we get here. If the CSN is new enough, just do the
 	 * mod. If not, we need to resolve conflicts.
+	 */
+
+	for ( mod = op->orm_modlist; mod; mod=mod->sml_next ) {
+		if ( mod->sml_desc == slap_schema.si_ad_entryCSN ) break;
+	}
+	/* FIXME: what should we do if entryCSN is missing from the mod? */
+	if ( !mod )
+		return SLAP_CB_CONTINUE;
+
+	rc = overlay_entry_get_ov( op, &op->o_req_ndn, NULL, NULL, 0, &e, on );
+	if ( rc == 0 ) {
+		Attribute *a;
+		const char *text;
+		a = attr_find( e->e_attrs, slap_schema.si_ad_entryCSN );
+		value_match( &match, slap_schema.si_ad_entryCSN,
+			slap_schema.si_ad_entryCSN->ad_type->sat_ordering,
+			SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
+			&mod->sml_nvalues[0], &a->a_nvals[0], &text );
+		overlay_entry_release_ov( op, e, 0, on );
+	}
+	/* mod is newer, let it go */
+	if ( match > 0 )
+		return SLAP_CB_CONTINUE;
+	/* equal? Should never happen */
+	if ( match == 0 )
+		return LDAP_SUCCESS;
+
+	/* mod is older: resolve conflicts...
+	 * 1. Save/copy original modlist. Split Replace to Del/Add.
+	 * 2. Find all mods to this reqDN newer than the mod stamp.
+	 * 3. Resolve any mods in this request that affect attributes
+	 *    touched by newer mods.
+	 *    old         new
+	 *    delete all  delete all  drop
+	 *    delete all  delete X    SOFTDEL
+	 *    delete X    delete X    drop
+	 *    delete X    delete Y    OK
+	 *    delete all  add X       drop
+	 *    delete X    add X       drop
+	 *    delete X    add Y       OK
+	 *    add X       delete all  drop
+	 *    add X       delete X    drop
+	 *    add X       add X       drop
+	 *    add X       add Y       if SV, drop else OK
+	 *
+	 * 4. Swap original modlist back in response callback so
+	 *    that accesslog logs the original mod.
 	 */
 
 	return SLAP_CB_CONTINUE;
