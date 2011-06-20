@@ -420,6 +420,7 @@ ldif_read_file( const char *path, char **datap )
 	int res = -1;	/* 0:success, <0:error, >0:file too big/growing. */
 	struct stat st;
 	char *data = NULL, *ptr = NULL;
+	const char *msg;
 
 	if ( datap == NULL ) {
 		res = stat( path, &st );
@@ -453,14 +454,13 @@ ldif_read_file( const char *path, char **datap )
  done:
 	if ( res == 0 ) {
 #ifdef LDAP_DEBUG
-		Debug( LDAP_DEBUG_TRACE, "ldif_read_file: %s: \"%s\"\n",
-			datap ? "read entry file" : "entry file exists", path, 0 );
+		msg = "entry file exists";
 		if ( datap ) {
+			msg = "read entry file";
 			len = ptr - data;
 			ptr = strstr( data, "\n# CRC32" );
 			if (!ptr) {
-				Debug( LDAP_DEBUG_TRACE, "ldif_read_file: no checksum \"%s\"\n",
-					path, 0, 0 );
+				msg = "read entry file without checksum";
 			} else {
 				unsigned int crc1 = 0, crc2 = 1;
 				if ( sscanf( ptr + 9, "%08x", &crc1) == 1) {
@@ -474,9 +474,11 @@ ldif_read_file( const char *path, char **datap )
 				if ( crc1 != crc2 ) {
 					Debug( LDAP_DEBUG_ANY, "ldif_read_file: checksum error on \"%s\"\n",
 						path, 0, 0 );
+					return rc;
 				}
 			}
 		}
+		Debug( LDAP_DEBUG_TRACE, "ldif_read_file: %s: \"%s\"\n", msg, path, 0 );
 #endif /* LDAP_DEBUG */
 	} else {
 		if ( res < 0 && errno == ENOENT ) {
@@ -484,7 +486,7 @@ ldif_read_file( const char *path, char **datap )
 				"no entry file \"%s\"\n", path, 0, 0 );
 			rc = LDAP_NO_SUCH_OBJECT;
 		} else {
-			const char *msg = res < 0 ? STRERROR( errno ) : "bad stat() size";
+			msg = res < 0 ? STRERROR( errno ) : "bad stat() size";
 			Debug( LDAP_DEBUG_ANY, "ldif_read_file: %s for \"%s\"\n",
 				msg, path, 0 );
 			rc = LDAP_OTHER;
