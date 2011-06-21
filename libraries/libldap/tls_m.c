@@ -2891,7 +2891,9 @@ tlsm_init( void )
 	 * context in the child.
 	 */
 	if ( !nofork ) {
-		PR_SetEnv( "NSS_STRICT_NOFORK=DISABLED" );
+		/* will leak one time */
+		char *noforkenvvar = PL_strdup( "NSS_STRICT_NOFORK=DISABLED" );
+		PR_SetEnv( noforkenvvar );
 	}
 
 	return 0;
