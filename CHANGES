@@ -20,6 +20,7 @@ OpenLDAP 2.4.26 Engineering
 	Fixed slapd operations cache to 10 op limit (ITS#6944)
 	Fixed slapd syncrepl crash with non-replicated ops (ITS#6892)
 	Fixed slapd-bdb/hdb with sparse index ranges (ITS#6961)
+	Fixed slapd-monitor stray code cleanup (ITS#6974)
 	Fixed back-ldap ppolicy updates (ITS#6711)
 	Fixed slapd-meta reentry issues (ITS#6909)
 	Fixed slapd-sql length of data type (ITS#6657,ITS#6691)
