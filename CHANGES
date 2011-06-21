@@ -36,6 +36,7 @@ OpenLDAP 2.4.26 Engineering
 	Fixed slapo-pcache with pCacheBind (ITS#6954)
 	Fixed slapo-pcache database corruption (ITS#6831)
 	Fixed slapo-rwm with attributes with no equality rule (ITS#6943)
+	Fixed slapo-sssvlv limits check when global (ITS#6973)
 	Fixed slapo-syncprov with replicated subtrees (ITS#6872)
 	Fixed slapo-unique with managedsait (ITS#6641)
 	Fixed slapo-unique filter with zero-length values (ITS#6901)
