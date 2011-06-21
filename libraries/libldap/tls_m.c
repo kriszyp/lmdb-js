@@ -1320,7 +1320,7 @@ static int
 tlsm_init_ca_certs( tlsm_ctx *ctx, const char *cacertfile, const char *cacertdir )
 {
 	PRBool isca = PR_TRUE;
-	PRStatus status = PR_FAILURE;
+	PRStatus status = PR_SUCCESS;
 	PRErrorCode errcode = PR_SUCCESS;
 
 	if ( !cacertfile && !cacertdir ) {
@@ -1336,14 +1336,24 @@ tlsm_init_ca_certs( tlsm_ctx *ctx, const char *cacertfile, const char *cacertdir
 				   "TLS: %s is not a valid CA certificate file - error %d:%s.\n",
 				   cacertfile, errcode,
 				   PR_ErrorToString( errcode, PR_LANGUAGE_I_DEFAULT ) );
+			/* failure with cacertfile is a hard failure even if cacertdir is
+			   also specified and contains valid CA cert files */
+			status = PR_FAILURE;
 		} else {
 			Debug( LDAP_DEBUG_TRACE,
 				   "TLS: loaded CA certificate file %s.\n",
 				   cacertfile, 0, 0 );
-			status = PR_SUCCESS; /* have at least one good CA - we can proceed */
 		}
 	}
 
+	/* if cacertfile above failed, we will return failure, even
+	   if there is a valid CA cert in cacertdir - but we still
+	   process cacertdir in case the user has enabled trace level
+	   debugging so they can see the processing for cacertdir too */
+	/* any cacertdir failures are "soft" failures - if the user specifies
+	   no cert checking, then we allow the tls/ssl to continue, no matter
+	   what was specified for cacertdir, or the contents of the directory
+	   - this is different behavior than that of cacertfile */
 	if ( cacertdir ) {
 		PRFileInfo fi;
 		PRDir *dir;
@@ -1397,7 +1407,6 @@ tlsm_init_ca_certs( tlsm_ctx *ctx, const char *cacertfile, const char *cacertdir
 					Debug( LDAP_DEBUG_TRACE,
 						   "TLS: loaded CA certificate file %s from CA certificate directory %s.\n",
 						   fullpath, cacertdir, 0 );
-					status = PR_SUCCESS; /* found at least 1 valid CA file in the dir */
 				} else {
 					errcode = PR_GetError();
 					Debug( LDAP_DEBUG_TRACE,
@@ -1412,14 +1421,6 @@ tlsm_init_ca_certs( tlsm_ctx *ctx, const char *cacertfile, const char *cacertdir
 	}
 done:
 	if ( status != PR_SUCCESS ) {
-		const char *fmtstr = NULL;
-		if ( cacertfile && cacertdir ) {
-			fmtstr = "TLS: did not find any valid CA certificates in %s or %s\n";
-		} else {
-			fmtstr = "TLS: did not find any valid CA certificates in %s%s\n";
-		}
-		Debug( LDAP_DEBUG_ANY, fmtstr, cacertdir ? cacertdir : "",
-			   cacertfile ? cacertfile : "", 0 );
 		return -1;
 	}
 
