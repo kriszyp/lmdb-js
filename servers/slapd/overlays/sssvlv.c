@@ -873,6 +873,9 @@ static int sssvlv_op_search(
 	}
 	ldap_pvt_thread_mutex_unlock( &sort_conns_mutex );
 	if ( ok ) {
+		/* If we're a global overlay, this check got bypassed */
+		if ( !op->ors_limit && limits_check( op, rs ))
+			return rs->sr_err;
 		/* are we continuing a VLV search? */
 		if ( so && vc && vc->vc_context ) {
 			so->so_ctrl = sc;
