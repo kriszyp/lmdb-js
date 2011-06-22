@@ -2209,12 +2209,13 @@ ldap_back_proxy_authz_bind(
 		void		*defaults = NULL;
 		struct berval	authzID = BER_BVNULL;
 		int		freeauthz = 0;
-
-#ifdef SLAP_AUTH_DN
-		LDAPControl ctrl, *ctrls[2], **ctrlsp = NULL;
+		LDAPControl **ctrlsp = NULL;
 		LDAPMessage *result = NULL;
 		const char *rmech = NULL;
 		const char *save_text = rs->sr_text;
+
+#ifdef SLAP_AUTH_DN
+		LDAPControl ctrl, *ctrls[2];
 		int msgid;
 #endif /* SLAP_AUTH_DN */
 
