@@ -2,6 +2,8 @@ OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.26 Engineering
 	Added libldap LDAP_OPT_X_TLS_PACKAGE (ITS#6969)
+	Fixed libldap MozNSS with CACertDir (ITS#6975)
+	Fixed libldap MozNSS with PR_SetEnv (ITS#6862)
 	Fixed libldap descriptor leak (ITS#6929)
 	Fixed libldap socket leak (ITS#6930)
 	Fixed libldap get option crash (ITS#6931)
