@@ -116,6 +116,9 @@ if test "$BACKEND" = ldif ; then
 	exit 0
 fi
 
+echo "Test 058 is currently disabled"
+exit 0
+
 echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
 
