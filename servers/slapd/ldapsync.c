@@ -228,6 +228,28 @@ slap_sort_csn_sids( BerVarray csns, int *sids, int numcsns, void *memctx )
 	return rc;
 }
 
+void
+slap_insert_csn_sids(
+	struct sync_cookie *ck,
+	int pos,
+	int sid,
+	struct berval *csn
+)
+{
+	int i;
+	ck->numcsns++;
+	ck->ctxcsn = ch_realloc( ck->ctxcsn,
+		(ck->numcsns+1) * sizeof(struct berval));
+	BER_BVZERO( &ck->ctxcsn[ck->numcsns] );
+	ck->sids = ch_realloc( ck->sids, ck->numcsns * sizeof(int));
+	for ( i = ck->numcsns-1; i > pos; i-- ) {
+		ck->ctxcsn[i] = ck->ctxcsn[i-1];
+		ck->sids[i] = ck->sids[i-1];
+	}
+	ck->sids[i] = sid;
+	ber_dupbv( &ck->ctxcsn[i], csn );
+}
+
 int
 slap_parse_sync_cookie(
 	struct sync_cookie *cookie,
