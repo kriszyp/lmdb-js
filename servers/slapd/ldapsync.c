@@ -166,6 +166,68 @@ slap_parse_csn_sids( BerVarray csns, int numcsns, void *memctx )
 	return ret;
 }
 
+static slap_mr_match_func sidsort_cmp;
+
+static const MatchingRule sidsort_mr = {
+	{},
+	NULL,
+	{},
+	{},
+	0,
+	NULL, NULL, NULL, sidsort_cmp
+};
+static const AttributeType sidsort_at = {
+	{},
+	{},
+	NULL, NULL, (MatchingRule *)&sidsort_mr,
+	NULL, NULL, NULL, NULL, NULL, NULL, NULL, SLAP_AT_SORTED_VAL
+};
+static const AttributeDescription sidsort_ad = {
+	NULL,
+	(AttributeType *)&sidsort_at
+};
+
+static int
+sidsort_cmp(
+	int *matchp,
+	slap_mask_t flags,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *b1,
+	void *v2 )
+{
+	struct berval *b2 = v2;
+	*matchp = b1->bv_len - b2->bv_len;
+	return LDAP_SUCCESS;
+}
+
+/* sort CSNs by SID. Use a fake Attribute with our own
+ * syntax and matching rule, which sorts the nvals by
+ * bv_len order. Stuff our sids into the bv_len.
+ */
+int
+slap_sort_csn_sids( BerVarray csns, int *sids, int numcsns, void *memctx )
+{
+	Attribute a;
+	const char *text;
+	int i, rc;
+
+	a.a_desc = (AttributeDescription *)&sidsort_ad;
+	a.a_nvals = slap_sl_malloc( numcsns * sizeof(struct berval), memctx );
+	for ( i=0; i<numcsns; i++ ) {
+		a.a_nvals[i].bv_len = sids[i];
+		a.a_nvals[i].bv_val = NULL;
+	}
+	a.a_vals = csns;
+	a.a_numvals = numcsns;
+	a.a_flags = 0;
+	rc = slap_sort_vals( (Modifications *)&a, &text, &i, memctx );
+	for ( i=0; i<numcsns; i++ )
+		sids[i] = a.a_nvals[i].bv_len;
+	slap_sl_free( a.a_nvals, memctx );
+	return rc;
+}
+
 int
 slap_parse_sync_cookie(
 	struct sync_cookie *cookie,
@@ -280,6 +342,8 @@ slap_parse_sync_cookie(
 	if ( cookie->numcsns ) {
 		cookie->sids = slap_parse_csn_sids( cookie->ctxcsn, cookie->numcsns,
 			memctx );
+		if ( cookie->numcsns > 1 )
+			slap_sort_csn_sids( cookie->ctxcsn, cookie->sids, cookie->numcsns, memctx );
 	}
 	return 0;
 }
