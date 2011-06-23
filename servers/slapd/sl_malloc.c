@@ -98,7 +98,7 @@ static void print_slheap(int level, void *ctx);
 #ifdef NO_THREADS
 static struct slab_heap *slheap;
 # define SET_MEMCTX(thrctx, memctx, sfree)	((void) (slheap = (memctx)))
-# define GET_MEMCTX(thrctx, memctxp)		(*(memctxp) = slheap))
+# define GET_MEMCTX(thrctx, memctxp)		(*(memctxp) = slheap)
 #else
 # define memctx_key ((void *) slap_sl_mem_init)
 # define SET_MEMCTX(thrctx, memctx, kfree) \
