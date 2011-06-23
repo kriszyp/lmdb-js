@@ -158,7 +158,7 @@ ldap_parse_ldif_record_x(
 			fprintf( stderr, _("%s: invalid format (line %d) entry: \"%s\"\n"),
 				errstr, linenum+i, dn == NULL ? "" : dn );
 			rc = LDAP_PARAM_ERROR;
-			break;
+			goto leave;
 		}
 		lr->lr_freeval[i] = freev;
 
