@@ -469,8 +469,8 @@ main( int argc, char *argv[] )
 	}
 
 skip:
-	if ( verbose || ( code != LDAP_SUCCESS ) ||
-		matcheddn || text || refs || ctrls )
+	if ( verbose || code != LDAP_SUCCESS ||
+		( matcheddn && *matcheddn ) || ( text && *text ) || refs || ctrls )
 	{
 		printf( _("Result: %s (%d)\n"), ldap_err2string( code ), code );
 
