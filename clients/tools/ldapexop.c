@@ -318,7 +318,8 @@ main( int argc, char *argv[] )
 		}
 	}
 
-	if( verbose || ( code != LDAP_SUCCESS ) || matcheddn || text || refs ) {
+	if( verbose || code != LDAP_SUCCESS ||
+		( matcheddn && *matcheddn ) || ( text && *text ) || refs ) {
 		printf( _("Result: %s (%d)\n"), ldap_err2string( code ), code );
 
 		if( text && *text ) {
