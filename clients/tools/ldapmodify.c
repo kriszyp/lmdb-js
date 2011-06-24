@@ -449,7 +449,7 @@ process_ldif_rec( char *rbuf, int linenum )
 			fprintf( stderr, _("%s: invalid format (line %d) entry: \"%s\"\n"),
 				prog, linenum+i, dn == NULL ? "" : dn );
 			rc = LDAP_PARAM_ERROR;
-			break;
+			goto leave;
 		}
 		freeval[i] = freev;
 
