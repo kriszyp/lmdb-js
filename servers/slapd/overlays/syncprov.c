@@ -2548,6 +2548,21 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 			i++;
 		}
 
+		if (srs->sr_state.numcsns != numcsns) {
+			/* consumer doesn't have the right number of CSNs */
+			changed = SS_CHANGED;
+			if ( srs->sr_state.ctxcsn ) {
+				ber_bvarray_free_x( srs->sr_state.ctxcsn, op->o_tmpmemctx );
+				srs->sr_state.ctxcsn = NULL;
+			}
+			if ( srs->sr_state.sids ) {
+				slap_sl_free( srs->sr_state.sids, op->o_tmpmemctx );
+				srs->sr_state.sids = NULL;
+			}
+			srs->sr_state.numcsns = 0;
+			goto shortcut;
+		}
+
 		/* Find the smallest CSN which differs from contextCSN */
 		mincsn.bv_len = 0;
 		maxcsn.bv_len = 0;
@@ -2594,28 +2609,24 @@ bailout:
 		}
 
 		/* If nothing has changed, shortcut it */
-		if ( srs->sr_state.numcsns == numcsns ) {
-			if ( !changed && !dirty ) {
-				do_present = 0;
+		if ( !changed && !dirty ) {
+			do_present = 0;
 no_change:		if ( !(op->o_sync_mode & SLAP_SYNC_PERSIST) ) {
-					LDAPControl	*ctrls[2];
+				LDAPControl	*ctrls[2];
 
-					ctrls[0] = NULL;
-					ctrls[1] = NULL;
-					syncprov_done_ctrl( op, rs, ctrls, 0, 0,
-						NULL, LDAP_SYNC_REFRESH_DELETES );
-					rs->sr_ctrls = ctrls;
-					rs->sr_err = LDAP_SUCCESS;
-					send_ldap_result( op, rs );
-					rs->sr_ctrls = NULL;
-					return rs->sr_err;
-				}
-				goto shortcut;
+				ctrls[0] = NULL;
+				ctrls[1] = NULL;
+				syncprov_done_ctrl( op, rs, ctrls, 0, 0,
+					NULL, LDAP_SYNC_REFRESH_DELETES );
+				rs->sr_ctrls = ctrls;
+				rs->sr_err = LDAP_SUCCESS;
+				send_ldap_result( op, rs );
+				rs->sr_ctrls = NULL;
+				return rs->sr_err;
 			}
-		} else {
-			/* consumer doesn't have the right number of CSNs */
-			changed = SS_CHANGED;
+			goto shortcut;
 		}
+
 		/* Do we have a sessionlog for this search? */
 		sl=si->si_logs;
 		if ( sl ) {
