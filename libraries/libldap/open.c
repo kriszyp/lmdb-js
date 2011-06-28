@@ -550,6 +550,7 @@ ldap_int_check_async_open( LDAP *ld, ber_socket_t sd )
 		break;
 
 	default:
+		ld->ld_errno = LDAP_CONNECT_ERROR;
 		return -1;
 
 	case -2:
