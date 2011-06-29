@@ -1030,10 +1030,12 @@ tlsm_auth_cert_handler(void *arg, PRFileDesc *fd,
 {
 	SECCertificateUsage certUsage = isServer ? certificateUsageSSLClient : certificateUsageSSLServer;
 	SECStatus ret = SECSuccess;
+	CERTCertificate *peercert = SSL_PeerCertificate( fd );
 
-	ret = tlsm_verify_cert( (CERTCertDBHandle *)arg, SSL_PeerCertificate( fd ),
+	ret = tlsm_verify_cert( (CERTCertDBHandle *)arg, peercert,
 							SSL_RevealPinArg( fd ),
 							checksig, certUsage, 0 );
+	CERT_DestroyCertificate( peercert );
 
 	return ret;
 }
