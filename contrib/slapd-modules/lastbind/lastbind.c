@@ -251,6 +251,8 @@ int lastbind_initialize()
 		}
 	}
 
+	ad_authTimestamp->ad_type->sat_flags |= SLAP_AT_MANAGEABLE;
+
 	lastbind.on_bi.bi_type = "lastbind";
 	lastbind.on_bi.bi_db_init = lastbind_db_init;
 	lastbind.on_bi.bi_db_close = lastbind_db_close;
