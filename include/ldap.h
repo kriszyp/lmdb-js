@@ -384,7 +384,7 @@ typedef struct ldapcontrol {
 #define	LDAP_EXOP_REFRESH		"1.3.6.1.4.1.1466.101.119.1"	/* RFC 2589 */
 #define	LDAP_TAG_EXOP_REFRESH_REQ_DN	((ber_tag_t) 0x80U)
 #define	LDAP_TAG_EXOP_REFRESH_REQ_TTL	((ber_tag_t) 0x81U)
-#define	LDAP_TAG_EXOP_REFRESH_RES_TTL	((ber_tag_t) 0x80U)
+#define	LDAP_TAG_EXOP_REFRESH_RES_TTL	((ber_tag_t) 0x81U)
 
 #define LDAP_EXOP_WHO_AM_I		"1.3.6.1.4.1.4203.1.11.3"		/* RFC 4532 */
 #define LDAP_EXOP_X_WHO_AM_I	LDAP_EXOP_WHO_AM_I
