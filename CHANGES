@@ -1,6 +1,6 @@
 OpenLDAP 2.4 Change Log
 
-OpenLDAP 2.4.26 Release (2011/06/29)
+OpenLDAP 2.4.26 Release (2011/06/30)
 	Added libldap LDAP_OPT_X_TLS_PACKAGE (ITS#6969)
 	Fixed libldap MozNSS with CACertDir (ITS#6975)
 	Fixed libldap MozNSS with PR_SetEnv (ITS#6862)
