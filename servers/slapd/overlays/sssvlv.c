@@ -515,8 +515,10 @@ range_err:
 		}
 		cur_node = tavl_find3( so->so_tree, sn, node_cmp, &j );
 		/* didn't find >= match */
-		if ( j > 0 )
-			cur_node = NULL;
+		if ( j > 0 ) {
+			if ( cur_node )
+				cur_node = tavl_next( cur_node, TAVL_DIR_RIGHT );
+		}
 		op->o_tmpfree( sn, op->o_tmpmemctx );
 
 		if ( !cur_node ) {
@@ -534,7 +536,7 @@ range_err:
 			}
 			for (i=0; tmp_node != cur_node;
 				tmp_node = tavl_next( tmp_node, dir ), i++);
-			so->so_vlv_target = i;
+			so->so_vlv_target = (dir == TAVL_DIR_RIGHT) ? i+1 : so->so_nentries - i;
 		}
 		if ( bv.bv_val != vc->vc_value.bv_val )
 			op->o_tmpfree( bv.bv_val, op->o_tmpmemctx );
