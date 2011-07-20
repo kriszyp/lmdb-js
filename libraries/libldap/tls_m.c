@@ -671,6 +671,7 @@ tlsm_bad_cert_handler(void *arg, PRFileDesc *ssl)
 	case SEC_ERROR_UNTRUSTED_ISSUER:
 	case SEC_ERROR_UNKNOWN_ISSUER:
 	case SEC_ERROR_EXPIRED_CERTIFICATE:
+	case SEC_ERROR_EXPIRED_ISSUER_CERTIFICATE:
 		if (ctx->tc_verify_cert) {
 			success = SECFailure;
 		}
