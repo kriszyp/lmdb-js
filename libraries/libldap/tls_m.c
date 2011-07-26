@@ -1811,6 +1811,14 @@ tlsm_get_client_auth_data( void *arg, PRFileDesc *fd,
 		Debug( LDAP_DEBUG_ANY,
 			   "TLS: error: unable to perform client certificate authentication for "
 			   "certificate named %s\n", ctx->tc_certname, 0, 0 );
+		if ( pRetKey && *pRetKey ) {
+			SECKEY_DestroyPrivateKey( *pRetKey );
+			*pRetKey = NULL;
+		}
+		if ( pRetCert && *pRetCert ) {
+			CERT_DestroyCertificate( *pRetCert );
+			*pRetCert = NULL;
+		}
 		return SECFailure;
 	}
 
@@ -2162,6 +2170,8 @@ tlsm_deferred_ctx_init( void *arg )
 			Debug( LDAP_DEBUG_ANY, 
 			       "TLS: error: unable to find and verify server's cert and key for certificate %s\n",
 			       ctx->tc_certname, 0, 0 );
+			CERT_DestroyCertificate( serverCert );
+			SECKEY_DestroyPrivateKey( serverKey );
 			return -1;
 		}
 
