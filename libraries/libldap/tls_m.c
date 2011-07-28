@@ -96,6 +96,7 @@ typedef struct tlsm_ctx {
 #endif
 	PK11GenericObject **tc_pem_objs; /* array of objects to free */
 	int tc_n_pem_objs; /* number of objects */
+	PRBool tc_warn_only; /* only warn of errors in validation */
 #ifdef LDAP_R_COMPILE
 	ldap_pvt_thread_mutex_t tc_refmutex;
 #endif
@@ -945,6 +946,11 @@ tlsm_verify_cert(CERTCertDBHandle *handle, CERTCertificate *cert, void *pinarg,
 	CERTVerifyLog verifylog;
 	SECStatus ret = SECSuccess;
 	const char *name;
+	int debug_level = LDAP_DEBUG_ANY;
+
+	if ( errorToIgnore == -1 ) {
+		debug_level = LDAP_DEBUG_TRACE;
+	}
 
 	/* the log captures information about every cert in the chain, so we can tell
 	   which cert caused the problem and what the problem was */
@@ -965,7 +971,7 @@ tlsm_verify_cert(CERTCertDBHandle *handle, CERTCertificate *cert, void *pinarg,
 		/* it is possible for CERT_VerifyCertificate return with an error with no logging */
 		if ( ret != SECSuccess ) {
 			PRErrorCode errcode = PR_GetError();
-			Debug( LDAP_DEBUG_ANY,
+			Debug( debug_level,
 				   "TLS: certificate [%s] is not valid - error %d:%s.\n",
 				   name ? name : "(unknown)",
 				   errcode, PR_ErrorToString( errcode, PR_LANGUAGE_I_DEFAULT ) );
@@ -995,17 +1001,17 @@ tlsm_verify_cert(CERTCertDBHandle *handle, CERTCertificate *cert, void *pinarg,
 							   "please fix your certs if possible\n", name, 0, 0 );
 					} else { /* does not have basicconstraint, or some other error */
 						ret = SECFailure;
-						Debug( LDAP_DEBUG_ANY,
+						Debug( debug_level,
 							   "TLS: certificate [%s] is not valid - CA cert is not valid\n",
 							   name, 0, 0 );
 					}
 				} else if ( errorToIgnore && ( node->error == errorToIgnore ) ) {
-					Debug( LDAP_DEBUG_ANY,
+					Debug( debug_level,
 						   "TLS: Warning: ignoring error for certificate [%s] - error %ld:%s.\n",
 						   name, node->error, PR_ErrorToString( node->error, PR_LANGUAGE_I_DEFAULT ) );
 				} else {
 					ret = SECFailure;
-					Debug( LDAP_DEBUG_ANY,
+					Debug( debug_level,
 						   "TLS: certificate [%s] is not valid - error %ld:%s.\n",
 						   name, node->error, PR_ErrorToString( node->error, PR_LANGUAGE_I_DEFAULT ) );
 				}
@@ -1020,7 +1026,9 @@ tlsm_verify_cert(CERTCertDBHandle *handle, CERTCertificate *cert, void *pinarg,
 	if ( ret == SECSuccess ) {
 		Debug( LDAP_DEBUG_TRACE,
 			   "TLS: certificate [%s] is valid\n", name, 0, 0 );
-	}		
+	} else if ( errorToIgnore == -1 ) {
+		ret = SECSuccess;
+	}
 
 	return ret;
 }
@@ -1032,10 +1040,15 @@ tlsm_auth_cert_handler(void *arg, PRFileDesc *fd,
 	SECCertificateUsage certUsage = isServer ? certificateUsageSSLClient : certificateUsageSSLServer;
 	SECStatus ret = SECSuccess;
 	CERTCertificate *peercert = SSL_PeerCertificate( fd );
+	int errorToIgnore = 0;
+	tlsm_ctx *ctx = (tlsm_ctx *)arg;
 
-	ret = tlsm_verify_cert( (CERTCertDBHandle *)arg, peercert,
+	if (ctx && ctx->tc_warn_only )
+		errorToIgnore = -1;
+
+	ret = tlsm_verify_cert( ctx->tc_certdb, peercert,
 							SSL_RevealPinArg( fd ),
-							checksig, certUsage, 0 );
+							checksig, certUsage, errorToIgnore );
 	CERT_DestroyCertificate( peercert );
 
 	return ret;
@@ -1758,6 +1771,8 @@ tlsm_find_and_verify_cert_key(tlsm_ctx *ctx, PRFileDesc *fd, const char *certnam
 		SECCertificateUsage certUsage;
 		PRBool checkSig = PR_TRUE;
 		SECStatus status;
+		/* may not have a CA cert - ok - ignore SEC_ERROR_UNKNOWN_ISSUER */
+		int errorToIgnore = SEC_ERROR_UNKNOWN_ISSUER;
 
 		if ( pRetKey ) {
 			*pRetKey = key; /* caller will deal with this */
@@ -1774,9 +1789,11 @@ tlsm_find_and_verify_cert_key(tlsm_ctx *ctx, PRFileDesc *fd, const char *certnam
 		} else {
 			checkSig = PR_FALSE;
 		}
-		/* may not have a CA cert - ok - ignore SEC_ERROR_UNKNOWN_ISSUER */
+		if ( ctx->tc_warn_only ) {
+			errorToIgnore = -1;
+		}
 		status = tlsm_verify_cert( ctx->tc_certdb, cert, pin_arg,
-								   checkSig, certUsage, SEC_ERROR_UNKNOWN_ISSUER );
+								   checkSig, certUsage, errorToIgnore );
 		if ( status == SECSuccess ) {
 			rc = 0;
 		}
@@ -1803,10 +1820,14 @@ tlsm_get_client_auth_data( void *arg, PRFileDesc *fd,
 {
 	tlsm_ctx *ctx = (tlsm_ctx *)arg;
 	int rc;
+	PRBool saveval;
 
 	/* don't need caNames - this function will call CERT_VerifyCertificateNow
 	   which will verify the cert against the known CAs */
+	saveval = ctx->tc_warn_only;
+	ctx->tc_warn_only = PR_TRUE;
 	rc = tlsm_find_and_verify_cert_key( ctx, fd, ctx->tc_certname, 0, pRetCert, pRetKey );
+	ctx->tc_warn_only = saveval;
 	if ( rc ) {
 		Debug( LDAP_DEBUG_ANY,
 			   "TLS: error: unable to perform client certificate authentication for "
@@ -1837,8 +1858,12 @@ tlsm_clientauth_init( tlsm_ctx *ctx )
 {
 	SECStatus status = SECFailure;
 	int rc;
+	PRBool saveval;
 
+	saveval = ctx->tc_warn_only;
+	ctx->tc_warn_only = PR_TRUE;
 	rc = tlsm_find_and_verify_cert_key( ctx, ctx->tc_model, ctx->tc_certname, 0, NULL, NULL );
+	ctx->tc_warn_only = saveval;
 	if ( rc ) {
 		Debug( LDAP_DEBUG_ANY,
 			   "TLS: error: unable to set up client certificate authentication for "
@@ -1887,6 +1912,7 @@ tlsm_ctx_new ( struct ldapoptions *lo )
 #endif /* HAVE_NSS_INITCONTEXT */
 		ctx->tc_pem_objs = NULL;
 		ctx->tc_n_pem_objs = 0;
+		ctx->tc_warn_only = PR_FALSE;
 	}
 	return (tls_ctx *)ctx;
 }
@@ -2048,7 +2074,9 @@ tlsm_deferred_ctx_init( void *arg )
 		return -1;
 	}
 
-	if ( ctx->tc_require_cert ) {
+	if ( !ctx->tc_require_cert ) {
+		ctx->tc_verify_cert = PR_FALSE;
+	} else if ( !ctx->tc_is_server ) {
 		request_cert = PR_TRUE;
 		require_cert = SSL_REQUIRE_NO_ERROR;
 		if ( ctx->tc_require_cert == LDAP_OPT_X_TLS_DEMAND ||
@@ -2057,8 +2085,22 @@ tlsm_deferred_ctx_init( void *arg )
 		}
 		if ( ctx->tc_require_cert != LDAP_OPT_X_TLS_ALLOW )
 			ctx->tc_verify_cert = PR_TRUE;
-	} else {
-		ctx->tc_verify_cert = PR_FALSE;
+	} else { /* server */
+		/* server does not request certs by default */
+		/* if allow - client may send cert, server will ignore if errors */
+		/* if try - client may send cert, server will error if bad cert */
+		/* if hard or demand - client must send cert, server will error if bad cert */
+		request_cert = PR_TRUE;
+		require_cert = SSL_REQUIRE_NO_ERROR;
+		if ( ctx->tc_require_cert == LDAP_OPT_X_TLS_DEMAND ||
+		     ctx->tc_require_cert == LDAP_OPT_X_TLS_HARD ) {
+			require_cert = SSL_REQUIRE_ALWAYS;
+		}
+		if ( ctx->tc_require_cert != LDAP_OPT_X_TLS_ALLOW ) {
+			ctx->tc_verify_cert = PR_TRUE;
+		} else {
+			ctx->tc_warn_only = PR_TRUE;
+		}
 	}
 
 	if ( SECSuccess != SSL_OptionSet( ctx->tc_model, SSL_REQUEST_CERTIFICATE, request_cert ) ) {
@@ -2193,7 +2235,7 @@ tlsm_deferred_ctx_init( void *arg )
 
 	/* Callback for authenticating certificate */
 	if ( SSL_AuthCertificateHook( ctx->tc_model, tlsm_auth_cert_handler,
-                                  ctx->tc_certdb ) != SECSuccess ) {
+                                  ctx ) != SECSuccess ) {
 		PRErrorCode err = PR_GetError();
 		Debug( LDAP_DEBUG_ANY, 
 		       "TLS: error: could not set auth cert handler for moznss - error %d:%s\n",
