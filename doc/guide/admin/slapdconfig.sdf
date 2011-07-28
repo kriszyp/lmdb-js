@@ -262,7 +262,7 @@ This directive marks the beginning of a backend declaration.
 supported backend types listed in Table 6.2.
 
 !block table; align=Center; coltags="EX,N"; \
-	title="Table 5.2: Database Backends"
+	title="Table 6.2: Database Backends"
 Types	Description
 bdb	Berkeley DB transactional backend
 dnssrv	DNS SRV backend
