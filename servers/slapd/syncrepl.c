@@ -823,7 +823,7 @@ do_syncrep2(
 
 	slap_dup_sync_cookie( &syncCookie_req, &si->si_syncCookie );
 
-	if ( abs(si->si_type) == LDAP_SYNC_REFRESH_AND_PERSIST ) {
+	if ( abs(si->si_type) == LDAP_SYNC_REFRESH_AND_PERSIST && si->si_refreshDone ) {
 		tout_p = &tout;
 	} else {
 		tout_p = NULL;
@@ -1241,6 +1241,9 @@ do_syncrep2(
 						si->si_refreshDone = 1;
 					}
 					ber_scanf( ber, /*"{"*/ "}" );
+					if ( abs(si->si_type) == LDAP_SYNC_REFRESH_AND_PERSIST &&
+						si->si_refreshDone )
+						tout_p = &tout;
 					break;
 				case LDAP_TAG_SYNC_ID_SET:
 					Debug( LDAP_DEBUG_SYNC,
