@@ -195,13 +195,16 @@ int config_check_vals(ConfigTable *Conf, ConfigArgs *c, int check_only ) {
 	c->type = arg_user;
 	memset(&c->values, 0, sizeof(c->values));
 	if(arg_type == ARG_STRING) {
+		assert( c->argc == 2 );
 		if ( !check_only )
 			c->value_string = ch_strdup(c->argv[1]);
 	} else if(arg_type == ARG_BERVAL) {
+		assert( c->argc == 2 );
 		if ( !check_only )
 			ber_str2bv( c->argv[1], 0, 1, &c->value_bv );
 	} else if(arg_type == ARG_DN) {
 		struct berval bv;
+		assert( c->argc == 2 );
 		ber_str2bv( c->argv[1], 0, 0, &bv );
 		rc = dnPrettyNormal( NULL, &bv, &c->value_dn, &c->value_ndn, NULL );
 		if ( rc != LDAP_SUCCESS ) {
@@ -216,6 +219,7 @@ int config_check_vals(ConfigTable *Conf, ConfigArgs *c, int check_only ) {
 		}
 	} else if(arg_type == ARG_ATDESC) {
 		const char *text = NULL;
+		assert( c->argc == 2 );
 		c->value_ad = NULL;
 		rc = slap_str2ad( c->argv[1], &c->value_ad, &text );
 		if ( rc != LDAP_SUCCESS ) {
@@ -229,6 +233,7 @@ int config_check_vals(ConfigTable *Conf, ConfigArgs *c, int check_only ) {
 		iarg = 0; larg = 0; barg = 0;
 		switch(arg_type) {
 			case ARG_INT:
+				assert( c->argc == 2 );
 				if ( lutil_atoix( &iarg, c->argv[1], 0 ) != 0 ) {
 					snprintf( c->cr_msg, sizeof( c->cr_msg ),
 						"<%s> unable to parse \"%s\" as int",
@@ -239,6 +244,7 @@ int config_check_vals(ConfigTable *Conf, ConfigArgs *c, int check_only ) {
 				}
 				break;
 			case ARG_UINT:
+				assert( c->argc == 2 );
 				if ( lutil_atoux( &uiarg, c->argv[1], 0 ) != 0 ) {
 					snprintf( c->cr_msg, sizeof( c->cr_msg ),
 						"<%s> unable to parse \"%s\" as unsigned int",
@@ -249,6 +255,7 @@ int config_check_vals(ConfigTable *Conf, ConfigArgs *c, int check_only ) {
 				}
 				break;
 			case ARG_LONG:
+				assert( c->argc == 2 );
 				if ( lutil_atolx( &larg, c->argv[1], 0 ) != 0 ) {
 					snprintf( c->cr_msg, sizeof( c->cr_msg ),
 						"<%s> unable to parse \"%s\" as long",
@@ -259,6 +266,7 @@ int config_check_vals(ConfigTable *Conf, ConfigArgs *c, int check_only ) {
 				}
 				break;
 			case ARG_ULONG:
+				assert( c->argc == 2 );
 				if ( lutil_atoulx( &ularg, c->argv[1], 0 ) != 0 ) {
 					snprintf( c->cr_msg, sizeof( c->cr_msg ),
 						"<%s> unable to parse \"%s\" as unsigned long",
@@ -270,6 +278,7 @@ int config_check_vals(ConfigTable *Conf, ConfigArgs *c, int check_only ) {
 				break;
 			case ARG_BER_LEN_T: {
 				unsigned long	l;
+				assert( c->argc == 2 );
 				if ( lutil_atoulx( &l, c->argv[1], 0 ) != 0 ) {
 					snprintf( c->cr_msg, sizeof( c->cr_msg ),
 						"<%s> unable to parse \"%s\" as ber_len_t",
@@ -281,6 +290,8 @@ int config_check_vals(ConfigTable *Conf, ConfigArgs *c, int check_only ) {
 				barg = (ber_len_t)l;
 				} break;
 			case ARG_ON_OFF:
+				/* note: this is an explicit exception
+				 * to the "need exactly 2 args" rule */
 				if (c->argc == 1) {
 					iarg = 1;
 				} else if ( !strcasecmp(c->argv[1], "on") ||
