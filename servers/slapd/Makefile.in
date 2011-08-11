@@ -402,6 +402,10 @@ all-cffiles: slapd $(SLAPD_DYNAMIC_BACKENDS) dynamic_overlays
 		-e "s;%LOCALSTATEDIR%;$$localstatedir;" \
 		-e "s;%MODULEDIR%;$$moduledir;" \
 		$(srcdir)/slapd.conf > slapd.conf.tmp ; \
+	$(SED) -e "s;%SYSCONFDIR%;$$sysconfdir;" \
+		-e "s;%LOCALSTATEDIR%;$$localstatedir;" \
+		-e "s;%MODULEDIR%;$$moduledir;" \
+		$(srcdir)/slapd.ldif > slapd.ldif.tmp ; \
 	touch all-cffiles
 
 install-schema: FORCE
@@ -426,6 +430,14 @@ install-conf: FORCE
 		$(INSTALL) $(INSTALLFLAGS) -m 600 slapd.conf.tmp $(DESTDIR)$(sysconfdir)/slapd.conf; \
 	else \
 		echo "PRESERVING EXISTING CONFIGURATION FILE $(DESTDIR)$(sysconfdir)/slapd.conf" ; \
+	fi
+	$(INSTALL) $(INSTALLFLAGS) -m 600 slapd.ldif.tmp $(DESTDIR)$(sysconfdir)/slapd.ldif.default
+	if test ! -f $(DESTDIR)$(sysconfdir)/slapd.ldif; then \
+		echo "installing slapd.ldif in $(sysconfdir)"; \
+		echo "$(INSTALL) $(INSTALLFLAGS) -m 600 slapd.ldif.tmp $(DESTDIR)$(sysconfdir)/slapd.ldif"; \
+		$(INSTALL) $(INSTALLFLAGS) -m 600 slapd.ldif.tmp $(DESTDIR)$(sysconfdir)/slapd.ldif; \
+	else \
+		echo "PRESERVING EXISTING CONFIGURATION FILE $(DESTDIR)$(sysconfdir)/slapd.ldif" ; \
 	fi
 
 install-db-config: FORCE
