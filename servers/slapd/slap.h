@@ -143,10 +143,10 @@ LDAP_BEGIN_DECL
 
 #define SLAP_TEXT_BUFLEN (256)
 
-/* psuedo error code indicating abandoned operation */
+/* pseudo error code indicating abandoned operation */
 #define SLAPD_ABANDON (-1024)
 
-/* psuedo error code indicating disconnect */
+/* pseudo error code indicating disconnect */
 #define SLAPD_DISCONNECT (-1025)
 
 /* unknown config file directive */
