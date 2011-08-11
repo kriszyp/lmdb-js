@@ -779,22 +779,6 @@ private_conn_setup( LDAP *ld )
 		fprintf( stderr, _("Could not set LDAP_OPT_DEREF %d\n"), deref );
 		exit( EXIT_FAILURE );
 	}
-	if (timelimit > 0 &&
-		ldap_set_option( ld, LDAP_OPT_TIMELIMIT, (void *) &timelimit )
-			!= LDAP_OPT_SUCCESS )
-	{
-		fprintf( stderr,
-			_("Could not set LDAP_OPT_TIMELIMIT %d\n"), timelimit );
-		exit( EXIT_FAILURE );
-	}
-	if (sizelimit > 0 &&
-		ldap_set_option( ld, LDAP_OPT_SIZELIMIT, (void *) &sizelimit )
-			!= LDAP_OPT_SUCCESS )
-	{
-		fprintf( stderr,
-			_("Could not set LDAP_OPT_SIZELIMIT %d\n"), sizelimit );
-		exit( EXIT_FAILURE );
-	}
 }
 
 int
