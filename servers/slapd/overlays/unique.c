@@ -184,6 +184,14 @@ unique_new_domain_uri ( unique_domain_uri **urip,
 
 	uri = ch_calloc ( 1, sizeof ( unique_domain_uri ) );
 
+	if ( url_desc->lud_host && url_desc->lud_host[0] ) {
+		snprintf( c->cr_msg, sizeof( c->cr_msg ),
+			  "host <%s> not allowed in URI",
+			  url_desc->lud_host );
+		rc = ARG_BAD_CONF;
+		goto exit;
+	}
+
 	if ( url_desc->lud_dn && url_desc->lud_dn[0] ) {
 		ber_str2bv( url_desc->lud_dn, 0, 0, &bv );
 		rc = dnPrettyNormal( NULL,
