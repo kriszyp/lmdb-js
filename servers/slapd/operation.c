@@ -113,23 +113,27 @@ slap_op_free( Operation *op, void *ctx )
 
 	if ( !BER_BVISNULL( &op->o_csn ) ) {
 		op->o_tmpfree( op->o_csn.bv_val, op->o_tmpmemctx );
-		BER_BVZERO( &op->o_csn );
 	}
 
 	if ( op->o_pagedresults_state != NULL ) {
 		op->o_tmpfree( op->o_pagedresults_state, op->o_tmpmemctx );
-		op->o_pagedresults_state = NULL;
 	}
 
+	/* Selectively zero out the struct. Ignore fields that will
+	 * get explicitly initialized later anyway. Keep o_abandon intact.
+	 */
 	opbuf = (OperationBuffer *) op;
-	memset( opbuf, 0, sizeof(*opbuf) );
-	op->o_hdr = &opbuf->ob_hdr;
+	op->o_bd = NULL;
+	BER_BVZERO( &op->o_req_dn );
+	BER_BVZERO( &op->o_req_ndn );
+	memset( &op->o_request, 0, sizeof( op->o_request ));
+	memset( &op->o_do_not_cache, 0, sizeof( Operation ) - offsetof( Operation, o_do_not_cache ));
 	op->o_controls = opbuf->ob_controls;
 
 	if ( ctx ) {
 		Operation *op2 = NULL;
 		ldap_pvt_thread_pool_setkey( ctx, (void *)slap_op_free,
-			op, slap_op_q_destroy, &op2, NULL );
+			op, slap_op_q_destroy, (void **)&op2, NULL );
 		LDAP_STAILQ_NEXT( op, o_next ) = op2;
 		if ( op2 ) {
 			op->o_tincr = op2->o_tincr + 1;
@@ -180,6 +184,8 @@ slap_op_alloc(
 			otmp = LDAP_STAILQ_NEXT( op, o_next );
 			ldap_pvt_thread_pool_setkey( ctx, (void *)slap_op_free,
 				otmp, slap_op_q_destroy, NULL, NULL );
+			op->o_abandon = 0;
+			op->o_cancel = 0;
 		}
 	}
 	if (!op) {
@@ -194,7 +200,6 @@ slap_op_alloc(
 
 	slap_op_time( &op->o_time, &op->o_tincr );
 	op->o_opid = id;
-	op->o_res_ber = NULL;
 
 #if defined( LDAP_SLAPI )
 	if ( slapi_plugins_used ) {
