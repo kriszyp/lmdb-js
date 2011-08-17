@@ -156,7 +156,7 @@ dds_expire( void *ctx, dds_info_t *di )
 	op->ors_slimit = SLAP_NO_LIMIT;
 	op->ors_attrs = slap_anlist_no_attrs;
 
-	expire = slap_get_time() + di->di_tolerance;
+	expire = slap_get_time() - di->di_tolerance;
 	ts.bv_val = tsbuf;
 	ts.bv_len = sizeof( tsbuf );
 	slap_timestamp( &expire, &ts );
