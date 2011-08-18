@@ -1079,7 +1079,12 @@ is in the source code for Mozilla NSS in the file sslinfo.c in the structure
 Specifies the file that contains certificates for all of the Certificate
 Authorities that
 .B slapd
-will recognize.
+will recognize.  The certificate for
+the CA that signed the server certificate must be included among
+these certificates. If the signing CA was not a top-level (root) CA,
+certificates for the entire sequence of CA's from the signing CA to
+the top-level CA should be present. Multiple certificates are simply
+appended to the file; the order is not significant.
 .TP
 .B TLSCACertificatePath <path>
 Specifies the path of a directory that contains Certificate Authority
