@@ -128,6 +128,7 @@ slap_op_free( Operation *op, void *ctx )
 	BER_BVZERO( &op->o_req_ndn );
 	memset( &op->o_request, 0, sizeof( op->o_request ));
 	memset( &op->o_do_not_cache, 0, sizeof( Operation ) - offsetof( Operation, o_do_not_cache ));
+	memset( opbuf->ob_controls, 0, sizeof( opbuf->ob_controls ));
 	op->o_controls = opbuf->ob_controls;
 
 	if ( ctx ) {
