@@ -1788,7 +1788,10 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 
 	if (be_isroot( op )) goto do_modify;
 
-	if (!pp.pwdAllowUserChange) {
+	/* NOTE: according to draft-behera-ldap-password-policy
+	 * pwdAllowUserChange == FALSE must only prevent pwd changes
+	 * by the user the pwd belongs to (ITS#7021) */
+	if (!pp.pwdAllowUserChange && dn_match(&op->o_req_ndn, &op->o_ndn)) {
 		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
 		rs->sr_text = "User alteration of password is not allowed";
 		pErr = PP_passwordModNotAllowed;
