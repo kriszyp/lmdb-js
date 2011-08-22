@@ -69,7 +69,7 @@ echo "# Try to read an entry inside the Alumni Association container.
 # FIXME: temporarily remove the "No such object" message to make
 # the test succeed even if SLAP_ACL_HONOR_DISCLOSE is not #define'd
 $LDAPSEARCH -b "$JAJDN" -h $LOCALHOST -p $PORT1 "(objectclass=*)" \
-	2>&1 | grep -v "^No such object" >> $SEARCHOUT
+	2>&1 | grep -v "No such object" >> $SEARCHOUT
 
 echo "# ... and should return all attributes if we're bound as anyone
 # under Example." \
