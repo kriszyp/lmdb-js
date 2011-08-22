@@ -1219,7 +1219,7 @@ getNextPage:
 
 	if ( infile == NULL ) {
 		rc = dosearch( ld, base, scope, NULL, filtpattern,
-			attrs, attrsonly, NULL, NULL, NULL, -1 );
+			attrs, attrsonly, NULL, NULL, NULL, sizelimit );
 
 	} else {
 		rc = 0;
@@ -1232,7 +1232,7 @@ getNextPage:
 				first = 0;
 			}
 			rc1 = dosearch( ld, base, scope, filtpattern, line,
-				attrs, attrsonly, NULL, NULL, NULL, -1 );
+				attrs, attrsonly, NULL, NULL, NULL, sizelimit );
 
 			if ( rc1 != 0 ) {
 				rc = rc1;
