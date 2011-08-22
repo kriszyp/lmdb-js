@@ -1376,7 +1376,7 @@ static int dosearch(
 	int sizelimit )
 {
 	char			*filter;
-	int			rc;
+	int			rc, rc2 = LDAP_OTHER;
 	int			nresponses;
 	int			nentries;
 	int			nreferences;
@@ -1439,8 +1439,7 @@ static int dosearch(
 	}
 
 	if( rc != LDAP_SUCCESS ) {
-		fprintf( stderr, _("%s: ldap_search_ext: %s (%d)\n"),
-			prog, ldap_err2string( rc ), rc );
+		tool_perror( "ldap_search_ext", rc, NULL, NULL, NULL, NULL );
 		return( rc );
 	}
 
@@ -1459,9 +1458,8 @@ static int dosearch(
 		sortattr ? LDAP_MSG_ALL : LDAP_MSG_ONE,
 		tvp, &res )) > 0 )
 	{
-		rc = tool_check_abandon( ld, msgid );
-		if ( rc ) {
-			return rc;
+		if ( tool_check_abandon( ld, msgid ) ) {
+			return -1;
 		}
 
 		if( sortattr ) {
@@ -1509,7 +1507,7 @@ static int dosearch(
 				/* pagedResults stuff is dealt with
 				 * in tool_print_ctrls(), called by
 				 * print_results(). */
-				rc = print_result( ld, msg, 1 );
+				rc2 = print_result( ld, msg, 1 );
 				if ( ldapsync == LDAP_SYNC_REFRESH_AND_PERSIST ) {
 					break;
 				}
@@ -1553,18 +1551,8 @@ static int dosearch(
 	}
 
 done:
-	if ( tvp == NULL && rc == 0 ) {
-		ldap_get_option( ld, LDAP_OPT_RESULT_CODE, (void *)&rc );
-	}
-
-	switch ( rc ) {
-	case LDAP_SUCCESS:
-	case LDAP_REFERRAL:
-		break;
-
-	default:
-		tool_perror( "ldap_result", rc, NULL, NULL, NULL, NULL );
-		return( rc );
+	if ( tvp == NULL && rc != LDAP_RES_SEARCH_RESULT ) {
+		ldap_get_option( ld, LDAP_OPT_RESULT_CODE, (void *)&rc2 );
 	}
 
 	ldap_msgfree( res );
@@ -1598,7 +1586,11 @@ done:
 		if( nreferences ) printf( _("# numReferences: %d\n"), nreferences );
 	}
 
-	return( rc );
+	if ( rc != LDAP_RES_SEARCH_RESULT ) {
+		tool_perror( "ldap_result", rc2, NULL, NULL, NULL, NULL );
+	}
+
+	return( rc2 );
 }
 
 /* This is the proposed new way of doing things.
