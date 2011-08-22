@@ -571,9 +571,9 @@ Connection * connection_init(
 	slap_sasl_external( c, ssf, authid );
 
 	slapd_add_internal( s, 1 );
-	ldap_pvt_thread_mutex_unlock( &c->c_mutex );
 
 	backend_connection_init(c);
+	ldap_pvt_thread_mutex_unlock( &c->c_mutex );
 
 	return c;
 }
