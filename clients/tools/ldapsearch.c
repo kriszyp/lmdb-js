@@ -1547,7 +1547,12 @@ done:
 		ldap_get_option( ld, LDAP_OPT_RESULT_CODE, (void *)&rc );
 	}
 
-	if ( rc != 0 ) {
+	switch ( rc ) {
+	case LDAP_SUCCESS:
+	case LDAP_REFERRAL:
+		break;
+
+	default:
 		tool_perror( "ldap_result", rc, NULL, NULL, NULL, NULL );
 		return( rc );
 	}
