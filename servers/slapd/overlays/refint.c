@@ -526,6 +526,7 @@ refint_repair(
 {
 	dependent_data	*dp;
 	SlapReply		rs = {REP_RESULT};
+	Operation		op2;
 	int		rc;
 
 	op->o_callback->sc_response = refint_search_cb;
@@ -564,18 +565,14 @@ refint_repair(
 	 *
 	 */
 
+	op2 = *op;
 	for ( dp = rq->attrs; dp; dp = dp->next ) {
-		Operation	op2 = *op;
 		SlapReply	rs2 = {REP_RESULT};
 		refint_attrs	*ra;
 		Modifications	*m;
 
 		if ( dp->attrs == NULL ) continue; /* TODO: Is this needed? */
 
-		op2.o_tag = LDAP_REQ_MODIFY;
-		op2.orm_modlist = NULL;
-		op2.o_req_dn	= dp->dn;
-		op2.o_req_ndn	= dp->ndn;
 		op2.o_bd = select_backend( &dp->ndn, 1 );
 		if ( !op2.o_bd ) {
 			Debug( LDAP_DEBUG_TRACE,
@@ -583,6 +580,13 @@ refint_repair(
 				dp->dn.bv_val, 0, 0 );
 			continue;
 		}
+		op2.o_tag = LDAP_REQ_MODIFY;
+		op2.orm_modlist = NULL;
+		op2.o_req_dn	= dp->dn;
+		op2.o_req_ndn	= dp->ndn;
+		/* Internal ops, never replicate these */
+		op2.orm_no_opattrs = 1;
+		op2.o_dont_replicate = 1;
 
 		/* Set our ModifiersName */
 		if ( SLAP_LASTMOD( op->o_bd ) ) {
@@ -670,7 +674,6 @@ refint_repair(
 
 		op2.o_dn = op2.o_bd->be_rootdn;
 		op2.o_ndn = op2.o_bd->be_rootndn;
-		slap_op_time( &op2.o_time, &op2.o_tincr );
 		rc = op2.o_bd->be_modify( &op2, &rs2 );
 		if ( rc != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_TRACE,
