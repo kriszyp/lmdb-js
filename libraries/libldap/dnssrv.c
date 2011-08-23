@@ -174,6 +174,46 @@ int ldap_domain2dn(
 	return LDAP_SUCCESS;
 }
 
+#ifdef HAVE_RES_QUERY
+#define DNSBUFSIZ (64*1024)
+typedef struct srv_record {
+    u_short priority;
+    u_short weight;
+    u_short port;
+    char hostname[DNSBUFSIZ];
+} srv_record;
+
+
+static int srv_cmp(const void *aa, const void *bb){
+    srv_record *a=(srv_record *)aa;
+    srv_record *b=(srv_record *)bb;
+    u_long total;
+
+    if(a->priority < b->priority) {
+	return -1;
+    }
+    if(a->priority > b->priority) {
+	return 1;
+    }
+    if(a->priority == b->priority){
+	/* targets with same priority are in psudeo random order */
+	if (a->weight == 0 && b->weight == 0) {
+	    if (rand() % 2) {
+		return -1;
+	    } else {
+		return 1;
+	    }
+	}
+	total = a->weight + b->weight;
+	if (rand() % total < a->weight) {
+	    return -1;
+	} else {
+	    return 1;
+	}
+    }
+}
+#endif /* HAVE_RES_QUERY */
+
 /*
  * Lookup and return LDAP servers for domain (using the DNS
  * SRV record _ldap._tcp.domain).
@@ -183,15 +223,16 @@ int ldap_domain2hostlist(
 	char **list )
 {
 #ifdef HAVE_RES_QUERY
-#define DNSBUFSIZ (64*1024)
     char *request;
     char *hostlist = NULL;
+    srv_record *hostent_head=NULL;
+    int i;
     int rc, len, cur = 0;
     unsigned char reply[DNSBUFSIZ];
+    int hostent_count=0;
 
 	assert( domain != NULL );
 	assert( list != NULL );
-
 	if( *domain == '\0' ) {
 		return LDAP_PARAM_ERROR;
 	}
@@ -223,8 +264,7 @@ int ldap_domain2hostlist(
 	unsigned char *p;
 	char host[DNSBUFSIZ];
 	int status;
-	u_short port;
-	/* int priority, weight; */
+	u_short port, priority, weight;
 
 	/* Parse out query */
 	p = reply;
@@ -263,36 +303,51 @@ int ldap_domain2hostlist(
 	    size = (p[0] << 8) | p[1];
 	    p += 2;
 	    if (type == T_SRV) {
-		int buflen;
 		status = dn_expand(reply, reply + len, p + 6, host, sizeof(host));
 		if (status < 0) {
 		    goto out;
 		}
-		/* ignore priority and weight for now */
-		/* priority = (p[0] << 8) | p[1]; */
-		/* weight = (p[2] << 8) | p[3]; */
+
+		/* Get priority weight and port */
+		priority = (p[0] << 8) | p[1];
+		weight = (p[2] << 8) | p[3];
 		port = (p[4] << 8) | p[5];
 
 		if ( port == 0 || host[ 0 ] == '\0' ) {
 		    goto add_size;
 		}
 
-		buflen = strlen(host) + STRLENOF(":65355 ");
-		hostlist = (char *) LDAP_REALLOC(hostlist, cur + buflen + 1);
-		if (hostlist == NULL) {
-		    rc = LDAP_NO_MEMORY;
+		hostent_head = (srv_record *) LDAP_REALLOC(hostent_head, (hostent_count+1)*(sizeof(srv_record)));
+		if(hostent_head==NULL){
+		    rc=LDAP_NO_MEMORY;
 		    goto out;
 		}
-		if (cur > 0) {
-		    /* not first time around */
-		    hostlist[cur++] = ' ';
-		}
-		cur += sprintf(&hostlist[cur], "%s:%hu", host, port);
+		hostent_head[hostent_count].priority=priority;
+		hostent_head[hostent_count].weight=priority;
+		hostent_head[hostent_count].port=port;
+		strncpy(hostent_head[hostent_count].hostname, host,255);
+		hostent_count=hostent_count+1;
 	    }
 add_size:;
 	    p += size;
 	}
     }
+    qsort(hostent_head, hostent_count, sizeof(srv_record), srv_cmp);
+
+    for(i=0; i<hostent_count; i++){
+	int buflen;
+        buflen = strlen(hostent_head[i].hostname) + STRLENOF(":65355" );
+        hostlist = (char *) LDAP_REALLOC(hostlist, cur+buflen+1);
+        if (hostlist == NULL) {
+            rc = LDAP_NO_MEMORY;
+            goto out;
+        }
+        if(cur>0){
+            hostlist[cur++]=' ';
+        }
+        cur += sprintf(&hostlist[cur], "%s:%hd", hostent_head[i].hostname, hostent_head[i].port);
+    }
+
     if (hostlist == NULL) {
 	/* No LDAP servers found in DNS. */
 	rc = LDAP_UNAVAILABLE;
@@ -307,6 +362,9 @@ add_size:;
 
     if (request != NULL) {
 	LDAP_FREE(request);
+    }
+    if (hostent_head != NULL) {
+	LDAP_FREE(hostent_head);
     }
     if (rc != LDAP_SUCCESS && hostlist != NULL) {
 	LDAP_FREE(hostlist);
