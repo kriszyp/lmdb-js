@@ -1842,6 +1842,8 @@ static Modifications *mods_dup( Operation *op, Modifications *modlist, int match
 				for (i=0; i<mod->sml_numvals; i++)
 					mod->sml_nvalues[i] = modlist->sml_nvalues[i];
 				BER_BVZERO(&mod->sml_nvalues[i]);
+			} else {
+				mod->sml_nvalues = NULL;
 			}
 		}
 		if ( match < 0 && modlist->sml_op == LDAP_MOD_REPLACE )
