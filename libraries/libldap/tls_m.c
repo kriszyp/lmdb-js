@@ -1599,9 +1599,7 @@ tlsm_deferred_init( void *arg )
 			}
 
 			tlsm_get_certdb_prefix( securitydir, &realcertdir, &prefix );
-#ifdef LDAP_R_COMPILE
 			LDAP_MUTEX_LOCK( &tlsm_init_mutex );
-#endif /* LDAP_R_COMPILE */
 
 #ifdef HAVE_NSS_INITCONTEXT
 #ifdef INITCONTEXT_HACK
@@ -1621,9 +1619,7 @@ tlsm_deferred_init( void *arg )
 			rc = NSS_Initialize( realcertdir, prefix, prefix, SECMOD_DB, NSS_INIT_READONLY );
 #endif
 
-#ifdef LDAP_R_COMPILE
 			LDAP_MUTEX_UNLOCK( &tlsm_init_mutex );
-#endif /* LDAP_R_COMPILE */
 
 			if ( rc != SECSuccess ) {
 				errcode = PORT_GetError();
@@ -1648,9 +1644,7 @@ tlsm_deferred_init( void *arg )
 		}
 
 		if ( errcode ) { /* no moznss db found, or not using moznss db */
-#ifdef LDAP_R_COMPILE
 			LDAP_MUTEX_LOCK( &tlsm_init_mutex );
-#endif /* LDAP_R_COMPILE */
 #ifdef HAVE_NSS_INITCONTEXT
 			int flags = NSS_INIT_READONLY|NSS_INIT_NOCERTDB|NSS_INIT_NOMODDB;
 #ifdef INITCONTEXT_HACK
@@ -1669,9 +1663,7 @@ tlsm_deferred_init( void *arg )
 #else
 			rc = NSS_NoDB_Init( NULL );
 #endif
-#ifdef LDAP_R_COMPILE
 			LDAP_MUTEX_UNLOCK( &tlsm_init_mutex );
-#endif /* LDAP_R_COMPILE */
 			if ( rc != SECSuccess ) {
 				errcode = PORT_GetError();
 				Debug( LDAP_DEBUG_ANY,
@@ -1685,22 +1677,16 @@ tlsm_deferred_init( void *arg )
 #endif
 
 			/* initialize the PEM module */
-#ifdef LDAP_R_COMPILE
 			LDAP_MUTEX_LOCK( &tlsm_init_mutex );
-#endif /* LDAP_R_COMPILE */
 			if ( tlsm_init_pem_module() ) {
-#ifdef LDAP_R_COMPILE
 				LDAP_MUTEX_UNLOCK( &tlsm_init_mutex );
-#endif /* LDAP_R_COMPILE */
 				errcode = PORT_GetError();
 				Debug( LDAP_DEBUG_ANY,
 					   "TLS: could not initialize moznss PEM module - error %d:%s.\n",
 					   errcode, PR_ErrorToString( errcode, PR_LANGUAGE_I_DEFAULT ), 0 );
 				return -1;
 			}
-#ifdef LDAP_R_COMPILE
 			LDAP_MUTEX_UNLOCK( &tlsm_init_mutex );
-#endif /* LDAP_R_COMPILE */
 
 			if ( tlsm_init_ca_certs( ctx, lt->lt_cacertfile, lt->lt_cacertdir ) ) {
 				/* if we tried to use lt->lt_cacertdir as an NSS key/cert db, errcode 
@@ -2022,18 +2008,14 @@ tlsm_ctx_free ( tls_ctx *ctx )
 	tlsm_free_pem_objs( c );
 #ifdef HAVE_NSS_INITCONTEXT
 	if ( c->tc_initctx ) {
-#ifdef LDAP_R_COMPILE
 		LDAP_MUTEX_LOCK( &tlsm_init_mutex );
-#endif /* LDAP_R_COMPILE */
 		if ( NSS_ShutdownContext( c->tc_initctx ) ) {
 			PRErrorCode errcode = PR_GetError();
 			Debug( LDAP_DEBUG_ANY,
 				   "TLS: could not shutdown NSS - error %d:%s.\n",
 				   errcode, PR_ErrorToString( errcode, PR_LANGUAGE_I_DEFAULT ), 0 );
  		}
-#ifdef LDAP_R_COMPILE
 		LDAP_MUTEX_UNLOCK( &tlsm_init_mutex );
-#endif /* LDAP_R_COMPILE */
 	}
 	c->tc_initctx = NULL;
 #endif /* HAVE_NSS_INITCONTEXT */
