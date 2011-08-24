@@ -20,7 +20,7 @@ OpenLDAP LDAP (libldap, \-lldap)
 .LP
 .BI "ldap_sync_t * ldap_sync_initialize(ldap_sync_t *" ls ");"
 .LP
-.BI "int ldap_sync_destroy(ldap_sync_t *" ls ", int " freeit ");"
+.BI "void ldap_sync_destroy(ldap_sync_t *" ls ", int " freeit ");"
 .LP
 .BI "typedef int (*" ldap_sync_search_entry_f ")(ldap_sync_t *" ls ","
 .RS
