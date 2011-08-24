@@ -49,6 +49,12 @@ statements or
 attributes will create independent domains, each with their own
 independent lists of URIs and ignore/strict settings.
 
+Keywords
+.B strict
+and
+.B ignore
+have to be enclosed in quotes (") together with the URI.
+
 The LDAP URI syntax is a subset of
 .B RFC-4516,
 and takes the form:
@@ -137,7 +143,7 @@ This legacy configuration parameter should be converted to a
 .B unique_uri
 parameter, as described above.
 .TP
-.B unique_strict
+.B unique_strict <attribute...>
 This legacy configuration parameter should be converted to a
 .B strict
 keyword prepended to a
