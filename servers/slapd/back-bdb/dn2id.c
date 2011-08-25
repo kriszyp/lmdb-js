@@ -945,6 +945,7 @@ hdb_dn2idl_internal(
 			cx->rc = bdb_idl_cache_get(cx->bdb, cx->db, &cx->key, ids);
 			if ( cx->rc == LDAP_SUCCESS ) {
 				if ( cx->depth ) {
+					bdb_idl_delete( cx->tmp, cx->id );	/* ITS#6983, drop our own ID */
 					bdb_idl_append( cx->ids, cx->tmp );
 					cx->need_sort = 1;
 				}

@@ -219,7 +219,7 @@ int bdb_idl_insert( ID *ids, ID id )
 	return 0;
 }
 
-static int bdb_idl_delete( ID *ids, ID id )
+int bdb_idl_delete( ID *ids, ID id )
 {
 	unsigned x;
 
