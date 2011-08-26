@@ -227,7 +227,7 @@ if [ "$BACKENDTYPE" = mod ]; then
 dn: cn=module,cn=config
 objectClass: olcModuleList
 cn: module
-olcModulePath: ../../../servers/slapd/back-$BACKEND
+olcModulePath: $TESTWD/../servers/slapd/back-$BACKEND
 olcModuleLoad: back_$BACKEND.la
 EOF
 	RC=$?
