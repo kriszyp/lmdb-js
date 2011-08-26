@@ -1229,38 +1229,32 @@ overlay_insert( BackendDB *be, slap_overinst *on2, slap_overinst ***prev,
 		on2->on_next = oi->oi_list;
 		oi->oi_list = on2;
 	} else {
-		int i;
-		slap_overinst *on, *otmp1 = NULL, *otmp2;
+		int i, novs;
+		slap_overinst *on, **prev;
 
 		/* Since the list is in reverse order and is singly linked,
-		 * we reverse it to find the idx insertion point. Adding
-		 * on overlay at a specific point should be a pretty
+		 * we have to count the overlays and then insert backwards.
+		 * Adding on overlay at a specific point should be a pretty
 		 * infrequent occurrence.
 		 */
-		for ( on = oi->oi_list; on; on=otmp2 ) {
-			otmp2 = on->on_next;
-			on->on_next = otmp1;
-			otmp1 = on;
-		}
-		oi->oi_list = NULL;
+		novs = 0;
+		for ( on = oi->oi_list; on; on=on->on_next )
+			novs++;
+
+		if (idx > novs)
+			idx = 0;
+		else
+			idx = novs - idx;
+
 		/* advance to insertion point */
-		for ( i=0, on = otmp1; i<idx; i++ ) {
-			otmp1 = on->on_next;
-			on->on_next = oi->oi_list;
-			oi->oi_list = on;
+		prev = &oi->oi_list;
+		for ( i=0; i<idx; i++ ) {
+			on = *prev;
+			prev = &on->on_next;
 		}
 		/* insert */
-		on2->on_next = oi->oi_list;
-		oi->oi_list = on2;
-		if ( otmp1 ) {
-			*prev = &otmp1->on_next;
-			/* replace remainder of list */
-			for ( on=otmp1; on; on=otmp1 ) {
-				otmp1 = on->on_next;
-				on->on_next = oi->oi_list;
-				oi->oi_list = on;
-			}
-		}
+		on2->on_next = *prev;
+		*prev = on2;
 	}
 }
 
