@@ -2110,6 +2110,7 @@ accesslog_db_root(
 		AttributeDescription *ad = NULL;
 		const char *text = NULL;
 		Entry *e_ctx;
+		BackendDB db;
 
 		e = entry_alloc();
 		ber_dupbv( &e->e_name, li->li_db->be_suffix );
@@ -2154,7 +2155,8 @@ accesslog_db_root(
 			}
 			be_entry_release_rw( op, e_ctx, 0 );
 		}
-		op->o_bd = li->li_db;
+		db = *li->li_db;
+		op->o_bd = &db;
 
 		op->ora_e = e;
 		op->o_req_dn = e->e_name;
@@ -2162,7 +2164,6 @@ accesslog_db_root(
 		op->o_callback = &nullsc;
 		SLAP_DBFLAGS( op->o_bd ) |= SLAP_DBFLAG_NOLASTMOD;
 		rc = op->o_bd->be_add( op, &rs );
-		SLAP_DBFLAGS( op->o_bd ) ^= SLAP_DBFLAG_NOLASTMOD;
 		if ( e == op->ora_e )
 			entry_free( e );
 	}
