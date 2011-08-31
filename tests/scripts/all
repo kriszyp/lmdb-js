@@ -21,9 +21,14 @@ if test -t 1 ; then
 	TN=`$SHTOOL echo -e "%b" 2>/dev/null`
 fi
 
+FAILCOUNT=0
 SLEEPTIME=10
 
 echo ">>>>> Executing all LDAP tests for $BACKEND"
+
+if [ -n "$NOEXIT" ]; then
+	echo "Result	Test" > $TESTWD/results
+fi
 
 for CMD in $SRCDIR/scripts/test*; do
 	case "$CMD" in
@@ -57,11 +62,31 @@ EOF
 	if test $RC -eq 0 ; then
 		echo ">>>>> $CMD completed ${TB}OK${TN} for $BACKEND."
 	else
-		echo ">>>>> $CMD ${TB}failed${TN} for $BACKEND (exit $RC)"
-		exit $RC
+		echo ">>>>> $CMD ${TB}failed${TN} for $BACKEND"
+		FAILCOUNT=`expr $FAILCOUNT + 1`
+
+		if [ -n "$NOEXIT" ]; then
+			echo "Continuing..."
+		else
+			echo "(exit $RC)"
+			exit $RC
+		fi
+	fi
+	if [ -n "$NOEXIT" ]; then
+		echo "$RC	$CMD" >> $TESTWD/results
 	fi
 
 #	echo ">>>>> waiting $SLEEPTIME seconds for things to exit"
 #	sleep $SLEEPTIME
 	echo ""
 done
+
+if [ -n "$NOEXIT" ]; then
+	if [ "$FAILCOUNT" -gt 0 ]; then
+		cat $TESTWD/results
+		echo "$FAILCOUNT tests failed. Please review the test log."
+		exit $FAILCOUNT
+	else
+		echo "All tests succeeded."
+	fi
+fi
