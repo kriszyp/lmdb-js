@@ -56,6 +56,8 @@ sed -e "s/@BACKEND@/${BACKEND}/"			\
 	-e "s/^#${AC_translucent}#//"			\
 	-e "s/^#${AC_unique}#//"			\
 	-e "s/^#${AC_valsort}#//"			\
+	-e "s/^#${INDEXDB}#//"				\
+	-e "s/^#${MAINDB}#//"				\
 	-e "s/^#${MON}#//"				\
 	-e "s/^#${MONMOD}#//"				\
 	-e "s/^#${SASL}#//"				\

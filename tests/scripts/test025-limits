@@ -501,7 +501,7 @@ case $RC in
 	;;
 esac
 
-case $BACKEND in bdb | hdb)
+if test $INDEXDB = indexdb ; then
 
 echo "Testing higher than unchecked limit requested for unchecked limited ID..."
 $LDAPRSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 -w secret \
@@ -554,9 +554,9 @@ case $RC in
 		exit $RC
 	;;
 esac
-;;
-*)	echo "Skipping test for unchecked limit with $BACKEND backend." ;;
-esac
+else
+	echo "Skipping test for unchecked limit with $BACKEND backend."
+fi
 
 echo "Testing no limits requested for limited regex..."
 $LDAPRSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 -w secret \
@@ -749,17 +749,13 @@ case $RC in
 	;;
 esac
 
-case $BACKEND in
-	bdb | hdb)
+if test $MAINDB != maindb ; then
 		# only bdb|hdb currently supports pagedResults control
-		;;
-	*)
 		test $KILLSERVERS != no && kill -HUP $KILLPIDS
 
 		echo ">>>>> Test succeeded"
 		exit 0
-	;;
-esac
+fi
 
 if test x"$SLAPD_PAGE_SIZE" != x ; then
 	PAGESIZE="$SLAPD_PAGE_SIZE"

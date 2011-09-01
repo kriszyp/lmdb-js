@@ -162,11 +162,22 @@ if test -z "$BACKEND" ; then
 		exit 1
 	fi
 fi
+
 BACKENDTYPE=`eval 'echo $AC_'$BACKEND`
 if test "x$BACKENDTYPE" = "x" ; then
 	BACKENDTYPE="unknown"
 fi
-export BACKEND BACKENDTYPE WAIT KILLSERVERS PRESERVE SYNCMODE USERDATA
+
+# Backend features.  indexdb: indexing and unchecked limit.
+# maindb: main storage backend.  Currently index,limits,mode,paged results.
+INDEXDB=noindexdb MAINDB=nomaindb
+case $BACKEND in
+	bdb|hdb) INDEXDB=indexdb MAINDB=maindb ;;
+	ndb) INDEXDB=indexdb ;;
+esac
+
+export	BACKEND BACKENDTYPE INDEXDB MAINDB \
+	WAIT KILLSERVERS PRESERVE SYNCMODE USERDATA
 
 if test $# = 0 ; then
 	echo "$USAGE"; exit 1
