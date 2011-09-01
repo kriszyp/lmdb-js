@@ -265,8 +265,7 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-case $BACKEND in
-bdb | hdb)
+if test $INDEXDB = indexdb ; then
 	$LDAPMODIFY -D cn=config -H $URI1 -y $CONFIGPWF <<EOF >>$TESTOUT 2>&1
 dn: olcDatabase={1}$BACKEND,cn=config
 changetype: modify
@@ -280,8 +279,7 @@ EOF
 		test $KILLSERVERS != no && kill -HUP $KILLPIDS
 		exit $RC
 	fi
-	;;
-esac
+fi
 
 echo "Using ldapadd to populate provider..."
 $LDAPADD -D "$MANAGERDN" -H $URI1 -w $PASSWD -f $LDIFORDERED \

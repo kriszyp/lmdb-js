@@ -66,7 +66,9 @@ fi
 
 cat /dev/null > $TESTOUT
 
-bdbInclude="# " nullExclude=""
+indexInclude="" mainInclude="" bdbInclude="# " nullExclude=""
+test $INDEXDB = indexdb	|| indexInclude="# "
+test $MAINDB  = maindb	|| mainInclude="# "
 case $BACKEND in
 bdb | hdb) bdbInclude="" ;;
 null) nullExclude="# " ;;
@@ -103,11 +105,11 @@ olcRootPW:: c2VjcmV0
 olcMonitoring: TRUE
 ${nullExclude}olcDbDirectory: $TESTDIR/db.1.a/
 ${bdbInclude}olcDbCacheSize: 1000
-${bdbInclude}olcDbIndex: objectClass eq
-${bdbInclude}olcDbIndex: cn pres,eq,sub
-${bdbInclude}olcDbIndex: uid pres,eq,sub
-${bdbInclude}olcDbIndex: sn pres,eq,sub
-${bdbInclude}olcDbMode: 384
+${indexInclude}olcDbIndex: objectClass eq
+${indexInclude}olcDbIndex: cn pres,eq,sub
+${indexInclude}olcDbIndex: uid pres,eq,sub
+${indexInclude}olcDbIndex: sn pres,eq,sub
+${mainInclude}olcDbMode: 384
 
 # {0}memberof, {1}$BACKEND, config
 dn: olcOverlay={0}memberof,olcDatabase={1}$BACKEND,cn=config
