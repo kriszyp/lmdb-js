@@ -22,6 +22,7 @@ if test -t 1 ; then
 fi
 
 FAILCOUNT=0
+SKIPCOUNT=0
 SLEEPTIME=10
 
 echo ">>>>> Executing all LDAP tests for $BACKEND"
@@ -56,24 +57,32 @@ for CMD in $SRCDIR/scripts/test*; do
 EOF
 	fi
 
-	echo ">>>>> Starting ${TB}`basename $CMD`${TN} for $BACKEND..."
-	$CMD
-	RC=$?
-	if test $RC -eq 0 ; then
-		echo ">>>>> $CMD completed ${TB}OK${TN} for $BACKEND."
-	else
-		echo ">>>>> $CMD ${TB}failed${TN} for $BACKEND"
-		FAILCOUNT=`expr $FAILCOUNT + 1`
-
-		if [ -n "$NOEXIT" ]; then
-			echo "Continuing..."
+	if [ -x "$CMD" ]; then
+		BCMD=`basename $CMD`
+		echo ">>>>> Starting ${TB}$BCMD${TN} for $BACKEND..."
+		$CMD
+		RC=$?
+		if test $RC -eq 0 ; then
+			echo ">>>>> $BCMD completed ${TB}OK${TN} for $BACKEND."
 		else
-			echo "(exit $RC)"
-			exit $RC
+			echo ">>>>> $BCMD ${TB}failed${TN} for $BACKEND"
+			FAILCOUNT=`expr $FAILCOUNT + 1`
+
+			if [ -n "$NOEXIT" ]; then
+				echo "Continuing."
+			else
+				echo "(exit $RC)"
+				exit $RC
+			fi
 		fi
+	else
+		echo ">>>>> Skipping ${TB}$BCMD${TN} for $BACKEND."
+		SKIPCOUNT=`expr $SKIPCOUNT + 1`
+		RC="-"
 	fi
+
 	if [ -n "$NOEXIT" ]; then
-		echo "$RC	$CMD" >> $TESTWD/results
+		echo "$RC	$BCMD" >> $TESTWD/results
 	fi
 
 #	echo ">>>>> waiting $SLEEPTIME seconds for things to exit"
@@ -84,9 +93,10 @@ done
 if [ -n "$NOEXIT" ]; then
 	if [ "$FAILCOUNT" -gt 0 ]; then
 		cat $TESTWD/results
-		echo "$FAILCOUNT tests failed. Please review the test log."
-		exit $FAILCOUNT
+		echo "$FAILCOUNT tests for $BACKEND ${TB}failed${TN}. Please review the test log."
 	else
-		echo "All tests succeeded."
+		echo "All executed tests for $BACKEND ${TB}succeeded${TN}."
 	fi
 fi
+
+echo "$SKIPCOUNT tests for $BACKEND were ${TB}skipped${TN}."
