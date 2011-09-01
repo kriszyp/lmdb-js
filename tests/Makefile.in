@@ -18,12 +18,14 @@ SUBDIRS= progs
 
 BUILD_BDB=@BUILD_BDB@
 BUILD_HDB=@BUILD_HDB@
+BUILD_MDB=@BUILD_MDB@
 BUILD_SQL=@BUILD_SQL@
 
 # test primary backends (default)
 test tests:
 	@$(MAKE) bdb
 	@$(MAKE) hdb
+	@$(MAKE) mdb
 
 # test all backends
 alltests: tests
@@ -44,6 +46,14 @@ hdb-no:
 hdb-yes hdb-mod: FORCE
 	@echo "Initiating LDAP tests for HDB..."
 	@$(RUN) -b hdb all
+
+mdb test-mdb:	mdb-$(BUILD_MDB)
+mdb-no:
+	@echo "run configure with --enable-mdb to run MDB tests"
+
+mdb-yes mdb-mod: FORCE
+	@echo "Initiating LDAP tests for MDB..."
+	@$(RUN) -b mdb all
 
 sql test-sql:	sql-$(BUILD_SQL)
 sql-no:
