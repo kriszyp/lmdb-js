@@ -750,7 +750,7 @@ case $RC in
 esac
 
 if test $MAINDB != maindb ; then
-		# only bdb|hdb currently supports pagedResults control
+		# only bdb|hdb|mdb currently supports pagedResults control
 		test $KILLSERVERS != no && kill -HUP $KILLPIDS
 
 		echo ">>>>> Test succeeded"

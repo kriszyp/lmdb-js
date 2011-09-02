@@ -173,7 +173,7 @@ fi
 # maindb: main storage backend.  Currently index,limits,mode,paged results.
 INDEXDB=noindexdb MAINDB=nomaindb
 case $BACKEND in
-	bdb|hdb) INDEXDB=indexdb MAINDB=maindb ;;
+	bdb|hdb|mdb) INDEXDB=indexdb MAINDB=maindb ;;
 	ndb) INDEXDB=indexdb ;;
 esac
 
