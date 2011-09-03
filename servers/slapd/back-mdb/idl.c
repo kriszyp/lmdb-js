@@ -445,14 +445,15 @@ mdb_idl_insert_key(
 					err = "c_get next_nodup";
 					goto fail;
 				}
+				key2 = *key;
 				if ( rc == MDB_NOTFOUND ) {
-					rc = mdb_cursor_get( cursor, key, &data, MDB_LAST );
+					rc = mdb_cursor_get( cursor, &key2, &data, MDB_LAST );
 					if ( rc != 0 ) {
 						err = "c_get last";
 						goto fail;
 					}
 				} else {
-					rc = mdb_cursor_get( cursor, key, &data, MDB_PREV );
+					rc = mdb_cursor_get( cursor, &key2, &data, MDB_PREV );
 					if ( rc != 0 ) {
 						err = "c_get prev";
 						goto fail;
@@ -467,7 +468,7 @@ mdb_idl_insert_key(
 					hi = id;
 				}
 				/* delete the old key */
-				rc = mdb_del( txn, dbi, key, NULL );
+				rc = mdb_del( txn, dbi, &key2, NULL );
 				if ( rc != 0 ) {
 					err = "mdb_del";
 					goto fail;
