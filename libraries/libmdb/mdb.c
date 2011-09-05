@@ -2577,8 +2577,6 @@ set1:
 					rc = 0;
 					goto set2;
 				}
-				rc = cursor->mc_txn->mt_dbxs[cursor->mc_dbi].md_cmp(key, &nodekey);
-				if (rc <= 0) goto set1;
 			}
 			/* If any parents have right-sibs, search.
 			 * Otherwise, there's nothing further.
