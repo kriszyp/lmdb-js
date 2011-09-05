@@ -176,9 +176,11 @@ static int indexer(
 	struct berval *keys;
 	MDB_cursor *mc;
 	mdb_idl_keyfunc *keyfunc;
+	char *err;
 
 	assert( mask != 0 );
 
+	err = "c_open";
 	rc = mdb_cursor_open( txn, dbi, &mc );
 	if ( rc ) goto done;
 
@@ -190,6 +192,7 @@ static int indexer(
 	if( IS_SLAP_INDEX( mask, SLAP_INDEX_PRESENT ) ) {
 		rc = keyfunc( mc, (MDB_val *)presence_key, id );
 		if( rc ) {
+			err = "presence";
 			goto done;
 		}
 	}
@@ -206,6 +209,7 @@ static int indexer(
 			rc = keyfunc( mc, (MDB_val *)keys, id );
 			ber_bvarray_free_x( keys, op->o_tmpmemctx );
 			if ( rc ) {
+				err = "equality";
 				goto done;
 			}
 		}
@@ -224,6 +228,7 @@ static int indexer(
 			rc = keyfunc( mc, (MDB_val *)keys, id );
 			ber_bvarray_free_x( keys, op->o_tmpmemctx );
 			if ( rc ) {
+				err = "approx";
 				goto done;
 			}
 		}
@@ -243,6 +248,7 @@ static int indexer(
 			rc = keyfunc( mc, (MDB_val *)keys, id );
 			ber_bvarray_free_x( keys, op->o_tmpmemctx );
 			if( rc ) {
+				err = "substr";
 				goto done;
 			}
 		}
