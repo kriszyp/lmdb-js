@@ -2589,17 +2589,6 @@ set1:
 					break;
 			if (i == cursor->mc_snum - 1) {
 				/* There are no other pages */
-				goto set1;
-			}
-			/* If any parents have right-sibs, search.
-			 * Otherwise, there's nothing further.
-			 */
-			for (i=0; i<cursor->mc_snum-1; i++)
-				if (cursor->mc_stack[i].mp_ki <
-					NUMKEYS(cursor->mc_stack[i].mp_page)-1)
-					break;
-			if (i == cursor->mc_snum - 1) {
-				/* There are no other pages */
 				top->mp_ki = NUMKEYS(top->mp_page);
 				return MDB_NOTFOUND;
 			}
