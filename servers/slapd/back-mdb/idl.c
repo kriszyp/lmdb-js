@@ -502,7 +502,9 @@ put1:	data.mv_data = &id;
 		data.mv_size = sizeof(ID);
 		rc = mdb_cursor_put( cursor, &key[k], &data, MDB_NODUPDATA );
 		/* Don't worry if it's already there */
-		if ( rc != 0 && rc != MDB_KEYEXIST ) {
+		if ( rc == MDB_KEYEXIST )
+			rc = 0;
+		if ( rc ) {
 			err = "c_put id";
 			goto fail;
 		}
@@ -511,6 +513,7 @@ put1:	data.mv_data = &id;
 fail:
 		Debug( LDAP_DEBUG_ANY, "=> mdb_idl_insert_keys: "
 			"%s failed: %s (%d)\n", err, mdb_strerror(rc), rc );
+		break;
 	}
 	}
 	return rc;
@@ -600,9 +603,12 @@ mdb_idl_delete_keys(
 	} else {
 		/* initial c_get failed, nothing was done */
 fail:
-		if ( rc != MDB_NOTFOUND ) {
+		if ( rc == MDB_NOTFOUND )
+			rc = 0;
+		if ( rc ) {
 			Debug( LDAP_DEBUG_ANY, "=> mdb_idl_delete_key: "
 				"%s failed: %s (%d)\n", err, mdb_strerror(rc), rc );
+			break;
 		}
 	}
 	}
