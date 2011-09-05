@@ -29,6 +29,7 @@ OBJS = init.lo tools.lo config.lo \
 
 LDAP_INCDIR= ../../../include       
 LDAP_LIBDIR= ../../../libraries
+MDB_SUBDIR = $(srcdir)/$(LDAP_LIBDIR)/libmdb
 
 BUILD_OPT = "--enable-mdb"
 BUILD_MOD = @BUILD_MDB@
@@ -43,7 +44,7 @@ UNIX_LINK_LIBS = $(@BUILD_LIBS_DYNAMIC@_LDAP_LIBS)
 
 LIBBASE = back_mdb
 
-XINCPATH = -I.. -I$(srcdir)/.. -I$(srcdir)/$(LDAP_LIBDIR)/libmdb
+XINCPATH = -I.. -I$(srcdir)/.. -I$(MDB_SUBDIR)
 XDEFS = $(MODULES_CPPFLAGS)
 
 all-local-lib:	../.backend
@@ -51,10 +52,10 @@ all-local-lib:	../.backend
 ../.backend: lib$(LIBBASE).a
 	@touch $@
 
-mdb.lo:	$(srcdir)/$(LDAP_LIBDIR)/libmdb/mdb.c
+mdb.lo:	$(MDB_SUBDIR)/mdb.c
 	$(LTCOMPILE_MOD) $<
 
-midl.lo:	$(srcdir)/$(LDAP_LIBDIR)/libmdb/midl.c
+midl.lo:	$(MDB_SUBDIR)/midl.c
 	$(LTCOMPILE_MOD) $<
 
 veryclean-local-lib: FORCE
