@@ -57,38 +57,3 @@ mdb_key_read(
 
 	return rc;
 }
-
-/* Add or remove stuff from index files */
-int
-mdb_key_change(
-	Backend *be,
-	MDB_txn *txn,
-	MDB_dbi dbi,
-	struct berval *k,
-	ID id,
-	int op
-)
-{
-	int	rc;
-	MDB_val	key;
-
-	Debug( LDAP_DEBUG_TRACE, "=> key_change(%s,%lx)\n",
-		op == SLAP_INDEX_ADD_OP ? "ADD":"DELETE", (long) id, 0 );
-
-	key.mv_size = k->bv_len;
-	key.mv_data = k->bv_val;
-
-	if (op == SLAP_INDEX_ADD_OP) {
-		/* Add values */
-		rc = mdb_idl_insert_key( be, txn, dbi, &key, id );
-		if ( rc == MDB_KEYEXIST ) rc = 0;
-	} else {
-		/* Delete values */
-		rc = mdb_idl_delete_key( be, txn, dbi, &key, id );
-		if ( rc == MDB_NOTFOUND ) rc = 0;
-	}
-
-	Debug( LDAP_DEBUG_TRACE, "<= key_change %d\n", rc, 0, 0 );
-
-	return rc;
-}

@@ -26,7 +26,7 @@
 #include "lutil_hash.h"
 
 static char presence_keyval[] = {0,0};
-static struct berval presence_key = BER_BVC(presence_keyval);
+static struct berval presence_key[2] = {BER_BVC(presence_keyval), BER_BVNULL};
 
 AttrInfo *mdb_index_mask(
 	Backend *be,
@@ -114,7 +114,7 @@ int mdb_index_param(
 	case LDAP_FILTER_PRESENT:
 		type = SLAP_INDEX_PRESENT;
 		if( IS_SLAP_INDEX( mask, SLAP_INDEX_PRESENT ) ) {
-			*prefixp = presence_key;
+			*prefixp = presence_key[0];
 			goto done;
 		}
 		break;
@@ -174,11 +174,21 @@ static int indexer(
 {
 	int rc, i;
 	struct berval *keys;
+	MDB_cursor *mc;
+	mdb_idl_keyfunc *keyfunc;
 
 	assert( mask != 0 );
 
+	rc = mdb_cursor_open( txn, dbi, &mc );
+	if ( rc ) goto done;
+
+	if ( opid == SLAP_INDEX_ADD_OP )
+		keyfunc = mdb_idl_insert_keys;
+	else
+		keyfunc = mdb_idl_delete_keys;
+
 	if( IS_SLAP_INDEX( mask, SLAP_INDEX_PRESENT ) ) {
-		rc = mdb_key_change( op->o_bd, txn, dbi, &presence_key, id, opid );
+		rc = keyfunc( mc, (MDB_val *)presence_key, id );
 		if( rc ) {
 			goto done;
 		}
@@ -193,14 +203,11 @@ static int indexer(
 			atname, vals, &keys, op->o_tmpmemctx );
 
 		if( rc == LDAP_SUCCESS && keys != NULL ) {
-			for( i=0; keys[i].bv_val != NULL; i++ ) {
-				rc = mdb_key_change( op->o_bd, txn, dbi, &keys[i], id, opid );
-				if( rc ) {
-					ber_bvarray_free_x( keys, op->o_tmpmemctx );
-					goto done;
-				}
-			}
+			rc = keyfunc( mc, (MDB_val *)keys, id );
 			ber_bvarray_free_x( keys, op->o_tmpmemctx );
+			if ( rc ) {
+				goto done;
+			}
 		}
 		rc = LDAP_SUCCESS;
 	}
@@ -214,14 +221,11 @@ static int indexer(
 			atname, vals, &keys, op->o_tmpmemctx );
 
 		if( rc == LDAP_SUCCESS && keys != NULL ) {
-			for( i=0; keys[i].bv_val != NULL; i++ ) {
-				rc = mdb_key_change( op->o_bd, txn, dbi, &keys[i], id, opid );
-				if( rc ) {
-					ber_bvarray_free_x( keys, op->o_tmpmemctx );
-					goto done;
-				}
-			}
+			rc = keyfunc( mc, (MDB_val *)keys, id );
 			ber_bvarray_free_x( keys, op->o_tmpmemctx );
+			if ( rc ) {
+				goto done;
+			}
 		}
 
 		rc = LDAP_SUCCESS;
@@ -236,20 +240,18 @@ static int indexer(
 			atname, vals, &keys, op->o_tmpmemctx );
 
 		if( rc == LDAP_SUCCESS && keys != NULL ) {
-			for( i=0; keys[i].bv_val != NULL; i++ ) {
-				rc = mdb_key_change( op->o_bd, txn, dbi, &keys[i], id, opid );
-				if( rc ) {
-					ber_bvarray_free_x( keys, op->o_tmpmemctx );
-					goto done;
-				}
-			}
+			rc = keyfunc( mc, (MDB_val *)keys, id );
 			ber_bvarray_free_x( keys, op->o_tmpmemctx );
+			if( rc ) {
+				goto done;
+			}
 		}
 
 		rc = LDAP_SUCCESS;
 	}
 
 done:
+	mdb_cursor_close( mc );
 	switch( rc ) {
 	/* The callers all know how to deal with these results */
 	case 0:

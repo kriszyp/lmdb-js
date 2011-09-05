@@ -391,38 +391,30 @@ mdb_idl_fetch_key(
 }
 
 int
-mdb_idl_insert_key(
-	BackendDB	*be,
-	MDB_txn		*txn,
-	MDB_dbi		dbi,
+mdb_idl_insert_keys(
+	MDB_cursor	*cursor,
 	MDB_val		*key,
 	ID			id )
 {
-	MDB_cursor *cursor;
 	MDB_val data;
 	ID lo, hi, *i;
 	char *err;
-	int	rc;
+	int	rc, k;
 
 	{
 		char buf[16];
 		Debug( LDAP_DEBUG_ARGS,
-			"mdb_idl_insert_key: %lx %s\n", 
+			"mdb_idl_insert_keys: %lx %s\n", 
 			(long) id, mdb_show_key( key, buf ), 0 );
 	}
 
 	assert( id != NOID );
 
-	rc = mdb_cursor_open( txn, dbi, &cursor );
-	if ( rc != 0 ) {
-		Debug( LDAP_DEBUG_ANY, "=> mdb_idl_insert_key: "
-			"cursor failed: %s (%d)\n", mdb_strerror(rc), rc, 0 );
-		return rc;
-	}
+	for ( k=0; key[k].mv_data; k++ ) {
 	/* Fetch the first data item for this key, to see if it
 	 * exists and if it's a range.
 	 */
-	rc = mdb_cursor_get( cursor, key, &data, MDB_SET );
+	rc = mdb_cursor_get( cursor, &key[k], &data, MDB_SET );
 	err = "c_get";
 	if ( rc == 0 ) {
 		i = data.mv_data;
@@ -437,27 +429,11 @@ mdb_idl_insert_key(
 			}
 			if ( count >= MDB_IDL_DB_MAX ) {
 			/* No room, convert to a range */
-				MDB_val key2;
-
 				lo = *i;
-				rc = mdb_cursor_get( cursor, &key2, &data, MDB_NEXT_NODUP );
+				rc = mdb_cursor_get( cursor, &key[k], &data, MDB_LAST_DUP );
 				if ( rc != 0 && rc != MDB_NOTFOUND ) {
-					err = "c_get next_nodup";
+					err = "c_get last_dup";
 					goto fail;
-				}
-				key2 = *key;
-				if ( rc == MDB_NOTFOUND ) {
-					rc = mdb_cursor_get( cursor, &key2, &data, MDB_LAST );
-					if ( rc != 0 ) {
-						err = "c_get last";
-						goto fail;
-					}
-				} else {
-					rc = mdb_cursor_get( cursor, &key2, &data, MDB_PREV );
-					if ( rc != 0 ) {
-						err = "c_get prev";
-						goto fail;
-					}
 				}
 				i = data.mv_data;
 				hi = *i;
@@ -468,30 +444,30 @@ mdb_idl_insert_key(
 					hi = id;
 				}
 				/* delete the old key */
-				rc = mdb_del( txn, dbi, &key2, NULL );
+				rc = mdb_cursor_del( cursor, MDB_NODUPDATA );
 				if ( rc != 0 ) {
-					err = "mdb_del";
+					err = "c_del dups";
 					goto fail;
 				}
 				/* Store the range */
 				data.mv_size = sizeof(ID);
 				data.mv_data = &id;
 				id = 0;
-				rc = mdb_put( txn, dbi, key, &data, 0 );
+				rc = mdb_cursor_put( cursor, &key[k], &data, 0 );
 				if ( rc != 0 ) {
-					err = "mdb_put range";
+					err = "c_put range";
 					goto fail;
 				}
 				id = lo;
-				rc = mdb_put( txn, dbi, key, &data, 0 );
+				rc = mdb_cursor_put( cursor, &key[k], &data, 0 );
 				if ( rc != 0 ) {
-					err = "mdb_put lo";
+					err = "c_put lo";
 					goto fail;
 				}
 				id = hi;
-				rc = mdb_put( txn, dbi, key, &data, 0 );
+				rc = mdb_cursor_put( cursor, &key[k], &data, 0 );
 				if ( rc != 0 ) {
-					err = "mdb_put hi";
+					err = "c_put hi";
 					goto fail;
 				}
 			} else {
@@ -505,71 +481,65 @@ mdb_idl_insert_key(
 			lo = i[1];
 			hi = i[2];
 			if ( id < lo || id > hi ) {
-				if ( id < lo )
-					data.mv_data = &lo;
-				else
-					data.mv_data = &hi;
+				/* position on lo */
+				rc = mdb_cursor_get( cursor, &key[k], &data, MDB_NEXT_DUP );
+				if ( id > hi ) {
+					/* position on hi */
+					rc = mdb_cursor_get( cursor, &key[k], &data, MDB_NEXT_DUP );
+				}
 				data.mv_size = sizeof(ID);
-				/* Delete the current lo/hi */
-				rc = mdb_del( txn, dbi, key, &data );
+				data.mv_data = &id;
+				/* Replace the current lo/hi */
+				rc = mdb_cursor_put( cursor, &key[k], &data, MDB_CURRENT );
 				if ( rc != 0 ) {
-					err = "mdb_del lo/hi";
+					err = "c_put lo/hi";
 					goto fail;
 				}
-				goto put1;
 			}
 		}
 	} else if ( rc == MDB_NOTFOUND ) {
 put1:	data.mv_data = &id;
 		data.mv_size = sizeof(ID);
-		rc = mdb_put( txn, dbi, key, &data, MDB_NODUPDATA );
+		rc = mdb_cursor_put( cursor, &key[k], &data, MDB_NODUPDATA );
 		/* Don't worry if it's already there */
 		if ( rc != 0 && rc != MDB_KEYEXIST ) {
-			err = "mdb_put id";
+			err = "c_put id";
 			goto fail;
 		}
 	} else {
 		/* initial c_get failed, nothing was done */
 fail:
-		Debug( LDAP_DEBUG_ANY, "=> mdb_idl_insert_key: "
+		Debug( LDAP_DEBUG_ANY, "=> mdb_idl_insert_keys: "
 			"%s failed: %s (%d)\n", err, mdb_strerror(rc), rc );
 	}
-	mdb_cursor_close( cursor );
+	}
 	return rc;
 }
 
 int
-mdb_idl_delete_key(
-	BackendDB	*be,
-	MDB_txn		*txn,
-	MDB_dbi		dbi,
+mdb_idl_delete_keys(
+	MDB_cursor	*cursor,
 	MDB_val		*key,
 	ID			id )
 {
-	int	rc;
+	int	rc, k;
 	MDB_val data;
-	MDB_cursor *cursor;
 	ID lo, hi, tmp, *i;
 	char *err;
 
 	{
 		char buf[16];
 		Debug( LDAP_DEBUG_ARGS,
-			"mdb_idl_delete_key: %lx %s\n", 
+			"mdb_idl_delete_keys: %lx %s\n", 
 			(long) id, mdb_show_key( key, buf ), 0 );
 	}
 	assert( id != NOID );
 
-	rc = mdb_cursor_open( txn, dbi, &cursor );
-	if ( rc != 0 ) {
-		Debug( LDAP_DEBUG_ANY, "=> mdb_idl_delete_key: "
-			"cursor failed: %s (%d)\n", mdb_strerror(rc), rc, 0 );
-		return rc;
-	}
+	for ( k=0; key[k].mv_data; k++) {
 	/* Fetch the first data item for this key, to see if it
 	 * exists and if it's a range.
 	 */
-	rc = mdb_cursor_get( cursor, key, &data, MDB_SET );
+	rc = mdb_cursor_get( cursor, &key[k], &data, MDB_SET );
 	err = "c_get";
 	if ( rc == 0 ) {
 		memcpy( &tmp, data.mv_data, sizeof(ID) );
@@ -577,9 +547,14 @@ mdb_idl_delete_key(
 		if ( tmp != 0 ) {
 			/* Not a range, just delete it */
 			data.mv_data = &id;
-			rc = mdb_del( txn, dbi, key, &data );
+			rc = mdb_cursor_get( cursor, &key[k], &data, MDB_GET_BOTH );
 			if ( rc != 0 ) {
-				err = "mdb_del id";
+				err = "c_get id";
+				goto fail;
+			}
+			rc = mdb_cursor_del( cursor, 0 );
+			if ( rc != 0 ) {
+				err = "c_del id";
 				goto fail;
 			}
 		} else {
@@ -597,29 +572,26 @@ mdb_idl_delete_key(
 				}
 				if ( lo2 >= hi2 ) {
 				/* The range has collapsed... */
-					rc = mdb_del( txn, dbi, key, NULL );
+					rc = mdb_cursor_del( cursor, MDB_NODUPDATA );
 					if ( rc != 0 ) {
-						err = "mdb_del";
+						err = "c_del dup";
 						goto fail;
 					}
 				} else {
-					data.mv_size = sizeof(ID);
-					if ( id == lo )
-						data.mv_data = &lo;
-					else
-						data.mv_data = &hi;
-					rc = mdb_del( txn, dbi, key, &data );
-					if ( rc != 0 ) {
-						err = "c_del";
-						goto fail;
-					}
+					/* position on lo */
+					rc = mdb_cursor_get( cursor, &key[k], &data, MDB_NEXT_DUP );
 					if ( id == lo )
 						data.mv_data = &lo2;
-					else
+					else {
+						/* position on hi */
+						rc = mdb_cursor_get( cursor, &key[k], &data, MDB_NEXT_DUP );
 						data.mv_data = &hi2;
-					rc = mdb_put( txn, dbi, key, &data, 0 );
+					}
+					/* Replace the current lo/hi */
+					data.mv_size = sizeof(ID);
+					rc = mdb_cursor_put( cursor, &key[k], &data, MDB_CURRENT );
 					if ( rc != 0 ) {
-						err = "mdb_put lo/hi";
+						err = "c_put lo/hi";
 						goto fail;
 					}
 				}
@@ -633,7 +605,7 @@ fail:
 				"%s failed: %s (%d)\n", err, mdb_strerror(rc), rc );
 		}
 	}
-	mdb_cursor_close( cursor );
+	}
 	return rc;
 }
 

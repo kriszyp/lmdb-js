@@ -143,6 +143,7 @@ mdb_dn2id_add(
 	struct mdb_info *mdb = (struct mdb_info *) op->o_bd->be_private;
 	MDB_dbi dbi = mdb->mi_dn2id;
 	MDB_val		key, data;
+	MDB_cursor	*mc;
 	ID		nid;
 	int		rc, rlen, nrlen;
 	diskNode *d;
@@ -173,6 +174,10 @@ mdb_dn2id_add(
 
 	nid = pid;
 
+	rc = mdb_cursor_open( txn, dbi, &mc );
+	if ( rc )
+		goto fail;
+
 	/* Need to make dummy root node once. Subsequent attempts
 	 * will fail harmlessly.
 	 */
@@ -181,22 +186,24 @@ mdb_dn2id_add(
 		data.mv_data = &dummy;
 		data.mv_size = sizeof(diskNode);
 
-		mdb_put( txn, dbi, &key, &data, MDB_NODUPDATA );
+		mdb_cursor_put( mc, &key, &data, MDB_NODUPDATA );
 	}
 
 	data.mv_data = d;
 	data.mv_size = sizeof(diskNode) + rlen + nrlen;
 
-	rc = mdb_put( txn, dbi, &key, &data, MDB_NODUPDATA );
+	rc = mdb_cursor_put( mc, &key, &data, MDB_NODUPDATA );
 
 	if (rc == 0) {
 		nid = e->e_id;
 		memcpy( ptr, &pid, sizeof( ID ));
 		d->nrdnlen[0] ^= 0x80;
 
-		rc = mdb_put( txn, dbi, &key, &data, MDB_NODUPDATA );
+		rc = mdb_cursor_put( mc, &key, &data, MDB_NODUPDATA );
 	}
+	mdb_cursor_close( mc );
 
+fail:
 	op->o_tmpfree( d, op->o_tmpmemctx );
 	Debug( LDAP_DEBUG_TRACE, "<= mdb_dn2id_add 0x%lx: %d\n", e->e_id, rc, 0 );
 

@@ -195,19 +195,13 @@ int mdb_idl_fetch_key(
 
 int mdb_idl_insert( ID *ids, ID id );
 
-int mdb_idl_insert_key(
-	BackendDB *be,
-	MDB_txn *txn,
-	MDB_dbi dbi,
+typedef int (mdb_idl_keyfunc)(
+	MDB_cursor *mc,
 	MDB_val *key,
 	ID id );
 
-int mdb_idl_delete_key(
-	BackendDB *be,
-	MDB_txn *txn,
-	MDB_dbi dbi,
-	MDB_val *key,
-	ID id );
+mdb_idl_keyfunc mdb_idl_insert_keys;
+mdb_idl_keyfunc mdb_idl_delete_keys;
 
 int
 mdb_idl_intersection(
@@ -292,15 +286,6 @@ mdb_key_read(
     MDB_cursor **saved_cursor,
         int get_flags );
 
-extern int
-mdb_key_change(
-    Backend	 *be,
-	MDB_txn *txn,
-    MDB_dbi dbi,
-    struct berval *k,
-    ID id,
-    int	op );
-	
 /*
  * nextid.c
  */
