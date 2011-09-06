@@ -476,6 +476,7 @@ static int mdb_entry_partsize(struct mdb_info *mdb, MDB_txn *txn, Entry *e,
 			len += entry_lenlen(0);	/* 0 nvals */
 		}
 	}
+	len += entry_lenlen(e->e_ocflags);
 	len += entry_lenlen(nat);
 	len += entry_lenlen(nval);
 	eh->bv.bv_len = len;
@@ -502,6 +503,9 @@ static int mdb_entry_encode(Operation *op, MDB_txn *txn, Entry *e, MDB_val *data
 	Debug( LDAP_DEBUG_TRACE, "=> mdb_entry_encode(0x%08lx): %s\n",
 		(long) e->e_id, e->e_dn, 0 );
 
+	if (is_entry_referral(e))
+		;	/* empty */
+
 	rc = mdb_entry_partsize( mdb, txn, e, &eh );
 
 	data->mv_size = eh.bv.bv_len;
@@ -509,6 +513,7 @@ static int mdb_entry_encode(Operation *op, MDB_txn *txn, Entry *e, MDB_val *data
 	ptr = (unsigned char *)data->mv_data;
 	mdb_entry_putlen(&ptr, eh.nattrs);
 	mdb_entry_putlen(&ptr, eh.nvals);
+	mdb_entry_putlen(&ptr, e->e_ocflags);
 
 	for (a=e->e_attrs; a; a=a->a_next) {
 		mdb_entry_putlen(&ptr, mdb->mi_adxs[a->a_desc->ad_index]);
@@ -570,6 +575,7 @@ int mdb_entry_decode(Operation *op, MDB_val *data, Entry **e)
 	nattrs = mdb_entry_getlen(&ptr);
 	nvals = mdb_entry_getlen(&ptr);
 	x = entry_alloc();
+	x->e_ocflags = mdb_entry_getlen(&ptr);
 	x->e_attrs = attrs_alloc( nattrs );
 	x->e_bv.bv_len = nvals * sizeof(struct berval);
 	x->e_bv.bv_val = op->o_tmpalloc(x->e_bv.bv_len, op->o_tmpmemctx);
