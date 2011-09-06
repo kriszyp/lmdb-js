@@ -734,8 +734,15 @@ loop_begin:
 				n += isc.nrdns[i].bv_len;
 				*n++ = ',';
 			}
-			memcpy(d, pdn.bv_val, pdn.bv_len+1);
-			memcpy(n, pndn.bv_val, pndn.bv_len+1);
+			if (pdn.bv_len) {
+				memcpy(d, pdn.bv_val, pdn.bv_len+1);
+				memcpy(n, pndn.bv_val, pndn.bv_len+1);
+			} else {
+				*--d = '\0';
+				*--n = '\0';
+				e->e_name.bv_len--;
+				e->e_nname.bv_len--;
+			}
 			if (isc.nscope != 1) {
 				op->o_tmpfree(pndn.bv_val, op->o_tmpmemctx);
 				op->o_tmpfree(pdn.bv_val, op->o_tmpmemctx);
