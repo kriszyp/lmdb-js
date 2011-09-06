@@ -2,6 +2,7 @@ OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.27 Engineering
 	Added slapd Add-if-not-present (ITS#6561)
+	Added slapd delta-syncrepl Multi-Master Replication (ITS#6734,ITS#7029,ITS#7031)
 
 OpenLDAP 2.4.26 Release (2011/06/30)
 	Added libldap LDAP_OPT_X_TLS_PACKAGE (ITS#6969)
