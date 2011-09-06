@@ -164,6 +164,7 @@ unsigned int index_intlen = SLAP_INDEX_INTLEN_DEFAULT;
 unsigned int index_intlen_strlen = SLAP_INDEX_INTLEN_STRLEN(
 	SLAP_INDEX_INTLEN_DEFAULT );
 
+ldap_pvt_thread_mutex_t	ad_index_mutex;
 ldap_pvt_thread_mutex_t	ad_undef_mutex;
 ldap_pvt_thread_mutex_t	oc_undef_mutex;
 
@@ -6844,6 +6845,7 @@ schema_destroy( void )
 	syn_destroy();
 
 	if( schema_init_done ) {
+		ldap_pvt_thread_mutex_destroy( &ad_index_mutex );
 		ldap_pvt_thread_mutex_destroy( &ad_undef_mutex );
 		ldap_pvt_thread_mutex_destroy( &oc_undef_mutex );
 	}
