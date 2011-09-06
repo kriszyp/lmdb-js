@@ -520,3 +520,68 @@ void mdb_attr_flush( struct mdb_info *mdb )
 		}
 	}
 }
+
+int mdb_ad_read( struct mdb_info *mdb, MDB_txn *txn )
+{
+	int i, rc;
+	MDB_cursor *mc;
+	MDB_val key, data;
+	const char *text;
+	AttributeDescription *ad;
+
+	rc = mdb_cursor_open( txn, mdb->mi_ad2id, &mc );
+	if ( rc )
+		return rc;
+
+	/* our array is 1-based, an index of 0 means no data */
+	i = mdb->mi_numads+1;
+	key.mv_size = sizeof(int);
+	key.mv_data = &i;
+
+	rc = mdb_cursor_get( mc, &key, &data, MDB_SET );
+
+	while ( rc == MDB_SUCCESS ) {
+		ad = NULL;
+		rc = slap_bv2ad( (struct berval *)&data, &ad, &text );
+		if ( rc ) {
+			rc = slap_bv2undef_ad( (struct berval *)&data, &mdb->mi_ads[i], &text, 0 );
+		} else {
+			mdb->mi_adxs[ad->ad_index] = i;
+			mdb->mi_ads[i] = ad;
+		}
+		i++;
+		rc = mdb_cursor_get( mc, &key, &data, MDB_NEXT );
+	}
+	mdb->mi_numads = i-1;
+
+done:
+	if ( rc == MDB_NOTFOUND )
+		rc = 0;
+
+	mdb_cursor_close( mc );
+
+	return rc;
+}
+
+int mdb_ad_get( struct mdb_info *mdb, MDB_txn *txn, AttributeDescription *ad )
+{
+	int i, rc;
+	MDB_val key;
+
+	rc = mdb_ad_read( mdb, txn );
+	if ( mdb->mi_adxs[ad->ad_index] )
+		return 0;
+
+	i = mdb->mi_numads+1;
+	key.mv_size = sizeof(int);
+	key.mv_data = &i;
+
+	rc = mdb_put( txn, mdb->mi_ad2id, &key, (MDB_val *)&ad->ad_cname, 0 );
+	if ( rc == MDB_SUCCESS ) {
+		mdb->mi_adxs[ad->ad_index] = i;
+		mdb->mi_ads[i] = ad;
+		mdb->mi_numads++;
+	}
+
+	return rc;
+}

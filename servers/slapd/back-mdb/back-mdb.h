@@ -40,6 +40,8 @@ LDAP_BEGIN_DECL
 
 #define MDB_INDICES		128
 
+#define	MDB_MAXADS	65536
+
 /* Default to 10MB max */
 #define DEFAULT_MAPSIZE	(10*1048576)
 
@@ -92,7 +94,11 @@ struct mdb_info {
 #define	MDB_DEL_INDEX	0x08
 #define	MDB_RE_OPEN		0x10
 
+	int mi_numads;
+
 	MDB_dbi	mi_dbis[MDB_NDB];
+	AttributeDescription *mi_ads[MDB_MAXADS];
+	int mi_adxs[MDB_MAXADS];
 };
 
 #define mi_id2entry	mi_dbis[MDB_ID2ENTRY]

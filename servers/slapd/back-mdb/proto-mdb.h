@@ -46,6 +46,9 @@ void mdb_attr_index_free LDAP_P(( struct mdb_info *mdb,
 
 void mdb_attr_info_free( AttrInfo *ai );
 
+int mdb_ad_read( struct mdb_info *mdb, MDB_txn *txn );
+int mdb_ad_get( struct mdb_info *mdb, MDB_txn *txn, AttributeDescription *ad );
+
 /*
  * config.c
  */
@@ -174,6 +177,8 @@ void mdb_entry_free ( Entry *e );
 int mdb_entry_return( Entry *e );
 BI_entry_release_rw mdb_entry_release;
 BI_entry_get_rw mdb_entry_get;
+
+int mdb_entry_decode( Operation *op, MDB_val *data, Entry **e );
 
 void mdb_reader_flush( MDB_env *env );
 int mdb_opinfo_get( Operation *op, struct mdb_info *mdb, int rdonly, mdb_op_info **moi );
