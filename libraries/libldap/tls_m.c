@@ -135,6 +135,7 @@ static int tlsm_init( void );
    to wrap the mutex creation in a prcallonce
 */
 static ldap_pvt_thread_mutex_t tlsm_init_mutex;
+static ldap_pvt_thread_mutex_t tlsm_pem_mutex;
 static PRCallOnceType tlsm_init_mutex_callonce = {0,0};
 
 static PRStatus PR_CALLBACK
@@ -143,6 +144,12 @@ tlsm_thr_init_callonce( void )
 	if ( ldap_pvt_thread_mutex_init( &tlsm_init_mutex ) ) {
 		Debug( LDAP_DEBUG_ANY,
 			   "TLS: could not create mutex for moznss initialization: %d\n", errno, 0, 0 );
+		return PR_FAILURE;
+	}
+
+	if ( ldap_pvt_thread_mutex_init( &tlsm_pem_mutex ) ) {
+		Debug( LDAP_DEBUG_ANY,
+			   "TLS: could not create mutex for PEM module: %d\n", errno, 0, 0 );
 		return PR_FAILURE;
 	}
 
@@ -1728,6 +1735,14 @@ tlsm_deferred_init( void *arg )
 				   errcode, PR_ErrorToString( errcode, PR_LANGUAGE_I_DEFAULT ), 0 );
 			return -1;
 		}
+
+		if  ( ctx->tc_is_server ) {
+			LDAP_MUTEX_LOCK( &tlsm_init_mutex );
+			/* 0 means use the defaults here */
+			SSL_ConfigServerSessionIDCache( 0, 0, 0, NULL );
+			LDAP_MUTEX_UNLOCK( &tlsm_init_mutex );
+		}
+
 #ifndef HAVE_NSS_INITCONTEXT
 	}
 #endif /* HAVE_NSS_INITCONTEXT */
@@ -1941,6 +1956,7 @@ tlsm_destroy( void )
 {
 #ifdef LDAP_R_COMPILE
 	ldap_pvt_thread_mutex_destroy( &tlsm_init_mutex );
+	ldap_pvt_thread_mutex_destroy( &tlsm_pem_mutex );
 #endif
 }
 
@@ -2433,11 +2449,6 @@ tlsm_session_new ( tls_ctx * ctx, int is_server )
 		return NULL;
 	}
 
-	if ( is_server ) {
-		/* 0 means use the defaults here */
-		SSL_ConfigServerSessionIDCache( 0, 0, 0, NULL );
-	}
-
 	rc = SSL_ResetHandshake( session, is_server );
 	if ( rc ) {
 		PRErrorCode err = PR_GetError();
@@ -2457,9 +2468,16 @@ static int
 tlsm_session_accept_or_connect( tls_session *session, int is_accept )
 {
 	tlsm_session *s = (tlsm_session *)session;
-	int rc = SSL_ForceHandshake( s );
+	int rc;
 	const char *op = is_accept ? "accept" : "connect";
 
+	if ( pem_module ) {
+		LDAP_MUTEX_LOCK( &tlsm_pem_mutex );
+	}
+	rc = SSL_ForceHandshake( s );
+	if ( pem_module ) {
+		LDAP_MUTEX_UNLOCK( &tlsm_pem_mutex );
+	}
 	if ( rc ) {
 		PRErrorCode err = PR_GetError();
 		rc = -1;
