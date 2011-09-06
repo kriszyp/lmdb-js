@@ -719,40 +719,50 @@ mdb_idscope(
 int
 mdb_idscopes(
 	Operation *op,
-	MDB_txn *txn,
-	MDB_cursor **cursp,
-	ID base,
-	ID *scopes )
+	IdScopes *isc )
 {
 	struct mdb_info *mdb = (struct mdb_info *) op->o_bd->be_private;
 	MDB_dbi dbi = mdb->mi_dn2id;
 	MDB_val		key, data;
-	MDB_cursor	*cursor;
 	ID id;
 	char	*ptr;
 	int		rc;
 	unsigned int x;
+	unsigned int nrlen, rlen;
+	diskNode *d;
 
 	key.mv_size = sizeof(ID);
 
-	if ( !*cursp ) {
-		rc = mdb_cursor_open( txn, dbi, cursp );
+	if ( !isc->mc ) {
+		rc = mdb_cursor_open( isc->mt, dbi, &isc->mc );
 		if ( rc ) return rc;
 	}
-	cursor = *cursp;
 
-	id = base;
+	id = isc->id;
 	while (id) {
 		key.mv_data = &id;
-		rc = mdb_cursor_get( cursor, &key, &data, MDB_SET );
+		rc = mdb_cursor_get( isc->mc, &key, &data, MDB_SET );
 		if ( rc )
 			break;
+
+		/* save RDN info */
+		d = data.mv_data;
+		nrlen = (d->nrdnlen[0] << 8) | d->nrdnlen[1];
+		rlen = data.mv_size - sizeof(diskNode) - nrlen;
+		isc->nrdns[isc->numrdns].bv_len = nrlen;
+		isc->nrdns[isc->numrdns].bv_val = d->nrdn;
+		isc->rdns[isc->numrdns].bv_len = rlen;
+		isc->rdns[isc->numrdns].bv_val = d->nrdn+nrlen+1;
+		isc->numrdns++;
+
 		ptr = data.mv_data;
 		ptr += data.mv_size - sizeof(ID);
 		memcpy( &id, ptr, sizeof(ID) );
-		x = mdb_idl_search( scopes, id );
-		if ( scopes[x] == id )
+		x = mdb_idl_search( isc->scopes, id );
+		if ( isc->scopes[x] == id ) {
+			isc->nscope = x;
 			return MDB_SUCCESS;
+		}
 		if ( op->ors_scope == LDAP_SCOPE_ONELEVEL )
 			break;
 	}

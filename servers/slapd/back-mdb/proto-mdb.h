@@ -129,10 +129,7 @@ int mdb_idscope(
 
 int mdb_idscopes(
 	Operation *op,
-	MDB_txn *txn,
-	MDB_cursor **cursp,
-	ID base,
-	ID *scopes );
+	IdScopes *isc );
 
 MDB_cmp_func mdb_dup_compare;
 
