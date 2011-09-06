@@ -220,6 +220,12 @@ mdb_db_open( BackendDB *be, ConfigReply *cr )
 
 	}
 
+	rc = mdb_ad_read( mdb, txn );
+	if ( rc ) {
+		mdb_txn_abort( txn );
+		goto fail;
+	}
+
 	rc = mdb_attr_dbs_open( be, txn, cr );
 	if ( rc ) {
 		mdb_txn_abort( txn );

@@ -22,6 +22,8 @@
 
 #include "back-mdb.h"
 
+static int mdb_entry_encode(Operation *op, MDB_txn *txn, Entry *e, MDB_val *data);
+
 static int mdb_id2entry_put(
 	Operation *op,
 	MDB_txn *tid,
@@ -31,32 +33,21 @@ static int mdb_id2entry_put(
 	struct mdb_info *mdb = (struct mdb_info *) op->o_bd->be_private;
 	MDB_dbi dbi = mdb->mi_id2entry;
 	MDB_val key, data;
-	struct berval bv;
 	int rc;
-	struct berval odn, ondn;
 
 	/* We only store rdns, and they go in the dn2id database. */
-
-	odn = e->e_name; ondn = e->e_nname;
-
-	e->e_name = slap_empty_bv;
-	e->e_nname = slap_empty_bv;
 
 	key.mv_data = &e->e_id;
 	key.mv_size = sizeof(ID);
 
-	rc = entry_encode( e, &bv );
-	e->e_name = odn; e->e_nname = ondn;
+	rc = mdb_entry_encode( op, tid, e, &data );
 	if( rc != LDAP_SUCCESS ) {
 		return -1;
 	}
 
-	data.mv_size = bv.bv_len;
-	data.mv_data = bv.bv_val;
-
 	rc = mdb_put( tid, dbi, &key, &data, flag );
 
-	op->o_tmpfree( bv.bv_val, op->o_tmpmemctx );
+	op->o_tmpfree( data.mv_data, op->o_tmpmemctx );
 	return rc;
 }
 
@@ -91,7 +82,6 @@ int mdb_id2entry(
 	struct mdb_info *mdb = (struct mdb_info *) op->o_bd->be_private;
 	MDB_dbi dbi = mdb->mi_id2entry;
 	MDB_val key, data;
-	EntryHeader eh;
 	int rc = 0;
 
 	*e = NULL;
@@ -117,26 +107,12 @@ int mdb_id2entry(
 	}
 	if ( rc ) return rc;
 
-	eh.bv.bv_val = data.mv_data;
-	eh.bv.bv_len = data.mv_size;
-	rc = entry_header( &eh );
+	rc = mdb_entry_decode( op, &data, e );
 	if ( rc ) return rc;
 
-	if ( eh.nvals ) {
-		eh.bv.bv_len = eh.nvals * sizeof( struct berval );
-		eh.bv.bv_val = ch_malloc( eh.bv.bv_len );
-		rc = entry_decode(&eh, e);
-	} else {
-		*e = entry_alloc();
-	}
-
-	if( rc == 0 ) {
-		(*e)->e_id = id;
-		(*e)->e_name.bv_val = NULL;
-		(*e)->e_nname.bv_val = NULL;
-	} else {
-		ch_free( eh.bv.bv_val );
-	}
+	(*e)->e_id = id;
+	(*e)->e_name.bv_val = NULL;
+	(*e)->e_nname.bv_val = NULL;
 
 	return rc;
 }
@@ -421,5 +397,243 @@ mdb_opinfo_get( Operation *op, struct mdb_info *mdb, int rdonly, mdb_op_info **m
 	if ( *moip != moi )
 		*moip = moi;
 
+	return 0;
+}
+
+/* This is like a ber_len */
+#define entry_lenlen(l)	(((l) < 0x80) ? 1 : ((l) < 0x100) ? 2 : \
+	((l) < 0x10000) ? 3 : ((l) < 0x1000000) ? 4 : 5)
+
+static void
+mdb_entry_putlen(unsigned char **buf, ber_len_t len)
+{
+	ber_len_t lenlen = entry_lenlen(len);
+
+	if (lenlen == 1) {
+		**buf = (unsigned char) len;
+	} else {
+		int i;
+		**buf = 0x80 | ((unsigned char) lenlen - 1);
+		for (i=lenlen-1; i>0; i--) {
+			(*buf)[i] = (unsigned char) len;
+			len >>= 8;
+		}
+	}
+	*buf += lenlen;
+}
+
+static ber_len_t
+mdb_entry_getlen(unsigned char **buf)
+{
+	ber_len_t len;
+	int i;
+
+	len = *(*buf)++;
+	if (len <= 0x7f)
+		return len;
+	i = len & 0x7f;
+	len = 0;
+	for (;i > 0; i--) {
+		len <<= 8;
+		len |= *(*buf)++;
+	}
+	return len;
+}
+
+/* Count up the sizes of the components of an entry */
+static int mdb_entry_partsize(struct mdb_info *mdb, MDB_txn *txn, Entry *e,
+	EntryHeader *eh)
+{
+	ber_len_t len = 0;
+	int i, nat = 0, nval = 0;
+	Attribute *a;
+
+	for (a=e->e_attrs; a; a=a->a_next) {
+		/* For AttributeDesc, we only store the attr index */
+		nat++;
+		if (!mdb->mi_adxs[a->a_desc->ad_index]) {
+			int rc = mdb_ad_get(mdb, txn, a->a_desc);
+			if (rc)
+				return rc;
+		}
+		len += entry_lenlen(mdb->mi_adxs[a->a_desc->ad_index]);
+		for (i=0; a->a_vals[i].bv_val; i++) {
+			nval++;
+			len += a->a_vals[i].bv_len + 1;
+			len += entry_lenlen(a->a_vals[i].bv_len);
+		}
+		len += entry_lenlen(i);
+		nval++;	/* empty berval at end */
+		if (a->a_nvals != a->a_vals) {
+			for (i=0; a->a_nvals[i].bv_val; i++) {
+				nval++;
+				len += a->a_nvals[i].bv_len + 1;
+				len += entry_lenlen(a->a_nvals[i].bv_len);
+			}
+			len += entry_lenlen(i);	/* i nvals */
+			nval++;
+		} else {
+			len += entry_lenlen(0);	/* 0 nvals */
+		}
+	}
+	len += entry_lenlen(nat);
+	len += entry_lenlen(nval);
+	eh->bv.bv_len = len;
+	eh->nattrs = nat;
+	eh->nvals = nval;
+}
+
+/* Flatten an Entry into a buffer. The buffer is filled with just the
+ * strings/bervals of all the entry components. Each field is preceded
+ * by its length, encoded the way ber_put_len works. Every field is NUL
+ * terminated.  The entire buffer size is precomputed so that a single
+ * malloc can be performed. The entry size is also recorded,
+ * to aid in entry_decode.
+ */
+static int mdb_entry_encode(Operation *op, MDB_txn *txn, Entry *e, MDB_val *data)
+{
+	struct mdb_info *mdb = (struct mdb_info *) op->o_bd->be_private;
+	ber_len_t len, dnlen, ndnlen, i;
+	EntryHeader eh;
+	int rc;
+	Attribute *a;
+	unsigned char *ptr;
+
+	Debug( LDAP_DEBUG_TRACE, "=> mdb_entry_encode(0x%08lx): %s\n",
+		(long) e->e_id, e->e_dn, 0 );
+
+	rc = mdb_entry_partsize( mdb, txn, e, &eh );
+
+	data->mv_size = eh.bv.bv_len;
+	data->mv_data = op->o_tmpalloc(data->mv_size, op->o_tmpmemctx);
+	ptr = (unsigned char *)data->mv_data;
+	mdb_entry_putlen(&ptr, eh.nattrs);
+	mdb_entry_putlen(&ptr, eh.nvals);
+
+	for (a=e->e_attrs; a; a=a->a_next) {
+		mdb_entry_putlen(&ptr, mdb->mi_adxs[a->a_desc->ad_index]);
+		if (a->a_vals) {
+			for (i=0; a->a_vals[i].bv_val; i++);
+			assert( i == a->a_numvals );
+			mdb_entry_putlen(&ptr, i);
+			for (i=0; a->a_vals[i].bv_val; i++) {
+				mdb_entry_putlen(&ptr, a->a_vals[i].bv_len);
+				AC_MEMCPY(ptr, a->a_vals[i].bv_val,
+					a->a_vals[i].bv_len);
+				ptr += a->a_vals[i].bv_len;
+				*ptr++ = '\0';
+			}
+			if (a->a_nvals != a->a_vals) {
+				mdb_entry_putlen(&ptr, i);
+				for (i=0; a->a_nvals[i].bv_val; i++) {
+					mdb_entry_putlen(&ptr, a->a_nvals[i].bv_len);
+					AC_MEMCPY(ptr, a->a_nvals[i].bv_val,
+					a->a_nvals[i].bv_len);
+					ptr += a->a_nvals[i].bv_len;
+					*ptr++ = '\0';
+				}
+			} else {
+				mdb_entry_putlen(&ptr, 0);
+			}
+		}
+	}
+
+	Debug( LDAP_DEBUG_TRACE, "<= mdb_entry_encode(0x%08lx): %s\n",
+		(long) e->e_id, e->e_dn, 0 );
+
+	return 0;
+}
+
+/* Retrieve an Entry that was stored using entry_encode above.
+ *
+ * Note: everything is stored in a single contiguous block, so
+ * you can not free individual attributes or names from this
+ * structure. Attempting to do so will likely corrupt memory.
+ */
+
+int mdb_entry_decode(Operation *op, MDB_val *data, Entry **e)
+{
+	struct mdb_info *mdb = (struct mdb_info *) op->o_bd->be_private;
+	int i, j, nattrs, nvals;
+	int rc;
+	Attribute *a;
+	Entry *x;
+	const char *text;
+	AttributeDescription *ad;
+	unsigned char *ptr = (unsigned char *)data->mv_data;
+	BerVarray bptr;
+
+	Debug( LDAP_DEBUG_TRACE,
+		"=> mdb_entry_decode:\n",
+		0, 0, 0 );
+
+	nattrs = mdb_entry_getlen(&ptr);
+	nvals = mdb_entry_getlen(&ptr);
+	x = entry_alloc();
+	x->e_attrs = attrs_alloc( nattrs );
+	x->e_bv.bv_len = nvals * sizeof(struct berval);
+	x->e_bv.bv_val = op->o_tmpalloc(x->e_bv.bv_len, op->o_tmpmemctx);
+	bptr = (BerVarray) x->e_bv.bv_val;
+
+	a = x->e_attrs;
+
+	while ((i = mdb_entry_getlen(&ptr))) {
+		a->a_desc = mdb->mi_ads[i];
+		a->a_flags = SLAP_ATTR_DONT_FREE_DATA | SLAP_ATTR_DONT_FREE_VALS;
+		j = mdb_entry_getlen(&ptr);
+		a->a_numvals = j;
+		a->a_vals = bptr;
+
+		while (j) {
+			i = mdb_entry_getlen(&ptr);
+			bptr->bv_len = i;
+			bptr->bv_val = (char *)ptr;
+			ptr += i+1;
+			bptr++;
+			j--;
+		}
+		bptr->bv_val = NULL;
+		bptr->bv_len = 0;
+		bptr++;
+
+		j = mdb_entry_getlen(&ptr);
+		if (j) {
+			a->a_nvals = bptr;
+			while (j) {
+				i = mdb_entry_getlen(&ptr);
+				bptr->bv_len = i;
+				bptr->bv_val = (char *)ptr;
+				ptr += i+1;
+				bptr++;
+				j--;
+			}
+			bptr->bv_val = NULL;
+			bptr->bv_len = 0;
+			bptr++;
+		} else {
+			a->a_nvals = a->a_vals;
+		}
+		/* FIXME: This is redundant once a sorted entry is saved into the DB */
+		if ( a->a_desc->ad_type->sat_flags & SLAP_AT_SORTED_VAL ) {
+			rc = slap_sort_vals( (Modifications *)a, &text, &j, NULL );
+			if ( rc == LDAP_SUCCESS ) {
+				a->a_flags |= SLAP_ATTR_SORTED_VALS;
+			} else if ( rc == LDAP_TYPE_OR_VALUE_EXISTS ) {
+				/* should never happen */
+				Debug( LDAP_DEBUG_ANY,
+					"mdb_entry_decode: attributeType %s value #%d provided more than once\n",
+					a->a_desc->ad_cname.bv_val, j, 0 );
+				return rc;
+			}
+		}
+		a = a->a_next;
+		nattrs--;
+		if ( !nattrs )
+			break;
+	}
+
+	Debug(LDAP_DEBUG_TRACE, "<= mdb_entry_decode\n",
+		0, 0, 0 );
+	*e = x;
 	return 0;
 }

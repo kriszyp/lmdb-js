@@ -27,7 +27,6 @@
 static MDB_txn *txn = NULL, *txi = NULL;
 static MDB_cursor *cursor = NULL, *idcursor = NULL;
 static MDB_val key, data;
-static EntryHeader eh;
 static ID previd = NOID;
 
 typedef struct dn_id {
@@ -277,6 +276,9 @@ ID mdb_tool_dn2id_get(
 static int
 mdb_tool_entry_get_int( BackendDB *be, ID id, Entry **ep )
 {
+	Operation op = {0};
+	Opheader ohdr = {0};
+
 	Entry *e = NULL;
 	struct berval dn = BER_BVNULL, ndn = BER_BVNULL;
 	int rc;
@@ -300,15 +302,11 @@ mdb_tool_entry_get_int( BackendDB *be, ID id, Entry **ep )
 		}
 	}
 
+	op.o_hdr = &ohdr;
+	op.o_bd = be;
+	op.o_tmpmemctx = NULL;
+	op.o_tmpmfuncs = &ch_mfuncs;
 	if ( slapMode & SLAP_TOOL_READONLY ) {
-		Operation op = {0};
-		Opheader ohdr = {0};
-
-		op.o_hdr = &ohdr;
-		op.o_bd = be;
-		op.o_tmpmemctx = NULL;
-		op.o_tmpmfuncs = &ch_mfuncs;
-
 		rc = mdb_id2name( &op, txn, &idcursor, id, &dn, &ndn );
 		if ( rc  ) {
 			rc = LDAP_OTHER;
@@ -324,18 +322,7 @@ mdb_tool_entry_get_int( BackendDB *be, ID id, Entry **ep )
 			}
 		}
 	}
-	/* Get the header */
-	eh.bv.bv_val = data.mv_data;
-	eh.bv.bv_len = data.mv_size;
-
-	rc = entry_header( &eh );
-	if ( rc ) {
-		rc = LDAP_OTHER;
-		goto done;
-	}
-	eh.bv.bv_len = eh.nvals * sizeof( struct berval );
-	eh.bv.bv_val = ch_malloc( eh.bv.bv_len );
-	rc = entry_decode( &eh, &e );
+	rc = mdb_entry_decode( &op, &data, &e );
 	e->e_id = id;
 	if ( !BER_BVISNULL( &dn )) {
 		e->e_name = dn;
@@ -344,7 +331,6 @@ mdb_tool_entry_get_int( BackendDB *be, ID id, Entry **ep )
 		e->e_name.bv_val = NULL;
 		e->e_nname.bv_val = NULL;
 	}
-	e->e_bv = eh.bv;
 
 done:
 	if ( e != NULL ) {
