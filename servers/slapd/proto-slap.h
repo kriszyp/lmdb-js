@@ -2051,6 +2051,7 @@ LDAP_SLAPD_V (ldap_pvt_thread_mutex_t)	entry2str_mutex;
 #define gmtime_mutex ldap_int_gmtime_mutex
 #endif /* ! LDAP_DEVEL */
 
+LDAP_SLAPD_V (ldap_pvt_thread_mutex_t)	ad_index_mutex;
 LDAP_SLAPD_V (ldap_pvt_thread_mutex_t)	ad_undef_mutex;
 LDAP_SLAPD_V (ldap_pvt_thread_mutex_t)	oc_undef_mutex;
 

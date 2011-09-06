@@ -1161,6 +1161,7 @@ slap_schema_load( void )
 	slap_at_proxied.sat_syntax = slap_schema.si_syn_octetString;
 	slap_schema.si_at_proxied = &slap_at_proxied;
 
+	ldap_pvt_thread_mutex_init( &ad_index_mutex );
 	ldap_pvt_thread_mutex_init( &ad_undef_mutex );
 	ldap_pvt_thread_mutex_init( &oc_undef_mutex );
 
