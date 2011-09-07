@@ -3,6 +3,7 @@ OpenLDAP 2.4 Change Log
 OpenLDAP 2.4.27 Engineering
 	Added slapd Add-if-not-present (ITS#6561)
 	Added slapd delta-syncrepl Multi-Master Replication (ITS#6734,ITS#7029,ITS#7031)
+	Fixed libutil variable size (ITS#6982)
 	Fixed libldap MozNSS correctly destroy SSL_PeerCertificate (ITS#6980)
 	Fixed slapo-dds tag in refresh response (ITS#6886)
 	Fixed slapo-lastbind so authTimestamp is manageable (ITS#6873)
