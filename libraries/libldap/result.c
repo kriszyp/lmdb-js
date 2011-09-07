@@ -338,6 +338,7 @@ wait4msg(
 			}
 			if ( lc_ready ) {
 				LDAPConn *lnext;
+				int serviced = 0;
 				rc = LDAP_MSG_X_KEEP_LOOKING;
 				LDAP_MUTEX_LOCK( &ld->ld_req_mutex );
 				if ( ld->ld_requests &&
@@ -345,6 +346,7 @@ wait4msg(
 					ldap_is_write_ready( ld,
 						ld->ld_requests->lr_conn->lconn_sb ) )
 				{
+					serviced = 1;
 					ldap_int_flush_request( ld, ld->ld_requests );
 				}
 				for ( lc = ld->ld_conns;
@@ -354,6 +356,7 @@ wait4msg(
 					if ( lc->lconn_status == LDAP_CONNST_CONNECTED &&
 						ldap_is_read_ready( ld, lc->lconn_sb ) )
 					{
+						serviced = 1;
 						/* Don't let it get freed out from under us */
 						++lc->lconn_refcnt;
 						rc = try_read1msg( ld, msgid, all, lc, result );
@@ -370,6 +373,9 @@ wait4msg(
 					}
 				}
 				LDAP_MUTEX_UNLOCK( &ld->ld_req_mutex );
+				/* Quit looping if no one handled any events */
+				if (!serviced)
+					rc = -1;
 			}
 			LDAP_MUTEX_UNLOCK( &ld->ld_conn_mutex );
 		}
