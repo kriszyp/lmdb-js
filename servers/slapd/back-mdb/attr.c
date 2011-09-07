@@ -530,8 +530,12 @@ int mdb_ad_read( struct mdb_info *mdb, MDB_txn *txn )
 	AttributeDescription *ad;
 
 	rc = mdb_cursor_open( txn, mdb->mi_ad2id, &mc );
-	if ( rc )
+	if ( rc ) {
+		Debug( LDAP_DEBUG_ANY,
+			"mdb_ad_read: cursor_open failed %s(%d)\n",
+			mdb_strerror(rc), rc, 0);
 		return rc;
+	}
 
 	/* our array is 1-based, an index of 0 means no data */
 	i = mdb->mi_numads+1;
@@ -569,6 +573,9 @@ int mdb_ad_get( struct mdb_info *mdb, MDB_txn *txn, AttributeDescription *ad )
 	MDB_val key;
 
 	rc = mdb_ad_read( mdb, txn );
+	if (rc)
+		return rc;
+
 	if ( mdb->mi_adxs[ad->ad_index] )
 		return 0;
 
@@ -581,6 +588,10 @@ int mdb_ad_get( struct mdb_info *mdb, MDB_txn *txn, AttributeDescription *ad )
 		mdb->mi_adxs[ad->ad_index] = i;
 		mdb->mi_ads[i] = ad;
 		mdb->mi_numads++;
+	} else {
+		Debug( LDAP_DEBUG_ANY,
+			"mdb_ad_get: mdb_put failed %s(%d)\n",
+			mdb_strerror(rc), rc, 0);
 	}
 
 	return rc;

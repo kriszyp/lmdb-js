@@ -42,12 +42,18 @@ static int mdb_id2entry_put(
 
 	rc = mdb_entry_encode( op, tid, e, &data );
 	if( rc != LDAP_SUCCESS ) {
-		return -1;
+		return LDAP_OTHER;
 	}
 
 	rc = mdb_put( tid, dbi, &key, &data, flag );
-
 	op->o_tmpfree( data.mv_data, op->o_tmpmemctx );
+	if (rc) {
+		Debug( LDAP_DEBUG_ANY,
+			"mdb_id2entry_put: mdb_put failed: %s(%d) \"%s\"\n",
+			mdb_strerror(rc), rc,
+			e->e_nname.bv_val );
+		rc = LDAP_OTHER;
+	}
 	return rc;
 }
 
@@ -482,6 +488,7 @@ static int mdb_entry_partsize(struct mdb_info *mdb, MDB_txn *txn, Entry *e,
 	eh->bv.bv_len = len;
 	eh->nattrs = nat;
 	eh->nvals = nval;
+	return 0;
 }
 
 /* Flatten an Entry into a buffer. The buffer is filled with just the
@@ -507,6 +514,7 @@ static int mdb_entry_encode(Operation *op, MDB_txn *txn, Entry *e, MDB_val *data
 		;	/* empty */
 
 	rc = mdb_entry_partsize( mdb, txn, e, &eh );
+	if (rc) return rc;
 
 	data->mv_size = eh.bv.bv_len;
 	data->mv_data = op->o_tmpalloc(data->mv_size, op->o_tmpmemctx);
