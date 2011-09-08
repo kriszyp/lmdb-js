@@ -313,6 +313,7 @@ mdb_search( Operation *op, SlapReply *rs )
 	ltid = moi->moi_txn;
 	isc.mt = ltid;
 	isc.mc = NULL;
+	isc.scopes = scopes;
 
 	if ( op->ors_deref & LDAP_DEREF_FINDING ) {
 		MDB_IDL_ZERO(candidates);
@@ -551,8 +552,6 @@ dn2entry_retry:
 			id = mdb_idl_next( candidates, &cursor );
 		goto loop_begin;
 	}
-
-	isc.scopes = scopes;
 
 	for ( id = mdb_idl_first( candidates, &cursor );
 		  id != NOID ; id = mdb_idl_next( candidates, &cursor ) )
