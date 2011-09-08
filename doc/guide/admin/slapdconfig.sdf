@@ -128,7 +128,7 @@ Note: You should be careful when using this directive - there is
 no small limit on the number of nested include directives, and no
 loop detection is done.
 
-H4: loglevel <integer>
+H4: loglevel <level>
 
 This directive specifies the level at which debugging statements
 and operation statistics should be syslogged (currently logged to
