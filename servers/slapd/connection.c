@@ -1500,12 +1500,20 @@ connection_input( Connection *conn , conn_readinfo *cri )
 #ifdef LDAP_CONNECTIONLESS
 	if ( conn->c_is_udp ) {
 		char peername[sizeof("IP=255.255.255.255:65336")];
+		const char *peeraddr_string = NULL;
 
 		len = ber_int_sb_read(conn->c_sb, &peeraddr, sizeof(struct sockaddr));
 		if (len != sizeof(struct sockaddr)) return 1;
 
+#if defined( HAVE_GETADDRINFO ) && defined( HAVE_INET_NTOP )
+		char addr[INET_ADDRSTRLEN];
+		peeraddr_string = inet_ntop( AF_INET, &peeraddr.sa_in_addr.sin_addr,
+			   addr, sizeof(addr) );
+#else /* ! HAVE_GETADDRINFO || ! HAVE_INET_NTOP */
+		peeraddr_string = inet_ntoa( peeraddr.sa_in_addr.sin_addr );
+#endif /* ! HAVE_GETADDRINFO || ! HAVE_INET_NTOP */
 		sprintf( peername, "IP=%s:%d",
-			inet_ntoa( peeraddr.sa_in_addr.sin_addr ),
+			 peeraddr_string,
 			(unsigned) ntohs( peeraddr.sa_in_addr.sin_port ) );
 		Statslog( LDAP_DEBUG_STATS,
 			"conn=%lu UDP request from %s (%s) accepted.\n",
