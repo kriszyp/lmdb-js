@@ -2129,7 +2129,7 @@ slapd_daemon_task(
 	int l;
 	time_t last_idle_check = 0;
 	int ebadf = 0;
-	int tid = (int)ptr;
+	int tid = *(int *)ptr;
 
 #define SLAPD_IDLE_CHECK_LIMIT 4
 
@@ -2919,7 +2919,7 @@ slapd_daemon( void )
 	{
 		/* listener as a separate THREAD */
 		rc = ldap_pvt_thread_create( &listener_tid[i],
-			0, slapd_daemon_task, (void *)i );
+			0, slapd_daemon_task, (void *)&i );
 
 		if ( rc != 0 ) {
 			Debug( LDAP_DEBUG_ANY,
