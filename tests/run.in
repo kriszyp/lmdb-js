@@ -257,6 +257,9 @@ while [ $COUNTER -le $LOOP ]; do
 	fi
 
 	if [ $RC -ne 0 ]; then
+		if [ $LOOP -gt 1 ]; then
+			echo "Failed after $COUNTER of $LOOP iterations"
+		fi
 		exit $RC
 	else
 		COUNTER=`expr $COUNTER + 1`
