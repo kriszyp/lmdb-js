@@ -582,8 +582,8 @@ parse_ldif_control(
 	char *s, *oidStart;
 	LDAPControl *newctrl = NULL;
 	LDAPControl **pctrls = NULL;
-	struct berval type, bv;
-	int freeval;
+	struct berval type, bv = BER_BVNULL;
+	int freeval = 0;
 
 	if (ppctrls) pctrls = *ppctrls;
 	/* OID should come first. Validate and extract it. */
