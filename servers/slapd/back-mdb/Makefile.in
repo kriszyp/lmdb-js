@@ -15,14 +15,14 @@
 
 SRCS = init.c tools.c config.c \
 	add.c bind.c compare.c delete.c modify.c modrdn.c search.c \
-	extended.c referral.c operational.c \
+	extended.c operational.c \
 	attr.c index.c key.c filterindex.c \
 	dn2entry.c dn2id.c id2entry.c idl.c \
 	nextid.c monitor.c
 
 OBJS = init.lo tools.lo config.lo \
 	add.lo bind.lo compare.lo delete.lo modify.lo modrdn.lo search.lo \
-	extended.lo referral.lo operational.lo \
+	extended.lo operational.lo \
 	attr.lo index.lo key.lo filterindex.lo \
 	dn2entry.lo dn2id.lo id2entry.lo idl.lo \
 	nextid.lo monitor.lo mdb.lo midl.lo
