@@ -35,9 +35,11 @@ mdb_dn2entry(
 	Entry **e,
 	int matched )
 {
+	struct mdb_info *mdb = (struct mdb_info *) op->o_bd->be_private;
 	int rc, rc2;
 	ID id = NOID;
 	struct berval mbv, nmbv;
+	MDB_cursor *mc;
 
 	Debug(LDAP_DEBUG_TRACE, "mdb_dn2entry(\"%s\")\n",
 		dn->bv_val, 0, 0 );
@@ -46,11 +48,20 @@ mdb_dn2entry(
 
 	rc = mdb_dn2id( op, tid, dn, &id, &mbv, &nmbv );
 	if ( rc ) {
-		if ( matched )
-			rc2 = mdb_id2entry( op, tid, id, e );
+		if ( matched ) {
+			rc2 = mdb_cursor_open( tid, mdb->mi_id2entry, &mc );
+			if ( rc2 == MDB_SUCCESS ) {
+				rc2 = mdb_id2entry( op, mc, id, e );
+				mdb_cursor_close( mc );
+			}
+		}
 
 	} else {
-		rc = mdb_id2entry( op, tid, id, e );
+		rc = mdb_cursor_open( tid, mdb->mi_id2entry, &mc );
+		if ( rc == MDB_SUCCESS ) {
+			rc = mdb_id2entry( op, mc, id, e );
+			mdb_cursor_close(mc);
+		}
 	}
 	if ( *e ) {
 		(*e)->e_name = mbv;
