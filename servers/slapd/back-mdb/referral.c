@@ -91,7 +91,7 @@ mdb_referrals( Operation *op, SlapReply *rs )
 				}
 			}
 
-			mdb_entry_return( e );
+			mdb_entry_return( op, e );
 			e = NULL;
 		}
 
@@ -144,6 +144,6 @@ done:
 		LDAP_SLIST_REMOVE( &op->o_extra, &moi->moi_oe, OpExtra, oe_next );
 	}
 	if ( e )
-		mdb_entry_return( e );
+		mdb_entry_return( op, e );
 	return rc;
 }

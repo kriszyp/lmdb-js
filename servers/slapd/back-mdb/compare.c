@@ -77,7 +77,7 @@ mdb_compare( Operation *op, SlapReply *rs )
 				}
 				rs->sr_err = LDAP_REFERRAL;
 			}
-			mdb_entry_return( e );
+			mdb_entry_return( op, e );
 			e = NULL;
 
 		} else {
@@ -133,7 +133,7 @@ done:
 	}
 	/* free entry */
 	if ( e != NULL ) {
-		mdb_entry_return( e );
+		mdb_entry_return( op, e );
 	}
 
 	return rs->sr_err;

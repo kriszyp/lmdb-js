@@ -89,7 +89,7 @@ int mdb_modify_internal(
 		return LDAP_INSUFFICIENT_ACCESS;
 	}
 
-	/* save_attrs will be disposed of by mdb_cache_modify */
+	/* save_attrs will be disposed of by caller */
 	save_attrs = e->e_attrs;
 	e->e_attrs = attrs_dup( e->e_attrs );
 
@@ -514,7 +514,7 @@ txnReturn:
 			} else {
 				rs->sr_ref = NULL;
 			}
-			mdb_entry_return( e );
+			mdb_entry_return( op, e );
 			e = NULL;
 
 		} else {
@@ -675,7 +675,7 @@ done:
 	}
 
 	if( e != NULL ) {
-		mdb_entry_return( e );
+		mdb_entry_return( op, e );
 	}
 
 	if( preread_ctrl != NULL && (*preread_ctrl) != NULL ) {

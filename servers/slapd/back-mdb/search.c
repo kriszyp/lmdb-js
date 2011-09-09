@@ -107,7 +107,7 @@ static Entry * deref_base (
 		/* Free the previous entry, continue to work with the
 		 * one we just retrieved.
 		 */
-		mdb_entry_return( *matched );
+		mdb_entry_return( op, *matched );
 
 		/* We found a regular entry. Return this to the caller.
 		 */
@@ -179,7 +179,7 @@ static int search_aliases(
 		if (first) {
 			first = 0;
 		} else {
-			mdb_entry_return( e );
+			mdb_entry_return( op, e );
 		}
 
 		/* Dereference all of the aliases in the current scope. */
@@ -196,7 +196,7 @@ static int search_aliases(
 			 * turned into a range that spans IDs indiscriminately
 			 */
 			if (!is_entry_alias(a)) {
-				mdb_entry_return (a);
+				mdb_entry_return(op, a);
 				continue;
 			}
 
@@ -211,13 +211,13 @@ static int search_aliases(
 				if (mdb_idl_insert(scopes, a->e_id) == 0) {
 					mdb_idl_insert(newsubs, a->e_id);
 				}
-				mdb_entry_return( a );
+				mdb_entry_return( op, a );
 
 			} else if (matched) {
 				/* Alias could not be dereferenced, or it deref'd to
 				 * an ID we've already seen. Ignore it.
 				 */
-				mdb_entry_return( matched );
+				mdb_entry_return( op, matched );
 				rs->sr_text = NULL;
 			}
 		}
@@ -348,7 +348,7 @@ dn2entry_retry:
 			if ( e ) {
 				build_new_dn( &op->o_req_ndn, &e->e_nname, &stub,
 					op->o_tmpmemctx );
-				mdb_entry_return (e);
+				mdb_entry_return(op, e);
 				matched = NULL;
 				goto dn2entry_retry;
 			}
@@ -383,7 +383,7 @@ dn2entry_retry:
 				rs->sr_matched = matched_dn.bv_val;
 			}
 
-			mdb_entry_return (matched);
+			mdb_entry_return(op, matched);
 			matched = NULL;
 
 			if ( erefs ) {
@@ -422,7 +422,7 @@ dn2entry_retry:
 			rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
 		}
 
-		mdb_entry_return(e);
+		mdb_entry_return( op,e);
 		send_ldap_result( op, rs );
 		goto done;
 	}
@@ -437,7 +437,7 @@ dn2entry_retry:
 
 		rs->sr_err = LDAP_REFERRAL;
 
-		mdb_entry_return( e );
+		mdb_entry_return( op, e );
 		e = NULL;
 
 		if ( erefs ) {
@@ -468,7 +468,7 @@ dn2entry_retry:
 		( test_filter( op, e, get_assertion( op )) != LDAP_COMPARE_TRUE ))
 	{
 		rs->sr_err = LDAP_ASSERTION_FAILED;
-		mdb_entry_return(e);
+		mdb_entry_return( op,e);
 		send_ldap_result( op, rs );
 		goto done;
 	}
@@ -766,7 +766,7 @@ loop_begin:
 
 			send_search_reference( op, rs );
 
-			mdb_entry_return( e );
+			mdb_entry_return( op, e );
 			rs->sr_entry = NULL;
 			e = NULL;
 
@@ -784,7 +784,7 @@ loop_begin:
 			/* check size limit */
 			if ( get_pagedresults(op) > SLAP_CONTROL_IGNORED ) {
 				if ( rs->sr_nentries >= ((PagedResultsState *)op->o_pagedresults_state)->ps_size ) {
-					mdb_entry_return( e );
+					mdb_entry_return( op, e );
 					e = NULL;
 					send_paged_response( op, rs, &lastid, tentries );
 					goto done;
@@ -805,7 +805,7 @@ loop_begin:
 				rs->sr_attrs = NULL;
 				rs->sr_entry = NULL;
 				if (e != base)
-					mdb_entry_return( e );
+					mdb_entry_return( op, e );
 				e = NULL;
 
 				switch ( rs->sr_err ) {
@@ -837,7 +837,7 @@ loop_begin:
 loop_continue:
 		if( e != NULL ) {
 			if ( e != base )
-				mdb_entry_return( e );
+				mdb_entry_return( op, e );
 			RS_ASSERT( rs->sr_entry == NULL );
 			e = NULL;
 			rs->sr_entry = NULL;
@@ -869,7 +869,7 @@ done:
 		rs->sr_v2ref = NULL;
 	}
 	if (base)
-		mdb_entry_return(base);
+		mdb_entry_return( op,base);
 
 	return rs->sr_err;
 }
