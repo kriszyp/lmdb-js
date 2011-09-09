@@ -146,7 +146,7 @@ txnReturn:
 	switch( rs->sr_err ) {
 	case 0:
 		rs->sr_err = LDAP_ALREADY_EXISTS;
-		mdb_entry_return( p );
+		mdb_entry_return( op, p );
 		p = NULL;
 		goto return_results;
 	case MDB_NOTFOUND:
@@ -175,7 +175,7 @@ txnReturn:
 			rs->sr_ref = NULL;
 		}
 		if ( p != (Entry *)&slap_entry_root )
-			mdb_entry_return( p );
+			mdb_entry_return( op, p );
 		p = NULL;
 		Debug( LDAP_DEBUG_TRACE,
 			LDAP_XSTRING(mdb_add) ": parent "
@@ -191,7 +191,7 @@ txnReturn:
 
 	if ( ! rs->sr_err ) {
 		if ( p != (Entry *)&slap_entry_root )
-			mdb_entry_return( p );
+			mdb_entry_return( op, p );
 		p = NULL;
 
 		Debug( LDAP_DEBUG_TRACE,
@@ -204,7 +204,7 @@ txnReturn:
 
 	if ( p != (Entry *)&slap_entry_root ) {
 		if ( is_entry_subentry( p ) ) {
-			mdb_entry_return( p );
+			mdb_entry_return( op, p );
 			p = NULL;
 			/* parent is a subentry, don't allow add */
 			Debug( LDAP_DEBUG_TRACE,
@@ -216,7 +216,7 @@ txnReturn:
 		}
 
 		if ( is_entry_alias( p ) ) {
-			mdb_entry_return( p );
+			mdb_entry_return( op, p );
 			p = NULL;
 			/* parent is an alias, don't allow add */
 			Debug( LDAP_DEBUG_TRACE,
@@ -235,7 +235,7 @@ txnReturn:
 			rs->sr_ref = referral_rewrite( ref, &p->e_name,
 				&op->o_req_dn, LDAP_SCOPE_DEFAULT );
 			ber_bvarray_free( ref );
-			mdb_entry_return( p );
+			mdb_entry_return( op, p );
 			p = NULL;
 			Debug( LDAP_DEBUG_TRACE,
 				LDAP_XSTRING(mdb_add) ": parent is referral\n",
@@ -277,7 +277,7 @@ txnReturn:
 			}
 		}
 
-		mdb_entry_return( p );
+		mdb_entry_return( op, p );
 	}
 	p = NULL;
 

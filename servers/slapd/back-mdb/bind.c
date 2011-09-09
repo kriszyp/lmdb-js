@@ -141,7 +141,7 @@ done:
 	}
 	/* free entry and reader lock */
 	if( e != NULL ) {
-		mdb_entry_return( e );
+		mdb_entry_return( op, e );
 	}
 
 	if ( rs->sr_err ) {

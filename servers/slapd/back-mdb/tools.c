@@ -310,7 +310,7 @@ mdb_tool_entry_get_int( BackendDB *be, ID id, Entry **ep )
 		rc = mdb_id2name( &op, txn, &idcursor, id, &dn, &ndn );
 		if ( rc  ) {
 			rc = LDAP_OTHER;
-			mdb_entry_return( e );
+			mdb_entry_return( &op, e );
 			e = NULL;
 			goto done;
 		}

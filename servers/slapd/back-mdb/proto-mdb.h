@@ -170,8 +170,7 @@ int mdb_id2entry(
 	ID id,
 	Entry **e);
 
-void mdb_entry_free ( Entry *e );
-int mdb_entry_return( Entry *e );
+int mdb_entry_return( Operation *op, Entry *e );
 BI_entry_release_rw mdb_entry_release;
 BI_entry_get_rw mdb_entry_get;
 

@@ -23,6 +23,7 @@
 #include "back-mdb.h"
 
 static int mdb_entry_encode(Operation *op, MDB_txn *txn, Entry *e, MDB_val *data);
+static Entry *mdb_entry_alloc( Operation *op, int nattrs, int nvals );
 
 static int mdb_id2entry_put(
 	Operation *op,
@@ -101,12 +102,28 @@ int mdb_id2entry(
 		/* Looking for root entry on an empty-dn suffix? */
 		if ( !id && BER_BVISEMPTY( &op->o_bd->be_nsuffix[0] )) {
 			struct berval gluebv = BER_BVC("glue");
-			Entry *r = entry_alloc();
+			Entry *r = mdb_entry_alloc(op, 2, 4);
+			Attribute *a = r->e_attrs;
+			struct berval *bptr;
 
 			r->e_id = 0;
-			attr_merge_one( r, slap_schema.si_ad_objectClass, &gluebv, NULL );
-			attr_merge_one( r, slap_schema.si_ad_structuralObjectClass, &gluebv, NULL );
 			r->e_ocflags = SLAP_OC_GLUE|SLAP_OC__END;
+			bptr = a->a_vals;
+			a->a_flags = SLAP_ATTR_DONT_FREE_DATA | SLAP_ATTR_DONT_FREE_VALS;
+			a->a_desc = slap_schema.si_ad_objectClass;
+			a->a_nvals = a->a_vals;
+			a->a_numvals = 1;
+			*bptr++ = gluebv;
+			BER_BVZERO(bptr);
+			bptr++;
+			a = a->a_next;
+			a->a_flags = SLAP_ATTR_DONT_FREE_DATA | SLAP_ATTR_DONT_FREE_VALS;
+			a->a_desc = slap_schema.si_ad_structuralObjectClass;
+			a->a_vals = bptr;
+			a->a_nvals = a->a_vals;
+			a->a_numvals = 1;
+			*bptr++ = gluebv;
+			BER_BVZERO(bptr);
 			*e = r;
 			return MDB_SUCCESS;
 		}
@@ -142,11 +159,52 @@ int mdb_id2entry_delete(
 	return rc;
 }
 
+static Attribute * mdb_attrs_alloc(
+	Operation *op,
+	int nattrs,
+	int nvals )
+{
+	Attribute *a, *s;
+
+	if (!nattrs || !nvals) return NULL;
+
+	s = op->o_tmpalloc( nattrs * sizeof(Attribute) +
+		nvals * sizeof(struct berval), op->o_tmpmemctx );
+
+	for (a=s; nattrs>1; nattrs--) {
+		a->a_next = a+1;
+		a++;
+	}
+	a->a_next = NULL;
+	s->a_vals = (struct berval *)(a+1);
+	return s;
+}
+
+static Entry * mdb_entry_alloc(
+	Operation *op,
+	int nattrs,
+	int nvals )
+{
+	Entry *e = op->o_tmpalloc( sizeof(Entry), op->o_tmpmemctx );
+	BER_BVZERO(&e->e_bv);
+	e->e_attrs = mdb_attrs_alloc( op, nattrs, nvals );
+	e->e_private = e;
+	return e;
+}
+
 int mdb_entry_return(
+	Operation *op,
 	Entry *e
 )
 {
-	entry_free( e );
+	if ( e->e_private ) {
+		op->o_tmpfree( e->e_nname.bv_val, op->o_tmpmemctx );
+		op->o_tmpfree( e->e_name.bv_val, op->o_tmpmemctx );
+		op->o_tmpfree( e->e_attrs, op->o_tmpmemctx );
+		op->o_tmpfree( e, op->o_tmpmemctx );
+	} else {
+		entry_free( e );
+	}
 	return 0;
 }
 
@@ -162,7 +220,7 @@ int mdb_entry_release(
 	/* slapMode : SLAP_SERVER_MODE, SLAP_TOOL_MODE,
 			SLAP_TRUNCATE_MODE, SLAP_UNDEFINED_MODE */
  
-	mdb_entry_return ( e );
+	mdb_entry_return( op, e );
 	if ( slapMode == SLAP_SERVER_MODE ) {
 		OpExtra *oex;
 		LDAP_SLIST_FOREACH( oex, &op->o_extra, oe_next ) {
@@ -256,7 +314,7 @@ return_results:
 	if( rc != LDAP_SUCCESS ) {
 		/* free entry */
 		if ( e )
-			mdb_entry_return( e );
+			mdb_entry_return( op, e );
 
 		if (moi->moi_ref == 1) {
 			LDAP_SLIST_REMOVE( &op->o_extra, &moi->moi_oe, OpExtra, oe_next );
@@ -582,14 +640,13 @@ int mdb_entry_decode(Operation *op, MDB_val *data, Entry **e)
 
 	nattrs = mdb_entry_getlen(&ptr);
 	nvals = mdb_entry_getlen(&ptr);
-	x = entry_alloc();
+	x = mdb_entry_alloc(op, nattrs, nvals);
 	x->e_ocflags = mdb_entry_getlen(&ptr);
-	x->e_attrs = attrs_alloc( nattrs );
-	x->e_bv.bv_len = nvals * sizeof(struct berval);
-	x->e_bv.bv_val = op->o_tmpalloc(x->e_bv.bv_len, op->o_tmpmemctx);
-	bptr = (BerVarray) x->e_bv.bv_val;
-
+	if (!nvals) {
+		goto done;
+	}
 	a = x->e_attrs;
+	bptr = a->a_vals;
 
 	while ((i = mdb_entry_getlen(&ptr))) {
 		a->a_desc = mdb->mi_ads[i];
@@ -645,6 +702,7 @@ int mdb_entry_decode(Operation *op, MDB_val *data, Entry **e)
 		if ( !nattrs )
 			break;
 	}
+done:
 
 	Debug(LDAP_DEBUG_TRACE, "<= mdb_entry_decode\n",
 		0, 0, 0 );

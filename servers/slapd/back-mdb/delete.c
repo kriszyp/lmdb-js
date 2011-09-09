@@ -151,7 +151,7 @@ txnReturn:
 					&op->o_req_dn, LDAP_SCOPE_DEFAULT );
 		}
 		if ( p ) {
-			mdb_entry_return( p );
+			mdb_entry_return( op, p );
 			p = NULL;
 		}
 
@@ -192,7 +192,7 @@ txnReturn:
 		} else {
 			rs->sr_ref = NULL;
 		}
-		mdb_entry_return( e );
+		mdb_entry_return( op, e );
 		e = NULL;
 
 		rs->sr_err = LDAP_REFERRAL;
@@ -392,7 +392,7 @@ txnReturn:
 			}
 			parent_is_leaf = 1;
 		}
-		mdb_entry_return( p );
+		mdb_entry_return( op, p );
 		p = NULL;
 	}
 
@@ -435,12 +435,12 @@ return_results:
 	}
 
 	if ( p != NULL ) {
-		mdb_entry_return( p );
+		mdb_entry_return( op, p );
 	}
 
 	/* free entry */
 	if( e != NULL ) {
-		mdb_entry_return( e );
+		mdb_entry_return( op, e );
 	}
 
 	if( moi == &opinfo ) {

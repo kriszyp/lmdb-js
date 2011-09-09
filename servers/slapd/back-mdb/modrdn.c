@@ -219,7 +219,7 @@ txnReturn:
 			} else {
 				rs->sr_ref = NULL;
 			}
-			mdb_entry_return( e );
+			mdb_entry_return( op, e );
 			e = NULL;
 
 		} else {
@@ -534,7 +534,7 @@ txnReturn:
 			}
 			parent_is_leaf = 1;
 		}
-		mdb_entry_return( p );
+		mdb_entry_return( op, p );
 		p = NULL;
 	}
 
@@ -621,17 +621,17 @@ done:
 	/* LDAP v3 Support */
 	if( np != NULL ) {
 		/* free new parent */
-		mdb_entry_return( np );
+		mdb_entry_return( op, np );
 	}
 
 	if( p != NULL ) {
 		/* free parent */
-		mdb_entry_return( p );
+		mdb_entry_return( op, p );
 	}
 
 	/* free entry */
 	if( e != NULL ) {
-		mdb_entry_return( e );
+		mdb_entry_return( op, e );
 	}
 
 	if( moi == &opinfo ) {
