@@ -807,10 +807,14 @@ ldap_pvt_tls_set_option( LDAP *ld, int option, void *arg )
 int
 ldap_int_tls_start ( LDAP *ld, LDAPConn *conn, LDAPURLDesc *srv )
 {
-	Sockbuf *sb = conn->lconn_sb;
+	Sockbuf *sb;
 	char *host;
 	void *ssl;
 
+	if ( !conn )
+		return LDAP_PARAM_ERROR;
+
+	sb = conn->lconn_sb;
 	if( srv ) {
 		host = srv->lud_host;
 	} else {
