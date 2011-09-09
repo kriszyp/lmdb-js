@@ -166,7 +166,7 @@ int mdb_id2entry_delete(
 
 int mdb_id2entry(
 	Operation *op,
-	MDB_txn *tid,
+	MDB_cursor *mc,
 	ID id,
 	Entry **e);
 

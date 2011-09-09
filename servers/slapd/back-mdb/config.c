@@ -144,25 +144,25 @@ mdb_online_index( void *ctx, void *arg )
 		rc = mdb_txn_begin( mdb->mi_dbenv, 0, &txn );
 		if ( rc )
 			break;
+		rc = mdb_cursor_open( txn, mdb->mi_id2entry, &curs );
+		if ( rc ) {
+			mdb_txn_abort( txn );
+			break;
+		}
 		if ( getnext ) {
 			getnext = 0;
-			rc = mdb_cursor_open( txn, mdb->mi_id2entry, &curs );
-			if ( rc ) {
-				mdb_txn_abort( txn );
-				break;
-			}
 			rc = mdb_cursor_get( curs, &key, &data, MDB_SET_RANGE );
-			memcpy( &id, key.mv_data, sizeof( id ));
-			mdb_cursor_close( curs );
 			if ( rc ) {
 				mdb_txn_abort( txn );
 				if ( rc == MDB_NOTFOUND )
 					rc = 0;
 				break;
 			}
+			memcpy( &id, key.mv_data, sizeof( id ));
 		}
 
-		rc = mdb_id2entry( op, txn, id, &e );
+		rc = mdb_id2entry( op, curs, id, &e );
+		mdb_cursor_close( curs );
 		if ( rc ) {
 			mdb_txn_abort( txn );
 			if ( rc == MDB_NOTFOUND ) {

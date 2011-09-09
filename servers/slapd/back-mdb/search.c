@@ -32,6 +32,7 @@ static int search_candidates(
 	SlapReply *rs,
 	Entry *e,
 	MDB_txn *txn,
+	MDB_cursor *mci,
 	ID	*ids,
 	ID	*scopes );
 
@@ -130,6 +131,7 @@ static int search_aliases(
 	SlapReply *rs,
 	Entry *e,
 	MDB_txn *txn,
+	MDB_cursor *mci,
 	ID *scopes,
 	ID *stack )
 {
@@ -187,7 +189,7 @@ static int search_aliases(
 		for (ida = mdb_idl_first(curscop, &cursora); ida != NOID;
 			ida = mdb_idl_next(curscop, &cursora))
 		{
-			rs->sr_err = mdb_id2entry(op, txn, ida, &a);
+			rs->sr_err = mdb_id2entry(op, mci, ida, &a);
 			if (rs->sr_err != LDAP_SUCCESS) {
 				continue;
 			}
@@ -243,7 +245,7 @@ nextido:
 		 * be found, ignore it and move on. This should never happen;
 		 * we should never see the ID of an entry that doesn't exist.
 		 */
-		rs->sr_err = mdb_id2entry(op, txn, ido, &e);
+		rs->sr_err = mdb_id2entry(op, mci, ido, &e);
 		if ( rs->sr_err != LDAP_SUCCESS ) {
 			goto nextido;
 		}
@@ -255,21 +257,16 @@ nextido:
  * a range and simple iteration hits missing entryIDs
  */
 static int
-mdb_get_nextid(struct mdb_info *mdb, MDB_txn *txn, ID *cursor)
+mdb_get_nextid(MDB_cursor *mci, ID *cursor)
 {
-	MDB_cursor *curs;
 	MDB_val key;
 	ID id;
 	int rc;
 
 	id = *cursor + 1;
-	rc = mdb_cursor_open( txn, mdb->mi_id2entry, &curs );
-	if ( rc )
-		return rc;
 	key.mv_data = &id;
 	key.mv_size = sizeof(ID);
-	rc = mdb_cursor_get( curs, &key, NULL, MDB_SET_RANGE );
-	mdb_cursor_close( curs );
+	rc = mdb_cursor_get( mci, &key, NULL, MDB_SET_RANGE );
 	if ( rc )
 		return rc;
 	memcpy( cursor, key.mv_data, sizeof(ID));
@@ -292,6 +289,7 @@ mdb_search( Operation *op, SlapReply *rs )
 	int		manageDSAit;
 	int		tentries = 0;
 	IdScopes	isc;
+	MDB_cursor	*mci;
 
 	mdb_op_info	opinfo = {0}, *moi = &opinfo;
 	MDB_txn			*ltid = NULL;
@@ -314,6 +312,12 @@ mdb_search( Operation *op, SlapReply *rs )
 	isc.mt = ltid;
 	isc.mc = NULL;
 	isc.scopes = scopes;
+
+	rs->sr_err = mdb_cursor_open( ltid, mdb->mi_id2entry, &mci );
+	if ( rs->sr_err ) {
+		send_ldap_error( op, rs, LDAP_OTHER, "internal error" );
+		goto done;
+	}
 
 	if ( op->ors_deref & LDAP_DEREF_FINDING ) {
 		MDB_IDL_ZERO(candidates);
@@ -489,7 +493,7 @@ dn2entry_retry:
 		MDB_IDL_ZERO( scopes );
 		mdb_idl_insert( scopes, base->e_id );
 		rs->sr_err = search_candidates( op, rs, base,
-			ltid, candidates, scopes );
+			ltid, mci, candidates, scopes );
 	}
 
 	/* start cursor at beginning of candidates.
@@ -592,7 +596,7 @@ loop_begin:
 		} else {
 
 			/* get the entry */
-			rs->sr_err = mdb_id2entry( op, ltid, id, &e );
+			rs->sr_err = mdb_id2entry( op, mci, id, &e );
 
 			if (rs->sr_err == LDAP_BUSY) {
 				rs->sr_text = "ldap server busy";
@@ -614,7 +618,7 @@ loop_begin:
 						(long) id, 0, 0 );
 				} else {
 					/* get the next ID from the DB */
-					rs->sr_err = mdb_get_nextid( mdb, ltid, &cursor );
+					rs->sr_err = mdb_get_nextid( mci, &cursor );
 					if ( rs->sr_err == MDB_NOTFOUND ) {
 						break;
 					}
@@ -958,6 +962,7 @@ static int search_candidates(
 	SlapReply *rs,
 	Entry *e,
 	MDB_txn *txn,
+	MDB_cursor *mci,
 	ID	*ids,
 	ID	*scopes )
 {
@@ -1024,7 +1029,7 @@ static int search_candidates(
 	}
 
 	if( op->ors_deref & LDAP_DEREF_SEARCHING ) {
-		rc = search_aliases( op, rs, e, txn, scopes, stack );
+		rc = search_aliases( op, rs, e, txn, mci, scopes, stack );
 	} else {
 		rc = LDAP_SUCCESS;
 	}

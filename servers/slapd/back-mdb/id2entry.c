@@ -82,12 +82,11 @@ int mdb_id2entry_update(
 
 int mdb_id2entry(
 	Operation *op,
-	MDB_txn *tid,
+	MDB_cursor *mc,
 	ID id,
 	Entry **e )
 {
 	struct mdb_info *mdb = (struct mdb_info *) op->o_bd->be_private;
-	MDB_dbi dbi = mdb->mi_id2entry;
 	MDB_val key, data;
 	int rc = 0;
 
@@ -97,7 +96,7 @@ int mdb_id2entry(
 	key.mv_size = sizeof(ID);
 
 	/* fetch it */
-	rc = mdb_get( tid, dbi, &key, &data );
+	rc = mdb_cursor_get( mc, &key, &data, MDB_SET );
 	if ( rc == MDB_NOTFOUND ) {
 		/* Looking for root entry on an empty-dn suffix? */
 		if ( !id && BER_BVISEMPTY( &op->o_bd->be_nsuffix[0] )) {
