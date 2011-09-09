@@ -1524,43 +1524,44 @@ slap_open_listener(
 		switch ( (*sal)->sa_family ) {
 #ifdef LDAP_PF_LOCAL
 		case AF_LOCAL: {
-			char *addr = ((struct sockaddr_un *)*sal)->sun_path;
-			l.sl_name.bv_len = strlen(addr) + sizeof("PATH=") - 1;
+			char *path = ((struct sockaddr_un *)*sal)->sun_path;
+			l.sl_name.bv_len = strlen(path) + STRLENOF("PATH=");
 			l.sl_name.bv_val = ber_memalloc( l.sl_name.bv_len + 1 );
 			snprintf( l.sl_name.bv_val, l.sl_name.bv_len + 1, 
-				"PATH=%s", addr );
+				"PATH=%s", path );
 		} break;
 #endif /* LDAP_PF_LOCAL */
 
 		case AF_INET: {
-			char *s;
-#if defined( HAVE_GETADDRINFO ) && defined( HAVE_INET_NTOP )
 			char addr[INET_ADDRSTRLEN];
-			inet_ntop( AF_INET, &((struct sockaddr_in *)*sal)->sin_addr,
+			const char *s;
+#if defined( HAVE_GETADDRINFO ) && defined( HAVE_INET_NTOP )
+			s = inet_ntop( AF_INET, &((struct sockaddr_in *)*sal)->sin_addr,
 				addr, sizeof(addr) );
-			s = addr;
 #else /* ! HAVE_GETADDRINFO || ! HAVE_INET_NTOP */
 			s = inet_ntoa( ((struct sockaddr_in *) *sal)->sin_addr );
 #endif /* ! HAVE_GETADDRINFO || ! HAVE_INET_NTOP */
+			if (!s) s = SLAP_STRING_UNKNOWN;
 			port = ntohs( ((struct sockaddr_in *)*sal) ->sin_port );
 			l.sl_name.bv_val =
 				ber_memalloc( sizeof("IP=255.255.255.255:65535") );
 			snprintf( l.sl_name.bv_val, sizeof("IP=255.255.255.255:65535"),
-				"IP=%s:%d",
-				 s != NULL ? s : SLAP_STRING_UNKNOWN, port );
+				"IP=%s:%d", s, port );
 			l.sl_name.bv_len = strlen( l.sl_name.bv_val );
 		} break;
 
 #ifdef LDAP_PF_INET6
 		case AF_INET6: {
 			char addr[INET6_ADDRSTRLEN];
-			inet_ntop( AF_INET6, &((struct sockaddr_in6 *)*sal)->sin6_addr,
+			const char *s;
+			s = inet_ntop( AF_INET6, &((struct sockaddr_in6 *)*sal)->sin6_addr,
 				addr, sizeof addr);
+			if (!s) s = SLAP_STRING_UNKNOWN;
 			port = ntohs( ((struct sockaddr_in6 *)*sal)->sin6_port );
-			l.sl_name.bv_len = strlen(addr) + sizeof("IP=[]:65535");
+			l.sl_name.bv_len = strlen(s) + sizeof("IP=[]:65535");
 			l.sl_name.bv_val = ber_memalloc( l.sl_name.bv_len );
 			snprintf( l.sl_name.bv_val, l.sl_name.bv_len, "IP=[%s]:%d", 
-				addr, port );
+				s, port );
 			l.sl_name.bv_len = strlen( l.sl_name.bv_val );
 		} break;
 #endif /* LDAP_PF_INET6 */
@@ -1803,7 +1804,9 @@ slap_listener(
 #endif /* SLAPD_RLOOKUPS */
 
 	char	*dnsname = NULL;
-	char	*peeraddr = NULL;
+	const char *peeraddr = NULL;
+	/* we assume INET6_ADDRSTRLEN > INET_ADDRSTRLEN */
+	char addr[INET6_ADDRSTRLEN];
 #ifdef LDAP_PF_LOCAL
 	char peername[MAXPATHLEN + sizeof("PATH=")];
 #ifdef LDAP_PF_LOCAL_SENDMSG
@@ -1971,30 +1974,39 @@ slap_listener(
 #  ifdef LDAP_PF_INET6
 	case AF_INET6:
 	if ( IN6_IS_ADDR_V4MAPPED(&from.sa_in6_addr.sin6_addr) ) {
+#if defined( HAVE_GETADDRINFO ) && defined( HAVE_INET_NTOP )
+		peeraddr = inet_ntop( AF_INET,
+			   ((struct in_addr *)&from.sa_in6_addr.sin6_addr.s6_addr[12]),
+			   addr, sizeof(addr) );
+#else /* ! HAVE_GETADDRINFO || ! HAVE_INET_NTOP */
 		peeraddr = inet_ntoa( *((struct in_addr *)
 					&from.sa_in6_addr.sin6_addr.s6_addr[12]) );
-		sprintf( peername, "IP=%s:%d",
-			 peeraddr != NULL ? peeraddr : SLAP_STRING_UNKNOWN,
+#endif /* ! HAVE_GETADDRINFO || ! HAVE_INET_NTOP */
+		if ( !peeraddr ) peeraddr = SLAP_STRING_UNKNOWN;
+		sprintf( peername, "IP=%s:%d", peeraddr,
 			 (unsigned) ntohs( from.sa_in6_addr.sin6_port ) );
 	} else {
-		char addr[INET6_ADDRSTRLEN];
-
-		peeraddr = (char *) inet_ntop( AF_INET6,
+		peeraddr = inet_ntop( AF_INET6,
 				      &from.sa_in6_addr.sin6_addr,
 				      addr, sizeof addr );
-		sprintf( peername, "IP=[%s]:%d",
-			 peeraddr != NULL ? peeraddr : SLAP_STRING_UNKNOWN,
+		if ( !peeraddr ) peeraddr = SLAP_STRING_UNKNOWN;
+		sprintf( peername, "IP=[%s]:%d", peeraddr,
 			 (unsigned) ntohs( from.sa_in6_addr.sin6_port ) );
 	}
 	break;
 #  endif /* LDAP_PF_INET6 */
 
-	case AF_INET:
+	case AF_INET: {
+#if defined( HAVE_GETADDRINFO ) && defined( HAVE_INET_NTOP )
+		peeraddr = inet_ntop( AF_INET, &from.sa_in_addr.sin_addr,
+			   addr, sizeof(addr) );
+#else /* ! HAVE_GETADDRINFO || ! HAVE_INET_NTOP */
 		peeraddr = inet_ntoa( from.sa_in_addr.sin_addr );
-		sprintf( peername, "IP=%s:%d",
-			peeraddr != NULL ? peeraddr : SLAP_STRING_UNKNOWN,
+#endif /* ! HAVE_GETADDRINFO || ! HAVE_INET_NTOP */
+		if ( !peeraddr ) peeraddr = SLAP_STRING_UNKNOWN;
+		sprintf( peername, "IP=%s:%d", peeraddr,
 			(unsigned) ntohs( from.sa_in_addr.sin_port ) );
-		break;
+		} break;
 
 	default:
 		slapd_close(sfd);
@@ -2025,7 +2037,7 @@ slap_listener(
 			ldap_pvt_thread_mutex_lock( &sd_tcpd_mutex );
 			rc = hosts_ctl("slapd",
 				dnsname != NULL ? dnsname : SLAP_STRING_UNKNOWN,
-				peeraddr != NULL ? peeraddr : SLAP_STRING_UNKNOWN,
+				peeraddr,
 				SLAP_STRING_UNKNOWN );
 			ldap_pvt_thread_mutex_unlock( &sd_tcpd_mutex );
 			if ( !rc ) {
@@ -2034,8 +2046,7 @@ slap_listener(
 					"fd=%ld DENIED from %s (%s)\n",
 					(long) sfd,
 					dnsname != NULL ? dnsname : SLAP_STRING_UNKNOWN,
-					peeraddr != NULL ? peeraddr : SLAP_STRING_UNKNOWN,
-					0, 0 );
+					peeraddr, 0, 0 );
 				slapd_close(sfd);
 				return 0;
 			}
@@ -2118,7 +2129,7 @@ slapd_daemon_task(
 	int l;
 	time_t last_idle_check = 0;
 	int ebadf = 0;
-	int tid = (int)ptr;
+	int tid = *(int *)ptr;
 
 #define SLAPD_IDLE_CHECK_LIMIT 4
 
@@ -2908,7 +2919,7 @@ slapd_daemon( void )
 	{
 		/* listener as a separate THREAD */
 		rc = ldap_pvt_thread_create( &listener_tid[i],
-			0, slapd_daemon_task, (void *)i );
+			0, slapd_daemon_task, (void *)&i );
 
 		if ( rc != 0 ) {
 			Debug( LDAP_DEBUG_ANY,
