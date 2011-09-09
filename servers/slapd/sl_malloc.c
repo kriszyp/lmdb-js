@@ -21,6 +21,22 @@
 
 #include "slap.h"
 
+#ifdef USE_VALGRIND
+/* Get debugging help from Valgrind */
+#include <valgrind/memcheck.h>
+#define	VGMEMP_MARK(m,s)	VALGRIND_MAKE_MEM_NOACCESS(m,s)
+#define VGMEMP_CREATE(h,r,z)	VALGRIND_CREATE_MEMPOOL(h,r,z)
+#define VGMEMP_TRIM(h,a,s)	VALGRIND_MEMPOOL_TRIM(h,a,s)
+#define VGMEMP_ALLOC(h,a,s)	VALGRIND_MEMPOOL_ALLOC(h,a,s)
+#define VGMEMP_CHANGE(h,a,b,s)	VALGRIND_MEMPOOL_CHANGE(h,a,b,s)
+#else
+#define	VGMEMP_MARK(m,s)
+#define VGMEMP_CREATE(h,r,z)
+#define VGMEMP_TRIM(h,a,s)
+#define VGMEMP_ALLOC(h,a,s)
+#define VGMEMP_CHANGE(h,a,b,s)
+#endif
+
 /*
  * This allocator returns temporary memory from a slab in a given memory
  * context, aligned on a 2-int boundary.  It cannot be used for data
@@ -195,14 +211,18 @@ slap_sl_mem_create(
 		sh = ch_malloc(sizeof(struct slab_heap));
 		base = ch_malloc(size);
 		SET_MEMCTX(thrctx, sh, slap_sl_mem_destroy);
+		VGMEMP_MARK(base, size);
+		VGMEMP_CREATE(sh, 0, 0);
 	} else {
 		slap_sl_mem_destroy(NULL, sh);
 		base = sh->sh_base;
 		if (size > (ber_len_t) ((char *) sh->sh_end - base)) {
 			newptr = ch_realloc(base, size);
 			if ( newptr == NULL ) return NULL;
+			VGMEMP_CHANGE(sh, base, newptr, size);
 			base = newptr;
 		}
+		VGMEMP_TRIM(sh, sh->sh_base, 0);
 	}
 	sh->sh_base = base;
 	sh->sh_end = base + size;
@@ -298,6 +318,7 @@ slap_sl_malloc(
 		if (size < (ber_len_t) ((char *) sh->sh_end - (char *) sh->sh_last)) {
 			newptr = sh->sh_last;
 			sh->sh_last = (char *) sh->sh_last + size;
+			VGMEMP_ALLOC(sh, newptr, size);
 			*newptr++ = size;
 			return( (void *)newptr );
 		}
@@ -491,12 +512,17 @@ slap_sl_free(void *ptr, void *ctx)
 			/* Mark it free: tail = size, head of next block |= 1 */
 			nextp[-1] = size;
 			nextp[0] |= 1;
+			/* We can't tell Valgrind about it yet, because we
+			 * still need read/write access to this block for
+			 * when we eventually get to reclaim it.
+			 */
 		} else {
 			/* Reclaim freed block(s) off tail */
 			while (*p & 1) {
 				p = (ber_len_t *) ((char *) p - p[-1]);
 			}
 			sh->sh_last = p;
+			VGMEMP_TRIM(sh, sh->sh_base, sh->sh_last - sh->sh_base);
 		}
 
 	} else {
