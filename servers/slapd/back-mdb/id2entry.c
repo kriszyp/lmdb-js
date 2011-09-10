@@ -204,10 +204,17 @@ int mdb_entry_return(
 )
 {
 	if ( e->e_private ) {
-		op->o_tmpfree( e->e_nname.bv_val, op->o_tmpmemctx );
-		op->o_tmpfree( e->e_name.bv_val, op->o_tmpmemctx );
-		op->o_tmpfree( e->e_attrs, op->o_tmpmemctx );
-		op->o_tmpfree( e, op->o_tmpmemctx );
+		if ( slapMode & SLAP_TOOL_MODE ) {
+			ch_free( e->e_nname.bv_val );
+			ch_free( e->e_name.bv_val );
+			ch_free( e->e_attrs );
+			ch_free( e );
+		} else {
+			op->o_tmpfree( e->e_nname.bv_val, op->o_tmpmemctx );
+			op->o_tmpfree( e->e_name.bv_val, op->o_tmpmemctx );
+			op->o_tmpfree( e->e_attrs, op->o_tmpmemctx );
+			op->o_tmpfree( e, op->o_tmpmemctx );
+		}
 	} else {
 		entry_free( e );
 	}
