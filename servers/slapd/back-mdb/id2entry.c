@@ -33,7 +33,7 @@ static int mdb_id2entry_put(
 {
 	struct mdb_info *mdb = (struct mdb_info *) op->o_bd->be_private;
 	MDB_dbi dbi = mdb->mi_id2entry;
-	MDB_val key, data;
+	MDB_val key, data, d2;
 	int rc;
 
 	/* We only store rdns, and they go in the dn2id database. */
@@ -41,20 +41,27 @@ static int mdb_id2entry_put(
 	key.mv_data = &e->e_id;
 	key.mv_size = sizeof(ID);
 
-	rc = mdb_entry_encode( op, tid, e, &data );
+	rc = mdb_entry_encode( op, tid, e, &d2 );
 	if( rc != LDAP_SUCCESS ) {
 		return LDAP_OTHER;
 	}
 
+again:
+	data = d2;
 	rc = mdb_put( tid, dbi, &key, &data, flag );
-	op->o_tmpfree( data.mv_data, op->o_tmpmemctx );
 	if (rc) {
+		/* Was there a hole from slapadd? */
+		if ( flag == MDB_NOOVERWRITE && data.mv_size == 0 ) {
+			flag = 0;
+			goto again;
+		}
 		Debug( LDAP_DEBUG_ANY,
 			"mdb_id2entry_put: mdb_put failed: %s(%d) \"%s\"\n",
 			mdb_strerror(rc), rc,
 			e->e_nname.bv_val );
 		rc = LDAP_OTHER;
 	}
+	op->o_tmpfree( d2.mv_data, op->o_tmpmemctx );
 	return rc;
 }
 
