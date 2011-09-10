@@ -316,7 +316,7 @@ mdb_search( Operation *op, SlapReply *rs )
 	rs->sr_err = mdb_cursor_open( ltid, mdb->mi_id2entry, &mci );
 	if ( rs->sr_err ) {
 		send_ldap_error( op, rs, LDAP_OTHER, "internal error" );
-		goto done;
+		return rs->sr_err;
 	}
 
 	if ( op->ors_deref & LDAP_DEREF_FINDING ) {
@@ -862,12 +862,14 @@ nochange:
 	rs->sr_err = LDAP_SUCCESS;
 
 done:
+	if( isc.mc )
+		mdb_cursor_close( isc.mc );
+	if (mci)
+		mdb_cursor_close( mci );
 	if ( moi == &opinfo ) {
 		mdb_txn_reset( moi->moi_txn );
 		LDAP_SLIST_REMOVE( &op->o_extra, &moi->moi_oe, OpExtra, oe_next );
 	}
-	if( isc.mc )
-		mdb_cursor_close( isc.mc );
 	if( rs->sr_v2ref ) {
 		ber_bvarray_free( rs->sr_v2ref );
 		rs->sr_v2ref = NULL;
