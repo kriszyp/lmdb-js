@@ -555,9 +555,7 @@ ID mdb_tool_entry_put(
 	rc = mdb_tool_index_add( &op, txn, e );
 	if( rc != 0 ) {
 		snprintf( text->bv_val, text->bv_len,
-				"index_entry_add failed: %s (%d)",
-				rc == LDAP_OTHER ? "Internal error" :
-				mdb_strerror(rc), rc );
+				"index_entry_add failed: err=%d", rc );
 		Debug( LDAP_DEBUG_ANY,
 			"=> " LDAP_XSTRING(mdb_tool_entry_put) ": %s\n",
 			text->bv_val, 0, 0 );
@@ -569,8 +567,7 @@ ID mdb_tool_entry_put(
 	rc = mdb_id2entry_add( &op, txn, e );
 	if( rc != 0 ) {
 		snprintf( text->bv_val, text->bv_len,
-				"id2entry_add failed: %s (%d)",
-				mdb_strerror(rc), rc );
+				"id2entry_add failed: err=%d", rc );
 		Debug( LDAP_DEBUG_ANY,
 			"=> " LDAP_XSTRING(mdb_tool_entry_put) ": %s\n",
 			text->bv_val, 0, 0 );
@@ -734,8 +731,8 @@ done:
 		mdb_txn_abort( txi );
 		Debug( LDAP_DEBUG_ANY,
 			"=> " LDAP_XSTRING(mdb_tool_entry_reindex)
-			": txn_aborted! %s (%d)\n",
-			mdb_strerror(rc), rc, 0 );
+			": txn_aborted! err=%d\n",
+			rc, 0, 0 );
 		e->e_id = NOID;
 		txi = NULL;
 	}
@@ -794,8 +791,7 @@ ID mdb_tool_entry_modify(
 	rc = mdb_id2entry_update( &op, tid, e );
 	if( rc != 0 ) {
 		snprintf( text->bv_val, text->bv_len,
-				"id2entry_add failed: %s (%d)",
-				mdb_strerror(rc), rc );
+				"id2entry_update failed: err=%d", rc );
 		Debug( LDAP_DEBUG_ANY,
 			"=> " LDAP_XSTRING(mdb_tool_entry_modify) ": %s\n",
 			text->bv_val, 0, 0 );
