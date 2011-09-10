@@ -154,7 +154,7 @@ int mdb_tool_entry_close(
 		nholes = 0;
 		return -1;
 	}
-			
+
 	return 0;
 }
 
@@ -168,7 +168,7 @@ mdb_tool_entry_first_x(
 	tool_base = base;
 	tool_scope = scope;
 	tool_filter = f;
-	
+
 	return mdb_tool_entry_next( be );
 }
 
@@ -269,7 +269,7 @@ ID mdb_tool_dn2id_get(
 	rc = mdb_dn2id( &op, txn, dn, &id, NULL, NULL );
 	if ( rc == MDB_NOTFOUND )
 		return NOID;
-	
+
 	return id;
 }
 
@@ -356,6 +356,7 @@ static int mdb_tool_next_id(
 	struct berval *text,
 	int hole )
 {
+	struct mdb_info *mdb = (struct mdb_info *) op->o_bd->be_private;
 	struct berval dn = e->e_name;
 	struct berval ndn = e->e_nname;
 	struct berval pdn, npdn, nmatched;
@@ -404,12 +405,13 @@ static int mdb_tool_next_id(
 		}
 		rc = mdb_dn2id_add( op, tid, pid, e );
 		if ( rc ) {
-			snprintf( text->bv_val, text->bv_len, 
+			snprintf( text->bv_val, text->bv_len,
 				"dn2id_add failed: %s (%d)",
 				mdb_strerror(rc), rc );
-		Debug( LDAP_DEBUG_ANY,
-			"=> mdb_tool_next_id: %s\n", text->bv_val, 0, 0 );
+			Debug( LDAP_DEBUG_ANY,
+				"=> mdb_tool_next_id: %s\n", text->bv_val, 0, 0 );
 		} else if ( hole ) {
+			MDB_val key, data;
 			if ( nholes == nhmax - 1 ) {
 				if ( holes == hbuf ) {
 					holes = ch_malloc( nhmax * sizeof(dn_id) * 2 );
@@ -421,6 +423,20 @@ static int mdb_tool_next_id(
 			}
 			ber_dupbv( &holes[nholes].dn, &ndn );
 			holes[nholes++].id = e->e_id;
+			key.mv_size = sizeof(ID);
+			key.mv_data = &e->e_id;
+			data.mv_size = 0;
+			data.mv_data = NULL;
+			rc = mdb_put( tid, mdb->mi_id2entry, &key, &data, MDB_NOOVERWRITE );
+			if ( rc == MDB_KEYEXIST )
+				rc = 0;
+			if ( rc ) {
+				snprintf( text->bv_val, text->bv_len,
+					"dummy id2entry add failed: %s (%d)",
+					mdb_strerror(rc), rc );
+				Debug( LDAP_DEBUG_ANY,
+					"=> mdb_tool_next_id: %s\n", text->bv_val, 0, 0 );
+			}
 		}
 	} else if ( !hole ) {
 		unsigned i, j;
@@ -458,12 +474,12 @@ mdb_tool_index_add(
 		IndexRec *ir;
 		int i, rc;
 		Attribute *a;
-		
+
 		ir = mdb_tool_index_rec;
 		memset(ir, 0, mdb->bi_nattrs * sizeof( IndexRec ));
 
 		for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
-			rc = mdb_index_recset( mdb, a, a->a_desc->ad_type, 
+			rc = mdb_index_recset( mdb, a, a->a_desc->ad_type,
 				&a->a_desc->ad_tags, ir );
 			if ( rc )
 				return rc;
@@ -473,7 +489,7 @@ mdb_tool_index_add(
 		ldap_pvt_thread_mutex_lock( &mdb_tool_index_mutex );
 		/* Wait for all threads to be ready */
 		while ( mdb_tool_index_tcount ) {
-			ldap_pvt_thread_cond_wait( &mdb_tool_index_cond_main, 
+			ldap_pvt_thread_cond_wait( &mdb_tool_index_cond_main,
 				&mdb_tool_index_mutex );
 		}
 		for ( i=1; i<slap_tool_thread_max; i++ )
@@ -487,7 +503,7 @@ mdb_tool_index_add(
 		ldap_pvt_thread_mutex_lock( &mdb_tool_index_mutex );
 		for ( i=1; i<slap_tool_thread_max; i++ ) {
 			if ( mdb_tool_index_threads[i] == LDAP_BUSY ) {
-				ldap_pvt_thread_cond_wait( &mdb_tool_index_cond_main, 
+				ldap_pvt_thread_cond_wait( &mdb_tool_index_cond_main,
 					&mdb_tool_index_mutex );
 				i--;
 				continue;
@@ -693,7 +709,7 @@ int mdb_tool_entry_reindex(
 			goto done;
 		}
 	}
- 	
+
 	/*
 	 * just (re)add them for now
 	 * assume that some other routine (not yet implemented)
