@@ -27,6 +27,7 @@
 
 static char presence_keyval[] = {0,0};
 static struct berval presence_key[2] = {BER_BVC(presence_keyval), BER_BVNULL};
+static MDB_val presence_mdbkey[2] = {{1, presence_keyval}, {0, NULL}};
 
 AttrInfo *mdb_index_mask(
 	Backend *be,
@@ -190,7 +191,7 @@ static int indexer(
 		keyfunc = mdb_idl_delete_keys;
 
 	if( IS_SLAP_INDEX( mask, SLAP_INDEX_PRESENT ) ) {
-		rc = keyfunc( mc, (MDB_val *)presence_key, id );
+		rc = keyfunc( mc, presence_mdbkey, id );
 		if( rc ) {
 			err = "presence";
 			goto done;

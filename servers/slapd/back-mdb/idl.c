@@ -421,7 +421,7 @@ mdb_idl_insert_keys(
 		memcpy(&lo, data.mv_data, sizeof(ID));
 		if ( lo != 0 ) {
 			/* not a range, count the number of items */
-			unsigned long count;
+			size_t count;
 			rc = mdb_cursor_count( cursor, &count );
 			if ( rc != 0 ) {
 				err = "c_count";
