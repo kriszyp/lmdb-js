@@ -602,7 +602,7 @@ static int mdb_entry_encode(Operation *op, MDB_txn *txn, Entry *e, MDB_val *data
 			mdb_entry_putlen(&ptr, i);
 			for (i=0; a->a_vals[i].bv_val; i++) {
 				mdb_entry_putlen(&ptr, a->a_vals[i].bv_len);
-				AC_MEMCPY(ptr, a->a_vals[i].bv_val,
+				memcpy(ptr, a->a_vals[i].bv_val,
 					a->a_vals[i].bv_len);
 				ptr += a->a_vals[i].bv_len;
 				*ptr++ = '\0';
@@ -611,8 +611,8 @@ static int mdb_entry_encode(Operation *op, MDB_txn *txn, Entry *e, MDB_val *data
 				mdb_entry_putlen(&ptr, i);
 				for (i=0; a->a_nvals[i].bv_val; i++) {
 					mdb_entry_putlen(&ptr, a->a_nvals[i].bv_len);
-					AC_MEMCPY(ptr, a->a_nvals[i].bv_val,
-					a->a_nvals[i].bv_len);
+					memcpy(ptr, a->a_nvals[i].bv_val,
+						a->a_nvals[i].bv_len);
 					ptr += a->a_nvals[i].bv_len;
 					*ptr++ = '\0';
 				}
