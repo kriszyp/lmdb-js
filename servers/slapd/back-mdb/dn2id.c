@@ -562,7 +562,7 @@ mdb_dn2id_children(
 
 	rc = mdb_cursor_get( cursor, &key, &data, MDB_SET );
 	if ( rc == 0 ) {
-		unsigned long dkids;
+		size_t dkids;
 		rc = mdb_cursor_count( cursor, &dkids );
 		if ( rc == 0 ) {
 			if ( dkids < 2 ) rc = MDB_NOTFOUND;

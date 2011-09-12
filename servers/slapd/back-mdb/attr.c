@@ -526,6 +526,7 @@ int mdb_ad_read( struct mdb_info *mdb, MDB_txn *txn )
 	int i, rc;
 	MDB_cursor *mc;
 	MDB_val key, data;
+	struct berval bdata;
 	const char *text;
 	AttributeDescription *ad;
 
@@ -545,10 +546,12 @@ int mdb_ad_read( struct mdb_info *mdb, MDB_txn *txn )
 	rc = mdb_cursor_get( mc, &key, &data, MDB_SET );
 
 	while ( rc == MDB_SUCCESS ) {
+		bdata.bv_len = data.mv_size;
+		bdata.bv_val = data.mv_data;
 		ad = NULL;
-		rc = slap_bv2ad( (struct berval *)&data, &ad, &text );
+		rc = slap_bv2ad( &bdata, &ad, &text );
 		if ( rc ) {
-			rc = slap_bv2undef_ad( (struct berval *)&data, &mdb->mi_ads[i], &text, 0 );
+			rc = slap_bv2undef_ad( &bdata, &mdb->mi_ads[i], &text, 0 );
 		} else {
 			mdb->mi_adxs[ad->ad_index] = i;
 			mdb->mi_ads[i] = ad;
@@ -570,7 +573,7 @@ done:
 int mdb_ad_get( struct mdb_info *mdb, MDB_txn *txn, AttributeDescription *ad )
 {
 	int i, rc;
-	MDB_val key;
+	MDB_val key, val;
 
 	rc = mdb_ad_read( mdb, txn );
 	if (rc)
@@ -582,8 +585,10 @@ int mdb_ad_get( struct mdb_info *mdb, MDB_txn *txn, AttributeDescription *ad )
 	i = mdb->mi_numads+1;
 	key.mv_size = sizeof(int);
 	key.mv_data = &i;
+	val.mv_size = ad->ad_cname.bv_len;
+	val.mv_data = ad->ad_cname.bv_val;
 
-	rc = mdb_put( txn, mdb->mi_ad2id, &key, (MDB_val *)&ad->ad_cname, 0 );
+	rc = mdb_put( txn, mdb->mi_ad2id, &key, &val, 0 );
 	if ( rc == MDB_SUCCESS ) {
 		mdb->mi_adxs[ad->ad_index] = i;
 		mdb->mi_ads[i] = ad;

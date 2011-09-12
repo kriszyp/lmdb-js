@@ -60,7 +60,7 @@ static ConfigTable mdbcfg[] = {
 		"DESC 'Attribute index parameters' "
 		"EQUALITY caseIgnoreMatch "
 		"SYNTAX OMsDirectoryString )", NULL, NULL },
-	{ "maxreaders", "num", 2, 2, 0, ARG_INT|ARG_MAGIC|MDB_MAXREADERS,
+	{ "maxreaders", "num", 2, 2, 0, ARG_UINT|ARG_MAGIC|MDB_MAXREADERS,
 		mdb_cf_gen, "( OLcfgDbAt:12.1 NAME 'olcDbMaxReaders' "
 		"DESC 'Maximum number of threads that may access the DB concurrently' "
 		"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
