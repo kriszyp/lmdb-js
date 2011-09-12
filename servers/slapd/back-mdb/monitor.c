@@ -39,7 +39,7 @@ mdb_monitor_idx_entry_add(
 	struct mdb_info	*mdb,
 	Entry		*e );
 
-static AttributeDescription	*ad_olmMDBNotIndexed;
+static AttributeDescription	*ad_olmDbNotIndexed;
 #endif /* MDB_MONITOR_IDX */
 
 /*
@@ -48,11 +48,11 @@ static AttributeDescription	*ad_olmMDBNotIndexed;
  * 
  * Subsystems monitor attributes	1.3.6.1.4.1.4203.666.1.55.0
  * Databases monitor attributes		1.3.6.1.4.1.4203.666.1.55.0.1
- * MDB database monitor attributes	1.3.6.1.4.1.4203.666.1.55.0.1.1
+ * MDB database monitor attributes	1.3.6.1.4.1.4203.666.1.55.0.1.3
  *
  * Subsystems monitor objectclasses	1.3.6.1.4.1.4203.666.3.16.0
  * Databases monitor objectclasses	1.3.6.1.4.1.4203.666.3.16.0.1
- * MDB database monitor objectclasses	1.3.6.1.4.1.4203.666.3.16.0.1.1
+ * MDB database monitor objectclasses	1.3.6.1.4.1.4203.666.3.16.0.1.3
  */
 
 static struct {
@@ -69,7 +69,7 @@ static struct {
 	char			*desc;
 	AttributeDescription	**ad;
 }		s_at[] = {
-	{ "( olmMDBAttributes:4 "
+	{ "( olmDatabaseAttributes:1 "
 		"NAME ( 'olmDbDirectory' ) "
 		"DESC 'Path name of the directory "
 			"where the database environment resides' "
@@ -79,13 +79,13 @@ static struct {
 		&ad_olmDbDirectory },
 
 #ifdef MDB_MONITOR_IDX
-	{ "( olmMDBAttributes:5 "
-		"NAME ( 'olmMDBNotIndexed' ) "
+	{ "( olmDatabaseAttributes:2 "
+		"NAME ( 'olmDbNotIndexed' ) "
 		"DESC 'Missing indexes resulting from candidate selection' "
 		"SUP monitoredInfo "
 		"NO-USER-MODIFICATION "
 		"USAGE dSAOperation )",
-		&ad_olmMDBNotIndexed },
+		&ad_olmDbNotIndexed },
 #endif /* MDB_MONITOR_IDX */
 
 	{ NULL }
@@ -103,7 +103,7 @@ static struct {
 		"MAY ( "
 			"olmDbDirectory "
 #ifdef MDB_MONITOR_IDX
-			"$ olmMDBNotIndexed "
+			"$ olmDbNotIndexed "
 #endif /* MDB_MONITOR_IDX */
 			") )",
 		&oc_olmMDBDatabase },
@@ -623,7 +623,7 @@ mdb_monitor_idx_entry_add(
 	BerVarray	vals = NULL;
 	Attribute	*a;
 
-	a = attr_find( e->e_attrs, ad_olmMDBNotIndexed );
+	a = attr_find( e->e_attrs, ad_olmDbNotIndexed );
 
 	ldap_pvt_thread_mutex_lock( &mdb->mi_idx_mutex );
 
@@ -643,7 +643,7 @@ mdb_monitor_idx_entry_add(
 
 			for ( ap = &e->e_attrs; *ap != NULL; ap = &(*ap)->a_next )
 				;
-			*ap = attr_alloc( ad_olmMDBNotIndexed );
+			*ap = attr_alloc( ad_olmDbNotIndexed );
 			a = *ap;
 		}
 		a->a_vals = vals;

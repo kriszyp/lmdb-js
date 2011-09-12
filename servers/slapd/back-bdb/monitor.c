@@ -41,7 +41,7 @@ bdb_monitor_idx_entry_add(
 	struct bdb_info	*bdb,
 	Entry		*e );
 
-static AttributeDescription	*ad_olmBDBNotIndexed;
+static AttributeDescription	*ad_olmDbNotIndexed;
 #endif /* BDB_MONITOR_IDX */
 
 /*
@@ -95,7 +95,7 @@ static struct {
 		"USAGE dSAOperation )",
 		&ad_olmBDBIDLCache },
 
-	{ "( olmBDBAttributes:4 "
+	{ "( olmDatabaseAttributes:1 "
 		"NAME ( 'olmDbDirectory' ) "
 		"DESC 'Path name of the directory "
 			"where the database environment resides' "
@@ -105,13 +105,13 @@ static struct {
 		&ad_olmDbDirectory },
 
 #ifdef BDB_MONITOR_IDX
-	{ "( olmBDBAttributes:5 "
-		"NAME ( 'olmBDBNotIndexed' ) "
+	{ "( olmDatabaseAttributes:2 "
+		"NAME ( 'olmDbNotIndexed' ) "
 		"DESC 'Missing indexes resulting from candidate selection' "
 		"SUP monitoredInfo "
 		"NO-USER-MODIFICATION "
 		"USAGE dSAOperation )",
-		&ad_olmBDBNotIndexed },
+		&ad_olmDbNotIndexed },
 #endif /* BDB_MONITOR_IDX */
 
 	{ NULL }
@@ -132,7 +132,7 @@ static struct {
 			"$ olmBDBIDLCache "
 			"$ olmDbDirectory "
 #ifdef BDB_MONITOR_IDX
-			"$ olmBDBNotIndexed "
+			"$ olmDbNotIndexed "
 #endif /* BDB_MONITOR_IDX */
 			") )",
 		&oc_olmBDBDatabase },
@@ -692,7 +692,7 @@ bdb_monitor_idx_entry_add(
 	BerVarray	vals = NULL;
 	Attribute	*a;
 
-	a = attr_find( e->e_attrs, ad_olmBDBNotIndexed );
+	a = attr_find( e->e_attrs, ad_olmDbNotIndexed );
 
 	ldap_pvt_thread_mutex_lock( &bdb->bi_idx_mutex );
 
@@ -712,7 +712,7 @@ bdb_monitor_idx_entry_add(
 
 			for ( ap = &e->e_attrs; *ap != NULL; ap = &(*ap)->a_next )
 				;
-			*ap = attr_alloc( ad_olmBDBNotIndexed );
+			*ap = attr_alloc( ad_olmDbNotIndexed );
 			a = *ap;
 		}
 		a->a_vals = vals;
