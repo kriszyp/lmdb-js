@@ -61,12 +61,12 @@
 #define MDB_IDL_ID( mdb, ids, id ) MDB_IDL_RANGE( ids, id, NOID )
 #define MDB_IDL_ALL( ids ) MDB_IDL_RANGE( ids, 1, NOID )
 
-#define MDB_IDL_FIRST( ids )	( ids[1] )
+#define MDB_IDL_FIRST( ids )	( (ids)[1] )
 #define MDB_IDL_LAST( ids )		( MDB_IDL_IS_RANGE(ids) \
-	? ids[2] : ids[ids[0]] )
+	? (ids)[2] : (ids)[(ids)[0]] )
 
 #define MDB_IDL_N( ids )		( MDB_IDL_IS_RANGE(ids) \
-	? (ids[2]-ids[1])+1 : ids[0] )
+	? ((ids)[2]-(ids)[1])+1 : (ids)[0] )
 
 	/** An ID2 is an ID/value pair.
 	 */
