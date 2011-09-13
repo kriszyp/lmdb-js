@@ -61,12 +61,12 @@
 #define BDB_IDL_ID( bdb, ids, id ) BDB_IDL_RANGE( ids, id, ((bdb)->bi_lastid) )
 #define BDB_IDL_ALL( bdb, ids ) BDB_IDL_RANGE( ids, 1, ((bdb)->bi_lastid) )
 
-#define BDB_IDL_FIRST( ids )	( ids[1] )
+#define BDB_IDL_FIRST( ids )	( (ids)[1] )
 #define BDB_IDL_LAST( ids )		( BDB_IDL_IS_RANGE(ids) \
-	? ids[2] : ids[ids[0]] )
+	? (ids)[2] : (ids)[(ids)[0]] )
 
 #define BDB_IDL_N( ids )		( BDB_IDL_IS_RANGE(ids) \
-	? (ids[2]-ids[1])+1 : ids[0] )
+	? ((ids)[2]-(ids)[1])+1 : (ids)[0] )
 
 LDAP_BEGIN_DECL
 LDAP_END_DECL
