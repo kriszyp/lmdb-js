@@ -725,6 +725,7 @@ mdb_idscopes(
 	MDB_dbi dbi = mdb->mi_dn2id;
 	MDB_val		key, data;
 	ID id;
+	ID2 id2;
 	char	*ptr;
 	int		rc;
 	unsigned int x;
@@ -740,12 +741,22 @@ mdb_idscopes(
 
 	id = isc->id;
 	while (id) {
-		key.mv_data = &id;
-		rc = mdb_cursor_get( isc->mc, &key, &data, MDB_SET );
-		if ( rc )
-			break;
+		x = mdb_id2l_search( isc->scopes, id );
+		if ( x <= isc->scopes[0].mid && isc->scopes[x].mid == id ) {
+			if ( !isc->scopes[x].mval.mv_data ) {
+				isc->nscope = x;
+				return MDB_SUCCESS;
+			}
+			data = isc->scopes[x].mval;
+			rc = 1;
+		} else {
+			key.mv_data = &id;
+			rc = mdb_cursor_get( isc->mc, &key, &data, MDB_SET );
+			if ( rc )
+				break;
 
-		/* save RDN info */
+			/* save RDN info */
+		}
 		d = data.mv_data;
 		nrlen = (d->nrdnlen[0] << 8) | d->nrdnlen[1];
 		rlen = data.mv_size - sizeof(diskNode) - nrlen;
@@ -755,14 +766,15 @@ mdb_idscopes(
 		isc->rdns[isc->numrdns].bv_val = d->nrdn+nrlen+1;
 		isc->numrdns++;
 
+
+		if (!rc && id != isc->id) {
+			id2.mid = id;
+			id2.mval = data;
+			mdb_id2l_insert( isc->scopes, &id2 );
+		}
 		ptr = data.mv_data;
 		ptr += data.mv_size - sizeof(ID);
 		memcpy( &id, ptr, sizeof(ID) );
-		x = mdb_idl_search( isc->scopes, id );
-		if ( isc->scopes[x] == id ) {
-			isc->nscope = x;
-			return MDB_SUCCESS;
-		}
 		if ( op->ors_scope == LDAP_SCOPE_ONELEVEL )
 			break;
 	}

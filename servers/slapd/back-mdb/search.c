@@ -34,7 +34,7 @@ static int search_candidates(
 	MDB_txn *txn,
 	MDB_cursor *mci,
 	ID	*ids,
-	ID	*scopes );
+	ID2L	scopes );
 
 static int parse_paged_cookie( Operation *op, SlapReply *rs );
 
@@ -132,7 +132,7 @@ static int search_aliases(
 	Entry *e,
 	MDB_txn *txn,
 	MDB_cursor *mci,
-	ID *scopes,
+	ID2L scopes,
 	ID *stack )
 {
 	ID *aliases, *curscop, *visited, *newsubs, *oldsubs, *tmp;
@@ -210,7 +210,10 @@ static int search_aliases(
 				/* If the target was not already in our current scopes,
 				 * make note of it in the newsubs list.
 				 */
-				if (mdb_idl_insert(scopes, a->e_id) == 0) {
+				ID2 mid;
+				mid.mid = a->e_id;
+				mid.mval.mv_data = NULL;
+				if (mdb_id2l_insert(scopes, &mid) == 0) {
 					mdb_idl_insert(newsubs, a->e_id);
 				}
 				mdb_entry_return( op, a );
@@ -280,7 +283,7 @@ mdb_search( Operation *op, SlapReply *rs )
 	ID		id, cursor;
 	ID		lastid = NOID;
 	ID		candidates[MDB_IDL_UM_SIZE];
-	ID		scopes[MDB_IDL_DB_SIZE];
+	ID2		scopes[MDB_IDL_UM_SIZE];
 	Entry		*e = NULL, *base = NULL;
 	Entry		*matched = NULL;
 	AttributeName	*attrs;
@@ -490,8 +493,9 @@ dn2entry_retry:
 
 	} else {
 		MDB_IDL_ZERO( candidates );
-		MDB_IDL_ZERO( scopes );
-		mdb_idl_insert( scopes, base->e_id );
+		scopes[0].mid = 1;
+		scopes[1].mid = base->e_id;
+		scopes[1].mval.mv_data = NULL;
 		rs->sr_err = search_candidates( op, rs, base,
 			ltid, mci, candidates, scopes );
 	}
@@ -717,7 +721,7 @@ loop_begin:
 				pdn = base->e_name;
 				pndn = base->e_nname;
 			} else {
-				mdb_id2name( op, ltid, &isc.mc, scopes[isc.nscope], &pdn, &pndn );
+				mdb_id2name( op, ltid, &isc.mc, scopes[isc.nscope].mid, &pdn, &pndn );
 			}
 			e->e_name.bv_len = pdn.bv_len;
 			e->e_nname.bv_len = pndn.bv_len;
@@ -966,7 +970,7 @@ static int search_candidates(
 	MDB_txn *txn,
 	MDB_cursor *mci,
 	ID	*ids,
-	ID	*scopes )
+	ID2L	scopes )
 {
 	struct mdb_info *mdb = (struct mdb_info *) op->o_bd->be_private;
 	int rc, depth = 1;

@@ -165,17 +165,6 @@ typedef struct IndexRec {
 
 #define MAXRDNS	SLAP_LDAPDN_MAXLEN/4
 
-typedef struct IdScopes {
-	MDB_txn *mt;
-	MDB_cursor *mc;
-	ID id;
-	ID *scopes;
-	int numrdns;
-	int nscope;
-	struct berval rdns[MAXRDNS];
-	struct berval nrdns[MAXRDNS];
-} IdScopes;
-
 #include "proto-mdb.h"
 
 #endif /* _BACK_MDB_H_ */
