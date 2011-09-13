@@ -35,6 +35,12 @@ static const struct berval mdmi_databases[] = {
 };
 
 static int
+mdb_id_compare( const MDB_val *a, const MDB_val *b )
+{
+	return *(ID *)a->mv_data < *(ID *)b->mv_data ? -1 : *(ID *)a->mv_data > *(ID *)b->mv_data;
+}
+
+static int
 mdb_db_init( BackendDB *be, ConfigReply *cr )
 {
 	struct mdb_info	*mdb;
@@ -215,7 +221,9 @@ mdb_db_open( BackendDB *be, ConfigReply *cr )
 			goto fail;
 		}
 
-		if ( i == MDB_DN2ID )
+		if ( i == MDB_ID2ENTRY )
+			mdb_set_compare( txn, mdb->mi_dbis[i], mdb_id_compare );
+		else if ( i == MDB_DN2ID )
 			mdb_set_dupsort( txn, mdb->mi_dbis[i], mdb_dup_compare );
 
 	}
