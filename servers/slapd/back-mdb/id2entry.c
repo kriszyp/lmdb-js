@@ -165,36 +165,25 @@ int mdb_id2entry_delete(
 	return rc;
 }
 
-static Attribute * mdb_attrs_alloc(
-	Operation *op,
-	int nattrs,
-	int nvals )
-{
-	Attribute *a, *s;
-
-	if (!nattrs || !nvals) return NULL;
-
-	s = op->o_tmpalloc( nattrs * sizeof(Attribute) +
-		nvals * sizeof(struct berval), op->o_tmpmemctx );
-
-	for (a=s; nattrs>1; nattrs--) {
-		a->a_next = a+1;
-		a++;
-	}
-	a->a_next = NULL;
-	s->a_vals = (struct berval *)(a+1);
-	return s;
-}
-
 static Entry * mdb_entry_alloc(
 	Operation *op,
 	int nattrs,
 	int nvals )
 {
-	Entry *e = op->o_tmpalloc( sizeof(Entry), op->o_tmpmemctx );
+	Attribute *a;
+	Entry *e = op->o_tmpalloc( sizeof(Entry) +
+		nattrs * sizeof(Attribute) +
+		nvals * sizeof(struct berval), op->o_tmpmemctx );
 	BER_BVZERO(&e->e_bv);
-	e->e_attrs = mdb_attrs_alloc( op, nattrs, nvals );
 	e->e_private = e;
+	e->e_attrs = (Attribute *)(e+1);
+	for (a=e->e_attrs; nattrs>1; nattrs--) {
+		a->a_next = a+1;
+		a++;
+	}
+	a->a_next = NULL;
+	e->e_attrs->a_vals = (struct berval *)(a+1);
+
 	return e;
 }
 
@@ -207,12 +196,10 @@ int mdb_entry_return(
 		if ( slapMode & SLAP_TOOL_MODE ) {
 			ch_free( e->e_nname.bv_val );
 			ch_free( e->e_name.bv_val );
-			ch_free( e->e_attrs );
 			ch_free( e );
 		} else {
 			op->o_tmpfree( e->e_nname.bv_val, op->o_tmpmemctx );
 			op->o_tmpfree( e->e_name.bv_val, op->o_tmpmemctx );
-			op->o_tmpfree( e->e_attrs, op->o_tmpmemctx );
 			op->o_tmpfree( e, op->o_tmpmemctx );
 		}
 	} else {
@@ -477,54 +464,22 @@ mdb_opinfo_get( Operation *op, struct mdb_info *mdb, int rdonly, mdb_op_info **m
 	return 0;
 }
 
-/* This is like a ber_len */
-#define entry_lenlen(l)	(((l) < 0x80) ? 1 : ((l) < 0x100) ? 2 : \
-	((l) < 0x10000) ? 3 : ((l) < 0x1000000) ? 4 : 5)
-
-static void
-mdb_entry_putlen(unsigned char **buf, ber_len_t len)
-{
-	ber_len_t lenlen = entry_lenlen(len);
-
-	if (lenlen == 1) {
-		**buf = (unsigned char) len;
-	} else {
-		int i;
-		**buf = 0x80 | ((unsigned char) lenlen - 1);
-		for (i=lenlen-1; i>0; i--) {
-			(*buf)[i] = (unsigned char) len;
-			len >>= 8;
-		}
-	}
-	*buf += lenlen;
-}
-
-static ber_len_t
-mdb_entry_getlen(unsigned char **buf)
-{
+typedef struct Ecount {
 	ber_len_t len;
-	int i;
-
-	len = *(*buf)++;
-	if (len <= 0x7f)
-		return len;
-	i = len & 0x7f;
-	len = 0;
-	for (;i > 0; i--) {
-		len <<= 8;
-		len |= *(*buf)++;
-	}
-	return len;
-}
+	int nattrs;
+	int nvals;
+	int offset;
+} Ecount;
 
 /* Count up the sizes of the components of an entry */
 static int mdb_entry_partsize(struct mdb_info *mdb, MDB_txn *txn, Entry *e,
-	EntryHeader *eh)
+	Ecount *eh)
 {
-	ber_len_t len = 0;
-	int i, nat = 0, nval = 0;
+	ber_len_t len;
+	int i, nat = 0, nval = 0, nnval = 0;
 	Attribute *a;
 
+	len = 4*sizeof(int);	/* nattrs, nvals, ocflags, offset */
 	for (a=e->e_attrs; a; a=a->a_next) {
 		/* For AttributeDesc, we only store the attr index */
 		nat++;
@@ -533,91 +488,99 @@ static int mdb_entry_partsize(struct mdb_info *mdb, MDB_txn *txn, Entry *e,
 			if (rc)
 				return rc;
 		}
-		len += entry_lenlen(mdb->mi_adxs[a->a_desc->ad_index]);
-		for (i=0; a->a_vals[i].bv_val; i++) {
-			nval++;
-			len += a->a_vals[i].bv_len + 1;
-			len += entry_lenlen(a->a_vals[i].bv_len);
+		len += 2*sizeof(int);	/* AD index, numvals */
+		nval += a->a_numvals + 1;	/* empty berval at end */
+		for (i=0; i<a->a_numvals; i++) {
+			len += a->a_vals[i].bv_len + 1 + sizeof(int);	/* len */
 		}
-		len += entry_lenlen(i);
-		nval++;	/* empty berval at end */
 		if (a->a_nvals != a->a_vals) {
-			for (i=0; a->a_nvals[i].bv_val; i++) {
-				nval++;
-				len += a->a_nvals[i].bv_len + 1;
-				len += entry_lenlen(a->a_nvals[i].bv_len);
+			nval += a->a_numvals + 1;
+			nnval++;
+			for (i=0; i<a->a_numvals; i++) {
+				len += a->a_nvals[i].bv_len + 1 + sizeof(int);;
 			}
-			len += entry_lenlen(i);	/* i nvals */
-			nval++;
-		} else {
-			len += entry_lenlen(0);	/* 0 nvals */
 		}
 	}
-	len += entry_lenlen(e->e_ocflags);
-	len += entry_lenlen(nat);
-	len += entry_lenlen(nval);
-	eh->bv.bv_len = len;
+	/* padding */
+	len = (len + sizeof(ID)-1) & ~(sizeof(ID)-1);
+	eh->len = len;
 	eh->nattrs = nat;
 	eh->nvals = nval;
+	eh->offset = nat + nval - nnval;
 	return 0;
 }
 
-/* Flatten an Entry into a buffer. The buffer is filled with just the
- * strings/bervals of all the entry components. Each field is preceded
- * by its length, encoded the way ber_put_len works. Every field is NUL
- * terminated.  The entire buffer size is precomputed so that a single
- * malloc can be performed. The entry size is also recorded,
- * to aid in entry_decode.
+#define HIGH_BIT (1<<(sizeof(unsigned int)*CHAR_BIT-1))
+
+/* Flatten an Entry into a buffer. The buffer starts with the count of the
+ * number of attributes in the entry, the total number of values in the
+ * entry, and the e_ocflags. It then contains a list of integers for each
+ * attribute. For each attribute the first integer gives the index of the
+ * matching AttributeDescription, followed by the number of values in the
+ * attribute. If the high bit is set, the attribute also has normalized
+ * values present. (Note - a_numvals is an unsigned int, so this means
+ * it's possible to receive an attribute that we can't encode due to size
+ * overflow. In practice, this should not be an issue.) Then the length
+ * of each value is listed. If there are normalized values, their lengths
+ * come next. This continues for each attribute. After all of the lengths
+ * for the last attribute, the actual values are copied, with a NUL
+ * terminator after each value. The buffer is padded to the sizeof(ID).
+ * The entire buffer size is precomputed so that a single malloc can be
+ * performed.
  */
 static int mdb_entry_encode(Operation *op, MDB_txn *txn, Entry *e, MDB_val *data)
 {
 	struct mdb_info *mdb = (struct mdb_info *) op->o_bd->be_private;
-	ber_len_t len, dnlen, ndnlen, i;
-	EntryHeader eh;
+	ber_len_t len, i;
+	Ecount eh;
 	int rc;
 	Attribute *a;
 	unsigned char *ptr;
+	unsigned int *lp, l;
 
 	Debug( LDAP_DEBUG_TRACE, "=> mdb_entry_encode(0x%08lx): %s\n",
 		(long) e->e_id, e->e_dn, 0 );
 
+	/* make sure e->e_ocflags is set */
 	if (is_entry_referral(e))
 		;	/* empty */
 
 	rc = mdb_entry_partsize( mdb, txn, e, &eh );
 	if (rc) return rc;
 
-	data->mv_size = eh.bv.bv_len;
+	data->mv_size = eh.len;
 	data->mv_data = op->o_tmpalloc(data->mv_size, op->o_tmpmemctx);
-	ptr = (unsigned char *)data->mv_data;
-	mdb_entry_putlen(&ptr, eh.nattrs);
-	mdb_entry_putlen(&ptr, eh.nvals);
-	mdb_entry_putlen(&ptr, e->e_ocflags);
+	lp = (unsigned int *)data->mv_data;
+	*lp++ = eh.nattrs;
+	*lp++ = eh.nvals;
+	*lp++ = (unsigned int)e->e_ocflags;
+	*lp++ = eh.offset;
+	ptr = (unsigned char *)(lp + eh.offset);
 
 	for (a=e->e_attrs; a; a=a->a_next) {
-		mdb_entry_putlen(&ptr, mdb->mi_adxs[a->a_desc->ad_index]);
+		*lp++ = mdb->mi_adxs[a->a_desc->ad_index];
+		l = a->a_numvals;
+		if (a->a_nvals != a->a_vals)
+			l |= HIGH_BIT;
+		*lp++ = l;
 		if (a->a_vals) {
 			for (i=0; a->a_vals[i].bv_val; i++);
 			assert( i == a->a_numvals );
-			mdb_entry_putlen(&ptr, i);
-			for (i=0; a->a_vals[i].bv_val; i++) {
-				mdb_entry_putlen(&ptr, a->a_vals[i].bv_len);
+			for (i=0; i<a->a_numvals; i++) {
+				*lp++ = a->a_vals[i].bv_len;
 				memcpy(ptr, a->a_vals[i].bv_val,
 					a->a_vals[i].bv_len);
 				ptr += a->a_vals[i].bv_len;
 				*ptr++ = '\0';
 			}
 			if (a->a_nvals != a->a_vals) {
-				mdb_entry_putlen(&ptr, i);
-				for (i=0; a->a_nvals[i].bv_val; i++) {
-					mdb_entry_putlen(&ptr, a->a_nvals[i].bv_len);
+				for (i=0; i<a->a_numvals; i++) {
+					*lp++ = a->a_nvals[i].bv_len;
 					memcpy(ptr, a->a_nvals[i].bv_val,
 						a->a_nvals[i].bv_len);
 					ptr += a->a_nvals[i].bv_len;
 					*ptr++ = '\0';
 				}
-			} else {
-				mdb_entry_putlen(&ptr, 0);
 			}
 		}
 	}
@@ -644,52 +607,53 @@ int mdb_entry_decode(Operation *op, MDB_val *data, Entry **e)
 	Entry *x;
 	const char *text;
 	AttributeDescription *ad;
-	unsigned char *ptr = (unsigned char *)data->mv_data;
+	unsigned int *lp = (unsigned int *)data->mv_data;
+	unsigned char *ptr;
 	BerVarray bptr;
 
 	Debug( LDAP_DEBUG_TRACE,
 		"=> mdb_entry_decode:\n",
 		0, 0, 0 );
 
-	nattrs = mdb_entry_getlen(&ptr);
-	nvals = mdb_entry_getlen(&ptr);
+	nattrs = *lp++;
+	nvals = *lp++;
 	x = mdb_entry_alloc(op, nattrs, nvals);
-	x->e_ocflags = mdb_entry_getlen(&ptr);
+	x->e_ocflags = *lp++;
 	if (!nvals) {
 		goto done;
 	}
 	a = x->e_attrs;
 	bptr = a->a_vals;
+	i = *lp++;
+	ptr = (unsigned char *)(lp + i);
 
-	while ((i = mdb_entry_getlen(&ptr))) {
-		a->a_desc = mdb->mi_ads[i];
+	for (;nattrs>0; nattrs--) {
+		int have_nval = 0;
+		a->a_desc = mdb->mi_ads[*lp++];
 		a->a_flags = SLAP_ATTR_DONT_FREE_DATA | SLAP_ATTR_DONT_FREE_VALS;
-		j = mdb_entry_getlen(&ptr);
-		a->a_numvals = j;
+		a->a_numvals = *lp++;
+		if (a->a_numvals & HIGH_BIT) {
+			a->a_numvals ^= HIGH_BIT;
+			have_nval = 1;
+		}
 		a->a_vals = bptr;
-
-		while (j) {
-			i = mdb_entry_getlen(&ptr);
-			bptr->bv_len = i;
+		for (i=0; i<a->a_numvals; i++) {
+			bptr->bv_len = *lp++;;
 			bptr->bv_val = (char *)ptr;
-			ptr += i+1;
+			ptr += bptr->bv_len+1;
 			bptr++;
-			j--;
 		}
 		bptr->bv_val = NULL;
 		bptr->bv_len = 0;
 		bptr++;
 
-		j = mdb_entry_getlen(&ptr);
-		if (j) {
+		if (have_nval) {
 			a->a_nvals = bptr;
-			while (j) {
-				i = mdb_entry_getlen(&ptr);
-				bptr->bv_len = i;
+			for (i=0; i<a->a_numvals; i++) {
+				bptr->bv_len = *lp++;
 				bptr->bv_val = (char *)ptr;
-				ptr += i+1;
+				ptr += bptr->bv_len+1;
 				bptr++;
-				j--;
 			}
 			bptr->bv_val = NULL;
 			bptr->bv_len = 0;
@@ -711,9 +675,6 @@ int mdb_entry_decode(Operation *op, MDB_val *data, Entry **e)
 			}
 		}
 		a = a->a_next;
-		nattrs--;
-		if ( !nattrs )
-			break;
 	}
 done:
 
