@@ -279,13 +279,17 @@ mdb_db_close( BackendDB *be, ConfigReply *cr )
 
 			mdb_txn_abort( txn );
 
-			/* force a sync */
-			rc = mdb_env_sync( mdb->mi_dbenv, 1 );
-			if( rc != 0 ) {
-				Debug( LDAP_DEBUG_ANY,
-					"mdb_db_close: database \"%s\": "
-					"mdb_env_sync failed: %s (%d).\n",
-					be->be_suffix[0].bv_val, mdb_strerror(rc), rc );
+			/* force a sync, but not if we were ReadOnly,
+			 * and not in Quick mode.
+			 */
+			if (!(slapMode & (SLAP_TOOL_QUICK|SLAP_TOOL_READONLY))) {
+				rc = mdb_env_sync( mdb->mi_dbenv, 1 );
+				if( rc != 0 ) {
+					Debug( LDAP_DEBUG_ANY,
+						"mdb_db_close: database \"%s\": "
+						"mdb_env_sync failed: %s (%d).\n",
+						be->be_suffix[0].bv_val, mdb_strerror(rc), rc );
+				}
 			}
 		}
 
