@@ -25,7 +25,7 @@
 #define IDL_MAX(x,y)	( x > y ? x : y )
 #define IDL_MIN(x,y)	( x < y ? x : y )
 
-#define IDL_CMP(x,y)	( x < y ? -1 : ( x > y ? 1 : 0 ) )
+#define IDL_CMP(x,y)	( x < y ? -1 : ( x > y ) )
 
 #if IDL_DEBUG > 0
 static void idl_check( ID *ids )
@@ -1143,3 +1143,71 @@ mdb_idl_sort( ID *ids, ID *tmp )
 	}
 }
 #endif	/* Quick vs Radix */
+
+unsigned mdb_id2l_search( ID2L ids, ID id )
+{
+	/*
+	 * binary search of id in ids
+	 * if found, returns position of id
+	 * if not found, returns first position greater than id
+	 */
+	unsigned base = 0;
+	unsigned cursor = 0;
+	int val = 0;
+	unsigned n = ids[0].mid;
+
+	while( 0 < n ) {
+		int pivot = n >> 1;
+		cursor = base + pivot;
+		val = IDL_CMP( id, ids[cursor + 1].mid );
+
+		if( val < 0 ) {
+			n = pivot;
+
+		} else if ( val > 0 ) {
+			base = cursor + 1;
+			n -= pivot + 1;
+
+		} else {
+			return cursor + 1;
+		}
+	}
+
+	if( val > 0 ) {
+		return cursor + 2;
+	} else {
+		return cursor + 1;
+	}
+}
+
+int mdb_id2l_insert( ID2L ids, ID2 *id )
+{
+	unsigned x, i;
+
+	x = mdb_id2l_search( ids, id->mid );
+	assert( x > 0 );
+
+	if( x < 1 ) {
+		/* internal error */
+		return -2;
+	}
+
+	if ( x <= ids[0].mid && ids[x].mid == id->mid ) {
+		/* duplicate */
+		return -1;
+	}
+
+	if ( ids[0].mid >= MDB_IDL_UM_MAX ) {
+		/* too big */
+		return -2;
+
+	} else {
+		/* insert id */
+		ids[0].mid++;
+		for (i=ids[0].mid; i>x; i--)
+			ids[i] = ids[i-1];
+		ids[x] = *id;
+	}
+
+	return 0;
+}

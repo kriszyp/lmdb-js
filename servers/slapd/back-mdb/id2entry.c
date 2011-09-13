@@ -122,6 +122,7 @@ int mdb_id2entry(
 			*bptr++ = gluebv;
 			BER_BVZERO(bptr);
 			bptr++;
+			a->a_next = a+1;
 			a = a->a_next;
 			a->a_flags = SLAP_ATTR_DONT_FREE_DATA | SLAP_ATTR_DONT_FREE_VALS;
 			a->a_desc = slap_schema.si_ad_structuralObjectClass;
@@ -130,6 +131,7 @@ int mdb_id2entry(
 			a->a_numvals = 1;
 			*bptr++ = gluebv;
 			BER_BVZERO(bptr);
+			a->a_next = NULL;
 			*e = r;
 			return MDB_SUCCESS;
 		}
@@ -170,19 +172,13 @@ static Entry * mdb_entry_alloc(
 	int nattrs,
 	int nvals )
 {
-	Attribute *a;
 	Entry *e = op->o_tmpalloc( sizeof(Entry) +
 		nattrs * sizeof(Attribute) +
 		nvals * sizeof(struct berval), op->o_tmpmemctx );
 	BER_BVZERO(&e->e_bv);
 	e->e_private = e;
 	e->e_attrs = (Attribute *)(e+1);
-	for (a=e->e_attrs; nattrs>1; nattrs--) {
-		a->a_next = a+1;
-		a++;
-	}
-	a->a_next = NULL;
-	e->e_attrs->a_vals = (struct berval *)(a+1);
+	e->e_attrs->a_vals = (struct berval *)(e->e_attrs+nattrs);
 
 	return e;
 }
@@ -674,8 +670,10 @@ int mdb_entry_decode(Operation *op, MDB_val *data, Entry **e)
 				return rc;
 			}
 		}
+		a->a_next = a+1;
 		a = a->a_next;
 	}
+	a[-1].a_next = NULL;
 done:
 
 	Debug(LDAP_DEBUG_TRACE, "<= mdb_entry_decode\n",
