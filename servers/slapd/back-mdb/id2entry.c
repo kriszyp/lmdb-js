@@ -177,8 +177,12 @@ static Entry * mdb_entry_alloc(
 		nvals * sizeof(struct berval), op->o_tmpmemctx );
 	BER_BVZERO(&e->e_bv);
 	e->e_private = e;
-	e->e_attrs = (Attribute *)(e+1);
-	e->e_attrs->a_vals = (struct berval *)(e->e_attrs+nattrs);
+	if (nattrs) {
+		e->e_attrs = (Attribute *)(e+1);
+		e->e_attrs->a_vals = (struct berval *)(e->e_attrs+nattrs);
+	} else {
+		e->e_attrs = NULL;
+	}
 
 	return e;
 }
