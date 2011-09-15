@@ -732,9 +732,14 @@ struct MDB_txn {
 	 */
 	MDB_dbi		mt_numdbs;
 
+/** @defgroup mdb_txn	Transaction Flags
+ *	@ingroup internal
+ *	@{
+ */
 #define MDB_TXN_RDONLY		0x01		/**< read-only transaction */
 #define MDB_TXN_ERROR		0x02		/**< an error has occurred */
-	unsigned int	mt_flags;
+/** @} */
+	unsigned int	mt_flags;		/**< @ref mdb_txn */
 	/** Tracks which of the two meta pages was used at the start
 	 * 	of this transaction.
 	 */
@@ -2164,7 +2169,7 @@ mdb_env_setup_locks(MDB_env *env, char *lpath, int mode, int *excl)
 #else	/* _WIN32 */
 #ifdef __APPLE__
 		char *ptr;
-		sprintf(env->me_txns->mti_rmname, "MDBr%.28s", lpath);
+		sprintf(env->me_txns->mti_rmname, "MDBr%.26s", lpath);
 		ptr = env->me_txns->mti_rmname + sizeof("MDBr")-1;
 		while ((ptr = strchr(ptr, '/')))
 			*ptr++ = '_';
@@ -2178,7 +2183,7 @@ mdb_env_setup_locks(MDB_env *env, char *lpath, int mode, int *excl)
 			rc = ErrCode();
 			goto fail;
 		}
-		sprintf(env->me_txns->mti_wmname, "MDBw%.28s", lpath);
+		sprintf(env->me_txns->mti_wmname, "MDBw%.26s", lpath);
 		ptr = env->me_txns->mti_wmname + sizeof("MDBw")-1;
 		while ((ptr = strchr(ptr, '/')))
 			*ptr++ = '_';
