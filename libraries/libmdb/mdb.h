@@ -531,7 +531,9 @@ void mdb_txn_reset(MDB_txn *txn);
 int  mdb_txn_renew(MDB_txn *txn);
 
 	/** Open a database in the environment.
-	 * The database handle may be discarded by calling #mdb_close().
+	 * The database handle may be discarded by calling #mdb_close(). Only
+	 * one thread should call this function; it is not mutex-protected in
+	 * a read-only transaction.
 	 * @param[in] txn A transaction handle returned by #mdb_txn_begin()
 	 * @param[in] name The name of the database to open. If only a single
 	 * 	database is needed in the enviroment, this value may be NULL.
@@ -592,15 +594,29 @@ int  mdb_open(MDB_txn *txn, const char *name, unsigned int flags, MDB_dbi *dbi);
 int  mdb_stat(MDB_txn *txn, MDB_dbi dbi, MDB_stat *stat);
 
 	/** Close a database handle.
-	 * @param[in] txn A transaction handle returned by #mdb_txn_begin()
+	 * This call is not mutex protected. Handles should only be closed by
+	 * a single thread, and only if no other threads are going to reference
+	 * the database handle any further.
+	 * @param[in] env An environment handle returned by #mdb_env_create()
 	 * @param[in] dbi A database handle returned by #mdb_open()
 	 */
-void mdb_close(MDB_txn *txn, MDB_dbi dbi);
+void mdb_close(MDB_env *env, MDB_dbi dbi);
+
+	/** Delete a database and/or free all its pages.
+	 * If the \b del parameter is non-zero the DB handle will be closed
+	 * and the DB will be deleted.
+	 * @param[in] txn A transaction handle returned by #mdb_txn_begin()
+	 * @param[in] dbi A database handle returned by #mdb_open()
+	 * @param[in] del non-zero to delete the DB from the environment,
+	 * otherwise just free its pages.
+	 * @return A non-zero error value on failure and 0 on success.
+	 */
+int  mdb_drop(MDB_txn *txn, MDB_dbi dbi, int del);
 
 	/** Set a custom key comparison function for a database.
 	 * The comparison function is called whenever it is necessary to compare a
 	 * key specified by the application with a key currently stored in the database.
-	 * If no comparison function is specified, and no special key flags were specified
+	 * If no comparison function is specified, and no speAGAINcial key flags were specified
 	 * with #mdb_open(), the keys are compared lexically, with shorter keys collating
 	 * before longer keys.
 	 * @warning This function must be called before any data access functions are used,
