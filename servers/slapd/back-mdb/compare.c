@@ -29,7 +29,7 @@ mdb_compare( Operation *op, SlapReply *rs )
 	int		manageDSAit = get_manageDSAit( op );
 
 	MDB_txn		*rtxn;
-	mdb_op_info	opinfo = {0}, *moi = &opinfo;
+	mdb_op_info	opinfo = {{{0}}}, *moi = &opinfo;
 
 	rs->sr_err = mdb_opinfo_get(op, mdb, 1, &moi);
 	switch(rs->sr_err) {

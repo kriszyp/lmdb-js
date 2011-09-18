@@ -38,7 +38,7 @@ enum {
 	MDB_MAXREADERS,
 	MDB_MAXSIZE,
 	MDB_MODE,
-	MDB_SSTACK,
+	MDB_SSTACK
 };
 
 static ConfigTable mdbcfg[] = {

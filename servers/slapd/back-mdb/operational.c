@@ -36,7 +36,7 @@ mdb_hasSubordinates(
 {
 	struct mdb_info *mdb = (struct mdb_info *) op->o_bd->be_private;
 	MDB_txn		*rtxn;
-	mdb_op_info	opinfo = {0}, *moi = &opinfo;
+	mdb_op_info	opinfo = {{{0}}}, *moi = &opinfo;
 	int		rc;
 	
 	assert( e != NULL );

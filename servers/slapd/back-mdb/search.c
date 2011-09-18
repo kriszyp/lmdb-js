@@ -294,7 +294,7 @@ mdb_search( Operation *op, SlapReply *rs )
 	IdScopes	isc;
 	MDB_cursor	*mci;
 
-	mdb_op_info	opinfo = {0}, *moi = &opinfo;
+	mdb_op_info	opinfo = {{{0}}}, *moi = &opinfo;
 	MDB_txn			*ltid = NULL;
 
 	Debug( LDAP_DEBUG_TRACE, "=> " LDAP_XSTRING(mdb_search) "\n", 0, 0, 0);

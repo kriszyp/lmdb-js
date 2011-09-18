@@ -32,7 +32,7 @@ mdb_bind( Operation *op, SlapReply *rs )
 	AttributeDescription *password = slap_schema.si_ad_userPassword;
 
 	MDB_txn		*rtxn;
-	mdb_op_info	opinfo = {0}, *moi = &opinfo;
+	mdb_op_info	opinfo = {{{0}}}, *moi = &opinfo;
 
 	Debug( LDAP_DEBUG_ARGS,
 		"==> " LDAP_XSTRING(mdb_bind) ": dn: %s\n",
