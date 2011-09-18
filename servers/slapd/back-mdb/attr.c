@@ -133,6 +133,20 @@ mdb_attr_dbs_open(
 				cr->msg, 0, 0 );
 			break;
 		}
+		if (slapMode & SLAP_TRUNCATE_MODE) {
+			rc = mdb_drop( txn, mdb->mi_attrs[i]->ai_dbi, 0 );
+			if ( rc ) {
+				snprintf( cr->msg, sizeof(cr->msg), "database \"%s\": "
+					"mdb_drop(%s) failed: %s (%d).",
+					be->be_suffix[0].bv_val,
+					mdb->mi_attrs[i]->ai_desc->ad_type->sat_cname.bv_val,
+					mdb_strerror(rc), rc );
+				Debug( LDAP_DEBUG_ANY,
+					LDAP_XSTRING(mdb_attr_dbs) ": %s\n",
+					cr->msg, 0, 0 );
+				break;
+			}
+		}
 	}
 
 	/* Only commit if this is our txn */
