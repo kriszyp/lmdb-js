@@ -64,6 +64,12 @@ do_random( LDAP *ld,
 	int innerloop, int maxretries, int delay, int force, int chaserefs,
 	int idx );
 
+static void
+do_random2( LDAP *ld,
+	char *sbase, char *filter, char **attrs, int noattrs, int nobind,
+	int innerloop, int maxretries, int delay, int force, int chaserefs,
+	int idx );
+
 static void *
 do_onethread( void *arg );
 
@@ -430,9 +436,14 @@ do_onethread( void *arg )
 		snprintf(thrstr, BUFSIZ, "Using conn %d", thisconn);
 		thread_verbose(idx, thrstr);
 		if ( filter != NULL ) {
-			do_random( mlds[thisconn], entry, filter, attrs,
-				noattrs, nobind, loops, retries, delay, force,
-				chaserefs, idx );
+			if (strchr(filter, '['))
+				do_random2( mlds[thisconn], entry, filter, attrs,
+					noattrs, nobind, loops, retries, delay, force,
+					chaserefs, idx );
+			else
+				do_random( mlds[thisconn], entry, filter, attrs,
+					noattrs, nobind, loops, retries, delay, force,
+					chaserefs, idx );
 
 		} else {
 			do_read( mlds[thisconn], entry, attrs,
@@ -683,6 +694,82 @@ do_random( LDAP *ld,
 	default:
 		tester_ldap_error( ld, "ldap_search_ext_s", NULL );
 		break;
+	}
+
+	snprintf( thrstr, BUFSIZ, "Search done (%d).\n", rc );
+	thread_verbose( idx, thrstr );
+}
+
+/* substitute a generated int into the filter */
+static void
+do_random2( LDAP *ld,
+	char *sbase, char *filter, char **srchattrs, int noattrs, int nobind,
+	int innerloop, int maxretries, int delay, int force, int chaserefs,
+	int idx )
+{
+	int  	i = 0, do_retry = maxretries;
+	int     rc = LDAP_SUCCESS;
+	int		lo, hi, range;
+	int	flen;
+	LDAPMessage *res = NULL, *e = NULL;
+	char	*ptr, *ftail;
+	char	thrstr[BUFSIZ];
+	char	fbuf[BUFSIZ];
+
+	snprintf( thrstr, BUFSIZ,
+			"Read(%d): base=\"%s\", filter=\"%s\".\n",
+			innerloop, sbase, filter );
+	thread_verbose( idx, thrstr );
+
+	ptr = strchr(filter, '[');
+	if (!ptr)
+		return;
+	ftail = strchr(filter, ']');
+	if (!ftail || ftail < ptr)
+		return;
+
+	sscanf(ptr, "[%d-%d]", &lo, &hi);
+	range = hi - lo + 1;
+
+	flen = ptr - filter;
+	ftail++;
+
+	for ( i = 0; i < innerloop; i++ ) {
+		int	r = ((double)range)*rand()/(RAND_MAX + 1.0);
+		sprintf(fbuf, "%.*s%d%s", flen, filter, r, ftail);
+
+		rc = ldap_search_ext_s( ld, sbase, LDAP_SCOPE_SUBTREE,
+				fbuf, srchattrs, noattrs, NULL, NULL, NULL,
+				LDAP_NO_LIMIT, &res );
+		if ( res != NULL ) {
+			ldap_msgfree( res );
+		}
+		if ( rc == 0 ) {
+			rt_pass[idx]++;
+		} else {
+			int		first = tester_ignore_err( rc );
+			char		buf[ BUFSIZ ];
+
+			rt_fail[idx]++;
+			snprintf( buf, sizeof( buf ), "ldap_search_ext_s(%s)", entry );
+
+			/* if ignore.. */
+			if ( first ) {
+				/* only log if first occurrence */
+				if ( ( force < 2 && first > 0 ) || abs(first) == 1 ) {
+					tester_ldap_error( ld, buf, NULL );
+				}
+				continue;
+			}
+
+			/* busy needs special handling */
+			tester_ldap_error( ld, buf, NULL );
+			if ( rc == LDAP_BUSY && do_retry > 0 ) {
+				do_retry--;
+				continue;
+			}
+			break;
+		}
 	}
 
 	snprintf( thrstr, BUFSIZ, "Search done (%d).\n", rc );
