@@ -2077,8 +2077,12 @@ syncrepl_op_modify( Operation *op, SlapReply *rs )
 		Modifications *ml;
 		int size, rc;
 		SlapReply rs1 = {0};
-		resolve_ctxt rx = { si, newlist };
-		slap_callback cb = { NULL, syncrepl_resolve_cb, NULL, &rx };
+		resolve_ctxt rx;
+		slap_callback cb = { NULL, syncrepl_resolve_cb, NULL, NULL };
+
+		rx.rx_si = si;
+		rx.rx_mods = newlist;
+		cb.sc_private = &rx;
 
 		op2.o_tag = LDAP_REQ_SEARCH;
 		op2.ors_scope = LDAP_SCOPE_SUBTREE;

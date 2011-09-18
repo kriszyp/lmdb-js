@@ -62,7 +62,7 @@ void (lutil_debug)( int debug, int level, const char *fmt, ... )
 	}
 #endif
 
-	sprintf(buffer, "%08x ", time(0L));
+	sprintf(buffer, "%08x ", (unsigned) time(0L));
 	va_start( vl, fmt );
 	vsnprintf( buffer+9, sizeof(buffer)-9, fmt, vl );
 	buffer[sizeof(buffer)-1] = '\0';
