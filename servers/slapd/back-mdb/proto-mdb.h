@@ -33,7 +33,7 @@ int mdb_attr_slot( struct mdb_info *mdb,
 	AttributeDescription *desc, int *insert );
 
 int mdb_attr_dbs_open( BackendDB *be, MDB_txn *txn, struct config_reply_s *cr );
-void mdb_attr_dbs_close( struct mdb_info *mdb, MDB_txn *txn );
+void mdb_attr_dbs_close( struct mdb_info *mdb );
 
 int mdb_attr_index_config LDAP_P(( struct mdb_info *mdb,
 	const char *fname, int lineno,

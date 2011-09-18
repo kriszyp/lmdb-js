@@ -157,14 +157,13 @@ mdb_attr_dbs_open(
 
 void
 mdb_attr_dbs_close(
-	struct mdb_info *mdb,
-	MDB_txn *txn
+	struct mdb_info *mdb
 )
 {
 	int i;
 	for ( i=0; i<mdb->mi_nattrs; i++ )
 		if ( mdb->mi_attrs[i]->ai_dbi )
-			mdb_close( txn, mdb->mi_attrs[i]->ai_dbi );
+			mdb_close( mdb->mi_dbenv, mdb->mi_attrs[i]->ai_dbi );
 }
 
 int

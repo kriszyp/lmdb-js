@@ -265,7 +265,6 @@ mdb_db_close( BackendDB *be, ConfigReply *cr )
 {
 	int rc;
 	struct mdb_info *mdb = (struct mdb_info *) be->be_private;
-	MDB_txn *txn;
 
 	/* monitor handling */
 	(void)mdb_monitor_db_close( be );
@@ -279,13 +278,10 @@ mdb_db_close( BackendDB *be, ConfigReply *cr )
 	if ( mdb->mi_dbenv ) {
 		if ( mdb->mi_dbis[0] ) {
 			int i;
-			rc = mdb_txn_begin( mdb->mi_dbenv, MDB_RDONLY, &txn );
 
-			mdb_attr_dbs_close( mdb, txn );
+			mdb_attr_dbs_close( mdb );
 			for ( i=0; i<MDB_NDB; i++ )
-				mdb_close( txn, mdb->mi_dbis[i] );
-
-			mdb_txn_abort( txn );
+				mdb_close( mdb->mi_dbenv, mdb->mi_dbis[i] );
 
 			/* force a sync, but not if we were ReadOnly,
 			 * and not in Quick mode.
