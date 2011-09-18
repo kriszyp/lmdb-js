@@ -247,15 +247,16 @@ static int mdb_idl_delete( ID *ids, ID id )
 
 static char *
 mdb_show_key(
-	MDB_val		*key,
-	char		*buf )
+	char		*buf,
+	void		*val,
+	size_t		len )
 {
-	if ( key->mv_size == 4 /* LUTIL_HASH_BYTES */ ) {
-		unsigned char *c = key->mv_data;
+	if ( len == 4 /* LUTIL_HASH_BYTES */ ) {
+		unsigned char *c = val;
 		sprintf( buf, "[%02x%02x%02x%02x]", c[0], c[1], c[2], c[3] );
 		return buf;
 	} else {
-		return key->mv_data;
+		return val;
 	}
 }
 
@@ -280,7 +281,7 @@ mdb_idl_fetch_key(
 
 	Debug( LDAP_DEBUG_ARGS,
 		"mdb_idl_fetch_key: %s\n", 
-		mdb_show_key( key, keybuf ), 0, 0 );
+		mdb_show_key( keybuf, key->mv_data, key->mv_size ), 0, 0 );
 
 	assert( ids != NULL );
 
@@ -393,10 +394,10 @@ mdb_idl_fetch_key(
 int
 mdb_idl_insert_keys(
 	MDB_cursor	*cursor,
-	MDB_val		*key,
+	struct berval *keys,
 	ID			id )
 {
-	MDB_val data;
+	MDB_val key, data;
 	ID lo, hi, *i;
 	char *err;
 	int	rc, k;
@@ -405,16 +406,18 @@ mdb_idl_insert_keys(
 		char buf[16];
 		Debug( LDAP_DEBUG_ARGS,
 			"mdb_idl_insert_keys: %lx %s\n", 
-			(long) id, mdb_show_key( key, buf ), 0 );
+			(long) id, mdb_show_key( buf, keys->bv_val, keys->bv_len ), 0 );
 	}
 
 	assert( id != NOID );
 
-	for ( k=0; key[k].mv_data; k++ ) {
+	for ( k=0; keys[k].bv_val; k++ ) {
 	/* Fetch the first data item for this key, to see if it
 	 * exists and if it's a range.
 	 */
-	rc = mdb_cursor_get( cursor, &key[k], &data, MDB_SET );
+	key.mv_size = keys[k].bv_len;
+	key.mv_data = keys[k].bv_val;
+	rc = mdb_cursor_get( cursor, &key, &data, MDB_SET );
 	err = "c_get";
 	if ( rc == 0 ) {
 		i = data.mv_data;
@@ -430,7 +433,7 @@ mdb_idl_insert_keys(
 			if ( count >= MDB_IDL_DB_MAX ) {
 			/* No room, convert to a range */
 				lo = *i;
-				rc = mdb_cursor_get( cursor, &key[k], &data, MDB_LAST_DUP );
+				rc = mdb_cursor_get( cursor, &key, &data, MDB_LAST_DUP );
 				if ( rc != 0 && rc != MDB_NOTFOUND ) {
 					err = "c_get last_dup";
 					goto fail;
@@ -453,19 +456,19 @@ mdb_idl_insert_keys(
 				data.mv_size = sizeof(ID);
 				data.mv_data = &id;
 				id = 0;
-				rc = mdb_cursor_put( cursor, &key[k], &data, 0 );
+				rc = mdb_cursor_put( cursor, &key, &data, 0 );
 				if ( rc != 0 ) {
 					err = "c_put range";
 					goto fail;
 				}
 				id = lo;
-				rc = mdb_cursor_put( cursor, &key[k], &data, 0 );
+				rc = mdb_cursor_put( cursor, &key, &data, 0 );
 				if ( rc != 0 ) {
 					err = "c_put lo";
 					goto fail;
 				}
 				id = hi;
-				rc = mdb_cursor_put( cursor, &key[k], &data, 0 );
+				rc = mdb_cursor_put( cursor, &key, &data, 0 );
 				if ( rc != 0 ) {
 					err = "c_put hi";
 					goto fail;
@@ -482,15 +485,15 @@ mdb_idl_insert_keys(
 			hi = i[2];
 			if ( id < lo || id > hi ) {
 				/* position on lo */
-				rc = mdb_cursor_get( cursor, &key[k], &data, MDB_NEXT_DUP );
+				rc = mdb_cursor_get( cursor, &key, &data, MDB_NEXT_DUP );
 				if ( id > hi ) {
 					/* position on hi */
-					rc = mdb_cursor_get( cursor, &key[k], &data, MDB_NEXT_DUP );
+					rc = mdb_cursor_get( cursor, &key, &data, MDB_NEXT_DUP );
 				}
 				data.mv_size = sizeof(ID);
 				data.mv_data = &id;
 				/* Replace the current lo/hi */
-				rc = mdb_cursor_put( cursor, &key[k], &data, MDB_CURRENT );
+				rc = mdb_cursor_put( cursor, &key, &data, MDB_CURRENT );
 				if ( rc != 0 ) {
 					err = "c_put lo/hi";
 					goto fail;
@@ -500,7 +503,7 @@ mdb_idl_insert_keys(
 	} else if ( rc == MDB_NOTFOUND ) {
 put1:	data.mv_data = &id;
 		data.mv_size = sizeof(ID);
-		rc = mdb_cursor_put( cursor, &key[k], &data, MDB_NODUPDATA );
+		rc = mdb_cursor_put( cursor, &key, &data, MDB_NODUPDATA );
 		/* Don't worry if it's already there */
 		if ( rc == MDB_KEYEXIST )
 			rc = 0;
@@ -522,11 +525,11 @@ fail:
 int
 mdb_idl_delete_keys(
 	MDB_cursor	*cursor,
-	MDB_val		*key,
+	struct berval *keys,
 	ID			id )
 {
 	int	rc, k;
-	MDB_val data;
+	MDB_val key, data;
 	ID lo, hi, tmp, *i;
 	char *err;
 
@@ -534,15 +537,17 @@ mdb_idl_delete_keys(
 		char buf[16];
 		Debug( LDAP_DEBUG_ARGS,
 			"mdb_idl_delete_keys: %lx %s\n", 
-			(long) id, mdb_show_key( key, buf ), 0 );
+			(long) id, mdb_show_key( buf, keys->bv_val, keys->bv_len ), 0 );
 	}
 	assert( id != NOID );
 
-	for ( k=0; key[k].mv_data; k++) {
+	for ( k=0; keys[k].bv_val; k++) {
 	/* Fetch the first data item for this key, to see if it
 	 * exists and if it's a range.
 	 */
-	rc = mdb_cursor_get( cursor, &key[k], &data, MDB_SET );
+	key.mv_size = keys[k].bv_len;
+	key.mv_data = keys[k].bv_val;
+	rc = mdb_cursor_get( cursor, &key, &data, MDB_SET );
 	err = "c_get";
 	if ( rc == 0 ) {
 		memcpy( &tmp, data.mv_data, sizeof(ID) );
@@ -550,7 +555,7 @@ mdb_idl_delete_keys(
 		if ( tmp != 0 ) {
 			/* Not a range, just delete it */
 			data.mv_data = &id;
-			rc = mdb_cursor_get( cursor, &key[k], &data, MDB_GET_BOTH );
+			rc = mdb_cursor_get( cursor, &key, &data, MDB_GET_BOTH );
 			if ( rc != 0 ) {
 				err = "c_get id";
 				goto fail;
@@ -582,17 +587,17 @@ mdb_idl_delete_keys(
 					}
 				} else {
 					/* position on lo */
-					rc = mdb_cursor_get( cursor, &key[k], &data, MDB_NEXT_DUP );
+					rc = mdb_cursor_get( cursor, &key, &data, MDB_NEXT_DUP );
 					if ( id == lo )
 						data.mv_data = &lo2;
 					else {
 						/* position on hi */
-						rc = mdb_cursor_get( cursor, &key[k], &data, MDB_NEXT_DUP );
+						rc = mdb_cursor_get( cursor, &key, &data, MDB_NEXT_DUP );
 						data.mv_data = &hi2;
 					}
 					/* Replace the current lo/hi */
 					data.mv_size = sizeof(ID);
-					rc = mdb_cursor_put( cursor, &key[k], &data, MDB_CURRENT );
+					rc = mdb_cursor_put( cursor, &key, &data, MDB_CURRENT );
 					if ( rc != 0 ) {
 						err = "c_put lo/hi";
 						goto fail;

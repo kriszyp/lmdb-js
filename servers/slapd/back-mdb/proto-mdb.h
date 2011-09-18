@@ -200,7 +200,7 @@ int mdb_idl_insert( ID *ids, ID id );
 
 typedef int (mdb_idl_keyfunc)(
 	MDB_cursor *mc,
-	MDB_val *key,
+	struct berval *key,
 	ID id );
 
 mdb_idl_keyfunc mdb_idl_insert_keys;
