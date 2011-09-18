@@ -689,6 +689,22 @@ int mdb_tool_entry_reindex(
 		mi->mi_nattrs = i;
 	}
 
+	if ( slapMode & SLAP_TRUNCATE_MODE ) {
+		int i;
+		for ( i=0; i < mi->mi_nattrs; i++ ) {
+			rc = mdb_drop( txn, mi->mi_attrs[i]->ai_dbi, 0 );
+			if ( rc ) {
+				Debug( LDAP_DEBUG_ANY,
+					LDAP_XSTRING(mdb_tool_entry_reindex)
+					": (Truncate) mdb_drop(%s) failed: %s (%d)\n",
+					mi->mi_attrs[i]->ai_desc->ad_type->sat_cname.bv_val,
+					mdb_strerror(rc), rc );
+				return -1;
+			}
+		}
+		slapMode ^= SLAP_TRUNCATE_MODE;
+	}
+
 	e = mdb_tool_entry_get( be, id );
 
 	if( e == NULL ) {
