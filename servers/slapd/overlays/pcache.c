@@ -2908,9 +2908,9 @@ pcache_op_bind(
 
 	/* OK, just bind locally */
 	if ( bi.bi_flags & BI_HASHED ) {
+		int delete = 0;
 		BackendDB *be = op->o_bd;
 		op->o_bd = &cm->db;
-		int delete = 0;
 
 		Debug( pcache_debug, "pcache_op_bind: CACHED BIND for %s\n",
 			op->o_req_dn.bv_val, 0, 0 );
