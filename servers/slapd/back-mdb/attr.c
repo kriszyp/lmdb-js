@@ -99,7 +99,7 @@ mdb_attr_dbs_open(
 
 	txn = tx0;
 	if ( txn == NULL ) {
-		rc = mdb_txn_begin( mdb->mi_dbenv, 0, &txn );
+		rc = mdb_txn_begin( mdb->mi_dbenv, NULL, 0, &txn );
 		if ( rc ) {
 			snprintf( cr->msg, sizeof(cr->msg), "database \"%s\": "
 				"txn_begin failed: %s (%d).",

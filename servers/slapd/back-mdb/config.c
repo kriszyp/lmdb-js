@@ -141,7 +141,7 @@ mdb_online_index( void *ctx, void *arg )
 		if ( slapd_shutdown )
 			break;
 
-		rc = mdb_txn_begin( mdb->mi_dbenv, 0, &txn );
+		rc = mdb_txn_begin( mdb->mi_dbenv, NULL, 0, &txn );
 		if ( rc )
 			break;
 		rc = mdb_cursor_open( txn, mdb->mi_id2entry, &curs );
