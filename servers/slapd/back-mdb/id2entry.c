@@ -408,7 +408,7 @@ mdb_opinfo_get( Operation *op, struct mdb_info *mdb, int rdonly, mdb_op_info **m
 		}
 		moi->moi_ref++;
 		if ( !moi->moi_txn ) {
-			rc = mdb_txn_begin( mdb->mi_dbenv, 0, &moi->moi_txn );
+			rc = mdb_txn_begin( mdb->mi_dbenv, NULL, 0, &moi->moi_txn );
 			if (rc) {
 				Debug( LDAP_DEBUG_ANY, "mdb_opinfo_get: err %s(%d)\n",
 					mdb_strerror(rc), rc, 0 );
@@ -422,7 +422,7 @@ mdb_opinfo_get( Operation *op, struct mdb_info *mdb, int rdonly, mdb_op_info **m
 	if ( !moi->moi_txn ) {
 		if ( !ctx ) {
 			/* Shouldn't happen unless we're single-threaded */
-			rc = mdb_txn_begin( mdb->mi_dbenv, MDB_RDONLY, &moi->moi_txn );
+			rc = mdb_txn_begin( mdb->mi_dbenv, NULL, MDB_RDONLY, &moi->moi_txn );
 			if (rc) {
 				Debug( LDAP_DEBUG_ANY, "mdb_opinfo_get: err %s(%d)\n",
 					mdb_strerror(rc), rc, 0 );
@@ -430,7 +430,7 @@ mdb_opinfo_get( Operation *op, struct mdb_info *mdb, int rdonly, mdb_op_info **m
 			return rc;
 		}
 		if ( ldap_pvt_thread_pool_getkey( ctx, mdb->mi_dbenv, &data, NULL ) ) {
-			rc = mdb_txn_begin( mdb->mi_dbenv, MDB_RDONLY, &moi->moi_txn );
+			rc = mdb_txn_begin( mdb->mi_dbenv, NULL, MDB_RDONLY, &moi->moi_txn );
 			if (rc) {
 				Debug( LDAP_DEBUG_ANY, "mdb_opinfo_get: err %s(%d)\n",
 					mdb_strerror(rc), rc, 0 );

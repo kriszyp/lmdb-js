@@ -186,7 +186,7 @@ ID mdb_tool_entry_next(
 	assert( mdb != NULL );
 
 	if ( !txn ) {
-		rc = mdb_txn_begin( mdb->mi_dbenv, MDB_RDONLY, &txn );
+		rc = mdb_txn_begin( mdb->mi_dbenv, NULL, MDB_RDONLY, &txn );
 		if ( rc )
 			return NOID;
 		rc = mdb_cursor_open( txn, mdb->mi_id2entry, &cursor );
@@ -255,7 +255,7 @@ ID mdb_tool_dn2id_get(
 	mdb = (struct mdb_info *) be->be_private;
 
 	if ( !txn ) {
-		rc = mdb_txn_begin( mdb->mi_dbenv, (slapMode & SLAP_TOOL_READONLY) != 0 ?
+		rc = mdb_txn_begin( mdb->mi_dbenv, NULL, (slapMode & SLAP_TOOL_READONLY) != 0 ?
 			MDB_RDONLY : 0, &txn );
 		if ( rc )
 			return NOID;
@@ -545,7 +545,7 @@ ID mdb_tool_entry_put(
 	mdb = (struct mdb_info *) be->be_private;
 
 	if ( !txn ) {
-	rc = mdb_txn_begin( mdb->mi_dbenv, 0, &txn );
+	rc = mdb_txn_begin( mdb->mi_dbenv, NULL, 0, &txn );
 	if( rc != 0 ) {
 		snprintf( text->bv_val, text->bv_len,
 			"txn_begin failed: %s (%d)",
@@ -716,7 +716,7 @@ int mdb_tool_entry_reindex(
 	}
 
 	if ( !txi ) {
-		rc = mdb_txn_begin( mi->mi_dbenv, 0, &txi );
+		rc = mdb_txn_begin( mi->mi_dbenv, NULL, 0, &txi );
 		if( rc != 0 ) {
 			Debug( LDAP_DEBUG_ANY,
 				"=> " LDAP_XSTRING(mdb_tool_entry_reindex) ": "
@@ -803,7 +803,7 @@ ID mdb_tool_entry_modify(
 		mdb_cursor_close( cursor );
 		cursor = NULL;
 	}
-	rc = mdb_txn_begin( mdb->mi_dbenv, 0, &tid );
+	rc = mdb_txn_begin( mdb->mi_dbenv, NULL, 0, &tid );
 	if( rc != 0 ) {
 		snprintf( text->bv_val, text->bv_len,
 			"txn_begin failed: %s (%d)",
