@@ -2817,9 +2817,7 @@ syncrepl_entry(
 				/* FIXME: op->o_csn is assumed to be
 				 * on the thread's slab; this needs
 				 * to be cleared ASAP.
-				 * What happens if already present?
 				 */
-				assert( BER_BVISNULL( &op->o_csn ) );
 				op->o_csn = a->a_vals[0];
 				freecsn = 0;
 			}
@@ -3160,6 +3158,9 @@ retry_modrdn:;
 			op->o_req_ndn = dni.ndn;
 			op->o_tag = LDAP_REQ_DELETE;
 			op->o_bd = si->si_wbe;
+			if ( !syncCSN ) {
+				slap_queue_csn( op, si->si_syncCookie.ctxcsn );
+			}
 			rc = op->o_bd->be_delete( op, &rs_delete );
 			Debug( LDAP_DEBUG_SYNC,
 					"syncrepl_entry: %s be_delete %s (%d)\n", 
