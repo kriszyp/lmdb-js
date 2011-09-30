@@ -106,7 +106,7 @@ rm -f $RCOUT
 (
   $LDAPSEARCH -D cn=config -H $URI1 -y $CONFIGPWF -bcn=config -E \!sync=rp >/dev/null 2>&1
   RC=$?
-  touch $RCOUT
+  echo $RC > $RCOUT
   exit $RC
 ) &
 
@@ -137,10 +137,10 @@ done
 
 if test -f "$RCOUT" ; then
 	wait $SEARCHPID
-	SEARCHRC=$?
+	SEARCHRC=`cat $RCOUT`
 	echo "Checking return code of backgrounded RefreshAndPersist search ..."
 	if test $SEARCHRC != 52 ; then
-		echo "Error: Backgrounded ldapsearch did return the wrong error code: $SEARCHRC"
+		echo "Error: Backgrounded ldapsearch returned the wrong error code: $SEARCHRC"
 		RC=1
 	else
 		echo "Exit code correct."
