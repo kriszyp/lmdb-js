@@ -2583,7 +2583,7 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 					mincsn = srs->sr_state.ctxcsn[i];
 					minsid = sids[j];
 				}
-			} else if ( newer > 0 ) {
+			} else if ( newer > 0 && sids[j] == slap_serverID ) {
 			/* our state is older, complain to consumer */
 				rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
 				rs->sr_text = "consumer state is newer than provider!";
