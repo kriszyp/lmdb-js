@@ -2729,7 +2729,7 @@ altfail:
 				if ( av->len == nlen && !strncasecmp( name, (char *)av->data, nlen )) {
 					ret = LDAP_SUCCESS;
 				} else if ( av->data[0] == '*' && av->data[1] == '.' &&
-					domain && dlen == av->len - 1 && !strncasecmp( name,
+					domain && dlen == av->len - 1 && !strncasecmp( domain,
 						(char *)(av->data+1), dlen )) {
 					ret = LDAP_SUCCESS;
 				} else {
