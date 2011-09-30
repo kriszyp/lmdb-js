@@ -2846,8 +2846,24 @@ retry_add:;
 
 			case LDAP_REFERRAL:
 			/* we assume that LDAP_NO_SUCH_OBJECT is returned 
-			 * only if the suffix entry is not present */
+			 * only if the suffix entry is not present.
+			 * This should not happen during Persist phase.
+			 */
 			case LDAP_NO_SUCH_OBJECT:
+				if ( abs(si->si_type) == LDAP_SYNC_REFRESH_AND_PERSIST &&
+					si->si_refreshDone ) {
+					/* Something's wrong, start over */
+					ber_bvarray_free( si->si_syncCookie.ctxcsn );
+					si->si_syncCookie.ctxcsn = NULL;
+					ldap_pvt_thread_mutex_lock( &si->si_cookieState->cs_mutex );
+					ber_bvarray_free( si->si_cookieState->cs_vals );
+					ch_free( si->si_cookieState->cs_sids );
+					si->si_cookieState->cs_vals = NULL;
+					si->si_cookieState->cs_sids = 0;
+					si->si_cookieState->cs_num = 0;
+					ldap_pvt_thread_mutex_unlock( &si->si_cookieState->cs_mutex );
+					return LDAP_NO_SUCH_OBJECT;
+				}
 				rc = syncrepl_add_glue( op, entry );
 				entry = NULL;
 				break;
