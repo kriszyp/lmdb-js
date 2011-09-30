@@ -3499,8 +3499,8 @@ syncrepl_add_glue_ancestors(
 	}
 	
 	if ( !BER_BVISEMPTY( &ptr ) ) {
-		dn.bv_len -= ptr.bv_len + 1;
-		dn.bv_val += ptr.bv_len + 1;
+		dn.bv_len -= ptr.bv_len + ( suffrdns != 0 );
+		dn.bv_val += ptr.bv_len + ( suffrdns != 0 );
 	}
 
 	/* the normalizedDNs are always the same length, no counting
