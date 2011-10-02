@@ -149,6 +149,8 @@ typedef void (MDB_rel_func)(MDB_val *item, void *oldptr, void *newptr, void *rel
  */
 	/** mmap at a fixed address */
 #define MDB_FIXEDMAP	0x01
+	/** no environment directory */
+#define MDB_NOSUBDIR	0x02
 	/** don't fsync after commit */
 #define MDB_NOSYNC		0x10000
 	/** read only */
@@ -187,6 +189,10 @@ typedef void (MDB_rel_func)(MDB_val *item, void *oldptr, void *newptr, void *rel
 #define MDB_NODUPDATA	0x20
 /** For mdb_cursor_put: overwrite the current key/data pair */
 #define MDB_CURRENT	0x40
+/** For put: Just reserve space for data, don't copy it. Return a
+ * pointer to the reserved space.
+ */
+#define MDB_RESERVE	0x10000
 /*	@} */
 
 /** @brief Cursor Get operations.
@@ -305,6 +311,12 @@ int  mdb_env_create(MDB_env **env);
 	 *		across multiple invocations. This option may not always work, depending on
 	 *		how the operating system has allocated memory to shared libraries and other uses.
 	 *		The feature is highly experimental.
+	 *	<li>#MDB_NOSUBDIR
+	 *		By default, MDB creates its environment in a directory whose
+	 *		pathname is given in \b path, and creates its data and lock files
+	 *		under that directory. With this option, \b path is used as-is for
+	 *		the database main data file. The database lock file is the \b path
+	 *		with "-lock" appended.
 	 *	<li>#MDB_NOSYNC
 	 *		Don't perform a synchronous flush after committing a transaction. This means
 	 *		transactions will exhibit the ACI (atomicity, consistency, and isolation)
@@ -505,9 +517,8 @@ int  mdb_txn_begin(MDB_env *env, MDB_txn *parent, unsigned int flags, MDB_txn **
 
 	/** @brief Commit all the operations of a transaction into the database.
 	 *
-	 * All cursors opened within the transaction must be closed before the transaction
-	 * is committed.
-	 * The transaction handle will be freed and must not be used again after this call.
+	 * All cursors opened within the transaction will be closed by this call. The cursors
+	 * and transaction handle will be freed and must not be used again after this call.
 	 * @param[in] txn A transaction handle returned by #mdb_txn_begin()
 	 * @return A non-zero error value on failure and 0 on success. Some possible
 	 * errors are:
@@ -521,9 +532,8 @@ int  mdb_txn_commit(MDB_txn *txn);
 
 	/** @brief Abandon all the operations of the transaction instead of saving them.
 	 *
-	 * All cursors opened within the transaction must be closed before the transaction
-	 * is aborted.
-	 * The transaction handle will be freed and must not be used again after this call.
+	 * All cursors opened within the transaction will be closed by this call. The cursors
+	 * and transaction handle will be freed and must not be used again after this call.
 	 * @param[in] txn A transaction handle returned by #mdb_txn_begin()
 	 */
 void mdb_txn_abort(MDB_txn *txn);
