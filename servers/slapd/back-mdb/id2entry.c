@@ -22,7 +22,17 @@
 
 #include "back-mdb.h"
 
-static int mdb_entry_encode(Operation *op, MDB_txn *txn, Entry *e, MDB_val *data);
+typedef struct Ecount {
+	ber_len_t len;
+	int nattrs;
+	int nvals;
+	int offset;
+} Ecount;
+
+static int mdb_entry_partsize(struct mdb_info *mdb, MDB_txn *txn, Entry *e,
+	Ecount *eh);
+static int mdb_entry_encode(Operation *op, MDB_txn *txn, Entry *e, MDB_val *data,
+	Ecount *ec);
 static Entry *mdb_entry_alloc( Operation *op, int nattrs, int nvals );
 
 static int mdb_id2entry_put(
@@ -33,7 +43,8 @@ static int mdb_id2entry_put(
 {
 	struct mdb_info *mdb = (struct mdb_info *) op->o_bd->be_private;
 	MDB_dbi dbi = mdb->mi_id2entry;
-	MDB_val key, data, d2;
+	Ecount ec;
+	MDB_val key, data;
 	int rc;
 
 	/* We only store rdns, and they go in the dn2id database. */
@@ -41,18 +52,24 @@ static int mdb_id2entry_put(
 	key.mv_data = &e->e_id;
 	key.mv_size = sizeof(ID);
 
-	rc = mdb_entry_encode( op, tid, e, &d2 );
-	if( rc != LDAP_SUCCESS ) {
+	rc = mdb_entry_partsize( mdb, tid, e, &ec );
+	if (rc)
 		return LDAP_OTHER;
-	}
+
+	flag |= MDB_RESERVE;
 
 again:
-	data = d2;
+	data.mv_size = ec.len;
 	rc = mdb_put( tid, dbi, &key, &data, flag );
+	if (rc == MDB_SUCCESS) {
+		rc = mdb_entry_encode( op, tid, e, &data, &ec );
+		if( rc != LDAP_SUCCESS )
+			return LDAP_OTHER;
+	}
 	if (rc) {
 		/* Was there a hole from slapadd? */
-		if ( flag == MDB_NOOVERWRITE && data.mv_size == 0 ) {
-			flag = 0;
+		if ( (flag & MDB_NOOVERWRITE) && data.mv_size == 0 ) {
+			flag ^= MDB_NOOVERWRITE;
 			goto again;
 		}
 		Debug( LDAP_DEBUG_ANY,
@@ -61,7 +78,6 @@ again:
 			e->e_nname.bv_val );
 		rc = LDAP_OTHER;
 	}
-	op->o_tmpfree( d2.mv_data, op->o_tmpmemctx );
 	return rc;
 }
 
@@ -464,13 +480,6 @@ mdb_opinfo_get( Operation *op, struct mdb_info *mdb, int rdonly, mdb_op_info **m
 	return 0;
 }
 
-typedef struct Ecount {
-	ber_len_t len;
-	int nattrs;
-	int nvals;
-	int offset;
-} Ecount;
-
 /* Count up the sizes of the components of an entry */
 static int mdb_entry_partsize(struct mdb_info *mdb, MDB_txn *txn, Entry *e,
 	Ecount *eh)
@@ -528,11 +537,10 @@ static int mdb_entry_partsize(struct mdb_info *mdb, MDB_txn *txn, Entry *e,
  * The entire buffer size is precomputed so that a single malloc can be
  * performed.
  */
-static int mdb_entry_encode(Operation *op, MDB_txn *txn, Entry *e, MDB_val *data)
+static int mdb_entry_encode(Operation *op, MDB_txn *txn, Entry *e, MDB_val *data, Ecount *eh)
 {
 	struct mdb_info *mdb = (struct mdb_info *) op->o_bd->be_private;
 	ber_len_t len, i;
-	Ecount eh;
 	int rc;
 	Attribute *a;
 	unsigned char *ptr;
@@ -545,17 +553,12 @@ static int mdb_entry_encode(Operation *op, MDB_txn *txn, Entry *e, MDB_val *data
 	if (is_entry_referral(e))
 		;	/* empty */
 
-	rc = mdb_entry_partsize( mdb, txn, e, &eh );
-	if (rc) return rc;
-
-	data->mv_size = eh.len;
-	data->mv_data = op->o_tmpalloc(data->mv_size, op->o_tmpmemctx);
 	lp = (unsigned int *)data->mv_data;
-	*lp++ = eh.nattrs;
-	*lp++ = eh.nvals;
+	*lp++ = eh->nattrs;
+	*lp++ = eh->nvals;
 	*lp++ = (unsigned int)e->e_ocflags;
-	*lp++ = eh.offset;
-	ptr = (unsigned char *)(lp + eh.offset);
+	*lp++ = eh->offset;
+	ptr = (unsigned char *)(lp + eh->offset);
 
 	for (a=e->e_attrs; a; a=a->a_next) {
 		*lp++ = mdb->mi_adxs[a->a_desc->ad_index];
