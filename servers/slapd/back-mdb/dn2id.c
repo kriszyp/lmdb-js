@@ -199,7 +199,7 @@ mdb_dn2id_add(
 		memcpy( ptr, &pid, sizeof( ID ));
 		d->nrdnlen[0] ^= 0x80;
 
-		rc = mdb_cursor_put( mc, &key, &data, MDB_NODUPDATA );
+		rc = mdb_cursor_put( mc, &key, &data, MDB_NODUPDATA|MDB_APPEND );
 	}
 	mdb_cursor_close( mc );
 

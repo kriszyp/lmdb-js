@@ -92,7 +92,7 @@ int mdb_id2entry_add(
 	MDB_txn *tid,
 	Entry *e )
 {
-	return mdb_id2entry_put(op, tid, e, MDB_NOOVERWRITE);
+	return mdb_id2entry_put(op, tid, e, MDB_NOOVERWRITE|MDB_APPEND);
 }
 
 int mdb_id2entry_update(

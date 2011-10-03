@@ -996,7 +996,7 @@ setrange:
 			for ( i=0; i<end; i++ ) {
 				if ( !ice->ids[i] ) continue;
 				data.mv_data = &ice->ids[i];
-				rc = mdb_cursor_put( mc, &key, &data, MDB_NODUPDATA );
+				rc = mdb_cursor_put( mc, &key, &data, MDB_NODUPDATA|MDB_APPEND );
 				if ( rc ) {
 					if ( rc == MDB_KEYEXIST ) {
 						rc = 0;
