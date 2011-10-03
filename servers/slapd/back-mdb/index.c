@@ -184,9 +184,12 @@ static int indexer(
 	rc = mdb_cursor_open( txn, dbi, &mc );
 	if ( rc ) goto done;
 
-	if ( opid == SLAP_INDEX_ADD_OP )
-		keyfunc = mdb_idl_insert_keys;
-	else
+	if ( opid == SLAP_INDEX_ADD_OP ) {
+		if ( slapMode & SLAP_TOOL_QUICK )
+			keyfunc = mdb_tool_idl_add;
+		else
+			keyfunc = mdb_idl_insert_keys;
+	} else
 		keyfunc = mdb_idl_delete_keys;
 
 	if( IS_SLAP_INDEX( mask, SLAP_INDEX_PRESENT ) ) {
