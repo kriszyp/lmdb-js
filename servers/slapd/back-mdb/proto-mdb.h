@@ -359,6 +359,11 @@ extern BI_tool_entry_reindex		mdb_tool_entry_reindex;
 extern BI_tool_dn2id_get		mdb_tool_dn2id_get;
 extern BI_tool_entry_modify		mdb_tool_entry_modify;
 
+int mdb_tool_idl_add(
+	MDB_cursor *mc,
+	struct berval *keys,
+	ID id );
+
 LDAP_END_DECL
 
 #endif /* _PROTO_MDB_H */
