@@ -38,7 +38,11 @@ typedef struct mdb_tool_idl_cache {
 	mdb_tool_idl_cache_entry *head, *tail;
 	ID first, last;
 	int count;
+	short offset;
+	short flags;
 } mdb_tool_idl_cache;
+#define WAS_FOUND	0x01
+#define WAS_RANGE	0x02
 
 static mdb_tool_idl_cache_entry *mdb_tool_idl_free_list;
 static Avlnode *mdb_tool_roots[MDB_INDICES];
@@ -924,7 +928,7 @@ static int
 mdb_tool_idl_flush_one( MDB_cursor *mc, mdb_tool_idl_cache *ic )
 {
 	mdb_tool_idl_cache_entry *ice;
-	MDB_val key, data;
+	MDB_val key, data[2];
 	int i, rc;
 	ID id, nid;
 
@@ -936,54 +940,56 @@ mdb_tool_idl_flush_one( MDB_cursor *mc, mdb_tool_idl_cache *ic )
 	key.mv_data = ic->kstr.bv_val;
 	key.mv_size = ic->kstr.bv_len;
 
-	rc = mdb_cursor_get( mc, &key, &data, MDB_SET );
-	/* If key already exists and we're writing a range... */
-	if ( rc == 0 && ic->count > MDB_IDL_DB_SIZE ) {
-		nid = *(ID *)data.mv_data;
-		/* If it's not currently a range, must delete old info */
-		if ( nid ) {
-			ic->first = nid;
-			mdb_cursor_del( mc, MDB_NODUPDATA );
+	if ( ic->count > MDB_IDL_DB_SIZE ) {
+		while ( ic->flags & WAS_FOUND ) {
+			rc = mdb_cursor_get( mc, &key, data, MDB_SET );
+			if ( rc ) {
+				/* FIXME: find out why this happens */
+				ic->flags = 0;
+				break;
+			}
+			if ( ic->flags & WAS_RANGE ) {
+				/* Skip lo */
+				rc = mdb_cursor_get( mc, &key, data, MDB_NEXT_DUP );
 
-			goto setrange;
-		} else {
-			/* Skip lo */
-			rc = mdb_cursor_get( mc, &key, &data, MDB_NEXT_DUP );
+				/* Get hi */
+				rc = mdb_cursor_get( mc, &key, data, MDB_NEXT_DUP );
 
-			/* Get hi */
-			rc = mdb_cursor_get( mc, &key, &data, MDB_NEXT_DUP );
-
-			/* Store range hi */
-			data.mv_data = &ic->last;
-			rc = mdb_cursor_put( mc, &key, &data, MDB_CURRENT );
+				/* Store range hi */
+				data[0].mv_data = &ic->last;
+				rc = mdb_cursor_put( mc, &key, data, MDB_CURRENT );
+			} else {
+				/* Delete old data, replace with range */
+				ic->first = *(ID *)data[0].mv_data;
+				mdb_cursor_del( mc, MDB_NODUPDATA );
+			}
+			break;
 		}
-		rc = 0;
-	} else if ( rc && rc != MDB_NOTFOUND ) {
-		rc = -1;
-	} else if ( ic->count > MDB_IDL_DB_SIZE ) {
-		/* range, didn't exist before */
-setrange:
-		nid = 0;
-		data.mv_size = sizeof(ID);
-		data.mv_data = &nid;
-		rc = mdb_cursor_put( mc, &key, &data, 0 );
-		if ( rc == 0 ) {
-			data.mv_data = &ic->first;
-			rc = mdb_cursor_put( mc, &key, &data, 0 );
+		if ( !(ic->flags & WAS_RANGE)) {
+			/* range, didn't exist before */
+			nid = 0;
+			data[0].mv_size = sizeof(ID);
+			data[0].mv_data = &nid;
+			rc = mdb_cursor_put( mc, &key, data, 0 );
 			if ( rc == 0 ) {
-				data.mv_data = &ic->last;
-				rc = mdb_cursor_put( mc, &key, &data, 0 );
+				data[0].mv_data = &ic->first;
+				rc = mdb_cursor_put( mc, &key, data, 0 );
+				if ( rc == 0 ) {
+					data[0].mv_data = &ic->last;
+					rc = mdb_cursor_put( mc, &key, data, 0 );
+				}
+			}
+			if ( rc ) {
+				rc = -1;
 			}
 		}
-		if ( rc ) {
-			rc = -1;
-		}
 	} else {
+		/* Normal write */
 		int n;
 
-		data.mv_size = sizeof(ID);
-		/* Just a normal write */
+		data[0].mv_size = sizeof(ID);
 		rc = 0;
+		i = ic->offset;
 		for ( ice = ic->head, n=0; ice; ice = ice->next, n++ ) {
 			int end;
 			if ( ice->next ) {
@@ -993,20 +999,15 @@ setrange:
 				if ( !end )
 					end = IDBLOCK;
 			}
-			for ( i=0; i<end; i++ ) {
-				if ( !ice->ids[i] ) continue;
-				data.mv_data = &ice->ids[i];
-				rc = mdb_cursor_put( mc, &key, &data, MDB_NODUPDATA|MDB_APPEND );
-				if ( rc ) {
-					if ( rc == MDB_KEYEXIST ) {
-						rc = 0;
-						continue;
-					}
-					rc = -1;
-					break;
-				}
-			}
+			data[1].mv_size = end - i;
+			data[0].mv_data = &ice->ids[i];
+			i = 0;
+			rc = mdb_cursor_put( mc, &key, data, MDB_NODUPDATA|MDB_APPEND|MDB_MULTIPLE );
 			if ( rc ) {
+				if ( rc == MDB_KEYEXIST ) {
+					rc = 0;
+					continue;
+				}
 				rc = -1;
 				break;
 			}
@@ -1064,7 +1065,7 @@ int mdb_tool_idl_add(
 	MDB_dbi dbi;
 	mdb_tool_idl_cache *ic, itmp;
 	mdb_tool_idl_cache_entry *ice;
-	int i, rc;
+	int i, rc, lcount;
 
 	dbi = mdb_cursor_dbi(mc);
 	for (i=0; keys[i].bv_val; i++) {
@@ -1084,24 +1085,28 @@ int mdb_tool_idl_add(
 		ic->head = ic->tail = NULL;
 		ic->last = 0;
 		ic->count = 0;
+		ic->offset = 0;
+		ic->flags = 0;
 		tavl_insert( (Avlnode **)&mdb_tool_roots[dbi], ic, mdb_tool_idl_cmp,
 			avl_dup_error );
 
 		/* load existing key count here */
 		key.mv_size = keys[i].bv_len;
 		key.mv_data = keys[i].bv_val;
-		data.mv_size = sizeof( ID );
-		data.mv_data = &nid;
 		rc = mdb_cursor_get( mc, &key, &data, MDB_SET );
 		if ( rc == 0 ) {
+			ic->flags |= WAS_FOUND;
+			nid = *(ID *)data.mv_data;
 			if ( nid == 0 ) {
 				ic->count = MDB_IDL_DB_SIZE+1;
+				ic->flags |= WAS_RANGE;
 			} else {
 				size_t count;
 
 				mdb_cursor_count( mc, &count );
 				ic->count = count;
 				ic->first = nid;
+				ic->offset = count & (IDBLOCK-1);
 			}
 		}
 	}
@@ -1124,7 +1129,8 @@ int mdb_tool_idl_add(
 		continue;
 	}
 	/* No free block, create that too */
-	if ( !ic->tail || ( ic->count & (IDBLOCK-1)) == 0) {
+	lcount = ic->count & (IDBLOCK-1);
+	if ( !ic->tail || lcount == 0) {
 		ice = NULL;
 		if ( mdb_tool_idl_free_list ) {
 			ice = mdb_tool_idl_free_list;
@@ -1133,7 +1139,7 @@ int mdb_tool_idl_add(
 		if ( !ice ) {
 			ice = ch_malloc( sizeof( mdb_tool_idl_cache_entry ));
 		}
-		memset( ice, 0, sizeof( *ice ));
+		ice->next = NULL;
 		if ( !ic->head ) {
 			ic->head = ice;
 		} else {
@@ -1144,7 +1150,8 @@ int mdb_tool_idl_add(
 			ic->first = id;
 	}
 	ice = ic->tail;
-	ice->ids[ ic->count & (IDBLOCK-1) ] = id;
+	if (!lcount || ice->ids[lcount-1] != id)
+		ice->ids[lcount] = id;
 	ic->count++;
 	}
 
