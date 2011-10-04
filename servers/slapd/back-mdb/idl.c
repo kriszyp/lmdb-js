@@ -399,6 +399,7 @@ mdb_idl_insert_keys(
 	ID lo, hi, *i;
 	char *err;
 	int	rc, k;
+	unsigned int flag = MDB_NODUPDATA;
 
 	{
 		char buf[16];
@@ -408,6 +409,9 @@ mdb_idl_insert_keys(
 	}
 
 	assert( id != NOID );
+
+	if ( slapMode & SLAP_TOOL_QUICK )
+		flag |= MDB_APPEND;
 
 	for ( k=0; keys[k].bv_val; k++ ) {
 	/* Fetch the first data item for this key, to see if it
@@ -501,7 +505,7 @@ mdb_idl_insert_keys(
 	} else if ( rc == MDB_NOTFOUND ) {
 put1:	data.mv_data = &id;
 		data.mv_size = sizeof(ID);
-		rc = mdb_cursor_put( cursor, &key, &data, MDB_NODUPDATA );
+		rc = mdb_cursor_put( cursor, &key, &data, flag );
 		/* Don't worry if it's already there */
 		if ( rc == MDB_KEYEXIST )
 			rc = 0;

@@ -185,9 +185,11 @@ static int indexer(
 	if ( rc ) goto done;
 
 	if ( opid == SLAP_INDEX_ADD_OP ) {
+#ifdef MDB_TOOL_IDL_CACHING
 		if ( slapMode & SLAP_TOOL_QUICK )
 			keyfunc = mdb_tool_idl_add;
 		else
+#endif
 			keyfunc = mdb_idl_insert_keys;
 	} else
 		keyfunc = mdb_idl_delete_keys;

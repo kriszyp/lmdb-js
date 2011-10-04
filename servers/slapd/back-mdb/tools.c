@@ -24,6 +24,7 @@
 #include "back-mdb.h"
 #include "idl.h"
 
+#ifdef MDB_TOOL_IDL_CACHING
 static int mdb_tool_idl_flush( BackendDB *be, MDB_txn *txn );
 
 #define	IDBLOCK	1024
@@ -46,6 +47,11 @@ typedef struct mdb_tool_idl_cache {
 
 static mdb_tool_idl_cache_entry *mdb_tool_idl_free_list;
 static Avlnode *mdb_tool_roots[MDB_INDICES];
+
+#define MDB_TOOL_IDL_FLUSH(be, txn)	mdb_tool_idl_flush(be, txn)
+#else
+#define MDB_TOOL_IDL_FLUSH(be, txn)
+#endif /* MDB_TOOL_IDL_CACHING */
 
 static MDB_txn *txn = NULL, *txi = NULL;
 static MDB_cursor *cursor = NULL, *idcursor = NULL;
@@ -161,7 +167,7 @@ int mdb_tool_entry_close(
 		mdb_cursor_close( cursor );
 		cursor = NULL;
 	}
-	mdb_tool_idl_flush( be, txn );
+	MDB_TOOL_IDL_FLUSH( be, txn );
 	if( txn ) {
 		if ( mdb_txn_commit( txn ))
 			return -1;
@@ -618,7 +624,7 @@ done:
 	if( rc == 0 ) {
 		mdb_writes++;
 		if ( mdb_writes >= mdb_writes_per_commit ) {
-			mdb_tool_idl_flush( be, txn );
+			MDB_TOOL_IDL_FLUSH( be, txn );
 			rc = mdb_txn_commit( txn );
 			mdb_writes = 0;
 			txn = NULL;
@@ -773,7 +779,7 @@ done:
 	if( rc == 0 ) {
 		mdb_writes++;
 		if ( mdb_writes >= mdb_writes_per_commit ) {
-			mdb_tool_idl_flush( be, txi );
+			MDB_TOOL_IDL_FLUSH( be, txi );
 			rc = mdb_txn_commit( txi );
 			if( rc != 0 ) {
 				Debug( LDAP_DEBUG_ANY,
@@ -914,6 +920,7 @@ mdb_tool_index_task( void *ctx, void *ptr )
 }
 #endif
 
+#ifdef MDB_TOOL_IDL_CACHING
 static int
 mdb_tool_idl_cmp( const void *v1, const void *v2 )
 {
@@ -1044,13 +1051,14 @@ mdb_tool_idl_flush( BackendDB *be, MDB_txn *txn )
 {
 	struct mdb_info *mdb = (struct mdb_info *) be->be_private;
 	int rc = 0;
-	unsigned int i;
+	unsigned int i, dbi;
 
-	for ( i=MDB_NDB; i < mdb->mi_nattrs+MDB_NDB; i++ ) {
-		if ( !mdb_tool_roots[i] ) continue;
-		rc = mdb_tool_idl_flush_db( txn, i, mdb_tool_roots[i] );
-		tavl_free(mdb_tool_roots[i], NULL);
-		mdb_tool_roots[i] = NULL;
+	for ( i=0; i < mdb->mi_nattrs; i++ ) {
+		dbi = mdb->mi_attrs[i]->ai_dbi;
+		if ( !mdb_tool_roots[dbi] ) continue;
+		rc = mdb_tool_idl_flush_db( txn, dbi, mdb_tool_roots[dbi] );
+		tavl_free(mdb_tool_roots[dbi], NULL);
+		mdb_tool_roots[dbi] = NULL;
 		if ( rc )
 			break;
 	}
@@ -1146,6 +1154,8 @@ int mdb_tool_idl_add(
 			ic->tail->next = ice;
 		}
 		ic->tail = ice;
+		if ( lcount )
+			ice->ids[lcount-1] = 0;
 		if ( !ic->count )
 			ic->first = id;
 	}
@@ -1157,3 +1167,4 @@ int mdb_tool_idl_add(
 
 	return 0;
 }
+#endif /* MDB_TOOL_IDL_CACHING */
