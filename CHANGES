@@ -9,6 +9,7 @@ OpenLDAP 2.4.27 Engineering
 	Fixed libldap MozNSS with issuer expiration and verify never (ITS#6998)
 	Fixed libldap MozNSS memory leak (ITS#7001)
 	Fixed libldap MozNSS allow/try behavior (ITS#7002)
+	Fixed slapd to correctly handle frontend DB (ITS#7016)
 	Fixed slapd syncrepl crash with non-replicated ops (ITS#6892)
 	Fixed slapd syncrepl with modrdn (ITS#7000,ITS#6472)
 	Fixed slapd syncrepl timeout when using refreshAndPersist (ITS#6999)
