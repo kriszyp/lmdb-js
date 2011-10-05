@@ -16,6 +16,7 @@ OpenLDAP 2.4.27 Engineering
 	Fixed slapo-lastbind so authTimestamp is manageable (ITS#6873)
 	Fixed slapo-constraint conversion to back-config (ITS#6986)
 	Fixed slapo-sssvlv issue with greaterThanorEqual (ITS#6985)
+	Fixed slapo-unique URI checking of "host" portion (ITS#7018)
 	Build Environment
 		Fixed build for Solaris native compilers (ITS#6992)
 		Fixed creation and installation of slapd.ldif (ITS#7015)
