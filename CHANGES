@@ -18,6 +18,7 @@ OpenLDAP 2.4.27 Engineering
 	Fixed slapo-sssvlv issue with greaterThanorEqual (ITS#6985)
 	Build Environment
 		Fixed build for Solaris native compilers (ITS#6992)
+		Fixed creation and installation of slapd.ldif (ITS#7015)
 	Documentation
 		admin24 Fix table numbering (ITS#7003)
 
