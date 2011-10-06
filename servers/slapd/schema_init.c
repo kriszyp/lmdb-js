@@ -1852,7 +1852,7 @@ UTF8StringNormalize(
 		}
 		nvalue.bv_val[nvalue.bv_len] = '\0';
 
-	} else {
+	} else if ( nvalue.bv_len )  {
 		/* string of all spaces is treated as one space */
 		nvalue.bv_val[0] = ' ';
 		nvalue.bv_val[1] = '\0';
