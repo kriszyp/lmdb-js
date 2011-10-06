@@ -64,9 +64,10 @@ static lutil_meter_t meter;
 static const char *progname = "slapadd";
 static OperationBuffer opbuf;
 static char *buf;
+static int lmax;
 
 static ldap_pvt_thread_mutex_t add_mutex;
-static ldap_pvt_thread_cond_t add_cond_r, add_cond_w;
+static ldap_pvt_thread_cond_t add_cond;
 static int add_stop;
 
 /* returns:
@@ -79,7 +80,7 @@ static int
 getrec0(Erec *erec)
 {
 	const char *text;
-	int ldifrc, lmax = 0;
+	int ldifrc;
 	char textbuf[SLAP_TEXT_BUFLEN] = { '\0' };
 	size_t textlen = sizeof textbuf;
 	struct berval csn;
@@ -291,9 +292,8 @@ getrec_thr(void *ctx)
 	while (!add_stop) {
 		trec.rc = getrec0((Erec *)&trec);
 		trec.ready = 1;
-		ldap_pvt_thread_cond_signal( &add_cond_w );
 		while (trec.ready)
-			ldap_pvt_thread_cond_wait( &add_cond_r, &add_mutex );
+			ldap_pvt_thread_cond_wait( &add_cond, &add_mutex );
 		/* eof or read failure */
 		if ( trec.rc == 0 || trec.rc == -1 )
 			break;
@@ -309,16 +309,16 @@ getrec(Erec *erec)
 	if ( slap_tool_thread_max < 2 )
 		return getrec0(erec);
 
-	ldap_pvt_thread_mutex_lock( &add_mutex );
 	while (!trec.ready)
-		ldap_pvt_thread_cond_wait( &add_cond_w, &add_mutex );
+		ldap_pvt_thread_yield();
 	erec->e = trec.e;
 	erec->lineno = trec.lineno;
 	erec->nextline = trec.nextline;
 	trec.ready = 0;
 	rc = trec.rc;
+	ldap_pvt_thread_mutex_lock( &add_mutex );
 	ldap_pvt_thread_mutex_unlock( &add_mutex );
-	ldap_pvt_thread_cond_signal( &add_cond_r );
+	ldap_pvt_thread_cond_signal( &add_cond );
 	return rc;
 }
 
@@ -402,8 +402,7 @@ slapadd( int argc, char **argv )
 
 	if ( slap_tool_thread_max > 1 ) {
 		ldap_pvt_thread_mutex_init( &add_mutex );
-		ldap_pvt_thread_cond_init( &add_cond_r );
-		ldap_pvt_thread_cond_init( &add_cond_w );
+		ldap_pvt_thread_cond_init( &add_cond );
 		ldap_pvt_thread_create( &thr, 0, getrec_thr, NULL );
 	}
 
@@ -451,7 +450,7 @@ slapadd( int argc, char **argv )
 	if ( slap_tool_thread_max > 1 ) {
 		add_stop = 1;
 		trec.ready = 0;
-		ldap_pvt_thread_cond_signal( &add_cond_r );
+		ldap_pvt_thread_cond_signal( &add_cond );
 		ldap_pvt_thread_join( thr, NULL );
 	}
 
