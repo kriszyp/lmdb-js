@@ -21,21 +21,13 @@
 
 #include "back-mdb.h"
 
-int mdb_next_id( BackendDB *be, MDB_txn *tid, ID *out )
+int mdb_next_id( BackendDB *be, MDB_cursor *mc, ID *out )
 {
-	struct mdb_info *mdb = (struct mdb_info *) be->be_private;
 	int rc;
 	ID id = 0;
 	MDB_val key;
-	MDB_cursor *cursor;
 
-	/* Get a read cursor */
-	rc = mdb_cursor_open( tid, mdb->mi_id2entry, &cursor );
-
-	if (rc == 0) {
-		rc = mdb_cursor_get(cursor, &key, NULL, MDB_LAST);
-		mdb_cursor_close(cursor);
-	}
+	rc = mdb_cursor_get(mc, &key, NULL, MDB_LAST);
 
 	switch(rc) {
 	case MDB_NOTFOUND:

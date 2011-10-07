@@ -31,18 +31,18 @@ typedef struct Ecount {
 
 static int mdb_entry_partsize(struct mdb_info *mdb, MDB_txn *txn, Entry *e,
 	Ecount *eh);
-static int mdb_entry_encode(Operation *op, MDB_txn *txn, Entry *e, MDB_val *data,
+static int mdb_entry_encode(Operation *op, Entry *e, MDB_val *data,
 	Ecount *ec);
 static Entry *mdb_entry_alloc( Operation *op, int nattrs, int nvals );
 
 static int mdb_id2entry_put(
 	Operation *op,
-	MDB_txn *tid,
+	MDB_txn *txn,
+	MDB_cursor *mc,
 	Entry *e,
 	int flag )
 {
 	struct mdb_info *mdb = (struct mdb_info *) op->o_bd->be_private;
-	MDB_dbi dbi = mdb->mi_id2entry;
 	Ecount ec;
 	MDB_val key, data;
 	int rc;
@@ -52,7 +52,7 @@ static int mdb_id2entry_put(
 	key.mv_data = &e->e_id;
 	key.mv_size = sizeof(ID);
 
-	rc = mdb_entry_partsize( mdb, tid, e, &ec );
+	rc = mdb_entry_partsize( mdb, txn, e, &ec );
 	if (rc)
 		return LDAP_OTHER;
 
@@ -60,9 +60,12 @@ static int mdb_id2entry_put(
 
 again:
 	data.mv_size = ec.len;
-	rc = mdb_put( tid, dbi, &key, &data, flag );
+	if ( mc )
+		rc = mdb_cursor_put( mc, &key, &data, flag );
+	else
+		rc = mdb_put( txn, mdb->mi_id2entry, &key, &data, flag );
 	if (rc == MDB_SUCCESS) {
-		rc = mdb_entry_encode( op, tid, e, &data, &ec );
+		rc = mdb_entry_encode( op, e, &data, &ec );
 		if( rc != LDAP_SUCCESS )
 			return LDAP_OTHER;
 	}
@@ -76,7 +79,8 @@ again:
 			"mdb_id2entry_put: mdb_put failed: %s(%d) \"%s\"\n",
 			mdb_strerror(rc), rc,
 			e->e_nname.bv_val );
-		rc = LDAP_OTHER;
+		if ( rc != MDB_KEYEXIST )
+			rc = LDAP_OTHER;
 	}
 	return rc;
 }
@@ -89,18 +93,20 @@ again:
 
 int mdb_id2entry_add(
 	Operation *op,
-	MDB_txn *tid,
+	MDB_txn *txn,
+	MDB_cursor *mc,
 	Entry *e )
 {
-	return mdb_id2entry_put(op, tid, e, MDB_NOOVERWRITE|MDB_APPEND);
+	return mdb_id2entry_put(op, txn, mc, e, MDB_NOOVERWRITE|MDB_APPEND);
 }
 
 int mdb_id2entry_update(
 	Operation *op,
-	MDB_txn *tid,
+	MDB_txn *txn,
+	MDB_cursor *mc,
 	Entry *e )
 {
-	return mdb_id2entry_put(op, tid, e, 0);
+	return mdb_id2entry_put(op, txn, mc, e, 0);
 }
 
 int mdb_id2entry(
@@ -289,7 +295,7 @@ int mdb_entry_get(
 	txn = moi->moi_txn;
 
 	/* can we find entry */
-	rc = mdb_dn2entry( op, txn, ndn, &e, 0 );
+	rc = mdb_dn2entry( op, txn, NULL, ndn, &e, 0 );
 	switch( rc ) {
 	case MDB_NOTFOUND:
 	case 0:
@@ -537,7 +543,7 @@ static int mdb_entry_partsize(struct mdb_info *mdb, MDB_txn *txn, Entry *e,
  * The entire buffer size is precomputed so that a single malloc can be
  * performed.
  */
-static int mdb_entry_encode(Operation *op, MDB_txn *txn, Entry *e, MDB_val *data, Ecount *eh)
+static int mdb_entry_encode(Operation *op, Entry *e, MDB_val *data, Ecount *eh)
 {
 	struct mdb_info *mdb = (struct mdb_info *) op->o_bd->be_private;
 	ber_len_t len, i;
