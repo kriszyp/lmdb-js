@@ -31,6 +31,7 @@ int
 mdb_dn2entry(
 	Operation *op,
 	MDB_txn *tid,
+	MDB_cursor *m2,
 	struct berval *dn,
 	Entry **e,
 	int matched )
@@ -46,7 +47,7 @@ mdb_dn2entry(
 
 	*e = NULL;
 
-	rc = mdb_dn2id( op, tid, dn, &id, &mbv, &nmbv );
+	rc = mdb_dn2id( op, tid, m2, dn, &id, &mbv, &nmbv );
 	if ( rc ) {
 		if ( matched ) {
 			rc2 = mdb_cursor_open( tid, mdb->mi_id2entry, &mc );

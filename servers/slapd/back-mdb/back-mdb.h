@@ -23,6 +23,8 @@
 
 LDAP_BEGIN_DECL
 
+#define MDB_TOOL_IDL_CACHING	1
+
 #define DN_BASE_PREFIX		SLAP_INDEX_EQUALITY_PREFIX
 #define DN_ONE_PREFIX	 	'%'
 #define DN_SUBTREE_PREFIX 	'@'
@@ -142,6 +144,10 @@ typedef struct mdb_attrinfo {
 #ifdef LDAP_COMP_MATCH
 	ComponentReference* ai_cr; /*component indexing*/
 #endif
+	Avlnode *ai_root;		/* for tools */
+	void *ai_flist;		/* for tools */
+	void *ai_clist;		/* for tools */
+	MDB_cursor *ai_cursor;	/* for tools */
 	int ai_idx;	/* position in AI array */
 	MDB_dbi ai_dbi;
 } AttrInfo;
@@ -158,9 +164,27 @@ typedef struct AttrList {
 	Attribute *attr;
 } AttrList;
 
-typedef struct IndexRec {
+#ifndef CACHELINE
+#define CACHELINE	64
+#endif
+
+typedef struct IndexRbody {
 	AttrInfo *ai;
 	AttrList *attrs;
+	void *tptr;
+	int i;
+} IndexRbody;
+
+typedef struct IndexRec {
+	union {
+		IndexRbody irb;
+#define ir_ai	iru.irb.ai
+#define ir_attrs	iru.irb.attrs
+#define ir_tptr	iru.irb.tptr
+#define ir_i	iru.irb.i
+		/* cache line alignment */
+		char pad[(sizeof(IndexRbody)+CACHELINE-1) & (!CACHELINE-1)];
+	} iru;
 } IndexRec;
 
 #define MAXRDNS	SLAP_LDAPDN_MAXLEN/4

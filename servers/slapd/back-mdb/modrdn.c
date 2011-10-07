@@ -35,6 +35,7 @@ mdb_modrdn( Operation	*op, SlapReply *rs )
 	char textbuf[SLAP_TEXT_BUFLEN];
 	size_t textlen = sizeof textbuf;
 	MDB_txn		*txn = NULL;
+	MDB_cursor	*mc;
 	struct mdb_op_info opinfo = {{{ 0 }}}, *moi = &opinfo;
 	Entry dummy = {0};
 
@@ -135,7 +136,17 @@ txnReturn:
 	/* Make sure parent entry exist and we can write its
 	 * children.
 	 */
-	rs->sr_err = mdb_dn2entry( op, txn, &p_ndn, &p, 0 );
+	rs->sr_err = mdb_cursor_open( txn, mdb->mi_dn2id, &mc );
+	if ( rs->sr_err != 0 ) {
+		Debug(LDAP_DEBUG_TRACE,
+			"<=- " LDAP_XSTRING(mdb_modrdn)
+			": cursor_open failed: %s (%d)\n",
+			mdb_strerror(rs->sr_err), rs->sr_err, 0 );
+		rs->sr_err = LDAP_OTHER;
+		rs->sr_text = "DN cursor_open failed";
+		goto return_results;
+	}
+	rs->sr_err = mdb_dn2entry( op, txn, mc, &p_ndn, &p, 0 );
 	switch( rs->sr_err ) {
 	case MDB_NOTFOUND:
 		Debug( LDAP_DEBUG_TRACE, LDAP_XSTRING(mdb_modrdn)
@@ -189,7 +200,7 @@ txnReturn:
 		p_dn.bv_val, 0, 0 );
 
 	/* get entry */
-	rs->sr_err = mdb_dn2entry( op, txn, &op->o_req_ndn, &e, 0 );
+	rs->sr_err = mdb_dn2entry( op, txn, mc, &op->o_req_ndn, &e, 0 );
 	switch( rs->sr_err ) {
 	case MDB_NOTFOUND:
 		e = p;
@@ -311,8 +322,7 @@ txnReturn:
 				goto return_results;
 			}
 			/* Get Entry with dn=newSuperior. Does newSuperior exist? */
-
-			rs->sr_err = mdb_dn2entry( op, txn, np_ndn, &np, 0 );
+			rs->sr_err = mdb_dn2entry( op, txn, NULL, np_ndn, &np, 0 );
 
 			switch( rs->sr_err ) {
 			case 0:
@@ -423,7 +433,7 @@ txnReturn:
 		new_ndn.bv_val, 0, 0 );
 
 	/* Shortcut the search */
-	rs->sr_err = mdb_dn2id ( op, txn, &new_ndn, &nid, NULL, NULL );
+	rs->sr_err = mdb_dn2id ( op, txn, NULL, &new_ndn, &nid, NULL, NULL );
 	switch( rs->sr_err ) {
 	case MDB_NOTFOUND:
 		break;
@@ -461,7 +471,7 @@ txnReturn:
 	}
 
 	/* delete old DN */
-	rs->sr_err = mdb_dn2id_delete( op, txn, p->e_id, e );
+	rs->sr_err = mdb_dn2id_delete( op, mc, e->e_id );
 	if ( rs->sr_err != 0 ) {
 		Debug(LDAP_DEBUG_TRACE,
 			"<=- " LDAP_XSTRING(mdb_modrdn)
@@ -479,7 +489,7 @@ txnReturn:
 	dummy.e_attrs = NULL;
 
 	/* add new DN */
-	rs->sr_err = mdb_dn2id_add( op, txn, np ? np->e_id : p->e_id, &dummy );
+	rs->sr_err = mdb_dn2id_add( op, mc, mc, np ? np->e_id : p->e_id, &dummy );
 	if ( rs->sr_err != 0 ) {
 		Debug(LDAP_DEBUG_TRACE,
 			"<=- " LDAP_XSTRING(mdb_modrdn)
@@ -505,7 +515,7 @@ txnReturn:
 	}
 
 	/* id2entry index */
-	rs->sr_err = mdb_id2entry_update( op, txn, &dummy );
+	rs->sr_err = mdb_id2entry_update( op, txn, NULL, &dummy );
 	if ( rs->sr_err != 0 ) {
 		Debug(LDAP_DEBUG_TRACE,
 			"<=- " LDAP_XSTRING(mdb_modrdn)
@@ -532,6 +542,7 @@ txnReturn:
 				rs->sr_text = "internal error";
 				goto return_results;
 			}
+		} else {
 			parent_is_leaf = 1;
 		}
 		mdb_entry_return( op, p );

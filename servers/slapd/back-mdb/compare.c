@@ -43,7 +43,7 @@ mdb_compare( Operation *op, SlapReply *rs )
 	rtxn = moi->moi_txn;
 
 	/* get entry */
-	rs->sr_err = mdb_dn2entry( op, rtxn, &op->o_req_ndn, &e, 1 );
+	rs->sr_err = mdb_dn2entry( op, rtxn, NULL, &op->o_req_ndn, &e, 1 );
 	switch( rs->sr_err ) {
 	case MDB_NOTFOUND:
 	case 0:

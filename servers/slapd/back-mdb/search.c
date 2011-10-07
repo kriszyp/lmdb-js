@@ -98,7 +98,7 @@ static Entry * deref_base (
 			break;
 		}
 
-		rs->sr_err = mdb_dn2entry( op, txn, &ndn, &e, 0 );
+		rs->sr_err = mdb_dn2entry( op, txn, NULL, &ndn, &e, 0 );
 		if (rs->sr_err) {
 			rs->sr_err = LDAP_ALIAS_PROBLEM;
 			rs->sr_text = "aliasedObject not found";
@@ -327,7 +327,7 @@ mdb_search( Operation *op, SlapReply *rs )
 	}
 dn2entry_retry:
 	/* get entry with reader lock */
-	rs->sr_err = mdb_dn2entry( op, ltid, &op->o_req_ndn, &e, 1 );
+	rs->sr_err = mdb_dn2entry( op, ltid, NULL, &op->o_req_ndn, &e, 1 );
 
 	switch(rs->sr_err) {
 	case MDB_NOTFOUND:

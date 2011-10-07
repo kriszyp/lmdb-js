@@ -32,7 +32,9 @@ mdb_add(Operation *op, SlapReply *rs )
 	AttributeDescription *children = slap_schema.si_ad_children;
 	AttributeDescription *entry = slap_schema.si_ad_entry;
 	MDB_txn		*txn = NULL;
-	ID eid = NOID, pid = 0;
+	MDB_cursor	*mc = NULL;
+	MDB_cursor	*mcd;
+	ID eid, pid = 0;
 	mdb_op_info opinfo = {{{ 0 }}}, *moi = &opinfo;
 	int subentry;
 
@@ -141,8 +143,18 @@ txnReturn:
 		dnParent( &op->ora_e->e_nname, &pdn );
 	}
 
+	rs->sr_err = mdb_cursor_open( txn, mdb->mi_dn2id, &mcd );
+	if( rs->sr_err != 0 ) {
+		Debug( LDAP_DEBUG_TRACE,
+			LDAP_XSTRING(mdb_add) ": mdb_cursor_open failed (%d)\n",
+			rs->sr_err, 0, 0 );
+		rs->sr_err = LDAP_OTHER;
+		rs->sr_text = "internal error";
+		goto return_results;
+	}
+
 	/* get entry or parent */
-	rs->sr_err = mdb_dn2entry( op, txn, &op->ora_e->e_nname, &p, 1 );
+	rs->sr_err = mdb_dn2entry( op, txn, mcd, &op->ora_e->e_nname, &p, 1 );
 	switch( rs->sr_err ) {
 	case 0:
 		rs->sr_err = LDAP_ALREADY_EXISTS;
@@ -305,21 +317,30 @@ txnReturn:
 		goto return_results;;
 	}
 
-	if ( eid == NOID ) {
-		rs->sr_err = mdb_next_id( op->o_bd, txn, &eid );
-		if( rs->sr_err != 0 ) {
-			Debug( LDAP_DEBUG_TRACE,
-				LDAP_XSTRING(mdb_add) ": next_id failed (%d)\n",
-				rs->sr_err, 0, 0 );
-			rs->sr_err = LDAP_OTHER;
-			rs->sr_text = "internal error";
-			goto return_results;
-		}
-		op->ora_e->e_id = eid;
+	rs->sr_err = mdb_cursor_open( txn, mdb->mi_id2entry, &mc );
+	if( rs->sr_err != 0 ) {
+		Debug( LDAP_DEBUG_TRACE,
+			LDAP_XSTRING(mdb_add) ": mdb_cursor_open failed (%d)\n",
+			rs->sr_err, 0, 0 );
+		rs->sr_err = LDAP_OTHER;
+		rs->sr_text = "internal error";
+		goto return_results;
 	}
 
+	rs->sr_err = mdb_next_id( op->o_bd, mc, &eid );
+	if( rs->sr_err != 0 ) {
+		Debug( LDAP_DEBUG_TRACE,
+			LDAP_XSTRING(mdb_add) ": next_id failed (%d)\n",
+			rs->sr_err, 0, 0 );
+		rs->sr_err = LDAP_OTHER;
+		rs->sr_text = "internal error";
+		goto return_results;
+	}
+	op->ora_e->e_id = eid;
+
 	/* dn2id index */
-	rs->sr_err = mdb_dn2id_add( op, txn, pid, op->ora_e );
+	rs->sr_err = mdb_dn2id_add( op, mcd, mcd, pid, op->ora_e );
+	mdb_cursor_close( mcd );
 	if ( rs->sr_err != 0 ) {
 		Debug( LDAP_DEBUG_TRACE,
 			LDAP_XSTRING(mdb_add) ": dn2id_add failed: %s (%d)\n",
@@ -347,7 +368,7 @@ txnReturn:
 	}
 
 	/* id2entry index */
-	rs->sr_err = mdb_id2entry_add( op, txn, op->ora_e );
+	rs->sr_err = mdb_id2entry_add( op, txn, mc, op->ora_e );
 	if ( rs->sr_err != 0 ) {
 		Debug( LDAP_DEBUG_TRACE,
 			LDAP_XSTRING(mdb_add) ": id2entry_add failed\n",
