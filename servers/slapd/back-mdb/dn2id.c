@@ -136,14 +136,13 @@ int mdb_fix_dn(
 int
 mdb_dn2id_add(
 	Operation	*op,
-	MDB_txn *txn,
+	MDB_cursor	*mcp,
+	MDB_cursor	*mcd,
 	ID pid,
 	Entry		*e )
 {
 	struct mdb_info *mdb = (struct mdb_info *) op->o_bd->be_private;
-	MDB_dbi dbi = mdb->mi_dn2id;
 	MDB_val		key, data;
-	MDB_cursor	*mc;
 	ID		nid;
 	int		rc, rlen, nrlen;
 	diskNode *d;
@@ -174,10 +173,6 @@ mdb_dn2id_add(
 
 	nid = pid;
 
-	rc = mdb_cursor_open( txn, dbi, &mc );
-	if ( rc )
-		goto fail;
-
 	/* Need to make dummy root node once. Subsequent attempts
 	 * will fail harmlessly.
 	 */
@@ -186,22 +181,21 @@ mdb_dn2id_add(
 		data.mv_data = &dummy;
 		data.mv_size = sizeof(diskNode);
 
-		mdb_cursor_put( mc, &key, &data, MDB_NODUPDATA );
+		mdb_cursor_put( mcp, &key, &data, MDB_NODUPDATA );
 	}
 
 	data.mv_data = d;
 	data.mv_size = sizeof(diskNode) + rlen + nrlen;
 
-	rc = mdb_cursor_put( mc, &key, &data, MDB_NODUPDATA );
+	rc = mdb_cursor_put( mcp, &key, &data, MDB_NODUPDATA );
 
 	if (rc == 0) {
 		nid = e->e_id;
 		memcpy( ptr, &pid, sizeof( ID ));
 		d->nrdnlen[0] ^= 0x80;
 
-		rc = mdb_cursor_put( mc, &key, &data, MDB_NODUPDATA|MDB_APPEND );
+		rc = mdb_cursor_put( mcd, &key, &data, MDB_NODUPDATA|MDB_APPEND );
 	}
-	mdb_cursor_close( mc );
 
 fail:
 	op->o_tmpfree( d, op->o_tmpmemctx );
@@ -210,61 +204,47 @@ fail:
 	return rc;
 }
 
+/* mc must have been set by mdb_dn2id */
 int
 mdb_dn2id_delete(
 	Operation	*op,
-	MDB_txn *txn,
-	ID pid,
-	Entry	*e )
+	MDB_cursor *mc,
+	ID id )
 {
-	struct mdb_info *mdb = (struct mdb_info *) op->o_bd->be_private;
-	MDB_dbi dbi = mdb->mi_dn2id;
-	MDB_val	key, data;
-	diskNode *d;
-	int rc, nrlen;
-	ID	nid;
+	int rc;
 
-	Debug( LDAP_DEBUG_TRACE, "=> mdb_dn2id_delete 0x%lx: \"%s\"\n",
-		e->e_id, e->e_ndn, 0 );
-
-	key.mv_size = sizeof(ID);
-	key.mv_data = &nid;
-	nid = pid;
-
-	nrlen = dn_rdnlen( op->o_bd, &e->e_nname );
-	data.mv_size = sizeof(diskNode) + nrlen - sizeof(ID) - 1;
-
-	d = op->o_tmpalloc( data.mv_size, op->o_tmpmemctx );
-	d->nrdnlen[1] = nrlen & 0xff;
-	d->nrdnlen[0] = (nrlen >> 8) | 0x80;
-	memcpy( d->nrdn, e->e_nname.bv_val, nrlen );
-	d->nrdn[nrlen] = '\0';
-	data.mv_data = d;
+	Debug( LDAP_DEBUG_TRACE, "=> mdb_dn2id_delete 0x%lx\n",
+		id, 0, 0 );
 
 	/* Delete our ID from the parent's list */
-	rc = mdb_del( txn, dbi, &key, &data );
+	rc = mdb_cursor_del( mc, 0 );
 
 	/* Delete our ID from the tree. With sorted duplicates, this
 	 * will leave any child nodes still hanging around. This is OK
 	 * for modrdn, which will add our info back in later.
 	 */
 	if ( rc == 0 ) {
-		nid = e->e_id;
-		d->nrdnlen[0] ^= 0x80;
-		rc = mdb_del( txn, dbi, &key, &data );
+		MDB_val	key;
+		key.mv_size = sizeof(ID);
+		key.mv_data = &id;
+		rc = mdb_cursor_get( mc, &key, NULL, MDB_SET );
+		if ( rc == 0 )
+			rc = mdb_cursor_del( mc, 0 );
 	}
 
-	op->o_tmpfree( d, op->o_tmpmemctx );
-
-	Debug( LDAP_DEBUG_TRACE, "<= mdb_dn2id_delete 0x%lx: %d\n", e->e_id, rc, 0 );
+	Debug( LDAP_DEBUG_TRACE, "<= mdb_dn2id_delete 0x%lx: %d\n", id, rc, 0 );
 	return rc;
 }
 
-/* return last found ID in *id if no match */
+/* return last found ID in *id if no match
+ * If mc is provided, it will be left pointing to the RDN's
+ * record under the parent's ID.
+ */
 int
 mdb_dn2id(
 	Operation	*op,
 	MDB_txn *txn,
+	MDB_cursor	*mc,
 	struct berval	*in,
 	ID	*id,
 	struct berval	*matched,
@@ -316,8 +296,12 @@ mdb_dn2id(
 	nid = 0;
 	key.mv_size = sizeof(ID);
 
-	rc = mdb_cursor_open( txn, dbi, &cursor );
-	if ( rc ) return rc;
+	if ( mc ) {
+		cursor = mc;
+	} else {
+		rc = mdb_cursor_open( txn, dbi, &cursor );
+		if ( rc ) return rc;
+	}
 
 	for (;;) {
 		key.mv_data = &pid;
@@ -367,7 +351,8 @@ mdb_dn2id(
 		}
 	}
 	*id = nid; 
-	mdb_cursor_close( cursor );
+	if ( !mc )
+		mdb_cursor_close( cursor );
 done:
 	if ( matched ) {
 		if ( matched->bv_len ) {
