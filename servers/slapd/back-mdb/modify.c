@@ -480,7 +480,7 @@ txnReturn:
 	txn = moi->moi_txn;
 
 	/* get entry or ancestor */
-	rs->sr_err = mdb_dn2entry( op, txn, &op->o_req_ndn, &e, 1 );
+	rs->sr_err = mdb_dn2entry( op, txn, NULL, &op->o_req_ndn, &e, 1 );
 
 	if ( rs->sr_err != 0 ) {
 		Debug( LDAP_DEBUG_TRACE,
@@ -585,7 +585,7 @@ txnReturn:
 	}
 
 	/* change the entry itself */
-	rs->sr_err = mdb_id2entry_update( op, txn, &dummy );
+	rs->sr_err = mdb_id2entry_update( op, txn, NULL, &dummy );
 	if ( rs->sr_err != 0 ) {
 		Debug( LDAP_DEBUG_TRACE,
 			LDAP_XSTRING(mdb_modify) ": id2entry update failed " "(%d)\n",

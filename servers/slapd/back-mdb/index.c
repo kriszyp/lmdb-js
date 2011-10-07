@@ -164,7 +164,7 @@ done:
 static int indexer(
 	Operation *op,
 	MDB_txn *txn,
-	MDB_dbi dbi,
+	struct mdb_attrinfo *ai,
 	AttributeDescription *ad,
 	struct berval *atname,
 	BerVarray vals,
@@ -174,21 +174,26 @@ static int indexer(
 {
 	int rc, i;
 	struct berval *keys;
-	MDB_cursor *mc;
+	MDB_cursor *mc = ai->ai_cursor;
 	mdb_idl_keyfunc *keyfunc;
 	char *err;
 
 	assert( mask != 0 );
 
-	err = "c_open";
-	rc = mdb_cursor_open( txn, dbi, &mc );
-	if ( rc ) goto done;
+	if ( !mc ) {
+		err = "c_open";
+		rc = mdb_cursor_open( txn, ai->ai_dbi, &mc );
+		if ( rc ) goto done;
+		if ( slapMode & SLAP_TOOL_QUICK )
+			ai->ai_cursor = mc;
+	}
 
 	if ( opid == SLAP_INDEX_ADD_OP ) {
 #ifdef MDB_TOOL_IDL_CACHING
-		if ( slapMode & SLAP_TOOL_QUICK )
+		if ( slapMode & SLAP_TOOL_QUICK ) {
 			keyfunc = mdb_tool_idl_add;
-		else
+			mc = (MDB_cursor *)ai;
+		} else
 #endif
 			keyfunc = mdb_idl_insert_keys;
 	} else
@@ -262,7 +267,8 @@ static int indexer(
 	}
 
 done:
-	mdb_cursor_close( mc );
+	if ( !(slapMode & SLAP_TOOL_QUICK))
+		mdb_cursor_close( mc );
 	switch( rc ) {
 	/* The callers all know how to deal with these results */
 	case 0:
@@ -310,7 +316,7 @@ static int index_at_values(
 			if ( ai->ai_cr ) {
 				ComponentReference *cr;
 				for( cr = ai->ai_cr ; cr ; cr = cr->cr_next ) {
-					rc = indexer( op, txn, ai->ai_dbi, cr->cr_ad, &type->sat_cname,
+					rc = indexer( op, txn, ai, cr->cr_ad, &type->sat_cname,
 						cr->cr_nvals, id, ixop,
 						cr->cr_indexmask );
 				}
@@ -328,7 +334,7 @@ static int index_at_values(
 			 */
 				mask = ai->ai_newmask ? ai->ai_newmask : ai->ai_indexmask;
 			if( mask ) {
-				rc = indexer( op, txn, ai->ai_dbi, ad, &type->sat_cname,
+				rc = indexer( op, txn, ai, ad, &type->sat_cname,
 					vals, id, ixop, mask );
 
 				if( rc ) return rc;
@@ -349,7 +355,7 @@ static int index_at_values(
 				else
 					mask = ai->ai_newmask ? ai->ai_newmask : ai->ai_indexmask;
 				if ( mask ) {
-					rc = indexer( op, txn, ai->ai_dbi, desc, &desc->ad_cname,
+					rc = indexer( op, txn, ai, desc, &desc->ad_cname,
 						vals, id, ixop, mask );
 
 					if( rc ) {
@@ -405,11 +411,11 @@ mdb_index_recset(
 	if( type->sat_ad ) {
 		slot = mdb_attr_slot( mdb, type->sat_ad, NULL );
 		if ( slot >= 0 ) {
-			ir[slot].ai = mdb->mi_attrs[slot];
+			ir[slot].ir_ai = mdb->mi_attrs[slot];
 			al = ch_malloc( sizeof( AttrList ));
 			al->attr = a;
-			al->next = ir[slot].attrs;
-			ir[slot].attrs = al;
+			al->next = ir[slot].ir_attrs;
+			ir[slot].ir_attrs = al;
 		}
 	}
 	if( tags->bv_len ) {
@@ -419,11 +425,11 @@ mdb_index_recset(
 		if( desc ) {
 			slot = mdb_attr_slot( mdb, desc, NULL );
 			if ( slot >= 0 ) {
-				ir[slot].ai = mdb->mi_attrs[slot];
+				ir[slot].ir_ai = mdb->mi_attrs[slot];
 				al = ch_malloc( sizeof( AttrList ));
 				al->attr = a;
-				al->next = ir[slot].attrs;
-				ir[slot].attrs = al;
+				al->next = ir[slot].ir_attrs;
+				ir[slot].ir_attrs = al;
 			}
 		}
 	}
@@ -433,6 +439,7 @@ mdb_index_recset(
 /* Apply the indices for the recset */
 int mdb_index_recrun(
 	Operation *op,
+	MDB_txn *txn,
 	struct mdb_info *mdb,
 	IndexRec *ir0,
 	ID id,
@@ -446,15 +453,15 @@ int mdb_index_recrun(
 	if ( id == 0 )
 		return 0;
 
-	for (i=base; i<mdb->mi_nattrs; i+=slap_tool_thread_max) {
+	for (i=base; i<mdb->mi_nattrs; i+=slap_tool_thread_max-1) {
 		ir = ir0 + i;
-		if ( !ir->ai ) continue;
-		while (( al = ir->attrs )) {
-			ir->attrs = al->next;
-			rc = indexer( op, NULL, ir->ai->ai_dbi, ir->ai->ai_desc,
-				&ir->ai->ai_desc->ad_type->sat_cname,
+		if ( !ir->ir_ai ) continue;
+		while (( al = ir->ir_attrs )) {
+			ir->ir_attrs = al->next;
+			rc = indexer( op, txn, ir->ir_ai, ir->ir_ai->ai_desc,
+				&ir->ir_ai->ai_desc->ad_type->sat_cname,
 				al->attr->a_nvals, id, SLAP_INDEX_ADD_OP,
-				ir->ai->ai_indexmask );
+				ir->ir_ai->ai_indexmask );
 			free( al );
 			if ( rc ) break;
 		}

@@ -33,6 +33,7 @@ mdb_delete( Operation *op, SlapReply *rs )
 	AttributeDescription *children = slap_schema.si_ad_children;
 	AttributeDescription *entry = slap_schema.si_ad_entry;
 	MDB_txn		*txn = NULL;
+	MDB_cursor	*mc;
 	mdb_op_info opinfo = {{{ 0 }}}, *moi = &opinfo;
 
 	LDAPControl **preread_ctrl = NULL;
@@ -117,8 +118,14 @@ txnReturn:
 		dnParent( &op->o_req_ndn, &pdn );
 	}
 
+	rs->sr_err = mdb_cursor_open( txn, mdb->mi_dn2id, &mc );
+	if ( rs->sr_err ) {
+		rs->sr_err = LDAP_OTHER;
+		rs->sr_text = "internal error";
+		goto return_results;
+	}
 	/* get parent */
-	rs->sr_err = mdb_dn2entry( op, txn, &pdn, &p, 1 );
+	rs->sr_err = mdb_dn2entry( op, txn, mc, &pdn, &p, 1 );
 	switch( rs->sr_err ) {
 	case 0:
 	case MDB_NOTFOUND:
@@ -161,7 +168,7 @@ txnReturn:
 	}
 
 	/* get entry */
-	rs->sr_err = mdb_dn2entry( op, txn, &op->o_req_ndn, &e, 0 );
+	rs->sr_err = mdb_dn2entry( op, txn, mc, &op->o_req_ndn, &e, 0 );
 	switch( rs->sr_err ) {
 	case MDB_NOTFOUND:
 		e = p;
@@ -326,7 +333,8 @@ txnReturn:
 	}
 
 	/* delete from dn2id */
-	rs->sr_err = mdb_dn2id_delete( op, txn, p->e_id, e );
+	rs->sr_err = mdb_dn2id_delete( op, mc, e->e_id );
+	mdb_cursor_close( mc );
 	if ( rs->sr_err != 0 ) {
 		Debug(LDAP_DEBUG_TRACE,
 			"<=- " LDAP_XSTRING(mdb_delete) ": dn2id failed: "
@@ -356,7 +364,7 @@ txnReturn:
 		BER_BVZERO( &vals[1] );
 		rs->sr_err = mdb_index_values( op, txn, slap_schema.si_ad_entryCSN,
 			vals, 0, SLAP_INDEX_ADD_OP );
-	if ( rs->sr_err != LDAP_SUCCESS ) {
+		if ( rs->sr_err != LDAP_SUCCESS ) {
 			rs->sr_text = "entryCSN index update failed";
 			rs->sr_err = LDAP_OTHER;
 			goto return_results;

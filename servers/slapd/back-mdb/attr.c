@@ -358,6 +358,10 @@ mdb_attr_index_config(
 #ifdef LDAP_COMP_MATCH
 		a->ai_cr = NULL;
 #endif
+		a->ai_cursor = NULL;
+		a->ai_flist = NULL;
+		a->ai_clist = NULL;
+		a->ai_root = NULL;
 		a->ai_desc = ad;
 		a->ai_dbi = 0;
 

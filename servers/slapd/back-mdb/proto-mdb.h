@@ -59,7 +59,7 @@ int mdb_back_init_cf( BackendInfo *bi );
  * dn2entry.c
  */
 
-int mdb_dn2entry LDAP_P(( Operation *op, MDB_txn *tid,
+int mdb_dn2entry LDAP_P(( Operation *op, MDB_txn *tid, MDB_cursor *mc,
 	struct berval *dn, Entry **e, int matched ));
 
 /*
@@ -69,6 +69,7 @@ int mdb_dn2entry LDAP_P(( Operation *op, MDB_txn *tid,
 int mdb_dn2id(
 	Operation *op,
 	MDB_txn *txn,
+	MDB_cursor *mc,
 	struct berval *ndn,
 	ID *id,
 	struct berval *matched,
@@ -76,15 +77,15 @@ int mdb_dn2id(
 
 int mdb_dn2id_add(
 	Operation *op,
-	MDB_txn *tid,
+	MDB_cursor *mcp,
+	MDB_cursor *mcd,
 	ID pid,
 	Entry *e );
 
 int mdb_dn2id_delete(
 	Operation *op,
-	MDB_txn *tid,
-	ID pid,
-	Entry *e );
+	MDB_cursor *mc,
+	ID id );
 
 int mdb_dn2id_children(
 	Operation *op,
@@ -154,11 +155,13 @@ int mdb_filter_candidates(
 int mdb_id2entry_add(
 	Operation *op,
 	MDB_txn *tid,
+	MDB_cursor *mc,
 	Entry *e );
 
 int mdb_id2entry_update(
 	Operation *op,
 	MDB_txn *tid,
+	MDB_cursor *mc,
 	Entry *e );
 
 int mdb_id2entry_delete(
@@ -263,6 +266,7 @@ mdb_index_recset LDAP_P((
 extern int
 mdb_index_recrun LDAP_P((
 	Operation *op,
+	MDB_txn *txn,
 	struct mdb_info *mdb,
 	IndexRec *ir,
 	ID id,
@@ -293,7 +297,7 @@ mdb_key_read(
  * nextid.c
  */
 
-int mdb_next_id( BackendDB *be, MDB_txn *tid, ID *id );
+int mdb_next_id( BackendDB *be, MDB_cursor *mc, ID *id );
 
 /*
  * modify.c
