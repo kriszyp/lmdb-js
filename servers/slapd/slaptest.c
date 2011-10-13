@@ -38,6 +38,10 @@
 
 #include "slapcommon.h"
 
+#ifndef S_IWRITE
+#define S_IWRITE	S_IWUSR
+#endif
+
 static int
 test_file( const char *fname, const char *ftype )
 {
