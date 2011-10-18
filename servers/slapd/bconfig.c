@@ -6418,6 +6418,35 @@ int config_back_entry_get(
 	return rc;
 }
 
+static AccessControl *defacl_parsed = NULL;
+
+int config_back_access_allowed(
+	Operation		*op,
+	Entry			*e,
+	AttributeDescription	*desc,
+	struct berval		*val,
+	slap_access_t		access,
+	AccessControlState	*state,
+	slap_mask_t		*maskp )
+{
+	int result;
+	BackendDB *be_orig = op->o_bd, db = *op->o_bd;
+
+	/* If we have no explicitly configured ACLs, don't just use
+	 * the global ACLs. Explicitly deny access to everything.
+	 */
+	if ( ! db.be_acl ) {
+		Debug( LDAP_DEBUG_ACL, "=> config_back_access_allowed: "
+				"No explicit ACL for back-config configured, "
+				"using hardcoded default\n", 0, 0, 0 );
+		db.be_acl = defacl_parsed;
+		op->o_bd = &db;
+	}
+	result = slap_access_allowed( op, e , desc, val, access, state, maskp );
+	op->o_bd = be_orig;
+	return result;
+}
+
 static int
 config_build_attrs( Entry *e, AttributeType **at, AttributeDescription *ad,
 	ConfigTable *ct, ConfigArgs *c )
@@ -6788,15 +6817,18 @@ config_back_db_open( BackendDB *be, ConfigReply *cr )
 	slap_callback cb = { NULL, slap_null_cb, NULL, NULL };
 	SlapReply rs = {REP_RESULT};
 	void *thrctx = NULL;
+	AccessControl *save_access;
 
 	Debug( LDAP_DEBUG_TRACE, "config_back_db_open\n", 0, 0, 0);
 
-	/* If we have no explicitly configured ACLs, don't just use
-	 * the global ACLs. Explicitly deny access to everything.
-	 */
-	if ( !be->bd_self->be_acl ) {
-		parse_acl(be->bd_self, "config_back_db_open", 0, 6, (char **)defacl, 0 );
-	}
+	/* prepare a hardcoded default ACL which is used when no
+	 * explicit ACL is defined for this database. See also:
+	 * config_back_access_allowed() */
+	save_access = be->bd_self->be_acl;
+	be->bd_self->be_acl = NULL;
+	parse_acl(be->bd_self, "config_back_db_open", 0, 6, (char **)defacl, 0 );
+	defacl_parsed = be->bd_self->be_acl;
+	be->bd_self->be_acl = save_access;
 
 	thrctx = ldap_pvt_thread_pool_context();
 	connection_fake_init( &conn, &opbuf, thrctx );
@@ -7435,7 +7467,7 @@ config_back_initialize( BackendInfo *bi )
 
 	bi->bi_chk_referrals = 0;
 
-	bi->bi_access_allowed = slap_access_allowed;
+	bi->bi_access_allowed = config_back_access_allowed;
 
 	bi->bi_connection_init = 0;
 	bi->bi_connection_destroy = 0;
