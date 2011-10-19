@@ -7072,6 +7072,11 @@ config_back_db_close( BackendDB *be, ConfigReply *cr )
 		backend_shutdown( &cfb->cb_db );
 	}
 
+	if ( defacl_parsed ) {
+		acl_free( defacl_parsed );
+		defacl_parsed = NULL;
+	}
+
 	return 0;
 }
 
