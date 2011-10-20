@@ -190,7 +190,7 @@ static int indexer(
 
 	if ( opid == SLAP_INDEX_ADD_OP ) {
 #ifdef MDB_TOOL_IDL_CACHING
-		if ( slapMode & SLAP_TOOL_QUICK ) {
+		if (( slapMode & SLAP_TOOL_QUICK ) && slap_tool_thread_max > 2 ) {
 			keyfunc = mdb_tool_idl_add;
 			mc = (MDB_cursor *)ai;
 		} else
