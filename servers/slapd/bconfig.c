@@ -84,6 +84,7 @@ static char	*logfileName;
 #ifdef SLAP_AUTH_REWRITE
 static BerVarray authz_rewrites;
 #endif
+static AccessControl *defacl_parsed = NULL;
 
 static struct berval cfdir;
 
@@ -1392,6 +1393,12 @@ config_generic(ConfigArgs *c) {
 				*prev = a->acl_next;
 				acl_free( a );
 			}
+			if ( SLAP_CONFIG( c->be ) && !c->be->be_acl ) {
+				Debug( LDAP_DEBUG_CONFIG, "config_generic (CFG_ACL): "
+						"Last explicit ACL for back-config removed. "
+						"Using hardcoded default\n", 0, 0, 0 );
+				c->be->be_acl = defacl_parsed;
+			}
 			break;
 
 		case CFG_OC: {
@@ -1928,6 +1935,9 @@ sortval_reject:
 			break;
 
 		case CFG_ACL:
+			if ( SLAP_CONFIG( c->be ) && c->be->be_acl == defacl_parsed) {
+				c->be->be_acl = NULL;
+			}
 			/* Don't append to the global ACL if we're on a specific DB */
 			i = c->valx;
 			if ( c->valx == -1 ) {
@@ -1937,6 +1947,9 @@ sortval_reject:
 					i++;
 			}
 			if ( parse_acl(c->be, c->fname, c->lineno, c->argc, c->argv, i ) ) {
+				if ( SLAP_CONFIG( c->be ) && !c->be->be_acl) {
+					c->be->be_acl = defacl_parsed;
+				}
 				return 1;
 			}
 			break;
@@ -6418,35 +6431,6 @@ int config_back_entry_get(
 	return rc;
 }
 
-static AccessControl *defacl_parsed = NULL;
-
-int config_back_access_allowed(
-	Operation		*op,
-	Entry			*e,
-	AttributeDescription	*desc,
-	struct berval		*val,
-	slap_access_t		access,
-	AccessControlState	*state,
-	slap_mask_t		*maskp )
-{
-	int result;
-	BackendDB *be_orig = op->o_bd, db = *op->o_bd;
-
-	/* If we have no explicitly configured ACLs, don't just use
-	 * the global ACLs. Explicitly deny access to everything.
-	 */
-	if ( ! db.be_acl ) {
-		Debug( LDAP_DEBUG_ACL, "=> config_back_access_allowed: "
-				"No explicit ACL for back-config configured, "
-				"using hardcoded default\n", 0, 0, 0 );
-		db.be_acl = defacl_parsed;
-		op->o_bd = &db;
-	}
-	result = slap_access_allowed( op, e , desc, val, access, state, maskp );
-	op->o_bd = be_orig;
-	return result;
-}
-
 static int
 config_build_attrs( Entry *e, AttributeType **at, AttributeDescription *ad,
 	ConfigTable *ct, ConfigArgs *c )
@@ -6821,14 +6805,20 @@ config_back_db_open( BackendDB *be, ConfigReply *cr )
 
 	Debug( LDAP_DEBUG_TRACE, "config_back_db_open\n", 0, 0, 0);
 
-	/* prepare a hardcoded default ACL which is used when no
-	 * explicit ACL is defined for this database. See also:
-	 * config_back_access_allowed() */
+	/* If we have no explicitly configured ACLs, don't just use
+	 * the global ACLs. Explicitly deny access to everything.
+	 */
 	save_access = be->bd_self->be_acl;
 	be->bd_self->be_acl = NULL;
 	parse_acl(be->bd_self, "config_back_db_open", 0, 6, (char **)defacl, 0 );
 	defacl_parsed = be->bd_self->be_acl;
-	be->bd_self->be_acl = save_access;
+	if ( save_access ) {
+		be->bd_self->be_acl = save_access;
+	} else {
+		Debug( LDAP_DEBUG_CONFIG, "config_back_db_open: "
+				"No explicit ACL for back-config configured. "
+				"Using hardcoded default\n", 0, 0, 0 );
+	}
 
 	thrctx = ldap_pvt_thread_pool_context();
 	connection_fake_init( &conn, &opbuf, thrctx );
@@ -7072,7 +7062,7 @@ config_back_db_close( BackendDB *be, ConfigReply *cr )
 		backend_shutdown( &cfb->cb_db );
 	}
 
-	if ( defacl_parsed ) {
+	if ( defacl_parsed && be->be_acl != defacl_parsed ) {
 		acl_free( defacl_parsed );
 		defacl_parsed = NULL;
 	}
@@ -7472,7 +7462,7 @@ config_back_initialize( BackendInfo *bi )
 
 	bi->bi_chk_referrals = 0;
 
-	bi->bi_access_allowed = config_back_access_allowed;
+	bi->bi_access_allowed = slap_access_allowed;
 
 	bi->bi_connection_init = 0;
 	bi->bi_connection_destroy = 0;
