@@ -964,18 +964,20 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 	 */
 	char **e_flags = NULL;
 
+	rs->sr_type = REP_SEARCH;
+
 	if ( op->ors_slimit >= 0 && rs->sr_nentries >= op->ors_slimit ) {
-		return LDAP_SIZELIMIT_EXCEEDED;
+		rc = LDAP_SIZELIMIT_EXCEEDED;
+		goto error_return;
 	}
 
 	/* Every 64 entries, check for thread pool pause */
 	if ( ( ( rs->sr_nentries & 0x3f ) == 0x3f ) &&
 		ldap_pvt_thread_pool_pausing( &connection_pool ) > 0 )
 	{
-		return LDAP_BUSY;
+		rc = LDAP_BUSY;
+		goto error_return;
 	}
-
-	rs->sr_type = REP_SEARCH;
 
 	/* eventually will loop through generated operational attribute types
 	 * currently implemented types include:
@@ -1607,7 +1609,11 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 
 	Debug( LDAP_DEBUG_TRACE, "<= send_search_reference\n", 0, 0, 0 );
 
+	if ( 0 ) {
 rel:
+	    rs_flush_entry( op, rs, NULL );
+	}
+
 	if ( op->o_callback ) {
 		(void)slap_cleanup_play( op, rs );
 	}
