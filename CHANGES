@@ -5,10 +5,12 @@ OpenLDAP 2.4.27 Engineering
 	Added slapd delta-syncrepl Multi-Master Replication (ITS#6734,ITS#7029,ITS#7031)
 	Fixed ldapsearch to honor timeout and timelimit (ITS#7009)
 	Fixed libutil variable size (ITS#6982)
+	Fixed libldap TLS to not check hostname when using 'allow' (ITS#7014)
 	Fixed libldap MozNSS correctly destroy SSL_PeerCertificate (ITS#6980)
 	Fixed libldap MozNSS with issuer expiration and verify never (ITS#6998)
 	Fixed libldap MozNSS memory leak (ITS#7001)
 	Fixed libldap MozNSS allow/try behavior (ITS#7002)
+	Fixed libldap MozNSS to be thread safe (ITS#7022)
 	Fixed slapd to correctly handle frontend DB (ITS#7016)
 	Fixed slapd syncrepl crash with non-replicated ops (ITS#6892)
 	Fixed slapd syncrepl with modrdn (ITS#7000,ITS#6472)
@@ -26,6 +28,9 @@ OpenLDAP 2.4.27 Engineering
 		Fixed creation and installation of slapd.ldif (ITS#7015)
 	Documentation
 		admin24 Fix table numbering (ITS#7003)
+		slapd.conf(5) Fixed TLSCACertificateFile information (ITS#7023)
+		ldap_sync(3) Document ldap_sync_destroy (ITS#7028)
+		slapo-unique(5) Fix keyword quoting (ITS#7028)
 
 OpenLDAP 2.4.26 Release (2011/06/30)
 	Added libldap LDAP_OPT_X_TLS_PACKAGE (ITS#6969)
