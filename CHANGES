@@ -17,6 +17,7 @@ OpenLDAP 2.4.27 Engineering
 	Fixed slapd syncrepl with modrdn (ITS#7000,ITS#6472)
 	Fixed slapd syncrepl timeout when using refreshAndPersist (ITS#6999)
 	Fixed slapd to correctly validate args for TLSCertificateFile (ITS#7012)
+	Fixed slapd-hdb with zero-length entries (ITS#7073)
 	Fixed slapd-hdb duplicate entries in subtree IDL cache (ITS#6983)
 	Fixed slapo-constraint conversion to back-config (ITS#6986)
 	Fixed slapo-dds tag in refresh response (ITS#6886)
