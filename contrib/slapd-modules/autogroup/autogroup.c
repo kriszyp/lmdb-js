@@ -630,11 +630,12 @@ autogroup_add_group( Operation *op, autogroup_info_t *agi, autogroup_def_t *agd,
 				}
 
 				if ( i > 1 ) {
-					Debug( LDAP_DEBUG_ANY, "autogroup_add_group: to much attributes specified in url <%s>\n",
+					Debug( LDAP_DEBUG_ANY, "autogroup_add_group: too many attributes specified in url <%s>\n",
 						bv->bv_val, 0, 0);
 					/* FIXME: error? */
 					ldap_free_urldesc( lud );
 					ch_free( agf ); 
+					continue;
 				}
 					
 				agf->agf_anlist = str2anlist( NULL, lud->lud_attrs[0], "," );
