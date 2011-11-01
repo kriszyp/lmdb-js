@@ -570,7 +570,8 @@ send_ldap_response(
 	int		rc = LDAP_SUCCESS;
 	long	bytes;
 
-	if (( rs->sr_err == SLAPD_ABANDON || op->o_abandon ) && !op->o_cancel ) {
+	/* op was actually aborted, bypass everything if client didn't Cancel */
+	if (( rs->sr_err == SLAPD_ABANDON ) && !op->o_cancel ) {
 		rc = SLAPD_ABANDON;
 		goto clean2;
 	}
@@ -580,6 +581,12 @@ send_ldap_response(
 		if ( rc != SLAP_CB_CONTINUE ) {
 			goto clean2;
 		}
+	}
+
+	/* op completed, connection aborted, bypass sending response */
+	if ( op->o_abandon && !op->o_cancel ) {
+		rc = SLAPD_ABANDON;
+		goto clean2;
 	}
 
 #ifdef LDAP_CONNECTIONLESS
