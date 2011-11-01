@@ -5682,6 +5682,8 @@ config_modify_internal( CfEntryInfo *ce, Operation *op, SlapReply *rs,
 			/* FALLTHRU: LDAP_MOD_REPLACE && vals */
 
 		case LDAP_MOD_ADD:
+			if ( !a )
+				break;
 			for (i=0; ml->sml_values[i].bv_val; i++) {
 				ca->line = ml->sml_values[i].bv_val;
 				ca->valx = -1;
