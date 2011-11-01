@@ -1694,15 +1694,16 @@ str2result(
 				continue;
 			}
 
-			while ( isspace( (unsigned char) next[ 0 ] ) ) next++;
-			if ( next[ 0 ] != '\0' ) {
+			while ( isspace( (unsigned char) next[ 0 ] ) && next[ 0 ] != '\n' )
+				next++;
+			if ( next[ 0 ] != '\0' && next[ 0 ] != '\n' ) {
 				Debug( LDAP_DEBUG_ANY, "str2result (%s) extra cruft after value\n",
 				    s, 0, 0 );
 				rc = -1;
 				continue;
 			}
 
-			/* FIXME: what if it's larger that max int? */
+			/* FIXME: what if it's larger than max int? */
 			*code = (int)retcode;
 
 		} else if ( strncasecmp( s, "matched", STRLENOF( "matched" ) ) == 0 ) {
