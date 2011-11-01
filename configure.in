@@ -939,7 +939,7 @@ dnl		-linet
 AC_CHECK_FUNC(socket, :, [	
 dnl hopefully we won't include too many libraries
 	AC_CHECK_LIB(socket, main)
-	AC_CHECK_LIB(net, main)
+	AC_CHECK_LIB(net, socket)
 	AC_CHECK_LIB(nsl_s, main)
 	AC_CHECK_LIB(nsl, main)
 	AC_CHECK_LIB(inet, socket)
