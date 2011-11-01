@@ -823,8 +823,8 @@ static ConfigOCs cf_ocs[] = {
 		"NAME 'olcSchemaConfig' "
 		"DESC 'OpenLDAP schema object' "
 		"SUP olcConfig STRUCTURAL "
-		"MAY ( cn $ olcObjectIdentifier $ olcAttributeTypes $ "
-		 "olcObjectClasses $ olcDitContentRules $ olcLdapSyntaxes ) )",
+		"MAY ( cn $ olcObjectIdentifier $ olcLdapSyntaxes $ "
+		 "olcAttributeTypes $ olcObjectClasses $ olcDitContentRules ) )",
 		 	Cft_Schema, NULL, cfAddSchema },
 	{ "( OLcfgGlOc:3 "
 		"NAME 'olcBackendConfig' "
