@@ -436,6 +436,8 @@ static void send_list(
 	Entry *e;
 	LDAPControl *ctrls[2];
 
+	rs->sr_attrs = op->ors_attrs;
+
 	/* FIXME: it may be better to just flatten the tree into
 	 * an array before doing all of this...
 	 */
@@ -586,6 +588,8 @@ static void send_page( Operation *op, SlapReply *rs, sort_op *so )
 	Entry *e;
 	int rc;
 
+	rs->sr_attrs = op->ors_attrs;
+
 	while ( cur_node && rs->sr_nentries < so->so_page_size ) {
 		sort_node *sn = cur_node->avl_data;
 
@@ -629,8 +633,6 @@ static void send_entry(
 
 	if ( !so->so_tree )
 		return;
-
-	rs->sr_attrs = op->ors_attrs;
 
 	/* RFC 2891: If critical then send the entries iff they were
 	 * succesfully sorted.  If non-critical send all entries
