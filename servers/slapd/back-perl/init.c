@@ -36,7 +36,7 @@ perl_back_initialize(
 	BackendInfo	*bi
 )
 {
-	char *embedding[] = { "", "-e", "0" };
+	char *embedding[] = { "", "-e", "0", NULL }, **argv = embedding;
 	int argc = 3;
 
 	bi->bi_open = NULL;
@@ -78,15 +78,15 @@ perl_back_initialize(
 	
 	ldap_pvt_thread_mutex_init( &perl_interpreter_mutex );
 
-#ifdef PERL_SYS_INIT3
-	PERL_SYS_INIT3(&argc, &embedding, (char ***)NULL);
+#ifdef PERL_SYS_INIT
+	PERL_SYS_INIT(&argc, &argv);
 #endif
 	PERL_INTERPRETER = perl_alloc();
 	perl_construct(PERL_INTERPRETER);
 #ifdef PERL_EXIT_DESTRUCT_END
 	PL_exit_flags |= PERL_EXIT_DESTRUCT_END;
 #endif
-	perl_parse(PERL_INTERPRETER, perl_back_xs_init, argc, embedding, (char **)NULL);
+	perl_parse(PERL_INTERPRETER, perl_back_xs_init, argc, argv, (char **)NULL);
 	perl_run(PERL_INTERPRETER);
 	return perl_back_init_cf( bi );
 }
