@@ -1414,8 +1414,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 	Statslog( LDAP_DEBUG_STATS2, "%s ENTRY dn=\"%s\"\n",
 	    op->o_log_prefix, rs->sr_entry->e_nname.bv_val, 0, 0, 0 );
 
-	if ( rs->sr_flags & REP_ENTRY_MUSTRELEASE )
-		rs_flush_entry( op, rs, NULL );
+	rs_flush_entry( op, rs, NULL );
 
 	if ( op->o_res_ber == NULL ) {
 		bytes = send_ldap_ber( op, ber );
@@ -1581,8 +1580,7 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 	}
 
 	rc = 0;
-	if ( rs->sr_flags & REP_ENTRY_MUSTRELEASE )
-		rs_flush_entry( op, rs, NULL );
+	rs_flush_entry( op, rs, NULL );
 
 #ifdef LDAP_CONNECTIONLESS
 	if (!op->o_conn || op->o_conn->c_is_udp == 0) {
@@ -1618,12 +1616,14 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 
 	Debug( LDAP_DEBUG_TRACE, "<= send_search_reference\n", 0, 0, 0 );
 
+	if ( 0 ) {
 rel:
+	    rs_flush_entry( op, rs, NULL );
+	}
+
 	if ( op->o_callback ) {
 		(void)slap_cleanup_play( op, rs );
 	}
-
-    rs_flush_entry( op, rs, NULL );
 
 	if ( rs->sr_flags & REP_CTRLS_MUSTBEFREED ) {
 		rs->sr_flags ^= REP_CTRLS_MUSTBEFREED; /* paranoia */
