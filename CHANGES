@@ -31,6 +31,7 @@ OpenLDAP 2.4.27 Engineering
 	Fixed slapo-lastbind so authTimestamp is manageable (ITS#6873)
 	Fixed slapo-ppolicy pwdAllowUserChange behavior (ITS#7021)
 	Fixed slapo-sssvlv issue with greaterThanorEqual (ITS#6985)
+	Fixed slapo-syncprov for if consumer has newer state for our SID (ITS#7040)
 	Fixed slapo-unique URI checking of "host" portion (ITS#7018)
 	Build Environment
 		Fixed build for Solaris native compilers (ITS#6992)
