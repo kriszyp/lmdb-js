@@ -14,6 +14,7 @@ OpenLDAP 2.4.27 Engineering
 	Fixed libldap MozNSS memory leak (ITS#7001)
 	Fixed libldap MozNSS allow/try behavior (ITS#7002)
 	Fixed libldap MozNSS to be thread safe (ITS#7022)
+	Fixed libldap MozNSS SSL_ForceHandshake to use a mutex (ITS#7034)
 	Fixed slapd to correctly handle frontend DB (ITS#7016)
 	Fixed slapd overlay_insert with index (ITS#7030)
 	Fixed slapd inet_ntop usage (ITS#6925)
