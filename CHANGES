@@ -8,6 +8,7 @@ OpenLDAP 2.4.27 Engineering
 	Fixed libutil variable size (ITS#6982)
 	Fixed libldap endless looping (ITS#7035)
 	Fixed libldap TLS to not check hostname when using 'allow' (ITS#7014)
+	Fixed libldap GnuTLS cert dn parse (ITS#7051)
 	Fixed libldap MozNSS correctly destroy SSL_PeerCertificate (ITS#6980)
 	Fixed libldap MozNSS with issuer expiration and verify never (ITS#6998)
 	Fixed libldap MozNSS memory leak (ITS#7001)
