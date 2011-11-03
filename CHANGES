@@ -1,9 +1,10 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.27 Engineering
-	Fixed contrib/autogroup double-free (ITS#6972)
+	Added slapadd pipelining capability (ITS#7078)
 	Added slapd Add-if-not-present (ITS#6561)
 	Added slapd delta-syncrepl Multi-Master Replication (ITS#6734,ITS#7029,ITS#7031)
+	Fixed contrib/autogroup double-free (ITS#6972)
 	Fixed ldapmodify uninitialized vars (ITS#7039)
 	Fixed ldapsearch to honor timeout and timelimit (ITS#7009)
 	Fixed libutil variable size (ITS#6982)
