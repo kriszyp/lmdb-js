@@ -26,6 +26,7 @@ OpenLDAP 2.4.27 Engineering
 	Fixed slapd syncrepl timeout when using refreshAndPersist (ITS#6999)
 	Fixed slapd syncrepl deletes need a non-empty CSN (ITS#7052)
 	Fixed slapd syncrepl glue for empty suffix (ITS#7037)
+	Fixed slapd results cleanup (ITS#6763,ITS#7053)
 	Fixed slapd to correctly validate args for TLSCertificateFile (ITS#7012)
 	Fixed slapd-hdb with zero-length entries (ITS#7073)
 	Fixed slapd-hdb duplicate entries in subtree IDL cache (ITS#6983)
