@@ -42,7 +42,9 @@ Note: currently the \fI<kbyte>\fP setting is unimplemented.
 Specify that on-disk database contents should not be immediately
 synchronized with in memory changes.
 Enabling this option may improve performance at the expense of data
-security. By default, a full data flush/sync is performed when each
+security. In particular, if the operating system crashes before changes are
+flushed, some number of transactions may be lost.
+By default, a full data flush/sync is performed when each
 transaction is committed.
 .TP
 .BI directory \ <directory>
@@ -126,6 +128,9 @@ The
 .B mdb
 backend honors access control semantics as indicated in
 .BR slapd.access (5).
+.SH NOTES
+This is an early release; the database file format or other
+characteristics may change incompatibly in future releases.
 .SH FILES
 .TP
 .B ETCDIR/slapd.conf
