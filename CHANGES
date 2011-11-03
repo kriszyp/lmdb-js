@@ -43,6 +43,7 @@ OpenLDAP 2.4.27 Engineering
 	Build Environment
 		Fixed build for Solaris native compilers (ITS#6992)
 		Fixed creation and installation of slapd.ldif (ITS#7015)
+		Fixed libnet linking (ITS#7071)
 	Documentation
 		admin24 Fix table numbering (ITS#7003)
 		slapd.conf(5) Fixed TLSCACertificateFile information (ITS#7023)
