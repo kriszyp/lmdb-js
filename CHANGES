@@ -19,6 +19,7 @@ OpenLDAP 2.4.27 Engineering
 	Fixed slapd to correctly handle frontend DB (ITS#7016)
 	Fixed slapd overlay_insert with index (ITS#7030)
 	Fixed slapd inet_ntop usage (ITS#6925)
+	Fixed slapd cn=config modify replace/delete crash (ITS#7065)
 	Fixed slapd schema UTF8StringNormalize with 0 length values (ITS#7059)
 	Fixed slapd with dynamic acls for cn=config (ITS#7066)
 	Fixed slapd syncrepl crash with non-replicated ops (ITS#6892)
