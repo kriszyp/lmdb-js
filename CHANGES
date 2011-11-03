@@ -41,6 +41,7 @@ OpenLDAP 2.4.27 Engineering
 	Fixed slapo-syncprov for if consumer has newer state for our SID (ITS#7040)
 	Fixed slapo-unique URI checking of "host" portion (ITS#7018)
 	Build Environment
+		Added missing LDIF form of schema files (ITS#7063)
 		Fixed build for Solaris native compilers (ITS#6992)
 		Fixed creation and installation of slapd.ldif (ITS#7015)
 		Fixed libnet linking (ITS#7071)
