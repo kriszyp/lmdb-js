@@ -41,6 +41,7 @@ OpenLDAP 2.4.27 Engineering
 	Fixed slapo-dds tag in refresh response (ITS#6886)
 	Fixed slapo-dds TTL tolerance (ITS#7017)
 	Fixed slapo-lastbind so authTimestamp is manageable (ITS#6873)
+	Fixed slapo-pcache response cleanup (ITS#6981)
 	Fixed slapo-ppolicy pwdAllowUserChange behavior (ITS#7021)
 	Fixed slapo-sssvlv issue with greaterThanorEqual (ITS#6985)
 	Fixed slapo-sssvlv to only return requested attrs (ITS#7061)
