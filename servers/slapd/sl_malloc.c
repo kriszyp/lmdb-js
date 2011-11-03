@@ -232,6 +232,8 @@ slap_sl_malloc(
 	if (!ctx) {
 		newptr = ber_memalloc_x( size, NULL );
 		if ( newptr ) return newptr;
+		Debug(LDAP_DEBUG_ANY, "slap_sl_malloc of %lu bytes failed\n",
+			(unsigned long) size, 0, 0);
 		assert( 0 );
 		exit( EXIT_FAILURE );
 	}
@@ -241,9 +243,10 @@ slap_sl_malloc(
 
 	if (sh->sh_stack) {
 		if ((char *)sh->sh_last + size >= (char *)sh->sh_end) {
+			size -= 2*sizeof(ber_len_t);
 			Debug(LDAP_DEBUG_TRACE,
 				"slap_sl_malloc of %lu bytes failed, using ch_malloc\n",
-				(long)size, 0, 0);
+				(unsigned long) size, 0, 0);
 			return ch_malloc(size);
 		}
 		newptr = sh->sh_last;
@@ -263,6 +266,8 @@ slap_sl_malloc(
 			order++;
 		} while (size_shift >>= 1);
 
+		size -= sizeof(ber_len_t);
+
 		for (i = order; i <= sh->sh_maxorder &&
 				LDAP_LIST_EMPTY(&sh->sh_free[i-order_start]); i++);
 
@@ -273,7 +278,7 @@ slap_sl_malloc(
 			diff = (unsigned long)((char*)ptr -
 					(char*)sh->sh_base) >> (order + 1);
 			sh->sh_map[order-order_start][diff>>3] |= (1 << (diff & 0x7));
-			*ptr++ = size - sizeof(ber_len_t);
+			*ptr++ = size;
 			LDAP_LIST_INSERT_HEAD(&sh->sh_sopool, so_new, so_link);
 			return((void*)ptr);
 		} else if (i <= sh->sh_maxorder) {
@@ -292,7 +297,7 @@ slap_sl_malloc(
 							(char*)sh->sh_base) >> (order+1);
 					sh->sh_map[order-order_start][diff>>3] |=
 							(1 << (diff & 0x7));
-					*ptr++ = size - sizeof(ber_len_t);
+					*ptr++ = size;
 					LDAP_LIST_INSERT_HEAD(
 							&sh->sh_free[j-1-order_start], so_right, so_link);
 					LDAP_LIST_INSERT_HEAD(&sh->sh_sopool, so_left, so_link);
@@ -304,16 +309,14 @@ slap_sl_malloc(
 							&sh->sh_free[j-1-order_start], so_left, so_link);
 				}
 			}
-		} else {
-			Debug( LDAP_DEBUG_TRACE,
-				"sl_malloc %lu: ch_malloc\n",
-				(long)size, 0, 0);
-			return (void*)ch_malloc(size);
 		}
+		/* FIXME: missing return; guessing we failed... */
 	}
 
-	/* FIXME: missing return; guessing... */
-	return NULL;
+	Debug(LDAP_DEBUG_TRACE,
+		"sl_malloc %lu: ch_malloc\n",
+		(unsigned long) size, 0, 0);
+	return ch_malloc(size);
 }
 
 void *
@@ -347,13 +350,13 @@ slap_sl_realloc(void *ptr, ber_len_t size, void *ctx)
 
 	/* Not our memory? */
 	if (!sh || ptr < sh->sh_base || ptr >= sh->sh_end) {
-		/* duplicate of realloc behavior, oh well */
+		/* Like ch_realloc(), except not trying a new context */
 		newptr = ber_memrealloc_x(ptr, size, NULL);
 		if (newptr) {
 			return newptr;
 		}
 		Debug(LDAP_DEBUG_ANY, "ch_realloc of %lu bytes failed\n",
-				(long) size, 0, 0);
+			(unsigned long) size, 0, 0);
 		assert(0);
 		exit( EXIT_FAILURE );
 	}
@@ -633,7 +636,7 @@ print_slheap(int level, void *ctx)
 		Debug(level, "free list:\n", 0, 0, 0);
 		so = LDAP_LIST_FIRST(&sh->sh_free[i-order_start]);
 		while (so) {
-			Debug(level, "%lx\n", (unsigned long) so->so_ptr, 0, 0);
+			Debug(level, "%p\n", so->so_ptr, 0, 0);
 			so = LDAP_LIST_NEXT(so, so_link);
 		}
 	}
