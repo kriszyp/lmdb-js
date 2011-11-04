@@ -361,6 +361,9 @@
 /* define this if you have mkversion */
 #undef HAVE_MKVERSION
 
+/* define if you have MozNSS */
+#undef HAVE_MOZNSS
+
 /* Define to 1 if you have the <ndir.h> header file, and it defines `DIR'. */
 #undef HAVE_NDIR_H
 
@@ -369,6 +372,9 @@
 
 /* define if strerror_r returns char* instead of int */
 #undef HAVE_NONPOSIX_STRERROR_R
+
+/* Define to 1 if you have the <nssutil.h> header file. */
+#undef HAVE_NSSUTIL_H
 
 /* if you have NT Event Log */
 #undef HAVE_NT_EVENT_LOG
