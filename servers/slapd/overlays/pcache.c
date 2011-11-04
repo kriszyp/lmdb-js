@@ -2448,9 +2448,6 @@ pcache_response(
 		if ( si->slimit > 0 && rs->sr_nentries >= si->slimit ) {
 			si->slimit_exceeded = 1;
 		}
-		if ( si->slimit_exceeded ) {
-			return 0;
-		}
 
 		/* If we haven't exceeded the limit for this query,
 		 * build a chain of answers to store. If we hit the
@@ -2499,6 +2496,9 @@ over:;
 				}
 				si->tail = NULL;
 			}
+		}
+		if ( si->slimit_exceeded ) {
+			return 0;
 		}
 	} else if ( rs->sr_type == REP_RESULT ) {
 
