@@ -5,6 +5,7 @@ OpenLDAP 2.4.27 Engineering
 	Added slapadd pipelining capability (ITS#7078)
 	Added slapd Add-if-not-present (ITS#6561)
 	Added slapd delta-syncrepl Multi-Master Replication (ITS#6734,ITS#7029,ITS#7031)
+	Added slapd-mdb experimental backend (ITS#7079)
 	Added slapd-sock support as an overlay (ITS#6666)
 	Fixed slapi linking on AIX (ITS#3272)
 	Fixed contrib/autogroup double-free (ITS#6972)
