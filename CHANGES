@@ -32,6 +32,7 @@ OpenLDAP 2.4.27 Engineering
 	Fixed slapd response callbacks (ITS#7062)
 	Fixed slapd return code processing (ITS#7060)
 	Fixed slapd sl_malloc various issues (ITS#6437)
+	Fixed slapd startup behavior (ITS#6848)
 	Fixed slapd syncrepl crash with non-replicated ops (ITS#6892)
 	Fixed slapd syncrepl with modrdn (ITS#7000,ITS#6472)
 	Fixed slapd syncrepl timeout when using refreshAndPersist (ITS#6999)
