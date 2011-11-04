@@ -63,9 +63,13 @@ sdf-img: \
 	config_local.png \
 	config_ref.png \
 	config_repl.png \
+	delta-syncrepl.png \
 	dual_dc.png \
 	intro_dctree.png \
 	intro_tree.png \
+	ldap-sync-refreshandpersist.png \
+	ldap-sync-refreshonly.png \
+	n-way-multi-master.png \
 	push-based-complete.png \
 	push-based-standalone.png \
 	refint.png \
