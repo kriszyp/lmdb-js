@@ -4,6 +4,7 @@
  *
  * Copyright 1998-2011 The OpenLDAP Foundation.
  * Portions Copyright 1998-2003 Kurt D. Zeilenga.
+ * Portions Copyright 2009 Howard Chu.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
