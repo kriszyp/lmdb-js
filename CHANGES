@@ -22,6 +22,7 @@ OpenLDAP 2.4.27 Engineering
 	Fixed libldap MozNSS with wildcard certs (ITS#7006)
 	Fixed slapadd common code into slapcommon (ITS#6737)
 	Fixed slapd to correctly handle frontend DB (ITS#7016)
+	Fixed slapd backend connection initialization (ITS#6993)
 	Fixed slapd overlay_insert with index (ITS#7030)
 	Fixed slapd inet_ntop usage (ITS#6925)
 	Fixed slapd cn=config modify replace/delete crash (ITS#7065)
