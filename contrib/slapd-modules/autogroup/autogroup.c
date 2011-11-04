@@ -321,8 +321,6 @@ autogroup_delete_member_values_from_group( Operation *op, Entry *e, autogroup_en
 static int
 autogroup_member_search_cb( Operation *op, SlapReply *rs )
 {
-	slap_overinst		*on = (slap_overinst *)op->o_bd->bd_info;
-
 	assert( op->o_tag == LDAP_REQ_SEARCH );
 
 	if ( rs->sr_type == REP_SEARCH ) {
