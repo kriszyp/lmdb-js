@@ -27,6 +27,7 @@ export SRCDIR TOPSRCDIR LN_S EGREP_CMD
 AC_bdb=@BUILD_BDB@
 AC_hdb=@BUILD_HDB@
 AC_ldif=yes
+AC_mdb=@BUILD_MDB@
 AC_null=@BUILD_NULL@
 
 # other backends
@@ -67,7 +68,7 @@ if test "${AC_meta}" = "metamod" && test "${AC_LIBS_DYNAMIC}" = "static" ; then
 	AC_meta="metano"
 fi
 
-export AC_bdb AC_hdb AC_ldap AC_meta AC_monitor AC_null AC_relay AC_sql \
+export AC_bdb AC_hdb AC_ldap AC_mdb AC_meta AC_monitor AC_null AC_relay AC_sql \
 	AC_accesslog AC_dds AC_dynlist AC_memberof AC_pcache AC_ppolicy \
 	AC_refint AC_retcode AC_rwm AC_unique AC_syncprov AC_translucent \
 	AC_valsort \
@@ -151,7 +152,7 @@ while test $# -gt 0 ; do
 done
 
 if test -z "$BACKEND" ; then
-	for b in bdb hdb ; do
+	for b in bdb hdb mdb ; do
 		if eval "test \"\$AC_$b\" != no" ; then
 			BACKEND=$b
 			break

@@ -936,6 +936,9 @@
 /* define to support LAN Manager passwords */
 #undef SLAPD_LMHASH
 
+/* define to support MDB backend */
+#undef SLAPD_MDB
+
 /* define to support LDAP Metadirectory backend */
 #undef SLAPD_META
 

@@ -286,6 +286,7 @@ Backends="bdb \
 	dnssrv \
 	hdb \
 	ldap \
+	mdb \
 	meta \
 	monitor \
 	ndb \
@@ -310,6 +311,8 @@ OL_ARG_ENABLE(hdb,[    --enable-hdb	  enable Hierarchical DB backend],
 	yes, [no yes mod], ol_enable_backends)dnl
 OL_ARG_ENABLE(ldap,[    --enable-ldap	  enable ldap backend],
 	no, [no yes mod], ol_enable_backends)dnl
+OL_ARG_ENABLE(mdb,[    --enable-mdb	  enable mdb database backend],
+	yes, [no yes mod], ol_enable_backends)dnl
 OL_ARG_ENABLE(meta,[    --enable-meta	  enable metadirectory backend],
 	no, [no yes mod], ol_enable_backends)dnl
 OL_ARG_ENABLE(monitor,[    --enable-monitor	  enable monitor backend],
@@ -472,6 +475,7 @@ elif test $ol_enable_modules != yes &&
 	test $ol_enable_dnssrv = no &&
 	test $ol_enable_hdb = no &&
 	test $ol_enable_ldap = no &&
+	test $ol_enable_mdb = no &&
 	test $ol_enable_meta = no &&
 	test $ol_enable_monitor = no &&
 	test $ol_enable_ndb = no &&
@@ -533,6 +537,7 @@ BUILD_BDB=no
 BUILD_DNSSRV=no
 BUILD_HDB=no
 BUILD_LDAP=no
+BUILD_MDB=no
 BUILD_META=no
 BUILD_MONITOR=no
 BUILD_NDB=no
@@ -2663,6 +2668,19 @@ if test "$ol_enable_ldap" != no ; then
 	AC_DEFINE_UNQUOTED(SLAPD_LDAP,$MFLAG,[define to support LDAP backend])
 fi
 
+if test "$ol_enable_mdb" != no ; then
+	BUILD_SLAPD=yes
+	BUILD_MDB=$ol_enable_mdb
+	if test "$ol_enable_mdb" = mod ; then
+		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-mdb"
+		MFLAG=SLAPD_MOD_DYNAMIC
+	else
+		SLAPD_STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS back-mdb"
+		MFLAG=SLAPD_MOD_STATIC
+	fi
+	AC_DEFINE_UNQUOTED(SLAPD_MDB,$MFLAG,[define to support MDB backend])
+fi
+
 if test "$ol_enable_meta" != no ; then
 	BUILD_SLAPD=yes
 	BUILD_META=$ol_enable_meta
@@ -3068,6 +3086,7 @@ dnl backends
   AC_SUBST(BUILD_DNSSRV)
   AC_SUBST(BUILD_HDB)
   AC_SUBST(BUILD_LDAP)
+  AC_SUBST(BUILD_MDB)
   AC_SUBST(BUILD_META)
   AC_SUBST(BUILD_MONITOR)
   AC_SUBST(BUILD_NDB)
@@ -3174,6 +3193,7 @@ AC_CONFIG_FILES([Makefile:build/top.mk:Makefile.in:build/dir.mk]
 [servers/slapd/back-hdb/Makefile:build/top.mk:servers/slapd/back-hdb/Makefile.in:build/mod.mk]
 [servers/slapd/back-ldap/Makefile:build/top.mk:servers/slapd/back-ldap/Makefile.in:build/mod.mk]
 [servers/slapd/back-ldif/Makefile:build/top.mk:servers/slapd/back-ldif/Makefile.in:build/mod.mk]
+[servers/slapd/back-mdb/Makefile:build/top.mk:servers/slapd/back-mdb/Makefile.in:build/mod.mk]
 [servers/slapd/back-meta/Makefile:build/top.mk:servers/slapd/back-meta/Makefile.in:build/mod.mk]
 [servers/slapd/back-monitor/Makefile:build/top.mk:servers/slapd/back-monitor/Makefile.in:build/mod.mk]
 [servers/slapd/back-ndb/Makefile:build/top.mk:servers/slapd/back-ndb/Makefile.in:build/mod.mk]
