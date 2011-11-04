@@ -678,7 +678,7 @@ int nssov_pam_init()
 	int code = 0;
 	const char *text;
 	if (!ad_loginStatus)
-		code = slap_str2ad( "loginStatus", &ad_loginStatus, &text );
+		code = slap_str2ad("loginStatus", &ad_loginStatus, &text);
 
 	return code;
 }
