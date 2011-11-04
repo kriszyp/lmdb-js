@@ -38,36 +38,36 @@
 
 #include "slap.h"
 #include "back-passwd.h"
+#include "config.h"
+
+static ConfigTable passwdcfg[] = {
+	{ "file", "filename", 2, 2, 0,
+#ifdef HAVE_SETPWFILE
+		ARG_STRING, NULL,
+#else
+		ARG_IGNORED, NULL,
+#endif
+		"( OLcfgDbAt:9.1 NAME 'olcPasswdFile' "
+			"DESC 'File containing passwd records' "
+			"EQUALITY caseExactMatch "
+			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
+	{ NULL, NULL, 0, 0, 0, ARG_IGNORED,
+		NULL, NULL, NULL, NULL }
+};
+
+static ConfigOCs passwdocs[] = {
+	{ "( OLcfgDbOc:9.1 "
+			"NAME 'olcPasswdConfig' "
+			"DESC 'Passwd backend configuration' "
+			"SUP olcDatabaseConfig "
+			"MAY olcPasswdFile )",
+			Cft_Database, passwdcfg },
+	{ NULL, 0, NULL }
+};
 
 int
-passwd_back_db_config(
-    BackendDB	*be,
-    const char	*fname,
-    int		lineno,
-    int		argc,
-    char	**argv
-)
+passwd_back_init_cf( BackendInfo *bi )
 {
-	/* alternate passwd file */
-	if ( strcasecmp( argv[0], "file" ) == 0 ) {
-#ifdef HAVE_SETPWFILE
-		if ( argc < 2 ) {
-			fprintf( stderr,
-		"%s: line %d: missing filename in \"file <filename>\" line\n",
-			    fname, lineno );
-			return( 1 );
-		}
-		be->be_private = ch_strdup( argv[1] );
-#else /* HAVE_SETPWFILE */
-		fprintf( stderr,
-    "%s: line %d: ignoring \"file\" option (not supported on this platform)\n",
-			    fname, lineno );
-#endif /* HAVE_SETPWFILE */
-
-	/* anything else */
-	} else {
-		return SLAP_CONF_UNKNOWN;
-	}
-
-	return( 0 );
+	bi->bi_cf_ocs = passwdocs;
+	return config_register_schema( passwdcfg, passwdocs );
 }
