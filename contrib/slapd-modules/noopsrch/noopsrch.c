@@ -219,11 +219,11 @@ noopsrch_db_destroy( BackendDB *be, ConfigReply *cr )
 
 #ifdef SLAP_CONFIG_DELETE
 	overlay_unregister_control( be, LDAP_CONTROL_X_NOOPSRCH );
-#endif /* SLAP_CONFIG_DELETE */
-
 	if ( --noopsrch_cnt == 0 ) {
 		unregister_supported_control( LDAP_CONTROL_X_NOOPSRCH );
 	}
+
+#endif /* SLAP_CONFIG_DELETE */
 
 	return 0;
 }
