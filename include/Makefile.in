@@ -21,7 +21,7 @@ install-local: FORCE
 		$(srcdir)/ldap.h $(srcdir)/ldap_cdefs.h \
 		$(srcdir)/ldap_schema.h $(srcdir)/ldap_utf8.h \
 		$(srcdir)/slapi-plugin.h ldap_features.h \
-		$(srcdir)/ldif.h; \
+		$(srcdir)/ldif.h ; \
 	do \
 		$(INSTALL) $(INSTALLFLAGS) -m 644 $$header $(DESTDIR)$(includedir); \
 	done
