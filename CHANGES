@@ -43,6 +43,7 @@ OpenLDAP 2.4.27 Engineering
 	Fixed slapd syncrepl glue for empty suffix (ITS#7037)
 	Fixed slapd results cleanup (ITS#6763,ITS#7053)
 	Fixed slapd to correctly validate args for TLSCertificateFile (ITS#7012)
+	Fixed slapd-bdb/hdb to allow building entry's DN based on parent's DN (ITS#5326)
 	Fixed slapd-hdb with zero-length entries (ITS#7073)
 	Fixed slapd-hdb duplicate entries in subtree IDL cache (ITS#6983)
 	Fixed slapo-constraint conversion to back-config (ITS#6986)
