@@ -50,6 +50,13 @@ backsql_api_config( backsql_info *bi, const char *name, int argc, char *argv[] )
 					ch_free( ba2 );
 					return 1;
 				}
+				ba2->ba_argc = argc;
+				if ( argc ) {
+					int i;
+					ba2->ba_argv = ch_malloc( argc * sizeof(char *));
+					for ( i=0; i<argc; i++ )
+						ba2->ba_argv[i] = ch_strdup( argv[i] );
+				}
 			}
 			
 			ba2->ba_next = bi->sql_api;

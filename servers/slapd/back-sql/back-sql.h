@@ -280,6 +280,8 @@ typedef struct backsql_api {
 
 	void			*ba_private;
 	struct backsql_api	*ba_next;
+	char **ba_argv;
+	int	ba_argc;
 } backsql_api;
 
 /*
@@ -510,8 +512,9 @@ typedef struct backsql_info {
 	struct berval	sql_upper_func;
 	struct berval	sql_upper_func_open;
 	struct berval	sql_upper_func_close;
-	BerVarray	sql_concat_func;
 	struct berval	sql_strcast_func;
+	BerVarray	sql_concat_func;
+	char		*sql_concat_patt;
 
 	struct berval	sql_aliasing;
 	struct berval	sql_aliasing_quote;
@@ -570,6 +573,7 @@ typedef struct backsql_info {
 	BACKSQL_ISF(si, BSQLF_AUTOCOMMIT_ON)
 
 	Entry		*sql_baseObject;
+	char		*sql_base_ob_file;
 #ifdef BACKSQL_ARBITRARY_KEY
 #define BACKSQL_BASEOBJECT_IDSTR	"baseObject"
 #define BACKSQL_BASEOBJECT_KEYVAL	BACKSQL_BASEOBJECT_IDSTR

@@ -308,4 +308,6 @@ extern BI_entry_release_rw	backsql_entry_release;
 
 extern BI_connection_destroy	backsql_connection_destroy;
 
+int backsql_init_cf( BackendInfo * bi );
+
 #endif /* PROTO_SQL_H */
