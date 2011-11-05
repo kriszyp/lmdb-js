@@ -46,6 +46,7 @@ sql_back_initialize(
 #endif /* ! BACKSQL_ARBITRARY_KEY */
 		NULL
 	};
+	int rc;
 
 	bi->bi_controls = controls;
 
@@ -58,7 +59,7 @@ sql_back_initialize(
 	Debug( LDAP_DEBUG_TRACE,"==>sql_back_initialize()\n", 0, 0, 0 );
 	
 	bi->bi_db_init = backsql_db_init;
-	bi->bi_db_config = backsql_db_config;
+	bi->bi_db_config = config_generic_wrapper;
 	bi->bi_db_open = backsql_db_open;
 	bi->bi_db_close = backsql_db_close;
 	bi->bi_db_destroy = backsql_db_destroy;
@@ -80,8 +81,9 @@ sql_back_initialize(
  
 	bi->bi_connection_init = 0;
 
+	rc = backsql_init_cf( bi );
 	Debug( LDAP_DEBUG_TRACE,"<==sql_back_initialize()\n", 0, 0, 0 );
-	return 0;
+	return rc;
 }
 
 int
