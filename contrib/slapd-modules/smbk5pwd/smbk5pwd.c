@@ -869,7 +869,7 @@ smbk5pwd_cf_func( ConfigArgs *c )
                 break;
 
 	case PC_SMB_ENABLE: {
-		slap_mask_t	mode = pi->mode, m;
+		slap_mask_t	mode = pi->mode, m = 0;
 
 		rc = verbs_to_mask( c->argc, c->argv, smbk5pwd_modules, &m );
 		if ( rc > 0 ) {
