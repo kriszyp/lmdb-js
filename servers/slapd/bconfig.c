@@ -6073,8 +6073,6 @@ config_back_delete( Operation *op, SlapReply *rs )
 	CfBackInfo *cfb;
 	CfEntryInfo *ce, *last, *ce2;
 
-	slap_mask_t mask;
-
 	cfb = (CfBackInfo *)op->o_bd->be_private;
 
 	ce = config_find_base( cfb->cb_root, &op->o_req_ndn, &last );
@@ -6083,7 +6081,7 @@ config_back_delete( Operation *op, SlapReply *rs )
 			rs->sr_matched = last->ce_entry->e_name.bv_val;
 		rs->sr_err = LDAP_NO_SUCH_OBJECT;
 	} else if ( ce->ce_kids ) {
-		rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
+		rs->sr_err = LDAP_NOT_ALLOWED_ON_NONLEAF;
 	} else if ( op->o_abandon ) {
 		rs->sr_err = SLAPD_ABANDON;
 	} else if ( ce->ce_type == Cft_Overlay ||
@@ -6093,8 +6091,6 @@ config_back_delete( Operation *op, SlapReply *rs )
 		int count, ixold;
 
 		ldap_pvt_thread_pool_pause( &connection_pool );
-		
-		overlay_remove( ce->ce_be, (slap_overinst *)ce->ce_bi );
 
 		if ( ce->ce_type == Cft_Overlay ){
 			overlay_remove( ce->ce_be, (slap_overinst *)ce->ce_bi, op );
@@ -7397,4 +7393,3 @@ config_back_initialize( BackendInfo *bi )
 
 	return 0;
 }
-
