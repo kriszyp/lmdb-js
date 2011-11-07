@@ -1,7 +1,6 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.27 Engineering
-	Added contrib/passwd APR1 support (ITS#6826)
 	Added slapadd pipelining capability (ITS#7078)
 	Added slapd Add-if-not-present (ITS#6561)
 	Added slapd delta-syncrepl Multi-Master Replication (ITS#6734,ITS#7029,ITS#7031)
@@ -9,8 +8,8 @@ OpenLDAP 2.4.27 Engineering
 	Added slapd-passwd dyanmic config support
 	Added slapd-shell dynamic config support
 	Added slapd-sock support as an overlay (ITS#6666)
+	Added contrib/passwd APR1 support (ITS#6826)
 	Fixed slapi linking on AIX (ITS#3272)
-	Fixed contrib/autogroup double-free (ITS#6972)
 	Fixed ldapmodify uninitialized vars (ITS#7039)
 	Fixed ldapsearch to honor timeout and timelimit (ITS#7009)
 	Fixed libutil variable size (ITS#6982)
@@ -56,6 +55,8 @@ OpenLDAP 2.4.27 Engineering
 	Fixed slapo-sssvlv to only return requested attrs (ITS#7061)
 	Fixed slapo-syncprov for if consumer has newer state for our SID (ITS#7040)
 	Fixed slapo-unique URI checking of "host" portion (ITS#7018)
+	Fixed contrib/autogroup double-free (ITS#6972)
+	Fixed contrib/smbk5pwd on 64-bit systems (ITS#7082)
 	Build Environment
 		Added missing LDIF form of schema files (ITS#7063)
 		Fixed build for Solaris native compilers (ITS#6992)
