@@ -1142,7 +1142,6 @@ overlay_remove( BackendDB *be, slap_overinst *on )
 	if ( ! oi->oi_list ) 
 	{
 		/* reset db flags and bd_info to orig */
-		SLAP_DBFLAGS( be ) &= ~SLAP_DBFLAG_GLOBAL_OVERLAY;
 		be->bd_info = oi->oi_orig;
 		ch_free(oi);
 	}

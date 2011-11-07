@@ -6094,6 +6094,33 @@ config_back_delete( Operation *op, SlapReply *rs )
 		
 		overlay_remove( ce->ce_be, (slap_overinst *)ce->ce_bi );
 
+		if ( ce->ce_type == Cft_Overlay ){
+			if ( SLAP_ISGLOBALOVERLAY(ce->ce_be ) ) {
+				rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
+				rs->sr_text = "Cannot delete global overlays";
+				ldap_pvt_thread_pool_resume( &connection_pool );
+				goto out;
+			} else if ( ce->ce_be == op->o_bd->bd_self ) {
+				rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
+				rs->sr_text = "Cannot delete cn=config overlays";
+				ldap_pvt_thread_pool_resume( &connection_pool );
+				goto out;
+			} else {
+				overlay_remove( ce->ce_be, (slap_overinst *)ce->ce_bi );
+			}
+		} else { /* Cft_Database*/
+			if ( ce->ce_be == frontendDB || ce->ce_be == op->o_bd ){
+				rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
+				rs->sr_text = "Cannot delete config or frontend database";
+				ldap_pvt_thread_pool_resume( &connection_pool );
+				goto out;
+			} 
+			if ( ce->ce_be->bd_info->bi_db_close ) {
+				ce->ce_be->bd_info->bi_db_close( ce->ce_be, NULL );
+			}
+			backend_destroy_one( ce->ce_be, 1);
+		}
+
 		/* remove CfEntryInfo from the siblings list */
 		if ( ce->ce_parent->ce_kids == ce ) {
 			ce->ce_parent->ce_kids = ce->ce_sibs;
