@@ -3143,6 +3143,9 @@ syncprov_db_close(
 {
     slap_overinst   *on = (slap_overinst *) be->bd_info;
     syncprov_info_t *si = (syncprov_info_t *)on->on_bi.bi_private;
+#ifdef SLAP_CONFIG_DELETE
+	syncops *so, *sonext;
+#endif /* SLAP_CONFIG_DELETE */
 
 	if ( slapMode & SLAP_TOOL_MODE ) {
 		return 0;
