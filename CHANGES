@@ -1,6 +1,8 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.27 Engineering
+	Added libldap support for draft-wahl-ldap-session (ITS#6984)
+	Added slapd support for draft-wahl-ldap-session (ITS#6984)
 	Added slapadd pipelining capability (ITS#7078)
 	Added slapd Add-if-not-present (ITS#6561)
 	Added slapd delta-syncrepl Multi-Master Replication (ITS#6734,ITS#7029,ITS#7031)
