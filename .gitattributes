@@ -1,1 +1,2 @@
 configure.in ident
+.git*	export-ignore
