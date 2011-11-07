@@ -1123,7 +1123,7 @@ config_generic(ConfigArgs *c) {
 			break;
 		case CFG_MIRRORMODE:
 			if ( SLAP_SHADOW(c->be))
-				c->value_int = (SLAP_SINGLE_SHADOW(c->be) == 0);
+				c->value_int = (SLAP_MULTIMASTER(c->be) != 0);
 			else
 				rc = 1;
 			break;
@@ -1228,7 +1228,6 @@ config_generic(ConfigArgs *c) {
 		case CFG_AZPOLICY:
 		case CFG_DEPTH:
 		case CFG_LASTMOD:
-		case CFG_MIRRORMODE:
 		case CFG_MONITORING:
 		case CFG_SASLSECP:
 		case CFG_SSTR_IF_MAX:
@@ -1243,6 +1242,12 @@ config_generic(ConfigArgs *c) {
 		case CFG_AZREGEXP:
 		case CFG_REWRITE:
 			snprintf(c->log, sizeof( c->log ), "change requires slapd restart");
+			break;
+
+		case CFG_MIRRORMODE:
+			SLAP_DBFLAGS(c->be) &= ~SLAP_DBFLAG_MULTI_SHADOW;
+			if(SLAP_SHADOW(c->be))
+				SLAP_DBFLAGS(c->be) |= SLAP_DBFLAG_SINGLE_SHADOW;
 			break;
 
 		case CFG_SALT:
@@ -1947,10 +1952,13 @@ sortval_reject:
 					c->log, c->cr_msg, 0 );
 				return(1);
 			}
-			if(c->value_int)
+			if(c->value_int) {
 				SLAP_DBFLAGS(c->be) &= ~SLAP_DBFLAG_SINGLE_SHADOW;
-			else
+				SLAP_DBFLAGS(c->be) |= SLAP_DBFLAG_MULTI_SHADOW;
+			} else {
 				SLAP_DBFLAGS(c->be) |= SLAP_DBFLAG_SINGLE_SHADOW;
+				SLAP_DBFLAGS(c->be) &= ~SLAP_DBFLAG_MULTI_SHADOW;
+			}
 			break;
 
 		case CFG_MONITORING:
@@ -3662,7 +3670,9 @@ config_shadow( ConfigArgs *c, slap_mask_t flag )
 		}
 
 	} else {
-		SLAP_DBFLAGS(c->be) |= (SLAP_DBFLAG_SHADOW | SLAP_DBFLAG_SINGLE_SHADOW | flag);
+		SLAP_DBFLAGS(c->be) |= (SLAP_DBFLAG_SHADOW | flag);
+		if ( !SLAP_MULTIMASTER( c->be ))
+			SLAP_DBFLAGS(c->be) |= SLAP_DBFLAG_SINGLE_SHADOW;
 	}
 
 	return 0;
