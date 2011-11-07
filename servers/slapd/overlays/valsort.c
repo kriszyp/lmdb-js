@@ -490,6 +490,10 @@ valsort_destroy(
 	slap_overinst *on = (slap_overinst *)be->bd_info;
 	valsort_info *vi = on->on_bi.bi_private, *next;
 
+#ifdef SLAP_CONFIG_DELETE
+	overlay_unregister_control( be, LDAP_CONTROL_VALSORT );
+#endif /* SLAP_CONFIG_DELETE */
+
 	for (; vi; vi = next) {
 		next = vi->vi_next;
 		ch_free( vi->vi_dn.bv_val );

@@ -2311,6 +2311,10 @@ ppolicy_close(
 	slap_overinst *on = (slap_overinst *) be->bd_info;
 	pp_info *pi = on->on_bi.bi_private;
 
+#ifdef SLAP_CONFIG_DELETE
+	overlay_unregister_control( be, LDAP_CONTROL_PASSWORDPOLICYREQUEST );
+#endif /* SLAP_CONFIG_DELETE */
+
 	/* Perhaps backover should provide bi_destroy hooks... */
 	ov_count--;
 	if ( ov_count <=0 && pwcons ) {

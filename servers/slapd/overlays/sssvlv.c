@@ -1336,6 +1336,11 @@ static int sssvlv_db_destroy(
 		ldap_pvt_thread_mutex_destroy( &sort_conns_mutex );
 	}
 
+#ifdef SLAP_CONFIG_DELETE
+	overlay_unregister_control( be, LDAP_CONTROL_SORTREQUEST );
+	overlay_unregister_control( be, LDAP_CONTROL_VLVREQUEST );
+#endif /* SLAP_CONFIG_DELETE */
+
 	if ( si ) {
 		ch_free( si );
 		on->on_bi.bi_private = NULL;

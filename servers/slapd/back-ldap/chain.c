@@ -1979,6 +1979,11 @@ ldap_chain_db_close(
 	BackendDB	*be,
 	ConfigReply	*cr )
 {
+#ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
+#ifdef SLAP_CONFIG_DELETE
+	overlay_unregister_control( be, LDAP_CONTROL_X_CHAINING_BEHAVIOR );
+#endif /* SLAP_CONFIG_DELETE */
+#endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
 	return ldap_chain_db_func( be, db_close );
 }
 
