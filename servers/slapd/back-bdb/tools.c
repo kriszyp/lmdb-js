@@ -587,7 +587,7 @@ bdb_tool_index_add(
 	if ( !bdb->bi_nattrs )
 		return 0;
 
-	if ( slapMode & SLAP_TOOL_QUICK ) {
+	if ( bdb_tool_threads > 1 ) {
 		IndexRec *ir;
 		int i, rc;
 		Attribute *a;
