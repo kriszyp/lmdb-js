@@ -6086,7 +6086,9 @@ config_back_delete( Operation *op, SlapReply *rs )
 		rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
 	} else if ( op->o_abandon ) {
 		rs->sr_err = SLAPD_ABANDON;
-	} else if ( ce->ce_type == Cft_Overlay ){
+	} else if ( ce->ce_type == Cft_Overlay ||
+			ce->ce_type == Cft_Database ||
+			ce->ce_type == Cft_Misc ){
 		char *iptr;
 		int count, ixold;
 
@@ -6096,13 +6098,52 @@ config_back_delete( Operation *op, SlapReply *rs )
 
 		if ( ce->ce_type == Cft_Overlay ){
 			overlay_remove( ce->ce_be, (slap_overinst *)ce->ce_bi, op );
-		} else { /* Cft_Database*/
+		} else if ( ce->ce_type == Cft_Misc ) {
+			/*
+			 * only Cft_Misc objects that have a co_lddel handler set in
+			 * the ConfigOCs struct can be deleted. This code also
+			 * assumes that the entry can be only have one objectclass
+			 * with co_type == Cft_Misc
+			 */
+			ConfigOCs co, *coptr;
+			Attribute *oc_at;
+			int i;
+
+			oc_at = attr_find( ce->ce_entry->e_attrs,
+					slap_schema.si_ad_objectClass );
+			if ( !oc_at ) {
+				rs->sr_err = LDAP_OTHER;
+				rs->sr_text = "objectclass not found";
+				ldap_pvt_thread_pool_resume( &connection_pool );
+				goto out;
+			}
+			for ( i=0; !BER_BVISNULL(&oc_at->a_nvals[i]); i++ ) {
+				co.co_name = &oc_at->a_nvals[i];
+				coptr = avl_find( CfOcTree, &co, CfOc_cmp );
+				if ( coptr == NULL || coptr->co_type != Cft_Misc ) {
+					continue;
+				}
+				if ( ! coptr->co_lddel || coptr->co_lddel( ce, op ) ){
+					rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
+					if ( ! coptr->co_lddel ) {
+						rs->sr_text = "No delete handler found";
+					} else {
+						rs->sr_err = LDAP_OTHER;
+						/* FIXME: We should return a helpful error message
+						 * here */
+					}
+					ldap_pvt_thread_pool_resume( &connection_pool );
+					goto out;
+				}
+				break;
+			}
+		} else if (ce->ce_type == Cft_Database ) {
 			if ( ce->ce_be == frontendDB || ce->ce_be == op->o_bd ){
 				rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
 				rs->sr_text = "Cannot delete config or frontend database";
 				ldap_pvt_thread_pool_resume( &connection_pool );
 				goto out;
-			} 
+			}
 			if ( ce->ce_be->bd_info->bi_db_close ) {
 				ce->ce_be->bd_info->bi_db_close( ce->ce_be, NULL );
 			}
