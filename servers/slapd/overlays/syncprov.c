@@ -991,6 +991,7 @@ syncprov_qtask( void *ctx, void *arg )
 	op->o_hdr = &opbuf.ob_hdr;
 	op->o_controls = opbuf.ob_controls;
 	memset( op->o_controls, 0, sizeof(opbuf.ob_controls) );
+	op->o_sync = SLAP_CONTROL_IGNORED;
 
 	*op->o_hdr = *so->s_op->o_hdr;
 

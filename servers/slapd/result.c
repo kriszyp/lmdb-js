@@ -1303,6 +1303,10 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 				{
 					continue;
 				}
+				/* if DSA-specific and replicating, skip */
+				if ( op->o_sync != SLAP_CONTROL_NONE &&
+					desc->ad_type->sat_usage == LDAP_SCHEMA_DSA_OPERATION )
+					continue;
 			} else {
 				if ( !userattrs && !ad_inlist( desc, rs->sr_attrs ) ) {
 					continue;
