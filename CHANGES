@@ -33,7 +33,7 @@ OpenLDAP 2.4.27 Engineering
 	Fixed slapd cn=config modify replace/delete crash (ITS#7065)
 	Fixed slapd schema UTF8StringNormalize with 0 length values (ITS#7059)
 	Fixed slapd with dynamic acls for cn=config (ITS#7066)
-	Fixed slapd response callbacks (ITS#7062)
+	Fixed slapd response callbacks (ITS#6059,ITS#7062)
 	Fixed slapd return code processing (ITS#7060)
 	Fixed slapd sl_malloc various issues (ITS#6437)
 	Fixed slapd startup behavior (ITS#6848)
