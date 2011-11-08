@@ -44,6 +44,7 @@ OpenLDAP 2.4.27 Engineering
 	Fixed slapd syncrepl glue for empty suffix (ITS#7037)
 	Fixed slapd results cleanup (ITS#6763,ITS#7053)
 	Fixed slapd to correctly validate args for TLSCertificateFile (ITS#7012)
+	Fixed slapd verb_to_mask usage (ITS#7083)
 	Fixed slapd-bdb/hdb to allow building entry's DN based on parent's DN (ITS#5326)
 	Fixed slapd-hdb with zero-length entries (ITS#7073)
 	Fixed slapd-hdb duplicate entries in subtree IDL cache (ITS#6983)
@@ -60,6 +61,7 @@ OpenLDAP 2.4.27 Engineering
 	Fixed slapo-unique URI checking of "host" portion (ITS#7018)
 	Fixed contrib/autogroup double-free (ITS#6972)
 	Fixed contrib/smbk5pwd on 64-bit systems (ITS#7082)
+	Fixed contrib/smbk5pwd verb_to_mask usage (ITS#7083)
 	Build Environment
 		Added missing LDIF form of schema files (ITS#7063)
 		Fixed build for Solaris native compilers (ITS#6992)
