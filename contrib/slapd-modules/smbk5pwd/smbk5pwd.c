@@ -817,10 +817,10 @@ smbk5pwd_cf_func( ConfigArgs *c )
 				pi->mode = 0;
 
 			} else {
-				slap_mask_t	m;
+				int i;
 
-				m = verb_to_mask( c->line, smbk5pwd_modules );
-				pi->mode &= ~m;
+				i = verb_to_mask( c->line, smbk5pwd_modules );
+				pi->mode &= ~smbk5pwd_modules[i].mask;
 			}
 			break;
 

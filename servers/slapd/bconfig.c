@@ -3069,8 +3069,8 @@ config_restrict(ConfigArgs *c) {
 		if ( !c->line ) {
 			c->be->be_restrictops = 0;
 		} else {
-			restrictops = verb_to_mask( c->line, restrictable_ops );
-			c->be->be_restrictops ^= restrictops;
+			i = verb_to_mask( c->line, restrictable_ops );
+			c->be->be_restrictops &= ~restrictable_ops[i].mask;
 		}
 		return 0;
 	}
@@ -3105,8 +3105,8 @@ config_allows(ConfigArgs *c) {
 		if ( !c->line ) {
 			global_allows = 0;
 		} else {
-			allows = verb_to_mask( c->line, allowable_ops );
-			global_allows ^= allows;
+			i = verb_to_mask( c->line, allowable_ops );
+			global_allows &= ~allowable_ops[i].mask;
 		}
 		return 0;
 	}
@@ -3140,8 +3140,8 @@ config_disallows(ConfigArgs *c) {
 		if ( !c->line ) {
 			global_disallows = 0;
 		} else {
-			disallows = verb_to_mask( c->line, disallowable_ops );
-			global_disallows ^= disallows;
+			i = verb_to_mask( c->line, disallowable_ops );
+			global_disallows &= ~disallowable_ops[i].mask;
 		}
 		return 0;
 	}
@@ -3176,8 +3176,8 @@ config_requires(ConfigArgs *c) {
 		if ( !c->line ) {
 			c->be->be_requires = 0;
 		} else {
-			requires = verb_to_mask( c->line, requires_ops );
-			c->be->be_requires ^= requires;
+			i = verb_to_mask( c->line, requires_ops );
+			c->be->be_requires &= ~requires_ops[i].mask;
 		}
 		return 0;
 	}
@@ -3447,8 +3447,8 @@ config_loglevel(ConfigArgs *c) {
 		if ( !c->line ) {
 			config_syslog = 0;
 		} else {
-			int level = verb_to_mask( c->line, loglevel_ops );
-			config_syslog ^= level;
+			i = verb_to_mask( c->line, loglevel_ops );
+			config_syslog &= ~loglevel_ops[i].mask;
 		}
 		if ( slapMode & SLAP_SERVER_MODE ) {
 			ldap_syslog = config_syslog;
