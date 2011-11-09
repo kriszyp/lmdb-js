@@ -70,6 +70,7 @@ OpenLDAP 2.4.27 Engineering
 	Documentation
 		admin24 Fix table numbering (ITS#7003)
 		slapd.conf(5) Fixed TLSCACertificateFile information (ITS#7023)
+		ldapmodify(1) Fixed minor typo in -S option description (ITS#7086)
 		ldap_sync(3) Document ldap_sync_destroy (ITS#7028)
 		slapo-unique(5) Fix keyword quoting (ITS#7028)
 
