@@ -39,11 +39,24 @@ mdb_key_read(
 {
 	int rc;
 	MDB_val key;
+#ifndef MSIALIGNED_OK
+	int kbuf[2];
+#endif
 
 	Debug( LDAP_DEBUG_TRACE, "=> key_read\n", 0, 0, 0 );
 
-	key.mv_size = k->bv_len;
-	key.mv_data = k->bv_val;
+#ifndef MISALIGNED_OK
+	if (k->bv_len & 0x03) {
+		key.mv_size = sizeof(kbuf);
+		key.mv_data = kbuf;
+		kbuf[1] = 0;
+		memcpy(kbuf, k->bv_val, k->bv_len);
+	} else
+#endif
+	{
+		key.mv_size = k->bv_len;
+		key.mv_data = k->bv_val;
+	}
 
 	rc = mdb_idl_fetch_key( be, txn, dbi, &key, ids, saved_cursor, get_flag );
 

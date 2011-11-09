@@ -25,7 +25,7 @@
 #include "back-mdb.h"
 #include "lutil_hash.h"
 
-static char presence_keyval[] = {0,0};
+static char presence_keyval[] = {0,0,0,0,0};
 static struct berval presence_key[2] = {BER_BVC(presence_keyval), BER_BVNULL};
 
 AttrInfo *mdb_index_mask(
