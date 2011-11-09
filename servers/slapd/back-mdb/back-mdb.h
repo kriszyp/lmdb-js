@@ -168,6 +168,10 @@ typedef struct AttrList {
 #define CACHELINE	64
 #endif
 
+#if defined(__i386) || defined(__x86_64)
+#define MISALIGNED_OK	1
+#endif
+
 typedef struct IndexRbody {
 	AttrInfo *ai;
 	AttrList *attrs;

@@ -400,6 +400,9 @@ mdb_idl_insert_keys(
 	char *err;
 	int	rc, k;
 	unsigned int flag = MDB_NODUPDATA;
+#ifndef	MISALIGNED_OK
+	int kbuf[2];
+#endif
 
 	{
 		char buf[16];
@@ -413,12 +416,25 @@ mdb_idl_insert_keys(
 	if ( slapMode & SLAP_TOOL_QUICK )
 		flag |= MDB_APPEND;
 
+#ifndef MISALIGNED_OK
+	if (keys[0].bv_len & 0x03)
+		kbuf[1] = 0;
+#endif
 	for ( k=0; keys[k].bv_val; k++ ) {
 	/* Fetch the first data item for this key, to see if it
 	 * exists and if it's a range.
 	 */
-	key.mv_size = keys[k].bv_len;
-	key.mv_data = keys[k].bv_val;
+#ifndef MISALIGNED_OK
+	if (keys[k].bv_len & 0x03) {
+		key.mv_size = sizeof(kbuf);
+		key.mv_data = kbuf;
+		memcpy(key.mv_data, keys[k].bv_val, keys[k].bv_len);
+	} else
+#endif
+	{
+		key.mv_size = keys[k].bv_len;
+		key.mv_data = keys[k].bv_val;
+	}
 	rc = mdb_cursor_get( cursor, &key, &data, MDB_SET );
 	err = "c_get";
 	if ( rc == 0 ) {
@@ -534,6 +550,9 @@ mdb_idl_delete_keys(
 	MDB_val key, data;
 	ID lo, hi, tmp, *i;
 	char *err;
+#ifndef	MISALIGNED_OK
+	int kbuf[2];
+#endif
 
 	{
 		char buf[16];
@@ -543,12 +562,25 @@ mdb_idl_delete_keys(
 	}
 	assert( id != NOID );
 
+#ifndef MISALIGNED_OK
+	if (keys[0].bv_len & 0x03)
+		kbuf[1] = 0;
+#endif
 	for ( k=0; keys[k].bv_val; k++) {
 	/* Fetch the first data item for this key, to see if it
 	 * exists and if it's a range.
 	 */
-	key.mv_size = keys[k].bv_len;
-	key.mv_data = keys[k].bv_val;
+#ifndef MISALIGNED_OK
+	if (keys[k].bv_len & 0x03) {
+		key.mv_size = sizeof(kbuf);
+		key.mv_data = kbuf;
+		memcpy(key.mv_data, keys[k].bv_val, keys[k].bv_len);
+	} else
+#endif
+	{
+		key.mv_size = keys[k].bv_len;
+		key.mv_data = keys[k].bv_val;
+	}
 	rc = mdb_cursor_get( cursor, &key, &data, MDB_SET );
 	err = "c_get";
 	if ( rc == 0 ) {
