@@ -903,7 +903,7 @@ mdb_dn2idl_internal(
 			/* Fetch the rest of the IDs in a loop... */
 			while ( (cx->rc = cx->dbc->c_get( cx->dbc, &cx->key, &cx->data,
 				DB_MULTIPLE | DB_NEXT_DUP )) == 0 ) {
-				u_int8_t *j;
+				uint8_t *j;
 				size_t len;
 				void *ptr;
 				DB_MULTIPLE_INIT( ptr, &cx->data );

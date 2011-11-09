@@ -84,7 +84,7 @@ mdb_db_open( BackendDB *be, ConfigReply *cr )
 	int rc, i;
 	struct mdb_info *mdb = (struct mdb_info *) be->be_private;
 	struct stat stat1;
-	u_int32_t flags;
+	uint32_t flags;
 	char *dbhome;
 	MDB_txn *txn;
 
