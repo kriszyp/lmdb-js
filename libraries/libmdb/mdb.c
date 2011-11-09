@@ -65,8 +65,20 @@
 #endif
 
 #ifndef BYTE_ORDER
-#define BYTE_ORDER	__BYTE_ORDER
+# if (defined(_LITTLE_ENDIAN) || defined(_BIG_ENDIAN)) && !(defined(_LITTLE_ENDIAN) && defined(_BIG_ENDIAN))
+/* Solaris just defines one or the other */
+#  define LITTLE_ENDIAN	1234
+#  define BIG_ENDIAN	4321
+#  ifdef _LITTLE_ENDIAN
+#   define BYTE_ORDER  LITTLE_ENDIAN
+#  else
+#   define BYTE_ORDER  BIG_ENDIAN
+#  endif
+# else
+#  define BYTE_ORDER   __BYTE_ORDER
+# endif
 #endif
+
 #ifndef LITTLE_ENDIAN
 #define LITTLE_ENDIAN	__LITTLE_ENDIAN
 #endif
@@ -5910,8 +5922,7 @@ int mdb_drop(MDB_txn *txn, MDB_dbi dbi, int del)
 
 	rc = mdb_drop0(mc, mc->mc_db->md_flags & MDB_DUPSORT);
 	if (rc)
-		mdb_cursor_close(mc);
-		return rc;
+		goto leave;
 
 	/* Can't delete the main DB */
 	if (del && dbi > MAIN_DBI) {
@@ -5927,6 +5938,7 @@ int mdb_drop(MDB_txn *txn, MDB_dbi dbi, int del)
 		txn->mt_dbs[dbi].md_entries = 0;
 		txn->mt_dbs[dbi].md_root = P_INVALID;
 	}
+leave:
 	mdb_cursor_close(mc);
 	return rc;
 }
