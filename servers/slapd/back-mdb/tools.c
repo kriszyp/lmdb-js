@@ -805,8 +805,8 @@ int mdb_tool_entry_reindex(
 	 */
 
 	Debug( LDAP_DEBUG_TRACE,
-		"=> " LDAP_XSTRING(mdb_tool_entry_reindex) "( %ld, \"%s\" )\n",
-		(long) id, e->e_dn, 0 );
+		"=> " LDAP_XSTRING(mdb_tool_entry_reindex) "( %ld )\n",
+		(long) id, 0, 0 );
 
 	op.o_hdr = &ohdr;
 	op.o_bd = be;

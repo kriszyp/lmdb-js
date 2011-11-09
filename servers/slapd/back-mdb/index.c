@@ -496,7 +496,7 @@ mdb_index_entry(
 
 	Debug( LDAP_DEBUG_TRACE, "=> index_entry_%s( %ld, \"%s\" )\n",
 		opid == SLAP_INDEX_DELETE_OP ? "del" : "add",
-		(long) e->e_id, e->e_dn );
+		(long) e->e_id, e->e_dn ? e->e_dn : "" );
 
 	/* add each attribute to the indexes */
 	for ( ; ap != NULL; ap = ap->a_next ) {
@@ -569,7 +569,7 @@ mdb_index_entry(
 
 	Debug( LDAP_DEBUG_TRACE, "<= index_entry_%s( %ld, \"%s\" ) success\n",
 		opid == SLAP_INDEX_DELETE_OP ? "del" : "add",
-		(long) e->e_id, e->e_dn );
+		(long) e->e_id, e->e_dn ? e->e_dn : "" );
 
 	return LDAP_SUCCESS;
 }
