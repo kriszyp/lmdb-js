@@ -276,6 +276,44 @@ mdb_get_nextid(MDB_cursor *mci, ID *cursor)
 	return 0;
 }
 
+static void scope_chunk_free( void *key, void *data )
+{
+	ID2 *p1, *p2;
+	for (p1 = data; p1; p1 = p2) {
+		p2 = p1[0].mval.mv_data;
+		ber_memfree_x(p1, NULL);
+	}
+}
+
+static ID2 *scope_chunk_get( Operation *op )
+{
+	struct mdb_info *mdb = (struct mdb_info *) op->o_bd->be_private;
+	ID2 *ret = NULL;
+
+	ldap_pvt_thread_pool_getkey( op->o_threadctx, (void *)scope_chunk_get,
+			(void *)&ret, NULL );
+	if ( !ret ) {
+		ret = ch_malloc( MDB_IDL_UM_SIZE * sizeof( ID2 ));
+	} else {
+		void *r2 = ret[0].mval.mv_data;
+		ldap_pvt_thread_pool_setkey( op->o_threadctx, (void *)scope_chunk_get,
+			r2, scope_chunk_free, NULL, NULL );
+	}
+	return ret;
+}
+
+static void scope_chunk_ret( Operation *op, ID2 *scopes )
+{
+	struct mdb_info *mdb = (struct mdb_info *) op->o_bd->be_private;
+	void *ret = NULL;
+
+	ldap_pvt_thread_pool_getkey( op->o_threadctx, (void *)scope_chunk_get,
+			&ret, NULL );
+	scopes[0].mval.mv_data = ret;
+	ldap_pvt_thread_pool_setkey( op->o_threadctx, (void *)scope_chunk_get,
+			(void *)scopes, scope_chunk_free, NULL, NULL );
+}
+
 int
 mdb_search( Operation *op, SlapReply *rs )
 {
@@ -283,7 +321,7 @@ mdb_search( Operation *op, SlapReply *rs )
 	ID		id, cursor;
 	ID		lastid = NOID;
 	ID		candidates[MDB_IDL_UM_SIZE];
-	ID2		scopes[MDB_IDL_UM_SIZE];
+	ID2		*scopes;
 	Entry		*e = NULL, *base = NULL;
 	Entry		*matched = NULL;
 	AttributeName	*attrs;
@@ -312,15 +350,17 @@ mdb_search( Operation *op, SlapReply *rs )
 	}
 
 	ltid = moi->moi_txn;
-	isc.mt = ltid;
-	isc.mc = NULL;
-	isc.scopes = scopes;
 
 	rs->sr_err = mdb_cursor_open( ltid, mdb->mi_id2entry, &mci );
 	if ( rs->sr_err ) {
 		send_ldap_error( op, rs, LDAP_OTHER, "internal error" );
 		return rs->sr_err;
 	}
+
+	scopes = scope_chunk_get( op );
+	isc.mt = ltid;
+	isc.mc = NULL;
+	isc.scopes = scopes;
 
 	if ( op->ors_deref & LDAP_DEREF_FINDING ) {
 		MDB_IDL_ZERO(candidates);
@@ -880,6 +920,7 @@ done:
 	}
 	if (base)
 		mdb_entry_return( op,base);
+	scope_chunk_ret( op, scopes );
 
 	return rs->sr_err;
 }
