@@ -149,7 +149,7 @@ mdb_dn2id_add(
 	char *ptr;
 
 	Debug( LDAP_DEBUG_TRACE, "=> mdb_dn2id_add 0x%lx: \"%s\"\n",
-		e->e_id, e->e_ndn, 0 );
+		e->e_id, e->e_ndn ? e->e_ndn : "", 0 );
 
 	nrlen = dn_rdnlen( op->o_bd, &e->e_nname );
 	if (nrlen) {
@@ -261,7 +261,7 @@ mdb_dn2id(
 	ID pid, nid;
 	struct berval tmp;
 
-	Debug( LDAP_DEBUG_TRACE, "=> mdb_dn2id(\"%s\")\n", in->bv_val, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "=> mdb_dn2id(\"%s\")\n", in->bv_val ? in->bv_val : "", 0, 0 );
 
 	if ( matched ) {
 		matched->bv_val = dn + sizeof(dn) - 1;
