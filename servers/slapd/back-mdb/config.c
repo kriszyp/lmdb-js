@@ -134,7 +134,6 @@ mdb_online_index( void *ctx, void *arg )
 	op->o_bd = be;
 
 	id = 1;
-	key.mv_data = &id;
 	key.mv_size = sizeof(ID);
 
 	while ( 1 ) {
@@ -151,6 +150,7 @@ mdb_online_index( void *ctx, void *arg )
 		}
 		if ( getnext ) {
 			getnext = 0;
+			key.mv_data = &id;
 			rc = mdb_cursor_get( curs, &key, &data, MDB_SET_RANGE );
 			if ( rc ) {
 				mdb_txn_abort( txn );
