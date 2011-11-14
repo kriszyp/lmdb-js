@@ -45,7 +45,11 @@
 #include <poll.h>
 #endif
 
-#if defined(HAVE_SYS_EPOLL_H) && defined(HAVE_EPOLL)
+#if defined(HAVE_KQUEUE)
+# include <sys/types.h>
+# include <sys/event.h>
+# include <sys/time.h>
+#elif defined(HAVE_SYS_EPOLL_H) && defined(HAVE_EPOLL)
 # include <sys/epoll.h>
 #elif defined(SLAP_X_DEVPOLL) && defined(HAVE_SYS_DEVPOLL_H) && defined(HAVE_DEVPOLL)
 # include <sys/types.h>
@@ -93,7 +97,7 @@ static volatile sig_atomic_t listening = 1; /* 0 when slap_listeners closed */
 static ldap_pvt_thread_t *listener_tid;
 
 #ifndef SLAPD_LISTEN_BACKLOG
-#define SLAPD_LISTEN_BACKLOG 1024
+#define SLAPD_LISTEN_BACKLOG 2048
 #endif /* ! SLAPD_LISTEN_BACKLOG */
 
 #define	DAEMON_ID(fd)	(fd & slapd_daemon_mask)
@@ -140,7 +144,21 @@ typedef struct slap_daemon_st {
 	int			sd_nwriters;
 	int			sd_nfds;
 
-#if defined(HAVE_EPOLL)
+#if defined(HAVE_KQUEUE)
+	uint8_t*        sd_fdmodes; /* indexed by fd */
+	Listener**      sd_l;       /* indexed by fd */
+	/* Double buffer the kqueue changes to avoid holding the sd_mutex \
+	 * during a kevent() call. \
+	 */
+	struct kq_change {
+	    struct kevent*  sd_changes;
+	    int             sd_nchanges;
+	    int             sd_maxchanges;
+	}               sd_kqc[2];
+	int             sd_changeidx; /* index to current change buffer */
+	int             sd_kq;
+#elif defined(HAVE_EPOLL)
+
 	struct epoll_event	*sd_epolls;
 	int			*sd_index;
 	int			sd_epfd;
@@ -171,10 +189,219 @@ static slap_daemon_st slap_daemon[SLAPD_MAX_DAEMON_THREADS];
  *   with file descriptors and events respectively
  *
  * - SLAP_<type>_* for private interface; type by now is one of
- *   EPOLL, DEVPOLL, SELECT
+ *   EPOLL, DEVPOLL, SELECT, KQUEUE
  *
  * private interface should not be used in the code.
  */
+#if defined(HAVE_KQUEUE)
+# define SLAP_EVENT_FNAME		    "kqueue"
+# define SLAP_EVENTS_ARE_INDEXED	0
+# define SLAP_EVENT_MAX             (2 * dtblsize)  /* each fd can have a read & a write event */
+
+# define SLAP_EVENT_DECL \
+     static struct kevent* events = NULL
+
+# define SLAP_EVENT_INIT do {\
+    if (!events) { \
+        events = ch_malloc(sizeof(*events) * SLAP_EVENT_MAX); \
+        if (!events) { \
+            Debug(LDAP_DEBUG_ANY, \
+                "daemon: SLAP_EVENT_INIT: ch_malloc of events failed, wanted %d bytes\n", \
+                sizeof(*events) * SLAP_EVENT_MAX, 0, 0); \
+                slapd_shutdown = 2; \
+        } \
+    } \
+} while (0)
+
+# define SLAP_SOCK_INIT do { \
+    int kq_i; \
+    size_t kq_nbytes; \
+    Debug(LDAP_DEBUG_ANY, "daemon: SLAP_SOCK_INIT: dtblsize=%d\n", dtblsize, 0, 0); \
+    slap_daemon.sd_nfds       = 0; \
+    slap_daemon.sd_changeidx  = 0; \
+    for (kq_i = 0;  kq_i < 2;  kq_i++) { \
+        struct kq_change* kqc = &slap_daemon.sd_kqc[kq_i]; \
+        kqc->sd_nchanges   = 0; \
+        kqc->sd_maxchanges = 256; /* will grow as needed */ \
+        kq_nbytes = sizeof(*kqc->sd_changes) * kqc->sd_maxchanges; \
+        kqc->sd_changes = ch_calloc(1, kq_nbytes); \
+        if (!kqc->sd_changes) { \
+            Debug(LDAP_DEBUG_ANY, \
+                  "daemon: SLAP_SOCK_INIT: ch_calloc of slap_daemon.sd_changes[%d] failed, wanted %d bytes, shutting down\n", \
+                  kq_i, kq_nbytes, 0); \
+                  slapd_shutdown = 2; \
+        } \
+    } \
+    kq_nbytes = sizeof(*slap_daemon.sd_fdmodes) * dtblsize; \
+    slap_daemon.sd_fdmodes = ch_calloc(1, kq_nbytes); \
+    if (!slap_daemon.sd_fdmodes) { \
+        Debug(LDAP_DEBUG_ANY, \
+            "daemon: SLAP_SOCK_INIT: ch_calloc of slap_daemon.sd_fdmodes failed, wanted %d bytes, shutting down\n", \
+            kq_nbytes, 0, 0); \
+        slapd_shutdown = 2; \
+    } \
+    kq_nbytes = sizeof(*slap_daemon.sd_l) * dtblsize; \
+    slap_daemon.sd_l = ch_calloc(1, kq_nbytes); \
+    if (!slap_daemon.sd_l) { \
+        Debug(LDAP_DEBUG_ANY, \
+            "daemon: SLAP_SOCK_INIT: ch_calloc of slap_daemon.sd_l failed, wanted %d bytes, shutting down\n", \
+            kq_nbytes, 0, 0); \
+        slapd_shutdown = 2; \
+    } \
+    slap_daemon.sd_kq = kqueue(); \
+    if (slap_daemon.sd_kq < 0) { \
+        Debug(LDAP_DEBUG_ANY, "daemon: SLAP_SOCK_INIT: kqueue() failed, errno=%d, shutting down\n", errno, 0, 0); \
+        slapd_shutdown = 2; \
+    } \
+} while (0)
+
+# define SLAP_SOCK_DESTROY do { \
+	int kq_i; \
+    if (slap_daemon.sd_kq > 0) { \
+        close(slap_daemon.sd_kq); \
+        slap_daemon.sd_kq = -1; \
+    } \
+    for (kq_i = 0;  kq_i < 2;  kq_i++) { \
+        if (slap_daemon.sd_kqc[kq_i].sd_changes != NULL) { \
+            ch_free(slap_daemon.sd_kqc[kq_i].sd_changes); \
+            slap_daemon.sd_kqc[kq_i].sd_changes = NULL; \
+        } \
+        slap_daemon.sd_kqc[kq_i].sd_nchanges = 0; \
+        slap_daemon.sd_kqc[kq_i].sd_maxchanges = 0; \
+    } \
+    if (slap_daemon.sd_l != NULL) { \
+        ch_free(slap_daemon.sd_l); \
+        slap_daemon.sd_l = NULL; \
+    } \
+    if (slap_daemon.sd_fdmodes != NULL) { \
+        ch_free(slap_daemon.sd_fdmodes); \
+        slap_daemon.sd_fdmodes = NULL; \
+    } \
+    slap_daemon.sd_nfds = 0; \
+} while (0)
+
+# define SLAP_KQUEUE_SOCK_ACTIVE        0x01
+# define SLAP_KQUEUE_SOCK_READ_ENABLED  0x02
+# define SLAP_KQUEUE_SOCK_WRITE_ENABLED 0x04
+
+# define SLAP_SOCK_IS_ACTIVE(s)  (slap_daemon.sd_fdmodes[(s)] != 0)
+# define SLAP_SOCK_NOT_ACTIVE(s) (slap_daemon.sd_fdmodes[(s)] == 0)
+# define SLAP_SOCK_IS_READ(s)    (slap_daemon.sd_fdmodes[(s)] & SLAP_KQUEUE_SOCK_READ_ENABLED)
+# define SLAP_SOCK_IS_WRITE(s)   (slap_daemon.sd_fdmodes[(s)] & SLAP_KQUEUE_SOCK_WRITE_ENABLED)
+
+/*
+ * SLAP_SOCK_SET_* & SLAP_SOCK_CLR_* get called a _lot_.  Since kevent()
+ * processes changes before it looks for events, batch up the changes which
+ * will get submitted the next time kevent() is called for events.
+ */
+
+# define SLAP_KQUEUE_CHANGE(s, filter, flag) do { \
+    /* If maxchanges is reached, have to realloc to make room for more. \
+     * Ideally we'd call kevent(), but the daemon thread could be sitting \
+     * in kevent() waiting for events. \
+     */ \
+    struct kq_change* kqc = &slap_daemon.sd_kqc[slap_daemon.sd_changeidx]; \
+    if (kqc->sd_nchanges == kqc->sd_maxchanges) { \
+        /* Don't want to do this very often.  Double the size. */ \
+        size_t kq_nbytes; \
+        Debug(LDAP_DEBUG_CONNS, \
+              "daemon: SLAP_KQUEUE_CHANGE: increasing slap_daemon.sd_kqc[%d].maxchanges from %d to %d\n", \
+              slap_daemon.sd_changeidx, kqc->sd_maxchanges, 2*kqc->sd_maxchanges); \
+        kqc->sd_maxchanges += kqc->sd_maxchanges; \
+        kq_nbytes = sizeof(*kqc->sd_changes) * kqc->sd_maxchanges; \
+        kqc->sd_changes = ch_realloc(kqc->sd_changes, kq_nbytes); \
+        if (!kqc->sd_changes) { \
+            Debug(LDAP_DEBUG_ANY, \
+                "daemon: SLAP_KQUEUE_CHANGE: ch_realloc of slap_daemon.sd_kqc[%d].sd_changes failed, wanted %d bytes, shutting down\n", \
+                slap_daemon.sd_changeidx, kq_nbytes, 0); \
+            slapd_shutdown = 2; \
+            break; /* Don't want to do the EV_SET if sd_changes is NULL */ \
+        } \
+    } \
+    EV_SET(&kqc->sd_changes[kqc->sd_nchanges++], \
+           (s), (filter), (flag), 0, 0, slap_daemon.sd_l[(s)]); \
+} while (0)
+
+# define SLAP_KQUEUE_SOCK_SET(s, filter, mode) do { \
+    if ((slap_daemon.sd_fdmodes[(s)] & (mode)) != (mode)) { \
+        slap_daemon.sd_fdmodes[(s)] |= (mode); \
+        SLAP_KQUEUE_CHANGE((s), (filter), EV_ENABLE); \
+    } \
+} while (0)
+
+# define SLAP_KQUEUE_SOCK_CLR(s, filter, mode) do { \
+    if (slap_daemon.sd_fdmodes[(s)] & (mode)) { \
+        slap_daemon.sd_fdmodes[(s)] &= ~(mode); \
+        SLAP_KQUEUE_CHANGE((s), (filter), EV_DISABLE); \
+    } \
+} while (0)
+
+# define SLAP_SOCK_SET_READ(s)  SLAP_KQUEUE_SOCK_SET((s), EVFILT_READ,  SLAP_KQUEUE_SOCK_READ_ENABLED)
+# define SLAP_SOCK_SET_WRITE(s) SLAP_KQUEUE_SOCK_SET((s), EVFILT_WRITE, SLAP_KQUEUE_SOCK_WRITE_ENABLED)
+# define SLAP_SOCK_CLR_READ(s)  SLAP_KQUEUE_SOCK_CLR((s), EVFILT_READ,  SLAP_KQUEUE_SOCK_READ_ENABLED)
+# define SLAP_SOCK_CLR_WRITE(s) SLAP_KQUEUE_SOCK_CLR((s), EVFILT_WRITE, SLAP_KQUEUE_SOCK_WRITE_ENABLED)
+
+/* kqueue doesn't need to do anything to clear the event. */
+# define SLAP_EVENT_CLR_READ(i)     do {} while (0)
+# define SLAP_EVENT_CLR_WRITE(i)    do {} while (0)
+
+# define SLAP_SOCK_ADD(s, l) do { \
+    assert( s < dtblsize ); \
+    slap_daemon.sd_l[(s)] = (l); \
+    slap_daemon.sd_fdmodes[(s)] = SLAP_KQUEUE_SOCK_ACTIVE | SLAP_KQUEUE_SOCK_READ_ENABLED; \
+    ++slap_daemon.sd_nfds; \
+    SLAP_KQUEUE_CHANGE((s), EVFILT_READ, EV_ADD); \
+    SLAP_KQUEUE_CHANGE((s), EVFILT_WRITE, EV_ADD | EV_DISABLE); \
+} while (0)
+
+# define SLAP_SOCK_DEL(s) do { \
+    SLAP_KQUEUE_CHANGE((s), EVFILT_READ, EV_DELETE); \
+    SLAP_KQUEUE_CHANGE((s), EVFILT_WRITE, EV_DELETE); \
+    slap_daemon.sd_l[(s)] = NULL; \
+    slap_daemon.sd_fdmodes[(s)] = 0; \
+    --slap_daemon.sd_nfds; \
+} while (0)
+
+# define SLAP_EVENT_IS_READ(i) \
+    (events[(i)].filter == EVFILT_READ && SLAP_SOCK_IS_READ(SLAP_EVENT_FD(i)))
+
+# define SLAP_EVENT_IS_WRITE(i) \
+    (events[(i)].filter == EVFILT_WRITE && SLAP_SOCK_IS_WRITE(SLAP_EVENT_FD(i)))
+
+# define SLAP_EVENT_IS_LISTENER(i) \
+    (events[(i)].udata && SLAP_SOCK_IS_READ(SLAP_EVENT_FD(i)))
+
+# define SLAP_EVENT_LISTENER(i)    ((Listener*)(events[(i)].udata))
+# define SLAP_EVENT_FD(i)          (events[(i)].ident)
+
+# define SLAP_EVENT_WAIT(tvp, nsp) do { \
+    struct timespec  kq_ts; \
+    struct timespec* kq_tsp; \
+    int kq_idx; \
+    if (tvp) { \
+        TIMEVAL_TO_TIMESPEC((tvp), &kq_ts); \
+        kq_tsp = &kq_ts; \
+    } else { \
+        kq_tsp = NULL; \
+    } \
+    /* Save the change buffer index for use when the mutex is unlocked, \
+     * then switch the index so new changes go to the other buffer. \
+     */ \
+    ldap_pvt_thread_mutex_lock( &slap_daemon.sd_mutex ); \
+    kq_idx = slap_daemon.sd_changeidx; \
+    slap_daemon.sd_changeidx ^= 1; \
+    ldap_pvt_thread_mutex_unlock( &slap_daemon.sd_mutex ); \
+    *(nsp) = kevent(slap_daemon.sd_kq, \
+                    slap_daemon.sd_kqc[kq_idx].sd_nchanges \
+                        ? slap_daemon.sd_kqc[kq_idx].sd_changes : NULL, \
+                    slap_daemon.sd_kqc[kq_idx].sd_nchanges, \
+                    events, SLAP_EVENT_MAX, kq_tsp); \
+    slap_daemon.sd_kqc[kq_idx].sd_nchanges = 0; \
+} while(0)
+
+/*-------------------------------------------------------------------------------*/
+
+#elif defined(HAVE_EPOLL)
 #if defined(HAVE_EPOLL)
 /***************************************
  * Use epoll infrastructure - epoll(4) *
@@ -2820,6 +3047,10 @@ loop:
 		slapd_abrupt_shutdown = 1;
 		connections_shutdown();
 	}
+
+#ifdef HAVE_KQUEUE
+     close( slap_daemon.sd_kq );
+#endif
 
 	if ( LogTest( LDAP_DEBUG_ANY )) {
 		int t = ldap_pvt_thread_pool_backload( &connection_pool );
