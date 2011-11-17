@@ -198,12 +198,12 @@ int bdb_tool_entry_close(
 			}
 			ldap_pvt_thread_mutex_unlock( &bdb_tool_index_mutex );
 
-			bdb_tool_info = NULL;
-			slapd_shutdown = 0;
 			ch_free( bdb_tool_index_threads );
 			ch_free( bdb_tool_index_rec );
 			bdb_tool_index_tcount = bdb_tool_threads - 1;
 		}
+		bdb_tool_info = NULL;
+		slapd_shutdown = 0;
 	}
 
 	if( eh.bv.bv_val ) {
