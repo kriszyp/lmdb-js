@@ -1401,7 +1401,17 @@ retry_lock:;
 			/* if we got here, it shouldn't return result */
 			rc = ldap_back_is_proxy_authz( op, rs,
 				LDAP_BACK_DONTSEND, &binddn, &bindcred );
-			assert( rc == 1 );
+			if ( rc != 1 ) {
+				Debug( LDAP_DEBUG_ANY, "Error: ldap_back_is_proxy_authz "
+					"returned %d, misconfigured URI?\n", rc, 0, 0 );
+				rs->sr_err = LDAP_OTHER;
+				rs->sr_text = "misconfigured URI?";
+				LDAP_BACK_CONN_ISBOUND_CLEAR( lc );
+				if ( sendok & LDAP_BACK_SENDERR ) {
+					send_ldap_result( op, rs );
+				}
+				goto done;
+			}
 		}
 		rc = ldap_back_proxy_authz_bind( lc, op, rs, sendok, &binddn, &bindcred );
 		goto done;
