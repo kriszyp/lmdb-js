@@ -2784,25 +2784,22 @@ loop:
 					}
 				}
 				/* If event is a read */
-				if ( SLAP_EVENT_IS_READ( i ))
+				if ( SLAP_EVENT_IS_READ( i )) {
 					r = 1;
-				if ( r || !w ) {
 					Debug( LDAP_DEBUG_CONNS,
 						"daemon: read active on %d\n",
 						fd, 0, 0 );
 
-					if ( r ) {
-						SLAP_EVENT_CLR_READ( i );
-					} else {
-#ifdef HAVE_EPOLL
-						/* Don't keep reporting the hangup
-						 */
-						if ( SLAP_SOCK_IS_ACTIVE( tid, fd )) {
-							SLAP_EPOLL_SOCK_SET( tid, fd, EPOLLET );
-						}
-#endif
-					}
+					SLAP_EVENT_CLR_READ( i );
 					connection_read_activate( fd );
+				} else if ( !w ) {
+#ifdef HAVE_EPOLL
+					/* Don't keep reporting the hangup
+					 */
+					if ( SLAP_SOCK_IS_ACTIVE( tid, fd )) {
+						SLAP_EPOLL_SOCK_SET( tid, fd, EPOLLET );
+					}
+#endif
 				}
 			}
 		}
