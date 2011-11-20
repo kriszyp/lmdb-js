@@ -42,7 +42,9 @@ version.c
 
 Makefile
 !/contrib/slapd-modules/*/Makefile
+!/contrib/slapd-modules/*/*/Makefile
 !/doc/guide/admin/Makefile
+!/libraries/libmdb/Makefile
 !/servers/slapd/back-sql/rdbms_depend/timesten/dnreverse/Makefile
 
 /config.status
@@ -200,4 +202,3 @@ tests/schema
 tests/testdata
 tests/testrun
 tests/run
-
