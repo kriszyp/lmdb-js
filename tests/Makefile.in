@@ -30,6 +30,7 @@ test tests:
 # test all backends
 alltests: tests
 	@$(MAKE) sql
+	@$(MAKE) ldif
 
 bdb test-bdb:	bdb-$(BUILD_BDB)
 bdb-no:
