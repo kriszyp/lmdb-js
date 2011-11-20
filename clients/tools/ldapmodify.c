@@ -216,7 +216,7 @@ main( int argc, char **argv )
 {
 	char		*rbuf = NULL, *rejbuf = NULL;
 	FILE		*rejfp;
-	struct LDIFFP *ldiffp, ldifdummy = {0};
+	struct LDIFFP *ldiffp = NULL, ldifdummy = {0};
 	char		*matched_msg, *error_msg;
 	int		rc, retval, ldifrc;
 	int		len;
