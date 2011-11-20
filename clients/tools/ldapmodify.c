@@ -363,12 +363,6 @@ main( int argc, char **argv )
 	}
 #endif
 
-	if ( !dont && ld != NULL ) {
-		tool_unbind( ld );
-	}
-
-	tool_destroy();
-
 fail:;
 	if ( rejfp != NULL ) {
 		fclose( rejfp );
@@ -378,7 +372,7 @@ fail:;
 		ldif_close( ldiffp );
 	}
 
-	return( retval );
+	tool_exit( ld, retval );
 }
 
 

@@ -260,9 +260,7 @@ main( int argc, char **argv )
 
 	free( bvalue.bv_val );
 
-	tool_unbind( ld );
-	tool_destroy();
-	return rc;
+	tool_exit( ld, rc );
 }
 
 

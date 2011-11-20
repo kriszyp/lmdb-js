@@ -777,7 +777,7 @@ private_conn_setup( LDAP *ld )
 			!= LDAP_OPT_SUCCESS )
 	{
 		fprintf( stderr, _("Could not set LDAP_OPT_DEREF %d\n"), deref );
-		exit( EXIT_FAILURE );
+		tool_exit( ld, EXIT_FAILURE );
 	}
 }
 
@@ -908,7 +908,7 @@ getNextPage:
 	if ( !fp && infile ) {
 		if (( fp = fopen( infile, "r" )) == NULL ) {
 			perror( infile );
-			return EXIT_FAILURE;
+			tool_exit( ld, EXIT_FAILURE );
 		}
 	}
 	save_nctrls = nctrls;
@@ -932,7 +932,7 @@ getNextPage:
 #ifdef LDAP_CONTROL_DONTUSECOPY
 		if ( dontUseCopy ) {
 			if ( ctrl_add() ) {
-				return EXIT_FAILURE;
+				tool_exit( ld, EXIT_FAILURE );
 			}
 
 			c[i].ldctl_oid = LDAP_CONTROL_DONTUSECOPY;
@@ -945,7 +945,7 @@ getNextPage:
 
 		if ( domainScope ) {
 			if ( ctrl_add() ) {
-				return EXIT_FAILURE;
+				tool_exit( ld, EXIT_FAILURE );
 			}
 
 			c[i].ldctl_oid = LDAP_CONTROL_X_DOMAIN_SCOPE;
@@ -957,22 +957,22 @@ getNextPage:
 
 		if ( subentries ) {
 			if ( ctrl_add() ) {
-				return EXIT_FAILURE;
+				tool_exit( ld, EXIT_FAILURE );
 			}
 
 			if (( seber = ber_alloc_t(LBER_USE_DER)) == NULL ) {
-				return EXIT_FAILURE;
+				tool_exit( ld, EXIT_FAILURE );
 			}
 
 			err = ber_printf( seber, "b", abs(subentries) == 1 ? 0 : 1 );
 			if ( err == -1 ) {
 				ber_free( seber, 1 );
 				fprintf( stderr, _("Subentries control encoding error!\n") );
-				return EXIT_FAILURE;
+				tool_exit( ld, EXIT_FAILURE );
 			}
 
 			if ( ber_flatten2( seber, &c[i].ldctl_value, 0 ) == -1 ) {
-				return EXIT_FAILURE;
+				tool_exit( ld, EXIT_FAILURE );
 			}
 
 			c[i].ldctl_oid = LDAP_CONTROL_SUBENTRIES;
@@ -982,11 +982,11 @@ getNextPage:
 
 		if ( ldapsync ) {
 			if ( ctrl_add() ) {
-				return EXIT_FAILURE;
+				tool_exit( ld, EXIT_FAILURE );
 			}
 
 			if (( syncber = ber_alloc_t(LBER_USE_DER)) == NULL ) {
-				return EXIT_FAILURE;
+				tool_exit( ld, EXIT_FAILURE );
 			}
 
 			if ( sync_cookie.bv_len == 0 ) {
@@ -999,11 +999,11 @@ getNextPage:
 			if ( err == -1 ) {
 				ber_free( syncber, 1 );
 				fprintf( stderr, _("ldap sync control encoding error!\n") );
-				return EXIT_FAILURE;
+				tool_exit( ld, EXIT_FAILURE );
 			}
 
 			if ( ber_flatten( syncber, &syncbvalp ) == -1 ) {
-				return EXIT_FAILURE;
+				tool_exit( ld, EXIT_FAILURE );
 			}
 
 			c[i].ldctl_oid = LDAP_CONTROL_SYNC;
@@ -1014,21 +1014,21 @@ getNextPage:
 
 		if ( valuesReturnFilter ) {
 			if ( ctrl_add() ) {
-				return EXIT_FAILURE;
+				tool_exit( ld, EXIT_FAILURE );
 			}
 
 			if (( vrber = ber_alloc_t(LBER_USE_DER)) == NULL ) {
-				return EXIT_FAILURE;
+				tool_exit( ld, EXIT_FAILURE );
 			}
 
 			if ( ( err = ldap_put_vrFilter( vrber, vrFilter ) ) == -1 ) {
 				ber_free( vrber, 1 );
 				fprintf( stderr, _("Bad ValuesReturnFilter: %s\n"), vrFilter );
-				return EXIT_FAILURE;
+				tool_exit( ld, EXIT_FAILURE );
 			}
 
 			if ( ber_flatten2( vrber, &c[i].ldctl_value, 0 ) == -1 ) {
-				return EXIT_FAILURE;
+				tool_exit( ld, EXIT_FAILURE );
 			}
 
 			c[i].ldctl_oid = LDAP_CONTROL_VALUESRETURNFILTER;
@@ -1038,13 +1038,13 @@ getNextPage:
 
 		if ( pagedResults ) {
 			if ( ctrl_add() ) {
-				return EXIT_FAILURE;
+				tool_exit( ld, EXIT_FAILURE );
 			}
 
 			if ( ldap_create_page_control_value( ld,
 				pageSize, &pr_cookie, &c[i].ldctl_value ) )
 			{
-				return EXIT_FAILURE;
+				tool_exit( ld, EXIT_FAILURE );
 			}
 
 			if ( pr_cookie.bv_val != NULL ) {
@@ -1060,13 +1060,13 @@ getNextPage:
 
 		if ( sss ) {
 			if ( ctrl_add() ) {
-				return EXIT_FAILURE;
+				tool_exit( ld, EXIT_FAILURE );
 			}
 
 			if ( ldap_create_sort_control_value( ld,
 				sss_keys, &c[i].ldctl_value ) )
 			{
-				return EXIT_FAILURE;
+				tool_exit( ld, EXIT_FAILURE );
 			}
 
 			c[i].ldctl_oid = LDAP_CONTROL_SORTREQUEST;
@@ -1076,13 +1076,13 @@ getNextPage:
 
 		if ( vlv ) {
 			if ( ctrl_add() ) {
-				return EXIT_FAILURE;
+				tool_exit( ld, EXIT_FAILURE );
 			}
 
 			if ( ldap_create_vlv_control_value( ld,
 				&vlvInfo, &c[i].ldctl_value ) )
 			{
-				return EXIT_FAILURE;
+				tool_exit( ld, EXIT_FAILURE );
 			}
 
 			c[i].ldctl_oid = LDAP_CONTROL_VLVREQUEST;
@@ -1097,7 +1097,7 @@ getNextPage:
 				assert( ds != NULL );
 
 				if ( ldap_create_deref_control_value( ld, ds, &derefval ) != LDAP_SUCCESS ) {
-					return EXIT_FAILURE;
+					tool_exit( ld, EXIT_FAILURE );
 				}
 
 				for ( i = 0; ds[ i ].derefAttr != NULL; i++ ) {
@@ -1109,7 +1109,7 @@ getNextPage:
 			}
 
 			if ( ctrl_add() ) {
-				exit( EXIT_FAILURE );
+				tool_exit( ld, EXIT_FAILURE );
 			}
 
 			c[ i ].ldctl_iscritical = derefcrit > 1;
@@ -1285,7 +1285,7 @@ getNextPage:
 				if ( num != 1 ) {
 					fprintf( stderr,
 						_("Invalid value for PagedResultsControl, %s.\n"), buf);
-					return EXIT_FAILURE;
+					tool_exit( ld, EXIT_FAILURE );
 	
 				}
 				pageSize = (ber_int_t)tmpSize;
@@ -1316,7 +1316,7 @@ getNextPage:
 		if ( buf[0] ) {
 			i = parse_vlv( strdup( buf ));
 			if ( i )
-				return EXIT_FAILURE;
+				tool_exit( ld, EXIT_FAILURE );
 		} else {
 			vlvInfo.ldvlv_attrvalue = NULL;
 			vlvInfo.ldvlv_count = vlvCount;
@@ -1330,8 +1330,6 @@ getNextPage:
 		goto getNextPage;
 	}
 
-	tool_unbind( ld );
-	tool_destroy();
 	if ( base != NULL ) {
 		ber_memfree( base );
 	}
@@ -1358,7 +1356,7 @@ getNextPage:
 		c = NULL;
 	}
 
-	return( rc );
+	tool_exit( ld, rc );
 }
 
 
@@ -1623,7 +1621,7 @@ print_entry(
 	if( rc != LDAP_SUCCESS ) {
 		fprintf(stderr, _("print_entry: %d\n"), rc );
 		tool_perror( "ldap_get_entry_controls", rc, NULL, NULL, NULL, NULL );
-		exit( EXIT_FAILURE );
+		tool_exit( ld, EXIT_FAILURE );
 	}
 
 	if( ctrls ) {
@@ -1721,7 +1719,7 @@ static void print_reference(
 
 	if( rc != LDAP_SUCCESS ) {
 		tool_perror( "ldap_parse_reference", rc, NULL, NULL, NULL, NULL );
-		exit( EXIT_FAILURE );
+		tool_exit( ld, EXIT_FAILURE );
 	}
 
 	if( refs ) {
@@ -1756,7 +1754,7 @@ static void print_extended(
 
 	if( rc != LDAP_SUCCESS ) {
 		tool_perror( "ldap_parse_extended_result", rc, NULL, NULL, NULL, NULL );
-		exit( EXIT_FAILURE );
+		tool_exit( ld, EXIT_FAILURE );
 	}
 
 	if ( ldif < 2 ) {
@@ -1794,7 +1792,7 @@ static void print_partial(
 
 	if( rc != LDAP_SUCCESS ) {
 		tool_perror( "ldap_parse_intermediate", rc, NULL, NULL, NULL, NULL );
-		exit( EXIT_FAILURE );
+		tool_exit( ld, EXIT_FAILURE );
 	}
 
 	if ( ldif < 2 ) {
@@ -1844,7 +1842,7 @@ static int print_result(
 
 	if( rc != LDAP_SUCCESS ) {
 		tool_perror( "ldap_parse_result", rc, NULL, NULL, NULL, NULL );
-		exit( EXIT_FAILURE );
+		tool_exit( ld, EXIT_FAILURE );
 	}
 
 

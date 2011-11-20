@@ -218,9 +218,7 @@ main( int argc, char **argv )
 			fclose( fp );
 	}
 
-	tool_unbind( ld );
-	tool_destroy();
-    return retval;
+	tool_exit( ld, retval );
 }
 
 
