@@ -58,6 +58,7 @@ OpenLDAP 2.4.27 Engineering
 	Fixed slapo-sssvlv to only return requested attrs (ITS#7061)
 	Fixed slapo-syncprov DSA attribute filtering for Persist mode (ITS#7019)
 	Fixed slapo-syncprov when consumer has newer state of our SID (ITS#7040)
+	Fixed slapo-syncprov crash (ITS#7025)
 	Fixed slapo-unique URI checking of "host" portion (ITS#7018)
 	Fixed contrib/autogroup double-free (ITS#6972)
 	Fixed contrib/smbk5pwd cn=config deletion of bitmasks (ITS#7083)
