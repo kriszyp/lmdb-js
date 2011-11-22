@@ -156,7 +156,7 @@ main(int argc, char **argv)
 {
 	char		*entrydn = NULL, *rdn = NULL, buf[ 4096 ];
 	FILE		*fp = NULL;
-	LDAP		*ld;
+	LDAP		*ld = NULL;
 	int		rc, retval, havedn;
 
 	tool_init( TOOL_MODRDN );
@@ -227,13 +227,11 @@ main(int argc, char **argv)
 		}
 	}
 
-	tool_unbind( ld );
-	tool_destroy();
 fail:
 	if ( fp && fp != stdin ) fclose( fp );
 	if ( entrydn ) free( entrydn );
 	if ( rdn ) free( rdn );
-	return( retval );
+	tool_exit( ld, retval );
 }
 
 static int domodrdn(
