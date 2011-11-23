@@ -8,8 +8,10 @@ OpenLDAP 2.4.27 Release (2011/11/24)
 	Added slapd delta-syncrepl MMR (ITS#6734,ITS#7029,ITS#7031)
 	Added slapd-mdb experimental backend (ITS#7079)
 	Added slapd-passwd dynamic config support
+	Added slapd-perl dynamic config support
 	Added slapd-shell dynamic config support
 	Added slapd-sock support as an overlay (ITS#6666)
+	Added slapd-sql dynamic config support
 	Added contrib/passwd APR1 support (ITS#6826)
 	Fixed slapi linking on AIX (ITS#3272)
 	Fixed ldapmodify crash with LDIF controls (ITS#7039)
