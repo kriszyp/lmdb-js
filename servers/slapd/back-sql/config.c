@@ -152,7 +152,7 @@ static ConfigTable sqlcfg[] = {
 	{ "delobjclasses_stmt", "SQL expression", 2, 2, 0, ARG_STRING|ARG_OFFSET,
 		(void *)offsetof(struct backsql_info, sql_delobjclasses_stmt),
 		"( OLcfgDbAt:6.33 NAME 'olcSqlDelObjclassesStmt' "
-			"DESC 'Statement used to delete an entry's ID' "
+			"DESC 'Statement used to delete the ID of an entry' "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
 	{ "has_ldapinfo_dn_ru", "yes|no", 2, 2, 0,
 		ARG_ON_OFF|ARG_MAGIC|BSQL_HAS_LDAPINFO_DN_RU, (void *)sql_cf_gen,
@@ -228,7 +228,7 @@ static ConfigOCs sqlocs[] = {
 		"olcSqlSubtreeCond $ olcsqlChildrenCond $ olcSqlDnMatchCond $ "
 		"olcSqlOcQuery $ olcSqlAtQuery $ olcSqlInsEntryStmt $ "
 		"olcSqlCreateNeedsSelect $ olcSqlUpperFunc $ olcSqlUpperNeedsCast $ "
-		"olcSqlStrCastFunc $ olcSqlDelEntryStmt $ olcSelRenEntryStmt $ "
+		"olcSqlStrCastFunc $ olcSqlDelEntryStmt $ olcSqlRenEntryStmt $ "
 		"olcSqlDelObjClassesStmt $ olcSqlHasLDAPInfoDnRu $ "
 		"olcSqlFailIfNoMapping $ olcSqlAllowOrphans $ olcSqlBaseObject $ "
 		"olcSqlLayer $ olcSqlUseSubtreeShortcut $ olcSqlFetchAllAttrs $ "
