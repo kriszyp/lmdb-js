@@ -35,6 +35,8 @@ static int mdb_entry_encode(Operation *op, Entry *e, MDB_val *data,
 	Ecount *ec);
 static Entry *mdb_entry_alloc( Operation *op, int nattrs, int nvals );
 
+#define ADD_FLAGS	(MDB_NOOVERWRITE|MDB_APPEND)
+
 static int mdb_id2entry_put(
 	Operation *op,
 	MDB_txn *txn,
@@ -72,7 +74,7 @@ again:
 	if (rc) {
 		/* Was there a hole from slapadd? */
 		if ( (flag & MDB_NOOVERWRITE) && data.mv_size == 0 ) {
-			flag ^= MDB_NOOVERWRITE;
+			flag ^= ADD_FLAGS;
 			goto again;
 		}
 		Debug( LDAP_DEBUG_ANY,
@@ -97,7 +99,7 @@ int mdb_id2entry_add(
 	MDB_cursor *mc,
 	Entry *e )
 {
-	return mdb_id2entry_put(op, txn, mc, e, MDB_NOOVERWRITE|MDB_APPEND);
+	return mdb_id2entry_put(op, txn, mc, e, ADD_FLAGS);
 }
 
 int mdb_id2entry_update(
