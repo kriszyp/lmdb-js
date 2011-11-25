@@ -245,6 +245,8 @@ LDIFTRANSLUCENTMERGED=$DATADIR/test-translucent-merged.ldif
 LDIFMETA=$DATADIR/test-meta.ldif
 LDIFVALSORT=$DATADIR/test-valsort.ldif
 SQLADD=$DATADIR/sql-add.ldif
+LDIFUNORDERED=$DATADIR/test-unordered.ldif
+LDIFREORDERED=$DATADIR/test-reordered.ldif
 
 # strings
 MONITOR=""
