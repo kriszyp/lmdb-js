@@ -1,6 +1,6 @@
 OpenLDAP 2.4 Change Log
 
-OpenLDAP 2.4.28 Release
+OpenLDAP 2.4.28 Release (2011/11/26)
 	Fixed back-mdb out of order slapadd (ITS#7090)
 
 OpenLDAP 2.4.27 Release (2011/11/24)
