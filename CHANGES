@@ -1,6 +1,8 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.29 Engineering
+	Fixed slapd-mdb to handle overlays in tool mode (ITS#7099)
+	Fixed slapo-dds to properly exit when in tool mode (ITS#7099)
 
 OpenLDAP 2.4.28 Release (2011/11/26)
 	Fixed back-mdb out of order slapadd (ITS#7090)
