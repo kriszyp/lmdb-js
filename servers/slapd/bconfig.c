@@ -1793,7 +1793,7 @@ config_generic(ConfigArgs *c) {
 				/* else prev is NULL, append to end of global list */
 			}
 			if(parse_oc(c, &oc, prev)) return(1);
-			if (!cfn->c_oc_head) cfn->c_oc_head = oc;
+			if (!cfn->c_oc_head || !c->valx) cfn->c_oc_head = oc;
 			if (cfn->c_oc_tail == prev) cfn->c_oc_tail = oc;
 			}
 			break;
@@ -1826,7 +1826,7 @@ config_generic(ConfigArgs *c) {
 				/* else prev is NULL, append to end of global list */
 			}
 			if(parse_at(c, &at, prev)) return(1);
-			if (!cfn->c_at_head) cfn->c_at_head = at;
+			if (!cfn->c_at_head || !c->valx) cfn->c_at_head = at;
 			if (cfn->c_at_tail == prev) cfn->c_at_tail = at;
 			}
 			break;
@@ -1859,7 +1859,7 @@ config_generic(ConfigArgs *c) {
 				/* else prev is NULL, append to end of global list */
 			}
 			if ( parse_syn( c, &syn, prev ) ) return(1);
-			if ( !cfn->c_syn_head ) cfn->c_syn_head = syn;
+			if ( !cfn->c_syn_head || !c->valx ) cfn->c_syn_head = syn;
 			if ( cfn->c_syn_tail == prev ) cfn->c_syn_tail = syn;
 			}
 			break;
