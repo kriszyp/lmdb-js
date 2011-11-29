@@ -1708,6 +1708,9 @@ dds_db_open(
 	int		rc = 0;
 	void		*thrctx = ldap_pvt_thread_pool_context();
 
+	if ( slapMode & SLAP_TOOL_MODE )
+		return 0;
+
 	if ( DDS_OFF( di ) ) {
 		goto done;
 	}
