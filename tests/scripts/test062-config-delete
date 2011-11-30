@@ -139,7 +139,7 @@ if test -f "$RCOUT" ; then
 	wait $SEARCHPID
 	SEARCHRC=`cat $RCOUT`
 	echo "Checking return code of backgrounded RefreshAndPersist search ..."
-	if test $SEARCHRC != 52 ; then
+	if test 52 != "$SEARCHRC" ; then
 		echo "Error: Backgrounded ldapsearch returned the wrong error code: $SEARCHRC"
 		RC=1
 	else
