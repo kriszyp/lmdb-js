@@ -1340,6 +1340,7 @@ meta_back_proxy_authz_cred(
 	} else {
 		ndn = op->o_ndn;
 	}
+	rs->sr_err = LDAP_SUCCESS;
 
 	/*
 	 * FIXME: we need to let clients use proxyAuthz
