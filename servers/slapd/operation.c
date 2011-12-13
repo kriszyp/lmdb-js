@@ -129,6 +129,7 @@ slap_op_free( Operation *op, void *ctx )
 	op->o_bd = NULL;
 	BER_BVZERO( &op->o_req_dn );
 	BER_BVZERO( &op->o_req_ndn );
+	memset( op->o_hdr, 0, sizeof( *op->o_hdr ));
 	memset( &op->o_request, 0, sizeof( op->o_request ));
 	memset( &op->o_do_not_cache, 0, sizeof( Operation ) - offsetof( Operation, o_do_not_cache ));
 	memset( opbuf->ob_controls, 0, sizeof( opbuf->ob_controls ));
