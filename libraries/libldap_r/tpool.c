@@ -711,10 +711,16 @@ ldap_int_thread_pool_wrapper (
 	return(NULL);
 }
 
+#define	DO_PAUSE	0
+#define	CHECK_PAUSE	1
+#define	GO_IDLE	2
+#define	GO_UNIDLE	3
+
 static int
-handle_pause( ldap_pvt_thread_pool_t *tpool, int do_pause )
+handle_pause( ldap_pvt_thread_pool_t *tpool, int pause_type )
 {
 	struct ldap_int_thread_pool_s *pool;
+	int ret = 0;
 
 	if (tpool == NULL)
 		return(-1);
@@ -724,26 +730,13 @@ handle_pause( ldap_pvt_thread_pool_t *tpool, int do_pause )
 	if (pool == NULL)
 		return(0);
 
-	if (! (do_pause || pool->ltp_pause))
+	if (pause_type == CHECK_PAUSE && !pool->ltp_pause)
 		return(0);
 
 	ldap_pvt_thread_mutex_lock(&pool->ltp_mutex);
 
-	/* If someone else has already requested a pause, we have to wait */
-	if (pool->ltp_pause) {
-		pool->ltp_pending_count++;
-		pool->ltp_active_count--;
-		/* let the other pool_pause() know when it can proceed */
-		if (pool->ltp_active_count < 2)
-			ldap_pvt_thread_cond_signal(&pool->ltp_pcond);
-		do {
-			ldap_pvt_thread_cond_wait(&pool->ltp_cond, &pool->ltp_mutex);
-		} while (pool->ltp_pause);
-		pool->ltp_pending_count--;
-		pool->ltp_active_count++;
-	}
-
-	if (do_pause) {
+	switch( pause_type ) {
+	case DO_PAUSE:
 		/* Wait for everyone else to pause or finish */
 		pool->ltp_pause = 1;
 		/* Let ldap_pvt_thread_pool_submit() through to its ltp_pause test,
@@ -756,10 +749,48 @@ handle_pause( ldap_pvt_thread_pool_t *tpool, int do_pause )
 		while (pool->ltp_active_count > 1) {
 			ldap_pvt_thread_cond_wait(&pool->ltp_pcond, &pool->ltp_mutex);
 		}
+		break;
+	case GO_UNIDLE:
+		pool->ltp_pending_count--;
+		pool->ltp_active_count++;
+		/* FALLTHRU */
+	case CHECK_PAUSE:
+	case GO_IDLE:
+	/* If someone else has already requested a pause, we have to wait */
+		if (pool->ltp_pause) {
+			pool->ltp_pending_count++;
+			pool->ltp_active_count--;
+			/* let the other pool_pause() know when it can proceed */
+			if (pool->ltp_active_count < 2)
+				ldap_pvt_thread_cond_signal(&pool->ltp_pcond);
+			do {
+				ldap_pvt_thread_cond_wait(&pool->ltp_cond, &pool->ltp_mutex);
+			} while (pool->ltp_pause);
+			pool->ltp_pending_count--;
+			pool->ltp_active_count++;
+			ret = 1;
+		}
+		if (pause_type != GO_IDLE)
+			break;
+		pool->ltp_pending_count++;
+		pool->ltp_active_count--;
+		break;
 	}
 
 	ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
-	return(!do_pause);
+	return(ret);
+}
+
+void
+ldap_pvt_thread_pool_idle( ldap_pvt_thread_pool_t *tpool )
+{
+	handle_pause( tpool, GO_IDLE );
+}
+
+void
+ldap_pvt_thread_pool_unidle( ldap_pvt_thread_pool_t *tpool )
+{
+	handle_pause( tpool, GO_UNIDLE );
 }
 
 /*
@@ -770,14 +801,14 @@ handle_pause( ldap_pvt_thread_pool_t *tpool, int do_pause )
 int
 ldap_pvt_thread_pool_pausecheck( ldap_pvt_thread_pool_t *tpool )
 {
-	return handle_pause( tpool, 0 );
+	return handle_pause( tpool, CHECK_PAUSE );
 }
 
 /* Pause the pool.  Return when all other threads are paused. */
 int
 ldap_pvt_thread_pool_pause( ldap_pvt_thread_pool_t *tpool )
 {
-	return handle_pause( tpool, 1 );
+	return handle_pause( tpool, DO_PAUSE );
 }
 
 /* End a pause */
