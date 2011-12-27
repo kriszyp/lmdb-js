@@ -191,7 +191,7 @@ or consult the table below. The possible values for <level> are:
 Level	Keyword		Description
 -1	any		enable all debugging
 0			no debugging
-1	(0x1 trace)	trace function callss
+1	(0x1 trace)	trace function calls
 2	(0x2 packets)	debug packet handling
 4	(0x4 args)	heavy trace debugging
 8	(0x8 conns)	connection management
