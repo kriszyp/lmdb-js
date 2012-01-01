@@ -1,5 +1,5 @@
 # $OpenLDAP$
-# Copyright 1999-2011 The OpenLDAP Foundation, All Rights Reserved.
+# Copyright 1999-2012 The OpenLDAP Foundation, All Rights Reserved.
 # COPYING RESTRICTIONS APPLY, see COPYRIGHT.
 # 
 
@@ -9,7 +9,7 @@ P1: Preface
 # document's copyright
 P2[notoc] Copyright
 
-Copyright 1998-2011, The {{ORG[expand]OLF}}, {{All Rights Reserved}}.
+Copyright 1998-2012, The {{ORG[expand]OLF}}, {{All Rights Reserved}}.
 
 Copyright 1992-1996, Regents of the {{ORG[expand]UM}}, {{All Rights Reserved}}.
 
