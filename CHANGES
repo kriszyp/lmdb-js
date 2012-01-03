@@ -9,6 +9,8 @@ OpenLDAP 2.4.29 Engineering
 	Fixed slapo-dds to properly exit when in tool mode (ITS#7099)
 	Build Environment
 		Fixed test001 to skip back-ldif (ITS#7101)
+	Documentation
+		admin24 Fix typo (ITS#7117)
 
 OpenLDAP 2.4.28 Release (2011/11/26)
 	Fixed back-mdb out of order slapadd (ITS#7090)
