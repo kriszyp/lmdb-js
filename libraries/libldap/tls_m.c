@@ -2267,8 +2267,8 @@ tlsm_deferred_ctx_init( void *arg )
 		}
 	} else { /* set up secure server */
 		SSLKEAType certKEA;
-		CERTCertificate *serverCert;
-		SECKEYPrivateKey *serverKey;
+		CERTCertificate *serverCert = NULL;
+		SECKEYPrivateKey *serverKey = NULL;
 		SECStatus status;
 
 		/* must have a certificate for the server to use */
