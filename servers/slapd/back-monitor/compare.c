@@ -56,6 +56,7 @@ monitor_back_compare( Operation *op, SlapReply *rs )
 		return rs->sr_err;
 	}
 
+	monitor_entry_update( op, rs, e );
 	rs->sr_err = slap_compare_entry( op, e, op->orc_ava );
 	rc = rs->sr_err;
 	switch ( rc ) {
