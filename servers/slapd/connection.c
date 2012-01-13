@@ -225,7 +225,6 @@ int connections_timeout_idle(time_t now)
 		 */
 		if(( c->c_n_ops_executing && !c->c_writewaiter)
 			|| c->c_conn_state == SLAP_C_CLIENT ) {
-			connection_done( c );
 			continue;
 		}
 
@@ -247,8 +246,8 @@ int connections_timeout_idle(time_t now)
 				continue;
 			}
 		}
-		connection_done( c );
 	}
+	connection_done( c );
 	if ( old && !writers )
 		slapd_clr_writetime( old );
 
@@ -270,12 +269,12 @@ void connections_drop()
 		 */
 		if(( c->c_n_ops_executing && !c->c_writewaiter)
 			|| c->c_conn_state == SLAP_C_CLIENT ) {
-			connection_done( c );
 			continue;
 		}
 		connection_closing( c, "dropping" );
 		connection_close( c );
 	}
+	connection_done( c );
 }
 
 static Connection* connection_get( ber_socket_t s )
