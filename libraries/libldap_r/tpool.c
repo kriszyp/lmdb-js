@@ -125,11 +125,11 @@ struct ldap_int_thread_pool_s {
 	/* Max number of threads in pool, or 0 for default (LDAP_MAXTHR) */
 	int ltp_max_count;
 
-	/* Max number of pending + paused requests, negated when ltp_finishing */
+	/* Max pending + paused + idle tasks, negated when ltp_finishing */
 	int ltp_max_pending;
 
-	int ltp_pending_count;		/* Pending or paused requests */
-	int ltp_active_count;		/* Active, not paused requests */
+	int ltp_pending_count;		/* Pending + paused + idle tasks */
+	int ltp_active_count;		/* Active, not paused/idle tasks */
 	int ltp_open_count;			/* Number of threads, negated when ltp_pause */
 	int ltp_starting;			/* Currenlty starting threads */
 
@@ -711,16 +711,21 @@ ldap_int_thread_pool_wrapper (
 	return(NULL);
 }
 
-#define	DO_PAUSE	0
-#define	CHECK_PAUSE	1
-#define	GO_IDLE	2
-#define	GO_UNIDLE	3
+/* Arguments > ltp_pause to handle_pause(,PAUSE_ARG()).  arg=PAUSE_ARG
+ * ensures (arg-ltp_pause) sets GO_* at need and keeps DO_PAUSE/GO_*.
+ */
+#define GO_IDLE		8
+#define GO_UNIDLE	16
+#define CHECK_PAUSE	32	/* if (ltp_pause) { GO_IDLE; GO_UNIDLE; } */
+#define DO_PAUSE	64	/* CHECK_PAUSE; pause the pool */
+#define PAUSE_ARG(a) \
+		((a) | ((a) & (GO_IDLE|GO_UNIDLE) ? GO_IDLE-1 : CHECK_PAUSE))
 
 static int
 handle_pause( ldap_pvt_thread_pool_t *tpool, int pause_type )
 {
 	struct ldap_int_thread_pool_s *pool;
-	int ret = 0;
+	int ret = 0, pause;
 
 	if (tpool == NULL)
 		return(-1);
@@ -735,9 +740,34 @@ handle_pause( ldap_pvt_thread_pool_t *tpool, int pause_type )
 
 	ldap_pvt_thread_mutex_lock(&pool->ltp_mutex);
 
-	switch( pause_type ) {
-	case DO_PAUSE:
-		/* Wait for everyone else to pause or finish */
+	pause = pool->ltp_pause;	/* 0 or 1 */
+
+	/* If ltp_pause and not GO_IDLE|GO_UNIDLE: Set GO_IDLE,GO_UNIDLE */
+	pause_type -= pause;
+
+	if (pause_type & GO_IDLE) {
+		pool->ltp_pending_count++;
+		pool->ltp_active_count--;
+		if (pause && pool->ltp_active_count < 2) {
+			/* Tell the task waiting to DO_PAUSE it can proceed */
+			ldap_pvt_thread_cond_signal(&pool->ltp_pcond);
+		}
+	}
+
+	if (pause_type & GO_UNIDLE) {
+		/* Wait out pause if any, then cancel GO_IDLE */
+		ret = pause;
+		for (; pause; pause = pool->ltp_pause) {
+			ldap_pvt_thread_cond_wait(&pool->ltp_cond, &pool->ltp_mutex);
+		}
+		pool->ltp_pending_count--;
+		pool->ltp_active_count++;
+	}
+
+	if (pause_type & DO_PAUSE) {
+		/* Tell everyone else to pause or finish, then await that */
+		ret = 0;
+		assert(!pool->ltp_pause);
 		pool->ltp_pause = 1;
 		/* Let ldap_pvt_thread_pool_submit() through to its ltp_pause test,
 		 * and do not finish threads in ldap_pvt_thread_pool_wrapper() */
@@ -745,70 +775,50 @@ handle_pause( ldap_pvt_thread_pool_t *tpool, int pause_type )
 		SET_VARY_OPEN_COUNT(pool);
 		/* Hide pending tasks from ldap_pvt_thread_pool_wrapper() */
 		pool->ltp_work_list = &empty_pending_list;
-
+		/* Wait for this task to become the sole active task */
 		while (pool->ltp_active_count > 1) {
 			ldap_pvt_thread_cond_wait(&pool->ltp_pcond, &pool->ltp_mutex);
 		}
-		break;
-	case GO_UNIDLE:
-		pool->ltp_pending_count--;
-		pool->ltp_active_count++;
-		/* FALLTHRU */
-	case CHECK_PAUSE:
-	case GO_IDLE:
-	/* If someone else has already requested a pause, we have to wait */
-		if (pool->ltp_pause) {
-			pool->ltp_pending_count++;
-			pool->ltp_active_count--;
-			/* let the other pool_pause() know when it can proceed */
-			if (pool->ltp_active_count < 2)
-				ldap_pvt_thread_cond_signal(&pool->ltp_pcond);
-			do {
-				ldap_pvt_thread_cond_wait(&pool->ltp_cond, &pool->ltp_mutex);
-			} while (pool->ltp_pause);
-			pool->ltp_pending_count--;
-			pool->ltp_active_count++;
-			ret = 1;
-		}
-		if (pause_type != GO_IDLE)
-			break;
-		pool->ltp_pending_count++;
-		pool->ltp_active_count--;
-		break;
 	}
 
 	ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
 	return(ret);
 }
 
+/* Consider this task idle: It will not block pool_pause() in other tasks. */
 void
 ldap_pvt_thread_pool_idle( ldap_pvt_thread_pool_t *tpool )
 {
-	handle_pause( tpool, GO_IDLE );
+	handle_pause(tpool, PAUSE_ARG(GO_IDLE));
 }
 
+/* Cancel pool_idle(). If a pause was requested, wait for it first. */
 void
 ldap_pvt_thread_pool_unidle( ldap_pvt_thread_pool_t *tpool )
 {
-	handle_pause( tpool, GO_UNIDLE );
+	handle_pause(tpool, PAUSE_ARG(GO_UNIDLE));
 }
 
 /*
  * If a pause was requested, wait for it.  If several threads
  * are waiting to pause, let through one or more pauses.
+ * The calling task must be active, not idle.
  * Return 1 if we waited, 0 if not, -1 at parameter error.
  */
 int
 ldap_pvt_thread_pool_pausecheck( ldap_pvt_thread_pool_t *tpool )
 {
-	return handle_pause( tpool, CHECK_PAUSE );
+	return handle_pause(tpool, PAUSE_ARG(CHECK_PAUSE));
 }
 
-/* Pause the pool.  Return when all other threads are paused. */
+/*
+ * Pause the pool.  The calling task must be active, not idle.
+ * Return when all other tasks are paused or idle.
+ */
 int
 ldap_pvt_thread_pool_pause( ldap_pvt_thread_pool_t *tpool )
 {
-	return handle_pause( tpool, DO_PAUSE );
+	return handle_pause(tpool, PAUSE_ARG(DO_PAUSE));
 }
 
 /* End a pause */
