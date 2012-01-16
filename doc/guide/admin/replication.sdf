@@ -335,13 +335,18 @@ demonstrate a very real problem that is encountered in some LDAP deployments.
 
 Delta-syncrepl, a changelog-based variant of syncrepl, is designed to address 
 situations like the one described above. Delta-syncrepl works by maintaining a 
-changelog of a selectable depth on the provider. The replication consumer 
+changelog of a selectable depth in a separate database on the provider. The replication consumer 
 checks the changelog for the changes it needs and, as long as 
 the changelog contains the needed changes, the consumer fetches the changes
 from the changelog and applies them to its database. If, however, a replica 
 is too far out of sync (or completely empty), conventional syncrepl is used to 
 bring it up to date and replication then switches back to the delta-syncrepl
 mode.
+
+Note: since the database state is stored in both the changelog DB and the
+main DB on the provider, it is important to backup/restore both the changelog
+DB and the main DB using slapcat/slapadd when restoring a DB or copying
+it to another machine.
 
 For configuration, please see the {{SECT:Delta-syncrepl}} section.
 
