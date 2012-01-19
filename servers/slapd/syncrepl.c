@@ -5512,12 +5512,12 @@ syncrepl_config( ConfigArgs *c )
 								ldap_pvt_runqueue_stoptask( &slapd_rq, re );
 								isrunning = 1;
 							}
-							ldap_pvt_runqueue_remove( &slapd_rq, re );
-							ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
-
 							if ( ldap_pvt_thread_pool_retract( &connection_pool,
 									re->routine, re ) > 0 )
 								isrunning = 0;
+
+							ldap_pvt_runqueue_remove( &slapd_rq, re );
+							ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
 
 							ldap_pvt_thread_mutex_unlock( &si->si_mutex );
 						}
