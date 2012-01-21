@@ -5,7 +5,7 @@
  *	BerkeleyDB API, but much simplified.
  */
 /*
- * Copyright 2011 Howard Chu, Symas Corp.
+ * Copyright 2011-2012 Howard Chu, Symas Corp.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -62,6 +62,21 @@
 #ifdef __APPLE__
 #include <semaphore.h>
 #endif
+#endif
+
+#ifdef USE_VALGRIND
+#include <valgrind/memcheck.h>
+#define VGMEMP_CREATE(h,r,z)    VALGRIND_CREATE_MEMPOOL(h,r,z)
+#define VGMEMP_ALLOC(h,a,s) VALGRIND_MEMPOOL_ALLOC(h,a,s)
+#define VGMEMP_FREE(h,a) VALGRIND_MEMPOOL_FREE(h,a)
+#define VGMEMP_DESTROY(h)	VALGRIND_DESTROY_MEMPOOL(h)
+#define VGMEMP_DEFINED(a,s)	VALGRIND_MAKE_MEM_DEFINED(a,s)
+#else
+#define VGMEMP_CREATE(h,r,z)
+#define VGMEMP_ALLOC(h,a,s)
+#define VGMEMP_FREE(h,a)
+#define VGMEMP_DESTROY(h)
+#define VGMEMP_DEFINED(a,s)
 #endif
 
 #ifndef BYTE_ORDER
@@ -1068,11 +1083,15 @@ mdb_dcmp(MDB_txn *txn, MDB_dbi dbi, const MDB_val *a, const MDB_val *b)
 static MDB_page *
 mdb_page_malloc(MDB_cursor *mc) {
 	MDB_page *ret;
+	size_t sz = mc->mc_txn->mt_env->me_psize;
 	if (mc->mc_txn->mt_env->me_dpages) {
 		ret = mc->mc_txn->mt_env->me_dpages;
+		VGMEMP_ALLOC(mc->mc_txn->mt_env, ret, sz);
+		VGMEMP_DEFINED(ret, sizeof(ret->mp_next));
 		mc->mc_txn->mt_env->me_dpages = ret->mp_next;
 	} else {
-		ret = malloc(mc->mc_txn->mt_env->me_psize);
+		ret = malloc(sz);
+		VGMEMP_ALLOC(mc->mc_txn->mt_env, ret, sz);
 	}
 	return ret;
 }
@@ -1184,10 +1203,14 @@ mdb_page_alloc(MDB_cursor *mc, int num)
 	}
 	if (txn->mt_env->me_dpages && num == 1) {
 		np = txn->mt_env->me_dpages;
+		VGMEMP_ALLOC(txn->mt_env, np, txn->mt_env->me_psize);
+		VGMEMP_DEFINED(np, sizeof(np->mp_next));
 		txn->mt_env->me_dpages = np->mp_next;
 	} else {
-		if ((np = malloc(txn->mt_env->me_psize * num )) == NULL)
+		size_t sz = txn->mt_env->me_psize * num;
+		if ((np = malloc(sz)) == NULL)
 			return NULL;
+		VGMEMP_ALLOC(txn->mt_env, np, sz);
 	}
 	if (pgno == P_INVALID) {
 		np->mp_pgno = txn->mt_next_pgno;
@@ -1234,6 +1257,7 @@ finish:
 			for (m2 = mc->mc_txn->mt_cursors[dbi]; m2; m2=m2->mc_next) {
 				if (m2 == mc) continue;
 				m3 = &m2->mc_xcursor->mx_cursor;
+				if (m3->mc_snum < mc->mc_snum) continue;
 				if (m3->mc_pg[mc->mc_top] == mc->mc_pg[mc->mc_top]) {
 					m3->mc_pg[mc->mc_top] = mp;
 				}
@@ -1242,7 +1266,7 @@ finish:
 			MDB_cursor *m2;
 
 			for (m2 = mc->mc_txn->mt_cursors[mc->mc_dbi]; m2; m2=m2->mc_next) {
-				if (m2 == mc) continue;
+				if (m2 == mc || m2->mc_snum < mc->mc_snum) continue;
 				if (m2->mc_pg[mc->mc_top] == mc->mc_pg[mc->mc_top]) {
 					m2->mc_pg[mc->mc_top] = mp;
 				}
@@ -1589,9 +1613,11 @@ mdb_txn_reset0(MDB_txn *txn)
 			dp = txn->mt_u.dirty_list[i].mptr;
 			if (!IS_OVERFLOW(dp) || dp->mp_pages == 1) {
 				dp->mp_next = txn->mt_env->me_dpages;
+				VGMEMP_FREE(txn->mt_env, dp);
 				txn->mt_env->me_dpages = dp;
 			} else {
 				/* large pages just get freed directly */
+				VGMEMP_FREE(txn->mt_env, dp);
 				free(dp);
 			}
 		}
@@ -1736,8 +1762,10 @@ mdb_txn_commit(MDB_txn *txn)
 		}
 		x = dst[0].mid;
 		for (; y<=src[0].mid; y++) {
-			if (++x >= MDB_IDL_UM_MAX)
+			if (++x >= MDB_IDL_UM_MAX) {
+				mdb_txn_abort(txn);
 				return ENOMEM;
+			}
 			dst[x] = src[y];
 		}
 		dst[0].mid = x;
@@ -1940,8 +1968,10 @@ mdb_txn_commit(MDB_txn *txn)
 		dp = txn->mt_u.dirty_list[i].mptr;
 		if (!IS_OVERFLOW(dp) || dp->mp_pages == 1) {
 			dp->mp_next = txn->mt_env->me_dpages;
+			VGMEMP_FREE(txn->mt_env, dp);
 			txn->mt_env->me_dpages = dp;
 		} else {
+			VGMEMP_FREE(txn->mt_env, dp);
 			free(dp);
 		}
 		txn->mt_u.dirty_list[i].mid = 0;
@@ -2218,6 +2248,7 @@ mdb_env_create(MDB_env **env)
 	e->me_fd = INVALID_HANDLE_VALUE;
 	e->me_lfd = INVALID_HANDLE_VALUE;
 	e->me_mfd = INVALID_HANDLE_VALUE;
+	VGMEMP_CREATE(e,0,0);
 	*env = e;
 	return MDB_SUCCESS;
 }
@@ -2824,8 +2855,10 @@ mdb_env_close(MDB_env *env)
 	if (env == NULL)
 		return;
 
+	VGMEMP_DESTROY(env);
 	while (env->me_dpages) {
 		dp = env->me_dpages;
+		VALGRIND_MAKE_MEM_DEFINED(&dp->mp_next, sizeof(dp->mp_next));
 		env->me_dpages = dp->mp_next;
 		free(dp);
 	}
@@ -4167,7 +4200,7 @@ new_sub:
 					m3 = &m2->mc_xcursor->mx_cursor;
 				else
 					m3 = m2;
-				if (m3 == mc) continue;
+				if (m3 == mc || m3->mc_snum < mc->mc_snum) continue;
 				if (m3->mc_pg[i] == mp && m3->mc_ki[i] >= mc->mc_ki[i]) {
 					m3->mc_ki[i]++;
 				}
@@ -4208,7 +4241,7 @@ put_sub:
 					MDB_page *mp = mc->mc_pg[i];
 
 					for (m2 = mc->mc_txn->mt_cursors[mc->mc_dbi]; m2; m2=m2->mc_next) {
-						if (m2 == mc) continue;
+						if (m2 == mc || m2->mc_snum < mc->mc_snum) continue;
 						if (m2->mc_pg[i] == mp && m2->mc_ki[i] == mc->mc_ki[i]) {
 							mdb_xcursor_init1(m2, leaf);
 						}
@@ -4713,6 +4746,7 @@ mdb_cursor_init(MDB_cursor *mc, MDB_txn *txn, MDB_dbi dbi, MDB_xcursor *mx)
 	mc->mc_dbx = &txn->mt_dbxs[dbi];
 	mc->mc_dbflag = &txn->mt_dbflags[dbi];
 	mc->mc_snum = 0;
+	mc->mc_top = 0;
 	mc->mc_flags = 0;
 	if (txn->mt_dbs[dbi].md_flags & MDB_DUPSORT) {
 		assert(mx != NULL);
@@ -5076,6 +5110,7 @@ mdb_page_merge(MDB_cursor *csrc, MDB_cursor *cdst)
 				m3 = &m2->mc_xcursor->mx_cursor;
 			else
 				m3 = m2;
+			if (m3->mc_snum < csrc->mc_snum) continue;
 			if (m3->mc_pg[csrc->mc_top] == csrc->mc_pg[csrc->mc_top]) {
 				m3->mc_pg[csrc->mc_top] = mp;
 				m3->mc_ki[csrc->mc_top] += nkeys;
@@ -5167,6 +5202,7 @@ mdb_rebalance(MDB_cursor *mc)
 						m3 = &m2->mc_xcursor->mx_cursor;
 					else
 						m3 = m2;
+					if (m3->mc_snum < mc->mc_snum) continue;
 					if (m3->mc_pg[0] == mp) {
 						m3->mc_snum = 0;
 						m3->mc_top = 0;
@@ -5196,6 +5232,7 @@ mdb_rebalance(MDB_cursor *mc)
 						m3 = &m2->mc_xcursor->mx_cursor;
 					else
 						m3 = m2;
+					if (m3->mc_snum < mc->mc_snum) continue;
 					if (m3->mc_pg[0] == mp) {
 						m3->mc_pg[0] = mc->mc_pg[0];
 					}
@@ -5580,6 +5617,8 @@ newsep:
 			ins_new = 1;
 
 			/* Update page and index for the new key. */
+			if (!newindx)
+				mc->mc_pg[mc->mc_top] = copy;
 			mc->mc_ki[mc->mc_top] = j;
 		} else if (i == nkeys) {
 			break;
@@ -5615,7 +5654,7 @@ newsep:
 		mc->mc_txn->mt_env->me_psize - copy->mp_upper);
 
 	/* reset back to original page */
-	if (newindx < split_indx) {
+	if (!newindx || (newindx < split_indx)) {
 		mc->mc_pg[mc->mc_top] = mp;
 		if (nflags & MDB_RESERVE) {
 			node = NODEPTR(mp, mc->mc_ki[mc->mc_top]);
@@ -5626,6 +5665,7 @@ newsep:
 
 	/* return tmp page to freelist */
 	copy->mp_next = mc->mc_txn->mt_env->me_dpages;
+	VGMEMP_FREE(mc->mc_txn->mt_env, copy);
 	mc->mc_txn->mt_env->me_dpages = copy;
 done:
 	{

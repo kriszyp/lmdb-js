@@ -33,7 +33,7 @@
  *
  *	@author	Howard Chu, Symas Corporation.
  *
- *	@copyright Copyright 2011 Howard Chu, Symas Corp. All rights reserved.
+ *	@copyright Copyright 2011-2012 Howard Chu, Symas Corp. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted only as authorized by the OpenLDAP
@@ -530,6 +530,7 @@ int  mdb_txn_begin(MDB_env *env, MDB_txn *parent, unsigned int flags, MDB_txn **
 	 *	<li>EINVAL - an invalid parameter was specified.
 	 *	<li>ENOSPC - no more disk space.
 	 *	<li>EIO - a low-level I/O error occurred while writing.
+	 *	<li>ENOMEM - the transaction is nested and could not be merged into its parent.
 	 * </ul>
 	 */
 int  mdb_txn_commit(MDB_txn *txn);
