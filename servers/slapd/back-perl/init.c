@@ -18,6 +18,11 @@
 #include "perl_back.h"
 #include "../config.h"
 
+#ifdef PERL_SYS_INIT3
+#include <ac/unistd.h>		/* maybe get environ */
+extern char **environ;
+#endif
+
 static void perl_back_xs_init LDAP_P((PERL_BACK_XS_INIT_PARAMS));
 EXT void boot_DynaLoader LDAP_P((PERL_BACK_BOOT_DYNALOADER_PARAMS));
 
@@ -38,6 +43,11 @@ perl_back_initialize(
 {
 	char *embedding[] = { "", "-e", "0", NULL }, **argv = embedding;
 	int argc = 3;
+#ifdef PERL_SYS_INIT3
+	char **env = environ;
+#else
+	char **env = NULL;
+#endif
 
 	bi->bi_open = NULL;
 	bi->bi_config = 0;
@@ -78,15 +88,15 @@ perl_back_initialize(
 	
 	ldap_pvt_thread_mutex_init( &perl_interpreter_mutex );
 
-#ifdef PERL_SYS_INIT
-	PERL_SYS_INIT(&argc, &argv);
+#ifdef PERL_SYS_INIT3
+	PERL_SYS_INIT3(&argc, &argv, &env);
 #endif
 	PERL_INTERPRETER = perl_alloc();
 	perl_construct(PERL_INTERPRETER);
 #ifdef PERL_EXIT_DESTRUCT_END
 	PL_exit_flags |= PERL_EXIT_DESTRUCT_END;
 #endif
-	perl_parse(PERL_INTERPRETER, perl_back_xs_init, argc, argv, (char **)NULL);
+	perl_parse(PERL_INTERPRETER, perl_back_xs_init, argc, argv, env);
 	perl_run(PERL_INTERPRETER);
 	return perl_back_init_cf( bi );
 }
