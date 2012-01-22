@@ -1892,8 +1892,6 @@ int connection_write(ber_socket_t s)
 
 	assert( connections != NULL );
 
-	slapd_clr_write( s, 0 );
-
 	c = connection_get( s );
 	if( c == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
@@ -1901,6 +1899,8 @@ int connection_write(ber_socket_t s)
 			(long)s, 0, 0 );
 		return -1;
 	}
+
+	slapd_clr_write( s, 0 );
 
 #ifdef HAVE_TLS
 	if ( c->c_is_tls && c->c_needs_tls_accept ) {
