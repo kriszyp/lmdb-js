@@ -9,6 +9,7 @@ OpenLDAP 2.4.29 Engineering
 	Fixed slapd syncrepl reference to freed memory (ITS#7127)
 	Fixed slapd-mdb to handle overlays in tool mode (ITS#7099)
 	Fixed slapd-meta to correctly handle multiple targets (ITS#7050)
+	Fixed back-perl initialization (ITS#7075)
 	Fixed slapo-dds to properly exit when in tool mode (ITS#7099)
 	Build Environment
 		Fixed test001 to skip back-ldif (ITS#7101)
