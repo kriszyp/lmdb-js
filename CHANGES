@@ -8,6 +8,7 @@ OpenLDAP 2.4.29 Engineering
 	Fixed slapd check order in connection_write (ITS#7113)
 	Fixed slapd syncrepl reference to freed memory (ITS#7127)
 	Fixed slapd-mdb to handle overlays in tool mode (ITS#7099)
+	Fixed slapd-mdb segfaults with page splits (ITS#7121)
 	Fixed slapd-meta to correctly handle multiple targets (ITS#7050)
 	Fixed back-perl initialization (ITS#7075)
 	Fixed slapo-dds to properly exit when in tool mode (ITS#7099)
