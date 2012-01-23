@@ -5,6 +5,7 @@ OpenLDAP 2.4.29 Engineering
 	Fixed slapd operation reuse (ITS#7107)
 	Fixed slapd blocked writers should not interfere with pool pause (ITS#7115)
 	Fixed slapd multiple calls to connection_done (ITS#7125)
+	Fixed slapd check order in connection_write (ITS#7113)
 	Fixed slapd syncrepl reference to freed memory (ITS#7127)
 	Fixed slapd-mdb to handle overlays in tool mode (ITS#7099)
 	Fixed slapd-meta to correctly handle multiple targets (ITS#7050)
