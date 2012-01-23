@@ -209,7 +209,7 @@ int connections_shutdown(void)
 int connections_timeout_idle(time_t now)
 {
 	int i = 0, writers = 0;
-	int connindex;
+	ber_socket_t connindex;
 	Connection* c;
 	time_t old;
 
@@ -258,7 +258,7 @@ int connections_timeout_idle(time_t now)
 void connections_drop()
 {
 	Connection* c;
-	int connindex;
+	ber_socket_t connindex;
 
 	for( c = connection_first( &connindex );
 		c != NULL;

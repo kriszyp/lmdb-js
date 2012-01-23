@@ -223,7 +223,7 @@ monitor_subsys_conn_update(
 
 	} else if ( dn_match( &rdn, &current_bv ) ) {
 		Connection	*c;
-		int		connindex;
+		ber_socket_t	connindex;
 
 		for ( n = 0, c = connection_first( &connindex );
 				c != NULL;
@@ -445,7 +445,7 @@ monitor_subsys_conn_create(
 
 	if ( ndn == NULL ) {
 		Connection	*c;
-		int		connindex;
+		ber_socket_t	connindex;
 		Entry		*e = NULL,
 				*e_tmp = NULL;
 
@@ -481,7 +481,7 @@ monitor_subsys_conn_create(
 
 	} else {
 		Connection		*c;
-		int			connindex;
+		ber_socket_t		connindex;
 		unsigned long 		connid;
 		char			*next = NULL;
 		static struct berval	nconn_bv = BER_BVC( "cn=connection " );
