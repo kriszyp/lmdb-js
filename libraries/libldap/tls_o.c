@@ -657,10 +657,8 @@ static int
 tlso_session_strength( tls_session *sess )
 {
 	tlso_session *s = (tlso_session *)sess;
-	SSL_CIPHER *c;
 
-	c = SSL_get_current_cipher(s);
-	return SSL_CIPHER_get_bits(c, NULL);
+	return SSL_CIPHER_get_bits(SSL_get_current_cipher(s), NULL);
 }
 
 /*
