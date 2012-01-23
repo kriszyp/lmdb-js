@@ -481,6 +481,7 @@ debug_noop( void )
  *
  * Returns true if the resource is initialized and not copied/realloced.
  */
+LDAP_GCCATTR((noinline))
 static int
 debug_already_initialized( const ldap_debug_usage_info_t *usage )
 {
