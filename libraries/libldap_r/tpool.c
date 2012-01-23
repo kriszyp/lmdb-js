@@ -50,6 +50,9 @@ typedef struct ldap_int_tpool_key_s {
 /* (Theoretical) max number of pending requests */
 #define MAX_PENDING (INT_MAX/2)	/* INT_MAX - (room to avoid overflow) */
 
+/* pool->ltp_pause values */
+enum { NOT_PAUSED = 0, WANT_PAUSE = 1, PAUSED = 2 };
+
 /* Context: thread ID and thread-specific key/data pairs */
 typedef struct ldap_int_thread_userctx_s {
 	ldap_pvt_thread_t ltu_id;
@@ -462,7 +465,7 @@ ldap_pvt_thread_pool_query(
 		break;
 
 	case LDAP_PVT_THREAD_POOL_PARAM_PAUSING:
-		count = pool->ltp_pause;
+		count = (pool->ltp_pause != 0);
 		break;
 
 	case LDAP_PVT_THREAD_POOL_PARAM_PENDING:
@@ -512,7 +515,7 @@ ldap_pvt_thread_pool_pausing( ldap_pvt_thread_pool_t *tpool )
 	struct ldap_int_thread_pool_s *pool;
 
 	if ( tpool != NULL && (pool = *tpool) != NULL ) {
-		rc = pool->ltp_pause;
+		rc = (pool->ltp_pause != 0);
 	}
 
 	return rc;
@@ -716,7 +719,7 @@ ldap_int_thread_pool_wrapper (
  */
 #define GO_IDLE		8
 #define GO_UNIDLE	16
-#define CHECK_PAUSE	32	/* if (ltp_pause) { GO_IDLE; GO_UNIDLE; } */
+#define CHECK_PAUSE	32	/* if ltp_pause: GO_IDLE; wait; GO_UNIDLE */
 #define DO_PAUSE	64	/* CHECK_PAUSE; pause the pool */
 #define PAUSE_ARG(a) \
 		((a) | ((a) & (GO_IDLE|GO_UNIDLE) ? GO_IDLE-1 : CHECK_PAUSE))
@@ -725,7 +728,7 @@ static int
 handle_pause( ldap_pvt_thread_pool_t *tpool, int pause_type )
 {
 	struct ldap_int_thread_pool_s *pool;
-	int ret = 0, pause;
+	int ret = 0, pause, max_ltp_pause;
 
 	if (tpool == NULL)
 		return(-1);
@@ -738,9 +741,12 @@ handle_pause( ldap_pvt_thread_pool_t *tpool, int pause_type )
 	if (pause_type == CHECK_PAUSE && !pool->ltp_pause)
 		return(0);
 
+	/* Let pool_unidle() ignore requests for new pauses */
+	max_ltp_pause = pause_type==PAUSE_ARG(GO_UNIDLE) ? WANT_PAUSE : NOT_PAUSED;
+
 	ldap_pvt_thread_mutex_lock(&pool->ltp_mutex);
 
-	pause = pool->ltp_pause;	/* 0 or 1 */
+	pause = pool->ltp_pause;	/* NOT_PAUSED, WANT_PAUSE or PAUSED */
 
 	/* If ltp_pause and not GO_IDLE|GO_UNIDLE: Set GO_IDLE,GO_UNIDLE */
 	pause_type -= pause;
@@ -756,9 +762,11 @@ handle_pause( ldap_pvt_thread_pool_t *tpool, int pause_type )
 
 	if (pause_type & GO_UNIDLE) {
 		/* Wait out pause if any, then cancel GO_IDLE */
-		ret = pause;
-		for (; pause; pause = pool->ltp_pause) {
-			ldap_pvt_thread_cond_wait(&pool->ltp_cond, &pool->ltp_mutex);
+		if (pause > max_ltp_pause) {
+			ret = 1;
+			do {
+				ldap_pvt_thread_cond_wait(&pool->ltp_cond, &pool->ltp_mutex);
+			} while (pool->ltp_pause > max_ltp_pause);
 		}
 		pool->ltp_pending_count--;
 		pool->ltp_active_count++;
@@ -768,7 +776,7 @@ handle_pause( ldap_pvt_thread_pool_t *tpool, int pause_type )
 		/* Tell everyone else to pause or finish, then await that */
 		ret = 0;
 		assert(!pool->ltp_pause);
-		pool->ltp_pause = 1;
+		pool->ltp_pause = WANT_PAUSE;
 		/* Let ldap_pvt_thread_pool_submit() through to its ltp_pause test,
 		 * and do not finish threads in ldap_pvt_thread_pool_wrapper() */
 		pool->ltp_open_count = -pool->ltp_open_count;
@@ -779,6 +787,8 @@ handle_pause( ldap_pvt_thread_pool_t *tpool, int pause_type )
 		while (pool->ltp_active_count > 1) {
 			ldap_pvt_thread_cond_wait(&pool->ltp_pcond, &pool->ltp_mutex);
 		}
+		assert(pool->ltp_pause == WANT_PAUSE);
+		pool->ltp_pause = PAUSED;
 	}
 
 	ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
@@ -792,7 +802,7 @@ ldap_pvt_thread_pool_idle( ldap_pvt_thread_pool_t *tpool )
 	handle_pause(tpool, PAUSE_ARG(GO_IDLE));
 }
 
-/* Cancel pool_idle(). If a pause was requested, wait for it first. */
+/* Cancel pool_idle(). If the pool is paused, wait it out first. */
 void
 ldap_pvt_thread_pool_unidle( ldap_pvt_thread_pool_t *tpool )
 {
@@ -838,7 +848,7 @@ ldap_pvt_thread_pool_resume (
 
 	ldap_pvt_thread_mutex_lock(&pool->ltp_mutex);
 
-	assert(pool->ltp_pause);
+	assert(pool->ltp_pause == PAUSED);
 	pool->ltp_pause = 0;
 	if (pool->ltp_open_count <= 0) /* true when paused, but be paranoid */
 		pool->ltp_open_count = -pool->ltp_open_count;
