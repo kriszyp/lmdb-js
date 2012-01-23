@@ -155,7 +155,7 @@ monitor_subsys_rww_update(
 {
 	monitor_info_t *mi = (monitor_info_t *)op->o_bd->be_private;
 	Connection	*c;
-	int		connindex;
+	ber_socket_t	connindex;
 	long		nconns, nwritewaiters, nreadwaiters;
 
 	int		i;
