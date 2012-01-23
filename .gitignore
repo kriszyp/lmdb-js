@@ -138,6 +138,7 @@ libraries/libldap_r/vlvctrl.c
 libraries/libldap_r/whoami.c
 libraries/liblunicode/ucdata.c
 libraries/liblunicode/ucdata.h
+libraries/liblunicode/ucgendat
 libraries/liblunicode/ucgendat.c
 libraries/liblunicode/uctable.h
 libraries/liblunicode/ure.c
