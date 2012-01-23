@@ -864,6 +864,17 @@ unsigned long connections_nextid(void)
 	return id;
 }
 
+/*
+ * Loop through the connections:
+ *
+ *	for (c = connection_first(&i); c; c = connection_next(c, &i)) ...;
+ *	connection_done(c);
+ *
+ * 'i' is the cursor, initialized by connection_first().
+ * 'c_mutex' is locked in the returned connection.  The functions must
+ * be passed the previous return value so they can unlock it again.
+ */
+
 Connection* connection_first( ber_socket_t *index )
 {
 	assert( connections != NULL );
@@ -880,6 +891,7 @@ Connection* connection_first( ber_socket_t *index )
 	return connection_next(NULL, index);
 }
 
+/* Next connection in loop, see connection_first() */
 Connection* connection_next( Connection *c, ber_socket_t *index )
 {
 	assert( connections != NULL );
@@ -928,6 +940,7 @@ Connection* connection_next( Connection *c, ber_socket_t *index )
 	return c;
 }
 
+/* End connection loop, see connection_first() */
 void connection_done( Connection *c )
 {
 	assert( connections != NULL );
