@@ -185,13 +185,6 @@ struct ldapoptions {
 #define LDAP_TRASHED_SESSION	0xFF
 	int   ldo_debug;
 
-#ifdef LDAP_R_COMPILE
-	ldap_pvt_thread_mutex_t	ldo_mutex;
-#define LDAP_LDO_MUTEX_NULLARG	, LDAP_PVT_MUTEX_NULL
-#else
-#define LDAP_LDO_MUTEX_NULLARG
-#endif
-
 #ifdef LDAP_CONNECTIONLESS
 #define	LDAP_IS_UDP(ld)		((ld)->ld_options.ldo_is_udp)
 	void*			ldo_peer;	/* struct sockaddr* */
@@ -281,6 +274,13 @@ struct ldapoptions {
 	ldaplist *ldo_conn_cbs;
 
 	LDAP_BOOLEANS ldo_booleans;	/* boolean options */
+
+#ifdef LDAP_R_COMPILE
+	ldap_pvt_thread_mutex_t	ldo_mutex;
+#define LDAP_LDO_MUTEX_NULLARG	, LDAP_PVT_MUTEX_NULL
+#else
+#define LDAP_LDO_MUTEX_NULLARG
+#endif
 };
 
 
@@ -422,19 +422,6 @@ struct ldap_common {
 #define	ld_requests		ldc->ldc_requests
 #define	ld_responses		ldc->ldc_responses
 
-#ifdef LDAP_R_COMPILE
-	ldap_pvt_thread_mutex_t	ldc_msgid_mutex;
-	ldap_pvt_thread_mutex_t	ldc_conn_mutex;
-	ldap_pvt_thread_mutex_t	ldc_req_mutex;
-	ldap_pvt_thread_mutex_t	ldc_res_mutex;
-	ldap_pvt_thread_mutex_t	ldc_abandon_mutex;
-#define	ld_msgid_mutex		ldc->ldc_msgid_mutex
-#define	ld_conn_mutex		ldc->ldc_conn_mutex
-#define	ld_req_mutex		ldc->ldc_req_mutex
-#define	ld_res_mutex		ldc->ldc_res_mutex
-#define	ld_abandon_mutex	ldc->ldc_abandon_mutex
-#endif
-
 	/* protected by abandon_mutex */
 	ber_len_t	ldc_nabandoned;
 	ber_int_t	*ldc_abandoned;	/* array of abandoned requests */
@@ -463,6 +450,19 @@ struct ldap_common {
 	/* protected by ldc_mutex */
 	unsigned int		ldc_refcnt;
 #define	ld_ldcrefcnt		ldc->ldc_refcnt
+
+#ifdef LDAP_R_COMPILE
+	ldap_pvt_thread_mutex_t	ldc_msgid_mutex;
+	ldap_pvt_thread_mutex_t	ldc_conn_mutex;
+	ldap_pvt_thread_mutex_t	ldc_req_mutex;
+	ldap_pvt_thread_mutex_t	ldc_res_mutex;
+	ldap_pvt_thread_mutex_t	ldc_abandon_mutex;
+#define	ld_msgid_mutex		ldc->ldc_msgid_mutex
+#define	ld_conn_mutex		ldc->ldc_conn_mutex
+#define	ld_req_mutex		ldc->ldc_req_mutex
+#define	ld_res_mutex		ldc->ldc_res_mutex
+#define	ld_abandon_mutex	ldc->ldc_abandon_mutex
+#endif
 };
 
 struct ldap {
