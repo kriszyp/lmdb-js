@@ -11,6 +11,7 @@ OpenLDAP 2.4.29 Engineering
 	Fixed slapd-mdb to handle overlays in tool mode (ITS#7099)
 	Fixed slapd-mdb segfaults with page splits (ITS#7121)
 	Fixed slapd-meta to correctly handle multiple targets (ITS#7050)
+	Fixed slapd-monitor compare op to update cached entry (ITS#7123)
 	Fixed slapd-perl initialization (ITS#7075)
 	Fixed slapo-dds to properly exit when in tool mode (ITS#7099)
 	Build Environment
