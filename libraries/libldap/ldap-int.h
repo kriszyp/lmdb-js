@@ -276,8 +276,6 @@ struct ldapoptions {
 #endif
 
 #ifdef HAVE_GSSAPI
-	unsigned gssapi_flags;
-
 	unsigned ldo_gssapi_flags;
 #define LDAP_GSSAPI_OPT_DO_NOT_FREE_GSS_CONTEXT	0x0001
 #define LDAP_GSSAPI_OPT_ALLOW_REMOTE_PRINCIPAL	0x0002

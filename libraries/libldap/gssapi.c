@@ -700,7 +700,7 @@ ldap_int_gss_spnego_bind_s( LDAP *ld )
 		req_mech = &spnego_oid;
 	}
 
-	req_flags = ld->ld_options.gssapi_flags;
+	req_flags = ld->ld_options.ldo_gssapi_flags;
 	req_flags |= GSS_C_MUTUAL_FLAG | GSS_C_REPLAY_FLAG;
 
 	/*
@@ -865,11 +865,11 @@ ldap_int_gssapi_get_option( LDAP *ld, int option, void *arg )
 
 	switch ( option ) {
 	case LDAP_OPT_SSPI_FLAGS:
-		* (unsigned *) arg = (unsigned) ld->ld_options.gssapi_flags;
+		* (unsigned *) arg = (unsigned) ld->ld_options.ldo_gssapi_flags;
 		break;
 
 	case LDAP_OPT_SIGN:
-		if ( ld->ld_options.gssapi_flags & GSS_C_INTEG_FLAG ) {
+		if ( ld->ld_options.ldo_gssapi_flags & GSS_C_INTEG_FLAG ) {
 			* (int *) arg = (int)-1;
 		} else {
 			* (int *) arg = (int)0;
@@ -877,7 +877,7 @@ ldap_int_gssapi_get_option( LDAP *ld, int option, void *arg )
 		break;
 
 	case LDAP_OPT_ENCRYPT:
-		if ( ld->ld_options.gssapi_flags & GSS_C_CONF_FLAG ) {
+		if ( ld->ld_options.ldo_gssapi_flags & GSS_C_CONF_FLAG ) {
 			* (int *) arg = (int)-1;
 		} else {
 			* (int *) arg = (int)0;
@@ -928,19 +928,19 @@ ldap_int_gssapi_set_option( LDAP *ld, int option, void *arg )
 	switch ( option ) {
 	case LDAP_OPT_SSPI_FLAGS:
 		if ( arg != LDAP_OPT_OFF ) {
-			ld->ld_options.gssapi_flags = * (unsigned *)arg;
+			ld->ld_options.ldo_gssapi_flags = * (unsigned *)arg;
 		}
 		break;
 
 	case LDAP_OPT_SIGN:
 		if ( arg != LDAP_OPT_OFF ) {
-			ld->ld_options.gssapi_flags |= GSS_C_INTEG_FLAG;
+			ld->ld_options.ldo_gssapi_flags |= GSS_C_INTEG_FLAG;
 		}
 		break;
 
 	case LDAP_OPT_ENCRYPT:
 		if ( arg != LDAP_OPT_OFF ) {
-			ld->ld_options.gssapi_flags |= GSS_C_INTEG_FLAG | GSS_C_CONF_FLAG;
+			ld->ld_options.ldo_gssapi_flags |= GSS_C_INTEG_FLAG | GSS_C_CONF_FLAG;
 		}
 		break;
 
