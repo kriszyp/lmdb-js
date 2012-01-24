@@ -2636,7 +2636,7 @@ typedef struct dninfo {
 	int delOldRDN;	/* Was old RDN deleted? */
 	Modifications **modlist;	/* the modlist we received */
 	Modifications *mods;	/* the modlist we compared */
-	Attribute *oldNattr;	/* old naming attr */
+	int oldNcount;		/* #values of old naming attr */
 	AttributeDescription *oldDesc;	/* for renames */
 	AttributeDescription *newDesc;	/* for renames */
 } dninfo;
@@ -2954,10 +2954,10 @@ retry_add:;
 			 * If delOldRDN is TRUE then we should see a delete modop
 			 * for oldDesc. We might see a replace instead.
 			 *  delete with no values: therefore newDesc != oldDesc.
-			 *   if oldNattr had only one value, then Drop this op.
+			 *   if oldNcount == 1, then Drop this op.
 			 *  delete with 1 value: can only be the oldRDN value. Drop op.
 			 *  delete with N values: Drop oldRDN value, keep remainder.
-			 *  replace with 1 value: if oldNattr had only one value and
+			 *  replace with 1 value: if oldNcount == 1 and
 			 *     newDesc == oldDesc, Drop this op.
 			 * Any other cases must be left intact.
 			 *
@@ -2978,7 +2978,7 @@ retry_add:;
 							continue;
 						}
 						if ( mod->sml_numvals <= 1 &&
-							dni.oldNattr->a_numvals == 1 &&
+							dni.oldNcount == 1 &&
 							( mod->sml_op == LDAP_MOD_DELETE ||
 							  mod->sml_op == LDAP_MOD_REPLACE )) {
 							if ( mod->sml_op == LDAP_MOD_REPLACE )
@@ -4133,7 +4133,7 @@ dn_callback(
 					dni->oldDesc = ad;
 					for ( oldpos=0, a=rs->sr_entry->e_attrs;
 						a && a->a_desc != ad; oldpos++, a=a->a_next );
-					dni->oldNattr = a;
+					dni->oldNcount = a->a_numvals;
 					for ( newpos=0, a=dni->new_entry->e_attrs;
 						a && a->a_desc != ad; newpos++, a=a->a_next );
 					if ( !a || oldpos != newpos || attr_valfind( a,
