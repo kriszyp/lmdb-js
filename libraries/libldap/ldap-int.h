@@ -188,68 +188,19 @@ struct ldapoptions {
 #define LDAP_TRASHED_SESSION	0xFF
 	int   ldo_debug;
 
-#ifdef LDAP_CONNECTIONLESS
-#define	LDAP_IS_UDP(ld)		((ld)->ld_options.ldo_is_udp)
-	void*			ldo_peer;	/* struct sockaddr* */
-	char*			ldo_cldapdn;
-	int			ldo_is_udp;
-#endif
-
-	/* per API call timeout */
-	struct timeval		ldo_tm_api;
-	struct timeval		ldo_tm_net;
-
 	ber_int_t		ldo_version;
 	ber_int_t		ldo_deref;
 	ber_int_t		ldo_timelimit;
 	ber_int_t		ldo_sizelimit;
 
-#ifdef HAVE_TLS
-   	/* tls context */
-   	void		*ldo_tls_ctx;
-	LDAP_TLS_CONNECT_CB	*ldo_tls_connect_cb;
-	void*			ldo_tls_connect_arg;
-	struct ldaptls ldo_tls_info;
-#define ldo_tls_certfile	ldo_tls_info.lt_certfile
-#define ldo_tls_keyfile	ldo_tls_info.lt_keyfile
-#define ldo_tls_dhfile	ldo_tls_info.lt_dhfile
-#define ldo_tls_cacertfile	ldo_tls_info.lt_cacertfile
-#define ldo_tls_cacertdir	ldo_tls_info.lt_cacertdir
-#define ldo_tls_ciphersuite	ldo_tls_info.lt_ciphersuite
-#define ldo_tls_protocol_min	ldo_tls_info.lt_protocol_min
-#define ldo_tls_crlfile	ldo_tls_info.lt_crlfile
-#define ldo_tls_randfile	ldo_tls_info.lt_randfile
-   	int			ldo_tls_mode;
-   	int			ldo_tls_require_cert;
-	int			ldo_tls_impl;
-#ifdef HAVE_OPENSSL_CRL
-   	int			ldo_tls_crlcheck;
-#endif
-#endif
+	/* per API call timeout */
+	struct timeval		ldo_tm_api;
+	struct timeval		ldo_tm_net;
 
 	LDAPURLDesc *ldo_defludp;
 	int		ldo_defport;
 	char*	ldo_defbase;
 	char*	ldo_defbinddn;	/* bind dn */
-
-#ifdef HAVE_CYRUS_SASL
-	char*	ldo_def_sasl_mech;		/* SASL Mechanism(s) */
-	char*	ldo_def_sasl_realm;		/* SASL realm */
-	char*	ldo_def_sasl_authcid;	/* SASL authentication identity */
-	char*	ldo_def_sasl_authzid;	/* SASL authorization identity */
-
-	/* SASL Security Properties */
-	struct sasl_security_properties	ldo_sasl_secprops;
-#endif
-
-#ifdef HAVE_GSSAPI
-	unsigned gssapi_flags;
-
-	unsigned ldo_gssapi_flags;
-#define LDAP_GSSAPI_OPT_DO_NOT_FREE_GSS_CONTEXT	0x0001
-#define LDAP_GSSAPI_OPT_ALLOW_REMOTE_PRINCIPAL	0x0002
-	unsigned ldo_gssapi_options;
-#endif
 
 	/*
 	 * Per connection tcp-keepalive settings (Linux only,
@@ -277,6 +228,67 @@ struct ldapoptions {
 	ldaplist *ldo_conn_cbs;
 
 	LDAP_BOOLEANS ldo_booleans;	/* boolean options */
+
+#define LDAP_LDO_NULLARG	,0,0,0,0 ,{0},{0} ,0,0,0,0, 0,0,0,0, 0,0, 0,0,0,0,0,0, 0, 0
+
+#ifdef LDAP_CONNECTIONLESS
+#define	LDAP_IS_UDP(ld)		((ld)->ld_options.ldo_is_udp)
+	void*			ldo_peer;	/* struct sockaddr* */
+	char*			ldo_cldapdn;
+	int			ldo_is_udp;
+#define	LDAP_LDO_CONNECTIONLESS_NULLARG	,0,0,0
+#else
+#define	LDAP_LDO_CONNECTIONLESS_NULLARG
+#endif
+
+#ifdef HAVE_TLS
+   	/* tls context */
+   	void		*ldo_tls_ctx;
+	LDAP_TLS_CONNECT_CB	*ldo_tls_connect_cb;
+	void*			ldo_tls_connect_arg;
+	struct ldaptls ldo_tls_info;
+#define ldo_tls_certfile	ldo_tls_info.lt_certfile
+#define ldo_tls_keyfile	ldo_tls_info.lt_keyfile
+#define ldo_tls_dhfile	ldo_tls_info.lt_dhfile
+#define ldo_tls_cacertfile	ldo_tls_info.lt_cacertfile
+#define ldo_tls_cacertdir	ldo_tls_info.lt_cacertdir
+#define ldo_tls_ciphersuite	ldo_tls_info.lt_ciphersuite
+#define ldo_tls_protocol_min	ldo_tls_info.lt_protocol_min
+#define ldo_tls_crlfile	ldo_tls_info.lt_crlfile
+#define ldo_tls_randfile	ldo_tls_info.lt_randfile
+   	int			ldo_tls_mode;
+   	int			ldo_tls_require_cert;
+	int			ldo_tls_impl;
+   	int			ldo_tls_crlcheck;
+#define LDAP_LDO_TLS_NULLARG ,0,0,0,{0,0,0,0,0,0,0,0,0},0,0,0,0
+#else
+#define LDAP_LDO_TLS_NULLARG
+#endif
+
+#ifdef HAVE_CYRUS_SASL
+	char*	ldo_def_sasl_mech;		/* SASL Mechanism(s) */
+	char*	ldo_def_sasl_realm;		/* SASL realm */
+	char*	ldo_def_sasl_authcid;	/* SASL authentication identity */
+	char*	ldo_def_sasl_authzid;	/* SASL authorization identity */
+
+	/* SASL Security Properties */
+	struct sasl_security_properties	ldo_sasl_secprops;
+#define LDAP_LDO_SASL_NULLARG ,0,0,0,0,{0}
+#else
+#define LDAP_LDO_SASL_NULLARG
+#endif
+
+#ifdef HAVE_GSSAPI
+	unsigned gssapi_flags;
+
+	unsigned ldo_gssapi_flags;
+#define LDAP_GSSAPI_OPT_DO_NOT_FREE_GSS_CONTEXT	0x0001
+#define LDAP_GSSAPI_OPT_ALLOW_REMOTE_PRINCIPAL	0x0002
+	unsigned ldo_gssapi_options;
+#define LDAP_LDO_GSSAPI_NULLARG ,0,0
+#else
+#define LDAP_LDO_GSSAPI_NULLARG
+#endif
 
 #ifdef LDAP_R_COMPILE
 	ldap_pvt_thread_mutex_t	ldo_mutex;
@@ -378,38 +390,6 @@ struct ldap_common {
 	Sockbuf		*ldc_sb;	/* socket descriptor & buffer */
 #define ld_sb			ldc->ldc_sb
 
-	/* protected by ldo_mutex */
-	struct ldapoptions ldc_options;
-#define ld_options		ldc->ldc_options
-
-#define ld_valid		ld_options.ldo_valid
-#define ld_debug		ld_options.ldo_debug
-
-#define ld_deref		ld_options.ldo_deref
-#define ld_timelimit		ld_options.ldo_timelimit
-#define ld_sizelimit		ld_options.ldo_sizelimit
-
-#define ld_defbinddn		ld_options.ldo_defbinddn
-#define ld_defbase		ld_options.ldo_defbase
-#define ld_defhost		ld_options.ldo_defhost
-#define ld_defport		ld_options.ldo_defport
-
-#define ld_refhoplimit		ld_options.ldo_refhoplimit
-
-#define ld_sctrls		ld_options.ldo_sctrls
-#define ld_cctrls		ld_options.ldo_cctrls
-#define ld_rebind_proc		ld_options.ldo_rebind_proc
-#define ld_rebind_params	ld_options.ldo_rebind_params
-#define ld_nextref_proc		ld_options.ldo_nextref_proc
-#define ld_nextref_params	ld_options.ldo_nextref_params
-#define ld_urllist_proc		ld_options.ldo_urllist_proc
-#define ld_urllist_params	ld_options.ldo_urllist_params
-
-#define ld_version		ld_options.ldo_version
-#ifdef LDAP_R_COMPILE
-#define	ld_ldopts_mutex		ld_options.ldo_mutex
-#endif
-
 	unsigned short	ldc_lberoptions;
 #define	ld_lberoptions		ldc->ldc_lberoptions
 
@@ -446,20 +426,48 @@ struct ldap_common {
 #define	ld_selectinfo		ldc->ldc_selectinfo
 
 	/* ldap_common refcnt - free only if 0 */
-#ifdef LDAP_R_COMPILE
-	ldap_pvt_thread_mutex_t	ldc_mutex;
-#define	ld_ldcmutex		ldc->ldc_mutex
-#endif
 	/* protected by ldc_mutex */
 	unsigned int		ldc_refcnt;
 #define	ld_ldcrefcnt		ldc->ldc_refcnt
 
+	/* protected by ldo_mutex */
+	struct ldapoptions ldc_options;
+#define ld_options		ldc->ldc_options
+
+#define ld_valid		ld_options.ldo_valid
+#define ld_debug		ld_options.ldo_debug
+
+#define ld_deref		ld_options.ldo_deref
+#define ld_timelimit		ld_options.ldo_timelimit
+#define ld_sizelimit		ld_options.ldo_sizelimit
+
+#define ld_defbinddn		ld_options.ldo_defbinddn
+#define ld_defbase		ld_options.ldo_defbase
+#define ld_defhost		ld_options.ldo_defhost
+#define ld_defport		ld_options.ldo_defport
+
+#define ld_refhoplimit		ld_options.ldo_refhoplimit
+
+#define ld_sctrls		ld_options.ldo_sctrls
+#define ld_cctrls		ld_options.ldo_cctrls
+#define ld_rebind_proc		ld_options.ldo_rebind_proc
+#define ld_rebind_params	ld_options.ldo_rebind_params
+#define ld_nextref_proc		ld_options.ldo_nextref_proc
+#define ld_nextref_params	ld_options.ldo_nextref_params
+#define ld_urllist_proc		ld_options.ldo_urllist_proc
+#define ld_urllist_params	ld_options.ldo_urllist_params
+
+#define ld_version		ld_options.ldo_version
+
 #ifdef LDAP_R_COMPILE
+	ldap_pvt_thread_mutex_t	ldc_mutex;
 	ldap_pvt_thread_mutex_t	ldc_msgid_mutex;
 	ldap_pvt_thread_mutex_t	ldc_conn_mutex;
 	ldap_pvt_thread_mutex_t	ldc_req_mutex;
 	ldap_pvt_thread_mutex_t	ldc_res_mutex;
 	ldap_pvt_thread_mutex_t	ldc_abandon_mutex;
+#define	ld_ldopts_mutex		ld_options.ldo_mutex
+#define	ld_ldcmutex		ldc->ldc_mutex
 #define	ld_msgid_mutex		ldc->ldc_msgid_mutex
 #define	ld_conn_mutex		ldc->ldc_conn_mutex
 #define	ld_req_mutex		ldc->ldc_req_mutex
