@@ -1960,6 +1960,66 @@ tlsm_destroy( void )
 #endif
 }
 
+static struct ldaptls *
+tlsm_copy_config ( const struct ldaptls *config )
+{
+	struct ldaptls *copy;
+
+	assert(config);
+
+	copy = LDAP_MALLOC(sizeof(*copy));
+	if (!copy)
+		return NULL;
+
+	memset(copy, 0, sizeof(*copy));
+
+	if (config->lt_certfile)
+		copy->lt_certfile = LDAP_STRDUP(config->lt_certfile);
+	if (config->lt_keyfile)
+		copy->lt_keyfile = LDAP_STRDUP(config->lt_keyfile);
+	if (config->lt_dhfile)
+		copy->lt_dhfile = LDAP_STRDUP(config->lt_dhfile);
+	if (config->lt_cacertfile)
+		copy->lt_cacertfile = LDAP_STRDUP(config->lt_cacertfile);
+	if (config->lt_cacertdir)
+		copy->lt_cacertdir = LDAP_STRDUP(config->lt_cacertdir);
+	if (config->lt_ciphersuite)
+		copy->lt_ciphersuite = LDAP_STRDUP(config->lt_ciphersuite);
+	if (config->lt_crlfile)
+		copy->lt_crlfile = LDAP_STRDUP(config->lt_crlfile);
+	if (config->lt_randfile)
+		copy->lt_randfile = LDAP_STRDUP(config->lt_randfile);
+
+	copy->lt_protocol_min = config->lt_protocol_min;
+
+	return copy;
+}
+
+static void
+tlsm_free_config ( struct ldaptls *config )
+{
+	assert(config);
+
+	if (config->lt_certfile)
+		LDAP_FREE(config->lt_certfile);
+	if (config->lt_keyfile)
+		LDAP_FREE(config->lt_keyfile);
+	if (config->lt_dhfile)
+		LDAP_FREE(config->lt_dhfile);
+	if (config->lt_cacertfile)
+		LDAP_FREE(config->lt_cacertfile);
+	if (config->lt_cacertdir)
+		LDAP_FREE(config->lt_cacertdir);
+	if (config->lt_ciphersuite)
+		LDAP_FREE(config->lt_ciphersuite);
+	if (config->lt_crlfile)
+		LDAP_FREE(config->lt_crlfile);
+	if (config->lt_randfile)
+		LDAP_FREE(config->lt_randfile);
+
+	LDAP_FREE(config);
+}
+
 static tls_ctx *
 tlsm_ctx_new ( struct ldapoptions *lo )
 {
@@ -1971,7 +2031,7 @@ tlsm_ctx_new ( struct ldapoptions *lo )
 #ifdef LDAP_R_COMPILE
 		ldap_pvt_thread_mutex_init( &ctx->tc_refmutex );
 #endif
-		ctx->tc_config = &lo->ldo_tls_info; /* pointer into lo structure - must have global scope and must not go away before we can do real init */
+		ctx->tc_config = NULL; /* populated later by tlsm_ctx_init */
 		ctx->tc_certdb = NULL;
 		ctx->tc_certname = NULL;
 		ctx->tc_pin_file = NULL;
@@ -2038,6 +2098,10 @@ tlsm_ctx_free ( tls_ctx *ctx )
 #ifdef LDAP_R_COMPILE
 	ldap_pvt_thread_mutex_destroy( &c->tc_refmutex );
 #endif
+
+	if ( c->tc_config )
+		tlsm_free_config( c->tc_config );
+
 	LDAP_FREE( c );
 }
 
@@ -2048,6 +2112,7 @@ static int
 tlsm_ctx_init( struct ldapoptions *lo, struct ldaptls *lt, int is_server )
 {
 	tlsm_ctx *ctx = (tlsm_ctx *)lo->ldo_tls_ctx;
+	ctx->tc_config = tlsm_copy_config(lt);
 	ctx->tc_is_server = is_server;
 
 	return 0;
@@ -2067,7 +2132,7 @@ tlsm_deferred_ctx_init( void *arg )
 
 	if ( tlsm_deferred_init( ctx ) ) {
 	    Debug( LDAP_DEBUG_ANY,
-			   "TLS: could perform TLS system initialization.\n",
+			   "TLS: could not perform TLS system initialization.\n",
 			   0, 0, 0 );
 	    return -1;
 	}
@@ -2332,6 +2397,9 @@ tlsm_deferred_ctx_init( void *arg )
 		       err, PR_ErrorToString( err, PR_LANGUAGE_I_DEFAULT ), NULL );
 		return -1;
 	}
+
+	tlsm_free_config( ctx->tc_config );
+	ctx->tc_config = NULL;
 
 	return 0;
 }
