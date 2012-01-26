@@ -1,6 +1,8 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.29 Engineering
+	Fixed libldap MozNSS deferred initialization handling (ITS#7136)
+	Fixed libldap MozNSS with TLSCertificateKeyFile not set (ITS#7135)
 	Fixed slapd cn=config modification of first schema element (ITS#7098)
 	Fixed slapd operation reuse (ITS#7107)
 	Fixed slapd blocked writers to not interfere with pool pause (ITS#7115)
