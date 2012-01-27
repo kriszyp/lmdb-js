@@ -3181,6 +3181,8 @@ retry_modrdn:;
 			Debug( LDAP_DEBUG_SYNC,
 					"syncrepl_entry: %s be_delete %s (%d)\n", 
 					si->si_ridtxt, op->o_req_dn.bv_val, rc );
+			if ( rc == LDAP_NO_SUCH_OBJECT )
+				rc = LDAP_SUCCESS;
 
 			while ( rs_delete.sr_err == LDAP_SUCCESS
 				&& op->o_delete_glue_parent ) {
