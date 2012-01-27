@@ -167,10 +167,10 @@ and their usage.
 !endif
 >	./configure --help
 
-The {{EX:configure}} script will also look at various environment variables
-for certain settings.  These environment variables include:
+The {{EX:configure}} script also looks for certain variables
+on the command line and in the environment.  These include:
 
-!block table; align=Center; coltags="EX,N"; title="Table 4.1: Environment Variables"
+!block table; align=Center; coltags="EX,N"; title="Table 4.1: Variables"
 Variable	Description
 CC      	Specify alternative C Compiler
 CFLAGS  	Specify additional compiler flags
@@ -180,9 +180,9 @@ LIBS    	Specify additional libraries
 !endblock
 
 Now run the configure script with any desired configuration options or
-environment variables.
+variables.
 
->	[[env] settings] ./configure [options]
+>	./configure [options] [variable=value ...]
 
 As an example, let's assume that we want to install OpenLDAP with
 BDB backend and TCP Wrappers support.  By default, BDB
@@ -195,14 +195,11 @@ However, this will fail to locate dependent software not
 installed in system directories.  For example, if TCP Wrappers
 headers and libraries are installed in {{F:/usr/local/include}}
 and {{F:/usr/local/lib}} respectively, the {{EX:configure}}
-script should be called as follows:
+script should typically be called as follows:
 
->	env CPPFLAGS="-I/usr/local/include" LDFLAGS="-L/usr/local/lib" \
->		./configure --enable-wrappers
-
-Note: Some shells, such as those derived from the Bourne {{sh}}(1),
-do not require use of the {{env}}(1) command.  In some cases, environmental
-variables have to be specified using alternative syntaxes.
+>	./configure --enable-wrappers \
+>		CPPFLAGS="-I/usr/local/include" \
+>		LDFLAGS="-L/usr/local/lib -Wl,-rpath,/usr/local/lib"
 
 The {{EX:configure}} script will normally auto-detect appropriate
 settings.  If you have problems at this stage, consult any platform
