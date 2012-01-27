@@ -680,6 +680,7 @@ static int smbk5pwd_exop_passwd(
 		qpw->rs_mods = ml;
 
 		keys = ch_malloc( sizeof(struct berval) * 2);
+		BER_BVZERO( &keys[1] );
 		keys[0].bv_val = ch_malloc( LDAP_PVT_INTTYPE_CHARS(long) );
 		keys[0].bv_len = snprintf(keys[0].bv_val,
 			LDAP_PVT_INTTYPE_CHARS(long),
