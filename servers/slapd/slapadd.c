@@ -448,9 +448,11 @@ slapadd( int argc, char **argv )
 	}
 
 	if ( slap_tool_thread_max > 1 ) {
+		ldap_pvt_thread_mutex_lock( &add_mutex );
 		add_stop = 1;
 		trec.ready = 0;
 		ldap_pvt_thread_cond_signal( &add_cond );
+		ldap_pvt_thread_mutex_unlock( &add_mutex );
 		ldap_pvt_thread_join( thr, NULL );
 	}
 
