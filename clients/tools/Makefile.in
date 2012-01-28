@@ -28,8 +28,8 @@ MKVOPTS = -s
 XLIBS =  $(LDAP_L)
 XXLIBS	= $(SECURITY_LIBS) $(LUTIL_LIBS)
 
-XSRCS	= ldsversion.c ldmversion.c lddversion.c ldrversion.c \
-	ldpversion.c ldwversion.c ldcversion.c ldeversion.c lduversion.c
+XSRCS	= ldsversion.c ldmversion.c lddversion.c ldrversion.c ldpversion.c \
+	ldwversion.c ldvversion.c ldcversion.c ldeversion.c lduversion.c
 
 PROGRAMS = ldapsearch ldapmodify ldapdelete ldapmodrdn \
 	ldappasswd ldapwhoami ldapvc ldapcompare ldapexop ldapurl
