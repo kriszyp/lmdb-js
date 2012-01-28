@@ -679,9 +679,13 @@ done:
 		}
 
 	} else {
+		unsigned i;
 		mdb_txn_abort( txn );
 		txn = NULL;
-		cursor = NULL;
+		idcursor = NULL;
+		for ( i=0; i<mdb->mi_nattrs; i++ )
+			mdb->mi_attrs[i]->ai_cursor = NULL;
+		mdb_writes = 0;
 		snprintf( text->bv_val, text->bv_len,
 			"txn_aborted! %s (%d)",
 			rc == LDAP_OTHER ? "Internal error" :
@@ -799,9 +803,7 @@ int mdb_tool_entry_reindex(
 
 	/*
 	 * just (re)add them for now
-	 * assume that some other routine (not yet implemented)
-	 * will zap index databases
-	 *
+	 * Use truncate mode to empty/reset index databases
 	 */
 
 	Debug( LDAP_DEBUG_TRACE,
@@ -822,6 +824,7 @@ done:
 			unsigned i;
 			MDB_TOOL_IDL_FLUSH( be, txi );
 			rc = mdb_txn_commit( txi );
+			mdb_writes = 0;
 			for ( i=0; i<mi->mi_nattrs; i++ )
 				mi->mi_attrs[i]->ai_cursor = NULL;
 			if( rc != 0 ) {
@@ -835,7 +838,11 @@ done:
 		}
 
 	} else {
+		unsigned i;
+		mdb_writes = 0;
 		mdb_txn_abort( txi );
+		for ( i=0; i<mi->mi_nattrs; i++ )
+			mi->mi_attrs[i]->ai_cursor = NULL;
 		Debug( LDAP_DEBUG_ANY,
 			"=> " LDAP_XSTRING(mdb_tool_entry_reindex)
 			": txn_aborted! err=%d\n",
