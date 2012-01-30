@@ -37,6 +37,8 @@ ldapcompare \- LDAP compare tool
 [\c
 .BR \-E \ [ ! ] \fIext\fP [ =\fIextparam\fP ]]
 [\c
+.BR \-o \ \fIopt\fP [ =\fIoptparam\fP ]]
+[\c
 .BI \-O \ security-properties\fR]
 [\c
 .BR \-I ]
@@ -172,6 +174,16 @@ General extensions:
 Compare extensions:
 .nf
   !dontUseCopy
+.fi
+.TP
+.BR \-o \ \fIopt\fP [ =\fIoptparam\fP ]
+
+Specify general options.
+
+General options:
+.nf
+  nettimeout=<timeout>  (in seconds, or "none" or "max")
+  ldif-wrap=<width>     (in columns, or "no" for no wrapping)
 .fi
 .TP
 .BI \-O \ security-properties
