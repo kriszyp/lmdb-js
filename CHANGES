@@ -13,6 +13,7 @@ OpenLDAP 2.4.29 Engineering
 	Fixed slapd syncrepl to ignore some errors on delete (ITS#7052)
 	Fixed slapd-mdb to handle overlays in tool mode (ITS#7099)
 	Fixed slapd-mdb segfaults with page splits (ITS#7121)
+	Fixed slapd-mdb cleanup on transaction abort (ITS#7140)
 	Fixed slapd-meta to correctly handle multiple targets (ITS#7050)
 	Fixed slapd-monitor compare op to update cached entry (ITS#7123)
 	Fixed slapd-perl initialization (ITS#7075)
