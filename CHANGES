@@ -17,6 +17,7 @@ OpenLDAP 2.4.29 Engineering
 	Fixed slapd-monitor compare op to update cached entry (ITS#7123)
 	Fixed slapd-perl initialization (ITS#7075)
 	Fixed slapo-dds to properly exit when in tool mode (ITS#7099)
+	Fixed contrib/smbk5pwd uninitialized keys in shadowLastChange (ITS#7138)
 	Build Environment
 		Fixed test001 to skip back-ldif (ITS#7101)
 	Documentation
