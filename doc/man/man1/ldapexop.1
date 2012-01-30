@@ -26,6 +26,8 @@ ldapexop
 [\c
 .BR \-e \ [ ! ] \fIext\fP [ =\fIextparam\fP ]]
 [\c
+.BR \-o \ \fIopt\fP [ =\fIoptparam\fP ]]
+[\c
 .BI \-f \ file\fR]
 [\c
 .BI \-h \ host\fR]
@@ -144,6 +146,16 @@ Specify general extensions.  \'!\' indicates criticality.
   abandon,cancel,ignore (SIGINT sends abandon/cancel,
   or ignores response; if critical, doesn't wait for SIGINT.
   not really controls)
+.fi
+.TP
+.BR \-o \ \fIopt\fP [ =\fIoptparam\fP ]
+
+Specify general options.
+
+General options:
+.nf
+  nettimeout=<timeout>  (in seconds, or "none" or "max")
+  ldif-wrap=<width>     (in columns, or "no" for no wrapping)
 .fi
 .TP
 .BI \-f \ file

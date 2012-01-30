@@ -41,6 +41,8 @@ ldapmodify, ldapadd \- LDAP modify entry and LDAP add entry tools
 [\c
 .BR \-E \ [ ! ] \fIext\fP [ =\fIextparam\fP ]]
 [\c
+.BR \-o \ \fIopt\fP [ =\fIoptparam\fP ]]
+[\c
 .BI \-O \ security-properties\fR]
 [\c
 .BR \-I ]
@@ -234,6 +236,16 @@ General extensions:
 Modify extensions:
 .nf
   [!]txn[=abort|commit]
+.fi
+.TP
+.BR \-o \ \fIopt\fP [ =\fIoptparam\fP ]
+
+Specify general options.
+
+General options:
+.nf
+  nettimeout=<timeout>  (in seconds, or "none" or "max")
+  ldif-wrap=<width>     (in columns, or "no" for no wrapping)
 .fi
 .TP
 .B \-I
