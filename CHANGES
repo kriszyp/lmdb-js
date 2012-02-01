@@ -1,6 +1,6 @@
 OpenLDAP 2.4 Change Log
 
-OpenLDAP 2.4.29 Engineering
+OpenLDAP 2.4.29 Release (2012/02/04)
 	Fixed libldap MozNSS deferred initialization handling (ITS#7136)
 	Fixed libldap MozNSS with TLSCertificateKeyFile not set (ITS#7135)
 	Fixed slapd cn=config modification of first schema element (ITS#7098)
