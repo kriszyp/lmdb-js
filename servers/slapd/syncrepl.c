@@ -4135,7 +4135,10 @@ dn_callback(
 					dni->oldDesc = ad;
 					for ( oldpos=0, a=rs->sr_entry->e_attrs;
 						a && a->a_desc != ad; oldpos++, a=a->a_next );
-					dni->oldNcount = a->a_numvals;
+					/* a should not be NULL but apparently it happens.
+					 * ITS#7144
+					 */
+					dni->oldNcount = a ? a->a_numvals : 0;
 					for ( newpos=0, a=dni->new_entry->e_attrs;
 						a && a->a_desc != ad; newpos++, a=a->a_next );
 					if ( !a || oldpos != newpos || attr_valfind( a,
