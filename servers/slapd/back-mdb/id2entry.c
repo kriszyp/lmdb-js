@@ -500,6 +500,11 @@ static int mdb_entry_partsize(struct mdb_info *mdb, MDB_txn *txn, Entry *e,
 	for (a=e->e_attrs; a; a=a->a_next) {
 		/* For AttributeDesc, we only store the attr index */
 		nat++;
+		if (a->a_desc->ad_index >= MDB_MAXADS) {
+			Debug( LDAP_DEBUG_ANY, "mdb_entry_partsize: too many AttributeDescriptions used\n",
+				0, 0, 0 );
+			return LDAP_OTHER;
+		}
 		if (!mdb->mi_adxs[a->a_desc->ad_index]) {
 			int rc = mdb_ad_get(mdb, txn, a->a_desc);
 			if (rc)
@@ -569,11 +574,6 @@ static int mdb_entry_encode(Operation *op, Entry *e, MDB_val *data, Ecount *eh)
 	ptr = (unsigned char *)(lp + eh->offset);
 
 	for (a=e->e_attrs; a; a=a->a_next) {
-		if (a->a_desc->ad_index >= MDB_MAXADS) {
-			Debug( LDAP_DEBUG_ANY, "mdb_entry_encode: too many AttributeDescriptions used\n",
-				0, 0, 0 );
-			return LDAP_OTHER;
-		}
 		*lp++ = mdb->mi_adxs[a->a_desc->ad_index];
 		l = a->a_numvals;
 		if (a->a_nvals != a->a_vals)
