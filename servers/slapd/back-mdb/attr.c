@@ -556,6 +556,12 @@ int mdb_ad_read( struct mdb_info *mdb, MDB_txn *txn )
 		if ( rc ) {
 			rc = slap_bv2undef_ad( &bdata, &mdb->mi_ads[i], &text, 0 );
 		} else {
+			if ( ad->ad_index >= MDB_MAXADS ) {
+				Debug( LDAP_DEBUG_ANY,
+					"mdb_adb_read: too many AttributeDescriptions in use\n",
+					0, 0, 0 );
+				return LDAP_OTHER;
+			}
 			mdb->mi_adxs[ad->ad_index] = i;
 			mdb->mi_ads[i] = ad;
 		}
