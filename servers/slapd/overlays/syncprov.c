@@ -2115,10 +2115,12 @@ syncprov_op_mod( Operation *op, SlapReply *rs )
 				/* clean up if the caller is giving up */
 				if ( op->o_abandon ) {
 					modinst *m2;
-					for ( m2 = mt->mt_mods; m2->mi_next != mi;
+					for ( m2 = mt->mt_mods; m2 && m2->mi_next != mi;
 						m2 = m2->mi_next );
-					m2->mi_next = mi->mi_next;
-					if ( mt->mt_tail == mi ) mt->mt_tail = m2;
+					if ( m2 ) {
+						m2->mi_next = mi->mi_next;
+						if ( mt->mt_tail == mi ) mt->mt_tail = m2;
+					}
 					op->o_tmpfree( cb, op->o_tmpmemctx );
 					ldap_pvt_thread_mutex_unlock( &mt->mt_mutex );
 					return SLAPD_ABANDON;
