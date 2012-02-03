@@ -1277,6 +1277,12 @@ rwm_attrs( Operation *op, SlapReply *rs, Attribute** a_first, int stripEntryDN )
 								NULL );
 
 							if ( rc != LDAP_SUCCESS ) {
+								/* FIXME: this is wrong, putting a non-normalized value
+								 * into nvals. But when a proxy sends us bogus data,
+								 * we still need to give it to the client, even if it
+								 * violates the syntax. I.e., we don't want to silently
+								 * drop things and trigger an apparent data loss.
+								 */
 								ber_dupbv( &(*ap)->a_nvals[i], &(*ap)->a_vals[i] );
 							}
 						}
