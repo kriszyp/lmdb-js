@@ -1,6 +1,6 @@
 OpenLDAP Devel README
-	This software was obtained from the development branch (HEAD) of
-	the OpenLDAP Software Repository.  This copy is likely already
+	This software was obtained from a development branch of the
+	OpenLDAP Software Repository.  This copy is likely already
 	not current, the development branch changes frequently.  These
 	changes include code implementing experimental features and
 	unproven bug fixes.  Please do NOT redistribute copies of the
