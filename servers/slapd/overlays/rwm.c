@@ -1277,7 +1277,7 @@ rwm_attrs( Operation *op, SlapReply *rs, Attribute** a_first, int stripEntryDN )
 								NULL );
 
 							if ( rc != LDAP_SUCCESS ) {
-								BER_BVZERO( &(*ap)->a_nvals[i] );
+								ber_dupbv( &(*ap)->a_nvals[i], &(*ap)->a_vals[i] );
 							}
 						}
 						BER_BVZERO( &(*ap)->a_nvals[i] );
