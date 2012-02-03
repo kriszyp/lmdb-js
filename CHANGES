@@ -21,6 +21,7 @@ OpenLDAP 2.4.29 Release (2012/02/04)
 	Fixed slapd-monitor compare op to update cached entry (ITS#7123)
 	Fixed slapd-perl initialization (ITS#7075)
 	Fixed slapo-dds to properly exit when in tool mode (ITS#7099)
+	Fixed slapo-rwm not leave empty lots with normalized attrs (ITS#7143)
 	Fixed slapo-syncprov with already abandoned operation (ITS#7150)
 	Fixed contrib/smbk5pwd uninitialized keys in shadowLastChange (ITS#7138)
 	Build Environment
