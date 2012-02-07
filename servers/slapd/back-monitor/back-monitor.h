@@ -268,6 +268,8 @@ typedef struct monitor_subsys_t {
 				struct berval *ndn, Entry *, Entry ** );
 	/* modify entry and subentries */
 	int		( *mss_modify )( Operation *, SlapReply *, Entry * );
+
+	void		*mss_private;
 } monitor_subsys_t;
 
 extern BackendDB *be_monitor;
