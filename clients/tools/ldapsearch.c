@@ -41,11 +41,12 @@
 #include <stdio.h>
 
 #include <ac/stdlib.h>
-
 #include <ac/ctype.h>
 #include <ac/string.h>
 #include <ac/unistd.h>
 #include <ac/errno.h>
+#include <ac/time.h>
+
 #include <sys/stat.h>
 
 #include <ac/signal.h>
