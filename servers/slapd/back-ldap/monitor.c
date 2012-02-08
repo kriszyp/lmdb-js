@@ -92,23 +92,6 @@ static struct {
 };
 
 static int
-ldap_back_monitor_info_destroy( ldapinfo_t * li )
-{
-	if ( !BER_BVISNULL( &li->li_monitor_info.lmi_rdn ) )
-		ch_free( li->li_monitor_info.lmi_rdn.bv_val );
-	if ( !BER_BVISNULL( &li->li_monitor_info.lmi_nrdn ) )
-		ch_free( li->li_monitor_info.lmi_nrdn.bv_val );
-	if ( !BER_BVISNULL( &li->li_monitor_info.lmi_filter ) )
-		ch_free( li->li_monitor_info.lmi_filter.bv_val );
-	if ( !BER_BVISNULL( &li->li_monitor_info.lmi_more_filter ) )
-		ch_free( li->li_monitor_info.lmi_more_filter.bv_val );
-
-	memset( &li->li_monitor_info, 0, sizeof( li->li_monitor_info ) );
-
-	return 0;
-}
-
-static int
 ldap_back_monitor_update(
 	Operation	*op,
 	SlapReply	*rs,
@@ -271,8 +254,8 @@ ldap_back_monitor_free(
 
 	*priv = NULL;
 
-	if ( !slapd_shutdown && !BER_BVISNULL( &li->li_monitor_info.lmi_rdn ) ) {
-		ldap_back_monitor_info_destroy( li );
+	if ( !slapd_shutdown ) {
+		memset( &li->li_monitor_info, 0, sizeof( li->li_monitor_info ) );
 	}
 
 	return SLAP_CB_CONTINUE;
@@ -401,14 +384,6 @@ int
 ldap_back_monitor_db_open( BackendDB *be )
 {
 	ldapinfo_t		*li = (ldapinfo_t *) be->be_private;
-	char			buf[ BACKMONITOR_BUFSIZE ];
-	Entry			*e = NULL;
-	monitor_callback_t	*cb = NULL;
-	struct berval		suffix, *filter, *base;
-	char			*ptr;
-	time_t			now;
-	char			timebuf[ LDAP_LUTIL_GENTIME_BUFSIZE ];
-	struct berval 		timestamp;
 	int			rc = 0;
 	BackendInfo		*mi;
 	monitor_extra_t		*mbe;
@@ -439,165 +414,23 @@ ldap_back_monitor_db_open( BackendDB *be )
 		return 0;
 	}
 
-	/* set up the fake subsystem that is used to create
-	 * the volatile connection entries */
-	li->li_monitor_info.lmi_mss.mss_name = "back-ldap";
-	li->li_monitor_info.lmi_mss.mss_flags = MONITOR_F_VOLATILE_CH;
-	li->li_monitor_info.lmi_mss.mss_create = ldap_back_monitor_conn_create;
-
-	li->li_monitor_info.lmi_li = li;
-	li->li_monitor_info.lmi_scope = LDAP_SCOPE_SUBORDINATE;
-	base = &li->li_monitor_info.lmi_base;
-	BER_BVSTR( base, "cn=databases,cn=monitor" );
-	filter = &li->li_monitor_info.lmi_filter;
-	BER_BVZERO( filter );
-
-	suffix.bv_len = ldap_bv2escaped_filter_value_len( &be->be_nsuffix[ 0 ] );
-	if ( suffix.bv_len == be->be_nsuffix[ 0 ].bv_len ) {
-		suffix = be->be_nsuffix[ 0 ];
-
-	} else {
-		ldap_bv2escaped_filter_value( &be->be_nsuffix[ 0 ], &suffix );
-	}
-	
-	filter->bv_len = STRLENOF( "(&" )
-		+ li->li_monitor_info.lmi_more_filter.bv_len
-		+ STRLENOF( "(monitoredInfo=" )
-		+ strlen( be->bd_info->bi_type )
-		+ STRLENOF( ")(!(monitorOverlay=" )
-		+ strlen( be->bd_info->bi_type )
-		+ STRLENOF( "))(namingContexts:distinguishedNameMatch:=" )
-		+ suffix.bv_len + STRLENOF( "))" );
-	ptr = filter->bv_val = ch_malloc( filter->bv_len + 1 );
-	ptr = lutil_strcopy( ptr, "(&" );
-	ptr = lutil_strncopy( ptr, li->li_monitor_info.lmi_more_filter.bv_val,
-		li->li_monitor_info.lmi_more_filter.bv_len );
-	ptr = lutil_strcopy( ptr, "(monitoredInfo=" );
-	ptr = lutil_strcopy( ptr, be->bd_info->bi_type );
-	ptr = lutil_strcopy( ptr, ")(!(monitorOverlay=" );
-	ptr = lutil_strcopy( ptr, be->bd_info->bi_type );
-	ptr = lutil_strcopy( ptr, "))(namingContexts:distinguishedNameMatch:=" );
-	ptr = lutil_strncopy( ptr, suffix.bv_val, suffix.bv_len );
-	ptr = lutil_strcopy( ptr, "))" );
-	ptr[ 0 ] = '\0';
-	assert( ptr == &filter->bv_val[ filter->bv_len ] );
-
-	if ( suffix.bv_val != be->be_nsuffix[ 0 ].bv_val ) {
-		ch_free( suffix.bv_val );
-	}
-
-	now = slap_get_time();
-	timestamp.bv_val = timebuf;
-	timestamp.bv_len = sizeof( timebuf );
-	slap_timestamp( &now, &timestamp );
-
 	/* caller (e.g. an overlay based on back-ldap) may want to use
-	 * a different RDN... */
-	if ( BER_BVISNULL( &li->li_monitor_info.lmi_rdn ) ) {
-		ber_str2bv( "cn=Connections", 0, 1, &li->li_monitor_info.lmi_rdn );
-	}
-
-	ptr = ber_bvchr( &li->li_monitor_info.lmi_rdn, '=' );
-	assert( ptr != NULL );
-	ptr[ 0 ] = '\0';
-	ptr++;
-
-	snprintf( buf, sizeof( buf ),
-		"dn: %s=%s\n"
-		"objectClass: monitorContainer\n"
-		"%s: %s\n"
-		"creatorsName: %s\n"
-		"createTimestamp: %s\n"
-		"modifiersName: %s\n"
-		"modifyTimestamp: %s\n",
-		li->li_monitor_info.lmi_rdn.bv_val,
-			ptr,
-		li->li_monitor_info.lmi_rdn.bv_val,
-			ptr,
-		BER_BVISNULL( &be->be_rootdn ) ? SLAPD_ANONYMOUS : be->be_rootdn.bv_val,
-		timestamp.bv_val,
-		BER_BVISNULL( &be->be_rootdn ) ? SLAPD_ANONYMOUS : be->be_rootdn.bv_val,
-		timestamp.bv_val );
-	e = str2entry( buf );
-	if ( e == NULL ) {
-		rc = -1;
-		goto cleanup;
-	}
-
-	ptr[ -1 ] = '=';
-
-	/* add labeledURI and special, modifiable URI value */
-	if ( li->li_uri != NULL ) {
-		struct berval	bv;
-		LDAPURLDesc	*ludlist = NULL;
-		int		rc;
-
-		rc = ldap_url_parselist_ext( &ludlist,
-			li->li_uri, NULL,
-			LDAP_PVT_URL_PARSE_NOEMPTY_HOST
-				| LDAP_PVT_URL_PARSE_DEF_PORT );
-		if ( rc != LDAP_URL_SUCCESS ) {
-			Debug( LDAP_DEBUG_ANY,
-				"ldap_back_monitor_db_open: "
-				"unable to parse URI list (ignored)\n",
+	 * a different DN and RDNs... */
+	if ( BER_BVISNULL( &li->li_monitor_info.lmi_ndn ) ) {
+		rc = mbe->register_database( be, &li->li_monitor_info.lmi_ndn );
+		if ( rc != 0 ) {
+			Debug( LDAP_DEBUG_ANY, "ldap_back_monitor_db_open: "
+				"failed to register the databse with back-monitor\n",
 				0, 0, 0 );
-		} else {
-			for ( ; ludlist != NULL; ) {
-				LDAPURLDesc	*next = ludlist->lud_next;
-
-				bv.bv_val = ldap_url_desc2str( ludlist );
-				assert( bv.bv_val != NULL );
-				ldap_free_urldesc( ludlist );
-				bv.bv_len = strlen( bv.bv_val );
-				attr_merge_normalize_one( e, slap_schema.si_ad_labeledURI,
-					&bv, NULL );
-				ch_free( bv.bv_val );
-
-				ludlist = next;
-			}
-		}
-		
-		ber_str2bv( li->li_uri, 0, 0, &bv );
-		attr_merge_normalize_one( e, ad_olmDbURIList,
-			&bv, NULL );
-	}
-
-	ber_dupbv( &li->li_monitor_info.lmi_nrdn, &e->e_nname );
-
-	cb = ch_calloc( sizeof( monitor_callback_t ), 1 );
-	cb->mc_update = ldap_back_monitor_update;
-	cb->mc_modify = ldap_back_monitor_modify;
-	cb->mc_free = ldap_back_monitor_free;
-	cb->mc_private = (void *)li;
-
-	rc = mbe->register_entry_parent( e, cb,
-		(monitor_subsys_t *)&li->li_monitor_info,
-		MONITOR_F_VOLATILE_CH,
-		base, LDAP_SCOPE_SUBORDINATE, filter );
-
-cleanup:;
-	if ( rc != 0 ) {
-		if ( cb != NULL ) {
-			ch_free( cb );
-			cb = NULL;
-		}
-
-		if ( e != NULL ) {
-			entry_free( e );
-			e = NULL;
-		}
-
-		if ( !BER_BVISNULL( filter ) ) {
-			ch_free( filter->bv_val );
-			BER_BVZERO( filter );
 		}
 	}
-
-	/* store for cleanup */
-	li->li_monitor_info.lmi_cb = (void *)cb;
-
-	if ( e != NULL ) {
-		entry_free( e );
+	if ( BER_BVISNULL( &li->li_monitor_info.lmi_conn_rdn ) ) {
+		ber_str2bv( "cn=Connections", 0, 1,
+			&li->li_monitor_info.lmi_conn_rdn );
+	}
+	if ( BER_BVISNULL( &li->li_monitor_info.lmi_ops_rdn ) ) {
+		ber_str2bv( "cn=Operations", 0, 1,
+			&li->li_monitor_info.lmi_ops_rdn );
 	}
 
 	return rc;
@@ -611,7 +444,7 @@ ldap_back_monitor_db_close( BackendDB *be )
 {
 	ldapinfo_t		*li = (ldapinfo_t *) be->be_private;
 
-	if ( li && !BER_BVISNULL( &li->li_monitor_info.lmi_filter ) ) {
+	if ( li && !BER_BVISNULL( &li->li_monitor_info.lmi_ndn ) ) {
 		BackendInfo		*mi;
 		monitor_extra_t		*mbe;
 
@@ -620,12 +453,13 @@ ldap_back_monitor_db_close( BackendDB *be )
 		if ( mi && mi->bi_extra ) {
  			mbe = mi->bi_extra;
 
-			mbe->unregister_entry_parent(
-				&li->li_monitor_info.lmi_nrdn,
-				(monitor_callback_t *)li->li_monitor_info.lmi_cb,
-				&li->li_monitor_info.lmi_base,
-				li->li_monitor_info.lmi_scope,
-				&li->li_monitor_info.lmi_filter );
+			/*TODO
+			 * Unregister all entries our subsystems have created.
+			 * Will only really be necessary when
+			 * SLAPD_CONFIG_DELETE is enabled.
+			 *
+			 * Might need a way to unregister subsystems instead.
+			 */
 		}
 	}
 
@@ -641,7 +475,7 @@ ldap_back_monitor_db_destroy( BackendDB *be )
 	ldapinfo_t		*li = (ldapinfo_t *) be->be_private;
 
 	if ( li ) {
-		(void)ldap_back_monitor_info_destroy( li );
+		memset( &li->li_monitor_info, 0, sizeof( li->li_monitor_info ) );
 	}
 
 	return 0;
