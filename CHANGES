@@ -25,6 +25,7 @@ OpenLDAP 2.4.29 Release (2012/02/04)
 	Fixed slapo-syncprov with already abandoned operation (ITS#7150)
 	Fixed contrib/smbk5pwd uninitialized keys in shadowLastChange (ITS#7138)
 	Build Environment
+		Fixed ldapsearch build on windows (ITS#7156)
 		Fixed test001 to skip back-ldif (ITS#7101)
 	Documentation
 		admin24 Fix typo (ITS#7117)
