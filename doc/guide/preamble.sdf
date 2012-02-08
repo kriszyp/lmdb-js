@@ -128,9 +128,9 @@ UMLDAP|University of Michigan LDAP Team|http://www.umich.edu/~dirsvcs/ldap/ldap.
 !block products; data; sort='Name'
 Name|Jump
 Berkeley DB|http://www.oracle.com/database/berkeley-db/db/index.html
-CVS|http://www.cvshome.org/
 Cyrus|http://cyrusimap.web.cmu.edu/generalinfo.html
 Cyrus SASL|http://asg.web.cmu.edu/sasl/sasl-library.html
+Git|http://git-scm.com/
 GNU|http://www.gnu.org/software/
 GnuTLS|http://www.gnu.org/software/gnutls/
 Heimdal|http://www.pdc.kth.se/heimdal/

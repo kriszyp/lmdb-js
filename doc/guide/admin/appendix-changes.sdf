@@ -136,7 +136,7 @@ of magnitude slower than "slapadd -q". It's now at worst only about half the
 speed of slapadd -q. Some comparisons of all the 2.x OpenLDAP releases are available 
 at {{URL:http://www.openldap.org/pub/hyc/scale2007.pdf}}
 
-That compared 2.0.27, 2.1.30, 2.2.30, 2.3.33, and HEAD). Toward the latter end 
+That compared 2.0.27, 2.1.30, 2.2.30, 2.3.33, and CVS HEAD). Toward the latter end 
 of the "Cached Search Performance" chart it gets hard to see the difference 
 because the run times are so small, but the new code is about 25% faster than 2.3, 
 which was about 20% faster than 2.2, which was about 100% faster than 2.1, which 
