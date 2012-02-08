@@ -2086,16 +2086,26 @@ ldap_chain_db_open_one(
 
 		if ( li->li_uri == NULL ) {
 			ber_str2bv( "cn=Common Connections", 0, 1,
-				&li->li_monitor_info.lmi_rdn );
+				&li->li_monitor_info.lmi_conn_rdn );
+			ber_str2bv( "cn=Operations on Common Connections", 0, 1,
+				&li->li_monitor_info.lmi_conn_rdn );
 
 		} else {
 			char		*ptr;
 
-			li->li_monitor_info.lmi_rdn.bv_len
+			li->li_monitor_info.lmi_conn_rdn.bv_len
 				= STRLENOF( "cn=" ) + strlen( li->li_uri );
-			ptr = li->li_monitor_info.lmi_rdn.bv_val
-				= ch_malloc( li->li_monitor_info.lmi_rdn.bv_len + 1 );
+			ptr = li->li_monitor_info.lmi_conn_rdn.bv_val
+				= ch_malloc( li->li_monitor_info.lmi_conn_rdn.bv_len + 1 );
 			ptr = lutil_strcopy( ptr, "cn=" );
+			ptr = lutil_strcopy( ptr, li->li_uri );
+			ptr[ 0 ] = '\0';
+
+			li->li_monitor_info.lmi_ops_rdn.bv_len
+				= STRLENOF( "cn=Operations on " ) + strlen( li->li_uri );
+			ptr = li->li_monitor_info.lmi_ops_rdn.bv_val
+				= ch_malloc( li->li_monitor_info.lmi_ops_rdn.bv_len + 1 );
+			ptr = lutil_strcopy( ptr, "cn=Operations on " );
 			ptr = lutil_strcopy( ptr, li->li_uri );
 			ptr[ 0 ] = '\0';
 		}
