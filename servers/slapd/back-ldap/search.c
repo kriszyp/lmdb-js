@@ -236,6 +236,10 @@ retry:
 			tv.tv_sec ? &tv : NULL,
 			op->ors_slimit, op->ors_deref, &msgid );
 
+	ldap_pvt_thread_mutex_lock( &li->li_counter_mutex );
+	ldap_pvt_mp_add( li->li_ops_completed[ SLAP_OP_SEARCH ], 1 );
+	ldap_pvt_thread_mutex_unlock( &li->li_counter_mutex );
+
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		switch ( rs->sr_err ) {
 		case LDAP_SERVER_DOWN:

@@ -275,6 +275,10 @@ retry:;
 		}
 	}
 
+	ldap_pvt_thread_mutex_lock( &li->li_counter_mutex );
+	ldap_pvt_mp_add( li->li_ops_completed[ SLAP_OP_BIND ], 1 );
+	ldap_pvt_thread_mutex_unlock( &li->li_counter_mutex );
+
 	ldap_back_controls_free( op, rs, &ctrls );
 
 	if ( rc == LDAP_SUCCESS ) {
@@ -1461,6 +1465,10 @@ retry_lock:;
 				LDAP_SASL_QUIET, lutil_sasl_interact,
 				defaults );
 
+		ldap_pvt_thread_mutex_lock( &li->li_counter_mutex );
+		ldap_pvt_mp_add( li->li_ops_completed[ SLAP_OP_BIND ], 1 );
+		ldap_pvt_thread_mutex_unlock( &li->li_counter_mutex );
+
 		lutil_sasl_freedefs( defaults );
 
 		switch ( rs->sr_err ) {
@@ -1509,6 +1517,10 @@ retry:;
 			tmp_dn,
 			LDAP_SASL_SIMPLE, &lc->lc_cred,
 			NULL, NULL, &msgid );
+
+	ldap_pvt_thread_mutex_lock( &li->li_counter_mutex );
+	ldap_pvt_mp_add( li->li_ops_completed[ SLAP_OP_BIND ], 1 );
+	ldap_pvt_thread_mutex_unlock( &li->li_counter_mutex );
 
 	if ( rs->sr_err == LDAP_SERVER_DOWN ) {
 		if ( retries != LDAP_BACK_RETRY_NEVER ) {
@@ -1634,6 +1646,8 @@ ldap_back_default_rebind( LDAP *ld, LDAP_CONST char *url, ber_tag_t request,
 #endif /* HAVE_TLS */
 
 	/* FIXME: add checks on the URL/identity? */
+	/* TODO: would like to count this bind operation for monitoring
+	 * too, but where do we get the ldapinfo_t? */
 
 	return ldap_sasl_bind_s( ld,
 			BER_BVISNULL( &lc->lc_cred ) ? "" : lc->lc_bound_ndn.bv_val,
@@ -2323,6 +2337,10 @@ ldap_back_proxy_authz_bind(
 			}
 		} while ( rs->sr_err == LDAP_SASL_BIND_IN_PROGRESS );
 
+		ldap_pvt_thread_mutex_lock( &li->li_counter_mutex );
+		ldap_pvt_mp_add( li->li_ops_completed[ SLAP_OP_BIND ], 1 );
+		ldap_pvt_thread_mutex_unlock( &li->li_counter_mutex );
+
 		switch ( rs->sr_err ) {
 		case LDAP_SUCCESS:
 #ifdef SLAP_AUTH_DN
@@ -2430,6 +2448,10 @@ ldap_back_proxy_authz_bind(
 				bindcred, NULL, NULL, &msgid );
 		rc = ldap_back_op_result( lc, op, rs, msgid,
 			-1, ( sendok | LDAP_BACK_BINDING ) );
+
+		ldap_pvt_thread_mutex_lock( &li->li_counter_mutex );
+		ldap_pvt_mp_add( li->li_ops_completed[ SLAP_OP_BIND ], 1 );
+		ldap_pvt_thread_mutex_unlock( &li->li_counter_mutex );
 		break;
 
 	default:

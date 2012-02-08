@@ -104,6 +104,10 @@ retry:
 		}
 	}
 
+	ldap_pvt_thread_mutex_lock( &li->li_counter_mutex );
+	ldap_pvt_mp_add( li->li_ops_completed[ SLAP_OP_MODRDN ], 1 );
+	ldap_pvt_thread_mutex_unlock( &li->li_counter_mutex );
+
 cleanup:
 	(void)ldap_back_controls_free( op, rs, &ctrls );
 

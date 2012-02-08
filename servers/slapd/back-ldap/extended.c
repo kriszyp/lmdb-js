@@ -264,6 +264,10 @@ retry:
 		ldap_back_quarantine( op, rs );
 	}
 
+	ldap_pvt_thread_mutex_lock( &li->li_counter_mutex );
+	ldap_pvt_mp_add( li->li_ops_completed[ SLAP_OP_EXTENDED ], 1 );
+	ldap_pvt_thread_mutex_unlock( &li->li_counter_mutex );
+
 	if ( freedn ) {
 		op->o_tmpfree( dn.bv_val, op->o_tmpmemctx );
 		op->o_tmpfree( ndn.bv_val, op->o_tmpmemctx );
@@ -376,6 +380,10 @@ retry:
 	} else if ( LDAP_BACK_QUARANTINE( li ) ) {
 		ldap_back_quarantine( op, rs );
 	}
+
+	ldap_pvt_thread_mutex_lock( &li->li_counter_mutex );
+	ldap_pvt_mp_add( li->li_ops_completed[ SLAP_OP_EXTENDED ], 1 );
+	ldap_pvt_thread_mutex_unlock( &li->li_counter_mutex );
 
 	/* these have to be freed anyway... */
 	if ( rs->sr_matched ) {
