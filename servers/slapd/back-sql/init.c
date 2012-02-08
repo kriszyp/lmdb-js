@@ -114,6 +114,7 @@ backsql_db_init(
 	}
 
 	bd->be_private = bi;
+	bd->be_cf_ocs = bd->bd_info->bi_cf_ocs;
 
 	Debug( LDAP_DEBUG_TRACE, "<==backsql_db_init()\n", 0, 0, 0 );
 
