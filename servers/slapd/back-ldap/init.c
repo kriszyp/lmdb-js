@@ -180,6 +180,11 @@ ldap_back_db_init( Backend *be, ConfigReply *cr )
 	}
 	li->li_conn_priv_max = LDAP_BACK_CONN_PRIV_DEFAULT;
 
+	ldap_pvt_thread_mutex_init( &li->li_counter_mutex );
+	for ( i = 0; i < SLAP_OP_LAST; i++ ) {
+		ldap_pvt_mp_init( li->li_ops_completed[ i ] );
+	}
+
 	be->be_private = li;
 	SLAP_DBFLAGS( be ) |= SLAP_DBFLAG_NOLASTMOD;
 
@@ -336,6 +341,11 @@ ldap_back_db_destroy( Backend *be, ConfigReply *cr )
 		ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
 		ldap_pvt_thread_mutex_destroy( &li->li_conninfo.lai_mutex );
 		ldap_pvt_thread_mutex_destroy( &li->li_uri_mutex );
+
+		for ( i = 0; i < SLAP_OP_LAST; i++ ) {
+			ldap_pvt_mp_clear( li->li_ops_completed[ i ] );
+		}
+		ldap_pvt_thread_mutex_destroy( &li->li_counter_mutex );
 	}
 
 	ch_free( be->be_private );

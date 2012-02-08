@@ -406,6 +406,9 @@ typedef struct ldapinfo_t {
 	time_t			li_conn_ttl;
 	time_t			li_idle_timeout;
 	time_t			li_timeout[ SLAP_OP_LAST ];
+
+	ldap_pvt_thread_mutex_t li_counter_mutex;
+	ldap_pvt_mp_t		li_ops_completed[SLAP_OP_LAST];
 } ldapinfo_t;
 
 #define	LDAP_ERR_OK(err) ((err) == LDAP_SUCCESS || (err) == LDAP_COMPARE_FALSE || (err) == LDAP_COMPARE_TRUE)
