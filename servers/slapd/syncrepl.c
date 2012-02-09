@@ -131,7 +131,7 @@ static int syncrepl_message_to_op(
 					syncinfo_t *, Operation *, LDAPMessage * );
 static int syncrepl_message_to_entry(
 					syncinfo_t *, Operation *, LDAPMessage *,
-					Modifications **, Entry **, int );
+					Modifications **, Entry **, int, struct berval* );
 static int syncrepl_entry(
 					syncinfo_t *, Operation*, Entry*,
 					Modifications**,int, struct berval*,
@@ -833,7 +833,7 @@ do_syncrep2(
 		tout_p, &msg ) ) > 0 )
 	{
 		int				match, punlock, syncstate;
-		struct berval	*retdata, syncUUID, cookie = BER_BVNULL;
+		struct berval	*retdata, syncUUID[2], cookie = BER_BVNULL;
 		char			*retoid;
 		LDAPControl		**rctrls = NULL, *rctrlp = NULL;
 		BerVarray		syncUUIDs;
@@ -885,7 +885,7 @@ do_syncrep2(
 				goto done;
 			}
 			ber_init2( ber, &rctrlp->ldctl_value, LBER_USE_DER );
-			if ( ber_scanf( ber, "{em" /*"}"*/, &syncstate, &syncUUID )
+			if ( ber_scanf( ber, "{em" /*"}"*/, &syncstate, &syncUUID[0] )
 					== LBER_ERROR ) {
 				bdn.bv_val[bdn.bv_len] = '\0';
 				Debug( LDAP_DEBUG_ANY, "do_syncrep2: %s malformed message (%s)\n",
@@ -896,7 +896,7 @@ do_syncrep2(
 			}
 			/* FIXME: what if syncUUID is NULL or empty?
 			 * (happens with back-sql...) */
-			if ( BER_BVISEMPTY( &syncUUID ) ) {
+			if ( BER_BVISEMPTY( &syncUUID[0] ) ) {
 				bdn.bv_val[bdn.bv_len] = '\0';
 				Debug( LDAP_DEBUG_ANY, "do_syncrep2: %s "
 					"got empty syncUUID with LDAP_SYNC_%s (%s)\n",
@@ -1007,10 +1007,10 @@ do_syncrep2(
 						break;
 				}
 			} else if ( ( rc = syncrepl_message_to_entry( si, op, msg,
-				&modlist, &entry, syncstate ) ) == LDAP_SUCCESS )
+				&modlist, &entry, syncstate, syncUUID ) ) == LDAP_SUCCESS )
 			{
 				if ( ( rc = syncrepl_entry( si, op, entry, &modlist,
-					syncstate, &syncUUID, syncCookie.ctxcsn ) ) == LDAP_SUCCESS &&
+					syncstate, syncUUID, syncCookie.ctxcsn ) ) == LDAP_SUCCESS &&
 					syncCookie.ctxcsn )
 				{
 					rc = syncrepl_updateCookie( si, op, &syncCookie );
@@ -2415,7 +2415,8 @@ syncrepl_message_to_entry(
 	LDAPMessage	*msg,
 	Modifications	**modlist,
 	Entry			**entry,
-	int		syncstate
+	int		syncstate,
+	struct berval	*syncUUID
 )
 {
 	Entry		*e = NULL;
@@ -2456,6 +2457,14 @@ syncrepl_message_to_entry(
 			si->si_ridtxt, 0, 0 );
 		return LDAP_OTHER;
 	}
+
+	/* syncUUID[0] is normalized UUID received over the wire
+	 * syncUUID[1] is denormalized UUID, generated here
+	 */
+	(void)slap_uuidstr_from_normalized( &syncUUID[1], &syncUUID[0], op->o_tmpmemctx );
+	Debug( LDAP_DEBUG_SYNC,
+		"syncrepl_message_to_entry: %s DN: %s, UUID: %s\n",
+		si->si_ridtxt, bdn.bv_val, syncUUID[1].bv_val );
 
 	if ( syncstate == LDAP_SYNC_PRESENT || syncstate == LDAP_SYNC_DELETE ) {
 		/* NOTE: this could be done even before decoding the DN,
@@ -2677,7 +2686,6 @@ syncrepl_entry(
 	Backend *be = op->o_bd;
 	slap_callback	cb = { NULL, NULL, NULL, NULL };
 	int syncuuid_inserted = 0;
-	struct berval	syncUUID_strrep = BER_BVNULL;
 
 	SlapReply	rs_search = {REP_RESULT};
 	Filter f = {0};
@@ -2707,14 +2715,13 @@ syncrepl_entry(
 		}
 	}
 
-	(void)slap_uuidstr_from_normalized( &syncUUID_strrep, syncUUID, op->o_tmpmemctx );
 	if ( syncstate != LDAP_SYNC_DELETE ) {
 		Attribute	*a = attr_find( entry->e_attrs, slap_schema.si_ad_entryUUID );
 
 		if ( a == NULL ) {
 			/* add if missing */
 			attr_merge_one( entry, slap_schema.si_ad_entryUUID,
-				&syncUUID_strrep, syncUUID );
+				&syncUUID[1], syncUUID );
 
 		} else if ( !bvmatch( &a->a_nvals[0], syncUUID ) ) {
 			/* replace only if necessary */
@@ -2723,7 +2730,7 @@ syncrepl_entry(
 				ber_dupbv( &a->a_nvals[0], syncUUID );
 			}
 			ber_memfree( a->a_vals[0].bv_val );
-			ber_dupbv( &a->a_vals[0], &syncUUID_strrep );
+			ber_dupbv( &a->a_vals[0], &syncUUID[1] );
 		}
 	}
 
@@ -2734,16 +2741,16 @@ syncrepl_entry(
 
 	if ( syncuuid_inserted ) {
 		Debug( LDAP_DEBUG_SYNC, "syncrepl_entry: %s inserted UUID %s\n",
-			si->si_ridtxt, syncUUID_strrep.bv_val, 0 );
+			si->si_ridtxt, syncUUID[1].bv_val, 0 );
 	}
 	op->ors_filter = &f;
 
-	op->ors_filterstr.bv_len = STRLENOF( "(entryUUID=)" ) + syncUUID_strrep.bv_len;
+	op->ors_filterstr.bv_len = STRLENOF( "(entryUUID=)" ) + syncUUID[1].bv_len;
 	op->ors_filterstr.bv_val = (char *) slap_sl_malloc(
 		op->ors_filterstr.bv_len + 1, op->o_tmpmemctx ); 
 	AC_MEMCPY( op->ors_filterstr.bv_val, "(entryUUID=", STRLENOF( "(entryUUID=" ) );
 	AC_MEMCPY( &op->ors_filterstr.bv_val[STRLENOF( "(entryUUID=" )],
-		syncUUID_strrep.bv_val, syncUUID_strrep.bv_len );
+		syncUUID[1].bv_val, syncUUID[1].bv_len );
 	op->ors_filterstr.bv_val[op->ors_filterstr.bv_len - 1] = ')';
 	op->ors_filterstr.bv_val[op->ors_filterstr.bv_len] = '\0';
 
@@ -3229,10 +3236,8 @@ retry_modrdn:;
 	}
 
 done:
-	if ( !BER_BVISNULL( &syncUUID_strrep ) ) {
-		slap_sl_free( syncUUID_strrep.bv_val, op->o_tmpmemctx );
-		BER_BVZERO( &syncUUID_strrep );
-	}
+	slap_sl_free( syncUUID[1].bv_val, op->o_tmpmemctx );
+	BER_BVZERO( &syncUUID[1] );
 	if ( !BER_BVISNULL( &dni.ndn ) ) {
 		op->o_tmpfree( dni.ndn.bv_val, op->o_tmpmemctx );
 	}
