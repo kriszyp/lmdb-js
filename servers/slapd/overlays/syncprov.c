@@ -822,7 +822,7 @@ syncprov_sendresp( Operation *op, opcookie *opc, syncops *so, int mode )
 {
 	SlapReply rs = { REP_SEARCH };
 	LDAPControl *ctrls[2];
-	struct berval cookie = BER_BVNULL, csns[2];
+	struct berval cookie, csns[2];
 	Entry e_uuid = {0};
 	Attribute a_uuid = {0};
 
@@ -830,19 +830,17 @@ syncprov_sendresp( Operation *op, opcookie *opc, syncops *so, int mode )
 		return SLAPD_ABANDON;
 
 	ctrls[1] = NULL;
-	if ( !BER_BVISNULL( &opc->sctxcsn )) {
-		csns[0] = opc->sctxcsn;
-		BER_BVZERO( &csns[1] );
-		slap_compose_sync_cookie( op, &cookie, csns, so->s_rid, slap_serverID ? slap_serverID : -1 );
-	}
+	csns[0] = opc->sctxcsn;
+	BER_BVZERO( &csns[1] );
+	slap_compose_sync_cookie( op, &cookie, csns, so->s_rid, slap_serverID ? slap_serverID : -1 );
 
 #ifdef LDAP_DEBUG
 	if ( so->s_sid > 0 ) {
 		Debug( LDAP_DEBUG_SYNC, "syncprov_sendresp: to=%03x, cookie=%s\n",
-			so->s_sid, cookie.bv_val ? cookie.bv_val : "", 0 );
+			so->s_sid, cookie.bv_val, 0 );
 	} else {
 		Debug( LDAP_DEBUG_SYNC, "syncprov_sendresp: cookie=%s\n",
-			cookie.bv_val ? cookie.bv_val : "", 0, 0 );
+			cookie.bv_val, 0, 0 );
 	}
 #endif
 
@@ -851,9 +849,7 @@ syncprov_sendresp( Operation *op, opcookie *opc, syncops *so, int mode )
 	a_uuid.a_nvals = &opc->suuid;
 	rs.sr_err = syncprov_state_ctrl( op, &rs, &e_uuid,
 		mode, ctrls, 0, 1, &cookie );
-	if ( !BER_BVISNULL( &cookie )) {
-		op->o_tmpfree( cookie.bv_val, op->o_tmpmemctx );
-	}
+	op->o_tmpfree( cookie.bv_val, op->o_tmpmemctx );
 
 	rs.sr_ctrls = ctrls;
 	rs.sr_entry = &e_uuid;
