@@ -1,5 +1,8 @@
 OpenLDAP 2.4 Change Log
 
+OpenLDAP 2.4.30 Engineering
+	Fixed slapo-syncprov loop detection (ITS#6024)
+
 OpenLDAP 2.4.29 Release (2012/02/12)
 	Fixed libldap MozNSS deferred initialization handling (ITS#7136)
 	Fixed libldap MozNSS with TLSCertificateKeyFile not set (ITS#7135)
