@@ -1,6 +1,7 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.30 Engineering
+	Fixed slapd syncrepl delete handling (ITS#7052,ITS#7162)
 	Fixed slapo-syncprov loop detection (ITS#6024)
 
 OpenLDAP 2.4.29 Release (2012/02/12)
