@@ -2827,23 +2827,6 @@ syncrepl_entry(
 				 */
 				op->o_csn = a->a_vals[0];
 				freecsn = 0;
-				/* There was no cookie CSN attached to this op,
-				 * make sure it's new enough
-				 */
-				if ( !syncCSN ) {
-					int i, sid = slap_parse_csn_sid( &a->a_vals[0] );
-					for ( i = 0; i<si->si_cookieState->cs_num; i++ ) {
-						if ( sid < si->si_cookieState->cs_sids[i] )
-							break;
-						if ( sid == si->si_cookieState->cs_sids[i] ) {
-							if ( ber_bvcmp( &a->a_vals[0], &si->si_cookieState->cs_vals[i] ) <= 0 ) {
-								Debug( LDAP_DEBUG_SYNC, "do_syncrep2: %s entryCSN too old, ignoring %s (%s)\n",
-								si->si_ridtxt, a->a_vals[0].bv_val, entry->e_name.bv_val );
-								goto done;
-							}
-						}
-					}
-				}
 			}
 		}
 retry_add:;
