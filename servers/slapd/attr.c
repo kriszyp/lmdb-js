@@ -232,13 +232,16 @@ attr_dup2( Attribute *tmp, Attribute *a )
 		if ( a->a_nvals != a->a_vals ) {
 
 			tmp->a_nvals = ch_malloc( (tmp->a_numvals + 1) * sizeof(struct berval) );
-			for ( j = 0; !BER_BVISNULL( &a->a_nvals[j] ); j++ ) {
-				assert( j < i );
-				ber_dupbv( &tmp->a_nvals[j], &a->a_nvals[j] );
-				if ( BER_BVISNULL( &tmp->a_nvals[j] ) ) break;
-				/* FIXME: error? */
+			j = 0;
+			if ( i ) {
+				for ( ; !BER_BVISNULL( &a->a_nvals[j] ); j++ ) {
+					assert( j < i );
+					ber_dupbv( &tmp->a_nvals[j], &a->a_nvals[j] );
+					if ( BER_BVISNULL( &tmp->a_nvals[j] ) ) break;
+					/* FIXME: error? */
+				}
+				assert( j == i );
 			}
-			assert( j == i );
 			BER_BVZERO( &tmp->a_nvals[j] );
 
 		} else {
