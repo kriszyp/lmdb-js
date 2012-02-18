@@ -53,10 +53,10 @@ all-local-lib:	../.backend
 	@touch $@
 
 mdb.lo:	$(MDB_SUBDIR)/mdb.c
-	$(LTCOMPILE_MOD) $<
+	$(LTCOMPILE_MOD) $(MDB_SUBDIR)/mdb.c
 
 midl.lo:	$(MDB_SUBDIR)/midl.c
-	$(LTCOMPILE_MOD) $<
+	$(LTCOMPILE_MOD) $(MDB_SUBDIR)/midl.c
 
 veryclean-local-lib: FORCE
 	$(RM) $(XXHEADERS) $(XXSRCS) .links
