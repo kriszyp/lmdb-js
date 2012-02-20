@@ -714,8 +714,6 @@ scale( int new, lutil_int_decnum *prev, unsigned char *tmp )
  * Output buffer must be provided, bv_len must indicate buffer size
  * Hex input can be "0x1234" or "'1234'H"
  *
- * Temporarily modifies the input string.
- *
  * Note: High bit of binary form is always the sign bit. If the number
  * is supposed to be positive but has the high bit set, a zero byte
  * is prepended. It is assumed that this has already been handled on
@@ -724,7 +722,7 @@ scale( int new, lutil_int_decnum *prev, unsigned char *tmp )
 int
 lutil_str2bin( struct berval *in, struct berval *out, void *ctx )
 {
-	char *pin, *pout, ctmp;
+	char *pin, *pout;
 	char *end;
 	int i, chunk, len, rc = 0, hex = 0;
 	if ( !out || !out->bv_val || out->bv_len < in->bv_len )
@@ -749,6 +747,8 @@ lutil_str2bin( struct berval *in, struct berval *out, void *ctx )
 	if ( hex ) {
 #define HEXMAX	(2 * sizeof(long))
 		unsigned long l;
+		char tbuf[HEXMAX+1];
+
 		/* Convert a longword at a time, but handle leading
 		 * odd bytes first
 		 */
@@ -758,11 +758,10 @@ lutil_str2bin( struct berval *in, struct berval *out, void *ctx )
 
 		while ( len ) {
 			int ochunk;
-			ctmp = pin[chunk];
-			pin[chunk] = '\0';
+			memcpy( tbuf, pin, chunk );
+			tbuf[chunk] = '\0';
 			errno = 0;
-			l = strtoul( pin, &end, 16 );
-			pin[chunk] = ctmp;
+			l = strtoul( tbuf, &end, 16 );
 			if ( errno )
 				return -1;
 			ochunk = (chunk + 1)/2;
@@ -778,10 +777,12 @@ lutil_str2bin( struct berval *in, struct berval *out, void *ctx )
 		out->bv_len = pout - out->bv_val;
 	} else {
 	/* Decimal */
+#define	DECMAX	8	/* 8 digits at a time */
 		char tmpbuf[64], *tmp;
 		lutil_int_decnum num;
 		int neg = 0;
 		long l;
+		char tbuf[DECMAX+1];
 
 		len = in->bv_len;
 		pin = in->bv_val;
@@ -795,8 +796,6 @@ lutil_str2bin( struct berval *in, struct berval *out, void *ctx )
 			pin++;
 		}
 
-#define	DECMAX	8	/* 8 digits at a time */
-
 		/* tmp must be at least as large as outbuf */
 		if ( out->bv_len > sizeof(tmpbuf)) {
 			tmp = ber_memalloc_x( out->bv_len, ctx );
@@ -808,11 +807,10 @@ lutil_str2bin( struct berval *in, struct berval *out, void *ctx )
 			chunk = DECMAX;
 
 		while ( len ) {
-			ctmp = pin[chunk];
-			pin[chunk] = '\0';
+			memcpy( tbuf, pin, chunk );
+			tbuf[chunk] = '\0';
 			errno = 0;
-			l = strtol( pin, &end, 10 );
-			pin[chunk] = ctmp;
+			l = strtol( tbuf, &end, 10 );
 			if ( errno ) {
 				rc = -1;
 				goto decfail;
