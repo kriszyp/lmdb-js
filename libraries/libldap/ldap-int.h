@@ -624,6 +624,7 @@ LDAP_F (void) ldap_free_select_info( void *sip );
 LDAP_F (void) ldap_mark_select_write( LDAP *ld, Sockbuf *sb );
 LDAP_F (void) ldap_mark_select_read( LDAP *ld, Sockbuf *sb );
 LDAP_F (void) ldap_mark_select_clear( LDAP *ld, Sockbuf *sb );
+LDAP_F (void) ldap_clear_select_write( LDAP *ld, Sockbuf *sb );
 LDAP_F (int) ldap_is_read_ready( LDAP *ld, Sockbuf *sb );
 LDAP_F (int) ldap_is_write_ready( LDAP *ld, Sockbuf *sb );
 

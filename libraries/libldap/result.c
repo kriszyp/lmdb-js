@@ -302,7 +302,7 @@ wait4msg(
 				if ( ber_sockbuf_ctrl( lc->lconn_sb,
 					LBER_SB_OPT_DATA_READY, NULL ) )
 				{
-					lc_ready = 1;
+					lc_ready = 2;	/* ready at ber level, not socket level */
 					break;
 				}
 			}
@@ -373,8 +373,8 @@ wait4msg(
 					}
 				}
 				LDAP_MUTEX_UNLOCK( &ld->ld_req_mutex );
-				/* Quit looping if no one handled any events */
-				if (!serviced)
+				/* Quit looping if no one handled any socket events */
+				if (!serviced && lc_ready == 1)
 					rc = -1;
 			}
 			LDAP_MUTEX_UNLOCK( &ld->ld_conn_mutex );
