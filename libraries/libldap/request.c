@@ -202,6 +202,7 @@ ldap_int_flush_request(
 
 		/* sent -- waiting for a response */
 		ldap_mark_select_read( ld, lc->lconn_sb );
+		ldap_clear_select_write( ld, lc->lconn_sb );
 	}
 	return 0;
 }
