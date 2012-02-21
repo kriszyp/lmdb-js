@@ -1,7 +1,8 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.30 Engineering
-	Fix liblutil string modifications (ITS#7174)
+	Fixed libldap socket polling for writes (ITS#7167)
+	Fixed liblutil string modifications (ITS#7174)
 	Fixed slapd crash when attrsOnly is true (ITS#7143)
 	Fixed slapd syncrepl delete handling (ITS#7052,ITS#7162)
 	Fixed slapd-mdb slapindex with -q and -t (ITS#7176)
