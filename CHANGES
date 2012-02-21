@@ -7,6 +7,9 @@ OpenLDAP 2.4.30 Engineering
 	Fixed slapd syncrepl delete handling (ITS#7052,ITS#7162)
 	Fixed slapd-mdb slapindex with -q and -t (ITS#7176)
 	Fixed slapo-syncprov loop detection (ITS#6024)
+	Build Environment
+		Fixed POSIX make support (ITS#7160)
+		Fixed slapd-mdb build on POSIX (ITS#7160)
 	Documentation
 		Fixed ldap_modify(3) prototypes (ITS#7173)
 
