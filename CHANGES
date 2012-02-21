@@ -5,6 +5,8 @@ OpenLDAP 2.4.30 Engineering
 	Fixed slapd crash when attrsOnly is true (ITS#7143)
 	Fixed slapd syncrepl delete handling (ITS#7052,ITS#7162)
 	Fixed slapo-syncprov loop detection (ITS#6024)
+	Documentation
+		Fixed ldap_modify(3) prototypes (ITS#7173)
 
 OpenLDAP 2.4.29 Release (2012/02/12)
 	Fixed libldap MozNSS deferred initialization handling (ITS#7136)
