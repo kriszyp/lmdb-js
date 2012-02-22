@@ -284,6 +284,9 @@ description).  The default is
 specifies the maximum security layer receive buffer
 size allowed.  0 disables security layers.  The default is 65536.
 .RE
+.TP
+.B SASL_NOCANON <on/true/yes/off/false/no>
+Do not perform reverse DNS lookups to canonicalize SASL host names. The default is off.
 .SH GSSAPI OPTIONS
 If OpenLDAP is built with Generic Security Services Application Programming Interface support,
 there are more options you can specify.
