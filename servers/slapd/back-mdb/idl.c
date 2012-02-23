@@ -413,9 +413,6 @@ mdb_idl_insert_keys(
 
 	assert( id != NOID );
 
-	if ( slapMode & SLAP_TOOL_QUICK )
-		flag |= MDB_APPEND;
-
 #ifndef MISALIGNED_OK
 	if (keys[0].bv_len & 0x03)
 		kbuf[1] = 0;
@@ -493,6 +490,8 @@ mdb_idl_insert_keys(
 				}
 			} else {
 			/* There's room, just store it */
+				if ( slapMode & SLAP_TOOL_QUICK )
+					flag |= MDB_APPEND;
 				goto put1;
 			}
 		} else {
