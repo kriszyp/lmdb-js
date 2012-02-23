@@ -518,6 +518,7 @@ mdb_idl_insert_keys(
 			}
 		}
 	} else if ( rc == MDB_NOTFOUND ) {
+		flag &= ~MDB_APPEND;
 put1:	data.mv_data = &id;
 		data.mv_size = sizeof(ID);
 		rc = mdb_cursor_put( cursor, &key, &data, flag );
