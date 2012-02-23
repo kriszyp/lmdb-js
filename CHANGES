@@ -6,6 +6,7 @@ OpenLDAP 2.4.30 Engineering
 	Fixed slapd crash when attrsOnly is true (ITS#7143)
 	Fixed slapd syncrepl delete handling (ITS#7052,ITS#7162)
 	Fixed slapd-mdb slapindex with -q and -t (ITS#7176)
+	Fixed slapo-pcache time-to-refesh handling (ITS#7178)
 	Fixed slapo-syncprov loop detection (ITS#6024)
 	Build Environment
 		Fixed POSIX make support (ITS#7160)
