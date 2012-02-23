@@ -445,7 +445,7 @@ tool_args( int argc, char **argv )
 		case 'c':	/* continuous operation mode */
 			contoper++;
 			break;
-		case 'C':
+		case 'C':	/* referrals: obsolete */
 			referrals++;
 			break;
 		case 'd':
@@ -1399,7 +1399,7 @@ dnssrv_free:;
 
 		if( private_setup ) private_setup( ld );
 
-		/* referrals */
+		/* referrals: obsolete */
 		if( ldap_set_option( ld, LDAP_OPT_REFERRALS,
 			referrals ? LDAP_OPT_ON : LDAP_OPT_OFF ) != LDAP_OPT_SUCCESS )
 		{
