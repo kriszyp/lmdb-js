@@ -369,7 +369,24 @@ Entry*
 mdb_tool_entry_get( BackendDB *be, ID id )
 {
 	Entry *e = NULL;
+	int rc;
 
+	if ( !txn ) {
+		struct mdb_info *mdb = (struct mdb_info *) be->be_private;
+		rc = mdb_txn_begin( mdb->mi_dbenv, NULL,
+			(slapMode & SLAP_TOOL_READONLY) ? MDB_RDONLY : 0, &txn );
+		if ( rc )
+			return NULL;
+	}
+	if ( !cursor ) {
+		struct mdb_info *mdb = (struct mdb_info *) be->be_private;
+		rc = mdb_cursor_open( txn, mdb->mi_id2entry, &cursor );
+		if ( rc ) {
+			mdb_txn_abort( txn );
+			txn = NULL;
+			return NULL;
+		}
+	}
 	(void)mdb_tool_entry_get_int( be, id, &e );
 	return e;
 }
