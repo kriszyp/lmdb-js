@@ -7,13 +7,15 @@ ldapwhoami \- LDAP who am i? tool
 .SH SYNOPSIS
 .B ldapwhoami
 [\c
+.BR \-V [ V ]]
+[\c
+.BI \-d \ debuglevel\fR]
+[\c
 .BR \-n ]
 [\c
 .BR \-v ]
 [\c
-.BR \-z ]
-[\c
-.BI \-d \ debuglevel\fR]
+.BR \-x ]
 [\c
 .BI \-D \ binddn\fR]
 [\c
@@ -33,7 +35,7 @@ ldapwhoami \- LDAP who am i? tool
 [\c
 .BR \-E \ [ ! ] \fIext\fP [ =\fIextparam\fP ]]
 [\c
-.BR \-o \ \fIopt\fP [ =\fIoptparam\fP ]]
+.BI \-o \ opt \fR[= optparam \fR]]
 [\c
 .BI \-O \ security-properties\fR]
 [\c
@@ -41,11 +43,11 @@ ldapwhoami \- LDAP who am i? tool
 [\c
 .BR \-Q ]
 [\c
+.BR \-N ]
+[\c
 .BI \-U \ authcid\fR]
 [\c
 .BI \-R \ realm\fR]
-[\c
-.BR \-x ]
 [\c
 .BI \-X \ authzid\fR]
 [\c
@@ -61,6 +63,15 @@ opens a connection to an LDAP server, binds, and performs a whoami
 operation.  
 .SH OPTIONS
 .TP
+.BR \-V [ V ]
+Print version info.
+If \fB\-VV\fP is given, only the version information is printed.
+.TP
+.BI \-d \ debuglevel
+Set the LDAP debugging level to \fIdebuglevel\fP.
+.B ldapwhoami
+must be compiled with LDAP_DEBUG defined for this option to have any effect.
+.TP
 .B \-n
 Show what would be done, but don't actually perform the whoami operation.
 Useful for
@@ -68,11 +79,6 @@ debugging in conjunction with \fB\-v\fP.
 .TP
 .B \-v
 Run in verbose mode, with many diagnostics written to standard output.
-.TP
-.BI \-d \ debuglevel
-Set the LDAP debugging level to \fIdebuglevel\fP.
-.B ldapwhoami
-must be compiled with LDAP_DEBUG defined for this option to have any effect.
 .TP
 .B \-x 
 Use simple authentication instead of SASL.
@@ -105,9 +111,6 @@ Deprecated in favor of \fB\-H\fP.
 Specify an alternate TCP port where the ldap server is listening.
 Deprecated in favor of \fB\-H\fP.
 .TP
-.BI \-O \ security-properties
-Specify SASL security properties.
-.TP
 .BR \-e \ [ ! ] \fIext\fP [ =\fIextparam\fP ]
 .TP
 .BR \-E \ [ ! ] \fIext\fP [ =\fIextparam\fP ]
@@ -138,7 +141,7 @@ WhoAmI extensions:
   (none)
 .fi
 .TP
-.BR \-o \ \fIopt\fP [ =\fIoptparam\fP ]
+.BI \-o \ opt \fR[= optparam \fR]
 
 Specify general options.
 
@@ -148,12 +151,18 @@ General options:
   ldif-wrap=<width>     (in columns, or "no" for no wrapping)
 .fi
 .TP
+.BI \-O \ security-properties
+Specify SASL security properties.
+.TP
 .B \-I
 Enable SASL Interactive mode.  Always prompt.  Default is to prompt
 only as needed.
 .TP
 .B \-Q
 Enable SASL Quiet mode.  Never prompt.
+.TP
+.B \-N
+Do not use reverse DNS to canonicalize SASL host name.
 .TP
 .BI \-U \ authcid
 Specify the authentication ID for SASL bind. The form of the ID

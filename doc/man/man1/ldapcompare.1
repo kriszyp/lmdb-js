@@ -7,6 +7,10 @@ ldapcompare \- LDAP compare tool
 .SH SYNOPSIS
 .B ldapcompare
 [\c
+.BR \-V [ V ]]
+[\c
+.BI \-d \ debuglevel\fR]
+[\c
 .BR \-n ]
 [\c
 .BR \-v ]
@@ -15,7 +19,7 @@ ldapcompare \- LDAP compare tool
 [\c
 .BR \-M [ M ]]
 [\c
-.BI \-d \ debuglevel\fR]
+.BR \-x ]
 [\c
 .BI \-D \ binddn\fR]
 [\c
@@ -37,7 +41,7 @@ ldapcompare \- LDAP compare tool
 [\c
 .BR \-E \ [ ! ] \fIext\fP [ =\fIextparam\fP ]]
 [\c
-.BR \-o \ \fIopt\fP [ =\fIoptparam\fP ]]
+.BI \-o \ opt \fR[= optparam \fR]]
 [\c
 .BI \-O \ security-properties\fR]
 [\c
@@ -45,11 +49,11 @@ ldapcompare \- LDAP compare tool
 [\c
 .BR \-Q ]
 [\c
+.BR \-N ]
+[\c
 .BI \-U \ authcid\fR]
 [\c
 .BI \-R \ realm\fR]
-[\c
-.BR \-x ]
 [\c
 .BI \-X \ authzid\fR]
 [\c
@@ -79,6 +83,15 @@ TRUE, FALSE, or UNDEFINED on standard output.
 .LP
 .SH OPTIONS
 .TP
+.BR \-V [ V ]
+Print version info.
+If \fB\-VV\fP is given, only the version information is printed.
+.TP
+.BI \-d \ debuglevel
+Set the LDAP debugging level to \fIdebuglevel\fP.
+.B ldapcompare
+must be compiled with LDAP_DEBUG defined for this option to have any effect.
+.TP
 .B \-n
 Show what would be done, but don't actually perform the compare.  Useful for
 debugging in conjunction with \fB\-v\fP.
@@ -94,11 +107,6 @@ status.  Useful in shell scripts.
 Enable manage DSA IT control.
 .B \-MM
 makes control critical.
-.TP
-.BI \-d \ debuglevel
-Set the LDAP debugging level to \fIdebuglevel\fP.
-.B ldapcompare
-must be compiled with LDAP_DEBUG defined for this option to have any effect.
 .TP
 .B \-x 
 Use simple authentication instead of SASL.
@@ -176,7 +184,7 @@ Compare extensions:
   !dontUseCopy
 .fi
 .TP
-.BR \-o \ \fIopt\fP [ =\fIoptparam\fP ]
+.BI \-o \ opt \fR[= optparam \fR]
 
 Specify general options.
 
@@ -195,6 +203,9 @@ only as needed.
 .TP
 .B \-Q
 Enable SASL Quiet mode.  Never prompt.
+.TP
+.B \-N
+Do not use reverse DNS to canonicalize SASL host name.
 .TP
 .BI \-U \ authcid
 Specify the authentication ID for SASL bind. The form of the ID
