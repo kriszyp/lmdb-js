@@ -7,17 +7,25 @@ ldapdelete \- LDAP delete entry tool
 .SH SYNOPSIS
 .B ldapdelete
 [\c
+.BR \-V [ V ]]
+[\c
+.BI \-d \ debuglevel\fR]
+[\c
 .BR \-n ]
 [\c
 .BR \-v ]
 [\c
 .BR \-c ]
 [\c
+.BI \-f \ file\fR]
+[\c
+.BR \-r ]
+[\c
+.BI \-z \ sizelimit\fR]
+[\c
 .BR \-M [ M ]]
 [\c
-.BI \-d \ debuglevel\fR]
-[\c
-.BI \-f \ file\fR]
+.BR \-x ]
 [\c
 .BI \-D \ binddn\fR]
 [\c
@@ -31,35 +39,31 @@ ldapdelete \- LDAP delete entry tool
 [\c
 .BI \-h \ ldaphost\fR]
 [\c
+.BI \-p \ ldapport\fR]
+[\c
 .BR \-P \ { 2 \||\| 3 }]
 [\c
 .BR \-e \ [ ! ] \fIext\fP [ =\fIextparam\fP ]]
 [\c
 .BR \-E \ [ ! ] \fIext\fP [ =\fIextparam\fP ]]
 [\c
-.BR \-o \ \fIopt\fP [ =\fIoptparam\fP ]]
-[\c
-.BI \-p \ ldapport\fR]
+.BI \-o \ opt \fR[= optparam \fR]]
 [\c
 .BI \-O \ security-properties\fR]
-[\c
-.BI \-U \ authcid\fR]
-[\c
-.BI \-R \ realm\fR]
-[\c
-.BR \-r ]
-[\c
-.BR \-x ]
 [\c
 .BR \-I ]
 [\c
 .BR \-Q ]
 [\c
+.BR \-N ]
+[\c
+.BI \-U \ authcid\fR]
+[\c
+.BI \-R \ realm\fR]
+[\c
 .BI \-X \ authzid\fR]
 [\c
 .BI \-Y \ mech\fR]
-[\c
-.BI \-z \ sizelimit\fR]
 [\c
 .BR \-Z [ Z ]]
 [\c
@@ -80,6 +84,15 @@ are provided, a list of DNs is read from standard input (or from
 \fIfile\fP if the \fB\-f\fP flag is used).
 .SH OPTIONS
 .TP
+.BR \-V [ V ]
+Print version info.
+If \fB\-VV\fP is given, only the version information is printed.
+.TP
+.BI \-d \ debuglevel
+Set the LDAP debugging level to \fIdebuglevel\fP.
+.B ldapdelete
+must be compiled with LDAP_DEBUG defined for this option to have any effect.
+.TP
 .B \-n
 Show what would be done, but don't actually delete entries.  Useful for
 debugging in conjunction with \fB\-v\fP.
@@ -93,19 +106,25 @@ Continuous operation mode.  Errors  are  reported,  but
 will  continue  with  deletions.   The default is to exit after
 reporting an error.
 .TP
+.BI \-f \ file
+Read a series of DNs from \fIfile\fP, one per line, performing an
+LDAP delete for each.
+.TP
+.B \-r
+Do a recursive delete.  If the DN specified isn't a leaf, its
+children, and all their children are deleted down the tree.  No
+verification is done, so if you add this switch, ldapdelete will
+happily delete large portions of your tree.  Use with care.
+.TP
+.BI \-z \ sizelimit
+Use \fIsizelimit\fP when searching for children DN to delete,
+to circumvent any server-side size limit.  Only useful in conjunction
+with \fB\-r\fP.
+.TP
 .BR \-M [ M ]
 Enable manage DSA IT control.
 .B \-MM
 makes control critical.
-.TP
-.BI \-d \ debuglevel
-Set the LDAP debugging level to \fIdebuglevel\fP.
-.B ldapdelete
-must be compiled with LDAP_DEBUG defined for this option to have any effect.
-.TP
-.BI \-f \ file
-Read a series of DNs from \fIfile\fP, one per line, performing an
-LDAP delete for each.
 .TP
 .B \-x 
 Use simple authentication instead of SASL.
@@ -171,7 +190,7 @@ Delete extensions:
   (none)
 .fi
 .TP
-.BR \-o \ \fIopt\fP [ =\fIoptparam\fP ]
+.BI \-o \ opt \fR[= optparam \fR]
 
 Specify general options.
 
@@ -180,17 +199,6 @@ General options:
   nettimeout=<timeout>  (in seconds, or "none" or "max")
   ldif-wrap=<width>     (in columns, or "no" for no wrapping)
 .fi
-.TP
-.B \-r
-Do a recursive delete.  If the DN specified isn't a leaf, its
-children, and all their children are deleted down the tree.  No
-verification is done, so if you add this switch, ldapdelete will
-happily delete large portions of your tree.  Use with care.
-.TP
-.BI \-z \ sizelimit
-Use \fIsizelimit\fP when searching for children DN to delete,
-to circumvent any server-side size limit.  Only useful in conjunction
-with \fB\-r\fP.
 .TP
 .BI \-O \ security-properties
 Specify SASL security properties.
@@ -201,6 +209,9 @@ only as needed.
 .TP
 .B \-Q
 Enable SASL Quiet mode.  Never prompt.
+.TP
+.B \-N
+Do not use reverse DNS to canonicalize SASL host name.
 .TP
 .BI \-U \ authcid
 Specify the authentication ID for SASL bind. The form of the identity depends on the
