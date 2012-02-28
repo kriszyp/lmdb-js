@@ -202,6 +202,18 @@ ldap_pvt_thread_pool_destroy (
 	return(0);
 }
 
+void
+ldap_pvt_thread_pool_idle ( ldap_pvt_thread_pool_t *pool )
+{
+	return;
+}
+
+void
+ldap_pvt_thread_pool_unidle ( ldap_pvt_thread_pool_t *pool )
+{
+	return;
+}
+
 int ldap_pvt_thread_pool_getkey (
 	void *ctx, void *key, void **data, ldap_pvt_thread_pool_keyfree_t **kfree )
 {
