@@ -40,6 +40,7 @@ static ObjectClass		*oc_olmLDAPConnection;
 static AttributeDescription	*ad_olmDbURIList;
 static AttributeDescription	*ad_olmDbOperations;
 static AttributeDescription	*ad_olmDbBoundDN;
+static AttributeDescription	*ad_olmDbConnFlags;
 
 /*
  * Stolen from back-monitor/operations.c
@@ -60,6 +61,24 @@ struct ldap_back_monitor_ops_t {
 	{ BER_BVC( "cn=Extended" ) },
 
 	{ BER_BVNULL }
+};
+
+/* Corresponds to connection flags in back-ldap.h */
+static struct {
+	unsigned	flag;
+	struct berval	name;
+}		s_flag[] = {
+	{ LDAP_BACK_FCONN_ISBOUND,	BER_BVC( "bound" ) },
+	{ LDAP_BACK_FCONN_ISANON,	BER_BVC( "anonymous" ) },
+	{ LDAP_BACK_FCONN_ISPRIV,	BER_BVC( "privileged" ) },
+	{ LDAP_BACK_FCONN_ISTLS,	BER_BVC( "TLS" ) },
+	{ LDAP_BACK_FCONN_BINDING,	BER_BVC( "binding" ) },
+	{ LDAP_BACK_FCONN_TAINTED,	BER_BVC( "tainted" ) },
+	{ LDAP_BACK_FCONN_ABANDON,	BER_BVC( "abandon" ) },
+	{ LDAP_BACK_FCONN_ISIDASR,	BER_BVC( "idassert" ) },
+	{ LDAP_BACK_FCONN_CACHED,	BER_BVC( "cached" ) },
+
+	{ 0 }
 };
 
 
@@ -109,6 +128,13 @@ static struct {
 		"NO-USER-MODIFICATION "
 		"USAGE dSAOperation )",
 		&ad_olmDbBoundDN },
+	{ "( olmLDAPAttributes:4 "
+		"NAME ( 'olmDbConnFlags' ) "
+		"DESC 'monitor connection flags' "
+		"SUP monitoredInfo "
+		"NO-USER-MODIFICATION "
+		"USAGE dSAOperation )",
+		&ad_olmDbConnFlags },
 
 	{ NULL }
 };
@@ -131,6 +157,7 @@ static struct {
 		"SUP monitorConnection STRUCTURAL "
 		"MAY ( "
 			"olmDbBoundDN "
+			"$ olmDbConnFlags "
 			") )",
 		&oc_olmLDAPConnection },
 
@@ -345,6 +372,7 @@ ldap_back_monitor_conn_entry(
 	monitor_entry_t		*mp;
 	char buf[SLAP_TEXT_BUFLEN];
 	struct berval bv, dn, ndn;
+	int i;
 
 	e = entry_alloc();
 
@@ -366,6 +394,14 @@ ldap_back_monitor_conn_entry(
 	attr_merge_normalize_one( e, slap_schema.si_ad_objectClass, &bv, NULL );
 
 	attr_merge_normalize_one( e, ad_olmDbBoundDN, &lc->lc_bound_ndn, NULL );
+
+	for ( i = 0; s_flag[i].flag; i++ )
+	{
+		if ( lc->lc_flags & s_flag[i].flag )
+		{
+			attr_merge_normalize_one( e, ad_olmDbConnFlags, &s_flag[i].name, NULL );
+		}
+	}
 
 	mp = monitor_entrypriv_create();
 	e->e_private = mp;
