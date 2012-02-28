@@ -41,6 +41,7 @@ static AttributeDescription	*ad_olmDbURIList;
 static AttributeDescription	*ad_olmDbOperations;
 static AttributeDescription	*ad_olmDbBoundDN;
 static AttributeDescription	*ad_olmDbConnFlags;
+static AttributeDescription	*ad_olmDbConnURI;
 
 /*
  * Stolen from back-monitor/operations.c
@@ -135,6 +136,13 @@ static struct {
 		"NO-USER-MODIFICATION "
 		"USAGE dSAOperation )",
 		&ad_olmDbConnFlags },
+	{ "( olmLDAPAttributes:5 "
+		"NAME ( 'olmDbConnURI' ) "
+		"DESC 'monitor connection URI' "
+		"SUP monitorConnectionPeerAddress "
+		"NO-USER-MODIFICATION "
+		"USAGE dSAOperation )",
+		&ad_olmDbConnURI },
 
 	{ NULL }
 };
@@ -158,6 +166,7 @@ static struct {
 		"MAY ( "
 			"olmDbBoundDN "
 			"$ olmDbConnFlags "
+			"$ olmDbConnURI "
 			") )",
 		&oc_olmLDAPConnection },
 
@@ -371,6 +380,7 @@ ldap_back_monitor_conn_entry(
 	Entry *e;
 	monitor_entry_t		*mp;
 	char buf[SLAP_TEXT_BUFLEN];
+	char *ptr;
 	struct berval bv, dn, ndn;
 	int i;
 
@@ -402,6 +412,12 @@ ldap_back_monitor_conn_entry(
 			attr_merge_normalize_one( e, ad_olmDbConnFlags, &s_flag[i].name, NULL );
 		}
 	}
+
+	ldap_get_option( lc->lc_ld, LDAP_OPT_URI, &bv.bv_val );
+	ptr = strchr( bv.bv_val, ' ' );
+	bv.bv_len = ptr ? ptr - bv.bv_val : strlen(bv.bv_val);
+	attr_merge_normalize_one( e, ad_olmDbConnURI, &bv, NULL );
+	ch_free( bv.bv_val );
 
 	mp = monitor_entrypriv_create();
 	e->e_private = mp;
