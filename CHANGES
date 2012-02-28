@@ -14,6 +14,8 @@ OpenLDAP 2.4.30 Release (2012/02/26)
 		Fixed POSIX make support (ITS#7160)
 		Fixed slapd-mdb build on POSIX (ITS#7160)
 	Documentation
+		Added option "-o" to ldap*(1) pages  (ITS#7152)
+		Fixed ldap*(1) page cleanup (ITS#7177)
 		Fixed ldap_modify(3) prototypes (ITS#7173)
 
 OpenLDAP 2.4.29 Release (2012/02/12)
