@@ -42,6 +42,7 @@ static AttributeDescription	*ad_olmDbOperations;
 static AttributeDescription	*ad_olmDbBoundDN;
 static AttributeDescription	*ad_olmDbConnFlags;
 static AttributeDescription	*ad_olmDbConnURI;
+static AttributeDescription	*ad_olmDbPeerAddress;
 
 /*
  * Stolen from back-monitor/operations.c
@@ -143,6 +144,13 @@ static struct {
 		"NO-USER-MODIFICATION "
 		"USAGE dSAOperation )",
 		&ad_olmDbConnURI },
+	{ "( olmLDAPAttributes:6 "
+		"NAME ( 'olmDbConnPeerAddress' ) "
+		"DESC 'monitor connection peer address' "
+		"SUP monitorConnectionPeerAddress "
+		"NO-USER-MODIFICATION "
+		"USAGE dSAOperation )",
+		&ad_olmDbPeerAddress },
 
 	{ NULL }
 };
@@ -167,6 +175,7 @@ static struct {
 			"olmDbBoundDN "
 			"$ olmDbConnFlags "
 			"$ olmDbConnURI "
+			"$ olmDbConnPeerAddress "
 			") )",
 		&oc_olmLDAPConnection },
 
@@ -372,6 +381,85 @@ struct ldap_back_monitor_conn_arg {
 	Entry **ep;
 };
 
+/* code stolen from daemon.c */
+static int
+ldap_back_monitor_conn_peername(
+	LDAP		*ld,
+	struct berval	*bv)
+{
+	Sockbuf *sockbuf;
+	ber_socket_t socket;
+	Sockaddr sa;
+	socklen_t salen = sizeof(sa);
+	const char *peeraddr = NULL;
+	/* we assume INET6_ADDRSTRLEN > INET_ADDRSTRLEN */
+	char addr[INET6_ADDRSTRLEN];
+#ifdef LDAP_PF_LOCAL
+	char peername[MAXPATHLEN + sizeof("PATH=")];
+#elif defined(LDAP_PF_INET6)
+	char peername[sizeof("IP=[ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff]:65535")];
+#else /* ! LDAP_PF_LOCAL && ! LDAP_PF_INET6 */
+	char peername[sizeof("IP=255.255.255.255:65336")];
+#endif /* LDAP_PF_LOCAL */
+
+	assert( bv != NULL );
+
+	ldap_get_option( ld, LDAP_OPT_SOCKBUF, (void **)&sockbuf );
+	ber_sockbuf_ctrl( sockbuf, LBER_SB_OPT_GET_FD, &socket );
+	getpeername( socket, (struct sockaddr *)&sa, &salen );
+
+	switch ( sa.sa_addr.sa_family ) {
+#ifdef LDAP_PF_LOCAL
+		case AF_LOCAL:
+			sprintf( peername, "PATH=%s", sa.sa_un_addr.sun_path );
+			break;
+#endif /* LDAP_PF_LOCAL */
+
+#ifdef LDAP_PF_INET6
+		case AF_INET6:
+			if ( IN6_IS_ADDR_V4MAPPED(&sa.sa_in6_addr.sin6_addr) ) {
+#if defined( HAVE_GETADDRINFO ) && defined( HAVE_INET_NTOP )
+				peeraddr = inet_ntop( AF_INET,
+						((struct in_addr *)&sa.sa_in6_addr.sin6_addr.s6_addr[12]),
+						addr, sizeof(addr) );
+#else /* ! HAVE_GETADDRINFO || ! HAVE_INET_NTOP */
+				peeraddr = inet_ntoa( *((struct in_addr *)
+							&sa.sa_in6_addr.sin6_addr.s6_addr[12]) );
+#endif /* ! HAVE_GETADDRINFO || ! HAVE_INET_NTOP */
+				if ( !peeraddr ) peeraddr = SLAP_STRING_UNKNOWN;
+				sprintf( peername, "IP=%s:%d", peeraddr,
+						(unsigned) ntohs( sa.sa_in6_addr.sin6_port ) );
+			} else {
+				peeraddr = inet_ntop( AF_INET6,
+						&sa.sa_in6_addr.sin6_addr,
+						addr, sizeof addr );
+				if ( !peeraddr ) peeraddr = SLAP_STRING_UNKNOWN;
+				sprintf( peername, "IP=[%s]:%d", peeraddr,
+						(unsigned) ntohs( sa.sa_in6_addr.sin6_port ) );
+			}
+			break;
+#endif /* LDAP_PF_INET6 */
+
+		case AF_INET: {
+#if defined( HAVE_GETADDRINFO ) && defined( HAVE_INET_NTOP )
+				      peeraddr = inet_ntop( AF_INET, &sa.sa_in_addr.sin_addr,
+						      addr, sizeof(addr) );
+#else /* ! HAVE_GETADDRINFO || ! HAVE_INET_NTOP */
+				      peeraddr = inet_ntoa( sa.sa_in_addr.sin_addr );
+#endif /* ! HAVE_GETADDRINFO || ! HAVE_INET_NTOP */
+				      if ( !peeraddr ) peeraddr = SLAP_STRING_UNKNOWN;
+				      sprintf( peername, "IP=%s:%d", peeraddr,
+						      (unsigned) ntohs( sa.sa_in_addr.sin_port ) );
+			      } break;
+
+		default:
+			      sprintf( peername, SLAP_STRING_UNKNOWN );
+	}
+
+	ber_str2bv( peername, 0, 1, bv );
+	return LDAP_SUCCESS;
+}
+
 static int
 ldap_back_monitor_conn_entry(
 	ldapconn_t *lc,
@@ -417,6 +505,10 @@ ldap_back_monitor_conn_entry(
 	ptr = strchr( bv.bv_val, ' ' );
 	bv.bv_len = ptr ? ptr - bv.bv_val : strlen(bv.bv_val);
 	attr_merge_normalize_one( e, ad_olmDbConnURI, &bv, NULL );
+	ch_free( bv.bv_val );
+
+	ldap_back_monitor_conn_peername( lc->lc_ld, &bv );
+	attr_merge_normalize_one( e, ad_olmDbPeerAddress, &bv, NULL );
 	ch_free( bv.bv_val );
 
 	mp = monitor_entrypriv_create();
