@@ -992,6 +992,7 @@ do_syncrep2(
 					case LDAP_NO_SUCH_OBJECT:
 					case LDAP_NO_SUCH_ATTRIBUTE:
 					case LDAP_TYPE_OR_VALUE_EXISTS:
+					case LDAP_NOT_ALLOWED_ON_NONLEAF:
 						rc = LDAP_SYNC_REFRESH_REQUIRED;
 						si->si_logstate = SYNCLOG_FALLBACK;
 						ldap_abandon_ext( si->si_ld, si->si_msgid, NULL, NULL );
