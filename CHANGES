@@ -1,6 +1,7 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.31 Engineering
+	Fixed libmdb to use IOV_MAX if it is defined and small (ITS#7196)
 	Fixed slapd delta-syncrepl fallback on non-leaf error (ITS#7195)
 
 OpenLDAP 2.4.30 Release (2012/02/29)
