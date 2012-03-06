@@ -1,5 +1,7 @@
 OpenLDAP 2.4 Change Log
 
+OpenLDAP 2.4.31 Engineering
+
 OpenLDAP 2.4.30 Release (2012/02/29)
 	Fixed libldap socket polling for writes (ITS#7167)
 	Fixed liblutil string modifications (ITS#7174)
