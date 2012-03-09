@@ -2155,7 +2155,11 @@ approxIndexer(
 			len = strlen( c );
 			if( len < SLAPD_APPROX_WORDLEN ) continue;
 			ber_str2bv( phonetic( c ), 0, 0, &keys[keycount] );
-			keycount++;
+			if( keys[keycount].bv_len ) {
+				keycount++;
+			} else {
+				ch_free( keys[keycount].bv_val );
+			}
 			i++;
 		}
 
