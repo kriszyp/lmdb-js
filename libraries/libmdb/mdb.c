@@ -202,6 +202,8 @@
 
 #if defined(_WIN32) || defined(__APPLE__)
 #define MNAME_LEN	32
+#else
+#define MNAME_LEN	(sizeof(pthread_mutex_t))
 #endif
 
 /** @} */
@@ -543,7 +545,7 @@ typedef struct MDB_txninfo {
 		pthread_mutex_t	mt2_wmutex;
 #define mti_wmutex	mt2.mt2_wmutex
 #endif
-		char pad[(sizeof(pthread_mutex_t)+CACHELINE-1) & ~(CACHELINE-1)];
+		char pad[(MNAME_LEN+CACHELINE-1) & ~(CACHELINE-1)];
 	} mt2;
 	MDB_reader	mti_readers[1];
 } MDB_txninfo;
@@ -763,6 +765,20 @@ typedef struct MDB_meta {
 	pgno_t		mm_last_pg;			/**< last used page in file */
 	txnid_t		mm_txnid;			/**< txnid that committed this page */
 } MDB_meta;
+
+	/** Buffer for a stack-allocated dirty page.
+	 *	The members define size and alignment, and silence type
+	 *	aliasing warnings.  They are not used directly; that could
+	 *	mean incorrectly using several union members in parallel.
+	 */
+typedef union MDB_pagebuf {
+	char		mb_raw[MDB_PAGESIZE];
+	MDB_page	mb_page;
+	struct {
+		char		mm_pad[PAGEHDRSZ];
+		MDB_meta	mm_meta;
+	} mb_metabuf;
+} MDB_pagebuf;
 
 	/** Auxiliary DB info.
 	 *	The information here is mostly static/read-only. There is
@@ -1112,13 +1128,11 @@ static MDB_page *
 mdb_page_malloc(MDB_cursor *mc) {
 	MDB_page *ret;
 	size_t sz = mc->mc_txn->mt_env->me_psize;
-	if (mc->mc_txn->mt_env->me_dpages) {
-		ret = mc->mc_txn->mt_env->me_dpages;
+	if ((ret = mc->mc_txn->mt_env->me_dpages) != NULL) {
 		VGMEMP_ALLOC(mc->mc_txn->mt_env, ret, sz);
 		VGMEMP_DEFINED(ret, sizeof(ret->mp_next));
 		mc->mc_txn->mt_env->me_dpages = ret->mp_next;
-	} else {
-		ret = malloc(sz);
+	} else if ((ret = malloc(sz)) != NULL) {
 		VGMEMP_ALLOC(mc->mc_txn->mt_env, ret, sz);
 	}
 	return ret;
@@ -2050,7 +2064,7 @@ done:
 static int
 mdb_env_read_header(MDB_env *env, MDB_meta *meta)
 {
-	char		 page[MDB_PAGESIZE];
+	MDB_pagebuf	pbuf;
 	MDB_page	*p;
 	MDB_meta	*m;
 	int		 rc, err;
@@ -2059,9 +2073,9 @@ mdb_env_read_header(MDB_env *env, MDB_meta *meta)
 	 */
 
 #ifdef _WIN32
-	if (!ReadFile(env->me_fd, page, MDB_PAGESIZE, (DWORD *)&rc, NULL) || rc == 0)
+	if (!ReadFile(env->me_fd, &pbuf, MDB_PAGESIZE, (DWORD *)&rc, NULL) || rc == 0)
 #else
-	if ((rc = read(env->me_fd, page, MDB_PAGESIZE)) == 0)
+	if ((rc = read(env->me_fd, &pbuf, MDB_PAGESIZE)) == 0)
 #endif
 	{
 		return ENOENT;
@@ -2074,7 +2088,7 @@ mdb_env_read_header(MDB_env *env, MDB_meta *meta)
 		return err;
 	}
 
-	p = (MDB_page *)page;
+	p = (MDB_page *)&pbuf;
 
 	if (!F_ISSET(p->mp_flags, P_META)) {
 		DPRINTF("page %zu not a meta page", p->mp_pgno);
@@ -2375,8 +2389,10 @@ mdb_env_open2(MDB_env *env, unsigned int flags)
 		i |= MAP_FIXED;
 	env->me_map = mmap(meta.mm_address, env->me_mapsize, PROT_READ, i,
 		env->me_fd, 0);
-	if (env->me_map == MAP_FAILED)
+	if (env->me_map == MAP_FAILED) {
+		env->me_map = NULL;
 		return ErrCode();
+	}
 #endif
 
 	if (newenv) {
@@ -2625,8 +2641,8 @@ mdb_env_setup_locks(MDB_env *env, char *lpath, int mode, int *excl)
 		size = rsize - sizeof(MDB_txninfo);
 		env->me_maxreaders = size/sizeof(MDB_reader) + 1;
 	}
-#ifdef _WIN32
 	{
+#ifdef _WIN32
 		HANDLE mh;
 		mh = CreateFileMapping(env->me_lfd, NULL, PAGE_READWRITE,
 			0, 0, NULL);
@@ -2640,15 +2656,17 @@ mdb_env_setup_locks(MDB_env *env, char *lpath, int mode, int *excl)
 			rc = ErrCode();
 			goto fail;
 		}
-	}
 #else
-	env->me_txns = (MDB_txninfo *)mmap(0, rsize, PROT_READ|PROT_WRITE, MAP_SHARED,
-		env->me_lfd, 0);
-	if (env->me_txns == MAP_FAILED) {
-		rc = ErrCode();
-		goto fail;
-	}
+		void *m = mmap(NULL, rsize, PROT_READ|PROT_WRITE, MAP_SHARED,
+			env->me_lfd, 0);
+		if (m == MAP_FAILED) {
+			env->me_txns = NULL;
+			rc = ErrCode();
+			goto fail;
+		}
+		env->me_txns = m;
 #endif
+	}
 	if (*excl) {
 #ifdef _WIN32
 		char hexbuf[17];
@@ -3996,7 +4014,7 @@ mdb_cursor_put(MDB_cursor *mc, MDB_val *key, MDB_val *data,
 	unsigned int mcount = 0;
 	size_t nsize;
 	int rc, rc2;
-	char pbuf[MDB_PAGESIZE];
+	MDB_pagebuf pbuf;
 	char dbuf[MAXKEYSIZE+1];
 	unsigned int nflags;
 	DKBUF;
@@ -4092,7 +4110,7 @@ more:
 				/* create a fake page for the dup items */
 				memcpy(dbuf, dkey.mv_data, dkey.mv_size);
 				dkey.mv_data = dbuf;
-				fp = (MDB_page *)pbuf;
+				fp = (MDB_page *)&pbuf;
 				fp->mp_pgno = mc->mc_pg[mc->mc_top]->mp_pgno;
 				fp->mp_flags = P_LEAF|P_DIRTY|P_SUBP;
 				fp->mp_lower = PAGEHDRSZ;
@@ -4108,7 +4126,7 @@ more:
 				do_sub = 1;
 				rdata = &xdata;
 				xdata.mv_size = fp->mp_upper;
-				xdata.mv_data = pbuf;
+				xdata.mv_data = fp;
 				flags |= F_DUPDATA;
 				goto new_sub;
 			}
@@ -4161,8 +4179,8 @@ more:
 					/* no, just grow it */
 					rdata = &xdata;
 					xdata.mv_size = NODEDSZ(leaf) + offset;
-					xdata.mv_data = pbuf;
-					mp = (MDB_page *)pbuf;
+					xdata.mv_data = &pbuf;
+					mp = (MDB_page *)&pbuf;
 					mp->mp_pgno = mc->mc_pg[mc->mc_top]->mp_pgno;
 					flags |= F_DUPDATA;
 				}
