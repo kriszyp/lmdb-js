@@ -1,6 +1,7 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.31 Engineering
+	Fixed libldap IPv6 URL detection (ITS#7194)
 	Fixed libmdb alignment of MDB_db members (ITS#7191)
 	Fixed libmdb branch page merging on deletes (ITS#7190)
 	Fixed libmdb to use IOV_MAX if it is defined and small (ITS#7196)
