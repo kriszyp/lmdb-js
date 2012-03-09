@@ -9,6 +9,8 @@ OpenLDAP 2.4.31 Engineering
 	Fixed slapd to reject MMR setups with bad serverID setting (ITS#7200)
 	Fixed slapd approxIndexer key generation (ITS#7203)
 	Fixed slapd-shell cn=config support (ITS#7201)
+	Build Environment
+		Fixed test044 when back-monitor is disabled (ITS#7204)
 	Documentation
 		Fixed slapschema(8) formatting (ITS#7188)
 
