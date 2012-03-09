@@ -911,6 +911,7 @@ typedef struct ServerID {
 } ServerID;
 
 static ServerID *sid_list;
+static int sid_set;
 
 typedef struct voidList {
 	struct voidList *vl_next;
@@ -2035,6 +2036,7 @@ sortval_reject:
 					Debug( LDAP_DEBUG_CONFIG,
 						"%s: SID=0x%03x\n",
 						c->log, slap_serverID, 0 );
+					sid_set = 1;
 				}
 				si->si_next = NULL;
 				si->si_num = num;
@@ -2044,11 +2046,20 @@ sortval_reject:
 				if (( slapMode & SLAP_SERVER_MODE ) && c->argc > 2 ) {
 					Listener *l = config_check_my_url( c->argv[2], lud );
 					if ( l ) {
+						if ( sid_set ) {
+							ldap_free_urldesc( lud );
+							snprintf( c->cr_msg, sizeof( c->cr_msg ),
+								"<%s> multiple server ID URLs matched, only one is allowed", c->argv[0] );
+							Debug(LDAP_DEBUG_ANY, "%s: %s %s\n",
+								c->log, c->cr_msg, c->argv[1] );
+							return 1;
+						}
 						slap_serverID = si->si_num;
 						Debug( LDAP_DEBUG_CONFIG,
 							"%s: SID=0x%03x (listener=%s)\n",
 							c->log, slap_serverID,
 							l->sl_url.bv_val );
+						sid_set = 1;
 					}
 				}
 				if ( c->argc > 2 )
@@ -4358,6 +4369,13 @@ done:
 				frontendDB->be_schemadn.bv_val, 0, 0 );
 			/* must not happen */
 			assert( 0 );
+		}
+	}
+	if ( rc == 0 && ( slapMode & SLAP_SERVER_MODE ) && sid_list ) {
+		if ( !BER_BVISEMPTY( &sid_list->si_url ) && !sid_set ) {
+			Debug(LDAP_DEBUG_ANY, "read_config: no serverID / URL match found. "
+				"Check slapd -h arguments.\n", 0,0,0 );
+			rc = LDAP_OTHER;
 		}
 	}
 	return rc;
