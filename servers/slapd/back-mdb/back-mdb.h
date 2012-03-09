@@ -170,6 +170,8 @@ typedef struct AttrList {
 
 #if defined(__i386) || defined(__x86_64)
 #define MISALIGNED_OK	1
+#else
+#define	ALIGNER	(sizeof(size_t)-1)
 #endif
 
 typedef struct IndexRbody {
