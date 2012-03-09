@@ -39,14 +39,14 @@ mdb_key_read(
 {
 	int rc;
 	MDB_val key;
-#ifndef MSIALIGNED_OK
+#ifndef MISALIGNED_OK
 	int kbuf[2];
 #endif
 
 	Debug( LDAP_DEBUG_TRACE, "=> key_read\n", 0, 0, 0 );
 
 #ifndef MISALIGNED_OK
-	if (k->bv_len & 0x03) {
+	if (k->bv_len & ALIGNER) {
 		key.mv_size = sizeof(kbuf);
 		key.mv_data = kbuf;
 		kbuf[1] = 0;

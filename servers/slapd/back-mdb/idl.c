@@ -414,7 +414,7 @@ mdb_idl_insert_keys(
 	assert( id != NOID );
 
 #ifndef MISALIGNED_OK
-	if (keys[0].bv_len & 0x03)
+	if (keys[0].bv_len & ALIGNER)
 		kbuf[1] = 0;
 #endif
 	for ( k=0; keys[k].bv_val; k++ ) {
@@ -422,7 +422,7 @@ mdb_idl_insert_keys(
 	 * exists and if it's a range.
 	 */
 #ifndef MISALIGNED_OK
-	if (keys[k].bv_len & 0x03) {
+	if (keys[k].bv_len & ALIGNER) {
 		key.mv_size = sizeof(kbuf);
 		key.mv_data = kbuf;
 		memcpy(key.mv_data, keys[k].bv_val, keys[k].bv_len);
@@ -563,7 +563,7 @@ mdb_idl_delete_keys(
 	assert( id != NOID );
 
 #ifndef MISALIGNED_OK
-	if (keys[0].bv_len & 0x03)
+	if (keys[0].bv_len & ALIGNER)
 		kbuf[1] = 0;
 #endif
 	for ( k=0; keys[k].bv_val; k++) {
@@ -571,7 +571,7 @@ mdb_idl_delete_keys(
 	 * exists and if it's a range.
 	 */
 #ifndef MISALIGNED_OK
-	if (keys[k].bv_len & 0x03) {
+	if (keys[k].bv_len & ALIGNER) {
 		key.mv_size = sizeof(kbuf);
 		key.mv_data = kbuf;
 		memcpy(key.mv_data, keys[k].bv_val, keys[k].bv_len);
