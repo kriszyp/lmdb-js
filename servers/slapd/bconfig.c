@@ -4634,9 +4634,42 @@ check_name_index( CfEntryInfo *parent, ConfigType ce_type, Entry *e,
 		}
 	}
 
-	/* count related kids */
-	for (nsibs=0, ce=parent->ce_kids; ce; ce=ce->ce_sibs) {
-		if ( ce->ce_type == ce_type ) nsibs++;
+	/* count related kids, for entries of type Cft_Misc, consider only
+	 * same attribute siblings */
+	if ( ce_type == Cft_Misc )
+	{
+		AttributeDescription *ad = NULL;
+
+		ptr1 = strchr( rdn.bv_val, '=' );
+		assert( ptr1 != NULL );
+
+		rdn.bv_len = ptr1 - rdn.bv_val;
+		slap_bv2ad( &rdn, &ad, &ptr2 );
+		assert( ad != NULL );
+
+		for (nsibs=0, ce=parent->ce_kids; ce; ce=ce->ce_sibs) {
+			AttributeDescription *ad2 = NULL;
+			if ( ce->ce_type != ce_type )
+				continue;
+
+			dnRdn( &ce->ce_entry->e_name, &rdn );
+
+			ptr1 = strchr( rdn.bv_val, '=' );
+			assert( ptr1 != NULL );
+
+			rdn.bv_len = ptr1 - rdn.bv_val;
+			slap_bv2ad( &rdn, &ad2, &ptr2 );
+			assert( ad2 != NULL );
+
+			if ( ad == ad2 )
+				nsibs++;
+		}
+	}
+	else
+	{
+		for (nsibs=0, ce=parent->ce_kids; ce; ce=ce->ce_sibs) {
+			if ( ce->ce_type == ce_type ) nsibs++;
+		}
 	}
 
 	/* account for -1 frontend */
