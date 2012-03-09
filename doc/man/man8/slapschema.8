@@ -27,7 +27,7 @@ slapschema \- SLAPD in-database schema checking utility
 [\c
 .BI \-n dbnum\fR]
 [\c
-.BI \-o option\fR[ = value\FR]]
+.BI \-o option\fR[ = value\fR]]
 [\c
 .BI \-s subtree-dn\fR]
 [\c
@@ -53,7 +53,8 @@ entirely removing objectClasses,
 or any other change that may result in making perfectly valid entries
 no longer compliant with the modified schema.
 The execution of the
-.B slapschema tool after modifying the schema can point out
+.B slapschema
+tool after modifying the schema can point out
 inconsistencies that would otherwise surface only when
 inconsistent entries need to be modified.
 
