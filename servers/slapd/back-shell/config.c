@@ -53,42 +53,42 @@ enum {
 };
 
 static ConfigTable shellcfg[] = {
-	{ "bind", "args", 2, 0, 0, ARG_STRING|ARG_MAGIC|SHELL_BIND, shell_cf,
+	{ "bind", "args", 2, 0, 0, ARG_MAGIC|SHELL_BIND, shell_cf,
 		"( OLcfgDbAt:10.1 NAME 'olcShellBind' "
 			"DESC 'Bind command and arguments' "
 			"EQUALITY caseExactMatch "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE ) ", NULL, NULL },
-	{ "unbind", "args", 2, 0, 0, ARG_STRING|ARG_MAGIC|SHELL_UNBIND, shell_cf,
+	{ "unbind", "args", 2, 0, 0, ARG_MAGIC|SHELL_UNBIND, shell_cf,
 		"( OLcfgDbAt:10.2 NAME 'olcShellUnbind' "
 			"DESC 'Unbind command and arguments' "
 			"EQUALITY caseExactMatch "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE ) ", NULL, NULL },
-	{ "search", "args", 2, 0, 0, ARG_STRING|ARG_MAGIC|SHELL_SEARCH, shell_cf,
+	{ "search", "args", 2, 0, 0, ARG_MAGIC|SHELL_SEARCH, shell_cf,
 		"( OLcfgDbAt:10.3 NAME 'olcShellSearch' "
 			"DESC 'Search command and arguments' "
 			"EQUALITY caseExactMatch "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE ) ", NULL, NULL },
-	{ "compare", "args", 2, 0, 0, ARG_STRING|ARG_MAGIC|SHELL_COMPARE, shell_cf,
+	{ "compare", "args", 2, 0, 0, ARG_MAGIC|SHELL_COMPARE, shell_cf,
 		"( OLcfgDbAt:10.4 NAME 'olcShellCompare' "
 			"DESC 'Compare command and arguments' "
 			"EQUALITY caseExactMatch "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE ) ", NULL, NULL },
-	{ "modify", "args", 2, 0, 0, ARG_STRING|ARG_MAGIC|SHELL_MODIFY, shell_cf,
+	{ "modify", "args", 2, 0, 0, ARG_MAGIC|SHELL_MODIFY, shell_cf,
 		"( OLcfgDbAt:10.5 NAME 'olcShellModify' "
 			"DESC 'Modify command and arguments' "
 			"EQUALITY caseExactMatch "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE ) ", NULL, NULL },
-	{ "modrdn", "args", 2, 0, 0, ARG_STRING|ARG_MAGIC|SHELL_MODRDN, shell_cf,
+	{ "modrdn", "args", 2, 0, 0, ARG_MAGIC|SHELL_MODRDN, shell_cf,
 		"( OLcfgDbAt:10.6 NAME 'olcShellModRDN' "
 			"DESC 'ModRDN command and arguments' "
 			"EQUALITY caseExactMatch "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE ) ", NULL, NULL },
-	{ "add", "args", 2, 0, 0, ARG_STRING|ARG_MAGIC|SHELL_ADD, shell_cf,
+	{ "add", "args", 2, 0, 0, ARG_MAGIC|SHELL_ADD, shell_cf,
 		"( OLcfgDbAt:10.7 NAME 'olcShellAdd' "
 			"DESC 'Add command and arguments' "
 			"EQUALITY caseExactMatch "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE ) ", NULL, NULL },
-	{ "delete", "args", 2, 0, 0, ARG_STRING|ARG_MAGIC|SHELL_DELETE, shell_cf,
+	{ "delete", "args", 2, 0, 0, ARG_MAGIC|SHELL_DELETE, shell_cf,
 		"( OLcfgDbAt:10.8 NAME 'olcShellDelete' "
 			"DESC 'Delete command and arguments' "
 			"EQUALITY caseExactMatch "
