@@ -7,6 +7,7 @@ OpenLDAP 2.4.31 Engineering
 	Fixed libmdb to use IOV_MAX if it is defined and small (ITS#7196)
 	Fixed slapd delta-syncrepl fallback on non-leaf error (ITS#7195)
 	Fixed slapd to reject MMR setups with bad serverID setting (ITS#7200)
+	Fixed slapd approxIndexer key generation (ITS#7203)
 	Fixed slapd-shell cn=config support (ITS#7201)
 	Documentation
 		Fixed slapschema(8) formatting (ITS#7188)
