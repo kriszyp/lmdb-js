@@ -890,7 +890,7 @@ typedef struct ServerID {
 } ServerID;
 
 static ServerID *sid_list;
-static int sid_set;
+static ServerID *sid_set;
 
 typedef struct voidList {
 	struct voidList *vl_next;
@@ -1272,6 +1272,8 @@ config_generic(ConfigArgs *c) {
 				si; si = *sip, i++ ) {
 				if ( c->valx == -1 || i == c->valx ) {
 					*sip = si->si_next;
+					if ( sid_set == si )
+						sid_set = NULL;
 					ch_free( si );
 					if ( c->valx >= 0 )
 						break;
@@ -1904,7 +1906,7 @@ sortval_reject:
 					Debug( LDAP_DEBUG_CONFIG,
 						"%s: SID=0x%03x\n",
 						c->log, slap_serverID, 0 );
-					sid_set = 1;
+					sid_set = si;
 				}
 				si->si_next = NULL;
 				si->si_num = num;
@@ -1927,7 +1929,7 @@ sortval_reject:
 							"%s: SID=0x%03x (listener=%s)\n",
 							c->log, slap_serverID,
 							l->sl_url.bv_val );
-						sid_set = 1;
+						sid_set = si;
 					}
 				}
 				if ( c->argc > 2 )
