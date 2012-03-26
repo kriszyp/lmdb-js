@@ -419,7 +419,7 @@ ldap_int_sasl_bind(
 		LDAP_MUTEX_LOCK( &ld->ld_conn_mutex );
 		ber_sockbuf_ctrl( ld->ld_sb, LBER_SB_OPT_GET_FD, &sd );
 
-		if ( sd == AC_SOCKET_INVALID ) {
+		if ( sd == AC_SOCKET_INVALID || !ld->ld_defconn ) {
 			/* not connected yet */
 
 			rc = ldap_open_defconn( ld );
