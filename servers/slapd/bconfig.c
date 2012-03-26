@@ -2938,7 +2938,8 @@ config_suffix(ConfigArgs *c)
 	}
 #endif
 
-	if (SLAP_DB_ONE_SUFFIX( c->be ) && c->be->be_suffix ) {
+	if (SLAP_DB_ONE_SUFFIX( c->be ) && c->be->be_suffix &&
+		!BER_BVISNULL( &c->be->be_suffix[0] )) {
 		snprintf( c->cr_msg, sizeof( c->cr_msg ), "<%s> Only one suffix is allowed on this %s backend",
 			c->argv[0], c->be->bd_info->bi_type );
 		Debug(LDAP_DEBUG_ANY, "%s: %s\n",
