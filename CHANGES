@@ -5,6 +5,7 @@ OpenLDAP 2.4.31 Engineering
 	Fixed libldap rebinding on failed connection (ITS#7207)
 	Fixed libmdb alignment of MDB_db members (ITS#7191)
 	Fixed libmdb branch page merging on deletes (ITS#7190)
+	Fixed libmdb page split with MDB_APPEND (ITS#7213)
 	Fixed libmdb to use IOV_MAX if it is defined and small (ITS#7196)
 	Fixed slapd delta-syncrepl fallback on non-leaf error (ITS#7195)
 	Fixed slapd to reject MMR setups with bad serverID setting (ITS#7200)
