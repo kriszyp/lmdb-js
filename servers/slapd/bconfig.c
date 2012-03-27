@@ -4766,39 +4766,31 @@ check_name_index( CfEntryInfo *parent, ConfigType ce_type, Entry *e,
 		}
 	}
 
-	/* count related kids, for entries of type Cft_Misc, consider only
-	 * same attribute siblings */
-	if ( ce_type == Cft_Misc )
-	{
-		AttributeDescription *ad = NULL;
-
+	/* count related kids.
+	 * For entries of type Cft_Misc, only count siblings with same RDN type
+	 */
+	if ( ce_type == Cft_Misc ) {
+		rdn.bv_val = e->e_nname.bv_val;
 		ptr1 = strchr( rdn.bv_val, '=' );
 		assert( ptr1 != NULL );
 
 		rdn.bv_len = ptr1 - rdn.bv_val;
-		slap_bv2ad( &rdn, &ad, &ptr2 );
-		assert( ad != NULL );
 
 		for (nsibs=0, ce=parent->ce_kids; ce; ce=ce->ce_sibs) {
-			AttributeDescription *ad2 = NULL;
+			struct berval rdn2;
 			if ( ce->ce_type != ce_type )
 				continue;
 
-			dnRdn( &ce->ce_entry->e_name, &rdn );
+			dnRdn( &ce->ce_entry->e_nname, &rdn2 );
 
-			ptr1 = strchr( rdn.bv_val, '=' );
+			ptr1 = strchr( rdn2.bv_val, '=' );
 			assert( ptr1 != NULL );
 
-			rdn.bv_len = ptr1 - rdn.bv_val;
-			slap_bv2ad( &rdn, &ad2, &ptr2 );
-			assert( ad2 != NULL );
-
-			if ( ad == ad2 )
+			rdn2.bv_len = ptr1 - rdn2.bv_val;
+			if ( bvmatch( &rdn, &rdn2 ))
 				nsibs++;
 		}
-	}
-	else
-	{
+	} else {
 		for (nsibs=0, ce=parent->ce_kids; ce; ce=ce->ce_sibs) {
 			if ( ce->ce_type == ce_type ) nsibs++;
 		}
