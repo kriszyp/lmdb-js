@@ -12,6 +12,7 @@ OpenLDAP 2.4.31 Engineering
 	Fixed slapd approxIndexer key generation (ITS#7203)
 	Fixed slapd modification of olcSuffix (ITS#7205)
 	Fixed slapd-shell cn=config support (ITS#7201)
+	Fixed slapo-syncprov sessionlog check (ITS#7218)
 	Build Environment
 		Fixed test044 when back-monitor is disabled (ITS#7204)
 	Documentation
