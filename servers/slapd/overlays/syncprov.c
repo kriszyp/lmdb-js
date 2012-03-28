@@ -2643,10 +2643,11 @@ no_change:		if ( !(op->o_sync_mode & SLAP_SYNC_PERSIST) ) {
 						do_play = 1;
 						break;
 					}
-					/* SID present and new enough */
-					if ( minsid == sl->sl_sids[i]
-						&& ber_bvcmp( &mincsn, &sl->sl_mincsn[i] ) >= 0 ) {
-						do_play = 1;
+					/* SID present */
+					if ( minsid == sl->sl_sids[i] ) {
+						/* new enough? */
+						if ( ber_bvcmp( &mincsn, &sl->sl_mincsn[i] ) >= 0 )
+							do_play = 1;
 						break;
 					}
 				}
