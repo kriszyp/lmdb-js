@@ -29,14 +29,15 @@ perl_back_compare(
 	Operation	*op,
 	SlapReply	*rs )
 {
-	int count;
+	int count, avalen;
 	char *avastr;
 
 	PerlBackend *perl_back = (PerlBackend *)op->o_bd->be_private;
 
-	avastr = ch_malloc( op->orc_ava->aa_desc->ad_cname.bv_len + 1 +
-		op->orc_ava->aa_value.bv_len + 1 );
-	
+	avalen = op->orc_ava->aa_desc->ad_cname.bv_len + 1 +
+		op->orc_ava->aa_value.bv_len;
+	avastr = ch_malloc( avalen + 1 );
+
 	lutil_strcopy( lutil_strcopy( lutil_strcopy( avastr,
 		op->orc_ava->aa_desc->ad_cname.bv_val ), "=" ),
 		op->orc_ava->aa_value.bv_val );
@@ -49,8 +50,8 @@ perl_back_compare(
 
 		PUSHMARK(sp);
 		XPUSHs( perl_back->pb_obj_ref );
-		XPUSHs(sv_2mortal(newSVpv( op->o_req_dn.bv_val , 0)));
-		XPUSHs(sv_2mortal(newSVpv( avastr , 0)));
+		XPUSHs(sv_2mortal(newSVpv( op->o_req_dn.bv_val , op->o_req_dn.bv_len)));
+		XPUSHs(sv_2mortal(newSVpv( avastr , avalen)));
 		PUTBACK;
 
 		count = call_method("compare", G_SCALAR);

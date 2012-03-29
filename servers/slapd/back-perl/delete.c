@@ -33,7 +33,7 @@ perl_back_delete(
 
 		PUSHMARK(sp);
 		XPUSHs( perl_back->pb_obj_ref );
-		XPUSHs(sv_2mortal(newSVpv( op->o_req_dn.bv_val , 0 )));
+		XPUSHs(sv_2mortal(newSVpv( op->o_req_dn.bv_val , op->o_req_dn.bv_len )));
 
 		PUTBACK;
 
