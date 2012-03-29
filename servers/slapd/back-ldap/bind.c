@@ -1066,6 +1066,7 @@ retry_lock:
 		ldap_pvt_thread_mutex_lock( &li->li_conninfo.lai_mutex );
 
 		LDAP_BACK_CONN_ISBOUND_CLEAR( lc );
+		lc->lc_connid = li->li_conn_nextid++;
 
 		assert( lc->lc_refcnt == 1 );
 
