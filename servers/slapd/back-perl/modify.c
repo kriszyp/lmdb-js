@@ -42,26 +42,27 @@ perl_back_modify(
 
 			switch ( mods->sm_op & ~LDAP_MOD_BVALUES ) {
 			case LDAP_MOD_ADD:
-				XPUSHs(sv_2mortal(newSVpv("ADD", 0 )));
+				XPUSHs(sv_2mortal(newSVpv("ADD", STRLENOF("ADD") )));
 				break;
 				
 			case LDAP_MOD_DELETE:
-				XPUSHs(sv_2mortal(newSVpv("DELETE", 0 )));
+				XPUSHs(sv_2mortal(newSVpv("DELETE", STRLENOF("DELETE") )));
 				break;
 				
 			case LDAP_MOD_REPLACE:
-				XPUSHs(sv_2mortal(newSVpv("REPLACE", 0 )));
+				XPUSHs(sv_2mortal(newSVpv("REPLACE", STRLENOF("REPLACE") )));
 				break;
 			}
 
 			
-			XPUSHs(sv_2mortal(newSVpv( mods->sm_desc->ad_cname.bv_val, 0 )));
+			XPUSHs(sv_2mortal(newSVpv( mods->sm_desc->ad_cname.bv_val,
+				mods->sm_desc->ad_cname.bv_len )));
 
 			for ( i = 0;
 				mods->sm_values != NULL && mods->sm_values[i].bv_val != NULL;
 				i++ )
 			{
-				XPUSHs(sv_2mortal(newSVpv( mods->sm_values[i].bv_val, 0 )));
+				XPUSHs(sv_2mortal(newSVpv( mods->sm_values[i].bv_val, mods->sm_values[i].bv_len )));
 			}
 
 			/* Fix delete attrib without value. */
