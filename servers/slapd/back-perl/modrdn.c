@@ -33,11 +33,11 @@ perl_back_modrdn(
 		
 		PUSHMARK(sp) ;
 		XPUSHs( perl_back->pb_obj_ref );
-		XPUSHs(sv_2mortal(newSVpv( op->o_req_dn.bv_val , 0 )));
-		XPUSHs(sv_2mortal(newSVpv( op->orr_newrdn.bv_val , 0 )));
+		XPUSHs(sv_2mortal(newSVpv( op->o_req_dn.bv_val , op->o_req_dn.bv_len )));
+		XPUSHs(sv_2mortal(newSVpv( op->orr_newrdn.bv_val , op->orr_newrdn.bv_len )));
 		XPUSHs(sv_2mortal(newSViv( op->orr_deleteoldrdn )));
 		if ( op->orr_newSup != NULL ) {
-			XPUSHs(sv_2mortal(newSVpv( op->orr_newSup->bv_val , 0 )));
+			XPUSHs(sv_2mortal(newSVpv( op->orr_newSup->bv_val , op->orr_newSup->bv_len )));
 		}
 		PUTBACK ;
 

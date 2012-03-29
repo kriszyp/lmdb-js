@@ -42,16 +42,16 @@ perl_back_search(
 
 		PUSHMARK(sp) ;
 		XPUSHs( perl_back->pb_obj_ref );
-		XPUSHs(sv_2mortal(newSVpv( op->o_req_ndn.bv_val , 0)));
+		XPUSHs(sv_2mortal(newSVpv( op->o_req_ndn.bv_val , op->o_req_ndn.bv_len)));
 		XPUSHs(sv_2mortal(newSViv( op->ors_scope )));
 		XPUSHs(sv_2mortal(newSViv( op->ors_deref )));
 		XPUSHs(sv_2mortal(newSViv( op->ors_slimit )));
 		XPUSHs(sv_2mortal(newSViv( op->ors_tlimit )));
-		XPUSHs(sv_2mortal(newSVpv( op->ors_filterstr.bv_val , 0)));
+		XPUSHs(sv_2mortal(newSVpv( op->ors_filterstr.bv_val , op->ors_filterstr.bv_len)));
 		XPUSHs(sv_2mortal(newSViv( op->ors_attrsonly )));
 
 		for ( an = op->ors_attrs; an && an->an_name.bv_val; an++ ) {
-			XPUSHs(sv_2mortal(newSVpv( an->an_name.bv_val , 0)));
+			XPUSHs(sv_2mortal(newSVpv( an->an_name.bv_val , an->an_name.bv_len)));
 		}
 		PUTBACK;
 
