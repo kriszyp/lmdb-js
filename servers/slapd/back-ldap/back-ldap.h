@@ -175,6 +175,7 @@ typedef struct ldapconn_t {
 #define	LDAP_BACK_CONN_CACHED_CLEAR(lc)		LDAP_BACK_CONN_CLEAR((lc), LDAP_BACK_FCONN_CACHED)
 
 	LDAP			*lc_ld;
+	unsigned long		lc_connid;
 	struct berval		lc_cred;
 	struct berval 		lc_bound_ndn;
 	unsigned		lc_flags;
@@ -378,6 +379,8 @@ typedef struct ldapinfo_t {
 #define	LDAP_BACK_NOUNDEFFILTER(li)	LDAP_BACK_ISSET( (li), LDAP_BACK_F_NOUNDEFFILTER)
 
 	int			li_version;
+
+	unsigned long		li_conn_nextid;
 
 	/* cached connections; 
 	 * special conns are in tailq rather than in tree */
