@@ -560,7 +560,7 @@ ldap_back_monitor_conn_create(
 		}
 	}
 
-	avl_apply( li->li_conninfo.lai_tree, ldap_back_monitor_conn_entry,
+	avl_apply( li->li_conninfo.lai_tree, (AVL_APPLY)ldap_back_monitor_conn_entry,
 		arg, -1, AVL_INORDER );
 
 	ch_free( arg );
