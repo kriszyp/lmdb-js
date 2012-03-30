@@ -16,6 +16,7 @@
  */
 
 #include "perl_back.h"
+#include <ac/string.h>
 
 int
 perl_back_modify(
