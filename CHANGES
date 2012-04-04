@@ -13,7 +13,9 @@ OpenLDAP 2.4.31 Engineering
 	Fixed slapd to reject MMR setups with bad serverID setting (ITS#7200)
 	Fixed slapd approxIndexer key generation (ITS#7203)
 	Fixed slapd modification of olcSuffix (ITS#7205)
+	Fixed slapd-perl modify with binary values (ITS#7149)
 	Fixed slapd-shell cn=config support (ITS#7201)
+	Fixed slapd-shell modify with binary values (ITS#7149)
 	Fixed slapo-syncprov sessionlog check (ITS#7218)
 	Build Environment
 		Fixed test044 when back-monitor is disabled (ITS#7204)
