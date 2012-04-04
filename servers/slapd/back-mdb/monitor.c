@@ -286,7 +286,6 @@ mdb_monitor_db_open( BackendDB *be )
 	int			rc = 0;
 	BackendInfo		*mi;
 	monitor_extra_t		*mbe;
-	struct berval dummy = BER_BVC("");
 
 	if ( !SLAP_DBMONITORING( be ) ) {
 		return 0;
@@ -387,7 +386,7 @@ mdb_monitor_db_open( BackendDB *be )
 	rc = mbe->register_database( be, &mdb->mi_monitor.mdm_ndn );
 	if ( rc == 0 ) {
 		rc = mbe->register_entry_attrs( &mdb->mi_monitor.mdm_ndn, a, cb,
-			&dummy, 0, &dummy );
+			NULL, -1, NULL );
 	}
 
 cleanup:;

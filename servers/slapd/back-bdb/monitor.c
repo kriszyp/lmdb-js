@@ -339,7 +339,6 @@ bdb_monitor_db_open( BackendDB *be )
 	int			rc = 0;
 	BackendInfo		*mi;
 	monitor_extra_t		*mbe;
-	struct berval dummy = BER_BVC("");
 
 	if ( !SLAP_DBMONITORING( be ) ) {
 		return 0;
@@ -456,7 +455,7 @@ bdb_monitor_db_open( BackendDB *be )
 	rc = mbe->register_database( be, &bdb->bi_monitor.bdm_ndn );
 	if ( rc == 0 ) {
 		rc = mbe->register_entry_attrs( &bdb->bi_monitor.bdm_ndn, a, cb,
-			&dummy, 0, &dummy );
+			NULL, 0, NULL );
 	}
 
 cleanup:;
