@@ -5520,7 +5520,6 @@ pcache_monitor_db_open( BackendDB *be )
 	int			rc = 0;
 	BackendInfo		*mi;
 	monitor_extra_t		*mbe;
-	struct berval		dummy = BER_BVC( "" );
 
 	if ( !SLAP_DBMONITORING( be ) ) {
 		return 0;
@@ -5580,7 +5579,7 @@ pcache_monitor_db_open( BackendDB *be )
 	rc = mbe->register_overlay( be, on, &cm->monitor_ndn );
 	if ( rc == 0 ) {
 		rc = mbe->register_entry_attrs( &cm->monitor_ndn, a, cb,
-			&dummy, -1, &dummy);
+			NULL, -1, NULL);
 	}
 
 cleanup:;

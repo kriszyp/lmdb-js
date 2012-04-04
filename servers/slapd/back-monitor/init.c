@@ -941,6 +941,10 @@ monitor_back_register_entry_attrs(
 	monitor_info_t 	*mi;
 	struct berval	ndn = BER_BVNULL;
 	char		*fname = ( a == NULL ? "callback" : "attrs" );
+	struct berval	empty_bv = BER_BVC("");
+
+	if ( nbase == NULL ) nbase = &empty_bv;
+	if ( filter == NULL ) filter = &empty_bv;
 
 	if ( be_monitor == NULL ) {
 		char		buf[ SLAP_TEXT_BUFLEN ];

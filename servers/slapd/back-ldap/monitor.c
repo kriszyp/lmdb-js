@@ -655,7 +655,7 @@ ldap_back_monitor_conn_init(
 		cb->mc_free = ldap_back_monitor_free;
 		cb->mc_private = (void *)li;
 
-		rc = mbe->register_entry_attrs( &ms->mss_ndn, a, cb, NULL, 0, NULL );
+		rc = mbe->register_entry_attrs( &ms->mss_ndn, a, cb, NULL, -1, NULL );
 
 		attr_free( a->a_next );
 		attr_free( a );
