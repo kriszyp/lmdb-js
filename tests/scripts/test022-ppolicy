@@ -538,6 +538,13 @@ sleep $SLEEP1
 
 echo "Testing policy state forwarding..."
 $LDAPSEARCH -H $URI2 -D "$USER" -w wrongpw >$SEARCHOUT 2>&1
+RC=$?
+if test $RC != 49 ; then
+	echo "ldapsearch should have failed with 49, got ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit 1
+fi
+
 $LDAPSEARCH -H $URI1 -D "$MANAGERDN" -w $PASSWD -b "$USER" \* \+ >> $SEARCHOUT 2>&1
 COUNT=`grep "pwdFailureTime" $SEARCHOUT | wc -l`
 if test $COUNT != 1 ; then
