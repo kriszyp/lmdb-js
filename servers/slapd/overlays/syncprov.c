@@ -2475,7 +2475,10 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 		ldap_pvt_thread_mutex_init( &sop->s_mutex );
 		sop->s_rid = srs->sr_state.rid;
 		sop->s_sid = srs->sr_state.sid;
-		sop->s_inuse = 1;
+		/* set refcount=2 to prevent being freed out from under us
+		 * by abandons that occur while we're running here
+		 */
+		sop->s_inuse = 2;
 
 		ldap_pvt_thread_mutex_lock( &si->si_ops_mutex );
 		while ( si->si_active ) {
@@ -2707,7 +2710,10 @@ shortcut:
 	 * for persistent search evaluation
 	 */
 	if ( sop ) {
-		sop->s_filterstr= op->ors_filterstr;
+		ldap_pvt_thread_mutex_lock( &sop->s_mutex );
+		sop->s_filterstr = op->ors_filterstr;
+		/* correct the refcount that was set to 2 before */
+		sop->s_inuse--;
 	}
 
 	/* If something changed, find the changes */
@@ -2727,14 +2733,14 @@ shortcut:
 #endif
 		ber_dupbv_x( &fava->f_ava->aa_value, &mincsn, op->o_tmpmemctx );
 		fava->f_next = op->ors_filter;
-		if ( sop )
-			ldap_pvt_thread_mutex_lock( &sop->s_mutex );
 		op->ors_filter = fand;
 		filter2bv_x( op, op->ors_filter, &op->ors_filterstr );
 		if ( sop ) {
 			sop->s_flags |= PS_FIX_FILTER;
-			ldap_pvt_thread_mutex_unlock( &sop->s_mutex );
 		}
+	}
+	if ( sop ) {
+		ldap_pvt_thread_mutex_unlock( &sop->s_mutex );
 	}
 
 	/* Let our callback add needed info to returned entries */
