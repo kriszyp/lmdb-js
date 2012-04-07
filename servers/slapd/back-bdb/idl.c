@@ -1377,7 +1377,12 @@ int bdb_idl_append( ID *a, ID *b )
 		tmp = a[1];
 		a[1] = b[1];
 	} else {
-		tmp = b[1];
+		if (b[1] < ida) {
+			tmp = a[a[0]];
+			a[a[0]] = b[1];
+		} else {
+			tmp = b[1];
+		}
 	}
 	a[0]++;
 	a[a[0]] = tmp;
