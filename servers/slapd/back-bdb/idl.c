@@ -1357,6 +1357,10 @@ int bdb_idl_append( ID *a, ID *b )
 		return 0;
 	}
 
+	if ( b[0] == 1 ) {
+		return bdb_idl_append_one( a, BDB_IDL_FIRST( b ));
+	}
+
 	ida = BDB_IDL_LAST( a );
 	idb = BDB_IDL_LAST( b );
 	if ( BDB_IDL_IS_RANGE( a ) || BDB_IDL_IS_RANGE(b) ||
@@ -1367,7 +1371,7 @@ int bdb_idl_append( ID *a, ID *b )
 		return 0;
 	}
 
-	if ( b[0] > 1 && ida > idb ) {
+	if ( ida > idb ) {
 		swap = idb;
 		a[a[0]] = idb;
 		b[b[0]] = ida;
@@ -1377,17 +1381,12 @@ int bdb_idl_append( ID *a, ID *b )
 		tmp = a[1];
 		a[1] = b[1];
 	} else {
-		if (b[1] < ida) {
-			tmp = a[a[0]];
-			a[a[0]] = b[1];
-		} else {
-			tmp = b[1];
-		}
+		tmp = b[1];
 	}
 	a[0]++;
 	a[a[0]] = tmp;
 
-	if ( b[0] > 1 ) {
+	{
 		int i = b[0] - 1;
 		AC_MEMCPY(a+a[0]+1, b+2, i * sizeof(ID));
 		a[0] += i;
