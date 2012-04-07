@@ -3086,6 +3086,7 @@ syncprov_db_open(
 		}
 		overlay_entry_release_ov( op, e, 0, on );
 		if ( si->si_ctxcsn && !SLAP_DBCLEAN( be )) {
+			op->o_tag = LDAP_REQ_SEARCH;
 			op->o_req_dn = be->be_suffix[0];
 			op->o_req_ndn = be->be_nsuffix[0];
 			op->ors_scope = LDAP_SCOPE_SUBTREE;
