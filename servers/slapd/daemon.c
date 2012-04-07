@@ -84,6 +84,7 @@ int slapd_tcp_wmem;
 
 Listener **slap_listeners = NULL;
 static volatile sig_atomic_t listening = 1; /* 0 when slap_listeners closed */
+static ldap_pvt_thread_t *listener_tid;
 
 #ifndef SLAPD_LISTEN_BACKLOG
 #define SLAPD_LISTEN_BACKLOG 1024
@@ -2129,7 +2130,7 @@ slapd_daemon_task(
 	int l;
 	time_t last_idle_check = 0;
 	int ebadf = 0;
-	int tid = *(int *)ptr;
+	int tid = (ldap_pvt_thread_t *) ptr - listener_tid;
 
 #define SLAPD_IDLE_CHECK_LIMIT 4
 
@@ -2889,7 +2890,6 @@ int
 slapd_daemon( void )
 {
 	int i, rc;
-	ldap_pvt_thread_t	*listener_tid;
 
 #ifdef LDAP_CONNECTIONLESS
 	connectionless_init();
@@ -2916,7 +2916,7 @@ slapd_daemon( void )
 	{
 		/* listener as a separate THREAD */
 		rc = ldap_pvt_thread_create( &listener_tid[i],
-			0, slapd_daemon_task, (void *)&i );
+			0, slapd_daemon_task, &listener_tid[i] );
 
 		if ( rc != 0 ) {
 			Debug( LDAP_DEBUG_ANY,
@@ -2931,6 +2931,7 @@ slapd_daemon( void )
 
 	destroy_listeners();
 	ch_free( listener_tid );
+	listener_tid = NULL;
 
 	return 0;
 }
