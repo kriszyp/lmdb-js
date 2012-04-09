@@ -547,6 +547,7 @@ OpenLDAP 2.4.20 Release (2009/11/27)
 		Added additional operations for ITS#6332
 		Fixed memrchr define (ITS#6351)
 		Fixed slapd MAXPATHLEN handling (ITS#6342)
+		Fixed test022 to check ldapsearch results (ITS#7228)
 		Added test050 rapid add/mod/del sequence (ITS#6368)
 		Fixed test057 handling of memberof/refint (ITS#6343)
 		Fixed slapd test error ignoring (ITS#6345)
