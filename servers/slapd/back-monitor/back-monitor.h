@@ -306,6 +306,13 @@ typedef struct monitor_extra_t {
 	monitor_cbfunc *unregister_entry_parent;
 	monitor_cbafunc *unregister_entry_attrs;
 	monitor_cbfunc *unregister_entry_callback;
+	Entry * (*entry_stub)( struct berval *pdn,
+		struct berval *pndn,
+		struct berval *rdn,
+		ObjectClass *oc,
+		monitor_info_t	*mi,
+		struct berval *create,
+		struct berval *modify );
 } monitor_extra_t;
 
 LDAP_END_DECL

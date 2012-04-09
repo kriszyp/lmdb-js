@@ -64,7 +64,9 @@ static const monitor_extra_t monitor_extra = {
 	monitor_back_unregister_entry,
 	monitor_back_unregister_entry_parent,
 	monitor_back_unregister_entry_attrs,
-	monitor_back_unregister_entry_callback
+	monitor_back_unregister_entry_callback,
+
+	monitor_back_entry_stub
 };
 	
 

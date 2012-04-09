@@ -589,7 +589,7 @@ ldap_back_monitor_conn_init(
 	ms->mss_create = ldap_back_monitor_conn_create;
 	ms->mss_destroy = ldap_back_monitor_subsystem_destroy;
 
-	e = monitor_entry_stub( &ms->mss_dn, &ms->mss_ndn,
+	e = mbe->entry_stub( &ms->mss_dn, &ms->mss_ndn,
 		&ms->mss_rdn,
 		mi->mi_oc_monitorContainer, mi, NULL, NULL );
 	if ( e == NULL ) {
@@ -749,7 +749,7 @@ ldap_back_monitor_ops_init(
 	ms->mss_rdn = li->li_monitor_info.lmi_ops_rdn;
 	ms->mss_destroy = ldap_back_monitor_subsystem_destroy;
 
-	parent = monitor_entry_stub( &ms->mss_dn, &ms->mss_ndn,
+	parent = mbe->entry_stub( &ms->mss_dn, &ms->mss_ndn,
 		&ms->mss_rdn,
 		mi->mi_oc_monitorContainer, mi, NULL, NULL );
 	if ( parent == NULL ) {
@@ -779,7 +779,7 @@ ldap_back_monitor_ops_init(
 		monitor_callback_t *cb;
 		struct ldap_back_monitor_op_counter *counter;
 
-		e = monitor_entry_stub( &parent->e_name, &parent->e_nname,
+		e = mbe->entry_stub( &parent->e_name, &parent->e_nname,
 			&ldap_back_monitor_op[op].rdn,
 			mi->mi_oc_monitorCounterObject, mi, NULL, NULL );
 		if ( e == NULL ) {
