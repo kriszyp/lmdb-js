@@ -1224,7 +1224,9 @@ mdb_page_alloc(MDB_cursor *mc, int num)
 				last = *kptr;
 			} else {
 				MDB_val key;
-				int rc, exact = 0;
+				int rc, exact;
+again:
+				exact = 0;
 				last = txn->mt_env->me_pglast + 1;
 				leaf = NULL;
 				key.mv_data = &last;
@@ -1254,13 +1256,17 @@ mdb_page_alloc(MDB_cursor *mc, int num)
 				if (!txn->mt_env->me_pgfirst) {
 					mdb_node_read(txn, leaf, &data);
 				}
-				idl = (ID *) data.mv_data;
-				mop = malloc(sizeof(MDB_oldpages) + MDB_IDL_SIZEOF(idl) - sizeof(pgno_t));
-				mop->mo_next = txn->mt_env->me_pghead;
-				mop->mo_txnid = last;
 				txn->mt_env->me_pglast = last;
 				if (!txn->mt_env->me_pgfirst)
 					txn->mt_env->me_pgfirst = last;
+				idl = (ID *) data.mv_data;
+				/* We might have a zero-length IDL due to freelist growth
+				 * during a prior commit
+				 */
+				if (!idl[0]) goto again;
+				mop = malloc(sizeof(MDB_oldpages) + MDB_IDL_SIZEOF(idl) - sizeof(pgno_t));
+				mop->mo_next = txn->mt_env->me_pghead;
+				mop->mo_txnid = last;
 				txn->mt_env->me_pghead = mop;
 				memcpy(mop->mo_pages, idl, MDB_IDL_SIZEOF(idl));
 
@@ -5705,7 +5711,7 @@ mdb_page_split(MDB_cursor *mc, MDB_val *newkey, MDB_val *newdata, pgno_t newpgno
 	}
 
 	nkeys = NUMKEYS(mp);
-	split_indx = nkeys / 2 + 1;
+	split_indx = (nkeys + 1) / 2;
 
 	if (IS_LEAF2(rp)) {
 		char *split, *ins;
@@ -5759,7 +5765,7 @@ mdb_page_split(MDB_cursor *mc, MDB_val *newkey, MDB_val *newdata, pgno_t newpgno
 	 * When the size of the data items is much smaller than
 	 * one-half of a page, this check is irrelevant.
 	 */
-	if (IS_LEAF(mp) && nkeys < 4) {
+	if (IS_LEAF(mp) && nkeys < 16) {
 		unsigned int psize, nsize;
 		/* Maximum free space in an empty page */
 		pmax = mc->mc_txn->mt_env->me_psize - PAGEHDRSZ;
@@ -6270,6 +6276,9 @@ int mdb_drop(MDB_txn *txn, MDB_dbi dbi, int del)
 
 	if (!txn || !dbi || dbi >= txn->mt_numdbs)
 		return EINVAL;
+
+	if (F_ISSET(txn->mt_flags, MDB_TXN_RDONLY))
+		return EACCES;
 
 	rc = mdb_cursor_open(txn, dbi, &mc);
 	if (rc)
