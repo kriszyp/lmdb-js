@@ -52,6 +52,7 @@ static const monitor_extra_t monitor_extra = {
 	monitor_back_get_subsys_by_dn,
 
 	monitor_back_register_subsys,
+	monitor_back_register_subsys_late,
 	monitor_back_register_backend,
 	monitor_back_register_database,
 	monitor_back_register_overlay_info,
@@ -283,6 +284,7 @@ enum {
 	LIMBO_DATABASE,
 	LIMBO_OVERLAY_INFO,
 	LIMBO_OVERLAY,
+	LIMBO_SUBSYS,
 
 	LIMBO_LAST
 };
@@ -308,6 +310,46 @@ int
 monitor_back_is_configured( void )
 {
 	return be_monitor != NULL;
+}
+
+int
+monitor_back_register_subsys_late(
+	monitor_subsys_t	*ms )
+{
+	entry_limbo_t	**elpp, el = { 0 };
+	monitor_info_t 	*mi;
+
+	if ( be_monitor == NULL ) {
+		Debug( LDAP_DEBUG_ANY,
+			"monitor_back_register_subsys_late: "
+			"monitor database not configured.\n",
+			0, 0, 0 );
+		return -1;
+	}
+
+	/* everyting is ready, can register already */
+	if ( monitor_subsys_is_opened() ) {
+		return monitor_back_register_subsys( ms );
+	}
+
+	mi = ( monitor_info_t * )be_monitor->be_private;
+
+
+	el.el_type = LIMBO_SUBSYS;
+
+	el.el_mss = ms;
+
+	for ( elpp = &mi->mi_entry_limbo;
+			*elpp;
+			elpp = &(*elpp)->el_next )
+		/* go to last */;
+
+	*elpp = (entry_limbo_t *)ch_malloc( sizeof( entry_limbo_t ) );
+
+	el.el_next = NULL;
+	**elpp = el;
+
+	return 0;
 }
 
 int
@@ -2438,6 +2480,10 @@ monitor_back_db_open(
 
 			case LIMBO_OVERLAY:
 				rc = monitor_back_register_overlay( el->el_be, el->el_on, el->el_ndn );
+				break;
+
+			case LIMBO_SUBSYS:
+				rc = monitor_back_register_subsys( el->el_mss );
 				break;
 
 			default:

@@ -149,6 +149,9 @@ extern int
 monitor_back_register_subsys LDAP_P((
 	monitor_subsys_t	*ms ));
 extern int
+monitor_back_register_subsys_late LDAP_P((
+	monitor_subsys_t	*ms ));
+extern int
 monitor_back_register_backend LDAP_P((
 	BackendInfo		*bi ));
 extern int

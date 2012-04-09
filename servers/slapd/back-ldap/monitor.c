@@ -994,7 +994,7 @@ ldap_back_monitor_db_open( BackendDB *be )
 	mss->mss_open = ldap_back_monitor_conn_init;
 	mss->mss_private = li;
 
-	if ( mbe->register_subsys( mss ) )
+	if ( mbe->register_subsys_late( mss ) )
 	{
 		Debug( LDAP_DEBUG_ANY,
 			"ldap_back_monitor_db_open: "
@@ -1009,7 +1009,7 @@ ldap_back_monitor_db_open( BackendDB *be )
 	mss->mss_open = ldap_back_monitor_ops_init;
 	mss->mss_private = li;
 
-	if ( mbe->register_subsys( mss ) )
+	if ( mbe->register_subsys_late( mss ) )
 	{
 		Debug( LDAP_DEBUG_ANY,
 			"ldap_back_monitor_db_open: "

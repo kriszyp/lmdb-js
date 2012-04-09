@@ -290,6 +290,7 @@ typedef struct monitor_extra_t {
 	monitor_subsys_t * (*get_subsys_by_dn)( struct berval *ndn, int sub );
 
 	int (*register_subsys)( monitor_subsys_t *ms );
+	int (*register_subsys_late)( monitor_subsys_t *ms );
 	int (*register_backend)( BackendInfo *bi );
 	int (*register_database)( BackendDB *be, struct berval *ndn_out );
 	int (*register_overlay_info)( slap_overinst *on );
