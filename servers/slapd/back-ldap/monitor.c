@@ -377,6 +377,7 @@ ldap_back_monitor_subsystem_destroy(
  */
 
 struct ldap_back_monitor_conn_arg {
+	Operation *op;
 	monitor_subsys_t *ms;
 	Entry **ep;
 };
@@ -467,6 +468,7 @@ ldap_back_monitor_conn_entry(
 {
 	Entry *e;
 	monitor_entry_t		*mp;
+	monitor_extra_t	*mbe;
 	char buf[SLAP_TEXT_BUFLEN];
 	char *ptr;
 	struct berval bv, dn, ndn;
@@ -511,7 +513,8 @@ ldap_back_monitor_conn_entry(
 	attr_merge_normalize_one( e, ad_olmDbPeerAddress, &bv, NULL );
 	ch_free( bv.bv_val );
 
-	mp = monitor_entrypriv_create();
+	mbe = (monitor_extra_t *) arg->op->o_bd->bd_info->bi_extra;
+	mp = mbe->entrypriv_create();
 	e->e_private = mp;
 	mp->mp_info = arg->ms;
 	mp->mp_flags = MONITOR_F_SUB | MONITOR_F_VOLATILE;
@@ -545,6 +548,7 @@ ldap_back_monitor_conn_create(
 	li = (ldapinfo_t *)ms->mss_private;
 
 	arg = ch_calloc( 1, sizeof(struct ldap_back_monitor_conn_arg) );
+	arg->op = op;
 	arg->ep = ep;
 	arg->ms = ms;
 

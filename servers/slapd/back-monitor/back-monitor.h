@@ -313,6 +313,7 @@ typedef struct monitor_extra_t {
 		monitor_info_t	*mi,
 		struct berval *create,
 		struct berval *modify );
+	monitor_entry_t * (*entrypriv_create)( void );
 } monitor_extra_t;
 
 LDAP_END_DECL

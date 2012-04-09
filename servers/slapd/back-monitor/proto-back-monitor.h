@@ -124,9 +124,8 @@ monitor_entry_test_flags LDAP_P((
 	monitor_entry_t		*mp,
 	int			cond ));
 extern monitor_entry_t *
-monitor_entrypriv_create LDAP_P((
+monitor_back_entrypriv_create LDAP_P((
 	void ));
-
 extern Entry *
 monitor_back_entry_stub LDAP_P((
 	struct berval	*pdn,
@@ -137,6 +136,7 @@ monitor_back_entry_stub LDAP_P((
 	struct berval	*create,
 	struct berval	*modify ));
 
+#define monitor_entrypriv_create monitor_back_entrypriv_create
 #define monitor_entry_stub monitor_back_entry_stub
 
 /*
