@@ -151,7 +151,7 @@ monitor_entry_test_flags(
 }
 
 monitor_entry_t *
-monitor_entrypriv_create( void )
+monitor_back_entrypriv_create( void )
 {
 	monitor_entry_t	*mp;
 
