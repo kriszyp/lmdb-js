@@ -400,6 +400,8 @@ oc_delete_names( ObjectClass *oc )
 {
 	char			**names = oc->soc_names;
 
+	if (!names) return;
+
 	while (*names) {
 		struct oindexrec	tmpoir, *oir;
 

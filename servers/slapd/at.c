@@ -232,6 +232,8 @@ at_delete_names( AttributeType *at )
 {
 	char			**names = at->sat_names;
 
+	if (!names) return;
+
 	while (*names) {
 		struct aindexrec	tmpair, *air;
 
