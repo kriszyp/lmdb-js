@@ -199,7 +199,7 @@ noopsrch_db_init( BackendDB *be, ConfigReply *cr)
 		int rc;
 
 		rc = register_supported_control( LDAP_CONTROL_X_NOOPSRCH,
-			SLAP_CTRL_SEARCH, NULL,
+			SLAP_CTRL_SEARCH | SLAP_CTRL_GLOBAL_SEARCH, NULL,
 			noopsrch_parseCtrl, &noopsrch_cid );
 		if ( rc != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_ANY,
