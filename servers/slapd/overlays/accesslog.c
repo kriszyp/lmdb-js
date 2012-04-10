@@ -73,6 +73,7 @@ typedef struct log_info {
 	Filter *li_oldf;
 	Entry *li_old;
 	log_attr *li_oldattrs;
+	struct berval li_uuid;
 	int li_success;
 	log_base *li_bases;
 	ldap_pvt_thread_rmutex_t li_op_rmutex;
@@ -193,7 +194,7 @@ static AttributeDescription *ad_reqDN, *ad_reqStart, *ad_reqEnd, *ad_reqType,
 	*ad_reqScope, *ad_reqFilter, *ad_reqAttr, *ad_reqEntries,
 	*ad_reqSizeLimit, *ad_reqTimeLimit, *ad_reqAttrsOnly, *ad_reqData,
 	*ad_reqId, *ad_reqMessage, *ad_reqVersion, *ad_reqDerefAliases,
-	*ad_reqReferral, *ad_reqOld, *ad_auditContext;
+	*ad_reqReferral, *ad_reqOld, *ad_auditContext, *ad_reqEntryUUID;
 
 static int
 logSchemaControlValidate(
@@ -396,6 +397,15 @@ static struct {
 		"SINGLE-VALUE "
 		"NO-USER-MODIFICATION "
 		"USAGE dSAOperation )", &ad_auditContext },
+
+	/*
+	 * ITS#6656
+	 */
+	{ "( " LOG_SCHEMA_AT ".31 NAME 'reqEntryUUID' "
+		"DESC 'UUID of entry' "
+		"EQUALITY UUIDMatch "
+		"SYNTAX 1.3.6.1.1.16.1 "
+		"SINGLE-VALUE )", &ad_reqEntryUUID },
 	{ NULL, NULL }
 };
 
@@ -412,7 +422,7 @@ static struct {
 		"SUP top STRUCTURAL "
 		"MUST ( reqStart $ reqType $ reqSession ) "
 		"MAY ( reqDN $ reqAuthzID $ reqControls $ reqRespControls $ reqEnd $ "
-			"reqResult $ reqMessage $ reqReferral ) )",
+			"reqResult $ reqMessage $ reqReferral $ reqEntryUUID ) )",
 				&log_ocs[LOG_EN_UNBIND] },
 	{ "( " LOG_SCHEMA_OC ".2 NAME 'auditReadObject' "
 		"DESC 'OpenLDAP read request record' "
@@ -1430,7 +1440,7 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 	int i;
 	int logop;
 	slap_verbmasks *lo;
-	Entry *e = NULL, *old = NULL;
+	Entry *e = NULL, *old = NULL, *e_uuid = NULL;
 	char timebuf[LDAP_LUTIL_GENTIME_BUFSIZE+8];
 	struct berval bv;
 	char *ptr;
@@ -1507,6 +1517,7 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 
 	last_attr = attr_find( e->e_attrs, ad_reqResult );
 
+	e_uuid = old;
 	switch( logop ) {
 	case LOG_EN_ADD:
 	case LOG_EN_DELETE: {
@@ -1515,7 +1526,9 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 
 		if ( logop == LOG_EN_ADD ) {
 			e2 = op->ora_e;
+			e_uuid = op->ora_e;
 			c_op = '+';
+
 		} else {
 			if ( !old )
 				break;
@@ -1770,6 +1783,29 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 		break;
 	}
 
+	if ( e_uuid || !BER_BVISNULL( &li->li_uuid ) ) {
+		struct berval *pbv;
+
+		if ( !BER_BVISNULL( &li->li_uuid ) ) {
+			pbv = &li->li_uuid;
+
+		} else {
+			a = attr_find( e_uuid->e_attrs, slap_schema.si_ad_entryUUID );
+			if ( a ) {
+				pbv = &a->a_vals[0];
+			}
+		} 
+
+		if ( pbv ) {
+			attr_merge_one( e, ad_reqEntryUUID, pbv, NULL );
+		}
+
+		if ( !BER_BVISNULL( &li->li_uuid ) ) {
+			ber_memfree( li->li_uuid.bv_val );
+			BER_BVZERO( &li->li_uuid );
+		}
+	}
+
 	op2.o_hdr = op->o_hdr;
 	op2.o_tag = LDAP_REQ_ADD;
 	op2.o_bd = li->li_db;
@@ -1889,7 +1925,8 @@ accesslog_op_mod( Operation *op, SlapReply *rs )
 		ldap_pvt_thread_rmutex_lock( &li->li_op_rmutex, op->o_tid );
 		if ( li->li_oldf && ( op->o_tag == LDAP_REQ_DELETE ||
 			op->o_tag == LDAP_REQ_MODIFY ||
-			( op->o_tag == LDAP_REQ_MODRDN && li->li_oldattrs ))) {
+			( op->o_tag == LDAP_REQ_MODRDN && li->li_oldattrs )))
+		{
 			int rc;
 			Entry *e;
 
@@ -1898,6 +1935,21 @@ accesslog_op_mod( Operation *op, SlapReply *rs )
 			if ( e ) {
 				if ( test_filter( op, e, li->li_oldf ) == LDAP_COMPARE_TRUE )
 					li->li_old = entry_dup( e );
+				be_entry_release_rw( op, e, 0 );
+			}
+			op->o_bd->bd_info = (BackendInfo *)on;
+
+		} else {
+			int rc;
+			Entry *e;
+
+			op->o_bd->bd_info = (BackendInfo *)on->on_info;
+			rc = be_entry_get_rw( op, &op->o_req_ndn, NULL, NULL, 0, &e );
+			if ( e ) {
+				Attribute *a = attr_find( e->e_attrs, slap_schema.si_ad_entryUUID );
+				if ( a ) {
+					ber_dupbv( &li->li_uuid, &a->a_vals[0] );
+				}
 				be_entry_release_rw( op, e, 0 );
 			}
 			op->o_bd->bd_info = (BackendInfo *)on;
