@@ -404,6 +404,7 @@ static struct {
 	{ "( " LOG_SCHEMA_AT ".31 NAME 'reqEntryUUID' "
 		"DESC 'UUID of entry' "
 		"EQUALITY UUIDMatch "
+		"ORDERING UUIDOrderingMatch "
 		"SYNTAX 1.3.6.1.1.16.1 "
 		"SINGLE-VALUE )", &ad_reqEntryUUID },
 	{ NULL, NULL }
@@ -1797,7 +1798,7 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 		} 
 
 		if ( pbv ) {
-			attr_merge_one( e, ad_reqEntryUUID, pbv, NULL );
+			attr_merge_normalize_one( e, ad_reqEntryUUID, pbv, op->o_tmpmemctx );
 		}
 
 		if ( !BER_BVISNULL( &li->li_uuid ) ) {
