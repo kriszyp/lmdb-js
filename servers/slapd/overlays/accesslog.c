@@ -1437,7 +1437,7 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 	log_info *li = on->on_bi.bi_private;
 	Attribute *a, *last_attr;
 	Modifications *m;
-	struct berval *b;
+	struct berval *b, uuid = BER_BVNULL;
 	int i;
 	int logop;
 	slap_verbmasks *lo;
@@ -1488,7 +1488,9 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 
 		ldap_pvt_thread_mutex_lock( &li->li_log_mutex );
 		old = li->li_old;
+		uuid = li->li_uuid;
 		li->li_old = NULL;
+		BER_BVZERO( &li->li_uuid );
 		/* Disarm mod_cleanup */
 		for ( cb = op->o_callback; cb; cb = cb->sc_next ) {
 			if ( cb->sc_private == (void *)on ) {
@@ -1784,11 +1786,11 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 		break;
 	}
 
-	if ( e_uuid || !BER_BVISNULL( &li->li_uuid ) ) {
+	if ( e_uuid || !BER_BVISNULL( &uuid ) ) {
 		struct berval *pbv;
 
-		if ( !BER_BVISNULL( &li->li_uuid ) ) {
-			pbv = &li->li_uuid;
+		if ( !BER_BVISNULL( &uuid ) ) {
+			pbv = &uuid;
 
 		} else {
 			a = attr_find( e_uuid->e_attrs, slap_schema.si_ad_entryUUID );
@@ -1801,9 +1803,9 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 			attr_merge_normalize_one( e, ad_reqEntryUUID, pbv, op->o_tmpmemctx );
 		}
 
-		if ( !BER_BVISNULL( &li->li_uuid ) ) {
-			ber_memfree( li->li_uuid.bv_val );
-			BER_BVZERO( &li->li_uuid );
+		if ( !BER_BVISNULL( &uuid ) ) {
+			ber_memfree( uuid.bv_val );
+			BER_BVZERO( &uuid );
 		}
 	}
 
