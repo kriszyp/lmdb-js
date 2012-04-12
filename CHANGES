@@ -1,6 +1,7 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.31 Engineering
+	Added slapo-accesslog support for reqEntryUUID (ITS#6656)
 	Fixed libldap IPv6 URL detection (ITS#7194)
 	Fixed libldap rebinding on failed connection (ITS#7207)
 	Fixed libmdb alignment of MDB_db members (ITS#7191)
@@ -22,7 +23,7 @@ OpenLDAP 2.4.31 Engineering
 	Fixed slapd-perl modify with binary values (ITS#7149)
 	Fixed slapd-shell cn=config support (ITS#7201)
 	Fixed slapd-shell modify with binary values (ITS#7149)
-	Fixed slapo-accesslog support for reqEntryUUID (ITS#6656)
+	Fixed slapo-accesslog deadlock with non-logged write ops (ITS#7088)
 	Fixed slapo-syncprov sessionlog check (ITS#7218)
 	Fixed slapo-syncprov entry leak (ITS#7234)
 	Fixed slapo-syncprov startup initialization (ITS#7235)
