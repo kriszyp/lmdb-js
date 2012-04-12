@@ -17,6 +17,7 @@ OpenLDAP 2.4.31 Engineering
 	Fixed slapd to reject MMR setups with bad serverID setting (ITS#7200)
 	Fixed slapd approxIndexer key generation (ITS#7203)
 	Fixed slapd modification of olcSuffix (ITS#7205)
+	Fixed slapd schema validation with missing definitions (ITS#7224)
 	Fixed slapd-bdb/hdb idlcache with only one element (ITS#7231)
 	Fixed slapd-perl modify with binary values (ITS#7149)
 	Fixed slapd-shell cn=config support (ITS#7201)
