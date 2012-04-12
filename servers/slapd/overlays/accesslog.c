@@ -1432,6 +1432,24 @@ static void accesslog_val2val(AttributeDescription *ad, struct berval *val,
 	dst->bv_val[dst->bv_len] = '\0';
 }
 
+static int
+accesslog_op2logop( Operation *op )
+{
+	switch ( op->o_tag ) {
+	case LDAP_REQ_ADD:		return LOG_EN_ADD;
+	case LDAP_REQ_DELETE:	return LOG_EN_DELETE;
+	case LDAP_REQ_MODIFY:	return LOG_EN_MODIFY;
+	case LDAP_REQ_MODRDN:	return LOG_EN_MODRDN;
+	case LDAP_REQ_COMPARE:	return LOG_EN_COMPARE;
+	case LDAP_REQ_SEARCH:	return LOG_EN_SEARCH;
+	case LDAP_REQ_BIND:		return LOG_EN_BIND;
+	case LDAP_REQ_EXTENDED:	return LOG_EN_EXTENDED;
+	default:	/* unknown operation type */
+		break;
+	}	/* Unbind and Abandon never reach here */
+	return LOG_EN_UNKNOWN;
+}
+
 static int accesslog_response(Operation *op, SlapReply *rs) {
 	slap_overinst *on = (slap_overinst *)op->o_bd->bd_info;
 	log_info *li = on->on_bi.bi_private;
@@ -1452,19 +1470,7 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 	if ( rs->sr_type != REP_RESULT && rs->sr_type != REP_EXTENDED )
 		return SLAP_CB_CONTINUE;
 
-	switch ( op->o_tag ) {
-	case LDAP_REQ_ADD:		logop = LOG_EN_ADD; break;
-	case LDAP_REQ_DELETE:	logop = LOG_EN_DELETE; break;
-	case LDAP_REQ_MODIFY:	logop = LOG_EN_MODIFY; break;
-	case LDAP_REQ_MODRDN:	logop = LOG_EN_MODRDN; break;
-	case LDAP_REQ_COMPARE:	logop = LOG_EN_COMPARE; break;
-	case LDAP_REQ_SEARCH:	logop = LOG_EN_SEARCH; break;
-	case LDAP_REQ_BIND:		logop = LOG_EN_BIND; break;
-	case LDAP_REQ_EXTENDED:	logop = LOG_EN_EXTENDED; break;
-	default:	/* unknown operation type */
-		logop = LOG_EN_UNKNOWN; break;
-	}	/* Unbind and Abandon never reach here */
-
+	logop = accesslog_op2logop( op );
 	lo = logops+logop+EN_OFFSET;
 	if ( !( li->li_ops & lo->mask )) {
 		log_base *lb;
@@ -1479,6 +1485,8 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 			return SLAP_CB_CONTINUE;
 	}
 
+	/* mutex and so were only set for write operations;
+	 * if we got here, the operation must be logged */
 	if ( lo->mask & LOG_OP_WRITES ) {
 		slap_callback *cb;
 
@@ -1898,19 +1906,23 @@ accesslog_op_mod( Operation *op, SlapReply *rs )
 {
 	slap_overinst *on = (slap_overinst *)op->o_bd->bd_info;
 	log_info *li = on->on_bi.bi_private;
+	slap_verbmasks *lo;
+	int logop;
 	int doit = 0;
 
 	/* These internal ops are not logged */
 	if ( op->o_dont_replicate && op->orm_no_opattrs )
 		return SLAP_CB_CONTINUE;
 
+	logop = accesslog_op2logop( op );
+	lo = logops+logop+EN_OFFSET;
 
-	if ( li->li_ops & LOG_OP_WRITES ) {
+	if ( li->li_ops & lo->mask ) {
 		doit = 1;
 	} else {
 		log_base *lb;
 		for ( lb = li->li_bases; lb; lb = lb->lb_next )
-			if (( lb->lb_ops & LOG_OP_WRITES ) && dnIsSuffix( &op->o_req_ndn, &lb->lb_base )) {
+			if (( lb->lb_ops & lo->mask ) && dnIsSuffix( &op->o_req_ndn, &lb->lb_base )) {
 				doit = 1;
 				break;
 			}
