@@ -37,6 +37,9 @@
 static ObjectClass		*oc_olmLDAPDatabase;
 static ObjectClass		*oc_olmLDAPConnection;
 
+static ObjectClass		*oc_monitorContainer;
+static ObjectClass		*oc_monitorCounterObject;
+
 static AttributeDescription	*ad_olmDbURIList;
 static AttributeDescription	*ad_olmDbOperations;
 static AttributeDescription	*ad_olmDbBoundDN;
@@ -151,6 +154,16 @@ static struct {
 		"NO-USER-MODIFICATION "
 		"USAGE dSAOperation )",
 		&ad_olmDbPeerAddress },
+
+	{ NULL }
+};
+
+static struct {
+	char		*name;
+	ObjectClass	**oc;
+}		s_moc[] = {
+	{ "monitorContainer", &oc_monitorContainer },
+	{ "monitorCounterObject", &oc_monitorCounterObject },
 
 	{ NULL }
 };
@@ -578,14 +591,12 @@ ldap_back_monitor_conn_init(
 	monitor_subsys_t	*ms )
 {
 	ldapinfo_t	*li = (ldapinfo_t *) ms->mss_private;
-	monitor_info_t	*mi;
 	monitor_extra_t	*mbe;
 
 	Entry		*e;
 	int		rc;
 
 	assert( be != NULL );
-	mi = (monitor_info_t *) be->be_private;
 	mbe = (monitor_extra_t *) be->bd_info->bi_extra;
 
 	ms->mss_dn = ms->mss_ndn = li->li_monitor_info.lmi_ndn;
@@ -594,8 +605,7 @@ ldap_back_monitor_conn_init(
 	ms->mss_destroy = ldap_back_monitor_subsystem_destroy;
 
 	e = mbe->entry_stub( &ms->mss_dn, &ms->mss_ndn,
-		&ms->mss_rdn,
-		mi->mi_oc_monitorContainer, NULL, NULL );
+		&ms->mss_rdn, oc_monitorContainer, NULL, NULL );
 	if ( e == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
 			"ldap_back_monitor_conn_init: "
@@ -737,7 +747,6 @@ ldap_back_monitor_ops_init(
 {
 	ldapinfo_t	*li = (ldapinfo_t *) ms->mss_private;
 
-	monitor_info_t	*mi;
 	monitor_extra_t	*mbe;
 	Entry		*e, *parent;
 	int		rc;
@@ -746,7 +755,6 @@ ldap_back_monitor_ops_init(
 
 	assert( be != NULL );
 
-	mi = (monitor_info_t *) be->be_private;
 	mbe = (monitor_extra_t *) be->bd_info->bi_extra;
 
 	ms->mss_dn = ms->mss_ndn = li->li_monitor_info.lmi_ndn;
@@ -754,8 +762,7 @@ ldap_back_monitor_ops_init(
 	ms->mss_destroy = ldap_back_monitor_subsystem_destroy;
 
 	parent = mbe->entry_stub( &ms->mss_dn, &ms->mss_ndn,
-		&ms->mss_rdn,
-		mi->mi_oc_monitorContainer, NULL, NULL );
+		&ms->mss_rdn, oc_monitorContainer, NULL, NULL );
 	if ( parent == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
 			"ldap_back_monitor_ops_init: "
@@ -785,7 +792,7 @@ ldap_back_monitor_ops_init(
 
 		e = mbe->entry_stub( &parent->e_name, &parent->e_nname,
 			&ldap_back_monitor_op[op].rdn,
-			mi->mi_oc_monitorCounterObject, NULL, NULL );
+			oc_monitorCounterObject, NULL, NULL );
 		if ( e == NULL ) {
 			Debug( LDAP_DEBUG_ANY,
 				"ldap_back_monitor_ops_init: "
@@ -903,6 +910,17 @@ ldap_back_monitor_initialize( void )
 
 		} else {
 			(*s_oc[ i ].oc)->soc_flags |= SLAP_OC_HIDE;
+		}
+	}
+
+	for ( i = 0; s_moc[ i ].name != NULL; i++ ) {
+		*s_moc[i].oc = oc_find( s_moc[ i ].name );
+		if ( ! *s_moc[i].oc ) {
+			Debug( LDAP_DEBUG_ANY,
+				"ldap_back_monitor_initialize: failed to find objectClass (%s)\n",
+				s_moc[ i ].name, 0, 0 );
+			return 5;
+
 		}
 	}
 
