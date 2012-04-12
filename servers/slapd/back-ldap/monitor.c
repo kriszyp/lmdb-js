@@ -481,30 +481,18 @@ ldap_back_monitor_conn_entry(
 {
 	Entry *e;
 	monitor_entry_t		*mp;
-	monitor_extra_t	*mbe;
+	monitor_extra_t	*mbe = arg->op->o_bd->bd_info->bi_extra;
 	char buf[SLAP_TEXT_BUFLEN];
 	char *ptr;
-	struct berval bv, dn, ndn;
+	struct berval bv;
 	int i;
-
-	e = entry_alloc();
 
 	bv.bv_val = buf;
 	bv.bv_len = snprintf( bv.bv_val, SLAP_TEXT_BUFLEN,
 		"cn=Connection %lu", lc->lc_connid );
 
-	build_new_dn( &dn, &arg->ms->mss_dn, &bv, NULL );
-	build_new_dn( &ndn, &arg->ms->mss_ndn, &bv, NULL );
-
-	e->e_name = dn;
-	e->e_nname = ndn;
-
-	bv.bv_val += 3;
-	bv.bv_len -= 3;
-	attr_merge_normalize_one( e, slap_schema.si_ad_cn, &bv, NULL );
-
-	BER_BVSTR( &bv, "monitorContainer" );
-	attr_merge_normalize_one( e, slap_schema.si_ad_objectClass, &bv, NULL );
+	e = mbe->entry_stub( &arg->ms->mss_dn, &arg->ms->mss_ndn, &bv,
+		oc_monitorContainer, NULL, NULL );
 
 	attr_merge_normalize_one( e, ad_olmDbBoundDN, &lc->lc_bound_ndn, NULL );
 
@@ -526,7 +514,6 @@ ldap_back_monitor_conn_entry(
 	attr_merge_normalize_one( e, ad_olmDbPeerAddress, &bv, NULL );
 	ch_free( bv.bv_val );
 
-	mbe = (monitor_extra_t *) arg->op->o_bd->bd_info->bi_extra;
 	mp = mbe->entrypriv_create();
 	e->e_private = mp;
 	mp->mp_info = arg->ms;
