@@ -143,7 +143,7 @@ monitor_subsys_overlay_init_one(
 	bv.bv_val = buf;
 
 	e_overlay = monitor_entry_stub( &e_database->e_name, &e_database->e_nname, &bv,
-		mi->mi_oc_monitoredObject, mi, NULL, NULL );
+		mi->mi_oc_monitoredObject, NULL, NULL );
 
 	if ( e_overlay == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
@@ -222,7 +222,7 @@ monitor_subsys_database_init_one(
 	}
 
 	e = monitor_entry_stub( &ms->mss_dn, &ms->mss_ndn, rdn,
-		mi->mi_oc_monitoredObject, mi, NULL, NULL );
+		mi->mi_oc_monitoredObject, NULL, NULL );
 
 	if ( e == NULL ) {
 		Debug( LDAP_DEBUG_ANY,

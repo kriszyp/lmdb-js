@@ -94,7 +94,7 @@ monitor_subsys_sent_init(
 
 		e = monitor_entry_stub( &ms->mss_dn, &ms->mss_ndn,
 			&monitor_sent[i].rdn, mi->mi_oc_monitorCounterObject,
-			mi, NULL, NULL );
+			NULL, NULL );
 			
 		if ( e == NULL ) {
 			Debug( LDAP_DEBUG_ANY,

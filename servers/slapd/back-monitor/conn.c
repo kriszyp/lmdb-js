@@ -77,7 +77,7 @@ monitor_subsys_conn_init(
 	 */
 	BER_BVSTR( &bv, "cn=Max File Descriptors" );
 	e = monitor_entry_stub( &ms->mss_dn, &ms->mss_ndn, &bv,
-		mi->mi_oc_monitorCounterObject, mi, NULL, NULL );
+		mi->mi_oc_monitorCounterObject, NULL, NULL );
 	
 	if ( e == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
@@ -122,7 +122,7 @@ monitor_subsys_conn_init(
 	 */
 	BER_BVSTR( &bv, "cn=Total" );
 	e = monitor_entry_stub( &ms->mss_dn, &ms->mss_ndn, &bv,
-		mi->mi_oc_monitorCounterObject, mi, NULL, NULL );
+		mi->mi_oc_monitorCounterObject, NULL, NULL );
 	
 	if ( e == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
@@ -161,7 +161,7 @@ monitor_subsys_conn_init(
 	 */
 	BER_BVSTR( &bv, "cn=Current" );
 	e = monitor_entry_stub( &ms->mss_dn, &ms->mss_ndn, &bv,
-		mi->mi_oc_monitorCounterObject, mi, NULL, NULL );
+		mi->mi_oc_monitorCounterObject, NULL, NULL );
 
 	if ( e == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
@@ -292,7 +292,7 @@ conn_create(
 		"cn=Connection %ld", c->c_connid );
 	bv.bv_val = buf;
 	e = monitor_entry_stub( &ms->mss_dn, &ms->mss_ndn, &bv, 
-		mi->mi_oc_monitorConnection, mi, &ctmbv, &mtmbv );
+		mi->mi_oc_monitorConnection, &ctmbv, &mtmbv );
 
 	if ( e == NULL) {
 		Debug( LDAP_DEBUG_ANY,

@@ -595,7 +595,7 @@ ldap_back_monitor_conn_init(
 
 	e = mbe->entry_stub( &ms->mss_dn, &ms->mss_ndn,
 		&ms->mss_rdn,
-		mi->mi_oc_monitorContainer, mi, NULL, NULL );
+		mi->mi_oc_monitorContainer, NULL, NULL );
 	if ( e == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
 			"ldap_back_monitor_conn_init: "
@@ -755,7 +755,7 @@ ldap_back_monitor_ops_init(
 
 	parent = mbe->entry_stub( &ms->mss_dn, &ms->mss_ndn,
 		&ms->mss_rdn,
-		mi->mi_oc_monitorContainer, mi, NULL, NULL );
+		mi->mi_oc_monitorContainer, NULL, NULL );
 	if ( parent == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
 			"ldap_back_monitor_ops_init: "
@@ -785,7 +785,7 @@ ldap_back_monitor_ops_init(
 
 		e = mbe->entry_stub( &parent->e_name, &parent->e_nname,
 			&ldap_back_monitor_op[op].rdn,
-			mi->mi_oc_monitorCounterObject, mi, NULL, NULL );
+			mi->mi_oc_monitorCounterObject, NULL, NULL );
 		if ( e == NULL ) {
 			Debug( LDAP_DEBUG_ANY,
 				"ldap_back_monitor_ops_init: "

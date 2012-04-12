@@ -83,7 +83,7 @@ monitor_subsys_backend_init(
 		bv.bv_val = buf;
 
 		e = monitor_entry_stub( &ms->mss_dn, &ms->mss_ndn, &bv,
-			mi->mi_oc_monitoredObject, mi, NULL, NULL );
+			mi->mi_oc_monitoredObject, NULL, NULL );
 
 		if ( e == NULL ) {
 			Debug( LDAP_DEBUG_ANY,

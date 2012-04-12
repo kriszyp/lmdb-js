@@ -132,7 +132,6 @@ monitor_back_entry_stub LDAP_P((
 	struct berval	*pndn,
 	struct berval	*rdn,
 	ObjectClass		*oc,
-	monitor_info_t	*mi,
 	struct berval	*create,
 	struct berval	*modify ));
 
