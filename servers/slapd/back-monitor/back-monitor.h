@@ -311,7 +311,6 @@ typedef struct monitor_extra_t {
 		struct berval *pndn,
 		struct berval *rdn,
 		ObjectClass *oc,
-		monitor_info_t	*mi,
 		struct berval *create,
 		struct berval *modify );
 	monitor_entry_t * (*entrypriv_create)( void );

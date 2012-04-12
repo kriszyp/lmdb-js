@@ -90,7 +90,7 @@ monitor_subsys_rww_init(
 		Entry			*e;
 		
 		e = monitor_entry_stub( &ms->mss_dn, &ms->mss_ndn, &monitor_rww[i].rdn,
-			mi->mi_oc_monitorCounterObject, mi, NULL, NULL );
+			mi->mi_oc_monitorCounterObject, NULL, NULL );
 		if ( e == NULL ) {
 			Debug( LDAP_DEBUG_ANY,
 				"monitor_subsys_rww_init: "

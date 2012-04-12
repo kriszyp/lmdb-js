@@ -2286,7 +2286,7 @@ monitor_back_db_open(
 	/*
 	 * creates the "cn=Monitor" entry 
 	 */
-	e = monitor_entry_stub( NULL, NULL, &rdn, mi->mi_oc_monitorServer, mi,
+	e = monitor_entry_stub( NULL, NULL, &rdn, mi->mi_oc_monitorServer,
 		NULL, NULL );
 
 	if ( e == NULL) {
@@ -2367,7 +2367,7 @@ monitor_back_db_open(
 		}
 
 		e = monitor_entry_stub( &root->e_name, &root->e_nname,
-			&monitor_subsys[ i ]->mss_rdn, mi->mi_oc_monitorContainer, mi,
+			&monitor_subsys[ i ]->mss_rdn, mi->mi_oc_monitorContainer,
 			NULL, NULL );
 
 		if ( e == NULL) {

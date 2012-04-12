@@ -69,7 +69,7 @@ monitor_subsys_time_init(
 
 	BER_BVSTR( &bv, "cn=Start" );
 	e = monitor_entry_stub( &ms->mss_dn, &ms->mss_ndn, &bv,
-		mi->mi_oc_monitoredObject, mi, NULL, NULL );
+		mi->mi_oc_monitoredObject, NULL, NULL );
 	if ( e == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_time_init: "
@@ -105,7 +105,7 @@ monitor_subsys_time_init(
 	 */
 	BER_BVSTR( &bv, "cn=Current" );
 	e = monitor_entry_stub( &ms->mss_dn, &ms->mss_ndn, &bv,
-		mi->mi_oc_monitoredObject, mi, NULL, NULL );
+		mi->mi_oc_monitoredObject, NULL, NULL );
 	if ( e == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_time_init: "
@@ -141,7 +141,7 @@ monitor_subsys_time_init(
 	 */
 	BER_BVSTR( &bv, "cn=Uptime" );
 	e = monitor_entry_stub( &ms->mss_dn, &ms->mss_ndn, &bv,
-		mi->mi_oc_monitoredObject, mi, NULL, NULL );
+		mi->mi_oc_monitoredObject, NULL, NULL );
 	if ( e == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_time_init: "

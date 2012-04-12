@@ -139,7 +139,7 @@ monitor_subsys_thread_init(
 		 */
 		e = monitor_entry_stub( &ms->mss_dn, &ms->mss_ndn,
 			&mt[ i ].rdn,
-			mi->mi_oc_monitoredObject, mi, NULL, NULL );
+			mi->mi_oc_monitoredObject, NULL, NULL );
 		if ( e == NULL ) {
 			Debug( LDAP_DEBUG_ANY,
 				"monitor_subsys_thread_init: "
