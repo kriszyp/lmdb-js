@@ -331,6 +331,7 @@ slapadd( int argc, char **argv )
 	struct berval bvtext;
 	ldap_pvt_thread_t thr;
 	ID id;
+	Entry *prev = NULL;
 
 	int ldifrc;
 	int rc = EXIT_SUCCESS;
@@ -431,8 +432,11 @@ slapadd( int argc, char **argv )
 								 "(line=%d): %s\n", progname, erec.e->e_dn,
 								 erec.lineno, bvtext.bv_val );
 				rc = EXIT_FAILURE;
-				entry_free( erec.e );
-				if( continuemode ) continue;
+				if( continuemode ) {
+					if ( prev ) entry_free( prev );
+					prev = erec.e;
+					continue;
+				}
 				break;
 			}
 			if ( verbose )
@@ -444,7 +448,8 @@ slapadd( int argc, char **argv )
 					erec.e->e_dn );
 		}
 
-		entry_free( erec.e );
+		if ( prev ) entry_free( prev );
+		prev = erec.e;
 	}
 
 	if ( slap_tool_thread_max > 1 ) {
@@ -455,6 +460,7 @@ slapadd( int argc, char **argv )
 		ldap_pvt_thread_mutex_unlock( &add_mutex );
 		ldap_pvt_thread_join( thr, NULL );
 	}
+	if ( erec.e ) entry_free( erec.e );
 
 	if ( ldifrc < 0 )
 		rc = EXIT_FAILURE;
