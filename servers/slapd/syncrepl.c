@@ -667,7 +667,7 @@ do_syncrep1(
 			LDAP_STAILQ_REMOVE( &slap_sync_cookie, sc, sync_cookie, sc_next );
 
 			/* ctxcsn wasn't parsed yet, do it now */
-			slap_parse_sync_cookie( sc, op->o_tmpmemctx );
+			slap_parse_sync_cookie( sc, NULL );
 			slap_sync_cookie_free( &si->si_syncCookie, 0 );
 			slap_dup_sync_cookie( &si->si_syncCookie, sc );
 			slap_sync_cookie_free( sc, 1 );
