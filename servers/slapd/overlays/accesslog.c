@@ -1795,7 +1795,7 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 	}
 
 	if ( e_uuid || !BER_BVISNULL( &uuid ) ) {
-		struct berval *pbv;
+		struct berval *pbv = NULL;
 
 		if ( !BER_BVISNULL( &uuid ) ) {
 			pbv = &uuid;
