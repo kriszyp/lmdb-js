@@ -34,6 +34,7 @@ OpenLDAP 2.4.31 Engineering
 	Documentation
 		Fixed slapschema(8) formatting (ITS#7188)
 		Fixed limdb functionality documentation (ITS#7238)
+		Fixed ldap_get_option(3) note inheritance behavior (ITS#7240)
 
 OpenLDAP 2.4.30 Release (2012/02/29)
 	Fixed libldap socket polling for writes (ITS#7167)
