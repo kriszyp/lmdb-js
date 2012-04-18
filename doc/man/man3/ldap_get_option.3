@@ -27,7 +27,9 @@ is cast to
 The actual type is determined based on the value of the
 .B option
 argument.
-Global options are set/retrieved by passing a NULL LDAP handle.
+Global options are set/retrieved by passing a NULL LDAP handle. LDAP handles
+inherit their default settings from the global options in effect at the time
+the handle is created.
 .TP
 .B LDAP_OPT_API_FEATURE_INFO
 Fills-in a 
