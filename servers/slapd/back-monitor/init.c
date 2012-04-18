@@ -52,7 +52,6 @@ static const monitor_extra_t monitor_extra = {
 	monitor_back_get_subsys_by_dn,
 
 	monitor_back_register_subsys,
-	monitor_back_register_subsys_late,
 	monitor_back_register_backend,
 	monitor_back_register_database,
 	monitor_back_register_overlay_info,
@@ -68,7 +67,8 @@ static const monitor_extra_t monitor_extra = {
 	monitor_back_unregister_entry_callback,
 
 	monitor_back_entry_stub,
-	monitor_back_entrypriv_create
+	monitor_back_entrypriv_create,
+	monitor_back_register_subsys_late
 };
 	
 
