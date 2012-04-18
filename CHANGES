@@ -1,6 +1,6 @@
 OpenLDAP 2.4 Change Log
 
-OpenLDAP 2.4.31 Engineering
+OpenLDAP 2.4.31 Release (2012/04/21)
 	Added slapo-accesslog support for reqEntryUUID (ITS#6656)
 	Fixed libldap IPv6 URL detection (ITS#7194)
 	Fixed libldap rebinding on failed connection (ITS#7207)
