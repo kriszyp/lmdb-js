@@ -194,11 +194,8 @@ slapmodify( int argc, char **argv )
 			goto done;
 
 		default:
-			fprintf( stderr, "%s: unknown request 0x%lx (line=%lu)\n",
-				progname, (unsigned long)lr.lr_op, lineno );
-			rc = EXIT_FAILURE;
-			if( continuemode ) continue;
-			goto done;
+			/* record skipped e.g. version: or comment or something we don't handle yet */
+			continue;
 		}
 
 		local_rc = dnNormalize( 0, NULL, NULL, &lr.lr_dn, &ndn, NULL );
