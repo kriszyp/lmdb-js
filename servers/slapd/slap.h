@@ -1823,6 +1823,7 @@ struct BackendDB {
 #define		be_sync bd_info->bi_tool_sync
 #define		be_dn2id_get bd_info->bi_tool_dn2id_get
 #define		be_entry_modify	bd_info->bi_tool_entry_modify
+#define		be_entry_delete	bd_info->bi_tool_entry_delete
 #endif
 
 	/* supported controls */
@@ -2200,6 +2201,8 @@ typedef int (BI_tool_sync) LDAP_P(( BackendDB *be ));
 typedef ID (BI_tool_dn2id_get) LDAP_P(( BackendDB *be, struct berval *dn ));
 typedef ID (BI_tool_entry_modify) LDAP_P(( BackendDB *be, Entry *e, 
 	struct berval *text ));
+typedef int (BI_tool_entry_delete) LDAP_P(( BackendDB *be, ID id,
+	struct berval *text ));
 
 struct BackendInfo {
 	char	*bi_type; /* type of backend */
@@ -2299,6 +2302,7 @@ struct BackendInfo {
 	BI_tool_sync		*bi_tool_sync;
 	BI_tool_dn2id_get	*bi_tool_dn2id_get;
 	BI_tool_entry_modify	*bi_tool_entry_modify;
+	BI_tool_entry_delete	*bi_tool_entry_delete;
 
 #define SLAP_INDEX_ADD_OP		0x0001
 #define SLAP_INDEX_DELETE_OP	0x0002
