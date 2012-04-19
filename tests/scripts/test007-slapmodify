@@ -2,7 +2,7 @@
 # $OpenLDAP$
 ## This work is part of OpenLDAP Software <http://www.openldap.org/>.
 ##
-## Copyright 1998-2014 The OpenLDAP Foundation.
+## Copyright 1998-2012 The OpenLDAP Foundation.
 ## All rights reserved.
 ##
 ## Redistribution and use in source and binary forms, with or without
@@ -19,15 +19,24 @@ echo "running defines.sh"
 mkdir -p $TESTDIR $DBDIR1
 
 echo "Running slapadd to build slapd database..."
-. $CONFFILTER $BACKEND $MONITORDB < $CONF > $CONF1
-$SLAPADD -f $CONF1 -l $LDIFORDERED
+. $CONFFILTER $BACKEND $MONITORDB < $CONF > $ADDCONF
+$SLAPADD -f $ADDCONF -l $LDIFORDERED
 RC=$?
 if test $RC != 0 ; then
 	echo "slapadd failed ($RC)!"
 	exit $RC
 fi
 
+echo "Testing modify, add, and delete using slapmodify..."
+$SLAPMODIFY -f $ADDCONF -l $LDIFMODIFY > $TESTOUT 2>&1
+RC=$?
+if test $RC != 0 ; then
+	echo "slapmodify failed ($RC)!"
+	exit $RC
+fi
+
 echo "Starting slapd on TCP/IP port $PORT1..."
+. $CONFFILTER $BACKEND $MONITORDB < $CONF > $CONF1
 $SLAPD -f $CONF1 -h $URI1 -d $LVL $TIMING > $LOG1 2>&1 &
 PID=$!
 if test $WAIT != 0 ; then
@@ -38,10 +47,9 @@ KILLPIDS="$PID"
 
 sleep 1
 
-echo "Testing slapd modify operations..."
+echo "Using ldapsearch to retrieve all the entries..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT1 \
-		'objectclass=*' > /dev/null 2>&1
+	$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 > $SEARCHOUT 2>&1
 	RC=$?
 	if test $RC = 0 ; then
 		break
@@ -56,51 +64,6 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-echo "Testing modify, add, and delete..."
-$LDAPMODIFY -v -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD > \
-	$TESTOUT -f $LDIFMODIFY
-RC=$?
-if test $RC != 0 ; then
-	echo "ldapmodify failed ($RC)!"
-	test $KILLSERVERS != no && kill -HUP $KILLPIDS
-	exit $RC
-fi
-
-echo "Using ldapmodify to add an empty entry (should fail with protocolError)..."
-$LDAPMODIFY -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD \
-	 >> $TESTOUT 2>&1 << EOMODS
-dn: cn=Foo Bar,dc=example,dc=com
-changetype: add
-# EMPTY SEQUENCE OF ATTRS
-EOMODS
-
-RC=$?
-case $RC in
-2)
-	echo "	ldapmodify failed ($RC)"
-	;;
-0)
-	echo "	ldapmodify should have failed ($RC)!"
-	test $KILLSERVERS != no && kill -HUP $KILLPIDS
-	exit -1
-	;;
-*)
-	echo "	ldapmodify failed ($RC)!"
-	test $KILLSERVERS != no && kill -HUP $KILLPIDS
-	exit $RC
-	;;
-esac
-
-echo "Using ldapsearch to retrieve all the entries..."
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
-	    'objectClass=*' > $SEARCHOUT 2>&1
-RC=$?
-test $KILLSERVERS != no && kill -HUP $KILLPIDS
-if test $RC != 0 ; then
-	echo "ldapsearch failed ($RC)!"
-	exit $RC
-fi
-
 LDIF=$MODIFYOUTMASTER
 
 echo "Filtering ldapsearch results..."
@@ -111,9 +74,14 @@ echo "Comparing filter output..."
 $CMP $SEARCHFLT $LDIFFLT > $CMPOUT
 
 if test $? != 0 ; then
-	echo "comparison failed - modify operations did not complete correctly"
+	echo "modify operations did not complete correctly"
+	echo $SEARCHFLT $LDIFFLT
+	$DIFF $SEARCHFLT $LDIFFLT
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit 1
 fi
+
+test $KILLSERVERS != no && kill -HUP $KILLPIDS
 
 echo ">>>>> Test succeeded"
 
