@@ -7385,6 +7385,18 @@ config_tool_entry_next( BackendDB *be )
 		return NOID;
 }
 
+static ID
+config_tool_dn2id_get( Backend *be, struct berval *dn )
+{
+	CfBackInfo *cfb = be->be_private;
+	BackendInfo *bi = cfb->cb_db.bd_info;
+
+	if ( bi && bi->bi_tool_dn2id_get )
+		return bi->bi_tool_dn2id_get( &cfb->cb_db, dn );
+
+	return NOID;
+}
+
 static Entry *
 config_tool_entry_get( BackendDB *be, ID id )
 {
@@ -7567,6 +7579,22 @@ config_tool_entry_put( BackendDB *be, Entry *e, struct berval *text )
 		return NOID;
 }
 
+static ID
+config_tool_entry_modify( BackendDB *be, Entry *e, struct berval *text )
+{
+	CfBackInfo *cfb = be->be_private;
+	BackendInfo *bi = cfb->cb_db.bd_info;
+	CfEntryInfo *ce, *last;
+	ConfigArgs ca = {0};
+
+	ce = config_find_base( cfb->cb_root, &e->e_nname, &last );
+
+	if ( ce && bi && bi->bi_tool_entry_modify )
+		return bi->bi_tool_entry_modify( &cfb->cb_db, e, text );
+
+	return NOID;
+}
+
 static struct {
 	char *name;
 	AttributeDescription **desc;
@@ -7662,8 +7690,10 @@ config_back_initialize( BackendInfo *bi )
 	bi->bi_tool_entry_first = config_tool_entry_first;
 	bi->bi_tool_entry_first_x = config_tool_entry_first_x;
 	bi->bi_tool_entry_next = config_tool_entry_next;
+	bi->bi_tool_dn2id_get = config_tool_dn2id_get;
 	bi->bi_tool_entry_get = config_tool_entry_get;
 	bi->bi_tool_entry_put = config_tool_entry_put;
+	bi->bi_tool_entry_modify = config_tool_entry_modify;
 
 	ca.argv = argv;
 	argv[ 0 ] = "slapd";
