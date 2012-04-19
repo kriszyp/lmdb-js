@@ -178,8 +178,15 @@ slapmodify( int argc, char **argv )
 			request = "modify";
 			break;
 
-		case LDAP_REQ_MODRDN:
 		case LDAP_REQ_DELETE:
+			if ( be->be_entry_delete )
+			{
+				request = "delete";
+				break;
+			}
+			/* backend does not support delete, fallthrough */
+
+		case LDAP_REQ_MODRDN:
 			fprintf( stderr, "%s: request 0x%lx not supported (line=%lu)\n",
 				progname, (unsigned long)lr.lr_op, lineno );
 			rc = EXIT_FAILURE;
@@ -554,15 +561,21 @@ slapmodify( int argc, char **argv )
 			switch ( lr.lr_op ) {
 			case LDAP_REQ_ADD:
 				id = be->be_entry_put( be, e, &bvtext );
+				rc = (id == NOID);
 				break;
 
 			case LDAP_REQ_MODIFY:
 				id = be->be_entry_modify( be, e, &bvtext );
+				rc = (id == NOID);
+				break;
+
+			case LDAP_REQ_DELETE:
+				rc = be->be_entry_delete( be, id, &bvtext );
 				break;
 
 			}
 
-			if( id == NOID ) {
+			if( rc != LDAP_SUCCESS ) {
 				fprintf( stderr, "%s: could not %s entry dn=\"%s\" "
 					"(line=%lu): %s\n", progname, request, e->e_dn,
 					lineno, bvtext.bv_val );
