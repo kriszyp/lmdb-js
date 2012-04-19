@@ -172,6 +172,7 @@ MONITORDATA=$SRCDIR/scripts/monitor_data.sh
 SLAPADD="$TESTWD/../servers/slapd/slapd -Ta -d 0 $LDAP_VERBOSE"
 SLAPCAT="$TESTWD/../servers/slapd/slapd -Tc -d 0 $LDAP_VERBOSE"
 SLAPINDEX="$TESTWD/../servers/slapd/slapd -Ti -d 0 $LDAP_VERBOSE"
+SLAPMODIFY="$TESTWD/../servers/slapd/slapd -Tm -d 0 $LDAP_VERBOSE"
 SLAPPASSWD="$TESTWD/../servers/slapd/slapd -Tpasswd"
 
 unset DIFF_OPTIONS
@@ -249,6 +250,7 @@ LDIFVALSORT=$DATADIR/test-valsort.ldif
 SQLADD=$DATADIR/sql-add.ldif
 LDIFUNORDERED=$DATADIR/test-unordered.ldif
 LDIFREORDERED=$DATADIR/test-reordered.ldif
+LDIFMODIFY=$DATADIR/test-modify.ldif
 
 # strings
 MONITOR=""
