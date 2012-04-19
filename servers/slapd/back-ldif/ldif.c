@@ -1891,6 +1891,63 @@ ldif_tool_entry_modify( BackendDB *be, Entry *e, struct berval *text )
 	return NOID;
 }
 
+static int
+ldif_tool_entry_delete( BackendDB *be, ID id, struct berval *text )
+{
+	struct ldif_tool *tl = &((struct ldif_info *) be->be_private)->li_tool;
+	int rc = LDAP_SUCCESS;
+	const char *errmsg = NULL;
+	struct berval path;
+	Entry *e;
+	Operation op = {0};
+
+	id--;
+	if ( id >= tl->ecount || tl->entries[id] == NULL )
+		return LDAP_OTHER;
+	e = tl->entries[id];
+
+	op.o_bd = be;
+	ndn2path( &op, &e->e_nname, &path, 0 );
+
+	ldif2dir_len( path );
+	ldif2dir_name( path );
+	if ( rmdir( path.bv_val ) < 0 ) {
+		switch ( errno ) {
+		case ENOTEMPTY:
+			rc = LDAP_NOT_ALLOWED_ON_NONLEAF;
+			break;
+		case ENOENT:
+			/* is leaf, go on */
+			break;
+		default:
+			rc = LDAP_OTHER;
+			errmsg = "internal error (cannot delete subtree directory)";
+			break;
+		}
+	}
+
+	if ( rc == LDAP_SUCCESS ) {
+		dir2ldif_name( path );
+		if ( unlink( path.bv_val ) < 0 ) {
+			rc = LDAP_NO_SUCH_OBJECT;
+			if ( errno != ENOENT ) {
+				rc = LDAP_OTHER;
+				errmsg = "internal error (cannot delete entry file)";
+			}
+		}
+	}
+
+	SLAP_FREE( path.bv_val );
+	entry_free( e );
+	tl->entries[id] = NULL;
+
+	if ( errmsg == NULL && rc != LDAP_OTHER )
+		errmsg = ldap_err2string( rc );
+	if ( errmsg != NULL )
+		snprintf( text->bv_val, text->bv_len, "%s", errmsg );
+	return rc;
+}
+
 
 /* Setup */
 
@@ -1990,6 +2047,7 @@ ldif_back_initialize( BackendInfo *bi )
 	bi->bi_tool_entry_get = ldif_tool_entry_get;
 	bi->bi_tool_entry_put = ldif_tool_entry_put;
 	bi->bi_tool_entry_modify = ldif_tool_entry_modify;
+	bi->bi_tool_entry_delete = ldif_tool_entry_delete;
 	bi->bi_tool_entry_reindex = 0;
 	bi->bi_tool_sync = 0;
 
