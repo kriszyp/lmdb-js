@@ -1076,6 +1076,9 @@ static int build_key(
 	return rs->sr_err;
 }
 
+/* Conforms to RFC4510 re: Criticality, original RFC2891 spec is broken
+ * Also see ITS#7253 for discussion
+ */
 static int sss_parseCtrl(
 	Operation		*op,
 	SlapReply		*rs,
