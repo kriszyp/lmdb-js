@@ -74,6 +74,7 @@ slapmodify( int argc, char **argv )
 	memset( &opbuf, 0, sizeof(opbuf) );
 	op = &opbuf.ob_op;
 	op->o_hdr = &opbuf.ob_hdr;
+	op->o_bd = be;
 
 	if ( !be->be_entry_open ||
 		!be->be_entry_close ||
