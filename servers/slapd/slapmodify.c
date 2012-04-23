@@ -282,86 +282,21 @@ slapmodify( int argc, char **argv )
 			e = e_tmp;
 		}
 
-		for ( n = 0; lr.lrop_mods[ n ] != NULL; n++ ) {
-			LDAPMod *mod = lr.lrop_mods[ n ];
-			Modification mods = { 0 };
-			unsigned i = 0;
-			int bin = (mod->mod_op & LDAP_MOD_BVALUES);
-			int pretty = 0;
-			int normalize = 0;
+		if ( lr.lrop_mods ) {
+			for ( n = 0; lr.lrop_mods && lr.lrop_mods[ n ] != NULL; n++ ) {
+				LDAPMod *mod = lr.lrop_mods[ n ];
+				Modification mods = { 0 };
+				unsigned i = 0;
+				int bin = (mod->mod_op & LDAP_MOD_BVALUES);
+				int pretty = 0;
+				int normalize = 0;
 
-			local_rc = slap_str2ad( mod->mod_type, &mods.sm_desc, &text );
-			if ( local_rc != LDAP_SUCCESS ) {
-				fprintf( stderr, "%s: slap_str2ad(\"%s\") failed for entry \"%s\" (%d: %s, lineno=%lu)\n",
-					progname, mod->mod_type, lr.lr_dn.bv_val, local_rc, text, lineno );
-				rc = EXIT_FAILURE;
-				mod_err = 1;
-				if( continuemode ) continue;
-				SLAP_FREE( ndn.bv_val );
-				ldap_ldif_record_done( &lr );
-				entry_free( e );
-				goto done;
-			}
-
-			mods.sm_type = mods.sm_desc->ad_cname;
-
-			if ( mods.sm_desc->ad_type->sat_syntax->ssyn_pretty ) {
-				pretty = 1;
-
-			} else {
-				assert( mods.sm_desc->ad_type->sat_syntax->ssyn_validate != NULL );
-			}
-
-			if ( mods.sm_desc->ad_type->sat_equality &&
-				mods.sm_desc->ad_type->sat_equality->smr_normalize )
-			{
-				normalize = 1;
-			}
-
-			if ( bin && mod->mod_bvalues ) {
-				for ( i = 0; mod->mod_bvalues[ i ] != NULL; i++ )
-					;
-
-			} else if ( !bin && mod->mod_values ) {
-				for ( i = 0; mod->mod_values[ i ] != NULL; i++ )
-					;
-			}
-
-			mods.sm_values = SLAP_CALLOC( sizeof( struct berval ), i + 1 );
-			if ( normalize ) {
-				mods.sm_nvalues = SLAP_CALLOC( sizeof( struct berval ), i + 1 );
-			} else {
-				mods.sm_nvalues = NULL;
-			}
-			mods.sm_numvals = i;
-
-			for ( i = 0; i < mods.sm_numvals; i++ ) {
-				struct berval bv;
-
-				if ( bin ) {
-					bv = *mod->mod_bvalues[ i ];
-				} else {
-					ber_str2bv( mod->mod_values[ i ], 0, 0, &bv );
-				}
-
-				if ( pretty ) {
-					local_rc = ordered_value_pretty( mods.sm_desc,
-					&bv, &mods.sm_values[i], NULL );
-
-				} else {
-					local_rc = ordered_value_validate( mods.sm_desc,
-						&bv, 0 );
-				}
-
+				local_rc = slap_str2ad( mod->mod_type, &mods.sm_desc, &text );
 				if ( local_rc != LDAP_SUCCESS ) {
-					fprintf( stderr, "%s: DN=\"%s\": unable to %s attr=%s value #%d\n",
-						progname, e->e_dn, pretty ? "prettify" : "validate",
-						mods.sm_desc->ad_cname.bv_val, i );
-					/* handle error */
-					mod_err = 1;
+					fprintf( stderr, "%s: slap_str2ad(\"%s\") failed for entry \"%s\" (%d: %s, lineno=%lu)\n",
+						progname, mod->mod_type, lr.lr_dn.bv_val, local_rc, text, lineno );
 					rc = EXIT_FAILURE;
-					ber_bvarray_free( mods.sm_values );
-					ber_bvarray_free( mods.sm_nvalues );
+					mod_err = 1;
 					if( continuemode ) continue;
 					SLAP_FREE( ndn.bv_val );
 					ldap_ldif_record_done( &lr );
@@ -369,20 +304,63 @@ slapmodify( int argc, char **argv )
 					goto done;
 				}
 
-				if ( !pretty ) {
-					ber_dupbv( &mods.sm_values[i], &bv );
+				mods.sm_type = mods.sm_desc->ad_cname;
+
+				if ( mods.sm_desc->ad_type->sat_syntax->ssyn_pretty ) {
+					pretty = 1;
+
+				} else {
+					assert( mods.sm_desc->ad_type->sat_syntax->ssyn_validate != NULL );
 				}
 
-				if ( normalize ) {
-					local_rc = ordered_value_normalize(
-						SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
-						mods.sm_desc,
-						mods.sm_desc->ad_type->sat_equality,
-						&mods.sm_values[i], &mods.sm_nvalues[i],
-						NULL );
+				if ( mods.sm_desc->ad_type->sat_equality &&
+					mods.sm_desc->ad_type->sat_equality->smr_normalize )
+				{
+					normalize = 1;
+				}
+
+				if ( bin && mod->mod_bvalues ) {
+					for ( i = 0; mod->mod_bvalues[ i ] != NULL; i++ )
+						;
+
+				} else if ( !bin && mod->mod_values ) {
+					for ( i = 0; mod->mod_values[ i ] != NULL; i++ )
+						;
+				}
+
+				if ( i != 0 )
+				{
+					mods.sm_values = SLAP_CALLOC( sizeof( struct berval ), i + 1 );
+					if ( normalize ) {
+						mods.sm_nvalues = SLAP_CALLOC( sizeof( struct berval ), i + 1 );
+					} else {
+						mods.sm_nvalues = NULL;
+					}
+				}
+				mods.sm_numvals = i;
+
+				for ( i = 0; i < mods.sm_numvals; i++ ) {
+					struct berval bv;
+
+					if ( bin ) {
+						bv = *mod->mod_bvalues[ i ];
+					} else {
+						ber_str2bv( mod->mod_values[ i ], 0, 0, &bv );
+					}
+
+					if ( pretty ) {
+						local_rc = ordered_value_pretty( mods.sm_desc,
+						&bv, &mods.sm_values[i], NULL );
+
+					} else {
+						local_rc = ordered_value_validate( mods.sm_desc,
+							&bv, 0 );
+					}
+
 					if ( local_rc != LDAP_SUCCESS ) {
-						fprintf( stderr, "%s: DN=\"%s\": unable to normalize attr=%s value #%d\n",
-							progname, e->e_dn, mods.sm_desc->ad_cname.bv_val, i );
+						fprintf( stderr, "%s: DN=\"%s\": unable to %s attr=%s value #%d\n",
+							progname, e->e_dn, pretty ? "prettify" : "validate",
+							mods.sm_desc->ad_cname.bv_val, i );
 						/* handle error */
 						mod_err = 1;
 						rc = EXIT_FAILURE;
@@ -394,60 +372,87 @@ slapmodify( int argc, char **argv )
 						entry_free( e );
 						goto done;
 					}
+
+					if ( !pretty ) {
+						ber_dupbv( &mods.sm_values[i], &bv );
+					}
+
+					if ( normalize ) {
+						local_rc = ordered_value_normalize(
+							SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
+							mods.sm_desc,
+							mods.sm_desc->ad_type->sat_equality,
+							&mods.sm_values[i], &mods.sm_nvalues[i],
+							NULL );
+						if ( local_rc != LDAP_SUCCESS ) {
+							fprintf( stderr, "%s: DN=\"%s\": unable to normalize attr=%s value #%d\n",
+								progname, e->e_dn, mods.sm_desc->ad_cname.bv_val, i );
+							/* handle error */
+							mod_err = 1;
+							rc = EXIT_FAILURE;
+							ber_bvarray_free( mods.sm_values );
+							ber_bvarray_free( mods.sm_nvalues );
+							if( continuemode ) continue;
+							SLAP_FREE( ndn.bv_val );
+							ldap_ldif_record_done( &lr );
+							entry_free( e );
+							goto done;
+						}
+					}
+				}
+
+				mods.sm_op = (mod->mod_op & ~LDAP_MOD_BVALUES);
+				mods.sm_flags = 0;
+
+				if ( mods.sm_desc == slap_schema.si_ad_objectClass ) {
+					is_oc = 1;
+				}
+
+				switch ( mods.sm_op ) {
+				case LDAP_MOD_ADD:
+					local_rc = modify_add_values( e, &mods,
+						0, &text, textbuf, textlen );
+					break;
+
+				case LDAP_MOD_DELETE:
+					local_rc = modify_delete_values( e, &mods,
+						0, &text, textbuf, textlen );
+					break;
+
+				case LDAP_MOD_REPLACE:
+					local_rc = modify_replace_values( e, &mods,
+						0, &text, textbuf, textlen );
+					break;
+
+				case LDAP_MOD_INCREMENT:
+					local_rc = modify_increment_values( e, &mods,
+						0, &text, textbuf, textlen );
+					break;
+				}
+
+				if ( local_rc != LDAP_SUCCESS ) {
+					fprintf( stderr, "%s: DN=\"%s\": unable to modify attr=%s\n",
+						progname, e->e_dn, mods.sm_desc->ad_cname.bv_val );
+					rc = EXIT_FAILURE;
+					ber_bvarray_free( mods.sm_values );
+					ber_bvarray_free( mods.sm_nvalues );
+					if( continuemode ) continue;
+					SLAP_FREE( ndn.bv_val );
+					ldap_ldif_record_done( &lr );
+					entry_free( e );
+					goto done;
 				}
 			}
 
-			mods.sm_op = (mod->mod_op & ~LDAP_MOD_BVALUES);
-			mods.sm_flags = 0;
-
-			if ( mods.sm_desc == slap_schema.si_ad_objectClass ) {
-				is_oc = 1;
-			}
-
-			switch ( mods.sm_op ) {
-			case LDAP_MOD_ADD:
-				local_rc = modify_add_values( e, &mods,
-					0, &text, textbuf, textlen );
-				break;
-
-			case LDAP_MOD_DELETE:
-				local_rc = modify_delete_values( e, &mods,
-					0, &text, textbuf, textlen );
-				break;
-
-			case LDAP_MOD_REPLACE:
-				local_rc = modify_replace_values( e, &mods,
-					0, &text, textbuf, textlen );
-				break;
-
-			case LDAP_MOD_INCREMENT:
-				local_rc = modify_increment_values( e, &mods,
-					0, &text, textbuf, textlen );
-				break;
-			}
-
-			if ( local_rc != LDAP_SUCCESS ) {
-				fprintf( stderr, "%s: DN=\"%s\": unable to modify attr=%s\n",
-					progname, e->e_dn, mods.sm_desc->ad_cname.bv_val );
+			rc = slap_tool_entry_check( progname, op, e, lineno, &text, textbuf, textlen );
+			if ( rc != LDAP_SUCCESS ) {
 				rc = EXIT_FAILURE;
-				ber_bvarray_free( mods.sm_values );
-				ber_bvarray_free( mods.sm_nvalues );
-				if( continuemode ) continue;
 				SLAP_FREE( ndn.bv_val );
 				ldap_ldif_record_done( &lr );
+				if( continuemode ) continue;
 				entry_free( e );
-				goto done;
+				break;
 			}
-		}
-
-		rc = slap_tool_entry_check( progname, op, e, lineno, &text, textbuf, textlen );
-		if ( rc != LDAP_SUCCESS ) {
-			rc = EXIT_FAILURE;
-			SLAP_FREE( ndn.bv_val );
-			ldap_ldif_record_done( &lr );
-			if( continuemode ) continue;
-			entry_free( e );
-			break;
 		}
 
 		if ( SLAP_LASTMOD(be) ) {
