@@ -132,7 +132,7 @@ slapmodify( int argc, char **argv )
 		lineno=nextline+1 )
 	{
 		BackendDB *bd;
-		Entry *e;
+		Entry *e_orig = NULL, *e = NULL;
 		struct berval rbuf;
 		LDIFRecord lr;
 		struct berval ndn;
@@ -273,13 +273,33 @@ slapmodify( int argc, char **argv )
 			break;
 		}
 
-		/* get entry */
-		id = be->be_dn2id_get( be, &ndn );
-		e = be->be_entry_get( be, id );
-		if ( e != NULL ) {
-			Entry *e_tmp = entry_dup( e );
-			/* FIXME: release? */
-			e = e_tmp;
+		/* get id and/or entry */
+		switch ( lr.lr_op ) {
+			case LDAP_REQ_ADD:
+				e = entry_alloc();
+				ber_dupbv( &e->e_name, &lr.lr_dn );
+				ber_dupbv( &e->e_nname, &ndn );
+				break;
+
+			//case LDAP_REQ_MODRDN:
+			case LDAP_REQ_DELETE:
+			case LDAP_REQ_MODIFY:
+				id = be->be_dn2id_get( be, &ndn );
+				rc = (id == NOID);
+				if ( rc == LDAP_SUCCESS && lr.lr_op != LDAP_REQ_DELETE ) {
+					e_orig = be->be_entry_get( be, id );
+					e = entry_dup( e_orig );
+				}
+				break;
+		}
+
+		if ( rc != LDAP_SUCCESS ) {
+			fprintf( stderr, "%s: no such entry \"%s\" in database (lineno=%d)\n",
+				progname, ndn.bv_val, lineno );
+			rc = EXIT_FAILURE;
+			SLAP_FREE( ndn.bv_val );
+			if( continuemode ) continue;
+			goto done;
 		}
 
 		if ( lr.lrop_mods ) {
@@ -301,6 +321,7 @@ slapmodify( int argc, char **argv )
 					SLAP_FREE( ndn.bv_val );
 					ldap_ldif_record_done( &lr );
 					entry_free( e );
+					be_entry_release_w( op, e_orig );
 					goto done;
 				}
 
@@ -370,6 +391,7 @@ slapmodify( int argc, char **argv )
 						SLAP_FREE( ndn.bv_val );
 						ldap_ldif_record_done( &lr );
 						entry_free( e );
+						be_entry_release_w( op, e_orig );
 						goto done;
 					}
 
@@ -396,6 +418,7 @@ slapmodify( int argc, char **argv )
 							SLAP_FREE( ndn.bv_val );
 							ldap_ldif_record_done( &lr );
 							entry_free( e );
+							be_entry_release_w( op, e_orig );
 							goto done;
 						}
 					}
@@ -440,6 +463,7 @@ slapmodify( int argc, char **argv )
 					SLAP_FREE( ndn.bv_val );
 					ldap_ldif_record_done( &lr );
 					entry_free( e );
+					be_entry_release_w( op, e_orig );
 					goto done;
 				}
 			}
@@ -455,7 +479,7 @@ slapmodify( int argc, char **argv )
 			}
 		}
 
-		if ( SLAP_LASTMOD(be) ) {
+		if ( SLAP_LASTMOD(be) && e != NULL ) {
 			time_t now = slap_get_time();
 			char uuidbuf[ LDAP_LUTIL_UUIDSTR_BUFSIZE ];
 			struct berval vals[ 2 ];
@@ -574,6 +598,7 @@ slapmodify( int argc, char **argv )
 
 			case LDAP_REQ_DELETE:
 				rc = be->be_entry_delete( be, id, &bvtext );
+				e_orig = NULL;
 				break;
 
 			}
@@ -599,7 +624,10 @@ slapmodify( int argc, char **argv )
 					request, e->e_dn );
 		}
 
-		entry_free( e );
+		ldap_ldif_record_done( &lr );
+		if ( e ) entry_free( e );
+		if ( e_orig ) be_entry_release_w( op, e_orig );
+		if ( rc != LDAP_SUCCESS && !continuemode ) break;
 	}
 
 done:;
