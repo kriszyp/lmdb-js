@@ -245,7 +245,7 @@ int mdb_entry_return(
 	if ( !e )
 		return 0;
 	if ( e->e_private ) {
-		if ( op->o_hdr ) {
+		if ( op->o_hdr && op->o_tmpmfuncs ) {
 			op->o_tmpfree( e->e_nname.bv_val, op->o_tmpmemctx );
 			op->o_tmpfree( e->e_name.bv_val, op->o_tmpmemctx );
 			op->o_tmpfree( e, op->o_tmpmemctx );

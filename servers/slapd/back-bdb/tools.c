@@ -747,6 +747,15 @@ done:
 		e->e_id = NOID;
 	}
 
+	if ( cursor == NULL )
+	{
+		int rc = bdb->bi_id2entry->bdi_db->cursor(
+			bdb->bi_id2entry->bdi_db, bdb->bi_cache.c_txn, &cursor,
+			bdb->bi_db_opflags );
+		if ( rc != 0 )
+			e->e_id = NOID;
+	}
+
 	return e->e_id;
 }
 
@@ -980,6 +989,15 @@ done:
 			text->bv_val, 0, 0 );
 		}
 		e->e_id = NOID;
+	}
+
+	if ( cursor == NULL )
+	{
+		int rc = bdb->bi_id2entry->bdi_db->cursor(
+			bdb->bi_id2entry->bdi_db, bdb->bi_cache.c_txn, &cursor,
+			bdb->bi_db_opflags );
+		if ( rc != 0 )
+			e->e_id = NOID;
 	}
 
 	return e->e_id;
