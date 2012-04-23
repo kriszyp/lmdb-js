@@ -135,7 +135,7 @@ slapmodify( int argc, char **argv )
 		Entry *e_orig = NULL, *e = NULL;
 		struct berval rbuf;
 		LDIFRecord lr;
-		struct berval ndn;
+		struct berval ndn = BER_BVNULL;
 		int n;
 		int is_oc = 0;
 		int local_rc;
@@ -191,12 +191,11 @@ slapmodify( int argc, char **argv )
 			fprintf( stderr, "%s: request 0x%lx not supported (line=%lu)\n",
 				progname, (unsigned long)lr.lr_op, lineno );
 			rc = EXIT_FAILURE;
-			if( continuemode ) continue;
-			goto done;
+			goto cleanup;
 
 		default:
 			/* record skipped e.g. version: or comment or something we don't handle yet */
-			continue;
+			goto cleanup;
 		}
 
 		local_rc = dnNormalize( 0, NULL, NULL, &lr.lr_dn, &ndn, NULL );
@@ -204,8 +203,7 @@ slapmodify( int argc, char **argv )
 			fprintf( stderr, "%s: DN=\"%s\" normalization failed (line=%lu)\n",
 				progname, lr.lr_dn.bv_val, lineno );
 			rc = EXIT_FAILURE;
-			if( continuemode ) continue;
-			break;
+			goto cleanup;
 		}
 
 		/* make sure the DN is not empty */
@@ -233,10 +231,7 @@ slapmodify( int argc, char **argv )
 			}
 			fprintf( stderr, "\n" );
 			rc = EXIT_FAILURE;
-			SLAP_FREE( ndn.bv_val );
-			ldap_ldif_record_done( &lr );
-			if( continuemode ) continue;
-			break;
+			goto cleanup;
 		}
 
 		/* check backend */
@@ -267,10 +262,7 @@ slapmodify( int argc, char **argv )
 			}
 			fprintf( stderr, "\n" );
 			rc = EXIT_FAILURE;
-			SLAP_FREE( ndn.bv_val );
-			ldap_ldif_record_done( &lr );
-			if( continuemode ) continue;
-			break;
+			goto cleanup;
 		}
 
 		/* get id and/or entry */
@@ -297,9 +289,7 @@ slapmodify( int argc, char **argv )
 			fprintf( stderr, "%s: no such entry \"%s\" in database (lineno=%d)\n",
 				progname, ndn.bv_val, lineno );
 			rc = EXIT_FAILURE;
-			SLAP_FREE( ndn.bv_val );
-			if( continuemode ) continue;
-			goto done;
+			goto cleanup;
 		}
 
 		if ( lr.lrop_mods ) {
@@ -316,13 +306,7 @@ slapmodify( int argc, char **argv )
 					fprintf( stderr, "%s: slap_str2ad(\"%s\") failed for entry \"%s\" (%d: %s, lineno=%lu)\n",
 						progname, mod->mod_type, lr.lr_dn.bv_val, local_rc, text, lineno );
 					rc = EXIT_FAILURE;
-					mod_err = 1;
-					if( continuemode ) continue;
-					SLAP_FREE( ndn.bv_val );
-					ldap_ldif_record_done( &lr );
-					entry_free( e );
-					be_entry_release_w( op, e_orig );
-					goto done;
+					goto cleanup;
 				}
 
 				mods.sm_type = mods.sm_desc->ad_cname;
@@ -383,16 +367,10 @@ slapmodify( int argc, char **argv )
 							progname, e->e_dn, pretty ? "prettify" : "validate",
 							mods.sm_desc->ad_cname.bv_val, i );
 						/* handle error */
-						mod_err = 1;
 						rc = EXIT_FAILURE;
 						ber_bvarray_free( mods.sm_values );
 						ber_bvarray_free( mods.sm_nvalues );
-						if( continuemode ) continue;
-						SLAP_FREE( ndn.bv_val );
-						ldap_ldif_record_done( &lr );
-						entry_free( e );
-						be_entry_release_w( op, e_orig );
-						goto done;
+						goto cleanup;
 					}
 
 					if ( !pretty ) {
@@ -410,16 +388,10 @@ slapmodify( int argc, char **argv )
 							fprintf( stderr, "%s: DN=\"%s\": unable to normalize attr=%s value #%d\n",
 								progname, e->e_dn, mods.sm_desc->ad_cname.bv_val, i );
 							/* handle error */
-							mod_err = 1;
 							rc = EXIT_FAILURE;
 							ber_bvarray_free( mods.sm_values );
 							ber_bvarray_free( mods.sm_nvalues );
-							if( continuemode ) continue;
-							SLAP_FREE( ndn.bv_val );
-							ldap_ldif_record_done( &lr );
-							entry_free( e );
-							be_entry_release_w( op, e_orig );
-							goto done;
+							goto cleanup;
 						}
 					}
 				}
@@ -459,23 +431,14 @@ slapmodify( int argc, char **argv )
 					rc = EXIT_FAILURE;
 					ber_bvarray_free( mods.sm_values );
 					ber_bvarray_free( mods.sm_nvalues );
-					if( continuemode ) continue;
-					SLAP_FREE( ndn.bv_val );
-					ldap_ldif_record_done( &lr );
-					entry_free( e );
-					be_entry_release_w( op, e_orig );
-					goto done;
+					goto cleanup;
 				}
 			}
 
 			rc = slap_tool_entry_check( progname, op, e, lineno, &text, textbuf, textlen );
 			if ( rc != LDAP_SUCCESS ) {
 				rc = EXIT_FAILURE;
-				SLAP_FREE( ndn.bv_val );
-				ldap_ldif_record_done( &lr );
-				if( continuemode ) continue;
-				entry_free( e );
-				break;
+				goto cleanup;
 			}
 		}
 
@@ -580,8 +543,6 @@ slapmodify( int argc, char **argv )
 			}
 		}
 
-		if ( mod_err ) break;
-
 		/* check schema, objectClass etc */
 
 		if ( !dryrun ) {
@@ -608,9 +569,7 @@ slapmodify( int argc, char **argv )
 					"(line=%lu): %s\n", progname, request, e->e_dn,
 					lineno, bvtext.bv_val );
 				rc = EXIT_FAILURE;
-				entry_free( e );
-				if( continuemode ) continue;
-				break;
+				goto cleanup;
 			}
 
 			sid = slap_tool_update_ctxcsn_check( progname, e );
@@ -624,13 +583,14 @@ slapmodify( int argc, char **argv )
 					request, e->e_dn );
 		}
 
+cleanup:;
 		ldap_ldif_record_done( &lr );
+		SLAP_FREE( ndn.bv_val );
 		if ( e ) entry_free( e );
 		if ( e_orig ) be_entry_release_w( op, e_orig );
 		if ( rc != LDAP_SUCCESS && !continuemode ) break;
 	}
 
-done:;
 	if ( ldifrc < 0 )
 		rc = EXIT_FAILURE;
 
