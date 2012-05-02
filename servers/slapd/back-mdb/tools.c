@@ -881,7 +881,6 @@ ID mdb_tool_entry_modify(
 {
 	int rc;
 	struct mdb_info *mdb;
-	MDB_txn *tid;
 	Operation op = {0};
 	Opheader ohdr = {0};
 
@@ -904,15 +903,17 @@ ID mdb_tool_entry_modify(
 		mdb_cursor_close( cursor );
 		cursor = NULL;
 	}
-	rc = mdb_txn_begin( mdb->mi_dbenv, NULL, 0, &tid );
-	if( rc != 0 ) {
-		snprintf( text->bv_val, text->bv_len,
-			"txn_begin failed: %s (%d)",
-			mdb_strerror(rc), rc );
-		Debug( LDAP_DEBUG_ANY,
-			"=> " LDAP_XSTRING(mdb_tool_entry_modify) ": %s\n",
-			 text->bv_val, 0, 0 );
-		return NOID;
+	if ( !txn ) {
+		rc = mdb_txn_begin( mdb->mi_dbenv, NULL, 0, &txn );
+		if( rc != 0 ) {
+			snprintf( text->bv_val, text->bv_len,
+				"txn_begin failed: %s (%d)",
+				mdb_strerror(rc), rc );
+			Debug( LDAP_DEBUG_ANY,
+				"=> " LDAP_XSTRING(mdb_tool_entry_modify) ": %s\n",
+				 text->bv_val, 0, 0 );
+			return NOID;
+		}
 	}
 
 	op.o_hdr = &ohdr;
@@ -921,7 +922,7 @@ ID mdb_tool_entry_modify(
 	op.o_tmpmfuncs = &ch_mfuncs;
 
 	/* id2entry index */
-	rc = mdb_id2entry_update( &op, tid, NULL, e );
+	rc = mdb_id2entry_update( &op, txn, NULL, e );
 	if( rc != 0 ) {
 		snprintf( text->bv_val, text->bv_len,
 				"id2entry_update failed: err=%d", rc );
@@ -933,7 +934,7 @@ ID mdb_tool_entry_modify(
 
 done:
 	if( rc == 0 ) {
-		rc = mdb_txn_commit( tid );
+		rc = mdb_txn_commit( txn );
 		if( rc != 0 ) {
 			snprintf( text->bv_val, text->bv_len,
 					"txn_commit failed: %s (%d)",
@@ -945,7 +946,7 @@ done:
 		}
 
 	} else {
-		mdb_txn_abort( tid );
+		mdb_txn_abort( txn );
 		snprintf( text->bv_val, text->bv_len,
 			"txn_aborted! %s (%d)",
 			mdb_strerror(rc), rc );
@@ -954,6 +955,7 @@ done:
 			text->bv_val, 0, 0 );
 		e->e_id = NOID;
 	}
+	txn = NULL;
 
 	return e->e_id;
 }
