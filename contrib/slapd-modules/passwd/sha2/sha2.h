@@ -36,10 +36,29 @@
 #ifndef __SHA2_H__
 #define __SHA2_H__
 
+#include "portable.h"
+
+#ifdef HAVE_INTTYPES_H
+#  define SHA2_USE_INTTYPES_H 1
+#endif
+
+#ifndef LITTLE_ENDIAN
+#  define LITTLE_ENDIAN 1234
+#endif
+#ifndef BIG_ENDIAN
+#  define BIG_ENDIAN    4321
+#endif
+#ifndef BYTE_ORDER
+#  ifdef WORDS_BIGENDIAN
+#    define BYTE_ORDER BIG_ENDIAN
+#  else
+#    define BYTE_ORDER LITTLE_ENDIAN
+#  endif
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
 
 /*
  * Import u_intXX_t size_t type definitions from system headers.  You
