@@ -2,6 +2,7 @@ OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.32 Engineering
 	Fixed slapd-mdb with tool mode (ITS#7255)
+	Fixed contrib/sha2 portability (ITS#7267)
 	Documentation
 		slapo-sssvlv Added note about criticality (ITS#7253)
 
