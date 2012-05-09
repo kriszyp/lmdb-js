@@ -65,6 +65,10 @@
 
 #include <sys/types.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /** @defgroup public Public API
  *	@{
  */
@@ -578,9 +582,10 @@ int  mdb_txn_renew(MDB_txn *txn);
 
 	/** @brief Open a database in the environment.
 	 *
-	 * The database handle may be discarded by calling #mdb_close(). Only
-	 * one thread at a time may call this function; it is not mutex-protected in
-	 * a read-only transaction.
+	 * The database handle may be discarded by calling #mdb_close().  The
+	 * database handle resides in the shared environment, it is not owned
+	 * by the given transaction. Only one thread should call this function;
+	 * it is not mutex-protected in a read-only transaction.
 	 * @param[in] txn A transaction handle returned by #mdb_txn_begin()
 	 * @param[in] name The name of the database to open. If only a single
 	 * 	database is needed in the environment, this value may be NULL.
@@ -976,4 +981,8 @@ int  mdb_cmp(MDB_txn *txn, MDB_dbi dbi, const MDB_val *a, const MDB_val *b);
 	 */
 int  mdb_dcmp(MDB_txn *txn, MDB_dbi dbi, const MDB_val *a, const MDB_val *b);
 /**	@} */
+
+#ifdef __cplusplus
+}
+#endif
 #endif /* _MDB_H_ */
