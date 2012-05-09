@@ -1,6 +1,7 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.32 Engineering
+	Fixed libmdb leaf node handling (ITS#7266)
 	Fixed slapd-mdb with tool mode (ITS#7255)
 	Fixed contrib/sha2 portability (ITS#7267)
 	Documentation
