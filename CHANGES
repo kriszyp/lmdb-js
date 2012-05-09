@@ -2,6 +2,8 @@ OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.32 Engineering
 	Fixed slapd-mdb with tool mode (ITS#7255)
+	Documentation
+		slapo-sssvlv Added note about criticality (ITS#7253)
 
 OpenLDAP 2.4.31 Release (2012/04/21)
 	Added slapo-accesslog support for reqEntryUUID (ITS#6656)
