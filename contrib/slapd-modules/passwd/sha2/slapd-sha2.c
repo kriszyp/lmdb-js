@@ -17,84 +17,22 @@
  * in OpenLDAP Software.
  *
  * Hash methods for passwords generation added by Cédric Delfosse.
+ *
+ * chk_sha*() replaced with libraries/liblutil/passwd.c:chk_sha1()
+ * implementation to fix a race by SATOH Fumiyasu @ OSS Technology, Inc.
  */
 
-#include <lber.h>
-#include <lber_pvt.h>
+#include "portable.h"
+
 #include <ac/string.h>
+
+#include "lber_pvt.h"
 #include "lutil.h"
-#include <stdint.h>
-#include <string.h>
-#include <assert.h>
 #include "sha2.h"
 
 #ifdef SLAPD_SHA2_DEBUG
 #include <stdio.h>
 #endif
-
-char * sha256_hex_hash(const char * passwd) {
-
-	SHA256_CTX ct;
-	unsigned char hash[SHA256_DIGEST_LENGTH];
-	static char real_hash[LUTIL_BASE64_ENCODE_LEN(SHA256_DIGEST_LENGTH)+1]; /* extra char for \0 */
-
-	SHA256_Init(&ct);
-	SHA256_Update(&ct, (const uint8_t*)passwd, strlen(passwd));
-	SHA256_Final(hash, &ct);
-
-        /* base64 encode it */
-	lutil_b64_ntop(
-			hash,
-			SHA256_DIGEST_LENGTH,
-			real_hash,
-			LUTIL_BASE64_ENCODE_LEN(SHA256_DIGEST_LENGTH)+1
-			);
-
-	return real_hash;
-}
-
-
-char * sha384_hex_hash(const char * passwd) {
-
-	SHA384_CTX ct;
-	unsigned char hash[SHA384_DIGEST_LENGTH];
-	static char real_hash[LUTIL_BASE64_ENCODE_LEN(SHA384_DIGEST_LENGTH)+1]; /* extra char for \0 */
-
-	SHA384_Init(&ct);
-	SHA384_Update(&ct, (const uint8_t*)passwd, strlen(passwd));
-	SHA384_Final(hash, &ct);
-
-        /* base64 encode it */
-	lutil_b64_ntop(
-			hash,
-			SHA384_DIGEST_LENGTH,
-			real_hash,
-			LUTIL_BASE64_ENCODE_LEN(SHA384_DIGEST_LENGTH)+1
-			);
-
-	return real_hash;
-}
-
-char * sha512_hex_hash(const char * passwd) {
-
-	SHA512_CTX ct;
-	unsigned char hash[SHA512_DIGEST_LENGTH];
-	static char real_hash[LUTIL_BASE64_ENCODE_LEN(SHA512_DIGEST_LENGTH)+1]; /* extra char for \0 */
-
-	SHA512_Init(&ct);
-	SHA512_Update(&ct, (const uint8_t*)passwd, strlen(passwd));
-	SHA512_Final(hash, &ct);
-
-        /* base64 encode it */
-	lutil_b64_ntop(
-			hash,
-			SHA512_DIGEST_LENGTH,
-			real_hash,
-			LUTIL_BASE64_ENCODE_LEN(SHA512_DIGEST_LENGTH)+1
-			);
-
-	return real_hash;
-}
 
 static int hash_sha256(
 	const struct berval *scheme,
@@ -156,21 +94,87 @@ static int hash_sha512(
 	return lutil_passwd_string64(scheme, &digest, hash, NULL);
 }
 
+#ifdef SLAPD_SHA2_DEBUG
+static void chk_sha_debug(
+	const struct berval *scheme,
+	const struct berval *passwd,
+	const struct berval *cred,
+	const char *cred_hash,
+	size_t cred_len,
+	int cmp_rc)
+{
+	int rc;
+	struct berval cred_b64;
+
+	cred_b64.bv_len = LUTIL_BASE64_ENCODE_LEN(cred_len) + 1;
+	cred_b64.bv_val = ber_memalloc(cred_b64.bv_len + 1);
+
+	if( cred_b64.bv_val == NULL ) {
+		return;
+	}
+
+	rc = lutil_b64_ntop(
+		(unsigned char *) cred_hash, cred_len,
+		cred_b64.bv_val, cred_b64.bv_len );
+
+	if( rc < 0 ) {
+		ber_memfree(cred_b64.bv_val);
+		return;
+	}
+
+	fprintf(stderr, "Validating password\n");
+	fprintf(stderr, "  Hash scheme:\t\t%s\n", scheme->bv_val);
+	fprintf(stderr, "  Password to validate: %s\n", cred->bv_val);
+	fprintf(stderr, "  Password hash:\t%s\n", cred_b64.bv_val);
+	fprintf(stderr, "  Stored password hash:\t%s\n", passwd->bv_val);
+	fprintf(stderr, "  Result:\t\t%s\n", cmp_rc ?  "do not match" : "match");
+
+	ber_memfree(cred_b64.bv_val);
+}
+#endif
+
 static int chk_sha256(
 	const struct berval *scheme, /* Scheme of hashed reference password */
 	const struct berval *passwd, /* Hashed reference password to check against */
 	const struct berval *cred, /* user-supplied password to check */
 	const char **text )
 {
+	SHA256_CTX SHAcontext;
+	unsigned char SHAdigest[SHA256_DIGEST_LENGTH];
+	int rc;
+	unsigned char *orig_pass = NULL;
+
+	/* safety check */
+	if (LUTIL_BASE64_DECODE_LEN(passwd->bv_len) < sizeof(SHAdigest)) {
+		return LUTIL_PASSWD_ERR;
+	}
+
+	/* base64 un-encode password */
+	orig_pass = (unsigned char *) ber_memalloc( (size_t) (
+		LUTIL_BASE64_DECODE_LEN(passwd->bv_len) + 1) );
+
+	if( orig_pass == NULL ) return LUTIL_PASSWD_ERR;
+
+	rc = lutil_b64_pton(passwd->bv_val, orig_pass, passwd->bv_len);
+
+	if( rc != sizeof(SHAdigest) ) {
+		ber_memfree(orig_pass);
+		return LUTIL_PASSWD_ERR;
+	}
+
+	/* hash credentials with salt */
+	SHA256_Init(&SHAcontext);
+	SHA256_Update(&SHAcontext,
+		(const unsigned char *) cred->bv_val, cred->bv_len);
+	SHA256_Final(SHAdigest, &SHAcontext);
+
+	/* compare */
+	rc = memcmp((char *)orig_pass, (char *)SHAdigest, sizeof(SHAdigest));
 #ifdef SLAPD_SHA2_DEBUG
-	fprintf(stderr, "Validating password\n");
-	fprintf(stderr, "  Password to validate: %s\n", cred->bv_val);
-	fprintf(stderr, "  Hashes to: %s\n", sha256_hex_hash(cred->bv_val));
-	fprintf(stderr, "  Stored password scheme: %s\n", scheme->bv_val);
-	fprintf(stderr, "  Stored password value: %s\n", passwd->bv_val);
-	fprintf(stderr, "  -> Passwords %s\n", strcmp(sha256_hex_hash(cred->bv_val), passwd->bv_val) == 0 ? "match" : "do not match");
+	chk_sha_debug(scheme, passwd, cred, (char *)SHAdigest, sizeof(SHAdigest), rc);
 #endif
-	return (strcmp(sha256_hex_hash(cred->bv_val), passwd->bv_val));
+	ber_memfree(orig_pass);
+	return rc ? LUTIL_PASSWD_ERR : LUTIL_PASSWD_OK;
 }
 
 static int chk_sha384(
@@ -179,15 +183,42 @@ static int chk_sha384(
 	const struct berval *cred, /* user-supplied password to check */
 	const char **text )
 {
+	SHA384_CTX SHAcontext;
+	unsigned char SHAdigest[SHA384_DIGEST_LENGTH];
+	int rc;
+	unsigned char *orig_pass = NULL;
+
+	/* safety check */
+	if (LUTIL_BASE64_DECODE_LEN(passwd->bv_len) < sizeof(SHAdigest)) {
+		return LUTIL_PASSWD_ERR;
+	}
+
+	/* base64 un-encode password */
+	orig_pass = (unsigned char *) ber_memalloc( (size_t) (
+		LUTIL_BASE64_DECODE_LEN(passwd->bv_len) + 1) );
+
+	if( orig_pass == NULL ) return LUTIL_PASSWD_ERR;
+
+	rc = lutil_b64_pton(passwd->bv_val, orig_pass, passwd->bv_len);
+
+	if( rc != sizeof(SHAdigest) ) {
+		ber_memfree(orig_pass);
+		return LUTIL_PASSWD_ERR;
+	}
+
+	/* hash credentials with salt */
+	SHA384_Init(&SHAcontext);
+	SHA384_Update(&SHAcontext,
+		(const unsigned char *) cred->bv_val, cred->bv_len);
+	SHA384_Final(SHAdigest, &SHAcontext);
+
+	/* compare */
+	rc = memcmp((char *)orig_pass, (char *)SHAdigest, sizeof(SHAdigest));
 #ifdef SLAPD_SHA2_DEBUG
-	fprintf(stderr, "Validating password\n");
-	fprintf(stderr, "  Password to validate: %s\n", cred->bv_val);
-	fprintf(stderr, "  Hashes to: %s\n", sha384_hex_hash(cred->bv_val));
-	fprintf(stderr, "  Stored password scheme: %s\n", scheme->bv_val);
-	fprintf(stderr, "  Stored password value: %s\n", passwd->bv_val);
-	fprintf(stderr, "  -> Passwords %s\n", strcmp(sha384_hex_hash(cred->bv_val), passwd->bv_val) == 0 ? "match" : "do not match");
+	chk_sha_debug(scheme, passwd, cred, (char *)SHAdigest, sizeof(SHAdigest), rc);
 #endif
-	return (strcmp(sha384_hex_hash(cred->bv_val), passwd->bv_val));
+	ber_memfree(orig_pass);
+	return rc ? LUTIL_PASSWD_ERR : LUTIL_PASSWD_OK;
 }
 
 static int chk_sha512(
@@ -196,14 +227,42 @@ static int chk_sha512(
 	const struct berval *cred, /* user-supplied password to check */
 	const char **text )
 {
+	SHA512_CTX SHAcontext;
+	unsigned char SHAdigest[SHA512_DIGEST_LENGTH];
+	int rc;
+	unsigned char *orig_pass = NULL;
+
+	/* safety check */
+	if (LUTIL_BASE64_DECODE_LEN(passwd->bv_len) < sizeof(SHAdigest)) {
+		return LUTIL_PASSWD_ERR;
+	}
+
+	/* base64 un-encode password */
+	orig_pass = (unsigned char *) ber_memalloc( (size_t) (
+		LUTIL_BASE64_DECODE_LEN(passwd->bv_len) + 1) );
+
+	if( orig_pass == NULL ) return LUTIL_PASSWD_ERR;
+
+	rc = lutil_b64_pton(passwd->bv_val, orig_pass, passwd->bv_len);
+
+	if( rc != sizeof(SHAdigest) ) {
+		ber_memfree(orig_pass);
+		return LUTIL_PASSWD_ERR;
+	}
+
+	/* hash credentials with salt */
+	SHA512_Init(&SHAcontext);
+	SHA512_Update(&SHAcontext,
+		(const unsigned char *) cred->bv_val, cred->bv_len);
+	SHA512_Final(SHAdigest, &SHAcontext);
+
+	/* compare */
+	rc = memcmp((char *)orig_pass, (char *)SHAdigest, sizeof(SHAdigest));
 #ifdef SLAPD_SHA2_DEBUG
-	fprintf(stderr, "  Password to validate: %s\n", cred->bv_val);
-	fprintf(stderr, "  Hashes to: %s\n", sha512_hex_hash(cred->bv_val));
-	fprintf(stderr, "  Stored password scheme: %s\n", scheme->bv_val);
-	fprintf(stderr, "  Stored password value: %s\n", passwd->bv_val);
-	fprintf(stderr, "  -> Passwords %s\n", strcmp(sha512_hex_hash(cred->bv_val), passwd->bv_val) == 0 ? "match" : "do not match");
+	chk_sha_debug(scheme, passwd, cred, (char *)SHAdigest, sizeof(SHAdigest), rc);
 #endif
-	return (strcmp(sha512_hex_hash(cred->bv_val), passwd->bv_val));
+	ber_memfree(orig_pass);
+	return rc ? LUTIL_PASSWD_ERR : LUTIL_PASSWD_OK;
 }
 
 const struct berval sha256scheme = BER_BVC("{SHA256}");
