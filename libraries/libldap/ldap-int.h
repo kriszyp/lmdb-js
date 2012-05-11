@@ -482,6 +482,7 @@ struct ldap {
 
 #ifdef LDAP_R_COMPILE
 LDAP_V ( ldap_pvt_thread_mutex_t ) ldap_int_resolv_mutex;
+LDAP_V ( ldap_pvt_thread_mutex_t ) ldap_int_hostname_mutex;
 
 #ifdef HAVE_CYRUS_SASL
 LDAP_V( ldap_pvt_thread_mutex_t ) ldap_int_sasl_mutex;

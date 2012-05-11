@@ -58,6 +58,7 @@ extern int h_errno;
 #else
 # include <ldap_pvt_thread.h>
   ldap_pvt_thread_mutex_t ldap_int_resolv_mutex;
+  ldap_pvt_thread_mutex_t ldap_int_hostname_mutex;
 
 # if (defined( HAVE_CTIME_R ) || defined( HAVE_REENTRANT_FUNCTIONS)) \
 	 && defined( CTIME_R_NARGS )
@@ -602,6 +603,8 @@ void ldap_int_utils_init( void )
 	ldap_pvt_thread_mutex_init( &ldap_int_gmtime_mutex );
 #endif
 	ldap_pvt_thread_mutex_init( &ldap_int_resolv_mutex );
+
+	ldap_pvt_thread_mutex_init( &ldap_int_hostname_mutex );
 
 #ifdef HAVE_CYRUS_SASL
 	ldap_pvt_thread_mutex_init( &ldap_int_sasl_mutex );
