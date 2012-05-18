@@ -1683,18 +1683,28 @@ tlsm_deferred_init( void *arg )
 			ctx->tc_initctx = initctx;
 #endif
 
+		}
+
+		if ( errcode || lt->lt_cacertfile ) {
 			/* initialize the PEM module */
 			LDAP_MUTEX_LOCK( &tlsm_init_mutex );
 			if ( tlsm_init_pem_module() ) {
 				LDAP_MUTEX_UNLOCK( &tlsm_init_mutex );
-				errcode = PORT_GetError();
+				int pem_errcode = PORT_GetError();
 				Debug( LDAP_DEBUG_ANY,
 					   "TLS: could not initialize moznss PEM module - error %d:%s.\n",
-					   errcode, PR_ErrorToString( errcode, PR_LANGUAGE_I_DEFAULT ), 0 );
-				return -1;
+					   pem_errcode, PR_ErrorToString( pem_errcode, PR_LANGUAGE_I_DEFAULT ), 0 );
+
+				if ( errcode ) /* PEM is required */
+					return -1;
+
+			} else if ( !errcode ) {
+				tlsm_init_ca_certs( ctx, lt->lt_cacertfile, NULL );
 			}
 			LDAP_MUTEX_UNLOCK( &tlsm_init_mutex );
+		}
 
+		if ( errcode ) {
 			if ( tlsm_init_ca_certs( ctx, lt->lt_cacertfile, lt->lt_cacertdir ) ) {
 				/* if we tried to use lt->lt_cacertdir as an NSS key/cert db, errcode 
 				   will be a value other than 1 - print an error message so that the
