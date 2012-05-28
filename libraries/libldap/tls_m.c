@@ -1019,6 +1019,10 @@ tlsm_verify_cert(CERTCertDBHandle *handle, CERTCertificate *cert, void *pinarg,
 				   is self issued */
 				if ( ( node->error == SEC_ERROR_CA_CERT_INVALID ) &&
 					 tlsm_cert_is_self_issued( node->cert ) ) {
+
+					PRErrorCode orig_error = PR_GetError();
+					PRInt32 orig_oserror = PR_GetOSError();
+
 					CERTBasicConstraints basicConstraint;
 					SECStatus rv = tlsm_get_basic_constraint_extension( node->cert, &basicConstraint );
 					if ( ( rv == SECSuccess ) && ( basicConstraint.isCA == PR_FALSE ) ) {
@@ -1032,6 +1036,9 @@ tlsm_verify_cert(CERTCertDBHandle *handle, CERTCertificate *cert, void *pinarg,
 							   "TLS: certificate [%s] is not valid - CA cert is not valid\n",
 							   name, 0, 0 );
 					}
+
+					PR_SetError(orig_error, orig_oserror);
+
 				} else if ( errorToIgnore && ( node->error == errorToIgnore ) ) {
 					Debug( debug_level,
 						   "TLS: Warning: ignoring error for certificate [%s] - error %ld:%s.\n",
