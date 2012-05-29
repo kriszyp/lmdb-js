@@ -327,7 +327,7 @@ attribute and various {{EX:<who>}} selectors.
 >    access to dn.subtree="dc=example,dc=com" attrs=homePhone
 >        by self write
 >        by dn.children="dc=example,dc=com" search
->        by peername.regex=IP:10\..+ read
+>        by peername.regex=IP=10\..+ read
 >    access to dn.subtree="dc=example,dc=com"
 >        by self write
 >        by dn.children="dc=example,dc=com" search
@@ -665,7 +665,7 @@ attribute and various {{EX:<who>}} selectors.
 >    olcAccess: to dn.subtree="dc=example,dc=com" attrs=homePhone
 >        by self write
 >        by dn.children=dc=example,dc=com" search
->        by peername.regex=IP:10\..+ read
+>        by peername.regex=IP=10\..+ read
 >    olcAccess: to dn.subtree="dc=example,dc=com"
 >        by self write
 >        by dn.children="dc=example,dc=com" search
