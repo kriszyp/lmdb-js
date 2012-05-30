@@ -302,11 +302,13 @@ getrec_thr(void *ctx)
 	return NULL;
 }
 
+static int ldif_threaded;
+
 static int
 getrec(Erec *erec)
 {
 	int rc;
-	if ( slap_tool_thread_max < 2 )
+	if ( !ldif_threaded )
 		return getrec0(erec);
 
 	while (!trec.ready)
@@ -404,6 +406,7 @@ slapadd( int argc, char **argv )
 		ldap_pvt_thread_mutex_init( &add_mutex );
 		ldap_pvt_thread_cond_init( &add_cond );
 		ldap_pvt_thread_create( &thr, 0, getrec_thr, NULL );
+		ldif_threaded = 1;
 	}
 
 	erec.nextline = 0;
@@ -447,7 +450,7 @@ slapadd( int argc, char **argv )
 		entry_free( erec.e );
 	}
 
-	if ( slap_tool_thread_max > 1 ) {
+	if ( ldif_threaded ) {
 		ldap_pvt_thread_mutex_lock( &add_mutex );
 		add_stop = 1;
 		trec.ready = 0;
