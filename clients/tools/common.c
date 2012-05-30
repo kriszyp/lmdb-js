@@ -1340,12 +1340,13 @@ dnssrv_free:;
 
 #ifdef HAVE_CYRUS_SASL
 		/* canon */
-		if( ldap_set_option( ld, LDAP_OPT_X_SASL_NOCANON,
-			nocanon ? LDAP_OPT_ON : LDAP_OPT_OFF ) != LDAP_OPT_SUCCESS )
-		{
-			fprintf( stderr, "Could not set LDAP_OPT_X_SASL_NOCANON %s\n",
-				nocanon ? "on" : "off" );
-			tool_exit( ld, EXIT_FAILURE );
+		if( nocanon ) {
+			if( ldap_set_option( ld, LDAP_OPT_X_SASL_NOCANON,
+				LDAP_OPT_ON ) != LDAP_OPT_SUCCESS )
+			{
+				fprintf( stderr, "Could not set LDAP_OPT_X_SASL_NOCANON on\n" );
+				tool_exit( ld, EXIT_FAILURE );
+			}
 		}
 #endif
 		if( ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, &protocol )
