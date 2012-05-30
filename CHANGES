@@ -1,9 +1,11 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.32 Engineering
+	Fixed libldap double free (ITS#7270)
 	Fixed libmdb leaf node handling (ITS#7266)
 	Fixed libmdb mutexes on Apple/Windows (ITS#7251)
 	Fixed slapd-mdb with tool mode (ITS#7255)
+	Fixed slapd-mdb with approx indexing (ITS#7279)
 	Fixed contrib/sha2 portability (ITS#7267)
 	Fixed contrib/sha2 thread safety (ITS#7269)
 	Added contrib/sha2 {SSHA256}, {SSHA384}, {SSHA512} support (ITS#7278)
