@@ -398,7 +398,7 @@ mdb_idl_insert_keys(
 	MDB_val key, data;
 	ID lo, hi, *i;
 	char *err;
-	int	rc, k;
+	int	rc = 0, k;
 	unsigned int flag = MDB_NODUPDATA;
 #ifndef	MISALIGNED_OK
 	int kbuf[2];
@@ -546,7 +546,7 @@ mdb_idl_delete_keys(
 	struct berval *keys,
 	ID			id )
 {
-	int	rc, k;
+	int	rc = 0, k;
 	MDB_val key, data;
 	ID lo, hi, tmp, *i;
 	char *err;
