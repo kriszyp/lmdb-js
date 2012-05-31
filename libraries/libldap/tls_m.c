@@ -81,8 +81,10 @@
 typedef struct tlsm_ctx {
 	PRFileDesc *tc_model;
 	int tc_refcnt;
+	int tc_unique; /* unique number associated with this ctx */
 	PRBool tc_verify_cert;
 	CERTCertDBHandle *tc_certdb;
+	PK11SlotInfo *tc_certdb_slot;
 	char *tc_certname;
 	char *tc_pin_file;
 	struct ldaptls *tc_config;
@@ -104,9 +106,15 @@ typedef struct tlsm_ctx {
 
 typedef PRFileDesc tlsm_session;
 
+static int tlsm_ctx_count;
+#define TLSM_CERTDB_DESC_FMT "ldap(%d)"
+
 static PRDescIdentity	tlsm_layer_id;
 
 static const PRIOMethods tlsm_PR_methods;
+
+#define CERTDB_NONE NULL
+#define PREFIX_NONE NULL
 
 #define PEM_LIBRARY	"nsspem"
 #define PEM_MODULE	"PEM"
@@ -134,6 +142,7 @@ static int tlsm_init( void );
    tlsm_thr_init in a non-threaded context - so we have
    to wrap the mutex creation in a prcallonce
 */
+static ldap_pvt_thread_mutex_t tlsm_ctx_count_mutex;
 static ldap_pvt_thread_mutex_t tlsm_init_mutex;
 static ldap_pvt_thread_mutex_t tlsm_pem_mutex;
 static PRCallOnceType tlsm_init_mutex_callonce = {0,0};
@@ -141,6 +150,12 @@ static PRCallOnceType tlsm_init_mutex_callonce = {0,0};
 static PRStatus PR_CALLBACK
 tlsm_thr_init_callonce( void )
 {
+	if ( ldap_pvt_thread_mutex_init( &tlsm_ctx_count_mutex ) ) {
+		Debug( LDAP_DEBUG_ANY,
+			   "TLS: could not create mutex for context counter: %d\n", errno, 0, 0 );
+		return PR_FAILURE;
+	}
+
 	if ( ldap_pvt_thread_mutex_init( &tlsm_init_mutex ) ) {
 		Debug( LDAP_DEBUG_ANY,
 			   "TLS: could not create mutex for moznss initialization: %d\n", errno, 0, 0 );
@@ -1534,6 +1549,45 @@ tlsm_get_certdb_prefix( const char *certdir, char **realcertdir, char **prefix )
 }
 
 /*
+ * Currently mutiple MozNSS contexts share one certificate storage. When the
+ * certdb is being opened, only new certificates are added to the storage.
+ * When different databases are used, conflicting nicknames make the
+ * certificate lookup by the nickname impossible. In addition a token
+ * description might be prepended in certain conditions.
+ *
+ * In order to make the certificate lookup by nickname possible, we explicitly
+ * open each database using SECMOD_OpenUserDB and assign it the token
+ * description. The token description is generated using ctx->tc_unique value,
+ * which is unique for each context.
+ */
+static PK11SlotInfo *
+tlsm_init_open_certdb(tlsm_ctx *ctx, const char *dbdir, const char *prefix)
+{
+	PK11SlotInfo *slot = NULL;
+	char *token_desc = NULL;
+	char *config = NULL;
+
+	token_desc = PR_smprintf(TLSM_CERTDB_DESC_FMT, ctx->tc_unique);
+	config = PR_smprintf("configDir='%s' tokenDescription='%s' certPrefix='%s' keyPrefix='%s' flags=readOnly",
+										dbdir, token_desc, prefix, prefix);
+	Debug(LDAP_DEBUG_TRACE, "TLS: certdb config: %s\n", config, 0, 0);
+
+	slot = SECMOD_OpenUserDB(config);
+	if (!slot) {
+		PRErrorCode errcode = PR_GetError();
+		Debug(LDAP_DEBUG_TRACE, "TLS: cannot open certdb '%s', error %d:%s\n", dbdir, errcode,
+							PR_ErrorToString(errcode, PR_LANGUAGE_I_DEFAULT));
+	}
+
+	if (token_desc)
+		PR_smprintf_free(token_desc);
+	if (config)
+		PR_smprintf_free(config);
+
+	return slot;
+}
+
+/*
  * This is the part of the init we defer until we get the
  * actual security configuration information.  This is
  * only called once, protected by a PRCallOnce
@@ -1553,6 +1607,7 @@ tlsm_deferred_init( void *arg )
 #ifdef HAVE_NSS_INITCONTEXT
 	NSSInitParameters initParams;
 	NSSInitContext *initctx = NULL;
+	PK11SlotInfo *certdb_slot = NULL;
 #endif
 	SECStatus rc;
 	int done = 0;
@@ -1615,20 +1670,32 @@ tlsm_deferred_init( void *arg )
 			tlsm_get_certdb_prefix( securitydir, &realcertdir, &prefix );
 			LDAP_MUTEX_LOCK( &tlsm_init_mutex );
 
+			/* initialize only moddb; certdb will be initialized explicitly */
 #ifdef HAVE_NSS_INITCONTEXT
 #ifdef INITCONTEXT_HACK
 			if ( !NSS_IsInitialized() && ctx->tc_is_server ) {
 				rc = NSS_Initialize( realcertdir, prefix, prefix, SECMOD_DB, NSS_INIT_READONLY );
 			} else {
 				initctx = NSS_InitContext( realcertdir, prefix, prefix, SECMOD_DB,
-										   &initParams, NSS_INIT_READONLY );
-				rc = (initctx == NULL) ? SECFailure : SECSuccess;
+								   &initParams, NSS_INIT_READONLY|NSS_INIT_NOCERTDB );
 			}
 #else
 			initctx = NSS_InitContext( realcertdir, prefix, prefix, SECMOD_DB,
-									   &initParams, NSS_INIT_READONLY );
-			rc = (initctx == NULL) ? SECFailure : SECSuccess;
+								   &initParams, NSS_INIT_READONLY|NSS_INIT_NOCERTDB );
 #endif
+			rc = SECFailure;
+
+			if (initctx != NULL) {
+				certdb_slot = tlsm_init_open_certdb(ctx, realcertdir, prefix);
+				if (certdb_slot) {
+					rc = SECSuccess;
+					ctx->tc_initctx = initctx;
+					ctx->tc_certdb_slot = certdb_slot;
+				} else {
+					NSS_ShutdownContext(initctx);
+					initctx = NULL;
+				}
+			}
 #else
 			rc = NSS_Initialize( realcertdir, prefix, prefix, SECMOD_DB, NSS_INIT_READONLY );
 #endif
@@ -1665,14 +1732,19 @@ tlsm_deferred_init( void *arg )
 			if ( !NSS_IsInitialized() && ctx->tc_is_server ) {
 				rc = NSS_NoDB_Init( NULL );
 			} else {
-				initctx = NSS_InitContext( "", "", "", SECMOD_DB,
+				initctx = NSS_InitContext( CERTDB_NONE, PREFIX_NONE, PREFIX_NONE, SECMOD_DB,
 										   &initParams, flags );
 				rc = (initctx == NULL) ? SECFailure : SECSuccess;
 			}
 #else
-			initctx = NSS_InitContext( "", "", "", SECMOD_DB,
+			initctx = NSS_InitContext( CERTDB_NONE, PREFIX_NONE, PREFIX_NONE, SECMOD_DB,
 									   &initParams, flags );
-			rc = (initctx == NULL) ? SECFailure : SECSuccess;
+			if (initctx) {
+				ctx->tc_initctx = initctx;
+				rc = SECSuccess;
+			} else {
+				rc = SECFailure;
+			}
 #endif
 #else
 			rc = NSS_NoDB_Init( NULL );
@@ -1685,11 +1757,6 @@ tlsm_deferred_init( void *arg )
 					   errcode, PR_ErrorToString( errcode, PR_LANGUAGE_I_DEFAULT ), 0 );
 				return -1;
 			}
-
-#ifdef HAVE_NSS_INITCONTEXT
-			ctx->tc_initctx = initctx;
-#endif
-
 		}
 
 		if ( errcode || lt->lt_cacertfile ) {
@@ -1733,12 +1800,6 @@ tlsm_deferred_init( void *arg )
 
 			ctx->tc_using_pem = PR_TRUE;
 		}
-
-#ifdef HAVE_NSS_INITCONTEXT
-		if ( !ctx->tc_initctx ) {
-			ctx->tc_initctx = initctx;
-		}
-#endif
 
 		NSS_SetDomesticPolicy();
 
@@ -1972,6 +2033,7 @@ static void
 tlsm_destroy( void )
 {
 #ifdef LDAP_R_COMPILE
+	ldap_pvt_thread_mutex_destroy( &tlsm_ctx_count_mutex );
 	ldap_pvt_thread_mutex_destroy( &tlsm_init_mutex );
 	ldap_pvt_thread_mutex_destroy( &tlsm_pem_mutex );
 #endif
@@ -2048,8 +2110,12 @@ tlsm_ctx_new ( struct ldapoptions *lo )
 #ifdef LDAP_R_COMPILE
 		ldap_pvt_thread_mutex_init( &ctx->tc_refmutex );
 #endif
+		LDAP_MUTEX_LOCK( &tlsm_ctx_count_mutex );
+		ctx->tc_unique = tlsm_ctx_count++;
+		LDAP_MUTEX_UNLOCK( &tlsm_ctx_count_mutex );
 		ctx->tc_config = NULL; /* populated later by tlsm_ctx_init */
 		ctx->tc_certdb = NULL;
+		ctx->tc_certdb_slot = NULL;
 		ctx->tc_certname = NULL;
 		ctx->tc_pin_file = NULL;
 		ctx->tc_model = NULL;
@@ -2093,6 +2159,14 @@ tlsm_ctx_free ( tls_ctx *ctx )
 	if ( c->tc_model )
 		PR_Close( c->tc_model );
 	c->tc_certdb = NULL; /* if not the default, may have to clean up */
+	if ( c->tc_certdb_slot ) {
+		if ( SECMOD_CloseUserDB( c->tc_certdb_slot ) ) {
+			PRErrorCode errcode = PR_GetError();
+			Debug( LDAP_DEBUG_ANY,
+				   "TLS: could not close certdb slot - error %d:%s.\n",
+				   errcode, PR_ErrorToString( errcode, PR_LANGUAGE_I_DEFAULT ), 0 );
+		}
+	}
 	PL_strfree( c->tc_certname );
 	c->tc_certname = NULL;
 	PL_strfree( c->tc_pin_file );
@@ -2293,8 +2367,15 @@ tlsm_deferred_ctx_init( void *arg )
 				return rc;
 			}
 		} else {
-			PL_strfree( ctx->tc_certname );
-			ctx->tc_certname = PL_strdup( lt->lt_certfile );
+			char *tmp_certname;
+
+			if (ctx->tc_certdb_slot) {
+				tmp_certname = PR_smprintf(TLSM_CERTDB_DESC_FMT ":%s", ctx->tc_unique, lt->lt_certfile);
+				ctx->tc_certname = PL_strdup( tmp_certname );
+				PR_smprintf_free(tmp_certname);
+			} else {
+				ctx->tc_certname = PL_strdup( lt->lt_certfile );
+			}
 		}
 	}
 
