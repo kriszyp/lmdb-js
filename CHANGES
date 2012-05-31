@@ -7,6 +7,7 @@ OpenLDAP 2.4.32 Engineering
 	Fixed libldap MozNSS PEM/certdb handling (ITS#7276)
 	Fixed libmdb leaf node handling (ITS#7266)
 	Fixed libmdb mutexes on Apple/Windows (ITS#7251)
+	Fixed slapd-bdb/hdb cache hang under high load (ITS#7222)
 	Fixed slapd-mdb with tool mode (ITS#7255)
 	Fixed slapd-mdb with approx indexing (ITS#7279)
 	Fixed contrib/sha2 portability (ITS#7267)
