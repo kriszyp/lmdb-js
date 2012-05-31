@@ -1361,7 +1361,7 @@ bdb_cache_delete(
     DB_LOCK	*lock )
 {
 	EntryInfo *ei = BEI(e);
-	int	rc, busy = 0;
+	int	rc, busy = 0, counter = 0;
 
 	assert( e->e_private != NULL );
 
@@ -1378,7 +1378,7 @@ bdb_cache_delete(
 
 	bdb_cache_entryinfo_unlock( ei );
 
-	while ( busy ) {
+	while ( busy && counter < 1000) {
 		ldap_pvt_thread_yield();
 		busy = 0;
 		bdb_cache_entryinfo_lock( ei );
@@ -1387,6 +1387,13 @@ bdb_cache_delete(
 			ei->bei_finders > 0 )
 			busy = 1;
 		bdb_cache_entryinfo_unlock( ei );
+		counter ++;
+	}
+	if( busy ) {
+		bdb_cache_entryinfo_lock( ei );
+		ei->bei_state ^= CACHE_ENTRY_DELETED;
+		bdb_cache_entryinfo_unlock( ei );
+		return DB_LOCK_DEADLOCK;
 	}
 
 	/* Get write lock on the data */
