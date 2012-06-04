@@ -2218,12 +2218,13 @@ tlsm_deferred_ctx_init( void *arg )
 		return -1;
 	}
 
- 	if ( lt->lt_ciphersuite &&
-	     tlsm_parse_ciphers( ctx, lt->lt_ciphersuite )) {
- 		Debug( LDAP_DEBUG_ANY,
-		       "TLS: could not set cipher list %s.\n",
-		       lt->lt_ciphersuite, 0, 0 );
-		return -1;
+	if ( lt->lt_ciphersuite ) {
+		if ( tlsm_parse_ciphers( ctx, lt->lt_ciphersuite ) ) {
+			Debug( LDAP_DEBUG_ANY,
+			       "TLS: could not set cipher list %s.\n",
+			       lt->lt_ciphersuite, 0, 0 );
+			return -1;
+		}
 	} else if ( tlsm_parse_ciphers( ctx, "DEFAULT" ) ) {
  		Debug( LDAP_DEBUG_ANY,
 		       "TLS: could not set cipher list DEFAULT.\n",
