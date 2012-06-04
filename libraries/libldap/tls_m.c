@@ -624,7 +624,7 @@ nss_parse_ciphers(const char *cipherstr, int cipher_list[ciphernum])
 			} else {
 				for (i=0; i<ciphernum; i++) {
 					if (!strcmp(ciphers_def[i].ossl_name, cipher) &&
-						cipher_list[1] != -1)
+						cipher_list[i] != -1)
 						cipher_list[i] = action;
 				}
 			}
