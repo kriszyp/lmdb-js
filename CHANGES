@@ -5,6 +5,8 @@ OpenLDAP 2.4.32 Engineering
 	Fixed tools to not clobber SASL_NOCANON (ITS#7271)
 	Fixed libldap double free (ITS#7270)
 	Fixed libldap MozNSS PEM/certdb handling (ITS#7276)
+	Fixed libldap MozNSS cipher suite selection (ITS#7285)
+	Fixed libldap MozNSS error handling (ITS#7287)
 	Fixed libmdb leaf node handling (ITS#7266)
 	Fixed libmdb mutexes on Apple/Windows (ITS#7251)
 	Fixed slapd-bdb/hdb cache hang under high load (ITS#7222)
