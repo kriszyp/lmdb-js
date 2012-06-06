@@ -786,7 +786,7 @@ tlsm_get_pin_from_file(const char *token_name, tlsm_ctx *ctx)
 	}
 
 	/* create a buffer to hold the file contents */
-	if ( !( contents = PR_MALLOC( file_info.size + 1 ) ) ) {
+	if ( !( contents = PR_CALLOC( file_info.size + 1 ) ) ) {
 		PRErrorCode errcode = PR_GetError();
 		Debug( LDAP_DEBUG_ANY,
 		       "TLS: could not alloc a buffer for contents of pin file %s - error %d:%s.\n",
