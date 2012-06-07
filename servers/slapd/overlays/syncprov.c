@@ -918,14 +918,16 @@ syncprov_qplay( Operation *op, syncops *so )
 
 	do {
 		ldap_pvt_thread_mutex_lock( &so->s_mutex );
+		/* Exit loop with mutex held */
+		if ( so->s_op->o_abandon )
+			break;
 		sr = so->s_res;
-		if ( sr )
-			so->s_res = sr->s_next;
+		/* Exit loop with mutex held */
+		if ( !sr )
+			break;
+		so->s_res = sr->s_next;
 		if ( !so->s_res )
 			so->s_restail = NULL;
-		/* Exit loop with mutex held */
-		if ( !sr || so->s_op->o_abandon )
-			break;
 		ldap_pvt_thread_mutex_unlock( &so->s_mutex );
 
 		if ( sr->s_mode == LDAP_SYNC_NEW_COOKIE ) {
