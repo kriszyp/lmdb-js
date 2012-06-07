@@ -652,7 +652,7 @@ void ldap_int_initialize( struct ldapoptions *gopts, int *dbglvl )
 	if ( ldap_int_tblsize == 0 ) ldap_int_ip_init();
 #endif
 
-	ldap_int_initialize_global_options(gopts, NULL);
+	ldap_int_initialize_global_options(gopts, dbglvl);
 
 	if( getenv("LDAPNOINIT") != NULL ) {
 		return;
