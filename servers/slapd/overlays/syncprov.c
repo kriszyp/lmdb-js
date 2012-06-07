@@ -2353,6 +2353,7 @@ syncprov_search_response( Operation *op, SlapReply *rs )
 			slap_compose_sync_cookie( op, &cookie, a->a_nvals, srs->sr_state.rid, slap_serverID ? slap_serverID : -1 );
 			rs->sr_err = syncprov_state_ctrl( op, rs, rs->sr_entry,
 				LDAP_SYNC_ADD, rs->sr_ctrls, 0, 1, &cookie );
+			op->o_tmpfree( cookie.bv_val, op->o_tmpmemctx );
 		} else {
 			rs->sr_err = syncprov_state_ctrl( op, rs, rs->sr_entry,
 				LDAP_SYNC_ADD, rs->sr_ctrls, 0, 0, NULL );

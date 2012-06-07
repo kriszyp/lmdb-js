@@ -1457,7 +1457,7 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 	Modifications *m;
 	struct berval *b, uuid = BER_BVNULL;
 	int i;
-	int logop;
+	int logop, do_graduate = 0;
 	slap_verbmasks *lo;
 	Entry *e = NULL, *old = NULL, *e_uuid = NULL;
 	char timebuf[LDAP_LUTIL_GENTIME_BUFSIZE+8];
@@ -1829,11 +1829,14 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 
 	if (( lo->mask & LOG_OP_WRITES ) && !BER_BVISEMPTY( &op->o_csn )) {
 		slap_queue_csn( &op2, &op->o_csn );
+		do_graduate = 1;
 	}
 
 	op2.o_bd->be_add( &op2, &rs2 );
 	if ( e == op2.ora_e ) entry_free( e );
 	e = NULL;
+	if ( do_graduate )
+		slap_graduate_commit_csn( &op2 );
 
 done:
 	if ( lo->mask & LOG_OP_WRITES )
