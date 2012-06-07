@@ -638,6 +638,9 @@ LDAP_SLAPD_V( struct slap_control_ids ) slap_cids;
 LDAP_SLAPD_F (void) slap_free_ctrls LDAP_P((
 	Operation *op,
 	LDAPControl **ctrls ));
+LDAP_SLAPD_F (void) slap_free_ctrl_vals LDAP_P((
+	Operation *op,
+	LDAPControl **ctrls ));
 LDAP_SLAPD_F (int) slap_add_ctrls LDAP_P((
 	Operation *op,
 	SlapReply *rs,
