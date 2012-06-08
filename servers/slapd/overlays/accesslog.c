@@ -1835,8 +1835,11 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 	op2.o_bd->be_add( &op2, &rs2 );
 	if ( e == op2.ora_e ) entry_free( e );
 	e = NULL;
-	if ( do_graduate )
+	if ( do_graduate ) {
 		slap_graduate_commit_csn( &op2 );
+		if ( op2.o_csn.bv_val )
+			op->o_tmpfree( op2.o_csn.bv_val, op->o_tmpmemctx );
+	}
 
 done:
 	if ( lo->mask & LOG_OP_WRITES )
