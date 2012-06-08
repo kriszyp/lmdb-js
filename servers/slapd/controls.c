@@ -566,22 +566,9 @@ void slap_free_ctrls(
 	int i;
 
 	for (i=0; ctrls[i]; i++) {
-		op->o_tmpfree( ctrls[i], op->o_tmpmemctx );
+		op->o_tmpfree(ctrls[i], op->o_tmpmemctx );
 	}
 	op->o_tmpfree( ctrls, op->o_tmpmemctx );
-}
-
-void slap_free_ctrl_vals(
-	Operation *op,
-	LDAPControl **ctrls )
-{
-	int i;
-
-	for (i=0; ctrls[i]; i++) {
-		if ( ctrls[i]->ldctl_value.bv_val )
-			op->o_tmpfree( ctrls[i]->ldctl_value.bv_val, op->o_tmpmemctx );
-	}
-	slap_free_ctrls( op, ctrls );
 }
 
 int slap_add_ctrls(
