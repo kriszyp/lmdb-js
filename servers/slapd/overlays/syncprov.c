@@ -917,9 +917,6 @@ syncprov_qplay( Operation *op, syncops *so )
 
 	do {
 		ldap_pvt_thread_mutex_lock( &so->s_mutex );
-		/* Exit loop with mutex held */
-		if ( so->s_op->o_abandon )
-			break;
 		sr = so->s_res;
 		/* Exit loop with mutex held */
 		if ( !sr )
@@ -929,35 +926,41 @@ syncprov_qplay( Operation *op, syncops *so )
 			so->s_restail = NULL;
 		ldap_pvt_thread_mutex_unlock( &so->s_mutex );
 
-		if ( sr->s_mode == LDAP_SYNC_NEW_COOKIE ) {
-			SlapReply rs = { REP_INTERMEDIATE };
+		if ( !so->s_op->o_abandon ) {
 
-			rc = syncprov_sendinfo( op, &rs, LDAP_TAG_SYNC_NEW_COOKIE,
-				&sr->s_csn, 0, NULL, 0 );
-		} else {
-			opc.sdn = sr->s_dn;
-			opc.sndn = sr->s_ndn;
-			opc.suuid = sr->s_uuid;
-			opc.sctxcsn = sr->s_csn;
-			opc.sreference = sr->s_isreference;
-			opc.se = sr->s_e;
+			if ( sr->s_mode == LDAP_SYNC_NEW_COOKIE ) {
+				SlapReply rs = { REP_INTERMEDIATE };
 
-			rc = syncprov_sendresp( op, &opc, so, sr->s_mode );
+				rc = syncprov_sendinfo( op, &rs, LDAP_TAG_SYNC_NEW_COOKIE,
+					&sr->s_csn, 0, NULL, 0 );
+			} else {
+				opc.sdn = sr->s_dn;
+				opc.sndn = sr->s_ndn;
+				opc.suuid = sr->s_uuid;
+				opc.sctxcsn = sr->s_csn;
+				opc.sreference = sr->s_isreference;
+				opc.se = sr->s_e;
 
+				rc = syncprov_sendresp( op, &opc, so, sr->s_mode );
+			}
 		}
+
 		if ( sr->s_e ) {
 			if ( !dec_mutexint( sr->s_e->e_private )) {
 				sr->s_e->e_private = NULL;
 				entry_free ( sr->s_e );
 			}
 		}
-
 		ch_free( sr );
+
+		if ( so->s_op->o_abandon )
+			continue;
 
 		/* Exit loop with mutex held */
 		ldap_pvt_thread_mutex_lock( &so->s_mutex );
+		break;
 
-	} while (0);
+	} while (1);
 
 	/* We now only send one change at a time, to prevent one
 	 * psearch from hogging all the CPU. Resubmit this task if
@@ -2164,17 +2167,6 @@ typedef struct searchstate {
 	int ss_flags;
 } searchstate;
 
-static int
-syncprov_search_cleanup( Operation *op, SlapReply *rs )
-{
-	if ( rs->sr_ctrls ) {
-		op->o_tmpfree( rs->sr_ctrls[0], op->o_tmpmemctx );
-		op->o_tmpfree( rs->sr_ctrls, op->o_tmpmemctx );
-		rs->sr_ctrls = NULL;
-	}
-	return 0;
-}
-
 typedef struct SyncOperationBuffer {
 	Operation		sob_op;
 	Opheader		sob_hdr;
@@ -2378,6 +2370,7 @@ syncprov_search_response( Operation *op, SlapReply *rs )
 			rs->sr_ctrls = op->o_tmpalloc( sizeof(LDAPControl *)*2,
 				op->o_tmpmemctx );
 			rs->sr_ctrls[1] = NULL;
+			rs->sr_flags |= REP_CTRLS_MUSTBEFREED;
 			rs->sr_err = syncprov_done_ctrl( op, rs, rs->sr_ctrls,
 				0, 1, &cookie, ( ss->ss_flags & SS_PRESENT ) ?  LDAP_SYNC_REFRESH_PRESENTS :
 					LDAP_SYNC_REFRESH_DELETES );
@@ -2492,8 +2485,10 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 			 * active mods gets added to it.
 			 */
 			ldap_pvt_thread_mutex_unlock( &si->si_ops_mutex );
-			if ( slapd_shutdown )
+			if ( slapd_shutdown ) {
+				ch_free( sop );
 				return SLAPD_ABANDON;
+			}
 			if ( !ldap_pvt_thread_pool_pausecheck( &connection_pool ))
 				ldap_pvt_thread_yield();
 			ldap_pvt_thread_mutex_lock( &si->si_ops_mutex );
@@ -2756,7 +2751,6 @@ shortcut:
 	ss->ss_numcsns = numcsns;
 	ss->ss_sids = sids;
 	cb->sc_response = syncprov_search_response;
-	cb->sc_cleanup = syncprov_search_cleanup;
 	cb->sc_private = ss;
 	cb->sc_next = op->o_callback;
 	op->o_callback = cb;
