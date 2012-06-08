@@ -193,13 +193,12 @@ syncprov_state_ctrl(
 
 	BerElementBuffer berbuf;
 	BerElement *ber = (BerElement *)&berbuf;
-
+	LDAPControl *cp;
+	struct berval bv;
 	struct berval	entryuuid_bv = BER_BVNULL;
 
 	ber_init2( ber, 0, LBER_USE_DER );
 	ber_set_option( ber, LBER_OPT_BER_MEMCTX, &op->o_tmpmemctx );
-
-	ctrls[num_ctrls] = op->o_tmpalloc( sizeof ( LDAPControl ), op->o_tmpmemctx );
 
 	for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
 		AttributeDescription *desc = a->a_desc;
@@ -219,10 +218,16 @@ syncprov_state_ctrl(
 			entry_sync_state, &entryuuid_bv );
 	}
 
-	ctrls[num_ctrls]->ldctl_oid = LDAP_CONTROL_SYNC_STATE;
-	ctrls[num_ctrls]->ldctl_iscritical = (op->o_sync == SLAP_CONTROL_CRITICAL);
-	ret = ber_flatten2( ber, &ctrls[num_ctrls]->ldctl_value, 1 );
-
+	ret = ber_flatten2( ber, &bv, 0 );
+	if ( ret == 0 ) {
+		cp = op->o_tmpalloc( sizeof( LDAPControl ) + bv.bv_len, op->o_tmpmemctx );
+		cp->ldctl_oid = LDAP_CONTROL_SYNC_STATE;
+		cp->ldctl_iscritical = (op->o_sync == SLAP_CONTROL_CRITICAL);
+		cp->ldctl_value.bv_val = (char *)&cp[1];
+		cp->ldctl_value.bv_len = bv.bv_len;
+		AC_MEMCPY( cp->ldctl_value.bv_val, bv.bv_val, bv.bv_len );
+		ctrls[num_ctrls] = cp;
+	}
 	ber_free_buf( ber );
 
 	if ( ret < 0 ) {
@@ -250,11 +255,11 @@ syncprov_done_ctrl(
 	int ret;
 	BerElementBuffer berbuf;
 	BerElement *ber = (BerElement *)&berbuf;
+	LDAPControl *cp;
+	struct berval bv;
 
 	ber_init2( ber, NULL, LBER_USE_DER );
 	ber_set_option( ber, LBER_OPT_BER_MEMCTX, &op->o_tmpmemctx );
-
-	ctrls[num_ctrls] = op->o_tmpalloc( sizeof ( LDAPControl ), op->o_tmpmemctx );
 
 	ber_printf( ber, "{" );
 	if ( send_cookie && cookie ) {
@@ -265,9 +270,16 @@ syncprov_done_ctrl(
 	}
 	ber_printf( ber, "N}" );
 
-	ctrls[num_ctrls]->ldctl_oid = LDAP_CONTROL_SYNC_DONE;
-	ctrls[num_ctrls]->ldctl_iscritical = (op->o_sync == SLAP_CONTROL_CRITICAL);
-	ret = ber_flatten2( ber, &ctrls[num_ctrls]->ldctl_value, 1 );
+	ret = ber_flatten2( ber, &bv, 0 );
+	if ( ret == 0 ) {
+		cp = op->o_tmpalloc( sizeof( LDAPControl ) + bv.bv_len, op->o_tmpmemctx );
+		cp->ldctl_oid = LDAP_CONTROL_SYNC_DONE;
+		cp->ldctl_iscritical = (op->o_sync == SLAP_CONTROL_CRITICAL);
+		cp->ldctl_value.bv_val = (char *)&cp[1];
+		cp->ldctl_value.bv_len = bv.bv_len;
+		AC_MEMCPY( cp->ldctl_value.bv_val, bv.bv_val, bv.bv_len );
+		ctrls[num_ctrls] = cp;
+	}
 
 	ber_free_buf( ber );
 
@@ -821,7 +833,6 @@ static int
 syncprov_sendresp( Operation *op, opcookie *opc, syncops *so, int mode )
 {
 	SlapReply rs = { REP_SEARCH };
-	LDAPControl *ctrls[2];
 	struct berval cookie, csns[2];
 	Entry e_uuid = {0};
 	Attribute a_uuid = {0};
@@ -829,7 +840,9 @@ syncprov_sendresp( Operation *op, opcookie *opc, syncops *so, int mode )
 	if ( so->s_op->o_abandon )
 		return SLAPD_ABANDON;
 
-	ctrls[1] = NULL;
+	rs.sr_ctrls = op->o_tmpalloc( sizeof(LDAPControl *)*2, op->o_tmpmemctx );
+	rs.sr_ctrls[1] = NULL;
+	rs.sr_flags = REP_CTRLS_MUSTBEFREED;
 	csns[0] = opc->sctxcsn;
 	BER_BVZERO( &csns[1] );
 	slap_compose_sync_cookie( op, &cookie, csns, so->s_rid, slap_serverID ? slap_serverID : -1 );
@@ -848,10 +861,9 @@ syncprov_sendresp( Operation *op, opcookie *opc, syncops *so, int mode )
 	a_uuid.a_desc = slap_schema.si_ad_entryUUID;
 	a_uuid.a_nvals = &opc->suuid;
 	rs.sr_err = syncprov_state_ctrl( op, &rs, &e_uuid,
-		mode, ctrls, 0, 1, &cookie );
+		mode, rs.sr_ctrls, 0, 1, &cookie );
 	op->o_tmpfree( cookie.bv_val, op->o_tmpmemctx );
 
-	rs.sr_ctrls = ctrls;
 	rs.sr_entry = &e_uuid;
 	if ( mode == LDAP_SYNC_ADD || mode == LDAP_SYNC_MODIFY ) {
 		e_uuid = *opc->se;
@@ -886,19 +898,6 @@ syncprov_sendresp( Operation *op, opcookie *opc, syncops *so, int mode )
 	default:
 		assert(0);
 	}
-	/* In case someone else freed it already? */
-	if ( rs.sr_ctrls ) {
-		int i;
-		for ( i=0; rs.sr_ctrls[i]; i++ ) {
-			if ( rs.sr_ctrls[i] == ctrls[0] ) {
-				op->o_tmpfree( ctrls[0]->ldctl_value.bv_val, op->o_tmpmemctx );
-				ctrls[0]->ldctl_value.bv_val = NULL;
-				break;
-			}
-		}
-		rs.sr_ctrls = NULL;
-	}
-
 	return rs.sr_err;
 }
 
@@ -1149,6 +1148,7 @@ syncprov_op_abandon( Operation *op, SlapReply *rs )
 				cb->sc_cleanup = syncprov_ab_cleanup;
 				cb->sc_next = op->o_callback;
 				cb->sc_private = so;
+				op->o_callback = cb;
 				return SLAP_CB_CONTINUE;
 			}
 		}
