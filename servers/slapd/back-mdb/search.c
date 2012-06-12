@@ -160,7 +160,7 @@ static int search_aliases(
 	MDB_IDL_ZERO( aliases );
 	rs->sr_err = mdb_filter_candidates( op, txn, &af, aliases,
 		curscop, visited );
-	if (rs->sr_err != LDAP_SUCCESS) {
+	if (rs->sr_err != LDAP_SUCCESS || MDB_IDL_IS_ZERO( aliases )) {
 		return rs->sr_err;
 	}
 	oldsubs[0] = 1;
