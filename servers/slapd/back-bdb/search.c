@@ -184,7 +184,7 @@ static int search_aliases(
 	BDB_IDL_ZERO( aliases );
 	rs->sr_err = bdb_filter_candidates( op, txn, &af, aliases,
 		curscop, visited );
-	if (rs->sr_err != LDAP_SUCCESS) {
+	if (rs->sr_err != LDAP_SUCCESS || BDB_IDL_IS_ZERO( aliases )) {
 		return rs->sr_err;
 	}
 	oldsubs[0] = 1;
@@ -1253,6 +1253,8 @@ static int search_candidates(
 
 	if( op->ors_deref & LDAP_DEREF_SEARCHING ) {
 		rc = search_aliases( op, rs, e, txn, ids, scopes, stack );
+		if ( BDB_IDL_IS_ZERO( ids ))
+			rc = bdb_dn2idl( op, txn, &e->e_nname, BEI(e), ids, stack );
 	} else {
 		rc = bdb_dn2idl( op, txn, &e->e_nname, BEI(e), ids, stack );
 	}
