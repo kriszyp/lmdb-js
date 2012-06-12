@@ -1253,7 +1253,7 @@ static int search_candidates(
 
 	if( op->ors_deref & LDAP_DEREF_SEARCHING ) {
 		rc = search_aliases( op, rs, e, txn, ids, scopes, stack );
-		if ( BDB_IDL_IS_ZERO( ids ))
+		if ( BDB_IDL_IS_ZERO( ids ) && rc == LDAP_SUCCESS )
 			rc = bdb_dn2idl( op, txn, &e->e_nname, BEI(e), ids, stack );
 	} else {
 		rc = bdb_dn2idl( op, txn, &e->e_nname, BEI(e), ids, stack );
