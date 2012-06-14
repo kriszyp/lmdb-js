@@ -17,12 +17,11 @@ The default is "exact"; in case of "expand", "<valpat>" results from
 the expansion of submatches in the "<what>" portion.  "<level>|<priv(s)>"
 describe the level of privilege this rule can assume.
 
-No Makefile is provided. Use a command line similar to:
+Use Makefile to compile this plugin or use a command line similar to:
 
 gcc -shared -I../../../include -I../../../servers/slapd -Wall -g \
 	-o acl-gssacl.so gssacl.c
 
-to compile the gssacl ACL plugin.
 
 ---
 Copyright 2011 PADL Software Pty Ltd. All rights reserved.

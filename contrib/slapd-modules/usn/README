@@ -14,7 +14,8 @@ To use the overlay, add:
 to your slapd configuration file. The schema definitions for the
 two USN attributes are hardcoded in this overlay.
 
-No Makefile is provided. Just compile with an invocation like
+Use Makefile to compile this plugin or use a command line similar to:
+
 	gcc -c -I ../../include/ -I ../../servers/slapd -DSLAPD_OVER_USN=SLAPD_MOD_DYNAMIC usn.c
 	gcc -shared -o usn.so usn.o
 

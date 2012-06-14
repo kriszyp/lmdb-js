@@ -15,7 +15,7 @@ and the second one is the path to the keytab file to use for
 authentication, defaulting to whatever your system wide kerberos settings
 default to).
 
-Currently no Makefile is provided. The following commands should work to
+Use Makefile or the following commands should work to
 build it from inside the unpacked slapd sources, provided the required KRB5
 header files and libaries are installed on your system:
 

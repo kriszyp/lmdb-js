@@ -17,9 +17,7 @@ moduleload libdsaschema-plugin.so
 
 to your slapd configuration file.
 
-No Makefile is provided. Use a command line similar to:
+Use Makefile to compile this plugin or use a command line similar to:
 
 gcc -shared -I../../../include -Wall -g -o libdsaschema-plugin.so dsaschema.c
-
-to compile this plugin.
 
