@@ -45,12 +45,10 @@ if it's supposed to be global.
 
     --- o --- o --- o ---
 
-No Makefile is provided. Use a command line similar to:
+Use Makefile to compile this plugin or use a command line similar to:
 
 gcc -shared -I../../../include -I../../../servers/slapd -Wall -g \
 	-o allowed.so allowed.c
-
-to compile this overlay, or even better use OpenLDAP's libtool as appropriate.
 
 ---
 This work is part of OpenLDAP Software <http://www.openldap.org/>.

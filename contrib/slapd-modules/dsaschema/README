@@ -10,7 +10,7 @@ attributes).
 
 To use the plugin, add:
 
-moduleload libdsaschema-plugin.so
+moduleload dsaschema.so
 	/etc/openldap/schema/foo1.schema
 	...etc...
 	/etc/openldap/schema/fooN.schema
@@ -19,5 +19,5 @@ to your slapd configuration file.
 
 Use Makefile to compile this plugin or use a command line similar to:
 
-gcc -shared -I../../../include -Wall -g -o libdsaschema-plugin.so dsaschema.c
+gcc -shared -I../../../include -Wall -g -o dsaschema.so dsaschema.c
 

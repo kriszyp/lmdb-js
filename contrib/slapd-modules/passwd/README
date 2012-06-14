@@ -30,12 +30,12 @@ file can be appended in the form
 
 moduleload pw-radius.so config="/etc/radius.conf"
 
-No Makefile is provided. Use a command line similar to:
+Use Makefile to compile this plugin or use a command line similar to:
 
 gcc -shared -I../../../include -Wall -g -DHAVE_KRB5 -o pw-kerberos.so kerberos.c
 
-to compile the Kerberos plugin. Replace HAVE_KRB5 with HAVE_KRB4 if you want
-to use Kerberos IV. If your Kerberos header files are not in the C compiler's
+Replace HAVE_KRB5 with HAVE_KRB4 if you want to use Kerberos IV.
+If your Kerberos header files are not in the C compiler's
 default path, you will need to add a "-I" directive for that as well.
 
 The corresponding command for the Netscape plugin would be:
@@ -46,7 +46,7 @@ The corresponding command for the RADIUS plugin would be:
 
 gcc -shared -I../../../include -Wall -g -o pw-radius.so radius.c -lradius
 
-(Actually, you might want to statically link the RADIUS client library 
+(Actually, you might want to statically link the RADIUS client library
 libradius.a into the module).
 
 The corresponding command for the APR1 plugin would be:

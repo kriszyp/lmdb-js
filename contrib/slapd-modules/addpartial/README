@@ -34,7 +34,7 @@ DESCRIPTION
     processed millions of records without incident.
 
 BUILDING
-    A Makefile is included, please set your OPENLDAP_SRC directory properly.
+    A Makefile is included, please set your LDAP_SRC directory properly.
 
 INSTALLATION
     After compiling the addpartial overlay, add the following to your 
@@ -42,7 +42,7 @@ INSTALLATION
 
     ### slapd.conf
     ...
-    moduleload /path/to/addpartial-overlay.so
+    moduleload addpartial.so
     ...
     # after database directive...
     # this overlay should be the last overlay in the config file to ensure that

@@ -13,22 +13,24 @@
 # <http://www.OpenLDAP.org/license.html>.
 
 # Path to the OpenLDAP source tree
-LDAPSRC=../../..
+LDAP_SRC=../../..
 
 # Path to the OpenLDAP object tree - same as above unless
 # you're doing out-of-tree builds.
-LDAPOBJ=../../..
+LDAP_BUILD=../../..
 
-LIBTOOL=$(LDAPOBJ)/libtool
-OPT=-g -O2
-CC=gcc
+LDAP_INC = -I$(LDAP_BUILD)/include -I$(LDAP_SRC)/include -I$(LDAP_SRC)/servers/slapd
+LDAP_LIB = $(LDAP_BUILD)/libraries/libldap_r/libldap_r.la \
+	$(LDAP_BUILD)/libraries/liblber/liblber.la
 
-LDAP_INC=-I$(LDAPOBJ)/include -I$(LDAPSRC)/include -I$(LDAPSRC)/servers/slapd
 NLDAPD_INC=-Inss-pam-ldapd
-INCS=$(LDAP_INC) $(NLDAPD_INC)
 
-LDAP_LIB=-lldap_r -llber
-LIBS=$(LDAP_LIB)
+LIBTOOL = $(LDAP_BUILD)/libtool
+OPT = -g -O2 -Wall
+CC = gcc
+DEFS =
+INCS = $(LDAP_INC) $(NLDAPD_INC)
+LIBS = $(LDAP_LIB)
 
 prefix=/usr/local
 exec_prefix=$(prefix)
