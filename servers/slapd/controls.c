@@ -1624,7 +1624,7 @@ static int parsePermissiveModify (
 		return LDAP_PROTOCOL_ERROR;
 	}
 
-	if ( BER_BVISNULL( &ctrl->ldctl_value )) {
+	if ( !BER_BVISNULL( &ctrl->ldctl_value )) {
 		rs->sr_text = "permissiveModify control value not absent";
 		return LDAP_PROTOCOL_ERROR;
 	}
