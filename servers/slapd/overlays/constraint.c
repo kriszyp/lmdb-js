@@ -838,6 +838,68 @@ add_violation:
 
 
 static int
+constraint_check_count_violation( Modifications *m, Entry *target_entry, constraint *cp )
+{
+	BerVarray b = NULL;
+	unsigned ce = 0;
+	unsigned ca;
+	int j;
+
+	for ( j = 0; cp->ap[j]; j++ ) {
+		ca = 0;
+
+		/* Get this attribute count */
+		if ( target_entry )
+			ce = constraint_count_attr( target_entry, cp->ap[j] );
+
+		for( ; m; m = m->sml_next ) {
+			if ( cp->ap[j] == m->sml_desc ) {
+				switch ( m->sml_op ) {
+				case LDAP_MOD_DELETE:
+					if (( b = m->sml_values ) == NULL  || b[0].bv_val == NULL ) {
+						ce = 0;
+					}
+					else {
+						/* No need to check for values' validity. Invalid values
+						 * cause the whole transaction to die anyway. */
+						for ( ca = 0; b[ca].bv_val; ++ca );
+						ce -= ca;
+					}
+					break;
+
+				case LDAP_MOD_ADD:
+					if (( b = m->sml_values ) == NULL  || b[0].bv_val == NULL )
+						continue;
+
+					for ( ca = 0; b[ca].bv_val; ++ca );
+					ce += ca;
+					break;
+
+				case LDAP_MOD_REPLACE:
+					if (( b = m->sml_values ) == NULL  || b[0].bv_val == NULL )
+						continue;
+
+					for ( ca = 0; b[ca].bv_val; ++ca );
+					ce = ca;
+					break;
+
+				default:
+					/* impossible! assert? */
+					return 1;
+				}
+
+				Debug(LDAP_DEBUG_TRACE,
+					"==> constraint_check_count_violation ce = %u, "
+					"ca = %u, cp->count = %lu\n",
+					ce, ca, (unsigned long) cp->count);
+			}
+		}
+	}
+
+	return ( ce > cp->count );
+}
+
+static int
 constraint_update( Operation *op, SlapReply *rs )
 {
 	slap_overinst *on = (slap_overinst *) op->o_bd->bd_info;
@@ -850,6 +912,8 @@ constraint_update( Operation *op, SlapReply *rs )
 	struct berval rsv = BER_BVC("modify breaks constraint");
 	int rc;
 	char *msg = NULL;
+	int is_v;
+	int first = 1;
 
 	if (get_relax(op)) {
 		return SLAP_CB_CONTINUE;
@@ -880,10 +944,12 @@ constraint_update( Operation *op, SlapReply *rs )
 	/* Do we need to count attributes? */
 	for(cp = c; cp; cp = cp->ap_next) {
 		if (cp->count != 0 || cp->set || cp->restrict_lud != 0) {
-			op->o_bd = on->on_info->oi_origdb;
-			rc = be_entry_get_rw( op, &op->o_req_ndn, NULL, NULL, 0, &target_entry );
-			op->o_bd = be;
-
+			if (first) {
+				op->o_bd = on->on_info->oi_origdb;
+				rc = be_entry_get_rw( op, &op->o_req_ndn, NULL, NULL, 0, &target_entry );
+				op->o_bd = be;
+				first = 0;
+			}
 			if (rc != 0 || target_entry == NULL) {
 				Debug(LDAP_DEBUG_TRACE, 
 					"==> constraint_update rc = %d DN=\"%s\"%s\n",
@@ -893,7 +959,16 @@ constraint_update( Operation *op, SlapReply *rs )
 					rc = LDAP_CONSTRAINT_VIOLATION;
 				goto mod_violation;
 			}
-			break;
+
+			is_v = constraint_check_count_violation(m, target_entry, cp);
+
+			Debug(LDAP_DEBUG_TRACE,
+				"==> constraint_update is_v: %d\n", is_v, 0, 0);
+
+			if (is_v) {
+				rc = LDAP_CONSTRAINT_VIOLATION;
+				goto mod_violation;
+			}
 		}
 	}
 
@@ -912,10 +987,6 @@ constraint_update( Operation *op, SlapReply *rs )
 		if ((( b = m->sml_values ) == NULL ) || (b[0].bv_val == NULL))
 			continue;
 
-		/* Get this attribute count, if needed */
-		if (target_entry)
-			ce = constraint_count_attr(target_entry, m->sml_desc);
-
 		for(cp = c; cp; cp = cp->ap_next) {
 			int j;
 			for (j = 0; cp->ap[j]; j++) {
@@ -928,34 +999,6 @@ constraint_update( Operation *op, SlapReply *rs )
 			if (cp->restrict_lud != NULL && constraint_check_restrict(op, cp, target_entry) == 0) {
 				continue;
 			}
-
-			if (cp->count != 0) {
-				unsigned ca;
-
-				if (m->sml_op == LDAP_MOD_DELETE)
-					ce = 0;
-
-				for (ca = 0; b[ca].bv_val; ++ca);
-
-				Debug(LDAP_DEBUG_TRACE, 
-					"==> constraint_update ce = %u, "
-					"ca = %u, cp->count = %lu\n",
-					ce, ca, (unsigned long) cp->count);
-
-				if (m->sml_op == LDAP_MOD_ADD) {
-					if (ca + ce > cp->count) {
-						rc = LDAP_CONSTRAINT_VIOLATION;
-						goto mod_violation;
-					}
-				}
-				if (m->sml_op == LDAP_MOD_REPLACE) {
-					if (ca > cp->count) {
-						rc = LDAP_CONSTRAINT_VIOLATION;
-						goto mod_violation;
-					}
-					ce = ca;
-				}
-			} 
 
 			/* DELETE are to be ignored beyond this point */
 			if (( m->sml_op & LDAP_MOD_OP ) == LDAP_MOD_DELETE)
