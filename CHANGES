@@ -26,6 +26,8 @@ OpenLDAP 2.4.32 Engineering
 	Documentation
 		slapo-sssvlv Added note about criticality (ITS#7253)
 		admin24 Fix peername.regex typo (ITS#7282)
+		slapd-ldap(5) Reference RFC4526 (ITS#7294)
+		slapd-meta(5) Reference RFC4526 (ITS#7294)
 
 OpenLDAP 2.4.31 Release (2012/04/21)
 	Added slapo-accesslog support for reqEntryUUID (ITS#6656)
