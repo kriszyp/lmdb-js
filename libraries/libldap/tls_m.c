@@ -903,6 +903,8 @@ tlsm_get_pin(PK11SlotInfo *slot, PRBool retry, tlsm_ctx *ctx)
 	 */
 	if ( ctx->tc_pin_file ) {
 		pwdstr = tlsm_get_pin_from_file( token_name, ctx );
+		if (retry && pwdstr != NULL)
+			return NULL;
 	}
 #endif /* RETRIEVE_PASSWORD_FROM_FILE */
 #ifdef READ_PASSWORD_FROM_STDIN
