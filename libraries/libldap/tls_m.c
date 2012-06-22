@@ -1110,25 +1110,6 @@ tlsm_auth_cert_handler(void *arg, PRFileDesc *fd,
 	return ret;
 }
 
-static int
-tlsm_authenticate_to_slot( tlsm_ctx *ctx, PK11SlotInfo *slot )
-{
-	int rc = -1;
-
-	if ( SECSuccess != PK11_Authenticate( slot, PR_FALSE, ctx ) ) {
-		char *token_name = PK11_GetTokenName( slot );
-		PRErrorCode errcode = PR_GetError();
-		Debug( LDAP_DEBUG_ANY,
-			   "TLS: could not authenticate to the security token %s - error %d:%s.\n",
-			   token_name ? token_name : DEFAULT_TOKEN_NAME, errcode,
-			   PR_ErrorToString( errcode, PR_LANGUAGE_I_DEFAULT ) );
-	} else {
-		rc = 0; /* success */
-	}
-
-	return rc;
-}
-
 static SECStatus
 tlsm_nss_shutdown_cb( void *appData, void *nssData )
 {
@@ -2119,6 +2100,12 @@ tlsm_deferred_ctx_init( void *arg )
 		return -1;
 	}
 
+	if ( SSL_SetPKCS11PinArg(ctx->tc_model, ctx) ) {
+		Debug( LDAP_DEBUG_ANY,
+				"TLS: could not set pin prompt argument\n", 0, 0, 0);
+		return -1;
+	}
+
 	if ( SECSuccess != SSL_OptionSet( ctx->tc_model, SSL_SECURITY, PR_TRUE ) ) {
 		Debug( LDAP_DEBUG_ANY,
 		       "TLS: could not set secure mode on.\n",
@@ -2296,12 +2283,6 @@ tlsm_deferred_ctx_init( void *arg )
 		   since a cert has been specified, assume the client wants to do cert auth
 		*/
 		if ( ctx->tc_certificate ) {
-			if ( tlsm_authenticate_to_slot( ctx, ctx->tc_certificate->slot ) ) {
-				Debug( LDAP_DEBUG_ANY, 
-				       "TLS: error: unable to authenticate to the security device for certificate '%s'\n",
-				       tlsm_ctx_subject_name(ctx), 0, 0 );
-				return -1;
-			}
 			if ( tlsm_clientauth_init( ctx ) ) {
 				Debug( LDAP_DEBUG_ANY, 
 				       "TLS: error: unable to set up client certificate authentication using '%s'\n",
@@ -2318,15 +2299,6 @@ tlsm_deferred_ctx_init( void *arg )
 			Debug( LDAP_DEBUG_ANY, 
 			       "TLS: error: no server certificate: must specify a certificate for the server to use\n",
 			       0, 0, 0 );
-			return -1;
-		}
-
-		/* authenticate to the server's token - this will do nothing
-		   if the key/cert db is not password protected */
-		if ( tlsm_authenticate_to_slot( ctx, ctx->tc_certificate->slot ) ) {
-			Debug( LDAP_DEBUG_ANY, 
-				   "TLS: error: unable to authenticate to the security device for certificate '%s'\n",
-				   tlsm_ctx_subject_name(ctx), 0, 0 );
 			return -1;
 		}
 
