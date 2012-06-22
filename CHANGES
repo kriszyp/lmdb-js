@@ -14,6 +14,7 @@ OpenLDAP 2.4.32 Engineering
 	Fixed libmdb mutexes on Apple/Windows (ITS#7251)
 	Fixed slapd duplicate error response (ITS#7076)
 	Fixed slapd-bdb/hdb cache hang under high load (ITS#7222)
+	Fixed slapd-bdb/hdb alias checking (ITS#7303)
 	Fixed slapd-mdb with tool mode (ITS#7255)
 	Fixed slapd-mdb with approx indexing (ITS#7279)
 	Fixed slapo-accesslog memory leaks with sync replication (ITS#7292)
