@@ -18,6 +18,7 @@ OpenLDAP 2.4.32 Engineering
 	Fixed slapd-bdb/hdb alias checking (ITS#7303)
 	Fixed slapd-mdb with tool mode (ITS#7255)
 	Fixed slapd-mdb with approx indexing (ITS#7279)
+	Fixed slapd-mdb dn2id delete (ITS#7302)
 	Fixed slapo-accesslog memory leaks with sync replication (ITS#7292)
 	Fixed slapo-syncprov memory leaks with sync replication (ITS#7292)
 	Fixed contrib/sha2 portability (ITS#7267)
