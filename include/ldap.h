@@ -2512,7 +2512,7 @@ ldap_create_session_tracking_value LDAP_P((
 	struct berval	*value ));
 
 LDAP_F( int )
-ldap_create_session_tracking LDAP_P((
+ldap_create_session_tracking_control LDAP_P((
 	LDAP		*ld,
 	char		*sessionSourceIp,
 	char		*sessionSourceName,
