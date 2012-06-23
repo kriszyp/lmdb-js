@@ -1843,16 +1843,16 @@ slapi_pw_find(
 	return 1;
 }
 
-// Get connected client IP address.
-//
-// The user must free the returned client IP after its use.
-// Compatible with IBM Tivoli call.
-//
-// Errors:
-// * LDAP_PARAM_ERROR - If the pb parameter is null.
-// * LDAP_OPERATIONS_ERROR - If the API encounters error processing the request.
-// * LDAP_NO_MEMORY - Failed to allocate required memory.
-
+/* Get connected client IP address.
+ *
+ * The user must free the returned client IP after its use.
+ * Compatible with IBM Tivoli call.
+ *
+ * Errors:
+ * * LDAP_PARAM_ERROR - If the pb parameter is null.
+ * * LDAP_OPERATIONS_ERROR - If the API encounters error processing the request.
+ * * LDAP_NO_MEMORY - Failed to allocate required memory.
+ */
 int
 slapi_get_client_ip(Slapi_PBlock *pb, char **clientIP)
 {
@@ -1872,8 +1872,7 @@ slapi_get_client_ip(Slapi_PBlock *pb, char **clientIP)
 	return(LDAP_SUCCESS);
 }
 
-// Free previously allocated client IP address.
-
+/* Free previously allocated client IP address. */
 void
 slapi_free_client_ip(char **clientIP)
 {
