@@ -1843,6 +1843,43 @@ slapi_pw_find(
 	return 1;
 }
 
+// Get connected client IP address.
+//
+// The user must free the returned client IP after its use.
+// Compatible with IBM Tivoli call.
+//
+// Errors:
+// * LDAP_PARAM_ERROR - If the pb parameter is null.
+// * LDAP_OPERATIONS_ERROR - If the API encounters error processing the request.
+// * LDAP_NO_MEMORY - Failed to allocate required memory.
+
+int
+slapi_get_client_ip(Slapi_PBlock *pb, char **clientIP)
+{
+	char *s = NULL;
+
+	if(pb == NULL || pb->pb_conn == NULL) return(LDAP_PARAM_ERROR);
+	if((s = (char *) slapi_ch_malloc(pb->pb_conn->c_peer_name.bv_len + 1)) == NULL) {
+		return(LDAP_NO_MEMORY);
+	}
+
+	memcpy(s, pb->pb_conn->c_peer_name.bv_val, pb->pb_conn->c_peer_name.bv_len);
+
+	s[pb->pb_conn->c_peer_name.bv_len] = 0;
+
+	*clientIP = s;
+
+	return(LDAP_SUCCESS);
+}
+
+// Free previously allocated client IP address.
+
+void
+slapi_free_client_ip(char **clientIP)
+{
+	slapi_ch_free((void **) clientIP);
+}
+
 #define MAX_HOSTNAME 512
 
 char *
