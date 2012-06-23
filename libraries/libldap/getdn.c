@@ -582,7 +582,7 @@ ldapava_new( const struct berval *attr, const struct berval *val,
 	return( ava );
 }
 
-void
+static void
 ldapava_free( LDAPAVA *ava, void *ctx )
 {
 	assert( ava != NULL );
