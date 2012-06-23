@@ -399,6 +399,8 @@ void slapi_seq_internal_set_pb( Slapi_PBlock *pb, char *ibase, int type,
 /* connection related routines */
 int slapi_is_connection_ssl(Slapi_PBlock *pPB, int *isSSL);
 int slapi_get_client_port(Slapi_PBlock *pPB, int *fromPort);
+int slapi_get_client_ip(Slapi_PBlock *pb, char **clientIP);
+void slapi_free_client_ip(char **clientIP);
 
 /* computed attributes */
 typedef struct _computed_attr_context computed_attr_context;
