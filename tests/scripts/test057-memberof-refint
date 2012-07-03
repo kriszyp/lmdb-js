@@ -201,7 +201,7 @@ EOF
 
 # refint runs in a background thread, so it most likely won't complete
 # before the modify returns. Give it some time to execute.
-sleep 1
+sleep $SLEEP0
 
 echo "Re-search the entire database..."
 echo "# Re-search the entire database..." >> $SEARCHOUT
@@ -225,7 +225,7 @@ deleteoldrdn:1
 newsuperior: $BASEDN
 EOF
 
-sleep 1
+sleep $SLEEP0
 
 echo "Re-search the entire database..."
 echo "# Re-search the entire database..." >> $SEARCHOUT
@@ -246,7 +246,7 @@ dn: cn=Baby Herman,ou=Toons,$BASEDN
 changetype: delete
 EOF
 
-sleep 1
+sleep $SLEEP0
 
 echo "Re-search the entire database..."
 echo "# Re-search the entire database..." >> $SEARCHOUT
