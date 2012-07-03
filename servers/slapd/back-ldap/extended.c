@@ -186,7 +186,7 @@ ldap_back_exop_passwd(
 		dn.bv_val, isproxy ? " (proxy)" : "", 0 );
 
 retry:
-	rc = ldap_passwd( lc->lc_ld, isproxy ? &dn : NULL,
+	rc = ldap_passwd( lc->lc_ld,  &dn,
 		qpw->rs_old.bv_val ? &qpw->rs_old : NULL,
 		qpw->rs_new.bv_val ? &qpw->rs_new : NULL,
 		op->o_ctrls, NULL, &msgid );
