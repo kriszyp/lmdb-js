@@ -31,6 +31,8 @@ OpenLDAP 2.4.32 Engineering
 	Fixed contrib/sha2 portability (ITS#7267)
 	Fixed contrib/sha2 thread safety (ITS#7269)
 	Added contrib/sha2 {SSHA256}, {SSHA384}, {SSHA512} support (ITS#7278)
+	Build Environment
+		Fixed test057 timing issues (ITS#7317)
 	Documentation
 		slapo-sssvlv Added note about criticality (ITS#7253)
 		admin24 Fix peername.regex typo (ITS#7282)
