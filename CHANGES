@@ -34,6 +34,7 @@ OpenLDAP 2.4.32 Engineering
 	Documentation
 		slapo-sssvlv Added note about criticality (ITS#7253)
 		admin24 Fix peername.regex typo (ITS#7282)
+		Fixed slapd-config file include example (ITS#7318)
 		slapd-ldap(5) Reference RFC4526 (ITS#7294)
 		slapd-meta(5) Reference RFC4526 (ITS#7294)
 
