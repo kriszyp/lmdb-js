@@ -926,7 +926,7 @@ typedef struct MDB_oldpages {
 	struct MDB_oldpages *mo_next;
 	/**	The ID of the transaction in which these pages were freed. */
 	txnid_t		mo_txnid;
-	/** An #IDL of the pages */
+	/** An #MDB_IDL of the pages */
 	pgno_t		mo_pages[1];	/* dynamic */
 } MDB_oldpages;
 
@@ -1220,7 +1220,11 @@ mdb_page_alloc(MDB_cursor *mc, int num)
 	pgno_t pgno = P_INVALID;
 	MDB_ID2 mid;
 
-	if (txn->mt_txnid > 2) {
+	/* The free list won't have any content at all until txn 2 has
+	 * committed. The pages freed by txn 2 will be unreferenced
+	 * after txn 3 commits, and so will be safe to re-use in txn 4.
+	 */
+	if (txn->mt_txnid > 3) {
 
 		if (!txn->mt_env->me_pghead &&
 			txn->mt_dbs[FREE_DBI].md_root != P_INVALID) {
@@ -1604,9 +1608,9 @@ mdb_txn_renew0(MDB_txn *txn)
 		txn->mt_u.dirty_list[0].mid = 0;
 		txn->mt_free_pgs = env->me_free_pgs;
 		txn->mt_free_pgs[0] = 0;
-		txn->mt_next_pgno = env->me_metas[txn->mt_toggle]->mm_last_pg+1;
 		env->me_txn = txn;
 	}
+	txn->mt_next_pgno = env->me_metas[txn->mt_toggle]->mm_last_pg+1;
 
 	/* Copy the DB arrays */
 	LAZY_RWLOCK_RDLOCK(&env->me_dblock);
@@ -3033,7 +3037,7 @@ mdb_env_open(MDB_env *env, const char *path, unsigned int flags, mode_t mode)
 	}
 
 	if ((rc = mdb_env_open2(env, flags)) == MDB_SUCCESS) {
-		if (flags & (MDB_RDONLY|MDB_NOSYNC)) {
+		if (flags & (MDB_RDONLY|MDB_NOSYNC|MDB_NOMETASYNC)) {
 			env->me_mfd = env->me_fd;
 		} else {
 			/* synchronous fd for meta writes */
@@ -3376,7 +3380,7 @@ mdb_page_get(MDB_txn *txn, pgno_t pgno, MDB_page **ret)
 		}
 	}
 	if (!p) {
-		if (pgno <= txn->mt_env->me_metas[txn->mt_toggle]->mm_last_pg)
+		if (pgno < txn->mt_next_pgno)
 			p = (MDB_page *)(txn->mt_env->me_map + txn->mt_env->me_psize * pgno);
 	}
 	*ret = p;
@@ -5711,6 +5715,7 @@ mdb_del(MDB_txn *txn, MDB_dbi dbi,
  * @param[in] newkey The key for the newly inserted node.
  * @param[in] newdata The data for the newly inserted node.
  * @param[in] newpgno The page number, if the new node is a branch node.
+ * @param[in] nflags The #NODE_ADD_FLAGS for the new node.
  * @return 0 on success, non-zero on failure.
  */
 static int
@@ -6091,7 +6096,7 @@ mdb_put(MDB_txn *txn, MDB_dbi dbi,
  *	at runtime. Changing other flags requires closing the environment
  *	and re-opening it with the new flags.
  */
-#define	CHANGEABLE	(MDB_NOSYNC)
+#define	CHANGEABLE	(MDB_NOSYNC|MDB_NOMETASYNC)
 int
 mdb_env_set_flags(MDB_env *env, unsigned int flag, int onoff)
 {
