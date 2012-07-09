@@ -511,27 +511,16 @@ typedef struct MDB_txbody {
 		 */
 	pthread_mutex_t	mtb_mutex;
 #endif
-#if MDB_VERSION == 1
 		/**	The ID of the last transaction committed to the database.
 		 *	This is recorded here only for convenience; the value can always
 		 *	be determined by reading the main database meta pages.
-		 *
-		 *	Value is unused, but maintained for backwards compatibility.
-		 *	Drop this or mtb_me_toggle when changing MDB_VERSION.
-		 *	(Reading both should have been done atomically.)
 		 */
 	txnid_t		mtb_txnid;
-#endif
 		/** The number of slots that have been used in the reader table.
 		 *	This always records the maximum count, it is not decremented
 		 *	when readers release their slots.
 		 */
 	unsigned	mtb_numreaders;
-		/**	The ID of the most recent meta page in the database.
-		 *	This is recorded here only for convenience; the value can always
-		 *	be determined by reading the main database meta pages.
-		 */
-	uint32_t	mtb_me_toggle;
 } MDB_txbody;
 
 	/** The actual reader table definition. */
@@ -542,11 +531,8 @@ typedef struct MDB_txninfo {
 #define mti_version	mt1.mtb.mtb_version
 #define mti_mutex	mt1.mtb.mtb_mutex
 #define mti_rmname	mt1.mtb.mtb_rmname
-#if MDB_VERSION == 1
 #define mti_txnid	mt1.mtb.mtb_txnid
-#endif
 #define mti_numreaders	mt1.mtb.mtb_numreaders
-#define mti_me_toggle	mt1.mtb.mtb_me_toggle
 		char pad[(sizeof(MDB_txbody)+CACHELINE-1) & ~(CACHELINE-1)];
 	} mt1;
 	union {
@@ -1583,20 +1569,22 @@ mdb_txn_renew0(MDB_txn *txn)
 			r = &env->me_txns->mti_readers[i];
 			pthread_setspecific(env->me_txkey, r);
 		}
-		txn->mt_toggle = env->me_txns->mti_me_toggle;
-		txn->mt_txnid = r->mr_txnid = env->me_metas[txn->mt_toggle]->mm_txnid;
-
+		txn->mt_txnid = env->me_txns->mti_txnid;
+		txn->mt_toggle = txn->mt_txnid & 1;
+		txn->mt_next_pgno = env->me_metas[txn->mt_toggle]->mm_last_pg+1;
 		/* This happens if a different process was the
 		 * last writer to the DB.
 		 */
 		if (env->me_wtxnid < txn->mt_txnid)
 			mt_dbflag = DB_STALE;
+		r->mr_txnid = txn->mt_txnid;
 		txn->mt_u.reader = r;
 	} else {
 		LOCK_MUTEX_W(env);
 
-		txn->mt_toggle = env->me_txns->mti_me_toggle;
-		txn->mt_txnid = env->me_metas[txn->mt_toggle]->mm_txnid;
+		txn->mt_txnid = env->me_txns->mti_txnid;
+		txn->mt_toggle = txn->mt_txnid & 1;
+		txn->mt_next_pgno = env->me_metas[txn->mt_toggle]->mm_last_pg+1;
 		if (env->me_wtxnid < txn->mt_txnid)
 			mt_dbflag = DB_STALE;
 		txn->mt_txnid++;
@@ -1610,7 +1598,6 @@ mdb_txn_renew0(MDB_txn *txn)
 		txn->mt_free_pgs[0] = 0;
 		env->me_txn = txn;
 	}
-	txn->mt_next_pgno = env->me_metas[txn->mt_toggle]->mm_last_pg+1;
 
 	/* Copy the DB arrays */
 	LAZY_RWLOCK_RDLOCK(&env->me_dblock);
@@ -2402,7 +2389,6 @@ mdb_env_write_meta(MDB_txn *txn)
 	 * how stale their view of these values is.
 	 */
 	LAZY_MUTEX_LOCK(&env->me_txns->mti_mutex);
-	txn->mt_env->me_txns->mti_me_toggle = toggle;
 	txn->mt_env->me_txns->mti_txnid = txn->mt_txnid;
 	LAZY_MUTEX_UNLOCK(&env->me_txns->mti_mutex);
 
@@ -2606,7 +2592,6 @@ mdb_env_share_locks(MDB_env *env)
 {
 	int toggle = mdb_env_pick_meta(env);
 
-	env->me_txns->mti_me_toggle = toggle;
 	env->me_txns->mti_txnid = env->me_metas[toggle]->mm_txnid;
 
 #ifdef _WIN32
@@ -2924,7 +2909,6 @@ mdb_env_setup_locks(MDB_env *env, char *lpath, int mode, int *excl)
 		env->me_txns->mti_magic = MDB_MAGIC;
 		env->me_txns->mti_txnid = 0;
 		env->me_txns->mti_numreaders = 0;
-		env->me_txns->mti_me_toggle = 0;
 
 	} else {
 		if (env->me_txns->mti_magic != MDB_MAGIC) {
