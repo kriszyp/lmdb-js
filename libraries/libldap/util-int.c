@@ -59,6 +59,7 @@ extern int h_errno;
 # include <ldap_pvt_thread.h>
   ldap_pvt_thread_mutex_t ldap_int_resolv_mutex;
   ldap_pvt_thread_mutex_t ldap_int_hostname_mutex;
+  static ldap_pvt_thread_mutex_t ldap_int_gettime_mutex;
 
 # if (defined( HAVE_CTIME_R ) || defined( HAVE_REENTRANT_FUNCTIONS)) \
 	 && defined( CTIME_R_NARGS )
@@ -179,7 +180,6 @@ ldap_pvt_localtime( const time_t *timep, struct tm *result )
 #endif /* !USE_LOCALTIME_R */
 
 /* return a broken out time, with microseconds
- * Must be mutex-protected.
  */
 #ifdef _WIN32
 /* Windows SYSTEMTIME only has 10 millisecond resolution, so we
@@ -202,12 +202,14 @@ ldap_pvt_gettime( struct lutil_tm *tm )
 	/* It shouldn't ever go backwards, but multiple CPUs might
 	 * be able to hit in the same tick.
 	 */
+	LDAP_MUTEX_LOCK( &ldap_int_gettime_mutex );
 	if ( count.QuadPart <= prevCount.QuadPart ) {
 		subs++;
 	} else {
 		subs = 0;
 		prevCount = count;
 	}
+	LDAP_MUTEX_UNLOCK( &ldap_int_gettime_mutex );
 
 	/* We assume Windows has at least a vague idea of
 	 * when a second begins. So we align our microsecond count
@@ -271,6 +273,7 @@ ldap_pvt_gettime( struct lutil_tm *ltm )
 	gettimeofday( &tv, NULL );
 	t = tv.tv_sec;
 
+	LDAP_MUTEX_LOCK( &ldap_int_gettime_mutex );
 	if ( tv.tv_sec < prevTv.tv_sec
 		|| ( tv.tv_sec == prevTv.tv_sec && tv.tv_usec <= prevTv.tv_usec )) {
 		subs++;
@@ -278,6 +281,7 @@ ldap_pvt_gettime( struct lutil_tm *ltm )
 		subs = 0;
 		prevTv = tv;
 	}
+	LDAP_MUTEX_UNLOCK( &ldap_int_gettime_mutex );
 
 	ltm->tm_usub = subs;
 
@@ -605,6 +609,8 @@ void ldap_int_utils_init( void )
 	ldap_pvt_thread_mutex_init( &ldap_int_resolv_mutex );
 
 	ldap_pvt_thread_mutex_init( &ldap_int_hostname_mutex );
+
+	ldap_pvt_thread_mutex_init( &ldap_int_gettime_mutex );
 
 #ifdef HAVE_CYRUS_SASL
 	ldap_pvt_thread_mutex_init( &ldap_int_sasl_mutex );
