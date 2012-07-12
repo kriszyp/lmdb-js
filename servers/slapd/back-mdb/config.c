@@ -173,6 +173,7 @@ mdb_online_index( void *ctx, void *arg )
 			break;
 		}
 		rc = mdb_index_entry( op, txn, MDB_INDEX_UPDATE_OP, e );
+		mdb_entry_return( op, e );
 		if ( rc == 0 ) {
 			rc = mdb_txn_commit( txn );
 			txn = NULL;
