@@ -335,45 +335,6 @@ static txnid_t mdb_debug_start;
 #define DKEY(x)	0
 #endif
 
-/**	@defgroup lazylock	Lazy Locking
- *	Macros for locks that aren't actually needed.
- *	The DB view is always consistent because all writes are wrapped in
- *	the wmutex. Finer-grained locks aren't necessary.
- *	@{
- */
-#ifndef	LAZY_LOCKS
-	/**	Use lazy locking. I.e., don't lock these accesses at all. */
-#define	LAZY_LOCKS	1
-#endif
-#if	LAZY_LOCKS
-	/** Grab the reader lock */
-#define	LAZY_MUTEX_LOCK(x)
-	/** Release the reader lock */
-#define	LAZY_MUTEX_UNLOCK(x)
-	/** Release the DB table reader/writer lock */
-#define	LAZY_RWLOCK_UNLOCK(x)
-	/** Grab the DB table write lock */
-#define	LAZY_RWLOCK_WRLOCK(x)
-	/** Grab the DB table read lock */
-#define	LAZY_RWLOCK_RDLOCK(x)
-	/** Declare the DB table rwlock.  Should not be followed by ';'. */
-#define	LAZY_RWLOCK_DEF(x)
-	/** Initialize the DB table rwlock */
-#define	LAZY_RWLOCK_INIT(x,y)
-	/**	Destroy the DB table rwlock */
-#define	LAZY_RWLOCK_DESTROY(x)
-#else
-#define	LAZY_MUTEX_LOCK(x)		pthread_mutex_lock(x)
-#define	LAZY_MUTEX_UNLOCK(x)	pthread_mutex_unlock(x)
-#define	LAZY_RWLOCK_UNLOCK(x)	pthread_rwlock_unlock(x)
-#define	LAZY_RWLOCK_WRLOCK(x)	pthread_rwlock_wrlock(x)
-#define	LAZY_RWLOCK_RDLOCK(x)	pthread_rwlock_rdlock(x)
-#define	LAZY_RWLOCK_DEF(x)		pthread_rwlock_t	x;
-#define	LAZY_RWLOCK_INIT(x,y)	pthread_rwlock_init(x,y)
-#define	LAZY_RWLOCK_DESTROY(x)	pthread_rwlock_destroy(x)
-#endif
-/** @} */
-
 	/** An invalid page number.
 	 *	Mainly used to denote an empty tree.
 	 */
@@ -924,7 +885,7 @@ struct MDB_env {
 	/** Failed to update the meta page. Probably an I/O error. */
 #define	MDB_FATAL_ERROR	0x80000000U
 	uint32_t 	me_flags;		/**< @ref mdb_env */
-	uint32_t	me_extrapad;	/**< unused for now */
+	unsigned int	me_psize;	/**< size of a page, from #GET_PAGESIZE */
 	unsigned int	me_maxreaders;	/**< size of the reader table */
 	MDB_dbi		me_numdbs;		/**< number of DBs opened */
 	MDB_dbi		me_maxdbs;		/**< size of the DB table */
@@ -936,13 +897,10 @@ struct MDB_env {
 	size_t		me_mapsize;		/**< size of the data memory map */
 	off_t		me_size;		/**< current file size */
 	pgno_t		me_maxpg;		/**< me_mapsize / me_psize */
-	unsigned int	me_psize;	/**< size of a page, from #GET_PAGESIZE */
-	unsigned int	me_db_toggle;	/**< which DB table is current */
-	txnid_t		me_wtxnid;		/**< ID of last txn we committed */
 	txnid_t		me_pgfirst;		/**< ID of first old page record we used */
 	txnid_t		me_pglast;		/**< ID of last old page record we used */
 	MDB_dbx		*me_dbxs;		/**< array of static DB info */
-	MDB_db		*me_dbs[2];		/**< two arrays of MDB_db info */
+	uint16_t	*me_dbflags;	/**< array of DB flags */
 	MDB_oldpages *me_pghead;	/**< list of old page records */
 	MDB_oldpages *me_pgfree;	/**< list of page records to free */
 	pthread_key_t	me_txkey;	/**< thread-key for readers */
@@ -951,8 +909,6 @@ struct MDB_env {
 	MDB_IDL		me_free_pgs;
 	/** ID2L of pages that were written during a write txn */
 	MDB_ID2		me_dirty_list[MDB_IDL_UM_SIZE];
-	/** rwlock for the DB tables, if #LAZY_LOCKS is false */
-	LAZY_RWLOCK_DEF(me_dblock)
 #ifdef _WIN32
 	HANDLE		me_rmutex;		/* Windows mutexes don't reside in shared mem */
 	HANDLE		me_wmutex;
@@ -976,8 +932,10 @@ static int 		mdb_page_touch(MDB_cursor *mc);
 static int  mdb_page_get(MDB_txn *txn, pgno_t pgno, MDB_page **mp);
 static int  mdb_page_search_root(MDB_cursor *mc,
 			    MDB_val *key, int modify);
+#define MDB_PS_MODIFY	1
+#define MDB_PS_ROOTONLY	2
 static int  mdb_page_search(MDB_cursor *mc,
-			    MDB_val *key, int modify);
+			    MDB_val *key, int flags);
 static int	mdb_page_merge(MDB_cursor *csrc, MDB_cursor *cdst);
 static int	mdb_page_split(MDB_cursor *mc, MDB_val *newkey, MDB_val *newdata,
 				pgno_t newpgno, unsigned int nflags);
@@ -1544,12 +1502,15 @@ static int
 mdb_txn_renew0(MDB_txn *txn)
 {
 	MDB_env *env = txn->mt_env;
-	char mt_dbflag = 0;
+	unsigned int i;
+
+	/* Setup db info */
+	txn->mt_numdbs = env->me_numdbs;
+	txn->mt_dbxs = env->me_dbxs;	/* mostly static anyway */
 
 	if (txn->mt_flags & MDB_TXN_RDONLY) {
 		MDB_reader *r = pthread_getspecific(env->me_txkey);
 		if (!r) {
-			unsigned int i;
 			pid_t pid = getpid();
 			pthread_t tid = pthread_self();
 
@@ -1569,15 +1530,9 @@ mdb_txn_renew0(MDB_txn *txn)
 			r = &env->me_txns->mti_readers[i];
 			pthread_setspecific(env->me_txkey, r);
 		}
-		txn->mt_txnid = env->me_txns->mti_txnid;
+		txn->mt_txnid = r->mr_txnid = env->me_txns->mti_txnid;
 		txn->mt_toggle = txn->mt_txnid & 1;
 		txn->mt_next_pgno = env->me_metas[txn->mt_toggle]->mm_last_pg+1;
-		/* This happens if a different process was the
-		 * last writer to the DB.
-		 */
-		if (env->me_wtxnid < txn->mt_txnid)
-			mt_dbflag = DB_STALE;
-		r->mr_txnid = txn->mt_txnid;
 		txn->mt_u.reader = r;
 	} else {
 		LOCK_MUTEX_W(env);
@@ -1585,8 +1540,6 @@ mdb_txn_renew0(MDB_txn *txn)
 		txn->mt_txnid = env->me_txns->mti_txnid;
 		txn->mt_toggle = txn->mt_txnid & 1;
 		txn->mt_next_pgno = env->me_metas[txn->mt_toggle]->mm_last_pg+1;
-		if (env->me_wtxnid < txn->mt_txnid)
-			mt_dbflag = DB_STALE;
 		txn->mt_txnid++;
 #if MDB_DEBUG
 		if (txn->mt_txnid == mdb_debug_start)
@@ -1599,17 +1552,12 @@ mdb_txn_renew0(MDB_txn *txn)
 		env->me_txn = txn;
 	}
 
-	/* Copy the DB arrays */
-	LAZY_RWLOCK_RDLOCK(&env->me_dblock);
-	txn->mt_numdbs = env->me_numdbs;
-	txn->mt_dbxs = env->me_dbxs;	/* mostly static anyway */
+	/* Copy the DB info and flags */
 	memcpy(txn->mt_dbs, env->me_metas[txn->mt_toggle]->mm_dbs, 2 * sizeof(MDB_db));
-	if (txn->mt_numdbs > 2)
-		memcpy(txn->mt_dbs+2, env->me_dbs[env->me_db_toggle]+2,
-			(txn->mt_numdbs - 2) * sizeof(MDB_db));
-	LAZY_RWLOCK_UNLOCK(&env->me_dblock);
-
-	memset(txn->mt_dbflags, mt_dbflag, env->me_numdbs);
+	for (i=2; i<txn->mt_numdbs; i++)
+		txn->mt_dbs[i].md_flags = env->me_dbflags[i];
+	txn->mt_dbflags[0] = txn->mt_dbflags[1] = 0;
+	memset(txn->mt_dbflags+2, DB_STALE, env->me_numdbs-2);
 
 	return MDB_SUCCESS;
 }
@@ -1828,21 +1776,11 @@ mdb_txn_commit(MDB_txn *txn)
 
 	if (F_ISSET(txn->mt_flags, MDB_TXN_RDONLY)) {
 		if (txn->mt_numdbs > env->me_numdbs) {
-			/* update the DB tables */
-			int toggle = !env->me_db_toggle;
-			MDB_db *ip, *jp;
+			/* update the DB flags */
 			MDB_dbi i;
-
-			ip = &env->me_dbs[toggle][env->me_numdbs];
-			jp = &txn->mt_dbs[env->me_numdbs];
-			LAZY_RWLOCK_WRLOCK(&env->me_dblock);
-			for (i = env->me_numdbs; i < txn->mt_numdbs; i++) {
-				*ip++ = *jp++;
-			}
-
-			env->me_db_toggle = toggle;
-			env->me_numdbs = txn->mt_numdbs;
-			LAZY_RWLOCK_UNLOCK(&env->me_dblock);
+			for (i = env->me_numdbs; i<txn->mt_numdbs; i++)
+				env->me_dbflags[i] = txn->mt_dbs[i].md_flags;
+			env->me_numdbs = i;
 		}
 		mdb_txn_abort(txn);
 		return MDB_SUCCESS;
@@ -1923,7 +1861,7 @@ mdb_txn_commit(MDB_txn *txn)
 	/* should only be one record now */
 	if (env->me_pghead) {
 		/* make sure first page of freeDB is touched and on freelist */
-		mdb_page_search(&mc, NULL, 1);
+		mdb_page_search(&mc, NULL, MDB_PS_MODIFY);
 	}
 
 	/* Delete IDLs we used from the free list */
@@ -1952,7 +1890,7 @@ free2:
 		/* make sure last page of freeDB is touched and on freelist */
 		key.mv_size = MAXKEYSIZE+1;
 		key.mv_data = NULL;
-		mdb_page_search(&mc, &key, 1);
+		mdb_page_search(&mc, &key, MDB_PS_MODIFY);
 
 		mdb_midl_sort(txn->mt_free_pgs);
 #if MDB_DEBUG > 1
@@ -2171,28 +2109,15 @@ again:
 		mdb_txn_abort(txn);
 		return n;
 	}
-	env->me_wtxnid = txn->mt_txnid;
 
 done:
 	env->me_txn = NULL;
-	/* update the DB tables */
-	{
-		int toggle = !env->me_db_toggle;
-		MDB_db *ip, *jp;
+	if (txn->mt_numdbs > env->me_numdbs) {
+		/* update the DB flags */
 		MDB_dbi i;
-
-		ip = &env->me_dbs[toggle][2];
-		jp = &txn->mt_dbs[2];
-		LAZY_RWLOCK_WRLOCK(&env->me_dblock);
-		for (i = 2; i < txn->mt_numdbs; i++) {
-			if (ip->md_root != jp->md_root)
-				*ip = *jp;
-			ip++; jp++;
-		}
-
-		env->me_db_toggle = toggle;
-		env->me_numdbs = txn->mt_numdbs;
-		LAZY_RWLOCK_UNLOCK(&env->me_dblock);
+		for (i = env->me_numdbs; i<txn->mt_numdbs; i++)
+			env->me_dbflags[i] = txn->mt_dbs[i].md_flags;
+		env->me_numdbs = i;
 	}
 
 	UNLOCK_MUTEX_W(env);
@@ -2388,9 +2313,7 @@ mdb_env_write_meta(MDB_txn *txn)
 	 * readers will get consistent data regardless of how fresh or
 	 * how stale their view of these values is.
 	 */
-	LAZY_MUTEX_LOCK(&env->me_txns->mti_mutex);
 	txn->mt_env->me_txns->mti_txnid = txn->mt_txnid;
-	LAZY_MUTEX_UNLOCK(&env->me_txns->mti_mutex);
 
 	return MDB_SUCCESS;
 }
@@ -2568,11 +2491,8 @@ mdb_env_open2(MDB_env *env, unsigned int flags)
 }
 
 
-#ifndef _WIN32
 /** Release a reader thread's slot in the reader lock table.
  *	This function is called automatically when a thread exits.
- *	Windows doesn't support destructor callbacks for thread-specific storage,
- *	so this function is not compiled there.
  * @param[in] ptr This points to the slot in the reader lock table.
  */
 static void
@@ -2584,6 +2504,60 @@ mdb_env_reader_dest(void *ptr)
 	reader->mr_pid = 0;
 	reader->mr_tid = 0;
 }
+
+#ifdef _WIN32
+/** Junk for arranging thread-specific callbacks on Windows. This is
+ *	necessarily platform and compiler-specific. Windows supports up
+ *	to 1088 keys. Let's assume nobody opens more than 64 environments
+ *	in a single process, for now. They can override this if needed.
+ */
+#ifndef MAX_TLS_KEYS
+#define MAX_TLS_KEYS	64
+#endif
+static pthread_key_t mdb_tls_keys[MAX_TLS_KEYS];
+static int mdb_tls_nkeys;
+
+static void NTAPI mdb_tls_callback(PVOID module, DWORD reason, PVOID ptr)
+{
+	int i;
+	switch(reason) {
+	case DLL_PROCESS_ATTACH: break;
+	case DLL_THREAD_ATTACH: break;
+	case DLL_THREAD_DETACH:
+		for (i=0; i<mdb_tls_nkeys; i++) {
+			MDB_reader *r = pthread_getspecific(mdb_tls_keys[i]);
+			mdb_env_reader_dest(r);
+		}
+		break;
+	case DLL_PROCESS_DETACH: break;
+	}
+}
+#ifdef __GNUC__
+#ifdef _WIN64
+const PIMAGE_TLS_CALLBACK mdb_tls_cbp __attribute__((section (".CRT$XLB"))) = mdb_tls_callback;
+#else
+PIMAGE_TLS_CALLBACK mdb_tls_cbp __attribute__((section (".CRT$XLB"))) = mdb_tls_callback;
+#endif
+#else
+#ifdef _WIN64
+/* Force some symbol references.
+ *	_tls_used forces the linker to create the TLS directory if not already done
+ *	mdb_tls_cbp prevents whole-program-optimizer from dropping the symbol.
+ */
+#pragma comment(linker, "/INCLUDE:_tls_used")
+#pragma comment(linker, "/INCLUDE:mdb_tls_cbp")
+#pragma const_seg(".CRT$XLB")
+extern const PIMAGE_TLS_CALLBACK mdb_tls_callback;
+const PIMAGE_TLS_CALLBACK mdb_tls_cbp = mdb_tls_callback;
+#pragma const_seg()
+#else	/* WIN32 */
+#pragma comment(linker, "/INCLUDE:__tls_used")
+#pragma comment(linker, "/INCLUDE:_mdb_tls_cbp")
+#pragma data_seg(".CRT$XLB")
+PIMAGE_TLS_CALLBACK mdb_tls_cbp = mdb_tls_callback;
+#pragma data_seg()
+#endif	/* WIN 32/64 */
+#endif	/* !__GNUC__ */
 #endif
 
 /** Downgrade the exclusive lock on the region back to shared */
@@ -2871,7 +2845,7 @@ mdb_env_setup_locks(MDB_env *env, char *lpath, int mode, int *excl)
 		val.mv_data = &idbuf;
 		val.mv_size = sizeof(idbuf);
 		mdb_hash_hex(&val, hexbuf);
-		sprintf(env->me_txns->mti_rmname, "MDBr%s", hexbuf);
+		sprintf(env->me_txns->mti_rmname, "/MDBr%s", hexbuf);
 		if (sem_unlink(env->me_txns->mti_rmname)) {
 			rc = ErrCode();
 			if (rc != ENOENT && rc != EINVAL)
@@ -2882,7 +2856,7 @@ mdb_env_setup_locks(MDB_env *env, char *lpath, int mode, int *excl)
 			rc = ErrCode();
 			goto fail;
 		}
-		sprintf(env->me_txns->mti_wmname, "MDBw%s", hexbuf);
+		sprintf(env->me_txns->mti_wmname, "/MDBw%s", hexbuf);
 		if (sem_unlink(env->me_txns->mti_wmname)) {
 			rc = ErrCode();
 			if (rc != ENOENT && rc != EINVAL)
@@ -3040,13 +3014,22 @@ mdb_env_open(MDB_env *env, const char *path, unsigned int flags, mode_t mode)
 		env->me_path = strdup(path);
 		DPRINTF("opened dbenv %p", (void *) env);
 		pthread_key_create(&env->me_txkey, mdb_env_reader_dest);
-		LAZY_RWLOCK_INIT(&env->me_dblock, NULL);
+#ifdef _WIN32
+		/* Windows TLS callbacks need help finding their TLS info. */
+		if (mdb_tls_nkeys < MAX_TLS_KEYS)
+			mdb_tls_keys[mdb_tls_nkeys++] = env->me_txkey;
+		else {
+			rc = ENOMEM;
+			goto leave;
+		}
+#endif
 		if (excl)
 			mdb_env_share_locks(env);
-		env->me_dbxs = calloc(env->me_maxdbs, sizeof(MDB_dbx));
-		env->me_dbs[0] = calloc(env->me_maxdbs, sizeof(MDB_db));
-		env->me_dbs[1] = calloc(env->me_maxdbs, sizeof(MDB_db));
 		env->me_numdbs = 2;
+		env->me_dbxs = calloc(env->me_maxdbs, sizeof(MDB_dbx));
+		env->me_dbflags = calloc(env->me_maxdbs, sizeof(uint16_t));
+		if (!env->me_dbxs || !env->me_dbflags)
+			rc = ENOMEM;
 	}
 
 leave:
@@ -3080,13 +3063,22 @@ mdb_env_close(MDB_env *env)
 		free(dp);
 	}
 
-	free(env->me_dbs[1]);
-	free(env->me_dbs[0]);
+	free(env->me_dbflags);
 	free(env->me_dbxs);
 	free(env->me_path);
 
-	LAZY_RWLOCK_DESTROY(&env->me_dblock);
 	pthread_key_delete(env->me_txkey);
+#ifdef _WIN32
+	/* Delete our key from the global list */
+	{ int i;
+		for (i=0; i<mdb_tls_nkeys; i++)
+			if (mdb_tls_keys[i] == env->me_txkey) {
+				mdb_tls_keys[i] = mdb_tls_keys[mdb_tls_nkeys-1];
+				mdb_tls_nkeys--;
+				break;
+			}
+	}
+#endif
 
 	if (env->me_map) {
 		munmap(env->me_map, env->me_mapsize);
@@ -3382,7 +3374,8 @@ mdb_page_get(MDB_txn *txn, pgno_t pgno, MDB_page **ret)
  * @param[in,out] mc the cursor for this operation.
  * @param[in] key the key to search for. If NULL, search for the lowest
  * page. (This is used by #mdb_cursor_first().)
- * @param[in] modify If true, visited pages are updated with new page numbers.
+ * @param[in] flags If MDB_PS_MODIFY set, visited pages are updated with new page numbers.
+ *   If MDB_PS_ROOTONLY set, just fetch root node, no further lookups.
  * @return 0 on success, non-zero on failure.
  */
 static int
@@ -3464,7 +3457,7 @@ mdb_page_search_root(MDB_cursor *mc, MDB_val *key, int modify)
  * @return 0 on success, non-zero on failure.
  */
 static int
-mdb_page_search(MDB_cursor *mc, MDB_val *key, int modify)
+mdb_page_search(MDB_cursor *mc, MDB_val *key, int flags)
 {
 	int		 rc;
 	pgno_t		 root;
@@ -3479,11 +3472,11 @@ mdb_page_search(MDB_cursor *mc, MDB_val *key, int modify)
 		/* Make sure we're using an up-to-date root */
 		if (mc->mc_dbi > MAIN_DBI) {
 			if ((*mc->mc_dbflag & DB_STALE) ||
-			(modify && !(*mc->mc_dbflag & DB_DIRTY))) {
+			((flags & MDB_PS_MODIFY) && !(*mc->mc_dbflag & DB_DIRTY))) {
 				MDB_cursor mc2;
 				unsigned char dbflag = 0;
 				mdb_cursor_init(&mc2, mc->mc_txn, MAIN_DBI, NULL);
-				rc = mdb_page_search(&mc2, &mc->mc_dbx->md_name, modify);
+				rc = mdb_page_search(&mc2, &mc->mc_dbx->md_name, flags & MDB_PS_MODIFY);
 				if (rc)
 					return rc;
 				if (*mc->mc_dbflag & DB_STALE) {
@@ -3496,7 +3489,7 @@ mdb_page_search(MDB_cursor *mc, MDB_val *key, int modify)
 					mdb_node_read(mc->mc_txn, leaf, &data);
 					memcpy(mc->mc_db, data.mv_data, sizeof(MDB_db));
 				}
-				if (modify)
+				if (flags & MDB_PS_MODIFY)
 					dbflag = DB_DIRTY;
 				*mc->mc_dbflag = dbflag;
 			}
@@ -3519,12 +3512,15 @@ mdb_page_search(MDB_cursor *mc, MDB_val *key, int modify)
 	DPRINTF("db %u root page %zu has flags 0x%X",
 		mc->mc_dbi, root, mc->mc_pg[0]->mp_flags);
 
-	if (modify) {
+	if (flags & MDB_PS_MODIFY) {
 		if ((rc = mdb_page_touch(mc)))
 			return rc;
 	}
 
-	return mdb_page_search_root(mc, key, modify);
+	if (flags & MDB_PS_ROOTONLY)
+		return MDB_SUCCESS;
+
+	return mdb_page_search_root(mc, key, flags);
 }
 
 /** Return the data associated with a given node.
@@ -4160,7 +4156,7 @@ mdb_cursor_touch(MDB_cursor *mc)
 	if (mc->mc_dbi > MAIN_DBI && !(*mc->mc_dbflag & DB_DIRTY)) {
 		MDB_cursor mc2;
 		mdb_cursor_init(&mc2, mc->mc_txn, MAIN_DBI, NULL);
-		rc = mdb_page_search(&mc2, &mc->mc_dbx->md_name, 1);
+		rc = mdb_page_search(&mc2, &mc->mc_dbx->md_name, MDB_PS_MODIFY);
 		if (rc)
 			 return rc;
 		*mc->mc_dbflag = DB_DIRTY;
@@ -5005,6 +5001,9 @@ mdb_cursor_init(MDB_cursor *mc, MDB_txn *txn, MDB_dbi dbi, MDB_xcursor *mx)
 		mdb_xcursor_init0(mc);
 	} else {
 		mc->mc_xcursor = NULL;
+	}
+	if (*mc->mc_dbflag & DB_STALE) {
+		mdb_page_search(mc, NULL, MDB_PS_ROOTONLY);
 	}
 }
 
@@ -6245,8 +6244,7 @@ int mdb_open(MDB_txn *txn, const char *name, unsigned int flags, MDB_dbi *dbi)
 		txn->mt_dbflags[slot] = dbflag;
 		memcpy(&txn->mt_dbs[slot], data.mv_data, sizeof(MDB_db));
 		*dbi = slot;
-		txn->mt_env->me_dbs[0][slot] = txn->mt_dbs[slot];
-		txn->mt_env->me_dbs[1][slot] = txn->mt_dbs[slot];
+		txn->mt_env->me_dbflags[slot] = txn->mt_dbs[slot].md_flags;
 		mdb_default_cmp(txn, slot);
 		if (!unused) {
 			txn->mt_numdbs++;
