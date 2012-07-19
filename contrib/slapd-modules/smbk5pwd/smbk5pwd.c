@@ -68,9 +68,11 @@ static ObjectClass *oc_krb5KDCEntry;
 #ifdef HAVE_GNUTLS
 #include <gcrypt.h>
 typedef unsigned char DES_cblock[8];
-#else
+#elif HAVE_OPENSSL
 #include <openssl/des.h>
 #include <openssl/md4.h>
+#else
+#error Unsupported crypto backend.
 #endif
 #include "ldap_utf8.h"
 
