@@ -25,6 +25,7 @@ perl_back_add(
 	PerlBackend *perl_back = (PerlBackend *) op->o_bd->be_private;
 	int len;
 	int count;
+	char *str;
 
 	PERL_SET_CONTEXT( PERL_INTERPRETER );
 	ldap_pvt_thread_mutex_lock( &perl_interpreter_mutex );
@@ -35,7 +36,8 @@ perl_back_add(
 
 		PUSHMARK(sp);
 		XPUSHs( perl_back->pb_obj_ref );
-		XPUSHs(sv_2mortal(newSVpv( entry2str( op->ora_e, &len ), len )));
+		str = entry2str( op->ora_e, &len );
+		XPUSHs(sv_2mortal(newSVpv( str, len )));
 
 		PUTBACK;
 
