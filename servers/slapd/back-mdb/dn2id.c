@@ -137,7 +137,7 @@ mdb_dn2id_add(
 		memcpy( ptr, &pid, sizeof( ID ));
 		d->nrdnlen[0] ^= 0x80;
 
-		if (slapMode & SLAP_TOOL_MODE)
+		if ((slapMode & SLAP_TOOL_MODE) || (e->e_id == mdb->mi_nextid))
 			flag |= MDB_APPEND;
 		rc = mdb_cursor_put( mcd, &key, &data, flag );
 	}

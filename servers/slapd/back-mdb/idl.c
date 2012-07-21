@@ -391,10 +391,12 @@ mdb_idl_fetch_key(
 
 int
 mdb_idl_insert_keys(
+	BackendDB	*be,
 	MDB_cursor	*cursor,
 	struct berval *keys,
 	ID			id )
 {
+	struct mdb_info *mdb = be->be_private;
 	MDB_val key, data;
 	ID lo, hi, *i;
 	char *err;
@@ -490,8 +492,8 @@ mdb_idl_insert_keys(
 				}
 			} else {
 			/* There's room, just store it */
-				if ( slapMode & SLAP_TOOL_QUICK )
-					flag |= MDB_APPEND;
+				if (id == mdb->mi_nextid)
+					flag |= MDB_APPENDDUP;
 				goto put1;
 			}
 		} else {
@@ -518,7 +520,7 @@ mdb_idl_insert_keys(
 			}
 		}
 	} else if ( rc == MDB_NOTFOUND ) {
-		flag &= ~MDB_APPEND;
+		flag &= ~MDB_APPENDDUP;
 put1:	data.mv_data = &id;
 		data.mv_size = sizeof(ID);
 		rc = mdb_cursor_put( cursor, &key, &data, flag );
@@ -542,6 +544,7 @@ fail:
 
 int
 mdb_idl_delete_keys(
+	BackendDB	*be,
 	MDB_cursor	*cursor,
 	struct berval *keys,
 	ID			id )

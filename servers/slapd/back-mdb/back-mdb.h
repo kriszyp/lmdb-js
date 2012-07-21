@@ -69,6 +69,7 @@ struct mdb_info {
 	int			mi_dbenv_mode;
 
 	size_t		mi_mapsize;
+	ID			mi_nextid;
 
 	slap_mask_t	mi_defaultmask;
 	int			mi_nattrs;

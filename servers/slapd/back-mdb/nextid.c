@@ -23,6 +23,7 @@
 
 int mdb_next_id( BackendDB *be, MDB_cursor *mc, ID *out )
 {
+	struct mdb_info *mdb = (struct mdb_info *) be->be_private;
 	int rc;
 	ID id = 0;
 	MDB_val key;
@@ -45,6 +46,7 @@ int mdb_next_id( BackendDB *be, MDB_cursor *mc, ID *out )
 			mdb_strerror(rc), rc, 0 );
 		goto done;
 	}
+	mdb->mi_nextid = *out;
 
 done:
 	return rc;
