@@ -992,14 +992,15 @@ tlsm_cert_is_self_issued( CERTCertificate *cert )
 
 static SECStatus
 tlsm_verify_cert(CERTCertDBHandle *handle, CERTCertificate *cert, void *pinarg,
-				 PRBool checksig, SECCertificateUsage certUsage, int errorToIgnore )
+				 PRBool checksig, SECCertificateUsage certUsage, PRBool warn_only,
+				 PRBool ignore_issuer )
 {
 	CERTVerifyLog verifylog;
 	SECStatus ret = SECSuccess;
 	const char *name;
 	int debug_level = LDAP_DEBUG_ANY;
 
-	if ( errorToIgnore == -1 ) {
+	if ( warn_only ) {
 		debug_level = LDAP_DEBUG_TRACE;
 	}
 
@@ -1063,7 +1064,11 @@ tlsm_verify_cert(CERTCertDBHandle *handle, CERTCertificate *cert, void *pinarg,
 
 					PR_SetError(orig_error, orig_oserror);
 
-				} else if ( errorToIgnore && ( node->error == errorToIgnore ) ) {
+				} else if ( warn_only || ( ignore_issuer && (
+					node->error == SEC_ERROR_UNKNOWN_ISSUER ||
+					node->error == SEC_ERROR_UNTRUSTED_ISSUER )
+				) ) {
+					ret = SECSuccess;
 					Debug( debug_level,
 						   "TLS: Warning: ignoring error for certificate [%s] - error %ld:%s.\n",
 						   name, node->error, PR_ErrorToString( node->error, PR_LANGUAGE_I_DEFAULT ) );
@@ -1084,8 +1089,6 @@ tlsm_verify_cert(CERTCertDBHandle *handle, CERTCertificate *cert, void *pinarg,
 	if ( ret == SECSuccess ) {
 		Debug( LDAP_DEBUG_TRACE,
 			   "TLS: certificate [%s] is valid\n", name, 0, 0 );
-	} else if ( errorToIgnore == -1 ) {
-		ret = SECSuccess;
 	}
 
 	return ret;
@@ -1098,15 +1101,11 @@ tlsm_auth_cert_handler(void *arg, PRFileDesc *fd,
 	SECCertificateUsage certUsage = isServer ? certificateUsageSSLClient : certificateUsageSSLServer;
 	SECStatus ret = SECSuccess;
 	CERTCertificate *peercert = SSL_PeerCertificate( fd );
-	int errorToIgnore = 0;
 	tlsm_ctx *ctx = (tlsm_ctx *)arg;
-
-	if (ctx && ctx->tc_warn_only )
-		errorToIgnore = -1;
 
 	ret = tlsm_verify_cert( ctx->tc_certdb, peercert,
 							SSL_RevealPinArg( fd ),
-							checksig, certUsage, errorToIgnore );
+							checksig, certUsage, ctx->tc_warn_only, PR_FALSE );
 	CERT_DestroyCertificate( peercert );
 
 	return ret;
@@ -1815,7 +1814,6 @@ tlsm_find_and_verify_cert_key(tlsm_ctx *ctx)
 	SECCertificateUsage certUsage;
 	PRBool checkSig;
 	SECStatus status;
-	int errorToIgnore;
 	void *pin_arg;
 
 	if (tlsm_ctx_load_private_key(ctx))
@@ -1824,13 +1822,9 @@ tlsm_find_and_verify_cert_key(tlsm_ctx *ctx)
 	pin_arg = SSL_RevealPinArg(ctx->tc_model);
 	certUsage = ctx->tc_is_server ? certificateUsageSSLServer : certificateUsageSSLClient;
 	checkSig = ctx->tc_verify_cert ? PR_TRUE : PR_FALSE;
-	if ( ctx->tc_warn_only )
-		errorToIgnore = -1;
-	else
-		errorToIgnore = SEC_ERROR_UNKNOWN_ISSUER; /* may not have a CA cert */
 
 	status = tlsm_verify_cert( ctx->tc_certdb, ctx->tc_certificate, pin_arg,
-							   checkSig, certUsage, errorToIgnore );
+							   checkSig, certUsage, ctx->tc_warn_only, PR_TRUE );
 
 	return status == SECSuccess ? 0 : -1;
 }
