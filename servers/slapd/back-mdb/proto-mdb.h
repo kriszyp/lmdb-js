@@ -202,6 +202,7 @@ int mdb_idl_fetch_key(
 int mdb_idl_insert( ID *ids, ID id );
 
 typedef int (mdb_idl_keyfunc)(
+	BackendDB *be,
 	MDB_cursor *mc,
 	struct berval *key,
 	ID id );

@@ -60,6 +60,9 @@ static int mdb_id2entry_put(
 
 	flag |= MDB_RESERVE;
 
+	if (e->e_id < mdb->mi_nextid)
+		flag &= ~MDB_APPEND;
+
 again:
 	data.mv_size = ec.len;
 	if ( mc )
@@ -74,7 +77,7 @@ again:
 	if (rc) {
 		/* Was there a hole from slapadd? */
 		if ( (flag & MDB_NOOVERWRITE) && data.mv_size == 0 ) {
-			flag ^= ADD_FLAGS;
+			flag &= ~ADD_FLAGS;
 			goto again;
 		}
 		Debug( LDAP_DEBUG_ANY,
