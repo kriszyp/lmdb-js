@@ -15,7 +15,7 @@
  * <http://www.OpenLDAP.org/license.html>.
  */
 /* ACKNOWLEDGEMENTS:
- * This work was initially developed by Matthew Backes at Symas
+ * This work was initially developed by Emily Backes at Symas
  * Corporation for inclusion in OpenLDAP Software.
  */
 
