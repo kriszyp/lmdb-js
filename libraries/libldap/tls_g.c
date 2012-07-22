@@ -14,7 +14,7 @@
  * <http://www.OpenLDAP.org/license.html>.
  */
 /* ACKNOWLEDGEMENTS: GNUTLS support written by Howard Chu and
- * Matt Backes; sponsored by The Written Word (thewrittenword.com)
+ * Emily Backes; sponsored by The Written Word (thewrittenword.com)
  * and Stanford University (stanford.edu).
  */
 

@@ -1472,7 +1472,7 @@ bdb_idl_sort( ID *ids, ID *tmp )
 /* 8 bit Radix sort + insertion sort
  * 
  * based on code from http://www.cubic.org/docs/radix.htm
- * with improvements by mbackes@symas.com and hyc@symas.com
+ * with improvements by ebackes@symas.com and hyc@symas.com
  *
  * This code is O(n) but has a relatively high constant factor. For lists
  * up to ~50 Quicksort is slightly faster; up to ~100 they are even.

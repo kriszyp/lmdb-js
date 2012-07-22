@@ -17,7 +17,7 @@
 /* ACKNOWLEDGEMENTS: 
  * This work was initially developed by Symas Corporation for
  * inclusion in OpenLDAP Software, with subsequent enhancements by
- * Matthew Backes at Symas Corporation.  This work was sponsored by
+ * Emily Backes at Symas Corporation.  This work was sponsored by
  * Hewlett-Packard.
  */
 
