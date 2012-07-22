@@ -619,6 +619,10 @@ ID mdb_tool_entry_put(
 				 text->bv_val, 0, 0 );
 			return NOID;
 		}
+		if ( !mdb->mi_nextid ) {
+			ID dummy;
+			mdb_next_id( be, idcursor, &dummy );
+		}
 		rc = mdb_cursor_open( txn, mdb->mi_dn2id, &mcp );
 		if( rc != 0 ) {
 			snprintf( text->bv_val, text->bv_len,
