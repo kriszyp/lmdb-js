@@ -782,7 +782,9 @@ char *ldap_pvt_gai_strerror (int code) {
 		{ EAI_NONAME, N_("Name or service not known") },
 		{ EAI_SERVICE, N_("Servname not supported for ai_socktype") },
 		{ EAI_SOCKTYPE, N_("ai_socktype not supported") },
+#ifdef EAI_SYSTEM
 		{ EAI_SYSTEM, N_("System error") },
+#endif
 		{ 0, NULL }
 	};
 

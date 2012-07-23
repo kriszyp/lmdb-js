@@ -45,6 +45,9 @@
 
 /* for struct timeval */
 #include <ac/time.h>
+#ifdef _WIN32
+#include <ac/socket.h>
+#endif
 
 #undef TV2MILLISEC
 #define TV2MILLISEC(tv) (((tv)->tv_sec * 1000) + ((tv)->tv_usec/1000))
