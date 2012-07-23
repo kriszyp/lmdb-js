@@ -62,6 +62,7 @@
 
 #ifdef HAVE_WINSOCK2
 #include <winsock2.h>
+#include <ws2tcpip.h>
 #elif HAVE_WINSOCK
 #include <winsock.h>
 #endif
