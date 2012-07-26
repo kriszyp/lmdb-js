@@ -29,6 +29,7 @@ OpenLDAP 2.4.32 Engineering
 	Fixed slapd-mdb with approx indexing (ITS#7279)
 	Fixed slapd-mdb dn2id delete (ITS#7302)
 	Fixed slapd-mdb memory leak in online indexer (ITS#7323)
+	Fixed slapd-mdb db corruption when hitting maxsize (ITS#7337)
 	Fixed slapo-accesslog memory leaks with sync replication (ITS#7292)
 	Fixed slapo-syncprov memory leaks with sync replication (ITS#7292)
 	Fixed contrib/sha2 portability (ITS#7267)
