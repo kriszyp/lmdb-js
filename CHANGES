@@ -23,6 +23,7 @@ OpenLDAP 2.4.32 Engineering
 	Fixed slapd parsing of PermissiveModify control (ITS#7298)
 	Fixed slapd-bdb/hdb cache hang under high load (ITS#7222)
 	Fixed slapd-bdb/hdb alias checking (ITS#7303)
+	Fixed slapd-bdb/hdb olcDbConfig changes work immediately (ITS#7338)
 	Fixed slapd-ldap to encode user DN during password change (ITS#7319)
 	Fixed slapd-mdb with tool mode (ITS#7255)
 	Fixed slapd-mdb with approx indexing (ITS#7279)
