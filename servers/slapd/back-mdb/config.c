@@ -177,6 +177,9 @@ mdb_online_index( void *ctx, void *arg )
 		if ( rc == 0 ) {
 			rc = mdb_txn_commit( txn );
 			txn = NULL;
+		} else {
+			mdb_txn_abort( txn );
+			txn = NULL;
 		}
 		if ( rc )
 			break;
@@ -564,14 +567,18 @@ mdb_cf_gen( ConfigArgs *c )
 
 	case MDB_MAXREADERS:
 		mdb->mi_readers = c->value_int;
-		if ( mdb->mi_flags & MDB_IS_OPEN )
+		if ( mdb->mi_flags & MDB_IS_OPEN ) {
 			mdb->mi_flags |= MDB_RE_OPEN;
+			c->cleanup = mdb_cf_cleanup;
+		}
 		break;
 
 	case MDB_MAXSIZE:
 		mdb->mi_mapsize = c->value_ulong;
-		if ( mdb->mi_flags & MDB_IS_OPEN )
+		if ( mdb->mi_flags & MDB_IS_OPEN ) {
 			mdb->mi_flags |= MDB_RE_OPEN;
+			c->cleanup = mdb_cf_cleanup;
+		}
 		break;
 
 	}
