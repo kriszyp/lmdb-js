@@ -35,7 +35,7 @@ perl_back_add(
 
 		PUSHMARK(sp);
 		XPUSHs( perl_back->pb_obj_ref );
-		XPUSHs(sv_2mortal(newSVpv( entry2str( op->ora_e, &len ), len )));
+		XPUSHs(sv_2mortal(newSVpv( entry2str( op->ora_e, &len ), 0 )));
 
 		PUTBACK;
 
