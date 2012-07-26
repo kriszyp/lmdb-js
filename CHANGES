@@ -32,6 +32,7 @@ OpenLDAP 2.4.32 Engineering
 	Fixed slapd-mdb memory leak in online indexer (ITS#7323)
 	Fixed slapd-mdb db corruption when hitting maxsize (ITS#7337)
 	Fixed slapd-mdb aborts with online indexing (ITS#7339)
+	Fixed slapd-perl panic (ITS#7325)
 	Fixed slapo-accesslog memory leaks with sync replication (ITS#7292)
 	Fixed slapo-syncprov memory leaks with sync replication (ITS#7292)
 	Fixed contrib/smbk5pwd to not compile with MozNSS (ITS#7327)
