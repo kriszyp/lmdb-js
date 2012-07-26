@@ -20,6 +20,7 @@ OpenLDAP 2.4.32 Engineering
 	Fixed libldap gettime() regression (ITS#6262)
 	Fixed libmdb leaf node handling (ITS#7266)
 	Fixed libmdb mutexes on Apple/Windows (ITS#7251)
+	Fixed slapd config index renumbering (ITS#6987)
 	Fixed slapd duplicate error response (ITS#7076)
 	Fixed slapd parsing of PermissiveModify control (ITS#7298)
 	Fixed slapd-bdb/hdb cache hang under high load (ITS#7222)
