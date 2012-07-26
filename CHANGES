@@ -46,6 +46,8 @@ OpenLDAP 2.4.32 Engineering
 	Build Environment
 		Fixed test057 timing issues (ITS#7317)
 		Fixed compilation with MS Visual Studio (ITS#7332)
+	Contrib
+		Added slapi_[get|free]_client_ip() (ITS#7305)
 	Documentation
 		slapo-sssvlv Added note about criticality (ITS#7253)
 		admin24 Fix peername.regex typo (ITS#7282)
