@@ -26,6 +26,7 @@ OpenLDAP 2.4.32 Engineering
 	Fixed slapd-bdb/hdb alias checking (ITS#7303)
 	Fixed slapd-bdb/hdb olcDbConfig changes work immediately (ITS#7338)
 	Fixed slapd-ldap to encode user DN during password change (ITS#7319)
+	Fixed slapd-ldap assertion when proxying to MS AD (ITS#6851)
 	Fixed slapd-mdb with tool mode (ITS#7255)
 	Fixed slapd-mdb with approx indexing (ITS#7279)
 	Fixed slapd-mdb dn2id delete (ITS#7302)
