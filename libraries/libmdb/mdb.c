@@ -1877,6 +1877,23 @@ mdb_txn_commit(MDB_txn *txn)
 	DPRINTF("committing txn %zu %p on mdbenv %p, root page %zu",
 	    txn->mt_txnid, (void *)txn, (void *)env, txn->mt_dbs[MAIN_DBI].md_root);
 
+	/* Update DB root pointers. Their pages have already been
+	 * touched so this is all in-place and cannot fail.
+	 */
+	{
+		MDB_dbi i;
+		MDB_val data;
+		data.mv_size = sizeof(MDB_db);
+
+		mdb_cursor_init(&mc, txn, MAIN_DBI, NULL);
+		for (i = 2; i < txn->mt_numdbs; i++) {
+			if (txn->mt_dbflags[i] & DB_DIRTY) {
+				data.mv_data = &txn->mt_dbs[i];
+				mdb_cursor_put(&mc, &txn->mt_dbxs[i].md_name, &data, 0);
+			}
+		}
+	}
+
 	mdb_cursor_init(&mc, txn, FREE_DBI, NULL);
 
 	/* should only be one record now */
@@ -1997,22 +2014,6 @@ again:
 			env->me_free_pgs = txn->mt_free_pgs;
 	}
 
-	/* Update DB root pointers. Their pages have already been
-	 * touched so this is all in-place and cannot fail.
-	 */
-	{
-		MDB_dbi i;
-		MDB_val data;
-		data.mv_size = sizeof(MDB_db);
-
-		mdb_cursor_init(&mc, txn, MAIN_DBI, NULL);
-		for (i = 2; i < txn->mt_numdbs; i++) {
-			if (txn->mt_dbflags[i] & DB_DIRTY) {
-				data.mv_data = &txn->mt_dbs[i];
-				mdb_cursor_put(&mc, &txn->mt_dbxs[i].md_name, &data, 0);
-			}
-		}
-	}
 #if MDB_DEBUG > 2
 	mdb_audit(txn);
 #endif
@@ -3857,20 +3858,22 @@ mdb_cursor_set(MDB_cursor *mc, MDB_val *key, MDB_val *data,
 					goto set1;
 				}
 				if (rc < 0) {
-					/* This is definitely the right page, skip search_page */
-					if (mp->mp_flags & P_LEAF2) {
-						nodekey.mv_data = LEAF2KEY(mp,
-							 mc->mc_ki[mc->mc_top], nodekey.mv_size);
-					} else {
-						leaf = NODEPTR(mp, mc->mc_ki[mc->mc_top]);
-						MDB_SET_KEY(leaf, &nodekey);
-					}
-					rc = mc->mc_dbx->md_cmp(key, &nodekey);
-					if (rc == 0) {
-						/* current node was the one we wanted */
-						if (exactp)
-							*exactp = 1;
-						goto set1;
+					if (mc->mc_ki[mc->mc_top] < NUMKEYS(mp)) {
+						/* This is definitely the right page, skip search_page */
+						if (mp->mp_flags & P_LEAF2) {
+							nodekey.mv_data = LEAF2KEY(mp,
+								 mc->mc_ki[mc->mc_top], nodekey.mv_size);
+						} else {
+							leaf = NODEPTR(mp, mc->mc_ki[mc->mc_top]);
+							MDB_SET_KEY(leaf, &nodekey);
+						}
+						rc = mc->mc_dbx->md_cmp(key, &nodekey);
+						if (rc == 0) {
+							/* current node was the one we wanted */
+							if (exactp)
+								*exactp = 1;
+							goto set1;
+						}
 					}
 					rc = 0;
 					goto set2;
