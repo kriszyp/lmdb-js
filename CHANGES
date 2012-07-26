@@ -35,6 +35,7 @@ OpenLDAP 2.4.32 Engineering
 	Added contrib/sha2 {SSHA256}, {SSHA384}, {SSHA512} support (ITS#7278)
 	Build Environment
 		Fixed test057 timing issues (ITS#7317)
+		Fixed compilation with MS Visual Studio (ITS#7332)
 	Documentation
 		slapo-sssvlv Added note about criticality (ITS#7253)
 		admin24 Fix peername.regex typo (ITS#7282)
