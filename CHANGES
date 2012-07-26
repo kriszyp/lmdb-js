@@ -18,6 +18,7 @@ OpenLDAP 2.4.32 Engineering
 	Fixed libldap MozNSS to avoid infinite loop (ITS#7316)
 	Fixed libldap MozNSS untrusted issuer error (ITS#7331)
 	Fixed libldap gettime() regression (ITS#6262)
+	Fixed libldap sasl handling (ITS#7118, ITS#7133)
 	Fixed libldap to correctly free socket with TLS (ITS#7241)
 	Fixed libmdb leaf node handling (ITS#7266)
 	Fixed libmdb mutexes on Apple/Windows (ITS#7251)
