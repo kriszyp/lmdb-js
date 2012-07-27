@@ -1,6 +1,6 @@
 OpenLDAP 2.4 Change Log
 
-OpenLDAP 2.4.32 Engineering
+OpenLDAP 2.4.32 Release (2012/07/29)
 	Added slappasswd loadable module support (ITS#7284)
 	Fixed tools to not clobber SASL_NOCANON (ITS#7271)
 	Fixed libldap function declarations (ITS#7293)
