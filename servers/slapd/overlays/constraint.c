@@ -181,7 +181,7 @@ constraint_cf_gen( ConfigArgs *c )
 				}
 
 				if (cp->count || cp->size) {
-					int len = snprintf(val_buf, sizeof(val_buf), "%zd", val);
+					int len = snprintf(val_buf, sizeof(val_buf), "%d", val);
 					if (len <= 0) {
 						/* error */
 						return -1;
@@ -846,29 +846,40 @@ constraint_check_count_violation( Modifications *m, Entry *target_entry, constra
 	int j;
 
 	for ( j = 0; cp->ap[j]; j++ ) {
+		ca = 0;
+
 		/* Get this attribute count */
 		if ( target_entry )
 			ce = constraint_count_attr( target_entry, cp->ap[j] );
 
 		for( ; m; m = m->sml_next ) {
 			if ( cp->ap[j] == m->sml_desc ) {
-				ca = m->sml_numvals;
 				switch ( m->sml_op ) {
 				case LDAP_MOD_DELETE:
-					if ( !ca || ca > ce ) {
+					if (( b = m->sml_values ) == NULL  || b[0].bv_val == NULL ) {
 						ce = 0;
-					} else {
+					}
+					else {
 						/* No need to check for values' validity. Invalid values
 						 * cause the whole transaction to die anyway. */
+						for ( ca = 0; b[ca].bv_val; ++ca );
 						ce -= ca;
 					}
 					break;
 
 				case LDAP_MOD_ADD:
+					if (( b = m->sml_values ) == NULL  || b[0].bv_val == NULL )
+						continue;
+
+					for ( ca = 0; b[ca].bv_val; ++ca );
 					ce += ca;
 					break;
 
 				case LDAP_MOD_REPLACE:
+					if (( b = m->sml_values ) == NULL  || b[0].bv_val == NULL )
+						continue;
+
+					for ( ca = 0; b[ca].bv_val; ++ca );
 					ce = ca;
 					break;
 
