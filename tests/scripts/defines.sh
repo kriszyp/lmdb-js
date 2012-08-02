@@ -28,6 +28,7 @@ BACKSQL=${AC_sql-sqlno}
 
 # overlays
 ACCESSLOG=${AC_accesslog-accesslogno}
+CONSTRAINT=${AC_constraint-constraintno}
 DDS=${AC_dds-ddsno}
 DYNLIST=${AC_dynlist-dynlistno}
 MEMBEROF=${AC_memberof-memberofno}
