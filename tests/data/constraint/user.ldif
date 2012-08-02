@@ -1,0 +1,8 @@
+dn: cn=user,dc=example,dc=com
+objectclass: inetOrgPerson
+objectclass: organizationalPerson
+cn: John
+sn: Doe
+mail: original@example.com
+description: desc1
+description: desc2

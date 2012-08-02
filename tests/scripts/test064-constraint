@@ -1,0 +1,137 @@
+#!/bin/bash
+
+echo "running defines.sh"
+. $SRCDIR/scripts/defines.sh
+
+CONSTRAINTDIR="$DATADIR/constraint"
+ROOTLDIF="$CONSTRAINTDIR/root.ldif"
+USERLDIF="$CONSTRAINTDIR/user.ldif"
+RESULTOUT="$CONSTRAINTDIR/constraint.out"
+SCRIPTOUT="$TESTDIR/constraint.out"
+USERDN="cn=user,$BASEDN"
+
+CONFDIR=$TESTDIR/slapd.d
+mkdir -p $TESTDIR $CONFDIR $DBDIR1
+
+$SLAPPASSWD -g -n >$CONFIGPWF
+
+$SLAPADD -F $CONFDIR -n 0 <<EOF
+dn: cn=config
+objectClass: olcGlobal
+cn: config
+olcArgsFile: $TESTDIR/slapd.args
+olcPidFile: $TESTDIR/slapd.pid
+
+dn: cn=module,cn=config
+objectClass: olcModuleList
+cn: module
+olcModulePath: $TESTWD/../servers/slapd/overlays
+olcModuleLoad: constraint.la
+
+dn: cn=schema,cn=config
+objectClass: olcSchemaConfig
+cn: schema
+
+include: file://$TESTWD/schema/core.ldif
+include: file://$TESTWD/schema/cosine.ldif
+include: file://$TESTWD/schema/inetorgperson.ldif
+
+dn: olcDatabase=config,cn=config
+objectClass: olcDatabaseConfig
+olcDatabase: config
+
+dn: olcDatabase={1}$BACKEND,cn=config
+objectClass: olcDatabaseConfig
+objectClass: olc${BACKEND}Config
+olcDatabase: $BACKEND
+olcSuffix: $BASEDN
+olcRootDN: $MANAGERDN
+olcRootPW:< file://$CONFIGPWF
+olcDbDirectory: $TESTDIR/db.1.a
+olcDbIndex: objectClass eq,pres
+olcDbIndex: ou,cn,mail,surname,givenname eq,pres,sub
+
+dn: olcOverlay=constraint,olcDatabase={1}$BACKEND,cn=config
+objectClass: olcOverlayConfig
+objectClass: olcConstraintConfig
+olcOverlay: constraint
+olcConstraintAttribute: mail count 3
+olcConstraintAttribute: mail regex ^[[:alnum:]]+@example.com$
+olcConstraintAttribute: description count 2
+
+EOF
+
+$SLAPD -F $CONFDIR -h $URI1 -d $LVL $TIMING > $LOG1 2>&1 &
+PID=$!
+if test $WAIT != 0 ; then
+    echo PID $PID
+    read foo
+fi
+
+sleep 1
+
+echo "Adding basic structure..."
+$LDAPADD -D $MANAGERDN -H $URI1 -y $CONFIGPWF -f $ROOTLDIF &>/dev/null
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapadd failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $PID
+	exit $RC
+fi
+$LDAPADD -D $MANAGERDN -H $URI1 -y $CONFIGPWF -f $USERLDIF &>/dev/null
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapadd failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $PID
+	exit $RC
+fi
+
+echo "Running constraint tests..."
+for ldif in $SRCDIR/data/constraint/{*ok*,*fail*}.ldif; do
+	### reload
+	$LDAPDELETE -D $MANAGERDN -H $URI1 -y $CONFIGPWF $USERDN &>/dev/null
+	RC=$?
+	if test $RC != 0 ; then
+		echo "ldapdelete failed ($RC)!"
+		test $KILLSERVERS != no && kill -HUP $PID
+		exit $RC
+	fi
+	$LDAPADD -D $MANAGERDN -H $URI1 -y $CONFIGPWF -f $USERLDIF &>/dev/null
+	RC=$?
+	if test $RC != 0 ; then
+		echo "ldapadd failed ($RC)!"
+		test $KILLSERVERS != no && kill -HUP $PID
+		exit $RC
+	fi
+
+	### info
+	echo -n "  [$ldif]: "
+
+	### modify
+	$LDAPMODIFY -H $URI1 -x -D "$MANAGERDN" -f $ldif -y $CONFIGPWF &>/dev/null
+	RC=$?
+	if test $RC == 0 ; then
+		echo "OK" | tee -a $SCRIPTOUT
+	elif test $RC == 19 ; then
+		echo "FAIL" | tee -a $SCRIPTOUT
+	else
+		echo "UNEXPECTED ($RC)"
+	fi
+done
+
+echo "Comparing output..."
+$DIFF $SCRIPTOUT $RESULTOUT > $CMPOUT
+RC=$?
+if test $RC != 0 ; then
+	echo "Comparison failed"
+	test $KILLSERVERS != no && kill -HUP $PID
+	exit $RC
+fi
+
+test $KILLSERVERS != no && kill -HUP $PID
+
+echo ">>>>> Test succeeded"
+
+test $KILLSERVERS != no && wait
+
+exit 0

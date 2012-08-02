@@ -1,0 +1,7 @@
+dn: cn=user,dc=example,dc=com
+changetype: modify
+delete: mail
+mail: original@example.com
+-
+add: mail
+mail: a@fail.com
