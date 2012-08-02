@@ -1,0 +1,4 @@
+dn: cn=user,dc=example,dc=com
+changetype: modify
+add: mail
+mail: example@not-allowed.com
