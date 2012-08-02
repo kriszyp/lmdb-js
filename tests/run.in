@@ -39,6 +39,7 @@ AC_sql=sql@BUILD_SQL@
 
 # overlays
 AC_accesslog=accesslog@BUILD_ACCESSLOG@
+AC_constraint=constraint@BUILD_CONSTRAINT@
 AC_dds=dds@BUILD_DDS@
 AC_dynlist=dynlist@BUILD_DYNLIST@
 AC_memberof=memberof@BUILD_MEMBEROF@
@@ -69,7 +70,7 @@ if test "${AC_meta}" = "metamod" && test "${AC_LIBS_DYNAMIC}" = "static" ; then
 fi
 
 export AC_bdb AC_hdb AC_ldap AC_mdb AC_meta AC_monitor AC_null AC_relay AC_sql \
-	AC_accesslog AC_dds AC_dynlist AC_memberof AC_pcache AC_ppolicy \
+	AC_accesslog AC_constraint AC_dds AC_dynlist AC_memberof AC_pcache AC_ppolicy \
 	AC_refint AC_retcode AC_rwm AC_unique AC_syncprov AC_translucent \
 	AC_valsort \
 	AC_WITH_SASL AC_WITH_TLS AC_WITH_MODULES_ENABLED AC_ACI_ENABLED \
