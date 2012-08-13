@@ -901,7 +901,7 @@ tlsm_get_pin(PK11SlotInfo *slot, PRBool retry, tlsm_ctx *ctx)
 	 * capability the server would have to be started in foreground mode
 	 * if using an encrypted key.
 	 */
-	if ( ctx->tc_pin_file ) {
+	if ( ctx && ctx->tc_pin_file ) {
 		pwdstr = tlsm_get_pin_from_file( token_name, ctx );
 		if (retry && pwdstr != NULL)
 			return NULL;
@@ -988,6 +988,38 @@ tlsm_cert_is_self_issued( CERTCertificate *cert )
 									   &cert->derSubject ) &&
 		cert->derSubject.len > 0;
 	return is_self_issued;
+}
+
+/*
+ * The private key for used certificate can be already unlocked by other
+ * thread or library. Find the unlocked key if possible.
+ */
+static SECKEYPrivateKey *
+tlsm_find_unlocked_key(tlsm_ctx *ctx, void *pin_arg)
+{
+	SECKEYPrivateKey *result = NULL;
+
+	PK11SlotList *slots = PK11_GetAllSlotsForCert(ctx->tc_certificate, NULL);
+	if (!slots) {
+		PRErrorCode errcode = PR_GetError();
+		Debug(LDAP_DEBUG_ANY,
+				"TLS: cannot get all slots for certificate '%s' (error %d: %s)",
+				tlsm_ctx_subject_name(ctx), errcode,
+				PR_ErrorToString(errcode, PR_LANGUAGE_I_DEFAULT));
+		return result;
+	}
+
+	PK11SlotListElement *le;
+	for (le = slots->head; le && !result; le = le->next) {
+		PK11SlotInfo *slot = le->slot;
+		if (!PK11_IsLoggedIn(slot, NULL))
+			continue;
+
+		result = PK11_FindKeyByDERCert(slot, ctx->tc_certificate, pin_arg);
+	}
+
+	PK11_FreeSlotList(slots);
+	return result;
 }
 
 static SECStatus
@@ -1303,7 +1335,19 @@ tlsm_ctx_load_private_key(tlsm_ctx *ctx)
 
 	void *pin_arg = SSL_RevealPinArg(ctx->tc_model);
 
-	ctx->tc_private_key = PK11_FindKeyByAnyCert(ctx->tc_certificate, pin_arg);
+	SECKEYPrivateKey *unlocked_key = tlsm_find_unlocked_key(ctx, pin_arg);
+	Debug(LDAP_DEBUG_ANY,
+			"TLS: %s unlocked certificate for certificate '%s'.\n",
+			unlocked_key ? "found" : "no", tlsm_ctx_subject_name(ctx), 0);
+
+	/* prefer unlocked key, then key from opened certdb, then any other */
+	if (unlocked_key)
+		ctx->tc_private_key = unlocked_key;
+	else if (ctx->tc_certdb_slot)
+		ctx->tc_private_key = PK11_FindKeyByDERCert(ctx->tc_certdb_slot, ctx->tc_certificate, pin_arg);
+	else
+		ctx->tc_private_key = PK11_FindKeyByAnyCert(ctx->tc_certificate, pin_arg);
+
 	if (!ctx->tc_private_key) {
 		PRErrorCode errcode = PR_GetError();
 		Debug(LDAP_DEBUG_ANY,
