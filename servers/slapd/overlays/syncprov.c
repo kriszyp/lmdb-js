@@ -41,7 +41,7 @@ typedef struct modinst {
 typedef struct modtarget {
 	struct modinst *mt_mods;
 	struct modinst *mt_tail;
-	Operation *mt_op;
+	struct berval mt_dn;
 	ldap_pvt_thread_mutex_t mt_mutex;
 } modtarget;
 
@@ -375,10 +375,10 @@ sp_avl_cmp( const void *c1, const void *c2 )
 	int rc;
 
 	m1 = c1; m2 = c2;
-	rc = m1->mt_op->o_req_ndn.bv_len - m2->mt_op->o_req_ndn.bv_len;
+	rc = m1->mt_dn.bv_len - m2->mt_dn.bv_len;
 
 	if ( rc ) return rc;
-	return ber_bvcmp( &m1->mt_op->o_req_ndn, &m2->mt_op->o_req_ndn );
+	return ber_bvcmp( &m1->mt_dn, &m2->mt_dn );
 }
 
 /* syncprov_findbase:
@@ -1398,7 +1398,6 @@ syncprov_op_cleanup( Operation *op, SlapReply *rs )
 		mt->mt_mods = mt->mt_mods->mi_next;
 		/* If there are more, promote the next one */
 		if ( mt->mt_mods ) {
-			mt->mt_op = mt->mt_mods->mi_op;
 			ldap_pvt_thread_mutex_unlock( &mt->mt_mutex );
 		} else {
 			ldap_pvt_thread_mutex_unlock( &mt->mt_mutex );
@@ -1406,6 +1405,7 @@ syncprov_op_cleanup( Operation *op, SlapReply *rs )
 			avl_delete( &si->si_mods, mt, sp_avl_cmp );
 			ldap_pvt_thread_mutex_unlock( &si->si_mods_mutex );
 			ldap_pvt_thread_mutex_destroy( &mt->mt_mutex );
+			ch_free( mt->mt_dn.bv_val );
 			ch_free( mt );
 		}
 	}
@@ -2081,7 +2081,7 @@ syncprov_op_mod( Operation *op, SlapReply *rs )
 		mi->mi_op = op;
 
 		/* See if we're already modifying this entry... */
-		mtdummy.mt_op = op;
+		mtdummy.mt_dn = op->o_req_ndn;
 		ldap_pvt_thread_mutex_lock( &si->si_mods_mutex );
 		mt = avl_find( si->si_mods, &mtdummy, sp_avl_cmp );
 		if ( mt ) {
@@ -2133,7 +2133,7 @@ syncprov_op_mod( Operation *op, SlapReply *rs )
 			mt = ch_malloc( sizeof(modtarget) );
 			mt->mt_mods = mi;
 			mt->mt_tail = mi;
-			mt->mt_op = mi->mi_op;
+			ber_dupbv( &mt->mt_dn, &mi->mi_op->o_req_ndn );
 			ldap_pvt_thread_mutex_init( &mt->mt_mutex );
 			avl_insert( &si->si_mods, mt, sp_avl_cmp, avl_dup_error );
 			ldap_pvt_thread_mutex_unlock( &si->si_mods_mutex );
