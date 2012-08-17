@@ -1962,6 +1962,7 @@ drop:
 				}
 			}
 			slap_mods_free( newmods, 1 );
+			rx->rx_mods = oldmods;
 		}
 	}
 	return LDAP_SUCCESS;
