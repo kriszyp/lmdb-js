@@ -960,6 +960,7 @@ done:
 		e->e_id = NOID;
 	}
 	txn = NULL;
+	idcursor = NULL;
 
 	return e->e_id;
 }
