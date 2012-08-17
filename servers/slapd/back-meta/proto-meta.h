@@ -47,6 +47,8 @@ extern BI_op_abandon		meta_back_abandon;
 
 extern BI_connection_destroy	meta_back_conn_destroy;
 
+int meta_back_init_cf( BackendInfo *bi );
+
 LDAP_END_DECL
 
 #endif /* PROTO_META_H */
