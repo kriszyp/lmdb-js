@@ -250,6 +250,7 @@ static OidRec OidMacros[] = {
  * OLcfg{Bk|Db}{Oc|At}:10		-> back-shell
  * OLcfg{Bk|Db}{Oc|At}:11		-> back-perl
  * OLcfg{Bk|Db}{Oc|At}:12		-> back-mdb
+ * OLcfg{Bk|Db}{Oc|At}:13		-> back-meta
  */
 
 /*

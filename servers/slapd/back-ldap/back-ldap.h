@@ -452,9 +452,9 @@ typedef struct ldap_extra_t {
 	int (*proxy_authz_ctrl)( Operation *op, SlapReply *rs, struct berval *bound_ndn,
 		int version, slap_idassert_t *si, LDAPControl	*ctrl );
 	int (*controls_free)( Operation *op, SlapReply *rs, LDAPControl ***pctrls );
-	int (*idassert_authzfrom_parse_cf)( const char *fname, int lineno, const char *arg, slap_idassert_t *si );
+	int (*idassert_authzfrom_parse)( struct config_args_s *ca, slap_idassert_t *si );
 	int (*idassert_passthru_parse_cf)( const char *fname, int lineno, const char *arg, slap_idassert_t *si );
-	int (*idassert_parse_cf)( const char *fname, int lineno, int argc, char *argv[], slap_idassert_t *si );
+	int (*idassert_parse)( struct config_args_s *ca, slap_idassert_t *si );
 	void (*retry_info_destroy)( slap_retry_info_t *ri );
 	int (*retry_info_parse)( char *in, slap_retry_info_t *ri, char *buf, ber_len_t buflen );
 	int (*retry_info_unparse)( slap_retry_info_t *ri, struct berval *bvout );

@@ -124,14 +124,6 @@ ldap_back_map_attrs(
 	int remap,
 	char ***mapped_attrs );
 
-extern int ldap_back_map_config(
-	struct ldapmap	*oc_map,
-	struct ldapmap	*at_map,
-	const char	*fname,
-	int		lineno,
-	int		argc,
-	char		**argv );
-
 extern int
 ldap_back_filter_map_rewrite(
 	dncookie	*dc,

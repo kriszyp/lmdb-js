@@ -640,7 +640,7 @@ slap_retry_info_destroy(
 	ri->ri_num = NULL;
 }
 
-static int
+int
 slap_idassert_authzfrom_parse( ConfigArgs *c, slap_idassert_t *si )
 {
 	struct berval	bv;
@@ -759,7 +759,7 @@ slap_idassert_passthru_parse( ConfigArgs *c, slap_idassert_t *si )
 	return 0;
 }
 
-static int
+int
 slap_idassert_parse( ConfigArgs *c, slap_idassert_t *si )
 {
 	int		i;
@@ -911,22 +911,6 @@ slap_idassert_parse( ConfigArgs *c, slap_idassert_t *si )
 
 /* NOTE: temporary, until back-meta is ported to back-config */
 int
-slap_idassert_authzfrom_parse_cf( const char *fname, int lineno, const char *arg, slap_idassert_t *si )
-{
-	ConfigArgs	c = { 0 };
-	char		*argv[ 3 ];
-
-	snprintf( c.log, sizeof( c.log ), "%s: line %d", fname, lineno );
-	c.argc = 2;
-	c.argv = argv;
-	argv[ 0 ] = "idassert-authzFrom";
-	argv[ 1 ] = (char *)arg;
-	argv[ 2 ] = NULL;
-
-	return slap_idassert_authzfrom_parse( &c, si );
-}
-
-int
 slap_idassert_passthru_parse_cf( const char *fname, int lineno, const char *arg, slap_idassert_t *si )
 {
 	ConfigArgs	c = { 0 };
@@ -940,18 +924,6 @@ slap_idassert_passthru_parse_cf( const char *fname, int lineno, const char *arg,
 	argv[ 2 ] = NULL;
 
 	return slap_idassert_passthru_parse( &c, si );
-}
-
-int
-slap_idassert_parse_cf( const char *fname, int lineno, int argc, char *argv[], slap_idassert_t *si )
-{
-	ConfigArgs	c = { 0 };
-
-	snprintf( c.log, sizeof( c.log ), "%s: line %d", fname, lineno );
-	c.argc = argc;
-	c.argv = argv;
-
-	return slap_idassert_parse( &c, si );
 }
 
 static int

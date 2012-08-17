@@ -101,9 +101,9 @@ extern int slap_retry_info_parse( char *in, slap_retry_info_t *ri,
 	char *buf, ber_len_t buflen );
 extern int slap_retry_info_unparse( slap_retry_info_t *ri, struct berval *bvout );
 
-extern int slap_idassert_authzfrom_parse_cf( const char *fname, int lineno, const char *arg, slap_idassert_t *si );
+extern int slap_idassert_authzfrom_parse( struct config_args_s *ca, slap_idassert_t *si );
 extern int slap_idassert_passthru_parse_cf( const char *fname, int lineno, const char *arg, slap_idassert_t *si );
-extern int slap_idassert_parse_cf( const char *fname, int lineno, int argc, char *argv[], slap_idassert_t *si );
+extern int slap_idassert_parse( struct config_args_s *ca, slap_idassert_t *si );
 
 extern int chain_initialize( void );
 extern int pbind_initialize( void );
