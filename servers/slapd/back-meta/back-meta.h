@@ -69,12 +69,14 @@ struct ldaprwmap {
 	 * will be disabled */
 	BerVarray rwm_suffix_massage;
 #endif /* !ENABLE_REWRITE */
+	BerVarray rwm_bva_rewrite;
 
 	/*
 	 * Attribute/objectClass mapping
 	 */
 	struct ldapmap rwm_oc;
 	struct ldapmap rwm_at;
+	BerVarray rwm_bva_map;
 };
 
 /* Whatever context ldap_back_dn_massage needs... */
@@ -265,8 +267,8 @@ typedef struct metasubtree_t {
 	union {
 		struct berval msu_dn;
 		struct {
+			struct berval msr_regex_pattern;
 			regex_t msr_regex;
-			char *msr_regex_pattern;
 		} msu_regex;
 	} ms_un;
 #define ms_dn ms_un.msu_dn
@@ -287,6 +289,11 @@ typedef struct metacommon_t {
 	unsigned		mc_flags;
 #define	META_BACK_CMN_ISSET(mc,f)		( ( (mc)->mc_flags & (f) ) == (f) )
 #define	META_BACK_CMN_QUARANTINE(mc)		META_BACK_CMN_ISSET( (mc), LDAP_BACK_F_QUARANTINE )
+#define	META_BACK_CMN_CHASE_REFERRALS(mc)	META_BACK_CMN_ISSET( (mc), LDAP_BACK_F_CHASE_REFERRALS )
+#define	META_BACK_CMN_NOREFS(mc)		META_BACK_CMN_ISSET( (mc), LDAP_BACK_F_NOREFS )
+#define	META_BACK_CMN_NOUNDEFFILTER(mc)		META_BACK_CMN_ISSET( (mc), LDAP_BACK_F_NOUNDEFFILTER )
+#define	META_BACK_CMN_SAVECRED(mc)		META_BACK_CMN_ISSET( (mc), LDAP_BACK_F_SAVECRED )
+#define	META_BACK_CMN_ST_REQUEST(mc)		META_BACK_CMN_ISSET( (mc), LDAP_BACK_F_ST_REQUEST )
 
 #ifdef SLAPD_META_CLIENT_PR
 	/*
@@ -667,6 +674,9 @@ meta_dncache_delete_entry(
 
 extern void
 meta_dncache_free( void *entry );
+
+extern void
+meta_back_map_free( struct ldapmap *lm );
 
 extern int
 meta_subtree_destroy( metasubtree_t *ms );

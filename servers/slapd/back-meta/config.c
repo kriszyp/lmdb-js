@@ -291,14 +291,16 @@ static ConfigTable metacfg[] = {
 			"SINGLE-VALUE )",
 		NULL, NULL },
 
-	{ "rewrite", "arglist", 2, 4, STRLENOF( "rewrite" ),
-		ARG_STRING|ARG_MAGIC|LDAP_BACK_CFG_REWRITE,
+	{ "rewrite", "arglist", 2, 0, STRLENOF( "rewrite" ),
+		ARG_MAGIC|LDAP_BACK_CFG_REWRITE,
 		meta_back_cf_gen, "( OLcfgDbAt:3.101 "
 			"NAME 'olcDbRewrite' "
 			"DESC 'DN rewriting rules' "
-			"SYNTAX OMsDirectoryString )",
+			"EQUALITY caseIgnoreMatch "
+			"SYNTAX OMsDirectoryString "
+			"X-ORDERED 'VALUES' )",
 		NULL, NULL },
-	{ "suffixmassage", "virtual> <real", 3, 3, 0,
+	{ "suffixmassage", "virtual> <real", 2, 3, 0,
 		ARG_MAGIC|LDAP_BACK_CFG_SUFFIXM,
 		meta_back_cf_gen, NULL, NULL, NULL },
 
@@ -307,7 +309,9 @@ static ConfigTable metacfg[] = {
 		meta_back_cf_gen, "( OLcfgDbAt:3.102 "
 			"NAME 'olcDbMap' "
 			"DESC 'Map attribute and objectclass names' "
-			"SYNTAX OMsDirectoryString )",
+			"EQUALITY caseIgnoreMatch "
+			"SYNTAX OMsDirectoryString "
+			"X-ORDERED 'VALUES' )",
 		NULL, NULL },
 
 	{ "subtree-exclude", "pattern", 2, 2, 0,
@@ -315,6 +319,7 @@ static ConfigTable metacfg[] = {
 		meta_back_cf_gen, "( OLcfgDbAt:3.103 "
 			"NAME 'olcDbSubtreeExclude' "
 			"DESC 'DN of subtree to exclude from target' "
+			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString )",
 		NULL, NULL },
 	{ "subtree-include", "pattern", 2, 2, 0,
@@ -322,6 +327,7 @@ static ConfigTable metacfg[] = {
 		meta_back_cf_gen, "( OLcfgDbAt:3.104 "
 			"NAME 'olcDbSubtreeInclude' "
 			"DESC 'DN of subtree to include in target' "
+			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString )",
 		NULL, NULL },
 	{ "default-target", "[none|<target ID>]", 1, 2, 0,
@@ -341,7 +347,7 @@ static ConfigTable metacfg[] = {
 			"SINGLE-VALUE )",
 		NULL, NULL },
 	{ "bind-timeout", "microseconds", 2, 2, 0,
-		ARG_MAGIC|LDAP_BACK_CFG_BIND_TIMEOUT,
+		ARG_MAGIC|ARG_ULONG|LDAP_BACK_CFG_BIND_TIMEOUT,
 		meta_back_cf_gen, "( OLcfgDbAt:3.107 "
 			"NAME 'olcDbBindTimeout' "
 			"DESC 'bind timeout' "
@@ -374,7 +380,7 @@ static ConfigTable metacfg[] = {
 		ARG_MAGIC|ARG_STRING|LDAP_BACK_CFG_PSEUDOROOTDN,
 		meta_back_cf_gen, NULL, NULL, NULL },
 	{ "nretries", "NEVER|forever|<number>", 2, 2, 0,
-		ARG_MAGIC|ARG_STRING|LDAP_BACK_CFG_NRETRIES,
+		ARG_MAGIC|LDAP_BACK_CFG_NRETRIES,
 		meta_back_cf_gen, "( OLcfgDbAt:3.110 "
 			"NAME 'olcDbNretries' "
 			"DESC 'retry handling' "
@@ -382,7 +388,7 @@ static ConfigTable metacfg[] = {
 			"SINGLE-VALUE )",
 		NULL, NULL },
 	{ "client-pr", "accept-unsolicited|disable|<size>", 2, 2, 0,
-		ARG_MAGIC|ARG_STRING|LDAP_BACK_CFG_CLIENT_PR,
+		ARG_MAGIC|LDAP_BACK_CFG_CLIENT_PR,
 		meta_back_cf_gen, "( OLcfgDbAt:3.111 "
 			"NAME 'olcDbClientPr' "
 			"DESC 'PagedResults handling' "
@@ -393,6 +399,7 @@ static ConfigTable metacfg[] = {
 	{ "", "", 0, 0, 0, ARG_IGNORED,
 		NULL, "( OLcfgDbAt:3.100 NAME 'olcMetaSub' "
 			"DESC 'Placeholder to name a Target entry' "
+			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString "
 			"SINGLE-VALUE X-ORDERED 'SIBLINGS' )", NULL, NULL },
 
@@ -485,6 +492,7 @@ meta_cfadd( Operation *op, SlapReply *rs, Entry *p, ConfigArgs *c )
 		bv.bv_len = snprintf( c->cr_msg, sizeof(c->cr_msg),
 			"olcMetaSub=" SLAP_X_ORDERED_FMT "uri", i );
 		c->ca_private = mi->mi_targets[i];
+		c->valx = i;
 		config_build_entry( op, rs, p->e_private, c,
 			&bv, &metaocs[1], NULL );
 	}
@@ -493,22 +501,14 @@ meta_cfadd( Operation *op, SlapReply *rs, Entry *p, ConfigArgs *c )
 }
 
 static int
-meta_back_new_target(
-	metatarget_t	**mtp )
+meta_rwi_init( struct rewrite_info **rwm_rw )
 {
 	char			*rargv[ 3 ];
-	metatarget_t		*mt;
 
-	*mtp = NULL;
-
-	mt = ch_calloc( sizeof( metatarget_t ), 1 );
-
-	mt->mt_rwmap.rwm_rw = rewrite_info_init( REWRITE_MODE_USE_DEFAULT );
-	if ( mt->mt_rwmap.rwm_rw == NULL ) {
-		ch_free( mt );
+	*rwm_rw = rewrite_info_init( REWRITE_MODE_USE_DEFAULT );
+	if ( *rwm_rw == NULL ) {
 		return -1;
 	}
-
 	/*
 	 * the filter rewrite as a string must be disabled
 	 * by default; it can be re-enabled by adding rules;
@@ -517,12 +517,30 @@ meta_back_new_target(
 	rargv[ 0 ] = "rewriteContext";
 	rargv[ 1 ] = "searchFilter";
 	rargv[ 2 ] = NULL;
-	rewrite_parse( mt->mt_rwmap.rwm_rw, "<suffix massage>", 1, 2, rargv );
+	rewrite_parse( *rwm_rw, "<suffix massage>", 1, 2, rargv );
 
 	rargv[ 0 ] = "rewriteContext";
 	rargv[ 1 ] = "default";
 	rargv[ 2 ] = NULL;
-	rewrite_parse( mt->mt_rwmap.rwm_rw, "<suffix massage>", 1, 2, rargv );
+	rewrite_parse( *rwm_rw, "<suffix massage>", 1, 2, rargv );
+
+	return 0;
+}
+
+static int
+meta_back_new_target(
+	metatarget_t	**mtp )
+{
+	metatarget_t		*mt;
+
+	*mtp = NULL;
+
+	mt = ch_calloc( sizeof( metatarget_t ), 1 );
+
+	if ( meta_rwi_init( &mt->mt_rwmap.rwm_rw )) {
+		ch_free( mt );
+		return -1;
+	}
 
 	ldap_pvt_thread_mutex_init( &mt->mt_uri_mutex );
 
@@ -535,6 +553,129 @@ meta_back_new_target(
 
 	*mtp = mt;
 
+	return 0;
+}
+
+/* Validation for suffixmassage_config */
+static int
+meta_suffixm_config(
+	ConfigArgs *c,
+	metatarget_t *mt
+)
+{
+	BackendDB 	*tmp_bd;
+	struct berval	dn, nvnc, pvnc, nrnc, prnc;
+	int j, rc;
+
+	/*
+	 * syntax:
+	 *
+	 * 	suffixmassage <suffix> <massaged suffix>
+	 *
+	 * the <suffix> field must be defined as a valid suffix
+	 * (or suffixAlias?) for the current database;
+	 * the <massaged suffix> shouldn't have already been
+	 * defined as a valid suffix or suffixAlias for the
+	 * current server
+	 */
+
+	ber_str2bv( c->argv[ 1 ], 0, 0, &dn );
+	if ( dnPrettyNormal( NULL, &dn, &pvnc, &nvnc, NULL ) != LDAP_SUCCESS ) {
+		snprintf( c->cr_msg, sizeof( c->cr_msg ),
+			"suffix \"%s\" is invalid",
+			c->argv[1] );
+		Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
+		return 1;
+	}
+
+	for ( j = 0; !BER_BVISNULL( &c->be->be_nsuffix[ j ] ); j++ ) {
+		if ( dnIsSuffix( &nvnc, &c->be->be_nsuffix[ 0 ] ) ) {
+			break;
+		}
+	}
+
+	if ( BER_BVISNULL( &c->be->be_nsuffix[ j ] ) ) {
+		snprintf( c->cr_msg, sizeof( c->cr_msg ),
+			"suffix \"%s\" must be within the database naming context",
+			c->argv[1] );
+		Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
+		free( pvnc.bv_val );
+		free( nvnc.bv_val );
+		return 1;
+	}
+
+	ber_str2bv( c->argv[ 2 ], 0, 0, &dn );
+	if ( dnPrettyNormal( NULL, &dn, &prnc, &nrnc, NULL ) != LDAP_SUCCESS ) {
+		snprintf( c->cr_msg, sizeof( c->cr_msg ),
+			"massaged suffix \"%s\" is invalid",
+			c->argv[2] );
+		Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
+		free( pvnc.bv_val );
+		free( nvnc.bv_val );
+		return 1;
+	}
+
+	tmp_bd = select_backend( &nrnc, 0 );
+	if ( tmp_bd != NULL && tmp_bd->be_private == c->be->be_private ) {
+		Debug( LDAP_DEBUG_ANY,
+	"%s: warning: <massaged suffix> \"%s\" resolves to this database, in "
+	"\"suffixMassage <suffix> <massaged suffix>\"\n",
+			c->log, prnc.bv_val, 0 );
+	}
+
+	/*
+	 * The suffix massaging is emulated by means of the
+	 * rewrite capabilities
+	 */
+	rc = suffix_massage_config( mt->mt_rwmap.rwm_rw,
+			&pvnc, &nvnc, &prnc, &nrnc );
+
+	free( pvnc.bv_val );
+	free( nvnc.bv_val );
+	free( prnc.bv_val );
+	free( nrnc.bv_val );
+
+	return rc;
+}
+
+static int
+slap_bv_x_ordered_unparse( BerVarray in, BerVarray *out )
+{
+	int		i;
+	BerVarray	bva = NULL;
+	char		ibuf[32], *ptr;
+	struct berval	idx;
+
+	assert( in != NULL );
+
+	for ( i = 0; !BER_BVISNULL( &in[i] ); i++ )
+		/* count'em */ ;
+
+	if ( i == 0 ) {
+		return 1;
+	}
+
+	idx.bv_val = ibuf;
+
+	bva = ch_malloc( ( i + 1 ) * sizeof(struct berval) );
+	BER_BVZERO( &bva[ 0 ] );
+
+	for ( i = 0; !BER_BVISNULL( &in[i] ); i++ ) {
+		idx.bv_len = snprintf( idx.bv_val, sizeof( ibuf ), SLAP_X_ORDERED_FMT, i );
+		if ( idx.bv_len >= sizeof( ibuf ) ) {
+			ber_bvarray_free( bva );
+			return 1;
+		}
+
+		bva[i].bv_len = idx.bv_len + in[i].bv_len;
+		bva[i].bv_val = ch_malloc( bva[i].bv_len + 1 );
+		ptr = lutil_strcopy( bva[i].bv_val, ibuf );
+		ptr = lutil_strcopy( ptr, in[i].bv_val );
+		*ptr = '\0';
+		BER_BVZERO( &bva[ i + 1 ] );
+	}
+
+	*out = bva;
 	return 0;
 }
 
@@ -553,7 +694,7 @@ meta_subtree_destroy( metasubtree_t *ms )
 
 	case META_ST_REGEX:
 		regfree( &ms->ms_regex );
-		ch_free( ms->ms_regex_pattern );
+		ber_memfree( ms->ms_regex_pattern.bv_val );
 		break;
 
 	default:
@@ -562,6 +703,46 @@ meta_subtree_destroy( metasubtree_t *ms )
 
 	ch_free( ms );
 
+	return 0;
+}
+
+static struct berval st_styles[] = {
+	BER_BVC("subtree"),
+	BER_BVC("children"),
+	BER_BVC("regex")
+};
+
+static int
+meta_subtree_unparse(
+	ConfigArgs *c,
+	metatarget_t *mt )
+{
+	metasubtree_t	*ms;
+	struct berval bv, *style;
+
+	if ( !mt->mt_subtree )
+		return 1;
+
+	/* can only be one of exclude or include */
+	if (( c->type == LDAP_BACK_CFG_SUBTREE_EX ) ^ mt->mt_subtree_exclude )
+		return 1;
+
+	bv.bv_val = c->cr_msg;
+	for ( ms=mt->mt_subtree; ms; ms=ms->ms_next ) {
+		if (ms->ms_type == META_ST_SUBTREE)
+			style = &st_styles[0];
+		else if ( ms->ms_type == META_ST_SUBORDINATE )
+			style = &st_styles[1];
+		else if ( ms->ms_type == META_ST_REGEX )
+			style = &st_styles[2];
+		else {
+			assert(0);
+			continue;
+		}
+		bv.bv_len = snprintf( c->cr_msg, sizeof(c->cr_msg),
+			"dn.%s:%s", style->bv_val, ms->ms_dn.bv_val );
+		value_add_one( &c->rvalue_vals, &bv );
+	}
 	return 0;
 }
 
@@ -681,7 +862,7 @@ meta_subtree_config(
 			ch_free( ms );
 			return 1;
 		}
-		ms->ms_regex_pattern = ch_strdup( pattern );
+		ber_str2bv( pattern, 0, 1, &ms->ms_regex_pattern );
 		} break;
 	}
 
@@ -741,7 +922,7 @@ meta_subtree_config(
 					if ( regexec( &(*msp)->ms_regex, ms->ms_dn.bv_val, 0, NULL, 0 ) == 0 ) {
 						Debug( LDAP_DEBUG_CONFIG,
 							"%s: previous rule \"dn.regex:%s\" may contain rule \"dn.subtree:%s\"\n",
-							c->log, (*msp)->ms_regex_pattern, ms->ms_dn.bv_val );
+							c->log, (*msp)->ms_regex_pattern.bv_val, ms->ms_dn.bv_val );
 					}
 					break;
 				}
@@ -795,7 +976,7 @@ meta_subtree_config(
 					if ( regexec( &(*msp)->ms_regex, ms->ms_dn.bv_val, 0, NULL, 0 ) == 0 ) {
 						Debug( LDAP_DEBUG_CONFIG,
 							"%s: previous rule \"dn.regex:%s\" may contain rule \"dn.subtree:%s\"\n",
-							c->log, (*msp)->ms_regex_pattern, ms->ms_dn.bv_val );
+							c->log, (*msp)->ms_regex_pattern.bv_val, ms->ms_dn.bv_val );
 					}
 					break;
 				}
@@ -808,7 +989,7 @@ meta_subtree_config(
 					if ( regexec( &ms->ms_regex, (*msp)->ms_dn.bv_val, 0, NULL, 0 ) == 0 ) {
 						Debug( LDAP_DEBUG_CONFIG,
 							"%s: previous rule \"dn.subtree:%s\" may be contained in rule \"dn.regex:%s\"\n",
-							c->log, (*msp)->ms_dn.bv_val, ms->ms_regex_pattern );
+							c->log, (*msp)->ms_dn.bv_val, ms->ms_regex_pattern.bv_val );
 					}
 					break;
 
@@ -902,19 +1083,493 @@ meta_back_cf_gen( ConfigArgs *c )
 		if ( !mi )
 			return 1;
 
-		if ( c->type >= LDAP_BACK_CFG_LAST_BASE ) {
+		if ( c->table == Cft_Database ) {
+			mt = NULL;
+			mc = &mi->mi_mc;
+		} else {
 			mt = c->ca_private;
-			if ( mt )
-				mc = &mt->mt_mc;
-			else
-				mc = &mi->mi_mc;
+			mc = &mt->mt_mc;
 		}
 
 		switch( c->type ) {
-		case LDAP_BACK_CFG_URI:
-			ber_str2bv( mt->mt_uri, 0, 0, &bv );
+		/* Base attrs */
+		case LDAP_BACK_CFG_CONN_TTL:
+			if ( mi->mi_conn_ttl == 0 ) {
+				return 1;
+			} else {
+				char	buf[ SLAP_TEXT_BUFLEN ];
+
+				lutil_unparse_time( buf, sizeof( buf ), mi->mi_conn_ttl );
+				ber_str2bv( buf, 0, 0, &bv );
+				value_add_one( &c->rvalue_vals, &bv );
+			}
+			break;
+
+		case LDAP_BACK_CFG_DNCACHE_TTL:
+			if ( mi->mi_cache.ttl == META_DNCACHE_DISABLED ) {
+				return 1;
+			} else if ( mi->mi_cache.ttl == META_DNCACHE_FOREVER ) {
+				BER_BVSTR( &bv, "forever" );
+			} else {
+				char	buf[ SLAP_TEXT_BUFLEN ];
+
+				lutil_unparse_time( buf, sizeof( buf ), mi->mi_cache.ttl );
+				ber_str2bv( buf, 0, 0, &bv );
+			}
+			value_add_one( &c->rvalue_vals, &bv );
+			break;
+
+		case LDAP_BACK_CFG_IDLE_TIMEOUT:
+			if ( mi->mi_idle_timeout == 0 ) {
+				return 1;
+			} else {
+				char	buf[ SLAP_TEXT_BUFLEN ];
+
+				lutil_unparse_time( buf, sizeof( buf ), mi->mi_idle_timeout );
+				ber_str2bv( buf, 0, 0, &bv );
+				value_add_one( &c->rvalue_vals, &bv );
+			}
+			break;
+
+		case LDAP_BACK_CFG_ONERR:
+			enum_to_verb( onerr_mode, mi->mi_flags & META_BACK_F_ONERR_MASK, &bv );
+			if ( BER_BVISNULL( &bv )) {
+				rc = 1;
+			} else {
+				value_add_one( &c->rvalue_vals, &bv );
+			}
+			break;
+
+		case LDAP_BACK_CFG_PSEUDOROOT_BIND_DEFER:
+			c->value_int = META_BACK_DEFER_ROOTDN_BIND( mi );
+			break;
+
+		case LDAP_BACK_CFG_SINGLECONN:
+			c->value_int = LDAP_BACK_SINGLECONN( mi );
+			break;
+
+		case LDAP_BACK_CFG_USETEMP:
+			c->value_int = LDAP_BACK_USE_TEMPORARIES( mi );
+			break;
+
+		case LDAP_BACK_CFG_CONNPOOLMAX:
+			c->value_int = mi->mi_conn_priv_max;
+			break;
+
+		/* common attrs */
+		case LDAP_BACK_CFG_BIND_TIMEOUT:
+			if ( mc->mc_bind_timeout.tv_sec == 0 &&
+				mc->mc_bind_timeout.tv_usec == 0 ) {
+				return 1;
+			} else {
+				c->value_ulong = mc->mc_bind_timeout.tv_sec * 1000000UL +
+					mc->mc_bind_timeout.tv_usec;
+			}
+			break;
+
+		case LDAP_BACK_CFG_CANCEL: {
+			slap_mask_t	mask = LDAP_BACK_F_CANCEL_MASK2;
+
+			if ( mt && META_BACK_TGT_CANCEL_DISCOVER( mt ) ) {
+				mask &= ~LDAP_BACK_F_CANCEL_EXOP;
+			}
+			enum_to_verb( cancel_mode, (mc->mc_flags & mask), &bv );
+			if ( BER_BVISNULL( &bv ) ) {
+				/* there's something wrong... */
+				assert( 0 );
+				rc = 1;
+
+			} else {
+				value_add_one( &c->rvalue_vals, &bv );
+			}
+			} break;
+
+		case LDAP_BACK_CFG_CHASE:
+			c->value_int = META_BACK_CMN_CHASE_REFERRALS(mc);
+			break;
+
+#ifdef SLAPD_META_CLIENT_PR
+		case LDAP_BACK_CFG_CLIENT_PR:
+			if ( mc->mc_ps == META_CLIENT_PR_DISABLE ) {
+				return 1;
+			} else if ( mc->mc_ps == META_CLIENT_PR_ACCEPT_UNSOLICITED ) {
+				BER_BVSTR( &bv, "accept-unsolicited" );
+			} else {
+				bv.bv_len = snprintf( c->cr_msg, sizeof(c->cr_msg), "%d", mc->mc_ps );
+				bv.bv_val = c->cr_msg;
+			}
+			value_add_one( &c->rvalue_vals, &bv );
+			break;
+#endif /* SLAPD_META_CLIENT_PR */
+
+		case LDAP_BACK_CFG_DEFAULT_T:
+			if ( mt || mi->mi_defaulttarget == META_DEFAULT_TARGET_NONE )
+				return 1;
+			bv.bv_len = snprintf( c->cr_msg, sizeof(c->cr_msg), "%d", mi->mi_defaulttarget );
+			bv.bv_val = c->cr_msg;
+			value_add_one( &c->rvalue_vals, &bv );
+			break;
+
+		case LDAP_BACK_CFG_NETWORK_TIMEOUT:
+			if ( mc->mc_network_timeout == 0 ) {
+				return 1;
+			}
+			bv.bv_len = snprintf( c->cr_msg, sizeof(c->cr_msg), "%ld",
+				mc->mc_network_timeout );
+			bv.bv_val = c->cr_msg;
+			value_add_one( &c->rvalue_vals, &bv );
+			break;
+
+		case LDAP_BACK_CFG_NOREFS:
+			c->value_int = META_BACK_CMN_NOREFS(mc);
+			break;
+
+		case LDAP_BACK_CFG_NOUNDEFFILTER:
+			c->value_int = META_BACK_CMN_NOUNDEFFILTER(mc);
+			break;
+
+		case LDAP_BACK_CFG_NRETRIES:
+			if ( mc->mc_nretries == META_RETRY_FOREVER ) {
+				BER_BVSTR( &bv, "forever" );
+			} else if ( mc->mc_nretries == META_RETRY_NEVER ) {
+				BER_BVSTR( &bv, "never" );
+			} else {
+				bv.bv_len = snprintf( c->cr_msg, sizeof(c->cr_msg), "%d",
+					mc->mc_nretries );
+				bv.bv_val = c->cr_msg;
+			}
+			value_add_one( &c->rvalue_vals, &bv );
+			break;
+
+		case LDAP_BACK_CFG_QUARANTINE:
+			if ( !META_BACK_CMN_QUARANTINE( mc )) {
+				rc = 1;
+				break;
+			}
+			rc = mi->mi_ldap_extra->retry_info_unparse( &mc->mc_quarantine, &bv );
+			if ( rc == 0 ) {
+				ber_bvarray_add( &c->rvalue_vals, &bv );
+			}
+			break;
+
+		case LDAP_BACK_CFG_REBIND:
+			c->value_int = META_BACK_CMN_SAVECRED(mc);
+			break;
+
+		case LDAP_BACK_CFG_TIMEOUT:
+			for ( i = 0; i < SLAP_OP_LAST; i++ ) {
+				if ( mc->mc_timeout[ i ] != 0 ) {
+					break;
+				}
+			}
+
+			if ( i == SLAP_OP_LAST ) {
+				return 1;
+			}
+
+			BER_BVZERO( &bv );
+			slap_cf_aux_table_unparse( mc->mc_timeout, &bv, timeout_table );
+
+			if ( BER_BVISNULL( &bv ) ) {
+				return 1;
+			}
+
+			for ( i = 0; isspace( (unsigned char) bv.bv_val[ i ] ); i++ )
+				/* count spaces */ ;
+
+			if ( i ) {
+				bv.bv_len -= i;
+				AC_MEMCPY( bv.bv_val, &bv.bv_val[ i ],
+					bv.bv_len + 1 );
+			}
+
 			ber_bvarray_add( &c->rvalue_vals, &bv );
 			break;
+
+		case LDAP_BACK_CFG_VERSION:
+			if ( mc->mc_version == 0 )
+				return 1;
+			c->value_int = mc->mc_version;
+			break;
+
+#ifdef SLAP_CONTROL_X_SESSION_TRACKING
+		case LDAP_BACK_CFG_ST_REQUEST:
+			c->value_int = META_BACK_CMN_ST_REQUEST( mc );
+			break;
+#endif /* SLAP_CONTROL_X_SESSION_TRACKING */
+
+		case LDAP_BACK_CFG_T_F:
+			enum_to_verb( t_f_mode, (mc->mc_flags & LDAP_BACK_F_T_F_MASK2), &bv );
+			if ( BER_BVISNULL( &bv ) ) {
+				/* there's something wrong... */
+				assert( 0 );
+				rc = 1;
+
+			} else {
+				value_add_one( &c->rvalue_vals, &bv );
+			}
+			break;
+
+		case LDAP_BACK_CFG_TLS: {
+			struct berval bc = BER_BVNULL, bv2;
+
+			if (( mc->mc_flags & LDAP_BACK_F_TLS_MASK ) == LDAP_BACK_F_NONE ) {
+				rc = 1;
+				break;
+			}
+			enum_to_verb( tls_mode, ( mc->mc_flags & LDAP_BACK_F_TLS_MASK ), &bv );
+			assert( !BER_BVISNULL( &bv ) );
+
+			if ( mt ) {
+				bindconf_tls_unparse( &mt->mt_tls, &bc );
+			}
+
+			if ( !BER_BVISEMPTY( &bc )) {
+				bv2.bv_len = bv.bv_len + bc.bv_len + 1;
+				bv2.bv_val = ch_malloc( bv2.bv_len + 1 );
+				strcpy( bv2.bv_val, bv.bv_val );
+				bv2.bv_val[bv.bv_len] = ' ';
+				strcpy( &bv2.bv_val[bv.bv_len + 1], bc.bv_val );
+				ber_memfree( bc.bv_val );
+				ber_bvarray_add( &c->rvalue_vals, &bv2 );
+			} else {
+				value_add_one( &c->rvalue_vals, &bv );
+			}
+			} break;
+
+		/* target attrs */
+		case LDAP_BACK_CFG_URI: {
+			char *p2, *p1 = strchr( mt->mt_uri, ' ' );
+			bv.bv_len = strlen( mt->mt_uri ) + 1 + mt->mt_psuffix.bv_len;
+			bv.bv_val = ch_malloc( bv.bv_len + 1 );
+			if ( p1 ) {
+				p2 = lutil_strncopy( bv.bv_val, mt->mt_uri, p1 - mt->mt_uri );
+			} else {
+				p2 = lutil_strcopy( bv.bv_val, mt->mt_uri );
+			}
+			*p2++ = '/';
+			p2 = lutil_strcopy( p2, mt->mt_psuffix.bv_val );
+			if ( p1 ) {
+				strcpy( p2, p1 );
+			}
+			value_add_one( &c->rvalue_vals, &bv );
+			} break;
+
+		case LDAP_BACK_CFG_ACL_AUTHCDN:
+		case LDAP_BACK_CFG_ACL_PASSWD:
+			/* FIXME no point here, there is no code implementing
+			 * their features. Was this supposed to implement
+			 * acl-bind like back-ldap?
+			 */
+			rc = 1;
+			break;
+
+		case LDAP_BACK_CFG_IDASSERT_AUTHZFROM: {
+			BerVarray	*bvp;
+			int		i;
+			struct berval	bv = BER_BVNULL;
+			char		buf[SLAP_TEXT_BUFLEN];
+
+			bvp = &mt->mt_idassert_authz;
+			if ( *bvp == NULL ) {
+				if ( mt->mt_idassert_flags & LDAP_BACK_AUTH_AUTHZ_ALL )
+				{
+					BER_BVSTR( &bv, "*" );
+					value_add_one( &c->rvalue_vals, &bv );
+
+				} else {
+					rc = 1;
+				}
+				break;
+			}
+
+			for ( i = 0; !BER_BVISNULL( &((*bvp)[ i ]) ); i++ ) {
+				char *ptr;
+				int len = snprintf( buf, sizeof( buf ), SLAP_X_ORDERED_FMT, i );
+				bv.bv_len = ((*bvp)[ i ]).bv_len + len;
+				bv.bv_val = ber_memrealloc( bv.bv_val, bv.bv_len + 1 );
+				ptr = bv.bv_val;
+				ptr = lutil_strcopy( ptr, buf );
+				ptr = lutil_strncopy( ptr, ((*bvp)[ i ]).bv_val, ((*bvp)[ i ]).bv_len );
+				value_add_one( &c->rvalue_vals, &bv );
+			}
+			if ( bv.bv_val ) {
+				ber_memfree( bv.bv_val );
+			}
+			break;
+		}
+
+		case LDAP_BACK_CFG_IDASSERT_BIND: {
+			int		i;
+			struct berval	bc = BER_BVNULL;
+			char		*ptr;
+
+			if ( mt->mt_idassert_authmethod == LDAP_AUTH_NONE ) {
+				return 1;
+			} else {
+				ber_len_t	len;
+
+				switch ( mt->mt_idassert_mode ) {
+				case LDAP_BACK_IDASSERT_OTHERID:
+				case LDAP_BACK_IDASSERT_OTHERDN:
+					break;
+
+				default: {
+					struct berval	mode = BER_BVNULL;
+
+					enum_to_verb( idassert_mode, mt->mt_idassert_mode, &mode );
+					if ( BER_BVISNULL( &mode ) ) {
+						/* there's something wrong... */
+						assert( 0 );
+						rc = 1;
+
+					} else {
+						bv.bv_len = STRLENOF( "mode=" ) + mode.bv_len;
+						bv.bv_val = ch_malloc( bv.bv_len + 1 );
+
+						ptr = lutil_strcopy( bv.bv_val, "mode=" );
+						ptr = lutil_strcopy( ptr, mode.bv_val );
+					}
+					break;
+				}
+				}
+
+				if ( mt->mt_idassert_flags & LDAP_BACK_AUTH_NATIVE_AUTHZ ) {
+					len = bv.bv_len + STRLENOF( "authz=native" );
+
+					if ( !BER_BVISEMPTY( &bv ) ) {
+						len += STRLENOF( " " );
+					}
+
+					bv.bv_val = ch_realloc( bv.bv_val, len + 1 );
+
+					ptr = &bv.bv_val[ bv.bv_len ];
+
+					if ( !BER_BVISEMPTY( &bv ) ) {
+						ptr = lutil_strcopy( ptr, " " );
+					}
+
+					(void)lutil_strcopy( ptr, "authz=native" );
+				}
+
+				len = bv.bv_len + STRLENOF( "flags=non-prescriptive,override,obsolete-encoding-workaround,proxy-authz-non-critical,dn-authzid" );
+				/* flags */
+				if ( !BER_BVISEMPTY( &bv ) ) {
+					len += STRLENOF( " " );
+				}
+
+				bv.bv_val = ch_realloc( bv.bv_val, len + 1 );
+
+				ptr = &bv.bv_val[ bv.bv_len ];
+
+				if ( !BER_BVISEMPTY( &bv ) ) {
+					ptr = lutil_strcopy( ptr, " " );
+				}
+
+				ptr = lutil_strcopy( ptr, "flags=" );
+
+				if ( mt->mt_idassert_flags & LDAP_BACK_AUTH_PRESCRIPTIVE ) {
+					ptr = lutil_strcopy( ptr, "prescriptive" );
+				} else {
+					ptr = lutil_strcopy( ptr, "non-prescriptive" );
+				}
+
+				if ( mt->mt_idassert_flags & LDAP_BACK_AUTH_OVERRIDE ) {
+					ptr = lutil_strcopy( ptr, ",override" );
+				}
+
+				if ( mt->mt_idassert_flags & LDAP_BACK_AUTH_OBSOLETE_PROXY_AUTHZ ) {
+					ptr = lutil_strcopy( ptr, ",obsolete-proxy-authz" );
+
+				} else if ( mt->mt_idassert_flags & LDAP_BACK_AUTH_OBSOLETE_ENCODING_WORKAROUND ) {
+					ptr = lutil_strcopy( ptr, ",obsolete-encoding-workaround" );
+				}
+
+				if ( mt->mt_idassert_flags & LDAP_BACK_AUTH_PROXYAUTHZ_CRITICAL ) {
+					ptr = lutil_strcopy( ptr, ",proxy-authz-critical" );
+
+				} else {
+					ptr = lutil_strcopy( ptr, ",proxy-authz-non-critical" );
+				}
+
+				switch ( mt->mt_idassert_flags & LDAP_BACK_AUTH_DN_MASK ) {
+				case LDAP_BACK_AUTH_DN_AUTHZID:
+					ptr = lutil_strcopy( ptr, ",dn-authzid" );
+					break;
+
+				case LDAP_BACK_AUTH_DN_WHOAMI:
+					ptr = lutil_strcopy( ptr, ",dn-whoami" );
+					break;
+
+				default:
+#if 0 /* implicit */
+					ptr = lutil_strcopy( ptr, ",dn-none" );
+#endif
+					break;
+				}
+
+				bv.bv_len = ( ptr - bv.bv_val );
+				/* end-of-flags */
+			}
+
+			bindconf_unparse( &mt->mt_idassert.si_bc, &bc );
+
+			if ( !BER_BVISNULL( &bv ) ) {
+				ber_len_t	len = bv.bv_len + bc.bv_len;
+
+				bv.bv_val = ch_realloc( bv.bv_val, len + 1 );
+
+				assert( bc.bv_val[ 0 ] == ' ' );
+
+				ptr = lutil_strcopy( &bv.bv_val[ bv.bv_len ], bc.bv_val );
+				free( bc.bv_val );
+				bv.bv_len = ptr - bv.bv_val;
+
+			} else {
+				for ( i = 0; isspace( (unsigned char) bc.bv_val[ i ] ); i++ )
+					/* count spaces */ ;
+
+				if ( i ) {
+					bc.bv_len -= i;
+					AC_MEMCPY( bc.bv_val, &bc.bv_val[ i ], bc.bv_len + 1 );
+				}
+
+				bv = bc;
+			}
+
+			ber_bvarray_add( &c->rvalue_vals, &bv );
+
+			break;
+		}
+
+		case LDAP_BACK_CFG_SUFFIXM:	/* unused */
+		case LDAP_BACK_CFG_REWRITE:
+			if ( mt->mt_rwmap.rwm_bva_rewrite == NULL ) {
+				rc = 1;
+			} else {
+				rc = slap_bv_x_ordered_unparse( mt->mt_rwmap.rwm_bva_rewrite, &c->rvalue_vals );
+			}
+			break;
+
+		case LDAP_BACK_CFG_MAP:
+			if ( mt->mt_rwmap.rwm_bva_map == NULL ) {
+				rc = 1;
+			} else {
+				rc = slap_bv_x_ordered_unparse( mt->mt_rwmap.rwm_bva_map, &c->rvalue_vals );
+			}
+			break;
+
+		case LDAP_BACK_CFG_SUBTREE_EX:
+		case LDAP_BACK_CFG_SUBTREE_IN:
+			rc = meta_subtree_unparse( c, mt );
+			break;
+
+		/* replaced by idassert */
+		case LDAP_BACK_CFG_PSEUDOROOTDN:
+		case LDAP_BACK_CFG_PSEUDOROOTPW:
+			rc = 1;
+			break;
+
 		default:
 			rc = 1;
 		}
@@ -943,6 +1598,16 @@ meta_back_cf_gen( ConfigArgs *c )
 			}
 		}
 	} else {
+		if ( c->table == Cft_Database ) {
+			mt = NULL;
+			mc = &mi->mi_mc;
+		} else {
+			mt = c->ca_private;
+			if ( mt )
+				mc = &mt->mt_mc;
+			else
+				mc = NULL;
+		}
 	}
 
 	switch( c->type ) {
@@ -988,8 +1653,6 @@ meta_back_cf_gen( ConfigArgs *c )
 		mt->mt_urllist_f = mi->mi_urllist_f;
 		mt->mt_urllist_p = mt;
 
-		mt->mt_nretries = mi->mi_nretries;
-		mt->mt_quarantine = mi->mi_quarantine;
 		if ( META_BACK_QUARANTINE( mi ) ) {
 			ldap_pvt_thread_mutex_init( &mt->mt_quarantine_mutex );
 		}
@@ -1254,21 +1917,11 @@ meta_back_cf_gen( ConfigArgs *c )
 		mi->mi_conn_ttl = (time_t)t;
 		} break;
 
-	case LDAP_BACK_CFG_BIND_TIMEOUT: {
+	case LDAP_BACK_CFG_BIND_TIMEOUT:
 	/* bind timeout when connecting to ldap servers */
-		unsigned long	t;
-
-		if ( lutil_atoul( &t, c->argv[ 1 ] ) != 0 ) {
-			snprintf( c->cr_msg, sizeof( c->cr_msg ),
-				"unable to parse bind timeout \"%s\"",
-				c->argv[ 1 ] );
-			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
-			return 1;
-
-		}
-		mc->mc_bind_timeout.tv_sec = t/1000000;
-		mc->mc_bind_timeout.tv_usec = t%1000000;
-		} break;
+		mc->mc_bind_timeout.tv_sec = c->value_ulong/1000000;
+		mc->mc_bind_timeout.tv_usec = c->value_ulong%1000000;
+		break;
 
 	case LDAP_BACK_CFG_ACL_AUTHCDN:
 	/* name to use for meta_back_group */
@@ -1329,16 +1982,12 @@ meta_back_cf_gen( ConfigArgs *c )
 		mc->mc_flags |= tls_mode[i].mask;
 
 		if ( c->argc > 2 ) {
-			metatarget_t	*mt = NULL;
-
-			if ( mi->mi_ntargets - 1 < 0 ) {
+			if ( c->op == SLAP_CONFIG_ADD && mi->mi_ntargets == 0 ) {
 				snprintf( c->cr_msg, sizeof( c->cr_msg ),
 					"need \"uri\" directive first" );
 				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
 				return 1;
 			}
-
-			mt = mi->mi_targets[ mi->mi_ntargets - 1 ];
 
 			for ( i = 2; i < c->argc; i++ ) {
 				if ( bindconf_tls_parse( c->argv[i], &mt->mt_tls ))
@@ -1639,92 +2288,224 @@ idassert-authzFrom	"dn:<rootdn>"
 		break;
 #endif /* SLAP_CONTROL_X_SESSION_TRACKING */
 
-	case LDAP_BACK_CFG_SUFFIXM: {
-	/* dn massaging */
-		BackendDB 	*tmp_bd;
-		struct berval	dn, nvnc, pvnc, nrnc, prnc;
-		int j;
+	case LDAP_BACK_CFG_SUFFIXM:	/* FALLTHRU */
+	case LDAP_BACK_CFG_REWRITE: {
+	/* rewrite stuff ... */
+		ConfigArgs ca = { 0 };
+		char *line, **argv;
+		struct rewrite_info *rwi;
+		int cnt = 0, argc, ix = c->valx;
 
-		/*
-		 * syntax:
-		 *
-		 * 	suffixmassage <suffix> <massaged suffix>
-		 *
-		 * the <suffix> field must be defined as a valid suffix
-		 * (or suffixAlias?) for the current database;
-		 * the <massaged suffix> shouldn't have already been
-		 * defined as a valid suffix or suffixAlias for the
-		 * current server
-		 */
-
-		ber_str2bv( c->argv[ 1 ], 0, 0, &dn );
-		if ( dnPrettyNormal( NULL, &dn, &pvnc, &nvnc, NULL ) != LDAP_SUCCESS ) {
-			snprintf( c->cr_msg, sizeof( c->cr_msg ),
-				"suffix \"%s\" is invalid",
-				c->argv[1] );
-			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
-			return 1;
+		if ( mt->mt_rwmap.rwm_bva_rewrite ) {
+			for ( ; !BER_BVISNULL( &mt->mt_rwmap.rwm_bva_rewrite[ cnt ] ); cnt++ )
+				/* count */ ;
 		}
 
-		for ( j = 0; !BER_BVISNULL( &c->be->be_nsuffix[ j ] ); j++ ) {
-			if ( dnIsSuffix( &nvnc, &c->be->be_nsuffix[ 0 ] ) ) {
-				break;
+		if ( ix >= cnt || ix < 0 ) {
+			ix = cnt;
+		} else {
+			rwi = mt->mt_rwmap.rwm_rw;
+
+			mt->mt_rwmap.rwm_rw = NULL;
+			rc = meta_rwi_init( &mt->mt_rwmap.rwm_rw );
+
+			/* re-parse all rewrite rules, up to the one
+			 * that needs to be added */
+			ca.fname = c->fname;
+			ca.lineno = c->lineno;
+			for ( i = 0; i < ix; i++ ) {
+				ca.line = mt->mt_rwmap.rwm_bva_rewrite[ i ].bv_val;
+				ca.argc = 0;
+				config_fp_parse_line( &ca );
+
+				if ( !strcasecmp( ca.argv[0], "suffixmassage" )) {
+					rc = meta_suffixm_config( &ca, mt );
+				} else {
+					rc = rewrite_parse( mt->mt_rwmap.rwm_rw,
+						c->fname, c->lineno, ca.argc, argv );
+				}
+				assert( rc == 0 );
+				ch_free( ca.argv );
+				ch_free( ca.tline );
+			}
+		}
+		argc = c->argc;
+		argv = c->argv;
+		/* add the new rule */
+		if ( c->type == LDAP_BACK_CFG_SUFFIXM ) {
+			rc = meta_suffixm_config( c, mt );
+		} else {
+			if ( c->op != SLAP_CONFIG_ADD ) {
+				argc--;
+				argv++;
+			}
+			rc = rewrite_parse( mt->mt_rwmap.rwm_rw,
+						c->fname, c->lineno, argc, argv );
+		}
+		if ( rc ) {
+			if ( ix < cnt ) {
+				rewrite_info_delete( &mt->mt_rwmap.rwm_rw );
+				mt->mt_rwmap.rwm_rw = rwi;
+			}
+			return 1;
+		}
+		if ( ix < cnt ) {
+			for ( ; i < cnt; i++ ) {
+				ca.line = mt->mt_rwmap.rwm_bva_rewrite[ i ].bv_val;
+				ca.argc = 0;
+				config_fp_parse_line( &ca );
+
+				if ( !strcasecmp( ca.argv[0], "suffixmassage" )) {
+					rc = meta_suffixm_config( &ca, mt );
+				} else {
+					rc = rewrite_parse( mt->mt_rwmap.rwm_rw,
+						c->fname, c->lineno, ca.argc, argv );
+				}
+				assert( rc == 0 );
+				ch_free( ca.argv );
+				ch_free( ca.tline );
 			}
 		}
 
-		if ( BER_BVISNULL( &c->be->be_nsuffix[ j ] ) ) {
-			snprintf( c->cr_msg, sizeof( c->cr_msg ),
-				"suffix \"%s\" must be within the database naming context",
-				c->argv[1] );
-			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
-			free( pvnc.bv_val );
-			free( nvnc.bv_val );
-			return 1;
+		/* save the rule info */
+		line = ldap_charray2str( argv, "\" \"" );
+		if ( line != NULL ) {
+			struct berval bv;
+			int len = strlen( argv[ 0 ] );
+
+			ber_str2bv( line, 0, 0, &bv );
+			AC_MEMCPY( &bv.bv_val[ len ], &bv.bv_val[ len + 1 ],
+				bv.bv_len - ( len + 1 ));
+			bv.bv_val[ bv.bv_len - 1] = '"';
+			ber_bvarray_add( &mt->mt_rwmap.rwm_bva_rewrite, &bv );
+			/* move it to the right slot */
+			if ( ix < cnt ) {
+				for ( i=cnt; i>ix; i-- )
+					mt->mt_rwmap.rwm_bva_rewrite[i+1] = mt->mt_rwmap.rwm_bva_rewrite[i];
+				mt->mt_rwmap.rwm_bva_rewrite[i] = bv;
+
+				/* destroy old rules */
+				rewrite_info_delete( &rwi );
+			}
 		}
+		} break;
 
-		ber_str2bv( c->argv[ 2 ], 0, 0, &dn );
-		if ( dnPrettyNormal( NULL, &dn, &prnc, &nrnc, NULL ) != LDAP_SUCCESS ) {
-			snprintf( c->cr_msg, sizeof( c->cr_msg ),
-				"massaged suffix \"%s\" is invalid",
-				c->argv[2] );
-			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
-			free( pvnc.bv_val );
-			free( nvnc.bv_val );
-			return 1;
-		}
-
-		tmp_bd = select_backend( &nrnc, 0 );
-		if ( tmp_bd != NULL && tmp_bd->be_private == c->be->be_private ) {
-			Debug( LDAP_DEBUG_ANY,
-	"%s: warning: <massaged suffix> \"%s\" resolves to this database, in "
-	"\"suffixMassage <suffix> <massaged suffix>\"\n",
-				c->log, prnc.bv_val, 0 );
-		}
-
-		/*
-		 * The suffix massaging is emulated by means of the
-		 * rewrite capabilities
-		 */
-		rc = suffix_massage_config( mt->mt_rwmap.rwm_rw,
-				&pvnc, &nvnc, &prnc, &nrnc );
-
-		free( pvnc.bv_val );
-		free( nvnc.bv_val );
-		free( prnc.bv_val );
-		free( nrnc.bv_val );
-
-		return rc;
-		}
-
-	case LDAP_BACK_CFG_REWRITE:
-	/* rewrite stuff ... */
-		return rewrite_parse( mt->mt_rwmap.rwm_rw,
-				c->fname, c->lineno, c->argc, c->argv );
-
-	case LDAP_BACK_CFG_MAP:
+	case LDAP_BACK_CFG_MAP: {
 	/* objectclass/attribute mapping */
-		return ldap_back_map_config( c, &mt->mt_rwmap.rwm_oc,
-				&mt->mt_rwmap.rwm_at );
+		ConfigArgs ca = { 0 };
+		char *argv[5];
+		struct ldapmap rwm_oc;
+		struct ldapmap rwm_at;
+		int cnt = 0, ix = c->valx;
+
+		if ( mt->mt_rwmap.rwm_bva_map ) {
+			for ( ; !BER_BVISNULL( &mt->mt_rwmap.rwm_bva_map[ cnt ] ); cnt++ )
+				/* count */ ;
+		}
+
+		if ( ix >= cnt || ix < 0 ) {
+			ix = cnt;
+		} else {
+			rwm_oc = mt->mt_rwmap.rwm_oc;
+			rwm_at = mt->mt_rwmap.rwm_at;
+
+			memset( &mt->mt_rwmap.rwm_oc, 0, sizeof( mt->mt_rwmap.rwm_oc ) );
+			memset( &mt->mt_rwmap.rwm_at, 0, sizeof( mt->mt_rwmap.rwm_at ) );
+
+			/* re-parse all mappings, up to the one
+			 * that needs to be added */
+			argv[0] = c->argv[0];
+			ca.fname = c->fname;
+			ca.lineno = c->lineno;
+			for ( i = 0; i < ix; i++ ) {
+				ca.line = mt->mt_rwmap.rwm_bva_map[ i ].bv_val;
+				ca.argc = 0;
+				config_fp_parse_line( &ca );
+
+				argv[1] = ca.argv[0];
+				argv[2] = ca.argv[1];
+				argv[3] = ca.argv[2];
+				argv[4] = ca.argv[3];
+				ch_free( ca.argv );
+				ca.argv = argv;
+				ca.argc++;
+				rc = ldap_back_map_config( &ca, &mt->mt_rwmap.rwm_oc,
+					&mt->mt_rwmap.rwm_at );
+
+				ch_free( ca.tline );
+				ca.tline = NULL;
+				ca.argv = NULL;
+
+				/* in case of failure, restore
+				 * the existing mapping */
+				if ( rc ) {
+					goto map_fail;
+				}
+			}
+		}
+		/* add the new mapping */
+		rc = ldap_back_map_config( c, &mt->mt_rwmap.rwm_oc,
+					&mt->mt_rwmap.rwm_at );
+		if ( rc ) {
+			goto map_fail;
+		}
+
+		if ( ix < cnt ) {
+			for ( ; i<cnt ; cnt++ ) {
+				ca.line = mt->mt_rwmap.rwm_bva_map[ i ].bv_val;
+				ca.argc = 0;
+				config_fp_parse_line( &ca );
+
+				argv[1] = ca.argv[0];
+				argv[2] = ca.argv[1];
+				argv[3] = ca.argv[2];
+				argv[4] = ca.argv[3];
+
+				ch_free( ca.argv );
+				ca.argv = argv;
+				ca.argc++;
+				rc = ldap_back_map_config( &ca, &mt->mt_rwmap.rwm_oc,
+					&mt->mt_rwmap.rwm_at );
+
+				ch_free( ca.tline );
+				ca.tline = NULL;
+				ca.argv = NULL;
+
+				/* in case of failure, restore
+				 * the existing mapping */
+				if ( rc ) {
+					goto map_fail;
+				}
+			}
+		}
+
+		/* save the map info */
+		argv[0] = ldap_charray2str( &c->argv[ 1 ], " " );
+		if ( argv[0] != NULL ) {
+			struct berval bv;
+			ber_str2bv( argv[0], 0, 0, &bv );
+			ber_bvarray_add( &mt->mt_rwmap.rwm_bva_map, &bv );
+			/* move it to the right slot */
+			if ( ix < cnt ) {
+				for ( i=cnt; i>ix; i-- )
+					mt->mt_rwmap.rwm_bva_map[i+1] = mt->mt_rwmap.rwm_bva_map[i];
+				mt->mt_rwmap.rwm_bva_map[i] = bv;
+
+				/* destroy old mapping */
+				meta_back_map_free( &rwm_oc );
+				meta_back_map_free( &rwm_at );
+			}
+		}
+		break;
+
+map_fail:;
+		if ( ix < cnt ) {
+			meta_back_map_free( &mt->mt_rwmap.rwm_oc );
+			meta_back_map_free( &mt->mt_rwmap.rwm_at );
+			mt->mt_rwmap.rwm_oc = rwm_oc;
+			mt->mt_rwmap.rwm_at = rwm_at;
+		}
+		} break;
 
 	case LDAP_BACK_CFG_NRETRIES: {
 		int		nretries = META_RETRY_UNDEFINED;

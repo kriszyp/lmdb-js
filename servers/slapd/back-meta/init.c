@@ -311,6 +311,13 @@ mapping_dst_free(
 	}
 }
 
+void
+meta_back_map_free( struct ldapmap *lm )
+{
+	avl_free( lm->remap, mapping_dst_free );
+	avl_free( lm->map, mapping_free );
+}
+
 static void
 target_free(
 	metatarget_t	*mt )
@@ -358,11 +365,12 @@ target_free(
 	}
 	if ( mt->mt_rwmap.rwm_rw ) {
 		rewrite_info_delete( &mt->mt_rwmap.rwm_rw );
+		if ( mt->mt_rwmap.rwm_bva_rewrite )
+			ber_bvarray_free( mt->mt_rwmap.rwm_bva_rewrite );
 	}
-	avl_free( mt->mt_rwmap.rwm_oc.remap, mapping_dst_free );
-	avl_free( mt->mt_rwmap.rwm_oc.map, mapping_free );
-	avl_free( mt->mt_rwmap.rwm_at.remap, mapping_dst_free );
-	avl_free( mt->mt_rwmap.rwm_at.map, mapping_free );
+	meta_back_map_free( &mt->mt_rwmap.rwm_oc );
+	meta_back_map_free( &mt->mt_rwmap.rwm_at );
+	ber_bvarray_free( mt->mt_rwmap.rwm_bva_map );
 
 	free( mt );
 }
