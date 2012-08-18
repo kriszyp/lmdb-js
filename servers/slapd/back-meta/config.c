@@ -34,51 +34,68 @@
 #include "back-meta.h"
 
 static ConfigDriver meta_back_cf_gen;
+static ConfigLDAPadd meta_ldadd;
+static ConfigCfAdd meta_cfadd;
 
 static int ldap_back_map_config(
 	ConfigArgs *c,
 	struct ldapmap	*oc_map,
 	struct ldapmap	*at_map );
 
+/* Three sets of enums:
+ *	1) attrs that are only valid in the base config
+ *	2) attrs that are valid in base or target
+ *	3) attrs that are only valid in a target
+ */
+
+/* Base attrs */
 enum {
-	LDAP_BACK_CFG_URI = 1,
+	LDAP_BACK_CFG_CONN_TTL = 1,
+	LDAP_BACK_CFG_DNCACHE_TTL,
+	LDAP_BACK_CFG_IDLE_TIMEOUT,
+	LDAP_BACK_CFG_ONERR,
+	LDAP_BACK_CFG_PSEUDOROOT_BIND_DEFER,
+	LDAP_BACK_CFG_SINGLECONN,
+	LDAP_BACK_CFG_USETEMP,
+	LDAP_BACK_CFG_CONNPOOLMAX,
+	LDAP_BACK_CFG_LAST_BASE
+};
+
+/* Base or target */
+enum {
+	LDAP_BACK_CFG_BIND_TIMEOUT = LDAP_BACK_CFG_LAST_BASE,
+	LDAP_BACK_CFG_CANCEL,
+	LDAP_BACK_CFG_CHASE,
+	LDAP_BACK_CFG_CLIENT_PR,
+	LDAP_BACK_CFG_DEFAULT_T,
+	LDAP_BACK_CFG_NETWORK_TIMEOUT,
+	LDAP_BACK_CFG_NOREFS,
+	LDAP_BACK_CFG_NOUNDEFFILTER,
+	LDAP_BACK_CFG_NRETRIES,
+	LDAP_BACK_CFG_QUARANTINE,
+	LDAP_BACK_CFG_REBIND,
+	LDAP_BACK_CFG_TIMEOUT,
+	LDAP_BACK_CFG_VERSION,
+	LDAP_BACK_CFG_ST_REQUEST,
+	LDAP_BACK_CFG_T_F,
 	LDAP_BACK_CFG_TLS,
+	LDAP_BACK_CFG_LAST_BOTH
+};
+
+/* Target attrs */
+enum {
+	LDAP_BACK_CFG_URI = LDAP_BACK_CFG_LAST_BOTH,
 	LDAP_BACK_CFG_ACL_AUTHCDN,
 	LDAP_BACK_CFG_ACL_PASSWD,
 	LDAP_BACK_CFG_IDASSERT_AUTHZFROM,
 	LDAP_BACK_CFG_IDASSERT_BIND,
-	LDAP_BACK_CFG_REBIND,
-	LDAP_BACK_CFG_CHASE,
-	LDAP_BACK_CFG_T_F,
-	LDAP_BACK_CFG_TIMEOUT,
-	LDAP_BACK_CFG_IDLE_TIMEOUT,
-	LDAP_BACK_CFG_CONN_TTL,
-	LDAP_BACK_CFG_NETWORK_TIMEOUT,
-	LDAP_BACK_CFG_VERSION,
-	LDAP_BACK_CFG_SINGLECONN,
-	LDAP_BACK_CFG_USETEMP,
-	LDAP_BACK_CFG_CONNPOOLMAX,
-	LDAP_BACK_CFG_CANCEL,
-	LDAP_BACK_CFG_QUARANTINE,
-	LDAP_BACK_CFG_ST_REQUEST,
-	LDAP_BACK_CFG_NOREFS,
-	LDAP_BACK_CFG_NOUNDEFFILTER,
-
 	LDAP_BACK_CFG_REWRITE,
-
 	LDAP_BACK_CFG_SUFFIXM,
 	LDAP_BACK_CFG_MAP,
 	LDAP_BACK_CFG_SUBTREE_EX,
 	LDAP_BACK_CFG_SUBTREE_IN,
-	LDAP_BACK_CFG_DEFAULT_T,
-	LDAP_BACK_CFG_DNCACHE_TTL,
-	LDAP_BACK_CFG_BIND_TIMEOUT,
-	LDAP_BACK_CFG_ONERR,
-	LDAP_BACK_CFG_PSEUDOROOT_BIND_DEFER,
 	LDAP_BACK_CFG_PSEUDOROOTDN,
 	LDAP_BACK_CFG_PSEUDOROOTPW,
-	LDAP_BACK_CFG_NRETRIES,
-	LDAP_BACK_CFG_CLIENT_PR,
 
 	LDAP_BACK_CFG_LAST
 };
@@ -276,19 +293,15 @@ static ConfigTable metacfg[] = {
 
 	{ "rewrite", "arglist", 2, 4, STRLENOF( "rewrite" ),
 		ARG_STRING|ARG_MAGIC|LDAP_BACK_CFG_REWRITE,
-		meta_back_cf_gen, "( OLcfgDbAt:3.100 "
+		meta_back_cf_gen, "( OLcfgDbAt:3.101 "
 			"NAME 'olcDbRewrite' "
 			"DESC 'DN rewriting rules' "
 			"SYNTAX OMsDirectoryString )",
 		NULL, NULL },
 	{ "suffixmassage", "virtual> <real", 3, 3, 0,
 		ARG_MAGIC|LDAP_BACK_CFG_SUFFIXM,
-		meta_back_cf_gen, "( OLcfgDbAt:3.101 "
-			"NAME 'olcDbSuffixMassage' "
-			"DESC 'Suffix rewriting rule' "
-			"SYNTAX OMsDirectoryString "
-			"SINGLE-VALUE )",
-		NULL, NULL },
+		meta_back_cf_gen, NULL, NULL, NULL },
+
 	{ "map", "attribute|objectClass> [*|<local>] *|<remote", 3, 4, 0,
 		ARG_MAGIC|LDAP_BACK_CFG_MAP,
 		meta_back_cf_gen, "( OLcfgDbAt:3.102 "
@@ -376,7 +389,13 @@ static ConfigTable metacfg[] = {
 			"SYNTAX OMsDirectoryString "
 			"SINGLE-VALUE )",
 		NULL, NULL },
-	
+
+	{ "", "", 0, 0, 0, ARG_IGNORED,
+		NULL, "( OLcfgDbAt:3.100 NAME 'olcMetaSub' "
+			"DESC 'Placeholder to name a Target entry' "
+			"SYNTAX OMsDirectoryString "
+			"SINGLE-VALUE X-ORDERED 'SIBLINGS' )", NULL, NULL },
+
 	{ NULL, NULL, 0, 0, 0, ARG_IGNORED,
 		NULL, NULL, NULL, NULL }
 };
@@ -387,18 +406,21 @@ static ConfigTable metacfg[] = {
 #define	ST_ATTR ""
 #endif /* SLAP_CONTROL_X_SESSION_TRACKING */
 
-#define TARGET_ATTRS	\
+#define COMMON_ATTRS	\
+			"$ olcDbBindTimeout " \
 			"$ olcDbCancel " \
 			"$ olcDbChaseReferrals " \
 			"$ olcDbClientPr " \
 			"$ olcDbDefaultTarget " \
-			"$ olcDbIdleTimeout " \
 			"$ olcDbNetworkTimeout " \
 			"$ olcDbNoRefs " \
 			"$ olcDbNoUndefFilter " \
 			"$ olcDbNretries " \
 			"$ olcDbProtocolVersion " \
+			"$ olcDbQuarantine " \
+			"$ olcDbRebindAsUser " \
 			ST_ATTR \
+			"$ olcDbStartTLS " \
 			"$ olcDbTFSupport "
 
 static ConfigOCs metaocs[] = {
@@ -408,41 +430,61 @@ static ConfigOCs metaocs[] = {
 		"SUP olcDatabaseConfig "
 		"MAY ( olcDbConnTtl "
 			"$ olcDbDnCacheTtl "
+			"$ olcDbIdleTimeout "
 			"$ olcDbOnErr "
 			"$ olcDbPseudoRootBindDefer "
-			"$ olcDbQuarantine "
-			"$ olcDbRebindAsUser "
 			"$ olcDbSingleConn "
 			"$ olcDbUseTemporaryConn "
 			"$ olcDbConnectionPoolMax "
 
 			/* defaults, may be overridden per-target */
-			TARGET_ATTRS
+			COMMON_ATTRS
 		") )",
-		 	Cft_Database, metacfg},
+			Cft_Database, metacfg, NULL, meta_cfadd },
 	{ "( OLcfgDbOc:3.3 "
-		"NAME 'olcMetaTarget' "
+		"NAME 'olcMetaTargetConfig' "
 		"DESC 'Meta target configuration' "
-		"MUST olcDbURI "
+		"SUP olcConfig STRUCTURAL "
+		"MUST ( olcMetaSub $ olcDbURI ) "
 		"MAY ( olcDbACLAuthcDn "
 			"$ olcDbACLPasswd "
-			"$ olcDbBindTimeout "
 			"$ olcDbIDAssertAuthzFrom "
 			"$ olcDbIDAssertBind "
 			"$ olcDbMap "
 			"$ olcDbRewrite "
 			"$ olcDbSubtreeExclude "
 			"$ olcDbSubtreeInclude "
-			"$ olcDbSuffixMassage "
 			"$ olcDbTimeout "
-			"$ olcDbStartTLS "
 
 			/* defaults may be inherited */
-			TARGET_ATTRS
+			COMMON_ATTRS
 		") )",
-		 	Cft_Misc, metacfg, NULL /* meta_ldadd */},
+			Cft_Misc, metacfg, meta_ldadd },
 	{ NULL, 0, NULL }
 };
+
+static int
+meta_ldadd( CfEntryInfo *p, Entry *e, ConfigArgs *c )
+{
+	if ( p->ce_type != Cft_Database || !p->ce_bi ||
+		p->ce_bi->bi_cf_ocs != metaocs )
+		return LDAP_CONSTRAINT_VIOLATION;
+
+	return LDAP_SUCCESS;
+}
+
+static int
+meta_cfadd( Operation *op, SlapReply *rs, Entry *p, ConfigArgs *c )
+{
+	metainfo_t	*mi = ( metainfo_t * )c->be->be_private;
+	struct berval bv;
+	int i;
+
+	for ( i=0; i<mi->mi_ntargets; i++ ) {
+	}
+
+	return LDAP_SUCCESS;
+}
 
 static int
 meta_back_new_target(
@@ -841,6 +883,9 @@ static int
 meta_back_cf_gen( ConfigArgs *c )
 {
 	metainfo_t	*mi = ( metainfo_t * )c->be->be_private;
+	metatarget_t	*mt;
+	metacommon_t	*mc;
+
 	int i, rc = 0;
 
 	assert( mi != NULL );
@@ -851,13 +896,30 @@ meta_back_cf_gen( ConfigArgs *c )
 		return 1;
 	}
 
+	if ( c->type >= LDAP_BACK_CFG_LAST_BASE ) {
+		/* exclude CFG_URI from this check */
+		if ( c->type > LDAP_BACK_CFG_LAST_BOTH ) {
+			if ( !mi->mi_ntargets ) {
+				snprintf( c->cr_msg, sizeof( c->cr_msg ),
+					"need \"uri\" directive first" );
+				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
+				return 1;
+			}
+		}
+		if ( mi->mi_ntargets ) {
+			mt = mi->mi_targets[ mi->mi_ntargets-1 ];
+			mc = &mt->mt_mc;
+		} else {
+			mt = NULL;
+			mc = &mi->mi_mc;
+		}
+	}
+
 	switch( c->type ) {
 	case LDAP_BACK_CFG_URI: {
 		LDAPURLDesc 	*ludp;
 		struct berval	dn;
 		int		j;
-
-		metatarget_t	*mt;
 
 		char		**uris = NULL;
 
@@ -901,16 +963,7 @@ meta_back_cf_gen( ConfigArgs *c )
 		if ( META_BACK_QUARANTINE( mi ) ) {
 			ldap_pvt_thread_mutex_init( &mt->mt_quarantine_mutex );
 		}
-		mt->mt_flags = mi->mi_flags;
-		mt->mt_version = mi->mi_version;
-#ifdef SLAPD_META_CLIENT_PR
-		mt->mt_ps = mi->mi_ps;
-#endif /* SLAPD_META_CLIENT_PR */
-		mt->mt_network_timeout = mi->mi_network_timeout;
-		mt->mt_bind_timeout = mi->mi_bind_timeout;
-		for ( j = 0; j < SLAP_OP_LAST; j++ ) {
-			mt->mt_timeout[ j ] = mi->mi_timeout[ j ];
-		}
+		mt->mt_mc = mi->mi_mc;
 
 		for ( j = 1; j < c->argc; j++ ) {
 			char	**tmpuris = ldap_str2charray( c->argv[ j ], "\t" );
@@ -1058,16 +1111,7 @@ meta_back_cf_gen( ConfigArgs *c )
 	case LDAP_BACK_CFG_SUBTREE_EX:
 	case LDAP_BACK_CFG_SUBTREE_IN:
 	/* subtree-exclude */
-		i = mi->mi_ntargets - 1;
-
-		if ( i < 0 ) {
-			snprintf( c->cr_msg, sizeof( c->cr_msg ),
-				"need \"uri\" directive first" );
-			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
-			return 1;
-		}
-
-		if ( meta_subtree_config( mi->mi_targets[ i ], c )) {
+		if ( meta_subtree_config( mt, c )) {
 			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
 			return 1;
 		}
@@ -1137,10 +1181,7 @@ meta_back_cf_gen( ConfigArgs *c )
 
 	case LDAP_BACK_CFG_NETWORK_TIMEOUT: {
 	/* network timeout when connecting to ldap servers */
-		unsigned long	t;
-		time_t		*tp = mi->mi_ntargets ?
-				&mi->mi_targets[ mi->mi_ntargets - 1 ]->mt_network_timeout
-				: &mi->mi_network_timeout;
+		unsigned long t;
 
 		if ( lutil_parse_time( c->argv[ 1 ], &t ) ) {
 			snprintf( c->cr_msg, sizeof( c->cr_msg ),
@@ -1149,8 +1190,7 @@ meta_back_cf_gen( ConfigArgs *c )
 			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
 			return 1;
 		}
-
-		*tp = (time_t)t;
+		mc->mc_network_timeout = (time_t)t;
 		} break;
 
 	case LDAP_BACK_CFG_IDLE_TIMEOUT: {
@@ -1186,9 +1226,6 @@ meta_back_cf_gen( ConfigArgs *c )
 	case LDAP_BACK_CFG_BIND_TIMEOUT: {
 	/* bind timeout when connecting to ldap servers */
 		unsigned long	t;
-		struct timeval	*tp = mi->mi_ntargets ?
-				&mi->mi_targets[ mi->mi_ntargets - 1 ]->mt_bind_timeout
-				: &mi->mi_bind_timeout;
 
 		if ( lutil_atoul( &t, c->argv[ 1 ] ) != 0 ) {
 			snprintf( c->cr_msg, sizeof( c->cr_msg ),
@@ -1198,22 +1235,12 @@ meta_back_cf_gen( ConfigArgs *c )
 			return 1;
 
 		}
-
-		tp->tv_sec = t/1000000;
-		tp->tv_usec = t%1000000;
+		mc->mc_bind_timeout.tv_sec = t/1000000;
+		mc->mc_bind_timeout.tv_usec = t%1000000;
 		} break;
 
 	case LDAP_BACK_CFG_ACL_AUTHCDN:
 	/* name to use for meta_back_group */
-
-		i = mi->mi_ntargets - 1;
-		if ( i < 0 ) {
-			snprintf( c->cr_msg, sizeof( c->cr_msg ),
-				"need \"uri\" directive first" );
-			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
-			return 1;
-		}
-
 		if ( strcasecmp( c->argv[ 0 ], "binddn" ) == 0 ) {
 			Debug( LDAP_DEBUG_ANY, "%s: "
 				"\"binddn\" statement is deprecated; "
@@ -1223,22 +1250,13 @@ meta_back_cf_gen( ConfigArgs *c )
 		}
 
 		ber_memfree_x( c->value_dn.bv_val, NULL );
-		mi->mi_targets[ i ]->mt_binddn = c->value_ndn;
+		mt->mt_binddn = c->value_ndn;
 		BER_BVZERO( &c->value_dn );
 		BER_BVZERO( &c->value_ndn );
 		break;
 
 	case LDAP_BACK_CFG_ACL_PASSWD:
 	/* password to use for meta_back_group */
-		i = mi->mi_ntargets - 1;
-
-		if ( i < 0 ) {
-			snprintf( c->cr_msg, sizeof( c->cr_msg ),
-				"need \"uri\" directive first" );
-			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
-			return 1;
-		}
-
 		if ( strcasecmp( c->argv[ 0 ], "bindpw" ) == 0 ) {
 			Debug( LDAP_DEBUG_ANY, "%s "
 				"\"bindpw\" statement is deprecated; "
@@ -1247,39 +1265,27 @@ meta_back_cf_gen( ConfigArgs *c )
 			/* FIXME: some day we'll need to throw an error */
 		}
 
-		ber_str2bv( c->argv[ 1 ], 0L, 1, &mi->mi_targets[ i ]->mt_bindpw );
+		ber_str2bv( c->argv[ 1 ], 0L, 1, &mt->mt_bindpw );
 		break;
 
-	case LDAP_BACK_CFG_REBIND: {
+	case LDAP_BACK_CFG_REBIND:
 	/* save bind creds for referral rebinds? */
-		unsigned	*flagsp = mi->mi_ntargets ?
-				&mi->mi_targets[ mi->mi_ntargets - 1 ]->mt_flags
-				: &mi->mi_flags;
-
 		if ( c->argc == 1 || c->value_int ) {
-			*flagsp |= LDAP_BACK_F_SAVECRED;
+			mc->mc_flags |= LDAP_BACK_F_SAVECRED;
 		} else {
-			*flagsp &= ~LDAP_BACK_F_SAVECRED;
+			mc->mc_flags &= ~LDAP_BACK_F_SAVECRED;
 		}
-		} break;
+		break;
 
-	case LDAP_BACK_CFG_CHASE: {
-		unsigned	*flagsp = mi->mi_ntargets ?
-				&mi->mi_targets[ mi->mi_ntargets - 1 ]->mt_flags
-				: &mi->mi_flags;
-
+	case LDAP_BACK_CFG_CHASE:
 		if ( c->argc == 1 || c->value_int ) {
-			*flagsp |= LDAP_BACK_F_CHASE_REFERRALS;
+			mc->mc_flags |= LDAP_BACK_F_CHASE_REFERRALS;
 		} else {
-			*flagsp &= ~LDAP_BACK_F_CHASE_REFERRALS;
+			mc->mc_flags &= ~LDAP_BACK_F_CHASE_REFERRALS;
 		}
-		} break;
+		break;
 
-	case LDAP_BACK_CFG_TLS: {
-		unsigned	*flagsp = mi->mi_ntargets ?
-				&mi->mi_targets[ mi->mi_ntargets - 1 ]->mt_flags
-				: &mi->mi_flags;
-
+	case LDAP_BACK_CFG_TLS:
 		i = verb_to_mask( c->argv[1], tls_mode );
 		if ( BER_BVISNULL( &tls_mode[i].word ) ) {
 			snprintf( c->cr_msg, sizeof( c->cr_msg ),
@@ -1288,6 +1294,8 @@ meta_back_cf_gen( ConfigArgs *c )
 			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
 			return 1;
 		}
+		mc->mc_flags &= ~LDAP_BACK_F_TLS_MASK;
+		mc->mc_flags |= tls_mode[i].mask;
 
 		if ( c->argc > 2 ) {
 			metatarget_t	*mt = NULL;
@@ -1307,14 +1315,9 @@ meta_back_cf_gen( ConfigArgs *c )
 			}
 			bindconf_tls_defaults( &mt->mt_tls );
 		}
-		} break;
+		break;
 
-	case LDAP_BACK_CFG_T_F: {
-		unsigned	*flagsp = mi->mi_ntargets ?
-				&mi->mi_targets[ mi->mi_ntargets - 1 ]->mt_flags
-				: &mi->mi_flags;
-		slap_mask_t mask;
-
+	case LDAP_BACK_CFG_T_F:
 		i = verb_to_mask( c->argv[1], t_f_mode );
 		if ( BER_BVISNULL( &t_f_mode[i].word ) ) {
 			snprintf( c->cr_msg, sizeof( c->cr_msg ),
@@ -1323,16 +1326,12 @@ meta_back_cf_gen( ConfigArgs *c )
 			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
 			return 1;
 		}
-		mask = t_f_mode[i].mask;
+		mc->mc_flags &= ~LDAP_BACK_F_T_F_MASK2;
+		mc->mc_flags |= t_f_mode[i].mask;
+		break;
 
-		*flagsp &= ~LDAP_BACK_F_T_F_MASK2;
-		*flagsp |= mask;
-		} break;
-
-	case LDAP_BACK_CFG_ONERR: {
+	case LDAP_BACK_CFG_ONERR:
 	/* onerr? */
-		slap_mask_t mask;
-
 		i = verb_to_mask( c->argv[1], onerr_mode );
 		if ( BER_BVISNULL( &onerr_mode[i].word ) ) {
 			snprintf( c->cr_msg, sizeof( c->cr_msg ),
@@ -1341,11 +1340,9 @@ meta_back_cf_gen( ConfigArgs *c )
 			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
 			return 1;
 		}
-		mask = onerr_mode[i].mask;
-
 		mi->mi_flags &= ~META_BACK_F_ONERR_MASK;
-		mi->mi_flags |= mask;
-		} break;
+		mi->mi_flags |= onerr_mode[i].mask;
+		break;
 
 	case LDAP_BACK_CFG_PSEUDOROOT_BIND_DEFER:
 	/* bind-defer? */
@@ -1415,12 +1412,7 @@ meta_back_cf_gen( ConfigArgs *c )
 		mi->mi_conn_priv_max = c->value_int;
 		break;
 
-	case LDAP_BACK_CFG_CANCEL: {
-		unsigned	*flagsp = mi->mi_ntargets ?
-				&mi->mi_targets[ mi->mi_ntargets - 1 ]->mt_flags
-				: &mi->mi_flags;
-		slap_mask_t mask;
-
+	case LDAP_BACK_CFG_CANCEL:
 		i = verb_to_mask( c->argv[1], cancel_mode );
 		if ( BER_BVISNULL( &cancel_mode[i].word ) ) {
 			snprintf( c->cr_msg, sizeof( c->cr_msg ),
@@ -1429,17 +1421,11 @@ meta_back_cf_gen( ConfigArgs *c )
 			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
 			return 1;
 		}
-		mask = t_f_mode[i].mask;
+		mc->mc_flags &= ~LDAP_BACK_F_CANCEL_MASK2;
+		mc->mc_flags |= t_f_mode[i].mask;
+		break;
 
-		*flagsp &= ~LDAP_BACK_F_CANCEL_MASK2;
-		*flagsp |= mask;
-		} break;;
-
-	case LDAP_BACK_CFG_TIMEOUT: {
-		time_t	*tv = mi->mi_ntargets ?
-				mi->mi_targets[ mi->mi_ntargets - 1 ]->mt_timeout
-				: mi->mi_timeout;
-
+	case LDAP_BACK_CFG_TIMEOUT:
 		for ( i = 1; i < c->argc; i++ ) {
 			if ( isdigit( (unsigned char) c->argv[ i ][ 0 ] ) ) {
 				int		j;
@@ -1454,13 +1440,13 @@ meta_back_cf_gen( ConfigArgs *c )
 				}
 
 				for ( j = 0; j < SLAP_OP_LAST; j++ ) {
-					tv[ j ] = u;
+					mc->mc_timeout[ j ] = u;
 				}
 
 				continue;
 			}
 
-			if ( slap_cf_aux_table_parse( c->argv[ i ], tv, timeout_table, "slapd-meta timeout" ) ) {
+			if ( slap_cf_aux_table_parse( c->argv[ i ], mc->mc_timeout, timeout_table, "slapd-meta timeout" ) ) {
 				snprintf( c->cr_msg, sizeof( c->cr_msg),
 					"unable to parse timeout \"%s\"",
 					c->argv[ i ] );
@@ -1468,19 +1454,10 @@ meta_back_cf_gen( ConfigArgs *c )
 				return 1;
 			}
 		}
-		} break;
+		break;
 
 	case LDAP_BACK_CFG_PSEUDOROOTDN:
 	/* name to use as pseudo-root dn */
-		i = mi->mi_ntargets - 1;
-
-		if ( i < 0 ) {
-			snprintf( c->cr_msg, sizeof( c->cr_msg ),
-				"need \"uri\" directive first" );
-			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
-			return 1;
-		}
-
 		/*
 		 * exact replacement:
 		 *
@@ -1536,27 +1513,27 @@ idassert-authzFrom	"dn:<rootdn>"
 			oargc = c->argc;
 			c->argv = cargv;
 			c->argc = cargc;
-			rc = mi->mi_ldap_extra->idassert_parse( c, &mi->mi_targets[ mi->mi_ntargets - 1 ]->mt_idassert );
+			rc = mi->mi_ldap_extra->idassert_parse( c, &mt->mt_idassert );
 			c->argv = oargv;
 			c->argc = oargc;
 			if ( rc == 0 ) {
 				struct berval	bv;
 
-				if ( mi->mi_targets[ mi->mi_ntargets - 1 ]->mt_idassert_authz != NULL ) {
+				if ( mt->mt_idassert_authz != NULL ) {
 					Debug( LDAP_DEBUG_ANY, "%s: \"idassert-authzFrom\" already defined (discarded).\n",
 						c->log, 0, 0 );
-					ber_bvarray_free( mi->mi_targets[ mi->mi_ntargets - 1 ]->mt_idassert_authz );
-					mi->mi_targets[ mi->mi_ntargets - 1 ]->mt_idassert_authz = NULL;
+					ber_bvarray_free( mt->mt_idassert_authz );
+					mt->mt_idassert_authz = NULL;
 				}
 
-				assert( !BER_BVISNULL( &mi->mi_targets[ mi->mi_ntargets - 1 ]->mt_idassert_authcDN ) );
+				assert( !BER_BVISNULL( &mt->mt_idassert_authcDN ) );
 
 				bv.bv_len = STRLENOF( "dn:" ) + c->be->be_rootndn.bv_len;
 				bv.bv_val = ber_memalloc( bv.bv_len + 1 );
 				AC_MEMCPY( bv.bv_val, "dn:", STRLENOF( "dn:" ) );
 				AC_MEMCPY( &bv.bv_val[ STRLENOF( "dn:" ) ], c->be->be_rootndn.bv_val, c->be->be_rootndn.bv_len + 1 );
 
-				ber_bvarray_add( &mi->mi_targets[ mi->mi_ntargets - 1 ]->mt_idassert_authz, &bv );
+				ber_bvarray_add( &mt->mt_idassert_authz, &bv );
 			}
 
 			return rc;
@@ -1565,65 +1542,38 @@ idassert-authzFrom	"dn:<rootdn>"
 
 	case LDAP_BACK_CFG_PSEUDOROOTPW:
 	/* password to use as pseudo-root */
-		i = mi->mi_ntargets - 1;
-
-		if ( i < 0 ) {
-			snprintf( c->cr_msg, sizeof( c->cr_msg ),
-				"need \"uri\" directive first" );
-			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
-			return 1;
-		}
-
 		Debug( LDAP_DEBUG_ANY,
 			"%s: \"pseudorootdn\", \"pseudorootpw\" are no longer supported; "
 			"use \"idassert-bind\" and \"idassert-authzFrom\" instead.\n",
 			c->log, 0, 0 );
 
-		if ( BER_BVISNULL( &mi->mi_targets[ i ]->mt_idassert_authcDN ) ) {
+		if ( BER_BVISNULL( &mt->mt_idassert_authcDN ) ) {
 			Debug( LDAP_DEBUG_ANY, "%s: \"pseudorootpw\": \"pseudorootdn\" must be defined first.\n",
 				c->log, 0, 0 );
 			return 1;
 		}
 
-		if ( !BER_BVISNULL( &mi->mi_targets[ i ]->mt_idassert_passwd ) ) {
-			memset( mi->mi_targets[ i ]->mt_idassert_passwd.bv_val, 0,
-				mi->mi_targets[ i ]->mt_idassert_passwd.bv_len );
-			ber_memfree( mi->mi_targets[ i ]->mt_idassert_passwd.bv_val );
+		if ( !BER_BVISNULL( &mt->mt_idassert_passwd ) ) {
+			memset( mt->mt_idassert_passwd.bv_val, 0,
+				mt->mt_idassert_passwd.bv_len );
+			ber_memfree( mt->mt_idassert_passwd.bv_val );
 		}
-		ber_str2bv( c->argv[ 1 ], 0, 1, &mi->mi_targets[ i ]->mt_idassert_passwd );
+		ber_str2bv( c->argv[ 1 ], 0, 1, &mt->mt_idassert_passwd );
+		break;
 
 	case LDAP_BACK_CFG_IDASSERT_BIND:
 	/* idassert-bind */
-		if ( mi->mi_ntargets == 0 ) {
-			snprintf( c->cr_msg, sizeof( c->cr_msg ),
-				"need \"uri\" directive first" );
-			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
-			return 1;
-		}
-
-		rc = mi->mi_ldap_extra->idassert_parse( c, &mi->mi_targets[ mi->mi_ntargets - 1 ]->mt_idassert );
+		rc = mi->mi_ldap_extra->idassert_parse( c, &mt->mt_idassert );
 		break;
 
 	case LDAP_BACK_CFG_IDASSERT_AUTHZFROM:
 	/* idassert-authzFrom */
-		if ( mi->mi_ntargets == 0 ) {
-			snprintf( c->cr_msg, sizeof( c->cr_msg ),
-				"need \"uri\" directive first" );
-			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
-			return 1;
-		}
-
-		rc = mi->mi_ldap_extra->idassert_authzfrom_parse( c, &mi->mi_targets[ mi->mi_ntargets - 1 ]->mt_idassert );
+		rc = mi->mi_ldap_extra->idassert_authzfrom_parse( c, &mt->mt_idassert );
 		break;
 
-	case LDAP_BACK_CFG_QUARANTINE: {
+	case LDAP_BACK_CFG_QUARANTINE:
 	/* quarantine */
-		slap_retry_info_t	*ri = mi->mi_ntargets ?
-				&mi->mi_targets[ mi->mi_ntargets - 1 ]->mt_quarantine
-				: &mi->mi_quarantine;
-
-		if ( ( mi->mi_ntargets == 0 && META_BACK_QUARANTINE( mi ) )
-			|| ( mi->mi_ntargets > 0 && META_BACK_TGT_QUARANTINE( mi->mi_targets[ mi->mi_ntargets - 1 ] ) ) )
+		if ( META_BACK_CMN_QUARANTINE( mc ) )
 		{
 			snprintf( c->cr_msg, sizeof( c->cr_msg ),
 				"quarantine already defined" );
@@ -1631,41 +1581,31 @@ idassert-authzFrom	"dn:<rootdn>"
 			return 1;
 		}
 
-		if ( ri != &mi->mi_quarantine ) {
-			ri->ri_interval = NULL;
-			ri->ri_num = NULL;
+		if ( mt ) {
+			mc->mc_quarantine.ri_interval = NULL;
+			mc->mc_quarantine.ri_num = NULL;
+			if ( !META_BACK_QUARANTINE( mi ) ) {
+				ldap_pvt_thread_mutex_init( &mt->mt_quarantine_mutex );
+			}
 		}
 
-		if ( mi->mi_ntargets > 0 && !META_BACK_QUARANTINE( mi ) ) {
-			ldap_pvt_thread_mutex_init( &mi->mi_targets[ mi->mi_ntargets - 1 ]->mt_quarantine_mutex );
-		}
-
-		if ( mi->mi_ldap_extra->retry_info_parse( c->argv[ 1 ], ri, c->cr_msg, sizeof( c->cr_msg ) ) ) {
+		if ( mi->mi_ldap_extra->retry_info_parse( c->argv[ 1 ], &mc->mc_quarantine, c->cr_msg, sizeof( c->cr_msg ) ) ) {
 			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
 			return 1;
 		}
 
-		if ( mi->mi_ntargets == 0 ) {
-			mi->mi_flags |= LDAP_BACK_F_QUARANTINE;
-
-		} else {
-			mi->mi_targets[ mi->mi_ntargets - 1 ]->mt_flags |= LDAP_BACK_F_QUARANTINE;
-		}
-		} break;
+		mc->mc_flags |= LDAP_BACK_F_QUARANTINE;
+		break;
 
 #ifdef SLAP_CONTROL_X_SESSION_TRACKING
-	case LDAP_BACK_CFG_ST_REQUEST: {
+	case LDAP_BACK_CFG_ST_REQUEST:
 	/* session tracking request */
-		unsigned	*flagsp = mi->mi_ntargets ?
-				&mi->mi_targets[ mi->mi_ntargets - 1 ]->mt_flags
-				: &mi->mi_flags;
-
 		if ( c->value_int ) {
-			*flagsp |= LDAP_BACK_F_ST_REQUEST;
+			mc->mc_flags |= LDAP_BACK_F_ST_REQUEST;
 		} else {
-			*flagsp &= ~LDAP_BACK_F_ST_REQUEST;
+			mc->mc_flags &= ~LDAP_BACK_F_ST_REQUEST;
 		}
-		} break;
+		break;
 #endif /* SLAP_CONTROL_X_SESSION_TRACKING */
 
 	case LDAP_BACK_CFG_SUFFIXM: {
@@ -1673,14 +1613,6 @@ idassert-authzFrom	"dn:<rootdn>"
 		BackendDB 	*tmp_bd;
 		struct berval	dn, nvnc, pvnc, nrnc, prnc;
 		int j;
-
-		i = mi->mi_ntargets - 1;
-		if ( i < 0 ) {
-			snprintf( c->cr_msg, sizeof( c->cr_msg ),
-				"need \"uri\" directive first" );
-			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
-			return 1;
-		}
 
 		/*
 		 * syntax:
@@ -1742,7 +1674,7 @@ idassert-authzFrom	"dn:<rootdn>"
 		 * The suffix massaging is emulated by means of the
 		 * rewrite capabilities
 		 */
-	 	rc = suffix_massage_config( mi->mi_targets[ i ]->mt_rwmap.rwm_rw,
+		rc = suffix_massage_config( mt->mt_rwmap.rwm_rw,
 				&pvnc, &nvnc, &prnc, &nrnc );
 
 		free( pvnc.bv_val );
@@ -1755,36 +1687,16 @@ idassert-authzFrom	"dn:<rootdn>"
 
 	case LDAP_BACK_CFG_REWRITE:
 	/* rewrite stuff ... */
-		i = mi->mi_ntargets - 1;
-
-		if ( i < 0 ) {
-			snprintf( c->cr_msg, sizeof( c->cr_msg ),
-				"need \"uri\" directive first" );
-			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
-			return 1;
-		}
-
- 		return rewrite_parse( mi->mi_targets[ i ]->mt_rwmap.rwm_rw,
+		return rewrite_parse( mt->mt_rwmap.rwm_rw,
 				c->fname, c->lineno, c->argc, c->argv );
 
 	case LDAP_BACK_CFG_MAP:
 	/* objectclass/attribute mapping */
-		i = mi->mi_ntargets - 1;
-
-		if ( i < 0 ) {
-			snprintf( c->cr_msg, sizeof( c->cr_msg ),
-				"need \"uri\" directive first" );
-			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
-			return 1;
-		}
-
-		return ldap_back_map_config( c, &mi->mi_targets[ i ]->mt_rwmap.rwm_oc,
-				&mi->mi_targets[ i ]->mt_rwmap.rwm_at );
+		return ldap_back_map_config( c, &mt->mt_rwmap.rwm_oc,
+				&mt->mt_rwmap.rwm_at );
 
 	case LDAP_BACK_CFG_NRETRIES: {
 		int		nretries = META_RETRY_UNDEFINED;
-
-		i = mi->mi_ntargets - 1;
 
 		if ( strcasecmp( c->argv[ 1 ], "forever" ) == 0 ) {
 			nretries = META_RETRY_FOREVER;
@@ -1802,74 +1714,54 @@ idassert-authzFrom	"dn:<rootdn>"
 			}
 		}
 
-		if ( i < 0 ) {
-			mi->mi_nretries = nretries;
-
-		} else {
-			mi->mi_targets[ i ]->mt_nretries = nretries;
-		}
+		mc->mc_nretries = nretries;
 		} break;
 
-	case LDAP_BACK_CFG_VERSION: {
-		int	*version = mi->mi_ntargets ?
-				&mi->mi_targets[ mi->mi_ntargets - 1 ]->mt_version
-				: &mi->mi_version;
-
-		if ( *version != 0 && ( *version < LDAP_VERSION_MIN || *version > LDAP_VERSION_MAX ) ) {
+	case LDAP_BACK_CFG_VERSION:
+		if ( c->value_int != 0 && ( c->value_int < LDAP_VERSION_MIN || c->value_int > LDAP_VERSION_MAX ) ) {
 			snprintf( c->cr_msg, sizeof( c->cr_msg ),
 				"unsupported protocol version \"%s\"",
 				c->argv[ 1 ] );
 			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
 			return 1;
 		}
-		} break;
+		mc->mc_version = c->value_int;
+		break;
 
-	case LDAP_BACK_CFG_NOREFS: {
+	case LDAP_BACK_CFG_NOREFS:
 	/* do not return search references */
-		unsigned	*flagsp = mi->mi_ntargets ?
-				&mi->mi_targets[ mi->mi_ntargets - 1 ]->mt_flags
-				: &mi->mi_flags;
-
 		if ( c->value_int ) {
-			*flagsp |= LDAP_BACK_F_NOREFS;
+			mc->mc_flags |= LDAP_BACK_F_NOREFS;
 		} else {
-			*flagsp &= ~LDAP_BACK_F_NOREFS;
+			mc->mc_flags &= ~LDAP_BACK_F_NOREFS;
 		}
-		} break;
+		break;
 
-	case LDAP_BACK_CFG_NOUNDEFFILTER: {
+	case LDAP_BACK_CFG_NOUNDEFFILTER:
 	/* do not propagate undefined search filters */
-		unsigned	*flagsp = mi->mi_ntargets ?
-				&mi->mi_targets[ mi->mi_ntargets - 1 ]->mt_flags
-				: &mi->mi_flags;
-
 		if ( c->value_int ) {
-			*flagsp |= LDAP_BACK_F_NOUNDEFFILTER;
+			mc->mc_flags |= LDAP_BACK_F_NOUNDEFFILTER;
 		} else {
-			*flagsp &= ~LDAP_BACK_F_NOUNDEFFILTER;
+			mc->mc_flags &= ~LDAP_BACK_F_NOUNDEFFILTER;
 		}
-		} break;
+		break;
 
 #ifdef SLAPD_META_CLIENT_PR
-	case LDAP_BACK_CFG_CLIENT_PR: {
-		int *ps = mi->mi_ntargets ?
-				&mi->mi_targets[ mi->mi_ntargets - 1 ]->mt_ps
-				: &mi->mi_ps;
-
+	case LDAP_BACK_CFG_CLIENT_PR:
 		if ( strcasecmp( c->argv[ 1 ], "accept-unsolicited" ) == 0 ) {
-			*ps = META_CLIENT_PR_ACCEPT_UNSOLICITED;
+			mc->mc_ps = META_CLIENT_PR_ACCEPT_UNSOLICITED;
 
 		} else if ( strcasecmp( c->argv[ 1 ], "disable" ) == 0 ) {
-			*ps = META_CLIENT_PR_DISABLE;
+			mc->mc_ps = META_CLIENT_PR_DISABLE;
 
-		} else if ( lutil_atoi( ps, c->argv[ 1 ] ) || *ps < -1 ) {
+		} else if ( lutil_atoi( &mc->mc_ps, c->argv[ 1 ] ) || mc->mc_ps < -1 ) {
 			snprintf( c->cr_msg, sizeof( c->cr_msg ),
 				"unable to parse client-pr {accept-unsolicited|disable|<size>}: \"%s\"",
 				c->argv[ 1 ] );
 			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
 			return( 1 );
 		}
-		} break;
+		break;
 #endif /* SLAPD_META_CLIENT_PR */
 
 	/* anything else */
