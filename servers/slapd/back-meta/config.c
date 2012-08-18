@@ -480,7 +480,13 @@ meta_cfadd( Operation *op, SlapReply *rs, Entry *p, ConfigArgs *c )
 	struct berval bv;
 	int i;
 
+	bv.bv_val = c->cr_msg;
 	for ( i=0; i<mi->mi_ntargets; i++ ) {
+		bv.bv_len = snprintf( c->cr_msg, sizeof(c->cr_msg),
+			"olcMetaSub=" SLAP_X_ORDERED_FMT "uri", i );
+		c->ca_private = mi->mi_targets[i];
+		config_build_entry( op, rs, p->e_private, c,
+			&bv, &metaocs[1], NULL );
 	}
 
 	return LDAP_SUCCESS;
@@ -891,28 +897,52 @@ meta_back_cf_gen( ConfigArgs *c )
 	assert( mi != NULL );
 
 	if ( c->op == SLAP_CONFIG_EMIT ) {
-		return 1;
+		struct berval bv = BER_BVNULL;
+
+		if ( !mi )
+			return 1;
+
+		if ( c->type >= LDAP_BACK_CFG_LAST_BASE ) {
+			mt = c->ca_private;
+			if ( mt )
+				mc = &mt->mt_mc;
+			else
+				mc = &mi->mi_mc;
+		}
+
+		switch( c->type ) {
+		case LDAP_BACK_CFG_URI:
+			ber_str2bv( mt->mt_uri, 0, 0, &bv );
+			ber_bvarray_add( &c->rvalue_vals, &bv );
+			break;
+		default:
+			rc = 1;
+		}
+		return rc;
 	} else if ( c->op == LDAP_MOD_DELETE ) {
 		return 1;
 	}
 
-	if ( c->type >= LDAP_BACK_CFG_LAST_BASE ) {
-		/* exclude CFG_URI from this check */
-		if ( c->type > LDAP_BACK_CFG_LAST_BOTH ) {
-			if ( !mi->mi_ntargets ) {
-				snprintf( c->cr_msg, sizeof( c->cr_msg ),
-					"need \"uri\" directive first" );
-				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
-				return 1;
+	if ( c->op == SLAP_CONFIG_ADD ) {
+		if ( c->type >= LDAP_BACK_CFG_LAST_BASE ) {
+			/* exclude CFG_URI from this check */
+			if ( c->type > LDAP_BACK_CFG_LAST_BOTH ) {
+				if ( !mi->mi_ntargets ) {
+					snprintf( c->cr_msg, sizeof( c->cr_msg ),
+						"need \"uri\" directive first" );
+					Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
+					return 1;
+				}
+			}
+			if ( mi->mi_ntargets ) {
+				mt = mi->mi_targets[ mi->mi_ntargets-1 ];
+				mc = &mt->mt_mc;
+			} else {
+				mt = NULL;
+				mc = &mi->mi_mc;
 			}
 		}
-		if ( mi->mi_ntargets ) {
-			mt = mi->mi_targets[ mi->mi_ntargets-1 ];
-			mc = &mt->mt_mc;
-		} else {
-			mt = NULL;
-			mc = &mi->mi_mc;
-		}
+	} else {
 	}
 
 	switch( c->type ) {
@@ -1107,6 +1137,7 @@ meta_back_cf_gen( ConfigArgs *c )
 			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
 			return 1;
 		}
+		c->ca_private = mt;
 	} break;
 	case LDAP_BACK_CFG_SUBTREE_EX:
 	case LDAP_BACK_CFG_SUBTREE_IN:
