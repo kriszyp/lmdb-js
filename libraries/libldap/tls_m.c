@@ -2102,6 +2102,22 @@ tlsm_ctx_init( struct ldapoptions *lo, struct ldaptls *lt, int is_server )
 	return 0;
 }
 
+/* returns true if the given string looks like
+   "tokenname" ":" "certnickname"
+   This is true if there is a ':' colon character
+   in the string and the colon is not the first
+   or the last character in the string
+*/
+static int
+tlsm_is_tokenname_certnick( const char *certfile )
+{
+	if ( certfile ) {
+		const char *ptr = PL_strchr( certfile, ':' );
+		return ptr && (ptr != certfile) && (*(ptr+1));
+	}
+	return 0;
+}
+
 static int
 tlsm_deferred_ctx_init( void *arg )
 {
@@ -2268,7 +2284,10 @@ tlsm_deferred_ctx_init( void *arg )
 		} else {
 			char *tmp_certname;
 
-			if ( ctx->tc_certdb_slot ) {
+			if ( tlsm_is_tokenname_certnick( lt->lt_certfile )) {
+				/* assume already in form tokenname:certnickname */
+				tmp_certname = PL_strdup( lt->lt_certfile );
+			} else if ( ctx->tc_certdb_slot ) {
 				tmp_certname = PR_smprintf( TLSM_CERTDB_DESC_FMT ":%s", ctx->tc_unique, lt->lt_certfile );
 			} else {
 				tmp_certname = PR_smprintf( "%s", lt->lt_certfile );
