@@ -316,6 +316,8 @@ meta_back_map_free( struct ldapmap *lm )
 {
 	avl_free( lm->remap, mapping_dst_free );
 	avl_free( lm->map, mapping_free );
+	lm->remap = NULL;
+	lm->map = NULL;
 }
 
 static void
