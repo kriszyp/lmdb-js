@@ -473,10 +473,11 @@ static ConfigOCs metaocs[] = {
 static int
 meta_ldadd( CfEntryInfo *p, Entry *e, ConfigArgs *c )
 {
-	if ( p->ce_type != Cft_Database || !p->ce_bi ||
-		p->ce_bi->bi_cf_ocs != metaocs )
+	if ( p->ce_type != Cft_Database || !p->ce_be ||
+		p->ce_be->be_cf_ocs != metaocs )
 		return LDAP_CONSTRAINT_VIOLATION;
 
+	c->be = p->ce_be;
 	return LDAP_SUCCESS;
 }
 
@@ -560,6 +561,8 @@ meta_back_new_target(
 static int
 meta_suffixm_config(
 	ConfigArgs *c,
+	int argc,
+	char **argv,
 	metatarget_t *mt
 )
 {
@@ -579,11 +582,11 @@ meta_suffixm_config(
 	 * current server
 	 */
 
-	ber_str2bv( c->argv[ 1 ], 0, 0, &dn );
+	ber_str2bv( argv[ 1 ], 0, 0, &dn );
 	if ( dnPrettyNormal( NULL, &dn, &pvnc, &nvnc, NULL ) != LDAP_SUCCESS ) {
 		snprintf( c->cr_msg, sizeof( c->cr_msg ),
 			"suffix \"%s\" is invalid",
-			c->argv[1] );
+			argv[1] );
 		Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
 		return 1;
 	}
@@ -597,18 +600,18 @@ meta_suffixm_config(
 	if ( BER_BVISNULL( &c->be->be_nsuffix[ j ] ) ) {
 		snprintf( c->cr_msg, sizeof( c->cr_msg ),
 			"suffix \"%s\" must be within the database naming context",
-			c->argv[1] );
+			argv[1] );
 		Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
 		free( pvnc.bv_val );
 		free( nvnc.bv_val );
 		return 1;
 	}
 
-	ber_str2bv( c->argv[ 2 ], 0, 0, &dn );
+	ber_str2bv( argv[ 2 ], 0, 0, &dn );
 	if ( dnPrettyNormal( NULL, &dn, &prnc, &nrnc, NULL ) != LDAP_SUCCESS ) {
 		snprintf( c->cr_msg, sizeof( c->cr_msg ),
 			"massaged suffix \"%s\" is invalid",
-			c->argv[2] );
+			argv[2] );
 		Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
 		free( pvnc.bv_val );
 		free( nvnc.bv_val );
@@ -1670,7 +1673,7 @@ meta_back_cf_gen( ConfigArgs *c )
 				return 1;
 			}
 
-			if ( j == 0 ) {
+			if ( j == 1 ) {
 				uris = tmpuris;
 
 			} else {
@@ -2319,10 +2322,10 @@ idassert-authzFrom	"dn:<rootdn>"
 				config_fp_parse_line( &ca );
 
 				if ( !strcasecmp( ca.argv[0], "suffixmassage" )) {
-					rc = meta_suffixm_config( &ca, mt );
+					rc = meta_suffixm_config( &ca, ca.argc, ca.argv, mt );
 				} else {
 					rc = rewrite_parse( mt->mt_rwmap.rwm_rw,
-						c->fname, c->lineno, ca.argc, argv );
+						c->fname, c->lineno, ca.argc, ca.argv );
 				}
 				assert( rc == 0 );
 				ch_free( ca.argv );
@@ -2331,14 +2334,14 @@ idassert-authzFrom	"dn:<rootdn>"
 		}
 		argc = c->argc;
 		argv = c->argv;
+		if ( c->op != SLAP_CONFIG_ADD ) {
+			argc--;
+			argv++;
+		}
 		/* add the new rule */
-		if ( c->type == LDAP_BACK_CFG_SUFFIXM ) {
-			rc = meta_suffixm_config( c, mt );
+		if ( !strcasecmp( argv[0], "suffixmassage" )) {
+			rc = meta_suffixm_config( c, argc, argv, mt );
 		} else {
-			if ( c->op != SLAP_CONFIG_ADD ) {
-				argc--;
-				argv++;
-			}
 			rc = rewrite_parse( mt->mt_rwmap.rwm_rw,
 						c->fname, c->lineno, argc, argv );
 		}
@@ -2356,7 +2359,7 @@ idassert-authzFrom	"dn:<rootdn>"
 				config_fp_parse_line( &ca );
 
 				if ( !strcasecmp( ca.argv[0], "suffixmassage" )) {
-					rc = meta_suffixm_config( &ca, mt );
+					rc = meta_suffixm_config( &ca, ca.argc, ca.argv, mt );
 				} else {
 					rc = rewrite_parse( mt->mt_rwmap.rwm_rw,
 						c->fname, c->lineno, ca.argc, argv );
