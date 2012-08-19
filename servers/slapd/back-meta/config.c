@@ -1708,7 +1708,7 @@ meta_back_cf_gen( ConfigArgs *c )
 			 * connections associated with this target.
 			 */
 			break;
-		
+
 		case LDAP_BACK_CFG_IDASSERT_AUTHZFROM: {
 			BerVarray *bvp;
 
