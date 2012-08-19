@@ -683,12 +683,8 @@ slap_bv_x_ordered_unparse( BerVarray in, BerVarray *out )
 }
 
 int
-meta_subtree_destroy( metasubtree_t *ms )
+meta_subtree_free( metasubtree_t *ms )
 {
-	if ( ms->ms_next ) {
-		meta_subtree_destroy( ms->ms_next );
-	}
-
 	switch ( ms->ms_type ) {
 	case META_ST_SUBTREE:
 	case META_ST_SUBORDINATE:
@@ -705,8 +701,17 @@ meta_subtree_destroy( metasubtree_t *ms )
 	}
 
 	ch_free( ms );
-
 	return 0;
+}
+
+int
+meta_subtree_destroy( metasubtree_t *ms )
+{
+	if ( ms->ms_next ) {
+		meta_subtree_destroy( ms->ms_next );
+	}
+
+	return meta_subtree_free( ms );
 }
 
 static struct berval st_styles[] = {
@@ -1578,7 +1583,221 @@ meta_back_cf_gen( ConfigArgs *c )
 		}
 		return rc;
 	} else if ( c->op == LDAP_MOD_DELETE ) {
-		return 1;
+		switch( c->type ) {
+		/* Base attrs */
+		case LDAP_BACK_CFG_CONN_TTL:
+			mi->mi_conn_ttl = 0;
+			break;
+
+		case LDAP_BACK_CFG_DNCACHE_TTL:
+			mi->mi_cache.ttl = META_DNCACHE_DISABLED;
+			break;
+
+		case LDAP_BACK_CFG_IDLE_TIMEOUT:
+			mi->mi_idle_timeout = 0;
+			break;
+
+		case LDAP_BACK_CFG_ONERR:
+			mi->mi_flags &= ~META_BACK_F_ONERR_MASK;
+			break;
+
+		case LDAP_BACK_CFG_PSEUDOROOT_BIND_DEFER:
+			mi->mi_flags &= ~META_BACK_F_DEFER_ROOTDN_BIND;
+			break;
+
+		case LDAP_BACK_CFG_SINGLECONN:
+			mi->mi_flags &= ~LDAP_BACK_F_SINGLECONN;
+			break;
+
+		case LDAP_BACK_CFG_USETEMP:
+			mi->mi_flags &= ~LDAP_BACK_F_USE_TEMPORARIES;
+			break;
+
+		case LDAP_BACK_CFG_CONNPOOLMAX:
+			mi->mi_conn_priv_max = LDAP_BACK_CONN_PRIV_MIN;
+			break;
+
+		/* common attrs */
+		case LDAP_BACK_CFG_BIND_TIMEOUT:
+			mc->mc_bind_timeout.tv_sec = 0;
+			mc->mc_bind_timeout.tv_usec = 0;
+			break;
+
+		case LDAP_BACK_CFG_CANCEL:
+			mc->mc_flags &= ~LDAP_BACK_F_CANCEL_MASK2;
+			break;
+
+		case LDAP_BACK_CFG_CHASE:
+			mc->mc_flags &= ~LDAP_BACK_F_CHASE_REFERRALS;
+			break;
+
+#ifdef SLAPD_META_CLIENT_PR
+		case LDAP_BACK_CFG_CLIENT_PR:
+			mc->mc_ps == META_CLIENT_PR_DISABLE;
+			break;
+#endif /* SLAPD_META_CLIENT_PR */
+
+		case LDAP_BACK_CFG_DEFAULT_T:
+			mi->mi_defaulttarget = META_DEFAULT_TARGET_NONE;
+			break;
+
+		case LDAP_BACK_CFG_NETWORK_TIMEOUT:
+			mc->mc_network_timeout = 0;
+			break;
+
+		case LDAP_BACK_CFG_NOREFS:
+			mc->mc_flags &= ~LDAP_BACK_F_NOREFS;
+			break;
+
+		case LDAP_BACK_CFG_NOUNDEFFILTER:
+			mc->mc_flags &= ~LDAP_BACK_F_NOUNDEFFILTER;
+			break;
+
+		case LDAP_BACK_CFG_NRETRIES:
+			mc->mc_nretries == META_RETRY_DEFAULT;
+			break;
+
+		case LDAP_BACK_CFG_QUARANTINE:
+			if ( META_BACK_CMN_QUARANTINE( mc )) {
+				mi->mi_ldap_extra->retry_info_destroy( &mc->mc_quarantine );
+				mc->mc_flags &= ~LDAP_BACK_F_QUARANTINE;
+				if ( mc == &mt->mt_mc ) {
+					ldap_pvt_thread_mutex_destroy( &mt->mt_quarantine_mutex );
+					mt->mt_isquarantined = 0;
+				}
+			}
+			break;
+
+		case LDAP_BACK_CFG_REBIND:
+			mc->mc_flags &= ~LDAP_BACK_F_SAVECRED;
+			break;
+
+		case LDAP_BACK_CFG_TIMEOUT:
+			for ( i = 0; i < SLAP_OP_LAST; i++ ) {
+				mc->mc_timeout[ i ] = 0;
+			}
+			break;
+
+		case LDAP_BACK_CFG_VERSION:
+			mc->mc_version = 0;
+			break;
+
+#ifdef SLAP_CONTROL_X_SESSION_TRACKING
+		case LDAP_BACK_CFG_ST_REQUEST:
+			mc->mc_flags &= ~LDAP_BACK_F_ST_REQUEST;
+			break;
+#endif /* SLAP_CONTROL_X_SESSION_TRACKING */
+
+		case LDAP_BACK_CFG_T_F:
+			mc->mc_flags &= ~LDAP_BACK_F_T_F_MASK2;
+			break;
+
+		case LDAP_BACK_CFG_TLS:
+			mc->mc_flags &= ~LDAP_BACK_F_TLS_MASK;
+			if ( mt )
+				bindconf_free( &mt->mt_tls );
+			break;
+
+		/* target attrs */
+		case LDAP_BACK_CFG_URI:
+			if ( mt->mt_uri ) {
+				ch_free( mt->mt_uri );
+				mt->mt_uri = NULL;
+			}
+			/* FIXME: should have a way to close all cached
+			 * connections associated with this target.
+			 */
+			break;
+		
+		case LDAP_BACK_CFG_IDASSERT_AUTHZFROM: {
+			BerVarray *bvp;
+
+			bvp = &mt->mt_idassert_authz; break;
+			if ( c->valx < 0 ) {
+				if ( *bvp != NULL ) {
+					ber_bvarray_free( *bvp );
+					*bvp = NULL;
+				}
+
+			} else {
+				if ( *bvp == NULL ) {
+					rc = 1;
+					break;
+				}
+
+				for ( i = 0; !BER_BVISNULL( &((*bvp)[ i ]) ); i++ )
+					;
+
+				if ( i >= c->valx ) {
+					rc = 1;
+					break;
+				}
+				ber_memfree( ((*bvp)[ c->valx ]).bv_val );
+				for ( i = c->valx; !BER_BVISNULL( &((*bvp)[ i + 1 ]) ); i++ ) {
+					(*bvp)[ i ] = (*bvp)[ i + 1 ];
+				}
+				BER_BVZERO( &((*bvp)[ i ]) );
+			}
+			} break;
+
+		case LDAP_BACK_CFG_IDASSERT_BIND:
+			bindconf_free( &mt->mt_idassert.si_bc );
+			memset( &mt->mt_idassert, 0, sizeof( slap_idassert_t ) );
+			break;
+
+		case LDAP_BACK_CFG_SUFFIXM:	/* unused */
+		case LDAP_BACK_CFG_REWRITE:
+			if ( mt->mt_rwmap.rwm_bva_rewrite ) {
+				ber_bvarray_free( mt->mt_rwmap.rwm_bva_rewrite );
+				mt->mt_rwmap.rwm_bva_rewrite = NULL;
+			}
+			if ( mt->mt_rwmap.rwm_rw )
+				rewrite_info_delete( &mt->mt_rwmap.rwm_rw );
+			break;
+
+		case LDAP_BACK_CFG_MAP:
+			if ( mt->mt_rwmap.rwm_bva_map ) {
+				ber_bvarray_free( mt->mt_rwmap.rwm_bva_map );
+				mt->mt_rwmap.rwm_bva_map = NULL;
+			}
+			meta_back_map_free( &mt->mt_rwmap.rwm_oc );
+			meta_back_map_free( &mt->mt_rwmap.rwm_at );
+			mt->mt_rwmap.rwm_oc.drop_missing = 0;
+			mt->mt_rwmap.rwm_at.drop_missing = 0;
+			break;
+
+		case LDAP_BACK_CFG_SUBTREE_EX:
+		case LDAP_BACK_CFG_SUBTREE_IN:
+			/* can only be one of exclude or include */
+			if (( c->type == LDAP_BACK_CFG_SUBTREE_EX ) ^ mt->mt_subtree_exclude ) {
+				rc = 1;
+				break;
+			}
+			if ( c->valx < 0 ) {
+				meta_subtree_destroy( mt->mt_subtree );
+				mt->mt_subtree = NULL;
+			} else {
+				metasubtree_t *ms, **mprev;
+				for (i=0, mprev = &mt->mt_subtree, ms = *mprev; ms; ms = *mprev) {
+					if ( i == c->valx ) {
+						*mprev = ms->ms_next;
+						meta_subtree_free( ms );
+						break;
+					}
+					i++;
+					mprev = &ms->ms_next;
+				}
+				if ( i != c->valx )
+					rc = 1;
+			}
+			break;
+
+		default:
+			rc = 1;
+			break;
+		}
+
+		return rc;
 	}
 
 	if ( c->op == SLAP_CONFIG_ADD ) {
