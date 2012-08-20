@@ -1,6 +1,9 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.33 Engineering
+	Fixed slapo-constraint with multiple modifications (ITS#7168)
+	Build Environment
+		Add slapo-constraint test suite (ITS#7344)
 
 OpenLDAP 2.4.32 Release (2012/07/31)
 	Added slappasswd loadable module support (ITS#7284)
