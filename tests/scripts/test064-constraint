@@ -20,7 +20,7 @@ mkdir -p $TESTDIR $CONFDIR $DBDIR1
 
 $SLAPPASSWD -g -n >$CONFIGPWF
 
-$SLAPADD -F $CONFDIR -n 0 <<EOF
+cat > $TESTDIR/config.ldif <<EOF
 dn: cn=config
 objectClass: olcGlobal
 cn: config
@@ -39,6 +39,31 @@ dn: olcDatabase=config,cn=config
 objectClass: olcDatabaseConfig
 olcDatabase: config
 olcRootPW:< file://$CONFIGPWF
+EOF
+
+if [ "$BACKENDTYPE" = mod ]; then
+	cat >> $TESTDIR/config.ldif <<EOF
+
+dn: cn=module,cn=config
+objectClass: olcModuleList
+cn: module
+olcModulePath: $TESTWD/../servers/slapd/back-$BACKEND
+olcModuleLoad: back_$BACKEND.la
+EOF
+fi
+
+if [ "$CONSTRAINT" = constraintmod ]; then
+	cat >> $TESTDIR/config.ldif <<EOF
+
+dn: cn=module,cn=config
+objectClass: olcModuleList
+cn: module
+olcModulePath: $TESTWD/../servers/slapd/overlays
+olcModuleLoad: constraint.la
+EOF
+fi
+
+cat >> $TESTDIR/config.ldif <<EOF
 
 dn: olcDatabase={1}$BACKEND,cn=config
 objectClass: olcDatabaseConfig
@@ -48,38 +73,17 @@ olcSuffix: $BASEDN
 olcRootDN: $MANAGERDN
 olcRootPW: $PASSWD
 olcDbDirectory: $TESTDIR/db.1.a
+EOF
+
+if [ "$INDEXDB" = indexdb ]; then
+	cat >> $TESTDIR/config.ldif <<EOF
 olcDbIndex: objectClass eq,pres
 olcDbIndex: ou,cn,mail,surname,givenname eq,pres,sub
 EOF
-
-echo "Starting slapd on TCP/IP port $PORT1..."
-$SLAPD -F $CONFDIR -h $URI1 -d $LVL $TIMING > $LOG1 2>&1 &
-PID=$!
-if test $WAIT != 0 ; then
-	echo PID $PID
-	read foo
 fi
 
-sleep 1
+cat >> $TESTDIR/config.ldif <<EOF
 
-echo "Inserting constraint overlay... "
-if [ "$CONSTRAINT" = constraintmod ]; then
-	$LDAPADD -D cn=config -H $URI1 -y $CONFIGPWF <<EOF > $TESTOUT 2>&1
-dn: cn=module,cn=config
-objectClass: olcModuleList
-cn: module
-olcModulePath: $TESTWD/../servers/slapd/overlays
-olcModuleLoad: constraint.la
-EOF
-	RC=$?
-	if test $RC != 0 ; then
-		echo "ldapadd failed ($RC)!"
-		test $KILLSERVERS != no && kill -HUP $PID
-		exit $RC
-	fi
-fi
-
-$LDAPADD -D cn=config -H $URI1 -y $CONFIGPWF <<EOF >> $TESTOUT 2>&1
 dn: olcOverlay=constraint,olcDatabase={1}$BACKEND,cn=config
 objectClass: olcOverlayConfig
 objectClass: olcConstraintConfig
@@ -88,12 +92,17 @@ olcConstraintAttribute: mail count 3
 olcConstraintAttribute: mail regex ^[[:alnum:]]+@example.com$
 olcConstraintAttribute: description count 2
 EOF
-RC=$?
-if test $RC != 0 ; then
-	echo "ldapadd failed ($RC)!"
-	test $KILLSERVERS != no && kill -HUP $PID
-	exit $RC
+
+$SLAPADD -F $CONFDIR -n 0 -l $TESTDIR/config.ldif
+
+echo "Starting slapd on TCP/IP port $PORT1..."
+$SLAPD -F $CONFDIR -h $URI1 -d $LVL $TIMING > $LOG1 2>&1 &
+PID=$!
+if test $WAIT != 0 ; then
+	echo PID $PID
+	read foo
 fi
+sleep 1
 
 echo "Adding basic structure..."
 $LDAPADD -D "$MANAGERDN" -H $URI1 -w $PASSWD -f $ROOTLDIF &>/dev/null
