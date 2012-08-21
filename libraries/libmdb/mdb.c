@@ -1328,6 +1328,27 @@ none:
 	return np;
 }
 
+/** Copy a page: avoid copying unused portions of the page.
+ * @param[in] dst page to copy into
+ * @param[in] src page to copy from
+ */
+static void
+mdb_page_copy(MDB_page *dst, MDB_page *src, unsigned int psize)
+{
+	dst->mp_flags = src->mp_flags | P_DIRTY;
+	dst->mp_pages = src->mp_pages;
+
+	if (IS_LEAF2(src)) {
+		memcpy(dst->mp_ptrs, src->mp_ptrs, psize - PAGEHDRSZ - SIZELEFT(src));
+	} else {
+		unsigned int i, nkeys = NUMKEYS(src);
+		for (i=0; i<nkeys; i++)
+			dst->mp_ptrs[i] = src->mp_ptrs[i];
+		memcpy((char *)dst+src->mp_upper, (char *)src+src->mp_upper,
+			psize - src->mp_upper);
+	}
+}
+
 /** Touch a page: make it dirty and re-insert into tree with updated pgno.
  * @param[in] mc cursor pointing to the page to be touched
  * @return 0 on success, non-zero on failure.
@@ -1345,11 +1366,16 @@ mdb_page_touch(MDB_cursor *mc)
 		DPRINTF("touched db %u page %zu -> %zu", mc->mc_dbi, mp->mp_pgno, np->mp_pgno);
 		assert(mp->mp_pgno != np->mp_pgno);
 		mdb_midl_append(&mc->mc_txn->mt_free_pgs, mp->mp_pgno);
-		pgno = np->mp_pgno;
-		memcpy(np, mp, mc->mc_txn->mt_env->me_psize);
+		if (SIZELEFT(mp)) {
+			/* If page isn't full, just copy the used portion */
+			mdb_page_copy(np, mp, mc->mc_txn->mt_env->me_psize);
+		} else {
+			pgno = np->mp_pgno;
+			memcpy(np, mp, mc->mc_txn->mt_env->me_psize);
+			np->mp_pgno = pgno;
+			np->mp_flags |= P_DIRTY;
+		}
 		mp = np;
-		mp->mp_pgno = pgno;
-		mp->mp_flags |= P_DIRTY;
 
 finish:
 		/* Adjust other cursors pointing to mp */
@@ -1578,7 +1604,8 @@ mdb_txn_renew0(MDB_txn *txn)
 	for (i=2; i<txn->mt_numdbs; i++)
 		txn->mt_dbs[i].md_flags = env->me_dbflags[i];
 	txn->mt_dbflags[0] = txn->mt_dbflags[1] = 0;
-	memset(txn->mt_dbflags+2, DB_STALE, env->me_numdbs-2);
+	if (txn->mt_numdbs > 2)
+		memset(txn->mt_dbflags+2, DB_STALE, txn->mt_numdbs-2);
 
 	return MDB_SUCCESS;
 }
@@ -1880,7 +1907,7 @@ mdb_txn_commit(MDB_txn *txn)
 	/* Update DB root pointers. Their pages have already been
 	 * touched so this is all in-place and cannot fail.
 	 */
-	{
+	if (txn->mt_numdbs > 2) {
 		MDB_dbi i;
 		MDB_val data;
 		data.mv_size = sizeof(MDB_db);
@@ -3331,10 +3358,10 @@ mdb_cursor_adjust(MDB_cursor *mc, func)
 static void
 mdb_cursor_pop(MDB_cursor *mc)
 {
-	MDB_page	*top;
-
 	if (mc->mc_snum) {
-		top = mc->mc_pg[mc->mc_top];
+#if MDB_DEBUG
+		MDB_page	*top = mc->mc_pg[mc->mc_top];
+#endif
 		mc->mc_snum--;
 		if (mc->mc_snum)
 			mc->mc_top--;
@@ -3809,7 +3836,7 @@ mdb_cursor_set(MDB_cursor *mc, MDB_val *key, MDB_val *data,
 {
 	int		 rc;
 	MDB_page	*mp;
-	MDB_node	*leaf;
+	MDB_node	*leaf = NULL;
 	DKBUF;
 
 	assert(mc);
