@@ -26,6 +26,7 @@
 
 #include <radlib.h>
 
+extern char *global_host;	/* from slapd */
 static LUTIL_PASSWD_CHK_FUNC chk_radius;
 static const struct berval scheme = BER_BVC("{RADIUS}");
 static char *config_filename;
@@ -84,6 +85,10 @@ chk_radius(
 	}
 
 	if ( rad_put_string( h, RAD_USER_PASSWORD, cred->bv_val ) != 0 ) {
+		goto done;
+	}
+
+	if ( rad_put_string( h, RAD_NAS_IDENTIFIER, global_host ) != 0 ) {
 		goto done;
 	}
 
