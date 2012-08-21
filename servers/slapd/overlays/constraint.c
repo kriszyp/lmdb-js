@@ -845,6 +845,9 @@ constraint_check_count_violation( Modifications *m, Entry *target_entry, constra
 	unsigned ca;
 	int j;
 
+	if ( cp->set )
+		return 0;
+
 	for ( j = 0; cp->ap[j]; j++ ) {
 		/* Get this attribute count */
 		if ( target_entry )
