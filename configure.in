@@ -1242,7 +1242,9 @@ if test $ol_link_tls = no ; then
 					  [define if you have MozNSS])
 			TLS_LIBS="-lssl3 -lsmime3 -lnss3 -lnssutil3 -lplds4 -lplc4 -lnspr4"
 		else
+			if test $ol_with_tls = moznss ; then
 			AC_MSG_ERROR([MozNSS not found - please specify the location to the NSPR and NSS header files in CPPFLAGS and the location to the NSPR and NSS libraries in LDFLAGS (if not in the system location)])
+			fi
 		fi
 	fi
 fi
