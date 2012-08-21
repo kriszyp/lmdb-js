@@ -641,8 +641,8 @@ void ldap_int_initialize( struct ldapoptions *gopts, int *dbglvl )
 #endif
 
 #if defined(HAVE_TLS) || defined(HAVE_CYRUS_SASL)
+	LDAP_MUTEX_LOCK( &ldap_int_hostname_mutex );
 	{
-		LDAP_MUTEX_LOCK( &ldap_int_hostname_mutex );
 		char	*name = ldap_int_hostname;
 
 		ldap_int_hostname = ldap_pvt_get_fqdn( name );
@@ -650,8 +650,8 @@ void ldap_int_initialize( struct ldapoptions *gopts, int *dbglvl )
 		if ( name != NULL && name != ldap_int_hostname ) {
 			LDAP_FREE( name );
 		}
-		LDAP_MUTEX_UNLOCK( &ldap_int_hostname_mutex );
 	}
+	LDAP_MUTEX_UNLOCK( &ldap_int_hostname_mutex );
 #endif
 
 #ifndef HAVE_POLL
