@@ -39,9 +39,8 @@ operations, e.g. {{ldapadd}}(1), {{ldapdelete}}(1), or {{ldapmodify}}(1).
 Note: You will need to continue to use the older {{slapd.conf}}(5)
 configuration system if your OpenLDAP installation requires the use of one
 or more backends or overlays that have not been updated to use the
-{{slapd-config}}(5) system.  As of OpenLDAP 2.4.25, the only official backends
-that have not yet been updated to use {{slapd-config}}(5) are {{slapd-meta}}(5)
-and {{slapd-sql}}(5).  There may be additional contributed or experimental
+{{slapd-config}}(5) system.  As of OpenLDAP 2.4.33, all of the official
+backends have been updated.  There may be additional contributed or experimental
 overlays that also have not been updated.
 
 
