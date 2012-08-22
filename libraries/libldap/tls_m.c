@@ -1010,12 +1010,12 @@ tlsm_find_unlocked_key( tlsm_ctx *ctx, void *pin_arg )
 	}
 
 	PK11SlotListElement *le;
-	for ( le = slots->head; le && !result; le = le->next ) {
+	for ( le = slots->head; le; le = le->next ) {
 		PK11SlotInfo *slot = le->slot;
-		if ( !PK11_IsLoggedIn( slot, NULL ) )
-			continue;
-
-		result = PK11_FindKeyByDERCert( slot, ctx->tc_certificate, pin_arg );
+		if ( PK11_IsLoggedIn( slot, NULL ) ) {
+			result = PK11_FindKeyByDERCert( slot, ctx->tc_certificate, pin_arg );
+			break;
+		}
 	}
 
 	PK11_FreeSlotList( slots );
