@@ -614,7 +614,7 @@ slap_acl_get(
 		}
 
 		/* Is this ACL only for a specific value? */
-		if ( a->acl_attrval.bv_len ) {
+		if ( a->acl_attrval.bv_val ) {
 			if ( val == NULL ) {
 				continue;
 			}
