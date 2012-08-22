@@ -1360,7 +1360,7 @@ meta_back_cf_gen( ConfigArgs *c )
 			if ( p1 ) {
 				strcpy( p2, p1 );
 			}
-			value_add_one( &c->rvalue_vals, &bv );
+			ber_bvarray_add( &c->rvalue_vals, &bv );
 			} break;
 
 		case LDAP_BACK_CFG_ACL_AUTHCDN:
