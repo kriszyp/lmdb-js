@@ -3,6 +3,7 @@ OpenLDAP 2.4 Change Log
 OpenLDAP 2.4.33 Engineering
 	Fixed slapd syncprov to not reference ops inside a lock (ITS#7172)
 	Fixed slapd delta-syncrepl MMR with large attribute values (ITS#7354)
+	Fixed slapd-mdb slapadd -q -w double free (ITS#7356)
 	Fixed slapo-constraint with multiple modifications (ITS#7168)
 	Build Environment
 		Add slapo-constraint test suite (ITS#7344)
