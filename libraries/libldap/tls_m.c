@@ -903,7 +903,7 @@ tlsm_get_pin(PK11SlotInfo *slot, PRBool retry, tlsm_ctx *ctx)
 	 */
 	if ( ctx && ctx->tc_pin_file ) {
 		pwdstr = tlsm_get_pin_from_file( token_name, ctx );
-		if (retry && pwdstr != NULL)
+		if ( retry && pwdstr != NULL )
 			return NULL;
 	}
 #endif /* RETRIEVE_PASSWORD_FROM_FILE */
@@ -950,7 +950,7 @@ tlsm_pin_prompt(PK11SlotInfo *slot, PRBool retry, void *arg)
 static char *
 tlsm_ctx_subject_name(tlsm_ctx *ctx)
 {
-	if (!ctx || !ctx->tc_certificate)
+	if ( !ctx || !ctx->tc_certificate )
 		return "(unknown)";
 
 	return ctx->tc_certificate->subjectName;
@@ -995,30 +995,30 @@ tlsm_cert_is_self_issued( CERTCertificate *cert )
  * thread or library. Find the unlocked key if possible.
  */
 static SECKEYPrivateKey *
-tlsm_find_unlocked_key(tlsm_ctx *ctx, void *pin_arg)
+tlsm_find_unlocked_key( tlsm_ctx *ctx, void *pin_arg )
 {
 	SECKEYPrivateKey *result = NULL;
 
-	PK11SlotList *slots = PK11_GetAllSlotsForCert(ctx->tc_certificate, NULL);
-	if (!slots) {
+	PK11SlotList *slots = PK11_GetAllSlotsForCert( ctx->tc_certificate, NULL );
+	if ( !slots ) {
 		PRErrorCode errcode = PR_GetError();
-		Debug(LDAP_DEBUG_ANY,
+		Debug( LDAP_DEBUG_ANY,
 				"TLS: cannot get all slots for certificate '%s' (error %d: %s)",
-				tlsm_ctx_subject_name(ctx), errcode,
-				PR_ErrorToString(errcode, PR_LANGUAGE_I_DEFAULT));
+				tlsm_ctx_subject_name( ctx ), errcode,
+				PR_ErrorToString( errcode, PR_LANGUAGE_I_DEFAULT ) );
 		return result;
 	}
 
 	PK11SlotListElement *le;
-	for (le = slots->head; le && !result; le = le->next) {
+	for ( le = slots->head; le && !result; le = le->next ) {
 		PK11SlotInfo *slot = le->slot;
-		if (!PK11_IsLoggedIn(slot, NULL))
+		if ( !PK11_IsLoggedIn( slot, NULL ) )
 			continue;
 
-		result = PK11_FindKeyByDERCert(slot, ctx->tc_certificate, pin_arg);
+		result = PK11_FindKeyByDERCert( slot, ctx->tc_certificate, pin_arg );
 	}
 
-	PK11_FreeSlotList(slots);
+	PK11_FreeSlotList( slots );
 	return result;
 }
 
@@ -1094,7 +1094,7 @@ tlsm_verify_cert(CERTCertDBHandle *handle, CERTCertificate *cert, void *pinarg,
 							   name, 0, 0 );
 					}
 
-					PR_SetError(orig_error, orig_oserror);
+					PR_SetError( orig_error, orig_oserror );
 
 				} else if ( warn_only || ( ignore_issuer && (
 					node->error == SEC_ERROR_UNKNOWN_ISSUER ||
@@ -1275,10 +1275,10 @@ tlsm_add_cert_from_file( tlsm_ctx *ctx, const char *filename, PRBool isca )
 		return -1;
 	}
 
-	PK11_SETATTRS( attrs[0], CKA_CLASS, &objClass, sizeof(objClass) );
-	PK11_SETATTRS( attrs[1], CKA_TOKEN, &cktrue, sizeof(CK_BBOOL) );
-	PK11_SETATTRS( attrs[2], CKA_LABEL, (unsigned char *)filename, strlen(filename)+1 );
-	PK11_SETATTRS( attrs[3], CKA_TRUST, isca ? &cktrue : &ckfalse, sizeof(CK_BBOOL) );
+	PK11_SETATTRS( attrs[0], CKA_CLASS, &objClass, sizeof( objClass ) );
+	PK11_SETATTRS( attrs[1], CKA_TOKEN, &cktrue, sizeof( CK_BBOOL ) );
+	PK11_SETATTRS( attrs[2], CKA_LABEL, (unsigned char *) filename, strlen( filename ) + 1 );
+	PK11_SETATTRS( attrs[3], CKA_TRUST, isca ? &cktrue : &ckfalse, sizeof( CK_BBOOL ) );
 
 	cert = PK11_CreateGenericObject( slot, attrs, 4, PR_FALSE /* isPerm */ );
 
@@ -1325,35 +1325,35 @@ tlsm_add_cert_from_file( tlsm_ctx *ctx, const char *filename, PRBool isca )
 }
 
 static int
-tlsm_ctx_load_private_key(tlsm_ctx *ctx)
+tlsm_ctx_load_private_key( tlsm_ctx *ctx )
 {
-	if (!ctx->tc_certificate)
+	if ( !ctx->tc_certificate )
 		return -1;
 
-	if (ctx->tc_private_key)
+	if ( ctx->tc_private_key )
 		return 0;
 
-	void *pin_arg = SSL_RevealPinArg(ctx->tc_model);
+	void *pin_arg = SSL_RevealPinArg( ctx->tc_model );
 
-	SECKEYPrivateKey *unlocked_key = tlsm_find_unlocked_key(ctx, pin_arg);
-	Debug(LDAP_DEBUG_ANY,
+	SECKEYPrivateKey *unlocked_key = tlsm_find_unlocked_key( ctx, pin_arg );
+	Debug( LDAP_DEBUG_ANY,
 			"TLS: %s unlocked certificate for certificate '%s'.\n",
-			unlocked_key ? "found" : "no", tlsm_ctx_subject_name(ctx), 0);
+			unlocked_key ? "found" : "no", tlsm_ctx_subject_name( ctx ), 0 );
 
 	/* prefer unlocked key, then key from opened certdb, then any other */
-	if (unlocked_key)
+	if ( unlocked_key )
 		ctx->tc_private_key = unlocked_key;
-	else if (ctx->tc_certdb_slot)
-		ctx->tc_private_key = PK11_FindKeyByDERCert(ctx->tc_certdb_slot, ctx->tc_certificate, pin_arg);
+	else if ( ctx->tc_certdb_slot )
+		ctx->tc_private_key = PK11_FindKeyByDERCert( ctx->tc_certdb_slot, ctx->tc_certificate, pin_arg );
 	else
-		ctx->tc_private_key = PK11_FindKeyByAnyCert(ctx->tc_certificate, pin_arg);
+		ctx->tc_private_key = PK11_FindKeyByAnyCert( ctx->tc_certificate, pin_arg );
 
-	if (!ctx->tc_private_key) {
+	if ( !ctx->tc_private_key ) {
 		PRErrorCode errcode = PR_GetError();
 		Debug(LDAP_DEBUG_ANY,
 				"TLS: cannot find private key for certificate '%s' (error %d: %s)",
-				tlsm_ctx_subject_name(ctx), errcode,
-				PR_ErrorToString(errcode, PR_LANGUAGE_I_DEFAULT));
+				tlsm_ctx_subject_name( ctx ), errcode,
+				PR_ErrorToString( errcode, PR_LANGUAGE_I_DEFAULT ) );
 		return -1;
 	}
 
@@ -1401,9 +1401,9 @@ tlsm_add_key_from_file( tlsm_ctx *ctx, const char *filename )
 		return -1;
 	}
 
-	PK11_SETATTRS( attrs[0], CKA_CLASS, &objClass, sizeof(objClass) );
-	PK11_SETATTRS( attrs[1], CKA_TOKEN, &cktrue, sizeof(CK_BBOOL) );
-	PK11_SETATTRS( attrs[2], CKA_LABEL, (unsigned char *)filename, strlen(filename)+1 );
+	PK11_SETATTRS( attrs[0], CKA_CLASS, &objClass, sizeof( objClass ) );
+	PK11_SETATTRS( attrs[1], CKA_TOKEN, &cktrue, sizeof( CK_BBOOL ) );
+	PK11_SETATTRS( attrs[2], CKA_LABEL, (unsigned char *)filename, strlen( filename ) + 1 );
 
 	key = PK11_CreateGenericObject( slot, attrs, 3, PR_FALSE /* isPerm */ );
 
@@ -1591,28 +1591,28 @@ tlsm_get_certdb_prefix( const char *certdir, char **realcertdir, char **prefix )
  * which is unique for each context.
  */
 static PK11SlotInfo *
-tlsm_init_open_certdb(tlsm_ctx *ctx, const char *dbdir, const char *prefix)
+tlsm_init_open_certdb( tlsm_ctx *ctx, const char *dbdir, const char *prefix )
 {
 	PK11SlotInfo *slot = NULL;
 	char *token_desc = NULL;
 	char *config = NULL;
 
-	token_desc = PR_smprintf(TLSM_CERTDB_DESC_FMT, ctx->tc_unique);
-	config = PR_smprintf("configDir='%s' tokenDescription='%s' certPrefix='%s' keyPrefix='%s' flags=readOnly",
-										dbdir, token_desc, prefix, prefix);
-	Debug(LDAP_DEBUG_TRACE, "TLS: certdb config: %s\n", config, 0, 0);
+	token_desc = PR_smprintf( TLSM_CERTDB_DESC_FMT, ctx->tc_unique );
+	config = PR_smprintf( "configDir='%s' tokenDescription='%s' certPrefix='%s' keyPrefix='%s' flags=readOnly",
+										dbdir, token_desc, prefix, prefix );
+	Debug( LDAP_DEBUG_TRACE, "TLS: certdb config: %s\n", config, 0, 0 );
 
-	slot = SECMOD_OpenUserDB(config);
-	if (!slot) {
+	slot = SECMOD_OpenUserDB( config );
+	if ( !slot ) {
 		PRErrorCode errcode = PR_GetError();
-		Debug(LDAP_DEBUG_TRACE, "TLS: cannot open certdb '%s', error %d:%s\n", dbdir, errcode,
-							PR_ErrorToString(errcode, PR_LANGUAGE_I_DEFAULT));
+		Debug( LDAP_DEBUG_TRACE, "TLS: cannot open certdb '%s', error %d:%s\n", dbdir, errcode,
+							PR_ErrorToString( errcode, PR_LANGUAGE_I_DEFAULT ) );
 	}
 
-	if (token_desc)
-		PR_smprintf_free(token_desc);
-	if (config)
-		PR_smprintf_free(config);
+	if ( token_desc )
+		PR_smprintf_free( token_desc );
+	if ( config )
+		PR_smprintf_free( config );
 
 	return slot;
 }
@@ -1714,14 +1714,14 @@ tlsm_deferred_init( void *arg )
 #endif
 			rc = SECFailure;
 
-			if (initctx != NULL) {
-				certdb_slot = tlsm_init_open_certdb(ctx, realcertdir, prefix);
-				if (certdb_slot) {
+			if ( initctx != NULL ) {
+				certdb_slot = tlsm_init_open_certdb( ctx, realcertdir, prefix );
+				if ( certdb_slot ) {
 					rc = SECSuccess;
 					ctx->tc_initctx = initctx;
 					ctx->tc_certdb_slot = certdb_slot;
 				} else {
-					NSS_ShutdownContext(initctx);
+					NSS_ShutdownContext( initctx );
 					initctx = NULL;
 				}
 			}
@@ -1765,7 +1765,7 @@ tlsm_deferred_init( void *arg )
 #else
 			initctx = NSS_InitContext( CERTDB_NONE, PREFIX_NONE, PREFIX_NONE, SECMOD_DB,
 									   &initParams, flags );
-			if (initctx) {
+			if ( initctx ) {
 				ctx->tc_initctx = initctx;
 				rc = SECSuccess;
 			} else {
@@ -1853,17 +1853,17 @@ tlsm_deferred_init( void *arg )
  * The key is loaded and stored in ctx->tc_private_key
  */
 static int
-tlsm_find_and_verify_cert_key(tlsm_ctx *ctx)
+tlsm_find_and_verify_cert_key( tlsm_ctx *ctx )
 {
 	SECCertificateUsage certUsage;
 	PRBool checkSig;
 	SECStatus status;
 	void *pin_arg;
 
-	if (tlsm_ctx_load_private_key(ctx))
+	if ( tlsm_ctx_load_private_key( ctx ) )
 		return -1;
 
-	pin_arg = SSL_RevealPinArg(ctx->tc_model);
+	pin_arg = SSL_RevealPinArg( ctx->tc_model );
 	certUsage = ctx->tc_is_server ? certificateUsageSSLServer : certificateUsageSSLClient;
 	checkSig = ctx->tc_verify_cert ? PR_TRUE : PR_FALSE;
 
@@ -1880,11 +1880,11 @@ tlsm_get_client_auth_data( void *arg, PRFileDesc *fd,
 {
 	tlsm_ctx *ctx = (tlsm_ctx *)arg;
 
-	if (pRetCert)
-		*pRetCert = CERT_DupCertificate(ctx->tc_certificate);
+	if ( pRetCert )
+		*pRetCert = CERT_DupCertificate( ctx->tc_certificate );
 
-	if (pRetKey)
-		*pRetKey = SECKEY_CopyPrivateKey(ctx->tc_private_key);
+	if ( pRetKey )
+		*pRetKey = SECKEY_CopyPrivateKey( ctx->tc_private_key );
 
 	return SECSuccess;
 }
@@ -1935,30 +1935,30 @@ tlsm_copy_config ( const struct ldaptls *config )
 {
 	struct ldaptls *copy;
 
-	assert(config);
+	assert( config );
 
-	copy = LDAP_MALLOC(sizeof(*copy));
-	if (!copy)
+	copy = LDAP_MALLOC( sizeof( *copy ) );
+	if ( !copy )
 		return NULL;
 
-	memset(copy, 0, sizeof(*copy));
+	memset( copy, 0, sizeof( *copy ) );
 
-	if (config->lt_certfile)
-		copy->lt_certfile = LDAP_STRDUP(config->lt_certfile);
-	if (config->lt_keyfile)
-		copy->lt_keyfile = LDAP_STRDUP(config->lt_keyfile);
-	if (config->lt_dhfile)
-		copy->lt_dhfile = LDAP_STRDUP(config->lt_dhfile);
-	if (config->lt_cacertfile)
-		copy->lt_cacertfile = LDAP_STRDUP(config->lt_cacertfile);
-	if (config->lt_cacertdir)
-		copy->lt_cacertdir = LDAP_STRDUP(config->lt_cacertdir);
-	if (config->lt_ciphersuite)
-		copy->lt_ciphersuite = LDAP_STRDUP(config->lt_ciphersuite);
-	if (config->lt_crlfile)
-		copy->lt_crlfile = LDAP_STRDUP(config->lt_crlfile);
-	if (config->lt_randfile)
-		copy->lt_randfile = LDAP_STRDUP(config->lt_randfile);
+	if ( config->lt_certfile )
+		copy->lt_certfile = LDAP_STRDUP( config->lt_certfile );
+	if ( config->lt_keyfile )
+		copy->lt_keyfile = LDAP_STRDUP( config->lt_keyfile );
+	if ( config->lt_dhfile )
+		copy->lt_dhfile = LDAP_STRDUP( config->lt_dhfile );
+	if ( config->lt_cacertfile )
+		copy->lt_cacertfile = LDAP_STRDUP( config->lt_cacertfile );
+	if ( config->lt_cacertdir )
+		copy->lt_cacertdir = LDAP_STRDUP( config->lt_cacertdir );
+	if ( config->lt_ciphersuite )
+		copy->lt_ciphersuite = LDAP_STRDUP( config->lt_ciphersuite );
+	if ( config->lt_crlfile )
+		copy->lt_crlfile = LDAP_STRDUP( config->lt_crlfile );
+	if ( config->lt_randfile )
+		copy->lt_randfile = LDAP_STRDUP( config->lt_randfile );
 
 	copy->lt_protocol_min = config->lt_protocol_min;
 
@@ -1968,26 +1968,26 @@ tlsm_copy_config ( const struct ldaptls *config )
 static void
 tlsm_free_config ( struct ldaptls *config )
 {
-	assert(config);
+	assert( config );
 
-	if (config->lt_certfile)
-		LDAP_FREE(config->lt_certfile);
-	if (config->lt_keyfile)
-		LDAP_FREE(config->lt_keyfile);
-	if (config->lt_dhfile)
-		LDAP_FREE(config->lt_dhfile);
-	if (config->lt_cacertfile)
-		LDAP_FREE(config->lt_cacertfile);
-	if (config->lt_cacertdir)
-		LDAP_FREE(config->lt_cacertdir);
-	if (config->lt_ciphersuite)
-		LDAP_FREE(config->lt_ciphersuite);
-	if (config->lt_crlfile)
-		LDAP_FREE(config->lt_crlfile);
-	if (config->lt_randfile)
-		LDAP_FREE(config->lt_randfile);
+	if ( config->lt_certfile )
+		LDAP_FREE( config->lt_certfile );
+	if ( config->lt_keyfile )
+		LDAP_FREE( config->lt_keyfile );
+	if ( config->lt_dhfile )
+		LDAP_FREE( config->lt_dhfile );
+	if ( config->lt_cacertfile )
+		LDAP_FREE( config->lt_cacertfile );
+	if ( config->lt_cacertdir )
+		LDAP_FREE( config->lt_cacertdir );
+	if ( config->lt_ciphersuite )
+		LDAP_FREE( config->lt_ciphersuite );
+	if ( config->lt_crlfile )
+		LDAP_FREE( config->lt_crlfile );
+	if ( config->lt_randfile )
+		LDAP_FREE( config->lt_randfile );
 
-	LDAP_FREE(config);
+	LDAP_FREE( config );
 }
 
 static tls_ctx *
@@ -2051,10 +2051,10 @@ tlsm_ctx_free ( tls_ctx *ctx )
 	LDAP_MUTEX_LOCK( &tlsm_init_mutex );
 	if ( c->tc_model )
 		PR_Close( c->tc_model );
-	if (c->tc_certificate)
-		CERT_DestroyCertificate(c->tc_certificate);
-	if (c->tc_private_key)
-		SECKEY_DestroyPrivateKey(c->tc_private_key);
+	if ( c->tc_certificate )
+		CERT_DestroyCertificate( c->tc_certificate );
+	if ( c->tc_private_key )
+		SECKEY_DestroyPrivateKey( c->tc_private_key );
 	c->tc_certdb = NULL; /* if not the default, may have to clean up */
 	if ( c->tc_certdb_slot ) {
 		if ( SECMOD_CloseUserDB( c->tc_certdb_slot ) ) {
@@ -2096,7 +2096,7 @@ static int
 tlsm_ctx_init( struct ldapoptions *lo, struct ldaptls *lt, int is_server )
 {
 	tlsm_ctx *ctx = (tlsm_ctx *)lo->ldo_tls_ctx;
-	ctx->tc_config = tlsm_copy_config(lt);
+	ctx->tc_config = tlsm_copy_config( lt );
 	ctx->tc_is_server = is_server;
 
 	return 0;
@@ -2268,16 +2268,16 @@ tlsm_deferred_ctx_init( void *arg )
 		} else {
 			char *tmp_certname;
 
-			if (ctx->tc_certdb_slot) {
-				tmp_certname = PR_smprintf(TLSM_CERTDB_DESC_FMT ":%s", ctx->tc_unique, lt->lt_certfile);
+			if ( ctx->tc_certdb_slot ) {
+				tmp_certname = PR_smprintf( TLSM_CERTDB_DESC_FMT ":%s", ctx->tc_unique, lt->lt_certfile );
 			} else {
-				tmp_certname = PR_smprintf("%s", lt->lt_certfile);
+				tmp_certname = PR_smprintf( "%s", lt->lt_certfile );
 			}
 
-			ctx->tc_certificate = PK11_FindCertFromNickname(tmp_certname, SSL_RevealPinArg(ctx->tc_model));
-			PR_smprintf_free(tmp_certname);
+			ctx->tc_certificate = PK11_FindCertFromNickname( tmp_certname, SSL_RevealPinArg( ctx->tc_model ) );
+			PR_smprintf_free( tmp_certname );
 
-			if (!ctx->tc_certificate) {
+			if ( !ctx->tc_certificate ) {
 				PRErrorCode errcode = PR_GetError();
 				Debug( LDAP_DEBUG_ANY,
 					   "TLS: error: the certificate '%s' could not be found in the database - error %d:%s.\n",
@@ -2342,7 +2342,7 @@ tlsm_deferred_ctx_init( void *arg )
 			return -1;
 		}
 
-		if (tlsm_find_and_verify_cert_key(ctx)) {
+		if ( tlsm_find_and_verify_cert_key( ctx ) ) {
 			Debug( LDAP_DEBUG_ANY, 
 			       "TLS: error: unable to find and verify server's cert and key for certificate %s\n",
 			       tlsm_ctx_subject_name(ctx), 0, 0 );
