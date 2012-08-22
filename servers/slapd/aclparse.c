@@ -2830,7 +2830,7 @@ acl_unparse( AccessControl *a, struct berval *bv )
 		ptr = acl_safe_strcopy( ptr, "\n" );
 	}
 
-	if ( !BER_BVISEMPTY( &a->acl_attrval ) ) {
+	if ( !BER_BVISNULL( &a->acl_attrval ) ) {
 		to++;
 		ptr = acl_safe_strcopy( ptr, " val." );
 		if ( a->acl_attrval_style == ACL_STYLE_BASE &&
