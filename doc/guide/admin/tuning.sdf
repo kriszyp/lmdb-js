@@ -27,13 +27,20 @@ H3: Memory
 
 Scale your cache to use available memory and increase system memory if you can.
 
-See {{SECT:Caching}}
+See {{SECT:Caching}} for BDB cache tuning hints.
+Note that MDB uses no cache of its own and has no tuning options, so the Caching
+section can be ignored when using MDB.
 
 
 H3: Disks
 
-Use fast subsystems. Put each database and logs on separate disks configurable
-via {{DB_CONFIG}}:
+Use fast filesystems, and conduct your own testing to see which filesystem
+types perform best with your workload. (On our own Linux testing, EXT2 and JFS
+tend to provide better write performance than everything else, including
+newer filesystems like EXT4, BTRFS, etc.)
+
+Use fast subsystems. Put each database and logs on separate disks
+(for BDB this is configurable via {{DB_CONFIG}}):
 
 >       # Data Directory
 >       set_data_dir /data/db
@@ -315,9 +322,9 @@ it is generally recommended to be 3x"cachesize".
 {NOTE: The idlcachesize setting directly affects search performance}
 
 
-H3: {{slapd}}(8) Threads
+H2: {{slapd}}(8) Threads
 
-{{slapd}}(8) can process requests via a configurable number of thread, which 
+{{slapd}}(8) can process requests via a configurable number of threads, which 
 in turn affects the in/out rate of connections.
 
 This value should generally be a function of the number of "real" cores on 

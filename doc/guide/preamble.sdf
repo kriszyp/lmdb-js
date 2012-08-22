@@ -224,6 +224,7 @@ LDAP Sync|LDAP Content Synchronization
 LDAPv3|LDAP, version 3
 LDIF|LDAP Data Interchange Format
 MD5|Message Digest 5
+MDB|Memory-Mapped Database
 MIB|Management Information Base
 MODDN|Modify DN
 MODRDN|Modify RDN

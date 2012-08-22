@@ -139,7 +139,7 @@ configuration lines:
 >	include ./schema/core.schema
 >	
 >	database  ldif
->	directory "./ldif"
+>	directory ./ldif
 >	suffix    "dc=suretecsystems,dc=com"
 >	rootdn    "cn=LDIF,dc=suretecsystems,dc=com"
 >	rootpw    LDIF
@@ -186,6 +186,42 @@ This is the complete format you would get when exporting your directory using
 H3: Further Information
 
 {{slapd-ldif}}(5)
+
+H2: MDB
+
+
+H3: Overview
+
+The {{mdb}} backend to {{slapd}}(8) is the upcoming primary backend for a
+normal {{slapd}} database.  It uses OpenLDAP's own Memory-Mapped Database ({{TERM:MDB}})
+library to store data and is intended to replace the Berkeley DB backends.
+
+It supports indexing like the BDB backends, but it uses no caching and requires
+no tuning to deliver maximum search performance.  Like {{hdb}}, it is also
+fully hierarchical and supports subtree renames in constant time.
+
+H3: back-mdb Configuration
+
+Unlike the BDB backends, the MDB backend can be instantiated with very few
+configuration lines:
+
+>	include ./schema/core.schema
+>
+>	database  mdb
+>	directory ./mdb
+>	suffix    "dc=suretecsystems,dc=com"
+>	rootdn    "cn=mdb,dc=suretecsystems,dc=com"
+>	rootpw    mdb
+>	maxsize   1073741824
+
+In addition to the usual parameters that a minimal configuration requires, the MDB
+backend requires a maximum size to be set. This should be the largest that
+the database is ever anticipated to grow (in bytes). The filesystem must also
+provide enough free space to accommodate this size.
+
+H3: Further Information
+
+{{slapd-mdb}}(5)
 
 H2: Metadirectory
 
