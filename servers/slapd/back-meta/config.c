@@ -101,7 +101,7 @@ enum {
 };
 
 static ConfigTable metacfg[] = {
-	{ "uri", "uri", 2, 2, 0,
+	{ "uri", "uri", 2, 0, 0,
 		ARG_MAGIC|LDAP_BACK_CFG_URI,
 		meta_back_cf_gen, "( OLcfgDbAt:0.14 "
 			"NAME 'olcDbURI' "
