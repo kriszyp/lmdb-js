@@ -426,7 +426,6 @@ is needed to manage which provider is currently active
 - If backing up the Berkeley database itself and periodically backing up the 
 transaction log files, then the same member of the mirror pair needs to be 
 used to collect logfiles until the next database backup is taken 
-* Delta-Syncrepl is not yet supported
 
 For configuration, please see the {{SECT:MirrorMode}} section below
 
@@ -866,8 +865,6 @@ H4: Mirror Node Configuration
 
 The first step is to configure the syncrepl provider the same as in the 
 {{SECT:Set up the provider slapd}} section.
-
-Note: Delta-syncrepl is not yet supported with MirrorMode.
 
 Here's a specific cut down example using {{SECT:LDAP Sync Replication}} in
 {{refreshAndPersist}} mode:

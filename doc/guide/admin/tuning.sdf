@@ -324,7 +324,7 @@ it is generally recommended to be 3x"cachesize".
 
 H2: {{slapd}}(8) Threads
 
-{{slapd}}(8) can process requests via a configurable number of threads, which 
+{{slapd}}(8) can process requests via a configurable number of threads, which
 in turn affects the in/out rate of connections.
 
 This value should generally be a function of the number of "real" cores on 
