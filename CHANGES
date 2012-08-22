@@ -2,6 +2,7 @@ OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.33 Engineering
 	Added slapd-meta cn=config support
+	Fixed libldap MozNSS slot picking (ITS#7359)
 	Fixed slapd alock handling on Windows (ITS#7361)
 	Fixed slapd syncprov to not reference ops inside a lock (ITS#7172)
 	Fixed slapd delta-syncrepl MMR with large attribute values (ITS#7354)
