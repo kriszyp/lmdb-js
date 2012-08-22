@@ -10,6 +10,8 @@ OpenLDAP 2.4.33 Engineering
 	Build Environment
 		Fixed build with Visual Studio (ITS#7358)
 		Add slapo-constraint test suite (ITS#7344)
+	Contrib
+		Updated radius passwd module for NAS-Identifier (ITS#7357)
 
 OpenLDAP 2.4.32 Release (2012/07/31)
 	Added slappasswd loadable module support (ITS#7284)
