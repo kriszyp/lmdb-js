@@ -1,4 +1,4 @@
-dn: cn=user,dc=example,dc=com
+dn: cn=John Doe,dc=example,dc=com
 changetype: modify
 add: mail
 mail: example@not-allowed.com
