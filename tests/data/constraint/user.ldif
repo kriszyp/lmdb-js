@@ -1,7 +1,8 @@
-dn: cn=user,dc=example,dc=com
+dn: cn=John Doe,dc=example,dc=com
 objectclass: inetOrgPerson
 objectclass: organizationalPerson
-cn: John
+cn: John Doe
+givenname: John
 sn: Doe
 mail: original@example.com
 description: desc1
