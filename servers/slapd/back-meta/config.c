@@ -33,6 +33,10 @@
 #include "../back-ldap/back-ldap.h"
 #include "back-meta.h"
 
+#ifdef LDAP_DEVEL
+#define SLAP_AUTH_DN	1
+#endif
+
 static ConfigDriver meta_back_cf_gen;
 static ConfigLDAPadd meta_ldadd;
 static ConfigCfAdd meta_cfadd;
@@ -1500,6 +1504,7 @@ meta_back_cf_gen( ConfigArgs *c )
 					ptr = lutil_strcopy( ptr, ",proxy-authz-non-critical" );
 				}
 
+#ifdef SLAP_AUTH_DN
 				switch ( mt->mt_idassert_flags & LDAP_BACK_AUTH_DN_MASK ) {
 				case LDAP_BACK_AUTH_DN_AUTHZID:
 					ptr = lutil_strcopy( ptr, ",dn-authzid" );
@@ -1515,6 +1520,7 @@ meta_back_cf_gen( ConfigArgs *c )
 #endif
 					break;
 				}
+#endif
 
 				bv.bv_len = ( ptr - bv.bv_val );
 				/* end-of-flags */
