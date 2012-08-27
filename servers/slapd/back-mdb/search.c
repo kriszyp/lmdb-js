@@ -129,7 +129,7 @@ static Entry * deref_base (
 static int search_aliases(
 	Operation *op,
 	SlapReply *rs,
-	Entry *e,
+	ID e_id,
 	MDB_txn *txn,
 	MDB_cursor *mci,
 	ID2L scopes,
@@ -164,7 +164,7 @@ static int search_aliases(
 		return rs->sr_err;
 	}
 	oldsubs[0] = 1;
-	oldsubs[1] = e->e_id;
+	oldsubs[1] = e_id;
 
 	MDB_IDL_ZERO( visited );
 	MDB_IDL_ZERO( newsubs );
@@ -176,13 +176,7 @@ static int search_aliases(
 		/* Set curscop to only the aliases in the current scope. Start with
 		 * all the aliases, then get the intersection with the scope.
 		 */
-		rs->sr_err = mdb_idscope( op, txn, e->e_id, aliases, curscop );
-
-		if (first) {
-			first = 0;
-		} else {
-			mdb_entry_return( op, e );
-		}
+		rs->sr_err = mdb_idscope( op, txn, e_id, aliases, curscop );
 
 		/* Dereference all of the aliases in the current scope. */
 		cursora = 0;
@@ -248,9 +242,13 @@ nextido:
 		 * be found, ignore it and move on. This should never happen;
 		 * we should never see the ID of an entry that doesn't exist.
 		 */
-		rs->sr_err = mdb_id2entry(op, mci, ido, &e);
-		if ( rs->sr_err != LDAP_SUCCESS ) {
-			goto nextido;
+		{
+			MDB_val edata;
+			rs->sr_err = mdb_id2edata(op, mci, ido, &edata);
+			if ( rs->sr_err != MDB_SUCCESS ) {
+				goto nextido;
+			}
+			e_id = ido;
 		}
 	}
 	return rs->sr_err;
@@ -605,6 +603,7 @@ dn2entry_retry:
 		  id != NOID ; id = mdb_idl_next( candidates, &cursor ) )
 	{
 		int scopeok;
+		MDB_val edata;
 
 loop_begin:
 
@@ -640,20 +639,8 @@ loop_begin:
 		} else {
 
 			/* get the entry */
-			rs->sr_err = mdb_id2entry( op, mci, id, &e );
-
-			if (rs->sr_err == LDAP_BUSY) {
-				rs->sr_text = "ldap server busy";
-				send_ldap_result( op, rs );
-				goto done;
-
-			} else if ( rs->sr_err == LDAP_OTHER ) {
-				rs->sr_text = "internal error";
-				send_ldap_result( op, rs );
-				goto done;
-			}
-
-			if ( e == NULL ) {
+			rs->sr_err = mdb_id2edata( op, mci, id, &edata );
+			if ( rs->sr_err  == MDB_NOTFOUND ) {
 				if( !MDB_IDL_IS_RANGE(candidates) ) {
 					/* only complain for non-range IDLs */
 					Debug( LDAP_DEBUG_TRACE,
@@ -676,26 +663,12 @@ loop_begin:
 				}
 
 				goto loop_continue;
+			} else if ( rs->sr_err ) {
+				rs->sr_err = LDAP_OTHER;
+				rs->sr_text = "internal error in mdb_id2edata";
+				send_ldap_result( op, rs );
+				goto done;
 			}
-		}
-
-		if ( is_entry_subentry( e ) ) {
-			if( op->oq_search.rs_scope != LDAP_SCOPE_BASE ) {
-				if(!get_subentries_visibility( op )) {
-					/* only subentries are visible */
-					goto loop_continue;
-				}
-
-			} else if ( get_subentries( op ) &&
-				!get_subentries_visibility( op ))
-			{
-				/* only subentries are visible */
-				goto loop_continue;
-			}
-
-		} else if ( get_subentries_visibility( op )) {
-			/* only subentries are visible */
-			goto loop_continue;
 		}
 
 		/* Does this candidate actually satisfy the search scope?
@@ -725,6 +698,45 @@ loop_begin:
 			break;
 		}
 
+		/* Not in scope, ignore it */
+		if ( !scopeok )
+		{
+			Debug( LDAP_DEBUG_TRACE,
+				LDAP_XSTRING(mdb_search)
+				": %ld scope not okay\n",
+				(long) id, 0, 0 );
+			goto loop_continue;
+		}
+
+		if ( id != base->e_id ) {
+			rs->sr_err = mdb_entry_decode( op, &edata, &e );
+			if ( rs->sr_err ) {
+				rs->sr_err = LDAP_OTHER;
+				rs->sr_text = "internal error in mdb_endtry_decode";
+				send_ldap_result( op, rs );
+				goto done;
+			}
+		}
+
+		if ( is_entry_subentry( e ) ) {
+			if( op->oq_search.rs_scope != LDAP_SCOPE_BASE ) {
+				if(!get_subentries_visibility( op )) {
+					/* only subentries are visible */
+					goto loop_continue;
+				}
+
+			} else if ( get_subentries( op ) &&
+				!get_subentries_visibility( op ))
+			{
+				/* only subentries are visible */
+				goto loop_continue;
+			}
+
+		} else if ( get_subentries_visibility( op )) {
+			/* only subentries are visible */
+			goto loop_continue;
+		}
+
 		/* aliases were already dereferenced in candidate list */
 		if ( op->ors_deref & LDAP_DEREF_SEARCHING ) {
 			/* but if the search base is an alias, and we didn't
@@ -736,16 +748,6 @@ loop_begin:
 			{
 				goto loop_continue;
 			}
-		}
-
-		/* Not in scope, ignore it */
-		if ( !scopeok )
-		{
-			Debug( LDAP_DEBUG_TRACE,
-				LDAP_XSTRING(mdb_search)
-				": %ld scope not okay\n",
-				(long) id, 0, 0 );
-			goto loop_continue;
 		}
 
 		if ( !manageDSAit && is_entry_glue( e )) {

@@ -175,6 +175,12 @@ int mdb_id2entry(
 	ID id,
 	Entry **e);
 
+int mdb_id2edata(
+	Operation *op,
+	MDB_cursor *mc,
+	ID id,
+	MDB_val *data);
+
 int mdb_entry_return( Operation *op, Entry *e );
 BI_entry_release_rw mdb_entry_release;
 BI_entry_get_rw mdb_entry_get;

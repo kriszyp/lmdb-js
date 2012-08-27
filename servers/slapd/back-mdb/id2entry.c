@@ -114,6 +114,21 @@ int mdb_id2entry_update(
 	return mdb_id2entry_put(op, txn, mc, e, 0);
 }
 
+int mdb_id2edata(
+	Operation *op,
+	MDB_cursor *mc,
+	ID id,
+	MDB_val *data )
+{
+	MDB_val key;
+
+	key.mv_data = &id;
+	key.mv_size = sizeof(ID);
+
+	/* fetch it */
+	return mdb_cursor_get( mc, &key, data, MDB_SET );
+}
+
 int mdb_id2entry(
 	Operation *op,
 	MDB_cursor *mc,
