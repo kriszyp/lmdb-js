@@ -640,7 +640,7 @@ loop_begin:
 
 			/* get the entry */
 			rs->sr_err = mdb_id2edata( op, mci, id, &edata );
-			if ( rs->sr_err  == MDB_NOTFOUND ) {
+			if ( rs->sr_err == MDB_NOTFOUND ) {
 				if( !MDB_IDL_IS_RANGE(candidates) ) {
 					/* only complain for non-range IDLs */
 					Debug( LDAP_DEBUG_TRACE,
@@ -712,10 +712,13 @@ loop_begin:
 			rs->sr_err = mdb_entry_decode( op, &edata, &e );
 			if ( rs->sr_err ) {
 				rs->sr_err = LDAP_OTHER;
-				rs->sr_text = "internal error in mdb_endtry_decode";
+				rs->sr_text = "internal error in mdb_entry_decode";
 				send_ldap_result( op, rs );
 				goto done;
 			}
+			e->e_id = id;
+			e->e_name.bv_val = NULL;
+			e->e_nname.bv_val = NULL;
 		}
 
 		if ( is_entry_subentry( e ) ) {
