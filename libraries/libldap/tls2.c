@@ -331,7 +331,7 @@ update_flags( Sockbuf *sb, tls_session * ssl, int rc )
  */
 
 static int
-ldap_int_tls_connect( LDAP *ld, LDAPConn *conn )
+ldap_int_tls_connect( LDAP *ld, LDAPConn *conn, const char *host )
 {
 	Sockbuf *sb = conn->lconn_sb;
 	int	err;
@@ -375,6 +375,10 @@ ldap_int_tls_connect( LDAP *ld, LDAPConn *conn )
 #ifdef HAVE_WINSOCK
 	errno = WSAGetLastError();
 #endif
+
+	if ( err == 0 ) {
+		err = ldap_pvt_tls_check_hostname( ld, ssl, host );
+	}
 
 	if ( err < 0 )
 	{
@@ -506,7 +510,15 @@ ldap_pvt_tls_check_hostname( LDAP *ld, void *s, const char *name_in )
 {
 	tls_session *session = s;
 
-	return tls_imp->ti_session_chkhost( ld, session, name_in );
+	if (ld->ld_options.ldo_tls_require_cert != LDAP_OPT_X_TLS_NEVER &&
+	    ld->ld_options.ldo_tls_require_cert != LDAP_OPT_X_TLS_ALLOW) {
+		ld->ld_errno = tls_imp->ti_session_chkhost( ld, session, name_in );
+		if (ld->ld_errno != LDAP_SUCCESS) {
+			return ld->ld_errno;
+		}
+	}
+
+	return LDAP_SUCCESS;
 }
 
 int
@@ -989,7 +1001,7 @@ ldap_int_tls_start ( LDAP *ld, LDAPConn *conn, LDAPURLDesc *srv )
 #endif /* LDAP_USE_NON_BLOCKING_TLS */
 
 	ld->ld_errno = LDAP_SUCCESS;
-	ret = ldap_int_tls_connect( ld, conn );
+	ret = ldap_int_tls_connect( ld, conn, host );
 
 #ifdef LDAP_USE_NON_BLOCKING_TLS
 	while ( ret > 0 ) { /* this should only happen for non-blocking io */
@@ -1010,7 +1022,7 @@ ldap_int_tls_start ( LDAP *ld, LDAPConn *conn, LDAPURLDesc *srv )
 		} else {
 			/* ldap_int_poll called ldap_pvt_ndelay_off */
 			ber_sockbuf_ctrl( ld->ld_sb, LBER_SB_OPT_SET_NONBLOCK, sb );
-			ret = ldap_int_tls_connect( ld, conn );
+			ret = ldap_int_tls_connect( ld, conn, host );
 			if ( ret > 0 ) { /* need to call tls_connect once more */
 				struct timeval curr_time_tv, delta_tv;
 
@@ -1065,20 +1077,6 @@ ldap_int_tls_start ( LDAP *ld, LDAPConn *conn, LDAPURLDesc *srv )
 		if ( ld->ld_errno == LDAP_SUCCESS )
 			ld->ld_errno = LDAP_CONNECT_ERROR;
 		return (ld->ld_errno);
-	}
-
-	ssl = ldap_pvt_tls_sb_ctx( sb );
-	assert( ssl != NULL );
-
-	/* 
-	 * compare host with name(s) in certificate
-	 */
-	if (ld->ld_options.ldo_tls_require_cert != LDAP_OPT_X_TLS_NEVER &&
-	    ld->ld_options.ldo_tls_require_cert != LDAP_OPT_X_TLS_ALLOW) {
-		ld->ld_errno = ldap_pvt_tls_check_hostname( ld, ssl, host );
-		if (ld->ld_errno != LDAP_SUCCESS) {
-			return ld->ld_errno;
-		}
 	}
 
 	return LDAP_SUCCESS;
