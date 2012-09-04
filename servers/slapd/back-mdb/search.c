@@ -1081,7 +1081,7 @@ static int search_candidates(
 	}
 
 	if( op->ors_deref & LDAP_DEREF_SEARCHING ) {
-		rc = search_aliases( op, rs, e, txn, mci, scopes, stack );
+		rc = search_aliases( op, rs, e->e_id, txn, mci, scopes, stack );
 	} else {
 		rc = LDAP_SUCCESS;
 	}
