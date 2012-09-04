@@ -1141,6 +1141,7 @@ mdb_tool_idl_flush( BackendDB *be, MDB_txn *txn )
 }
 
 int mdb_tool_idl_add(
+	BackendDB *be,
 	MDB_cursor *mc,
 	struct berval *keys,
 	ID id )
