@@ -161,6 +161,10 @@ typedef void (MDB_rel_func)(MDB_val *item, void *oldptr, void *newptr, void *rel
 #define MDB_RDONLY		0x20000
 	/** don't fsync metapage after commit */
 #define MDB_NOMETASYNC		0x40000
+	/** use writable mmap */
+#define MDB_WRITEMAP		0x80000
+	/** use synchronous msync */
+#define MDB_MAPSYNC		0x100000
 /** @} */
 
 /**	@defgroup	mdb_open	Database Flags

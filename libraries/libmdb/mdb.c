@@ -149,6 +149,7 @@
 #define UNLOCK_MUTEX_W(env)	pthread_mutex_unlock((env)->me_wmutex)
 #define getpid()	GetCurrentProcessId()
 #define	MDB_FDATASYNC(fd)	(!FlushFileBuffers(fd))
+#define	MDB_MSYNC(addr,len,flags)	(!FlushViewOfFile(addr,len))
 #define	ErrCode()	GetLastError()
 #define GET_PAGESIZE(x) {SYSTEM_INFO si; GetSystemInfo(&si); (x) = si.dwPageSize;}
 #define	close(fd)	CloseHandle(fd)
@@ -232,6 +233,18 @@
  */
 #ifndef MDB_FDATASYNC
 # define MDB_FDATASYNC	fdatasync
+#endif
+
+#ifndef MDB_MSYNC
+# define MDB_MSYNC(addr,len,flags)	msync(addr,len,flags)
+#endif
+
+#ifndef MS_SYNC
+#define	MS_SYNC	1
+#endif
+
+#ifndef MS_ASYNC
+#define	MS_ASYNC	0
 #endif
 
 	/** A page number in the database.
@@ -342,7 +355,7 @@ static txnid_t mdb_debug_start;
 	/** An invalid page number.
 	 *	Mainly used to denote an empty tree.
 	 */
-#define P_INVALID	 (~0UL)
+#define P_INVALID	 (~(pgno_t)0)
 
 	/** Test if a flag \b f is set in a flag word \b w. */
 #define F_ISSET(w, f)	 (((w) & (f)) == (f))
@@ -1312,26 +1325,39 @@ none:
 			return NULL;
 		}
 	}
-	if (txn->mt_env->me_dpages && num == 1) {
-		np = txn->mt_env->me_dpages;
-		VGMEMP_ALLOC(txn->mt_env, np, txn->mt_env->me_psize);
-		VGMEMP_DEFINED(np, sizeof(np->mp_next));
-		txn->mt_env->me_dpages = np->mp_next;
-	} else {
-		size_t sz = txn->mt_env->me_psize * num;
-		if ((np = malloc(sz)) == NULL)
-			return NULL;
-		VGMEMP_ALLOC(txn->mt_env, np, sz);
-	}
-	if (pgno == P_INVALID) {
-		np->mp_pgno = txn->mt_next_pgno;
-		txn->mt_next_pgno += num;
-	} else {
+	if (txn->mt_env->me_flags & MDB_WRITEMAP) {
+		if (pgno == P_INVALID) {
+			pgno = txn->mt_next_pgno;
+			txn->mt_next_pgno += num;
+		}
+		np = (MDB_page *)(txn->mt_env->me_map + txn->mt_env->me_psize * pgno);
 		np->mp_pgno = pgno;
+	} else {
+		if (txn->mt_env->me_dpages && num == 1) {
+			np = txn->mt_env->me_dpages;
+			VGMEMP_ALLOC(txn->mt_env, np, txn->mt_env->me_psize);
+			VGMEMP_DEFINED(np, sizeof(np->mp_next));
+			txn->mt_env->me_dpages = np->mp_next;
+		} else {
+			size_t sz = txn->mt_env->me_psize * num;
+			if ((np = malloc(sz)) == NULL)
+				return NULL;
+			VGMEMP_ALLOC(txn->mt_env, np, sz);
+		}
+		if (pgno == P_INVALID) {
+			np->mp_pgno = txn->mt_next_pgno;
+			txn->mt_next_pgno += num;
+		} else {
+			np->mp_pgno = pgno;
+		}
 	}
 	mid.mid = np->mp_pgno;
 	mid.mptr = np;
-	mdb_mid2l_insert(txn->mt_u.dirty_list, &mid);
+	if (txn->mt_env->me_flags & MDB_WRITEMAP) {
+		mdb_mid2l_append(txn->mt_u.dirty_list, &mid);
+	} else {
+		mdb_mid2l_insert(txn->mt_u.dirty_list, &mid);
+	}
 
 	return np;
 }
@@ -1451,8 +1477,18 @@ mdb_env_sync(MDB_env *env, int force)
 {
 	int rc = 0;
 	if (force || !F_ISSET(env->me_flags, MDB_NOSYNC)) {
-		if (MDB_FDATASYNC(env->me_fd))
-			rc = ErrCode();
+		if (env->me_flags & MDB_WRITEMAP) {
+			int flags = (env->me_flags & MDB_MAPSYNC) ? MS_SYNC : MS_ASYNC;
+			if (MDB_MSYNC(env->me_map, env->me_mapsize, flags))
+				rc = ErrCode();
+#ifdef _WIN32
+			else if (flags == MS_SYNC && MDB_FDATASYNC(env->me_fd))
+				rc = ErrCode();
+#endif
+		} else {
+			if (MDB_FDATASYNC(env->me_fd))
+				rc = ErrCode();
+		}
 	}
 	return rc;
 }
@@ -1655,6 +1691,9 @@ mdb_txn_begin(MDB_env *env, MDB_txn *parent, unsigned int flags, MDB_txn **ret)
 		if (parent->mt_child) {
 			return EINVAL;
 		}
+		/* nested TXNs not supported here */
+		if (env->me_flags & MDB_WRITEMAP)
+			return EINVAL;
 	}
 	size = sizeof(MDB_txn) + env->me_maxdbs * (sizeof(MDB_db)+1);
 	if (!(flags & MDB_RDONLY))
@@ -1741,23 +1780,25 @@ mdb_txn_reset0(MDB_txn *txn)
 			}
 		}
 
-		/* return all dirty pages to dpage list */
-		for (i=1; i<=txn->mt_u.dirty_list[0].mid; i++) {
-			dp = txn->mt_u.dirty_list[i].mptr;
-			if (!IS_OVERFLOW(dp) || dp->mp_pages == 1) {
-				dp->mp_next = txn->mt_env->me_dpages;
-				VGMEMP_FREE(txn->mt_env, dp);
-				txn->mt_env->me_dpages = dp;
-			} else {
-				/* large pages just get freed directly */
-				VGMEMP_FREE(txn->mt_env, dp);
-				free(dp);
+		if (!(env->me_flags & MDB_WRITEMAP)) {
+			/* return all dirty pages to dpage list */
+			for (i=1; i<=txn->mt_u.dirty_list[0].mid; i++) {
+				dp = txn->mt_u.dirty_list[i].mptr;
+				if (!IS_OVERFLOW(dp) || dp->mp_pages == 1) {
+					dp->mp_next = txn->mt_env->me_dpages;
+					VGMEMP_FREE(txn->mt_env, dp);
+					txn->mt_env->me_dpages = dp;
+				} else {
+					/* large pages just get freed directly */
+					VGMEMP_FREE(txn->mt_env, dp);
+					free(dp);
+				}
 			}
 		}
 
 		if (txn->mt_parent) {
 			txn->mt_parent->mt_child = NULL;
-			free(txn->mt_free_pgs);
+			mdb_midl_free(txn->mt_free_pgs);
 			free(txn->mt_u.dirty_list);
 			return;
 		} else {
@@ -2057,6 +2098,17 @@ again:
 	mdb_audit(txn);
 #endif
 
+	if (env->me_flags & MDB_WRITEMAP) {
+		for (i=1; i<=txn->mt_u.dirty_list[0].mid; i++) {
+			dp = txn->mt_u.dirty_list[i].mptr;
+			/* clear dirty flag */
+			dp->mp_flags &= ~P_DIRTY;
+			txn->mt_u.dirty_list[i].mid = 0;
+		}
+		txn->mt_u.dirty_list[0].mid = 0;
+		goto sync;
+	}
+
 	/* Commit up to MDB_COMMIT_PAGES dirty pages to disk until done.
 	 */
 	next = 0;
@@ -2165,6 +2217,7 @@ again:
 	}
 	txn->mt_u.dirty_list[0].mid = 0;
 
+sync:
 	if ((n = mdb_env_sync(env, 0)) != 0 ||
 	    (n = mdb_env_write_meta(txn)) != MDB_SUCCESS) {
 		mdb_txn_abort(txn);
@@ -2323,6 +2376,24 @@ mdb_env_write_meta(MDB_txn *txn)
 
 	env = txn->mt_env;
 
+	if (env->me_flags & MDB_WRITEMAP) {
+		MDB_meta *mp = env->me_metas[toggle];
+		mp->mm_dbs[0] = txn->mt_dbs[0];
+		mp->mm_dbs[1] = txn->mt_dbs[1];
+		mp->mm_last_pg = txn->mt_next_pgno - 1;
+		mp->mm_txnid = txn->mt_txnid;
+		if (!(env->me_flags & (MDB_NOMETASYNC|MDB_NOSYNC))) {
+			rc = (env->me_flags & MDB_MAPSYNC) ? MS_SYNC : MS_ASYNC;
+			ptr = env->me_map;
+			if (toggle)
+				ptr += env->me_psize;
+			if (MDB_MSYNC(ptr, env->me_psize, rc)) {
+				rc = ErrCode();
+				goto fail;
+			}
+		}
+		goto done;
+	}
 	metab.mm_txnid = env->me_metas[toggle]->mm_txnid;
 	metab.mm_last_pg = env->me_metas[toggle]->mm_last_pg;
 
@@ -2365,9 +2436,11 @@ mdb_env_write_meta(MDB_txn *txn)
 #else
 		r2 = pwrite(env->me_fd, ptr, len, off);
 #endif
+fail:
 		env->me_flags |= MDB_FATAL_ERROR;
 		return rc;
 	}
+done:
 	/* Memory ordering issues are irrelevant; since the entire writer
 	 * is wrapped by wmutex, all of these changes will become visible
 	 * after the wmutex is unlocked. Since the DB is multi-version,
@@ -2456,7 +2529,7 @@ mdb_env_get_maxreaders(MDB_env *env, unsigned int *readers)
 static int
 mdb_env_open2(MDB_env *env, unsigned int flags)
 {
-	int i, newenv = 0;
+	int i, newenv = 0, prot;
 	MDB_meta meta;
 	MDB_page *p;
 
@@ -2491,12 +2564,14 @@ mdb_env_open2(MDB_env *env, unsigned int flags)
 				return ErrCode();
 			SetFilePointer(env->me_fd, 0, NULL, 0);
 		}
-		mh = CreateFileMapping(env->me_fd, NULL, PAGE_READONLY,
+		mh = CreateFileMapping(env->me_fd, NULL, flags & MDB_WRITEMAP ?
+			PAGE_READWRITE : PAGE_READONLY,
 			sizehi, sizelo, NULL);
 		if (!mh)
 			return ErrCode();
-		env->me_map = MapViewOfFileEx(mh, FILE_MAP_READ, 0, 0, env->me_mapsize,
-			meta.mm_address);
+		env->me_map = MapViewOfFileEx(mh, flags & MDB_WRITEMAP ?
+			FILE_MAP_WRITE : FILE_MAP_READ,
+			0, 0, env->me_mapsize, meta.mm_address);
 		CloseHandle(mh);
 		if (!env->me_map)
 			return ErrCode();
@@ -2505,7 +2580,12 @@ mdb_env_open2(MDB_env *env, unsigned int flags)
 	i = MAP_SHARED;
 	if (meta.mm_address && (flags & MDB_FIXEDMAP))
 		i |= MAP_FIXED;
-	env->me_map = mmap(meta.mm_address, env->me_mapsize, PROT_READ, i,
+	prot = PROT_READ;
+	if (flags & MDB_WRITEMAP) {
+		prot |= PROT_WRITE;
+		ftruncate(env->me_fd, env->me_mapsize);
+	}
+	env->me_map = mmap(meta.mm_address, env->me_mapsize, prot, i,
 		env->me_fd, 0);
 	if (env->me_map == MAP_FAILED) {
 		env->me_map = NULL;
@@ -2918,7 +2998,7 @@ mdb_env_setup_locks(MDB_env *env, char *lpath, int mode, int *excl)
 				goto fail;
 		}
 		env->me_rmutex = sem_open(env->me_txns->mti_rmname, O_CREAT, mode, 1);
-		if (!env->me_rmutex) {
+		if (env->me_rmutex == SEM_FAILED) {
 			rc = ErrCode();
 			goto fail;
 		}
@@ -2929,7 +3009,7 @@ mdb_env_setup_locks(MDB_env *env, char *lpath, int mode, int *excl)
 				goto fail;
 		}
 		env->me_wmutex = sem_open(env->me_txns->mti_wmname, O_CREAT, mode, 1);
-		if (!env->me_wmutex) {
+		if (env->me_wmutex == SEM_FAILED) {
 			rc = ErrCode();
 			goto fail;
 		}
@@ -2980,12 +3060,12 @@ mdb_env_setup_locks(MDB_env *env, char *lpath, int mode, int *excl)
 #endif
 #ifdef USE_POSIX_SEM
 		env->me_rmutex = sem_open(env->me_txns->mti_rmname, 0);
-		if (!env->me_rmutex) {
+		if (env->me_rmutex == SEM_FAILED) {
 			rc = ErrCode();
 			goto fail;
 		}
 		env->me_wmutex = sem_open(env->me_txns->mti_wmname, 0);
-		if (!env->me_wmutex) {
+		if (env->me_wmutex == SEM_FAILED) {
 			rc = ErrCode();
 			goto fail;
 		}
@@ -3434,6 +3514,11 @@ mdb_page_get(MDB_txn *txn, pgno_t pgno, MDB_page **ret)
 {
 	MDB_page *p = NULL;
 
+	if (txn->mt_env->me_flags & MDB_WRITEMAP) {
+		if (pgno < txn->mt_next_pgno)
+			p = (MDB_page *)(txn->mt_env->me_map + txn->mt_env->me_psize * pgno);
+		goto done;
+	}
 	if (!F_ISSET(txn->mt_flags, MDB_TXN_RDONLY) && txn->mt_u.dirty_list[0].mid) {
 		unsigned x;
 		x = mdb_mid2l_search(txn->mt_u.dirty_list, pgno);
@@ -3445,6 +3530,7 @@ mdb_page_get(MDB_txn *txn, pgno_t pgno, MDB_page **ret)
 		if (pgno < txn->mt_next_pgno)
 			p = (MDB_page *)(txn->mt_env->me_map + txn->mt_env->me_psize * pgno);
 	}
+done:
 	*ret = p;
 	if (!p) {
 		DPRINTF("page %zu not found", pgno);
