@@ -11,6 +11,7 @@ OpenLDAP 2.4.33 Engineering
 	Fixed slapd syncprov to not reference ops inside a lock (ITS#7172)
 	Fixed slapd delta-syncrepl MMR with large attribute values (ITS#7354)
 	Fixed slapd-mdb slapadd -q -w double free (ITS#7356)
+	Fixed slapd-mdb to close read txn in reindex commit (ITS#7386)
 	Fixed slapo-constraint with multiple modifications (ITS#7168)
 	Build Environment
 		Fixed build with Visual Studio (ITS#7358)
