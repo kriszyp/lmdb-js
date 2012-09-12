@@ -844,6 +844,7 @@ done:
 	if( rc == 0 ) {
 		mdb_writes++;
 		if ( mdb_writes >= mdb_writes_per_commit ) {
+			MDB_val key;
 			unsigned i;
 			MDB_TOOL_IDL_FLUSH( be, txi );
 			rc = mdb_txn_commit( txi );
@@ -858,6 +859,14 @@ done:
 				e->e_id = NOID;
 			}
 			txi = NULL;
+			/* Must close the read txn to allow old pages to be reclaimed. */
+			mdb_txn_abort( txn );
+			/* and then reopen it so that tool_entry_next still works. */
+			mdb_txn_begin( mi->mi_dbenv, NULL, MDB_RDONLY, &txn );
+			mdb_cursor_open( txn, mi->mi_id2entry, &cursor );
+			key.mv_data = &id;
+			key.mv_size = sizeof(ID);
+			mdb_cursor_get( cursor, &key, NULL, MDB_SET );
 		}
 
 	} else {
