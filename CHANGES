@@ -5,6 +5,7 @@ OpenLDAP 2.4.33 Engineering
 	Fixed libldap MozNSS slot picking (ITS#7359)
 	Fixed libldap MozNSS with tokenname:certnickname format (ITS#7360)
 	Fixed libmdb POSIX semaphore cleanup on environment close (ITS#7364)
+	Fixed libmdb mdb_page_split (ITS#7385, ITS#7229)
 	Fixed slapd alock handling on Windows (ITS#7361)
 	Fixed slapd acl handling with zero-length values (ITS#7350)
 	Fixed slapd syncprov to not reference ops inside a lock (ITS#7172)
