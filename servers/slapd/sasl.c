@@ -1090,7 +1090,6 @@ slapd_rw_destroy( void *private )
 	assert( private != NULL );
 
 	ch_free( md->base.bv_val );
-	ch_free( md->filter.bv_val );
 	ch_free( md );
 
 	return 0;
