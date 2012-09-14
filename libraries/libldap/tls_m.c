@@ -1342,7 +1342,7 @@ tlsm_ctx_load_private_key( tlsm_ctx *ctx )
 	/* prefer unlocked key, then key from opened certdb, then any other */
 	if ( unlocked_key )
 		ctx->tc_private_key = unlocked_key;
-	else if ( ctx->tc_certdb_slot )
+	else if ( ctx->tc_certdb_slot && !ctx->tc_using_pem )
 		ctx->tc_private_key = PK11_FindKeyByDERCert( ctx->tc_certdb_slot, ctx->tc_certificate, pin_arg );
 	else
 		ctx->tc_private_key = PK11_FindKeyByAnyCert( ctx->tc_certificate, pin_arg );
@@ -1830,8 +1830,6 @@ tlsm_deferred_init( void *arg )
 				}
 				return -1;
 			}
-
-			ctx->tc_using_pem = PR_TRUE;
 		}
 
 		NSS_SetDomesticPolicy();
@@ -2286,15 +2284,9 @@ tlsm_deferred_ctx_init( void *arg )
 
 	/* set up our cert and key, if any */
 	if ( lt->lt_certfile ) {
-		/* if using the PEM module, load the PEM file specified by lt_certfile */
-		/* otherwise, assume this is the name of a cert already in the db */
-		if ( ctx->tc_using_pem ) {
-			/* this sets ctx->tc_certificate to the correct value */
-			int rc = tlsm_add_cert_from_file( ctx, lt->lt_certfile, PR_FALSE );
-			if ( rc ) {
-				return rc;
-			}
-		} else {
+
+		/* first search in certdb (lt_certfile is nickname) */
+		if ( ctx->tc_certdb ) {
 			char *tmp_certname;
 
 			if ( tlsm_is_tokenname_certnick( lt->lt_certfile )) {
@@ -2314,8 +2306,31 @@ tlsm_deferred_ctx_init( void *arg )
 				Debug( LDAP_DEBUG_ANY,
 					   "TLS: error: the certificate '%s' could not be found in the database - error %d:%s.\n",
 					   lt->lt_certfile, errcode, PR_ErrorToString( errcode, PR_LANGUAGE_I_DEFAULT ) );
+			}
+		}
+
+		/* fallback to PEM module (lt_certfile is filename) */
+		if ( !ctx->tc_certificate ) {
+			if ( !pem_module && tlsm_init_pem_module() ) {
+				int pem_errcode = PORT_GetError();
+				Debug( LDAP_DEBUG_ANY,
+					   "TLS: fallback to PEM impossible, module cannot be loaded - error %d:%s.\n",
+					   pem_errcode, PR_ErrorToString( pem_errcode, PR_LANGUAGE_I_DEFAULT ), 0 );
 				return -1;
 			}
+
+			/* this sets ctx->tc_certificate to the correct value */
+			if ( !tlsm_add_cert_from_file( ctx, lt->lt_certfile, PR_FALSE ) ) {
+				ctx->tc_using_pem = PR_TRUE;
+			}
+		}
+
+		if ( ctx->tc_certificate ) {
+			Debug( LDAP_DEBUG_ANY,
+				   "TLS: certificate '%s' successfully loaded from %s.\n", lt->lt_certfile,
+				   ctx->tc_using_pem ? "PEM file" : "moznss database", 0);
+		} else {
+			return -1;
 		}
 	}
 
