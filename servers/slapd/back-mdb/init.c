@@ -166,7 +166,7 @@ mdb_db_open( BackendDB *be, ConfigReply *cr )
 	flags = mdb->mi_dbenv_flags;
 
 	if ( slapMode & SLAP_TOOL_QUICK )
-		flags |= MDB_NOSYNC;
+		flags |= MDB_NOSYNC|MDB_WRITEMAP;
 
 	if ( slapMode & SLAP_TOOL_READONLY)
 		flags |= MDB_RDONLY;
