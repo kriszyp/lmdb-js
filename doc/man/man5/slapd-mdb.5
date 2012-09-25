@@ -54,6 +54,48 @@ A separate directory must be specified for each database.
 The default is
 .BR LOCALSTATEDIR/openldap\-data .
 .TP
+\fBenvflags \fR{\fBnosync\fR,\fBnometasync\fR,\fBwritemap\fR,\fBmapasync\fR}
+Specify flags for finer-grained control of the MDB library's operation.
+.RS
+.TP
+.B nosync
+This is exactly the same as the
+.I dbnosync
+directive.
+.RE
+.RS
+.TP
+.B nometasync
+Flush the data on a commit, but skip the sync of the meta page. This mode is
+slightly faster than doing a full sync, but can potentially lose the last
+committed transaction if the operating system crashes. If both
+.I nometasync
+and
+.I nosync
+are set, the
+.I nosync
+flag takes precedence.
+.RE
+.RS
+.TP
+.B writemap
+Use a writable memory map instead of just read-only. This speeds up write operations
+but makes the database vulnerable to corruption in case any bugs in slapd
+cause stray writes into the mmap region.
+.RE
+.RS
+.TP
+.B mapasync
+When using a writable memory map and performing flushes on each commit, use an
+asynchronous flush instead of a synchronous flush (the default). This option
+has no effect if
+.I writemap
+has not been set. It also has no effect if
+.I nosync
+is set.
+.RE
+
+.TP
 \fBindex \fR{\fI<attrlist>\fR|\fBdefault\fR} [\fBpres\fR,\fBeq\fR,\fBapprox\fR,\fBsub\fR,\fI<special>\fR]
 Specify the indexes to maintain for the given attribute (or
 list of attributes).
