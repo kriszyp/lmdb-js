@@ -379,8 +379,11 @@ mdb_cf_gen( ConfigArgs *c )
 					if ( mdb->mi_dbenv_flags & mdb_envflags[i].mask ) {
 						/* not all flags are runtime resettable */
 						rc = mdb_env_set_flags( mdb->mi_dbenv, mdb_envflags[i].mask, 0 );
-						if ( rc )
-							break;
+						if ( rc ) {
+							mdb->mi_flags |= MDB_RE_OPEN;
+							c->cleanup = mdb_cf_cleanup;
+							rc = 0;
+						}
 						mdb->mi_dbenv_flags ^= mdb_envflags[i].mask;
 					}
 				}
@@ -388,8 +391,15 @@ mdb_cf_gen( ConfigArgs *c )
 				int i = verb_to_mask( c->line, mdb_envflags );
 				if ( mdb_envflags[i].mask & mdb->mi_dbenv_flags ) {
 					rc = mdb_env_set_flags( mdb->mi_dbenv, mdb_envflags[i].mask, 0 );
-					if ( !rc )
-						mdb->mi_dbenv_flags ^= mdb_envflags[i].mask;
+					if ( rc ) {
+						mdb->mi_flags |= MDB_RE_OPEN;
+						c->cleanup = mdb_cf_cleanup;
+						rc = 0;
+					}
+					mdb->mi_dbenv_flags ^= mdb_envflags[i].mask;
+				} else {
+					/* unknown keyword */
+					rc = 1;
 				}
 			}
 			break;
@@ -583,10 +593,15 @@ mdb_cf_gen( ConfigArgs *c )
 					rc = mdb_env_set_flags( mdb->mi_dbenv, mdb_envflags[j].mask, 1 );
 				else
 					rc = 0;
-				if ( rc )
-					break;
-				else
-					mdb->mi_dbenv_flags |= mdb_envflags[i].mask;
+				if ( rc ) {
+					mdb->mi_flags |= MDB_RE_OPEN;
+					c->cleanup = mdb_cf_cleanup;
+					rc = 0;
+				}
+				mdb->mi_dbenv_flags |= mdb_envflags[i].mask;
+			} else {
+				/* unknown keyword */
+				rc = 1;
 			}
 		}
 		}
