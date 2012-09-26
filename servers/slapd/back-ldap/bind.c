@@ -2116,6 +2116,18 @@ ldap_back_is_proxy_authz( Operation *op, SlapReply *rs, ldap_back_send_t sendok,
 		ndn = op->o_ndn;
 	}
 
+	if ( !( li->li_idassert_flags & LDAP_BACK_AUTH_OVERRIDE )) {
+		if ( op->o_tag == LDAP_REQ_BIND ) {
+			if ( !BER_BVISEMPTY( &ndn )) {
+				dobind = 0;
+				goto done;
+			}
+		} else if ( SLAP_IS_AUTHZ_BACKEND( op )) {
+			dobind = 0;
+			goto done;
+		}
+	}
+
 	switch ( li->li_idassert_mode ) {
 	case LDAP_BACK_IDASSERT_LEGACY:
 		if ( !BER_BVISNULL( &ndn ) && !BER_BVISEMPTY( &ndn ) ) {
