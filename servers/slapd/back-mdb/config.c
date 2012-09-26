@@ -92,7 +92,7 @@ static ConfigOCs mdbocs[] = {
 		"DESC 'MDB backend configuration' "
 		"SUP olcDatabaseConfig "
 		"MUST olcDbDirectory "
-		"MAY ( olcDbCheckpoint $ olcDbEnvFlags "
+		"MAY ( olcDbCheckpoint $ olcDbEnvFlags $ "
 		"olcDbNoSync $ olcDbIndex $ olcDbMaxReaders $ olcDbMaxsize $ "
 		"olcDbMode $ olcDbSearchStack ) )",
 		 	Cft_Database, mdbcfg },
