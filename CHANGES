@@ -11,6 +11,7 @@ OpenLDAP 2.4.33 Engineering
 	Fixed slapd syncprov to not reference ops inside a lock (ITS#7172)
 	Fixed slapd delta-syncrepl MMR with large attribute values (ITS#7354)
 	Fixed slapd slapd_rw_destroy function (ITS#7390)
+	Fixed slapd-ldap idassert bind handling (ITS#7403)
 	Fixed slapd-mdb slapadd -q -w double free (ITS#7356)
 	Fixed slapd-mdb to close read txn in reindex commit (ITS#7386)
 	Fixed slapo-constraint with multiple modifications (ITS#7168)
@@ -20,6 +21,8 @@ OpenLDAP 2.4.33 Engineering
 		Add slapo-constraint test suite (ITS#7344)
 	Contrib
 		Updated radius passwd module for NAS-Identifier (ITS#7357)
+	Documentation
+		slapo-refint(5) Note that refint is not replicated (ITS#7405)
 
 OpenLDAP 2.4.32 Release (2012/07/31)
 	Added slappasswd loadable module support (ITS#7284)
