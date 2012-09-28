@@ -18,7 +18,7 @@ OpenLDAP 2.4.33 Engineering
 	Build Environment
 		Fixed build with Visual Studio (ITS#7358)
 		Fixed libmdb posix semaphore use on BSD system (ITS#7363)
-		Add slapo-constraint test suite (ITS#7344)
+		Add slapo-constraint test suite (ITS#7344, ITS#7366)
 	Contrib
 		Updated radius passwd module for NAS-Identifier (ITS#7357)
 	Documentation
