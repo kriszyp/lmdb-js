@@ -162,8 +162,10 @@ mdb_attr_dbs_close(
 {
 	int i;
 	for ( i=0; i<mdb->mi_nattrs; i++ )
-		if ( mdb->mi_attrs[i]->ai_dbi )
+		if ( mdb->mi_attrs[i]->ai_dbi ) {
 			mdb_close( mdb->mi_dbenv, mdb->mi_attrs[i]->ai_dbi );
+			mdb->mi_attrs[i]->ai_dbi = 0;
+		}
 }
 
 int
