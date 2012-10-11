@@ -1,5 +1,7 @@
 OpenLDAP 2.4 Change Log
 
+OpenLDAP 2.4.34 Engineering
+
 OpenLDAP 2.4.33 Release (2012/10/10)
 	Added slapd-meta cn=config support
 	Fixed libldap MozNSS slot picking (ITS#7359)
