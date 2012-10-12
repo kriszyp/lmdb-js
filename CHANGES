@@ -1,6 +1,7 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.34 Engineering
+	Fixed slapd-mdb to reopen attr DBs after env reopen (ITS#7416)
 	Fixed slapo-rwm modrdn cleanup (ITS#7414)
 	Documentation
 		ldap_get_option(3) fixed trailing whitespace (ITS#7411)
