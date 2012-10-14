@@ -14,7 +14,10 @@
 ## <http://www.OpenLDAP.org/license.html>.
 
 # The default debug level logs more than 1Gb:
-SLAPD_DEBUG=${SLAPD_DEBUG_MT_HOT-stats}
+case "$SLAPD_DEBUG_MT_HOT/$SLAPD_DEBUG" in
+/0 | /0x0 | /0X0 | /none | /NONE | /32768 | /0x8000 | 0X8000 | /0100000) :;;
+*) SLAPD_DEBUG=${SLAPD_DEBUG_MT_HOT-stats} ;;
+esac
 
 echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
