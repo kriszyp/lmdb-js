@@ -143,7 +143,7 @@ retry:	/* transaction retry */
 	/* begin transaction */
 	rs->sr_err = TXN_BEGIN( bdb->bi_dbenv, NULL, &ltid, 
 		bdb->bi_db_opflags );
-	Debug( LDAP_DEBUG_TRACE, LDAP_XSTRING(bdb_delete) ": txn1 id: %u\n",
+	Debug( LDAP_DEBUG_TRACE, LDAP_XSTRING(bdb_delete) ": txn1 id: %x\n",
 		ltid->id(ltid), 0, 0 );
 	rs->sr_text = NULL;
 	if( rs->sr_err != 0 ) {
@@ -370,7 +370,7 @@ retry:	/* transaction retry */
 		rs->sr_text = "internal error";
 		goto return_results;
 	}
-	Debug( LDAP_DEBUG_TRACE, LDAP_XSTRING(bdb_delete) ": txn2 id: %u\n",
+	Debug( LDAP_DEBUG_TRACE, LDAP_XSTRING(bdb_delete) ": txn2 id: %x\n",
 		lt2->id(lt2), 0, 0 );
 
 	BDB_LOG_PRINTF( bdb->bi_dbenv, lt2, "slapd Starting delete %s(%d)",

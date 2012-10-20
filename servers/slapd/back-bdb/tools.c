@@ -672,7 +672,7 @@ ID bdb_tool_entry_put(
 			 text->bv_val, 0, 0 );
 		return NOID;
 	}
-	Debug( LDAP_DEBUG_TRACE, LDAP_XSTRING(bdb_tool_entry_put) ": txn id: %u\n",
+	Debug( LDAP_DEBUG_TRACE, LDAP_XSTRING(bdb_tool_entry_put) ": txn id: %x\n",
 		tid->id(tid), 0, 0 );
 	}
 
@@ -841,7 +841,7 @@ int bdb_tool_entry_reindex(
 			db_strerror(rc), rc, 0 );
 		goto done;
 	}
-	Debug( LDAP_DEBUG_TRACE, LDAP_XSTRING(bdb_tool_entry_reindex) ": txn id: %u\n",
+	Debug( LDAP_DEBUG_TRACE, LDAP_XSTRING(bdb_tool_entry_reindex) ": txn id: %x\n",
 		tid->id(tid), 0, 0 );
 	}
  	
@@ -933,7 +933,7 @@ ID bdb_tool_entry_modify(
 				 text->bv_val, 0, 0 );
 			return NOID;
 		}
-		Debug( LDAP_DEBUG_TRACE, LDAP_XSTRING(bdb_tool_entry_modify) ": txn id: %u\n",
+		Debug( LDAP_DEBUG_TRACE, LDAP_XSTRING(bdb_tool_entry_modify) ": txn id: %x\n",
 			tid->id(tid), 0, 0 );
 	}
 
