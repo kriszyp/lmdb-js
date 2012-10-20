@@ -284,17 +284,16 @@ bdb_online_index( void *ctx, void *arg )
 		}
 		if ( ei->bei_e ) {
 			rc = bdb_index_entry( op, txn, BDB_INDEX_UPDATE_OP, ei->bei_e );
-			if ( rc == DB_LOCK_DEADLOCK ) {
+			if ( rc ) {
 				TXN_ABORT( txn );
-				ldap_pvt_thread_yield();
-				continue;
-			}
-			if ( rc == 0 ) {
-				rc = TXN_COMMIT( txn, 0 );
-				txn = NULL;
-			}
-			if ( rc )
+				if ( rc == DB_LOCK_DEADLOCK ) {
+					ldap_pvt_thread_yield();
+					continue;
+				}
 				break;
+			}
+			rc = TXN_COMMIT( txn, 0 );
+			txn = NULL;
 		}
 		id++;
 		getnext = 1;
