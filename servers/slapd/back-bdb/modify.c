@@ -514,7 +514,7 @@ retry:	/* transaction retry */
 		rs->sr_text = "internal error";
 		goto return_results;
 	}
-	Debug( LDAP_DEBUG_TRACE, LDAP_XSTRING(bdb_modify) ": txn1 id: %u\n",
+	Debug( LDAP_DEBUG_TRACE, LDAP_XSTRING(bdb_modify) ": txn1 id: %x\n",
 		ltid->id(ltid), 0, 0 );
 
 	opinfo.boi_oe.oe_key = bdb;
@@ -635,7 +635,7 @@ retry:	/* transaction retry */
 		rs->sr_text = "internal error";
 		goto return_results;
 	}
-	Debug( LDAP_DEBUG_TRACE, LDAP_XSTRING(bdb_modify) ": txn2 id: %u\n",
+	Debug( LDAP_DEBUG_TRACE, LDAP_XSTRING(bdb_modify) ": txn2 id: %x\n",
 		lt2->id(lt2), 0, 0 );
 	/* Modify the entry */
 	dummy = *e;
