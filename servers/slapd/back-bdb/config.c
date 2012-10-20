@@ -241,6 +241,8 @@ bdb_online_index( void *ctx, void *arg )
 		rc = TXN_BEGIN( bdb->bi_dbenv, NULL, &txn, bdb->bi_db_opflags );
 		if ( rc ) 
 			break;
+		Debug( LDAP_DEBUG_TRACE, LDAP_XSTRING(bdb_online_index) ": txn id: %u\n",
+			txn->id(txn), 0, 0 );
 		if ( getnext ) {
 			getnext = 0;
 			BDB_ID2DISK( id, &nid );
