@@ -3431,10 +3431,17 @@ mdb_env_copy(MDB_env *env, const char *path)
 	ptr = env->me_map + wsize;
 	wsize = txn->mt_next_pgno * env->me_psize - wsize;
 #ifdef _WIN32
-	{
-		DWORD len;
-		rc = WriteFile(newfd, ptr, wsize, &len, NULL);
-		rc = (len == wsize) ? MDB_SUCCESS : ErrCode();
+#define MAX_UINT32	4294967295U
+	while (wsize > 0) {
+		DWORD len, w2;
+		if (wsize > MAX_UINT32)
+			w2 = MAX_UINT32 - env->me_psize + 1;	/* write in pagesize chunks */
+		else
+			w2 = wsize;
+		rc = WriteFile(newfd, ptr, w2, &len, NULL);
+		rc = (len == w2) ? MDB_SUCCESS : ErrCode();
+		if (rc) break;
+		wsize -= w2;
 	}
 #else
 	rc = write(newfd, ptr, wsize);
@@ -6700,6 +6707,9 @@ mdb_default_cmp(MDB_txn *txn, MDB_dbi dbi)
 		 : ((f & MDB_REVERSEDUP) ? mdb_cmp_memnr : mdb_cmp_memn));
 }
 
+#define PERSISTENT_FLAGS	0xffff
+#define VALID_FLAGS	(MDB_REVERSEKEY|MDB_DUPSORT|MDB_INTEGERKEY|MDB_DUPFIXED|\
+	MDB_INTEGERDUP|MDB_REVERSEDUP|MDB_CREATE)
 int mdb_open(MDB_txn *txn, const char *name, unsigned int flags, MDB_dbi *dbi)
 {
 	MDB_val key, data;
@@ -6713,13 +6723,17 @@ int mdb_open(MDB_txn *txn, const char *name, unsigned int flags, MDB_dbi *dbi)
 		mdb_default_cmp(txn, FREE_DBI);
 	}
 
+	if ((flags & VALID_FLAGS) != flags)
+		return EINVAL;
+
 	/* main DB? */
 	if (!name) {
 		*dbi = MAIN_DBI;
-		if (flags & (MDB_DUPSORT|MDB_REVERSEKEY|MDB_INTEGERKEY)) {
+		if (flags & PERSISTENT_FLAGS) {
+			uint16_t f2 = flags & PERSISTENT_FLAGS;
 			/* make sure flag changes get committed */
-			if ((txn->mt_dbs[MAIN_DBI].md_flags | flags) != txn->mt_dbs[MAIN_DBI].md_flags) {
-				txn->mt_dbs[MAIN_DBI].md_flags |= (flags & (MDB_DUPSORT|MDB_REVERSEKEY|MDB_INTEGERKEY));
+			if ((txn->mt_dbs[MAIN_DBI].md_flags | f2) != txn->mt_dbs[MAIN_DBI].md_flags) {
+				txn->mt_dbs[MAIN_DBI].md_flags |= f2;
 				txn->mt_flags |= MDB_TXN_DIRTY;
 			}
 		}
@@ -6769,7 +6783,7 @@ int mdb_open(MDB_txn *txn, const char *name, unsigned int flags, MDB_dbi *dbi)
 		data.mv_data = &dummy;
 		memset(&dummy, 0, sizeof(dummy));
 		dummy.md_root = P_INVALID;
-		dummy.md_flags = flags & 0xffff;
+		dummy.md_flags = flags & PERSISTENT_FLAGS;
 		rc = mdb_cursor_put(&mc, &key, &data, F_SUBDATA);
 		dbflag = DB_DIRTY;
 	}
