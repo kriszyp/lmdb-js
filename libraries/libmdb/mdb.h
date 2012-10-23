@@ -38,6 +38,63 @@
  *	corrupt the database. Of course if your application code is known to
  *	be bug-free (...) then this is not an issue.
  *
+ *	Troubleshooting the lock file, plus semaphores on BSD systems:
+ *
+ *	- A broken lockfile can cause sync issues.
+ *	  Stale reader transactions left behind by an aborted program
+ *	  cause further writes to grow the database quickly, and
+ *	  stale locks can block further operation.
+ *
+ *	  Fix: Terminate all programs using the database, or make
+ *	  them close it.  Next database user will reset the lockfile.
+ *
+ *	- On BSD systems or others configured with MDB_USE_POSIX_SEM,
+ *	  startup can fail due to semaphores owned by another userid.
+ *
+ *	  Fix: Open and close the database as the user which owns the
+ *	  semaphores (likely last user) or as root, while no other
+ *	  process is using the database.
+ *
+ *	Restrictions/caveats (in addition to those listed for some functions):
+ *
+ *	- Only the database owner should normally use the database on
+ *	  BSD systems or when otherwise configured with MDB_USE_POSIX_SEM.
+ *	  Multiple users can cause startup to fail later, as noted above.
+ *
+ *	- A thread can only use one transaction at a time, plus any child
+ *	  transactions.  Each transaction belongs to one thread.  See below.
+ *
+ *	- Use an MDB_env* in the process which opened it, without fork()ing.
+ *
+ *	- Do not have open an MDB database twice in the same process at
+ *	  the same time.  Not even from a plain open() call - close()ing it
+ *	  breaks flock() advisory locking.
+ *
+ *	- Avoid long-lived transactions.  Read transactions prevent
+ *	  reuse of pages freed by newer write transactions, thus the
+ *	  database can grow quickly.  Write transactions prevent
+ *	  other write transactions, since writes are serialized.
+ *
+ *	...when several processes can use a database concurrently:
+ *
+ *	- Avoid suspending a process with active transactions.  These
+ *	  would then be "long-lived" as above.
+ *
+ *	- Avoid aborting a process with an active transaction.
+ *	  The transaction becomes "long-lived" as above until the lockfile
+ *	  is reset, since the process may not remove it from the lockfile.
+ *
+ *	- If you do that anyway, close the environment once in a while,
+ *	  so the lockfile can get reset.
+ *
+ *	- Do not use MDB databases on remote filesystems, even between
+ *	  processes on the same host.  This breaks flock() on some OSes,
+ *	  possibly memory map sync, and certainly sync between programs
+ *	  on different hosts.
+ *
+ *	- Opening a database can fail if another process is opening or
+ *	  closing it at exactly the same time.
+ *
  *	@author	Howard Chu, Symas Corporation.
  *
  *	@copyright Copyright 2011-2012 Howard Chu, Symas Corp. All rights reserved.
@@ -301,6 +358,16 @@ typedef struct MDB_stat {
 	size_t		ms_entries;			/**< Number of data items */
 } MDB_stat;
 
+/** @brief Information about the environment */
+typedef struct MDB_envinfo {
+	void	*me_mapaddr;			/**< Address of map, if fixed */
+	size_t	me_mapsize;				/**< Size of the data memory map */
+	size_t	me_last_pgno;			/**< ID of the last used page */
+	size_t	me_last_txnid;			/**< ID of the last committed transaction */
+	unsigned int me_maxreaders;		/**< maximum number of threads for the environment */
+	unsigned int me_numreaders;		/**< maximum number of threads used in the environment */
+} MDB_envinfo;
+
 	/** @brief Return the mdb library version information.
 	 *
 	 * @param[out] major if non-NULL, the library major version number is copied here
@@ -344,6 +411,7 @@ int  mdb_env_create(MDB_env **env);
 	 * @param[in] flags Special options for this environment. This parameter
 	 * must be set to 0 or by bitwise OR'ing together one or more of the
 	 * values described here.
+	 * Flags set by mdb_env_set_flags() are also used.
 	 * <ul>
 	 *	<li>#MDB_FIXEDMAP
 	 *      use a fixed address for the mmap region. This flag must be specified
@@ -393,6 +461,18 @@ int  mdb_env_create(MDB_env **env);
 	 */
 int  mdb_env_open(MDB_env *env, const char *path, unsigned int flags, mode_t mode);
 
+	/** @brief Copy an MDB environment to the specified path.
+	 *
+	 * This function may be used to make a backup of an existing environment.
+	 * @param[in] env An environment handle returned by #mdb_env_create(). It
+	 * must have already been opened successfully.
+	 * @param[in] path The directory in which the copy will reside. This
+	 * directory must already exist and be writable but must otherwise be
+	 * empty.
+	 * @return A non-zero error value on failure and 0 on success.
+	 */
+int  mdb_env_copy(MDB_env *env, const char *path);
+
 	/** @brief Return statistics about the MDB environment.
 	 *
 	 * @param[in] env An environment handle returned by #mdb_env_create()
@@ -400,6 +480,14 @@ int  mdb_env_open(MDB_env *env, const char *path, unsigned int flags, mode_t mod
 	 * 	where the statistics will be copied
 	 */
 int  mdb_env_stat(MDB_env *env, MDB_stat *stat);
+
+	/** @brief Return information about the MDB environment.
+	 *
+	 * @param[in] env An environment handle returned by #mdb_env_create()
+	 * @param[out] stat The address of an #MDB_envinfo structure
+	 * 	where the information will be copied
+	 */
+int  mdb_env_info(MDB_env *env, MDB_envinfo *stat);
 
 	/** @brief Flush the data buffers to disk.
 	 *
@@ -432,7 +520,7 @@ void mdb_env_close(MDB_env *env);
 
 	/** @brief Set environment flags.
 	 *
-	 * This may be used to set some flags that weren't already set during
+	 * This may be used to set some flags in addition to those from
 	 * #mdb_env_open(), or to unset these flags.
 	 * @param[in] env An environment handle returned by #mdb_env_create()
 	 * @param[in] flags The flags to change, bitwise OR'ed together
