@@ -53,7 +53,6 @@ This layout stores entry DNs more efficiently than the
 backend,
 using less space and requiring less work to create, delete, and rename
 entries. It is also one of the few backends to support subtree renames.
-.BR
 .TP
 .B ldap
 This backend acts as a proxy to forward incoming requests to another
@@ -64,6 +63,16 @@ This database uses the filesystem to build the tree structure
 of the database, using plain ascii files to store data.
 Its usage should be limited to very simple databases, where performance
 is not a requirement. This backend also supports subtree renames.
+.TP
+.B mdb
+This will soon be the recommended primary backend, superseding
+.BR hdb .
+This backend uses OpenLDAP's own MDB transactional database
+library. It is extremely compact and extremely efficient, delivering
+much higher performance than the Berkeley DB backends while using
+significantly less memory.  Also, unlike Berkeley DB, MDB is crash proof,
+and requires no special tuning or maintenance.
+This backend also supports subtree renames.
 .TP
 .B meta
 This backend performs basic LDAP proxying with respect to a set of
@@ -80,7 +89,8 @@ backend may be defined.
 .B ndb
 This backend is experimental.
 It uses the transactional database interface of the MySQL Cluster Engine
-(NDB) to store data.
+(NDB) to store data. Note that Oracle, which now owns MySQL, has withdrawn
+support for NDB and this backend is unlikely to be developed any further.
 .TP
 .B null
 Operations in this backend succeed but do nothing.
@@ -131,8 +141,10 @@ default slapd configuration directory
 .BR slapd\-hdb (5),
 .BR slapd\-ldap (5),
 .BR slapd\-ldif (5),
+.BR slapd\-mdb (5),
 .BR slapd\-meta (5),
 .BR slapd\-monitor (5),
+.BR slapd\-ndb (5),
 .BR slapd\-null (5),
 .BR slapd\-passwd (5),
 .BR slapd\-perl (5),
