@@ -1088,7 +1088,8 @@ value "oid.xx" will be used.
 
 .SH GENERAL BACKEND OPTIONS
 Options in these entries only apply to the configuration of a single
-type of backend. All backends may support this class of options.
+type of backend. All backends may support this class of options, but
+currently none do.
 The entry must be named
 .B olcBackend=<databasetype>,cn=config
 and must have the olcBackendConfig objectClass.
@@ -1100,8 +1101,10 @@ should be one of
 .BR hdb ,
 .BR ldap ,
 .BR ldif ,
+.BR mdb ,
 .BR meta ,
 .BR monitor ,
+.BR ndb ,
 .BR null ,
 .BR passwd ,
 .BR perl ,
@@ -1109,7 +1112,8 @@ should be one of
 .BR shell ,
 or
 .BR sql .
-At present, no backend implements any options of this type.
+At present, no backend implements any options of this type, so this
+entry should not be used.
 
 .SH DATABASE OPTIONS
 Database options are set in entries named
