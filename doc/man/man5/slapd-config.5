@@ -446,20 +446,6 @@ upon StartTLS operation receipt.
 disallows the StartTLS operation if authenticated (see also
 .BR tls_2_anon ).
 .TP
-.B olcExtraAttrs: <attr>
-Lists what attributes need to be added to search requests.
-Local storage backends return the entire entry to the frontend.
-The frontend takes care of only returning the requested attributes
-that are allowed by ACLs.
-However, features like access checking and so may need specific
-attributes that are not automatically returned by remote storage
-backends, like proxy backends and so on.
-.B <attr>
-is an attribute that is needed for internal purposes
-and thus always needs to be collected, even when not explicitly
-requested by clients.
-This attribute is multi-valued.
-.TP
 .B olcGentleHUP: { TRUE | FALSE }
 A SIGHUP signal will only cause a 'gentle' shutdown-attempt:
 .B Slapd
@@ -1171,6 +1157,20 @@ Specify a default search base to use when client submits a
 non-base search request with an empty base DN.
 Base scoped search requests with an empty base DN are not affected.
 This setting is only allowed in the frontend entry.
+.TP
+.B olcExtraAttrs: <attr>
+Lists what attributes need to be added to search requests.
+Local storage backends return the entire entry to the frontend.
+The frontend takes care of only returning the requested attributes
+that are allowed by ACLs.
+However, features like access checking and so may need specific
+attributes that are not automatically returned by remote storage
+backends, like proxy backends and so on.
+.B <attr>
+is an attribute that is needed for internal purposes
+and thus always needs to be collected, even when not explicitly
+requested by clients.
+This attribute is multi-valued.
 .TP
 .B olcPasswordHash: <hash> [<hash>...]
 This option configures one or more hashes to be used in generation of user
