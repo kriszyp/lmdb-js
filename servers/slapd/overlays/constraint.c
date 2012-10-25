@@ -845,9 +845,6 @@ constraint_check_count_violation( Modifications *m, Entry *target_entry, constra
 	unsigned ca;
 	int j;
 
-	if ( cp->set )
-		return 0;
-
 	for ( j = 0; cp->ap[j]; j++ ) {
 		/* Get this attribute count */
 		if ( target_entry )
@@ -905,7 +902,6 @@ constraint_update( Operation *op, SlapReply *rs )
 	int rc;
 	char *msg = NULL;
 	int is_v;
-	int first = 1;
 
 	if (get_relax(op)) {
 		return SLAP_CB_CONTINUE;
@@ -933,15 +929,17 @@ constraint_update( Operation *op, SlapReply *rs )
 		return(rs->sr_err);
 	}
 
+	op->o_bd = on->on_info->oi_origdb;
+	rc = be_entry_get_rw( op, &op->o_req_ndn, NULL, NULL, 0, &target_entry );
+	op->o_bd = be;
+
 	/* Do we need to count attributes? */
 	for(cp = c; cp; cp = cp->ap_next) {
-		if (cp->count != 0 || cp->set || cp->restrict_lud != 0) {
-			if (first) {
-				op->o_bd = on->on_info->oi_origdb;
-				rc = be_entry_get_rw( op, &op->o_req_ndn, NULL, NULL, 0, &target_entry );
-				op->o_bd = be;
-				first = 0;
-			}
+		if (cp->restrict_lud && constraint_check_restrict(op, cp, target_entry) == 0) {
+			continue;
+		}
+
+		if (cp->count != 0) {
 			if (rc != 0 || target_entry == NULL) {
 				Debug(LDAP_DEBUG_TRACE, 
 					"==> constraint_update rc = %d DN=\"%s\"%s\n",
