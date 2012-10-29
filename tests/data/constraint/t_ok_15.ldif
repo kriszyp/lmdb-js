@@ -1,4 +1,5 @@
 dn: cn=John Doe,ou=users,dc=example,dc=com
 changetype: modify
-replace: sn
-sn: Down
+replace: uid
+uid: 2
+

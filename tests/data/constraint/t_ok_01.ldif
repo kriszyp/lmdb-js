@@ -1,3 +1,3 @@
-dn: cn=John Doe,dc=example,dc=com
+dn: cn=John Doe,ou=users,dc=example,dc=com
 changetype: modify
 delete: mail

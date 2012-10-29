@@ -13,7 +13,7 @@ ROOTLDIF="$CONSTRAINTDIR/root.ldif"
 USERLDIF="$CONSTRAINTDIR/user.ldif"
 RESULTOUT="$CONSTRAINTDIR/constraint.out"
 SCRIPTOUT="$TESTDIR/constraint.out"
-USERDN="cn=John Doe,$BASEDN"
+USERDN="cn=John Doe,ou=users,$BASEDN"
 
 CONFDIR=$TESTDIR/slapd.d
 mkdir -p $TESTDIR $CONFDIR $DBDIR1
@@ -88,13 +88,21 @@ dn: olcOverlay=constraint,olcDatabase={1}$BACKEND,cn=config
 objectClass: olcOverlayConfig
 objectClass: olcConstraintConfig
 olcOverlay: constraint
-olcConstraintAttribute: mail count 3
+olcConstraintAttribute: mail
+  count 3
+  restrict="ldap:///ou=users,$BASEDN??one?(objectClass=inetOrgPerson)"
+# check if restrict works (if not, this will apply to ou=users subtree as well
+# and some tests will fail)
+olcConstraintAttribute: mail count 1 restrict="ldap:///ou=groups,$BASEDN??one"
 olcConstraintAttribute: mail regex ^[[:alnum:]]+@example.com$
 olcConstraintAttribute: description count 2
 # cn value has to be concatenated givenName SP sn
 olcConstraintAttribute: cn,sn,givenName
   set "(this/givenName + [ ] + this/sn) & this/cn"
   restrict="ldap:///$USERDN??sub?(objectClass=inetOrgPerson)"
+olcConstraintAttribute: uid
+  uri "ldap:///ou=groups,$BASEDN?uid?one?(objectClass=inetOrgPerson)"
+  restrict="ldap:///ou=users,$BASEDN??one"
 EOF
 
 $SLAPADD -F $CONFDIR -n 0 -l $TESTDIR/config.ldif
