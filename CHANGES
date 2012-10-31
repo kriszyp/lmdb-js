@@ -2,7 +2,10 @@ OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.34 Engineering
 	Fixed slapd-mdb to reopen attr DBs after env reopen (ITS#7416)
+	Fixed slapo-constraint handle uri and restrict correctly (ITS#7418)
 	Fixed slapo-rwm modrdn cleanup (ITS#7414)
+	Build Environment
+		Fixed slapo-constraint test suite (ITS#7423)
 	Documentation
 		ldap_get_option(3) fixed trailing whitespace (ITS#7411)
 		slapd-config(5) olcExtraAttrs is per db (ITS#7421)
