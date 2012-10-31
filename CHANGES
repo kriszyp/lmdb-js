@@ -5,6 +5,7 @@ OpenLDAP 2.4.34 Engineering
 	Fixed slapo-rwm modrdn cleanup (ITS#7414)
 	Documentation
 		ldap_get_option(3) fixed trailing whitespace (ITS#7411)
+		slapd-config(5) olcExtraAttrs is per db (ITS#7421)
 
 OpenLDAP 2.4.33 Release (2012/10/10)
 	Added slapd-meta cn=config support
