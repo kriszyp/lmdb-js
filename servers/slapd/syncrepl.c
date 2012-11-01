@@ -112,6 +112,7 @@ typedef struct syncinfo_s {
 	int			si_logstate;
 	int			si_got;
 	int			si_strict_refresh;	/* stop listening during fallback refresh */
+	int			si_too_old;
 	ber_int_t	si_msgid;
 	Avlnode			*si_presentlist;
 	LDAP			*si_ld;
@@ -935,8 +936,10 @@ do_syncrep2(
 										si->si_ridtxt, syncCookie.ctxcsn->bv_val, bdn.bv_val );
 									ldap_controls_free( rctrls );
 									rc = 0;
+									si->si_too_old = 1;
 									goto done;
 								}
+								si->si_too_old = 0;
 								break;
 							}
 						}
@@ -976,6 +979,13 @@ do_syncrep2(
 						}
 						assert( punlock < 0 );
 						punlock = i;
+					} else if (si->si_too_old) {
+						bdn.bv_val[bdn.bv_len] = '\0';
+						Debug( LDAP_DEBUG_SYNC, "do_syncrep2: %s CSN too old, ignoring (%s)\n",
+							si->si_ridtxt, bdn.bv_val, 0 );
+						ldap_controls_free( rctrls );
+						rc = 0;
+						goto done;
 					}
 					op->o_controls[slap_cids.sc_LDAPsync] = &syncCookie;
 				}
@@ -1425,6 +1435,8 @@ do_syncrepl(
 		if ( !ldap_pvt_thread_pool_pausecheck( &connection_pool ))
 			ldap_pvt_thread_yield();
 	}
+
+	si->si_too_old = 0;
 
 	if ( si->si_ctype < 1 ) {
 		goto deleted;
