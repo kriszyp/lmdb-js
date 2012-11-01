@@ -1,6 +1,7 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.34 Engineering
+	Fixed slapd syncrepl for old entries in MMR setup (ITS#7427)
 	Fixed slapd-mdb to reopen attr DBs after env reopen (ITS#7416)
 	Fixed slapo-constraint handle uri and restrict correctly (ITS#7418)
 	Fixed slapo-rwm modrdn cleanup (ITS#7414)
