@@ -11,6 +11,7 @@
 
 #ifdef HAVE_TERMIOS_H
 #include <termios.h>
+#include <unistd.h>
 #include <cstdio>
 #endif
 
