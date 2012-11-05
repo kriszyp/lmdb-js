@@ -8,6 +8,8 @@ OpenLDAP 2.4.34 Engineering
 	Fixed slapo-rwm modrdn cleanup (ITS#7414)
 	Build Environment
 		Fixed slapo-constraint test suite (ITS#7423)
+	Contrib
+		Fixed ldapc++ with gcc-4.7 (ITS#7281,ITS#7304)
 	Documentation
 		ldap_get_option(3) fixed trailing whitespace (ITS#7411)
 		slapd-config(5) olcExtraAttrs is per db (ITS#7421)
