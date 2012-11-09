@@ -516,6 +516,21 @@ deref_op_search( Operation *op, SlapReply *rs )
 	return SLAP_CB_CONTINUE;
 }
 
+static int
+deref_db_open( BackendDB *be, ConfigReply *cr)
+{
+	return overlay_register_control( be, LDAP_CONTROL_X_DEREF );
+}
+
+#ifdef SLAP_CONFIG_DELETE
+static int
+deref_db_close( BackendDB *be, ConfigReply *cr)
+{
+	overlay_unregister_control( be, LDAP_CONTROL_X_DEREF );
+	return 0;
+}
+#endif /* SLAP_CONFIG_DELETE */
+
 int
 deref_initialize(void)
 {
@@ -532,6 +547,10 @@ deref_initialize(void)
 	}
 
 	deref.on_bi.bi_type = "deref";
+	deref.on_bi.bi_db_open = deref_db_open;
+#ifdef SLAP_CONFIG_DELETE
+	deref.on_bi.bi_db_close = deref_db_close;
+#endif /* SLAP_CONFIG_DELETE */
 	deref.on_bi.bi_op_search = deref_op_search;
 
 	return overlay_register( &deref );
