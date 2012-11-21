@@ -261,7 +261,7 @@ ldap_send_server_request(
 		ber_sockbuf_ctrl( lc->lconn_sb, LBER_SB_OPT_GET_FD, &sd );
 
 		/* poll ... */
-		switch ( ldap_int_poll( ld, sd, &tv ) ) {
+		switch ( ldap_int_poll( ld, sd, &tv, 1 ) ) {
 		case 0:
 			/* go on! */
 			lc->lconn_status = LDAP_CONNST_CONNECTED;
