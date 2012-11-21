@@ -276,7 +276,8 @@ int
 ldap_int_poll(
 	LDAP *ld,
 	ber_socket_t s,
-	struct timeval *tvp )
+	struct timeval *tvp,
+	int wr )
 {
 	int		rc;
 		
@@ -288,9 +289,10 @@ ldap_int_poll(
 	{
 		struct pollfd fd;
 		int timeout = INFTIM;
+		short event = wr ? POLL_WRITE : POLL_READ;
 
 		fd.fd = s;
-		fd.events = POLL_WRITE;
+		fd.events = event;
 
 		if ( tvp != NULL ) {
 			timeout = TV2MILLISEC( tvp );
@@ -310,7 +312,7 @@ ldap_int_poll(
 			return -2;
 		}
 
-		if ( fd.revents & POLL_WRITE ) {
+		if ( fd.revents & event ) {
 			if ( ldap_pvt_is_socket_ready( ld, s ) == -1 ) {
 				return -1;
 			}
@@ -452,7 +454,7 @@ ldap_pvt_connect(LDAP *ld, ber_socket_t s,
 		return ( -2 );
 	}
 
-	rc = ldap_int_poll( ld, s, opt_tv );
+	rc = ldap_int_poll( ld, s, opt_tv, 1 );
 
 	osip_debug(ld, "ldap_pvt_connect: %d\n", rc, 0, 0);
 
