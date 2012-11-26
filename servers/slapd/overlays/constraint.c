@@ -935,10 +935,6 @@ constraint_update( Operation *op, SlapReply *rs )
 
 	/* Do we need to count attributes? */
 	for(cp = c; cp; cp = cp->ap_next) {
-		if (cp->restrict_lud && constraint_check_restrict(op, cp, target_entry) == 0) {
-			continue;
-		}
-
 		if (cp->count != 0) {
 			if (rc != 0 || target_entry == NULL) {
 				Debug(LDAP_DEBUG_TRACE, 
@@ -948,6 +944,10 @@ constraint_update( Operation *op, SlapReply *rs )
 				if ( rc == 0 ) 
 					rc = LDAP_CONSTRAINT_VIOLATION;
 				goto mod_violation;
+			}
+
+			if (cp->restrict_lud && constraint_check_restrict(op, cp, target_entry) == 0) {
+				continue;
 			}
 
 			is_v = constraint_check_count_violation(m, target_entry, cp);
