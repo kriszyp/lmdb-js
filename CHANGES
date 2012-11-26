@@ -6,6 +6,7 @@ OpenLDAP 2.4.34 Engineering
 	Fixed slapd-mdb to reopen attr DBs after env reopen (ITS#7416)
 	Fixed slapo-constraint handle uri and restrict correctly (ITS#7418)
 	Fixed slapo-constraint with multi-master replication (ITS#7426)
+	Fixed slapo-deref control initialization (ITS#7436)
 	Fixed slapo-rwm modrdn cleanup (ITS#7414)
 	Build Environment
 		Fixed slapo-constraint test suite (ITS#7423)
