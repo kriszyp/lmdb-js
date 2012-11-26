@@ -73,7 +73,9 @@ ber_socket_t dtblsize;
 slap_ssf_t local_ssf = LDAP_PVT_SASL_LOCAL_SSF;
 struct runqueue_s slapd_rq;
 
-#define MAX_DAEMON_THREADS	16
+#ifndef SLAPD_MAX_DAEMON_THREADS
+#define SLAPD_MAX_DAEMON_THREADS	16
+#endif
 int slapd_daemon_threads = 1;
 int slapd_daemon_mask;
 
@@ -92,7 +94,7 @@ static ldap_pvt_thread_t *listener_tid;
 
 #define	DAEMON_ID(fd)	(fd & slapd_daemon_mask)
 
-static ber_socket_t wake_sds[MAX_DAEMON_THREADS][2];
+static ber_socket_t wake_sds[SLAPD_MAX_DAEMON_THREADS][2];
 static int emfile;
 
 static time_t chk_writetime;
@@ -158,7 +160,7 @@ typedef struct slap_daemon_st {
 #endif /* ! epoll && ! /dev/poll */
 } slap_daemon_st;
 
-static slap_daemon_st slap_daemon[MAX_DAEMON_THREADS];
+static slap_daemon_st slap_daemon[SLAPD_MAX_DAEMON_THREADS];
 
 /*
  * NOTE: naming convention for macros:
@@ -1609,7 +1611,7 @@ slapd_daemon_init( const char *urls )
 	Debug( LDAP_DEBUG_ARGS, "daemon_init: %s\n",
 		urls ? urls : "<null>", 0, 0 );
 
-	for ( i=0; i<MAX_DAEMON_THREADS; i++ ) {
+	for ( i=0; i<SLAPD_MAX_DAEMON_THREADS; i++ ) {
 		wake_sds[i][0] = AC_SOCKET_INVALID;
 		wake_sds[i][1] = AC_SOCKET_INVALID;
 	}
@@ -2894,6 +2896,9 @@ slapd_daemon( void )
 #ifdef LDAP_CONNECTIONLESS
 	connectionless_init();
 #endif /* LDAP_CONNECTIONLESS */
+
+	if ( slapd_daemon_threads > SLAPD_MAX_DAEMON_THREADS )
+		slapd_daemon_threads = SLAPD_MAX_DAEMON_THREADS;
 
 	listener_tid = ch_malloc(slapd_daemon_threads * sizeof(ldap_pvt_thread_t));
 
