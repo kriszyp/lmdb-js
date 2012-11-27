@@ -598,7 +598,7 @@ mdb_cf_gen( ConfigArgs *c )
 					c->cleanup = mdb_cf_cleanup;
 					rc = 0;
 				}
-				mdb->mi_dbenv_flags |= mdb_envflags[i].mask;
+				mdb->mi_dbenv_flags |= mdb_envflags[j].mask;
 			} else {
 				/* unknown keyword */
 				rc = 1;
