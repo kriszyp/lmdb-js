@@ -117,7 +117,7 @@
 #define MISALIGNED_OK	1
 #endif
 
-#include "mdb.h"
+#include "lmdb.h"
 #include "midl.h"
 
 #if (BYTE_ORDER == LITTLE_ENDIAN) == (BYTE_ORDER == BIG_ENDIAN)
@@ -1242,6 +1242,7 @@ mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp)
 	MDB_page *np;
 	pgno_t pgno = P_INVALID;
 	MDB_ID2 mid;
+	txnid_t oldest = 0, last;
 	int rc;
 
 	*mp = NULL;
@@ -1254,12 +1255,11 @@ mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp)
 		if (!txn->mt_env->me_pghead &&
 			txn->mt_dbs[FREE_DBI].md_root != P_INVALID) {
 			/* See if there's anything in the free DB */
-			int j;
 			MDB_reader *r;
 			MDB_cursor m2;
 			MDB_node *leaf;
 			MDB_val data;
-			txnid_t *kptr, last;
+			txnid_t *kptr;
 
 			mdb_cursor_init(&m2, txn, FREE_DBI, NULL);
 			if (!txn->mt_env->me_pgfirst) {
@@ -1282,15 +1282,21 @@ again:
 				last = *(txnid_t *)key.mv_data;
 			}
 
-			/* Unusable if referred by a meta page or reader... */
-			j = 1;
-			if (last < txn->mt_txnid-1) {
-				j = txn->mt_env->me_txns->mti_numreaders;
-				r = txn->mt_env->me_txns->mti_readers + j;
-				for (j = -j; j && (last<r[j].mr_txnid || !r[j].mr_pid); j++) ;
+			{
+				unsigned int i, nr;
+				txnid_t mr;
+				oldest = txn->mt_txnid - 1;
+				nr = txn->mt_env->me_txns->mti_numreaders;
+				r = txn->mt_env->me_txns->mti_readers;
+				for (i=0; i<nr; i++) {
+					if (!r[i].mr_pid) continue;
+					mr = r[i].mr_txnid;
+					if (mr < oldest)
+						oldest = mr;
+				}
 			}
 
-			if (!j) {
+			if (oldest > last) {
 				/* It's usable, grab it.
 				 */
 				MDB_oldpages *mop;
@@ -1331,29 +1337,108 @@ none:
 		if (txn->mt_env->me_pghead) {
 			MDB_oldpages *mop = txn->mt_env->me_pghead;
 			if (num > 1) {
-				/* FIXME: For now, always use fresh pages. We
-				 * really ought to search the free list for a
-				 * contiguous range.
-				 */
-				;
+				MDB_cursor m2;
+				int retry = 2, readit = 0, n2 = num-1;
+				unsigned int i, j, k;
+
+				/* If current list is too short, must fetch more and coalesce */
+				if (mop->mo_pages[0] < (unsigned)num)
+					readit = 1;
+
+				mdb_cursor_init(&m2, txn, FREE_DBI, NULL);
+				do {
+					if (readit) {
+						MDB_val key, data;
+						MDB_oldpages *mop2;
+						pgno_t *idl;
+						int exact;
+
+						last = mop->mo_txnid + 1;
+
+						/* We haven't hit the readers list yet? */
+						if (!oldest) {
+							MDB_reader *r;
+							unsigned int nr;
+							txnid_t mr;
+
+							oldest = txn->mt_txnid - 1;
+							nr = txn->mt_env->me_txns->mti_numreaders;
+							r = txn->mt_env->me_txns->mti_readers;
+							for (i=0; i<nr; i++) {
+								if (!r[i].mr_pid) continue;
+								mr = r[i].mr_txnid;
+								if (mr < oldest)
+									oldest = mr;
+							}
+						}
+
+						/* There's nothing we can use on the freelist */
+						if (oldest - last < 1)
+							break;
+
+						exact = 0;
+						key.mv_data = &last;
+						key.mv_size = sizeof(last);
+						rc = mdb_cursor_set(&m2, &key, &data, MDB_SET, &exact);
+						if (rc)
+							return rc;
+						idl = (MDB_ID *) data.mv_data;
+						mop2 = malloc(sizeof(MDB_oldpages) + MDB_IDL_SIZEOF(idl) - 2*sizeof(pgno_t) + MDB_IDL_SIZEOF(mop->mo_pages));
+						if (!mop2)
+							return ENOMEM;
+						/* merge in sorted order */
+						i = idl[0]; j = mop->mo_pages[0]; mop2->mo_pages[0] = k = i+j;
+						mop->mo_pages[0] = P_INVALID;
+						while (i>0  || j>0) {
+							if (i && idl[i] < mop->mo_pages[j])
+								mop2->mo_pages[k--] = idl[i--];
+							else
+								mop2->mo_pages[k--] = mop->mo_pages[j--];
+						}
+						txn->mt_env->me_pglast = last;
+						mop2->mo_txnid = last;
+						mop2->mo_next = mop->mo_next;
+						txn->mt_env->me_pghead = mop2;
+						free(mop);
+						mop = mop2;
+						/* Keep trying to read until we have enough */
+						if (mop->mo_pages[0] < (unsigned)num) {
+							continue;
+						}
+					}
+
+					/* current list has enough pages, but are they contiguous? */
+					for (i=mop->mo_pages[0]; i>=(unsigned)num; i--) {
+						if (mop->mo_pages[i-n2] == mop->mo_pages[i] + n2) {
+							pgno = mop->mo_pages[i];
+							i -= n2;
+							/* move any stragglers down */
+							for (j=i+num; j<=mop->mo_pages[0]; j++)
+								mop->mo_pages[i++] = mop->mo_pages[j];
+							mop->mo_pages[0] -= num;
+							break;
+						}
+					}
+
+					/* Stop if we succeeded, or no more retries */
+					if (!retry || pgno != P_INVALID)
+						break;
+					readit = 1;
+					retry--;
+
+				} while (1);
 			} else {
 				/* peel pages off tail, so we only have to truncate the list */
 				pgno = MDB_IDL_LAST(mop->mo_pages);
-				if (MDB_IDL_IS_RANGE(mop->mo_pages)) {
-					mop->mo_pages[2]++;
-					if (mop->mo_pages[2] > mop->mo_pages[1])
-						mop->mo_pages[0] = 0;
+				mop->mo_pages[0]--;
+			}
+			if (MDB_IDL_IS_ZERO(mop->mo_pages)) {
+				txn->mt_env->me_pghead = mop->mo_next;
+				if (mc->mc_dbi == FREE_DBI) {
+					mop->mo_next = txn->mt_env->me_pgfree;
+					txn->mt_env->me_pgfree = mop;
 				} else {
-					mop->mo_pages[0]--;
-				}
-				if (MDB_IDL_IS_ZERO(mop->mo_pages)) {
-					txn->mt_env->me_pghead = mop->mo_next;
-					if (mc->mc_dbi == FREE_DBI) {
-						mop->mo_next = txn->mt_env->me_pgfree;
-						txn->mt_env->me_pgfree = mop;
-					} else {
-						free(mop);
-					}
+					free(mop);
 				}
 			}
 		}
@@ -1523,7 +1608,8 @@ mdb_env_sync(MDB_env *env, int force)
 	int rc = 0;
 	if (force || !F_ISSET(env->me_flags, MDB_NOSYNC)) {
 		if (env->me_flags & MDB_WRITEMAP) {
-			int flags = (env->me_flags & MDB_MAPASYNC) ? MS_ASYNC : MS_SYNC;
+			int flags = ((env->me_flags & MDB_MAPASYNC) && !force)
+				? MS_ASYNC : MS_SYNC;
 			if (MDB_MSYNC(env->me_map, env->me_mapsize, flags))
 				rc = ErrCode();
 #ifdef _WIN32
@@ -2423,6 +2509,7 @@ mdb_env_write_meta(MDB_txn *txn)
 	off_t off;
 	int rc, len, toggle;
 	char *ptr;
+	HANDLE mfd;
 #ifdef _WIN32
 	OVERLAPPED ov;
 #endif
@@ -2481,14 +2568,16 @@ mdb_env_write_meta(MDB_txn *txn)
 	off += PAGEHDRSZ;
 
 	/* Write to the SYNC fd */
+	mfd = env->me_flags & (MDB_NOSYNC|MDB_NOMETASYNC) ?
+		env->me_fd : env->me_mfd;
 #ifdef _WIN32
 	{
 		memset(&ov, 0, sizeof(ov));
 		ov.Offset = off;
-		WriteFile(env->me_mfd, ptr, len, (DWORD *)&rc, &ov);
+		WriteFile(mfd, ptr, len, (DWORD *)&rc, &ov);
 	}
 #else
-	rc = pwrite(env->me_mfd, ptr, len, off);
+	rc = pwrite(mfd, ptr, len, off);
 #endif
 	if (rc != len) {
 		int r2;
@@ -2576,7 +2665,7 @@ mdb_env_set_maxdbs(MDB_env *env, MDB_dbi dbs)
 {
 	if (env->me_map)
 		return EINVAL;
-	env->me_maxdbs = dbs;
+	env->me_maxdbs = dbs + 2; /* Named databases + main and free DB */
 	return MDB_SUCCESS;
 }
 
@@ -2651,8 +2740,6 @@ mdb_env_open2(MDB_env *env)
 	}
 #else
 	i = MAP_SHARED;
-	if (meta.mm_address && (flags & MDB_FIXEDMAP))
-		i |= MAP_FIXED;
 	prot = PROT_READ;
 	if (flags & MDB_WRITEMAP) {
 		prot |= PROT_WRITE;
@@ -2674,6 +2761,13 @@ mdb_env_open2(MDB_env *env)
 		if (i != MDB_SUCCESS) {
 			return i;
 		}
+	} else if (meta.mm_address && env->me_map != meta.mm_address) {
+		/* Can happen because the address argument to mmap() is just a
+		 * hint.  mmap() can pick another, e.g. if the range is in use.
+		 * The MAP_FIXED flag would prevent that, but then mmap could
+		 * instead unmap existing pages to make room for the new map.
+		 */
+		return EBUSY;	/* TODO: Make a new MDB_* error code? */
 	}
 	env->me_psize = meta.mm_psize;
 
@@ -3146,6 +3240,12 @@ fail:
 #define DATANAME	"/data.mdb"
 	/** The suffix of the lock file when no subdir is used */
 #define LOCKSUFF	"-lock"
+	/** Only a subset of the @ref mdb_env flags can be changed
+	 *	at runtime. Changing other flags requires closing the
+	 *	environment and re-opening it with the new flags.
+	 */
+#define	CHANGEABLE	(MDB_NOSYNC|MDB_NOMETASYNC|MDB_MAPASYNC)
+#define	CHANGELESS	(MDB_FIXEDMAP|MDB_NOSUBDIR|MDB_RDONLY|MDB_WRITEMAP)
 
 int
 mdb_env_open(MDB_env *env, const char *path, unsigned int flags, mode_t mode)
@@ -3153,7 +3253,7 @@ mdb_env_open(MDB_env *env, const char *path, unsigned int flags, mode_t mode)
 	int		oflags, rc, len, excl;
 	char *lpath, *dpath;
 
-	if (env->me_fd != INVALID_HANDLE_VALUE)
+	if (env->me_fd!=INVALID_HANDLE_VALUE || (flags & ~(CHANGEABLE|CHANGELESS)))
 		return EINVAL;
 
 	len = strlen(path);
@@ -3210,10 +3310,12 @@ mdb_env_open(MDB_env *env, const char *path, unsigned int flags, mode_t mode)
 	}
 
 	if ((rc = mdb_env_open2(env)) == MDB_SUCCESS) {
-		if (flags & (MDB_RDONLY|MDB_NOSYNC|MDB_NOMETASYNC|MDB_WRITEMAP)) {
+		if (flags & (MDB_RDONLY|MDB_WRITEMAP)) {
 			env->me_mfd = env->me_fd;
 		} else {
-			/* synchronous fd for meta writes */
+			/* Synchronous fd for meta writes. Needed even with
+			 * MDB_NOSYNC/MDB_NOMETASYNC, in case these get reset.
+			 */
 #ifdef _WIN32
 			env->me_mfd = CreateFile(dpath, oflags,
 				FILE_SHARE_READ|FILE_SHARE_WRITE, NULL, len,
@@ -5570,7 +5672,7 @@ mdb_cursor_txn(MDB_cursor *mc)
 MDB_dbi
 mdb_cursor_dbi(MDB_cursor *mc)
 {
-	if (!mc) return 0;
+	assert(mc != NULL);
 	return mc->mc_dbi;
 }
 
@@ -6599,11 +6701,6 @@ mdb_put(MDB_txn *txn, MDB_dbi dbi,
 	return mdb_cursor_put(&mc, key, data, flags);
 }
 
-/** Only a subset of the @ref mdb_env flags can be changed
- *	at runtime. Changing other flags requires closing the environment
- *	and re-opening it with the new flags.
- */
-#define	CHANGEABLE	(MDB_NOSYNC|MDB_NOMETASYNC|MDB_MAPASYNC)
 int
 mdb_env_set_flags(MDB_env *env, unsigned int flag, int onoff)
 {
@@ -6893,7 +6990,7 @@ int mdb_drop(MDB_txn *txn, MDB_dbi dbi, int del)
 	MDB_cursor *mc;
 	int rc;
 
-	if (!txn || !dbi || dbi >= txn->mt_numdbs)
+	if (!txn || !dbi || dbi >= txn->mt_numdbs || (unsigned)del > 1)
 		return EINVAL;
 
 	if (F_ISSET(txn->mt_flags, MDB_TXN_RDONLY))

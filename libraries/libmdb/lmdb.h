@@ -1,7 +1,9 @@
-/** @file mdb.h
- *	@brief memory-mapped database library
+/** @file lmdb.h
+ *	@brief Lightning memory-mapped database library
  *
- *	@mainpage	MDB Memory-Mapped Database Manager
+ *	@mainpage	MDB Lightning Memory-Mapped Database Manager
+ *
+ *	@section intro_sec Introduction
  *	MDB is a Btree-based database management library modeled loosely on the
  *	BerkeleyDB API, but much simplified. The entire database is exposed
  *	in a memory map, and all data fetches return data directly
@@ -38,6 +40,7 @@
  *	corrupt the database. Of course if your application code is known to
  *	be bug-free (...) then this is not an issue.
  *
+ *	@section caveats_sec Caveats
  *	Troubleshooting the lock file, plus semaphores on BSD systems:
  *
  *	- A broken lockfile can cause sync issues.
@@ -107,7 +110,7 @@
  * top-level directory of the distribution or, alternatively, at
  * <http://www.OpenLDAP.org/license.html>.
  *
- * 	@par Derived From:
+ *	@par Derived From:
  * This code is derived from btree.c written by Martin Hedenfalk.
  *
  * Copyright (c) 2009, 2010 Martin Hedenfalk <martin@bzero.se>
@@ -124,8 +127,8 @@
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
-#ifndef _MDB_H_
-#define _MDB_H_
+#ifndef _LMDB_H_
+#define _LMDB_H_
 
 #include <sys/types.h>
 
@@ -133,8 +136,9 @@
 extern "C" {
 #endif
 
-/** @defgroup public Public API
+/** @defgroup mdb MDB API
  *	@{
+ *	@brief OpenLDAP Lightning Memory-Mapped Database Manager
  */
 /** @defgroup Version Version Macros
  *	@{
@@ -144,7 +148,7 @@ extern "C" {
 /** Library minor version */
 #define MDB_VERSION_MINOR	9
 /** Library patch version */
-#define MDB_VERSION_PATCH	4
+#define MDB_VERSION_PATCH	5
 
 /** Combine args a,b,c into a single integer for easy version comparisons */
 #define MDB_VERINT(a,b,c)	(((a) << 24) | ((b) << 16) | (c))
@@ -154,7 +158,7 @@ extern "C" {
 	MDB_VERINT(MDB_VERSION_MAJOR,MDB_VERSION_MINOR,MDB_VERSION_PATCH)
 
 /** The release date of this library version */
-#define MDB_VERSION_DATE	"September 14, 2012"
+#define MDB_VERSION_DATE	"November 30, 2012"
 
 /** A stringifier for the version info */
 #define MDB_VERSTR(a,b,c,d)	"MDB " #a "." #b "." #c ": (" d ")"
@@ -213,12 +217,14 @@ typedef int  (MDB_cmp_func)(const MDB_val *a, const MDB_val *b);
 typedef void (MDB_rel_func)(MDB_val *item, void *oldptr, void *newptr, void *relctx);
 
 /** @defgroup	mdb_env	Environment Flags
+ *
+ *	Values do not overlap Database Flags.
  *	@{
  */
 	/** mmap at a fixed address */
 #define MDB_FIXEDMAP	0x01
 	/** no environment directory */
-#define MDB_NOSUBDIR	0x02
+#define MDB_NOSUBDIR	0x4000
 	/** don't fsync after commit */
 #define MDB_NOSYNC		0x10000
 	/** read only */
@@ -232,6 +238,8 @@ typedef void (MDB_rel_func)(MDB_val *item, void *oldptr, void *newptr, void *rel
 /** @} */
 
 /**	@defgroup	mdb_open	Database Flags
+ *
+ *	Values do not overlap Environment Flags.
  *	@{
  */
 	/** use reverse string keys */
@@ -496,9 +504,9 @@ int  mdb_env_info(MDB_env *env, MDB_envinfo *stat);
 	 * the OS buffers upon commit as well, unless the environment was
 	 * opened with #MDB_NOSYNC.
 	 * @param[in] env An environment handle returned by #mdb_env_create()
-	 * @param[in] force If non-zero, force the flush to occur. Otherwise
+	 * @param[in] force If non-zero, force a synchronous flush.  Otherwise
 	 *  if the environment has the #MDB_NOSYNC flag set the flushes
-	 *	will be omitted.
+	 *	will be omitted, and with #MDB_MAPASYNC they will be asynchronous.
 	 * @return A non-zero error value on failure and 0 on success. Some possible
 	 * errors are:
 	 * <ul>
@@ -603,11 +611,11 @@ int  mdb_env_set_maxreaders(MDB_env *env, unsigned int readers);
 	 */
 int  mdb_env_get_maxreaders(MDB_env *env, unsigned int *readers);
 
-	/** @brief Set the maximum number of databases for the environment.
+	/** @brief Set the maximum number of named databases for the environment.
 	 *
 	 * This function is only needed if multiple databases will be used in the
-	 * environment. Simpler applications that only use a single database can ignore
-	 * this option.
+	 * environment. Simpler applications that use the environment as a single
+	 * unnamed database can ignore this option.
 	 * This function may only be called after #mdb_env_create() and before #mdb_env_open().
 	 * @param[in] env An environment handle returned by #mdb_env_create()
 	 * @param[in] dbs The maximum number of databases
@@ -714,6 +722,8 @@ int  mdb_txn_renew(MDB_txn *txn);
 	 * database handle resides in the shared environment, it is not owned
 	 * by the given transaction. Only one thread should call this function;
 	 * it is not mutex-protected in a read-only transaction.
+	 * To use named databases (with name != NULL), #mdb_env_set_maxdbs()
+	 * must be called before opening the enviorment.
 	 * @param[in] txn A transaction handle returned by #mdb_txn_begin()
 	 * @param[in] name The name of the database to open. If only a single
 	 * 	database is needed in the environment, this value may be NULL.
@@ -786,12 +796,12 @@ void mdb_close(MDB_env *env, MDB_dbi dbi);
 
 	/** @brief Delete a database and/or free all its pages.
 	 *
-	 * If the \b del parameter is non-zero the DB handle will be closed
+	 * If the \b del parameter is 1, the DB handle will be closed
 	 * and the DB will be deleted.
 	 * @param[in] txn A transaction handle returned by #mdb_txn_begin()
 	 * @param[in] dbi A database handle returned by #mdb_open()
-	 * @param[in] del non-zero to delete the DB from the environment,
-	 * otherwise just free its pages.
+	 * @param[in] del 1 to delete the DB from the environment,
+	 * 0 to just free its pages.
 	 * @return A non-zero error value on failure and 0 on success.
 	 */
 int  mdb_drop(MDB_txn *txn, MDB_dbi dbi, int del);
@@ -1150,4 +1160,4 @@ int  mdb_dcmp(MDB_txn *txn, MDB_dbi dbi, const MDB_val *a, const MDB_val *b);
 #ifdef __cplusplus
 }
 #endif
-#endif /* _MDB_H_ */
+#endif /* _LMDB_H_ */
