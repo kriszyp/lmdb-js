@@ -29,7 +29,7 @@ OBJS = init.lo tools.lo config.lo \
 
 LDAP_INCDIR= ../../../include       
 LDAP_LIBDIR= ../../../libraries
-MDB_SUBDIR = $(srcdir)/$(LDAP_LIBDIR)/libmdb
+MDB_SUBDIR = $(srcdir)/$(LDAP_LIBDIR)/liblmdb
 
 BUILD_OPT = "--enable-mdb"
 BUILD_MOD = @BUILD_MDB@
