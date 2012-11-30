@@ -1,4 +1,4 @@
-/* mtest5.c - memory-mapped database tester/toy */
+/* mtest3.c - memory-mapped database tester/toy */
 /*
  * Copyright 2011 Howard Chu, Symas Corp.
  * All rights reserved.
@@ -12,13 +12,13 @@
  * <http://www.OpenLDAP.org/license.html>.
  */
 
-/* Tests for sorted duplicate DBs using cursor_put */
+/* Tests for sorted duplicate DBs */
 #define _XOPEN_SOURCE 500		/* srandom(), random() */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include "mdb.h"
+#include "lmdb.h"
 
 int main(int argc,char * argv[])
 {
@@ -51,7 +51,6 @@ int main(int argc,char * argv[])
 	rc = mdb_env_open(env, "./testdb", MDB_FIXEDMAP|MDB_NOSYNC, 0664);
 	rc = mdb_txn_begin(env, NULL, 0, &txn);
 	rc = mdb_open(txn, "id2", MDB_CREATE|MDB_DUPSORT, &dbi);
-	rc = mdb_cursor_open(txn, dbi, &cursor);
 
 	key.mv_size = sizeof(int);
 	key.mv_data = kval;
@@ -63,11 +62,10 @@ int main(int argc,char * argv[])
 		if (!(i & 0x0f))
 			sprintf(kval, "%03x", values[i]);
 		sprintf(sval, "%03x %d foo bar", values[i], values[i]);
-		rc = mdb_cursor_put(cursor, &key, &data, MDB_NODUPDATA);
+		rc = mdb_put(txn, dbi, &key, &data, MDB_NODUPDATA);
 		if (rc) j++;
 	}
 	if (j) printf("%d duplicates skipped\n", j);
-	mdb_cursor_close(cursor);
 	rc = mdb_txn_commit(txn);
 	rc = mdb_env_stat(env, &mst);
 

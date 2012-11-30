@@ -1,4 +1,4 @@
-/* mtest3.c - memory-mapped database tester/toy */
+/* mtest4.c - memory-mapped database tester/toy */
 /*
  * Copyright 2011 Howard Chu, Symas Corp.
  * All rights reserved.
@@ -12,13 +12,13 @@
  * <http://www.OpenLDAP.org/license.html>.
  */
 
-/* Tests for sorted duplicate DBs */
+/* Tests for sorted duplicate DBs with fixed-size keys */
 #define _XOPEN_SOURCE 500		/* srandom(), random() */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include "mdb.h"
+#include "lmdb.h"
 
 int main(int argc,char * argv[])
 {
@@ -31,18 +31,16 @@ int main(int argc,char * argv[])
 	MDB_cursor *cursor;
 	int count;
 	int *values;
-	char sval[32];
+	char sval[8];
 	char kval[sizeof(int)];
-
-	srandom(time(NULL));
 
 	memset(sval, 0, sizeof(sval));
 
-	count = (random()%384) + 64;
+	count = 510;
 	values = (int *)malloc(count*sizeof(int));
 
 	for(i = 0;i<count;i++) {
-		values[i] = random()%1024;
+		values[i] = i*5;
 	}
 
 	rc = mdb_env_create(&env);
@@ -50,7 +48,7 @@ int main(int argc,char * argv[])
 	rc = mdb_env_set_maxdbs(env, 4);
 	rc = mdb_env_open(env, "./testdb", MDB_FIXEDMAP|MDB_NOSYNC, 0664);
 	rc = mdb_txn_begin(env, NULL, 0, &txn);
-	rc = mdb_open(txn, "id2", MDB_CREATE|MDB_DUPSORT, &dbi);
+	rc = mdb_open(txn, "id2", MDB_CREATE|MDB_DUPSORT|MDB_DUPFIXED, &dbi);
 
 	key.mv_size = sizeof(int);
 	key.mv_data = kval;
@@ -58,10 +56,9 @@ int main(int argc,char * argv[])
 	data.mv_data = sval;
 
 	printf("Adding %d values\n", count);
+	strcpy(kval, "001");
 	for (i=0;i<count;i++) {
-		if (!(i & 0x0f))
-			sprintf(kval, "%03x", values[i]);
-		sprintf(sval, "%03x %d foo bar", values[i], values[i]);
+		sprintf(sval, "%07x", values[i]);
 		rc = mdb_put(txn, dbi, &key, &data, MDB_NODUPDATA);
 		if (rc) j++;
 	}
@@ -69,6 +66,8 @@ int main(int argc,char * argv[])
 	rc = mdb_txn_commit(txn);
 	rc = mdb_env_stat(env, &mst);
 
+	/* there should be one full page of dups now.
+	 */
 	rc = mdb_txn_begin(env, NULL, 1, &txn);
 	rc = mdb_cursor_open(txn, dbi, &cursor);
 	while ((rc = mdb_cursor_get(cursor, &key, &data, MDB_NEXT)) == 0) {
@@ -79,14 +78,49 @@ int main(int argc,char * argv[])
 	mdb_cursor_close(cursor);
 	mdb_txn_abort(txn);
 
+	/* test all 3 branches of split code:
+	 * 1: new key in lower half
+	 * 2: new key at split point
+	 * 3: new key in upper half
+	 */
+
+	key.mv_size = sizeof(int);
+	key.mv_data = kval;
+	data.mv_size = sizeof(sval);
+	data.mv_data = sval;
+
+	sprintf(sval, "%07x", values[3]+1);
+	rc = mdb_txn_begin(env, NULL, 0, &txn);
+	rc = mdb_put(txn, dbi, &key, &data, MDB_NODUPDATA);
+	mdb_txn_abort(txn);
+
+	sprintf(sval, "%07x", values[255]+1);
+	rc = mdb_txn_begin(env, NULL, 0, &txn);
+	rc = mdb_put(txn, dbi, &key, &data, MDB_NODUPDATA);
+	mdb_txn_abort(txn);
+
+	sprintf(sval, "%07x", values[500]+1);
+	rc = mdb_txn_begin(env, NULL, 0, &txn);
+	rc = mdb_put(txn, dbi, &key, &data, MDB_NODUPDATA);
+	rc = mdb_txn_commit(txn);
+
+	/* Try MDB_NEXT_MULTIPLE */
+	rc = mdb_txn_begin(env, NULL, 0, &txn);
+	rc = mdb_cursor_open(txn, dbi, &cursor);
+	while ((rc = mdb_cursor_get(cursor, &key, &data, MDB_NEXT_MULTIPLE)) == 0) {
+		printf("key: %.*s, data: %.*s\n",
+			(int) key.mv_size,  (char *) key.mv_data,
+			(int) data.mv_size, (char *) data.mv_data);
+	}
+	mdb_cursor_close(cursor);
+	mdb_txn_abort(txn);
 	j=0;
 
-	for (i= count - 1; i > -1; i-= (random()%5)) {
+	for (i= count - 1; i > -1; i-= (random()%3)) {
 		j++;
 		txn=NULL;
 		rc = mdb_txn_begin(env, NULL, 0, &txn);
-		sprintf(kval, "%03x", values[i & ~0x0f]);
-		sprintf(sval, "%03x %d foo bar", values[i], values[i]);
+		sprintf(sval, "%07x", values[i]);
 		key.mv_size = sizeof(int);
 		key.mv_data = kval;
 		data.mv_size = sizeof(sval);
