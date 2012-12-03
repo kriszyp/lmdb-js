@@ -858,6 +858,7 @@ done:
 					mdb_strerror(rc), rc, 0 );
 				e->e_id = NOID;
 			}
+			mdb_cursor_close( cursor );
 			txi = NULL;
 			/* Must close the read txn to allow old pages to be reclaimed. */
 			mdb_txn_abort( txn );
@@ -872,6 +873,8 @@ done:
 	} else {
 		unsigned i;
 		mdb_writes = 0;
+		mdb_cursor_close( cursor );
+		cursor = NULL;
 		mdb_txn_abort( txi );
 		for ( i=0; i<mi->mi_nattrs; i++ )
 			mi->mi_attrs[i]->ai_cursor = NULL;
