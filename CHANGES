@@ -14,6 +14,7 @@ OpenLDAP 2.4.34 Engineering
 	Fixed slapo-constraint segfault (ITS#7431)
 	Fixed slapo-deref control initialization (ITS#7436)
 	Fixed slapo-deref control exposure (ITS#7445)
+	Fixed slapo-pcache matching rules for config db (ITS#7459)
 	Fixed slapo-rwm modrdn cleanup (ITS#7414)
 	Build Environment
 		Fixed slapo-constraint test suite (ITS#7423)
