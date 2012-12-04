@@ -196,6 +196,7 @@ enum {
 	CFG_ACL_ADD,
 	CFG_SYNC_SUBENTRY,
 	CFG_LTHREADS,
+	CFG_IX_HASH64,
 
 	CFG_LAST
 };
@@ -395,6 +396,9 @@ static ConfigTable config_back_cf_table[] = {
 	{ "include", "file", 2, 2, 0, ARG_MAGIC,
 		&config_include, "( OLcfgGlAt:19 NAME 'olcInclude' "
 			"SUP labeledURI )", NULL, NULL },
+	{ "index_hash64", "on|off", 2, 2, 0, ARG_ON_OFF|ARG_MAGIC|CFG_IX_HASH64,
+		&config_generic, "( OLcfgGlAt:94 NAME 'olcIndexHash64' "
+			"SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
 	{ "index_substr_if_minlen", "min", 2, 2, 0, ARG_UINT|ARG_NONZERO|ARG_MAGIC|CFG_SSTR_IF_MIN,
 		&config_generic, "( OLcfgGlAt:20 NAME 'olcIndexSubstrIfMinLen' "
 			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
@@ -826,8 +830,8 @@ static ConfigOCs cf_ocs[] = {
 		 "olcConnMaxPending $ olcConnMaxPendingAuth $ "
 		 "olcDisallows $ olcGentleHUP $ olcIdleTimeout $ "
 		 "olcIndexSubstrIfMaxLen $ olcIndexSubstrIfMinLen $ "
-		 "olcIndexSubstrAnyLen $ olcIndexSubstrAnyStep $ olcIndexIntLen $ "
-		 "olcLocalSSF $ olcLogFile $ olcLogLevel $ "
+		 "olcIndexSubstrAnyLen $ olcIndexSubstrAnyStep $ olcIndexHash64 $ "
+		 "olcIndexIntLen $ olcLocalSSF $ olcLogFile $ olcLogLevel $ "
 		 "olcPasswordCryptSaltFormat $ olcPasswordHash $ olcPidFile $ "
 		 "olcPluginLogFile $ olcReadOnly $ olcReferral $ "
 		 "olcReplogFile $ olcRequires $ olcRestrict $ olcReverseLookup $ "
@@ -1199,6 +1203,9 @@ config_generic(ConfigArgs *c) {
 		case CFG_SSTR_IF_MIN:
 			c->value_uint = index_substr_if_minlen;
 			break;
+		case CFG_IX_HASH64:
+			c->value_int = slap_hash64( -1 );
+			break;
 		case CFG_IX_INTLEN:
 			c->value_int = index_intlen;
 			break;
@@ -1376,6 +1383,10 @@ config_generic(ConfigArgs *c) {
 			break;
 		case CFG_HIDDEN:
 			c->be->be_flags &= ~SLAP_DBFLAG_HIDDEN;
+			break;
+
+		case CFG_IX_HASH64:
+			slap_hash64( 0 );
 			break;
 
 		case CFG_IX_INTLEN:
@@ -1885,6 +1896,11 @@ config_generic(ConfigArgs *c) {
 					return(1);
 			break;
 
+		case CFG_IX_HASH64:
+			if ( slap_hash64( c->value_int != 0 ))
+				return 1;
+			break;
+
 		case CFG_IX_INTLEN:
 			if ( c->value_int < SLAP_INDEX_INTLEN_DEFAULT )
 				c->value_int = SLAP_INDEX_INTLEN_DEFAULT;
@@ -1894,7 +1910,7 @@ config_generic(ConfigArgs *c) {
 			index_intlen_strlen = SLAP_INDEX_INTLEN_STRLEN(
 				index_intlen );
 			break;
-			
+
 		case CFG_SORTVALS: {
 			ADlist *svnew = NULL, *svtail, *sv;
 
