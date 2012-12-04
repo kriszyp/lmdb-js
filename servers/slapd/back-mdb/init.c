@@ -204,14 +204,14 @@ mdb_db_open( BackendDB *be, ConfigReply *cr )
 				flags |= MDB_CREATE;
 		}
 
-		rc = mdb_open( txn,
+		rc = mdb_dbi_open( txn,
 			mdmi_databases[i].bv_val,
 			flags,
 			&mdb->mi_dbis[i] );
 
 		if ( rc != 0 ) {
 			snprintf( cr->msg, sizeof(cr->msg), "database \"%s\": "
-				"mdb_open(%s/%s) failed: %s (%d).", 
+				"mdb_dbi_open(%s/%s) failed: %s (%d).", 
 				be->be_suffix[0].bv_val, 
 				mdb->mi_dbenv_home, mdmi_databases[i].bv_val,
 				mdb_strerror(rc), rc );
@@ -281,7 +281,7 @@ mdb_db_close( BackendDB *be, ConfigReply *cr )
 
 			mdb_attr_dbs_close( mdb );
 			for ( i=0; i<MDB_NDB; i++ )
-				mdb_close( mdb->mi_dbenv, mdb->mi_dbis[i] );
+				mdb_dbi_close( mdb->mi_dbenv, mdb->mi_dbis[i] );
 
 			/* force a sync, but not if we were ReadOnly,
 			 * and not in Quick mode.
