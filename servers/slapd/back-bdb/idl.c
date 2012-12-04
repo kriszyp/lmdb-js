@@ -1454,7 +1454,7 @@ bdb_idl_sort( ID *ids, ID *tmp )
 			ids[l+1] = ids[j];
 			ids[j] = a;
 			jstack += 2;
-			if (ir-i+1 >= j-1) {
+			if (ir-i+1 >= j-l) {
 				istack[jstack] = ir;
 				istack[jstack-1] = i;
 				ir = j-1;
