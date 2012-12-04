@@ -495,6 +495,16 @@ option.
 Read additional configuration information from the given file before
 continuing with the next line of the current file.
 .TP
+.B index_hash64 { on | off }
+Use a 64 bit hash for indexing. The default is to use 32 bit hashes.
+These hashes are used for equality and substring indexing. The 64 bit
+version may be needed to avoid index collisions when the number of
+indexed values exceeds ~64 million. (Note that substring indexing
+generates multiple index values per actual attribute value.)
+Indices generated with 32 bit hashes are incompatible with the 64 bit
+version, and vice versa. Any existing databases must be fully reloaded
+when changing this setting. This directive is only supported on 64 bit CPUs.
+.TP
 .B index_intlen <integer>
 Specify the key length for ordered integer indices. The most significant
 bytes of the binary integer will be used for index keys. The default
