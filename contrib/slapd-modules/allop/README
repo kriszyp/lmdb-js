@@ -12,12 +12,10 @@ allop-URI	<ldapURI>
 if the allop-URI is not given, the rootDSE, i.e. "ldap:///??base",
 is assumed.
 
-No Makefile is provided. Use a command line similar to:
+Use Makefile to compile this plugin or use a command line similar to:
 
 gcc -shared -I../../../include -I../../../servers/slapd -Wall -g \
 	-o allop.so allop.c
-
-to compile this overlay.
 
 ---
 Copyright 2004-2012 The OpenLDAP Foundation. All rights reserved.

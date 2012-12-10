@@ -21,12 +21,10 @@ The default is "exact"; in case of "expand", "<dnpat>" results from
 the expansion of submatches in the "<what>" portion.  "<level>|<priv(s)>"
 describe the level of privilege this rule can assume.
 
-No Makefile is provided. Use a command line similar to:
+Use Makefile to compile this plugin or use a command line similar to:
 
 gcc -shared -I../../../include -I../../../servers/slapd -Wall -g \
 	-o acl-posixgroup.so posixgroup.c
-
-to compile the posixGroup ACL plugin.
 
 ---
 Copyright 2005-2012 The OpenLDAP Foundation. All rights reserved.
