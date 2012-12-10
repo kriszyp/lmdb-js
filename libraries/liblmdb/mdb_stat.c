@@ -31,7 +31,7 @@ static void prstat(MDB_stat *ms)
 
 static void usage(char *prog)
 {
-	fprintf(stderr, "usage: %s dbpath [-e] [-f] [-n] [-a|-s subdb]\n", prog);
+	fprintf(stderr, "usage: %s dbpath [-e] [-f[f]] [-n] [-a|-s subdb]\n", prog);
 	exit(EXIT_FAILURE);
 }
 
@@ -62,6 +62,8 @@ int main(int argc, char *argv[])
 	while ((i = getopt(argc, argv, "aefns:")) != EOF) {
 		switch(i) {
 		case 'a':
+			if (subname)
+				usage(prog);
 			alldbs++;
 			break;
 		case 'e':
@@ -74,6 +76,8 @@ int main(int argc, char *argv[])
 			envflags |= MDB_NOSUBDIR;
 			break;
 		case 's':
+			if (alldbs)
+				usage(prog);
 			subname = optarg;
 			break;
 		default:
@@ -118,7 +122,7 @@ int main(int argc, char *argv[])
 
 	if (freinfo) {
 		MDB_cursor *cursor;
-		MDB_val data;
+		MDB_val key, data;
 		size_t pages = 0, *iptr;
 
 		printf("Freelist Status\n");
@@ -133,12 +137,20 @@ int main(int argc, char *argv[])
 			printf("mdb_stat failed, error %d %s\n", rc, mdb_strerror(rc));
 			goto txn_abort;
 		}
-		while ((rc = mdb_cursor_get(cursor, NULL, &data, MDB_NEXT)) == 0) {
+		prstat(&mst);
+		while ((rc = mdb_cursor_get(cursor, &key, &data, MDB_NEXT)) == 0) {
 			iptr = data.mv_data;
 			pages += *iptr;
+			if (freinfo > 1) {
+				size_t i, j;
+				j = *iptr++;
+				printf("    Transaction %zu, %zu pages\n",
+					*(size_t *)key.mv_data, j);
+				for (i=0; i<j; i++)
+					printf("      %zu\n", iptr[i]);
+			}
 		}
 		mdb_cursor_close(cursor);
-		prstat(&mst);
 		printf("  Free pages: %zu\n", pages);
 	}
 
