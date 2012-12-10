@@ -24,7 +24,7 @@ Building
 1) Customize the OPENLDAP variable in Makefile to point to the OpenLDAP
 source root.
 
-For initial testing you might also want to edit CCFLAGS to define
+For initial testing you might also want to edit DEFS to define
 SLAPD_SHA2_DEBUG, which enables logging to stderr (don't leave this on
 in production, as it prints passwords in cleartext).
 
@@ -99,7 +99,7 @@ Debugging (SHA-512, SHA-384 and SHA-256 only)
 ---------------------------------------------
 
 To see what's going on, recompile with SLAPD_SHA2_DEBUG (use the
-commented-out CCFLAGS in Makefile), and then run slapd from the console
+commented-out DEFS in Makefile), and then run slapd from the console
 to see stderr:
 
 $ sudo /etc/init.d/slapd stop
@@ -139,6 +139,6 @@ top-level directory of the distribution or, alternatively, at
 
 ACKNOWLEDGEMENT:
 This work was initially developed by Jeff Turner for inclusion in
-OpenLDAP Software, based upon the SHA2 implementation independently
+OpenLDAP Software, based upon the SHA-2 implementation independently
 developed by Aaron Gifford.
 

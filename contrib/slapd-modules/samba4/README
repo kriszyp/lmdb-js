@@ -4,6 +4,7 @@ This directory contains slapd overlays specific to samba4 LDAP backend:
 
 	- pguid (not used)
 	- rdnval (under evaluation)
+	- vernum (under evaluation)
 
 
   - PGUID

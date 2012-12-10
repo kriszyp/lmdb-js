@@ -12,21 +12,18 @@
 # top-level directory of the distribution or, alternatively, at
 # <http://www.OpenLDAP.org/license.html>.
 
-LDAP_SRC = ../../..
-LDAP_BUILD = ../../..
-LDAP_INC = -I$(LDAP_BUILD)/include -I$(LDAP_SRC)/include -I$(LDAP_SRC)/servers/slapd
-LDAP_LIB = $(LDAP_BUILD)/libraries/libldap_r/libldap_r.la \
-	$(LDAP_BUILD)/libraries/liblber/liblber.la
+LIBTOOL=../../../libtool
+OPT=-g -O2
+#LIBTOOL=../../../../ldap-devel/libtool
+#OPT=-g -O0
+CC=gcc
 
-LIBTOOL = $(LDAP_BUILD)/libtool
-CC = gcc
-OPT = -g -O2 -Wall
-DEFS = -DSLAPD_OVER_DUPENT=SLAPD_MOD_DYNAMIC
-INCS = $(LDAP_INC)
-LIBS = $(LDAP_LIB)
+LDAP_INC=-I../../../include -I../../../servers/slapd
+#LDAP_INC=-I../../../include -I../../../servers/slapd -I../../../../ldap-devel/include
+INCS=$(LDAP_INC)
 
-PROGRAMS = dupent.la
-LTVER = 0:0:0
+LDAP_LIB=-lldap_r -llber
+LIBS=$(LDAP_LIB)
 
 prefix=/usr/local
 exec_prefix=$(prefix)
@@ -36,23 +33,20 @@ libdir=$(exec_prefix)/lib
 libexecdir=$(exec_prefix)/libexec
 moduledir = $(libexecdir)$(ldap_subdir)
 
-.SUFFIXES: .c .o .lo
+all:	vc.la
 
-.c.lo:
-	$(LIBTOOL) --mode=compile $(CC) $(OPT) $(DEFS) $(INCS) -c $<
 
-all: $(PROGRAMS)
+vc.lo:	vc.c
+	$(LIBTOOL) --mode=compile $(CC) $(OPT) $(DEFS) $(INCS) -c $?
 
-dupent.la: dupent.lo
-	$(LIBTOOL) --mode=link $(CC) $(OPT) -version-info $(LTVER) \
+vc.la:	vc.lo
+	$(LIBTOOL) --mode=link $(CC) $(OPT) -version-info 0:0:0 \
 	-rpath $(moduledir) -module -o $@ $? $(LIBS)
 
 clean:
-	rm -rf *.o *.lo *.la .libs
+	rm -f vc.lo vc.la
 
-install: $(PROGRAMS)
+install: vc.la
 	mkdir -p $(DESTDIR)$(moduledir)
-	for p in $(PROGRAMS) ; do \
-		$(LIBTOOL) --mode=install cp $$p $(DESTDIR)$(moduledir) ; \
-	done
+	$(LIBTOOL) --mode=install cp vc.la $(DESTDIR)$(moduledir)
 
