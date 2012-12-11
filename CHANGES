@@ -10,6 +10,7 @@ OpenLDAP 2.4.34 Engineering
 	Fixed slapd-ldif with empty dir (ITS#7451)
 	Fixed slapd-mdb to reopen attr DBs after env reopen (ITS#7416)
 	Fixed slapd-mdb environment flag setting (ITS#7452)
+	Fixed slapd-mdb with sub db slapcat (ITS#7469)
 	Fixed slapo-constraint handle uri and restrict correctly (ITS#7418)
 	Fixed slapo-constraint with multi-master replication (ITS#7426)
 	Fixed slapo-constraint segfault (ITS#7431)
