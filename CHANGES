@@ -24,6 +24,7 @@ OpenLDAP 2.4.34 Engineering
 		Add missing Makefile for various modules (ITS#7308)
 		Unify Makefile structure for modules (ITS#7309)
 	Documentation
+		ldapurl(1) fix example usage (ITS#7454)
 		ldap_get_option(3) fixed trailing whitespace (ITS#7411)
 		slapd-config(5) olcExtraAttrs is per db (ITS#7421)
 
