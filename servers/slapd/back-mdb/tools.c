@@ -346,6 +346,7 @@ mdb_tool_entry_get_int( BackendDB *be, ID id, Entry **ep )
 				ch_free( dn.bv_val );
 				ch_free( ndn.bv_val );
 				rc = LDAP_NO_SUCH_OBJECT;
+				goto done;
 			}
 		}
 	}
