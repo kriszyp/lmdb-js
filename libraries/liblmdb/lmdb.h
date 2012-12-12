@@ -158,7 +158,7 @@ extern "C" {
 	MDB_VERINT(MDB_VERSION_MAJOR,MDB_VERSION_MINOR,MDB_VERSION_PATCH)
 
 /** The release date of this library version */
-#define MDB_VERSION_DATE	"November 30, 2012"
+#define MDB_VERSION_DATE	"December 12, 2012"
 
 /** A stringifier for the version info */
 #define MDB_VERSTR(a,b,c,d)	"MDB " #a "." #b "." #c ": (" d ")"
@@ -574,6 +574,9 @@ int  mdb_env_get_path(MDB_env *env, const char **path);
 	 * of the database. The value should be chosen as large as possible,
 	 * to accommodate future growth of the database.
 	 * This function may only be called after #mdb_env_create() and before #mdb_env_open().
+	 * The size may be changed by closing and reopening the environment.
+	 * Any attempt to set a size smaller than the space already consumed
+	 * by the environment will be silently changed to the current size of the used space.
 	 * @param[in] env An environment handle returned by #mdb_env_create()
 	 * @param[in] size The size in bytes
 	 * @return A non-zero error value on failure and 0 on success. Some possible

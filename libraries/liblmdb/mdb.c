@@ -2416,47 +2416,61 @@ mdb_env_read_header(MDB_env *env, MDB_meta *meta)
 	MDB_pagebuf	pbuf;
 	MDB_page	*p;
 	MDB_meta	*m;
-	int		 rc, err;
+	int		 i, rc, err;
 
 	/* We don't know the page size yet, so use a minimum value.
+	 * Read both meta pages so we can use the latest one.
 	 */
 
+	for (i=0; i<2; i++) {
 #ifdef _WIN32
-	if (!ReadFile(env->me_fd, &pbuf, MDB_PAGESIZE, (DWORD *)&rc, NULL) || rc == 0)
+		if (!ReadFile(env->me_fd, &pbuf, MDB_PAGESIZE, (DWORD *)&rc, NULL) || rc == 0)
 #else
-	if ((rc = read(env->me_fd, &pbuf, MDB_PAGESIZE)) == 0)
+		if ((rc = read(env->me_fd, &pbuf, MDB_PAGESIZE)) == 0)
 #endif
-	{
-		return ENOENT;
-	}
-	else if (rc != MDB_PAGESIZE) {
-		err = ErrCode();
-		if (rc > 0)
-			err = MDB_INVALID;
-		DPRINTF("read: %s", strerror(err));
-		return err;
-	}
+		{
+			return ENOENT;
+		}
+		else if (rc != MDB_PAGESIZE) {
+			err = ErrCode();
+			if (rc > 0)
+				err = MDB_INVALID;
+			DPRINTF("read: %s", strerror(err));
+			return err;
+		}
 
-	p = (MDB_page *)&pbuf;
+		p = (MDB_page *)&pbuf;
 
-	if (!F_ISSET(p->mp_flags, P_META)) {
-		DPRINTF("page %zu not a meta page", p->mp_pgno);
-		return MDB_INVALID;
+		if (!F_ISSET(p->mp_flags, P_META)) {
+			DPRINTF("page %zu not a meta page", p->mp_pgno);
+			return MDB_INVALID;
+		}
+
+		m = METADATA(p);
+		if (m->mm_magic != MDB_MAGIC) {
+			DPUTS("meta has invalid magic");
+			return MDB_INVALID;
+		}
+
+		if (m->mm_version != MDB_VERSION) {
+			DPRINTF("database is version %u, expected version %u",
+				m->mm_version, MDB_VERSION);
+			return MDB_VERSION_MISMATCH;
+		}
+
+		if (i) {
+			if (m->mm_txnid > meta->mm_txnid)
+				memcpy(meta, m, sizeof(*m));
+		} else {
+			memcpy(meta, m, sizeof(*m));
+#ifdef _WIN32
+			if (SetFilePointer(env->me_fd, meta->mm_psize, NULL, FILE_BEGIN) != meta->mm_psize)
+#else
+			if (lseek(env->me_fd, meta->mm_psize, SEEK_SET) != meta->mm_psize)
+#endif
+				return ErrCode();
+		}
 	}
-
-	m = METADATA(p);
-	if (m->mm_magic != MDB_MAGIC) {
-		DPUTS("meta has invalid magic");
-		return MDB_INVALID;
-	}
-
-	if (m->mm_version != MDB_VERSION) {
-		DPRINTF("database is version %u, expected version %u",
-		    m->mm_version, MDB_VERSION);
-		return MDB_VERSION_MISMATCH;
-	}
-
-	memcpy(meta, m, sizeof(*m));
 	return 0;
 }
 
@@ -2504,10 +2518,12 @@ mdb_env_init_meta(MDB_env *env, MDB_meta *meta)
 #ifdef _WIN32
 	{
 		DWORD len;
+		SetFilePointer(env->me_fd, 0, NULL, FILE_BEGIN);
 		rc = WriteFile(env->me_fd, p, psize * 2, &len, NULL);
 		rc = (len == psize * 2) ? MDB_SUCCESS : ErrCode();
 	}
 #else
+	lseek(env->me_fd, 0, SEEK_SET);
 	rc = write(env->me_fd, p, psize * 2);
 	rc = (rc == (int)psize * 2) ? MDB_SUCCESS : ErrCode();
 #endif
@@ -2722,11 +2738,22 @@ mdb_env_open2(MDB_env *env)
 			return i;
 		DPUTS("new mdbenv");
 		newenv = 1;
-		meta.mm_mapsize = env->me_mapsize > DEFAULT_MAPSIZE ? env->me_mapsize : DEFAULT_MAPSIZE;
 	}
 
-	if (env->me_mapsize < meta.mm_mapsize)
-		env->me_mapsize = meta.mm_mapsize;
+	/* Was a mapsize configured? */
+	if (!env->me_mapsize) {
+		/* If this is a new environment, take the default,
+		 * else use the size recorded in the existing env.
+		 */
+		env->me_mapsize = newenv ? DEFAULT_MAPSIZE : meta.mm_mapsize;
+	} else if (env->me_mapsize < meta.mm_mapsize) {
+		/* If the configured size is smaller, make sure it's
+		 * still big enough. Silently round up to minimum if not.
+		 */
+		size_t minsize = (meta.mm_last_pg + 1) * meta.mm_psize;
+		if (env->me_mapsize < minsize)
+			env->me_mapsize = minsize;
+	}
 
 #ifdef _WIN32
 	{
