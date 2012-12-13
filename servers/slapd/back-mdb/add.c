@@ -101,6 +101,19 @@ txnReturn:
 		goto return_results;
 	}
 
+	/* begin transaction */
+	rs->sr_err = mdb_opinfo_get( op, mdb, 0, &moi );
+	rs->sr_text = NULL;
+	if( rs->sr_err != 0 ) {
+		Debug( LDAP_DEBUG_TRACE,
+			LDAP_XSTRING(mdb_add) ": txn_begin failed: %s (%d)\n",
+			mdb_strerror(rs->sr_err), rs->sr_err, 0 );
+		rs->sr_err = LDAP_OTHER;
+		rs->sr_text = "internal error";
+		goto return_results;
+	}
+	txn = moi->moi_txn;
+
 	/* add opattrs to shadow as well, only missing attrs will actually
 	 * be added; helps compatibility with older OL versions */
 	rs->sr_err = slap_add_opattrs( op, &rs->sr_text, textbuf, textlen, 1 );
@@ -119,20 +132,6 @@ txnReturn:
 	}
 
 	subentry = is_entry_subentry( op->ora_e );
-
-	/* begin transaction */
-	rs->sr_err = mdb_opinfo_get( op, mdb, 0, &moi );
-	rs->sr_text = NULL;
-	if( rs->sr_err != 0 ) {
-		Debug( LDAP_DEBUG_TRACE,
-			LDAP_XSTRING(mdb_add) ": txn_begin failed: %s (%d)\n",
-			mdb_strerror(rs->sr_err), rs->sr_err, 0 );
-		rs->sr_err = LDAP_OTHER;
-		rs->sr_text = "internal error";
-		goto return_results;
-	}
-
-	txn = moi->moi_txn;
 
 	/*
 	 * Get the parent dn and see if the corresponding entry exists.

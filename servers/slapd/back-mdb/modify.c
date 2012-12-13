@@ -457,14 +457,6 @@ txnReturn:
 
 	ctrls[num_ctrls] = NULL;
 
-	/* Don't touch the opattrs, if this is a contextCSN update
-	 * initiated from updatedn */
-	if ( !be_isupdate(op) || !op->orm_modlist || op->orm_modlist->sml_next ||
-		 op->orm_modlist->sml_desc != slap_schema.si_ad_contextCSN ) {
-
-		slap_mods_opattrs( op, &op->orm_modlist, 1 );
-	}
-
 	/* begin transaction */
 	rs->sr_err = mdb_opinfo_get( op, mdb, 0, &moi );
 	rs->sr_text = NULL;
@@ -476,8 +468,15 @@ txnReturn:
 		rs->sr_text = "internal error";
 		goto return_results;
 	}
-
 	txn = moi->moi_txn;
+
+	/* Don't touch the opattrs, if this is a contextCSN update
+	 * initiated from updatedn */
+	if ( !be_isupdate(op) || !op->orm_modlist || op->orm_modlist->sml_next ||
+		 op->orm_modlist->sml_desc != slap_schema.si_ad_contextCSN ) {
+
+		slap_mods_opattrs( op, &op->orm_modlist, 1 );
+	}
 
 	/* get entry or ancestor */
 	rs->sr_err = mdb_dn2entry( op, txn, NULL, &op->o_req_ndn, &e, 1 );

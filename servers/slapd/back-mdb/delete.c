@@ -90,16 +90,6 @@ txnReturn:
 
 	ctrls[num_ctrls] = 0;
 
-	/* allocate CSN */
-	if ( BER_BVISNULL( &op->o_csn ) ) {
-		struct berval csn;
-		char csnbuf[LDAP_PVT_CSNSTR_BUFSIZE];
-
-		csn.bv_val = csnbuf;
-		csn.bv_len = sizeof(csnbuf);
-		slap_get_csn( op, &csn, 1 );
-	}
-
 	/* begin transaction */
 	rs->sr_err = mdb_opinfo_get( op, mdb, 0, &moi );
 	rs->sr_text = NULL;
@@ -111,8 +101,17 @@ txnReturn:
 		rs->sr_text = "internal error";
 		goto return_results;
 	}
-
 	txn = moi->moi_txn;
+
+	/* allocate CSN */
+	if ( BER_BVISNULL( &op->o_csn ) ) {
+		struct berval csn;
+		char csnbuf[LDAP_PVT_CSNSTR_BUFSIZE];
+
+		csn.bv_val = csnbuf;
+		csn.bv_len = sizeof(csnbuf);
+		slap_get_csn( op, &csn, 1 );
+	}
 
 	if ( !be_issuffix( op->o_bd, &op->o_req_ndn ) ) {
 		dnParent( &op->o_req_ndn, &pdn );
