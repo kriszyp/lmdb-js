@@ -103,8 +103,6 @@ txnReturn:
 
 	ctrls[num_ctrls] = NULL;
 
-	slap_mods_opattrs( op, &op->orr_modlist, 1 );
-
 	/* begin transaction */
 	rs->sr_err = mdb_opinfo_get( op, mdb, 0, &moi );
 	rs->sr_text = NULL;
@@ -116,8 +114,9 @@ txnReturn:
 		rs->sr_text = "internal error";
 		goto return_results;
 	}
-
 	txn = moi->moi_txn;
+
+	slap_mods_opattrs( op, &op->orr_modlist, 1 );
 
 	if ( be_issuffix( op->o_bd, &op->o_req_ndn ) ) {
 #ifdef MDB_MULTIPLE_SUFFIXES
