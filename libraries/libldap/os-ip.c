@@ -438,13 +438,21 @@ ldap_pvt_connect(LDAP *ld, ber_socket_t s,
 	if ( opt_tv && ldap_pvt_ndelay_on(ld, s) == -1 )
 		return ( -1 );
 
-	if ( connect(s, sin, addrlen) != AC_SOCKET_ERROR ) {
-		if ( opt_tv && ldap_pvt_ndelay_off(ld, s) == -1 )
-			return ( -1 );
-		return ( 0 );
-	}
+	do{
+		osip_debug(ld, "attempting to connect: \n", 0, 0, 0);
+		if ( connect(s, sin, addrlen) != AC_SOCKET_ERROR ) {
+			osip_debug(ld, "connect success\n", 0, 0, 0);
 
-	err = sock_errno();
+			if ( opt_tv && ldap_pvt_ndelay_off(ld, s) == -1 )
+				return ( -1 );
+			return ( 0 );
+		}
+		err = sock_errno();
+		osip_debug(ld, "connect errno: %d\n", err, 0, 0);
+
+	} while(err == EINTR &&
+		LDAP_BOOL_GET( &ld->ld_options, LDAP_BOOL_RESTART ));
+
 	if ( err != EINPROGRESS && err != EWOULDBLOCK ) {
 		return ( -1 );
 	}
