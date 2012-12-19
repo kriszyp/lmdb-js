@@ -9,7 +9,7 @@ slapd\-mdb \- Memory-Mapped DB backend to slapd
 .SH DESCRIPTION
 The \fBmdb\fP backend to
 .BR slapd (8)
-uses OpenLDAP's own Memory-Mapped DB (MDB) library to store data.
+uses OpenLDAP's Lightning Memory-Mapped DB (LMDB) library to store data.
 It relies completely on the underlying operating system for memory
 management and does no caching of its own.
 .LP
@@ -48,14 +48,14 @@ By default, a full data flush/sync is performed when each
 transaction is committed.
 .TP
 .BI directory \ <directory>
-Specify the directory where the MDB files containing this database and
+Specify the directory where the LMDB files containing this database and
 associated indexes live.
 A separate directory must be specified for each database.
 The default is
 .BR LOCALSTATEDIR/openldap\-data .
 .TP
 \fBenvflags \fR{\fBnosync\fR,\fBnometasync\fR,\fBwritemap\fR,\fBmapasync\fR}
-Specify flags for finer-grained control of the MDB library's operation.
+Specify flags for finer-grained control of the LMDB library's operation.
 .RS
 .TP
 .B nosync
@@ -186,7 +186,7 @@ configuration file
 .BR slapadd (8),
 .BR slapcat (8),
 .BR slapindex (8),
-OpenLDAP MDB documentation.
+OpenLDAP LMDB documentation.
 .SH ACKNOWLEDGEMENTS
 .so ../Project
 Written by Howard Chu.
