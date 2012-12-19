@@ -356,6 +356,13 @@ short_input:
 		/* Make sure all attributes with multiple values are contiguous */
 		for (; i<lr->lr_lines; i++) {
 			for (j=i+1; j<lr->lr_lines; j++) {
+				if ( !lr->lr_btype[j].bv_val ) {
+					fprintf( stderr,
+						_("%s: missing attributeDescription (line %d, entry \"%s\")\n"),
+						errstr, linenum+j, dn );
+					rc = LDAP_PARAM_ERROR;
+					goto leave;
+				}
 				if ( BV_CASEMATCH( lr->lr_btype+i, lr->lr_btype+j )) {
 					nmods--;
 					/* out of order, move intervening attributes down */
