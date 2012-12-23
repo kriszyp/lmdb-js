@@ -492,7 +492,7 @@ static ConfigTable nsscfg[] = {
 			"DESC 'Default template login name' "
 			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
-	{ "nssov-pam-session", "service", 2, 2, 0, ARG_MAGIC|ARG_BERVAL|NSS_PAMSESS,
+	{ "nssov-pam-session", "service", 2, 2, 0, ARG_MAGIC|NSS_PAMSESS,
 		nss_cf_gen, "(OLcfgCtAt:3.11 NAME 'olcNssPamSession' "
 			"DESC 'Services for which sessions will be recorded' "
 			"EQUALITY caseIgnoreMatch "
@@ -694,6 +694,7 @@ nss_cf_gen(ConfigArgs *c)
 		ch_free( c->value_dn.bv_val );
 		break;
 	case NSS_PAMSESS:
+		ber_str2bv( c->argv[1], 0, 1, &c->value_bv );
 		ber_bvarray_add( &ni->ni_pam_sessions, &c->value_bv );
 		break;
 	}
