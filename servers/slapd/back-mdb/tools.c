@@ -231,6 +231,9 @@ next:;
 	previd = *(ID *)key.mv_data;
 	id = previd;
 
+	if ( !data.mv_size )
+		goto next;
+
 	if ( tool_filter || tool_base ) {
 		static Operation op = {0};
 		static Opheader ohdr = {0};
@@ -325,6 +328,10 @@ mdb_tool_entry_get_int( BackendDB *be, ID id, Entry **ep )
 			rc = LDAP_OTHER;
 			goto done;
 		}
+	}
+	if ( !data.mv_size ) {
+		rc = LDAP_NO_SUCH_OBJECT;
+		goto done;
 	}
 
 	op.o_hdr = &ohdr;
