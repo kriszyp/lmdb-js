@@ -22,6 +22,7 @@ OpenLDAP 2.4.34 Engineering
 		Fixed slapo-constraint test suite (ITS#7423)
 	Contrib
 		Fixed ldapc++ with gcc-4.7 (ITS#7281,ITS#7304)
+		Fixed contrib/nssov olcNssPamSession handling (ITS#7481)
 		Add missing Makefile for various modules (ITS#7308)
 		Unify Makefile structure for modules (ITS#7309)
 	Documentation
