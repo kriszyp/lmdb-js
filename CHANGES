@@ -4,6 +4,7 @@ OpenLDAP 2.4.34 Engineering
 	Fixed liblmdb mdb_env_open flag handling (ITS#7453)
 	Fixed liblmdb mdb_midl_sort array optimization (ITS#7432)
 	Fixed liblmdb freelist with large entries (ITS#7455)
+	Fixed ldapmodify to not core dump with invalid LDIF (ITS#7477)
 	Fixed slapd syncrepl for old entries in MMR setup (ITS#7427)
 	Fixed slapd signedness for index_substr_any_* (ITS#7449)
 	Fixed slapd enforce SLAPD_MAX_DAEMON_THREADS (ITS#7450)
