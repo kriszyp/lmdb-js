@@ -1254,7 +1254,7 @@ static ConfigTable sssvlv_cfg[] = {
 		"( OLcfgOvAt:21.2 NAME 'olcSssVlvMaxKeys' "
 			"DESC 'Maximum number of Keys in a Sort request' "
 			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
-	{ "sssvlv-maxpercon", "num",
+	{ "sssvlv-maxperconn", "num",
 		2, 2, 0, ARG_INT|ARG_OFFSET,
 			(void *)offsetof(sssvlv_info, svi_max_percon),
 		"( OLcfgOvAt:21.3 NAME 'olcSssVlvMaxPerConn' "
