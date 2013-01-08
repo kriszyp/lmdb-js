@@ -1420,6 +1420,7 @@ memberof_res_modify( Operation *op, SlapReply *rs )
 
 			switch ( ml->sml_op ) {
 			case LDAP_MOD_DELETE:
+			case SLAP_MOD_SOFTDEL: /* ITS#7487: can be used by syncrepl (in mirror mode?) */
 				vals = ml->sml_nvalues;
 				if ( vals != NULL ) {
 					for ( i = 0; !BER_BVISNULL( &vals[ i ] ); i++ ) {
@@ -1451,6 +1452,8 @@ memberof_res_modify( Operation *op, SlapReply *rs )
 				/* fall thru */
 	
 			case LDAP_MOD_ADD:
+			case SLAP_MOD_SOFTADD: /* ITS#7487 */
+			case SLAP_MOD_ADD_IF_NOT_PRESENT : /* ITS#7487 */
 				assert( ml->sml_nvalues != NULL );
 				vals = ml->sml_nvalues;
 				for ( i = 0; !BER_BVISNULL( &vals[ i ] ); i++ ) {
