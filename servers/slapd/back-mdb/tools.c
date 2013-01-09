@@ -106,7 +106,9 @@ int mdb_tool_entry_open(
 			ldap_pvt_thread_cond_init( &mdb_tool_index_cond_work );
 			if ( mdb->mi_nattrs ) {
 				int i;
+#if 0			/* threaded indexing has no performance advantage */
 				mdb_tool_threads = slap_tool_thread_max - 1;
+#endif
 				if ( mdb_tool_threads > 1 ) {
 					mdb_tool_index_rec = ch_calloc( mdb->mi_nattrs, sizeof( IndexRec ));
 					mdb_tool_index_tcount = mdb_tool_threads - 1;
