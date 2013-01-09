@@ -320,23 +320,7 @@ static long send_ldap_ber(
 	while( 1 ) {
 		int err;
 
-		/* lock the connection */ 
-		if ( ldap_pvt_thread_mutex_trylock( &conn->c_mutex )) {
-			if ( !connection_valid(conn)) {
-				ret = 0;
-				break;
-			}
-			ldap_pvt_thread_mutex_unlock( &conn->c_write1_mutex );
-			ldap_pvt_thread_mutex_lock( &conn->c_write1_mutex );
-			if ( conn->c_writers < 0 ) {
-				ret = 0;
-				break;
-			}
-			continue;
-		}
-
 		if ( ber_flush2( conn->c_sb, ber, LBER_FLUSH_FREE_NEVER ) == 0 ) {
-			ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 			ret = bytes;
 			break;
 		}
@@ -356,6 +340,7 @@ static long send_ldap_ber(
 			conn->c_writers--;
 			conn->c_writing = 0;
 			ldap_pvt_thread_mutex_unlock( &conn->c_write1_mutex );
+			ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 			connection_closing( conn, "connection lost on write" );
 
 			ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
@@ -368,7 +353,6 @@ static long send_ldap_ber(
 		slapd_set_write( conn->c_sd, 2 );
 
 		ldap_pvt_thread_mutex_unlock( &conn->c_write1_mutex );
-		ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 		ldap_pvt_thread_pool_idle( &connection_pool );
 		ldap_pvt_thread_cond_wait( &conn->c_write2_cv, &conn->c_write2_mutex );
 		conn->c_writewaiter = 0;
