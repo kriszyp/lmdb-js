@@ -1,6 +1,7 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.34 Engineering
+	Fixed libldap connections with EINTR (ITS#7476)
 	Fixed liblmdb mdb_env_open flag handling (ITS#7453)
 	Fixed liblmdb mdb_midl_sort array optimization (ITS#7432)
 	Fixed liblmdb freelist with large entries (ITS#7455)
