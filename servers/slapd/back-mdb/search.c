@@ -634,6 +634,52 @@ loop_begin:
 			goto done;
 		}
 
+
+		/* Does this candidate actually satisfy the search scope?
+		 */
+		scopeok = 0;
+		isc.numrdns = 0;
+		switch( op->ors_scope ) {
+		case LDAP_SCOPE_BASE:
+			/* This is always true, yes? */
+			if ( id == base->e_id ) scopeok = 1;
+			break;
+
+#ifdef LDAP_SCOPE_CHILDREN
+		case LDAP_SCOPE_CHILDREN:
+			if ( id == base->e_id ) break;
+			/* Fall-thru */
+#endif
+		case LDAP_SCOPE_SUBTREE:
+			if ( id == base->e_id ) {
+				scopeok = 1;
+				break;
+			}
+			/* Fall-thru */
+		case LDAP_SCOPE_ONELEVEL:
+			isc.id = id;
+			isc.nscope = 0;
+			rs->sr_err = mdb_idscopes( op, &isc );
+			if ( rs->sr_err == MDB_SUCCESS ) {
+				if ( isc.nscope )
+					scopeok = 1;
+			} else {
+				if ( rs->sr_err == MDB_NOTFOUND )
+					goto notfound;
+			}
+			break;
+		}
+
+		/* Not in scope, ignore it */
+		if ( !scopeok )
+		{
+			Debug( LDAP_DEBUG_TRACE,
+				LDAP_XSTRING(mdb_search)
+				": %ld scope not okay\n",
+				(long) id, 0, 0 );
+			goto loop_continue;
+		}
+
 		if ( id == base->e_id ) {
 			e = base;
 		} else {
@@ -641,6 +687,7 @@ loop_begin:
 			/* get the entry */
 			rs->sr_err = mdb_id2edata( op, mci, id, &edata );
 			if ( rs->sr_err == MDB_NOTFOUND ) {
+notfound:
 				if( !MDB_IDL_IS_RANGE(candidates) ) {
 					/* only complain for non-range IDLs */
 					Debug( LDAP_DEBUG_TRACE,
@@ -669,46 +716,7 @@ loop_begin:
 				send_ldap_result( op, rs );
 				goto done;
 			}
-		}
 
-		/* Does this candidate actually satisfy the search scope?
-		 */
-		scopeok = 0;
-		isc.numrdns = 0;
-		switch( op->ors_scope ) {
-		case LDAP_SCOPE_BASE:
-			/* This is always true, yes? */
-			if ( id == base->e_id ) scopeok = 1;
-			break;
-
-#ifdef LDAP_SCOPE_CHILDREN
-		case LDAP_SCOPE_CHILDREN:
-			if ( id == base->e_id ) break;
-			/* Fall-thru */
-#endif
-		case LDAP_SCOPE_SUBTREE:
-			if ( id == base->e_id ) {
-				scopeok = 1;
-				break;
-			}
-			/* Fall-thru */
-		case LDAP_SCOPE_ONELEVEL:
-			isc.id = id;
-			if ( mdb_idscopes( op, &isc ) == MDB_SUCCESS ) scopeok = 1;
-			break;
-		}
-
-		/* Not in scope, ignore it */
-		if ( !scopeok )
-		{
-			Debug( LDAP_DEBUG_TRACE,
-				LDAP_XSTRING(mdb_search)
-				": %ld scope not okay\n",
-				(long) id, 0, 0 );
-			goto loop_continue;
-		}
-
-		if ( id != base->e_id ) {
 			rs->sr_err = mdb_entry_decode( op, &edata, &e );
 			if ( rs->sr_err ) {
 				rs->sr_err = LDAP_OTHER;
