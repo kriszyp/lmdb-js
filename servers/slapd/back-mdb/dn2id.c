@@ -616,7 +616,7 @@ mdb_idscopes(
 			key.mv_data = &id;
 			rc = mdb_cursor_get( isc->mc, &key, &data, MDB_SET );
 			if ( rc )
-				break;
+				return rc;
 
 			/* save RDN info */
 		}
@@ -649,5 +649,5 @@ mdb_idscopes(
 		if ( op->ors_scope == LDAP_SCOPE_ONELEVEL )
 			break;
 	}
-	return MDB_NOTFOUND;
+	return MDB_SUCCESS;
 }
