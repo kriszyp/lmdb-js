@@ -332,6 +332,8 @@ typedef struct ldapinfo_t {
 #define LDAP_BACK_F_NOREFS		(0x00080000U)
 #define LDAP_BACK_F_NOUNDEFFILTER	(0x00100000U)
 
+#define LDAP_BACK_F_ONERR_STOP		(0x00200000U)
+
 #define	LDAP_BACK_ISSET_F(ff,f)		( ( (ff) & (f) ) == (f) )
 #define	LDAP_BACK_ISMASK_F(ff,m,f)	( ( (ff) & (m) ) == (f) )
 
@@ -372,6 +374,8 @@ typedef struct ldapinfo_t {
 
 #define	LDAP_BACK_NOREFS(li)		LDAP_BACK_ISSET( (li), LDAP_BACK_F_NOREFS)
 #define	LDAP_BACK_NOUNDEFFILTER(li)	LDAP_BACK_ISSET( (li), LDAP_BACK_F_NOUNDEFFILTER)
+
+#define	LDAP_BACK_ONERR_STOP(li)	LDAP_BACK_ISSET( (li), LDAP_BACK_F_ONERR_STOP)
 
 	int			li_version;
 

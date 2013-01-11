@@ -451,6 +451,13 @@ with
 which corresponds to the empty result set.
 
 .TP
+.B onerr {CONTINUE|stop}
+This directive allows to select the behavior in case an error is returned
+by the remote server during a search.
+The default, \fBcontinue\fP, consists in returning success.
+If the value is set to \fBstop\fP, the error is returned to the client.
+
+.TP
 .B protocol\-version {0,2,3}
 This directive indicates what protocol version must be used to contact
 the remote server.
