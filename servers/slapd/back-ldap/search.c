@@ -554,16 +554,25 @@ retry:
 		}
 	}
 
- 	if ( rc == -1 && dont_retry == 0 ) {
-		if ( do_retry ) {
-			do_retry = 0;
-			if ( ldap_back_retry( &lc, op, rs, LDAP_BACK_DONTSEND ) ) {
-				goto retry;
+ 	if ( rc == -1 ) {
+		if ( dont_retry == 0 ) {
+			if ( do_retry ) {
+				do_retry = 0;
+				if ( ldap_back_retry( &lc, op, rs, LDAP_BACK_DONTSEND ) ) {
+					goto retry;
+				}
 			}
+
+			rs->sr_err = LDAP_SERVER_DOWN;
+			rs->sr_err = slap_map_api2result( rs );
+			goto finish;
+
+		} else if ( LDAP_BACK_ONERR_STOP( li ) ) {
+			/* if onerr == STOP */
+			rs->sr_err = LDAP_SERVER_DOWN;
+			rs->sr_err = slap_map_api2result( rs );
+			goto finish;
 		}
-		rs->sr_err = LDAP_SERVER_DOWN;
-		rs->sr_err = slap_map_api2result( rs );
-		goto finish;
 	}
 
 	/*
@@ -579,6 +588,8 @@ retry:
 		rs->sr_matched = pmatch.bv_val;
 		rs->sr_flags |= REP_MATCHED_MUSTBEFREED;
 	}
+
+finish:;
 	if ( !BER_BVISNULL( &match ) ) {
 		ber_memfree( match.bv_val );
 	}
@@ -587,7 +598,6 @@ retry:
 		rs->sr_err = LDAP_REFERRAL;
 	}
 
-finish:;
 	if ( LDAP_BACK_QUARANTINE( li ) ) {
 		ldap_back_quarantine( op, rs );
 	}
