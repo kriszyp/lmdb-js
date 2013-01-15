@@ -71,6 +71,7 @@ enum {
 	LDAP_BACK_CFG_ST_REQUEST,
 	LDAP_BACK_CFG_NOREFS,
 	LDAP_BACK_CFG_NOUNDEFFILTER,
+	LDAP_BACK_CFG_ONERR,
 
 	LDAP_BACK_CFG_REWRITE,
 
@@ -325,6 +326,14 @@ static ConfigTable ldapcfg[] = {
 			"SYNTAX OMsBoolean "
 			"SINGLE-VALUE )",
 		NULL, NULL },
+	{ "onerr", "CONTINUE|report|stop", 2, 2, 0,
+		ARG_MAGIC|LDAP_BACK_CFG_ONERR,
+		ldap_back_cf_gen, "( OLcfgDbAt:3.108 "
+			"NAME 'olcDbOnErr' "
+			"DESC 'error handling' "
+			"SYNTAX OMsDirectoryString "
+			"SINGLE-VALUE )",
+		NULL, NULL },
 	{ "idassert-passThru", "authzRule", 2, 2, 0,
 		ARG_MAGIC|LDAP_BACK_CFG_IDASSERT_PASSTHRU,
 		ldap_back_cf_gen, "( OLcfgDbAt:3.27 "
@@ -383,6 +392,7 @@ static ConfigOCs ldapocs[] = {
 #endif /* SLAP_CONTROL_X_SESSION_TRACKING */
 			"$ olcDbNoRefs "
 			"$ olcDbNoUndefFilter "
+			"$ olcDbOnErr "
 		") )",
 		 	Cft_Database, ldapcfg},
 	{ NULL, 0, NULL }
@@ -469,6 +479,13 @@ static slap_verbmasks cancel_mode[] = {
 	{ BER_BVC( "exop" ),		LDAP_BACK_F_CANCEL_EXOP },
 	{ BER_BVC( "exop-discover" ),	LDAP_BACK_F_CANCEL_EXOP_DISCOVER },
 	{ BER_BVC( "abandon" ),		LDAP_BACK_F_CANCEL_ABANDON },
+	{ BER_BVNULL,			0 }
+};
+
+static slap_verbmasks onerr_mode[] = {
+	{ BER_BVC( "stop" ),		LDAP_BACK_F_ONERR_STOP },
+	{ BER_BVC( "report" ),		LDAP_BACK_F_ONERR_STOP }, /* same behavior */
+	{ BER_BVC( "continue" ),	LDAP_BACK_F_NONE },
 	{ BER_BVNULL,			0 }
 };
 
@@ -1378,6 +1395,15 @@ ldap_back_cf_gen( ConfigArgs *c )
 			c->value_int = LDAP_BACK_NOUNDEFFILTER( li );
 			break;
 
+		case LDAP_BACK_CFG_ONERR:
+			enum_to_verb( onerr_mode, li->li_flags & LDAP_BACK_F_ONERR_STOP, &bv );
+			if ( BER_BVISNULL( &bv )) {
+				rc = 1;
+			} else {
+				value_add_one( &c->rvalue_vals, &bv );
+			}
+			break;
+
 		default:
 			/* FIXME: we need to handle all... */
 			assert( 0 );
@@ -1539,6 +1565,10 @@ ldap_back_cf_gen( ConfigArgs *c )
 
 		case LDAP_BACK_CFG_NOUNDEFFILTER:
 			li->li_flags &= ~LDAP_BACK_F_NOUNDEFFILTER;
+			break;
+
+		case LDAP_BACK_CFG_ONERR:
+			li->li_flags &= ~LDAP_BACK_F_ONERR_STOP;
 			break;
 
 		default:
@@ -2205,6 +2235,20 @@ done_url:;
 		} else {
 			li->li_flags &= ~LDAP_BACK_F_NOUNDEFFILTER;
 		}
+		break;
+
+	case LDAP_BACK_CFG_ONERR:
+	/* onerr? */
+		i = verb_to_mask( c->argv[1], onerr_mode );
+		if ( BER_BVISNULL( &onerr_mode[i].word ) ) {
+			snprintf( c->cr_msg, sizeof( c->cr_msg ),
+				"%s unknown argument \"%s\"",
+				c->argv[0], c->argv[1] );
+			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
+			return 1;
+		}
+		li->li_flags &= ~LDAP_BACK_F_ONERR_STOP;
+		li->li_flags |= onerr_mode[i].mask;
 		break;
 
 	case LDAP_BACK_CFG_REWRITE:
