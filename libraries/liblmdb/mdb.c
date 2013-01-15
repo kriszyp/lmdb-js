@@ -342,19 +342,25 @@ static txnid_t mdb_debug_start;
 	/**	The version number for a database's file format. */
 #define MDB_VERSION	 1
 
-	/**	The maximum size of a key in the database.
+	/**	@brief The maximum size of a key in the database.
+	 *
 	 *	While data items have essentially unbounded size, we require that
 	 *	keys all fit onto a regular page. This limit could be raised a bit
 	 *	further if needed; to something just under #MDB_PAGESIZE / #MDB_MINKEYS.
+	 *
+	 *	Note that data items in an #MDB_DUPSORT database are actually keys
+	 *	of a subDB, so they're also limited to this size.
 	 */
-#define MAXKEYSIZE	 511
+#ifndef MDB_MAXKEYSIZE
+#define MDB_MAXKEYSIZE	 511
+#endif
 
 #if MDB_DEBUG
 	/**	A key buffer.
 	 *	@ingroup debug
 	 *	This is used for printing a hex dump of a key's contents.
 	 */
-#define DKBUF	char kbuf[(MAXKEYSIZE*2+1)]
+#define DKBUF	char kbuf[(MDB_MAXKEYSIZE*2+1)]
 	/**	Display a key in hex.
 	 *	@ingroup debug
 	 *	Invoke a function to display a key in hex.
@@ -1049,7 +1055,7 @@ static char *const mdb_errstr[] = {
 	"MDB_DBS_FULL: Environment maxdbs limit reached",
 	"MDB_READERS_FULL: Environment maxreaders limit reached",
 	"MDB_TLS_FULL: Thread-local storage keys full - too many environments open",
-	"MDB_TXN_FULL: Nested transaction has too many dirty pages - transaction too big",
+	"MDB_TXN_FULL: Transaction has too many dirty pages - transaction too big",
 	"MDB_CURSOR_FULL: Internal error - cursor stack limit reached",
 	"MDB_PAGE_FULL: Internal error - page has no more space"
 };
@@ -1081,8 +1087,8 @@ mdb_dkey(MDB_val *key, char *buf)
 	char *ptr = buf;
 	unsigned char *c = key->mv_data;
 	unsigned int i;
-	if (key->mv_size > MAXKEYSIZE)
-		return "MAXKEYSIZE";
+	if (key->mv_size > MDB_MAXKEYSIZE)
+		return "MDB_MAXKEYSIZE";
 	/* may want to make this a dynamic check: if the key is mostly
 	 * printable characters, print it as-is instead of converting to hex.
 	 */
@@ -1225,6 +1231,14 @@ mdb_page_malloc(MDB_cursor *mc) {
 	return ret;
 }
 
+static void
+mdb_page_free(MDB_env *env, MDB_page *mp)
+{
+	mp->mp_next = env->me_dpages;
+	VGMEMP_FREE(env, mp);
+	env->me_dpages = mp;
+}
+
 /** Allocate pages for writing.
  * If there are free pages available from older transactions, they
  * will be re-used first. Otherwise a new page will be allocated.
@@ -1246,6 +1260,11 @@ mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp)
 	int rc;
 
 	*mp = NULL;
+
+	/* If our dirty list is already full, we can't do anything */
+	if (txn->mt_u.dirty_list[0].mid >= MDB_IDL_UM_MAX)
+		return MDB_TXN_FULL;
+
 	/* The free list won't have any content at all until txn 2 has
 	 * committed. The pages freed by txn 2 will be unreferenced
 	 * after txn 3 commits, and so will be safe to re-use in txn 4.
@@ -1596,6 +1615,8 @@ finish:
 				return 0;
 			}
 		}
+		if (mc->mc_txn->mt_u.dirty_list[0].mid >= MDB_IDL_UM_MAX)
+			return MDB_TXN_FULL;
 		/* No - copy it */
 		np = mdb_page_malloc(mc);
 		if (!np)
@@ -1939,9 +1960,7 @@ mdb_txn_reset0(MDB_txn *txn)
 			for (i=1; i<=txn->mt_u.dirty_list[0].mid; i++) {
 				dp = txn->mt_u.dirty_list[i].mptr;
 				if (!IS_OVERFLOW(dp) || dp->mp_pages == 1) {
-					dp->mp_next = txn->mt_env->me_dpages;
-					VGMEMP_FREE(txn->mt_env, dp);
-					txn->mt_env->me_dpages = dp;
+					mdb_page_free(txn->mt_env, dp);
 				} else {
 					/* large pages just get freed directly */
 					VGMEMP_FREE(txn->mt_env, dp);
@@ -2163,7 +2182,7 @@ free2:
 		MDB_val key, data;
 
 		/* make sure last page of freeDB is touched and on freelist */
-		key.mv_size = MAXKEYSIZE+1;
+		key.mv_size = MDB_MAXKEYSIZE+1;
 		key.mv_data = NULL;
 		rc = mdb_page_search(&mc, &key, MDB_PS_MODIFY);
 		if (rc && rc != MDB_NOTFOUND)
@@ -2373,9 +2392,7 @@ again:
 	for (i=1; i<=txn->mt_u.dirty_list[0].mid; i++) {
 		dp = txn->mt_u.dirty_list[i].mptr;
 		if (!IS_OVERFLOW(dp) || dp->mp_pages == 1) {
-			dp->mp_next = txn->mt_env->me_dpages;
-			VGMEMP_FREE(txn->mt_env, dp);
-			txn->mt_env->me_dpages = dp;
+			mdb_page_free(txn->mt_env, dp);
 		} else {
 			VGMEMP_FREE(txn->mt_env, dp);
 			free(dp);
@@ -3943,7 +3960,7 @@ mdb_page_search_root(MDB_cursor *mc, MDB_val *key, int modify)
 
 		if (key == NULL)	/* Initialize cursor to first page. */
 			i = 0;
-		else if (key->mv_size > MAXKEYSIZE && key->mv_data == NULL) {
+		else if (key->mv_size > MDB_MAXKEYSIZE && key->mv_data == NULL) {
 							/* cursor to last page */
 			i = NUMKEYS(mp)-1;
 		} else {
@@ -4119,7 +4136,7 @@ mdb_get(MDB_txn *txn, MDB_dbi dbi,
 	if (txn == NULL || !dbi || dbi >= txn->mt_numdbs)
 		return EINVAL;
 
-	if (key->mv_size == 0 || key->mv_size > MAXKEYSIZE) {
+	if (key->mv_size == 0 || key->mv_size > MDB_MAXKEYSIZE) {
 		return EINVAL;
 	}
 
@@ -4561,7 +4578,7 @@ mdb_cursor_last(MDB_cursor *mc, MDB_val *key, MDB_val *data)
 	if (!(mc->mc_flags & C_INITIALIZED) || mc->mc_top) {
 		MDB_val	lkey;
 
-		lkey.mv_size = MAXKEYSIZE+1;
+		lkey.mv_size = MDB_MAXKEYSIZE+1;
 		lkey.mv_data = NULL;
 		rc = mdb_page_search(mc, &lkey, 0);
 		if (rc != MDB_SUCCESS)
@@ -4645,7 +4662,7 @@ mdb_cursor_get(MDB_cursor *mc, MDB_val *key, MDB_val *data,
 	case MDB_SET:
 	case MDB_SET_KEY:
 	case MDB_SET_RANGE:
-		if (key == NULL || key->mv_size == 0 || key->mv_size > MAXKEYSIZE) {
+		if (key == NULL || key->mv_size == 0 || key->mv_size > MDB_MAXKEYSIZE) {
 			rc = EINVAL;
 		} else if (op == MDB_SET_RANGE)
 			rc = mdb_cursor_set(mc, key, data, op, NULL);
@@ -4782,12 +4799,18 @@ mdb_cursor_put(MDB_cursor *mc, MDB_val *key, MDB_val *data,
 	size_t nsize;
 	int rc, rc2;
 	MDB_pagebuf pbuf;
-	char dbuf[MAXKEYSIZE+1];
+	char dbuf[MDB_MAXKEYSIZE+1];
 	unsigned int nflags;
 	DKBUF;
 
 	if (F_ISSET(mc->mc_txn->mt_flags, MDB_TXN_RDONLY))
 		return EACCES;
+
+	if (key->mv_size == 0 || key->mv_size > MDB_MAXKEYSIZE)
+		return EINVAL;
+
+	if (F_ISSET(mc->mc_db->md_flags, MDB_DUPSORT) && data->mv_size > MDB_MAXKEYSIZE)
+		return EINVAL;
 
 	DPRINTF("==> put db %u key [%s], size %zu, data size %zu",
 		mc->mc_dbi, DKEY(key), key ? key->mv_size:0, data->mv_size);
@@ -5758,7 +5781,7 @@ mdb_update_key(MDB_page *mp, indx_t indx, MDB_val *key)
 #if MDB_DEBUG
 	{
 		MDB_val	k2;
-		char kbuf2[(MAXKEYSIZE*2+1)];
+		char kbuf2[(MDB_MAXKEYSIZE*2+1)];
 		k2.mv_data = NODEKEY(node);
 		k2.mv_size = node->mn_ksize;
 		DPRINTF("update key %u (ofs %u) [%s] to [%s] on page %zu",
@@ -6310,7 +6333,7 @@ mdb_del(MDB_txn *txn, MDB_dbi dbi,
 		return EACCES;
 	}
 
-	if (key->mv_size == 0 || key->mv_size > MAXKEYSIZE) {
+	if (key->mv_size == 0 || key->mv_size > MDB_MAXKEYSIZE) {
 		return EINVAL;
 	}
 
@@ -6678,9 +6701,7 @@ newsep:
 	}
 
 	/* return tmp page to freelist */
-	copy->mp_next = mc->mc_txn->mt_env->me_dpages;
-	VGMEMP_FREE(mc->mc_txn->mt_env, copy);
-	mc->mc_txn->mt_env->me_dpages = copy;
+	mdb_page_free(mc->mc_txn->mt_env, copy);
 done:
 	{
 		/* Adjust other cursors pointing to mp */
@@ -6751,7 +6772,7 @@ mdb_put(MDB_txn *txn, MDB_dbi dbi,
 		return EACCES;
 	}
 
-	if (key->mv_size == 0 || key->mv_size > MAXKEYSIZE) {
+	if (key->mv_size == 0 || key->mv_size > MDB_MAXKEYSIZE) {
 		return EINVAL;
 	}
 
