@@ -73,7 +73,7 @@ static struct {
 		/* added by me :) */
 		"DESC 'Child classes allowed for a given object' "
 		"NO-USER-MODIFICATION "
-		"USAGE directoryOperation )", &ad_allowedChildClasses },
+		"USAGE dSAOperation )", &ad_allowedChildClasses },
 	{ "( " AA_SCHEMA_AT ".912 "
 		"NAME 'allowedChildClassesEffective' "
 		"EQUALITY objectIdentifierMatch "
@@ -81,7 +81,7 @@ static struct {
 		/* added by me :) */
 		"DESC 'Child classes allowed for a given object according to ACLs' "
 		"NO-USER-MODIFICATION "
-		"USAGE directoryOperation )", &ad_allowedChildClassesEffective },
+		"USAGE dSAOperation )", &ad_allowedChildClassesEffective },
 	{ "( " AA_SCHEMA_AT ".913 "
 		"NAME 'allowedAttributes' "
 		"EQUALITY objectIdentifierMatch "
@@ -89,7 +89,7 @@ static struct {
 		/* added by me :) */
 		"DESC 'Attributes allowed for a given object' "
 		"NO-USER-MODIFICATION "
-		"USAGE directoryOperation )", &ad_allowedAttributes },
+		"USAGE dSAOperation )", &ad_allowedAttributes },
 	{ "( " AA_SCHEMA_AT ".914 "
 		"NAME 'allowedAttributesEffective' "
 		"EQUALITY objectIdentifierMatch "
@@ -97,7 +97,7 @@ static struct {
 		/* added by me :) */
 		"DESC 'Attributes allowed for a given object according to ACLs' "
 		"NO-USER-MODIFICATION "
-		"USAGE directoryOperation )", &ad_allowedAttributesEffective },
+		"USAGE dSAOperation )", &ad_allowedAttributesEffective },
 
 	/* TODO: add objectClass stuff? */
 
