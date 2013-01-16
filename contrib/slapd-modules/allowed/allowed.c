@@ -47,11 +47,23 @@
 #include "slap.h"
 
 /*
- * Schema from
+ * NOTE: part of the schema definition reported below is taken
+ * from Microsoft schema definitions (OID, NAME, SYNTAX);
  *
+ * EQUALITY is taken from 
  * <http://www.redhat.com/archives/fedora-directory-devel/2006-August/msg00007.html>
+ * (posted by Andrew Bartlett)
  *
- * posted by Andrew Bartlett
+ * The rest is guessed.  Specifically
+ *
+ * DESC briefly describes the purpose
+ *
+ * NO-USER-MODIFICATION is added to make attributes operational
+ *
+ * USAGE is set to "dSAOperation" as per ITS#7493,
+ * to prevent replication, since this information
+ * is generated (based on ACL and identity of request)
+ * and not stored.
  */
 
 #define AA_SCHEMA_AT "1.2.840.113556.1.4"
