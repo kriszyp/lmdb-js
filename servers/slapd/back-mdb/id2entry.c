@@ -323,7 +323,7 @@ int mdb_entry_get(
 	txn = moi->moi_txn;
 
 	/* can we find entry */
-	rc = mdb_dn2entry( op, txn, NULL, ndn, &e, 0 );
+	rc = mdb_dn2entry( op, txn, NULL, ndn, &e, NULL, 0 );
 	switch( rc ) {
 	case MDB_NOTFOUND:
 	case 0:

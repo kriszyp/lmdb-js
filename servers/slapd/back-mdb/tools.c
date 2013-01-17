@@ -296,7 +296,7 @@ ID mdb_tool_dn2id_get(
 	op.o_tmpmemctx = NULL;
 	op.o_tmpmfuncs = &ch_mfuncs;
 
-	rc = mdb_dn2id( &op, txn, NULL, dn, &id, NULL, NULL );
+	rc = mdb_dn2id( &op, txn, NULL, dn, &id, NULL, NULL, NULL );
 	if ( rc == MDB_NOTFOUND )
 		return NOID;
 
@@ -422,7 +422,7 @@ static int mdb_tool_next_id(
 		return 0;
 	}
 
-	rc = mdb_dn2id( op, tid, mcp, &ndn, &id, NULL, &nmatched );
+	rc = mdb_dn2id( op, tid, mcp, &ndn, &id, NULL, NULL, &nmatched );
 	if ( rc == MDB_NOTFOUND ) {
 		if ( !be_issuffix( op->o_bd, &ndn ) ) {
 			ID eid = e->e_id;
@@ -457,7 +457,7 @@ static int mdb_tool_next_id(
 			"=> mdb_tool_next_id: %s\n", text->bv_val, 0, 0 );
 			return rc;
 		}
-		rc = mdb_dn2id_add( op, mcp, mcd, pid, e );
+		rc = mdb_dn2id_add( op, mcp, mcd, pid, 1, e );
 		if ( rc ) {
 			snprintf( text->bv_val, text->bv_len,
 				"dn2id_add failed: %s (%d)",

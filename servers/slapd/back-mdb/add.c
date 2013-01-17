@@ -153,7 +153,7 @@ txnReturn:
 	}
 
 	/* get entry or parent */
-	rs->sr_err = mdb_dn2entry( op, txn, mcd, &op->ora_e->e_nname, &p, 1 );
+	rs->sr_err = mdb_dn2entry( op, txn, mcd, &op->ora_e->e_nname, &p, NULL, 1 );
 	switch( rs->sr_err ) {
 	case 0:
 		rs->sr_err = LDAP_ALREADY_EXISTS;
@@ -338,7 +338,7 @@ txnReturn:
 	op->ora_e->e_id = eid;
 
 	/* dn2id index */
-	rs->sr_err = mdb_dn2id_add( op, mcd, mcd, pid, op->ora_e );
+	rs->sr_err = mdb_dn2id_add( op, mcd, mcd, pid, 1, op->ora_e );
 	mdb_cursor_close( mcd );
 	if ( rs->sr_err != 0 ) {
 		Debug( LDAP_DEBUG_TRACE,

@@ -124,7 +124,7 @@ txnReturn:
 		goto return_results;
 	}
 	/* get parent */
-	rs->sr_err = mdb_dn2entry( op, txn, mc, &pdn, &p, 1 );
+	rs->sr_err = mdb_dn2entry( op, txn, mc, &pdn, &p, NULL, 1 );
 	switch( rs->sr_err ) {
 	case 0:
 	case MDB_NOTFOUND:
@@ -167,7 +167,7 @@ txnReturn:
 	}
 
 	/* get entry */
-	rs->sr_err = mdb_dn2entry( op, txn, mc, &op->o_req_ndn, &e, 0 );
+	rs->sr_err = mdb_dn2entry( op, txn, mc, &op->o_req_ndn, &e, NULL, 0 );
 	switch( rs->sr_err ) {
 	case MDB_NOTFOUND:
 		e = p;
@@ -332,7 +332,7 @@ txnReturn:
 	}
 
 	/* delete from dn2id */
-	rs->sr_err = mdb_dn2id_delete( op, mc, e->e_id );
+	rs->sr_err = mdb_dn2id_delete( op, mc, e->e_id, 1 );
 	mdb_cursor_close( mc );
 	if ( rs->sr_err != 0 ) {
 		Debug(LDAP_DEBUG_TRACE,
