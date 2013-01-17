@@ -36,6 +36,9 @@
  * RDNs up to length 32767, but that's fine since full DNs are already
  * restricted to 8192.
  *
+ * Also each child node contains a count of the number of entries in
+ * its subtree, appended after its entryID.
+ *
  * The diskNode is a variable length structure. This definition is not
  * directly usable for in-memory manipulation.
  */
@@ -44,6 +47,7 @@ typedef struct diskNode {
 	char nrdn[1];
 	char rdn[1];                        /* variable placement */
 	unsigned char entryID[sizeof(ID)];  /* variable placement */
+	/* unsigned char nsubs[sizeof(ID)];	in child nodes only */
 } diskNode;
 
 /* Sort function for the sorted duplicate data items of a dn2id key.
@@ -67,7 +71,7 @@ mdb_dup_compare(
 	rc = un->nrdnlen[1] - cn->nrdnlen[1];
 	if ( rc ) return rc;
 
-	nrlen = (un->nrdnlen[0] << 8) | un->nrdnlen[1];
+	nrlen = ((un->nrdnlen[0] & 0x7f) << 8) | un->nrdnlen[1];
 	return strncmp( un->nrdn, cn->nrdn, nrlen );
 }
 
@@ -81,6 +85,7 @@ mdb_dn2id_add(
 	MDB_cursor	*mcp,
 	MDB_cursor	*mcd,
 	ID pid,
+	ID nsubs,
 	Entry		*e )
 {
 	struct mdb_info *mdb = (struct mdb_info *) op->o_bd->be_private;
@@ -101,7 +106,7 @@ mdb_dn2id_add(
 		rlen = e->e_name.bv_len;
 	}
 
-	d = op->o_tmpalloc(sizeof(diskNode) + rlen + nrlen, op->o_tmpmemctx);
+	d = op->o_tmpalloc(sizeof(diskNode) + rlen + nrlen + sizeof(ID), op->o_tmpmemctx);
 	d->nrdnlen[1] = nrlen & 0xff;
 	d->nrdnlen[0] = (nrlen >> 8) | 0x80;
 	ptr = lutil_strncopy( d->nrdn, e->e_nname.bv_val, nrlen );
@@ -109,6 +114,8 @@ mdb_dn2id_add(
 	ptr = lutil_strncopy( ptr, e->e_name.bv_val, rlen );
 	*ptr++ = '\0';
 	memcpy( ptr, &e->e_id, sizeof( ID ));
+	ptr += sizeof( ID );
+	memcpy( ptr, &nsubs, sizeof( ID ));
 
 	key.mv_size = sizeof(ID);
 	key.mv_data = &nid;
@@ -127,13 +134,18 @@ mdb_dn2id_add(
 	}
 
 	data.mv_data = d;
-	data.mv_size = sizeof(diskNode) + rlen + nrlen;
+	data.mv_size = sizeof(diskNode) + rlen + nrlen + sizeof( ID );
 
+	/* Add our child node under parent's key */
 	rc = mdb_cursor_put( mcp, &key, &data, MDB_NODUPDATA );
 
+	/* Add our own node */
 	if (rc == 0) {
 		int flag = MDB_NODUPDATA;
 		nid = e->e_id;
+		/* drop subtree count */
+		data.mv_size -= sizeof( ID );
+		ptr -= sizeof( ID );
 		memcpy( ptr, &pid, sizeof( ID ));
 		d->nrdnlen[0] ^= 0x80;
 
@@ -141,9 +153,46 @@ mdb_dn2id_add(
 			flag |= MDB_APPEND;
 		rc = mdb_cursor_put( mcd, &key, &data, flag );
 	}
-
-fail:
 	op->o_tmpfree( d, op->o_tmpmemctx );
+
+	/* Add our subtree count to all superiors */
+	if ( rc == 0 && nsubs && pid ) {
+		ID subs;
+		nid = pid;
+		do {
+			/* Get parent's RDN */
+			rc = mdb_cursor_get( mcp, &key, &data, MDB_SET );
+			if ( !rc ) {
+				char *p2;
+				ptr = data.mv_data + data.mv_size - sizeof( ID );
+				memcpy( &nid, ptr, sizeof( ID ));
+				/* Get parent's node under grandparent */
+				d = data.mv_data;
+				rlen = ( d->nrdnlen[0] << 8 ) | d->nrdnlen[1];
+				p2 = op->o_tmpalloc( rlen + 2, op->o_tmpmemctx );
+				memcpy( p2, data.mv_data, rlen+2 );
+				*p2 ^= 0x80;
+				data.mv_data = p2;
+				rc = mdb_cursor_get( mcp, &key, &data, MDB_GET_BOTH );
+				op->o_tmpfree( p2, op->o_tmpmemctx );
+				if ( !rc ) {
+					/* Get parent's subtree count */
+					ptr = data.mv_data + data.mv_size - sizeof( ID );
+					memcpy( &subs, ptr, sizeof( ID ));
+					subs += nsubs;
+					p2 = op->o_tmpalloc( data.mv_size, op->o_tmpmemctx );
+					memcpy( p2, data.mv_data, data.mv_size - sizeof( ID ));
+					memcpy( p2+data.mv_size - sizeof( ID ), &subs, sizeof( ID ));
+					data.mv_data = p2;
+					rc = mdb_cursor_put( mcp, &key, &data, MDB_CURRENT );
+					op->o_tmpfree( p2, op->o_tmpmemctx );
+				}
+			}
+			if ( rc )
+				break;
+		} while ( nid );
+	}
+
 	Debug( LDAP_DEBUG_TRACE, "<= mdb_dn2id_add 0x%lx: %d\n", e->e_id, rc, 0 );
 
 	return rc;
@@ -154,8 +203,11 @@ int
 mdb_dn2id_delete(
 	Operation	*op,
 	MDB_cursor *mc,
-	ID id )
+	ID id,
+	ID nsubs )
 {
+	ID nid;
+	char *ptr;
 	int rc;
 
 	Debug( LDAP_DEBUG_TRACE, "=> mdb_dn2id_delete 0x%lx\n",
@@ -170,11 +222,57 @@ mdb_dn2id_delete(
 	 */
 	if ( rc == 0 ) {
 		MDB_val	key, data;
+		if ( nsubs ) {
+			mdb_cursor_get( mc, &key, NULL, MDB_GET_CURRENT );
+			memcpy( &nid, key.mv_data, sizeof( ID ));
+		}
 		key.mv_size = sizeof(ID);
 		key.mv_data = &id;
 		rc = mdb_cursor_get( mc, &key, &data, MDB_SET );
 		if ( rc == 0 )
 			rc = mdb_cursor_del( mc, 0 );
+	}
+
+	/* Delete our subtree count from all superiors */
+	if ( rc == 0 && nsubs && nid ) {
+		MDB_val key, data;
+		ID subs;
+		key.mv_data = &nid;
+		key.mv_size = sizeof( ID );
+		do {
+			rc = mdb_cursor_get( mc, &key, &data, MDB_SET );
+			if ( !rc ) {
+				char *p2;
+				diskNode *d;
+				int rlen;
+				ptr = data.mv_data + data.mv_size - sizeof( ID );
+				memcpy( &nid, ptr, sizeof( ID ));
+				/* Get parent's node under grandparent */
+				d = data.mv_data;
+				rlen = ( d->nrdnlen[0] << 8 ) | d->nrdnlen[1];
+				p2 = op->o_tmpalloc( rlen + 2, op->o_tmpmemctx );
+				memcpy( p2, data.mv_data, rlen+2 );
+				*p2 ^= 0x80;
+				data.mv_data = p2;
+				rc = mdb_cursor_get( mc, &key, &data, MDB_GET_BOTH );
+				op->o_tmpfree( p2, op->o_tmpmemctx );
+				if ( !rc ) {
+					/* Get parent's subtree count */
+					ptr = data.mv_data + data.mv_size - sizeof( ID );
+					memcpy( &subs, ptr, sizeof( ID ));
+					subs -= nsubs;
+					p2 = op->o_tmpalloc( data.mv_size, op->o_tmpmemctx );
+					memcpy( p2, data.mv_data, data.mv_size - sizeof( ID ));
+					memcpy( p2+data.mv_size - sizeof( ID ), &subs, sizeof( ID ));
+					data.mv_data = p2;
+					rc = mdb_cursor_put( mc, &key, &data, MDB_CURRENT );
+					op->o_tmpfree( p2, op->o_tmpmemctx );
+				}
+
+			}
+			if ( rc )
+				break;
+		} while ( nid );
 	}
 
 	Debug( LDAP_DEBUG_TRACE, "<= mdb_dn2id_delete 0x%lx: %d\n", id, rc, 0 );
@@ -183,7 +281,8 @@ mdb_dn2id_delete(
 
 /* return last found ID in *id if no match
  * If mc is provided, it will be left pointing to the RDN's
- * record under the parent's ID.
+ * record under the parent's ID. If nsubs is provided, return
+ * the number of entries in this entry's subtree.
  */
 int
 mdb_dn2id(
@@ -192,6 +291,7 @@ mdb_dn2id(
 	MDB_cursor	*mc,
 	struct berval	*in,
 	ID	*id,
+	ID	*nsubs,
 	struct berval	*matched,
 	struct berval	*nmatched )
 {
@@ -263,14 +363,14 @@ mdb_dn2id(
 		op->o_tmpfree( d, op->o_tmpmemctx );
 		if ( rc )
 			break;
-		ptr = (char *) data.mv_data + data.mv_size - sizeof(ID);
+		ptr = (char *) data.mv_data + data.mv_size - 2*sizeof(ID);
 		memcpy( &nid, ptr, sizeof(ID));
 
 		/* grab the non-normalized RDN */
 		if ( matched ) {
 			int rlen;
 			d = data.mv_data;
-			rlen = data.mv_size - sizeof(diskNode) - tmp.bv_len;
+			rlen = data.mv_size - sizeof(diskNode) - tmp.bv_len - sizeof(ID);
 			matched->bv_len += rlen;
 			matched->bv_val -= rlen + 1;
 			ptr = lutil_strcopy( matched->bv_val, d->rdn + tmp.bv_len );
@@ -296,6 +396,11 @@ mdb_dn2id(
 		}
 	}
 	*id = nid; 
+	/* return subtree count if requested */
+	if ( !rc && nsubs ) {
+		ptr = data.mv_data + data.mv_size - sizeof(ID);
+		memcpy( nsubs, ptr, sizeof( ID ));
+	}
 	if ( !mc )
 		mdb_cursor_close( cursor );
 done:
@@ -383,7 +488,7 @@ mdb_dn2sups(
 			mdb_cursor_close( cursor );
 			break;
 		}
-		ptr = (char *) data.mv_data + data.mv_size - sizeof(ID);
+		ptr = (char *) data.mv_data + data.mv_size - 2*sizeof(ID);
 		memcpy( &nid, ptr, sizeof(ID));
 
 		if ( pid )

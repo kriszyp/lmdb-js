@@ -34,6 +34,7 @@ mdb_dn2entry(
 	MDB_cursor *m2,
 	struct berval *dn,
 	Entry **e,
+	ID *nsubs,
 	int matched )
 {
 	struct mdb_info *mdb = (struct mdb_info *) op->o_bd->be_private;
@@ -47,7 +48,7 @@ mdb_dn2entry(
 
 	*e = NULL;
 
-	rc = mdb_dn2id( op, tid, m2, dn, &id, &mbv, &nmbv );
+	rc = mdb_dn2id( op, tid, m2, dn, &id, nsubs, &mbv, &nmbv );
 	if ( rc ) {
 		if ( matched ) {
 			rc2 = mdb_cursor_open( tid, mdb->mi_id2entry, &mc );

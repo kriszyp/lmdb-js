@@ -479,7 +479,7 @@ txnReturn:
 	}
 
 	/* get entry or ancestor */
-	rs->sr_err = mdb_dn2entry( op, txn, NULL, &op->o_req_ndn, &e, 1 );
+	rs->sr_err = mdb_dn2entry( op, txn, NULL, &op->o_req_ndn, &e, NULL, 1 );
 
 	if ( rs->sr_err != 0 ) {
 		Debug( LDAP_DEBUG_TRACE,

@@ -67,7 +67,7 @@ mdb_bind( Operation *op, SlapReply *rs )
 	rtxn = moi->moi_txn;
 
 	/* get entry with reader lock */
-	rs->sr_err = mdb_dn2entry( op, rtxn, NULL, &op->o_req_ndn, &e, 0 );
+	rs->sr_err = mdb_dn2entry( op, rtxn, NULL, &op->o_req_ndn, &e, NULL, 0 );
 
 	switch(rs->sr_err) {
 	case MDB_NOTFOUND:

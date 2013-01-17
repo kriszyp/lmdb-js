@@ -489,7 +489,7 @@ ext_candidates(
 		MDB_IDL_ZERO( ids );
 		if ( mra->ma_rule == slap_schema.si_mr_distinguishedNameMatch ) {
 base:
-			rc = mdb_dn2id( op, rtxn, NULL, &mra->ma_value, &id, NULL, NULL );
+			rc = mdb_dn2id( op, rtxn, NULL, &mra->ma_value, &id, NULL, NULL, NULL );
 			if ( rc == MDB_SUCCESS ) {
 				mdb_idl_insert( ids, id );
 			}
@@ -690,7 +690,7 @@ equality_candidates(
 
 	if ( ava->aa_desc == slap_schema.si_ad_entryDN ) {
 		ID id;
-		rc = mdb_dn2id( op, rtxn, NULL, &ava->aa_value, &id, NULL, NULL );
+		rc = mdb_dn2id( op, rtxn, NULL, &ava->aa_value, &id, NULL, NULL, NULL );
 		if ( rc == LDAP_SUCCESS ) {
 			/* exactly one ID can match */
 			ids[0] = 1;
