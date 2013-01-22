@@ -121,12 +121,17 @@ int mdb_id2edata(
 	MDB_val *data )
 {
 	MDB_val key;
+	int rc;
 
 	key.mv_data = &id;
 	key.mv_size = sizeof(ID);
 
 	/* fetch it */
-	return mdb_cursor_get( mc, &key, data, MDB_SET );
+	rc = mdb_cursor_get( mc, &key, data, MDB_SET );
+	/* stubs from missing parents - DB is actually invalid */
+	if ( rc == MDB_SUCCESS && !data->mv_size )
+		rc = MDB_NOTFOUND;
+	return rc;
 }
 
 int mdb_id2entry(
@@ -178,6 +183,9 @@ int mdb_id2entry(
 			return MDB_SUCCESS;
 		}
 	}
+	/* stubs from missing parents - DB is actually invalid */
+	if ( rc == MDB_SUCCESS && !data.mv_size )
+		rc = MDB_NOTFOUND;
 	if ( rc ) return rc;
 
 	rc = mdb_entry_decode( op, &data, e );
