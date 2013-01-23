@@ -56,8 +56,8 @@ slapmodify( int argc, char **argv )
 	OperationBuffer opbuf;
 	Operation *op;
 
-	int checkvals;
-	int lineno, nextline, ldifrc;
+	int checkvals, ldifrc;
+	unsigned long lineno, nextline;
 	int lmax;
 	int rc = EXIT_SUCCESS;
 
@@ -162,7 +162,7 @@ slapmodify( int argc, char **argv )
 			"slapmodify", LDIF_NO_CONTROLS );
 
 		if ( local_rc != LDAP_SUCCESS ) {
-			fprintf( stderr, "%s: could not parse entry (line=%d)\n",
+			fprintf( stderr, "%s: could not parse entry (line=%lu)\n",
 				progname, lineno );
 			rc = EXIT_FAILURE;
 			if( continuemode ) continue;
@@ -180,14 +180,14 @@ slapmodify( int argc, char **argv )
 
 		case LDAP_REQ_MODRDN:
 		case LDAP_REQ_DELETE:
-			fprintf( stderr, "%s: request 0x%lx not supported (line=%d)\n",
+			fprintf( stderr, "%s: request 0x%lx not supported (line=%lu)\n",
 				progname, (unsigned long)lr.lr_op, lineno );
 			rc = EXIT_FAILURE;
 			if( continuemode ) continue;
 			goto done;
 
 		default:
-			fprintf( stderr, "%s: unknown request 0x%lx (line=%d)\n",
+			fprintf( stderr, "%s: unknown request 0x%lx (line=%lu)\n",
 				progname, (unsigned long)lr.lr_op, lineno );
 			rc = EXIT_FAILURE;
 			if( continuemode ) continue;
@@ -196,7 +196,7 @@ slapmodify( int argc, char **argv )
 
 		local_rc = dnNormalize( 0, NULL, NULL, &lr.lr_dn, &ndn, NULL );
 		if ( local_rc != LDAP_SUCCESS ) {
-			fprintf( stderr, "%s: DN=\"%s\" normalization failed (line=%d)\n",
+			fprintf( stderr, "%s: DN=\"%s\" normalization failed (line=%lu)\n",
 				progname, lr.lr_dn.bv_val, lineno );
 			rc = EXIT_FAILURE;
 			if( continuemode ) continue;
@@ -207,7 +207,7 @@ slapmodify( int argc, char **argv )
 		if( BER_BVISEMPTY( &ndn ) &&
 			!BER_BVISEMPTY( be->be_nsuffix ))
 		{
-			fprintf( stderr, "%s: line %d: "
+			fprintf( stderr, "%s: line %lu: "
 				"%s entry with empty dn=\"\"",
 				progname, lineno, request );
 			bd = select_backend( &ndn, nosubordinates );
@@ -237,7 +237,7 @@ slapmodify( int argc, char **argv )
 		/* check backend */
 		bd = select_backend( &ndn, nosubordinates );
 		if ( bd != be ) {
-			fprintf( stderr, "%s: line %d: "
+			fprintf( stderr, "%s: line %lu: "
 				"database #%d (%s) not configured to hold \"%s\"",
 				progname, lineno,
 				dbnum,
@@ -287,7 +287,7 @@ slapmodify( int argc, char **argv )
 
 			local_rc = slap_str2ad( mod->mod_type, &mods.sm_desc, &text );
 			if ( local_rc != LDAP_SUCCESS ) {
-				fprintf( stderr, "%s: slap_str2ad(\"%s\") failed for entry \"%s\" (%d: %s, lineno=%d)\n",
+				fprintf( stderr, "%s: slap_str2ad(\"%s\") failed for entry \"%s\" (%d: %s, lineno=%lu)\n",
 					progname, mod->mod_type, lr.lr_dn.bv_val, local_rc, text, lineno );
 				rc = EXIT_FAILURE;
 				mod_err = 1;
@@ -564,7 +564,7 @@ slapmodify( int argc, char **argv )
 
 			if( id == NOID ) {
 				fprintf( stderr, "%s: could not %s entry dn=\"%s\" "
-					"(line=%d): %s\n", progname, request, e->e_dn,
+					"(line=%lu): %s\n", progname, request, e->e_dn,
 					lineno, bvtext.bv_val );
 				rc = EXIT_FAILURE;
 				entry_free( e );

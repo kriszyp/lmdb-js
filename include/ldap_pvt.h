@@ -323,7 +323,7 @@ LDAP_F ( int ) ldap_pvt_discard LDAP_P((
 LDAP_F( int )
 ldap_parse_ldif_record_x LDAP_P((
 	struct berval *rbuf,
-	int linenum,
+	unsigned long linenum,
 	struct ldifrecord *lr,
 	const char *errstr,
 	unsigned int flags,

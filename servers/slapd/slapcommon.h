@@ -43,9 +43,9 @@ typedef struct tool_vars {
 	int tv_continuemode;
 	int tv_nosubordinates;
 	int tv_dryrun;
-	int tv_jumpline;
-	struct berval tv_sub_ndn;
 	int tv_scope;
+	unsigned long tv_jumpline;
+	struct berval tv_sub_ndn;
 	Filter *tv_filter;
 	struct LDIFFP	*tv_ldiffp;
 	struct berval tv_baseDN;

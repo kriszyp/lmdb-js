@@ -814,7 +814,7 @@ ldif_close(
 int
 ldif_read_record(
 	LDIFFP      *lfp,
-	int         *lno,		/* ptr to line number counter              */
+	unsigned long *lno,		/* ptr to line number counter              */
 	char        **bufp,     /* ptr to malloced output buffer           */
 	int         *buflenp )  /* ptr to length of *bufp                  */
 {

@@ -2663,7 +2663,7 @@ ldap_ldif_record_done LDAP_P((
 LDAP_F( int )
 ldap_parse_ldif_record LDAP_P((
 	struct berval *rbuf,
-	int linenum,
+	unsigned long linenum,
 	LDIFRecord *lr,
 	const char *errstr,
 	unsigned int flags ));

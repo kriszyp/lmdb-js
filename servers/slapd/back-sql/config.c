@@ -539,7 +539,8 @@ read_baseObject(
 {
 	backsql_info 	*bi = (backsql_info *)be->be_private;
 	LDIFFP		*fp;
-	int		rc = 0, lineno = 0, lmax = 0, ldifrc;
+	int		rc = 0, lmax = 0, ldifrc;
+	unsigned long	lineno = 0;
 	char		*buf = NULL;
 
 	assert( fname != NULL );
@@ -571,7 +572,7 @@ read_baseObject(
 
 		if( e == NULL ) {
 			fprintf( stderr, "back-sql baseObject: "
-					"could not parse entry (line=%d)\n",
+					"could not parse entry (line=%lu)\n",
 					lineno );
 			rc = LDAP_OTHER;
 			break;
@@ -581,7 +582,7 @@ read_baseObject(
 		if ( !be_issuffix( be, &e->e_nname ) ) {
 			fprintf( stderr,
 				"back-sql: invalid baseObject - "
-				"dn=\"%s\" (line=%d)\n",
+				"dn=\"%s\" (line=%lu)\n",
 				e->e_name.bv_val, lineno );
 			entry_free( e );
 			rc = LDAP_OTHER;

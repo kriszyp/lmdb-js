@@ -401,7 +401,8 @@ int
 root_dse_read_file( const char *fname )
 {
 	struct LDIFFP	*fp;
-	int rc = 0, lineno = 0, lmax = 0, ldifrc;
+	int rc = 0, lmax = 0, ldifrc;
+	unsigned long lineno = 0;
 	char	*buf = NULL;
 
 	if ( (fp = ldif_open( fname, "r" )) == NULL ) {
@@ -427,7 +428,7 @@ root_dse_read_file( const char *fname )
 
 		if( e == NULL ) {
 			Debug( LDAP_DEBUG_ANY, "root_dse_read_file: "
-				"could not parse entry (file=\"%s\" line=%d)\n",
+				"could not parse entry (file=\"%s\" line=%lu)\n",
 				fname, lineno, 0 );
 			rc = LDAP_OTHER;
 			break;
@@ -437,7 +438,7 @@ root_dse_read_file( const char *fname )
 		if( e->e_nname.bv_len ) {
 			Debug( LDAP_DEBUG_ANY,
 				"root_dse_read_file: invalid rootDSE "
-				"- dn=\"%s\" (file=\"%s\" line=%d)\n",
+				"- dn=\"%s\" (file=\"%s\" line=%lu)\n",
 				e->e_dn, fname, lineno );
 			entry_free( e );
 			rc = LDAP_OTHER;

@@ -456,7 +456,7 @@ slap_tool_init(
 			} break;
 
 		case 'j':	/* jump to linenumber */
-			if ( lutil_atoi( &jumpline, optarg ) ) {
+			if ( lutil_atoul( &jumpline, optarg ) ) {
 				usage( tool, progname );
 			}
 			break;
