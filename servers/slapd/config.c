@@ -1283,7 +1283,7 @@ static slap_verbmasks versionkey[] = {
 	{ BER_BVNULL, 0 }
 };
 
-int 
+int
 slap_keepalive_parse(
 	struct berval *val,
 	void *bc,
