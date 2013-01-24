@@ -74,6 +74,7 @@ enum {
 	LDAP_BACK_CFG_ONERR,
 
 	LDAP_BACK_CFG_REWRITE,
+	LDAP_BACK_CFG_KEEPALIVE,
 
 	LDAP_BACK_CFG_LAST
 };
@@ -353,6 +354,14 @@ static ConfigTable ldapcfg[] = {
 	{ "rewrite", "<arglist>", 2, 4, STRLENOF( "rewrite" ),
 		ARG_STRING|ARG_MAGIC|LDAP_BACK_CFG_REWRITE,
 		ldap_back_cf_gen, NULL, NULL, NULL },
+	{ "keepalive", "keepalive", 2, 2, 0,
+		ARG_MAGIC|LDAP_BACK_CFG_KEEPALIVE,
+		ldap_back_cf_gen, "( OLcfgDbAt:3.29 "
+			"NAME 'olcDbKeepalive' "
+			"DESC 'TCP keepalive' "
+			"SYNTAX OMsDirectoryString "
+			"SINGLE-VALUE )",
+		NULL, NULL },
 	{ NULL, NULL, 0, 0, 0, ARG_IGNORED,
 		NULL, NULL, NULL, NULL }
 };
@@ -393,6 +402,7 @@ static ConfigOCs ldapocs[] = {
 			"$ olcDbNoRefs "
 			"$ olcDbNoUndefFilter "
 			"$ olcDbOnErr "
+			"$ olcDbKeepalive "
 		") )",
 		 	Cft_Database, ldapcfg},
 	{ NULL, 0, NULL }
@@ -1404,6 +1414,16 @@ ldap_back_cf_gen( ConfigArgs *c )
 			}
 			break;
 
+		case LDAP_BACK_CFG_KEEPALIVE: {
+			struct berval bv;
+			char buf[AC_LINE_MAX];
+			bv.bv_len = AC_LINE_MAX;
+			bv.bv_val = &buf[0];
+			slap_keepalive_parse(&bv, &li->li_tls.sb_keepalive, 0, 0, 1);
+			value_add_one( &c->rvalue_vals, &bv );
+			break;
+			}
+
 		default:
 			/* FIXME: we need to handle all... */
 			assert( 0 );
@@ -1569,6 +1589,12 @@ ldap_back_cf_gen( ConfigArgs *c )
 
 		case LDAP_BACK_CFG_ONERR:
 			li->li_flags &= ~LDAP_BACK_F_ONERR_STOP;
+			break;
+
+		case LDAP_BACK_CFG_KEEPALIVE:
+			li->li_tls.sb_keepalive.sk_idle = 0;
+			li->li_tls.sb_keepalive.sk_probes = 0;
+			li->li_tls.sb_keepalive.sk_interval = 0;
 			break;
 
 		default:
@@ -2259,6 +2285,11 @@ done_url:;
 			"and prefix all directives with \"rwm-\")" );
 		Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
 		return 1;
+
+	case LDAP_BACK_CFG_KEEPALIVE:
+		slap_keepalive_parse( ber_bvstrdup(c->argv[1]),
+				 &li->li_tls.sb_keepalive, 0, 0, 0);
+		break;
 		
 	default:
 		/* FIXME: try to catch inconsistencies */

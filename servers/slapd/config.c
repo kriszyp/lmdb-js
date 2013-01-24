@@ -1283,7 +1283,7 @@ static slap_verbmasks versionkey[] = {
 	{ BER_BVNULL, 0 }
 };
 
-static int 
+int 
 slap_keepalive_parse(
 	struct berval *val,
 	void *bc,
@@ -1926,6 +1926,29 @@ int bindconf_tls_set( slap_bindconf *bc, LDAP *ld )
 #endif
 
 /*
+ * set connection keepalive options
+ */
+void
+slap_client_keepalive(LDAP *ld, slap_keepalive *sk)
+{
+	if (!sk) return;
+
+	if ( sk->sk_idle ) {
+		ldap_set_option( ld, LDAP_OPT_X_KEEPALIVE_IDLE, &sk->sk_idle );
+	}
+
+	if ( sk->sk_probes ) {
+		ldap_set_option( ld, LDAP_OPT_X_KEEPALIVE_PROBES, &sk->sk_probes );
+	}
+
+	if ( sk->sk_interval ) {
+		ldap_set_option( ld, LDAP_OPT_X_KEEPALIVE_INTERVAL, &sk->sk_interval );
+	}
+
+	return;
+}
+
+/*
  * connect to a client using the bindconf data
  * note: should move "version" into bindconf...
  */
@@ -1963,6 +1986,10 @@ slap_client_connect( LDAP **ldp, slap_bindconf *sb )
 		ldap_set_option( ld, LDAP_OPT_NETWORK_TIMEOUT, &tv );
 	}
 
+	/* setting network keepalive options */
+	slap_client_keepalive(ld, &sb->sb_keepalive);
+
+#if 0
 	if ( sb->sb_keepalive.sk_idle ) {
 		ldap_set_option( ld, LDAP_OPT_X_KEEPALIVE_IDLE, &sb->sb_keepalive.sk_idle );
 	}
@@ -1974,6 +2001,7 @@ slap_client_connect( LDAP **ldp, slap_bindconf *sb )
 	if ( sb->sb_keepalive.sk_interval ) {
 		ldap_set_option( ld, LDAP_OPT_X_KEEPALIVE_INTERVAL, &sb->sb_keepalive.sk_interval );
 	}
+#endif /* 0 */
 
 #ifdef HAVE_TLS
 	if ( sb->sb_tls_do_init ) {
