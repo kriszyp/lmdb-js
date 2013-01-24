@@ -1989,20 +1989,6 @@ slap_client_connect( LDAP **ldp, slap_bindconf *sb )
 	/* setting network keepalive options */
 	slap_client_keepalive(ld, &sb->sb_keepalive);
 
-#if 0
-	if ( sb->sb_keepalive.sk_idle ) {
-		ldap_set_option( ld, LDAP_OPT_X_KEEPALIVE_IDLE, &sb->sb_keepalive.sk_idle );
-	}
-
-	if ( sb->sb_keepalive.sk_probes ) {
-		ldap_set_option( ld, LDAP_OPT_X_KEEPALIVE_PROBES, &sb->sb_keepalive.sk_probes );
-	}
-
-	if ( sb->sb_keepalive.sk_interval ) {
-		ldap_set_option( ld, LDAP_OPT_X_KEEPALIVE_INTERVAL, &sb->sb_keepalive.sk_interval );
-	}
-#endif /* 0 */
-
 #ifdef HAVE_TLS
 	if ( sb->sb_tls_do_init ) {
 		rc = bindconf_tls_set( sb, ld );
