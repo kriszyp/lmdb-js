@@ -89,32 +89,32 @@ static ConfigTable sqlcfg[] = {
 		"( OLcfgDbAt:6.20 NAME 'olcSqlConcatPattern' "
 			"DESC 'Pattern used to concatenate strings' "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
-	{ "subtree_cond", "SQL expression", 2, 2, 0, ARG_BERVAL|ARG_OFFSET,
+	{ "subtree_cond", "SQL expression", 2, 0, 0, ARG_BERVAL|ARG_QUOTE|ARG_OFFSET,
 		(void *)offsetof(struct backsql_info, sql_subtree_cond),
 		"( OLcfgDbAt:6.21 NAME 'olcSqlSubtreeCond' "
 			"DESC 'Where-clause template for a subtree search condition' "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
-	{ "children_cond", "SQL expression", 2, 2, 0, ARG_BERVAL|ARG_OFFSET,
+	{ "children_cond", "SQL expression", 2, 0, 0, ARG_BERVAL|ARG_QUOTE|ARG_OFFSET,
 		(void *)offsetof(struct backsql_info, sql_children_cond),
 		"( OLcfgDbAt:6.22 NAME 'olcSqlChildrenCond' "
 			"DESC 'Where-clause template for a children search condition' "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
-	{ "dn_match_cond", "SQL expression", 2, 2, 0, ARG_BERVAL|ARG_OFFSET,
+	{ "dn_match_cond", "SQL expression", 2, 0, 0, ARG_BERVAL|ARG_QUOTE|ARG_OFFSET,
 		(void *)offsetof(struct backsql_info, sql_dn_match_cond),
 		"( OLcfgDbAt:6.23 NAME 'olcSqlDnMatchCond' "
 			"DESC 'Where-clause template for a DN match search condition' "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
-	{ "oc_query", "SQL expression", 2, 2, 0, ARG_STRING|ARG_OFFSET,
+	{ "oc_query", "SQL expression", 2, 0, 0, ARG_STRING|ARG_QUOTE|ARG_OFFSET,
 		(void *)offsetof(struct backsql_info, sql_oc_query),
 		"( OLcfgDbAt:6.24 NAME 'olcSqlOcQuery' "
 			"DESC 'Query used to collect objectClass mapping data' "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
-	{ "at_query", "SQL expression", 2, 2, 0, ARG_STRING|ARG_OFFSET,
+	{ "at_query", "SQL expression", 2, 0, 0, ARG_STRING|ARG_QUOTE|ARG_OFFSET,
 		(void *)offsetof(struct backsql_info, sql_at_query),
 		"( OLcfgDbAt:6.25 NAME 'olcSqlAtQuery' "
 			"DESC 'Query used to collect attributeType mapping data' "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
-	{ "insentry_stmt", "SQL expression", 2, 2, 0, ARG_STRING|ARG_OFFSET,
+	{ "insentry_stmt", "SQL expression", 2, 0, 0, ARG_STRING|ARG_QUOTE|ARG_OFFSET,
 		(void *)offsetof(struct backsql_info, sql_insentry_stmt),
 		"( OLcfgDbAt:6.26 NAME 'olcSqlInsEntryStmt' "
 			"DESC 'Statement used to insert a new entry' "
@@ -139,17 +139,17 @@ static ConfigTable sqlcfg[] = {
 		"( OLcfgDbAt:6.30 NAME 'olcSqlStrcastFunc' "
 			"DESC 'Function that converts a value to a string' "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
-	{ "delentry_stmt", "SQL expression", 2, 2, 0, ARG_STRING|ARG_OFFSET,
+	{ "delentry_stmt", "SQL expression", 2, 0, 0, ARG_STRING|ARG_QUOTE|ARG_OFFSET,
 		(void *)offsetof(struct backsql_info, sql_delentry_stmt),
 		"( OLcfgDbAt:6.31 NAME 'olcSqlDelEntryStmt' "
 			"DESC 'Statement used to delete an existing entry' "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
-	{ "renentry_stmt", "SQL expression", 2, 2, 0, ARG_STRING|ARG_OFFSET,
+	{ "renentry_stmt", "SQL expression", 2, 0, 0, ARG_STRING|ARG_QUOTE|ARG_OFFSET,
 		(void *)offsetof(struct backsql_info, sql_renentry_stmt),
 		"( OLcfgDbAt:6.32 NAME 'olcSqlRenEntryStmt' "
 			"DESC 'Statement used to rename an entry' "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
-	{ "delobjclasses_stmt", "SQL expression", 2, 2, 0, ARG_STRING|ARG_OFFSET,
+	{ "delobjclasses_stmt", "SQL expression", 2, 0, 0, ARG_STRING|ARG_QUOTE|ARG_OFFSET,
 		(void *)offsetof(struct backsql_info, sql_delobjclasses_stmt),
 		"( OLcfgDbAt:6.33 NAME 'olcSqlDelObjclassesStmt' "
 			"DESC 'Statement used to delete the ID of an entry' "
