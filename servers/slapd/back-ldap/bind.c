@@ -717,7 +717,7 @@ ldap_back_prepare_conn( ldapconn_t *lc, Operation *op, SlapReply *rs, ldap_back_
 	}
 
 	/* turn on network keepalive, if configured so */
-	slap_client_keepalive(ld, &li->li_tls.sb_keepalive); 
+	slap_client_keepalive(ld, &li->li_tls.sb_keepalive);
 
 #ifdef HAVE_TLS
 	if ( LDAP_BACK_CONN_ISPRIV( lc ) ) {
