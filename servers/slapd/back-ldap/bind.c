@@ -716,6 +716,9 @@ ldap_back_prepare_conn( ldapconn_t *lc, Operation *op, SlapReply *rs, ldap_back_
 		ldap_set_option( ld, LDAP_OPT_NETWORK_TIMEOUT, (const void *)&tv );
 	}
 
+	/* turn on network keepalive, if configured so */
+	slap_client_keepalive(ld, &li->li_tls.sb_keepalive); 
+
 #ifdef HAVE_TLS
 	if ( LDAP_BACK_CONN_ISPRIV( lc ) ) {
 		/* See "rationale" comment in ldap_back_getconn() */
