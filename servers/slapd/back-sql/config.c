@@ -425,19 +425,19 @@ sql_cf_gen( ConfigArgs *c )
 		if ( c->value_int )
 			bi->sql_flags |= BSQLF_FETCH_ALL_ATTRS;
 		else
-			bi->sql_flags &= BSQLF_FETCH_ALL_ATTRS;
+			bi->sql_flags &= ~BSQLF_FETCH_ALL_ATTRS;
 		break;
 	case BSQL_CHECK_SCHEMA:
 		if ( c->value_int )
 			bi->sql_flags |= BSQLF_CHECK_SCHEMA;
 		else
-			bi->sql_flags &= BSQLF_CHECK_SCHEMA;
+			bi->sql_flags &= ~BSQLF_CHECK_SCHEMA;
 		break;
 	case BSQL_AUTOCOMMIT:
 		if ( c->value_int )
 			bi->sql_flags |= BSQLF_AUTOCOMMIT_ON;
 		else
-			bi->sql_flags &= BSQLF_AUTOCOMMIT_ON;
+			bi->sql_flags &= ~BSQLF_AUTOCOMMIT_ON;
 		break;
 	case BSQL_BASE_OBJECT:
 		if ( c->be->be_nsuffix == NULL ) {
