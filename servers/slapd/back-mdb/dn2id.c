@@ -756,3 +756,91 @@ mdb_idscopes(
 	}
 	return MDB_SUCCESS;
 }
+
+int
+mdb_dn2id_walk(
+	Operation *op,
+	IdScopes *isc
+)
+{
+	MDB_val key, data;
+	diskNode *d;
+	char *ptr;
+	int rc, n;
+	ID nsubs;
+
+	if ( !isc->numrdns ) {
+		key.mv_data = &isc->id;
+		key.mv_size = sizeof(ID);
+		rc = mdb_cursor_get( isc->mc, &key, &data, MDB_SET );
+		isc->scopes[0].mid = isc->id;
+		isc->numrdns++;
+		isc->nscope = 0;
+		/* skip base if not a subtree walk */
+		if ( op->ors_scope == LDAP_SCOPE_SUBTREE ||
+			op->ors_scope == LDAP_SCOPE_BASE )
+			return rc;
+	}
+	if ( op->ors_scope == LDAP_SCOPE_BASE )
+		return MDB_NOTFOUND;
+
+	for (;;) {
+		/* Get next sibling */
+		rc = mdb_cursor_get( isc->mc, &key, &data, MDB_NEXT_DUP );
+		if ( !rc ) {
+			ptr = data.mv_data + data.mv_size - 2*sizeof(ID);
+			d = data.mv_data;
+			memcpy( &isc->id, ptr, sizeof(ID));
+
+			/* If we're pushing down, see if there's any children to find */
+			if ( isc->nscope ) {
+				ptr += sizeof(ID);
+				memcpy( &nsubs, ptr, sizeof(ID));
+				/* No children, go to next sibling */
+				if ( nsubs < 2 )
+					continue;
+			}
+			n = isc->numrdns;
+			isc->scopes[n].mid = isc->id;
+			n--;
+			isc->nrdns[n].bv_len = ((d->nrdnlen[0] & 0x7f) << 8) | d->nrdnlen[1];
+			isc->nrdns[n].bv_val = d->nrdn;
+			isc->rdns[n].bv_val = d->nrdn+isc->nrdns[n].bv_len+1;
+			isc->rdns[n].bv_len = data.mv_size - sizeof(diskNode) - isc->nrdns[n].bv_len - sizeof(ID);
+			/* return this ID to caller */
+			if ( !isc->nscope )
+				break;
+
+			/* push down to child */
+			key.mv_data = &isc->id;
+			mdb_cursor_get( isc->mc, &key, &data, MDB_SET );
+			isc->nscope = 0;
+			isc->numrdns++;
+			continue;
+
+		} else if ( rc == MDB_NOTFOUND ) {
+			if ( !isc->nscope && op->ors_scope != LDAP_SCOPE_ONELEVEL ) {
+				/* reset to first dup */
+				mdb_cursor_get( isc->mc, &key, NULL, MDB_GET_CURRENT );
+				mdb_cursor_get( isc->mc, &key, &data, MDB_SET );
+				isc->nscope = 1;
+				continue;
+			} else {
+				isc->numrdns--;
+				/* stack is empty? */
+				if ( !isc->numrdns )
+					break;
+				/* pop up to prev node */
+				n = isc->numrdns - 1;
+				key.mv_data = &isc->scopes[n].mid;
+				key.mv_size = sizeof(ID);
+				data.mv_data = isc->nrdns[n].bv_val - 2;
+				mdb_cursor_get( isc->mc, &key, &data, MDB_GET_BOTH );
+				continue;
+			}
+		} else {
+			break;
+		}
+	}
+	return rc;
+}
