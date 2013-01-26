@@ -137,6 +137,10 @@ int mdb_idscopes(
 	Operation *op,
 	struct IdScopes *isc );
 
+int mdb_dn2id_walk(
+	Operation *op,
+	struct IdScopes *isc );
+
 MDB_cmp_func mdb_dup_compare;
 
 /*
