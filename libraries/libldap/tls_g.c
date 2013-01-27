@@ -44,8 +44,6 @@
 #include <gnutls/gnutls.h>
 #include <gnutls/x509.h>
 
-#define DH_BITS	(1024)
-
 typedef struct tlsg_ctx {
 	struct ldapoptions *lo;
 	gnutls_certificate_credentials_t cred;
@@ -181,6 +179,8 @@ tlsg_ctx_free ( tls_ctx *ctx )
 		return;
 	gnutls_priority_deinit( c->prios );
 	gnutls_certificate_free_credentials( c->cred );
+	if ( c->dh_params )
+		gnutls_dh_params_deinit( c->dh_params );
 	ber_memfree ( c );
 }
 
@@ -291,12 +291,6 @@ tlsg_ctx_init( struct ldapoptions *lo, struct ldaptls *lt, int is_server )
 		return -1;
 	}
 
-	if ( lo->ldo_tls_dhfile ) {
-		Debug( LDAP_DEBUG_ANY, 
-		       "TLS: warning: ignoring dhfile\n", 
-		       NULL, NULL, NULL );
-	}
-
 	if ( lo->ldo_tls_crlfile ) {
 		rc = gnutls_certificate_set_x509_crl_file( 
 			ctx->cred,
@@ -312,9 +306,20 @@ tlsg_ctx_init( struct ldapoptions *lo, struct ldaptls *lt, int is_server )
 	gnutls_certificate_set_verify_flags( ctx->cred,
 		GNUTLS_VERIFY_ALLOW_X509_V1_CA_CRT );
 
-	if ( is_server ) {
-		gnutls_dh_params_init(&ctx->dh_params);
-		gnutls_dh_params_generate2(ctx->dh_params, DH_BITS);
+	if ( is_server && lo->ldo_tls_dhfile ) {
+		gnutls_datum_t buf;
+		rc = tlsg_getfile( lo->ldo_tls_dhfile, &buf );
+		if ( rc ) return -1;
+		rc = gnutls_dh_params_init(&ctx->dh_params);
+		if ( rc ) {
+			LDAP_FREE( buf.data );
+			return -1;
+		}
+		rc = gnutls_dh_params_import_pkcs3( ctx->dh_params, &buf,
+			GNUTLS_X509_FMT_PEM );
+		LDAP_FREE( buf.data );
+		if ( rc ) return -1;
+		gnutls_certificate_set_dh_params( ctx->cred, ctx->dh_params );
 	}
 	return 0;
 }
