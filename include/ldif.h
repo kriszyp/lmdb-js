@@ -105,7 +105,7 @@ ldif_close LDAP_P(( LDIFFP * ));
 LDAP_LDIF_F( int )
 ldif_read_record LDAP_P((
 	LDIFFP *fp,
-	int *lineno,
+	unsigned long *lineno,
 	char **bufp,
 	int *buflen ));
 

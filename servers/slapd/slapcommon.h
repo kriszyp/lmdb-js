@@ -42,7 +42,7 @@ typedef struct tool_vars {
 	int tv_continuemode;
 	int tv_nosubordinates;
 	int tv_dryrun;
-	int tv_jumpline;
+	unsigned long tv_jumpline;
 	struct berval tv_sub_ndn;
 	int tv_scope;
 	Filter *tv_filter;

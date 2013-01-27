@@ -44,14 +44,14 @@ static char csnbuf[ LDAP_PVT_CSNSTR_BUFSIZE ];
 
 typedef struct Erec {
 	Entry *e;
-	int lineno;
-	int nextline;
+	unsigned long lineno;
+	unsigned long nextline;
 } Erec;
 
 typedef struct Trec {
 	Entry *e;
-	int lineno;
-	int nextline;
+	unsigned long lineno;
+	unsigned long nextline;
 	int rc;
 	int ready;
 } Trec;
@@ -108,7 +108,7 @@ again:
 					 0);
 
 		if( e == NULL ) {
-			fprintf( stderr, "%s: could not parse entry (line=%d)\n",
+			fprintf( stderr, "%s: could not parse entry (line=%lu)\n",
 				progname, erec->lineno );
 			return -2;
 		}
@@ -117,7 +117,7 @@ again:
 		if( BER_BVISEMPTY( &e->e_nname ) &&
 			!BER_BVISEMPTY( be->be_nsuffix ))
 		{
-			fprintf( stderr, "%s: line %d: "
+			fprintf( stderr, "%s: line %lu: "
 				"cannot add entry with empty dn=\"%s\"",
 				progname, erec->lineno, e->e_dn );
 			bd = select_backend( &e->e_nname, nosubordinates );
@@ -144,7 +144,7 @@ again:
 		/* check backend */
 		bd = select_backend( &e->e_nname, nosubordinates );
 		if ( bd != be ) {
-			fprintf( stderr, "%s: line %d: "
+			fprintf( stderr, "%s: line %lu: "
 				"database #%d (%s) not configured to hold \"%s\"",
 				progname, erec->lineno,
 				dbnum,
@@ -432,7 +432,7 @@ slapadd( int argc, char **argv )
 			id = be->be_entry_put( be, erec.e, &bvtext );
 			if( id == NOID ) {
 				fprintf( stderr, "%s: could not add entry dn=\"%s\" "
-								 "(line=%d): %s\n", progname, erec.e->e_dn,
+								 "(line=%lu): %s\n", progname, erec.e->e_dn,
 								 erec.lineno, bvtext.bv_val );
 				rc = EXIT_FAILURE;
 				if( continuemode ) {
