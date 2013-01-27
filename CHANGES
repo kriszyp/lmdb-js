@@ -13,7 +13,7 @@ OpenLDAP 2.4.34 Engineering
 	Fixed slapd enforce SLAPD_MAX_DAEMON_THREADS (ITS#7450)
 	Fixed slapd-ldif with empty dir (ITS#7451)
 	Fixed slapd-mdb to reopen attr DBs after env reopen (ITS#7416)
-	Fixed slapd-mdb handling of missing entries (ITS#7483)
+	Fixed slapd-mdb handling of missing entries (ITS#7483,7496)
 	Fixed slapd-mdb environment flag setting (ITS#7452)
 	Fixed slapd-mdb with sub db slapcat (ITS#7469)
 	Fixed slapd-mdb to correctly work with toolthreads > 2 (ITS#7488)
