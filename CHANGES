@@ -12,6 +12,7 @@ OpenLDAP 2.4.34 Engineering
 	Fixed slapd signedness for index_substr_any_* (ITS#7449)
 	Fixed slapd enforce SLAPD_MAX_DAEMON_THREADS (ITS#7450)
 	Added slapd-ldap onerr option (ITS#7492)
+	Added slapd-ldap keepalive support (ITS#7501)
 	Fixed slapd-ldif with empty dir (ITS#7451)
 	Fixed slapd-mdb to reopen attr DBs after env reopen (ITS#7416)
 	Fixed slapd-mdb handling of missing entries (ITS#7483,7496)
