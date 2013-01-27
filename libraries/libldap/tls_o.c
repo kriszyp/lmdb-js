@@ -59,15 +59,13 @@ static int tlso_verify_cb( int ok, X509_STORE_CTX *ctx );
 static int tlso_verify_ok( int ok, X509_STORE_CTX *ctx );
 static RSA * tlso_tmp_rsa_cb( SSL *ssl, int is_export, int key_length );
 
-static DH * tlso_tmp_dh_cb( SSL *ssl, int is_export, int key_length );
-
-typedef struct dhplist {
-	struct dhplist *next;
-	int keylength;
-	DH *param;
-} dhplist;
-
-static dhplist *tlso_dhparams;
+/* From the OpenSSL 0.9.7 distro */
+static const char tlso_dhpem1024[] =
+"-----BEGIN DH PARAMETERS-----\n\
+MIGHAoGBAJf2QmHKtQXdKCjhPx1ottPb0PMTBH9A6FbaWMsTuKG/K3g6TG1Z1fkq\n\
+/Gz/PWk/eLI9TzFgqVAuPvr3q14a1aZeVUMTgo2oO5/y2UHe6VaJ+trqCTat3xlx\n\
+/mNbIK9HA2RgPC3gWfVLZQrY+gz3ASHHR5nXWHEyvpuZm7m3h+irAgEC\n\
+-----END DH PARAMETERS-----\n";
 
 static int tlso_seed_PRNG( const char *randfile );
 
@@ -76,7 +74,6 @@ static int tlso_seed_PRNG( const char *randfile );
  * provide mutexes for the OpenSSL library.
  */
 static ldap_pvt_thread_mutex_t	tlso_mutexes[CRYPTO_NUM_LOCKS];
-static ldap_pvt_thread_mutex_t	tlso_dh_mutex;
 
 static void tlso_locking_cb( int mode, int type, const char *file, int line )
 {
@@ -107,7 +104,6 @@ static void tlso_thr_init( void )
 	for( i=0; i< CRYPTO_NUM_LOCKS ; i++ ) {
 		ldap_pvt_thread_mutex_init( &tlso_mutexes[i] );
 	}
-	ldap_pvt_thread_mutex_init( &tlso_dh_mutex );
 	CRYPTO_set_locking_callback( tlso_locking_cb );
 	CRYPTO_set_id_callback( tlso_thread_self );
 }
@@ -308,28 +304,32 @@ tlso_ctx_init( struct ldapoptions *lo, struct ldaptls *lt, int is_server )
 		return -1;
 	}
 
-	if ( lo->ldo_tls_dhfile ) {
+	if (is_server) {
 		DH *dh = NULL;
 		BIO *bio;
-		dhplist *p;
+		SSL_CTX_set_options( ctx, SSL_OP_SINGLE_DH_USE );
+		if ( lo->ldo_tls_dhfile ) {
 
-		if (( bio=BIO_new_file( lt->lt_dhfile,"r" )) == NULL ) {
+			if (( bio=BIO_new_file( lt->lt_dhfile,"r" )) == NULL ) {
+				Debug( LDAP_DEBUG_ANY,
+					"TLS: could not use DH parameters file `%s'.\n",
+					lo->ldo_tls_dhfile,0,0);
+				tlso_report_error();
+				return -1;
+			}
+		} else {
+			bio = BIO_new_mem_buf( tlso_dhpem1024, -1 );
+		}
+		if (!( dh=PEM_read_bio_DHparams( bio, NULL, NULL, NULL ))) {
 			Debug( LDAP_DEBUG_ANY,
-				"TLS: could not use DH parameters file `%s'.\n",
+				"TLS: could not read DH parameters file `%s'.\n",
 				lo->ldo_tls_dhfile,0,0);
 			tlso_report_error();
+			BIO_free( bio );
 			return -1;
 		}
-		while (( dh=PEM_read_bio_DHparams( bio, NULL, NULL, NULL ))) {
-			p = LDAP_MALLOC( sizeof(dhplist) );
-			if ( p != NULL ) {
-				p->keylength = DH_size( dh ) * 8;
-				p->param = dh;
-				p->next = tlso_dhparams;
-				tlso_dhparams = p;
-			}
-		}
 		BIO_free( bio );
+		SSL_CTX_set_tmp_dh( ctx, dh );
 	}
 
 	if ( tlso_opt_trace ) {
@@ -349,9 +349,6 @@ tlso_ctx_init( struct ldapoptions *lo, struct ldaptls *lt, int is_server )
 		lo->ldo_tls_require_cert == LDAP_OPT_X_TLS_ALLOW ?
 		tlso_verify_ok : tlso_verify_cb );
 	SSL_CTX_set_tmp_rsa_callback( ctx, tlso_tmp_rsa_cb );
-	if ( lo->ldo_tls_dhfile ) {
-		SSL_CTX_set_tmp_dh_callback( ctx, tlso_tmp_dh_cb );
-	}
 #ifdef HAVE_OPENSSL_CRL
 	if ( lo->ldo_tls_crlcheck ) {
 		X509_STORE *x509_s = SSL_CTX_get_cert_store( ctx );
@@ -1175,108 +1172,6 @@ tlso_seed_PRNG( const char *randfile )
 	return 0;
 }
 
-struct dhinfo {
-	int keylength;
-	const char *pem;
-	size_t size;
-};
-
-
-/* From the OpenSSL 0.9.7 distro */
-static const char tlso_dhpem512[] =
-"-----BEGIN DH PARAMETERS-----\n\
-MEYCQQDaWDwW2YUiidDkr3VvTMqS3UvlM7gE+w/tlO+cikQD7VdGUNNpmdsp13Yn\n\
-a6LT1BLiGPTdHghM9tgAPnxHdOgzAgEC\n\
------END DH PARAMETERS-----\n";
-
-static const char tlso_dhpem1024[] =
-"-----BEGIN DH PARAMETERS-----\n\
-MIGHAoGBAJf2QmHKtQXdKCjhPx1ottPb0PMTBH9A6FbaWMsTuKG/K3g6TG1Z1fkq\n\
-/Gz/PWk/eLI9TzFgqVAuPvr3q14a1aZeVUMTgo2oO5/y2UHe6VaJ+trqCTat3xlx\n\
-/mNbIK9HA2RgPC3gWfVLZQrY+gz3ASHHR5nXWHEyvpuZm7m3h+irAgEC\n\
------END DH PARAMETERS-----\n";
-
-static const char tlso_dhpem2048[] =
-"-----BEGIN DH PARAMETERS-----\n\
-MIIBCAKCAQEA7ZKJNYJFVcs7+6J2WmkEYb8h86tT0s0h2v94GRFS8Q7B4lW9aG9o\n\
-AFO5Imov5Jo0H2XMWTKKvbHbSe3fpxJmw/0hBHAY8H/W91hRGXKCeyKpNBgdL8sh\n\
-z22SrkO2qCnHJ6PLAMXy5fsKpFmFor2tRfCzrfnggTXu2YOzzK7q62bmqVdmufEo\n\
-pT8igNcLpvZxk5uBDvhakObMym9mX3rAEBoe8PwttggMYiiw7NuJKO4MqD1llGkW\n\
-aVM8U2ATsCun1IKHrRxynkE1/MJ86VHeYYX8GZt2YA8z+GuzylIOKcMH6JAWzMwA\n\
-Gbatw6QwizOhr9iMjZ0B26TE3X8LvW84wwIBAg==\n\
------END DH PARAMETERS-----\n";
-
-static const char tlso_dhpem4096[] =
-"-----BEGIN DH PARAMETERS-----\n\
-MIICCAKCAgEA/urRnb6vkPYc/KEGXWnbCIOaKitq7ySIq9dTH7s+Ri59zs77zty7\n\
-vfVlSe6VFTBWgYjD2XKUFmtqq6CqXMhVX5ElUDoYDpAyTH85xqNFLzFC7nKrff/H\n\
-TFKNttp22cZE9V0IPpzedPfnQkE7aUdmF9JnDyv21Z/818O93u1B4r0szdnmEvEF\n\
-bKuIxEHX+bp0ZR7RqE1AeifXGJX3d6tsd2PMAObxwwsv55RGkn50vHO4QxtTARr1\n\
-rRUV5j3B3oPMgC7Offxx+98Xn45B1/G0Prp11anDsR1PGwtaCYipqsvMwQUSJtyE\n\
-EOQWk+yFkeMe4vWv367eEi0Sd/wnC+TSXBE3pYvpYerJ8n1MceI5GQTdarJ77OW9\n\
-bGTHmxRsLSCM1jpLdPja5jjb4siAa6EHc4qN9c/iFKS3PQPJEnX7pXKBRs5f7AF3\n\
-W3RIGt+G9IVNZfXaS7Z/iCpgzgvKCs0VeqN38QsJGtC1aIkwOeyjPNy2G6jJ4yqH\n\
-ovXYt/0mc00vCWeSNS1wren0pR2EiLxX0ypjjgsU1mk/Z3b/+zVf7fZSIB+nDLjb\n\
-NPtUlJCVGnAeBK1J1nG3TQicqowOXoM6ISkdaXj5GPJdXHab2+S7cqhKGv5qC7rR\n\
-jT6sx7RUr0CNTxzLI7muV2/a4tGmj0PSdXQdsZ7tw7gbXlaWT1+MM2MCAQI=\n\
------END DH PARAMETERS-----\n";
-
-static const struct dhinfo tlso_dhpem[] = {
-	{ 512, tlso_dhpem512, sizeof(tlso_dhpem512) },
-	{ 1024, tlso_dhpem1024, sizeof(tlso_dhpem1024) },
-	{ 2048, tlso_dhpem2048, sizeof(tlso_dhpem2048) },
-	{ 4096, tlso_dhpem4096, sizeof(tlso_dhpem4096) },
-	{ 0, NULL, 0 }
-};
-
-static DH *
-tlso_tmp_dh_cb( SSL *ssl, int is_export, int key_length )
-{
-	struct dhplist *p = NULL;
-	BIO *b = NULL;
-	DH *dh = NULL;
-	int i;
-
-	/* Do we have params of this length already? */
-	LDAP_MUTEX_LOCK( &tlso_dh_mutex );
-	for ( p = tlso_dhparams; p; p=p->next ) {
-		if ( p->keylength == key_length ) {
-			LDAP_MUTEX_UNLOCK( &tlso_dh_mutex );
-			return p->param;
-		}
-	}
-
-	/* No - check for hardcoded params */
-
-	for (i=0; tlso_dhpem[i].keylength; i++) {
-		if ( tlso_dhpem[i].keylength == key_length ) {
-			b = BIO_new_mem_buf( (char *)tlso_dhpem[i].pem, tlso_dhpem[i].size );
-			break;
-		}
-	}
-
-	if ( b ) {
-		dh = PEM_read_bio_DHparams( b, NULL, NULL, NULL );
-		BIO_free( b );
-	}
-
-	/* Generating on the fly is expensive/slow... */
-	if ( !dh ) {
-		dh = DH_generate_parameters( key_length, DH_GENERATOR_2, NULL, NULL );
-	}
-	if ( dh ) {
-		p = LDAP_MALLOC( sizeof(struct dhplist) );
-		if ( p != NULL ) {
-			p->keylength = key_length;
-			p->param = dh;
-			p->next = tlso_dhparams;
-			tlso_dhparams = p;
-		}
-	}
-
-	LDAP_MUTEX_UNLOCK( &tlso_dh_mutex );
-	return dh;
-}
 
 tls_impl ldap_int_tls_impl = {
 	"OpenSSL",
