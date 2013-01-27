@@ -17,6 +17,7 @@ OpenLDAP 2.4.34 Engineering
 	Fixed slapd-mdb environment flag setting (ITS#7452)
 	Fixed slapd-mdb with sub db slapcat (ITS#7469)
 	Fixed slapd-mdb to correctly work with toolthreads > 2 (ITS#7488)
+	Fixed slapd-mdb subtree search speed (ITS#7473)
 	Fixed slapo-constraint handle uri and restrict correctly (ITS#7418)
 	Fixed slapo-constraint with multi-master replication (ITS#7426)
 	Fixed slapo-constraint segfault (ITS#7431)
