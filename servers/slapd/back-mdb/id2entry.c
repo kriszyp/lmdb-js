@@ -129,7 +129,7 @@ int mdb_id2edata(
 	/* fetch it */
 	rc = mdb_cursor_get( mc, &key, data, MDB_SET );
 	/* stubs from missing parents - DB is actually invalid */
-	if ( rc == MDB_SUCCESS && !data.mv_size )
+	if ( rc == MDB_SUCCESS && !data->mv_size )
 		rc = MDB_NOTFOUND;
 	return rc;
 }
