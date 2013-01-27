@@ -50,7 +50,7 @@
  * NOTE: part of the schema definition reported below is taken
  * from Microsoft schema definitions (OID, NAME, SYNTAX);
  *
- * EQUALITY is taken from 
+ * EQUALITY is taken from
  * <http://www.redhat.com/archives/fedora-directory-devel/2006-August/msg00007.html>
  * (posted by Andrew Bartlett)
  *
