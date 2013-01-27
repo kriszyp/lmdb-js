@@ -342,19 +342,31 @@ static txnid_t mdb_debug_start;
 	/**	The version number for a database's file format. */
 #define MDB_VERSION	 1
 
-	/**	The maximum size of a key in the database.
-	 *	While data items have essentially unbounded size, we require that
-	 *	keys all fit onto a regular page. This limit could be raised a bit
-	 *	further if needed; to something just under #MDB_PAGESIZE / #MDB_MINKEYS.
+	/**	@brief The maximum size of a key in the database.
+	 *
+	 *	We require that keys all fit onto a regular page. This limit
+	 *	could be raised a bit further if needed; to something just
+	 *	under #MDB_PAGESIZE / #MDB_MINKEYS.
+	 *
+	 *	Note that data items in an #MDB_DUPSORT database are actually keys
+	 *	of a subDB, so they're also limited to this size.
 	 */
-#define MAXKEYSIZE	 511
+#ifndef MDB_MAXKEYSIZE
+#define MDB_MAXKEYSIZE	 511
+#endif
+
+	/**	@brief The maximum size of a data item.
+	 *
+	 *	We only store a 32 bit value for node sizes.
+	 */
+#define MAXDATASIZE	0xffffffffUL
 
 #if MDB_DEBUG
 	/**	A key buffer.
 	 *	@ingroup debug
 	 *	This is used for printing a hex dump of a key's contents.
 	 */
-#define DKBUF	char kbuf[(MAXKEYSIZE*2+1)]
+#define DKBUF	char kbuf[(MDB_MAXKEYSIZE*2+1)]
 	/**	Display a key in hex.
 	 *	@ingroup debug
 	 *	Invoke a function to display a key in hex.
@@ -370,7 +382,7 @@ static txnid_t mdb_debug_start;
 	 */
 #define P_INVALID	 (~(pgno_t)0)
 
-	/** Test if a flag \b f is set in a flag word \b w. */
+	/** Test if the flags \b f are set in a flag word \b w. */
 #define F_ISSET(w, f)	 (((w) & (f)) == (f))
 
 	/**	Used for offsets within a single page.
@@ -391,6 +403,8 @@ typedef uint16_t	 indx_t;
  *	mutex is needed just to find an empty slot in the reader table. The
  *	slot's address is saved in thread-specific data so that subsequent read
  *	transactions started by the same thread need no further locking to proceed.
+ *
+ *	No reader table is used if the database is on a read-only filesystem.
  *
  *	Since the database uses multi-version concurrency control, readers don't
  *	actually need any locking. This table is used to keep track of which
@@ -798,8 +812,8 @@ struct MDB_txn {
 	 */
 	MDB_IDL		mt_free_pgs;
 	union {
-		MDB_ID2L	dirty_list;	/**< modified pages */
-		MDB_reader	*reader;	/**< this thread's slot in the reader table */
+		MDB_ID2L	dirty_list;	/**< for write txns: modified pages */
+		MDB_reader	*reader;	/**< this thread's reader table slot or NULL */
 	} mt_u;
 	/** Array of records for each DB known in the environment. */
 	MDB_dbx		*mt_dbxs;
@@ -812,7 +826,7 @@ struct MDB_txn {
 #define DB_DIRTY	0x01		/**< DB was written in this txn */
 #define DB_STALE	0x02		/**< DB record is older than txnID */
 /** @} */
-	/** Array of cursors for each DB */
+	/** In write txns, array of cursors for each DB */
 	MDB_cursor	**mt_cursors;
 	/** Array of flags for each DB */
 	unsigned char	*mt_dbflags;
@@ -929,7 +943,7 @@ struct MDB_env {
 	pid_t		me_pid;		/**< process ID of this env */
 	char		*me_path;		/**< path to the DB files */
 	char		*me_map;		/**< the memory map of the data file */
-	MDB_txninfo	*me_txns;		/**< the memory map of the lock file */
+	MDB_txninfo	*me_txns;		/**< the memory map of the lock file or NULL */
 	MDB_meta	*me_metas[2];	/**< pointers to the two meta pages */
 	MDB_txn		*me_txn;		/**< current write transaction */
 	size_t		me_mapsize;		/**< size of the data memory map */
@@ -938,7 +952,7 @@ struct MDB_env {
 	txnid_t		me_pgfirst;		/**< ID of first old page record we used */
 	txnid_t		me_pglast;		/**< ID of last old page record we used */
 	MDB_dbx		*me_dbxs;		/**< array of static DB info */
-	uint16_t	*me_dbflags;	/**< array of DB flags */
+	uint16_t	*me_dbflags;	/**< array of flags from MDB_db.md_flags */
 	MDB_oldpages *me_pghead;	/**< list of old page records */
 	MDB_oldpages *me_pgfree;	/**< list of page records to free */
 	pthread_key_t	me_txkey;	/**< thread-key for readers */
@@ -1081,8 +1095,8 @@ mdb_dkey(MDB_val *key, char *buf)
 	char *ptr = buf;
 	unsigned char *c = key->mv_data;
 	unsigned int i;
-	if (key->mv_size > MAXKEYSIZE)
-		return "MAXKEYSIZE";
+	if (key->mv_size > MDB_MAXKEYSIZE)
+		return "MDB_MAXKEYSIZE";
 	/* may want to make this a dynamic check: if the key is mostly
 	 * printable characters, print it as-is instead of converting to hex.
 	 */
@@ -2176,7 +2190,7 @@ free2:
 		MDB_val key, data;
 
 		/* make sure last page of freeDB is touched and on freelist */
-		key.mv_size = MAXKEYSIZE+1;
+		key.mv_size = MDB_MAXKEYSIZE+1;
 		key.mv_data = NULL;
 		rc = mdb_page_search(&mc, &key, MDB_PS_MODIFY);
 		if (rc && rc != MDB_NOTFOUND)
@@ -3954,7 +3968,7 @@ mdb_page_search_root(MDB_cursor *mc, MDB_val *key, int modify)
 
 		if (key == NULL)	/* Initialize cursor to first page. */
 			i = 0;
-		else if (key->mv_size > MAXKEYSIZE && key->mv_data == NULL) {
+		else if (key->mv_size > MDB_MAXKEYSIZE && key->mv_data == NULL) {
 							/* cursor to last page */
 			i = NUMKEYS(mp)-1;
 		} else {
@@ -4130,7 +4144,7 @@ mdb_get(MDB_txn *txn, MDB_dbi dbi,
 	if (txn == NULL || !dbi || dbi >= txn->mt_numdbs)
 		return EINVAL;
 
-	if (key->mv_size == 0 || key->mv_size > MAXKEYSIZE) {
+	if (key->mv_size == 0 || key->mv_size > MDB_MAXKEYSIZE) {
 		return EINVAL;
 	}
 
@@ -4572,7 +4586,7 @@ mdb_cursor_last(MDB_cursor *mc, MDB_val *key, MDB_val *data)
 	if (!(mc->mc_flags & C_INITIALIZED) || mc->mc_top) {
 		MDB_val	lkey;
 
-		lkey.mv_size = MAXKEYSIZE+1;
+		lkey.mv_size = MDB_MAXKEYSIZE+1;
 		lkey.mv_data = NULL;
 		rc = mdb_page_search(mc, &lkey, 0);
 		if (rc != MDB_SUCCESS)
@@ -4656,7 +4670,7 @@ mdb_cursor_get(MDB_cursor *mc, MDB_val *key, MDB_val *data,
 	case MDB_SET:
 	case MDB_SET_KEY:
 	case MDB_SET_RANGE:
-		if (key == NULL || key->mv_size == 0 || key->mv_size > MAXKEYSIZE) {
+		if (key == NULL || key->mv_size == 0 || key->mv_size > MDB_MAXKEYSIZE) {
 			rc = EINVAL;
 		} else if (op == MDB_SET_RANGE)
 			rc = mdb_cursor_set(mc, key, data, op, NULL);
@@ -4793,12 +4807,23 @@ mdb_cursor_put(MDB_cursor *mc, MDB_val *key, MDB_val *data,
 	size_t nsize;
 	int rc, rc2;
 	MDB_pagebuf pbuf;
-	char dbuf[MAXKEYSIZE+1];
+	char dbuf[MDB_MAXKEYSIZE+1];
 	unsigned int nflags;
 	DKBUF;
 
 	if (F_ISSET(mc->mc_txn->mt_flags, MDB_TXN_RDONLY))
 		return EACCES;
+
+	if (key->mv_size == 0 || key->mv_size > MDB_MAXKEYSIZE)
+		return EINVAL;
+
+	if (F_ISSET(mc->mc_db->md_flags, MDB_DUPSORT) && data->mv_size > MDB_MAXKEYSIZE)
+		return EINVAL;
+
+#if SIZE_MAX > MAXDATASIZE
+	if (data->mv_size > MAXDATASIZE)
+		return EINVAL;
+#endif
 
 	DPRINTF("==> put db %u key [%s], size %zu, data size %zu",
 		mc->mc_dbi, DKEY(key), key ? key->mv_size:0, data->mv_size);
@@ -5039,8 +5064,10 @@ current:
 			 */
 			if (F_ISSET(flags, MDB_RESERVE))
 				data->mv_data = NODEDATA(leaf);
-			else
+			else if (data->mv_size)
 				memcpy(NODEDATA(leaf), data->mv_data, data->mv_size);
+			else
+				memcpy(NODEKEY(leaf), key->mv_data, key->mv_size);
 			goto done;
 		}
 		mdb_node_del(mc->mc_pg[mc->mc_top], mc->mc_ki[mc->mc_top], 0);
@@ -5769,7 +5796,7 @@ mdb_update_key(MDB_page *mp, indx_t indx, MDB_val *key)
 #if MDB_DEBUG
 	{
 		MDB_val	k2;
-		char kbuf2[(MAXKEYSIZE*2+1)];
+		char kbuf2[(MDB_MAXKEYSIZE*2+1)];
 		k2.mv_data = NODEKEY(node);
 		k2.mv_size = node->mn_ksize;
 		DPRINTF("update key %u (ofs %u) [%s] to [%s] on page %zu",
@@ -6321,7 +6348,7 @@ mdb_del(MDB_txn *txn, MDB_dbi dbi,
 		return EACCES;
 	}
 
-	if (key->mv_size == 0 || key->mv_size > MAXKEYSIZE) {
+	if (key->mv_size == 0 || key->mv_size > MDB_MAXKEYSIZE) {
 		return EINVAL;
 	}
 
@@ -6760,7 +6787,7 @@ mdb_put(MDB_txn *txn, MDB_dbi dbi,
 		return EACCES;
 	}
 
-	if (key->mv_size == 0 || key->mv_size > MAXKEYSIZE) {
+	if (key->mv_size == 0 || key->mv_size > MDB_MAXKEYSIZE) {
 		return EINVAL;
 	}
 
