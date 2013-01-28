@@ -240,9 +240,9 @@ test $KILLSERVERS != no && kill -HUP $KILLPIDS
 LDIF=$ACIOUT
 
 echo "Filtering ldapsearch results..."
-$LDIFFILTER < $SEARCHOUT > $SEARCHFLT
+$LDIFFILTER -s mdb=e < $SEARCHOUT > $SEARCHFLT
 echo "Filtering original ldif used to create database..."
-$LDIFFILTER < $LDIF > $LDIFFLT
+$LDIFFILTER -s mdb=e < $LDIF > $LDIFFLT
 echo "Comparing filter output..."
 $CMP $SEARCHFLT $LDIFFLT > $CMPOUT
 
