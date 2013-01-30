@@ -835,6 +835,7 @@ mdb_dn2id_walk(
 				key.mv_data = &isc->scopes[n].mid;
 				key.mv_size = sizeof(ID);
 				data.mv_data = isc->nrdns[n].bv_val - 2;
+				data.mv_size = 1;	/* just needs to be non-zero, mdb_dup_compare doesn't care */
 				mdb_cursor_get( isc->mc, &key, &data, MDB_GET_BOTH );
 				continue;
 			}

@@ -630,6 +630,7 @@ dn2entry_retry:
 		}
 		if ( id == (ID)ps->ps_cookie )
 			id = mdb_idl_next( candidates, &cursor );
+		nsubs = ncand;	/* always bypass scope'd search */
 		goto loop_begin;
 	}
 	if ( nsubs < ncand ) {
