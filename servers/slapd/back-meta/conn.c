@@ -421,6 +421,8 @@ retry_lock:;
 	ldap_set_option( msc->msc_ld, LDAP_OPT_REFERRALS,
 		META_BACK_TGT_CHASE_REFERRALS( mt ) ? LDAP_OPT_ON : LDAP_OPT_OFF );
 
+	slap_client_keepalive(msc->msc_ld, &mt->mt_tls.sb_keepalive);
+
 #ifdef HAVE_TLS
 	if ( !is_ldaps ) {
 		slap_bindconf *sb = NULL;

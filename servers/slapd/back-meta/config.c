@@ -100,6 +100,7 @@ enum {
 	LDAP_BACK_CFG_SUBTREE_IN,
 	LDAP_BACK_CFG_PSEUDOROOTDN,
 	LDAP_BACK_CFG_PSEUDOROOTPW,
+	LDAP_BACK_CFG_KEEPALIVE,
 
 	LDAP_BACK_CFG_LAST
 };
@@ -407,6 +408,15 @@ static ConfigTable metacfg[] = {
 			"SYNTAX OMsDirectoryString "
 			"SINGLE-VALUE X-ORDERED 'SIBLINGS' )", NULL, NULL },
 
+	{ "keepalive", "keepalive", 2, 2, 0,
+		ARG_MAGIC|LDAP_BACK_CFG_KEEPALIVE,
+		meta_back_cf_gen, "( OLcfgDbAt:3.29 "
+			"NAME 'olcDbKeepalive' "
+			"DESC 'TCP keepalive' "
+			"SYNTAX OMsDirectoryString "
+			"SINGLE-VALUE )",
+		NULL, NULL },
+
 	{ NULL, NULL, 0, 0, 0, ARG_IGNORED,
 		NULL, NULL, NULL, NULL }
 };
@@ -466,6 +476,7 @@ static ConfigOCs metaocs[] = {
 			"$ olcDbSubtreeExclude "
 			"$ olcDbSubtreeInclude "
 			"$ olcDbTimeout "
+			"$ olcDbKeepalive "
 
 			/* defaults may be inherited */
 			COMMON_ATTRS
@@ -1589,6 +1600,16 @@ meta_back_cf_gen( ConfigArgs *c )
 			rc = 1;
 			break;
 
+		case LDAP_BACK_CFG_KEEPALIVE: {
+				struct berval bv;
+				char buf[AC_LINE_MAX];
+				bv.bv_len = AC_LINE_MAX;
+				bv.bv_val = &buf[0];
+				slap_keepalive_parse(&bv, &mt->mt_tls.sb_keepalive, 0, 0, 1);
+				value_add_one( &c->rvalue_vals, &bv );
+				break;
+			}
+
 		default:
 			rc = 1;
 		}
@@ -1801,6 +1822,12 @@ meta_back_cf_gen( ConfigArgs *c )
 				if ( i != c->valx )
 					rc = 1;
 			}
+			break;
+
+		case LDAP_BACK_CFG_KEEPALIVE:
+			mt->mt_tls.sb_keepalive.sk_idle = 0;
+			mt->mt_tls.sb_keepalive.sk_probes = 0;
+			mt->mt_tls.sb_keepalive.sk_interval = 0;
 			break;
 
 		default:
@@ -2808,6 +2835,11 @@ map_fail:;
 		}
 		break;
 #endif /* SLAPD_META_CLIENT_PR */
+
+	case LDAP_BACK_CFG_KEEPALIVE:
+		slap_keepalive_parse( ber_bvstrdup(c->argv[1]),
+				 &mt->mt_tls.sb_keepalive, 0, 0, 0);
+		break;
 
 	/* anything else */
 	default:
