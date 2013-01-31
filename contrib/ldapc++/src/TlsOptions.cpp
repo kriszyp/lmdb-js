@@ -4,6 +4,13 @@
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
+#include <fstream>
+#include <sstream>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <errno.h>
+#include <unistd.h>
+#include <cstring>
 #include "TlsOptions.h"
 #include "LDAPException.h"
 
@@ -54,6 +61,41 @@ TlsOptions::TlsOptions( LDAP* ld ): m_ld(ld) { }
 
 void TlsOptions::setOption( tls_option opt, const std::string& value ) const {
     checkOpt(opt, STRING);
+    switch(opt) {
+        case TlsOptions::CACERTFILE :
+        case TlsOptions::CERTFILE :
+        case TlsOptions::KEYFILE :
+        {
+            // check if the supplied file is actually readable
+            std::ifstream ifile(value.c_str());
+            if ( !ifile ) {
+                throw( LDAPException( LDAP_LOCAL_ERROR, "Unable to open the supplied file for reading" ) );
+            }
+        }
+        break;
+        case TlsOptions::CACERTDIR :
+        {
+            struct stat st;
+            std::ostringstream msg;
+            bool fail=false;
+            int err = stat(value.c_str(),&st);
+            if ( err ) {
+                msg << strerror(errno);
+                fail = true;
+            } else {
+                if ( !S_ISDIR(st.st_mode) ){
+                    msg << "The supplied path is not a directory.";
+                    fail = true;
+                }
+            }
+            if ( fail ) {
+                std::ostringstream errstr;
+                errstr << "Error while setting Certificate Directory (" << value << "): " << msg.str();
+                throw( LDAPException( LDAP_LOCAL_ERROR, errstr.str() ) );
+            }
+        }
+        break;
+    }
     this->setOption( opt, value.empty() ? NULL : (void*) value.c_str() );
 }
 
