@@ -8,6 +8,7 @@ OpenLDAP 2.4.34 Engineering
 	Fixed liblmdb freelist with large entries (ITS#7455)
 	Fixed liblmdb to check for filled dirty page list (ITS#7491)
 	Fixed liblmdb to validate data limits (ITS#7485)
+	Fixed liblmdb mdb_update_key for large keys (ITS#7505)
 	Fixed ldapmodify to not core dump with invalid LDIF (ITS#7477)
 	Fixed slapd syncrepl for old entries in MMR setup (ITS#7427)
 	Fixed slapd signedness for index_substr_any_* (ITS#7449)
