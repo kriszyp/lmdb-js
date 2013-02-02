@@ -165,9 +165,15 @@ int mdb_tool_entry_close(
 		cursor = NULL;
 	}
 	if( txn ) {
+		int rc;
 		MDB_TOOL_IDL_FLUSH( be, txn );
-		if ( mdb_txn_commit( txn ))
+		if (( rc = mdb_txn_commit( txn ))) {
+			Debug( LDAP_DEBUG_ANY,
+				LDAP_XSTRING(mdb_tool_entry_close) ": database %s: "
+				"txn_commit failed: %s (%d)\n",
+				be->be_suffix[0].bv_val, mdb_strerror(rc), rc );
 			return -1;
+		}
 		txn = NULL;
 	}
 

@@ -594,7 +594,7 @@ txnReturn:
 	}
 
 	if( rs->sr_err != LDAP_SUCCESS ) {
-		Debug( LDAP_DEBUG_TRACE,
+		Debug( LDAP_DEBUG_ANY,
 			LDAP_XSTRING(mdb_modrdn) ": %s : %s (%d)\n",
 			rs->sr_text, mdb_strerror(rs->sr_err), rs->sr_err );
 		rs->sr_err = LDAP_OTHER;

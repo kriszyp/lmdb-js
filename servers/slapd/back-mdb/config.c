@@ -194,8 +194,13 @@ mdb_online_index( void *ctx, void *arg )
 			mdb_txn_abort( txn );
 			txn = NULL;
 		}
-		if ( rc )
+		if ( rc ) {
+			Debug( LDAP_DEBUG_ANY,
+				LDAP_XSTRING(mdb_online_index) ": database %s: "
+				"txn_commit failed: %s (%d)\n",
+				be->be_suffix[0].bv_val, mdb_strerror(rc), rc );
 			break;
+		}
 		id++;
 		getnext = 1;
 	}

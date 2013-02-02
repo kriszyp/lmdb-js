@@ -242,6 +242,10 @@ mdb_db_open( BackendDB *be, ConfigReply *cr )
 
 	rc = mdb_txn_commit(txn);
 	if ( rc != 0 ) {
+		Debug( LDAP_DEBUG_ANY,
+			LDAP_XSTRING(mdb_db_open) ": database %s: "
+			"txn_commit failed: %s (%d)\n",
+			be->be_suffix[0].bv_val, mdb_strerror(rc), rc );
 		goto fail;
 	}
 
