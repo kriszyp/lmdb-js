@@ -411,7 +411,7 @@ txnReturn:
 		txn = NULL;
 		if ( rs->sr_err != 0 ) {
 			rs->sr_text = "txn_commit failed";
-			Debug( LDAP_DEBUG_TRACE,
+			Debug( LDAP_DEBUG_ANY,
 				LDAP_XSTRING(mdb_add) ": %s : %s (%d)\n",
 				rs->sr_text, mdb_strerror(rs->sr_err), rs->sr_err );
 			rs->sr_err = LDAP_OTHER;

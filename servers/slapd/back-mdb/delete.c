@@ -418,7 +418,7 @@ txnReturn:
 	}
 
 	if( rs->sr_err != 0 ) {
-		Debug( LDAP_DEBUG_TRACE,
+		Debug( LDAP_DEBUG_ANY,
 			LDAP_XSTRING(mdb_delete) ": txn_%s failed: %s (%d)\n",
 			op->o_noop ? "abort (no-op)" : "commit",
 			mdb_strerror(rs->sr_err), rs->sr_err );
