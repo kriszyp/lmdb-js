@@ -39,7 +39,7 @@ Another major benefit of nssov is that it allows all security policy to be
 administered centrally via LDAP, instead of having fragile rules scattered 
 across multiple flat files. As such, there is no client-side configuration at 
 all for the NSS/PAM stub libraries. (The stubs talk to the server via a Unix
-domain socket whose path is hardcoded to /var/run/nslcd/). As a side benefit,
+domain socket whose path is hardcoded to NSLCDPATH). As a side benefit,
 this can finally eliminate the perpetual confusion between OpenLDAP's
 ldap.conf file in ETCDIR/ldap.conf and the similarly named files typically
 used by pam_ldap and nss_ldap.
@@ -48,17 +48,7 @@ User authentication is performed by internal simple Binds. User authorization
 leverages the slapd ACL engine, which offers much more power and flexibility 
 than the simple group/hostname checks in the old pam_ldap code.
 .LP
-To use this code, you will need the client-side stuf library from
-nss-pam-ldapd.  You can get it from:
-http://arthurdejong.org/nss-pam-ldapd
-You will not need the nslcd daemon; this overlay replaces that part.
-To disable building of the nslcd daemon in nss-pam-ldapd, add the
---disable-nslcd option to the nss-pam-ldapd configure script. You
-should already be familiar with the RFC2307 and RFC2307bis schema
-to use this overlay.  See the nss-pam-ldapd README for more information
-on the schema and which features are supported.
-.LP
-You will also need to include the nis.schema in your slapd configuration
+You will need to include the nis.schema in your slapd configuration
 for RFC2307 support. If you wish to use RFC2307bis you will need a slightly
 different schema. You will also need the ldapns.schema for PAM authorization
 management.
@@ -239,6 +229,17 @@ directive must be configured for this setting to have any effect.
 .B nssov-pam-session <service>
 Specify a PAM service name whose sessions will be recorded. For the
 configured services, logins will be recorded in the
+.TP
+.B nssov-pam-password-prohibit-message <message>
+Diable password change service and return the specified message to
+users.
+.TP
+.B nssov-pam-pwdmgr-dn <dn>
+Specify the dn of the password manager.
+.TP
+.B nssov-pam-pwdmgr-pwd <pwd>
+Specify the pwd of the password manager.
+.TP
 .B loginStatus
 operational attribute of the user's entry. The attribute's values are
 of the form
@@ -301,3 +302,4 @@ default slapd configuration file
 .BR slapd (8).
 .SH AUTHOR
 Howard Chu, inspired by nss-ldapd by Arthur de Jong and pam_ldap by Luke Howard
+Enhancements by Ted C. Cheng, Symas Corp.
