@@ -1095,6 +1095,10 @@ mdb_dkey(MDB_val *key, char *buf)
 	char *ptr = buf;
 	unsigned char *c = key->mv_data;
 	unsigned int i;
+
+	if (!key)
+		return "";
+
 	if (key->mv_size > MDB_MAXKEYSIZE)
 		return "MDB_MAXKEYSIZE";
 	/* may want to make this a dynamic check: if the key is mostly
@@ -1337,19 +1341,24 @@ again:
 				if (!txn->mt_env->me_pgfirst) {
 					mdb_node_read(txn, leaf, &data);
 				}
-				txn->mt_env->me_pglast = last;
-				if (!txn->mt_env->me_pgfirst)
-					txn->mt_env->me_pgfirst = last;
 				idl = (MDB_ID *) data.mv_data;
 				/* We might have a zero-length IDL due to freelist growth
 				 * during a prior commit
 				 */
-				if (!idl[0]) goto again;
+				if (!idl[0]) {
+					txn->mt_env->me_pglast = last;
+					if (!txn->mt_env->me_pgfirst)
+						txn->mt_env->me_pgfirst = last;
+					goto again;
+				}
 				mop = malloc(sizeof(MDB_oldpages) + MDB_IDL_SIZEOF(idl) - sizeof(pgno_t));
 				if (!mop)
 					return ENOMEM;
 				mop->mo_next = txn->mt_env->me_pghead;
 				mop->mo_txnid = last;
+				txn->mt_env->me_pglast = last;
+				if (!txn->mt_env->me_pgfirst)
+					txn->mt_env->me_pgfirst = last;
 				txn->mt_env->me_pghead = mop;
 				memcpy(mop->mo_pages, idl, MDB_IDL_SIZEOF(idl));
 
@@ -4819,7 +4828,7 @@ mdb_cursor_put(MDB_cursor *mc, MDB_val *key, MDB_val *data,
 	if (F_ISSET(mc->mc_txn->mt_flags, MDB_TXN_RDONLY))
 		return EACCES;
 
-	if (key->mv_size == 0 || key->mv_size > MDB_MAXKEYSIZE)
+	if (flags != MDB_CURRENT && (key->mv_size == 0 || key->mv_size > MDB_MAXKEYSIZE))
 		return EINVAL;
 
 	if (F_ISSET(mc->mc_db->md_flags, MDB_DUPSORT) && data->mv_size > MDB_MAXKEYSIZE)
