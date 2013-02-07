@@ -529,7 +529,13 @@ shm_retry:
 	}
 
 	if ( !quick ) {
-		TXN_BEGIN(bdb->bi_dbenv, NULL, &bdb->bi_cache.c_txn, DB_READ_COMMITTED | DB_TXN_NOWAIT);
+		int txflag = DB_READ_COMMITTED;
+		/* avoid deadlocks in server; tools should
+		 * wait since they have no deadlock retry mechanism.
+		 */
+		if ( slapMode & SLAP_SERVER_MODE )
+			txflag |= DB_TXN_NOWAIT;
+		TXN_BEGIN(bdb->bi_dbenv, NULL, &bdb->bi_cache.c_txn, txflag);
 	}
 
 	entry_prealloc( bdb->bi_cache.c_maxsize );
