@@ -738,6 +738,8 @@ done:
 	return e->e_id;
 }
 
+static int mdb_dn2id_upgrade( BackendDB *be );
+
 int mdb_tool_entry_reindex(
 	BackendDB *be,
 	ID id,
@@ -754,6 +756,13 @@ int mdb_tool_entry_reindex(
 		(long) id, 0, 0 );
 	assert( tool_base == NULL );
 	assert( tool_filter == NULL );
+
+	/* Special: do a dn2id upgrade */
+	if ( adv && adv[0] == slap_schema.si_ad_entryDN ) {
+		/* short-circuit tool_entry_next() */
+		mdb_cursor_get( cursor, &key, &data, MDB_LAST );
+		return mdb_dn2id_upgrade( be );
+	}
 
 	/* No indexes configured, nothing to do. Could return an
 	 * error here to shortcut things.
@@ -1274,3 +1283,136 @@ int mdb_tool_idl_add(
 	return 0;
 }
 #endif /* MDB_TOOL_IDL_CACHING */
+
+/* Upgrade from pre 2.4.34 dn2id format */
+
+#include <ac/unistd.h>
+#include <lutil_meter.h>
+
+#define STACKSIZ	2048
+
+typedef struct rec {
+	ID id;
+	size_t len;
+	char rdn[512];
+} rec;
+
+static int
+mdb_dn2id_upgrade( BackendDB *be ) {
+	struct mdb_info *mi = (struct mdb_info *) be->be_private;
+	MDB_txn *mt;
+	MDB_cursor *mc;
+	MDB_val key, data;
+	char *ptr;
+	int rc, writes=0, depth=0;
+	int i, enable_meter = 0;
+	ID id = 0, *num, count = 0;
+	rec *stack;
+	lutil_meter_t meter;
+
+	if (!(mi->mi_flags & MDB_NEED_UPGRADE)) {
+		Debug( LDAP_DEBUG_ANY, "database %s: No upgrade needed.\n",
+			be->be_suffix[0].bv_val, 0, 0 );
+		return 0;
+	}
+
+	{
+		MDB_stat st;
+
+		mdb_stat(mdb_cursor_txn(cursor), mi->mi_dbis[MDB_ID2ENTRY], &st);
+		if (!st.ms_entries) {
+			/* Empty DB, nothing to upgrade? */
+			return 0;
+		}
+		if (isatty(2))
+			enable_meter = !lutil_meter_open(&meter,
+				&lutil_meter_text_display,
+				&lutil_meter_linear_estimator,
+				st.ms_entries);
+	}
+
+	num = ch_malloc(STACKSIZ * (sizeof(ID) + sizeof(rec)));
+	stack = (rec *)(num + STACKSIZ);
+
+	rc = mdb_txn_begin(mi->mi_dbenv, NULL, 0, &mt);
+	rc = mdb_cursor_open(mt, mi->mi_dbis[MDB_DN2ID], &mc);
+
+	key.mv_size = sizeof(ID);
+	/* post-order depth-first update */
+	for(;;) {
+		size_t dkids;
+		unsigned char *ptr;
+
+		/* visit */
+		key.mv_data = &id;
+		stack[depth].id = id;
+		rc = mdb_cursor_get(mc, &key, &data, MDB_SET);
+		num[depth] = 1;
+
+		/* update superior counts */
+		for (i=depth-1; i>=0; i--)
+			num[i] += num[depth];
+
+		rc = mdb_cursor_count(mc, &dkids);
+		if (dkids > 1) {
+			rc = mdb_cursor_get(mc, &key, &data, MDB_NEXT_DUP);
+down:
+			ptr = data.mv_data + data.mv_size - sizeof(ID);
+			memcpy(&id, ptr, sizeof(ID));
+			depth++;
+			memcpy(stack[depth].rdn, data.mv_data, data.mv_size);
+			stack[depth].len = data.mv_size;
+			continue;
+		}
+
+
+		/* pop: write updated count, advance to next node */
+pop:
+		key.mv_data = &id;
+		id = stack[depth-1].id;
+		data.mv_data = stack[depth].rdn;
+		data.mv_size = stack[depth].len;
+		rc = mdb_cursor_get(mc, &key, &data, MDB_GET_BOTH);
+		data.mv_data = stack[depth].rdn;
+		ptr = data.mv_data + data.mv_size;
+		memcpy(ptr, &num[depth], sizeof(ID));
+		data.mv_size += sizeof(ID);
+		rc = mdb_cursor_del(mc, 0);
+		rc = mdb_cursor_put(mc, &key, &data, 0);
+		count++;
+		if (enable_meter)
+			lutil_meter_update(&meter, count, 0);
+#if 0
+		{
+			int len;
+			ptr = data.mv_data;
+			len = (ptr[0] & 0x7f) << 8 | ptr[1];
+			printf("ID: %zu, %zu, %.*s\n", stack[depth].id, num[depth], len, ptr+2);
+		}
+#endif
+		writes++;
+		if (writes == 1000) {
+			mdb_cursor_close(mc);
+			rc = mdb_txn_commit(mt);
+			rc = mdb_txn_begin(mi->mi_dbenv, NULL, 0, &mt);
+			rc = mdb_cursor_open(mt, mi->mi_dbis[MDB_DN2ID], &mc);
+			rc = mdb_cursor_get(mc, &key, &data, MDB_GET_BOTH);
+			writes = 0;
+		}
+		depth--;
+		if (!depth)
+			break;
+
+		rc = mdb_cursor_get(mc, &key, &data, MDB_NEXT_DUP);
+		if (rc == 0)
+			goto down;
+		goto pop;
+	}
+	rc = mdb_txn_commit(mt);
+	ch_free(num);
+	if (enable_meter) {
+		lutil_meter_update(&meter, count, 1);
+		lutil_meter_close(&meter);
+	}
+	return rc;
+}
