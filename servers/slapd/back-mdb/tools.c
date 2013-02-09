@@ -1301,7 +1301,7 @@ static int
 mdb_dn2id_upgrade( BackendDB *be ) {
 	struct mdb_info *mi = (struct mdb_info *) be->be_private;
 	MDB_txn *mt;
-	MDB_cursor *mc;
+	MDB_cursor *mc = NULL;
 	MDB_val key, data;
 	char *ptr;
 	int rc, writes=0, depth=0;
@@ -1335,7 +1335,17 @@ mdb_dn2id_upgrade( BackendDB *be ) {
 	stack = (rec *)(num + STACKSIZ);
 
 	rc = mdb_txn_begin(mi->mi_dbenv, NULL, 0, &mt);
+	if (rc) {
+		Debug(LDAP_DEBUG_ANY, "mdb_dn2id_upgrade: mdb_txn_begin failed, %s (%d)\n",
+			mdb_strerror(rc), rc, 0 );
+		goto leave;
+	}
 	rc = mdb_cursor_open(mt, mi->mi_dbis[MDB_DN2ID], &mc);
+	if (rc) {
+		Debug(LDAP_DEBUG_ANY, "mdb_dn2id_upgrade: mdb_cursor_open failed, %s (%d)\n",
+			mdb_strerror(rc), rc, 0 );
+		goto leave;
+	}
 
 	key.mv_size = sizeof(ID);
 	/* post-order depth-first update */
@@ -1347,6 +1357,11 @@ mdb_dn2id_upgrade( BackendDB *be ) {
 		key.mv_data = &id;
 		stack[depth].id = id;
 		rc = mdb_cursor_get(mc, &key, &data, MDB_SET);
+		if (rc) {
+			Debug(LDAP_DEBUG_ANY, "mdb_dn2id_upgrade: mdb_cursor_get failed, %s (%d)\n",
+				mdb_strerror(rc), rc, 0 );
+			goto leave;
+		}
 		num[depth] = 1;
 
 		/* update superior counts */
@@ -1354,6 +1369,11 @@ mdb_dn2id_upgrade( BackendDB *be ) {
 			num[i] += num[depth];
 
 		rc = mdb_cursor_count(mc, &dkids);
+		if (rc) {
+			Debug(LDAP_DEBUG_ANY, "mdb_dn2id_upgrade: mdb_cursor_count failed, %s (%d)\n",
+				mdb_strerror(rc), rc, 0 );
+			goto leave;
+		}
 		if (dkids > 1) {
 			rc = mdb_cursor_get(mc, &key, &data, MDB_NEXT_DUP);
 down:
@@ -1373,12 +1393,27 @@ pop:
 		data.mv_data = stack[depth].rdn;
 		data.mv_size = stack[depth].len;
 		rc = mdb_cursor_get(mc, &key, &data, MDB_GET_BOTH);
+		if (rc) {
+			Debug(LDAP_DEBUG_ANY, "mdb_dn2id_upgrade: mdb_cursor_get(BOTH) failed, %s (%d)\n",
+				mdb_strerror(rc), rc, 0 );
+			goto leave;
+		}
 		data.mv_data = stack[depth].rdn;
 		ptr = data.mv_data + data.mv_size;
 		memcpy(ptr, &num[depth], sizeof(ID));
 		data.mv_size += sizeof(ID);
 		rc = mdb_cursor_del(mc, 0);
+		if (rc) {
+			Debug(LDAP_DEBUG_ANY, "mdb_dn2id_upgrade: mdb_cursor_del failed, %s (%d)\n",
+				mdb_strerror(rc), rc, 0 );
+			goto leave;
+		}
 		rc = mdb_cursor_put(mc, &key, &data, 0);
+		if (rc) {
+			Debug(LDAP_DEBUG_ANY, "mdb_dn2id_upgrade: mdb_cursor_put failed, %s (%d)\n",
+				mdb_strerror(rc), rc, 0 );
+			goto leave;
+		}
 		count++;
 		if (enable_meter)
 			lutil_meter_update(&meter, count, 0);
@@ -1394,9 +1429,29 @@ pop:
 		if (writes == 1000) {
 			mdb_cursor_close(mc);
 			rc = mdb_txn_commit(mt);
+			if (rc) {
+				Debug(LDAP_DEBUG_ANY, "mdb_dn2id_upgrade: mdb_txn_commit failed, %s (%d)\n",
+					mdb_strerror(rc), rc, 0 );
+				goto leave;
+			}
 			rc = mdb_txn_begin(mi->mi_dbenv, NULL, 0, &mt);
+			if (rc) {
+				Debug(LDAP_DEBUG_ANY, "mdb_dn2id_upgrade: mdb_txn_begin(2) failed, %s (%d)\n",
+					mdb_strerror(rc), rc, 0 );
+				goto leave;
+			}
 			rc = mdb_cursor_open(mt, mi->mi_dbis[MDB_DN2ID], &mc);
+			if (rc) {
+				Debug(LDAP_DEBUG_ANY, "mdb_dn2id_upgrade: mdb_cursor_open(2) failed, %s (%d)\n",
+					mdb_strerror(rc), rc, 0 );
+				goto leave;
+			}
 			rc = mdb_cursor_get(mc, &key, &data, MDB_GET_BOTH);
+			if (rc) {
+				Debug(LDAP_DEBUG_ANY, "mdb_dn2id_upgrade: mdb_cursor_get(2) failed, %s (%d)\n",
+					mdb_strerror(rc), rc, 0 );
+				goto leave;
+			}
 			writes = 0;
 		}
 		depth--;
@@ -1408,7 +1463,15 @@ pop:
 			goto down;
 		goto pop;
 	}
-	rc = mdb_txn_commit(mt);
+leave:
+	mdb_cursor_close(mc);
+	if (mt) {
+		rc = mdb_txn_commit(mt);
+		if (rc) {
+			Debug(LDAP_DEBUG_ANY, "mdb_dn2id_upgrade: mdb_txn_commit(2) failed, %s (%d)\n",
+				mdb_strerror(rc), rc, 0 );
+		}
+	}
 	ch_free(num);
 	if (enable_meter) {
 		lutil_meter_update(&meter, count, 1);
