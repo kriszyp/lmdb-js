@@ -96,6 +96,7 @@ struct mdb_info {
 #define	MDB_OPEN_INDEX	0x02
 #define	MDB_DEL_INDEX	0x08
 #define	MDB_RE_OPEN		0x10
+#define	MDB_NEED_UPGRADE	0x20
 
 	int mi_numads;
 

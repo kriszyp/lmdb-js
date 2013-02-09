@@ -223,9 +223,40 @@ mdb_db_open( BackendDB *be, ConfigReply *cr )
 
 		if ( i == MDB_ID2ENTRY )
 			mdb_set_compare( txn, mdb->mi_dbis[i], mdb_id_compare );
-		else if ( i == MDB_DN2ID )
+		else if ( i == MDB_DN2ID ) {
+			MDB_cursor *mc;
+			MDB_val key, data;
+			ID id;
 			mdb_set_dupsort( txn, mdb->mi_dbis[i], mdb_dup_compare );
-
+			/* check for old dn2id format */
+			rc = mdb_cursor_open( txn, mdb->mi_dbis[i], &mc );
+			/* first record is always ID 0 */
+			rc = mdb_cursor_get( mc, &key, &data, MDB_FIRST );
+			if ( rc == 0 ) {
+				rc = mdb_cursor_get( mc, &key, &data, MDB_NEXT );
+				if ( rc == 0 ) {
+					int len;
+					unsigned char *ptr;
+					ptr = data.mv_data;
+					len = (ptr[0] & 0x7f) << 8 | ptr[1];
+					if (data.mv_size < 2*len + 4 + 2*sizeof(ID)) {
+						snprintf( cr->msg, sizeof(cr->msg),
+						"database \"%s\": DN index needs upgrade, "
+						"run \"slapindex entryDN\".",
+						be->be_suffix[0].bv_val );
+						Debug( LDAP_DEBUG_ANY,
+							LDAP_XSTRING(mdb_db_open) ": %s\n",
+							cr->msg, 0, 0 );
+						if ( !(slapMode & SLAP_TOOL_READMAIN ))
+							rc = LDAP_OTHER;
+						mdb->mi_flags |= MDB_NEED_UPGRADE;
+					}
+				}
+			}
+			mdb_cursor_close( mc );
+			if ( rc == LDAP_OTHER )
+				goto fail;
+		}
 	}
 
 	rc = mdb_ad_read( mdb, txn );
