@@ -1305,7 +1305,7 @@ mdb_dn2id_upgrade( BackendDB *be ) {
 	MDB_val key, data;
 	char *ptr;
 	int rc, writes=0, depth=0;
-	int i, enable_meter = 0;
+	int enable_meter = 0;
 	ID id = 0, *num, count = 0;
 	rec *stack;
 	lutil_meter_t meter;
@@ -1364,10 +1364,6 @@ mdb_dn2id_upgrade( BackendDB *be ) {
 		}
 		num[depth] = 1;
 
-		/* update superior counts */
-		for (i=depth-1; i>=0; i--)
-			num[i] += num[depth];
-
 		rc = mdb_cursor_count(mc, &dkids);
 		if (rc) {
 			Debug(LDAP_DEBUG_ANY, "mdb_dn2id_upgrade: mdb_cursor_count failed, %s (%d)\n",
@@ -1388,6 +1384,10 @@ down:
 
 		/* pop: write updated count, advance to next node */
 pop:
+		/* update superior counts */
+		if (depth)
+			num[depth-1] += num[depth];
+
 		key.mv_data = &id;
 		id = stack[depth-1].id;
 		data.mv_data = stack[depth].rdn;
@@ -1415,9 +1415,10 @@ pop:
 			goto leave;
 		}
 		count++;
+#if 1
 		if (enable_meter)
 			lutil_meter_update(&meter, count, 0);
-#if 0
+#else
 		{
 			int len;
 			ptr = data.mv_data;
@@ -1455,21 +1456,26 @@ pop:
 			writes = 0;
 		}
 		depth--;
-		if (!depth)
-			break;
 
 		rc = mdb_cursor_get(mc, &key, &data, MDB_NEXT_DUP);
 		if (rc == 0)
 			goto down;
-		goto pop;
+		rc = 0;
+		if (depth)
+			goto pop;
+		else
+			break;
 	}
 leave:
 	mdb_cursor_close(mc);
 	if (mt) {
-		rc = mdb_txn_commit(mt);
-		if (rc) {
+		int r2;
+		r2 = mdb_txn_commit(mt);
+		if (r2) {
 			Debug(LDAP_DEBUG_ANY, "mdb_dn2id_upgrade: mdb_txn_commit(2) failed, %s (%d)\n",
-				mdb_strerror(rc), rc, 0 );
+				mdb_strerror(r2), r2, 0 );
+			if (!rc)
+				rc = r2;
 		}
 	}
 	ch_free(num);
