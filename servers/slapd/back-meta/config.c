@@ -1352,15 +1352,18 @@ meta_back_cf_gen( ConfigArgs *c )
 		/* target attrs */
 		case LDAP_BACK_CFG_URI: {
 			char *p2, *p1 = strchr( mt->mt_uri, ' ' );
-			bv.bv_len = strlen( mt->mt_uri ) + 1 + mt->mt_psuffix.bv_len;
+			bv.bv_len = strlen( mt->mt_uri ) + 3 + mt->mt_psuffix.bv_len;
 			bv.bv_val = ch_malloc( bv.bv_len + 1 );
+			p2 = bv.bv_val;
+			*p2++ = '"';
 			if ( p1 ) {
-				p2 = lutil_strncopy( bv.bv_val, mt->mt_uri, p1 - mt->mt_uri );
+				p2 = lutil_strncopy( p2, mt->mt_uri, p1 - mt->mt_uri );
 			} else {
-				p2 = lutil_strcopy( bv.bv_val, mt->mt_uri );
+				p2 = lutil_strcopy( p2, mt->mt_uri );
 			}
 			*p2++ = '/';
 			p2 = lutil_strcopy( p2, mt->mt_psuffix.bv_val );
+			*p2++ = '"';
 			if ( p1 ) {
 				strcpy( p2, p1 );
 			}
