@@ -1089,9 +1089,7 @@ meta_back_cf_gen( ConfigArgs *c )
 
 	assert( mi != NULL );
 
-	if ( c->op == SLAP_CONFIG_EMIT ) {
-		struct berval bv = BER_BVNULL;
-
+	if ( c->op == SLAP_CONFIG_EMIT || c->op == LDAP_MOD_DELETE ) {
 		if ( !mi )
 			return 1;
 
@@ -1102,6 +1100,10 @@ meta_back_cf_gen( ConfigArgs *c )
 			mt = c->ca_private;
 			mc = &mt->mt_mc;
 		}
+	}
+
+	if ( c->op == SLAP_CONFIG_EMIT ) {
+		struct berval bv = BER_BVNULL;
 
 		switch( c->type ) {
 		/* Base attrs */
