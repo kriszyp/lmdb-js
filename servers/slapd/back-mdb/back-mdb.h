@@ -23,7 +23,7 @@
 
 LDAP_BEGIN_DECL
 
-#define MDB_TOOL_IDL_CACHING	1
+#undef MDB_TOOL_IDL_CACHING	/* currently broken */
 
 #define DN_BASE_PREFIX		SLAP_INDEX_EQUALITY_PREFIX
 #define DN_ONE_PREFIX	 	'%'
