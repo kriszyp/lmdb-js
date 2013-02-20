@@ -36,8 +36,11 @@ OpenLDAP 2.4.34 Engineering
 	Build Environment
 		Fixed slapo-constraint test suite (ITS#7423)
 	Contrib
+		Added nssov nssov_config support (ITS#7518)
+		Added nssov password_prohibit_message (ITS#7518)
 		Fixed ldapc++ with gcc-4.7 (ITS#7281,ITS#7304)
-		Fixed contrib/nssov olcNssPamSession handling (ITS#7481)
+		Fixed nssov olcNssPamSession handling (ITS#7481)
+		Fixed nssov connection DN (ITS#7518)
 		Add missing Makefile for various modules (ITS#7308)
 		Unify Makefile structure for modules (ITS#7309)
 		Fixed slapo-allowed attribute replication (ITS#7493)
