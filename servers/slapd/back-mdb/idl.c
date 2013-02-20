@@ -505,9 +505,17 @@ mdb_idl_insert_keys(
 			if ( id < lo || id > hi ) {
 				/* position on lo */
 				rc = mdb_cursor_get( cursor, &key, &data, MDB_NEXT_DUP );
+				if ( rc != 0 ) {
+					err = "c_get lo";
+					goto fail;
+				}
 				if ( id > hi ) {
 					/* position on hi */
 					rc = mdb_cursor_get( cursor, &key, &data, MDB_NEXT_DUP );
+					if ( rc != 0 ) {
+						err = "c_get hi";
+						goto fail;
+					}
 				}
 				data.mv_size = sizeof(ID);
 				data.mv_data = &id;
