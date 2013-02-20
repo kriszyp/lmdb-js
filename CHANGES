@@ -51,6 +51,7 @@ OpenLDAP 2.4.34 Engineering
 		slapd-config(5) olcExtraAttrs is per db (ITS#7421)
 		slapd-overlays(5) update manpage index (ITS#7489)
 		slapo-dynlist(5) Search behavior notes (ITS#7486)
+		slapo-valsort(5) Document valsort control syntax (ITS#7523)
 
 OpenLDAP 2.4.33 Release (2012/10/10)
 	Added slapd-meta cn=config support
