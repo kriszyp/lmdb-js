@@ -23,6 +23,8 @@ OpenLDAP 2.4.34 Engineering
 	Fixed slapd-mdb with sub db slapcat (ITS#7469)
 	Fixed slapd-mdb to correctly work with toolthreads > 2 (ITS#7488,ITS#7527)
 	Fixed slapd-mdb subtree search speed (ITS#7473)
+	Fixed slapd-meta conversion to cn=config (ITS#7525)
+	Fixed slapd-meta segfault when modifying olcDbUri (ITS#7526)
 	Fixed slapd-sql back-config support (ITS#7499)
 	Fixed slapo-constraint handle uri and restrict correctly (ITS#7418)
 	Fixed slapo-constraint with multi-master replication (ITS#7426)
