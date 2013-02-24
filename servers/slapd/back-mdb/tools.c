@@ -84,16 +84,24 @@ static void * mdb_tool_index_task( void *ctx, void *ptr );
 
 static int	mdb_writes, mdb_writes_per_commit;
 
+/* Number of ops per commit in Quick mode.
+ * Batching speeds writes overall, but too large a
+ * batch will fail with MDB_TXN_FULL.
+ */
+#ifndef MDB_WRITES_PER_COMMIT
+#define MDB_WRITES_PER_COMMIT	500
+#endif
+
 static int
 mdb_tool_entry_get_int( BackendDB *be, ID id, Entry **ep );
 
 int mdb_tool_entry_open(
 	BackendDB *be, int mode )
 {
-	/* In Quick mode, commit once per 1000 entries */
+	/* In Quick mode, commit once per 500 entries */
 	mdb_writes = 0;
 	if ( slapMode & SLAP_TOOL_QUICK )
-		mdb_writes_per_commit = 1000;
+		mdb_writes_per_commit = MDB_WRITES_PER_COMMIT;
 	else
 		mdb_writes_per_commit = 1;
 
