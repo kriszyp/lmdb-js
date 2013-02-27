@@ -1548,6 +1548,9 @@ LDAP_F( LDAP * )
 ldap_dup LDAP_P((
 	LDAP *old ));
 
+LDAP_F( int )
+ldap_connect( LDAP *ld );
+
 /*
  * in tls.c
  */

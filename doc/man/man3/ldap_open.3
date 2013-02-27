@@ -30,6 +30,11 @@ LDAP **ldp;
 char *uri;
 .LP
 .ft B
+int ldap_connect(ldp)
+.ft
+LDAP *ldp;
+.LP
+.ft B
 int ldap_set_urllist_proc(ld, proc, params)
 .ft
 LDAP *ld;
@@ -140,6 +145,12 @@ are deprecated in favor of
 .BR ldap_initialize() ,
 essentially because the latter allows to specify a schema in the URI
 and it explicitly returns an error code.
+.LP
+.B ldap_connect()
+causes a handle created by
+.B ldap_initialize()
+to connect to the server. This is useful in situations where a file
+descriptor is required before a request is performed.
 .LP
 .B ldap_init_fd()
 allows an LDAP structure to be initialized using an already-opened
