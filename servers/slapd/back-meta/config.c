@@ -319,7 +319,7 @@ static ConfigTable metacfg[] = {
 		NULL, NULL },
 
 	{ "subtree-exclude", "pattern", 2, 2, 0,
-		ARG_QUOTE|ARG_MAGIC|LDAP_BACK_CFG_SUBTREE_EX,
+		ARG_MAGIC|LDAP_BACK_CFG_SUBTREE_EX,
 		meta_back_cf_gen, "( OLcfgDbAt:3.103 "
 			"NAME 'olcDbSubtreeExclude' "
 			"DESC 'DN of subtree to exclude from target' "
@@ -327,7 +327,7 @@ static ConfigTable metacfg[] = {
 			"SYNTAX OMsDirectoryString )",
 		NULL, NULL },
 	{ "subtree-include", "pattern", 2, 2, 0,
-		ARG_QUOTE|ARG_MAGIC|LDAP_BACK_CFG_SUBTREE_IN,
+		ARG_MAGIC|LDAP_BACK_CFG_SUBTREE_IN,
 		meta_back_cf_gen, "( OLcfgDbAt:3.104 "
 			"NAME 'olcDbSubtreeInclude' "
 			"DESC 'DN of subtree to include in target' "
