@@ -366,8 +366,14 @@ veryclean-local-srv: FORCE
 		fi; \
 	done
 
+install-dbc-maybe: install-dbc-@BUILD_BDB@ install-dbc-@BUILD_HDB@
+
+install-dbc-yes:	install-db-config
+install-dbc-mod:	install-db-config
+install-dbc-no:
+
 install-local-srv: install-slapd install-tools \
-	install-conf install-db-config install-schema install-tools
+	install-conf install-dbc-maybe install-schema install-tools
 
 install-slapd: FORCE
 	-$(MKDIR) $(DESTDIR)$(libexecdir)
