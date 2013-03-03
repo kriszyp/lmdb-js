@@ -1,6 +1,6 @@
 OpenLDAP 2.4 Change Log
 
-OpenLDAP 2.4.34 Release (2013/02/25)
+OpenLDAP 2.4.34 Release (2013/03/01)
 	Fixed libldap connections with EINTR (ITS#7476)
 	Fixed libldap lineno overflow in ldif_read_record (ITS#7497)
 	Fixed liblmdb mdb_env_open flag handling (ITS#7453)
