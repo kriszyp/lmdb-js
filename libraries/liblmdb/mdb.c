@@ -431,9 +431,6 @@ typedef uint16_t	 indx_t;
  *	the longer we delay reclaiming old pages, the more likely it is that a
  *	string of contiguous pages can be found after coalescing old pages from
  *	many old transactions together.
- *
- *	@todo We don't actually do such coalescing yet, we grab pages from one
- *	old transaction at a time.
  *	@{
  */
 	/**	Number of slots in the reader table.
@@ -6371,12 +6368,13 @@ mdb_rebalance(MDB_cursor *mc)
 	DPRINTF("found neighbor page %zu (%u keys, %.1f%% full)",
 	    mn.mc_pg[mn.mc_top]->mp_pgno, NUMKEYS(mn.mc_pg[mn.mc_top]), (float)PAGEFILL(mc->mc_txn->mt_env, mn.mc_pg[mn.mc_top]) / 10);
 
-	/* If the neighbor page is above threshold and has at least two
-	 * keys, move one key from it.
+	/* If the neighbor page is above threshold and has at least three
+	 * keys, move one key from it. (A page must never have fewer than
+	 * 2 keys.)
 	 *
 	 * Otherwise we should try to merge them.
 	 */
-	if (PAGEFILL(mc->mc_txn->mt_env, mn.mc_pg[mn.mc_top]) >= FILL_THRESHOLD && NUMKEYS(mn.mc_pg[mn.mc_top]) >= 2)
+	if (PAGEFILL(mc->mc_txn->mt_env, mn.mc_pg[mn.mc_top]) >= FILL_THRESHOLD && NUMKEYS(mn.mc_pg[mn.mc_top]) > 2)
 		return mdb_node_move(&mn, mc);
 	else {
 		if (mc->mc_ki[ptop] == 0)
