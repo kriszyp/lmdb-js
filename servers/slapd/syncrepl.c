@@ -1344,6 +1344,9 @@ do_syncrep2(
 				ldap_memfree( retoid );
 				ber_bvfree( retdata );
 
+				if ( rc )
+					goto done;
+
 			} else {
 				Debug( LDAP_DEBUG_ANY, "do_syncrep2: %s "
 					"unknown intermediate response (%d)\n",
