@@ -667,11 +667,11 @@ do_syncrep1(
 
 			LDAP_STAILQ_REMOVE( &slap_sync_cookie, sc, sync_cookie, sc_next );
 
-			/* ctxcsn wasn't parsed yet, do it now */
-			slap_parse_sync_cookie( sc, NULL );
 			slap_sync_cookie_free( &si->si_syncCookie, 0 );
-			slap_dup_sync_cookie( &si->si_syncCookie, sc );
-			slap_sync_cookie_free( sc, 1 );
+			si->si_syncCookie.octet_str = sc->octet_str;
+			ch_free( sc );
+			/* ctxcsn wasn't parsed yet, do it now */
+			slap_parse_sync_cookie( &si->si_syncCookie, NULL );
 		} else {
 			ldap_pvt_thread_mutex_lock( &si->si_cookieState->cs_mutex );
 			if ( !si->si_cookieState->cs_num ) {
@@ -1366,8 +1366,8 @@ do_syncrep2(
 		}
 		if ( !BER_BVISNULL( &syncCookie.octet_str ) ) {
 			slap_sync_cookie_free( &syncCookie_req, 0 );
-			slap_dup_sync_cookie( &syncCookie_req, &syncCookie );
-			slap_sync_cookie_free( &syncCookie, 0 );
+			syncCookie_req = syncCookie;
+			memset( &syncCookie, 0, sizeof( syncCookie ));
 		}
 		ldap_msgfree( msg );
 		msg = NULL;
