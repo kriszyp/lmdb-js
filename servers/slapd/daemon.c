@@ -2073,13 +2073,7 @@ slap_listener(
 			"daemon: connection_init(%ld, %s, %s) failed.\n",
 			(long) sfd, peername, sl->sl_name.bv_val );
 		slapd_close(sfd);
-		return 0;
 	}
-
-	Statslog( LDAP_DEBUG_STATS,
-		"conn=%ld fd=%ld ACCEPT from %s (%s)\n",
-		c->c_connid, (long) sfd, peername, sl->sl_name.bv_val,
-		0 );
 
 	return 0;
 }
