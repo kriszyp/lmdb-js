@@ -3,7 +3,8 @@ OpenLDAP 2.4 Change Log
 OpenLDAP 2.4.35 Engineering
 	Fixed liblmdb page rebalance (ITS#7536)
 	Fixed liblmdb missing parens (ITS#7377)
-	Fixed slapd  syncrepl updateCookie status (ITS#7531)
+	Fixed slapd syncrepl updateCookie status (ITS#7531)
+	Fixed slapd segfault on modify (ITS#7542, ITS#7432)
 	Build Environment
 		don't install DB_CONFIG if no BDB backends (ITS#7533)
 
