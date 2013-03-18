@@ -9,13 +9,15 @@ prefix	= /usr/local
 IHDRS	= lmdb.h
 ILIBS	= liblmdb.a liblmdb.so
 IPROGS	= mdb_stat mdb_copy
+IDOCS	= mdb_stat.1 mdb_copy.1
 PROGS	= $(IPROGS) mtest mtest2 mtest3 mtest4 mtest5
 all:	$(ILIBS) $(PROGS)
 
 install: $(ILIBS) $(IPROGS) $(IHDRS)
-	cp $(IPROGS) $(prefix)/bin
-	cp $(ILIBS) $(prefix)/lib
-	cp $(IHDRS) $(prefix)/include
+	cp $(IPROGS) $(DESTDIR)$(prefix)/bin
+	cp $(ILIBS) $(DESTDIR)$(prefix)/lib
+	cp $(IHDRS) $(DESTDIR)$(prefix)/include
+	cp $(IDOCS) $(DESTDIR)$(prefix)/man/man1
 
 clean:
 	rm -rf $(PROGS) *.[ao] *.so *~ testdb
@@ -28,7 +30,7 @@ liblmdb.a:	mdb.o midl.o
 	ar rs $@ mdb.o midl.o
 
 liblmdb.so:	mdb.o midl.o
-	gcc -pthread -shared -o $@ mdb.o midl.o $(SOLIBS)
+	$(CC) $(LDFLAGS) -pthread -shared -o $@ mdb.o midl.o $(SOLIBS)
 
 mdb_stat: mdb_stat.o liblmdb.a
 mdb_copy: mdb_copy.o liblmdb.a
