@@ -800,7 +800,7 @@ slap_sort_vals(
 				break;
 			EXCH(l+1,j);
 			jstack += 2;
-			if (ir-i+1 >= j) {
+			if (ir-i+1 > j-l) {
 				istack[jstack] = ir;
 				istack[jstack-1] = i;
 				ir = j;
