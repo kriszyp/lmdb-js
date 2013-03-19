@@ -72,7 +72,7 @@ again:
 	if (rc == MDB_SUCCESS) {
 		rc = mdb_entry_encode( op, e, &data, &ec );
 		if( rc != LDAP_SUCCESS )
-			return LDAP_OTHER;
+			return rc;
 	}
 	if (rc) {
 		/* Was there a hole from slapadd? */
@@ -600,6 +600,8 @@ static int mdb_entry_encode(Operation *op, Entry *e, MDB_val *data, Ecount *eh)
 	ptr = (unsigned char *)(lp + eh->offset);
 
 	for (a=e->e_attrs; a; a=a->a_next) {
+		if (!a->a_desc->ad_index)
+			return LDAP_UNDEFINED_TYPE;
 		*lp++ = mdb->mi_adxs[a->a_desc->ad_index];
 		l = a->a_numvals;
 		if (a->a_nvals != a->a_vals)
