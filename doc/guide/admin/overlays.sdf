@@ -791,7 +791,7 @@ The same example as a LDIF file for back-config for a caching server
 which proxies for the {{EX:"dc=example,dc=com"}} subtree held
 at server {{EX:ldap.example.com}}.
 
->   dn: olcDatabase={2}ldap
+>   dn: olcDatabase={2}ldap,cn=config
 >   objectClass: olcDatabaseConfig
 >   objectClass: olcLDAPConfig
 >   olcDatabase: {2}ldap
@@ -799,7 +799,7 @@ at server {{EX:ldap.example.com}}.
 >   olcRootDN: dc=example,dc=com
 >   olcDbURI: "ldap://ldap.example.com"
 >   
->   dn: olcOverlay={0}pcache
+>   dn: olcOverlay={0}pcache,olcDatabase={2}ldap,cn=config
 >   objectClass: olcOverlayConfig
 >   objectClass: olcPcacheConfig
 >   olcOverlay: {0}pcache
@@ -809,7 +809,7 @@ at server {{EX:ldap.example.com}}.
 >   olcPcacheTemplate: "(&(sn=)(givenName=))" 0 3600 0 0 0
 >   olcPcacheTemplate: "(&(departmentNumber=)(secretary=))" 0 3600
 >   
->   dn: olcDatabase={0}hdb
+>   dn: olcDatabase={0}hdb,olcOverlay={0}pcache,olcDatabase={2}ldap,cn=config
 >   objectClass: olcHdbConfig
 >   objectClass: olcPcacheDatabase
 >   olcDatabase: {0}hdb
