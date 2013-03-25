@@ -12,6 +12,8 @@ OpenLDAP 2.4.35 Engineering
 		don't install DB_CONFIG if no BDB backends (ITS#7533)
 	Documentation
 		slapschema(8) fix tool name (ITS#7534)
+		admin24 fixed pcache example (ITS#7546)
+		admin24 fixed config examples (ITS#7522)
 
 OpenLDAP 2.4.34 Release (2013/03/01)
 	Fixed libldap connections with EINTR (ITS#7476)
