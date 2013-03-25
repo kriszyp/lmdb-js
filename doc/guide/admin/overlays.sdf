@@ -774,7 +774,7 @@ at server {{EX:ldap.example.com}}.
 >	rootdn 		"dc=example,dc=com" 
 >	uri    		ldap://ldap.example.com/
 >	overlay pcache
->	pcache         bdb 100000 1 1000 100
+>	pcache         hdb 100000 1 1000 100
 >	pcacheAttrset  0 mail postaladdress telephonenumber 
 >	pcacheTemplate (sn=) 0 3600
 >	pcacheTemplate (&(sn=)(givenName=)) 0 3600
@@ -803,7 +803,7 @@ at server {{EX:ldap.example.com}}.
 >   objectClass: olcOverlayConfig
 >   objectClass: olcPcacheConfig
 >   olcOverlay: {0}pcache
->   olcPcache: bdb 100000 1 1000 100
+>   olcPcache: hdb 100000 1 1000 100
 >   olcPcacheAttrset: 0 mail postalAddress telephoneNumber
 >   olcPcacheTemplate: "(sn=)" 0 3600 0 0 0
 >   olcPcacheTemplate: "(&(sn=)(givenName=))" 0 3600 0 0 0
