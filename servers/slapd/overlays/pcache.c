@@ -2438,6 +2438,7 @@ pcache_response(
 
 	if ( si->swap_saved_attrs ) {
 		rs->sr_attrs = si->save_attrs;
+		rs->sr_attr_flags = slap_attr_flags( si->save_attrs );
 		op->ors_attrs = si->save_attrs;
 	}
 
@@ -3210,6 +3211,10 @@ get_attr_set(
 		int found = 1;
 
 		if ( count > qm->attr_sets[i].count ) {
+			if ( qm->attr_sets[i].count &&
+				bvmatch( &qm->attr_sets[i].attrs[0].an_name, slap_bv_all_user_attrs )) {
+				break;
+			}
 			continue;
 		}
 
