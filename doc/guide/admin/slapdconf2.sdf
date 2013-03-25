@@ -1076,12 +1076,12 @@ E: 30.    dn: olcDatabase=bdb,cn=config
 E: 31.    objectClass: olcDatabaseConfig
 E: 32.    objectClass: olcBdbConfig
 E: 33.    olcDatabase: bdb
-E: 34.    olcSuffix: "dc=example,dc=com"
+E: 34.    olcSuffix: dc=example,dc=com
 E: 35.    olcDbDirectory: /usr/local/var/openldap-data
-E: 36.    olcRootDN: "cn=Manager,dc=example,dc=com"
+E: 36.    olcRootDN: cn=Manager,dc=example,dc=com
 E: 37.    olcRootPW: secret
 E: 38.    olcDbIndex: uid pres,eq
-E: 39.    olcDbIndex: cn,sn,uid pres,eq,approx,sub
+E: 39.    olcDbIndex: cn,sn pres,eq,approx,sub
 E: 40.    olcDbIndex: objectClass eq
 E: 41.    olcAccess: to attrs=userPassword
 E: 42.      by self write
