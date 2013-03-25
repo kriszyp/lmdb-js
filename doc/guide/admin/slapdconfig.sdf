@@ -615,7 +615,7 @@ E:  9.    rootdn "cn=Manager,dc=example,dc=com"
 E: 10.    rootpw secret
 E: 11.    # indexed attribute definitions
 E: 12.    index uid pres,eq
-E: 13.    index cn,sn,uid pres,eq,approx,sub
+E: 13.    index cn,sn pres,eq,approx,sub
 E: 14.    index objectClass eq
 E: 15.    # database access control definitions
 E: 16.    access to attrs=userPassword
