@@ -1,6 +1,7 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.35 Engineering
+	Fixed liblmdb mdb_cursor_put with MDB_MULTIPLE (ITS#7551)
 	Fixed liblmdb page rebalance (ITS#7536)
 	Fixed liblmdb missing parens (ITS#7377)
 	Fixed slapd syncrepl updateCookie status (ITS#7531)
