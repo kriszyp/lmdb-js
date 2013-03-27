@@ -6424,6 +6424,9 @@ mdb_cursor_del0(MDB_cursor *mc, MDB_node *leaf)
 	rc = mdb_rebalance(mc);
 	if (rc != MDB_SUCCESS)
 		mc->mc_txn->mt_flags |= MDB_TXN_ERROR;
+	/* if mc points past last node in page, invalidate */
+	else if (mc->mc_ki[mc->mc_top] >= NUMKEYS(mc->mc_pg[mc->mc_top]))
+		mc->mc_flags &= ~C_INITIALIZED;
 
 	return rc;
 }
