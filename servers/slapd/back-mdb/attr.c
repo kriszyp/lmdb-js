@@ -94,6 +94,7 @@ mdb_attr_dbs_open(
 {
 	struct mdb_info *mdb = (struct mdb_info *) be->be_private;
 	MDB_txn *txn;
+	MDB_dbi *dbis = NULL;
 	int i, flags;
 	int rc;
 
@@ -109,6 +110,7 @@ mdb_attr_dbs_open(
 				cr->msg, 0, 0 );
 			return rc;
 		}
+		dbis = ch_calloc( 1, mdb->mi_nattrs * sizeof(MDB_dbi) );
 	} else {
 		rc = 0;
 	}
@@ -133,6 +135,9 @@ mdb_attr_dbs_open(
 				cr->msg, 0, 0 );
 			break;
 		}
+		/* Remember newly opened DBI handles */
+		if ( dbis )
+			dbis[i] = mdb->mi_attrs[i]->ai_dbi;
 	}
 
 	/* Only commit if this is our txn */
@@ -150,6 +155,17 @@ mdb_attr_dbs_open(
 		} else {
 			mdb_txn_abort( txn );
 		}
+		/* Something failed, forget anything we just opened */
+		if ( rc ) {
+			for ( i=0; i<mdb->mi_nattrs; i++ ) {
+				if ( dbis[i] ) {
+					mdb->mi_attrs[i]->ai_dbi = 0;
+					mdb->mi_attrs[i]->ai_indexmask |= MDB_INDEX_DELETING;
+				}
+			}
+			mdb_attr_flush( mdb );
+		}
+		ch_free( dbis );
 	}
 
 	return rc;
