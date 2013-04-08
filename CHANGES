@@ -4,6 +4,11 @@ OpenLDAP 2.4.36 Engineering
 	Fixed liblmdb MDB_PREV behavior (ITS#7556)
 	Fixed liblmdb transaction issues (ITS#7515)
 	Fixed liblmdb mdb_drop overflow page return (ITS#7561)
+	Documentation
+		ldapmodify(1) remove replog reference (ITS#7562)
+		ldif(5) remove replog reference (ITS#7562)
+		slapd-config(5) remove replog reference (ITS#7562)
+		slapd.conf(5) remove replog reference (ITS#7562)
 
 OpenLDAP 2.4.35 Release (2013/03/31)
 	Fixed liblmdb mdb_cursor_put with MDB_MULTIPLE (ITS#7551)
