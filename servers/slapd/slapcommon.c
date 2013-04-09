@@ -92,7 +92,7 @@ usage( int tool, const char *progname )
 		break;
 
 	case SLAPTEST:
-		options = " [-n databasenumber] [-u]\n";
+		options = " [-n databasenumber] [-u] [-Q]\n";
 		break;
 
 	case SLAPSCHEMA:
