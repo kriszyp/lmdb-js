@@ -297,7 +297,7 @@ Specifies if GSSAPI encryption (GSS_C_INTEG_FLAG and GSS_C_CONF_FLAG)
 should be used. The default is off.
 .TP
 .B GSSAPI_ALLOW_REMOTE_PRINCIPAL <on/true/yes/off/false/no>
-Specifies if GSSAPI based authentification should try to form the
+Specifies if GSSAPI based authentication should try to form the
 target principal name out of the ldapServiceName or dnsHostName
 attribute of the targets RootDSE entry. The default is off.
 .SH TLS OPTIONS
@@ -354,7 +354,7 @@ it is of critical importance that the key file is protected carefully.
 When using Mozilla NSS, TLS_KEY specifies the name of a file that contains
 the password for the key for the certificate specified with TLS_CERT.  The
 modutil command can be used to turn off password protection for the cert/key
-database.  For example, if TLS_CACERTDIR specifes /home/scarter/.moznss as
+database.  For example, if TLS_CACERTDIR specifies /home/scarter/.moznss as
 the location of the cert/key database, use modutil to change the password
 to the empty string:
 .nf
