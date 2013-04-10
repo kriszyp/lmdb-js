@@ -143,7 +143,7 @@ static int write_group(nssov_group_cbp *cbp,Entry *entry)
 	struct berval *names,*gids,*members;
 	struct berval passwd = {0};
 	Attribute *a;
-	int i,j,nummembers,rc;
+	int i,j,nummembers,rc = 0;
 
 	/* get group name (cn) */
 	if (BER_BVISNULL(&cbp->name))
