@@ -10,6 +10,8 @@ OpenLDAP 2.4.36 Engineering
 		ldif(5) remove replog reference (ITS#7562)
 		slapd-config(5) remove replog reference (ITS#7562)
 		slapd.conf(5) remove replog reference (ITS#7562)
+	Contrib
+		Fixed nssov group enumeration bug (ITS#7569)
 
 OpenLDAP 2.4.35 Release (2013/03/31)
 	Fixed liblmdb mdb_cursor_put with MDB_MULTIPLE (ITS#7551)
