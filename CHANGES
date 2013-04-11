@@ -4,6 +4,7 @@ OpenLDAP 2.4.36 Engineering
 	Fixed liblmdb MDB_PREV behavior (ITS#7556)
 	Fixed liblmdb transaction issues (ITS#7515)
 	Fixed liblmdb mdb_drop overflow page return (ITS#7561)
+	Fixed back-bdb/hdb to wait for read locks in tool mode (ITS#6365)
 	Documentation
 		ldapmodify(1) remove replog reference (ITS#7562)
 		ldif(5) remove replog reference (ITS#7562)
