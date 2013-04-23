@@ -20,8 +20,8 @@
    02110-1301 USA
 */
 
-#ifndef _NSLCD_PROT_H
-#define _NSLCD_PROT_H 1
+#ifndef COMMON__NSLCD_PROT_H
+#define COMMON__NSLCD_PROT_H 1
 
 #include "tio.h"
 
@@ -180,7 +180,8 @@ static void debug_dump(const void *ptr,size_t size)
   if (((size_t)tmpint32)>=sizeof(buffer)) \
   { \
     /* will not fit */ \
-    DEBUG_PRINT("READ       : buffer error: %d bytes too large",(tmpint32-sizeof(buffer))+1); \
+    tmpint32=(tmpint32-sizeof(buffer))+1; \
+    DEBUG_PRINT("READ       : buffer %d bytes too small",tmpint32); \
     ERROR_OUT_BUFERROR(fp); \
   } \
   /* read string from the stream */ \
@@ -209,7 +210,8 @@ static void debug_dump(const void *ptr,size_t size)
   if ((bufptr+(size_t)(sz))>buflen) \
   { \
     /* will not fit */ \
-    DEBUG_PRINT("READ       : buffer error: %d bytes too small",(bufptr+(sz)-(buflen))); \
+    tmpint32=bufptr+(sz)-(buflen); \
+    DEBUG_PRINT("READ       : buffer %d bytes too small",tmpint32); \
     ERROR_OUT_BUFERROR(fp); \
   }
 
@@ -353,4 +355,4 @@ TFILE *nslcd_client_open(void)
   if (tmpint32!=(int32_t)NSLCD_RESULT_BEGIN) \
     { ERROR_OUT_NOSUCCESS(fp) }
 
-#endif /* not _NSLCD_PROT_H */
+#endif /* not COMMON__NSLCD_PROT_H */

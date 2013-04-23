@@ -2,7 +2,7 @@
    tio.h - timed io functions
    This file is part of the nss-pam-ldapd library.
 
-   Copyright (C) 2007, 2008 Arthur de Jong
+   Copyright (C) 2007, 2008, 2010, 2012 Arthur de Jong
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -33,8 +33,8 @@
 
 */
 
-#ifndef _TIO_H
-#define _TIO_H
+#ifndef COMMON__TIO_H
+#define COMMON__TIO_H
 
 #include <sys/time.h>
 #include <sys/types.h>
@@ -46,9 +46,8 @@
 typedef struct tio_fileinfo TFILE;
 
 /* Open a new TFILE based on the file descriptor. The timeout is set for any
-   operation. The timeout value is copied so may be dereferenced after the
-   call. */
-TFILE *tio_fdopen(int fd,struct timeval *readtimeout,struct timeval *writetimeout,
+   operation (value in milliseconds). */
+TFILE *tio_fdopen(int fd,int readtimeout,int writetimeout,
                   size_t initreadsize,size_t maxreadsize,
                   size_t initwritesize,size_t maxwritesize)
   LIKE_MALLOC MUST_USE;
@@ -58,6 +57,9 @@ int tio_read(TFILE *fp,void *buf,size_t count);
 
 /* Read and discard the specified number of bytes from the stream. */
 int tio_skip(TFILE *fp,size_t count);
+
+/* Read all available data from the stream and empty the read buffer. */
+int tio_skipall(TFILE *fp);
 
 /* Write the specified buffer to the stream. */
 int tio_write(TFILE *fp,const void *buf,size_t count);
@@ -78,4 +80,4 @@ void tio_mark(TFILE *fp);
    were full). */
 int tio_reset(TFILE *fp);
 
-#endif /* _TIO_H */
+#endif /* COMMON__TIO_H */
