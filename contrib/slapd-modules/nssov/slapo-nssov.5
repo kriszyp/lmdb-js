@@ -12,9 +12,10 @@ The
 overlay to
 .BR slapd (8)
 services NSS and PAM requests through a local Unix Domain socket. 
-It uses the same IPC protocol as Arthur de Jong's nss-ldapd, and 
-a complete copy of the nss-ldapd source is included along with the
-nssov source code.
+It uses the same IPC protocol as Arthur de Jong's nss-pam-ldapd.
+An extract of the nss-ldapd source is included along with the
+nssov source code to allow the overlay to communicate with the
+nss-pam-ldapd client stubs.
 .LP
 Using a separate IPC protocol for NSS and PAM requests eliminates the
 libldap dependencies/clashes that the current pam_ldap/nss_ldap solutions
@@ -48,7 +49,17 @@ User authentication is performed by internal simple Binds. User authorization
 leverages the slapd ACL engine, which offers much more power and flexibility 
 than the simple group/hostname checks in the old pam_ldap code.
 .LP
-You will need to include the nis.schema in your slapd configuration
+To use this code, you will need the client-side stub library from
+nss-pam-ldapd.  You can get it from:
+http://arthurdejong.org/nss-pam-ldapd
+You will not need the nslcd daemon; this overlay replaces that part.
+To disable building of the nslcd daemon in nss-pam-ldapd, add the
+--disable-nslcd option to the nss-pam-ldapd configure script. You
+should already be familiar with the RFC2307 and RFC2307bis schema
+to use this overlay.  See the nss-pam-ldapd README for more information
+on the schema and which features are supported.
+.LP
+You will also need to include the nis.schema in your slapd configuration
 for RFC2307 support. If you wish to use RFC2307bis you will need a slightly
 different schema. You will also need the ldapns.schema for PAM authorization
 management.
