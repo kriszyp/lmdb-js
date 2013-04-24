@@ -629,9 +629,9 @@ mdb_idscope(
 	MDB_dbi dbi = mdb->mi_dn2id;
 	MDB_val		key, data;
 	MDB_cursor	*cursor;
-	ID ida, id, cid, ci0, idc = 0;
+	ID ida, id, cid = 0, ci0 = 0, idc = 0;
 	char	*ptr;
-	int		rc;
+	int		rc, copy;
 
 	key.mv_size = sizeof(ID);
 
@@ -649,17 +649,14 @@ mdb_idscope(
 	}
 
 	while (ida != NOID) {
+		copy = 1;
 		id = ida;
 		while (id) {
 			key.mv_data = &id;
 			rc = mdb_cursor_get( cursor, &key, &data, MDB_SET );
 			if ( rc ) {
-				/* not found, move on to next */
-				if (idc) {
-					if (ci0 != cid)
-						ids[ci0] = ids[cid];
-					ci0++;
-				}
+				/* not found, drop this from ids */
+				copy = 0;
 				break;
 			}
 			ptr = data.mv_data;
@@ -668,18 +665,19 @@ mdb_idscope(
 			if ( id == base ) {
 				res[0]++;
 				res[res[0]] = ida;
-				if (idc)
-					idc--;
+				copy = 0;
 				break;
-			} else {
-				if (idc) {
-					if (ci0 != cid)
-						ids[ci0] = ids[cid];
-					ci0++;
-				}
 			}
 			if ( op->ors_scope == LDAP_SCOPE_ONELEVEL )
 				break;
+		}
+		if (idc) {
+			if (copy) {
+				if (ci0 != cid)
+					ids[ci0] = ids[cid];
+				ci0++;
+			} else
+				idc--;
 		}
 		ida = mdb_idl_next( ids, &cid );
 	}
@@ -777,11 +775,11 @@ mdb_dn2id_walk(
 		isc->numrdns++;
 		isc->nscope = 0;
 		/* skip base if not a subtree walk */
-		if ( op->ors_scope == LDAP_SCOPE_SUBTREE ||
-			op->ors_scope == LDAP_SCOPE_BASE )
+		if ( isc->oscope == LDAP_SCOPE_SUBTREE ||
+			isc->oscope == LDAP_SCOPE_BASE )
 			return rc;
 	}
-	if ( op->ors_scope == LDAP_SCOPE_BASE )
+	if ( isc->oscope == LDAP_SCOPE_BASE )
 		return MDB_NOTFOUND;
 
 	for (;;) {
@@ -819,7 +817,7 @@ mdb_dn2id_walk(
 			continue;
 
 		} else if ( rc == MDB_NOTFOUND ) {
-			if ( !isc->nscope && op->ors_scope != LDAP_SCOPE_ONELEVEL ) {
+			if ( !isc->nscope && isc->oscope != LDAP_SCOPE_ONELEVEL ) {
 				/* reset to first dup */
 				mdb_cursor_get( isc->mc, &key, NULL, MDB_GET_CURRENT );
 				mdb_cursor_get( isc->mc, &key, &data, MDB_SET );

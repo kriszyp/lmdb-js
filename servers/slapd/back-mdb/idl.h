@@ -89,6 +89,7 @@ typedef struct IdScopes {
 	ID2L scopes;
 	int numrdns;
 	int nscope;
+	int oscope;
 	struct berval rdns[MAXRDNS];
 	struct berval nrdns[MAXRDNS];
 } IdScopes;
