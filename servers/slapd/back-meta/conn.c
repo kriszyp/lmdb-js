@@ -1180,8 +1180,8 @@ retry_lock:;
 				mc = NULL;
 
 			} else {
-				if ( ( mi->mi_conn_ttl != 0 && op->o_time > mc->mc_create_time + mi->mi_conn_ttl )
-					|| ( mi->mi_idle_timeout != 0 && op->o_time > mc->mc_time + mi->mi_idle_timeout ) )
+				if ( mc->mc_refcnt == 0 && (( mi->mi_conn_ttl != 0 && op->o_time > mc->mc_create_time + mi->mi_conn_ttl )
+					|| ( mi->mi_idle_timeout != 0 && op->o_time > mc->mc_time + mi->mi_idle_timeout )) )
 				{
 #if META_BACK_PRINT_CONNTREE > 0
 					meta_back_print_conntree( mi,
