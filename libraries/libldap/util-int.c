@@ -612,9 +612,6 @@ void ldap_int_utils_init( void )
 
 	ldap_pvt_thread_mutex_init( &ldap_int_gettime_mutex );
 
-#ifdef HAVE_CYRUS_SASL
-	ldap_pvt_thread_mutex_init( &ldap_int_sasl_mutex );
-#endif
 #ifdef HAVE_GSSAPI
 	ldap_pvt_thread_mutex_init( &ldap_int_gssapi_mutex );
 #endif
