@@ -762,6 +762,7 @@ meta_back_retry(
 
 		if ( rc == LDAP_SUCCESS ) {
 			quarantine = 0;
+			LDAP_BACK_CONN_BINDING_SET( msc ); binding = 1;
 			rc = meta_back_single_dobind( op, rs, mcp, candidate,
 				sendok, mt->mt_nretries, 0 );
 
