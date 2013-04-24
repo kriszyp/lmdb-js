@@ -426,9 +426,6 @@ ldap_sasl_interactive_bind(
 	char *smechs = NULL;
 	int rc;
 
-#if defined( HAVE_CYRUS_SASL )
-	LDAP_MUTEX_LOCK( &ldap_int_sasl_mutex );
-#endif
 #ifdef LDAP_CONNECTIONLESS
 	if( LDAP_IS_UDP(ld) ) {
 		/* Just force it to simple bind, silly to make the user
@@ -476,9 +473,6 @@ ldap_sasl_interactive_bind(
 		flags, interact, defaults, result, rmech, msgid );
 
 done:
-#if defined( HAVE_CYRUS_SASL )
-	LDAP_MUTEX_UNLOCK( &ldap_int_sasl_mutex );
-#endif
 	if ( smechs ) LDAP_FREE( smechs );
 
 	return rc;
