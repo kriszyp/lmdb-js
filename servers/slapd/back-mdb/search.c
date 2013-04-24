@@ -218,6 +218,7 @@ static int search_aliases(
 				 */
 				mdb_entry_return( op, matched );
 				rs->sr_text = NULL;
+				rs->sr_err = 0;
 			}
 		}
 		/* If this is a OneLevel search, we're done; oldsubs only had one
@@ -316,9 +317,10 @@ int
 mdb_search( Operation *op, SlapReply *rs )
 {
 	struct mdb_info *mdb = (struct mdb_info *) op->o_bd->be_private;
-	ID		id, cursor, nsubs, ncand;
+	ID		id, cursor, nsubs, ncand, cscope;
 	ID		lastid = NOID;
 	ID		candidates[MDB_IDL_UM_SIZE];
+	ID		iscopes[MDB_IDL_DB_SIZE];
 	ID2		*scopes;
 	Entry		*e = NULL, *base = NULL;
 	Entry		*matched = NULL;
@@ -366,6 +368,7 @@ mdb_search( Operation *op, SlapReply *rs )
 	isc.mt = ltid;
 	isc.mc = mcd;
 	isc.scopes = scopes;
+	isc.oscope = op->ors_scope;
 
 	if ( op->ors_deref & LDAP_DEREF_FINDING ) {
 		MDB_IDL_ZERO(candidates);
@@ -636,6 +639,19 @@ dn2entry_retry:
 	if ( nsubs < ncand ) {
 		int rc;
 		/* Do scope-based search */
+
+		/* if any alias scopes were set, save them */
+		if (scopes[0].mid > 1) {
+			cursor = 1;
+			for (cscope = 1; cscope <= scopes[0].mid; cscope++) {
+				/* Ignore the original base */
+				if (scopes[cscope].mid == base->e_id)
+					continue;
+				iscopes[cursor++] = scopes[cscope].mid;
+			}
+		}
+		iscopes[0] = scopes[0].mid - 1;
+
 		isc.id = base->e_id;
 		isc.numrdns = 0;
 		rc = mdb_dn2id_walk( op, &isc );
@@ -643,6 +659,7 @@ dn2entry_retry:
 			id = NOID;
 		else
 			id = isc.id;
+		cscope = 0;
 	} else {
 		id = mdb_idl_first( candidates, &cursor );
 	}
@@ -989,9 +1006,30 @@ loop_continue:
 
 		if ( nsubs < ncand ) {
 			int rc = mdb_dn2id_walk( op, &isc );
-			if (rc)
+			if (rc) {
 				id = NOID;
-			else
+				/* We got to the end of a subtree. If there are any
+				 * alias scopes left, search them too.
+				 */
+				while (iscopes[0] && cscope < iscopes[0]) {
+					cscope++;
+					isc.id = iscopes[cscope];
+					if ( base )
+						mdb_entry_return( op, base );
+					rs->sr_err = mdb_id2entry(op, mci, isc.id, &base);
+					if ( !rs->sr_err ) {
+						mdb_id2name( op, ltid, &isc.mc, isc.id, &base->e_name, &base->e_nname );
+						isc.numrdns = 0;
+						if (isc.oscope == LDAP_SCOPE_ONELEVEL)
+							isc.oscope = LDAP_SCOPE_BASE;
+						rc = mdb_dn2id_walk( op, &isc );
+						if ( !rc ) {
+							id = isc.id;
+							break;
+						}
+					}
+				}
+			} else
 				id = isc.id;
 		} else {
 			id = mdb_idl_next( candidates, &cursor );
