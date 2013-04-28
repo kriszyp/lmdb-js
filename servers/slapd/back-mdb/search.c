@@ -649,8 +649,10 @@ dn2entry_retry:
 					continue;
 				iscopes[cursor++] = scopes[cscope].mid;
 			}
+			iscopes[0] = scopes[0].mid - 1;
+		} else {
+			iscopes[0] = 0;
 		}
-		iscopes[0] = scopes[0].mid - 1;
 
 		isc.id = base->e_id;
 		isc.numrdns = 0;
