@@ -268,6 +268,9 @@ ldap_init_fd(
 	int rc;
 	LDAP *ld;
 	LDAPConn *conn;
+#ifdef LDAP_CONNECTIONLESS
+	ber_socklen_t	len;
+#endif
 
 	*ldp = NULL;
 	rc = ldap_create( &ld );
@@ -308,6 +311,15 @@ ldap_init_fd(
 
 #ifdef LDAP_CONNECTIONLESS
 	case LDAP_PROTO_UDP:
+		LDAP_IS_UDP(ld) = 1;
+		if( ld->ld_options.ldo_peer )
+			ldap_memfree( ld->ld_options.ldo_peer );
+		ld->ld_options.ldo_peer = ldap_memalloc( sizeof( struct sockaddr ) );
+		len = sizeof( struct sockaddr );
+		if( getpeername ( fd, ld->ld_options.ldo_peer, &len ) < 0) {
+			ldap_unbind_ext( ld, NULL, NULL );
+			return( AC_SOCKET_ERROR );
+		}
 #ifdef LDAP_DEBUG
 		ber_sockbuf_add_io( conn->lconn_sb, &ber_sockbuf_io_debug,
 			LBER_SBIOD_LEVEL_PROVIDER, (void *)"udp_" );
