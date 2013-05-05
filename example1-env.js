@@ -14,7 +14,7 @@ env.setMaxDbs(3);
 env.open("testdata");
 
 // Begin transaction
-var txn = new lmdb.Txn(env);
+var txn = env.beginTxn();
 // Abort transaction
 txn.abort();
 

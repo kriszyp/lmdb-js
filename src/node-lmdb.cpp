@@ -26,15 +26,17 @@
 using namespace v8;
 using namespace node;
 
-// Initializes the module
-void initializeModule(Handle<Object> exports) {
-    // Export Env as constructor for EnvWrap
-    EnvWrap::setupExports(exports);
-    
-    // Export misc things
-    setupExportMisc(exports);
-}
+extern "C" {
+    // Initializes the module
+    void initializeModule(Handle<Object> exports) {
+        // Export Env as constructor for EnvWrap
+        EnvWrap::setupExports(exports);
+        
+        // Export misc things
+        setupExportMisc(exports);
+    }
 
-// The standard node macro
-NODE_MODULE(node_lmdb, initializeModule)
+    // The standard node macro
+    NODE_MODULE(node_lmdb, initializeModule)
+}
 

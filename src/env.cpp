@@ -26,6 +26,8 @@
 using namespace v8;
 using namespace node;
 
+Persistent<Function> EnvWrap::txnCtor;
+
 EnvWrap::EnvWrap() {
     needsClose = false;
 }
@@ -113,13 +115,12 @@ Handle<Value> EnvWrap::close(const Arguments& args) {
 // Wrapper for mdb_txn_begin
 Handle<Value> EnvWrap::beginTxn(const Arguments& args) {
     HandleScope scope;
-    return Undefined();
     
-    //const unsigned argc = 1;
-    //Handle<Value> argv[argc] = { args.This() };
-    //Local<Object> instance = txnCtor->NewInstance(argc, argv);
+    const unsigned argc = 1;
+    Handle<Value> argv[argc] = { args.This() };
+    Local<Object> instance = txnCtor->NewInstance(argc, argv);
     
-    //return scope.Close(instance);
+    return scope.Close(instance);
 }
 
 // Sets up exports for the EnvWrap constructor
@@ -144,11 +145,10 @@ void EnvWrap::setupExports(Handle<Object> exports) {
     txnTpl->PrototypeTemplate()->Set(String::NewSymbol("commit"), FunctionTemplate::New(TxnWrap::commit)->GetFunction());
     txnTpl->PrototypeTemplate()->Set(String::NewSymbol("abort"), FunctionTemplate::New(TxnWrap::abort)->GetFunction());
     // TxnWrap: Get constructor
-    Persistent<Function> txnCtor = Persistent<Function>::New(txnTpl->GetFunction());
+    EnvWrap::txnCtor = Persistent<Function>::New(txnTpl->GetFunction());
     
     // Set exports
     exports->Set(String::NewSymbol("Env"), envCtor);
-    exports->Set(String::NewSymbol("Txn"), txnCtor);
 }
 
 

@@ -42,7 +42,7 @@ private:
     // The wrapped object
     MDB_env *env;
     // Constructor for TxnWrap
-    //static Persistent<Function> txnCtor;
+    static Persistent<Function> txnCtor;
     
     friend class TxnWrap;
 
