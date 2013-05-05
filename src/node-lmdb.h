@@ -31,6 +31,8 @@
 using namespace v8;
 using namespace node;
 
+void setupExportMisc(Handle<Object> exports);
+
 class EnvWrap : public ObjectWrap {
 private:
     // Stores whether or not the MDB_env needs closing

@@ -21,20 +21,20 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+
 #include "node-lmdb.h"
 
-using namespace v8;
-using namespace node;
-
-// Initializes the module
-void initializeModule(Handle<Object> exports) {
-    // Export Env as constructor for EnvWrap
-    EnvWrap::setupExports(exports);
+void setupExportMisc(Handle<Object> exports) {
+    Local<Object> versionObj = Object::New();
     
-    // Export misc things
-    setupExportMisc(exports);
+    int major, minor, patch;
+    char *str = mdb_version(&major, &minor, &patch);
+    versionObj->Set(String::NewSymbol("versionString"), String::New(str));
+    versionObj->Set(String::NewSymbol("major"), Integer::New(major));
+    versionObj->Set(String::NewSymbol("minor"), Integer::New(minor));
+    versionObj->Set(String::NewSymbol("patch"), Integer::New(patch));
+    
+    Persistent<Object> v = Persistent<Object>::New(versionObj);
+    exports->Set(String::NewSymbol("version"), v);
 }
-
-// The standard node macro
-NODE_MODULE(node_lmdb, initializeModule)
 
