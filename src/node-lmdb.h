@@ -31,14 +31,20 @@
 using namespace v8;
 using namespace node;
 
+// Exports misc stuff to the module
 void setupExportMisc(Handle<Object> exports);
 
+// Wraps MDB_env
 class EnvWrap : public ObjectWrap {
 private:
     // Stores whether or not the MDB_env needs closing
     bool needsClose;
     // The wrapped object
     MDB_env *env;
+    // Constructor for TxnWrap
+    //static Persistent<Function> txnCtor;
+    
+    friend class TxnWrap;
 
 public:
     EnvWrap();
@@ -50,6 +56,29 @@ public:
     static Handle<Value> setMaxDbs(const Arguments& args);
     static Handle<Value> open(const Arguments& args);
     static Handle<Value> close(const Arguments& args);
+    
+    static Handle<Value> beginTxn(const Arguments& args);
+};
+
+// Wraps MDB_txn
+class TxnWrap : public ObjectWrap {
+private:
+    // Stores whether or not the MDB_txn needs closing
+    bool needsClose;
+    // The wrapped object
+    MDB_txn *txn;
+    // Reference to the MDB_env of the wrapped MDB_txn
+    MDB_env *env;
+    
+    friend class EnvWrap;
+
+public:
+    TxnWrap(MDB_env *env, MDB_txn *txn);
+    ~TxnWrap();
+
+    static Handle<Value> ctor(const Arguments& args);
+    static Handle<Value> commit(const Arguments& args);
+    static Handle<Value> abort(const Arguments& args);
 };
 
 #endif // NODE_LMDB_H

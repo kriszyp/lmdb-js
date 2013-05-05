@@ -110,19 +110,45 @@ Handle<Value> EnvWrap::close(const Arguments& args) {
     return scope.Close(Undefined());
 }
 
+// Wrapper for mdb_txn_begin
+Handle<Value> EnvWrap::beginTxn(const Arguments& args) {
+    HandleScope scope;
+    return Undefined();
+    
+    //const unsigned argc = 1;
+    //Handle<Value> argv[argc] = { args.This() };
+    //Local<Object> instance = txnCtor->NewInstance(argc, argv);
+    
+    //return scope.Close(instance);
+}
+
 // Sets up exports for the EnvWrap constructor
 void EnvWrap::setupExports(Handle<Object> exports) {
-    // Prepare constructor template
-    Local<FunctionTemplate> tpl = FunctionTemplate::New(EnvWrap::ctor);
-    tpl->SetClassName(String::NewSymbol("Env"));
-    tpl->InstanceTemplate()->SetInternalFieldCount(1);
-    // Add functions to the prototype
-    tpl->PrototypeTemplate()->Set(String::NewSymbol("setMaxDbs"), FunctionTemplate::New(EnvWrap::setMaxDbs)->GetFunction());
-    tpl->PrototypeTemplate()->Set(String::NewSymbol("open"), FunctionTemplate::New(EnvWrap::open)->GetFunction());
-    tpl->PrototypeTemplate()->Set(String::NewSymbol("close"), FunctionTemplate::New(EnvWrap::close)->GetFunction());
-
-    Persistent<Function> constructor = Persistent<Function>::New(tpl->GetFunction());
-    exports->Set(String::NewSymbol("Env"), constructor);
+    // EnvWrap: Prepare constructor template
+    Local<FunctionTemplate> envTpl = FunctionTemplate::New(EnvWrap::ctor);
+    envTpl->SetClassName(String::NewSymbol("Env"));
+    envTpl->InstanceTemplate()->SetInternalFieldCount(1);
+    // EnvWrap: Add functions to the prototype
+    envTpl->PrototypeTemplate()->Set(String::NewSymbol("setMaxDbs"), FunctionTemplate::New(EnvWrap::setMaxDbs)->GetFunction());
+    envTpl->PrototypeTemplate()->Set(String::NewSymbol("open"), FunctionTemplate::New(EnvWrap::open)->GetFunction());
+    envTpl->PrototypeTemplate()->Set(String::NewSymbol("close"), FunctionTemplate::New(EnvWrap::close)->GetFunction());
+    envTpl->PrototypeTemplate()->Set(String::NewSymbol("beginTxn"), FunctionTemplate::New(EnvWrap::beginTxn)->GetFunction());
+    // EnvWrap: Get constructor
+    Persistent<Function> envCtor = Persistent<Function>::New(envTpl->GetFunction());
+    
+    // TxnWrap: Prepare constructor template
+    Local<FunctionTemplate> txnTpl = FunctionTemplate::New(TxnWrap::ctor);
+    txnTpl->SetClassName(String::NewSymbol("Txn"));
+    txnTpl->InstanceTemplate()->SetInternalFieldCount(1);
+    // TxnWrap: Add functions to the prototype
+    txnTpl->PrototypeTemplate()->Set(String::NewSymbol("commit"), FunctionTemplate::New(TxnWrap::commit)->GetFunction());
+    txnTpl->PrototypeTemplate()->Set(String::NewSymbol("abort"), FunctionTemplate::New(TxnWrap::abort)->GetFunction());
+    // TxnWrap: Get constructor
+    Persistent<Function> txnCtor = Persistent<Function>::New(txnTpl->GetFunction());
+    
+    // Set exports
+    exports->Set(String::NewSymbol("Env"), envCtor);
+    exports->Set(String::NewSymbol("Txn"), txnCtor);
 }
 
 
