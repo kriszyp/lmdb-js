@@ -28,14 +28,17 @@
 using namespace v8;
 using namespace node;
 
+// Wrapper for MDB_env
+// Its purpose is to handle an LMDB environment
 class LmdbEnv : public ObjectWrap {
 public:
+    // Sets up exports for the LmdbEnv constructor
     static void setup(Handle<Object> exports) {
         // Prepare constructor template
         Local<FunctionTemplate> tpl = FunctionTemplate::New(LmdbEnv::ctor);
         tpl->SetClassName(String::NewSymbol("LmdbEnv"));
         tpl->InstanceTemplate()->SetInternalFieldCount(1);
-        // Prototype
+        // Add function to prototype
         tpl->PrototypeTemplate()->Set(String::NewSymbol("setMaxDbs"), FunctionTemplate::New(LmdbEnv::setMaxDbs)->GetFunction());
         tpl->PrototypeTemplate()->Set(String::NewSymbol("open"), FunctionTemplate::New(LmdbEnv::open)->GetFunction());
         tpl->PrototypeTemplate()->Set(String::NewSymbol("close"), FunctionTemplate::New(LmdbEnv::close)->GetFunction());
@@ -45,18 +48,22 @@ public:
     }
     
 private:
+    // Stores whether or not the MDB_env needs closing
     bool needsClose;
+    // The wrapped object
     MDB_env *env;
 
     LmdbEnv() {
         needsClose = false;
     }
     ~LmdbEnv() {
+        // Close if not closed already
         if (needsClose) {
             mdb_env_close(env);
         }
     }
-
+    
+    // Constructor
     static Handle<Value> ctor(const Arguments& args) {
         HandleScope scope;
         int rc;
@@ -76,6 +83,7 @@ private:
         return args.This();
     }
     
+    // Wrapper for mdb_env_set_maxdbs
     static Handle<Value> setMaxDbs(const Arguments& args) {
         HandleScope scope;
         int rc;
@@ -92,11 +100,14 @@ private:
         return scope.Close(Undefined());
     }
     
+    // Wrapper for mdb_env_open
     static Handle<Value> open(const Arguments& args) {
         HandleScope scope;
         int rc;
         
+        // Get the wrapper
         LmdbEnv *wrapper = ObjectWrap::Unwrap<LmdbEnv>(args.This());
+        // Get the first parameter
         String *pathWrap = *(args[0]->ToString());
         int l = pathWrap->Length();
         char *path = new char[l + 1];
@@ -114,6 +125,7 @@ private:
         return scope.Close(Undefined());
     }
     
+    // Wrapper for mdb_env_close
     static Handle<Value> close(const Arguments& args) {
         HandleScope scope;
         
@@ -125,9 +137,11 @@ private:
     }
 };
 
+// Initializes the module
 void initializeModule(Handle<Object> exports) {
     LmdbEnv::setup(exports);
 }
 
+// The standard node macro
 NODE_MODULE(node_lmdb, initializeModule)
 
