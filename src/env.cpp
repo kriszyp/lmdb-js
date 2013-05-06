@@ -39,7 +39,6 @@ EnvWrap::~EnvWrap() {
     }
 }
 
-// Constructor
 Handle<Value> EnvWrap::ctor(const Arguments& args) {
     HandleScope scope;
     int rc;
@@ -59,39 +58,44 @@ Handle<Value> EnvWrap::ctor(const Arguments& args) {
     return args.This();
 }
 
-// Wrapper for mdb_env_set_maxdbs
-Handle<Value> EnvWrap::setMaxDbs(const Arguments& args) {
-    HandleScope scope;
-    int rc;
-    
-    EnvWrap *wrapper = ObjectWrap::Unwrap<EnvWrap>(args.This());
-    int n = args[0]->ToInteger()->Value();
-    rc = mdb_env_set_maxdbs(wrapper->env, n);
-    
-    if (rc != 0) {
-        ThrowException(Exception::Error(String::New(mdb_strerror(rc))));
-        return scope.Close(Undefined());
-    }
-    
-    return scope.Close(Undefined());
-}
+//Handle<Value> EnvWrap::setMaxDbs(const Arguments& args) {
+//    HandleScope scope;
+//    int rc;
+//    
+//    EnvWrap *wrapper = ObjectWrap::Unwrap<EnvWrap>(args.This());
+//    int n = args[0]->ToInteger()->Value();
+//    rc = mdb_env_set_maxdbs(wrapper->env, n);
+//    
+//    if (rc != 0) {
+//        ThrowException(Exception::Error(String::New(mdb_strerror(rc))));
+//        return scope.Close(Undefined());
+//    }
+//    
+//    return scope.Close(Undefined());
+//}
 
-// Wrapper for mdb_env_open
 Handle<Value> EnvWrap::open(const Arguments& args) {
     HandleScope scope;
     int rc;
     
     // Get the wrapper
-    EnvWrap *wrapper = ObjectWrap::Unwrap<EnvWrap>(args.This());
-    // Get the first parameter
-    String *pathWrap = *(args[0]->ToString());
-    int l = pathWrap->Length();
-    char *path = new char[l + 1];
-    pathWrap->WriteAscii(path);
-    path[l] = 0;
+    EnvWrap *ew = ObjectWrap::Unwrap<EnvWrap>(args.This());
+    Local<Object> options = args[0]->ToObject();
+    Local<String> path = options->Get(String::NewSymbol("path"))->ToString();
+    
+    Handle<Value> maxDbs = options->Get(String::NewSymbol("maxDbs"));
+    if (maxDbs->IsInt32()) {
+        int n = maxDbs->ToInt32()->Value();
+        rc = mdb_env_set_maxdbs(ew->env, n);
+    }
+    
+    int l = path->Length();
+    char *cpath = new char[l + 1];
+    path->WriteAscii(cpath);
+    cpath[l] = 0;
     
     // TODO: make 3rd and 4th parameter configurable
-    rc = mdb_env_open(wrapper->env, path, 0, 0664);
+    rc = mdb_env_open(ew->env, cpath, 0, 0664);
     
     if (rc != 0) {
         ThrowException(Exception::Error(String::New(mdb_strerror(rc))));
@@ -101,7 +105,6 @@ Handle<Value> EnvWrap::open(const Arguments& args) {
     return scope.Close(Undefined());
 }
 
-// Wrapper for mdb_env_close
 Handle<Value> EnvWrap::close(const Arguments& args) {
     HandleScope scope;
     
@@ -112,7 +115,6 @@ Handle<Value> EnvWrap::close(const Arguments& args) {
     return scope.Close(Undefined());
 }
 
-// Wrapper for mdb_txn_begin
 Handle<Value> EnvWrap::beginTxn(const Arguments& args) {
     HandleScope scope;
     
@@ -123,14 +125,12 @@ Handle<Value> EnvWrap::beginTxn(const Arguments& args) {
     return scope.Close(instance);
 }
 
-// Sets up exports for the EnvWrap constructor
 void EnvWrap::setupExports(Handle<Object> exports) {
     // EnvWrap: Prepare constructor template
     Local<FunctionTemplate> envTpl = FunctionTemplate::New(EnvWrap::ctor);
     envTpl->SetClassName(String::NewSymbol("Env"));
     envTpl->InstanceTemplate()->SetInternalFieldCount(1);
     // EnvWrap: Add functions to the prototype
-    envTpl->PrototypeTemplate()->Set(String::NewSymbol("setMaxDbs"), FunctionTemplate::New(EnvWrap::setMaxDbs)->GetFunction());
     envTpl->PrototypeTemplate()->Set(String::NewSymbol("open"), FunctionTemplate::New(EnvWrap::open)->GetFunction());
     envTpl->PrototypeTemplate()->Set(String::NewSymbol("close"), FunctionTemplate::New(EnvWrap::close)->GetFunction());
     envTpl->PrototypeTemplate()->Set(String::NewSymbol("beginTxn"), FunctionTemplate::New(EnvWrap::beginTxn)->GetFunction());

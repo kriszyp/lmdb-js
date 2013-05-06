@@ -8,10 +8,13 @@ var lmdb = require('./src/build/Release/node-lmdb');
 console.log("Current lmdb version is", lmdb.version);
 // Create new LMDB environment
 var env = new lmdb.Env();
-// Set maximum number of databases
-env.setMaxDbs(3);
 // Open the environment
-env.open("testdata");
+env.open({
+    // Path to the environment
+    path: "./testdata",
+    // Maximum number of databases
+    setMaxDbs: 3
+});
 
 // Begin transaction
 var txn = env.beginTxn();

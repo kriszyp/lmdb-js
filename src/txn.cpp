@@ -44,7 +44,7 @@ Handle<Value> TxnWrap::ctor(const Arguments& args) {
 
     EnvWrap *ew = ObjectWrap::Unwrap<EnvWrap>(args[0]->ToObject());
     MDB_txn *txn;
-    int rc = mdb_txn_begin(ew->env, NULL, 0, &txn);    
+    int rc = mdb_txn_begin(ew->env, NULL, 0, &txn);
     if (rc != 0) {
         ThrowException(Exception::Error(String::New(mdb_strerror(rc))));
         return Undefined();

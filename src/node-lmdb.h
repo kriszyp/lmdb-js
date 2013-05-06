@@ -52,11 +52,22 @@ public:
 
     // Sets up exports for the Env constructor
     static void setupExports(Handle<Object> exports);
+    
+    // Constructor
     static Handle<Value> ctor(const Arguments& args);
-    static Handle<Value> setMaxDbs(const Arguments& args);
+    
+    /* Wrapper for mdb_env_open
+       Opens a database environment with the specified options. The options will be used to configure the environment before opening it.
+       Options:
+          - maxDbs: the maximum number of named databases you can have in the environment
+          - path: path to the database environment
+    */
     static Handle<Value> open(const Arguments& args);
+    
+    // Wrapper for mdb_env_close
     static Handle<Value> close(const Arguments& args);
     
+    // Wrapper for mdb_txn_begin
     static Handle<Value> beginTxn(const Arguments& args);
 };
 
