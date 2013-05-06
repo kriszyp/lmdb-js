@@ -58,25 +58,17 @@ Handle<Value> EnvWrap::ctor(const Arguments& args) {
     return args.This();
 }
 
-//Handle<Value> EnvWrap::setMaxDbs(const Arguments& args) {
-//    HandleScope scope;
-//    int rc;
-//    
-//    EnvWrap *wrapper = ObjectWrap::Unwrap<EnvWrap>(args.This());
-//    int n = args[0]->ToInteger()->Value();
-//    rc = mdb_env_set_maxdbs(wrapper->env, n);
-//    
-//    if (rc != 0) {
-//        ThrowException(Exception::Error(String::New(mdb_strerror(rc))));
-//        return scope.Close(Undefined());
-//    }
-//    
-//    return scope.Close(Undefined());
-//}
+static void setFlagFromValue(int *flags, int flag, const char *name, Local<Object> options) {
+    Handle<Value> opt = options->Get(String::NewSymbol(name));
+    if (opt->IsBoolean() && opt->BooleanValue()) {
+        *flags |= flag;
+    }
+}
 
 Handle<Value> EnvWrap::open(const Arguments& args) {
     HandleScope scope;
     int rc;
+    int flags = 0;
     
     // Get the wrapper
     EnvWrap *ew = ObjectWrap::Unwrap<EnvWrap>(args.This());
@@ -85,9 +77,13 @@ Handle<Value> EnvWrap::open(const Arguments& args) {
     
     Handle<Value> maxDbs = options->Get(String::NewSymbol("maxDbs"));
     if (maxDbs->IsInt32()) {
-        int n = maxDbs->ToInt32()->Value();
+        int n = maxDbs->Int32Value();
         rc = mdb_env_set_maxdbs(ew->env, n);
     }
+    
+    setFlagFromValue(&flags, MDB_NOSUBDIR, "noSubdir", options);
+    setFlagFromValue(&flags, MDB_RDONLY, "readOnly", options);
+    setFlagFromValue(&flags, MDB_WRITEMAP, "useWritemap", options);
     
     int l = path->Length();
     char *cpath = new char[l + 1];
@@ -98,11 +94,13 @@ Handle<Value> EnvWrap::open(const Arguments& args) {
     rc = mdb_env_open(ew->env, cpath, 0, 0664);
     
     if (rc != 0) {
+        mdb_env_close(ew->env);
+        ew->needsClose = false;
         ThrowException(Exception::Error(String::New(mdb_strerror(rc))));
-        return scope.Close(Undefined());
+        return Undefined();
     }
     
-    return scope.Close(Undefined());
+    return Undefined();
 }
 
 Handle<Value> EnvWrap::close(const Arguments& args) {
