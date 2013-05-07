@@ -58,9 +58,9 @@ Handle<Value> EnvWrap::ctor(const Arguments& args) {
     return args.This();
 }
 
-static void setFlagFromValue(int *flags, int flag, const char *name, Local<Object> options) {
+static void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue, Local<Object> options) {
     Handle<Value> opt = options->Get(String::NewSymbol(name));
-    if (opt->IsBoolean() && opt->BooleanValue()) {
+    if (opt->IsBoolean() ? opt->BooleanValue() : defaultValue) {
         *flags |= flag;
     }
 }
@@ -81,9 +81,11 @@ Handle<Value> EnvWrap::open(const Arguments& args) {
         rc = mdb_env_set_maxdbs(ew->env, n);
     }
     
-    setFlagFromValue(&flags, MDB_NOSUBDIR, "noSubdir", options);
-    setFlagFromValue(&flags, MDB_RDONLY, "readOnly", options);
-    setFlagFromValue(&flags, MDB_WRITEMAP, "useWritemap", options);
+    // MDB_FIXEDMAP is not exposed here since it is "highly experimental" + it is irrelevant for this use case
+    // MDB_NOTLS is not exposed here because it is irrelevant for this use case, as node will run all this on a single thread anyway
+    setFlagFromValue(&flags, MDB_NOSUBDIR, "noSubdir", false, options);
+    setFlagFromValue(&flags, MDB_RDONLY, "readOnly", false, options);
+    setFlagFromValue(&flags, MDB_WRITEMAP, "useWritemap", false, options);
     
     int l = path->Length();
     char *cpath = new char[l + 1];
@@ -91,7 +93,7 @@ Handle<Value> EnvWrap::open(const Arguments& args) {
     cpath[l] = 0;
     
     // TODO: make 3rd and 4th parameter configurable
-    rc = mdb_env_open(ew->env, cpath, 0, 0664);
+    rc = mdb_env_open(ew->env, cpath, flags, 0664);
     
     if (rc != 0) {
         mdb_env_close(ew->env);
