@@ -389,6 +389,8 @@ ldap_int_sasl_bind(
 	struct berval	ccred = BER_BVNULL;
 	int saslrc, rc;
 	unsigned credlen;
+	char my_hostname[HOST_NAME_MAX + 1];
+	int free_saslhost = 0;
 
 	Debug1( LDAP_DEBUG_TRACE, "ldap_int_sasl_bind: %s\n",
 		mechs ? mechs : "<null>" );
@@ -449,14 +451,25 @@ ldap_int_sasl_bind(
 
 			/* If we don't need to canonicalize just use the host
 			 * from the LDAP URI.
+			 * Always use the result of gethostname() for LDAPI.
 			 */
-			if ( nocanon )
+			if (ld->ld_defconn->lconn_server->lud_scheme != NULL &&
+			    strcmp("ldapi", ld->ld_defconn->lconn_server->lud_scheme) == 0) {
+				rc = gethostname(my_hostname, HOST_NAME_MAX + 1);
+				if (rc == 0) {
+					saslhost = my_hostname;
+				} else {
+					saslhost = "localhost";
+				}
+			} else if ( nocanon )
 				saslhost = ld->ld_defconn->lconn_server->lud_host;
-			else 
+			else {
 				saslhost = ldap_host_connected_to( ld->ld_defconn->lconn_sb,
 				"localhost" );
+				free_saslhost = 1;
+			}
 			rc = ldap_int_sasl_open( ld, ld->ld_defconn, saslhost );
-			if ( !nocanon )
+			if ( free_saslhost )
 				LDAP_FREE( saslhost );
 		}
 
