@@ -21,8 +21,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-
 #include "node-lmdb.h"
+#include <string.h>
 
 void setupExportMisc(Handle<Object> exports) {
     Local<Object> versionObj = Object::New();
@@ -43,5 +43,19 @@ void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue,
     if (opt->IsBoolean() ? opt->BooleanValue() : defaultValue) {
         *flags |= flag;
     }
+}
+
+void v8ToLmdbVal(Handle<Value> handle, MDB_val *val) {
+    // TODO: support other data types, not just string
+    v8::String::Utf8Value str(handle->ToString());
+    
+    val->mv_size = str.length();
+    val->mv_data = *str;
+}
+
+Handle<Value> lmdbValToV8(MDB_val *val) {
+    // TODO: support other data types, not just string
+    Local<String> var = String::New((char*)val->mv_data);
+    return var;
 }
 

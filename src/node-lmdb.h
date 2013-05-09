@@ -86,8 +86,6 @@ private:
     MDB_txn *txn;
     // Reference to the MDB_env of the wrapped MDB_txn
     MDB_env *env;
-    
-    friend class EnvWrap;
 
 public:
     TxnWrap(MDB_env *env, MDB_txn *txn);
@@ -110,7 +108,7 @@ private:
     // Reference to the MDB_env of the wrapped MDB_txn
     MDB_env *env;
     
-    friend class EnvWrap;
+    friend class TxnWrap;
 
 public:
     DbiWrap(MDB_env *env, MDB_dbi dbi);

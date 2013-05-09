@@ -23,8 +23,14 @@ var dbi = env.openDbi({
 
 // Begin transaction
 var txn = env.beginTxn();
-// Abort transaction
-txn.abort();
+
+// Get data
+var data = txn.get(dbi, "hello");
+console.log(data);
+txn.put(dbi, "hello", "hey!");
+
+// Commit transaction
+txn.commit();
 
 // Close the database
 dbi.close();

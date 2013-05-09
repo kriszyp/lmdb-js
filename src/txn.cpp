@@ -26,6 +26,9 @@
 using namespace v8;
 using namespace node;
 
+void v8ToLmdbVal(Handle<Value> handle, MDB_val *val);
+Handle<Value> lmdbValToV8(MDB_val *val);
+
 TxnWrap::TxnWrap(MDB_env *env, MDB_txn *txn) {
     needsClose = false;
     this->env = env;
@@ -81,14 +84,38 @@ Handle<Value> TxnWrap::get(const Arguments& args) {
     HandleScope scope;
     
     TxnWrap *tw = ObjectWrap::Unwrap<TxnWrap>(args.This());
+    DbiWrap *dw = ObjectWrap::Unwrap<DbiWrap>(args[0]->ToObject());
     
-    return Undefined();
+    MDB_val key, data;
+    v8ToLmdbVal(args[1], &key);
+    int rc = mdb_get(tw->txn, dw->dbi, &key, &data);
+    if (rc == MDB_NOTFOUND) {
+        return scope.Close(Null());
+    }
+    else if (rc != 0) {
+        ThrowException(Exception::Error(String::New(mdb_strerror(rc))));
+        return Undefined();
+    }
+    
+    Handle<Value> result = lmdbValToV8(&data);
+    return scope.Close(result);
 }
 
 Handle<Value> TxnWrap::put(const Arguments& args) {
     HandleScope scope;
     
     TxnWrap *tw = ObjectWrap::Unwrap<TxnWrap>(args.This());
+    DbiWrap *dw = ObjectWrap::Unwrap<DbiWrap>(args[0]->ToObject());
+    
+    int flags = 0;
+    MDB_val key, data;
+    v8ToLmdbVal(args[1], &key);
+    v8ToLmdbVal(args[2], &data);
+    int rc = mdb_put(tw->txn, dw->dbi, &key, &data, flags);
+    if (rc != 0) {
+        ThrowException(Exception::Error(String::New(mdb_strerror(rc))));
+        return Undefined();
+    }
     
     return Undefined();
 }
