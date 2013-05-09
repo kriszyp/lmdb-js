@@ -77,4 +77,20 @@ Handle<Value> TxnWrap::abort(const Arguments& args) {
     return Undefined();
 }
 
+Handle<Value> TxnWrap::get(const Arguments& args) {
+    HandleScope scope;
+    
+    TxnWrap *tw = ObjectWrap::Unwrap<TxnWrap>(args.This());
+    
+    return Undefined();
+}
+
+Handle<Value> TxnWrap::put(const Arguments& args) {
+    HandleScope scope;
+    
+    TxnWrap *tw = ObjectWrap::Unwrap<TxnWrap>(args.This());
+    
+    return Undefined();
+}
+
 

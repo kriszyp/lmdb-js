@@ -159,6 +159,8 @@ void EnvWrap::setupExports(Handle<Object> exports) {
     // TxnWrap: Add functions to the prototype
     txnTpl->PrototypeTemplate()->Set(String::NewSymbol("commit"), FunctionTemplate::New(TxnWrap::commit)->GetFunction());
     txnTpl->PrototypeTemplate()->Set(String::NewSymbol("abort"), FunctionTemplate::New(TxnWrap::abort)->GetFunction());
+    txnTpl->PrototypeTemplate()->Set(String::NewSymbol("get"), FunctionTemplate::New(TxnWrap::get)->GetFunction());
+    txnTpl->PrototypeTemplate()->Set(String::NewSymbol("put"), FunctionTemplate::New(TxnWrap::put)->GetFunction());
     // TxnWrap: Get constructor
     EnvWrap::txnCtor = Persistent<Function>::New(txnTpl->GetFunction());
     

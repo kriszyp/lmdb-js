@@ -96,6 +96,8 @@ public:
     static Handle<Value> ctor(const Arguments& args);
     static Handle<Value> commit(const Arguments& args);
     static Handle<Value> abort(const Arguments& args);
+    static Handle<Value> get(const Arguments& args);
+    static Handle<Value> put(const Arguments& args);
 };
 
 // Wraps MDB_dbi
