@@ -61,6 +61,9 @@ Handle<Value> DbiWrap::ctor(const Arguments& args) {
         cname[l] = 0;
         
         // Get flags from options
+        
+        // NOTE: mdb_set_relfunc is not exposed because MDB_FIXEDMAP is "highly experimental"
+        // NOTE: mdb_set_relctx is not exposed because MDB_FIXEDMAP is "highly experimental"
         setFlagFromValue(&flags, MDB_REVERSEKEY, "reverseKey", false, options);
         setFlagFromValue(&flags, MDB_DUPSORT, "dupSort", false, options);
         setFlagFromValue(&flags, MDB_INTEGERKEY, "integerKey", false, options);
@@ -68,12 +71,10 @@ Handle<Value> DbiWrap::ctor(const Arguments& args) {
         setFlagFromValue(&flags, MDB_INTEGERDUP, "integerDup", false, options);
         setFlagFromValue(&flags, MDB_REVERSEDUP, "reverseDup", false, options);
         setFlagFromValue(&flags, MDB_CREATE, "create", false, options);
+            
+        // TODO: wrap mdb_set_compare
+        // TODO: wrap mdb_set_dupsort
     }
-    
-    // TODO: wrap mdb_set_compare
-    // TODO: wrap mdb_set_dupsort
-    // NOTE: mdb_set_relfunc is not exposed because MDB_FIXEDMAP is "highly experimental"
-    // NOTE: mdb_set_relctx is not exposed because MDB_FIXEDMAP is "highly experimental"
     
     // Open transaction
     rc = mdb_txn_begin(ew->env, NULL, 0, &txn);

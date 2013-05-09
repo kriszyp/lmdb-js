@@ -168,6 +168,7 @@ void EnvWrap::setupExports(Handle<Object> exports) {
     dbiTpl->InstanceTemplate()->SetInternalFieldCount(1);
     // DbiWrap: Add functions to the prototype
     dbiTpl->PrototypeTemplate()->Set(String::NewSymbol("close"), FunctionTemplate::New(DbiWrap::close)->GetFunction());
+    // TODO: wrap mdb_stat too
     // DbiWrap: Get constructor
     EnvWrap::dbiCtor = Persistent<Function>::New(dbiTpl->GetFunction());
     
