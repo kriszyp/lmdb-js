@@ -28,6 +28,7 @@ using namespace node;
 
 void v8ToLmdbVal(Handle<Value> handle, MDB_val *val);
 Handle<Value> lmdbValToV8(MDB_val *val);
+void consoleLog(const char *msg);
 
 TxnWrap::TxnWrap(MDB_env *env, MDB_txn *txn) {
     needsClose = false;
@@ -64,8 +65,12 @@ Handle<Value> TxnWrap::commit(const Arguments& args) {
     HandleScope scope;
     
     TxnWrap *tw = ObjectWrap::Unwrap<TxnWrap>(args.This());
-    mdb_txn_commit(tw->txn);
+    int rc = mdb_txn_commit(tw->txn);
     tw->needsClose = false;
+    if (rc != 0) {
+        ThrowException(Exception::Error(String::New(mdb_strerror(rc))));
+        return Undefined();
+    }
     
     return Undefined();
 }

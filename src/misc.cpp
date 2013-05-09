@@ -23,6 +23,7 @@
 
 #include "node-lmdb.h"
 #include <string.h>
+#include <stdio.h>
 
 void setupExportMisc(Handle<Object> exports) {
     Local<Object> versionObj = Object::New();
@@ -45,12 +46,28 @@ void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue,
     }
 }
 
+void consoleLog(const char *msg) {
+    Handle<String> str = String::New("console.log('");
+    str = String::Concat(str, String::New(msg));
+    str = String::Concat(str, String::New("');"));
+    
+    Local<Script> script = Script::New(str, String::New("node-lmdb-consolelog.js"));
+    script->Run();
+}
+
+void consoleLogN(int n) {
+    char c[20];
+    memset(c, 0, 20 * sizeof(char));
+    sprintf(c, "%d", n);
+    consoleLog(c);
+}
+
 void v8ToLmdbVal(Handle<Value> handle, MDB_val *val) {
     // TODO: support other data types, not just string
-    v8::String::Utf8Value str(handle->ToString());
+    v8::String::Utf8Value *str = new v8::String::Utf8Value(handle->ToString());
     
-    val->mv_size = str.length();
-    val->mv_data = *str;
+    val->mv_size = str->length() * sizeof(char);
+    val->mv_data = **str;
 }
 
 Handle<Value> lmdbValToV8(MDB_val *val) {
