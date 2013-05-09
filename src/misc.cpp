@@ -38,3 +38,10 @@ void setupExportMisc(Handle<Object> exports) {
     exports->Set(String::NewSymbol("version"), v);
 }
 
+void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue, Local<Object> options) {
+    Handle<Value> opt = options->Get(String::NewSymbol(name));
+    if (opt->IsBoolean() ? opt->BooleanValue() : defaultValue) {
+        *flags |= flag;
+    }
+}
+

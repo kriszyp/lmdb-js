@@ -28,6 +28,10 @@ using namespace node;
 
 Persistent<Function> EnvWrap::txnCtor;
 
+Persistent<Function> EnvWrap::dbiCtor;
+
+void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue, Local<Object> options);
+
 EnvWrap::EnvWrap() {
     needsClose = false;
 }
@@ -56,13 +60,6 @@ Handle<Value> EnvWrap::ctor(const Arguments& args) {
     wrapper->Wrap(args.This());
 
     return args.This();
-}
-
-static void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue, Local<Object> options) {
-    Handle<Value> opt = options->Get(String::NewSymbol(name));
-    if (opt->IsBoolean() ? opt->BooleanValue() : defaultValue) {
-        *flags |= flag;
-    }
 }
 
 Handle<Value> EnvWrap::open(const Arguments& args) {
@@ -125,6 +122,16 @@ Handle<Value> EnvWrap::beginTxn(const Arguments& args) {
     return scope.Close(instance);
 }
 
+Handle<Value> EnvWrap::openDbi(const Arguments& args) {
+    HandleScope scope;
+    
+    const unsigned argc = 2;
+    Handle<Value> argv[argc] = { args.This(), args[0] };
+    Local<Object> instance = dbiCtor->NewInstance(argc, argv);
+    
+    return scope.Close(instance);
+}
+
 void EnvWrap::setupExports(Handle<Object> exports) {
     // EnvWrap: Prepare constructor template
     Local<FunctionTemplate> envTpl = FunctionTemplate::New(EnvWrap::ctor);
@@ -134,6 +141,7 @@ void EnvWrap::setupExports(Handle<Object> exports) {
     envTpl->PrototypeTemplate()->Set(String::NewSymbol("open"), FunctionTemplate::New(EnvWrap::open)->GetFunction());
     envTpl->PrototypeTemplate()->Set(String::NewSymbol("close"), FunctionTemplate::New(EnvWrap::close)->GetFunction());
     envTpl->PrototypeTemplate()->Set(String::NewSymbol("beginTxn"), FunctionTemplate::New(EnvWrap::beginTxn)->GetFunction());
+    envTpl->PrototypeTemplate()->Set(String::NewSymbol("openDbi"), FunctionTemplate::New(EnvWrap::openDbi)->GetFunction());
     // EnvWrap: Get constructor
     Persistent<Function> envCtor = Persistent<Function>::New(envTpl->GetFunction());
     
@@ -146,6 +154,15 @@ void EnvWrap::setupExports(Handle<Object> exports) {
     txnTpl->PrototypeTemplate()->Set(String::NewSymbol("abort"), FunctionTemplate::New(TxnWrap::abort)->GetFunction());
     // TxnWrap: Get constructor
     EnvWrap::txnCtor = Persistent<Function>::New(txnTpl->GetFunction());
+    
+    // DbiWrap: Prepare constructor template
+    Local<FunctionTemplate> dbiTpl = FunctionTemplate::New(DbiWrap::ctor);
+    dbiTpl->SetClassName(String::NewSymbol("Dbi"));
+    dbiTpl->InstanceTemplate()->SetInternalFieldCount(1);
+    // DbiWrap: Add functions to the prototype
+    dbiTpl->PrototypeTemplate()->Set(String::NewSymbol("close"), FunctionTemplate::New(DbiWrap::close)->GetFunction());
+    // DbiWrap: Get constructor
+    EnvWrap::dbiCtor = Persistent<Function>::New(dbiTpl->GetFunction());
     
     // Set exports
     exports->Set(String::NewSymbol("Env"), envCtor);
