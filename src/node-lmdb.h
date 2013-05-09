@@ -34,7 +34,11 @@ using namespace node;
 // Exports misc stuff to the module
 void setupExportMisc(Handle<Object> exports);
 
-// Wraps MDB_env
+/*
+    `Env`
+    Represents a database environment.
+    (Wrapper for `MDB_env`)
+*/
 class EnvWrap : public ObjectWrap {
 private:
     // Stores whether or not the MDB_env needs closing
@@ -56,28 +60,67 @@ public:
     // Sets up exports for the Env constructor
     static void setupExports(Handle<Object> exports);
     
-    // Constructor
+    /*
+        Constructor of the database environment. You need to `open()` it before you can use it.
+        (Wrapper for `mdb_env_create`)
+    */
     static Handle<Value> ctor(const Arguments& args);
     
-    /* Wrapper for mdb_env_open
-       Opens a database environment with the specified options. The options will be used to configure the environment before opening it.
-       Options:
-          - maxDbs: the maximum number of named databases you can have in the environment
-          - path: path to the database environment
+    /*
+        Opens the database environment with the specified options. The options will be used to configure the environment before opening it.
+        (Wrapper for `mdb_env_open`)
+        
+        Parameters:
+        
+        * Options object that contains possible configuration options.
+        
+        Possible options are:
+        
+        * maxDbs: the maximum number of named databases you can have in the environment
+        * path: path to the database environment
     */
     static Handle<Value> open(const Arguments& args);
     
-    // Wrapper for mdb_env_close
+    /*
+        Closes the database environment.
+        (Wrapper for `mdb_env_close`)
+    */
     static Handle<Value> close(const Arguments& args);
     
-    // Wrapper for mdb_txn_begin
+    /*
+        Starts a new transaction in the environment.
+        (Wrapper for `mdb_txn_begin`)
+        
+        Parameters:
+        
+        * Options object that contains possible configuration options.
+        
+        Possible options are:
+        
+        * TODO
+    */
     static Handle<Value> beginTxn(const Arguments& args);
     
-    // Wrapper for mdb_dbi_open
+    /*
+        Opens a database in the environment.
+        (Wrapper for `mdb_dbi_open`)
+        
+        Parameters:
+        
+        * Options object that contains possible configuration options.
+        
+        Possible options are:
+        
+        * create: if true, the database will be created if it doesn't exist
+    */
     static Handle<Value> openDbi(const Arguments& args);
 };
 
-// Wraps MDB_txn
+/*
+    `Txn`
+    Represents a transaction running on a database environment.
+    (Wrapper for `MDB_txn`)
+*/
 class TxnWrap : public ObjectWrap {
 private:
     // Stores whether or not the MDB_txn needs closing
@@ -91,14 +134,50 @@ public:
     TxnWrap(MDB_env *env, MDB_txn *txn);
     ~TxnWrap();
 
+    // Constructor (not exposed)
     static Handle<Value> ctor(const Arguments& args);
+    
+    /*
+        Commits the transaction.
+        (Wrapper for `mdb_txn_commit`)
+    */
     static Handle<Value> commit(const Arguments& args);
+    
+    /*
+        Aborts the transaction.
+        (Wrapper for `mdb_txn_abort`)
+    */
     static Handle<Value> abort(const Arguments& args);
+    
+    /*
+        Gets data associated with the given key from a database. You need to open a database in the environment to use this.
+        (Wrapper for `mdb_txn_get`)
+        
+        Parameters:
+        
+        * database instance created with calling `openDbi()` on an `Env` instance
+        * key for which the value is retrieved
+    */
     static Handle<Value> get(const Arguments& args);
+    
+    /*
+        Puts data 
+        (Wrapper for `mdb_txn_put`)
+        
+        Parameters:
+        
+        * database instance created with calling `openDbi()` on an `Env` instance
+        * key for which the value is stored
+        * data to store for the given key
+    */
     static Handle<Value> put(const Arguments& args);
 };
 
-// Wraps MDB_dbi
+/*
+    `Dbi`
+    Represents a database instance in an environment.
+    (Wrapper for `MDB_dbi`)
+*/
 class DbiWrap : public ObjectWrap {
 private:
     // Stores whether or not the MDB_txn needs closing
@@ -114,7 +193,13 @@ public:
     DbiWrap(MDB_env *env, MDB_dbi dbi);
     ~DbiWrap();
 
+    // Constructor (not exposed)
     static Handle<Value> ctor(const Arguments& args);
+    
+    /*
+        Closes the database instance.
+        Wrapper for `mdb_dbi_close`)
+    */
     static Handle<Value> close(const Arguments& args);
 };
 

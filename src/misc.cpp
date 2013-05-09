@@ -64,6 +64,7 @@ void consoleLogN(int n) {
 
 void v8ToLmdbVal(Handle<Value> handle, MDB_val *val) {
     // TODO: support other data types, not just string
+    // TODO: get rid of this memory leak
     v8::String::Utf8Value *str = new v8::String::Utf8Value(handle->ToString());
     
     val->mv_size = str->length() * sizeof(char);
