@@ -73,13 +73,20 @@ Handle<Value> EnvWrap::open(const Arguments& args) {
     Local<String> path = options->Get(String::NewSymbol("path"))->ToString();
     
     Handle<Value> maxDbs = options->Get(String::NewSymbol("maxDbs"));
-    if (maxDbs->IsInt32()) {
-        int n = maxDbs->Int32Value();
+    if (maxDbs->IsUint32()) {
+        MDB_dbi n = maxDbs->Uint32Value();
         rc = mdb_env_set_maxdbs(ew->env, n);
     }
+    else {
+        rc = mdb_env_set_maxdbs(ew->env, 1);
+    }
+    if (rc != 0) {
+        ThrowException(Exception::Error(String::New(mdb_strerror(rc))));
+        return Undefined();
+    }
     
-    // MDB_FIXEDMAP is not exposed here since it is "highly experimental" + it is irrelevant for this use case
-    // MDB_NOTLS is not exposed here because it is irrelevant for this use case, as node will run all this on a single thread anyway
+    // NOTE: MDB_FIXEDMAP is not exposed here since it is "highly experimental" + it is irrelevant for this use case
+    // NOTE: MDB_NOTLS is not exposed here because it is irrelevant for this use case, as node will run all this on a single thread anyway
     setFlagFromValue(&flags, MDB_NOSUBDIR, "noSubdir", false, options);
     setFlagFromValue(&flags, MDB_RDONLY, "readOnly", false, options);
     setFlagFromValue(&flags, MDB_WRITEMAP, "useWritemap", false, options);
@@ -89,7 +96,7 @@ Handle<Value> EnvWrap::open(const Arguments& args) {
     path->WriteAscii(cpath);
     cpath[l] = 0;
     
-    // TODO: make 3rd and 4th parameter configurable
+    // TODO: make file attributes configurable
     rc = mdb_env_open(ew->env, cpath, flags, 0664);
     
     if (rc != 0) {

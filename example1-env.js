@@ -13,11 +13,12 @@ env.open({
     // Path to the environment
     path: "./testdata",
     // Maximum number of databases
-    setMaxDbs: 3
+    maxDbs: 3
 });
 // Open database
 var dbi = env.openDbi({
-    name: "mydb1"
+   name: "mydb1",
+   create: true
 });
 
 // Begin transaction
