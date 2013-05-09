@@ -46,26 +46,29 @@ Handle<Value> DbiWrap::ctor(const Arguments& args) {
     
     MDB_dbi dbi;
     MDB_txn *txn;
-    int flags;
     int rc;
+    int flags = 0;
+    char *cname = NULL;
     
     EnvWrap *ew = ObjectWrap::Unwrap<EnvWrap>(args[0]->ToObject());
-    Local<Object> options = args[1]->ToObject();
-    Local<String> name = options->Get(String::NewSymbol("name"))->ToString();
-    
-    int l = name->Length();
-    char *cname = new char[l + 1];
-    name->WriteAscii(cname);
-    cname[l] = 0;
-    
-    // Get flags from options
-    setFlagFromValue(&flags, MDB_REVERSEKEY, "reverseKey", false, options);
-    setFlagFromValue(&flags, MDB_DUPSORT, "dupSort", false, options);
-    setFlagFromValue(&flags, MDB_INTEGERKEY, "integerKey", false, options);
-    setFlagFromValue(&flags, MDB_DUPFIXED, "dupFixed", false, options);
-    setFlagFromValue(&flags, MDB_INTEGERDUP, "integerDup", false, options);
-    setFlagFromValue(&flags, MDB_REVERSEDUP, "reverseDup", false, options);
-    setFlagFromValue(&flags, MDB_CREATE, "create", false, options);
+    if (args[1]->IsObject()) {
+        Local<Object> options = args[1]->ToObject();
+        Local<String> name = options->Get(String::NewSymbol("name"))->ToString();
+        
+        int l = name->Length();
+        cname = new char[l + 1];
+        name->WriteAscii(cname);
+        cname[l] = 0;
+        
+        // Get flags from options
+        setFlagFromValue(&flags, MDB_REVERSEKEY, "reverseKey", false, options);
+        setFlagFromValue(&flags, MDB_DUPSORT, "dupSort", false, options);
+        setFlagFromValue(&flags, MDB_INTEGERKEY, "integerKey", false, options);
+        setFlagFromValue(&flags, MDB_DUPFIXED, "dupFixed", false, options);
+        setFlagFromValue(&flags, MDB_INTEGERDUP, "integerDup", false, options);
+        setFlagFromValue(&flags, MDB_REVERSEDUP, "reverseDup", false, options);
+        setFlagFromValue(&flags, MDB_CREATE, "create", false, options);
+    }
     
     // TODO: wrap mdb_set_compare
     // TODO: wrap mdb_set_dupsort
@@ -75,27 +78,27 @@ Handle<Value> DbiWrap::ctor(const Arguments& args) {
     // Open transaction
     rc = mdb_txn_begin(ew->env, NULL, 0, &txn);
     if (rc != 0) {
-        // TODO: take care of error
         mdb_txn_abort(txn);
+        ThrowException(Exception::Error(String::New(mdb_strerror(rc))));
         return Undefined();
     }
     
     // Open database
     rc = mdb_dbi_open(txn, cname, flags, &dbi);
     if (rc != 0) {
-        // TODO
         mdb_txn_abort(txn);
+        ThrowException(Exception::Error(String::New(mdb_strerror(rc))));
         return Undefined();
     }
     
     // Commit transaction
     rc = mdb_txn_commit(txn);
     if (rc != 0) {
-        // TODO
+        ThrowException(Exception::Error(String::New(mdb_strerror(rc))));
         return Undefined();
     }
     
-    // Create wrapper    
+    // Create wrapper
     DbiWrap* dw = new DbiWrap(ew->env, dbi);
     dw->needsClose = true;
     dw->Wrap(args.This());
@@ -104,9 +107,11 @@ Handle<Value> DbiWrap::ctor(const Arguments& args) {
 }
 
 Handle<Value> DbiWrap::close(const Arguments& args) {
-    DbiWrap *dw = ObjectWrap::Unwrap<DbiWrap>(args.This());
-    mdb_dbi_close(dw->env, dw->dbi);
-    dw->needsClose = false;
+    HandleScope scope;
+    
+    //DbiWrap *dw = ObjectWrap::Unwrap<DbiWrap>(args.This());
+    //mdb_dbi_close(dw->env, dw->dbi);
+    //dw->needsClose = false;
     
     return Undefined();
 }

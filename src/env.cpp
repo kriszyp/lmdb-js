@@ -124,7 +124,7 @@ Handle<Value> EnvWrap::beginTxn(const Arguments& args) {
 
 Handle<Value> EnvWrap::openDbi(const Arguments& args) {
     HandleScope scope;
-    
+
     const unsigned argc = 2;
     Handle<Value> argv[argc] = { args.This(), args[0] };
     Local<Object> instance = dbiCtor->NewInstance(argc, argv);

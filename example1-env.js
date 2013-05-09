@@ -15,22 +15,18 @@ env.open({
     // Maximum number of databases
     setMaxDbs: 3
 });
-console.log("hah");
 // Open database
 var dbi = env.openDbi({
-    name: "myDb1"
+    name: "mydb1"
 });
 
-console.log("hah");
 // Begin transaction
 var txn = env.beginTxn();
 // Abort transaction
 txn.abort();
 
-console.log("hah");
 // Close the database
 dbi.close();
-console.log("hah");
 // Close the environment
 env.close();
 
