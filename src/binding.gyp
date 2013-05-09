@@ -12,7 +12,6 @@
             ],
             "cflags": [
               "-fPIC",
-              "-fvisibility=hidden",
               "-fvisibility-inlines-hidden",
               "-O3"
             ]
