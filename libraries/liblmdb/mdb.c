@@ -900,6 +900,7 @@ struct MDB_cursor {
 #define C_SHADOW	0x08		/**< Cursor is a dup from a parent txn */
 #define C_ALLOCD	0x10		/**< Cursor was malloc'd */
 #define C_SPLITTING	0x20		/**< Cursor is in page_split */
+#define C_UNTRACK	0x40		/**< Un-track cursor when closing */
 /** @} */
 	unsigned int	mc_flags;	/**< @ref mdb_cursor */
 	MDB_page	*mc_pg[CURSOR_STACK];	/**< stack of pushed pages */
@@ -1013,6 +1014,9 @@ static int	mdb_page_split(MDB_cursor *mc, MDB_val *newkey, MDB_val *newdata,
 static int  mdb_env_read_header(MDB_env *env, MDB_meta *meta);
 static int  mdb_env_pick_meta(const MDB_env *env);
 static int  mdb_env_write_meta(MDB_txn *txn);
+#if !(defined(_WIN32) || defined(MDB_USE_POSIX_SEM)) /* Drop unused excl arg */
+# define mdb_env_close0(env, excl) mdb_env_close1(env)
+#endif
 static void mdb_env_close0(MDB_env *env, int excl);
 
 static MDB_node *mdb_node_search(MDB_cursor *mc, MDB_val *key, int *exactp);
@@ -1135,7 +1139,7 @@ mdb_dkey(MDB_val *key, char *buf)
 }
 
 /** Display all the keys in the page. */
-static void
+void
 mdb_page_list(MDB_page *mp)
 {
 	MDB_node *node;
@@ -1202,9 +1206,8 @@ static void mdb_audit(MDB_txn *txn)
 
 	count = 0;
 	for (i = 0; i<txn->mt_numdbs; i++) {
-		MDB_xcursor mx, *mxp;
-		mxp = (txn->mt_dbs[i].md_flags & MDB_DUPSORT) ? &mx : NULL;
-		mdb_cursor_init(&mc, txn, i, mxp);
+		MDB_xcursor mx;
+		mdb_cursor_init(&mc, txn, i, &mx);
 		if (txn->mt_dbs[i].md_root == P_INVALID)
 			continue;
 		count += txn->mt_dbs[i].md_branch_pages +
@@ -1245,10 +1248,7 @@ mdb_cmp(MDB_txn *txn, MDB_dbi dbi, const MDB_val *a, const MDB_val *b)
 int
 mdb_dcmp(MDB_txn *txn, MDB_dbi dbi, const MDB_val *a, const MDB_val *b)
 {
-	if (txn->mt_dbxs[dbi].md_dcmp)
-		return txn->mt_dbxs[dbi].md_dcmp(a, b);
-	else
-		return EINVAL;	/* too bad you can't distinguish this from a valid result */
+	return txn->mt_dbxs[dbi].md_dcmp(a, b);
 }
 
 /** Allocate a single page.
@@ -1398,6 +1398,7 @@ none:
 
 				mdb_cursor_init(&m2, txn, FREE_DBI, NULL);
 				do {
+#ifdef MDB_PARANOID	/* Seems like we can ignore this now */
 					/* If on freelist, don't try to read more. If what we have
 					 * right now isn't enough just use new pages.
 					 * TODO: get all of this working. Many circular dependencies...
@@ -1406,6 +1407,7 @@ none:
 						retry = 0;
 						readit = 0;
 					}
+#endif
 					if (readit) {
 						MDB_val key, data;
 						pgno_t *idl, *mop2;
@@ -1704,7 +1706,7 @@ mdb_cursor_shadow(MDB_txn *src, MDB_txn *dst)
 				mc->mc_dbflag = &dst->mt_dbflags[i];
 				mc->mc_snum = m2->mc_snum;
 				mc->mc_top = m2->mc_top;
-				mc->mc_flags = m2->mc_flags | C_SHADOW;
+				mc->mc_flags = m2->mc_flags | (C_SHADOW|C_ALLOCD);
 				for (j=0; j<mc->mc_snum; j++) {
 					mc->mc_pg[j] = m2->mc_pg[j];
 					mc->mc_ki[j] = m2->mc_ki[j];
@@ -1740,30 +1742,34 @@ mdb_cursor_shadow(MDB_txn *src, MDB_txn *dst)
 	return MDB_SUCCESS;
 }
 
-/** Merge shadow cursors back into parent's */
+/** Close this write txn's cursors, after optionally merging its shadow
+ * cursors back into parent's.
+ * @param[in] txn the transaction handle.
+ * @param[in] merge 0 to not merge cursors, C_SHADOW to merge.
+ * @return 0 on success, non-zero on failure.
+ */
 static void
-mdb_cursor_merge(MDB_txn *txn)
+mdb_cursors_close(MDB_txn *txn, unsigned merge)
 {
-	MDB_dbi i;
-	for (i=0; i<txn->mt_numdbs; i++) {
-		if (txn->mt_cursors[i]) {
-			MDB_cursor *mc;
-			while ((mc = txn->mt_cursors[i])) {
-				txn->mt_cursors[i] = mc->mc_next;
-				if (mc->mc_flags & C_SHADOW) {
+	MDB_cursor **cursors = txn->mt_cursors, *mc, *next;
+	int i, j;
+
+	for (i = txn->mt_numdbs; --i >= 0; ) {
+		for (mc = cursors[i]; mc; mc = next) {
+				next = mc->mc_next;
+				if (mc->mc_flags & merge) {
 					MDB_cursor *m2 = mc->mc_orig;
-					unsigned int j;
 					m2->mc_snum = mc->mc_snum;
 					m2->mc_top = mc->mc_top;
-					for (j=0; j<mc->mc_snum; j++) {
+					for (j = mc->mc_snum; --j >= 0; ) {
 						m2->mc_pg[j] = mc->mc_pg[j];
 						m2->mc_ki[j] = mc->mc_ki[j];
 					}
 				}
 				if (mc->mc_flags & C_ALLOCD)
 					free(mc);
-			}
 		}
+		cursors[i] = NULL;
 	}
 }
 
@@ -1780,7 +1786,7 @@ mdb_txn_renew0(MDB_txn *txn)
 	MDB_env *env = txn->mt_env;
 	unsigned int i;
 	uint16_t x;
-	int rc;
+	int rc, new_notls = 0;
 
 	/* Setup db info */
 	txn->mt_numdbs = env->me_numdbs;
@@ -1817,9 +1823,9 @@ mdb_txn_renew0(MDB_txn *txn)
 				env->me_numreaders = env->me_txns->mti_numreaders;
 				UNLOCK_MUTEX_R(env);
 				r = &env->me_txns->mti_readers[i];
-				if (!(env->me_flags & MDB_NOTLS) &&
-					(rc = pthread_setspecific(env->me_txkey, r)) != 0) {
-					env->me_txns->mti_readers[i].mr_pid = 0;
+				new_notls = (env->me_flags & MDB_NOTLS);
+				if (!new_notls && (rc=pthread_setspecific(env->me_txkey, r))) {
+					r->mr_pid = 0;
 					return rc;
 				}
 			}
@@ -1858,6 +1864,10 @@ mdb_txn_renew0(MDB_txn *txn)
 
 	if (env->me_maxpg < txn->mt_next_pgno) {
 		mdb_txn_reset0(txn);
+		if (new_notls) {
+			txn->mt_u.reader->mr_pid = 0;
+			txn->mt_u.reader = NULL;
+		}
 		return MDB_MAP_RESIZED;
 	}
 
@@ -1869,7 +1879,7 @@ mdb_txn_renew(MDB_txn *txn)
 {
 	int rc;
 
-	if (!txn || txn->mt_numdbs || !(txn->mt_flags & MDB_TXN_RDONLY))
+	if (!txn || txn->mt_dbxs)	/* A reset txn has mt_dbxs==NULL */
 		return EINVAL;
 
 	if (txn->mt_env->me_flags & MDB_FATAL_ERROR) {
@@ -1929,14 +1939,11 @@ mdb_txn_begin(MDB_env *env, MDB_txn *parent, unsigned int flags, MDB_txn **ret)
 
 	if (parent) {
 		unsigned int i;
-		txn->mt_free_pgs = mdb_midl_alloc();
-		if (!txn->mt_free_pgs) {
-			free(txn);
-			return ENOMEM;
-		}
 		txn->mt_u.dirty_list = malloc(sizeof(MDB_ID2)*MDB_IDL_UM_SIZE);
-		if (!txn->mt_u.dirty_list) {
-			free(txn->mt_free_pgs);
+		if (!txn->mt_u.dirty_list ||
+			!(txn->mt_free_pgs = mdb_midl_alloc(MDB_IDL_UM_MAX)))
+		{
+			free(txn->mt_u.dirty_list);
 			free(txn);
 			return ENOMEM;
 		}
@@ -1985,6 +1992,32 @@ mdb_txn_begin(MDB_env *env, MDB_txn *parent, unsigned int flags, MDB_txn **ret)
 	return rc;
 }
 
+/** Export or close DBI handles opened in this txn. */
+static void
+mdb_dbis_update(MDB_txn *txn, int keep)
+{
+	int i;
+	MDB_dbi n = txn->mt_numdbs;
+	MDB_env *env = txn->mt_env;
+	unsigned char *tdbflags = txn->mt_dbflags;
+
+	for (i = n; --i >= 2;) {
+		if (tdbflags[i] & DB_NEW) {
+			if (keep) {
+				env->me_dbflags[i] = txn->mt_dbs[i].md_flags | MDB_VALID;
+			} else {
+				char *ptr = env->me_dbxs[i].md_name.mv_data;
+				env->me_dbxs[i].md_name.mv_data = NULL;
+				env->me_dbxs[i].md_name.mv_size = 0;
+				env->me_dbflags[i] = 0;
+				free(ptr);
+			}
+		}
+	}
+	if (keep && env->me_numdbs < n)
+		env->me_numdbs = n;
+}
+
 /** Common code for #mdb_txn_reset() and #mdb_txn_abort().
  * May be called twice for readonly txns: First reset it, then abort.
  * @param[in] txn the transaction handle to reset
@@ -1996,14 +2029,7 @@ mdb_txn_reset0(MDB_txn *txn)
 	unsigned int i;
 
 	/* Close any DBI handles opened in this txn */
-	for (i=2; i<txn->mt_numdbs; i++) {
-		if (txn->mt_dbflags[i] & DB_NEW) {
-			char *ptr = env->me_dbxs[i].md_name.mv_data;
-			env->me_dbxs[i].md_name.mv_data = NULL;
-			env->me_dbxs[i].md_name.mv_size = 0;
-			free(ptr);
-		}
-	}
+	mdb_dbis_update(txn, 0);
 
 	if (F_ISSET(txn->mt_flags, MDB_TXN_RDONLY)) {
 		if (txn->mt_u.reader) {
@@ -2011,21 +2037,12 @@ mdb_txn_reset0(MDB_txn *txn)
 			if (!(env->me_flags & MDB_NOTLS))
 				txn->mt_u.reader = NULL; /* txn does not own reader */
 		}
-		txn->mt_numdbs = 0;	/* mark txn as reset, do not close DBs again */
+		txn->mt_numdbs = 0;		/* close nothing if called again */
+		txn->mt_dbxs = NULL;	/* mark txn as reset */
 	} else {
 		MDB_page *dp;
 
-		/* close(free) all cursors */
-		for (i=0; i<txn->mt_numdbs; i++) {
-			if (txn->mt_cursors[i]) {
-				MDB_cursor *mc;
-				while ((mc = txn->mt_cursors[i])) {
-					txn->mt_cursors[i] = mc->mc_next;
-					if (mc->mc_flags & C_ALLOCD)
-						free(mc);
-				}
-			}
-		}
+		mdb_cursors_close(txn, 0);
 
 		if (!(env->me_flags & MDB_WRITEMAP)) {
 			/* return all dirty pages to dpage list */
@@ -2118,20 +2135,18 @@ mdb_txn_commit(MDB_txn *txn)
 	assert(txn->mt_env != NULL);
 
 	if (txn->mt_child) {
-		mdb_txn_commit(txn->mt_child);
+		rc = mdb_txn_commit(txn->mt_child);
 		txn->mt_child = NULL;
+		if (rc) {
+			mdb_txn_abort(txn);
+			return rc;
+		}
 	}
 
 	env = txn->mt_env;
 
 	if (F_ISSET(txn->mt_flags, MDB_TXN_RDONLY)) {
-		/* update the DB flags */
-		for (i = 2; i<txn->mt_numdbs; i++) {
-			if (txn->mt_dbflags[i] & DB_NEW)
-				env->me_dbflags[i] = txn->mt_dbs[i].md_flags | MDB_VALID;
-		}
-		if (txn->mt_numdbs > env->me_numdbs)
-			env->me_numdbs = txn->mt_numdbs;
+		mdb_dbis_update(txn, 1);
 		txn->mt_numdbs = 2; /* so txn_abort() doesn't close any new handles */
 		mdb_txn_abort(txn);
 		return MDB_SUCCESS;
@@ -2160,8 +2175,8 @@ mdb_txn_commit(MDB_txn *txn)
 		parent->mt_next_pgno = txn->mt_next_pgno;
 		parent->mt_flags = txn->mt_flags;
 
-		/* Merge (and close) our cursors with parent's */
-		mdb_cursor_merge(txn);
+		/* Merge our cursors into parent's and close them */
+		mdb_cursors_close(txn, C_SHADOW);
 
 		/* Update parent's DB table. */
 		memcpy(parent->mt_dbs, txn->mt_dbs, txn->mt_numdbs * sizeof(MDB_db));
@@ -2219,6 +2234,8 @@ mdb_txn_commit(MDB_txn *txn)
 		mdb_txn_abort(txn);
 		return EINVAL;
 	}
+
+	mdb_cursors_close(txn, 0);
 
 	if (!txn->mt_u.dirty_list[0].mid && !(txn->mt_flags & MDB_TXN_DIRTY))
 		goto done;
@@ -2515,13 +2532,7 @@ sync:
 done:
 	env->me_pglast = 0;
 	env->me_txn = NULL;
-	/* update the DB flags */
-	for (i = 2; i<txn->mt_numdbs; i++) {
-		if (txn->mt_dbflags[i] & DB_NEW)
-			env->me_dbflags[i] = txn->mt_dbs[i].md_flags | MDB_VALID;
-	}
-	if (txn->mt_numdbs > env->me_numdbs)
-		env->me_numdbs = txn->mt_numdbs;
+	mdb_dbis_update(txn, 1);
 
 	UNLOCK_MUTEX_W(env);
 	free(txn);
@@ -3461,7 +3472,7 @@ mdb_env_open(MDB_env *env, const char *path, unsigned int flags, mdb_mode_t mode
 		/* silently ignore WRITEMAP when we're only getting read access */
 		flags &= ~MDB_WRITEMAP;
 	} else {
-		if (!((env->me_free_pgs = mdb_midl_alloc()) &&
+		if (!((env->me_free_pgs = mdb_midl_alloc(MDB_IDL_UM_MAX)) &&
 			  (env->me_dirty_list = calloc(MDB_IDL_UM_SIZE, sizeof(MDB_ID2)))))
 			rc = ENOMEM;
 	}
@@ -3538,7 +3549,7 @@ leave:
 	return rc;
 }
 
-/** Destroy resources from mdb_env_open() and clear our readers */
+/** Destroy resources from mdb_env_open(), clear our readers & DBIs */
 static void
 mdb_env_close0(MDB_env *env, int excl)
 {
@@ -3546,6 +3557,10 @@ mdb_env_close0(MDB_env *env, int excl)
 
 	if (!(env->me_flags & MDB_ENV_ACTIVE))
 		return;
+
+	/* Doing this here since me_dbxs may not exist during mdb_env_close */
+	for (i = env->me_maxdbs; --i > MAIN_DBI; )
+		free(env->me_dbxs[i].md_name.mv_data);
 
 	free(env->me_dbflags);
 	free(env->me_dbxs);
@@ -3741,9 +3756,9 @@ mdb_env_copy(MDB_env *env, const char *path)
 		ptr += wres;
 	}
 #endif
-	mdb_txn_abort(txn);
 
 leave:
+	mdb_txn_abort(txn);
 	if (newfd != INVALID_HANDLE_VALUE)
 		close(newfd);
 
@@ -3754,13 +3769,9 @@ void
 mdb_env_close(MDB_env *env)
 {
 	MDB_page *dp;
-	int i;
 
 	if (env == NULL)
 		return;
-
-	for (i = env->me_numdbs; --i > MAIN_DBI; )
-		free(env->me_dbxs[i].md_name.mv_data);
 
 	VGMEMP_DESTROY(env);
 	while ((dp = env->me_dpages) != NULL) {
@@ -4922,8 +4933,7 @@ mdb_cursor_touch(MDB_cursor *mc)
 	if (mc->mc_dbi > MAIN_DBI && !(*mc->mc_dbflag & DB_DIRTY)) {
 		MDB_cursor mc2;
 		MDB_xcursor mcx;
-		mdb_cursor_init(&mc2, mc->mc_txn, MAIN_DBI,
-			mc->mc_txn->mt_dbs[MAIN_DBI].md_flags & MDB_DUPSORT ? &mcx : NULL);
+		mdb_cursor_init(&mc2, mc->mc_txn, MAIN_DBI, &mcx);
 		rc = mdb_page_search(&mc2, &mc->mc_dbx->md_name, MDB_PS_MODIFY);
 		if (rc)
 			 return rc;
@@ -5827,7 +5837,6 @@ int
 mdb_cursor_open(MDB_txn *txn, MDB_dbi dbi, MDB_cursor **ret)
 {
 	MDB_cursor	*mc;
-	MDB_xcursor	*mx = NULL;
 	size_t size = sizeof(MDB_cursor);
 
 	if (txn == NULL || ret == NULL || dbi >= txn->mt_numdbs || !(txn->mt_dbflags[dbi] & DB_VALID))
@@ -5841,13 +5850,11 @@ mdb_cursor_open(MDB_txn *txn, MDB_dbi dbi, MDB_cursor **ret)
 		size += sizeof(MDB_xcursor);
 
 	if ((mc = malloc(size)) != NULL) {
-		if (txn->mt_dbs[dbi].md_flags & MDB_DUPSORT) {
-			mx = (MDB_xcursor *)(mc + 1);
-		}
-		mdb_cursor_init(mc, txn, dbi, mx);
+		mdb_cursor_init(mc, txn, dbi, (MDB_xcursor *)(mc + 1));
 		if (txn->mt_cursors) {
 			mc->mc_next = txn->mt_cursors[dbi];
 			txn->mt_cursors[dbi] = mc;
+			mc->mc_flags |= C_UNTRACK;
 		}
 		mc->mc_flags |= C_ALLOCD;
 	} else {
@@ -5867,7 +5874,7 @@ mdb_cursor_renew(MDB_txn *txn, MDB_cursor *mc)
 	if (txn == NULL || mc == NULL || mc->mc_dbi >= txn->mt_numdbs)
 		return EINVAL;
 
-	if (txn->mt_cursors)
+	if ((mc->mc_flags & C_UNTRACK) || txn->mt_cursors)
 		return EINVAL;
 
 	flags = mc->mc_flags;
@@ -5907,7 +5914,7 @@ mdb_cursor_close(MDB_cursor *mc)
 {
 	if (mc != NULL) {
 		/* remove from txn, if tracked */
-		if (mc->mc_txn->mt_cursors) {
+		if ((mc->mc_flags & C_UNTRACK) && mc->mc_txn->mt_cursors) {
 			MDB_cursor **prev = &mc->mc_txn->mt_cursors[mc->mc_dbi];
 			while (*prev && *prev != mc) prev = &(*prev)->mc_next;
 			if (*prev == mc)
@@ -7224,6 +7231,7 @@ void mdb_dbi_close(MDB_env *env, MDB_dbi dbi)
 	ptr = env->me_dbxs[dbi].md_name.mv_data;
 	env->me_dbxs[dbi].md_name.mv_data = NULL;
 	env->me_dbxs[dbi].md_name.mv_size = 0;
+	env->me_dbflags[dbi] = 0;
 	free(ptr);
 }
 
