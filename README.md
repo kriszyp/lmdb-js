@@ -1,15 +1,16 @@
 node-lmdb
 =========
 
-Node.js binding for lmdb, an extremely fast and lightweight key-value store database.
+This is a node.js binding for lmdb, an extremely fast and lightweight key-value store database.
 
-About this module
------------------
+About
+-----
+
+### About this module
 
 The aim of this node module is to provide bindings so that people can use lmdb from their node applications, aiming for a simple and clean API which is on par with the lmdb API but tries to apply javascript patterns and naming conventions as much as possible to make users feel familiar about it.
 
-About lmdb
-----------
+### About lmdb
 
 * Key-value store, NoSQL
 * In-process, no need to squeeze your data through a socket
@@ -18,8 +19,10 @@ About lmdb
 * Zero-copy lookup (memory map)
 * For more, visit http://symas.com/mdb
 
-Basics
-------
+Usage
+-----
+
+### Basics
 
 LMDB has four different entities:
 
@@ -30,15 +33,20 @@ LMDB has four different entities:
 
 Here is how you use LMDB in a typical scenario:
 
-* You create an `Env`, configure it for your use case and `open()` it.
-* You open a `Dbi` with `env.openDbi()` where you can tell `node-lmdb` how you want to configure your database.
-* Now you can create `Txn`s with `env.beginTxn()` and operate on the database with `txn.get()`, `txn.put()` etc.
+* You create an `Env` and `open()` it with the desired configuration options.
+* You open a `Dbi` by calling `env.openDbi()` and passing the database configuration options.
+* Now you can create `Txn`s with `env.beginTxn()` and operate on the database through a transaction by calling `txn.get()`, `txn.put()` etc.
 * When you are done, you should either `abort()` or `commit()` your transactions and `close()` your databases and environment.
 
-Examples
---------
+### Examples
 
 You can find some in the source tree. More will be added later.
+
+### Limitations of node-lmdb
+
+* Fixed address map (called `MDB_FIXEDMAP` in C) features are not exposed by this binding because they are highly experimental
+* `Cursor`s are not yet exposed but are planned soon.
+* Not all functions are wrapped by the binding yet. If there's one that you would like to see, drop me a line.
 
 Contributing
 ------------
