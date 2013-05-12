@@ -145,4 +145,26 @@ Handle<Value> TxnWrap::put(const Arguments& args) {
     return Undefined();
 }
 
+Handle<Value> TxnWrap::del(const Arguments& args) {
+    HandleScope scope;
+    
+    TxnWrap *tw = ObjectWrap::Unwrap<TxnWrap>(args.This());
+    DbiWrap *dw = ObjectWrap::Unwrap<DbiWrap>(args[0]->ToObject());
+    
+    if (!tw->txn) {
+        ThrowException(Exception::Error(String::New("The transaction is already closed.")));
+        return Undefined();
+    }
+    
+    MDB_val key;
+    v8ToLmdbVal(args[1], &key);
+    int rc = mdb_del(tw->txn, dw->dbi, &key, NULL);
+    if (rc != 0) {
+        ThrowException(Exception::Error(String::New(mdb_strerror(rc))));
+        return Undefined();
+    }
+    
+    return Undefined();
+}
+
 

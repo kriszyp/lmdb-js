@@ -147,7 +147,7 @@ public:
     
     /*
         Gets data associated with the given key from a database. You need to open a database in the environment to use this.
-        (Wrapper for `mdb_txn_get`)
+        (Wrapper for `mdb_get`)
         
         Parameters:
         
@@ -157,8 +157,8 @@ public:
     static Handle<Value> get(const Arguments& args);
     
     /*
-        Puts data 
-        (Wrapper for `mdb_txn_put`)
+        Puts data into a database.
+        (Wrapper for `mdb_put`)
         
         Parameters:
         
@@ -167,6 +167,15 @@ public:
         * data to store for the given key
     */
     static Handle<Value> put(const Arguments& args);
+    
+    /*
+        Deletes data with the given key from the database.
+        (Wrapper for `mdb_del`)
+        
+        * database instance created with calling `openDbi()` on an `Env` instance
+        * key for which the value is stored
+    */
+    static Handle<Value> del(const Arguments& args);
 };
 
 /*

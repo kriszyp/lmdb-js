@@ -27,8 +27,15 @@ var txn = env.beginTxn();
 // Get data
 var data = txn.get(dbi, "hello");
 console.log(data);
-// Put data
-txn.put(dbi, "hello", "hey!");
+
+if (data === null) {
+    // Put data
+    txn.put(dbi, "hello", "hey!");
+}
+else {
+    // Delete data
+    txn.del(dbi, "hello");
+}
 
 // Commit transaction
 txn.commit();
