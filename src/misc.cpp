@@ -73,10 +73,8 @@ void v8ToLmdbVal(Handle<Value> handle, MDB_val *val) {
 
 Handle<Value> lmdbValToV8(MDB_val *val) {
     // TODO: support other data types, not just string
-    char *c = new char[50];
-    memset(c, 'm', 50);
-    Local<String> var = String::New(c);
-    delete c;
+    // TODO: maintain zero-copy
+    Local<String> var = String::New((char*)val->mv_data, val->mv_size / sizeof(char));
     return var;
 }
 
