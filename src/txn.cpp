@@ -31,14 +31,13 @@ Handle<Value> lmdbValToV8(MDB_val *val);
 void consoleLog(const char *msg);
 
 TxnWrap::TxnWrap(MDB_env *env, MDB_txn *txn) {
-    needsClose = false;
     this->env = env;
     this->txn = txn;
 }
 
 TxnWrap::~TxnWrap() {
     // Close if not closed already
-    if (needsClose) {
+    if (this->txn) {
         mdb_txn_abort(txn);
     }
 }
@@ -55,7 +54,6 @@ Handle<Value> TxnWrap::ctor(const Arguments& args) {
     }
     
     TxnWrap* tw = new TxnWrap(ew->env, txn);
-    tw->needsClose = true;
     tw->Wrap(args.This());
 
     return args.This();
@@ -65,8 +63,14 @@ Handle<Value> TxnWrap::commit(const Arguments& args) {
     HandleScope scope;
     
     TxnWrap *tw = ObjectWrap::Unwrap<TxnWrap>(args.This());
+    
+    if (!tw->txn) {
+        ThrowException(Exception::Error(String::New("The transaction is already closed.")));
+        return Undefined();
+    }
+    
     int rc = mdb_txn_commit(tw->txn);
-    tw->needsClose = false;
+    tw->txn = NULL;
     if (rc != 0) {
         ThrowException(Exception::Error(String::New(mdb_strerror(rc))));
         return Undefined();
@@ -79,8 +83,14 @@ Handle<Value> TxnWrap::abort(const Arguments& args) {
     HandleScope scope;
     
     TxnWrap *tw = ObjectWrap::Unwrap<TxnWrap>(args.This());
+    
+    if (!tw->txn) {
+        ThrowException(Exception::Error(String::New("The transaction is already closed.")));
+        return Undefined();
+    }
+    
     mdb_txn_abort(tw->txn);
-    tw->needsClose = false;
+    tw->txn = NULL;
     
     return Undefined();
 }
@@ -90,6 +100,11 @@ Handle<Value> TxnWrap::get(const Arguments& args) {
     
     TxnWrap *tw = ObjectWrap::Unwrap<TxnWrap>(args.This());
     DbiWrap *dw = ObjectWrap::Unwrap<DbiWrap>(args[0]->ToObject());
+    
+    if (!tw->txn) {
+        ThrowException(Exception::Error(String::New("The transaction is already closed.")));
+        return Undefined();
+    }
     
     MDB_val key, data;
     v8ToLmdbVal(args[1], &key);
@@ -111,6 +126,11 @@ Handle<Value> TxnWrap::put(const Arguments& args) {
     
     TxnWrap *tw = ObjectWrap::Unwrap<TxnWrap>(args.This());
     DbiWrap *dw = ObjectWrap::Unwrap<DbiWrap>(args[0]->ToObject());
+    
+    if (!tw->txn) {
+        ThrowException(Exception::Error(String::New("The transaction is already closed.")));
+        return Undefined();
+    }
     
     int flags = 0;
     MDB_val key, data;

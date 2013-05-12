@@ -123,8 +123,6 @@ public:
 */
 class TxnWrap : public ObjectWrap {
 private:
-    // Stores whether or not the MDB_txn needs closing
-    bool needsClose;
     // The wrapped object
     MDB_txn *txn;
     // Reference to the MDB_env of the wrapped MDB_txn
