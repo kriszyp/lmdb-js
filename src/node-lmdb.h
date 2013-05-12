@@ -27,6 +27,7 @@
 #include <v8.h>
 #include <node.h>
 #include <lmdb.h>
+#include <uv.h>
 
 using namespace v8;
 using namespace node;
@@ -112,6 +113,16 @@ public:
         * create: if true, the database will be created if it doesn't exist
     */
     static Handle<Value> openDbi(const Arguments& args);
+    
+    /*
+        Flushes all data to the disk asynchronously.
+        (Asynchronous wrapper for `mdb_env_sync`)
+        
+        Parameters:
+        
+        * Callback to be executed after the sync is complete.
+    */
+    static Handle<Value> sync(const Arguments &args);
 };
 
 /*

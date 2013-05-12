@@ -32,6 +32,14 @@ Persistent<Function> EnvWrap::dbiCtor;
 
 void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue, Local<Object> options);
 
+typedef struct EnvSyncData {
+    uv_work_t request;
+    Persistent<Function> callback;
+    EnvWrap *ew;
+    MDB_env *env;
+    int rc;
+} EnvSyncData;
+
 EnvWrap::EnvWrap() {
     this->env = NULL;
 }
@@ -149,6 +157,51 @@ Handle<Value> EnvWrap::openDbi(const Arguments& args) {
     return scope.Close(instance);
 }
 
+static void sync_dowork(uv_work_t *request) {
+    EnvSyncData *d = static_cast<EnvSyncData*>(request->data);
+    d->rc = mdb_env_sync(d->env, 1);
+}
+
+static void sync_after(uv_work_t *request, int) {
+    EnvSyncData *d = static_cast<EnvSyncData*>(request->data);
+    const unsigned argc = 1;
+    Handle<Value> argv[argc];
+    
+    if (d->rc == 0) {
+        argv[0] = Null();
+    }
+    else {
+        argv[0] = Exception::Error(String::New(mdb_strerror(d->rc)));
+    }
+    
+    d->callback->Call(Context::GetCurrent()->Global(), argc, argv);
+    d->callback.Dispose();
+    delete d;
+}
+
+Handle<Value> EnvWrap::sync(const Arguments &args) {
+    HandleScope scope;
+    
+    EnvWrap *ew = ObjectWrap::Unwrap<EnvWrap>(args.This());
+    
+    if (!ew->env) {
+        ThrowException(Exception::Error(String::New("The environment is already closed.")));
+        return Undefined();
+    }
+    
+    Handle<Function> callback = Handle<Function>::Cast(args[0]);
+    
+    EnvSyncData *d = new EnvSyncData;
+    d->request.data = d;
+    d->ew = ew;
+    d->env = ew->env;
+    d->callback = Persistent<Function>::New(callback);
+    
+    uv_queue_work(uv_default_loop(), &(d->request), sync_dowork, sync_after);
+    
+    return Undefined();
+}
+
 void EnvWrap::setupExports(Handle<Object> exports) {
     // EnvWrap: Prepare constructor template
     Local<FunctionTemplate> envTpl = FunctionTemplate::New(EnvWrap::ctor);
@@ -159,6 +212,7 @@ void EnvWrap::setupExports(Handle<Object> exports) {
     envTpl->PrototypeTemplate()->Set(String::NewSymbol("close"), FunctionTemplate::New(EnvWrap::close)->GetFunction());
     envTpl->PrototypeTemplate()->Set(String::NewSymbol("beginTxn"), FunctionTemplate::New(EnvWrap::beginTxn)->GetFunction());
     envTpl->PrototypeTemplate()->Set(String::NewSymbol("openDbi"), FunctionTemplate::New(EnvWrap::openDbi)->GetFunction());
+    envTpl->PrototypeTemplate()->Set(String::NewSymbol("sync"), FunctionTemplate::New(EnvWrap::sync)->GetFunction());
     // EnvWrap: Get constructor
     Persistent<Function> envCtor = Persistent<Function>::New(envTpl->GetFunction());
     
