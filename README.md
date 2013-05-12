@@ -72,14 +72,21 @@ dbi.close();
 The basic unit of work in LMDB is a transaction, which is called `Txn` for short. Here is how you operate with your data.  
 Every piece of data in LMDB is referred to by a **key**.
 You can use `get()` to retrieve something, `put()` to store something and `del()` to delete something.  
-**IMPORTANT:** always `abort()` or `commit()` your transactions when you are done with them.
+**IMPORTANT:** always close your transactions with `abort()` or `commit()` when you are done with them.
 
 ```javascript
 var txn = env.beginTxn();
 var value = txn.get(dbi, 1);
+
+console.log(value);
+
 if (value === null) {
     txn.put(dbi, 1, "Hello world!");
 }
+else {
+    txn.del(dbi, 1);
+}
+
 txn.put(dbi, 2, "Yes, it's this simple!");
 txn.commit();
 ```
