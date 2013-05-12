@@ -97,6 +97,9 @@ Handle<Value> EnvWrap::open(const Arguments& args) {
         return Undefined();
     }
     
+    // TODO: expose mdb_env_set_mapsize
+    // TODO: expose mdb_env_set_maxreaders
+    
     // NOTE: MDB_FIXEDMAP is not exposed here since it is "highly experimental" + it is irrelevant for this use case
     // NOTE: MDB_NOTLS is not exposed here because it is irrelevant for this use case, as node will run all this on a single thread anyway
     setFlagFromValue(&flags, MDB_NOSUBDIR, "noSubdir", false, options);
@@ -213,6 +216,9 @@ void EnvWrap::setupExports(Handle<Object> exports) {
     envTpl->PrototypeTemplate()->Set(String::NewSymbol("beginTxn"), FunctionTemplate::New(EnvWrap::beginTxn)->GetFunction());
     envTpl->PrototypeTemplate()->Set(String::NewSymbol("openDbi"), FunctionTemplate::New(EnvWrap::openDbi)->GetFunction());
     envTpl->PrototypeTemplate()->Set(String::NewSymbol("sync"), FunctionTemplate::New(EnvWrap::sync)->GetFunction());
+    // TODO: wrap mdb_env_copy too
+    // TODO: wrap mdb_env_stat too
+    // TODO: wrap mdb_env_info too
     // EnvWrap: Get constructor
     Persistent<Function> envCtor = Persistent<Function>::New(envTpl->GetFunction());
     
@@ -226,6 +232,10 @@ void EnvWrap::setupExports(Handle<Object> exports) {
     txnTpl->PrototypeTemplate()->Set(String::NewSymbol("get"), FunctionTemplate::New(TxnWrap::get)->GetFunction());
     txnTpl->PrototypeTemplate()->Set(String::NewSymbol("put"), FunctionTemplate::New(TxnWrap::put)->GetFunction());
     txnTpl->PrototypeTemplate()->Set(String::NewSymbol("del"), FunctionTemplate::New(TxnWrap::del)->GetFunction());
+    // TODO: wrap mdb_txn_reset too
+    // TODO: wrap mdb_txn_renew too
+    // TODO: wrap mdb_cmp too
+    // TODO: wrap mdb_dcmp too
     // TxnWrap: Get constructor
     EnvWrap::txnCtor = Persistent<Function>::New(txnTpl->GetFunction());
     
@@ -236,6 +246,7 @@ void EnvWrap::setupExports(Handle<Object> exports) {
     // DbiWrap: Add functions to the prototype
     dbiTpl->PrototypeTemplate()->Set(String::NewSymbol("close"), FunctionTemplate::New(DbiWrap::close)->GetFunction());
     // TODO: wrap mdb_stat too
+    // TODO: wrap mdb_drop too
     // DbiWrap: Get constructor
     EnvWrap::dbiCtor = Persistent<Function>::New(dbiTpl->GetFunction());
     
