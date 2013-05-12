@@ -41,8 +41,6 @@ void setupExportMisc(Handle<Object> exports);
 */
 class EnvWrap : public ObjectWrap {
 private:
-    // Stores whether or not the MDB_env needs closing
-    bool needsClose;
     // The wrapped object
     MDB_env *env;
     // Constructor for TxnWrap
@@ -178,11 +176,11 @@ public:
 */
 class DbiWrap : public ObjectWrap {
 private:
-    // Stores whether or not the MDB_txn needs closing
+    // Stores whether or not the MDB_dbi needs closing
     bool needsClose;
     // The wrapped object
     MDB_dbi dbi;
-    // Reference to the MDB_env of the wrapped MDB_txn
+    // Reference to the MDB_env of the wrapped MDB_dbi
     MDB_env *env;
     
     friend class TxnWrap;

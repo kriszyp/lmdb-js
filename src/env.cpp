@@ -33,12 +33,12 @@ Persistent<Function> EnvWrap::dbiCtor;
 void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue, Local<Object> options);
 
 EnvWrap::EnvWrap() {
-    needsClose = false;
+    this->env = NULL;
 }
 
 EnvWrap::~EnvWrap() {
     // Close if not closed already
-    if (needsClose) {
+    if (this->env) {
         mdb_env_close(env);
     }
 }
@@ -56,9 +56,7 @@ Handle<Value> EnvWrap::ctor(const Arguments& args) {
         return scope.Close(Undefined());
     }
     
-    wrapper->needsClose = true;
     wrapper->Wrap(args.This());
-
     return args.This();
 }
 
@@ -69,6 +67,12 @@ Handle<Value> EnvWrap::open(const Arguments& args) {
     
     // Get the wrapper
     EnvWrap *ew = ObjectWrap::Unwrap<EnvWrap>(args.This());
+    
+    if (!ew->env) {
+        ThrowException(Exception::Error(String::New("The environment is already closed.")));
+        return Undefined();
+    }
+    
     Local<Object> options = args[0]->ToObject();
     Local<String> path = options->Get(String::NewSymbol("path"))->ToString();
     
@@ -101,7 +105,7 @@ Handle<Value> EnvWrap::open(const Arguments& args) {
     
     if (rc != 0) {
         mdb_env_close(ew->env);
-        ew->needsClose = false;
+        ew->env = NULL;
         ThrowException(Exception::Error(String::New(mdb_strerror(rc))));
         return Undefined();
     }
@@ -112,9 +116,15 @@ Handle<Value> EnvWrap::open(const Arguments& args) {
 Handle<Value> EnvWrap::close(const Arguments& args) {
     HandleScope scope;
     
-    EnvWrap *wrapper = ObjectWrap::Unwrap<EnvWrap>(args.This());
-    mdb_env_close(wrapper->env);
-    wrapper->needsClose = false;
+    EnvWrap *ew = ObjectWrap::Unwrap<EnvWrap>(args.This());
+    
+    if (!ew->env) {
+        ThrowException(Exception::Error(String::New("The environment is already closed.")));
+        return Undefined();
+    }
+    
+    mdb_env_close(ew->env);
+    ew->env = NULL;
     
     return scope.Close(Undefined());
 }
