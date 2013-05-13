@@ -1,30 +1,31 @@
 node-lmdb
 =========
 
-This is a node.js binding for lmdb, an extremely fast and lightweight key-value store database.
+This is a node.js binding for LMDB, an extremely fast and lightweight transactional key-value store database.
 
 About
 -----
 
 ### About this module
 
-The aim of this node module is to provide bindings so that people can use lmdb from their node applications, aiming for a simple and clean API which is on par with the lmdb API but tries to apply javascript patterns and naming conventions as much as possible to make users feel familiar about it.
+The aim of this node module is to provide bindings so that people can use LMDB from their node applications, aiming for a simple and clean API which is on par with the LMDB API but tries to apply javascript patterns and naming conventions as much as possible to make users feel familiar about it.
 
-### About lmdb
+### About LMDB
+
+Here are the main highlights of LMDB, for more, visit http://symas.com/mdb :)
 
 * Key-value store, NoSQL
 * In-process, no need to squeeze your data through a socket
 * Support for transactions and multiple databases in the same environment
 * Support for multi-threaded and multi-process use
 * Zero-copy lookup (memory map)
-* For more, visit http://symas.com/mdb
 
 Usage
 -----
 
 ### Introduction
 
-#### Step 1: require the module
+#### Step 0: require the module
 
 Just like with any other node module, the first step is to `require()` the module.
 
@@ -32,7 +33,7 @@ Just like with any other node module, the first step is to `require()` the modul
 var lmdb = require('node-lmdb');
 ```
 
-#### Step 2: create an environment
+#### Step 1: create an environment
 
 `Env` represents a database environment. You can create one with the `new` operator and after that, you must open it before you can use it.
 `open()` accepts an object literal in which you can specify the configuration options for the environment.
@@ -51,7 +52,7 @@ Close the environment when you no longer need it.
 env.close();
 ```
 
-#### Step 3: open one or more databases
+#### Step 2: open one or more databases
 
 An environment (`Env`) can contain one or more databases. Open a database with `env.openDbi()` which takes an object literal with which you can configure your database.
 
@@ -67,11 +68,14 @@ Close the database when you no longer need it.
 dbi.close();
 ```
 
-#### Step 4: use transactions
+#### Step 3: use transactions
 
 The basic unit of work in LMDB is a transaction, which is called `Txn` for short. Here is how you operate with your data.  
 Every piece of data in LMDB is referred to by a **key**.
-You can use `get()` to retrieve something, `put()` to store something and `del()` to delete something.  
+You can use `get()` to retrieve something, `put()` to store something and `del()` to delete something.
+
+Currently **only string values are supported**, use `JSON.stringify` and `JSON.parse` for complex data structures.
+
 **IMPORTANT:** always close your transactions with `abort()` or `commit()` when you are done with them.
 
 ```javascript
@@ -113,6 +117,7 @@ You can find some in the source tree. More will be added later.
 
 ### Limitations of node-lmdb
 
+* **Only string values are supported.** If you want to store complex data structures, use `JSON.stringify` before putting it into the database and `JSON.parse` when you retrieve the data.
 * Fixed address map (called `MDB_FIXEDMAP` in C) features are not exposed by this binding because they are highly experimental
 * `Cursor`s are not yet exposed but are planned soon.
 * Not all functions are wrapped by the binding yet. If there's one that you would like to see, drop me a line.
