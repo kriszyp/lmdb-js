@@ -62,19 +62,33 @@ void consoleLogN(int n) {
     consoleLog(c);
 }
 
-void v8ToLmdbVal(Handle<Value> handle, MDB_val *val) {
-    // TODO: support other data types, not just string
-    // TODO: get rid of this memory leak
-    v8::String::Utf8Value *str = new v8::String::Utf8Value(handle->ToString());
+void CustomExternalStringResource::writeTo(Handle<String> str, MDB_val *val) {
+    unsigned int l = str->Length();
+    uint16_t *d = new uint16_t[l];
+    str->Write(d);
     
-    val->mv_size = str->length() * sizeof(char);
-    val->mv_data = **str;
+    val->mv_data = d;
+    val->mv_size = l * sizeof(uint16_t);
 }
 
-Handle<Value> lmdbValToV8(MDB_val *val) {
-    // TODO: support other data types, not just string
-    // TODO: maintain zero-copy
-    Local<String> var = String::New((char*)val->mv_data, val->mv_size / sizeof(char));
-    return var;
+CustomExternalStringResource::CustomExternalStringResource(MDB_val *val) {
+    // The UTF-16 data
+    this->d = (uint16_t*)(val->mv_data);
+    // Number of UTF-16 characters in the string
+    this->l = val->mv_size / sizeof(uint16_t);
+}
+
+CustomExternalStringResource::~CustomExternalStringResource() { }
+
+void CustomExternalStringResource::Dispose() {
+    // No need to do anything, the data is owned by LMDB, not us
+}
+
+const uint16_t *CustomExternalStringResource::data() const {
+    return this->d;
+}
+
+size_t CustomExternalStringResource::length() const {
+    return this->l;
 }
 

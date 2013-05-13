@@ -107,7 +107,8 @@ Handle<Value> TxnWrap::get(const Arguments& args) {
     }
     
     MDB_val key, data;
-    v8ToLmdbVal(args[1], &key);
+    CustomExternalStringResource::writeTo(args[1]->ToString(), &key);
+    
     int rc = mdb_get(tw->txn, dw->dbi, &key, &data);
     if (rc == MDB_NOTFOUND) {
         return scope.Close(Null());
@@ -117,7 +118,7 @@ Handle<Value> TxnWrap::get(const Arguments& args) {
         return Undefined();
     }
     
-    Handle<Value> result = lmdbValToV8(&data);
+    Handle<String> result = String::NewExternal(new CustomExternalStringResource(&data));
     return scope.Close(result);
 }
 
@@ -134,8 +135,10 @@ Handle<Value> TxnWrap::put(const Arguments& args) {
     
     int flags = 0;
     MDB_val key, data;
-    v8ToLmdbVal(args[1], &key);
-    v8ToLmdbVal(args[2], &data);
+    
+    CustomExternalStringResource::writeTo(args[1]->ToString(), &key);
+    CustomExternalStringResource::writeTo(args[2]->ToString(), &data);
+    
     int rc = mdb_put(tw->txn, dw->dbi, &key, &data, flags);
     if (rc != 0) {
         ThrowException(Exception::Error(String::New(mdb_strerror(rc))));
@@ -157,7 +160,8 @@ Handle<Value> TxnWrap::del(const Arguments& args) {
     }
     
     MDB_val key;
-    v8ToLmdbVal(args[1], &key);
+    CustomExternalStringResource::writeTo(args[1]->ToString(), &key);
+    
     int rc = mdb_del(tw->txn, dw->dbi, &key, NULL);
     if (rc != 0) {
         ThrowException(Exception::Error(String::New(mdb_strerror(rc))));

@@ -219,5 +219,22 @@ public:
     static Handle<Value> close(const Arguments& args);
 };
 
+// External string resource that glues MDB_val and v8::String
+class CustomExternalStringResource : public String::ExternalStringResource {
+private:
+    const uint16_t *d;
+    size_t l;
+
+public:
+    CustomExternalStringResource(MDB_val *val);
+    ~CustomExternalStringResource();
+    
+    void Dispose();
+    const uint16_t *data() const;
+    size_t length() const;
+    
+    static void writeTo(Handle<String> str, MDB_val *val);
+};
+
 #endif // NODE_LMDB_H
 
