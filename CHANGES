@@ -9,6 +9,7 @@ OpenLDAP 2.4.36 Engineering
 	Fixed slapd-mdb behavior with alias dereferencing (ITS#7577)
 	Fixed slapd-meta binding flag is set (ITS#7524)
 	Added slapd-meta TCP keepalive support (ITS#7513)
+	Fixed slapo-sssvlv double free (ITS#7588)
 	Fixed slaptest to list -Q option (ITS#7568)
 	Documentation
 		ldap.conf(5) fixed typos (ITS#7568)
