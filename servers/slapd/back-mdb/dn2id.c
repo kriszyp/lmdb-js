@@ -714,6 +714,14 @@ mdb_idscopes(
 	}
 
 	id = isc->id;
+
+	/* Catch entries from deref'd aliases */
+	x = mdb_id2l_search( isc->scopes, id );
+	if ( x <= isc->scopes[0].mid && isc->scopes[x].mid == id ) {
+		isc->nscope = x;
+		return MDB_SUCCESS;
+	}
+
 	while (id) {
 		if ( !rc ) {
 			key.mv_data = &id;
