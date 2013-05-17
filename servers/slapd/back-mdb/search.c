@@ -858,7 +858,7 @@ notfound:
 			int i;
 
 			/* child of base, just append RDNs to base->e_name */
-			if ( nsubs < ncand || isc.nscope == 1 ) {
+			if ( nsubs < ncand || isc.scopes[isc.nscope].mid == base->e_id ) {
 				pdn = base->e_name;
 				pndn = base->e_nname;
 			} else {
