@@ -5083,14 +5083,15 @@ parse_syncrepl_line(
 					STRLENOF( STRICT_REFRESH ) ) )
 		{
 			si->si_strict_refresh = 1;
-		} else if ( bindconf_parse( c->argv[i], &si->si_bindconf ) ) {
+		} else if ( !bindconf_parse( c->argv[i], &si->si_bindconf ) ) {
+			si->si_got |= GOT_BINDCONF;
+		} else {
 			snprintf( c->cr_msg, sizeof( c->cr_msg ),
 				"Error: parse_syncrepl_line: "
 				"unable to parse \"%s\"\n", c->argv[ i ] );
 			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
 			return -1;
 		}
-		si->si_got |= GOT_BINDCONF;
 	}
 
 	if ( ( si->si_got & GOT_REQUIRED ) != GOT_REQUIRED ) {
@@ -5104,11 +5105,11 @@ parse_syncrepl_line(
 	}
 
 	if ( !be_issubordinate( c->be, &si->si_base ) && !( si->si_got & GOT_SUFFIXM )) {
-		ch_free( si->si_base.bv_val );
-		BER_BVZERO( &si->si_base );
 		snprintf( c->cr_msg, sizeof( c->cr_msg ),
 			"Base DN \"%s\" is not within the database naming context",
-			val );
+			si->si_base.bv_val );
+		ch_free( si->si_base.bv_val );
+		BER_BVZERO( &si->si_base );
 		Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
 		return -1;
 	}
