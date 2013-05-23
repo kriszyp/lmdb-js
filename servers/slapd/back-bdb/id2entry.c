@@ -248,7 +248,7 @@ int bdb_entry_release(
 	/* slapMode : SLAP_SERVER_MODE, SLAP_TOOL_MODE,
 			SLAP_TRUNCATE_MODE, SLAP_UNDEFINED_MODE */
  
-	if ( slapMode == SLAP_SERVER_MODE ) {
+	if ( slapMode & SLAP_SERVER_MODE ) {
 		/* If not in our cache, just free it */
 		if ( !e->e_private ) {
 #ifdef SLAP_ZONE_ALLOC
@@ -410,7 +410,7 @@ return_results:
 		bdb_cache_return_entry_rw(bdb, e, rw, &lock);
 
 	} else {
-		if ( slapMode == SLAP_SERVER_MODE ) {
+		if ( slapMode & SLAP_SERVER_MODE ) {
 			*ent = e;
 			/* big drag. we need a place to store a read lock so we can
 			 * release it later?? If we're in a txn, nothing is needed
