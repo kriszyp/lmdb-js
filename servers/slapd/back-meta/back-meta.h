@@ -681,6 +681,11 @@ meta_back_map_free( struct ldapmap *lm );
 extern int
 meta_subtree_destroy( metasubtree_t *ms );
 
+extern int
+meta_target_finish( metainfo_t *mi, metatarget_t *mt,
+	const char *log, char *msg, size_t msize
+);
+
 extern LDAP_REBIND_PROC		meta_back_default_rebind;
 extern LDAP_URLLIST_PROC	meta_back_default_urllist;
 

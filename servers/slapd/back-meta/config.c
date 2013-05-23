@@ -1090,6 +1090,15 @@ static slap_cf_aux_table timeout_table[] = {
 };
 
 static int
+meta_cf_cleanup( ConfigArgs *c )
+{
+	metainfo_t	*mi = ( metainfo_t * )c->be->be_private;
+	metatarget_t	*mt = c->ca_private;
+
+	return meta_target_finish( mi, mt, c->log, c->cr_msg, sizeof( c->cr_msg ));
+}
+
+static int
 meta_back_cf_gen( ConfigArgs *c )
 {
 	metainfo_t	*mi = ( metainfo_t * )c->be->be_private;
@@ -2061,6 +2070,7 @@ meta_back_cf_gen( ConfigArgs *c )
 			return 1;
 		}
 		c->ca_private = mt;
+		c->cleanup = meta_cf_cleanup;
 	} break;
 	case LDAP_BACK_CFG_SUBTREE_EX:
 	case LDAP_BACK_CFG_SUBTREE_IN:

@@ -1604,6 +1604,8 @@ LDAP_SLAPD_V (int) slapMode;
 #define SLAP_TOOL_NO_SCHEMA_CHECK	0x1000
 #define SLAP_TOOL_VALUE_CHECK	0x2000
 
+#define SLAP_SERVER_RUNNING	0x8000
+
 #define SB_TLS_DEFAULT		(-1)
 #define SB_TLS_OFF		0
 #define SB_TLS_ON		1
