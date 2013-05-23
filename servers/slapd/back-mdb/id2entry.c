@@ -271,7 +271,7 @@ int mdb_entry_release(
 			SLAP_TRUNCATE_MODE, SLAP_UNDEFINED_MODE */
  
 	mdb_entry_return( op, e );
-	if ( slapMode == SLAP_SERVER_MODE ) {
+	if ( slapMode & SLAP_SERVER_MODE ) {
 		OpExtra *oex;
 		LDAP_SLIST_FOREACH( oex, &op->o_extra, oe_next ) {
 			if ( oex->oe_key == mdb ) {
