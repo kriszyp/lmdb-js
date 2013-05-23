@@ -211,12 +211,15 @@ slap_init( int mode, const char *name )
 
 int slap_startup( Backend *be )
 {
+	int rc;
 	Debug( LDAP_DEBUG_TRACE,
 		"%s startup: initiated.\n",
 		slap_name, 0, 0 );
 
-
-	return backend_startup( be );
+	rc = backend_startup( be );
+	if ( !rc && ( slapMode & SLAP_SERVER_MODE ))
+		slapMode |= SLAP_SERVER_RUNNING;
+	return rc;
 }
 
 int slap_shutdown( Backend *be )
