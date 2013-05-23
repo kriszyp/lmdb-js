@@ -367,6 +367,9 @@ ldap_send_server_request(
 	}
 
 	/* Extract requestDN for future reference */
+#ifdef LDAP_CONNECTIONLESS
+	if ( !LDAP_IS_UDP(ld) )
+#endif
 	{
 		BerElement tmpber = *ber;
 		ber_int_t	bint;
