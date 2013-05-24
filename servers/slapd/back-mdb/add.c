@@ -338,7 +338,7 @@ txnReturn:
 	op->ora_e->e_id = eid;
 
 	/* dn2id index */
-	rs->sr_err = mdb_dn2id_add( op, mcd, mcd, pid, 1, op->ora_e );
+	rs->sr_err = mdb_dn2id_add( op, mcd, mcd, pid, 1, 1, op->ora_e );
 	mdb_cursor_close( mcd );
 	if ( rs->sr_err != 0 ) {
 		Debug( LDAP_DEBUG_TRACE,

@@ -492,7 +492,7 @@ txnReturn:
 
 	/* add new DN */
 	rs->sr_err = mdb_dn2id_add( op, mc, mc, np ? np->e_id : p->e_id,
-		np ? nsubs : 0, &dummy );
+		nsubs, np != NULL, &dummy );
 	if ( rs->sr_err != 0 ) {
 		Debug(LDAP_DEBUG_TRACE,
 			"<=- " LDAP_XSTRING(mdb_modrdn)
