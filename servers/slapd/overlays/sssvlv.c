@@ -618,7 +618,8 @@ static void send_page( Operation *op, SlapReply *rs, sort_op *so )
 
 	/* Set the first entry to send for the next page */
 	so->so_tree = next_node;
-	next_node->avl_left = NULL;
+	if ( next_node )
+		next_node->avl_left = NULL;
 
 	op->o_bd = be;
 }
