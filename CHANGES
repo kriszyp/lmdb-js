@@ -1,6 +1,8 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.36 Engineering
+	Fixed libldap CLDAP with uninit'd memory (ITS#7582)
+	Fixed libldap with UDP (ITS#7583)
 	Fixed liblmdb MDB_PREV behavior (ITS#7556)
 	Fixed liblmdb transaction issues (ITS#7515)
 	Fixed liblmdb mdb_drop overflow page return (ITS#7561)
