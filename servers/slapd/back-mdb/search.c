@@ -538,6 +538,7 @@ dn2entry_retry:
 	/* select candidates */
 	if ( op->oq_search.rs_scope == LDAP_SCOPE_BASE ) {
 		rs->sr_err = base_candidate( op->o_bd, base, candidates );
+		scopes[0].mid = 0;
 		ncand = 1;
 	} else {
 		if ( op->ors_scope == LDAP_SCOPE_ONELEVEL ) {

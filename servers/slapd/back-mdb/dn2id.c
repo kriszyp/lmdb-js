@@ -86,6 +86,7 @@ mdb_dn2id_add(
 	MDB_cursor	*mcd,
 	ID pid,
 	ID nsubs,
+	int upsub,
 	Entry		*e )
 {
 	struct mdb_info *mdb = (struct mdb_info *) op->o_bd->be_private;
@@ -156,7 +157,7 @@ mdb_dn2id_add(
 	op->o_tmpfree( d, op->o_tmpmemctx );
 
 	/* Add our subtree count to all superiors */
-	if ( rc == 0 && nsubs && pid ) {
+	if ( rc == 0 && upsub && pid ) {
 		ID subs;
 		nid = pid;
 		do {

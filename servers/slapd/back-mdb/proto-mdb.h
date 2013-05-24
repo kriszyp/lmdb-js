@@ -82,6 +82,7 @@ int mdb_dn2id_add(
 	MDB_cursor *mcd,
 	ID pid,
 	ID nsubs,
+	int upsub,
 	Entry *e );
 
 int mdb_dn2id_delete(
