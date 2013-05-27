@@ -278,6 +278,12 @@ typedef struct metasubtree_t {
 	struct metasubtree_t *ms_next;
 } metasubtree_t;
 
+typedef struct metafilter_t {
+	struct metafilter_t *mf_next;
+	struct berval mf_regex_pattern;
+	regex_t mf_regex;
+} metafilter_t;
+
 typedef struct metacommon_t {
 	int				mc_version;
 	int				mc_nretries;
@@ -324,6 +330,7 @@ typedef struct metatarget_t {
 	LDAP_URLLIST_PROC	*mt_urllist_f;
 	void			*mt_urllist_p;
 
+	metafilter_t	*mt_filter;
 	metasubtree_t		*mt_subtree;
 	/* F: subtree-include; T: subtree-exclude */
 	int			mt_subtree_exclude;
@@ -680,6 +687,9 @@ meta_back_map_free( struct ldapmap *lm );
 
 extern int
 meta_subtree_destroy( metasubtree_t *ms );
+
+extern void
+meta_filter_destroy( metafilter_t *mf );
 
 extern int
 meta_target_finish( metainfo_t *mi, metatarget_t *mt,

@@ -339,6 +339,19 @@ from 1.
 Target <target> must be defined.
 
 .TP
+.B filter <pattern>
+This directive allows specifying a
+.BR regex (5)
+pattern to indicate what search filter terms are actually served by a target.
+
+In a search request, if the search filter matches the \fIpattern\fP
+the target is considered while fulfilling the request; otherwise
+the target is ignored. There may be multiple occurrences of
+the
+.B filter
+directive for each target.
+
+.TP
 .B idassert\-authzFrom <authz-regexp>
 if defined, selects what
 .I local
