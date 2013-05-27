@@ -28,8 +28,8 @@ H3: Memory
 Scale your cache to use available memory and increase system memory if you can.
 
 See {{SECT:Caching}} for BDB cache tuning hints.
-Note that MDB uses no cache of its own and has no tuning options, so the Caching
-section can be ignored when using MDB.
+Note that LMDB uses no cache of its own and has no tuning options, so the Caching
+section can be ignored when using LMDB.
 
 
 H3: Disks
