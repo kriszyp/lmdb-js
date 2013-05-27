@@ -844,6 +844,9 @@ undef_promote(
 			tmp->ad_next = NULL;
 			/* ad_cname was contiguous, no leak here */
 			tmp->ad_cname = nat->sat_cname;
+			ldap_pvt_thread_mutex_lock( &ad_index_mutex );
+			tmp->ad_index = ++ad_count;
+			ldap_pvt_thread_mutex_unlock( &ad_index_mutex );
 			*n_ad = tmp;
 			n_ad = &tmp->ad_next;
 		} else {
