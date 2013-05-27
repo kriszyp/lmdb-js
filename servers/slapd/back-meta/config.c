@@ -101,6 +101,7 @@ enum {
 	LDAP_BACK_CFG_PSEUDOROOTDN,
 	LDAP_BACK_CFG_PSEUDOROOTPW,
 	LDAP_BACK_CFG_KEEPALIVE,
+	LDAP_BACK_CFG_FILTER,
 
 	LDAP_BACK_CFG_LAST
 };
@@ -417,6 +418,15 @@ static ConfigTable metacfg[] = {
 			"SINGLE-VALUE )",
 		NULL, NULL },
 
+	{ "filter", "pattern", 2, 2, 0,
+		ARG_MAGIC|LDAP_BACK_CFG_FILTER,
+		meta_back_cf_gen, "( OLcfgDbAt:3.112 "
+			"NAME 'olcDbFilter' "
+			"DESC 'Filter regex pattern to include in target' "
+			"EQUALITY caseExactMatch "
+			"SYNTAX OMsDirectoryString )",
+		NULL, NULL },
+
 	{ NULL, NULL, 0, 0, 0, ARG_IGNORED,
 		NULL, NULL, NULL, NULL }
 };
@@ -477,6 +487,7 @@ static ConfigOCs metaocs[] = {
 			"$ olcDbSubtreeInclude "
 			"$ olcDbTimeout "
 			"$ olcDbKeepalive "
+			"$ olcDbFilter "
 
 			/* defaults may be inherited */
 			COMMON_ATTRS
@@ -727,6 +738,22 @@ meta_subtree_destroy( metasubtree_t *ms )
 	}
 
 	return meta_subtree_free( ms );
+}
+
+static void
+meta_filter_free( metafilter_t *mf )
+{
+	regfree( &mf->mf_regex );
+	ber_memfree( mf->mf_regex_pattern.bv_val );
+	ch_free( mf );
+}
+
+void
+meta_filter_destroy( metafilter_t *mf )
+{
+	if ( mf->mf_next )
+		meta_filter_destroy( mf->mf_next );
+	meta_filter_free( mf );
 }
 
 static struct berval st_styles[] = {
@@ -1603,6 +1630,16 @@ meta_back_cf_gen( ConfigArgs *c )
 			rc = meta_subtree_unparse( c, mt );
 			break;
 
+		case LDAP_BACK_CFG_FILTER:
+			if ( mt->mt_filter == NULL ) {
+				rc = 1;
+			} else {
+				metafilter_t *mf;
+				for ( mf = mt->mt_filter; mf; mf = mf->mf_next )
+					value_add_one( &c->rvalue_vals, &mf->mf_regex_pattern );
+			}
+			break;
+
 		/* replaced by idassert */
 		case LDAP_BACK_CFG_PSEUDOROOTDN:
 		case LDAP_BACK_CFG_PSEUDOROOTPW:
@@ -1827,6 +1864,26 @@ meta_back_cf_gen( ConfigArgs *c )
 					}
 					i++;
 					mprev = &ms->ms_next;
+				}
+				if ( i != c->valx )
+					rc = 1;
+			}
+			break;
+
+		case LDAP_BACK_CFG_FILTER:
+			if ( c->valx < 0 ) {
+				meta_filter_destroy( mt->mt_filter );
+				mt->mt_filter = NULL;
+			} else {
+				metafilter_t *mf, **mprev;
+				for (i=0, mprev = &mt->mt_filter, mf = *mprev; mf; mf = *mprev) {
+					if ( i == c->valx ) {
+						*mprev = mf->mf_next;
+						meta_filter_free( mf );
+						break;
+					}
+					i++;
+					mprev = &mf->mf_next;
 				}
 				if ( i != c->valx )
 					rc = 1;
@@ -2080,6 +2137,25 @@ meta_back_cf_gen( ConfigArgs *c )
 			return 1;
 		}
 		break;
+
+	case LDAP_BACK_CFG_FILTER: {
+		metafilter_t *mf, **m2;
+		mf = ch_malloc( sizeof( metafilter_t ));
+		rc = regcomp( &mf->mf_regex, c->argv[1], REG_EXTENDED );
+		if ( rc ) {
+			char regerr[ SLAP_TEXT_BUFLEN ];
+			regerror( rc, &mf->mf_regex, regerr, sizeof(regerr) );
+			snprintf( c->cr_msg, sizeof( c->cr_msg ),
+				"regular expression \"%s\" bad because of %s",
+				c->argv[1], regerr );
+			ch_free( mf );
+			return 1;
+		}
+		ber_str2bv( c->argv[1], 0, 1, &mf->mf_regex_pattern );
+		for ( m2 = &mt->mt_filter; *m2; m2 = &(*m2)->mf_next )
+			;
+		*m2 = mf;
+	} break;
 
 	case LDAP_BACK_CFG_DEFAULT_T:
 	/* default target directive */

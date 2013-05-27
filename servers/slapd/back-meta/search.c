@@ -548,6 +548,20 @@ meta_back_search_start(
 		}
 	}
 
+	/* check filter expression */
+	if ( mt->mt_filter ) {
+		metafilter_t *mf;
+		for ( mf = mt->mt_filter; mf; mf = mf->mf_next ) {
+			if ( regexec( &mf->mf_regex, op->ors_filterstr.bv_val, 0, NULL, 0 ) == 0 )
+				break;
+		}
+		/* nothing matched, this target is no longer a candidate */
+		if ( !mf ) {
+			retcode = META_SEARCH_NOT_CANDIDATE;
+			goto doreturn;
+		}
+	}
+
 	/* initiate dobind */
 	retcode = meta_search_dobind_init( op, rs, mcp, candidate, candidates );
 

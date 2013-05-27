@@ -340,6 +340,10 @@ target_free(
 		meta_subtree_destroy( mt->mt_subtree );
 		mt->mt_subtree = NULL;
 	}
+	if ( mt->mt_filter ) {
+		meta_filter_destroy( mt->mt_filter );
+		mt->mt_filter = NULL;
+	}
 	if ( !BER_BVISNULL( &mt->mt_psuffix ) ) {
 		free( mt->mt_psuffix.bv_val );
 	}
