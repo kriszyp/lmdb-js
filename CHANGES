@@ -1,6 +1,7 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.36 Engineering
+	Added back-meta target filter patterns (ITS#7609)
 	Fixed libldap CLDAP with uninit'd memory (ITS#7582)
 	Fixed libldap with UDP (ITS#7583)
 	Fixed liblmdb MDB_PREV behavior (ITS#7556)
