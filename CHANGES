@@ -7,6 +7,7 @@ OpenLDAP 2.4.36 Engineering
 	Fixed liblmdb transaction issues (ITS#7515)
 	Fixed liblmdb mdb_drop overflow page return (ITS#7561)
 	Fixed liblmdb nested split (ITS#7592)
+	Fixed slapd cn=config with unknown schema elements (ITS#7608)
 	Fixed slapd-bdb/hdb to wait for read locks in tool mode (ITS#6365)
 	Fixed slapd-mdb behavior with alias dereferencing (ITS#7577)
 	Fixed slapd-mdb modrdn and base-scoped searches (ITS#7604)
