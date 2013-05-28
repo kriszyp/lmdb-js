@@ -40,6 +40,8 @@
 
 #include "slapcommon.h"
 
+extern int slap_DN_strict;	/* dn.c */
+
 static char csnbuf[ LDAP_PVT_CSNSTR_BUFSIZE ];
 
 typedef struct Erec {
@@ -96,11 +98,19 @@ again:
 	{
 		BackendDB *bd;
 		Entry *e;
+		int prev_DN_strict;
 
 		if ( erec->lineno < jumpline )
 			goto again;
 
+		if ( !dbnum ) {
+			prev_DN_strict = slap_DN_strict;
+			slap_DN_strict = 0;
+		}
 		e = str2entry2( buf, checkvals );
+		if ( !dbnum ) {
+			slap_DN_strict = prev_DN_strict;
+		}
 
 		if ( enable_meter )
 			lutil_meter_update( &meter,
