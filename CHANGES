@@ -16,14 +16,15 @@ OpenLDAP 2.4.36 Engineering
 	Added slapd-meta TCP keepalive support (ITS#7513)
 	Fixed slapo-sssvlv double free (ITS#7588)
 	Fixed slaptest to list -Q option (ITS#7568)
+	Contrib
+		Fixed nssov group enumeration bug (ITS#7569)
 	Documentation
+		admin24 Update database backend notes (ITS#7590)
 		ldap.conf(5) fixed typos (ITS#7568)
 		ldapmodify(1) remove replog reference (ITS#7562)
 		ldif(5) remove replog reference (ITS#7562)
 		slapd-config(5) remove replog reference (ITS#7562)
 		slapd.conf(5) remove replog reference (ITS#7562)
-	Contrib
-		Fixed nssov group enumeration bug (ITS#7569)
 
 OpenLDAP 2.4.35 Release (2013/03/31)
 	Fixed liblmdb mdb_cursor_put with MDB_MULTIPLE (ITS#7551)
