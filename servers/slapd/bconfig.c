@@ -197,6 +197,7 @@ enum {
 	CFG_SYNC_SUBENTRY,
 	CFG_LTHREADS,
 	CFG_IX_HASH64,
+	CFG_DISABLED,
 
 	CFG_LAST
 };
@@ -364,6 +365,9 @@ static ConfigTable config_back_cf_table[] = {
 	{ "defaultSearchBase", "dn", 2, 2, 0, ARG_PRE_BI|ARG_PRE_DB|ARG_DN|ARG_QUOTE|ARG_MAGIC,
 		&config_search_base, "( OLcfgGlAt:14 NAME 'olcDefaultSearchBase' "
 			"SYNTAX OMsDN SINGLE-VALUE )", NULL, NULL },
+	{ "disabled", "on|off", 2, 2, 0, ARG_DB|ARG_ON_OFF|ARG_MAGIC|CFG_DISABLED,
+		&config_generic, "( OLcfgDbAt:0.21 NAME 'olcDisabled' "
+			"SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
 	{ "disallows", "features", 2, 0, 8, ARG_PRE_DB|ARG_MAGIC,
 		&config_disallows, "( OLcfgGlAt:15 NAME 'olcDisallows' "
 			"EQUALITY caseIgnoreMatch "
@@ -865,7 +869,7 @@ static ConfigOCs cf_ocs[] = {
 		"DESC 'OpenLDAP Database-specific options' "
 		"SUP olcConfig STRUCTURAL "
 		"MUST olcDatabase "
-		"MAY ( olcHidden $ olcSuffix $ olcSubordinate $ olcAccess $ "
+		"MAY ( olcDisabled $ olcHidden $ olcSuffix $ olcSubordinate $ olcAccess $ "
 		 "olcAddContentAcl $ olcLastMod $ olcLimits $ "
 		 "olcMaxDerefDepth $ olcPlugin $ olcReadOnly $ olcReplica $ "
 		 "olcReplicaArgsFile $ olcReplicaPidFile $ olcReplicationInterval $ "
@@ -878,7 +882,8 @@ static ConfigOCs cf_ocs[] = {
 		"NAME 'olcOverlayConfig' "
 		"DESC 'OpenLDAP Overlay-specific options' "
 		"SUP olcConfig STRUCTURAL "
-		"MUST olcOverlay )", Cft_Overlay, NULL, cfAddOverlay },
+		"MUST olcOverlay "
+		"MAY olcDisabled )", Cft_Overlay, NULL, cfAddOverlay },
 	{ "( OLcfgGlOc:6 "
 		"NAME 'olcIncludeFile' "
 		"DESC 'OpenLDAP configuration include file' "
@@ -1042,6 +1047,23 @@ config_generic(ConfigArgs *c) {
 #endif
 		case CFG_DEPTH:
 			c->value_int = c->be->be_max_deref_depth;
+			break;
+		case CFG_DISABLED:
+			if ( c->bi ) {
+				/* overlay */
+				if ( c->bi->bi_flags & SLAPO_BFLAG_DISABLED ) {
+					c->value_int = 1;
+				} else {
+					rc = 1;
+				}
+			} else {
+				/* database */
+				if ( SLAP_DBDISABLED( c->be )) {
+					c->value_int = 1;
+				} else {
+					rc = 1;
+				}
+			}
 			break;
 		case CFG_HIDDEN:
 			if ( SLAP_DBHIDDEN( c->be )) {
@@ -1383,6 +1405,21 @@ config_generic(ConfigArgs *c) {
 			break;
 		case CFG_HIDDEN:
 			c->be->be_flags &= ~SLAP_DBFLAG_HIDDEN;
+			break;
+
+		case CFG_DISABLED:
+			if ( c->bi ) {
+				c->bi->bi_flags &= ~SLAP_DBFLAG_DISABLED;
+				if ( c->bi->bi_db_open ) {
+					BackendInfo *bi_orig = c->be->bd_info;
+					c->be->bd_info = c->bi;
+					rc = c->bi->bi_db_open( c->be, &c->reply );
+					c->be->bd_info = bi_orig;
+				}
+			} else {
+				c->be->be_flags &= ~SLAP_DBFLAG_DISABLED;
+				rc = backend_startup_one( c->be, &c->reply );
+			}
 			break;
 
 		case CFG_IX_HASH64:
@@ -2127,6 +2164,29 @@ sortval_reject:
 				SLAP_DBFLAGS(c->be) |= SLAP_DBFLAG_MONITORING;
 			else
 				SLAP_DBFLAGS(c->be) &= ~SLAP_DBFLAG_MONITORING;
+			break;
+
+		case CFG_DISABLED:
+			if ( c->bi ) {
+				if (c->value_int) {
+					if ( c->bi->bi_db_close ) {
+						BackendInfo *bi_orig = c->be->bd_info;
+						c->be->bd_info = c->bi;
+						c->bi->bi_db_close( c->be, &c->reply );
+						c->be->bd_info = bi_orig;
+					}
+					c->bi->bi_flags |= SLAPO_BFLAG_DISABLED;
+				} else {
+					c->bi->bi_flags &= ~SLAPO_BFLAG_DISABLED;
+				}
+			} else {
+				if (c->value_int) {
+					backend_shutdown( c->be );
+					SLAP_DBFLAGS(c->be) |= SLAP_DBFLAG_DISABLED;
+				} else {
+					SLAP_DBFLAGS(c->be) &= ~SLAP_DBFLAG_DISABLED;
+				}
+			}
 			break;
 
 		case CFG_HIDDEN:

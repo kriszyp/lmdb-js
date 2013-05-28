@@ -264,6 +264,9 @@ int backend_startup(Backend *be)
 	}
 
 	if(be != NULL) {
+		/* silent noop if disabled */
+		if ( SLAP_DBDISABLED( be ))
+			return 0;
 		if ( be->bd_info->bi_open ) {
 			rc = be->bd_info->bi_open( be->bd_info );
 			if ( rc != 0 ) {
@@ -315,6 +318,8 @@ int backend_startup(Backend *be)
 	i = -1;
 	LDAP_STAILQ_FOREACH(be, &backendDB, be_next) {
 		i++;
+		if ( SLAP_DBDISABLED( be ))
+			continue;
 		if ( be->be_suffix == NULL ) {
 			Debug( LDAP_DEBUG_ANY,
 				"backend_startup: warning, database %d (%s) "
@@ -372,6 +377,8 @@ int backend_shutdown( Backend *be )
 
 	/* close each backend database */
 	LDAP_STAILQ_FOREACH( be, &backendDB, be_next ) {
+		if ( SLAP_DBDISABLED( be ))
+			continue;
 		if ( be->bd_info->bi_db_close ) {
 			be->bd_info->bi_db_close( be, NULL );
 		}
@@ -666,7 +673,7 @@ select_backend(
 	Backend		*be;
 
 	LDAP_STAILQ_FOREACH( be, &backendDB, be_next ) {
-		if ( be->be_nsuffix == NULL || SLAP_DBHIDDEN( be )) {
+		if ( be->be_nsuffix == NULL || SLAP_DBHIDDEN( be ) || SLAP_DBDISABLED( be )) {
 			continue;
 		}
 
