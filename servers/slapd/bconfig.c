@@ -3414,6 +3414,10 @@ loglevel2bvarray( int l, BerVarray *bva )
 		loglevel_init();
 	}
 
+	if ( l == 0 ) {
+		return value_add_one( bva, ber_bvstr( "0" ) );
+	}
+
 	return mask_to_verbs( loglevel_ops, l, bva );
 }
 
