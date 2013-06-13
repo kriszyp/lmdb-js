@@ -20,6 +20,7 @@ OpenLDAP 2.4.36 Engineering
 	Fixed slaptest to list -Q option (ITS#7568)
 	Contrib
 		Fixed nssov group enumeration bug (ITS#7569)
+		Fixed autogroup when URI has no attrs (ITS#7580)
 	Documentation
 		admin24 Update database backend notes (ITS#7590)
 		ldap.conf(5) fixed typos (ITS#7568)
