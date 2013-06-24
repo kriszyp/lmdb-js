@@ -1058,6 +1058,8 @@ done:
 	if ( moi == &opinfo ) {
 		mdb_txn_reset( moi->moi_txn );
 		LDAP_SLIST_REMOVE( &op->o_extra, &moi->moi_oe, OpExtra, oe_next );
+	} else {
+		moi->moi_ref--;
 	}
 	if( rs->sr_v2ref ) {
 		ber_bvarray_free( rs->sr_v2ref );

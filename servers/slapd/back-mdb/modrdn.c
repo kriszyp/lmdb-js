@@ -656,6 +656,8 @@ done:
 		if ( opinfo.moi_oe.oe_key ) {
 			LDAP_SLIST_REMOVE( &op->o_extra, &opinfo.moi_oe, OpExtra, oe_next );
 		}
+	} else {
+		moi->moi_ref--;
 	}
 
 	if( preread_ctrl != NULL && (*preread_ctrl) != NULL ) {
