@@ -505,7 +505,8 @@ mdb_opinfo_get( Operation *op, struct mdb_info *mdb, int rdonly, mdb_op_info **m
 		moi->moi_ref = 0;
 	}
 	if ( renew ) {
-		mdb_txn_renew( moi->moi_txn );
+		rc = mdb_txn_renew( moi->moi_txn );
+		assert(!rc);
 	}
 	moi->moi_ref++;
 	if ( *moip != moi )
