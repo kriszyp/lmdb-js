@@ -13,6 +13,7 @@ OpenLDAP 2.4.36 Engineering
 	Fixed slapd-bdb/hdb to wait for read locks in tool mode (ITS#6365)
 	Fixed slapd-mdb behavior with alias dereferencing (ITS#7577)
 	Fixed slapd-mdb modrdn and base-scoped searches (ITS#7604)
+	Fixed slapd-mdb refcount behavior (ITS#7628)
 	Fixed slapd-meta binding flag is set (ITS#7524)
 	Fixed slapd-meta with minimal config (ITS#7581)
 	Added slapd-meta TCP keepalive support (ITS#7513)
