@@ -296,6 +296,7 @@ static int
 slapi_op_search_callback( Operation *op, SlapReply *rs, int prc )
 {
 	Slapi_PBlock		*pb = SLAPI_OPERATION_PBLOCK( op );
+	Filter *f = op->ors_filter;
 
 	/* check preoperation result code */
 	if ( prc < 0 ) {
@@ -310,8 +311,10 @@ slapi_op_search_callback( Operation *op, SlapReply *rs, int prc )
 		 * The plugin can set the SLAPI_SEARCH_FILTER.
 		 * SLAPI_SEARCH_STRFILER is not normative.
 		 */
-		op->o_tmpfree( op->ors_filterstr.bv_val, op->o_tmpmemctx );
-		filter2bv_x( op, op->ors_filter, &op->ors_filterstr );
+		if (f != op->ors_filter) {
+			op->o_tmpfree( op->ors_filterstr.bv_val, op->o_tmpmemctx );
+			filter2bv_x( op, op->ors_filter, &op->ors_filterstr );
+		}
 	}
 
 	return LDAP_SUCCESS;
