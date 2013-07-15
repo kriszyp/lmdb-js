@@ -1478,7 +1478,26 @@ mdb_page_spill(MDB_cursor *m0, MDB_val *key, MDB_val *data)
 	mdb_cursorpages_mark(m0, P_DIRTY|P_KEEP);
 
 	if (rc == 0) {
-		txn->mt_dirty_room = MDB_IDL_UM_MAX - dl[0].mid;
+		if (txn->mt_parent) {
+			MDB_txn *tx2;
+			pgno_t pgno = dl[i].mid;
+			txn->mt_dirty_room = txn->mt_parent->mt_dirty_room - dl[0].mid;
+			/* dirty pages that are dirty in an ancestor don't
+			 * count against this txn's dirty_room.
+			 */
+			for (i=1; i<=dl[0].mid; i++) {
+				for (tx2 = txn->mt_parent; tx2; tx2 = tx2->mt_parent) {
+					j = mdb_mid2l_search(tx2->mt_u.dirty_list, pgno);
+					if (j <= tx2->mt_u.dirty_list[0].mid &&
+						tx2->mt_u.dirty_list[j].mid == pgno) {
+						txn->mt_dirty_room++;
+						break;
+					}
+				}
+			}
+		} else {
+			txn->mt_dirty_room = MDB_IDL_UM_MAX - dl[0].mid;
+		}
 		txn->mt_flags |= MDB_TXN_SPILLS;
 	}
 	return rc;
@@ -1743,6 +1762,22 @@ mdb_page_unspill(MDB_txn *tx0, MDB_page *mp, MDB_page **ret)
 			}	/* otherwise, if belonging to a parent txn, the
 				 * page remains spilled until child commits
 				 */
+
+			if (txn->mt_parent) {
+				MDB_txn *tx2;
+				/* If this page is also in a parent's dirty list, then
+				 * it's already accounted in dirty_room, and we need to
+				 * cancel out the decrement that mdb_page_dirty does.
+				 */
+				for (tx2 = txn->mt_parent; tx2; tx2 = tx2->mt_parent) {
+					x = mdb_mid2l_search(tx2->mt_u.dirty_list, pgno);
+					if (x <= tx2->mt_u.dirty_list[0].mid &&
+						tx2->mt_u.dirty_list[x].mid == pgno) {
+						txn->mt_dirty_room++;
+						break;
+					}
+				}
+			}
 			mdb_page_dirty(tx0, np);
 			np->mp_flags |= P_DIRTY;
 			*ret = np;
@@ -4856,6 +4891,9 @@ mdb_cursor_set(MDB_cursor *mc, MDB_val *key, MDB_val *data,
 	assert(key);
 	assert(key->mv_size > 0);
 
+	if (mc->mc_xcursor)
+		mc->mc_xcursor->mx_cursor.mc_flags &= ~(C_INITIALIZED|C_EOF);
+
 	/* See if we're already on the right page */
 	if (mc->mc_flags & C_INITIALIZED) {
 		MDB_val nodekey;
@@ -5028,6 +5066,9 @@ mdb_cursor_first(MDB_cursor *mc, MDB_val *key, MDB_val *data)
 	int		 rc;
 	MDB_node	*leaf;
 
+	if (mc->mc_xcursor)
+		mc->mc_xcursor->mx_cursor.mc_flags &= ~(C_INITIALIZED|C_EOF);
+
 	if (!(mc->mc_flags & C_INITIALIZED) || mc->mc_top) {
 		rc = mdb_page_search(mc, NULL, 0);
 		if (rc != MDB_SUCCESS)
@@ -5054,8 +5095,6 @@ mdb_cursor_first(MDB_cursor *mc, MDB_val *key, MDB_val *data)
 			if (rc)
 				return rc;
 		} else {
-			if (mc->mc_xcursor)
-				mc->mc_xcursor->mx_cursor.mc_flags &= ~(C_INITIALIZED|C_EOF);
 			if ((rc = mdb_node_read(mc->mc_txn, leaf, data)) != MDB_SUCCESS)
 				return rc;
 		}
@@ -5070,6 +5109,9 @@ mdb_cursor_last(MDB_cursor *mc, MDB_val *key, MDB_val *data)
 {
 	int		 rc;
 	MDB_node	*leaf;
+
+	if (mc->mc_xcursor)
+		mc->mc_xcursor->mx_cursor.mc_flags &= ~(C_INITIALIZED|C_EOF);
 
 	if (!(mc->mc_flags & C_EOF)) {
 
@@ -5102,8 +5144,6 @@ mdb_cursor_last(MDB_cursor *mc, MDB_val *key, MDB_val *data)
 			if (rc)
 				return rc;
 		} else {
-			if (mc->mc_xcursor)
-				mc->mc_xcursor->mx_cursor.mc_flags &= ~(C_INITIALIZED|C_EOF);
 			if ((rc = mdb_node_read(mc->mc_txn, leaf, data)) != MDB_SUCCESS)
 				return rc;
 		}
