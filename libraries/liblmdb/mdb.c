@@ -344,8 +344,10 @@ static txnid_t mdb_debug_start;
 	 */
 #define MDB_MAGIC	 0xBEEFC0DE
 
-	/**	The version number for a database's file format. */
-#define MDB_VERSION	 1
+	/**	The version number for a database's datafile format. */
+#define MDB_DATA_VERSION	 1
+	/**	The version number for a database's lockfile format. */
+#define MDB_LOCK_VERSION	 1
 
 	/**	@brief The maximum size of a key in the database.
 	 *
@@ -513,7 +515,7 @@ typedef struct MDB_txbody {
 		/** Stamp identifying this as an MDB file. It must be set
 		 *	to #MDB_MAGIC. */
 	uint32_t	mtb_magic;
-		/** Version number of this lock file. Must be set to #MDB_VERSION. */
+		/** Version number of this lock file. Must be set to #MDB_LOCK_VERSION. */
 	uint32_t	mtb_version;
 #if defined(_WIN32) || defined(MDB_USE_POSIX_SEM)
 	char	mtb_rmname[MNAME_LEN];
@@ -770,7 +772,7 @@ typedef struct MDB_meta {
 		/** Stamp identifying this as an MDB file. It must be set
 		 *	to #MDB_MAGIC. */
 	uint32_t	mm_magic;
-		/** Version number of this lock file. Must be set to #MDB_VERSION. */
+		/** Version number of this lock file. Must be set to #MDB_DATA_VERSION. */
 	uint32_t	mm_version;
 	void		*mm_address;		/**< address for fixed mapping */
 	size_t		mm_mapsize;			/**< size of mmap region */
@@ -950,6 +952,8 @@ struct MDB_env {
 #define	MDB_ENV_ACTIVE	0x20000000U
 	/** me_txkey is set */
 #define	MDB_ENV_TXKEY	0x10000000U
+	/** Have liveness lock in reader table */
+#define	MDB_LIVE_READER	0x08000000U
 	uint32_t 	me_flags;		/**< @ref mdb_env */
 	unsigned int	me_psize;	/**< size of a page, from #GET_PAGESIZE */
 	unsigned int	me_maxreaders;	/**< size of the reader table */
@@ -981,6 +985,7 @@ struct MDB_env {
 	/** Max size of a node on a page */
 	unsigned int	me_nodemax;
 #ifdef _WIN32
+	int		me_pidquery;		/**< Used in OpenProcess */
 	HANDLE		me_rmutex;		/* Windows mutexes don't reside in shared mem */
 	HANDLE		me_wmutex;
 #elif defined(MDB_USE_POSIX_SEM)
@@ -1992,6 +1997,56 @@ mdb_cursors_close(MDB_txn *txn, unsigned merge)
 static void
 mdb_txn_reset0(MDB_txn *txn, const char *act);
 
+#ifdef _WIN32
+enum Pidlock_op {
+	Pidset, Pidcheck
+};
+#else
+enum Pidlock_op {
+	Pidset = F_SETLK, Pidcheck = F_GETLK
+};
+#endif
+
+/** Set or check a pid lock. Set returns 0 on success.
+ * Check returns 0 if lock exists (meaning the process is alive).
+ *
+ * On Windows Pidset is a no-op, we merely check for the existence
+ * of the process with the given pid. On POSIX we use a single byte
+ * lock on the lockfile, set at an offset equal to the pid.
+ */
+static int
+mdb_reader_pid(MDB_env *env, enum Pidlock_op op, pid_t pid)
+{
+#ifdef _WIN32
+	HANDLE h;
+	int ver, query;
+	switch(op) {
+	case Pidset:
+		break;
+	case Pidcheck:
+		h = OpenProcess(env->me_pidquery, FALSE, pid);
+		if (!h)
+			return GetLastError();
+		CloseHandle(h);
+		break;
+	}
+	return 0;
+#else
+	int rc;
+	struct flock lock_info;
+	memset((void *)&lock_info, 0, sizeof(lock_info));
+	lock_info.l_type = F_WRLCK;
+	lock_info.l_whence = SEEK_SET;
+	lock_info.l_start = pid;
+	lock_info.l_len = 1;
+	while ((rc = fcntl(env->me_lfd, op, &lock_info)) &&
+			(rc = ErrCode()) == EINTR) ;
+	if (op == F_GETLK && rc == 0 && lock_info.l_type == F_UNLCK)
+		rc = -1;
+	return rc;
+#endif
+}
+
 /** Common code for #mdb_txn_begin() and #mdb_txn_renew().
  * @param[in] txn the transaction handle to initialize
  * @return 0 on success, non-zero on failure.
@@ -2030,6 +2085,14 @@ mdb_txn_renew0(MDB_txn *txn)
 				if (i == env->me_maxreaders) {
 					UNLOCK_MUTEX_R(env);
 					return MDB_READERS_FULL;
+				}
+				if (!(env->me_flags & MDB_LIVE_READER)) {
+					rc = mdb_reader_pid(env, Pidset, pid);
+					if (rc) {
+						UNLOCK_MUTEX_R(env);
+						return rc;
+					}
+					env->me_flags |= MDB_LIVE_READER;
 				}
 				env->me_txns->mti_readers[i].mr_pid = pid;
 				env->me_txns->mti_readers[i].mr_tid = tid;
@@ -2862,9 +2925,9 @@ mdb_env_read_header(MDB_env *env, MDB_meta *meta)
 			return MDB_INVALID;
 		}
 
-		if (m->mm_version != MDB_VERSION) {
+		if (m->mm_version != MDB_DATA_VERSION) {
 			DPRINTF("database is version %u, expected version %u",
-				m->mm_version, MDB_VERSION);
+				m->mm_version, MDB_DATA_VERSION);
 			return MDB_VERSION_MISMATCH;
 		}
 
@@ -2891,7 +2954,7 @@ mdb_env_init_meta(MDB_env *env, MDB_meta *meta)
 	GET_PAGESIZE(psize);
 
 	meta->mm_magic = MDB_MAGIC;
-	meta->mm_version = MDB_VERSION;
+	meta->mm_version = MDB_DATA_VERSION;
 	meta->mm_mapsize = env->me_mapsize;
 	meta->mm_psize = psize;
 	meta->mm_last_pg = 1;
@@ -3159,6 +3222,14 @@ mdb_env_open2(MDB_env *env)
 		LONG sizelo, sizehi;
 		sizelo = env->me_mapsize & 0xffffffff;
 		sizehi = env->me_mapsize >> 16 >> 16; /* only needed on Win64 */
+
+		/* See if we should use QueryLimited */
+		rc = GetVersion();
+		if ((rc & 0xff) > 5)
+			env->me_pidquery = PROCESS_QUERY_LIMITED_INFORMATION;
+		else
+			env->me_pidquery = PROCESS_QUERY_INFORMATION;
+
 		/* Windows won't create mappings for zero length files.
 		 * Just allocate the maxsize right now.
 		 */
@@ -3652,7 +3723,7 @@ mdb_env_setup_locks(MDB_env *env, char *lpath, int mode, int *excl)
 		pthread_mutexattr_destroy(&mattr);
 #endif	/* _WIN32 || MDB_USE_POSIX_SEM */
 
-		env->me_txns->mti_version = MDB_VERSION;
+		env->me_txns->mti_version = MDB_LOCK_VERSION;
 		env->me_txns->mti_magic = MDB_MAGIC;
 		env->me_txns->mti_txnid = 0;
 		env->me_txns->mti_numreaders = 0;
@@ -3663,9 +3734,9 @@ mdb_env_setup_locks(MDB_env *env, char *lpath, int mode, int *excl)
 			rc = MDB_INVALID;
 			goto fail;
 		}
-		if (env->me_txns->mti_version != MDB_VERSION) {
+		if (env->me_txns->mti_version != MDB_LOCK_VERSION) {
 			DPRINTF("lock region is version %u, expected version %u",
-				env->me_txns->mti_version, MDB_VERSION);
+				env->me_txns->mti_version, MDB_LOCK_VERSION);
 			rc = MDB_VERSION_MISMATCH;
 			goto fail;
 		}
@@ -7743,6 +7814,15 @@ void mdb_dbi_close(MDB_env *env, MDB_dbi dbi)
 	free(ptr);
 }
 
+int mdb_dbi_flags(MDB_env *env, MDB_dbi dbi, unsigned int *flags)
+{
+	/* We could return the flags for the FREE_DBI too but what's the point? */
+	if (dbi <= MAIN_DBI || dbi >= env->me_numdbs)
+		return EINVAL;
+	*flags = env->me_dbflags[dbi];
+	return MDB_SUCCESS;
+}
+
 /** Add all the DB's pages to the free list.
  * @param[in] mc Cursor on the DB to free.
  * @param[in] subs non-Zero to check for sub-DBs in this DB.
@@ -7907,4 +7987,123 @@ int mdb_set_relctx(MDB_txn *txn, MDB_dbi dbi, void *ctx)
 	return MDB_SUCCESS;
 }
 
+int mdb_reader_list(MDB_env *env, MDB_msg_func *func, void *ctx)
+{
+	unsigned int i, rdrs;
+	MDB_reader *mr;
+	char buf[64];
+	int first = 1;
+
+	if (!env || !func)
+		return -1;
+	if (!env->me_txns) {
+		return func("(no reader locks)\n", ctx);
+	}
+	rdrs = env->me_maxreaders;
+	mr = env->me_txns->mti_readers;
+	for (i=0; i<rdrs; i++) {
+		if (mr[i].mr_pid) {
+			size_t tid;
+			int rc;
+			tid = mr[i].mr_tid;
+			if (mr[i].mr_txnid == (txnid_t)-1) {
+				sprintf(buf, "%10d %zx -\n", mr[i].mr_pid, tid);
+			} else {
+				sprintf(buf, "%10d %zx %zu\n", mr[i].mr_pid, tid, mr[i].mr_txnid);
+			}
+			if (first) {
+				first = 0;
+				func("    pid     thread     txnid\n", ctx);
+			}
+			rc = func(buf, ctx);
+			if (rc < 0)
+				return rc;
+		}
+	}
+	if (first) {
+		func("(no active readers)\n", ctx);
+	}
+	return 0;
+}
+
+/* insert pid into list if not already present.
+ * return -1 if already present.
+ */
+static int mdb_pid_insert(pid_t *ids, pid_t pid)
+{
+	/* binary search of pid in list */
+	unsigned base = 0;
+	unsigned cursor = 1;
+	int val = 0;
+	unsigned n = ids[0];
+
+	while( 0 < n ) {
+		unsigned pivot = n >> 1;
+		cursor = base + pivot + 1;
+		val = pid - ids[cursor];
+
+		if( val < 0 ) {
+			n = pivot;
+
+		} else if ( val > 0 ) {
+			base = cursor;
+			n -= pivot + 1;
+
+		} else {
+			/* found, so it's a duplicate */
+			return -1;
+		}
+	}
+	
+	if( val > 0 ) {
+		++cursor;
+	}
+	ids[0]++;
+	for (n = ids[0]; n > cursor; n--)
+		ids[n] = ids[n-1];
+	ids[n] = pid;
+	return 0;
+}
+
+int mdb_reader_check(MDB_env *env, int *dead)
+{
+	unsigned int i, j, rdrs;
+	MDB_reader *mr;
+	pid_t *pids, pid;
+	int count = 0;
+
+	if (!env)
+		return EINVAL;
+	if (dead)
+		*dead = 0;
+	if (!env->me_txns)
+		return MDB_SUCCESS;
+	rdrs = env->me_maxreaders;
+	pids = malloc((rdrs+1) * sizeof(pid_t));
+	if (!pids)
+		return ENOMEM;
+	pids[0] = 0;
+	mr = env->me_txns->mti_readers;
+	j = 0;
+	for (i=0; i<rdrs; i++) {
+		if (mr[i].mr_pid && mr[i].mr_pid != env->me_pid) {
+			pid = mr[i].mr_pid;
+			if (mdb_pid_insert(pids, pid) == 0) {
+				if (mdb_reader_pid(env, Pidcheck, pid)) {
+					LOCK_MUTEX_R(env);
+					for (j=i; j<rdrs; j++)
+						if (mr[j].mr_pid == pid) {
+							mr[j].mr_pid = 0;
+							count++;
+						}
+					UNLOCK_MUTEX_R(env);
+				}
+			}
+		}
+	}
+	free(pids);
+	if (dead)
+		*dead = count;
+	return MDB_SUCCESS;
+}
 /** @} */
