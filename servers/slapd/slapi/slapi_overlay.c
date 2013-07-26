@@ -454,10 +454,10 @@ slapi_over_merge_controls( Operation *op, SlapReply *rs )
 	n_slapi_ctrls = slapi_int_count_controls( slapi_ctrls );
 	n_rs_ctrls = slapi_int_count_controls( rs->sr_ctrls );
 
-	slapi_pblock_set( pb, SLAPI_X_OLD_RESCONTROLS, (void *)rs->sr_ctrls );
-
 	if ( n_slapi_ctrls == 0 )
 		return LDAP_SUCCESS; /* no SLAPI controls */
+
+	slapi_pblock_set( pb, SLAPI_X_OLD_RESCONTROLS, (void *)rs->sr_ctrls );
 
 	ctrls = (LDAPControl **) op->o_tmpalloc(
 		( n_slapi_ctrls + n_rs_ctrls + 1 ) * sizeof(LDAPControl *),
