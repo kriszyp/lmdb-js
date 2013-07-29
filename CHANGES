@@ -4,6 +4,7 @@ OpenLDAP 2.4.36 Engineering
 	Added back-meta target filter patterns (ITS#7609)
 	Fixed libldap CLDAP with uninit'd memory (ITS#7582)
 	Fixed libldap with UDP (ITS#7583)
+	Fixed libldap OpenSSL TLS versions (ITS#7645)
 	Fixed liblmdb MDB_PREV behavior (ITS#7556)
 	Fixed liblmdb transaction issues (ITS#7515)
 	Fixed liblmdb mdb_drop overflow page return (ITS#7561)
@@ -33,6 +34,8 @@ OpenLDAP 2.4.36 Engineering
 		ldif(5) remove replog reference (ITS#7562)
 		slapd-config(5) remove replog reference (ITS#7562)
 		slapd.conf(5) remove replog reference (ITS#7562)
+		slapd-config(5) document TLSProtocolMin (ITS#5655,ITS#7645)
+		slapd.conf(5) document TLSProtocolMin (ITS#5655,ITS#7645)
 
 OpenLDAP 2.4.35 Release (2013/03/31)
 	Fixed liblmdb mdb_cursor_put with MDB_MULTIPLE (ITS#7551)
