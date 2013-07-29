@@ -3859,7 +3859,7 @@ config_tls_config(ConfigArgs *c) {
 	}
 	ch_free( c->value_string );
 	c->cleanup = config_tls_cleanup;
-	if ( isdigit( (unsigned char)c->argv[1][0] ) ) {
+	if ( isdigit( (unsigned char)c->argv[1][0] ) && c->type != CFG_TLS_PROTOCOL_MIN ) {
 		if ( lutil_atoi( &i, c->argv[1] ) != 0 ) {
 			Debug(LDAP_DEBUG_ANY, "%s: "
 				"unable to parse %s \"%s\"\n",
