@@ -407,6 +407,19 @@ is in the source code for Mozilla NSS in the file sslinfo.c in the structure
 .fi
 .RE
 .TP
+.B TLS_PROTOCOL_MIN <major>[.<minor>]
+Specifies minimum SSL protocol version that will be negoiated.
+If the server doesn't support at least that version,
+the SSL handshake will fail.
+To require TLS 1.x or higher, set this option to 3.(x+1),
+e.g.,
+.B TLS_PROTOCOL_MIN 3.2
+would require TLS 1.1.
+Specifying a minimum that is higher than that supported by the
+OpenLDAP implementation will result it in requiring the
+highest level that it does support.
+This parameter is currently ignored with GNUtls.
+.TP
 .B TLS_RANDFILE <filename>
 Specifies the file to obtain random bits from when /dev/[u]random is
 not available. Generally set to the name of the EGD/PRNGD socket.
