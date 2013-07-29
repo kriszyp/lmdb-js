@@ -413,7 +413,11 @@ If the server doesn't support at least that version,
 the SSL handshake will fail.
 To require TLS 1.x or higher, set this option to 3.(x+1),
 e.g.,
-.B TLS_PROTOCOL_MIN 3.2
+
+.nf
+	TLS_PROTOCOL_MIN 3.2
+.fi
+
 would require TLS 1.1.
 Specifying a minimum that is higher than that supported by the
 OpenLDAP implementation will result in it requiring the
