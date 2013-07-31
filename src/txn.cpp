@@ -95,7 +95,7 @@ Handle<Value> TxnWrap::abort(const Arguments& args) {
     return Undefined();
 }
 
-Handle<Value> TxnWrap::get(const Arguments& args) {
+Handle<Value> TxnWrap::getString(const Arguments& args) {
     HandleScope scope;
     
     TxnWrap *tw = ObjectWrap::Unwrap<TxnWrap>(args.This());
@@ -122,7 +122,61 @@ Handle<Value> TxnWrap::get(const Arguments& args) {
     return scope.Close(result);
 }
 
-Handle<Value> TxnWrap::put(const Arguments& args) {
+Handle<Value> TxnWrap::getNumber(const Arguments& args) {
+    HandleScope scope;
+    
+    TxnWrap *tw = ObjectWrap::Unwrap<TxnWrap>(args.This());
+    DbiWrap *dw = ObjectWrap::Unwrap<DbiWrap>(args[0]->ToObject());
+    
+    if (!tw->txn) {
+        ThrowException(Exception::Error(String::New("The transaction is already closed.")));
+        return Undefined();
+    }
+    
+    MDB_val key, data;
+    CustomExternalStringResource::writeTo(args[1]->ToString(), &key);
+    
+    int rc = mdb_get(tw->txn, dw->dbi, &key, &data);
+    if (rc == MDB_NOTFOUND) {
+        return scope.Close(Null());
+    }
+    else if (rc != 0) {
+        ThrowException(Exception::Error(String::New(mdb_strerror(rc))));
+        return Undefined();
+    }
+    
+    Handle<Number> result = Number::New(*((double*)data.mv_data));
+    return scope.Close(result);
+}
+
+Handle<Value> TxnWrap::getBoolean(const Arguments& args) {
+    HandleScope scope;
+    
+    TxnWrap *tw = ObjectWrap::Unwrap<TxnWrap>(args.This());
+    DbiWrap *dw = ObjectWrap::Unwrap<DbiWrap>(args[0]->ToObject());
+    
+    if (!tw->txn) {
+        ThrowException(Exception::Error(String::New("The transaction is already closed.")));
+        return Undefined();
+    }
+    
+    MDB_val key, data;
+    CustomExternalStringResource::writeTo(args[1]->ToString(), &key);
+    
+    int rc = mdb_get(tw->txn, dw->dbi, &key, &data);
+    if (rc == MDB_NOTFOUND) {
+        return scope.Close(Null());
+    }
+    else if (rc != 0) {
+        ThrowException(Exception::Error(String::New(mdb_strerror(rc))));
+        return Undefined();
+    }
+    
+    Handle<Boolean> result = Boolean::New(*((bool*)data.mv_data));
+    return scope.Close(result);
+}
+
+Handle<Value> TxnWrap::putString(const Arguments& args) {
     HandleScope scope;
     
     TxnWrap *tw = ObjectWrap::Unwrap<TxnWrap>(args.This());
@@ -138,6 +192,62 @@ Handle<Value> TxnWrap::put(const Arguments& args) {
     
     CustomExternalStringResource::writeTo(args[1]->ToString(), &key);
     CustomExternalStringResource::writeTo(args[2]->ToString(), &data);
+    
+    int rc = mdb_put(tw->txn, dw->dbi, &key, &data, flags);
+    if (rc != 0) {
+        ThrowException(Exception::Error(String::New(mdb_strerror(rc))));
+        return Undefined();
+    }
+    
+    return Undefined();
+}
+
+Handle<Value> TxnWrap::putNumber(const Arguments& args) {
+    HandleScope scope;
+    
+    TxnWrap *tw = ObjectWrap::Unwrap<TxnWrap>(args.This());
+    DbiWrap *dw = ObjectWrap::Unwrap<DbiWrap>(args[0]->ToObject());
+    
+    if (!tw->txn) {
+        ThrowException(Exception::Error(String::New("The transaction is already closed.")));
+        return Undefined();
+    }
+    
+    int flags = 0;
+    MDB_val key, data;
+    
+    CustomExternalStringResource::writeTo(args[1]->ToString(), &key);
+    data.mv_size = sizeof(double);
+    data.mv_data = new double;
+    *((double*)data.mv_data) = args[2]->ToNumber()->Value();
+    
+    int rc = mdb_put(tw->txn, dw->dbi, &key, &data, flags);
+    if (rc != 0) {
+        ThrowException(Exception::Error(String::New(mdb_strerror(rc))));
+        return Undefined();
+    }
+    
+    return Undefined();
+}
+
+Handle<Value> TxnWrap::putBoolean(const Arguments& args) {
+    HandleScope scope;
+    
+    TxnWrap *tw = ObjectWrap::Unwrap<TxnWrap>(args.This());
+    DbiWrap *dw = ObjectWrap::Unwrap<DbiWrap>(args[0]->ToObject());
+    
+    if (!tw->txn) {
+        ThrowException(Exception::Error(String::New("The transaction is already closed.")));
+        return Undefined();
+    }
+    
+    int flags = 0;
+    MDB_val key, data;
+    
+    CustomExternalStringResource::writeTo(args[1]->ToString(), &key);
+    data.mv_size = sizeof(double);
+    data.mv_data = new bool;
+    *((bool*)data.mv_data) = args[2]->ToBoolean()->Value();
     
     int rc = mdb_put(tw->txn, dw->dbi, &key, &data, flags);
     if (rc != 0) {

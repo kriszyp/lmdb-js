@@ -25,12 +25,12 @@ var dbi = env.openDbi({
 var txn = env.beginTxn();
 
 // Get data
-var data = txn.get(dbi, "hello");
+var data = txn.getString(dbi, "hello");
 console.log(data);
 
 if (data === null) {
     // Put data
-    txn.put(dbi, "hello", "hey!");
+    txn.putString(dbi, "hello", "hey!");
 }
 else {
     // Delete data

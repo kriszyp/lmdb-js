@@ -157,7 +157,7 @@ public:
     static Handle<Value> abort(const Arguments& args);
     
     /*
-        Gets data associated with the given key from a database. You need to open a database in the environment to use this.
+        Gets string data (JavaScript string type) associated with the given key from a database. You need to open a database in the environment to use this.
         (Wrapper for `mdb_get`)
         
         Parameters:
@@ -165,10 +165,43 @@ public:
         * database instance created with calling `openDbi()` on an `Env` instance
         * key for which the value is retrieved
     */
-    static Handle<Value> get(const Arguments& args);
+    static Handle<Value> getString(const Arguments& args);
     
     /*
-        Puts data into a database.
+        Gets binary data (Node.js Buffer) associated with the given key from a database. You need to open a database in the environment to use this.
+        (Wrapper for `mdb_get`)
+        
+        Parameters:
+        
+        * database instance created with calling `openDbi()` on an `Env` instance
+        * key for which the value is retrieved
+    */
+    //static Handle<Value> getBinary(const Arguments& args);
+    
+    /*
+        Gets number data (JavaScript number type) associated with the given key from a database. You need to open a database in the environment to use this.
+        (Wrapper for `mdb_get`)
+        
+        Parameters:
+        
+        * database instance created with calling `openDbi()` on an `Env` instance
+        * key for which the value is retrieved
+    */
+    static Handle<Value> getNumber(const Arguments& args);
+    
+    /*
+        Gets boolean data (JavaScript boolean type) associated with the given key from a database. You need to open a database in the environment to use this.
+        (Wrapper for `mdb_get`)
+        
+        Parameters:
+        
+        * database instance created with calling `openDbi()` on an `Env` instance
+        * key for which the value is retrieved
+    */
+    static Handle<Value> getBoolean(const Arguments& args);
+    
+    /*
+        Puts string data (JavaScript string type) into a database.
         (Wrapper for `mdb_put`)
         
         Parameters:
@@ -177,7 +210,43 @@ public:
         * key for which the value is stored
         * data to store for the given key
     */
-    static Handle<Value> put(const Arguments& args);
+    static Handle<Value> putString(const Arguments& args);
+    
+    /*
+        Puts binary data (Node.js Buffer) into a database.
+        (Wrapper for `mdb_put`)
+        
+        Parameters:
+        
+        * database instance created with calling `openDbi()` on an `Env` instance
+        * key for which the value is stored
+        * data to store for the given key
+    */
+    //static Handle<Value> putBinary(const Arguments& args);
+    
+    /*
+        Puts number data (JavaScript number type) into a database.
+        (Wrapper for `mdb_put`)
+        
+        Parameters:
+        
+        * database instance created with calling `openDbi()` on an `Env` instance
+        * key for which the value is stored
+        * data to store for the given key
+    */
+    static Handle<Value> putNumber(const Arguments& args);
+    
+    /*
+        Puts boolean data (JavaScript boolean type) into a database.
+        (Wrapper for `mdb_put`)
+        
+        Parameters:
+        
+        * database instance created with calling `openDbi()` on an `Env` instance
+        * key for which the value is stored
+        * data to store for the given key
+    */
+    static Handle<Value> putBoolean(const Arguments& args);
     
     /*
         Deletes data with the given key from the database.
