@@ -1,6 +1,6 @@
 
 // Require the module
-var lmdb = require('./src/build/Release/node-lmdb');
+var lmdb = require('./build/Release/node-lmdb');
 
 // Now you can use the module
 

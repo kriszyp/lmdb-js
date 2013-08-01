@@ -22,6 +22,7 @@
 // THE SOFTWARE.
 
 #include "node-lmdb.h"
+#include <node_buffer.h>
 
 using namespace v8;
 using namespace node;
@@ -95,9 +96,11 @@ Handle<Value> TxnWrap::abort(const Arguments& args) {
     return Undefined();
 }
 
-Handle<Value> TxnWrap::getString(const Arguments& args) {
-    HandleScope scope;
-    
+static inline void fakeFreeCallback(char *data, void *) {
+    // Don't need to do anything here, because the data belongs to LMDB anyway
+}
+
+Handle<Value> TxnWrap::getCommon(const Arguments &args, Handle<Value> (*successFunc)(const Arguments&, MDB_val&)) {
     TxnWrap *tw = ObjectWrap::Unwrap<TxnWrap>(args.This());
     DbiWrap *dw = ObjectWrap::Unwrap<DbiWrap>(args[0]->ToObject());
     
@@ -111,47 +114,41 @@ Handle<Value> TxnWrap::getString(const Arguments& args) {
     
     int rc = mdb_get(tw->txn, dw->dbi, &key, &data);
     if (rc == MDB_NOTFOUND) {
-        return scope.Close(Null());
+        return Null();
     }
     else if (rc != 0) {
         ThrowException(Exception::Error(String::New(mdb_strerror(rc))));
         return Undefined();
     }
     
-    Handle<String> result = String::NewExternal(new CustomExternalStringResource(&data));
-    return scope.Close(result);
+    return successFunc(args, data);
+}
+
+Handle<Value> TxnWrap::getString(const Arguments& args) {
+    return getCommon(args, [](const Arguments &args, MDB_val &data) -> Handle<Value> {
+        return String::NewExternal(new CustomExternalStringResource(&data));
+    });
+}
+
+Handle<Value> TxnWrap::getBinary(const Arguments& args) {
+    return getCommon(args, [](const Arguments& args, MDB_val& data) -> Handle<Value> {
+        return Buffer::New((char*)data.mv_data, data.mv_size, fakeFreeCallback, NULL)->handle_;
+    });
 }
 
 Handle<Value> TxnWrap::getNumber(const Arguments& args) {
-    HandleScope scope;
-    
-    TxnWrap *tw = ObjectWrap::Unwrap<TxnWrap>(args.This());
-    DbiWrap *dw = ObjectWrap::Unwrap<DbiWrap>(args[0]->ToObject());
-    
-    if (!tw->txn) {
-        ThrowException(Exception::Error(String::New("The transaction is already closed.")));
-        return Undefined();
-    }
-    
-    MDB_val key, data;
-    CustomExternalStringResource::writeTo(args[1]->ToString(), &key);
-    
-    int rc = mdb_get(tw->txn, dw->dbi, &key, &data);
-    if (rc == MDB_NOTFOUND) {
-        return scope.Close(Null());
-    }
-    else if (rc != 0) {
-        ThrowException(Exception::Error(String::New(mdb_strerror(rc))));
-        return Undefined();
-    }
-    
-    Handle<Number> result = Number::New(*((double*)data.mv_data));
-    return scope.Close(result);
+    return getCommon(args, [](const Arguments& args, MDB_val& data) -> Handle<Value> {
+        return Number::New(*((double*)data.mv_data));
+    });
 }
 
 Handle<Value> TxnWrap::getBoolean(const Arguments& args) {
-    HandleScope scope;
-    
+    return getCommon(args, [](const Arguments& args, MDB_val& data) -> Handle<Value> {
+        return Boolean::New(*((bool*)data.mv_data));
+    });
+}
+
+Handle<Value> TxnWrap::putCommon(const Arguments &args, void (*fillFunc)(const Arguments&, MDB_val&), void (*freeFunc)(MDB_val&)) {  
     TxnWrap *tw = ObjectWrap::Unwrap<TxnWrap>(args.This());
     DbiWrap *dw = ObjectWrap::Unwrap<DbiWrap>(args[0]->ToObject());
     
@@ -160,102 +157,58 @@ Handle<Value> TxnWrap::getBoolean(const Arguments& args) {
         return Undefined();
     }
     
+    int flags = 0;
     MDB_val key, data;
-    CustomExternalStringResource::writeTo(args[1]->ToString(), &key);
     
-    int rc = mdb_get(tw->txn, dw->dbi, &key, &data);
-    if (rc == MDB_NOTFOUND) {
-        return scope.Close(Null());
-    }
-    else if (rc != 0) {
+    CustomExternalStringResource::writeTo(args[1]->ToString(), &key);
+    fillFunc(args, data);
+    
+    int rc = mdb_put(tw->txn, dw->dbi, &key, &data, flags);
+    freeFunc(data);
+    
+    if (rc != 0) {
         ThrowException(Exception::Error(String::New(mdb_strerror(rc))));
         return Undefined();
     }
     
-    Handle<Boolean> result = Boolean::New(*((bool*)data.mv_data));
-    return scope.Close(result);
+    return Undefined();
 }
 
 Handle<Value> TxnWrap::putString(const Arguments& args) {
-    HandleScope scope;
-    
-    TxnWrap *tw = ObjectWrap::Unwrap<TxnWrap>(args.This());
-    DbiWrap *dw = ObjectWrap::Unwrap<DbiWrap>(args[0]->ToObject());
-    
-    if (!tw->txn) {
-        ThrowException(Exception::Error(String::New("The transaction is already closed.")));
-        return Undefined();
-    }
-    
-    int flags = 0;
-    MDB_val key, data;
-    
-    CustomExternalStringResource::writeTo(args[1]->ToString(), &key);
-    CustomExternalStringResource::writeTo(args[2]->ToString(), &data);
-    
-    int rc = mdb_put(tw->txn, dw->dbi, &key, &data, flags);
-    if (rc != 0) {
-        ThrowException(Exception::Error(String::New(mdb_strerror(rc))));
-        return Undefined();
-    }
-    
-    return Undefined();
+    return putCommon(args, [](const Arguments &args, MDB_val &data) -> void {
+        CustomExternalStringResource::writeTo(args[2]->ToString(), &data);
+    }, [](MDB_val &data) -> void {
+        delete (uint16_t*)data.mv_data;
+    });
+}
+
+Handle<Value> TxnWrap::putBinary(const Arguments& args) {
+    return putCommon(args, [](const Arguments &args, MDB_val &data) -> void {
+        data.mv_size = node::Buffer::Length(args[2]);
+        data.mv_data = node::Buffer::Data(args[2]);
+    }, [](MDB_val &data) -> void {
+        // TODO
+    });
 }
 
 Handle<Value> TxnWrap::putNumber(const Arguments& args) {
-    HandleScope scope;
-    
-    TxnWrap *tw = ObjectWrap::Unwrap<TxnWrap>(args.This());
-    DbiWrap *dw = ObjectWrap::Unwrap<DbiWrap>(args[0]->ToObject());
-    
-    if (!tw->txn) {
-        ThrowException(Exception::Error(String::New("The transaction is already closed.")));
-        return Undefined();
-    }
-    
-    int flags = 0;
-    MDB_val key, data;
-    
-    CustomExternalStringResource::writeTo(args[1]->ToString(), &key);
-    data.mv_size = sizeof(double);
-    data.mv_data = new double;
-    *((double*)data.mv_data) = args[2]->ToNumber()->Value();
-    
-    int rc = mdb_put(tw->txn, dw->dbi, &key, &data, flags);
-    if (rc != 0) {
-        ThrowException(Exception::Error(String::New(mdb_strerror(rc))));
-        return Undefined();
-    }
-    
-    return Undefined();
+    return putCommon(args, [](const Arguments &args, MDB_val &data) -> void {
+        data.mv_size = sizeof(double);
+        data.mv_data = new double;
+        *((double*)data.mv_data) = args[2]->ToNumber()->Value();
+    }, [](MDB_val &data) -> void {
+        delete (double*)data.mv_data;
+    });
 }
 
 Handle<Value> TxnWrap::putBoolean(const Arguments& args) {
-    HandleScope scope;
-    
-    TxnWrap *tw = ObjectWrap::Unwrap<TxnWrap>(args.This());
-    DbiWrap *dw = ObjectWrap::Unwrap<DbiWrap>(args[0]->ToObject());
-    
-    if (!tw->txn) {
-        ThrowException(Exception::Error(String::New("The transaction is already closed.")));
-        return Undefined();
-    }
-    
-    int flags = 0;
-    MDB_val key, data;
-    
-    CustomExternalStringResource::writeTo(args[1]->ToString(), &key);
-    data.mv_size = sizeof(double);
-    data.mv_data = new bool;
-    *((bool*)data.mv_data) = args[2]->ToBoolean()->Value();
-    
-    int rc = mdb_put(tw->txn, dw->dbi, &key, &data, flags);
-    if (rc != 0) {
-        ThrowException(Exception::Error(String::New(mdb_strerror(rc))));
-        return Undefined();
-    }
-    
-    return Undefined();
+    return putCommon(args, [](const Arguments &args, MDB_val &data) -> void {
+        data.mv_size = sizeof(double);
+        data.mv_data = new bool;
+        *((bool*)data.mv_data) = args[2]->ToBoolean()->Value();
+    }, [](MDB_val &data) -> void {
+        delete (bool*)data.mv_data;
+    });
 }
 
 Handle<Value> TxnWrap::del(const Arguments& args) {

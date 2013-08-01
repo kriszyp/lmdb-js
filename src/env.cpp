@@ -230,11 +230,11 @@ void EnvWrap::setupExports(Handle<Object> exports) {
     txnTpl->PrototypeTemplate()->Set(String::NewSymbol("commit"), FunctionTemplate::New(TxnWrap::commit)->GetFunction());
     txnTpl->PrototypeTemplate()->Set(String::NewSymbol("abort"), FunctionTemplate::New(TxnWrap::abort)->GetFunction());
     txnTpl->PrototypeTemplate()->Set(String::NewSymbol("getString"), FunctionTemplate::New(TxnWrap::getString)->GetFunction());
-    //txnTpl->PrototypeTemplate()->Set(String::NewSymbol("getBinary"), FunctionTemplate::New(TxnWrap::getBinary)->GetFunction());
+    txnTpl->PrototypeTemplate()->Set(String::NewSymbol("getBinary"), FunctionTemplate::New(TxnWrap::getBinary)->GetFunction());
     txnTpl->PrototypeTemplate()->Set(String::NewSymbol("getNumber"), FunctionTemplate::New(TxnWrap::getNumber)->GetFunction());
     txnTpl->PrototypeTemplate()->Set(String::NewSymbol("getBoolean"), FunctionTemplate::New(TxnWrap::getBoolean)->GetFunction());
     txnTpl->PrototypeTemplate()->Set(String::NewSymbol("putString"), FunctionTemplate::New(TxnWrap::putString)->GetFunction());
-    //txnTpl->PrototypeTemplate()->Set(String::NewSymbol("putBinary"), FunctionTemplate::New(TxnWrap::putBinary)->GetFunction());
+    txnTpl->PrototypeTemplate()->Set(String::NewSymbol("putBinary"), FunctionTemplate::New(TxnWrap::putBinary)->GetFunction());
     txnTpl->PrototypeTemplate()->Set(String::NewSymbol("putNumber"), FunctionTemplate::New(TxnWrap::putNumber)->GetFunction());
     txnTpl->PrototypeTemplate()->Set(String::NewSymbol("putBoolean"), FunctionTemplate::New(TxnWrap::putBoolean)->GetFunction());
     txnTpl->PrototypeTemplate()->Set(String::NewSymbol("del"), FunctionTemplate::New(TxnWrap::del)->GetFunction());

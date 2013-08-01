@@ -2,7 +2,7 @@
   "targets": [
     {
       "target_name": "node-lmdb",
-      "sources": [ "node-lmdb.cpp", "env.cpp", "misc.cpp", "txn.cpp", "dbi.cpp" ],
+      "sources": [ "src/node-lmdb.cpp", "src/env.cpp", "src/misc.cpp", "src/txn.cpp", "src/dbi.cpp" ],
       "conditions": [
           ["OS=='linux'", {
             "ldflags": [
@@ -13,7 +13,8 @@
             "cflags": [
               "-fPIC",
               "-fvisibility-inlines-hidden",
-              "-O3"
+              "-O3",
+              "-std=c++11"
             ]
           }],
         ],

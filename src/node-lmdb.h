@@ -144,6 +144,12 @@ public:
     // Constructor (not exposed)
     static Handle<Value> ctor(const Arguments& args);
     
+    // Helper for all the get methods (not exposed)
+    static Handle<Value> getCommon(const Arguments &args, Handle<Value> (*successFunc)(const Arguments&, MDB_val&));
+    
+    // Helper for all the put methods (not exposed)
+    static Handle<Value> putCommon(const Arguments &args, void (*fillFunc)(const Arguments&, MDB_val&), void (*freeFunc)(MDB_val&));
+    
     /*
         Commits the transaction.
         (Wrapper for `mdb_txn_commit`)
@@ -176,7 +182,7 @@ public:
         * database instance created with calling `openDbi()` on an `Env` instance
         * key for which the value is retrieved
     */
-    //static Handle<Value> getBinary(const Arguments& args);
+    static Handle<Value> getBinary(const Arguments& args);
     
     /*
         Gets number data (JavaScript number type) associated with the given key from a database. You need to open a database in the environment to use this.
@@ -222,7 +228,7 @@ public:
         * key for which the value is stored
         * data to store for the given key
     */
-    //static Handle<Value> putBinary(const Arguments& args);
+    static Handle<Value> putBinary(const Arguments& args);
     
     /*
         Puts number data (JavaScript number type) into a database.
