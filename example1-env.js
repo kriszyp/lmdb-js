@@ -30,7 +30,7 @@ console.log(data);
 
 if (data === null) {
     // Put data
-    txn.putString(dbi, "hello", "hey!");
+    txn.putString(dbi, "hello", "Hello world!");
 }
 else {
     // Delete data
