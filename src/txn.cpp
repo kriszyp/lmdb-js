@@ -31,6 +31,37 @@ void v8ToLmdbVal(Handle<Value> handle, MDB_val *val);
 Handle<Value> lmdbValToV8(MDB_val *val);
 void consoleLog(const char *msg);
 
+static inline void fakeFreeCallback(char *data, void *) {
+    // Don't need to do anything here, because the data belongs to LMDB anyway
+}
+
+typedef void (*my_callback_t)(MDB_val &key);
+
+static inline my_callback_t argToKey(const Handle<Value> &val, MDB_val &key) {
+    if (val->IsUint32()) {
+        uint32_t *v = new uint32_t;
+        *v = val->Uint32Value();
+        
+        key.mv_size = sizeof(uint32_t);
+        key.mv_data = v;
+        
+        return ([](MDB_val &key) -> void {
+            delete (uint32_t*)key.mv_data;
+        });
+    }
+    else if (val->IsString()) {
+        CustomExternalStringResource::writeTo(val->ToString(), &key);
+        return ([](MDB_val &key) -> void {
+            delete (uint16_t*)key.mv_data;
+        });
+    }
+    else {
+        ThrowException(Exception::Error(String::New("The data type of the given key is not supported.")));
+    }
+    
+    return NULL;
+}
+
 TxnWrap::TxnWrap(MDB_env *env, MDB_txn *txn) {
     this->env = env;
     this->txn = txn;
@@ -96,10 +127,6 @@ Handle<Value> TxnWrap::abort(const Arguments& args) {
     return Undefined();
 }
 
-static inline void fakeFreeCallback(char *data, void *) {
-    // Don't need to do anything here, because the data belongs to LMDB anyway
-}
-
 Handle<Value> TxnWrap::getCommon(const Arguments &args, Handle<Value> (*successFunc)(const Arguments&, MDB_val&)) {
     TxnWrap *tw = ObjectWrap::Unwrap<TxnWrap>(args.This());
     DbiWrap *dw = ObjectWrap::Unwrap<DbiWrap>(args[0]->ToObject());
@@ -110,9 +137,10 @@ Handle<Value> TxnWrap::getCommon(const Arguments &args, Handle<Value> (*successF
     }
     
     MDB_val key, data;
-    CustomExternalStringResource::writeTo(args[1]->ToString(), &key);
-    
+    void (*freeKey)(MDB_val&) = argToKey(args[1], key);
     int rc = mdb_get(tw->txn, dw->dbi, &key, &data);
+    freeKey(key);
+    
     if (rc == MDB_NOTFOUND) {
         return Null();
     }
@@ -148,7 +176,7 @@ Handle<Value> TxnWrap::getBoolean(const Arguments& args) {
     });
 }
 
-Handle<Value> TxnWrap::putCommon(const Arguments &args, void (*fillFunc)(const Arguments&, MDB_val&), void (*freeFunc)(MDB_val&)) {  
+Handle<Value> TxnWrap::putCommon(const Arguments &args, void (*fillFunc)(const Arguments&, MDB_val&), void (*freeData)(MDB_val&)) {  
     TxnWrap *tw = ObjectWrap::Unwrap<TxnWrap>(args.This());
     DbiWrap *dw = ObjectWrap::Unwrap<DbiWrap>(args[0]->ToObject());
     
@@ -160,11 +188,12 @@ Handle<Value> TxnWrap::putCommon(const Arguments &args, void (*fillFunc)(const A
     int flags = 0;
     MDB_val key, data;
     
-    CustomExternalStringResource::writeTo(args[1]->ToString(), &key);
+    void (*freeKey)(MDB_val&) = argToKey(args[1], key);
     fillFunc(args, data);
     
     int rc = mdb_put(tw->txn, dw->dbi, &key, &data, flags);
-    freeFunc(data);
+    freeKey(key);
+    freeData(data);
     
     if (rc != 0) {
         ThrowException(Exception::Error(String::New(mdb_strerror(rc))));
@@ -186,8 +215,8 @@ Handle<Value> TxnWrap::putBinary(const Arguments& args) {
     return putCommon(args, [](const Arguments &args, MDB_val &data) -> void {
         data.mv_size = node::Buffer::Length(args[2]);
         data.mv_data = node::Buffer::Data(args[2]);
-    }, [](MDB_val &data) -> void {
-        // TODO
+    }, [](MDB_val &) -> void {
+        // I think the data is owned by the node::Buffer so we don't need to free it - need to clarify
     });
 }
 
@@ -223,9 +252,10 @@ Handle<Value> TxnWrap::del(const Arguments& args) {
     }
     
     MDB_val key;
-    CustomExternalStringResource::writeTo(args[1]->ToString(), &key);
-    
+    void (*freeKey)(MDB_val&) = argToKey(args[1], key);
     int rc = mdb_del(tw->txn, dw->dbi, &key, NULL);
+    freeKey(key);
+    
     if (rc != 0) {
         ThrowException(Exception::Error(String::New(mdb_strerror(rc))));
         return Undefined();
