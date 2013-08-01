@@ -64,8 +64,9 @@ void consoleLogN(int n) {
 
 void CustomExternalStringResource::writeTo(Handle<String> str, MDB_val *val) {
     unsigned int l = str->Length();
-    uint16_t *d = new uint16_t[l];
+    uint16_t *d = new uint16_t[l + 1];
     str->Write(d);
+    d[l] = 0;
     
     val->mv_data = d;
     val->mv_size = l * sizeof(uint16_t);
