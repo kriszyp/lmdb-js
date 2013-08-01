@@ -62,6 +62,17 @@ if (booleanData === null)
 else
     txn.del(dbi, "key4");
 
+// Example for using integer key
+// ----------
+var data = txn.getString(dbi, 123);
+console.log("integer key value: ", data);
+if (data === null)
+    txn.putString(dbi, 123, "Hello worllld!");
+else
+    txn.del(dbi, 123);
+
+console.log("");
+console.log("Run this example again to see the alterations on the database!");
 
 // Commit transaction
 txn.commit();

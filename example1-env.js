@@ -37,6 +37,9 @@ else {
     txn.del(dbi, "hello");
 }
 
+console.log("");
+console.log("Run this example again to see the alterations on the database!");
+
 // Commit transaction
 txn.commit();
 
