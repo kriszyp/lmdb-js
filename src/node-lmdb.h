@@ -164,6 +164,7 @@ public:
     
     /*
         Gets string data (JavaScript string type) associated with the given key from a database. You need to open a database in the environment to use this.
+        This method is zero-copy and the return value can only be used until the next put operation or until the transaction is committed or aborted.
         (Wrapper for `mdb_get`)
         
         Parameters:
@@ -175,6 +176,7 @@ public:
     
     /*
         Gets binary data (Node.js Buffer) associated with the given key from a database. You need to open a database in the environment to use this.
+        This method is zero-copy and the return value can only be used until the next put operation or until the transaction is committed or aborted.
         (Wrapper for `mdb_get`)
         
         Parameters:
@@ -186,6 +188,7 @@ public:
     
     /*
         Gets number data (JavaScript number type) associated with the given key from a database. You need to open a database in the environment to use this.
+        This method will copy the value out of the database.
         (Wrapper for `mdb_get`)
         
         Parameters:
@@ -197,6 +200,7 @@ public:
     
     /*
         Gets boolean data (JavaScript boolean type) associated with the given key from a database. You need to open a database in the environment to use this.
+        This method will copy the value out of the database.
         (Wrapper for `mdb_get`)
         
         Parameters:

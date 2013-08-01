@@ -10,6 +10,8 @@ About
 
 The aim of this node module is to provide bindings so that people can use LMDB from their node applications, aiming for a simple and clean API which is on par with the LMDB API but tries to apply javascript patterns and naming conventions as much as possible to make users feel familiar about it.
 
+We support **zero-copy** retrieval of **string** and **binary** values. Binary values are operated on via the Node.js `Buffer` API.
+
 ### About LMDB
 
 Here are the main highlights of LMDB, for more, visit http://symas.com/mdb :)
@@ -71,29 +73,30 @@ dbi.close();
 #### Step 3: use transactions
 
 The basic unit of work in LMDB is a transaction, which is called `Txn` for short. Here is how you operate with your data.  
-Every piece of data in LMDB is referred to by a **key**.
-You can use `get()` to retrieve something, `put()` to store something and `del()` to delete something.
+Every piece of data in LMDB is referred to by a **key**.  
+You can use the methods `getString()`, `getBinary()`, `getNumber()` and `getBoolean()` to retrieve something,
+`putString()`, `putBinary()`, `putNumber()` and `putBoolean()` to store something and `del()` to delete something.
 
 Currently **only string values are supported**, use `JSON.stringify` and `JSON.parse` for complex data structures.  
-Because of the nature of LMDB, the data returned by `txn.get()` is only valid until the next `put()` operation or the end of the transaction.
+Because of the nature of LMDB, the data returned by `txn.getString()` and `txn.getBinary()` is only valid until the next `put` operation or the end of the transaction.
 If you need to use the data *later*, you will have to copy it for yourself.
 
 **IMPORTANT:** always close your transactions with `abort()` or `commit()` when you are done with them.
 
 ```javascript
 var txn = env.beginTxn();
-var value = txn.get(dbi, 1);
+var value = txn.getString(dbi, 1);
 
 console.log(value);
 
 if (value === null) {
-    txn.put(dbi, 1, "Hello world!");
+    txn.putString(dbi, 1, "Hello world!");
 }
 else {
     txn.del(dbi, 1);
 }
 
-txn.put(dbi, 2, "Yes, it's this simple!");
+txn.putString(dbi, 2, "Yes, it's this simple!");
 txn.commit();
 ```
 
@@ -110,7 +113,7 @@ Here is how you use LMDB in a typical scenario:
 
 * You create an `Env` and `open()` it with the desired configuration options.
 * You open a `Dbi` by calling `env.openDbi()` and passing the database configuration options.
-* Now you can create `Txn`s with `env.beginTxn()` and operate on the database through a transaction by calling `txn.get()`, `txn.put()` etc.
+* Now you can create `Txn`s with `env.beginTxn()` and operate on the database through a transaction by calling `txn.getString()`, `txn.putString()` etc.
 * When you are done, you should either `abort()` or `commit()` your transactions and `close()` your databases and environment.
 
 ### Examples
@@ -119,9 +122,9 @@ You can find some in the source tree. More will be added later.
 
 ### Limitations of node-lmdb
 
-* **Only string values are supported.** If you want to store complex data structures, use `JSON.stringify` before putting it into the database and `JSON.parse` when you retrieve the data.
-* Because of the nature of LMDB, the data returned by `txn.get()` is **only valid until the next `put()` operation or the end of the transaction**. If you need to use the data *later*, you will have to copy it for yourself.
-* Fixed address map (called `MDB_FIXEDMAP` in C) features are not exposed by this binding because they are highly experimental
+* **Only string, binary, number and boolean values are supported.** If you want to store complex data structures, use `JSON.stringify` before putting it into the database and `JSON.parse` when you retrieve the data.
+* Because of the nature of LMDB, the data returned by `txn.getString()` and `txn.getBinary()` is **only valid until the next `put` operation or the end of the transaction**. If you need to use the data *later*, you will have to copy it for yourself.
+* Fixed address map (called `MDB_FIXEDMAP` in C) features are **not exposed** by this binding because they are highly experimental
 * `Cursor`s are not yet exposed but are planned soon.
 * Not all functions are wrapped by the binding yet. If there's one that you would like to see, drop me a line.
 
