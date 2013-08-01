@@ -77,7 +77,7 @@ Every piece of data in LMDB is referred to by a **key**.
 You can use the methods `getString()`, `getBinary()`, `getNumber()` and `getBoolean()` to retrieve something,
 `putString()`, `putBinary()`, `putNumber()` and `putBoolean()` to store something and `del()` to delete something.
 
-Currently **only string values are supported**, use `JSON.stringify` and `JSON.parse` for complex data structures.  
+Currently **only string, binary, number and boolean values are supported**, use `JSON.stringify` and `JSON.parse` for complex data structures.  
 Because of the nature of LMDB, the data returned by `txn.getString()` and `txn.getBinary()` is only valid until the next `put` operation or the end of the transaction.
 If you need to use the data *later*, you will have to copy it for yourself.
 
