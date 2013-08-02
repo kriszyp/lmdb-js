@@ -30,6 +30,7 @@ using namespace node;
 void v8ToLmdbVal(Handle<Value> handle, MDB_val *val);
 Handle<Value> lmdbValToV8(MDB_val *val);
 void consoleLog(const char *msg);
+void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue, Local<Object> options);
 
 static inline void fakeFreeCallback(char *data, void *) {
     // Don't need to do anything here, because the data belongs to LMDB anyway
@@ -78,8 +79,19 @@ Handle<Value> TxnWrap::ctor(const Arguments& args) {
     HandleScope scope;
 
     EnvWrap *ew = ObjectWrap::Unwrap<EnvWrap>(args[0]->ToObject());
+    int flags = 0;
+    
+    if (args[1]->IsObject()) {
+        Local<Object> options = args[1]->ToObject();
+        
+        // Get flags from options
+        
+        setFlagFromValue(&flags, MDB_RDONLY, "readOnly", false, options);
+    }
+    
+    
     MDB_txn *txn;
-    int rc = mdb_txn_begin(ew->env, NULL, 0, &txn);
+    int rc = mdb_txn_begin(ew->env, NULL, flags, &txn);
     if (rc != 0) {
         ThrowException(Exception::Error(String::New(mdb_strerror(rc))));
         return Undefined();

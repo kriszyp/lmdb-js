@@ -292,7 +292,7 @@ public:
         * justFreePages - indicates that the database pages need to be freed but the database shouldn't be deleted
         
     */
-    Handle<Value> dropDbi(const Arguments& args);
+    static Handle<Value> dropDbi(const Arguments& args);
 };
 
 /*

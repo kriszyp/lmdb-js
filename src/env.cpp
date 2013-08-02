@@ -143,8 +143,8 @@ Handle<Value> EnvWrap::close(const Arguments& args) {
 Handle<Value> EnvWrap::beginTxn(const Arguments& args) {
     HandleScope scope;
     
-    const unsigned argc = 1;
-    Handle<Value> argv[argc] = { args.This() };
+    const unsigned argc = 2;
+    Handle<Value> argv[argc] = { args.This(), args[0] };
     Local<Object> instance = txnCtor->NewInstance(argc, argv);
     
     return scope.Close(instance);
