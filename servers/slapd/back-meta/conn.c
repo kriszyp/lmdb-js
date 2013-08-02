@@ -787,10 +787,12 @@ meta_back_retry(
 					LDAP_BACK_CONN_BINDING_CLEAR( msc );
 				}
 			}
-        	}
+		}
 
+#if 0	/* ITS#7591, following stmt drops needed result msgs */
 		/* don't send twice */
 		sendok &= ~LDAP_BACK_SENDERR;
+#endif
 	}
 
 	if ( rc != LDAP_SUCCESS ) {
