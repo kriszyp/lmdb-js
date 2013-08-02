@@ -26,10 +26,6 @@
 using namespace v8;
 using namespace node;
 
-void consoleLog(const char *msg);
-void consoleLogN(int n);
-argtokey_callback_t argToKey(const Handle<Value> &val, MDB_val &key);
-
 CursorWrap::CursorWrap(MDB_cursor *cursor) {
     this->cursor = cursor;
 }

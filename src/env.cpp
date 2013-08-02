@@ -30,8 +30,6 @@ Persistent<Function> EnvWrap::txnCtor;
 
 Persistent<Function> EnvWrap::dbiCtor;
 
-void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue, Local<Object> options);
-
 typedef struct EnvSyncData {
     uv_work_t request;
     Persistent<Function> callback;
@@ -160,28 +158,6 @@ Handle<Value> EnvWrap::openDbi(const Arguments& args) {
     return scope.Close(instance);
 }
 
-static void sync_dowork(uv_work_t *request) {
-    EnvSyncData *d = static_cast<EnvSyncData*>(request->data);
-    d->rc = mdb_env_sync(d->env, 1);
-}
-
-static void sync_after(uv_work_t *request, int) {
-    EnvSyncData *d = static_cast<EnvSyncData*>(request->data);
-    const unsigned argc = 1;
-    Handle<Value> argv[argc];
-    
-    if (d->rc == 0) {
-        argv[0] = Null();
-    }
-    else {
-        argv[0] = Exception::Error(String::New(mdb_strerror(d->rc)));
-    }
-    
-    d->callback->Call(Context::GetCurrent()->Global(), argc, argv);
-    d->callback.Dispose();
-    delete d;
-}
-
 Handle<Value> EnvWrap::sync(const Arguments &args) {
     HandleScope scope;
     
@@ -200,7 +176,27 @@ Handle<Value> EnvWrap::sync(const Arguments &args) {
     d->env = ew->env;
     d->callback = Persistent<Function>::New(callback);
     
-    uv_queue_work(uv_default_loop(), &(d->request), sync_dowork, sync_after);
+    uv_queue_work(uv_default_loop(), &(d->request), [](uv_work_t *request) -> void {
+        // Performing the sync (this will be called on a separate thread)
+        EnvSyncData *d = static_cast<EnvSyncData*>(request->data);
+        d->rc = mdb_env_sync(d->env, 1);
+    }, [](uv_work_t *request, int) -> void {
+        // Executed after the sync is finished
+        EnvSyncData *d = static_cast<EnvSyncData*>(request->data);
+        const unsigned argc = 1;
+        Handle<Value> argv[argc];
+        
+        if (d->rc == 0) {
+            argv[0] = Null();
+        }
+        else {
+            argv[0] = Exception::Error(String::New(mdb_strerror(d->rc)));
+        }
+        
+        d->callback->Call(Context::GetCurrent()->Global(), argc, argv);
+        d->callback.Dispose();
+        delete d;
+    });
     
     return Undefined();
 }

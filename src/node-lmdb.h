@@ -26,6 +26,7 @@
 
 #include <v8.h>
 #include <node.h>
+#include <node_buffer.h>
 #include <lmdb.h>
 #include <uv.h>
 
@@ -37,6 +38,16 @@ void setupExportMisc(Handle<Object> exports);
 
 // Helper callback
 typedef void (*argtokey_callback_t)(MDB_val &key);
+
+
+void consoleLog(const char *msg);
+void consoleLogN(int n);
+void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue, Local<Object> options);
+argtokey_callback_t argToKey(const Handle<Value> &val, MDB_val &key);
+Handle<Value> valToString(MDB_val &data);
+Handle<Value> valToBinary(MDB_val &data);
+Handle<Value> valToNumber(MDB_val &data);
+Handle<Value> valToBoolean(MDB_val &data);
 
 /*
     `Env`
@@ -150,7 +161,7 @@ public:
     static Handle<Value> ctor(const Arguments& args);
     
     // Helper for all the get methods (not exposed)
-    static Handle<Value> getCommon(const Arguments &args, Handle<Value> (*successFunc)(const Arguments&, MDB_val&));
+    static Handle<Value> getCommon(const Arguments &args, Handle<Value> (*successFunc)(MDB_val&));
     
     // Helper for all the put methods (not exposed)
     static Handle<Value> putCommon(const Arguments &args, void (*fillFunc)(const Arguments&, MDB_val&), void (*freeFunc)(MDB_val&));
@@ -354,6 +365,8 @@ public:
     
     // Helper method for getters (not exposed)
     static Handle<Value> getCommon(const Arguments& args, MDB_cursor_op op, void (*setKey)(const Arguments& args, MDB_val&));
+    
+    // Helper method for getters (not exposed)
     static Handle<Value> getCommon(const Arguments& args, MDB_cursor_op op);
     
     static Handle<Value> getCurrent(const Arguments& args);

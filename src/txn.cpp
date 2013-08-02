@@ -22,44 +22,9 @@
 // THE SOFTWARE.
 
 #include "node-lmdb.h"
-#include <node_buffer.h>
 
 using namespace v8;
 using namespace node;
-
-void v8ToLmdbVal(Handle<Value> handle, MDB_val *val);
-Handle<Value> lmdbValToV8(MDB_val *val);
-void consoleLog(const char *msg);
-void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue, Local<Object> options);
-
-static inline void fakeFreeCallback(char *data, void *) {
-    // Don't need to do anything here, because the data belongs to LMDB anyway
-}
-
-argtokey_callback_t argToKey(const Handle<Value> &val, MDB_val &key) {
-    if (val->IsUint32()) {
-        uint32_t *v = new uint32_t;
-        *v = val->Uint32Value();
-        
-        key.mv_size = sizeof(uint32_t);
-        key.mv_data = v;
-        
-        return ([](MDB_val &key) -> void {
-            delete (uint32_t*)key.mv_data;
-        });
-    }
-    else if (val->IsString()) {
-        CustomExternalStringResource::writeTo(val->ToString(), &key);
-        return ([](MDB_val &key) -> void {
-            delete (uint16_t*)key.mv_data;
-        });
-    }
-    else {
-        ThrowException(Exception::Error(String::New("The data type of the given key is not supported.")));
-    }
-    
-    return NULL;
-}
 
 TxnWrap::TxnWrap(MDB_env *env, MDB_txn *txn) {
     this->env = env;
@@ -171,7 +136,7 @@ Handle<Value> TxnWrap::renew(const Arguments& args) {
     return Undefined();
 }
 
-Handle<Value> TxnWrap::getCommon(const Arguments &args, Handle<Value> (*successFunc)(const Arguments&, MDB_val&)) {
+Handle<Value> TxnWrap::getCommon(const Arguments &args, Handle<Value> (*successFunc)(MDB_val&)) {
     TxnWrap *tw = ObjectWrap::Unwrap<TxnWrap>(args.This());
     DbiWrap *dw = ObjectWrap::Unwrap<DbiWrap>(args[0]->ToObject());
     
@@ -193,31 +158,23 @@ Handle<Value> TxnWrap::getCommon(const Arguments &args, Handle<Value> (*successF
         return Undefined();
     }
     
-    return successFunc(args, data);
+    return successFunc(data);
 }
 
 Handle<Value> TxnWrap::getString(const Arguments& args) {
-    return getCommon(args, [](const Arguments &args, MDB_val &data) -> Handle<Value> {
-        return String::NewExternal(new CustomExternalStringResource(&data));
-    });
+    return getCommon(args, valToString);
 }
 
 Handle<Value> TxnWrap::getBinary(const Arguments& args) {
-    return getCommon(args, [](const Arguments& args, MDB_val& data) -> Handle<Value> {
-        return Buffer::New((char*)data.mv_data, data.mv_size, fakeFreeCallback, NULL)->handle_;
-    });
+    return getCommon(args, valToBinary);
 }
 
 Handle<Value> TxnWrap::getNumber(const Arguments& args) {
-    return getCommon(args, [](const Arguments& args, MDB_val& data) -> Handle<Value> {
-        return Number::New(*((double*)data.mv_data));
-    });
+    return getCommon(args, valToNumber);
 }
 
 Handle<Value> TxnWrap::getBoolean(const Arguments& args) {
-    return getCommon(args, [](const Arguments& args, MDB_val& data) -> Handle<Value> {
-        return Boolean::New(*((bool*)data.mv_data));
-    });
+    return getCommon(args, valToBoolean);
 }
 
 Handle<Value> TxnWrap::putCommon(const Arguments &args, void (*fillFunc)(const Arguments&, MDB_val&), void (*freeData)(MDB_val&)) {  

@@ -46,6 +46,47 @@ void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue,
     }
 }
 
+argtokey_callback_t argToKey(const Handle<Value> &val, MDB_val &key) {
+    if (val->IsUint32()) {
+        uint32_t *v = new uint32_t;
+        *v = val->Uint32Value();
+        
+        key.mv_size = sizeof(uint32_t);
+        key.mv_data = v;
+        
+        return ([](MDB_val &key) -> void {
+            delete (uint32_t*)key.mv_data;
+        });
+    }
+    else if (val->IsString()) {
+        CustomExternalStringResource::writeTo(val->ToString(), &key);
+        return ([](MDB_val &key) -> void {
+            delete (uint16_t*)key.mv_data;
+        });
+    }
+    else {
+        ThrowException(Exception::Error(String::New("The data type of the given key is not supported.")));
+    }
+    
+    return NULL;
+}
+
+Handle<Value> valToString(MDB_val &data) {
+    return String::NewExternal(new CustomExternalStringResource(&data));
+}
+
+Handle<Value> valToBinary(MDB_val &data) {
+    return Buffer::New((char*)data.mv_data, data.mv_size, [](char*, void*) -> void { /* Don't need to do anything here, because the data belongs to LMDB anyway */ }, NULL)->handle_;
+}
+
+Handle<Value> valToNumber(MDB_val &data) {
+    return Number::New(*((double*)data.mv_data));
+}
+
+Handle<Value> valToBoolean(MDB_val &data) {
+    return Boolean::New(*((bool*)data.mv_data));
+}
+
 void consoleLog(const char *msg) {
     Handle<String> str = String::New("console.log('");
     str = String::Concat(str, String::New(msg));
