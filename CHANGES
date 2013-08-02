@@ -24,6 +24,8 @@ OpenLDAP 2.4.36 Engineering
 	Added slapd-meta TCP keepalive support (ITS#7513)
 	Fixed slapo-sssvlv double free (ITS#7588)
 	Fixed slaptest to list -Q option (ITS#7568)
+	Build Environment
+		Fixed slapd-meta declaration warnings (ITS#7654)
 	Contrib
 		Fixed nssov group enumeration bug (ITS#7569)
 		Fixed autogroup when URI has no attrs (ITS#7580)
