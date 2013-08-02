@@ -348,6 +348,20 @@ public:
     static Handle<Value> ctor(const Arguments& args);
     
     static Handle<Value> close(const Arguments& args);
+    
+    // Helper method for getters (not exposed)
+    static Handle<Value> getCommon(const Arguments& args, MDB_cursor_op op);
+    
+    static Handle<Value> getCurrent(const Arguments& args);
+    
+    static Handle<Value> goToFirst(const Arguments& args);
+    
+    static Handle<Value> goToLast(const Arguments& args);
+    
+    static Handle<Value> goToNext(const Arguments& args);
+    
+    static Handle<Value> goToPrev(const Arguments& args);
+    
 };
 
 // External string resource that glues MDB_val and v8::String

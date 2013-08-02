@@ -26,6 +26,9 @@
 using namespace v8;
 using namespace node;
 
+void consoleLog(const char *msg);
+void consoleLogN(int n);
+
 CursorWrap::CursorWrap(MDB_cursor *cursor) {
     this->cursor = cursor;
 }
@@ -63,6 +66,37 @@ Handle<Value> CursorWrap::close(const Arguments &args) {
     return Undefined();
 }
 
+Handle<Value> CursorWrap::getCommon(const Arguments& args, MDB_cursor_op op) {
+    CursorWrap *cw = ObjectWrap::Unwrap<CursorWrap>(args.This());
+    
+    MDB_val key, data;
+    
+    int rc = mdb_cursor_get(cw->cursor, &key, &data, op);
+    
+    if (rc == MDB_NOTFOUND) {
+        return Null();
+    }
+    else if (rc != 0) {
+        consoleLogN(rc);
+        ThrowException(Exception::Error(String::New(mdb_strerror(rc))));
+        return Undefined();
+    }
+    
+    return String::NewExternal(new CustomExternalStringResource(&data));
+}
+
+#define MAKE_GET_FUNC(name, op) Handle<Value> CursorWrap::name(const Arguments& args) { return getCommon(args, op); }
+
+MAKE_GET_FUNC(getCurrent, MDB_GET_CURRENT);
+
+MAKE_GET_FUNC(goToFirst, MDB_FIRST);
+
+MAKE_GET_FUNC(goToLast, MDB_LAST);
+
+MAKE_GET_FUNC(goToNext, MDB_NEXT);
+
+MAKE_GET_FUNC(goToPrev, MDB_PREV);
+
 void CursorWrap::setupExports(Handle<Object> exports) {
     // CursorWrap: Prepare constructor template
     Local<FunctionTemplate> cursorTpl = FunctionTemplate::New(CursorWrap::ctor);
@@ -70,6 +104,11 @@ void CursorWrap::setupExports(Handle<Object> exports) {
     cursorTpl->InstanceTemplate()->SetInternalFieldCount(1);
     // CursorWrap: Add functions to the prototype
     cursorTpl->PrototypeTemplate()->Set(String::NewSymbol("close"), FunctionTemplate::New(CursorWrap::close)->GetFunction());
+    cursorTpl->PrototypeTemplate()->Set(String::NewSymbol("getCurrent"), FunctionTemplate::New(CursorWrap::getCurrent)->GetFunction());
+    cursorTpl->PrototypeTemplate()->Set(String::NewSymbol("goToFirst"), FunctionTemplate::New(CursorWrap::goToFirst)->GetFunction());
+    cursorTpl->PrototypeTemplate()->Set(String::NewSymbol("goToLast"), FunctionTemplate::New(CursorWrap::goToLast)->GetFunction());
+    cursorTpl->PrototypeTemplate()->Set(String::NewSymbol("goToNext"), FunctionTemplate::New(CursorWrap::goToNext)->GetFunction());
+    cursorTpl->PrototypeTemplate()->Set(String::NewSymbol("goToPrev"), FunctionTemplate::New(CursorWrap::goToPrev)->GetFunction());
     
     // CursorWrap: Get constructor
     Persistent<Function> cursorCtor = Persistent<Function>::New(cursorTpl->GetFunction());
