@@ -240,6 +240,7 @@ void EnvWrap::setupExports(Handle<Object> exports) {
     txnTpl->PrototypeTemplate()->Set(String::NewSymbol("del"), FunctionTemplate::New(TxnWrap::del)->GetFunction());
     txnTpl->PrototypeTemplate()->Set(String::NewSymbol("reset"), FunctionTemplate::New(TxnWrap::reset)->GetFunction());
     txnTpl->PrototypeTemplate()->Set(String::NewSymbol("renew"), FunctionTemplate::New(TxnWrap::renew)->GetFunction());
+    txnTpl->PrototypeTemplate()->Set(String::NewSymbol("dropDbi"), FunctionTemplate::New(TxnWrap::dropDbi)->GetFunction());
     // TODO: wrap mdb_cmp too
     // TODO: wrap mdb_dcmp too
     // TxnWrap: Get constructor
@@ -252,7 +253,6 @@ void EnvWrap::setupExports(Handle<Object> exports) {
     // DbiWrap: Add functions to the prototype
     dbiTpl->PrototypeTemplate()->Set(String::NewSymbol("close"), FunctionTemplate::New(DbiWrap::close)->GetFunction());
     // TODO: wrap mdb_stat too
-    // TODO: wrap mdb_drop too
     // DbiWrap: Get constructor
     EnvWrap::dbiCtor = Persistent<Function>::New(dbiTpl->GetFunction());
     

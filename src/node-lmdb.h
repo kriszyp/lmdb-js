@@ -278,6 +278,21 @@ public:
         * key for which the value is stored
     */
     static Handle<Value> del(const Arguments& args);
+    
+    /*
+        Drops a database instance, either deleting it completely (default) or just freeing its pages.
+        
+        Parameters:
+        
+        * database instance created with calling `openDbi()` on an `Env` instance
+        * Options object that contains possible configuration options.
+        
+        Possible options are:
+        
+        * justFreePages - indicates that the database pages need to be freed but the database shouldn't be deleted
+        
+    */
+    Handle<Value> dropDbi(const Arguments& args);
 };
 
 /*
