@@ -35,6 +35,9 @@ using namespace node;
 // Exports misc stuff to the module
 void setupExportMisc(Handle<Object> exports);
 
+// Helper callback
+typedef void (*argtokey_callback_t)(MDB_val &key);
+
 /*
     `Env`
     Represents a database environment.
@@ -350,6 +353,7 @@ public:
     static Handle<Value> close(const Arguments& args);
     
     // Helper method for getters (not exposed)
+    static Handle<Value> getCommon(const Arguments& args, MDB_cursor_op op, void (*setKey)(const Arguments& args, MDB_val&));
     static Handle<Value> getCommon(const Arguments& args, MDB_cursor_op op);
     
     static Handle<Value> getCurrent(const Arguments& args);
@@ -362,6 +366,7 @@ public:
     
     static Handle<Value> goToPrev(const Arguments& args);
     
+    static Handle<Value> goToKey(const Arguments& args);
 };
 
 // External string resource that glues MDB_val and v8::String

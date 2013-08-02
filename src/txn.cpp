@@ -36,9 +36,7 @@ static inline void fakeFreeCallback(char *data, void *) {
     // Don't need to do anything here, because the data belongs to LMDB anyway
 }
 
-typedef void (*my_callback_t)(MDB_val &key);
-
-static inline my_callback_t argToKey(const Handle<Value> &val, MDB_val &key) {
+argtokey_callback_t argToKey(const Handle<Value> &val, MDB_val &key) {
     if (val->IsUint32()) {
         uint32_t *v = new uint32_t;
         *v = val->Uint32Value();

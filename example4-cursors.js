@@ -64,6 +64,12 @@ console.log("prev");
 data = cursor.goToPrev();
 console.log("-----", data);
 
+console.log("go to key 'b'");
+data = cursor.goToKey('b');
+console.log("-----", data);
+
+
+
 // Close cursor
 cursor.close();
 
