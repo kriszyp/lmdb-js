@@ -748,6 +748,8 @@ LDAP_SLAPD_F (int) slap_client_connect LDAP_P(( LDAP **ldp, slap_bindconf *sb ))
 LDAP_SLAPD_F (int) config_generic_wrapper LDAP_P(( Backend *be,
 	const char *fname, int lineno, int argc, char **argv ));
 LDAP_SLAPD_F (char *) anlist_unparse LDAP_P(( AttributeName *, char *, ber_len_t buflen ));
+LDAP_SLAPD_F (int) slap_keepalive_parse( struct berval *val, void *bc,
+	slap_cf_aux_table *tab0, const char *tabmsg, int unparse );
 
 #ifdef LDAP_SLAPI
 LDAP_SLAPD_V (int) slapi_plugins_used;

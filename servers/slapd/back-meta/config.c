@@ -23,6 +23,7 @@
 #include "portable.h"
 
 #include <stdio.h>
+#include <ctype.h>
 
 #include <ac/string.h>
 #include <ac/socket.h>
@@ -30,6 +31,7 @@
 #include "slap.h"
 #include "config.h"
 #include "lutil.h"
+#include "ldif.h"
 #include "../back-ldap/back-ldap.h"
 #include "back-meta.h"
 
@@ -1711,7 +1713,7 @@ meta_back_cf_gen( ConfigArgs *c )
 
 #ifdef SLAPD_META_CLIENT_PR
 		case LDAP_BACK_CFG_CLIENT_PR:
-			mc->mc_ps == META_CLIENT_PR_DISABLE;
+			mc->mc_ps = META_CLIENT_PR_DISABLE;
 			break;
 #endif /* SLAPD_META_CLIENT_PR */
 
@@ -1732,7 +1734,7 @@ meta_back_cf_gen( ConfigArgs *c )
 			break;
 
 		case LDAP_BACK_CFG_NRETRIES:
-			mc->mc_nretries == META_RETRY_DEFAULT;
+			mc->mc_nretries = META_RETRY_DEFAULT;
 			break;
 
 		case LDAP_BACK_CFG_QUARANTINE:
