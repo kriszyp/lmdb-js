@@ -163,6 +163,18 @@ public:
     static Handle<Value> abort(const Arguments& args);
     
     /*
+        Aborts a read-only transaction but makes it renewable with `renew`.
+        (Wrapper for `mdb_txn_reset`)
+    */
+    static Handle<Value> reset(const Arguments& args);
+    
+    /*
+        Renews a read-only transaction after it has been reset.
+        (Wrapper for `mdb_txn_renew`)
+    */
+    static Handle<Value> renew(const Arguments& args);
+    
+    /*
         Gets string data (JavaScript string type) associated with the given key from a database. You need to open a database in the environment to use this.
         This method is zero-copy and the return value can only be used until the next put operation or until the transaction is committed or aborted.
         (Wrapper for `mdb_get`)

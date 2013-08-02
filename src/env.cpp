@@ -238,8 +238,8 @@ void EnvWrap::setupExports(Handle<Object> exports) {
     txnTpl->PrototypeTemplate()->Set(String::NewSymbol("putNumber"), FunctionTemplate::New(TxnWrap::putNumber)->GetFunction());
     txnTpl->PrototypeTemplate()->Set(String::NewSymbol("putBoolean"), FunctionTemplate::New(TxnWrap::putBoolean)->GetFunction());
     txnTpl->PrototypeTemplate()->Set(String::NewSymbol("del"), FunctionTemplate::New(TxnWrap::del)->GetFunction());
-    // TODO: wrap mdb_txn_reset too
-    // TODO: wrap mdb_txn_renew too
+    txnTpl->PrototypeTemplate()->Set(String::NewSymbol("reset"), FunctionTemplate::New(TxnWrap::reset)->GetFunction());
+    txnTpl->PrototypeTemplate()->Set(String::NewSymbol("renew"), FunctionTemplate::New(TxnWrap::renew)->GetFunction());
     // TODO: wrap mdb_cmp too
     // TODO: wrap mdb_dcmp too
     // TxnWrap: Get constructor

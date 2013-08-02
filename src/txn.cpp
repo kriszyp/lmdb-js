@@ -127,6 +127,40 @@ Handle<Value> TxnWrap::abort(const Arguments& args) {
     return Undefined();
 }
 
+Handle<Value> TxnWrap::reset(const Arguments& args) {
+    HandleScope scope;
+    
+    TxnWrap *tw = ObjectWrap::Unwrap<TxnWrap>(args.This());
+    
+    if (!tw->txn) {
+        ThrowException(Exception::Error(String::New("The transaction is already closed.")));
+        return Undefined();
+    }
+    
+    mdb_txn_reset(tw->txn);
+    
+    return Undefined();
+}
+
+Handle<Value> TxnWrap::renew(const Arguments& args) {
+    HandleScope scope;
+    
+    TxnWrap *tw = ObjectWrap::Unwrap<TxnWrap>(args.This());
+    
+    if (!tw->txn) {
+        ThrowException(Exception::Error(String::New("The transaction is already closed.")));
+        return Undefined();
+    }
+    
+    int rc = mdb_txn_renew(tw->txn);
+    if (rc != 0) {
+        ThrowException(Exception::Error(String::New(mdb_strerror(rc))));
+        return Undefined();
+    }
+    
+    return Undefined();
+}
+
 Handle<Value> TxnWrap::getCommon(const Arguments &args, Handle<Value> (*successFunc)(const Arguments&, MDB_val&)) {
     TxnWrap *tw = ObjectWrap::Unwrap<TxnWrap>(args.This());
     DbiWrap *dw = ObjectWrap::Unwrap<DbiWrap>(args[0]->ToObject());
