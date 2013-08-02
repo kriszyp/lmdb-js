@@ -110,9 +110,9 @@ Handle<Value> DbiWrap::ctor(const Arguments& args) {
 Handle<Value> DbiWrap::close(const Arguments& args) {
     HandleScope scope;
     
-    //DbiWrap *dw = ObjectWrap::Unwrap<DbiWrap>(args.This());
-    //mdb_dbi_close(dw->env, dw->dbi);
-    //dw->needsClose = false;
+    DbiWrap *dw = ObjectWrap::Unwrap<DbiWrap>(args.This());
+    mdb_dbi_close(dw->env, dw->dbi);
+    dw->needsClose = false;
     
     return Undefined();
 }
