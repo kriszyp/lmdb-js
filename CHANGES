@@ -21,6 +21,7 @@ OpenLDAP 2.4.36 Engineering
 	Fixed slapd-mdb refcount behavior (ITS#7628)
 	Fixed slapd-meta binding flag is set (ITS#7524)
 	Fixed slapd-meta with minimal config (ITS#7581)
+	Fixed slapd-meta missing results messages (ITS#7591)
 	Added slapd-meta TCP keepalive support (ITS#7513)
 	Fixed slapo-sssvlv double free (ITS#7588)
 	Fixed slaptest to list -Q option (ITS#7568)
