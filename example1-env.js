@@ -13,7 +13,7 @@ env.open({
     // Path to the environment
     path: "./testdata",
     // Maximum number of databases
-    maxDbs: 3
+    maxDbs: 10
 });
 // Open database
 var dbi = env.openDbi({
