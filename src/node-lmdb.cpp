@@ -32,6 +32,9 @@ extern "C" {
         // Export Env as constructor for EnvWrap
         EnvWrap::setupExports(exports);
         
+        // Export Cursor as constructor for CursorWrap
+        CursorWrap::setupExports(exports);
+        
         // Export misc things
         setupExportMisc(exports);
     }

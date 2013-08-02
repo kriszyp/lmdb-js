@@ -136,6 +136,8 @@ private:
     MDB_txn *txn;
     // Reference to the MDB_env of the wrapped MDB_txn
     MDB_env *env;
+    
+    friend class CursorWrap;
 
 public:
     TxnWrap(MDB_env *env, MDB_txn *txn);
@@ -310,6 +312,7 @@ private:
     MDB_env *env;
     
     friend class TxnWrap;
+    friend class CursorWrap;
 
 public:
     DbiWrap(MDB_env *env, MDB_dbi dbi);
@@ -322,6 +325,28 @@ public:
         Closes the database instance.
         Wrapper for `mdb_dbi_close`)
     */
+    static Handle<Value> close(const Arguments& args);
+};
+
+/*
+    `Cursor`
+    Represents a cursor instance that is assigned to a database instance and a transaction.
+    (Wrapper for `MDB_cursor`)
+*/
+class CursorWrap : public ObjectWrap {
+private:
+    // The wrapped object
+    MDB_cursor *cursor;
+
+public:
+    CursorWrap(MDB_cursor *cursor);
+    ~CursorWrap();
+    
+    // Sets up exports for the Cursor constructor
+    static void setupExports(Handle<Object> exports);
+
+    static Handle<Value> ctor(const Arguments& args);
+    
     static Handle<Value> close(const Arguments& args);
 };
 

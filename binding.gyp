@@ -2,7 +2,14 @@
   "targets": [
     {
       "target_name": "node-lmdb",
-      "sources": [ "src/node-lmdb.cpp", "src/env.cpp", "src/misc.cpp", "src/txn.cpp", "src/dbi.cpp" ],
+      "sources": [
+        "src/node-lmdb.cpp",
+        "src/env.cpp",
+        "src/misc.cpp",
+        "src/txn.cpp",
+        "src/dbi.cpp",
+        "src/cursor.cpp"
+      ],
       "conditions": [
           ["OS=='linux'", {
             "ldflags": [
