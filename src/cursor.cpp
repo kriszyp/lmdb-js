@@ -65,8 +65,8 @@ Handle<Value> CursorWrap::close(const Arguments &args) {
 }
 
 Handle<Value> CursorWrap::getCommon(const Arguments& args, MDB_cursor_op op, void (*setKey)(const Arguments& args, MDB_val&), Handle<Value> (*convertFunc)(MDB_val &data)) {
+    int al = args.Length();
     CursorWrap *cw = ObjectWrap::Unwrap<CursorWrap>(args.This());
-    
     MDB_val key, data;
     
     if (setKey) {
@@ -74,7 +74,6 @@ Handle<Value> CursorWrap::getCommon(const Arguments& args, MDB_cursor_op op, voi
     }
     
     int rc = mdb_cursor_get(cw->cursor, &key, &data, op);
-    int al = args.Length();
     
     if (rc == MDB_NOTFOUND) {
         return Null();
@@ -84,16 +83,15 @@ Handle<Value> CursorWrap::getCommon(const Arguments& args, MDB_cursor_op op, voi
         return Undefined();
     }
     
-    Handle<Value> keyHandle = keyToHandle(key);
-    
-    if (convertFunc && al > 0 && args[al - 1]->IsFunction()) {    
+    if (convertFunc && al > 0 && args[al - 1]->IsFunction()) {
+        // In this case, we expect the key/data pair to be correctly filled
         const unsigned argc = 2;
-        Handle<Value> argv[argc] = { keyHandle, convertFunc(data) };
+        Handle<Value> argv[argc] = { keyToHandle(key), convertFunc(data) };
         Handle<Function> callback = Handle<Function>::Cast(args[args.Length() - 1]);
         callback->Call(Context::GetCurrent()->Global(), argc, argv);
     }
     
-    return keyHandle;
+    return Undefined();
 }
 
 Handle<Value> CursorWrap::getCommon(const Arguments& args, MDB_cursor_op op) {

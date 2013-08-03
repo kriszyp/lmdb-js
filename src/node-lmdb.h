@@ -418,7 +418,7 @@ public:
     static Handle<Value> getCurrentNumber(const Arguments& args);
     
     /*
-        Gets the current key-data pair that the cursor is pointing to. Returns the current key.
+        Gets the current key-data pair that the cursor is pointing to.
         (Wrapper for `mdb_cursor_get`)
         
         Parameters:
@@ -428,37 +428,37 @@ public:
     static Handle<Value> getCurrentBoolean(const Arguments& args);
     
     /*
-        Asks the cursor to go to the first key-data pair in the database. Returns the key.
+        Asks the cursor to go to the first key-data pair in the database.
         (Wrapper for `mdb_cursor_get`)
     */
     static Handle<Value> goToFirst(const Arguments& args);
     
     /*
-        Asks the cursor to go to the last key-data pair in the database. Returns the key.
+        Asks the cursor to go to the last key-data pair in the database.
         (Wrapper for `mdb_cursor_get`)
     */
     static Handle<Value> goToLast(const Arguments& args);
     
     /*
-        Asks the cursor to go to the next key-data pair in the database. Returns the key.
+        Asks the cursor to go to the next key-data pair in the database.
         (Wrapper for `mdb_cursor_get`)
     */
     static Handle<Value> goToNext(const Arguments& args);
     
     /*
-        Asks the cursor to go to the previous key-data pair in the database. Returns the key.
+        Asks the cursor to go to the previous key-data pair in the database.
         (Wrapper for `mdb_cursor_get`)
     */
     static Handle<Value> goToPrev(const Arguments& args);
     
     /*
-        Asks the cursor to go to the specified key in the database. Returns the key.
+        Asks the cursor to go to the specified key in the database.
         (Wrapper for `mdb_cursor_get`)
     */
     static Handle<Value> goToKey(const Arguments& args);
     
     /*
-        Asks the cursor to go to the first key greater than or equal to the specified parameter in the database. Returns the found key.
+        Asks the cursor to go to the first key greater than or equal to the specified parameter in the database.
         (Wrapper for `mdb_cursor_get`)
     */
     static Handle<Value> goToRange(const Arguments& args);
