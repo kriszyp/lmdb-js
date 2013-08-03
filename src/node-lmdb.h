@@ -44,6 +44,7 @@ void consoleLog(const char *msg);
 void consoleLogN(int n);
 void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue, Local<Object> options);
 argtokey_callback_t argToKey(const Handle<Value> &val, MDB_val &key);
+Handle<Value> keyToHandle(MDB_val &key);
 Handle<Value> valToString(MDB_val &data);
 Handle<Value> valToBinary(MDB_val &data);
 Handle<Value> valToNumber(MDB_val &data);
@@ -364,12 +365,18 @@ public:
     static Handle<Value> close(const Arguments& args);
     
     // Helper method for getters (not exposed)
-    static Handle<Value> getCommon(const Arguments& args, MDB_cursor_op op, void (*setKey)(const Arguments& args, MDB_val&));
+    static Handle<Value> getCommon(const Arguments& args, MDB_cursor_op op, void (*setKey)(const Arguments& args, MDB_val&), Handle<Value> (*convertFunc)(MDB_val &data));
     
     // Helper method for getters (not exposed)
     static Handle<Value> getCommon(const Arguments& args, MDB_cursor_op op);
     
-    static Handle<Value> getCurrent(const Arguments& args);
+    static Handle<Value> getCurrentString(const Arguments& args);
+    
+    static Handle<Value> getCurrentBinary(const Arguments& args);
+    
+    static Handle<Value> getCurrentNumber(const Arguments& args);
+    
+    static Handle<Value> getCurrentBoolean(const Arguments& args);
     
     static Handle<Value> goToFirst(const Arguments& args);
     

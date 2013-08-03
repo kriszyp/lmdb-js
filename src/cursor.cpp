@@ -22,6 +22,7 @@
 // THE SOFTWARE.
 
 #include "node-lmdb.h"
+#include <string.h>
 
 using namespace v8;
 using namespace node;
@@ -63,7 +64,7 @@ Handle<Value> CursorWrap::close(const Arguments &args) {
     return Undefined();
 }
 
-Handle<Value> CursorWrap::getCommon(const Arguments& args, MDB_cursor_op op, void (*setKey)(const Arguments& args, MDB_val&)) {
+Handle<Value> CursorWrap::getCommon(const Arguments& args, MDB_cursor_op op, void (*setKey)(const Arguments& args, MDB_val&), Handle<Value> (*convertFunc)(MDB_val &data)) {
     CursorWrap *cw = ObjectWrap::Unwrap<CursorWrap>(args.This());
     
     MDB_val key, data;
@@ -73,6 +74,7 @@ Handle<Value> CursorWrap::getCommon(const Arguments& args, MDB_cursor_op op, voi
     }
     
     int rc = mdb_cursor_get(cw->cursor, &key, &data, op);
+    int al = args.Length();
     
     if (rc == MDB_NOTFOUND) {
         return Null();
@@ -82,16 +84,39 @@ Handle<Value> CursorWrap::getCommon(const Arguments& args, MDB_cursor_op op, voi
         return Undefined();
     }
     
-    return String::NewExternal(new CustomExternalStringResource(&data));
+    Handle<Value> keyHandle = keyToHandle(key);
+    
+    if (convertFunc && al > 0 && args[al - 1]->IsFunction()) {    
+        const unsigned argc = 2;
+        Handle<Value> argv[argc] = { keyHandle, convertFunc(data) };
+        Handle<Function> callback = Handle<Function>::Cast(args[args.Length() - 1]);
+        callback->Call(Context::GetCurrent()->Global(), argc, argv);
+    }
+    
+    return keyHandle;
 }
 
 Handle<Value> CursorWrap::getCommon(const Arguments& args, MDB_cursor_op op) {
-    return getCommon(args, op, NULL);
+    return getCommon(args, op, NULL, NULL);
+}
+
+Handle<Value> CursorWrap::getCurrentString(const Arguments& args) {
+    return getCommon(args, MDB_GET_CURRENT, NULL, valToString);
+}
+
+Handle<Value> CursorWrap::getCurrentBinary(const Arguments& args) {
+    return getCommon(args, MDB_GET_CURRENT, NULL, valToBinary);
+}
+
+Handle<Value> CursorWrap::getCurrentNumber(const Arguments& args) {
+    return getCommon(args, MDB_GET_CURRENT, NULL, valToNumber);
+}
+
+Handle<Value> CursorWrap::getCurrentBoolean(const Arguments& args) {
+    return getCommon(args, MDB_GET_CURRENT, NULL, valToBoolean);
 }
 
 #define MAKE_GET_FUNC(name, op) Handle<Value> CursorWrap::name(const Arguments& args) { return getCommon(args, op); }
-
-MAKE_GET_FUNC(getCurrent, MDB_GET_CURRENT);
 
 MAKE_GET_FUNC(goToFirst, MDB_FIRST);
 
@@ -104,7 +129,7 @@ MAKE_GET_FUNC(goToPrev, MDB_PREV);
 Handle<Value> CursorWrap::goToKey(const Arguments &args) {
     return getCommon(args, MDB_SET, [](const Arguments& args, MDB_val &key) -> void {
         argToKey(args[0], key);
-    });
+    }, NULL);
 }
 
 void CursorWrap::setupExports(Handle<Object> exports) {
@@ -114,7 +139,10 @@ void CursorWrap::setupExports(Handle<Object> exports) {
     cursorTpl->InstanceTemplate()->SetInternalFieldCount(1);
     // CursorWrap: Add functions to the prototype
     cursorTpl->PrototypeTemplate()->Set(String::NewSymbol("close"), FunctionTemplate::New(CursorWrap::close)->GetFunction());
-    cursorTpl->PrototypeTemplate()->Set(String::NewSymbol("getCurrent"), FunctionTemplate::New(CursorWrap::getCurrent)->GetFunction());
+    cursorTpl->PrototypeTemplate()->Set(String::NewSymbol("getCurrentString"), FunctionTemplate::New(CursorWrap::getCurrentString)->GetFunction());
+    cursorTpl->PrototypeTemplate()->Set(String::NewSymbol("getCurrentBinary"), FunctionTemplate::New(CursorWrap::getCurrentBinary)->GetFunction());
+    cursorTpl->PrototypeTemplate()->Set(String::NewSymbol("getCurrentNumber"), FunctionTemplate::New(CursorWrap::getCurrentNumber)->GetFunction());
+    cursorTpl->PrototypeTemplate()->Set(String::NewSymbol("getCurrentBoolean"), FunctionTemplate::New(CursorWrap::getCurrentBoolean)->GetFunction());
     cursorTpl->PrototypeTemplate()->Set(String::NewSymbol("goToFirst"), FunctionTemplate::New(CursorWrap::goToFirst)->GetFunction());
     cursorTpl->PrototypeTemplate()->Set(String::NewSymbol("goToLast"), FunctionTemplate::New(CursorWrap::goToLast)->GetFunction());
     cursorTpl->PrototypeTemplate()->Set(String::NewSymbol("goToNext"), FunctionTemplate::New(CursorWrap::goToNext)->GetFunction());

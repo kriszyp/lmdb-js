@@ -71,6 +71,16 @@ argtokey_callback_t argToKey(const Handle<Value> &val, MDB_val &key) {
     return NULL;
 }
 
+Handle<Value> keyToHandle(MDB_val &key) {
+    if (key.mv_size == sizeof(uint32_t)) {
+        // If the key is 32-bit, assume that it's uint32_t
+        return Integer::NewFromUnsigned(*((uint32_t*)key.mv_data));
+    }
+    else {
+        return valToString(key);
+    }
+}
+
 Handle<Value> valToString(MDB_val &data) {
     return String::NewExternal(new CustomExternalStringResource(&data));
 }
@@ -104,10 +114,21 @@ void consoleLogN(int n) {
 }
 
 void CustomExternalStringResource::writeTo(Handle<String> str, MDB_val *val) {
-    unsigned int l = str->Length();
-    uint16_t *d = new uint16_t[l + 1];
+    unsigned int l = str->Length() + 1;
+    if (str->Length() < 2) {
+        l = 3;
+    }
+    uint16_t *d = new uint16_t[l];
+    if (str->Length() < 2) {
+        d[0] = 0;
+        d[1] = 0;
+    }
     str->Write(d);
-    d[l] = 0;
+    d[l - 1] = 0;
+    
+    // NOTE: this function contains a hack that will make every string occupy at least 6 bytes (end filled with zeros).
+    // Reason: the function that converts MDB_val key to a JS value infers the type of the key from its size.
+    // Maybe in the future I'll think of a better solution for this.
     
     val->mv_data = d;
     val->mv_size = l * sizeof(uint16_t);
