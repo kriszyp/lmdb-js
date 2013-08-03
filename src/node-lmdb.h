@@ -456,6 +456,12 @@ public:
         (Wrapper for `mdb_cursor_get`)
     */
     static Handle<Value> goToKey(const Arguments& args);
+    
+    /*
+        Asks the cursor to go to the first key greater than or equal to the specified parameter in the database. Returns the found key.
+        (Wrapper for `mdb_cursor_get`)
+    */
+    static Handle<Value> goToRange(const Arguments& args);
 };
 
 // External string resource that glues MDB_val and v8::String

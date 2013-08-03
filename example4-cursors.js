@@ -25,15 +25,17 @@ var txn0 = env.beginTxn();
 txn0.putString(dbi, "a", "Helló1");
 txn0.putString(dbi, "b", "Hello2");
 txn0.putNumber(dbi, "c", 43);
-txn0.putBinary(dbi, "d", new Buffer("öüóőúéáű"));
-txn0.putBoolean(dbi, "e", false);
-txn0.putString(dbi, "f", "Hello6");
+/* key 'd' is omitted intentionally */
+txn0.putBinary(dbi, "e", new Buffer("öüóőúéáű"));
+txn0.putBoolean(dbi, "f", false);
+txn0.putString(dbi, "g", "Hello6");
 txn0.commit();
 console.log("wrote initial values");
 
 var data;
 var printFunc = function(key, data) {
-    console.log("-----", key + ":", data);
+    console.log("---------->  key:", key);
+    console.log("----------> data:", data);
 }
 
 // Begin transaction
@@ -60,7 +62,7 @@ console.log("----->", data);
 data = cursor.getCurrentNumber(printFunc);
 console.log("----->", data);
 
-console.log("next (expected d)");
+console.log("next (expected e)");
 data = cursor.goToNext();
 console.log("----->", data);
 data = cursor.getCurrentBinary(printFunc);
@@ -72,13 +74,13 @@ console.log("----->", data);
 data = cursor.getCurrentNumber(printFunc);
 console.log("----->", data);
 
-console.log("last (expected f)");
+console.log("last (expected g)");
 data = cursor.goToLast();
 console.log("----->", data);
 data = cursor.getCurrentString(printFunc);
 console.log("----->", data);
 
-console.log("prev (expected e)");
+console.log("prev (expected f)");
 data = cursor.goToPrev();
 console.log("----->", data);
 data = cursor.getCurrentBoolean(printFunc);
@@ -88,6 +90,12 @@ console.log("go to key 'b' (expected b)");
 data = cursor.goToKey('b');
 console.log("----->", data);
 data = cursor.getCurrentString(printFunc);
+console.log("----->", data);
+
+console.log("go to range 'd' (expected e)");
+data = cursor.goToRange('d');
+console.log("----->", data);
+data = cursor.getCurrentBinary(printFunc);
 console.log("----->", data);
 
 // Close cursor

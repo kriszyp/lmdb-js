@@ -132,6 +132,12 @@ Handle<Value> CursorWrap::goToKey(const Arguments &args) {
     }, NULL);
 }
 
+Handle<Value> CursorWrap::goToRange(const Arguments &args) {
+    return getCommon(args, MDB_SET_RANGE, [](const Arguments& args, MDB_val &key) -> void {
+        argToKey(args[0], key);
+    }, NULL);
+}
+
 void CursorWrap::setupExports(Handle<Object> exports) {
     // CursorWrap: Prepare constructor template
     Local<FunctionTemplate> cursorTpl = FunctionTemplate::New(CursorWrap::ctor);
@@ -148,6 +154,7 @@ void CursorWrap::setupExports(Handle<Object> exports) {
     cursorTpl->PrototypeTemplate()->Set(String::NewSymbol("goToNext"), FunctionTemplate::New(CursorWrap::goToNext)->GetFunction());
     cursorTpl->PrototypeTemplate()->Set(String::NewSymbol("goToPrev"), FunctionTemplate::New(CursorWrap::goToPrev)->GetFunction());
     cursorTpl->PrototypeTemplate()->Set(String::NewSymbol("goToKey"), FunctionTemplate::New(CursorWrap::goToKey)->GetFunction());
+    cursorTpl->PrototypeTemplate()->Set(String::NewSymbol("goToRange"), FunctionTemplate::New(CursorWrap::goToRange)->GetFunction());
     
     // CursorWrap: Get constructor
     Persistent<Function> cursorCtor = Persistent<Function>::New(cursorTpl->GetFunction());
