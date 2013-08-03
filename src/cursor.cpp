@@ -88,7 +88,7 @@ Handle<Value> CursorWrap::getCommon(const Arguments& args, MDB_cursor_op op, voi
         const unsigned argc = 2;
         Handle<Value> argv[argc] = { keyToHandle(key), convertFunc(data) };
         Handle<Function> callback = Handle<Function>::Cast(args[args.Length() - 1]);
-        callback->Call(Context::GetCurrent()->Global(), argc, argv);
+        return callback->Call(Context::GetCurrent()->Global(), argc, argv);
     }
     
     return Undefined();

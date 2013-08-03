@@ -114,6 +114,11 @@ void consoleLogN(int n) {
 }
 
 void CustomExternalStringResource::writeTo(Handle<String> str, MDB_val *val) {
+    
+    // NOTE: this function contains a hack that will make every string occupy at least 6 bytes (end filled with zeros).
+    // Reason: the function that converts MDB_val key to a JS value infers the type of the key from its size.
+    // Maybe in the future I'll think of a better solution for this.
+    
     unsigned int l = str->Length() + 1;
     if (str->Length() < 2) {
         l = 3;
@@ -126,19 +131,28 @@ void CustomExternalStringResource::writeTo(Handle<String> str, MDB_val *val) {
     str->Write(d);
     d[l - 1] = 0;
     
-    // NOTE: this function contains a hack that will make every string occupy at least 6 bytes (end filled with zeros).
-    // Reason: the function that converts MDB_val key to a JS value infers the type of the key from its size.
-    // Maybe in the future I'll think of a better solution for this.
-    
     val->mv_data = d;
     val->mv_size = l * sizeof(uint16_t);
 }
 
 CustomExternalStringResource::CustomExternalStringResource(MDB_val *val) {
+
+    // NOTE: this function contains a hack that will make every string occupy at least 6 bytes (end filled with zeros).
+    // Reason: the function that converts MDB_val key to a JS value infers the type of the key from its size.
+    // Maybe in the future I'll think of a better solution for this.
+
     // The UTF-16 data
     this->d = (uint16_t*)(val->mv_data);
     // Number of UTF-16 characters in the string
-    this->l = val->mv_size / sizeof(uint16_t);
+    if (val->mv_size <= 3) {
+        if (this->d[0] == 0)
+            this->l = 0;
+        else if (this->d[1] == 0)
+            this->l = 1;
+    }
+    else {
+        this->l = (val->mv_size / sizeof(uint16_t) - 1);
+    }
 }
 
 CustomExternalStringResource::~CustomExternalStringResource() { }
