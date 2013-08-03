@@ -344,7 +344,7 @@ public:
 
 /*
     `Cursor`
-    Represents a cursor instance that is assigned to a database instance and a transaction.
+    Represents a cursor instance that is assigned to a transaction and a database instance
     (Wrapper for `MDB_cursor`)
 */
 class CursorWrap : public ObjectWrap {
@@ -359,8 +359,26 @@ public:
     // Sets up exports for the Cursor constructor
     static void setupExports(Handle<Object> exports);
 
+    /*
+        Opens a new cursor for the specified transaction and database instance.
+        (Wrapper for `mdb_cursor_open`)
+        
+        Parameters:
+        
+        * Transaction object
+        * Database instance object
+    */
     static Handle<Value> ctor(const Arguments& args);
     
+    /*
+        Closes the cursor.
+        (Wrapper for `mdb_cursor_close`)
+        
+        Parameters:
+        
+        * Transaction object
+        * Database instance object
+    */
     static Handle<Value> close(const Arguments& args);
     
     // Helper method for getters (not exposed)
@@ -369,22 +387,74 @@ public:
     // Helper method for getters (not exposed)
     static Handle<Value> getCommon(const Arguments& args, MDB_cursor_op op);
     
+    /*
+        Gets the current key-data pair that the cursor is pointing to. Returns the current key.
+        (Wrapper for `mdb_cursor_get`)
+        
+        Parameters:
+        
+        * Callback that accepts the key and value
+    */
     static Handle<Value> getCurrentString(const Arguments& args);
     
+    /*
+        Gets the current key-data pair that the cursor is pointing to. Returns the current key.
+        (Wrapper for `mdb_cursor_get`)
+        
+        Parameters:
+        
+        * Callback that accepts the key and value
+    */
     static Handle<Value> getCurrentBinary(const Arguments& args);
     
+    /*
+        Gets the current key-data pair that the cursor is pointing to. Returns the current key.
+        (Wrapper for `mdb_cursor_get`)
+        
+        Parameters:
+        
+        * Callback that accepts the key and value
+    */
     static Handle<Value> getCurrentNumber(const Arguments& args);
     
+    /*
+        Gets the current key-data pair that the cursor is pointing to. Returns the current key.
+        (Wrapper for `mdb_cursor_get`)
+        
+        Parameters:
+        
+        * Callback that accepts the key and value
+    */
     static Handle<Value> getCurrentBoolean(const Arguments& args);
     
+    /*
+        Asks the cursor to go to the first key-data pair in the database. Returns the key.
+        (Wrapper for `mdb_cursor_get`)
+    */
     static Handle<Value> goToFirst(const Arguments& args);
     
+    /*
+        Asks the cursor to go to the last key-data pair in the database. Returns the key.
+        (Wrapper for `mdb_cursor_get`)
+    */
     static Handle<Value> goToLast(const Arguments& args);
     
+    /*
+        Asks the cursor to go to the next key-data pair in the database. Returns the key.
+        (Wrapper for `mdb_cursor_get`)
+    */
     static Handle<Value> goToNext(const Arguments& args);
     
+    /*
+        Asks the cursor to go to the previous key-data pair in the database. Returns the key.
+        (Wrapper for `mdb_cursor_get`)
+    */
     static Handle<Value> goToPrev(const Arguments& args);
     
+    /*
+        Asks the cursor to go to the specified key in the database. Returns the key.
+        (Wrapper for `mdb_cursor_get`)
+    */
     static Handle<Value> goToKey(const Arguments& args);
 };
 

@@ -123,9 +123,9 @@ You can find some in the source tree. More will be added later.
 ### Limitations of node-lmdb
 
 * **Only string, binary, number and boolean values are supported.** If you want to store complex data structures, use `JSON.stringify` before putting it into the database and `JSON.parse` when you retrieve the data.
+* **Only string and unsigned integer keys are supported.** It would make the API too complicated to support more data types for keys.
 * Because of the nature of LMDB, the data returned by `txn.getString()` and `txn.getBinary()` is **only valid until the next `put` operation or the end of the transaction**. If you need to use the data *later*, you will have to copy it for yourself.
 * Fixed address map (called `MDB_FIXEDMAP` in C) features are **not exposed** by this binding because they are highly experimental
-* `Cursor`s are not yet exposed but are planned soon.
 * Not all functions are wrapped by the binding yet. If there's one that you would like to see, drop me a line.
 
 Contributing
