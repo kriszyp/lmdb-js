@@ -118,7 +118,20 @@ Here is how you use LMDB in a typical scenario:
 
 ### Examples
 
-You can find some in the source tree. More will be added later.
+You can find some in the source tree. There are some basic examples and I intend to create some advanced ones too.
+
+The basic examples we currently have:
+
+* `example1-env.js` - shows basic usage of `Env`, `Dbi` and `Txn` operating on string values
+* `example2-datatypes.js` - shows how to use various data types for your data
+* `example3-multiple-transactions.js` - shows how LMDB will behave if you operate with multiple transactions
+* `example4-cursors.js` - shows how to work with cursors on a basic database
+* `example5-dupsort.js` - shows how to use a `dupSort` database with cursors
+
+Advanced examples:
+
+* `example-advanced1-indexing.js` - this is a module pattern example which demonstrates the implementation of a search engine prototype
+* *More will come later, so don't forget to check back!*
 
 ### Limitations of node-lmdb
 
@@ -132,3 +145,40 @@ Contributing
 ------------
 
 Feel free to send me pull requests on GitHub. Contributions are more than welcome! :)
+
+### Building the module
+
+For now, you need to build LMDB on your own and then build this module using node-gyp.
+
+You should install node-gyp like this.  
+*NOTE: this installs node-gyp globally so you need admin permissions.*
+
+```
+npm -g install node-gyp
+```
+
+And then build node-lmdb with
+
+```
+node-gyp configure
+make -C build -j4
+```
+
+**Important:** so far I've only tested the above on Linux, but I plan to make it work on Windows and Mac real soon!
+
+### How does it work?
+
+It glues together LMDB and Node.js with a native Node.js addon that wraps the LMDB C API.
+
+Zero-copy is implemented for string and binary values via a V8 custom external string resource and the Node.js Buffer class.
+
+### Resources for hacking
+
+These are the places I got my knowledge when developing node-lmdb:
+
+* V8 reference documentation: http://bespin.cz/~ondras/html/
+* Node.js C++ addons documentation: http://nodejs.org/api/addons.html
+* LMDB documentation: http://symas.com/mdb/doc/
+
+
+
