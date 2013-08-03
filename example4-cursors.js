@@ -32,10 +32,9 @@ txn0.putString(dbi, "g", "Hello6");
 txn0.commit();
 console.log("wrote initial values");
 
-var data;
 var printFunc = function(key, data) {
-    console.log("---------->  key:", key);
-    console.log("----------> data:", data);
+    console.log("----->  key:", key);
+    console.log("-----> data:", data);
 }
 
 // Begin transaction
@@ -45,58 +44,46 @@ var txn = env.beginTxn();
 var cursor = new lmdb.Cursor(txn, dbi);
 
 console.log("first (expected a)");
-data = cursor.goToFirst();
-console.log("----->", data);
-data = cursor.getCurrentString(printFunc);
-console.log("----->", data);
+cursor.goToFirst();
+cursor.getCurrentString(printFunc);
 
 console.log("next (expected b)");
-data = cursor.goToNext();
-console.log("----->", data);
-data = cursor.getCurrentString(printFunc);
-console.log("----->", data);
+cursor.goToNext();
+cursor.getCurrentString(printFunc);
 
 console.log("next (expected c)");
-data = cursor.goToNext();
-console.log("----->", data);
-data = cursor.getCurrentNumber(printFunc);
-console.log("----->", data);
+cursor.goToNext();
+cursor.getCurrentNumber(printFunc);
+
 
 console.log("next (expected e)");
-data = cursor.goToNext();
-console.log("----->", data);
-data = cursor.getCurrentBinary(printFunc);
-console.log("----->", data);
+cursor.goToNext();
+cursor.getCurrentBinary(printFunc);
+
 
 console.log("prev (expected c)");
-data = cursor.goToPrev();
-console.log("----->", data);
-data = cursor.getCurrentNumber(printFunc);
-console.log("----->", data);
+cursor.goToPrev();
+cursor.getCurrentNumber(printFunc);
+
 
 console.log("last (expected g)");
-data = cursor.goToLast();
-console.log("----->", data);
-data = cursor.getCurrentString(printFunc);
-console.log("----->", data);
+cursor.goToLast();
+cursor.getCurrentString(printFunc);
+
 
 console.log("prev (expected f)");
-data = cursor.goToPrev();
-console.log("----->", data);
-data = cursor.getCurrentBoolean(printFunc);
-console.log("----->", data);
+cursor.goToPrev();
+cursor.getCurrentBoolean(printFunc);
+
 
 console.log("go to key 'b' (expected b)");
-data = cursor.goToKey('b');
-console.log("----->", data);
-data = cursor.getCurrentString(printFunc);
-console.log("----->", data);
+cursor.goToKey('b');
+cursor.getCurrentString(printFunc);
+
 
 console.log("go to range 'd' (expected e)");
-data = cursor.goToRange('d');
-console.log("----->", data);
-data = cursor.getCurrentBinary(printFunc);
-console.log("----->", data);
+cursor.goToRange('d');
+cursor.getCurrentBinary(printFunc);
 
 // Close cursor
 cursor.close();
