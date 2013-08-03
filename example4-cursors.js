@@ -7,7 +7,14 @@ env.open({
     // Maximum number of databases
     maxDbs: 10
 });
+
+// Ensure that the database is empty
 var dbi = env.openDbi({
+   name: "mydb4",
+   create: true
+});
+dbi.drop();
+dbi = env.openDbi({
    name: "mydb4",
    create: true
 });

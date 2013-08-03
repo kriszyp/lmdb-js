@@ -117,3 +117,40 @@ Handle<Value> DbiWrap::close(const Arguments& args) {
     return Undefined();
 }
 
+Handle<Value> DbiWrap::drop(const Arguments& args) {
+    DbiWrap *dw = ObjectWrap::Unwrap<DbiWrap>(args.This());
+    int del = 1;
+    int rc;
+    MDB_txn *txn;
+    
+    // Check if the database should be deleted
+    if (args.Length() == 2 && args[1]->IsObject()) {
+        Handle<Object> options = args[1]->ToObject();
+        Handle<Value> opt = options->Get(String::NewSymbol("justFreePages"));
+        del = opt->IsBoolean() ? !(opt->BooleanValue()) : 1;
+    }
+    
+    // Begin transaction
+    rc = mdb_txn_begin(dw->env, NULL, 0, &txn);
+    if (rc != 0) {
+        ThrowException(Exception::Error(String::New(mdb_strerror(rc))));
+        return Undefined();
+    }
+    
+    // Drop database
+    rc = mdb_drop(txn, dw->dbi, del);
+    if (rc != 0) {
+        ThrowException(Exception::Error(String::New(mdb_strerror(rc))));
+        return Undefined();
+    }
+    
+    // Commit transaction
+    rc = mdb_txn_commit(txn);
+    if (rc != 0) {
+        ThrowException(Exception::Error(String::New(mdb_strerror(rc))));
+        return Undefined();
+    }
+    
+    return Undefined();
+}
+

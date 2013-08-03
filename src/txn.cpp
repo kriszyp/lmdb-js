@@ -265,29 +265,4 @@ Handle<Value> TxnWrap::del(const Arguments& args) {
     return Undefined();
 }
 
-Handle<Value> TxnWrap::dropDbi(const Arguments& args) {
-    TxnWrap *tw = ObjectWrap::Unwrap<TxnWrap>(args.This());
-    DbiWrap *dw = ObjectWrap::Unwrap<DbiWrap>(args[0]->ToObject());
-    int del = 1;
-    
-    if (args.Length() == 2 && args[1]->IsObject()) {
-        Handle<Object> options = args[1]->ToObject();
-        Handle<Value> opt = options->Get(String::NewSymbol("justFreePages"));
-        del = opt->IsBoolean() ? !(opt->BooleanValue()) : 1;
-    }
-    
-    if (!tw->txn) {
-        ThrowException(Exception::Error(String::New("The transaction is already closed.")));
-        return Undefined();
-    }
-    
-    int rc = mdb_drop(tw->txn, dw->dbi, del);
-    if (rc != 0) {
-        ThrowException(Exception::Error(String::New(mdb_strerror(rc))));
-        return Undefined();
-    }
-    
-    return Undefined();
-}
-
 
