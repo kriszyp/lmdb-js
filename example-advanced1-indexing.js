@@ -1,13 +1,23 @@
 
 // Indexing engine example
 // ----------
+//
 // The purpose of this example is to show how to implement an indexing engine using node-lmdb.
 // It's not intended to be feature-full, just enough to give you an idea how to use the LMDB API.
+//
+// Limitations of this indexing engine:
+// * Doesn't support fields or advanced querying
+// * Tokenization is very simple, no stemming or stop words
+// * No phrase search, can only search for single words
+//
+// But hey, it's only ~100 LOC, so we're still cool :)
 
-// Indexing engine (module pattern)
+
+// Indexing engine (implemented with the module pattern)
 var indexingEngine = (function() {
     var lmdb, env, dbi;
     
+    // initializer function, call this before using the index
     var init = function() {
         lmdb = require('./build/Release/node-lmdb');
         env = new lmdb.Env();
@@ -23,11 +33,13 @@ var indexingEngine = (function() {
         });
     };
     
+    // destroy function, call this when you no longer need the index
     var destroy = function() {
         dbi.close();
         env.close();
     };
     
+    // simple tokenizer
     var tokenize = function(document) {
         var tokens = [];
         for (var i in document) {
@@ -45,7 +57,7 @@ var indexingEngine = (function() {
         return tokens;
     };
     
-    
+    // adds a document to the index
     var addDocument = function(document) {
         if (typeof(document.id) !== "number") {
             throw new Error("document must have an id property");
@@ -62,6 +74,7 @@ var indexingEngine = (function() {
         txn.commit();
     };
     
+    // adds multiple documents to the index
     var addDocuments = function(array) {
         if (!(array instanceof Array)) {
             throw new Error("This function expects an array.");
@@ -72,6 +85,7 @@ var indexingEngine = (function() {
         }
     };
     
+    // performs a search in the index for the given word
     var searchForDocuments = function(str) {
         str = str.toLowerCase();
         var txn = env.beginTxn({ readOnly: true });
@@ -105,13 +119,14 @@ var indexingEngine = (function() {
         return results;
     };
     
-    return {
+    // The object we return here is the public API of the indexing engine
+    return Object.freeze({
         init: init,
         destroy: destroy,
         addDocument: addDocument,
         addDocuments: addDocuments,
         searchForDocuments: searchForDocuments
-    };
+    });
 })();
 
 indexingEngine.init();
