@@ -11,21 +11,20 @@
         "src/cursor.cpp"
       ],
       "conditions": [
-          ["OS=='linux'", {
-            "ldflags": [
-              "-llmdb",
-              "-O3",
-              "-rdynamic"
-            ],
-            "cflags": [
-              "-fPIC",
-              "-fvisibility-inlines-hidden",
-              "-O3",
-              "-std=c++11"
-            ]
-          }],
-        ],
-
+        ["OS=='linux'", {
+          "ldflags": [
+            "-llmdb",
+            "-O3",
+            "-rdynamic"
+          ],
+          "cflags": [
+            "-fPIC",
+            "-fvisibility-inlines-hidden",
+            "-O3",
+            "-std=c++11"
+          ]
+        }],
+      ],
     }
   ]
 }
