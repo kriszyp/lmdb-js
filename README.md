@@ -161,7 +161,7 @@ And then build node-lmdb with
 
 ```
 node-gyp configure
-make -C build -j4
+node-gyp build
 ```
 
 **Important:** so far I've only tested the above on Linux, but I plan to make it work on Windows and Mac real soon!
