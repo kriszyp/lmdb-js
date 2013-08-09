@@ -16,6 +16,8 @@ OpenLDAP 2.4.36 Engineering
 	Fixed slapd cn=config with loglevel 0 (ITS#7611)
 	Fixed slapd slapi filterlist free behavior (ITS#7636)
 	Fixed slapd slapi control free behavior (ITS#7641)
+	Fixed slapd schema countryString as directoryString (ITS#7659)
+	Fixed slapd schema telephoneNumber as directoryString (ITS#7659)
 	Fixed slapd-bdb/hdb to wait for read locks in tool mode (ITS#6365)
 	Fixed slapd-mdb behavior with alias dereferencing (ITS#7577)
 	Fixed slapd-mdb modrdn and base-scoped searches (ITS#7604)
