@@ -6384,7 +6384,9 @@ char *componentFilterMatchSyntaxes[] = {
 #endif
 
 char *directoryStringSyntaxes[] = {
+	"1.3.6.1.4.1.1466.115.121.1.11" /* countryString */,
 	"1.3.6.1.4.1.1466.115.121.1.44" /* printableString */,
+	"1.3.6.1.4.1.1466.115.121.1.50" /* telephoneNumber */,
 	NULL
 };
 char *integerFirstComponentMatchSyntaxes[] = {
