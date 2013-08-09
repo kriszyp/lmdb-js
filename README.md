@@ -144,7 +144,8 @@ Advanced examples:
 Contributing
 ------------
 
-Feel free to send me pull requests on GitHub. Contributions are more than welcome! :)
+If you find problems with this module, open an issue on GitHub.  
+Also feel free to send me pull requests. Contributions are more than welcome! :)
 
 ### Building the module
 
@@ -164,15 +165,31 @@ node-gyp configure
 node-gyp build
 ```
 
-**Important:** so far I've only tested the above on Linux, but I plan to make it work on Windows and Mac real soon!
+**Important:** this module is tested on Linux and Mac. Windows version is coming soon!
 
-### How does it work?
+### Developer FAQ
+
+#### How fast is this stuff?
+
+LMDB is one of the fastest databases on the planet, because it's **in-process** and **zero-copy**, which means it runs within your app, and not somewhere else,
+so it doesn't push your data through sockets and can retrieve your data without copying it in memory.
+
+We don't have any benchmarks for node-lmdb but you can enjoy a detailed benchmark of LMDB here: http://symas.com/mdb/microbench/
+obviously, the V8 wrapper will have some negative impact on performance, but I wouldn't expect a significant difference.
+
+#### Why is the code so ugly?
+
+Unfortunately, writing C++ addons to Node.js (and V8) requires a special pattern (as described in their docs) which most developers might find ugly.  
+Fortunately, we've done this work for you so you can enjoy LMDB without the need to code C++.
+
+
+#### How does this module work?
 
 It glues together LMDB and Node.js with a native Node.js addon that wraps the LMDB C API.
 
 Zero-copy is implemented for string and binary values via a V8 custom external string resource and the Node.js Buffer class.
 
-### Resources for hacking
+#### How did you do it?
 
 These are the places I got my knowledge when developing node-lmdb:
 
