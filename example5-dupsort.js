@@ -65,8 +65,12 @@ console.log("goToNext");
 cursor.goToNext();
 cursor.getCurrentNumber(printFunc);
 
-console.log("goint past the last item, expecting error");
+console.log("goint past the last item");
 try {
+    console.log("goToNext");
+    cursor.goToNext();
+    cursor.getCurrentNumber(printFunc);
+    
     console.log("goToNext");
     cursor.goToNext();
     cursor.getCurrentNumber(printFunc);

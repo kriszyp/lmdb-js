@@ -58,6 +58,7 @@ data = txn1.getString(dbi, 1);
 console.log("-----", "txn1", 1, data);
 
 try {
+    console.log("error expected here:");
     // txn1 is readonly, this will throw an exception!
     txn1.putString(dbi, 2, "hööhh");
 }
