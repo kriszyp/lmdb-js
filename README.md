@@ -149,18 +149,17 @@ Also feel free to send me pull requests. Contributions are more than welcome! :)
 
 ### Building the module
 
-For now, you need to build LMDB on your own and then build this module using node-gyp.
+LMDB is bundled in `node-lmdb` so you can simply build this module using `node-gyp`.
 
-You should install node-gyp like this.  
-*NOTE: this installs node-gyp globally so you need admin permissions.*
-
-```
+```bash
+# Install node-gyp globally (needs admin permissions)
 npm -g install node-gyp
-```
 
-And then build node-lmdb with
+# Clone node-lmdb
+git clone git@github.com:Venemo/node-lmdb.git
 
-```
+# Build
+cd node-lmdb
 node-gyp configure
 node-gyp build
 ```
@@ -181,7 +180,6 @@ obviously, the V8 wrapper will have some negative impact on performance, but I w
 
 Unfortunately, writing C++ addons to Node.js (and V8) requires a special pattern (as described in their docs) which most developers might find ugly.  
 Fortunately, we've done this work for you so you can enjoy LMDB without the need to code C++.
-
 
 #### How does this module work?
 
