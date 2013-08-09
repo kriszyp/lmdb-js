@@ -11,6 +11,7 @@ OpenLDAP 2.4.36 Engineering
 	Fixed liblmdb nested split (ITS#7592)
 	Fixed liblmdb overflow page behavior (ITS#7620)
 	Fixed liblmdb race condition with read and write txns (ITS#7635)
+	Fixed liblmdb mdb_del behavior with MDB_DUPSORT and mdb_del (ITS#7658)
 	Fixed slapd cn=config with unknown schema elements (ITS#7608)
 	Fixed slapd cn=config with loglevel 0 (ITS#7611)
 	Fixed slapd slapi filterlist free behavior (ITS#7636)
