@@ -46,8 +46,19 @@ void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue,
     }
 }
 
-argtokey_callback_t argToKey(const Handle<Value> &val, MDB_val &key) {
-    if (val->IsUint32()) {
+argtokey_callback_t argToKey(const Handle<Value> &val, MDB_val &key, bool keyIsUint32) {
+    // Check key type
+    if (keyIsUint32 && !val->IsUint32()) {
+        ThrowException(Exception::Error(String::New("Invalid key. keyIsUint32 specified on the database, but the given key was not an unsigned 32-bit integer")));
+        return NULL;
+    }
+    if (!keyIsUint32 && !val->IsString()) {
+        ThrowException(Exception::Error(String::New("Invalid key. String key expected, because keyIsUint32 isn't specified on the database.")));
+        return NULL;
+    }
+
+    // Handle uint32_t key
+    if (keyIsUint32) {
         uint32_t *v = new uint32_t;
         *v = val->Uint32Value();
         
@@ -58,22 +69,18 @@ argtokey_callback_t argToKey(const Handle<Value> &val, MDB_val &key) {
             delete (uint32_t*)key.mv_data;
         });
     }
-    else if (val->IsString()) {
-        CustomExternalStringResource::writeTo(val->ToString(), &key);
-        return ([](MDB_val &key) -> void {
-            delete (uint16_t*)key.mv_data;
-        });
-    }
-    else {
-        ThrowException(Exception::Error(String::New("The data type of the given key is not supported.")));
-    }
+
+    // Handle string key
+    CustomExternalStringResource::writeTo(val->ToString(), &key);
+    return ([](MDB_val &key) -> void {
+        delete (uint16_t*)key.mv_data;
+    });
     
     return NULL;
 }
 
-Handle<Value> keyToHandle(MDB_val &key) {
-    if (key.mv_size == sizeof(uint32_t)) {
-        // If the key is 32-bit, assume that it's uint32_t
+Handle<Value> keyToHandle(MDB_val &key, bool keyIsUint32) {
+    if (keyIsUint32) {
         return Integer::NewFromUnsigned(*((uint32_t*)key.mv_data));
     }
     else {
@@ -114,20 +121,8 @@ void consoleLogN(int n) {
 }
 
 void CustomExternalStringResource::writeTo(Handle<String> str, MDB_val *val) {
-    
-    // NOTE: this function contains a hack that will make every string occupy at least 6 bytes (end filled with zeros).
-    // Reason: the function that converts MDB_val key to a JS value infers the type of the key from its size.
-    // Maybe in the future I'll think of a better solution for this.
-    
     unsigned int l = str->Length() + 1;
-    if (str->Length() < 2) {
-        l = 3;
-    }
     uint16_t *d = new uint16_t[l];
-    if (str->Length() < 2) {
-        d[0] = 0;
-        d[1] = 0;
-    }
     str->Write(d);
     d[l - 1] = 0;
     
@@ -136,23 +131,10 @@ void CustomExternalStringResource::writeTo(Handle<String> str, MDB_val *val) {
 }
 
 CustomExternalStringResource::CustomExternalStringResource(MDB_val *val) {
-
-    // NOTE: this function contains a hack that will make every string occupy at least 6 bytes (end filled with zeros).
-    // Reason: the function that converts MDB_val key to a JS value infers the type of the key from its size.
-    // Maybe in the future I'll think of a better solution for this.
-
     // The UTF-16 data
     this->d = (uint16_t*)(val->mv_data);
     // Number of UTF-16 characters in the string
-    if (val->mv_size <= 3) {
-        if (this->d[0] == 0)
-            this->l = 0;
-        else if (this->d[1] == 0)
-            this->l = 1;
-    }
-    else {
-        this->l = (val->mv_size / sizeof(uint16_t) - 1);
-    }
+    this->l = (val->mv_size / sizeof(uint16_t) - 1);
 }
 
 CustomExternalStringResource::~CustomExternalStringResource() { }

@@ -64,12 +64,12 @@ else
 
 // Example for using integer key
 // ----------
-var data = txn.getString(dbi, 123);
+var data = txn.getString(dbi, "key5");
 console.log("integer key value: ", data);
 if (data === null)
-    txn.putString(dbi, 123, "Hello worllld!");
+    txn.putString(dbi, "key5", "Hello worllld!");
 else
-    txn.del(dbi, 123);
+    txn.del(dbi, "key5");
 
 console.log("");
 console.log("Run this example again to see the alterations on the database!");

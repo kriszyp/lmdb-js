@@ -9,7 +9,8 @@ env.open({
 });
 var dbi = env.openDbi({
    name: "mydb3",
-   create: true
+   create: true,
+   keyIsUint32: true
 });
 
 var data;

@@ -52,6 +52,7 @@ Handle<Value> CursorWrap::ctor(const Arguments &args) {
     
     // Create wrapper
     CursorWrap* cw = new CursorWrap(cursor);
+    cw->keyIsUint32 = dw->keyIsUint32;
     cw->Wrap(args.This());
 
     return args.This();
@@ -64,13 +65,13 @@ Handle<Value> CursorWrap::close(const Arguments &args) {
     return Undefined();
 }
 
-Handle<Value> CursorWrap::getCommon(const Arguments& args, MDB_cursor_op op, void (*setKey)(const Arguments& args, MDB_val&), Handle<Value> (*convertFunc)(MDB_val &data)) {
+Handle<Value> CursorWrap::getCommon(const Arguments& args, MDB_cursor_op op, void (*setKey)(CursorWrap* cw, const Arguments& args, MDB_val&), Handle<Value> (*convertFunc)(MDB_val &data)) {
     int al = args.Length();
     CursorWrap *cw = ObjectWrap::Unwrap<CursorWrap>(args.This());
     MDB_val key, data;
     
     if (setKey) {
-        setKey(args, key);
+        setKey(cw, args, key);
     }
     
     int rc = mdb_cursor_get(cw->cursor, &key, &data, op);
@@ -86,7 +87,7 @@ Handle<Value> CursorWrap::getCommon(const Arguments& args, MDB_cursor_op op, voi
     if (convertFunc && al > 0 && args[al - 1]->IsFunction()) {
         // In this case, we expect the key/data pair to be correctly filled
         const unsigned argc = 2;
-        Handle<Value> argv[argc] = { keyToHandle(key), convertFunc(data) };
+        Handle<Value> argv[argc] = { keyToHandle(key, cw->keyIsUint32), convertFunc(data) };
         Handle<Function> callback = Handle<Function>::Cast(args[args.Length() - 1]);
         return callback->Call(Context::GetCurrent()->Global(), argc, argv);
     }
@@ -125,14 +126,14 @@ MAKE_GET_FUNC(goToNext, MDB_NEXT);
 MAKE_GET_FUNC(goToPrev, MDB_PREV);
 
 Handle<Value> CursorWrap::goToKey(const Arguments &args) {
-    return getCommon(args, MDB_SET, [](const Arguments& args, MDB_val &key) -> void {
-        argToKey(args[0], key);
+    return getCommon(args, MDB_SET, [](CursorWrap* cw, const Arguments& args, MDB_val &key) -> void {
+        argToKey(args[0], key, cw->keyIsUint32);
     }, NULL);
 }
 
 Handle<Value> CursorWrap::goToRange(const Arguments &args) {
-    return getCommon(args, MDB_SET_RANGE, [](const Arguments& args, MDB_val &key) -> void {
-        argToKey(args[0], key);
+    return getCommon(args, MDB_SET_RANGE, [](CursorWrap* cw, const Arguments& args, MDB_val &key) -> void {
+        argToKey(args[0], key, cw->keyIsUint32);
     }, NULL);
 }
 

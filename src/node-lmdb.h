@@ -43,8 +43,8 @@ typedef void (*argtokey_callback_t)(MDB_val &key);
 void consoleLog(const char *msg);
 void consoleLogN(int n);
 void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue, Local<Object> options);
-argtokey_callback_t argToKey(const Handle<Value> &val, MDB_val &key);
-Handle<Value> keyToHandle(MDB_val &key);
+argtokey_callback_t argToKey(const Handle<Value> &val, MDB_val &key, bool keyIsUint32);
+Handle<Value> keyToHandle(MDB_val &key, bool keyIsUint32);
 Handle<Value> valToString(MDB_val &data);
 Handle<Value> valToBinary(MDB_val &data);
 Handle<Value> valToNumber(MDB_val &data);
@@ -126,6 +126,12 @@ public:
         Possible options are:
         
         * create: if true, the database will be created if it doesn't exist
+        * keyIsUint32: if true, keys are treated as 32-bit unsigned integers
+        * dupSort: if true, the database can hold multiple items with the same key
+        * reverseKey: keys are strings to be compared in reverse order
+        * dupFixed: if dupSort is true, indicates that the data items are all the same size
+        * integerDup: duplicate data items are also integers, and should be sorted as such
+        * reverseDup: duplicate data items should be compared as strings in reverse order
     */
     static Handle<Value> openDbi(const Arguments& args);
     
@@ -306,6 +312,8 @@ class DbiWrap : public ObjectWrap {
 private:
     // Stores whether or not the MDB_dbi needs closing
     bool needsClose;
+    // Stores whether keys should be treated as uint32_t
+    bool keyIsUint32;
     // The wrapped object
     MDB_dbi dbi;
     // Reference to the MDB_env of the wrapped MDB_dbi
@@ -351,6 +359,8 @@ class CursorWrap : public ObjectWrap {
 private:
     // The wrapped object
     MDB_cursor *cursor;
+    // Stores whether keys should be treated as uint32_t
+    bool keyIsUint32;
 
 public:
     CursorWrap(MDB_cursor *cursor);
@@ -382,7 +392,7 @@ public:
     static Handle<Value> close(const Arguments& args);
     
     // Helper method for getters (not exposed)
-    static Handle<Value> getCommon(const Arguments& args, MDB_cursor_op op, void (*setKey)(const Arguments& args, MDB_val&), Handle<Value> (*convertFunc)(MDB_val &data));
+    static Handle<Value> getCommon(const Arguments& args, MDB_cursor_op op, void (*setKey)(CursorWrap* cw, const Arguments& args, MDB_val&), Handle<Value> (*convertFunc)(MDB_val &data));
     
     // Helper method for getters (not exposed)
     static Handle<Value> getCommon(const Arguments& args, MDB_cursor_op op);

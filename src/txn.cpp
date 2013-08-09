@@ -146,9 +146,12 @@ Handle<Value> TxnWrap::getCommon(const Arguments &args, Handle<Value> (*successF
     }
     
     MDB_val key, data;
-    void (*freeKey)(MDB_val&) = argToKey(args[1], key);
+    void (*freeKey)(MDB_val&) = argToKey(args[1], key, dw->keyIsUint32);
+    if (!freeKey) {
+        return Undefined();
+    }
+    
     int rc = mdb_get(tw->txn, dw->dbi, &key, &data);
-    freeKey(key);
     
     if (rc == MDB_NOTFOUND) {
         return Null();
@@ -189,7 +192,11 @@ Handle<Value> TxnWrap::putCommon(const Arguments &args, void (*fillFunc)(const A
     int flags = 0;
     MDB_val key, data;
     
-    void (*freeKey)(MDB_val&) = argToKey(args[1], key);
+    void (*freeKey)(MDB_val&) = argToKey(args[1], key, dw->keyIsUint32);
+    if (!freeKey) {
+        return Undefined();
+    }
+    
     fillFunc(args, data);
     
     int rc = mdb_put(tw->txn, dw->dbi, &key, &data, flags);
@@ -253,7 +260,11 @@ Handle<Value> TxnWrap::del(const Arguments& args) {
     }
     
     MDB_val key;
-    void (*freeKey)(MDB_val&) = argToKey(args[1], key);
+    void (*freeKey)(MDB_val&) = argToKey(args[1], key, dw->keyIsUint32);
+    if (!freeKey) {
+        return Undefined();
+    }
+    
     int rc = mdb_del(tw->txn, dw->dbi, &key, NULL);
     freeKey(key);
     

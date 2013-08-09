@@ -48,6 +48,7 @@ Handle<Value> DbiWrap::ctor(const Arguments& args) {
     MDB_txn *txn;
     int rc;
     int flags = 0;
+    int keyIsUint32 = 0;
     char *cname = NULL;
     
     EnvWrap *ew = ObjectWrap::Unwrap<EnvWrap>(args[0]->ToObject());
@@ -66,7 +67,6 @@ Handle<Value> DbiWrap::ctor(const Arguments& args) {
         // NOTE: mdb_set_relctx is not exposed because MDB_FIXEDMAP is "highly experimental"
         setFlagFromValue(&flags, MDB_REVERSEKEY, "reverseKey", false, options);
         setFlagFromValue(&flags, MDB_DUPSORT, "dupSort", false, options);
-        setFlagFromValue(&flags, MDB_INTEGERKEY, "integerKey", false, options);
         setFlagFromValue(&flags, MDB_DUPFIXED, "dupFixed", false, options);
         setFlagFromValue(&flags, MDB_INTEGERDUP, "integerDup", false, options);
         setFlagFromValue(&flags, MDB_REVERSEDUP, "reverseDup", false, options);
@@ -74,6 +74,12 @@ Handle<Value> DbiWrap::ctor(const Arguments& args) {
             
         // TODO: wrap mdb_set_compare
         // TODO: wrap mdb_set_dupsort
+        
+        // See if key is uint32_t
+        setFlagFromValue(&keyIsUint32, 1, "keyIsUint32", false, options);
+        if (keyIsUint32) {
+            flags |= MDB_INTEGERKEY;
+        }
     }
     
     // Open transaction
@@ -103,6 +109,7 @@ Handle<Value> DbiWrap::ctor(const Arguments& args) {
     DbiWrap* dw = new DbiWrap(ew->env, dbi);
     dw->needsClose = true;
     dw->Wrap(args.This());
+    dw->keyIsUint32 = keyIsUint32;
 
     return args.This();
 }
