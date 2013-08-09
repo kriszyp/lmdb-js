@@ -27,8 +27,8 @@
 #include <v8.h>
 #include <node.h>
 #include <node_buffer.h>
-#include <lmdb.h>
 #include <uv.h>
+#include "../libraries/liblmdb/lmdb.h"
 
 using namespace v8;
 using namespace node;
