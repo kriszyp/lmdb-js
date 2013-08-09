@@ -111,7 +111,7 @@ public:
         
         Possible options are:
         
-        * TODO
+        * readOnly: if true, the transaction is read-only
     */
     static Handle<Value> beginTxn(const Arguments& args);
     
