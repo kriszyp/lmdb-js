@@ -242,6 +242,8 @@ int mdb_entry_return(
 	Entry *e
 )
 {
+	if ( !e )
+		return 0;
 	if ( e->e_private ) {
 		if ( op->o_hdr ) {
 			op->o_tmpfree( e->e_nname.bv_val, op->o_tmpmemctx );
@@ -363,14 +365,7 @@ int mdb_entry_get(
 return_results:
 	if( rc != LDAP_SUCCESS ) {
 		/* free entry */
-		if ( e )
-			mdb_entry_return( op, e );
-
-		if (moi->moi_ref == 1) {
-			LDAP_SLIST_REMOVE( &op->o_extra, &moi->moi_oe, OpExtra, oe_next );
-			mdb_txn_reset( txn );
-			op->o_tmpfree( moi, op->o_tmpmemctx );
-		}
+		mdb_entry_release( op, e, rw );
 	} else {
 		*ent = e;
 	}
