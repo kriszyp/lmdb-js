@@ -71,8 +71,8 @@ console.log("goToDup 'apple', 4");
 cursor.goToDup("apple", 4);
 cursor.getCurrentNumber(printFunc);
 
-console.log("goToDupRange 'hello', 1");
-cursor.goToDup("hello", 1);
+console.log("goToDupRange 'hello', 0");
+cursor.goToDup("hello", 0);
 cursor.getCurrentNumber(printFunc);
 
 console.log("");
