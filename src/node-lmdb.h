@@ -39,7 +39,7 @@ void setupExportMisc(Handle<Object> exports);
 // Helper callback
 typedef void (*argtokey_callback_t)(MDB_val &key);
 
-
+void consoleLog(Handle<Value> val);
 void consoleLog(const char *msg);
 void consoleLogN(int n);
 void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue, Local<Object> options);
@@ -361,6 +361,8 @@ private:
     MDB_cursor *cursor;
     // Stores whether keys should be treated as uint32_t
     bool keyIsUint32;
+    // Key/data pair where the cursor is at
+    MDB_val key, data;
 
 public:
     CursorWrap(MDB_cursor *cursor);
@@ -392,7 +394,12 @@ public:
     static Handle<Value> close(const Arguments& args);
     
     // Helper method for getters (not exposed)
-    static Handle<Value> getCommon(const Arguments& args, MDB_cursor_op op, void (*setKey)(CursorWrap* cw, const Arguments& args, MDB_val&), Handle<Value> (*convertFunc)(MDB_val &data));
+    static Handle<Value> getCommon(
+        const Arguments& args, MDB_cursor_op op,
+        void (*setKey)(CursorWrap* cw, const Arguments& args, MDB_val&),
+        void (*setData)(CursorWrap* cw, const Arguments& args, MDB_val&),
+        void (*freeData)(CursorWrap* cw, const Arguments& args, MDB_val&),
+        Handle<Value> (*convertFunc)(MDB_val &data));
     
     // Helper method for getters (not exposed)
     static Handle<Value> getCommon(const Arguments& args, MDB_cursor_op op);
@@ -496,6 +503,18 @@ public:
         (Wrapper for `mdb_cursor_get`)
     */
     static Handle<Value> goToPrevDup(const Arguments& args);
+    
+    /*
+        For databases with the dupSort option. Asks the cursor to go to the specified key/data pair.
+        (Wrapper for `mdb_cursor_get`)
+    */
+    static Handle<Value> goToDup(const Arguments& args);
+    
+    /*
+        For databases with the dupSort option. Asks the cursor to go to the specified key with the first data that is greater than or equal to the specified.
+        (Wrapper for `mdb_cursor_get`)
+    */
+    static Handle<Value> goToDupRange(const Arguments& args);
 };
 
 // External string resource that glues MDB_val and v8::String

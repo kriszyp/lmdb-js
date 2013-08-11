@@ -65,17 +65,28 @@ Handle<Value> CursorWrap::close(const Arguments &args) {
     return Undefined();
 }
 
-Handle<Value> CursorWrap::getCommon(const Arguments& args, MDB_cursor_op op, void (*setKey)(CursorWrap* cw, const Arguments& args, MDB_val&), Handle<Value> (*convertFunc)(MDB_val &data)) {
+Handle<Value> CursorWrap::getCommon(
+const Arguments& args, MDB_cursor_op op,
+void (*setKey)(CursorWrap* cw, const Arguments& args, MDB_val&),
+void (*setData)(CursorWrap* cw, const Arguments& args, MDB_val&),
+void (*freeData)(CursorWrap* cw, const Arguments& args, MDB_val&),
+Handle<Value> (*convertFunc)(MDB_val &data)) {
     int al = args.Length();
     CursorWrap *cw = ObjectWrap::Unwrap<CursorWrap>(args.This());
-    MDB_val key, data;
-    key.mv_size = 0;
     
     if (setKey) {
-        setKey(cw, args, key);
+        setKey(cw, args, cw->key);
+    }
+    if (setData) {
+        setData(cw, args, cw->data);
     }
     
-    int rc = mdb_cursor_get(cw->cursor, &key, &data, op);
+    // Temporary thing, so that we can free up the data if we want to
+    MDB_val tempdata;
+    tempdata.mv_size = cw->data.mv_size;
+    tempdata.mv_data = cw->data.mv_data;
+    
+    int rc = mdb_cursor_get(cw->cursor, &(cw->key), &(cw->data), op);
     
     if (rc == MDB_NOTFOUND) {
         return Null();
@@ -86,19 +97,23 @@ Handle<Value> CursorWrap::getCommon(const Arguments& args, MDB_cursor_op op, voi
     }
     
     Handle<Value> keyHandle = Undefined();
-    if (key.mv_size) {
-        keyHandle = keyToHandle(key, cw->keyIsUint32);
+    if (cw->key.mv_size) {
+        keyHandle = keyToHandle(cw->key, cw->keyIsUint32);
     }
     
     if (convertFunc && al > 0 && args[al - 1]->IsFunction()) {
         // In this case, we expect the key/data pair to be correctly filled
         const unsigned argc = 2;
-        Handle<Value> argv[argc] = { keyHandle, convertFunc(data) };
+        Handle<Value> argv[argc] = { keyHandle, convertFunc(cw->data) };
         Handle<Function> callback = Handle<Function>::Cast(args[args.Length() - 1]);
-        return callback->Call(Context::GetCurrent()->Global(), argc, argv);
+        callback->Call(Context::GetCurrent()->Global(), argc, argv);
+    }
+
+    if (freeData) {
+        freeData(cw, args, tempdata);
     }
     
-    if (key.mv_size) {
+    if (cw->key.mv_size) {
         return keyHandle;
     }
     
@@ -106,23 +121,23 @@ Handle<Value> CursorWrap::getCommon(const Arguments& args, MDB_cursor_op op, voi
 }
 
 Handle<Value> CursorWrap::getCommon(const Arguments& args, MDB_cursor_op op) {
-    return getCommon(args, op, NULL, NULL);
+    return getCommon(args, op, NULL, NULL, NULL, NULL);
 }
 
 Handle<Value> CursorWrap::getCurrentString(const Arguments& args) {
-    return getCommon(args, MDB_GET_CURRENT, NULL, valToString);
+    return getCommon(args, MDB_GET_CURRENT, NULL, NULL, NULL, valToString);
 }
 
 Handle<Value> CursorWrap::getCurrentBinary(const Arguments& args) {
-    return getCommon(args, MDB_GET_CURRENT, NULL, valToBinary);
+    return getCommon(args, MDB_GET_CURRENT, NULL, NULL, NULL, valToBinary);
 }
 
 Handle<Value> CursorWrap::getCurrentNumber(const Arguments& args) {
-    return getCommon(args, MDB_GET_CURRENT, NULL, valToNumber);
+    return getCommon(args, MDB_GET_CURRENT, NULL, NULL, NULL, valToNumber);
 }
 
 Handle<Value> CursorWrap::getCurrentBoolean(const Arguments& args) {
-    return getCommon(args, MDB_GET_CURRENT, NULL, valToBoolean);
+    return getCommon(args, MDB_GET_CURRENT, NULL, NULL, NULL, valToBoolean);
 }
 
 #define MAKE_GET_FUNC(name, op) Handle<Value> CursorWrap::name(const Arguments& args) { return getCommon(args, op); }
@@ -146,13 +161,66 @@ MAKE_GET_FUNC(goToPrevDup, MDB_PREV_DUP);
 Handle<Value> CursorWrap::goToKey(const Arguments &args) {
     return getCommon(args, MDB_SET, [](CursorWrap* cw, const Arguments& args, MDB_val &key) -> void {
         argToKey(args[0], key, cw->keyIsUint32);
-    }, NULL);
+    }, NULL, NULL, NULL);
 }
 
 Handle<Value> CursorWrap::goToRange(const Arguments &args) {
     return getCommon(args, MDB_SET_RANGE, [](CursorWrap* cw, const Arguments& args, MDB_val &key) -> void {
         argToKey(args[0], key, cw->keyIsUint32);
-    }, NULL);
+    }, NULL, NULL, NULL);
+}
+
+static void fillDataFromArg1(CursorWrap* cw, const Arguments& args, MDB_val &data) {
+    if (args[1]->IsString()) {
+        CustomExternalStringResource::writeTo(args[2]->ToString(), &data);
+    }
+    else if (node::Buffer::HasInstance(args[1])) {
+        data.mv_size = node::Buffer::Length(args[2]);
+        data.mv_data = node::Buffer::Data(args[2]);
+    }
+    else if (args[1]->IsNumber()) {
+        data.mv_size = sizeof(double);
+        data.mv_data = new double;
+        *((double*)data.mv_data) = args[1]->ToNumber()->Value();
+    }
+    else if (args[1]->IsBoolean()) {
+        data.mv_size = sizeof(double);
+        data.mv_data = new bool;
+        *((bool*)data.mv_data) = args[1]->ToBoolean()->Value();
+    }
+    else {
+        ThrowException(Exception::Error(String::New("Invalid data type.")));
+    }
+}
+
+static void freeDataFromArg1(CursorWrap* cw, const Arguments& args, MDB_val &data) {
+    if (args[1]->IsString()) {
+        delete (uint16_t*)data.mv_data;
+    }
+    else if (node::Buffer::HasInstance(args[1])) {
+        // I think the data is owned by the node::Buffer so we don't need to free it - need to clarify
+    }
+    else if (args[1]->IsNumber()) {
+        delete (double*)data.mv_data;
+    }
+    else if (args[1]->IsBoolean()) {
+        delete (bool*)data.mv_data;
+    }
+    else {
+        ThrowException(Exception::Error(String::New("Invalid data type.")));
+    }
+}
+
+Handle<Value> CursorWrap::goToDup(const Arguments &args) {
+    return getCommon(args, MDB_GET_BOTH, [](CursorWrap* cw, const Arguments& args, MDB_val &key) -> void {
+        argToKey(args[0], key, cw->keyIsUint32);
+    }, fillDataFromArg1, freeDataFromArg1, NULL);
+}
+
+Handle<Value> CursorWrap::goToDupRange(const Arguments &args) {
+    return getCommon(args, MDB_GET_BOTH_RANGE, [](CursorWrap* cw, const Arguments& args, MDB_val &key) -> void {
+        argToKey(args[0], key, cw->keyIsUint32);
+    }, fillDataFromArg1, freeDataFromArg1, NULL);
 }
 
 void CursorWrap::setupExports(Handle<Object> exports) {
@@ -176,6 +244,8 @@ void CursorWrap::setupExports(Handle<Object> exports) {
     cursorTpl->PrototypeTemplate()->Set(String::NewSymbol("goToLastDup"), FunctionTemplate::New(CursorWrap::goToLastDup)->GetFunction());
     cursorTpl->PrototypeTemplate()->Set(String::NewSymbol("goToNextDup"), FunctionTemplate::New(CursorWrap::goToNextDup)->GetFunction());
     cursorTpl->PrototypeTemplate()->Set(String::NewSymbol("goToPrevDup"), FunctionTemplate::New(CursorWrap::goToPrevDup)->GetFunction());
+    cursorTpl->PrototypeTemplate()->Set(String::NewSymbol("goToDup"), FunctionTemplate::New(CursorWrap::goToDup)->GetFunction());
+    cursorTpl->PrototypeTemplate()->Set(String::NewSymbol("goToDupRange"), FunctionTemplate::New(CursorWrap::goToDupRange)->GetFunction());
     
     // CursorWrap: Get constructor
     Persistent<Function> cursorCtor = Persistent<Function>::New(cursorTpl->GetFunction());

@@ -57,7 +57,6 @@ cursor.getCurrentNumber(printFunc);
 
 console.log("goToNext");
 cursor.goToNext();
-console.log("went to next");
 cursor.getCurrentNumber(printFunc);
 
 console.log("goToNext");
@@ -66,6 +65,14 @@ cursor.getCurrentNumber(printFunc);
 
 console.log("goToNext");
 cursor.goToNext();
+cursor.getCurrentNumber(printFunc);
+
+console.log("goToDup 'apple', 4");
+cursor.goToDup("apple", 4);
+cursor.getCurrentNumber(printFunc);
+
+console.log("goToDupRange 'hello', 1");
+cursor.goToDup("hello", 1);
 cursor.getCurrentNumber(printFunc);
 
 console.log("");

@@ -113,6 +113,15 @@ void consoleLog(const char *msg) {
     script->Run();
 }
 
+void consoleLog(Handle<Value> val) {
+    Handle<String> str = String::New("console.log('");
+    str = String::Concat(str, val->ToString());
+    str = String::Concat(str, String::New("');"));
+    
+    Local<Script> script = Script::New(str, String::New("node-lmdb-consolelog.js"));
+    script->Run();
+}
+
 void consoleLogN(int n) {
     char c[20];
     memset(c, 0, 20 * sizeof(char));
