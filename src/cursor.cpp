@@ -65,6 +65,19 @@ Handle<Value> CursorWrap::close(const Arguments &args) {
     return Undefined();
 }
 
+Handle<Value> CursorWrap::del(const Arguments &args) {
+    CursorWrap *cw = ObjectWrap::Unwrap<CursorWrap>(args.This());
+    // TODO: wrap MDB_NODUPDATA flag
+    
+    int rc = mdb_cursor_del(cw->cursor, 0);
+    if (rc != 0) {
+        ThrowException(Exception::Error(String::New(mdb_strerror(rc))));
+        return Undefined();
+    }
+    
+    return Undefined();
+}
+
 Handle<Value> CursorWrap::getCommon(
 const Arguments& args, MDB_cursor_op op,
 void (*setKey)(CursorWrap* cw, const Arguments& args, MDB_val&),
@@ -246,6 +259,7 @@ void CursorWrap::setupExports(Handle<Object> exports) {
     cursorTpl->PrototypeTemplate()->Set(String::NewSymbol("goToPrevDup"), FunctionTemplate::New(CursorWrap::goToPrevDup)->GetFunction());
     cursorTpl->PrototypeTemplate()->Set(String::NewSymbol("goToDup"), FunctionTemplate::New(CursorWrap::goToDup)->GetFunction());
     cursorTpl->PrototypeTemplate()->Set(String::NewSymbol("goToDupRange"), FunctionTemplate::New(CursorWrap::goToDupRange)->GetFunction());
+    cursorTpl->PrototypeTemplate()->Set(String::NewSymbol("del"), FunctionTemplate::New(CursorWrap::del)->GetFunction());
     
     // CursorWrap: Get constructor
     Persistent<Function> cursorCtor = Persistent<Function>::New(cursorTpl->GetFunction());

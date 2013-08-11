@@ -85,6 +85,18 @@ console.log("go to range 'd' (expected e)");
 cursor.goToRange('d');
 cursor.getCurrentBinary(printFunc);
 
+
+console.log("del (expected f)");
+cursor.del();
+cursor.getCurrentBoolean(printFunc);
+
+console.log("");
+console.log("now iterating through all the keys");
+
+for (var found = cursor.goToFirst(); found; found = cursor.goToNext()) {
+    console.log("-----> key:", found);
+}
+
 // Close cursor
 cursor.close();
 

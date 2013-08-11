@@ -515,6 +515,12 @@ public:
         (Wrapper for `mdb_cursor_get`)
     */
     static Handle<Value> goToDupRange(const Arguments& args);
+    
+    /*
+        Deletes the key/data pair to which the cursor refers.
+        (Wrapper for `mdb_cursor_del`)
+    */
+    static Handle<Value> del(const Arguments& args);
 };
 
 // External string resource that glues MDB_val and v8::String
