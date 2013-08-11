@@ -69,6 +69,7 @@ Handle<Value> CursorWrap::getCommon(const Arguments& args, MDB_cursor_op op, voi
     int al = args.Length();
     CursorWrap *cw = ObjectWrap::Unwrap<CursorWrap>(args.This());
     MDB_val key, data;
+    key.mv_size = 0;
     
     if (setKey) {
         setKey(cw, args, key);
@@ -84,15 +85,24 @@ Handle<Value> CursorWrap::getCommon(const Arguments& args, MDB_cursor_op op, voi
         return Undefined();
     }
     
+    Handle<Value> keyHandle = Undefined();
+    if (key.mv_size) {
+        keyHandle = keyToHandle(key, cw->keyIsUint32);
+    }
+    
     if (convertFunc && al > 0 && args[al - 1]->IsFunction()) {
         // In this case, we expect the key/data pair to be correctly filled
         const unsigned argc = 2;
-        Handle<Value> argv[argc] = { keyToHandle(key, cw->keyIsUint32), convertFunc(data) };
+        Handle<Value> argv[argc] = { keyHandle, convertFunc(data) };
         Handle<Function> callback = Handle<Function>::Cast(args[args.Length() - 1]);
         return callback->Call(Context::GetCurrent()->Global(), argc, argv);
     }
     
-    return Undefined();
+    if (key.mv_size) {
+        return keyHandle;
+    }
+    
+    return Boolean::New(true);
 }
 
 Handle<Value> CursorWrap::getCommon(const Arguments& args, MDB_cursor_op op) {
@@ -125,6 +135,14 @@ MAKE_GET_FUNC(goToNext, MDB_NEXT);
 
 MAKE_GET_FUNC(goToPrev, MDB_PREV);
 
+MAKE_GET_FUNC(goToFirstDup, MDB_FIRST_DUP);
+
+MAKE_GET_FUNC(goToLastDup, MDB_LAST_DUP);
+
+MAKE_GET_FUNC(goToNextDup, MDB_NEXT_DUP);
+
+MAKE_GET_FUNC(goToPrevDup, MDB_PREV_DUP);
+
 Handle<Value> CursorWrap::goToKey(const Arguments &args) {
     return getCommon(args, MDB_SET, [](CursorWrap* cw, const Arguments& args, MDB_val &key) -> void {
         argToKey(args[0], key, cw->keyIsUint32);
@@ -154,6 +172,10 @@ void CursorWrap::setupExports(Handle<Object> exports) {
     cursorTpl->PrototypeTemplate()->Set(String::NewSymbol("goToPrev"), FunctionTemplate::New(CursorWrap::goToPrev)->GetFunction());
     cursorTpl->PrototypeTemplate()->Set(String::NewSymbol("goToKey"), FunctionTemplate::New(CursorWrap::goToKey)->GetFunction());
     cursorTpl->PrototypeTemplate()->Set(String::NewSymbol("goToRange"), FunctionTemplate::New(CursorWrap::goToRange)->GetFunction());
+    cursorTpl->PrototypeTemplate()->Set(String::NewSymbol("goToFirstDup"), FunctionTemplate::New(CursorWrap::goToFirstDup)->GetFunction());
+    cursorTpl->PrototypeTemplate()->Set(String::NewSymbol("goToLastDup"), FunctionTemplate::New(CursorWrap::goToLastDup)->GetFunction());
+    cursorTpl->PrototypeTemplate()->Set(String::NewSymbol("goToNextDup"), FunctionTemplate::New(CursorWrap::goToNextDup)->GetFunction());
+    cursorTpl->PrototypeTemplate()->Set(String::NewSymbol("goToPrevDup"), FunctionTemplate::New(CursorWrap::goToPrevDup)->GetFunction());
     
     // CursorWrap: Get constructor
     Persistent<Function> cursorCtor = Persistent<Function>::New(cursorTpl->GetFunction());

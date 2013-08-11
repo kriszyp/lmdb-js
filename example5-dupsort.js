@@ -22,7 +22,9 @@ catch (err) {}
 dbi = env.openDbi({
    name: "example5-dupsort",
    create: true,
-   dupSort: true
+   dupSort: true,
+   dupFixed: true,
+   integerDup: true
 });
 
 console.log("ensured database is empty");
@@ -55,6 +57,7 @@ cursor.getCurrentNumber(printFunc);
 
 console.log("goToNext");
 cursor.goToNext();
+console.log("went to next");
 cursor.getCurrentNumber(printFunc);
 
 console.log("goToNext");
@@ -65,25 +68,34 @@ console.log("goToNext");
 cursor.goToNext();
 cursor.getCurrentNumber(printFunc);
 
-console.log("goint past the last item");
-try {
-    console.log("goToNext");
-    cursor.goToNext();
-    cursor.getCurrentNumber(printFunc);
-    
-    console.log("goToNext");
-    cursor.goToNext();
-    cursor.getCurrentNumber(printFunc);
+console.log("");
+console.log("iterating through a duplicate key: if-do-while");
+
+var key = "hello";
+
+if (cursor.goToRange(key) === key) {
+    do {
+        cursor.getCurrentNumber(function(key, data) {
+            // do something with data
+            console.log(key, data);
+        });
+    } while (cursor.goToNextDup());
 }
-catch (err) {
-    console.log(err);
+
+console.log("");
+console.log("iterating through a duplicate key: for");
+
+var key = "apple";
+
+for (var found = cursor.goToRange(key); found; found = cursor.goToNextDup()) {
+    cursor.getCurrentNumber(function(key, data) {
+        // do something with data
+        console.log(key, data);
+    });
 }
 
 cursor.close();
 txn.abort();
 dbi.close();
 env.close();
-
-
-
 

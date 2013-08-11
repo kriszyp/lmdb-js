@@ -472,6 +472,30 @@ public:
         (Wrapper for `mdb_cursor_get`)
     */
     static Handle<Value> goToRange(const Arguments& args);
+    
+    /*
+        For databases with the dupSort option. Asks the cursor to go to the first occurence of the current key.
+        (Wrapper for `mdb_cursor_get`)
+    */
+    static Handle<Value> goToFirstDup(const Arguments& args);
+    
+    /*
+        For databases with the dupSort option. Asks the cursor to go to the last occurence of the current key.
+        (Wrapper for `mdb_cursor_get`)
+    */
+    static Handle<Value> goToLastDup(const Arguments& args);
+    
+    /*
+        For databases with the dupSort option. Asks the cursor to go to the next occurence of the current key.
+        (Wrapper for `mdb_cursor_get`)
+    */
+    static Handle<Value> goToNextDup(const Arguments& args);
+    
+    /*
+        For databases with the dupSort option. Asks the cursor to go to the previous occurence of the current key.
+        (Wrapper for `mdb_cursor_get`)
+    */
+    static Handle<Value> goToPrevDup(const Arguments& args);
 };
 
 // External string resource that glues MDB_val and v8::String
