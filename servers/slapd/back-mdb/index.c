@@ -191,8 +191,10 @@ static int indexer(
 	if ( opid == SLAP_INDEX_ADD_OP ) {
 #ifdef MDB_TOOL_IDL_CACHING
 		if (( slapMode & SLAP_TOOL_QUICK ) && slap_tool_thread_max > 2 ) {
+			AttrIxInfo *ax = (AttrIxInfo *)LDAP_SLIST_FIRST(&op->o_extra);
+			ax->ai_ai = ai;
 			keyfunc = mdb_tool_idl_add;
-			mc = (MDB_cursor *)ai;
+			mc = (MDB_cursor *)ax;
 		} else
 #endif
 			keyfunc = mdb_idl_insert_keys;

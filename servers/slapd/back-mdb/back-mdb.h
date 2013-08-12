@@ -23,7 +23,7 @@
 
 LDAP_BEGIN_DECL
 
-#undef MDB_TOOL_IDL_CACHING	/* currently broken */
+#undef	MDB_TOOL_IDL_CACHING	/* currently no perf gain */
 
 #define DN_BASE_PREFIX		SLAP_INDEX_EQUALITY_PREFIX
 #define DN_ONE_PREFIX	 	'%'
@@ -147,12 +147,18 @@ typedef struct mdb_attrinfo {
 	ComponentReference* ai_cr; /*component indexing*/
 #endif
 	Avlnode *ai_root;		/* for tools */
-	void *ai_flist;		/* for tools */
-	void *ai_clist;		/* for tools */
 	MDB_cursor *ai_cursor;	/* for tools */
 	int ai_idx;	/* position in AI array */
 	MDB_dbi ai_dbi;
 } AttrInfo;
+
+/* tool threaded indexer state */
+typedef struct mdb_attrixinfo {
+	OpExtra ai_oe;
+	void *ai_flist;
+	void *ai_clist;
+	AttrInfo *ai_ai;
+} AttrIxInfo;
 
 /* These flags must not clash with SLAP_INDEX flags or ops in slap.h! */
 #define	MDB_INDEX_DELETING	0x8000U	/* index is being modified */

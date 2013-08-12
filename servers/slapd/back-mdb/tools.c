@@ -72,10 +72,11 @@ static Filter		*tool_filter;
 static Entry		*tool_next_entry;
 
 static ID mdb_tool_ix_id;
-static Operation *mdb_tool_ix_op;
+static BackendDB *mdb_tool_ix_be;
 static MDB_txn *mdb_tool_ix_txn;
 static int mdb_tool_index_tcount, mdb_tool_threads;
 static IndexRec *mdb_tool_index_rec;
+static AttrIxInfo **mdb_tool_axinfo;
 static struct mdb_info *mdb_tool_info;
 static ldap_pvt_thread_mutex_t mdb_tool_index_mutex;
 static ldap_pvt_thread_cond_t mdb_tool_index_cond_main;
@@ -105,6 +106,7 @@ int mdb_tool_entry_open(
 	else
 		mdb_writes_per_commit = 1;
 
+#ifdef MDB_TOOL_IDL_CACHING			/* threaded indexing has no performance advantage */
 	/* Set up for threaded slapindex */
 	if (( slapMode & (SLAP_TOOL_QUICK|SLAP_TOOL_READONLY)) == SLAP_TOOL_QUICK ) {
 		if ( !mdb_tool_info ) {
@@ -114,12 +116,16 @@ int mdb_tool_entry_open(
 			ldap_pvt_thread_cond_init( &mdb_tool_index_cond_work );
 			if ( mdb->mi_nattrs ) {
 				int i;
-#if 0			/* threaded indexing has no performance advantage */
 				mdb_tool_threads = slap_tool_thread_max - 1;
-#endif
 				if ( mdb_tool_threads > 1 ) {
 					mdb_tool_index_rec = ch_calloc( mdb->mi_nattrs, sizeof( IndexRec ));
+					mdb_tool_axinfo = ch_calloc( mdb_tool_threads, sizeof( AttrIxInfo* ) +
+						sizeof( AttrIxInfo ));
+					mdb_tool_axinfo[0] = (AttrIxInfo *)(mdb_tool_axinfo + mdb_tool_threads);
+					for (i=1; i<mdb_tool_threads; i++)
+						mdb_tool_axinfo[i] = mdb_tool_axinfo[i-1]+1;
 					mdb_tool_index_tcount = mdb_tool_threads - 1;
+					mdb_tool_ix_be = be;
 					for (i=1; i<mdb_tool_threads; i++) {
 						int *ptr = ch_malloc( sizeof( int ));
 						*ptr = i;
@@ -131,6 +137,7 @@ int mdb_tool_entry_open(
 			}
 		}
 	}
+#endif
 
 	return 0;
 }
@@ -139,6 +146,7 @@ int mdb_tool_entry_close(
 	BackendDB *be )
 {
 	if ( mdb_tool_info ) {
+		int i;
 		slapd_shutdown = 1;
 		ldap_pvt_thread_mutex_lock( &mdb_tool_index_mutex );
 
@@ -162,6 +170,20 @@ int mdb_tool_entry_close(
 		slapd_shutdown = 0;
 		ch_free( mdb_tool_index_rec );
 		mdb_tool_index_tcount = mdb_tool_threads - 1;
+		if (txn)
+			MDB_TOOL_IDL_FLUSH( be, txn );
+		for (i=0; i<mdb_tool_threads; i++) {
+			mdb_tool_idl_cache *ic;
+			mdb_tool_idl_cache_entry *ice;
+			while ((ic = mdb_tool_axinfo[i]->ai_clist)) {
+				mdb_tool_axinfo[i]->ai_clist = ic->head;
+				free(ic);
+			}
+			while ((ice = mdb_tool_axinfo[i]->ai_flist)) {
+				mdb_tool_axinfo[i]->ai_flist = ice->next;
+				free(ice);
+			}
+		}
 	}
 
 	if( idcursor ) {
@@ -174,7 +196,6 @@ int mdb_tool_entry_close(
 	}
 	if( txn ) {
 		int rc;
-		MDB_TOOL_IDL_FLUSH( be, txn );
 		if (( rc = mdb_txn_commit( txn ))) {
 			Debug( LDAP_DEBUG_ANY,
 				LDAP_XSTRING(mdb_tool_entry_close) ": database %s: "
@@ -561,7 +582,6 @@ mdb_tool_index_add(
 				return rc;
 		}
 		mdb_tool_ix_id = e->e_id;
-		mdb_tool_ix_op = op;
 		mdb_tool_ix_txn = txn;
 		ldap_pvt_thread_mutex_lock( &mdb_tool_index_mutex );
 		/* Wait for all threads to be ready */
@@ -573,31 +593,35 @@ mdb_tool_index_add(
 		for ( i=1; i<mdb_tool_threads; i++ )
 			mdb_tool_index_rec[i].ir_i = LDAP_BUSY;
 		mdb_tool_index_tcount = mdb_tool_threads - 1;
-		ldap_pvt_thread_mutex_unlock( &mdb_tool_index_mutex );
 		ldap_pvt_thread_cond_broadcast( &mdb_tool_index_cond_work );
-
-		rc = mdb_index_recrun( op, txn, mdb, ir, e->e_id, 0 );
-		if ( rc )
-			return rc;
-		ldap_pvt_thread_mutex_lock( &mdb_tool_index_mutex );
-		for ( i=1; i<mdb_tool_threads; i++ ) {
-			if ( mdb_tool_index_rec[i].ir_i == LDAP_BUSY ) {
-				ldap_pvt_thread_cond_wait( &mdb_tool_index_cond_main,
-					&mdb_tool_index_mutex );
-				i--;
-				continue;
-			}
-			if ( mdb_tool_index_rec[i].ir_i ) {
-				rc = mdb_tool_index_rec[i].ir_i;
-				break;
-			}
-		}
 		ldap_pvt_thread_mutex_unlock( &mdb_tool_index_mutex );
-		return rc;
+
+		return mdb_index_recrun( op, txn, mdb, ir, e->e_id, 0 );
 	} else
 	{
 		return mdb_index_entry_add( op, txn, e );
 	}
+}
+
+static int
+mdb_tool_index_finish()
+{
+	int i, rc;
+	ldap_pvt_thread_mutex_lock( &mdb_tool_index_mutex );
+	for ( i=1; i<mdb_tool_threads; i++ ) {
+		if ( mdb_tool_index_rec[i].ir_i == LDAP_BUSY ) {
+			ldap_pvt_thread_cond_wait( &mdb_tool_index_cond_main,
+				&mdb_tool_index_mutex );
+			i--;
+			continue;
+		}
+		if ( mdb_tool_index_rec[i].ir_i ) {
+			rc = mdb_tool_index_rec[i].ir_i;
+			break;
+		}
+	}
+	ldap_pvt_thread_mutex_unlock( &mdb_tool_index_mutex );
+	return rc;
 }
 
 ID mdb_tool_entry_put(
@@ -680,6 +704,7 @@ ID mdb_tool_entry_put(
 		goto done;
 	}
 
+	LDAP_SLIST_INSERT_HEAD( &op.o_extra, &mdb_tool_axinfo[0]->ai_oe, oe_next );
 	rc = mdb_tool_index_add( &op, txn, e );
 	if( rc != 0 ) {
 		snprintf( text->bv_val, text->bv_len,
@@ -701,6 +726,9 @@ ID mdb_tool_entry_put(
 			text->bv_val, 0, 0 );
 		goto done;
 	}
+
+	if( mdb->mi_nattrs && mdb_tool_threads > 1 )
+		rc = mdb_tool_index_finish();
 
 done:
 	if( rc == 0 ) {
@@ -1014,8 +1042,18 @@ static void *
 mdb_tool_index_task( void *ctx, void *ptr )
 {
 	int base = *(int *)ptr;
+	Operation op = {0};
+	Opheader ohdr = {0};
+	AttrIxInfo ai = {0}, *aio;
 
 	free( ptr );
+	op.o_hdr = &ohdr;
+	op.o_bd = mdb_tool_ix_be;
+	op.o_tmpmemctx = NULL;
+	op.o_tmpmfuncs = &ch_mfuncs;
+	aio = mdb_tool_axinfo[base];
+	mdb_tool_axinfo[base] = &ai;
+	LDAP_SLIST_INSERT_HEAD( &op.o_extra, &ai.ai_oe, oe_next );
 	while ( 1 ) {
 		ldap_pvt_thread_mutex_lock( &mdb_tool_index_mutex );
 		mdb_tool_index_tcount--;
@@ -1027,11 +1065,13 @@ mdb_tool_index_task( void *ctx, void *ptr )
 			mdb_tool_index_tcount--;
 			if ( !mdb_tool_index_tcount )
 				ldap_pvt_thread_cond_signal( &mdb_tool_index_cond_main );
+			*aio = ai;
+			mdb_tool_axinfo[base] = aio;
 			ldap_pvt_thread_mutex_unlock( &mdb_tool_index_mutex );
 			break;
 		}
 		ldap_pvt_thread_mutex_unlock( &mdb_tool_index_mutex );
-		mdb_tool_index_rec[base].ir_i = mdb_index_recrun( mdb_tool_ix_op,
+		mdb_tool_index_rec[base].ir_i = mdb_index_recrun( &op,
 			mdb_tool_ix_txn,
 			mdb_tool_info, mdb_tool_index_rec, mdb_tool_ix_id, base );
 	}
@@ -1051,7 +1091,7 @@ mdb_tool_idl_cmp( const void *v1, const void *v2 )
 }
 
 static int
-mdb_tool_idl_flush_one( MDB_cursor *mc, AttrInfo *ai, mdb_tool_idl_cache *ic )
+mdb_tool_idl_flush_one( MDB_cursor *mc, AttrIxInfo *ai, mdb_tool_idl_cache *ic )
 {
 	mdb_tool_idl_cache_entry *ice;
 	MDB_val key, data[2];
@@ -1115,25 +1155,19 @@ mdb_tool_idl_flush_one( MDB_cursor *mc, AttrInfo *ai, mdb_tool_idl_cache *ic )
 
 		data[0].mv_size = sizeof(ID);
 		rc = 0;
-		i = ic->offset;
 		for ( ice = ic->head, n=0; ice; ice = ice->next, n++ ) {
 			int end;
 			if ( ice->next ) {
 				end = IDBLOCK;
 			} else {
-				end = ic->count & (IDBLOCK-1);
+				end = (ic->count-ic->offset) & (IDBLOCK-1);
 				if ( !end )
 					end = IDBLOCK;
 			}
-			data[1].mv_size = end - i;
-			data[0].mv_data = &ice->ids[i];
-			i = 0;
-			rc = mdb_cursor_put( mc, &key, data, MDB_NODUPDATA|MDB_APPEND|MDB_MULTIPLE );
+			data[1].mv_size = end;
+			data[0].mv_data = ice->ids;
+			rc = mdb_cursor_put( mc, &key, data, MDB_APPENDDUP|MDB_MULTIPLE );
 			if ( rc ) {
-				if ( rc == MDB_KEYEXIST ) {
-					rc = 0;
-					continue;
-				}
 				rc = -1;
 				break;
 			}
@@ -1149,7 +1183,7 @@ mdb_tool_idl_flush_one( MDB_cursor *mc, AttrInfo *ai, mdb_tool_idl_cache *ic )
 }
 
 static int
-mdb_tool_idl_flush_db( MDB_txn *txn, AttrInfo *ai )
+mdb_tool_idl_flush_db( MDB_txn *txn, AttrInfo *ai, AttrIxInfo *ax )
 {
 	MDB_cursor *mc;
 	Avlnode *root;
@@ -1158,7 +1192,7 @@ mdb_tool_idl_flush_db( MDB_txn *txn, AttrInfo *ai )
 	mdb_cursor_open( txn, ai->ai_dbi, &mc );
 	root = tavl_end( ai->ai_root, TAVL_DIR_LEFT );
 	do {
-		rc = mdb_tool_idl_flush_one( mc, ai, root->avl_data );
+		rc = mdb_tool_idl_flush_one( mc, ax, root->avl_data );
 		if ( rc != -1 )
 			rc = 0;
 	} while ((root = tavl_next(root, TAVL_DIR_RIGHT)));
@@ -1176,7 +1210,7 @@ mdb_tool_idl_flush( BackendDB *be, MDB_txn *txn )
 
 	for ( i=0; i < mdb->mi_nattrs; i++ ) {
 		if ( !mdb->mi_attrs[i]->ai_root ) continue;
-		rc = mdb_tool_idl_flush_db( txn, mdb->mi_attrs[i] );
+		rc = mdb_tool_idl_flush_db( txn, mdb->mi_attrs[i], mdb_tool_axinfo[i % mdb_tool_threads] );
 		tavl_free(mdb->mi_attrs[i]->ai_root, NULL);
 		mdb->mi_attrs[i]->ai_root = NULL;
 		if ( rc )
@@ -1195,7 +1229,8 @@ int mdb_tool_idl_add(
 	mdb_tool_idl_cache *ic, itmp;
 	mdb_tool_idl_cache_entry *ice;
 	int i, rc, lcount;
-	AttrInfo *ai = (AttrInfo *)mc;
+	AttrIxInfo *ax = (AttrIxInfo *)mc;
+	AttrInfo *ai = (AttrInfo *)ax->ai_ai;
 	mc = ai->ai_cursor;
 
 	dbi = ai->ai_dbi;
@@ -1209,9 +1244,9 @@ int mdb_tool_idl_add(
 		ID nid;
 		int rc;
 
-		if ( ai->ai_clist ) {
-			ic = ai->ai_clist;
-			ai->ai_clist = ic->head;
+		if ( ax->ai_clist ) {
+			ic = ax->ai_clist;
+			ax->ai_clist = ic->head;
 		} else {
 			ic = ch_malloc( sizeof( mdb_tool_idl_cache ) + itmp.kstr.bv_len + 4 );
 		}
@@ -1253,8 +1288,8 @@ int mdb_tool_idl_add(
 	/* Are we at the limit, and converting to a range? */
 	} else if ( ic->count == MDB_IDL_DB_SIZE ) {
 		if ( ic->head ) {
-			ic->tail->next = ai->ai_flist;
-			ai->ai_flist = ic->head;
+			ic->tail->next = ax->ai_flist;
+			ax->ai_flist = ic->head;
 		}
 		ic->head = ic->tail = NULL;
 		ic->last = id;
@@ -1262,11 +1297,11 @@ int mdb_tool_idl_add(
 		continue;
 	}
 	/* No free block, create that too */
-	lcount = ic->count & (IDBLOCK-1);
+	lcount = (ic->count-ic->offset) & (IDBLOCK-1);
 	if ( !ic->tail || lcount == 0) {
-		if ( ai->ai_flist ) {
-			ice = ai->ai_flist;
-			ai->ai_flist = ice->next;
+		if ( ax->ai_flist ) {
+			ice = ax->ai_flist;
+			ax->ai_flist = ice->next;
 		} else {
 			ice = ch_malloc( sizeof( mdb_tool_idl_cache_entry ));
 		}
@@ -1283,9 +1318,10 @@ int mdb_tool_idl_add(
 			ic->first = id;
 	}
 	ice = ic->tail;
-	if (!lcount || ice->ids[lcount-1] != id)
+	if (!lcount || ice->ids[lcount-1] != id) {
 		ice->ids[lcount] = id;
-	ic->count++;
+		ic->count++;
+	}
 	}
 
 	return 0;
