@@ -145,6 +145,7 @@ int mdb_tool_entry_open(
 int mdb_tool_entry_close(
 	BackendDB *be )
 {
+#ifdef MDB_TOOL_IDL_CACHING
 	if ( mdb_tool_info ) {
 		int i;
 		slapd_shutdown = 1;
@@ -185,6 +186,7 @@ int mdb_tool_entry_close(
 			}
 		}
 	}
+#endif
 
 	if( idcursor ) {
 		mdb_cursor_close( idcursor );
