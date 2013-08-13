@@ -163,7 +163,6 @@
 #define GET_PAGESIZE(x) {SYSTEM_INFO si; GetSystemInfo(&si); (x) = si.dwPageSize;}
 #define	close(fd)	(CloseHandle(fd) ? 0 : -1)
 #define	munmap(ptr,len)	UnmapViewOfFile(ptr)
-#define	unlink(file)	DeleteFile(file)
 #ifdef PROCESS_QUERY_LIMITED_INFORMATION
 #define MDB_PROCESS_QUERY_LIMITED_INFORMATION PROCESS_QUERY_LIMITED_INFORMATION
 #else
@@ -3852,7 +3851,7 @@ fail:
 int
 mdb_env_open(MDB_env *env, const char *path, unsigned int flags, mdb_mode_t mode)
 {
-	int		oflags, rc, len, excl = -1, rmlock = 0;
+	int		oflags, rc, len, excl = -1;
 	char *lpath, *dpath;
 
 	if (env->me_fd!=INVALID_HANDLE_VALUE || (flags & ~(CHANGEABLE|CHANGELESS)))
@@ -3899,12 +3898,14 @@ mdb_env_open(MDB_env *env, const char *path, unsigned int flags, mdb_mode_t mode
 		goto leave;
 	}
 
-	rc = mdb_env_setup_locks(env, lpath, mode, &excl);
-	if (rc)
-		goto leave;
+	/* For RDONLY, get lockfile after we know datafile exists */
+	if (!F_ISSET(flags, MDB_RDONLY)) {
+		rc = mdb_env_setup_locks(env, lpath, mode, &excl);
+		if (rc)
+			goto leave;
+	}
 
 #ifdef _WIN32
-#define	MDB_NO_SUCH_FILE	ERROR_FILE_NOT_FOUND
 	if (F_ISSET(flags, MDB_RDONLY)) {
 		oflags = GENERIC_READ;
 		len = OPEN_EXISTING;
@@ -3916,7 +3917,6 @@ mdb_env_open(MDB_env *env, const char *path, unsigned int flags, mdb_mode_t mode
 	env->me_fd = CreateFile(dpath, oflags, FILE_SHARE_READ|FILE_SHARE_WRITE,
 		NULL, len, mode, NULL);
 #else
-#define	MDB_NO_SUCH_FILE	ENOENT
 	if (F_ISSET(flags, MDB_RDONLY))
 		oflags = O_RDONLY;
 	else
@@ -3926,9 +3926,13 @@ mdb_env_open(MDB_env *env, const char *path, unsigned int flags, mdb_mode_t mode
 #endif
 	if (env->me_fd == INVALID_HANDLE_VALUE) {
 		rc = ErrCode();
-		if (F_ISSET(flags, MDB_RDONLY) && rc == MDB_NO_SUCH_FILE) 
-			rmlock = 1;
 		goto leave;
+	}
+
+	if (F_ISSET(flags, MDB_RDONLY)) {
+		rc = mdb_env_setup_locks(env, lpath, mode, &excl);
+		if (rc)
+			goto leave;
 	}
 
 	if ((rc = mdb_env_open2(env)) == MDB_SUCCESS) {
@@ -3939,10 +3943,12 @@ mdb_env_open(MDB_env *env, const char *path, unsigned int flags, mdb_mode_t mode
 			 * MDB_NOSYNC/MDB_NOMETASYNC, in case these get reset.
 			 */
 #ifdef _WIN32
+			len = OPEN_EXISTING;
 			env->me_mfd = CreateFile(dpath, oflags,
 				FILE_SHARE_READ|FILE_SHARE_WRITE, NULL, len,
 				mode | FILE_FLAG_WRITE_THROUGH, NULL);
 #else
+			oflags &= ~O_CREAT;
 			env->me_mfd = open(dpath, oflags | MDB_DSYNC, mode);
 #endif
 			if (env->me_mfd == INVALID_HANDLE_VALUE) {
@@ -3959,8 +3965,6 @@ mdb_env_open(MDB_env *env, const char *path, unsigned int flags, mdb_mode_t mode
 leave:
 	if (rc) {
 		mdb_env_close0(env, excl);
-		if (rmlock && excl)
-			unlink(lpath);
 	}
 	free(lpath);
 	return rc;
