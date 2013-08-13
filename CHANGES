@@ -1,6 +1,6 @@
 OpenLDAP 2.4 Change Log
 
-OpenLDAP 2.4.36 Engineering
+OpenLDAP 2.4.36 Release (2013/08/17)
 	Added back-meta target filter patterns (ITS#7609)
 	Added liblmdb mdb_txn_env to API (ITS#7660)
 	Fixed libldap CLDAP with uninit'd memory (ITS#7582)
