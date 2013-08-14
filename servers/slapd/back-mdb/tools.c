@@ -706,7 +706,9 @@ ID mdb_tool_entry_put(
 		goto done;
 	}
 
-	LDAP_SLIST_INSERT_HEAD( &op.o_extra, &mdb_tool_axinfo[0]->ai_oe, oe_next );
+	if ( mdb_tool_threads > 1 ) {
+		LDAP_SLIST_INSERT_HEAD( &op.o_extra, &mdb_tool_axinfo[0]->ai_oe, oe_next );
+	}
 	rc = mdb_tool_index_add( &op, txn, e );
 	if( rc != 0 ) {
 		snprintf( text->bv_val, text->bv_len,
