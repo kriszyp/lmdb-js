@@ -198,6 +198,7 @@ enum {
 	CFG_LTHREADS,
 	CFG_IX_HASH64,
 	CFG_DISABLED,
+	CFG_THREADQS,
 
 	CFG_LAST
 };
@@ -683,6 +684,14 @@ static ConfigTable config_back_cf_table[] = {
 #endif
 		"( OLcfgGlAt:66 NAME 'olcThreads' "
 			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
+	{ "threadqueues", "count", 2, 2, 0,
+#ifdef NO_THREADS
+		ARG_IGNORED, NULL,
+#else
+		ARG_INT|ARG_MAGIC|CFG_THREADQS, &config_generic,
+#endif
+		"( OLcfgGlAt:95 NAME 'olcThreadQueues' "
+			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
 	{ "timelimit", "limit", 2, 0, 0, ARG_MAY_DB|ARG_MAGIC,
 		&config_timelimit, "( OLcfgGlAt:67 NAME 'olcTimeLimit' "
 			"SYNTAX OMsDirectoryString )", NULL, NULL },
@@ -835,7 +844,8 @@ static ConfigOCs cf_ocs[] = {
 		 "olcDisallows $ olcGentleHUP $ olcIdleTimeout $ "
 		 "olcIndexSubstrIfMaxLen $ olcIndexSubstrIfMinLen $ "
 		 "olcIndexSubstrAnyLen $ olcIndexSubstrAnyStep $ olcIndexHash64 $ "
-		 "olcIndexIntLen $ olcLocalSSF $ olcLogFile $ olcLogLevel $ "
+		 "olcIndexIntLen $ "
+		 "olcListenerThreads $ olcLocalSSF $ olcLogFile $ olcLogLevel $ "
 		 "olcPasswordCryptSaltFormat $ olcPasswordHash $ olcPidFile $ "
 		 "olcPluginLogFile $ olcReadOnly $ olcReferral $ "
 		 "olcReplogFile $ olcRequires $ olcRestrict $ olcReverseLookup $ "
@@ -845,7 +855,8 @@ static ConfigOCs cf_ocs[] = {
 		 "olcSecurity $ olcServerID $ olcSizeLimit $ "
 		 "olcSockbufMaxIncoming $ olcSockbufMaxIncomingAuth $ "
 		 "olcTCPBuffer $ "
-		 "olcThreads $ olcTimeLimit $ olcTLSCACertificateFile $ "
+		 "olcThreads $ olcThreadQueues $ "
+		 "olcTimeLimit $ olcTLSCACertificateFile $ "
 		 "olcTLSCACertificatePath $ olcTLSCertificateFile $ "
 		 "olcTLSCertificateKeyFile $ olcTLSCipherSuite $ olcTLSCRLCheck $ "
 		 "olcTLSRandFile $ olcTLSVerifyClient $ olcTLSDHParamFile $ "
@@ -946,6 +957,9 @@ config_generic(ConfigArgs *c) {
 			break;
 		case CFG_THREADS:
 			c->value_int = connection_pool_max;
+			break;
+		case CFG_THREADQS:
+			c->value_int = connection_pool_queues;
 			break;
 		case CFG_TTHREADS:
 			c->value_int = slap_tool_thread_max;
@@ -1314,6 +1328,7 @@ config_generic(ConfigArgs *c) {
 		/* single-valued attrs, no-ops */
 		case CFG_CONCUR:
 		case CFG_THREADS:
+		case CFG_THREADQS:
 		case CFG_TTHREADS:
 		case CFG_LTHREADS:
 		case CFG_RO:
@@ -1691,6 +1706,18 @@ config_generic(ConfigArgs *c) {
 			if ( slapMode & SLAP_SERVER_MODE )
 				ldap_pvt_thread_pool_maxthreads(&connection_pool, c->value_int);
 			connection_pool_max = c->value_int;	/* save for reference */
+			break;
+
+		case CFG_THREADQS:
+			if ( c->value_int < 1 ) {
+				snprintf( c->cr_msg, sizeof( c->cr_msg ),
+					"threadqueuess=%d smaller than minimum value 1",
+					c->value_int );
+				Debug(LDAP_DEBUG_ANY, "%s: %s.\n",
+					c->log, c->cr_msg, 0 );
+				return 1;
+			}
+			connection_pool_queues = c->value_int;	/* save for reference */
 			break;
 
 		case CFG_TTHREADS:

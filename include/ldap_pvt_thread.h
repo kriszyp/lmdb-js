@@ -214,6 +214,13 @@ ldap_pvt_thread_pool_init LDAP_P((
 	int max_pending ));
 
 LDAP_F( int )
+ldap_pvt_thread_pool_init_q LDAP_P((
+	ldap_pvt_thread_pool_t *pool_out,
+	int max_threads,
+	int max_pending,
+	int num_qs ));
+
+LDAP_F( int )
 ldap_pvt_thread_pool_submit LDAP_P((
 	ldap_pvt_thread_pool_t *pool,
 	ldap_pvt_thread_start_t *start,
