@@ -286,6 +286,7 @@ static long send_ldap_ber(
 	Connection *conn = op->o_conn;
 	ber_len_t bytes;
 	long ret = 0;
+	char *close_reason;
 
 	ber_get_option( ber, LBER_OPT_BER_BYTES_TO_WRITE, &bytes );
 
@@ -300,7 +301,9 @@ static long send_ldap_ber(
 	conn->c_writers++;
 
 	while ( conn->c_writers > 0 && conn->c_writing ) {
+		ldap_pvt_thread_pool_idle( &connection_pool );
 		ldap_pvt_thread_cond_wait( &conn->c_write1_cv, &conn->c_write1_mutex );
+		ldap_pvt_thread_pool_unidle( &connection_pool );
 	}
 
 	/* connection was closed under us */
@@ -337,28 +340,36 @@ static long send_ldap_ber(
 		    err, sock_errstr(err), 0 );
 
 		if ( err != EWOULDBLOCK && err != EAGAIN ) {
+			close_reason = "connection lost on write";
+fail:
 			conn->c_writers--;
 			conn->c_writing = 0;
 			ldap_pvt_thread_mutex_unlock( &conn->c_write1_mutex );
 			ldap_pvt_thread_mutex_lock( &conn->c_mutex );
-			connection_closing( conn, "connection lost on write" );
-
+			connection_closing( conn, close_reason );
 			ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 			return -1;
 		}
 
 		/* wait for socket to be write-ready */
-		ldap_pvt_thread_mutex_lock( &conn->c_write2_mutex );
 		conn->c_writewaiter = 1;
-		slapd_set_write( conn->c_sd, 2 );
-
 		ldap_pvt_thread_mutex_unlock( &conn->c_write1_mutex );
 		ldap_pvt_thread_pool_idle( &connection_pool );
-		ldap_pvt_thread_cond_wait( &conn->c_write2_cv, &conn->c_write2_mutex );
+		err = slapd_wait_writer( conn->c_sd );
 		conn->c_writewaiter = 0;
-		ldap_pvt_thread_mutex_unlock( &conn->c_write2_mutex );
 		ldap_pvt_thread_pool_unidle( &connection_pool );
 		ldap_pvt_thread_mutex_lock( &conn->c_write1_mutex );
+		/* 0 is timeout, so we close it.
+		 * -1 is an error, close it.
+		 */
+		if ( err <= 0 ) {
+			if ( err == 0 )
+				close_reason = "writetimeout";
+			else
+				close_reason = "connection lost on writewait";
+			goto fail;
+		}
+
 		if ( conn->c_writers < 0 ) {
 			ret = 0;
 			break;

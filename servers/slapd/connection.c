@@ -154,9 +154,7 @@ int connections_destroy(void)
 			ber_sockbuf_free( connections[i].c_sb );
 			ldap_pvt_thread_mutex_destroy( &connections[i].c_mutex );
 			ldap_pvt_thread_mutex_destroy( &connections[i].c_write1_mutex );
-			ldap_pvt_thread_mutex_destroy( &connections[i].c_write2_mutex );
 			ldap_pvt_thread_cond_destroy( &connections[i].c_write1_cv );
-			ldap_pvt_thread_cond_destroy( &connections[i].c_write2_cv );
 #ifdef LDAP_SLAPI
 			if ( slapi_plugins_used ) {
 				slapi_int_free_object_extensions( SLAPI_X_EXT_CONNECTION,
@@ -211,17 +209,13 @@ int connections_timeout_idle(time_t now)
 	int i = 0, writers = 0;
 	ber_socket_t connindex;
 	Connection* c;
-	time_t old;
-
-	old = slapd_get_writetime();
 
 	for( c = connection_first( &connindex );
 		c != NULL;
 		c = connection_next( c, &connindex ) )
 	{
 		/* Don't timeout a slow-running request or a persistent
-		 * outbound connection. But if it has a writewaiter, see
-		 * if the waiter has been there too long.
+		 * outbound connection.
 		 */
 		if(( c->c_n_ops_executing && !c->c_writewaiter)
 			|| c->c_conn_state == SLAP_C_CLIENT ) {
@@ -236,20 +230,8 @@ int connections_timeout_idle(time_t now)
 			i++;
 			continue;
 		}
-		if ( c->c_writewaiter && global_writetimeout ) {
-			writers = 1;
-			if( difftime( c->c_activitytime+global_writetimeout, now) < 0 ) {
-				/* close it */
-				connection_closing( c, "writetimeout" );
-				connection_close( c );
-				i++;
-				continue;
-			}
-		}
 	}
 	connection_done( c );
-	if ( old && !writers )
-		slapd_clr_writetime( old );
 
 	return i;
 }
@@ -420,9 +402,7 @@ Connection * connection_init(
 		/* should check status of thread calls */
 		ldap_pvt_thread_mutex_init( &c->c_mutex );
 		ldap_pvt_thread_mutex_init( &c->c_write1_mutex );
-		ldap_pvt_thread_mutex_init( &c->c_write2_mutex );
 		ldap_pvt_thread_cond_init( &c->c_write1_cv );
-		ldap_pvt_thread_cond_init( &c->c_write2_cv );
 
 #ifdef LDAP_SLAPI
 		if ( slapi_plugins_used ) {
@@ -780,10 +760,7 @@ connection_wake_writers( Connection *c )
 		ldap_pvt_thread_cond_broadcast( &c->c_write1_cv );
 		ldap_pvt_thread_mutex_unlock( &c->c_write1_mutex );
 		if ( c->c_writewaiter ) {
-			ldap_pvt_thread_mutex_lock( &c->c_write2_mutex );
-			ldap_pvt_thread_cond_signal( &c->c_write2_cv );
-			slapd_clr_write( c->c_sd, 1 );
-			ldap_pvt_thread_mutex_unlock( &c->c_write2_mutex );
+			slapd_shutsock( c->c_sd );
 		}
 		ldap_pvt_thread_mutex_lock( &c->c_write1_mutex );
 		while ( c->c_writers ) {
@@ -1310,11 +1287,6 @@ int connection_read_activate( ber_socket_t s )
 	rc = slapd_clr_read( s, 0 );
 	if ( rc )
 		return rc;
-
-	/* Don't let blocked writers block a pause request */
-	if ( connections[s].c_writewaiter &&
-		ldap_pvt_thread_pool_pausing( &connection_pool ))
-		connection_wake_writers( &connections[s] );
 
 	rc = ldap_pvt_thread_pool_submit( &connection_pool,
 		connection_read_thread, (void *)(long)s );
@@ -1918,6 +1890,7 @@ int connection_write(ber_socket_t s)
 {
 	Connection *c;
 	Operation *op;
+	int wantwrite;
 
 	assert( connections != NULL );
 
@@ -1944,14 +1917,13 @@ int connection_write(ber_socket_t s)
 	Debug( LDAP_DEBUG_TRACE,
 		"connection_write(%d): waking output for id=%lu\n",
 		s, c->c_connid, 0 );
-	ldap_pvt_thread_mutex_lock( &c->c_write2_mutex );
-	ldap_pvt_thread_cond_signal( &c->c_write2_cv );
-	ldap_pvt_thread_mutex_unlock( &c->c_write2_mutex );
 
-	if ( ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_NEEDS_READ, NULL ) ) {
-		slapd_set_read( s, 1 );
+	wantwrite = ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_NEEDS_WRITE, NULL );
+	if ( ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_NEEDS_READ, NULL )) {
+		/* don't wakeup twice */
+		slapd_set_read( s, !wantwrite );
 	}
-	if ( ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_NEEDS_WRITE, NULL ) ) {
+	if ( wantwrite ) {
 		slapd_set_write( s, 1 );
 	}
 

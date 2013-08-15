@@ -41,6 +41,10 @@
 
 #include "ldap_rq.h"
 
+#ifdef HAVE_POLL
+#include <poll.h>
+#endif
+
 #if defined(HAVE_SYS_EPOLL_H) && defined(HAVE_EPOLL)
 # include <sys/epoll.h>
 #elif defined(SLAP_X_DEVPOLL) && defined(HAVE_SYS_DEVPOLL_H) && defined(HAVE_DEVPOLL)
@@ -96,8 +100,6 @@ static ldap_pvt_thread_t *listener_tid;
 
 static ber_socket_t wake_sds[SLAPD_MAX_DAEMON_THREADS][2];
 static int emfile;
-
-static time_t chk_writetime;
 
 static volatile int waking;
 #ifdef NO_THREADS
@@ -964,14 +966,6 @@ slapd_set_write( ber_socket_t s, int wake )
 		SLAP_SOCK_SET_WRITE( id, s );
 		slap_daemon[id].sd_nwriters++;
 	}
-	if (( wake & 2 ) && global_writetimeout && !chk_writetime ) {
-		if (id)
-			ldap_pvt_thread_mutex_lock( &slap_daemon[0].sd_mutex );
-		if (!chk_writetime)
-			chk_writetime = slap_get_time();
-		if (id)
-			ldap_pvt_thread_mutex_unlock( &slap_daemon[0].sd_mutex );
-	}
 
 	ldap_pvt_thread_mutex_unlock( &slap_daemon[id].sd_mutex );
 	WAKE_LISTENER(id,wake);
@@ -1011,25 +1005,6 @@ slapd_set_read( ber_socket_t s, int wake )
 		WAKE_LISTENER(id,wake);
 }
 
-time_t
-slapd_get_writetime()
-{
-	time_t cur;
-	ldap_pvt_thread_mutex_lock( &slap_daemon[0].sd_mutex );
-	cur = chk_writetime;
-	ldap_pvt_thread_mutex_unlock( &slap_daemon[0].sd_mutex );
-	return cur;
-}
-
-void
-slapd_clr_writetime( time_t old )
-{
-	ldap_pvt_thread_mutex_lock( &slap_daemon[0].sd_mutex );
-	if ( chk_writetime == old )
-		chk_writetime = 0;
-	ldap_pvt_thread_mutex_unlock( &slap_daemon[0].sd_mutex );
-}
-
 static void
 slapd_close( ber_socket_t s )
 {
@@ -1039,6 +1014,14 @@ slapd_close( ber_socket_t s )
 #ifdef HAVE_WINSOCK
 	slapd_sockdel( s );
 #endif
+}
+
+void
+slapd_shutsock( ber_socket_t s )
+{
+	Debug( LDAP_DEBUG_CONNS, "daemon: shutdown socket %ld\n",
+		(long) s, 0, 0 );
+	shutdown( SLAP_FD2SOCK(s), 2 );
 }
 
 static void
@@ -2365,18 +2348,13 @@ loop:
 
 		now = slap_get_time();
 
-		if ( !tid && ( global_idletimeout > 0 || chk_writetime )) {
+		if ( !tid && ( global_idletimeout > 0 )) {
 			int check = 0;
 			/* Set the select timeout.
 			 * Don't just truncate, preserve the fractions of
 			 * seconds to prevent sleeping for zero time.
 			 */
-			if ( chk_writetime ) {
-				tv.tv_sec = global_writetimeout;
-				tv.tv_usec = 0;
-				if ( difftime( chk_writetime, now ) < 0 )
-					check = 2;
-			} else {
+			{
 				tv.tv_sec = global_idletimeout / SLAPD_IDLE_CHECK_LIMIT;
 				tv.tv_usec = global_idletimeout - \
 					( tv.tv_sec * SLAPD_IDLE_CHECK_LIMIT );
@@ -2453,7 +2431,7 @@ loop:
 
 		nfds = SLAP_EVENT_MAX(tid);
 
-		if (( chk_writetime || global_idletimeout ) && slap_daemon[tid].sd_nactives ) at = 1;
+		if (( global_idletimeout ) && slap_daemon[tid].sd_nactives ) at = 1;
 
 		ldap_pvt_thread_mutex_unlock( &slap_daemon[tid].sd_mutex );
 
@@ -3082,4 +3060,36 @@ void
 slap_wake_listener()
 {
 	WAKE_LISTENER(0,1);
+}
+
+/* return 0 on timeout, 1 on writer ready
+ * -1 on general error
+ */
+int
+slapd_wait_writer( ber_socket_t sd )
+{
+#ifdef HAVE_WINSOCK
+	fd_set writefds;
+	struct timeval tv, *tvp;
+	int i;
+
+	FD_ZERO( &writefds );
+	FD_SET( slapd_ws_sockets[sd], &writefds );
+	if ( global_writetimeout ) {
+		tv.tv_sec = global_writetimeout;
+		tv.tv_usec = 0;
+		tvp = &tv;
+	} else {
+		tv = NULL;
+	}
+	return select( 0, NULL, &writefds, NULL, tvp );
+#else
+	struct pollfd fds;
+	int timeout = global_writetimeout ? global_writetimeout * 1000 : -1;
+
+	fds.fd = sd;
+	fds.events = POLLOUT;
+
+	return poll( &fds, 1, timeout );
+#endif
 }
