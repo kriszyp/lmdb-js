@@ -64,7 +64,7 @@ typedef struct ldap_int_thread_userctx_s {
 /* Simple {thread ID -> context} hash table; key=ctx->ltu_id.
  * Protected by ldap_pvt_thread_pool_mutex except during pauses,
  * when it is read-only (used by pool_purgekey and pool_context).
- * Protected by tpool->ltp_mutex during pauses.
+ * Protected by ldap_pvt_thread_pool_mutex.
  */
 static struct {
 	ldap_int_thread_userctx_t *ctx;
@@ -101,11 +101,6 @@ struct ldap_int_thread_poolq_s {
 	/* not paused and something to do for pool_<wrapper/pause/destroy>() */
 	ldap_pvt_thread_cond_t ltp_cond;
 
-	/* Some active task needs to be the sole active task.
-	 * Atomic variable so ldap_pvt_thread_pool_pausing() can read it.
-	 */
-	volatile sig_atomic_t ltp_pause;
-
 	/* ltp_pause == 0 ? &ltp_pending_list : &empty_pending_list,
 	 * maintaned to reduce work for pool_wrapper()
 	 */
@@ -137,6 +132,9 @@ struct ldap_int_thread_pool_s {
 
 	/* protect members below, and protect thread_keys[] during pauses */
 	ldap_pvt_thread_mutex_t ltp_mutex;
+
+	/* not paused and something to do for pool_<wrapper/pause/destroy>() */
+	ldap_pvt_thread_cond_t ltp_cond;
 
 	/* ltp_active_count <= 1 && ltp_pause */
 	ldap_pvt_thread_cond_t ltp_pcond;
@@ -238,6 +236,10 @@ ldap_pvt_thread_pool_init_q (
 		max_threads = LDAP_MAXTHR;
 
 	rc = ldap_pvt_thread_mutex_init(&pool->ltp_mutex);
+	if (rc != 0)
+		return(rc);
+
+	rc = ldap_pvt_thread_cond_init(&pool->ltp_cond);
 	if (rc != 0)
 		return(rc);
 
@@ -369,13 +371,13 @@ ldap_pvt_thread_pool_submit (
 	pq->ltp_pending_count++;
 	LDAP_STAILQ_INSERT_TAIL(&pq->ltp_pending_list, task, ltt_next.q);
 
+	if (pool->ltp_pause)
+		goto done;
+
 	/* should we open (create) a thread? */
 	if (pq->ltp_open_count < pq->ltp_active_count+pq->ltp_pending_count &&
 		pq->ltp_open_count < pq->ltp_max_count)
 	{
-		if (pool->ltp_pause)
-			goto done;
-
 		pq->ltp_starting++;
 		pq->ltp_open_count++;
 
@@ -693,6 +695,7 @@ ldap_pvt_thread_pool_destroy ( ldap_pvt_thread_pool_t *tpool, int run_pending )
 	if (pool->ltp_max_pending > 0)
 		pool->ltp_max_pending = -pool->ltp_max_pending;
 
+	ldap_pvt_thread_cond_broadcast(&pool->ltp_cond);
 	ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
 
 	for (i=0; i<pool->ltp_numqs; i++) {
@@ -709,8 +712,7 @@ ldap_pvt_thread_pool_destroy ( ldap_pvt_thread_pool_t *tpool, int run_pending )
 		}
 
 		while (pq->ltp_open_count) {
-			if (!pool->ltp_pause)
-				ldap_pvt_thread_cond_broadcast(&pq->ltp_cond);
+			ldap_pvt_thread_cond_broadcast(&pq->ltp_cond);
 			ldap_pvt_thread_cond_wait(&pq->ltp_cond, &pq->ltp_mutex);
 		}
 
@@ -725,6 +727,7 @@ ldap_pvt_thread_pool_destroy ( ldap_pvt_thread_pool_t *tpool, int run_pending )
 	}
 
 	ldap_pvt_thread_cond_destroy(&pool->ltp_pcond);
+	ldap_pvt_thread_cond_destroy(&pool->ltp_cond);
 	ldap_pvt_thread_mutex_destroy(&pool->ltp_mutex);
 	LDAP_FREE(pool);
 	*tpool = NULL;
@@ -743,6 +746,7 @@ ldap_int_thread_pool_wrapper (
 	ldap_int_tpool_plist_t *work_list;
 	ldap_int_thread_userctx_t ctx, *kctx;
 	unsigned i, keyslot, hash;
+	int global_lock = 0;
 
 	assert(pool != NULL);
 
@@ -756,11 +760,13 @@ ldap_int_thread_pool_wrapper (
 
 	ldap_pvt_thread_key_setdata( ldap_tpool_key, &ctx );
 
-	ldap_pvt_thread_mutex_lock(&pq->ltp_mutex);
-
-	/* thread_keys[] is read-only when paused */
-	while (pool->ltp_pause)
-		ldap_pvt_thread_cond_wait(&pq->ltp_cond, &pq->ltp_mutex);
+	if (pool->ltp_pause) {
+		ldap_pvt_thread_mutex_lock(&pool->ltp_mutex);
+		/* thread_keys[] is read-only when paused */
+		while (pool->ltp_pause)
+			ldap_pvt_thread_cond_wait(&pool->ltp_cond, &pool->ltp_mutex);
+		ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
+	}
 
 	/* find a key slot to give this thread ID and store a
 	 * pointer to our keys there; start at the thread ID
@@ -773,6 +779,7 @@ ldap_int_thread_pool_wrapper (
 	thread_keys[keyslot].ctx = &ctx;
 	ldap_pvt_thread_mutex_unlock(&ldap_pvt_thread_pool_mutex);
 
+	ldap_pvt_thread_mutex_lock(&pq->ltp_mutex);
 	pq->ltp_starting--;
 	pq->ltp_active_count++;
 
@@ -781,14 +788,15 @@ ldap_int_thread_pool_wrapper (
 		task = LDAP_STAILQ_FIRST(work_list);
 		if (task == NULL) {	/* paused or no pending tasks */
 			if (--(pq->ltp_active_count) < 1) {
-				ldap_pvt_thread_mutex_unlock(&pq->ltp_mutex);
-				ldap_pvt_thread_mutex_lock(&pool->ltp_mutex);
-				if (--(pool->ltp_active_queues) < 1) {
-					/* Notify pool_pause it is the sole active thread. */
-					ldap_pvt_thread_cond_signal(&pool->ltp_pcond);
+				if (pool->ltp_pause) {
+					ldap_pvt_thread_mutex_unlock(&pq->ltp_mutex);
+					ldap_pvt_thread_mutex_lock(&pool->ltp_mutex);
+					global_lock = 1;
+					if (--(pool->ltp_active_queues) < 1) {
+						/* Notify pool_pause it is the sole active thread. */
+						ldap_pvt_thread_cond_signal(&pool->ltp_pcond);
+					}
 				}
-				ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
-				ldap_pvt_thread_mutex_lock(&pq->ltp_mutex);
 			}
 
 			do {
@@ -811,12 +819,25 @@ ldap_int_thread_pool_wrapper (
 				 * Just use pthread_cond_timedwait() if we want to
 				 * check idle time.
 				 */
-				ldap_pvt_thread_cond_wait(&pq->ltp_cond, &pq->ltp_mutex);
+				if (global_lock) {
+					ldap_pvt_thread_cond_wait(&pool->ltp_cond, &pool->ltp_mutex);
+					if (!pool->ltp_pause) {
+						ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
+						ldap_pvt_thread_mutex_lock(&pq->ltp_mutex);
+						global_lock = 0;
+					}
+				} else
+					ldap_pvt_thread_cond_wait(&pq->ltp_cond, &pq->ltp_mutex);
 
 				work_list = pq->ltp_work_list;
 				task = LDAP_STAILQ_FIRST(work_list);
 			} while (task == NULL);
 
+			if (global_lock) {
+				ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
+				ldap_pvt_thread_mutex_lock(&pq->ltp_mutex);
+				global_lock = 0;
+			}
 			pq->ltp_active_count++;
 		}
 
@@ -831,13 +852,12 @@ ldap_int_thread_pool_wrapper (
 	}
  done:
 
-	assert(!pool->ltp_pause); /* thread_keys writable, ltp_open_count >= 0 */
+	ldap_pvt_thread_mutex_lock(&ldap_pvt_thread_pool_mutex);
 
-	/* The ltp_mutex lock protects ctx->ltu_key from pool_purgekey()
+	/* The pool_mutex lock protects ctx->ltu_key from pool_purgekey()
 	 * during this call, since it prevents new pauses. */
 	ldap_pvt_thread_pool_context_reset(&ctx);
 
-	ldap_pvt_thread_mutex_lock(&ldap_pvt_thread_pool_mutex);
 	thread_keys[keyslot].ctx = DELETED_THREAD_CTX;
 	ldap_pvt_thread_mutex_unlock(&ldap_pvt_thread_pool_mutex);
 
@@ -846,7 +866,10 @@ ldap_int_thread_pool_wrapper (
 	if (pq->ltp_open_count == 0)
 		ldap_pvt_thread_cond_signal(&pq->ltp_cond);
 
-	ldap_pvt_thread_mutex_unlock(&pq->ltp_mutex);
+	if (global_lock)
+		ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
+	else
+		ldap_pvt_thread_mutex_unlock(&pq->ltp_mutex);
 
 	ldap_pvt_thread_exit(NULL);
 	return(NULL);
@@ -895,9 +918,6 @@ handle_pause( ldap_pvt_thread_pool_t *tpool, int pause_type )
 	/* If ltp_pause and not GO_IDLE|GO_UNIDLE: Set GO_IDLE,GO_UNIDLE */
 	pause_type -= pause;
 
-	if (!(pause_type & DO_PAUSE))
-		ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
-
 	if (pause_type & GO_IDLE) {
 		int do_pool = 0;
 		ldap_pvt_thread_mutex_lock(&pq->ltp_mutex);
@@ -908,33 +928,25 @@ handle_pause( ldap_pvt_thread_pool_t *tpool, int pause_type )
 		}
 		ldap_pvt_thread_mutex_unlock(&pq->ltp_mutex);
 		if (do_pool) {
-			if (!(pause_type & DO_PAUSE))
-				ldap_pvt_thread_mutex_lock(&pool->ltp_mutex);
 			pool->ltp_active_queues--;
 			if (pool->ltp_active_queues < 1)
 			/* Tell the task waiting to DO_PAUSE it can proceed */
 				ldap_pvt_thread_cond_signal(&pool->ltp_pcond);
-			if (!(pause_type & DO_PAUSE))
-				ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
 		}
 	}
 
 	if (pause_type & GO_UNIDLE) {
-		if (pause_type & DO_PAUSE)
-			ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
-		ldap_pvt_thread_mutex_lock(&pq->ltp_mutex);
 		/* Wait out pause if any, then cancel GO_IDLE */
 		if (pause > max_ltp_pause) {
 			ret = 1;
 			do {
-				ldap_pvt_thread_cond_wait(&pq->ltp_cond, &pq->ltp_mutex);
-			} while (pq->ltp_pause > max_ltp_pause);
+				ldap_pvt_thread_cond_wait(&pool->ltp_cond, &pool->ltp_mutex);
+			} while (pool->ltp_pause > max_ltp_pause);
 		}
+		ldap_pvt_thread_mutex_lock(&pq->ltp_mutex);
 		pq->ltp_pending_count--;
 		pq->ltp_active_count++;
 		ldap_pvt_thread_mutex_unlock(&pq->ltp_mutex);
-		if (pause_type & DO_PAUSE)
-			ldap_pvt_thread_mutex_lock(&pool->ltp_mutex);
 	}
 
 	if (pause_type & DO_PAUSE) {
@@ -957,8 +969,6 @@ handle_pause( ldap_pvt_thread_pool_t *tpool, int pause_type )
 			pq = &pool->ltp_wqs[j];
 			if (j != i)
 				ldap_pvt_thread_mutex_lock(&pq->ltp_mutex);
-
-			pq->ltp_pause = WANT_PAUSE;
 
 			/* Let ldap_pvt_thread_pool_submit() through to its ltp_pause test,
 			 * and do not finish threads in ldap_pvt_thread_pool_wrapper() */
@@ -985,10 +995,8 @@ handle_pause( ldap_pvt_thread_pool_t *tpool, int pause_type )
 
 		assert(pool->ltp_pause == WANT_PAUSE);
 		pool->ltp_pause = PAUSED;
-		for (i=0; i<pool->ltp_numqs; i++)
-			pool->ltp_wqs[i].ltp_pause = PAUSED;
-		ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
 	}
+	ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
 
 	return(ret);
 }
@@ -1047,21 +1055,16 @@ ldap_pvt_thread_pool_resume (
 		return(0);
 
 	ldap_pvt_thread_mutex_lock(&pool->ltp_mutex);
-
 	assert(pool->ltp_pause == PAUSED);
 	pool->ltp_pause = 0;
 	for (i=0; i<pool->ltp_numqs; i++) {
 		pq = &pool->ltp_wqs[i];
-		ldap_pvt_thread_mutex_lock(&pq->ltp_mutex);
 		if (pq->ltp_open_count <= 0) /* true when paused, but be paranoid */
 			pq->ltp_open_count = -pq->ltp_open_count;
 		pq->ltp_work_list = &pq->ltp_pending_list;
-
-		pq->ltp_pause = 0;
 		ldap_pvt_thread_cond_broadcast(&pq->ltp_cond);
-		ldap_pvt_thread_mutex_unlock(&pq->ltp_mutex);
 	}
-
+	ldap_pvt_thread_cond_broadcast(&pool->ltp_cond);
 	ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
 	return(0);
 }
@@ -1168,6 +1171,7 @@ void ldap_pvt_thread_pool_purgekey( void *key )
 
 	assert ( key != NULL );
 
+	ldap_pvt_thread_mutex_lock(&ldap_pvt_thread_pool_mutex);
 	for ( i=0; i<LDAP_MAXTHR; i++ ) {
 		ctx = thread_keys[i].ctx;
 		if ( ctx && ctx != DELETED_THREAD_CTX ) {
@@ -1182,6 +1186,7 @@ void ldap_pvt_thread_pool_purgekey( void *key )
 			}
 		}
 	}
+	ldap_pvt_thread_mutex_unlock(&ldap_pvt_thread_pool_mutex);
 }
 
 /*
