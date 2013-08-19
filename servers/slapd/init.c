@@ -137,7 +137,7 @@ slap_init( int mode, const char *name )
 		slap_name = name;
 
 		ldap_pvt_thread_pool_init_q( &connection_pool,
-				connection_pool_max, 0, 4);
+				connection_pool_max, 0, connection_pool_queues);
 
 		slap_counters_init( &slap_counters );
 
