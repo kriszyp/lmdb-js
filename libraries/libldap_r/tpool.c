@@ -95,10 +95,14 @@ typedef LDAP_STAILQ_HEAD(tcq, ldap_int_thread_task_s) ldap_int_tpool_plist_t;
 struct ldap_int_thread_poolq_s {
 	struct ldap_int_thread_pool_s *ltp_pool;
 
-	/* protect members below, and protect thread_keys[] during pauses */
+	/* protect members below */
 	ldap_pvt_thread_mutex_t ltp_mutex;
 
-	/* not paused and something to do for pool_<wrapper/pause/destroy>() */
+	/* not paused and something to do for pool_<wrapper/pause/destroy>()
+	 * Used for normal pool operation, to synch between submitter and
+	 * worker threads. Not used for pauses. In normal operation multiple
+	 * queues can rendezvous without acquiring the main pool lock.
+	 */
 	ldap_pvt_thread_cond_t ltp_cond;
 
 	/* ltp_pause == 0 ? &ltp_pending_list : &empty_pending_list,
@@ -110,7 +114,7 @@ struct ldap_int_thread_poolq_s {
 	ldap_int_tpool_plist_t ltp_pending_list;
 	LDAP_SLIST_HEAD(tcl, ldap_int_thread_task_s) ltp_free_list;
 
-	/* Max number of threads in pool, or 0 for default (LDAP_MAXTHR) */
+	/* Max number of threads in this queue */
 	int ltp_max_count;
 
 	/* Max pending + paused + idle tasks, negated when ltp_finishing */
@@ -130,13 +134,16 @@ struct ldap_int_thread_pool_s {
 	/* number of poolqs */
 	int ltp_numqs;
 
-	/* protect members below, and protect thread_keys[] during pauses */
+	/* protect members below */
 	ldap_pvt_thread_mutex_t ltp_mutex;
 
-	/* not paused and something to do for pool_<wrapper/pause/destroy>() */
+	/* paused and waiting for resume
+	 * When a pause is in effect all workers switch to waiting on
+	 * this cond instead of their per-queue cond.
+	 */
 	ldap_pvt_thread_cond_t ltp_cond;
 
-	/* ltp_active_count <= 1 && ltp_pause */
+	/* ltp_active_queues < 1 && ltp_pause */
 	ldap_pvt_thread_cond_t ltp_pcond;
 
 	/* number of active queues */
@@ -746,7 +753,7 @@ ldap_int_thread_pool_wrapper (
 	ldap_int_tpool_plist_t *work_list;
 	ldap_int_thread_userctx_t ctx, *kctx;
 	unsigned i, keyslot, hash;
-	int global_lock = 0;
+	int pool_lock = 0;
 
 	assert(pool != NULL);
 
@@ -791,7 +798,7 @@ ldap_int_thread_pool_wrapper (
 				if (pool->ltp_pause) {
 					ldap_pvt_thread_mutex_unlock(&pq->ltp_mutex);
 					ldap_pvt_thread_mutex_lock(&pool->ltp_mutex);
-					global_lock = 1;
+					pool_lock = 1;
 					if (--(pool->ltp_active_queues) < 1) {
 						/* Notify pool_pause it is the sole active thread. */
 						ldap_pvt_thread_cond_signal(&pool->ltp_pcond);
@@ -819,12 +826,12 @@ ldap_int_thread_pool_wrapper (
 				 * Just use pthread_cond_timedwait() if we want to
 				 * check idle time.
 				 */
-				if (global_lock) {
+				if (pool_lock) {
 					ldap_pvt_thread_cond_wait(&pool->ltp_cond, &pool->ltp_mutex);
 					if (!pool->ltp_pause) {
 						ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
 						ldap_pvt_thread_mutex_lock(&pq->ltp_mutex);
-						global_lock = 0;
+						pool_lock = 0;
 					}
 				} else
 					ldap_pvt_thread_cond_wait(&pq->ltp_cond, &pq->ltp_mutex);
@@ -833,10 +840,10 @@ ldap_int_thread_pool_wrapper (
 				task = LDAP_STAILQ_FIRST(work_list);
 			} while (task == NULL);
 
-			if (global_lock) {
+			if (pool_lock) {
 				ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
 				ldap_pvt_thread_mutex_lock(&pq->ltp_mutex);
-				global_lock = 0;
+				pool_lock = 0;
 			}
 			pq->ltp_active_count++;
 		}
@@ -866,7 +873,7 @@ ldap_int_thread_pool_wrapper (
 	if (pq->ltp_open_count == 0)
 		ldap_pvt_thread_cond_signal(&pq->ltp_cond);
 
-	if (global_lock)
+	if (pool_lock)
 		ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
 	else
 		ldap_pvt_thread_mutex_unlock(&pq->ltp_mutex);
