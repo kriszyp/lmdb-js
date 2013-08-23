@@ -1,0 +1,6 @@
+{
+  "name": "node-lmdb",
+  "version": "0.0.1",
+  "main": "index.js",
+  "gypfile": true
+}
