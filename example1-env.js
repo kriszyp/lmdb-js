@@ -1,7 +1,6 @@
 
 // Require the module
 var lmdb = require('./build/Release/node-lmdb');
-
 // Now you can use the module
 
 // Print the version
@@ -11,6 +10,7 @@ var env = new lmdb.Env();
 // Open the environment
 env.open({
     // Path to the environment
+    // IMPORTANT: you will get an error if the directory doesn't exist!
     path: "./testdata",
     // Maximum number of databases
     maxDbs: 10

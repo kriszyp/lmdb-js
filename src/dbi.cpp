@@ -81,10 +81,15 @@ Handle<Value> DbiWrap::ctor(const Arguments& args) {
             flags |= MDB_INTEGERKEY;
         }
     }
+    else {
+        ThrowException(Exception::Error(String::New("Invalid parameters.")));
+        return Undefined();
+    }
     
     // Open transaction
     rc = mdb_txn_begin(ew->env, NULL, 0, &txn);
     if (rc != 0) {
+        delete cname;
         mdb_txn_abort(txn);
         ThrowException(Exception::Error(String::New(mdb_strerror(rc))));
         return Undefined();
@@ -92,6 +97,7 @@ Handle<Value> DbiWrap::ctor(const Arguments& args) {
     
     // Open database
     rc = mdb_dbi_open(txn, cname, flags, &dbi);
+    delete cname;
     if (rc != 0) {
         mdb_txn_abort(txn);
         ThrowException(Exception::Error(String::New(mdb_strerror(rc))));
