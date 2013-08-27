@@ -305,6 +305,7 @@ typedef struct ldap_conn {
 #ifdef HAVE_CYRUS_SASL
 	void		*lconn_sasl_authctx;	/* context for bind */
 	void		*lconn_sasl_sockctx;	/* for security layer */
+	void		*lconn_sasl_cbind;		/* for channel binding */
 #endif
 #ifdef HAVE_GSSAPI
 	void		*lconn_gss_ctx;		/* gss_ctx_id_t */

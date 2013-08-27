@@ -2838,6 +2838,12 @@ tlsm_session_strength( tls_session *session )
 	return rc ? 0 : keySize;
 }
 
+static int
+tlsm_session_unique( tls_session *sess, struct berval *buf, int is_server)
+{
+	return 0;
+}
+
 /*
  * TLS support for LBER Sockbufs
  */
@@ -3266,6 +3272,7 @@ tls_impl ldap_int_tls_impl = {
 	tlsm_session_peer_dn,
 	tlsm_session_chkhost,
 	tlsm_session_strength,
+	tlsm_session_unique,
 
 	&tlsm_sbio,
 

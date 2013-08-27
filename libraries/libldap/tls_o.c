@@ -676,6 +676,21 @@ tlso_session_strength( tls_session *sess )
 	return SSL_CIPHER_get_bits(SSL_get_current_cipher(s), NULL);
 }
 
+static int
+tlso_session_unique( tls_session *sess, struct berval *buf, int is_server)
+{
+	tlso_session *s = (tlso_session *)sess;
+
+	/* Usually the client sends the finished msg. But if the
+	 * session was resumed, the server sent the msg.
+	 */
+	if (SSL_session_reused(s) ^ !is_server)
+		buf->bv_len = SSL_get_finished(s, buf->bv_val, buf->bv_len);
+	else
+		buf->bv_len = SSL_get_peer_finished(s, buf->bv_val, buf->bv_len);
+	return buf->bv_len;
+}
+
 /*
  * TLS support for LBER Sockbufs
  */
@@ -1283,6 +1298,7 @@ tls_impl ldap_int_tls_impl = {
 	tlso_session_peer_dn,
 	tlso_session_chkhost,
 	tlso_session_strength,
+	tlso_session_unique,
 
 	&tlso_sbio,
 

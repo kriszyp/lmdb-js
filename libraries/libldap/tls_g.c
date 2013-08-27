@@ -780,6 +780,12 @@ tlsg_session_strength( tls_session *session )
 	return gnutls_cipher_get_key_size( c ) * 8;
 }
 
+static int
+tlsg_session_unique( tls_session *sess, struct berval *buf, int is_server)
+{
+	return 0;
+}
+
 /* suites is a string of colon-separated cipher suite names. */
 static int
 tlsg_parse_ciphers( tlsg_ctx *ctx, char *suites )
@@ -1110,6 +1116,7 @@ tls_impl ldap_int_tls_impl = {
 	tlsg_session_peer_dn,
 	tlsg_session_chkhost,
 	tlsg_session_strength,
+	tlsg_session_unique,
 
 	&tlsg_sbio,
 

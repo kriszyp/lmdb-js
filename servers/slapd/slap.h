@@ -2910,6 +2910,7 @@ struct Connection {
 	void	*c_sasl_authctx;	/* SASL authentication context */
 	void	*c_sasl_sockctx;	/* SASL security layer context */
 	void	*c_sasl_extra;		/* SASL session extra stuff */
+	void	*c_sasl_cbind;		/* SASL channel binding */
 	Operation	*c_sasl_bindop;	/* set to current op if it's a bind */
 
 #ifdef LDAP_X_TXN

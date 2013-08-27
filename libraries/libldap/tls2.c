@@ -981,6 +981,13 @@ ldap_pvt_tls_get_my_dn( void *s, struct berval *dn, LDAPDN_rewrite_dummy *func, 
 		rc = ldap_X509dn2bv(&der_dn, dn, (LDAPDN_rewrite_func *)func, flags );
 	return rc;
 }
+
+int
+ldap_pvt_tls_get_unique( void *s, struct berval *buf, int is_server )
+{
+	tls_session *session = s;
+	return tls_imp->ti_session_unique( session, buf, is_server );
+}
 #endif /* HAVE_TLS */
 
 int

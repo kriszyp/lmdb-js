@@ -406,6 +406,7 @@ Connection * connection_init(
 		c->c_sasl_sockctx = NULL;
 		c->c_sasl_extra = NULL;
 		c->c_sasl_bindop = NULL;
+		c->c_sasl_cbind = NULL;
 
 		c->c_sb = ber_sockbuf_alloc( );
 
@@ -451,6 +452,7 @@ Connection * connection_init(
 	assert( c->c_sasl_sockctx == NULL );
 	assert( c->c_sasl_extra == NULL );
 	assert( c->c_sasl_bindop == NULL );
+	assert( c->c_sasl_cbind == NULL );
 	assert( c->c_currentber == NULL );
 	assert( c->c_writewaiter == 0);
 	assert( c->c_writers == 0);
@@ -1408,6 +1410,12 @@ connection_read( ber_socket_t s, conn_readinfo *cri )
 			    c->c_connid, (int) s, c->c_tls_ssf, c->c_ssf, 0 );
 			slap_sasl_external( c, c->c_tls_ssf, &authid );
 			if ( authid.bv_val ) free( authid.bv_val );
+			{
+				char cbinding[64];
+				struct berval cbv = { sizeof(cbinding), cbinding };
+				if ( ldap_pvt_tls_get_unique( ssl, &cbv, 1 ))
+					slap_sasl_cbinding( c, &cbv );
+			}
 		} else if ( rc == 1 && ber_sockbuf_ctrl( c->c_sb,
 			LBER_SB_OPT_NEEDS_WRITE, NULL )) {	/* need to retry */
 			slapd_set_write( s, 1 );
