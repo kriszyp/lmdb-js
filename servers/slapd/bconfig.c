@@ -3792,6 +3792,7 @@ config_tls_cleanup(ConfigArgs *c) {
 		int opt = 1;
 
 		ldap_pvt_tls_ctx_free( slap_tls_ctx );
+		slap_tls_ctx = NULL;
 
 		/* Force new ctx to be created */
 		rc = ldap_pvt_tls_set_option( slap_tls_ld, LDAP_OPT_X_TLS_NEWCTX, &opt );
@@ -3800,6 +3801,11 @@ config_tls_cleanup(ConfigArgs *c) {
 			ldap_pvt_tls_get_option( slap_tls_ld, LDAP_OPT_X_TLS_CTX, &slap_tls_ctx );
 			/* This is a no-op if it's already loaded */
 			load_extop( &slap_EXOP_START_TLS, 0, starttls_extop );
+		} else {
+			if ( rc == LDAP_NOT_SUPPORTED )
+				rc = LDAP_UNWILLING_TO_PERFORM;
+			else
+				rc = LDAP_OTHER;
 		}
 	}
 	return rc;
