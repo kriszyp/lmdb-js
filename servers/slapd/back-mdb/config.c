@@ -114,7 +114,7 @@ mdb_checkpoint( void *ctx, void *arg )
 	struct re_s *rtask = arg;
 	struct mdb_info *mdb = rtask->arg;
 
-	mdb_env_sync( mdb->mi_dbenv, 0 );
+	mdb_env_sync( mdb->mi_dbenv, 1 );
 	ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
 	ldap_pvt_runqueue_stoptask( &slapd_rq, rtask );
 	ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
