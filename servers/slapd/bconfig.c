@@ -1717,6 +1717,8 @@ config_generic(ConfigArgs *c) {
 					c->log, c->cr_msg, 0 );
 				return 1;
 			}
+			if ( slapMode & SLAP_SERVER_MODE )
+				ldap_pvt_thread_pool_queues(&connection_pool, c->value_int);
 			connection_pool_queues = c->value_int;	/* save for reference */
 			break;
 
