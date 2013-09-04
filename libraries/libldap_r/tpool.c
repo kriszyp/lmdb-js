@@ -248,7 +248,7 @@ ldap_pvt_thread_pool_init_q (
 	}
 
 	for (i=0; i<numqs; i++) {
-		char *ptr = LDAP_MALLOC(sizeof(struct ldap_int_thread_poolq_s) + CACHELINE-1);
+		char *ptr = LDAP_CALLOC(1, sizeof(struct ldap_int_thread_poolq_s) + CACHELINE-1);
 		if (ptr == NULL) {
 			for (--i; i>=0; i--)
 				LDAP_FREE(pool->ltp_wqs[i]->ltp_free);
@@ -534,7 +534,7 @@ ldap_pvt_thread_pool_queues(
 			return(-1);
 		pool->ltp_wqs = wqs;
 		for (i=pool->ltp_numqs; i<numqs; i++) {
-			char *ptr = LDAP_MALLOC(sizeof(struct ldap_int_thread_poolq_s) + CACHELINE-1);
+			char *ptr = LDAP_CALLOC(1, sizeof(struct ldap_int_thread_poolq_s) + CACHELINE-1);
 			if (ptr == NULL) {
 				for (; i<numqs; i++)
 					pool->ltp_wqs[i] = NULL;
