@@ -1338,12 +1338,16 @@ chain_ldadd( CfEntryInfo *p, Entry *e, ConfigArgs *ca )
 
 	if ( lc->lc_common_li == NULL ) {
 		rc = ldap_chain_db_init_common( ca->be );
+		if ( rc != 0 )
+			goto fail;
+		li = ca->be->be_private;
+		lc->lc_common_li = lc->lc_cfg_li = li;
 
-	} else {
-		rc = ldap_chain_db_init_one( ca->be );
 	}
+	rc = ldap_chain_db_init_one( ca->be );
 
 	if ( rc != 0 ) {
+fail:
 		Debug( LDAP_DEBUG_ANY, "slapd-chain: "
 			"unable to init %sunderlying database \"%s\".\n",
 			lc->lc_common_li == NULL ? "common " : "", e->e_name.bv_val, 0 );
@@ -1352,21 +1356,17 @@ chain_ldadd( CfEntryInfo *p, Entry *e, ConfigArgs *ca )
 
 	li = ca->be->be_private;
 
-	if ( lc->lc_common_li == NULL ) {
-		lc->lc_common_li = li;
 
-	} else {
-		li->li_uri = ch_strdup( at->a_vals[ 0 ].bv_val );
-		value_add_one( &li->li_bvuri, &at->a_vals[ 0 ] );
-		if ( avl_insert( &lc->lc_lai.lai_tree, (caddr_t)li,
-			ldap_chain_uri_cmp, ldap_chain_uri_dup ) )
-		{
-			Debug( LDAP_DEBUG_ANY, "slapd-chain: "
-				"database \"%s\" insert failed.\n",
-				e->e_name.bv_val, 0, 0 );
-			rc = LDAP_CONSTRAINT_VIOLATION;
-			goto done;
-		}
+	li->li_uri = ch_strdup( at->a_vals[ 0 ].bv_val );
+	value_add_one( &li->li_bvuri, &at->a_vals[ 0 ] );
+	if ( avl_insert( &lc->lc_lai.lai_tree, (caddr_t)li,
+		ldap_chain_uri_cmp, ldap_chain_uri_dup ) )
+	{
+		Debug( LDAP_DEBUG_ANY, "slapd-chain: "
+			"database \"%s\" insert failed.\n",
+			e->e_name.bv_val, 0, 0 );
+		rc = LDAP_CONSTRAINT_VIOLATION;
+		goto done;
 	}
 
 	ca->ca_private = on;
