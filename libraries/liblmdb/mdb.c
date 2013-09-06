@@ -933,6 +933,7 @@ struct MDB_cursor {
 #define C_INITIALIZED	0x01	/**< cursor has been initialized and is valid */
 #define C_EOF	0x02			/**< No more data */
 #define C_SUB	0x04			/**< Cursor is a sub-cursor */
+#define C_DEL	0x08			/**< last op was a cursor_del */
 #define C_SPLITTING	0x20		/**< Cursor is in page_split */
 #define C_UNTRACK	0x40		/**< Un-track cursor when closing */
 /** @} */
@@ -4245,11 +4246,15 @@ mdb_env_copy(MDB_env *env, const char *path)
 	newfd = CreateFile(lpath, GENERIC_WRITE, 0, NULL, CREATE_NEW,
 				FILE_FLAG_NO_BUFFERING|FILE_FLAG_WRITE_THROUGH, NULL);
 #else
-	newfd = open(lpath, O_WRONLY|O_CREAT|O_EXCL
 #ifdef O_DIRECT
-		|O_DIRECT
+	/* The OS supports O_DIRECT, try with it */
+	newfd = open(lpath, O_WRONLY|O_CREAT|O_EXCL|O_DIRECT, 0666);
+	/* But open can fail if O_DIRECT isn't supported by the file system
+	 * so retry without the flag
+	 */
+	if (newfd == INVALID_HANDLE_VALUE && ErrCode() == EINVAL)
 #endif
-		, 0666);
+	newfd = open(lpath, O_WRONLY|O_CREAT|O_EXCL, 0666);
 #endif
 	if (newfd == INVALID_HANDLE_VALUE) {
 		rc = ErrCode();
@@ -5006,6 +5011,8 @@ mdb_cursor_next(MDB_cursor *mc, MDB_val *key, MDB_val *data, MDB_cursor_op op)
 	}
 
 	DPRINTF(("cursor_next: top page is %"Z"u in cursor %p", mp->mp_pgno, (void *) mc));
+	if (mc->mc_flags & C_DEL)
+		goto skip;
 
 	if (mc->mc_ki[mc->mc_top] + 1u >= NUMKEYS(mp)) {
 		DPUTS("=====> move to next sibling page");
@@ -5018,6 +5025,7 @@ mdb_cursor_next(MDB_cursor *mc, MDB_val *key, MDB_val *data, MDB_cursor_op op)
 	} else
 		mc->mc_ki[mc->mc_top]++;
 
+skip:
 	DPRINTF(("==> cursor points to page %"Z"u with %u keys, key index %u",
 	    mp->mp_pgno, NUMKEYS(mp), mc->mc_ki[mc->mc_top]));
 
@@ -5223,7 +5231,10 @@ mdb_cursor_set(MDB_cursor *mc, MDB_val *key, MDB_val *data,
 		if (!mc->mc_top) {
 			/* There are no other pages */
 			mc->mc_ki[mc->mc_top] = 0;
-			return MDB_NOTFOUND;
+			if (op == MDB_SET_RANGE)
+				goto set1;
+			else 
+				return MDB_NOTFOUND;
 		}
 	}
 
@@ -5432,6 +5443,8 @@ mdb_cursor_get(MDB_cursor *mc, MDB_val *key, MDB_val *data,
 				MDB_GET_KEY(leaf, key);
 				if (data) {
 					if (F_ISSET(leaf->mn_flags, F_DUPDATA)) {
+						if (mc->mc_flags & C_DEL)
+							mdb_xcursor_init1(mc, leaf);
 						rc = mdb_cursor_get(&mc->mc_xcursor->mx_cursor, data, NULL, MDB_GET_CURRENT);
 					} else {
 						rc = mdb_node_read(mc->mc_txn, leaf, data);
@@ -5556,6 +5569,9 @@ fetchm:
 		break;
 	}
 
+	if (mc->mc_flags & C_DEL)
+		mc->mc_flags ^= C_DEL;
+
 	return rc;
 }
 
@@ -5675,6 +5691,9 @@ mdb_cursor_put(MDB_cursor *mc, MDB_val *key, MDB_val *data,
 		if (rc && rc != MDB_NOTFOUND)
 			return rc;
 	}
+
+	if (mc->mc_flags & C_DEL)
+		mc->mc_flags ^= C_DEL;
 
 	/* Cursor is positioned, check for room in the dirty list */
 	if (!nospill) {
@@ -6105,6 +6124,7 @@ mdb_cursor_del(MDB_cursor *mc, unsigned int flags)
 					}
 				}
 				mc->mc_db->md_entries--;
+				mc->mc_flags |= C_DEL;
 				return rc;
 			}
 			/* otherwise fall thru and delete the sub-DB */
@@ -7280,12 +7300,16 @@ mdb_cursor_del0(MDB_cursor *mc, MDB_node *leaf)
 			if (!(m2->mc_flags & C_INITIALIZED))
 				continue;
 			if (m2->mc_pg[mc->mc_top] == mp) {
-				if (m2->mc_ki[mc->mc_top] > ki)
-					m2->mc_ki[mc->mc_top]--;
+				if (m2->mc_ki[mc->mc_top] >= ki) {
+					m2->mc_flags |= C_DEL;
+					if (m2->mc_ki[mc->mc_top] > ki)
+						m2->mc_ki[mc->mc_top]--;
+				}
 				if (m2->mc_ki[mc->mc_top] >= nkeys)
 					mdb_cursor_sibling(m2, 1);
 			}
 		}
+		mc->mc_flags |= C_DEL;
 	}
 
 	return rc;
