@@ -785,6 +785,22 @@ tlsg_session_strength( tls_session *session )
 static int
 tlsg_session_unique( tls_session *sess, struct berval *buf, int is_server)
 {
+/* channel bindings added in 2.12.0 */
+#if GNUTLS_VERSION_NUMBER >= 0x020c00
+	tlsg_session *s = (tlsg_session *)sess;
+	gnutls_datum_t cb;
+	int rc;
+
+	rc = gnutls_session_channel_binding( s->session, GNUTLS_CB_TLS_UNIQUE, &cb );
+	if ( rc == 0 ) {
+		int len = cb.size;
+		if ( len > buf->bv_len )
+			len = buf->bv_len;
+		buf->bv_len = len;
+		memcpy( buf->bv_val, cb.data, len );
+		return len;
+	}
+#endif
 	return 0;
 }
 
