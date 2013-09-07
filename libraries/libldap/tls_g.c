@@ -406,7 +406,7 @@ tlsg_ctx_init( struct ldapoptions *lo, struct ldaptls *lt, int is_server )
 		rc = 0;
 	}
 
-	/* FIXME: ITS#5992 - this should go be configurable,
+	/* FIXME: ITS#5992 - this should be configurable,
 	 * and V1 CA certs should be phased out ASAP.
 	 */
 	gnutls_certificate_set_verify_flags( ctx->cred,
@@ -416,13 +416,10 @@ tlsg_ctx_init( struct ldapoptions *lo, struct ldaptls *lt, int is_server )
 		gnutls_datum_t buf;
 		rc = tlsg_getfile( lo->ldo_tls_dhfile, &buf );
 		if ( rc ) return -1;
-		rc = gnutls_dh_params_init(&ctx->dh_params);
-		if ( rc ) {
-			LDAP_FREE( buf.data );
-			return -1;
-		}
-		rc = gnutls_dh_params_import_pkcs3( ctx->dh_params, &buf,
-			GNUTLS_X509_FMT_PEM );
+		rc = gnutls_dh_params_init( &ctx->dh_params );
+		if ( rc == 0 )
+			rc = gnutls_dh_params_import_pkcs3( ctx->dh_params, &buf,
+				GNUTLS_X509_FMT_PEM );
 		LDAP_FREE( buf.data );
 		if ( rc ) return -1;
 		gnutls_certificate_set_dh_params( ctx->cred, ctx->dh_params );
