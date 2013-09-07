@@ -3071,7 +3071,6 @@ slapd_wait_writer( ber_socket_t sd )
 #ifdef HAVE_WINSOCK
 	fd_set writefds;
 	struct timeval tv, *tvp;
-	int i;
 
 	FD_ZERO( &writefds );
 	FD_SET( slapd_ws_sockets[sd], &writefds );
