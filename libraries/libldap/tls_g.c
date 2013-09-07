@@ -368,6 +368,17 @@ tlsg_ctx_init( struct ldapoptions *lo, struct ldaptls *lt, int is_server )
 		 * then we have to build the cert chain.
 		 */
 		if ( max == 1 && !gnutls_x509_crt_check_issuer( certs[0], certs[0] )) {
+#if GNUTLS_VERSION_NUMBER >= 0x020c00
+			unsigned int i;
+			for ( i = 1; i<VERIFY_DEPTH; i++ ) {
+				if ( gnutls_certificate_get_issuer( ctx->cred, certs[i-1], &certs[i], 0 ))
+					break;
+				max++;
+				/* If this CA is self-signed, we're done */
+				if ( gnutls_x509_crt_check_issuer( certs[i], certs[i] ))
+					break;
+			}
+#else
 			gnutls_x509_crt_t *cas;
 			unsigned int i, j, ncas;
 
@@ -387,6 +398,7 @@ tlsg_ctx_init( struct ldapoptions *lo, struct ldaptls *lt, int is_server )
 				if ( j == ncas )
 					break;
 			}
+#endif
 		}
 		rc = gnutls_certificate_set_x509_key( ctx->cred, certs, max, key );
 		if ( rc ) return -1;
