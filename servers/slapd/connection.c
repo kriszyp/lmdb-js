@@ -1388,6 +1388,7 @@ connection_read( ber_socket_t s, conn_readinfo *cri )
 		} else if ( rc == 0 ) {
 			void *ssl;
 			struct berval authid = BER_BVNULL;
+			char msgbuf[32];
 
 			c->c_needs_tls_accept = 0;
 
@@ -1405,9 +1406,11 @@ connection_read( ber_socket_t s, conn_readinfo *cri )
 					"unable to get TLS client DN, error=%d id=%lu\n",
 					s, rc, c->c_connid );
 			}
+			sprintf(msgbuf, "tls_ssf=%u ssf=%u", c->c_tls_ssf, c->c_ssf);
 			Statslog( LDAP_DEBUG_STATS,
-				"conn=%lu fd=%d TLS established tls_ssf=%u ssf=%u\n",
-			    c->c_connid, (int) s, c->c_tls_ssf, c->c_ssf, 0 );
+				"conn=%lu fd=%d TLS established %s tls_proto=%s tls_cipher=%s\n",
+			    c->c_connid, (int) s,
+				msgbuf, ldap_pvt_tls_get_version( ssl ), ldap_pvt_tls_get_cipher( ssl ));
 			slap_sasl_external( c, c->c_tls_ssf, &authid );
 			if ( authid.bv_val ) free( authid.bv_val );
 			{

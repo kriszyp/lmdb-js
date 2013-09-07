@@ -912,6 +912,7 @@ tlsm_get_pin(PK11SlotInfo *slot, PRBool retry, tlsm_ctx *ctx)
 		int infd = PR_FileDesc2NativeHandle( PR_STDIN );
 		int isTTY = isatty( infd );
 		unsigned char phrase[200];
+		char *dummy;
 		/* Prompt for password */
 		if ( isTTY ) {
 			fprintf( stdout,
@@ -919,7 +920,8 @@ tlsm_get_pin(PK11SlotInfo *slot, PRBool retry, tlsm_ctx *ctx)
 				 token_name ? token_name : DEFAULT_TOKEN_NAME );
 			echoOff( infd );
 		}
-		fgets( (char*)phrase, sizeof(phrase), stdin );
+		dummy = fgets( (char*)phrase, sizeof(phrase), stdin );
+		(void) dummy;
 		if ( isTTY ) {
 			fprintf( stdout, "\n" );
 			echoOn( infd );
@@ -2841,7 +2843,52 @@ tlsm_session_strength( tls_session *session )
 static int
 tlsm_session_unique( tls_session *sess, struct berval *buf, int is_server)
 {
+	/* Need upstream support https://bugzilla.mozilla.org/show_bug.cgi?id=563276 */
 	return 0;
+}
+
+/* Yet again, we're pasting in glue that MozNSS ought to provide itself. */
+static struct {
+	const char *name;
+	int num;
+} pvers[] = {
+	{ "SSLv2", SSL_LIBRARY_VERSION_2 },
+	{ "SSLv3", SSL_LIBRARY_VERSION_3_0 },
+	{ "TLSv1", SSL_LIBRARY_VERSION_TLS_1_0 },
+	{ "TLSv1.1", SSL_LIBRARY_VERSION_TLS_1_1 },
+	{ NULL, 0 }
+};
+
+static const char *
+tlsm_session_version( tls_session *sess )
+{
+	tlsm_session *s = (tlsm_session *)sess;
+	SSLChannelInfo info;
+	int rc;
+	rc = SSL_GetChannelInfo( s, &info, sizeof( info ));
+	if ( rc == 0 ) {
+		int i;
+		for (i=0; pvers[i].name; i++)
+			if (pvers[i].num == info.protocolVersion)
+				return pvers[i].name;
+	}
+	return "unknown";
+}
+
+static const char *
+tlsm_session_cipher( tls_session *sess )
+{
+	tlsm_session *s = (tlsm_session *)sess;
+	SSLChannelInfo info;
+	int rc;
+	rc = SSL_GetChannelInfo( s, &info, sizeof( info ));
+	if ( rc == 0 ) {
+		SSLCipherSuiteInfo csinfo;
+		rc = SSL_GetCipherSuiteInfo( info.cipherSuite, &csinfo, sizeof( csinfo ));
+		if ( rc == 0 )
+			return csinfo.cipherSuiteName;
+	}
+	return "unknown";
 }
 
 /*
@@ -3273,6 +3320,8 @@ tls_impl ldap_int_tls_impl = {
 	tlsm_session_chkhost,
 	tlsm_session_strength,
 	tlsm_session_unique,
+	tlsm_session_version,
+	tlsm_session_cipher,
 
 	&tlsm_sbio,
 

@@ -1005,6 +1005,20 @@ ldap_pvt_tls_get_unique( void *s, struct berval *buf, int is_server )
 	tls_session *session = s;
 	return tls_imp->ti_session_unique( session, buf, is_server );
 }
+
+const char *
+ldap_pvt_tls_get_version( void *s )
+{
+	tls_session *session = s;
+	return tls_imp->ti_session_version( session );
+}
+
+const char *
+ldap_pvt_tls_get_cipher( void *s )
+{
+	tls_session *session = s;
+	return tls_imp->ti_session_cipher( session );
+}
 #endif /* HAVE_TLS */
 
 int
