@@ -786,7 +786,10 @@ tlsg_parse_ciphers( tlsg_ctx *ctx, char *suites )
 {
 #ifdef HAVE_CIPHERSUITES
 	const char *err;
-	return gnutls_priority_init( &ctx->prios, suites, &err );
+	int rc = gnutls_priority_init( &ctx->prios, suites, &err );
+	if ( rc )
+		ctx->prios = NULL;
+	return rc;
 #else
 	char *ptr, *end;
 	int i, j, len, num;
