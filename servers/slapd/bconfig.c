@@ -199,6 +199,7 @@ enum {
 	CFG_IX_HASH64,
 	CFG_DISABLED,
 	CFG_THREADQS,
+	CFG_TLS_ECNAME,
 
 	CFG_LAST
 };
@@ -775,6 +776,14 @@ static ConfigTable config_back_cf_table[] = {
 #endif
 		"( OLcfgGlAt:77 NAME 'olcTLSDHParamFile' "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
+	{ "TLSECName", NULL, 2, 2, 0,
+#ifdef HAVE_TLS
+		CFG_TLS_ECNAME|ARG_STRING|ARG_MAGIC, &config_tls_option,
+#else
+		ARG_IGNORED, NULL,
+#endif
+		"( OLcfgGlAt:96 NAME 'olcTLSECName' "
+			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
 	{ "TLSProtocolMin",	NULL, 2, 2, 0,
 #ifdef HAVE_TLS
 		CFG_TLS_PROTOCOL_MIN|ARG_STRING|ARG_MAGIC, &config_tls_config,
@@ -859,7 +868,7 @@ static ConfigOCs cf_ocs[] = {
 		 "olcTimeLimit $ olcTLSCACertificateFile $ "
 		 "olcTLSCACertificatePath $ olcTLSCertificateFile $ "
 		 "olcTLSCertificateKeyFile $ olcTLSCipherSuite $ olcTLSCRLCheck $ "
-		 "olcTLSRandFile $ olcTLSVerifyClient $ olcTLSDHParamFile $ "
+		 "olcTLSRandFile $ olcTLSVerifyClient $ olcTLSDHParamFile $ olcTLSECName $ "
 		 "olcTLSCRLFile $ olcToolThreads $ olcWriteTimeout $ "
 		 "olcObjectIdentifier $ olcAttributeTypes $ olcObjectClasses $ "
 		 "olcDitContentRules $ olcLdapSyntaxes ) )", Cft_Global },
@@ -4060,6 +4069,7 @@ config_tls_option(ConfigArgs *c) {
 	case CFG_TLS_CA_PATH:	flag = LDAP_OPT_X_TLS_CACERTDIR;	break;
 	case CFG_TLS_CA_FILE:	flag = LDAP_OPT_X_TLS_CACERTFILE;	break;
 	case CFG_TLS_DH_FILE:	flag = LDAP_OPT_X_TLS_DHFILE;	break;
+	case CFG_TLS_ECNAME:	flag = LDAP_OPT_X_TLS_ECNAME;	break;
 #ifdef HAVE_GNUTLS
 	case CFG_TLS_CRL_FILE:	flag = LDAP_OPT_X_TLS_CRLFILE;	break;
 #endif
