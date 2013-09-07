@@ -59,14 +59,6 @@ static int tlso_verify_cb( int ok, X509_STORE_CTX *ctx );
 static int tlso_verify_ok( int ok, X509_STORE_CTX *ctx );
 static RSA * tlso_tmp_rsa_cb( SSL *ssl, int is_export, int key_length );
 
-/* From the OpenSSL 0.9.7 distro */
-static const char tlso_dhpem1024[] =
-"-----BEGIN DH PARAMETERS-----\n\
-MIGHAoGBAJf2QmHKtQXdKCjhPx1ottPb0PMTBH9A6FbaWMsTuKG/K3g6TG1Z1fkq\n\
-/Gz/PWk/eLI9TzFgqVAuPvr3q14a1aZeVUMTgo2oO5/y2UHe6VaJ+trqCTat3xlx\n\
-/mNbIK9HA2RgPC3gWfVLZQrY+gz3ASHHR5nXWHEyvpuZm7m3h+irAgEC\n\
------END DH PARAMETERS-----\n";
-
 static int tlso_seed_PRNG( const char *randfile );
 
 #ifdef LDAP_R_COMPILE
@@ -304,21 +296,17 @@ tlso_ctx_init( struct ldapoptions *lo, struct ldaptls *lt, int is_server )
 		return -1;
 	}
 
-	if (is_server) {
+	if ( lo->ldo_tls_dhfile ) {
 		DH *dh = NULL;
 		BIO *bio;
 		SSL_CTX_set_options( ctx, SSL_OP_SINGLE_DH_USE );
-		if ( lo->ldo_tls_dhfile ) {
 
-			if (( bio=BIO_new_file( lt->lt_dhfile,"r" )) == NULL ) {
-				Debug( LDAP_DEBUG_ANY,
-					"TLS: could not use DH parameters file `%s'.\n",
-					lo->ldo_tls_dhfile,0,0);
-				tlso_report_error();
-				return -1;
-			}
-		} else {
-			bio = BIO_new_mem_buf( tlso_dhpem1024, -1 );
+		if (( bio=BIO_new_file( lt->lt_dhfile,"r" )) == NULL ) {
+			Debug( LDAP_DEBUG_ANY,
+				"TLS: could not use DH parameters file `%s'.\n",
+				lo->ldo_tls_dhfile,0,0);
+			tlso_report_error();
+			return -1;
 		}
 		if (!( dh=PEM_read_bio_DHparams( bio, NULL, NULL, NULL ))) {
 			Debug( LDAP_DEBUG_ANY,
