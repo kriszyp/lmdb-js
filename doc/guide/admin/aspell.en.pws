@@ -23,7 +23,7 @@ ddd
 DAs
 TLSCACertificateFile
 BNF
-TLSEphemeralDHParamFile
+TLSDHParamFile
 ppolicy
 gavin
 ASN
