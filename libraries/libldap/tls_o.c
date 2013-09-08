@@ -321,8 +321,12 @@ tlso_ctx_init( struct ldapoptions *lo, struct ldaptls *lt, int is_server )
 		DH_free( dh );
 	}
 
-#ifdef SSL_OP_SINGLE_ECDH_USE
 	if ( is_server && lo->ldo_tls_ecname ) {
+#ifdef OPENSSL_NO_EC
+		Debug( LDAP_DEBUG_ANY,
+			"TLS: Elliptic Curves not supported.\n", 0,0,0 );
+		return -1;
+#else
 		EC_KEY *ecdh;
 
 		int nid = OBJ_sn2nid( lt->lt_ecname );
@@ -344,8 +348,8 @@ tlso_ctx_init( struct ldapoptions *lo, struct ldaptls *lt, int is_server )
 		SSL_CTX_set_tmp_ecdh( ctx, ecdh );
 		SSL_CTX_set_options( ctx, SSL_OP_SINGLE_ECDH_USE );
 		EC_KEY_free( ecdh );
-	}
 #endif
+	}
 
 	if ( tlso_opt_trace ) {
 		SSL_CTX_set_info_callback( ctx, tlso_info_cb );
