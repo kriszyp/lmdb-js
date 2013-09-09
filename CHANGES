@@ -1,6 +1,9 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.37 Engineering
+	Documentation
+		ldapsearch(1) minor typo fix (ITS#7680)
+		slapd-passwd(5) minor typo fix (ITS#7680)
 
 OpenLDAP 2.4.36 Release (2013/08/17)
 	Added back-meta target filter patterns (ITS#7609)
