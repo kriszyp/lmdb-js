@@ -710,6 +710,20 @@ and its contents need to be freed by the caller using
 .BR ldap_memfree (3).
 Ignored by GnuTLS and Mozilla NSS.
 .TP
+.B LDAP_OPT_X_TLS_ECNAME
+Gets/sets the name of the curve used for
+elliptic curve key exchanges.
+.BR invalue
+must be
+.BR "const char *" ;
+.BR outvalue
+must be
+.BR "char **" ,
+and its contents need to be freed by the caller using
+.BR ldap_memfree (3).
+Ignored by GnuTLS and Mozilla NSS. In GnuTLS a curve may be selected
+in the cipher suite specification.
+.TP
 .B LDAP_OPT_X_TLS_KEYFILE
 Sets/gets the full-path of the certificate key file.
 .BR invalue
