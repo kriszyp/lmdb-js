@@ -688,6 +688,37 @@ ldap_pvt_tls_get_option( LDAP *ld, int option, void *arg )
 	case LDAP_OPT_X_TLS_CONNECT_ARG:
 		*(void **)arg = lo->ldo_tls_connect_arg;
 		break;
+	case LDAP_OPT_X_TLS_VERSION: {
+		void *sess = NULL;
+		const char *retval = NULL;
+		if ( ld != NULL ) {
+			LDAPConn *conn = ld->ld_defconn;
+			if ( conn != NULL ) {
+				Sockbuf *sb = conn->lconn_sb;
+				sess = ldap_pvt_tls_sb_ctx( sb );
+				if ( sess != NULL )
+					retval = ldap_pvt_tls_get_version( sess );
+			}
+		}
+		*(char **)arg = retval ? LDAP_STRDUP( retval ) : NULL;
+		break;
+	}
+	case LDAP_OPT_X_TLS_CIPHER: {
+		void *sess = NULL;
+		const char *retval = NULL;
+		if ( ld != NULL ) {
+			LDAPConn *conn = ld->ld_defconn;
+			if ( conn != NULL ) {
+				Sockbuf *sb = conn->lconn_sb;
+				sess = ldap_pvt_tls_sb_ctx( sb );
+				if ( sess != NULL )
+					retval = ldap_pvt_tls_get_cipher( sess );
+			}
+		}
+		*(char **)arg = retval ? LDAP_STRDUP( retval ) : NULL;
+		break;
+	}
+
 	default:
 		return -1;
 	}
