@@ -721,6 +721,21 @@ tlso_session_cipher( tls_session *sess )
 	return SSL_CIPHER_get_name(SSL_get_current_cipher(s));
 }
 
+static int
+tlso_session_peercert( tls_session *sess, struct berval *der )
+{
+	tlso_session *s = (tlso_session *)sess;
+	unsigned char *ptr;
+	X509 *x = SSL_get_peer_certificate(s);
+	der->bv_len = i2d_X509(x, NULL);
+	der->bv_val = LDAP_MALLOC(der->bv_len);
+	if ( !der->bv_val )
+		return -1;
+	ptr = der->bv_val;
+	i2d_X509(x, &ptr);
+	return 0;
+}
+
 /*
  * TLS support for LBER Sockbufs
  */
@@ -1229,6 +1244,7 @@ tls_impl ldap_int_tls_impl = {
 	tlso_session_unique,
 	tlso_session_version,
 	tlso_session_cipher,
+	tlso_session_peercert,
 
 	&tlso_sbio,
 

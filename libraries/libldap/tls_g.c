@@ -830,6 +830,24 @@ tlsg_session_cipher( tls_session *sess )
 	return gnutls_cipher_get_name(gnutls_cipher_get( s->session ));
 }
 
+static int
+tlsg_session_peercert( tls_session *sess, struct berval *der )
+{
+	tlsg_session *s = (tlsg_session *)sess;
+	const gnutls_datum_t *peer_cert_list;
+	unsigned int list_size;
+
+	peer_cert_list = gnutls_certificate_get_peers( s->session, &list_size );
+	if (!peer_cert_list)
+		return -1;
+	der->bv_len = peer_cert_list[0].size;
+	der->bv_val = LDAP_MALLOC( der->bv_len );
+	if (!der->bv_val)
+		return -1;
+	memcpy(der->bv_val, peer_cert_list[0].data, der->bv_len);
+	return 0;
+}
+
 /* suites is a string of colon-separated cipher suite names. */
 static int
 tlsg_parse_ciphers( tlsg_ctx *ctx, char *suites )
@@ -1166,6 +1184,7 @@ tls_impl ldap_int_tls_impl = {
 	tlsg_session_unique,
 	tlsg_session_version,
 	tlsg_session_cipher,
+	tlsg_session_peercert,
 
 	&tlsg_sbio,
 

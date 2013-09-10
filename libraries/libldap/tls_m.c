@@ -2891,6 +2891,22 @@ tlsm_session_cipher( tls_session *sess )
 	return "unknown";
 }
 
+static int
+tlsm_session_peercert( tls_session *sess, struct berval *der )
+{
+	tlsm_session *s = (tlsm_session *)sess;
+	CERTCertificate *cert;
+	cert = SSL_PeerCertificate( s );
+	if (!cert)
+		return -1;
+	der->bv_len = cert->derCert.len;
+	der->bv_val = LDAP_MALLOC( der->bv_len );
+	if (!der->bv_val)
+		return -1;
+	memcpy( der->bv_val, cert->derCert.data, der->bv_len );
+	return 0;
+}
+
 /*
  * TLS support for LBER Sockbufs
  */
@@ -3322,6 +3338,7 @@ tls_impl ldap_int_tls_impl = {
 	tlsm_session_unique,
 	tlsm_session_version,
 	tlsm_session_cipher,
+	tlsm_session_peercert,
 
 	&tlsm_sbio,
 

@@ -718,6 +718,22 @@ ldap_pvt_tls_get_option( LDAP *ld, int option, void *arg )
 		*(char **)arg = retval ? LDAP_STRDUP( retval ) : NULL;
 		break;
 	}
+	case LDAP_OPT_X_TLS_PEERCERT: {
+		void *sess = NULL;
+		struct berval *bv = arg;
+		bv->bv_len = 0;
+		bv->bv_val = NULL;
+		if ( ld != NULL ) {
+			LDAPConn *conn = ld->ld_defconn;
+			if ( conn != NULL ) {
+				Sockbuf *sb = conn->lconn_sb;
+				sess = ldap_pvt_tls_sb_ctx( sb );
+				if ( sess != NULL )
+					return ldap_pvt_tls_get_peercert( sess, bv );
+			}
+		}
+		break;
+	}
 
 	default:
 		return -1;
@@ -1049,6 +1065,13 @@ ldap_pvt_tls_get_cipher( void *s )
 {
 	tls_session *session = s;
 	return tls_imp->ti_session_cipher( session );
+}
+
+int
+ldap_pvt_tls_get_peercert( void *s, struct berval *der )
+{
+	tls_session *session = s;
+	return tls_imp->ti_session_peercert( session, der );
 }
 #endif /* HAVE_TLS */
 

@@ -732,6 +732,14 @@ A non-zero value pointed to by
 .BR invalue
 tells the library to create a context for a server.
 .TP
+.B LDAP_OPT_X_TLS_PEERCERT
+Gets the peer's certificate in DER format from an established TLS session.
+.BR outvalue
+must be
+.BR "struct berval *" ,
+and the data it returns needs to be freed by the caller using
+.BR ldap_memfree (3).
+.TP
 .B LDAP_OPT_X_TLS_PROTOCOL_MIN
 Sets/gets the minimum protocol version.
 .BR invalue

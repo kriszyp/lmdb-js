@@ -161,6 +161,7 @@ LDAP_BEGIN_DECL
 #define LDAP_OPT_X_TLS_ECNAME		0x6012
 #define LDAP_OPT_X_TLS_VERSION		0x6013	/* read-only */
 #define LDAP_OPT_X_TLS_CIPHER		0x6014	/* read-only */
+#define LDAP_OPT_X_TLS_PEERCERT		0x6015	/* read-only */
 
 #define LDAP_OPT_X_TLS_NEVER	0
 #define LDAP_OPT_X_TLS_HARD		1
