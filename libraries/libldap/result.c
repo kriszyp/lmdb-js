@@ -482,8 +482,8 @@ retry:
 	sock_errset(0);
 #ifdef LDAP_CONNECTIONLESS
 	if ( LDAP_IS_UDP(ld) ) {
-		struct sockaddr from;
-		ber_int_sb_read( lc->lconn_sb, &from, sizeof(struct sockaddr) );
+		struct sockaddr_storage from;
+		ber_int_sb_read( lc->lconn_sb, &from, sizeof(struct sockaddr_storage) );
 		if ( ld->ld_options.ldo_version == LDAP_VERSION2 ) isv2 = 1;
 	}
 nextresp3:

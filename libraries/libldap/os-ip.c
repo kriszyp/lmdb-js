@@ -422,8 +422,8 @@ ldap_pvt_connect(LDAP *ld, ber_socket_t s,
 	if (LDAP_IS_UDP(ld)) {
 		if (ld->ld_options.ldo_peer)
 			ldap_memfree(ld->ld_options.ldo_peer);
-		ld->ld_options.ldo_peer=ldap_memalloc(sizeof(struct sockaddr));
-		AC_MEMCPY(ld->ld_options.ldo_peer,sin,sizeof(struct sockaddr));
+		ld->ld_options.ldo_peer=ldap_memcalloc(1, sizeof(struct sockaddr_storage));
+		AC_MEMCPY(ld->ld_options.ldo_peer,sin,addrlen);
 		return ( 0 );
 	}
 #endif
