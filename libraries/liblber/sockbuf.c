@@ -888,8 +888,8 @@ Sockbuf_IO ber_sockbuf_io_debug = {
  *
  * All I/O at this level must be atomic. For ease of use, the sb_readahead
  * must be used above this module. All data reads and writes are prefixed
- * with a sockaddr containing the address of the remote entity. Upper levels
- * must read and write this sockaddr before doing the usual ber_printf/scanf
+ * with a sockaddr_storage containing the address of the remote entity. Upper levels
+ * must read and write this sockaddr_storage before doing the usual ber_printf/scanf
  * operations on LDAP messages.
  */
 
@@ -914,13 +914,13 @@ sb_dgram_read( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len )
 	assert( SOCKBUF_VALID( sbiod->sbiod_sb ) );
 	assert( buf != NULL );
 
-	addrlen = sizeof( struct sockaddr );
+	addrlen = sizeof( struct sockaddr_storage );
 	src = buf;
 	buf = (char *) buf + addrlen;
 	len -= addrlen;
 	rc = recvfrom( sbiod->sbiod_sb->sb_fd, buf, len, 0, src, &addrlen );
 
-	return rc > 0 ? rc+sizeof(struct sockaddr) : rc;
+	return rc > 0 ? rc+sizeof(struct sockaddr_storage) : rc;
 }
 
 static ber_slen_t 
@@ -934,11 +934,11 @@ sb_dgram_write( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len )
 	assert( buf != NULL );
 
 	dst = buf;
-	buf = (char *) buf + sizeof( struct sockaddr );
-	len -= sizeof( struct sockaddr );
+	buf = (char *) buf + sizeof( struct sockaddr_storage );
+	len -= sizeof( struct sockaddr_storage );
    
 	rc = sendto( sbiod->sbiod_sb->sb_fd, buf, len, 0, dst,
-		sizeof( struct sockaddr ) );
+		sizeof( struct sockaddr_storage ) );
 
 	if ( rc < 0 ) return -1;
    
@@ -949,7 +949,7 @@ sb_dgram_write( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len )
 # endif
 		return -1;
 	}
-	rc = len + sizeof(struct sockaddr);
+	rc = len + sizeof(struct sockaddr_storage);
 	return rc;
 }
 

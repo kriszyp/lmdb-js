@@ -314,8 +314,8 @@ ldap_init_fd(
 		LDAP_IS_UDP(ld) = 1;
 		if( ld->ld_options.ldo_peer )
 			ldap_memfree( ld->ld_options.ldo_peer );
-		ld->ld_options.ldo_peer = ldap_memalloc( sizeof( struct sockaddr ) );
-		len = sizeof( struct sockaddr );
+		ld->ld_options.ldo_peer = ldap_memcalloc( 1, sizeof( struct sockaddr_storage ) );
+		len = sizeof( struct sockaddr_storage );
 		if( getpeername ( fd, ld->ld_options.ldo_peer, &len ) < 0) {
 			ldap_unbind_ext( ld, NULL, NULL );
 			return( AC_SOCKET_ERROR );
