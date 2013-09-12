@@ -308,7 +308,7 @@ ldap_send_server_request(
 		ber_rewind( &tmpber );
 		LDAP_MUTEX_LOCK( &ld->ld_options.ldo_mutex );
 		rc = ber_write( &tmpber, ld->ld_options.ldo_peer,
-			sizeof( struct sockaddr ), 0 );
+			sizeof( struct sockaddr_storage ), 0 );
 		LDAP_MUTEX_UNLOCK( &ld->ld_options.ldo_mutex );
 		if ( rc == -1 ) {
 			ld->ld_errno = LDAP_ENCODING_ERROR;
