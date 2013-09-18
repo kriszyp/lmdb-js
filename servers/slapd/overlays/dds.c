@@ -1733,18 +1733,19 @@ dds_db_open(
 	di->di_suffix = be->be_suffix;
 	di->di_nsuffix = be->be_nsuffix;
 
-	/* ... so that count, if required, is accurate */
-	if ( di->di_max_dynamicObjects > 0 ) {
+	/* count the dynamic objects first */
+	rc = dds_count( thrctx, be );
+	if ( rc != LDAP_SUCCESS ) {
+		rc = 1;
+		goto done;
+	}
+
+	/* ... if there are dynamic objects, delete those expired */
+	if ( di->di_num_dynamicObjects > 0 ) {
 		/* force deletion of expired entries... */
 		be->bd_info = (BackendInfo *)on->on_info;
 		rc = dds_expire( thrctx, di );
 		be->bd_info = (BackendInfo *)on;
-		if ( rc != LDAP_SUCCESS ) {
-			rc = 1;
-			goto done;
-		}
-
-		rc = dds_count( thrctx, be );
 		if ( rc != LDAP_SUCCESS ) {
 			rc = 1;
 			goto done;
