@@ -308,7 +308,7 @@ OL_ARG_ENABLE(bdb,[    --enable-bdb	  enable Berkeley DB backend],
 OL_ARG_ENABLE(dnssrv,[    --enable-dnssrv	  enable dnssrv backend],
 	no, [no yes mod], ol_enable_backends)dnl
 OL_ARG_ENABLE(hdb,[    --enable-hdb	  enable Hierarchical DB backend],
-	yes, [no yes mod], ol_enable_backends)dnl
+	no, [no yes mod], ol_enable_backends)dnl
 OL_ARG_ENABLE(ldap,[    --enable-ldap	  enable ldap backend],
 	no, [no yes mod], ol_enable_backends)dnl
 OL_ARG_ENABLE(mdb,[    --enable-mdb	  enable mdb database backend],
