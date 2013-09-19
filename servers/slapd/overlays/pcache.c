@@ -37,7 +37,6 @@
 
 #include "config.h"
 
-#ifdef LDAP_DEVEL
 /*
  * Control that allows to access the private DB
  * instead of the public one
@@ -53,7 +52,6 @@
  * Monitoring
  */
 #define PCACHE_MONITOR
-#endif
 
 /* query cache structs */
 /* query */

@@ -2071,11 +2071,6 @@ LDAP_SLAPD_V (int)			slap_tool_thread_max;
 
 LDAP_SLAPD_V (ldap_pvt_thread_mutex_t)	entry2str_mutex;
 
-#ifndef LDAP_DEVEL
-	/* to be removed with 2.5 */
-#define gmtime_mutex ldap_int_gmtime_mutex
-#endif /* ! LDAP_DEVEL */
-
 LDAP_SLAPD_V (ldap_pvt_thread_mutex_t)	ad_index_mutex;
 LDAP_SLAPD_V (ldap_pvt_thread_mutex_t)	ad_undef_mutex;
 LDAP_SLAPD_V (ldap_pvt_thread_mutex_t)	oc_undef_mutex;

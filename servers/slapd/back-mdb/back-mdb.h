@@ -47,9 +47,7 @@ LDAP_BEGIN_DECL
 /* Default to 10MB max */
 #define DEFAULT_MAPSIZE	(10*1048576)
 
-#ifdef LDAP_DEVEL
 #define MDB_MONITOR_IDX
-#endif /* LDAP_DEVEL */
 
 typedef struct mdb_monitor_t {
 	void		*mdm_cb;
