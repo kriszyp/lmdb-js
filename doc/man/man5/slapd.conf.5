@@ -1265,6 +1265,7 @@ should be one of
 .BR hdb ,
 .BR ldap ,
 .BR ldif ,
+.BR mdb ,
 .BR meta ,
 .BR monitor ,
 .BR null ,
@@ -1294,6 +1295,7 @@ should be one of
 .BR hdb ,
 .BR ldap ,
 .BR ldif ,
+.BR mdb ,
 .BR meta ,
 .BR monitor ,
 .BR null ,
@@ -1727,7 +1729,7 @@ when using the \fIsyncprov\fP overlay, which needs to follow \fIglue\fP
 in order to work over all of the glued databases. E.g.
 .RS
 .nf
-	database bdb
+	database mdb
 	suffix dc=example,dc=com
 	...
 	overlay glue
@@ -2020,7 +2022,7 @@ access    to attrs=userPassword  by * auth
 # Read access to other attributes and entries.
 access    to *  by * read
 
-database  bdb
+database  mdb
 suffix    "dc=our\-domain,dc=com"
 # The database directory MUST exist prior to
 # running slapd AND should only be accessible
