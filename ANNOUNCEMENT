@@ -7,6 +7,39 @@ A N N O U N C E M E N T -- OpenLDAP 2.5
 
     This release contains the following major enhancements:
 
+General slapd bits:
+#define LDAP_COLLECTIVE_ATTRIBUTES
+#define LDAP_COMP_MATCH
+#define LDAP_SYNC_TIMESTAMP
+#define SLAP_CONTROL_X_WHATFAILED
+#define SLAP_CONFIG_DELETE
+#define SLAP_AUXPROP_DONTUSECOPY
+threadpool queues
+slapmodify
+non-blocking TLS
+gmtime_mutex
+LDAP_TCP_BUFFER
+Simplify write waiter handling
+
+back-bdb: BDB_MONITOR_IDX
+back-ldap: SLAP_AUTH_DN, FEATURE_CANCHAINOPS
+back-mdb: MDB_MONITOR_IDX
+back-meta: SLAP_AUTH_DN, SLAPD_META_CLIENT_PR
+overlays/syncprov: CHECK_CSN
+overlays/pcache: PCACHE_CONTROL_PRIVDB, PCACHE_EXOP_QUERY_DELETE, PCACHE_MONITOR
+
+ldap.h bits:
+#define LDAP_X_TXN                                             "1.3.6.1.4.1.4203.666.11.7" /* tmp */
+#define LDAP_EXOP_X_TXN_START                  LDAP_X_TXN ".1"
+#define LDAP_CONTROL_X_TXN_SPEC                        LDAP_X_TXN ".2"
+#define LDAP_EXOP_X_TXN_END                            LDAP_X_TXN ".3"
+#define LDAP_EXOP_X_TXN_ABORTED_NOTICE LDAP_X_TXN ".4"
+
+libldap
+channel binding support for OpenSSL, GnuTLS
+Elliptic Curve support for OpenSSL
+
+
     This release includes the following major components:
 
         * slapd - a stand-alone LDAP directory server
