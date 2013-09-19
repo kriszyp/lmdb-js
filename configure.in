@@ -303,11 +303,11 @@ SLAPD Backend Options:])
 
 OL_ARG_ENABLE(backends,[    --enable-backends	  enable all available backends],
 	--, [no yes mod])dnl
-OL_ARG_ENABLE(deprecated-bdb,[    --enable-deprecated-bdb	  enable deprecated Berkeley DB backend. Will be removed in OpenLDAP 2.6],
+OL_ARG_ENABLE(deprecated_bdb,[    --enable-deprecated-bdb	  enable deprecated Berkeley DB backend. Will be removed in OpenLDAP 2.6],
 	no, [no yes mod], ol_enable_backends)dnl
 OL_ARG_ENABLE(dnssrv,[    --enable-dnssrv	  enable dnssrv backend],
 	no, [no yes mod], ol_enable_backends)dnl
-OL_ARG_ENABLE(deprecated-hdb,[    --enable-deprecated-hdb	  enable deprecated Hierarchical DB backend. Will be removed in OpenLDAP 2.6],
+OL_ARG_ENABLE(deprecated_hdb,[    --enable-deprecated-hdb	  enable deprecated Hierarchical DB backend. Will be removed in OpenLDAP 2.6],
 	no, [no yes mod], ol_enable_backends)dnl
 OL_ARG_ENABLE(ldap,[    --enable-ldap	  enable ldap backend],
 	no, [no yes mod], ol_enable_backends)dnl
