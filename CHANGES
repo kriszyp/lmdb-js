@@ -1,6 +1,7 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.37 Engineering
+	Fixed slapd cn=config with olcTLSProtocolMin (ITS#7685)
 	Fixed slapd-ldap chaining with cn=config (ITS#7381, ITS#7434)
 	Fixed slapd-meta chaining with cn=config (ITS#7381, ITS#7434)
 	Documentation
