@@ -138,7 +138,8 @@ whatever installation prefix was used by {{EX:configure}}).
 example (usually installed as {{F:/usr/local/etc/openldap/slapd.conf}})
 to contain a BDB database definition of the form:
 
-..{{EX:database        bdb}}
+..{{EX:database        mdb}}
+..{{EX:maxsize         1073741824}}
 ..{{EX:suffix          "dc=<MY-DOMAIN>,dc=<COM>"}}
 ..{{EX:rootdn          "cn=Manager,dc=<MY-DOMAIN>,dc=<COM>"}}
 ..{{EX:rootpw          secret}}
@@ -148,7 +149,8 @@ to contain a BDB database definition of the form:
 the appropriate domain components of your domain name.  For
 example, for {{EX:example.com}}, use:
 
-..{{EX:database        bdb}}
+..{{EX:database        mdb}}
+..{{EX:maxsize         1073741824}}
 ..{{EX:suffix          "dc=example,dc=com"}}
 ..{{EX:rootdn          "cn=Manager,dc=example,dc=com"}}
 ..{{EX:rootpw          secret}}
@@ -157,7 +159,8 @@ example, for {{EX:example.com}}, use:
 .If your domain contains additional components, such as
 {{EX:eng.uni.edu.eu}}, use:
 
-..{{EX:database        bdb}}
+..{{EX:database        mdb}}
+..{{EX:maxsize         1073741824}}
 ..{{EX:suffix          "dc=eng,dc=uni,dc=edu,dc=eu"}}
 ..{{EX:rootdn          "cn=Manager,dc=eng,dc=uni,dc=edu,dc=eu"}}
 ..{{EX:rootpw          secret}}
