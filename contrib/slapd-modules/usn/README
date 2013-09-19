@@ -7,7 +7,7 @@ To use the overlay, add:
 	moduleload <path to>usn.so
 	...
 
-	database bdb
+	database mdb
 	...
 	overlay usn
 
