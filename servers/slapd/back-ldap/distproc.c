@@ -958,7 +958,6 @@ distproc_initialize( void )
 		return rc;
 	}
 
-#ifdef LDAP_DEVEL
 	rc = supported_feature_load( &slap_FEATURE_CANCHAINOPS );
 	if ( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY, "slapd-distproc: "
@@ -966,7 +965,6 @@ distproc_initialize( void )
 			rc, 0, 0 );
 		return rc;
 	}
-#endif
 
 	rc = register_supported_control( LDAP_CONTROL_X_RETURNCONTREF,
 			SLAP_CTRL_GLOBAL|SLAP_CTRL_ACCESS|SLAP_CTRL_HIDE, NULL,

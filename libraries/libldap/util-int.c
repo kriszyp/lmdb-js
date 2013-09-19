@@ -70,17 +70,12 @@ extern int h_errno;
 
 /* USE_GMTIME_R and USE_LOCALTIME_R defined in ldap_pvt.h */
 
-#ifdef LDAP_DEVEL
-	/* to be released with 2.5 */
 #if !defined( USE_GMTIME_R ) || !defined( USE_LOCALTIME_R )
 	/* we use the same mutex for gmtime(3) and localtime(3)
 	 * because implementations may use the same buffer
 	 * for both functions */
 	static ldap_pvt_thread_mutex_t ldap_int_gmtime_mutex;
 #endif
-#else /* ! LDAP_DEVEL */
-	ldap_pvt_thread_mutex_t ldap_int_gmtime_mutex;
-#endif /* ! LDAP_DEVEL */
 
 # if defined(HAVE_GETHOSTBYNAME_R) && \
 	(GETHOSTBYNAME_R_NARGS < 5) || (6 < GETHOSTBYNAME_R_NARGS)

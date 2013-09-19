@@ -28,9 +28,7 @@
 #include "config.h"
 #include "ldap_rq.h"
 
-#ifdef LDAP_DEVEL
 #define	CHECK_CSN	1
-#endif
 
 /* A modify request on a particular entry */
 typedef struct modinst {

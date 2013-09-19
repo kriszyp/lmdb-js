@@ -2348,9 +2348,6 @@ int accesslog_initialize()
 				0, 0, 0 );
 			return -1;
 		}
-#ifndef LDAP_DEVEL
-		(*lattrs[i].ad)->ad_type->sat_flags |= SLAP_AT_HIDE;
-#endif
 	}
 
 	for ( i=0; locs[i].ot; i++ ) {
@@ -2363,9 +2360,6 @@ int accesslog_initialize()
 				0, 0, 0 );
 			return -1;
 		}
-#ifndef LDAP_DEVEL
-		(*locs[i].oc)->soc_flags |= SLAP_OC_HIDE;
-#endif
 	}
 
 	return overlay_register(&accesslog);

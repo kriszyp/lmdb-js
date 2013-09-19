@@ -422,13 +422,11 @@ typedef struct ldapcontrol {
 #define LDAP_URLEXT_X_SEARCHEDSUBTREE	"x-searchedSubtree"
 #define LDAP_URLEXT_X_FAILEDNAME	"x-failedName"
 
-#ifdef LDAP_DEVEL
 #define LDAP_X_TXN						"1.3.6.1.4.1.4203.666.11.7" /* tmp */
 #define LDAP_EXOP_X_TXN_START			LDAP_X_TXN ".1"
 #define LDAP_CONTROL_X_TXN_SPEC			LDAP_X_TXN ".2"
 #define LDAP_EXOP_X_TXN_END				LDAP_X_TXN ".3"
 #define LDAP_EXOP_X_TXN_ABORTED_NOTICE	LDAP_X_TXN ".4"
-#endif
 
 /* LDAP Features */
 #define LDAP_FEATURE_ALL_OP_ATTRS	"1.3.6.1.4.1.4203.1.5.1"	/* RFC 3673 */

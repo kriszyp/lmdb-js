@@ -58,7 +58,6 @@
 
 LDAP_BEGIN_DECL
 
-#ifdef LDAP_DEVEL
 #define LDAP_COLLECTIVE_ATTRIBUTES
 #define LDAP_COMP_MATCH
 #define LDAP_SYNC_TIMESTAMP
@@ -67,7 +66,6 @@ LDAP_BEGIN_DECL
 #define SLAP_AUXPROP_DONTUSECOPY
 #ifndef SLAP_SCHEMA_EXPOSE
 #define SLAP_SCHEMA_EXPOSE
-#endif
 #endif
 
 #define LDAP_DYNAMIC_OBJECTS
@@ -2994,9 +2992,7 @@ struct Listener {
 	ber_socket_t sl_sd;
 	Sockaddr sl_sa;
 #define sl_addr	sl_sa.sa_in_addr
-#ifdef LDAP_DEVEL
 #define LDAP_TCP_BUFFER
-#endif
 #ifdef LDAP_TCP_BUFFER
 	int	sl_tcp_rmem;	/* custom TCP read buffer size */
 	int	sl_tcp_wmem;	/* custom TCP write buffer size */
