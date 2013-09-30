@@ -279,9 +279,14 @@ start_again:;
 
 	if ( lr != NULL ) {
 		if ( sendabandon || lr->lr_status == LDAP_REQST_WRITING ) {
+			/* release ld_req_mutex while grabbing ld_conn_mutex to
+			 * prevent deadlock.
+			 */
+			LDAP_MUTEX_UNLOCK( &ld->ld_req_mutex );
 			LDAP_MUTEX_LOCK( &ld->ld_conn_mutex );
 			ldap_free_connection( ld, lr->lr_conn, 0, 1 );
 			LDAP_MUTEX_UNLOCK( &ld->ld_conn_mutex );
+			LDAP_MUTEX_LOCK( &ld->ld_req_mutex );
 		}
 
 		if ( origid == msgid ) {
