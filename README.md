@@ -43,7 +43,8 @@ var lmdb = require('node-lmdb');
 ```javascript
 var env = new lmdb.Env();
 env.open({
-    path: __dirname + "/mydata",
+    path: __dirname + "/mydata", 
+    mapSize: 2*1024*1024*1024, // maximum database size
     maxDbs: 3
 });
 ```
@@ -60,7 +61,8 @@ An environment (`Env`) can contain one or more databases. Open a database with `
 
 ```javascript
 var dbi = env.openDbi({
-    name: "myPrettyDatabase"
+    name: "myPrettyDatabase",
+    create: true // will create if database did not exist
 })
 ```
 

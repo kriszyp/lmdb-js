@@ -66,6 +66,21 @@ Handle<Value> EnvWrap::ctor(const Arguments& args) {
     return args.This();
 }
 
+template<class T>
+int applyUint32Setting(int (*f)(MDB_env *, T), MDB_env* e, Local<Object> options, MDB_dbi dflt, const char* keyName) {
+    int rc;
+    const Handle<Value> value = options->Get(String::NewSymbol(keyName));
+    if (value->IsUint32()) {
+        rc = f(e, value->Uint32Value());
+    }
+    else {
+        rc = f(e, dflt);
+    }
+    
+    return rc;
+    
+}
+
 Handle<Value> EnvWrap::open(const Arguments& args) {
     HandleScope scope;
     int rc;
@@ -82,20 +97,18 @@ Handle<Value> EnvWrap::open(const Arguments& args) {
     Local<Object> options = args[0]->ToObject();
     Local<String> path = options->Get(String::NewSymbol("path"))->ToString();
     
-    Handle<Value> maxDbs = options->Get(String::NewSymbol("maxDbs"));
-    if (maxDbs->IsUint32()) {
-        MDB_dbi n = maxDbs->Uint32Value();
-        rc = mdb_env_set_maxdbs(ew->env, n);
-    }
-    else {
-        rc = mdb_env_set_maxdbs(ew->env, 1);
-    }
+    rc = applyUint32Setting(&mdb_env_set_maxdbs, ew->env, options, 1, "maxDbs");
     if (rc != 0) {
         ThrowException(Exception::Error(String::New(mdb_strerror(rc))));
         return Undefined();
     }
     
-    // TODO: expose mdb_env_set_mapsize
+    rc = applyUint32Setting(&mdb_env_set_mapsize, ew->env, options, 10485760, "mapSize");
+    if (rc != 0) {
+        ThrowException(Exception::Error(String::New(mdb_strerror(rc))));
+        return Undefined();
+    }
+
     // TODO: expose mdb_env_set_maxreaders
     
     // NOTE: MDB_FIXEDMAP is not exposed here since it is "highly experimental" + it is irrelevant for this use case
