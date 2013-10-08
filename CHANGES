@@ -1,6 +1,8 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.37 Engineering
+	Fixed liblmdb segfault with mdb_cursor_del (ITS#7718)
+	Fixed liblmdb when converting to writemap (ITS#7715)
 	Fixed slapd cn=config with olcTLSProtocolMin (ITS#7685)
 	Fixed slapd-ldap chaining with cn=config (ITS#7381, ITS#7434)
 	Fixed slapd-ldap chaning with controls (ITS#7687)
