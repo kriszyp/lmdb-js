@@ -1381,7 +1381,7 @@ mdb_dn2id_upgrade( BackendDB *be ) {
 		if (dkids > 1) {
 			rc = mdb_cursor_get(mc, &key, &data, MDB_NEXT_DUP);
 down:
-			ptr = data.mv_data + data.mv_size - sizeof(ID);
+			ptr = (unsigned char *)data.mv_data + data.mv_size - sizeof(ID);
 			memcpy(&id, ptr, sizeof(ID));
 			depth++;
 			memcpy(stack[depth].rdn, data.mv_data, data.mv_size);
@@ -1407,7 +1407,7 @@ pop:
 			goto leave;
 		}
 		data.mv_data = stack[depth].rdn;
-		ptr = data.mv_data + data.mv_size;
+		ptr = (unsigned char *)data.mv_data + data.mv_size;
 		memcpy(ptr, &num[depth], sizeof(ID));
 		data.mv_size += sizeof(ID);
 		rc = mdb_cursor_del(mc, 0);

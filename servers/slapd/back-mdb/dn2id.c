@@ -165,7 +165,7 @@ mdb_dn2id_add(
 			rc = mdb_cursor_get( mcp, &key, &data, MDB_SET );
 			if ( !rc ) {
 				char *p2;
-				ptr = data.mv_data + data.mv_size - sizeof( ID );
+				ptr = (char *)data.mv_data + data.mv_size - sizeof( ID );
 				memcpy( &nid, ptr, sizeof( ID ));
 				/* Get parent's node under grandparent */
 				d = data.mv_data;
@@ -178,7 +178,7 @@ mdb_dn2id_add(
 				op->o_tmpfree( p2, op->o_tmpmemctx );
 				if ( !rc ) {
 					/* Get parent's subtree count */
-					ptr = data.mv_data + data.mv_size - sizeof( ID );
+					ptr = (char *)data.mv_data + data.mv_size - sizeof( ID );
 					memcpy( &subs, ptr, sizeof( ID ));
 					subs += nsubs;
 					p2 = op->o_tmpalloc( data.mv_size, op->o_tmpmemctx );
@@ -246,7 +246,7 @@ mdb_dn2id_delete(
 				char *p2;
 				diskNode *d;
 				int rlen;
-				ptr = data.mv_data + data.mv_size - sizeof( ID );
+				ptr = (char *)data.mv_data + data.mv_size - sizeof( ID );
 				memcpy( &nid, ptr, sizeof( ID ));
 				/* Get parent's node under grandparent */
 				d = data.mv_data;
@@ -259,7 +259,7 @@ mdb_dn2id_delete(
 				op->o_tmpfree( p2, op->o_tmpmemctx );
 				if ( !rc ) {
 					/* Get parent's subtree count */
-					ptr = data.mv_data + data.mv_size - sizeof( ID );
+					ptr = (char *)data.mv_data + data.mv_size - sizeof( ID );
 					memcpy( &subs, ptr, sizeof( ID ));
 					subs -= nsubs;
 					p2 = op->o_tmpalloc( data.mv_size, op->o_tmpmemctx );
@@ -399,7 +399,7 @@ mdb_dn2id(
 	*id = nid; 
 	/* return subtree count if requested */
 	if ( !rc && nsubs ) {
-		ptr = data.mv_data + data.mv_size - sizeof(ID);
+		ptr = (char *)data.mv_data + data.mv_size - sizeof(ID);
 		memcpy( nsubs, ptr, sizeof( ID ));
 	}
 	if ( !mc )
@@ -795,7 +795,7 @@ mdb_dn2id_walk(
 		/* Get next sibling */
 		rc = mdb_cursor_get( isc->mc, &key, &data, MDB_NEXT_DUP );
 		if ( !rc ) {
-			ptr = data.mv_data + data.mv_size - 2*sizeof(ID);
+			ptr = (char *)data.mv_data + data.mv_size - 2*sizeof(ID);
 			d = data.mv_data;
 			memcpy( &isc->id, ptr, sizeof(ID));
 
