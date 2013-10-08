@@ -1,6 +1,7 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.37 Engineering
+	Fixed libldap lock ordering with abandon op (ITS#7712)
 	Fixed liblmdb segfault with mdb_cursor_del (ITS#7718)
 	Fixed liblmdb when converting to writemap (ITS#7715)
 	Fixed slapd cn=config with olcTLSProtocolMin (ITS#7685)
