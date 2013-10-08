@@ -8,6 +8,8 @@ OpenLDAP 2.4.37 Engineering
 	Fixed slapd-ldap chaining with cn=config (ITS#7381, ITS#7434)
 	Fixed slapd-ldap chaning with controls (ITS#7687)
 	Fixed slapd-meta chaining with cn=config (ITS#7381, ITS#7434)
+	Build Environment
+		Fixed slapd-mdb ptr arithmetic on void *s (ITS#7720)
 	Documentation
 		ldapsearch(1) minor typo fix (ITS#7680)
 		slapd-passwd(5) minor typo fix (ITS#7680)
