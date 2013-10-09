@@ -5,9 +5,13 @@ OpenLDAP 2.4.37 Engineering
 	Fixed liblmdb segfault with mdb_cursor_del (ITS#7718)
 	Fixed liblmdb when converting to writemap (ITS#7715)
 	Fixed slapd cn=config with olcTLSProtocolMin (ITS#7685)
+	Fixed slapd-bdb/hdb optimize index updates (ITS#7329)
 	Fixed slapd-ldap chaining with cn=config (ITS#7381, ITS#7434)
 	Fixed slapd-ldap chaning with controls (ITS#7687)
+	Fixed slapd-mdb optimize index updates (ITS#7329)
 	Fixed slapd-meta chaining with cn=config (ITS#7381, ITS#7434)
+	Fixed slapo-memberof to not replicate internal ops (ITS#7710)
+	Fixed slapo-refint to not replicate internal ops (ITS#7710)
 	Build Environment
 		Fixed slapd-mdb ptr arithmetic on void *s (ITS#7720)
 	Documentation
