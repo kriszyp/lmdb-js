@@ -341,6 +341,7 @@ memberof_value_modify(
 	memberof_t	*mo = (memberof_t *)on->on_bi.bi_private;
 
 	Operation	op2 = *op;
+	unsigned long opid = op->o_opid;
 	SlapReply	rs2 = { REP_RESULT };
 	slap_callback	cb = { NULL, slap_null_cb, NULL, NULL };
 	Modifications	mod[ 2 ] = { { { 0 } } }, *ml;
@@ -358,6 +359,7 @@ memberof_value_modify(
 	op2.orm_modlist = NULL;
 
 	/* Internal ops, never replicate these */
+	op2.o_opid = 0;		/* shared with op, saved above */
 	op2.orm_no_opattrs = 1;
 	op2.o_dont_replicate = 1;
 
@@ -472,6 +474,8 @@ memberof_value_modify(
 			slap_mods_free( ml, 1 );
 		}
 	}
+	/* restore original opid */
+	op->o_opid = opid;
 
 	/* FIXME: if old_group_ndn doesn't exist, both delete __and__
 	 * add will fail; better split in two operations, although
