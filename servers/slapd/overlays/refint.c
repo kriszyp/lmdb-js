@@ -566,7 +566,7 @@ refint_repair(
 	 *
 	 */
 
-	opid = op2.o_opid;
+	opid = op->o_opid;
 	op2 = *op;
 	for ( dp = rq->attrs; dp; dp = dp->next ) {
 		SlapReply	rs2 = {REP_RESULT};
