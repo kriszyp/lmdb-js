@@ -1516,22 +1516,53 @@ connection_input( Connection *conn , conn_readinfo *cri )
 
 #ifdef LDAP_CONNECTIONLESS
 	if ( conn->c_is_udp ) {
+#if defined(LDAP_PF_INET6)
+		char peername[sizeof("IP=[ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff]:65535")];
+		char addr[INET6_ADDRSTRLEN];
+#else
 		char peername[sizeof("IP=255.255.255.255:65336")];
+		char addr[INET_ADDRSTRLEN];
+#endif
 		const char *peeraddr_string = NULL;
 
-		len = ber_int_sb_read(conn->c_sb, &peeraddr, sizeof(struct sockaddr));
-		if (len != sizeof(struct sockaddr)) return 1;
+		len = ber_int_sb_read(conn->c_sb, &peeraddr, sizeof(Sockaddr));
+		if (len != sizeof(Sockaddr)) return 1;
 
+#if defined(LDAP_PF_INET6)
+		if (peeraddr.sa_addr.sa_family == AF_INET6) {
+			if ( IN6_IS_ADDR_V4MAPPED(&peeraddr.sa_in6_addr.sin6_addr) ) {
 #if defined( HAVE_GETADDRINFO ) && defined( HAVE_INET_NTOP )
-		char addr[INET_ADDRSTRLEN];
-		peeraddr_string = inet_ntop( AF_INET, &peeraddr.sa_in_addr.sin_addr,
+				peeraddr_string = inet_ntop( AF_INET,
+				   ((struct in_addr *)&peeraddr.sa_in6_addr.sin6_addr.s6_addr[12]),
+				   addr, sizeof(addr) );
+#else /* ! HAVE_GETADDRINFO || ! HAVE_INET_NTOP */
+				peeraddr_string = inet_ntoa( *((struct in_addr *)
+					&peeraddr.sa_in6_addr.sin6_addr.s6_addr[12]) );
+#endif /* ! HAVE_GETADDRINFO || ! HAVE_INET_NTOP */
+				if ( !peeraddr_string ) peeraddr_string = SLAP_STRING_UNKNOWN;
+				sprintf( peername, "IP=%s:%d", peeraddr_string,
+					(unsigned) ntohs( peeraddr.sa_in6_addr.sin6_port ) );
+			} else {
+				peeraddr_string = inet_ntop( AF_INET6,
+				      &peeraddr.sa_in6_addr.sin6_addr,
+				      addr, sizeof addr );
+				if ( !peeraddr_string ) peeraddr_string = SLAP_STRING_UNKNOWN;
+				sprintf( peername, "IP=[%s]:%d", peeraddr_string,
+					 (unsigned) ntohs( peeraddr.sa_in6_addr.sin6_port ) );
+			}
+		} else
+#endif
+#if defined( HAVE_GETADDRINFO ) && defined( HAVE_INET_NTOP )
+		{
+			peeraddr_string = inet_ntop( AF_INET, &peeraddr.sa_in_addr.sin_addr,
 			   addr, sizeof(addr) );
 #else /* ! HAVE_GETADDRINFO || ! HAVE_INET_NTOP */
-		peeraddr_string = inet_ntoa( peeraddr.sa_in_addr.sin_addr );
+			peeraddr_string = inet_ntoa( peeraddr.sa_in_addr.sin_addr );
 #endif /* ! HAVE_GETADDRINFO || ! HAVE_INET_NTOP */
-		sprintf( peername, "IP=%s:%d",
-			 peeraddr_string,
-			(unsigned) ntohs( peeraddr.sa_in_addr.sin_port ) );
+			sprintf( peername, "IP=%s:%d",
+				 peeraddr_string,
+				(unsigned) ntohs( peeraddr.sa_in_addr.sin_port ) );
+		}
 		Statslog( LDAP_DEBUG_STATS,
 			"conn=%lu UDP request from %s (%s) accepted.\n",
 			conn->c_connid, peername, conn->c_sock_name.bv_val, 0, 0 );
