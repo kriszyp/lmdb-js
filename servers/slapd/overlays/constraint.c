@@ -933,6 +933,10 @@ constraint_update( Operation *op, SlapReply *rs )
 	rc = be_entry_get_rw( op, &op->o_req_ndn, NULL, NULL, 0, &target_entry );
 	op->o_bd = be;
 
+	/* let the backend send the error */
+	if ( target_entry == NULL )
+		return SLAP_CB_CONTINUE;
+
 	/* Do we need to count attributes? */
 	for(cp = c; cp; cp = cp->ap_next) {
 		if (cp->count != 0) {
