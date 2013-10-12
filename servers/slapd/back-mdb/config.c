@@ -104,6 +104,7 @@ static slap_verbmasks mdb_envflags[] = {
 	{ BER_BVC("nometasync"),	MDB_NOMETASYNC },
 	{ BER_BVC("writemap"),	MDB_WRITEMAP },
 	{ BER_BVC("mapasync"),	MDB_MAPASYNC },
+	{ BER_BVC("nordahead"),	MDB_NORDAHEAD },
 	{ BER_BVNULL, 0 }
 };
 

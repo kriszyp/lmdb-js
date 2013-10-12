@@ -54,7 +54,7 @@ A separate directory must be specified for each database.
 The default is
 .BR LOCALSTATEDIR/openldap\-data .
 .TP
-\fBenvflags \fR{\fBnosync\fR,\fBnometasync\fR,\fBwritemap\fR,\fBmapasync\fR}
+\fBenvflags \fR{\fBnosync\fR,\fBnometasync\fR,\fBwritemap\fR,\fBmapasync\fR,\fBnordahead\fR}
 Specify flags for finer-grained control of the LMDB library's operation.
 .RS
 .TP
@@ -93,6 +93,14 @@ has no effect if
 has not been set. It also has no effect if
 .I nosync
 is set.
+.RE
+.RS
+.TP
+.B nordahead
+Turn off file readahead. Usually the OS performs readahead on every read
+request. This usually boosts read performance but can be harmful to
+random access read performance if the system's memory is full and the DB
+is larger than RAM. This option is not implemented on Windows.
 .RE
 
 .TP
