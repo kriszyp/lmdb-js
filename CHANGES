@@ -14,6 +14,7 @@ OpenLDAP 2.4.37 Engineering
 	Fixed slapd-ldap chaning with controls (ITS#7687)
 	Fixed slapd-mdb optimize index updates (ITS#7329)
 	Fixed slapd-meta chaining with cn=config (ITS#7381, ITS#7434)
+	Fixed slapo-dds assert on startup (ITS#7699)
 	Fixed slapo-memberof to not replicate internal ops (ITS#7710)
 	Fixed slapo-refint to not replicate internal ops (ITS#7710)
 	Build Environment
