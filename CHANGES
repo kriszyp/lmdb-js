@@ -1,6 +1,6 @@
 OpenLDAP 2.4 Change Log
 
-OpenLDAP 2.4.37 Engineering
+OpenLDAP 2.4.37 Release (2013/10/27)
 	Added liblmdb nordahead environment flag (ITS#7725)
 	Fixed client tools CLDAP with IPv6 (ITS#7695)
 	Fixed libldap CLDAP with IPv6 (ITS#7695)
