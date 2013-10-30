@@ -136,7 +136,7 @@ whatever installation prefix was used by {{EX:configure}}).
 
 . Use your favorite editor to edit the provided {{slapd.conf}}(5)
 example (usually installed as {{F:/usr/local/etc/openldap/slapd.conf}})
-to contain a BDB database definition of the form:
+to contain a MDB database definition of the form:
 
 ..{{EX:database        mdb}}
 ..{{EX:maxsize         1073741824}}
