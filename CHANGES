@@ -3,6 +3,7 @@ OpenLDAP 2.4 Change Log
 OpenLDAP 2.4.38 Engineering
 	Fixed liblmdb nordahead flag (ITS#7734)
 	Fixed liblmdb to check cursor index before cursor_del (ITS#7733)
+	Fixed slapd-mdb dangling reader (ITS#7662)
 
 OpenLDAP 2.4.37 Release (2013/10/27)
 	Added liblmdb nordahead environment flag (ITS#7725)
