@@ -59,6 +59,7 @@ static ConfigTable mdbcfg[] = {
 	{ "envflags", "flags", 2, 0, 0, ARG_MAGIC|MDB_ENVFLAGS,
 		mdb_cf_gen, "( OLcfgDbAt:12.3 NAME 'olcDbEnvFlags' "
 			"DESC 'Database environment flags' "
+			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ "index", "attr> <[pres,eq,approx,sub]", 2, 3, 0, ARG_MAGIC|MDB_INDEX,
 		mdb_cf_gen, "( OLcfgDbAt:0.2 NAME 'olcDbIndex' "
