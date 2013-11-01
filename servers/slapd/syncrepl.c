@@ -590,7 +590,8 @@ check_syncprov(
 		slap_compose_sync_cookie( NULL, &si->si_syncCookie.octet_str,
 			si->si_syncCookie.ctxcsn, si->si_syncCookie.rid,
 			si->si_syncCookie.sid );
-		slap_parse_sync_cookie( &si->si_syncCookie, NULL );
+		ch_free( si->si_syncCookie.sids );
+		slap_reparse_sync_cookie( &si->si_syncCookie, op->o_tmpmemctx );
 	}
 	ldap_pvt_thread_mutex_unlock( &si->si_cookieState->cs_mutex );
 	return changed;
