@@ -1185,7 +1185,7 @@ LDAP_SLAPD_F (void) slap_insert_csn_sids LDAP_P((
 				struct sync_cookie *ck, int, int, struct berval * ));
 LDAP_SLAPD_F (int) slap_parse_sync_cookie LDAP_P((
 				struct sync_cookie *, void *memctx ));
-LDAP_SLAPD_F (int) slap_reparse_sync_cookie LDAP_P((
+LDAP_SLAPD_F (void) slap_reparse_sync_cookie LDAP_P((
 				struct sync_cookie *, void *memctx ));
 LDAP_SLAPD_F (int) slap_init_sync_cookie_ctxcsn LDAP_P((
 				struct sync_cookie * ));
