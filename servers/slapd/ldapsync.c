@@ -380,8 +380,7 @@ slap_reparse_sync_cookie(
 		for (; !BER_BVISNULL( &cookie->ctxcsn[cookie->numcsns] ); cookie->numcsns++);
 	}
 	if ( cookie->numcsns ) {
-		cookie->sids = slap_parse_csn_sids( cookie->ctxcsn, cookie->numcsns,
-			memctx );
+		cookie->sids = slap_parse_csn_sids( cookie->ctxcsn, cookie->numcsns, NULL );
 		if ( cookie->numcsns > 1 )
 			slap_sort_csn_sids( cookie->ctxcsn, cookie->sids, cookie->numcsns, memctx );
 	}
