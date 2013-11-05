@@ -618,6 +618,10 @@ meta_back_single_dobind(
 
 		/* FIXME: should we check if at least some of the op->o_ctrls
 		 * can/should be passed? */
+		if(!dolock) {
+			ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
+		}
+
 		for (;;) {
 			rs->sr_err = ldap_sasl_bind( msc->msc_ld,
 				binddn, LDAP_SASL_SIMPLE, &cred,
@@ -626,6 +630,10 @@ meta_back_single_dobind(
 				break;
 			}
 			ldap_pvt_thread_yield();
+		}
+
+		if(!dolock) {
+			ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
 		}
 
 		rs->sr_err = meta_back_bind_op_result( op, rs, mc, candidate, msgid, sendok, dolock );
@@ -1578,6 +1586,11 @@ meta_back_proxy_authz_bind(
 		switch ( method ) {
 		case LDAP_AUTH_NONE:
 		case LDAP_AUTH_SIMPLE:
+
+			if(!dolock) {
+				ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
+			}
+
 			for (;;) {
 				rs->sr_err = ldap_sasl_bind( msc->msc_ld,
 					binddn.bv_val, LDAP_SASL_SIMPLE,
@@ -1587,6 +1600,11 @@ meta_back_proxy_authz_bind(
 				}
 				ldap_pvt_thread_yield();
 			}
+
+			if(!dolock) {
+				ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
+			}
+
 			rc = meta_back_bind_op_result( op, rs, mc, candidate, msgid, sendok, dolock );
 			if ( rc == LDAP_SUCCESS ) {
 				/* set rebind stuff in case of successful proxyAuthz bind,
