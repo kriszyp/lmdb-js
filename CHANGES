@@ -6,6 +6,7 @@ OpenLDAP 2.4.38 Engineering
 	Fixed slapd syncrepl memory leak with delta-sync MMR (ITS#7735)
 	Fixed slapd-mdb dangling reader (ITS#7662)
 	Fixed slapd-mdb matching rule for OlcDbEnvFlags (ITS#7737)
+	Fixed slapd-meta from blocking other threads (ITS#7740)
 
 OpenLDAP 2.4.37 Release (2013/10/27)
 	Added liblmdb nordahead environment flag (ITS#7725)
