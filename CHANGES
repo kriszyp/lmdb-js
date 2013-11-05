@@ -3,6 +3,7 @@ OpenLDAP 2.4 Change Log
 OpenLDAP 2.4.38 Engineering
 	Fixed liblmdb nordahead flag (ITS#7734)
 	Fixed liblmdb to check cursor index before cursor_del (ITS#7733)
+	Fixed slapd cn=config with empty nested includes (ITS#7739)
 	Fixed slapd syncrepl memory leak with delta-sync MMR (ITS#7735)
 	Fixed slapd-mdb dangling reader (ITS#7662)
 	Fixed slapd-mdb matching rule for OlcDbEnvFlags (ITS#7737)
