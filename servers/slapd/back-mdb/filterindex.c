@@ -696,6 +696,10 @@ equality_candidates(
 			ids[0] = 1;
 			ids[1] = id;
 		}
+		if ( rc == MDB_NOTFOUND ) {
+			MDB_IDL_ZERO( ids );
+			rc = 0;
+		}
 		return rc;
 	}
 
