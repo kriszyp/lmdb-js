@@ -1089,8 +1089,8 @@ bdb_idl_intersection(
 	 * turn it into a range.
 	 */
 	if ( BDB_IDL_IS_RANGE( b )
-		&& BDB_IDL_RANGE_FIRST( b ) <= BDB_IDL_RANGE_FIRST( a )
-		&& BDB_IDL_RANGE_LAST( b ) >= BDB_IDL_RANGE_LAST( a ) ) {
+		&& BDB_IDL_RANGE_FIRST( b ) <= BDB_IDL_FIRST( a )
+		&& BDB_IDL_RANGE_LAST( b ) >= BDB_IDL_LLAST( a ) ) {
 		if (idmax - idmin + 1 == a[0])
 		{
 			a[0] = NOID;

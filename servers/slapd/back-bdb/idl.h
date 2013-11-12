@@ -62,6 +62,7 @@
 #define BDB_IDL_ALL( bdb, ids ) BDB_IDL_RANGE( ids, 1, ((bdb)->bi_lastid) )
 
 #define BDB_IDL_FIRST( ids )	( (ids)[1] )
+#define BDB_IDL_LLAST( ids )	( (ids)[(ids)[0]] )
 #define BDB_IDL_LAST( ids )		( BDB_IDL_IS_RANGE(ids) \
 	? (ids)[2] : (ids)[(ids)[0]] )
 

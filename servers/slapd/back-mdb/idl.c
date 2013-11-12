@@ -715,8 +715,8 @@ mdb_idl_intersection(
 	 * turn it into a range.
 	 */
 	if ( MDB_IDL_IS_RANGE( b )
-		&& MDB_IDL_RANGE_FIRST( b ) <= MDB_IDL_RANGE_FIRST( a )
-		&& MDB_IDL_RANGE_LAST( b ) >= MDB_IDL_RANGE_LAST( a ) ) {
+		&& MDB_IDL_RANGE_FIRST( b ) <= MDB_IDL_FIRST( a )
+		&& MDB_IDL_RANGE_LAST( b ) >= MDB_IDL_LLAST( a ) ) {
 		if (idmax - idmin + 1 == a[0])
 		{
 			a[0] = NOID;
