@@ -7,9 +7,11 @@ OpenLDAP 2.4.38 Engineering
 	Fixed slapd cn=config with empty nested includes (ITS#7739)
 	Fixed slapd syncrepl memory leak with delta-sync MMR (ITS#7735)
 	Fixed slapd-bdb/hdb to stop processing on dn not found (ITS#7741)
+	Fixed slapd-bdb/hdb with indexed ANDed filters (ITS#7743)
 	Fixed slapd-mdb to stop processing on dn not found (ITS#7741)
 	Fixed slapd-mdb dangling reader (ITS#7662)
 	Fixed slapd-mdb matching rule for OlcDbEnvFlags (ITS#7737)
+	Fixed slapd-mdb with indexed ANDed filters (ITS#7743)
 	Fixed slapd-meta from blocking other threads (ITS#7740)
 
 OpenLDAP 2.4.37 Release (2013/10/27)
