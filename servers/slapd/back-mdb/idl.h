@@ -62,6 +62,7 @@
 #define MDB_IDL_ALL( ids ) MDB_IDL_RANGE( ids, 1, NOID )
 
 #define MDB_IDL_FIRST( ids )	( (ids)[1] )
+#define MDB_IDL_LLAST( ids )	( (ids)[(ids)[0]] )
 #define MDB_IDL_LAST( ids )		( MDB_IDL_IS_RANGE(ids) \
 	? (ids)[2] : (ids)[(ids)[0]] )
 
