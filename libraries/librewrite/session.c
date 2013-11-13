@@ -161,6 +161,7 @@ rewrite_session_find(
 #ifdef USE_REWRITE_LDAP_PVT_THREADS
 	if ( session ) {
 		ldap_pvt_thread_mutex_lock( &session->ls_mutex );
+		session->ls_count++;
 	}
 	ldap_pvt_thread_rdwr_runlock( &info->li_cookies_mutex );
 #endif /* USE_REWRITE_LDAP_PVT_THREADS */
@@ -178,6 +179,7 @@ rewrite_session_return(
 )
 {
 	assert( session != NULL );
+	session->ls_count--;
 	ldap_pvt_thread_mutex_unlock( &session->ls_mutex );
 }
 
