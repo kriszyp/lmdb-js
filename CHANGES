@@ -1,6 +1,6 @@
 OpenLDAP 2.4 Change Log
 
-OpenLDAP 2.4.38 Engineering
+OpenLDAP 2.4.38 Release (2013/11/16)
 	Fixed liblmdb nordahead flag (ITS#7734)
 	Fixed liblmdb to check cursor index before cursor_del (ITS#7733)
 	Fixed liblmdb wasted space on split (ITS#7589)
