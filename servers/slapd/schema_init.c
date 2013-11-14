@@ -3713,12 +3713,14 @@ certificateExactNormalize(
 	tag = ber_skip_tag( ber, &len );	/* SignatureAlg */
 	ber_skip_data( ber, len );
 	tag = ber_peek_tag( ber, &len );	/* IssuerDN */
-	len = ber_ptrlen( ber );
-	bvdn.bv_val = val->bv_val + len;
-	bvdn.bv_len = val->bv_len - len;
+	if ( len ) {
+		len = ber_ptrlen( ber );
+		bvdn.bv_val = val->bv_val + len;
+		bvdn.bv_len = val->bv_len - len;
 
-	rc = dnX509normalize( &bvdn, &issuer_dn );
-	if ( rc != LDAP_SUCCESS ) goto done;
+		rc = dnX509normalize( &bvdn, &issuer_dn );
+		if ( rc != LDAP_SUCCESS ) goto done;
+	}
 
 	normalized->bv_len = STRLENOF( "{ serialNumber , issuer rdnSequence:\"\" }" )
 		+ sn2.bv_len + issuer_dn.bv_len;
