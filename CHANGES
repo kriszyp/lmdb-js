@@ -4,6 +4,7 @@ OpenLDAP 2.4.38 Engineering
 	Fixed liblmdb nordahead flag (ITS#7734)
 	Fixed liblmdb to check cursor index before cursor_del (ITS#7733)
 	Fixed liblmdb wasted space on split (ITS#7589)
+	Fixed slapd for certs with a NULL issuerDN (ITS#7746)
 	Fixed slapd cn=config with empty nested includes (ITS#7739)
 	Fixed slapd syncrepl memory leak with delta-sync MMR (ITS#7735)
 	Fixed slapd-bdb/hdb to stop processing on dn not found (ITS#7741)
