@@ -14,6 +14,7 @@ OpenLDAP 2.4.38 Release (2013/11/16)
 	Fixed slapd-mdb matching rule for OlcDbEnvFlags (ITS#7737)
 	Fixed slapd-mdb with indexed ANDed filters (ITS#7743)
 	Fixed slapd-meta from blocking other threads (ITS#7740)
+	Fixed slapo-syncprov assert with findbase (ITS#7749)
 
 OpenLDAP 2.4.37 Release (2013/10/27)
 	Added liblmdb nordahead environment flag (ITS#7725)
