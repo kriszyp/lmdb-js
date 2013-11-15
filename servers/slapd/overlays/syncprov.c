@@ -442,6 +442,7 @@ syncprov_findbase( Operation *op, fbase_cookie *fc )
 		fop.o_hdr = op->o_hdr;
 		fop.o_time = op->o_time;
 		fop.o_tincr = op->o_tincr;
+		fop.o_extra = op->o_extra;
 
 		cb.sc_response = findbase_cb;
 		cb.sc_private = fc;
