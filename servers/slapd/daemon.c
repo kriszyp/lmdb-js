@@ -3079,7 +3079,7 @@ slapd_wait_writer( ber_socket_t sd )
 		tv.tv_usec = 0;
 		tvp = &tv;
 	} else {
-		tv = NULL;
+		tvp = NULL;
 	}
 	return select( 0, NULL, &writefds, NULL, tvp );
 #else
