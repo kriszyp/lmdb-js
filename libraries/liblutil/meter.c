@@ -99,7 +99,7 @@ lutil_meter_open (
 	lutil_meter_t *meter,
 	const lutil_meter_display_t *display, 
 	const lutil_meter_estimator_t *estimator,
-	unsigned long goal_value)
+	size_t goal_value)
 {
 	int rc;
 
@@ -132,7 +132,7 @@ lutil_meter_open (
 int
 lutil_meter_update (
 	lutil_meter_t *meter,
-	unsigned long position,
+	size_t position,
 	int force)
 {
 	static const double display_rate = 0.5;

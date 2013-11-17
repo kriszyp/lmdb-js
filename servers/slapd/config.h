@@ -144,7 +144,7 @@ typedef struct config_args_s {
 		int v_int;
 		unsigned v_uint;
 		long v_long;
-		unsigned long v_ulong;
+		size_t v_ulong;
 		ber_len_t v_ber_t;
 		char *v_string;
 		struct berval v_bv;
