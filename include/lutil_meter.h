@@ -49,8 +49,8 @@ typedef struct {
 	void * estimator_data;
 	double start_time;
 	double last_update;
-	unsigned long goal_value;
-	unsigned long last_position;
+	size_t goal_value;
+	size_t last_position;
 } lutil_meter_t;
 
 extern const lutil_meter_display_t lutil_meter_text_display;
@@ -60,10 +60,10 @@ extern int lutil_meter_open (
 	lutil_meter_t *lutil_meter,
 	const lutil_meter_display_t *display, 
 	const lutil_meter_estimator_t *estimator,
-	unsigned long goal_value);
+	size_t goal_value);
 extern int lutil_meter_update (
 	lutil_meter_t *lutil_meter,
-	unsigned long position,
+	size_t position,
 	int force);
 extern int lutil_meter_close (lutil_meter_t *lutil_meter);
 

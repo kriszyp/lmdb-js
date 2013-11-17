@@ -114,7 +114,7 @@ again:
 
 		if ( enable_meter )
 			lutil_meter_update( &meter,
-					 ftell( ldiffp->fp ),
+					 ftello( ldiffp->fp ),
 					 0);
 
 		if( e == NULL ) {
@@ -483,7 +483,7 @@ slapadd( int argc, char **argv )
 	bvtext.bv_val[0] = '\0';
 
 	if ( enable_meter ) {
-		lutil_meter_update( &meter, ftell( ldiffp->fp ), 1);
+		lutil_meter_update( &meter, ftello( ldiffp->fp ), 1);
 		lutil_meter_close( &meter );
 	}
 
