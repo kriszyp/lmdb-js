@@ -1,6 +1,7 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.39 Engineering
+	Fixed slapd cn=config olcDbConfig modification (ITS#7750)
 
 OpenLDAP 2.4.38 Release (2013/11/16)
 	Fixed liblmdb nordahead flag (ITS#7734)
