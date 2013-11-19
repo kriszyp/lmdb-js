@@ -324,6 +324,7 @@ bdb_cf_cleanup( ConfigArgs *c )
 {
 	struct bdb_info *bdb = c->be->be_private;
 	int rc = 0;
+	BerVarray bva;
 
 	if ( bdb->bi_flags & BDB_DEL_INDEX ) {
 		bdb_attr_flush( bdb );
@@ -332,16 +333,22 @@ bdb_cf_cleanup( ConfigArgs *c )
 
 	if ( bdb->bi_flags & BDB_RE_OPEN ) {
 		bdb->bi_flags ^= BDB_RE_OPEN;
+		bva = bdb->bi_db_config;
+		bdb->bi_db_config = NULL;
 		rc = c->be->bd_info->bi_db_close( c->be, &c->reply );
 		if ( rc == 0 ) {
 			if ( bdb->bi_flags & BDB_UPD_CONFIG ) {
-				if ( bdb->bi_db_config ) {
+				if ( bva ) {
 					int i;
 					FILE *f = fopen( bdb->bi_db_config_path, "w" );
 					if ( f ) {
+						bdb->bi_db_config = bva;
+						bva = NULL;
 						for (i=0; bdb->bi_db_config[i].bv_val; i++)
 							fprintf( f, "%s\n", bdb->bi_db_config[i].bv_val );
 						fclose( f );
+					} else {
+						ber_bvarray_free( bva );
 					}
 				} else {
 					unlink( bdb->bi_db_config_path );
