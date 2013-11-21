@@ -450,7 +450,6 @@ syncprov_findbase( Operation *op, fbase_cookie *fc )
 		fop.o_sync_mode = 0;	/* turn off sync mode */
 		fop.o_managedsait = SLAP_CONTROL_CRITICAL;
 		fop.o_callback = &cb;
-		LDAP_SLIST_INIT( &fop.o_extra );
 		fop.o_tag = LDAP_REQ_SEARCH;
 		fop.ors_scope = LDAP_SCOPE_BASE;
 		fop.ors_limit = NULL;
