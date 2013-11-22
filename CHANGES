@@ -2,6 +2,7 @@ OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.39 Engineering
 	Fixed slapd cn=config olcDbConfig modification (ITS#7750)
+	Fixed slapo-syncprov assert with findbase (ITS#7749)
 
 OpenLDAP 2.4.38 Release (2013/11/16)
 	Fixed liblmdb nordahead flag (ITS#7734)
