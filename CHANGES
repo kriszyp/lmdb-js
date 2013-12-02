@@ -1,6 +1,7 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.39 Engineering
+	Fixed liblmdb keysizes with mdb_update_key (ITS#7756)
 	Fixed slapd cn=config olcDbConfig modification (ITS#7750)
 	Fixed slapo-syncprov assert with findbase (ITS#7749)
 
