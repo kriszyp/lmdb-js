@@ -134,6 +134,11 @@ ldap_parse_passwordpolicy_control(
 	assert( LDAP_VALID( ld ) );
 	assert( ctrl != NULL );
 
+	if ( !ctrl->ldctl_value.bv_val ) {
+		ld->ld_errno = LDAP_DECODING_ERROR;
+		return(ld->ld_errno);
+	}
+
 	/* Create a BerElement from the berval returned in the control. */
 	ber = ber_init(&ctrl->ldctl_value);
 
