@@ -35,4 +35,4 @@ distclean: veryclean FORCE
 
 check: test
 test: FORCE
-	cd tests; make test
+	cd tests; $(MAKE) test
