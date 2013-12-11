@@ -669,26 +669,26 @@ int overlay_op_walk(
 	slap_overinst *on
 )
 {
-	BI_op_bind **func;
+	BackendInfo *bi;
 	int rc = SLAP_CB_CONTINUE;
 
 	for (; on; on=on->on_next ) {
 		if ( on->on_bi.bi_flags & SLAPO_BFLAG_DISABLED )
 			continue;
-		func = &on->on_bi.bi_op_bind;
-		if ( func[which] ) {
+		bi = &on->on_bi;
+		if ( (&bi->bi_op_bind)[ which ] ) {
 			op->o_bd->bd_info = (BackendInfo *)on;
-			rc = func[which]( op, rs );
+			rc = (&bi->bi_op_bind)[ which ]( op, rs );
 			if ( rc != SLAP_CB_CONTINUE ) break;
 		}
 	}
 	if ( rc == SLAP_CB_BYPASS )
 		rc = SLAP_CB_CONTINUE;
 
-	func = &oi->oi_orig->bi_op_bind;
-	if ( func[which] && rc == SLAP_CB_CONTINUE ) {
-		op->o_bd->bd_info = oi->oi_orig;
-		rc = func[which]( op, rs );
+	bi = oi->oi_orig;
+	if ( (&bi->bi_op_bind)[ which ] && rc == SLAP_CB_CONTINUE ) {
+		op->o_bd->bd_info = bi;
+		rc = (&bi->bi_op_bind)[ which ]( op, rs );
 	}
 	/* should not fall thru this far without anything happening... */
 	if ( rc == SLAP_CB_CONTINUE ) {
@@ -1451,4 +1451,3 @@ overlay_config( BackendDB *be, const char *ov, int idx, BackendInfo **res, Confi
 
 	return 0;
 }
-
