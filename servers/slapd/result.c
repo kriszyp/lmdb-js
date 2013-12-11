@@ -132,7 +132,21 @@ slap_req2res( ber_tag_t tag )
 	return tag;
 }
 
-/* SlapReply debugging, prodo-slap.h overrides it in OpenLDAP releases */
+/*
+ * SlapReply debugging enabled by USE_RS_ASSERT.
+ *
+ * Disabled by default, but compiled in (but still unused) when
+ * LDAP_TEST.  #define USE_RS_ASSERT as nonzero to enable some
+ * assertions which check the SlapReply.  USE_RS_ASSERT = 2 or higher
+ * check aggressively, currently some code fail these tests.
+ *
+ * Environment variable $NO_RS_ASSERT controls how USE_RS_ASSERT handles
+ * errors.  > 0: ignore errors, 0: abort (the default), < 0: just warn.
+ *
+ * Wrap LDAP operation calls in macros SLAP_OP() & co from proto-slap.h
+ * to check the SlapReply.  contrib/slapd-tools/wrap_slap_ops converts
+ * source code to use the macros.
+ */
 #if defined(LDAP_TEST) || (defined(USE_RS_ASSERT) && (USE_RS_ASSERT))
 
 int rs_suppress_assert = 0;
