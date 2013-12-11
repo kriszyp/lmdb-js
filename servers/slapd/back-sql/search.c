@@ -2460,6 +2460,7 @@ backsql_search( Operation *op, SlapReply *rs )
 				goto end_of_search;
 
 			case LDAP_SIZELIMIT_EXCEEDED:
+			case LDAP_BUSY:
 				goto send_results;
 			}
 		}
