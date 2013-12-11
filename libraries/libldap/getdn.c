@@ -2987,7 +2987,7 @@ int ldap_dn2bv_x( LDAPDN dn, struct berval *bv, unsigned flags, void *ctx )
 	 * a null dn means an empty dn string 
 	 * FIXME: better raise an error?
 	 */
-	if ( dn == NULL ) {
+	if ( dn == NULL || dn[0] == NULL ) {
 		bv->bv_val = LDAP_STRDUPX( "", ctx );
 		return( LDAP_SUCCESS );
 	}
