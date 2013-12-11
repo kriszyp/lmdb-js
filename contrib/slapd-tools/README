@@ -5,6 +5,11 @@ statslog
 	(LDAP request/response log), grouping log lines by LDAP
 	connection.  Useful to search and inspect the server log.
 
+wrap_slap_ops
+	Update source code to use the wrapper macros SLAP_OP() & co
+	for LDAP-operation backend calls. They can help debug the
+	SlapReply.  They compile like the old code by default.
+
 ---
 Copyright 2004-2013 The OpenLDAP Foundation. All rights reserved.
 

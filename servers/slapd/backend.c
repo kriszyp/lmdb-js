@@ -882,6 +882,69 @@ send_result:;
 	return rc;
 }
 
+/* Inlined in proto-slap.h, sans assertions, when !(USE_RS_ASSERT) */
+int
+(slap_bi_op)(
+	BackendInfo *bi,
+	slap_operation_t which,
+	Operation *op,
+	SlapReply *rs )
+{
+	int rc;
+#ifndef slap_bi_op
+	void (*rsCheck)( const SlapReply *rs ) =
+		which < op_aux_operational ? rs_assert_ready : rs_assert_ok;
+#else
+#	define rsCheck(rs) ((void) 0)
+#endif
+	BI_op_func *fn;
+
+	assert( bi != NULL );
+	assert( (unsigned) which < (unsigned) op_last );
+
+	fn = (&bi->bi_op_bind)[ which ];
+
+	assert( op != NULL );
+	assert( rs != NULL );
+	assert( fn != 0 );
+	rsCheck( rs );
+
+	rc = fn( op, rs );
+
+#ifndef slap_bi_op
+	if ( rc != SLAP_CB_CONTINUE && rc != SLAP_CB_BYPASS ) {
+		int err = rs->sr_err;
+
+		if ( 0 )	/* TODO */
+		if ( err == LDAP_COMPARE_TRUE || err == LDAP_COMPARE_FALSE ) {
+			assert( which == op_compare );
+			assert( rc == LDAP_SUCCESS );
+		}
+
+		rsCheck = which < op_extended ? rs_assert_done : rs_assert_ok;
+		if ( which == op_aux_chk_referrals ) {
+			if      ( rc == LDAP_SUCCESS  ) rsCheck = rs_assert_ready;
+			else if ( rc == LDAP_REFERRAL ) rsCheck = rs_assert_done;
+		} else if ( which == op_bind ) {
+			if      ( rc == LDAP_SUCCESS  ) rsCheck = rs_assert_ok;
+		}
+
+		/* TODO: Just what is the relation between rc and rs->sr_err? */
+		if ( rc != err &&
+			(rc != LDAP_SUCCESS ||
+			 (err != LDAP_COMPARE_TRUE && err != LDAP_COMPARE_FALSE)) )
+		{
+			rs->sr_err = rc;
+			rsCheck( rs );
+			rs->sr_err = err;
+		}
+	}
+	rsCheck( rs );
+#endif
+
+	return rc;
+}
+
 int
 be_entry_release_rw(
 	Operation *op,

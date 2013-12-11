@@ -376,6 +376,16 @@ LDAP_SLAPD_F (struct berval *) be_root_dn LDAP_P(( Backend *be ));
 LDAP_SLAPD_F (int) be_entry_get_rw LDAP_P(( Operation *o,
 		struct berval *ndn, ObjectClass *oc,
 		AttributeDescription *at, int rw, Entry **e ));
+
+/* "backend->ophandler(op,rs)" wrappers, applied by contrib:wrap_slap_ops */
+#define SLAP_OP(which, op, rs)  slap_bi_op((op)->o_bd->bd_info, which, op, rs)
+#define slap_be_op(be, which, op, rs) slap_bi_op((be)->bd_info, which, op, rs)
+#if !(defined(USE_RS_ASSERT) && (USE_RS_ASSERT))
+#define slap_bi_op(bi, which, op, rs) ((&(bi)->bi_op_bind)[which](op, rs))
+#endif
+LDAP_SLAPD_F (int) (slap_bi_op) LDAP_P(( BackendInfo *bi,
+	slap_operation_t which, Operation *op, SlapReply *rs ));
+
 LDAP_SLAPD_F (int) be_entry_release_rw LDAP_P((
 	Operation *o, Entry *e, int rw ));
 #define be_entry_release_r( o, e ) be_entry_release_rw( o, e, 0 )
