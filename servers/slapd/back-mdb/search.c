@@ -977,6 +977,9 @@ notfound:
 					break;
 				default:		/* entry not sent */
 					break;
+				case LDAP_BUSY:
+					send_ldap_result( op, rs );
+					goto done;
 				case LDAP_UNAVAILABLE:
 				case LDAP_SIZELIMIT_EXCEEDED:
 					if ( rs->sr_err == LDAP_SIZELIMIT_EXCEEDED ) {

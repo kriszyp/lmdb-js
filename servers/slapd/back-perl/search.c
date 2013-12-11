@@ -89,7 +89,7 @@ perl_back_search(
 						rs->sr_flags = 0;
 						rs->sr_attrs = NULL;
 						rs->sr_entry = NULL;
-						if ( rs->sr_err == LDAP_SIZELIMIT_EXCEEDED ) {
+						if ( rs->sr_err == LDAP_SIZELIMIT_EXCEEDED || rs->sr_err == LDAP_BUSY ) {
 							goto done;
 						}
 					}
