@@ -194,7 +194,7 @@ static int
 relay_back_op( Operation *op, SlapReply *rs, int which )
 {
 	BackendDB	*bd;
-	BI_op_bind	*func;
+	BackendInfo	*bi;
 	slap_mask_t	fail_mode = relay_fail_modes[which].rf_op;
 	int		rc = ( fail_mode & RB_ERR_MASK );
 
@@ -203,12 +203,12 @@ relay_back_op( Operation *op, SlapReply *rs, int which )
 		if ( fail_mode & RB_BDERR )
 			return rs->sr_err;	/* sr_err was set above */
 
-	} else if ( (func = (&bd->be_bind)[which]) != 0 ) {
+	} else if ( (&( bi = bd->bd_info )->bi_op_bind)[which] ) {
 		relay_callback	rcb;
 
 		relay_back_add_cb( &rcb, op );
 		RELAY_WRAP_OP( op, bd, which, {
-			rc = func( op, rs );
+			rc = (&bi->bi_op_bind)[which]( op, rs );
 		});
 		relay_back_remove_cb( &rcb, op );
 
