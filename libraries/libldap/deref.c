@@ -120,7 +120,7 @@ ldap_create_deref_control(
 
 	ld->ld_errno = ldap_create_deref_control_value( ld, ds, &value );
 	if ( ld->ld_errno == LDAP_SUCCESS ) {
-		ld->ld_errno = ldap_control_create( LDAP_CONTROL_PAGEDRESULTS,
+		ld->ld_errno = ldap_control_create( LDAP_CONTROL_X_DEREF,
 			iscritical, &value, 0, ctrlp );
 		if ( ld->ld_errno != LDAP_SUCCESS ) {
 			LDAP_FREE( value.bv_val );
