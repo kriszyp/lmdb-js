@@ -855,6 +855,7 @@ constraint_check_count_violation( Modifications *m, Entry *target_entry, constra
 				ca = m->sml_numvals;
 				switch ( m->sml_op ) {
 				case LDAP_MOD_DELETE:
+				case SLAP_MOD_SOFTDEL:
 					if ( !ca || ca > ce ) {
 						ce = 0;
 					} else {
@@ -865,12 +866,18 @@ constraint_check_count_violation( Modifications *m, Entry *target_entry, constra
 					break;
 
 				case LDAP_MOD_ADD:
+				case SLAP_MOD_SOFTADD:
 					ce += ca;
 					break;
 
 				case LDAP_MOD_REPLACE:
 					ce = ca;
 					break;
+
+#if 0
+				/* TODO */
+				case handle SLAP_MOD_ADD_IF_NOT_PRESENT:
+#endif
 
 				default:
 					/* impossible! assert? */
