@@ -6,6 +6,8 @@ OpenLDAP 2.4.39 Engineering
 	Fixed liblmdb keysizes with mdb_update_key (ITS#7756)
 	Fixed slapd cn=config olcDbConfig modification (ITS#7750)
 	Fixed slapo-syncprov assert with findbase (ITS#7749)
+	Build Environment
+		Test suite: Use $(MAKE) for tests (ITS#7753)
 
 OpenLDAP 2.4.38 Release (2013/11/16)
 	Fixed liblmdb nordahead flag (ITS#7734)
