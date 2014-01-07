@@ -3,6 +3,7 @@ OpenLDAP 2.4 Change Log
 OpenLDAP 2.4.39 Engineering
 	Fixed libldap memory leak with SASL (ITS#7757)
 	Fixed libldap assert in parse_passwdpolicy_control (ITS#7759)
+	Fixed libldap shortcut NULL RDNs (ITS#7762)
 	Fixed liblmdb keysizes with mdb_update_key (ITS#7756)
 	Fixed slapd cn=config olcDbConfig modification (ITS#7750)
 	Fixed slapd-bdb/hdb to bail out of search if config is paused (ITS#7761)
