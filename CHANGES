@@ -11,6 +11,7 @@ OpenLDAP 2.4.39 Engineering
 	Fixed slapd-mdb to bail out of search if config is paused (ITS#7761)
 	Fixed slapd-perl to bail out of search if config is paused (ITS#7761)
 	Fixed slapd-sql to bail out of search if config is paused (ITS#7761)
+	Fixed slapo-constraint handling of softadd/softdel (ITS#7773)
 	Fixed slapo-syncprov assert with findbase (ITS#7749)
 	Build Environment
 		Test suite: Use $(MAKE) for tests (ITS#7753)
