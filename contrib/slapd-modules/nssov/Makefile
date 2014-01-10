@@ -17,7 +17,7 @@ LDAP_SRC=../../..
 
 # Path to the OpenLDAP object tree - same as above unless
 # you're doing out-of-tree builds.
-LDAP_BUILD=../../..
+LDAP_BUILD=$(LDAP_SRC)
 
 LDAP_INC = -I$(LDAP_BUILD)/include -I$(LDAP_SRC)/include -I$(LDAP_SRC)/servers/slapd
 LDAP_LIB = $(LDAP_BUILD)/libraries/libldap_r/libldap_r.la \
