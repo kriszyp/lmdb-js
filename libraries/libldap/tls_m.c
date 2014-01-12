@@ -2064,8 +2064,10 @@ tlsm_ctx_free ( tls_ctx *ctx )
 				   errcode, PR_ErrorToString( errcode, PR_LANGUAGE_I_DEFAULT ), 0 );
 		}
 	}
-	PL_strfree( c->tc_pin_file );
-	c->tc_pin_file = NULL;
+	if ( c->tc_pin_file ) {
+		PL_strfree( c->tc_pin_file );
+		c->tc_pin_file = NULL;
+	}
 	tlsm_free_pem_objs( c );
 #ifdef HAVE_NSS_INITCONTEXT
 	if ( c->tc_initctx ) {
@@ -2315,7 +2317,8 @@ tlsm_deferred_ctx_init( void *arg )
 				return rc;
 			}
 		} else {
-			PL_strfree( ctx->tc_pin_file );
+			if ( ctx->tc_pin_file )
+				PL_strfree( ctx->tc_pin_file );
 			ctx->tc_pin_file = PL_strdup( lt->lt_keyfile );
 		}
 	}
