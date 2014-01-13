@@ -389,6 +389,7 @@ int mdb_modify_internal(
 					ap->a_nvals,
 					e->e_id, SLAP_INDEX_ADD_OP );
 			} else {
+				int found = 0;
 				/* if this was only an add, we only need to index
 				 * the added values.
 				 */
@@ -396,6 +397,7 @@ int mdb_modify_internal(
 					struct berval *vals;
 					if ( ml->sml_desc != ap->a_desc || !ml->sml_numvals )
 						continue;
+					found = 1;
 					switch( ml->sml_op ) {
 					case LDAP_MOD_ADD:
 					case LDAP_MOD_REPLACE:
@@ -414,6 +416,15 @@ int mdb_modify_internal(
 					}
 					if ( rc )
 						break;
+				}
+				/* This attr was affected by a modify of a subtype, so
+				 * there was no direct match in the modlist. Just readd
+				 * all of its values.
+				 */
+				if ( !found ) {
+					rc = mdb_index_values( op, tid, ap->a_desc,
+						ap->a_nvals,
+						e->e_id, SLAP_INDEX_ADD_OP );
 				}
 			}
 			if ( rc != LDAP_SUCCESS ) {
