@@ -135,6 +135,8 @@ The basic examples we currently have:
 * `example3-multiple-transactions.js` - shows how LMDB will behave if you operate with multiple transactions
 * `example4-cursors.js` - shows how to work with cursors on a basic database
 * `example5-dupsort.js` - shows how to use a `dupSort` database with cursors
+* `example6-asyncio.js` - shows how to use the fastest (but also most dangerous) way for async IO
+* `example7-largedb.js` - shows how to work with an insanely large database
 
 Advanced examples:
 
@@ -171,8 +173,6 @@ cd node-lmdb
 node-gyp configure
 node-gyp build
 ```
-
-**Important:** this module is tested on Linux and Mac. Windows version is coming soon!
 
 ### Developer FAQ
 
