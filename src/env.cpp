@@ -97,16 +97,23 @@ Handle<Value> EnvWrap::open(const Arguments& args) {
     Local<Object> options = args[0]->ToObject();
     Local<String> path = options->Get(String::NewSymbol("path"))->ToString();
     
+    // Parse the maxDbs option
     rc = applyUint32Setting(&mdb_env_set_maxdbs, ew->env, options, 1, "maxDbs");
     if (rc != 0) {
         ThrowException(Exception::Error(String::New(mdb_strerror(rc))));
         return Undefined();
     }
     
-    rc = applyUint32Setting(&mdb_env_set_mapsize, ew->env, options, 10485760, "mapSize");
-    if (rc != 0) {
-        ThrowException(Exception::Error(String::New(mdb_strerror(rc))));
-        return Undefined();
+    // Parse the mapSize option
+    Handle<Value> mapSizeOption = options->Get(String::NewSymbol("mapSize"));
+    if (mapSizeOption->IsNumber()) {
+        double mapSizeDouble = mapSizeOption->NumberValue();
+        size_t mapSizeSizeT = (size_t) mapSizeDouble;
+        rc = mdb_env_set_mapsize(ew->env, mapSizeSizeT);
+        if (rc != 0) {
+            ThrowException(Exception::Error(String::New(mdb_strerror(rc))));
+            return Undefined();
+        }
     }
 
     // TODO: expose mdb_env_set_maxreaders
