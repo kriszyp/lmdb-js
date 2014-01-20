@@ -91,6 +91,7 @@ public:
         Possible options are:
         
         * maxDbs: the maximum number of named databases you can have in the environment
+        * mapSize: maximal size of the memory map (the full environment) in bytes
         * path: path to the database environment
     */
     static Handle<Value> open(const Arguments& args);
