@@ -90,8 +90,9 @@ public:
         
         Possible options are:
         
-        * maxDbs: the maximum number of named databases you can have in the environment
-        * mapSize: maximal size of the memory map (the full environment) in bytes
+        * maxDbs: the maximum number of named databases you can have in the environment (default is 1)
+        * maxReaders: the maximum number of concurrent readers of the environment (default is 126)
+        * mapSize: maximal size of the memory map (the full environment) in bytes (default is 10485760 bytes)
         * path: path to the database environment
     */
     static Handle<Value> open(const Arguments& args);

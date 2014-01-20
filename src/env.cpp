@@ -67,7 +67,7 @@ Handle<Value> EnvWrap::ctor(const Arguments& args) {
 }
 
 template<class T>
-int applyUint32Setting(int (*f)(MDB_env *, T), MDB_env* e, Local<Object> options, MDB_dbi dflt, const char* keyName) {
+int applyUint32Setting(int (*f)(MDB_env *, T), MDB_env* e, Local<Object> options, T dflt, const char* keyName) {
     int rc;
     const Handle<Value> value = options->Get(String::NewSymbol(keyName));
     if (value->IsUint32()) {
@@ -98,7 +98,7 @@ Handle<Value> EnvWrap::open(const Arguments& args) {
     Local<String> path = options->Get(String::NewSymbol("path"))->ToString();
     
     // Parse the maxDbs option
-    rc = applyUint32Setting(&mdb_env_set_maxdbs, ew->env, options, 1, "maxDbs");
+    rc = applyUint32Setting<unsigned>(&mdb_env_set_maxdbs, ew->env, options, 1, "maxDbs");
     if (rc != 0) {
         ThrowException(Exception::Error(String::New(mdb_strerror(rc))));
         return Undefined();
@@ -115,8 +115,13 @@ Handle<Value> EnvWrap::open(const Arguments& args) {
             return Undefined();
         }
     }
-
-    // TODO: expose mdb_env_set_maxreaders
+    
+    // Parse the maxDbs option
+    rc = applyUint32Setting<unsigned>(&mdb_env_set_maxreaders, ew->env, options, 1, "maxReaders");
+    if (rc != 0) {
+        ThrowException(Exception::Error(String::New(mdb_strerror(rc))));
+        return Undefined();
+    }
     
     // NOTE: MDB_FIXEDMAP is not exposed here since it is "highly experimental" + it is irrelevant for this use case
     // NOTE: MDB_NOTLS is not exposed here because it is irrelevant for this use case, as node will run all this on a single thread anyway
