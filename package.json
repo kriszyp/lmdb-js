@@ -2,9 +2,15 @@
   "name": "node-lmdb",
   "description": "Node binding for LMDB, the Lightning Memory-Mapped Database",
   "author": "Timur Kristóf <venemo@fedoraproject.org>",
-  "keywords": ["lmdb", "database", "mdb", "lightning", "binding"],
+  "keywords": [
+    "lmdb",
+    "database",
+    "mdb",
+    "lightning",
+    "binding"
+  ],
   "repository": "https://github.com/Venemo/node-lmdb",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "main": "./build/Release/node-lmdb",
   "gypfile": true
 }
