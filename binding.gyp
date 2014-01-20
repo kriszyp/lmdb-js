@@ -24,7 +24,7 @@
             "-fPIC",
             "-fvisibility-inlines-hidden",
             "-O3",
-            "-std=c++11"
+            "-std=c++0x"
           ]
         }],
         ["OS=='mac'", {
