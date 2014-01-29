@@ -1,5 +1,7 @@
 OpenLDAP 2.4 Change Log
 
+OpenLDAP 2.4.40 Engineering
+
 OpenLDAP 2.4.39 Release (2014/01/26)
 	Fixed libldap MozNSS crash (ITS#7783)
 	Fixed libldap memory leak with SASL (ITS#7757)
