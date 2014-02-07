@@ -188,7 +188,7 @@ int mdb_id2entry(
 		rc = MDB_NOTFOUND;
 	if ( rc ) return rc;
 
-	rc = mdb_entry_decode( op, &data, e );
+	rc = mdb_entry_decode( op, mdb_cursor_txn( mc ), &data, e );
 	if ( rc ) return rc;
 
 	(*e)->e_id = id;
@@ -638,7 +638,7 @@ static int mdb_entry_encode(Operation *op, Entry *e, MDB_val *data, Ecount *eh)
  * structure. Attempting to do so will likely corrupt memory.
  */
 
-int mdb_entry_decode(Operation *op, MDB_val *data, Entry **e)
+int mdb_entry_decode(Operation *op, MDB_txn *txn, MDB_val *data, Entry **e)
 {
 	struct mdb_info *mdb = (struct mdb_info *) op->o_bd->be_private;
 	int i, j, nattrs, nvals;
@@ -669,7 +669,19 @@ int mdb_entry_decode(Operation *op, MDB_val *data, Entry **e)
 
 	for (;nattrs>0; nattrs--) {
 		int have_nval = 0;
-		a->a_desc = mdb->mi_ads[*lp++];
+		i = *lp++;
+		if (i > mdb->mi_numads) {
+			rc = mdb_ad_read(mdb, txn);
+			if (rc)
+				return rc;
+			if (i > mdb->mi_numads) {
+				Debug( LDAP_DEBUG_ANY,
+					"mdb_entry_decode: attribute index %d not recognized\n",
+					i, 0, 0 );
+				return LDAP_OTHER;
+			}
+		}
+		a->a_desc = mdb->mi_ads[i];
 		a->a_flags = SLAP_ATTR_DONT_FREE_DATA | SLAP_ATTR_DONT_FREE_VALS;
 		a->a_numvals = *lp++;
 		if (a->a_numvals & HIGH_BIT) {
