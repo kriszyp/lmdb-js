@@ -396,7 +396,7 @@ mdb_tool_entry_get_int( BackendDB *be, ID id, Entry **ep )
 			}
 		}
 	}
-	rc = mdb_entry_decode( &op, &data, &e );
+	rc = mdb_entry_decode( &op, txn, &data, &e );
 	e->e_id = id;
 	if ( !BER_BVISNULL( &dn )) {
 		e->e_name = dn;
