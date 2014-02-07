@@ -853,11 +853,16 @@ ldif_read_record(
 			line[++len] = '\0';
 		}
 
+		/* Squash \r\n to \n */
+		if ( len > 1 && line[len-2] == '\r' ) {
+			len--;
+			line[len-1] = '\n';
+		}
+
 		if ( last_ch == '\n' ) {
 			(*lno)++;
 
-			if ( line[0] == '\n' ||
-				( line[0] == '\r' && line[1] == '\n' )) {
+			if ( line[0] == '\n' ) {
 				if ( !found_entry ) {
 					lcur = 0;
 					top_comment = 0;
@@ -884,10 +889,6 @@ ldif_read_record(
 						found_entry = 0;
 
 						if ( line[len-1] == '\n' ) {
-							len--;
-							line[len] = '\0';
-						}
-						if ( line[len-1] == '\r' ) {
 							len--;
 							line[len] = '\0';
 						}
