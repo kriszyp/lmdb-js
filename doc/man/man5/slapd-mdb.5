@@ -11,7 +11,8 @@ The \fBmdb\fP backend to
 .BR slapd (8)
 uses OpenLDAP's Lightning Memory-Mapped DB (LMDB) library to store data.
 It relies completely on the underlying operating system for memory
-management and does no caching of its own.
+management and does no caching of its own. It is the recommended
+primary database backend.
 .LP
 The \fBmdb\fP backend is similar to the \fBhdb\fP backend in that
 it uses a hierarchical database layout which
@@ -178,9 +179,6 @@ The
 .B mdb
 backend honors access control semantics as indicated in
 .BR slapd.access (5).
-.SH NOTES
-This is an early release; the database file format or other
-characteristics may change incompatibly in future releases.
 .SH FILES
 .TP
 .B ETCDIR/slapd.conf
