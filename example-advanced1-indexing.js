@@ -16,7 +16,7 @@
 // Indexing engine (implemented with the module pattern)
 var indexingEngine = (function() {
     var lmdb, env, dbi;
-    
+
     // initializer function, call this before using the index
     var init = function() {
         lmdb = require('./build/Release/node-lmdb');
@@ -25,20 +25,20 @@ var indexingEngine = (function() {
             path: "./testdata",
             maxDbs: 10
         });
-        
+
         dbi = env.openDbi({
            name: "example-advanced-indexing",
            create: true,
            dupSort: true
         });
     };
-    
+
     // destroy function, call this when you no longer need the index
     var destroy = function() {
         dbi.close();
         env.close();
     };
-    
+
     // simple tokenizer
     var tokenize = function(document) {
         var tokens = [];
@@ -46,7 +46,7 @@ var indexingEngine = (function() {
             if (document.hasOwnProperty(i) && typeof(document[i]) === "string") {
                 var stripped = document[i].replace(/[\.!,?\[\]\\]/g, " ");
                 var splitted = stripped.split(" ");
-                
+
                 for (var j = splitted.length; j--; ) {
                     if (splitted[j] !== '' && tokens.indexOf(splitted[j]) === -1) {
                         tokens.push(splitted[j].toLowerCase());
@@ -56,54 +56,55 @@ var indexingEngine = (function() {
         }
         return tokens;
     };
-    
+
     // adds a document to the index
     var addDocument = function(document) {
         if (typeof(document.id) !== "number") {
             throw new Error("document must have an id property");
         }
-    
+
         var tokens = tokenize(document);
         var txn = env.beginTxn();
-        
+
         for (var i = tokens.length; i--; ) {
             //console.log(tokens[i], document.id);
             txn.putNumber(dbi, tokens[i], document.id);
         }
-        
+
         txn.commit();
     };
-    
+
     // adds multiple documents to the index
     var addDocuments = function(array) {
         if (!(array instanceof Array)) {
             throw new Error("This function expects an array.");
         }
-        
+
         for (var i = array.length; i--; ) {
             addDocument(array[i]);
         }
     };
-    
+
     // performs a search in the index for the given word
     var searchForDocuments = function(str) {
         str = str.toLowerCase();
         var txn = env.beginTxn({ readOnly: true });
         var cursor = new lmdb.Cursor(txn, dbi);
         var results = [];
-        
+
         try {
             var shouldContinue = true;
             cursor.goToRange(str);
-            
-            while (shouldContinue) {
-                shouldContinue = cursor.getCurrentNumber(function(key, data) {
-                    //console.log(key.length, str.length, key == str);
-                    if (key !== str)
-                        return false;
 
-                    results.push(data);
-                    return true;
+            while (shouldContinue) {
+                cursor.getCurrentNumber(function(key, data) {
+                    //console.log(key.length, str.length, key == str);
+                    if (key !== str) {
+                        shouldContinue = false;
+                    }
+                    else {
+                        results.push(data);
+                    }
                 });
                 cursor.goToNext();
             }
@@ -112,13 +113,13 @@ var indexingEngine = (function() {
             console.log(err);
             // Error here only means that we've reached the end
         }
-        
+
         cursor.close();
         txn.abort();
-        
+
         return results;
     };
-    
+
     // The object we return here is the public API of the indexing engine
     return Object.freeze({
         init: init,
@@ -163,4 +164,3 @@ console.log("search:", s = "of", indexingEngine.searchForDocuments(s));
 console.log("search:", s = "Lord", indexingEngine.searchForDocuments(s));
 
 indexingEngine.destroy();
-
