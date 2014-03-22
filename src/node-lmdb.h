@@ -2,7 +2,7 @@
 // This file is part of node-lmdb, the Node.js binding for lmdb
 // Copyright (c) 2013 Timur Kristóf
 // Licensed to you under the terms of the MIT license
-// 
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -28,7 +28,7 @@
 #include <node.h>
 #include <node_buffer.h>
 #include <uv.h>
-#include "../libraries/liblmdb/lmdb.h"
+#include "../dependencies/lmdb/libraries/liblmdb/lmdb.h"
 
 using namespace v8;
 using namespace node;
@@ -63,7 +63,7 @@ private:
     static Persistent<Function> txnCtor;
     // Constructor for DbiWrap
     static Persistent<Function> dbiCtor;
-    
+
     friend class TxnWrap;
     friend class DbiWrap;
 
@@ -73,60 +73,60 @@ public:
 
     // Sets up exports for the Env constructor
     static void setupExports(Handle<Object> exports);
-    
+
     /*
         Constructor of the database environment. You need to `open()` it before you can use it.
         (Wrapper for `mdb_env_create`)
     */
     static Handle<Value> ctor(const Arguments& args);
-    
+
     /*
         Opens the database environment with the specified options. The options will be used to configure the environment before opening it.
         (Wrapper for `mdb_env_open`)
-        
+
         Parameters:
-        
+
         * Options object that contains possible configuration options.
-        
+
         Possible options are:
-        
+
         * maxDbs: the maximum number of named databases you can have in the environment (default is 1)
         * maxReaders: the maximum number of concurrent readers of the environment (default is 126)
         * mapSize: maximal size of the memory map (the full environment) in bytes (default is 10485760 bytes)
         * path: path to the database environment
     */
     static Handle<Value> open(const Arguments& args);
-    
+
     /*
         Closes the database environment.
         (Wrapper for `mdb_env_close`)
     */
     static Handle<Value> close(const Arguments& args);
-    
+
     /*
         Starts a new transaction in the environment.
         (Wrapper for `mdb_txn_begin`)
-        
+
         Parameters:
-        
+
         * Options object that contains possible configuration options.
-        
+
         Possible options are:
-        
+
         * readOnly: if true, the transaction is read-only
     */
     static Handle<Value> beginTxn(const Arguments& args);
-    
+
     /*
         Opens a database in the environment.
         (Wrapper for `mdb_dbi_open`)
-        
+
         Parameters:
-        
+
         * Options object that contains possible configuration options.
-        
+
         Possible options are:
-        
+
         * create: if true, the database will be created if it doesn't exist
         * keyIsUint32: if true, keys are treated as 32-bit unsigned integers
         * dupSort: if true, the database can hold multiple items with the same key
@@ -136,13 +136,13 @@ public:
         * reverseDup: duplicate data items should be compared as strings in reverse order
     */
     static Handle<Value> openDbi(const Arguments& args);
-    
+
     /*
         Flushes all data to the disk asynchronously.
         (Asynchronous wrapper for `mdb_env_sync`)
-        
+
         Parameters:
-        
+
         * Callback to be executed after the sync is complete.
     */
     static Handle<Value> sync(const Arguments &args);
@@ -159,7 +159,7 @@ private:
     MDB_txn *txn;
     // Reference to the MDB_env of the wrapped MDB_txn
     MDB_env *env;
-    
+
     friend class CursorWrap;
 
 public:
@@ -168,137 +168,137 @@ public:
 
     // Constructor (not exposed)
     static Handle<Value> ctor(const Arguments& args);
-    
+
     // Helper for all the get methods (not exposed)
     static Handle<Value> getCommon(const Arguments &args, Handle<Value> (*successFunc)(MDB_val&));
-    
+
     // Helper for all the put methods (not exposed)
     static Handle<Value> putCommon(const Arguments &args, void (*fillFunc)(const Arguments&, MDB_val&), void (*freeFunc)(MDB_val&));
-    
+
     /*
         Commits the transaction.
         (Wrapper for `mdb_txn_commit`)
     */
     static Handle<Value> commit(const Arguments& args);
-    
+
     /*
         Aborts the transaction.
         (Wrapper for `mdb_txn_abort`)
     */
     static Handle<Value> abort(const Arguments& args);
-    
+
     /*
         Aborts a read-only transaction but makes it renewable with `renew`.
         (Wrapper for `mdb_txn_reset`)
     */
     static Handle<Value> reset(const Arguments& args);
-    
+
     /*
         Renews a read-only transaction after it has been reset.
         (Wrapper for `mdb_txn_renew`)
     */
     static Handle<Value> renew(const Arguments& args);
-    
+
     /*
         Gets string data (JavaScript string type) associated with the given key from a database. You need to open a database in the environment to use this.
         This method is zero-copy and the return value can only be used until the next put operation or until the transaction is committed or aborted.
         (Wrapper for `mdb_get`)
-        
+
         Parameters:
-        
+
         * database instance created with calling `openDbi()` on an `Env` instance
         * key for which the value is retrieved
     */
     static Handle<Value> getString(const Arguments& args);
-    
+
     /*
         Gets binary data (Node.js Buffer) associated with the given key from a database. You need to open a database in the environment to use this.
         This method is zero-copy and the return value can only be used until the next put operation or until the transaction is committed or aborted.
         (Wrapper for `mdb_get`)
-        
+
         Parameters:
-        
+
         * database instance created with calling `openDbi()` on an `Env` instance
         * key for which the value is retrieved
     */
     static Handle<Value> getBinary(const Arguments& args);
-    
+
     /*
         Gets number data (JavaScript number type) associated with the given key from a database. You need to open a database in the environment to use this.
         This method will copy the value out of the database.
         (Wrapper for `mdb_get`)
-        
+
         Parameters:
-        
+
         * database instance created with calling `openDbi()` on an `Env` instance
         * key for which the value is retrieved
     */
     static Handle<Value> getNumber(const Arguments& args);
-    
+
     /*
         Gets boolean data (JavaScript boolean type) associated with the given key from a database. You need to open a database in the environment to use this.
         This method will copy the value out of the database.
         (Wrapper for `mdb_get`)
-        
+
         Parameters:
-        
+
         * database instance created with calling `openDbi()` on an `Env` instance
         * key for which the value is retrieved
     */
     static Handle<Value> getBoolean(const Arguments& args);
-    
+
     /*
         Puts string data (JavaScript string type) into a database.
         (Wrapper for `mdb_put`)
-        
+
         Parameters:
-        
+
         * database instance created with calling `openDbi()` on an `Env` instance
         * key for which the value is stored
         * data to store for the given key
     */
     static Handle<Value> putString(const Arguments& args);
-    
+
     /*
         Puts binary data (Node.js Buffer) into a database.
         (Wrapper for `mdb_put`)
-        
+
         Parameters:
-        
+
         * database instance created with calling `openDbi()` on an `Env` instance
         * key for which the value is stored
         * data to store for the given key
     */
     static Handle<Value> putBinary(const Arguments& args);
-    
+
     /*
         Puts number data (JavaScript number type) into a database.
         (Wrapper for `mdb_put`)
-        
+
         Parameters:
-        
+
         * database instance created with calling `openDbi()` on an `Env` instance
         * key for which the value is stored
         * data to store for the given key
     */
     static Handle<Value> putNumber(const Arguments& args);
-    
+
     /*
         Puts boolean data (JavaScript boolean type) into a database.
         (Wrapper for `mdb_put`)
-        
+
         Parameters:
-        
+
         * database instance created with calling `openDbi()` on an `Env` instance
         * key for which the value is stored
         * data to store for the given key
     */
     static Handle<Value> putBoolean(const Arguments& args);
-    
+
     /*
         Deletes data with the given key from the database.
         (Wrapper for `mdb_del`)
-        
+
         * database instance created with calling `openDbi()` on an `Env` instance
         * key for which the value is stored
     */
@@ -320,7 +320,7 @@ private:
     MDB_dbi dbi;
     // Reference to the MDB_env of the wrapped MDB_dbi
     MDB_env *env;
-    
+
     friend class TxnWrap;
     friend class CursorWrap;
 
@@ -330,24 +330,24 @@ public:
 
     // Constructor (not exposed)
     static Handle<Value> ctor(const Arguments& args);
-    
+
     /*
         Closes the database instance.
         Wrapper for `mdb_dbi_close`)
     */
     static Handle<Value> close(const Arguments& args);
-    
+
     /*
         Drops the database instance, either deleting it completely (default) or just freeing its pages.
-        
+
         Parameters:
-        
+
         * Options object that contains possible configuration options.
-        
+
         Possible options are:
-        
+
         * justFreePages - indicates that the database pages need to be freed but the database shouldn't be deleted
-        
+
     */
     static Handle<Value> drop(const Arguments& args);
 };
@@ -369,32 +369,32 @@ private:
 public:
     CursorWrap(MDB_cursor *cursor);
     ~CursorWrap();
-    
+
     // Sets up exports for the Cursor constructor
     static void setupExports(Handle<Object> exports);
 
     /*
         Opens a new cursor for the specified transaction and database instance.
         (Wrapper for `mdb_cursor_open`)
-        
+
         Parameters:
-        
+
         * Transaction object
         * Database instance object
     */
     static Handle<Value> ctor(const Arguments& args);
-    
+
     /*
         Closes the cursor.
         (Wrapper for `mdb_cursor_close`)
-        
+
         Parameters:
-        
+
         * Transaction object
         * Database instance object
     */
     static Handle<Value> close(const Arguments& args);
-    
+
     // Helper method for getters (not exposed)
     static Handle<Value> getCommon(
         const Arguments& args, MDB_cursor_op op,
@@ -402,122 +402,122 @@ public:
         void (*setData)(CursorWrap* cw, const Arguments& args, MDB_val&),
         void (*freeData)(CursorWrap* cw, const Arguments& args, MDB_val&),
         Handle<Value> (*convertFunc)(MDB_val &data));
-    
+
     // Helper method for getters (not exposed)
     static Handle<Value> getCommon(const Arguments& args, MDB_cursor_op op);
-    
+
     /*
         Gets the current key-data pair that the cursor is pointing to. Returns the current key.
         (Wrapper for `mdb_cursor_get`)
-        
+
         Parameters:
-        
+
         * Callback that accepts the key and value
     */
     static Handle<Value> getCurrentString(const Arguments& args);
-    
+
     /*
         Gets the current key-data pair that the cursor is pointing to. Returns the current key.
         (Wrapper for `mdb_cursor_get`)
-        
+
         Parameters:
-        
+
         * Callback that accepts the key and value
     */
     static Handle<Value> getCurrentBinary(const Arguments& args);
-    
+
     /*
         Gets the current key-data pair that the cursor is pointing to. Returns the current key.
         (Wrapper for `mdb_cursor_get`)
-        
+
         Parameters:
-        
+
         * Callback that accepts the key and value
     */
     static Handle<Value> getCurrentNumber(const Arguments& args);
-    
+
     /*
         Gets the current key-data pair that the cursor is pointing to.
         (Wrapper for `mdb_cursor_get`)
-        
+
         Parameters:
-        
+
         * Callback that accepts the key and value
     */
     static Handle<Value> getCurrentBoolean(const Arguments& args);
-    
+
     /*
         Asks the cursor to go to the first key-data pair in the database.
         (Wrapper for `mdb_cursor_get`)
     */
     static Handle<Value> goToFirst(const Arguments& args);
-    
+
     /*
         Asks the cursor to go to the last key-data pair in the database.
         (Wrapper for `mdb_cursor_get`)
     */
     static Handle<Value> goToLast(const Arguments& args);
-    
+
     /*
         Asks the cursor to go to the next key-data pair in the database.
         (Wrapper for `mdb_cursor_get`)
     */
     static Handle<Value> goToNext(const Arguments& args);
-    
+
     /*
         Asks the cursor to go to the previous key-data pair in the database.
         (Wrapper for `mdb_cursor_get`)
     */
     static Handle<Value> goToPrev(const Arguments& args);
-    
+
     /*
         Asks the cursor to go to the specified key in the database.
         (Wrapper for `mdb_cursor_get`)
     */
     static Handle<Value> goToKey(const Arguments& args);
-    
+
     /*
         Asks the cursor to go to the first key greater than or equal to the specified parameter in the database.
         (Wrapper for `mdb_cursor_get`)
     */
     static Handle<Value> goToRange(const Arguments& args);
-    
+
     /*
         For databases with the dupSort option. Asks the cursor to go to the first occurence of the current key.
         (Wrapper for `mdb_cursor_get`)
     */
     static Handle<Value> goToFirstDup(const Arguments& args);
-    
+
     /*
         For databases with the dupSort option. Asks the cursor to go to the last occurence of the current key.
         (Wrapper for `mdb_cursor_get`)
     */
     static Handle<Value> goToLastDup(const Arguments& args);
-    
+
     /*
         For databases with the dupSort option. Asks the cursor to go to the next occurence of the current key.
         (Wrapper for `mdb_cursor_get`)
     */
     static Handle<Value> goToNextDup(const Arguments& args);
-    
+
     /*
         For databases with the dupSort option. Asks the cursor to go to the previous occurence of the current key.
         (Wrapper for `mdb_cursor_get`)
     */
     static Handle<Value> goToPrevDup(const Arguments& args);
-    
+
     /*
         For databases with the dupSort option. Asks the cursor to go to the specified key/data pair.
         (Wrapper for `mdb_cursor_get`)
     */
     static Handle<Value> goToDup(const Arguments& args);
-    
+
     /*
         For databases with the dupSort option. Asks the cursor to go to the specified key with the first data that is greater than or equal to the specified.
         (Wrapper for `mdb_cursor_get`)
     */
     static Handle<Value> goToDupRange(const Arguments& args);
-    
+
     /*
         Deletes the key/data pair to which the cursor refers.
         (Wrapper for `mdb_cursor_del`)
@@ -534,13 +534,12 @@ private:
 public:
     CustomExternalStringResource(MDB_val *val);
     ~CustomExternalStringResource();
-    
+
     void Dispose();
     const uint16_t *data() const;
     size_t length() const;
-    
+
     static void writeTo(Handle<String> str, MDB_val *val);
 };
 
 #endif // NODE_LMDB_H
-

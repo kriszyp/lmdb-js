@@ -3,10 +3,10 @@
     {
       "target_name": "node-lmdb",
       "sources": [
-        "libraries/liblmdb/mdb.c",
-        "libraries/liblmdb/lmdb.h",
-        "libraries/liblmdb/midl.h",
-        "libraries/liblmdb/midl.c",
+        "dependencies/lmdb/libraries/liblmdb/mdb.c",
+        "dependencies/lmdb/libraries/liblmdb/lmdb.h",
+        "dependencies/lmdb/libraries/liblmdb/midl.h",
+        "dependencies/lmdb/libraries/liblmdb/midl.c",
         "src/node-lmdb.cpp",
         "src/env.cpp",
         "src/misc.cpp",

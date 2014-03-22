@@ -49,7 +49,7 @@ var lmdb = require('node-lmdb');
 ```javascript
 var env = new lmdb.Env();
 env.open({
-    path: __dirname + "/mydata", 
+    path: __dirname + "/mydata",
     mapSize: 2*1024*1024*1024, // maximum database size
     maxDbs: 3
 });
@@ -80,12 +80,12 @@ dbi.close();
 
 #### Step 3: use transactions
 
-The basic unit of work in LMDB is a transaction, which is called `Txn` for short. Here is how you operate with your data.  
-Every piece of data in LMDB is referred to by a **key**.  
+The basic unit of work in LMDB is a transaction, which is called `Txn` for short. Here is how you operate with your data.
+Every piece of data in LMDB is referred to by a **key**.
 You can use the methods `getString()`, `getBinary()`, `getNumber()` and `getBoolean()` to retrieve something,
 `putString()`, `putBinary()`, `putNumber()` and `putBoolean()` to store something and `del()` to delete something.
 
-Currently **only string, binary, number and boolean values are supported**, use `JSON.stringify` and `JSON.parse` for complex data structures.  
+Currently **only string, binary, number and boolean values are supported**, use `JSON.stringify` and `JSON.parse` for complex data structures.
 Because of the nature of LMDB, the data returned by `txn.getString()` and `txn.getBinary()` is only valid until the next `put` operation or the end of the transaction.
 If you need to use the data *later*, you will have to copy it for yourself.
 
@@ -154,7 +154,7 @@ Advanced examples:
 Contributing
 ------------
 
-If you find problems with this module, open an issue on GitHub.  
+If you find problems with this module, open an issue on GitHub.
 Also feel free to send me pull requests. Contributions are more than welcome! :)
 
 ### Building the module
@@ -174,6 +174,19 @@ node-gyp configure
 node-gyp build
 ```
 
+### Managing the LMDB dependency
+
+```bash
+# Adding upstream LMDB as remote
+git remote add lmdb git@gitorious.org:mdb/mdb.git
+# Fetch new remote
+git fetch lmdb
+# Adding the subtree (when it's not there yet)
+git subtree add  --prefix=dependencies/lmdb lmdb HEAD --squash
+# Updating the subtree (when already added)
+git subtree pull --prefix=dependencies/lmdb lmdb HEAD --squash
+```
+
 ### Developer FAQ
 
 #### How fast is this stuff?
@@ -186,7 +199,7 @@ obviously, the V8 wrapper will have some negative impact on performance, but I w
 
 #### Why is the code so ugly?
 
-Unfortunately, writing C++ addons to Node.js (and V8) requires a special pattern (as described in their docs) which most developers might find ugly.  
+Unfortunately, writing C++ addons to Node.js (and V8) requires a special pattern (as described in their docs) which most developers might find ugly.
 Fortunately, we've done this work for you so you can enjoy LMDB without the need to code C++.
 
 #### How does this module work?
@@ -202,6 +215,3 @@ These are the places I got my knowledge when developing node-lmdb:
 * V8 reference documentation: http://bespin.cz/~ondras/html/
 * Node.js C++ addons documentation: http://nodejs.org/api/addons.html
 * LMDB documentation: http://symas.com/mdb/doc/
-
-
-
