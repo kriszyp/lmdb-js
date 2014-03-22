@@ -53,16 +53,17 @@ Handle<Value> EnvWrap::ctor(const Arguments& args) {
     HandleScope scope;
     int rc;
 
-    EnvWrap* wrapper = new EnvWrap();
-    rc = mdb_env_create(&(wrapper->env));
+    EnvWrap* ew = new EnvWrap();
+    rc = mdb_env_create(&(ew->env));
 
     if (rc != 0) {
-        mdb_env_close(wrapper->env);
+        mdb_env_close(ew->env);
         ThrowException(Exception::Error(String::New(mdb_strerror(rc))));
         return scope.Close(Undefined());
     }
 
-    wrapper->Wrap(args.This());
+    ew->Wrap(args.This());
+    ew->Ref();
     return args.This();
 }
 
@@ -154,6 +155,7 @@ Handle<Value> EnvWrap::close(const Arguments& args) {
     HandleScope scope;
 
     EnvWrap *ew = ObjectWrap::Unwrap<EnvWrap>(args.This());
+    ew->Unref();
 
     if (!ew->env) {
         ThrowException(Exception::Error(String::New("The environment is already closed.")));

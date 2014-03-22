@@ -114,8 +114,9 @@ Handle<Value> DbiWrap::ctor(const Arguments& args) {
     // Create wrapper
     DbiWrap* dw = new DbiWrap(ew->env, dbi);
     dw->needsClose = true;
-    dw->Wrap(args.This());
     dw->keyIsUint32 = keyIsUint32;
+    dw->Wrap(args.This());
+    dw->Ref();
 
     return args.This();
 }
@@ -124,6 +125,7 @@ Handle<Value> DbiWrap::close(const Arguments& args) {
     HandleScope scope;
 
     DbiWrap *dw = ObjectWrap::Unwrap<DbiWrap>(args.This());
+    dw->Unref();
     mdb_dbi_close(dw->env, dw->dbi);
     dw->needsClose = false;
 

@@ -62,6 +62,7 @@ Handle<Value> TxnWrap::ctor(const Arguments& args) {
 
     TxnWrap* tw = new TxnWrap(ew->env, txn);
     tw->Wrap(args.This());
+    tw->Ref();
 
     return args.This();
 }
@@ -70,6 +71,7 @@ Handle<Value> TxnWrap::commit(const Arguments& args) {
     HandleScope scope;
 
     TxnWrap *tw = ObjectWrap::Unwrap<TxnWrap>(args.This());
+    tw->Unref();
 
     if (!tw->txn) {
         ThrowException(Exception::Error(String::New("The transaction is already closed.")));
@@ -90,6 +92,7 @@ Handle<Value> TxnWrap::abort(const Arguments& args) {
     HandleScope scope;
 
     TxnWrap *tw = ObjectWrap::Unwrap<TxnWrap>(args.This());
+    tw->Unref();
 
     if (!tw->txn) {
         ThrowException(Exception::Error(String::New("The transaction is already closed.")));

@@ -54,12 +54,14 @@ Handle<Value> CursorWrap::ctor(const Arguments &args) {
     CursorWrap* cw = new CursorWrap(cursor);
     cw->keyIsUint32 = dw->keyIsUint32;
     cw->Wrap(args.This());
+    cw->Ref();
 
     return args.This();
 }
 
 Handle<Value> CursorWrap::close(const Arguments &args) {
     CursorWrap *cw = ObjectWrap::Unwrap<CursorWrap>(args.This());
+    cw->Unref();
     mdb_cursor_close(cw->cursor);
     cw->cursor = NULL;
     return Undefined();
@@ -79,11 +81,13 @@ Handle<Value> CursorWrap::del(const Arguments &args) {
 }
 
 Handle<Value> CursorWrap::getCommon(
-const Arguments& args, MDB_cursor_op op,
-void (*setKey)(CursorWrap* cw, const Arguments& args, MDB_val&),
-void (*setData)(CursorWrap* cw, const Arguments& args, MDB_val&),
-void (*freeData)(CursorWrap* cw, const Arguments& args, MDB_val&),
-Handle<Value> (*convertFunc)(MDB_val &data)) {
+    const Arguments& args,
+    MDB_cursor_op op,
+    void (*setKey)(CursorWrap* cw, const Arguments& args, MDB_val&),
+    void (*setData)(CursorWrap* cw, const Arguments& args, MDB_val&),
+    void (*freeData)(CursorWrap* cw, const Arguments& args, MDB_val&),
+    Handle<Value> (*convertFunc)(MDB_val &data)
+) {
     int al = args.Length();
     CursorWrap *cw = ObjectWrap::Unwrap<CursorWrap>(args.This());
 
