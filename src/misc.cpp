@@ -2,7 +2,7 @@
 // This file is part of node-lmdb, the Node.js binding for lmdb
 // Copyright (c) 2013 Timur Kristóf
 // Licensed to you under the terms of the MIT license
-// 
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -27,14 +27,14 @@
 
 void setupExportMisc(Handle<Object> exports) {
     Local<Object> versionObj = Object::New();
-    
+
     int major, minor, patch;
     char *str = mdb_version(&major, &minor, &patch);
     versionObj->Set(String::NewSymbol("versionString"), String::New(str));
     versionObj->Set(String::NewSymbol("major"), Integer::New(major));
     versionObj->Set(String::NewSymbol("minor"), Integer::New(minor));
     versionObj->Set(String::NewSymbol("patch"), Integer::New(patch));
-    
+
     Persistent<Object> v = Persistent<Object>::New(versionObj);
     exports->Set(String::NewSymbol("version"), v);
 }
@@ -61,10 +61,10 @@ argtokey_callback_t argToKey(const Handle<Value> &val, MDB_val &key, bool keyIsU
     if (keyIsUint32) {
         uint32_t *v = new uint32_t;
         *v = val->Uint32Value();
-        
+
         key.mv_size = sizeof(uint32_t);
         key.mv_data = v;
-        
+
         return ([](MDB_val &key) -> void {
             delete (uint32_t*)key.mv_data;
         });
@@ -75,7 +75,7 @@ argtokey_callback_t argToKey(const Handle<Value> &val, MDB_val &key, bool keyIsU
     return ([](MDB_val &key) -> void {
         delete (uint16_t*)key.mv_data;
     });
-    
+
     return NULL;
 }
 
@@ -108,7 +108,7 @@ void consoleLog(const char *msg) {
     Handle<String> str = String::New("console.log('");
     str = String::Concat(str, String::New(msg));
     str = String::Concat(str, String::New("');"));
-    
+
     Local<Script> script = Script::New(str, String::New("node-lmdb-consolelog.js"));
     script->Run();
 }
@@ -117,7 +117,7 @@ void consoleLog(Handle<Value> val) {
     Handle<String> str = String::New("console.log('");
     str = String::Concat(str, val->ToString());
     str = String::Concat(str, String::New("');"));
-    
+
     Local<Script> script = Script::New(str, String::New("node-lmdb-consolelog.js"));
     script->Run();
 }
@@ -134,7 +134,7 @@ void CustomExternalStringResource::writeTo(Handle<String> str, MDB_val *val) {
     uint16_t *d = new uint16_t[l];
     str->Write(d);
     d[l - 1] = 0;
-    
+
     val->mv_data = d;
     val->mv_size = l * sizeof(uint16_t);
 }
@@ -159,4 +159,3 @@ const uint16_t *CustomExternalStringResource::data() const {
 size_t CustomExternalStringResource::length() const {
     return this->l;
 }
-

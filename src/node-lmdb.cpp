@@ -2,7 +2,7 @@
 // This file is part of node-lmdb, the Node.js binding for lmdb
 // Copyright (c) 2013 Timur Kristóf
 // Licensed to you under the terms of the MIT license
-// 
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -31,10 +31,10 @@ extern "C" {
     void initializeModule(Handle<Object> exports) {
         // Export Env as constructor for EnvWrap
         EnvWrap::setupExports(exports);
-        
+
         // Export Cursor as constructor for CursorWrap
         CursorWrap::setupExports(exports);
-        
+
         // Export misc things
         setupExportMisc(exports);
     }
@@ -42,4 +42,3 @@ extern "C" {
     // The standard node macro
     NODE_MODULE(node_lmdb, initializeModule)
 }
-

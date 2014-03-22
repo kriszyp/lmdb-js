@@ -2,7 +2,7 @@
 // This file is part of node-lmdb, the Node.js binding for lmdb
 // Copyright (c) 2013 Timur Kristóf
 // Licensed to you under the terms of the MIT license
-// 
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -49,7 +49,7 @@ Handle<Value> CursorWrap::ctor(const Arguments &args) {
         ThrowException(Exception::Error(String::New(mdb_strerror(rc))));
         return Undefined();
     }
-    
+
     // Create wrapper
     CursorWrap* cw = new CursorWrap(cursor);
     cw->keyIsUint32 = dw->keyIsUint32;
@@ -68,13 +68,13 @@ Handle<Value> CursorWrap::close(const Arguments &args) {
 Handle<Value> CursorWrap::del(const Arguments &args) {
     CursorWrap *cw = ObjectWrap::Unwrap<CursorWrap>(args.This());
     // TODO: wrap MDB_NODUPDATA flag
-    
+
     int rc = mdb_cursor_del(cw->cursor, 0);
     if (rc != 0) {
         ThrowException(Exception::Error(String::New(mdb_strerror(rc))));
         return Undefined();
     }
-    
+
     return Undefined();
 }
 
@@ -86,21 +86,21 @@ void (*freeData)(CursorWrap* cw, const Arguments& args, MDB_val&),
 Handle<Value> (*convertFunc)(MDB_val &data)) {
     int al = args.Length();
     CursorWrap *cw = ObjectWrap::Unwrap<CursorWrap>(args.This());
-    
+
     if (setKey) {
         setKey(cw, args, cw->key);
     }
     if (setData) {
         setData(cw, args, cw->data);
     }
-    
+
     // Temporary thing, so that we can free up the data if we want to
     MDB_val tempdata;
     tempdata.mv_size = cw->data.mv_size;
     tempdata.mv_data = cw->data.mv_data;
-    
+
     int rc = mdb_cursor_get(cw->cursor, &(cw->key), &(cw->data), op);
-    
+
     if (rc == MDB_NOTFOUND) {
         return Null();
     }
@@ -108,12 +108,12 @@ Handle<Value> (*convertFunc)(MDB_val &data)) {
         ThrowException(Exception::Error(String::New(mdb_strerror(rc))));
         return Undefined();
     }
-    
+
     Handle<Value> keyHandle = Undefined();
     if (cw->key.mv_size) {
         keyHandle = keyToHandle(cw->key, cw->keyIsUint32);
     }
-    
+
     if (convertFunc && al > 0 && args[al - 1]->IsFunction()) {
         // In this case, we expect the key/data pair to be correctly filled
         const unsigned argc = 2;
@@ -125,11 +125,11 @@ Handle<Value> (*convertFunc)(MDB_val &data)) {
     if (freeData) {
         freeData(cw, args, tempdata);
     }
-    
+
     if (cw->key.mv_size) {
         return keyHandle;
     }
-    
+
     return Boolean::New(true);
 }
 
@@ -260,13 +260,10 @@ void CursorWrap::setupExports(Handle<Object> exports) {
     cursorTpl->PrototypeTemplate()->Set(String::NewSymbol("goToDup"), FunctionTemplate::New(CursorWrap::goToDup)->GetFunction());
     cursorTpl->PrototypeTemplate()->Set(String::NewSymbol("goToDupRange"), FunctionTemplate::New(CursorWrap::goToDupRange)->GetFunction());
     cursorTpl->PrototypeTemplate()->Set(String::NewSymbol("del"), FunctionTemplate::New(CursorWrap::del)->GetFunction());
-    
+
     // CursorWrap: Get constructor
     Persistent<Function> cursorCtor = Persistent<Function>::New(cursorTpl->GetFunction());
-    
+
     // Set exports
     exports->Set(String::NewSymbol("Cursor"), cursorCtor);
 }
-
-
-
