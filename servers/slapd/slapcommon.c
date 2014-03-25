@@ -779,6 +779,11 @@ slap_tool_init(
 		ber_memfree( nbase.bv_val );
 		BER_BVZERO( &nbase );
 
+		if( be == NULL ) {
+			fprintf( stderr, "%s: slap_init no backend for \"%s\"\n",
+				progname, base.bv_val );
+			exit( EXIT_FAILURE );
+		}
 		switch ( tool ) {
 		case SLAPACL:
 			goto startup;
@@ -787,11 +792,6 @@ slap_tool_init(
 			break;
 		}
 
-		if( be == NULL ) {
-			fprintf( stderr, "%s: slap_init no backend for \"%s\"\n",
-				progname, base.bv_val );
-			exit( EXIT_FAILURE );
-		}
 		/* If the named base is a glue master, operate on the
 		 * entire context
 		 */
