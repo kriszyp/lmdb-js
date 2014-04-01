@@ -28,7 +28,7 @@
 #include <node.h>
 #include <node_buffer.h>
 #include <uv.h>
-#include "../dependencies/lmdb/libraries/liblmdb/lmdb.h"
+#include "../libraries/liblmdb/lmdb.h"
 
 using namespace v8;
 using namespace node;
@@ -159,6 +159,8 @@ private:
     MDB_txn *txn;
     // Reference to the MDB_env of the wrapped MDB_txn
     MDB_env *env;
+
+    EnvWrap *ew;
 
     friend class CursorWrap;
 
@@ -312,14 +314,14 @@ public:
 */
 class DbiWrap : public ObjectWrap {
 private:
-    // Stores whether or not the MDB_dbi needs closing
-    bool needsClose;
     // Stores whether keys should be treated as uint32_t
     bool keyIsUint32;
     // The wrapped object
     MDB_dbi dbi;
     // Reference to the MDB_env of the wrapped MDB_dbi
     MDB_env *env;
+
+    EnvWrap *ew;
 
     friend class TxnWrap;
     friend class CursorWrap;
@@ -365,6 +367,8 @@ private:
     bool keyIsUint32;
     // Key/data pair where the cursor is at
     MDB_val key, data;
+    DbiWrap *dw;
+    TxnWrap *tw;
 
 public:
     CursorWrap(MDB_cursor *cursor);

@@ -33,6 +33,8 @@ CursorWrap::CursorWrap(MDB_cursor *cursor) {
 
 CursorWrap::~CursorWrap() {
     if (this->cursor) {
+        this->dw->Unref();
+        this->tw->Unref();
         mdb_cursor_close(this->cursor);
     }
 }
@@ -52,18 +54,22 @@ Handle<Value> CursorWrap::ctor(const Arguments &args) {
 
     // Create wrapper
     CursorWrap* cw = new CursorWrap(cursor);
+    cw->dw = dw;
+    cw->dw->Ref();
+    cw->tw = tw;
+    cw->tw->Ref();
     cw->keyIsUint32 = dw->keyIsUint32;
     cw->Wrap(args.This());
-    cw->Ref();
 
     return args.This();
 }
 
 Handle<Value> CursorWrap::close(const Arguments &args) {
     CursorWrap *cw = ObjectWrap::Unwrap<CursorWrap>(args.This());
-    cw->Unref();
     mdb_cursor_close(cw->cursor);
-    cw->cursor = NULL;
+    cw->dw->Unref();
+    cw->tw->Unref();
+    cw->cursor = nullptr;
     return Undefined();
 }
 
@@ -138,23 +144,23 @@ Handle<Value> CursorWrap::getCommon(
 }
 
 Handle<Value> CursorWrap::getCommon(const Arguments& args, MDB_cursor_op op) {
-    return getCommon(args, op, NULL, NULL, NULL, NULL);
+    return getCommon(args, op, nullptr, nullptr, nullptr, nullptr);
 }
 
 Handle<Value> CursorWrap::getCurrentString(const Arguments& args) {
-    return getCommon(args, MDB_GET_CURRENT, NULL, NULL, NULL, valToString);
+    return getCommon(args, MDB_GET_CURRENT, nullptr, nullptr, nullptr, valToString);
 }
 
 Handle<Value> CursorWrap::getCurrentBinary(const Arguments& args) {
-    return getCommon(args, MDB_GET_CURRENT, NULL, NULL, NULL, valToBinary);
+    return getCommon(args, MDB_GET_CURRENT, nullptr, nullptr, nullptr, valToBinary);
 }
 
 Handle<Value> CursorWrap::getCurrentNumber(const Arguments& args) {
-    return getCommon(args, MDB_GET_CURRENT, NULL, NULL, NULL, valToNumber);
+    return getCommon(args, MDB_GET_CURRENT, nullptr, nullptr, nullptr, valToNumber);
 }
 
 Handle<Value> CursorWrap::getCurrentBoolean(const Arguments& args) {
-    return getCommon(args, MDB_GET_CURRENT, NULL, NULL, NULL, valToBoolean);
+    return getCommon(args, MDB_GET_CURRENT, nullptr, nullptr, nullptr, valToBoolean);
 }
 
 #define MAKE_GET_FUNC(name, op) Handle<Value> CursorWrap::name(const Arguments& args) { return getCommon(args, op); }
@@ -178,13 +184,13 @@ MAKE_GET_FUNC(goToPrevDup, MDB_PREV_DUP);
 Handle<Value> CursorWrap::goToKey(const Arguments &args) {
     return getCommon(args, MDB_SET, [](CursorWrap* cw, const Arguments& args, MDB_val &key) -> void {
         argToKey(args[0], key, cw->keyIsUint32);
-    }, NULL, NULL, NULL);
+    }, nullptr, nullptr, nullptr);
 }
 
 Handle<Value> CursorWrap::goToRange(const Arguments &args) {
     return getCommon(args, MDB_SET_RANGE, [](CursorWrap* cw, const Arguments& args, MDB_val &key) -> void {
         argToKey(args[0], key, cw->keyIsUint32);
-    }, NULL, NULL, NULL);
+    }, nullptr, nullptr, nullptr);
 }
 
 static void fillDataFromArg1(CursorWrap* cw, const Arguments& args, MDB_val &data) {
@@ -231,13 +237,13 @@ static void freeDataFromArg1(CursorWrap* cw, const Arguments& args, MDB_val &dat
 Handle<Value> CursorWrap::goToDup(const Arguments &args) {
     return getCommon(args, MDB_GET_BOTH, [](CursorWrap* cw, const Arguments& args, MDB_val &key) -> void {
         argToKey(args[0], key, cw->keyIsUint32);
-    }, fillDataFromArg1, freeDataFromArg1, NULL);
+    }, fillDataFromArg1, freeDataFromArg1, nullptr);
 }
 
 Handle<Value> CursorWrap::goToDupRange(const Arguments &args) {
     return getCommon(args, MDB_GET_BOTH_RANGE, [](CursorWrap* cw, const Arguments& args, MDB_val &key) -> void {
         argToKey(args[0], key, cw->keyIsUint32);
-    }, fillDataFromArg1, freeDataFromArg1, NULL);
+    }, fillDataFromArg1, freeDataFromArg1, nullptr);
 }
 
 void CursorWrap::setupExports(Handle<Object> exports) {

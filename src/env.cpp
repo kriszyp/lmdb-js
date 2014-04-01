@@ -39,7 +39,7 @@ typedef struct EnvSyncData {
 } EnvSyncData;
 
 EnvWrap::EnvWrap() {
-    this->env = NULL;
+    this->env = nullptr;
 }
 
 EnvWrap::~EnvWrap() {
@@ -143,7 +143,7 @@ Handle<Value> EnvWrap::open(const Arguments& args) {
 
     if (rc != 0) {
         mdb_env_close(ew->env);
-        ew->env = NULL;
+        ew->env = nullptr;
         ThrowException(Exception::Error(String::New(mdb_strerror(rc))));
         return Undefined();
     }
@@ -163,7 +163,7 @@ Handle<Value> EnvWrap::close(const Arguments& args) {
     }
 
     mdb_env_close(ew->env);
-    ew->env = NULL;
+    ew->env = nullptr;
 
     return scope.Close(Undefined());
 }

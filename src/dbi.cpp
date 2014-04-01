@@ -29,15 +29,26 @@ using namespace node;
 void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue, Local<Object> options);
 
 DbiWrap::DbiWrap(MDB_env *env, MDB_dbi dbi) {
-    this->needsClose = false;
     this->env = env;
     this->dbi = dbi;
 }
 
 DbiWrap::~DbiWrap() {
-    // Close if not closed already
-    if (needsClose) {
-        mdb_dbi_close(env, dbi);
+    // Imagine the following JS:
+    // ------------------------
+    //     var dbi1 = env.openDbi({ name: "hello" });
+    //     var dbi2 = env.openDbi({ name: "hello" });
+    //     dbi1.close();
+    //     txn.putString(dbi2, "world");
+    // -----
+    // The above DbiWrap objects would both wrap the same MDB_dbi, and if closing the first one called mdb_dbi_close,
+    // that'd also render the second DbiWrap instance unusable.
+    //
+    // For this reason, we will never call mdb_dbi_close
+    // NOTE: according to LMDB authors, it is perfectly fine if mdb_dbi_close is never called on an MDB_dbi
+
+    if (this->ew) {
+        this->ew->Unref();
     }
 }
 
@@ -113,10 +124,10 @@ Handle<Value> DbiWrap::ctor(const Arguments& args) {
 
     // Create wrapper
     DbiWrap* dw = new DbiWrap(ew->env, dbi);
-    dw->needsClose = true;
+    dw->ew = ew;
+    dw->ew->Ref();
     dw->keyIsUint32 = keyIsUint32;
     dw->Wrap(args.This());
-    dw->Ref();
 
     return args.This();
 }
@@ -125,9 +136,9 @@ Handle<Value> DbiWrap::close(const Arguments& args) {
     HandleScope scope;
 
     DbiWrap *dw = ObjectWrap::Unwrap<DbiWrap>(args.This());
-    dw->Unref();
     mdb_dbi_close(dw->env, dw->dbi);
-    dw->needsClose = false;
+    dw->ew->Unref();
+    dw->ew = nullptr;
 
     return Undefined();
 }
@@ -165,6 +176,9 @@ Handle<Value> DbiWrap::drop(const Arguments& args) {
         ThrowException(Exception::Error(String::New(mdb_strerror(rc))));
         return Undefined();
     }
+
+    dw->ew->Unref();
+    dw->ew = nullptr;
 
     return Undefined();
 }

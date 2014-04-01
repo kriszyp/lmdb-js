@@ -35,6 +35,7 @@ TxnWrap::~TxnWrap() {
     // Close if not closed already
     if (this->txn) {
         mdb_txn_abort(txn);
+        this->ew->Unref();
     }
 }
 
@@ -61,17 +62,16 @@ Handle<Value> TxnWrap::ctor(const Arguments& args) {
     }
 
     TxnWrap* tw = new TxnWrap(ew->env, txn);
+    tw->ew = ew;
+    tw->ew->Ref();
     tw->Wrap(args.This());
-    tw->Ref();
 
     return args.This();
 }
 
 Handle<Value> TxnWrap::commit(const Arguments& args) {
     HandleScope scope;
-
     TxnWrap *tw = ObjectWrap::Unwrap<TxnWrap>(args.This());
-    tw->Unref();
 
     if (!tw->txn) {
         ThrowException(Exception::Error(String::New("The transaction is already closed.")));
@@ -79,7 +79,9 @@ Handle<Value> TxnWrap::commit(const Arguments& args) {
     }
 
     int rc = mdb_txn_commit(tw->txn);
-    tw->txn = NULL;
+    tw->txn = nullptr;
+    tw->ew->Unref();
+
     if (rc != 0) {
         ThrowException(Exception::Error(String::New(mdb_strerror(rc))));
         return Undefined();
@@ -90,9 +92,7 @@ Handle<Value> TxnWrap::commit(const Arguments& args) {
 
 Handle<Value> TxnWrap::abort(const Arguments& args) {
     HandleScope scope;
-
     TxnWrap *tw = ObjectWrap::Unwrap<TxnWrap>(args.This());
-    tw->Unref();
 
     if (!tw->txn) {
         ThrowException(Exception::Error(String::New("The transaction is already closed.")));
@@ -100,7 +100,8 @@ Handle<Value> TxnWrap::abort(const Arguments& args) {
     }
 
     mdb_txn_abort(tw->txn);
-    tw->txn = NULL;
+    tw->ew->Unref();
+    tw->txn = nullptr;
 
     return Undefined();
 }
