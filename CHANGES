@@ -6,6 +6,7 @@ OpenLDAP 2.4.40 Engineering
 	Fixed librewrite reference counting (ITS#7723)
 	Fixed slap-mdb to work concurrently with slapadd (ITS#7798)
 	Fixed slapo-translucent double free (ITS#7587)
+	Fixed slapcacl with invalid suffix (ITS#7827)
 	Contrib
 		Fixed ldapc++ memory leak in Async connection (ITS#7806)
 	Documentation
