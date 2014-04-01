@@ -303,11 +303,11 @@ SLAPD Backend Options:])
 
 OL_ARG_ENABLE(backends,[    --enable-backends	  enable all available backends],
 	--, [no yes mod])dnl
-OL_ARG_ENABLE(deprecated_bdb,[    --enable-deprecated-bdb	  enable deprecated Berkeley DB backend. Will be removed in OpenLDAP 2.6],
+OL_ARG_ENABLE(bdb,[    --enable-bdb	  enable Berkeley DB backend],
 	no, [no yes mod], ol_enable_backends)dnl
 OL_ARG_ENABLE(dnssrv,[    --enable-dnssrv	  enable dnssrv backend],
 	no, [no yes mod], ol_enable_backends)dnl
-OL_ARG_ENABLE(deprecated_hdb,[    --enable-deprecated-hdb	  enable deprecated Hierarchical DB backend. Will be removed in OpenLDAP 2.6],
+OL_ARG_ENABLE(hdb,[    --enable-hdb	  enable Hierarchical DB backend],
 	no, [no yes mod], ol_enable_backends)dnl
 OL_ARG_ENABLE(ldap,[    --enable-ldap	  enable ldap backend],
 	no, [no yes mod], ol_enable_backends)dnl
@@ -471,9 +471,9 @@ if test $ol_enable_slapd = no ; then
 	ol_enable_rewrite=no
 
 elif test $ol_enable_modules != yes &&
-	test $ol_enable_deprecated_bdb = no &&
+	test $ol_enable_bdb = no &&
 	test $ol_enable_dnssrv = no &&
-	test $ol_enable_deprecated_hdb = no &&
+	test $ol_enable_hdb = no &&
 	test $ol_enable_ldap = no &&
 	test $ol_enable_mdb = no &&
 	test $ol_enable_meta = no &&
@@ -1876,7 +1876,7 @@ fi
 dnl ----------------------------------------------------------------
 ol_link_bdb=no 
 
-if test $ol_enable_deprecated_bdb/$ol_enable_deprecated_hdb != no/no; then
+if test $ol_enable_bdb/$ol_enable_hdb != no/no; then
 	OL_BERKELEY_DB
 
 	if test $ol_cv_berkeley_db = no ; then
@@ -2618,10 +2618,10 @@ if test "$ol_enable_monitor" != no ; then
 	AC_DEFINE_UNQUOTED(SLAPD_MONITOR,$MFLAG,[define to support cn=Monitor backend])
 fi
 
-if test "$ol_enable_deprecated_bdb" != no ; then
+if test "$ol_enable_bdb" != no ; then
 	BUILD_SLAPD=yes
-	BUILD_BDB=$ol_enable_deprecated_bdb
-	if test "$ol_enable_deprecated_bdb" = mod ; then
+	BUILD_BDB=$ol_enable_bdb
+	if test "$ol_enable_bdb" = mod ; then
 		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-bdb"
 		MFLAG=SLAPD_MOD_DYNAMIC
 	else
@@ -2644,10 +2644,10 @@ if test "$ol_enable_dnssrv" != no ; then
 	AC_DEFINE_UNQUOTED(SLAPD_DNSSRV,$MFLAG,[define to support DNS SRV backend])
 fi
 
-if test "$ol_enable_deprecated_hdb" != no ; then
+if test "$ol_enable_hdb" != no ; then
 	BUILD_SLAPD=yes
-	BUILD_HDB=$ol_enable_deprecated_hdb
-	if test "$ol_enable_deprecated_hdb" = mod ; then
+	BUILD_HDB=$ol_enable_hdb
+	if test "$ol_enable_hdb" = mod ; then
 		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-hdb"
 		MFLAG=SLAPD_MOD_DYNAMIC
 	else
