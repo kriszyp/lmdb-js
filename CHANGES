@@ -2,6 +2,7 @@ OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.40 Engineering
 	Fixed libldap don't leak libldap err codes (ITS#7676)
+	Fixed libldap CR/LF handling (ITS#4365)
 
 OpenLDAP 2.4.39 Release (2014/01/26)
 	Fixed libldap MozNSS crash (ITS#7783)
