@@ -1212,7 +1212,6 @@ autogroup_response( Operation *op, SlapReply *rs )
 
 									autogroup_add_group( op, agi, group_agd, NULL, &op->o_req_ndn, 1, 1);
 
-									overlay_entry_release_ov( op, e, 0, on );
 									ldap_pvt_thread_mutex_unlock( &agi->agi_mutex );
 									return SLAP_CB_CONTINUE;
 								}
