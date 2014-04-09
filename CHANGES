@@ -4,6 +4,7 @@ OpenLDAP 2.4.40 Engineering
 	Fixed libldap don't leak libldap err codes (ITS#7676)
 	Fixed libldap CR/LF handling (ITS#4635)
 	Fixed libldap GnuTLS ciphersuite parsing (ITS#7500)
+	Fixed libldap GnuTLS with newer versions (ITS#7430,ITS#6359)
 	Fixed librewrite reference counting (ITS#7723)
 	Fixed slap-mdb to work concurrently with slapadd (ITS#7798)
 	Fixed slapo-translucent double free (ITS#7587)
