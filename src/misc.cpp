@@ -93,7 +93,16 @@ Handle<Value> valToString(MDB_val &data) {
 }
 
 Handle<Value> valToBinary(MDB_val &data) {
-    return Buffer::New((char*)data.mv_data, data.mv_size, [](char*, void*) -> void { /* Don't need to do anything here, because the data belongs to LMDB anyway */ }, NULL)->handle_;
+    return Buffer::New(
+//        NOTE: newer node API will need this parameter
+//        v8::Isolate::GetCurrent(),
+        (char*)data.mv_data,
+        data.mv_size,
+        [](char*, void*) -> void {
+            /* Don't need to do anything here, because the data belongs to LMDB anyway */
+        },
+        nullptr
+    )->handle_;
 }
 
 Handle<Value> valToNumber(MDB_val &data) {
