@@ -55,7 +55,7 @@ Handle<Value> TxnWrap::ctor(const Arguments& args) {
 
 
     MDB_txn *txn;
-    int rc = mdb_txn_begin(ew->env, NULL, flags, &txn);
+    int rc = mdb_txn_begin(ew->env, nullptr, flags, &txn);
     if (rc != 0) {
         ThrowException(Exception::Error(String::New(mdb_strerror(rc))));
         return Undefined();
@@ -269,7 +269,7 @@ Handle<Value> TxnWrap::del(const Arguments& args) {
         return Undefined();
     }
 
-    int rc = mdb_del(tw->txn, dw->dbi, &key, NULL);
+    int rc = mdb_del(tw->txn, dw->dbi, &key, nullptr);
     freeKey(key);
 
     if (rc != 0) {

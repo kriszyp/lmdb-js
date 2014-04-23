@@ -60,7 +60,7 @@ Handle<Value> DbiWrap::ctor(const Arguments& args) {
     int rc;
     int flags = 0;
     int keyIsUint32 = 0;
-    char *cname = NULL;
+    char *cname = nullptr;
 
     EnvWrap *ew = ObjectWrap::Unwrap<EnvWrap>(args[0]->ToObject());
     if (args[1]->IsObject()) {
@@ -98,7 +98,7 @@ Handle<Value> DbiWrap::ctor(const Arguments& args) {
     }
 
     // Open transaction
-    rc = mdb_txn_begin(ew->env, NULL, 0, &txn);
+    rc = mdb_txn_begin(ew->env, nullptr, 0, &txn);
     if (rc != 0) {
         delete cname;
         mdb_txn_abort(txn);
@@ -157,7 +157,7 @@ Handle<Value> DbiWrap::drop(const Arguments& args) {
     }
 
     // Begin transaction
-    rc = mdb_txn_begin(dw->env, NULL, 0, &txn);
+    rc = mdb_txn_begin(dw->env, nullptr, 0, &txn);
     if (rc != 0) {
         ThrowException(Exception::Error(String::New(mdb_strerror(rc))));
         return Undefined();

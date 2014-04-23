@@ -50,11 +50,11 @@ argtokey_callback_t argToKey(const Handle<Value> &val, MDB_val &key, bool keyIsU
     // Check key type
     if (keyIsUint32 && !val->IsUint32()) {
         ThrowException(Exception::Error(String::New("Invalid key. keyIsUint32 specified on the database, but the given key was not an unsigned 32-bit integer")));
-        return NULL;
+        return nullptr;
     }
     if (!keyIsUint32 && !val->IsString()) {
         ThrowException(Exception::Error(String::New("Invalid key. String key expected, because keyIsUint32 isn't specified on the database.")));
-        return NULL;
+        return nullptr;
     }
 
     // Handle uint32_t key
@@ -76,7 +76,7 @@ argtokey_callback_t argToKey(const Handle<Value> &val, MDB_val &key, bool keyIsU
         delete (uint16_t*)key.mv_data;
     });
 
-    return NULL;
+    return nullptr;
 }
 
 Handle<Value> keyToHandle(MDB_val &key, bool keyIsUint32) {
