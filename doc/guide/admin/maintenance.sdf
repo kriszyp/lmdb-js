@@ -14,7 +14,13 @@ Backup strategies largely depend on the amount of change in the database
 and how much of that change an administrator might be willing to lose in a 
 catastrophic failure. There are two basic methods that can be used:
 
-1. Backup the Berkeley database itself and periodically back up the transaction 
+1. Backup the LMDB database itself
+
+The LMDB database can be copied live using the mdb_copy command.  If the database
+is a sparse file via the use of the "writemap" environment flag, the resulting
+copy will be the actual size of the database rather than a sparse copy.
+
+2. Backup the Berkeley database itself and periodically back up the transaction 
 log files:
 
 Berkeley DB produces transaction logs that can be used to reconstruct
@@ -30,7 +36,7 @@ copied offsite. This method affords good protection, with minimal space
 overhead.
 
 
-2. Periodically run slapcat and back up the LDIF file:
+3. Periodically run slapcat and back up the LDIF file:
 
 Slapcat can be run while slapd is active. However, one runs the risk of an
 inconsistent database- not from the point of slapd, but from the point of
@@ -46,13 +52,11 @@ files can be rather large and the accumulation of the day's backups could
 add up to a substantial amount of space.
 
 You can use {{slapcat}}(8) to generate an LDIF file for each of your {{slapd}}(8) 
-back-bdb or back-hdb databases.
+back-mdb, back-bdb, or back-hdb databases.
 
 >    slapcat -f slapd.conf -b "dc=example,dc=com"
 
-For back-bdb and back-hdb, this command may be ran while slapd(8) is running.
-
-MORE on actual Berkeley DB backups later covering db_recover etc.
+For back-mdb, back-bdb, and back-hdb, this command may be ran while slapd(8) is running.
 
 H2: Berkeley DB Logs
 

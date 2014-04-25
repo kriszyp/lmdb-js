@@ -216,6 +216,7 @@ backends, as well as backends loaded by modules.  For example:
 >	monitoredInfo: monitor
 >	monitoredInfo: bdb        
 >	monitoredInfo: hdb
+>	monitoredInfo: mdb
 
 This indicates the {{config}}, {{ldif}}, {{monitor}}, {{bdb}},
 and {{hdb}} backends are available.
@@ -267,11 +268,24 @@ contains information about a particular backend.  For example:
 >	supportedControl: 1.3.6.1.4.1.4203.1.10.1
 >	supportedControl: 1.2.840.113556.1.4.1413
 >	supportedControl: 1.3.6.1.4.1.4203.666.11.7.2
+>
+>	dn: cn=Backend 5,cn=Backends,cn=Monitor
+>	monitoredInfo: mdb
+>	monitorRuntimeConfig: TRUE
+>	supportedControl: 1.3.6.1.1.12
+>	supportedControl: 2.16.840.1.113730.3.4.2
+>	supportedControl: 1.3.6.1.4.1.4203.666.5.2
+>	supportedControl: 1.2.840.113556.1.4.319
+>	supportedControl: 1.3.6.1.1.13.1
+>	supportedControl: 1.3.6.1.1.13.2
+>	supportedControl: 1.3.6.1.4.1.4203.1.10.1
+>	supportedControl: 1.2.840.113556.1.4.1413
+>	supportedControl: 1.3.6.1.4.1.4203.666.11.7.2
 
 For each of these objects, monitorInfo indicates which backend the
 information in the object is about.  For instance, the {{EX:cn=Backend
-3,cn=Backends,cn=Monitor}} object contains (in the example) information
-about the {{bdb}} backend. 
+5,cn=Backends,cn=Monitor}} object contains (in the example) information
+about the {{mdb}} backend. 
 
 !block table
 Attribute|Description

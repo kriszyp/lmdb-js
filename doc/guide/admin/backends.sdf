@@ -37,7 +37,7 @@ Note: An {{hdb}} database needs a large {{idlcachesize}} for good search perform
 typically three times the {{cachesize}} (entry cache size) or larger.
 
 Note: The {{hdb}} backend has superseded the {{bdb}} backend, and both will
-soon be deprecated in favor of the new {{mdb}} backend. See below.
+are deprecated in favor of the new {{mdb}} backend. See below.
 
 H3: back-bdb/back-hdb Configuration
 
