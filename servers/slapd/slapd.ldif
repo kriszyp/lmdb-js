@@ -92,3 +92,4 @@ olcRootPW: secret
 olcDbDirectory:	%LOCALSTATEDIR%/openldap-data
 # Indices to maintain
 olcDbIndex: objectClass eq
+olcDbMaxSize: 1073741824
