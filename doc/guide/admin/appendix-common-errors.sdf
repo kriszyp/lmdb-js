@@ -587,10 +587,10 @@ Some times, `make test' fails at the very first test with an obscure message lik
 >    make test
 >    make[1]: Entering directory `/ldap_files/openldap-2.4.6/tests'
 >    make[2]: Entering directory `/ldap_files/openldap-2.4.6/tests'
->    Initiating LDAP tests for BDB...
+>    Initiating LDAP tests for MDB...
 >    Cleaning up test run directory leftover from previous run.
 >     Running ./scripts/all...
->    >>>>> Executing all LDAP tests for bdb
+>    >>>>> Executing all LDAP tests for mdb
 >    >>>>> Starting test000-rootdse ...
 >    running defines.sh
 >    Starting slapd on TCP/IP port 9011...
@@ -606,7 +606,7 @@ Some times, `make test' fails at the very first test with an obscure message lik
 >    ldap_sasl_bind_s: Can't contact LDAP server (-1)
 >    >>>>> Test failed
 >    >>>>> ./scripts/test000-rootdse failed (exit 1)
->    make[2]: *** [bdb-yes] Error 1
+>    make[2]: *** [mdb-yes] Error 1
 >    make[2]: Leaving directory `/ldap_files/openldap-2.4.6/tests'
 >    make[1]: *** [test] Error 2
 >    make[1]: Leaving directory `/ldap_files/openldap-2.4.6/tests'
