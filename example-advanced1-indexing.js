@@ -92,26 +92,16 @@ var indexingEngine = (function() {
         var cursor = new lmdb.Cursor(txn, dbi);
         var results = [];
 
-        try {
-            var shouldContinue = true;
-            cursor.goToRange(str);
+        // Go the the first occourence of `str` and iterate from there
+        for (var found = cursor.goToRange(str); found; found = cursor.goToNext()) {
+            // Stop the loop if the current key is no longer what we're looking for
+            if (found !== str)
+                break;
 
-            while (shouldContinue) {
-                cursor.getCurrentNumber(function(key, data) {
-                    //console.log(key.length, str.length, key == str);
-                    if (key !== str) {
-                        shouldContinue = false;
-                    }
-                    else {
-                        results.push(data);
-                    }
-                });
-                cursor.goToNext();
-            }
-        }
-        catch (err) {
-            console.log(err);
-            // Error here only means that we've reached the end
+            // Get current data item and push it to results
+            cursor.getCurrentNumber(function(key, data) {
+                results.push(data);
+            });
         }
 
         cursor.close();
