@@ -4,4 +4,4 @@ Things for 2.5:
 [09:28] <hyc> accesslog is still using 666, experimental arc
 [09:29] <hyc> I think this means we should polish up the logschema draft, Informational status, and publish it again as final
 
-Add support to cn=config for global overlays so they are usable
+Add support to cn=config for global overlays
