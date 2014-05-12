@@ -182,3 +182,13 @@ Handle<Value> DbiWrap::drop(const Arguments& args) {
 
     return Undefined();
 }
+
+
+Handle<Value> DbiWrap::size(const Arguments& args) {
+    DbiWrap *dw = ObjectWrap::Unwrap<DbiWrap>(args.This());
+    TxnWrap *txn = ObjectWrap::Unwrap<TxnWrap>(args[0]->ToObject());
+    MDB_stat stat;
+    mdb_stat(txn->txn, dw->dbi, &stat);
+    return Number::New(stat.ms_entries);
+}
+
