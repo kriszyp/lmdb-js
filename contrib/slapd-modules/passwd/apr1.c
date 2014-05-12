@@ -119,21 +119,21 @@ static int chk_phk(
 {
 	unsigned char digest[LUTIL_MD5_BYTES];
 	unsigned char *orig_pass;
-	int rc, n;
+	int rc;
 	struct berval salt;
+	size_t decode_len = LUTIL_BASE64_DECODE_LEN(passwd->bv_len);
 
 	/* safety check */
-	n = LUTIL_BASE64_DECODE_LEN(passwd->bv_len);
-	if (n <= sizeof(digest))
+	if (decode_len <= sizeof(digest))
 		return LUTIL_PASSWD_ERR;
 
 	/* base64 un-encode password hash */
-	orig_pass = (unsigned char *) ber_memalloc((size_t) (n + 1));
+	orig_pass = (unsigned char *) ber_memalloc(decode_len + 1);
 
 	if (orig_pass == NULL)
 		return LUTIL_PASSWD_ERR;
 
-	rc = lutil_b64_pton(passwd->bv_val, orig_pass, passwd->bv_len);
+	rc = lutil_b64_pton(passwd->bv_val, orig_pass, decode_len);
 
 	if (rc <= (int) sizeof(digest)) {
 		ber_memfree(orig_pass);
