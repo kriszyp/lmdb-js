@@ -356,6 +356,8 @@ public:
     static Handle<Value> drop(const Arguments& args);
 
     static Handle<Value> size(const Arguments& args);
+
+    static Handle<Value> stat(const Arguments& args);
 };
 
 /*

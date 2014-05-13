@@ -279,6 +279,7 @@ void EnvWrap::setupExports(Handle<Object> exports) {
     dbiTpl->PrototypeTemplate()->Set(String::NewSymbol("close"), FunctionTemplate::New(DbiWrap::close)->GetFunction());
     dbiTpl->PrototypeTemplate()->Set(String::NewSymbol("drop"), FunctionTemplate::New(DbiWrap::drop)->GetFunction());
     dbiTpl->PrototypeTemplate()->Set(String::NewSymbol("size"), FunctionTemplate::New(DbiWrap::size)->GetFunction());
+    dbiTpl->PrototypeTemplate()->Set(String::NewSymbol("stat"), FunctionTemplate::New(DbiWrap::stat)->GetFunction());
     // TODO: wrap mdb_stat too
     // DbiWrap: Get constructor
     EnvWrap::dbiCtor = Persistent<Function>::New(dbiTpl->GetFunction());
