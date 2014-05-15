@@ -182,3 +182,20 @@ Handle<Value> DbiWrap::drop(const Arguments& args) {
 
     return Undefined();
 }
+
+Handle<Value> DbiWrap::stat(const Arguments& args) {
+    HandleScope scope;
+
+    DbiWrap *dw = ObjectWrap::Unwrap<DbiWrap>(args.This());
+    TxnWrap *txn = ObjectWrap::Unwrap<TxnWrap>(args[0]->ToObject());
+    MDB_stat stat;
+    mdb_stat(txn->txn, dw->dbi, &stat);
+    Local<Object> obj = Object::New();
+    obj->Set(String::NewSymbol("pageSize"), Number::New(stat.ms_psize));
+    obj->Set(String::NewSymbol("treeDepth"), Number::New(stat.ms_depth));
+    obj->Set(String::NewSymbol("treeBranchPageCount"), Number::New(stat.ms_branch_pages));
+    obj->Set(String::NewSymbol("treeLeafPageCount"), Number::New(stat.ms_leaf_pages));
+    obj->Set(String::NewSymbol("entryCount"), Number::New(stat.ms_entries));
+    return scope.Close(obj);
+}
+

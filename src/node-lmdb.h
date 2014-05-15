@@ -154,9 +154,11 @@ public:
     (Wrapper for `MDB_txn`)
 */
 class TxnWrap : public ObjectWrap {
-private:
+public:
     // The wrapped object
     MDB_txn *txn;
+    
+private:
     // Reference to the MDB_env of the wrapped MDB_txn
     MDB_env *env;
 
@@ -352,6 +354,8 @@ public:
 
     */
     static Handle<Value> drop(const Arguments& args);
+
+    static Handle<Value> stat(const Arguments& args);
 };
 
 /*

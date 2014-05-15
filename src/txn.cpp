@@ -156,9 +156,10 @@ Handle<Value> TxnWrap::getCommon(const Arguments &args, Handle<Value> (*successF
     }
 
     int rc = mdb_get(tw->txn, dw->dbi, &key, &data);
+    freeKey(key);
 
     if (rc == MDB_NOTFOUND) {
-        return Null();
+        return Undefined();
     }
     else if (rc != 0) {
         ThrowException(Exception::Error(String::New(mdb_strerror(rc))));
