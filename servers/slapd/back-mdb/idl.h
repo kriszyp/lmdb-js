@@ -88,6 +88,7 @@ typedef struct IdScopes {
 	MDB_cursor *mc;
 	ID id;
 	ID2L scopes;
+	ID2L sctmp;
 	int numrdns;
 	int nscope;
 	int oscope;
