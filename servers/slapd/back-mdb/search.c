@@ -34,7 +34,8 @@ static int search_candidates(
 	MDB_txn *txn,
 	MDB_cursor *mci,
 	ID	*ids,
-	ID2L	scopes );
+	ID2L	scopes,
+	ID *stack );
 
 static int parse_paged_cookie( Operation *op, SlapReply *rs );
 
@@ -313,6 +314,8 @@ static void scope_chunk_ret( Operation *op, ID2 *scopes )
 			(void *)scopes, scope_chunk_free, NULL, NULL );
 }
 
+static void *search_stack( Operation *op );
+
 int
 mdb_search( Operation *op, SlapReply *rs )
 {
@@ -322,6 +325,7 @@ mdb_search( Operation *op, SlapReply *rs )
 	ID		candidates[MDB_IDL_UM_SIZE];
 	ID		iscopes[MDB_IDL_DB_SIZE];
 	ID2		*scopes;
+	void	*stack;
 	Entry		*e = NULL, *base = NULL;
 	Entry		*matched = NULL;
 	AttributeName	*attrs;
@@ -365,10 +369,12 @@ mdb_search( Operation *op, SlapReply *rs )
 	}
 
 	scopes = scope_chunk_get( op );
+	stack = search_stack( op );
 	isc.mt = ltid;
 	isc.mc = mcd;
 	isc.scopes = scopes;
 	isc.oscope = op->ors_scope;
+	isc.sctmp = stack;
 
 	if ( op->ors_deref & LDAP_DEREF_FINDING ) {
 		MDB_IDL_ZERO(candidates);
@@ -562,7 +568,7 @@ dn2entry_retry:
 		scopes[1].mid = base->e_id;
 		scopes[1].mval.mv_data = NULL;
 		rs->sr_err = search_candidates( op, rs, base,
-			ltid, mci, candidates, scopes );
+			ltid, mci, candidates, scopes, stack );
 		ncand = MDB_IDL_N( candidates );
 		if ( !base->e_id || ncand == NOID ) {
 			/* grab entry count from id2entry stat
@@ -1161,12 +1167,12 @@ static int search_candidates(
 	MDB_txn *txn,
 	MDB_cursor *mci,
 	ID	*ids,
-	ID2L	scopes )
+	ID2L	scopes,
+	ID *stack )
 {
 	struct mdb_info *mdb = (struct mdb_info *) op->o_bd->be_private;
 	int rc, depth = 1;
 	Filter		*f, rf, xf, nf, sf;
-	ID		*stack;
 	AttributeAssertion aa_ref = ATTRIBUTEASSERTION_INIT;
 	AttributeAssertion aa_subentry = ATTRIBUTEASSERTION_INIT;
 
@@ -1221,8 +1227,6 @@ static int search_candidates(
 	/* Allocate IDL stack, plus 1 more for former tmp */
 	if ( depth+1 > mdb->mi_search_stack_depth ) {
 		stack = ch_malloc( (depth + 1) * MDB_IDL_UM_SIZE * sizeof( ID ) );
-	} else {
-		stack = search_stack( op );
 	}
 
 	if( op->ors_deref & LDAP_DEREF_SEARCHING ) {
