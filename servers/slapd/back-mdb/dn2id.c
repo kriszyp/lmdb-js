@@ -699,11 +699,11 @@ mdb_idscopes(
 	struct mdb_info *mdb = (struct mdb_info *) op->o_bd->be_private;
 	MDB_dbi dbi = mdb->mi_dn2id;
 	MDB_val		key, data;
-	ID id;
+	ID id, prev;
 	ID2 id2;
 	char	*ptr;
 	int		rc = 0;
-	unsigned int x, y;
+	unsigned int x;
 	unsigned int nrlen, rlen;
 	diskNode *d;
 
@@ -750,8 +750,12 @@ mdb_idscopes(
 		}
 		ptr = data.mv_data;
 		ptr += data.mv_size - sizeof(ID);
+		prev = id;
 		memcpy( &id, ptr, sizeof(ID) );
-		y = x;
+		/* If we didn't advance, some parent is missing */
+		if ( id == prev )
+			return MDB_NOTFOUND;
+
 		x = mdb_id2l_search( isc->scopes, id );
 		if ( x <= isc->scopes[0].mid && isc->scopes[x].mid == id ) {
 			if ( !isc->scopes[x].mval.mv_data ) {
@@ -767,10 +771,6 @@ mdb_idscopes(
 			}
 			data = isc->scopes[x].mval;
 			rc = 1;
-		} else {
-			/* If we didn't advance, some parent is missing */
-			if ( x == y )
-				return MDB_NOTFOUND;
 		}
 		if ( op->ors_scope == LDAP_SCOPE_ONELEVEL )
 			break;
