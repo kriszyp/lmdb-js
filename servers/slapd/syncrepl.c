@@ -148,6 +148,8 @@ static int syncrepl_add_glue_ancestors(
 /* delta-mmr overlay handler */
 static int syncrepl_op_modify( Operation *op, SlapReply *rs );
 
+static int syncrepl_op_search( Operation *op, SlapReply *rs );
+
 /* callback functions */
 static int dn_callback( Operation *, SlapReply * );
 static int nonpresent_callback( Operation *, SlapReply * );
@@ -216,16 +218,14 @@ init_syncrepl(syncinfo_t *si)
 	if ( !syncrepl_ov.on_bi.bi_type ) {
 		syncrepl_ov.on_bi.bi_type = "syncrepl";
 		syncrepl_ov.on_bi.bi_op_modify = syncrepl_op_modify;
+		syncrepl_ov.on_bi.bi_op_search = syncrepl_op_search;
 		overlay_register( &syncrepl_ov );
 	}
 
-	/* delta-MMR needs the overlay, nothing else does.
-	 * This must happen before accesslog overlay is configured.
-	 */
-	if ( si->si_syncdata &&
-		!overlay_is_inst( si->si_be, syncrepl_ov.on_bi.bi_type )) {
+	if (!overlay_is_inst( si->si_be, syncrepl_ov.on_bi.bi_type )) {
 		overlay_config( si->si_be, syncrepl_ov.on_bi.bi_type, -1, NULL, NULL );
-		if ( !ad_reqMod ) {
+		/* delta-MMR needs this. Must happen before accesslog overlay is configured. */
+		if ( si->si_syncdata && !ad_reqMod ) {
 			const char *text;
 			logschema *ls = &accesslog_sc;
 
@@ -1179,6 +1179,7 @@ do_syncrep2(
 			} else {
 				rc = -2;
 			}
+			si->si_refreshDone = 1;
 			goto done;
 
 		case LDAP_RES_INTERMEDIATE:
@@ -2159,6 +2160,31 @@ syncrepl_op_modify( Operation *op, SlapReply *rs )
 		}
 		op->orm_modlist = newlist;
 		op->o_csn = mod->sml_nvalues[0];
+	}
+	return SLAP_CB_CONTINUE;
+}
+
+static int
+syncrepl_op_search( Operation *op, SlapReply *rs )
+{
+	slap_overinst *on = (slap_overinst *)op->o_bd->bd_info;
+	syncinfo_t *si;
+
+	/* Allow syncrepl internal searches */
+	if ( op->o_conn->c_conn_idx == -1 )
+		return SLAP_CB_CONTINUE;
+
+	/* Check if any of our consumers are refreshing */
+	for ( si = op->o_bd->be_syncinfo; si; si = si->si_next ) {
+		/* If we have some state, allow other consumers to progress */
+		if ( si->si_cookieState->cs_num > 0 &&
+			op->o_sync > SLAP_CONTROL_IGNORED )
+			return SLAP_CB_CONTINUE;
+		/* If we have any consumer refreshing, reject searches */
+		if ( !si->si_refreshDone ) {
+			send_ldap_error( op, rs, LDAP_BUSY, "syncrepl refresh in progress" );
+			return rs->sr_err;
+		}
 	}
 	return SLAP_CB_CONTINUE;
 }
