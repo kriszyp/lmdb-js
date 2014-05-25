@@ -61,7 +61,7 @@ $(OBJS):	nssov.h
 
 nssov.la:	$(OBJS) $(XOBJS)
 	$(LIBTOOL) --mode=link $(CC) $(OPT) -version-info 0:0:0 \
-	-rpath $(libdir) -module -o $@ $(OBJS) $(XOBJS) $(LIBS)
+	-rpath $(moduledir) -module -o $@ $(OBJS) $(XOBJS) $(LIBS)
 
 install: nssov.la
 	mkdir -p $(DESTDIR)$(moduledir)
