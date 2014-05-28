@@ -1070,6 +1070,9 @@ static int translucent_search(Operation *op, SlapReply *rs) {
 	struct berval fbv;
 	int rc = 0;
 
+	if ( op->o_managedsait > SLAP_CONTROL_IGNORED )
+		return SLAP_CB_CONTINUE;
+
 	Debug(LDAP_DEBUG_TRACE, "==> translucent_search: <%s> %s\n",
 		op->o_req_dn.bv_val, op->ors_filterstr.bv_val, 0);
 
