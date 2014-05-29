@@ -12,6 +12,7 @@ OpenLDAP 2.4.40 Engineering
 	Fixed slapcacl with invalid suffix (ITS#7827)
 	Contrib
 		Fixed ldapc++ memory leak in Async connection (ITS#7806)
+		Added pbkdf2 module (ITS#7742)
 	Documentation
 		Fixed slapd.ldif man page reference (ITS#7803)
 		Fixed slapd.conf(5) man page to reference exattrs (ITS#7847)
