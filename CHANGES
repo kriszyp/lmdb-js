@@ -12,6 +12,7 @@ OpenLDAP 2.4.40 Engineering
 	Fixed slapd-mdb with paged results (ITS#7705, ITS#7800)
 	Fixed slapd modrdn crash on naming attr with no matching rule (ITS#7850)
 	Fixed slapo-translucent double free (ITS#7587)
+	Fixed slapo-translucent to work with manageDSAit (ITS#7864)
 	Fixed slapcacl with invalid suffix (ITS#7827)
 	Contrib
 		Added pbkdf2 module (ITS#7742)
