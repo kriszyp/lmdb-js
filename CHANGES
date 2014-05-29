@@ -7,6 +7,7 @@ OpenLDAP 2.4.40 Engineering
 	Fixed libldap GnuTLS with newer versions (ITS#7430,ITS#6359)
 	Fixed librewrite reference counting (ITS#7723)
 	Fixed slap-mdb to work concurrently with slapadd (ITS#7798)
+	Fixed slapd-mdb with paged results (ITS#7705, ITS#7800)
 	Fixed slapd modrdn crash on naming attr with no matching rule (ITS#7850)
 	Fixed slapo-translucent double free (ITS#7587)
 	Fixed slapcacl with invalid suffix (ITS#7827)
