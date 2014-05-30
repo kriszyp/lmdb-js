@@ -28,6 +28,10 @@ var txn = env.beginTxn();
 var data = txn.getString(dbi, "hello");
 console.log(data);
 
+var stat = dbi.stat(txn);
+console.log("\ndatabase statistics:");
+console.dir(stat);
+
 if (data === null) {
     // Put data
     txn.putString(dbi, "hello", "Hello world!");
@@ -47,4 +51,3 @@ txn.commit();
 dbi.close();
 // Close the environment
 env.close();
-
