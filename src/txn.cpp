@@ -159,7 +159,7 @@ Handle<Value> TxnWrap::getCommon(const Arguments &args, Handle<Value> (*successF
     freeKey(key);
 
     if (rc == MDB_NOTFOUND) {
-        return Undefined();
+        return Null();
     }
     else if (rc != 0) {
         ThrowException(Exception::Error(String::New(mdb_strerror(rc))));

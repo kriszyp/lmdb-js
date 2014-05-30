@@ -154,17 +154,17 @@ public:
     (Wrapper for `MDB_txn`)
 */
 class TxnWrap : public ObjectWrap {
-public:
+private:
     // The wrapped object
     MDB_txn *txn;
-    
-private:
+
     // Reference to the MDB_env of the wrapped MDB_txn
     MDB_env *env;
 
     EnvWrap *ew;
 
     friend class CursorWrap;
+    friend class DbiWrap;
 
 public:
     TxnWrap(MDB_env *env, MDB_txn *txn);
