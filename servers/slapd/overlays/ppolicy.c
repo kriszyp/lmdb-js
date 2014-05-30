@@ -907,8 +907,11 @@ ppolicy_bind_response( Operation *op, SlapReply *rs )
 	int ngut = -1, warn = -1, age, rc;
 	Attribute *a;
 	time_t now, pwtime = (time_t)-1;
+	struct lutil_tm now_tm;
+	struct lutil_timet now_usec;
 	char nowstr[ LDAP_LUTIL_GENTIME_BUFSIZE ];
-	struct berval timestamp;
+	char nowstr_usec[ LDAP_LUTIL_GENTIME_BUFSIZE+8 ];
+	struct berval timestamp, timestamp_usec;
 	BackendInfo *bi = op->o_bd->bd_info;
 	Entry *e;
 
@@ -925,10 +928,19 @@ ppolicy_bind_response( Operation *op, SlapReply *rs )
 		return SLAP_CB_CONTINUE;
 	}
 
-	now = slap_get_time(); /* stored for later consideration */
+	ldap_pvt_gettime(&now_tm); /* stored for later consideration */
+	lutil_tm2time(&now_tm, &now_usec);
+	now = now_usec.tt_sec;
 	timestamp.bv_val = nowstr;
 	timestamp.bv_len = sizeof(nowstr);
 	slap_timestamp( &now, &timestamp );
+
+	/* Separate timestamp for pwdFailureTime with microsecond granularity */
+	strcpy(nowstr_usec, nowstr);
+	timestamp_usec.bv_val = nowstr_usec;
+	timestamp_usec.bv_len = timestamp.bv_len;
+	snprintf( timestamp_usec.bv_val + timestamp_usec.bv_len-1, sizeof(".123456Z"), ".%06dZ", now_usec.tt_usec );
+	timestamp_usec.bv_len += STRLENOF(".123456");
 
 	if ( rs->sr_err == LDAP_INVALID_CREDENTIALS ) {
 		int i = 0, fc = 0;
@@ -942,8 +954,8 @@ ppolicy_bind_response( Operation *op, SlapReply *rs )
 		m->sml_values = ch_calloc( sizeof(struct berval), 2 );
 		m->sml_nvalues = ch_calloc( sizeof(struct berval), 2 );
 
-		ber_dupbv( &m->sml_values[0], &timestamp );
-		ber_dupbv( &m->sml_nvalues[0], &timestamp );
+		ber_dupbv( &m->sml_values[0], &timestamp_usec );
+		ber_dupbv( &m->sml_nvalues[0], &timestamp_usec );
 		m->sml_next = mod;
 		mod = m;
 
