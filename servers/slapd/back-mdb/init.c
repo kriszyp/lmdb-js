@@ -265,10 +265,15 @@ mdb_db_open( BackendDB *be, ConfigReply *cr )
 		goto fail;
 	}
 
-	rc = mdb_attr_dbs_open( be, txn, cr );
-	if ( rc ) {
-		mdb_txn_abort( txn );
-		goto fail;
+	/* slapcat doesn't need indexes. avoid a failure if
+	 * a configured index wasn't created yet.
+	 */
+	if ( !(slapMode & SLAP_TOOL_READONLY) ) {
+		rc = mdb_attr_dbs_open( be, txn, cr );
+		if ( rc ) {
+			mdb_txn_abort( txn );
+			goto fail;
+		}
 	}
 
 	rc = mdb_txn_commit(txn);
