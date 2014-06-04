@@ -71,6 +71,8 @@ mdb_dn2entry(
 			ber_dupbv_x( &(*e)->e_nname, dn, op->o_tmpmemctx );
 		else
 			ber_dupbv_x( &(*e)->e_nname, &nmbv, op->o_tmpmemctx );
+	} else {
+		op->o_tmpfree( mbv.bv_val, op->o_tmpmemctx );
 	}
 
 	return rc;
