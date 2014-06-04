@@ -826,6 +826,13 @@ ldap_pvt_thread_pool_destroy ( ldap_pvt_thread_pool_t *tpool, int run_pending )
 	ldap_pvt_thread_cond_destroy(&pool->ltp_pcond);
 	ldap_pvt_thread_cond_destroy(&pool->ltp_cond);
 	ldap_pvt_thread_mutex_destroy(&pool->ltp_mutex);
+	for (i=0; i<pool->ltp_numqs; i++) {
+		pq = pool->ltp_wqs[i];
+		if (pq->ltp_free) {
+			LDAP_FREE(pq->ltp_free);
+		}
+	}
+	LDAP_FREE(pool->ltp_wqs);
 	LDAP_FREE(pool);
 	*tpool = NULL;
 	ldap_int_has_thread_pool = 0;
@@ -976,6 +983,7 @@ ldap_int_thread_pool_wrapper (
 		ldap_pvt_thread_cond_destroy(&pq->ltp_cond);
 		ldap_pvt_thread_mutex_destroy(&pq->ltp_mutex);
 		LDAP_FREE(pq->ltp_free);
+		pq->ltp_free = NULL;
 	}
 	ldap_pvt_thread_exit(NULL);
 	return(NULL);
