@@ -543,7 +543,7 @@ refint_repair(
 		Debug( LDAP_DEBUG_TRACE,
 			"refint_repair: search failed: %d\n",
 			rc, 0, 0 );
-		return 0;
+		return rc;
 	}
 
 	/* safety? paranoid just in case */
@@ -706,6 +706,7 @@ refint_qtask( void *ctx, void *arg )
 	Filter ftop, *fptr;
 	refint_q *rq;
 	refint_attrs *ip;
+	int pausing = 0, rc = 0;
 
 	connection_fake_init( &conn, &opbuf, ctx );
 	op = &opbuf.ob_op;
@@ -743,6 +744,11 @@ refint_qtask( void *ctx, void *arg )
 		dependent_data	*dp, *dp_next;
 		refint_attrs *ra, *ra_next;
 
+		if ( ldap_pvt_thread_pool_pausing( &connection_pool ) > 0 ) {
+			pausing = 1;
+			break;
+		}
+
 		/* Dequeue an op */
 		ldap_pvt_thread_mutex_lock( &id->qmutex );
 		rq = id->qhead;
@@ -778,7 +784,7 @@ refint_qtask( void *ctx, void *arg )
 
 		if ( rq->db != NULL ) {
 			op->o_bd = rq->db;
-			refint_repair( op, id, rq );
+			rc = refint_repair( op, id, rq );
 
 		} else {
 			BackendDB	*be;
@@ -791,7 +797,7 @@ refint_qtask( void *ctx, void *arg )
 
 				if ( be->be_search && be->be_modify ) {
 					op->o_bd = be;
-					refint_repair( op, id, rq );
+					rc = refint_repair( op, id, rq );
 				}
 			}
 		}
@@ -811,6 +817,17 @@ refint_qtask( void *ctx, void *arg )
 			op->o_tmpfree( dp, op->o_tmpmemctx );
 		}
 		op->o_tmpfree( op->ors_filterstr.bv_val, op->o_tmpmemctx );
+		if ( rc == LDAP_BUSY ) {
+			pausing = 1;
+			/* re-queue this op */
+			ldap_pvt_thread_mutex_lock( &id->qmutex );
+			rq->next = id->qhead;
+			id->qhead = rq;
+			if ( !id->qtail )
+				id->qtail = rq;
+			ldap_pvt_thread_mutex_unlock( &id->qmutex );
+			break;
+		}
 
 		if ( !BER_BVISNULL( &rq->newndn )) {
 			ch_free( rq->newndn.bv_val );
@@ -831,7 +848,14 @@ refint_qtask( void *ctx, void *arg )
 	/* wait until we get explicitly scheduled again */
 	ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
 	ldap_pvt_runqueue_stoptask( &slapd_rq, id->qtask );
-	ldap_pvt_runqueue_resched( &slapd_rq,id->qtask, 1 );
+	if ( pausing ) {
+		/* try to run again as soon as the pause is done */
+		id->qtask->interval.tv_sec = 0;
+		ldap_pvt_runqueue_resched( &slapd_rq, id->qtask, 0 );
+		id->qtask->interval.tv_sec = RUNQ_INTERVAL;
+	} else {
+		ldap_pvt_runqueue_resched( &slapd_rq,id->qtask, 1 );
+	}
 	ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
 
 	return NULL;
