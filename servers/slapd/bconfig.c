@@ -3415,7 +3415,8 @@ loglevel2bvarray( int l, BerVarray *bva )
 	}
 
 	if ( l == 0 ) {
-		return value_add_one( bva, ber_bvstr( "0" ) );
+		struct berval bv = BER_BVC("0");
+		return value_add_one( bva, &bv );
 	}
 
 	return mask_to_verbs( loglevel_ops, l, bva );
