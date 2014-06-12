@@ -14,6 +14,7 @@ OpenLDAP 2.4.40 Engineering
 	Fixed slapd-mdb slapcat with nonexistant indices (ITS#7870)
 	Fixed slap-mdb memory leak on matchedDN (ITS#7872)
 	Fixed slapd modrdn crash on naming attr with no matching rule (ITS#7850)
+	Fixed slapo-refint to check for pauses in cn=config (ITS#7873)
 	Fixed slapo-translucent double free (ITS#7587)
 	Fixed slapo-translucent to work with manageDSAit (ITS#7864)
 	Fixed slapcacl with invalid suffix (ITS#7827)
