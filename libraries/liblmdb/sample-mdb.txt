@@ -1,6 +1,6 @@
-/* sample-mdb.c - MDB toy/sample
+/* sample-mdb.txt - MDB toy/sample
  *
- * Do a line-by-line comparison of this and sample-bdb.c
+ * Do a line-by-line comparison of this and sample-bdb.txt
  */
 /*
  * Copyright 2012 Howard Chu, Symas Corp.
@@ -26,6 +26,8 @@ int main(int argc,char * argv[])
 	MDB_txn *txn;
 	MDB_cursor *cursor;
 	char sval[32];
+
+	/* Note: Most error checking omitted for simplicity */
 
 	rc = mdb_env_create(&env);
 	rc = mdb_env_open(env, "./testdb", 0, 0664);
