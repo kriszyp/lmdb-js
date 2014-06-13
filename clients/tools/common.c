@@ -66,7 +66,7 @@ int		nocanon = 0;
 int		referrals = 0;
 int		verbose = 0;
 int		ldif = 0;
-ber_len_t	ldif_wrap = LDIF_LINE_WIDTH;
+ber_len_t	ldif_wrap = 0;
 char		*prog = NULL;
 
 /* connection */
