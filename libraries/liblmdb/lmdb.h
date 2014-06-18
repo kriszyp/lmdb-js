@@ -184,7 +184,7 @@ typedef int mdb_filehandle_t;
 /** Library minor version */
 #define MDB_VERSION_MINOR	9
 /** Library patch version */
-#define MDB_VERSION_PATCH	12
+#define MDB_VERSION_PATCH	13
 
 /** Combine args a,b,c into a single integer for easy version comparisons */
 #define MDB_VERINT(a,b,c)	(((a) << 24) | ((b) << 16) | (c))
@@ -345,16 +345,18 @@ typedef enum MDB_cursor_op {
 	MDB_GET_BOTH,			/**< Position at key/data pair. Only for #MDB_DUPSORT */
 	MDB_GET_BOTH_RANGE,		/**< position at key, nearest data. Only for #MDB_DUPSORT */
 	MDB_GET_CURRENT,		/**< Return key/data at current cursor position */
-	MDB_GET_MULTIPLE,		/**< Return all the duplicate data items at the current
-								 cursor position. Only for #MDB_DUPFIXED */
+	MDB_GET_MULTIPLE,		/**< Return key and up to a page of duplicate data items
+								from current cursor position. Move cursor to prepare
+								for #MDB_NEXT_MULTIPLE. Only for #MDB_DUPFIXED */
 	MDB_LAST,				/**< Position at last key/data item */
 	MDB_LAST_DUP,			/**< Position at last data item of current key.
 								Only for #MDB_DUPSORT */
 	MDB_NEXT,				/**< Position at next data item */
 	MDB_NEXT_DUP,			/**< Position at next data item of current key.
 								Only for #MDB_DUPSORT */
-	MDB_NEXT_MULTIPLE,		/**< Return all duplicate data items at the next
-								cursor position. Only for #MDB_DUPFIXED */
+	MDB_NEXT_MULTIPLE,		/**< Return key and up to a page of duplicate data items
+								from next cursor position. Move cursor to prepare
+								for #MDB_NEXT_MULTIPLE. Only for #MDB_DUPFIXED */
 	MDB_NEXT_NODUP,			/**< Position at first data item of next key */
 	MDB_PREV,				/**< Position at previous data item */
 	MDB_PREV_DUP,			/**< Position at previous data item of current key.
@@ -1345,11 +1347,9 @@ int  mdb_cursor_get(MDB_cursor *cursor, MDB_val *key, MDB_val *data,
 	 * @param[in] flags Options for this operation. This parameter
 	 * must be set to 0 or one of the values described here.
 	 * <ul>
-	 *	<li>#MDB_CURRENT - overwrite the data of the key/data pair to which
-	 *		the cursor refers with the specified data item. The \b key
-	 *		parameter is not used for positioning the cursor, but should
-	 *		still be provided. If using sorted duplicates (#MDB_DUPSORT)
-	 *		the data item must still sort into the same place.
+	 *	<li>#MDB_CURRENT - replace the item at the current cursor position.
+	 *		The \b key parameter must still be provided, and must match it.
+	 *		So must \b data if using sorted duplicates (#MDB_DUPSORT).
 	 *	<li>#MDB_NODUPDATA - enter the new key/data pair only if it does not
 	 *		already appear in the database. This flag may only be specified
 	 *		if the database was opened with #MDB_DUPSORT. The function will
