@@ -28,6 +28,10 @@ Here are the main highlights of LMDB, for more, visit http://symas.com/mdb :)
 * Tested and works on Mac OS X - see https://github.com/Venemo/node-lmdb/issues/3
 * **Not yet tested** on Windows - see https://github.com/Venemo/node-lmdb/issues/2
 
+### License info
+
+The `node-lmdb` code is licensed to you under the terms of the MIT license. LMDB itself is licensed under its own OpenLDAP public license (which is similarly permissive).
+
 Usage
 -----
 

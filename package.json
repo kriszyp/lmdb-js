@@ -2,6 +2,7 @@
   "name": "node-lmdb",
   "description": "Node binding for LMDB, the Lightning Memory-Mapped Database",
   "author": "Timur Kristóf <venemo@fedoraproject.org>",
+  "license": "MIT",
   "keywords": [
     "lmdb",
     "database",
