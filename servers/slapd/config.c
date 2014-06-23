@@ -50,6 +50,14 @@
 #include "lutil_ldap.h"
 #include "config.h"
 
+#ifdef _WIN32
+#define	LUTIL_ATOULX	lutil_atoullx
+#define	Z	"I"
+#else
+#define	LUTIL_ATOULX	lutil_atoulx
+#define	Z	"z"
+#endif
+
 #define ARGS_STEP	512
 
 /*
@@ -267,7 +275,7 @@ int config_check_vals(ConfigTable *Conf, ConfigArgs *c, int check_only ) {
 				break;
 			case ARG_ULONG:
 				assert( c->argc == 2 );
-				if ( lutil_atoullx( &ularg, c->argv[1], 0 ) != 0 ) {
+				if ( LUTIL_ATOULX( &ularg, c->argv[1], 0 ) != 0 ) {
 					snprintf( c->cr_msg, sizeof( c->cr_msg ),
 						"<%s> unable to parse \"%s\" as unsigned long",
 						c->argv[0], c->argv[1] );
@@ -490,7 +498,7 @@ config_get_vals(ConfigTable *cf, ConfigArgs *c)
 		case ARG_INT: bv.bv_len = snprintf(bv.bv_val, sizeof( c->log ), "%d", c->value_int); break;
 		case ARG_UINT: bv.bv_len = snprintf(bv.bv_val, sizeof( c->log ), "%u", c->value_uint); break;
 		case ARG_LONG: bv.bv_len = snprintf(bv.bv_val, sizeof( c->log ), "%ld", c->value_long); break;
-		case ARG_ULONG: bv.bv_len = snprintf(bv.bv_val, sizeof( c->log ), "%llu", c->value_ulong); break;
+		case ARG_ULONG: bv.bv_len = snprintf(bv.bv_val, sizeof( c->log ), "%" Z "u", c->value_ulong); break;
 		case ARG_BER_LEN_T: bv.bv_len = snprintf(bv.bv_val, sizeof( c->log ), "%ld", c->value_ber_t); break;
 		case ARG_ON_OFF: bv.bv_len = snprintf(bv.bv_val, sizeof( c->log ), "%s",
 			c->value_int ? "TRUE" : "FALSE"); break;
