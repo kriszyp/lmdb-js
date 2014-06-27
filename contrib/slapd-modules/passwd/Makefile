@@ -33,19 +33,19 @@ all: $(PROGRAMS)
 
 pw-kerberos.la:	kerberos.lo
 	$(LIBTOOL) --mode=link $(CC) $(OPT) -version-info $(LTVER) \
-	-rpath $(PREFIX)/lib -module -o $@ $? -lkrb5
+	-rpath $(moduledir) -module -o $@ $? -lkrb5
 
 pw-netscape.la:	netscape.lo
 	$(LIBTOOL) --mode=link $(CC) $(OPT) -version-info $(LTVER) \
-	-rpath $(PREFIX)/lib -module -o $@ $? 
+	-rpath $(moduledir) -module -o $@ $?
 
 pw-radius.la:	radius.lo
 	$(LIBTOOL) --mode=link $(CC) $(OPT) -version-info $(LTVER) \
-	-rpath $(PREFIX)/lib -module -o $@ $? -lradius
+	-rpath $(moduledir) -module -o $@ $? -lradius
 
 pw-apr1.la:	apr1.lo
 	$(LIBTOOL) --mode=link $(CC) $(OPT) -version-info $(LTVER) \
-	-rpath $(PREFIX)/lib -module -o $@ $?
+	-rpath $(moduledir) -module -o $@ $?
 
 clean:
 	rm -rf *.o *.lo *.la .libs
