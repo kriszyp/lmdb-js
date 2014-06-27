@@ -244,7 +244,7 @@ static int chk_ssha256(
 
 	rc = lutil_b64_pton(passwd->bv_val, orig_pass, decode_len);
 
-	if( rc <= sizeof(SHAdigest) ) {
+	if( rc <= (int)(sizeof(SHAdigest)) ) {
 		ber_memfree(orig_pass);
 		return LUTIL_PASSWD_ERR;
 	}
@@ -332,7 +332,7 @@ static int chk_ssha384(
 
 	rc = lutil_b64_pton(passwd->bv_val, orig_pass, decode_len);
 
-	if( rc <= sizeof(SHAdigest) ) {
+	if( rc <= (int)(sizeof(SHAdigest)) ) {
 		ber_memfree(orig_pass);
 		return LUTIL_PASSWD_ERR;
 	}
@@ -420,7 +420,7 @@ static int chk_ssha512(
 
 	rc = lutil_b64_pton(passwd->bv_val, orig_pass, decode_len);
 
-	if( rc <= sizeof(SHAdigest) ) {
+	if( rc <= (int)(sizeof(SHAdigest)) ) {
 		ber_memfree(orig_pass);
 		return LUTIL_PASSWD_ERR;
 	}
