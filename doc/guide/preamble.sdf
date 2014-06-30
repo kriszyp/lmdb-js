@@ -225,6 +225,7 @@ LDAPv3|LDAP, version 3
 LDIF|LDAP Data Interchange Format
 LMDB|Lightning Memory-Mapped Database
 MD5|Message Digest 5
+MDB|Memory-Mapped Database (Backend)
 MIB|Management Information Base
 MODDN|Modify DN
 MODRDN|Modify RDN
