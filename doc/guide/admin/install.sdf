@@ -114,7 +114,11 @@ Kerberos, is highly recommended.
 
 H3: Database Software
 
-OpenLDAP's {{slapd}}(8) {{TERM:BDB}} and {{TERM:HDB}} primary database backends
+OpenLDAP's {{slapd}}(8) {{TERM:MDB}} primary database backend uses the {{TERM:LMDB}}
+software included with the OpenLDAP source.  There is no need to download any
+additional software to have {{MDB}} support.
+
+OpenLDAP's {{slapd}}(8) {{TERM:BDB}} and {{TERM:HDB}} deprecated database backends
 require {{ORG[expand]Oracle}} {{PRD:Berkeley DB}}.
 If not available at configure time, you will not be able to build
 {{slapd}}(8) with these primary database backends.
@@ -130,7 +134,10 @@ download page
 
 There are several versions available. Generally, the most recent
 release (with published patches) is recommended. This package is required
-if you wish to use the {{TERM:BDB}} or {{TERM:HDB}} database backends.
+if you wish to use the deprecated {{TERM:BDB}} or {{TERM:HDB}} database backends.
+
+Note: Berkeley DB version 6.0.20 and later uses a software license that is
+incompatible with LDAP technology and should not be used with OpenLDAP.
 
 Note: Please see {{SECT:Recommended OpenLDAP Software Dependency Versions}} for
 more information.

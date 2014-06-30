@@ -22,14 +22,7 @@ Feature|Software|Version
 {{TERM[expand]Kerberos}}:
 |{{PRD:Heimdal}}|Version
 |{{PRD:MIT Kerberos}}|Version
-Database Software|{{PRD:Berkeley DB}}:|
-||4.4
-||4.5
-||4.6
-||4.7
-||4.8
-||5.0
-||5.1
+Database Software|{{PRD:Berkeley DB}}:|5.3
 ||Note: It is highly recommended to apply the patches from Oracle for a given release.
 Threads:
 |POSIX {{pthreads}}|Version
