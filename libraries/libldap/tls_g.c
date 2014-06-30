@@ -272,7 +272,6 @@ tlsg_ctx_init( struct ldapoptions *lo, struct ldaptls *lt, int is_server )
 		 * then we have to build the cert chain.
 		 */
 		if ( max == 1 && !gnutls_x509_crt_check_issuer( certs[0], certs[0] )) {
-#if GNUTLS_VERSION_NUMBER >= 0x020c00
 			unsigned int i;
 			for ( i = 1; i<VERIFY_DEPTH; i++ ) {
 				if ( gnutls_certificate_get_issuer( ctx->cred, certs[i-1], &certs[i], 0 ))
@@ -282,27 +281,6 @@ tlsg_ctx_init( struct ldapoptions *lo, struct ldaptls *lt, int is_server )
 				if ( gnutls_x509_crt_check_issuer( certs[i], certs[i] ))
 					break;
 			}
-#else
-			gnutls_x509_crt_t *cas;
-			unsigned int i, j, ncas;
-
-			gnutls_certificate_get_x509_cas( ctx->cred, &cas, &ncas );
-			for ( i = 1; i<VERIFY_DEPTH; i++ ) {
-				for ( j = 0; j<ncas; j++ ) {
-					if ( gnutls_x509_crt_check_issuer( certs[i-1], cas[j] )) {
-						certs[i] = cas[j];
-						max++;
-						/* If this CA is self-signed, we're done */
-						if ( gnutls_x509_crt_check_issuer( cas[j], cas[j] ))
-							j = ncas;
-						break;
-					}
-				}
-				/* only continue if we found a CA and it was not self-signed */
-				if ( j == ncas )
-					break;
-			}
-#endif
 		}
 		rc = gnutls_certificate_set_x509_key( ctx->cred, certs, max, key );
 		if ( rc ) return -1;
@@ -692,8 +670,6 @@ tlsg_session_strength( tls_session *session )
 static int
 tlsg_session_unique( tls_session *sess, struct berval *buf, int is_server)
 {
-/* channel bindings added in 2.12.0 */
-#if GNUTLS_VERSION_NUMBER >= 0x020c00
 	tlsg_session *s = (tlsg_session *)sess;
 	gnutls_datum_t cb;
 	int rc;
@@ -707,7 +683,6 @@ tlsg_session_unique( tls_session *sess, struct berval *buf, int is_server)
 		memcpy( buf->bv_val, cb.data, len );
 		return len;
 	}
-#endif
 	return 0;
 }
 
