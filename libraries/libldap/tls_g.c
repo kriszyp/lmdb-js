@@ -43,19 +43,11 @@
 
 #include <gnutls/gnutls.h>
 #include <gnutls/x509.h>
-#include <gcrypt.h>
 
 #if LIBGNUTLS_VERSION_NUMBER >= 0x020200
 #define	HAVE_CIPHERSUITES	1
-/* This is a kludge. gcrypt 1.4.x has support. Recent GnuTLS requires gcrypt 1.4.x
- * but that dependency isn't reflected in their configure script, resulting in
- * build errors on older gcrypt. So, if they have a working build environment,
- * assume gcrypt is new enough.
- */
-#define HAVE_GCRYPT_RAND	1
 #else
 #undef HAVE_CIPHERSUITES
-#undef HAVE_GCRYPT_RAND
 #endif
 
 #ifndef HAVE_CIPHERSUITES
@@ -143,20 +135,13 @@ tlsg_mutex_unlock( void **lock )
 	return ldap_pvt_thread_mutex_unlock( *lock );
 }
 
-static struct gcry_thread_cbs tlsg_thread_cbs = {
-	GCRY_THREAD_OPTION_USER,
-	NULL,
-	tlsg_mutex_init,
-	tlsg_mutex_destroy,
-	tlsg_mutex_lock,
-	tlsg_mutex_unlock,
-	NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
-};
-
 static void
 tlsg_thr_init( void )
 {
-	gcry_control (GCRYCTL_SET_THREAD_CBS, &tlsg_thread_cbs);
+	gnutls_global_set_mutex (tlsg_mutex_init,
+		tlsg_mutex_destroy,
+		tlsg_mutex_lock,
+		tlsg_mutex_unlock);
 }
 #endif /* LDAP_R_COMPILE */
 
@@ -166,17 +151,6 @@ tlsg_thr_init( void )
 static int
 tlsg_init( void )
 {
-#ifdef HAVE_GCRYPT_RAND
-	struct ldapoptions *lo = LDAP_INT_GLOBAL_OPT();
-	if ( lo->ldo_tls_randfile &&
-		gcry_control( GCRYCTL_SET_RNDEGD_SOCKET, lo->ldo_tls_randfile )) {
-		Debug( LDAP_DEBUG_ANY,
-		"TLS: gcry_control GCRYCTL_SET_RNDEGD_SOCKET failed\n",
-		0, 0, 0);
-		return -1;
-	}
-#endif
-
 	gnutls_global_init();
 
 #ifndef HAVE_CIPHERSUITES
