@@ -1979,7 +1979,7 @@ if test $ol_enable_sql != no ; then
 	])
 
 	sql_LIBS="$LIBS"
-	LIBS="$LTHREAD_LIBS"
+	LIBS="$LTHREAD_LIBS $LIBS"
 
 	if test $ol_with_odbc = auto ; then
 		ol_with_odbc="iodbc unixodbc odbc32"
