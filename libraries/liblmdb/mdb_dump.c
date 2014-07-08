@@ -17,7 +17,14 @@
 #include <string.h>
 #include <ctype.h>
 #include <unistd.h>
+#include <signal.h>
 #include "lmdb.h"
+
+#ifdef _WIN32
+#define Z	"I"
+#else
+#define Z	"z"
+#endif
 
 #define PRINT	1
 static int mode;
@@ -36,6 +43,13 @@ flagbit dbflags[] = {
 	{ MDB_REVERSEDUP, "reversedup" },
 	{ 0, NULL }
 };
+
+static volatile sig_atomic_t gotsig;
+
+static void dumpsig( int sig )
+{
+	gotsig=1;
+}
 
 static const char hexc[] = "0123456789abcdef";
 
@@ -83,6 +97,7 @@ static int dumpit(MDB_txn *txn, MDB_dbi dbi, char *name)
 	MDB_cursor *mc;
 	MDB_stat ms;
 	MDB_val key, data;
+	MDB_envinfo info;
 	unsigned int flags;
 	int rc, i;
 
@@ -92,11 +107,18 @@ static int dumpit(MDB_txn *txn, MDB_dbi dbi, char *name)
 	rc = mdb_stat(txn, dbi, &ms);
 	if (rc) return rc;
 
+	rc = mdb_env_info(mdb_txn_env(txn), &info);
+	if (rc) return rc;
+
 	printf("VERSION=3\n");
 	printf("format=%s\n", mode & PRINT ? "print" : "bytevalue");
 	if (name)
 		printf("database=%s\n", name);
 	printf("type=btree\n");
+	printf("mapsize=%" Z "u\n", info.me_mapsize);
+	if (info.me_mapaddr)
+		printf("mapaddr=%p\n", info.me_mapaddr);
+	printf("maxreaders=%u\n", info.me_maxreaders);
 
 	if (flags & MDB_DUPSORT)
 		printf("duplicates=1\n");
@@ -112,6 +134,10 @@ static int dumpit(MDB_txn *txn, MDB_dbi dbi, char *name)
 	if (rc) return rc;
 
 	while ((rc = mdb_cursor_get(mc, &key, &data, MDB_NEXT) == MDB_SUCCESS)) {
+		if (gotsig) {
+			rc = EINTR;
+			break;
+		}
 		if (mode & PRINT) {
 			text(&key);
 			text(&data);
@@ -196,6 +222,15 @@ int main(int argc, char *argv[])
 	if (optind != argc - 1)
 		usage(prog);
 
+#ifdef SIGPIPE
+	signal(SIGPIPE, dumpsig);
+#endif
+#ifdef SIGHUP
+	signal(SIGHUP, dumpsig);
+#endif
+	signal(SIGINT, dumpsig);
+	signal(SIGTERM, dumpsig);
+
 	envname = argv[optind];
 	rc = mdb_env_create(&env);
 
@@ -205,19 +240,19 @@ int main(int argc, char *argv[])
 
 	rc = mdb_env_open(env, envname, envflags | MDB_RDONLY, 0664);
 	if (rc) {
-		printf("mdb_env_open failed, error %d %s\n", rc, mdb_strerror(rc));
+		fprintf(stderr, "mdb_env_open failed, error %d %s\n", rc, mdb_strerror(rc));
 		goto env_close;
 	}
 
 	rc = mdb_txn_begin(env, NULL, MDB_RDONLY, &txn);
 	if (rc) {
-		printf("mdb_txn_begin failed, error %d %s\n", rc, mdb_strerror(rc));
+		fprintf(stderr, "mdb_txn_begin failed, error %d %s\n", rc, mdb_strerror(rc));
 		goto env_close;
 	}
 
 	rc = mdb_open(txn, subname, 0, &dbi);
 	if (rc) {
-		printf("mdb_open failed, error %d %s\n", rc, mdb_strerror(rc));
+		fprintf(stderr, "mdb_open failed, error %d %s\n", rc, mdb_strerror(rc));
 		goto txn_abort;
 	}
 
@@ -228,7 +263,7 @@ int main(int argc, char *argv[])
 
 		rc = mdb_cursor_open(txn, dbi, &cursor);
 		if (rc) {
-			printf("mdb_cursor_open failed, error %d %s\n", rc, mdb_strerror(rc));
+			fprintf(stderr, "mdb_cursor_open failed, error %d %s\n", rc, mdb_strerror(rc));
 			goto txn_abort;
 		}
 		while ((rc = mdb_cursor_get(cursor, &key, NULL, MDB_NEXT_NODUP)) == 0) {
@@ -247,6 +282,8 @@ int main(int argc, char *argv[])
 					list++;
 				} else {
 					rc = dumpit(txn, db2, str);
+					if (rc)
+						break;
 				}
 				mdb_close(env, db2);
 			}

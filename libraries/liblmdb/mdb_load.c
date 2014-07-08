@@ -32,9 +32,17 @@ static int flags;
 
 static char *prog;
 
-static int eof;
+static int Eof;
+
+static MDB_envinfo info;
 
 static MDB_val kbuf, dbuf;
+
+#ifdef _WIN32
+#define Z	"I"
+#else
+#define Z	"z"
+#endif
 
 #define STRLENOF(s)	(sizeof(s)-1)
 
@@ -67,7 +75,7 @@ static void readhdr()
 		if (!strncmp(dbuf.mv_data, "VERSION=", STRLENOF("VERSION="))) {
 			version=atoi((char *)dbuf.mv_data+STRLENOF("VERSION="));
 			if (version > 3) {
-				fprintf(stderr, "%s: line %zd: unsupported VERSION %d\n",
+				fprintf(stderr, "%s: line %" Z "d: unsupported VERSION %d\n",
 					prog, lineno, version);
 				exit(EXIT_FAILURE);
 			}
@@ -77,7 +85,7 @@ static void readhdr()
 			if (!strncmp((char *)dbuf.mv_data+STRLENOF("FORMAT="), "print", STRLENOF("print")))
 				mode |= PRINT;
 			else if (strncmp((char *)dbuf.mv_data+STRLENOF("FORMAT="), "bytevalue", STRLENOF("bytevalue"))) {
-				fprintf(stderr, "%s: line %zd: unsupported FORMAT %s\n",
+				fprintf(stderr, "%s: line %" Z "d: unsupported FORMAT %s\n",
 					prog, lineno, (char *)dbuf.mv_data+STRLENOF("FORMAT="));
 				exit(EXIT_FAILURE);
 			}
@@ -88,8 +96,38 @@ static void readhdr()
 			subname = strdup((char *)dbuf.mv_data+STRLENOF("database="));
 		} else if (!strncmp(dbuf.mv_data, "type=", STRLENOF("type="))) {
 			if (strncmp((char *)dbuf.mv_data+STRLENOF("type="), "btree", STRLENOF("btree")))  {
-				fprintf(stderr, "%s: line %zd: unsupported type %s\n",
+				fprintf(stderr, "%s: line %" Z "d: unsupported type %s\n",
 					prog, lineno, (char *)dbuf.mv_data+STRLENOF("type="));
+				exit(EXIT_FAILURE);
+			}
+		} else if (!strncmp(dbuf.mv_data, "mapaddr=", STRLENOF("mapaddr="))) {
+			int i;
+			ptr = memchr(dbuf.mv_data, '\n', dbuf.mv_size);
+			if (ptr) *ptr = '\0';
+			i = sscanf((char *)dbuf.mv_data+STRLENOF("mapaddr="), "%p", &info.me_mapaddr);
+			if (i != 1) {
+				fprintf(stderr, "%s: line %" Z "d: invalid mapaddr %s\n",
+					prog, lineno, (char *)dbuf.mv_data+STRLENOF("mapaddr="));
+				exit(EXIT_FAILURE);
+			}
+		} else if (!strncmp(dbuf.mv_data, "mapsize=", STRLENOF("mapsize="))) {
+			int i;
+			ptr = memchr(dbuf.mv_data, '\n', dbuf.mv_size);
+			if (ptr) *ptr = '\0';
+			i = sscanf((char *)dbuf.mv_data+STRLENOF("mapsize="), "%" Z "u", &info.me_mapsize);
+			if (i != 1) {
+				fprintf(stderr, "%s: line %" Z "d: invalid mapsize %s\n",
+					prog, lineno, (char *)dbuf.mv_data+STRLENOF("mapsize="));
+				exit(EXIT_FAILURE);
+			}
+		} else if (!strncmp(dbuf.mv_data, "maxreaders=", STRLENOF("maxreaders="))) {
+			int i;
+			ptr = memchr(dbuf.mv_data, '\n', dbuf.mv_size);
+			if (ptr) *ptr = '\0';
+			i = sscanf((char *)dbuf.mv_data+STRLENOF("maxreaders="), "%u", &info.me_maxreaders);
+			if (i != 1) {
+				fprintf(stderr, "%s: line %" Z "d: invalid maxreaders %s\n",
+					prog, lineno, (char *)dbuf.mv_data+STRLENOF("maxreaders="));
 				exit(EXIT_FAILURE);
 			}
 		} else {
@@ -104,12 +142,12 @@ static void readhdr()
 			if (!dbflags[i].bit) {
 				ptr = memchr(dbuf.mv_data, '=', dbuf.mv_size);
 				if (!ptr) {
-					fprintf(stderr, "%s: line %zd: unexpected format\n",
+					fprintf(stderr, "%s: line %" Z "d: unexpected format\n",
 						prog, lineno);
 					exit(EXIT_FAILURE);
 				} else {
 					*ptr = '\0';
-					fprintf(stderr, "%s: line %zd: unrecognized keyword ignored: %s\n",
+					fprintf(stderr, "%s: line %" Z "d: unrecognized keyword ignored: %s\n",
 						prog, lineno, (char *)dbuf.mv_data);
 				}
 			}
@@ -119,7 +157,7 @@ static void readhdr()
 
 static void badend()
 {
-	fprintf(stderr, "%s: line %zd: unexpected end of input\n",
+	fprintf(stderr, "%s: line %" Z "d: unexpected end of input\n",
 		prog, lineno);
 }
 
@@ -146,14 +184,14 @@ static int readline(MDB_val *out, MDB_val *buf)
 	if (!(mode & NOHDR)) {
 		c = fgetc(stdin);
 		if (c == EOF) {
-			eof = 1;
+			Eof = 1;
 			return EOF;
 		}
 		if (c != ' ') {
 			lineno++;
 			if (fgets(buf->mv_data, buf->mv_size, stdin) == NULL) {
 badend:
-				eof = 1;
+				Eof = 1;
 				badend();
 				return EOF;
 			}
@@ -163,7 +201,7 @@ badend:
 		}
 	}
 	if (fgets(buf->mv_data, buf->mv_size, stdin) == NULL) {
-		eof = 1;
+		Eof = 1;
 		return EOF;
 	}
 	lineno++;
@@ -175,15 +213,15 @@ badend:
 	while (c1[len-1] != '\n') {
 		buf->mv_data = realloc(buf->mv_data, buf->mv_size*2);
 		if (!buf->mv_data) {
-			eof = 1;
-			fprintf(stderr, "%s: line %zd: out of memory, line too long\n",
+			Eof = 1;
+			fprintf(stderr, "%s: line %" Z "d: out of memory, line too long\n",
 				prog, lineno);
 			return EOF;
 		}
 		c1 = buf->mv_data;
 		c1 += buf->mv_size;
 		if (fgets((char *)c1, buf->mv_size, stdin) == NULL) {
-			eof = 1;
+			Eof = 1;
 			badend();
 			return EOF;
 		}
@@ -202,7 +240,7 @@ badend:
 					c1++; c2 += 2;
 				} else {
 					if (c2+3 >= end || !isxdigit(c2[1]) || !isxdigit(c2[2])) {
-						eof = 1;
+						Eof = 1;
 						badend();
 						return EOF;
 					}
@@ -216,13 +254,13 @@ badend:
 	} else {
 		/* odd length not allowed */
 		if (len & 1) {
-			eof = 1;
+			Eof = 1;
 			badend();
 			return EOF;
 		}
 		while (c2 < end) {
 			if (!isxdigit(*c2) || !isxdigit(c2[1])) {
-				eof = 1;
+				Eof = 1;
 				badend();
 				return EOF;
 			}
@@ -251,6 +289,7 @@ int main(int argc, char *argv[])
 	MDB_dbi dbi;
 	char *envname;
 	int envflags = 0, putflags = 0;
+	int dohdr = 0;
 
 	prog = argv[0];
 
@@ -298,45 +337,60 @@ int main(int argc, char *argv[])
 	if (optind != argc - 1)
 		usage(prog);
 
+	dbuf.mv_size = 4096;
+	dbuf.mv_data = malloc(dbuf.mv_size);
+
+	if (!(mode & NOHDR))
+		readhdr();
+
 	envname = argv[optind];
 	rc = mdb_env_create(&env);
 
 	mdb_env_set_maxdbs(env, 2);
 
+	if (info.me_maxreaders)
+		mdb_env_set_maxreaders(env, info.me_maxreaders);
+
+	if (info.me_mapsize)
+		mdb_env_set_mapsize(env, info.me_mapsize);
+
+	if (info.me_mapaddr)
+		envflags |= MDB_FIXEDMAP;
+
 	rc = mdb_env_open(env, envname, envflags, 0664);
 	if (rc) {
-		printf("mdb_env_open failed, error %d %s\n", rc, mdb_strerror(rc));
+		fprintf(stderr, "mdb_env_open failed, error %d %s\n", rc, mdb_strerror(rc));
 		goto env_close;
 	}
 
 	kbuf.mv_size = mdb_env_get_maxkeysize(env) * 2 + 2;
 	kbuf.mv_data = malloc(kbuf.mv_size);
-	dbuf.mv_size = 4096;
-	dbuf.mv_data = malloc(dbuf.mv_size);
 
-	while(!eof) {
+	while(!Eof) {
 		MDB_val key, data;
 		int batch = 0;
 		flags = 0;
 
-		if (!(mode & NOHDR))
+		if (!dohdr) {
+			dohdr = 1;
+		} else if (!(mode & NOHDR))
 			readhdr();
 		
 		rc = mdb_txn_begin(env, NULL, 0, &txn);
 		if (rc) {
-			printf("mdb_txn_begin failed, error %d %s\n", rc, mdb_strerror(rc));
+			fprintf(stderr, "mdb_txn_begin failed, error %d %s\n", rc, mdb_strerror(rc));
 			goto env_close;
 		}
 
 		rc = mdb_open(txn, subname, flags|MDB_CREATE, &dbi);
 		if (rc) {
-			printf("mdb_open failed, error %d %s\n", rc, mdb_strerror(rc));
+			fprintf(stderr, "mdb_open failed, error %d %s\n", rc, mdb_strerror(rc));
 			goto txn_abort;
 		}
 
 		rc = mdb_cursor_open(txn, dbi, &mc);
 		if (rc) {
-			printf("mdb_cursor_open failed, error %d %s\n", rc, mdb_strerror(rc));
+			fprintf(stderr, "mdb_cursor_open failed, error %d %s\n", rc, mdb_strerror(rc));
 			goto txn_abort;
 		}
 
@@ -360,18 +414,18 @@ int main(int argc, char *argv[])
 			if (batch == 100) {
 				rc = mdb_txn_commit(txn);
 				if (rc) {
-					fprintf(stderr, "%s: line %zd: txn_commit: %s\n",
+					fprintf(stderr, "%s: line %" Z "d: txn_commit: %s\n",
 						prog, lineno, mdb_strerror(rc));
 					goto env_close;
 				}
 				rc = mdb_txn_begin(env, NULL, 0, &txn);
 				if (rc) {
-					printf("mdb_txn_begin failed, error %d %s\n", rc, mdb_strerror(rc));
+					fprintf(stderr, "mdb_txn_begin failed, error %d %s\n", rc, mdb_strerror(rc));
 					goto env_close;
 				}
 				rc = mdb_cursor_open(txn, dbi, &mc);
 				if (rc) {
-					printf("mdb_cursor_open failed, error %d %s\n", rc, mdb_strerror(rc));
+					fprintf(stderr, "mdb_cursor_open failed, error %d %s\n", rc, mdb_strerror(rc));
 					goto txn_abort;
 				}
 				batch = 0;
@@ -380,7 +434,7 @@ int main(int argc, char *argv[])
 		rc = mdb_txn_commit(txn);
 		txn = NULL;
 		if (rc) {
-			fprintf(stderr, "%s: line %zd: txn_commit: %s\n",
+			fprintf(stderr, "%s: line %" Z "d: txn_commit: %s\n",
 				prog, lineno, mdb_strerror(rc));
 			goto env_close;
 		}
