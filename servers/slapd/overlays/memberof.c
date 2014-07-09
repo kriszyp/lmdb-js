@@ -600,6 +600,7 @@ memberof_op_add( Operation *op, SlapReply *rs )
 						ber_memfree( a->a_nvals[ i ].bv_val );
 						BER_BVZERO( &a->a_nvals[ i ] );
 					}
+					a->a_numvals--;
 					if ( j - i == 1 ) {
 						break;
 					}
@@ -611,7 +612,6 @@ memberof_op_add( Operation *op, SlapReply *rs )
 							sizeof( struct berval ) * ( j - i ) );
 					}
 					i--;
-					a->a_numvals--;
 				}
 			}
 
