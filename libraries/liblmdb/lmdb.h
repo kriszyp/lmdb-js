@@ -194,7 +194,7 @@ typedef int mdb_filehandle_t;
 	MDB_VERINT(MDB_VERSION_MAJOR,MDB_VERSION_MINOR,MDB_VERSION_PATCH)
 
 /** The release date of this library version */
-#define MDB_VERSION_DATE	"June 20, 2014"
+#define MDB_VERSION_DATE	"July  8, 2014"
 
 /** A stringifier for the version info */
 #define MDB_VERSTR(a,b,c,d)	"LMDB " #a "." #b "." #c ": (" d ")"
@@ -411,7 +411,7 @@ typedef enum MDB_cursor_op {
 #define MDB_CURSOR_FULL	(-30787)
 	/** Page has not enough space - internal error */
 #define MDB_PAGE_FULL	(-30786)
-	/** Database contents grew beyond environment mapsize */
+	/** Environment mapsize was changed by another process */
 #define MDB_MAP_RESIZED	(-30785)
 	/** MDB_INCOMPATIBLE: Operation and DB incompatible, or DB flags changed */
 #define MDB_INCOMPATIBLE	(-30784)
@@ -421,7 +421,10 @@ typedef enum MDB_cursor_op {
 #define MDB_BAD_TXN			(-30782)
 	/** Unsupported size of key/DB name/data, or wrong DUPFIXED size */
 #define MDB_BAD_VALSIZE		(-30781)
-#define MDB_LAST_ERRCODE	MDB_BAD_VALSIZE
+	/** The specified DBI was changed unexpectedly */
+#define MDB_BAD_DBI		(-30780)
+	/** The last defined error code */
+#define MDB_LAST_ERRCODE	MDB_BAD_DBI
 /** @} */
 
 /** @brief Statistics for a database in the environment */
@@ -782,7 +785,10 @@ int  mdb_env_get_fd(MDB_env *env, mdb_filehandle_t *fd);
 	 * This function should be called after #mdb_env_create() and before #mdb_env_open().
 	 * It may be called at later times if no transactions are active in
 	 * this process. Note that the library does not check for this condition,
-	 * the caller must ensure it explicitly.
+	 * the caller must ensure it explicitly. The new size takes effect
+	 * immediately for the current process but will not be persisted to
+	 * any others until a write transaction has been committed by the
+	 * current process.
 	 *
 	 * If the mapsize is changed by another process, #mdb_txn_begin() will
 	 * return #MDB_MAP_RESIZED. This function may be called with a size
