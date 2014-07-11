@@ -819,7 +819,7 @@ ldif_read_record(
 	char        **bufp,     /* ptr to malloced output buffer           */
 	int         *buflenp )  /* ptr to length of *bufp                  */
 {
-	char        line[LDIF_MAXLINE+2], *nbufp;
+	char        line[LDIF_MAXLINE], *nbufp;
 	ber_len_t   lcur = 0, len;
 	int         last_ch = '\n', found_entry = 0, stop, top_comment = 0;
 
