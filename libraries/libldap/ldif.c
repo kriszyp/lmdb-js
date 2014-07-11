@@ -838,20 +838,24 @@ ldif_read_record(
 				break;
 			}
 		}
-		if ( stop )
-			break;
-
-		if ( fgets( line, sizeof( line ), lfp->fp ) == NULL ) {
-			stop = 1;
-			len = 0;
-		} else {
-			len = strlen( line );
+		if ( !stop ) {
+			if ( fgets( line, sizeof( line ), lfp->fp ) == NULL ) {
+				stop = 1;
+				len = 0;
+			} else {
+				len = strlen( line );
+			}
 		}
 
-		if ( len == 0 || line[len-1] != '\n' ) {
-			/* Add \n in case the line/file does not end with newline */
-			line[len] = '\n';
-			line[++len] = '\0';
+		if ( stop ) {
+			/* Add \n in case the file does not end with newline */
+			if (last_ch != '\n') {
+				len = 1;
+				line[0] = '\n';
+				line[1] = '\0';
+				goto last;
+			}
+			break;
 		}
 
 		/* Squash \r\n to \n */
@@ -920,9 +924,10 @@ ldif_read_record(
 						}
 					}
 				}
-			}			
+			}
 		}
 
+last:
 		if ( *buflenp - lcur <= len ) {
 			*buflenp += len + LDIF_MAXLINE;
 			nbufp = ber_memrealloc( *bufp, *buflenp );
