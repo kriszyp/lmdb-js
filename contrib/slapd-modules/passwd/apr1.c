@@ -143,7 +143,7 @@ static int chk_phk(
 	salt.bv_val = (char *) &orig_pass[sizeof(digest)];
 	salt.bv_len = rc - sizeof(digest);
 
-	do_phk_hash(cred, magic, &salt, digest);
+	do_phk_hash(cred, &salt, magic, digest);
 
 	if (text)
 		*text = NULL;
@@ -197,7 +197,7 @@ static int hash_phk(
 	for (n = 0; n < salt.bv_len; n++)
 		salt.bv_val[n] = apr64[salt.bv_val[n] % (sizeof(apr64) - 1)];
 
-	do_phk_hash(passwd, magic, &salt, digest_buf);
+	do_phk_hash(passwd, &salt, magic, digest_buf);
 
 	if (text)
 		*text = NULL;
