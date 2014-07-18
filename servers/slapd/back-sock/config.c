@@ -357,12 +357,14 @@ sock_over_db_init(
 {
 	slap_overinst	*on = (slap_overinst *)be->bd_info;
 	void *private = be->be_private;
+	void *cf_ocs = be->be_cf_ocs;
 	int rc;
 
 	be->be_private = NULL;
 	rc = sock_back_db_init( be, cr );
 	on->on_bi.bi_private = be->be_private;
 	be->be_private = private;
+	be->be_cf_ocs = cf_ocs;
 	return rc;
 }
 
