@@ -3,7 +3,7 @@
  * This file is derived from OpenLDAP Software. All of the modifications to
  * OpenLDAP Software represented in the following file were developed by
  * Devin J. Pohly <djpohly@gmail.com>. I have not assigned rights and/or
- * interest in this work to any party. 
+ * interest in this work to any party.
  *
  * The extensions to OpenLDAP Software herein are subject to the following
  * notice:
@@ -12,7 +12,7 @@
  * Portions Copyright 2011 Howard Chu
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted only as authorized by the OpenLDAP Public
- * License. 
+ * License.
  *
  * A portion of this code is used in accordance with the Beer-ware License,
  * revision 42, as noted.
@@ -192,7 +192,7 @@ static int hash_phk(
 
 	/* generate random salt */
 	if (lutil_entropy( (unsigned char *) salt.bv_val, salt.bv_len) < 0)
-		return LUTIL_PASSWD_ERR; 
+		return LUTIL_PASSWD_ERR;
 	/* limit it to characters in the 64-char set */
 	for (n = 0; n < salt.bv_len; n++)
 		salt.bv_val[n] = apr64[salt.bv_val[n] % (sizeof(apr64) - 1)];
