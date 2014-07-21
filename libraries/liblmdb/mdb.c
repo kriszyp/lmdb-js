@@ -3841,7 +3841,7 @@ mdb_env_open2(MDB_env *env)
 			env->me_flags |= MDB_RESIZING;
 	}
 
-	rc = mdb_env_map(env, meta.mm_address);
+	rc = mdb_env_map(env, (flags & MDB_FIXEDMAP) ? meta.mm_address : NULL);
 	if (rc)
 		return rc;
 
@@ -6988,6 +6988,9 @@ mdb_cursor_count(MDB_cursor *mc, size_t *countp)
 
 	if (mc->mc_txn->mt_flags & MDB_TXN_ERROR)
 		return MDB_BAD_TXN;
+
+	if (!(mc->mc_flags & C_INITIALIZED))
+		return EINVAL;
 
 	leaf = NODEPTR(mc->mc_pg[mc->mc_top], mc->mc_ki[mc->mc_top]);
 	if (!F_ISSET(leaf->mn_flags, F_DUPDATA)) {
