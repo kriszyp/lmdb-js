@@ -1556,7 +1556,7 @@ static ConfigDriver	ag_cfgen;
 
 static ConfigTable agcfg[] = {
 	{ "autogroup-attrset", "group-oc> <URL-ad> <member-ad",
-		3, 4, 0, ARG_MAGIC|AG_ATTRSET, ag_cfgen,
+		4, 4, 0, ARG_MAGIC|AG_ATTRSET, ag_cfgen,
 		"( OLcfgCtAt:2.1 NAME 'olcAGattrSet' "
 			"DESC 'Automatic groups: <group objectClass>, <URL attributeDescription>, <member attributeDescription>' "
 			"EQUALITY caseIgnoreMatch "
