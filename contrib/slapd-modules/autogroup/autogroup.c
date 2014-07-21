@@ -156,24 +156,16 @@ autogroup_add_member_to_group( Operation *op, BerValue *dn, BerValue *ndn, autog
 **	age	- the group to which the values will be added
 */
 static int
-autogroup_add_member_values_to_group( Operation *op, Entry *e, autogroup_entry_t *age, AttributeDescription *attrdesc )
+autogroup_add_member_values_to_group( Operation *op, struct berval *dn, autogroup_entry_t *age, Attribute *attr )
 {
 	slap_overinst	*on = (slap_overinst *)op->o_bd->bd_info;
 	Modifications	modlist;
 	SlapReply	sreply = {REP_RESULT};
-	Attribute	*attr;
 	slap_callback	cb = { NULL, slap_null_cb, NULL, NULL };
 	Operation	o = *op;
 
-	assert( e != NULL );
 	Debug(LDAP_DEBUG_TRACE, "==> autogroup_add_member_values_to_group adding <%s> to <%s>\n",
-		e->e_name.bv_val, age->age_dn.bv_val, 0);
-
-	attr = attrs_find( e->e_attrs, attrdesc );
-	if (!attr) {
-		// Nothing to add
-		return LDAP_SUCCESS;
-	}
+		dn->bv_val, age->age_dn.bv_val, 0);
 
 	modlist.sml_op = LDAP_MOD_ADD;
 	modlist.sml_desc = age->age_def->agd_member_ad;
@@ -268,24 +260,16 @@ autogroup_delete_member_from_group( Operation *op, BerValue *dn, BerValue *ndn, 
 **      age     - the group from which the values will be deleted
 */
 static int
-autogroup_delete_member_values_from_group( Operation *op, Entry *e, autogroup_entry_t *age, AttributeDescription *attrdesc )
+autogroup_delete_member_values_from_group( Operation *op, struct berval *dn, autogroup_entry_t *age, Attribute *attr )
 {
         slap_overinst   *on = (slap_overinst *)op->o_bd->bd_info;
         Modifications   modlist;
         SlapReply       sreply = {REP_RESULT};
-        Attribute       *attr;
         slap_callback   cb = { NULL, slap_null_cb, NULL, NULL };
         Operation       o = *op;
 
-        assert( e != NULL );
         Debug(LDAP_DEBUG_TRACE, "==> autogroup_delete_member_values_from_group removing <%s> from <%s>\n",
-                e->e_name.bv_val, age->age_dn.bv_val, 0);
-
-        attr = attrs_find( e->e_attrs, attrdesc );
-        if (!attr) {
-                // Nothing to add
-                return LDAP_SUCCESS;
-        }
+			dn->bv_val, age->age_dn.bv_val, 0);
 
         modlist.sml_op = LDAP_MOD_DELETE;
         modlist.sml_desc = age->age_def->agd_member_ad;
@@ -746,7 +730,9 @@ autogroup_add_entry_cb( Operation *op, SlapReply *rs )
 					rc = test_filter( op, aa->e, agf->agf_filter );
 					if ( rc == LDAP_COMPARE_TRUE ) {
 						if ( agf->agf_anlist ) {
-							autogroup_add_member_values_to_group( op, aa->e, age, agf->agf_anlist[0].an_desc );
+							Attribute *a = attr_find( aa->e->e_attrs, agf->agf_anlist[0].an_desc );
+							if ( a )
+								autogroup_add_member_values_to_group( op, &op->o_req_dn, age, a );
 						} else {
 							autogroup_add_member_to_group( op, &aa->e->e_name, &aa->e->e_nname, age );
 						}
@@ -969,7 +955,7 @@ autogroup_response( Operation *op, SlapReply *rs )
 	autogroup_filter_t	*agf;
 	BerValue		new_dn, new_ndn, pdn;
 	Entry			*e, *group;
-	Attribute		*a, *ea;
+	Attribute		*a, *ea, *attrs;
 	int			is_olddn, is_newdn, is_value_refresh, dn_equal;
 
 	/* Handle all cases where a refresh of the group is needed */
@@ -1078,16 +1064,17 @@ autogroup_response( Operation *op, SlapReply *rs )
 				and add it's DN to the group.
 			   If 1 is true, and 2 is false, we delete the entry's DN from the group.
 			*/
+			attrs = attrs_dup( e->e_attrs );
+			overlay_entry_release_ov( op, e, 0, on );
 			for ( age = agi->agi_entry ; age ; age = age->age_next ) {
 				is_olddn = 0;
 				is_newdn = 0;
 				is_value_refresh = 0;
 
-
 				ldap_pvt_thread_mutex_lock( &age->age_mutex );
 
 				if ( age->age_filter && age->age_filter->agf_anlist ) {
-					ea = attrs_find( e->e_attrs, age->age_filter->agf_anlist[0].an_desc );
+					ea = attrs_find( attrs, age->age_filter->agf_anlist[0].an_desc );
 				}
 				else {
 					ea = NULL;
@@ -1107,7 +1094,7 @@ autogroup_response( Operation *op, SlapReply *rs )
 						op->o_tmpfree( new_dn.bv_val, op->o_tmpmemctx );
 						op->o_tmpfree( new_ndn.bv_val, op->o_tmpmemctx );
 
-						overlay_entry_release_ov( op, e, 0, on );
+						attrs_free( attrs );
 						ldap_pvt_thread_mutex_unlock( &age->age_mutex );
 						ldap_pvt_thread_mutex_unlock( &agi->agi_mutex );
 						return SLAP_CB_CONTINUE;
@@ -1153,16 +1140,16 @@ autogroup_response( Operation *op, SlapReply *rs )
 				}
 				if ( is_olddn == 1 && is_newdn == 0 ) {
 					if ( ea )
-						autogroup_delete_member_values_from_group( op, e, age, age->age_filter->agf_anlist[0].an_desc );
+						autogroup_delete_member_values_from_group( op, &new_dn, age, ea );
 					else
 						autogroup_delete_member_from_group( op, &op->o_req_dn, &op->o_req_ndn, age );
 				} else
 				if ( is_olddn == 0 && is_newdn == 1 ) {
 					for ( agf = age->age_filter; agf; agf = agf->agf_next ) {
 						if ( test_filter( op, e, agf->agf_filter ) == LDAP_COMPARE_TRUE ) {
-							if ( ea )
-								autogroup_add_member_values_to_group( op, e, age, age->age_filter->agf_anlist[0].an_desc );
-							else
+							if ( ea ) {
+								autogroup_add_member_values_to_group( op, &new_dn, age, ea );
+							} else
 								autogroup_add_member_to_group( op, &new_dn, &new_ndn, age );
 							break;
 						}
@@ -1189,7 +1176,7 @@ autogroup_response( Operation *op, SlapReply *rs )
 			op->o_tmpfree( new_dn.bv_val, op->o_tmpmemctx );
 			op->o_tmpfree( new_ndn.bv_val, op->o_tmpmemctx );
 
-			overlay_entry_release_ov( op, e, 0, on );
+			attrs_free( attrs );
 
 			ldap_pvt_thread_mutex_unlock( &agi->agi_mutex );			
 		}
@@ -1270,7 +1257,7 @@ autogroup_response( Operation *op, SlapReply *rs )
 				}
 			}
 
-			/* When modifing any of the attributes of an entry, we must
+			/* When modifying any of the attributes of an entry, we must
 			   check if the entry is in any of our groups, and if
 			   the modified entry maches any of the filters of that group.
 
@@ -1279,6 +1266,8 @@ autogroup_response( Operation *op, SlapReply *rs )
 			   If the entry doesn't exist in a group, but matches a filter, 
 				we add it to that group.
 			*/
+			attrs = attrs_dup( e->e_attrs );
+			overlay_entry_release_ov( op, e, 0, on );
 			for ( age = agi->agi_entry ; age ; age = age->age_next ) {
 				is_olddn = 0;
 				is_newdn = 0;
@@ -1287,7 +1276,7 @@ autogroup_response( Operation *op, SlapReply *rs )
 				ldap_pvt_thread_mutex_lock( &age->age_mutex );
 
 				if ( age->age_filter && age->age_filter->agf_anlist ) {
-					ea = attrs_find( e->e_attrs, age->age_filter->agf_anlist[0].an_desc );
+					ea = attrs_find( attrs, age->age_filter->agf_anlist[0].an_desc );
 				}
 				else {
 					ea = NULL;
@@ -1298,7 +1287,7 @@ autogroup_response( Operation *op, SlapReply *rs )
 					Debug( LDAP_DEBUG_TRACE, "autogroup_response MODIFY cannot get entry for <%s>\n", 
 						age->age_dn.bv_val, 0, 0);
 
-					overlay_entry_release_ov( op, e, 0, on );
+					attrs_free( attrs );
 					ldap_pvt_thread_mutex_unlock( &age->age_mutex );
 					ldap_pvt_thread_mutex_unlock( &agi->agi_mutex );
 					return SLAP_CB_CONTINUE;
@@ -1330,13 +1319,13 @@ autogroup_response( Operation *op, SlapReply *rs )
 
 				if ( is_olddn == 1 && is_newdn == 0 ) {
 					if(ea)
-						autogroup_delete_member_values_from_group( op, e, age, age->age_filter->agf_anlist[0].an_desc );
+						autogroup_delete_member_values_from_group( op, &op->o_req_dn, age, ea );
 					else
 						autogroup_delete_member_from_group( op, &op->o_req_dn, &op->o_req_ndn, age );
 				} else
 				if ( is_olddn == 0 && is_newdn == 1 ) {
 					if(ea)
-						autogroup_add_member_values_to_group( op, e, age, age->age_filter->agf_anlist[0].an_desc );
+						autogroup_add_member_values_to_group( op, &op->o_req_dn, age, ea );
 					else
 						autogroup_add_member_to_group( op, &op->o_req_dn, &op->o_req_ndn, age );
 				} 
@@ -1344,7 +1333,7 @@ autogroup_response( Operation *op, SlapReply *rs )
 				ldap_pvt_thread_mutex_unlock( &age->age_mutex );
 			}
 
-			overlay_entry_release_ov( op, e, 0, on );
+			attrs_free( attrs );
 
 			ldap_pvt_thread_mutex_unlock( &agi->agi_mutex );
 		}
