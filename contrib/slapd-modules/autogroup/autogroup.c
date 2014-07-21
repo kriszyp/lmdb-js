@@ -709,6 +709,64 @@ autogroup_group_add_cb( Operation *op, SlapReply *rs )
 	return 0;
 }
 
+typedef struct ag_addinfo {
+	slap_overinst *on;
+	Entry *e;
+	autogroup_def_t		*agd;
+} ag_addinfo;
+
+static int
+autogroup_add_entry_cb( Operation *op, SlapReply *rs )
+{
+	slap_callback *sc = op->o_callback;
+	ag_addinfo *aa = sc->sc_private;
+	slap_overinst *on = aa->on;
+	autogroup_info_t	*agi = (autogroup_info_t *)on->on_bi.bi_private;
+	BackendInfo *bi = op->o_bd->bd_info;
+
+	if ( rs->sr_err != LDAP_SUCCESS )
+		goto done;
+
+	op->o_bd->bd_info = (BackendInfo *)on;
+	ldap_pvt_thread_mutex_lock( &agi->agi_mutex );
+	if ( aa->agd ) {
+		autogroup_add_group( op, agi, aa->agd, aa->e, NULL, 1 , 0);
+	} else {
+		autogroup_entry_t	*age;
+		autogroup_filter_t	*agf;
+		int rc;
+		for ( age = agi->agi_entry; age ; age = age->age_next ) {
+			ldap_pvt_thread_mutex_lock( &age->age_mutex );
+
+			/* Check if any of the filters are the suffix to the entry DN.
+			   If yes, we can test that filter against the entry. */
+
+			for ( agf = age->age_filter; agf ; agf = agf->agf_next ) {
+				if ( dnIsSuffix( &op->o_req_ndn, &agf->agf_ndn ) ) {
+					rc = test_filter( op, aa->e, agf->agf_filter );
+					if ( rc == LDAP_COMPARE_TRUE ) {
+						if ( agf->agf_anlist ) {
+							autogroup_add_member_values_to_group( op, aa->e, age, agf->agf_anlist[0].an_desc );
+						} else {
+							autogroup_add_member_to_group( op, &aa->e->e_name, &aa->e->e_nname, age );
+						}
+						break;
+					}
+				}
+			}
+			ldap_pvt_thread_mutex_unlock( &age->age_mutex );
+		}
+	}
+	ldap_pvt_thread_mutex_unlock( &agi->agi_mutex );
+
+	op->o_bd->bd_info = bi;
+
+done:
+	op->o_callback = sc->sc_next;
+	op->o_tmpfree( sc, op->o_tmpmemctx );
+
+	return SLAP_CB_CONTINUE;
+}
 
 /*
 ** When adding a group, we first strip any existing members,
@@ -720,14 +778,21 @@ autogroup_add_entry( Operation *op, SlapReply *rs)
 	slap_overinst		*on = (slap_overinst *)op->o_bd->bd_info;
 	autogroup_info_t	*agi = (autogroup_info_t *)on->on_bi.bi_private;
 	autogroup_def_t		*agd = agi->agi_def;
-	autogroup_entry_t	*age;
-	autogroup_filter_t	*agf;
+	slap_callback	*sc = NULL;
+	ag_addinfo	*aa = NULL;
 	int			rc = 0;
 
 	Debug( LDAP_DEBUG_TRACE, "==> autogroup_add_entry <%s>\n", 
 		op->ora_e->e_name.bv_val, 0, 0);
 
-	ldap_pvt_thread_mutex_lock( &agi->agi_mutex );		
+	sc = op->o_tmpcalloc( sizeof(slap_callback) + sizeof(ag_addinfo), 1, op->o_tmpmemctx );
+	sc->sc_private = (sc+1);
+	sc->sc_response = autogroup_add_entry_cb;
+	aa = sc->sc_private;
+	aa->on = on;
+	aa->e = op->ora_e;
+	sc->sc_next = op->o_callback;
+	op->o_callback = sc;
 
 	/* Check if it's a group. */
 	for ( ; agd ; agd = agd->agd_next ) {
@@ -745,36 +810,11 @@ autogroup_add_entry( Operation *op, SlapReply *rs)
 			/* We don't want any member attributes added by the user. */
 			modify_delete_values( op->ora_e, &mod, /* permissive */ 1, &text, textbuf, sizeof( textbuf ) );
 
-			autogroup_add_group( op, agi, agd, op->ora_e, NULL, 1 , 0);
-			ldap_pvt_thread_mutex_unlock( &agi->agi_mutex );		
-			return SLAP_CB_CONTINUE;
+			aa->agd = agd;
+
+			break;
 		}
 	}
-
-	
-	for ( age = agi->agi_entry; age ; age = age->age_next ) {
-		ldap_pvt_thread_mutex_lock( &age->age_mutex );		
-
-		/* Check if any of the filters are the suffix to the entry DN. 
-		   If yes, we can test that filter against the entry. */
-
-		for ( agf = age->age_filter; agf ; agf = agf->agf_next ) {
-			if ( dnIsSuffix( &op->o_req_ndn, &agf->agf_ndn ) ) {
-				rc = test_filter( op, op->ora_e, agf->agf_filter );
-				if ( rc == LDAP_COMPARE_TRUE ) {
-					if ( agf->agf_anlist ) {
-						autogroup_add_member_values_to_group( op, op->ora_e, age, agf->agf_anlist[0].an_desc );
-					} else {
-						autogroup_add_member_to_group( op, &op->ora_e->e_name, &op->ora_e->e_nname, age );
-					}
-					break;
-				}
-			}
-		}
-		ldap_pvt_thread_mutex_unlock( &age->age_mutex );		
-	}
-
-	ldap_pvt_thread_mutex_unlock( &agi->agi_mutex );		
 
 	return SLAP_CB_CONTINUE;
 }
