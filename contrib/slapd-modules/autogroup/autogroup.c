@@ -604,7 +604,11 @@ autogroup_add_group( Operation *op, autogroup_info_t *agi, autogroup_def_t *agd,
 			if ( lud->lud_filter != NULL ) {
 				ber_str2bv( lud->lud_filter, 0, 1, &agf->agf_filterstr);
 				agf->agf_filter = str2filter( lud->lud_filter );
-			}			
+			} else {
+				Debug( LDAP_DEBUG_TRACE, "autogroup_add_group: URL filter is missing <%s>\n", bv->bv_val,0,0);
+				/* FIXME: error? */
+				goto cleanup;
+			}
 
 			if ( lud->lud_attrs != NULL ) {
 				int i;
@@ -617,25 +621,32 @@ autogroup_add_group( Operation *op, autogroup_info_t *agi, autogroup_def_t *agd,
 					Debug( LDAP_DEBUG_ANY, "autogroup_add_group: too many attributes specified in url <%s>\n",
 						bv->bv_val, 0, 0);
 					/* FIXME: error? */
+					filter_free( agf->agf_filter );
+					ch_free( agf->agf_filterstr.bv_val );
+					ch_free( agf->agf_dn.bv_val );
+					ch_free( agf->agf_ndn.bv_val );
 					ldap_free_urldesc( lud );
-					ch_free( agf ); 
+					ch_free( agf );
 					continue;
 				}
-					
+
 				agf->agf_anlist = str2anlist( NULL, lud->lud_attrs[0], "," );
 
 				if ( agf->agf_anlist == NULL ) {
 					Debug( LDAP_DEBUG_ANY, "autogroup_add_group: unable to find AttributeDescription \"%s\".\n",
-						lud->lud_attrs[0], 0, 0 );		
+						lud->lud_attrs[0], 0, 0 );
 					/* FIXME: error? */
+					filter_free( agf->agf_filter );
+					ch_free( agf->agf_filterstr.bv_val );
+					ch_free( agf->agf_dn.bv_val );
+					ch_free( agf->agf_ndn.bv_val );
 					ldap_free_urldesc( lud );
-					ch_free( agf ); 
+					ch_free( agf );
 					continue;
 				}
 			}
 
 			agf->agf_next = NULL;
-
 
 			if( (*agep)->age_filter == NULL ) {
 				(*agep)->age_filter = agf;
@@ -661,6 +672,8 @@ autogroup_add_group( Operation *op, autogroup_info_t *agi, autogroup_def_t *agd,
 
 cleanup:;
 
+			ch_free( agf->agf_ndn.bv_val );
+			ch_free( agf->agf_dn.bv_val );
 			ldap_free_urldesc( lud );				
 			ch_free( agf ); 
 		}
