@@ -36,6 +36,7 @@ OpenLDAP 2.4.40 Engineering
 		Fixed slapd.ldif man page reference (ITS#7803)
 		Fixed slapd.conf(5) man page to reference exattrs (ITS#7847)
 		Fixed guide to work with mkrelease (ITS#7887)
+		Fixed ldap_get_dn(3) ldap_ava definition (ITS#7860)
 
 OpenLDAP 2.4.39 Release (2014/01/26)
 	Fixed libldap MozNSS crash (ITS#7783)
