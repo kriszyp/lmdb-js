@@ -1,6 +1,7 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.40 Engineering
+	Added libldap DNS SRV priority handling (ITS#7027)
 	Fixed libldap don't leak libldap err codes (ITS#7676)
 	Fixed libldap CR/LF handling (ITS#4635)
 	Fixed libldap ldif-wrap length (ITS#7871)
