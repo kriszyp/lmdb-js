@@ -24,6 +24,7 @@ OpenLDAP 2.4.40 Engineering
 		Fixed autogroup double free (ITS#7831)
 		Fixed ldapc++ memory leak in Async connection (ITS#7806)
 		Fixed nssov install path (ITS#7858)
+		Fixed passwd rpath (ITS#7885)
 	Documentation
 		Fixed slapd.ldif man page reference (ITS#7803)
 		Fixed slapd.conf(5) man page to reference exattrs (ITS#7847)
