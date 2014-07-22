@@ -6581,10 +6581,22 @@ int config_entry_release(
 	Entry *e,
 	int rw )
 {
+	int rc = LDAP_SUCCESS;
+
 	if ( !e->e_private ) {
-		entry_free( e );
+		BackendDB *be = op->o_bd;
+		CfBackInfo *cfb = be->be_private;
+		BackendInfo *bi = cfb->cb_db.bd_info;
+
+		if ( bi && bi->bi_entry_release_rw ) {
+			op->o_bd = &cfb->cb_db;
+			rc = bi->bi_entry_release_rw( op, e, rw );
+			op->o_bd = be;
+		} else {
+			entry_free( e );
+		}
 	}
-	return LDAP_SUCCESS;
+	return rc;
 }
 
 /* return LDAP_SUCCESS IFF we can retrieve the specified entry.
