@@ -17,6 +17,7 @@ OpenLDAP 2.4.40 Engineering
 	Fixed slapo-ppolicy timetamp resolution to use microseconds (ITS#7161)
 	Fixed slapo-memberof attr count (ITS#7893)
 	Fixed slapo-refint to check for pauses in cn=config (ITS#7873)
+	Fixed slapo-sock db_init (ITS#7868)
 	Fixed slapo-translucent double free (ITS#7587)
 	Fixed slapo-translucent to work with manageDSAit (ITS#7864)
 	Fixed slapcacl with invalid suffix (ITS#7827)
