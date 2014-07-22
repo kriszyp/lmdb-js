@@ -547,12 +547,18 @@ AC_DEFUN([OL_BDB_COMPAT],
 #ifndef DB_VERSION_MINOR
 #	define DB_VERSION_MINOR 0
 #endif
+#ifndef DB_VERSION_PATCH
+#      define DB_VERSION_PATCH 0
+#endif
 
-#define DB_VERSION_MM	((DB_VERSION_MAJOR<<8)|DB_VERSION_MINOR)
+#define DB_VERSION_FULL        ((DB_VERSION_MAJOR<<16)|(DB_VERSION_MINOR<<8)|DB_VERSION_PATCH)
 
-/* require 4.4 or later */
-#if DB_VERSION_MM >= 0x0404
+/* require 4.4 or later, but less than 6.0.20 */
+#if DB_VERSION_FULL >= 0x040400 && DB_VERSION_FULL < 0x060014
 	__db_version_compat
+#endif
+#if DB_VERSION_FULL >= 0x060014
+#error "BerkeleyDB 6.0.20+ license is incompatible with LDAP"
 #endif
 	], [ol_cv_bdb_compat=yes], [ol_cv_bdb_compat=no])])
 ])
