@@ -31,6 +31,7 @@ OpenLDAP 2.4.40 Engineering
 		Fixed nssov install path (ITS#7858)
 		Fixed passwd rpath (ITS#7885)
 		Fixed apr1 do_phk_hash argument order (ITS#7869)
+		Fixed slapd-sha2 buffer overrun (ITS#7851)
 	Documentation
 		Fixed slapd.ldif man page reference (ITS#7803)
 		Fixed slapd.conf(5) man page to reference exattrs (ITS#7847)
