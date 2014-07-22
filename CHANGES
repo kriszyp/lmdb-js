@@ -16,6 +16,7 @@ OpenLDAP 2.4.40 Engineering
 	Fixed slapd modrdn crash on naming attr with no matching rule (ITS#7850)
 	Fixed slapo-ppolicy timetamp resolution to use microseconds (ITS#7161)
 	Fixed slapo-memberof attr count (ITS#7893)
+	Fixed slapo-memberof frontendDB handling (ITS#7249)
 	Fixed slapo-refint to check for pauses in cn=config (ITS#7873)
 	Fixed slapo-sock db_init (ITS#7868)
 	Fixed slapo-translucent double free (ITS#7587)
@@ -28,6 +29,7 @@ OpenLDAP 2.4.40 Engineering
 	Contrib
 		Added pbkdf2 module (ITS#7742)
 		Fixed autogroup double free (ITS#7831)
+		Fixed autogroup modifcation callback responses (ITS#6970)
 		Fixed ldapc++ memory leak in Async connection (ITS#7806)
 		Fixed nssov install path (ITS#7858)
 		Fixed passwd rpath (ITS#7885)
