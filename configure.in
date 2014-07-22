@@ -1207,6 +1207,13 @@ if test $ol_link_tls = no ; then
 		AC_CHECK_HEADERS(gnutls/gnutls.h)
 
 		if test $ac_cv_header_gnutls_gnutls_h = yes ; then
+			AC_PREPROC_IFELSE(
+                               [[#include <gnutls/gnutls.h>]
+[#if GNUTLS_VERSION_NUMBER < 0x020c00]
+[#error "GnuTLS 2.12.0 or newer required"]
+[#endif]],
+                                       , [AC_MSG_FAILURE([GnuTLS is too old])])
+
 			AC_CHECK_LIB(gnutls, gnutls_init,
 				[have_gnutls=yes], [have_gnutls=no])
 
