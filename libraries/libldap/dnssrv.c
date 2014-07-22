@@ -323,7 +323,7 @@ int ldap_domain2hostlist(
 		    goto out;
 		}
 		hostent_head[hostent_count].priority=priority;
-		hostent_head[hostent_count].weight=priority;
+		hostent_head[hostent_count].weight=weight;
 		hostent_head[hostent_count].port=port;
 		strncpy(hostent_head[hostent_count].hostname, host,255);
 		hostent_count=hostent_count+1;
@@ -336,7 +336,7 @@ add_size:;
 
     for(i=0; i<hostent_count; i++){
 	int buflen;
-        buflen = strlen(hostent_head[i].hostname) + STRLENOF(":65355" );
+        buflen = strlen(hostent_head[i].hostname) + STRLENOF(":65535 ");
         hostlist = (char *) LDAP_REALLOC(hostlist, cur+buflen+1);
         if (hostlist == NULL) {
             rc = LDAP_NO_MEMORY;
