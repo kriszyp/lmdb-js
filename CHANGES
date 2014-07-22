@@ -19,6 +19,8 @@ OpenLDAP 2.4.40 Engineering
 	Fixed slapo-translucent double free (ITS#7587)
 	Fixed slapo-translucent to work with manageDSAit (ITS#7864)
 	Fixed slapcacl with invalid suffix (ITS#7827)
+	Build Environment
+		Remove support for gcrypt (ITS#7877)
 	Contrib
 		Added pbkdf2 module (ITS#7742)
 		Fixed autogroup double free (ITS#7831)
