@@ -22,6 +22,7 @@ OpenLDAP 2.4.40 Engineering
 	Build Environment
 		Remove support for gcrypt (ITS#7877)
 		BDB 6.0.20 and later is not supported (ITS#7890)
+		Fixed ODBC link check (ITS#7891)
 	Contrib
 		Added pbkdf2 module (ITS#7742)
 		Fixed autogroup double free (ITS#7831)
