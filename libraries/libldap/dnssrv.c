@@ -176,41 +176,77 @@ int ldap_domain2dn(
 
 #ifdef HAVE_RES_QUERY
 #define DNSBUFSIZ (64*1024)
+#define MAXHOST	254	/* RFC 1034, max length is 253 chars */
 typedef struct srv_record {
     u_short priority;
     u_short weight;
     u_short port;
-    char hostname[DNSBUFSIZ];
+    char hostname[MAXHOST];
 } srv_record;
 
+/* Linear Congruential Generator - we don't need
+ * high quality randomness, and we don't want to
+ * interfere with anyone else's use of srand().
+ *
+ * The PRNG here cycles thru 941,955 numbers.
+ */
+static float srv_seed;
+
+static void srv_srand(int seed) {
+	srv_seed = (float)seed / (float)RAND_MAX;
+}
+
+static float srv_rand() {
+	float val = 9821.0 * srv_seed + .211327;
+	srv_seed = val - (int)val;
+	return srv_seed;
+}
 
 static int srv_cmp(const void *aa, const void *bb){
-    srv_record *a=(srv_record *)aa;
-    srv_record *b=(srv_record *)bb;
-    u_long total;
+	srv_record *a=(srv_record *)aa;
+	srv_record *b=(srv_record *)bb;
+	int i = a->priority - b->priority;
+	if (i) return i;
+	return b->weight - a->weight;
+}
 
-    if(a->priority < b->priority) {
-	return -1;
-    }
-    if(a->priority > b->priority) {
-	return 1;
-    }
-    if(a->priority == b->priority){
-	/* targets with same priority are in psudeo random order */
-	if (a->weight == 0 && b->weight == 0) {
-	    if (rand() % 2) {
-		return -1;
-	    } else {
-		return 1;
-	    }
+static void srv_shuffle(srv_record *a, int n) {
+	int i, j, total = 0, r, p;
+
+	for (i=0; i<n; i++)
+		total += a[i].weight;
+
+	/* all weights are zero, do a straight Fisher-Yates shuffle */
+	if (!total) {
+		while (n) {
+			srv_record t;
+			i = srv_rand() * n--;
+			t = a[n];
+			a[n] = a[i];
+			a[i] = t;
+		}
+		return;
 	}
-	total = a->weight + b->weight;
-	if (rand() % total < a->weight) {
-	    return -1;
-	} else {
-	    return 1;
+
+	/* Do a shuffle per RFC2782 Page 4 */
+	p = n;
+	for (i=0; i<n-1; i++) {
+		r = srv_rand() * total;
+		for (j=0; j<p; j++) {
+			r -= a[j].weight;
+			if (r <= 0) {
+				if (j) {
+					srv_record t = a[0];
+					a[0] = a[j];
+					a[j] = t;
+				}
+				total -= a[0].weight;
+				a++;
+				p--;
+				break;
+			}
+		}
 	}
-    }
 }
 #endif /* HAVE_RES_QUERY */
 
@@ -226,7 +262,7 @@ int ldap_domain2hostlist(
     char *request;
     char *hostlist = NULL;
     srv_record *hostent_head=NULL;
-    int i;
+    int i, j;
     int rc, len, cur = 0;
     unsigned char reply[DNSBUFSIZ];
     int hostent_count=0;
@@ -325,14 +361,30 @@ int ldap_domain2hostlist(
 		hostent_head[hostent_count].priority=priority;
 		hostent_head[hostent_count].weight=weight;
 		hostent_head[hostent_count].port=port;
-		strncpy(hostent_head[hostent_count].hostname, host,255);
-		hostent_count=hostent_count+1;
+		strncpy(hostent_head[hostent_count].hostname, host, MAXHOST);
+		hostent_count++;
 	    }
 add_size:;
 	    p += size;
 	}
-    }
     qsort(hostent_head, hostent_count, sizeof(srv_record), srv_cmp);
+
+	if (!srv_seed)
+		srv_srand(time(0L));
+
+	/* shuffle records of same priority */
+	j = 0;
+	priority = hostent_head[0].priority;
+	for (i=1; i<hostent_count; i++) {
+		if (hostent_head[i].priority != priority) {
+			priority = hostent_head[i].priority;
+			if (i-j > 1)
+				srv_shuffle(hostent_head+j, i-j);
+			j = i;
+		}
+	}
+	if (i-j > 1)
+		srv_shuffle(hostent_head+j, i-j);
 
     for(i=0; i<hostent_count; i++){
 	int buflen;
@@ -346,6 +398,7 @@ add_size:;
             hostlist[cur++]=' ';
         }
         cur += sprintf(&hostlist[cur], "%s:%hd", hostent_head[i].hostname, hostent_head[i].port);
+    }
     }
 
     if (hostlist == NULL) {
