@@ -2367,10 +2367,14 @@ struct BackendInfo {
 
 typedef int (slap_response)( Operation *, SlapReply * );
 
+struct slap_callback;
+typedef void (slap_writewait)( Operation *, struct slap_callback * );
+
 typedef struct slap_callback {
 	struct slap_callback *sc_next;
 	slap_response *sc_response;
 	slap_response *sc_cleanup;
+	slap_writewait *sc_writewait;
 	void *sc_private;
 } slap_callback;
 

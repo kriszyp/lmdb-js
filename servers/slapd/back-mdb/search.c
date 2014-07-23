@@ -316,6 +316,21 @@ static void scope_chunk_ret( Operation *op, ID2 *scopes )
 
 static void *search_stack( Operation *op );
 
+typedef struct ww_ctx {
+	MDB_txn *txn;
+	int flag;
+} ww_ctx;
+
+static void
+mdb_writewait( Operation *op, slap_callback *sc )
+{
+	ww_ctx *ww = sc->sc_private;
+	if ( !ww->flag ) {
+		mdb_txn_reset( ww->txn );
+		ww->flag = 1;
+	}
+}
+
 int
 mdb_search( Operation *op, SlapReply *rs )
 {
@@ -335,6 +350,8 @@ mdb_search( Operation *op, SlapReply *rs )
 	int		tentries = 0;
 	IdScopes	isc;
 	MDB_cursor	*mci, *mcd;
+	ww_ctx wwctx;
+	slap_callback cb = { 0 };
 
 	mdb_op_info	opinfo = {{{0}}}, *moi = &opinfo;
 	MDB_txn			*ltid = NULL;
@@ -673,6 +690,16 @@ dn2entry_retry:
 		id = mdb_idl_first( candidates, &cursor );
 	}
 
+	wwctx.flag = 0;
+	/* If we're running in our own read txn */
+	if (  moi == &opinfo ) {
+		cb.sc_writewait = mdb_writewait;
+		cb.sc_private = &wwctx;
+		wwctx.txn = ltid;
+		cb.sc_next = op->o_callback;
+		op->o_callback = &cb;
+	}
+
 	while (id != NOID)
 	{
 		int scopeok;
@@ -935,6 +962,12 @@ notfound:
 			rs->sr_flags = 0;
 
 			send_search_reference( op, rs );
+			if ( wwctx.flag ) {
+				wwctx.flag = 0;
+				mdb_txn_renew( ltid );
+				mdb_cursor_renew( ltid, mci );
+				mdb_cursor_renew( ltid, mcd );
+			}
 
 			mdb_entry_return( op, e );
 			rs->sr_entry = NULL;
@@ -972,6 +1005,12 @@ notfound:
 				rs->sr_flags = 0;
 				rs->sr_err = LDAP_SUCCESS;
 				rs->sr_err = send_search_entry( op, rs );
+				if ( wwctx.flag ) {
+					wwctx.flag = 0;
+					mdb_txn_renew( ltid );
+					mdb_cursor_renew( ltid, mci );
+					mdb_cursor_renew( ltid, mcd );
+				}
 				rs->sr_attrs = NULL;
 				rs->sr_entry = NULL;
 				if (e != base)
@@ -1062,6 +1101,17 @@ nochange:
 	rs->sr_err = LDAP_SUCCESS;
 
 done:
+	if ( cb.sc_private ) {
+		/* remove our writewait callback */
+		slap_callback **scp = &op->o_callback;
+		while ( *scp ) {
+			if ( *scp == &cb ) {
+				*scp = cb.sc_next;
+				cb.sc_private = NULL;
+				break;
+			}
+		}
+	}
 	mdb_cursor_close( mcd );
 	mdb_cursor_close( mci );
 	if ( moi == &opinfo ) {
