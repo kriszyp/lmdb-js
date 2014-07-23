@@ -293,6 +293,22 @@ rs_entry2modifiable( Operation *op, SlapReply *rs, slap_overinst *on )
 	return 1;
 }
 
+/* Check for any callbacks that want to be informed about being blocked
+ * on output. These callbacks are expected to leave the callback list
+ * unmodified. Their result is ignored.
+ */
+static void
+slap_writewait_play(
+	Operation *op )
+{
+	slap_callback	*sc = op->o_callback;
+
+	for ( ; sc; sc = sc->sc_next ) {
+		if ( sc->sc_writewait )
+			sc->sc_writewait( op, sc );
+	}
+}
+
 static long send_ldap_ber(
 	Operation *op,
 	BerElement *ber )
@@ -369,6 +385,7 @@ fail:
 		conn->c_writewaiter = 1;
 		ldap_pvt_thread_mutex_unlock( &conn->c_write1_mutex );
 		ldap_pvt_thread_pool_idle( &connection_pool );
+		slap_writewait_play( op );
 		err = slapd_wait_writer( conn->c_sd );
 		conn->c_writewaiter = 0;
 		ldap_pvt_thread_pool_unidle( &connection_pool );
