@@ -690,12 +690,15 @@ dn2entry_retry:
 		id = mdb_idl_first( candidates, &cursor );
 	}
 
-	cb.sc_writewait = mdb_writewait;
-	cb.sc_private = &wwctx;
 	wwctx.flag = 0;
-	wwctx.txn = ltid;
-	cb.sc_next = op->o_callback;
-	op->o_callback = &cb;
+	/* If we're running in our own read txn */
+	if (  moi == &opinfo ) {
+		cb.sc_writewait = mdb_writewait;
+		cb.sc_private = &wwctx;
+		wwctx.txn = ltid;
+		cb.sc_next = op->o_callback;
+		op->o_callback = &cb;
+	}
 
 	while (id != NOID)
 	{
@@ -1081,17 +1084,6 @@ loop_continue:
 				id = isc.id;
 		} else {
 			id = mdb_idl_next( candidates, &cursor );
-		}
-	}
-	/* remove our writewait callback */
-	{
-		slap_callback **scp = &op->o_callback;
-		while ( *scp ) {
-			if ( *scp == &cb ) {
-				*scp = cb.sc_next;
-				cb.sc_private = NULL;
-				break;
-			}
 		}
 	}
 
