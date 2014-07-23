@@ -962,8 +962,8 @@ notfound:
 			if ( wwctx.flag ) {
 				wwctx.flag = 0;
 				mdb_txn_renew( ltid );
-				mdb_cursor_renew( mci );
-				mdb_cursor_renew( mcd );
+				mdb_cursor_renew( ltid, mci );
+				mdb_cursor_renew( ltid, mcd );
 			}
 
 			mdb_entry_return( op, e );
@@ -1005,8 +1005,8 @@ notfound:
 				if ( wwctx.flag ) {
 					wwctx.flag = 0;
 					mdb_txn_renew( ltid );
-					mdb_cursor_renew( mci );
-					mdb_cursor_renew( mcd );
+					mdb_cursor_renew( ltid, mci );
+					mdb_cursor_renew( ltid, mcd );
 				}
 				rs->sr_attrs = NULL;
 				rs->sr_entry = NULL;
