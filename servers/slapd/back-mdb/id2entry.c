@@ -561,7 +561,9 @@ static int mdb_entry_partsize(struct mdb_info *mdb, MDB_txn *txn, Entry *e,
  * entry, and the e_ocflags. It then contains a list of integers for each
  * attribute. For each attribute the first integer gives the index of the
  * matching AttributeDescription, followed by the number of values in the
- * attribute. If the high bit is set, the attribute also has normalized
+ * attribute. If the high bit of the attr index is set, the attribute's
+ * values are already sorted.
+ * If the high bit of numvals is set, the attribute also has normalized
  * values present. (Note - a_numvals is an unsigned int, so this means
  * it's possible to receive an attribute that we can't encode due to size
  * overflow. In practice, this should not be an issue.) Then the length
@@ -598,7 +600,10 @@ static int mdb_entry_encode(Operation *op, Entry *e, MDB_val *data, Ecount *eh)
 	for (a=e->e_attrs; a; a=a->a_next) {
 		if (!a->a_desc->ad_index)
 			return LDAP_UNDEFINED_TYPE;
-		*lp++ = mdb->mi_adxs[a->a_desc->ad_index];
+		l = mdb->mi_adxs[a->a_desc->ad_index];
+		if (a->a_flags & SLAP_ATTR_SORTED_VALS)
+			l |= HIGH_BIT;
+		*lp++ = l;
 		l = a->a_numvals;
 		if (a->a_nvals != a->a_vals)
 			l |= HIGH_BIT;
@@ -669,7 +674,12 @@ int mdb_entry_decode(Operation *op, MDB_txn *txn, MDB_val *data, Entry **e)
 
 	for (;nattrs>0; nattrs--) {
 		int have_nval = 0;
+		a->a_flags = SLAP_ATTR_DONT_FREE_DATA | SLAP_ATTR_DONT_FREE_VALS;
 		i = *lp++;
+		if (i & HIGH_BIT) {
+			i ^= HIGH_BIT;
+			a->a_flags |= SLAP_ATTR_SORTED_VALS;
+		}
 		if (i > mdb->mi_numads) {
 			rc = mdb_ad_read(mdb, txn);
 			if (rc)
@@ -682,7 +692,6 @@ int mdb_entry_decode(Operation *op, MDB_txn *txn, MDB_val *data, Entry **e)
 			}
 		}
 		a->a_desc = mdb->mi_ads[i];
-		a->a_flags = SLAP_ATTR_DONT_FREE_DATA | SLAP_ATTR_DONT_FREE_VALS;
 		a->a_numvals = *lp++;
 		if (a->a_numvals & HIGH_BIT) {
 			a->a_numvals ^= HIGH_BIT;
@@ -714,7 +723,8 @@ int mdb_entry_decode(Operation *op, MDB_txn *txn, MDB_val *data, Entry **e)
 			a->a_nvals = a->a_vals;
 		}
 		/* FIXME: This is redundant once a sorted entry is saved into the DB */
-		if ( a->a_desc->ad_type->sat_flags & SLAP_AT_SORTED_VAL ) {
+		if (( a->a_desc->ad_type->sat_flags & SLAP_AT_SORTED_VAL )
+			&& !(a->a_flags & SLAP_ATTR_SORTED_VALS)) {
 			rc = slap_sort_vals( (Modifications *)a, &text, &j, NULL );
 			if ( rc == LDAP_SUCCESS ) {
 				a->a_flags |= SLAP_ATTR_SORTED_VALS;
