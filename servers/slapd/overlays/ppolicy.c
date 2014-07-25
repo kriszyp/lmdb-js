@@ -1269,7 +1269,7 @@ ppolicy_bind( Operation *op, SlapReply *rs )
 static int
 ppolicy_connection_destroy( BackendDB *bd, Connection *conn )
 {
-	if ( !BER_BVISEMPTY( &pwcons[conn->c_conn_idx].dn )) {
+	if ( pwcons && !BER_BVISEMPTY( &pwcons[conn->c_conn_idx].dn )) {
 		ch_free( pwcons[conn->c_conn_idx].dn.bv_val );
 		BER_BVZERO( &pwcons[conn->c_conn_idx].dn );
 	}
@@ -2330,9 +2330,10 @@ ppolicy_close(
 	/* Perhaps backover should provide bi_destroy hooks... */
 	ov_count--;
 	if ( ov_count <=0 && pwcons ) {
-		pwcons--;
-		free( pwcons );
+		pw_conn *pwc = pwcons;
 		pwcons = NULL;
+		pwc--;
+		ch_free( pwc );
 	}
 	free( pi->def_policy.bv_val );
 	free( pi );
