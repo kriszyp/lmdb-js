@@ -1282,7 +1282,7 @@ static ConfigOCs sssvlv_ocs[] = {
 		"NAME 'olcSssVlvConfig' "
 		"DESC 'SSS VLV configuration' "
 		"SUP olcOverlayConfig "
-		"MAY ( olcSssVlvMax $ olcSssVlvMaxKeys ) )",
+		"MAY ( olcSssVlvMax $ olcSssVlvMaxKeys $ olcSssVlvMaxPerConn ) )",
 		Cft_Overlay, sssvlv_cfg, NULL, NULL },
 	{ NULL, 0, NULL }
 };
