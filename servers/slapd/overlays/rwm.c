@@ -178,7 +178,7 @@ rwm_callback_get( Operation *op )
 {
 	rwm_op_cb	*roc;
 
-	roc = op->o_tmpalloc( sizeof( struct rwm_op_cb ), op->o_tmpmemctx );
+	roc = op->o_tmpcalloc( 1, sizeof( struct rwm_op_cb ), op->o_tmpmemctx );
 	roc->cb.sc_cleanup = rwm_op_cleanup;
 	roc->cb.sc_response = NULL;
 	roc->cb.sc_next = op->o_callback;
