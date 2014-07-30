@@ -24,7 +24,6 @@ OpenLDAP 2.4.40 Engineering
 	Fixed slapo-ppolicy timetamp resolution to use microseconds (ITS#7161)
 	Fixed slapo-ppolicy connection destroy logic (ITS#7906)
 	Fixed slapo-refint to check for pauses in cn=config (ITS#7873)
-	Fixed slapo-rwm callback initialization (ITS#7909)
 	Fixed slapo-sock db_init (ITS#7868)
 	Fixed slapo-sssvlv fix olcSssVlvMaxPerConn (ITS#7908) 
 	Fixed slapo-translucent double free (ITS#7587)
