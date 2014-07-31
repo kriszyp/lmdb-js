@@ -619,23 +619,25 @@ mdb_cf_gen( ConfigArgs *c )
 			c->argc - 1, &c->argv[1], &c->reply);
 
 		if( rc != LDAP_SUCCESS ) return 1;
-		c->cleanup = mdb_cf_cleanup;
 		mdb->mi_flags |= MDB_OPEN_INDEX;
-		if (( mdb->mi_flags & MDB_IS_OPEN ) && !mdb->mi_index_task ) {
-			/* Start the task as soon as we finish here. Set a long
-			 * interval (10 hours) so that it only gets scheduled once.
-			 */
-			if ( c->be->be_suffix == NULL || BER_BVISNULL( &c->be->be_suffix[0] ) ) {
-				fprintf( stderr, "%s: "
-					"\"index\" must occur after \"suffix\".\n",
-					c->log );
-				return 1;
+		if ( mdb->mi_flags & MDB_IS_OPEN ) {
+			c->cleanup = mdb_cf_cleanup;
+			if ( !mdb->mi_index_task ) {
+				/* Start the task as soon as we finish here. Set a long
+				 * interval (10 hours) so that it only gets scheduled once.
+				 */
+				if ( c->be->be_suffix == NULL || BER_BVISNULL( &c->be->be_suffix[0] ) ) {
+					fprintf( stderr, "%s: "
+						"\"index\" must occur after \"suffix\".\n",
+						c->log );
+					return 1;
+				}
+				ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
+				mdb->mi_index_task = ldap_pvt_runqueue_insert( &slapd_rq, 36000,
+					mdb_online_index, c->be,
+					LDAP_XSTRING(mdb_online_index), c->be->be_suffix[0].bv_val );
+				ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
 			}
-			ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
-			mdb->mi_index_task = ldap_pvt_runqueue_insert( &slapd_rq, 36000,
-				mdb_online_index, c->be,
-				LDAP_XSTRING(mdb_online_index), c->be->be_suffix[0].bv_val );
-			ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
 		}
 		break;
 
