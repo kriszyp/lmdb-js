@@ -249,10 +249,10 @@ str2entry2( char *s, int checkvals )
 				rc = slap_bv2ad( type+i, &ad, &text );
 	
 				if( rc != LDAP_SUCCESS ) {
-					Debug( slapMode & SLAP_TOOL_MODE
-						? LDAP_DEBUG_ANY : LDAP_DEBUG_TRACE,
+					int wtool = ( slapMode & (SLAP_TOOL_MODE|SLAP_TOOL_READONLY) ) == SLAP_TOOL_MODE;
+					Debug( wtool ? LDAP_DEBUG_ANY : LDAP_DEBUG_TRACE,
 						"<= str2entry: str2ad(%s): %s\n", type[i].bv_val, text, 0 );
-					if( slapMode & SLAP_TOOL_MODE ) {
+					if( wtool ) {
 						goto fail;
 					}
 	
@@ -330,48 +330,6 @@ str2entry2( char *s, int checkvals )
 					"no value\n", 
 					ad->ad_cname.bv_val, attr_cnt, 0 );
 				goto fail;
-			}
-	
-			if( slapMode & SLAP_TOOL_MODE ) {
-				struct berval pval;
-				slap_syntax_validate_func *validate =
-					ad->ad_type->sat_syntax->ssyn_validate;
-				slap_syntax_transform_func *pretty =
-					ad->ad_type->sat_syntax->ssyn_pretty;
-	
-				if ( pretty ) {
-					rc = ordered_value_pretty( ad,
-						&vals[i], &pval, NULL );
-	
-				} else if ( validate ) {
-					/*
-				 	 * validate value per syntax
-				 	 */
-					rc = ordered_value_validate( ad, &vals[i], LDAP_MOD_ADD );
-	
-				} else {
-					Debug( LDAP_DEBUG_ANY,
-						"str2entry: attributeType %s #%d: "
-						"no validator for syntax %s\n", 
-						ad->ad_cname.bv_val, attr_cnt,
-						ad->ad_type->sat_syntax->ssyn_oid );
-					goto fail;
-				}
-	
-				if( rc != 0 ) {
-					Debug( LDAP_DEBUG_ANY,
-						"str2entry: invalid value "
-						"for attributeType %s #%d (syntax %s)\n",
-						ad->ad_cname.bv_val, attr_cnt,
-						ad->ad_type->sat_syntax->ssyn_oid );
-					goto fail;
-				}
-	
-				if( pretty ) {
-					if ( freeval[i] ) free( vals[i].bv_val );
-					vals[i] = pval;
-					freeval[i] = 1;
-				}
 			}
 	
 			if ( ad->ad_type->sat_equality &&
