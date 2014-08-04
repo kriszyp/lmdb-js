@@ -439,7 +439,7 @@ static int translucent_modify(Operation *op, SlapReply *rs) {
 **
 */
 
-	op->o_bd->bd_info = (BackendInfo *) on->on_info;
+	op->o_bd->bd_info = (BackendInfo *) on->on_info->oi_orig;
 	rc = be_entry_get_rw(op, &op->o_req_ndn, NULL, NULL, 0, &e);
 	op->o_bd->bd_info = (BackendInfo *) on;
 
@@ -486,7 +486,7 @@ release:
 			} else
 				entry_free(re);
 		}
-		op->o_bd->bd_info = (BackendInfo *) on->on_info;
+		op->o_bd->bd_info = (BackendInfo *) on->on_info->oi_orig;
 		be_entry_release_r(op, e);
 		op->o_bd->bd_info = (BackendInfo *) on;
 		if(erc == SLAP_CB_CONTINUE) {
@@ -662,7 +662,7 @@ static int translucent_pwmod(Operation *op, SlapReply *rs) {
 **	return CONTINUE;
 */
 
-	op->o_bd->bd_info = (BackendInfo *) on->on_info;
+	op->o_bd->bd_info = (BackendInfo *) on->on_info->oi_orig;
 	rc = be_entry_get_rw(op, &op->o_req_ndn, NULL, NULL, 0, &e);
 	op->o_bd->bd_info = (BackendInfo *) on;
 
@@ -676,7 +676,7 @@ static int translucent_pwmod(Operation *op, SlapReply *rs) {
 				entry_free(re);
 			}
 		}
-		op->o_bd->bd_info = (BackendInfo *) on->on_info;
+		op->o_bd->bd_info = (BackendInfo *) on->on_info->oi_orig;
 		be_entry_release_r(op, e);
 		op->o_bd->bd_info = (BackendInfo *) on;
 		return SLAP_CB_CONTINUE;
