@@ -4,4 +4,8 @@ Things for 2.5:
 [09:28] <hyc> accesslog is still using 666, experimental arc
 [09:29] <hyc> I think this means we should polish up the logschema draft, Informational status, and publish it again as final
 
-Add support to cn=config for global overlays
+[13:57] <hyc> there's a nagging problem though, pcache's entry_release function needs to distinguish between its backend actually freeing the entry, or being a no-op
+[13:57] <hyc> so it can decide whether to return success or continue
+[13:58] <hyc> the patch to translucent sidesteps the question, by avoiding other overlays
+[13:58] <hyc> but we need to revisit this in 2.5
+
