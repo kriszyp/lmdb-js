@@ -3110,6 +3110,12 @@ mdb_page_flush(MDB_txn *txn, int keep)
 #endif	/* _WIN32 */
 	}
 
+	/* MIPS has cache coherency issues, this is a no-op everywhere else
+	 * Note: for any size >= on-chip cache size, entire on-chip cache is
+	 * flushed.
+	 */
+	CACHEFLUSH(env->me_map, txn->mt_next_pgno * env->me_psize, DCACHE);
+
 	for (i = keep; ++i <= pagecount; ) {
 		dp = dl[i].mptr;
 		/* This is a page we skipped above */
@@ -3581,6 +3587,10 @@ fail:
 		return rc;
 	}
 done:
+	/* MIPS has cache coherency issues, this is a no-op everywhere else */
+	if (!(env->me_flags & MDB_WRITEMAP)) {
+		CACHEFLUSH(env->me_map + off, len, DCACHE);
+	}
 	/* Memory ordering issues are irrelevant; since the entire writer
 	 * is wrapped by wmutex, all of these changes will become visible
 	 * after the wmutex is unlocked. Since the DB is multi-version,
@@ -3589,11 +3599,6 @@ done:
 	 */
 	if (env->me_txns)
 		env->me_txns->mti_txnid = txn->mt_txnid;
-
-	/* MIPS has cache coherency issues, this is a no-op everywhere else */
-	if (!(env->me_flags & MDB_WRITEMAP)) {
-		CACHEFLUSH(env->me_map, txn->mt_next_pgno * env->me_psize, DCACHE);
-	}
 
 	return MDB_SUCCESS;
 }
@@ -6057,6 +6062,24 @@ mdb_cursor_put(MDB_cursor *mc, MDB_val *key, MDB_val *data,
 				return MDB_BAD_VALSIZE;
 			ptr = LEAF2KEY(mc->mc_pg[mc->mc_top], mc->mc_ki[mc->mc_top], ksize);
 			memcpy(ptr, key->mv_data, ksize);
+fix_parent:
+			/* if overwriting slot 0 of leaf, need to
+			 * update branch key if there is a parent page
+			 */
+			if (mc->mc_top && !mc->mc_ki[mc->mc_top]) {
+				unsigned short top = mc->mc_top;
+				mc->mc_top--;
+				/* slot 0 is always an empty key, find real slot */
+				while (mc->mc_top && !mc->mc_ki[mc->mc_top])
+					mc->mc_top--;
+				if (mc->mc_ki[mc->mc_top])
+					rc2 = mdb_update_key(mc, key);
+				else
+					rc2 = MDB_SUCCESS;
+				mc->mc_top = top;
+				if (rc2)
+					return rc2;
+			}
 			return MDB_SUCCESS;
 		}
 
@@ -6262,8 +6285,10 @@ current:
 				data->mv_data = olddata.mv_data;
 			else if (!(mc->mc_flags & C_SUB))
 				memcpy(olddata.mv_data, data->mv_data, data->mv_size);
-			else
+			else {
 				memcpy(NODEKEY(leaf), key->mv_data, key->mv_size);
+				goto fix_parent;
+			}
 			return MDB_SUCCESS;
 		}
 		mdb_node_del(mc, 0);
