@@ -2319,7 +2319,7 @@ ppolicy_db_open(
 }
 
 static int
-ppolicy_close(
+ppolicy_db_close(
 	BackendDB *be,
 	ConfigReply *cr
 )
@@ -2390,7 +2390,7 @@ int ppolicy_initialize()
 	ppolicy.on_bi.bi_type = "ppolicy";
 	ppolicy.on_bi.bi_db_init = ppolicy_db_init;
 	ppolicy.on_bi.bi_db_open = ppolicy_db_open;
-	ppolicy.on_bi.bi_db_close = ppolicy_close;
+	ppolicy.on_bi.bi_db_close = ppolicy_db_close;
 	ppolicy.on_bi.bi_db_destroy = ppolicy_db_destroy;
 
 	ppolicy.on_bi.bi_op_add = ppolicy_add;
