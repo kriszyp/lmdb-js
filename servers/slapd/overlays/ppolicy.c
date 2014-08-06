@@ -2327,7 +2327,18 @@ ppolicy_close(
 	overlay_unregister_control( be, LDAP_CONTROL_PASSWORDPOLICYREQUEST );
 #endif /* SLAP_CONFIG_DELETE */
 
-	/* Perhaps backover should provide bi_destroy hooks... */
+	free( pi->def_policy.bv_val );
+	free( pi );
+
+	return 0;
+}
+
+static int
+ppolicy_db_destroy(
+	BackendDB *be,
+	ConfigReply *cr
+)
+{
 	ov_count--;
 	if ( ov_count <=0 && pwcons ) {
 		pw_conn *pwc = pwcons;
@@ -2335,10 +2346,6 @@ ppolicy_close(
 		pwc--;
 		ch_free( pwc );
 	}
-	free( pi->def_policy.bv_val );
-	free( pi );
-
-	return 0;
 }
 
 static char *extops[] = {
@@ -2380,6 +2387,7 @@ int ppolicy_initialize()
 	ppolicy.on_bi.bi_db_init = ppolicy_db_init;
 	ppolicy.on_bi.bi_db_open = ppolicy_db_open;
 	ppolicy.on_bi.bi_db_close = ppolicy_close;
+	ppolicy.on_bi.bi_db_destroy = ppolicy_db_destroy;
 
 	ppolicy.on_bi.bi_op_add = ppolicy_add;
 	ppolicy.on_bi.bi_op_bind = ppolicy_bind;
