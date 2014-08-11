@@ -2305,6 +2305,8 @@ ppolicy_db_init(
 		pwcons++;
 	}
 
+	ov_count++;
+
 	return 0;
 }
 
@@ -2314,7 +2316,6 @@ ppolicy_db_open(
 	ConfigReply *cr
 )
 {
-	ov_count++;
 	return overlay_register_control( be, LDAP_CONTROL_PASSWORDPOLICYREQUEST );
 }
 
@@ -2324,15 +2325,9 @@ ppolicy_db_close(
 	ConfigReply *cr
 )
 {
-	slap_overinst *on = (slap_overinst *) be->bd_info;
-	pp_info *pi = on->on_bi.bi_private;
-
 #ifdef SLAP_CONFIG_DELETE
 	overlay_unregister_control( be, LDAP_CONTROL_PASSWORDPOLICYREQUEST );
 #endif /* SLAP_CONFIG_DELETE */
-
-	free( pi->def_policy.bv_val );
-	free( pi );
 
 	return 0;
 }
@@ -2343,6 +2338,13 @@ ppolicy_db_destroy(
 	ConfigReply *cr
 )
 {
+	slap_overinst *on = (slap_overinst *) be->bd_info;
+	pp_info *pi = on->on_bi.bi_private;
+
+	on->on_bi.bi_private = NULL;
+	free( pi->def_policy.bv_val );
+	free( pi );
+
 	ov_count--;
 	if ( ov_count <=0 && pwcons ) {
 		pw_conn *pwc = pwcons;
