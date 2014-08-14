@@ -23,6 +23,7 @@ OpenLDAP 2.4.40 Engineering
 	Fixed slapd modrdn crash on naming attr with no matching rule (ITS#7850)
 	Fixed slapo-memberof attr count (ITS#7893)
 	Fixed slapo-memberof frontendDB handling (ITS#7249)
+	Fixed slapo-pcache config processing (ITS#7919)
 	Added slapo-ppolicy ORDERING rules (ITS#7838)
 	Fixed slapo-ppolicy timetamp resolution to use microseconds (ITS#7161)
 	Fixed slapo-ppolicy connection destroy logic (ITS#7906)
