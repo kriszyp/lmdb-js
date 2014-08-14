@@ -399,6 +399,8 @@ mdb_reader_flush( MDB_env *env )
 	}
 }
 
+extern MDB_txn *mdb_tool_txn;
+
 int
 mdb_opinfo_get( Operation *op, struct mdb_info *mdb, int rdonly, mdb_op_info **moip )
 {
@@ -455,18 +457,26 @@ mdb_opinfo_get( Operation *op, struct mdb_info *mdb, int rdonly, mdb_op_info **m
 		}
 		moi->moi_ref++;
 		if ( !moi->moi_txn ) {
-			rc = mdb_txn_begin( mdb->mi_dbenv, NULL, 0, &moi->moi_txn );
-			if (rc) {
-				Debug( LDAP_DEBUG_ANY, "mdb_opinfo_get: err %s(%d)\n",
-					mdb_strerror(rc), rc, 0 );
+			if (( slapMode & SLAP_TOOL_MODE ) && mdb_tool_txn ) {
+				moi->moi_txn = mdb_tool_txn;
+			} else {
+				rc = mdb_txn_begin( mdb->mi_dbenv, NULL, 0, &moi->moi_txn );
+				if (rc) {
+					Debug( LDAP_DEBUG_ANY, "mdb_opinfo_get: err %s(%d)\n",
+						mdb_strerror(rc), rc, 0 );
+				}
+				return rc;
 			}
-			return rc;
 		}
 		return 0;
 	}
 
 	/* OK, this is a reader */
 	if ( !moi->moi_txn ) {
+		if (( slapMode & SLAP_TOOL_MODE ) && mdb_tool_txn ) {
+			moi->moi_txn = mdb_tool_txn;
+			goto ok;
+		}
 		if ( !ctx ) {
 			/* Shouldn't happen unless we're single-threaded */
 			rc = mdb_txn_begin( mdb->mi_dbenv, NULL, MDB_RDONLY, &moi->moi_txn );
@@ -498,6 +508,7 @@ mdb_opinfo_get( Operation *op, struct mdb_info *mdb, int rdonly, mdb_op_info **m
 		}
 		moi->moi_flag |= MOI_READER;
 	}
+ok:
 	if ( moi->moi_ref < 1 ) {
 		moi->moi_ref = 0;
 	}
