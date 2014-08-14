@@ -4497,6 +4497,7 @@ pcache_db_init(
 	qm = (query_manager*)ch_malloc(sizeof(query_manager));
 
 	cm->db = *be;
+	cm->db.bd_info = NULL;
 	SLAP_DBFLAGS(&cm->db) |= SLAP_DBFLAG_NO_SCHEMA_CHECK;
 	cm->db.be_private = NULL;
 	cm->db.bd_self = &cm->db;
