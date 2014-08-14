@@ -9,6 +9,7 @@ OpenLDAP 2.4.40 Engineering
 	Fixed libldap GnuTLS with newer versions (ITS#7430,ITS#6359)
 	Fixed libldif to correctly handle 4096 character lines (ITS#7859)
 	Fixed librewrite reference counting (ITS#7723)
+	Fixed slapacl with back-mdb reader transactions (ITS#7920)
 	Fixed slapd syncrepl to send cookie on fallback (ITS#7849)
 	Fixed slapd slapcat with external schema (ITS#7895)
 	Fixed slapd-mdb to work concurrently with slapadd (ITS#7798)
