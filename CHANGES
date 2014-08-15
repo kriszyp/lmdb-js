@@ -42,7 +42,7 @@ OpenLDAP 2.4.40 Engineering
 	Contrib
 		Added pbkdf2 module (ITS#7742)
 		Fixed autogroup double free (ITS#7831)
-		Fixed autogroup modifcation callback responses (ITS#6970)
+		Fixed autogroup modification callback responses (ITS#6970)
 		Fixed ldapc++ memory leak in Async connection (ITS#7806)
 		Fixed nssov install path (ITS#7858)
 		Fixed passwd rpath (ITS#7885)
