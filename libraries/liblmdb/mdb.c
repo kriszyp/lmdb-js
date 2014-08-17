@@ -745,7 +745,7 @@ typedef struct MDB_page {
 	/** The number of overflow pages needed to store the given size. */
 #define OVPAGES(size, psize)	((PAGEHDRSZ-1 + (size)) / (psize) + 1)
 
-	/** Link in #MDB_txn.%mt_loose_pages list */
+	/** Link in #MDB_txn.%mt_loose_pgs list */
 #define NEXT_LOOSE_PAGE(p)		(*(MDB_page **)((p) + 2))
 
 	/** Header for a single key/data pair within a page.
@@ -950,6 +950,8 @@ struct MDB_txn {
 	 *	in this transaction, linked through #NEXT_LOOSE_PAGE(page).
 	 */
 	MDB_page	*mt_loose_pgs;
+	/* #Number of loose pages (#mt_loose_pgs) */
+	int			mt_loose_count;
 	/** The sorted list of dirty pages we temporarily wrote to disk
 	 *	because the dirty list was full. page numbers in here are
 	 *	shifted left by 1, deleted slots have the LSB set.
@@ -1632,10 +1634,11 @@ mdb_page_loose(MDB_cursor *mc, MDB_page *mp)
 {
 	int loose = 0;
 	pgno_t pgno = mp->mp_pgno;
+	MDB_txn *txn = mc->mc_txn;
 
 	if ((mp->mp_flags & P_DIRTY) && mc->mc_dbi != FREE_DBI) {
-		if (mc->mc_txn->mt_parent) {
-			MDB_ID2 *dl = mc->mc_txn->mt_u.dirty_list;
+		if (txn->mt_parent) {
+			MDB_ID2 *dl = txn->mt_u.dirty_list;
 			/* If txn has a parent, make sure the page is in our
 			 * dirty list.
 			 */
@@ -1644,7 +1647,7 @@ mdb_page_loose(MDB_cursor *mc, MDB_page *mp)
 				if (x <= dl[0].mid && dl[x].mid == pgno) {
 					if (mp != dl[x].mptr) { /* bad cursor? */
 						mc->mc_flags &= ~(C_INITIALIZED|C_EOF);
-						mc->mc_txn->mt_flags |= MDB_TXN_ERROR;
+						txn->mt_flags |= MDB_TXN_ERROR;
 						return MDB_CORRUPTED;
 					}
 					/* ok, it's ours */
@@ -1659,11 +1662,12 @@ mdb_page_loose(MDB_cursor *mc, MDB_page *mp)
 	if (loose) {
 		DPRINTF(("loosen db %d page %"Z"u", DDBI(mc),
 			mp->mp_pgno));
-		NEXT_LOOSE_PAGE(mp) = mc->mc_txn->mt_loose_pgs;
-		mc->mc_txn->mt_loose_pgs = mp;
+		NEXT_LOOSE_PAGE(mp) = txn->mt_loose_pgs;
+		txn->mt_loose_pgs = mp;
+		txn->mt_loose_count++;
 		mp->mp_flags |= P_LOOSE;
 	} else {
-		int rc = mdb_midl_append(&mc->mc_txn->mt_free_pgs, pgno);
+		int rc = mdb_midl_append(&txn->mt_free_pgs, pgno);
 		if (rc)
 			return rc;
 	}
@@ -1940,7 +1944,7 @@ mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp)
 	MDB_txn *txn = mc->mc_txn;
 	MDB_env *env = txn->mt_env;
 	pgno_t pgno, *mop = env->me_pghead;
-	unsigned i, j, k, mop_len = mop ? mop[0] : 0, n2 = num-1;
+	unsigned i, j, mop_len = mop ? mop[0] : 0, n2 = num-1;
 	MDB_page *np;
 	txnid_t oldest = 0, last;
 	MDB_cursor_op op;
@@ -1950,6 +1954,7 @@ mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp)
 	if (num == 1 && txn->mt_loose_pgs) {
 		np = txn->mt_loose_pgs;
 		txn->mt_loose_pgs = NEXT_LOOSE_PAGE(np);
+		txn->mt_loose_count--;
 		DPRINTF(("db %d use loose page %"Z"u", DDBI(mc),
 				np->mp_pgno));
 		*mp = np;
@@ -1967,7 +1972,7 @@ mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp)
 	for (op = MDB_FIRST;; op = MDB_NEXT) {
 		MDB_val key, data;
 		MDB_node *leaf;
-		pgno_t *idl, old_id, new_id;
+		pgno_t *idl;
 
 		/* Seek a big enough contiguous page range. Prefer
 		 * pages at the tail, just truncating the list.
@@ -2033,21 +2038,12 @@ mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp)
 #if (MDB_DEBUG) > 1
 		DPRINTF(("IDL read txn %"Z"u root %"Z"u num %u",
 			last, txn->mt_dbs[FREE_DBI].md_root, i));
-		for (k = i; k; k--)
-			DPRINTF(("IDL %"Z"u", idl[k]));
+		for (j = i; j; j--)
+			DPRINTF(("IDL %"Z"u", idl[j]));
 #endif
 		/* Merge in descending sorted order */
-		j = mop_len;
-		k = mop_len += i;
-		mop[0] = (pgno_t)-1;
-		old_id = mop[j];
-		while (i) {
-			new_id = idl[i--];
-			for (; old_id < new_id; old_id = mop[--j])
-				mop[k--] = old_id;
-			mop[k--] = new_id;
-		}
-		mop[0] = mop_len;
+		mdb_midl_xmerge(mop, idl);
+		mop_len = mop[0];
 	}
 
 	/* Use new pages from the map when nothing suitable in the freeDB */
@@ -2832,30 +2828,17 @@ mdb_freelist_save(MDB_txn *txn)
 			return rc;
 	}
 
-	/* Dispose of loose pages. Usually they will have all
-	 * been used up by the time we get here.
-	 */
-	if (txn->mt_loose_pgs) {
+	if (!env->me_pghead && txn->mt_loose_pgs) {
+		/* Put loose page numbers in mt_free_pgs, since
+		 * we may be unable to return them to me_pghead.
+		 */
 		MDB_page *mp = txn->mt_loose_pgs;
-		/* Just return them to freeDB */
-		if (env->me_pghead) {
-			int i, j;
-			mop = env->me_pghead;
-			for (; mp; mp = NEXT_LOOSE_PAGE(mp)) {
-				pgno_t pg = mp->mp_pgno;
-				j = mop[0] + 1;
-				for (i = mop[0]; i && mop[i] < pg; i--)
-					mop[j--] = mop[i];
-				mop[j] = pg;
-				mop[0] += 1;
-			}
-		} else {
-		/* Oh well, they were wasted. Put on freelist */
-			for (; mp; mp = NEXT_LOOSE_PAGE(mp)) {
-				mdb_midl_append(&txn->mt_free_pgs, mp->mp_pgno);
-			}
-		}
+		if ((rc = mdb_midl_need(&txn->mt_free_pgs, txn->mt_loose_count)) != 0)
+			return rc;
+		for (; mp; mp = NEXT_LOOSE_PAGE(mp))
+			mdb_midl_xappend(txn->mt_free_pgs, mp->mp_pgno);
 		txn->mt_loose_pgs = NULL;
+		txn->mt_loose_count = 0;
 	}
 
 	/* MDB_RESERVE cancels meminit in ovpage malloc (when no WRITEMAP) */
@@ -2919,7 +2902,7 @@ mdb_freelist_save(MDB_txn *txn)
 		}
 
 		mop = env->me_pghead;
-		mop_len = mop ? mop[0] : 0;
+		mop_len = (mop ? mop[0] : 0) + txn->mt_loose_count;
 
 		/* Reserve records for me_pghead[]. Split it if multi-page,
 		 * to avoid searching freeDB for a page range. Use keys in
@@ -2957,6 +2940,28 @@ mdb_freelist_save(MDB_txn *txn)
 			pgs[j] = 0;
 		} while (--j >= 0);
 		total_room += head_room;
+	}
+
+	/* Return loose page numbers to me_pghead, though usually none are
+	 * left at this point.  The pages themselves remain in dirty_list.
+	 */
+	if (txn->mt_loose_pgs) {
+		MDB_page *mp = txn->mt_loose_pgs;
+		unsigned count = txn->mt_loose_count;
+		MDB_IDL loose;
+		/* Room for loose pages + temp IDL with same */
+		if ((rc = mdb_midl_need(&env->me_pghead, 2*count+1)) != 0)
+			return rc;
+		mop = env->me_pghead;
+		loose = mop + MDB_IDL_ALLOCLEN(mop) - count;
+		for (count = 0; mp; mp = NEXT_LOOSE_PAGE(mp))
+			loose[ ++count ] = mp->mp_pgno;
+		loose[0] = count;
+		mdb_midl_sort(loose);
+		mdb_midl_xmerge(mop, loose);
+		txn->mt_loose_pgs = NULL;
+		txn->mt_loose_count = 0;
+		mop_len = mop[0];
 	}
 
 	/* Fill in the reserved me_pghead records */
@@ -3273,6 +3278,7 @@ mdb_txn_commit(MDB_txn *txn)
 		for (lp = &parent->mt_loose_pgs; *lp; lp = &NEXT_LOOSE_PAGE(lp))
 			;
 		*lp = txn->mt_loose_pgs;
+		parent->mt_loose_count += txn->mt_loose_count;
 
 		parent->mt_child = NULL;
 		mdb_midl_free(((MDB_ntxn *)txn)->mnt_pgstate.mf_pghead);
@@ -3334,6 +3340,10 @@ mdb_txn_commit(MDB_txn *txn)
 		(rc = mdb_env_sync(env, 0)) ||
 		(rc = mdb_env_write_meta(txn)))
 		goto fail;
+
+	/* Free P_LOOSE pages left behind in dirty_list */
+	if (!(env->me_flags & MDB_WRITEMAP))
+		mdb_dlist_free(txn);
 
 done:
 	env->me_pglast = 0;
