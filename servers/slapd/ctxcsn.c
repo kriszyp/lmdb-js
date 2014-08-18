@@ -186,7 +186,7 @@ slap_queue_csn(
 	pending = (struct slap_csn_entry *) ch_calloc( 1,
 			sizeof( struct slap_csn_entry ));
 
-	Debug( LDAP_DEBUG_SYNC, "slap_queue_csn: queing %p %s\n", csn->bv_val, csn->bv_val, 0 );
+	Debug( LDAP_DEBUG_SYNC, "slap_queue_csn: queueing %p %s\n", csn->bv_val, csn->bv_val, 0 );
 
 	ber_dupbv( &pending->ce_csn, csn );
 	ber_bvreplace_x( &op->o_csn, &pending->ce_csn, op->o_tmpmemctx );
