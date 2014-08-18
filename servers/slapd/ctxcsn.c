@@ -186,7 +186,7 @@ slap_queue_csn(
 	pending = (struct slap_csn_entry *) ch_calloc( 1,
 			sizeof( struct slap_csn_entry ));
 
-	Debug( LDAP_DEBUG_SYNC, "slap_queue_csn: queing %p %s\n", csn->bv_val, csn->bv_val, 0 );
+	Debug( LDAP_DEBUG_SYNC, "slap_queue_csn: queueing %p %s\n", csn->bv_val, csn->bv_val, 0 );
 
 	ldap_pvt_thread_mutex_lock( &be->be_pcl_mutex );
 
