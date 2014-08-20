@@ -168,6 +168,7 @@ seqmod_db_close(
 		ldap_pvt_thread_mutex_destroy( &sm->sm_mutex );
 
 		ch_free( sm );
+		on->on_bi.bi_private = NULL;
 	}
 
 	return 0;

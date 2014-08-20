@@ -1161,7 +1161,7 @@ mod_violation:
 }
 
 static int
-constraint_close(
+constraint_destroy(
 	BackendDB *be,
 	ConfigReply *cr )
 {
@@ -1186,7 +1186,7 @@ constraint_initialize( void ) {
 	int rc;
 
 	constraint_ovl.on_bi.bi_type = "constraint";
-	constraint_ovl.on_bi.bi_db_close = constraint_close;
+	constraint_ovl.on_bi.bi_db_destroy = constraint_destroy;
 	constraint_ovl.on_bi.bi_op_add = constraint_add;
 	constraint_ovl.on_bi.bi_op_modify = constraint_update;
 	constraint_ovl.on_bi.bi_op_modrdn = constraint_update;
