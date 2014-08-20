@@ -4780,7 +4780,7 @@ pcache_db_close(
 	cache_manager *cm = on->on_bi.bi_private;
 	query_manager *qm = cm->qm;
 	QueryTemplate *tm;
-	int i, rc = 0;
+	int rc = 0;
 
 	/* stop the thread ... */
 	if ( cm->cc_arg ) {
@@ -4790,6 +4790,7 @@ pcache_db_close(
 		}
 		ldap_pvt_runqueue_remove( &slapd_rq, cm->cc_arg );
 		ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
+		cm->cc_arg = NULL;
 	}
 
 	if ( cm->save_queries ) {
@@ -4861,10 +4862,35 @@ pcache_db_close(
 	cm->db.be_limits = NULL;
 	cm->db.be_acl = NULL;
 
-
 	if ( cm->db.bd_info->bi_db_close ) {
 		rc = cm->db.bd_info->bi_db_close( &cm->db, NULL );
 	}
+
+#ifdef PCACHE_MONITOR
+	if ( rc == LDAP_SUCCESS ) {
+		rc = pcache_monitor_db_close( be );
+	}
+#endif /* PCACHE_MONITOR */
+
+	return rc;
+}
+
+static int
+pcache_db_destroy(
+	BackendDB *be,
+	ConfigReply *cr
+)
+{
+	slap_overinst *on = (slap_overinst *)be->bd_info;
+	cache_manager *cm = on->on_bi.bi_private;
+	query_manager *qm = cm->qm;
+	QueryTemplate *tm;
+	int i;
+
+	if ( cm->db.be_private != NULL ) {
+		backend_stopdown_one( &cm->db );
+	}
+
 	while ( (tm = qm->templates) != NULL ) {
 		CachedQuery *qc, *qn;
 		qm->templates = tm->qmnext;
@@ -4901,29 +4927,6 @@ pcache_db_close(
 	}
 	free( qm->attr_sets );
 	qm->attr_sets = NULL;
-
-#ifdef PCACHE_MONITOR
-	if ( rc == LDAP_SUCCESS ) {
-		rc = pcache_monitor_db_close( be );
-	}
-#endif /* PCACHE_MONITOR */
-
-	return rc;
-}
-
-static int
-pcache_db_destroy(
-	BackendDB *be,
-	ConfigReply *cr
-)
-{
-	slap_overinst *on = (slap_overinst *)be->bd_info;
-	cache_manager *cm = on->on_bi.bi_private;
-	query_manager *qm = cm->qm;
-
-	if ( cm->db.be_private != NULL ) {
-		backend_stopdown_one( &cm->db );
-	}
 
 	ldap_pvt_thread_mutex_destroy( &qm->lru_mutex );
 	ldap_pvt_thread_mutex_destroy( &cm->cache_mutex );

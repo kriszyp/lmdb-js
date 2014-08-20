@@ -314,8 +314,21 @@ refint_db_destroy(
 
 	if ( on->on_bi.bi_private ) {
 		refint_data *id = on->on_bi.bi_private;
+		refint_attrs *ii, *ij;
+
 		on->on_bi.bi_private = NULL;
 		ldap_pvt_thread_mutex_destroy( &id->qmutex );
+
+		for(ii = id->attrs; ii; ii = ij) {
+			ij = ii->next;
+			ch_free(ii);
+		}
+
+		ch_free( id->nothing.bv_val );
+		BER_BVZERO( &id->nothing );
+		ch_free( id->nnothing.bv_val );
+		BER_BVZERO( &id->nnothing );
+
 		ch_free( id );
 	}
 	return(0);
@@ -349,11 +362,8 @@ refint_open(
 
 
 /*
-** foreach configured attribute:
-**	free it;
 ** free our basedn;
-** reset on_bi.bi_private;
-** free our config data;
+** free our refintdn
 **
 */
 
@@ -365,20 +375,9 @@ refint_close(
 {
 	slap_overinst *on	= (slap_overinst *) be->bd_info;
 	refint_data *id	= on->on_bi.bi_private;
-	refint_attrs *ii, *ij;
-
-	for(ii = id->attrs; ii; ii = ij) {
-		ij = ii->next;
-		ch_free(ii);
-	}
-	id->attrs = NULL;
 
 	ch_free( id->dn.bv_val );
 	BER_BVZERO( &id->dn );
-	ch_free( id->nothing.bv_val );
-	BER_BVZERO( &id->nothing );
-	ch_free( id->nnothing.bv_val );
-	BER_BVZERO( &id->nnothing );
 	ch_free( id->refint_dn.bv_val );
 	BER_BVZERO( &id->refint_dn );
 	ch_free( id->refint_ndn.bv_val );
