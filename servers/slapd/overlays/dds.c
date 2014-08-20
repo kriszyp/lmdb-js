@@ -1784,6 +1784,7 @@ dds_db_close(
 		}
 		ldap_pvt_runqueue_remove( &slapd_rq, di->di_expire_task );
 		ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
+		di->di_expire_task = NULL;
 	}
 
 	(void)entry_info_unregister( dds_entry_info, (void *)di );
