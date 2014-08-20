@@ -318,17 +318,71 @@ static void *search_stack( Operation *op );
 
 typedef struct ww_ctx {
 	MDB_txn *txn;
+	MDB_cursor *mcd;	/* if set, save cursor context */
+	ID key;
+	MDB_val data;
 	int flag;
 } ww_ctx;
 
+/* ITS#7904 if we get blocked while writing results to client,
+ * release the current reader txn and reacquire it after we
+ * unblock.
+ * Slight problem - if we're doing a scope-based walk (mdb_dn2id_walk)
+ * to return results, we need to remember the state of the mcd cursor.
+ * If the node that cursor was pointing to gets deleted while we're
+ * blocked, we may be unable to restore the cursor position. In that
+ * case return an LDAP_BUSY error - let the client know this search
+ * couldn't succeed, but might succeed on a retry.
+ */
 static void
 mdb_writewait( Operation *op, slap_callback *sc )
 {
 	ww_ctx *ww = sc->sc_private;
 	if ( !ww->flag ) {
+		if ( ww->mcd ) {
+			MDB_val key, data;
+			mdb_cursor_get( ww->mcd, &key, &data, MDB_GET_CURRENT );
+			memcpy( &ww->key, key.mv_data, sizeof(ID) );
+			ww->data.mv_size = data.mv_size;
+			ww->data.mv_data = op->o_tmpalloc( data.mv_size, op->o_tmpmemctx );
+			memcpy(ww->data.mv_data, data.mv_data, data.mv_size);
+		}
 		mdb_txn_reset( ww->txn );
 		ww->flag = 1;
 	}
+}
+
+static int
+mdb_waitfixup( Operation *op, ww_ctx *ww, MDB_cursor *mci, MDB_cursor *mcd )
+{
+	int rc = 0;
+	ww->flag = 0;
+	mdb_txn_renew( ww->txn );
+	mdb_cursor_renew( ww->txn, mci );
+	mdb_cursor_renew( ww->txn, mcd );
+	if ( ww->mcd ) {
+		MDB_val key, data;
+		key.mv_size = sizeof(ID);
+		key.mv_data = &ww->key;
+		data = ww->data;
+		rc = mdb_cursor_get( mcd, &key, &data, MDB_GET_BOTH );
+		if ( rc == MDB_NOTFOUND ) {
+			data = ww->data;
+			rc = mdb_cursor_get( mcd, &key, &data, MDB_GET_BOTH_RANGE );
+			/* the loop will skip this node using NEXT_DUP but we want it
+			 * sent, so go back one space first
+			 */
+			if ( rc == MDB_SUCCESS )
+				mdb_cursor_get( mcd, &key, &data, MDB_PREV_DUP );
+			else
+				rc = LDAP_BUSY;
+		} else if ( rc ) {
+			rc = LDAP_OTHER;
+		}
+		op->o_tmpfree( ww->data.mv_data, op->o_tmpmemctx );
+		ww->data.mv_data = NULL;
+	}
+	return rc;
 }
 
 int
@@ -678,6 +732,7 @@ dn2entry_retry:
 			iscopes[0] = 0;
 		}
 
+		wwctx.mcd = mcd;
 		isc.id = base->e_id;
 		isc.numrdns = 0;
 		rc = mdb_dn2id_walk( op, &isc );
@@ -688,6 +743,7 @@ dn2entry_retry:
 		cscope = 0;
 	} else {
 		id = mdb_idl_first( candidates, &cursor );
+		wwctx.mcd = NULL;
 	}
 
 	wwctx.flag = 0;
@@ -962,12 +1018,6 @@ notfound:
 			rs->sr_flags = 0;
 
 			send_search_reference( op, rs );
-			if ( wwctx.flag ) {
-				wwctx.flag = 0;
-				mdb_txn_renew( ltid );
-				mdb_cursor_renew( ltid, mci );
-				mdb_cursor_renew( ltid, mcd );
-			}
 
 			mdb_entry_return( op, e );
 			rs->sr_entry = NULL;
@@ -976,6 +1026,14 @@ notfound:
 			ber_bvarray_free( rs->sr_ref );
 			ber_bvarray_free( erefs );
 			rs->sr_ref = NULL;
+
+			if ( wwctx.flag ) {
+				rs->sr_err = mdb_waitfixup( op, &wwctx, mci, mcd );
+				if ( rs->sr_err ) {
+					send_ldap_result( op, rs );
+					goto done;
+				}
+			}
 
 			goto loop_continue;
 		}
@@ -1005,12 +1063,6 @@ notfound:
 				rs->sr_flags = 0;
 				rs->sr_err = LDAP_SUCCESS;
 				rs->sr_err = send_search_entry( op, rs );
-				if ( wwctx.flag ) {
-					wwctx.flag = 0;
-					mdb_txn_renew( ltid );
-					mdb_cursor_renew( ltid, mci );
-					mdb_cursor_renew( ltid, mcd );
-				}
 				rs->sr_attrs = NULL;
 				rs->sr_entry = NULL;
 				if (e != base)
@@ -1036,6 +1088,13 @@ notfound:
 						rs->sr_err = LDAP_OTHER;
 					}
 					goto done;
+				}
+				if ( wwctx.flag ) {
+					rs->sr_err = mdb_waitfixup( op, &wwctx, mci, mcd );
+					if ( rs->sr_err ) {
+						send_ldap_result( op, rs );
+						goto done;
+					}
 				}
 			}
 
