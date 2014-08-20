@@ -12,6 +12,7 @@ OpenLDAP 2.4.40 Engineering
 	Fixed slapacl with back-mdb reader transactions (ITS#7920)
 	Fixed slapd syncrepl to send cookie on fallback (ITS#7849)
 	Fixed slapd slapcat with external schema (ITS#7895)
+	Fixed slapd-ldap removed dead code (ITS#7922)
 	Fixed slapd-mdb to work concurrently with slapadd (ITS#7798)
 	Fixed slapd-mdb with paged results (ITS#7705, ITS#7800)
 	Fixed slapd-mdb slapcat with nonexistent indices (ITS#7870)
