@@ -619,7 +619,7 @@ int mdb_ad_get( struct mdb_info *mdb, MDB_txn *txn, AttributeDescription *ad )
 	if ( rc == MDB_SUCCESS ) {
 		mdb->mi_adxs[ad->ad_index] = i;
 		mdb->mi_ads[i] = ad;
-		mdb->mi_numads++;
+		mdb->mi_numads = i;
 	} else {
 		Debug( LDAP_DEBUG_ANY,
 			"mdb_ad_get: mdb_put failed %s(%d)\n",
