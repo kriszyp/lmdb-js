@@ -10,3 +10,6 @@ Things for 2.5:
 [13:58] <hyc> but we need to revisit this in 2.5
 
   ITS#7920 fix for slapacl This needs to be streamlined in 2.5, current tool API is a mess.
+
+ITS#7926 - [18:19] <hyc> this is going to be a WONTFIX for 2.4, I think
+[18:20] <hyc> reiniting the listeners array is probably too much of a pain. it will screw with all currently open connections
