@@ -556,7 +556,8 @@ mdb_id2name(
 	MDB_cursor **cursp,
 	ID id,
 	struct berval *name,
-	struct berval *nname )
+	struct berval *nname,
+	ID *iscopes )
 {
 	struct mdb_info *mdb = (struct mdb_info *) op->o_bd->be_private;
 	MDB_dbi dbi = mdb->mi_dn2id;
@@ -589,6 +590,11 @@ mdb_id2name(
 		ptr = data.mv_data;
 		ptr += data.mv_size - sizeof(ID);
 		memcpy( &id, ptr, sizeof(ID) );
+		if ( iscopes ) {
+			rc = mdb_idl_search( iscopes, id );
+			if ( iscopes[rc] == id )
+				return MDB_KEYEXIST;
+		}
 		d = data.mv_data;
 		nrlen = (d->nrdnlen[0] << 8) | d->nrdnlen[1];
 		rlen = data.mv_size - sizeof(diskNode) - nrlen;
