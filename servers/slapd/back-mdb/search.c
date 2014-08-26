@@ -1019,7 +1019,8 @@ notfound:
 
 			send_search_reference( op, rs );
 
-			mdb_entry_return( op, e );
+			if (e != base)
+				mdb_entry_return( op, e );
 			rs->sr_entry = NULL;
 			e = NULL;
 
@@ -1184,7 +1185,7 @@ done:
 		rs->sr_v2ref = NULL;
 	}
 	if (base)
-		mdb_entry_return( op,base);
+		mdb_entry_return( op, base );
 	scope_chunk_ret( op, scopes );
 
 	return rs->sr_err;
