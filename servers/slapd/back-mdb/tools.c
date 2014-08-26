@@ -357,7 +357,7 @@ mdb_tool_entry_get_int( BackendDB *be, ID id, Entry **ep )
 	op.o_tmpmemctx = NULL;
 	op.o_tmpmfuncs = &ch_mfuncs;
 	if ( slapMode & SLAP_TOOL_READONLY ) {
-		rc = mdb_id2name( &op, mdb_tool_txn, &idcursor, id, &dn, &ndn );
+		rc = mdb_id2name( &op, mdb_tool_txn, &idcursor, id, &dn, &ndn, NULL );
 		if ( rc  ) {
 			rc = LDAP_OTHER;
 			if ( e ) {
