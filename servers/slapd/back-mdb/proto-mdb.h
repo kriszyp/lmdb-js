@@ -123,7 +123,8 @@ int mdb_id2name(
 	MDB_cursor **cursp,
 	ID eid,
 	struct berval *name,
-	struct berval *nname);
+	struct berval *nname,
+	ID *iscopes );
 
 int mdb_idscope(
 	Operation *op,
