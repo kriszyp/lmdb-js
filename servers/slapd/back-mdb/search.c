@@ -682,6 +682,17 @@ dn2entry_retry:
 		tentries = ncand;
 	}
 
+	wwctx.flag = 0;
+	/* If we're running in our own read txn */
+	if (  moi == &opinfo ) {
+		cb.sc_writewait = mdb_writewait;
+		cb.sc_private = &wwctx;
+		wwctx.txn = ltid;
+		wwctx.mcd = NULL;
+		cb.sc_next = op->o_callback;
+		op->o_callback = &cb;
+	}
+
 	if ( get_pagedresults( op ) > SLAP_CONTROL_IGNORED ) {
 		PagedResultsState *ps = op->o_pagedresults_state;
 		/* deferred cookie parsing */
@@ -740,17 +751,6 @@ dn2entry_retry:
 		cscope = 1;	/* skip original base */
 	} else {
 		id = mdb_idl_first( candidates, &cursor );
-		wwctx.mcd = NULL;
-	}
-
-	wwctx.flag = 0;
-	/* If we're running in our own read txn */
-	if (  moi == &opinfo ) {
-		cb.sc_writewait = mdb_writewait;
-		cb.sc_private = &wwctx;
-		wwctx.txn = ltid;
-		cb.sc_next = op->o_callback;
-		op->o_callback = &cb;
 	}
 
 	while (id != NOID)
