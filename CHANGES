@@ -22,6 +22,7 @@ OpenLDAP 2.4.40 Engineering
 	Fixed slapd-mdb to flag attribute values as sorted (ITS#7903)
 	Fixed slapd-mdb index config handling (ITS#7912)
 	Fixed slapd-mdb entry release handling (ITS#7915)
+	Fixed slapd-mdb with aliases and referrals (ITS#7927)
 	Fixed slapd modrdn crash on naming attr with no matching rule (ITS#7850)
 	Fixed slapo-auditlog connection destroy logic (ITS#7906,ITS#7923)
 	Fixed slapo-constraint connection destroy logic (ITS#7906,ITS#7923)
