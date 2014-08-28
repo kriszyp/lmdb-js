@@ -733,9 +733,12 @@ dn2entry_retry:
 		if (scopes[0].mid > 1) {
 			cursor = 1;
 			for (cscope = 1; cscope <= scopes[0].mid; cscope++) {
+				/* Ignore the original base */
+				if (scopes[cscope].mid == base->e_id)
+					continue;
 				iscopes[cursor++] = scopes[cscope].mid;
 			}
-			iscopes[0] = scopes[0].mid;
+			iscopes[0] = scopes[0].mid - 1;
 		} else {
 			iscopes[0] = 0;
 		}
@@ -748,7 +751,7 @@ dn2entry_retry:
 			id = NOID;
 		else
 			id = isc.id;
-		cscope = 1;	/* skip original base */
+		cscope = 0;
 	} else {
 		id = mdb_idl_first( candidates, &cursor );
 	}
@@ -949,7 +952,7 @@ notfound:
 				pdn = base->e_name;
 				pndn = base->e_nname;
 			} else {
-				mdb_id2name( op, ltid, &isc.mc, scopes[isc.nscope].mid, &pdn, &pndn, NULL );
+				mdb_id2name( op, ltid, &isc.mc, scopes[isc.nscope].mid, &pdn, &pndn );
 			}
 			e->e_name.bv_len = pdn.bv_len;
 			e->e_nname.bv_len = pndn.bv_len;
@@ -1126,13 +1129,7 @@ loop_continue:
 						mdb_entry_return( op, base );
 					rs->sr_err = mdb_id2entry(op, mci, isc.id, &base);
 					if ( !rs->sr_err ) {
-						rc = mdb_id2name( op, ltid, &isc.mc, isc.id, &base->e_name, &base->e_nname,
-							op->ors_scope == LDAP_SCOPE_SUBTREE ? iscopes : NULL );
-						if ( rc == MDB_KEYEXIST ) {
-							mdb_entry_return( op, base );
-							base = NULL;
-							continue;
-						}
+						mdb_id2name( op, ltid, &isc.mc, isc.id, &base->e_name, &base->e_nname );
 						isc.numrdns = 0;
 						if (isc.oscope == LDAP_SCOPE_ONELEVEL)
 							isc.oscope = LDAP_SCOPE_BASE;
