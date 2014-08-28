@@ -778,6 +778,53 @@ mdb_idscopes(
 	return MDB_SUCCESS;
 }
 
+/* See if ID is a child of any of the scopes,
+ * return MDB_KEYEXIST if so.
+ */
+int
+mdb_idscopechk(
+	Operation *op,
+	IdScopes *isc )
+{
+	struct mdb_info *mdb = (struct mdb_info *) op->o_bd->be_private;
+	MDB_val		key, data;
+	ID id, prev;
+	char	*ptr;
+	int		rc = 0;
+	unsigned int x;
+
+	key.mv_size = sizeof(ID);
+
+	if ( !isc->mc ) {
+		rc = mdb_cursor_open( isc->mt, mdb->mi_dn2id, &isc->mc );
+		if ( rc ) return rc;
+	}
+
+	id = isc->id;
+
+	while (id) {
+		if ( !rc ) {
+			key.mv_data = &id;
+			rc = mdb_cursor_get( isc->mc, &key, &data, MDB_SET );
+			if ( rc )
+				return rc;
+		}
+
+		ptr = data.mv_data;
+		ptr += data.mv_size - sizeof(ID);
+		prev = id;
+		memcpy( &id, ptr, sizeof(ID) );
+		/* If we didn't advance, some parent is missing */
+		if ( id == prev )
+			return MDB_NOTFOUND;
+
+		x = mdb_id2l_search( isc->scopes, id );
+		if ( x <= isc->scopes[0].mid && isc->scopes[x].mid == id )
+			return MDB_KEYEXIST;
+	}
+	return MDB_SUCCESS;
+}
+
 int
 mdb_dn2id_walk(
 	Operation *op,

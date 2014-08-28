@@ -31,10 +31,9 @@ static int search_candidates(
 	Operation *op,
 	SlapReply *rs,
 	Entry *e,
-	MDB_txn *txn,
+	IdScopes *isc,
 	MDB_cursor *mci,
 	ID	*ids,
-	ID2L	scopes,
 	ID *stack );
 
 static int parse_paged_cookie( Operation *op, SlapReply *rs );
@@ -131,9 +130,8 @@ static int search_aliases(
 	Operation *op,
 	SlapReply *rs,
 	ID e_id,
-	MDB_txn *txn,
+	IdScopes *isc,
 	MDB_cursor *mci,
-	ID2L scopes,
 	ID *stack )
 {
 	ID *aliases, *curscop, *visited, *newsubs, *oldsubs, *tmp;
@@ -159,7 +157,7 @@ static int search_aliases(
 
 	/* Find all aliases in database */
 	MDB_IDL_ZERO( aliases );
-	rs->sr_err = mdb_filter_candidates( op, txn, &af, aliases,
+	rs->sr_err = mdb_filter_candidates( op, isc->mt, &af, aliases,
 		curscop, visited );
 	if (rs->sr_err != LDAP_SUCCESS || MDB_IDL_IS_ZERO( aliases )) {
 		return rs->sr_err;
@@ -177,7 +175,7 @@ static int search_aliases(
 		/* Set curscop to only the aliases in the current scope. Start with
 		 * all the aliases, then get the intersection with the scope.
 		 */
-		rs->sr_err = mdb_idscope( op, txn, e_id, aliases, curscop );
+		rs->sr_err = mdb_idscope( op, isc->mt, e_id, aliases, curscop );
 
 		/* Dereference all of the aliases in the current scope. */
 		cursora = 0;
@@ -199,7 +197,7 @@ static int search_aliases(
 
 			/* Actually dereference the alias */
 			MDB_IDL_ZERO(tmp);
-			a = deref_base( op, rs, a, &matched, txn,
+			a = deref_base( op, rs, a, &matched, isc->mt,
 				tmp, visited );
 			if (a) {
 				/* If the target was not already in our current scopes,
@@ -208,10 +206,18 @@ static int search_aliases(
 				ID2 mid;
 				mid.mid = a->e_id;
 				mid.mval.mv_data = NULL;
-				if (mdb_id2l_insert(scopes, &mid) == 0) {
+				if (op->ors_scope == LDAP_SCOPE_SUBTREE) {
+					isc->id = a->e_id;
+					/* if ID is a child of any of our current scopes,
+					 * ignore it, it's already included.
+					 */
+					if (mdb_idscopechk(op, isc))
+						goto skip;
+				}
+				if (mdb_id2l_insert(isc->scopes, &mid) == 0) {
 					mdb_idl_insert(newsubs, a->e_id);
 				}
-				mdb_entry_return( op, a );
+skip:			mdb_entry_return( op, a );
 
 			} else if (matched) {
 				/* Alias could not be dereferenced, or it deref'd to
@@ -639,7 +645,7 @@ dn2entry_retry:
 		scopes[1].mid = base->e_id;
 		scopes[1].mval.mv_data = NULL;
 		rs->sr_err = search_candidates( op, rs, base,
-			ltid, mci, candidates, scopes, stack );
+			&isc, mci, candidates, stack );
 		ncand = MDB_IDL_N( candidates );
 		if ( !base->e_id || ncand == NOID ) {
 			/* grab entry count from id2entry stat
@@ -1274,10 +1280,9 @@ static int search_candidates(
 	Operation *op,
 	SlapReply *rs,
 	Entry *e,
-	MDB_txn *txn,
+	IdScopes *isc,
 	MDB_cursor *mci,
 	ID	*ids,
-	ID2L	scopes,
 	ID *stack )
 {
 	struct mdb_info *mdb = (struct mdb_info *) op->o_bd->be_private;
@@ -1340,13 +1345,13 @@ static int search_candidates(
 	}
 
 	if( op->ors_deref & LDAP_DEREF_SEARCHING ) {
-		rc = search_aliases( op, rs, e->e_id, txn, mci, scopes, stack );
+		rc = search_aliases( op, rs, e->e_id, isc, mci, stack );
 	} else {
 		rc = LDAP_SUCCESS;
 	}
 
 	if ( rc == LDAP_SUCCESS ) {
-		rc = mdb_filter_candidates( op, txn, f, ids,
+		rc = mdb_filter_candidates( op, isc->mt, f, ids,
 			stack, stack+MDB_IDL_UM_SIZE );
 	}
 
