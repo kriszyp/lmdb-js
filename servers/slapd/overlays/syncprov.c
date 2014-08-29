@@ -1116,7 +1116,7 @@ syncprov_ab_cleanup( Operation *op, SlapReply *rs )
 {
 	slap_callback *sc = op->o_callback;
 	op->o_callback = sc->sc_next;
-	syncprov_drop_psearch( op->o_callback->sc_private, 0 );
+	syncprov_drop_psearch( sc->sc_private, 0 );
 	op->o_tmpfree( sc, op->o_tmpmemctx );
 	return 0;
 }
