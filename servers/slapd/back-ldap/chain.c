@@ -322,6 +322,10 @@ ldap_chain_cb_search_response( Operation *op, SlapReply *rs )
 
 		/* back-ldap tried to send result */
 		lb->lb_status = LDAP_CH_RES;
+		/* don't let other callbacks run, this isn't
+		 * the real result for this op.
+		 */
+		op->o_callback->sc_next = NULL;
 	}
 
 	return 0;
