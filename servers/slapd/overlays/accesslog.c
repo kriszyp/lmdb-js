@@ -1518,7 +1518,7 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 
 	if ( rs->sr_text ) {
 		ber_str2bv( rs->sr_text, 0, 0, &bv );
-		attr_merge_one( e, ad_reqMessage, &bv, NULL );
+		attr_merge_normalize_one( e, ad_reqMessage, &bv, op->o_tmpmemctx );
 	}
 	bv.bv_len = snprintf( timebuf, sizeof( timebuf ), "%d", rs->sr_err );
 	if ( bv.bv_len < sizeof( timebuf ) ) {
@@ -1727,7 +1727,7 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 			(struct berval *)&slap_true_bv : (struct berval *)&slap_false_bv,
 			NULL );
 		if ( !BER_BVISEMPTY( &op->ors_filterstr ))
-			attr_merge_one( e, ad_reqFilter, &op->ors_filterstr, NULL );
+			attr_merge_normalize_one( e, ad_reqFilter, &op->ors_filterstr, op->o_tmpmemctx );
 		if ( op->ors_attrs ) {
 			int j;
 			/* count them */
@@ -1742,7 +1742,7 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 				}
 			}
 			BER_BVZERO(&vals[j]);
-			attr_merge( e, ad_reqAttr, vals, NULL );
+			attr_merge_normalize( e, ad_reqAttr, vals, op->o_tmpmemctx );
 			op->o_tmpfree( vals, op->o_tmpmemctx );
 		}
 		bv.bv_val = timebuf;
@@ -1769,7 +1769,7 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 			attr_merge_one( e, ad_reqVersion, &bv, NULL );
 		} /* else? */
 		if ( op->orb_method == LDAP_AUTH_SIMPLE ) {
-			attr_merge_one( e, ad_reqMethod, &simple, NULL );
+			attr_merge_normalize_one( e, ad_reqMethod, &simple, op->o_tmpmemctx );
 		} else {
 			bv.bv_len = STRLENOF("SASL()") + op->orb_mech.bv_len;
 			bv.bv_val = op->o_tmpalloc( bv.bv_len + 1, op->o_tmpmemctx );
@@ -1777,7 +1777,7 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 			ptr = lutil_strcopy( ptr, op->orb_mech.bv_val );
 			*ptr++ = ')';
 			*ptr = '\0';
-			attr_merge_one( e, ad_reqMethod, &bv, NULL );
+			attr_merge_normalize_one( e, ad_reqMethod, &bv, op->o_tmpmemctx );
 			op->o_tmpfree( bv.bv_val, op->o_tmpmemctx );
 		}
 
