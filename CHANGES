@@ -27,6 +27,7 @@ OpenLDAP 2.4.40 Engineering
 	Fixed slapd-mdb alias dereferencing (ITS#7702)
 	Fixed slapd modrdn crash on naming attr with no matching rule (ITS#7850)
 	Fixed slapo-auditlog connection destroy logic (ITS#7906,ITS#7923)
+	Fixed slapo-chain interaction with slapo-rwm (ITS#7930)
 	Fixed slapo-constraint connection destroy logic (ITS#7906,ITS#7923)
 	Fixed slapo-dds connection destroy logic (ITS#7906,ITS#7923)
 	Fixed slapo-dyngroup connection destroy logic (ITS#7906,ITS#7923)
