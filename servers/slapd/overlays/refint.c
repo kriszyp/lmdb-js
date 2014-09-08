@@ -528,15 +528,19 @@ refint_repair(
 	Operation		op2;
 	unsigned long	opid;
 	int		rc;
+	int	cache;
 
 	op->o_callback->sc_response = refint_search_cb;
 	op->o_req_dn = op->o_bd->be_suffix[ 0 ];
 	op->o_req_ndn = op->o_bd->be_nsuffix[ 0 ];
 	op->o_dn = op->o_bd->be_rootdn;
 	op->o_ndn = op->o_bd->be_rootndn;
+	cache = op->o_do_not_cache;
+	op->o_do_not_cache = 1;
 
 	/* search */
 	rc = op->o_bd->be_search( op, &rs );
+	op->o_do_not_cache = cache;
 
 	if ( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE,
