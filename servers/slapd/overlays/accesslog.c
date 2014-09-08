@@ -1509,6 +1509,11 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 		ldap_pvt_thread_rmutex_unlock( &li->li_op_rmutex, op->o_tid );
 	}
 
+	/* ignore these internal reads */
+	if (( lo->mask & LOG_OP_READS ) && op->o_do_not_cache ) {
+		return SLAP_CB_CONTINUE;
+	}
+
 	if ( li->li_success && rs->sr_err != LDAP_SUCCESS )
 		goto done;
 
