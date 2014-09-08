@@ -293,6 +293,7 @@ memberof_isGroupOrMember( Operation *op, memberof_cbinfo_t *mci )
 		an[ 0 ].an_name = an[ 0 ].an_desc->ad_cname;
 		op2.ors_filterstr = mo->mo_groupFilterstr;
 		op2.ors_filter = &mo->mo_groupFilter;
+		op2.o_do_not_cache = 1;	/* internal search, don't log */
 
 		memberof_set_backend( &op2, op, on );
 		(void)op->o_bd->be_search( &op2, &rs2 );
@@ -315,6 +316,7 @@ memberof_isGroupOrMember( Operation *op, memberof_cbinfo_t *mci )
 		an[ 0 ].an_name = an[ 0 ].an_desc->ad_cname;
 		op2.ors_filterstr = mo->mo_memberFilterstr;
 		op2.ors_filter = &mo->mo_memberFilter;
+		op2.o_do_not_cache = 1;	/* internal search, don't log */
 
 		memberof_set_backend( &op2, op, on );
 		(void)op->o_bd->be_search( &op2, &rs2 );
