@@ -6693,8 +6693,6 @@ config_build_entry( Operation *op, SlapReply *rs, CfEntryInfo *parent,
 {
 	Entry *e = entry_alloc();
 	CfEntryInfo *ce = ch_calloc( 1, sizeof(CfEntryInfo) );
-	struct berval val;
-	struct berval ad_name;
 	AttributeDescription *ad = NULL;
 	int rc;
 	char *ptr;
@@ -6703,6 +6701,7 @@ config_build_entry( Operation *op, SlapReply *rs, CfEntryInfo *parent,
 	struct berval pdn;
 	ObjectClass *oc;
 	CfEntryInfo *ceprev = NULL;
+	LDAPRDN srdn = NULL;
 
 	Debug( LDAP_DEBUG_TRACE, "config_build_entry: \"%s\"\n", rdn->bv_val, 0, 0);
 	e->e_private = ce;
@@ -6731,16 +6730,17 @@ config_build_entry( Operation *op, SlapReply *rs, CfEntryInfo *parent,
 	if ( extra )
 		attr_merge_normalize_one(e, slap_schema.si_ad_objectClass,
 			extra->co_name, NULL );
-	ptr = strchr(rdn->bv_val, '=');
-	ad_name.bv_val = rdn->bv_val;
-	ad_name.bv_len = ptr - rdn->bv_val;
-	rc = slap_bv2ad( &ad_name, &ad, &text );
+	if ( ldap_bv2rdn_x( rdn, &srdn, &ptr, LDAP_DN_FORMAT_LDAP, op->o_tmpmemctx ))
+		goto fail;
+
+	rc = slap_bv2ad( &srdn[0]->la_attr, &ad, &text );
 	if ( rc ) {
+		ldap_rdnfree_x( srdn, op->o_tmpmemctx );
 		goto fail;
 	}
-	val.bv_val = ptr+1;
-	val.bv_len = rdn->bv_len - (val.bv_val - rdn->bv_val);
-	attr_merge_normalize_one(e, ad, &val, NULL );
+	attr_merge_normalize_one(e, ad, &srdn[0]->la_value, NULL );
+	ldap_rdnfree_x( srdn, op->o_tmpmemctx );
+	srdn = NULL;
 
 	oc = main->co_oc;
 	c->table = main->co_type;
@@ -6829,7 +6829,7 @@ config_build_schema_inc( ConfigArgs *c, CfEntryInfo *ceparent,
 		ptr = strchr( bv.bv_val, '.' );
 		if ( ptr )
 			bv.bv_len = ptr - bv.bv_val;
-		c->value_dn.bv_len = snprintf(c->value_dn.bv_val, sizeof( c->log ), "cn=" SLAP_X_ORDERED_FMT, c->depth);
+		c->value_dn.bv_len = snprintf(c->value_dn.bv_val, sizeof( c->log ), "cn=\"" SLAP_X_ORDERED_FMT, c->depth);
 		if ( c->value_dn.bv_len >= sizeof( c->log ) ) {
 			/* FIXME: how can indicate error? */
 			return -1;
@@ -6837,8 +6837,15 @@ config_build_schema_inc( ConfigArgs *c, CfEntryInfo *ceparent,
 		strncpy( c->value_dn.bv_val + c->value_dn.bv_len, bv.bv_val,
 			bv.bv_len );
 		c->value_dn.bv_len += bv.bv_len;
+		c->value_dn.bv_val[c->value_dn.bv_len] ='"';
+		c->value_dn.bv_len++;
 		c->value_dn.bv_val[c->value_dn.bv_len] ='\0';
-		rdnNormalize( 0, NULL, NULL, &c->value_dn, &rdn, NULL );
+		if ( rdnNormalize( 0, NULL, NULL, &c->value_dn, &rdn, NULL )) {
+			Debug( LDAP_DEBUG_ANY,
+				"config_build_schema_inc: invalid schema name \"%s\"\n",
+				bv.bv_val, 0, 0 );
+			return -1;
+		}
 
 		c->ca_private = cf;
 		e = config_build_entry( op, rs, ceparent, c, &rdn,
