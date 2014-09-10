@@ -272,9 +272,11 @@ int mdb_entry_release(
 	/* slapMode : SLAP_SERVER_MODE, SLAP_TOOL_MODE,
 			SLAP_TRUNCATE_MODE, SLAP_UNDEFINED_MODE */
  
+	int release = 1;
 	if ( slapMode & SLAP_SERVER_MODE ) {
 		OpExtra *oex;
 		LDAP_SLIST_FOREACH( oex, &op->o_extra, oe_next ) {
+			release = 0;
 			if ( oex->oe_key == mdb ) {
 				mdb_entry_return( op, e );
 				moi = (mdb_op_info *)oex;
@@ -291,9 +293,10 @@ int mdb_entry_release(
 				break;
 			}
 		}
-	} else {
-		mdb_entry_return( op, e );
 	}
+
+	if (release)
+		mdb_entry_return( op, e );
  
 	return 0;
 }
