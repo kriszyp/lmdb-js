@@ -48,6 +48,7 @@ sock_read_and_send_results(
 	char	line[BUFSIZ];
 	char	ebuf[128];
 
+	(void) fflush(fp);
 	/* read in the result and send it along */
 	buf = (char *) ch_malloc( BUFSIZ );
 	buf[0] = '\0';
