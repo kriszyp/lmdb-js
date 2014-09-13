@@ -1110,6 +1110,7 @@ struct MDB_env {
 	MDB_meta	*me_metas[2];	/**< pointers to the two meta pages */
 	void		*me_pbuf;		/**< scratch area for DUPSORT put() */
 	MDB_txn		*me_txn;		/**< current write transaction */
+	MDB_txn		*me_txn0;		/**< prealloc'd write transaction */
 	size_t		me_mapsize;		/**< size of the data memory map */
 	off_t		me_size;		/**< current file size */
 	pgno_t		me_maxpg;		/**< me_mapsize / me_psize */
@@ -1117,6 +1118,7 @@ struct MDB_env {
 	uint16_t	*me_dbflags;	/**< array of flags from MDB_db.md_flags */
 	unsigned int	*me_dbiseqs;	/**< array of dbi sequence numbers */
 	pthread_key_t	me_txkey;	/**< thread-key for readers */
+	txnid_t		me_pgoldest;	/**< ID of oldest reader last time we looked */
 	MDB_pgstate	me_pgstate;		/**< state of old pages from freeDB */
 #	define		me_pglast	me_pgstate.mf_pglast
 #	define		me_pghead	me_pgstate.mf_pghead
@@ -1946,7 +1948,7 @@ mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp)
 #else
 	enum { Paranoid = 0, Max_retries = INT_MAX /*infinite*/ };
 #endif
-	int rc, retry = num * 20;
+	int rc, retry = num * 60;
 	MDB_txn *txn = mc->mc_txn;
 	MDB_env *env = txn->mt_env;
 	pgno_t pgno, *mop = env->me_pghead;
@@ -1955,6 +1957,7 @@ mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp)
 	txnid_t oldest = 0, last;
 	MDB_cursor_op op;
 	MDB_cursor m2;
+	int found_old = 0;
 
 	/* If there are any loose pages, just use them */
 	if (num == 1 && txn->mt_loose_pgs) {
@@ -1996,8 +1999,8 @@ mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp)
 
 		if (op == MDB_FIRST) {	/* 1st iteration */
 			/* Prepare to fetch more and coalesce */
-			oldest = mdb_find_oldest(txn);
 			last = env->me_pglast;
+			oldest = env->me_pgoldest;
 			mdb_cursor_init(&m2, txn, FREE_DBI, NULL);
 			if (last) {
 				op = MDB_SET_RANGE;
@@ -2012,8 +2015,15 @@ mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp)
 
 		last++;
 		/* Do not fetch more if the record will be too recent */
-		if (oldest <= last)
-			break;
+		if (oldest <= last) {
+			if (!found_old) {
+				oldest = mdb_find_oldest(txn);
+				env->me_pgoldest = oldest;
+				found_old = 1;
+			}
+			if (oldest <= last)
+				break;
+		}
 		rc = mdb_cursor_get(&m2, &key, NULL, op);
 		if (rc) {
 			if (rc == MDB_NOTFOUND)
@@ -2021,8 +2031,15 @@ mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp)
 			goto fail;
 		}
 		last = *(txnid_t*)key.mv_data;
-		if (oldest <= last)
-			break;
+		if (oldest <= last) {
+			if (!found_old) {
+				oldest = mdb_find_oldest(txn);
+				env->me_pgoldest = oldest;
+				found_old = 1;
+			}
+			if (oldest <= last)
+				break;
+		}
 		np = m2.mc_pg[m2.mc_top];
 		leaf = NODEPTR(np, m2.mc_ki[m2.mc_top]);
 		if ((rc = mdb_node_read(txn, leaf, &data)) != MDB_SUCCESS)
@@ -2607,6 +2624,10 @@ mdb_txn_begin(MDB_env *env, MDB_txn *parent, unsigned int flags, MDB_txn **ret)
 	}
 	size = tsize + env->me_maxdbs * (sizeof(MDB_db)+1);
 	if (!(flags & MDB_RDONLY)) {
+		if (!parent) {
+			txn = env->me_txn0;
+			goto ok;
+		}
 		size += env->me_maxdbs * sizeof(MDB_cursor *);
 		/* child txns use parent's dbiseqs */
 		if (!parent)
@@ -2634,6 +2655,7 @@ mdb_txn_begin(MDB_env *env, MDB_txn *parent, unsigned int flags, MDB_txn **ret)
 	}
 	txn->mt_env = env;
 
+ok:
 	if (parent) {
 		unsigned int i;
 		txn->mt_u.dirty_list = malloc(sizeof(MDB_ID2)*MDB_IDL_UM_SIZE);
@@ -2676,9 +2698,10 @@ mdb_txn_begin(MDB_env *env, MDB_txn *parent, unsigned int flags, MDB_txn **ret)
 	} else {
 		rc = mdb_txn_renew0(txn);
 	}
-	if (rc)
-		free(txn);
-	else {
+	if (rc) {
+		if (txn != env->me_txn0)
+			free(txn);
+	} else {
 		*ret = txn;
 		DPRINTF(("begin txn %"Z"u%c %p on mdbenv %p, root page %"Z"u",
 			txn->mt_txnid, (txn->mt_flags & MDB_TXN_RDONLY) ? 'r' : 'w',
@@ -2805,7 +2828,8 @@ mdb_txn_abort(MDB_txn *txn)
 	if ((txn->mt_flags & MDB_TXN_RDONLY) && txn->mt_u.reader)
 		txn->mt_u.reader->mr_pid = 0;
 
-	free(txn);
+	if (txn != txn->mt_env->me_txn0)
+		free(txn);
 }
 
 /** Save the freelist as of this transaction to the freeDB.
@@ -3358,7 +3382,8 @@ done:
 
 	if (env->me_txns)
 		UNLOCK_MUTEX_W(env);
-	free(txn);
+	if (txn != env->me_txn0)
+		free(txn);
 
 	return MDB_SUCCESS;
 
@@ -4489,6 +4514,22 @@ mdb_env_open(MDB_env *env, const char *path, unsigned int flags, mdb_mode_t mode
 		if (!((flags & MDB_RDONLY) ||
 			  (env->me_pbuf = calloc(1, env->me_psize))))
 			rc = ENOMEM;
+		if (!(flags & MDB_RDONLY)) {
+			MDB_txn *txn;
+			int tsize = sizeof(MDB_txn), size = tsize + env->me_maxdbs *
+				(sizeof(MDB_db)+sizeof(MDB_cursor)+sizeof(unsigned int)+1);
+			txn = calloc(1, size);
+			if (txn) {
+				txn->mt_dbs = (MDB_db *)((char *)txn + tsize);
+				txn->mt_cursors = (MDB_cursor **)(txn->mt_dbs + env->me_maxdbs);
+				txn->mt_dbiseqs = (unsigned int *)(txn->mt_cursors + env->me_maxdbs);
+				txn->mt_dbflags = (unsigned char *)(txn->mt_dbiseqs + env->me_maxdbs);
+				txn->mt_env = env;
+				env->me_txn0 = txn;
+			} else {
+				rc = ENOMEM;
+			}
+		}
 	}
 
 leave:
