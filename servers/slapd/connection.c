@@ -1172,8 +1172,13 @@ operations_error:
 
 	ber_set_option( op->o_ber, LBER_OPT_BER_MEMCTX, &memctx_null );
 
-	LDAP_STAILQ_REMOVE( &conn->c_ops, op, Operation, o_next);
-	LDAP_STAILQ_NEXT(op, o_next) = NULL;
+#ifdef LDAP_X_TXN
+	if ( rc != LDAP_X_TXN_SPECIFY_OKAY )
+#endif
+	{
+		LDAP_STAILQ_REMOVE( &conn->c_ops, op, Operation, o_next);
+		LDAP_STAILQ_NEXT(op, o_next) = NULL;
+	}
 	conn->c_n_ops_executing--;
 	conn->c_n_ops_completed++;
 
@@ -1188,7 +1193,12 @@ operations_error:
 
 	connection_resched( conn );
 	ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
-	slap_op_free( op, ctx );
+#ifdef LDAP_X_TXN
+	if ( rc != LDAP_X_TXN_SPECIFY_OKAY )
+#endif
+	{
+		slap_op_free( op, ctx );
+	}
 	return NULL;
 }
 

@@ -526,6 +526,29 @@ ok:
 	return 0;
 }
 
+#ifdef LDAP_X_TXN
+int mdb_txn( Operation *op, int txnop, OpExtra **ptr )
+{
+	struct mdb_info *mdb = (struct mdb_info *) op->o_bd->be_private;
+	mdb_op_info **moip = (mdb_op_info **)ptr, *moi = *moip;
+	int rc;
+
+	switch( txnop ) {
+	case SLAP_TXN_BEGIN:
+		return mdb_opinfo_get( op, mdb, 0, moip );
+	case SLAP_TXN_COMMIT:
+		rc = mdb_txn_commit( moi->moi_txn );
+		op->o_tmpfree( op->o_tmpmemctx, moi );
+		return rc;
+	case SLAP_TXN_ABORT:
+		mdb_txn_abort( moi->moi_txn );
+		op->o_tmpfree( op->o_tmpmemctx, moi );
+		return 0;
+	}
+	return LDAP_OTHER;
+}
+#endif
+
 /* Count up the sizes of the components of an entry */
 static int mdb_entry_partsize(struct mdb_info *mdb, MDB_txn *txn, Entry *e,
 	Ecount *eh)
