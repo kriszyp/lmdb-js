@@ -1096,6 +1096,7 @@ LDAP_SLAPD_F (struct berval *) get_supported_extop LDAP_P((int index));
 LDAP_SLAPD_F ( SLAP_CTRL_PARSE_FN ) txn_spec_ctrl;
 LDAP_SLAPD_F ( SLAP_EXTOP_MAIN_FN ) txn_start_extop;
 LDAP_SLAPD_F ( SLAP_EXTOP_MAIN_FN ) txn_end_extop;
+LDAP_SLAPD_F ( int ) txn_preop LDAP_P(( Operation *op, SlapReply *rs ));
 #endif
 
 /*
