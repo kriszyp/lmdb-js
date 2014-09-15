@@ -2183,6 +2183,13 @@ typedef int (BI_acl_group) LDAP_P(( Operation *op, Entry *target,
 typedef int (BI_acl_attribute) LDAP_P(( Operation *op, Entry *target,
 	struct berval *entry_ndn, AttributeDescription *entry_at,
 	BerVarray *vals, slap_access_t access ));
+#ifdef LDAP_X_TXN
+struct OpExtra;
+typedef int (BI_op_txn) LDAP_P(( Operation *op, int txnop, struct OpExtra **ptr ));
+#define SLAP_TXN_BEGIN	1
+#define SLAP_TXN_COMMIT	2
+#define SLAP_TXN_ABORT	3
+#endif
 
 typedef int (BI_conn_func) LDAP_P(( BackendDB *bd, Connection *c ));
 typedef BI_conn_func BI_connection_init;
@@ -2279,6 +2286,9 @@ struct BackendInfo {
 	BI_operational		*bi_operational;
 	BI_chk_referrals	*bi_chk_referrals;
 	BI_chk_controls		*bi_chk_controls;
+#ifdef LDAP_X_TXN
+	BI_op_txn			*bi_op_txn;
+#endif
 	BI_entry_get_rw		*bi_entry_get_rw;
 	BI_entry_release_rw	*bi_entry_release_rw;
 
@@ -2402,6 +2412,9 @@ typedef enum slap_operation_e {
 	op_aux_operational,
 	op_aux_chk_referrals,
 	op_aux_chk_controls,
+#ifdef LDAP_X_TXN
+	op_txn,
+#endif
 	op_last
 } slap_operation_t;
 

@@ -456,6 +456,7 @@ mdb_back_initialize(
 	bi->bi_op_search = mdb_search;
 
 	bi->bi_op_unbind = 0;
+	bi->bi_op_txn = mdb_txn;
 
 	bi->bi_extended = mdb_extended;
 
