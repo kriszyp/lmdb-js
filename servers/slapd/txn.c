@@ -111,9 +111,44 @@ int txn_spec_ctrl(
 	return LDAP_SUCCESS;
 }
 
+typedef struct txn_rctrls {
+	struct txn_rctrls *tr_next;
+	ber_int_t	tr_msgid;
+	LDAPControl ** tr_ctrls;
+} txn_rctrls;
+
 static int txn_result( Operation *op, SlapReply *rs )
 {
+	if ( rs->sr_ctrls ) {
+		txn_rctrls **t0, *tr;
+		for ( t0 = (txn_rctrls **) &op->o_callback->sc_private; *t0;
+			t0 = &(*t0)->tr_next )
+			;
+		tr = op->o_tmpalloc( sizeof( txn_rctrls ), op->o_tmpmemctx );
+		tr->tr_next = NULL;
+		*t0 = tr;
+		tr->tr_msgid = op->o_msgid;
+		tr->tr_ctrls = ldap_controls_dup( rs->sr_ctrls );
+	}
 	return rs->sr_err;
+}
+
+static int txn_put_ctrls( Operation *op, BerElement *ber, txn_rctrls *tr )
+{
+	txn_rctrls *next;
+	int i;
+	ber_printf( ber, "{" );
+	for ( ; tr; tr  = next ) {
+		next = tr->tr_next;
+		ber_printf( ber, "{it{", tr->tr_msgid, LDAP_TAG_CONTROLS );
+		for ( i = 0; tr->tr_ctrls[i]; i++ )
+			ldap_pvt_put_control( tr->tr_ctrls[i], ber );
+		ber_printf( ber, "}}" );
+		ldap_controls_free( tr->tr_ctrls );
+		op->o_tmpfree( tr, op->o_tmpmemctx );
+	}
+	ber_printf( ber, "}" );
+	return 0;
 }
 
 int txn_end_extop(
@@ -232,13 +267,29 @@ int txn_end_extop(
 				BerElement *ber = (BerElement *)&berbuf;
 
 				ber_init_w_nullc( ber, LBER_USE_DER );
-				ber_printf( ber, "{i}", o->o_msgid );
+				ber_printf( ber, "{i", o->o_msgid );
+				if ( cb.sc_private )
+					txn_put_ctrls( op, ber, cb.sc_private );
+				ber_printf( ber, "}" );
 				ber_flatten( ber, &bv );
 				ber_free_buf( ber );
 				rs->sr_rspdata = bv;
 				o->o_bd->bd_info->bi_op_txn(o, SLAP_TXN_ABORT, &txn );
 				goto drain;
 			}
+		}
+		if ( cb.sc_private ) {
+			struct berval *bv = NULL;
+			BerElementBuffer berbuf;
+			BerElement *ber = (BerElement *)&berbuf;
+
+			ber_init_w_nullc( ber, LBER_USE_DER );
+			ber_printf( ber, "{" );
+			txn_put_ctrls( op, ber, cb.sc_private );
+			ber_printf( ber, "}" );
+			ber_flatten( ber, &bv );
+			ber_free_buf( ber );
+			rs->sr_rspdata = bv;
 		}
 		o = p;
 		rc = o->o_bd->bd_info->bi_op_txn(o, SLAP_TXN_COMMIT, &txn );
