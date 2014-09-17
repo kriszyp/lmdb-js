@@ -271,6 +271,7 @@ int slap_bv2ad(
 
 				if( rc == 0 && (unsigned)optlen == tags[i].bv_len ) {
 					/* duplicate (ignore) */
+					ntags--;
 					goto done;
 
 				} else if ( rc > 0 ||
