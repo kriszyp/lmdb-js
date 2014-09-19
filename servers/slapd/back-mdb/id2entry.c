@@ -538,11 +538,11 @@ int mdb_txn( Operation *op, int txnop, OpExtra **ptr )
 		return mdb_opinfo_get( op, mdb, 0, moip );
 	case SLAP_TXN_COMMIT:
 		rc = mdb_txn_commit( moi->moi_txn );
-		op->o_tmpfree( op->o_tmpmemctx, moi );
+		op->o_tmpfree( moi, op->o_tmpmemctx );
 		return rc;
 	case SLAP_TXN_ABORT:
 		mdb_txn_abort( moi->moi_txn );
-		op->o_tmpfree( op->o_tmpmemctx, moi );
+		op->o_tmpfree( moi, op->o_tmpmemctx );
 		return 0;
 	}
 	return LDAP_OTHER;
