@@ -401,8 +401,8 @@ collect_response( Operation *op, SlapReply *rs )
 			 	 * current search result
 			 	 */
 				if ( vals ) {
-					attr_merge( rs->sr_entry, ci->ci_ad[idx], 
-						vals, NULL );
+					attr_merge_normalize( rs->sr_entry, ci->ci_ad[idx],
+						vals, op->o_tmpmemctx );
 					ber_bvarray_free_x( vals, op->o_tmpmemctx );
 				}
 			}
