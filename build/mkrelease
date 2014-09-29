@@ -75,8 +75,8 @@ echo "Rolling up $OL_STRING ..."
 
 tar cf $RELNAME.tar $RELNAME
 gzip -9 -c $RELNAME.tar > $RELNAME.tgz
-md5 $RELNAME.tgz > $RELNAME.md5
-sha1 $RELNAME.tgz > $RELNAME.sha1
+openssl md5 $RELNAME.tgz > $RELNAME.md5
+openssl sha1 $RELNAME.tgz > $RELNAME.sha1
 rm -f $RELNAME.tar
 
 ls -l $RELNAME.*
