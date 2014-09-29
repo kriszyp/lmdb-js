@@ -36,6 +36,16 @@ shift
 TAG=$1
 shift
 
+#Linux
+#SHA="sha1sum"
+#MD="md5sum"
+#BSD
+#SHA="sha1"
+#MD="md5"
+#OpenSSL
+SHA="openssl sha1"
+MD="openssl md5"
+
 if test -e $RELNAME ; then
 	echo "error: $RELNAME exists"
 	exit 1
@@ -75,8 +85,8 @@ echo "Rolling up $OL_STRING ..."
 
 tar cf $RELNAME.tar $RELNAME
 gzip -9 -c $RELNAME.tar > $RELNAME.tgz
-openssl md5 $RELNAME.tgz > $RELNAME.md5
-openssl sha1 $RELNAME.tgz > $RELNAME.sha1
+${MD} $RELNAME.tgz > $RELNAME.md5
+${SHA} $RELNAME.tgz > $RELNAME.sha1
 rm -f $RELNAME.tar
 
 ls -l $RELNAME.*
