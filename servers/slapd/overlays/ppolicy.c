@@ -2348,6 +2348,7 @@ ppolicy_db_destroy(
 		pwc--;
 		ch_free( pwc );
 	}
+	return 0;
 }
 
 static char *extops[] = {
