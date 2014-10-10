@@ -437,8 +437,9 @@ struct dirent *readdir(DIR *dir)
 }
 int closedir(DIR *dir)
 {
-	FindClose(dir->dir);
+	(void) FindClose(dir->dir);
 	ber_memfree(dir);
+	return 0;
 }
 #endif
 
