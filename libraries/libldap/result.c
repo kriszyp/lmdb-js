@@ -273,7 +273,7 @@ wait4msg(
 #ifdef HAVE_GETTIMEOFDAY
 		gettimeofday( &start_time_tv, NULL );
 #else /* ! HAVE_GETTIMEOFDAY */
-		time( &start_time_tv.tv_sec );
+		start_time_tv.tv_sec = time( NULL );
 		start_time_tv.tv_usec = 0;
 #endif /* ! HAVE_GETTIMEOFDAY */
 	}
@@ -387,7 +387,7 @@ wait4msg(
 #ifdef HAVE_GETTIMEOFDAY
 			gettimeofday( &curr_time_tv, NULL );
 #else /* ! HAVE_GETTIMEOFDAY */
-			time( &curr_time_tv.tv_sec );
+			start_time_tv.tv_sec = time( NULL );
 			curr_time_tv.tv_usec = 0;
 #endif /* ! HAVE_GETTIMEOFDAY */
 
