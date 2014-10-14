@@ -346,7 +346,7 @@ mdb_dn2id(
 		cursor = mc;
 	} else {
 		rc = mdb_cursor_open( txn, dbi, &cursor );
-		if ( rc ) return rc;
+		if ( rc ) goto done;
 	}
 
 	for (;;) {
@@ -470,7 +470,7 @@ mdb_dn2sups(
 	key.mv_size = sizeof(ID);
 
 	rc = mdb_cursor_open( txn, dbi, &cursor );
-	if ( rc ) return rc;
+	if ( rc ) goto done;
 
 	for (;;) {
 		key.mv_data = &pid;
