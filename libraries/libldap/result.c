@@ -387,7 +387,7 @@ wait4msg(
 #ifdef HAVE_GETTIMEOFDAY
 			gettimeofday( &curr_time_tv, NULL );
 #else /* ! HAVE_GETTIMEOFDAY */
-			start_time_tv.tv_sec = time( NULL );
+			curr_time_tv.tv_sec = time( NULL );
 			curr_time_tv.tv_usec = 0;
 #endif /* ! HAVE_GETTIMEOFDAY */
 
