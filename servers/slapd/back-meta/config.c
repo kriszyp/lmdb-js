@@ -2450,7 +2450,7 @@ meta_back_cf_gen( ConfigArgs *c )
 			return 1;
 		}
 		mc->mc_flags &= ~LDAP_BACK_F_CANCEL_MASK2;
-		mc->mc_flags |= t_f_mode[i].mask;
+		mc->mc_flags |= cancel_mode[i].mask;
 		break;
 
 	case LDAP_BACK_CFG_TIMEOUT:
