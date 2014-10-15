@@ -278,22 +278,28 @@ start_again:;
 	}
 
 	if ( lr != NULL ) {
+		LDAPConn *lc;
+		int freeconn = 0;
 		if ( sendabandon || lr->lr_status == LDAP_REQST_WRITING ) {
-			/* release ld_req_mutex while grabbing ld_conn_mutex to
-			 * prevent deadlock.
-			 */
-			LDAP_MUTEX_UNLOCK( &ld->ld_req_mutex );
-			LDAP_MUTEX_LOCK( &ld->ld_conn_mutex );
-			ldap_free_connection( ld, lr->lr_conn, 0, 1 );
-			LDAP_MUTEX_UNLOCK( &ld->ld_conn_mutex );
-			LDAP_MUTEX_LOCK( &ld->ld_req_mutex );
+			freeconn = 1;
+			lc = lr->lr_conn;
 		}
-
 		if ( origid == msgid ) {
 			ldap_free_request( ld, lr );
 
 		} else {
 			lr->lr_abandoned = 1;
+		}
+
+		if ( freeconn ) {
+			/* release ld_req_mutex while grabbing ld_conn_mutex to
+			 * prevent deadlock.
+			 */
+			LDAP_MUTEX_UNLOCK( &ld->ld_req_mutex );
+			LDAP_MUTEX_LOCK( &ld->ld_conn_mutex );
+			ldap_free_connection( ld, lc, 0, 1 );
+			LDAP_MUTEX_UNLOCK( &ld->ld_conn_mutex );
+			LDAP_MUTEX_LOCK( &ld->ld_req_mutex );
 		}
 	}
 
