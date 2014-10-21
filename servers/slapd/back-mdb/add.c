@@ -335,8 +335,12 @@ mdb_add(Operation *op, SlapReply *rs )
 		Debug( LDAP_DEBUG_TRACE,
 			LDAP_XSTRING(mdb_add) ": id2entry_add failed\n",
 			0, 0, 0 );
-		rs->sr_err = LDAP_OTHER;
-		rs->sr_text = "entry store failed";
+		if ( rs->sr_err == LDAP_ADMINLIMIT_EXCEEDED ) {
+			rs->sr_text = "entry is too big";
+		} else {
+			rs->sr_err = LDAP_OTHER;
+			rs->sr_text = "entry store failed";
+		}
 		goto return_results;
 	}
 

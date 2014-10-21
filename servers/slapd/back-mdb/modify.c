@@ -601,7 +601,12 @@ mdb_modify( Operation *op, SlapReply *rs )
 		Debug( LDAP_DEBUG_TRACE,
 			LDAP_XSTRING(mdb_modify) ": id2entry update failed " "(%d)\n",
 			rs->sr_err, 0, 0 );
-		rs->sr_text = "entry update failed";
+		if ( rs->sr_err == LDAP_ADMINLIMIT_EXCEEDED ) {
+			rs->sr_text = "entry too big";
+		} else {
+			rs->sr_err = LDAP_OTHER;
+			rs->sr_text = "entry update failed";
+		}
 		goto return_results;
 	}
 

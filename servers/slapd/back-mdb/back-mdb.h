@@ -61,13 +61,13 @@ struct mdb_info {
 	MDB_env		*mi_dbenv;
 
 	/* DB_ENV parameters */
-	/* The DB_ENV can be tuned via DB_CONFIG */
 	char		*mi_dbenv_home;
 	uint32_t	mi_dbenv_flags;
 	int			mi_dbenv_mode;
 
 	size_t		mi_mapsize;
 	ID			mi_nextid;
+	size_t		mi_maxentrysize;
 
 	slap_mask_t	mi_defaultmask;
 	int			mi_nattrs;

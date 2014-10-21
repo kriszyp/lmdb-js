@@ -63,6 +63,9 @@ static int mdb_id2entry_put(
 	if (e->e_id < mdb->mi_nextid)
 		flag &= ~MDB_APPEND;
 
+	if (mdb->mi_maxentrysize && ec.len > mdb->mi_maxentrysize)
+		return LDAP_ADMINLIMIT_EXCEEDED;
+
 again:
 	data.mv_size = ec.len;
 	if ( mc )
