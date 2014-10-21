@@ -140,6 +140,11 @@ changing \fBindex\fP settings
 dynamically by LDAPModifying "cn=config" automatically causes rebuilding
 of the indices online in a background task.
 .TP
+.BI maxentrysize \ <bytes>
+Specify the maximum size of an entry in bytes. Attempts to store
+an entry larger than this size will be rejected with the error
+LDAP_ADMINLIMIT_EXCEEDED. The default is 0, which is unlimited.
+.TP
 .BI maxreaders \ <integer>
 Specify the maximum number of threads that may have concurrent read access
 to the database. Tools such as slapcat count as a single thread,

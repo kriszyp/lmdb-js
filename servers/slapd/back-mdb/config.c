@@ -39,7 +39,8 @@ enum {
 	MDB_MAXREADERS,
 	MDB_MAXSIZE,
 	MDB_MODE,
-	MDB_SSTACK
+	MDB_SSTACK,
+	MDB_MAXENTSZ
 };
 
 static ConfigTable mdbcfg[] = {
@@ -66,6 +67,10 @@ static ConfigTable mdbcfg[] = {
 		"DESC 'Attribute index parameters' "
 		"EQUALITY caseIgnoreMatch "
 		"SYNTAX OMsDirectoryString )", NULL, NULL },
+	{ "maxentrysize", "size", 2, 2, 0, ARG_ULONG|ARG_MAGIC|MDB_MAXENTSZ,
+		mdb_cf_gen, "( OLcfgDbAt:12.3 NAME 'olcDbMaxEntrySize' "
+		"DESC 'Maximum size of an entry in bytes' "
+		"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
 	{ "maxreaders", "num", 2, 2, 0, ARG_UINT|ARG_MAGIC|MDB_MAXREADERS,
 		mdb_cf_gen, "( OLcfgDbAt:12.1 NAME 'olcDbMaxReaders' "
 		"DESC 'Maximum number of threads that may access the DB concurrently' "
@@ -95,7 +100,7 @@ static ConfigOCs mdbocs[] = {
 		"MUST olcDbDirectory "
 		"MAY ( olcDbCheckpoint $ olcDbEnvFlags $ "
 		"olcDbNoSync $ olcDbIndex $ olcDbMaxReaders $ olcDbMaxsize $ "
-		"olcDbMode $ olcDbSearchStack ) )",
+		"olcDbMode $ olcDbSearchStack $ olcDbMaxEntrySize ) )",
 		 	Cft_Database, mdbcfg },
 	{ NULL, 0, NULL }
 };
@@ -329,6 +334,10 @@ mdb_cf_gen( ConfigArgs *c )
 			c->value_int = mdb->mi_search_stack_depth;
 			break;
 
+		case MDB_MAXENTSZ:
+			c->value_ulong = mdb->mi_maxentrysize;
+			break;
+
 		case MDB_MAXREADERS:
 			c->value_int = mdb->mi_readers;
 			break;
@@ -353,6 +362,10 @@ mdb_cf_gen( ConfigArgs *c )
 		case MDB_SSTACK:
 		case MDB_MAXREADERS:
 		case MDB_MAXSIZE:
+			break;
+
+		case MDB_MAXENTSZ:
+			mdb->mi_maxentrysize = 0;
 			break;
 
 		case MDB_CHKPT:
@@ -649,6 +662,10 @@ mdb_cf_gen( ConfigArgs *c )
 			c->value_int = MINIMUM_SEARCH_STACK_DEPTH;
 		}
 		mdb->mi_search_stack_depth = c->value_int;
+		break;
+
+	case MDB_MAXENTSZ:
+		mdb->mi_maxentrysize = c->value_ulong;
 		break;
 
 	case MDB_MAXREADERS:
