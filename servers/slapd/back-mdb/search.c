@@ -837,6 +837,7 @@ loop_begin:
 			}
 			/* Fall-thru */
 		case LDAP_SCOPE_ONELEVEL:
+			if ( id == base->e_id ) break;
 			isc.id = id;
 			isc.nscope = 0;
 			rs->sr_err = mdb_idscopes( op, &isc );
