@@ -684,9 +684,14 @@ int overlay_op_walk(
 	}
 	if ( rc == SLAP_CB_BYPASS )
 		rc = SLAP_CB_CONTINUE;
+	/* if an overlay halted processing, make sure
+	 * any previously set cleanup handlers are run
+	 */
+	if ( rc != SLAP_CB_CONTINUE )
+		goto cleanup;
 
 	bi = oi->oi_orig;
-	if ( (&bi->bi_op_bind)[ which ] && rc == SLAP_CB_CONTINUE ) {
+	if ( (&bi->bi_op_bind)[ which ] ) {
 		op->o_bd->bd_info = bi;
 		rc = (&bi->bi_op_bind)[ which ]( op, rs );
 	}
@@ -700,6 +705,7 @@ int overlay_op_walk(
 	 */
 	if ( rc == LDAP_UNWILLING_TO_PERFORM ) {
 		slap_callback *sc_next;
+cleanup:
 		for ( ; op->o_callback && op->o_callback->sc_response !=
 			over_back_response; op->o_callback = sc_next ) {
 			sc_next = op->o_callback->sc_next;
