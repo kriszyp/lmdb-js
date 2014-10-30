@@ -2055,8 +2055,11 @@ syncrepl_op_modify( Operation *op, SlapReply *rs )
 		overlay_entry_release_ov( op, e, 0, on );
 	}
 	/* equal? Should never happen */
-	if ( match == 0 )
+	if ( match == 0 ) {
+		/* tell accesslog this was a failure */
+		rs->sr_err = LDAP_TYPE_OR_VALUE_EXISTS;
 		return LDAP_SUCCESS;
+	}
 
 	/* mod is older: resolve conflicts...
 	 * 1. Save/copy original modlist. Split Replace to Del/Add.
