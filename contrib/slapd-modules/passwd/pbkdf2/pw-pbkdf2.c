@@ -99,7 +99,7 @@ static int pbkdf2_format(
 	struct berval *msg)
 {
 
-	int rc;
+	int rc, msg_len;
 	char salt_b64[LUTIL_BASE64_ENCODE_LEN(PBKDF2_SALT_SIZE) + 1];
 	char dk_b64[LUTIL_BASE64_ENCODE_LEN(PBKDF2_MAX_DK_SIZE) + 1];
 
@@ -115,13 +115,15 @@ static int pbkdf2_format(
 		return LUTIL_PASSWD_ERR;
 	}
 	b64_to_ab64(dk_b64);
-	msg->bv_len = asprintf(&msg->bv_val, "%s%d$%s$%s",
+	msg_len = asprintf(&msg->bv_val, "%s%d$%s$%s",
 						   sc->bv_val, iteration,
 						   salt_b64, dk_b64);
-	if(msg->bv_len < 0){
+	if(msg_len < 0){
+		msg->bv_len = 0;
 		return LUTIL_PASSWD_ERR;
 	}
 
+	msg->bv_len = msg_len;
 	return LUTIL_PASSWD_OK;
 }
 
