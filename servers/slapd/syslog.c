@@ -47,6 +47,7 @@
 #include <ac/stdarg.h>
 
 #include "slap.h"
+#include "lutil.h"
 
 static int	LogType = SOCK_DGRAM;	/* type of socket connection */
 static int	LogFile = -1;		/* fd for log */
@@ -54,7 +55,6 @@ static int	connected;		/* have done connect */
 static int	LogStat;		/* status bits, set by openlog() */
 static const char *LogTag;		/* string to tag the entry with */
 static int	LogFacility = LOG_USER;	/* default facility code */
-static int	LogMask = 0xff;		/* mask of priorities to be logged */
 
 static void disconnectlog(void);
 static void connectlog(void);
@@ -69,16 +69,13 @@ void
 syslog(int pri, const char *fmt, ...)
 {
 	va_list ap;
-	char *p, *t;
+	char *p, *pend;
 #define	TBUF_LEN	2048
 #define	FMT_LEN		1024
-	char *stdp, tbuf[TBUF_LEN], fmt_cpy[FMT_LEN];
-	time_t now;
+	char tbuf[TBUF_LEN];
 	int cnt;
-	int fd, saved_errno, error;
-	char ch;
-	int tbuf_left, fmt_left, prlen;
-	struct tm tm;
+	int error;
+	int tbuf_left, prlen;
 
 	va_start(ap, fmt);
 
@@ -90,84 +87,45 @@ syslog(int pri, const char *fmt, ...)
 		pri &= LOG_PRIMASK|LOG_FACMASK;
 	}
 
-	saved_errno = errno;
-
 	/* Set default facility if none specified. */
 	if ((pri & LOG_FACMASK) == 0)
 		pri |= LogFacility;
 
-	(void)time(&now);
-
 	p = tbuf;
-	tbuf_left = TBUF_LEN;
+	pend = p + TBUF_LEN;
 
-#define	DEC()	\
-	do {					\
-		if (prlen < 0)			\
-			prlen = 0;		\
-		if (prlen >= tbuf_left)		\
-			prlen = tbuf_left - 1;	\
-		p += prlen;			\
-		tbuf_left -= prlen;		\
-	} while (0)
+	*p++ = '<';
+	p += sprintf(p, "%d", pri);
+	*p++ = '>';
 
-	prlen = snprintf(p, tbuf_left, "<%d>", pri);
-	DEC();
-
+#if 0
+	(void)time(&now);
 	my_localtime(&now, &tm);
-	prlen = strftime(p, tbuf_left, "%h %e %T ", &tm);
-	DEC();
+	p += strftime(p, tbuf_left, "%h %e %T ", &tm);
+#endif
 
 	if (LogTag != NULL) {
-		prlen = snprintf(p, tbuf_left, "%s", LogTag);
-		DEC();
+		p = lutil_strcopy(p, LogTag);
 	}
 	if (LogStat & LOG_PID) {
-		prlen = snprintf(p, tbuf_left, "[%ld]", (long)getpid());
-		DEC();
+		*p++ = '[';
+		p += sprintf(p, "%ld", (long)getpid());
+		*p++ = ']';
 	}
 	if (LogTag != NULL) {
-		if (tbuf_left > 1) {
-			*p++ = ':';
-			tbuf_left--;
-		}
-		if (tbuf_left > 1) {
-			*p++ = ' ';
-			tbuf_left--;
-		}
+		*p++ = ':';
+		*p++ = ' ';
 	}
 
-	/* strerror() is not reentrant */
-
-	for (t = fmt_cpy, fmt_left = FMT_LEN; (ch = *fmt); ++fmt) {
-		if (ch == '%' && fmt[1] == 'm') {
-			++fmt;
-			prlen = snprintf(t, fmt_left, "%s",
-			    strerror(saved_errno)); 
-			if (prlen < 0)
-				prlen = 0;
-			if (prlen >= fmt_left)
-				prlen = fmt_left - 1;
-			t += prlen;
-			fmt_left -= prlen;
-		} else if (ch == '%' && fmt[1] == '%' && fmt_left > 2) {
-			*t++ = '%';
-			*t++ = '%';
-			fmt++;
-			fmt_left -= 2;
-		} else {
-			if (fmt_left > 1) {
-				*t++ = ch;
-				fmt_left--;
-			}
-		}
-	}
-	*t = '\0';
-
-	prlen = vsnprintf(p, tbuf_left, fmt_cpy, ap);
-	DEC();
-	cnt = p - tbuf;
+	tbuf_left = pend - p;
+	prlen = vsnprintf(p, tbuf_left, fmt, ap);
 	va_end(ap);
+	if (prlen < 0)
+		prlen = 0;
+	else if (prlen >= tbuf_left)
+		prlen = tbuf_left - 1;
+	p += prlen;
+	cnt = p - tbuf;
 
 	/* Get connected, output the message to the local logger. */
 	if (LogFile == -1)
@@ -216,7 +174,7 @@ connectlog(void)
 	struct sockaddr_un SyslogAddr;	/* AF_UNIX address of local logger */
 
 	if (LogFile == -1) {
-		if ((LogFile = socket(AF_UNIX, SOCK_DGRAM, 0)) == -1)
+		if ((LogFile = socket(AF_UNIX, LogType, 0)) == -1)
 			return;
 		(void)fcntl(LogFile, F_SETFD, FD_CLOEXEC);
 	}
@@ -259,6 +217,7 @@ closelog()
 	LogTag = NULL;
 }
 
+#if 0
 #define	SECS_PER_HOUR	(60 * 60)
 #define	SECS_PER_DAY	(SECS_PER_HOUR * 24)
 
@@ -327,3 +286,4 @@ static void my_localtime(const time_t *t, struct tm *tm)
   tm->tm_mon = y;
   tm->tm_mday = days + 1;
 }
+#endif
