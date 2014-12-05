@@ -926,6 +926,7 @@ do_syncrep2(
 					if ( syncCookie.ctxcsn ) {
 						int i, sid = slap_parse_csn_sid( syncCookie.ctxcsn );
 						check_syncprov( op, si );
+						ldap_pvt_thread_mutex_lock( &si->si_cookieState->cs_mutex );
 						for ( i =0; i<si->si_cookieState->cs_num; i++ ) {
 							/* new SID */
 							if ( sid < si->si_cookieState->cs_sids[i] )
@@ -935,15 +936,18 @@ do_syncrep2(
 									bdn.bv_val[bdn.bv_len] = '\0';
 									Debug( LDAP_DEBUG_SYNC, "do_syncrep2: %s CSN too old, ignoring %s (%s)\n",
 										si->si_ridtxt, syncCookie.ctxcsn->bv_val, bdn.bv_val );
+									si->si_too_old = 1;
+									ldap_pvt_thread_mutex_unlock( &si->si_cookieState->cs_mutex );
 									ldap_controls_free( rctrls );
 									rc = 0;
-									si->si_too_old = 1;
 									goto done;
 								}
 								si->si_too_old = 0;
 								break;
 							}
 						}
+						ldap_pvt_thread_mutex_unlock( &si->si_cookieState->cs_mutex );
+
 						/* check pending CSNs too */
 						while ( ldap_pvt_thread_mutex_trylock( &si->si_cookieState->cs_pmutex )) {
 							if ( slapd_shutdown ) {
@@ -953,17 +957,18 @@ do_syncrep2(
 							if ( !ldap_pvt_thread_pool_pausecheck( &connection_pool ))
 								ldap_pvt_thread_yield();
 						}
+
 						for ( i =0; i<si->si_cookieState->cs_pnum; i++ ) {
 							if ( sid < si->si_cookieState->cs_psids[i] )
 								break;
 							if ( si->si_cookieState->cs_psids[i] == sid ) {
 								if ( ber_bvcmp( syncCookie.ctxcsn, &si->si_cookieState->cs_pvals[i] ) <= 0 ) {
+									ldap_pvt_thread_mutex_unlock( &si->si_cookieState->cs_pmutex );
 									bdn.bv_val[bdn.bv_len] = '\0';
 									Debug( LDAP_DEBUG_SYNC, "do_syncrep2: %s CSN pending, ignoring %s (%s)\n",
 										si->si_ridtxt, syncCookie.ctxcsn->bv_val, bdn.bv_val );
 									ldap_controls_free( rctrls );
 									rc = 0;
-									ldap_pvt_thread_mutex_unlock( &si->si_cookieState->cs_pmutex );
 									goto done;
 								}
 								ber_bvreplace( &si->si_cookieState->cs_pvals[i],
@@ -1032,6 +1037,7 @@ do_syncrep2(
 				/* on failure, revert pending CSN */
 				if ( rc != LDAP_SUCCESS ) {
 					int i;
+					ldap_pvt_thread_mutex_lock( &si->si_cookieState->cs_mutex );
 					for ( i = 0; i<si->si_cookieState->cs_num; i++ ) {
 						if ( si->si_cookieState->cs_sids[i] == si->si_cookieState->cs_psids[punlock] ) {
 							ber_bvreplace( &si->si_cookieState->cs_pvals[punlock],
@@ -1041,6 +1047,7 @@ do_syncrep2(
 					}
 					if ( i == si->si_cookieState->cs_num )
 						si->si_cookieState->cs_pvals[punlock].bv_val[0] = '\0';
+					ldap_pvt_thread_mutex_unlock( &si->si_cookieState->cs_mutex );
 				}
 				ldap_pvt_thread_mutex_unlock( &si->si_cookieState->cs_pmutex );
 			}
