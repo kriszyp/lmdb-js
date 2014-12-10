@@ -340,7 +340,7 @@ dupent_response_entry_1level(
 	return rc;
 }
 
-static int
+static void
 dupent_attr_prepare( dupent_t *ds, Entry *e, valnum_t *valnum, int nattrs, int c, Attribute **app, Attribute **ap_listp )
 {
 	valnum[c].ap = *app;
