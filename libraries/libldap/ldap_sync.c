@@ -64,10 +64,8 @@ ldap_sync_initialize( ldap_sync_t *ls_in )
 		if ( ls == NULL ) {
 			return NULL;
 		}
-
-	} else {
-		memset( ls, 0, sizeof( ldap_sync_t ) );
 	}
+	memset( ls, 0, sizeof( ldap_sync_t ) );
 
 	ls->ls_scope = LDAP_SCOPE_SUBTREE;
 	ls->ls_timeout = -1;
