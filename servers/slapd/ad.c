@@ -769,7 +769,8 @@ int slap_bv2undef_ad(
 
 		desc->ad_cname.bv_len = bv->bv_len;
 		desc->ad_cname.bv_val = (char *)(desc+1);
-		strcpy(desc->ad_cname.bv_val, bv->bv_val);
+		strncpy(desc->ad_cname.bv_val, bv->bv_val, bv->bv_len);
+		desc->ad_cname.bv_val[bv->bv_len] = '\0';
 
 		/* canonical to upper case */
 		ldap_pvt_str2upper( desc->ad_cname.bv_val );
