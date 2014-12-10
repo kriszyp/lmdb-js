@@ -139,9 +139,8 @@ noopsrch_response( Operation *op, SlapReply *rs )
 		ctrlsp[0] = ctrl;
 		ctrlsp[1] = NULL;
 		slap_add_ctrls( op, rs, ctrlsp );
-
-		return SLAP_CB_CONTINUE;
 	}
+	return SLAP_CB_CONTINUE;
 }
 
 static int
