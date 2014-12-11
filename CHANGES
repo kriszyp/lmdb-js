@@ -6,7 +6,11 @@ OpenLDAP 2.4.41 Engineering
 	Fixed slapd syncrepl mutex for cookie state (ITS#7968)
 	Fixed slapd-mdb one-level search (ITS#7975)
 	Fixed slapd-mdb heap corruption (ITS#7965)
-	Fixed slapd-mdb crash when deleting in-use schema (ITS#7995)
+	Fixed slapd-mdb crash after deleting in-use schema (ITS#7995)
+	Build Environment
+		Fixed contrib/passwd/sha2 compiler warning (ITS#8000)
+		Fixed contrib/noopsrch compiler warning (ITS#7998)
+		Fixed contrib/dupent compiler warnings (ITS#7997)
 	Contrib
 		Added pbkdf2 sha256 and sha512 schemes (ITS#7977)
 
