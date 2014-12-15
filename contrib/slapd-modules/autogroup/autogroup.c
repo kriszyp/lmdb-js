@@ -136,6 +136,8 @@ autogroup_add_member_to_group( Operation *op, BerValue *dn, BerValue *ndn, autog
 	o.o_tag = LDAP_REQ_MODIFY;
 	o.o_callback = &cb;
 	o.orm_modlist = modlist;
+	o.o_dn = op->o_bd->be_rootdn;
+	o.o_ndn = op->o_bd->be_rootndn;
 	o.o_req_dn = age->age_dn;
 	o.o_req_ndn = age->age_ndn;
 	o.o_permissive_modify = 1;
@@ -179,6 +181,8 @@ autogroup_add_member_values_to_group( Operation *op, struct berval *dn, autogrou
 	o.o_tag = LDAP_REQ_MODIFY;
 	o.o_callback = &cb;
 	o.orm_modlist = &modlist;
+	o.o_dn = op->o_bd->be_rootdn;
+	o.o_ndn = op->o_bd->be_rootndn;
 	o.o_req_dn = age->age_dn;
 	o.o_req_ndn = age->age_ndn;
 	o.o_permissive_modify = 1;
@@ -240,6 +244,8 @@ autogroup_delete_member_from_group( Operation *op, BerValue *dn, BerValue *ndn, 
 	o.o_callback = &cb;
 	o.o_tag = LDAP_REQ_MODIFY;
 	o.orm_modlist = modlist;
+	o.o_dn = op->o_bd->be_rootdn;
+	o.o_ndn = op->o_bd->be_rootndn;
 	o.o_req_dn = age->age_dn;
 	o.o_req_ndn = age->age_ndn;
 	o.o_relax = SLAP_CONTROL_CRITICAL;
@@ -283,6 +289,8 @@ autogroup_delete_member_values_from_group( Operation *op, struct berval *dn, aut
         o.o_tag = LDAP_REQ_MODIFY;
         o.o_callback = &cb;
         o.orm_modlist = &modlist;
+		o.o_dn = op->o_bd->be_rootdn;
+		o.o_ndn = op->o_bd->be_rootndn;
         o.o_req_dn = age->age_dn;
         o.o_req_ndn = age->age_ndn;
         o.o_permissive_modify = 1;
@@ -451,6 +459,8 @@ autogroup_add_members_from_filter( Operation *op, Entry *e, autogroup_entry_t *a
 	o.ors_attrsonly = 0;
 	o.o_tag = LDAP_REQ_SEARCH;
 
+	o.o_dn = op->o_bd->be_rootdn;
+	o.o_ndn = op->o_bd->be_rootndn;
 	o.o_req_dn = agf->agf_dn;
 	o.o_req_ndn = agf->agf_ndn;
 
@@ -493,6 +503,8 @@ autogroup_add_members_from_filter( Operation *op, Entry *e, autogroup_entry_t *a
 		o.o_callback = &null_cb;
 		o.o_tag = LDAP_REQ_MODIFY;
 		o.orm_modlist = agg.agg_mod;
+		o.o_dn = op->o_bd->be_rootdn;
+		o.o_ndn = op->o_bd->be_rootndn;
 		o.o_req_dn = age->age_dn;
 		o.o_req_ndn = age->age_ndn;
 		o.o_relax = SLAP_CONTROL_CRITICAL;
