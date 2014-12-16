@@ -68,7 +68,7 @@ static ConfigTable mdbcfg[] = {
 		"EQUALITY caseIgnoreMatch "
 		"SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ "maxentrysize", "size", 2, 2, 0, ARG_ULONG|ARG_MAGIC|MDB_MAXENTSZ,
-		mdb_cf_gen, "( OLcfgDbAt:12.3 NAME 'olcDbMaxEntrySize' "
+		mdb_cf_gen, "( OLcfgDbAt:12.4 NAME 'olcDbMaxEntrySize' "
 		"DESC 'Maximum size of an entry in bytes' "
 		"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
 	{ "maxreaders", "num", 2, 2, 0, ARG_UINT|ARG_MAGIC|MDB_MAXREADERS,
