@@ -11,6 +11,7 @@ OpenLDAP 2.4.41 Engineering
 	Fixed slapd-mdb crash after deleting in-use schema (ITS#7995)
 	Fixed slapo-collect segfault (ITS#7797)
 	Build Environment
+		Enhanced contrib modules build paths (ITS#7782)
 		Fixed contrib/autogroup internal operation identity (ITS#8006)
 		Fixed contrib/passwd/sha2 compiler warning (ITS#8000)
 		Fixed contrib/noopsrch compiler warning (ITS#7998)
