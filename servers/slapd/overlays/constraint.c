@@ -798,7 +798,7 @@ constraint_add( Operation *op, SlapReply *rs )
 	BerVarray b = NULL;
 	int i;
 	struct berval rsv = BER_BVC("add breaks constraint");
-	int rc;
+	int rc = 0;
 	char *msg = NULL;
 
 	if (get_relax(op) || SLAPD_SYNC_IS_SYNCCONN( op->o_connid )) {
