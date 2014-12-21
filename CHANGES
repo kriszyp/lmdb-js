@@ -10,7 +10,7 @@ OpenLDAP 2.4.41 Engineering
 	Fixed slapd-mdb heap corruption (ITS#7965)
 	Fixed slapd-mdb crash after deleting in-use schema (ITS#7995)
 	Fixed slapo-collect segfault (ITS#7797)
-	Fixed slapo-constraint with 0 count constraint (ITS#7780)
+	Fixed slapo-constraint with 0 count constraint (ITS#7780,ITS#7781)
 	Build Environment
 		Enhanced contrib modules build paths (ITS#7782)
 		Fixed contrib/autogroup internal operation identity (ITS#8006)
