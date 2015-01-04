@@ -792,7 +792,7 @@ static int dec_mutexint( mutexint *mi )
 	return i;
 }
 
-static void
+static int
 syncprov_free_syncop( syncops *so )
 {
 	syncres *sr, *srnext;
@@ -802,7 +802,7 @@ syncprov_free_syncop( syncops *so )
 	/* already being freed, or still in use */
 	if ( !so->s_inuse || --so->s_inuse > 0 ) {
 		ldap_pvt_thread_mutex_unlock( &so->s_mutex );
-		return;
+		return 0;
 	}
 	ldap_pvt_thread_mutex_unlock( &so->s_mutex );
 	if ( so->s_flags & PS_IS_DETACHED ) {
@@ -826,6 +826,7 @@ syncprov_free_syncop( syncops *so )
 	}
 	ldap_pvt_thread_mutex_destroy( &so->s_mutex );
 	ch_free( so );
+	return 1;
 }
 
 /* Send a persistent search response */
@@ -1106,9 +1107,7 @@ syncprov_drop_psearch( syncops *so, int lock )
 		if ( lock )
 			ldap_pvt_thread_mutex_unlock( &so->s_op->o_conn->c_mutex );
 	}
-	syncprov_free_syncop( so );
-
-	return 0;
+	return syncprov_free_syncop( so );
 }
 
 static int
@@ -1168,10 +1167,10 @@ syncprov_matchops( Operation *op, opcookie *opc, int saveit )
 	syncprov_info_t		*si = on->on_bi.bi_private;
 
 	fbase_cookie fc;
-	syncops *ss, *sprev, *snext;
+	syncops **pss;
 	Entry *e = NULL;
 	Attribute *a;
-	int rc;
+	int rc, gonext;
 	struct berval newdn;
 	int freefdn = 0;
 	BackendDB *b0 = op->o_bd, db;
@@ -1231,15 +1230,15 @@ syncprov_matchops( Operation *op, opcookie *opc, int saveit )
 	}
 
 	ldap_pvt_thread_mutex_lock( &si->si_ops_mutex );
-	for (ss = si->si_ops, sprev = (syncops *)&si->si_ops; ss;
-		sprev = ss, ss=snext)
+	for (pss = &si->si_ops; *pss; pss = gonext ? &(*pss)->s_next : pss)
 	{
 		Operation op2;
 		Opheader oh;
 		syncmatches *sm;
 		int found = 0;
+		syncops *snext, *ss = *pss;
 
-		snext = ss->s_next;
+		gonext = 1;
 		if ( ss->s_op->o_abandon )
 			continue;
 
@@ -1268,9 +1267,10 @@ syncprov_matchops( Operation *op, opcookie *opc, int saveit )
 			SlapReply rs = {REP_RESULT};
 			send_ldap_error( ss->s_op, &rs, LDAP_SYNC_REFRESH_REQUIRED,
 				"search base has changed" );
-			sprev->s_next = snext;
-			syncprov_drop_psearch( ss, 1 );
-			ss = sprev;
+			snext = ss->s_next;
+			if ( syncprov_drop_psearch( ss, 1 ) )
+				*pss = snext;
+			gonext = 0;
 			continue;
 		}
 
@@ -1344,7 +1344,11 @@ syncprov_matchops( Operation *op, opcookie *opc, int saveit )
 			/* Decrement s_inuse, was incremented when called
 			 * with saveit == TRUE
 			 */
-			syncprov_free_syncop( ss );
+			snext = ss->s_next;
+			if ( syncprov_free_syncop( ss ) ) {
+				*pss = snext;
+				gonext = 0;
+			}
 		}
 	}
 	ldap_pvt_thread_mutex_unlock( &si->si_ops_mutex );
