@@ -996,6 +996,7 @@ slap_tool_update_ctxcsn(
 				fprintf( stderr, "%s: couldn't create context entry\n", progname );
 				rc = EXIT_FAILURE;
 			}
+			entry_free( ctxcsn_e );
 		} else {
 			fprintf( stderr, "%s: context entry is missing\n", progname );
 			rc = EXIT_FAILURE;
@@ -1003,9 +1004,14 @@ slap_tool_update_ctxcsn(
 	} else {
 		ctxcsn_e = be->be_entry_get( be, ctxcsn_id );
 		if ( ctxcsn_e != NULL ) {
+			Operation op = { 0 };
 			Entry *e = entry_dup( ctxcsn_e );
-			int change;
 			Attribute *attr = attr_find( e->e_attrs, slap_schema.si_ad_contextCSN );
+
+			int change;
+			op.o_bd = be;
+			be_entry_release_r( &op, ctxcsn_e );
+
 			if ( attr ) {
 				int		i;
 
