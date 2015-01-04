@@ -1312,8 +1312,8 @@ syncprov_matchops( Operation *op, opcookie *opc, int saveit )
 				   phase otherwise (ITS#6555) */
 				op2.ors_filter = ss->s_op->ors_filter->f_and->f_next;
 			}
-			ldap_pvt_thread_mutex_unlock( &ss->s_mutex );
 			rc = test_filter( &op2, e, op2.ors_filter );
+			ldap_pvt_thread_mutex_unlock( &ss->s_mutex );
 		}
 
 		Debug( LDAP_DEBUG_TRACE, "syncprov_matchops: sid %03x fscope %d rc %d\n",
