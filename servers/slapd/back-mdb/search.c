@@ -140,7 +140,6 @@ static int search_aliases(
 	struct berval bv_alias = BER_BVC( "alias" );
 	AttributeAssertion aa_alias = ATTRIBUTEASSERTION_INIT;
 	Filter	af;
-	int first = 1;
 
 	aliases = stack;	/* IDL of all aliases in the database */
 	curscop = aliases + MDB_IDL_DB_SIZE;	/* Aliases in the current scope */
@@ -807,7 +806,7 @@ loop_begin:
 					scopeok = 1;
 			} else {
 				i = mdb_idl_search( candidates, id );
-				if ( candidates[i] == id )
+				if (i <= candidates[0] && candidates[i] == id )
 					scopeok = 1;
 			}
 			if ( scopeok )
