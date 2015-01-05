@@ -13,6 +13,7 @@ OpenLDAP 2.4.41 Engineering
 	Fixed slapo-collect segfault (ITS#7797)
 	Fixed slapo-constraint with 0 count constraint (ITS#7780,ITS#7781)
 	Fixed slapo-syncprov synprov_matchops usage of test_filter (ITS#8013)
+	Fixed slapo-syncprov segfault on disconnect/abandon (ITS#5452,ITS#8012)
 	Build Environment
 		Enhanced contrib modules build paths (ITS#7782)
 		Fixed contrib/autogroup internal operation identity (ITS#8006)
