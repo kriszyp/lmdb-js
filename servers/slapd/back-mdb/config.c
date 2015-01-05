@@ -406,6 +406,9 @@ mdb_cf_gen( ConfigArgs *c )
 					mdb->mi_dbenv_flags ^= mdb_envflags[i].mask;
 				} else {
 					/* unknown keyword */
+					snprintf( c->cr_msg, sizeof( c->cr_msg ), "%s: unknown keyword \"%s\"",
+						c->argv[0], c->argv[i] );
+					Debug( LDAP_DEBUG_CONFIG, "%s %s\n", c->log, c->cr_msg, 0 );
 					rc = 1;
 				}
 			}
@@ -608,7 +611,10 @@ mdb_cf_gen( ConfigArgs *c )
 				mdb->mi_dbenv_flags |= mdb_envflags[j].mask;
 			} else {
 				/* unknown keyword */
-				rc = 1;
+				snprintf( c->cr_msg, sizeof( c->cr_msg ), "%s: unknown keyword \"%s\"",
+					c->argv[0], c->argv[i] );
+				Debug( LDAP_DEBUG_ANY, "%s %s\n", c->log, c->cr_msg, 0 );
+				return 1;
 			}
 		}
 		}
