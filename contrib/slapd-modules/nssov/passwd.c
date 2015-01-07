@@ -378,8 +378,8 @@ static int write_passwd(nssov_passwd_cbp *cbp,Entry *entry)
 				WRITE_INT32(cbp->fp,NSLCD_RESULT_BEGIN);
 				WRITE_BERVAL(cbp->fp,&names[i]);
 				WRITE_BERVAL(cbp->fp,&passwd);
-				WRITE_TYPE(cbp->fp,uid,uid_t);
-				WRITE_TYPE(cbp->fp,gid,gid_t);
+				WRITE_INT32(cbp->fp,uid);
+				WRITE_INT32(cbp->fp,gid);
 				WRITE_BERVAL(cbp->fp,&gecos);
 				WRITE_BERVAL(cbp->fp,&homedir);
 				WRITE_BERVAL(cbp->fp,&shell);
@@ -415,7 +415,7 @@ NSSOV_HANDLE(
 	char fbuf[1024];
 	struct berval filter = {sizeof(fbuf)};
 	filter.bv_val = fbuf;
-	READ_TYPE(fp,uid,uid_t);
+	READ_INT32(fp,uid);
 	cbp.id.bv_val = cbp.buf;
 	cbp.id.bv_len = snprintf(cbp.buf,sizeof(cbp.buf),"%d",uid);
 	BER_BVZERO(&cbp.name);,
