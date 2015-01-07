@@ -13,3 +13,6 @@ Things for 2.5:
 
 ITS#7926 - [18:19] <hyc> this is going to be a WONTFIX for 2.4, I think
 [18:20] <hyc> reiniting the listeners array is probably too much of a pain. it will screw with all currently open connections
+
+[10:22] <hyc> and rewriting Bind and Exop result handling
+[10:22] <hyc> so that it's no longer a special case for overlays
