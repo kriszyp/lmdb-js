@@ -142,7 +142,7 @@ int write_address(TFILE *fp,struct berval *addr)
 		/* write the address length */
 		WRITE_INT32(fp,sizeof(struct in_addr));
 		/* write the address itself (in network byte order) */
-		WRITE_TYPE(fp,ipv4addr,struct in_addr);
+		WRITE(fp,&ipv4addr,sizeof(struct in_addr));
 	}
 	else if (inet_pton(AF_INET6,addr->bv_val,&ipv6addr)>0)
 	{
@@ -151,7 +151,7 @@ int write_address(TFILE *fp,struct berval *addr)
 		/* write the address length */
 		WRITE_INT32(fp,sizeof(struct in6_addr));
 		/* write the address itself (in network byte order) */
-		WRITE_TYPE(fp,ipv6addr,struct in6_addr);
+		WRITE(fp,&ipv6addr,sizeof(struct in6_addr));
 	}
 	else
 	{
@@ -240,14 +240,14 @@ static int read_header(TFILE *fp,int32_t *action)
 {
   int32_t tmpint32;
   /* read the protocol version */
-  READ_TYPE(fp,tmpint32,int32_t);
+  READ_INT32(fp,tmpint32);
   if (tmpint32 != (int32_t)NSLCD_VERSION)
   {
     Debug( LDAP_DEBUG_TRACE,"nssov: wrong nslcd version id (%d)\n",(int)tmpint32,0,0);
     return -1;
   }
   /* read the request type */
-  READ(fp,action,sizeof(int32_t));
+  READ_INT32(fp,*action);
   return 0;
 }
 
@@ -255,34 +255,30 @@ int nssov_config(nssov_info *ni,TFILE *fp,Operation *op)
 {
 	int opt;
 	int32_t tmpint32;
-	struct berval *msg = BER_BVC("");
-	int rc = NSLCD_PAM_SUCCESS;
 
 	READ_INT32(fp,opt);
 
 	Debug(LDAP_DEBUG_TRACE, "nssov_config (%d)\n",opt,0,0);
 
+	WRITE_INT32(fp,NSLCD_VERSION);
+	WRITE_INT32(fp,NSLCD_ACTION_CONFIG_GET);
+	WRITE_INT32(fp,NSLCD_RESULT_BEGIN);
+
 	switch (opt) {
 	case NSLCD_CONFIG_PAM_PASSWORD_PROHIBIT_MESSAGE:
-		/* request for pam password_prothibit_message */
+		/* request for pam password_prohibit_message */
 		/* nssov_pam prohibits password  */
 		if (!BER_BVISEMPTY(&ni->ni_pam_password_prohibit_message)) {
 			Debug(LDAP_DEBUG_TRACE,"nssov_config(): %s (%s)\n",
 				"password_prohibit_message",
 				ni->ni_pam_password_prohibit_message.bv_val,0);
-			msg = &ni->ni_pam_password_prohibit_message;
-			rc = NSLCD_PAM_PERM_DENIED;
+			WRITE_STRING(fp,ni->ni_pam_password_prohibit_message.bv_val);
 		}
-		/* fall through */
 	default:
+		/* all other config options are ignored */
 		break;
 	}
 
-done:;
-	WRITE_INT32(fp,NSLCD_VERSION);
-	WRITE_INT32(fp,NSLCD_ACTION_CONFIG_GET);
-	WRITE_INT32(fp,NSLCD_RESULT_BEGIN);
-	WRITE_BERVAL(fp,msg);
 	WRITE_INT32(fp,NSLCD_RESULT_END);
 	return 0;
 }
