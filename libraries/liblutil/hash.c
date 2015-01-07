@@ -127,7 +127,7 @@ lutil_HASH64Update(
 void
 lutil_HASH64Final( unsigned char *digest, lutil_HASH_CTX *ctx )
 {
-	unsigned long long h = ctx->hash;
+	unsigned long long h = ctx->hash64;
 
 	digest[0] = h & 0xffU;
 	digest[1] = (h>>8) & 0xffU;
