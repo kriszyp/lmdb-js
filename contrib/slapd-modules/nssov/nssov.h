@@ -127,31 +127,42 @@ void nssov_cfg_init(nssov_info *ni,const char *fname);
   Debug(LDAP_DEBUG_ANY,"nssov: client supplied argument too large\n",0,0,0); \
   return -1;
 
-#define WRITE_BERVAL(fp,bv) \
-  DEBUG_PRINT("WRITE_STRING: var="__STRING(bv)" string=\"%s\"",(bv)->bv_val); \
-  if ((bv)==NULL) \
-  { \
-    WRITE_INT32(fp,0); \
-  } \
-  else \
-  { \
-    WRITE_INT32(fp,(bv)->bv_len); \
-    if (tmpint32>0) \
-      { WRITE(fp,(bv)->bv_val,tmpint32); } \
-  }
+#define WRITE_BERVAL(fp, bv)                                                   \
+  DEBUG_PRINT("WRITE_BERVAL: var="__STRING(bv)" bv_val=\"%s\"", (bv)->bv_val); \
+  if ((bv) == NULL)                                                            \
+  {                                                                            \
+    WRITE_INT32(fp, 0);                                                        \
+  }                                                                            \
+  else                                                                         \
+  {                                                                            \
+    WRITE_INT32(fp, (bv)->bv_len);                                             \
+    tmpint32 = ntohl(tmpint32);                                                \
+    if (tmpint32 > 0)                                                          \
+    {                                                                          \
+      WRITE(fp, (bv)->bv_val, tmpint32);                                       \
+    }                                                                          \
+  }                                                                            \
 
-#define WRITE_BVARRAY(fp,arr) \
-  /* first determine length of array */ \
-  for (tmp3int32=0;(arr)[tmp3int32].bv_val!=NULL;tmp3int32++) \
-    /*nothing*/ ; \
-  /* write number of strings */ \
-  DEBUG_PRINT("WRITE_BVARRAY: var="__STRING(arr)" num=%d",(int)tmp3int32); \
-  WRITE_TYPE(fp,tmp3int32,int32_t); \
-  /* write strings */ \
-  for (tmp2int32=0;tmp2int32<tmp3int32;tmp2int32++) \
-  { \
-    WRITE_BERVAL(fp,&(arr)[tmp2int32]); \
-  }
+#define WRITE_BVARRAY(fp, arr)                                                 \
+  if ((arr) == NULL)                                                           \
+  {                                                                            \
+    DEBUG_PRINT("WRITE_BVARRAY: var="__STRING(arr)" num=%d", 0);               \
+    WRITE_INT32(fp, 0);                                                        \
+  }                                                                            \
+  else                                                                         \
+  {                                                                            \
+    /* first determine length of array */                                      \
+    for (tmp3int32 = 0; (arr)[tmp3int32].bv_val != NULL; tmp3int32++)          \
+      /* nothing */ ;                                                          \
+    /* write number of strings */                                              \
+    DEBUG_PRINT("WRITE_BVARRAY: var="__STRING(arr)" num=%d", (int)tmp3int32);  \
+    WRITE_INT32(fp, tmp3int32);                                                \
+    /* write strings */                                                        \
+    for (tmp2int32 = 0; tmp2int32 < tmp3int32; tmp2int32++)                    \
+    {                                                                          \
+      WRITE_BERVAL(fp, &(arr)[tmp2int32]);                                     \
+    }                                                                          \
+  }                                                                            \
 
 /* This tries to get the user password attribute from the entry.
    It will try to return an encrypted password as it is used in /etc/passwd,
