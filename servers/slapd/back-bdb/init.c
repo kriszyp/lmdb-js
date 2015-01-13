@@ -406,6 +406,7 @@ shm_retry:
 			Debug( LDAP_DEBUG_ANY,
 				LDAP_XSTRING(bdb_db_open) ": %s\n",
 				cr->msg, 0, 0 );
+			ch_free( db );
 			goto fail;
 		}
 
@@ -419,6 +420,8 @@ shm_retry:
 				Debug( LDAP_DEBUG_ANY,
 					LDAP_XSTRING(bdb_db_open) ": %s\n",
 					cr->msg, 0, 0 );
+				db->bdi_db->close( db->bdi_db, 0 );
+				ch_free( db );
 				goto fail;
 			}
 		}
@@ -433,6 +436,8 @@ shm_retry:
 				Debug( LDAP_DEBUG_ANY,
 					LDAP_XSTRING(bdb_db_open) ": %s\n",
 					cr->msg, 0, 0 );
+				db->bdi_db->close( db->bdi_db, 0 );
+				ch_free( db );
 				goto fail;
 			}
 		}
@@ -504,6 +509,7 @@ shm_retry:
 				LDAP_XSTRING(bdb_db_open) ": %s\n",
 				cr->msg, 0, 0 );
 			db->bdi_db->close( db->bdi_db, 0 );
+			ch_free( db );
 			goto fail;
 		}
 
