@@ -335,7 +335,11 @@ rewrite_xmap_apply(
 					&& ( p = strtok( NULL, "" ) ) ) {
 				val->bv_val = strdup( p );
 				if ( val->bv_val == NULL ) {
-					return REWRITE_ERR;
+#ifdef USE_REWRITE_LDAP_PVT_THREADS
+					ldap_pvt_thread_mutex_unlock( &map->lm_mutex );
+#endif /* USE_REWRITE_LDAP_PVT_THREADS */
+					rc = REWRITE_ERR;
+					goto rc_return;
 				}
 
 				val->bv_len = strlen( p );
