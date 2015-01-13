@@ -184,7 +184,7 @@ slap_access_allowed(
 	 * if we get here it means a non-root user is trying to 
 	 * manage data, so we need to check its privileges.
 	 */
-	if ( access_level == ACL_WRITE
+	if ( access_level == ACL_WRITE_
 		&& is_at_no_user_mod( desc->ad_type )
 		&& desc != slap_schema.si_ad_entry
 		&& desc != slap_schema.si_ad_children )
@@ -398,7 +398,7 @@ access_allowed_mask(
 		{
 			access = ACL_AUTH;
 
-		} else if ( get_relax( op ) && access_level == ACL_WRITE &&
+		} else if ( get_relax( op ) && access_level == ACL_WRITE_ &&
 			desc == slap_schema.si_ad_entry )
 		{
 			access = ACL_MANAGE;
@@ -2659,7 +2659,12 @@ regex_matches(
 		str = "";
 	};
 
-	acl_string_expand( &bv, pat, dn_matches, val_matches, matches );
+	if ( acl_string_expand( &bv, pat, dn_matches, val_matches, matches )) {
+		Debug( LDAP_DEBUG_TRACE,
+			"expand( \"%s\", \"%s\") failed\n",
+			pat->bv_val, str, 0 );
+		return( 0 );
+	}
 	rc = regcomp( &re, newbuf, REG_EXTENDED|REG_ICASE );
 	if ( rc ) {
 		char error[ACL_BUF_SIZE];
