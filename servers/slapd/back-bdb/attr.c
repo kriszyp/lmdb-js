@@ -298,6 +298,7 @@ bdb_attr_index_config(
 				 * just add the extracted component reference
 				 * in the AttrInfo
 				 */
+				ch_free( a );
 				rc = insert_component_reference( cr, &a_cr->ai_cr );
 				if ( rc != LDAP_SUCCESS) {
 					fprintf( stderr, " error during inserting component reference in %s ", attrs[i]);
