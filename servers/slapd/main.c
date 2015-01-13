@@ -757,6 +757,11 @@ unhandled_option:;
 			rc = 1;
 			goto stop;
 		}
+		if ( chdir( "/" ) ) {
+			perror("chdir");
+			rc = 1;
+			goto stop;
+		}
 	}
 #endif
 
