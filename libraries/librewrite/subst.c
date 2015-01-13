@@ -194,7 +194,6 @@ rewrite_subst_compile(
 		subs[ nsub ].bv_len = l;
 		subs[ nsub ].bv_val = malloc( l + 1 );
 		if ( subs[ nsub ].bv_val == NULL ) {
-			free( subs );
 			goto cleanup;
 		}
 		AC_MEMCPY( subs[ nsub ].bv_val, begin, l );
@@ -210,11 +209,25 @@ rewrite_subst_compile(
 	}
 
 	s->lt_subs_len = subs_len;
-        s->lt_subs = subs;
-        s->lt_num_submatch = nsub;
-        s->lt_submatch = submatch;
+	s->lt_subs = subs;
+	s->lt_num_submatch = nsub;
+	s->lt_submatch = submatch;
+	subs = NULL;
+	submatch = NULL;
 
 cleanup:;
+	if ( subs ) {
+		for ( l=0; l<nsub; l++ ) {
+			free( subs[nsub].bv_val );
+		}
+		free( subs );
+	}
+	if ( submatch ) {
+		for ( l=0; l<nsub; l++ ) {
+			free( submatch[nsub].ls_map );
+		}
+		free( submatch );
+	}
 	free( result );
 
 	return s;
