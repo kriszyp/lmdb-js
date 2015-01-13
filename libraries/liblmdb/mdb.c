@@ -79,6 +79,14 @@ extern int cacheflush(char *addr, int nbytes, int cache);
 #define CACHEFLUSH(addr, bytes, cache)
 #endif
 
+#if defined(__linux) && !defined(MDB_FDATASYNC_WORKS)
+/** fdatasync is broken on ext3/ext4fs on older kernels, see
+ *	description in #mdb_env_open2 comments. You can safely
+ *	define MDB_FDATASYNC_WORKS if this code will only be run
+ *	on kernels 3.6 and newer.
+ */
+#define	BROKEN_FDATASYNC
+#endif
 
 #include <errno.h>
 #include <limits.h>
@@ -333,7 +341,6 @@ mdb_sem_wait(sem_t *sem)
  */
 #ifndef MDB_FDATASYNC
 # define MDB_FDATASYNC	fdatasync
-# define HAVE_FDATASYNC	1
 #endif
 
 #ifndef MDB_MSYNC
@@ -1097,6 +1104,8 @@ struct MDB_env {
 #define	MDB_ENV_ACTIVE	0x20000000U
 	/** me_txkey is set */
 #define	MDB_ENV_TXKEY	0x10000000U
+	/** fdatasync is unreliable */
+#define	MDB_FSYNCONLY	0x08000000U
 	uint32_t 	me_flags;		/**< @ref mdb_env */
 	unsigned int	me_psize;	/**< DB page size, inited from me_os_psize */
 	unsigned int	me_os_psize;	/**< OS page size, from #GET_PAGESIZE */
@@ -1113,7 +1122,7 @@ struct MDB_env {
 	MDB_txn		*me_txn;		/**< current write transaction */
 	MDB_txn		*me_txn0;		/**< prealloc'd write transaction */
 	size_t		me_mapsize;		/**< size of the data memory map */
-	size_t		me_size;		/**< current file size */
+	off_t		me_size;		/**< current file size */
 	pgno_t		me_maxpg;		/**< me_mapsize / me_psize */
 	MDB_dbx		*me_dbxs;		/**< array of static DB info */
 	uint16_t	*me_dbflags;	/**< array of flags from MDB_db.md_flags */
@@ -2299,19 +2308,12 @@ fail:
 	return rc;
 }
 
-/* internal env_sync flags: */
-#define FORCE	1		/* as before, force a flush */
-#define FGREW	0x8000	/* file has grown, do a full fsync instead of just
-	   fdatasync. We shouldn't have to do this, according to the POSIX spec.
-	   But common Linux FSs violate the spec and won't sync required metadata
-	   correctly when the file grows. This only makes a difference if the
-	   platform actually distinguishes fdatasync from fsync.
-	   http://www.openldap.org/lists/openldap-devel/201411/msg00000.html */
-
-static int
-mdb_env_sync0(MDB_env *env, int flag)
+int
+mdb_env_sync(MDB_env *env, int force)
 {
-	int rc = 0, force = flag & FORCE;
+	int rc = 0;
+	if (env->me_flags & MDB_RDONLY)
+		return EACCES;
 	if (force || !F_ISSET(env->me_flags, MDB_NOSYNC)) {
 		if (env->me_flags & MDB_WRITEMAP) {
 			int flags = ((env->me_flags & MDB_MAPASYNC) && !force)
@@ -2323,9 +2325,9 @@ mdb_env_sync0(MDB_env *env, int flag)
 				rc = ErrCode();
 #endif
 		} else {
-#ifdef HAVE_FDATASYNC
-			if (flag & FGREW) {
-				if (fsync(env->me_fd))	/* Avoid ext-fs bugs, do full sync */
+#ifdef BROKEN_FDATASYNC
+			if (env->me_flags & MDB_FSYNCONLY) {
+				if (fsync(env->me_fd))
 					rc = ErrCode();
 			} else
 #endif
@@ -2334,12 +2336,6 @@ mdb_env_sync0(MDB_env *env, int flag)
 		}
 	}
 	return rc;
-}
-
-int
-mdb_env_sync(MDB_env *env, int force)
-{
-	return mdb_env_sync0(env, force != 0);
 }
 
 /** Back up parent txn's cursors, then grab the originals for tracking */
@@ -3394,15 +3390,8 @@ mdb_txn_commit(MDB_txn *txn)
 	mdb_audit(txn);
 #endif
 
-	i = 0;
-#ifdef HAVE_FDATASYNC
-	if (txn->mt_next_pgno * env->me_psize > env->me_size) {
-		i |= FGREW;
-		env->me_size = txn->mt_next_pgno * env->me_psize;
-	}
-#endif
 	if ((rc = mdb_page_flush(txn, 0)) ||
-		(rc = mdb_env_sync0(env, i)) ||
+		(rc = mdb_env_sync(env, 0)) ||
 		(rc = mdb_env_write_meta(txn)))
 		goto fail;
 
@@ -3879,6 +3868,11 @@ mdb_fsize(HANDLE fd, size_t *size)
 	return MDB_SUCCESS;
 }
 
+#ifdef BROKEN_FDATASYNC
+#include <sys/utsname.h>
+#include <sys/vfs.h>
+#endif
+
 /** Further setup required for opening an LMDB environment
  */
 static int ESECT
@@ -3896,6 +3890,53 @@ mdb_env_open2(MDB_env *env)
 	else
 		env->me_pidquery = PROCESS_QUERY_INFORMATION;
 #endif /* _WIN32 */
+#ifdef BROKEN_FDATASYNC
+	/* ext3/ext4 fdatasync is broken on some older Linux kernels.
+	 * https://lkml.org/lkml/2012/9/3/83
+	 * Kernels after 3.6-rc6 are known good.
+	 * https://lkml.org/lkml/2012/9/10/556
+	 * See if the DB is on ext3/ext4, then check for new enough kernel
+	 * Kernels 2.6.32.60, 2.6.34.15, 3.2.30, and 3.5.4 are also known
+	 * to be patched.
+	 */
+	{
+		struct statfs st;
+		fstatfs(env->me_fd, &st);
+		while (st.f_type == 0xEF53) {
+			struct utsname uts;
+			int i;
+			uname(&uts);
+			if (uts.release[0] < '3') {
+				if (!strncmp(uts.release, "2.6.32.", 7)) {
+					i = atoi(uts.release+7);
+					if (i >= 60)
+						break;	/* 2.6.32.60 and newer is OK */
+				} else if (!strncmp(uts.release, "2.6.34.", 7)) {
+					i = atoi(uts.release+7);
+					if (i >= 15)
+						break;	/* 2.6.34.15 and newer is OK */
+				}
+			} else if (uts.release[0] == '3') {
+				i = atoi(uts.release+2);
+				if (i > 5)
+					break;	/* 3.6 and newer is OK */
+				if (i == 5) {
+					i = atoi(uts.release+4);
+					if (i >= 4)
+						break;	/* 3.5.4 and newer is OK */
+				} else if (i == 2) {
+					i = atoi(uts.release+4);
+					if (i >= 30)
+						break;	/* 3.2.30 and newer is OK */
+				}
+			} else {	/* 4.x and newer is OK */
+				break;
+			}
+			env->me_flags |= MDB_FSYNCONLY;
+			break;
+		}
+	}
+#endif
 
 	memset(&meta, 0, sizeof(meta));
 
@@ -3925,10 +3966,6 @@ mdb_env_open2(MDB_env *env)
 		if (env->me_mapsize < minsize)
 			env->me_mapsize = minsize;
 	}
-
-	rc = mdb_fsize(env->me_fd, &env->me_size);
-	if (rc)
-		return rc;
 
 	rc = mdb_env_map(env, (flags & MDB_FIXEDMAP) ? meta.mm_address : NULL);
 	if (rc)
