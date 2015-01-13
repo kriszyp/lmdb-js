@@ -255,6 +255,8 @@ handle_private_option( int i )
 		    fprintf( stderr, _("Invalid Verify Credentials extension name: %s\n"), control );
 		    usage();
 		}
+		free( control );
+		break;
 
 	case 'a':  /* request authzid */
 		req_authzid++;

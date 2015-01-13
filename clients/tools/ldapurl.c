@@ -159,6 +159,7 @@ do_uri_explode( const char *uri )
 			printf( "extension: %s\n", lud->lud_exts[i] );
 		}
 	}
+	ldap_free_urldesc( lud );
 
 	return 0;
 }

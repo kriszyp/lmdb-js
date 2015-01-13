@@ -187,6 +187,7 @@ handle_private_option( int i )
 				control );
 			usage();
 		}
+		ber_memfree( control );
 		break;
 
 	case 'a':	/* add */
