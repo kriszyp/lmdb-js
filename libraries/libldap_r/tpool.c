@@ -266,16 +266,22 @@ ldap_pvt_thread_pool_init_q (
 		max_threads = LDAP_MAXTHR;
 
 	rc = ldap_pvt_thread_mutex_init(&pool->ltp_mutex);
-	if (rc != 0)
+	if (rc != 0) {
+fail:
+		for (i=0; i<numqs; i++)
+			LDAP_FREE(pool->ltp_wqs[i]->ltp_free);
+		LDAP_FREE(pool->ltp_wqs);
+		LDAP_FREE(pool);
 		return(rc);
+	}
 
 	rc = ldap_pvt_thread_cond_init(&pool->ltp_cond);
 	if (rc != 0)
-		return(rc);
+		goto fail;
 
 	rc = ldap_pvt_thread_cond_init(&pool->ltp_pcond);
 	if (rc != 0)
-		return(rc);
+		goto fail;
 
 	rem_thr = max_threads % numqs;
 	rem_pend = max_pending % numqs;
