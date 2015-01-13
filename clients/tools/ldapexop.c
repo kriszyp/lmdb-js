@@ -130,7 +130,7 @@ main( int argc, char *argv[] )
 		}
 
 	} else if ( strcasecmp( argv[ 0 ], "passwd" ) == 0 ) {
-		fprintf( stderr, "use ldappasswd(1) instead.\n\n", argv[ 0 ] );
+		fprintf( stderr, "use ldappasswd(1) instead.\n\n" );
 		usage();
 		/* TODO? */
 
