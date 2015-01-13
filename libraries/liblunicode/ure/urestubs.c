@@ -123,5 +123,5 @@ _ure_matches_properties(unsigned long props, ucs4_t c)
 		}
 	}
 
-	return ucisprop( mask1, mask2, c );
+	return ucisprop( c, mask1, mask2 );
 }
