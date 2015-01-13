@@ -195,6 +195,8 @@ bdb_db_cache(
 			"bdb_db_cache: db_open(%s) failed: %s (%d)\n",
 			name->bv_val, db_strerror(rc), rc );
 		ldap_pvt_thread_mutex_unlock( &bdb->bi_database_mutex );
+		db->bdi_db->close( db->bdi_db, 0 );
+		ch_free( db );
 		return rc;
 	}
 
