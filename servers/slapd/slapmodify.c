@@ -286,7 +286,7 @@ slapmodify( int argc, char **argv )
 		}
 
 		if ( rc != LDAP_SUCCESS ) {
-			fprintf( stderr, "%s: no such entry \"%s\" in database (lineno=%d)\n",
+			fprintf( stderr, "%s: no such entry \"%s\" in database (lineno=%lu)\n",
 				progname, ndn.bv_val, lineno );
 			rc = EXIT_FAILURE;
 			goto cleanup;
