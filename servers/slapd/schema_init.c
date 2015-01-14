@@ -1826,7 +1826,7 @@ UTF8StringValidate(
 		if( LDAP_UTF8_OFFSET( (char *)u ) != len ) return LDAP_INVALID_SYNTAX;
 	}
 
-	if( u >= len ) {
+	if( u > end ) {
 		return LDAP_INVALID_SYNTAX;
 	}
 
