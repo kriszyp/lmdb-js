@@ -1627,8 +1627,6 @@ err_pr:;
 								}
 							}
 #endif /* SLAPD_META_CLIENT_PR */
-
-							ldap_controls_free( ctrls );
 						}
 						/* fallthru */
 
@@ -1679,6 +1677,7 @@ err_pr:;
 						break;
 					}
 	
+					ldap_controls_free( ctrls );
 					last = i;
 					rc = 0;
 	

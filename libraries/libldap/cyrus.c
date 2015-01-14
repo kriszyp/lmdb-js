@@ -1171,6 +1171,7 @@ void *ldap_pvt_sasl_mutex_new(void)
 	if ( ldap_pvt_thread_mutex_init( mutex ) == 0 ) {
 		return mutex;
 	}
+	LDAP_FREE( mutex );
 #ifndef LDAP_DEBUG_R_SASL
 	assert( 0 );
 #endif /* !LDAP_DEBUG_R_SASL */

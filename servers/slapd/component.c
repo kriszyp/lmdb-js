@@ -945,7 +945,7 @@ static int
 get_item( Operation *op, ComponentAssertionValue* cav, ComponentAssertion** ca,
 		const char** text )
 {
-	int rc;
+	int rc, freeval = 0;
 	ComponentAssertion* _ca;
 	struct berval value;
 	MatchingRule* mr;
@@ -960,20 +960,25 @@ get_item( Operation *op, ComponentAssertionValue* cav, ComponentAssertion** ca,
 
 	_ca->ca_comp_data.cd_tree = NULL;
 	_ca->ca_comp_data.cd_mem_op = NULL;
+	BER_BVZERO( &_ca->ca_ma_value );
 
 	rc = peek_cav_str( cav, "component" );
 	if ( rc == LDAP_SUCCESS ) {
 		strip_cav_str( cav, "component" );
 		rc = get_component_reference( op, cav, &_ca->ca_comp_ref, text );
 		if ( rc != LDAP_SUCCESS ) {
+			rc = LDAP_INVALID_SYNTAX;
+fail:
+			if ( freeval )
+				op->o_tmpfree( _ca->ca_ma_value.bv_val, op->o_tmpmemctx );
 			if ( op )
 				op->o_tmpfree( _ca, op->o_tmpmemctx );
 			else
 				free( _ca );
-			return LDAP_INVALID_SYNTAX;
+			return rc;
 		}
 		if ( ( rc = strip_cav_str( cav,",") ) != LDAP_SUCCESS )
-			return rc;
+			goto fail;
 	} else {
 		_ca->ca_comp_ref = NULL;
 	}
@@ -982,35 +987,26 @@ get_item( Operation *op, ComponentAssertionValue* cav, ComponentAssertion** ca,
 	if ( rc == LDAP_SUCCESS ) {
 		rc = get_ca_use_default( op, cav, &_ca->ca_use_def, text );
 		if ( rc != LDAP_SUCCESS ) {
-			if ( op )
-				op->o_tmpfree( _ca, op->o_tmpmemctx );
-			else
-				free( _ca );
-			return LDAP_INVALID_SYNTAX;
+			rc = LDAP_INVALID_SYNTAX;
+			goto fail;
 		}
 		if ( ( rc = strip_cav_str( cav,",") ) != LDAP_SUCCESS )
-			return rc;
+			goto fail;
 	}
 	else _ca->ca_use_def = 1;
 
 	if ( !( strip_cav_str( cav, "rule" ) == LDAP_SUCCESS &&
 		get_matching_rule( op, cav , &_ca->ca_ma_rule, text ) == LDAP_SUCCESS )) {
-		if ( op )
-			op->o_tmpfree( _ca, op->o_tmpmemctx );
-		else
-			free( _ca );
-		return LDAP_INAPPROPRIATE_MATCHING;
+		rc = LDAP_INAPPROPRIATE_MATCHING;
+		goto fail;
 	}
 	
 	if ( ( rc = strip_cav_str( cav,",") ) != LDAP_SUCCESS )
-		return rc;
+		goto fail;
 	if ( !(strip_cav_str( cav, "value" ) == LDAP_SUCCESS &&
 		get_matching_value( op, _ca, cav,&value ,text ) == LDAP_SUCCESS )) {
-		if ( op )
-			op->o_tmpfree( _ca, op->o_tmpmemctx );
-		else
-			free( _ca );
-		return LDAP_INVALID_SYNTAX;
+		rc = LDAP_INVALID_SYNTAX;
+		goto fail;
 	}
 
 	/*
@@ -1026,7 +1022,8 @@ get_item( Operation *op, ComponentAssertionValue* cav, ComponentAssertion** ca,
 			NULL, mr,
 			&value, &_ca->ca_ma_value, op->o_tmpmemctx );
 		if ( rc != LDAP_SUCCESS )
-			return rc;
+			goto fail;
+		freeval = 1;
 	}
 	else
 		_ca->ca_ma_value = value;
@@ -1034,7 +1031,8 @@ get_item( Operation *op, ComponentAssertionValue* cav, ComponentAssertion** ca,
 	 * Validate the value of this component assertion
 	 */
 	if ( op && mr->smr_syntax->ssyn_validate( mr->smr_syntax, &_ca->ca_ma_value) != LDAP_SUCCESS ) {
-		return LDAP_INVALID_SYNTAX;
+		rc = LDAP_INVALID_SYNTAX;
+		goto fail;
 	}
 
 
@@ -1044,13 +1042,8 @@ get_item( Operation *op, ComponentAssertionValue* cav, ComponentAssertion** ca,
 		bv.bv_val = cav->cav_ptr;
 		bv.bv_len = cav_cur_len( cav );
 		rc = get_comp_filter( op, &bv,(ComponentFilter**)&_ca->ca_cf, text );
-		if ( rc != LDAP_SUCCESS ) {
-			if ( op )
-				op->o_tmpfree( _ca, op->o_tmpmemctx );
-			else
-				free( _ca );
-			return rc;
-		}
+		if ( rc != LDAP_SUCCESS )
+			goto fail;
 		cav->cav_ptr = bv.bv_val;
 		assert( cav->cav_end >= bv.bv_val );
 	}

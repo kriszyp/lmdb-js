@@ -1361,7 +1361,10 @@ slap_open_listener(
 #endif /* LDAP_PF_LOCAL || SLAP_X_LISTENER_MOD */
 
 	ldap_free_urldesc( lud );
-	if ( err ) return -1;
+	if ( err ) {
+		slap_free_listener_addresses(sal);
+		return -1;
+	}
 
 	/* If we got more than one address returned, we need to make space
 	 * for it in the slap_listeners array.

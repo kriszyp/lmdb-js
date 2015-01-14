@@ -155,6 +155,7 @@ rewrite_subst_compile(
 			tmpsm = ( struct rewrite_submatch * )realloc( submatch,
 					sizeof( struct rewrite_submatch )*( nsub + 1 ) );
 			if ( tmpsm == NULL ) {
+				rewrite_map_destroy( &map );
 				goto cleanup;
 			}
 			submatch = tmpsm;
