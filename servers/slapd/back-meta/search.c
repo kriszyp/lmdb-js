@@ -251,6 +251,7 @@ retry:;
 		Debug( LDAP_DEBUG_ANY, "%s meta_search_dobind_init[%d] mc=%p: "
 			"empty dn with non-empty cred: error\n",
 			op->o_log_prefix, candidate, (void *)mc );
+		rc = LDAP_OTHER;
 		goto other;
 	}
 
@@ -335,7 +336,7 @@ down:;
 
 		if ( *mcp == NULL ) {
 			retcode = META_SEARCH_ERR;
-			rs->sr_err = LDAP_UNAVAILABLE;
+			rc = LDAP_UNAVAILABLE;
 			candidates[ candidate ].sr_msgid = META_MSGID_IGNORE;
 			break;
 		}
@@ -353,7 +354,6 @@ other:;
 			LDAP_BACK_CONN_TAINTED_SET( mc );
 			meta_back_release_conn_lock( mi, mc, 0 );
 			*mcp = NULL;
-			rs->sr_err = rc;
 
 			retcode = META_SEARCH_ERR;
 
