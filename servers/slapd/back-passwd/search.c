@@ -327,6 +327,7 @@ pw2entry( Backend *be, struct passwd *pw, Entry *e )
 	 */
 	if (pw->pw_gecos[0]) {
 		char *s;
+		char buf[1024];
 
 		ber_str2bv( pw->pw_gecos, 0, 0, &val );
 		attr_merge_normalize_one( e, ad_desc, &val, NULL );
@@ -336,8 +337,6 @@ pw2entry( Backend *be, struct passwd *pw, Entry *e )
 
 		s = ber_bvchr( &val, '&' );
 		if ( s ) {
-			char buf[1024];
-
 			if( val.bv_len + pwlen < sizeof(buf) ) {
 				int i = s - val.bv_val;
 				strncpy( buf, val.bv_val, i );
