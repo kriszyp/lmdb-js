@@ -304,6 +304,7 @@ register_supported_control2(const char *controloid,
 	if ( sc == NULL ) {
 		sc = (struct slap_control *)SLAP_MALLOC( sizeof( *sc ) );
 		if ( sc == NULL ) {
+			ber_bvarray_free( extendedopsbv );
 			return LDAP_NO_MEMORY;
 		}
 

@@ -1353,9 +1353,8 @@ slap_keepalive_parse(
 			s = ++next;
 		}
 
-		if ( s == '\0' ) {
+		if ( *s == '\0' ) {
 			sk2.sk_interval = 0;
-			s++;
 
 		} else {
 			sk2.sk_interval = strtol( s, &next, 10 );
