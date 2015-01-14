@@ -622,6 +622,7 @@ backsql_load_schema_map( backsql_info *bi, SQLHDBC dbh )
 			Debug( LDAP_DEBUG_TRACE, "backsql_load_schema_map(): "
 				"unable to parse id=\"%s\"\n", 
 				oc_row.cols[ 0 ], 0, 0 );
+			ch_free( oc_map );
 			return LDAP_OTHER;
 		}
 
