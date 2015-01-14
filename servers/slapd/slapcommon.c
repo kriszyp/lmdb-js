@@ -528,6 +528,7 @@ slap_tool_init(
 			case SLAPCAT:
 			case SLAPSCHEMA:
 				/* dump subtree */
+				ch_free( subtree );
 				subtree = ch_strdup( optarg );
 				break;
 			}

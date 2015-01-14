@@ -1648,6 +1648,7 @@ err_pr:;
 							|| META_BACK_ONERR_STOP( mi ) )
 						{
 							const char *save_text = rs->sr_text;
+got_err:
 							savepriv = op->o_private;
 							op->o_private = (void *)i;
 							rs->sr_text = candidates[ i ].sr_text;
@@ -1656,24 +1657,15 @@ err_pr:;
 							op->o_private = savepriv;
 							ldap_msgfree( res );
 							res = NULL;
+							ldap_controls_free( ctrls );
 							goto finish;
 						}
 						break;
 	
 					default:
 						candidates[ i ].sr_err = rs->sr_err;
-						if ( META_BACK_ONERR_STOP( mi ) ) {
-							const char *save_text = rs->sr_text;
-							savepriv = op->o_private;
-							op->o_private = (void *)i;
-							rs->sr_text = candidates[ i ].sr_text;
-							send_ldap_result( op, rs );
-							rs->sr_text = save_text;
-							op->o_private = savepriv;
-							ldap_msgfree( res );
-							res = NULL;
-							goto finish;
-						}
+						if ( META_BACK_ONERR_STOP( mi ) )
+							goto got_err;
 						break;
 					}
 	
