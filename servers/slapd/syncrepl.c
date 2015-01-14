@@ -1314,6 +1314,7 @@ do_syncrep2(
 							slap_sl_free( syncUUIDs, op->o_tmpmemctx );
 						}
 					}
+					rc = 0;
 					slap_sync_cookie_free( &syncCookie, 0 );
 					break;
 				default:
