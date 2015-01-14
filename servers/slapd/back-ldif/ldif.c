@@ -827,7 +827,6 @@ ldif_readdir(
 			if ( rs != NULL )
 				rs->sr_text =
 					save_errno != ENOENT ? "internal error (bad directory)"
-					: !is_rootDSE ? "internal error (missing directory)"
 					: "internal error (database directory does not exist)";
 		}
 

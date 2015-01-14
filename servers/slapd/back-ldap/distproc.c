@@ -423,7 +423,8 @@ distproc_ldadd( CfEntryInfo *p, Entry *e, ConfigArgs *ca )
 		Debug( LDAP_DEBUG_ANY, "slapd-distproc: "
 			"unable to init %sunderlying database \"%s\".\n",
 			lc->lc_common_li == NULL ? "common " : "", e->e_name.bv_val, 0 );
-		return LDAP_CONSTRAINT_VIOLATION;
+		rc = LDAP_CONSTRAINT_VIOLATION;
+		goto done;
 	}
 
 	li = ca->be->be_private;
