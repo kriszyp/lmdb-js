@@ -747,7 +747,6 @@ slap_sort_vals(
 				if ( match == 0 ) goto done;
 			}
 			if ( jstack == 0 ) break;
-			if ( match == 0 ) break;
 			ir = istack[jstack--];
 			l = istack[jstack--];
 		} else {
