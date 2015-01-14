@@ -815,6 +815,7 @@ entry_naming_check(
 				"value of naming attribute '%s' in unsupported BER form",
 				ava->la_attr.bv_val );
 			rc = LDAP_NAMING_VIOLATION;
+			break;
 		}
 
 		rc = slap_bv2ad( &ava->la_attr, &desc, &errtext );
