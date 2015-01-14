@@ -910,7 +910,7 @@ do_syncrep2(
 			}
 			punlock = -1;
 			if ( ber_peek_tag( ber, &len ) == LDAP_TAG_SYNC_COOKIE ) {
-				ber_scanf( ber, /*"{"*/ "m}", &cookie );
+				if ( ber_scanf( ber, /*"{"*/ "m}", &cookie ) != LBER_ERROR ) {
 
 				Debug( LDAP_DEBUG_SYNC, "do_syncrep2: %s cookie=%s\n",
 					si->si_ridtxt,
@@ -994,6 +994,7 @@ do_syncrep2(
 						goto done;
 					}
 					op->o_controls[slap_cids.sc_LDAPsync] = &syncCookie;
+				}
 				}
 			}
 			rc = 0;

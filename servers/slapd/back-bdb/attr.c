@@ -212,6 +212,10 @@ bdb_attr_index_config(
 				fprintf( stderr, "%s: line %d: %s\n",
 					fname, lineno, c_reply->msg );
 			}
+fail:
+#ifdef LDAP_COMP_MATCH
+			ch_free( cr );
+#endif
 			goto done;
 		}
 
@@ -223,7 +227,7 @@ bdb_attr_index_config(
 					fname, lineno, c_reply->msg );
 			}
 			rc = LDAP_UNWILLING_TO_PERFORM;
-			goto done;
+			goto fail;
 		}
 
 		if( IS_SLAP_INDEX( mask, SLAP_INDEX_APPROX ) && !(
@@ -238,7 +242,7 @@ bdb_attr_index_config(
 					fname, lineno, c_reply->msg );
 			}
 			rc = LDAP_INAPPROPRIATE_MATCHING;
-			goto done;
+			goto fail;
 		}
 
 		if( IS_SLAP_INDEX( mask, SLAP_INDEX_EQUALITY ) && !(
@@ -253,7 +257,7 @@ bdb_attr_index_config(
 					fname, lineno, c_reply->msg );
 			}
 			rc = LDAP_INAPPROPRIATE_MATCHING;
-			goto done;
+			goto fail;
 		}
 
 		if( IS_SLAP_INDEX( mask, SLAP_INDEX_SUBSTR ) && !(
@@ -268,7 +272,7 @@ bdb_attr_index_config(
 					fname, lineno, c_reply->msg );
 			}
 			rc = LDAP_INAPPROPRIATE_MATCHING;
-			goto done;
+			goto fail;
 		}
 
 		Debug( LDAP_DEBUG_CONFIG, "index %s 0x%04lx\n",
@@ -303,7 +307,7 @@ bdb_attr_index_config(
 				if ( rc != LDAP_SUCCESS) {
 					fprintf( stderr, " error during inserting component reference in %s ", attrs[i]);
 					rc = LDAP_PARAM_ERROR;
-					goto done;
+					goto fail;
 				}
 				continue;
 			} else {
@@ -311,7 +315,8 @@ bdb_attr_index_config(
 				if ( rc != LDAP_SUCCESS) {
 					fprintf( stderr, " error during inserting component reference in %s ", attrs[i]);
 					rc = LDAP_PARAM_ERROR;
-					goto done;
+					ch_free( a );
+					goto fail;
 				}
 			}
 		}

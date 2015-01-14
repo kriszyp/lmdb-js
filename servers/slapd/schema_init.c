@@ -2680,8 +2680,10 @@ integerIndexer(
 				itmp.bv_len = maxstrlen;
 		}
 		rc = integerVal2Key( &values[i], &keys[i], &itmp, ctx );
-		if ( rc )
+		if ( rc ) {
+			slap_sl_free( keys, ctx );
 			goto func_leave;
+		}
 	}
 	*keysp = keys;
 func_leave:
@@ -2728,12 +2730,16 @@ integerFilter(
 	}
 
 	rc = integerVal2Key( value, keys, &iv, ctx );
-	if ( rc == 0 )
-		*keysp = keys;
 
 	if ( iv.bv_val != ibuf ) {
 		slap_sl_free( iv.bv_val, ctx );
 	}
+
+	if ( rc == 0 )
+		*keysp = keys;
+	else
+		slap_sl_free( keys, ctx );
+
 	return rc;
 }
 

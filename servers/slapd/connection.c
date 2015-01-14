@@ -669,8 +669,6 @@ connection_destroy( Connection *c )
 
 	sd = c->c_sd;
 	c->c_sd = AC_SOCKET_INVALID;
-	c->c_conn_state = SLAP_C_INVALID;
-	c->c_struct_state = SLAP_C_UNUSED;
 	c->c_close_reason = "?";			/* should never be needed */
 
 	sb = c->c_sb;
@@ -679,6 +677,8 @@ connection_destroy( Connection *c )
 		ber_len_t max = sockbuf_max_incoming;
 		ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_SET_MAX_INCOMING, &max );
 	}
+	c->c_conn_state = SLAP_C_INVALID;
+	c->c_struct_state = SLAP_C_UNUSED;
 
 	/* c must be fully reset by this point; when we call slapd_remove
 	 * it may get immediately reused by a new connection.
@@ -1242,8 +1242,6 @@ void connection_client_stop(
 	assert( c->c_conn_state == SLAP_C_CLIENT );
 
 	c->c_listener = NULL;
-	c->c_conn_state = SLAP_C_INVALID;
-	c->c_struct_state = SLAP_C_UNUSED;
 	c->c_sd = AC_SOCKET_INVALID;
 	c->c_close_reason = "?";			/* should never be needed */
 	sb = c->c_sb;
@@ -1252,6 +1250,8 @@ void connection_client_stop(
 		ber_len_t max = sockbuf_max_incoming;
 		ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_SET_MAX_INCOMING, &max );
 	}
+	c->c_conn_state = SLAP_C_INVALID;
+	c->c_struct_state = SLAP_C_UNUSED;
 	slapd_remove( s, sb, 0, 1, 0 );
 
 	connection_return( c );
