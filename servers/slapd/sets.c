@@ -358,7 +358,7 @@ done:;
 
 done2:;
 	if ( LogTest( LDAP_DEBUG_ACL ) ) {
-		if ( BER_BVISNULL( set ) ) {
+		if ( !set || BER_BVISNULL( set ) ) {
 			Debug( LDAP_DEBUG_ACL, "  ACL set: empty\n", 0, 0, 0 );
 
 		} else {
