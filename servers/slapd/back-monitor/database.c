@@ -216,6 +216,14 @@ monitor_subsys_database_init_one(
 
 	bi = be->bd_info;
 
+	if ( be->be_suffix == NULL ) {
+		Debug( LDAP_DEBUG_ANY,
+			"monitor_subsys_database_init_one: "
+			"missing suffix for %s\n",
+			rdnval, 0, 0 );
+		return( -1 );
+	}
+
 	if ( overlay_is_over( be ) ) {
 		oi = (slap_overinfo *)be->bd_info->bi_private;
 		bi = oi->oi_orig;
@@ -245,17 +253,10 @@ monitor_subsys_database_init_one(
 				be->be_suffix, be->be_nsuffix );
 
 	} else {
-		if ( be->be_suffix == NULL ) {
-			Debug( LDAP_DEBUG_ANY,
-				"monitor_subsys_database_init_one: "
-				"missing suffix for %s\n",
-				rdnval, 0, 0 );
-		} else {
-			attr_merge( e, slap_schema.si_ad_namingContexts,
-				be->be_suffix, NULL );
-			attr_merge( e_database, slap_schema.si_ad_namingContexts,
-				be->be_suffix, NULL );
-		}
+		attr_merge( e, slap_schema.si_ad_namingContexts,
+			be->be_suffix, NULL );
+		attr_merge( e_database, slap_schema.si_ad_namingContexts,
+			be->be_suffix, NULL );
 
 		if ( SLAP_GLUE_SUBORDINATE( be ) ) {
 			BackendDB *sup_be = select_backend( &be->be_nsuffix[ 0 ], 1 );
