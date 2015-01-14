@@ -455,8 +455,11 @@ ftemp_attrs( struct berval *ftemp, struct berval *template,
 			*t1++ = *p1++;
 
 		p2 = strchr( p1, '=' );
-		if ( !p2 )
+		if ( !p2 ) {
+			if ( !descs )
+				return -1;
 			break;
+		}
 		i = p2 - p1;
 		AC_MEMCPY( t1, p1, i );
 		t1 += i;

@@ -980,16 +980,6 @@ constraint_update( Operation *op, SlapReply *rs )
 	/* Do we need to count attributes? */
 	for(cp = c; cp; cp = cp->ap_next) {
 		if (cp->type == CONSTRAINT_COUNT) {
-			if (rc != 0 || target_entry == NULL) {
-				Debug(LDAP_DEBUG_TRACE, 
-					"==> constraint_update rc = %d DN=\"%s\"%s\n",
-					rc, op->o_req_ndn.bv_val,
-					target_entry ? "" : " not found" );
-				if ( rc == 0 ) 
-					rc = LDAP_CONSTRAINT_VIOLATION;
-				goto mod_violation;
-			}
-
 			if (cp->restrict_lud && constraint_check_restrict(op, cp, target_entry) == 0) {
 				continue;
 			}
