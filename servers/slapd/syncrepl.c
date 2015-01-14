@@ -1297,19 +1297,21 @@ do_syncrep2(
 						ber_scanf( ber, "b", &refreshDeletes );
 					}
 					syncUUIDs = NULL;
-					ber_scanf( ber, "[W]", &syncUUIDs );
+					rc = ber_scanf( ber, "[W]", &syncUUIDs );
 					ber_scanf( ber, /*"{"*/ "}" );
-					if ( refreshDeletes ) {
-						syncrepl_del_nonpresent( op, si, syncUUIDs,
-							&syncCookie, m );
-						ber_bvarray_free_x( syncUUIDs, op->o_tmpmemctx );
-					} else {
-						int i;
-						for ( i = 0; !BER_BVISNULL( &syncUUIDs[i] ); i++ ) {
-							(void)avl_presentlist_insert( si, &syncUUIDs[i] );
-							slap_sl_free( syncUUIDs[i].bv_val, op->o_tmpmemctx );
+					if ( rc != LBER_ERROR ) {
+						if ( refreshDeletes ) {
+							syncrepl_del_nonpresent( op, si, syncUUIDs,
+								&syncCookie, m );
+							ber_bvarray_free_x( syncUUIDs, op->o_tmpmemctx );
+						} else {
+							int i;
+							for ( i = 0; !BER_BVISNULL( &syncUUIDs[i] ); i++ ) {
+								(void)avl_presentlist_insert( si, &syncUUIDs[i] );
+								slap_sl_free( syncUUIDs[i].bv_val, op->o_tmpmemctx );
+							}
+							slap_sl_free( syncUUIDs, op->o_tmpmemctx );
 						}
-						slap_sl_free( syncUUIDs, op->o_tmpmemctx );
 					}
 					slap_sync_cookie_free( &syncCookie, 0 );
 					break;
