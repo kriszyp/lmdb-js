@@ -420,12 +420,12 @@ static int translucent_modify(Operation *op, SlapReply *rs) {
 	op->o_bd = &ov->db;
 	ov->db.be_acl = op->o_bd->be_acl;
 	rc = ov->db.bd_info->bi_entry_get_rw(op, &op->o_req_ndn, NULL, NULL, 0, &re);
+	op->o_bd = db;
 	if(rc != LDAP_SUCCESS || re == NULL ) {
 		send_ldap_error((op), rs, LDAP_NO_SUCH_OBJECT,
 			"attempt to modify nonexistent local record");
 		return(rs->sr_err);
 	}
-	op->o_bd = db;
 /*
 ** fetch entry from local backend;
 ** if it exists:
@@ -788,7 +788,7 @@ static int translucent_search_cb(Operation *op, SlapReply *rs) {
 	if ( rs->sr_type == REP_RESULT && ( tc->step & USE_LIST ))
 		return 0;
 
-	if(!op || !rs || rs->sr_type != REP_SEARCH || !rs->sr_entry)
+	if(rs->sr_type != REP_SEARCH || !rs->sr_entry)
 		return(SLAP_CB_CONTINUE);
 
 	Debug(LDAP_DEBUG_TRACE, "==> translucent_search_cb: %s\n",
