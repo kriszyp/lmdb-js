@@ -346,7 +346,7 @@ mdb_modrdn( Operation	*op, SlapReply *rs )
 				rs->sr_err = LDAP_OTHER;
 				goto return_results;
 			}
-			new_parent_dn = &np->e_name;
+			np_dn = &np->e_name;
 
 		} else {
 			np_dn = NULL;

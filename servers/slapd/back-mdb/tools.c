@@ -383,10 +383,6 @@ mdb_tool_entry_get_int( BackendDB *be, ID id, Entry **ep )
 		rc = mdb_id2name( &op, mdb_tool_txn, &idcursor, id, &dn, &ndn );
 		if ( rc  ) {
 			rc = LDAP_OTHER;
-			if ( e ) {
-				mdb_entry_return( &op, e );
-				e = NULL;
-			}
 			goto done;
 		}
 		if ( tool_base != NULL ) {
@@ -610,7 +606,7 @@ mdb_tool_index_add(
 static int
 mdb_tool_index_finish()
 {
-	int i, rc;
+	int i, rc = 0;
 	ldap_pvt_thread_mutex_lock( &mdb_tool_index_mutex );
 	for ( i=1; i<mdb_tool_threads; i++ ) {
 		if ( mdb_tool_index_rec[i].ir_i == LDAP_BUSY ) {
