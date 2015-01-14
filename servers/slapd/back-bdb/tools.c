@@ -832,6 +832,11 @@ int bdb_tool_entry_reindex(
 		return -1;
 	}
 
+	op.o_hdr = &ohdr;
+	op.o_bd = be;
+	op.o_tmpmemctx = NULL;
+	op.o_tmpmfuncs = &ch_mfuncs;
+
 	if (! (slapMode & SLAP_TOOL_QUICK)) {
 	rc = TXN_BEGIN( bi->bi_dbenv, NULL, &tid, bi->bi_db_opflags );
 	if( rc != 0 ) {
@@ -855,11 +860,6 @@ int bdb_tool_entry_reindex(
 	Debug( LDAP_DEBUG_TRACE,
 		"=> " LDAP_XSTRING(bdb_tool_entry_reindex) "( %ld, \"%s\" )\n",
 		(long) id, e->e_dn, 0 );
-
-	op.o_hdr = &ohdr;
-	op.o_bd = be;
-	op.o_tmpmemctx = NULL;
-	op.o_tmpmfuncs = &ch_mfuncs;
 
 	rc = bdb_tool_index_add( &op, tid, e );
 

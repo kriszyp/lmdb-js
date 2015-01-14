@@ -228,7 +228,7 @@ dnssrv_back_search(
 		send_ldap_result( op, rs );
 	}
 
-	if ( refdn ) free( refdn );
+	free( refdn );
 	if ( nrefdn.bv_val ) free( nrefdn.bv_val );
 
 done:
