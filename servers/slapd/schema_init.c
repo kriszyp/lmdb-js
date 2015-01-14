@@ -3315,6 +3315,7 @@ serialNumberAndIssuerCheck(
 					}
 					if ( is->bv_val[is->bv_len+1] == '"' ) {
 						/* double dquote */
+						numdquotes++;
 						is->bv_len += 2;
 						continue;
 					}
@@ -3892,6 +3893,7 @@ issuerAndThisUpdateCheck(
 				}
 				if ( is->bv_val[is->bv_len+1] == '"' ) {
 					/* double dquote */
+					numdquotes++;
 					is->bv_len += 2;
 					continue;
 				}
@@ -4434,6 +4436,7 @@ serialNumberAndIssuerSerialCheck(
 						}
 						if ( is->bv_val[is->bv_len + 1] == '"' ) {
 							/* double dquote */
+							numdquotes++;
 							is->bv_len += 2;
 							continue;
 						}
