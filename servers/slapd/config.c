@@ -2010,7 +2010,7 @@ slap_client_connect( LDAP **ldp, slap_bindconf *sb )
 			"slap_client_connect: "
 			"URI=%s TLS context initialization failed (%d)\n",
 			sb->sb_uri.bv_val, rc, 0 );
-		return rc;
+		goto done;
 	}
 #endif
 
