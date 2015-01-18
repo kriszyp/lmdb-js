@@ -201,6 +201,7 @@ main( int argc, char **argv )
 
 		case 'h':		/* the servers host */
 			host = strdup( optarg );
+			break;
 
 		case 'i':
 			tester_ignore_str2errlist( optarg );
