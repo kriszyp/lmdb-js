@@ -457,8 +457,13 @@ ftemp_attrs( struct berval *ftemp, struct berval *template,
 			*t1++ = *p1++;
 
 		p2 = strchr( p1, '=' );
-		if ( !p2 )
+		if ( !p2 ) {
+			if ( !descs ) {
+				ch_free( temp2 );
+				return -1;
+			}
 			break;
+		}
 		i = p2 - p1;
 		AC_MEMCPY( t1, p1, i );
 		t1 += i;
@@ -470,6 +475,7 @@ ftemp_attrs( struct berval *ftemp, struct berval *template,
 		ad = NULL;
 		i = slap_bv2ad( &bv, &ad, text );
 		if ( i ) {
+			ch_free( temp2 );
 			ch_free( descs );
 			return -1;
 		}
@@ -565,6 +571,7 @@ bottom:
 	}
 	if ( !t_cnt ) {
 		*text = "couldn't parse template";
+		ch_free(attrs);
 		return -1;
 	}
 	if ( !got_oc && !( set->flags & PC_GOT_OC )) {
