@@ -183,7 +183,8 @@ deref_parseCtrl (
 		ber_len_t cnt = sizeof(struct berval);
 		ber_len_t off = 0;
 
-		if ( ber_scanf( ber, "{m{M}}", &derefAttr, &attributes, &cnt, off ) == LBER_ERROR )
+		if ( ber_scanf( ber, "{m{M}}", &derefAttr, &attributes, &cnt, off ) == LBER_ERROR
+			|| !cnt )
 		{
 			rs->sr_text = "Dereference control: derefSpec decoding error";
 			rs->sr_err = LDAP_PROTOCOL_ERROR;
