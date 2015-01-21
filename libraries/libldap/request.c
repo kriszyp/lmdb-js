@@ -507,6 +507,13 @@ ldap_new_connection( LDAP *ld, LDAPURLDesc **srvlist, int use_ldsb,
 		}
 
 		lc->lconn_server = ldap_url_dup( srv );
+		if ( !lc->lconn_server ) {
+			if ( !use_ldsb )
+				ber_sockbuf_free( lc->lconn_sb );
+			LDAP_FREE( (char *)lc );
+			ld->ld_errno = LDAP_NO_MEMORY;
+			return( NULL );
+		}
 	}
 
 	lc->lconn_status = async ? LDAP_CONNST_CONNECTING : LDAP_CONNST_CONNECTED;
