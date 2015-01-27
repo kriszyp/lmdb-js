@@ -15,6 +15,7 @@ OpenLDAP 2.4.41 Engineering
 	Fixed slapd-mdb crash after deleting in-use schema (ITS#7995)
 	Fixed slapd-mdb minor code cleanup (ITS#8011)
 	Fixed slapd-mdb to return errors when using incorrect env flags (ITS#8016)
+	Fixed slapd-mdb to correctly update search candidates (ITS#8036, ITS#7904)
 	Fixed slapd-meta TLS initialization with ldaps URIs (ITS#8022)
 	Fixed slapo-collect segfault (ITS#7797)
 	Fixed slapo-constraint with 0 count constraint (ITS#7780,ITS#7781)
