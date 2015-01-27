@@ -358,15 +358,27 @@ mdb_writewait( Operation *op, slap_callback *sc )
 }
 
 static int
-mdb_waitfixup( Operation *op, ww_ctx *ww, MDB_cursor *mci, MDB_cursor *mcd )
+mdb_waitfixup( Operation *op, ww_ctx *ww, MDB_cursor *mci, MDB_cursor *mcd, ID2 *scopes )
 {
 	int rc = 0;
 	ww->flag = 0;
 	mdb_txn_renew( ww->txn );
 	mdb_cursor_renew( ww->txn, mci );
 	mdb_cursor_renew( ww->txn, mcd );
+
+	if ( scopes[0].mid > 1 ) {
+		MDB_val key;
+		int i;
+		key.mv_size = sizeof(ID);
+		for ( i=1; i<scopes[0].mid; i++ ) {
+			key.mv_data = &scopes[i].mid;
+			mdb_cursor_get( mcd, &key, &scopes[i].mval, MDB_SET );
+		}
+	}
+
 	if ( ww->mcd ) {
 		MDB_val key, data;
+
 		key.mv_size = sizeof(ID);
 		key.mv_data = &ww->key;
 		data = ww->data;
@@ -1035,7 +1047,7 @@ notfound:
 			rs->sr_ref = NULL;
 
 			if ( wwctx.flag ) {
-				rs->sr_err = mdb_waitfixup( op, &wwctx, mci, mcd );
+				rs->sr_err = mdb_waitfixup( op, &wwctx, mci, mcd, scopes );
 				if ( rs->sr_err ) {
 					send_ldap_result( op, rs );
 					goto done;
@@ -1097,7 +1109,7 @@ notfound:
 					goto done;
 				}
 				if ( wwctx.flag ) {
-					rs->sr_err = mdb_waitfixup( op, &wwctx, mci, mcd );
+					rs->sr_err = mdb_waitfixup( op, &wwctx, mci, mcd, scopes );
 					if ( rs->sr_err ) {
 						send_ldap_result( op, rs );
 						goto done;
