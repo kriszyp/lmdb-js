@@ -371,6 +371,8 @@ mdb_waitfixup( Operation *op, ww_ctx *ww, MDB_cursor *mci, MDB_cursor *mcd, ID2 
 		int i;
 		key.mv_size = sizeof(ID);
 		for ( i=1; i<scopes[0].mid; i++ ) {
+			if ( !scopes[i].mval.mv_size )
+				continue;
 			key.mv_data = &scopes[i].mid;
 			mdb_cursor_get( mcd, &key, &scopes[i].mval, MDB_SET );
 		}
