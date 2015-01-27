@@ -713,6 +713,7 @@ do_syncrep1(
 			ldap_pvt_thread_mutex_unlock( &si->si_cookieState->cs_mutex );
 		}
 
+		ch_free( si->si_syncCookie.octet_str.bv_val );
 		slap_compose_sync_cookie( NULL, &si->si_syncCookie.octet_str,
 			si->si_syncCookie.ctxcsn, si->si_syncCookie.rid,
 			si->si_syncCookie.sid );
@@ -2898,6 +2899,7 @@ retry_add:;
 					/* Something's wrong, start over */
 					ber_bvarray_free( si->si_syncCookie.ctxcsn );
 					si->si_syncCookie.ctxcsn = NULL;
+					entry_free( entry );
 					ldap_pvt_thread_mutex_lock( &si->si_cookieState->cs_mutex );
 					ber_bvarray_free( si->si_cookieState->cs_vals );
 					ch_free( si->si_cookieState->cs_sids );
