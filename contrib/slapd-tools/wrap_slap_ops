@@ -63,7 +63,7 @@ sub file_result( $$ ) {
 }
 
 END {
-	print STDERR <<EOMSG;
+	print STDERR <<EOMSG if defined $ccnt;
 $ccnt files to change. $rcnt suspicious lines remain. (Expect three in slapd).
 EOMSG
 }
@@ -95,7 +95,7 @@ s%(	                            # 1: entire match: "<delim><function>("
 
 # (&x->bi_op_bind)[which](op, rs)  ==>  slap_bi_op(x, which, op, rs)
 #    (&x->be_bind)[which](op, rs)  ==>  slap_be_op(x, which, op, rs)
-s/\(&(\w+)->b(?=([ei]))(?:e|i_op)_bind\)\[\s* (\w+) \s*\] \((\s*) ([^()]*)\)
+s/\(&(\w+(?:(?:->|\.)\w+)*)->b(?=([ei]))(?:e|i_op)_bind\)\[\s* (\w+) \s*\] \((\s*) ([^()]*)\)
  /slap_b$2_op($4$1, $3, $5)/gox;
 
 # slap_bi_op(x->bd_info, which, op, rs)  ==>  slap_be_op( x, which, op, rs)
