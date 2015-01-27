@@ -763,7 +763,8 @@ mdb_idscopes(
 				int i;
 				for ( i = 1; i <= isc->sctmp[0].mid; i++ ) {
 					rc = mdb_id2l_insert( isc->scopes, &isc->sctmp[i] );
-					assert(rc == 0);
+					if ( rc )
+						break;
 				}
 				/* check id again since inserts may have changed its position */
 				if ( isc->scopes[x].mid != id )
