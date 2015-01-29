@@ -16,3 +16,14 @@ ITS#7926 - [18:19] <hyc> this is going to be a WONTFIX for 2.4, I think
 
 [10:22] <hyc> and rewriting Bind and Exop result handling
 [10:22] <hyc> so that it's no longer a special case for overlays
+
+[23:34] <hyc> ok, so far heap profile shows that memory use during refresh is normal
+[23:35] <hyc> not wonderful, but normal. mem usage grows because we're recording the present list while receiving entries in the refresh
+[23:36] <hyc> I'm seeing for 1.2GB of data about 235MB of presentlist
+[23:36] <hyc> which is pretty awful, considering presentlist is just a list of UUIDs
+[23:36] <hyc> being stored in an avl tree
+[23:37] <hyc> a btree would have been better here, and we could just use an unsorted segmented array
+[23:42] <hyc> for the accumulation phase anyway. we need to be able to lookup records during the delete pphase
+[00:05] <hyc> this stuff seriously needs a rewrite
+[01:13] <hyc> 2.8M records x 16 bytes per uuid so this should be no more than 48MB of overhead
+[01:13] <hyc> and instead it's 3-400MB
