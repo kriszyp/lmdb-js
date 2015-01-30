@@ -23,6 +23,7 @@ OpenLDAP 2.4.41 Engineering
 	Fixed slapo-deref with empty attribute list (ITS#8027)
 	Fixed slapo-syncprov synprov_matchops usage of test_filter (ITS#8013)
 	Fixed slapo-syncprov segfault on disconnect/abandon (ITS#5452,ITS#8012)
+	Fixed slapo-syncprov memory leak (ITS#8039)
 	Build Environment
 		Enhanced contrib modules build paths (ITS#7782)
 		Fixed contrib/autogroup internal operation identity (ITS#8006)
