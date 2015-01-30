@@ -2781,11 +2781,11 @@ presentlist_delete(
 	struct berval *val )
 {
 #ifdef HASHUUID
-	Avlnode **a2 = (Avlnode **)av;
+	Avlnode **a2 = *(Avlnode ***)av;
 	unsigned short s;
 
 	memcpy(&s, val->bv_val, 2);
-	return avl_delete( a2[s], val->bv_val+2, syncuuid_cmp );
+	avl_delete( &a2[s], val->bv_val+2, syncuuid_cmp );
 #else
 	avl_delete( av, val->bv_val, syncuuid_cmp );
 #endif
