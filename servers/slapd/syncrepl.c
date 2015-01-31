@@ -2764,11 +2764,13 @@ presentlist_free( Avlnode *av )
 	Avlnode **a2 = (Avlnode **)av;
 	int i, count = 0;
 
-	for (i=0; i<65536; i++) {
-		if (a2[i])
-			count += avl_free( a2[i], ch_free );
+	if ( av ) {
+		for (i=0; i<65536; i++) {
+			if (a2[i])
+				count += avl_free( a2[i], ch_free );
+		}
+		ch_free( av );
 	}
-	ch_free( av );
 	return count;
 #else
 	return avl_free( av, ch_free );
