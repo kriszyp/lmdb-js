@@ -1030,6 +1030,8 @@ syncprov_qresp( opcookie *opc, syncops *so, int mode )
 			a = attr_find( opc->se->e_attrs, slap_schema.si_ad_entryUUID );
 			if ( a )
 				ri->ri_uuid = a->a_nvals[0];
+			else
+				ri->ri_uuid.bv_len = 0;
 			if ( csn.bv_len ) {
 				ri->ri_csn.bv_val = (char *)(ri + 1);
 				ri->ri_csn.bv_len = csn.bv_len;
@@ -1055,6 +1057,8 @@ syncprov_qresp( opcookie *opc, syncops *so, int mode )
 				ri->ri_csn.bv_val = ri->ri_uuid.bv_val + ri->ri_uuid.bv_len;
 				memcpy( ri->ri_csn.bv_val, csn.bv_val, csn.bv_len );
 				ri->ri_csn.bv_val[csn.bv_len] = '\0';
+			} else {
+				ri->ri_csn.bv_val = NULL;
 			}
 		}
 		ri->ri_list = &opc->ssres;
