@@ -1176,7 +1176,7 @@ do_syncrep2(
 				{
 					syncrepl_del_nonpresent( op, si, NULL,
 						&syncCookie, m );
-				} else {
+				} else if ( si->si_presentlist ) {
 					presentlist_free( si->si_presentlist );
 					si->si_presentlist = NULL;
 				}
