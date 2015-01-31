@@ -69,6 +69,7 @@ typedef struct syncres {
 /* Record of a persistent search */
 typedef struct syncops {
 	struct syncops *s_next;
+	struct syncprov_info_t *s_si;
 	struct berval	s_base;		/* ndn of search base */
 	ID		s_eid;		/* entryID of search base */
 	Operation	*s_op;		/* search op */
@@ -789,7 +790,7 @@ static void free_resinfo( syncres *sr )
 }
 
 static int
-syncprov_free_syncop( syncops *so )
+syncprov_free_syncop( syncops *so, int unlink )
 {
 	syncres *sr, *srnext;
 	GroupAssertion *ga, *gnext;
@@ -801,6 +802,17 @@ syncprov_free_syncop( syncops *so )
 		return 0;
 	}
 	ldap_pvt_thread_mutex_unlock( &so->s_mutex );
+	if ( unlink ) {
+		syncops **sop;
+		ldap_pvt_thread_mutex_lock( &so->s_si->si_ops_mutex );
+		for ( sop = &so->s_si->si_ops; *sop; sop = &(*sop)->s_next ) {
+			if ( *sop == so ) {
+				*sop = so->s_next;
+				break;
+			}
+		}
+		ldap_pvt_thread_mutex_unlock( &so->s_si->si_ops_mutex );
+	}
 	if ( so->s_flags & PS_IS_DETACHED ) {
 		filter_free( so->s_op->ors_filter );
 		for ( ga = so->s_op->o_groups; ga; ga=gnext ) {
@@ -987,7 +999,7 @@ syncprov_qtask( void *ctx, void *arg )
 	rc = syncprov_qplay( op, so );
 
 	/* decrement use count... */
-	syncprov_free_syncop( so );
+	syncprov_free_syncop( so, 1 );
 
 	return NULL;
 }
@@ -1114,7 +1126,7 @@ syncprov_drop_psearch( syncops *so, int lock )
 		if ( lock )
 			ldap_pvt_thread_mutex_unlock( &so->s_op->o_conn->c_mutex );
 	}
-	return syncprov_free_syncop( so );
+	return syncprov_free_syncop( so, 0 );
 }
 
 static int
@@ -1132,15 +1144,15 @@ syncprov_op_abandon( Operation *op, SlapReply *rs )
 {
 	slap_overinst		*on = (slap_overinst *)op->o_bd->bd_info;
 	syncprov_info_t		*si = on->on_bi.bi_private;
-	syncops *so, *soprev;
+	syncops *so = NULL, **sop;
 
 	ldap_pvt_thread_mutex_lock( &si->si_ops_mutex );
-	for ( so=si->si_ops, soprev = (syncops *)&si->si_ops; so;
-		soprev=so, so=so->s_next ) {
+	for ( sop=&si->si_ops; *sop; sop = &(*sop)->s_next ) {
+		so = *sop;
 		if ( so->s_op->o_connid == op->o_connid &&
 			so->s_op->o_msgid == op->orn_msgid ) {
 				so->s_op->o_abandon = 1;
-				soprev->s_next = so->s_next;
+				*sop = so->s_next;
 				break;
 		}
 	}
@@ -1348,7 +1360,7 @@ syncprov_matchops( Operation *op, opcookie *opc, int saveit )
 			 * with saveit == TRUE
 			 */
 			snext = ss->s_next;
-			if ( syncprov_free_syncop( ss ) ) {
+			if ( syncprov_free_syncop( ss, 0 ) ) {
 				*pss = snext;
 				gonext = 0;
 			}
@@ -1393,7 +1405,7 @@ syncprov_op_cleanup( Operation *op, SlapReply *rs )
 
 	for (sm = opc->smatches; sm; sm=snext) {
 		snext = sm->sm_next;
-		syncprov_free_syncop( sm->sm_op );
+		syncprov_free_syncop( sm->sm_op, 1 );
 		op->o_tmpfree( sm, op->o_tmpmemctx );
 	}
 
@@ -2500,6 +2512,7 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 			ldap_pvt_thread_mutex_lock( &si->si_ops_mutex );
 		}
 		sop->s_next = si->si_ops;
+		sop->s_si = si;
 		si->si_ops = sop;
 		ldap_pvt_thread_mutex_unlock( &si->si_ops_mutex );
 	}
