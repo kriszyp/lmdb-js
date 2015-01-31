@@ -55,6 +55,7 @@ typedef struct resinfo {
 	struct berval ri_ndn;
 	struct berval ri_uuid;
 	struct berval ri_csn;
+	struct berval ri_cookie;
 	char ri_isref;
 	ldap_pvt_thread_mutex_t ri_mutex;
 } resinfo;
@@ -783,6 +784,8 @@ static void free_resinfo( syncres *sr )
 		ldap_pvt_thread_mutex_destroy( &sr->s_info->ri_mutex );
 		if ( sr->s_info->ri_e )
 			entry_free( sr->s_info->ri_e );
+		if ( !BER_BVISNULL( &sr->s_info->ri_cookie ))
+			ch_free( sr->s_info->ri_cookie.bv_val );
 		ch_free( sr->s_info );
 	}
 }
@@ -920,7 +923,7 @@ syncprov_qplay( Operation *op, syncops *so )
 				SlapReply rs = { REP_INTERMEDIATE };
 
 				rc = syncprov_sendinfo( op, &rs, LDAP_TAG_SYNC_NEW_COOKIE,
-					&sr->s_info->ri_csn, 0, NULL, 0 );
+					&sr->s_info->ri_cookie, 0, NULL, 0 );
 			} else {
 				rc = syncprov_sendresp( op, sr->s_info, so, sr->s_mode );
 			}
@@ -1008,14 +1011,7 @@ syncprov_qresp( opcookie *opc, syncops *so, int mode )
 	syncres *sr;
 	resinfo *ri;
 	int srsize;
-	struct berval cookie = opc->sctxcsn;
-
-	if ( mode == LDAP_SYNC_NEW_COOKIE ) {
-		syncprov_info_t	*si = opc->son->on_bi.bi_private;
-
-		slap_compose_sync_cookie( NULL, &cookie, si->si_ctxcsn,
-			so->s_rid, slap_serverID ? slap_serverID : -1);
-	}
+	struct berval csn = opc->sctxcsn;
 
 	sr = ch_malloc( sizeof( syncres ));
 	sr->s_next = NULL;
@@ -1023,16 +1019,10 @@ syncprov_qresp( opcookie *opc, syncops *so, int mode )
 	if ( !opc->ssres.s_info ) {
 
 		srsize = sizeof( resinfo );
-		if ( cookie.bv_len )
-			srsize += cookie.bv_len + 1;
-		if ( mode == LDAP_SYNC_NEW_COOKIE ) {
-			ri = ch_malloc( srsize );
-			ri->ri_csn.bv_val = (char *)(ri + 1);
-			memcpy( ri->ri_csn.bv_val, cookie.bv_val, cookie.bv_len );
-			ri->ri_csn.bv_val[cookie.bv_len] = '\0';
-			ch_free( cookie.bv_val );
+		if ( csn.bv_len )
+			srsize += csn.bv_len + 1;
 
-		} else if ( opc->se ) {
+		if ( opc->se ) {
 			Attribute *a;
 			ri = ch_malloc( srsize );
 			ri->ri_dn = opc->se->e_name;
@@ -1040,11 +1030,11 @@ syncprov_qresp( opcookie *opc, syncops *so, int mode )
 			a = attr_find( opc->se->e_attrs, slap_schema.si_ad_entryUUID );
 			if ( a )
 				ri->ri_uuid = a->a_nvals[0];
-			if ( cookie.bv_len ) {
+			if ( csn.bv_len ) {
 				ri->ri_csn.bv_val = (char *)(ri + 1);
-				ri->ri_csn.bv_len = cookie.bv_len;
-				memcpy( ri->ri_csn.bv_val, cookie.bv_val, cookie.bv_len );
-				ri->ri_csn.bv_val[cookie.bv_len] = '\0';
+				ri->ri_csn.bv_len = csn.bv_len;
+				memcpy( ri->ri_csn.bv_val, csn.bv_val, csn.bv_len );
+				ri->ri_csn.bv_val[csn.bv_len] = '\0';
 			} else {
 				ri->ri_csn.bv_val = NULL;
 			}
@@ -1061,16 +1051,17 @@ syncprov_qresp( opcookie *opc, syncops *so, int mode )
 				opc->sndn.bv_val ) + 1;
 			ri->ri_uuid.bv_len = opc->suuid.bv_len;
 			AC_MEMCPY( ri->ri_uuid.bv_val, opc->suuid.bv_val, opc->suuid.bv_len );
-			if ( cookie.bv_len ) {
+			if ( csn.bv_len ) {
 				ri->ri_csn.bv_val = ri->ri_uuid.bv_val + ri->ri_uuid.bv_len;
-				memcpy( ri->ri_csn.bv_val, cookie.bv_val, cookie.bv_len );
-				ri->ri_csn.bv_val[cookie.bv_len] = '\0';
+				memcpy( ri->ri_csn.bv_val, csn.bv_val, csn.bv_len );
+				ri->ri_csn.bv_val[csn.bv_len] = '\0';
 			}
 		}
 		ri->ri_list = &opc->ssres;
 		ri->ri_e = opc->se;
-		ri->ri_csn.bv_len = cookie.bv_len;
+		ri->ri_csn.bv_len = csn.bv_len;
 		ri->ri_isref = opc->sreference;
+		BER_BVZERO( &ri->ri_cookie );
 		ldap_pvt_thread_mutex_init( &ri->ri_mutex );
 		opc->se = NULL;
 		opc->ssres.s_info = ri;
@@ -1080,6 +1071,12 @@ syncprov_qresp( opcookie *opc, syncops *so, int mode )
 	ldap_pvt_thread_mutex_lock( &ri->ri_mutex );
 	sr->s_rilist = ri->ri_list;
 	ri->ri_list = sr;
+	if ( mode == LDAP_SYNC_NEW_COOKIE && BER_BVISNULL( &ri->ri_cookie )) {
+		syncprov_info_t	*si = opc->son->on_bi.bi_private;
+
+		slap_compose_sync_cookie( NULL, &ri->ri_cookie, si->si_ctxcsn,
+			so->s_rid, slap_serverID ? slap_serverID : -1);
+	}
 	ldap_pvt_thread_mutex_unlock( &ri->ri_mutex );
 
 	ldap_pvt_thread_mutex_lock( &so->s_mutex );
