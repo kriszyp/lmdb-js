@@ -104,8 +104,12 @@ retry:	/* transaction retry */
 	}
 
 	/* begin transaction */
-	rs->sr_err = TXN_BEGIN( bdb->bi_dbenv, NULL, &ltid, 
-		bdb->bi_db_opflags );
+	{
+		int tflags = bdb->bi_db_opflags;
+		if ( get_lazyCommit( op ))
+			tflags |= DB_TXN_NOSYNC;
+		rs->sr_err = TXN_BEGIN( bdb->bi_dbenv, NULL, &ltid, tflags );
+	}
 	Debug( LDAP_DEBUG_TRACE, LDAP_XSTRING(bdb_delete) ": txn1 id: %x\n",
 		ltid->id(ltid), 0, 0 );
 	rs->sr_text = NULL;

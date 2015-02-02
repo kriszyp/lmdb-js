@@ -62,6 +62,7 @@ LDAP_BEGIN_DECL
 #define LDAP_COMP_MATCH
 #define LDAP_SYNC_TIMESTAMP
 #define SLAP_CONTROL_X_WHATFAILED
+#define SLAP_CONTROL_X_LAZY_COMMIT
 #define SLAP_CONFIG_DELETE
 #define SLAP_AUXPROP_DONTUSECOPY
 #ifndef SLAP_SCHEMA_EXPOSE
@@ -2504,6 +2505,9 @@ struct slap_control_ids {
 #ifdef SLAP_CONTROL_X_WHATFAILED
 	int sc_whatFailed;
 #endif
+#ifdef LDAP_CONTROL_X_LAZY_COMMIT
+	int sc_lazyCommit;
+#endif
 };
 
 /*
@@ -2777,6 +2781,11 @@ struct Operation {
 #ifdef SLAP_CONTROL_X_WHATFAILED
 #define o_whatFailed o_ctrlflag[slap_cids.sc_whatFailed]
 #define get_whatFailed(op)				_SCM((op)->o_whatFailed)
+#endif
+
+#ifdef SLAP_CONTROL_X_LAZY_COMMIT
+#define o_lazyCommit o_ctrlflag[slap_cids.sc_lazyCommit]
+#define get_lazyCommit(op)				_SCM((op)->o_lazyCommit)
 #endif
 
 #define o_sync			o_ctrlflag[slap_cids.sc_LDAPsync]

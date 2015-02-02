@@ -111,8 +111,12 @@ retry:	/* transaction retry */
 	}
 
 	/* begin transaction */
-	rs->sr_err = TXN_BEGIN( bdb->bi_dbenv, NULL, &ltid, 
-		bdb->bi_db_opflags );
+	{
+		int tflags = bdb->bi_db_opflags;
+		if ( get_lazyCommit( op ))
+			tflags |= DB_TXN_NOSYNC;
+		rs->sr_err = TXN_BEGIN( bdb->bi_dbenv, NULL, &ltid, tflags );
+	}
 	rs->sr_text = NULL;
 	if( rs->sr_err != 0 ) {
 		Debug( LDAP_DEBUG_TRACE,
