@@ -1209,6 +1209,7 @@ autogroup_response( Operation *op, SlapReply *rs )
 
 	if ( op->o_tag == LDAP_REQ_MODIFY ) {
 		if ( rs->sr_type == REP_RESULT && rs->sr_err == LDAP_SUCCESS  && !get_manageDSAit( op ) ) {
+			Entry etmp;
 			Debug( LDAP_DEBUG_TRACE, "==> autogroup_response MODIFY <%s>\n", op->o_req_dn.bv_val, 0, 0);
 
 			ldap_pvt_thread_mutex_lock( &agi->agi_mutex );			
@@ -1293,6 +1294,9 @@ autogroup_response( Operation *op, SlapReply *rs )
 			*/
 			attrs = attrs_dup( e->e_attrs );
 			overlay_entry_release_ov( op, e, 0, on );
+			etmp.e_name = op->o_req_dn;
+			etmp.e_nname = op->o_req_ndn;
+			etmp.e_attrs = attrs;
 			for ( age = agi->agi_entry ; age ; age = age->age_next ) {
 				is_olddn = 0;
 				is_newdn = 0;
@@ -1335,7 +1339,7 @@ autogroup_response( Operation *op, SlapReply *rs )
 
 				for ( agf = age->age_filter ; agf ; agf = agf->agf_next ) {
 					if ( dnIsSuffix( &op->o_req_ndn, &agf->agf_ndn ) ) {
-						if ( test_filter( op, e, agf->agf_filter ) == LDAP_COMPARE_TRUE ) {
+						if ( test_filter( op, &etmp, agf->agf_filter ) == LDAP_COMPARE_TRUE ) {
 							is_newdn = 1;
 							break;
 						}
