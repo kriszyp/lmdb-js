@@ -332,6 +332,7 @@ typedef struct ldapcontrol {
 #define LDAP_REFERRALS_REQUIRED				3
 
 /* MS Active Directory controls (for compatibility) */
+#define LDAP_CONTROL_X_LAZY_COMMIT			"1.2.840.113556.1.4.619"
 #define LDAP_CONTROL_X_INCREMENTAL_VALUES	"1.2.840.113556.1.4.802"
 #define LDAP_CONTROL_X_DOMAIN_SCOPE			"1.2.840.113556.1.4.1339"
 #define LDAP_CONTROL_X_PERMISSIVE_MODIFY	"1.2.840.113556.1.4.1413"

@@ -112,6 +112,7 @@ typedef struct syncinfo_s {
 	int			si_refreshDone;
 	int			si_syncdata;
 	int			si_logstate;
+	int			si_lazyCommit;
 	int			si_got;
 	int			si_strict_refresh;	/* stop listening during fallback refresh */
 	int			si_too_old;
@@ -2932,6 +2933,9 @@ syncrepl_entry(
 		slap_queue_csn( op, syncCSN );
 	}
 
+	if ( !si->si_refreshDone && si->si_lazyCommit )
+		op->o_lazyCommit = SLAP_CONTROL_NONCRITICAL;
+
 	slap_op_time( &op->o_time, &op->o_tincr );
 	switch ( syncstate ) {
 	case LDAP_SYNC_ADD:
@@ -4687,6 +4691,7 @@ config_suffixm( ConfigArgs *c, syncinfo_t *si )
 /* FIXME: undocumented */
 #define EXATTRSSTR		"exattrs"
 #define MANAGEDSAITSTR		"manageDSAit"
+#define LAZY_COMMIT		"lazycommit"
 
 /* mandatory */
 enum {
@@ -5185,6 +5190,10 @@ parse_syncrepl_line(
 					STRLENOF( STRICT_REFRESH ) ) )
 		{
 			si->si_strict_refresh = 1;
+		} else if ( !strncasecmp( c->argv[ i ], LAZY_COMMIT,
+					STRLENOF( LAZY_COMMIT ) ) )
+		{
+			si->si_lazyCommit = 1;
 		} else if ( !bindconf_parse( c->argv[i], &si->si_bindconf ) ) {
 			si->si_got |= GOT_BINDCONF;
 		} else {
@@ -5585,6 +5594,11 @@ syncrepl_unparse( syncinfo_t *si, struct berval *bv )
 			ptr = lutil_strcopy( ptr, bc.bv_val );
 		}
 	}
+
+	if ( si->si_lazyCommit ) {
+		ptr = lutil_strcopy( ptr, " " LAZY_COMMIT );
+	}
+
 	bc.bv_len = ptr - buf;
 	bc.bv_val = buf;
 	ber_dupbv( bv, &bc );
