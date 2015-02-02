@@ -1144,7 +1144,7 @@ syncprov_op_abandon( Operation *op, SlapReply *rs )
 {
 	slap_overinst		*on = (slap_overinst *)op->o_bd->bd_info;
 	syncprov_info_t		*si = on->on_bi.bi_private;
-	syncops *so = NULL, **sop;
+	syncops *so, **sop;
 
 	ldap_pvt_thread_mutex_lock( &si->si_ops_mutex );
 	for ( sop=&si->si_ops; (so = *sop); sop = &(*sop)->s_next ) {
