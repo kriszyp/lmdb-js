@@ -1147,8 +1147,7 @@ syncprov_op_abandon( Operation *op, SlapReply *rs )
 	syncops *so = NULL, **sop;
 
 	ldap_pvt_thread_mutex_lock( &si->si_ops_mutex );
-	for ( sop=&si->si_ops; *sop; sop = &(*sop)->s_next ) {
-		so = *sop;
+	for ( sop=&si->si_ops; (so = *sop); sop = &(*sop)->s_next ) {
 		if ( so->s_op->o_connid == op->o_connid &&
 			so->s_op->o_msgid == op->orn_msgid ) {
 				so->s_op->o_abandon = 1;
