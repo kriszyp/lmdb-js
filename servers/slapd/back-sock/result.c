@@ -77,6 +77,14 @@ sock_read_and_send_results(
 			continue;
 		}
 
+		if ( strncasecmp( line, "CONTINUE", 8 ) == 0 ) {
+			struct sockinfo	*si = (struct sockinfo *) op->o_bd->be_private;
+			/* Only valid when operating as an overlay! */
+			assert( si->si_ops != 0 );
+			rs->sr_err = SLAP_CB_CONTINUE;
+			goto skip;
+		}
+
 		len = strlen( line );
 		while ( bp + len + 1 - buf > bsize ) {
 			size_t offset = bp - buf;
@@ -91,13 +99,6 @@ sock_read_and_send_results(
 		if ( *line == '\n' ) {
 			if ( strncasecmp( buf, "RESULT", 6 ) == 0 ) {
 				break;
-			}
-			if ( strncasecmp( buf, "CONTINUE", 8 ) == 0 ) {
-				struct sockinfo	*si = (struct sockinfo *) op->o_bd->be_private;
-				/* Only valid when operating as an overlay! */
-				assert( si->si_ops != 0 );
-				rs->sr_err = SLAP_CB_CONTINUE;
-				goto skip;
 			}
 
 			if ( (rs->sr_entry = str2entry( buf )) == NULL ) {
