@@ -284,7 +284,7 @@ int mdb_entry_release(
 				mdb_entry_return( op, e );
 				moi = (mdb_op_info *)oex;
 				/* If it was setup by entry_get we should probably free it */
-				if ( moi->moi_flag & MOI_FREEIT ) {
+				if (( moi->moi_flag & (MOI_FREEIT|MOI_KEEPER)) == MOI_FREEIT ) {
 					moi->moi_ref--;
 					if ( moi->moi_ref < 1 ) {
 						mdb_txn_reset( moi->moi_txn );
@@ -541,7 +541,12 @@ int mdb_txn( Operation *op, int txnop, OpExtra **ptr )
 
 	switch( txnop ) {
 	case SLAP_TXN_BEGIN:
-		return mdb_opinfo_get( op, mdb, 0, moip );
+		rc = mdb_opinfo_get( op, mdb, 0, moip );
+		if ( !rc ) {
+			moi = *moip;
+			moi->moi_flag |= MOI_KEEPER;
+		}
+		return rc;
 	case SLAP_TXN_COMMIT:
 		rc = mdb_txn_commit( moi->moi_txn );
 		op->o_tmpfree( moi, op->o_tmpmemctx );

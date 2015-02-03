@@ -115,6 +115,7 @@ typedef struct mdb_op_info {
 } mdb_op_info;
 #define MOI_READER	0x01
 #define MOI_FREEIT	0x02
+#define MOI_KEEPER	0x04
 
 /* Copy an ID "src" to pointer "dst" in big-endian byte order */
 #define MDB_ID2DISK( src, dst )	\

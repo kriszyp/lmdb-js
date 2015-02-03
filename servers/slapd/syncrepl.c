@@ -110,6 +110,10 @@ typedef struct syncinfo_s {
 	int			si_refreshDelete;
 	int			si_refreshPresent;
 	int			si_refreshDone;
+	int			si_refreshCount;
+	time_t		si_refreshBeg;
+	time_t		si_refreshEnd;
+	OpExtra		*si_refreshTxn;
 	int			si_syncdata;
 	int			si_logstate;
 	int			si_lazyCommit;
@@ -736,6 +740,11 @@ do_syncrep1(
 	}
 
 	si->si_refreshDone = 0;
+	si->si_refreshBeg = slap_get_time();
+	si->si_refreshCount = 0;
+	si->si_refreshTxn = NULL;
+	Debug( LDAP_DEBUG_ANY, "do_syncrep1: %s starting refresh\n",
+		si->si_ridtxt, 0, 0 );
 
 	rc = ldap_sync_search( si, op->o_tmpmemctx );
 
@@ -1266,6 +1275,15 @@ do_syncrep2(
 					} else
 					{
 						si->si_refreshDone = 1;
+					}
+					if ( si->si_refreshDone ) {
+						if ( si->si_refreshCount ) {
+							LDAP_SLIST_REMOVE( &op->o_extra, si->si_refreshTxn, OpExtra, oe_next );
+							op->o_bd->bd_info->bi_op_txn( op, SLAP_TXN_COMMIT, &si->si_refreshTxn );
+						}
+						si->si_refreshEnd = slap_get_time();
+	Debug( LDAP_DEBUG_ANY, "do_syncrep1: %s finished refresh\n",
+		si->si_ridtxt, 0, 0 );
 					}
 					ber_scanf( ber, /*"{"*/ "}" );
 					if ( abs(si->si_type) == LDAP_SYNC_REFRESH_AND_PERSIST &&
@@ -2933,8 +2951,20 @@ syncrepl_entry(
 		slap_queue_csn( op, syncCSN );
 	}
 
-	if ( !si->si_refreshDone && si->si_lazyCommit )
-		op->o_lazyCommit = SLAP_CONTROL_NONCRITICAL;
+	if ( !si->si_refreshDone ) {
+		if ( si->si_lazyCommit )
+			op->o_lazyCommit = SLAP_CONTROL_NONCRITICAL;
+		if ( si->si_refreshCount == 500 ) {
+			LDAP_SLIST_REMOVE( &op->o_extra, si->si_refreshTxn, OpExtra, oe_next );
+			op->o_bd->bd_info->bi_op_txn( op, SLAP_TXN_COMMIT, &si->si_refreshTxn );
+			si->si_refreshCount = 0;
+			si->si_refreshTxn = NULL;
+		}
+		if ( !si->si_refreshCount ) {
+			op->o_bd->bd_info->bi_op_txn( op, SLAP_TXN_BEGIN, &si->si_refreshTxn );
+		}
+		si->si_refreshCount++;
+	}
 
 	slap_op_time( &op->o_time, &op->o_tincr );
 	switch ( syncstate ) {
