@@ -771,6 +771,7 @@ again:
 static void free_resinfo( syncres *sr )
 {
 	syncres **st;
+	int freeit = 0;
 	ldap_pvt_thread_mutex_lock( &sr->s_info->ri_mutex );
 	for (st = &sr->s_info->ri_list; *st; st = &(*st)->s_rilist) {
 		if (*st == sr) {
@@ -778,8 +779,10 @@ static void free_resinfo( syncres *sr )
 			break;
 		}
 	}
+	if ( !sr->s_info->ri_list )
+		freeit = 1;
 	ldap_pvt_thread_mutex_unlock( &sr->s_info->ri_mutex );
-	if ( !sr->s_info->ri_list ) {
+	if ( freeit ) {
 		ldap_pvt_thread_mutex_destroy( &sr->s_info->ri_mutex );
 		if ( sr->s_info->ri_e )
 			entry_free( sr->s_info->ri_e );
