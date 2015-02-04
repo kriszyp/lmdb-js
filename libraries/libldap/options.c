@@ -371,7 +371,9 @@ ldap_get_option(
 			/* bad param */
 			break;
 		} 
+		LDAP_MUTEX_LOCK( &ld->ld_ldcmutex );
 		* (int *) outvalue = ld->ld_ldcrefcnt;
+		LDAP_MUTEX_UNLOCK( &ld->ld_ldcmutex );
 		rc = LDAP_OPT_SUCCESS;
 		break;
 
