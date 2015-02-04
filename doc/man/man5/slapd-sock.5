@@ -58,6 +58,11 @@ Specify which response types to send to the external program. "result"
 sends just the results of an operation. "search" sends all entries that
 the database returned for a search request. The default is empty
 (no responses are sent).
+.TP
+.B socksuffix	<DN suffix>
+Specify subtrees for which the overlay will act. Only operations on
+DNs matching the specified suffix(es) will be processed. The default
+is empty (all DNs are processed).
 
 .SH PROTOCOL
 The protocol is essentially the same as
