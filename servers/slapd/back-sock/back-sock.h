@@ -30,6 +30,8 @@ struct sockinfo {
 	slap_mask_t	si_extensions;
 	slap_mask_t	si_ops;		/* overlay: operations to act on */
 	slap_mask_t	si_resps;	/* overlay: responses to forward */
+	BerVarray	si_suffix;	/* overlay: DN suffixes to match */
+	BerVarray	si_nsuffix;	/* overlay: DN suffixes to match */
 };
 
 #define	SOCK_EXT_BINDDN	1
