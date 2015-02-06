@@ -76,6 +76,8 @@ enum {
 	LDAP_BACK_CFG_REWRITE,
 	LDAP_BACK_CFG_KEEPALIVE,
 
+	LDAP_BACK_CFG_OMIT_UNKNOWN_SCHEMA,
+
 	LDAP_BACK_CFG_LAST
 };
 
@@ -354,6 +356,14 @@ static ConfigTable ldapcfg[] = {
 	{ "rewrite", "<arglist>", 2, 4, STRLENOF( "rewrite" ),
 		ARG_STRING|ARG_MAGIC|LDAP_BACK_CFG_REWRITE,
 		ldap_back_cf_gen, NULL, NULL, NULL },
+	{ "omit-unknown-schema", "true|FALSE", 2, 2, 0,
+		ARG_MAGIC|ARG_ON_OFF|LDAP_BACK_CFG_OMIT_UNKNOWN_SCHEMA,
+		ldap_back_cf_gen, "( OLcfgDbAt:3.28 "
+			"NAME 'olcDbRemoveUnknownSchema' "
+			"DESC 'Omit unknown schema when returning search results' "
+			"SYNTAX OMsBoolean "
+			"SINGLE-VALUE )",
+		NULL, NULL },
 	{ "keepalive", "keepalive", 2, 2, 0,
 		ARG_MAGIC|LDAP_BACK_CFG_KEEPALIVE,
 		ldap_back_cf_gen, "( OLcfgDbAt:3.29 "
@@ -1405,6 +1415,10 @@ ldap_back_cf_gen( ConfigArgs *c )
 			c->value_int = LDAP_BACK_NOUNDEFFILTER( li );
 			break;
 
+		case LDAP_BACK_CFG_OMIT_UNKNOWN_SCHEMA:
+			c->value_int = LDAP_BACK_OMIT_UNKNOWN_SCHEMA( li );
+			break;
+
 		case LDAP_BACK_CFG_ONERR:
 			enum_to_verb( onerr_mode, li->li_flags & LDAP_BACK_F_ONERR_STOP, &bv );
 			if ( BER_BVISNULL( &bv )) {
@@ -1585,6 +1599,10 @@ ldap_back_cf_gen( ConfigArgs *c )
 
 		case LDAP_BACK_CFG_NOUNDEFFILTER:
 			li->li_flags &= ~LDAP_BACK_F_NOUNDEFFILTER;
+			break;
+
+		case LDAP_BACK_CFG_OMIT_UNKNOWN_SCHEMA:
+			li->li_flags &= ~LDAP_BACK_F_OMIT_UNKNOWN_SCHEMA;
 			break;
 
 		case LDAP_BACK_CFG_ONERR:
@@ -2285,6 +2303,15 @@ done_url:;
 			"and prefix all directives with \"rwm-\")" );
 		Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
 		return 1;
+
+	case LDAP_BACK_CFG_OMIT_UNKNOWN_SCHEMA:
+		if ( c->value_int ) {
+			li->li_flags |= LDAP_BACK_F_OMIT_UNKNOWN_SCHEMA;
+
+		} else {
+			li->li_flags &= ~LDAP_BACK_F_OMIT_UNKNOWN_SCHEMA;
+		}
+		break;
 
 	case LDAP_BACK_CFG_KEEPALIVE:
 		slap_keepalive_parse( ber_bvstrdup(c->argv[1]),
