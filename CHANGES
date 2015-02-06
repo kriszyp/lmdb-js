@@ -35,6 +35,7 @@ OpenLDAP 2.4.41 Engineering
 		Fixed contrib/dupent compiler warnings (ITS#7997)
 	Contrib
 		Added pbkdf2 sha256 and sha512 schemes (ITS#7977)
+		Fixed autogroup modification callback responses (ITS#6970)
 	Documentation
 		Added ldap_get_option(3) LDAP_FEATURE_INFO_VERSION information (ITS#8032)
 		Added ldap_get_option(3) LDAP_OPT_API_INFO_VERSION information (ITS#8032)
