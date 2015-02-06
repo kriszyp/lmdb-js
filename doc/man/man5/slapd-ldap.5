@@ -450,6 +450,13 @@ do not return search reference responses.
 By default, they are returned unless request is LDAPv2.
 
 .TP
+.B omit-unknown-schema <NO|yes>
+If
+.BR yes ,
+do not return objectClasses or attributes that are not known to the local server.
+The default is to return all schema elements.
+
+.TP
 .B noundeffilter <NO|yes>
 If
 .BR yes ,
