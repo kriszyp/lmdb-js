@@ -11,6 +11,7 @@ OpenLDAP 2.4.41 Engineering
 	Fixed slapd syncrepl mutex for cookie state (ITS#7968)
 	Fixed slapd syncrepl memory leaks (ITS#8035)
 	Fixed slapd syncrepl to free presentlist at end of refresh mode (ITS#8038)
+	Fixed slapd syncrepl to streamline presentlist (ITS#8042)
 	Fixed slapd-mdb one-level search (ITS#7975)
 	Fixed slapd-mdb heap corruption (ITS#7965)
 	Fixed slapd-mdb crash after deleting in-use schema (ITS#7995)
@@ -24,6 +25,7 @@ OpenLDAP 2.4.41 Engineering
 	Fixed slapo-syncprov synprov_matchops usage of test_filter (ITS#8013)
 	Fixed slapo-syncprov segfault on disconnect/abandon (ITS#5452,ITS#8012)
 	Fixed slapo-syncprov memory leak (ITS#8039)
+	Fixed slapo-syncprov segfault on disconnect/abandon (ITS#8043)
 	Build Environment
 		Enhanced contrib modules build paths (ITS#7782)
 		Fixed contrib/autogroup internal operation identity (ITS#8006)
