@@ -6,6 +6,7 @@ OpenLDAP 2.4.41 Engineering
 	Fixed libldap ldif-wrap off by one error (ITS#8003)
 	Fixed libldap handling of TLS in async mode (ITS#8022)
 	Fixed libldap null pointer dereference (ITS#8028)
+	Fixed libldap mutex handling with LDAP_OPT_SESSION_REFCNT (ITS#8050)
 	Fixed slapd slapadd onetime leak with -w (ITS#8014)
 	Fixed slapd syncrepl delta-mmr issue with overlays and slapd.conf (ITS#7976)
 	Fixed slapd syncrepl mutex for cookie state (ITS#7968)
