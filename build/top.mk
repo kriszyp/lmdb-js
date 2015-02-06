@@ -40,7 +40,7 @@ libdir = @libdir@
 libexecdir = @libexecdir@
 localstatedir = @localstatedir@
 mandir = @mandir@
-moduledir = @libexecdir@$(ldap_subdir)
+moduledir = @moduledir@
 sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 sysconfdir = @sysconfdir@$(ldap_subdir)
@@ -87,10 +87,12 @@ LTONLY_mod = --tag=disable-static
 LTONLY_MOD = $(LTONLY_$(BUILD_MOD))
 
 # platform-specific libtool flags
-NT_LTFLAGS_LIB = -no-undefined -avoid-version -rpath $(libdir)
-NT_LTFLAGS_MOD = -no-undefined -avoid-version -rpath $(moduledir)
+NT_LTFLAGS = -no-undefined -avoid-version -rpath $(libdir)
+NT_LTFLAGS_LIB = -no-undefined $(LTVERSION) -rpath $(libdir)
+NT_LTFLAGS_MOD = -no-undefined $(LTVERSION) -rpath $(libdir)
+UNIX_LTFLAGS = $(LTVERSION) -rpath $(libdir)
 UNIX_LTFLAGS_LIB = $(LTVERSION) -rpath $(libdir)
-UNIX_LTFLAGS_MOD = $(LTVERSION) -rpath $(moduledir)
+UNIX_LTFLAGS_MOD = $(LTVERSION) -rpath $(libdir)
 
 # libtool flags
 LTFLAGS     = $(@PLAT@_LTFLAGS)
