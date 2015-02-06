@@ -3750,7 +3750,8 @@ static ConfigOCs pcocs[] = {
 	{ "( OLcfgOvOc:2.2 "
 		"NAME 'olcPcacheDatabase' "
 		"DESC 'Cache database configuration' "
-		"AUXILIARY )", Cft_Misc, olcDatabaseDummy, pc_ldadd },
+		/* co_table is initialized in pcache_initialize */
+		"AUXILIARY )", Cft_Misc, NULL, pc_ldadd },
 	{ NULL, 0, NULL }
 };
 
@@ -5670,6 +5671,13 @@ pcache_initialize()
 	struct berval debugbv = BER_BVC("pcache");
 	ConfigArgs c;
 	char *argv[ 4 ];
+
+        /* olcDatabaseDummy is defined in slapd, and Windows
+           will not let us initialize a struct element with a data pointer
+           from another library, so we have to initialize this element
+           "by hand".  */
+        pcocs[1].co_table = olcDatabaseDummy;
+
 
 	code = slap_loglevel_get( &debugbv, &pcache_debug );
 	if ( code ) {
