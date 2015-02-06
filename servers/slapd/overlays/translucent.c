@@ -113,7 +113,8 @@ static ConfigOCs translucentocs[] = {
 	{ "( OLcfgOvOc:14.2 "
 	  "NAME 'olcTranslucentDatabase' "
 	  "DESC 'Translucent target database configuration' "
-	  "AUXILIARY )", Cft_Misc, olcDatabaseDummy, translucent_ldadd },
+	/* co_table is initialized in translucent_initialize() */
+	  "AUXILIARY )", Cft_Misc, NULL, translucent_ldadd },
 	{ NULL, 0, NULL }
 };
 /* for translucent_init() */
@@ -1387,6 +1388,12 @@ translucent_db_destroy( BackendDB *be, ConfigReply *cr )
 int translucent_initialize() {
 
 	int rc;
+
+	/* olcDatabaseDummy is defined in slapd, and Windows
+	   will not let us initialize a struct element with a data pointer
+	   from another library, so we have to initialize this element
+	   "by hand".  */
+	translucentocs[1].co_table = olcDatabaseDummy;
 
 	Debug(LDAP_DEBUG_TRACE, "==> translucent_initialize\n" );
 
