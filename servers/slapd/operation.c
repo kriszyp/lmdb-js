@@ -204,6 +204,9 @@ slap_op_alloc(
 	op->o_tag = tag;
 
 	slap_op_time( &op->o_time, &op->o_tincr );
+#ifdef HAVE_GETTIMEOFDAY
+	(void) gettimeofday( &op->o_hr_time, NULL );
+#endif
 	op->o_opid = id;
 
 #if defined( LDAP_SLAPI )

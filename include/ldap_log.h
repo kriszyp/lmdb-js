@@ -192,6 +192,12 @@ extern void eb_syslog(int pri, const char *fmt, ...);
 #define Log5(level, severity, fmt, a1, a2, a3, a4, a5) \
 	LogExpand((level), (severity), (fmt) LogArg(a1) LogArg(a2) LogArg(a3) \
 		LogArg(a4) LogArg(a5))
+#define Log6(level, severity, fmt, a1, a2, a3, a4, a5, a6) \
+	LogExpand((level), (severity), (fmt) LogArg(a1) LogArg(a2) LogArg(a3) \
+		LogArg(a4) LogArg(a5) LogArg(a6))
+#define Log7(level, severity, fmt, a1, a2, a3, a4, a5, a6, a7) \
+	LogExpand((level), (severity), (fmt) LogArg(a1) LogArg(a2) LogArg(a3) \
+		LogArg(a4) LogArg(a5) LogArg(a6) LogArg(a7))
 #define Debug(level, fmt, a1, a2, a3) \
 	LogExpand((level), ldap_syslog_level, (fmt) \
 		LogArg(a1) LogArg(a2) LogArg(a3))

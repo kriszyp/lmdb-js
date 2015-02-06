@@ -2618,6 +2618,9 @@ struct Operation {
 #define o_log_prefix o_hdr->oh_log_prefix
 
 	ber_tag_t	o_tag;		/* tag of the request */
+#ifdef HAVE_GETTIMEOFDAY
+	struct timeval o_hr_time;	/* high-resolution time of op start*/
+#endif
 	time_t		o_time;		/* time op was initiated */
 	int			o_tincr;	/* counter for multiple ops with same o_time */
 
@@ -2990,6 +2993,10 @@ struct Connection {
 
 #define Statslog( level, fmt, connid, opid, arg1, arg2, arg3 )	\
 	Log5( (level), ldap_syslog_level, (fmt), (connid), (opid), (arg1), (arg2), (arg3) )
+#define Statslog6( level, fmt, a1, a2, a3, a4, a5, a6 )				\
+	Log6( (level), ldap_syslog_level, (fmt), (a1), (a2), (a3), (a4), (a5), (a6) )
+#define Statslog7( level, fmt, a1, a2, a3, a4, a5, a6, a7 )				\
+	Log7( (level), ldap_syslog_level, (fmt), (a1), (a2), (a3), (a4), (a5), (a6), (a7) )
 #define StatslogTest( level ) ((ldap_debug | ldap_syslog) & (level))
 #else /* !LDAP_SYSLOG */
 #define Statslog( level, fmt, connid, opid, arg1, arg2, arg3 )	\
@@ -2997,10 +3004,22 @@ struct Connection {
 		if ( ldap_debug & (level) ) \
 			lutil_debug( ldap_debug, (level), (fmt), (connid), (opid), (arg1), (arg2), (arg3) );\
 	} while (0)
+#define Statslog6( level, fmt, a1, a2, a3, a4, a5, a6 )				\
+	do { \
+		if ( ldap_debug & (level) ) \
+			lutil_debug( ldap_debug, (level), (fmt), (a1), (a2), (a3), (a4), (a5), (a6) ); \
+	} while (0)
+#define Statslog7( level, fmt, a1, a2, a3, a4, a5, a6, a7 )				\
+	do { \
+		if ( ldap_debug & (level) ) \
+			lutil_debug( ldap_debug, (level), (fmt), (a1), (a2), (a3), (a4), (a5), (a6), (a7) ); \
+	} while (0)
 #define StatslogTest( level ) (ldap_debug & (level))
 #endif /* !LDAP_SYSLOG */
 #else /* !LDAP_DEBUG */
 #define Statslog( level, fmt, connid, opid, arg1, arg2, arg3 ) ((void) 0)
+#define Statslog6( level, fmt, a1, a2, a3, a4, a5, a6 ) ((void) 0)
+#define Statslog7( level, fmt, a1, a2, a3, a4, a5, a6, a7 ) ((void) 0)
 #define StatslogTest( level ) (0)
 #endif /* !LDAP_DEBUG */
 
