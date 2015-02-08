@@ -211,6 +211,19 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
+FILTER="(dc=example)"
+VRFILTER="((o={*)(dc=*))"
+echo "        f=$FILTER mv=$VRFILTER ..."
+echo "#         f=$FILTER mv=$VRFILTER ..." >> $SEARCHOUT
+$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
+	-E '!mv='"$VRFILTER" "$FILTER" >> $SEARCHOUT 2>&1
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
 FILTER="(attributeTypes=0.9.2342.19200300.100.1.25)"
 echo "        f=$FILTER ..."
 echo "#         f=$FILTER ..." >> $SEARCHOUT
