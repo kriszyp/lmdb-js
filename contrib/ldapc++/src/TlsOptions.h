@@ -1,6 +1,6 @@
 // $OpenLDAP$
 /*
- * Copyright 2010-2014 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 2010-2015 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 #ifndef TLS_OPTIONS_H
