@@ -328,7 +328,7 @@ AC_DEFUN([OL_BDB_HEADER_VERSION],
 #endif
 __db_version DB_VERSION_MAJOR
 ])
-	set X `eval "$ac_cpp conftest.$ac_ext" | $EGREP __db_version` none none
+	set X `eval "$ac_cpp -P conftest.$ac_ext" | $EGREP __db_version` none none
 	ol_cv_bdb_major=${3}
 ])
 case $ol_cv_bdb_major in [[1-9]]*) : ;; *)
@@ -344,7 +344,7 @@ AC_CACHE_CHECK([for Berkeley DB minor version in db.h], [ol_cv_bdb_minor],[
 #endif
 __db_version DB_VERSION_MINOR
 ])
-	set X `eval "$ac_cpp conftest.$ac_ext" | $EGREP __db_version` none none
+	set X `eval "$ac_cpp -P conftest.$ac_ext" | $EGREP __db_version` none none
 	ol_cv_bdb_minor=${3}
 ])
 case $ol_cv_bdb_minor in [[0-9]]*) : ;; *)
