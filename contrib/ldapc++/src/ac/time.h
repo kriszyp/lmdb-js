@@ -1,7 +1,7 @@
 /* Generic time.h */
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-2014 The OpenLDAP Foundation, Redwood City, California, USA
+ * Copyright 1998-2015 The OpenLDAP Foundation, Redwood City, California, USA
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms are permitted only
