@@ -2120,6 +2120,10 @@ syncprov_op_mod( Operation *op, SlapReply *rs )
 			mt->mt_tail = mi;
 			/* wait for this op to get to head of list */
 			while ( mt->mt_mods != mi ) {
+				/* don't wait on other mods from the same thread */
+				if ( mt->mt_mods->mi_op->o_threadctx == op->o_threadctx )
+					break;
+
 				ldap_pvt_thread_mutex_unlock( &mt->mt_mutex );
 				/* FIXME: if dynamic config can delete overlays or
 				 * databases we'll have to check for cleanup here.
