@@ -111,6 +111,7 @@ autogroup_add_member_to_group( Operation *op, BerValue *dn, BerValue *ndn, autog
 	BerValue	*vals, *nvals;
 	slap_callback	cb = { NULL, slap_null_cb, NULL, NULL };
 	Operation	o = *op;
+	unsigned long opid = op->o_opid;
 
 	assert( dn != NULL );
 	assert( ndn != NULL );
@@ -133,6 +134,7 @@ autogroup_add_member_to_group( Operation *op, BerValue *dn, BerValue *ndn, autog
 	modlist->sml_flags = SLAP_MOD_INTERNAL;
 	modlist->sml_next = NULL;
 
+	o.o_opid = 0;	/* shared with op, saved above */
 	o.o_tag = LDAP_REQ_MODIFY;
 	o.o_callback = &cb;
 	o.orm_modlist = modlist;
@@ -141,6 +143,8 @@ autogroup_add_member_to_group( Operation *op, BerValue *dn, BerValue *ndn, autog
 	o.o_req_dn = age->age_dn;
 	o.o_req_ndn = age->age_ndn;
 	o.o_permissive_modify = 1;
+	o.o_dont_replicate = 1;
+	o.orm_no_opattrs = 1;
 	o.o_managedsait = SLAP_CONTROL_CRITICAL;
 	o.o_relax = SLAP_CONTROL_CRITICAL;
 
@@ -149,6 +153,7 @@ autogroup_add_member_to_group( Operation *op, BerValue *dn, BerValue *ndn, autog
 	o.o_bd->bd_info = (BackendInfo *)on;
 
 	slap_mods_free( modlist, 1 );
+	op->o_opid = opid;
 
 	return sreply.sr_err;
 }
@@ -165,6 +170,7 @@ autogroup_add_member_values_to_group( Operation *op, struct berval *dn, autogrou
 	SlapReply	sreply = {REP_RESULT};
 	slap_callback	cb = { NULL, slap_null_cb, NULL, NULL };
 	Operation	o = *op;
+	unsigned long opid = op->o_opid;
 
 	Debug(LDAP_DEBUG_TRACE, "==> autogroup_add_member_values_to_group adding <%s> to <%s>\n",
 		dn->bv_val, age->age_dn.bv_val, 0);
@@ -178,6 +184,7 @@ autogroup_add_member_values_to_group( Operation *op, struct berval *dn, autogrou
 	modlist.sml_flags = SLAP_MOD_INTERNAL;
 	modlist.sml_next = NULL;
 
+	o.o_opid = 0;
 	o.o_tag = LDAP_REQ_MODIFY;
 	o.o_callback = &cb;
 	o.orm_modlist = &modlist;
@@ -186,12 +193,15 @@ autogroup_add_member_values_to_group( Operation *op, struct berval *dn, autogrou
 	o.o_req_dn = age->age_dn;
 	o.o_req_ndn = age->age_ndn;
 	o.o_permissive_modify = 1;
+	o.o_dont_replicate = 1;
+	o.orm_no_opattrs = 1;
 	o.o_managedsait = SLAP_CONTROL_CRITICAL;
 	o.o_relax = SLAP_CONTROL_CRITICAL;
 
 	o.o_bd->bd_info = (BackendInfo *)on->on_info;
 	(void)op->o_bd->be_modify( &o, &sreply );
 	o.o_bd->bd_info = (BackendInfo *)on;
+	op->o_opid = opid;
 
 	return sreply.sr_err;
 }
@@ -210,6 +220,7 @@ autogroup_delete_member_from_group( Operation *op, BerValue *dn, BerValue *ndn, 
 	BerValue	*vals, *nvals;
 	slap_callback	cb = { NULL, slap_null_cb, NULL, NULL };
 	Operation	o = *op;
+	unsigned long opid = op->o_opid;
 
 	if ( dn == NULL || ndn == NULL ) {
 		Debug(LDAP_DEBUG_TRACE, "==> autogroup_delete_member_from_group removing all members from <%s>\n",
@@ -241,6 +252,7 @@ autogroup_delete_member_from_group( Operation *op, BerValue *dn, BerValue *ndn, 
 	modlist->sml_flags = SLAP_MOD_INTERNAL;
 	modlist->sml_next = NULL;
 
+	o.o_opid = 0;
 	o.o_callback = &cb;
 	o.o_tag = LDAP_REQ_MODIFY;
 	o.orm_modlist = modlist;
@@ -251,6 +263,8 @@ autogroup_delete_member_from_group( Operation *op, BerValue *dn, BerValue *ndn, 
 	o.o_relax = SLAP_CONTROL_CRITICAL;
 	o.o_managedsait = SLAP_CONTROL_CRITICAL;
 	o.o_permissive_modify = 1;
+	o.o_dont_replicate = 1;
+	o.orm_no_opattrs = 1;
 
 	o.o_bd->bd_info = (BackendInfo *)on->on_info;
 	(void)op->o_bd->be_modify( &o, &sreply );
@@ -258,6 +272,7 @@ autogroup_delete_member_from_group( Operation *op, BerValue *dn, BerValue *ndn, 
 
 	slap_mods_free( modlist, 1 );
 
+	op->o_opid = opid;
 	return sreply.sr_err;
 }
 
@@ -273,6 +288,7 @@ autogroup_delete_member_values_from_group( Operation *op, struct berval *dn, aut
         SlapReply       sreply = {REP_RESULT};
         slap_callback   cb = { NULL, slap_null_cb, NULL, NULL };
         Operation       o = *op;
+	unsigned long opid = op->o_opid;
 
         Debug(LDAP_DEBUG_TRACE, "==> autogroup_delete_member_values_from_group removing <%s> from <%s>\n",
 			dn->bv_val, age->age_dn.bv_val, 0);
@@ -286,6 +302,7 @@ autogroup_delete_member_values_from_group( Operation *op, struct berval *dn, aut
         modlist.sml_flags = SLAP_MOD_INTERNAL;
         modlist.sml_next = NULL;
 
+	o.o_opid = 0;
         o.o_tag = LDAP_REQ_MODIFY;
         o.o_callback = &cb;
         o.orm_modlist = &modlist;
@@ -294,12 +311,15 @@ autogroup_delete_member_values_from_group( Operation *op, struct berval *dn, aut
         o.o_req_dn = age->age_dn;
         o.o_req_ndn = age->age_ndn;
         o.o_permissive_modify = 1;
+	o.o_dont_replicate = 1;
+	o.orm_no_opattrs = 1;
         o.o_managedsait = SLAP_CONTROL_CRITICAL;
         o.o_relax = SLAP_CONTROL_CRITICAL;
 
         o.o_bd->bd_info = (BackendInfo *)on->on_info;
         (void)op->o_bd->be_modify( &o, &sreply );
         o.o_bd->bd_info = (BackendInfo *)on;
+	op->o_opid = opid;
 
         return sreply.sr_err;
 }
@@ -473,6 +493,7 @@ autogroup_add_members_from_filter( Operation *op, Entry *e, autogroup_entry_t *a
 	o.ors_tlimit = SLAP_NO_LIMIT;
 	o.ors_slimit = SLAP_NO_LIMIT;
 	o.ors_attrs =  agf->agf_anlist ? agf->agf_anlist : slap_anlist_no_attrs;
+	o.o_do_not_cache = 1;
 
 	agg.agg_group = age;
 	agg.agg_filter = agf;
@@ -497,9 +518,12 @@ autogroup_add_members_from_filter( Operation *op, Entry *e, autogroup_entry_t *a
 	o.o_bd->bd_info = (BackendInfo *)on;	
 
 	if ( modify == 1 && agg.agg_mod ) {
+		unsigned long opid = op->o_opid;
+
 		rs_reinit( &rs, REP_RESULT );
 
 		o = *op;
+		o.o_opid = 0;
 		o.o_callback = &null_cb;
 		o.o_tag = LDAP_REQ_MODIFY;
 		o.orm_modlist = agg.agg_mod;
@@ -510,12 +534,15 @@ autogroup_add_members_from_filter( Operation *op, Entry *e, autogroup_entry_t *a
 		o.o_relax = SLAP_CONTROL_CRITICAL;
 		o.o_managedsait = SLAP_CONTROL_NONCRITICAL;
 		o.o_permissive_modify = 1;
+		o.o_dont_replicate = 1;
+		o.orm_no_opattrs = 1;
 
 		o.o_bd->bd_info = (BackendInfo *)on->on_info;
 		(void)op->o_bd->be_modify( &o, &rs );
 		o.o_bd->bd_info = (BackendInfo *)on;	
 
 		slap_mods_free(agg.agg_mod, 1);
+		op->o_opid = opid;
 	}
 
 	return 0;
@@ -1965,6 +1992,7 @@ autogroup_db_open(
 	op->ors_tlimit = SLAP_NO_LIMIT;
 	op->ors_slimit = SLAP_NO_LIMIT;
 	op->ors_attrs =  slap_anlist_no_attrs;
+	op->o_do_not_cache = 1;
 
 	op->o_bd = be;
 	op->o_bd->bd_info = (BackendInfo *)on->on_info;
