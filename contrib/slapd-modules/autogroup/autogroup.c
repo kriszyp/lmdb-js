@@ -1170,6 +1170,10 @@ autogroup_response( Operation *op, SlapReply *rs )
 						autogroup_delete_member_from_group( op, &op->o_req_dn, &op->o_req_ndn, age );
 				} else
 				if ( is_olddn == 0 && is_newdn == 1 ) {
+					Entry etmp;
+					etmp.e_name = op->o_req_dn;
+					etmp.e_nname = op->o_req_ndn;
+					etmp.e_attrs = attrs;
 					for ( agf = age->age_filter; agf; agf = agf->agf_next ) {
 						if ( test_filter( op, e, agf->agf_filter ) == LDAP_COMPARE_TRUE ) {
 							if ( ea ) {
