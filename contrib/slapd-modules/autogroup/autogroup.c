@@ -1175,7 +1175,7 @@ autogroup_response( Operation *op, SlapReply *rs )
 					etmp.e_nname = op->o_req_ndn;
 					etmp.e_attrs = attrs;
 					for ( agf = age->age_filter; agf; agf = agf->agf_next ) {
-						if ( test_filter( op, e, agf->agf_filter ) == LDAP_COMPARE_TRUE ) {
+						if ( test_filter( op, &etmp, agf->agf_filter ) == LDAP_COMPARE_TRUE ) {
 							if ( ea ) {
 								autogroup_add_member_values_to_group( op, &new_dn, age, ea );
 							} else
