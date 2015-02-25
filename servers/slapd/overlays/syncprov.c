@@ -2122,8 +2122,16 @@ syncprov_op_mod( Operation *op, SlapReply *rs )
 			mt->mt_tail = mi;
 			/* wait for this op to get to head of list */
 			while ( mt->mt_mods != mi ) {
+				modinst *m2;
+				int same = 0;
 				/* don't wait on other mods from the same thread */
-				if ( mt->mt_mods->mi_op->o_threadctx == op->o_threadctx )
+				for ( m2 = mt->mt_mods; m2; m2 = m2->mi_next ) {
+					if ( m2->mi_op->o_threadctx == op->o_threadctx ) {
+						same = 1;
+						break;
+					}
+				}
+				if ( same )
 					break;
 
 				ldap_pvt_thread_mutex_unlock( &mt->mt_mutex );
