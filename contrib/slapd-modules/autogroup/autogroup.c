@@ -743,7 +743,15 @@ autogroup_add_entry_cb( Operation *op, SlapReply *rs )
 	} else {
 		autogroup_entry_t	*age;
 		autogroup_filter_t	*agf;
+		struct berval odn, ondn;
 		int rc;
+
+		/* must use rootdn when calling test_filter */
+		odn = op->o_dn;
+		ondn = op->o_ndn;
+		op->o_dn = op->o_bd->be_rootdn;
+		op->o_ndn = op->o_bd->be_rootndn;
+
 		for ( age = agi->agi_entry; age ; age = age->age_next ) {
 			ldap_pvt_thread_mutex_lock( &age->age_mutex );
 
@@ -767,6 +775,8 @@ autogroup_add_entry_cb( Operation *op, SlapReply *rs )
 			}
 			ldap_pvt_thread_mutex_unlock( &age->age_mutex );
 		}
+		op->o_dn = odn;
+		op->o_ndn = ondn;
 	}
 	ldap_pvt_thread_mutex_unlock( &agi->agi_mutex );
 
@@ -897,6 +907,7 @@ autogroup_delete_entry( Operation *op, SlapReply *rs)
 	autogroup_filter_t	*agf;
 	Entry			*e;
 	int			matched_group = 0, rc = 0;
+	struct berval odn, ondn;
 
 	Debug( LDAP_DEBUG_TRACE, "==> autogroup_delete_entry <%s>\n", op->o_req_dn.bv_val, 0, 0);
 
@@ -940,6 +951,11 @@ autogroup_delete_entry( Operation *op, SlapReply *rs)
 	/* Check if the entry matches any of the groups.
 	   If yes, we can delete the entry from that group. */
 
+	odn = op->o_dn;
+	ondn = op->o_ndn;
+	op->o_dn = op->o_bd->be_rootdn;
+	op->o_ndn = op->o_bd->be_rootndn;
+
 	for ( age = agi->agi_entry ; age ; age = age->age_next ) {
 		ldap_pvt_thread_mutex_lock( &age->age_mutex );		
 
@@ -963,6 +979,8 @@ autogroup_delete_entry( Operation *op, SlapReply *rs)
 		}
 		ldap_pvt_thread_mutex_unlock( &age->age_mutex );
 	}
+	op->o_dn = odn;
+	op->o_ndn = ondn;
 
 	overlay_entry_release_ov( op, e, 0, on );
 	ldap_pvt_thread_mutex_unlock( &agi->agi_mutex );		
@@ -1171,9 +1189,15 @@ autogroup_response( Operation *op, SlapReply *rs )
 				} else
 				if ( is_olddn == 0 && is_newdn == 1 ) {
 					Entry etmp;
+					struct berval odn, ondn;
 					etmp.e_name = op->o_req_dn;
 					etmp.e_nname = op->o_req_ndn;
 					etmp.e_attrs = attrs;
+					odn = op->o_dn;
+					ondn = op->o_ndn;
+					op->o_dn = op->o_bd->be_rootdn;
+					op->o_ndn = op->o_bd->be_rootndn;
+
 					for ( agf = age->age_filter; agf; agf = agf->agf_next ) {
 						if ( test_filter( op, &etmp, agf->agf_filter ) == LDAP_COMPARE_TRUE ) {
 							if ( ea ) {
@@ -1183,6 +1207,8 @@ autogroup_response( Operation *op, SlapReply *rs )
 							break;
 						}
 					}
+					op->o_dn = odn;
+					op->o_ndn = ondn;
 				} else
 				if ( is_olddn == 1 && is_newdn == 1 && dn_equal != 0 ) {
 					if ( ea ) {
@@ -1214,6 +1240,7 @@ autogroup_response( Operation *op, SlapReply *rs )
 	if ( op->o_tag == LDAP_REQ_MODIFY ) {
 		if ( rs->sr_type == REP_RESULT && rs->sr_err == LDAP_SUCCESS  && !get_manageDSAit( op ) ) {
 			Entry etmp;
+			struct berval odn, ondn;
 			Debug( LDAP_DEBUG_TRACE, "==> autogroup_response MODIFY <%s>\n", op->o_req_dn.bv_val, 0, 0);
 
 			ldap_pvt_thread_mutex_lock( &agi->agi_mutex );			
@@ -1301,10 +1328,14 @@ autogroup_response( Operation *op, SlapReply *rs )
 			etmp.e_name = op->o_req_dn;
 			etmp.e_nname = op->o_req_ndn;
 			etmp.e_attrs = attrs;
+			odn = op->o_dn;
+			ondn = op->o_ndn;
+			op->o_dn = op->o_bd->be_rootdn;
+			op->o_ndn = op->o_bd->be_rootndn;
+
 			for ( age = agi->agi_entry ; age ; age = age->age_next ) {
 				is_olddn = 0;
 				is_newdn = 0;
-
 
 				ldap_pvt_thread_mutex_lock( &age->age_mutex );
 
@@ -1323,6 +1354,8 @@ autogroup_response( Operation *op, SlapReply *rs )
 					attrs_free( attrs );
 					ldap_pvt_thread_mutex_unlock( &age->age_mutex );
 					ldap_pvt_thread_mutex_unlock( &agi->agi_mutex );
+					op->o_dn = odn;
+					op->o_ndn = ondn;
 					return SLAP_CB_CONTINUE;
 				}
 
@@ -1366,6 +1399,8 @@ autogroup_response( Operation *op, SlapReply *rs )
 				ldap_pvt_thread_mutex_unlock( &age->age_mutex );
 			}
 
+			op->o_dn = odn;
+			op->o_ndn = ondn;
 			attrs_free( attrs );
 
 			ldap_pvt_thread_mutex_unlock( &agi->agi_mutex );
@@ -1416,6 +1451,7 @@ autogroup_modify_entry( Operation *op, SlapReply *rs)
 	autogroup_entry_t	*age;
 	Entry			*e;
 	Attribute		*a;
+	struct berval odn, ondn;
 
 	if ( get_manageDSAit( op ) ) {
 		return SLAP_CB_CONTINUE;
@@ -1430,6 +1466,11 @@ autogroup_modify_entry( Operation *op, SlapReply *rs)
 		ldap_pvt_thread_mutex_unlock( &agi->agi_mutex );
 		return SLAP_CB_CONTINUE;
 	}
+
+	odn = op->o_dn;
+	ondn = op->o_ndn;
+	op->o_dn = op->o_bd->be_rootdn;
+	op->o_ndn = op->o_bd->be_rootndn;
 
 	/* Must refresh groups if a matching member value is modified OR filter contains memberOf=DN */
 	for ( age = agi->agi_entry; age ; age = age->age_next ) {
@@ -1454,6 +1495,8 @@ autogroup_modify_entry( Operation *op, SlapReply *rs)
 			}
 		}
 	}
+	op->o_dn = odn;
+	op->o_ndn = ondn;
 
 	a = attrs_find( e->e_attrs, slap_schema.si_ad_objectClass );
 
@@ -1515,6 +1558,7 @@ autogroup_modrdn_entry( Operation *op, SlapReply *rs)
 	autogroup_info_t	*agi = (autogroup_info_t *)on->on_bi.bi_private;
 	autogroup_entry_t	*age;
 	Entry			*e;
+	struct berval odn, ondn;
 
 	if ( get_manageDSAit( op ) ) {
 		return SLAP_CB_CONTINUE;
@@ -1530,6 +1574,11 @@ autogroup_modrdn_entry( Operation *op, SlapReply *rs)
 		return SLAP_CB_CONTINUE;
 	}
 
+	odn = op->o_dn;
+	ondn = op->o_ndn;
+	op->o_dn = op->o_bd->be_rootdn;
+	op->o_ndn = op->o_bd->be_rootndn;
+
 	/* Must check if a dn is modified */
 	for ( age = agi->agi_entry; age ; age = age->age_next ) {
 		autogroup_filter_t	*agf;
@@ -1544,6 +1593,8 @@ autogroup_modrdn_entry( Operation *op, SlapReply *rs)
 			}
 		}
 	}
+	op->o_dn = odn;
+	op->o_ndn = ondn;
 
 	overlay_entry_release_ov( op, e, 0, on );
 	ldap_pvt_thread_mutex_unlock( &agi->agi_mutex );			
