@@ -444,7 +444,8 @@ int pam_authz(nssov_info *ni,TFILE *fp,Operation *op)
 		AttributeAssertion ava = ATTRIBUTEASSERTION_INIT;
 		SlapReply rs = {REP_RESULT};
 		op->o_callback = &cb;
-		cb.sc_response = slap_null_cb;
+		cb.sc_response = pam_compare_cb;
+		cb.sc_private = NULL;
 		op->o_tag = LDAP_REQ_COMPARE;
 		op->o_req_dn = ni->ni_pam_group_dn;
 		op->o_req_ndn = ni->ni_pam_group_dn;
@@ -452,7 +453,7 @@ int pam_authz(nssov_info *ni,TFILE *fp,Operation *op)
 		ava.aa_value = dn;
 		op->orc_ava = &ava;
 		rc = op->o_bd->be_compare( op, &rs );
-		if ( rs.sr_err != LDAP_COMPARE_TRUE ) {
+		if ( cb.sc_private == NULL ) {
 			authzmsg = grpmsg;
 			rc = NSLCD_PAM_PERM_DENIED;
 			goto finish;
