@@ -770,13 +770,8 @@ int pam_pwmod(nssov_info *ni,TFILE *fp,Operation *op,uid_t calleruid)
 		goto done;
 	}
 
-	if (BER_BVISEMPTY(&ni->ni_pam_pwdmgr_dn)) {
-		Debug(LDAP_DEBUG_TRACE,"nssov_pam_pwmod(), %s\n",
-			"pwdmgr not configured", 0, 0);
-		ber_str2bv("pwdmgr not configured", 0, 0, &pi.msg);
-		rc = NSLCD_PAM_PERM_DENIED;
-		goto done;
-	} else if (!ber_bvcmp(&pi.dn, &ni->ni_pam_pwdmgr_dn)) {
+	if (!BER_BVISEMPTY(&ni->ni_pam_pwdmgr_dn) &&
+		!ber_bvcmp(&pi.dn, &ni->ni_pam_pwdmgr_dn)) {
 		if (calleruid != 0) {
 			Debug(LDAP_DEBUG_TRACE,"nssov_pam_pwmod(): %s\n",
 				"caller is not root", 0, 0);
