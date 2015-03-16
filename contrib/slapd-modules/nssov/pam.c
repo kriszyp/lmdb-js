@@ -780,6 +780,14 @@ int pam_pwmod(nssov_info *ni,TFILE *fp,Operation *op)
 		}
 	}
 
+	if (!pi.ispwdmgr && BER_BVISEMPTY(&pi.pwd)) {
+		Debug(LDAP_DEBUG_TRACE,"nssov_pam_pwmod(), %s\n",
+			"not pwdmgr and old pwd empty", 0, 0);
+		ber_str2bv("must provide old password", 0, 0, &pi.msg);
+		rc = NSLCD_PAM_PERM_DENIED;
+		goto done;
+	}
+
 	BerElementBuffer berbuf;
 	BerElement *ber = (BerElement *)&berbuf;
 	struct berval bv;
@@ -792,7 +800,7 @@ int pam_pwmod(nssov_info *ni,TFILE *fp,Operation *op)
 		ber_printf(ber, "tO", LDAP_TAG_EXOP_MODIFY_PASSWD_ID,
 			&pi.dn);
 	/* supply old pwd only when end-user changing pwd */
-	if (!BER_BVISEMPTY(&pi.pwd) && pi.ispwdmgr == 0)
+	if (pi.ispwdmgr == 0)
 		ber_printf(ber, "tO", LDAP_TAG_EXOP_MODIFY_PASSWD_OLD,
 			&pi.pwd);
 	if (!BER_BVISEMPTY(&npw))
