@@ -239,11 +239,11 @@ int nssov_service_bynumber(nssov_info *ni,TFILE *fp,Operation *op);
 int nssov_service_all(nssov_info *ni,TFILE *fp,Operation *op);
 int nssov_shadow_byname(nssov_info *ni,TFILE *fp,Operation *op);
 int nssov_shadow_all(nssov_info *ni,TFILE *fp,Operation *op);
-int pam_authc(nssov_info *ni,TFILE *fp,Operation *op);
+int pam_authc(nssov_info *ni,TFILE *fp,Operation *op,uid_t calleruid);
 int pam_authz(nssov_info *ni,TFILE *fp,Operation *op);
 int pam_sess_o(nssov_info *ni,TFILE *fp,Operation *op);
 int pam_sess_c(nssov_info *ni,TFILE *fp,Operation *op);
-int pam_pwmod(nssov_info *ni,TFILE *fp,Operation *op);
+int pam_pwmod(nssov_info *ni,TFILE *fp,Operation *op,uid_t calleruid);
 
 /* config initialization */
 #define NSSOV_INIT(db) \
