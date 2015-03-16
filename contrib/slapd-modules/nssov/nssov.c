@@ -369,11 +369,11 @@ static void handleconnection(nssov_info *ni,int sock,Operation *op)
     case NSLCD_ACTION_SERVICE_ALL:      (void)nssov_service_all(ni,fp,op); break;
     case NSLCD_ACTION_SHADOW_BYNAME:    if (uid==0) (void)nssov_shadow_byname(ni,fp,op); break;
     case NSLCD_ACTION_SHADOW_ALL:       if (uid==0) (void)nssov_shadow_all(ni,fp,op); break;
-	case NSLCD_ACTION_PAM_AUTHC:		(void)pam_authc(ni,fp,op); break;
+	case NSLCD_ACTION_PAM_AUTHC:		(void)pam_authc(ni,fp,op,uid); break;
 	case NSLCD_ACTION_PAM_AUTHZ:		(void)pam_authz(ni,fp,op); break;
 	case NSLCD_ACTION_PAM_SESS_O:		if (uid==0) (void)pam_sess_o(ni,fp,op); break;
 	case NSLCD_ACTION_PAM_SESS_C:		if (uid==0) (void)pam_sess_c(ni,fp,op); break;
-	case NSLCD_ACTION_PAM_PWMOD:		(void)pam_pwmod(ni,fp,op); break;
+	case NSLCD_ACTION_PAM_PWMOD:		(void)pam_pwmod(ni,fp,op,uid); break;
 	case NSLCD_ACTION_CONFIG_GET:			(void)nssov_config(ni,fp,op); break;
     default:
       Debug( LDAP_DEBUG_ANY,"nssov: invalid request id: %d",(int)action,0,0);
