@@ -808,8 +808,8 @@ int pam_pwmod(nssov_info *ni,TFILE *fp,Operation *op,uid_t calleruid)
 	if (!BER_BVISEMPTY(&pi.dn))
 		ber_printf(ber, "tO", LDAP_TAG_EXOP_MODIFY_PASSWD_ID,
 			&pi.dn);
-	/* supply old pwd only when end-user changing pwd */
-	if (pi.ispwdmgr == 0)
+	/* supply old pwd whenever it's given */
+	if (!BER_BVISEMPTY(&pi.pwd))
 		ber_printf(ber, "tO", LDAP_TAG_EXOP_MODIFY_PASSWD_OLD,
 			&pi.pwd);
 	if (!BER_BVISEMPTY(&npw))
