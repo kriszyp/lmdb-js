@@ -1416,8 +1416,16 @@ syncprov_op_cleanup( Operation *op, SlapReply *rs )
 	/* Remove op from lock table */
 	mt = opc->smt;
 	if ( mt ) {
+		modinst *mi = (modinst *)(opc+1), **m2;
 		ldap_pvt_thread_mutex_lock( &mt->mt_mutex );
-		mt->mt_mods = mt->mt_mods->mi_next;
+		for (m2 = &mt->mt_mods; ; m2 = &(*m2)->mi_next) {
+			if ( *m2 == mi ) {
+				*m2 = mi->mi_next;
+				if ( mt->mt_tail == mi )
+					mt->mt_tail = ( m2 == &mt->mt_mods ) ? NULL : (modinst *)m2;
+				break;
+			}
+		}
 		/* If there are more, promote the next one */
 		if ( mt->mt_mods ) {
 			ldap_pvt_thread_mutex_unlock( &mt->mt_mutex );
@@ -2104,34 +2112,36 @@ syncprov_op_mod( Operation *op, SlapReply *rs )
 
 		/* See if we're already modifying this entry... */
 		mtdummy.mt_dn = op->o_req_ndn;
+retry:
 		ldap_pvt_thread_mutex_lock( &si->si_mods_mutex );
 		mt = avl_find( si->si_mods, &mtdummy, sp_avl_cmp );
 		if ( mt ) {
 			ldap_pvt_thread_mutex_lock( &mt->mt_mutex );
 			if ( mt->mt_mods == NULL ) {
 				/* Cannot reuse this mt, as another thread is about
-				 * to release it in syncprov_op_cleanup.
+				 * to release it in syncprov_op_cleanup. Wait for them
+				 * to finish; our own insert is required to succeed.
 				 */
 				ldap_pvt_thread_mutex_unlock( &mt->mt_mutex );
-				mt = NULL;
+				ldap_pvt_thread_mutex_unlock( &si->si_mods_mutex );
+				ldap_pvt_thread_yield();
+				goto retry;
 			}
 		}
 		if ( mt ) {
-			ldap_pvt_thread_mutex_unlock( &si->si_mods_mutex );
 			mt->mt_tail->mi_next = mi;
 			mt->mt_tail = mi;
+			ldap_pvt_thread_mutex_unlock( &si->si_mods_mutex );
 			/* wait for this op to get to head of list */
 			while ( mt->mt_mods != mi ) {
 				modinst *m2;
-				int same = 0;
 				/* don't wait on other mods from the same thread */
 				for ( m2 = mt->mt_mods; m2; m2 = m2->mi_next ) {
 					if ( m2->mi_op->o_threadctx == op->o_threadctx ) {
-						same = 1;
 						break;
 					}
 				}
-				if ( same )
+				if ( m2 )
 					break;
 
 				ldap_pvt_thread_mutex_unlock( &mt->mt_mutex );
@@ -2149,12 +2159,21 @@ syncprov_op_mod( Operation *op, SlapReply *rs )
 
 				/* clean up if the caller is giving up */
 				if ( op->o_abandon ) {
-					modinst *m2;
-					for ( m2 = mt->mt_mods; m2 && m2->mi_next != mi;
-						m2 = m2->mi_next );
-					if ( m2 ) {
-						m2->mi_next = mi->mi_next;
-						if ( mt->mt_tail == mi ) mt->mt_tail = m2;
+					modinst **m2;
+					slap_callback **sc;
+					for (m2 = &mt->mt_mods; ; m2 = &(*m2)->mi_next) {
+						if ( *m2 == mi ) {
+							*m2 = mi->mi_next;
+							if ( mt->mt_tail == mi )
+								mt->mt_tail = ( m2 == &mt->mt_mods ) ? NULL : (modinst *)m2;
+							break;
+						}
+					}
+					for (sc = &op->o_callback; ; sc = &(*sc)->sc_next) {
+						if ( *sc == cb ) {
+							*sc = cb->sc_next;
+							break;
+						}
 					}
 					op->o_tmpfree( cb, op->o_tmpmemctx );
 					ldap_pvt_thread_mutex_unlock( &mt->mt_mutex );
