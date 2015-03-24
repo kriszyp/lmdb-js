@@ -50,7 +50,7 @@ NSSOV_CBPRIV(network,
 /* write a single network entry to the stream */
 static int write_network(nssov_network_cbp *cbp,Entry *entry)
 {
-	int32_t tmpint32,tmp2int32,tmp3int32;
+	int32_t tmpint32;
 	int numaddr,i,numname,dupname;
 	struct berval name, *names, *addrs;
 	Attribute *a;

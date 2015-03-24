@@ -207,7 +207,6 @@ static int write_passwd(nssov_passwd_cbp *cbp,Entry *entry)
 {
 	int32_t tmpint32;
 	struct berval tmparr[2], tmpuid[2];
-	const char **tmpvalues;
 	char *tmp;
 	struct berval *names;
 	struct berval *uids;

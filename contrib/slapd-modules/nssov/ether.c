@@ -65,7 +65,7 @@ static int write_ether(nssov_ether_cbp *cbp,Entry *entry)
 {
 	int32_t tmpint32;
 	struct ether_addr tmpaddr;
-	struct berval tmparr[2], empty;
+	struct berval tmparr[2];
 	struct berval *names,*ethers;
 	Attribute *a;
 	int i,j;

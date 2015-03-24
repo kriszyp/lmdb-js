@@ -19,6 +19,9 @@
 #include "nssov.h"
 #include "lutil.h"
 
+#undef ldap_debug	/* silence a warning in ldap-int.h */
+#include "../../../libraries/libldap/ldap-int.h"	/* for ldap_ld_free */
+
 static int ppolicy_cid;
 static AttributeDescription *ad_loginStatus;
 
