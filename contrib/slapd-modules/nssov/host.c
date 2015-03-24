@@ -50,7 +50,7 @@ NSSOV_CBPRIV(host,
 /* write a single host entry to the stream */
 static int write_host(nssov_host_cbp *cbp,Entry *entry)
 {
-	int32_t tmpint32,tmp2int32,tmp3int32;
+	int32_t tmpint32;
 	int numaddr,i,numname,dupname;
 	struct berval name,*names,*addrs;
 	Attribute *a;

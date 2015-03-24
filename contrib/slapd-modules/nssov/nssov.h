@@ -164,6 +164,9 @@ void nssov_cfg_init(nssov_info *ni,const char *fname);
     }                                                                          \
   }                                                                            \
 
+/* Find the given attribute's value in the RDN of the DN. */
+void nssov_find_rdnval(struct berval *dn,AttributeDescription *ad,struct berval *value);
+
 /* This tries to get the user password attribute from the entry.
    It will try to return an encrypted password as it is used in /etc/passwd,
    /etc/group or /etc/shadow depending upon what is in the directory.
@@ -303,7 +306,6 @@ int pam_pwmod(nssov_info *ni,TFILE *fp,Operation *op,uid_t calleruid);
   { \
     /* define common variables */ \
     int32_t tmpint32; \
-    int rc; \
 	nssov_##db##_cbp cbp; \
 	slap_callback cb = {0}; \
 	SlapReply rs = {REP_RESULT}; \
