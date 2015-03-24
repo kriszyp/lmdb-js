@@ -46,7 +46,7 @@ AttributeDescription *nssov_pam_svc_ad;
 #define WRITEBUFFER_MAXSIZE 64*1024
 
 /* Find the given attribute's value in the RDN of the DN */
-int nssov_find_rdnval(struct berval *dn, AttributeDescription *ad, struct berval *value)
+void nssov_find_rdnval(struct berval *dn, AttributeDescription *ad, struct berval *value)
 {
 	struct berval rdn;
 	char *next;
@@ -406,10 +406,10 @@ static void *acceptconn(void *ctx, void *arg)
 			if ((errno==EINTR)||(errno==EAGAIN)||(errno==EWOULDBLOCK))
 			{
 				Debug( LDAP_DEBUG_TRACE,"nssov: accept() failed (ignored): %s",strerror(errno),0,0);
-				return;
+				return NULL;
 			}
 			Debug( LDAP_DEBUG_ANY,"nssov: accept() failed: %s",strerror(errno),0,0);
-			return;
+			return NULL;
 		}
 		/* make sure O_NONBLOCK is not inherited */
 		if ((j=fcntl(csock,F_GETFL,0))<0)
@@ -417,14 +417,14 @@ static void *acceptconn(void *ctx, void *arg)
 			Debug( LDAP_DEBUG_ANY,"nssov: fcntl(F_GETFL) failed: %s",strerror(errno),0,0);
 			if (close(csock))
 				Debug( LDAP_DEBUG_ANY,"nssov: problem closing socket: %s",strerror(errno),0,0);
-			return;
+			return NULL;
 		}
 		if (fcntl(csock,F_SETFL,j&~O_NONBLOCK)<0)
 		{
 			Debug( LDAP_DEBUG_ANY,"nssov: fcntl(F_SETFL,~O_NONBLOCK) failed: %s",strerror(errno),0,0);
 			if (close(csock))
 				Debug( LDAP_DEBUG_ANY,"nssov: problem closing socket: %s",strerror(errno),0,0);
-			return;
+			return NULL;
 		}
 	}
 	connection_fake_init( &conn, &opbuf, ctx );
@@ -435,6 +435,8 @@ static void *acceptconn(void *ctx, void *arg)
 
 	/* handle the connection */
 	handleconnection(ni,csock,op);
+
+	return NULL;
 }
 
 static slap_verbmasks nss_svcs[] = {
@@ -769,7 +771,6 @@ nssov_db_init(
 {
 	slap_overinst *on = (slap_overinst *)be->bd_info;
 	nssov_info *ni;
-	nssov_mapinfo *mi;
 	int rc;
 
 	rc = nssov_pam_init();
@@ -802,6 +803,7 @@ nssov_db_destroy(
 	BackendDB *be,
 	ConfigReply *cr )
 {
+	return 0;
 }
 
 static int
@@ -958,6 +960,7 @@ nssov_db_close(
 				strerror(errno),0,0);
 		}
 	}
+	return 0;
 }
 
 static slap_overinst nssov;

@@ -112,8 +112,8 @@ NSSOV_CBPRIV(service,
 
 static int write_service(nssov_service_cbp *cbp,Entry *entry)
 {
-	int32_t tmpint32,tmp2int32,tmp3int32;
-	struct berval name,*names,*ports,*protos;
+	int32_t tmpint32;
+	struct berval name,*names,*protos;
 	struct berval tmparr[2];
 	Attribute *a;
 	char *tmp;
