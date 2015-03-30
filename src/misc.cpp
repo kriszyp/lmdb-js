@@ -72,7 +72,7 @@ argtokey_callback_t argToKey(const Handle<Value> &val, MDB_val &key, bool keyIsU
     // Handle string key
     CustomExternalStringResource::writeTo(val->ToString(), &key);
     return ([](MDB_val &key) -> void {
-        delete (uint16_t*)key.mv_data;
+        delete[] (uint16_t*)key.mv_data;
     });
 
     return nullptr;

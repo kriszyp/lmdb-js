@@ -215,7 +215,7 @@ NAN_METHOD(TxnWrap::putString) {
     return putCommon(args, [](_NAN_METHOD_ARGS, MDB_val &data) -> void {
         CustomExternalStringResource::writeTo(args[2]->ToString(), &data);
     }, [](MDB_val &data) -> void {
-        delete (uint16_t*)data.mv_data;
+        delete[] (uint16_t*)data.mv_data;
     });
 }
 

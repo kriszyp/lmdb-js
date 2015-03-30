@@ -224,7 +224,7 @@ static void fillDataFromArg1(CursorWrap* cw, _NAN_METHOD_ARGS, MDB_val &data) {
 
 static void freeDataFromArg1(CursorWrap* cw, _NAN_METHOD_ARGS, MDB_val &data) {
     if (args[1]->IsString()) {
-        delete (uint16_t*)data.mv_data;
+        delete[] (uint16_t*)data.mv_data;
     }
     else if (node::Buffer::HasInstance(args[1])) {
         // I think the data is owned by the node::Buffer so we don't need to free it - need to clarify
