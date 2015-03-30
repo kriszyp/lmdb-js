@@ -39,8 +39,8 @@ TxnWrap::~TxnWrap() {
     }
 }
 
-Handle<Value> TxnWrap::ctor(const Arguments& args) {
-    HandleScope scope;
+NAN_METHOD(TxnWrap::ctor) {
+    NanScope();
 
     EnvWrap *ew = ObjectWrap::Unwrap<EnvWrap>(args[0]->ToObject());
     int flags = 0;
@@ -57,8 +57,7 @@ Handle<Value> TxnWrap::ctor(const Arguments& args) {
     MDB_txn *txn;
     int rc = mdb_txn_begin(ew->env, nullptr, flags, &txn);
     if (rc != 0) {
-        ThrowException(Exception::Error(String::New(mdb_strerror(rc))));
-        return Undefined();
+        return NanThrowError(mdb_strerror(rc));
     }
 
     TxnWrap* tw = new TxnWrap(ew->env, txn);
@@ -66,16 +65,16 @@ Handle<Value> TxnWrap::ctor(const Arguments& args) {
     tw->ew->Ref();
     tw->Wrap(args.This());
 
-    return args.This();
+    NanReturnThis();
 }
 
-Handle<Value> TxnWrap::commit(const Arguments& args) {
-    HandleScope scope;
+NAN_METHOD(TxnWrap::commit) {
+    NanScope();
+
     TxnWrap *tw = ObjectWrap::Unwrap<TxnWrap>(args.This());
 
     if (!tw->txn) {
-        ThrowException(Exception::Error(String::New("The transaction is already closed.")));
-        return Undefined();
+        return NanThrowError("The transaction is already closed.");
     }
 
     int rc = mdb_txn_commit(tw->txn);
@@ -83,115 +82,112 @@ Handle<Value> TxnWrap::commit(const Arguments& args) {
     tw->ew->Unref();
 
     if (rc != 0) {
-        ThrowException(Exception::Error(String::New(mdb_strerror(rc))));
-        return Undefined();
+        return NanThrowError(mdb_strerror(rc));
     }
 
-    return Undefined();
+    NanReturnUndefined();
 }
 
-Handle<Value> TxnWrap::abort(const Arguments& args) {
-    HandleScope scope;
+NAN_METHOD(TxnWrap::abort) {
+    NanScope();
+
     TxnWrap *tw = ObjectWrap::Unwrap<TxnWrap>(args.This());
 
     if (!tw->txn) {
-        ThrowException(Exception::Error(String::New("The transaction is already closed.")));
-        return Undefined();
+        return NanThrowError("The transaction is already closed.");
     }
 
     mdb_txn_abort(tw->txn);
     tw->ew->Unref();
     tw->txn = nullptr;
 
-    return Undefined();
+    NanReturnUndefined();
 }
 
-Handle<Value> TxnWrap::reset(const Arguments& args) {
-    HandleScope scope;
+NAN_METHOD(TxnWrap::reset) {
+    NanScope();
 
     TxnWrap *tw = ObjectWrap::Unwrap<TxnWrap>(args.This());
 
     if (!tw->txn) {
-        ThrowException(Exception::Error(String::New("The transaction is already closed.")));
-        return Undefined();
+        return NanThrowError("The transaction is already closed.");
     }
 
     mdb_txn_reset(tw->txn);
 
-    return Undefined();
+    NanReturnUndefined();
 }
 
-Handle<Value> TxnWrap::renew(const Arguments& args) {
-    HandleScope scope;
+NAN_METHOD(TxnWrap::renew) {
+    NanScope();
 
     TxnWrap *tw = ObjectWrap::Unwrap<TxnWrap>(args.This());
 
     if (!tw->txn) {
-        ThrowException(Exception::Error(String::New("The transaction is already closed.")));
-        return Undefined();
+        return NanThrowError("The transaction is already closed.");
     }
 
     int rc = mdb_txn_renew(tw->txn);
     if (rc != 0) {
-        ThrowException(Exception::Error(String::New(mdb_strerror(rc))));
-        return Undefined();
+        return NanThrowError(mdb_strerror(rc));
     }
 
-    return Undefined();
+    NanReturnUndefined();
 }
 
-Handle<Value> TxnWrap::getCommon(const Arguments &args, Handle<Value> (*successFunc)(MDB_val&)) {
+_NAN_METHOD_RETURN_TYPE TxnWrap::getCommon(_NAN_METHOD_ARGS, Handle<Value> (*successFunc)(MDB_val&)) {
+    NanScope();
+
     TxnWrap *tw = ObjectWrap::Unwrap<TxnWrap>(args.This());
     DbiWrap *dw = ObjectWrap::Unwrap<DbiWrap>(args[0]->ToObject());
 
     if (!tw->txn) {
-        ThrowException(Exception::Error(String::New("The transaction is already closed.")));
-        return Undefined();
+        return NanThrowError("The transaction is already closed.");
     }
 
     MDB_val key, data;
     void (*freeKey)(MDB_val&) = argToKey(args[1], key, dw->keyIsUint32);
     if (!freeKey) {
-        return Undefined();
+        NanReturnUndefined();
     }
 
     int rc = mdb_get(tw->txn, dw->dbi, &key, &data);
     freeKey(key);
 
     if (rc == MDB_NOTFOUND) {
-        return Null();
+        NanReturnNull();
     }
     else if (rc != 0) {
-        ThrowException(Exception::Error(String::New(mdb_strerror(rc))));
-        return Undefined();
+        return NanThrowError(mdb_strerror(rc));
     }
 
-    return successFunc(data);
+    NanReturnValue(successFunc(data));
 }
 
-Handle<Value> TxnWrap::getString(const Arguments& args) {
+NAN_METHOD(TxnWrap::getString) {
     return getCommon(args, valToString);
 }
 
-Handle<Value> TxnWrap::getBinary(const Arguments& args) {
+NAN_METHOD(TxnWrap::getBinary) {
     return getCommon(args, valToBinary);
 }
 
-Handle<Value> TxnWrap::getNumber(const Arguments& args) {
+NAN_METHOD(TxnWrap::getNumber) {
     return getCommon(args, valToNumber);
 }
 
-Handle<Value> TxnWrap::getBoolean(const Arguments& args) {
+NAN_METHOD(TxnWrap::getBoolean) {
     return getCommon(args, valToBoolean);
 }
 
-Handle<Value> TxnWrap::putCommon(const Arguments &args, void (*fillFunc)(const Arguments&, MDB_val&), void (*freeData)(MDB_val&)) {
+_NAN_METHOD_RETURN_TYPE TxnWrap::putCommon(_NAN_METHOD_ARGS, void (*fillFunc)(_NAN_METHOD_ARGS, MDB_val&), void (*freeData)(MDB_val&)) {
+    NanScope();
+
     TxnWrap *tw = ObjectWrap::Unwrap<TxnWrap>(args.This());
     DbiWrap *dw = ObjectWrap::Unwrap<DbiWrap>(args[0]->ToObject());
 
     if (!tw->txn) {
-        ThrowException(Exception::Error(String::New("The transaction is already closed.")));
-        return Undefined();
+        return NanThrowError("The transaction is already closed.");
     }
 
     int flags = 0;
@@ -199,7 +195,7 @@ Handle<Value> TxnWrap::putCommon(const Arguments &args, void (*fillFunc)(const A
 
     void (*freeKey)(MDB_val&) = argToKey(args[1], key, dw->keyIsUint32);
     if (!freeKey) {
-        return Undefined();
+        NanReturnUndefined();
     }
 
     fillFunc(args, data);
@@ -209,23 +205,22 @@ Handle<Value> TxnWrap::putCommon(const Arguments &args, void (*fillFunc)(const A
     freeData(data);
 
     if (rc != 0) {
-        ThrowException(Exception::Error(String::New(mdb_strerror(rc))));
-        return Undefined();
+        return NanThrowError(mdb_strerror(rc));
     }
 
-    return Undefined();
+    NanReturnUndefined();
 }
 
-Handle<Value> TxnWrap::putString(const Arguments& args) {
-    return putCommon(args, [](const Arguments &args, MDB_val &data) -> void {
+NAN_METHOD(TxnWrap::putString) {
+    return putCommon(args, [](_NAN_METHOD_ARGS, MDB_val &data) -> void {
         CustomExternalStringResource::writeTo(args[2]->ToString(), &data);
     }, [](MDB_val &data) -> void {
         delete (uint16_t*)data.mv_data;
     });
 }
 
-Handle<Value> TxnWrap::putBinary(const Arguments& args) {
-    return putCommon(args, [](const Arguments &args, MDB_val &data) -> void {
+NAN_METHOD(TxnWrap::putBinary) {
+    return putCommon(args, [](_NAN_METHOD_ARGS, MDB_val &data) -> void {
         data.mv_size = node::Buffer::Length(args[2]);
         data.mv_data = node::Buffer::Data(args[2]);
     }, [](MDB_val &) -> void {
@@ -233,8 +228,8 @@ Handle<Value> TxnWrap::putBinary(const Arguments& args) {
     });
 }
 
-Handle<Value> TxnWrap::putNumber(const Arguments& args) {
-    return putCommon(args, [](const Arguments &args, MDB_val &data) -> void {
+NAN_METHOD(TxnWrap::putNumber) {
+    return putCommon(args, [](_NAN_METHOD_ARGS, MDB_val &data) -> void {
         data.mv_size = sizeof(double);
         data.mv_data = new double;
         *((double*)data.mv_data) = args[2]->ToNumber()->Value();
@@ -243,8 +238,8 @@ Handle<Value> TxnWrap::putNumber(const Arguments& args) {
     });
 }
 
-Handle<Value> TxnWrap::putBoolean(const Arguments& args) {
-    return putCommon(args, [](const Arguments &args, MDB_val &data) -> void {
+NAN_METHOD(TxnWrap::putBoolean) {
+    return putCommon(args, [](_NAN_METHOD_ARGS, MDB_val &data) -> void {
         data.mv_size = sizeof(double);
         data.mv_data = new bool;
         *((bool*)data.mv_data) = args[2]->ToBoolean()->Value();
@@ -253,30 +248,28 @@ Handle<Value> TxnWrap::putBoolean(const Arguments& args) {
     });
 }
 
-Handle<Value> TxnWrap::del(const Arguments& args) {
-    HandleScope scope;
+NAN_METHOD(TxnWrap::del) {
+    NanScope();
 
     TxnWrap *tw = ObjectWrap::Unwrap<TxnWrap>(args.This());
     DbiWrap *dw = ObjectWrap::Unwrap<DbiWrap>(args[0]->ToObject());
 
     if (!tw->txn) {
-        ThrowException(Exception::Error(String::New("The transaction is already closed.")));
-        return Undefined();
+        return NanThrowError("The transaction is already closed.");
     }
 
     MDB_val key;
     void (*freeKey)(MDB_val&) = argToKey(args[1], key, dw->keyIsUint32);
     if (!freeKey) {
-        return Undefined();
+        NanReturnUndefined();
     }
 
     int rc = mdb_del(tw->txn, dw->dbi, &key, nullptr);
     freeKey(key);
 
     if (rc != 0) {
-        ThrowException(Exception::Error(String::New(mdb_strerror(rc))));
-        return Undefined();
+        return NanThrowError(mdb_strerror(rc));
     }
 
-    return Undefined();
+    NanReturnUndefined();
 }

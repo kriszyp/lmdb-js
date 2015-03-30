@@ -14,6 +14,9 @@
         "src/dbi.cpp",
         "src/cursor.cpp"
       ],
+      "include_dirs": [
+        "<!(node -e \"require('nan')\")"
+      ],
       "conditions": [
         ["OS=='linux'", {
           "ldflags": [

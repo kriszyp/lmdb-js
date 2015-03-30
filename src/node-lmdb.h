@@ -27,6 +27,7 @@
 #include <v8.h>
 #include <node.h>
 #include <node_buffer.h>
+#include <nan.h>
 #include <uv.h>
 #include "../libraries/liblmdb/lmdb.h"
 
@@ -78,7 +79,7 @@ public:
         Constructor of the database environment. You need to `open()` it before you can use it.
         (Wrapper for `mdb_env_create`)
     */
-    static Handle<Value> ctor(const Arguments& args);
+    static NAN_METHOD(ctor);
 
     /*
         Opens the database environment with the specified options. The options will be used to configure the environment before opening it.
@@ -95,13 +96,13 @@ public:
         * mapSize: maximal size of the memory map (the full environment) in bytes (default is 10485760 bytes)
         * path: path to the database environment
     */
-    static Handle<Value> open(const Arguments& args);
+    static NAN_METHOD(open);
 
     /*
         Closes the database environment.
         (Wrapper for `mdb_env_close`)
     */
-    static Handle<Value> close(const Arguments& args);
+    static NAN_METHOD(close);
 
     /*
         Starts a new transaction in the environment.
@@ -115,7 +116,7 @@ public:
 
         * readOnly: if true, the transaction is read-only
     */
-    static Handle<Value> beginTxn(const Arguments& args);
+    static NAN_METHOD(beginTxn);
 
     /*
         Opens a database in the environment.
@@ -135,7 +136,7 @@ public:
         * integerDup: duplicate data items are also integers, and should be sorted as such
         * reverseDup: duplicate data items should be compared as strings in reverse order
     */
-    static Handle<Value> openDbi(const Arguments& args);
+    static NAN_METHOD(openDbi);
 
     /*
         Flushes all data to the disk asynchronously.
@@ -145,7 +146,7 @@ public:
 
         * Callback to be executed after the sync is complete.
     */
-    static Handle<Value> sync(const Arguments &args);
+    static NAN_METHOD(sync);
 };
 
 /*
@@ -171,37 +172,37 @@ public:
     ~TxnWrap();
 
     // Constructor (not exposed)
-    static Handle<Value> ctor(const Arguments& args);
+    static NAN_METHOD(ctor);
 
     // Helper for all the get methods (not exposed)
-    static Handle<Value> getCommon(const Arguments &args, Handle<Value> (*successFunc)(MDB_val&));
+    static _NAN_METHOD_RETURN_TYPE getCommon(_NAN_METHOD_ARGS, Handle<Value> (*successFunc)(MDB_val&));
 
     // Helper for all the put methods (not exposed)
-    static Handle<Value> putCommon(const Arguments &args, void (*fillFunc)(const Arguments&, MDB_val&), void (*freeFunc)(MDB_val&));
+    static _NAN_METHOD_RETURN_TYPE putCommon(_NAN_METHOD_ARGS, void (*fillFunc)(_NAN_METHOD_ARGS, MDB_val&), void (*freeFunc)(MDB_val&));
 
     /*
         Commits the transaction.
         (Wrapper for `mdb_txn_commit`)
     */
-    static Handle<Value> commit(const Arguments& args);
+    static NAN_METHOD(commit);
 
     /*
         Aborts the transaction.
         (Wrapper for `mdb_txn_abort`)
     */
-    static Handle<Value> abort(const Arguments& args);
+    static NAN_METHOD(abort);
 
     /*
         Aborts a read-only transaction but makes it renewable with `renew`.
         (Wrapper for `mdb_txn_reset`)
     */
-    static Handle<Value> reset(const Arguments& args);
+    static NAN_METHOD(reset);
 
     /*
         Renews a read-only transaction after it has been reset.
         (Wrapper for `mdb_txn_renew`)
     */
-    static Handle<Value> renew(const Arguments& args);
+    static NAN_METHOD(renew);
 
     /*
         Gets string data (JavaScript string type) associated with the given key from a database. You need to open a database in the environment to use this.
@@ -213,7 +214,7 @@ public:
         * database instance created with calling `openDbi()` on an `Env` instance
         * key for which the value is retrieved
     */
-    static Handle<Value> getString(const Arguments& args);
+    static NAN_METHOD(getString);
 
     /*
         Gets binary data (Node.js Buffer) associated with the given key from a database. You need to open a database in the environment to use this.
@@ -225,7 +226,7 @@ public:
         * database instance created with calling `openDbi()` on an `Env` instance
         * key for which the value is retrieved
     */
-    static Handle<Value> getBinary(const Arguments& args);
+    static NAN_METHOD(getBinary);
 
     /*
         Gets number data (JavaScript number type) associated with the given key from a database. You need to open a database in the environment to use this.
@@ -237,7 +238,7 @@ public:
         * database instance created with calling `openDbi()` on an `Env` instance
         * key for which the value is retrieved
     */
-    static Handle<Value> getNumber(const Arguments& args);
+    static NAN_METHOD(getNumber);
 
     /*
         Gets boolean data (JavaScript boolean type) associated with the given key from a database. You need to open a database in the environment to use this.
@@ -249,7 +250,7 @@ public:
         * database instance created with calling `openDbi()` on an `Env` instance
         * key for which the value is retrieved
     */
-    static Handle<Value> getBoolean(const Arguments& args);
+    static NAN_METHOD(getBoolean);
 
     /*
         Puts string data (JavaScript string type) into a database.
@@ -261,7 +262,7 @@ public:
         * key for which the value is stored
         * data to store for the given key
     */
-    static Handle<Value> putString(const Arguments& args);
+    static NAN_METHOD(putString);
 
     /*
         Puts binary data (Node.js Buffer) into a database.
@@ -273,7 +274,7 @@ public:
         * key for which the value is stored
         * data to store for the given key
     */
-    static Handle<Value> putBinary(const Arguments& args);
+    static NAN_METHOD(putBinary);
 
     /*
         Puts number data (JavaScript number type) into a database.
@@ -285,7 +286,7 @@ public:
         * key for which the value is stored
         * data to store for the given key
     */
-    static Handle<Value> putNumber(const Arguments& args);
+    static NAN_METHOD(putNumber);
 
     /*
         Puts boolean data (JavaScript boolean type) into a database.
@@ -297,7 +298,7 @@ public:
         * key for which the value is stored
         * data to store for the given key
     */
-    static Handle<Value> putBoolean(const Arguments& args);
+    static NAN_METHOD(putBoolean);
 
     /*
         Deletes data with the given key from the database.
@@ -306,7 +307,7 @@ public:
         * database instance created with calling `openDbi()` on an `Env` instance
         * key for which the value is stored
     */
-    static Handle<Value> del(const Arguments& args);
+    static NAN_METHOD(del);
 };
 
 /*
@@ -333,13 +334,13 @@ public:
     ~DbiWrap();
 
     // Constructor (not exposed)
-    static Handle<Value> ctor(const Arguments& args);
+    static NAN_METHOD(ctor);
 
     /*
         Closes the database instance.
         Wrapper for `mdb_dbi_close`)
     */
-    static Handle<Value> close(const Arguments& args);
+    static NAN_METHOD(close);
 
     /*
         Drops the database instance, either deleting it completely (default) or just freeing its pages.
@@ -353,9 +354,9 @@ public:
         * justFreePages - indicates that the database pages need to be freed but the database shouldn't be deleted
 
     */
-    static Handle<Value> drop(const Arguments& args);
+    static NAN_METHOD(drop);
 
-    static Handle<Value> stat(const Arguments& args);
+    static NAN_METHOD(stat);
 };
 
 /*
@@ -390,7 +391,7 @@ public:
         * Transaction object
         * Database instance object
     */
-    static Handle<Value> ctor(const Arguments& args);
+    static NAN_METHOD(ctor);
 
     /*
         Closes the cursor.
@@ -401,18 +402,18 @@ public:
         * Transaction object
         * Database instance object
     */
-    static Handle<Value> close(const Arguments& args);
+    static NAN_METHOD(close);
 
     // Helper method for getters (not exposed)
-    static Handle<Value> getCommon(
-        const Arguments& args, MDB_cursor_op op,
-        void (*setKey)(CursorWrap* cw, const Arguments& args, MDB_val&),
-        void (*setData)(CursorWrap* cw, const Arguments& args, MDB_val&),
-        void (*freeData)(CursorWrap* cw, const Arguments& args, MDB_val&),
+    static _NAN_METHOD_RETURN_TYPE getCommon(
+        _NAN_METHOD_ARGS, MDB_cursor_op op,
+        void (*setKey)(CursorWrap* cw, _NAN_METHOD_ARGS, MDB_val&),
+        void (*setData)(CursorWrap* cw, _NAN_METHOD_ARGS, MDB_val&),
+        void (*freeData)(CursorWrap* cw, _NAN_METHOD_ARGS, MDB_val&),
         Handle<Value> (*convertFunc)(MDB_val &data));
 
     // Helper method for getters (not exposed)
-    static Handle<Value> getCommon(const Arguments& args, MDB_cursor_op op);
+    static _NAN_METHOD_RETURN_TYPE getCommon(_NAN_METHOD_ARGS, MDB_cursor_op op);
 
     /*
         Gets the current key-data pair that the cursor is pointing to. Returns the current key.
@@ -422,7 +423,7 @@ public:
 
         * Callback that accepts the key and value
     */
-    static Handle<Value> getCurrentString(const Arguments& args);
+    static NAN_METHOD(getCurrentString);
 
     /*
         Gets the current key-data pair that the cursor is pointing to. Returns the current key.
@@ -432,7 +433,7 @@ public:
 
         * Callback that accepts the key and value
     */
-    static Handle<Value> getCurrentBinary(const Arguments& args);
+    static NAN_METHOD(getCurrentBinary);
 
     /*
         Gets the current key-data pair that the cursor is pointing to. Returns the current key.
@@ -442,7 +443,7 @@ public:
 
         * Callback that accepts the key and value
     */
-    static Handle<Value> getCurrentNumber(const Arguments& args);
+    static NAN_METHOD(getCurrentNumber);
 
     /*
         Gets the current key-data pair that the cursor is pointing to.
@@ -452,85 +453,85 @@ public:
 
         * Callback that accepts the key and value
     */
-    static Handle<Value> getCurrentBoolean(const Arguments& args);
+    static NAN_METHOD(getCurrentBoolean);
 
     /*
         Asks the cursor to go to the first key-data pair in the database.
         (Wrapper for `mdb_cursor_get`)
     */
-    static Handle<Value> goToFirst(const Arguments& args);
+    static NAN_METHOD(goToFirst);
 
     /*
         Asks the cursor to go to the last key-data pair in the database.
         (Wrapper for `mdb_cursor_get`)
     */
-    static Handle<Value> goToLast(const Arguments& args);
+    static NAN_METHOD(goToLast);
 
     /*
         Asks the cursor to go to the next key-data pair in the database.
         (Wrapper for `mdb_cursor_get`)
     */
-    static Handle<Value> goToNext(const Arguments& args);
+    static NAN_METHOD(goToNext);
 
     /*
         Asks the cursor to go to the previous key-data pair in the database.
         (Wrapper for `mdb_cursor_get`)
     */
-    static Handle<Value> goToPrev(const Arguments& args);
+    static NAN_METHOD(goToPrev);
 
     /*
         Asks the cursor to go to the specified key in the database.
         (Wrapper for `mdb_cursor_get`)
     */
-    static Handle<Value> goToKey(const Arguments& args);
+    static NAN_METHOD(goToKey);
 
     /*
         Asks the cursor to go to the first key greater than or equal to the specified parameter in the database.
         (Wrapper for `mdb_cursor_get`)
     */
-    static Handle<Value> goToRange(const Arguments& args);
+    static NAN_METHOD(goToRange);
 
     /*
         For databases with the dupSort option. Asks the cursor to go to the first occurence of the current key.
         (Wrapper for `mdb_cursor_get`)
     */
-    static Handle<Value> goToFirstDup(const Arguments& args);
+    static NAN_METHOD(goToFirstDup);
 
     /*
         For databases with the dupSort option. Asks the cursor to go to the last occurence of the current key.
         (Wrapper for `mdb_cursor_get`)
     */
-    static Handle<Value> goToLastDup(const Arguments& args);
+    static NAN_METHOD(goToLastDup);
 
     /*
         For databases with the dupSort option. Asks the cursor to go to the next occurence of the current key.
         (Wrapper for `mdb_cursor_get`)
     */
-    static Handle<Value> goToNextDup(const Arguments& args);
+    static NAN_METHOD(goToNextDup);
 
     /*
         For databases with the dupSort option. Asks the cursor to go to the previous occurence of the current key.
         (Wrapper for `mdb_cursor_get`)
     */
-    static Handle<Value> goToPrevDup(const Arguments& args);
+    static NAN_METHOD(goToPrevDup);
 
     /*
         For databases with the dupSort option. Asks the cursor to go to the specified key/data pair.
         (Wrapper for `mdb_cursor_get`)
     */
-    static Handle<Value> goToDup(const Arguments& args);
+    static NAN_METHOD(goToDup);
 
     /*
         For databases with the dupSort option. Asks the cursor to go to the specified key with the first data that is greater than or equal to the specified.
         (Wrapper for `mdb_cursor_get`)
     */
-    static Handle<Value> goToDupRange(const Arguments& args);
+    static NAN_METHOD(goToDupRange);
 
     /*
         Deletes the key/data pair to which the cursor refers.
         (Wrapper for `mdb_cursor_del`)
     */
-    static Handle<Value> del(const Arguments& args);
+    static NAN_METHOD(del);
 };
 
 // External string resource that glues MDB_val and v8::String

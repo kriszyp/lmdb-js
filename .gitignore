@@ -31,3 +31,6 @@ MANIFEST
 *.lai
 *.la
 *.a
+
+# NPM dependencies
+node_modules/
