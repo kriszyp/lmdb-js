@@ -26,21 +26,20 @@
 #include <stdio.h>
 
 void setupExportMisc(Handle<Object> exports) {
-    Local<Object> versionObj = Object::New();
+    Local<Object> versionObj = NanNew<Object>();
 
     int major, minor, patch;
     char *str = mdb_version(&major, &minor, &patch);
-    versionObj->Set(String::NewSymbol("versionString"), String::New(str));
-    versionObj->Set(String::NewSymbol("major"), Integer::New(major));
-    versionObj->Set(String::NewSymbol("minor"), Integer::New(minor));
-    versionObj->Set(String::NewSymbol("patch"), Integer::New(patch));
+    versionObj->Set(NanNew<String>("versionString"), NanNew<String>(str));
+    versionObj->Set(NanNew<String>("major"), NanNew<Integer>(major));
+    versionObj->Set(NanNew<String>("minor"), NanNew<Integer>(minor));
+    versionObj->Set(NanNew<String>("patch"), NanNew<Integer>(patch));
 
-    Persistent<Object> v = Persistent<Object>::New(versionObj);
-    exports->Set(String::NewSymbol("version"), v);
+    exports->Set(NanNew<String>("version"), versionObj);
 }
 
 void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue, Local<Object> options) {
-    Handle<Value> opt = options->Get(String::NewSymbol(name));
+    Handle<Value> opt = options->Get(NanNew<String>(name));
     if (opt->IsBoolean() ? opt->BooleanValue() : defaultValue) {
         *flags |= flag;
     }
@@ -49,11 +48,11 @@ void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue,
 argtokey_callback_t argToKey(const Handle<Value> &val, MDB_val &key, bool keyIsUint32) {
     // Check key type
     if (keyIsUint32 && !val->IsUint32()) {
-        ThrowException(Exception::Error(String::New("Invalid key. keyIsUint32 specified on the database, but the given key was not an unsigned 32-bit integer")));
+        NanThrowError("Invalid key. keyIsUint32 specified on the database, but the given key was not an unsigned 32-bit integer");
         return nullptr;
     }
     if (!keyIsUint32 && !val->IsString()) {
-        ThrowException(Exception::Error(String::New("Invalid key. String key expected, because keyIsUint32 isn't specified on the database.")));
+        NanThrowError("Invalid key. String key expected, because keyIsUint32 isn't specified on the database.");
         return nullptr;
     }
 
@@ -73,7 +72,7 @@ argtokey_callback_t argToKey(const Handle<Value> &val, MDB_val &key, bool keyIsU
     // Handle string key
     CustomExternalStringResource::writeTo(val->ToString(), &key);
     return ([](MDB_val &key) -> void {
-        delete (uint16_t*)key.mv_data;
+        delete[] (uint16_t*)key.mv_data;
     });
 
     return nullptr;
@@ -81,7 +80,7 @@ argtokey_callback_t argToKey(const Handle<Value> &val, MDB_val &key, bool keyIsU
 
 Handle<Value> keyToHandle(MDB_val &key, bool keyIsUint32) {
     if (keyIsUint32) {
-        return Integer::NewFromUnsigned(*((uint32_t*)key.mv_data));
+        return NanNew<Integer>(*((uint32_t*)key.mv_data));
     }
     else {
         return valToString(key);
@@ -89,46 +88,42 @@ Handle<Value> keyToHandle(MDB_val &key, bool keyIsUint32) {
 }
 
 Handle<Value> valToString(MDB_val &data) {
-    return String::NewExternal(new CustomExternalStringResource(&data));
+    return NanNew<String>(new CustomExternalStringResource(&data));
 }
 
 Handle<Value> valToBinary(MDB_val &data) {
-    return Buffer::New(
+    return NanNewBufferHandle(
 //        NOTE: newer node API will need this parameter
 //        v8::Isolate::GetCurrent(),
         (char*)data.mv_data,
-        data.mv_size,
-        [](char*, void*) -> void {
-            /* Don't need to do anything here, because the data belongs to LMDB anyway */
-        },
-        nullptr
-    )->handle_;
+        data.mv_size
+    );
 }
 
 Handle<Value> valToNumber(MDB_val &data) {
-    return Number::New(*((double*)data.mv_data));
+    return NanNew<Number>(*((double*)data.mv_data));
 }
 
 Handle<Value> valToBoolean(MDB_val &data) {
-    return Boolean::New(*((bool*)data.mv_data));
+    return NanNew<Boolean>(*((bool*)data.mv_data));
 }
 
 void consoleLog(const char *msg) {
-    Handle<String> str = String::New("console.log('");
-    str = String::Concat(str, String::New(msg));
-    str = String::Concat(str, String::New("');"));
+    Local<String> str = NanNew("console.log('");
+    str = String::Concat(str, NanNew<String>(msg));
+    str = String::Concat(str, NanNew("');"));
 
-    Local<Script> script = Script::New(str, String::New("node-lmdb-consolelog.js"));
-    script->Run();
+    Local<Script> script = NanCompileScript(str);
+    NanRunScript(script);
 }
 
 void consoleLog(Handle<Value> val) {
-    Handle<String> str = String::New("console.log('");
+    Local<String> str = NanNew<String>("console.log('");
     str = String::Concat(str, val->ToString());
-    str = String::Concat(str, String::New("');"));
+    str = String::Concat(str, NanNew<String>("');"));
 
-    Local<Script> script = Script::New(str, String::New("node-lmdb-consolelog.js"));
-    script->Run();
+    Local<Script> script = NanCompileScript(str);
+    NanRunScript(script);
 }
 
 void consoleLogN(int n) {

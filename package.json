@@ -13,5 +13,8 @@
   "repository": "https://github.com/Venemo/node-lmdb",
   "version": "0.2.2",
   "main": "./build/Release/node-lmdb",
-  "gypfile": true
+  "gypfile": true,
+  "dependencies": {
+    "nan": "^1.7.0"
+  }
 }

@@ -32,7 +32,7 @@ Persistent<Function> EnvWrap::dbiCtor;
 
 typedef struct EnvSyncData {
     uv_work_t request;
-    Persistent<Function> callback;
+    NanCallback *callback;
     EnvWrap *ew;
     MDB_env *env;
     int rc;
@@ -49,8 +49,9 @@ EnvWrap::~EnvWrap() {
     }
 }
 
-Handle<Value> EnvWrap::ctor(const Arguments& args) {
-    HandleScope scope;
+NAN_METHOD(EnvWrap::ctor) {
+    NanScope();
+
     int rc;
 
     EnvWrap* ew = new EnvWrap();
@@ -58,19 +59,19 @@ Handle<Value> EnvWrap::ctor(const Arguments& args) {
 
     if (rc != 0) {
         mdb_env_close(ew->env);
-        ThrowException(Exception::Error(String::New(mdb_strerror(rc))));
-        return scope.Close(Undefined());
+        return NanThrowError(mdb_strerror(rc));
     }
 
     ew->Wrap(args.This());
     ew->Ref();
-    return args.This();
+
+    NanReturnThis();
 }
 
 template<class T>
 int applyUint32Setting(int (*f)(MDB_env *, T), MDB_env* e, Local<Object> options, T dflt, const char* keyName) {
     int rc;
-    const Handle<Value> value = options->Get(String::NewSymbol(keyName));
+    const Handle<Value> value = options->Get(NanNew<String>(keyName));
     if (value->IsUint32()) {
         rc = f(e, value->Uint32Value());
     }
@@ -82,8 +83,9 @@ int applyUint32Setting(int (*f)(MDB_env *, T), MDB_env* e, Local<Object> options
 
 }
 
-Handle<Value> EnvWrap::open(const Arguments& args) {
-    HandleScope scope;
+NAN_METHOD(EnvWrap::open) {
+    NanScope();
+
     int rc;
     int flags = 0;
 
@@ -91,37 +93,33 @@ Handle<Value> EnvWrap::open(const Arguments& args) {
     EnvWrap *ew = ObjectWrap::Unwrap<EnvWrap>(args.This());
 
     if (!ew->env) {
-        ThrowException(Exception::Error(String::New("The environment is already closed.")));
-        return Undefined();
+        return NanThrowError("The environment is already closed.");
     }
 
     Local<Object> options = args[0]->ToObject();
-    Local<String> path = options->Get(String::NewSymbol("path"))->ToString();
+    Local<String> path = options->Get(NanNew<String>("path"))->ToString();
 
     // Parse the maxDbs option
     rc = applyUint32Setting<unsigned>(&mdb_env_set_maxdbs, ew->env, options, 1, "maxDbs");
     if (rc != 0) {
-        ThrowException(Exception::Error(String::New(mdb_strerror(rc))));
-        return Undefined();
+        return NanThrowError(mdb_strerror(rc));
     }
 
     // Parse the mapSize option
-    Handle<Value> mapSizeOption = options->Get(String::NewSymbol("mapSize"));
+    Handle<Value> mapSizeOption = options->Get(NanNew<String>("mapSize"));
     if (mapSizeOption->IsNumber()) {
         double mapSizeDouble = mapSizeOption->NumberValue();
         size_t mapSizeSizeT = (size_t) mapSizeDouble;
         rc = mdb_env_set_mapsize(ew->env, mapSizeSizeT);
         if (rc != 0) {
-            ThrowException(Exception::Error(String::New(mdb_strerror(rc))));
-            return Undefined();
+            return NanThrowError(mdb_strerror(rc));
         }
     }
 
     // Parse the maxDbs option
     rc = applyUint32Setting<unsigned>(&mdb_env_set_maxreaders, ew->env, options, 1, "maxReaders");
     if (rc != 0) {
-        ThrowException(Exception::Error(String::New(mdb_strerror(rc))));
-        return Undefined();
+        return NanThrowError(mdb_strerror(rc));
     }
 
     // NOTE: MDB_FIXEDMAP is not exposed here since it is "highly experimental" + it is irrelevant for this use case
@@ -133,69 +131,60 @@ Handle<Value> EnvWrap::open(const Arguments& args) {
     setFlagFromValue(&flags, MDB_NOSYNC, "noSync", false, options);
     setFlagFromValue(&flags, MDB_MAPASYNC, "mapAsync", false, options);
 
-    int l = path->Length();
-    char *cpath = new char[l + 1];
-    path->WriteAscii(cpath);
-    cpath[l] = 0;
-
     // TODO: make file attributes configurable
-    rc = mdb_env_open(ew->env, cpath, flags, 0664);
+    rc = mdb_env_open(ew->env, *String::Utf8Value(path), flags, 0664);
 
     if (rc != 0) {
         mdb_env_close(ew->env);
         ew->env = nullptr;
-        ThrowException(Exception::Error(String::New(mdb_strerror(rc))));
-        return Undefined();
+        return NanThrowError(mdb_strerror(rc));
     }
 
-    return Undefined();
+    NanReturnUndefined();
 }
 
-Handle<Value> EnvWrap::close(const Arguments& args) {
-    HandleScope scope;
-
+NAN_METHOD(EnvWrap::close) {
     EnvWrap *ew = ObjectWrap::Unwrap<EnvWrap>(args.This());
     ew->Unref();
 
     if (!ew->env) {
-        ThrowException(Exception::Error(String::New("The environment is already closed.")));
-        return Undefined();
+        return NanThrowError("The environment is already closed.");
     }
 
     mdb_env_close(ew->env);
     ew->env = nullptr;
 
-    return scope.Close(Undefined());
+    NanReturnUndefined();
 }
 
-Handle<Value> EnvWrap::beginTxn(const Arguments& args) {
-    HandleScope scope;
+NAN_METHOD(EnvWrap::beginTxn) {
+    NanScope();
+
+    const unsigned argc = 2;
+
+    Handle<Value> argv[argc] = { args.This(), args[0] };
+    Local<Object> instance = NanNew(txnCtor)->NewInstance(argc, argv);
+
+    NanReturnValue(instance);
+}
+
+NAN_METHOD(EnvWrap::openDbi) {
+    NanScope();
 
     const unsigned argc = 2;
     Handle<Value> argv[argc] = { args.This(), args[0] };
-    Local<Object> instance = txnCtor->NewInstance(argc, argv);
+    Local<Object> instance = NanNew(dbiCtor)->NewInstance(argc, argv);
 
-    return scope.Close(instance);
+    NanReturnValue(instance);
 }
 
-Handle<Value> EnvWrap::openDbi(const Arguments& args) {
-    HandleScope scope;
-
-    const unsigned argc = 2;
-    Handle<Value> argv[argc] = { args.This(), args[0] };
-    Local<Object> instance = dbiCtor->NewInstance(argc, argv);
-
-    return scope.Close(instance);
-}
-
-Handle<Value> EnvWrap::sync(const Arguments &args) {
-    HandleScope scope;
+NAN_METHOD(EnvWrap::sync) {
+    NanScope();
 
     EnvWrap *ew = ObjectWrap::Unwrap<EnvWrap>(args.This());
 
     if (!ew->env) {
-        ThrowException(Exception::Error(String::New("The environment is already closed.")));
-        return Undefined();
+        return NanThrowError("The environment is already closed.");
     }
 
     Handle<Function> callback = Handle<Function>::Cast(args[0]);
@@ -204,7 +193,7 @@ Handle<Value> EnvWrap::sync(const Arguments &args) {
     d->request.data = d;
     d->ew = ew;
     d->env = ew->env;
-    d->callback = Persistent<Function>::New(callback);
+    d->callback = new NanCallback(callback);
 
     uv_queue_work(uv_default_loop(), &(d->request), [](uv_work_t *request) -> void {
         // Performing the sync (this will be called on a separate thread)
@@ -217,72 +206,70 @@ Handle<Value> EnvWrap::sync(const Arguments &args) {
         Handle<Value> argv[argc];
 
         if (d->rc == 0) {
-            argv[0] = Null();
+            argv[0] = NanNull();
         }
         else {
-            argv[0] = Exception::Error(String::New(mdb_strerror(d->rc)));
+            argv[0] = NanError(mdb_strerror(d->rc));
         }
 
-        d->callback->Call(Context::GetCurrent()->Global(), argc, argv);
-        d->callback.Dispose();
+        d->callback->Call(argc, argv);
+        delete d->callback;
         delete d;
     });
 
-    return Undefined();
+    NanReturnUndefined();
 }
 
 void EnvWrap::setupExports(Handle<Object> exports) {
     // EnvWrap: Prepare constructor template
-    Local<FunctionTemplate> envTpl = FunctionTemplate::New(EnvWrap::ctor);
-    envTpl->SetClassName(String::NewSymbol("Env"));
+    Local<FunctionTemplate> envTpl = NanNew<FunctionTemplate>(EnvWrap::ctor);
+    envTpl->SetClassName(NanNew<String>("Env"));
     envTpl->InstanceTemplate()->SetInternalFieldCount(1);
     // EnvWrap: Add functions to the prototype
-    envTpl->PrototypeTemplate()->Set(String::NewSymbol("open"), FunctionTemplate::New(EnvWrap::open)->GetFunction());
-    envTpl->PrototypeTemplate()->Set(String::NewSymbol("close"), FunctionTemplate::New(EnvWrap::close)->GetFunction());
-    envTpl->PrototypeTemplate()->Set(String::NewSymbol("beginTxn"), FunctionTemplate::New(EnvWrap::beginTxn)->GetFunction());
-    envTpl->PrototypeTemplate()->Set(String::NewSymbol("openDbi"), FunctionTemplate::New(EnvWrap::openDbi)->GetFunction());
-    envTpl->PrototypeTemplate()->Set(String::NewSymbol("sync"), FunctionTemplate::New(EnvWrap::sync)->GetFunction());
+    envTpl->PrototypeTemplate()->Set(NanNew<String>("open"), NanNew<FunctionTemplate>(EnvWrap::open)->GetFunction());
+    envTpl->PrototypeTemplate()->Set(NanNew<String>("close"), NanNew<FunctionTemplate>(EnvWrap::close)->GetFunction());
+    envTpl->PrototypeTemplate()->Set(NanNew<String>("beginTxn"), NanNew<FunctionTemplate>(EnvWrap::beginTxn)->GetFunction());
+    envTpl->PrototypeTemplate()->Set(NanNew<String>("openDbi"), NanNew<FunctionTemplate>(EnvWrap::openDbi)->GetFunction());
+    envTpl->PrototypeTemplate()->Set(NanNew<String>("sync"), NanNew<FunctionTemplate>(EnvWrap::sync)->GetFunction());
     // TODO: wrap mdb_env_copy too
     // TODO: wrap mdb_env_stat too
     // TODO: wrap mdb_env_info too
-    // EnvWrap: Get constructor
-    Persistent<Function> envCtor = Persistent<Function>::New(envTpl->GetFunction());
 
     // TxnWrap: Prepare constructor template
-    Local<FunctionTemplate> txnTpl = FunctionTemplate::New(TxnWrap::ctor);
-    txnTpl->SetClassName(String::NewSymbol("Txn"));
+    Local<FunctionTemplate> txnTpl = NanNew<FunctionTemplate>(TxnWrap::ctor);
+    txnTpl->SetClassName(NanNew<String>("Txn"));
     txnTpl->InstanceTemplate()->SetInternalFieldCount(1);
     // TxnWrap: Add functions to the prototype
-    txnTpl->PrototypeTemplate()->Set(String::NewSymbol("commit"), FunctionTemplate::New(TxnWrap::commit)->GetFunction());
-    txnTpl->PrototypeTemplate()->Set(String::NewSymbol("abort"), FunctionTemplate::New(TxnWrap::abort)->GetFunction());
-    txnTpl->PrototypeTemplate()->Set(String::NewSymbol("getString"), FunctionTemplate::New(TxnWrap::getString)->GetFunction());
-    txnTpl->PrototypeTemplate()->Set(String::NewSymbol("getBinary"), FunctionTemplate::New(TxnWrap::getBinary)->GetFunction());
-    txnTpl->PrototypeTemplate()->Set(String::NewSymbol("getNumber"), FunctionTemplate::New(TxnWrap::getNumber)->GetFunction());
-    txnTpl->PrototypeTemplate()->Set(String::NewSymbol("getBoolean"), FunctionTemplate::New(TxnWrap::getBoolean)->GetFunction());
-    txnTpl->PrototypeTemplate()->Set(String::NewSymbol("putString"), FunctionTemplate::New(TxnWrap::putString)->GetFunction());
-    txnTpl->PrototypeTemplate()->Set(String::NewSymbol("putBinary"), FunctionTemplate::New(TxnWrap::putBinary)->GetFunction());
-    txnTpl->PrototypeTemplate()->Set(String::NewSymbol("putNumber"), FunctionTemplate::New(TxnWrap::putNumber)->GetFunction());
-    txnTpl->PrototypeTemplate()->Set(String::NewSymbol("putBoolean"), FunctionTemplate::New(TxnWrap::putBoolean)->GetFunction());
-    txnTpl->PrototypeTemplate()->Set(String::NewSymbol("del"), FunctionTemplate::New(TxnWrap::del)->GetFunction());
-    txnTpl->PrototypeTemplate()->Set(String::NewSymbol("reset"), FunctionTemplate::New(TxnWrap::reset)->GetFunction());
-    txnTpl->PrototypeTemplate()->Set(String::NewSymbol("renew"), FunctionTemplate::New(TxnWrap::renew)->GetFunction());
+    txnTpl->PrototypeTemplate()->Set(NanNew<String>("commit"), NanNew<FunctionTemplate>(TxnWrap::commit)->GetFunction());
+    txnTpl->PrototypeTemplate()->Set(NanNew<String>("abort"), NanNew<FunctionTemplate>(TxnWrap::abort)->GetFunction());
+    txnTpl->PrototypeTemplate()->Set(NanNew<String>("getString"), NanNew<FunctionTemplate>(TxnWrap::getString)->GetFunction());
+    txnTpl->PrototypeTemplate()->Set(NanNew<String>("getBinary"), NanNew<FunctionTemplate>(TxnWrap::getBinary)->GetFunction());
+    txnTpl->PrototypeTemplate()->Set(NanNew<String>("getNumber"), NanNew<FunctionTemplate>(TxnWrap::getNumber)->GetFunction());
+    txnTpl->PrototypeTemplate()->Set(NanNew<String>("getBoolean"), NanNew<FunctionTemplate>(TxnWrap::getBoolean)->GetFunction());
+    txnTpl->PrototypeTemplate()->Set(NanNew<String>("putString"), NanNew<FunctionTemplate>(TxnWrap::putString)->GetFunction());
+    txnTpl->PrototypeTemplate()->Set(NanNew<String>("putBinary"), NanNew<FunctionTemplate>(TxnWrap::putBinary)->GetFunction());
+    txnTpl->PrototypeTemplate()->Set(NanNew<String>("putNumber"), NanNew<FunctionTemplate>(TxnWrap::putNumber)->GetFunction());
+    txnTpl->PrototypeTemplate()->Set(NanNew<String>("putBoolean"), NanNew<FunctionTemplate>(TxnWrap::putBoolean)->GetFunction());
+    txnTpl->PrototypeTemplate()->Set(NanNew<String>("del"), NanNew<FunctionTemplate>(TxnWrap::del)->GetFunction());
+    txnTpl->PrototypeTemplate()->Set(NanNew<String>("reset"), NanNew<FunctionTemplate>(TxnWrap::reset)->GetFunction());
+    txnTpl->PrototypeTemplate()->Set(NanNew<String>("renew"), NanNew<FunctionTemplate>(TxnWrap::renew)->GetFunction());
     // TODO: wrap mdb_cmp too
     // TODO: wrap mdb_dcmp too
     // TxnWrap: Get constructor
-    EnvWrap::txnCtor = Persistent<Function>::New(txnTpl->GetFunction());
+    NanAssignPersistent(EnvWrap::txnCtor, txnTpl->GetFunction());
 
     // DbiWrap: Prepare constructor template
-    Local<FunctionTemplate> dbiTpl = FunctionTemplate::New(DbiWrap::ctor);
-    dbiTpl->SetClassName(String::NewSymbol("Dbi"));
+    Local<FunctionTemplate> dbiTpl = NanNew<FunctionTemplate>(DbiWrap::ctor);
+    dbiTpl->SetClassName(NanNew<String>("Dbi"));
     dbiTpl->InstanceTemplate()->SetInternalFieldCount(1);
     // DbiWrap: Add functions to the prototype
-    dbiTpl->PrototypeTemplate()->Set(String::NewSymbol("close"), FunctionTemplate::New(DbiWrap::close)->GetFunction());
-    dbiTpl->PrototypeTemplate()->Set(String::NewSymbol("drop"), FunctionTemplate::New(DbiWrap::drop)->GetFunction());
-    dbiTpl->PrototypeTemplate()->Set(String::NewSymbol("stat"), FunctionTemplate::New(DbiWrap::stat)->GetFunction());
+    dbiTpl->PrototypeTemplate()->Set(NanNew<String>("close"), NanNew<FunctionTemplate>(DbiWrap::close)->GetFunction());
+    dbiTpl->PrototypeTemplate()->Set(NanNew<String>("drop"), NanNew<FunctionTemplate>(DbiWrap::drop)->GetFunction());
+    dbiTpl->PrototypeTemplate()->Set(NanNew<String>("stat"), NanNew<FunctionTemplate>(DbiWrap::stat)->GetFunction());
     // TODO: wrap mdb_stat too
     // DbiWrap: Get constructor
-    EnvWrap::dbiCtor = Persistent<Function>::New(dbiTpl->GetFunction());
+    NanAssignPersistent(EnvWrap::dbiCtor, dbiTpl->GetFunction());
 
     // Set exports
-    exports->Set(String::NewSymbol("Env"), envCtor);
+    exports->Set(NanNew<String>("Env"), envTpl->GetFunction());
 }

@@ -52,25 +52,20 @@ DbiWrap::~DbiWrap() {
     }
 }
 
-Handle<Value> DbiWrap::ctor(const Arguments& args) {
-    HandleScope scope;
+NAN_METHOD(DbiWrap::ctor) {
+    NanScope();
 
     MDB_dbi dbi;
     MDB_txn *txn;
     int rc;
     int flags = 0;
     int keyIsUint32 = 0;
-    char *cname = nullptr;
+    Local<String> name;
 
     EnvWrap *ew = ObjectWrap::Unwrap<EnvWrap>(args[0]->ToObject());
     if (args[1]->IsObject()) {
         Local<Object> options = args[1]->ToObject();
-        Local<String> name = options->Get(String::NewSymbol("name"))->ToString();
-
-        int l = name->Length();
-        cname = new char[l + 1];
-        name->WriteAscii(cname);
-        cname[l] = 0;
+        name = options->Get(NanNew<String>("name"))->ToString();
 
         // Get flags from options
 
@@ -93,33 +88,27 @@ Handle<Value> DbiWrap::ctor(const Arguments& args) {
         }
     }
     else {
-        ThrowException(Exception::Error(String::New("Invalid parameters.")));
-        return Undefined();
+        return NanThrowError("Invalid parameters.");
     }
 
     // Open transaction
     rc = mdb_txn_begin(ew->env, nullptr, 0, &txn);
     if (rc != 0) {
-        delete cname;
         mdb_txn_abort(txn);
-        ThrowException(Exception::Error(String::New(mdb_strerror(rc))));
-        return Undefined();
+        return NanThrowError(mdb_strerror(rc));
     }
 
     // Open database
-    rc = mdb_dbi_open(txn, cname, flags, &dbi);
-    delete cname;
+    rc = mdb_dbi_open(txn, *String::Utf8Value(name), flags, &dbi);
     if (rc != 0) {
         mdb_txn_abort(txn);
-        ThrowException(Exception::Error(String::New(mdb_strerror(rc))));
-        return Undefined();
+        return NanThrowError(mdb_strerror(rc));
     }
 
     // Commit transaction
     rc = mdb_txn_commit(txn);
     if (rc != 0) {
-        ThrowException(Exception::Error(String::New(mdb_strerror(rc))));
-        return Undefined();
+        return NanThrowError(mdb_strerror(rc));
     }
 
     // Create wrapper
@@ -129,21 +118,23 @@ Handle<Value> DbiWrap::ctor(const Arguments& args) {
     dw->keyIsUint32 = keyIsUint32;
     dw->Wrap(args.This());
 
-    return args.This();
+    NanReturnThis();
 }
 
-Handle<Value> DbiWrap::close(const Arguments& args) {
-    HandleScope scope;
+NAN_METHOD(DbiWrap::close) {
+    NanScope();
 
     DbiWrap *dw = ObjectWrap::Unwrap<DbiWrap>(args.This());
     mdb_dbi_close(dw->env, dw->dbi);
     dw->ew->Unref();
     dw->ew = nullptr;
 
-    return Undefined();
+    NanReturnUndefined();
 }
 
-Handle<Value> DbiWrap::drop(const Arguments& args) {
+NAN_METHOD(DbiWrap::drop) {
+    NanScope();
+
     DbiWrap *dw = ObjectWrap::Unwrap<DbiWrap>(args.This());
     int del = 1;
     int rc;
@@ -152,45 +143,41 @@ Handle<Value> DbiWrap::drop(const Arguments& args) {
     // Check if the database should be deleted
     if (args.Length() == 2 && args[1]->IsObject()) {
         Handle<Object> options = args[1]->ToObject();
-        Handle<Value> opt = options->Get(String::NewSymbol("justFreePages"));
+        Handle<Value> opt = options->Get(NanNew<String>("justFreePages"));
         del = opt->IsBoolean() ? !(opt->BooleanValue()) : 1;
     }
 
     // Begin transaction
     rc = mdb_txn_begin(dw->env, nullptr, 0, &txn);
     if (rc != 0) {
-        ThrowException(Exception::Error(String::New(mdb_strerror(rc))));
-        return Undefined();
+        return NanThrowError(mdb_strerror(rc));
     }
 
     // Drop database
     rc = mdb_drop(txn, dw->dbi, del);
     if (rc != 0) {
-        ThrowException(Exception::Error(String::New(mdb_strerror(rc))));
-        return Undefined();
+        return NanThrowError(mdb_strerror(rc));
     }
 
     // Commit transaction
     rc = mdb_txn_commit(txn);
     if (rc != 0) {
-        ThrowException(Exception::Error(String::New(mdb_strerror(rc))));
-        return Undefined();
+        return NanThrowError(mdb_strerror(rc));
     }
 
     dw->ew->Unref();
     dw->ew = nullptr;
 
-    return Undefined();
+    NanReturnUndefined();
 }
 
-Handle<Value> DbiWrap::stat(const Arguments& args) {
-    HandleScope scope;
+NAN_METHOD(DbiWrap::stat) {
+    NanScope();
 
     DbiWrap *dw = ObjectWrap::Unwrap<DbiWrap>(args.This());
 
     if (args.Length() != 1) {
-        ThrowException(Exception::Error(String::New("dbi.stat should be called with a single argument which is a txn.")));
-        return Undefined();
+        return NanThrowError("dbi.stat should be called with a single argument which is a txn.");
     }
 
     TxnWrap *txn = ObjectWrap::Unwrap<TxnWrap>(args[0]->ToObject());
@@ -198,12 +185,12 @@ Handle<Value> DbiWrap::stat(const Arguments& args) {
     MDB_stat stat;
     mdb_stat(txn->txn, dw->dbi, &stat);
 
-    Local<Object> obj = Object::New();
-    obj->Set(String::NewSymbol("pageSize"), Number::New(stat.ms_psize));
-    obj->Set(String::NewSymbol("treeDepth"), Number::New(stat.ms_depth));
-    obj->Set(String::NewSymbol("treeBranchPageCount"), Number::New(stat.ms_branch_pages));
-    obj->Set(String::NewSymbol("treeLeafPageCount"), Number::New(stat.ms_leaf_pages));
-    obj->Set(String::NewSymbol("entryCount"), Number::New(stat.ms_entries));
+    Local<Object> obj = NanNew<Object>();
+    obj->Set(NanNew<String>("pageSize"), NanNew<Number>(stat.ms_psize));
+    obj->Set(NanNew<String>("treeDepth"), NanNew<Number>(stat.ms_depth));
+    obj->Set(NanNew<String>("treeBranchPageCount"), NanNew<Number>(stat.ms_branch_pages));
+    obj->Set(NanNew<String>("treeLeafPageCount"), NanNew<Number>(stat.ms_leaf_pages));
+    obj->Set(NanNew<String>("entryCount"), NanNew<Number>(stat.ms_entries));
 
-    return scope.Close(obj);
+    NanReturnValue(obj);
 }
