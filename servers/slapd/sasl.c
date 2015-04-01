@@ -315,6 +315,10 @@ slap_auxprop_lookup(
 		}
 	}
 
+	/* we don't know anything about this, ignore it */
+	if ( !conn )
+		return SASL_OK;
+
 	/* Now see what else needs to be fetched */
 	for( i = 0; sl.list[i].name; i++ ) {
 		const char *name = sl.list[i].name;
