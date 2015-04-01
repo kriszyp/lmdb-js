@@ -128,7 +128,10 @@ ldap_send_initial_request(
 	if ( ber_sockbuf_ctrl( ld->ld_sb, LBER_SB_OPT_GET_FD, &sd ) == -1 ) {
 		/* not connected yet */
 		rc = ldap_open_defconn( ld );
-
+		if ( rc == 0 ) {
+			ber_sockbuf_ctrl( ld->ld_defconn->lconn_sb,
+				LBER_SB_OPT_GET_FD, &sd );
+		}
 	}
 	if ( ld->ld_defconn && ld->ld_defconn->lconn_status == LDAP_CONNST_CONNECTING )
 		rc = ldap_int_check_async_open( ld, sd );
