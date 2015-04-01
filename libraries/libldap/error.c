@@ -150,6 +150,7 @@ ldap_err2string( int err )
 	C(LDAP_MORE_RESULTS_TO_RETURN,	N_("More results to return"));
 	C(LDAP_CLIENT_LOOP,				N_("Client Loop"));
 	C(LDAP_REFERRAL_LIMIT_EXCEEDED,	N_("Referral Limit Exceeded"));
+	C(LDAP_X_CONNECTING,			N_("Connecting (X)"));
 #	undef C
 
 	default:
