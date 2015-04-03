@@ -33,7 +33,8 @@ OpenLDAP 2.4.41 Engineering
 	Fixed slapo-syncprov segfault on disconnect/abandon (ITS#5452,ITS#8012)
 	Fixed slapo-syncprov memory leak (ITS#8039)
 	Fixed slapo-syncprov segfault on disconnect/abandon (ITS#8043)
-	Fixed slapo-syncprov deadlock when autogroup is in use (ITS#8063,ITS#8081)
+	Fixed slapo-syncprov deadlock when autogroup is in use (ITS#8063)
+	Fixed slapo-syncprov potential loss of changes when under load (ITS#8081)
 	Fixed slapo-unique enforcement of uniqueness with manageDSAit control (ITS#8057)
 	Build Environment
 		Fixed libdb detection with gcc 5.x (ITS#8056)
