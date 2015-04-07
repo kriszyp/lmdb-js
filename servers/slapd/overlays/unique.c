@@ -1162,6 +1162,7 @@ unique_modify(
 	unique_domain *domain;
 	Operation nop = *op;
 	Modifications *m;
+	Entry *e = NULL;
 	char *key, *kp;
 	struct berval bvkey;
 	int rc = SLAP_CB_CONTINUE;
@@ -1172,11 +1173,17 @@ unique_modify(
 	/* skip the checks if the operation has manageDsaIt control in it
 	 * (for replication) */
 	if ( op->o_managedsait > SLAP_CONTROL_IGNORED
-	     && access_allowed ( op, op->ora_e,
+	     && overlay_entry_get_ov(op, &op->o_req_ndn, NULL, NULL, 0, &e, on) == LDAP_SUCCESS
+	     && e
+	     && access_allowed ( op, e,
 				 slap_schema.si_ad_entry, NULL,
 				 ACL_MANAGE, NULL ) ) {
 		Debug(LDAP_DEBUG_TRACE, "unique_modify: administrative bypass, skipping\n", 0, 0, 0);
+		overlay_entry_release_ov( op, e, 0, on );
 		return rc;
+	}
+	if ( e ) {
+		overlay_entry_release_ov( op, e, 0, on );
 	}
 
 	for ( domain = legacy ? legacy : domains;
@@ -1284,6 +1291,7 @@ unique_modrdn(
 	unique_domain *legacy = private->legacy;
 	unique_domain *domain;
 	Operation nop = *op;
+	Entry *e = NULL;
 	char *key, *kp;
 	struct berval bvkey;
 	LDAPRDN	newrdn;
@@ -1296,11 +1304,17 @@ unique_modrdn(
 	/* skip the checks if the operation has manageDsaIt control in it
 	 * (for replication) */
 	if ( op->o_managedsait > SLAP_CONTROL_IGNORED
-	     && access_allowed ( op, op->ora_e,
+	     && overlay_entry_get_ov(op, &op->o_req_ndn, NULL, NULL, 0, &e, on) == LDAP_SUCCESS
+	     && e
+	     && access_allowed ( op, e,
 				 slap_schema.si_ad_entry, NULL,
 				 ACL_MANAGE, NULL ) ) {
 		Debug(LDAP_DEBUG_TRACE, "unique_modrdn: administrative bypass, skipping\n", 0, 0, 0);
+		overlay_entry_release_ov( op, e, 0, on );
 		return rc;
+	}
+	if ( e ) {
+		overlay_entry_release_ov( op, e, 0, on );
 	}
 
 	for ( domain = legacy ? legacy : domains;
