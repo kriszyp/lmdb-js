@@ -4687,11 +4687,11 @@ config_suffixm( ConfigArgs *c, syncinfo_t *si )
 #define LOGFILTERSTR	"logfilter"
 #define SUFFIXMSTR		"suffixmassage"
 #define	STRICT_REFRESH	"strictrefresh"
+#define LAZY_COMMIT		"lazycommit"
 
 /* FIXME: undocumented */
 #define EXATTRSSTR		"exattrs"
 #define MANAGEDSAITSTR		"manageDSAit"
-#define LAZY_COMMIT		"lazycommit"
 
 /* mandatory */
 enum {
