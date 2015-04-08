@@ -53,6 +53,8 @@ OpenLDAP 2.4.41 Engineering
 	Documentation
 		Added ldap_get_option(3) LDAP_FEATURE_INFO_VERSION information (ITS#8032)
 		Added ldap_get_option(3) LDAP_OPT_API_INFO_VERSION information (ITS#8032)
+		Fixed slapd-config(5), slapd.conf(5) tls_cipher_suite option (ITS#8099)
+		Fixed slapd-meta(5), slapd-ldap(5) tls_cipher_suite option (ITS#8099)
 
 OpenLDAP 2.4.40 Release (2014/09/20)
 	Fixed libldap DNS SRV priority handling (ITS#7027)
