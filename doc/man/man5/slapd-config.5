@@ -1801,6 +1801,7 @@ FALSE, meaning the contextCSN is stored in the context entry.
 .B [logbase=<base DN>]
 .B [logfilter=<filter str>]
 .B [syncdata=default|accesslog|changelog]
+.B [lazycommit]
 .RS
 Specify the current database as a replica which is kept up-to-date with the 
 master content by establishing the current
@@ -1980,6 +1981,11 @@ to the obsolete \fIchangelog\fP format. If the
 .B syncdata
 parameter is omitted or set to "default" then the log parameters are
 ignored.
+
+The .B lazycommit
+parameter tells the underlying database that it can store changes without
+performing a full flush after each change. This may improve performance
+for the consumer, while sacrificing safety or durability.
 .RE
 .TP
 .B olcUpdateDN: <dn>
