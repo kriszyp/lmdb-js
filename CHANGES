@@ -52,6 +52,7 @@ OpenLDAP 2.4.41 Engineering
 		Fixed autogroup modification callback responses (ITS#6970)
 		Fixed nssov compare with usergroup (ITS#8079)
 		Fixed nssov password change behavior (ITS#8080)
+		Fixed nssov updated to 0.9.4 (ITS#8097)
 	Documentation
 		Added ldap_get_option(3) LDAP_FEATURE_INFO_VERSION information (ITS#8032)
 		Added ldap_get_option(3) LDAP_OPT_API_INFO_VERSION information (ITS#8032)
