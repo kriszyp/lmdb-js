@@ -1232,8 +1232,8 @@ int slap_sasl_init( void )
 #ifdef HAVE_CYRUS_SASL
 	int rc;
 	static sasl_callback_t server_callbacks[] = {
-		{ SASL_CB_LOG, &slap_sasl_log, NULL },
-		{ SASL_CB_GETOPT, &slap_sasl_getopt, NULL },
+		{ SASL_CB_LOG, (sasl_callback_ft)&slap_sasl_log, NULL },
+		{ SASL_CB_GETOPT, (sasl_callback_ft)&slap_sasl_getopt, NULL },
 		{ SASL_CB_LIST_END, NULL, NULL }
 	};
 #endif
@@ -1384,15 +1384,15 @@ int slap_sasl_open( Connection *conn, int reopen )
 		conn->c_sasl_extra = session_callbacks;
 
 		session_callbacks[cb=0].id = SASL_CB_LOG;
-		session_callbacks[cb].proc = &slap_sasl_log;
+		session_callbacks[cb].proc = (sasl_callback_ft)&slap_sasl_log;
 		session_callbacks[cb++].context = conn;
 
 		session_callbacks[cb].id = SASL_CB_PROXY_POLICY;
-		session_callbacks[cb].proc = &slap_sasl_authorize;
+		session_callbacks[cb].proc = (sasl_callback_ft)&slap_sasl_authorize;
 		session_callbacks[cb++].context = conn;
 
 		session_callbacks[cb].id = SASL_CB_CANON_USER;
-		session_callbacks[cb].proc = &slap_sasl_canonicalize;
+		session_callbacks[cb].proc = (sasl_callback_ft)&slap_sasl_canonicalize;
 		session_callbacks[cb++].context = conn;
 
 		session_callbacks[cb].id = SASL_CB_LIST_END;
@@ -1515,7 +1515,7 @@ int slap_sasl_cbinding( Connection *conn, struct berval *cbv )
 	cb->critical = 0;
 	cb->data = (char *)(cb+1);
 	cb->len = cbv->bv_len;
-	memcpy( cb->data, cbv->bv_val, cbv->bv_len );
+	memcpy( (void *)cb->data, cbv->bv_val, cbv->bv_len );
 	sasl_setprop( conn->c_sasl_authctx, SASL_CHANNEL_BINDING, cb );
 	conn->c_sasl_cbind = cb;
 #endif
