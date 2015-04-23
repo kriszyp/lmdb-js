@@ -3039,7 +3039,7 @@ config_rootpw(ConfigArgs *c) {
 	}
 
 	tbe = select_backend(&c->be->be_rootndn, 0);
-	if(tbe != c->be) {
+	if(tbe != c->be && !SLAP_DBHIDDEN( c->be )) {
 		snprintf( c->cr_msg, sizeof( c->cr_msg ), "<%s> can only be set when rootdn is under suffix",
 			c->argv[0] );
 		Debug(LDAP_DEBUG_ANY, "%s: %s\n",
