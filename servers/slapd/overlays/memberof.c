@@ -882,7 +882,6 @@ memberof_op_modify( Operation *op, SlapReply *rs )
 					assert( ml->sml_nvalues != NULL );
 		
 					for ( i = 0; !BER_BVISNULL( &ml->sml_nvalues[ i ] ); i++ ) {
-						int		rc;
 						Entry		*e;
 		
 						/* ITS#6670 Ignore member pointing to this entry */
