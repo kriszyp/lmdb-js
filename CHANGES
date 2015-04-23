@@ -16,6 +16,7 @@ OpenLDAP 2.4.41 Engineering
 	Fixed slapd syncrepl memory leaks (ITS#8035)
 	Fixed slapd syncrepl to free presentlist at end of refresh mode (ITS#8038)
 	Fixed slapd syncrepl to streamline presentlist (ITS#8042)
+	Fixed slapd rootdn checks for hidden backends (ITS#8108)
 	Fixed slapd segfault when using matched values control (ITS#8046)
 	Fixed slapd-mdb minor case typo (ITS#8049)
 	Fixed slapd-mdb one-level search (ITS#7975)
