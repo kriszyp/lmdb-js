@@ -219,12 +219,11 @@ perl_cf(
 			XPUSHs( pb->pb_obj_ref );
 
 			/* Put all arguments on the perl stack */
-			for( args = 1; args < c->argc; args++ ) {
+			for( args = 1; args < c->argc; args++ )
 				XPUSHs(sv_2mortal(newSVpv(c->argv[args], 0)));
 
-				ber_str2bv( c->argv[args], 0, 0, &bv );
-				value_add_one( &pb->pb_module_config, &bv );
-			}
+			ber_str2bv( c->line + STRLENOF("perlModuleConfig "), 0, 0, &bv );
+			value_add_one( &pb->pb_module_config, &bv );
 
 			PUTBACK ;
 
