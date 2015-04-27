@@ -296,7 +296,8 @@ Backends="bdb \
 	relay \
 	shell \
 	sock \
-	sql"
+	sql \
+	wt"
 
 AC_ARG_ENABLE(xxslapbackends,[
 SLAPD Backend Options:])
@@ -332,6 +333,8 @@ OL_ARG_ENABLE(shell,[    --enable-shell	  enable shell backend],
 OL_ARG_ENABLE(sock,[    --enable-sock	  enable sock backend],
 	no, [no yes mod], ol_enable_backends)dnl
 OL_ARG_ENABLE(sql,[    --enable-sql	  enable sql backend],
+	no, [no yes mod], ol_enable_backends)dnl
+OL_ARG_ENABLE(wt,[    --enable-wt	  enable WiredTiger backend],
 	no, [no yes mod], ol_enable_backends)dnl
 
 dnl ----------------------------------------------------------------
@@ -485,7 +488,8 @@ elif test $ol_enable_modules != yes &&
 	test $ol_enable_relay = no &&
 	test $ol_enable_shell = no &&
 	test $ol_enable_sock = no &&
-	test $ol_enable_sql = no ; then
+	test $ol_enable_sql = no &&
+	test $ol_enable_wt = no ; then
 	dnl no slapd backend
 
 	if test $ol_enable_slapd = yes ; then
@@ -548,6 +552,7 @@ BUILD_RELAY=no
 BUILD_SHELL=no
 BUILD_SOCK=no
 BUILD_SQL=no
+BUILD_WT=no
 
 BUILD_ACCESSLOG=no
 BUILD_AUDITLOG=no
@@ -2083,6 +2088,33 @@ if test $ol_enable_ndb != no ; then
 fi
 
 dnl ----------------------------------------------------------------
+dnl WiredTiger
+ol_link_wt=no
+if test $ol_enable_wt != no ; then
+	AC_CHECK_PROG(PKGCONFIG,pkg-config,yes)
+	if test "$PKGCONFIG" != yes ; then
+		AC_MSG_ERROR([could not locate pkg-config])
+	fi
+	WT_INCS=`pkg-config --cflags wiredtiger`
+	WT_LIBS=`pkg-config --libs wiredtiger`
+
+	save_CFLAGS="$CFLAGS"
+	save_LDFLAGS="$LDFLAGS"
+	CFLAGS="$WT_INCS"
+	CPPFLAGS="$WT_INCS"
+	LDFLAGS="$WT_LIBS"
+	AC_CHECK_HEADERS([wiredtiger.h])
+	AC_CHECK_LIB(wiredtiger,wiredtiger_version,[: ok],[
+		AC_MSG_ERROR([could not locate wiredtiger library])
+	])
+	CFLAGS="$save_CFLAGS"
+	CPPFLAGS="$save_CPPFLAGS"
+	LDFLAGS="$save_LDFLAGS"
+	SLAPD_LIBS="$SLAPD_LIBS \$(WT_LIBS)"
+	ol_link_wt=yes
+fi
+
+dnl ----------------------------------------------------------------
 dnl International Components for Unicode
 OL_ICU
 if test "$ol_icu" = no ; then
@@ -2811,6 +2843,19 @@ if test "$ol_link_sql" != no ; then
 	AC_DEFINE_UNQUOTED(SLAPD_SQL,$MFLAG,[define to support SQL backend])
 fi
 
+if test "$ol_link_wt" != no ; then
+	BUILD_SLAPD=yes
+	BUILD_WT=$ol_enable_wt
+	if test "$ol_enable_wt" = mod; then
+		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-wt"
+		MFLAG=SLAPD_MOD_DYNAMIC
+	else
+		SLAPD_STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS back-wt"
+		MFLAG=SLAPD_MOD_STATIC
+	fi
+	AC_DEFINE_UNQUOTED(SLAPD_WT,$MFLAG,[define to support WiredTiger backend])
+fi
+
 if test "$ol_enable_accesslog" != no ; then
 	BUILD_ACCESSLOG=$ol_enable_accesslog
 	if test "$ol_enable_accesslog" = mod ; then
@@ -3106,6 +3151,7 @@ dnl backends
   AC_SUBST(BUILD_SHELL)
   AC_SUBST(BUILD_SOCK)
   AC_SUBST(BUILD_SQL)
+  AC_SUBST(BUILD_WT)
 dnl overlays
   AC_SUBST(BUILD_ACCESSLOG)
   AC_SUBST(BUILD_AUDITLOG)
@@ -3169,6 +3215,9 @@ AC_SUBST(SLAPD_SQL_LDFLAGS)
 AC_SUBST(SLAPD_SQL_LIBS)
 AC_SUBST(SLAPD_SQL_INCLUDES)
 
+AC_SUBST(WT_INCS)
+AC_SUBST(WT_LIBS)
+
 dnl ----------------------------------------------------------------
 dnl final help output
 AC_ARG_WITH(xxinstall,[
@@ -3213,6 +3262,7 @@ AC_CONFIG_FILES([Makefile:build/top.mk:Makefile.in:build/dir.mk]
 [servers/slapd/back-shell/Makefile:build/top.mk:servers/slapd/back-shell/Makefile.in:build/mod.mk]
 [servers/slapd/back-sock/Makefile:build/top.mk:servers/slapd/back-sock/Makefile.in:build/mod.mk]
 [servers/slapd/back-sql/Makefile:build/top.mk:servers/slapd/back-sql/Makefile.in:build/mod.mk]
+[servers/slapd/back-wt/Makefile:build/top.mk:servers/slapd/back-wt/Makefile.in:build/mod.mk]
 [servers/slapd/shell-backends/Makefile:build/top.mk:servers/slapd/shell-backends/Makefile.in:build/srv.mk]
 [servers/slapd/slapi/Makefile:build/top.mk:servers/slapd/slapi/Makefile.in:build/lib.mk:build/lib-shared.mk]
 [servers/slapd/overlays/Makefile:build/top.mk:servers/slapd/overlays/Makefile.in:build/lib.mk]
