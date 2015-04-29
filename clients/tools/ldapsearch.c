@@ -1537,6 +1537,7 @@ static int dosearch(
 		}
 
 		ldap_msgfree( res );
+		fflush( stdout );
 	}
 
 done:
