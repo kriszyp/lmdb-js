@@ -3922,18 +3922,19 @@ syncrepl_updateCookie(
 		ch_free( sc.sids );
 		ber_bvarray_free( sc.ctxcsn );
 	}
-	ldap_pvt_thread_mutex_unlock( &si->si_cookieState->cs_mutex );
-
-	op->o_bd = be;
-	op->o_tmpfree( op->o_csn.bv_val, op->o_tmpmemctx );
-	BER_BVZERO( &op->o_csn );
-	if ( mod.sml_next ) slap_mods_free( mod.sml_next, 1 );
 
 #ifdef CHECK_CSN
 	for ( i=0; i<si->si_cookieState->cs_num; i++ ) {
 		assert( !syn->ssyn_validate( syn, si->si_cookieState->cs_vals+i ));
 	}
 #endif
+
+	ldap_pvt_thread_mutex_unlock( &si->si_cookieState->cs_mutex );
+
+	op->o_bd = be;
+	op->o_tmpfree( op->o_csn.bv_val, op->o_tmpmemctx );
+	BER_BVZERO( &op->o_csn );
+	if ( mod.sml_next ) slap_mods_free( mod.sml_next, 1 );
 
 	return rc;
 }
