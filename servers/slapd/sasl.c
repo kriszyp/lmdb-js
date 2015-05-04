@@ -322,8 +322,10 @@ slap_auxprop_lookup(
 	}
 
 	/* we don't know anything about this, ignore it */
-	if ( !conn )
-		return SASL_OK;
+	if ( !conn ) {
+		rc == LDAP_SUCCESS;
+		goto done;
+	}
 
 	/* Now see what else needs to be fetched */
 	for( i = 0; sl.list[i].name; i++ ) {
@@ -422,6 +424,7 @@ slap_auxprop_lookup(
 			}
 		}
 	}
+done:;
 #if SASL_VERSION_FULL >= 0x020118
 	return rc != LDAP_SUCCESS ? SASL_FAIL : SASL_OK;
 #endif
