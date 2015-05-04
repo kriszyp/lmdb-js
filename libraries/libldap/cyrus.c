@@ -493,11 +493,12 @@ ldap_int_sasl_bind(
 				if ( ldap_pvt_tls_get_unique( ssl, &cbv, 0 )) {
 					sasl_channel_binding_t *cb = ldap_memalloc( sizeof(*cb) +
 						cbv.bv_len);
+					void *cb_data; /* used since cb->data is const* */
 					cb->name = "ldap";
 					cb->critical = 0;
-					cb->data = (char *)(cb+1);
 					cb->len = cbv.bv_len;
-					memcpy( cb->data, cbv.bv_val, cbv.bv_len );
+					cb->data = cb_data = cb+1;
+					memcpy( cb_data, cbv.bv_val, cbv.bv_len );
 					sasl_setprop( ld->ld_defconn->lconn_sasl_authctx,
 						SASL_CHANNEL_BINDING, cb );
 					ld->ld_defconn->lconn_sasl_cbind = cb;
