@@ -472,7 +472,8 @@ retry:;
 			rc = ldap_result( msc->msc_ld, msgid, LDAP_MSG_ALL, &tv, &res );
 			switch ( rc ) {
 			case -1:
-				rs->sr_err = LDAP_OTHER;
+				rs->sr_err = LDAP_UNAVAILABLE;
+				rs->sr_text = "Remote server down";
 				break;
 
 			case 0:
@@ -484,6 +485,7 @@ retry:;
 					goto retry;
 				}
 				rs->sr_err = LDAP_OTHER;
+				rs->sr_text = "Timeout, no more retries";
 				break;
 
 			default:
@@ -534,6 +536,8 @@ retry:;
 
 			} else {
 				rs->sr_err = LDAP_OTHER;
+				rs->sr_text = "Unknown response to StartTLS request :"
+					" an ExtendedResposne is expected";
 			}
 
 			if ( res != NULL ) {
@@ -674,6 +678,12 @@ error_return:;
 	}
 
 	if ( rs->sr_err != LDAP_SUCCESS ) {
+		/* Get the error message and print it in TRACE mode */
+		if ( LogTest( LDAP_DEBUG_TRACE ) ) {
+			Log4( LDAP_DEBUG_TRACE, ldap_syslog_level, "%s: meta_back_init_one_conn[%d] failed err=%d text=%s\n",
+				op->o_log_prefix, candidate, rs->sr_err, rs->sr_text );
+		}
+
 		rs->sr_err = slap_map_api2result( rs );
 		if ( sendok & LDAP_BACK_SENDERR ) {
 			send_ldap_result( op, rs );
@@ -1583,12 +1593,12 @@ retry_lock2:;
 					err = lerr;
 
 					if ( lerr == LDAP_UNAVAILABLE && mt->mt_isquarantined != LDAP_BACK_FQ_NO ) {
-						Debug( LDAP_DEBUG_TRACE, "%s: meta_back_getconn[%d] quarantined err=%d\n",
-							op->o_log_prefix, i, lerr );
+						Log4( LDAP_DEBUG_TRACE, ldap_syslog_level, "%s: meta_back_getconn[%d] quarantined err=%d text=%s\n",
+							op->o_log_prefix, i, lerr, rs->sr_text );
 
 					} else {
-						Debug( LDAP_DEBUG_ANY, "%s: meta_back_getconn[%d] failed err=%d\n",
-							op->o_log_prefix, i, lerr );
+						Log4( LDAP_DEBUG_ANY, ldap_syslog, "%s: meta_back_getconn[%d] failed err=%d text=%s\n",
+							op->o_log_prefix, i, lerr, rs->sr_text );
 					}
 
 					if ( META_BACK_ONERR_STOP( mi ) ) {
