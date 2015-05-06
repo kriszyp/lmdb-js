@@ -537,7 +537,7 @@ retry:;
 			} else {
 				rs->sr_err = LDAP_OTHER;
 				rs->sr_text = "Unknown response to StartTLS request :"
-					" an ExtendedResposne is expected";
+					" an ExtendedResponse is expected";
 			}
 
 			if ( res != NULL ) {
