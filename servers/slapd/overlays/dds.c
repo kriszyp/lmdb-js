@@ -1740,18 +1740,6 @@ dds_db_open(
 		goto done;
 	}
 
-	/* ... if there are dynamic objects, delete those expired */
-	if ( di->di_num_dynamicObjects > 0 ) {
-		/* force deletion of expired entries... */
-		be->bd_info = (BackendInfo *)on->on_info;
-		rc = dds_expire( thrctx, di );
-		be->bd_info = (BackendInfo *)on;
-		if ( rc != LDAP_SUCCESS ) {
-			rc = 1;
-			goto done;
-		}
-	}
-
 	/* start expire task */
 	ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
 	di->di_expire_task = ldap_pvt_runqueue_insert( &slapd_rq,
