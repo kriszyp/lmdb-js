@@ -40,6 +40,20 @@
 
 #include "slapcommon.h"
 
+#ifdef _WIN32
+# ifdef __WIN64__
+# define ftello(fp)	_ftelli64(fp)
+# else
+/* Ideally we would use _ftelli64 but that was only available
+ * starting in MSVCR80.DLL. The approach used here is inaccurate
+ * because returning the underlying file handle's file pointer
+ * doesn't take the stdio buffer offset into account. But, it
+ * works with all versions of MSVCRT.
+ */
+# define ftello(fp)	_telli64(fileno(fp))
+# endif
+#endif
+
 extern int slap_DN_strict;	/* dn.c */
 
 static char csnbuf[ LDAP_PVT_CSNSTR_BUFSIZE ];
