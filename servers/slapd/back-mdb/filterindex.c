@@ -211,7 +211,7 @@ mdb_filter_candidates(
 		/* Must not return NULL, otherwise extended filters break */
 		MDB_IDL_ALL( ids );
 	}
-	if ( MDB_IDL_IS_RANGE( ids ) && ids[2] == NOID ) {
+	if ( ids[2] == NOID && MDB_IDL_IS_RANGE( ids )) {
 		struct mdb_info *mdb = (struct mdb_info *) op->o_bd->be_private;
 		ID last;
 
