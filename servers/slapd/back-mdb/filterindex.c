@@ -211,6 +211,31 @@ mdb_filter_candidates(
 		/* Must not return NULL, otherwise extended filters break */
 		MDB_IDL_ALL( ids );
 	}
+	if ( MDB_IDL_IS_RANGE( ids ) && ids[2] == NOID ) {
+		struct mdb_info *mdb = (struct mdb_info *) op->o_bd->be_private;
+		ID last;
+
+		if ( mdb->mi_nextid ) {
+			last = mdb->mi_nextid - 1;
+		} else {
+			MDB_cursor *mc;
+			MDB_val key;
+
+			last = 0;
+			rc = mdb_cursor_open( rtxn, mdb->mi_id2entry, &mc );
+			if ( !rc ) {
+				rc = mdb_cursor_get( mc, &key, NULL, MDB_LAST );
+				if ( !rc )
+					memcpy( &last, key.mv_data, sizeof( last ));
+				mdb_cursor_close( mc );
+			}
+		}
+		if ( last ) {
+			ids[2] = last;
+		} else {
+			MDB_IDL_ZERO( ids );
+		}
+	}
 
 out:
 	Debug( LDAP_DEBUG_FILTER,
