@@ -1575,6 +1575,7 @@ retry:;
 			op->o_tag = o_tag;
 			rs->sr_text = "Proxy can't contact remote server";
 			send_ldap_result( op, rs );
+			rs->sr_err = SLAPD_DISCONNECT;
 		}
 
 		rc = 0;

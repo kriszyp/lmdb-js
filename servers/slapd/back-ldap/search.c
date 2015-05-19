@@ -645,6 +645,8 @@ finish:;
 		ldap_back_release_conn( li, lc );
 	}
 
+	if ( rs->sr_err == LDAP_UNAVAILABLE )
+		rs->sr_err = SLAPD_DISCONNECT;
 	return rs->sr_err;
 }
 
