@@ -98,7 +98,6 @@ retry:;
 	rc = ldap_back_controls_add( op, rs, lc, &ctrls );
 	if ( rc != LDAP_SUCCESS ) {
 		send_ldap_result( op, rs );
-		rc = -1;
 		goto cleanup;
 	}
 
@@ -132,6 +131,6 @@ cleanup:;
 		ldap_back_release_conn( li, lc );
 	}
 
-	return rc;
+	return rs->sr_err;
 }
 
