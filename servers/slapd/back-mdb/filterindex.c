@@ -216,7 +216,7 @@ mdb_filter_candidates(
 		ID last;
 
 		if ( mdb->mi_nextid ) {
-			last = mdb->mi_nextid - 1;
+			last = mdb->mi_nextid;
 		} else {
 			MDB_cursor *mc;
 			MDB_val key;
