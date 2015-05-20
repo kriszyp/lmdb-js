@@ -210,7 +210,7 @@ static ConfigTable sqlcfg[] = {
 			"DESC 'Quoting char of the aliasing keyword' "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
 	{ "autocommit", "yes|no", 2, 2, 0,
-		ARG_ON_OFF|ARG_MAGIC|SQL_AUTOCOMMIT, (void *)sql_cf_gen,
+		ARG_ON_OFF|ARG_MAGIC|BSQL_AUTOCOMMIT, (void *)sql_cf_gen,
 		"( OLcfgDbAt:6.45 NAME 'olcSqlAutocommit' "
 			"SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
 	{ NULL, NULL, 0, 0, 0, ARG_IGNORED,
