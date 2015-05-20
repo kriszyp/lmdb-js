@@ -4679,7 +4679,7 @@ check_name_index( CfEntryInfo *parent, ConfigType ce_type, Entry *e,
 	if ( ce_type == Cft_Database )
 		nsibs--;
 
-	if ( index != nsibs ) {
+	if ( index != nsibs || isfrontend ) {
 		if ( gotindex ) {
 			if ( index < nsibs ) {
 				if ( tailindex ) return LDAP_NAMING_VIOLATION;
@@ -7220,22 +7220,6 @@ config_tool_entry_put( BackendDB *be, Entry *e, struct berval *text )
 					return NOID;
 				}
 			} else {
-				if ( !strncmp( e->e_nname.bv_val + 
-					STRLENOF( "olcDatabase" ), "=frontend",
-					STRLENOF( "=frontend" ) ) )
-				{
-					struct berval rdn, pdn, ndn;
-					dnParent( &e->e_nname, &pdn );
-					rdn.bv_val = ca.log;
-					rdn.bv_len = snprintf(rdn.bv_val, sizeof( ca.log ),
-						"%s=" SLAP_X_ORDERED_FMT "%s",
-						cfAd_database->ad_cname.bv_val, -1,
-						frontendDB->bd_info->bi_type );
-					build_new_dn( &ndn, &pdn, &rdn, NULL );
-					ber_memfree( e->e_name.bv_val );
-					e->e_name = ndn;
-					ber_bvreplace( &e->e_nname, &e->e_name );
-				}
 				entry_put_got_frontend++;
 				isFrontend = 1;
 			}
