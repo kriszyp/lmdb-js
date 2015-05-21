@@ -645,7 +645,12 @@ finish:;
 		ldap_back_release_conn( li, lc );
 	}
 
-	if ( rs->sr_err == LDAP_UNAVAILABLE )
+	if ( rs->sr_err == LDAP_UNAVAILABLE &&
+		/* if we originally bound and wanted rebind-as-user, must drop
+		 * the connection now because we just discarded the credentials.
+		 * ITS#7464, #8142
+		 */
+		LDAP_BACK_SAVECRED( li ) && SLAP_IS_AUTHZ_BACKEND( op ) )
 		rs->sr_err = SLAPD_DISCONNECT;
 	return rs->sr_err;
 }
