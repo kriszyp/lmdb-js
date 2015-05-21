@@ -1575,7 +1575,12 @@ retry:;
 			op->o_tag = o_tag;
 			rs->sr_text = "Proxy can't contact remote server";
 			send_ldap_result( op, rs );
-			rs->sr_err = SLAPD_DISCONNECT;
+			/* if we originally bound and wanted rebind-as-user, must drop
+			 * the connection now because we just discarded the credentials.
+			 * ITS#7464, #8142
+			 */
+			if ( LDAP_BACK_SAVECRED( li ) && SLAP_IS_AUTHZ_BACKEND( op ) )
+				rs->sr_err = SLAPD_DISCONNECT;
 		}
 
 		rc = 0;
