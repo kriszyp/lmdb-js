@@ -28,6 +28,7 @@ OpenLDAP 2.4.41 Engineering
 	Fixed slapd-mdb to return errors when using incorrect env flags (ITS#8016)
 	Fixed slapd-mdb to correctly update search candidates (ITS#8036, ITS#7904)
 	Fixed slapd-mdb when there were more than 65535 aliases in scope (ITS#8103)
+	Fixed slapd-mdb alias deref when objectClass is not indexed (ITS#8146)
 	Fixed slapd-meta TLS initialization with ldaps URIs (ITS#8022)
 	Fixed slapd-meta to have better error logging (ITS#8131)
 	Fixed slapd-perl conversion to cn=config (ITS#8105)
