@@ -10,6 +10,7 @@ OpenLDAP 2.4.41 Engineering
 	Fixed libldap handling of TLS in async mode (ITS#8022)
 	Fixed libldap null pointer dereference (ITS#8028)
 	Fixed libldap mutex handling with LDAP_OPT_SESSION_REFCNT (ITS#8050)
+	Fixed slapd slapadd config db import of minimal frontend entry (ITS#8150)
 	Fixed slapd slapadd onetime leak with -w (ITS#8014)
 	Fixed slapd sasl auxprop crash with invalid config (ITS#8092)
 	Fixed slapd syncrepl delta-mmr issue with overlays and slapd.conf (ITS#7976)
