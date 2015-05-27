@@ -21,6 +21,7 @@ OpenLDAP 2.4.41 Engineering
 	Fixed slapd syncrepl concurrency when CHECK_CSN is enabled (ITS#8120)
 	Fixed slapd rootdn checks for hidden backends (ITS#8108)
 	Fixed slapd segfault when using matched values control (ITS#8046)
+	Fixed slapd-ldap reconnection behavior on remote failure (ITS#8142)
 	Fixed slapd-mdb minor case typo (ITS#8049)
 	Fixed slapd-mdb one-level search (ITS#7975)
 	Fixed slapd-mdb heap corruption (ITS#7965)
