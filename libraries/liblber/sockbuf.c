@@ -928,6 +928,7 @@ sb_dgram_write( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len )
 {
 	ber_slen_t rc;
 	struct sockaddr *dst;
+	socklen_t dstsize;
    
 	assert( sbiod != NULL );
 	assert( SOCKBUF_VALID( sbiod->sbiod_sb ) );
@@ -936,9 +937,12 @@ sb_dgram_write( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len )
 	dst = buf;
 	buf = (char *) buf + sizeof( struct sockaddr_storage );
 	len -= sizeof( struct sockaddr_storage );
-   
-	rc = sendto( sbiod->sbiod_sb->sb_fd, buf, len, 0, dst,
-		sizeof( struct sockaddr_storage ) );
+	dstsize = dst->sa_family == AF_INET ? sizeof( struct sockaddr_in )
+#ifdef LDAP_PF_INET6
+		: dst->sa_family == AF_INET6 ? sizeof( struct sockaddr_in6 )
+#endif
+		: sizeof( struct sockaddr_storage );
+	rc = sendto( sbiod->sbiod_sb->sb_fd, buf, len, 0, dst, dstsize );
 
 	if ( rc < 0 ) return -1;
    
