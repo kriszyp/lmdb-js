@@ -1,5 +1,7 @@
 OpenLDAP 2.4 Change Log
 
+OpenLDAP 2.4.42 Engineering
+
 OpenLDAP 2.4.41 Release (2015/06/21)
 	Fixed ldapsearch to explicitly flush its buffer (ITS#8118)
 	Fixed libldap async connections (ITS#8090)
