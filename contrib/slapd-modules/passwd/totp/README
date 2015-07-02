@@ -24,8 +24,8 @@ source root.
 
 moduleload ...path/to/slapd-sha2.so
 
-5) This module also requires the use of the slapo-lastbind overlay. You
-should build that module and also add it to your slapd configuration.
+5) This module replaces the function of the slapo-lastbind overlay. You
+cannot use that overlay on the same database as this one.
 
 6) Restart slapd.
 
@@ -47,7 +47,6 @@ lastbind overlay and the totp overlay:
 database mdb
 ...
 
-overlay lastbind
 overlay totp
 
 

@@ -14,6 +14,9 @@
  * top-level directory of the distribution or, alternatively, at
  * <http://www.OpenLDAP.org/license.html>.
  */
+/* ACKNOWLEDGEMENTS:
+ * This work includes code from the lastbind overlay.
+ */
 
 #include <portable.h>
 
@@ -39,6 +42,24 @@ static const struct berval scheme_totp256 = BER_BVC("{TOTP256}");
 static const struct berval scheme_totp512 = BER_BVC("{TOTP512}");
 
 static AttributeDescription *ad_authTimestamp;
+
+/* This is the definition used by ISODE, as supplied to us in
+ * ITS#6238 Followup #9
+ */
+static struct schema_info {
+	char *def;
+	AttributeDescription **ad;
+} totp_OpSchema[] = {
+	{	"( 1.3.6.1.4.1.453.16.2.188 "
+		"NAME 'authTimestamp' "
+		"DESC 'last successful authentication using any method/mech' "
+		"EQUALITY generalizedTimeMatch "
+		"ORDERING generalizedTimeOrderingMatch "
+		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.24 "
+		"SINGLE-VALUE NO-USER-MODIFICATION USAGE dsaOperation )",
+		&ad_authTimestamp},
+	{ NULL, NULL }
+};
 
 /* RFC3548 base32 encoding/decoding */
 
@@ -330,6 +351,7 @@ static void generate(
 }
 
 static int totp_op_cleanup( Operation *op, SlapReply *rs );
+static int totp_bind_response( Operation *op, SlapReply *rs );
 
 #define TIME_STEP	30
 #define DIGITS	6
@@ -369,6 +391,15 @@ static int chk_totp(
 			long told = tt.tt_sec / TIME_STEP;
 			if (told >= t)
 				rc = LUTIL_PASSWD_ERR;
+		}
+		if (!rc) {	/* seems OK, remember old stamp */
+			slap_callback *sc;
+			for (sc = op->o_callback; sc; sc = sc->sc_next) {
+				if (sc->sc_response == totp_bind_response) {
+					sc->sc_private = ber_dupbv_x(NULL, &a->a_vals[0], op->o_tmpmemctx);
+					break;
+				}
+			}
 		}
 	}	/* else no previous login, 1st use is OK */
 
@@ -509,8 +540,114 @@ static int totp_op_cleanup(
 	/* free the callback */
 	cb = op->o_callback;
 	op->o_callback = cb->sc_next;
+	if (cb->sc_private)
+		ber_bvfree_x(cb->sc_private, op->o_tmpmemctx);
 	op->o_tmpfree( cb, op->o_tmpmemctx );
 	return 0;
+}
+
+static int
+totp_bind_response( Operation *op, SlapReply *rs )
+{
+	Modifications *mod = NULL;
+	BackendInfo *bi = op->o_bd->bd_info;
+	Entry *e;
+	int rc;
+
+	/* we're only interested if the bind was successful */
+	if ( rs->sr_err != LDAP_SUCCESS )
+		return SLAP_CB_CONTINUE;
+
+	rc = be_entry_get_rw( op, &op->o_req_ndn, NULL, NULL, 0, &e );
+	op->o_bd->bd_info = bi;
+
+	if ( rc != LDAP_SUCCESS ) {
+		return SLAP_CB_CONTINUE;
+	}
+
+	{
+		time_t now;
+		Attribute *a;
+		Modifications *m;
+		char nowstr[ LDAP_LUTIL_GENTIME_BUFSIZE ];
+		struct berval timestamp;
+
+		/* get the current time */
+		now = op->o_time;
+
+		/* update the authTimestamp in the user's entry with the current time */
+		timestamp.bv_val = nowstr;
+		timestamp.bv_len = sizeof(nowstr);
+		slap_timestamp( &now, &timestamp );
+
+		m = ch_calloc( sizeof(Modifications), 1 );
+		m->sml_op = LDAP_MOD_ADD;
+		m->sml_flags = 0;
+		m->sml_type = ad_authTimestamp->ad_cname;
+		m->sml_desc = ad_authTimestamp;
+		m->sml_numvals = 1;
+		m->sml_values = ch_calloc( sizeof(struct berval), 2 );
+		m->sml_nvalues = ch_calloc( sizeof(struct berval), 2 );
+
+		ber_dupbv( &m->sml_values[0], &timestamp );
+		ber_dupbv( &m->sml_nvalues[0], &timestamp );
+		m->sml_next = mod;
+		mod = m;
+
+		/* get authTimestamp attribute, if it exists */
+		if ((a = attr_find( e->e_attrs, ad_authTimestamp)) != NULL && op->o_callback->sc_private) {
+			struct berval *bv = op->o_callback->sc_private;
+			m = ch_calloc( sizeof(Modifications), 1 );
+			m->sml_op = LDAP_MOD_DELETE;
+			m->sml_flags = 0;
+			m->sml_type = ad_authTimestamp->ad_cname;
+			m->sml_desc = ad_authTimestamp;
+			m->sml_numvals = 1;
+			m->sml_values = ch_calloc( sizeof(struct berval), 2 );
+			m->sml_nvalues = ch_calloc( sizeof(struct berval), 2 );
+
+			ber_dupbv( &m->sml_values[0], bv );
+			ber_dupbv( &m->sml_nvalues[0], bv );
+			m->sml_next = mod;
+			mod = m;
+		}
+	}
+
+done:
+	be_entry_release_r( op, e );
+
+	/* perform the update */
+	if ( mod ) {
+		Operation op2 = *op;
+		SlapReply r2 = { REP_RESULT };
+		slap_callback cb = { NULL, slap_null_cb, NULL, NULL };
+
+		/* This is a DSA-specific opattr, it never gets replicated. */
+		op2.o_tag = LDAP_REQ_MODIFY;
+		op2.o_callback = &cb;
+		op2.orm_modlist = mod;
+		op2.o_dn = op->o_bd->be_rootdn;
+		op2.o_ndn = op->o_bd->be_rootndn;
+		op2.o_dont_replicate = 1;
+		rc = op->o_bd->be_modify( &op2, &r2 );
+		slap_mods_free( mod, 1 );
+		if (rc != LDAP_SUCCESS) {
+			/* slapd has logged this as a success already, but we
+			 * need to fail it because the authTimestamp changed
+			 * out from under us.
+			 */
+			rs->sr_err = LDAP_INVALID_CREDENTIALS;
+			connection2anonymous(op->o_conn);
+			op2 = *op;
+			op2.o_callback = NULL;
+			send_ldap_result(&op2, rs);
+			op->o_bd->bd_info = bi;
+			return rs->sr_err;
+		}
+	}
+
+	op->o_bd->bd_info = bi;
+	return SLAP_CB_CONTINUE;
 }
 
 static int totp_op_bind(
@@ -526,6 +663,7 @@ static int totp_op_bind(
 		ldap_pvt_thread_pool_setkey( op->o_threadctx,
 			totp_op_cleanup, op, 0, NULL, NULL );
 		cb = op->o_tmpcalloc( 1, sizeof(slap_callback), op->o_tmpmemctx );
+		cb->sc_response = totp_bind_response;
 		cb->sc_cleanup = totp_op_cleanup;
 		cb->sc_next = op->o_callback;
 		op->o_callback = cb;
@@ -544,9 +682,13 @@ static int totp_db_open(
 		const char *text = NULL;
 		rc = slap_str2ad("authTimestamp", &ad_authTimestamp, &text);
 		if (rc) {
-			snprintf(cr->msg, sizeof(cr->msg), "unable to find authTimestamp attribute: %s (%d)",
-				text, rc);
-			Debug(LDAP_DEBUG_ANY, "totp: %s.\n", cr->msg, 0, 0);
+			rc = register_at(totp_OpSchema[0].def, totp_OpSchema[0].ad, 0 );
+			if (rc) {
+				snprintf(cr->msg, sizeof(cr->msg), "unable to find or register authTimestamp attribute: %s (%d)",
+					text, rc);
+				Debug(LDAP_DEBUG_ANY, "totp: %s.\n", cr->msg, 0, 0);
+			}
+			ad_authTimestamp->ad_type->sat_flags |= SLAP_AT_MANAGEABLE;
 		}
 	}
 	return rc;
