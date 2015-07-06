@@ -1,6 +1,8 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.42 Engineering
+	Build Environment
+		Fixed libdb detection with gcc 5.x (ITS#8056)
 
 OpenLDAP 2.4.41 Release (2015/06/21)
 	Fixed ldapsearch to explicitly flush its buffer (ITS#8118)
@@ -50,7 +52,6 @@ OpenLDAP 2.4.41 Release (2015/06/21)
 	Fixed slapo-syncprov potential loss of changes when under load (ITS#8081)
 	Fixed slapo-unique enforcement of uniqueness with manageDSAit control (ITS#8057)
 	Build Environment
-		Fixed libdb detection with gcc 5.x (ITS#8056)
 		Fixed ftello reference for Win32 (ITS#8127)
 		Enhanced contrib modules build paths (ITS#7782)
 		Fixed contrib/autogroup internal operation identity (ITS#8006)
