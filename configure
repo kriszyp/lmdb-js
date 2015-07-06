@@ -20324,7 +20324,7 @@ else
 __db_version DB_VERSION_MAJOR
 
 _ACEOF
-	set X `eval "$ac_cpp conftest.$ac_ext" | $EGREP __db_version` none none
+	set X `eval "$ac_cpp -P conftest.$ac_ext" | $EGREP __db_version` none none
 	ol_cv_bdb_major=${3}
 
 fi
@@ -20350,7 +20350,7 @@ else
 __db_version DB_VERSION_MINOR
 
 _ACEOF
-	set X `eval "$ac_cpp conftest.$ac_ext" | $EGREP __db_version` none none
+	set X `eval "$ac_cpp -P conftest.$ac_ext" | $EGREP __db_version` none none
 	ol_cv_bdb_minor=${3}
 
 fi
