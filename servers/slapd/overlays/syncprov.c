@@ -805,7 +805,7 @@ syncprov_free_syncop( syncops *so, int unlink )
 		return 0;
 	}
 	ldap_pvt_thread_mutex_unlock( &so->s_mutex );
-	if ( unlink && so->s_si ) {
+	if ( unlink ) {
 		syncops **sop;
 		ldap_pvt_thread_mutex_lock( &so->s_si->si_ops_mutex );
 		for ( sop = &so->s_si->si_ops; *sop; sop = &(*sop)->s_next ) {
@@ -3230,7 +3230,6 @@ syncprov_db_close(
 			rs.sr_err = LDAP_UNAVAILABLE;
 			send_ldap_result( so->s_op, &rs );
 			sonext=so->s_next;
-			so->s_si = NULL;
 			syncprov_drop_psearch( so, 0);
 		}
 		si->si_ops=NULL;
