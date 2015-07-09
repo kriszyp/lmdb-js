@@ -1561,6 +1561,8 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 	LDAPControl		*ctrl = NULL;
 	LDAPControl 		**oldctrls = NULL;
 	int			is_pwdexop = 0;
+	int got_del_grace = 0, got_del_lock = 0, got_pw = 0, got_del_fail = 0;
+	int got_changed = 0, got_history = 0;
 
 	op->o_bd->bd_info = (BackendInfo *)on->on_info;
 	rc = be_entry_get_rw( op, &op->o_req_ndn, NULL, NULL, 0, &e );
@@ -1573,7 +1575,6 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 	 */
 	if ( be_shadow_update( op )) {
 		Modifications **prev;
-		int got_del_grace = 0, got_del_lock = 0, got_pw = 0, got_del_fail = 0;
 		Attribute *a_grace, *a_lock, *a_fail;
 
 		a_grace = attr_find( e->e_attrs, ad_pwdGraceUseTime );
@@ -1592,19 +1593,25 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 				int drop = 0;
 
 				if ( ml->sml_desc == ad_pwdGraceUseTime ) {
-					got_del_grace = 1;
-					if ( !a_grace )
+					if ( !a_grace || got_del_grace ) {
 						drop = 1;
+					} else {
+						got_del_grace = 1;
+					}
 				} else
 				if ( ml->sml_desc == ad_pwdAccountLockedTime ) {
-					got_del_lock = 1;
-					if ( !a_lock )
+					if ( !a_lock || got_del_lock ) {
 						drop = 1;
+					} else {
+						got_del_lock = 1;
+					}
 				} else
 				if ( ml->sml_desc == ad_pwdFailureTime ) {
-					got_del_fail = 1;
-					if ( !a_fail )
+					if ( !a_fail || got_del_fail ) {
 						drop = 1;
+					} else {
+						got_del_fail = 1;
+					}
 				}
 				if ( drop ) {
 					*prev = ml->sml_next;
@@ -1755,6 +1762,20 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 			if ((ml->sml_op == LDAP_MOD_ADD) ||
 				(ml->sml_op == LDAP_MOD_REPLACE))
 				zapReset = 0;
+		}
+		if ( ml->sml_op == LDAP_MOD_DELETE ) {
+			if ( ml->sml_desc == ad_pwdGraceUseTime ) {
+				got_del_grace = 1;
+			} else if ( ml->sml_desc == ad_pwdAccountLockedTime ) {
+				got_del_lock = 1;
+			} else if ( ml->sml_desc == ad_pwdFailureTime ) {
+				got_del_fail = 1;
+			}
+		}
+		if ( ml->sml_desc == ad_pwdChangedTime ) {
+			got_changed = 1;
+		} else if (ml->sml_desc == ad_pwdHistory ) {
+			got_history = 1;
 		}
 	}
 	
@@ -1992,32 +2013,34 @@ do_modify:
 		 * up to date.
 		 */
 
-		timestamp.bv_val = timebuf;
-		timestamp.bv_len = sizeof(timebuf);
-		slap_timestamp( &now, &timestamp );
+		if (!got_changed) {
+			timestamp.bv_val = timebuf;
+			timestamp.bv_len = sizeof(timebuf);
+			slap_timestamp( &now, &timestamp );
 
-		mods = NULL;
-		if (pwmop != LDAP_MOD_DELETE) {
-			mods = (Modifications *) ch_calloc( sizeof( Modifications ), 1 );
-			mods->sml_op = LDAP_MOD_REPLACE;
-			mods->sml_numvals = 1;
-			mods->sml_values = (BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
-			ber_dupbv( &mods->sml_values[0], &timestamp );
-			BER_BVZERO( &mods->sml_values[1] );
-			assert( !BER_BVISNULL( &mods->sml_values[0] ) );
-		} else if (attr_find(e->e_attrs, ad_pwdChangedTime )) {
-			mods = (Modifications *) ch_calloc( sizeof( Modifications ), 1 );
-			mods->sml_op = LDAP_MOD_DELETE;
-		}
-		if (mods) {
-			mods->sml_desc = ad_pwdChangedTime;
-			mods->sml_flags = SLAP_MOD_INTERNAL;
-			mods->sml_next = NULL;
-			modtail->sml_next = mods;
-			modtail = mods;
+			mods = NULL;
+			if (pwmop != LDAP_MOD_DELETE) {
+				mods = (Modifications *) ch_calloc( sizeof( Modifications ), 1 );
+				mods->sml_op = LDAP_MOD_REPLACE;
+				mods->sml_numvals = 1;
+				mods->sml_values = (BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
+				ber_dupbv( &mods->sml_values[0], &timestamp );
+				BER_BVZERO( &mods->sml_values[1] );
+				assert( !BER_BVISNULL( &mods->sml_values[0] ) );
+			} else if (attr_find(e->e_attrs, ad_pwdChangedTime )) {
+				mods = (Modifications *) ch_calloc( sizeof( Modifications ), 1 );
+				mods->sml_op = LDAP_MOD_DELETE;
+			}
+			if (mods) {
+				mods->sml_desc = ad_pwdChangedTime;
+				mods->sml_flags = SLAP_MOD_INTERNAL;
+				mods->sml_next = NULL;
+				modtail->sml_next = mods;
+				modtail = mods;
+			}
 		}
 
-		if (attr_find(e->e_attrs, ad_pwdGraceUseTime )) {
+		if (!got_del_grace && attr_find(e->e_attrs, ad_pwdGraceUseTime )) {
 			mods = (Modifications *) ch_calloc( sizeof( Modifications ), 1 );
 			mods->sml_op = LDAP_MOD_DELETE;
 			mods->sml_desc = ad_pwdGraceUseTime;
@@ -2027,7 +2050,7 @@ do_modify:
 			modtail = mods;
 		}
 
-		if (attr_find(e->e_attrs, ad_pwdAccountLockedTime )) {
+		if (!got_del_lock && attr_find(e->e_attrs, ad_pwdAccountLockedTime )) {
 			mods = (Modifications *) ch_calloc( sizeof( Modifications ), 1 );
 			mods->sml_op = LDAP_MOD_DELETE;
 			mods->sml_desc = ad_pwdAccountLockedTime;
@@ -2037,7 +2060,7 @@ do_modify:
 			modtail = mods;
 		}
 
-		if (attr_find(e->e_attrs, ad_pwdFailureTime )) {
+		if (!got_del_fail && attr_find(e->e_attrs, ad_pwdFailureTime )) {
 			mods = (Modifications *) ch_calloc( sizeof( Modifications ), 1 );
 			mods->sml_op = LDAP_MOD_DELETE;
 			mods->sml_desc = ad_pwdFailureTime;
@@ -2058,7 +2081,7 @@ do_modify:
 			modtail = mods;
 		}
 
-		if (pp.pwdInHistory > 0) {
+		if (!got_history && pp.pwdInHistory > 0) {
 			if (hsize >= pp.pwdInHistory) {
 				/*
 				 * We use the >= operator, since we are going to add
