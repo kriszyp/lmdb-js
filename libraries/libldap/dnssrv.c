@@ -399,7 +399,7 @@ add_size:;
         if(cur>0){
             hostlist[cur++]=' ';
         }
-        cur += sprintf(&hostlist[cur], "%s:%hd", hostent_head[i].hostname, hostent_head[i].port);
+        cur += sprintf(&hostlist[cur], "%s:%hu", hostent_head[i].hostname, hostent_head[i].port);
     }
     }
 
