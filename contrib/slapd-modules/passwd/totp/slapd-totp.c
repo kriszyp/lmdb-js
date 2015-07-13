@@ -425,8 +425,10 @@ static int chk_totp(
 	memset(key.mv_val, 0, key.mv_len);
 
 	/* compare */
-	if (out.mv_len != cred->bv_len)
-		return LUTIL_PASSWD_ERR;
+	if (out.mv_len != cred->bv_len) {
+		rc = LUTIL_PASSWD_ERR;
+		goto out;
+	}
 
 	rc = memcmp(out.mv_val, cred->bv_val, out.mv_len) ? LUTIL_PASSWD_ERR : LUTIL_PASSWD_OK;
 
