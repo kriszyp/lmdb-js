@@ -271,6 +271,8 @@ retry:;
 		if ( ldap_back_retry( &lc, op, rs, LDAP_BACK_BIND_SERR ) ) {
 			goto retry;
 		}
+		if ( !lc )
+			return( rc );
 	}
 
 	ldap_pvt_thread_mutex_lock( &li->li_counter_mutex );
