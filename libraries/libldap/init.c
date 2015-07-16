@@ -596,6 +596,10 @@ void ldap_int_initialize_global_options( struct ldapoptions *gopts, int *dbglvl 
 char * ldap_int_hostname = NULL;
 #endif
 
+#ifdef LDAP_R_COMPILE
+int	ldap_int_stackguard;
+#endif
+
 void ldap_int_initialize( struct ldapoptions *gopts, int *dbglvl )
 {
 	if ( gopts->ldo_valid == LDAP_INITIALIZED ) {
@@ -663,6 +667,12 @@ void ldap_int_initialize( struct ldapoptions *gopts, int *dbglvl )
 	if( getenv("LDAPNOINIT") != NULL ) {
 		return;
 	}
+
+#ifdef LDAP_R_COMPILE
+	if( getenv("LDAPSTACKGUARD") != NULL ) {
+		ldap_int_stackguard = 1;
+	}
+#endif
 
 #ifdef HAVE_CYRUS_SASL
 	{
