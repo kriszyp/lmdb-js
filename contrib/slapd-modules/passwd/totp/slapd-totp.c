@@ -583,7 +583,7 @@ totp_bind_response( Operation *op, SlapReply *rs )
 		slap_timestamp( &now, &timestamp );
 
 		m = ch_calloc( sizeof(Modifications), 1 );
-		m->sml_op = LDAP_MOD_ADD;
+		m->sml_op = LDAP_MOD_REPLACE;
 		m->sml_flags = 0;
 		m->sml_type = ad_authTimestamp->ad_cname;
 		m->sml_desc = ad_authTimestamp;
