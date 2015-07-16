@@ -33,6 +33,8 @@
 #include "ldap_thr_debug.h"	 /* May rename the symbols defined below */
 #include <signal.h>			 /* For pthread_kill() */
 
+extern int ldap_int_stackguard;
+
 #if HAVE_PTHREADS < 6
 #  define LDAP_INT_THREAD_ATTR_DEFAULT		pthread_attr_default
 #  define LDAP_INT_THREAD_CONDATTR_DEFAULT	pthread_condattr_default
@@ -148,6 +150,8 @@ ldap_pvt_thread_create( ldap_pvt_thread_t * thread,
 #ifdef LDAP_PVT_THREAD_SET_STACK_SIZE
 	/* this should be tunable */
 	pthread_attr_setstacksize( &attr, LDAP_PVT_THREAD_STACK_SIZE );
+	if ( ldap_int_stackguard )
+		pthread_attr_setguardsize( &attr, LDAP_PVT_THREAD_STACK_SIZE );
 #endif
 
 #if HAVE_PTHREADS > 5
