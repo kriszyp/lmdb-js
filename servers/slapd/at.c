@@ -365,6 +365,10 @@ at_next( AttributeType **at )
 	}
 #endif
 
+	if ( *at == NULL ) {
+		return 0;
+	}
+
 	*at = LDAP_STAILQ_NEXT(*at,sat_next);
 
 	return (*at != NULL);
