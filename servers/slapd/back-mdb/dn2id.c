@@ -922,3 +922,45 @@ mdb_dn2id_walk(
 	}
 	return rc;
 }
+
+/* restore the nrdn/rdn pointers after a txn reset */
+void mdb_dn2id_wrestore (
+	Operation *op,
+	IdScopes *isc
+)
+{
+	MDB_val key, data;
+	diskNode *d;
+	int rc, n, nrlen;
+	char *ptr;
+
+	/* We only need to restore up to the n-1th element,
+	 * the nth element will be replaced anyway
+	 */
+	key.mv_size = sizeof(ID);
+	for ( n=0; n<isc->numrdns-1; n++ ) {
+		key.mv_data = &isc->scopes[n+1].mid;
+		rc = mdb_cursor_get( isc->mc, &key, &data, MDB_SET );
+		if ( rc )
+			continue;
+		/* we can't use this data directly since its nrlen
+		 * is missing the high bit setting, so copy it and
+		 * set it properly. we just copy enough to satisfy
+		 * mdb_dup_compare.
+		 */
+		d = data.mv_data;
+		nrlen = ((d->nrdnlen[0] & 0x7f) << 8) | d->nrdnlen[1];
+		ptr = op->o_tmpalloc( nrlen+2, op->o_tmpmemctx );
+		memcpy( ptr, data.mv_data, nrlen+2 );
+		key.mv_data = &isc->scopes[n].mid;
+		data.mv_data = ptr;
+		data.mv_size = 1;
+		*ptr |= 0x80;
+		mdb_cursor_get( isc->mc, &key, &data, MDB_GET_BOTH );
+
+		/* now we're back to where we wanted to be */
+		d = data.mv_data;
+		isc->nrdns[n].bv_val = d->nrdn;
+		isc->rdns[n].bv_val = d->nrdn+isc->nrdns[n].bv_len+1;
+	}
+}
