@@ -358,30 +358,22 @@ mdb_writewait( Operation *op, slap_callback *sc )
 }
 
 static int
-mdb_waitfixup( Operation *op, ww_ctx *ww, MDB_cursor *mci, MDB_cursor *mcd, ID2 *scopes )
+mdb_waitfixup( Operation *op, ww_ctx *ww, MDB_cursor *mci, MDB_cursor *mcd, IdScopes *isc )
 {
+	MDB_val key;
 	int rc = 0;
 	ww->flag = 0;
 	mdb_txn_renew( ww->txn );
 	mdb_cursor_renew( ww->txn, mci );
 	mdb_cursor_renew( ww->txn, mcd );
 
-	if ( scopes[0].mid > 1 ) {
-		MDB_val key;
-		int i;
-		key.mv_size = sizeof(ID);
-		for ( i=1; i<scopes[0].mid; i++ ) {
-			if ( !scopes[i].mval.mv_data )
-				continue;
-			key.mv_data = &scopes[i].mid;
-			mdb_cursor_get( mcd, &key, &scopes[i].mval, MDB_SET );
-		}
-	}
+	key.mv_size = sizeof(ID);
+	if ( ww->mcd ) {	/* scope-based search using dn2id_walk */
+		MDB_val data;
 
-	if ( ww->mcd ) {
-		MDB_val key, data;
+		if ( isc->numrdns )
+			mdb_dn2id_wrestore( op, isc );
 
-		key.mv_size = sizeof(ID);
 		key.mv_data = &ww->key;
 		data = ww->data;
 		rc = mdb_cursor_get( mcd, &key, &data, MDB_GET_BOTH );
@@ -400,6 +392,14 @@ mdb_waitfixup( Operation *op, ww_ctx *ww, MDB_cursor *mci, MDB_cursor *mcd, ID2 
 		}
 		op->o_tmpfree( ww->data.mv_data, op->o_tmpmemctx );
 		ww->data.mv_data = NULL;
+	} else if ( isc->scopes[0].mid > 1 ) {	/* candidate-based search */
+		int i;
+		for ( i=1; i<isc->scopes[0].mid; i++ ) {
+			if ( !isc->scopes[i].mval.mv_data )
+				continue;
+			key.mv_data = &isc->scopes[i].mid;
+			mdb_cursor_get( mcd, &key, &isc->scopes[i].mval, MDB_SET );
+		}
 	}
 	return rc;
 }
@@ -1049,7 +1049,7 @@ notfound:
 			rs->sr_ref = NULL;
 
 			if ( wwctx.flag ) {
-				rs->sr_err = mdb_waitfixup( op, &wwctx, mci, mcd, scopes );
+				rs->sr_err = mdb_waitfixup( op, &wwctx, mci, mcd, &isc );
 				if ( rs->sr_err ) {
 					send_ldap_result( op, rs );
 					goto done;
@@ -1111,7 +1111,7 @@ notfound:
 					goto done;
 				}
 				if ( wwctx.flag ) {
-					rs->sr_err = mdb_waitfixup( op, &wwctx, mci, mcd, scopes );
+					rs->sr_err = mdb_waitfixup( op, &wwctx, mci, mcd, &isc );
 					if ( rs->sr_err ) {
 						send_ldap_result( op, rs );
 						goto done;
