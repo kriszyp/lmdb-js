@@ -957,6 +957,7 @@ void mdb_dn2id_wrestore (
 		data.mv_size = 1;
 		*ptr |= 0x80;
 		mdb_cursor_get( isc->mc, &key, &data, MDB_GET_BOTH );
+		op->o_tmpfree( ptr, op->o_tmpmemctx );
 
 		/* now we're back to where we wanted to be */
 		d = data.mv_data;
