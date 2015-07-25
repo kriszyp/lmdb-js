@@ -318,8 +318,9 @@ static int adremap_refsearch(
 		slap_callback *sc = op->o_callback;
 		struct berval *dn = sc->sc_private;
 		ber_dupbv_x(dn, &rs->sr_entry->e_nname, op->o_tmpmemctx);
+		return LDAP_SUCCESS;
 	}
-	return LDAP_SUCCESS;
+	return rs->sr_err;
 }
 
 static void adremap_filter(
@@ -345,7 +346,7 @@ static void adremap_filter(
 				if (fn && fn->f_choice == LDAP_FILTER_EQUALITY &&
 					fn->f_av_desc == ad->ad_newattr) {
 					Filter fr[3], *fnew;
-					AttributeAssertion aa[2];
+					AttributeAssertion aa[2] = {0};
 					Operation op2;
 					slap_callback cb = {0};
 					SlapReply rs = {REP_RESULT};
@@ -383,6 +384,7 @@ static void adremap_filter(
 					op2.ors_tlimit = SLAP_NO_LIMIT;
 					op2.ors_attrs = slap_anlist_no_attrs;
 					op2.ors_attrsonly = 1;
+					op2.o_no_schema_check = 1;
 					op2.o_bd->bd_info = (BackendInfo *)on->on_info;
 					op2.o_bd->be_search(&op2, &rs);
 					op2.o_bd->bd_info = (BackendInfo *)on;
@@ -390,6 +392,11 @@ static void adremap_filter(
 
 					if (!dn.bv_len)	/* no match was found */
 						return;
+
+					if (rs.sr_err) {	/* sizelimit exceeded, etc.: invalid name */
+						op->o_tmpfree(dn.bv_val, op->o_tmpmemctx);
+						return;
+					}
 
 					/* Build a new filter of form
 					 * (&(objectclass=<group>)(<dnattr>=foo-DN)...)
@@ -401,14 +408,14 @@ static void adremap_filter(
 					f->f_and = op->o_tmpalloc(sizeof(Filter), op->o_tmpmemctx);
 					f = f->f_and;
 					f->f_choice = LDAP_FILTER_EQUALITY;
-					f->f_ava = op->o_tmpalloc(sizeof(AttributeAssertion), op->o_tmpmemctx);
+					f->f_ava = op->o_tmpcalloc(1, sizeof(AttributeAssertion), op->o_tmpmemctx);
 					f->f_av_desc = slap_schema.si_ad_objectClass;
 					ber_dupbv_x(&f->f_av_value, &ad->ad_group->soc_cname, op->o_tmpmemctx);
 
 					f->f_next = op->o_tmpalloc(sizeof(Filter), op->o_tmpmemctx);
 					f = f->f_next;
 					f->f_choice = LDAP_FILTER_EQUALITY;
-					f->f_ava = op->o_tmpalloc(sizeof(AttributeAssertion), op->o_tmpmemctx);
+					f->f_ava = op->o_tmpcalloc(1, sizeof(AttributeAssertion), op->o_tmpmemctx);
 					f->f_av_desc = ad->ad_dnattr;
 					f->f_av_value = dn;
 					f->f_next = fn->f_next;
@@ -434,6 +441,10 @@ adremap_search(
 	slap_overinst *on = (slap_overinst *)op->o_bd->bd_info;
 	adremap_info *ai = (adremap_info *) on->on_bi.bi_private;
 	slap_callback *cb;
+
+	/* Is this our own internal search? Ignore it */
+	if (op->o_no_schema_check)
+		return SLAP_CB_CONTINUE;
 
 	if (ai->ai_dnv)
 		/* check for filter match, fallthru if none */
