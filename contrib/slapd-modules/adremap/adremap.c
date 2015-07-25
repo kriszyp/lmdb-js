@@ -322,7 +322,7 @@ static int adremap_refsearch(
 	return LDAP_SUCCESS;
 }
 
-static int adremap_filter(
+static void adremap_filter(
 	Operation *op,
 	adremap_info *ai
 )
@@ -389,7 +389,7 @@ static int adremap_filter(
 					op->o_tmpfree(op2.ors_filterstr.bv_val, op->o_tmpmemctx);
 
 					if (!dn.bv_len)	/* no match was found */
-						return 0;
+						return;
 
 					/* Build a new filter of form
 					 * (&(objectclass=<group>)(<dnattr>=foo-DN)...)
@@ -418,12 +418,11 @@ static int adremap_filter(
 					op->o_tmpfree(op->ors_filterstr.bv_val, op->o_tmpmemctx);
 					op->ors_filter = fnew;
 					filter2bv_x(op, op->ors_filter, &op->ors_filterstr);
-					return 1;
+					break;
 				}
 			}
 		}
 	}
-	return 0;	/* didn't match anything */
 }
 
 static int
@@ -436,11 +435,10 @@ adremap_search(
 	adremap_info *ai = (adremap_info *) on->on_bi.bi_private;
 	slap_callback *cb;
 
-	if (ai->ai_dnv) {
+	if (ai->ai_dnv)
 		/* check for filter match, fallthru if none */
-		if (!adremap_filter(op, ai))
-			return SLAP_CB_CONTINUE;
-	}
+		adremap_filter(op, ai);
+
 	cb = op->o_tmpcalloc(1, sizeof(slap_callback), op->o_tmpmemctx);
 	cb->sc_response = adremap_search_resp;
 	cb->sc_private = on;
