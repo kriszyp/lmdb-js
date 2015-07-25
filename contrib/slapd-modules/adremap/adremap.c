@@ -39,6 +39,10 @@ typedef struct adremap_dnv {
 	AttributeDescription *ad_dnattr;	/* DN-valued attr to deref */
 	AttributeDescription *ad_deref;		/* target attr's value to retrieve */
 	AttributeDescription *ad_newattr;	/* New attr to collect new values */
+	ObjectClass *ad_group;		/* group objectclass on target */
+	ObjectClass *ad_mapgrp;		/* group objectclass to map */
+	ObjectClass *ad_refgrp;		/* objectclass of target DN */
+	struct berval ad_refbase;	/* base DN of target entries */
 } adremap_dnv;
 /* example: member uid memberUid */
 
@@ -69,11 +73,12 @@ static ConfigTable adremapcfg[] = {
 	  "NAME 'olcADremapDowncase' "
 	  "DESC 'List of attributes to casefold to lower case' "
 	  "SYNTAX OMsDirectoryString )", NULL, NULL },
-	{ "adremap-dnmap", "dnattr simpleattr newattr", 4, 4, 0,
+	{ "adremap-dnmap", "dnattr targetattr newattr remoteOC localOC targetOC baseDN", 8, 8, 0,
 	  ARG_MAGIC|ADREMAP_DNV, adremap_cf_dnv,
 	  "( OLcfgCtAt:6.2 "
 	  "NAME 'olcADremapDNmap' "
-	  "DESC 'DN attr to map, attr from target to use, attr to generate' "
+	  "DESC 'DN attr to map, attr from target to use, attr to generate, objectclass of remote"
+	   " group, objectclass mapped group, objectclass of target entry, base DN of target entry' "
 	  "SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ NULL, NULL, 0, 0, 0, ARG_IGNORED }
 };
@@ -151,12 +156,25 @@ adremap_cf_dnv(ConfigArgs *c)
 			char *ptr;
 			struct berval bv;
 			bv.bv_len = ad->ad_dnattr->ad_cname.bv_len + ad->ad_deref->ad_cname.bv_len + ad->ad_newattr->ad_cname.bv_len + 2;
+			bv.bv_len += ad->ad_group->soc_cname.bv_len + ad->ad_mapgrp->soc_cname.bv_len + ad->ad_refgrp->soc_cname.bv_len + 3;
+			bv.bv_len += ad->ad_refbase.bv_len + 3;
 			bv.bv_val = ch_malloc(bv.bv_len + 1);
 			ptr = lutil_strcopy(bv.bv_val, ad->ad_dnattr->ad_cname.bv_val);
 			*ptr++ = ' ';
 			ptr = lutil_strcopy(ptr, ad->ad_deref->ad_cname.bv_val);
 			*ptr++ = ' ';
-			strcpy(ptr, ad->ad_newattr->ad_cname.bv_val);
+			ptr = lutil_strcopy(ptr, ad->ad_newattr->ad_cname.bv_val);
+			*ptr++ = ' ';
+			ptr = lutil_strcopy(ptr, ad->ad_group->soc_cname.bv_val);
+			*ptr++ = ' ';
+			ptr = lutil_strcopy(ptr, ad->ad_mapgrp->soc_cname.bv_val);
+			*ptr++ = ' ';
+			ptr = lutil_strcopy(ptr, ad->ad_refgrp->soc_cname.bv_val);
+			*ptr++ = ' ';
+			*ptr++ = '"';
+			ptr = lutil_strcopy(ptr, ad->ad_refbase.bv_val);
+			*ptr++ = '"';
+			*ptr = '\0';
 			ber_bvarray_add(&c->rvalue_vals, &bv);
 		}
 		if (ai->ai_dnv) rc = 0;
@@ -179,6 +197,7 @@ adremap_cf_dnv(ConfigArgs *c)
 	default: {
 		const char *text;
 		adremap_dnv av = {0};
+		struct berval dn;
 		rc = slap_str2ad(c->argv[1], &av.ad_dnattr, &text);
 		if (rc) break;
 		if (av.ad_dnattr->ad_type->sat_syntax != slap_schema.si_syn_distinguishedName) {
@@ -192,6 +211,24 @@ adremap_cf_dnv(ConfigArgs *c)
 		if (rc) break;
 		rc = slap_str2ad(c->argv[3], &av.ad_newattr, &text);
 		if (rc) break;
+		av.ad_group = oc_find(c->argv[4]);
+		if (!av.ad_group) {
+			rc = 1;
+			break;
+		}
+		av.ad_mapgrp = oc_find(c->argv[5]);
+		if (!av.ad_mapgrp) {
+			rc = 1;
+			break;
+		}
+		av.ad_refgrp = oc_find(c->argv[6]);
+		if (!av.ad_refgrp) {
+			rc = 1;
+			break;
+		}
+		ber_str2bv(c->argv[7], 0, 0, &dn);
+		rc = dnNormalize(0, NULL, NULL, &dn, &av.ad_refbase, NULL);
+		if (rc) break;
 
 		for (a2 = &ai->ai_dnv; *a2; a2 = &(*a2)->ad_next);
 		ad = ch_malloc(sizeof(adremap_dnv));
@@ -199,6 +236,10 @@ adremap_cf_dnv(ConfigArgs *c)
 		ad->ad_dnattr = av.ad_dnattr;
 		ad->ad_deref = av.ad_deref;
 		ad->ad_newattr = av.ad_newattr;
+		ad->ad_group = av.ad_group;
+		ad->ad_mapgrp = av.ad_mapgrp;
+		ad->ad_refgrp = av.ad_refgrp;
+		ad->ad_refbase = av.ad_refbase;
 		*a2 = ad;
 		break;
 		}
@@ -268,6 +309,123 @@ adremap_search_resp(
 	return SLAP_CB_CONTINUE;
 }
 
+static int adremap_refsearch(
+	Operation *op,
+	SlapReply *rs
+)
+{
+	if (rs->sr_type == REP_SEARCH) {
+		slap_callback *sc = op->o_callback;
+		struct berval *dn = sc->sc_private;
+		ber_dupbv_x(dn, &rs->sr_entry->e_nname, op->o_tmpmemctx);
+	}
+	return LDAP_SUCCESS;
+}
+
+static int adremap_filter(
+	Operation *op,
+	adremap_info *ai
+)
+{
+	slap_overinst *on = (slap_overinst *)op->o_bd->bd_info;
+	Filter *f = op->ors_filter;
+	adremap_dnv *ad;
+
+	/* Do we need to munge the filter? First see if it's of
+	 * the form (&(objectClass=<mapgrp>)...)
+	 */
+	if (f->f_choice == LDAP_FILTER_AND && f->f_and &&
+		f->f_and->f_choice == LDAP_FILTER_EQUALITY &&
+		f->f_and->f_av_desc == slap_schema.si_ad_objectClass) {
+		struct berval bv = f->f_and->f_av_value;
+		for (ad = ai->ai_dnv; ad; ad = ad->ad_next) {
+			if (!ber_bvstrcasecmp( &bv, &ad->ad_mapgrp->soc_cname )) {
+			/* Now check to see if next element is (<newattr>=foo) */
+				Filter *fn = f->f_and->f_next;
+				if (fn && fn->f_choice == LDAP_FILTER_EQUALITY &&
+					fn->f_av_desc == ad->ad_newattr) {
+					Filter fr[3], *fnew;
+					AttributeAssertion aa[2];
+					Operation op2;
+					slap_callback cb = {0};
+					SlapReply rs = {REP_RESULT};
+					struct berval dn = BER_BVNULL;
+
+					/* It's a match, setup a search with filter
+					 * (&(objectclass=<refgrp>)(<deref>=foo))
+					 */
+					fr[0].f_choice = LDAP_FILTER_AND;
+					fr[0].f_and = &fr[1];
+
+					fr[1].f_choice = LDAP_FILTER_EQUALITY;
+					fr[1].f_ava = &aa[0];
+					fr[1].f_av_desc = slap_schema.si_ad_objectClass;
+					fr[1].f_av_value = ad->ad_refgrp->soc_cname;
+					fr[1].f_next = &fr[2];
+
+					fr[2].f_choice = LDAP_FILTER_EQUALITY;
+					fr[2].f_ava = &aa[1];
+					fr[2].f_av_desc = ad->ad_deref;
+					fr[2].f_av_value = fn->f_av_value;
+					fr[2].f_next = NULL;
+
+					/* Search with this filter to retrieve target DN */
+					op2 = *op;
+					op2.o_callback = &cb;
+					cb.sc_response = adremap_refsearch;
+					cb.sc_private = &dn;
+					op2.o_req_dn = ad->ad_refbase;
+					op2.o_req_ndn = ad->ad_refbase;
+					op2.ors_filter = fr;
+					filter2bv_x(op, fr, &op2.ors_filterstr);
+					op2.ors_deref = LDAP_DEREF_NEVER;
+					op2.ors_slimit = 1;
+					op2.ors_tlimit = SLAP_NO_LIMIT;
+					op2.ors_attrs = slap_anlist_no_attrs;
+					op2.ors_attrsonly = 1;
+					op2.o_bd->bd_info = (BackendInfo *)on->on_info;
+					op2.o_bd->be_search(&op2, &rs);
+					op2.o_bd->bd_info = (BackendInfo *)on;
+					op->o_tmpfree(op2.ors_filterstr.bv_val, op->o_tmpmemctx);
+
+					if (!dn.bv_len)	/* no match was found */
+						return 0;
+
+					/* Build a new filter of form
+					 * (&(objectclass=<group>)(<dnattr>=foo-DN)...)
+					 */
+					f = op->o_tmpalloc(sizeof(Filter), op->o_tmpmemctx);
+					f->f_choice = LDAP_FILTER_AND;
+					fnew = f;
+
+					f->f_and = op->o_tmpalloc(sizeof(Filter), op->o_tmpmemctx);
+					f = f->f_and;
+					f->f_choice = LDAP_FILTER_EQUALITY;
+					f->f_ava = op->o_tmpalloc(sizeof(AttributeAssertion), op->o_tmpmemctx);
+					f->f_av_desc = slap_schema.si_ad_objectClass;
+					ber_dupbv_x(&f->f_av_value, &ad->ad_group->soc_cname, op->o_tmpmemctx);
+
+					f->f_next = op->o_tmpalloc(sizeof(Filter), op->o_tmpmemctx);
+					f = f->f_next;
+					f->f_choice = LDAP_FILTER_EQUALITY;
+					f->f_ava = op->o_tmpalloc(sizeof(AttributeAssertion), op->o_tmpmemctx);
+					f->f_av_desc = ad->ad_dnattr;
+					f->f_av_value = dn;
+					f->f_next = fn->f_next;
+
+					fn->f_next = NULL;
+					filter_free_x(op, op->ors_filter, 1);
+					op->o_tmpfree(op->ors_filterstr.bv_val, op->o_tmpmemctx);
+					op->ors_filter = fnew;
+					filter2bv_x(op, op->ors_filter, &op->ors_filterstr);
+					return 1;
+				}
+			}
+		}
+	}
+	return 0;	/* didn't match anything */
+}
+
 static int
 adremap_search(
 	Operation *op,
@@ -275,13 +433,20 @@ adremap_search(
 )
 {
 	slap_overinst *on = (slap_overinst *)op->o_bd->bd_info;
+	adremap_info *ai = (adremap_info *) on->on_bi.bi_private;
 	slap_callback *cb;
 
+	if (ai->ai_dnv) {
+		/* check for filter match, fallthru if none */
+		if (!adremap_filter(op, ai))
+			return SLAP_CB_CONTINUE;
+	}
 	cb = op->o_tmpcalloc(1, sizeof(slap_callback), op->o_tmpmemctx);
 	cb->sc_response = adremap_search_resp;
 	cb->sc_private = on;
 	cb->sc_next = op->o_callback;
 	op->o_callback = cb;
+
 	return SLAP_CB_CONTINUE;
 }
 
