@@ -3,6 +3,7 @@ OpenLDAP 2.4 Change Log
 OpenLDAP 2.4.42 Engineering
 	Fixed liblber address length for CLDAP (ITS#8158)
 	Fixed libldap dnssrv potential overflow with port number (ITS#7027,ITS#8195)
+	Fixed slapd cn=config when updating olcAttributeTypes (ITS#8199)
 	Fixed slapo-ppolicy with redundant mod ops on glued trees (ITS#8184)
 	Build Environment
 		Fixed libdb detection with gcc 5.x (ITS#8056)
