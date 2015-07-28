@@ -1,6 +1,7 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.42 Engineering
+	Fixed liblber address length for CLDAP (ITS#8158)
 	Build Environment
 		Fixed libdb detection with gcc 5.x (ITS#8056)
 
