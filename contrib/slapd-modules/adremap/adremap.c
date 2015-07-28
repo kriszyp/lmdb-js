@@ -357,6 +357,7 @@ static void adremap_filter(
 					 */
 					fr[0].f_choice = LDAP_FILTER_AND;
 					fr[0].f_and = &fr[1];
+					fr[0].f_next = NULL;
 
 					fr[1].f_choice = LDAP_FILTER_EQUALITY;
 					fr[1].f_ava = &aa[0];
@@ -404,6 +405,7 @@ static void adremap_filter(
 					f = op->o_tmpalloc(sizeof(Filter), op->o_tmpmemctx);
 					f->f_choice = LDAP_FILTER_AND;
 					fnew = f;
+					f->f_next = NULL;
 
 					f->f_and = op->o_tmpalloc(sizeof(Filter), op->o_tmpmemctx);
 					f = f->f_and;
