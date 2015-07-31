@@ -250,8 +250,8 @@ adremap_cf_dnv(ConfigArgs *c)
 typedef struct adremap_ctx {
 	slap_overinst *on;
 	AttributeName an;
+	AttributeDescription *ad;
 	int an_swap;
-	int an_idx;
 } adremap_ctx;
 
 static int
@@ -271,9 +271,28 @@ adremap_search_resp(
 	if (rs->sr_type != REP_SEARCH)
 		return SLAP_CB_CONTINUE;
 
+	/* we munged the attr list, restore it to original */
 	if (ctx->an_swap) {
+		int i;
 		ctx->an_swap = 0;
-		rs->sr_attrs[ctx->an_idx] = ctx->an;
+		for (i=0; rs->sr_attrs[i].an_name.bv_val; i++) {
+			if (rs->sr_attrs[i].an_desc == ctx->ad) {
+				rs->sr_attrs[i] = ctx->an;
+				break;
+			}
+		}
+		/* Usually rs->sr_attrs is just op->ors_attrs, but
+		 * overlays like rwm may make a new copy. Fix both
+		 * if needed.
+		 */
+		if (op->ors_attrs != rs->sr_attrs) {
+			for (i=0; op->ors_attrs[i].an_name.bv_val; i++) {
+				if (op->ors_attrs[i].an_desc == ctx->ad) {
+					op->ors_attrs[i] = ctx->an;
+					break;
+				}
+			}
+		}
 	}
 	e = rs->sr_entry;
 	for (ac = ai->ai_case; ac; ac = ac->ac_next) {
@@ -482,7 +501,7 @@ adremap_search(
 		for (i=0; op->ors_attrs[i].an_name.bv_val; i++) {
 			if (op->ors_attrs[i].an_desc == ad->ad_newattr) {
 				ctx->an_swap = 1;
-				ctx->an_idx = i;
+				ctx->ad = ad->ad_dnattr;
 				ctx->an = op->ors_attrs[i];
 				op->ors_attrs[i].an_desc = ad->ad_dnattr;
 				op->ors_attrs[i].an_name = ad->ad_dnattr->ad_cname;
