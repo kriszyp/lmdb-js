@@ -247,13 +247,21 @@ adremap_cf_dnv(ConfigArgs *c)
 	return rc;
 }
 
+typedef struct adremap_ctx {
+	slap_overinst *on;
+	AttributeName an;
+	int an_swap;
+	int an_idx;
+} adremap_ctx;
+
 static int
 adremap_search_resp(
 	Operation *op,
 	SlapReply *rs
 )
 {
-	slap_overinst *on = op->o_callback->sc_private;
+	adremap_ctx *ctx = op->o_callback->sc_private;
+	slap_overinst *on = ctx->on;
 	adremap_info *ai = on->on_bi.bi_private;
 	adremap_case *ac;
 	adremap_dnv *ad;
@@ -263,6 +271,10 @@ adremap_search_resp(
 	if (rs->sr_type != REP_SEARCH)
 		return SLAP_CB_CONTINUE;
 
+	if (ctx->an_swap) {
+		ctx->an_swap = 0;
+		rs->sr_attrs[ctx->an_idx] = ctx->an;
+	}
 	e = rs->sr_entry;
 	for (ac = ai->ai_case; ac; ac = ac->ac_next) {
 		a = attr_find(e->e_attrs, ac->ac_attr);
@@ -323,14 +335,14 @@ static int adremap_refsearch(
 	return rs->sr_err;
 }
 
-static void adremap_filter(
+static adremap_dnv *adremap_filter(
 	Operation *op,
 	adremap_info *ai
 )
 {
 	slap_overinst *on = (slap_overinst *)op->o_bd->bd_info;
 	Filter *f = op->ors_filter;
-	adremap_dnv *ad;
+	adremap_dnv *ad = NULL;
 
 	/* Do we need to munge the filter? First see if it's of
 	 * the form (&(objectClass=<mapgrp>)...)
@@ -391,12 +403,15 @@ static void adremap_filter(
 					op2.o_bd->bd_info = (BackendInfo *)on;
 					op->o_tmpfree(op2.ors_filterstr.bv_val, op->o_tmpmemctx);
 
-					if (!dn.bv_len)	/* no match was found */
-						return;
+					if (!dn.bv_len) {	/* no match was found */
+						ad = NULL;
+						break;
+					}
 
 					if (rs.sr_err) {	/* sizelimit exceeded, etc.: invalid name */
 						op->o_tmpfree(dn.bv_val, op->o_tmpmemctx);
-						return;
+						ad = NULL;
+						break;
 					}
 
 					/* Build a new filter of form
@@ -432,6 +447,7 @@ static void adremap_filter(
 			}
 		}
 	}
+	return ad;
 }
 
 static int
@@ -442,6 +458,8 @@ adremap_search(
 {
 	slap_overinst *on = (slap_overinst *)op->o_bd->bd_info;
 	adremap_info *ai = (adremap_info *) on->on_bi.bi_private;
+	adremap_ctx *ctx;
+	adremap_dnv *ad = NULL;
 	slap_callback *cb;
 
 	/* Is this our own internal search? Ignore it */
@@ -450,14 +468,28 @@ adremap_search(
 
 	if (ai->ai_dnv)
 		/* check for filter match, fallthru if none */
-		adremap_filter(op, ai);
+		ad = adremap_filter(op, ai);
 
-	cb = op->o_tmpcalloc(1, sizeof(slap_callback), op->o_tmpmemctx);
+	cb = op->o_tmpcalloc(1, sizeof(slap_callback)+sizeof(adremap_ctx), op->o_tmpmemctx);
 	cb->sc_response = adremap_search_resp;
-	cb->sc_private = on;
+	cb->sc_private = cb+1;
 	cb->sc_next = op->o_callback;
 	op->o_callback = cb;
-
+	ctx = cb->sc_private;
+	ctx->on = on;
+	if (ad) {	/* see if we need to remap a search attr */
+		int i;
+		for (i=0; op->ors_attrs[i].an_name.bv_val; i++) {
+			if (op->ors_attrs[i].an_desc == ad->ad_newattr) {
+				ctx->an_swap = 1;
+				ctx->an_idx = i;
+				ctx->an = op->ors_attrs[i];
+				op->ors_attrs[i].an_desc = ad->ad_dnattr;
+				op->ors_attrs[i].an_name = ad->ad_dnattr->ad_cname;
+				break;
+			}
+		}
+	}
 	return SLAP_CB_CONTINUE;
 }
 
