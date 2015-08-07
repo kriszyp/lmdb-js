@@ -2179,7 +2179,10 @@ rwm_cf_gen( ConfigArgs *c )
 					ca.line = rwmap->rwm_bva_rewrite[ i ].bv_val;
 					ca.argc = 0;
 					config_fp_parse_line( &ca );
-					
+
+					argv0 = ca.argv[ 0 ];
+					ca.argv[ 0 ] += STRLENOF( "rwm-" );
+
 					if ( strcasecmp( ca.argv[ 0 ], "suffixmassage" ) == 0 ) {
 						rc = rwm_suffixmassage_config( &db, c->fname, c->lineno,
 							ca.argc, ca.argv );
@@ -2188,6 +2191,8 @@ rwm_cf_gen( ConfigArgs *c )
 						rc = rwm_rw_config( &db, c->fname, c->lineno,
 							ca.argc, ca.argv );
 					}
+
+					ca.argv[ 0 ] = argv0;
 
 					ch_free( ca.tline );
 					ch_free( ca.argv );
