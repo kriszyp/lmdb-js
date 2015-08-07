@@ -362,21 +362,30 @@ static adremap_dnv *adremap_filter(
 	slap_overinst *on = (slap_overinst *)op->o_bd->bd_info;
 	Filter *f = op->ors_filter;
 	adremap_dnv *ad = NULL;
+	int fextra = 0;
 
 	/* Do we need to munge the filter? First see if it's of
 	 * the form (&(objectClass=<mapgrp>)...)
+	 * or of (&(&(objectClass=<mapgrp>)...)...)
 	 */
-	if (f->f_choice == LDAP_FILTER_AND && f->f_and &&
-		f->f_and->f_choice == LDAP_FILTER_EQUALITY &&
-		f->f_and->f_av_desc == slap_schema.si_ad_objectClass) {
-		struct berval bv = f->f_and->f_av_value;
+	if (f->f_choice == LDAP_FILTER_AND && f->f_and) {
+		struct berval bv;
+		if (f->f_and->f_choice == LDAP_FILTER_EQUALITY &&
+			f->f_and->f_av_desc == slap_schema.si_ad_objectClass) {
+			bv = f->f_and->f_av_value;
+		} else if (f->f_and->f_choice == LDAP_FILTER_AND &&
+			f->f_and->f_and &&
+			f->f_and->f_and->f_choice == LDAP_FILTER_EQUALITY) {
+			fextra = 1;
+			bv = f->f_and->f_and->f_av_value;
+		}
 		for (ad = ai->ai_dnv; ad; ad = ad->ad_next) {
 			if (!ber_bvstrcasecmp( &bv, &ad->ad_mapgrp->soc_cname )) {
 			/* Now check to see if next element is (<newattr>=foo) */
-				Filter *fn = f->f_and->f_next;
+				Filter *fn = f->f_and->f_next, *fnew;
 				if (fn && fn->f_choice == LDAP_FILTER_EQUALITY &&
 					fn->f_av_desc == ad->ad_newattr) {
-					Filter fr[3], *fnew;
+					Filter fr[3];
 					AttributeAssertion aa[2] = {0};
 					Operation op2;
 					slap_callback cb = {0};
@@ -454,15 +463,39 @@ static adremap_dnv *adremap_filter(
 					f->f_ava = op->o_tmpcalloc(1, sizeof(AttributeAssertion), op->o_tmpmemctx);
 					f->f_av_desc = ad->ad_dnattr;
 					f->f_av_value = dn;
-					f->f_next = fn->f_next;
+				} else {
+					/* Build a new filter of form
+					 * (&(objectclass=<group>)(...))
+					 */
+					fn = f->f_and;
+					f = op->o_tmpalloc(sizeof(Filter), op->o_tmpmemctx);
+					f->f_choice = LDAP_FILTER_AND;
+					fnew = f;
+					f->f_next = NULL;
 
-					fn->f_next = NULL;
-					filter_free_x(op, op->ors_filter, 1);
-					op->o_tmpfree(op->ors_filterstr.bv_val, op->o_tmpmemctx);
-					op->ors_filter = fnew;
-					filter2bv_x(op, op->ors_filter, &op->ors_filterstr);
-					break;
+					f->f_and = op->o_tmpalloc(sizeof(Filter), op->o_tmpmemctx);
+					f = f->f_and;
+					f->f_choice = LDAP_FILTER_EQUALITY;
+					f->f_ava = op->o_tmpcalloc(1, sizeof(AttributeAssertion), op->o_tmpmemctx);
+					f->f_av_desc = slap_schema.si_ad_objectClass;
+					ber_dupbv_x(&f->f_av_value, &ad->ad_group->soc_cname, op->o_tmpmemctx);
 				}
+				f->f_next = fn->f_next;
+				fn->f_next = NULL;
+				if (fextra) {
+					f = op->o_tmpalloc(sizeof(Filter), op->o_tmpmemctx);
+					f->f_choice = LDAP_FILTER_AND;
+					f->f_and = fnew->f_and;
+					f->f_next = f->f_and->f_next;
+					f->f_and->f_next = op->ors_filter->f_and->f_and->f_next;
+					op->ors_filter->f_and->f_and->f_next = NULL;
+					fnew->f_and = f;
+				}
+				filter_free_x(op, op->ors_filter, 1);
+				op->o_tmpfree(op->ors_filterstr.bv_val, op->o_tmpmemctx);
+				op->ors_filter = fnew;
+				filter2bv_x(op, op->ors_filter, &op->ors_filterstr);
+				break;
 			}
 		}
 	}
@@ -496,7 +529,7 @@ adremap_search(
 	op->o_callback = cb;
 	ctx = cb->sc_private;
 	ctx->on = on;
-	if (ad) {	/* see if we need to remap a search attr */
+	if (ad && op->ors_attrs) {	/* see if we need to remap a search attr */
 		int i;
 		for (i=0; op->ors_attrs[i].an_name.bv_val; i++) {
 			if (op->ors_attrs[i].an_desc == ad->ad_newattr) {
