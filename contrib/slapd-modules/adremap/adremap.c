@@ -326,13 +326,38 @@ adremap_search_resp(
 				a = attr_find(e->e_attrs, ad->ad_dnattr);
 			}
 			for (i=0; i<a->a_numvals; i++) {
-				n = NULL;
-				rc = be_entry_get_rw(op, &a->a_nvals[i], NULL, ad->ad_deref, 0, &n);
-				if (!rc && n) {
-					dr = attr_find(n->e_attrs, ad->ad_deref);
-					if (dr)
-						attr_merge_one(e, ad->ad_newattr, dr->a_vals, dr->a_nvals);
-					be_entry_release_r(op, n);
+				struct berval dv;
+				dv = ad->ad_deref->ad_cname;
+					/* If the RDN uses the deref attr, just use it directly */
+				if (a->a_nvals[i].bv_val[dv.bv_len] == '=' &&
+					!memcmp(a->a_nvals[i].bv_val, dv.bv_val, dv.bv_len)) {
+					struct berval bv, nv;
+					char *ptr;
+					bv = a->a_vals[i];
+					nv = a->a_nvals[i];
+					bv.bv_val += dv.bv_len + 1;
+					ptr = strchr(bv.bv_val, ',');
+					if (ptr)
+						bv.bv_len = ptr - bv.bv_val;
+					else
+						bv.bv_len -= dv.bv_len+1;
+					nv.bv_val += dv.bv_len + 1;
+					ptr = strchr(nv.bv_val, ',');
+					if (ptr)
+						nv.bv_len = ptr - nv.bv_val;
+					else
+						nv.bv_len -= dv.bv_len+1;
+					attr_merge_one(e, ad->ad_newattr, &bv, &nv);
+				} else {
+					/* otherwise look up the deref attr */
+					n = NULL;
+					rc = be_entry_get_rw(op, &a->a_nvals[i], NULL, ad->ad_deref, 0, &n);
+					if (!rc && n) {
+						dr = attr_find(n->e_attrs, ad->ad_deref);
+						if (dr)
+							attr_merge_one(e, ad->ad_newattr, dr->a_vals, dr->a_nvals);
+						be_entry_release_r(op, n);
+					}
 				}
 			}
 		}
@@ -366,7 +391,7 @@ static adremap_dnv *adremap_filter(
 
 	/* Do we need to munge the filter? First see if it's of
 	 * the form (&(objectClass=<mapgrp>)...)
-	 * or of (&(&(objectClass=<mapgrp>)...)...)
+	 * or form (&(&(objectClass=<mapgrp>)...)...)
 	 */
 	if (f->f_choice == LDAP_FILTER_AND && f->f_and) {
 		struct berval bv;
