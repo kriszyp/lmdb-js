@@ -6,6 +6,7 @@ OpenLDAP 2.4.42 Engineering
 	Fixed slapd cn=config when updating olcAttributeTypes (ITS#8199)
 	Fixed slapd-mdb to correctly update search candidates for scoped searches (ITS#8203)
 	Fixed slapo-ppolicy with redundant mod ops on glued trees (ITS#8184)
+	Fixed slapo-rwm crash when deleting rewrite rules (ITS#8213)
 	Build Environment
 		Fixed libdb detection with gcc 5.x (ITS#8056)
 
