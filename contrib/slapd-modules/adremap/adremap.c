@@ -385,29 +385,33 @@ static adremap_dnv *adremap_filter(
 )
 {
 	slap_overinst *on = (slap_overinst *)op->o_bd->bd_info;
-	Filter *f = op->ors_filter;
+	Filter *f = op->ors_filter, *fn = NULL;
 	adremap_dnv *ad = NULL;
+	struct berval bv;
 	int fextra = 0;
 
 	/* Do we need to munge the filter? First see if it's of
-	 * the form (&(objectClass=<mapgrp>)...)
+	 * the form (objectClass=<mapgrp>)
+	 * or form (&(objectClass=<mapgrp>)...)
 	 * or form (&(&(objectClass=<mapgrp>)...)...)
 	 */
 	if (f->f_choice == LDAP_FILTER_AND && f->f_and) {
-		struct berval bv;
-		if (f->f_and->f_choice == LDAP_FILTER_EQUALITY &&
-			f->f_and->f_av_desc == slap_schema.si_ad_objectClass) {
-			bv = f->f_and->f_av_value;
-		} else if (f->f_and->f_choice == LDAP_FILTER_AND &&
-			f->f_and->f_and &&
-			f->f_and->f_and->f_choice == LDAP_FILTER_EQUALITY) {
-			fextra = 1;
-			bv = f->f_and->f_and->f_av_value;
-		}
+		fextra = 1;
+		f = f->f_and;
+		fn = f->f_next;
+	}
+	if (f->f_choice == LDAP_FILTER_AND && f->f_and) {
+		fextra = 2;
+		f = f->f_and;
+	}
+	if (f->f_choice == LDAP_FILTER_EQUALITY &&
+		f->f_av_desc == slap_schema.si_ad_objectClass) {
+		struct berval bv = f->f_av_value;
+
 		for (ad = ai->ai_dnv; ad; ad = ad->ad_next) {
 			if (!ber_bvstrcasecmp( &bv, &ad->ad_mapgrp->soc_cname )) {
 			/* Now check to see if next element is (<newattr>=foo) */
-				Filter *fn = f->f_and->f_next, *fnew;
+				Filter *fnew;
 				if (fn && fn->f_choice == LDAP_FILTER_EQUALITY &&
 					fn->f_av_desc == ad->ad_newattr) {
 					Filter fr[3];
@@ -488,26 +492,34 @@ static adremap_dnv *adremap_filter(
 					f->f_ava = op->o_tmpcalloc(1, sizeof(AttributeAssertion), op->o_tmpmemctx);
 					f->f_av_desc = ad->ad_dnattr;
 					f->f_av_value = dn;
+
+					f->f_next = fn->f_next;
+					fn->f_next = NULL;
 				} else {
 					/* Build a new filter of form
-					 * (&(objectclass=<group>)(...))
+					 * (objectclass=<group>)
 					 */
-					fn = f->f_and;
-					f = op->o_tmpalloc(sizeof(Filter), op->o_tmpmemctx);
-					f->f_choice = LDAP_FILTER_AND;
-					fnew = f;
-					f->f_next = NULL;
+					f->f_next = NULL;	/* disconnect old chain */
 
-					f->f_and = op->o_tmpalloc(sizeof(Filter), op->o_tmpmemctx);
-					f = f->f_and;
+					f = op->o_tmpalloc(sizeof(Filter), op->o_tmpmemctx);
 					f->f_choice = LDAP_FILTER_EQUALITY;
 					f->f_ava = op->o_tmpcalloc(1, sizeof(AttributeAssertion), op->o_tmpmemctx);
 					f->f_av_desc = slap_schema.si_ad_objectClass;
 					ber_dupbv_x(&f->f_av_value, &ad->ad_group->soc_cname, op->o_tmpmemctx);
+
+					/* If there was a wrapping (&), attach it. */
+					if (fextra) {
+						fnew = op->o_tmpalloc(sizeof(Filter), op->o_tmpmemctx);
+						fnew->f_choice = LDAP_FILTER_AND;
+						fnew->f_and = f;
+						fnew->f_next = NULL;
+						f->f_next = fn;
+					} else {
+						fnew = f;
+						f->f_next = NULL;
+					}
 				}
-				f->f_next = fn->f_next;
-				fn->f_next = NULL;
-				if (fextra) {
+				if (fextra > 1) {
 					f = op->o_tmpalloc(sizeof(Filter), op->o_tmpmemctx);
 					f->f_choice = LDAP_FILTER_AND;
 					f->f_and = fnew->f_and;
