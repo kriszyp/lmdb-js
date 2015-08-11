@@ -38,6 +38,8 @@
 
 #include "slapcommon.h"
 
+extern int slap_DN_strict;	/* dn.c */
+
 static char csnbuf[ LDAP_PVT_CSNSTR_BUFSIZE ];
 
 int
@@ -98,9 +100,12 @@ slapmodify( int argc, char **argv )
 	lmax = 0;
 	nextline = 0;
 
-	/* enforce schema checking unless not disabled */
+	/* enforce schema checking unless not disabled and allow unknown
+	 * attributes otherwise */
 	if ( (slapMode & SLAP_TOOL_NO_SCHEMA_CHECK) == 0) {
 		SLAP_DBFLAGS(be) &= ~(SLAP_DBFLAG_NO_SCHEMA_CHECK);
+	} else {
+		slap_DN_strict = 0;
 	}
 
 	if( !dryrun && be->be_entry_open( be, 1 ) != 0 ) {
