@@ -7596,6 +7596,22 @@ config_tool_entry_modify( BackendDB *be, Entry *e, struct berval *text )
 	return NOID;
 }
 
+static int
+config_tool_entry_delete( BackendDB *be, Entry *e, struct berval *text )
+{
+	CfBackInfo *cfb = be->be_private;
+	BackendInfo *bi = cfb->cb_db.bd_info;
+	CfEntryInfo *ce, *last;
+	ConfigArgs ca = {0};
+
+	ce = config_find_base( cfb->cb_root, &e->e_nname, &last );
+
+	if ( ce && bi && bi->bi_tool_entry_delete )
+		return bi->bi_tool_entry_delete( &cfb->cb_db, e, text );
+
+	return LDAP_OTHER;
+}
+
 static struct {
 	char *name;
 	AttributeDescription **desc;
@@ -7695,6 +7711,7 @@ config_back_initialize( BackendInfo *bi )
 	bi->bi_tool_entry_get = config_tool_entry_get;
 	bi->bi_tool_entry_put = config_tool_entry_put;
 	bi->bi_tool_entry_modify = config_tool_entry_modify;
+	bi->bi_tool_entry_delete = config_tool_entry_delete;
 
 	ca.argv = argv;
 	argv[ 0 ] = "slapd";
