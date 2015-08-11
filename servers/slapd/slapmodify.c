@@ -480,8 +480,6 @@ slapmodify( int argc, char **argv )
 
 			a = attr_find( e->e_attrs, slap_schema.si_ad_entryUUID );
 			if ( a != NULL ) {
-				vals[0].bv_len = lutil_uuidstr( uuidbuf, sizeof( uuidbuf ) );
-				vals[0].bv_val = uuidbuf;
 				if ( a->a_vals != a->a_nvals ) {
 					SLAP_FREE( a->a_nvals[0].bv_val );
 					SLAP_FREE( a->a_nvals );
@@ -492,6 +490,8 @@ slapmodify( int argc, char **argv )
 				a->a_nvals = NULL;
 				a->a_numvals = 0;
 			}
+			vals[0].bv_len = lutil_uuidstr( uuidbuf, sizeof( uuidbuf ) );
+			vals[0].bv_val = uuidbuf;
 			attr_merge_normalize_one( e, slap_schema.si_ad_entryUUID, vals, NULL );
 
 			a = attr_find( e->e_attrs, slap_schema.si_ad_creatorsName );
