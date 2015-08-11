@@ -173,8 +173,8 @@ int mdb_tool_entry_close(
 		slapd_shutdown = 0;
 		ch_free( mdb_tool_index_rec );
 		mdb_tool_index_tcount = mdb_tool_threads - 1;
-		if (txn)
-			MDB_TOOL_IDL_FLUSH( be, txn );
+		if (mdb_tool_txn)
+			MDB_TOOL_IDL_FLUSH( be, mdb_tool_txn );
 		for (i=0; i<mdb_tool_threads; i++) {
 			mdb_tool_idl_cache *ic;
 			mdb_tool_idl_cache_entry *ice;
