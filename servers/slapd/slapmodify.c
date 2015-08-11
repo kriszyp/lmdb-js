@@ -564,15 +564,14 @@ slapmodify( int argc, char **argv )
 				break;
 
 			case LDAP_REQ_DELETE:
-				rc = be->be_entry_delete( be, id, &bvtext );
-				e_orig = NULL;
+				rc = be->be_entry_delete( be, &ndn, &bvtext );
 				break;
 
 			}
 
 			if( rc != LDAP_SUCCESS ) {
 				fprintf( stderr, "%s: could not %s entry dn=\"%s\" "
-					"(line=%lu): %s\n", progname, request, e->e_dn,
+					"(line=%lu): %s\n", progname, request, ndn.bv_val,
 					lineno, bvtext.bv_val );
 				rc = EXIT_FAILURE;
 				goto cleanup;
@@ -582,11 +581,11 @@ slapmodify( int argc, char **argv )
 
 			if ( verbose )
 				fprintf( stderr, "%s: \"%s\" (%08lx)\n",
-					request, e->e_dn, (long) id );
+					request, ndn.bv_val, (long) id );
 		} else {
 			if ( verbose )
 				fprintf( stderr, "%s: \"%s\"\n",
-					request, e->e_dn );
+					request, ndn.bv_val );
 		}
 
 cleanup:;

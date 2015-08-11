@@ -2209,7 +2209,7 @@ typedef int (BI_tool_sync) LDAP_P(( BackendDB *be ));
 typedef ID (BI_tool_dn2id_get) LDAP_P(( BackendDB *be, struct berval *dn ));
 typedef ID (BI_tool_entry_modify) LDAP_P(( BackendDB *be, Entry *e, 
 	struct berval *text ));
-typedef int (BI_tool_entry_delete) LDAP_P(( BackendDB *be, ID id,
+typedef int (BI_tool_entry_delete) LDAP_P(( BackendDB *be, struct berval *ndn,
 	struct berval *text ));
 
 struct BackendInfo {
