@@ -425,12 +425,13 @@ slapmodify( int argc, char **argv )
 					break;
 				}
 
+				ber_bvarray_free( mods.sm_values );
+				ber_bvarray_free( mods.sm_nvalues );
+
 				if ( local_rc != LDAP_SUCCESS ) {
 					fprintf( stderr, "%s: DN=\"%s\": unable to modify attr=%s\n",
 						progname, e->e_dn, mods.sm_desc->ad_cname.bv_val );
 					rc = EXIT_FAILURE;
-					ber_bvarray_free( mods.sm_values );
-					ber_bvarray_free( mods.sm_nvalues );
 					goto cleanup;
 				}
 			}
