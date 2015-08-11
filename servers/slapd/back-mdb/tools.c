@@ -1035,9 +1035,167 @@ done:
 		e->e_id = NOID;
 	}
 	mdb_tool_txn = NULL;
-	idcursor = NULL;
 
 	return e->e_id;
+}
+
+int mdb_tool_entry_delete(
+	BackendDB *be,
+	struct berval *ndn,
+	struct berval *text )
+{
+	int rc;
+	struct mdb_info *mdb;
+	Operation op = {0};
+	Opheader ohdr = {0};
+	Entry *e;
+
+	assert( be != NULL );
+	assert( slapMode & SLAP_TOOL_MODE );
+
+	assert( text != NULL );
+	assert( text->bv_val != NULL );
+	assert( text->bv_val[0] == '\0' );	/* overconservative? */
+
+	assert ( ndn != NULL );
+	assert ( ndn->bv_val != NULL );
+
+	Debug( LDAP_DEBUG_TRACE,
+		"=> " LDAP_XSTRING(mdb_tool_entry_delete) "( %s )\n",
+		ndn->bv_val, 0, 0 );
+
+	mdb = (struct mdb_info *) be->be_private;
+
+	assert( cursor == NULL );
+	if( cursor ) {
+		mdb_cursor_close( cursor );
+		cursor = NULL;
+	}
+	if( !mdb_tool_txn ) {
+		rc = mdb_txn_begin( mdb->mi_dbenv, NULL, 0, &mdb_tool_txn );
+		if( rc != 0 ) {
+			snprintf( text->bv_val, text->bv_len,
+				"txn_begin failed: %s (%d)",
+				mdb_strerror(rc), rc );
+			Debug( LDAP_DEBUG_ANY,
+				"=> " LDAP_XSTRING(mdb_tool_entry_delete) ": %s\n",
+				 text->bv_val, 0, 0 );
+			return LDAP_OTHER;
+		}
+	}
+
+	rc = mdb_cursor_open( mdb_tool_txn, mdb->mi_dn2id, &cursor );
+	if( rc != 0 ) {
+		snprintf( text->bv_val, text->bv_len,
+			"cursor_open failed: %s (%d)",
+			mdb_strerror(rc), rc );
+		Debug( LDAP_DEBUG_ANY,
+			"=> " LDAP_XSTRING(mdb_tool_entry_delete) ": %s\n",
+			 text->bv_val, 0, 0 );
+		return LDAP_OTHER;
+	}
+
+	op.o_hdr = &ohdr;
+	op.o_bd = be;
+	op.o_tmpmemctx = NULL;
+	op.o_tmpmfuncs = &ch_mfuncs;
+
+	rc = mdb_dn2entry( &op, mdb_tool_txn, cursor, ndn, &e, NULL, 0 );
+	if( rc != 0 ) {
+		snprintf( text->bv_val, text->bv_len,
+			"dn2entry failed: %s (%d)",
+			mdb_strerror(rc), rc );
+		Debug( LDAP_DEBUG_ANY,
+			"=> " LDAP_XSTRING(mdb_tool_entry_delete) ": %s\n",
+			 text->bv_val, 0, 0 );
+		goto done;
+	}
+
+	/* check that we wouldn't orphan any children */
+	rc = mdb_dn2id_children( &op, mdb_tool_txn, e );
+	if( rc != MDB_NOTFOUND ) {
+		switch( rc ) {
+		case 0:
+			snprintf( text->bv_val, text->bv_len,
+				"delete failed:"
+				" subordinate objects must be deleted first");
+			break;
+		default:
+			snprintf( text->bv_val, text->bv_len,
+				"has_children failed: %s (%d)",
+				mdb_strerror(rc), rc );
+			break;
+		}
+		rc = -1;
+		Debug( LDAP_DEBUG_ANY,
+			"=> " LDAP_XSTRING(mdb_tool_entry_delete) ": %s\n",
+			 text->bv_val, 0, 0 );
+		goto done;
+	}
+
+	/* delete from dn2id */
+	rc = mdb_dn2id_delete( &op, cursor, e->e_id, 1 );
+	if( rc != 0 ) {
+		snprintf( text->bv_val, text->bv_len,
+				"dn2id_delete failed: err=%d", rc );
+		Debug( LDAP_DEBUG_ANY,
+			"=> " LDAP_XSTRING(mdb_tool_entry_delete) ": %s\n",
+			text->bv_val, 0, 0 );
+		goto done;
+	}
+
+	/* deindex values */
+	rc = mdb_index_entry_del( &op, mdb_tool_txn, e );
+	if( rc != 0 ) {
+		snprintf( text->bv_val, text->bv_len,
+				"entry_delete failed: err=%d", rc );
+		Debug( LDAP_DEBUG_ANY,
+			"=> " LDAP_XSTRING(mdb_tool_entry_delete) ": %s\n",
+			text->bv_val, 0, 0 );
+		goto done;
+	}
+
+	/* do the deletion */
+	rc = mdb_id2entry_delete( be, mdb_tool_txn, e );
+	if( rc != 0 ) {
+		snprintf( text->bv_val, text->bv_len,
+				"id2entry_update failed: err=%d", rc );
+		Debug( LDAP_DEBUG_ANY,
+			"=> " LDAP_XSTRING(mdb_tool_entry_delete) ": %s\n",
+			text->bv_val, 0, 0 );
+		goto done;
+	}
+
+done:
+	/* free entry */
+	if( e != NULL ) {
+		mdb_entry_return( &op, e );
+	}
+
+	if( rc == 0 ) {
+		rc = mdb_txn_commit( mdb_tool_txn );
+		if( rc != 0 ) {
+			snprintf( text->bv_val, text->bv_len,
+					"txn_commit failed: %s (%d)",
+					mdb_strerror(rc), rc );
+			Debug( LDAP_DEBUG_ANY,
+				"=> " LDAP_XSTRING(mdb_tool_entry_delete) ": "
+				"%s\n", text->bv_val, 0, 0 );
+		}
+
+	} else {
+		mdb_txn_abort( mdb_tool_txn );
+		snprintf( text->bv_val, text->bv_len,
+			"txn_aborted! %s (%d)",
+			mdb_strerror(rc), rc );
+		Debug( LDAP_DEBUG_ANY,
+			"=> " LDAP_XSTRING(mdb_tool_entry_delete) ": %s\n",
+			text->bv_val, 0, 0 );
+	}
+	mdb_tool_txn = NULL;
+	cursor = NULL;
+
+	return rc;
 }
 
 static void *
