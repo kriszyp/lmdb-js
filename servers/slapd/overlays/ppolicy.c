@@ -196,6 +196,7 @@ static struct schema_info pwd_UsSchema[] = {
 	TAB(pwdCheckQuality),
 	TAB(pwdMinLength),
 	TAB(pwdMaxFailure),
+	TAB(pwdMaxRecordedFailure),
 	TAB(pwdGraceAuthNLimit),
 	TAB(pwdExpireWarning),
 	TAB(pwdLockout),
