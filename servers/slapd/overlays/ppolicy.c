@@ -1031,8 +1031,8 @@ ppolicy_bind_response( Operation *op, SlapReply *rs )
 					nv = m->sml_nvalues[0];
 					ch_free(m->sml_values);
 					ch_free(m->sml_nvalues);
-					m->sml_values = ch_calloc( sizeof(struct berval), 2 );
-					m->sml_nvalues = ch_calloc( sizeof(struct berval), 2 );
+					m->sml_values = ch_calloc( sizeof(struct berval), ppb->pp.pwdMaxRecordedFailure+1 );
+					m->sml_nvalues = ch_calloc( sizeof(struct berval), ppb->pp.pwdMaxRecordedFailure+1 );
 					for (i=0; i<j; i++) {
 						ber_dupbv(&m->sml_values[i], &a->a_vals[a->a_numvals-j+i]);
 						ber_dupbv(&m->sml_nvalues[i], &a->a_nvals[a->a_numvals-j+i]);
@@ -1046,8 +1046,8 @@ ppolicy_bind_response( Operation *op, SlapReply *rs )
 					m->sml_type = ad_pwdFailureTime->ad_cname;
 					m->sml_desc = ad_pwdFailureTime;
 					m->sml_numvals = a->a_numvals - j;
-					m->sml_values = ch_calloc( sizeof(struct berval), m->sml_numvals );
-					m->sml_nvalues = ch_calloc( sizeof(struct berval), m->sml_numvals );
+					m->sml_values = ch_calloc( sizeof(struct berval), m->sml_numvals+1 );
+					m->sml_nvalues = ch_calloc( sizeof(struct berval), m->sml_numvals+1 );
 					for (i=0; i<m->sml_numvals; i++) {
 						ber_dupbv(&m->sml_values[i], &a->a_vals[i]);
 						ber_dupbv(&m->sml_nvalues[i], &a->a_nvals[i]);
