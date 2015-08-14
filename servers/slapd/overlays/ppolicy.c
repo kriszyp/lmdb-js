@@ -45,6 +45,10 @@
 #define MODULE_NAME_SZ 256
 #endif
 
+#ifndef PPOLICY_DEFAULT_MAXRECORDED_FAILURE
+#define PPOLICY_DEFAULT_MAXRECORDED_FAILURE	5
+#endif
+
 /* Per-instance configuration information */
 typedef struct pp_info {
 	struct berval def_policy;	/* DN of default policy subentry */
@@ -79,6 +83,7 @@ typedef struct pass_policy {
 	int pwdLockout; /* 0 = do not lockout passwords, 1 = lock them out */
 	int pwdLockoutDuration; /* time in seconds a password is locked out for */
 	int pwdMaxFailure; /* number of failed binds allowed before lockout */
+	int pwdMaxRecordedFailure;	/* number of failed binds to store */
 	int pwdFailureCountInterval; /* number of seconds before failure
 									counts are zeroed */
 	int pwdMustChange; /* 0 = users can use admin set password
@@ -179,7 +184,7 @@ static AttributeDescription *ad_pwdMinAge, *ad_pwdMaxAge, *ad_pwdInHistory,
 	*ad_pwdGraceAuthNLimit, *ad_pwdExpireWarning, *ad_pwdLockoutDuration,
 	*ad_pwdFailureCountInterval, *ad_pwdCheckModule, *ad_pwdLockout,
 	*ad_pwdMustChange, *ad_pwdAllowUserChange, *ad_pwdSafeModify,
-	*ad_pwdAttribute;
+	*ad_pwdAttribute, *ad_pwdMaxRecordedFailure;
 
 #define TAB(name)	{ #name, &ad_##name }
 
@@ -527,6 +532,9 @@ ppolicy_get( Operation *op, Entry *e, PassPolicy *pp )
 	if ( ( a = attr_find( pe->e_attrs, ad_pwdMaxFailure ) )
 			&& lutil_atoi( &pp->pwdMaxFailure, a->a_vals[0].bv_val ) != 0 )
 		goto defaultpol;
+	if ( ( a = attr_find( pe->e_attrs, ad_pwdMaxRecordedFailure ) )
+			&& lutil_atoi( &pp->pwdMaxRecordedFailure, a->a_vals[0].bv_val ) != 0 )
+		goto defaultpol;
 	if ( ( a = attr_find( pe->e_attrs, ad_pwdGraceAuthNLimit ) )
 			&& lutil_atoi( &pp->pwdGraceAuthNLimit, a->a_vals[0].bv_val ) != 0 )
 		goto defaultpol;
@@ -555,6 +563,11 @@ ppolicy_get( Operation *op, Entry *e, PassPolicy *pp )
 	if ((a = attr_find( pe->e_attrs, ad_pwdSafeModify )))
 	    	pp->pwdSafeModify = bvmatch( &a->a_nvals[0], &slap_true_bv );
     
+	if ( pp->pwdMaxRecordedFailure < pp->pwdMaxFailure )
+		pp->pwdMaxRecordedFailure = pp->pwdMaxFailure;
+	if ( !pp->pwdMaxRecordedFailure )
+		pp->pwdMaxRecordedFailure = PPOLICY_DEFAULT_MAXRECORDED_FAILURE;
+
 	op->o_bd->bd_info = (BackendInfo *)on->on_info;
 	be_entry_release_r( op, pe );
 	op->o_bd->bd_info = (BackendInfo *)on;
@@ -998,6 +1011,50 @@ ppolicy_bind_response( Operation *op, SlapReply *rs )
 				 * We only count those failures
 				 * which are not due to expire.
 				 */
+			}
+			/* Do we have too many timestamps? If so, delete some values.
+			 * We don't bother to sort the values here. OpenLDAP keeps the
+			 * values in order by default. Fundamentally, relying on the
+			 * information here is wrong anyway; monitoring systems should
+			 * be tracking Bind failures in syslog, not here.
+			 */
+			if (a->a_numvals >= ppb->pp.pwdMaxRecordedFailure) {
+				int j = ppb->pp.pwdMaxRecordedFailure-1;
+				/* If more than 2x, cheaper to perform a Replace */
+				if (a->a_numvals >= 2 * ppb->pp.pwdMaxRecordedFailure) {
+					struct berval v, nv;
+
+					/* Change the mod we constructed above */
+					m->sml_op = LDAP_MOD_REPLACE;
+					m->sml_numvals = ppb->pp.pwdMaxRecordedFailure;
+					v = m->sml_values[0];
+					nv = m->sml_nvalues[0];
+					ch_free(m->sml_values);
+					ch_free(m->sml_nvalues);
+					m->sml_values = ch_calloc( sizeof(struct berval), 2 );
+					m->sml_nvalues = ch_calloc( sizeof(struct berval), 2 );
+					for (i=0; i<j; i++) {
+						ber_dupbv(&m->sml_values[i], &a->a_vals[a->a_numvals-j+i]);
+						ber_dupbv(&m->sml_nvalues[i], &a->a_nvals[a->a_numvals-j+i]);
+					}
+					m->sml_values[i] = v;
+					m->sml_nvalues[i] = nv;
+				} else {
+				/* else just delete some */
+					m = ch_calloc( sizeof(Modifications), 1 );
+					m->sml_op = LDAP_MOD_DELETE;
+					m->sml_type = ad_pwdFailureTime->ad_cname;
+					m->sml_desc = ad_pwdFailureTime;
+					m->sml_numvals = a->a_numvals - j;
+					m->sml_values = ch_calloc( sizeof(struct berval), m->sml_numvals );
+					m->sml_nvalues = ch_calloc( sizeof(struct berval), m->sml_numvals );
+					for (i=0; i<m->sml_numvals; i++) {
+						ber_dupbv(&m->sml_values[i], &a->a_vals[i]);
+						ber_dupbv(&m->sml_nvalues[i], &a->a_nvals[i]);
+					}
+					m->sml_next = mod;
+					mod = m;
+				}
 			}
 		}
 		

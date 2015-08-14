@@ -325,6 +325,20 @@ attributetype ( 1.3.6.1.4.1.42.2.27.8.1.15
       SYNTAX 1.3.6.1.4.1.1466.115.121.1.7
       SINGLE-VALUE )
 
+#ITS#8185  pwdMaxRecordedFailure
+#
+#   This attribute specifies the maximum number of consecutive failed bind
+#   attempts to record.  If this attribute is not present, or if the value
+#	is 0, it defaults to the value of pwdMaxFailure. If that value is also
+#	0, this value defaults to 5.
+
+attributetype ( 1.3.6.1.4.1.42.2.27.8.1.16
+      NAME 'pwdMaxRecordedFailure'
+      EQUALITY integerMatch
+      ORDERING integerOrderingMatch
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.27
+      SINGLE-VALUE )
+
 # HP extensions
 #
 # pwdCheckModule
@@ -366,7 +380,8 @@ objectclass ( 1.3.6.1.4.1.42.2.27.8.2.1
       MAY ( pwdMinAge $ pwdMaxAge $ pwdInHistory $ pwdCheckQuality $
       pwdMinLength $ pwdExpireWarning $ pwdGraceAuthNLimit $ pwdLockout
       $ pwdLockoutDuration $ pwdMaxFailure $ pwdFailureCountInterval $
-      pwdMustChange $ pwdAllowUserChange $ pwdSafeModify ) )
+      pwdMustChange $ pwdAllowUserChange $ pwdSafeModify $
+      pwdMaxRecordedFailure ) )
 
 #5.3  Attribute Types for Password Policy State Information
 #
