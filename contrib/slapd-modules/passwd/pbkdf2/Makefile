@@ -12,8 +12,11 @@ CC = gcc
 OPT = -g -O2 -Wall
 #DEFS = -DSLAPD_PBKDF2_DEBUG
 
-INCS = $(LDAP_INC)
-LIBS = $(LDAP_LIB) -lcrypto
+SSL_INC =
+SSL_LIB = -lcrypto
+
+INCS = $(LDAP_INC) $(SSL_INC)
+LIBS = $(LDAP_LIB) $(SSL_LIB)
 
 PROGRAMS = pw-pbkdf2.la
 MANPAGES = slapd-pw-pbkdf2.5
