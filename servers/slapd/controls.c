@@ -1413,6 +1413,7 @@ static int parseAssert (
 		}
 		if( op->o_assertion != NULL ) {
 			filter_free_x( op, op->o_assertion, 1 );
+			op->o_assertion = NULL;
 		}
 		return rs->sr_err;
 	}
