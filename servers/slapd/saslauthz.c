@@ -1226,7 +1226,10 @@ is_dn:		bv.bv_len = uri->bv_len - (bv.bv_val - uri->bv_val);
 
 done:
 	if( rc != LDAP_SUCCESS ) {
-		if( *filter ) filter_free_x( op, *filter, 1 );
+		if( *filter ) {
+			filter_free_x( op, *filter, 1 );
+			*filter = NULL;
+		}
 		BER_BVZERO( base );
 		BER_BVZERO( fstr );
 	} else {
