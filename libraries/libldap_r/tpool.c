@@ -971,7 +971,10 @@ ldap_int_thread_pool_wrapper (
 	thread_keys[keyslot].ctx = DELETED_THREAD_CTX;
 	ldap_pvt_thread_mutex_unlock(&ldap_pvt_thread_pool_mutex);
 
-	pq->ltp_open_count--;
+	if (pq->ltp_open_count < 0)
+		pq->ltp_open_count++;
+	else
+		pq->ltp_open_count--;
 	if (pq->ltp_open_count == 0) {
 		if (pool->ltp_finishing)
 			/* let pool_destroy know we're all done */
