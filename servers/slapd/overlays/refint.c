@@ -375,7 +375,12 @@ refint_open(
 		BackendDB *db = select_backend(&id->dn, 1);
 
 		if ( db ) {
-			if ( !db->be_search || !db->be_modify ) {
+			BackendInfo *bi;
+			if ( db == be )
+				bi = on->on_info->oi_orig;
+			else
+				bi = db->bd_info;
+			if ( !bi->bi_op_search || !bi->bi_op_modify ) {
 				Debug( LDAP_DEBUG_CONFIG,
 					"refint_response: backend missing search and/or modify\n",
 					0, 0, 0 );
