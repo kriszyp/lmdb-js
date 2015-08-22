@@ -128,7 +128,7 @@ struct ldap_int_thread_poolq_s {
 
 	int ltp_pending_count;		/* Pending + paused + idle tasks */
 	int ltp_active_count;		/* Active, not paused/idle tasks */
-	int ltp_open_count;			/* Number of threads, negated when ltp_pause */
+	int ltp_open_count;			/* Number of threads */
 	int ltp_starting;			/* Currently starting threads */
 };
 
@@ -971,10 +971,7 @@ ldap_int_thread_pool_wrapper (
 	thread_keys[keyslot].ctx = DELETED_THREAD_CTX;
 	ldap_pvt_thread_mutex_unlock(&ldap_pvt_thread_pool_mutex);
 
-	if (pq->ltp_open_count < 0)
-		pq->ltp_open_count++;
-	else
-		pq->ltp_open_count--;
+	pq->ltp_open_count--;
 	if (pq->ltp_open_count == 0) {
 		if (pool->ltp_finishing)
 			/* let pool_destroy know we're all done */
@@ -1093,9 +1090,6 @@ handle_pause( ldap_pvt_thread_pool_t *tpool, int pause_type )
 			if (j != i)
 				ldap_pvt_thread_mutex_lock(&pq->ltp_mutex);
 
-			/* Let ldap_pvt_thread_pool_submit() through to its ltp_pause test,
-			 * and do not finish threads in ldap_pvt_thread_pool_wrapper() */
-			pq->ltp_open_count = -pq->ltp_open_count;
 			/* Hide pending tasks from ldap_pvt_thread_pool_wrapper() */
 			pq->ltp_work_list = &empty_pending_list;
 
@@ -1182,8 +1176,6 @@ ldap_pvt_thread_pool_resume (
 	pool->ltp_pause = 0;
 	for (i=0; i<pool->ltp_numqs; i++) {
 		pq = pool->ltp_wqs[i];
-		if (pq->ltp_open_count <= 0) /* true when paused, but be paranoid */
-			pq->ltp_open_count = -pq->ltp_open_count;
 		pq->ltp_work_list = &pq->ltp_pending_list;
 		ldap_pvt_thread_cond_broadcast(&pq->ltp_cond);
 	}
