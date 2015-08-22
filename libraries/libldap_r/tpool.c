@@ -66,8 +66,6 @@ typedef struct ldap_int_thread_userctx_s {
 
 
 /* Simple {thread ID -> context} hash table; key=ctx->ltu_id.
- * Protected by ldap_pvt_thread_pool_mutex except during pauses,
- * when it is read-only (used by pool_purgekey and pool_context).
  * Protected by ldap_pvt_thread_pool_mutex.
  */
 static struct {
