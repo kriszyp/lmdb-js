@@ -152,7 +152,7 @@ static int pbkdf2_encrypt(
 	int rc;
 #ifdef HAVE_OPENSSL
 	const EVP_MD *md;
-#else
+#elif HAVE_GNUTLS
 	struct hmac_sha1_ctx sha1_ctx;
 	struct hmac_sha256_ctx sha256_ctx;
 	struct hmac_sha512_ctx sha512_ctx;
@@ -181,7 +181,7 @@ static int pbkdf2_encrypt(
 	}else{
 		return LUTIL_PASSWD_ERR;
 	}
-#else
+#elif HAVE_GNUTLS
 	if(!ber_bvcmp(scheme, &pbkdf2_scheme)){
 		dk.bv_len = PBKDF2_SHA1_DK_SIZE;
 		current_ctx = &sha1_ctx;
@@ -221,7 +221,7 @@ static int pbkdf2_encrypt(
 						  iteration, md, dk.bv_len, dk_value)){
 		return LUTIL_PASSWD_ERR;
 	}
-#else
+#elif HAVE_GNUTLS
 	PBKDF2(current_ctx, current_hmac_update, current_hmac_digest,
 						  dk.bv_len, iteration,
 						  salt.bv_len, (const uint8_t *) salt.bv_val,
@@ -275,7 +275,7 @@ static int pbkdf2_check(
 	size_t dk_len;
 #ifdef HAVE_OPENSSL
 	const EVP_MD *md;
-#else
+#elif HAVE_GNUTLS
 	struct hmac_sha1_ctx sha1_ctx;
 	struct hmac_sha256_ctx sha256_ctx;
 	struct hmac_sha512_ctx sha512_ctx;
@@ -306,7 +306,7 @@ static int pbkdf2_check(
 	}else{
 		return LUTIL_PASSWD_ERR;
 	}
-#else
+#elif HAVE_GNUTLS
 	if(!ber_bvcmp(scheme, &pbkdf2_scheme)){
 		dk_len = PBKDF2_SHA1_DK_SIZE;
 		current_ctx = &sha1_ctx;
@@ -390,7 +390,7 @@ static int pbkdf2_check(
 						  iteration, md, dk_len, input_dk_value)){
 		return LUTIL_PASSWD_ERR;
 	}
-#else
+#elif HAVE_GNUTLS
 	PBKDF2(current_ctx, current_hmac_update, current_hmac_digest,
 						  dk_len, iteration,
 						  PBKDF2_SALT_SIZE, salt_value,
