@@ -22,8 +22,19 @@
 #include <ac/string.h>
 #include "lber_pvt.h"
 #include "lutil.h"
+#include <stdio.h>
+#include <stdlib.h>
 
+#ifdef HAVE_OPENSSL
 #include <openssl/evp.h>
+#elif HAVE_GNUTLS
+#include <nettle/pbkdf2.h>
+#include <nettle/hmac.h>
+typedef void (*pbkdf2_hmac_update)(void *, unsigned, const uint8_t *);
+typedef void (*pbkdf2_hmac_digest)(void *, unsigned, uint8_t *);
+#else
+#error Unsupported crypto backend.
+#endif
 
 #define PBKDF2_ITERATION 10000
 #define PBKDF2_SALT_SIZE 16
@@ -99,7 +110,7 @@ static int pbkdf2_format(
 	struct berval *msg)
 {
 
-	int rc;
+	int rc, msg_len;
 	char salt_b64[LUTIL_BASE64_ENCODE_LEN(PBKDF2_SALT_SIZE) + 1];
 	char dk_b64[LUTIL_BASE64_ENCODE_LEN(PBKDF2_MAX_DK_SIZE) + 1];
 
@@ -115,13 +126,15 @@ static int pbkdf2_format(
 		return LUTIL_PASSWD_ERR;
 	}
 	b64_to_ab64(dk_b64);
-	msg->bv_len = asprintf(&msg->bv_val, "%s%d$%s$%s",
+	msg_len = asprintf(&msg->bv_val, "%s%d$%s$%s",
 						   sc->bv_val, iteration,
 						   salt_b64, dk_b64);
-	if(msg->bv_len < 0){
+	if(msg_len < 0){
+		msg->bv_len = 0;
 		return LUTIL_PASSWD_ERR;
 	}
 
+	msg->bv_len = msg_len;
 	return LUTIL_PASSWD_OK;
 }
 
@@ -137,11 +150,22 @@ static int pbkdf2_encrypt(
 	struct berval dk;
 	int iteration = PBKDF2_ITERATION;
 	int rc;
+#ifdef HAVE_OPENSSL
 	const EVP_MD *md;
+#elif HAVE_GNUTLS
+	struct hmac_sha1_ctx sha1_ctx;
+	struct hmac_sha256_ctx sha256_ctx;
+	struct hmac_sha512_ctx sha512_ctx;
+	void * current_ctx = NULL;
+	pbkdf2_hmac_update current_hmac_update = NULL;
+	pbkdf2_hmac_digest current_hmac_digest = NULL;
+#endif
 
 	salt.bv_val = (char *)salt_value;
 	salt.bv_len = sizeof(salt_value);
 	dk.bv_val = (char *)dk_value;
+
+#ifdef HAVE_OPENSSL
 	if(!ber_bvcmp(scheme, &pbkdf2_scheme)){
 		dk.bv_len = PBKDF2_SHA1_DK_SIZE;
 		md = EVP_sha1();
@@ -157,16 +181,52 @@ static int pbkdf2_encrypt(
 	}else{
 		return LUTIL_PASSWD_ERR;
 	}
+#elif HAVE_GNUTLS
+	if(!ber_bvcmp(scheme, &pbkdf2_scheme)){
+		dk.bv_len = PBKDF2_SHA1_DK_SIZE;
+		current_ctx = &sha1_ctx;
+		current_hmac_update = (pbkdf2_hmac_update) &hmac_sha1_update;
+		current_hmac_digest = (pbkdf2_hmac_digest) &hmac_sha1_digest;
+		hmac_sha1_set_key(current_ctx, passwd->bv_len, (const uint8_t *) passwd->bv_val);
+	}else if(!ber_bvcmp(scheme, &pbkdf2_sha1_scheme)){
+		dk.bv_len = PBKDF2_SHA1_DK_SIZE;
+		current_ctx = &sha1_ctx;
+		current_hmac_update = (pbkdf2_hmac_update) &hmac_sha1_update;
+		current_hmac_digest = (pbkdf2_hmac_digest) &hmac_sha1_digest;
+		hmac_sha1_set_key(current_ctx, passwd->bv_len, (const uint8_t *) passwd->bv_val);
+	}else if(!ber_bvcmp(scheme, &pbkdf2_sha256_scheme)){
+		dk.bv_len = PBKDF2_SHA256_DK_SIZE;
+		current_ctx = &sha256_ctx;
+		current_hmac_update = (pbkdf2_hmac_update) &hmac_sha256_update;
+		current_hmac_digest = (pbkdf2_hmac_digest) &hmac_sha256_digest;
+		hmac_sha256_set_key(current_ctx, passwd->bv_len, (const uint8_t *) passwd->bv_val);
+	}else if(!ber_bvcmp(scheme, &pbkdf2_sha512_scheme)){
+		dk.bv_len = PBKDF2_SHA512_DK_SIZE;
+		current_ctx = &sha512_ctx;
+		current_hmac_update = (pbkdf2_hmac_update) &hmac_sha512_update;
+		current_hmac_digest = (pbkdf2_hmac_digest) &hmac_sha512_digest;
+		hmac_sha512_set_key(current_ctx, passwd->bv_len, (const uint8_t *) passwd->bv_val);
+	}else{
+		return LUTIL_PASSWD_ERR;
+	}
+#endif
 
 	if(lutil_entropy((unsigned char *)salt.bv_val, salt.bv_len) < 0){
 		return LUTIL_PASSWD_ERR;
 	}
 
+#ifdef HAVE_OPENSSL
 	if(!PKCS5_PBKDF2_HMAC(passwd->bv_val, passwd->bv_len,
 						  (unsigned char *)salt.bv_val, salt.bv_len,
 						  iteration, md, dk.bv_len, dk_value)){
 		return LUTIL_PASSWD_ERR;
 	}
+#elif HAVE_GNUTLS
+	PBKDF2(current_ctx, current_hmac_update, current_hmac_digest,
+						  dk.bv_len, iteration,
+						  salt.bv_len, (const uint8_t *) salt.bv_val,
+						  dk.bv_len, dk_value);
+#endif
 
 #ifdef SLAPD_PBKDF2_DEBUG
 	printf("Encrypt for %s\n", scheme->bv_val);
@@ -213,7 +273,16 @@ static int pbkdf2_check(
 	char dk_b64[LUTIL_BASE64_ENCODE_LEN(PBKDF2_MAX_DK_SIZE) + 1];
 	unsigned char input_dk_value[PBKDF2_MAX_DK_SIZE];
 	size_t dk_len;
+#ifdef HAVE_OPENSSL
 	const EVP_MD *md;
+#elif HAVE_GNUTLS
+	struct hmac_sha1_ctx sha1_ctx;
+	struct hmac_sha256_ctx sha256_ctx;
+	struct hmac_sha512_ctx sha512_ctx;
+	void * current_ctx = NULL;
+	pbkdf2_hmac_update current_hmac_update = NULL;
+	pbkdf2_hmac_digest current_hmac_digest = NULL;
+#endif
 
 #ifdef SLAPD_PBKDF2_DEBUG
 	printf("Checking for %s\n", scheme->bv_val);
@@ -221,6 +290,7 @@ static int pbkdf2_check(
 	printf("  Input Cred:\t%s\n", cred->bv_val);
 #endif
 
+#ifdef HAVE_OPENSSL
 	if(!ber_bvcmp(scheme, &pbkdf2_scheme)){
 		dk_len = PBKDF2_SHA1_DK_SIZE;
 		md = EVP_sha1();
@@ -236,6 +306,35 @@ static int pbkdf2_check(
 	}else{
 		return LUTIL_PASSWD_ERR;
 	}
+#elif HAVE_GNUTLS
+	if(!ber_bvcmp(scheme, &pbkdf2_scheme)){
+		dk_len = PBKDF2_SHA1_DK_SIZE;
+		current_ctx = &sha1_ctx;
+		current_hmac_update = (pbkdf2_hmac_update) &hmac_sha1_update;
+		current_hmac_digest = (pbkdf2_hmac_digest) &hmac_sha1_digest;
+		hmac_sha1_set_key(current_ctx, cred->bv_len, (const uint8_t *) cred->bv_val);
+	}else if(!ber_bvcmp(scheme, &pbkdf2_sha1_scheme)){
+		dk_len = PBKDF2_SHA1_DK_SIZE;
+		current_ctx = &sha1_ctx;
+		current_hmac_update = (pbkdf2_hmac_update) &hmac_sha1_update;
+		current_hmac_digest = (pbkdf2_hmac_digest) &hmac_sha1_digest;
+		hmac_sha1_set_key(current_ctx, cred->bv_len, (const uint8_t *) cred->bv_val);
+	}else if(!ber_bvcmp(scheme, &pbkdf2_sha256_scheme)){
+		dk_len = PBKDF2_SHA256_DK_SIZE;
+		current_ctx = &sha256_ctx;
+		current_hmac_update = (pbkdf2_hmac_update) &hmac_sha256_update;
+		current_hmac_digest = (pbkdf2_hmac_digest) &hmac_sha256_digest;
+		hmac_sha256_set_key(current_ctx, cred->bv_len, (const uint8_t *) cred->bv_val);
+	}else if(!ber_bvcmp(scheme, &pbkdf2_sha512_scheme)){
+		dk_len = PBKDF2_SHA512_DK_SIZE;
+		current_ctx = &sha512_ctx;
+		current_hmac_update = (pbkdf2_hmac_update) &hmac_sha512_update;
+		current_hmac_digest = (pbkdf2_hmac_digest) &hmac_sha512_digest;
+		hmac_sha512_set_key(current_ctx, cred->bv_len, (const uint8_t *) cred->bv_val);
+	}else{
+		return LUTIL_PASSWD_ERR;
+	}
+#endif
 
 	iteration = atoi(passwd->bv_val);
 	if(iteration < 1){
@@ -285,11 +384,18 @@ static int pbkdf2_check(
 		return LUTIL_PASSWD_ERR;
 	}
 
+#ifdef HAVE_OPENSSL
 	if(!PKCS5_PBKDF2_HMAC(cred->bv_val, cred->bv_len,
 						  salt_value, PBKDF2_SALT_SIZE,
 						  iteration, md, dk_len, input_dk_value)){
 		return LUTIL_PASSWD_ERR;
 	}
+#elif HAVE_GNUTLS
+	PBKDF2(current_ctx, current_hmac_update, current_hmac_digest,
+						  dk_len, iteration,
+						  PBKDF2_SALT_SIZE, salt_value,
+						  dk_len, input_dk_value);
+#endif
 
 	rc = memcmp(dk_value, input_dk_value, dk_len);
 #ifdef SLAPD_PBKDF2_DEBUG
