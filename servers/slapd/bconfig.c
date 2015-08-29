@@ -346,7 +346,7 @@ static ConfigTable config_back_cf_table[] = {
 		&config_generic, "( OLcfgGlAt:7 NAME 'olcAuthzPolicy' "
 			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
-	{ "authz-regexp", "regexp> <DN", 3, 3, 0, ARG_MAGIC|CFG_AZREGEXP|ARG_NO_INSERT,
+	{ "authz-regexp", "regexp> <DN", 3, 3, 0, ARG_MAGIC|CFG_AZREGEXP,
 		&config_generic, "( OLcfgGlAt:8 NAME 'olcAuthzRegexp' "
 			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString X-ORDERED 'VALUES' )", NULL, NULL },
@@ -1455,7 +1455,6 @@ config_generic(ConfigArgs *c) {
 		/* no-ops, requires slapd restart */
 		case CFG_PLUGIN:
 		case CFG_MODLOAD:
-		case CFG_AZREGEXP:
 		case CFG_REWRITE:
 			snprintf(c->log, sizeof( c->log ), "change requires slapd restart");
 			break;
@@ -1495,6 +1494,11 @@ config_generic(ConfigArgs *c) {
 			}
 			break;
 #endif /* SLAP_AUXPROP_DONTUSECOPY */
+
+		case CFG_AZREGEXP:
+			rc = slap_sasl_regexp_delete( c->valx );
+			break;
+
 		case CFG_SALT:
 			ch_free( passwd_salt );
 			passwd_salt = NULL;
@@ -1884,7 +1888,7 @@ config_generic(ConfigArgs *c) {
 			break;
 		
 		case CFG_AZREGEXP:
-			if (slap_sasl_regexp_config( c->argv[1], c->argv[2] ))
+			if (slap_sasl_regexp_config( c->argv[1], c->argv[2], c->valx ))
 				return(1);
 			break;
 				
