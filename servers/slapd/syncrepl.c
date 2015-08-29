@@ -2750,6 +2750,9 @@ presentlist_find(
 	Avlnode **a2 = (Avlnode **)av;
 	unsigned short s;
 
+	if (!av)
+		return NULL;
+
 	memcpy(&s, val->bv_val, 2);
 	return avl_find( a2[s], val->bv_val+2, syncuuid_cmp );
 #else
