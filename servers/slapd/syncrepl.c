@@ -1198,6 +1198,8 @@ do_syncrep2(
 			if ( si->si_refreshCount ) {
 				LDAP_SLIST_REMOVE( &op->o_extra, si->si_refreshTxn, OpExtra, oe_next );
 				op->o_bd->bd_info->bi_op_txn( op, SLAP_TXN_COMMIT, &si->si_refreshTxn );
+				si->si_refreshCount = 0;
+				si->si_refreshTxn = NULL;
 			}
 			si->si_refreshEnd = slap_get_time();
 			if ( err == LDAP_SUCCESS
@@ -1285,6 +1287,8 @@ do_syncrep2(
 						if ( si->si_refreshCount ) {
 							LDAP_SLIST_REMOVE( &op->o_extra, si->si_refreshTxn, OpExtra, oe_next );
 							op->o_bd->bd_info->bi_op_txn( op, SLAP_TXN_COMMIT, &si->si_refreshTxn );
+							si->si_refreshCount = 0;
+							si->si_refreshTxn = NULL;
 						}
 						si->si_refreshEnd = slap_get_time();
 	Debug( LDAP_DEBUG_ANY, "do_syncrep1: %s finished refresh\n",
@@ -1420,6 +1424,12 @@ do_syncrep2(
 		if ( ldap_pvt_thread_pool_pausing( &connection_pool )) {
 			slap_sync_cookie_free( &syncCookie, 0 );
 			slap_sync_cookie_free( &syncCookie_req, 0 );
+			if ( si->si_refreshCount ) {
+				LDAP_SLIST_REMOVE( &op->o_extra, si->si_refreshTxn, OpExtra, oe_next );
+				op->o_bd->bd_info->bi_op_txn( op, SLAP_TXN_COMMIT, &si->si_refreshTxn );
+				si->si_refreshCount = 0;
+				si->si_refreshTxn = NULL;
+			}
 			return SYNC_PAUSED;
 		}
 	}
