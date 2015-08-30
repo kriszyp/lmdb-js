@@ -40,7 +40,6 @@ enum {
 	MDB_MAXSIZE,
 	MDB_MODE,
 	MDB_SSTACK,
-	MDB_MAXENTSZ
 };
 
 static ConfigTable mdbcfg[] = {
@@ -67,8 +66,9 @@ static ConfigTable mdbcfg[] = {
 		"DESC 'Attribute index parameters' "
 		"EQUALITY caseIgnoreMatch "
 		"SYNTAX OMsDirectoryString )", NULL, NULL },
-	{ "maxentrysize", "size", 2, 2, 0, ARG_ULONG|ARG_MAGIC|MDB_MAXENTSZ,
-		mdb_cf_gen, "( OLcfgDbAt:12.4 NAME 'olcDbMaxEntrySize' "
+	{ "maxentrysize", "size", 2, 2, 0, ARG_ULONG|ARG_OFFSET,
+		(void *)offsetof(struct mdb_info, mi_maxentrysize),
+		"( OLcfgDbAt:12.4 NAME 'olcDbMaxEntrySize' "
 		"DESC 'Maximum size of an entry in bytes' "
 		"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
 	{ "maxreaders", "num", 2, 2, 0, ARG_UINT|ARG_MAGIC|MDB_MAXREADERS,
@@ -83,6 +83,11 @@ static ConfigTable mdbcfg[] = {
 		mdb_cf_gen, "( OLcfgDbAt:0.3 NAME 'olcDbMode' "
 		"DESC 'Unix permissions of database files' "
 		"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
+	{ "rtxnsize", "entries", 2, 2, 0, ARG_UINT|ARG_OFFSET,
+		(void *)offsetof(struct mdb_info, mi_rtxn_size),
+		"( OLcfgDbAt:12.5 NAME 'olcDbRtxnSize' "
+		"DESC 'Number of entries to process in one read transaction' "
+		"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
 	{ "searchstack", "depth", 2, 2, 0, ARG_INT|ARG_MAGIC|MDB_SSTACK,
 		mdb_cf_gen, "( OLcfgDbAt:1.9 NAME 'olcDbSearchStack' "
 		"DESC 'Depth of search stack in IDLs' "
@@ -100,7 +105,7 @@ static ConfigOCs mdbocs[] = {
 		"MUST olcDbDirectory "
 		"MAY ( olcDbCheckpoint $ olcDbEnvFlags $ "
 		"olcDbNoSync $ olcDbIndex $ olcDbMaxReaders $ olcDbMaxSize $ "
-		"olcDbMode $ olcDbSearchStack $ olcDbMaxEntrySize ) )",
+		"olcDbMode $ olcDbSearchStack $ olcDbMaxEntrySize $ olcDbRtxnSize ) )",
 		 	Cft_Database, mdbcfg },
 	{ NULL, 0, NULL }
 };
@@ -334,10 +339,6 @@ mdb_cf_gen( ConfigArgs *c )
 			c->value_int = mdb->mi_search_stack_depth;
 			break;
 
-		case MDB_MAXENTSZ:
-			c->value_ulong = mdb->mi_maxentrysize;
-			break;
-
 		case MDB_MAXREADERS:
 			c->value_int = mdb->mi_readers;
 			break;
@@ -362,10 +363,6 @@ mdb_cf_gen( ConfigArgs *c )
 		case MDB_SSTACK:
 		case MDB_MAXREADERS:
 		case MDB_MAXSIZE:
-			break;
-
-		case MDB_MAXENTSZ:
-			mdb->mi_maxentrysize = 0;
 			break;
 
 		case MDB_CHKPT:
@@ -668,10 +665,6 @@ mdb_cf_gen( ConfigArgs *c )
 			c->value_int = MINIMUM_SEARCH_STACK_DEPTH;
 		}
 		mdb->mi_search_stack_depth = c->value_int;
-		break;
-
-	case MDB_MAXENTSZ:
-		mdb->mi_maxentrysize = c->value_ulong;
 		break;
 
 	case MDB_MAXREADERS:
