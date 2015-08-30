@@ -2978,10 +2978,12 @@ syncrepl_entry(
 			si->si_refreshCount = 0;
 			si->si_refreshTxn = NULL;
 		}
-		if ( !si->si_refreshCount ) {
-			op->o_bd->bd_info->bi_op_txn( op, SLAP_TXN_BEGIN, &si->si_refreshTxn );
+		if ( op->o_bd->bd_info->bi_op_txn ) {
+			if ( !si->si_refreshCount ) {
+				op->o_bd->bd_info->bi_op_txn( op, SLAP_TXN_BEGIN, &si->si_refreshTxn );
+			}
+			si->si_refreshCount++;
 		}
-		si->si_refreshCount++;
 	}
 
 	slap_op_time( &op->o_time, &op->o_tincr );
