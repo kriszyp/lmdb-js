@@ -1195,6 +1195,11 @@ do_syncrep2(
 			{
 				rc = syncrepl_updateCookie( si, op, &syncCookie );
 			}
+			if ( si->si_refreshCount ) {
+				LDAP_SLIST_REMOVE( &op->o_extra, si->si_refreshTxn, OpExtra, oe_next );
+				op->o_bd->bd_info->bi_op_txn( op, SLAP_TXN_COMMIT, &si->si_refreshTxn );
+			}
+			si->si_refreshEnd = slap_get_time();
 			if ( err == LDAP_SUCCESS
 				&& si->si_logstate == SYNCLOG_FALLBACK ) {
 				si->si_logstate = SYNCLOG_LOGGING;
