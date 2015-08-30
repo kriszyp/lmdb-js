@@ -346,10 +346,6 @@ mdb_cf_gen( ConfigArgs *c )
 		case MDB_MAXSIZE:
 			c->value_ulong = mdb->mi_mapsize;
 			break;
-
-		case MDB_RTXNSIZE:
-			c->value_int = mdb->mi_rtxn_size;
-			break;
 		}
 		return rc;
 	} else if ( c->op == LDAP_MOD_DELETE ) {
