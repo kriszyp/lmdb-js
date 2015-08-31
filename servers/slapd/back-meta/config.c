@@ -696,47 +696,6 @@ meta_suffixm_config(
 	return rc;
 }
 
-static int
-slap_bv_x_ordered_unparse( BerVarray in, BerVarray *out )
-{
-	int		i;
-	BerVarray	bva = NULL;
-	char		ibuf[32], *ptr;
-	struct berval	idx;
-
-	assert( in != NULL );
-
-	for ( i = 0; !BER_BVISNULL( &in[i] ); i++ )
-		/* count'em */ ;
-
-	if ( i == 0 ) {
-		return 1;
-	}
-
-	idx.bv_val = ibuf;
-
-	bva = ch_malloc( ( i + 1 ) * sizeof(struct berval) );
-	BER_BVZERO( &bva[ 0 ] );
-
-	for ( i = 0; !BER_BVISNULL( &in[i] ); i++ ) {
-		idx.bv_len = snprintf( idx.bv_val, sizeof( ibuf ), SLAP_X_ORDERED_FMT, i );
-		if ( idx.bv_len >= sizeof( ibuf ) ) {
-			ber_bvarray_free( bva );
-			return 1;
-		}
-
-		bva[i].bv_len = idx.bv_len + in[i].bv_len;
-		bva[i].bv_val = ch_malloc( bva[i].bv_len + 1 );
-		ptr = lutil_strcopy( bva[i].bv_val, ibuf );
-		ptr = lutil_strcopy( ptr, in[i].bv_val );
-		*ptr = '\0';
-		BER_BVZERO( &bva[ i + 1 ] );
-	}
-
-	*out = bva;
-	return 0;
-}
-
 int
 meta_subtree_free( metasubtree_t *ms )
 {

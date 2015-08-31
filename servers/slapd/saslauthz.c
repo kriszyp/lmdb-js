@@ -28,6 +28,7 @@
 #include "slap.h"
 
 #include "lutil.h"
+#include "config.h"
 
 #define SASLREGEX_REPLACE 10
 
@@ -82,6 +83,7 @@ static SaslRegexp_t *SaslRegexp = NULL;
 #include "rewrite.h"
 struct rewrite_info	*sasl_rwinfo = NULL;
 #define AUTHID_CONTEXT	"authid"
+static BerVarray	authz_rewrites = NULL;
 #endif /* SLAP_AUTH_REWRITE */
 
 /* What SASL proxy authorization policies are allowed? */
@@ -1281,7 +1283,7 @@ static int slap_sasl_rx_off(char *rep, int *off)
 #endif /* ! SLAP_AUTH_REWRITE */
 
 #ifdef SLAP_AUTH_REWRITE
-int slap_sasl_rewrite_config( 
+static int slap_sasl_rewrite_config_argv(
 		const char	*fname,
 		int		lineno,
 		int		argc,
@@ -1289,20 +1291,78 @@ int slap_sasl_rewrite_config(
 )
 {
 	int	rc;
-	char	*savearg0;
+	char	*argv0 = NULL;
+
+	if ( strncasecmp( argv[0], "authid-", STRLENOF( "authid-" ) ) == 0 ) {
+		/* strip "authid-" prefix for parsing */
+		argv0 = argv[0];
+		argv[0] = &argv0[ STRLENOF( "authid-" ) ];
+	}
 
 	/* init at first call */
 	if ( sasl_rwinfo == NULL ) {
 		sasl_rwinfo = rewrite_info_init( REWRITE_MODE_USE_DEFAULT );
 	}
 
-	/* strip "authid-" prefix for parsing */
-	savearg0 = argv[0];
-	argv[0] += STRLENOF( "authid-" );
 	rc = rewrite_parse( sasl_rwinfo, fname, lineno, argc, argv );
-	argv[0] = savearg0;
+
+	if ( argv0 )
+		argv[0] = argv0;
 
 	return rc;
+}
+
+static int slap_sasl_rewrite_config_bv(
+		const char	*fname,
+		int		lineno,
+		struct berval	bv
+)
+{
+	int rc;
+	ConfigArgs ca = { 0 };
+
+	ca.line = bv.bv_val;
+	ca.argc = 0;
+	config_fp_parse_line( &ca );
+
+	rc = slap_sasl_rewrite_config_argv( fname, lineno, ca.argc, ca.argv );
+
+	ch_free( ca.tline );
+	ch_free( ca.argv );
+
+	return rc;
+}
+
+static void
+slap_sasl_rewrite_bva_add(
+		BerVarray	*bva,
+		int		idx,
+		int		argc,
+		char		**argv
+)
+{
+	char		*line, *s;
+	struct berval	bv;
+
+	if ( argc > 1 ) {
+		/* quote all args but the first */
+		line = ldap_charray2str( argv, "\" \"" );
+		ber_str2bv( line, 0, 0, &bv );
+		s = ber_bvchr( &bv, '"' );
+		assert( s != NULL );
+
+		/* move the trailing quote of argv[0] to the end */
+		AC_MEMCPY( s, s + 1, bv.bv_len - ( s - bv.bv_val ) );
+		bv.bv_val[ bv.bv_len - 1 ] = '"';
+	} else {
+		ber_str2bv( argv[ 0 ], 0, 1, &bv );
+	}
+
+	if ( idx == -1 ) {
+		ber_bvarray_add( bva, &bv );
+	} else {
+		(*bva)[ idx ] = bv;
+	}
 }
 
 static int
@@ -1313,6 +1373,113 @@ slap_sasl_rewrite_destroy( void )
 		sasl_rwinfo = NULL;
 	}
 
+	return 0;
+}
+
+int slap_sasl_rewrite_config(
+		const char	*fname,
+		int		lineno,
+		int		argc,
+		char		**argv,
+		int		valx
+)
+{
+	int	rc, i, last;
+	char	*line;
+	struct berval bv;
+	struct rewrite_info *rw = sasl_rwinfo;
+
+	for ( last = 0; authz_rewrites && !BER_BVISNULL( &authz_rewrites[ last ] ); last++ )
+		/* count'em */ ;
+
+	if ( valx == -1 || valx >= last ) {
+		valx = -1;
+		rc = slap_sasl_rewrite_config_argv( fname, lineno, argc, argv );
+		if ( rc == 0 ) {
+			slap_sasl_rewrite_bva_add( &authz_rewrites, valx, argc, argv );
+		}
+		return rc;
+	}
+
+	sasl_rwinfo = NULL;
+
+	for ( i = 0; i < valx; i++ )
+	{
+		rc = slap_sasl_rewrite_config_bv( fname, lineno, authz_rewrites[ i ] );
+		assert( rc == 0 );
+	}
+
+	rc = slap_sasl_rewrite_config_argv( fname, lineno, argc, argv );
+	if ( rc != 0 ) {
+		slap_sasl_rewrite_destroy();
+		sasl_rwinfo = rw;
+		return 1;
+	}
+
+	for ( i = valx; authz_rewrites && !BER_BVISNULL( &authz_rewrites[ i ] ); i++ )
+	{
+		rc = slap_sasl_rewrite_config_bv( fname, lineno, authz_rewrites[ i ] );
+		assert( rc == 0 );
+	}
+
+	authz_rewrites = ch_realloc( authz_rewrites,
+			( last + 2 )*sizeof( struct berval ) );
+	BER_BVZERO( &authz_rewrites[ last + 1 ] );
+
+	for ( i = last - 1; i >= valx; i-- )
+	{
+		authz_rewrites[ i + 1 ] = authz_rewrites[ i ];
+	}
+
+	slap_sasl_rewrite_bva_add( &authz_rewrites, valx, argc, argv );
+
+	if ( rw )
+		rewrite_info_delete( &rw );
+
+	return rc;
+}
+
+int slap_sasl_rewrite_delete( int valx ) {
+	int rc, i;
+
+	if ( valx == -1 ) {
+		slap_sasl_rewrite_destroy();
+		if ( authz_rewrites ) {
+			ber_bvarray_free( authz_rewrites );
+			authz_rewrites = NULL;
+		}
+		return 0;
+	}
+
+	for ( i = 0; !BER_BVISNULL( &authz_rewrites[ i ] ); i++ )
+		/* count'em */ ;
+
+	if ( valx >= i ) {
+		return 1;
+	}
+
+	ber_memfree( authz_rewrites[ i ].bv_val );
+	for ( i = valx; !BER_BVISNULL( &authz_rewrites[ i + 1 ] ); i++ )
+	{
+		authz_rewrites[ i ] = authz_rewrites[ i + 1 ];
+	}
+	BER_BVZERO( &authz_rewrites[ i ] );
+
+	slap_sasl_rewrite_destroy();
+
+	for ( i = 0; !BER_BVISNULL( &authz_rewrites[ i ] ); i++ )
+	{
+		rc = slap_sasl_rewrite_config_bv( "slapd", 0, authz_rewrites[ i ] );
+		assert( rc == 0 );
+	}
+
+	return rc;
+}
+
+int slap_sasl_rewrite_unparse( BerVarray *bva ) {
+	if ( authz_rewrites ) {
+		return slap_bv_x_ordered_unparse( authz_rewrites, bva );
+	}
 	return 0;
 }
 

@@ -81,9 +81,6 @@ static CfBackInfo cfBackInfo;
 static char	*passwd_salt;
 static FILE *logfile;
 static char	*logfileName;
-#ifdef SLAP_AUTH_REWRITE
-static BerVarray authz_rewrites;
-#endif
 static AccessControl *defacl_parsed = NULL;
 
 static struct berval cfdir;
@@ -335,7 +332,7 @@ static ConfigTable config_back_cf_table[] = {
 				NULL, NULL },
 	{ "authid-rewrite", "rewrite", 2, 0, STRLENOF( "authid-rewrite" ),
 #ifdef SLAP_AUTH_REWRITE
-		ARG_MAGIC|CFG_REWRITE|ARG_NO_INSERT, &config_generic,
+		ARG_MAGIC|CFG_REWRITE, &config_generic,
 #else
 		ARG_IGNORED, NULL,
 #endif
@@ -1401,29 +1398,7 @@ config_generic(ConfigArgs *c) {
 #endif
 #ifdef SLAP_AUTH_REWRITE
 		case CFG_REWRITE:
-			if ( authz_rewrites ) {
-				struct berval bv, idx;
-				char ibuf[32];
-				int i;
-
-				idx.bv_val = ibuf;
-				for ( i=0; !BER_BVISNULL( &authz_rewrites[i] ); i++ ) {
-					idx.bv_len = snprintf( idx.bv_val, sizeof( ibuf ), SLAP_X_ORDERED_FMT, i );
-					if ( idx.bv_len >= sizeof( ibuf ) ) {
-						ber_bvarray_free_x( c->rvalue_vals, NULL );
-						c->rvalue_vals = NULL;
-						break;
-					}
-					bv.bv_len = idx.bv_len + authz_rewrites[i].bv_len;
-					bv.bv_val = ch_malloc( bv.bv_len + 1 );
-					AC_MEMCPY( bv.bv_val, idx.bv_val, idx.bv_len );
-					AC_MEMCPY( &bv.bv_val[ idx.bv_len ],
-						authz_rewrites[i].bv_val,
-						authz_rewrites[i].bv_len + 1 );
-					ber_bvarray_add( &c->rvalue_vals, &bv );
-				}
-			}
-			if ( !c->rvalue_vals ) rc = 1;
+			rc = slap_sasl_rewrite_unparse( &c->rvalue_vals );
 			break;
 #endif
 		default:
@@ -1455,7 +1430,6 @@ config_generic(ConfigArgs *c) {
 		/* no-ops, requires slapd restart */
 		case CFG_PLUGIN:
 		case CFG_MODLOAD:
-		case CFG_REWRITE:
 			snprintf(c->log, sizeof( c->log ), "change requires slapd restart");
 			break;
 
@@ -1498,6 +1472,12 @@ config_generic(ConfigArgs *c) {
 		case CFG_AZREGEXP:
 			rc = slap_sasl_regexp_delete( c->valx );
 			break;
+
+#ifdef SLAP_AUTH_REWRITE
+		case CFG_REWRITE:
+			rc = slap_sasl_rewrite_delete( c->valx );
+			break;
+#endif /* SLAP_AUTH_REWRITE */
 
 		case CFG_SALT:
 			ch_free( passwd_salt );
@@ -2448,36 +2428,13 @@ sortval_reject:
 
 #ifdef SLAP_AUTH_REWRITE
 		case CFG_REWRITE: {
-			struct berval bv;
-			char *line;
-			int rc = 0;
+			int rc;
 
 			if ( c->op == LDAP_MOD_ADD ) {
 				c->argv++;
 				c->argc--;
 			}
-			if(slap_sasl_rewrite_config(c->fname, c->lineno, c->argc, c->argv))
-				rc = 1;
-			if ( rc == 0 ) {
-
-				if ( c->argc > 1 ) {
-					char	*s;
-
-					/* quote all args but the first */
-					line = ldap_charray2str( c->argv, "\" \"" );
-					ber_str2bv( line, 0, 0, &bv );
-					s = ber_bvchr( &bv, '"' );
-					assert( s != NULL );
-					/* move the trailing quote of argv[0] to the end */
-					AC_MEMCPY( s, s + 1, bv.bv_len - ( s - bv.bv_val ) );
-					bv.bv_val[ bv.bv_len - 1 ] = '"';
-
-				} else {
-					ber_str2bv( c->argv[ 0 ], 0, 1, &bv );
-				}
-
-				ber_bvarray_add( &authz_rewrites, &bv );
-			}
+			rc = slap_sasl_rewrite_config(c->fname, c->lineno, c->argc, c->argv, c->valx);
 			if ( c->op == LDAP_MOD_ADD ) {
 				c->argv--;
 				c->argc++;
@@ -3990,6 +3947,47 @@ anlist_unparse( AttributeName *an, char *ptr, ber_len_t buflen ) {
 		comma = 1;
 	}
 	return ptr;
+}
+
+int
+slap_bv_x_ordered_unparse( BerVarray in, BerVarray *out )
+{
+	int		i;
+	BerVarray	bva = NULL;
+	char		ibuf[32], *ptr;
+	struct berval	idx;
+
+	assert( in != NULL );
+
+	for ( i = 0; !BER_BVISNULL( &in[i] ); i++ )
+		/* count'em */ ;
+
+	if ( i == 0 ) {
+		return 1;
+	}
+
+	idx.bv_val = ibuf;
+
+	bva = ch_malloc( ( i + 1 ) * sizeof(struct berval) );
+	BER_BVZERO( &bva[ 0 ] );
+
+	for ( i = 0; !BER_BVISNULL( &in[i] ); i++ ) {
+		idx.bv_len = snprintf( idx.bv_val, sizeof( ibuf ), SLAP_X_ORDERED_FMT, i );
+		if ( idx.bv_len >= sizeof( ibuf ) ) {
+			ber_bvarray_free( bva );
+			return 1;
+		}
+
+		bva[i].bv_len = idx.bv_len + in[i].bv_len;
+		bva[i].bv_val = ch_malloc( bva[i].bv_len + 1 );
+		ptr = lutil_strcopy( bva[i].bv_val, ibuf );
+		ptr = lutil_strcopy( ptr, in[i].bv_val );
+		*ptr = '\0';
+		BER_BVZERO( &bva[ i + 1 ] );
+	}
+
+	*out = bva;
+	return 0;
 }
 
 static int

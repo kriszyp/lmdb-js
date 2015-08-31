@@ -760,6 +760,7 @@ LDAP_SLAPD_F (int) slap_client_connect LDAP_P(( LDAP **ldp, slap_bindconf *sb ))
 LDAP_SLAPD_F (int) config_generic_wrapper LDAP_P(( Backend *be,
 	const char *fname, int lineno, int argc, char **argv ));
 LDAP_SLAPD_F (char *) anlist_unparse LDAP_P(( AttributeName *, char *, ber_len_t buflen ));
+LDAP_SLAPD_F (int) slap_bv_x_ordered_unparse LDAP_P(( BerVarray in, BerVarray *out ));
 LDAP_SLAPD_F (int) slap_keepalive_parse( struct berval *val, void *bc,
 	slap_cf_aux_table *tab0, const char *tabmsg, int unparse );
 
@@ -1723,7 +1724,10 @@ LDAP_SLAPD_F (int) slap_sasl_rewrite_config LDAP_P((
 	const char *fname,
 	int lineno,
 	int argc, 
-	char **argv ));
+	char **argv,
+	int valx ));
+LDAP_SLAPD_F (int) slap_sasl_rewrite_delete LDAP_P(( int valx ));
+LDAP_SLAPD_F (int) slap_sasl_rewrite_unparse LDAP_P(( BerVarray *bva ));
 #endif /* SLAP_AUTH_REWRITE */
 LDAP_SLAPD_F (void) slap_sasl_regexp_destroy LDAP_P(( void ));
 LDAP_SLAPD_F (int) slap_sasl_regexp_delete LDAP_P(( int valx ));
