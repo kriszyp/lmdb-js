@@ -7,6 +7,8 @@ OpenLDAP 2.4.43 Engineering
 	Fixed slapo-dds segfault when using slapo-memberof (ITS#8133)
 	Fixed slapo-ppolicy to allow purging of stale pwdFailureTime attributes (ITS#8185)
 	Fixed slapo-refint with subtree renames (ITS#8220)
+	Contrib
+		Added libnettle support to pw-pbkdf2 (ITS#8198)
 
 OpenLDAP 2.4.42 Release (2015/08/14)
 	Fixed liblber address length for CLDAP (ITS#8158)
