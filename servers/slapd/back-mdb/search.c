@@ -1120,7 +1120,7 @@ notfound:
 		}
 
 loop_continue:
-		if ( !wwctx.flag && mdb->mi_rtxn_size ) {
+		if ( moi == &opinfo && !wwctx.flag && mdb->mi_rtxn_size ) {
 			wwctx.nentries++;
 			if ( wwctx.nentries >= mdb->mi_rtxn_size ) {
 				wwctx.nentries = 0;
