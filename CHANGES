@@ -2,6 +2,7 @@ OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.43 Engineering
 	Fixed slap tools minor one time memory leak (ITS#8082)
+	Fixed slapd syncrepl segv when present list is NULL (ITS#8231, ITS#8042)
 	Fixed slapd segfault with invalid SASL URI (ITS#8218)
 	Fixed slapd-ldap SEGV after failed retry (ITS#8173)
 	Fixed slapo-dds segfault when using slapo-memberof (ITS#8133)
