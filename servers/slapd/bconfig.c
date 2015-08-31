@@ -333,7 +333,7 @@ static ConfigTable config_back_cf_table[] = {
 			"SUBSTR caseIgnoreSubstringsMatch "
 			"SYNTAX OMsDirectoryString X-ORDERED 'VALUES' )",
 				NULL, NULL },
-	{ "authid-rewrite", NULL, 2, 0, STRLENOF( "authid-rewrite" ),
+	{ "authid-rewrite", "rewrite", 2, 0, STRLENOF( "authid-rewrite" ),
 #ifdef SLAP_AUTH_REWRITE
 		ARG_MAGIC|CFG_REWRITE|ARG_NO_INSERT, &config_generic,
 #else
