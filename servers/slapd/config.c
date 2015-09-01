@@ -94,7 +94,7 @@ int slapi_plugins_used = 0;
 static int fp_getline(FILE *fp, ConfigArgs *c);
 static void fp_getline_init(ConfigArgs *c);
 
-static char	*strtok_quote(char *line, char *sep, char **quote_ptr);
+static char	*strtok_quote(char *line, char *sep, char **quote_ptr, int *inquote);
 static char *strtok_quote_ldif(char **line);
 
 ConfigArgs *
@@ -2133,7 +2133,7 @@ done:;
 
 
 static char *
-strtok_quote( char *line, char *sep, char **quote_ptr )
+strtok_quote( char *line, char *sep, char **quote_ptr, int *iqp )
 {
 	int		inquote;
 	char		*tmp;
@@ -2183,6 +2183,7 @@ strtok_quote( char *line, char *sep, char **quote_ptr )
 			break;
 		}
 	}
+	*iqp = inquote;
 
 	return( tmp );
 }
@@ -2270,22 +2271,23 @@ config_fp_parse_line(ConfigArgs *c)
 	};
 	char *quote_ptr;
 	int i = (int)(sizeof(hide)/sizeof(hide[0])) - 1;
+	int inquote = 0;
 
 	c->tline = ch_strdup(c->line);
-	token = strtok_quote(c->tline, " \t", &quote_ptr);
+	token = strtok_quote(c->tline, " \t", &quote_ptr, &inquote);
 
 	if(token) for(i = 0; hide[i]; i++) if(!strcasecmp(token, hide[i])) break;
 	if(quote_ptr) *quote_ptr = ' ';
-	Debug(LDAP_DEBUG_CONFIG, "line %d (%s%s)\n", c->lineno,
+	Debug(LDAP_DEBUG_CONFIG, "%s (%s%s)\n", c->log,
 		hide[i] ? hide[i] : c->line, hide[i] ? " ***" : "");
 	if(quote_ptr) *quote_ptr = '\0';
 
-	for(;; token = strtok_quote(NULL, " \t", &quote_ptr)) {
+	for(;; token = strtok_quote(NULL, " \t", &quote_ptr, &inquote)) {
 		if(c->argc >= c->argv_size) {
 			char **tmp;
 			tmp = ch_realloc(c->argv, (c->argv_size + ARGS_STEP) * sizeof(*c->argv));
 			if(!tmp) {
-				Debug(LDAP_DEBUG_ANY, "line %d: out of memory\n", c->lineno, 0, 0);
+				Debug(LDAP_DEBUG_ANY, "%s: out of memory\n", c->log, 0, 0);
 				return -1;
 			}
 			c->argv = tmp;
@@ -2294,6 +2296,10 @@ config_fp_parse_line(ConfigArgs *c)
 		if(token == NULL)
 			break;
 		c->argv[c->argc++] = token;
+	}
+	if (inquote) {
+		Debug(LDAP_DEBUG_ANY, "%s: unterminated quoted string \"%s\"\n", c->log, c->argv[c->argc-1], 0);
+		return -1;
 	}
 	c->argv[c->argc] = NULL;
 	return(0);
