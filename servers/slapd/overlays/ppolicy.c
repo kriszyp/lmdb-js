@@ -576,6 +576,12 @@ ppolicy_get( Operation *op, Entry *e, PassPolicy *pp )
 	return;
 
 defaultpol:
+	if ( pe ) {
+		op->o_bd->bd_info = (BackendInfo *)on->on_info;
+		be_entry_release_r( op, pe );
+		op->o_bd->bd_info = (BackendInfo *)on;
+	}
+
 	Debug( LDAP_DEBUG_TRACE,
 		"ppolicy_get: using default policy\n", 0, 0, 0 );
 	return;
