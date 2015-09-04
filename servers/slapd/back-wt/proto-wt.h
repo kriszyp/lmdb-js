@@ -87,6 +87,18 @@ int wt_next_id(BackendDB *be, ID *out);
 int wt_last_id( BackendDB *be, WT_SESSION *session, ID *out );
 
 /*
+ * modify.c
+ */
+int wt_modify_internal(
+	Operation *op,
+	wt_ctx *wc,
+	Modifications *modlist,
+	Entry *e,
+	const char **text,
+	char *textbuf,
+	size_t textlen );
+
+/*
  * config.c
  */
 int wt_back_init_cf( BackendInfo *bi );
@@ -147,6 +159,7 @@ extern BI_op_add            wt_add;
 extern BI_op_bind           wt_bind;
 extern BI_op_compare        wt_compare;
 extern BI_op_delete         wt_delete;
+extern BI_op_delete         wt_modify;
 
 extern BI_op_search         wt_search;
 

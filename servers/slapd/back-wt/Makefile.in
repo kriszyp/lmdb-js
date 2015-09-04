@@ -14,14 +14,14 @@
 ## <http://www.OpenLDAP.org/license.html>.
 
 SRCS = init.c tools.c config.c \
-       add.c bind.c compare.c delete.c search.c \
+       add.c bind.c compare.c delete.c modify.c search.c \
        operational.c \
        attr.c index.c key.c filterindex.c \
        dn2entry.c dn2id.c id2entry.c idl.c \
        nextid.c ctx.c
 
 OBJS = init.lo tools.lo config.lo \
-       add.lo bind.lo compare.lo delete.lo search.lo \
+       add.lo bind.lo compare.lo delete.lo modify.lo search.lo \
        operational.lo \
        attr.lo index.lo key.lo filterindex.lo \
        dn2entry.lo dn2id.lo id2entry.lo idl.lo \

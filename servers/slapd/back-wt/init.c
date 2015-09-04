@@ -264,7 +264,7 @@ wt_back_initialize( BackendInfo *bi )
 	bi->bi_op_unbind = 0;
 	bi->bi_op_search = wt_search;
 	bi->bi_op_compare = wt_compare;
-	bi->bi_op_modify = 0;
+	bi->bi_op_modify = wt_modify;
 	bi->bi_op_modrdn = 0;
 	bi->bi_op_delete = wt_delete;
 	bi->bi_op_abandon = 0;
