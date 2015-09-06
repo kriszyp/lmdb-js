@@ -1954,7 +1954,8 @@ static ConfigOCs rwmocs[] = {
 			"olcRwmRewrite $ "
 			"olcRwmTFSupport $ "
 			"olcRwmMap $ "
-			"olcRwmNormalizeMapped "
+			"olcRwmNormalizeMapped $ "
+			"olcRwmDropUnrequested"
 			") )",
 		Cft_Overlay, rwmcfg, NULL, NULL },
 	{ NULL, 0, NULL }
