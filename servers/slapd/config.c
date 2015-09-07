@@ -628,7 +628,7 @@ strtok_quote_ldif( char **line )
 	return beg;
 }
 
-static void
+void
 config_parse_ldif( ConfigArgs *c )
 {
 	char *next;
