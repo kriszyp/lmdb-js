@@ -2179,7 +2179,8 @@ rwm_cf_gen( ConfigArgs *c )
 
 					ca.line = rwmap->rwm_bva_rewrite[ i ].bv_val;
 					ca.argc = 0;
-					config_fp_parse_line( &ca );
+					init_config_argv( &ca );
+					config_parse_ldif( &ca );
 
 					argv0 = ca.argv[ 0 ];
 					ca.argv[ 0 ] += STRLENOF( "rwm-" );
@@ -2248,7 +2249,8 @@ rwm_cf_gen( ConfigArgs *c )
 
 					ca.line = rwmap->rwm_bva_map[ cnt ].bv_val;
 					ca.argc = 0;
-					config_fp_parse_line( &ca );
+					init_config_argv( &ca );
+					config_parse_ldif( &ca );
 					
 					argv[1] = ca.argv[0];
 					argv[2] = ca.argv[1];
@@ -2342,7 +2344,8 @@ rwm_cf_gen( ConfigArgs *c )
 
 				ca.line = rwmap->rwm_bva_rewrite[ i ].bv_val;
 				ca.argc = 0;
-				config_fp_parse_line( &ca );
+				init_config_argv( &ca );
+				config_parse_ldif( &ca );
 
 				argv0 = ca.argv[ 0 ];
 				ca.argv[ 0 ] += STRLENOF( "rwm-" );
@@ -2392,7 +2395,8 @@ rwm_cf_gen( ConfigArgs *c )
 
 				ca.line = rwmap->rwm_bva_rewrite[ i ].bv_val;
 				ca.argc = 0;
-				config_fp_parse_line( &ca );
+				init_config_argv( &ca );
+				config_parse_ldif( &ca );
 				
 				argv0 = ca.argv[ 0 ];
 				ca.argv[ 0 ] += STRLENOF( "rwm-" );
@@ -2491,7 +2495,8 @@ rwm_cf_gen( ConfigArgs *c )
 
 				ca.line = rwmap->rwm_bva_map[ cnt ].bv_val;
 				ca.argc = 0;
-				config_fp_parse_line( &ca );
+				init_config_argv( &ca );
+				config_parse_ldif( &ca );
 
 				argv[1] = ca.argv[0];
 				argv[2] = ca.argv[1];
@@ -2524,7 +2529,8 @@ rwm_cf_gen( ConfigArgs *c )
 
 					ca.line = rwmap->rwm_bva_map[ cnt ].bv_val;
 					ca.argc = 0;
-					config_fp_parse_line( &ca );
+					init_config_argv( &ca );
+					config_parse_ldif( &ca );
 			
 					argv[1] = ca.argv[0];
 					argv[2] = ca.argv[1];
