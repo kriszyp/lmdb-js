@@ -469,6 +469,18 @@ add_passcontrol( Operation *op, SlapReply *rs, LDAPControl *ctrl )
 }
 
 static void
+ppolicy_get_default( PassPolicy *pp )
+{
+	memset( pp, 0, sizeof(PassPolicy) );
+
+	pp->ad = slap_schema.si_ad_userPassword;
+
+	/* Users can change their own password by default */
+	pp->pwdAllowUserChange = 1;
+}
+
+
+static void
 ppolicy_get( Operation *op, Entry *e, PassPolicy *pp )
 {
 	slap_overinst *on = (slap_overinst *)op->o_bd->bd_info;
@@ -481,12 +493,7 @@ ppolicy_get( Operation *op, Entry *e, PassPolicy *pp )
 	const char *text;
 #endif
 
-	memset( pp, 0, sizeof(PassPolicy) );
-
-	pp->ad = slap_schema.si_ad_userPassword;
-
-	/* Users can change their own password by default */
-    	pp->pwdAllowUserChange = 1;
+	ppolicy_get_default( pp );
 
 	if ((a = attr_find( e->e_attrs, ad_pwdPolicySubentry )) == NULL) {
 		/*
@@ -576,8 +583,17 @@ ppolicy_get( Operation *op, Entry *e, PassPolicy *pp )
 	return;
 
 defaultpol:
+	if ( pe ) {
+		op->o_bd->bd_info = (BackendInfo *)on->on_info;
+		be_entry_release_r( op, pe );
+		op->o_bd->bd_info = (BackendInfo *)on;
+	}
+
 	Debug( LDAP_DEBUG_TRACE,
 		"ppolicy_get: using default policy\n", 0, 0, 0 );
+
+	ppolicy_get_default( pp );
+
 	return;
 }
 

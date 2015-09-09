@@ -203,12 +203,12 @@ static void lmhash(
 
 	lmPasswd_to_key( UcasePassword, &key );
 #ifdef HAVE_GNUTLS
-	des_set_key( &ctx, &key );
-	des_encrypt( &ctx, sizeof(key), &hbuf[0], &StdText );
+	des_set_key( &ctx, key );
+	des_encrypt( &ctx, sizeof(key), hbuf[0], StdText );
 
 	lmPasswd_to_key( &UcasePassword[7], &key );
-	des_set_key( &ctx, &key );
-	des_encrypt( &ctx, sizeof(key), &hbuf[1], &StdText );
+	des_set_key( &ctx, key );
+	des_encrypt( &ctx, sizeof(key), hbuf[1], StdText );
 #elif defined(HAVE_OPENSSL)
 	des_set_key_unchecked( &key, schedule );
 	des_ecb_encrypt( &StdText, &hbuf[0], schedule , DES_ENCRYPT );
@@ -246,7 +246,7 @@ static void nthash(
 	MD4_Final( (unsigned char *)hbuf, &ctx );
 #elif defined(HAVE_GNUTLS)
 	md4_init( &ctx );
-	md4_update( &ctx, passwd->bv_len, passwd->bv_val );
+	md4_update( &ctx, passwd->bv_len, (unsigned char *)passwd->bv_val );
 	md4_digest( &ctx, sizeof(hbuf), (unsigned char *)hbuf );
 #endif
 
@@ -911,17 +911,12 @@ smbk5pwd_cf_func( ConfigArgs *c )
 		}
 #endif /* ! DO_SHADOW */
 
-		{
-			BackendDB	db = *c->be;
-
-			/* Re-initialize the module, because
-			 * the configuration might have changed */
-			db.bd_info = (BackendInfo *)on;
-			rc = smbk5pwd_modules_init( pi );
-			if ( rc ) {
-				pi->mode = mode;
-				return 1;
-			}
+		/* Re-initialize the module, because
+		 * the configuration might have changed */
+		rc = smbk5pwd_modules_init( pi );
+		if ( rc ) {
+			pi->mode = mode;
+			return 1;
 		}
 
 		} break;
@@ -968,7 +963,7 @@ smbk5pwd_modules_init( smbk5pwd_t *pi )
 	dummy_ad;
 
 	/* this is to silence the unused var warning */
-	dummy_ad.name = NULL;
+	(void) dummy_ad;
 
 #ifdef DO_KRB5
 	if ( SMBK5PWD_DO_KRB5( pi ) && oc_krb5KDCEntry == NULL ) {

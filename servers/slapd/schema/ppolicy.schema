@@ -356,7 +356,7 @@ attributetype ( 1.3.6.1.4.1.4754.1.99.1
      NAME 'pwdCheckModule'
      EQUALITY caseExactIA5Match
      SYNTAX 1.3.6.1.4.1.1466.115.121.1.26
-     DESC 'Loadable module that instantiates "check_password() function'
+     DESC 'Loadable module that instantiates check_password() function'
      SINGLE-VALUE )
 
 objectclass ( 1.3.6.1.4.1.4754.2.99.1
