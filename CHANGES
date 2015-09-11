@@ -12,6 +12,7 @@ OpenLDAP 2.4.43 Engineering
 	Fixed slapo-ppolicy to release entry on failure (ITS#7537)
 	Fixed slapo-ppolicy to fall back to default policy if there is a parsing error (ITS#8234)
 	Fixed slapo-refint with subtree renames (ITS#8220)
+	Fixed slapo-rwm missing olcDropUnrequested attribute (ITS#7889)
 	Contrib
 		Added libnettle support to pw-pbkdf2 (ITS#8198)
 		Fixed smbk5pwd compiler warnings with libnettle (ITS#8235)
