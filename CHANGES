@@ -10,6 +10,7 @@ OpenLDAP 2.4.43 Engineering
 	Fixed slapo-dds segfault when using slapo-memberof (ITS#8133)
 	Fixed slapo-ppolicy to allow purging of stale pwdFailureTime attributes (ITS#8185)
 	Fixed slapo-ppolicy to release entry on failure (ITS#7537)
+	Fixed slapo-ppolicy to fall back to default policy if there is a parsing error (ITS#8234)
 	Fixed slapo-refint with subtree renames (ITS#8220)
 	Contrib
 		Added libnettle support to pw-pbkdf2 (ITS#8198)
