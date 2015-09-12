@@ -679,7 +679,7 @@ done:
 		return (ber->ber_tag);
 	}
 
-	assert( 0 ); /* ber structure is messed up ?*/
+	/* invalid input */
 	return LBER_DEFAULT;
 }
 
