@@ -1,7 +1,6 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.43 Engineering
-	Fixed liblber remove obsolete assert (ITS#8240)
 	Fixed slap tools minor one time memory leak (ITS#8082)
 	Fixed slapd to avoid redundant processing of abandon ops (ITS#8232)
 	Fixed slapd syncrepl segv when present list is NULL (ITS#8231, ITS#8042)
