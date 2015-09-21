@@ -27,3 +27,9 @@ ITS#7926 - [18:19] <hyc> this is going to be a WONTFIX for 2.4, I think
 [00:05] <hyc> this stuff seriously needs a rewrite
 [01:13] <hyc> 2.8M records x 16 bytes per uuid so this should be no more than 48MB of overhead
 [01:13] <hyc> and instead it's 3-400MB
+
+<hyc> we need to merge the rest of Ondrej's slapmodify/slapdelete patches
+<hyc> get lmdb incremental backup working
+<hyc> I need to publish a spec for PREPARE/2-phase commit in LDAP TXNs and integrate that into lmdb and back-mdb
+
+Update slapo-unique to have an option to disable manageDSAit (ITS#8245)
