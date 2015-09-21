@@ -18,6 +18,8 @@ OpenLDAP 2.4.43 Engineering
 	Contrib
 		Added libnettle support to pw-pbkdf2 (ITS#8198)
 		Fixed smbk5pwd compiler warnings with libnettle (ITS#8235)
+	Documentation
+		Updated guide to reflect changes to how TLS is handled with syncrepl (ITS#7897)
 
 OpenLDAP 2.4.42 Release (2015/08/14)
 	Fixed liblber address length for CLDAP (ITS#8158)
