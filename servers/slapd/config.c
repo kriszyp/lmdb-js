@@ -2269,6 +2269,8 @@ config_fp_parse_line(ConfigArgs *c)
 		"dbpasswd",  /* in back-sql */
 		NULL
 	};
+	static char *const raw[] = {
+		"attributetype", "objectclass", "ditcontentrule", "ldapsyntax", NULL };
 	char *quote_ptr;
 	int i = (int)(sizeof(hide)/sizeof(hide[0])) - 1;
 	int inquote = 0;
@@ -2297,11 +2299,14 @@ config_fp_parse_line(ConfigArgs *c)
 			break;
 		c->argv[c->argc++] = token;
 	}
+	c->argv[c->argc] = NULL;
 	if (inquote) {
+		/* these directives parse c->line independently of argv tokenizing */
+		for(i = 0; raw[i]; i++) if (!strcasecmp(c->argv[0], raw[i])) return 0;
+
 		Debug(LDAP_DEBUG_ANY, "%s: unterminated quoted string \"%s\"\n", c->log, c->argv[c->argc-1], 0);
 		return -1;
 	}
-	c->argv[c->argc] = NULL;
 	return(0);
 }
 
