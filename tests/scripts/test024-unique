@@ -22,6 +22,7 @@ if test $UNIQUE = uniqueno; then
 fi
 
 RCODEconstraint=19
+RCODEnorelax=50
 test $BACKEND = null && RCODEconstraint=0
 
 mkdir -p $TESTDIR $DBDIR1
@@ -118,8 +119,31 @@ if test $RC != $RCODEconstraint ; then
 	exit -1
 fi
 
-# ITS#6641/8057
+# ITS#6641/8057/8245
 echo "Trying to bypass uniqueness as a normal user..."
+$LDAPADD -e \!relax -D "uid=dave,ou=users,o=unique" -h $LOCALHOST -p $PORT1 -w $PASSWD > \
+	 $TESTOUT 2>&1 << EOTUNIQ2
+dn: uid=bill,ou=users,o=unique
+objectClass: inetOrgPerson
+uid: bill
+sn: johnson
+cn: bill
+businessCategory: rtest
+carLicense: ABC123
+departmentNumber: 42
+displayName: Bill
+employeeNumber: 5150
+employeeType: contractor
+givenName: Bill
+EOTUNIQ2
+RC=$?
+if test $RC != $RCODEnorelax && test $RC != $RCODEconstraint ; then
+	echo "unique check failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit -1
+fi
+
+echo "Trying to bypass uniqueness as a normal user with ManageDSAIt..."
 $LDAPADD -M -D "uid=dave,ou=users,o=unique" -h $LOCALHOST -p $PORT1 -w $PASSWD > \
 	 $TESTOUT 2>&1 << EOTUNIQ2
 dn: uid=bill,ou=users,o=unique
@@ -142,9 +166,8 @@ if test $RC != $RCODEconstraint ; then
 	exit -1
 fi
 
-# ITS#6641/8057
 echo "Bypassing uniqueness as an admin user..."
-$LDAPADD -M -D "$UNIQUEDN" -h $LOCALHOST -p $PORT1 -w $PASSWD > \
+$LDAPADD -e \!relax -D "$UNIQUEDN" -h $LOCALHOST -p $PORT1 -w $PASSWD > \
 	 $TESTOUT 2>&1 << EOTUNIQ2
 dn: uid=bill,ou=users,o=unique
 objectClass: inetOrgPerson
@@ -586,8 +609,24 @@ if test $RC != $RCODEconstraint ; then
 	exit -1
 fi
 
-# ITS#6641/8057
+# ITS#6641/8057/8245
 echo "Trying to bypass uniqueness as a normal user..."
+$LDAPMODIFY -e \!relax -D "uid=dave,ou=users,o=unique" -h $LOCALHOST -p $PORT1 -w $PASSWD > \
+    $TESTOUT 2>&1 << EOF
+dn: uid=empty,ou=users,o=unique
+changetype: modify
+replace: sn
+sn: johnson
+EOF
+
+RC=$?
+if test $RC != $RCODEnorelax && test $RC != $RCODEconstraint ; then
+	echo "unique check failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit -1
+fi
+
+echo "Trying to bypass uniqueness as a normal user with ManageDSAIt..."
 $LDAPMODIFY -M -D "uid=dave,ou=users,o=unique" -h $LOCALHOST -p $PORT1 -w $PASSWD > \
     $TESTOUT 2>&1 << EOF
 dn: uid=empty,ou=users,o=unique
@@ -603,9 +642,8 @@ if test $RC != $RCODEconstraint ; then
 	exit -1
 fi
 
-# ITS#6641/8057
 echo "Bypassing uniqueness as an admin user..."
-$LDAPMODIFY -M -D "$UNIQUEDN" -h $LOCALHOST -p $PORT1 -w $PASSWD > \
+$LDAPMODIFY -e \!relax -D "$UNIQUEDN" -h $LOCALHOST -p $PORT1 -w $PASSWD > \
     $TESTOUT 2>&1 << EOF
 dn: uid=empty,ou=users,o=unique
 changetype: modify
@@ -664,8 +702,19 @@ if test $RC != $RCODEconstraint ; then
 	exit -1
 fi
 
-# ITS#6641/8057
+# ITS#6641/8057/8245
 echo "Trying to bypass uniqueness as a normal user..."
+$LDAPMODRDN -e \!relax -D "uid=dave,ou=users,o=unique" -h $LOCALHOST -p $PORT1 -w $PASSWD \
+	"uid=not edgar,uid=edgar,ou=users,o=unique" "uid=edgar" > $TESTOUT 2>&1
+
+RC=$?
+if test $RC != $RCODEnorelax && test $RC != $RCODEconstraint ; then
+	echo "unique check failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit -1
+fi
+
+echo "Trying to bypass uniqueness as a normal user with a ManageDSAIt control..."
 $LDAPMODRDN -M -D "uid=dave,ou=users,o=unique" -h $LOCALHOST -p $PORT1 -w $PASSWD \
 	"uid=not edgar,uid=edgar,ou=users,o=unique" "uid=edgar" > $TESTOUT 2>&1
 
@@ -676,9 +725,8 @@ if test $RC != $RCODEconstraint ; then
 	exit -1
 fi
 
-# ITS#6641/8057
 echo "Bypassing uniqueness as an admin user..."
-$LDAPMODRDN -M -D "$UNIQUEDN" -h $LOCALHOST -p $PORT1 -w $PASSWD \
+$LDAPMODRDN -e \!relax -D "$UNIQUEDN" -h $LOCALHOST -p $PORT1 -w $PASSWD \
 	"uid=not edgar,uid=edgar,ou=users,o=unique" "uid=edgar" > $TESTOUT 2>&1
 
 RC=$?
