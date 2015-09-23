@@ -30,7 +30,7 @@ void setupExportMisc(Handle<Object> exports) {
 
     int major, minor, patch;
     char *str = mdb_version(&major, &minor, &patch);
-    versionObj->Set(Nan::New<String>("versionString").ToLocalChecked(), Nan::New<String>(str)).ToLocalChecked();
+    versionObj->Set(Nan::New<String>("versionString").ToLocalChecked(), Nan::New<String>(str).ToLocalChecked());
     versionObj->Set(Nan::New<String>("major").ToLocalChecked(), Nan::New<Integer>(major));
     versionObj->Set(Nan::New<String>("minor").ToLocalChecked(), Nan::New<Integer>(minor));
     versionObj->Set(Nan::New<String>("patch").ToLocalChecked(), Nan::New<Integer>(patch));
@@ -39,7 +39,7 @@ void setupExportMisc(Handle<Object> exports) {
 }
 
 void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue, Local<Object> options) {
-    Handle<Value> opt = options->Get(Nan::New<String>(name)).ToLocalChecked();
+    Handle<Value> opt = options->Get(Nan::New<String>(name).ToLocalChecked());
     if (opt->IsBoolean() ? opt->BooleanValue() : defaultValue) {
         *flags |= flag;
     }
@@ -92,12 +92,12 @@ Handle<Value> valToString(MDB_val &data) {
 }
 
 Handle<Value> valToBinary(MDB_val &data) {
-    return Nan::NewBufferHandle(
-//        NOTE: newer node API will need this parameter
-//        v8::Isolate::GetCurrent(),
+    // FIXME: It'd be better not to copy buffers, but I'm not sure
+    // about the ownership semantics of MDB_val, so let' be safe.
+    return Nan::CopyBuffer(
         (char*)data.mv_data,
         data.mv_size
-    );
+    ).ToLocalChecked();
 }
 
 Handle<Value> valToNumber(MDB_val &data) {
@@ -110,11 +110,11 @@ Handle<Value> valToBoolean(MDB_val &data) {
 
 void consoleLog(const char *msg) {
     Local<String> str = Nan::New("console.log('").ToLocalChecked();
-    str = String::Concat(str, Nan::New<String>(msg)).ToLocalChecked();
+    str = String::Concat(str, Nan::New<String>(msg).ToLocalChecked());
     str = String::Concat(str, Nan::New("');").ToLocalChecked());
 
-    Local<Script> script = NanCompileScript(str);
-    NanRunScript(script);
+    Local<Script> script = Nan::CompileScript(str).ToLocalChecked();
+    Nan::RunScript(script);
 }
 
 void consoleLog(Handle<Value> val) {
@@ -122,8 +122,8 @@ void consoleLog(Handle<Value> val) {
     str = String::Concat(str, val->ToString());
     str = String::Concat(str, Nan::New<String>("');").ToLocalChecked());
 
-    Local<Script> script = NanCompileScript(str);
-    NanRunScript(script);
+    Local<Script> script = Nan::CompileScript(str).ToLocalChecked();
+    Nan::RunScript(script);
 }
 
 void consoleLogN(int n) {

@@ -135,7 +135,7 @@ NAN_METHOD(TxnWrap::renew) {
     return;
 }
 
-_NAN_METHOD_RETURN_TYPE TxnWrap::getCommon(_NAN_METHOD_ARGS, Handle<Value> (*successFunc)(MDB_val&)) {
+Nan::NAN_METHOD_RETURN_TYPE TxnWrap::getCommon(Nan::NAN_METHOD_ARGS_TYPE info, Handle<Value> (*successFunc)(MDB_val&)) {
     Nan::HandleScope scope;
 
     TxnWrap *tw = Nan::ObjectWrap::Unwrap<TxnWrap>(info.This());
@@ -165,22 +165,22 @@ _NAN_METHOD_RETURN_TYPE TxnWrap::getCommon(_NAN_METHOD_ARGS, Handle<Value> (*suc
 }
 
 NAN_METHOD(TxnWrap::getString) {
-    return getCommon(args, valToString);
+    return getCommon(info, valToString);
 }
 
 NAN_METHOD(TxnWrap::getBinary) {
-    return getCommon(args, valToBinary);
+    return getCommon(info, valToBinary);
 }
 
 NAN_METHOD(TxnWrap::getNumber) {
-    return getCommon(args, valToNumber);
+    return getCommon(info, valToNumber);
 }
 
 NAN_METHOD(TxnWrap::getBoolean) {
-    return getCommon(args, valToBoolean);
+    return getCommon(info, valToBoolean);
 }
 
-_NAN_METHOD_RETURN_TYPE TxnWrap::putCommon(_NAN_METHOD_ARGS, void (*fillFunc)(_NAN_METHOD_ARGS, MDB_val&), void (*freeData)(MDB_val&)) {
+Nan::NAN_METHOD_RETURN_TYPE TxnWrap::putCommon(Nan::NAN_METHOD_ARGS_TYPE info, void (*fillFunc)(Nan::NAN_METHOD_ARGS_TYPE info, MDB_val&), void (*freeData)(MDB_val&)) {
     Nan::HandleScope scope;
 
     TxnWrap *tw = Nan::ObjectWrap::Unwrap<TxnWrap>(info.This());
@@ -198,7 +198,7 @@ _NAN_METHOD_RETURN_TYPE TxnWrap::putCommon(_NAN_METHOD_ARGS, void (*fillFunc)(_N
         return;
     }
 
-    fillFunc(args, data);
+    fillFunc(info, data);
 
     int rc = mdb_put(tw->txn, dw->dbi, &key, &data, flags);
     freeKey(key);
@@ -212,7 +212,7 @@ _NAN_METHOD_RETURN_TYPE TxnWrap::putCommon(_NAN_METHOD_ARGS, void (*fillFunc)(_N
 }
 
 NAN_METHOD(TxnWrap::putString) {
-    return putCommon(args, [](_NAN_METHOD_ARGS, MDB_val &data) -> void {
+    return putCommon(info, [](Nan::NAN_METHOD_ARGS_TYPE info, MDB_val &data) -> void {
         CustomExternalStringResource::writeTo(info[2]->ToString(), &data);
     }, [](MDB_val &data) -> void {
         delete[] (uint16_t*)data.mv_data;
@@ -220,7 +220,7 @@ NAN_METHOD(TxnWrap::putString) {
 }
 
 NAN_METHOD(TxnWrap::putBinary) {
-    return putCommon(args, [](_NAN_METHOD_ARGS, MDB_val &data) -> void {
+    return putCommon(info, [](Nan::NAN_METHOD_ARGS_TYPE info, MDB_val &data) -> void {
         data.mv_size = node::Buffer::Length(info[2]);
         data.mv_data = node::Buffer::Data(info[2]);
     }, [](MDB_val &) -> void {
@@ -229,7 +229,7 @@ NAN_METHOD(TxnWrap::putBinary) {
 }
 
 NAN_METHOD(TxnWrap::putNumber) {
-    return putCommon(args, [](_NAN_METHOD_ARGS, MDB_val &data) -> void {
+    return putCommon(info, [](Nan::NAN_METHOD_ARGS_TYPE info, MDB_val &data) -> void {
         data.mv_size = sizeof(double);
         data.mv_data = new double;
         *((double*)data.mv_data) = info[2]->ToNumber()->Value();
@@ -239,7 +239,7 @@ NAN_METHOD(TxnWrap::putNumber) {
 }
 
 NAN_METHOD(TxnWrap::putBoolean) {
-    return putCommon(args, [](_NAN_METHOD_ARGS, MDB_val &data) -> void {
+    return putCommon(info, [](Nan::NAN_METHOD_ARGS_TYPE info, MDB_val &data) -> void {
         data.mv_size = sizeof(double);
         data.mv_data = new bool;
         *((bool*)data.mv_data) = info[2]->ToBoolean()->Value();

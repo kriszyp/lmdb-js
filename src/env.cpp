@@ -71,7 +71,7 @@ NAN_METHOD(EnvWrap::ctor) {
 template<class T>
 int applyUint32Setting(int (*f)(MDB_env *, T), MDB_env* e, Local<Object> options, T dflt, const char* keyName) {
     int rc;
-    const Handle<Value> value = options->Get(Nan::New<String>(keyName)).ToLocalChecked();
+    const Handle<Value> value = options->Get(Nan::New<String>(keyName).ToLocalChecked());
     if (value->IsUint32()) {
         rc = f(e, value->Uint32Value());
     }

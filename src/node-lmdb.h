@@ -31,6 +31,8 @@
 #include <uv.h>
 #include "../libraries/liblmdb/lmdb.h"
 
+#define NanReturnThis() info.GetReturnValue().Set(info.This())
+
 using namespace v8;
 using namespace node;
 
@@ -61,9 +63,9 @@ private:
     // The wrapped object
     MDB_env *env;
     // Constructor for TxnWrap
-    static Persistent<Function> txnCtor;
+    static Nan::Persistent<Function> txnCtor;
     // Constructor for DbiWrap
-    static Persistent<Function> dbiCtor;
+    static Nan::Persistent<Function> dbiCtor;
 
     friend class TxnWrap;
     friend class DbiWrap;
@@ -175,10 +177,10 @@ public:
     static NAN_METHOD(ctor);
 
     // Helper for all the get methods (not exposed)
-    static _NAN_METHOD_RETURN_TYPE getCommon(_NAN_METHOD_ARGS, Handle<Value> (*successFunc)(MDB_val&));
+    static Nan::NAN_METHOD_RETURN_TYPE getCommon(Nan::NAN_METHOD_ARGS_TYPE info, Handle<Value> (*successFunc)(MDB_val&));
 
     // Helper for all the put methods (not exposed)
-    static _NAN_METHOD_RETURN_TYPE putCommon(_NAN_METHOD_ARGS, void (*fillFunc)(_NAN_METHOD_ARGS, MDB_val&), void (*freeFunc)(MDB_val&));
+    static Nan::NAN_METHOD_RETURN_TYPE putCommon(Nan::NAN_METHOD_ARGS_TYPE info, void (*fillFunc)(Nan::NAN_METHOD_ARGS_TYPE info, MDB_val&), void (*freeFunc)(MDB_val&));
 
     /*
         Commits the transaction.
@@ -405,15 +407,15 @@ public:
     static NAN_METHOD(close);
 
     // Helper method for getters (not exposed)
-    static _NAN_METHOD_RETURN_TYPE getCommon(
-        _NAN_METHOD_ARGS, MDB_cursor_op op,
-        void (*setKey)(CursorWrap* cw, _NAN_METHOD_ARGS, MDB_val&),
-        void (*setData)(CursorWrap* cw, _NAN_METHOD_ARGS, MDB_val&),
-        void (*freeData)(CursorWrap* cw, _NAN_METHOD_ARGS, MDB_val&),
+    static Nan::NAN_METHOD_RETURN_TYPE getCommon(
+        Nan::NAN_METHOD_ARGS_TYPE info, MDB_cursor_op op,
+        void (*setKey)(CursorWrap* cw, Nan::NAN_METHOD_ARGS_TYPE info, MDB_val&),
+        void (*setData)(CursorWrap* cw, Nan::NAN_METHOD_ARGS_TYPE info, MDB_val&),
+        void (*freeData)(CursorWrap* cw, Nan::NAN_METHOD_ARGS_TYPE info, MDB_val&),
         Handle<Value> (*convertFunc)(MDB_val &data));
 
     // Helper method for getters (not exposed)
-    static _NAN_METHOD_RETURN_TYPE getCommon(_NAN_METHOD_ARGS, MDB_cursor_op op);
+    static Nan::NAN_METHOD_RETURN_TYPE getCommon(Nan::NAN_METHOD_ARGS_TYPE info, MDB_cursor_op op);
 
     /*
         Gets the current key-data pair that the cursor is pointing to. Returns the current key.
