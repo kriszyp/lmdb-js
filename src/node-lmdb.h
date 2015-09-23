@@ -56,7 +56,7 @@ Handle<Value> valToBoolean(MDB_val &data);
     Represents a database environment.
     (Wrapper for `MDB_env`)
 */
-class EnvWrap : public ObjectWrap {
+class EnvWrap : public Nan::ObjectWrap {
 private:
     // The wrapped object
     MDB_env *env;
@@ -154,7 +154,7 @@ public:
     Represents a transaction running on a database environment.
     (Wrapper for `MDB_txn`)
 */
-class TxnWrap : public ObjectWrap {
+class TxnWrap : public Nan::ObjectWrap {
 private:
     // The wrapped object
     MDB_txn *txn;
@@ -315,7 +315,7 @@ public:
     Represents a database instance in an environment.
     (Wrapper for `MDB_dbi`)
 */
-class DbiWrap : public ObjectWrap {
+class DbiWrap : public Nan::ObjectWrap {
 private:
     // Stores whether keys should be treated as uint32_t
     bool keyIsUint32;
@@ -364,7 +364,7 @@ public:
     Represents a cursor instance that is assigned to a transaction and a database instance
     (Wrapper for `MDB_cursor`)
 */
-class CursorWrap : public ObjectWrap {
+class CursorWrap : public Nan::ObjectWrap {
 private:
     // The wrapped object
     MDB_cursor *cursor;
