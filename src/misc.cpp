@@ -88,7 +88,11 @@ Handle<Value> keyToHandle(MDB_val &key, bool keyIsUint32) {
 }
 
 Handle<Value> valToString(MDB_val &data) {
-    return Nan::New<String>(new CustomExternalStringResource(&data)).ToLocalChecked();
+    auto resource = new CustomExternalStringResource(&data);
+    auto str = String::NewExternalTwoByte(Isolate::GetCurrent(), resource);
+
+    return str.ToLocalChecked();
+    // return Nan::New<String>(str).ToLocalChecked();
 }
 
 Handle<Value> valToBinary(MDB_val &data) {

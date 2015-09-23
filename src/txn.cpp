@@ -155,13 +155,14 @@ Nan::NAN_METHOD_RETURN_TYPE TxnWrap::getCommon(Nan::NAN_METHOD_ARGS_TYPE info, H
     freeKey(key);
 
     if (rc == MDB_NOTFOUND) {
-        info.GetReturnValue().Set(Nan::Null());
+        return info.GetReturnValue().Set(Nan::Null());
     }
     else if (rc != 0) {
         return Nan::ThrowError(mdb_strerror(rc));
     }
-
-    info.GetReturnValue().Set(successFunc(data));
+    else {
+      return info.GetReturnValue().Set(successFunc(data));
+    }
 }
 
 NAN_METHOD(TxnWrap::getString) {

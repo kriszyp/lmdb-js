@@ -118,7 +118,7 @@ Nan::NAN_METHOD_RETURN_TYPE CursorWrap::getCommon(
     int rc = mdb_cursor_get(cw->cursor, &(cw->key), &(cw->data), op);
 
     if (rc == MDB_NOTFOUND) {
-        info.GetReturnValue().Set(Nan::Null());
+        return info.GetReturnValue().Set(Nan::Null());
     }
     else if (rc != 0) {
         return Nan::ThrowError(mdb_strerror(rc));
@@ -143,10 +143,10 @@ Nan::NAN_METHOD_RETURN_TYPE CursorWrap::getCommon(
     }
 
     if (cw->key.mv_size) {
-        info.GetReturnValue().Set(keyHandle);
+        return info.GetReturnValue().Set(keyHandle);
     }
 
-    info.GetReturnValue().Set(Nan::True());
+    return info.GetReturnValue().Set(Nan::True());
 }
 
 Nan::NAN_METHOD_RETURN_TYPE CursorWrap::getCommon(Nan::NAN_METHOD_ARGS_TYPE info, MDB_cursor_op op) {

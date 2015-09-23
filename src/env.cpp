@@ -200,6 +200,8 @@ NAN_METHOD(EnvWrap::sync) {
         EnvSyncData *d = static_cast<EnvSyncData*>(request->data);
         d->rc = mdb_env_sync(d->env, 1);
     }, [](uv_work_t *request, int) -> void {
+        Nan::HandleScope scope;
+
         // Executed after the sync is finished
         EnvSyncData *d = static_cast<EnvSyncData*>(request->data);
         const unsigned argc = 1;
