@@ -1,6 +1,6 @@
 /* mdb_stat.c - memory-mapped database status tool */
 /*
- * Copyright 2011-2013 Howard Chu, Symas Corp.
+ * Copyright 2011-2015 Howard Chu, Symas Corp.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -37,7 +37,7 @@ static void prstat(MDB_stat *ms)
 
 static void usage(char *prog)
 {
-	fprintf(stderr, "usage: %s dbpath [-n] [-e] [-r[r]] [-f[f[f]]] [-a|-s subdb]\n", prog);
+	fprintf(stderr, "usage: %s dbpath [-V] [-n] [-e] [-r[r]] [-f[f[f]]] [-a|-s subdb]\n", prog);
 	exit(EXIT_FAILURE);
 }
 
@@ -64,10 +64,15 @@ int main(int argc, char *argv[])
 	 * -f: print freelist info
 	 * -r: print reader info
 	 * -n: use NOSUBDIR flag on env_open
+	 * -V: print version and exit
 	 * (default) print stat of only the main DB
 	 */
-	while ((i = getopt(argc, argv, "aefnrs:")) != EOF) {
+	while ((i = getopt(argc, argv, "Vaefnrs:")) != EOF) {
 		switch(i) {
+		case 'V':
+			printf("%s\n", MDB_VERSION_STRING);
+			exit(0);
+			break;
 		case 'a':
 			if (subname)
 				usage(prog);
@@ -100,6 +105,10 @@ int main(int argc, char *argv[])
 
 	envname = argv[optind];
 	rc = mdb_env_create(&env);
+	if (rc) {
+		fprintf(stderr, "mdb_env_create failed, error %d %s\n", rc, mdb_strerror(rc));
+		return EXIT_FAILURE;
+	}
 
 	if (alldbs || subname) {
 		mdb_env_set_maxdbs(env, 4);
@@ -107,13 +116,13 @@ int main(int argc, char *argv[])
 
 	rc = mdb_env_open(env, envname, envflags | MDB_RDONLY, 0664);
 	if (rc) {
-		printf("mdb_env_open failed, error %d %s\n", rc, mdb_strerror(rc));
+		fprintf(stderr, "mdb_env_open failed, error %d %s\n", rc, mdb_strerror(rc));
 		goto env_close;
 	}
 
 	if (envinfo) {
-		rc = mdb_env_stat(env, &mst);
-		rc = mdb_env_info(env, &mei);
+		(void)mdb_env_stat(env, &mst);
+		(void)mdb_env_info(env, &mei);
 		printf("Environment Info\n");
 		printf("  Map address: %p\n", mei.me_mapaddr);
 		printf("  Map size: %"Z"u\n", mei.me_mapsize);
@@ -140,7 +149,7 @@ int main(int argc, char *argv[])
 
 	rc = mdb_txn_begin(env, NULL, MDB_RDONLY, &txn);
 	if (rc) {
-		printf("mdb_txn_begin failed, error %d %s\n", rc, mdb_strerror(rc));
+		fprintf(stderr, "mdb_txn_begin failed, error %d %s\n", rc, mdb_strerror(rc));
 		goto env_close;
 	}
 
@@ -153,12 +162,12 @@ int main(int argc, char *argv[])
 		dbi = 0;
 		rc = mdb_cursor_open(txn, dbi, &cursor);
 		if (rc) {
-			printf("mdb_cursor_open failed, error %d %s\n", rc, mdb_strerror(rc));
+			fprintf(stderr, "mdb_cursor_open failed, error %d %s\n", rc, mdb_strerror(rc));
 			goto txn_abort;
 		}
 		rc = mdb_stat(txn, dbi, &mst);
 		if (rc) {
-			printf("mdb_stat failed, error %d %s\n", rc, mdb_strerror(rc));
+			fprintf(stderr, "mdb_stat failed, error %d %s\n", rc, mdb_strerror(rc));
 			goto txn_abort;
 		}
 		prstat(&mst);
@@ -196,13 +205,13 @@ int main(int argc, char *argv[])
 
 	rc = mdb_open(txn, subname, 0, &dbi);
 	if (rc) {
-		printf("mdb_open failed, error %d %s\n", rc, mdb_strerror(rc));
+		fprintf(stderr, "mdb_open failed, error %d %s\n", rc, mdb_strerror(rc));
 		goto txn_abort;
 	}
 
 	rc = mdb_stat(txn, dbi, &mst);
 	if (rc) {
-		printf("mdb_stat failed, error %d %s\n", rc, mdb_strerror(rc));
+		fprintf(stderr, "mdb_stat failed, error %d %s\n", rc, mdb_strerror(rc));
 		goto txn_abort;
 	}
 	printf("Status of %s\n", subname ? subname : "Main DB");
@@ -214,7 +223,7 @@ int main(int argc, char *argv[])
 
 		rc = mdb_cursor_open(txn, dbi, &cursor);
 		if (rc) {
-			printf("mdb_cursor_open failed, error %d %s\n", rc, mdb_strerror(rc));
+			fprintf(stderr, "mdb_cursor_open failed, error %d %s\n", rc, mdb_strerror(rc));
 			goto txn_abort;
 		}
 		while ((rc = mdb_cursor_get(cursor, &key, NULL, MDB_NEXT_NODUP)) == 0) {
@@ -232,7 +241,7 @@ int main(int argc, char *argv[])
 			if (rc) continue;
 			rc = mdb_stat(txn, db2, &mst);
 			if (rc) {
-				printf("mdb_stat failed, error %d %s\n", rc, mdb_strerror(rc));
+				fprintf(stderr, "mdb_stat failed, error %d %s\n", rc, mdb_strerror(rc));
 				goto txn_abort;
 			}
 			prstat(&mst);
