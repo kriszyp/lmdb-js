@@ -20,6 +20,10 @@
 
 #include <portable.h>
 
+#if HAVE_STDINT_H
+#include <stdint.h>
+#endif
+
 #include <lber.h>
 #include <lber_pvt.h>
 #include "lutil.h"
@@ -314,7 +318,7 @@ static const int DIGITS_POWER[] = {
 
 static void generate(
 	myval *key,
-	unsigned long tval,
+	uint64_t long tval,
 	int digits,
 	myval *out,
 	const void *mech)
@@ -325,8 +329,9 @@ static void generate(
 	unsigned char msg[8];
 	int i, offset, res, otp;
 
-#if !WORDS_BIGENDIAN
-	/* only needed on little-endian, can just use tval directly on big-endian */
+#if WORDS_BIGENDIAN
+	*(uint64_t *)msg = tval;
+#else
 	for (i=7; i>=0; i--) {
 		msg[i] = tval & 0xff;
 		tval >>= 8;
