@@ -245,7 +245,7 @@ totp_b32_pton(
 	 */
 
 	if (ch == Pad32) {		/* We got a pad char. */
-		int i = 1;
+		int i = 0;
 
 		/* count pad chars */
 		for (; ch; ch = *src++) {
