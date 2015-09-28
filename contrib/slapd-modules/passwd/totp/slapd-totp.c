@@ -20,6 +20,10 @@
 
 #include <portable.h>
 
+#if HAVE_STDINT_H
+#include <stdint.h>
+#endif
+
 #include <lber.h>
 #include <lber_pvt.h>
 #include "lutil.h"
@@ -29,8 +33,40 @@
 /* include socket.h to get sys/types.h and/or winsock2.h */
 #include <ac/socket.h>
 
+#if HAVE_OPENSSL
 #include <openssl/sha.h>
 #include <openssl/hmac.h>
+
+#define TOTP_SHA512_DIGEST_LENGTH	SHA512_DIGEST_LENGTH
+#define TOTP_SHA1	EVP_sha1()
+#define TOTP_SHA256	EVP_sha256()
+#define TOTP_SHA512	EVP_sha512()
+#define TOTP_HMAC_CTX	HMAC_CTX
+
+#define HMAC_setup(ctx, key, len, hash)	HMAC_CTX_init(&ctx); HMAC_Init_ex(&ctx, key, len, hash, 0)
+#define HMAC_crunch(ctx, buf, len)	HMAC_Update(&ctx, buf, len)
+#define HMAC_finish(ctx, dig, dlen)	HMAC_Final(&ctx, dig, &dlen); HMAC_CTX_cleanup(&ctx)
+
+#elif HAVE_GNUTLS
+#include <nettle/hmac.h>
+
+#define TOTP_SHA512_DIGEST_LENGTH	SHA512_DIGEST_SIZE
+#define TOTP_SHA1	&nettle_sha1
+#define TOTP_SHA256	&nettle_sha256
+#define TOTP_SHA512	&nettle_sha512
+#define TOTP_HMAC_CTX	struct hmac_sha512_ctx
+
+#define HMAC_setup(ctx, key, len, hash)	\
+	const struct nettle_hash *h=hash;\
+	hmac_set_key(&ctx.outer, &ctx.inner, &ctx.state, h, len, key)
+#define HMAC_crunch(ctx, buf, len)	hmac_update(&ctx.state, h, len, buf)
+#define HMAC_finish(ctx, dig, dlen) \
+	hmac_digest(&ctx.outer, &ctx.inner, &ctx.state, h, h->digest_size, dig);\
+	dlen = h->digest_size
+
+#else
+# error Unsupported crypto backend.
+#endif
 
 #include "slap.h"
 #include "config.h"
@@ -241,7 +277,7 @@ totp_b32_pton(
 	 */
 
 	if (ch == Pad32) {		/* We got a pad char. */
-		int i = 1;
+		int i = 0;
 
 		/* count pad chars */
 		for (; ch; ch = *src++) {
@@ -285,9 +321,6 @@ totp_b32_pton(
 
 /* RFC6238 TOTP */
 
-#define HMAC_setup(ctx, key, len, hash)	HMAC_CTX_init(&ctx); HMAC_Init_ex(&ctx, key, len, hash, 0)
-#define HMAC_crunch(ctx, buf, len)	HMAC_Update(&ctx, buf, len)
-#define HMAC_finish(ctx, dig, dlen)	HMAC_Final(&ctx, dig, &dlen); HMAC_CTX_cleanup(&ctx)
 
 typedef struct myval {
 	ber_len_t mv_len;
@@ -300,7 +333,7 @@ static void do_hmac(
 	myval *data,
 	myval *out)
 {
-	HMAC_CTX ctx;
+	TOTP_HMAC_CTX ctx;
 	unsigned int digestLen;
 
 	HMAC_setup(ctx, key->mv_val, key->mv_len, hash);
@@ -314,19 +347,20 @@ static const int DIGITS_POWER[] = {
 
 static void generate(
 	myval *key,
-	unsigned long tval,
+	uint64_t tval,
 	int digits,
 	myval *out,
 	const void *mech)
 {
-	unsigned char digest[SHA512_DIGEST_LENGTH];
+	unsigned char digest[TOTP_SHA512_DIGEST_LENGTH];
 	myval digval;
 	myval data;
 	unsigned char msg[8];
 	int i, offset, res, otp;
 
-#if !WORDS_BIGENDIAN
-	/* only needed on little-endian, can just use tval directly on big-endian */
+#if WORDS_BIGENDIAN
+	*(uint64_t *)msg = tval;
+#else
 	for (i=7; i>=0; i--) {
 		msg[i] = tval & 0xff;
 		tval >>= 8;
@@ -443,7 +477,7 @@ static int chk_totp1(
 	const struct berval *cred,
 	const char **text)
 {
-	return chk_totp(passwd, cred, EVP_sha1(), text);
+	return chk_totp(passwd, cred, TOTP_SHA1, text);
 }
 
 static int chk_totp256(
@@ -452,7 +486,7 @@ static int chk_totp256(
 	const struct berval *cred,
 	const char **text)
 {
-	return chk_totp(passwd, cred, EVP_sha256(), text);
+	return chk_totp(passwd, cred, TOTP_SHA256, text);
 }
 
 static int chk_totp512(
@@ -461,7 +495,7 @@ static int chk_totp512(
 	const struct berval *cred,
 	const char **text)
 {
-	return chk_totp(passwd, cred, EVP_sha512(), text);
+	return chk_totp(passwd, cred, TOTP_SHA512, text);
 }
 
 static int passwd_string32(
@@ -615,7 +649,6 @@ totp_bind_response( Operation *op, SlapReply *rs )
 		}
 	}
 
-done:
 	be_entry_release_r( op, e );
 
 	/* perform the update */
