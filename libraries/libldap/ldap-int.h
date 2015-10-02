@@ -563,6 +563,18 @@ LDAP_F (BerElement *) ldap_build_delete_req LDAP_P((
 	ber_int_t *msgidp ));
 
 /*
+ * in extended.c
+ */
+
+LDAP_F (BerElement *) ldap_build_extended_req LDAP_P((
+	LDAP *ld,
+	const char *reqoid,
+	struct berval *reqdata,
+	LDAPControl **sctrls,
+	LDAPControl **cctrls,
+	ber_int_t *msgidp ));
+
+/*
  * in init.c
  */
 
