@@ -77,6 +77,8 @@ ldap_build_compare_req(
 		ber_free( ber, 1 );
 		return( NULL );
 	}
+
+	return( ber );
 }
 
 /*
