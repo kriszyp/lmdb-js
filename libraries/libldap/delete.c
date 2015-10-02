@@ -31,6 +31,46 @@
  *	DelRequet ::= DistinguishedName,
  */
 
+BerElement *
+ldap_build_delete_req(
+	LDAP *ld,
+	LDAP_CONST char *dn,
+	LDAPControl **sctrls,
+	LDAPControl **cctrls,
+	int	*msgidp )
+{
+	BerElement	*ber;
+	int rc;
+
+	/* create a message to send */
+	if ( (ber = ldap_alloc_ber_with_options( ld )) == NULL ) {
+		return( NULL );
+	}
+
+	LDAP_NEXT_MSGID( ld, *msgidp );
+	rc = ber_printf( ber, "{its", /* '}' */
+		*msgidp, LDAP_REQ_DELETE, dn );
+	if ( rc == -1 )
+	{
+		ld->ld_errno = LDAP_ENCODING_ERROR;
+		ber_free( ber, 1 );
+		return( NULL );
+	}
+
+	/* Put Server Controls */
+	if( ldap_int_put_controls( ld, sctrls, ber ) != LDAP_SUCCESS ) {
+		ber_free( ber, 1 );
+		return( NULL );
+	}
+
+	if ( ber_printf( ber, /*{*/ "N}" ) == -1 ) {
+		ld->ld_errno = LDAP_ENCODING_ERROR;
+		ber_free( ber, 1 );
+		return( NULL );
+	}
+
+	return( ber );
+}
 
 /*
  * ldap_delete_ext - initiate an ldap extended delete operation. Parameters:
@@ -67,33 +107,9 @@ ldap_delete_ext(
 	rc = ldap_int_client_controls( ld, cctrls );
 	if( rc != LDAP_SUCCESS ) return rc;
 
-	/* create a message to send */
-	if ( (ber = ldap_alloc_ber_with_options( ld )) == NULL ) {
-		ld->ld_errno = LDAP_NO_MEMORY;
-		return( ld->ld_errno );
-	}
-
-	LDAP_NEXT_MSGID( ld, id );
-	rc = ber_printf( ber, "{its", /* '}' */
-		id, LDAP_REQ_DELETE, dn );
-	if ( rc == -1 )
-	{
-		ld->ld_errno = LDAP_ENCODING_ERROR;
-		ber_free( ber, 1 );
-		return( ld->ld_errno );
-	}
-
-	/* Put Server Controls */
-	if( ldap_int_put_controls( ld, sctrls, ber ) != LDAP_SUCCESS ) {
-		ber_free( ber, 1 );
+	ber = ldap_build_delete_req( ld, dn, sctrls, cctrls, &id );
+	if( !ber )
 		return ld->ld_errno;
-	}
-
-	if ( ber_printf( ber, /*{*/ "N}" ) == -1 ) {
-		ld->ld_errno = LDAP_ENCODING_ERROR;
-		ber_free( ber, 1 );
-		return( ld->ld_errno );
-	}
 
 	/* send the message */
 	*msgidp = ldap_send_initial_request( ld, LDAP_REQ_DELETE, dn, ber, id );
