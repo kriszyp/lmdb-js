@@ -51,6 +51,73 @@
  * (Source: RFC 4511)
  */
 
+BerElement *
+ldap_build_modify_req(
+	LDAP *ld,
+	LDAP_CONST char *dn,
+	LDAPMod **mods,
+	LDAPControl **sctrls,
+	LDAPControl **cctrls,
+	ber_int_t *msgidp )
+{
+	BerElement	*ber;
+	int		i, rc;
+
+	/* create a message to send */
+	if ( (ber = ldap_alloc_ber_with_options( ld )) == NULL ) {
+		return( NULL );
+	}
+
+	LDAP_NEXT_MSGID( ld, *msgidp );
+	rc = ber_printf( ber, "{it{s{" /*}}}*/, *msgidp, LDAP_REQ_MODIFY, dn );
+	if ( rc == -1 ) {
+		ld->ld_errno = LDAP_ENCODING_ERROR;
+		ber_free( ber, 1 );
+		return( NULL );
+	}
+
+	/* allow mods to be NULL ("touch") */
+	if ( mods ) {
+		/* for each modification to be performed... */
+		for ( i = 0; mods[i] != NULL; i++ ) {
+			if (( mods[i]->mod_op & LDAP_MOD_BVALUES) != 0 ) {
+				rc = ber_printf( ber, "{e{s[V]N}N}",
+				    (ber_int_t) ( mods[i]->mod_op & ~LDAP_MOD_BVALUES ),
+				    mods[i]->mod_type, mods[i]->mod_bvalues );
+			} else {
+				rc = ber_printf( ber, "{e{s[v]N}N}",
+					(ber_int_t) mods[i]->mod_op,
+				    mods[i]->mod_type, mods[i]->mod_values );
+			}
+
+			if ( rc == -1 ) {
+				ld->ld_errno = LDAP_ENCODING_ERROR;
+				ber_free( ber, 1 );
+				return( NULL );
+			}
+		}
+	}
+
+	if ( ber_printf( ber, /*{{*/ "N}N}" ) == -1 ) {
+		ld->ld_errno = LDAP_ENCODING_ERROR;
+		ber_free( ber, 1 );
+		return( NULL );
+	}
+
+	/* Put Server Controls */
+	if( ldap_int_put_controls( ld, sctrls, ber ) != LDAP_SUCCESS ) {
+		ber_free( ber, 1 );
+		return( NULL );
+	}
+
+	if ( ber_printf( ber, /*{*/ "N}" ) == -1 ) {
+		ld->ld_errno = LDAP_ENCODING_ERROR;
+		ber_free( ber, 1 );
+		return( NULL );
+	}
+
+	return( ber );
+}
 
 /*
  * ldap_modify_ext - initiate an ldap extended modify operation.
@@ -67,7 +134,7 @@
  *	msgidp	Message ID pointer
  *
  * Example:
- *	LDAPMod	*mods[] = { 
+ *	LDAPMod	*mods[] = {
  *			{ LDAP_MOD_ADD, "cn", { "babs jensen", "babs", 0 } },
  *			{ LDAP_MOD_REPLACE, "sn", { "babs jensen", "babs", 0 } },
  *			{ LDAP_MOD_DELETE, "ou", 0 },
@@ -94,58 +161,9 @@ ldap_modify_ext( LDAP *ld,
 	rc = ldap_int_client_controls( ld, cctrls );
 	if( rc != LDAP_SUCCESS ) return rc;
 
-	/* create a message to send */
-	if ( (ber = ldap_alloc_ber_with_options( ld )) == NULL ) {
-		return( LDAP_NO_MEMORY );
-	}
-
-	LDAP_NEXT_MSGID( ld, id );
-	rc = ber_printf( ber, "{it{s{" /*}}}*/, id, LDAP_REQ_MODIFY, dn );
-	if ( rc == -1 ) {
-		ld->ld_errno = LDAP_ENCODING_ERROR;
-		ber_free( ber, 1 );
-		return( ld->ld_errno );
-	}
-
-	/* allow mods to be NULL ("touch") */
-	if ( mods ) {
-		/* for each modification to be performed... */
-		for ( i = 0; mods[i] != NULL; i++ ) {
-			if (( mods[i]->mod_op & LDAP_MOD_BVALUES) != 0 ) {
-				rc = ber_printf( ber, "{e{s[V]N}N}",
-				    (ber_int_t) ( mods[i]->mod_op & ~LDAP_MOD_BVALUES ),
-				    mods[i]->mod_type, mods[i]->mod_bvalues );
-			} else {
-				rc = ber_printf( ber, "{e{s[v]N}N}",
-					(ber_int_t) mods[i]->mod_op,
-				    mods[i]->mod_type, mods[i]->mod_values );
-			}
-
-			if ( rc == -1 ) {
-				ld->ld_errno = LDAP_ENCODING_ERROR;
-				ber_free( ber, 1 );
-				return( ld->ld_errno );
-			}
-		}
-	}
-
-	if ( ber_printf( ber, /*{{*/ "N}N}" ) == -1 ) {
-		ld->ld_errno = LDAP_ENCODING_ERROR;
-		ber_free( ber, 1 );
-		return( ld->ld_errno );
-	}
-
-	/* Put Server Controls */
-	if( ldap_int_put_controls( ld, sctrls, ber ) != LDAP_SUCCESS ) {
-		ber_free( ber, 1 );
+	ber = ldap_build_modify_req( ld, dn, mods, sctrls, cctrls, &id );
+	if( !ber )
 		return ld->ld_errno;
-	}
-
-	if ( ber_printf( ber, /*{*/ "N}" ) == -1 ) {
-		ld->ld_errno = LDAP_ENCODING_ERROR;
-		ber_free( ber, 1 );
-		return( ld->ld_errno );
-	}
 
 	/* send the message */
 	*msgidp = ldap_send_initial_request( ld, LDAP_REQ_MODIFY, dn, ber, id );
@@ -164,7 +182,7 @@ ldap_modify_ext( LDAP *ld,
  *			to perform.
  *
  * Example:
- *	LDAPMod	*mods[] = { 
+ *	LDAPMod	*mods[] = {
  *			{ LDAP_MOD_ADD, "cn", { "babs jensen", "babs", 0 } },
  *			{ LDAP_MOD_REPLACE, "sn", { "babs jensen", "babs", 0 } },
  *			{ LDAP_MOD_DELETE, "ou", 0 },
