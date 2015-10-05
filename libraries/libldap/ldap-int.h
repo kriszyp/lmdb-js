@@ -531,6 +531,54 @@ LDAP_F (int)
 ldap_int_bisect_delete( ber_int_t **vp, ber_len_t *np, int id, int idx );
 
 /*
+ * in add.c
+ */
+
+LDAP_F (BerElement *) ldap_build_add_req LDAP_P((
+	LDAP *ld,
+	const char *dn,
+	LDAPMod **attrs,
+	LDAPControl **sctrls,
+	LDAPControl **cctrls,
+	ber_int_t *msgidp ));
+
+/*
+ * in compare.c
+ */
+
+LDAP_F (BerElement *) ldap_build_compare_req LDAP_P((
+	LDAP *ld,
+	const char *dn,
+	const char *attr,
+	struct berval *bvalue,
+	LDAPControl **sctrls,
+	LDAPControl **cctrls,
+	ber_int_t *msgidp ));
+
+/*
+ * in delete.c
+ */
+
+LDAP_F (BerElement *) ldap_build_delete_req LDAP_P((
+	LDAP *ld,
+	const char *dn,
+	LDAPControl **sctrls,
+	LDAPControl **cctrls,
+	ber_int_t *msgidp ));
+
+/*
+ * in extended.c
+ */
+
+LDAP_F (BerElement *) ldap_build_extended_req LDAP_P((
+	LDAP *ld,
+	const char *reqoid,
+	struct berval *reqdata,
+	LDAPControl **sctrls,
+	LDAPControl **cctrls,
+	ber_int_t *msgidp ));
+
+/*
  * in init.c
  */
 
@@ -562,6 +610,32 @@ LDAP_F ( void ) ldap_int_initialize_global_options LDAP_P((
  * in error.c
  */
 LDAP_F (void) ldap_int_error_init( void );
+
+/*
+ * in modify.c
+ */
+
+LDAP_F (BerElement *) ldap_build_modify_req LDAP_P((
+	LDAP *ld,
+	const char *dn,
+	LDAPMod **mods,
+	LDAPControl **sctrls,
+	LDAPControl **cctrls,
+	ber_int_t *msgidp ));
+
+/*
+ * in modrdn.c
+ */
+
+LDAP_F (BerElement *) ldap_build_moddn_req LDAP_P((
+	LDAP *ld,
+	const char *dn,
+	const char *newrdn,
+	const char *newSuperior,
+	int deleteoldrdn,
+	LDAPControl **sctrls,
+	LDAPControl **cctrls,
+	ber_int_t *msgidp ));
 
 /*
  * in unit-int.c
@@ -758,6 +832,17 @@ LDAP_F (int) ldap_int_sasl_bind LDAP_P((
 	LDAPMessage *result,
 	const char **rmech,
 	int *msgid ));
+
+/* in sasl.c */
+
+LDAP_F (BerElement *) ldap_build_bind_req LDAP_P((
+	LDAP *ld,
+	const char *dn,
+	const char *mech,
+	struct berval *cred,
+	LDAPControl **sctrls,
+	LDAPControl **cctrls,
+	ber_int_t *msgidp ));
 
 /* in schema.c */
 LDAP_F (char *) ldap_int_parse_numericoid LDAP_P((
