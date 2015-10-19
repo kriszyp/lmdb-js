@@ -53,7 +53,7 @@ DbiWrap::~DbiWrap() {
 }
 
 NAN_METHOD(DbiWrap::ctor) {
-    NanScope();
+    Nan::HandleScope scope;
 
     MDB_dbi dbi;
     MDB_txn *txn;
@@ -62,10 +62,10 @@ NAN_METHOD(DbiWrap::ctor) {
     int keyIsUint32 = 0;
     Local<String> name;
 
-    EnvWrap *ew = ObjectWrap::Unwrap<EnvWrap>(args[0]->ToObject());
-    if (args[1]->IsObject()) {
-        Local<Object> options = args[1]->ToObject();
-        name = options->Get(NanNew<String>("name"))->ToString();
+    EnvWrap *ew = Nan::ObjectWrap::Unwrap<EnvWrap>(info[0]->ToObject());
+    if (info[1]->IsObject()) {
+        Local<Object> options = info[1]->ToObject();
+        name = options->Get(Nan::New<String>("name").ToLocalChecked())->ToString();
 
         // Get flags from options
 
@@ -88,27 +88,27 @@ NAN_METHOD(DbiWrap::ctor) {
         }
     }
     else {
-        return NanThrowError("Invalid parameters.");
+        return Nan::ThrowError("Invalid parameters.");
     }
 
     // Open transaction
     rc = mdb_txn_begin(ew->env, nullptr, 0, &txn);
     if (rc != 0) {
         mdb_txn_abort(txn);
-        return NanThrowError(mdb_strerror(rc));
+        return Nan::ThrowError(mdb_strerror(rc));
     }
 
     // Open database
     rc = mdb_dbi_open(txn, *String::Utf8Value(name), flags, &dbi);
     if (rc != 0) {
         mdb_txn_abort(txn);
-        return NanThrowError(mdb_strerror(rc));
+        return Nan::ThrowError(mdb_strerror(rc));
     }
 
     // Commit transaction
     rc = mdb_txn_commit(txn);
     if (rc != 0) {
-        return NanThrowError(mdb_strerror(rc));
+        return Nan::ThrowError(mdb_strerror(rc));
     }
 
     // Create wrapper
@@ -116,81 +116,81 @@ NAN_METHOD(DbiWrap::ctor) {
     dw->ew = ew;
     dw->ew->Ref();
     dw->keyIsUint32 = keyIsUint32;
-    dw->Wrap(args.This());
+    dw->Wrap(info.This());
 
     NanReturnThis();
 }
 
 NAN_METHOD(DbiWrap::close) {
-    NanScope();
+    Nan::HandleScope scope;
 
-    DbiWrap *dw = ObjectWrap::Unwrap<DbiWrap>(args.This());
+    DbiWrap *dw = Nan::ObjectWrap::Unwrap<DbiWrap>(info.This());
     mdb_dbi_close(dw->env, dw->dbi);
     dw->ew->Unref();
     dw->ew = nullptr;
 
-    NanReturnUndefined();
+    return;
 }
 
 NAN_METHOD(DbiWrap::drop) {
-    NanScope();
+    Nan::HandleScope scope;
 
-    DbiWrap *dw = ObjectWrap::Unwrap<DbiWrap>(args.This());
+    DbiWrap *dw = Nan::ObjectWrap::Unwrap<DbiWrap>(info.This());
     int del = 1;
     int rc;
     MDB_txn *txn;
 
     // Check if the database should be deleted
-    if (args.Length() == 2 && args[1]->IsObject()) {
-        Handle<Object> options = args[1]->ToObject();
-        Handle<Value> opt = options->Get(NanNew<String>("justFreePages"));
+    if (info.Length() == 2 && info[1]->IsObject()) {
+        Handle<Object> options = info[1]->ToObject();
+        Handle<Value> opt = options->Get(Nan::New<String>("justFreePages").ToLocalChecked());
         del = opt->IsBoolean() ? !(opt->BooleanValue()) : 1;
     }
 
     // Begin transaction
     rc = mdb_txn_begin(dw->env, nullptr, 0, &txn);
     if (rc != 0) {
-        return NanThrowError(mdb_strerror(rc));
+        return Nan::ThrowError(mdb_strerror(rc));
     }
 
     // Drop database
     rc = mdb_drop(txn, dw->dbi, del);
     if (rc != 0) {
-        return NanThrowError(mdb_strerror(rc));
+        return Nan::ThrowError(mdb_strerror(rc));
     }
 
     // Commit transaction
     rc = mdb_txn_commit(txn);
     if (rc != 0) {
-        return NanThrowError(mdb_strerror(rc));
+        return Nan::ThrowError(mdb_strerror(rc));
     }
 
     dw->ew->Unref();
     dw->ew = nullptr;
 
-    NanReturnUndefined();
+    return;
 }
 
 NAN_METHOD(DbiWrap::stat) {
-    NanScope();
+    Nan::HandleScope scope;
 
-    DbiWrap *dw = ObjectWrap::Unwrap<DbiWrap>(args.This());
+    DbiWrap *dw = Nan::ObjectWrap::Unwrap<DbiWrap>(info.This());
 
-    if (args.Length() != 1) {
-        return NanThrowError("dbi.stat should be called with a single argument which is a txn.");
+    if (info.Length() != 1) {
+        return Nan::ThrowError("dbi.stat should be called with a single argument which is a txn.");
     }
 
-    TxnWrap *txn = ObjectWrap::Unwrap<TxnWrap>(args[0]->ToObject());
+    TxnWrap *txn = Nan::ObjectWrap::Unwrap<TxnWrap>(info[0]->ToObject());
 
     MDB_stat stat;
     mdb_stat(txn->txn, dw->dbi, &stat);
 
-    Local<Object> obj = NanNew<Object>();
-    obj->Set(NanNew<String>("pageSize"), NanNew<Number>(stat.ms_psize));
-    obj->Set(NanNew<String>("treeDepth"), NanNew<Number>(stat.ms_depth));
-    obj->Set(NanNew<String>("treeBranchPageCount"), NanNew<Number>(stat.ms_branch_pages));
-    obj->Set(NanNew<String>("treeLeafPageCount"), NanNew<Number>(stat.ms_leaf_pages));
-    obj->Set(NanNew<String>("entryCount"), NanNew<Number>(stat.ms_entries));
+    Local<Object> obj = Nan::New<Object>();
+    obj->Set(Nan::New<String>("pageSize").ToLocalChecked(), Nan::New<Number>(stat.ms_psize));
+    obj->Set(Nan::New<String>("treeDepth").ToLocalChecked(), Nan::New<Number>(stat.ms_depth));
+    obj->Set(Nan::New<String>("treeBranchPageCount").ToLocalChecked(), Nan::New<Number>(stat.ms_branch_pages));
+    obj->Set(Nan::New<String>("treeLeafPageCount").ToLocalChecked(), Nan::New<Number>(stat.ms_leaf_pages));
+    obj->Set(Nan::New<String>("entryCount").ToLocalChecked(), Nan::New<Number>(stat.ms_entries));
 
-    NanReturnValue(obj);
+    info.GetReturnValue().Set(obj);
 }

@@ -3,7 +3,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2000-2013 The OpenLDAP Foundation.
+ * Copyright 2000-2015 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -22,7 +22,7 @@
 #include <sys/types.h>
 #include "midl.h"
 
-/** @defgroup internal	MDB Internals
+/** @defgroup internal	LMDB Internals
  *	@{
  */
 /** @defgroup idls	ID List Management
@@ -116,7 +116,7 @@ void mdb_midl_free(MDB_IDL ids)
 		free(ids-1);
 }
 
-int mdb_midl_shrink( MDB_IDL *idp )
+void mdb_midl_shrink( MDB_IDL *idp )
 {
 	MDB_IDL ids = *idp;
 	if (*(--ids) > MDB_IDL_UM_MAX &&
@@ -124,9 +124,7 @@ int mdb_midl_shrink( MDB_IDL *idp )
 	{
 		*ids++ = MDB_IDL_UM_MAX;
 		*idp = ids;
-		return 1;
 	}
-	return 0;
 }
 
 static int mdb_midl_grow( MDB_IDL *idp, int num )
@@ -197,6 +195,20 @@ int mdb_midl_append_range( MDB_IDL *idp, MDB_ID id, unsigned n )
 	while (n)
 		ids[n--] = id++;
 	return 0;
+}
+
+void mdb_midl_xmerge( MDB_IDL idl, MDB_IDL merge )
+{
+	MDB_ID old_id, merge_id, i = merge[0], j = idl[0], k = i+j, total = k;
+	idl[0] = (MDB_ID)-1;		/* delimiter for idl scan below */
+	old_id = idl[j];
+	while (i) {
+		merge_id = merge[i--];
+		for (; old_id < merge_id; old_id = idl[--j])
+			idl[k--] = old_id;
+		idl[k--] = merge_id;
+	}
+	idl[0] = total;
 }
 
 /* Quicksort + Insertion sort for small arrays */

@@ -26,20 +26,20 @@
 #include <stdio.h>
 
 void setupExportMisc(Handle<Object> exports) {
-    Local<Object> versionObj = NanNew<Object>();
+    Local<Object> versionObj = Nan::New<Object>();
 
     int major, minor, patch;
     char *str = mdb_version(&major, &minor, &patch);
-    versionObj->Set(NanNew<String>("versionString"), NanNew<String>(str));
-    versionObj->Set(NanNew<String>("major"), NanNew<Integer>(major));
-    versionObj->Set(NanNew<String>("minor"), NanNew<Integer>(minor));
-    versionObj->Set(NanNew<String>("patch"), NanNew<Integer>(patch));
+    versionObj->Set(Nan::New<String>("versionString").ToLocalChecked(), Nan::New<String>(str).ToLocalChecked());
+    versionObj->Set(Nan::New<String>("major").ToLocalChecked(), Nan::New<Integer>(major));
+    versionObj->Set(Nan::New<String>("minor").ToLocalChecked(), Nan::New<Integer>(minor));
+    versionObj->Set(Nan::New<String>("patch").ToLocalChecked(), Nan::New<Integer>(patch));
 
-    exports->Set(NanNew<String>("version"), versionObj);
+    exports->Set(Nan::New<String>("version").ToLocalChecked(), versionObj);
 }
 
 void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue, Local<Object> options) {
-    Handle<Value> opt = options->Get(NanNew<String>(name));
+    Handle<Value> opt = options->Get(Nan::New<String>(name).ToLocalChecked());
     if (opt->IsBoolean() ? opt->BooleanValue() : defaultValue) {
         *flags |= flag;
     }
@@ -48,11 +48,11 @@ void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue,
 argtokey_callback_t argToKey(const Handle<Value> &val, MDB_val &key, bool keyIsUint32) {
     // Check key type
     if (keyIsUint32 && !val->IsUint32()) {
-        NanThrowError("Invalid key. keyIsUint32 specified on the database, but the given key was not an unsigned 32-bit integer");
+        Nan::ThrowError("Invalid key. keyIsUint32 specified on the database, but the given key was not an unsigned 32-bit integer");
         return nullptr;
     }
     if (!keyIsUint32 && !val->IsString()) {
-        NanThrowError("Invalid key. String key expected, because keyIsUint32 isn't specified on the database.");
+        Nan::ThrowError("Invalid key. String key expected, because keyIsUint32 isn't specified on the database.");
         return nullptr;
     }
 
@@ -80,7 +80,7 @@ argtokey_callback_t argToKey(const Handle<Value> &val, MDB_val &key, bool keyIsU
 
 Handle<Value> keyToHandle(MDB_val &key, bool keyIsUint32) {
     if (keyIsUint32) {
-        return NanNew<Integer>(*((uint32_t*)key.mv_data));
+        return Nan::New<Integer>(*((uint32_t*)key.mv_data));
     }
     else {
         return valToString(key);
@@ -88,42 +88,45 @@ Handle<Value> keyToHandle(MDB_val &key, bool keyIsUint32) {
 }
 
 Handle<Value> valToString(MDB_val &data) {
-    return NanNew<String>(new CustomExternalStringResource(&data));
+    auto resource = new CustomExternalStringResource(&data);
+    auto str = String::NewExternalTwoByte(Isolate::GetCurrent(), resource);
+
+    return str.ToLocalChecked();
 }
 
 Handle<Value> valToBinary(MDB_val &data) {
-    return NanNewBufferHandle(
-//        NOTE: newer node API will need this parameter
-//        v8::Isolate::GetCurrent(),
+    // FIXME: It'd be better not to copy buffers, but I'm not sure
+    // about the ownership semantics of MDB_val, so let' be safe.
+    return Nan::CopyBuffer(
         (char*)data.mv_data,
         data.mv_size
-    );
+    ).ToLocalChecked();
 }
 
 Handle<Value> valToNumber(MDB_val &data) {
-    return NanNew<Number>(*((double*)data.mv_data));
+    return Nan::New<Number>(*((double*)data.mv_data));
 }
 
 Handle<Value> valToBoolean(MDB_val &data) {
-    return NanNew<Boolean>(*((bool*)data.mv_data));
+    return Nan::New<Boolean>(*((bool*)data.mv_data));
 }
 
 void consoleLog(const char *msg) {
-    Local<String> str = NanNew("console.log('");
-    str = String::Concat(str, NanNew<String>(msg));
-    str = String::Concat(str, NanNew("');"));
+    Local<String> str = Nan::New("console.log('").ToLocalChecked();
+    str = String::Concat(str, Nan::New<String>(msg).ToLocalChecked());
+    str = String::Concat(str, Nan::New("');").ToLocalChecked());
 
-    Local<Script> script = NanCompileScript(str);
-    NanRunScript(script);
+    Local<Script> script = Nan::CompileScript(str).ToLocalChecked();
+    Nan::RunScript(script);
 }
 
 void consoleLog(Handle<Value> val) {
-    Local<String> str = NanNew<String>("console.log('");
+    Local<String> str = Nan::New<String>("console.log('").ToLocalChecked();
     str = String::Concat(str, val->ToString());
-    str = String::Concat(str, NanNew<String>("');"));
+    str = String::Concat(str, Nan::New<String>("');").ToLocalChecked());
 
-    Local<Script> script = NanCompileScript(str);
-    NanRunScript(script);
+    Local<Script> script = Nan::CompileScript(str).ToLocalChecked();
+    Nan::RunScript(script);
 }
 
 void consoleLogN(int n) {

@@ -40,17 +40,17 @@ CursorWrap::~CursorWrap() {
 }
 
 NAN_METHOD(CursorWrap::ctor) {
-    NanScope();
+    Nan::HandleScope scope;
 
     // Get arguments
-    TxnWrap *tw = ObjectWrap::Unwrap<TxnWrap>(args[0]->ToObject());
-    DbiWrap *dw = ObjectWrap::Unwrap<DbiWrap>(args[1]->ToObject());
+    TxnWrap *tw = Nan::ObjectWrap::Unwrap<TxnWrap>(info[0]->ToObject());
+    DbiWrap *dw = Nan::ObjectWrap::Unwrap<DbiWrap>(info[1]->ToObject());
 
     // Open the cursor
     MDB_cursor *cursor;
     int rc = mdb_cursor_open(tw->txn, dw->dbi, &cursor);
     if (rc != 0) {
-        return NanThrowError(mdb_strerror(rc));
+        return Nan::ThrowError(mdb_strerror(rc));
     }
 
     // Create wrapper
@@ -60,54 +60,54 @@ NAN_METHOD(CursorWrap::ctor) {
     cw->tw = tw;
     cw->tw->Ref();
     cw->keyIsUint32 = dw->keyIsUint32;
-    cw->Wrap(args.This());
+    cw->Wrap(info.This());
 
     NanReturnThis();
 }
 
 NAN_METHOD(CursorWrap::close) {
-    NanScope();
+    Nan::HandleScope scope;
 
-    CursorWrap *cw = ObjectWrap::Unwrap<CursorWrap>(args.This());
+    CursorWrap *cw = Nan::ObjectWrap::Unwrap<CursorWrap>(info.This());
     mdb_cursor_close(cw->cursor);
     cw->dw->Unref();
     cw->tw->Unref();
     cw->cursor = nullptr;
-    NanReturnUndefined();
+    return;
 }
 
 NAN_METHOD(CursorWrap::del) {
-    NanScope();
+    Nan::HandleScope scope;
 
-    CursorWrap *cw = ObjectWrap::Unwrap<CursorWrap>(args.This());
+    CursorWrap *cw = Nan::ObjectWrap::Unwrap<CursorWrap>(info.This());
     // TODO: wrap MDB_NODUPDATA flag
 
     int rc = mdb_cursor_del(cw->cursor, 0);
     if (rc != 0) {
-        return NanThrowError(mdb_strerror(rc));
+        return Nan::ThrowError(mdb_strerror(rc));
     }
 
-    NanReturnUndefined();
+    return;
 }
 
-_NAN_METHOD_RETURN_TYPE CursorWrap::getCommon(
-    _NAN_METHOD_ARGS,
+Nan::NAN_METHOD_RETURN_TYPE CursorWrap::getCommon(
+    Nan::NAN_METHOD_ARGS_TYPE info,
     MDB_cursor_op op,
-    void (*setKey)(CursorWrap* cw, _NAN_METHOD_ARGS, MDB_val&),
-    void (*setData)(CursorWrap* cw, _NAN_METHOD_ARGS, MDB_val&),
-    void (*freeData)(CursorWrap* cw, _NAN_METHOD_ARGS, MDB_val&),
+    void (*setKey)(CursorWrap* cw, Nan::NAN_METHOD_ARGS_TYPE info, MDB_val&),
+    void (*setData)(CursorWrap* cw, Nan::NAN_METHOD_ARGS_TYPE info, MDB_val&),
+    void (*freeData)(CursorWrap* cw, Nan::NAN_METHOD_ARGS_TYPE info, MDB_val&),
     Handle<Value> (*convertFunc)(MDB_val &data)
 ) {
-    NanScope();
+    Nan::HandleScope scope;
 
-    int al = args.Length();
-    CursorWrap *cw = ObjectWrap::Unwrap<CursorWrap>(args.This());
+    int al = info.Length();
+    CursorWrap *cw = Nan::ObjectWrap::Unwrap<CursorWrap>(info.This());
 
     if (setKey) {
-        setKey(cw, args, cw->key);
+        setKey(cw, info, cw->key);
     }
     if (setData) {
-        setData(cw, args, cw->data);
+        setData(cw, info, cw->data);
     }
 
     // Temporary thing, so that we can free up the data if we want to
@@ -118,58 +118,58 @@ _NAN_METHOD_RETURN_TYPE CursorWrap::getCommon(
     int rc = mdb_cursor_get(cw->cursor, &(cw->key), &(cw->data), op);
 
     if (rc == MDB_NOTFOUND) {
-        NanReturnNull();
+        return info.GetReturnValue().Set(Nan::Null());
     }
     else if (rc != 0) {
-        return NanThrowError(mdb_strerror(rc));
+        return Nan::ThrowError(mdb_strerror(rc));
     }
 
-    Handle<Value> keyHandle = NanUndefined();
+    Handle<Value> keyHandle = Nan::Undefined();
     if (cw->key.mv_size) {
         keyHandle = keyToHandle(cw->key, cw->keyIsUint32);
     }
 
-    if (convertFunc && al > 0 && args[al - 1]->IsFunction()) {
+    if (convertFunc && al > 0 && info[al - 1]->IsFunction()) {
         // In this case, we expect the key/data pair to be correctly filled
         const unsigned argc = 2;
         Handle<Value> argv[argc] = { keyHandle, convertFunc(cw->data) };
-        NanCallback *callback = new NanCallback(Handle<Function>::Cast(args[args.Length() - 1]));
+        Nan::Callback *callback = new Nan::Callback(Handle<Function>::Cast(info[info.Length() - 1]));
         callback->Call(argc, argv);
         delete callback;
     }
 
     if (freeData) {
-        freeData(cw, args, tempdata);
+        freeData(cw, info, tempdata);
     }
 
     if (cw->key.mv_size) {
-        NanReturnValue(keyHandle);
+        return info.GetReturnValue().Set(keyHandle);
     }
 
-    NanReturnValue(NanTrue());
+    return info.GetReturnValue().Set(Nan::True());
 }
 
-_NAN_METHOD_RETURN_TYPE CursorWrap::getCommon(_NAN_METHOD_ARGS, MDB_cursor_op op) {
-    return getCommon(args, op, nullptr, nullptr, nullptr, nullptr);
+Nan::NAN_METHOD_RETURN_TYPE CursorWrap::getCommon(Nan::NAN_METHOD_ARGS_TYPE info, MDB_cursor_op op) {
+    return getCommon(info, op, nullptr, nullptr, nullptr, nullptr);
 }
 
 NAN_METHOD(CursorWrap::getCurrentString) {
-    return getCommon(args, MDB_GET_CURRENT, nullptr, nullptr, nullptr, valToString);
+    return getCommon(info, MDB_GET_CURRENT, nullptr, nullptr, nullptr, valToString);
 }
 
 NAN_METHOD(CursorWrap::getCurrentBinary) {
-    return getCommon(args, MDB_GET_CURRENT, nullptr, nullptr, nullptr, valToBinary);
+    return getCommon(info, MDB_GET_CURRENT, nullptr, nullptr, nullptr, valToBinary);
 }
 
 NAN_METHOD(CursorWrap::getCurrentNumber) {
-    return getCommon(args, MDB_GET_CURRENT, nullptr, nullptr, nullptr, valToNumber);
+    return getCommon(info, MDB_GET_CURRENT, nullptr, nullptr, nullptr, valToNumber);
 }
 
 NAN_METHOD(CursorWrap::getCurrentBoolean) {
-    return getCommon(args, MDB_GET_CURRENT, nullptr, nullptr, nullptr, valToBoolean);
+    return getCommon(info, MDB_GET_CURRENT, nullptr, nullptr, nullptr, valToBoolean);
 }
 
-#define MAKE_GET_FUNC(name, op) NAN_METHOD(CursorWrap::name) { return getCommon(args, op); }
+#define MAKE_GET_FUNC(name, op) NAN_METHOD(CursorWrap::name) { return getCommon(info, op); }
 
 MAKE_GET_FUNC(goToFirst, MDB_FIRST);
 
@@ -188,95 +188,95 @@ MAKE_GET_FUNC(goToNextDup, MDB_NEXT_DUP);
 MAKE_GET_FUNC(goToPrevDup, MDB_PREV_DUP);
 
 NAN_METHOD(CursorWrap::goToKey) {
-    return getCommon(args, MDB_SET, [](CursorWrap* cw, _NAN_METHOD_ARGS, MDB_val &key) -> void {
-        argToKey(args[0], key, cw->keyIsUint32);
+    return getCommon(info, MDB_SET, [](CursorWrap* cw, Nan::NAN_METHOD_ARGS_TYPE info, MDB_val &key) -> void {
+        argToKey(info[0], key, cw->keyIsUint32);
     }, nullptr, nullptr, nullptr);
 }
 
 NAN_METHOD(CursorWrap::goToRange) {
-    return getCommon(args, MDB_SET_RANGE, [](CursorWrap* cw, _NAN_METHOD_ARGS, MDB_val &key) -> void {
-        argToKey(args[0], key, cw->keyIsUint32);
+    return getCommon(info, MDB_SET_RANGE, [](CursorWrap* cw, Nan::NAN_METHOD_ARGS_TYPE info, MDB_val &key) -> void {
+        argToKey(info[0], key, cw->keyIsUint32);
     }, nullptr, nullptr, nullptr);
 }
 
-static void fillDataFromArg1(CursorWrap* cw, _NAN_METHOD_ARGS, MDB_val &data) {
-    if (args[1]->IsString()) {
-        CustomExternalStringResource::writeTo(args[2]->ToString(), &data);
+static void fillDataFromArg1(CursorWrap* cw, Nan::NAN_METHOD_ARGS_TYPE info, MDB_val &data) {
+    if (info[1]->IsString()) {
+        CustomExternalStringResource::writeTo(info[2]->ToString(), &data);
     }
-    else if (node::Buffer::HasInstance(args[1])) {
-        data.mv_size = node::Buffer::Length(args[2]);
-        data.mv_data = node::Buffer::Data(args[2]);
+    else if (node::Buffer::HasInstance(info[1])) {
+        data.mv_size = node::Buffer::Length(info[2]);
+        data.mv_data = node::Buffer::Data(info[2]);
     }
-    else if (args[1]->IsNumber()) {
+    else if (info[1]->IsNumber()) {
         data.mv_size = sizeof(double);
         data.mv_data = new double;
-        *((double*)data.mv_data) = args[1]->ToNumber()->Value();
+        *((double*)data.mv_data) = info[1]->ToNumber()->Value();
     }
-    else if (args[1]->IsBoolean()) {
+    else if (info[1]->IsBoolean()) {
         data.mv_size = sizeof(double);
         data.mv_data = new bool;
-        *((bool*)data.mv_data) = args[1]->ToBoolean()->Value();
+        *((bool*)data.mv_data) = info[1]->ToBoolean()->Value();
     }
     else {
-        NanThrowError("Invalid data type.");
+        Nan::ThrowError("Invalid data type.");
     }
 }
 
-static void freeDataFromArg1(CursorWrap* cw, _NAN_METHOD_ARGS, MDB_val &data) {
-    if (args[1]->IsString()) {
+static void freeDataFromArg1(CursorWrap* cw, Nan::NAN_METHOD_ARGS_TYPE info, MDB_val &data) {
+    if (info[1]->IsString()) {
         delete[] (uint16_t*)data.mv_data;
     }
-    else if (node::Buffer::HasInstance(args[1])) {
+    else if (node::Buffer::HasInstance(info[1])) {
         // I think the data is owned by the node::Buffer so we don't need to free it - need to clarify
     }
-    else if (args[1]->IsNumber()) {
+    else if (info[1]->IsNumber()) {
         delete (double*)data.mv_data;
     }
-    else if (args[1]->IsBoolean()) {
+    else if (info[1]->IsBoolean()) {
         delete (bool*)data.mv_data;
     }
     else {
-        NanThrowError("Invalid data type.");
+        Nan::ThrowError("Invalid data type.");
     }
 }
 
 NAN_METHOD(CursorWrap::goToDup) {
-    return getCommon(args, MDB_GET_BOTH, [](CursorWrap* cw, _NAN_METHOD_ARGS, MDB_val &key) -> void {
-        argToKey(args[0], key, cw->keyIsUint32);
+    return getCommon(info, MDB_GET_BOTH, [](CursorWrap* cw, Nan::NAN_METHOD_ARGS_TYPE info, MDB_val &key) -> void {
+        argToKey(info[0], key, cw->keyIsUint32);
     }, fillDataFromArg1, freeDataFromArg1, nullptr);
 }
 
 NAN_METHOD(CursorWrap::goToDupRange) {
-    return getCommon(args, MDB_GET_BOTH_RANGE, [](CursorWrap* cw, _NAN_METHOD_ARGS, MDB_val &key) -> void {
-        argToKey(args[0], key, cw->keyIsUint32);
+    return getCommon(info, MDB_GET_BOTH_RANGE, [](CursorWrap* cw, Nan::NAN_METHOD_ARGS_TYPE info, MDB_val &key) -> void {
+        argToKey(info[0], key, cw->keyIsUint32);
     }, fillDataFromArg1, freeDataFromArg1, nullptr);
 }
 
 void CursorWrap::setupExports(Handle<Object> exports) {
     // CursorWrap: Prepare constructor template
-    Local<FunctionTemplate> cursorTpl = NanNew<FunctionTemplate>(CursorWrap::ctor);
-    cursorTpl->SetClassName(NanNew<String>("Cursor"));
+    Local<FunctionTemplate> cursorTpl = Nan::New<FunctionTemplate>(CursorWrap::ctor);
+    cursorTpl->SetClassName(Nan::New<String>("Cursor").ToLocalChecked());
     cursorTpl->InstanceTemplate()->SetInternalFieldCount(1);
     // CursorWrap: Add functions to the prototype
-    cursorTpl->PrototypeTemplate()->Set(NanNew<String>("close"), NanNew<FunctionTemplate>(CursorWrap::close)->GetFunction());
-    cursorTpl->PrototypeTemplate()->Set(NanNew<String>("getCurrentString"), NanNew<FunctionTemplate>(CursorWrap::getCurrentString)->GetFunction());
-    cursorTpl->PrototypeTemplate()->Set(NanNew<String>("getCurrentBinary"), NanNew<FunctionTemplate>(CursorWrap::getCurrentBinary)->GetFunction());
-    cursorTpl->PrototypeTemplate()->Set(NanNew<String>("getCurrentNumber"), NanNew<FunctionTemplate>(CursorWrap::getCurrentNumber)->GetFunction());
-    cursorTpl->PrototypeTemplate()->Set(NanNew<String>("getCurrentBoolean"), NanNew<FunctionTemplate>(CursorWrap::getCurrentBoolean)->GetFunction());
-    cursorTpl->PrototypeTemplate()->Set(NanNew<String>("goToFirst"), NanNew<FunctionTemplate>(CursorWrap::goToFirst)->GetFunction());
-    cursorTpl->PrototypeTemplate()->Set(NanNew<String>("goToLast"), NanNew<FunctionTemplate>(CursorWrap::goToLast)->GetFunction());
-    cursorTpl->PrototypeTemplate()->Set(NanNew<String>("goToNext"), NanNew<FunctionTemplate>(CursorWrap::goToNext)->GetFunction());
-    cursorTpl->PrototypeTemplate()->Set(NanNew<String>("goToPrev"), NanNew<FunctionTemplate>(CursorWrap::goToPrev)->GetFunction());
-    cursorTpl->PrototypeTemplate()->Set(NanNew<String>("goToKey"), NanNew<FunctionTemplate>(CursorWrap::goToKey)->GetFunction());
-    cursorTpl->PrototypeTemplate()->Set(NanNew<String>("goToRange"), NanNew<FunctionTemplate>(CursorWrap::goToRange)->GetFunction());
-    cursorTpl->PrototypeTemplate()->Set(NanNew<String>("goToFirstDup"), NanNew<FunctionTemplate>(CursorWrap::goToFirstDup)->GetFunction());
-    cursorTpl->PrototypeTemplate()->Set(NanNew<String>("goToLastDup"), NanNew<FunctionTemplate>(CursorWrap::goToLastDup)->GetFunction());
-    cursorTpl->PrototypeTemplate()->Set(NanNew<String>("goToNextDup"), NanNew<FunctionTemplate>(CursorWrap::goToNextDup)->GetFunction());
-    cursorTpl->PrototypeTemplate()->Set(NanNew<String>("goToPrevDup"), NanNew<FunctionTemplate>(CursorWrap::goToPrevDup)->GetFunction());
-    cursorTpl->PrototypeTemplate()->Set(NanNew<String>("goToDup"), NanNew<FunctionTemplate>(CursorWrap::goToDup)->GetFunction());
-    cursorTpl->PrototypeTemplate()->Set(NanNew<String>("goToDupRange"), NanNew<FunctionTemplate>(CursorWrap::goToDupRange)->GetFunction());
-    cursorTpl->PrototypeTemplate()->Set(NanNew<String>("del"), NanNew<FunctionTemplate>(CursorWrap::del)->GetFunction());
+    cursorTpl->PrototypeTemplate()->Set(Nan::New<String>("close").ToLocalChecked(), Nan::New<FunctionTemplate>(CursorWrap::close)->GetFunction());
+    cursorTpl->PrototypeTemplate()->Set(Nan::New<String>("getCurrentString").ToLocalChecked(), Nan::New<FunctionTemplate>(CursorWrap::getCurrentString)->GetFunction());
+    cursorTpl->PrototypeTemplate()->Set(Nan::New<String>("getCurrentBinary").ToLocalChecked(), Nan::New<FunctionTemplate>(CursorWrap::getCurrentBinary)->GetFunction());
+    cursorTpl->PrototypeTemplate()->Set(Nan::New<String>("getCurrentNumber").ToLocalChecked(), Nan::New<FunctionTemplate>(CursorWrap::getCurrentNumber)->GetFunction());
+    cursorTpl->PrototypeTemplate()->Set(Nan::New<String>("getCurrentBoolean").ToLocalChecked(), Nan::New<FunctionTemplate>(CursorWrap::getCurrentBoolean)->GetFunction());
+    cursorTpl->PrototypeTemplate()->Set(Nan::New<String>("goToFirst").ToLocalChecked(), Nan::New<FunctionTemplate>(CursorWrap::goToFirst)->GetFunction());
+    cursorTpl->PrototypeTemplate()->Set(Nan::New<String>("goToLast").ToLocalChecked(), Nan::New<FunctionTemplate>(CursorWrap::goToLast)->GetFunction());
+    cursorTpl->PrototypeTemplate()->Set(Nan::New<String>("goToNext").ToLocalChecked(), Nan::New<FunctionTemplate>(CursorWrap::goToNext)->GetFunction());
+    cursorTpl->PrototypeTemplate()->Set(Nan::New<String>("goToPrev").ToLocalChecked(), Nan::New<FunctionTemplate>(CursorWrap::goToPrev)->GetFunction());
+    cursorTpl->PrototypeTemplate()->Set(Nan::New<String>("goToKey").ToLocalChecked(), Nan::New<FunctionTemplate>(CursorWrap::goToKey)->GetFunction());
+    cursorTpl->PrototypeTemplate()->Set(Nan::New<String>("goToRange").ToLocalChecked(), Nan::New<FunctionTemplate>(CursorWrap::goToRange)->GetFunction());
+    cursorTpl->PrototypeTemplate()->Set(Nan::New<String>("goToFirstDup").ToLocalChecked(), Nan::New<FunctionTemplate>(CursorWrap::goToFirstDup)->GetFunction());
+    cursorTpl->PrototypeTemplate()->Set(Nan::New<String>("goToLastDup").ToLocalChecked(), Nan::New<FunctionTemplate>(CursorWrap::goToLastDup)->GetFunction());
+    cursorTpl->PrototypeTemplate()->Set(Nan::New<String>("goToNextDup").ToLocalChecked(), Nan::New<FunctionTemplate>(CursorWrap::goToNextDup)->GetFunction());
+    cursorTpl->PrototypeTemplate()->Set(Nan::New<String>("goToPrevDup").ToLocalChecked(), Nan::New<FunctionTemplate>(CursorWrap::goToPrevDup)->GetFunction());
+    cursorTpl->PrototypeTemplate()->Set(Nan::New<String>("goToDup").ToLocalChecked(), Nan::New<FunctionTemplate>(CursorWrap::goToDup)->GetFunction());
+    cursorTpl->PrototypeTemplate()->Set(Nan::New<String>("goToDupRange").ToLocalChecked(), Nan::New<FunctionTemplate>(CursorWrap::goToDupRange)->GetFunction());
+    cursorTpl->PrototypeTemplate()->Set(Nan::New<String>("del").ToLocalChecked(), Nan::New<FunctionTemplate>(CursorWrap::del)->GetFunction());
 
     // Set exports
-    exports->Set(NanNew<String>("Cursor"), cursorTpl->GetFunction());
+    exports->Set(Nan::New<String>("Cursor").ToLocalChecked(), cursorTpl->GetFunction());
 }
