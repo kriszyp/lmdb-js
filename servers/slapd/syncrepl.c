@@ -5687,7 +5687,7 @@ syncrepl_config( ConfigArgs *c )
 					 * happen when running on the cn=config DB.
 					 */
 					if ( si->si_re ) {
-						if ( ldap_pvt_thread_mutex_trylock( &si->si_mutex )) {
+						if ( si->si_be == c->be || ldap_pvt_thread_mutex_trylock( &si->si_mutex )) {
 							isrunning = 1;
 						} else {
 							/* There is no active thread, but we must still
