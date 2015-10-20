@@ -21,6 +21,9 @@
 #include <ac/stdlib.h>
 #include <ac/string.h>
 #include <ac/unistd.h>
+#ifdef _WIN32
+#include <fcntl.h>
+#endif
 
 #define DEFAULT_SPECS "ndb=a,null=n"
 
@@ -233,6 +236,9 @@ main( int argc, char **argv )
 		backend = "";
 	}
 
+#ifdef _WIN32
+	_setmode(1, _O_BINARY);	/* don't convert \n to \r\n on stdout */
+#endif
 	flags = get_flags( backend, specs );
 	filter_stdin( flags ? flags : get_flags( backend, DEFAULT_SPECS ));
 	if ( fclose( stdout ) == EOF ) {
