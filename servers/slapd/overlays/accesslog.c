@@ -1869,8 +1869,6 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 	e = NULL;
 	if ( do_graduate ) {
 		slap_graduate_commit_csn( &op2 );
-		if ( op2.o_csn.bv_val )
-			op->o_tmpfree( op2.o_csn.bv_val, op->o_tmpmemctx );
 	}
 
 done:
