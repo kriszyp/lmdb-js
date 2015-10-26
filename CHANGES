@@ -12,6 +12,7 @@ OpenLDAP 2.4.43 Engineering
 	Fixed slapd-ldap SEGV after failed retry (ITS#8173)
 	Fixed slapd-ldap to skip client controls in ldap_back_entry_get (ITS#8244)
 	Fixed slapd-null to have an option to return a search entry (ITS#8249)
+	Fixed slapd-relay to correctly handle quoted options (ITS#8284)
 	Fixed slapo-accesslog delta-sync MMR with interrupted refresh phase (ITS#8281)
 	Fixed slapo-dds segfault when using slapo-memberof (ITS#8133)
 	Fixed slapo-ppolicy to allow purging of stale pwdFailureTime attributes (ITS#8185)
