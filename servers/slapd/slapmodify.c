@@ -38,6 +38,8 @@
 
 #include "slapcommon.h"
 
+extern int slap_DN_strict;	/* dn.c */
+
 static char csnbuf[ LDAP_PVT_CSNSTR_BUFSIZE ];
 
 int
@@ -98,9 +100,12 @@ slapmodify( int argc, char **argv )
 	lmax = 0;
 	nextline = 0;
 
-	/* enforce schema checking unless not disabled */
+	/* enforce schema checking unless not disabled and allow unknown
+	 * attributes otherwise */
 	if ( (slapMode & SLAP_TOOL_NO_SCHEMA_CHECK) == 0) {
 		SLAP_DBFLAGS(be) &= ~(SLAP_DBFLAG_NO_SCHEMA_CHECK);
+	} else {
+		slap_DN_strict = 0;
 	}
 
 	if( !dryrun && be->be_entry_open( be, 1 ) != 0 ) {
@@ -425,12 +430,13 @@ slapmodify( int argc, char **argv )
 					break;
 				}
 
+				ber_bvarray_free( mods.sm_values );
+				ber_bvarray_free( mods.sm_nvalues );
+
 				if ( local_rc != LDAP_SUCCESS ) {
 					fprintf( stderr, "%s: DN=\"%s\": unable to modify attr=%s\n",
 						progname, e->e_dn, mods.sm_desc->ad_cname.bv_val );
 					rc = EXIT_FAILURE;
-					ber_bvarray_free( mods.sm_values );
-					ber_bvarray_free( mods.sm_nvalues );
 					goto cleanup;
 				}
 			}
@@ -479,8 +485,6 @@ slapmodify( int argc, char **argv )
 
 			a = attr_find( e->e_attrs, slap_schema.si_ad_entryUUID );
 			if ( a != NULL ) {
-				vals[0].bv_len = lutil_uuidstr( uuidbuf, sizeof( uuidbuf ) );
-				vals[0].bv_val = uuidbuf;
 				if ( a->a_vals != a->a_nvals ) {
 					SLAP_FREE( a->a_nvals[0].bv_val );
 					SLAP_FREE( a->a_nvals );
@@ -491,6 +495,8 @@ slapmodify( int argc, char **argv )
 				a->a_nvals = NULL;
 				a->a_numvals = 0;
 			}
+			vals[0].bv_len = lutil_uuidstr( uuidbuf, sizeof( uuidbuf ) );
+			vals[0].bv_val = uuidbuf;
 			attr_merge_normalize_one( e, slap_schema.si_ad_entryUUID, vals, NULL );
 
 			a = attr_find( e->e_attrs, slap_schema.si_ad_creatorsName );
@@ -558,15 +564,14 @@ slapmodify( int argc, char **argv )
 				break;
 
 			case LDAP_REQ_DELETE:
-				rc = be->be_entry_delete( be, id, &bvtext );
-				e_orig = NULL;
+				rc = be->be_entry_delete( be, &ndn, &bvtext );
 				break;
 
 			}
 
 			if( rc != LDAP_SUCCESS ) {
 				fprintf( stderr, "%s: could not %s entry dn=\"%s\" "
-					"(line=%lu): %s\n", progname, request, e->e_dn,
+					"(line=%lu): %s\n", progname, request, ndn.bv_val,
 					lineno, bvtext.bv_val );
 				rc = EXIT_FAILURE;
 				goto cleanup;
@@ -576,11 +581,11 @@ slapmodify( int argc, char **argv )
 
 			if ( verbose )
 				fprintf( stderr, "%s: \"%s\" (%08lx)\n",
-					request, e->e_dn, (long) id );
+					request, ndn.bv_val, (long) id );
 		} else {
 			if ( verbose )
 				fprintf( stderr, "%s: \"%s\"\n",
-					request, e->e_dn );
+					request, ndn.bv_val );
 		}
 
 cleanup:;

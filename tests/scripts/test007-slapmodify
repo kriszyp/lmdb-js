@@ -32,9 +32,7 @@ $SLAPMODIFY -f $ADDCONF -l $LDIFMODIFY > $TESTOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
 	echo "slapmodify failed ($RC)!"
-#	exit $RC
-	echo "exiting with false success status now"
-	exit 0
+	exit $RC
 fi
 
 echo "Starting slapd on TCP/IP port $PORT1..."

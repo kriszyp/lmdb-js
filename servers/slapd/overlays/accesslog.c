@@ -1490,9 +1490,17 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 	if ( lo->mask & LOG_OP_WRITES ) {
 		slap_callback *cb;
 
-		/* These internal ops are not logged */
-		if ( op->o_dont_replicate && op->orm_no_opattrs )
+		/* Most internal ops are not logged */
+		if ( op->o_dont_replicate) {
+			/* Let contextCSN updates from syncrepl thru; the underlying
+			 * syncprov needs to see them. Skip others.
+			 */
+			if (( op->o_tag != LDAP_REQ_MODIFY ||
+				op->orm_modlist->sml_op != LDAP_MOD_REPLACE ||
+				op->orm_modlist->sml_desc != slap_schema.si_ad_contextCSN ) &&
+				op->orm_no_opattrs )
 			return SLAP_CB_CONTINUE;
+		}
 
 		ldap_pvt_thread_mutex_lock( &li->li_log_mutex );
 		old = li->li_old;
@@ -1831,10 +1839,29 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 	op2.o_req_ndn = e->e_nname;
 	op2.ora_e = e;
 	op2.o_callback = &nullsc;
+	op2.o_csn = op->o_csn;
+	/* contextCSN updates may still reach here */
+	op2.o_dont_replicate = op->o_dont_replicate;
 
 	if (( lo->mask & LOG_OP_WRITES ) && !BER_BVISEMPTY( &op->o_csn )) {
-		slap_queue_csn( &op2, &op->o_csn );
-		do_graduate = 1;
+		struct berval maxcsn;
+		char cbuf[LDAP_PVT_CSNSTR_BUFSIZE];
+		int foundit;
+		cbuf[0] = '\0';
+		maxcsn.bv_val = cbuf;
+		maxcsn.bv_len = sizeof(cbuf);
+		/* If there was a commit CSN on the main DB,
+		 * we must propagate it to the log DB for its
+		 * own syncprov. Otherwise, don't generate one.
+		 */
+		slap_get_commit_csn( op, &maxcsn, &foundit );
+		if ( !BER_BVISEMPTY( &maxcsn ) ) {
+			slap_queue_csn( &op2, &op->o_csn );
+			do_graduate = 1;
+		} else {
+			attr_merge_normalize_one( e, slap_schema.si_ad_entryCSN,
+				&op->o_csn, op->o_tmpmemctx );
+		}
 	}
 
 	op2.o_bd->be_add( &op2, &rs2 );
@@ -1842,8 +1869,6 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 	e = NULL;
 	if ( do_graduate ) {
 		slap_graduate_commit_csn( &op2 );
-		if ( op2.o_csn.bv_val )
-			op->o_tmpfree( op2.o_csn.bv_val, op->o_tmpmemctx );
 	}
 
 done:
@@ -1922,8 +1947,18 @@ accesslog_op_mod( Operation *op, SlapReply *rs )
 	int doit = 0;
 
 	/* These internal ops are not logged */
-	if ( op->o_dont_replicate && op->orm_no_opattrs )
+	if ( op->o_dont_replicate ) {
+		/* Let contextCSN updates from syncrepl thru; the underlying
+		 * syncprov needs to see them. Skip others.
+		 */
+		if (( op->o_tag != LDAP_REQ_MODIFY ||
+			op->orm_modlist->sml_op != LDAP_MOD_REPLACE ||
+			op->orm_modlist->sml_desc != slap_schema.si_ad_contextCSN ) &&
+			op->orm_no_opattrs )
 		return SLAP_CB_CONTINUE;
+		/* give this a unique timestamp */
+		op->o_tincr++;
+	}
 
 	logop = accesslog_op2logop( op );
 	lo = logops+logop+EN_OFFSET;

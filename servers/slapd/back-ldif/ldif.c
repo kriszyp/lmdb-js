@@ -1891,22 +1891,16 @@ ldif_tool_entry_modify( BackendDB *be, Entry *e, struct berval *text )
 }
 
 static int
-ldif_tool_entry_delete( BackendDB *be, ID id, struct berval *text )
+ldif_tool_entry_delete( BackendDB *be, struct berval *ndn, struct berval *text )
 {
 	struct ldif_tool *tl = &((struct ldif_info *) be->be_private)->li_tool;
 	int rc = LDAP_SUCCESS;
 	const char *errmsg = NULL;
 	struct berval path;
-	Entry *e;
 	Operation op = {0};
 
-	id--;
-	if ( id >= tl->ecount || tl->entries[id] == NULL )
-		return LDAP_OTHER;
-	e = tl->entries[id];
-
 	op.o_bd = be;
-	ndn2path( &op, &e->e_nname, &path, 0 );
+	ndn2path( &op, ndn, &path, 0 );
 
 	ldif2dir_len( path );
 	ldif2dir_name( path );
@@ -1937,8 +1931,6 @@ ldif_tool_entry_delete( BackendDB *be, ID id, struct berval *text )
 	}
 
 	SLAP_FREE( path.bv_val );
-	entry_free( e );
-	tl->entries[id] = NULL;
 
 	if ( errmsg == NULL && rc != LDAP_OTHER )
 		errmsg = ldap_err2string( rc );

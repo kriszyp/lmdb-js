@@ -386,6 +386,7 @@ extern BI_tool_entry_put		mdb_tool_entry_put;
 extern BI_tool_entry_reindex		mdb_tool_entry_reindex;
 extern BI_tool_dn2id_get		mdb_tool_dn2id_get;
 extern BI_tool_entry_modify		mdb_tool_entry_modify;
+extern BI_tool_entry_delete		mdb_tool_entry_delete;
 
 extern mdb_idl_keyfunc mdb_tool_idl_add;
 

@@ -482,6 +482,7 @@ mdb_back_initialize(
 	bi->bi_tool_sync = 0;
 	bi->bi_tool_dn2id_get = mdb_tool_dn2id_get;
 	bi->bi_tool_entry_modify = mdb_tool_entry_modify;
+	bi->bi_tool_entry_delete = mdb_tool_entry_delete;
 
 	bi->bi_connection_init = 0;
 	bi->bi_connection_destroy = 0;

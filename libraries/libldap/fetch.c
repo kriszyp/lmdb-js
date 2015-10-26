@@ -50,9 +50,22 @@ ldif_open_url(
 		/* we don't check for LDAP_DIRSEP since URLs should contain '/' */
 		if ( urlstr[0] == '/' && urlstr[1] == '/' ) {
 			urlstr += 2;
-			/* path must be absolute if authority is present */
-			if ( urlstr[0] != '/' )
+			/* path must be absolute if authority is present
+			 * technically, file://hostname/path is also legal but we don't
+			 * accept a non-empty hostname
+			 */
+			if ( urlstr[0] != '/' ) {
+#ifdef _WIN32
+				/* An absolute path in improper file://C:/foo/bar format */
+				if ( urlstr[1] != ':' )
+#endif
 				return NULL;
+			}
+#ifdef _WIN32
+			/* An absolute path in proper file:///C:/foo/bar format */
+			if ( urlstr[2] == ':' )
+				urlstr++;
+#endif
 		}
 
 		p = ber_strdup( urlstr );

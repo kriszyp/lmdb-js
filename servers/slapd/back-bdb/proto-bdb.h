@@ -640,6 +640,7 @@ bdb_trans_backoff( int num_retries );
 #define bdb_tool_dn2id_get		BDB_SYMBOL(tool_dn2id_get)
 #define bdb_tool_entry_modify		BDB_SYMBOL(tool_entry_modify)
 #define bdb_tool_idl_add		BDB_SYMBOL(tool_idl_add)
+#define bdb_tool_entry_delete		BDB_SYMBOL(tool_entry_delete)
 
 extern BI_init				bdb_back_initialize;
 
@@ -670,6 +671,7 @@ extern BI_tool_entry_put		bdb_tool_entry_put;
 extern BI_tool_entry_reindex		bdb_tool_entry_reindex;
 extern BI_tool_dn2id_get		bdb_tool_dn2id_get;
 extern BI_tool_entry_modify		bdb_tool_entry_modify;
+extern BI_tool_entry_delete		bdb_tool_entry_delete;
 
 int bdb_tool_idl_add( BackendDB *be, DB *db, DB_TXN *txn, DBT *key, ID id );
 

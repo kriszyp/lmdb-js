@@ -32,7 +32,7 @@ static ConfigDriver relay_back_cf;
 
 static ConfigTable relaycfg[] = {
 	{ "relay", "relay", 2, 2, 0,
-		ARG_MAGIC|ARG_DN,
+		ARG_MAGIC|ARG_DN|ARG_QUOTE,
 		relay_back_cf, "( OLcfgDbAt:5.1 "
 			"NAME 'olcRelay' "
 			"DESC 'Relay DN' "
