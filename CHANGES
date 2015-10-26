@@ -23,7 +23,8 @@ OpenLDAP 2.4.43 Engineering
 	Fixed slapo-rwm missing olcDropUnrequested attribute (ITS#7889)
 	Fixed slapo-rwm parsing to avoid double-escaping rewrite rules (ITS#7964)
 	Build Environment
-		Fix EOL handling in test output for windows (ITS#8280)
+		Fixed slapd-tester EOL handling in test output for windows (ITS#8280)
+		Fixed slapd-tester executable suffix for windows (ITS#8216)
 	Contrib
 		Added libnettle support to pw-pbkdf2 (ITS#8198)
 		Fixed smbk5pwd compiler warnings with libnettle (ITS#8235)
