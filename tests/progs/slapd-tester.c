@@ -40,12 +40,18 @@
 #include "lber_pvt.h"
 #include "slapd-common.h"
 
-#define SEARCHCMD		"slapd-search"
-#define READCMD			"slapd-read"
-#define ADDCMD			"slapd-addel"
-#define MODRDNCMD		"slapd-modrdn"
-#define MODIFYCMD		"slapd-modify"
-#define BINDCMD			"slapd-bind"
+#ifdef _WIN32
+#define EXE		".exe"
+#else
+#define EXE
+#endif
+
+#define SEARCHCMD		"slapd-search" EXE
+#define READCMD			"slapd-read" EXE
+#define ADDCMD			"slapd-addel" EXE
+#define MODRDNCMD		"slapd-modrdn" EXE
+#define MODIFYCMD		"slapd-modify" EXE
+#define BINDCMD			"slapd-bind" EXE
 #define MAXARGS      		100
 #define MAXREQS			5000
 #define LOOPS			100
