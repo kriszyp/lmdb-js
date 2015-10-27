@@ -388,6 +388,7 @@ modify_increment_values(
 	char *textbuf, size_t textlen )
 {
 	Attribute *a;
+	const char *syn_oid;
 
 	a = attr_find( e->e_attrs, mod->sm_desc );
 	if( a == NULL ) {
@@ -406,7 +407,8 @@ modify_increment_values(
 		}
 	}
 
-	if ( !strcmp( a->a_desc->ad_type->sat_syntax_oid, SLAPD_INTEGER_SYNTAX )) {
+	syn_oid = at_syntax( a->a_desc->ad_type );
+	if ( syn_oid && !strcmp( syn_oid, SLAPD_INTEGER_SYNTAX )) {
 		int i;
 		char str[sizeof(long)*3 + 2]; /* overly long */
 		long incr;
@@ -446,7 +448,7 @@ modify_increment_values(
 		snprintf( textbuf, textlen,
 			"modify/increment: %s: increment not supported for value syntax %s",
 			mod->sm_desc->ad_cname.bv_val,
-			a->a_desc->ad_type->sat_syntax_oid );
+			syn_oid ? syn_oid : "(NULL)" );
 		return LDAP_CONSTRAINT_VIOLATION;
 	}
 
