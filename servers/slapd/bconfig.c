@@ -7597,17 +7597,17 @@ config_tool_entry_modify( BackendDB *be, Entry *e, struct berval *text )
 }
 
 static int
-config_tool_entry_delete( BackendDB *be, Entry *e, struct berval *text )
+config_tool_entry_delete( BackendDB *be, struct berval *ndn, struct berval *text )
 {
 	CfBackInfo *cfb = be->be_private;
 	BackendInfo *bi = cfb->cb_db.bd_info;
 	CfEntryInfo *ce, *last;
 	ConfigArgs ca = {0};
 
-	ce = config_find_base( cfb->cb_root, &e->e_nname, &last );
+	ce = config_find_base( cfb->cb_root, ndn, &last );
 
 	if ( ce && bi && bi->bi_tool_entry_delete )
-		return bi->bi_tool_entry_delete( &cfb->cb_db, e, text );
+		return bi->bi_tool_entry_delete( &cfb->cb_db, ndn, text );
 
 	return LDAP_OTHER;
 }
