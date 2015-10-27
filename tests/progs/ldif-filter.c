@@ -59,15 +59,21 @@ get_flags( const char *backend, const char *spec )
 {
 	size_t len = strlen( backend );
 	unsigned flags = DUMMY_FLAG;
-	const char *tmp;
+	const char *end, *tmp;
 
-	while ( '=' != *(spec += strncmp( spec, backend, len ) ? 0 : len) ) {
-		if ( (spec = strchr( spec, ',' )) == NULL ) {
+	for ( ;; spec = end + ( *end != '\0' )) {
+		if ( !*spec )
 			return 0;
+		end = spec + strcspn( spec, "," );
+		if ( !(tmp = memchr( spec, '=', end-spec )))
+			break;
+		if ( tmp-spec == len && !memcmp( spec, backend, len )) {
+			spec = tmp+1;
+			break;
 		}
-		++spec;
 	}
-	while ( *++spec && *spec != ',' ) {
+
+	for ( ; spec < end; spec++ ) {
 		if ( (tmp = strchr( spec_options, *spec )) == NULL ) {
 			usage();
 		}

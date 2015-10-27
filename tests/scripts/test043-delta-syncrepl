@@ -32,6 +32,8 @@ fi
 
 mkdir -p $TESTDIR $DBDIR1A $DBDIR1B $DBDIR2
 
+SPEC="mdb=a,bdb=a,hdb=a"
+
 #
 # Test replication:
 # - start provider
@@ -268,9 +270,9 @@ if test $RC != 0 ; then
 fi
 
 echo "Filtering provider results..."
-$LDIFFILTER -s bdb=a,hdb=a < $MASTEROUT | grep -iv "^auditcontext:" > $MASTERFLT
+$LDIFFILTER -b $BACKEND -s $SPEC < $MASTEROUT | grep -iv "^auditcontext:" > $MASTERFLT
 echo "Filtering consumer results..."
-$LDIFFILTER -s bdb=a,hdb=a < $SLAVEOUT | grep -iv "^auditcontext:" > $SLAVEFLT
+$LDIFFILTER -b $BACKEND -s $SPEC < $SLAVEOUT | grep -iv "^auditcontext:" > $SLAVEFLT
 
 echo "Comparing retrieved entries from provider and consumer..."
 $CMP $MASTERFLT $SLAVEFLT > $CMPOUT
@@ -375,9 +377,9 @@ fi
 test $KILLSERVERS != no && kill -HUP $KILLPIDS
 
 echo "Filtering provider results..."
-$LDIFFILTER -s bdb=a,hdb=a < $MASTEROUT | grep -iv "^auditcontext:" > $MASTERFLT
+$LDIFFILTER -b $BACKEND -s $SPEC < $MASTEROUT | grep -iv "^auditcontext:" > $MASTERFLT
 echo "Filtering consumer results..."
-$LDIFFILTER -s bdb=a,hdb=a < $SLAVEOUT | grep -iv "^auditcontext:" > $SLAVEFLT
+$LDIFFILTER -b $BACKEND -s $SPEC < $SLAVEOUT | grep -iv "^auditcontext:" > $SLAVEFLT
 
 echo "Comparing retrieved entries from provider and consumer..."
 $CMP $MASTERFLT $SLAVEFLT > $CMPOUT
