@@ -26,6 +26,7 @@ OpenLDAP 2.4.43 Engineering
 	Build Environment
 		Fixed slapd-tester EOL handling in test output for windows (ITS#8280)
 		Fixed slapd-tester executable suffix for windows (ITS#8216)
+		Fixed ldif-filter option parsing (ITS#8292)
 	Contrib
 		Added libnettle support to pw-pbkdf2 (ITS#8198)
 		Fixed smbk5pwd compiler warnings with libnettle (ITS#8235)
