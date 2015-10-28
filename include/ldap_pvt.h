@@ -127,6 +127,12 @@ struct lutil_tm;
 LDAP_F( void )
 ldap_pvt_gettime LDAP_P(( struct lutil_tm * ));
 
+#ifdef _WIN32
+#define gettimeofday(tv,tz)	ldap_pvt_gettimeofday(tv,tz)
+LDAP_F( int )
+ldap_pvt_gettimeofday LDAP_P(( struct timeval *tv, void *unused ));
+#endif
+
 /* use this macro to allocate buffer for ldap_pvt_csnstr */
 #define LDAP_PVT_CSNSTR_BUFSIZE	64
 LDAP_F( size_t )
