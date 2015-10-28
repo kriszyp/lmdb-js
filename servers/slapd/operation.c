@@ -38,8 +38,7 @@
 #endif
 
 static ldap_pvt_thread_mutex_t	slap_op_mutex;
-static time_t last_time;
-static int last_incr;
+static struct timeval last_time;
 
 void slap_op_init(void)
 {
@@ -159,16 +158,31 @@ slap_op_free( Operation *op, void *ctx )
 void
 slap_op_time(time_t *t, int *nop)
 {
-	*t = slap_get_time();
+	struct timeval tv;
+#if SLAP_STATS_ETIME
+	gettimeofday( &tv, NULL );
+#else
+	tv.tv_sec = slap_get_time();
+	tv.tv_usec = 0;
+#endif
 	ldap_pvt_thread_mutex_lock( &slap_op_mutex );
-	if ( *t == last_time ) {
-		*nop = ++last_incr;
-	} else {
-		last_time = *t;
-		last_incr = 0;
-		*nop = 0;
+	/* Usually tv.tv_sec cannot be < last_time.tv_sec
+	 * but it might happen if we wrapped around tv_usec.
+	 */
+	if ( tv.tv_sec <= last_time.tv_sec &&
+		tv.tv_usec <= last_time.tv_usec ) {
+		tv.tv_sec = last_time.tv_sec;
+		tv.tv_usec = last_time.tv_usec + 1;
+		if (tv.tv_usec >= 1000000) {
+			tv.tv_usec -= 1000000;
+			tv.tv_sec++;
+			last_time.tv_sec = tv.tv_sec;
+		}
 	}
+	last_time.tv_usec = tv.tv_usec;
 	ldap_pvt_thread_mutex_unlock( &slap_op_mutex );
+	*t = tv.tv_sec;
+	*nop = tv.tv_usec;
 }
 
 Operation *
@@ -204,9 +218,6 @@ slap_op_alloc(
 	op->o_tag = tag;
 
 	slap_op_time( &op->o_time, &op->o_tincr );
-#ifdef HAVE_GETTIMEOFDAY
-	(void) gettimeofday( &op->o_hr_time, NULL );
-#endif
 	op->o_opid = id;
 
 #if defined( LDAP_SLAPI )

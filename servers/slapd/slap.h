@@ -74,6 +74,10 @@ LDAP_BEGIN_DECL
 #define SLAP_CONTROL_X_SESSION_TRACKING
 #define SLAP_DISTPROC
 
+#ifndef SLAP_STATS_ETIME
+#define SLAP_STATS_ETIME	1 /* microsecond op timing */
+#endif
+
 #ifdef ENABLE_REWRITE
 #define SLAP_AUTH_REWRITE	1 /* use librewrite for sasl-regexp */
 #endif
@@ -2618,9 +2622,6 @@ struct Operation {
 #define o_log_prefix o_hdr->oh_log_prefix
 
 	ber_tag_t	o_tag;		/* tag of the request */
-#ifdef HAVE_GETTIMEOFDAY
-	struct timeval o_hr_time;	/* high-resolution time of op start*/
-#endif
 	time_t		o_time;		/* time op was initiated */
 	int			o_tincr;	/* counter for multiple ops with same o_time */
 

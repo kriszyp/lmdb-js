@@ -36,19 +36,24 @@
 #include <ac/unistd.h>
 
 #include "slap.h"
-#include "ldap_log.h"
 
-/* BSD seems to guarantee that this will be a macro, so... */
-#ifndef timersub
-#  define timersub(a,b,res) do {										\
-		(res)->tv_sec = (a)->tv_sec - (b)->tv_sec;						\
-		(res)->tv_usec = (a)->tv_usec - (b)->tv_usec;					\
-		if ((res)->tv_usec < 0) {										\
-			--(res)->tv_sec;											\
-			(res)->tv_usec += 1000000;									\
-		}																\
-	} while (0)
-#endif
+#if SLAP_STATS_ETIME
+#define ETIME_SETUP \
+	struct timeval now; \
+	(void) gettimeofday( &now, NULL ); \
+	now.tv_sec -= op->o_time; \
+	now.tv_usec -= op->o_tincr; \
+	if ( now.tv_usec < 0 ) { \
+		--now.tv_sec; now.tv_usec += 1000000; \
+	}
+#define ETIME_LOGFMT	"etime=%d.%06d "
+#define StatslogEtime(lvl,fmt,pfx,tag,err,etxt,xtra) \
+	Statslog7(lvl,fmt,pfx,tag,err,(int)now.tv_sec,(int)now.tv_usec,etxt,xtra)
+#else
+#define ETIME_SETUP
+#define ETIME_LOGFMT	""
+#define StatslogEtime	Statslog
+#endif	/* SLAP_STATS_ETIME */
 
 const struct berval slap_dummy_bv = BER_BVNULL;
 
@@ -832,27 +837,11 @@ send_ldap_disconnect( Operation	*op, SlapReply *rs )
 	}
 
 	if ( send_ldap_response( op, rs ) == SLAP_CB_CONTINUE ) {
-#ifdef HAVE_GETTIMEOFDAY
-		struct timeval now;
-		struct timeval duration;
-		time_t msec;
-
-		(void) gettimeofday( &now, NULL );
-		timersub( &now, &op->o_hr_time, &duration );
-		msec = duration.tv_usec / 1000 + duration.tv_sec * 1000;
-
-		Statslog6( LDAP_DEBUG_STATS,
-			"%s DISCONNECT tag=%lu err=%d duration=%d.%03dms text=%s\n",
-			op->o_log_prefix, rs->sr_tag, rs->sr_err,
-			msec,
-			duration.tv_usec % 1000,
-			rs->sr_text ? rs->sr_text : "" );
-#else
-		Statslog( LDAP_DEBUG_STATS,
-			"%s DISCONNECT tag=%lu err=%d text=%s\n",
+		ETIME_SETUP;
+		StatslogEtime( LDAP_DEBUG_STATS,
+			"%s DISCONNECT tag=%lu err=%d "ETIME_LOGFMT"text=%s\n",
 			op->o_log_prefix, rs->sr_tag, rs->sr_err,
 			rs->sr_text ? rs->sr_text : "", 0 );
-#endif
 	}
 }
 
@@ -914,49 +903,18 @@ abandon:
 	}
 
 	if ( send_ldap_response( op, rs ) == SLAP_CB_CONTINUE ) {
-
-#ifdef HAVE_GETTIMEOFDAY
-		struct timeval now;
-		struct timeval duration;
-		time_t msec;
-
-		(void) gettimeofday( &now, NULL );
-		timersub( &now, &op->o_hr_time, &duration );
-		msec = duration.tv_usec / 1000 + duration.tv_sec * 1000;
-
+		ETIME_SETUP;
 		if ( op->o_tag == LDAP_REQ_SEARCH ) {
-			Statslog7( LDAP_DEBUG_STATS,
-				"%s SEARCH RESULT tag=%lu err=%d duration=%d.%03dms nentries=%d text=%s\n",
-				op->o_log_prefix,
-				rs->sr_tag,
-				rs->sr_err,
-				msec,
-				duration.tv_usec % 1000,
-				rs->sr_nentries,
-				rs->sr_text ? rs->sr_text : "");
-		} else {
-			Statslog6( LDAP_DEBUG_STATS,
-				"%s RESULT tag=%lu err=%d duration=%d.%03dms text=%s\n",
-				op->o_log_prefix,
-				rs->sr_tag,
-				rs->sr_err,
-				msec,
-				duration.tv_usec % 1000,
-				rs->sr_text ? rs->sr_text : "");
-		}
-#else
-		if ( op->o_tag == LDAP_REQ_SEARCH ) {
-			Statslog( LDAP_DEBUG_STATS,
-				"%s SEARCH RESULT tag=%lu err=%d nentries=%d text=%s\n",
+			StatslogEtime( LDAP_DEBUG_STATS,
+				"%s SEARCH RESULT tag=%lu err=%d "ETIME_LOGFMT"nentries=%d text=%s\n",
 				op->o_log_prefix, rs->sr_tag, rs->sr_err,
 				rs->sr_nentries, rs->sr_text ? rs->sr_text : "" );
 		} else {
-			Statslog( LDAP_DEBUG_STATS,
-				"%s RESULT tag=%lu err=%d text=%s\n",
+			StatslogEtime( LDAP_DEBUG_STATS,
+				"%s RESULT tag=%lu err=%d "ETIME_LOGFMT"text=%s\n",
 				op->o_log_prefix, rs->sr_tag, rs->sr_err,
 				rs->sr_text ? rs->sr_text : "", 0 );
 		}
-#endif
 	}
 
 	if( tmp != NULL ) ch_free(tmp);
@@ -979,27 +937,11 @@ send_ldap_sasl( Operation *op, SlapReply *rs )
 	rs->sr_msgid = (rs->sr_tag != LBER_SEQUENCE) ? op->o_msgid : 0;
 
 	if ( send_ldap_response( op, rs ) == SLAP_CB_CONTINUE ) {
-#ifdef HAVE_GETTIMEOFDAY
-		struct timeval now;
-		struct timeval duration;
-		time_t msec;
-
-		(void) gettimeofday( &now, NULL );
-		timersub( &now, &op->o_hr_time, &duration );
-		msec = duration.tv_usec / 1000 + duration.tv_sec * 1000;
-
-		Statslog6( LDAP_DEBUG_STATS,
-			"%s RESULT tag=%lu err=%d duration=%d.%03dms text=%s\n",
-			op->o_log_prefix, rs->sr_tag, rs->sr_err,
-			msec,
-			duration.tv_usec % 1000,
-			rs->sr_text ? rs->sr_text : "" );
-#else
-		Statslog( LDAP_DEBUG_STATS,
-			"%s RESULT tag=%lu err=%d text=%s\n",
+		ETIME_SETUP;
+		StatslogEtime( LDAP_DEBUG_STATS,
+			"%s RESULT tag=%lu err=%d "ETIME_LOGFMT"text=%s\n",
 			op->o_log_prefix, rs->sr_tag, rs->sr_err,
 			rs->sr_text ? rs->sr_text : "", 0 );
-#endif
 	}
 }
 
@@ -1020,29 +962,11 @@ slap_send_ldap_extended( Operation *op, SlapReply *rs )
 	rs->sr_msgid = (rs->sr_tag != LBER_SEQUENCE) ? op->o_msgid : 0;
 
 	if ( send_ldap_response( op, rs ) == SLAP_CB_CONTINUE ) {
-#ifdef HAVE_GETTIMEOFDAY
-		struct timeval now;
-		struct timeval duration;
-		time_t msec;
-
-		(void) gettimeofday( &now, NULL );
-		timersub( &now, &op->o_hr_time, &duration );
-		msec = duration.tv_usec / 1000 + duration.tv_sec * 1000;
-
-		Statslog6( LDAP_DEBUG_STATS,
-			"%s RESULT oid=%s err=%d duration=%d.%03dms text=%s\n",
-			op->o_log_prefix,
-			rs->sr_rspoid ? rs->sr_rspoid : "",
-			rs->sr_err,
-			msec,
-			duration.tv_usec % 1000,
-			rs->sr_text ? rs->sr_text : "" );
-#else
-		Statslog( LDAP_DEBUG_STATS,
-			"%s RESULT oid=%s err=%d text=%s\n",
+		ETIME_SETUP;
+		StatslogEtime( LDAP_DEBUG_STATS,
+			"%s RESULT oid=%s err=%d "ETIME_LOGFMT"text=%s\n",
 			op->o_log_prefix, rs->sr_rspoid ? rs->sr_rspoid : "",
 			rs->sr_err, rs->sr_text ? rs->sr_text : "", 0 );
-#endif
 	}
 }
 
