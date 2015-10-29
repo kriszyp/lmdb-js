@@ -220,9 +220,9 @@ typedef u_int64_t sha2_word64;	/* Exactly 8 bytes */
  * library -- they are intended for private internal visibility/use
  * only.
  */
-void SHA512_Last(SHA512_CTX*);
-void SHA256_Transform(SHA256_CTX*, const sha2_word32*);
-void SHA512_Transform(SHA512_CTX*, const sha2_word64*);
+static void SHA512_Last(SHA512_CTX*);
+static void SHA256_Transform(SHA256_CTX*, const sha2_word32*);
+static void SHA512_Transform(SHA512_CTX*, const sha2_word64*);
 
 
 /*** SHA-XYZ INITIAL HASH VALUES AND CONSTANTS ************************/
