@@ -31,6 +31,7 @@ OpenLDAP 2.4.43 Engineering
 	Contrib
 		Added libnettle support to pw-pbkdf2 (ITS#8198)
 		Fixed smbk5pwd compiler warnings with libnettle (ITS#8235)
+		Fixed passwd symbol collisions with other crypto libraries (ITS#8294)
 	Documentation
 		Updated guide to reflect changes to how TLS is handled with syncrepl (ITS#7897)
 
