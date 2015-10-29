@@ -144,6 +144,7 @@ typedef SHA512_CTX SHA384_CTX;
 
 
 /*** SHA-256/384/512 Function Prototypes ******************************/
+/* avoid symbol clash with other crypto libs */
 #define SHA256_Init		pw_SHA256_Init
 #define SHA256_Update	pw_SHA256_Update
 #define SHA256_Final	pw_SHA256_Final
