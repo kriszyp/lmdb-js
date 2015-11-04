@@ -238,7 +238,25 @@ typedef SSIZE_T	ssize_t;
 #define MDB_OWNERDEAD	EOWNERDEAD	/**< #LOCK_MUTEX0() result if dead owner */
 #endif
 
-#ifdef MDB_OWNERDEAD
+
+/** Some platforms define the EOWNERDEAD error code
+ * even though they don't support Robust Mutexes.
+ * Compile with -DMDB_USE_ROBUST=0, or use some other
+ * mechanism like -DMDB_USE_SYSV_SEM instead of
+ * -DMDB_USE_POSIX_MUTEX. (SysV semaphores are
+ * also Robust, but some systems don't support them
+ * either.)
+ */
+#ifndef MDB_USE_ROBUST
+/* Android currently lacks Robust Mutex support */
+#if defined(ANDROID) && defined(MDB_USE_POSIX_MUTEX) && !defined(MDB_USE_ROBUST)
+#define MDB_USE_ROBUST	0
+#else
+#define MDB_USE_ROBUST	1
+#endif
+#endif /* MDB_USE_ROBUST */
+
+#if defined(MDB_OWNERDEAD) && MDB_USE_ROBUST
 #define MDB_ROBUST_SUPPORTED	1
 #endif
 
@@ -7776,6 +7794,7 @@ mdb_page_merge(MDB_cursor *csrc, MDB_cursor *cdst)
 		/* Adjust other cursors pointing to mp */
 		MDB_cursor *m2, *m3;
 		MDB_dbi dbi = csrc->mc_dbi;
+		unsigned int top = csrc->mc_top;
 
 		for (m2 = csrc->mc_txn->mt_cursors[dbi]; m2; m2=m2->mc_next) {
 			if (csrc->mc_flags & C_SUB)
@@ -7784,9 +7803,10 @@ mdb_page_merge(MDB_cursor *csrc, MDB_cursor *cdst)
 				m3 = m2;
 			if (m3 == csrc) continue;
 			if (m3->mc_snum < csrc->mc_snum) continue;
-			if (m3->mc_pg[csrc->mc_top] == psrc) {
-				m3->mc_pg[csrc->mc_top] = pdst;
-				m3->mc_ki[csrc->mc_top] += nkeys;
+			if (m3->mc_pg[top] == psrc) {
+				m3->mc_pg[top] = pdst;
+				m3->mc_ki[top] += nkeys;
+				m3->mc_ki[top-1] = cdst->mc_ki[top-1];
 			}
 		}
 	}
@@ -8278,6 +8298,7 @@ mdb_page_split(MDB_cursor *mc, MDB_val *newkey, MDB_val *newdata, pgno_t newpgno
 				rp->mp_upper -= ksize - sizeof(indx_t);
 				mc->mc_ki[mc->mc_top] = x;
 				mc->mc_pg[mc->mc_top] = rp;
+				mc->mc_ki[ptop]++;
 			}
 		} else {
 			int psize, nsize, k;
