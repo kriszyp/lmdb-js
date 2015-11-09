@@ -1,7 +1,7 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.43 Engineering
-	Fixed liblber remove obsolete assert (ITS#8240)
+	Fixed liblber remove obsolete assert (ITS#8240, ITS#8301)
 	Fixed libldap file URLs on windows (ITS#8273)
 	Fixed libldap microsecond timer for windows (ITS#8295)
 	Fixed slap tools minor one time memory leak (ITS#8082)
