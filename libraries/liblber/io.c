@@ -656,7 +656,8 @@ ber_get_next(
 		ber_slen_t to_go;
 		
 		to_go = ber->ber_end - ber->ber_rwptr;
-		assert( to_go > 0 );
+		/* unsigned/signed overflow */
+		if (to_go<0) return LBER_DEFAULT;
 		
 		sock_errset(0);
 		res = ber_int_sb_read( sb, ber->ber_rwptr, to_go );
