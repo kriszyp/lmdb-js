@@ -619,6 +619,7 @@ EOF
 	done
 	if test $ERROR != 0; then break; fi
 
+	sleep 1
 	echo "Checking contextCSN"
 	CSN_ERRORS=0
 	CSN1=`$LDAPSEARCH -H $URI1 -b $BASEDN -s base contextCSN | grep contextCSN`
