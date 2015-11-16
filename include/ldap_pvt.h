@@ -129,6 +129,7 @@ ldap_pvt_gettime LDAP_P(( struct lutil_tm * ));
 
 #ifdef _WIN32
 #define gettimeofday(tv,tz)	ldap_pvt_gettimeofday(tv,tz)
+struct timeval;
 LDAP_F( int )
 ldap_pvt_gettimeofday LDAP_P(( struct timeval *tv, void *unused ));
 #endif
