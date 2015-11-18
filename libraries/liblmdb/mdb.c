@@ -403,10 +403,13 @@ static int mdb_mutex_failed(MDB_env *env, mdb_mutexref_t mutex, int rc);
  *
  *	@note If O_DSYNC is undefined but exists in /usr/include,
  * preferably set some compiler flag to get the definition.
- * Otherwise compile with the less efficient -DMDB_DSYNC=O_SYNC.
  */
 #ifndef MDB_DSYNC
+# ifdef O_DSYNC
 # define MDB_DSYNC	O_DSYNC
+# else
+# define MDB_DSYNC	O_SYNC
+# endif
 #endif
 #endif
 
@@ -6388,16 +6391,18 @@ fix_parent:
 			 * update branch key if there is a parent page
 			 */
 			if (mc->mc_top && !mc->mc_ki[mc->mc_top]) {
-				unsigned short top = mc->mc_top;
+				unsigned short dtop = 1;
 				mc->mc_top--;
 				/* slot 0 is always an empty key, find real slot */
-				while (mc->mc_top && !mc->mc_ki[mc->mc_top])
+				while (mc->mc_top && !mc->mc_ki[mc->mc_top]) {
 					mc->mc_top--;
+					dtop++;
+				}
 				if (mc->mc_ki[mc->mc_top])
 					rc2 = mdb_update_key(mc, key);
 				else
 					rc2 = MDB_SUCCESS;
-				mc->mc_top = top;
+				mc->mc_top += dtop;
 				if (rc2)
 					return rc2;
 			}
@@ -8246,12 +8251,19 @@ mdb_page_split(MDB_cursor *mc, MDB_val *newkey, MDB_val *newdata, pgno_t newpgno
 	rp->mp_pad = mp->mp_pad;
 	DPRINTF(("new right sibling: page %"Z"u", rp->mp_pgno));
 
-	if (mc->mc_snum < 2) {
+	/* Usually when splitting the root page, the cursor
+	 * height is 1. But when called from mdb_update_key,
+	 * the cursor height may be greater because it walks
+	 * up the stack while finding the branch slot to update.
+	 */
+	if (mc->mc_top < 1) {
 		if ((rc = mdb_page_new(mc, P_BRANCH, 1, &pp)))
 			goto done;
 		/* shift current top to make room for new parent */
-		mc->mc_pg[1] = mc->mc_pg[0];
-		mc->mc_ki[1] = mc->mc_ki[0];
+		for (i=mc->mc_snum; i>0; i--) {
+			mc->mc_pg[i] = mc->mc_pg[i-1];
+			mc->mc_ki[i] = mc->mc_ki[i-1];
+		}
 		mc->mc_pg[0] = pp;
 		mc->mc_ki[0] = 0;
 		mc->mc_db->md_root = pp->mp_pgno;
@@ -8267,8 +8279,8 @@ mdb_page_split(MDB_cursor *mc, MDB_val *newkey, MDB_val *newdata, pgno_t newpgno
 			mc->mc_db->md_depth--;
 			goto done;
 		}
-		mc->mc_snum = 2;
-		mc->mc_top = 1;
+		mc->mc_snum++;
+		mc->mc_top++;
 		ptop = 0;
 	} else {
 		ptop = mc->mc_top-1;
