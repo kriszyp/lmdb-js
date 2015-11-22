@@ -28,7 +28,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Testing modify, add, and delete using slapmodify..."
-$SLAPMODIFY -f $ADDCONF -l $LDIFMODIFY > $TESTOUT 2>&1
+$SLAPMODIFY -f $ADDCONF -d $LVL -l $LDIFMODIFY > $TESTOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
 	echo "slapmodify failed ($RC)!"
