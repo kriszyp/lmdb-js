@@ -216,7 +216,7 @@ static ConfigTable sqlcfg[] = {
 	{ "id_query", "SQL expression", 2, 0, 0, ARG_STRING|ARG_QUOTE|ARG_OFFSET,
 		(void *)offsetof(struct backsql_info, sql_id_query),
 		"( OLcfgDbAt:6.46 NAME 'olcSqlIdQuery' "
-		"DESC 'Custom ID query' "
+			"DESC 'Query used to collect entryID mapping data' "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
 	{ NULL, NULL, 0, 0, 0, ARG_IGNORED,
 		NULL, NULL, NULL, NULL }
@@ -238,7 +238,7 @@ static ConfigOCs sqlocs[] = {
 		"olcSqlFailIfNoMapping $ olcSqlAllowOrphans $ olcSqlBaseObject $ "
 		"olcSqlLayer $ olcSqlUseSubtreeShortcut $ olcSqlFetchAllAttrs $ "
 		"olcSqlFetchAttrs $ olcSqlCheckSchema $ olcSqlAliasingKeyword $ "
-		"olcSqlAliasingQuote $ olcSqlAutocommit ) )",
+		"olcSqlAliasingQuote $ olcSqlAutocommit $ olcSqlIdQuery ) )",
 			Cft_Database, sqlcfg },
 	{ NULL, Cft_Abstract, NULL }
 };
