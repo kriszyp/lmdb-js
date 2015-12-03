@@ -473,6 +473,8 @@ ppolicy_get_default( PassPolicy *pp )
 
 	/* Users can change their own password by default */
 	pp->pwdAllowUserChange = 1;
+	if ( !pp->pwdMaxRecordedFailure )
+		pp->pwdMaxRecordedFailure = PPOLICY_DEFAULT_MAXRECORDED_FAILURE;
 }
 
 
