@@ -234,7 +234,7 @@ static void srv_shuffle(srv_record *a, int n) {
 		r = srv_rand() * total;
 		for (j=0; j<p; j++) {
 			r -= a[j].weight;
-			if (r <= 0) {
+			if (r < 0) {
 				if (j) {
 					srv_record t = a[0];
 					a[0] = a[j];
