@@ -1158,9 +1158,12 @@ done:
 		}
 	}
 
-	rc = bdb->bi_id2entry->bdi_db->cursor(
-		bdb->bi_id2entry->bdi_db, bdb->bi_cache.c_txn, &cursor,
-		bdb->bi_db_opflags );
+	if ( cursor == NULL )
+	{
+		rc = bdb->bi_id2entry->bdi_db->cursor(
+			bdb->bi_id2entry->bdi_db, bdb->bi_cache.c_txn, &cursor,
+			bdb->bi_db_opflags );
+	}
 
 	return rc;
 }
