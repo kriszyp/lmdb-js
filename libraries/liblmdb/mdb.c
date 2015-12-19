@@ -4470,7 +4470,9 @@ mdb_env_setup_locks(MDB_env *env, char *lpath, int mode, int *excl)
 
 #ifdef _WIN32
 	wchar_t *wlpath;
-	utf8_to_utf16(lpath, -1, &wlpath, NULL);
+	rc = utf8_to_utf16(lpath, -1, &wlpath, NULL);
+	if (rc)
+		return rc;
 	env->me_lfd = CreateFileW(wlpath, GENERIC_READ|GENERIC_WRITE,
 		FILE_SHARE_READ|FILE_SHARE_WRITE, NULL, OPEN_ALWAYS,
 		FILE_ATTRIBUTE_NORMAL, NULL);
@@ -4758,7 +4760,9 @@ mdb_env_open(MDB_env *env, const char *path, unsigned int flags, mdb_mode_t mode
 		len = OPEN_ALWAYS;
 	}
 	mode = FILE_ATTRIBUTE_NORMAL;
-	utf8_to_utf16(dpath, -1, &wpath, NULL);
+	rc = utf8_to_utf16(dpath, -1, &wpath, NULL);
+	if (rc)
+		goto leave;
 	env->me_fd = CreateFileW(wpath, oflags, FILE_SHARE_READ|FILE_SHARE_WRITE,
 		NULL, len, mode, NULL);
 	free(wpath);
@@ -4790,7 +4794,9 @@ mdb_env_open(MDB_env *env, const char *path, unsigned int flags, mdb_mode_t mode
 			 */
 #ifdef _WIN32
 			len = OPEN_EXISTING;
-			utf8_to_utf16(dpath, -1, &wpath, NULL);
+			rc = utf8_to_utf16(dpath, -1, &wpath, NULL);
+			if (rc)
+				goto leave;
 			env->me_mfd = CreateFileW(wpath, oflags,
 				FILE_SHARE_READ|FILE_SHARE_WRITE, NULL, len,
 				mode | FILE_FLAG_WRITE_THROUGH, NULL);
@@ -9281,7 +9287,9 @@ mdb_env_copy2(MDB_env *env, const char *path, unsigned int flags)
 	 * already in the OS cache.
 	 */
 #ifdef _WIN32
-	utf8_to_utf16(lpath, -1, &wpath, NULL);
+	rc = utf8_to_utf16(lpath, -1, &wpath, NULL);
+	if (rc)
+		return rc;
 	newfd = CreateFileW(wpath, GENERIC_WRITE, 0, NULL, CREATE_NEW,
 				FILE_FLAG_NO_BUFFERING|FILE_FLAG_WRITE_THROUGH, NULL);
 	free(wpath);
@@ -9476,6 +9484,7 @@ int mdb_dbi_open(MDB_txn *txn, const char *name, unsigned int flags, MDB_dbi *db
 	MDB_db dummy;
 	int rc, dbflag, exact;
 	unsigned int unused = 0, seq;
+	char *namedup;
 	size_t len;
 
 	if (flags & ~VALID_FLAGS)
@@ -9537,8 +9546,16 @@ int mdb_dbi_open(MDB_txn *txn, const char *name, unsigned int flags, MDB_dbi *db
 		MDB_node *node = NODEPTR(mc.mc_pg[mc.mc_top], mc.mc_ki[mc.mc_top]);
 		if ((node->mn_flags & (F_DUPDATA|F_SUBDATA)) != F_SUBDATA)
 			return MDB_INCOMPATIBLE;
-	} else if (rc == MDB_NOTFOUND && (flags & MDB_CREATE)) {
-		/* Create if requested */
+	} else if (! (rc == MDB_NOTFOUND && (flags & MDB_CREATE))) {
+		return rc;
+	}
+
+	/* Done here so we cannot fail after creating a new DB */
+	if ((namedup = strdup(name)) == NULL)
+		return ENOMEM;
+
+	if (rc) {
+		/* MDB_NOTFOUND and MDB_CREATE: Create new DB */
 		data.mv_size = sizeof(MDB_db);
 		data.mv_data = &dummy;
 		memset(&dummy, 0, sizeof(dummy));
@@ -9548,10 +9565,12 @@ int mdb_dbi_open(MDB_txn *txn, const char *name, unsigned int flags, MDB_dbi *db
 		dbflag |= DB_DIRTY;
 	}
 
-	/* OK, got info, add to table */
-	if (rc == MDB_SUCCESS) {
+	if (rc) {
+		free(namedup);
+	} else {
+		/* Got info, register DBI in this txn */
 		unsigned int slot = unused ? unused : txn->mt_numdbs;
-		txn->mt_dbxs[slot].md_name.mv_data = strdup(name);
+		txn->mt_dbxs[slot].md_name.mv_data = namedup;
 		txn->mt_dbxs[slot].md_name.mv_size = len;
 		txn->mt_dbxs[slot].md_rel = NULL;
 		txn->mt_dbflags[slot] = dbflag;
@@ -10002,6 +10021,8 @@ static int utf8_to_utf16(const char *src, int srcsize, wchar_t **dst, int *dstsi
 	if (need == 0)
 		return EINVAL;
 	result = malloc(sizeof(wchar_t) * need);
+	if (!result)
+		return ENOMEM;
 	MultiByteToWideChar(CP_UTF8, 0, src, srcsize, result, need);
 	if (dstsize)
 		*dstsize = need;
