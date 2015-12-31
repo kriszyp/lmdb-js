@@ -79,6 +79,9 @@ or in raw form.
 
 It is also used for {{SECT:delta-syncrepl replication}}
 
+Note: An accesslog database is unique to a given master. It should
+never be replicated.
+
 H3: Access Logging Configuration
 
 The following is a basic example that implements Access Logging:
