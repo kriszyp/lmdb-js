@@ -1,6 +1,7 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.44 Engineering
+	Fixed slapo-ppolicy pwdMaxRecordedFailure must never be zero (ITS#8327)
 
 OpenLDAP 2.4.43 Release (2015/11/30)
 	Fixed liblber remove obsolete assert (ITS#8240, ITS#8301)
