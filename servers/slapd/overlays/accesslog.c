@@ -578,7 +578,7 @@ log_age_unparse( int age, struct berval *agebv, size_t size )
 	agebv->bv_len = ptr - agebv->bv_val;
 }
 
-static slap_callback nullsc = { NULL, NULL, NULL, NULL };
+static slap_callback nullsc;
 
 #define PURGE_INCREMENT	100
 
@@ -637,7 +637,7 @@ accesslog_purge( void *ctx, void *arg )
 	OperationBuffer opbuf;
 	Operation *op;
 	SlapReply rs = {REP_RESULT};
-	slap_callback cb = { NULL, log_old_lookup, NULL, NULL };
+	slap_callback cb = { NULL, log_old_lookup, NULL, NULL, NULL };
 	Filter f;
 	AttributeAssertion ava = ATTRIBUTEASSERTION_INIT;
 	purge_data pd = {0};
@@ -1975,11 +1975,9 @@ accesslog_op_mod( Operation *op, SlapReply *rs )
 	}
 			
 	if ( doit ) {
-		slap_callback *cb = op->o_tmpalloc( sizeof( slap_callback ), op->o_tmpmemctx ), *cb2;
+		slap_callback *cb = op->o_tmpcalloc( 1, sizeof( slap_callback ), op->o_tmpmemctx ), *cb2;
 		cb->sc_cleanup = accesslog_mod_cleanup;
-		cb->sc_response = NULL;
 		cb->sc_private = on;
-		cb->sc_next = NULL;
 		for ( cb2 = op->o_callback; cb2->sc_next; cb2 = cb2->sc_next );
 		cb2->sc_next = cb;
 
