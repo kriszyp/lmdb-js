@@ -2553,6 +2553,11 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 		sop->s_inuse = 2;
 
 		ldap_pvt_thread_mutex_lock( &si->si_ops_mutex );
+		if ( op->o_abandon ) {
+			ldap_pvt_thread_mutex_unlock( &si->si_ops_mutex );
+			ch_free( sop );
+			return SLAPD_ABANDON;
+		}
 		while ( si->si_active ) {
 			/* Wait for active mods to finish before proceeding, as they
 			 * may already have inspected the si_ops list looking for
