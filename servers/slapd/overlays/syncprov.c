@@ -2546,7 +2546,6 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 		}
 		sop = ch_malloc( sizeof( syncops ));
 		*sop = so;
-		ldap_pvt_thread_mutex_init( &sop->s_mutex );
 		sop->s_rid = srs->sr_state.rid;
 		sop->s_sid = srs->sr_state.sid;
 		/* set refcount=2 to prevent being freed out from under us
@@ -2576,6 +2575,7 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 				ldap_pvt_thread_yield();
 			ldap_pvt_thread_mutex_lock( &si->si_ops_mutex );
 		}
+		ldap_pvt_thread_mutex_init( &sop->s_mutex );
 		sop->s_next = si->si_ops;
 		sop->s_si = si;
 		si->si_ops = sop;
