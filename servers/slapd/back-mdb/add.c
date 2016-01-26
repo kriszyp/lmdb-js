@@ -37,6 +37,7 @@ mdb_add(Operation *op, SlapReply *rs )
 	ID eid, pid = 0;
 	mdb_op_info opinfo = {{{ 0 }}}, *moi = &opinfo;
 	int subentry;
+	int numads = mdb->mi_numads;
 
 	int		success;
 
@@ -401,6 +402,7 @@ txnReturn:
 		LDAP_SLIST_REMOVE( &op->o_extra, &opinfo.moi_oe, OpExtra, oe_next );
 		opinfo.moi_oe.oe_key = NULL;
 		if ( op->o_noop ) {
+			mdb->mi_numads = numads;
 			mdb_txn_abort( txn );
 			rs->sr_err = LDAP_X_NO_OPERATION;
 			txn = NULL;
@@ -410,6 +412,7 @@ txnReturn:
 		rs->sr_err = mdb_txn_commit( txn );
 		txn = NULL;
 		if ( rs->sr_err != 0 ) {
+			mdb->mi_numads = numads;
 			rs->sr_text = "txn_commit failed";
 			Debug( LDAP_DEBUG_ANY,
 				LDAP_XSTRING(mdb_add) ": %s : %s (%d)\n",
@@ -433,6 +436,7 @@ return_results:
 
 	if( moi == &opinfo ) {
 		if( txn != NULL ) {
+			mdb->mi_numads = numads;
 			mdb_txn_abort( txn );
 		}
 		if ( opinfo.moi_oe.oe_key ) {

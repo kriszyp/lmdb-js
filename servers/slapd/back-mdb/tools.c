@@ -713,6 +713,7 @@ done:
 			mdb_tool_txn = NULL;
 			idcursor = NULL;
 			if( rc != 0 ) {
+				mdb->mi_numads = 0;
 				snprintf( text->bv_val, text->bv_len,
 						"txn_commit failed: %s (%d)",
 						mdb_strerror(rc), rc );
@@ -983,6 +984,7 @@ done:
 	if( rc == 0 ) {
 		rc = mdb_txn_commit( mdb_tool_txn );
 		if( rc != 0 ) {
+			mdb->mi_numads = 0;
 			snprintf( text->bv_val, text->bv_len,
 					"txn_commit failed: %s (%d)",
 					mdb_strerror(rc), rc );
