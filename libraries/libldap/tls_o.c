@@ -187,7 +187,10 @@ static void
 tlso_ctx_ref( tls_ctx *ctx )
 {
 	tlso_ctx *c = (tlso_ctx *)ctx;
-	CRYPTO_add( &c->references, 1, CRYPTO_LOCK_SSL_CTX );
+#if OPENSSL_VERSION_NUMBER < 0x10100000
+#define	SSL_CTX_up_ref(ctx)	CRYPTO_add( &(ctx->references), 1, CRYPTO_LOCK_SSL_CTX )
+#endif
+	SSL_CTX_up_ref( c );
 }
 
 static void
