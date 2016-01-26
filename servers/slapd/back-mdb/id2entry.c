@@ -549,9 +549,12 @@ int mdb_txn( Operation *op, int txnop, OpExtra **ptr )
 		return rc;
 	case SLAP_TXN_COMMIT:
 		rc = mdb_txn_commit( moi->moi_txn );
+		if ( rc )
+			mdb->mi_numads = 0;
 		op->o_tmpfree( moi, op->o_tmpmemctx );
 		return rc;
 	case SLAP_TXN_ABORT:
+		mdb->mi_numads = 0;
 		mdb_txn_abort( moi->moi_txn );
 		op->o_tmpfree( moi, op->o_tmpmemctx );
 		return 0;
