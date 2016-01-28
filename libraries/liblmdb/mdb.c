@@ -198,7 +198,7 @@ typedef SSIZE_T	ssize_t;
 #define ESECT
 #endif
 
-#ifdef _MSC_VER
+#ifdef _WIN32
 #define CALL_CONV WINAPI
 #else
 #define CALL_CONV
@@ -1271,7 +1271,7 @@ typedef struct MDB_ntxn {
 #endif
 
 	/** max bytes to write in one call */
-#define MAX_WRITE		(0x80000000U >> (sizeof(ssize_t) == 4))
+#define MAX_WRITE		(0x40000000U >> (sizeof(ssize_t) == 4))
 
 	/** Check \b txn and \b dbi arguments to a function */
 #define TXN_DBI_EXIST(txn, dbi, validity) \
@@ -5668,8 +5668,10 @@ mdb_cursor_next(MDB_cursor *mc, MDB_val *key, MDB_val *data, MDB_cursor_op op)
 
 	DPRINTF(("cursor_next: top page is %"Z"u in cursor %p",
 		mdb_dbg_pgno(mp), (void *) mc));
-	if (mc->mc_flags & C_DEL)
+	if (mc->mc_flags & C_DEL) {
+		mc->mc_flags ^= C_DEL;
 		goto skip;
+	}
 
 	if (mc->mc_ki[mc->mc_top] + 1u >= NUMKEYS(mp)) {
 		DPUTS("=====> move to next sibling page");
@@ -5748,6 +5750,8 @@ mdb_cursor_prev(MDB_cursor *mc, MDB_val *key, MDB_val *data, MDB_cursor_op op)
 	DPRINTF(("cursor_prev: top page is %"Z"u in cursor %p",
 		mdb_dbg_pgno(mp), (void *) mc));
 
+	mc->mc_flags &= ~(C_EOF|C_DEL);
+
 	if (mc->mc_ki[mc->mc_top] == 0)  {
 		DPUTS("=====> move to prev sibling page");
 		if ((rc = mdb_cursor_sibling(mc, 0)) != MDB_SUCCESS) {
@@ -5758,8 +5762,6 @@ mdb_cursor_prev(MDB_cursor *mc, MDB_val *key, MDB_val *data, MDB_cursor_op op)
 		DPRINTF(("prev page is %"Z"u, key index %u", mp->mp_pgno, mc->mc_ki[mc->mc_top]));
 	} else
 		mc->mc_ki[mc->mc_top]--;
-
-	mc->mc_flags &= ~C_EOF;
 
 	DPRINTF(("==> cursor points to page %"Z"u with %u keys, key index %u",
 	    mdb_dbg_pgno(mp), NUMKEYS(mp), mc->mc_ki[mc->mc_top]));
@@ -6491,7 +6493,7 @@ more:
 #endif
 				/* does data match? */
 				if (!dcmp(data, &olddata)) {
-					if (flags & MDB_NODUPDATA)
+					if (flags & (MDB_NODUPDATA|MDB_APPENDDUP))
 						return MDB_KEYEXIST;
 					/* overwrite it */
 					goto current;
@@ -9157,7 +9159,7 @@ mdb_env_copyfd0(MDB_env *env, HANDLE fd)
 	MDB_txn *txn = NULL;
 	mdb_mutexref_t wmutex = NULL;
 	int rc;
-	size_t wsize;
+	size_t wsize, w3;
 	char *ptr;
 #ifdef _WIN32
 	DWORD len, w2;
@@ -9216,15 +9218,15 @@ mdb_env_copyfd0(MDB_env *env, HANDLE fd)
 	if (rc)
 		goto leave;
 
-	w2 = txn->mt_next_pgno * env->me_psize;
+	w3 = txn->mt_next_pgno * env->me_psize;
 	{
 		size_t fsize = 0;
 		if ((rc = mdb_fsize(env->me_fd, &fsize)))
 			goto leave;
-		if (w2 > fsize)
-			w2 = fsize;
+		if (w3 > fsize)
+			w3 = fsize;
 	}
-	wsize = w2 - wsize;
+	wsize = w3 - wsize;
 	while (wsize > 0) {
 		if (wsize > MAX_WRITE)
 			w2 = MAX_WRITE;

@@ -164,7 +164,11 @@ tlso_destroy( void )
 	struct ldapoptions *lo = LDAP_INT_GLOBAL_OPT();   
 
 	EVP_cleanup();
+#if OPENSSL_VERSION_NUMBER < 0x10000000
 	ERR_remove_state(0);
+#else
+	ERR_remove_thread_state(NULL);
+#endif
 	ERR_free_strings();
 
 	if ( lo->ldo_tls_randfile ) {
@@ -183,7 +187,10 @@ static void
 tlso_ctx_ref( tls_ctx *ctx )
 {
 	tlso_ctx *c = (tlso_ctx *)ctx;
-	CRYPTO_add( &c->references, 1, CRYPTO_LOCK_SSL_CTX );
+#if OPENSSL_VERSION_NUMBER < 0x10100000
+#define	SSL_CTX_up_ref(ctx)	CRYPTO_add( &(ctx->references), 1, CRYPTO_LOCK_SSL_CTX )
+#endif
+	SSL_CTX_up_ref( c );
 }
 
 static void
@@ -630,7 +637,7 @@ tlso_session_chkhost( LDAP *ld, tls_session *sess, const char *name_in )
 		navas = X509_NAME_entry_count( xn );
 		for ( i=navas-1; i>=0; i-- ) {
 			ne = X509_NAME_get_entry( xn, i );
-			if ( !OBJ_cmp( ne->object, obj )) {
+			if ( !OBJ_cmp( X509_NAME_ENTRY_get_object(ne), obj )) {
 				cn = X509_NAME_ENTRY_get_data( ne );
 				break;
 			}
