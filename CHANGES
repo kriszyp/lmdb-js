@@ -5,6 +5,7 @@ OpenLDAP 2.4.44 Engineering
 	Fixed slapd-sql missing id_query/olcSqlIdQuery (ITS#8329)
 	Fixed slapo-accesslog callback initialization (ITS#8351)
 	Fixed slapo-ppolicy pwdMaxRecordedFailure must never be zero (ITS#8327)
+	Fixed slapo-syncprov abandon processing (ITS#8354)
 
 OpenLDAP 2.4.43 Release (2015/11/30)
 	Fixed liblber remove obsolete assert (ITS#8240, ITS#8301)
