@@ -47,3 +47,6 @@ New syslog engine
 [12:46] <hyc> yes but the idea is still based on numbered substitution parameters
 [12:47] <hyc> it's a pretty obvious approach, and with regex, time-tested.
 [12:48] <hyc> I may try to sneak it into OpenLDAP 2.5
+
+
+Overhaul overlays and backends, see ITS 6166
