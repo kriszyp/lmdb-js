@@ -119,24 +119,18 @@ software included with the OpenLDAP source.  There is no need to download any
 additional software to have {{MDB}} support.
 
 OpenLDAP's {{slapd}}(8) {{TERM:BDB}} and {{TERM:HDB}} deprecated database backends
-require {{ORG[expand]Oracle}} {{PRD:Berkeley DB}}.
+require {{ORG[expand]Oracle}}'s Berkeley DB.
 If not available at configure time, you will not be able to build
-{{slapd}}(8) with these primary database backends.
+{{slapd}}(8) with these deprecated database backends.
 
 Your operating system may provide a supported version of
-{{PRD:Berkeley DB}} in the base system or as an optional
+Berkeley DB in the base system or as an optional
 software component.  If not, you'll have to obtain and
-install it yourself.
+install it yourself.  Berkeley DB is available from
+{{ORG[expand]Oracle}}'s Berkeley DB download page if required.
 
-{{PRD:Berkeley DB}} is available from {{ORG[expand]Oracle}}'s Berkeley DB
-download page
-{{URL: http://www.oracle.com/technetwork/database/database-technologies/berkeleydb/downloads/index.html}}.  
-
-There are several versions available. Generally, the most recent
-release (with published patches) is recommended. This package is required
-if you wish to use the deprecated {{TERM:BDB}} or {{TERM:HDB}} database backends.
-
-Note: Berkeley DB version 6.0.20 and later uses a software license that is
+There are several versions available from {{ORG[expand]Oracle}}.
+Berkeley DB version 6.0.20 and later uses a software license that is
 incompatible with LDAP technology and should not be used with OpenLDAP.
 
 Note: Please see {{SECT:Recommended OpenLDAP Software Dependency Versions}} for
