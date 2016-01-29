@@ -2,6 +2,7 @@ OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.44 Engineering
 	Fixed slapd-bdb/hdb missing olcDbChecksum config attr (ITS#8337)
+	Fixed slapd-mdb behavior with long lived read transactions (ITS#8226)
 	Fixed slapd-mdb cleanup after failed transaction (ITS#8360)
 	Fixed slapd-sql missing id_query/olcSqlIdQuery (ITS#8329)
 	Fixed slapo-accesslog callback initialization (ITS#8351)
