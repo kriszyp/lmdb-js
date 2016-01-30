@@ -316,6 +316,8 @@ OL_ARG_ENABLE(mdb,[    --enable-mdb	  enable mdb database backend],
 	yes, [no yes mod], ol_enable_backends)dnl
 OL_ARG_ENABLE(meta,[    --enable-meta	  enable metadirectory backend],
 	no, [no yes mod], ol_enable_backends)dnl
+OL_ARG_ENABLE(asyncmeta,[    --enable-asyncmeta	  enable asynchronous metadirectory backend],
+	no, [no yes mod], ol_enable_backends)dnl
 OL_ARG_ENABLE(monitor,[    --enable-monitor	  enable monitor backend],
 	yes, [no yes mod], ol_enable_backends)dnl
 OL_ARG_ENABLE(ndb,[    --enable-ndb	  enable MySQL NDB Cluster backend],
@@ -504,6 +506,10 @@ if test $ol_enable_meta/$ol_enable_ldap = yes/no ; then
 	AC_MSG_ERROR([--enable-meta requires --enable-ldap])
 fi
 
+if test $ol_enable_meta_async/$ol_enable_ldap = yes/no ; then
+	AC_MSG_ERROR([--enable-asyncmeta requires --enable-ldap])
+fi
+
 if test $ol_enable_lmpasswd = yes ; then
 	if test $ol_with_tls = no ; then
 		AC_MSG_ERROR([LAN Manager passwords require OpenSSL])
@@ -543,6 +549,7 @@ BUILD_HDB=no
 BUILD_LDAP=no
 BUILD_MDB=no
 BUILD_META=no
+BUILD_ASYNCMETA=no
 BUILD_MONITOR=no
 BUILD_NDB=no
 BUILD_NULL=no
@@ -2736,6 +2743,20 @@ if test "$ol_enable_meta" != no ; then
 	AC_DEFINE_UNQUOTED(SLAPD_META,$MFLAG,[define to support LDAP Metadirectory backend])
 fi
 
+if test "$ol_enable_meta_async" != no ; then
+	BUILD_SLAPD=yes
+	BUILD_ASYNCMETA=$ol_enable_meta_async
+	BUILD_REWRITE=yes
+	if test "$ol_enable_meta_async" = mod ; then
+		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-asyncmeta"
+		MFLAG=SLAPD_MOD_DYNAMIC
+	else
+		SLAPD_STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS back-asyncmeta"
+		MFLAG=SLAPD_MOD_STATIC
+	fi
+	AC_DEFINE_UNQUOTED(SLAPD_ASYNCMETA,$MFLAG,[define to support LDAP Async Metadirectory backend])
+fi
+
 if test "$ol_enable_ndb" != no ; then
 	BUILD_SLAPD=yes
 	BUILD_NDB=$ol_enable_ndb
@@ -3142,6 +3163,7 @@ dnl backends
   AC_SUBST(BUILD_LDAP)
   AC_SUBST(BUILD_MDB)
   AC_SUBST(BUILD_META)
+  AC_SUBST(BUILD_ASYNCMETA)
   AC_SUBST(BUILD_MONITOR)
   AC_SUBST(BUILD_NDB)
   AC_SUBST(BUILD_NULL)
@@ -3253,6 +3275,7 @@ AC_CONFIG_FILES([Makefile:build/top.mk:Makefile.in:build/dir.mk]
 [servers/slapd/back-ldif/Makefile:build/top.mk:servers/slapd/back-ldif/Makefile.in:build/mod.mk]
 [servers/slapd/back-mdb/Makefile:build/top.mk:servers/slapd/back-mdb/Makefile.in:build/mod.mk]
 [servers/slapd/back-meta/Makefile:build/top.mk:servers/slapd/back-meta/Makefile.in:build/mod.mk]
+[servers/slapd/back-asyncmeta/Makefile:build/top.mk:servers/slapd/back-asyncmeta/Makefile.in:build/mod.mk]
 [servers/slapd/back-monitor/Makefile:build/top.mk:servers/slapd/back-monitor/Makefile.in:build/mod.mk]
 [servers/slapd/back-ndb/Makefile:build/top.mk:servers/slapd/back-ndb/Makefile.in:build/mod.mk]
 [servers/slapd/back-null/Makefile:build/top.mk:servers/slapd/back-null/Makefile.in:build/mod.mk]
