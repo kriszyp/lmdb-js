@@ -168,6 +168,8 @@ int mdb_filter_candidates(
  * id2entry.c
  */
 
+MDB_cmp_func mdb_id2v_compare;
+
 int mdb_id2entry_add(
 	Operation *op,
 	MDB_txn *tid,
@@ -202,10 +204,13 @@ BI_entry_release_rw mdb_entry_release;
 BI_entry_get_rw mdb_entry_get;
 BI_op_txn mdb_txn;
 
-int mdb_entry_decode( Operation *op, MDB_txn *txn, MDB_val *data, Entry **e );
+int mdb_entry_decode( Operation *op, MDB_txn *txn, MDB_val *data, ID id, Entry **e );
 
 void mdb_reader_flush( MDB_env *env );
 int mdb_opinfo_get( Operation *op, struct mdb_info *mdb, int rdonly, mdb_op_info **moi );
+
+int mdb_mval_put(Operation *op, MDB_cursor *mc, ID id, Attribute *a);
+int mdb_mval_del(Operation *op, MDB_cursor *mc, ID id, Attribute *a);
 
 /*
  * idl.c
