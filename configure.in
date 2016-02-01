@@ -288,6 +288,7 @@ Backends="bdb \
 	ldap \
 	mdb \
 	meta \
+	asyncmeta \
 	monitor \
 	ndb \
 	null \
@@ -482,6 +483,7 @@ elif test $ol_enable_modules != yes &&
 	test $ol_enable_ldap = no &&
 	test $ol_enable_mdb = no &&
 	test $ol_enable_meta = no &&
+	test $ol_enable_asyncmeta = no &&
 	test $ol_enable_monitor = no &&
 	test $ol_enable_ndb = no &&
 	test $ol_enable_null = no &&
@@ -506,7 +508,7 @@ if test $ol_enable_meta/$ol_enable_ldap = yes/no ; then
 	AC_MSG_ERROR([--enable-meta requires --enable-ldap])
 fi
 
-if test $ol_enable_meta_async/$ol_enable_ldap = yes/no ; then
+if test $ol_enable_asyncmeta/$ol_enable_ldap = yes/no ; then
 	AC_MSG_ERROR([--enable-asyncmeta requires --enable-ldap])
 fi
 
