@@ -32,7 +32,8 @@ LDAP_BEGIN_DECL
 #define MDB_AD2ID		0
 #define MDB_DN2ID		1
 #define MDB_ID2ENTRY	2
-#define MDB_NDB			3
+#define MDB_ID2VAL		3
+#define MDB_NDB			4
 
 /* The default search IDL stack cache depth */
 #define DEFAULT_SEARCH_STACK_DEPTH	16
@@ -83,6 +84,7 @@ struct mdb_info {
 	int			mi_txn_cp;
 	uint32_t	mi_txn_cp_min;
 	uint32_t	mi_txn_cp_kbyte;
+
 	struct re_s		*mi_txn_cp_task;
 	struct re_s		*mi_index_task;
 
@@ -102,6 +104,13 @@ struct mdb_info {
 
 	int mi_numads;
 
+	unsigned	mi_multi_hi;
+		/* more than this many values in an attr goes
+		 * into a separate DB */
+	unsigned	mi_multi_lo;
+		/* less than this many values in an attr goes
+		 * back into main blob */
+
 	MDB_dbi	mi_dbis[MDB_NDB];
 	AttributeDescription *mi_ads[MDB_MAXADS];
 	int mi_adxs[MDB_MAXADS];
@@ -110,6 +119,7 @@ struct mdb_info {
 #define mi_id2entry	mi_dbis[MDB_ID2ENTRY]
 #define mi_dn2id	mi_dbis[MDB_DN2ID]
 #define mi_ad2id	mi_dbis[MDB_AD2ID]
+#define mi_id2val	mi_dbis[MDB_ID2VAL]
 
 typedef struct mdb_op_info {
 	OpExtra		moi_oe;
@@ -120,24 +130,6 @@ typedef struct mdb_op_info {
 #define MOI_READER	0x01
 #define MOI_FREEIT	0x02
 #define MOI_KEEPER	0x04
-
-/* Copy an ID "src" to pointer "dst" in big-endian byte order */
-#define MDB_ID2DISK( src, dst )	\
-	do { int i0; ID tmp; unsigned char *_p;	\
-		tmp = (src); _p = (unsigned char *)(dst);	\
-		for ( i0=sizeof(ID)-1; i0>=0; i0-- ) {	\
-			_p[i0] = tmp & 0xff; tmp >>= 8;	\
-		} \
-	} while(0)
-
-/* Copy a pointer "src" to a pointer "dst" from big-endian to native order */
-#define MDB_DISK2ID( src, dst ) \
-	do { unsigned i0; ID tmp = 0; unsigned char *_p;	\
-		_p = (unsigned char *)(src);	\
-		for ( i0=0; i0<sizeof(ID); i0++ ) {	\
-			tmp <<= 8; tmp |= *_p++;	\
-		} *(dst) = tmp; \
-	} while (0)
 
 LDAP_END_DECL
 

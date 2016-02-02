@@ -83,6 +83,16 @@ static ConfigTable mdbcfg[] = {
 		mdb_cf_gen, "( OLcfgDbAt:0.3 NAME 'olcDbMode' "
 		"DESC 'Unix permissions of database files' "
 		"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
+	{ "multival_hi", "num", 2, 2, 0, ARG_UINT|ARG_OFFSET,
+		(void *)offsetof(struct mdb_info, mi_multi_hi),
+		"( OLcfgDbAt:12.6 NAME 'olcDbMultivalHi' "
+		"DESC 'Threshold for splitting multivalued attr out of main blob' "
+		"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
+	{ "multival_lo", "num", 2, 2, 0, ARG_UINT|ARG_OFFSET,
+		(void *)offsetof(struct mdb_info, mi_multi_lo),
+		"( OLcfgDbAt:12.7 NAME 'olcDbMultivalLo' "
+		"DESC 'Threshold for consolidating multivalued attr back into main blob' "
+		"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
 	{ "rtxnsize", "entries", 2, 2, 0, ARG_UINT|ARG_OFFSET,
 		(void *)offsetof(struct mdb_info, mi_rtxn_size),
 		"( OLcfgDbAt:12.5 NAME 'olcDbRtxnSize' "
@@ -105,7 +115,8 @@ static ConfigOCs mdbocs[] = {
 		"MUST olcDbDirectory "
 		"MAY ( olcDbCheckpoint $ olcDbEnvFlags $ "
 		"olcDbNoSync $ olcDbIndex $ olcDbMaxReaders $ olcDbMaxSize $ "
-		"olcDbMode $ olcDbSearchStack $ olcDbMaxEntrySize $ olcDbRtxnSize ) )",
+		"olcDbMode $ olcDbSearchStack $ olcDbMaxEntrySize $ olcDbRtxnSize $ "
+		"olcDbMultivalHi $ olcDbMultivalLo ) )",
 		 	Cft_Database, mdbcfg },
 	{ NULL, 0, NULL }
 };
