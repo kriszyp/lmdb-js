@@ -407,9 +407,9 @@ of different database backends you can choose from. They include
 {{TERM:HDB}}, a hierarchical high-performance transactional
 backend (deprecated); {{SHELL}}, a backend interface to arbitrary shell scripts;
 and PASSWD, a simple backend interface to the {{passwd}}(5) file.
-The MDB backend utilizes {{TERM::LMDB}}, a high performance replacement
-for {{ORG[expand]:Oracle}}'s Berkeley DB.
-The BDB and HDB backends utilize {{ORG[expand]:Oracle}} Berkeley DB. These
+The MDB backend utilizes {{TERM:LMDB}}, a high performance replacement
+for {{ORG[expand]Oracle}}'s Berkeley DB.
+The BDB and HDB backends utilize {{ORG[expand]Oracle}} Berkeley DB. These
 backends have been deprecated as LMDB provides significantly higher read
 and write throughput and data reliability.
 
