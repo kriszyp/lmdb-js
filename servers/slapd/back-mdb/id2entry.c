@@ -398,8 +398,11 @@ int mdb_id2entry_delete(
 		return rc;
 
 	rc = mdb_cursor_get( mvc, &key, NULL, MDB_SET_RANGE );
-	if (rc && rc != MDB_NOTFOUND)
+	if (rc) {
+		if (rc == MDB_NOTFOUND)
+			rc = MDB_SUCCESS;
 		return rc;
+	}
 	while (*(ID *)key.mv_data == e->e_id ) {
 		rc = mdb_cursor_del( mvc, MDB_NODUPDATA );
 		if (rc)
