@@ -1,5 +1,7 @@
 OpenLDAP 2.4 Change Log
 
+OpenLDAP 2.4.45 Engineering
+
 OpenLDAP 2.4.44 Release (2016/02/05)
 	Fixed slapd-bdb/hdb missing olcDbChecksum config attr (ITS#8337)
 	Fixed slapd-mdb behavior with long lived read transactions (ITS#8226)
