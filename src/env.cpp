@@ -130,6 +130,9 @@ NAN_METHOD(EnvWrap::open) {
     setFlagFromValue(&flags, MDB_NOMETASYNC, "noMetaSync", false, options);
     setFlagFromValue(&flags, MDB_NOSYNC, "noSync", false, options);
     setFlagFromValue(&flags, MDB_MAPASYNC, "mapAsync", false, options);
+    
+    // Set MDB_NOTLS to enable multiple read-only transactions on the same thread (in this case, the nodejs main thread)
+    flags |= MDB_NOTLS;
 
     // TODO: make file attributes configurable
     rc = mdb_env_open(ew->env, *String::Utf8Value(path), flags, 0664);
