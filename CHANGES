@@ -1,6 +1,7 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.45 Engineering
+	Fixed libldap handling of Diffie-Hellman parameters (ITS#7506)
 
 OpenLDAP 2.4.44 Release (2016/02/05)
 	Fixed slapd-bdb/hdb missing olcDbChecksum config attr (ITS#8337)
