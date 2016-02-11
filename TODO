@@ -50,3 +50,10 @@ New syslog engine
 
 
 Overhaul overlays and backends, see ITS 6166
+
+(In relation to a discussion about slapo-chain)
+<hyc> anyway, the nicer ting to fix would be in 2.5, push all of the repl consumer code into its own overlay
+<hyc> in that case, updateref would be processed wherever the overlay was configured
+<hyc> so no longer tied to the frontend
+<hyc> it would also make it more feasible to have multiple different consumer configs in a single DB, each with their own provider URL (and thus their own updateref)
+<hyc> I would think we can get rid of the update ref directive entirely, just point all writes to that consumer's provider.
