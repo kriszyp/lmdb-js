@@ -157,6 +157,12 @@ CustomExternalStringResource::~CustomExternalStringResource() { }
 
 void CustomExternalStringResource::Dispose() {
     // No need to do anything, the data is owned by LMDB, not us
+    
+    // But actually need to delete the string resource itself:
+    // the docs say that "The default implementation will use the delete operator."
+    // while initially I thought this means using delete on the string,
+    // apparently they meant just calling the destructor of this class.
+    delete this;
 }
 
 const uint16_t *CustomExternalStringResource::data() const {
