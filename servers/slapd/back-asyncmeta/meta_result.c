@@ -1574,7 +1574,7 @@ again:
 	for (j=0; j<ntargets; j++) {
 		i++;
 		if (i >= ntargets) i = 0;
-		if (!mc->mc_conns[i].msc_ldr) continue;
+		if (!mc->mc_conns[i].msc_ldr || mc->mc_conns[i].msc_pending_ops <= 0) continue;
 		rc = ldap_result( mc->mc_conns[i].msc_ldr, LDAP_RES_ANY, LDAP_MSG_RECEIVED, &tv, &msg );
 		msc = &mc->mc_conns[i];
 		if (rc < 1) {
@@ -1715,6 +1715,9 @@ void* asyncmeta_timeout_loop(void *ctx, void *arg)
 						a_metasingleconn_t *msc = &mc->mc_conns[j];
 						a_metatarget_t     *mt = mi->mi_targets[j];
 						msc->msc_timeout_ops++;
+						if (bc->msgids[j] >= 0) {
+							msc->msc_pending_ops--;
+						}
 						asyncmeta_back_cancel( mc, op,
 								       bc->candidates[ j ].sr_msgid, j );
 						if (!META_BACK_TGT_QUARANTINE( mt ) ||
@@ -1741,13 +1744,14 @@ void* asyncmeta_timeout_loop(void *ctx, void *arg)
 			}
 		}
 
-		if (!mc->pending_ops && mi->mi_idle_timeout) {
+		if (mi->mi_idle_timeout) {
 			for (j=0; j<mi->mi_ntargets; j++) {
 				a_metasingleconn_t *msc = &mc->mc_conns[j];
+				if (msc->msc_pending_ops > 0) {
+					continue;
+				}
 				if (msc->msc_ld && msc->msc_time > 0 && msc->msc_time + mi->mi_idle_timeout <= current_time) {
-					if (mc->mc_active < 1) {
-						asyncmeta_clear_one_msc(NULL, mc, j);
-					}
+					asyncmeta_clear_one_msc(NULL, mc, j);
 				}
 			}
 		}

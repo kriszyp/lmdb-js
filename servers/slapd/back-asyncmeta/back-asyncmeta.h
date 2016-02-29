@@ -192,7 +192,7 @@ struct a_metatarget_t;
 typedef struct bm_context_t {
 	LDAP_SLIST_ENTRY(bm_context_t) bc_next;
 	time_t			timeout;
-	time_t          stoptime;
+	time_t                  stoptime;
 	ldap_back_send_t	sendok;
 	ldap_back_send_t	retrying;
 	int candidate_match;
@@ -202,7 +202,8 @@ typedef struct bm_context_t {
 	int is_ok;
 	SlapReply		rs;
 	Operation		*op;
-	LDAPControl	**ctrls;
+	LDAPControl	        **ctrls;
+	int                     *msgids;
 	SlapReply               *candidates;
 } bm_context_t;
 
@@ -231,7 +232,7 @@ typedef struct a_metasingleconn_t {
 	/* NOTE: lc_lcflags is redefined to msc_mscflags to reuse the macros
 	 * defined for back-ldap */
 #define	lc_lcflags		msc_mscflags
-
+	int msc_pending_ops;
 	int msc_timeout_ops;
 		/* Connection for the select */
 	Connection *conn;
@@ -773,8 +774,8 @@ void
 asyncmeta_send_result(bm_context_t* bc, int error, char *text);
 
 int asyncmeta_new_bm_context(Operation *op, SlapReply *rs, bm_context_t **new_bc, int ntargets);
-int asyncmeta_start_listeners(a_metaconn_t *mc, SlapReply *candidates);
-int asyncmeta_start_one_listener(a_metaconn_t *mc, SlapReply *candidates, int candidate);
+int asyncmeta_start_listeners(a_metaconn_t *mc, SlapReply *candidates,  bm_context_t *bc);
+int asyncmeta_start_one_listener(a_metaconn_t *mc, SlapReply *candidates,  bm_context_t *bc, int candidate);
 
 meta_search_candidate_t
 asyncmeta_back_search_start(

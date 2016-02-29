@@ -233,7 +233,7 @@ asyncmeta_back_delete( Operation *op, SlapReply *rs )
 			break;
 		}
 	ldap_pvt_thread_mutex_lock( &mc->mc_om_mutex);
-	asyncmeta_start_one_listener(mc, candidates, candidate);
+	asyncmeta_start_one_listener(mc, candidates, bc, candidate);
 	ldap_pvt_thread_mutex_unlock( &mc->mc_om_mutex);
 finish:
 	return rs->sr_err;

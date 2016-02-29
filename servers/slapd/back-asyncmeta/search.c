@@ -442,7 +442,7 @@ asyncmeta_back_search( Operation *op, SlapReply *rs )
 			initial_candidates = 0, candidate_match = 0,
 			needbind = 0;
 	ldap_back_send_t	sendok = LDAP_BACK_SENDERR;
-	long		i;
+	long		i,j;
 	int		is_ok = 0;
 	void		*savepriv;
 	SlapReply	*candidates = NULL;
@@ -484,8 +484,7 @@ asyncmeta_back_search( Operation *op, SlapReply *rs )
 	for ( i = 0; i < mi->mi_ntargets; i++ ) {
 		/* reset sr_msgid; it is used in most loops
 		 * to check if that target is still to be considered */
-		candidates[ i ].sr_msgid = META_MSGID_UNDEFINED;
-
+		candidates[i].sr_msgid = META_MSGID_UNDEFINED;
 		/* a target is marked as candidate by asyncmeta_getconn();
 		 * if for any reason (an error, it's over or so) it is
 		 * no longer active, sr_msgid is set to META_MSGID_IGNORE
@@ -673,7 +672,7 @@ asyncmeta_back_search( Operation *op, SlapReply *rs )
 		goto finish;
 	}
 	ldap_pvt_thread_mutex_lock( &mc->mc_om_mutex);
-	asyncmeta_start_listeners(mc, candidates);
+	asyncmeta_start_listeners(mc, candidates, bc);
 	ldap_pvt_thread_mutex_unlock( &mc->mc_om_mutex);
 finish:
 	return rs->sr_err;
