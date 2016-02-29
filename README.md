@@ -117,7 +117,7 @@ txn.commit();
 LMDB has four different entities:
 
 * `Env` represents a full database environment. The same environment can be used by multiple processes, but a particular `Env` object **must** be used by one process only. You can operate with the same environment from multiple threads.
-* `Dbi` represents a sub-database which belongs to a database environment. The same environment can contain either multiple named databases or an unnamed database.
+* `Dbi` represents a sub-database which belongs to a database environment. The same environment can contain either multiple named databases (if you specify a string name) or an unnamed database (if you specify `null` instead of a name).
 * `Txn` represents a transaction. Multiple threads can open transactions for the same `Env`, but a particular `Txn` object **must** only be accessed by one thread, and only one `Txn` object can be used on a thread at a time. (NOTE: The `noTls` option in the environment will change this behaviour for *read-only* transactions, so that a thread can then create any number of *read-only* transactions and any number of threads can access the same *read-only* transaction.) Note that **only one** *write* transaction can be open in an environment in any given time. `env.beginTxn()` will simply block until the previous one is either `commit()`ted or `abort()`ed.
 * `Cursor` objects can be used to iterate through multiple keys in the same database.
 

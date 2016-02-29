@@ -130,6 +130,7 @@ public:
 
         Possible options are:
 
+        * name: the name of the database (or null to use the unnamed database)
         * create: if true, the database will be created if it doesn't exist
         * keyIsUint32: if true, keys are treated as 32-bit unsigned integers
         * dupSort: if true, the database can hold multiple items with the same key
