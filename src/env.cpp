@@ -117,7 +117,8 @@ NAN_METHOD(EnvWrap::open) {
     }
 
     // Parse the maxDbs option
-    rc = applyUint32Setting<unsigned>(&mdb_env_set_maxreaders, ew->env, options, 1, "maxReaders");
+    // NOTE: mdb.c defines DEFAULT_READERS as 126
+    rc = applyUint32Setting<unsigned>(&mdb_env_set_maxreaders, ew->env, options, 126, "maxReaders");
     if (rc != 0) {
         return Nan::ThrowError(mdb_strerror(rc));
     }
