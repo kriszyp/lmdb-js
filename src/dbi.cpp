@@ -61,10 +61,12 @@ NAN_METHOD(DbiWrap::ctor) {
     int flags = 0;
     int keyIsUint32 = 0;
     Local<String> name;
+    bool nameIsNull = false;
 
     EnvWrap *ew = Nan::ObjectWrap::Unwrap<EnvWrap>(info[0]->ToObject());
     if (info[1]->IsObject()) {
         Local<Object> options = info[1]->ToObject();
+        nameIsNull = options->Get(Nan::New<String>("name").ToLocalChecked())->IsNull();
         name = options->Get(Nan::New<String>("name").ToLocalChecked())->ToString();
 
         // Get flags from options
@@ -99,7 +101,8 @@ NAN_METHOD(DbiWrap::ctor) {
     }
 
     // Open database
-    rc = mdb_dbi_open(txn, *String::Utf8Value(name), flags, &dbi);
+    // NOTE: nullptr in place of the name means using the unnamed database.
+    rc = mdb_dbi_open(txn, nameIsNull ? nullptr : *String::Utf8Value(name), flags, &dbi);
     if (rc != 0) {
         mdb_txn_abort(txn);
         return Nan::ThrowError(mdb_strerror(rc));
