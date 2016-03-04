@@ -135,7 +135,7 @@ NAN_METHOD(TxnWrap::renew) {
     return;
 }
 
-Nan::NAN_METHOD_RETURN_TYPE TxnWrap::getCommon(Nan::NAN_METHOD_ARGS_TYPE info, Handle<Value> (*successFunc)(MDB_val&)) {
+Nan::NAN_METHOD_RETURN_TYPE TxnWrap::getCommon(Nan::NAN_METHOD_ARGS_TYPE info, Local<Value> (*successFunc)(MDB_val&)) {
     Nan::HandleScope scope;
 
     TxnWrap *tw = Nan::ObjectWrap::Unwrap<TxnWrap>(info.This());

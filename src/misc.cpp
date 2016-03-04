@@ -39,13 +39,13 @@ void setupExportMisc(Handle<Object> exports) {
 }
 
 void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue, Local<Object> options) {
-    Handle<Value> opt = options->Get(Nan::New<String>(name).ToLocalChecked());
+    Local<Value> opt = options->Get(Nan::New<String>(name).ToLocalChecked());
     if (opt->IsBoolean() ? opt->BooleanValue() : defaultValue) {
         *flags |= flag;
     }
 }
 
-argtokey_callback_t argToKey(const Handle<Value> &val, MDB_val &key, bool keyIsUint32) {
+argtokey_callback_t argToKey(const Local<Value> &val, MDB_val &key, bool keyIsUint32) {
     // Check key type
     if (keyIsUint32 && !val->IsUint32()) {
         Nan::ThrowError("Invalid key. keyIsUint32 specified on the database, but the given key was not an unsigned 32-bit integer");
@@ -78,7 +78,7 @@ argtokey_callback_t argToKey(const Handle<Value> &val, MDB_val &key, bool keyIsU
     return nullptr;
 }
 
-Handle<Value> keyToHandle(MDB_val &key, bool keyIsUint32) {
+Local<Value> keyToHandle(MDB_val &key, bool keyIsUint32) {
     if (keyIsUint32) {
         return Nan::New<Integer>(*((uint32_t*)key.mv_data));
     }
@@ -87,14 +87,14 @@ Handle<Value> keyToHandle(MDB_val &key, bool keyIsUint32) {
     }
 }
 
-Handle<Value> valToString(MDB_val &data) {
+Local<Value> valToString(MDB_val &data) {
     auto resource = new CustomExternalStringResource(&data);
-    auto str = String::NewExternalTwoByte(Isolate::GetCurrent(), resource);
+    auto str = Nan::New<v8::String>(resource);
 
     return str.ToLocalChecked();
 }
 
-Handle<Value> valToBinary(MDB_val &data) {
+Local<Value> valToBinary(MDB_val &data) {
     // FIXME: It'd be better not to copy buffers, but I'm not sure
     // about the ownership semantics of MDB_val, so let' be safe.
     return Nan::CopyBuffer(
@@ -103,11 +103,11 @@ Handle<Value> valToBinary(MDB_val &data) {
     ).ToLocalChecked();
 }
 
-Handle<Value> valToNumber(MDB_val &data) {
+Local<Value> valToNumber(MDB_val &data) {
     return Nan::New<Number>(*((double*)data.mv_data));
 }
 
-Handle<Value> valToBoolean(MDB_val &data) {
+Local<Value> valToBoolean(MDB_val &data) {
     return Nan::New<Boolean>(*((bool*)data.mv_data));
 }
 
@@ -120,7 +120,7 @@ void consoleLog(const char *msg) {
     Nan::RunScript(script);
 }
 
-void consoleLog(Handle<Value> val) {
+void consoleLog(Local<Value> val) {
     Local<String> str = Nan::New<String>("console.log('").ToLocalChecked();
     str = String::Concat(str, val->ToString());
     str = String::Concat(str, Nan::New<String>("');").ToLocalChecked());

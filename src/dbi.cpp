@@ -146,7 +146,7 @@ NAN_METHOD(DbiWrap::drop) {
     // Check if the database should be deleted
     if (info.Length() == 2 && info[1]->IsObject()) {
         Handle<Object> options = info[1]->ToObject();
-        Handle<Value> opt = options->Get(Nan::New<String>("justFreePages").ToLocalChecked());
+        Local<Value> opt = options->Get(Nan::New<String>("justFreePages").ToLocalChecked());
         del = opt->IsBoolean() ? !(opt->BooleanValue()) : 1;
     }
 

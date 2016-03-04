@@ -42,16 +42,16 @@ void setupExportMisc(Handle<Object> exports);
 // Helper callback
 typedef void (*argtokey_callback_t)(MDB_val &key);
 
-void consoleLog(Handle<Value> val);
+void consoleLog(Local<Value> val);
 void consoleLog(const char *msg);
 void consoleLogN(int n);
 void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue, Local<Object> options);
-argtokey_callback_t argToKey(const Handle<Value> &val, MDB_val &key, bool keyIsUint32);
-Handle<Value> keyToHandle(MDB_val &key, bool keyIsUint32);
-Handle<Value> valToString(MDB_val &data);
-Handle<Value> valToBinary(MDB_val &data);
-Handle<Value> valToNumber(MDB_val &data);
-Handle<Value> valToBoolean(MDB_val &data);
+argtokey_callback_t argToKey(const Local<Value> &val, MDB_val &key, bool keyIsUint32);
+Local<Value> keyToHandle(MDB_val &key, bool keyIsUint32);
+Local<Value> valToString(MDB_val &data);
+Local<Value> valToBinary(MDB_val &data);
+Local<Value> valToNumber(MDB_val &data);
+Local<Value> valToBoolean(MDB_val &data);
 
 /*
     `Env`
@@ -178,7 +178,7 @@ public:
     static NAN_METHOD(ctor);
 
     // Helper for all the get methods (not exposed)
-    static Nan::NAN_METHOD_RETURN_TYPE getCommon(Nan::NAN_METHOD_ARGS_TYPE info, Handle<Value> (*successFunc)(MDB_val&));
+    static Nan::NAN_METHOD_RETURN_TYPE getCommon(Nan::NAN_METHOD_ARGS_TYPE info, Local<Value> (*successFunc)(MDB_val&));
 
     // Helper for all the put methods (not exposed)
     static Nan::NAN_METHOD_RETURN_TYPE putCommon(Nan::NAN_METHOD_ARGS_TYPE info, void (*fillFunc)(Nan::NAN_METHOD_ARGS_TYPE info, MDB_val&), void (*freeFunc)(MDB_val&));
@@ -413,7 +413,7 @@ public:
         void (*setKey)(CursorWrap* cw, Nan::NAN_METHOD_ARGS_TYPE info, MDB_val&),
         void (*setData)(CursorWrap* cw, Nan::NAN_METHOD_ARGS_TYPE info, MDB_val&),
         void (*freeData)(CursorWrap* cw, Nan::NAN_METHOD_ARGS_TYPE info, MDB_val&),
-        Handle<Value> (*convertFunc)(MDB_val &data));
+        Local<Value> (*convertFunc)(MDB_val &data));
 
     // Helper method for getters (not exposed)
     static Nan::NAN_METHOD_RETURN_TYPE getCommon(Nan::NAN_METHOD_ARGS_TYPE info, MDB_cursor_op op);

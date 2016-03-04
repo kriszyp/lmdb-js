@@ -96,7 +96,7 @@ Nan::NAN_METHOD_RETURN_TYPE CursorWrap::getCommon(
     void (*setKey)(CursorWrap* cw, Nan::NAN_METHOD_ARGS_TYPE info, MDB_val&),
     void (*setData)(CursorWrap* cw, Nan::NAN_METHOD_ARGS_TYPE info, MDB_val&),
     void (*freeData)(CursorWrap* cw, Nan::NAN_METHOD_ARGS_TYPE info, MDB_val&),
-    Handle<Value> (*convertFunc)(MDB_val &data)
+    Local<Value> (*convertFunc)(MDB_val &data)
 ) {
     Nan::HandleScope scope;
 
@@ -124,7 +124,7 @@ Nan::NAN_METHOD_RETURN_TYPE CursorWrap::getCommon(
         return Nan::ThrowError(mdb_strerror(rc));
     }
 
-    Handle<Value> keyHandle = Nan::Undefined();
+    Local<Value> keyHandle = Nan::Undefined();
     if (cw->key.mv_size) {
         keyHandle = keyToHandle(cw->key, cw->keyIsUint32);
     }
@@ -132,8 +132,8 @@ Nan::NAN_METHOD_RETURN_TYPE CursorWrap::getCommon(
     if (convertFunc && al > 0 && info[al - 1]->IsFunction()) {
         // In this case, we expect the key/data pair to be correctly filled
         const unsigned argc = 2;
-        Handle<Value> argv[argc] = { keyHandle, convertFunc(cw->data) };
-        Nan::Callback *callback = new Nan::Callback(Handle<Function>::Cast(info[info.Length() - 1]));
+        Local<Value> argv[argc] = { keyHandle, convertFunc(cw->data) };
+        Nan::Callback *callback = new Nan::Callback(Local<Function>::Cast(info[info.Length() - 1]));
         callback->Call(argc, argv);
         delete callback;
     }

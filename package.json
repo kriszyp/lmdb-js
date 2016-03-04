@@ -2,7 +2,9 @@
   "name": "node-lmdb",
   "description": "Node binding for LMDB, the Lightning Memory-Mapped Database",
   "author": "Timur Kristóf <venemo@fedoraproject.org>",
-  "contributors": ["Erich Ocean <erich@xygroup.co>"],
+  "contributors": [
+    "Erich Ocean <erich@xygroup.co>"
+  ],
   "license": "MIT",
   "keywords": [
     "lmdb",
@@ -16,6 +18,6 @@
   "main": "./build/Release/node-lmdb",
   "gypfile": true,
   "dependencies": {
-    "nan": "^2.0.9"
+    "nan": "2.2.0"
   }
 }
