@@ -45,11 +45,11 @@
 #include <gnutls/x509.h>
 
 typedef struct tlsg_ctx {
-	struct ldapoptions *lo;
 	gnutls_certificate_credentials_t cred;
 	gnutls_dh_params_t dh_params;
 	unsigned long verify_depth;
 	int refcount;
+	int reqcert;
 	gnutls_priority_t prios;
 #ifdef LDAP_R_COMPILE
 	ldap_pvt_thread_mutex_t ref_mutex;
@@ -141,7 +141,6 @@ tlsg_ctx_new ( struct ldapoptions *lo )
 
 	ctx = ber_memcalloc ( 1, sizeof (*ctx) );
 	if ( ctx ) {
-		ctx->lo = lo;
 		if ( gnutls_certificate_allocate_credentials( &ctx->cred )) {
 			ber_memfree( ctx );
 			return NULL;
@@ -318,6 +317,9 @@ tlsg_ctx_init( struct ldapoptions *lo, struct ldaptls *lt, int is_server )
 		if ( rc ) return -1;
 		gnutls_certificate_set_dh_params( ctx->cred, ctx->dh_params );
 	}
+
+	ctx->reqcert = lo->ldo_tls_require_cert;
+
 	return 0;
 }
 
@@ -339,10 +341,10 @@ tlsg_session_new ( tls_ctx * ctx, int is_server )
 	
 	if ( is_server ) {
 		int flag = 0;
-		if ( c->lo->ldo_tls_require_cert ) {
+		if ( c->reqcert ) {
 			flag = GNUTLS_CERT_REQUEST;
-			if ( c->lo->ldo_tls_require_cert == LDAP_OPT_X_TLS_DEMAND ||
-				c->lo->ldo_tls_require_cert == LDAP_OPT_X_TLS_HARD )
+			if ( c->reqcert == LDAP_OPT_X_TLS_DEMAND ||
+				c->reqcert == LDAP_OPT_X_TLS_HARD )
 				flag = GNUTLS_CERT_REQUIRE;
 			gnutls_certificate_server_set_request( session->session, flag );
 		}
@@ -357,17 +359,17 @@ tlsg_session_accept( tls_session *session )
 	int rc;
 
 	rc = gnutls_handshake( s->session );
-	if ( rc == 0 && s->ctx->lo->ldo_tls_require_cert != LDAP_OPT_X_TLS_NEVER ) {
+	if ( rc == 0 && s->ctx->reqcert != LDAP_OPT_X_TLS_NEVER ) {
 		const gnutls_datum_t *peer_cert_list;
 		unsigned int list_size;
 
 		peer_cert_list = gnutls_certificate_get_peers( s->session, 
 						&list_size );
-		if ( !peer_cert_list && s->ctx->lo->ldo_tls_require_cert == LDAP_OPT_X_TLS_TRY ) 
+		if ( !peer_cert_list && s->ctx->reqcert == LDAP_OPT_X_TLS_TRY )
 			rc = 0;
 		else {
 			rc = tlsg_cert_verify( s );
-			if ( rc && s->ctx->lo->ldo_tls_require_cert == LDAP_OPT_X_TLS_ALLOW )
+			if ( rc && s->ctx->reqcert == LDAP_OPT_X_TLS_ALLOW )
 				rc = 0;
 		}
 	}
