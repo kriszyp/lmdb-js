@@ -71,7 +71,7 @@ NAN_METHOD(EnvWrap::ctor) {
 template<class T>
 int applyUint32Setting(int (*f)(MDB_env *, T), MDB_env* e, Local<Object> options, T dflt, const char* keyName) {
     int rc;
-    const Handle<Value> value = options->Get(Nan::New<String>(keyName).ToLocalChecked());
+    const Local<Value> value = options->Get(Nan::New<String>(keyName).ToLocalChecked());
     if (value->IsUint32()) {
         rc = f(e, value->Uint32Value());
     }
@@ -106,7 +106,7 @@ NAN_METHOD(EnvWrap::open) {
     }
 
     // Parse the mapSize option
-    Handle<Value> mapSizeOption = options->Get(Nan::New<String>("mapSize").ToLocalChecked());
+    Local<Value> mapSizeOption = options->Get(Nan::New<String>("mapSize").ToLocalChecked());
     if (mapSizeOption->IsNumber()) {
         double mapSizeDouble = mapSizeOption->NumberValue();
         size_t mapSizeSizeT = (size_t) mapSizeDouble;
@@ -166,7 +166,7 @@ NAN_METHOD(EnvWrap::beginTxn) {
 
     const unsigned argc = 2;
 
-    Handle<Value> argv[argc] = { info.This(), info[0] };
+    Local<Value> argv[argc] = { info.This(), info[0] };
     Local<Object> instance = Nan::New(txnCtor)->NewInstance(argc, argv);
 
     info.GetReturnValue().Set(instance);
@@ -176,7 +176,7 @@ NAN_METHOD(EnvWrap::openDbi) {
     Nan::HandleScope scope;
 
     const unsigned argc = 2;
-    Handle<Value> argv[argc] = { info.This(), info[0] };
+    Local<Value> argv[argc] = { info.This(), info[0] };
     Local<Object> instance = Nan::New(dbiCtor)->NewInstance(argc, argv);
 
     info.GetReturnValue().Set(instance);
@@ -191,7 +191,7 @@ NAN_METHOD(EnvWrap::sync) {
         return Nan::ThrowError("The environment is already closed.");
     }
 
-    Handle<Function> callback = Handle<Function>::Cast(info[0]);
+    Local<Function> callback = info[0].As<Function>();
 
     EnvSyncData *d = new EnvSyncData;
     d->request.data = d;
@@ -209,7 +209,7 @@ NAN_METHOD(EnvWrap::sync) {
         // Executed after the sync is finished
         EnvSyncData *d = static_cast<EnvSyncData*>(request->data);
         const unsigned argc = 1;
-        Handle<Value> argv[argc];
+        Local<Value> argv[argc];
 
         if (d->rc == 0) {
             argv[0] = Nan::Null();
