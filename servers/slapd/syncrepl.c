@@ -2127,6 +2127,7 @@ syncrepl_op_modify( Operation *op, SlapReply *rs )
 		resolve_ctxt rx;
 		slap_callback cb = { NULL, syncrepl_resolve_cb, NULL, NULL };
         Filter lf[3] = {0};
+        AttributeAssertion aa[2] = {0};
 
 		rx.rx_si = si;
 		rx.rx_mods = newlist;
@@ -2158,10 +2159,12 @@ syncrepl_op_modify( Operation *op, SlapReply *rs )
         lf[0].f_choice = LDAP_FILTER_AND;
         lf[0].f_and = lf+1;
         lf[1].f_choice = LDAP_FILTER_GE;
+        lf[1].f_ava = aa;
         lf[1].f_av_desc = slap_schema.si_ad_entryCSN;
         lf[1].f_av_value = bv;
         lf[1].f_next = lf+2;
         lf[2].f_choice = LDAP_FILTER_EQUALITY;
+        lf[2].f_ava = aa+1;
         lf[2].f_av_desc = ad_reqDN;
         lf[2].f_av_value = op->o_req_ndn;
         lf[2].f_next = si->si_logfilter;
