@@ -82,8 +82,9 @@ typedef struct syncinfo_s {
 	struct berval		si_base;
 	struct berval		si_logbase;
 	struct berval		si_filterstr;
-	Filter			*si_filter;
 	struct berval		si_logfilterstr;
+	Filter			*si_filter;
+	Filter			*si_logfilter;
 	struct berval		si_contextdn;
 	int			si_scope;
 	int			si_attrsonly;
@@ -2159,6 +2160,7 @@ syncrepl_op_modify( Operation *op, SlapReply *rs )
 		SlapReply rs1 = {0};
 		resolve_ctxt rx;
 		slap_callback cb = { NULL, syncrepl_resolve_cb, NULL, NULL };
+        Filter lf[3] = {0};
 
 		rx.rx_si = si;
 		rx.rx_mods = newlist;
@@ -2186,7 +2188,19 @@ syncrepl_op_modify( Operation *op, SlapReply *rs )
 		op2.ors_filterstr.bv_len = sprintf(op2.ors_filterstr.bv_val,
 			"(&(entryCSN>=%s)(reqDN=%s)%s)",
 			bv.bv_val, op->o_req_ndn.bv_val, si->si_logfilterstr.bv_val );
-		op2.ors_filter = str2filter_x( op, op2.ors_filterstr.bv_val );
+
+        lf[0].f_choice = LDAP_FILTER_AND;
+        lf[0].f_and = lf+1;
+        lf[1].f_choice = LDAP_FILTER_GE;
+        lf[1].f_av_desc = slap_schema.si_ad_entryCSN;
+        lf[1].f_av_value = bv;
+        lf[1].f_next = lf+2;
+        lf[2].f_choice = LDAP_FILTER_EQUALITY;
+        lf[2].f_av_desc = ad_reqDN;
+        lf[2].f_av_value = op->o_req_ndn;
+        lf[2].f_next = si->si_logfilter;
+
+		op2.ors_filter = lf;
 
 		op2.o_callback = &cb;
 		op2.o_bd = select_backend( &op2.o_req_ndn, 1 );
@@ -4585,6 +4599,9 @@ syncinfo_free( syncinfo_t *sie, int free_all )
 		if ( sie->si_logfilterstr.bv_val ) {
 			ch_free( sie->si_logfilterstr.bv_val );
 		}
+		if ( sie->si_logfilter ) {
+			filter_free( sie->si_logfilter );
+		}
 		if ( sie->si_base.bv_val ) {
 			ch_free( sie->si_base.bv_val );
 		}
@@ -5304,6 +5321,15 @@ parse_syncrepl_line(
 		Debug( LDAP_DEBUG_ANY, "syncrepl %s " SEARCHBASESTR "=\"%s\": unable to parse filter=\"%s\"\n", 
 			si->si_ridtxt, c->be->be_suffix ? c->be->be_suffix[ 0 ].bv_val : "(null)", si->si_filterstr.bv_val );
 		return 1;
+	}
+
+	if ( si->si_got & GOT_LOGFILTER ) {
+		si->si_logfilter = str2filter( si->si_logfilterstr.bv_val );
+		if ( si->si_logfilter == NULL ) {
+			Debug( LDAP_DEBUG_ANY, "syncrepl %s " SEARCHBASESTR "=\"%s\": unable to parse logfilter=\"%s\"\n", 
+				si->si_ridtxt, c->be->be_suffix ? c->be->be_suffix[ 0 ].bv_val : "(null)", si->si_logfilterstr.bv_val );
+			return 1;
+		}
 	}
 
 	return 0;
