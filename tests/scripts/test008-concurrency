@@ -59,8 +59,7 @@ done
 $MONITORDATA "$MONITORDB" "$DATADIR" "$TESTDIR"
 
 echo "Using tester for concurrent server access..."
-time $SLAPDTESTER -P "$PROGDIR" -d "$TESTDIR" -h $LOCALHOST -p $PORT1 -D "$MANAGERDN" -w $PASSWD -l $TESTLOOPS
-#$SLAPDTESTER -P "$PROGDIR" -d "$TESTDIR" -h $LOCALHOST -p $PORT1 -D "$MANAGERDN" -w $PASSWD -l $TESTLOOPS
+$SLAPDTESTER -P "$PROGDIR" -d "$TESTDIR" -h $LOCALHOST -p $PORT1 -D "$MANAGERDN" -w $PASSWD -l $TESTLOOPS
 RC=$?
 
 if test $RC != 0 ; then
