@@ -945,6 +945,10 @@ do_syncrep2(
 						check_syncprov( op, si );
 						ldap_pvt_thread_mutex_lock( &si->si_cookieState->cs_mutex );
 						for ( i =0; i<si->si_cookieState->cs_num; i++ ) {
+#ifdef CHATTY_SYNCLOG
+							Debug( LDAP_DEBUG_SYNC, "do_syncrep2: %s CSN for sid %d: %s\n",
+								si->si_ridtxt, i, si->si_cookieState->cs_vals[i].bv_val );
+#endif
 							/* new SID */
 							if ( sid < si->si_cookieState->cs_sids[i] )
 								break;
@@ -2099,6 +2103,33 @@ syncrepl_op_modify( Operation *op, SlapReply *rs )
 	if ( !mod )
 		return SLAP_CB_CONTINUE;
 
+	{
+		int i, sid;
+		sid = slap_parse_csn_sid( &mod->sml_nvalues[0] );
+		ldap_pvt_thread_mutex_lock( &si->si_cookieState->cs_mutex );
+		for ( i =0; i<si->si_cookieState->cs_num; i++ ) {
+#ifdef CHATTY_SYNCLOG
+			Debug( LDAP_DEBUG_SYNC, "syncrepl_op_modify: %s CSN for sid %d: %s\n",
+				si->si_ridtxt, i, si->si_cookieState->cs_vals[i].bv_val );
+#endif
+			/* new SID */
+			if ( sid < si->si_cookieState->cs_sids[i] )
+				break;
+			if ( si->si_cookieState->cs_sids[i] == sid ) {
+				if ( ber_bvcmp( &mod->sml_nvalues[0], &si->si_cookieState->cs_vals[i] ) <= 0 ) {
+					Debug( LDAP_DEBUG_SYNC, "syncrepl_op_modify: %s entryCSN too old, ignoring %s (%s)\n",
+						si->si_ridtxt, mod->sml_nvalues[0].bv_val, op->o_req_dn.bv_val );
+					ldap_pvt_thread_mutex_unlock( &si->si_cookieState->cs_mutex );
+					slap_graduate_commit_csn( op );
+					/* tell accesslog this was a failure */
+					rs->sr_err = LDAP_TYPE_OR_VALUE_EXISTS;
+					return LDAP_SUCCESS;
+				}
+			}
+		}
+		ldap_pvt_thread_mutex_unlock( &si->si_cookieState->cs_mutex );
+	}
+
 	rc = overlay_entry_get_ov( op, &op->o_req_ndn, NULL, NULL, 0, &e, on );
 	if ( rc == 0 ) {
 		Attribute *a;
@@ -2112,6 +2143,7 @@ syncrepl_op_modify( Operation *op, SlapReply *rs )
 	}
 	/* equal? Should never happen */
 	if ( match == 0 ) {
+		slap_graduate_commit_csn( op );
 		/* tell accesslog this was a failure */
 		rs->sr_err = LDAP_TYPE_OR_VALUE_EXISTS;
 		return LDAP_SUCCESS;
