@@ -285,7 +285,9 @@ slapmodify( int argc, char **argv )
 				rc = (id == NOID);
 				if ( rc == LDAP_SUCCESS && lr.lr_op != LDAP_REQ_DELETE ) {
 					e_orig = be->be_entry_get( be, id );
-					e = entry_dup( e_orig );
+					if ( e_orig )
+						e = entry_dup( e_orig );
+					rc = (e == NULL);
 				}
 				break;
 		}
