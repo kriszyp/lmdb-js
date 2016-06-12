@@ -2253,6 +2253,7 @@ syncrepl_op_modify( Operation *op, SlapReply *rs )
 		sc->sc_private = mx;
 		sc->sc_next = op->o_callback;
 		sc->sc_cleanup = NULL;
+		sc->sc_writewait = NULL;
 		op->o_callback = sc;
 		op->orm_no_opattrs = 1;
 		mx->mx_orig = op->orm_modlist;
