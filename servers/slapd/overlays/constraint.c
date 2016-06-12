@@ -601,7 +601,7 @@ constraint_violation( constraint *c, struct berval *bv, Operation *op )
 		case CONSTRAINT_URI: {
 			Operation nop = *op;
 			slap_overinst *on = (slap_overinst *) op->o_bd->bd_info;
-			slap_callback cb;
+			slap_callback cb = { 0 };
 			int i;
 			int found = 0;
 			int rc;
@@ -609,9 +609,7 @@ constraint_violation( constraint *c, struct berval *bv, Operation *op )
 			struct berval filterstr;
 			char *ptr;
 
-			cb.sc_next = NULL;
 			cb.sc_response = constraint_uri_cb;
-			cb.sc_cleanup = NULL;
 			cb.sc_private = &found;
 
 			nop.o_protocol = LDAP_VERSION3;

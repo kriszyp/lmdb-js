@@ -1219,6 +1219,7 @@ overlay_remove( BackendDB *be, slap_overinst *on, Operation *op )
 	rm_cb->sc_cleanup = overlay_remove_cb;
 	rm_cb->sc_response = NULL;
 	rm_cb->sc_private = (void*) rm_ctx;
+	rm_cb->sc_writewait = NULL;
 
 	/* Append callback to the end of the list */
 	if ( !op->o_callback ) {

@@ -2501,7 +2501,7 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 		syncops so = {0};
 		fbase_cookie fc;
 		opcookie opc;
-		slap_callback sc;
+		slap_callback sc = {0};
 
 		fc.fss = &so;
 		fc.fbase = 0;

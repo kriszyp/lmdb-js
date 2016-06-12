@@ -346,7 +346,7 @@ static int
 dynlist_prepare_entry( Operation *op, SlapReply *rs, dynlist_info_t *dli )
 {
 	Attribute	*a, *id = NULL;
-	slap_callback	cb;
+	slap_callback	cb = { 0 };
 	Operation	o = *op;
 	struct berval	*url;
 	Entry		*e;
@@ -404,8 +404,6 @@ dynlist_prepare_entry( Operation *op, SlapReply *rs, dynlist_info_t *dli )
 	dlc.dlc_dli = dli;
 	cb.sc_private = &dlc;
 	cb.sc_response = dynlist_sc_update;
-	cb.sc_cleanup = NULL;
-	cb.sc_next = NULL;
 
 	o.o_callback = &cb;
 	o.ors_deref = LDAP_DEREF_NEVER;
