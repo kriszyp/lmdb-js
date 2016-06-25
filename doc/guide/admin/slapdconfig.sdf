@@ -411,7 +411,7 @@ H4: syncrepl
 >		[tls_cacert=<file>]
 >		[tls_cacertdir=<path>]
 >		[tls_reqcert=never|allow|try|demand]
->		[tls_ciphersuite=<ciphers>]
+>		[tls_cipher_suite=<ciphers>]
 >		[tls_crlcheck=none|peer|all]
 >		[logbase=<base DN>]
 >		[logfilter=<filter str>]
