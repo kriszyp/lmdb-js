@@ -1,3 +1,3 @@
 'use strict';
 
-module.exports = require('./build/Release/node-lmdb');
+module.exports = require('bindings')('node-lmdb.node');
