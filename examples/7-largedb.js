@@ -5,7 +5,7 @@
 
 // Set things up
 
-var lmdb = require('./build/Release/node-lmdb');
+var lmdb = require('..');
 var fs = require('fs');
 
 var env = new lmdb.Env();
