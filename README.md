@@ -134,17 +134,19 @@ You can find some in the source tree. There are some basic examples and I intend
 
 The basic examples we currently have:
 
-* `example1-env.js` - shows basic usage of `Env`, `Dbi` and `Txn` operating on string values
-* `example2-datatypes.js` - shows how to use various data types for your data
-* `example3-multiple-transactions.js` - shows how LMDB will behave if you operate with multiple transactions
-* `example4-cursors.js` - shows how to work with cursors on a basic database
-* `example5-dupsort.js` - shows how to use a `dupSort` database with cursors
-* `example6-asyncio.js` - shows how to use the fastest (but also most dangerous) way for async IO
-* `example7-largedb.js` - shows how to work with an insanely large database
+* `examples/1-env.js` - shows basic usage of `Env`, `Dbi` and `Txn` operating on string values
+* `examples/2-datatypes.js` - shows how to use various data types for your data
+* `examples/3-multiple-transactions.js` - shows how LMDB will behave if you operate with multiple transactions
+* `examples/4-cursors.js` - shows how to work with cursors on a basic database
+* `examples/5-dupsort.js` - shows how to use a `dupSort` database with cursors
+* `examples/6-asyncio.js` - shows how to use the fastest (but also most dangerous) way for async IO
+* `examples/7-largedb.js` - shows how to work with an insanely large database
+* `examples/8-multiple-cursors-single-transactions.js` - shows how to use multiple cursors with a single transaction
+* `examples/9-unnamed-db.js` - shows how to use an unnamed database
 
 Advanced examples:
 
-* `example-advanced1-indexing.js` - this is a module pattern example which demonstrates the implementation of a search engine prototype
+* `examples/advanced1-indexing.js` - this is a module pattern example which demonstrates the implementation of a search engine prototype
 * *More will come later, so don't forget to check back!*
 
 ### Limitations of node-lmdb
