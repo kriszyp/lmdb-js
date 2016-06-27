@@ -6,6 +6,7 @@ var rimraf = require('rimraf');
 var chai = require('chai');
 var fastFuture = require('fast-future');
 var should = chai.should();
+var spawn = require('child_process').spawn;
 
 var lmdb = require('..');
 
@@ -15,14 +16,14 @@ describe('Node.js LMDB Bindings', function() {
     // cleanup previous test directory
     rimraf(testDirPath, function(err) {
       if (err) {
-	return done(err);
+        return done(err);
       }
       // setup clean directory
       mkdirp(testDirPath, function(err) {
-	if (err) {
-	  return done(err);
-	}
-	done();
+        if (err) {
+          return done(err);
+        }
+        done();
       });
     });
   });
@@ -43,8 +44,8 @@ describe('Node.js LMDB Bindings', function() {
     before(function() {
       env = new lmdb.Env();
       env.open({
-	path: testDirPath,
-	maxDbs: 10
+        path: testDirPath,
+        maxDbs: 10
       });
     });
     after(function() {
@@ -52,8 +53,8 @@ describe('Node.js LMDB Bindings', function() {
     });
     it('will open a database, begin a transaction and get/put/delete data', function() {
       var dbi = env.openDbi({
-	name: 'mydb1',
-	create: true
+        name: 'mydb1',
+        create: true
       });
       var txn = env.beginTxn();
       var data = txn.getString(dbi, 'hello');
@@ -69,8 +70,8 @@ describe('Node.js LMDB Bindings', function() {
     });
     it('will get statistics for a database', function() {
       var dbi = env.openDbi({
-	name: 'mydb2',
-	create: true
+        name: 'mydb2',
+        create: true
       });
       var txn = env.beginTxn();
       var stat = dbi.stat(txn);
@@ -90,12 +91,12 @@ describe('Node.js LMDB Bindings', function() {
     before(function() {
       env = new lmdb.Env();
       env.open({
-	path: testDirPath,
-	maxDbs: 10
+        path: testDirPath,
+        maxDbs: 10
       });
       dbi = env.openDbi({
-	name: 'mydb3',
-	create: true
+        name: 'mydb3',
+        create: true
       });
       txn = env.beginTxn();
     });
@@ -150,13 +151,13 @@ describe('Node.js LMDB Bindings', function() {
     before(function() {
       env = new lmdb.Env();
       env.open({
-	path: testDirPath,
-	maxDbs: 10
+        path: testDirPath,
+        maxDbs: 10
       });
       dbi = env.openDbi({
-	name: 'mydb4',
-	create: true,
-	keyIsUint32: true
+        name: 'mydb4',
+        create: true,
+        keyIsUint32: true
       });
       var txn = env.beginTxn();
       txn.putString(dbi, 1, 'Hello1');
@@ -194,7 +195,7 @@ describe('Node.js LMDB Bindings', function() {
     it('readonly transaction will throw if tries to write', function() {
       var readTxn = env.beginTxn({readOnly: true});
       (function() {
-	readTxn.putString(dbi, 2, 'hööhh')
+        readTxn.putString(dbi, 2, 'hööhh')
       }).should.throw('Permission denied');
       readTxn.abort();
     });
@@ -207,23 +208,23 @@ describe('Node.js LMDB Bindings', function() {
     before(function() {
       env = new lmdb.Env();
       env.open({
-	path: testDirPath,
-	maxDbs: 10,
-	mapSize: 16 * 1024 * 1024 * 1024
+        path: testDirPath,
+        maxDbs: 10,
+        mapSize: 16 * 1024 * 1024 * 1024
       });
       dbi = env.openDbi({
-	name: 'mydb5',
-	create: true,
-	dupSort: true,
-	keyIsUint32: true
+        name: 'mydb5',
+        create: true,
+        dupSort: true,
+        keyIsUint32: true
       });
       var txn = env.beginTxn();
       var c = 0;
       while(c < total) {
-	var buffer = new Buffer(new Array(8));
-	buffer.writeDoubleBE(c);
-	txn.putBinary(dbi, c, buffer);
-	c++;
+        var buffer = new Buffer(new Array(8));
+        buffer.writeDoubleBE(c);
+        txn.putBinary(dbi, c, buffer);
+        c++;
       }
       txn.commit();
     });
@@ -236,21 +237,21 @@ describe('Node.js LMDB Bindings', function() {
       var cursor = new lmdb.Cursor(txn, dbi);
       cursor.goToKey(40);
       cursor.getCurrentBinary(function(key, value) {
-	key.should.equal(40);
-	value.readDoubleBE().should.equal(40);
+        key.should.equal(40);
+        value.readDoubleBE().should.equal(40);
       });
 
       var values = [];
       cursor.goToKey(0);
       function iterator() {
-	cursor.getCurrentBinary(function(key, value) {
-	  value.readDoubleBE().should.equal(values.length);
-	  values.push(value);
-	});
-	cursor.goToNext();
-	if (values.length < total) {
-	  fastFuture(iterator);
-	}
+        cursor.getCurrentBinary(function(key, value) {
+          value.readDoubleBE().should.equal(values.length);
+          values.push(value);
+        });
+        cursor.goToNext();
+        if (values.length < total) {
+          fastFuture(iterator);
+        }
       }
       cursor.close();
       txn.abort();
@@ -260,16 +261,31 @@ describe('Node.js LMDB Bindings', function() {
       var cursor = new lmdb.Cursor(txn, dbi);
       cursor.goToFirst();
       cursor.getCurrentBinary(function(key, value) {
-	key.should.equal(0);
-	value.readDoubleBE().should.equal(0);
+        key.should.equal(0);
+        value.readDoubleBE().should.equal(0);
       });
       cursor.goToLast();
       cursor.getCurrentBinary(function(key, value) {
-	key.should.equal(total - 1);
-	value.readDoubleBE().should.equal(total - 1);
+        key.should.equal(total - 1);
+        value.readDoubleBE().should.equal(total - 1);
       });
       cursor.close();
       txn.abort();
+    });
+  });
+  describe('Cluster', function() {
+    it('will run a cluster of processes with read-only transactions', function(done) {
+      var child = spawn('node', [path.resolve(__dirname, './cluster')]);
+      child.stdout.on('data', function(data) {
+        console.log(data.toString());
+      });
+      child.stderr.on('data', function(data) {
+        console.error(data.toString());
+      });
+      child.on('close', function(code) {
+        code.should.equal(0);
+        done();
+      });
     });
   });
 });
