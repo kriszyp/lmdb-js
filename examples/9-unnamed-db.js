@@ -1,6 +1,6 @@
 
 // Require the module
-var lmdb = require('./build/Release/node-lmdb');
+var lmdb = require('..');
 // Now you can use the module
 
 // Print the version
@@ -17,7 +17,7 @@ env.open({
 });
 // Open database
 var dbi = env.openDbi({
-   name: "mydb1",
+   name: null,
    create: true
 });
 

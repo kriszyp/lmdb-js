@@ -1,5 +1,5 @@
 
-var lmdb = require('./build/Release/node-lmdb');
+var lmdb = require('..');
 var env = new lmdb.Env();
 env.open({
     // Path to the environment

@@ -19,7 +19,7 @@ var indexingEngine = (function() {
 
     // initializer function, call this before using the index
     var init = function() {
-        lmdb = require('./build/Release/node-lmdb');
+        lmdb = require('..');
         env = new lmdb.Env();
         env.open({
             path: "./testdata",
