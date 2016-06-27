@@ -184,7 +184,7 @@ node-gyp build
 
 ```bash
 # Adding upstream LMDB as remote
-git remote add lmdb git@gitorious.org:mdb/mdb.git
+git remote add lmdb https://github.com/LMDB/lmdb.git
 # Fetch new remote
 git fetch lmdb
 # Adding the subtree (when it's not there yet)

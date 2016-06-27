@@ -3,10 +3,8 @@
     {
       "target_name": "node-lmdb",
       "sources": [
-        "libraries/liblmdb/mdb.c",
-        "libraries/liblmdb/lmdb.h",
-        "libraries/liblmdb/midl.h",
-        "libraries/liblmdb/midl.c",
+        "dependencies/lmdb/libraries/liblmdb/mdb.c",
+        "dependencies/lmdb/libraries/liblmdb/midl.c",
         "src/node-lmdb.cpp",
         "src/env.cpp",
         "src/misc.cpp",
@@ -15,7 +13,8 @@
         "src/cursor.cpp"
       ],
       "include_dirs": [
-        "<!(node -e \"require('nan')\")"
+        "<!(node -e \"require('nan')\")",
+        "dependencies/lmdb/libraries/liblmdb"
       ],
       "conditions": [
         ["OS=='linux'", {

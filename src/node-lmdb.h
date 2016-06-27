@@ -29,7 +29,7 @@
 #include <node_buffer.h>
 #include <nan.h>
 #include <uv.h>
-#include "../libraries/liblmdb/lmdb.h"
+#include "lmdb.h"
 
 #define NanReturnThis() return info.GetReturnValue().Set(info.This())
 
