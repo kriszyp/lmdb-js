@@ -17,13 +17,14 @@
   "version": "0.4.1",
   "main": "./index.js",
   "scripts": {
-    "test": "./node_modules/.bin/mocha test/** --recursive"
+    "test": "./node_modules/.bin/mocha test/**.test.js --recursive"
   },
   "gypfile": true,
   "dependencies": {
     "nan": "^2.2.0"
   },
   "devDependencies": {
+    "async": "^1.5.2",
     "chai": "^3.5.0",
     "fast-future": "^1.0.1",
     "mkdirp": "^0.5.1",
