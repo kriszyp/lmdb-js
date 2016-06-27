@@ -195,7 +195,7 @@ describe('Node.js LMDB Bindings', function() {
     it('readonly transaction will throw if tries to write', function() {
       var readTxn = env.beginTxn({readOnly: true});
       (function() {
-        readTxn.putString(dbi, 2, 'hööhh')
+        readTxn.putString(dbi, 2, 'hööhh');
       }).should.throw('Permission denied');
       readTxn.abort();
     });
@@ -285,6 +285,106 @@ describe('Node.js LMDB Bindings', function() {
       child.on('close', function(code) {
         code.should.equal(0);
         done();
+      });
+    });
+  });
+  describe('Dupsort', function() {
+    this.timeout(10000);
+    var env;
+    var dbi;
+    before(function() {
+      env = new lmdb.Env();
+      env.open({
+        path: testDirPath,
+        maxDbs: 10,
+        mapSize: 16 * 1024 * 1024 * 1024
+      });
+      dbi = env.openDbi({
+        name: 'mydb6',
+        create: true,
+        dupSort: true,
+        dupFixed: false
+      });
+    });
+    after(function() {
+      dbi.close();
+      env.close();
+    });
+    it('will insert values with different lengths', function(done) {
+      var txn = env.beginTxn();
+      var value1 = new Buffer(new Array(8));
+      var value2 = new Buffer(new Array(4));
+      txn.putBinary(dbi, 'id', value1);
+      txn.putBinary(dbi, 'id', value2);
+      txn.commit();
+
+      var txn2 = env.beginTxn({readonly: true});
+      var cursor = new lmdb.Cursor(txn2, dbi);
+      var found = cursor.goToKey('id');
+      should.exist(found);
+      cursor.getCurrentBinary(function(key, value) {
+        key.should.equal('id');
+        value.length.should.equal(4);
+
+        cursor.goToNext();
+        cursor.getCurrentBinary(function(key, value) {
+          key.should.equal('id');
+          value.length.should.equal(8);
+          cursor.close();
+          txn2.abort();
+          done();
+        });
+      });
+    });
+  });
+  describe('Dupfixed', function() {
+    this.timeout(10000);
+    var env;
+    var dbi;
+    before(function() {
+      env = new lmdb.Env();
+      env.open({
+        path: testDirPath,
+        maxDbs: 10,
+        mapSize: 16 * 1024 * 1024 * 1024
+      });
+      dbi = env.openDbi({
+        name: 'mydb7',
+        create: true,
+        dupSort: true,
+        dupFixed: true
+      });
+    });
+    after(function() {
+      dbi.close();
+      env.close();
+    });
+    it('will insert values with the same length (inserted with different lengths)', function(done) {
+      var txn = env.beginTxn();
+      var value1 = new Buffer(new Array(4));
+      value1.writeUInt32BE(100);
+      var value2 = new Buffer(new Array(8));
+      value2.writeUInt32BE(200);
+      txn.putBinary(dbi, 'id', value1);
+      txn.putBinary(dbi, 'id', value2);
+      txn.commit();
+
+      var txn2 = env.beginTxn({readonly: true});
+      var cursor = new lmdb.Cursor(txn2, dbi);
+      var found = cursor.goToKey('id');
+      should.exist(found);
+      cursor.getCurrentBinary(function(key, value) {
+        key.should.equal('id');
+        value.length.should.equal(8);
+
+        cursor.goToNext();
+        cursor.getCurrentBinary(function(key, value) {
+          key.should.equal('id');
+          value.length.should.equal(8);
+          cursor.close();
+          txn2.abort();
+          done();
+        });
       });
     });
   });
