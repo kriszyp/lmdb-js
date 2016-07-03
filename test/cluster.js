@@ -5,7 +5,6 @@ var cluster = require('cluster');
 var path = require('path');
 var numCPUs = require('os').cpus().length;
 
-var async = require('async');
 var lmdb = require('..');
 
 if (cluster.isMaster) {
@@ -36,48 +35,32 @@ if (cluster.isMaster) {
 
   var messages = [];
 
-  // Because `openDbi` uses a write transaction and only one can be open in an
-  // environment we need to start each worker individually. Each worker
-  // can then simultaneously open read only transactions.
-  var c = 0;
-  function loadWorker(worker, next) {
-    var txn = env.beginTxn();
-
+  workers.forEach(function(worker) {
     worker.on('message', function(msg) {
       messages.push(msg);
       // Once every worker has replied with a response for the value
       // we can exit the test.
       if (messages.length === numCPUs) {
-        done();
+        dbi.close();
+        env.close();
+        for (var i = 0; i < messages.length; i ++) {
+          assert(messages[i] === value.toString('hex'));
+        }
+        process.exit(0);
       }
     });
-
-    worker.send({start: true}, function() {
-      // We will write at the same time that each worker has a read-only
-      // transaction open.
-      txn.putBinary(dbi, 'key' + c, value);
-      txn.commit();
-      worker.send({key: 'key' + c});
-      next();
-    });
-
-    c++;
-  }
-
-  async.eachSeries(workers, loadWorker, function(err) {
-    if (err) {
-      throw err;
-    }
   });
 
-  function done() {
-    dbi.close();
-    env.close();
-    for (var i = 0; i < messages.length; i ++) {
-      assert(messages[i] === value.toString('hex'));
-    }
-    process.exit(0);
+  var txn = env.beginTxn();
+  for (var i = 0; i < workers.length; i++) {
+    txn.putBinary(dbi, 'key' + i, value);
   }
+
+  txn.commit();
+
+  workers.forEach(function(worker) {
+    worker.send({key: 'key' + i});
+  });
 
 } else {
 
@@ -88,28 +71,19 @@ if (cluster.isMaster) {
     path: path.resolve(__dirname, './testdata'),
     maxDbs: 10,
     mapSize: 268435456 * 4096,
-    maxReaders: 126
+    maxReaders: 126,
+    readOnly: true
   });
-  var txn;
-  var dbx;
 
-  function start() {
-    dbi = env.openDbi({
-      name: 'cluster'
-    });
-    txn = env.beginTxn({readOnly: true});
-  }
-
-  function get(key) {
-    var value = txn.getBinary(dbi, key);
-    process.send(value.toString('hex'));
-  }
+  var dbi = env.openDbi({
+    name: 'cluster'
+  });
+  var txn = env.beginTxn({readOnly: true});
 
   process.on('message', function(msg) {
-    if (msg.start) {
-      start();
-    } else if (msg.key) {
-      get(msg.key);
+    if (msg.key) {
+      var value = txn.getBinary(dbi, msg.key);
+      process.send(value.toString('hex'));
     }
   });
 

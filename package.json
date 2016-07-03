@@ -27,7 +27,6 @@
     "nan": "^2.3.5"
   },
   "devDependencies": {
-    "async": "^1.5.2",
     "chai": "^3.5.0",
     "fast-future": "^1.0.1",
     "mkdirp": "^0.5.1",

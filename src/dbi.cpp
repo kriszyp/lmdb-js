@@ -59,6 +59,7 @@ NAN_METHOD(DbiWrap::ctor) {
     MDB_txn *txn;
     int rc;
     int flags = 0;
+    int txnFlags = 0;
     int keyIsUint32 = 0;
     Local<String> name;
     bool nameIsNull = false;
@@ -88,13 +89,19 @@ NAN_METHOD(DbiWrap::ctor) {
         if (keyIsUint32) {
             flags |= MDB_INTEGERKEY;
         }
+
+        // Set flags for txn used to open database
+        Local<Value> create = options->Get(Nan::New<String>("create").ToLocalChecked());
+        if (create->IsBoolean() ? !create->BooleanValue() : false) {
+            txnFlags |= MDB_RDONLY;
+        }
     }
     else {
         return Nan::ThrowError("Invalid parameters.");
     }
 
     // Open transaction
-    rc = mdb_txn_begin(ew->env, nullptr, 0, &txn);
+    rc = mdb_txn_begin(ew->env, nullptr, txnFlags, &txn);
     if (rc != 0) {
         mdb_txn_abort(txn);
         return Nan::ThrowError(mdb_strerror(rc));
