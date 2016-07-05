@@ -328,6 +328,117 @@ describe('Node.js LMDB Bindings', function() {
       txn.abort();
     });
   });
+  describe('Cursors (with strings)', function() {
+    this.timeout(10000);
+    var env;
+    var dbi;
+    var total = 100000;
+    before(function() {
+      env = new lmdb.Env();
+      env.open({
+        path: testDirPath,
+        maxDbs: 10,
+        mapSize: 16 * 1024 * 1024 * 1024
+      });
+      dbi = env.openDbi({
+        name: 'cursorstrings',
+        create: true,
+        dupSort: true,
+        keyIsUint32: true
+      });
+      var txn = env.beginTxn();
+      var c = 0;
+      while(c < total) {
+        txn.putString(dbi, c, c.toString());
+        c++;
+      }
+      txn.commit();
+    });
+    after(function() {
+      dbi.close();
+      env.close();
+    });
+    it('will move cursor over key/values (zero copy)', function(done) {
+      var txn = env.beginTxn();
+      var cursor = new lmdb.Cursor(txn, dbi);
+      cursor.goToKey(40);
+      cursor.getCurrentStringUnsafe(function(key, value) {
+        key.should.equal(40);
+        value.should.equal('40');
+      });
+
+      var values = [];
+      cursor.goToKey(0);
+      function iterator() {
+        cursor.getCurrentStringUnsafe(function(key, value) {
+          value.should.equal(values.length.toString());
+          values.push(value);
+        });
+        cursor.goToNext();
+        if (values.length < total) {
+          // prevent maximum call stack errors
+          if (values.length % 10000 === 0) {
+            setImmediate(iterator);
+          } else {
+            iterator();
+          }
+        } else {
+          cursor.close();
+          txn.abort();
+          done();
+        }
+      }
+      iterator();
+    });
+    it('will move cursor over key/values', function(done) {
+      var txn = env.beginTxn();
+      var cursor = new lmdb.Cursor(txn, dbi);
+      cursor.goToKey(40);
+      cursor.getCurrentString(function(key, value) {
+        key.should.equal(40);
+        value.should.equal('40');
+      });
+      var values = [];
+      cursor.goToKey(0);
+      function iterator() {
+        cursor.getCurrentString(function(key, value) {
+          value.should.equal(values.length.toString());
+          values.push(value);
+        });
+        cursor.goToNext();
+        if (values.length < total) {
+          // prevent maximum call stack errors
+          if (values.length % 10000 === 0) {
+            setImmediate(iterator);
+          } else {
+            iterator();
+          }
+        } else {
+          cursor.close();
+          txn.abort();
+          done();
+        }
+      }
+      iterator();
+    });
+    it('will first/last key', function(done) {
+      var txn = env.beginTxn();
+      var cursor = new lmdb.Cursor(txn, dbi);
+      cursor.goToFirst();
+      cursor.getCurrentString(function(key, value) {
+        key.should.equal(0);
+        value.should.equal('0');
+      });
+      cursor.goToLast();
+      cursor.getCurrentString(function(key, value) {
+        key.should.equal(total - 1);
+        value.should.equal((total - 1).toString());
+      });
+      cursor.close();
+      txn.abort();
+      done();
+    });
+  });
   describe('Cluster', function() {
     it('will run a cluster of processes with read-only transactions', function(done) {
       var child = spawn('node', [path.resolve(__dirname, './cluster')]);

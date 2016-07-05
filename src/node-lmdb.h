@@ -446,6 +446,7 @@ public:
 
     /*
         Gets the current key-data pair that the cursor is pointing to. Returns the current key.
+        This method is not zero-copy and the return value will usable as long as there is a reference to it.
         (Wrapper for `mdb_cursor_get`)
 
         Parameters:
@@ -453,6 +454,17 @@ public:
         * Callback that accepts the key and value
     */
     static NAN_METHOD(getCurrentString);
+
+    /*
+        Gets the current key-data pair that the cursor is pointing to. Returns the current key.
+        This method is zero-copy and the value can only be used until the next put operation or until the transaction is committed or aborted.
+        (Wrapper for `mdb_cursor_get`)
+
+        Parameters:
+
+        * Callback that accepts the key and value
+    */
+    static NAN_METHOD(getCurrentStringUnsafe);
 
     /*
         Gets the current key-data pair that the cursor is pointing to. Returns the current key.
