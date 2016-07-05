@@ -451,6 +451,18 @@ public:
     */
     static NAN_METHOD(getCurrentBinary);
 
+
+    /*
+        Gets the current key-data pair with zero-copy that the cursor is pointing to. Returns the current key.
+        This method is zero-copy and the value can only be used until the next put operation or until the transaction is committed or aborted.
+        (Wrapper for `mdb_cursor_get`)
+
+        Parameters:
+
+        * Callback that accepts the key and value
+    */
+    static NAN_METHOD(getCurrentBinaryUnsafe);
+
     /*
         Gets the current key-data pair that the cursor is pointing to. Returns the current key.
         (Wrapper for `mdb_cursor_get`)

@@ -262,6 +262,32 @@ describe('Node.js LMDB Bindings', function() {
           fastFuture(iterator);
         }
       }
+      iterator();
+      cursor.close();
+      txn.abort();
+    });
+    it('will move cursor over key/values (zero copy)', function() {
+      var txn = env.beginTxn();
+      var cursor = new lmdb.Cursor(txn, dbi);
+      cursor.goToKey(40);
+      cursor.getCurrentBinaryUnsafe(function(key, value) {
+        key.should.equal(40);
+        value.readDoubleBE().should.equal(40);
+      });
+
+      var values = [];
+      cursor.goToKey(0);
+      function iterator() {
+        cursor.getCurrentBinaryUnsafe(function(key, value) {
+          value.readDoubleBE().should.equal(values.length);
+          values.push(value);
+        });
+        cursor.goToNext();
+        if (values.length < total) {
+          fastFuture(iterator);
+        }
+      }
+      iterator();
       cursor.close();
       txn.abort();
     });
