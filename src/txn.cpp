@@ -169,6 +169,10 @@ NAN_METHOD(TxnWrap::getString) {
     return getCommon(info, valToString);
 }
 
+NAN_METHOD(TxnWrap::getStringUnsafe) {
+    return getCommon(info, valToStringUnsafe);
+}
+
 NAN_METHOD(TxnWrap::getBinary) {
     return getCommon(info, valToBinary);
 }

@@ -89,9 +89,15 @@ Local<Value> keyToHandle(MDB_val &key, bool keyIsUint32) {
     }
 }
 
-Local<Value> valToString(MDB_val &data) {
+Local<Value> valToStringUnsafe(MDB_val &data) {
     auto resource = new CustomExternalStringResource(&data);
     auto str = Nan::New<v8::String>(resource);
+
+    return str.ToLocalChecked();
+}
+
+Local<Value> valToString(MDB_val &data) {
+    auto str = Nan::New<v8::String>((uint16_t*)data.mv_data);
 
     return str.ToLocalChecked();
 }

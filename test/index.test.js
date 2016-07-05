@@ -112,6 +112,14 @@ describe('Node.js LMDB Bindings', function() {
       var data2 = txn.getString(dbi, 'key1');
       should.equal(data2, null);
     });
+    it('string (zero copy)', function() {
+      txn.putString(dbi, 'key1', 'Hello world!');
+      var data = txn.getStringUnsafe(dbi, 'key1');
+      data.should.equal('Hello world!');
+      txn.del(dbi, 'key1');
+      var data2 = txn.getStringUnsafe(dbi, 'key1');
+      should.equal(data2, null);
+    });
     it('binary', function() {
       var buffer = new Buffer('48656c6c6f2c20776f726c6421', 'hex');
       txn.putBinary(dbi, 'key2', buffer);
@@ -432,6 +440,79 @@ describe('Node.js LMDB Bindings', function() {
           txn2.abort();
           done();
         });
+      });
+    });
+  });
+  describe('Memory Freeing / Garbage Collection', function() {
+    it('should not cause a segment fault', function(done) {
+      var expectedKey = '822285ee315d2b04';
+      var expectedValue = new Buffer('ec65d632d9168c33350ed31a30848d01e95172931e90984c218ef6b08c1fa90a', 'hex');
+      var env = new lmdb.Env();
+      env.open({
+        path: testDirPath,
+        maxDbs: 12,
+        mapSize: 16 * 1024 * 1024 * 1024
+      });
+      var dbi = env.openDbi({
+        name: 'testfree',
+        create: true
+      });
+      var txn = env.beginTxn();
+      txn.putBinary(dbi, expectedKey, expectedValue);
+      txn.commit();
+      var txn2 = env.beginTxn();
+      var cursor = new lmdb.Cursor(txn2, dbi);
+      var key;
+      var value;
+      cursor.goToFirst();
+      cursor.getCurrentBinary(function(returnKey, returnValue) {
+        key = returnKey;
+        value = returnValue;
+      });
+      cursor.close();
+      txn2.abort();
+      dbi.close();
+      env.close();
+      key.should.equal(expectedKey);
+      value.compare(expectedValue).should.equal(0);
+      done();
+    });
+  });
+  describe('Type Conversion', function() {
+    var env;
+    var dbi;
+    var expectedKey = new Buffer('822285ee315d2b04', 'hex');
+    var expectedValue = new Buffer('ec65d632d9168c33350ed31a30848d01e95172931e90984c218ef6b08c1fa90a', 'hex');
+    before(function() {
+      env = new lmdb.Env();
+      env.open({
+        path: testDirPath,
+        maxDbs: 12,
+        mapSize: 16 * 1024 * 1024 * 1024
+      });
+      dbi = env.openDbi({
+        name: 'testkeys',
+        create: true
+      });
+      var txn = env.beginTxn();
+      txn.putBinary(dbi, expectedKey.toString('hex'), expectedValue);
+      txn.commit();
+    });
+    after(function() {
+      dbi.close();
+      env.close();
+    });
+    it('will be able to convert key to buffer', function(done) {
+      var txn = env.beginTxn();
+      var cursor = new lmdb.Cursor(txn, dbi);
+      cursor.goToFirst();
+      cursor.getCurrentBinary(function(key, value) {
+        var keyBuffer = new Buffer(key, 'hex');
+        cursor.close();
+        txn.abort();
+        keyBuffer.compare(expectedKey).should.equal(0);
+        value.compare(expectedValue).should.equal(0);
+        done();
       });
     });
   });
