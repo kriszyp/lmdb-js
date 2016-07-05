@@ -4,7 +4,6 @@ var path = require('path');
 var mkdirp = require('mkdirp');
 var rimraf = require('rimraf');
 var chai = require('chai');
-var fastFuture = require('fast-future');
 var should = chai.should();
 var spawn = require('child_process').spawn;
 
@@ -241,7 +240,7 @@ describe('Node.js LMDB Bindings', function() {
       dbi.close();
       env.close();
     });
-    it('will move cursor over key/values', function() {
+    it('will move cursor over key/values', function(done) {
       var txn = env.beginTxn();
       var cursor = new lmdb.Cursor(txn, dbi);
       cursor.goToKey(40);
@@ -259,14 +258,21 @@ describe('Node.js LMDB Bindings', function() {
         });
         cursor.goToNext();
         if (values.length < total) {
-          fastFuture(iterator);
+          // prevent maximum call stack errors
+          if (values.length % 10000 === 0) {
+            setImmediate(iterator);
+          } else {
+            iterator();
+          }
+        } else {
+          cursor.close();
+          txn.abort();
+          done();
         }
       }
       iterator();
-      cursor.close();
-      txn.abort();
     });
-    it('will move cursor over key/values (zero copy)', function() {
+    it('will move cursor over key/values (zero copy)', function(done) {
       var txn = env.beginTxn();
       var cursor = new lmdb.Cursor(txn, dbi);
       cursor.goToKey(40);
@@ -274,7 +280,6 @@ describe('Node.js LMDB Bindings', function() {
         key.should.equal(40);
         value.readDoubleBE().should.equal(40);
       });
-
       var values = [];
       cursor.goToKey(0);
       function iterator() {
@@ -284,12 +289,19 @@ describe('Node.js LMDB Bindings', function() {
         });
         cursor.goToNext();
         if (values.length < total) {
-          fastFuture(iterator);
+          // prevent maximum call stack errors
+          if (values.length % 10000 === 0) {
+            setImmediate(iterator);
+          } else {
+            iterator();
+          }
+        } else {
+          cursor.close();
+          txn.abort();
+          done();
         }
       }
       iterator();
-      cursor.close();
-      txn.abort();
     });
     it('will first/last key', function() {
       var txn = env.beginTxn();

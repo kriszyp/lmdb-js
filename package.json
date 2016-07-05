@@ -28,7 +28,6 @@
   },
   "devDependencies": {
     "chai": "^3.5.0",
-    "fast-future": "^1.0.1",
     "mkdirp": "^0.5.1",
     "mocha": "^2.5.3",
     "rimraf": "^2.5.2"
