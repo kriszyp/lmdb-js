@@ -25,6 +25,8 @@
 #include <string.h>
 #include <stdio.h>
 
+static void DontFree(char* data, void* hint) {}
+
 void setupExportMisc(Handle<Object> exports) {
     Local<Object> versionObj = Nan::New<Object>();
 
@@ -95,11 +97,18 @@ Local<Value> valToString(MDB_val &data) {
 }
 
 Local<Value> valToBinary(MDB_val &data) {
-    // FIXME: It'd be better not to copy buffers, but I'm not sure
-    // about the ownership semantics of MDB_val, so let' be safe.
     return Nan::CopyBuffer(
         (char*)data.mv_data,
         data.mv_size
+    ).ToLocalChecked();
+}
+
+Local<Value> valToBinaryUnsafe(MDB_val &data) {
+    return Nan::NewBuffer(
+        (char*)data.mv_data,
+        data.mv_size,
+        DontFree,
+        NULL
     ).ToLocalChecked();
 }
 

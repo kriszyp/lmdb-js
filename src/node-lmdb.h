@@ -50,6 +50,7 @@ argtokey_callback_t argToKey(const Local<Value> &val, MDB_val &key, bool keyIsUi
 Local<Value> keyToHandle(MDB_val &key, bool keyIsUint32);
 Local<Value> valToString(MDB_val &data);
 Local<Value> valToBinary(MDB_val &data);
+Local<Value> valToBinaryUnsafe(MDB_val &data);
 Local<Value> valToNumber(MDB_val &data);
 Local<Value> valToBoolean(MDB_val &data);
 
@@ -221,7 +222,7 @@ public:
 
     /*
         Gets binary data (Node.js Buffer) associated with the given key from a database. You need to open a database in the environment to use this.
-        This method is zero-copy and the return value can only be used until the next put operation or until the transaction is committed or aborted.
+        This method is not zero-copy and the return value will usable as long as there is a reference to it.
         (Wrapper for `mdb_get`)
 
         Parameters:
@@ -230,6 +231,18 @@ public:
         * key for which the value is retrieved
     */
     static NAN_METHOD(getBinary);
+
+    /*
+        Gets binary data (Node.js Buffer) associated with the given key from a database. You need to open a database in the environment to use this.
+        This method is zero-copy and the return value can only be used until the next put operation or until the transaction is committed or aborted.
+        (Wrapper for `mdb_get`)
+
+        Parameters:
+
+        * database instance created with calling `openDbi()` on an `Env` instance
+        * key for which the value is retrieved
+    */
+    static NAN_METHOD(getBinaryUnsafe);
 
     /*
         Gets number data (JavaScript number type) associated with the given key from a database. You need to open a database in the environment to use this.

@@ -173,6 +173,10 @@ NAN_METHOD(TxnWrap::getBinary) {
     return getCommon(info, valToBinary);
 }
 
+NAN_METHOD(TxnWrap::getBinaryUnsafe) {
+    return getCommon(info, valToBinaryUnsafe);
+}
+
 NAN_METHOD(TxnWrap::getNumber) {
     return getCommon(info, valToNumber);
 }
