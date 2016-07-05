@@ -90,8 +90,7 @@ You can use the methods `getString()`, `getBinary()`, `getNumber()` and `getBool
 `putString()`, `putBinary()`, `putNumber()` and `putBoolean()` to store something and `del()` to delete something.
 
 Currently **only string, binary, number and boolean values are supported**, use `JSON.stringify` and `JSON.parse` for complex data structures.
-Because of the nature of LMDB, the data returned by `txn.getString()` and `txn.getBinaryUnsafe()` is only valid until the next `put` operation or the end of the transaction. A safer method `txn.getBinary()` will make a copy of the value and will be garbage collected when there are no references to it.
-If you need to use the data *later*, you will have to copy it for yourself.
+Because of the nature of LMDB, the data returned by `txn.getStringUnsafe()` and `txn.getBinaryUnsafe()` is only valid until the next `put` operation or the end of the transaction. Safer methods `txn.getBinary()` and `txn.getString()` will be garbage collected when there are no references to it.
 
 **IMPORTANT:** always close your transactions with `abort()` or `commit()` when you are done with them.
 
@@ -153,7 +152,7 @@ Advanced examples:
 
 * **Only string, binary, number and boolean values are supported.** If you want to store complex data structures, use `JSON.stringify` before putting it into the database and `JSON.parse` when you retrieve the data.
 * **Only string and unsigned integer keys are supported.** Default is string, specify `keyIsUint32: true` to `openDbi` for unsigned integer. It would make the API too complicated to support more data types for keys.
-* Because of the nature of LMDB, the data returned by `txn.getString()` and `txn.getBinaryUnsafe()` is **only valid until the next `put` operation or the end of the transaction**. If you need to use the data *later*, you can use the `txn.getBinary()` method.
+* Because of the nature of LMDB, the data returned by `txn.getStringUnsafe()` and `txn.getBinaryUnsafe()` is **only valid until the next `put` operation or the end of the transaction**. If you need to use the data *later*, you can use the `txn.getBinary()` and `txn.getString()` methods.
 * Fixed address map (called `MDB_FIXEDMAP` in C) features are **not exposed** by this binding because they are highly experimental
 * Not all functions are wrapped by the binding yet. If there's one that you would like to see, drop me a line.
 
