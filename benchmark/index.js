@@ -56,6 +56,34 @@ function setup() {
   txn.commit();
 }
 
+var txn;
+var c = 0;
+
+function getIndex() {
+  if (c < total - 1) {
+    c++;
+  } else {
+    c = 0;
+  }
+  return c;
+}
+
+function getBinary() {
+  var data = txn.getBinary(dbi, keys[getIndex()]);
+}
+
+function getBinaryUnsafe() {
+  var data = txn.getBinaryUnsafe(dbi, keys[getIndex()]);
+}
+
+function getString() {
+  var data = txn.getString(dbi, keys[getIndex()]);
+}
+
+function getStringUnsafe() {
+  var data = txn.getStringUnsafe(dbi, keys[getIndex()]);
+}
+
 cleanup(function(err) {
   if (err) {
     throw err;
@@ -63,44 +91,23 @@ cleanup(function(err) {
 
   setup();
 
-  var txn = env.beginTxn();
-  var c = 0;
-
-  function getIndex() {
-    if (c < total - 1) {
-      c++;
-    } else {
-      c = 0;
-    }
-    return c;
-  }
-
-  function getBinary() {
-    var data = txn.getBinary(dbi, keys[getIndex()]);
-  }
-
-  function getBinaryUnsafe() {
-    var data = txn.getBinaryUnsafe(dbi, keys[getIndex()]);
-  }
-
-  function getString() {
-    var data = txn.getString(dbi, keys[getIndex()]);
-  }
-
-  function getStringUnsafe() {
-    var data = txn.getStringUnsafe(dbi, keys[getIndex()]);
-  }
-
   suite.add('getBinary', getBinary);
   suite.add('getBinaryUnsafe', getBinaryUnsafe);
   suite.add('getString', getString);
   suite.add('getStringUnsafe', getStringUnsafe);
 
+  suite.on('start', function() {
+    txn = env.beginTxn();
+  });
+
   suite.on('cycle', function(event) {
+    txn.abort();
+    txn = env.beginTxn();
     console.log(String(event.target));
   });
 
-  suite.on('complete', function() {
+  suite.on('complete', function () {
+    txn.abort();
     console.log('Fastest is ' + this.filter('fastest').map('name'));
   });
 
