@@ -108,6 +108,8 @@ cleanup(function(err) {
 
   suite.on('complete', function () {
     txn.abort();
+    dbi.close();
+    env.close();
     console.log('Fastest is ' + this.filter('fastest').map('name'));
   });
 
