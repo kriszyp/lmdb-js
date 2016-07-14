@@ -43,8 +43,12 @@ slapd Configuration File}} chapters.
 
 H2: Monitor configuration via cn=config(5)
 
-{{This section has yet to be written.}}
+The {{monitor backend}} is statically built into slapd and can be
+instantiated via ldapadd.
 
+> dn: olcDatabase=monitor,cn=config
+> objectClass: olcDatabaseConfig
+> olcDatabase: monitor
 
 H2: Monitor configuration via slapd.conf(5)
 
