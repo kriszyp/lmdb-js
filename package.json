@@ -19,7 +19,8 @@
   "version": "0.4.2",
   "main": "./index.js",
   "scripts": {
-    "test": "./node_modules/.bin/mocha test/**.test.js --recursive"
+    "test": "./node_modules/.bin/mocha test/**.test.js --recursive",
+    "benchmark": "node ./benchmark/index.js"
   },
   "gypfile": true,
   "dependencies": {
@@ -27,8 +28,8 @@
     "nan": "^2.3.5"
   },
   "devDependencies": {
+    "benchmark": "^2.1.0",
     "chai": "^3.5.0",
-    "fast-future": "^1.0.1",
     "mkdirp": "^0.5.1",
     "mocha": "^2.5.3",
     "rimraf": "^2.5.2"
