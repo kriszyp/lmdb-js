@@ -24,8 +24,10 @@
           ],
           "cflags": [
             "-fPIC",
+            "-O3"
+          ],
+          "cflags_cc": [
             "-fvisibility-inlines-hidden",
-            "-O3",
             "-std=c++0x"
           ]
         }],
