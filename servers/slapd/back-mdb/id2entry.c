@@ -407,7 +407,12 @@ int mdb_id2entry_delete(
 		rc = mdb_cursor_del( mvc, MDB_NODUPDATA );
 		if (rc)
 			return rc;
-		mdb_cursor_get( mvc, &key, NULL, MDB_GET_CURRENT );
+		rc = mdb_cursor_get( mvc, &key, NULL, MDB_GET_CURRENT );
+		if (rc) {
+			if (rc == MDB_NOTFOUND)
+				rc = MDB_SUCCESS;
+			break;
+		}
 	}
 	return rc;
 }
