@@ -173,11 +173,11 @@ slap_op_time(time_t *t, int *nop)
 		tv.tv_usec <= last_time.tv_usec ) {
 		tv.tv_sec = last_time.tv_sec;
 		tv.tv_usec = last_time.tv_usec + 1;
-		if (tv.tv_usec >= 1000000) {
-			tv.tv_usec -= 1000000;
-			tv.tv_sec++;
-			last_time.tv_sec = tv.tv_sec;
-		}
+	}
+	if (tv.tv_usec >= 1000000) {
+		tv.tv_usec -= 1000000;
+		tv.tv_sec++;
+		last_time.tv_sec = tv.tv_sec;
 	}
 	last_time.tv_usec = tv.tv_usec;
 	ldap_pvt_thread_mutex_unlock( &slap_op_mutex );
