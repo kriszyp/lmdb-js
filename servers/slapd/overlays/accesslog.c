@@ -1959,6 +1959,10 @@ accesslog_op_mod( Operation *op, SlapReply *rs )
 		return SLAP_CB_CONTINUE;
 		/* give this a unique timestamp */
 		op->o_tincr++;
+		if ( op->o_tincr >= 1000000 ) {
+			op->o_tincr -= 1000000;
+			op->o_time++;
+		}
 	}
 
 	logop = accesslog_op2logop( op );
