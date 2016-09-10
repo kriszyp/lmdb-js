@@ -273,8 +273,54 @@ NAN_METHOD(TxnWrap::del) {
         return;
     }
 
-    int rc = mdb_del(tw->txn, dw->dbi, &key, nullptr);
+    // Set data if dupSort true and data given
+    MDB_val data;
+    Local<Value> dataHandle = info[2];
+    bool freeData = false;
+    if ((dw->flags & MDB_DUPSORT) && !(dataHandle->IsUndefined())) {
+        if (dataHandle->IsString()) {
+            CustomExternalStringResource::writeTo(dataHandle->ToString(), &data);
+            freeData = true;
+        }
+        else if (node::Buffer::HasInstance(dataHandle)) {
+            data.mv_size = node::Buffer::Length(dataHandle);
+            data.mv_data = node::Buffer::Data(dataHandle);
+            freeData = true;
+        }
+        else if (dataHandle->IsNumber()) {
+            data.mv_size = sizeof(double);
+            data.mv_data = new double;
+            *((double*)data.mv_data) = dataHandle->ToNumber()->Value();
+            freeData = true;
+        }
+        else if (dataHandle->IsBoolean()) {
+            data.mv_size = sizeof(double);
+            data.mv_data = new bool;
+            *((bool*)data.mv_data) = dataHandle->ToBoolean()->Value();
+            freeData = true;
+        }
+        else {
+            Nan::ThrowError("Invalid data type.");
+        }
+    }
+
+    int rc = mdb_del(tw->txn, dw->dbi, &key, freeData ? &data : nullptr);
+
     freeKey(key);
+    if (freeData) {
+        if (dataHandle->IsString()) {
+            delete[] (uint16_t*)data.mv_data;
+        }
+        else if (node::Buffer::HasInstance(dataHandle)) {
+            // I think the data is owned by the node::Buffer so we don't need to free it - need to clarify
+        }
+        else if (dataHandle->IsNumber()) {
+            delete (double*)data.mv_data;
+        }
+        else if (dataHandle->IsBoolean()) {
+            delete (bool*)data.mv_data;
+        }
+    }
 
     if (rc != 0) {
         return Nan::ThrowError(mdb_strerror(rc));
