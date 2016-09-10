@@ -209,11 +209,11 @@ NAN_METHOD(CursorWrap::goToRange) {
 
 static void fillDataFromArg1(CursorWrap* cw, Nan::NAN_METHOD_ARGS_TYPE info, MDB_val &data) {
     if (info[1]->IsString()) {
-        CustomExternalStringResource::writeTo(info[2]->ToString(), &data);
+        CustomExternalStringResource::writeTo(info[1]->ToString(), &data);
     }
     else if (node::Buffer::HasInstance(info[1])) {
-        data.mv_size = node::Buffer::Length(info[2]);
-        data.mv_data = node::Buffer::Data(info[2]);
+        data.mv_size = node::Buffer::Length(info[1]);
+        data.mv_data = node::Buffer::Data(info[1]);
     }
     else if (info[1]->IsNumber()) {
         data.mv_size = sizeof(double);
