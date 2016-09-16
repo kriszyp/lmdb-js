@@ -225,7 +225,7 @@ static void fillDataFromArg1(CursorWrap* cw, Nan::NAN_METHOD_ARGS_TYPE info, MDB
     else if (info[1]->IsNumber()) {
         data.mv_size = sizeof(double);
         data.mv_data = new double;
-        *((double*)data.mv_data) = info[1]->ToNumber()->Value();
+        *((double*)data.mv_data) = info[1]->ToNumber(Nan::GetCurrentContext()).ToLocalChecked()->Value();
     }
     else if (info[1]->IsBoolean()) {
         data.mv_size = sizeof(double);
