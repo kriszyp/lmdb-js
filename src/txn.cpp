@@ -241,7 +241,7 @@ NAN_METHOD(TxnWrap::putNumber) {
     return putCommon(info, [](Nan::NAN_METHOD_ARGS_TYPE info, MDB_val &data) -> void {
         data.mv_size = sizeof(double);
         data.mv_data = new double;
-        *((double*)data.mv_data) = info[2]->ToNumber()->Value();
+        *((double*)data.mv_data) = info[2]->ToNumber(Nan::GetCurrentContext()).ToLocalChecked()->Value();
     }, [](MDB_val &data) -> void {
         delete (double*)data.mv_data;
     });
