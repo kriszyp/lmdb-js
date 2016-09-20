@@ -138,6 +138,16 @@ describe('Node.js LMDB Bindings', function() {
       var data2 = txn.getBinaryUnsafe(dbi, 'key2');
       should.equal(data2, null);
     });
+    it('binary key', function() {
+      var buffer = new Buffer('48656c6c6f2c20776f726c6421', 'hex');
+      var key = new Buffer('key2');
+      txn.putBinary(dbi, key, buffer);
+      var data = txn.getBinary(dbi, key);
+      data.should.deep.equal(buffer);
+      txn.del(dbi, key);
+      var data2 = txn.getBinary(dbi, key);
+      should.equal(data2, null);
+    });
     it('number', function() {
       txn.putNumber(dbi, 'key3', 9007199254740991);
       var data = txn.getNumber(dbi, 'key3');

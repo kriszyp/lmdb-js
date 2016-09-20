@@ -53,6 +53,18 @@ argtokey_callback_t argToKey(const Local<Value> &val, MDB_val &key, bool keyIsUi
         Nan::ThrowError("Invalid key. keyIsUint32 specified on the database, but the given key was not an unsigned 32-bit integer");
         return nullptr;
     }
+
+    // Handle buffer
+    if (node::Buffer::HasInstance(val)) {
+        key.mv_size = node::Buffer::Length(val);
+        key.mv_data = node::Buffer::Data(val);
+
+        return ([](MDB_val &key) -> void {
+           // We shouldn't need free here - need to clarify
+        });
+
+    }
+
     if (!keyIsUint32 && !val->IsString()) {
         Nan::ThrowError("Invalid key. String key expected, because keyIsUint32 isn't specified on the database.");
         return nullptr;
