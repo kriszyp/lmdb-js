@@ -92,11 +92,12 @@ argtokey_callback_t argToKey(const Local<Value> &val, MDB_val &key, bool keyIsUi
     return nullptr;
 }
 
-Local<Value> keyToHandle(MDB_val &key, bool keyIsUint32) {
+Local<Value> keyToHandle(MDB_val &key, bool keyIsUint32, bool keyAsBuffer) {
     if (keyIsUint32) {
         return Nan::New<Integer>(*((uint32_t*)key.mv_data));
-    }
-    else {
+    } else if (keyAsBuffer) {
+        return valToBinary(key);
+    } else {
         return valToString(key);
     }
 }
