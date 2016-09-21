@@ -96,7 +96,8 @@ Nan::NAN_METHOD_RETURN_TYPE CursorWrap::getCommon(
     void (*setKey)(CursorWrap* cw, Nan::NAN_METHOD_ARGS_TYPE info, MDB_val&),
     void (*setData)(CursorWrap* cw, Nan::NAN_METHOD_ARGS_TYPE info, MDB_val&),
     void (*freeData)(CursorWrap* cw, Nan::NAN_METHOD_ARGS_TYPE info, MDB_val&),
-    Local<Value> (*convertFunc)(MDB_val &data)
+    Local<Value> (*convertFunc)(MDB_val &data),
+    bool keyAsBuffer
 ) {
     Nan::HandleScope scope;
 
@@ -126,7 +127,7 @@ Nan::NAN_METHOD_RETURN_TYPE CursorWrap::getCommon(
 
     Local<Value> keyHandle = Nan::Undefined();
     if (cw->key.mv_size) {
-        keyHandle = keyToHandle(cw->key, cw->keyIsUint32);
+        keyHandle = keyToHandle(cw->key, cw->keyIsUint32, keyAsBuffer);
     }
 
     Local<Value> dataHandle = Nan::Undefined();
@@ -169,11 +170,11 @@ NAN_METHOD(CursorWrap::getCurrentStringUnsafe) {
 }
 
 NAN_METHOD(CursorWrap::getCurrentBinary) {
-    return getCommon(info, MDB_GET_CURRENT, nullptr, nullptr, nullptr, valToBinary);
+    return getCommon(info, MDB_GET_CURRENT, nullptr, nullptr, nullptr, valToBinary, true);
 }
 
 NAN_METHOD(CursorWrap::getCurrentBinaryUnsafe) {
-    return getCommon(info, MDB_GET_CURRENT, nullptr, nullptr, nullptr, valToBinaryUnsafe);
+    return getCommon(info, MDB_GET_CURRENT, nullptr, nullptr, nullptr, valToBinaryUnsafe, true);
 }
 
 NAN_METHOD(CursorWrap::getCurrentNumber) {

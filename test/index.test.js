@@ -138,6 +138,16 @@ describe('Node.js LMDB Bindings', function() {
       var data2 = txn.getBinaryUnsafe(dbi, 'key2');
       should.equal(data2, null);
     });
+    it('binary key', function() {
+      var buffer = new Buffer('48656c6c6f2c20776f726c6421', 'hex');
+      var key = new Buffer('key2');
+      txn.putBinary(dbi, key, buffer);
+      var data = txn.getBinary(dbi, key);
+      data.should.deep.equal(buffer);
+      txn.del(dbi, key);
+      var data2 = txn.getBinary(dbi, key);
+      should.equal(data2, null);
+    });
     it('number', function() {
       txn.putNumber(dbi, 'key3', 9007199254740991);
       var data = txn.getNumber(dbi, 'key3');
@@ -480,21 +490,21 @@ describe('Node.js LMDB Bindings', function() {
       var txn = env.beginTxn();
       var value1 = new Buffer(new Array(8));
       var value2 = new Buffer(new Array(4));
-      txn.putBinary(dbi, 'id', value1);
-      txn.putBinary(dbi, 'id', value2);
+      txn.putBinary(dbi, new Buffer('id'), value1);
+      txn.putBinary(dbi, new Buffer('id'), value2);
       txn.commit();
 
       var txn2 = env.beginTxn({readonly: true});
       var cursor = new lmdb.Cursor(txn2, dbi);
-      var found = cursor.goToKey('id');
+      var found = cursor.goToKey(new Buffer('id'));
       should.exist(found);
       cursor.getCurrentBinary(function(key, value) {
-        key.should.equal('id');
+        key.toString().should.equal('id');
         value.length.should.equal(4);
 
         cursor.goToNext();
         cursor.getCurrentBinary(function(key, value) {
-          key.should.equal('id');
+          key.toString().should.equal('id');
           value.length.should.equal(8);
           cursor.close();
           txn2.abort();
@@ -531,21 +541,21 @@ describe('Node.js LMDB Bindings', function() {
       value1.writeUInt32BE(100);
       var value2 = new Buffer(new Array(8));
       value2.writeUInt32BE(200);
-      txn.putBinary(dbi, 'id', value1);
-      txn.putBinary(dbi, 'id', value2);
+      txn.putBinary(dbi, new Buffer('id'), value1);
+      txn.putBinary(dbi, new Buffer('id'), value2);
       txn.commit();
 
       var txn2 = env.beginTxn({readonly: true});
       var cursor = new lmdb.Cursor(txn2, dbi);
-      var found = cursor.goToKey('id');
+      var found = cursor.goToKey(new Buffer('id'));
       should.exist(found);
       cursor.getCurrentBinary(function(key, value) {
-        key.should.equal('id');
+        key.toString().should.equal('id');
         value.length.should.equal(8);
 
         cursor.goToNext();
         cursor.getCurrentBinary(function(key, value) {
-          key.should.equal('id');
+          key.toString().should.equal('id');
           value.length.should.equal(8);
           cursor.close();
           txn2.abort();
@@ -556,7 +566,7 @@ describe('Node.js LMDB Bindings', function() {
   });
   describe('Memory Freeing / Garbage Collection', function() {
     it('should not cause a segment fault', function(done) {
-      var expectedKey = '822285ee315d2b04';
+      var expectedKey = new Buffer('822285ee315d2b04');
       var expectedValue = new Buffer('ec65d632d9168c33350ed31a30848d01e95172931e90984c218ef6b08c1fa90a', 'hex');
       var env = new lmdb.Env();
       env.open({
@@ -584,7 +594,7 @@ describe('Node.js LMDB Bindings', function() {
       txn2.abort();
       dbi.close();
       env.close();
-      key.should.equal(expectedKey);
+      key.should.deep.equal(expectedKey);
       value.compare(expectedValue).should.equal(0);
       done();
     });
@@ -606,7 +616,7 @@ describe('Node.js LMDB Bindings', function() {
         create: true
       });
       var txn = env.beginTxn();
-      txn.putBinary(dbi, expectedKey.toString('hex'), expectedValue);
+      txn.putBinary(dbi, expectedKey, expectedValue);
       txn.commit();
     });
     after(function() {

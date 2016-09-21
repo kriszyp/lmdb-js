@@ -47,7 +47,7 @@ void consoleLog(const char *msg);
 void consoleLogN(int n);
 void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue, Local<Object> options);
 argtokey_callback_t argToKey(const Local<Value> &val, MDB_val &key, bool keyIsUint32);
-Local<Value> keyToHandle(MDB_val &key, bool keyIsUint32);
+Local<Value> keyToHandle(MDB_val &key, bool keyIsUint32, bool keyAsBuffer = false);
 Local<Value> valToString(MDB_val &data);
 Local<Value> valToStringUnsafe(MDB_val &data);
 Local<Value> valToBinary(MDB_val &data);
@@ -439,7 +439,8 @@ public:
         void (*setKey)(CursorWrap* cw, Nan::NAN_METHOD_ARGS_TYPE info, MDB_val&),
         void (*setData)(CursorWrap* cw, Nan::NAN_METHOD_ARGS_TYPE info, MDB_val&),
         void (*freeData)(CursorWrap* cw, Nan::NAN_METHOD_ARGS_TYPE info, MDB_val&),
-        Local<Value> (*convertFunc)(MDB_val &data));
+        Local<Value> (*convertFunc)(MDB_val &data),
+        bool keyAsBuffer = false);
 
     // Helper method for getters (not exposed)
     static Nan::NAN_METHOD_RETURN_TYPE getCommon(Nan::NAN_METHOD_ARGS_TYPE info, MDB_cursor_op op);
