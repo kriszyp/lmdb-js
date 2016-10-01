@@ -1630,7 +1630,7 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 	slap_overinst		*on = (slap_overinst *)op->o_bd->bd_info;
 	pp_info			*pi = on->on_bi.bi_private;
 	int			i, rc, mod_pw_only, pwmod, pwmop = -1, deladd,
-				hsize = 0;
+				hsize = 0, hskip;
 	PassPolicy		pp;
 	Modifications		*mods = NULL, *modtail = NULL,
 				*ml, *delmod, *addmod;
@@ -2048,7 +2048,10 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 			pErr = PP_passwordInHistory;
 			goto return_results;
 		}
-	
+
+		/* We need this when reduce pwdInHistory */
+		hskip = hsize - pp.pwdInHistory;
+
 		/*
 		 * Iterate through the password history, and fail on any
 		 * password matches.
@@ -2057,6 +2060,10 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 		at.a_vals = cr;
 		cr[1].bv_val = NULL;
 		for(p=tl; p; p=p->next) {
+			if(hskip > 0){
+				hskip--;
+				continue;
+			}
 			cr[0] = p->pw;
 			/* FIXME: no access checking? */
 			rc = slap_passwd_check( op, NULL, &at, bv, &txt );
@@ -2165,7 +2172,19 @@ do_modify:
 			modtail = mods;
 		}
 
-		if (!got_history && pp.pwdInHistory > 0) {
+		/* Delete all pwdInHistory attribute */
+		if (!got_history && pp.pwdInHistory == 0 &&
+            attr_find(e->e_attrs, ad_pwdHistory )){
+			mods = (Modifications *) ch_calloc( sizeof( Modifications ), 1 );
+			mods->sml_op = LDAP_MOD_DELETE;
+			mods->sml_flags = SLAP_MOD_INTERNAL;
+			mods->sml_desc = ad_pwdHistory;
+			mods->sml_next = NULL;
+			modtail->sml_next = mods;
+			modtail = mods;
+		}
+
+		if (!got_history && pp.pwdInHistory > 0){
 			if (hsize >= pp.pwdInHistory) {
 				/*
 				 * We use the >= operator, since we are going to add
