@@ -22,7 +22,7 @@ source root.
 
 4) Edit your slapd.conf (eg. /etc/ldap/slapd.conf), and add:
 
-moduleload ...path/to/slapd-sha2.so
+moduleload ...path/to/slapd-totp.so
 
 5) This module replaces the function of the slapo-lastbind overlay. You
 cannot use that overlay on the same database as this one.
@@ -41,10 +41,11 @@ slapd.conf. For example:
 
 password-hash	{TOTP1}
 
-On the databases where your users reside you must configure both the
-lastbind overlay and the totp overlay:
+TOTP password schemes will only work on databases that have a rootdn and the
+totp overlay configured:
 
 database mdb
+rootdn "..."
 ...
 
 overlay totp
