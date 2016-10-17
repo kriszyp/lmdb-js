@@ -4,6 +4,7 @@ OpenLDAP 2.4.45 Engineering
 	Fixed libldap handling of Diffie-Hellman parameters (ITS#7506)
 	Fixed libldap GnuTLS use after free (ITS#8385)
 	Fixed slapd syncrepl filter handling (ITS#8413)
+	Fixed slapd syncrepl infinite looping mods with delta-sync MMR (ITS#8432)
 	Fixed slapo-accesslog to honor pauses during purge for cn=config update (ITS#8423)
 	Fixed slapo-relay to correctly initialize sc_writewait (ITS#8428)
 	Build Environment
