@@ -82,8 +82,9 @@ typedef struct syncinfo_s {
 	struct berval		si_base;
 	struct berval		si_logbase;
 	struct berval		si_filterstr;
-	Filter			*si_filter;
 	struct berval		si_logfilterstr;
+	Filter			*si_filter;
+	Filter			*si_logfilter;
 	struct berval		si_contextdn;
 	int			si_scope;
 	int			si_attrsonly;
@@ -944,6 +945,10 @@ do_syncrep2(
 						check_syncprov( op, si );
 						ldap_pvt_thread_mutex_lock( &si->si_cookieState->cs_mutex );
 						for ( i =0; i<si->si_cookieState->cs_num; i++ ) {
+#ifdef CHATTY_SYNCLOG
+							Debug( LDAP_DEBUG_SYNC, "do_syncrep2: %s CSN for sid %d: %s\n",
+								si->si_ridtxt, i, si->si_cookieState->cs_vals[i].bv_val );
+#endif
 							/* new SID */
 							if ( sid < si->si_cookieState->cs_sids[i] )
 								break;
@@ -2098,6 +2103,33 @@ syncrepl_op_modify( Operation *op, SlapReply *rs )
 	if ( !mod )
 		return SLAP_CB_CONTINUE;
 
+	{
+		int i, sid;
+		sid = slap_parse_csn_sid( &mod->sml_nvalues[0] );
+		ldap_pvt_thread_mutex_lock( &si->si_cookieState->cs_mutex );
+		for ( i =0; i<si->si_cookieState->cs_num; i++ ) {
+#ifdef CHATTY_SYNCLOG
+			Debug( LDAP_DEBUG_SYNC, "syncrepl_op_modify: %s CSN for sid %d: %s\n",
+				si->si_ridtxt, i, si->si_cookieState->cs_vals[i].bv_val );
+#endif
+			/* new SID */
+			if ( sid < si->si_cookieState->cs_sids[i] )
+				break;
+			if ( si->si_cookieState->cs_sids[i] == sid ) {
+				if ( ber_bvcmp( &mod->sml_nvalues[0], &si->si_cookieState->cs_vals[i] ) <= 0 ) {
+					Debug( LDAP_DEBUG_SYNC, "syncrepl_op_modify: %s entryCSN too old, ignoring %s (%s)\n",
+						si->si_ridtxt, mod->sml_nvalues[0].bv_val, op->o_req_dn.bv_val );
+					ldap_pvt_thread_mutex_unlock( &si->si_cookieState->cs_mutex );
+					slap_graduate_commit_csn( op );
+					/* tell accesslog this was a failure */
+					rs->sr_err = LDAP_TYPE_OR_VALUE_EXISTS;
+					return LDAP_SUCCESS;
+				}
+			}
+		}
+		ldap_pvt_thread_mutex_unlock( &si->si_cookieState->cs_mutex );
+	}
+
 	rc = overlay_entry_get_ov( op, &op->o_req_ndn, NULL, NULL, 0, &e, on );
 	if ( rc == 0 ) {
 		Attribute *a;
@@ -2111,6 +2143,7 @@ syncrepl_op_modify( Operation *op, SlapReply *rs )
 	}
 	/* equal? Should never happen */
 	if ( match == 0 ) {
+		slap_graduate_commit_csn( op );
 		/* tell accesslog this was a failure */
 		rs->sr_err = LDAP_TYPE_OR_VALUE_EXISTS;
 		return LDAP_SUCCESS;
@@ -2159,6 +2192,8 @@ syncrepl_op_modify( Operation *op, SlapReply *rs )
 		SlapReply rs1 = {0};
 		resolve_ctxt rx;
 		slap_callback cb = { NULL, syncrepl_resolve_cb, NULL, NULL };
+        Filter lf[3] = {0};
+        AttributeAssertion aa[2] = {0};
 
 		rx.rx_si = si;
 		rx.rx_mods = newlist;
@@ -2186,7 +2221,21 @@ syncrepl_op_modify( Operation *op, SlapReply *rs )
 		op2.ors_filterstr.bv_len = sprintf(op2.ors_filterstr.bv_val,
 			"(&(entryCSN>=%s)(reqDN=%s)%s)",
 			bv.bv_val, op->o_req_ndn.bv_val, si->si_logfilterstr.bv_val );
-		op2.ors_filter = str2filter_x( op, op2.ors_filterstr.bv_val );
+
+        lf[0].f_choice = LDAP_FILTER_AND;
+        lf[0].f_and = lf+1;
+        lf[1].f_choice = LDAP_FILTER_GE;
+        lf[1].f_ava = aa;
+        lf[1].f_av_desc = slap_schema.si_ad_entryCSN;
+        lf[1].f_av_value = bv;
+        lf[1].f_next = lf+2;
+        lf[2].f_choice = LDAP_FILTER_EQUALITY;
+        lf[2].f_ava = aa+1;
+        lf[2].f_av_desc = ad_reqDN;
+        lf[2].f_av_value = op->o_req_ndn;
+        lf[2].f_next = si->si_logfilter;
+
+		op2.ors_filter = lf;
 
 		op2.o_callback = &cb;
 		op2.o_bd = select_backend( &op2.o_req_ndn, 1 );
@@ -2204,6 +2253,7 @@ syncrepl_op_modify( Operation *op, SlapReply *rs )
 		sc->sc_private = mx;
 		sc->sc_next = op->o_callback;
 		sc->sc_cleanup = NULL;
+		sc->sc_writewait = NULL;
 		op->o_callback = sc;
 		op->orm_no_opattrs = 1;
 		mx->mx_orig = op->orm_modlist;
@@ -4585,6 +4635,9 @@ syncinfo_free( syncinfo_t *sie, int free_all )
 		if ( sie->si_logfilterstr.bv_val ) {
 			ch_free( sie->si_logfilterstr.bv_val );
 		}
+		if ( sie->si_logfilter ) {
+			filter_free( sie->si_logfilter );
+		}
 		if ( sie->si_base.bv_val ) {
 			ch_free( sie->si_base.bv_val );
 		}
@@ -5304,6 +5357,15 @@ parse_syncrepl_line(
 		Debug( LDAP_DEBUG_ANY, "syncrepl %s " SEARCHBASESTR "=\"%s\": unable to parse filter=\"%s\"\n", 
 			si->si_ridtxt, c->be->be_suffix ? c->be->be_suffix[ 0 ].bv_val : "(null)", si->si_filterstr.bv_val );
 		return 1;
+	}
+
+	if ( si->si_got & GOT_LOGFILTER ) {
+		si->si_logfilter = str2filter( si->si_logfilterstr.bv_val );
+		if ( si->si_logfilter == NULL ) {
+			Debug( LDAP_DEBUG_ANY, "syncrepl %s " SEARCHBASESTR "=\"%s\": unable to parse logfilter=\"%s\"\n", 
+				si->si_ridtxt, c->be->be_suffix ? c->be->be_suffix[ 0 ].bv_val : "(null)", si->si_logfilterstr.bv_val );
+			return 1;
+		}
 	}
 
 	return 0;

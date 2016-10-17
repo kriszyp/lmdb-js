@@ -407,7 +407,12 @@ int mdb_id2entry_delete(
 		rc = mdb_cursor_del( mvc, MDB_NODUPDATA );
 		if (rc)
 			return rc;
-		mdb_cursor_get( mvc, &key, NULL, MDB_GET_CURRENT );
+		rc = mdb_cursor_get( mvc, &key, NULL, MDB_GET_CURRENT );
+		if (rc) {
+			if (rc == MDB_NOTFOUND)
+				rc = MDB_SUCCESS;
+			break;
+		}
 	}
 	return rc;
 }
@@ -837,6 +842,13 @@ static int mdb_entry_partsize(struct mdb_info *mdb, MDB_txn *txn, Entry *e,
  * attribute's values are already sorted. If the MDB_AT_MULTI bit of the
  * attr index is set, the values are stored separately.
  *
+ * Unfortunately, MDB_AT_MULTI and MDB_AT_SORTED are mutually exclusive;
+ * the DB stores big multi-valued attrs in sorted order but the sorting
+ * is according to the DB order which is not guaranteed to match the
+ * attribute's matching rule ordering. So, drop the sorted flag on big
+ * multi-val attributes, the values will need to be resorted when the
+ * entry is read again.
+ *
  * If the MDB_AT_NVALS bit of numvals is set, the attribute also has
  * normalized values present. (Note - a_numvals is an unsigned int, so this
  * means it's possible to receive an attribute that we can't encode due
@@ -876,10 +888,10 @@ static int mdb_entry_encode(Operation *op, Entry *e, MDB_val *data, Ecount *eh)
 		if (!a->a_desc->ad_index)
 			return LDAP_UNDEFINED_TYPE;
 		l = mdb->mi_adxs[a->a_desc->ad_index];
-		if (a->a_flags & SLAP_ATTR_SORTED_VALS)
-			l |= MDB_AT_SORTED;
 		if (a->a_flags & SLAP_ATTR_BIG_MULTI)
 			l |= MDB_AT_MULTI;
+		else if (a->a_flags & SLAP_ATTR_SORTED_VALS)
+			l |= MDB_AT_SORTED;
 		*lp++ = l;
 		l = a->a_numvals;
 		if (a->a_nvals != a->a_vals)

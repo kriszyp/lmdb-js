@@ -165,8 +165,7 @@ done:;
 }
 
 static int
-trace_db_init(
-	BackendDB *be )
+trace_db_init( BackendDB *be, ConfigReply *cr )
 {
 	Log0( LDAP_DEBUG_ANY, LDAP_LEVEL_INFO,
 		"trace DB_INIT\n" );
@@ -190,8 +189,7 @@ trace_db_config(
 }
 
 static int
-trace_db_open(
-	BackendDB *be )
+trace_db_open( BackendDB *be, ConfigReply *cr )
 {
 	Log0( LDAP_DEBUG_ANY, LDAP_LEVEL_INFO,
 		"trace DB_OPEN\n" );
@@ -200,8 +198,7 @@ trace_db_open(
 }
 
 static int
-trace_db_close(
-	BackendDB *be )
+trace_db_close( BackendDB *be, ConfigReply *cr )
 {
 	Log0( LDAP_DEBUG_ANY, LDAP_LEVEL_INFO,
 		"trace DB_CLOSE\n" );
@@ -210,8 +207,7 @@ trace_db_close(
 }
 
 static int
-trace_db_destroy(
-	BackendDB *be )
+trace_db_destroy( BackendDB *be, ConfigReply *cr )
 {
 	Log0( LDAP_DEBUG_ANY, LDAP_LEVEL_INFO,
 		"trace DB_DESTROY\n" );

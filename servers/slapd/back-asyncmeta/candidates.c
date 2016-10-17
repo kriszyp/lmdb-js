@@ -285,5 +285,6 @@ asyncmeta_clear_one_msc(
 	msc->msc_time = 0;
 	msc->msc_mscflags = 0;
 	msc->msc_timeout_ops = 0;
+	msc->msc_pending_ops = 0;
 	return 0;
 }

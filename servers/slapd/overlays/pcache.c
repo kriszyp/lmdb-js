@@ -2838,7 +2838,7 @@ pcache_op_bind(
 	QueryTemplate *temp;
 	Entry *e;
 	slap_callback	cb = { 0 }, *sc;
-	bindinfo bi;
+	bindinfo bi = { 0 };
 	bindcacheinfo *bci;
 	Operation op2;
 	int rc;
@@ -2868,7 +2868,6 @@ pcache_op_bind(
 	op2 = *op;
 	op2.o_dn = op->o_bd->be_rootdn;
 	op2.o_ndn = op->o_bd->be_rootndn;
-	bi.bi_flags = 0;
 
 	op2.o_bd = &cm->db;
 	e = NULL;
@@ -2897,11 +2896,8 @@ pcache_op_bind(
 	 */
 	bi.bi_cm = cm;
 	bi.bi_templ = temp;
-	bi.bi_cq = NULL;
-	bi.bi_si = NULL;
 
 	bi.bi_cb.sc_response = pc_bind_search;
-	bi.bi_cb.sc_cleanup = NULL;
 	bi.bi_cb.sc_private = &bi;
 	cb.sc_private = &bi;
 	cb.sc_response = pc_bind_resp;
@@ -2937,6 +2933,7 @@ pcache_op_bind(
 		sc->sc_response = pc_bind_save;
 		sc->sc_cleanup = NULL;
 		sc->sc_private = sc+1;
+		sc->sc_writewait = NULL;
 		bci = sc->sc_private;
 		sc->sc_next = op->o_callback;
 		op->o_callback = sc;
@@ -3129,6 +3126,7 @@ pcache_op_search(
 		cb->sc_response = pcache_response;
 		cb->sc_cleanup = pcache_op_cleanup;
 		cb->sc_private = (cb+1);
+		cb->sc_writewait = 0;
 		si = cb->sc_private;
 		si->on = on;
 		si->query = query;

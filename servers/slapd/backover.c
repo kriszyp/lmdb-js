@@ -256,21 +256,6 @@ over_back_response ( Operation *op, SlapReply *rs )
 }
 
 static int
-over_back_response_cleanup(Operation *op, SlapReply *rs)
-{
-    if (rs->sr_type == REP_RESULT) {
-        if (op->o_callback != NULL) {
-            slap_callback *sc = op->o_callback;
-            op->o_callback = sc->sc_next;
-
-            free( sc );
-        }
-    }
-
-    return 0;
-}
-
-static int
 over_access_allowed(
 	Operation		*op,
 	Entry			*e,
@@ -758,7 +743,7 @@ over_op_func(
 		db.be_flags |= SLAP_DBFLAG_OVERLAY;
 		op->o_bd = &db;
 	}
-	cb->sc_cleanup = over_back_response_cleanup;
+	cb->sc_cleanup = NULL;
 	cb->sc_response = over_back_response;
 	cb->sc_writewait = NULL;
 	cb->sc_next = op->o_callback;
@@ -1260,6 +1245,7 @@ overlay_remove( BackendDB *be, slap_overinst *on, Operation *op )
 	rm_cb->sc_cleanup = overlay_remove_cb;
 	rm_cb->sc_response = NULL;
 	rm_cb->sc_private = (void*) rm_ctx;
+	rm_cb->sc_writewait = NULL;
 
 	/* Append callback to the end of the list */
 	if ( !op->o_callback ) {

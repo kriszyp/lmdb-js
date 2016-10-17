@@ -2745,11 +2745,11 @@ if test "$ol_enable_meta" != no ; then
 	AC_DEFINE_UNQUOTED(SLAPD_META,$MFLAG,[define to support LDAP Metadirectory backend])
 fi
 
-if test "$ol_enable_meta_async" != no ; then
+if test "$ol_enable_asyncmeta" != no ; then
 	BUILD_SLAPD=yes
-	BUILD_ASYNCMETA=$ol_enable_meta_async
+	BUILD_ASYNCMETA=$ol_enable_asyncmeta
 	BUILD_REWRITE=yes
-	if test "$ol_enable_meta_async" = mod ; then
+	if test "$ol_enable_asyncmeta" = mod ; then
 		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-asyncmeta"
 		MFLAG=SLAPD_MOD_DYNAMIC
 	else

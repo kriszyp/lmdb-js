@@ -923,6 +923,7 @@ static int sssvlv_op_search(
 			cb->sc_response		= sssvlv_op_response;
 			cb->sc_next			= op->o_callback;
 			cb->sc_private		= so;
+			cb->sc_writewait	= NULL;
 
 			so->so_tree = NULL;
 			so->so_ctrl = sc;

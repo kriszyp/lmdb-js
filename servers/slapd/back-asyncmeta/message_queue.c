@@ -281,7 +281,7 @@ static void asyncmeta_memctx_put(void *threadctx, void *memctx)
 int asyncmeta_new_bm_context(Operation *op, SlapReply *rs, bm_context_t **new_bc, int ntargets)
 {
 	void *oldctx = op->o_tmpmemctx;
-
+	int i;
 	/* prevent old memctx from being destroyed */
 	slap_sl_mem_setctx(op->o_threadctx, NULL);
 	/* create new memctx */
@@ -290,6 +290,10 @@ int asyncmeta_new_bm_context(Operation *op, SlapReply *rs, bm_context_t **new_bc
 
 	(*new_bc)->op = asyncmeta_copy_op(op);
 	(*new_bc)->candidates = op->o_tmpcalloc(ntargets, sizeof(SlapReply),op->o_tmpmemctx);
+	(*new_bc)->msgids = op->o_tmpcalloc(ntargets, sizeof(int),op->o_tmpmemctx);
+	for (i = 0; i < ntargets; i++) {
+		(*new_bc)->msgids[i] = META_MSGID_UNDEFINED;
+	}
 	/* restore original memctx */
 	slap_sl_mem_setctx(op->o_threadctx, oldctx);
 	op->o_tmpmemctx = oldctx;
@@ -505,8 +509,15 @@ void
 asyncmeta_drop_bc(a_metaconn_t *mc, bm_context_t *bc)
 {
 	bm_context_t *om;
+	int i;
 	LDAP_SLIST_FOREACH( om, &mc->mc_om_list, bc_next ) {
 		if (om == bc) {
+			for (i = 0; i < mc->mc_info->mi_ntargets; i++)
+			{
+				if (bc->msgids[i] >= 0) {
+					mc->mc_conns[i].msc_pending_ops--;
+				}
+			}
 			LDAP_SLIST_REMOVE(&mc->mc_om_list, om, bm_context_t, bc_next);
 			mc->pending_ops--;
 			break;

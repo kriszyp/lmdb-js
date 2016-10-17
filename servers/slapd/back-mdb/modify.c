@@ -277,14 +277,19 @@ do_del:
 					err = mdb_mval_del( op, mvc, e->e_id, anew );
 					if (err)
 						break;
-					anew = attr_find( e->e_attrs, mod->sm_desc );
-					if (mod->sm_numvals >= mdb->mi_multi_lo) {
-						anew->a_flags |= SLAP_ATTR_BIG_MULTI;
-						err = mdb_mval_put(op, mvc, e->e_id, anew);
-					} else if (anew) {
-						/* revert back to normal attr */
-						anew->a_flags &= ~SLAP_ATTR_BIG_MULTI;
+				}
+				anew = attr_find( e->e_attrs, mod->sm_desc );
+				if (mod->sm_numvals >= mdb->mi_multi_lo) {
+					anew->a_flags |= SLAP_ATTR_BIG_MULTI;
+					if (!mvc) {
+						err = mdb_cursor_open( tid, mdb->mi_dbis[MDB_ID2VAL], &mvc );
+						if (err)
+							break;
 					}
+					err = mdb_mval_put(op, mvc, e->e_id, anew);
+				} else if (anew) {
+					/* revert back to normal attr */
+					anew->a_flags &= ~SLAP_ATTR_BIG_MULTI;
 				}
 			}
 			break;

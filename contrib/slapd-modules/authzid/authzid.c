@@ -292,6 +292,7 @@ authzid_op_bind(
 		op->o_callback->sc_response = authzid_response;
 		op->o_callback->sc_cleanup = authzid_cleanup;
 		op->o_callback->sc_private = NULL;
+		op->o_callback->sc_writewait = NULL;
 		op->o_callback->sc_next = sc;
 	}
 
