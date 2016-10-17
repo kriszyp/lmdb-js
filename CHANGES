@@ -3,6 +3,8 @@ OpenLDAP 2.4 Change Log
 OpenLDAP 2.4.45 Engineering
 	Fixed libldap handling of Diffie-Hellman parameters (ITS#7506)
 	Fixed libldap GnuTLS use after free (ITS#8385)
+	Contrib
+		Added passwd missing conversion scripts for apr1 (ITS#6826)
 
 OpenLDAP 2.4.44 Release (2016/02/05)
 	Fixed slapd-bdb/hdb missing olcDbChecksum config attr (ITS#8337)
