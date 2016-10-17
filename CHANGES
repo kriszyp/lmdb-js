@@ -13,6 +13,7 @@ OpenLDAP 2.4.45 Engineering
 		Added passwd missing conversion scripts for apr1 (ITS#6826)
 	Documentation
 		admin24 fixed tls_cipher_suite bindconf option (ITS#8099)
+		admin24 fixed typo cn=config to be slapd.d (ITS#8449)
 
 OpenLDAP 2.4.44 Release (2016/02/05)
 	Fixed slapd-bdb/hdb missing olcDbChecksum config attr (ITS#8337)
