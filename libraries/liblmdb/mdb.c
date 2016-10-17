@@ -257,7 +257,8 @@ typedef SSIZE_T	ssize_t;
 # else
 #  define MDB_USE_ROBUST	1
 /* glibc < 2.12 only provided _np API */
-#  if defined(__GLIBC__) && GLIBC_VER < 0x02000c
+#  if (defined(__GLIBC__) && GLIBC_VER < 0x02000c) || \
+	(defined(PTHREAD_MUTEX_ROBUST_NP) && !defined(PTHREAD_MUTEX_ROBUST))
 #   define PTHREAD_MUTEX_ROBUST	PTHREAD_MUTEX_ROBUST_NP
 #   define pthread_mutexattr_setrobust(attr, flag)	pthread_mutexattr_setrobust_np(attr, flag)
 #   define pthread_mutex_consistent(mutex)	pthread_mutex_consistent_np(mutex)
@@ -1417,8 +1418,9 @@ mdb_strerror(int err)
 	 *	This works as long as no function between the call to mdb_strerror
 	 *	and the actual use of the message uses more than 4K of stack.
 	 */
-	char pad[4096];
-	char buf[1024], *ptr = buf;
+#define MSGSIZE	1024
+#define PADSIZE 4096
+	char buf[MSGSIZE+PADSIZE], *ptr = buf;
 #endif
 	int i;
 	if (!err)
@@ -1450,7 +1452,7 @@ mdb_strerror(int err)
 	buf[0] = 0;
 	FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM |
 		FORMAT_MESSAGE_IGNORE_INSERTS,
-		NULL, err, 0, ptr, sizeof(buf), (va_list *)pad);
+		NULL, err, 0, ptr, MSGSIZE, (va_list *)buf+MSGSIZE);
 	return ptr;
 #else
 	return strerror(err);
@@ -4619,15 +4621,25 @@ mdb_env_setup_locks(MDB_env *env, char *lpath, int mode, int *excl)
 #else	/* MDB_USE_POSIX_MUTEX: */
 		pthread_mutexattr_t mattr;
 
-		if ((rc = pthread_mutexattr_init(&mattr))
-			|| (rc = pthread_mutexattr_setpshared(&mattr, PTHREAD_PROCESS_SHARED))
-#ifdef MDB_ROBUST_SUPPORTED
-			|| (rc = pthread_mutexattr_setrobust(&mattr, PTHREAD_MUTEX_ROBUST))
-#endif
-			|| (rc = pthread_mutex_init(env->me_txns->mti_rmutex, &mattr))
-			|| (rc = pthread_mutex_init(env->me_txns->mti_wmutex, &mattr)))
+		/* Solaris needs this before initing a robust mutex.  Otherwise
+		 * it may skip the init and return EBUSY "seems someone already
+		 * inited" or EINVAL "it was inited differently".
+		 */
+		memset(env->me_txns->mti_rmutex, 0, sizeof(*env->me_txns->mti_rmutex));
+		memset(env->me_txns->mti_wmutex, 0, sizeof(*env->me_txns->mti_wmutex));
+
+		if ((rc = pthread_mutexattr_init(&mattr)))
 			goto fail;
+
+		rc = pthread_mutexattr_setpshared(&mattr, PTHREAD_PROCESS_SHARED);
+#ifdef MDB_ROBUST_SUPPORTED
+		if (!rc) rc = pthread_mutexattr_setrobust(&mattr, PTHREAD_MUTEX_ROBUST);
+#endif
+		if (!rc) rc = pthread_mutex_init(env->me_txns->mti_rmutex, &mattr);
+		if (!rc) rc = pthread_mutex_init(env->me_txns->mti_wmutex, &mattr);
 		pthread_mutexattr_destroy(&mattr);
+		if (rc)
+			goto fail;
 #endif	/* _WIN32 || MDB_USE_POSIX_SEM */
 
 		env->me_txns->mti_magic = MDB_MAGIC;
@@ -5640,11 +5652,12 @@ mdb_cursor_next(MDB_cursor *mc, MDB_val *key, MDB_val *data, MDB_cursor_op op)
 	MDB_node	*leaf;
 	int rc;
 
-	if (mc->mc_flags & C_EOF) {
+	if ((mc->mc_flags & C_EOF) ||
+		((mc->mc_flags & C_DEL) && op == MDB_NEXT_DUP)) {
 		return MDB_NOTFOUND;
 	}
-
-	mdb_cassert(mc, mc->mc_flags & C_INITIALIZED);
+	if (!(mc->mc_flags & C_INITIALIZED))
+		return mdb_cursor_first(mc, key, data);
 
 	mp = mc->mc_pg[mc->mc_top];
 
@@ -5723,7 +5736,12 @@ mdb_cursor_prev(MDB_cursor *mc, MDB_val *key, MDB_val *data, MDB_cursor_op op)
 	MDB_node	*leaf;
 	int rc;
 
-	mdb_cassert(mc, mc->mc_flags & C_INITIALIZED);
+	if (!(mc->mc_flags & C_INITIALIZED)) {
+		rc = mdb_cursor_last(mc, key, data);
+		if (rc)
+			return rc;
+		mc->mc_ki[mc->mc_top]++;
+	}
 
 	mp = mc->mc_pg[mc->mc_top];
 
@@ -5973,8 +5991,8 @@ set1:
 				if (op == MDB_GET_BOTH || rc > 0)
 					return MDB_NOTFOUND;
 				rc = 0;
-				*data = olddata;
 			}
+			*data = olddata;
 
 		} else {
 			if (mc->mc_xcursor)
@@ -6169,10 +6187,7 @@ mdb_cursor_get(MDB_cursor *mc, MDB_val *key, MDB_val *data,
 			rc = MDB_INCOMPATIBLE;
 			break;
 		}
-		if (!(mc->mc_flags & C_INITIALIZED))
-			rc = mdb_cursor_first(mc, key, data);
-		else
-			rc = mdb_cursor_next(mc, key, data, MDB_NEXT_DUP);
+		rc = mdb_cursor_next(mc, key, data, MDB_NEXT_DUP);
 		if (rc == MDB_SUCCESS) {
 			if (mc->mc_xcursor->mx_cursor.mc_flags & C_INITIALIZED) {
 				MDB_cursor *mx;
@@ -6190,21 +6205,11 @@ fetchm:
 	case MDB_NEXT:
 	case MDB_NEXT_DUP:
 	case MDB_NEXT_NODUP:
-		if (!(mc->mc_flags & C_INITIALIZED))
-			rc = mdb_cursor_first(mc, key, data);
-		else
-			rc = mdb_cursor_next(mc, key, data, op);
+		rc = mdb_cursor_next(mc, key, data, op);
 		break;
 	case MDB_PREV:
 	case MDB_PREV_DUP:
 	case MDB_PREV_NODUP:
-		if (!(mc->mc_flags & C_INITIALIZED)) {
-			rc = mdb_cursor_last(mc, key, data);
-			if (rc)
-				break;
-			mc->mc_flags |= C_INITIALIZED;
-			mc->mc_ki[mc->mc_top]++;
-		}
 		rc = mdb_cursor_prev(mc, key, data, op);
 		break;
 	case MDB_FIRST:
@@ -6641,8 +6646,13 @@ current:
 					/* Note - this page is already counted in parent's dirty_room */
 					rc2 = mdb_mid2l_insert(mc->mc_txn->mt_u.dirty_list, &id2);
 					mdb_cassert(mc, rc2 == 0);
+					/* Currently we make the page look as with put() in the
+					 * parent txn, in case the user peeks at MDB_RESERVEd
+					 * or unused parts. Some users treat ovpages specially.
+					 */
 					if (!(flags & MDB_RESERVE)) {
-						/* Copy end of page, adjusting alignment so
+						/* Skip the part where LMDB will put *data.
+						 * Copy end of page, adjusting alignment so
 						 * compiler may copy words instead of bytes.
 						 */
 						off = (PAGEHDRSZ + data->mv_size) & -sizeof(size_t);
@@ -8207,8 +8217,6 @@ mdb_cursor_del0(MDB_cursor *mc)
 			if (m3->mc_pg[mc->mc_top] == mp) {
 				if (m3->mc_ki[mc->mc_top] == ki) {
 					m3->mc_flags |= C_DEL;
-					if (mc->mc_db->md_flags & MDB_DUPSORT)
-						m3->mc_xcursor->mx_cursor.mc_flags &= ~C_INITIALIZED;
 				} else if (m3->mc_ki[mc->mc_top] > ki) {
 					m3->mc_ki[mc->mc_top]--;
 				}
@@ -8242,11 +8250,21 @@ mdb_cursor_del0(MDB_cursor *mc)
 				continue;
 			if (m3->mc_pg[mc->mc_top] == mp) {
 				/* if m3 points past last node in page, find next sibling */
-				if (m3->mc_ki[mc->mc_top] >= nkeys) {
-					rc = mdb_cursor_sibling(m3, 1);
-					if (rc == MDB_NOTFOUND) {
-						m3->mc_flags |= C_EOF;
-						rc = MDB_SUCCESS;
+				if (m3->mc_ki[mc->mc_top] >= mc->mc_ki[mc->mc_top]) {
+					if (m3->mc_ki[mc->mc_top] >= nkeys) {
+						rc = mdb_cursor_sibling(m3, 1);
+						if (rc == MDB_NOTFOUND) {
+							m3->mc_flags |= C_EOF;
+							rc = MDB_SUCCESS;
+							continue;
+						}
+					}
+					if (mc->mc_db->md_flags & MDB_DUPSORT) {
+						MDB_node *node = NODEPTR(m3->mc_pg[m3->mc_top], m3->mc_ki[m3->mc_top]);
+						if (node->mn_flags & F_DUPDATA) {
+							mdb_xcursor_init1(m3, node);
+							m3->mc_xcursor->mx_cursor.mc_flags |= C_DEL;
+						}
 					}
 				}
 			}
@@ -8883,7 +8901,7 @@ mdb_env_cthr_toggle(mdb_copy *my, int st)
 static int ESECT
 mdb_env_cwalk(mdb_copy *my, pgno_t *pg, int flags)
 {
-	MDB_cursor mc;
+	MDB_cursor mc = {0};
 	MDB_txn *txn = my->mc_txn;
 	MDB_node *ni;
 	MDB_page *mo, *mp, *leaf;
@@ -8896,7 +8914,6 @@ mdb_env_cwalk(mdb_copy *my, pgno_t *pg, int flags)
 		return MDB_SUCCESS;
 
 	mc.mc_snum = 1;
-	mc.mc_top = 0;
 	mc.mc_txn = txn;
 
 	rc = mdb_page_get(my->mc_txn, *pg, &mc.mc_pg[0], NULL);
@@ -9659,8 +9676,11 @@ mdb_drop0(MDB_cursor *mc, int subs)
 
 		/* DUPSORT sub-DBs have no ovpages/DBs. Omit scanning leaves.
 		 * This also avoids any P_LEAF2 pages, which have no nodes.
+		 * Also if the DB doesn't have sub-DBs and has no overflow
+		 * pages, omit scanning leaves.
 		 */
-		if (mc->mc_flags & C_SUB)
+		if ((mc->mc_flags & C_SUB) ||
+			(!subs && !mc->mc_db->md_overflow_pages))
 			mdb_cursor_pop(mc);
 
 		mdb_cursor_copy(mc, &mx);
@@ -9682,6 +9702,9 @@ mdb_drop0(MDB_cursor *mc, int subs)
 							pg, omp->mp_pages);
 						if (rc)
 							goto done;
+						mc->mc_db->md_overflow_pages -= omp->mp_pages;
+						if (!mc->mc_db->md_overflow_pages && !subs)
+							break;
 					} else if (subs && (ni->mn_flags & F_SUBDATA)) {
 						mdb_xcursor_init1(mc, ni);
 						rc = mdb_drop0(&mc->mc_xcursor->mx_cursor, 0);
@@ -9689,6 +9712,8 @@ mdb_drop0(MDB_cursor *mc, int subs)
 							goto done;
 					}
 				}
+				if (!subs && !mc->mc_db->md_overflow_pages)
+					goto pop;
 			} else {
 				if ((rc = mdb_midl_need(&txn->mt_free_pgs, n)) != 0)
 					goto done;
@@ -9710,6 +9735,7 @@ mdb_drop0(MDB_cursor *mc, int subs)
 				/* no more siblings, go back to beginning
 				 * of previous level.
 				 */
+pop:
 				mdb_cursor_pop(mc);
 				mc->mc_ki[0] = 0;
 				for (i=1; i<mc->mc_snum; i++) {
