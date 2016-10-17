@@ -5,6 +5,7 @@ OpenLDAP 2.4.45 Engineering
 	Fixed libldap GnuTLS use after free (ITS#8385)
 	Fixed slapd syncrepl filter handling (ITS#8413)
 	Fixed slapo-accesslog to honor pauses during purge for cn=config update (ITS#8423)
+	Fixed slapo-relay to correctly initialize sc_writewait (ITS#8428)
 	Build Environment
 		Fix test008 to be portable (ITS#8414)
 	Contrib
