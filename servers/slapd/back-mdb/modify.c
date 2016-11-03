@@ -232,11 +232,13 @@ do_del:
 					}
 					if ( mod->sm_numvals ) {
 						anew = attr_find( e->e_attrs, mod->sm_desc );
-						if ( anew->a_numvals < mdb->mi_multi_lo ) {
-							anew->a_flags ^= SLAP_ATTR_BIG_MULTI;
-							anew = NULL;
-						} else {
-							anew = (Attribute *)mod;
+						if ( anew ) {
+							if ( anew->a_numvals < mdb->mi_multi_lo ) {
+								anew->a_flags ^= SLAP_ATTR_BIG_MULTI;
+								anew = NULL;
+							} else {
+								anew = (Attribute *)mod;
+							}
 						}
 					} else {
 						anew = NULL;
