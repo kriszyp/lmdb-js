@@ -177,7 +177,16 @@ NAN_METHOD(EnvWrap::openDbi) {
 
     const unsigned argc = 2;
     Local<Value> argv[argc] = { info.This(), info[0] };
-    Local<Object> instance = Nan::New(dbiCtor)->NewInstance(Nan::GetCurrentContext(), argc, argv).ToLocalChecked();
+
+    MaybeLocal<Object> maybeInstance = Nan::New(dbiCtor)->NewInstance(Nan::GetCurrentContext(), argc, argv);
+
+    //Check if database could be opened
+    if((maybeInstance.IsEmpty())){
+        // TODO: How to get error thrown in dbiCtor on mdb_dbi_open ? MDB_NOTFOUND or MDB_DBS_FULL
+        return Nan::ThrowError("No Dbi found or too many databases open");
+    }
+
+    Local<Object> instance = maybeInstance.ToLocalChecked();
 
     info.GetReturnValue().Set(instance);
 }
