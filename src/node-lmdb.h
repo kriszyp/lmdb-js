@@ -348,6 +348,8 @@ class DbiWrap : public Nan::ObjectWrap {
 private:
     // Stores whether keys should be treated as uint32_t
     bool keyIsUint32;
+    // Stores flags set when opened
+    int flags;
     // The wrapped object
     MDB_dbi dbi;
     // Reference to the MDB_env of the wrapped MDB_dbi

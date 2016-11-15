@@ -126,6 +126,7 @@ NAN_METHOD(DbiWrap::ctor) {
     dw->ew = ew;
     dw->ew->Ref();
     dw->keyIsUint32 = keyIsUint32;
+    dw->flags = flags;
     dw->Wrap(info.This());
 
     NanReturnThis();
