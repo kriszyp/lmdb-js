@@ -67,6 +67,16 @@ describe('Node.js LMDB Bindings', function() {
       txn.commit();
       dbi.close();
     });
+    it('will throw Javascript error if named database cannot be found', function () {
+      try {
+        env.openDbi({
+          name: 'does-not-exist',
+          create: false
+        });
+      } catch (err) {
+        err.should.be.an.instanceof(Error);
+      }
+    });
     it('will get statistics for a database', function() {
       var dbi = env.openDbi({
         name: 'mydb2',
