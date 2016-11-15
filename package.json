@@ -16,7 +16,7 @@
     "binding"
   ],
   "repository": "https://github.com/Venemo/node-lmdb",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "main": "./index.js",
   "scripts": {
     "test": "./node_modules/.bin/mocha test/**.test.js --recursive",
