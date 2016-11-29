@@ -15,6 +15,7 @@ OpenLDAP 2.4.45 Engineering
 	Contrib
 		Added passwd missing conversion scripts for apr1 (ITS#6826)
 		Fixed contrib modules where the writewait callback was not correctly initialized (ITS#8435)
+		Fixed smbk5pwd to build with newer OpenSSL releases (ITS#8525)
 	Documentation
 		admin24 fixed tls_cipher_suite bindconf option (ITS#8099)
 		admin24 fixed typo cn=config to be slapd.d (ITS#8449)
