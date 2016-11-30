@@ -16,8 +16,8 @@
 echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
 
-if test $BACKLDAP = "ldapno" ; then 
-	echo "LDAP backend not available, test skipped"
+if test $BACKEND != "bdb" ; then
+	echo "BDB backend not available, test skipped"
 	exit 0
 fi 
 
