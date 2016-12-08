@@ -76,5 +76,7 @@ sed -e "s/@BACKEND@/${BACKEND}/"			\
 	-e "s;@PORT6@;${PORT6};"			\
 	-e "s/@SASL_MECH@/${SASL_MECH}/"		\
 	-e "s;@TESTDIR@;${TESTDIR};"			\
+	-e "s;@TESTWD@;${TESTWD};"			\
 	-e "s;@DATADIR@;${DATADIR};"			\
-	-e "s;@SCHEMADIR@;${SCHEMADIR};"
+	-e "s;@SCHEMADIR@;${SCHEMADIR};"		\
+	-e "/^#/d"

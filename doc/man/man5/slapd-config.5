@@ -1869,7 +1869,11 @@ operation, a synchronization search remains persistent in the provider slapd.
 Further updates to the master replica will generate
 .B searchResultEntry
 to the consumer slapd as the search responses to the persistent
-synchronization search.
+synchronization search. If the initial search fails due to an error, the
+next synchronization search operation is periodically rescheduled at an
+interval time (specified by
+.B interval
+parameter; 1 day by default)
 
 If an error occurs during replication, the consumer will attempt to
 reconnect according to the
