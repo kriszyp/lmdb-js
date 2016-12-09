@@ -45,7 +45,7 @@ objectClass: olcDatabaseConfig
 objectClass: olc@BACKEND@Config
 olcDatabase: {1}@BACKEND@
 olcSuffix: dc=example,dc=com
-olcRootDN: "cn=Manager,dc=example,dc=com"
+olcRootDN: cn=Manager,dc=example,dc=com
 olcRootPW: secret
 #~null~#olcDbDirectory: @TESTDIR@/db.1.a
 #indexdb#olcDbIndex: default eq
