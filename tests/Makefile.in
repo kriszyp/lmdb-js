@@ -70,9 +70,32 @@ ldif test-ldif: FORCE
 
 regressions:	FORCE
 	@echo "Testing (available) ITS regressions"
-	@$(RUN) its-all
+	@$(MAKE) bdb-its
+	@$(MAKE) hdb-its
+	@$(MAKE) mdb-its
 
 its: regressions
+
+bdb-its: bdb-its-$(BUILD_BDB)
+bdb-its-no:
+	@echo "run configure with --enable-bdb to run BDB tests"
+
+bdb-its-yes bdb-its-mod: FORCE
+	@$(RUN) -b bdb its-all
+
+hdb-its: hdb-its-$(BUILD_BDB)
+hdb-its-no:
+	@echo "run configure with --enable-hdb to run BDB tests"
+
+hdb-its-yes hdb-its-mod: FORCE
+	@$(RUN) -b hdb its-all
+
+mdb-its: mdb-its-$(BUILD_BDB)
+mdb-its-no:
+	@echo "run configure with --enable-mdb to run BDB tests"
+
+mdb-its-yes mdb-its-mod: FORCE
+	@$(RUN) -b mdb its-all
 
 clean-local:	FORCE
 	-$(RM) -r testrun configpw configpw.conf *leak *gmon *core
