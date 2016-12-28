@@ -23,6 +23,7 @@ OpenLDAP 2.4.45 Engineering
 	Documentation
 		admin24 fixed tls_cipher_suite bindconf option (ITS#8099)
 		admin24 fixed typo cn=config to be slapd.d (ITS#8449)
+		Fixed slapd-config(5), slapd.conf(5) clarification on interval keyword for refreshAndPersist (ITS#8538)
 
 OpenLDAP 2.4.44 Release (2016/02/05)
 	Fixed slapd-bdb/hdb missing olcDbChecksum config attr (ITS#8337)
