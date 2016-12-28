@@ -12,6 +12,7 @@ OpenLDAP 2.4.45 Engineering
 	Fixed slapo-relay to correctly initialize sc_writewait (ITS#8428)
 	Build Environment
 		Fix test008 to be portable (ITS#8414)
+		Fix its4336 regression test (ITS#8534)
 	Contrib
 		Added passwd missing conversion scripts for apr1 (ITS#6826)
 		Fixed contrib modules where the writewait callback was not correctly initialized (ITS#8435)
