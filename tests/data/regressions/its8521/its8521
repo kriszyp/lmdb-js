@@ -249,8 +249,8 @@ $LDAPSEARCH -S "" -D $MANAGERDN -w $PASSWD -b "$BASEDN" -H $URI2 \
         '(objectclass=*)' '*' $OPATTRS > $SLAVEOUT 2>&1
 RC=$?
 
-if test $RC == 0 ; then
-        echo "ldapsearch succeeded at consumer ($RC)!"
+if test $RC != 32 ; then
+        echo "ldapsearch should have failed with error 32.  Got $RC instead!"
 	echo "This is a regression of ITS8281"
         test $KILLSERVERS != no && kill -HUP $KILLPIDS
         exit $RC

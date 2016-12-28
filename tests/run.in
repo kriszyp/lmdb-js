@@ -189,6 +189,7 @@ fi
 . $SRCDIR/scripts/defines.sh
 
 SCRIPTDIR="${SRCDIR}/scripts"
+ITSDIR="${SRCDIR}/data/regressions"
 SCRIPTNAME="$1"
 shift
 
@@ -198,6 +199,8 @@ elif test -x "`echo ${SCRIPTDIR}/test*-${SCRIPTNAME}`"; then
 	SCRIPT="`echo ${SCRIPTDIR}/test*-${SCRIPTNAME}`"
 elif test -x "`echo ${SCRIPTDIR}/${SCRIPTNAME}-*`"; then
 	SCRIPT="`echo ${SCRIPTDIR}/${SCRIPTNAME}-*`"
+elif test -x "`echo ${ITSDIR}/${SCRIPTNAME}/${SCRIPTNAME}`"; then
+	SCRIPT="`echo ${ITSDIR}/${SCRIPTNAME}/${SCRIPTNAME}`"
 else
 	echo "run: ${SCRIPTNAME} not found (or not executable)"
 	exit 1;
