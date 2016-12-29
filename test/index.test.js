@@ -246,7 +246,7 @@ describe('Node.js LMDB Bindings', function() {
       env.open({
         path: testDirPath,
         maxDbs: 10,
-        mapSize: 16 * 1024 * 1024 * 1024
+        mapSize: 64 * 1024 * 1024
       });
       dbi = env.openDbi({
         name: 'mydb5',
@@ -287,7 +287,7 @@ describe('Node.js LMDB Bindings', function() {
         cursor.goToNext();
         if (values.length < total) {
           // prevent maximum call stack errors
-          if (values.length % 10000 === 0) {
+          if (values.length % 1000 === 0) {
             setImmediate(iterator);
           } else {
             iterator();
@@ -318,7 +318,7 @@ describe('Node.js LMDB Bindings', function() {
         cursor.goToNext();
         if (values.length < total) {
           // prevent maximum call stack errors
-          if (values.length % 10000 === 0) {
+          if (values.length % 1000 === 0) {
             setImmediate(iterator);
           } else {
             iterator();
@@ -358,7 +358,7 @@ describe('Node.js LMDB Bindings', function() {
       env.open({
         path: testDirPath,
         maxDbs: 10,
-        mapSize: 16 * 1024 * 1024 * 1024
+        mapSize: 64 * 1024 * 1024
       });
       dbi = env.openDbi({
         name: 'cursorstrings',
@@ -397,7 +397,7 @@ describe('Node.js LMDB Bindings', function() {
         cursor.goToNext();
         if (values.length < total) {
           // prevent maximum call stack errors
-          if (values.length % 10000 === 0) {
+          if (values.length % 1000 === 0) {
             setImmediate(iterator);
           } else {
             iterator();
@@ -428,7 +428,7 @@ describe('Node.js LMDB Bindings', function() {
         cursor.goToNext();
         if (values.length < total) {
           // prevent maximum call stack errors
-          if (values.length % 10000 === 0) {
+          if (values.length % 1000 === 0) {
             setImmediate(iterator);
           } else {
             iterator();
