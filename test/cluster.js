@@ -15,7 +15,7 @@ if (cluster.isMaster) {
   env.open({
     path: path.resolve(__dirname, './testdata'),
     maxDbs: 10,
-    mapSize: 268435456 * 4096,
+    mapSize: 4096 * 4096,
     maxReaders: 126
   });
 
@@ -70,7 +70,7 @@ if (cluster.isMaster) {
   env.open({
     path: path.resolve(__dirname, './testdata'),
     maxDbs: 10,
-    mapSize: 268435456 * 4096,
+    mapSize: 4096 * 4096,
     maxReaders: 126,
     readOnly: true
   });
