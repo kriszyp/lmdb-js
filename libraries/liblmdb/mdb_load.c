@@ -1,6 +1,6 @@
 /* mdb_load.c - memory-mapped database load tool */
 /*
- * Copyright 2011-2016 Howard Chu, Symas Corp.
+ * Copyright 2011-2017 Howard Chu, Symas Corp.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -248,7 +248,8 @@ badend:
 					c2 += 2;
 				}
 			} else {
-				c1++; c2++;
+				/* copies are redundant when no escapes were used */
+				*c1++ = *c2++;
 			}
 		}
 	} else {
