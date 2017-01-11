@@ -1,6 +1,7 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.45 Engineering
+	Added slapd support for OpenSSL 1.1.0 series (ITS#8353, ITS#8533)
 	Fixed libldap handling of Diffie-Hellman parameters (ITS#7506)
 	Fixed libldap GnuTLS use after free (ITS#8385)
 	Fixed slapd syncrepl filter handling (ITS#8413)
