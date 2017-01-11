@@ -47,6 +47,13 @@
 #include <ssl.h>
 #endif
 
+#if OPENSSL_VERSION_NUMBER >= 0x10100000
+#define ERR_remove_thread_state(x)	/* deprecated, get rid of it */
+#define ASN1_STRING_data(x)	ASN1_STRING_get0_data(x)
+#define CRYPTO_free(x)	OPENSSL_free(x)
+#define CRYPTO_NUM_LOCKS	CRYPTO_num_locks()
+#endif
+
 typedef SSL_CTX tlso_ctx;
 typedef SSL tlso_session;
 
@@ -449,7 +456,7 @@ tlso_session_my_dn( tls_session *sess, struct berval *der_dn )
 	{
 		size_t len = 0;
 		der_dn->bv_val = NULL;
-		X509_NAME_get0_der( (const unsigned char **)&der_dn->bv_val, &len, xn );
+		X509_NAME_get0_der( xn, (const unsigned char **)&der_dn->bv_val, &len );
 		der_dn->bv_len = len;
 	}
 #endif
@@ -485,7 +492,7 @@ tlso_session_peer_dn( tls_session *sess, struct berval *der_dn )
 	{
 		size_t len = 0;
 		der_dn->bv_val = NULL;
-		X509_NAME_get0_der( (const unsigned char **)&der_dn->bv_val, &len, xn );
+		X509_NAME_get0_der( xn, (const unsigned char **)&der_dn->bv_val, &len );
 		der_dn->bv_len = len;
 	}
 #endif
@@ -699,12 +706,17 @@ struct tls_data {
 	Sockbuf_IO_Desc		*sbiod;
 };
 
+#if OPENSSL_VERSION_NUMBER < 0x10100000
+#define BIO_set_init(b, x)	b->init = x
+#define BIO_set_data(b, x)	b->ptr = x
+#define BIO_clear_flags(b, x)	b->flags &= ~(x)
+#define BIO_get_data(b)	b->ptr
+#endif
 static int
 tlso_bio_create( BIO *b ) {
-	b->init = 1;
-	b->num = 0;
-	b->ptr = NULL;
-	b->flags = 0;
+	BIO_set_init( b, 1 );
+	BIO_set_data( b, NULL );
+	BIO_clear_flags( b, ~0 );
 	return 1;
 }
 
@@ -713,9 +725,9 @@ tlso_bio_destroy( BIO *b )
 {
 	if ( b == NULL ) return 0;
 
-	b->ptr = NULL;		/* sb_tls_remove() will free it */
-	b->init = 0;
-	b->flags = 0;
+	BIO_set_data( b, NULL );		/* sb_tls_remove() will free it */
+	BIO_set_init( b, 0 );
+	BIO_clear_flags( b, ~0 );
 	return 1;
 }
 
@@ -727,7 +739,7 @@ tlso_bio_read( BIO *b, char *buf, int len )
 		
 	if ( buf == NULL || len <= 0 ) return 0;
 
-	p = (struct tls_data *)b->ptr;
+	p = (struct tls_data *)BIO_get_data(b);
 
 	if ( p == NULL || p->sbiod == NULL ) {
 		return 0;
@@ -754,7 +766,7 @@ tlso_bio_write( BIO *b, const char *buf, int len )
 	
 	if ( buf == NULL || len <= 0 ) return 0;
 	
-	p = (struct tls_data *)b->ptr;
+	p = (struct tls_data *)BIO_get_data(b);
 
 	if ( p == NULL || p->sbiod == NULL ) {
 		return 0;
@@ -794,7 +806,22 @@ tlso_bio_puts( BIO *b, const char *str )
 {
 	return tlso_bio_write( b, str, strlen( str ) );
 }
-	
+
+#if OPENSSL_VERSION_NUMBER >= 0x10100000
+struct bio_method_st {
+    int type;
+    const char *name;
+    int (*bwrite) (BIO *, const char *, int);
+    int (*bread) (BIO *, char *, int);
+    int (*bputs) (BIO *, const char *);
+    int (*bgets) (BIO *, char *, int);
+    long (*ctrl) (BIO *, int, long, void *);
+    int (*create) (BIO *);
+    int (*destroy) (BIO *);
+    long (*callback_ctrl) (BIO *, int, bio_info_cb *);
+};
+#endif
+
 static BIO_METHOD tlso_bio_method =
 {
 	( 100 | 0x400 ),		/* it's a source/sink BIO */
@@ -824,7 +851,7 @@ tlso_sb_setup( Sockbuf_IO_Desc *sbiod, void *arg )
 	p->session = arg;
 	p->sbiod = sbiod;
 	bio = BIO_new( &tlso_bio_method );
-	bio->ptr = (void *)p;
+	BIO_set_data( bio, p );
 	SSL_set_bio( p->session, bio, bio );
 	sbiod->sbiod_pvt = p;
 	return 0;
