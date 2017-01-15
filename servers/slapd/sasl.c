@@ -1498,7 +1498,7 @@ int slap_sasl_bind( Operation *op, SlapReply *rs )
 	if ( !op->o_conn->c_sasl_bind_in_progress ) {
 		/* If we already authenticated once, must use a new context */
 		if ( op->o_conn->c_sasl_done ) {
-			sasl_ssf_t ssf = 0;
+			sasl_ssf_t *ssf = NULL;
 			const char *authid = NULL;
 			sasl_getprop( ctx, SASL_SSF_EXTERNAL, (void *)&ssf );
 			sasl_getprop( ctx, SASL_AUTH_EXTERNAL, (void *)&authid );
@@ -1511,7 +1511,7 @@ int slap_sasl_bind( Operation *op, SlapReply *rs )
 			slap_sasl_open( op->o_conn, 1 );
 			ctx = op->o_conn->c_sasl_authctx;
 			if ( authid ) {
-				sasl_setprop( ctx, SASL_SSF_EXTERNAL, &ssf );
+				sasl_setprop( ctx, SASL_SSF_EXTERNAL, ssf );
 				sasl_setprop( ctx, SASL_AUTH_EXTERNAL, authid );
 				ch_free( (char *)authid );
 			}
