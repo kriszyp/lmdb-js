@@ -1040,6 +1040,26 @@ conn_counter_init( Operation *op, void *ctx )
 	op->o_counters = vsc;
 }
 
+void
+connection_op_finish( Operation *op )
+{
+	Connection *conn = op->o_conn;
+	void *memctx_null = NULL;
+
+	ldap_pvt_thread_mutex_lock( &conn->c_mutex );
+
+	if ( op->o_tag == LDAP_REQ_BIND && conn->c_conn_state == SLAP_C_BINDING )
+		conn->c_conn_state = SLAP_C_ACTIVE;
+
+	ber_set_option( op->o_ber, LBER_OPT_BER_MEMCTX, &memctx_null );
+
+	LDAP_STAILQ_REMOVE( &conn->c_ops, op, Operation, o_next);
+	LDAP_STAILQ_NEXT(op, o_next) = NULL;
+	conn->c_n_ops_executing--;
+	conn->c_n_ops_completed++;
+	ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
+}
+
 static void *
 connection_operation( void *ctx, void *arg_v )
 {
@@ -1146,6 +1166,17 @@ connection_operation( void *ctx, void *arg_v )
 operations_error:
 	if ( rc == SLAPD_DISCONNECT ) {
 		tag = LBER_ERROR;
+
+    } else if ( rc == SLAPD_ASYNCOP ) {
+		/* someone has claimed ownership of the op
+		 * to complete it later. Don't do anything
+		 * else with it now. Detach memctx too.
+		 */
+		slap_sl_mem_setctx( ctx, NULL );
+		ldap_pvt_thread_mutex_lock( &conn->c_mutex );
+		connection_resched( conn );
+		ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
+		return NULL;
 
 	} else if ( opidx != SLAP_OP_LAST ) {
 		/* increment completed operations count 

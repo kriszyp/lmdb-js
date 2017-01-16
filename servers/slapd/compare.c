@@ -125,6 +125,10 @@ do_compare(
 
 	op->o_bd = frontendDB;
 	rs->sr_err = frontendDB->be_compare( op, rs );
+	if ( rs->sr_err == SLAPD_ASYNCOP ) {
+		/* skip cleanup */
+		return rs->sr_err;
+	}
 
 cleanup:;
 	op->o_tmpfree( op->o_req_dn.bv_val, op->o_tmpmemctx );

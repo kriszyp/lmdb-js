@@ -245,6 +245,10 @@ do_search(
 
 	op->o_bd = frontendDB;
 	rs->sr_err = frontendDB->be_search( op, rs );
+	if ( rs->sr_err == SLAPD_ASYNCOP ) {
+		/* skip cleanup */
+		return rs->sr_err;
+	}
 
 return_results:;
 	if ( !BER_BVISNULL( &op->o_req_dn ) ) {
