@@ -715,6 +715,8 @@ OpenLDAP 2.4.26 Release (2011/06/30)
 		admin24 update that cn=config is preferred (ITS#6905)
 		admin24 update information about indexes (ITS#6906)
 		admin24 fix --enable-wrappers option (ITS#6971)
+		admin24 fix typos (ITS#8562)
+		admin24 fix replication sections to include back-mdb (ITS#8563)
 
 OpenLDAP 2.4.25 Release (2011/03/26)
 	Fixed ldapsearch pagedresults loop (ITS#6755)
