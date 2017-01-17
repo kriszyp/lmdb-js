@@ -271,7 +271,7 @@ This access directive grants read access to everyone.
 >        by * read
 
 This directive allows the user to modify their entry, allows anonymous
-to authentication against these entries, and allows all others to
+to authenticate against these entries, and allows all others to
 read these entries.  Note that only the first {{EX:by <who>}} clause
 which matches applies.  Hence, the anonymous users are granted
 {{EX:auth}}, not {{EX:read}}.  The last clause could just as well
