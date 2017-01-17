@@ -225,7 +225,7 @@ struct {								\
 } while (0)
 
 #define LDAP_STAILQ_ENTRY_INIT(var, field) {				\
-	(entry)->field.stqe_next = NULL;				\
+	(var)->field.stqe_next = NULL;					\
 }
 
 #define LDAP_STAILQ_FIRST(head)	((head)->stqh_first)
