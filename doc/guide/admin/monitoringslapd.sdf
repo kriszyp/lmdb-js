@@ -110,7 +110,7 @@ dynamically generates and returns objects in response to search
 requests in the {{cn=Monitor}} subtree.  Each object contains
 information about a particular aspect of the server.  The information
 is held in a combination of user applications and operational
-attributes.  This information can be access with {{ldapsearch(1)}},
+attributes.  This information can be accessed with {{ldapsearch(1)}},
 with any general-purpose LDAP browser, or with specialized monitoring
 tools.
 

@@ -225,7 +225,7 @@ in the replication context.
 
 The syncrepl engine, which is a consumer-side replication engine,
 can work with any backends. The LDAP Sync provider can be configured
-as an overlay on any backend, but works best with the {{back-bdb}}
+as an overlay on any backend, but works best with the {{back-bdb}},
 {{back-hdb}}, or {{back-mdb}} backends.
 
 The LDAP Sync provider maintains a {{EX:contextCSN}} for each
