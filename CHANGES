@@ -14,11 +14,13 @@ OpenLDAP 2.4.45 Engineering
 	Fixed slapo-accesslog to honor pauses during purge for cn=config update (ITS#8423)
 	Fixed slapo-relay to correctly initialize sc_writewait (ITS#8428)
 	Build Environment
+		Added test065 for proxyauthz (ITS#8571)
 		Fix test008 to be portable (ITS#8414)
 		Fix its4336 regression test (ITS#8534)
 		Fix its4337 regression test (ITS#8535)
 		Fix regression tests to execute on all backends (ITS#8539)
 	Contrib
+		Added slapo-autogroup(5) man page (ITS#8569)
 		Added passwd missing conversion scripts for apr1 (ITS#6826)
 		Fixed contrib modules where the writewait callback was not correctly initialized (ITS#8435)
 		Fixed smbk5pwd to build with newer OpenSSL releases (ITS#8525)
