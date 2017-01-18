@@ -547,7 +547,7 @@ forms as well as numeric OIDs to be used for the syntax OID.
 description.) 
 The slapd parser also honors the
 .B X\-SUBST
-extension (an OpenLDAP-specific extension), which allows to use the
+extension (an OpenLDAP-specific extension), which allows one to use the
 .B ldapsyntax
 statement to define a non-implemented syntax along with another syntax,
 the extension value
@@ -556,7 +556,7 @@ as its temporary replacement.
 The
 .I substitute-syntax
 must be defined.
-This allows to define attribute types that make use of non-implemented syntaxes
+This allows one to define attribute types that make use of non-implemented syntaxes
 using the correct syntax OID.
 Unless 
 .B X\-SUBST
@@ -1113,9 +1113,9 @@ token name first, followed by a colon:
 .nf
 	TLSCertificateFile my hardware device:Server-Cert
 .fi
-Use certutil -L to list the certificates by name:
+Use certutil \-L to list the certificates by name:
 .nf
-	certutil -d /path/to/certdbdir -L
+	certutil \-d /path/to/certdbdir \-L
 .fi
 .TP
 .B TLSCertificateKeyFile <filename>
@@ -1133,7 +1133,7 @@ protection for the cert/key database.  For example, if TLSCACertificatePath
 specifes /etc/openldap/certdb as the location of the cert/key database, use
 modutil to change the password to the empty string:
 .nf
-	modutil -dbdir /etc/openldap/certdb -changepw 'NSS Certificate DB'
+	modutil \-dbdir /etc/openldap/certdb \-changepw 'NSS Certificate DB'
 .fi
 You must have the old password, if any.  Ignore the WARNING about the running
 browser.  Press 'Enter' for the new password.
@@ -1538,8 +1538,8 @@ The keyword
 indicates that no limit is applied to the pagedResults control page size.
 The syntax
 .B size.prtotal={<integer>|unlimited|disabled}
-allows to set a limit on the total number of entries that a pagedResults
-control allows to return.
+allows one to set a limit on the total number of entries that the pagedResults
+control will return.
 By default it is set to the 
 .B hard
 limit.
@@ -1631,7 +1631,7 @@ is equivalent to
 (see above).
 The 
 .B extended
-keyword allows to indicate the OID of the specific operation
+keyword allows one to indicate the OID of the specific operation
 to be restricted.
 .TP
 .B rootdn <dn>
