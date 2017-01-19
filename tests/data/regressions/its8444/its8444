@@ -1,4 +1,4 @@
-#! /bin/bash
+#! /bin/sh
 # $OpenLDAP$
 ## This work is part of OpenLDAP Software <http://www.openldap.org/>.
 ##
@@ -129,24 +129,24 @@ objectClass: inetOrgPerson
 cn: Baby Herman
 sn: Herman
 
-dn: cn=Jessica Rabbit,ou=People,$BASEDN
+dn: cn=Jessica_Rabbit,ou=People,$BASEDN
 objectClass: inetOrgPerson
-cn: Jessica Rabbit
+cn: Jessica_Rabbit
 sn: Rabbit
 
-dn: cn=Bugs Bunny,ou=People,$BASEDN
+dn: cn=Bugs_Bunny,ou=People,$BASEDN
 objectClass: inetOrgPerson
-cn: Bugs Bunny
+cn: Bugs_Bunny
 sn: Bunny
 
-dn: cn=Daffy Duck,ou=People,$BASEDN
+dn: cn=Daffy_Duck,ou=People,$BASEDN
 objectClass: inetOrgPerson
-cn: Daffy Duck
+cn: Daffy_Duck
 sn: Duck
 
-dn: cn=Elmer Fudd,ou=People,$BASEDN
+dn: cn=Elmer_Fudd,ou=People,$BASEDN
 objectClass: inetOrgPerson
-cn: Elmer Fudd
+cn: Elmer_Fudd
 sn: Fudd
 
 dn: cn=Cartoonia,ou=Groups,$BASEDN
@@ -176,10 +176,10 @@ while [ $modloop -le 50 ]; do
 dn: cn=Cartoonia,ou=Groups,$BASEDN
 changetype: modify
 add: member
-member: cn=Jessica Rabbit,ou=People,$BASEDN
-member: cn=Elmer Fudd,ou=People,$BASEDN
-member: cn=Daffy Duck,ou=People,$BASEDN
-member: cn=Bugs Bunny,ou=People,$BASEDN
+member: cn=Jessica_Rabbit,ou=People,$BASEDN
+member: cn=Elmer_Fudd,ou=People,$BASEDN
+member: cn=Daffy_Duck,ou=People,$BASEDN
+member: cn=Bugs_Bunny,ou=People,$BASEDN
 EOF
 
 	sleep 3
@@ -191,17 +191,19 @@ EOF
 dn: cn=Cartoonia,ou=Groups,$BASEDN
 changetype: modify
 delete: member
-member: cn=Jessica Rabbit,ou=People,$BASEDN
-member: cn=Elmer Fudd,ou=People,$BASEDN
-member: cn=Daffy Duck,ou=People,$BASEDN
-member: cn=Bugs Bunny,ou=People,$BASEDN
+member: cn=Jessica_Rabbit,ou=People,$BASEDN
+member: cn=Elmer_Fudd,ou=People,$BASEDN
+member: cn=Daffy_Duck,ou=People,$BASEDN
+member: cn=Bugs_Bunny,ou=People,$BASEDN
 EOF
 	sleep 3
 
 	echo "Searching new members to see if they still have memberOf present..."
-	new_members=( "cn=Jessica Rabbit,ou=People,$BASEDN" "cn=Elmer Fudd,ou=People,$BASEDN" "cn=Daffy Duck,ou=People,$BASEDN" "cn=Bugs Bunny,ou=People,$BASEDN")
-	for member in "${new_members[@]}"
-	do
+	TOON1="cn=Jessica Rabbit,ou=People,$BASEDN"
+	TOON2="cn=Elmer_Fudd,ou=People,$BASEDN"
+	TOON3="cn=Daffy_Duck,ou=People,$BASEDN"
+	TOON4="cn=Bugs_Bunny,ou=People,$BASEDN"
+	for member in $TOON1 $TOON2 $TOON3 $TOON4; do
 		n=1
 		while [ $n -le $MMR ]; do
 			>$SEARCHOUT
