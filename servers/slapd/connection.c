@@ -1045,6 +1045,10 @@ connection_op_finish( Operation *op )
 {
 	Connection *conn = op->o_conn;
 	void *memctx_null = NULL;
+	slap_op_t opidx = slap_req2op( op->o_tag );
+	assert( opidx != SLAP_OP_LAST );
+
+	INCR_OP_COMPLETED( opidx );
 
 	ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 
@@ -1057,6 +1061,7 @@ connection_op_finish( Operation *op )
 	LDAP_STAILQ_NEXT(op, o_next) = NULL;
 	conn->c_n_ops_executing--;
 	conn->c_n_ops_completed++;
+	connection_resched( conn );
 	ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 }
 
