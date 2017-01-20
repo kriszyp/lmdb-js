@@ -78,21 +78,21 @@ its: regressions
 
 bdb-its: bdb-its-$(BUILD_BDB)
 bdb-its-no:
-	@echo "run configure with --enable-bdb to run BDB tests"
+	@echo "run configure with --enable-bdb to run BDB ITS regressions"
 
 bdb-its-yes bdb-its-mod: FORCE
 	@$(RUN) -b bdb its-all
 
-hdb-its: hdb-its-$(BUILD_BDB)
+hdb-its: hdb-its-$(BUILD_HDB)
 hdb-its-no:
-	@echo "run configure with --enable-hdb to run BDB tests"
+	@echo "run configure with --enable-hdb to run HDB ITS regressions"
 
 hdb-its-yes hdb-its-mod: FORCE
 	@$(RUN) -b hdb its-all
 
-mdb-its: mdb-its-$(BUILD_BDB)
+mdb-its: mdb-its-$(BUILD_MDB)
 mdb-its-no:
-	@echo "run configure with --enable-mdb to run BDB tests"
+	@echo "run configure with --enable-mdb to run MDB ITS regressions"
 
 mdb-its-yes mdb-its-mod: FORCE
 	@$(RUN) -b mdb its-all
