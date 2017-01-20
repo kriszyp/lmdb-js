@@ -199,7 +199,7 @@ EOF
 	sleep 3
 
 	echo "Searching new members to see if they still have memberOf present..."
-	TOON1="cn=Jessica Rabbit,ou=People,$BASEDN"
+	TOON1="cn=Jessica_Rabbit,ou=People,$BASEDN"
 	TOON2="cn=Elmer_Fudd,ou=People,$BASEDN"
 	TOON3="cn=Daffy_Duck,ou=People,$BASEDN"
 	TOON4="cn=Bugs_Bunny,ou=People,$BASEDN"
