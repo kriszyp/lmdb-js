@@ -29,6 +29,7 @@ OpenLDAP 2.4.45 Engineering
 		admin24 fixed typo cn=config to be slapd.d (ITS#8449)
 		Fixed slapd-config(5), slapd.conf(5) clarification on interval keyword for refreshAndPersist (ITS#8538)
 		Fixed slapo-ppolicy(5) to clearly note rootdn requirement (ITS#8565)
+		Fixed slapadd(8) manpage to note slapd-mdb (ITS#8215)
 		Fixed various minor grammar issues in the man pages (ITS#8544)
 
 OpenLDAP 2.4.44 Release (2016/02/05)
