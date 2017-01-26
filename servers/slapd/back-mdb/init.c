@@ -229,9 +229,10 @@ mdb_db_open( BackendDB *be, ConfigReply *cr )
 
 		if ( i == MDB_ID2ENTRY )
 			mdb_set_compare( txn, mdb->mi_dbis[i], mdb_id_compare );
-		else if ( i == MDB_ID2VAL )
+		else if ( i == MDB_ID2VAL ) {
 			mdb_set_compare( txn, mdb->mi_dbis[i], mdb_id2v_compare );
-		else if ( i == MDB_DN2ID ) {
+			mdb_set_dupsort( txn, mdb->mi_dbis[i], mdb_id2v_dupsort );
+		} else if ( i == MDB_DN2ID ) {
 			MDB_cursor *mc;
 			MDB_val key, data;
 			ID id;
