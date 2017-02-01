@@ -57,8 +57,8 @@ for CMD in $SRCDIR/scripts/test*; do
 EOF
 	fi
 
+	BCMD=`basename $CMD`
 	if [ -x "$CMD" ]; then
-		BCMD=`basename $CMD`
 		echo ">>>>> Starting ${TB}$BCMD${TN} for $BACKEND..."
 		$CMD
 		RC=$?

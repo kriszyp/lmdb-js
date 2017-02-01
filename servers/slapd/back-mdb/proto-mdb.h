@@ -169,6 +169,7 @@ int mdb_filter_candidates(
  */
 
 MDB_cmp_func mdb_id2v_compare;
+MDB_cmp_func mdb_id2v_dupsort;
 
 int mdb_id2entry_add(
 	Operation *op,
