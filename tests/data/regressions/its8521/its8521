@@ -265,7 +265,7 @@ $LDIFFILTER < $SLAVEOUT > $SLAVEFLT
 echo "Comparing retrieved entries from provider and consumer..."
 $CMP $MASTERFLT $SLAVEFLT > $CMPOUT
 
-if test $? == 0 ; then
+if test $? = 0 ; then
         echo "test failed - provider and consumer databases match"
 	echo "This is a regression of ITS8281"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
