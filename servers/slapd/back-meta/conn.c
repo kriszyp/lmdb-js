@@ -1157,7 +1157,7 @@ retry_lock:;
 			if ( mc != NULL ) {
 				/* move to tail of queue */
 				if ( mc != LDAP_TAILQ_LAST( &mi->mi_conn_priv[ LDAP_BACK_CONN2PRIV( mc ) ].mic_priv,
-					metaconn_t, mc_q ) )
+					mc_conn_priv_q ) )
 				{
 					LDAP_TAILQ_REMOVE( &mi->mi_conn_priv[ LDAP_BACK_CONN2PRIV( mc ) ].mic_priv,
 						mc, mc_q );
