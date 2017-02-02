@@ -182,7 +182,7 @@ H3: Audit Logging Configuration
 If the directory is running vi {{F:slapd.d}}, then the following LDIF could be used to add the overlay to the overlay list 
 in {{B:cn=config}} and set what file the {{TERM:LDIF}} gets logged to (adjust to suit)
 
->       dn: olcOverlay=auditlog,olcDatabase={1}hdb,cn=config
+>       dn: olcOverlay=auditlog,olcDatabase={1}mdb,cn=config
 >       changetype: add
 >       objectClass: olcOverlayConfig
 >       objectClass: olcAuditLogConfig
@@ -369,7 +369,7 @@ title attribute of any {{titleCatalog}} entries in the given scope.
 
 An example for use with {{cn=config}}:
 
->       dn: olcOverlay=constraint,olcDatabase={1}hdb,cn=config
+>       dn: olcOverlay=constraint,olcDatabase={1}mdb,cn=config
 >       changetype: add
 >       objectClass: olcOverlayConfig
 >       objectClass: olcConstraintConfig
@@ -809,10 +809,10 @@ at server {{EX:ldap.example.com}}.
 >   olcPcacheTemplate: "(&(sn=)(givenName=))" 0 3600 0 0 0
 >   olcPcacheTemplate: "(&(departmentNumber=)(secretary=))" 0 3600
 >   
->   dn: olcDatabase={0}hdb,olcOverlay={0}pcache,olcDatabase={2}ldap,cn=config
->   objectClass: olcHdbConfig
+>   dn: olcDatabase={0}mdb,olcOverlay={0}pcache,olcDatabase={2}ldap,cn=config
+>   objectClass: olcMdbConfig
 >   objectClass: olcPcacheDatabase
->   olcDatabase: {0}hdb
+>   olcDatabase: {0}mdb
 >   olcDbDirectory: ./testrun/db.2.a
 >   olcDbCacheSize: 20
 >   olcDbIndex: objectClass eq
