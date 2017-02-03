@@ -926,7 +926,7 @@ retry_lock:
 
 			if ( lc != NULL ) {
 				if ( lc != LDAP_TAILQ_LAST( &li->li_conn_priv[ LDAP_BACK_CONN2PRIV( lc ) ].lic_priv,
-					ldapconn_t, lc_q ) )
+					lc_conn_priv_q ) )
 				{
 					LDAP_TAILQ_REMOVE( &li->li_conn_priv[ LDAP_BACK_CONN2PRIV( lc ) ].lic_priv,
 						lc, lc_q );

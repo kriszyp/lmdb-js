@@ -1733,14 +1733,14 @@ when using the \fIsyncprov\fP overlay, which needs to follow \fIglue\fP
 in order to work over all of the glued databases. E.g.
 .RS
 .nf
-	dn: olcDatabase={1}bdb,cn=config
+	dn: olcDatabase={1}mdb,cn=config
 	olcSuffix: dc=example,dc=com
 	...
 
-	dn: olcOverlay={0}glue,olcDatabase={1}bdb,cn=config
+	dn: olcOverlay={0}glue,olcDatabase={1}mdb,cn=config
 	...
 
-	dn: olcOverlay={1}syncprov,olcDatabase={1}bdb,cn=config
+	dn: olcOverlay={1}syncprov,olcDatabase={1}mdb,cn=config
 	...
 .fi
 .RE
