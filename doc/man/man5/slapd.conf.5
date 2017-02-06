@@ -1006,6 +1006,11 @@ Note that some OS-es implement automatic TCP buffer tuning.
 Specify the maximum size of the primary thread pool.
 The default is 16; the minimum value is 2.
 .TP
+.B threadqueues <integer>
+Specify the number of work queues to use for the primary thread pool.
+The default is 1 and this is typically adequate for up to 8 CPU cores.
+The value should not exceed the number of CPUs in the system.
+.TP
 .B timelimit {<integer>|unlimited}
 .TP
 .B timelimit time[.{soft|hard}]=<integer> [...]
