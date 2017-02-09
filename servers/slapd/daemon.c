@@ -2421,6 +2421,7 @@ loop:
 
 			if ( lr->sl_sd == AC_SOCKET_INVALID ) continue;
 			if ( DAEMON_ID( lr->sl_sd ) != tid ) continue;
+			if ( !SLAP_SOCK_IS_ACTIVE( tid, lr->sl_sd )) continue;
 
 			if ( lr->sl_mute || lr->sl_busy )
 			{
