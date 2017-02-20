@@ -740,6 +740,28 @@ ldif_open(
 	return lfp;
 }
 
+LDIFFP *
+ldif_open_mem(
+	char *ldif,
+	size_t size,
+	LDAP_CONST char *mode
+)
+{
+#ifdef HAVE_FMEMOPEN
+	FILE *fp = fmemopen( ldif, size, mode );
+	LDIFFP *lfp = NULL;
+
+	if ( fp ) {
+		lfp = ber_memalloc( sizeof( LDIFFP ));
+		lfp->fp = fp;
+		lfp->prev = NULL;
+	}
+	return lfp;
+#else /* !HAVE_FMEMOPEN */
+	return NULL;
+#endif /* !HAVE_FMEMOPEN */
+}
+
 void
 ldif_close(
 	LDIFFP *lfp
