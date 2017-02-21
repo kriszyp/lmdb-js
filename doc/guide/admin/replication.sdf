@@ -515,14 +515,14 @@ H4: Set up the provider slapd
 
 The provider is implemented as an overlay, so the overlay itself
 must first be configured in {{slapd.conf}}(5) before it can be
-used. The provider has three primary configuration directives and
-one secondary directive for when delta-syncrepl is being used.
+used. The provider has two primary configuration directives and
+two secondary directives for when delta-syncrepl is being used.
 Because the LDAP Sync search is subject to access control, proper
 access control privileges should be set up for the replicated
 content.
 
-The three primary options to configure are the checkpoint,
-sessionlog, and reloadhint behaviors.
+The two primary options to configure are the checkpoint and
+sessionlog behaviors.
 
 The {{EX:contextCSN}} checkpoint is configured by the
 
@@ -549,10 +549,8 @@ The reloadhint option is configured by the
 
 >	syncprov-reloadhint <TRUE|FALSE>
 
-directive. This option should be set TRUE when working with releases
-newer than 2.3.11 that properly support this flag. It must be set TRUE
-when using the accesslog overlay for delta-based syncrepl replication
-support. The default is FALSE.
+directive. It must be set TRUE when using the accesslog overlay for
+delta-based syncrepl replication support. The default is FALSE.
 
 The nonpresent option should only be configured if the overlay is
 being placed on top of a log database, such as when used with
