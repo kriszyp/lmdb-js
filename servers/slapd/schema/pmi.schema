@@ -299,7 +299,7 @@ objectidentifier	RoleSyntax 1.3.6.1.4.1.4203.666.11.10.2.6
 ## AttCertPath
 ldapsyntax ( 1.3.6.1.4.1.4203.666.11.10.2.4
 	NAME 'AttCertPath'
-	DESC 'X.509 PMI attribute cartificate path: SEQUENCE OF AttributeCertificate'
+	DESC 'X.509 PMI attribute certificate path: SEQUENCE OF AttributeCertificate'
 	X-SUBST '1.3.6.1.4.1.1466.115.121.1.15' )
 ##
 ## PolicySyntax

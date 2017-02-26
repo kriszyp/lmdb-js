@@ -304,7 +304,7 @@ attributetype ( 1.3.6.1.4.1.42.2.27.8.1.13
 #   This attribute indicates whether users can change their own
 #   passwords, although the change operation is still subject to access
 #   control.  If this attribute is not present, a value of "TRUE" is
-#   assumed.  This attribute is intended to be used in the absense of an
+#   assumed.  This attribute is intended to be used in the absence of an
 #   access control mechanism.
 
 attributetype ( 1.3.6.1.4.1.42.2.27.8.1.14

@@ -108,7 +108,7 @@ rwm_dn_massage_pretty(
  * "pdn" may be untouched if no massaging occurred and its value was not null;
  * "ndn" may be untouched if no massaging occurred and its value was not null;
  * if no massage occurred and "ndn" value was not null, it is filled
- * with the normaized value of "pdn", much like ndn = dnNormalize( pdn )
+ * with the normalized value of "pdn", much like ndn = dnNormalize( pdn )
  */
 int
 rwm_dn_massage_pretty_normalize(

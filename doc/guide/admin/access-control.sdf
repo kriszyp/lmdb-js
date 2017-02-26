@@ -1228,7 +1228,7 @@ With sets, however, it's also possible to use simple names in group ACLs, as thi
 show.
 
 Let's say we want to allow members of the {{F:sudoadm}} group to write to the
-{{F:ou=suders}} branch of our tree. But our group definition now is using {{F:memberUid}} for
+{{F:ou=sudoers}} branch of our tree. But our group definition now is using {{F:memberUid}} for
 the group members:
 
 > dn: cn=sudoadm,ou=group,dc=example,dc=com

@@ -11,7 +11,7 @@
 #include <LDAPRebindAuth.h>
 
 /**
- * Just an abstract class to provide a mechnism for rebind to another
+ * Just an abstract class to provide a mechanism for rebind to another
  * server when chasing referrals. Clients have to implement a class
  * derived from this. To use authentication other than anonymous for
  * referral chasing

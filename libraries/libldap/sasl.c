@@ -697,7 +697,7 @@ sb_sasl_generic_read( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len)
 	ret = sb_sasl_generic_pkt_length(p, (unsigned char *) p->sec_buf_in.buf_base,
 		sbiod->sbiod_sb->sb_debug );
 
-	/* Grow the packet buffer if neccessary */
+	/* Grow the packet buffer if necessary */
 	if ( ( p->sec_buf_in.buf_size < (ber_len_t) ret ) && 
 		ber_pvt_sb_grow_buffer( &p->sec_buf_in, ret ) < 0 )
 	{

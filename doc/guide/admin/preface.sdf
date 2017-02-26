@@ -54,7 +54,7 @@ you should use the manual pages that were installed on your system
 with your version of OpenLDAP software so that you're looking at
 documentation that matches the code. While the OpenLDAP web site
 also provides the manual pages for convenience, you can not assume
-that they corresond to the particular version you're running.
+that they correspond to the particular version you're running.
 
 P2[notoc] Acknowledgments
 

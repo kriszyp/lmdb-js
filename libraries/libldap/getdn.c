@@ -3198,7 +3198,7 @@ int ldap_dn2bv_x( LDAPDN dn, struct berval *bv, unsigned flags, void *ctx )
 		 * Sort of UFN for DCE DNs: a slash ('/') separated
 		 * global->local DN with no types; strictly speaking,
 		 * the naming context should be a domain, which is
-		 * written in DNS-style, e.g. dot-deparated.
+		 * written in DNS-style, e.g. dot-separated.
 		 * 
 		 * Example:
 		 * 

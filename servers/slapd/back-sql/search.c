@@ -1013,7 +1013,7 @@ backsql_process_filter( backsql_srch_info *bsi, Filter *f )
 
 	if ( vat == NULL ) {
 		/* search anyway; other parts of the filter
-		 * may succeeed */
+		 * may succeed */
 		backsql_strfcat_x( &bsi->bsi_flt_where,
 				bsi->bsi_op->o_tmpmemctx,
 				"l",

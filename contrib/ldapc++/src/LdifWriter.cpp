@@ -22,7 +22,7 @@ LdifWriter::LdifWriter( std::ostream& output, int version ) :
             m_addSeparator = true;
         } else {
             std::ostringstream err;
-            err << "Unsuported LDIF Version";
+            err << "Unsupported LDIF Version";
             throw( std::runtime_error(err.str()) );
         }
     }

@@ -59,7 +59,7 @@ class LDAPResult : public LDAPMsg{
 
         static const int ALIAS_DEREFERENCING_PROBLEM    = 36;
 
-        static const int INAPPROPRIATE_AUTENTICATION    = 48;
+        static const int INAPPROPRIATE_AUTHENTICATION    = 48;
         static const int INVALID_CREDENTIALS            = 49;
         static const int INSUFFICIENT_ACCESS            = 50;
         static const int BUSY                           = 51;
@@ -125,7 +125,7 @@ class LDAPResult : public LDAPMsg{
         std::string resToString() const;
 
         /**
-         * In some case of error the server may return addional error
+         * In some case of error the server may return additional error
          * messages.
          * @returns The additional error message returned by the server.
          */
@@ -141,7 +141,7 @@ class LDAPResult : public LDAPMsg{
         const std::string& getMatchedDN() const;
 
         /**
-         * @returns If the result code is REFERRAL this methode returns the
+         * @returns If the result code is REFERRAL this method returns the
          *      URLs of the referral that was sent by the server.
          */
         const LDAPUrlList& getReferralUrls() const;

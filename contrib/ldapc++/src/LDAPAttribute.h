@@ -124,7 +124,7 @@ class LDAPAttribute{
         void setValues(const StringList& values); 
 
         /**
-         * For interal use only.
+         * For internal use only.
          * This method is used to translate the values of the Attribute to
          * 0-terminated Array of BerValue-structs as used by the C-API
          * @return  The Values of the Attribute as an 0-terminated Array of 

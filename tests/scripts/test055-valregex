@@ -39,7 +39,7 @@ KILLPIDS="$PID"
 
 sleep 1
 
-echo "Testing attribute value regex subsitution..."
+echo "Testing attribute value regex substitution..."
 for i in 0 1 2 3 4 5; do
 	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT1 \
 		'objectclass=*' > /dev/null 2>&1

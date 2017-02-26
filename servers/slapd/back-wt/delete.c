@@ -295,7 +295,7 @@ wt_delete( Operation *op, SlapReply *rs )
 		goto return_results;
 	}
 
-	/* begen transaction */
+	/* begin transaction */
 	rc = wc->session->begin_transaction(wc->session, NULL);
 	if( rc ) {
 		Debug( LDAP_DEBUG_TRACE,

@@ -19,7 +19,7 @@ class LDAPUrl;
  * 
  * Each request that is sent to a LDAP-server by this library is
  * represented by a special object that contains the parameters and some
- * other info of the request. This virtual class is the common base classe
+ * other info of the request. This virtual class is the common base class
  * for these specialized request classes.
  */
 class LDAPRequest{

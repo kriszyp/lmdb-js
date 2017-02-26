@@ -210,7 +210,7 @@ class chain.
 
 Modify operation attempts to change the structural class of the entry. 
 
->      Instanstantiation of abstract objectClass.
+>      Instantiation of abstract objectClass.
 
 An abstract class is not subordinate to any listed structural or auxiliary class. 
 

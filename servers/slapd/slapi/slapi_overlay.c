@@ -927,7 +927,7 @@ int slapi_over_config( BackendDB *be, ConfigReply *cr )
 	if ( slapi_over_initialized == 0 ) {
 		int rc;
 
-		/* do global initializaiton */
+		/* do global initialization */
 		ldap_pvt_thread_mutex_init( &slapi_hn_mutex );
 		ldap_pvt_thread_mutex_init( &slapi_time_mutex );
 		ldap_pvt_thread_mutex_init( &slapi_printmessage_mutex );

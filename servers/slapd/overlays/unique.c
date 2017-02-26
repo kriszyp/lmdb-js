@@ -746,7 +746,7 @@ unique_cf_uri( ConfigArgs *c )
 		rc = 0;
 		break;
 
-	case SLAP_CONFIG_ADD: /* fallthrough */
+	case SLAP_CONFIG_ADD: /* fallthru */
 	case LDAP_MOD_ADD:
 		if ( legacy ) {
 			snprintf( c->cr_msg, sizeof( c->cr_msg ),

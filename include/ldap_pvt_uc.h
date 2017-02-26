@@ -75,7 +75,7 @@ LDAP_F (int) ldap_utf8_isspace( const char * );
 LDAP_F (ber_len_t) ldap_utf8_strcspn( const char* str, const char *set);
 /* span characters in set, return bytes spanned */
 LDAP_F (ber_len_t) ldap_utf8_strspn( const char* str, const char *set);
-/* return first occurance of character in string */
+/* return first occurrence of character in string */
 LDAP_F (char *) ldap_utf8_strchr( const char* str, const char *chr);
 /* return first character of set in string */
 LDAP_F (char *) ldap_utf8_strpbrk( const char* str, const char *set);

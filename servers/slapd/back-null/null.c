@@ -51,7 +51,7 @@ static ConfigTable nullcfg[] = {
 static ConfigOCs nullocs[] = {
 	{ "( OLcfgDbOc:8.1 "
 		"NAME 'olcNullConfig' "
-		"DESC 'Null backend ocnfiguration' "
+		"DESC 'Null backend configuration' "
 		"SUP olcDatabaseConfig "
 		"MAY ( olcDbBindAllowed $ olcDbDoSearch ) )",
 		Cft_Database, nullcfg },

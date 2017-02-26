@@ -52,13 +52,13 @@
      INT32  - 32-bit integer value
      TYPE   - a typed field that is transferred using sizeof()
      STRING - a string length (32bit) followed by the string value (not
-              null-terminted) the string itself is assumed to be UTF-8
+              null-terminated) the string itself is assumed to be UTF-8
      STRINGLIST - a 32-bit number noting the number of strings followed by
                   the strings one at a time
 
    Furthermore the ADDRESS compound data type is defined as:
      INT32  type of address: e.g. AF_INET or AF_INET6
-     INT32  lenght of address
+     INT32  length of address
      RAW    the address itself
    With the ADDRESSLIST using the same construct as with STRINGLIST.
 
@@ -212,7 +212,7 @@
      STRING  password
    and the result value consists of:
      INT32   authc NSLCD_PAM_* result code
-     STRING  user name (the cannonical user name)
+     STRING  user name (the canonical user name)
      INT32   authz NSLCD_PAM_* result code
      STRING  authorisation error message
    If the username is empty in this request an attempt is made to

@@ -634,7 +634,7 @@ EOF
 	fi
 	nCSN=`echo "$CSN1" | wc -l`
 	if test "$nCSN" -ne 1 ; then
-		echo "ERROR: Wrong contextCSN count on provder, should be 1"
+		echo "ERROR: Wrong contextCSN count on provider, should be 1"
 		echo "$CSN1"
 		test $KILLSERVERS != no && kill -HUP $KILLPIDS
 		exit 1

@@ -170,7 +170,7 @@ static int tio_wait(int fd, short events, int timeout,
       errno = ETIME;
       return -1;
     }
-    /* sanitiy check for moving clock */
+    /* sanity check for moving clock */
     if (t > timeout)
       t = timeout;
     /* wait for activity */
@@ -422,7 +422,7 @@ int tio_write(TFILE *fp, const void *buf, size_t count)
   uint8_t *tmp;
   size_t newsz;
   const uint8_t *ptr = (const uint8_t *)buf;
-  /* keep filling the buffer until we have bufferred everything */
+  /* keep filling the buffer until we have buffered everything */
   while (count > 0)
   {
     /* figure out free size in buffer */

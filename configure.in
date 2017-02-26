@@ -422,7 +422,7 @@ dnl ----------------------------------------------------------------
 
 # validate options
 if test $ol_enable_slapd = no ; then
-	dnl SLAPD was specificallly disabled
+	dnl SLAPD was specifically disabled
 	if test $ol_enable_slapi = yes ; then
 		AC_MSG_WARN([slapd disabled, ignoring --enable-slapi argument])
 	fi
@@ -969,7 +969,7 @@ AC_CHECK_FUNC(select, :, AC_MSG_ERROR([select() required.]))
 
 if test "${ac_cv_header_winsock_h}" != yes; then
 	dnl Select arg types
-	dnl (if this detection becomes permenent, it and the select() detection
+	dnl (if this detection becomes permanent, it and the select() detection
 	dnl should be done before the yielding select test) 
 	AC_FUNC_SELECT_ARGTYPES
 fi
@@ -1491,7 +1491,7 @@ pthread_rwlock_t rwlock;
 			AC_DEFINE(HAVE_PTHREAD_DETACH,1,
 				[define if you have pthread_detach function])
 
-			dnl Check for setconcurreny functions
+			dnl Check for setconcurrency functions
 			AC_CHECK_FUNCS(	\
 				pthread_setconcurrency \
 				pthread_getconcurrency \
@@ -1737,7 +1737,7 @@ case $ol_with_threads in auto | yes | lwp)
 				ol_with_yielding_select=yes
 			fi
 
-			dnl Check for setconcurreny functions
+			dnl Check for setconcurrency functions
 			AC_CHECK_FUNCS(	\
 				thr_setconcurrency \
 				thr_getconcurrency \
@@ -1972,7 +1972,7 @@ hosts_access(req)
 		AC_DEFINE(HAVE_TCPD,1, [define if you have -lwrap])
 		WRAP_LIBS="-lwrap"
 	elif test $ol_enable_wrappers = yes ; then
-		AC_MSG_ERROR([could not find TCP wrappers, select apppropriate options or disable])
+		AC_MSG_ERROR([could not find TCP wrappers, select appropriate options or disable])
 	else
 		AC_MSG_WARN([could not find TCP wrappers, support disabled])
 		WRAP_LIBS=""

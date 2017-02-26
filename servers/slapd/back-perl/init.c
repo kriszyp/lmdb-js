@@ -77,7 +77,7 @@ perl_back_initialize(
 	bi->bi_connection_init = 0;
 	bi->bi_connection_destroy = 0;
 
-	/* injecting code from perl_back_open, because using fonction reference  (bi->bi_open) is not functional */
+	/* injecting code from perl_back_open, because using function reference  (bi->bi_open) is not functional */
 	Debug( LDAP_DEBUG_TRACE, "perl backend open\n", 0, 0, 0 );
 
 	if( PERL_INTERPRETER != NULL ) {

@@ -30,7 +30,7 @@ int main(){
         lc->bind("cn=Manager,o=Organisation,c=DE" , "secret",cons);
         std::cout << lc->getHost() << std::endl;    
         bool result = lc->compare("cn=Manager,o=Organisation,c=DE", 
-                LDAPAttribute("cn","Manaer"));
+                LDAPAttribute("cn","Manager"));
         std::cout << "Compare: " << result << std::endl;
     
         LDAPAttributeList* attrs=new LDAPAttributeList();

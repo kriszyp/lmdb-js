@@ -10,7 +10,7 @@
 #include<string>
 
 /**
- * This class represent Authenication information for the case that the
+ * This class represent Authentication information for the case that the
  * library is chasing referrals.
  *
  * The LDAPRebind::getRebindAuth() method returns an object of this type.

@@ -402,7 +402,7 @@ main( int argc, char **argv )
 			}
 			break;
 
-		case 'b':	/* asynch bind */
+		case 'b':	/* async bind */
 			method = LDAP_AUTH_SIMPLE;
 			get_line( dn, sizeof(dn), stdin, "dn? " );
 			strcat( dn, dnsuffix );

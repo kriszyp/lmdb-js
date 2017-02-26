@@ -655,7 +655,7 @@ static void send_entry(
 		return;
 
 	/* RFC 2891: If critical then send the entries iff they were
-	 * succesfully sorted.  If non-critical send all entries
+	 * successfully sorted.  If non-critical send all entries
 	 * whether they were sorted or not.
 	 */
 	if ( (op->o_ctrlflag[sss_cid] != SLAP_CONTROL_CRITICAL) ||

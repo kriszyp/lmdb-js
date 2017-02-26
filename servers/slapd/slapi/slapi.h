@@ -180,7 +180,7 @@ struct slapi_pblock {
 #define	SLAPI_PLUGIN_DB_TEST_FN			227
 #define SLAPI_PLUGIN_DB_NO_ACL        		250
 
-/* OpenLDAP private parametrs */
+/* OpenLDAP private parameters */
 #define SLAPI_PLUGIN_COMPUTE_EVALUATOR_FN	1200
 #define SLAPI_PLUGIN_COMPUTE_SEARCH_REWRITER_FN	1201
 

@@ -70,7 +70,7 @@
  *      noabort  - Do not abort() on errors.
  *      noerror  - Do not report errors.  Implies noabort.
  *      nocount  - Do not report counts of unreleased resources.
- *      nosync   - Disable tests that use synchronizaion and thus
+ *      nosync   - Disable tests that use synchronization and thus
  *                 clearly affect thread scheduling:
  *                 Implies nocount, and cancels threadID if that is set.
  *                 Note that if you turn on tracethreads or malloc
@@ -513,7 +513,7 @@ typedef void ldap_debug_thread_t;
 #else /* LDAP_THREAD_DEBUG_THREAD_ID */
 
 /*
- * Thread ID tracking.  Currently acieves little.
+ * Thread ID tracking.  Currently achieves little.
  * Should be either expanded or deleted.
  */
 

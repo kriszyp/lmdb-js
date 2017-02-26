@@ -170,7 +170,7 @@ LDAP_ErrorStringToCode(Tcl_Interp *interp, char *s)
  * 
  *   Process one result return from an LDAP search.
  *
- * Paramaters:
+ * Parameters:
  *   o interp -            Tcl interpreter; Errors are returned in result.
  *   o ldap -              LDAP structure pointer.
  *   o entry -             LDAP message pointer.
@@ -268,7 +268,7 @@ LDAP_ProcessOneSearchResult (interp, ldap, entry, destArrayNameObj, evalCodeObj)
  * 
  *   Perform an LDAP search.
  *
- * Paramaters:
+ * Parameters:
  *   o interp -            Tcl interpreter; Errors are returned in result.
  *   o ldap -              LDAP structure pointer.
  *   o base -              Base DN from which to perform search.

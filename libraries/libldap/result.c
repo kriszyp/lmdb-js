@@ -809,7 +809,7 @@ nextresp2:
 				ldap_return_request( ld, lr, 0 );
 				return( -1 );	/* fatal error */
 			}
-			lr->lr_res_errno = LDAP_SUCCESS; /* sucessfully chased referral */
+			lr->lr_res_errno = LDAP_SUCCESS; /* successfully chased referral */
 			if ( lr->lr_res_matched ) {
 				LDAP_FREE( lr->lr_res_matched );
 				lr->lr_res_matched = NULL;

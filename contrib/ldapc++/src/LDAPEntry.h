@@ -37,7 +37,7 @@ class LDAPEntry{
          * Used internally only.
          *
          * The constructor is used internally to create a LDAPEntry from
-         * the C-API's data structurs.
+         * the C-API's data structures.
          */ 
         LDAPEntry(const LDAPAsynConnection *ld, LDAPMessage *msg);
 

@@ -85,7 +85,7 @@ dnssrv_back_referrals(
 	hosts = ldap_str2charray( hostlist, " " );
 
 	if( hosts == NULL ) {
-		Debug( LDAP_DEBUG_TRACE, "DNSSRV: str2charrary error\n", 0, 0, 0 );
+		Debug( LDAP_DEBUG_TRACE, "DNSSRV: str2charray error\n", 0, 0, 0 );
 		rs->sr_text = "problem processing DNS SRV records for DN";
 		goto done;
 	}

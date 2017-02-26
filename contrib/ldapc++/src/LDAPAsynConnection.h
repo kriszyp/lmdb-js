@@ -62,8 +62,8 @@ class LDAPAsynConnection{
          */
         static const int SEARCH_SUB=2;
 
-        /** Construtor that initializes a connection to a server
-         * @param hostname Name (or IP-Adress) of the destination host
+        /** Constructor that initializes a connection to a server
+         * @param hostname Name (or IP-Address) of the destination host
          * @param port Port the LDAP server is running on
          * @param cons Default constraints to use with operations over 
          *      this connection
@@ -111,7 +111,7 @@ class LDAPAsynConnection{
          *      error that occured.
          * This method does a simple (username, password) bind to the server.
          * Other, saver, authentcation methods are provided later
-         * @param dn the distiguished name to bind as
+         * @param dn the distinguished name to bind as
          * @param passwd cleartext password to use
          */
         LDAPMessageQueue* bind(const std::string& dn="", 
@@ -196,7 +196,7 @@ class LDAPAsynConnection{
          * @throws LDAPException If the Request could not be sent to the
          *      destination server, a LDAPException-object contains the
          *      error that occured.
-         * @param dn Distiguished Name of the Entry to modify
+         * @param dn Distinguished Name of the Entry to modify
          * @param modlist A set of modification that should be applied
          *      to the Entry
          * @param cons  A set of constraints that should be used with this
@@ -232,7 +232,7 @@ class LDAPAsynConnection{
          *      error that occured.
          * @param oid The dotted decimal representation of the extended 
          *      Operation that should be performed
-         * @param value The data asociated with this operation
+         * @param value The data associated with this operation
          * @param cons  A set of constraints that should be used with this
          *              request
          */

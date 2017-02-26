@@ -581,7 +581,7 @@ autogroup_add_members_from_filter( Operation *op, Entry *e, autogroup_entry_t *a
 
 /* 
 ** Adds a group to the internal list from the passed entry.
-** scan specifies whether to add all maching members to the group.
+** scan specifies whether to add all matching members to the group.
 ** modify specifies whether to modify the given group entry (when modify == 0),
 **	or to modify the group entry in the database (when modify == 1 and e = NULL and ndn != NULL).
 ** agi	- pointer to the groups and the attribute definitions
@@ -1167,8 +1167,8 @@ autogroup_response( Operation *op, SlapReply *rs )
 			}
 
 			/* For each group: 
-			   1. check if the orginal entry's DN is in the group.
-			   2. chceck if the any of the group filter's base DN is a suffix of the new DN 
+			   1. check if the original entry's DN is in the group.
+			   2. check if the any of the group filter's base DN is a suffix of the new DN
 
 			   If 1 and 2 are both false, we do nothing.
 			   If 1 and 2 is true, we remove the old DN from the group, and add the new DN.
@@ -1193,7 +1193,7 @@ autogroup_response( Operation *op, SlapReply *rs )
 				}
 
 				if ( age->age_modrdn_olddnmodified ) {
-					/* Resquest already marked this group to be updated */
+					/* Request already marked this group to be updated */
 					is_olddn = 1;
 					is_value_refresh = 1;
 					age->age_modrdn_olddnmodified = 0;
@@ -1508,7 +1508,7 @@ autogroup_memberOf_filter( Filter *f, BerValue *dn, AttributeDescription *member
 }
 
 /*
-** When modifing a group, we must deny any modifications to the member attribute,
+** When modifying a group, we must deny any modifications to the member attribute,
 ** because the group would be inconsistent.
 */
 static int

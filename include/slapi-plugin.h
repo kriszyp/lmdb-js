@@ -343,7 +343,7 @@ Slapi_PBlock *slapi_modrdn_internal( char * olddn, char * newrdn,
 	int deloldrdn, LDAPControl **controls,
 	int log_change );
 Slapi_PBlock *slapi_rename_internal( const char * olddn, const char *newrdn,
-	const char *newsuperior, int delolrdn,
+	const char *newsuperior, int deloldrdn,
 	LDAPControl **controls, int log_change );
 void slapi_free_search_results_internal(Slapi_PBlock *pb);
 
@@ -555,7 +555,7 @@ int slapi_x_backend_get_flags( const Slapi_Backend *be, unsigned long *flags );
 #define SLAPI_PLUGIN_DESCRIPTION		12
 #define SLAPI_PLUGIN_IDENTITY			13
 
-/* internal opreations params */
+/* internal operations params */
 #define SLAPI_PLUGIN_INTOP_RESULT		15
 #define SLAPI_PLUGIN_INTOP_SEARCH_ENTRIES	16
 #define SLAPI_PLUGIN_INTOP_SEARCH_REFERRALS	17

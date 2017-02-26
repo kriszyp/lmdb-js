@@ -1157,7 +1157,7 @@ When using Mozilla NSS, TLSCertificateKeyFile specifies the name of
 a file that contains the password for the key for the certificate specified with
 TLSCertificateFile.  The modutil command can be used to turn off password
 protection for the cert/key database.  For example, if TLSCACertificatePath
-specifes /etc/openldap/certdb as the location of the cert/key database, use
+specifies /etc/openldap/certdb as the location of the cert/key database, use
 modutil to change the password to the empty string:
 .nf
 	modutil \-dbdir /etc/openldap/certdb \-changepw 'NSS Certificate DB'

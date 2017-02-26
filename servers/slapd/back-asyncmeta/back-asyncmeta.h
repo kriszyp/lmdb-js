@@ -425,7 +425,7 @@ typedef struct a_metatarget_t {
 #define META_BACK_CFG_MAX_PENDING_OPS          0x80
 #define META_BACK_CFG_MAX_TARGET_CONNS          0xFF
 /* the interval of the timeout checking loop in microseconds
- * possibly make this configurabe? */
+ * possibly make this configurable? */
 #define META_BACK_CFG_MAX_TIMEOUT_LOOP          0x70000
 	slap_mask_t		mt_rep_flags;
 	int                     mt_timeout_ops;

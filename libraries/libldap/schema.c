@@ -1341,7 +1341,7 @@ parse_oids(const char **sp, int *code, const int allow_quoted)
 
 	/*
 	 * Strictly speaking, doing this here accepts whsp before the
-	 * ( at the begining of an oidlist, but this is harmless.  Also,
+	 * ( at the beginning of an oidlist, but this is harmless.  Also,
 	 * we are very liberal in what we accept as an OID.  Maybe
 	 * refine later.
 	 */

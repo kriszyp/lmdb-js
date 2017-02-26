@@ -156,7 +156,7 @@ mr_make_syntax_compat_with_mr(
 	assert( mr != NULL );
 
 	if ( mr->smr_compat_syntaxes ) {
-		/* count esisting */
+		/* count existing */
 		for ( n = 0;
 			mr->smr_compat_syntaxes[ n ];
 			n++ )

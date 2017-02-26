@@ -21,7 +21,7 @@ autogroup (overlay)
 	Automated updates of group memberships.
 
 cloak (overlay)
-	Hide specific attributes unless explicitely requested
+	Hide specific attributes unless explicitly requested
 
 comp_match (plugin)
 	Component Matching rules (RFC 3687).

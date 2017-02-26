@@ -311,7 +311,7 @@ rewrite_context_apply(
 		/*
 		 * OK means there were no errors or special return codes;
 		 * if res is defined, it means the rule matched and we
-		 * got a sucessful rewriting
+		 * got a successful rewriting
 		 */
 		case REWRITE_REGEXEC_OK:
 

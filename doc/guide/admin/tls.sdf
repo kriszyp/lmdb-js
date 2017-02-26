@@ -10,7 +10,7 @@ integrity and confidentiality protections and to support
 LDAP authentication using the {{TERM:SASL}} {{TERM:EXTERNAL}} mechanism. 
 TLS is defined in {{REF:RFC4346}}.
 
-Note: For generating certifcates, please reference {{URL:http://www.openldap.org/faq/data/cache/185.html}}
+Note: For generating certificates, please reference {{URL:http://www.openldap.org/faq/data/cache/185.html}}
 
 H2: TLS Certificates
 
@@ -96,7 +96,7 @@ files.  The {{certutil}} command can be used to add a {{TERM:CA}} certificate:
 
 >	certutil -d <path> -A -n "name of CA cert" -t CT,, -a -i /path/to/cacertfile.pem
 
-. This command will add a CA certficate stored in the PEM (ASCII) formatted
+. This command will add a CA certificate stored in the PEM (ASCII) formatted
 . file named /path/to/cacertfile.pem.  {{EX:-t CT,,}} means that the certificate is
 . trusted to be a CA issuing certs for use in TLS clients and servers.
 
@@ -134,7 +134,7 @@ When using Mozilla NSS, this directive specifies the name of
 a file that contains the password for the key for the certificate specified with
 {{EX:TLSCertificateFile}}.  The modutil command can be used to turn off password
 protection for the cert/key database.  For example, if {{EX:TLSCACertificatePath}}
-specifes /etc/openldap/certdb as the location of the cert/key database, use
+specifies /etc/openldap/certdb as the location of the cert/key database, use
 modutil to change the password to the empty string:
 
 >	modutil -dbdir /etc/openldap/certdb -changepw 'NSS Certificate DB'

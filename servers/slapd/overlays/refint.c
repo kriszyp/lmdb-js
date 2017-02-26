@@ -235,7 +235,7 @@ refint_cf_gen(ConfigArgs *c)
 		}
 		break;
 	case SLAP_CONFIG_ADD:
-		/* fallthrough to LDAP_MOD_ADD */
+		/* fallthru to LDAP_MOD_ADD */
 	case LDAP_MOD_ADD:
 		switch ( c->type ) {
 		case REFINT_ATTRS:

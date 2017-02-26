@@ -327,7 +327,7 @@ monitor_back_register_subsys_late(
 		return -1;
 	}
 
-	/* everyting is ready, can register already */
+	/* everything is ready, can register already */
 	if ( monitor_subsys_is_opened() ) {
 		return monitor_back_register_subsys( ms );
 	}

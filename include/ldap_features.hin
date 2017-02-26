@@ -47,7 +47,7 @@
 **
 ** If you fail to define LDAP_THREAD_SAFE when linking with
 ** -lldap_r or define LDAP_THREAD_SAFE when linking with -lldap,
-** provided header definations and declarations may be incorrect.
+** provided header definitions and declarations may be incorrect.
 **
 */
 

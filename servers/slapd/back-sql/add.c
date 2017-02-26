@@ -1192,7 +1192,7 @@ backsql_add( Operation *op, SlapReply *rs )
 			backsql_BindParamStr( sth, colnum, SQL_PARAM_INPUT,
 					"", 0 );
 			Debug( LDAP_DEBUG_TRACE, "backsql_add(): "
-					"create_proc hint (%s) not avalable\n",
+					"create_proc hint (%s) not available\n",
 					oc->bom_create_hint->ad_cname.bv_val,
 					0, 0 );
 		}

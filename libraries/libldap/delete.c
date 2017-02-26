@@ -28,7 +28,7 @@
 
 /*
  * A delete request looks like this:
- *	DelRequet ::= DistinguishedName,
+ *	DelRequest ::= DistinguishedName,
  */
 
 BerElement *
@@ -157,7 +157,7 @@ ldap_delete( LDAP *ld, LDAP_CONST char *dn )
 
 	/*
 	 * A delete request looks like this:
-	 *	DelRequet ::= DistinguishedName,
+	 *	DelRequest ::= DistinguishedName,
 	 */
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_delete\n", 0, 0, 0 );

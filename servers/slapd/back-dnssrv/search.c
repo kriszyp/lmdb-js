@@ -93,7 +93,7 @@ dnssrv_back_search(
 	hosts = ldap_str2charray( hostlist, " " );
 
 	if( hosts == NULL ) {
-		Debug( LDAP_DEBUG_TRACE, "DNSSRV: str2charrary error\n", 0, 0, 0 );
+		Debug( LDAP_DEBUG_TRACE, "DNSSRV: str2charray error\n", 0, 0, 0 );
 		send_ldap_error( op, rs, LDAP_OTHER,
 			"problem processing DNS SRV records for DN" );
 		goto done;

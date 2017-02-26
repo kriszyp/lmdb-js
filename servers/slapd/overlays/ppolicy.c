@@ -289,7 +289,7 @@ ppolicy_cf_default( ConfigArgs *c )
 		rc = 0;
 		break;
 	case SLAP_CONFIG_ADD:
-		/* fallthrough to LDAP_MOD_ADD */
+		/* fallthru to LDAP_MOD_ADD */
 	case LDAP_MOD_ADD:
 		Debug(LDAP_DEBUG_TRACE, "==> ppolicy_cf_default add\n", 0, 0, 0);
 		if ( pi->def_policy.bv_val ) {

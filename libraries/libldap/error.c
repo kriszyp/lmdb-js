@@ -322,7 +322,7 @@ ldap_parse_result(
 		/* need to clean out misc items */
 		if( tag != LBER_ERROR ) {
 			if( lm->lm_msgtype == LDAP_RES_BIND ) {
-				/* look for sasl result creditials */
+				/* look for sasl result credentials */
 				if ( ber_peek_tag( ber, &len ) == LDAP_TAG_SASL_RES_CREDS ) {
 					/* skip 'em */
 					tag = ber_scanf( ber, "x" );

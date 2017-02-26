@@ -1073,7 +1073,7 @@ static int ldap_int_nextref(
  *              The array will be free'd by this function when no longer needed
  *  (IN) sref != 0 if following search reference
  *  (OUT) errstrp = Place to return a string of referrals which could not be followed
- *  (OUT) hadrefp = 1 if sucessfully followed referral
+ *  (OUT) hadrefp = 1 if successfully followed referral
  *
  * Return value - number of referrals followed
  *

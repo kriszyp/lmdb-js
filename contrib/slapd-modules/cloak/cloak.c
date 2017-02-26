@@ -1,4 +1,4 @@
-/* cloak.c - Overlay to hide some attribute except if explicitely requested */
+/* cloak.c - Overlay to hide some attribute except if explicitly requested */
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *

@@ -327,7 +327,7 @@ static void debug_dump(const void *ptr, size_t size)
   }
 
 
-/* These are functions and macors for performing common operations in
+/* These are functions and macros for performing common operations in
    the nslcd request/response protocol. */
 
 /* returns a socket to the server or NULL on error (see errno),

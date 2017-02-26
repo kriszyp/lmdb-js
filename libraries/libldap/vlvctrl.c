@@ -272,7 +272,7 @@ ldap_create_vlv_control(
 		contentCount     INTEGER (0 .. maxInt),
 		virtualListViewResult ENUMERATED {
 		success (0),
-		operatonsError (1),
+		operationsError (1),
 		unwillingToPerform (53),
 		insufficientAccessRights (50),
 		busy (51),

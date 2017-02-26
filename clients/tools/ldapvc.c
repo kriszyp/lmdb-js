@@ -77,7 +77,7 @@ usage( void )
 	fprintf( stderr, _("    -E sasl=(a[utomatic]|i[nteractive]|q[uiet]>\tSASL mode (defaults to automatic if any other -E option provided, otherwise none))\n"));
 	fprintf( stderr, _("    -E mech=<mech>\tSASL mechanism (default "" e.g. Simple)\n"));
 	fprintf( stderr, _("    -E realm=<realm>\tSASL Realm (defaults to none)\n"));
-	fprintf( stderr, _("    -E authcid=<authcid>\tSASL Authenication Identity (defaults to USER)\n"));
+	fprintf( stderr, _("    -E authcid=<authcid>\tSASL Authentication Identity (defaults to USER)\n"));
 	fprintf( stderr, _("    -E authzid=<authzid>\tSASL Authorization Identity (defaults to none)\n"));
 	fprintf( stderr, _("    -E secprops=<secprops>\tSASL Security Properties (defaults to none)\n"));
 	tool_common_usage();

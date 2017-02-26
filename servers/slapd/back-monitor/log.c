@@ -124,7 +124,7 @@ monitor_subsys_log_modify(
 
 		/*
 		 * accept all operational attributes;
-		 * this includes modifersName and modifyTimestamp
+		 * this includes modifiersName and modifyTimestamp
 		 * if lastmod is "on"
 		 */
 		if ( is_at_operational( mod->sm_desc->ad_type ) ) {

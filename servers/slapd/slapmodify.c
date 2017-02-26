@@ -190,7 +190,7 @@ slapmodify( int argc, char **argv )
 				request = "delete";
 				break;
 			}
-			/* backend does not support delete, fallthrough */
+			/* backend does not support delete, fallthru */
 
 		case LDAP_REQ_MODRDN:
 			fprintf( stderr, "%s: request 0x%lx not supported (line=%lu)\n",
