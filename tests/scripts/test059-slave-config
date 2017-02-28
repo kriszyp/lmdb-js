@@ -271,6 +271,20 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
+echo "Using ldapsearch to check that syncrepl received the schema changes..."
+RC=32
+for i in 0 1 2 3 4 5; do
+	RESULT=`$LDAPSEARCH -H $URI2 -D cn=config -y $CONFIGPWF \
+		-s base -b "cn=schema,cn=config" \
+		'(cn=openldap)' 2>&1 | awk '/^dn:/ {print "OK"}'`
+	if test "x$RESULT" = "xOK" ; then
+		RC=0
+		break
+	fi
+	echo "Waiting $SLEEP1 seconds for syncrepl to receive changes..."
+	sleep $SLEEP1
+done
+
 nullExclude="" nullOK=""
 test $BACKEND = null && nullExclude="# " nullOK="OK"
 
