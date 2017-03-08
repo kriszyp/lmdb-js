@@ -5,6 +5,7 @@ OpenLDAP 2.4.45 Engineering
 	Fixed libldap to expose error if user specified CA doesn't exist (ITS#8529)
 	Fixed libldap handling of Diffie-Hellman parameters (ITS#7506)
 	Fixed libldap GnuTLS use after free (ITS#8385)
+	Fixed slapd bconfig rDN escape handling (ITS#8574)
 	Fixed slapd sasl SEGV rebind in same session (ITS#8568)
 	Fixed slapd syncrepl filter handling (ITS#8413)
 	Fixed slapd syncrepl infinite looping mods with delta-sync MMR (ITS#8432)
