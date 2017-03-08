@@ -13,5 +13,5 @@
 ## top-level directory of the distribution or, alternatively, at
 ## <http://www.OpenLDAP.org/license.html>.
 
-SUBDIRS= slapd
+SUBDIRS= slapd lloadd
 

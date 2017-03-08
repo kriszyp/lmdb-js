@@ -1,0 +1,1 @@
+../slapd/globals.c

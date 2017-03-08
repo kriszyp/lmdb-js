@@ -63,4 +63,9 @@
 	/* dn of the default "monitor" subentry */
 #define SLAPD_MONITOR_DN		"cn=Monitor"
 
+/*
+ * LLOADD DEFINITIONS
+ */
+#define LLOADD_DEFAULT_CONFIGFILE	LDAP_SYSCONFDIR LDAP_DIRSEP "lloadd.conf"
+
 #endif /* _LDAP_CONFIG_H */

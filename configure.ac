@@ -411,6 +411,12 @@ OL_ARG_ENABLE(valsort, [AS_HELP_STRING([--enable-valsort], [Value Sorting overla
 	no, [no yes mod], ol_enable_overlays)
 
 dnl ----------------------------------------------------------------
+dnl BALANCER OPTIONS
+AC_ARG_ENABLE(balanceroptions,[
+LLOADD (Load Balancer Daemon) Options:])
+OL_ARG_ENABLE(balancer,[  --enable-balancer	  enable building load balancer], auto)dnl
+
+dnl ----------------------------------------------------------------
 AC_ARG_ENABLE(xxliboptions,[
 Library Generation & Linking Options])
 AC_ENABLE_STATIC
@@ -481,6 +487,13 @@ if test $ol_enable_modules = yes ; then
 	ol_enable_dynamic=yes
 fi
 
+if test $ol_enable_balancer = yes ; then
+	dnl Load Balancer was specifically enabled
+	if test $ol_with_threads = no ; then
+		AC_MSG_ERROR([Load balancer requires threads])
+	fi
+fi
+
 if test $ol_enable_spasswd = yes ; then
 	if test $ol_with_cyrus_sasl = no ; then
 		AC_MSG_ERROR([--enable-spasswd requires --with-cyrus-sasl])
@@ -504,13 +517,16 @@ LDAP_LIBS=
 SLAPD_NDB_LIBS=
 SLAPD_NDB_INCS=
 LTHREAD_LIBS=
+LEVENT_LIBS=
 LUTIL_LIBS=
 
 CLIENT_LIBS=
 
 SLAPD_LIBS=
+BALANCER_LIBS=
 
 BUILD_SLAPD=no
+BUILD_BALANCER=no
 
 BUILD_THREAD=no
 
@@ -2129,6 +2145,24 @@ if test $ol_enable_slp != no ; then
 fi
 
 dnl ----------------------------------------------------------------
+dnl Libevent
+if test $ol_enable_balancer != no ; then
+	AC_CHECK_LIB(event_core, evconnlistener_set_error_cb,
+		[have_libevent=yes
+		LEVENT_LIBS="$LEVENT_LIBS -levent_core"],
+		[AC_CHECK_LIB(event, evconnlistener_set_error_cb,
+			[have_libevent=yes
+			LEVENT_LIBS="$LEVENT_LIBS -levent"],
+			[have_libevent=no])])
+
+	if test $have_libevent = yes ; then
+		AC_DEFINE(HAVE_LIBEVENT, 1, [define if you have -levent])
+	elif test $ol_enable_balancer = yes ; then
+		AC_MSG_ERROR([You need libevent 2.0 or later to build the load balancer])
+	fi
+fi
+
+dnl ----------------------------------------------------------------
 dnl Checks for typedefs, structures, and compiler characteristics.
 
 AC_CHECK_TYPE(mode_t, int)
@@ -2930,6 +2964,12 @@ if test "$ol_enable_valsort" != no ; then
 	AC_DEFINE_UNQUOTED(SLAPD_OVER_VALSORT,$MFLAG,[define for Value Sorting overlay])
 fi
 
+if test "$ol_enable_balancer" != no \
+		-a "$ol_with_threads" != no \
+		-a "$have_libevent" = yes ; then
+	BUILD_BALANCER=yes
+fi
+
 if test "$ol_enable_slapi" != no ; then
 	AC_DEFINE(ENABLE_SLAPI,1,[define to enable slapi library])
 	BUILD_SLAPI=yes
@@ -3002,14 +3042,17 @@ dnl overlays
   AC_SUBST(BUILD_TRANSLUCENT)
   AC_SUBST(BUILD_UNIQUE)
   AC_SUBST(BUILD_VALSORT)
+  AC_SUBST(BUILD_BALANCER)
 
 AC_SUBST(LDAP_LIBS)
 AC_SUBST(CLIENT_LIBS)
 AC_SUBST(SLAPD_LIBS)
+AC_SUBST(BALANCER_LIBS)
 AC_SUBST(SLAPD_NDB_LIBS)
 AC_SUBST(SLAPD_NDB_INCS)
 AC_SUBST(LTHREAD_LIBS)
 AC_SUBST(LUTIL_LIBS)
+AC_SUBST(LEVENT_LIBS)
 AC_SUBST(WRAP_LIBS)
 
 AC_SUBST(SLAPD_MODULES_CPPFLAGS)
@@ -3091,6 +3134,7 @@ AC_CONFIG_FILES([Makefile:build/top.mk:Makefile.in:build/dir.mk]
 [servers/slapd/shell-backends/Makefile:build/top.mk:servers/slapd/shell-backends/Makefile.in:build/srv.mk]
 [servers/slapd/slapi/Makefile:build/top.mk:servers/slapd/slapi/Makefile.in:build/lib.mk:build/lib-shared.mk]
 [servers/slapd/overlays/Makefile:build/top.mk:servers/slapd/overlays/Makefile.in:build/lib.mk]
+[servers/lloadd/Makefile:build/top.mk:servers/lloadd/Makefile.in:build/srv.mk]
 [tests/Makefile:build/top.mk:tests/Makefile.in:build/dir.mk]
 [tests/run]
 [tests/progs/Makefile:build/top.mk:tests/progs/Makefile.in:build/rules.mk])

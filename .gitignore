@@ -96,6 +96,7 @@ servers/slapd/slapmodify
 servers/slapd/slappasswd
 servers/slapd/slapschema
 servers/slapd/slaptest
+servers/lloadd/lloadd
 tests/progs/ldif-filter
 tests/progs/slapd-addel
 tests/progs/slapd-bind
