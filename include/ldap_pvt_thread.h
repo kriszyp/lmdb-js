@@ -37,6 +37,7 @@ typedef ldap_int_thread_rdwr_t		ldap_pvt_thread_rdwr_t;
 #define LDAP_PVT_MUTEX_FIRSTCREATE	LDAP_INT_MUTEX_FIRSTCREATE
 #define LDAP_PVT_MUTEX_NULL			LDAP_INT_MUTEX_NULL
 #endif
+typedef ldap_int_thread_mutex_recursive_t ldap_pvt_thread_mutex_recursive_t;
 typedef ldap_int_thread_rmutex_t	ldap_pvt_thread_rmutex_t;
 typedef ldap_int_thread_key_t	ldap_pvt_thread_key_t;
 #endif /* !LDAP_PVT_THREAD_H_DONE */
@@ -112,7 +113,13 @@ LDAP_F( int )
 ldap_pvt_thread_mutex_init LDAP_P(( ldap_pvt_thread_mutex_t *mutex ));
 
 LDAP_F( int )
+ldap_pvt_thread_mutex_recursive_init LDAP_P(( ldap_pvt_thread_mutex_t *mutex ));
+
+LDAP_F( int )
 ldap_pvt_thread_mutex_destroy LDAP_P(( ldap_pvt_thread_mutex_t *mutex ));
+
+LDAP_F( int )
+ldap_pvt_thread_mutex_recursive_destroy LDAP_P(( ldap_pvt_thread_mutex_recursive_t *mutex ));
 
 LDAP_F( int )
 ldap_pvt_thread_mutex_lock LDAP_P(( ldap_pvt_thread_mutex_t *mutex ));
@@ -122,6 +129,15 @@ ldap_pvt_thread_mutex_trylock LDAP_P(( ldap_pvt_thread_mutex_t *mutex ));
 
 LDAP_F( int )
 ldap_pvt_thread_mutex_unlock LDAP_P(( ldap_pvt_thread_mutex_t *mutex ));
+
+LDAP_F( int )
+ldap_pvt_thread_mutex_recursive_lock LDAP_P(( ldap_pvt_thread_mutex_recursive_t *mutex ));
+
+LDAP_F( int )
+ldap_pvt_thread_mutex_recursive_trylock LDAP_P(( ldap_pvt_thread_mutex_recursive_t *mutex ));
+
+LDAP_F( int )
+ldap_pvt_thread_mutex_recursive_unlock LDAP_P(( ldap_pvt_thread_mutex_recursive_t *mutex ));
 
 LDAP_F( int )
 ldap_pvt_thread_rmutex_init LDAP_P(( ldap_pvt_thread_rmutex_t *rmutex ));

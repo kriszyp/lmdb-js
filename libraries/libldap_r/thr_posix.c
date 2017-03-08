@@ -58,6 +58,8 @@ static pthread_mutexattr_t mutex_attr;
 #  define LDAP_INT_THREAD_MUTEXATTR_DEFAULT &mutex_attr
 #endif
 
+static pthread_mutexattr_t mutex_attr_recursive;
+
 #if HAVE_PTHREADS < 7
 #define ERRVAL(val)	((val) < 0 ? errno : 0)
 #else
@@ -71,6 +73,10 @@ ldap_int_thread_initialize( void )
 	pthread_mutexattr_init( &mutex_attr );
 	pthread_mutexattr_settype( &mutex_attr, LDAP_INT_THREAD_MUTEXATTR );
 #endif
+	if (pthread_mutexattr_init(&mutex_attr_recursive))
+		return -1;
+	if (pthread_mutexattr_settype(&mutex_attr_recursive, PTHREAD_MUTEX_RECURSIVE))
+		return -1;
 	return 0;
 }
 
@@ -84,6 +90,7 @@ ldap_int_thread_destroy( void )
 #ifdef LDAP_INT_THREAD_MUTEXATTR
 	pthread_mutexattr_destroy( &mutex_attr );
 #endif
+	pthread_mutexattr_destroy( &mutex_attr_recursive );
 	return 0;
 }
 
@@ -311,6 +318,21 @@ ldap_pvt_thread_mutex_unlock( ldap_pvt_thread_mutex_t *mutex )
 {
 	return ERRVAL( pthread_mutex_unlock( mutex ) );
 }
+
+int
+ldap_pvt_thread_mutex_recursive_init( ldap_pvt_thread_mutex_t *mutex )
+{
+	return ERRVAL( pthread_mutex_init( mutex, &mutex_attr_recursive ) );
+}
+
+int ldap_pvt_thread_mutex_recursive_destroy( ldap_pvt_thread_mutex_recursive_t *mutex )
+	LDAP_GCCATTR((alias("ldap_pvt_thread_mutex_destroy")));
+int ldap_pvt_thread_mutex_recursive_lock( ldap_pvt_thread_mutex_recursive_t *mutex )
+	LDAP_GCCATTR((alias("ldap_pvt_thread_mutex_lock")));
+int ldap_pvt_thread_mutex_recursive_trylock( ldap_pvt_thread_mutex_recursive_t *mutex )
+	LDAP_GCCATTR((alias("ldap_pvt_thread_mutex_trylock")));
+int ldap_pvt_thread_mutex_recursive_unlock( ldap_pvt_thread_mutex_recursive_t *mutex )
+	LDAP_GCCATTR((alias("ldap_pvt_thread_mutex_unlock")));
 
 ldap_pvt_thread_t ldap_pvt_thread_self( void )
 {
