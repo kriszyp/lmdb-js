@@ -483,7 +483,7 @@ describe('Node.js LMDB Bindings', function() {
       env.open({
         path: testDirPath,
         maxDbs: 10,
-        mapSize: 16 * 1024 * 1024 * 1024
+        mapSize:  64 * 1024 * 1024
       });
       dbi = env.openDbi({
         name: 'mydb6',
@@ -532,7 +532,7 @@ describe('Node.js LMDB Bindings', function() {
       env.open({
         path: testDirPath,
         maxDbs: 10,
-        mapSize: 16 * 1024 * 1024 * 1024
+        mapSize:  64 * 1024 * 1024
       });
       dbi = env.openDbi({
         name: 'mydb7',
@@ -582,7 +582,7 @@ describe('Node.js LMDB Bindings', function() {
       env.open({
         path: testDirPath,
         maxDbs: 12,
-        mapSize: 16 * 1024 * 1024 * 1024
+        mapSize: 64 * 1024 * 1024
       });
       var dbi = env.openDbi({
         name: 'testfree',
@@ -619,7 +619,7 @@ describe('Node.js LMDB Bindings', function() {
       env.open({
         path: testDirPath,
         maxDbs: 12,
-        mapSize: 16 * 1024 * 1024 * 1024
+        mapSize: 64 * 1024 * 1024
       });
       dbi = env.openDbi({
         name: 'testkeys',
