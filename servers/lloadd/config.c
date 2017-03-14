@@ -95,6 +95,7 @@ static ConfigFile *cfn;
 
 static ConfigDriver config_fname;
 static ConfigDriver config_generic;
+static ConfigDriver config_backend;
 #ifdef LDAP_TCP_BUFFER
 static ConfigDriver config_tcp_buffer;
 #endif /* LDAP_TCP_BUFFER */
@@ -105,6 +106,8 @@ static ConfigDriver config_include;
 static ConfigDriver config_tls_option;
 static ConfigDriver config_tls_config;
 #endif
+
+slap_b_head backend = LDAP_STAILQ_HEAD_INITIALIZER(backend);
 
 enum {
     CFG_ACL = 1,
@@ -151,9 +154,9 @@ static ConfigTable config_back_cf_table[] = {
         ARG_INT|ARG_MAGIC|CFG_CONCUR,
         &config_generic,
     },
-    { "database", "type", 2, 2, 0,
+    { "backend", "type", 2, 2, 0,
         ARG_MAGIC|CFG_DATABASE,
-        &config_generic,
+        &config_backend,
     },
     { "gentlehup", "on|off", 2, 2, 0,
 #ifdef SIGHUP
@@ -424,6 +427,109 @@ config_generic( ConfigArgs *c )
             return 1;
     }
     return 0;
+}
+
+static int
+config_backend( ConfigArgs *c )
+{
+    int i, tmp, rc = -1;
+    LDAPURLDesc *lud = NULL;
+    Backend *b;
+
+    b = ch_calloc( 1, sizeof(Backend) );
+
+    for ( i = 1; i < c->argc; i++ ) {
+        if ( bindconf_parse( c->argv[i], &b->b_bindconf ) ) {
+            Debug( LDAP_DEBUG_ANY, "config_backend: "
+                    "error parsing backend configuration item '%s'\n",
+                    c->argv[i] );
+            rc = -1;
+            goto done;
+        }
+    }
+
+    if ( BER_BVISNULL( &b->b_bindconf.sb_uri ) ) {
+        Debug( LDAP_DEBUG_ANY, "config_backend: "
+                "backend address not specified\n" );
+        rc = -1;
+        goto done;
+    }
+
+    rc = ldap_url_parse( b->b_bindconf.sb_uri.bv_val, &lud );
+    if ( rc != LDAP_URL_SUCCESS ) {
+        Debug( LDAP_DEBUG_ANY, "config_backend: "
+                "listen URL \"%s\" parse error=%d\n",
+                b->b_bindconf.sb_uri.bv_val, rc );
+        rc = -1;
+        goto done;
+    }
+
+#ifndef HAVE_TLS
+    if ( ldap_pvt_url_scheme2tls( lud->lud_scheme ) ) {
+        Debug( LDAP_DEBUG_ANY, "config_backend: "
+                "TLS not supported (%s)\n",
+                b->b_bindconf.sb_uri.bv_val );
+        rc = -1;
+        goto done;
+    }
+
+    if ( !lud->lud_port ) {
+        b->b_port = LDAP_PORT;
+    } else {
+        b->b_port = lud->lud_port;
+    }
+
+#else /* HAVE_TLS */
+    tmp = ldap_pvt_url_scheme2tls( lud->lud_scheme );
+    if ( tmp ) {
+        b->b_tls = LLOAD_LDAPS;
+    }
+
+    if ( !lud->lud_port ) {
+        b->b_port = b->b_tls ? LDAPS_PORT : LDAP_PORT;
+    } else {
+        b->b_port = lud->lud_port;
+    }
+#endif /* HAVE_TLS */
+
+    b->b_proto = tmp = ldap_pvt_url_scheme2proto( lud->lud_scheme );
+    if ( tmp == LDAP_PROTO_IPC ) {
+#ifdef LDAP_PF_LOCAL
+        if ( lud->lud_host == NULL || lud->lud_host[0] == '\0' ) {
+            b->b_host = ch_strdup( LDAPI_SOCK );
+        }
+#else /* ! LDAP_PF_LOCAL */
+
+        Debug( LDAP_DEBUG_ANY, "config_backend: "
+                "URL scheme not supported: %s",
+                url );
+        rc = -1;
+        goto done;
+#endif /* ! LDAP_PF_LOCAL */
+    } else {
+        if ( lud->lud_host == NULL || lud->lud_host[0] == '\0' ) {
+            Debug( LDAP_DEBUG_ANY, "config_backend: "
+                    "backend url missing hostname: '%s'\n",
+                    b->b_bindconf.sb_uri.bv_val );
+            rc = -1;
+            goto done;
+        }
+    }
+    if ( !b->b_host ) {
+        b->b_host = ch_strdup( lud->lud_host );
+    }
+
+    ldap_pvt_thread_mutex_init( &b->b_lock );
+
+done:
+    ldap_free_urldesc( lud );
+    if ( rc ) {
+        ch_free( b );
+    } else {
+        LDAP_STAILQ_INSERT_TAIL( &backend, b, b_next );
+    }
+
+    return rc;
 }
 
 static int
