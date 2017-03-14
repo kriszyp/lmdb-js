@@ -37,6 +37,12 @@ struct config_args_s;  /* config.h */
 struct config_reply_s; /* config.h */
 
 /*
+ * backend.c
+ */
+
+LDAP_SLAPD_F (int) backend_connect( Backend *b );
+
+/*
  * ch_malloc.c
  */
 LDAP_SLAPD_V (BerMemoryFunctions) ch_mfuncs;
@@ -65,6 +71,7 @@ LDAP_SLAPD_F (void) bindconf_free( slap_bindconf *bc );
  */
 LDAP_SLAPD_F (Connection *) connection_init( ber_socket_t s, const char *peername, int use_tls );
 LDAP_SLAPD_F (Connection *) client_init( ber_socket_t s, Listener *url, const char *peername, struct event_base *base, int use_tls );
+LDAP_SLAPD_F (Connection *) upstream_init( ber_socket_t s, Backend *b );
 LDAP_SLAPD_F (void) connection_destroy( Connection *c );
 
 /*
@@ -74,9 +81,11 @@ LDAP_SLAPD_F (int) slapd_daemon_init( const char *urls );
 LDAP_SLAPD_F (int) slapd_daemon_destroy( void );
 LDAP_SLAPD_F (int) slapd_daemon( struct event_base *daemon_base );
 LDAP_SLAPD_F (Listener **) slapd_get_listeners( void );
+LDAP_SLAPD_F (struct event_base *) slap_get_base( ber_socket_t s );
 
 LDAP_SLAPD_F (void) slap_sig_shutdown( evutil_socket_t sig, short what, void *arg );
 
+LDAP_SLAPD_V (struct evdns_base *) dnsbase;
 LDAP_SLAPD_V (volatile sig_atomic_t) slapd_shutdown;
 LDAP_SLAPD_V (int) lloadd_inited;
 LDAP_SLAPD_V (struct runqueue_s) slapd_rq;

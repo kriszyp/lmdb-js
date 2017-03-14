@@ -2147,18 +2147,18 @@ fi
 dnl ----------------------------------------------------------------
 dnl Libevent
 if test $ol_enable_balancer != no ; then
-	AC_CHECK_LIB(event_core, evconnlistener_set_error_cb,
+	AC_CHECK_LIB(event_extra, evdns_base_new,
 		[have_libevent=yes
-		LEVENT_LIBS="$LEVENT_LIBS -levent_core"],
-		[AC_CHECK_LIB(event, evconnlistener_set_error_cb,
+		LEVENT_LIBS="$LEVENT_LIBS -levent_core -levent_extra"],
+		[AC_CHECK_LIB(event, evdns_base_new,
 			[have_libevent=yes
 			LEVENT_LIBS="$LEVENT_LIBS -levent"],
 			[have_libevent=no])])
 
 	if test $have_libevent = yes ; then
 		AC_DEFINE(HAVE_LIBEVENT, 1, [define if you have -levent])
-	elif test $ol_enable_balancer = yes ; then
-		AC_MSG_ERROR([You need libevent 2.0 or later to build the load balancer])
+	else
+		AC_MSG_ERROR([You need libevent 2.0 or later with DNS support to build the load balancer])
 	fi
 fi
 
