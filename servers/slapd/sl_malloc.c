@@ -137,6 +137,9 @@ slap_sl_mem_destroy(
 	struct slab_object *so;
 	int i;
 
+	if (!sh)
+		return;
+
 	if (!sh->sh_stack) {
 		for (i = 0; i <= sh->sh_maxorder - order_start; i++) {
 			so = LDAP_LIST_FIRST(&sh->sh_free[i]);
@@ -647,6 +650,21 @@ slap_sl_free(void *ptr, void *ctx)
 			}
 		}
 	}
+}
+
+void
+slap_sl_release( void *ptr, void *ctx )
+{
+	struct slab_heap *sh = ctx;
+	if ( sh && ptr >= sh->sh_base && ptr <= sh->sh_end )
+		sh->sh_last = ptr;
+}
+
+void *
+slap_sl_mark( void *ctx )
+{
+	struct slab_heap *sh = ctx;
+	return sh->sh_last;
 }
 
 /*

@@ -1858,6 +1858,11 @@ LDAP_SLAPD_F (void *) slap_sl_calloc LDAP_P((
 	ber_len_t nelem, ber_len_t size, void *ctx ));
 LDAP_SLAPD_F (void) slap_sl_free LDAP_P((
 	void *, void *ctx ));
+LDAP_SLAPD_F (void) slap_sl_release LDAP_P((
+	void *, void *ctx ));
+LDAP_SLAPD_F (void *) slap_sl_mark LDAP_P((
+	void *ctx ));
+
 
 LDAP_SLAPD_V (BerMemoryFunctions) slap_sl_mfuncs;
 
