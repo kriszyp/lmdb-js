@@ -90,6 +90,7 @@ typedef struct ldap_int_thread_task_s {
 	} ltt_next;
 	ldap_pvt_thread_start_t *ltt_start_routine;
 	void *ltt_arg;
+	struct ldap_int_thread_poolq_s *ltt_queue;
 } ldap_int_thread_task_t;
 
 typedef LDAP_STAILQ_HEAD(tcq, ldap_int_thread_task_s) ldap_int_tpool_plist_t;
@@ -337,25 +338,21 @@ ldap_pvt_thread_pool_init (
 	return ldap_pvt_thread_pool_init_q( tpool, max_threads, max_pending, 1 );
 }
 
-static int
-ldap_int_poolq_hash(
-	struct ldap_int_thread_pool_s *pool,
-	void *arg )
-{
-	int i = 0, j;
-	unsigned char *ptr = (unsigned char *)&arg;
-	/* dumb hash of arg to choose a queue */
-	for (j=0; j<sizeof(arg); j++)
-		i += *ptr++;
-	i %= pool->ltp_numqs;
-	return i;
-}
-
 /* Submit a task to be performed by the thread pool */
 int
 ldap_pvt_thread_pool_submit (
 	ldap_pvt_thread_pool_t *tpool,
 	ldap_pvt_thread_start_t *start_routine, void *arg )
+{
+	return ldap_pvt_thread_pool_submit2( tpool, start_routine, arg, NULL );
+}
+
+/* Submit a task to be performed by the thread pool */
+int
+ldap_pvt_thread_pool_submit2 (
+	ldap_pvt_thread_pool_t *tpool,
+	ldap_pvt_thread_start_t *start_routine, void *arg,
+	void **cookie )
 {
 	struct ldap_int_thread_pool_s *pool;
 	struct ldap_int_thread_poolq_s *pq;
@@ -371,9 +368,23 @@ ldap_pvt_thread_pool_submit (
 	if (pool == NULL)
 		return(-1);
 
-	if ( pool->ltp_numqs > 1 )
-		i = ldap_int_poolq_hash( pool, arg );
-	else
+	if ( pool->ltp_numqs > 1 ) {
+		int min = pool->ltp_wqs[0]->ltp_max_pending + pool->ltp_wqs[0]->ltp_max_count;
+		int min_x = 0, cnt;
+		for ( i = 0; i < pool->ltp_numqs; i++ ) {
+			/* take first queue that has nothing active */
+			if ( !pool->ltp_wqs[i]->ltp_active_count ) {
+				min_x = i;
+				break;
+			}
+			cnt = pool->ltp_wqs[i]->ltp_active_count + pool->ltp_wqs[i]->ltp_pending_count;
+			if ( cnt < min ) {
+				min = cnt;
+				min_x = i;
+			}
+		}
+		i = min_x;
+	} else
 		i = 0;
 
 	j = i;
@@ -401,6 +412,9 @@ ldap_pvt_thread_pool_submit (
 
 	task->ltt_start_routine = start_routine;
 	task->ltt_arg = arg;
+	task->ltt_queue = pq;
+	if ( cookie )
+		*cookie = task;
 
 	pq->ltp_pending_count++;
 	LDAP_STAILQ_INSERT_TAIL(&pq->ltp_pending_list, task, ltt_next.q);
@@ -475,29 +489,22 @@ no_task( void *ctx, void *arg )
  */
 int
 ldap_pvt_thread_pool_retract (
-	ldap_pvt_thread_pool_t *tpool,
-	ldap_pvt_thread_start_t *start_routine, void *arg )
+	void *cookie )
 {
-	struct ldap_int_thread_pool_s *pool;
+	ldap_int_thread_task_t *task, *ttmp;
 	struct ldap_int_thread_poolq_s *pq;
-	ldap_int_thread_task_t *task;
-	int i;
 
-	if (tpool == NULL)
+	if (cookie == NULL)
 		return(-1);
 
-	pool = *tpool;
-
-	if (pool == NULL)
+	ttmp = cookie;
+	pq = ttmp->ltt_queue;
+	if (pq == NULL)
 		return(-1);
-
-	i = ldap_int_poolq_hash( pool, arg );
-	pq = pool->ltp_wqs[i];
 
 	ldap_pvt_thread_mutex_lock(&pq->ltp_mutex);
 	LDAP_STAILQ_FOREACH(task, &pq->ltp_pending_list, ltt_next.q)
-		if (task->ltt_start_routine == start_routine &&
-			task->ltt_arg == arg) {
+		if (task == ttmp) {
 			/* Could LDAP_STAILQ_REMOVE the task, but that
 			 * walks ltp_pending_list again to find it.
 			 */
