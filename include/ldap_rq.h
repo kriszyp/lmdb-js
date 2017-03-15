@@ -29,6 +29,7 @@ typedef struct re_s {
 	void *arg;
 	char *tname;
 	char *tspec;
+	void *pool_cookie;
 } re_t;
 
 typedef struct runqueue_s {
