@@ -41,6 +41,7 @@ struct config_reply_s; /* config.h */
  */
 
 LDAP_SLAPD_F (void *) backend_connect( void *ctx, void *arg );
+LDAP_SLAPD_F (Connection *) backend_select( Operation *op );
 
 /*
  * ch_malloc.c
@@ -131,6 +132,15 @@ LDAP_SLAPD_F (int) lload_libevent_init( void );
  */
 LDAP_SLAPD_V (int) slapd_register_slp;
 LDAP_SLAPD_V (const char *) slapd_slp_attrs;
+
+/*
+ * operation.c
+ */
+LDAP_SLAPD_F (int) operation_upstream_cmp( const void *l, const void *r );
+LDAP_SLAPD_F (int) operation_client_cmp( const void *l, const void *r );
+LDAP_SLAPD_F (void *) operation_process( void *ctx, void *arg );
+LDAP_SLAPD_F (Operation *) operation_init( Connection *c, BerElement *ber );
+LDAP_SLAPD_F (void) operation_destroy( Operation *op );
 
 /*
  * sl_malloc.c

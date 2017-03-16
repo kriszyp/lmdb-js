@@ -22,7 +22,7 @@ NT_SRCS = nt_svc.c
 NT_OBJS = nt_svc.o ../../libraries/liblutil/slapdmsg.res
 
 SRCS	= main.c globals.c backend.c config.c connection.c client.c daemon.c \
-		ch_malloc.c init.c user.c sl_malloc.c upstream.c value.c \
+		ch_malloc.c init.c operation.c user.c sl_malloc.c upstream.c value.c \
 		libevent_support.c \
 		$(@PLAT@_SRCS)
 

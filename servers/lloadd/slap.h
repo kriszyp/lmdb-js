@@ -98,6 +98,7 @@ typedef unsigned long slap_mask_t;
 
 typedef struct Backend Backend;
 typedef struct Connection Connection;
+typedef struct Operation Operation;
 /* end of forward declarations */
 
 typedef union Sockaddr {
@@ -288,6 +289,8 @@ struct Connection {
     BerElement *c_currentber; /* ber we're attempting to read */
     BerElement *c_pendingber; /* ber we're attempting to write */
 
+    TAvlnode *c_ops; /* Operations pending on the connection */
+
 #define CONN_IS_TLS 1
 #define CONN_IS_CLIENT 4
 #define CONN_IS_IPC 8
@@ -301,6 +304,16 @@ struct Connection {
     long c_n_ops_completed; /* num of ops completed */
 
     void *c_private;
+};
+
+struct Operation {
+    Connection *o_client, *o_upstream;
+
+    ber_int_t o_client_msgid, o_upstream_msgid;
+    ber_tag_t o_tag;
+
+    BerElement *o_ber;
+    BerValue o_request, o_ctrls;
 };
 
 #ifdef LDAP_DEBUG
