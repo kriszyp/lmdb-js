@@ -102,6 +102,8 @@ upstream_destroy( Connection *c )
     b->b_conns = NULL;
     ldap_pvt_thread_mutex_unlock( &b->b_lock );
 
+    ldap_pvt_thread_pool_submit( &connection_pool, backend_connect, b );
+
     ldap_pvt_thread_mutex_lock( &c->c_mutex );
 
     event_del( c->c_read_event );

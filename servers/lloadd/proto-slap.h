@@ -40,7 +40,7 @@ struct config_reply_s; /* config.h */
  * backend.c
  */
 
-LDAP_SLAPD_F (int) backend_connect( Backend *b );
+LDAP_SLAPD_F (void *) backend_connect( void *ctx, void *arg );
 
 /*
  * ch_malloc.c

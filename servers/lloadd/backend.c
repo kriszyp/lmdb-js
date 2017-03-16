@@ -99,9 +99,10 @@ backend_select( Operation *op )
 }
 
 void *
-backend_connect( Backend *b )
+backend_connect( void *ctx, void *arg )
 {
     struct evutil_addrinfo hints = {};
+    Backend *b = arg;
 
 #ifdef LDAP_PF_LOCAL
     if ( b->b_proto == LDAP_PROTO_IPC ) {
