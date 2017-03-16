@@ -24,42 +24,36 @@
 #include "lutil.h"
 #include "slap.h"
 
-static void client_destroy( Connection *c );
+static void upstream_destroy( Connection *c );
 
-static void
-client_read_cb( evutil_socket_t s, short what, void *arg )
+void
+upstream_read_cb( evutil_socket_t s, short what, void *arg )
 {
     Connection *c = arg;
 
     ldap_pvt_thread_mutex_lock( &c->c_mutex );
-    Debug( LDAP_DEBUG_CONNS, "client_read_cb: "
-            "connection %lu ready to read\n",
-            c->c_connid );
-    client_destroy( c );
+    upstream_destroy( c );
 }
 
 void
-client_write_cb( evutil_socket_t s, short what, void *arg )
+upstream_write_cb( evutil_socket_t s, short what, void *arg )
 {
     Connection *c = arg;
 }
 
 Connection *
-client_init(
-        ber_socket_t s,
-        Listener *listener,
-        const char *peername,
-        struct event_base *base,
-        int flags )
+upstream_init( ber_socket_t s, Backend *backend )
 {
     Connection *c;
+    struct event_base *base = slap_get_base( s );
     struct event *event;
+    int flags = (backend->b_tls == LLOAD_LDAPS) ? CONN_IS_TLS : 0;
 
-    assert( listener != NULL );
+    assert( backend != NULL );
 
-    c = connection_init( s, peername, flags );
+    c = connection_init( s, backend->b_host, flags );
 
-    event = event_new( base, s, EV_READ|EV_PERSIST, client_read_cb, c );
+    event = event_new( base, s, EV_READ|EV_PERSIST, upstream_read_cb, c );
     if ( !event ) {
         Debug( LDAP_DEBUG_ANY, "Read event could not be allocated\n" );
         goto fail;
@@ -67,7 +61,7 @@ client_init(
     event_add( event, NULL );
     c->c_read_event = event;
 
-    event = event_new( base, s, EV_WRITE, client_write_cb, c );
+    event = event_new( base, s, EV_WRITE, upstream_write_cb, c );
     if ( !event ) {
         Debug( LDAP_DEBUG_ANY, "Write event could not be allocated\n" );
         goto fail;
@@ -75,7 +69,7 @@ client_init(
     /* We only register the write event when we have data pending */
     c->c_write_event = event;
 
-    c->c_private = listener;
+    c->c_private = backend;
     ldap_pvt_thread_mutex_unlock( &c->c_mutex );
 
     return c;
@@ -88,20 +82,33 @@ fail:
         event_del( c->c_read_event );
         event_free( c->c_read_event );
     }
-    c->c_struct_state = SLAP_C_UNINITIALIZED;
     connection_destroy( c );
     return NULL;
 }
 
 static void
-client_destroy( Connection *c )
+upstream_destroy( Connection *c )
 {
+    Backend *b = c->c_private;
+
+    c->c_struct_state = SLAP_C_UNINITIALIZED;
+    ldap_pvt_thread_mutex_unlock( &c->c_mutex );
+
+    ldap_pvt_thread_mutex_lock( &b->b_lock );
+    if ( !(b->b_conns == c) ) {
+        ldap_pvt_thread_mutex_unlock( &b->b_lock );
+        return;
+    }
+    b->b_conns = NULL;
+    ldap_pvt_thread_mutex_unlock( &b->b_lock );
+
+    ldap_pvt_thread_mutex_lock( &c->c_mutex );
+
     event_del( c->c_read_event );
     event_free( c->c_read_event );
 
     event_del( c->c_write_event );
     event_free( c->c_write_event );
 
-    c->c_struct_state = SLAP_C_UNINITIALIZED;
     connection_destroy( c );
 }

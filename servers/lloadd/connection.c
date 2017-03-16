@@ -59,14 +59,17 @@ connection_destroy( Connection *c )
             c->c_connid );
 
     assert( c->c_struct_state == SLAP_C_UNINITIALIZED );
-    evutil_closesocket( c->c_fd );
+    ber_sockbuf_free( c->c_sb );
+
+    if ( c->c_currentber ) {
+        ber_free( c->c_currentber, 1 );
+    }
 
     ldap_pvt_thread_mutex_unlock( &c->c_mutex );
 
     ldap_pvt_thread_mutex_destroy( &c->c_io_mutex );
     ldap_pvt_thread_mutex_destroy( &c->c_mutex );
 
-    ber_sockbuf_free( c->c_sb );
     ch_free( c );
 }
 
