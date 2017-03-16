@@ -30,12 +30,65 @@ static void
 client_read_cb( evutil_socket_t s, short what, void *arg )
 {
     Connection *c = arg;
+    BerElement *ber;
+    Operation *op;
+    ber_tag_t tag;
+    ber_len_t len;
 
     ldap_pvt_thread_mutex_lock( &c->c_mutex );
     Debug( LDAP_DEBUG_CONNS, "client_read_cb: "
             "connection %lu ready to read\n",
             c->c_connid );
+
+    ber = c->c_currentber;
+    if ( ber == NULL && (ber = ber_alloc()) == NULL ) {
+        Debug( LDAP_DEBUG_ANY, "ber_alloc failed\n" );
+        goto fail;
+    }
+
+    tag = ber_get_next( c->c_sb, &len, ber );
+    if ( tag != LDAP_TAG_MESSAGE ) {
+        int err = sock_errno();
+
+        if ( err != EWOULDBLOCK && err != EAGAIN ) {
+            char ebuf[128];
+            Debug( LDAP_DEBUG_ANY, "ber_get_next on fd %d failed errno=%d (%s)\n", c->c_fd,
+                    err, sock_errstr( err, ebuf, sizeof(ebuf) ) );
+
+            c->c_currentber = NULL;
+            goto fail;
+        }
+        c->c_currentber = ber;
+        ldap_pvt_thread_mutex_unlock( &c->c_mutex );
+        return;
+    }
+
+    c->c_currentber = NULL;
+
+    op = operation_init( c, ber );
+    if ( !op ) {
+        Debug( LDAP_DEBUG_ANY, "operation_init failed\n" );
+        goto fail;
+    }
+
+    if ( ldap_pvt_thread_pool_submit(
+                 &connection_pool, operation_process, op ) ) {
+        /* what could have happened? */
+        ldap_pvt_thread_mutex_unlock( &c->c_mutex );
+        operation_destroy( op );
+        ldap_pvt_thread_mutex_lock( &c->c_mutex );
+        goto fail;
+    }
+
+    ldap_pvt_thread_mutex_unlock( &c->c_mutex );
+    return;
+fail:
     client_destroy( c );
+
+    if ( ber ) {
+        ber_free( ber, 1 );
+    }
+    return;
 }
 
 void
