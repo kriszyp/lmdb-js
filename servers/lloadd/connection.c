@@ -54,6 +54,14 @@ void
 connection_destroy( Connection *c )
 {
     assert( c );
+    Debug( LDAP_DEBUG_CONNS, "connection_destroy: "
+            "destroying connection %lu.\n",
+            c->c_connid );
+
+    assert( c->c_struct_state == SLAP_C_UNINITIALIZED );
+    evutil_closesocket( c->c_fd );
+
+    ldap_pvt_thread_mutex_unlock( &c->c_mutex );
 
     ldap_pvt_thread_mutex_destroy( &c->c_io_mutex );
     ldap_pvt_thread_mutex_destroy( &c->c_mutex );
@@ -84,6 +92,7 @@ connection_init( ber_socket_t s, const char *peername, int flags )
 
     c = ch_calloc( 1, sizeof(Connection) );
 
+    c->c_fd = s;
     c->c_sb = ber_sockbuf_alloc();
     ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_SET_FD, &s );
 
@@ -132,6 +141,8 @@ connection_init( ber_socket_t s, const char *peername, int flags )
     }
 #endif
 
+    c->c_next_msgid = 1;
+
     ldap_pvt_thread_mutex_init( &c->c_mutex );
     ldap_pvt_thread_mutex_init( &c->c_io_mutex );
 
@@ -141,8 +152,8 @@ connection_init( ber_socket_t s, const char *peername, int flags )
             "connection connid=%lu allocated for socket fd=%d\n",
             c->c_connid, s );
 
+    ldap_pvt_thread_mutex_lock( &c->c_mutex );
+    c->c_struct_state = SLAP_C_USED;
+
     return c;
-fail:
-    connection_destroy( c );
-    return NULL;
 }
