@@ -42,6 +42,24 @@ void
 client_write_cb( evutil_socket_t s, short what, void *arg )
 {
     Connection *c = arg;
+
+    ldap_pvt_thread_mutex_lock( &c->c_io_mutex );
+    Debug( LDAP_DEBUG_CONNS, "client_write_cb: "
+            "have something to write to client %lu\n",
+            c->c_connid );
+
+    if ( ber_flush( c->c_sb, c->c_pendingber, 1 ) ) {
+        int err = sock_errno();
+        if ( err != EWOULDBLOCK && err != EAGAIN ) {
+            ldap_pvt_thread_mutex_lock( &c->c_mutex );
+            ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
+            client_destroy( c );
+            return;
+        }
+        event_add( c->c_write_event, NULL );
+    }
+    c->c_pendingber = NULL;
+    ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
 }
 
 Connection *
