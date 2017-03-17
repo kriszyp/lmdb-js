@@ -533,7 +533,7 @@ config_backend( ConfigArgs *c )
         b->b_host = ch_strdup( lud->lud_host );
     }
 
-    ldap_pvt_thread_mutex_init( &b->b_lock );
+    ldap_pvt_thread_mutex_init( &b->b_mutex );
 
 done:
     ldap_free_urldesc( lud );

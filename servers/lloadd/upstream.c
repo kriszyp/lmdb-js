@@ -331,7 +331,7 @@ upstream_bind( void *ctx, void *arg )
 
     ldap_pvt_thread_mutex_unlock( &c->c_mutex );
 
-    ldap_pvt_thread_mutex_lock( &b->b_lock );
+    ldap_pvt_thread_mutex_lock( &b->b_mutex );
     if ( b->b_bindconf.sb_method == LDAP_AUTH_SIMPLE ) {
         /* simple bind */
         rc = ber_printf( ber, "{it{iOtON}}",
@@ -355,7 +355,7 @@ upstream_bind( void *ctx, void *arg )
         }
 #endif /* HAVE_CYRUS_SASL */
     }
-    ldap_pvt_thread_mutex_unlock( &b->b_lock );
+    ldap_pvt_thread_mutex_unlock( &b->b_mutex );
 
     ldap_pvt_thread_mutex_lock( &c->c_io_mutex );
     c->c_pendingber = ber;
@@ -417,13 +417,13 @@ upstream_destroy( Connection *c )
     c->c_state = SLAP_C_INVALID;
     ldap_pvt_thread_mutex_unlock( &c->c_mutex );
 
-    ldap_pvt_thread_mutex_lock( &b->b_lock );
+    ldap_pvt_thread_mutex_lock( &b->b_mutex );
     if ( !(b->b_conns == c) ) {
-        ldap_pvt_thread_mutex_unlock( &b->b_lock );
+        ldap_pvt_thread_mutex_unlock( &b->b_mutex );
         return;
     }
     b->b_conns = NULL;
-    ldap_pvt_thread_mutex_unlock( &b->b_lock );
+    ldap_pvt_thread_mutex_unlock( &b->b_mutex );
 
     ldap_pvt_thread_pool_submit( &connection_pool, backend_connect, b );
 

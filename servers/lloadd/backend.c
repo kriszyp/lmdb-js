@@ -71,9 +71,9 @@ upstream_name_cb( int result, struct evutil_addrinfo *res, void *arg )
     }
 
     c = upstream_init( s, b );
-    ldap_pvt_thread_mutex_lock( &b->b_lock );
+    ldap_pvt_thread_mutex_lock( &b->b_mutex );
     b->b_conns = c;
-    ldap_pvt_thread_mutex_unlock( &b->b_lock );
+    ldap_pvt_thread_mutex_unlock( &b->b_mutex );
 }
 
 Connection *
@@ -84,15 +84,15 @@ backend_select( Operation *op )
     LDAP_STAILQ_FOREACH ( b, &backend, b_next ) {
         Connection *c;
 
-        ldap_pvt_thread_mutex_lock( &b->b_lock );
+        ldap_pvt_thread_mutex_lock( &b->b_mutex );
         c = b->b_conns;
         ldap_pvt_thread_mutex_lock( &c->c_mutex );
         if ( c->c_state == SLAP_C_READY && !c->c_pendingber ) {
-            ldap_pvt_thread_mutex_unlock( &b->b_lock );
+            ldap_pvt_thread_mutex_unlock( &b->b_mutex );
             return b->b_conns;
         }
         ldap_pvt_thread_mutex_unlock( &c->c_mutex );
-        ldap_pvt_thread_mutex_unlock( &b->b_lock );
+        ldap_pvt_thread_mutex_unlock( &b->b_mutex );
     }
 
     return NULL;
