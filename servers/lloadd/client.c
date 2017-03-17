@@ -130,6 +130,8 @@ client_init(
 
     c = connection_init( s, peername, flags );
 
+    c->c_state = SLAP_C_READY;
+
     event = event_new( base, s, EV_READ|EV_PERSIST, client_read_cb, c );
     if ( !event ) {
         Debug( LDAP_DEBUG_ANY, "Read event could not be allocated\n" );
@@ -159,7 +161,7 @@ fail:
         event_del( c->c_read_event );
         event_free( c->c_read_event );
     }
-    c->c_struct_state = SLAP_C_UNINITIALIZED;
+    c->c_state = SLAP_C_INVALID;
     connection_destroy( c );
     return NULL;
 }
@@ -173,6 +175,6 @@ client_destroy( Connection *c )
     event_del( c->c_write_event );
     event_free( c->c_write_event );
 
-    c->c_struct_state = SLAP_C_UNINITIALIZED;
+    c->c_state = SLAP_C_INVALID;
     connection_destroy( c );
 }

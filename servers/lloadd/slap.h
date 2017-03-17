@@ -243,29 +243,19 @@ struct Backend {
     LDAP_STAILQ_ENTRY(Backend) b_next;
 };
 
-/*
- * represents a connection from an ldap client
- */
-/* structure state (protected by connections_mutex) */
-enum sc_struct_state {
-    SLAP_C_UNINITIALIZED = 0, /* MUST BE ZERO (0) */
-    SLAP_C_UNUSED,
-    SLAP_C_USED,
-    SLAP_C_PENDING
-};
-
 /* connection state (protected by c_mutex) */
-enum sc_conn_state {
+enum sc_state {
     SLAP_C_INVALID = 0, /* MUST BE ZERO (0) */
-    SLAP_C_INACTIVE,    /* zero threads */
+    SLAP_C_READY,       /* ready */
     SLAP_C_CLOSING,     /* closing */
-    SLAP_C_ACTIVE,      /* one or more threads */
+    SLAP_C_ACTIVE,      /* exclusive operation (tls setup, ...) in progress */
     SLAP_C_BINDING,     /* binding */
-    SLAP_C_CLIENT       /* outbound client conn */
 };
+/*
+ * represents a connection from an ldap client/to ldap server
+ */
 struct Connection {
-    enum sc_struct_state c_struct_state; /* structure management state */
-    enum sc_conn_state c_conn_state;     /* connection state */
+    enum sc_state c_state; /* connection state */
     ber_socket_t c_fd;
 
     ldap_pvt_thread_mutex_t c_mutex; /* protect the connection */

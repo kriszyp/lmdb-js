@@ -154,7 +154,7 @@ static ConfigTable config_back_cf_table[] = {
         ARG_INT|ARG_MAGIC|CFG_CONCUR,
         &config_generic,
     },
-    { "backend", "type", 2, 2, 0,
+    { "backend", "type", 2, 0, 0,
         ARG_MAGIC|CFG_DATABASE,
         &config_backend,
     },

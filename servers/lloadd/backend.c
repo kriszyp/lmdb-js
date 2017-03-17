@@ -87,7 +87,7 @@ backend_select( Operation *op )
         ldap_pvt_thread_mutex_lock( &b->b_lock );
         c = b->b_conns;
         ldap_pvt_thread_mutex_lock( &c->c_mutex );
-        if ( c->c_struct_state != SLAP_C_UNINITIALIZED && !c->c_pendingber ) {
+        if ( c->c_state == SLAP_C_READY && !c->c_pendingber ) {
             ldap_pvt_thread_mutex_unlock( &b->b_lock );
             return b->b_conns;
         }

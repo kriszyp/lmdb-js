@@ -58,7 +58,7 @@ connection_destroy( Connection *c )
             "destroying connection %lu.\n",
             c->c_connid );
 
-    assert( c->c_struct_state == SLAP_C_UNINITIALIZED );
+    assert( c->c_state == SLAP_C_INVALID );
     ber_sockbuf_free( c->c_sb );
 
     if ( c->c_currentber ) {
@@ -156,7 +156,7 @@ connection_init( ber_socket_t s, const char *peername, int flags )
             c->c_connid, s );
 
     ldap_pvt_thread_mutex_lock( &c->c_mutex );
-    c->c_struct_state = SLAP_C_USED;
+    c->c_state = SLAP_C_ACTIVE;
 
     return c;
 }

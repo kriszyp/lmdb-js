@@ -194,6 +194,8 @@ upstream_init( ber_socket_t s, Backend *backend )
     c->c_write_event = event;
 
     c->c_private = backend;
+
+    c->c_state = SLAP_C_READY;
     ldap_pvt_thread_mutex_unlock( &c->c_mutex );
 
     return c;
@@ -215,7 +217,7 @@ upstream_destroy( Connection *c )
 {
     Backend *b = c->c_private;
 
-    c->c_struct_state = SLAP_C_UNINITIALIZED;
+    c->c_state = SLAP_C_INVALID;
     ldap_pvt_thread_mutex_unlock( &c->c_mutex );
 
     ldap_pvt_thread_mutex_lock( &b->b_lock );
