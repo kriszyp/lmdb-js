@@ -19,7 +19,6 @@ describe('Node.js LMDB Bindings', function() {
     str = str + str;
     str = str + str;
     str = str + str;
-    str = str + str;
     return str;
   }
 
@@ -39,7 +38,6 @@ describe('Node.js LMDB Bindings', function() {
     });
   });
   it('will construct, open and close an environment', function() {
-    this.timeout(10000);
     var env = new lmdb.Env();
     env.open({
       path: testDirPath,
@@ -52,7 +50,6 @@ describe('Node.js LMDB Bindings', function() {
     env.close();
   });
   describe('Basics', function() {
-    this.timeout(10000);
     var env;
     before(function() {
       env = new lmdb.Env();
@@ -78,64 +75,6 @@ describe('Node.js LMDB Bindings', function() {
       txn.del(dbi, 'hello');
       var data3 = txn.getString(dbi, 'hello');
       should.equal(data3, null);
-      txn.commit();
-      dbi.close();
-    });
-    it('will open a database, begin a transaction and get/put/delete string data containing zeros', function() {
-      var dbi = env.openDbi({
-        name: 'mydb1x',
-        create: true
-      });
-      var txn = env.beginTxn();
-      var data = txn.getString(dbi, 'hello');
-      should.equal(data, null);
-      txn.putString(dbi, 'hello', 'Hello \0 world!');
-      var data2 = txn.getString(dbi, 'hello');
-      data2.should.equal('Hello \0 world!');
-      txn.del(dbi, 'hello');
-      var data3 = txn.getString(dbi, 'hello');
-      should.equal(data3, null);
-      txn.commit();
-      dbi.close();
-    });
-    it('will check if UTF-16 Buffers can be read as strings', function() {
-      // The string we want to store using a buffer
-      var expectedString = 'Hello \0 world!';
-      
-      // node-lmdb internally stores a terminating zero, so we need to manually emulate that here
-      // NOTE: this would NEVER work without 'utf16le'!
-      var buf = Buffer.from(expectedString + '\0', 'utf16le');
-      var key = 'hello';
-      
-      // Open dbi and create cursor
-      var dbi = env.openDbi({
-        name: 'mydb1xx',
-        create: true
-      });
-      var txn = env.beginTxn();
-      
-      // Check non-existence of the key
-      var data1 = txn.getBinary(dbi, key);
-      should.equal(data1, null);
-      
-      // Store data as binary
-      txn.putBinary(dbi, key, buf);
-      
-      // Retrieve data as binary and check
-      var data2 = txn.getBinary(dbi, key);
-      should.equal(buf.compare(data2), 0);
-      
-      // Retrieve same data as string and check
-      var data3 = txn.getString(dbi, key);
-      should.equal(data3, expectedString);
-      
-      // Delete data
-      txn.del(dbi, key);
-      
-      // Verify non-existence of data
-      var data3 = txn.getBinary(dbi, key);
-      should.equal(data3, null);
-      
       txn.commit();
       dbi.close();
     });
@@ -166,7 +105,6 @@ describe('Node.js LMDB Bindings', function() {
     });
   });
   describe('Data types', function() {
-    this.timeout(10000);
     var env;
     var dbi;
     var txn;
@@ -255,7 +193,6 @@ describe('Node.js LMDB Bindings', function() {
     });
   });
   describe('Multiple transactions', function() {
-    this.timeout(10000);
     var env;
     var dbi;
     before(function() {
@@ -314,7 +251,7 @@ describe('Node.js LMDB Bindings', function() {
     this.timeout(10000);
     var env;
     var dbi;
-    var total = 1000;
+    var total = 100000;
     before(function() {
       env = new lmdb.Env();
       env.open({
@@ -426,7 +363,7 @@ describe('Node.js LMDB Bindings', function() {
     this.timeout(10000);
     var env;
     var dbi;
-    var total = 1000;
+    var total = 100000;
     before(function() {
       env = new lmdb.Env();
       env.open({
@@ -537,8 +474,8 @@ describe('Node.js LMDB Bindings', function() {
     this.timeout(10000);
     var env;
     var dbi;
-    var total = 1000;
-    let padding = '000000000';
+    var total = 100000;
+    let padding = '00000000';
     let keyEnc = 'utf8';
     let valueEnc = 'utf8';
 
@@ -580,73 +517,6 @@ describe('Node.js LMDB Bindings', function() {
         let readValue = value.toString(valueEnc);
         console.log(readKey);
         console.log(readValue);
-        //readKey.should.equal(expectedKey);
-        readValue.should.equal(expand(expectedKey));
-      });
-
-      let count = 0;
-      key = cursor.goToFirst();
-      // key is a string... bug...
-      //(typeof key).should.not.equal('string');
-      while (key && count < total+1) { //+1 to run off end if fails to return null
-        //console.log(key.length);
-        let expectedKey = (padding + count).slice(-padding.length);
-        cursor.getCurrentBinary(function(key, value) {
-          let readKey = key.toString(keyEnc);
-          let readValue = value.toString(valueEnc);
-          console.log(readKey);
-          console.log(readValue);
-          //readKey.should.equal(expectedKey);
-          readValue.should.equal(expand(expectedKey));
-          });
-        key = cursor.goToNext();
-        //(typeof key).should.not.equal('string');
-        count++; 
-      }
-      cursor.close();
-      txn.commit();
-      count.should.equal(total);
-      done();
-    });
-  });
-  describe('Cursors reading existing binary key and data', function() {
-    this.timeout(10000);
-    var env;
-    var dbi;
-    var total = 100000;
-    let padding = '000000000';
-    let keyEnc = 'utf8';
-    let valueEnc = 'utf8';
-
-    before(function() {
-      env = new lmdb.Env();
-      env.open({
-        path: testDirPath,
-        maxDbs: 10,
-        mapSize: 64 * 1024 * 1024
-      });
-      dbi = env.openDbi({
-        name: 'cursorbinkeydata',
-        create: false
-      });
-    });
-
-    after(function() {
-      dbi.close();
-      env.close();
-    });
-
-    it('will move cursor over existing key/values', function(done) {
-      var txn = env.beginTxn();
-      var cursor = new lmdb.Cursor(txn, dbi);
-      let expectedKey = (padding + 40).slice(-padding.length);
-      let key = Buffer.from(expectedKey,keyEnc);
-      cursor.goToKey(key);
-      cursor.getCurrentBinary(function(key, value) {
-        let readKey = key.toString(keyEnc);
-        let readValue = value.toString(valueEnc);
-        //console.log(readKey);
-        //console.log(readValue);
         readKey.should.equal(expectedKey);
         readValue.should.equal(expand(expectedKey));
       });
@@ -656,14 +526,14 @@ describe('Node.js LMDB Bindings', function() {
       // key is a string... bug...
       //(typeof key).should.not.equal('string');
       while (key && count < total+1) { //+1 to run off end if fails to return null
-        //console.log(key.length);
+        console.log(key.length);
         let expectedKey = (padding + count).slice(-padding.length);
         cursor.getCurrentBinary(function(key, value) {
           let readKey = key.toString(keyEnc);
           let readValue = value.toString(valueEnc);
-          //console.log(readKey);
-          //console.log(readValue);
-//          readKey.should.equal(expectedKey);
+          console.log(readKey);
+          console.log(readValue);
+          readKey.should.equal(expectedKey);
           readValue.should.equal(expand(expectedKey));
           });
         key = cursor.goToNext();
@@ -677,7 +547,6 @@ describe('Node.js LMDB Bindings', function() {
     });
   });
   describe('Cluster', function() {
-    this.timeout(10000);
     it('will run a cluster of processes with read-only transactions', function(done) {
       var child = spawn('node', [path.resolve(__dirname, './cluster')]);
       child.stdout.on('data', function(data) {
@@ -701,7 +570,7 @@ describe('Node.js LMDB Bindings', function() {
       env.open({
         path: testDirPath,
         maxDbs: 10,
-        mapSize:  64 * 1024 * 1024
+        mapSize: 16 * 1024 * 1024 * 1024
       });
       dbi = env.openDbi({
         name: 'mydb6',
@@ -750,7 +619,7 @@ describe('Node.js LMDB Bindings', function() {
       env.open({
         path: testDirPath,
         maxDbs: 10,
-        mapSize:  64 * 1024 * 1024
+        mapSize: 16 * 1024 * 1024 * 1024
       });
       dbi = env.openDbi({
         name: 'mydb7',
@@ -800,7 +669,7 @@ describe('Node.js LMDB Bindings', function() {
       env.open({
         path: testDirPath,
         maxDbs: 12,
-        mapSize: 64 * 1024 * 1024
+        mapSize: 16 * 1024 * 1024 * 1024
       });
       var dbi = env.openDbi({
         name: 'testfree',
@@ -837,7 +706,7 @@ describe('Node.js LMDB Bindings', function() {
       env.open({
         path: testDirPath,
         maxDbs: 12,
-        mapSize: 64 * 1024 * 1024
+        mapSize: 16 * 1024 * 1024 * 1024
       });
       dbi = env.openDbi({
         name: 'testkeys',

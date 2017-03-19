@@ -47,9 +47,10 @@ void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue,
     }
 }
 
-argtokey_callback_t argToKey(const Local<Value> &val, MDB_val &key, bool keyIsUint32) {
+argtokey_callback_t argToKey(const Local<Value> &val, MDB_val &key, node_lmdb::KeyType kt) {
     // Check key type
-    if (keyIsUint32 && !val->IsUint32()) {
+    bool uintKey = (kt == node_lmdb::uint32Key);
+    if (uintKey && !val->IsUint32()) {
         Nan::ThrowError("Invalid key. keyIsUint32 specified on the database, but the given key was not an unsigned 32-bit integer");
         return nullptr;
     }
@@ -65,13 +66,13 @@ argtokey_callback_t argToKey(const Local<Value> &val, MDB_val &key, bool keyIsUi
 
     }
 
-    if (!keyIsUint32 && !val->IsString()) {
+    if (!uintKey && !val->IsString()) {
         Nan::ThrowError("Invalid key. String key expected, because keyIsUint32 isn't specified on the database.");
         return nullptr;
     }
 
     // Handle uint32_t key
-    if (keyIsUint32) {
+    if (uintKey) {
         uint32_t *v = new uint32_t;
         *v = val->Uint32Value();
 
@@ -92,14 +93,40 @@ argtokey_callback_t argToKey(const Local<Value> &val, MDB_val &key, bool keyIsUi
     return nullptr;
 }
 
-Local<Value> keyToHandle(MDB_val &key, bool keyIsUint32, bool keyAsBuffer) {
-    if (keyIsUint32) {
+
+argtokey_callback_t argToKey(const Local<Value> &val, MDB_val &key, bool keyIsUint32) {
+    return argToKey(val,key, keyIsUint32 ? node_lmdb::uint32Key : node_lmdb::stringKey);
+}
+
+Local<Value> valToStringChecked(MDB_val &data) {
+    char *p = static_cast<char*>(data.mv_data);
+    if (data.mv_size & 1 ||
+        data.mv_size < sizeof(uint16_t) ||
+        p[data.mv_size-2] ||
+        p[data.mv_size-1]
+       ) {
+        Nan::ThrowError("Invalid UTF16 string");
+        return Nan::Undefined();
+    }
+    auto str = Nan::New<v8::String>(
+        static_cast<uint16_t*>(data.mv_data),
+        data.mv_size/sizeof(uint16_t)-1);
+    return str.ToLocalChecked();
+}
+
+Local<Value> keyToHandle(MDB_val &key, node_lmdb::KeyType kt) {
+    const char *p = (const char*)key.mv_data;
+    switch (kt) {
+      case node_lmdb::uint32Key:
         return Nan::New<Integer>(*((uint32_t*)key.mv_data));
-    } else if (keyAsBuffer) {
+      case node_lmdb::binaryKey:
         return valToBinary(key);
-    } else {
+      case node_lmdb::stringKey:
+        return valToStringChecked(key);
+      case node_lmdb::legacyStringKey:
         return valToString(key);
     }
+    assert(("Unhandled KeyType",0));
 }
 
 Local<Value> valToStringUnsafe(MDB_val &data) {
@@ -110,6 +137,12 @@ Local<Value> valToStringUnsafe(MDB_val &data) {
 }
 
 Local<Value> valToString(MDB_val &data) {
+
+    if (data.mv_size < sizeof(uint16_t)) {
+        Nan::ThrowError("Invalid UTF16 string");
+        return Nan::Undefined();
+    }
+    
     auto buffer = reinterpret_cast<const uint16_t*>(data.mv_data);
     int length = data.mv_size / sizeof(uint16_t) - 1;
     auto str = Nan::New<v8::String>(buffer, length);
@@ -180,7 +213,9 @@ CustomExternalStringResource::CustomExternalStringResource(MDB_val *val) {
     // The UTF-16 data
     this->d = (uint16_t*)(val->mv_data);
     // Number of UTF-16 characters in the string
-    this->l = (val->mv_size / sizeof(uint16_t) - 1);
+    // Silently generate a 0 length if length invalid
+    size_t n = val->mv_size / sizeof(uint16_t);
+    this->l = n ? n-1 : 0;
 }
 
 CustomExternalStringResource::~CustomExternalStringResource() { }

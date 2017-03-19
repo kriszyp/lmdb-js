@@ -15,7 +15,7 @@ if (cluster.isMaster) {
   env.open({
     path: path.resolve(__dirname, './testdata'),
     maxDbs: 10,
-    mapSize: 4096 * 4096,
+    mapSize: 4096 * 4096 * 16,
     maxReaders: 126
   });
 
@@ -28,7 +28,7 @@ if (cluster.isMaster) {
 
   // This will start as many workers as there are CPUs available.
   var workers = [];
-  for (var i = 0; i < numCPUs; i++) {
+  for (var i = 0; i < numCPUs * 4; i++) {
     var worker = cluster.fork();
     workers.push(worker);
   }
