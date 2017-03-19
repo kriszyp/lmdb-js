@@ -67,6 +67,23 @@ describe('Node.js LMDB Bindings', function() {
       txn.commit();
       dbi.close();
     });
+    it('will open a database, begin a transaction and get/put/delete string data containing zeros', function() {
+      var dbi = env.openDbi({
+        name: 'mydb1x',
+        create: true
+      });
+      var txn = env.beginTxn();
+      var data = txn.getString(dbi, 'hello');
+      should.equal(data, null);
+      txn.putString(dbi, 'hello', 'Hello \0 world!');
+      var data2 = txn.getString(dbi, 'hello');
+      data2.should.equal('Hello \0 world!');
+      txn.del(dbi, 'hello');
+      var data3 = txn.getString(dbi, 'hello');
+      should.equal(data3, null);
+      txn.commit();
+      dbi.close();
+    });
     it('will throw Javascript error if named database cannot be found', function () {
       try {
         env.openDbi({

@@ -110,7 +110,9 @@ Local<Value> valToStringUnsafe(MDB_val &data) {
 }
 
 Local<Value> valToString(MDB_val &data) {
-    auto str = Nan::New<v8::String>((uint16_t*)data.mv_data);
+    auto buffer = reinterpret_cast<const uint16_t*>(data.mv_data);
+    int length = data.mv_size / sizeof(uint16_t) - 1;
+    auto str = Nan::New<v8::String>(buffer, length);
 
     return str.ToLocalChecked();
 }
