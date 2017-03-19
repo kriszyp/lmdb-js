@@ -277,6 +277,7 @@ NAN_METHOD(TxnWrap::del) {
     MDB_val data;
     Local<Value> dataHandle = info[2];
     bool freeData = false;
+    auto context = Nan::GetCurrentContext();
     if ((dw->flags & MDB_DUPSORT) && !(dataHandle->IsUndefined())) {
         if (dataHandle->IsString()) {
             CustomExternalStringResource::writeTo(dataHandle->ToString(), &data);
@@ -290,13 +291,17 @@ NAN_METHOD(TxnWrap::del) {
         else if (dataHandle->IsNumber()) {
             data.mv_size = sizeof(double);
             data.mv_data = new double;
-            *((double*)data.mv_data) = dataHandle->ToNumber()->Value();
+            
+            auto local = dataHandle->ToNumber(context).ToLocalChecked();
+            *((double*)data.mv_data) = local->Value();
             freeData = true;
         }
         else if (dataHandle->IsBoolean()) {
             data.mv_size = sizeof(double);
             data.mv_data = new bool;
-            *((bool*)data.mv_data) = dataHandle->ToBoolean()->Value();
+            
+            auto local = dataHandle->ToBoolean(context).ToLocalChecked();
+            *((bool*)data.mv_data) = local->Value();
             freeData = true;
         }
         else {
