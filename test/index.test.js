@@ -84,6 +84,35 @@ describe('Node.js LMDB Bindings', function() {
       txn.commit();
       dbi.close();
     });
+    it('will check if UTF-16 Buffers can be read as strings', function() {
+      var buf = Buffer.from('Hello \0 world!', 'utf16le');
+      var key = 'hello';
+      
+      var dbi = env.openDbi({
+        name: 'mydb1xx',
+        create: true
+      });
+      var txn = env.beginTxn();
+      
+      var data1 = txn.getBinary(dbi, key);
+      should.equal(data1, null);
+      txn.putBinary(dbi, key, buf);
+      
+      var data2 = txn.getBinary(dbi, key);
+      should.equal(buf.compare(data2), 0);
+      
+      var data3 = txn.getString(dbi, key);
+      var buf3 = Buffer.from(data3, "utf16le");
+      should.equal(buf.compare(buf3), 0);
+      
+      txn.del(dbi, key);
+      
+      var data3 = txn.getBinary(dbi, key);
+      should.equal(data3, null);
+      
+      txn.commit();
+      dbi.close();
+    });
     it('will throw Javascript error if named database cannot be found', function () {
       try {
         env.openDbi({
