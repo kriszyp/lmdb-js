@@ -85,28 +85,40 @@ describe('Node.js LMDB Bindings', function() {
       dbi.close();
     });
     it('will check if UTF-16 Buffers can be read as strings', function() {
-      var buf = Buffer.from('Hello \0 world!', 'utf16le');
+      // The string we want to store using a buffer
+      var expectedString = 'Hello \0 world!';
+      
+      // node-lmdb internally stores a terminating zero, so we need to manually emulate that here
+      // NOTE: this would NEVER work without 'utf16le'!
+      var buf = Buffer.from(expectedString + '\0', 'utf16le');
       var key = 'hello';
       
+      // Open dbi and create cursor
       var dbi = env.openDbi({
         name: 'mydb1xx',
         create: true
       });
       var txn = env.beginTxn();
       
+      // Check non-existence of the key
       var data1 = txn.getBinary(dbi, key);
       should.equal(data1, null);
+      
+      // Store data as binary
       txn.putBinary(dbi, key, buf);
       
+      // Retrieve data as binary and check
       var data2 = txn.getBinary(dbi, key);
       should.equal(buf.compare(data2), 0);
       
+      // Retrieve same data as string and check
       var data3 = txn.getString(dbi, key);
-      var buf3 = Buffer.from(data3, "utf16le");
-      should.equal(buf.compare(buf3), 0);
+      should.equal(data3, expectedString);
       
+      // Delete data
       txn.del(dbi, key);
       
+      // Verify non-existence of data
       var data3 = txn.getBinary(dbi, key);
       should.equal(data3, null);
       
