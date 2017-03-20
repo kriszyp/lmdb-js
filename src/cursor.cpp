@@ -29,6 +29,7 @@ using namespace node;
 
 CursorWrap::CursorWrap(MDB_cursor *cursor) {
     this->cursor = cursor;
+    this->freeKey = nullptr;
 }
 
 CursorWrap::~CursorWrap() {
@@ -93,7 +94,7 @@ NAN_METHOD(CursorWrap::del) {
 Nan::NAN_METHOD_RETURN_TYPE CursorWrap::getCommon(
     Nan::NAN_METHOD_ARGS_TYPE info,
     MDB_cursor_op op,
-    void (*setKey)(CursorWrap* cw, Nan::NAN_METHOD_ARGS_TYPE info, MDB_val&),
+    argtokey_callback_t (*setKey)(CursorWrap* cw, Nan::NAN_METHOD_ARGS_TYPE info, MDB_val&),
     void (*setData)(CursorWrap* cw, Nan::NAN_METHOD_ARGS_TYPE info, MDB_val&),
     void (*freeData)(CursorWrap* cw, Nan::NAN_METHOD_ARGS_TYPE info, MDB_val&),
     Local<Value> (*convertFunc)(MDB_val &data),
@@ -104,9 +105,17 @@ Nan::NAN_METHOD_RETURN_TYPE CursorWrap::getCommon(
     int al = info.Length();
     CursorWrap *cw = Nan::ObjectWrap::Unwrap<CursorWrap>(info.This());
 
+    // When a new key is manually set
     if (setKey) {
-        setKey(cw, info, cw->key);
+        // If we must free the current cw->key, free it now
+        if (cw->freeKey) {
+            cw->freeKey(cw->key);
+        }
+        
+        // Set new key and assign the deleter function
+        cw->freeKey = setKey(cw, info, cw->key);
     }
+    
     if (setData) {
         setData(cw, info, cw->data);
     }
@@ -115,8 +124,24 @@ Nan::NAN_METHOD_RETURN_TYPE CursorWrap::getCommon(
     MDB_val tempdata;
     tempdata.mv_size = cw->data.mv_size;
     tempdata.mv_data = cw->data.mv_data;
+    
+    // Temporary bookkeeping for the current key
+    MDB_val tempKey;
+    tempKey.mv_size = cw->key.mv_size;
+    tempKey.mv_data = cw->key.mv_data;
 
     int rc = mdb_cursor_get(cw->cursor, &(cw->key), &(cw->data), op);
+    
+    // When cw->key.mv_data changes, it means it points inside the database now,
+    // so we should free the old key now.
+    if (tempKey.mv_data != cw->key.mv_data) {
+        if (cw->freeKey) {
+            cw->freeKey(tempKey);
+        }
+        
+        // No need to free the key that points to the database.
+        cw->freeKey = nullptr;
+    }
 
     if (rc == MDB_NOTFOUND) {
         return info.GetReturnValue().Set(Nan::Null());
@@ -204,14 +229,14 @@ MAKE_GET_FUNC(goToNextDup, MDB_NEXT_DUP);
 MAKE_GET_FUNC(goToPrevDup, MDB_PREV_DUP);
 
 NAN_METHOD(CursorWrap::goToKey) {
-    return getCommon(info, MDB_SET, [](CursorWrap* cw, Nan::NAN_METHOD_ARGS_TYPE info, MDB_val &key) -> void {
-        argToKey(info[0], key, cw->keyIsUint32);
+    return getCommon(info, MDB_SET, [](CursorWrap* cw, Nan::NAN_METHOD_ARGS_TYPE info, MDB_val &key) -> argtokey_callback_t {
+        return argToKey(info[0], key, cw->keyIsUint32);
     }, nullptr, nullptr, nullptr);
 }
 
 NAN_METHOD(CursorWrap::goToRange) {
-    return getCommon(info, MDB_SET_RANGE, [](CursorWrap* cw, Nan::NAN_METHOD_ARGS_TYPE info, MDB_val &key) -> void {
-        argToKey(info[0], key, cw->keyIsUint32);
+    return getCommon(info, MDB_SET_RANGE, [](CursorWrap* cw, Nan::NAN_METHOD_ARGS_TYPE info, MDB_val &key) -> argtokey_callback_t {
+        return argToKey(info[0], key, cw->keyIsUint32);
     }, nullptr, nullptr, nullptr);
 }
 
@@ -257,14 +282,14 @@ static void freeDataFromArg1(CursorWrap* cw, Nan::NAN_METHOD_ARGS_TYPE info, MDB
 }
 
 NAN_METHOD(CursorWrap::goToDup) {
-    return getCommon(info, MDB_GET_BOTH, [](CursorWrap* cw, Nan::NAN_METHOD_ARGS_TYPE info, MDB_val &key) -> void {
-        argToKey(info[0], key, cw->keyIsUint32);
+    return getCommon(info, MDB_GET_BOTH, [](CursorWrap* cw, Nan::NAN_METHOD_ARGS_TYPE info, MDB_val &key) -> argtokey_callback_t {
+        return argToKey(info[0], key, cw->keyIsUint32);
     }, fillDataFromArg1, freeDataFromArg1, nullptr);
 }
 
 NAN_METHOD(CursorWrap::goToDupRange) {
-    return getCommon(info, MDB_GET_BOTH_RANGE, [](CursorWrap* cw, Nan::NAN_METHOD_ARGS_TYPE info, MDB_val &key) -> void {
-        argToKey(info[0], key, cw->keyIsUint32);
+    return getCommon(info, MDB_GET_BOTH_RANGE, [](CursorWrap* cw, Nan::NAN_METHOD_ARGS_TYPE info, MDB_val &key) -> argtokey_callback_t {
+        return argToKey(info[0], key, cw->keyIsUint32);
     }, fillDataFromArg1, freeDataFromArg1, nullptr);
 }
 
