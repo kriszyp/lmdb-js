@@ -2814,7 +2814,7 @@ loop:
 		       0, 0, 0 );
 	}
 
-	close_listeners( 0 );
+	close_listeners( 1 );
 
 	if ( !slapd_gentle_shutdown ) {
 		slapd_abrupt_shutdown = 1;
