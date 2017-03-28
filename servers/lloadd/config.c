@@ -72,6 +72,8 @@ static char *logfileName;
 ber_len_t sockbuf_max_incoming = SLAP_SB_MAX_INCOMING_DEFAULT;
 ber_len_t sockbuf_max_incoming_auth = SLAP_SB_MAX_INCOMING_AUTH;
 
+int slap_conn_max_pdus_per_cycle = SLAP_CONN_MAX_PDUS_PER_CYCLE_DEFAULT;
+
 char *slapd_pid_file = NULL;
 char *slapd_args_file = NULL;
 
@@ -134,6 +136,7 @@ enum {
     CFG_TLS_CACERT,
     CFG_TLS_CERT,
     CFG_TLS_KEY,
+    CFG_RESCOUNT,
 
     CFG_LAST
 };
@@ -218,6 +221,10 @@ static ConfigTable config_back_cf_table[] = {
     },
     { "threadqueues", "count", 2, 2, 0,
         ARG_INT|ARG_MAGIC|CFG_THREADQS,
+        &config_generic,
+    },
+    { "max_pdus_per_cycle", "count", 2, 2, 0,
+        ARG_INT|ARG_MAGIC|CFG_RESCOUNT,
         &config_generic,
     },
     { "TLSCACertificate", NULL, 2, 2, 0,
@@ -420,6 +427,16 @@ config_generic( ConfigArgs *c )
             logfile = fopen( logfileName, "w" );
             if ( logfile ) lutil_debug_file( logfile );
         } break;
+
+        case CFG_RESCOUNT:
+            if ( c->value_int < 0 ) {
+                snprintf( c->cr_msg, sizeof(c->cr_msg),
+                        "max_pdus_per_cycle=%d invalid", c->value_int );
+                Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg );
+                return 1;
+            }
+            slap_conn_max_pdus_per_cycle = c->value_int;
+            break;
 
         default:
             Debug( LDAP_DEBUG_ANY, "%s: unknown CFG_TYPE %d.\n",

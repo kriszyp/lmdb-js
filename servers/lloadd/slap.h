@@ -87,6 +87,8 @@ LDAP_BEGIN_DECL
 #define SLAP_SB_MAX_INCOMING_DEFAULT ( ( 1 << 18 ) - 1 )
 #define SLAP_SB_MAX_INCOMING_AUTH ( ( 1 << 24 ) - 1 )
 
+#define SLAP_CONN_MAX_PDUS_PER_CYCLE_DEFAULT 10
+
 #define SLAP_TEXT_BUFLEN ( 256 )
 
 /* unknown config file directive */
