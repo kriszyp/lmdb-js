@@ -39,14 +39,14 @@
 #define AVL_INTERNAL
 #include "avl.h"
 
-static void ravl_print LDAP_P(( Avlnode *root, int depth, int thread ));
-static void myprint LDAP_P(( Avlnode *root ));
+static void ravl_print LDAP_P(( TAvlnode *root, int depth, int thread ));
+static void myprint LDAP_P(( TAvlnode *root ));
 static int avl_strcmp LDAP_P(( const void *s, const void *t ));
 
 int
 main( int argc, char **argv )
 {
-	Avlnode	*tree = NULL, *n;
+	TAvlnode	*tree = NULL, *n;
 	char	command[ 10 ];
 	char	name[ 80 ];
 	char	*p;
@@ -115,7 +115,7 @@ main( int argc, char **argv )
 static const char bfc_array[] = "\\-/";
 static const char *bfcs = bfc_array+1;
 
-static void ravl_print( Avlnode *root, int depth, int thread )
+static void ravl_print( TAvlnode *root, int depth, int thread )
 {
 	int	i;
 
@@ -140,7 +140,7 @@ static void ravl_print( Avlnode *root, int depth, int thread )
 	ravl_print( root->avl_link[0], depth+1, root->avl_bits[0] == AVL_THREAD );
 }
 
-static void myprint( Avlnode *root )
+static void myprint( TAvlnode *root )
 {
 	printf( "********\n" );
 

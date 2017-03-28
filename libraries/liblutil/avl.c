@@ -81,6 +81,7 @@ avl_insert( Avlnode ** root, void *data, AVL_CMP fcmp, AVL_DUP fdup )
 		}
 		r->avl_link[0] = r->avl_link[1] = NULL;
 		r->avl_data = data;
+		r->avl_bits[0] = r->avl_bits[1] = AVL_CHILD;
 		r->avl_bf = EH;
 		*root = r;
 
@@ -105,6 +106,7 @@ avl_insert( Avlnode ** root, void *data, AVL_CMP fcmp, AVL_DUP fdup )
 			}
 			q->avl_link[0] = q->avl_link[1] = NULL;
 			q->avl_data = data;
+			q->avl_bits[0] = q->avl_bits[1] = AVL_CHILD;
 			q->avl_bf = EH;
 
 			p->avl_link[cmp] = q;

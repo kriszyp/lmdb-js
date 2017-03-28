@@ -65,7 +65,7 @@ typedef struct Query_s {
 struct query_template_s;
 
 typedef struct Qbase_s {
-	Avlnode *scopes[4];		/* threaded AVL trees of cached queries */
+	TAvlnode *scopes[4];		/* threaded AVL trees of cached queries */
 	struct berval base;
 	int queries;
 } Qbase;
@@ -1272,14 +1272,14 @@ typedef struct fstack {
 } fstack;
 
 static CachedQuery *
-find_filter( Operation *op, Avlnode *root, Filter *inputf, Filter *first )
+find_filter( Operation *op, TAvlnode *root, Filter *inputf, Filter *first )
 {
 	Filter* fs;
 	Filter* fi;
 	MatchingRule* mrule = NULL;
 	int res=0, eqpass= 0;
 	int ret, rc, dir;
-	Avlnode *ptr;
+	TAvlnode *ptr;
 	CachedQuery cq, *qc;
 	fstack *stack = NULL, *fsp;
 

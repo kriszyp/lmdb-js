@@ -766,7 +766,7 @@ typedef struct trans_ctx {
 	BackendDB *db;
 	slap_overinst *on;
 	Filter *orig;
-	Avlnode *list;
+	TAvlnode *list;
 	int step;
 	int slimit;
 	AttributeName *attrs;
@@ -1135,7 +1135,7 @@ static int translucent_search(Operation *op, SlapReply *rs) {
 	/* Send out anything remaining on the list and finish */
 	if ( tc.step & USE_LIST ) {
 		if ( tc.list ) {
-			Avlnode *av;
+			TAvlnode *av;
 
 			av = tavl_end( tc.list, TAVL_DIR_LEFT );
 			while ( av ) {

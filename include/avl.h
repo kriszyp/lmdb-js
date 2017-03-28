@@ -50,9 +50,16 @@ struct avlnode {
 #define avl_lbit	avl_bits[0]
 #define avl_rbit	avl_bits[1]
 
-#ifdef AVL_INTERNAL
+typedef struct tavlnode TAvlnode;
 
-#define NULLAVL	((Avlnode *) NULL)
+struct tavlnode {
+	void*		avl_data;
+	struct tavlnode	*avl_link[2];
+	char		avl_bits[2];
+	signed char		avl_bf;
+};
+
+#ifdef AVL_INTERNAL
 
 /* balance factor values */
 #define LH 	(-1)
@@ -62,8 +69,8 @@ struct avlnode {
 #define avl_bf2str(bf)	((bf) == -1 ? "LH" : (bf) == 0 ? "EH" : (bf) == 1 ? "RH" : "(unknown)" )
 
 /* thread bits */
-#define	AVL_THREAD	0
-#define	AVL_CHILD	1
+#define	AVL_CHILD	0
+#define	AVL_THREAD	1
 
 /* avl routines */
 #define avl_getone(x)	((x) == 0 ? 0 : (x)->avl_data)
@@ -120,31 +127,31 @@ LDAP_AVL_F( int )
 avl_prefixapply LDAP_P((Avlnode *, void*, AVL_CMP, void*, AVL_CMP, void*, int));
 
 LDAP_AVL_F( int )
-tavl_free LDAP_P(( Avlnode *root, AVL_FREE dfree ));
+tavl_free LDAP_P(( TAvlnode *root, AVL_FREE dfree ));
 
 LDAP_AVL_F( int )
-tavl_insert LDAP_P((Avlnode **, void*, AVL_CMP, AVL_DUP));
+tavl_insert LDAP_P((TAvlnode **, void*, AVL_CMP, AVL_DUP));
 
 LDAP_AVL_F( void* )
-tavl_delete LDAP_P((Avlnode **, void*, AVL_CMP));
+tavl_delete LDAP_P((TAvlnode **, void*, AVL_CMP));
 
 LDAP_AVL_F( void* )
-tavl_find LDAP_P((Avlnode *, const void*, AVL_CMP));
+tavl_find LDAP_P((TAvlnode *, const void*, AVL_CMP));
 
-LDAP_AVL_F( Avlnode* )
-tavl_find2 LDAP_P((Avlnode *, const void*, AVL_CMP));
+LDAP_AVL_F( TAvlnode* )
+tavl_find2 LDAP_P((TAvlnode *, const void*, AVL_CMP));
 
-LDAP_AVL_F( Avlnode* )
-tavl_find3 LDAP_P((Avlnode *, const void*, AVL_CMP, int *ret));
+LDAP_AVL_F( TAvlnode* )
+tavl_find3 LDAP_P((TAvlnode *, const void*, AVL_CMP, int *ret));
 
 #define	TAVL_DIR_LEFT	0
 #define	TAVL_DIR_RIGHT	1
 
-LDAP_AVL_F( Avlnode* )
-tavl_end LDAP_P((Avlnode *, int direction ));
+LDAP_AVL_F( TAvlnode* )
+tavl_end LDAP_P((TAvlnode *, int direction));
 
-LDAP_AVL_F( Avlnode* )
-tavl_next LDAP_P((Avlnode *, int direction ));
+LDAP_AVL_F( TAvlnode* )
+tavl_next LDAP_P((TAvlnode *, int direction));
 
 /* apply traversal types */
 #define AVL_PREORDER	1
