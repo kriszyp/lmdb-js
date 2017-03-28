@@ -168,6 +168,10 @@ operation_init( Connection *c, BerElement *ber )
         ber_skip_element( ber, &op->o_ctrls );
     }
 
+    Debug( LDAP_DEBUG_TRACE, "operation_init: "
+            "set up a new operation, %s with msgid=%d for client %lu\n",
+            slap_msgtype2str( op->o_tag ), op->o_client_msgid, c->c_connid );
+
     return op;
 
 fail:

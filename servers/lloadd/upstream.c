@@ -43,7 +43,8 @@ upstream_read_cb( evutil_socket_t s, short what, void *arg )
 
     ber = c->c_currentber;
     if ( ber == NULL && (ber = ber_alloc()) == NULL ) {
-        Debug( LDAP_DEBUG_ANY, "ber_alloc failed\n" );
+        Debug( LDAP_DEBUG_ANY, "upstream_read_cb: "
+                "ber_alloc failed\n" );
         ldap_pvt_thread_mutex_unlock( &c->c_mutex );
         return;
     }
@@ -54,8 +55,9 @@ upstream_read_cb( evutil_socket_t s, short what, void *arg )
 
         if ( err != EWOULDBLOCK && err != EAGAIN ) {
             char ebuf[128];
-            Debug( LDAP_DEBUG_ANY, "ber_get_next on fd %d failed errno=%d (%s)\n", c->c_fd,
-                    err, sock_errstr( err, ebuf, sizeof(ebuf) ) );
+            Debug( LDAP_DEBUG_ANY, "upstream_read_cb: "
+                    "ber_get_next on fd %d failed errno=%d (%s)\n",
+                    c->c_fd, err, sock_errstr( err, ebuf, sizeof(ebuf) ) );
 
             c->c_currentber = NULL;
             goto fail;
@@ -146,13 +148,15 @@ upstream_finish( Connection *c )
     evutil_socket_t s = c->c_fd;
 
     Debug( LDAP_DEBUG_CONNS, "upstream_finish: "
-            "connection %lu is ready for use\n", c->c_connid );
+            "connection %lu is ready for use\n",
+            c->c_connid );
 
     base = slap_get_base( s );
 
     event = event_new( base, s, EV_READ|EV_PERSIST, upstream_read_cb, c );
     if ( !event ) {
-        Debug( LDAP_DEBUG_ANY, "Read event could not be allocated\n" );
+        Debug( LDAP_DEBUG_ANY, "upstream_finish: "
+                "Read event could not be allocated\n" );
         goto fail;
     }
     event_add( event, NULL );
@@ -196,7 +200,8 @@ upstream_bind_cb( evutil_socket_t s, short what, void *arg )
 
     ber = c->c_currentber;
     if ( ber == NULL && (ber = ber_alloc()) == NULL ) {
-        Debug( LDAP_DEBUG_ANY, "ber_alloc failed\n" );
+        Debug( LDAP_DEBUG_ANY, "upstream_bind_cb: "
+                "ber_alloc failed\n" );
         ldap_pvt_thread_mutex_unlock( &c->c_mutex );
         return;
     }
@@ -207,8 +212,9 @@ upstream_bind_cb( evutil_socket_t s, short what, void *arg )
 
         if ( err != EWOULDBLOCK && err != EAGAIN ) {
             char ebuf[128];
-            Debug( LDAP_DEBUG_ANY, "ber_get_next on fd %d failed errno=%d (%s)\n", c->c_fd,
-                    err, sock_errstr( err, ebuf, sizeof(ebuf) ) );
+            Debug( LDAP_DEBUG_ANY, "upstream_bind_cb: "
+                    "ber_get_next on fd %d failed errno=%d (%s)\n",
+                    c->c_fd, err, sock_errstr( err, ebuf, sizeof(ebuf) ) );
 
             c->c_currentber = NULL;
             goto fail;
@@ -220,22 +226,22 @@ upstream_bind_cb( evutil_socket_t s, short what, void *arg )
     c->c_currentber = NULL;
 
     if ( ber_scanf( ber, "it", &msgid, &tag ) == LBER_ERROR ) {
-        Debug( LDAP_DEBUG_ANY, "upstream_bind_cb:"
-                " protocol violation from server\n" );
+        Debug( LDAP_DEBUG_ANY, "upstream_bind_cb: "
+                "protocol violation from server\n" );
         goto fail;
     }
 
     if ( msgid != ( c->c_next_msgid - 1 ) || tag != LDAP_RES_BIND ) {
-        Debug( LDAP_DEBUG_ANY, "upstream_bind_cb:"
-                " unexpected %s from server, msgid=%d\n",
+        Debug( LDAP_DEBUG_ANY, "upstream_bind_cb: "
+                "unexpected %s from server, msgid=%d\n",
                 slap_msgtype2str( tag ), msgid );
         goto fail;
     }
 
     if ( ber_scanf( ber, "{eAA" /* "}" */, &result, &matcheddn, &message ) ==
                  LBER_ERROR ) {
-        Debug( LDAP_DEBUG_ANY, "upstream_bind_cb:"
-                " response does not conform with a bind response\n" );
+        Debug( LDAP_DEBUG_ANY, "upstream_bind_cb: "
+                "response does not conform with a bind response\n" );
         goto fail;
     }
 
@@ -315,7 +321,8 @@ upstream_bind( void *ctx, void *arg )
 
     event = event_new( base, s, EV_READ|EV_PERSIST, upstream_bind_cb, c );
     if ( !event ) {
-        Debug( LDAP_DEBUG_ANY, "Read event could not be allocated\n" );
+        Debug( LDAP_DEBUG_ANY, "upstream_bind: "
+                "Read event could not be allocated\n" );
         upstream_destroy( c );
         return NULL;
     }
@@ -373,7 +380,8 @@ upstream_init( ber_socket_t s, Backend *b )
 
     event = event_new( base, s, EV_WRITE, upstream_write_cb, c );
     if ( !event ) {
-        Debug( LDAP_DEBUG_ANY, "Write event could not be allocated\n" );
+        Debug( LDAP_DEBUG_ANY, "upstream_init: "
+                "Write event could not be allocated\n" );
         goto fail;
     }
     /* We only register the write event when we have data pending */
