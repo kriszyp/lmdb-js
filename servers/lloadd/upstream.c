@@ -227,8 +227,8 @@ upstream_bind_cb( evutil_socket_t s, short what, void *arg )
 
     if ( msgid != ( c->c_next_msgid - 1 ) || tag != LDAP_RES_BIND ) {
         Debug( LDAP_DEBUG_ANY, "upstream_bind_cb:"
-                " unexpected response from server, msgid=%d tag=%lu\n",
-                msgid, tag );
+                " unexpected %s from server, msgid=%d\n",
+                slap_msgtype2str( tag ), msgid );
         goto fail;
     }
 
@@ -305,7 +305,6 @@ upstream_bind( void *ctx, void *arg )
     struct event *event;
     ber_int_t msgid;
     evutil_socket_t s;
-    int rc;
 
     assert( ber );
 
@@ -334,25 +333,18 @@ upstream_bind( void *ctx, void *arg )
     ldap_pvt_thread_mutex_lock( &b->b_mutex );
     if ( b->b_bindconf.sb_method == LDAP_AUTH_SIMPLE ) {
         /* simple bind */
-        rc = ber_printf( ber, "{it{iOtON}}",
+        ber_printf( ber, "{it{iOtON}}",
                 msgid, LDAP_REQ_BIND, LDAP_VERSION3,
                 &b->b_bindconf.sb_binddn, LDAP_AUTH_SIMPLE,
                 &b->b_bindconf.sb_cred );
 
 #ifdef HAVE_CYRUS_SASL
     } else {
-        BerValue cred;
-        if ( BER_BVISNULL( &cred ) ) {
-            rc = ber_printf( ber, "{it{iOt{sN}N}}",
-                    msgid, LDAP_REQ_BIND, LDAP_VERSION3,
-                    &b->b_bindconf.sb_binddn, LDAP_AUTH_SASL,
-                    b->b_bindconf.sb_method );
-        } else {
-            rc = ber_printf( ber, "{it{iOt{sON}N}}",
-                    msgid, LDAP_REQ_BIND, LDAP_VERSION3,
-                    &b->b_bindconf.sb_binddn, LDAP_AUTH_SASL,
-                    b->b_bindconf.sb_method, &cred );
-        }
+        BerValue cred = BER_BVNULL;
+        ber_printf( ber, "{it{iOt{OON}N}}",
+                msgid, LDAP_REQ_BIND, LDAP_VERSION3,
+                &b->b_bindconf.sb_binddn, LDAP_AUTH_SASL,
+                &b->b_bindconf.sb_saslmech, BER_BV_OPTIONAL( &cred ) );
 #endif /* HAVE_CYRUS_SASL */
     }
     ldap_pvt_thread_mutex_unlock( &b->b_mutex );

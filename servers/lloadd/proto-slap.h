@@ -136,6 +136,7 @@ LDAP_SLAPD_V (const char *) slapd_slp_attrs;
 /*
  * operation.c
  */
+LDAP_SLAPD_F (const char *) slap_msgtype2str( ber_tag_t tag );
 LDAP_SLAPD_F (int) operation_upstream_cmp( const void *l, const void *r );
 LDAP_SLAPD_F (int) operation_client_cmp( const void *l, const void *r );
 LDAP_SLAPD_F (void *) operation_process( void *ctx, void *arg );

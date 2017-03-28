@@ -18,6 +18,69 @@
 #include "lutil.h"
 #include "slap.h"
 
+ber_tag_t
+slap_req2res( ber_tag_t tag )
+{
+    switch ( tag ) {
+        case LDAP_REQ_ADD:
+        case LDAP_REQ_BIND:
+        case LDAP_REQ_COMPARE:
+        case LDAP_REQ_EXTENDED:
+        case LDAP_REQ_MODIFY:
+        case LDAP_REQ_MODRDN:
+            tag++;
+            break;
+
+        case LDAP_REQ_DELETE:
+            tag = LDAP_RES_DELETE;
+            break;
+
+        case LDAP_REQ_ABANDON:
+        case LDAP_REQ_UNBIND:
+            tag = LBER_SEQUENCE;
+            break;
+
+        case LDAP_REQ_SEARCH:
+            tag = LDAP_RES_SEARCH_RESULT;
+            break;
+
+        default:
+            tag = LBER_SEQUENCE;
+    }
+
+    return tag;
+}
+
+const char *
+slap_msgtype2str( ber_tag_t tag )
+{
+    switch ( tag ) {
+        case LDAP_REQ_ABANDON: return "abandon request";
+        case LDAP_REQ_ADD: return "add request";
+        case LDAP_REQ_BIND: return "bind request";
+        case LDAP_REQ_COMPARE: return "compare request";
+        case LDAP_REQ_DELETE: return "delete request";
+        case LDAP_REQ_EXTENDED: return "extended request";
+        case LDAP_REQ_MODIFY: return "modify request";
+        case LDAP_REQ_RENAME: return "rename request";
+        case LDAP_REQ_SEARCH: return "search request";
+        case LDAP_REQ_UNBIND: return "unbind request";
+
+        case LDAP_RES_ADD: return "add result";
+        case LDAP_RES_BIND: return "bind result";
+        case LDAP_RES_COMPARE: return "compare result";
+        case LDAP_RES_DELETE: return "delete result";
+        case LDAP_RES_EXTENDED: return "extended result";
+        case LDAP_RES_INTERMEDIATE: return "intermediate response";
+        case LDAP_RES_MODIFY: return "modify result";
+        case LDAP_RES_RENAME: return "rename result";
+        case LDAP_RES_SEARCH_ENTRY: return "search-entry response";
+        case LDAP_RES_SEARCH_REFERENCE: return "search-reference response";
+        case LDAP_RES_SEARCH_RESULT: return "search result";
+    }
+    return "unknown message";
+}
+
 int
 operation_client_cmp( const void *left, const void *right )
 {
