@@ -233,6 +233,7 @@ enum lload_tls_type {
     LLOAD_STARTTLS,
 };
 
+/* Can hold mutex when locking a linked connection */
 struct Backend {
     struct slap_bindconf b_bindconf;
     ldap_pvt_thread_mutex_t b_mutex;
@@ -246,6 +247,8 @@ struct Backend {
 
     LDAP_STAILQ_ENTRY(Backend) b_next;
 };
+
+typedef int (*OperationHandler)( Operation *op, BerElement *ber );
 
 /* connection state (protected by c_mutex) */
 enum sc_state {
@@ -276,8 +279,16 @@ struct Connection {
     struct event *c_read_event, *c_write_event;
 
     /* can only be changed by binding thread */
-    struct berval c_sasl_bind_mech; /* mech in progress */
+    int c_features;
+#define SLAP_C_VC 1
 
+    struct berval c_sasl_bind_mech; /* mech in progress */
+    struct berval c_auth;           /* authcDN (possibly in progress) */
+
+    struct berval c_vc_cookie;
+
+    /* Can be held while acquiring c_mutex to inject things into c_ops or
+     * destroy the connection */
     ldap_pvt_thread_mutex_t c_io_mutex; /* only one pdu written at a time */
 
     BerElement *c_currentber; /* ber we're attempting to read */

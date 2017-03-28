@@ -24,16 +24,15 @@
 #include "lutil.h"
 #include "slap.h"
 
-static void client_destroy( Connection *c );
-
 static void
 client_read_cb( evutil_socket_t s, short what, void *arg )
 {
     Connection *c = arg;
     BerElement *ber;
-    Operation *op;
+    Operation *op = NULL;
     ber_tag_t tag;
     ber_len_t len;
+    int rc = 0;
 
     ldap_pvt_thread_mutex_lock( &c->c_mutex );
     Debug( LDAP_DEBUG_CONNS, "client_read_cb: "
@@ -71,26 +70,47 @@ client_read_cb( evutil_socket_t s, short what, void *arg )
     if ( !op ) {
         Debug( LDAP_DEBUG_ANY, "client_read_cb: "
                 "operation_init failed\n" );
-        goto fail;
-    }
-
-    if ( ldap_pvt_thread_pool_submit(
-                 &connection_pool, operation_process, op ) ) {
-        /* what could have happened? */
-        ldap_pvt_thread_mutex_unlock( &c->c_mutex );
-        operation_destroy( op );
-        ldap_pvt_thread_mutex_lock( &c->c_mutex );
-        goto fail;
-    }
-
-    ldap_pvt_thread_mutex_unlock( &c->c_mutex );
-    return;
-fail:
-    client_destroy( c );
-
-    if ( ber ) {
         ber_free( ber, 1 );
+        goto fail;
     }
+
+    switch ( op->o_tag ) {
+        case LDAP_REQ_UNBIND:
+            /* We do not expect anything more from the client */
+            event_del( c->c_read_event );
+
+            rc = ldap_pvt_thread_pool_submit(
+                    &connection_pool, client_reset, op );
+            if ( rc ) {
+                tavl_delete( &c->c_ops, op, operation_client_cmp );
+                operation_destroy( op );
+                client_destroy( c );
+                return;
+            }
+            break;
+        case LDAP_REQ_BIND:
+            rc = ldap_pvt_thread_pool_submit(
+                    &connection_pool, client_bind, op );
+            break;
+        default:
+            rc = ldap_pvt_thread_pool_submit(
+                    &connection_pool, request_process, op );
+            break;
+    }
+
+    if ( !rc ) {
+        ldap_pvt_thread_mutex_unlock( &c->c_mutex );
+        return;
+    }
+
+fail:
+    if ( op ) {
+        tavl_delete( &c->c_ops, op, operation_client_cmp );
+        op->o_client = NULL;
+        operation_destroy( op );
+    }
+
+    client_destroy( c );
     return;
 }
 
@@ -171,12 +191,14 @@ fail:
     return NULL;
 }
 
-static void
+void
 client_destroy( Connection *c )
 {
+    assert( c->c_read_event != NULL );
     event_del( c->c_read_event );
     event_free( c->c_read_event );
 
+    assert( c->c_write_event != NULL );
     event_del( c->c_write_event );
     event_free( c->c_write_event );
 

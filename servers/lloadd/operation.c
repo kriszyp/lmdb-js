@@ -108,6 +108,8 @@ operation_destroy( Operation *op )
 {
     Connection *c;
 
+    ber_free( op->o_ber, 1 );
+
     /* TODO: this is a stopgap and there are many races here, just get
      * something in to test with until we implement the freelist */
     if ( op->o_client ) {
@@ -137,6 +139,7 @@ operation_init( Connection *c, BerElement *ber )
 
     op = ch_calloc( 1, sizeof(Operation) );
     op->o_client = c;
+    op->o_ber = ber;
 
     tag = ber_get_int( ber, &op->o_client_msgid );
     if ( tag != LDAP_TAG_MSGID ) {
@@ -179,8 +182,97 @@ fail:
     return NULL;
 }
 
+void
+operation_abandon( Operation *op )
+{
+    int rc;
+
+    if ( op->o_upstream ) {
+        Connection *c = op->o_upstream;
+        BerElement *ber;
+
+        ldap_pvt_thread_mutex_lock( &c->c_mutex );
+        rc = ( tavl_delete( &c->c_ops, op, operation_upstream_cmp ) == NULL );
+        ldap_pvt_thread_mutex_unlock( &c->c_mutex );
+
+        if ( rc ) {
+            /* The operation has already been abandoned or finished */
+            goto done;
+        }
+
+        ldap_pvt_thread_mutex_lock( &c->c_io_mutex );
+
+        ber = c->c_pendingber;
+        if ( ber == NULL && (ber = ber_alloc()) == NULL ) {
+            Debug( LDAP_DEBUG_ANY, "operation_abandon: "
+                    "ber_alloc failed\n" );
+            ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
+            return;
+        }
+        c->c_pendingber = ber;
+
+        rc = ber_printf( ber, "t{titi}", LDAP_TAG_MESSAGE,
+                LDAP_TAG_MSGID, c->c_next_msgid++,
+                LDAP_REQ_ABANDON, op->o_upstream_msgid );
+
+        ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
+
+        if ( rc == -1 ) {
+            ber_free( ber, 1 );
+            return;
+        }
+        upstream_write_cb( -1, 0, c );
+    }
+
+done:
+    operation_destroy( op );
+}
+
+void
+operation_send_reject( Operation *op, int result, const char *msg )
+{
+    Connection *c = op->o_client;
+    BerElement *ber;
+    int found;
+
+    ldap_pvt_thread_mutex_lock( &c->c_mutex );
+    found = ( tavl_delete( &c->c_ops, op, operation_client_cmp ) == op );
+    ldap_pvt_thread_mutex_unlock( &c->c_mutex );
+
+    if ( !found ) {
+        return;
+    }
+
+    ldap_pvt_thread_mutex_lock( &c->c_io_mutex );
+
+    ber = c->c_pendingber;
+    if ( ber == NULL && (ber = ber_alloc()) == NULL ) {
+        ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
+        client_destroy( c );
+        return;
+    }
+    c->c_pendingber = ber;
+
+    ber_printf( ber, "t{tit{ess}}", LDAP_TAG_MESSAGE,
+            LDAP_TAG_MSGID, op->o_client_msgid,
+            slap_req2res( op->o_tag ), result, "", msg );
+
+    ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
+
+    client_write_cb( -1, 0, c );
+
+    operation_destroy( op );
+}
+
+void
+operation_lost_upstream( Operation *op )
+{
+    operation_send_reject( op, LDAP_UNAVAILABLE,
+            "connection to the remote server has been severed" );
+}
+
 void *
-operation_process( void *ctx, void *arg )
+request_process( void *ctx, void *arg )
 {
     Operation *op = arg;
     BerElement *output;
@@ -190,33 +282,34 @@ operation_process( void *ctx, void *arg )
 
     c = backend_select( op );
     if ( !c ) {
-        Debug( LDAP_DEBUG_STATS, "operation_process: "
+        Debug( LDAP_DEBUG_STATS, "request_process: "
                 "no available connection found\n" );
         goto fail;
     }
     op->o_upstream = c;
 
-    c->c_pendingber = output = ber_alloc();
-    if ( !output ) {
+    output = c->c_pendingber;
+    if ( output == NULL && (output = ber_alloc()) == NULL ) {
         goto fail;
     }
+    c->c_pendingber = output;
 
+    ldap_pvt_thread_mutex_lock( &c->c_mutex );
     op->o_upstream_msgid = msgid = c->c_next_msgid++;
     rc = tavl_insert( &c->c_ops, op, operation_upstream_cmp, avl_dup_error );
     assert( rc == LDAP_SUCCESS );
-
-    ber_start_seq( output, LDAP_TAG_MESSAGE );
-    ber_put_int( output, msgid, LDAP_TAG_MSGID );
-    ber_put_berval( output, &op->o_request, op->o_tag );
-    if ( !BER_BVISNULL( &op->o_ctrls ) ) {
-        ber_put_berval( output, &op->o_ctrls, LDAP_TAG_CONTROLS );
-    }
-    ber_put_seq( output );
-
     ldap_pvt_thread_mutex_unlock( &c->c_mutex );
+
+    ber_printf( output, "t{titOtO}", LDAP_TAG_MESSAGE,
+            LDAP_TAG_MSGID, msgid,
+            op->o_tag, &op->o_request,
+            LDAP_TAG_CONTROLS, BER_BV_OPTIONAL( &op->o_ctrls ) );
+    ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
+
     upstream_write_cb( -1, 0, c );
 
     return NULL;
 fail:
+    operation_send_reject( op, LDAP_OTHER, "internal error" );
     return NULL;
 }

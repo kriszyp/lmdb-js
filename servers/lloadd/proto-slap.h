@@ -59,10 +59,17 @@ LDAP_SLAPD_F (void) ch_free( void * );
 #endif
 
 /*
+ * bind.c
+ */
+LDAP_SLAPD_F (void *) client_reset( void *ctx, void *arg );
+LDAP_SLAPD_F (void *) client_bind( void *ctx, void *arg );
+
+/*
  * client.c
  */
 LDAP_SLAPD_F (Connection *) client_init( ber_socket_t s, Listener *url, const char *peername, struct event_base *base, int use_tls );
 LDAP_SLAPD_F (void) client_write_cb( evutil_socket_t s, short what, void *arg );
+LDAP_SLAPD_F (void) client_destroy( Connection *c );
 
 /*
  * config.c
@@ -139,9 +146,12 @@ LDAP_SLAPD_V (const char *) slapd_slp_attrs;
 LDAP_SLAPD_F (const char *) slap_msgtype2str( ber_tag_t tag );
 LDAP_SLAPD_F (int) operation_upstream_cmp( const void *l, const void *r );
 LDAP_SLAPD_F (int) operation_client_cmp( const void *l, const void *r );
-LDAP_SLAPD_F (void *) operation_process( void *ctx, void *arg );
 LDAP_SLAPD_F (Operation *) operation_init( Connection *c, BerElement *ber );
+LDAP_SLAPD_F (void) operation_abandon( Operation *op );
+LDAP_SLAPD_F (void) operation_send_reject( Operation *op, int result, const char *msg );
+LDAP_SLAPD_F (void) operation_lost_upstream( Operation *op );
 LDAP_SLAPD_F (void) operation_destroy( Operation *op );
+LDAP_SLAPD_F (void *) request_process( void *ctx, void *arg );
 
 /*
  * sl_malloc.c
@@ -168,6 +178,7 @@ LDAP_SLAPD_F (void *) slap_sl_context( void *ptr );
 LDAP_SLAPD_F (void) upstream_write_cb( evutil_socket_t s, short what, void *arg );
 LDAP_SLAPD_F (void) upstream_read_cb( evutil_socket_t s, short what, void *arg );
 LDAP_SLAPD_F (Connection *) upstream_init( ber_socket_t s, Backend *b );
+LDAP_SLAPD_F (void) upstream_destroy( Connection *c );
 
 /*
  * user.c

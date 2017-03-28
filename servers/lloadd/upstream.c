@@ -24,17 +24,441 @@
 #include "lutil.h"
 #include "slap.h"
 
-static void upstream_destroy( Connection *c );
+static int
+forward_response( Operation *op, BerElement *ber )
+{
+    Connection *c = op->o_client;
+    BerElement *output;
+    BerValue response, controls = BER_BVNULL;
+    ber_tag_t tag, response_tag;
+    ber_len_t len;
 
+    response_tag = ber_skip_element( ber, &response );
+
+    tag = ber_peek_tag( ber, &len );
+    if ( tag == LDAP_TAG_CONTROLS ) {
+        ber_skip_element( ber, &controls );
+    }
+
+    Debug( LDAP_DEBUG_CONNS, "forward_response: "
+            "%s to client %lu request #%d\n",
+            slap_msgtype2str( response_tag ), c->c_connid, op->o_client_msgid );
+
+    ldap_pvt_thread_mutex_lock( &c->c_io_mutex );
+    output = c->c_pendingber;
+    if ( output == NULL && (output = ber_alloc()) == NULL ) {
+        ber_free( ber, 1 );
+        ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
+        return -1;
+    }
+    c->c_pendingber = output;
+
+    ber_printf( output, "t{titOtO}", LDAP_TAG_MESSAGE,
+            LDAP_TAG_MSGID, op->o_client_msgid,
+            response_tag, &response,
+            LDAP_TAG_CONTROLS, BER_BV_OPTIONAL( &controls ) );
+
+    ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
+
+    ber_free( ber, 1 );
+    client_write_cb( -1, 0, c );
+    return 0;
+}
+
+static int
+forward_final_response( Operation *op, BerElement *ber )
+{
+    int rc;
+
+    Debug( LDAP_DEBUG_CONNS, "forward_final_response: "
+            "finishing up with request #%d for client %lu\n",
+            op->o_client_msgid, op->o_client->c_connid );
+    rc = forward_response( op, ber );
+    operation_destroy( op );
+
+    return rc;
+}
+
+static int
+handle_bind_response( Operation *op, BerElement *ber )
+{
+    Connection *c = op->o_client;
+    BerElement *copy;
+    ber_int_t msgid, result;
+    ber_tag_t tag;
+    int rc = 0;
+
+    copy = ber_dup( ber );
+    if ( !copy ) {
+        rc = -1;
+        goto done;
+    }
+
+    tag = ber_scanf( copy, "{i{e" /* "}}" */, &msgid, &result );
+    ber_free( copy, 0 );
+
+    if ( tag == LBER_ERROR ) {
+        rc = -1;
+        goto done;
+    }
+
+    Debug( LDAP_DEBUG_CONNS, "handle_bind_response: "
+            "received response for bind request by client %lu, result=%d\n",
+            c->c_connid, result );
+
+    switch ( result ) {
+        case LDAP_SASL_BIND_IN_PROGRESS:
+            break;
+        case LDAP_SUCCESS:
+        default: {
+            ldap_pvt_thread_mutex_lock( &c->c_mutex );
+            c->c_state = SLAP_C_READY;
+            if ( result != LDAP_SUCCESS ) {
+                ber_memfree( c->c_auth.bv_val );
+                BER_BVZERO( &c->c_auth );
+            }
+            if ( !BER_BVISNULL( &c->c_sasl_bind_mech ) ) {
+                ber_memfree( c->c_sasl_bind_mech.bv_val );
+                BER_BVZERO( &c->c_sasl_bind_mech );
+            }
+            ldap_pvt_thread_mutex_unlock( &c->c_mutex );
+            break;
+        }
+    }
+
+done:
+    if ( rc ) {
+        operation_destroy( op );
+        ber_free( ber, 1 );
+        return rc;
+    }
+    return forward_final_response( op, ber );
+}
+
+static int
+handle_vc_bind_response( Operation *op, BerElement *ber )
+{
+    Connection *c = op->o_client;
+    BerElement *output;
+    BerValue matched, diagmsg, creds = BER_BVNULL, controls = BER_BVNULL;
+    ber_int_t result;
+    ber_tag_t tag;
+    ber_len_t len;
+    int rc = 0;
+
+    tag = ber_scanf( ber, "{emm" /* "}" */,
+            &result, &matched, &diagmsg );
+    if ( tag == LBER_ERROR ) {
+        rc = -1;
+        goto done;
+    }
+
+    tag = ber_peek_tag( ber, &len );
+    if ( result == LDAP_PROTOCOL_ERROR ) {
+        Backend *b = op->o_upstream->c_private;
+        ldap_pvt_thread_mutex_lock( &op->o_upstream->c_mutex );
+        Debug( LDAP_DEBUG_ANY, "VC extended operation not supported on backend %s\n",
+                b->b_bindconf.sb_uri.bv_val );
+        ldap_pvt_thread_mutex_unlock( &op->o_upstream->c_mutex );
+    }
+
+    ldap_pvt_thread_mutex_lock( &c->c_mutex );
+
+    Debug( LDAP_DEBUG_CONNS, "handle_vc_bind_response: "
+            "received response for bind request by client %lu, result=%d\n",
+            c->c_connid, result );
+
+    if ( tag == LDAP_TAG_EXOP_VERIFY_CREDENTIALS_COOKIE ) {
+        if ( !BER_BVISNULL( &c->c_vc_cookie ) ) {
+            ber_memfree( c->c_vc_cookie.bv_val );
+        }
+        tag = ber_scanf( ber, "o", &c->c_vc_cookie );
+        if ( tag == LBER_ERROR ) {
+            rc = -1;
+            ldap_pvt_thread_mutex_unlock( &c->c_mutex );
+            goto done;
+        }
+        tag = ber_peek_tag( ber, &len );
+    }
+
+    if ( tag == LDAP_TAG_EXOP_VERIFY_CREDENTIALS_SCREDS ) {
+        tag = ber_scanf( ber, "m", &creds );
+        if ( tag == LBER_ERROR ) {
+            rc = -1;
+            ldap_pvt_thread_mutex_unlock( &c->c_mutex );
+            goto done;
+        }
+        tag = ber_peek_tag( ber, &len );
+    }
+
+    if ( tag == LDAP_TAG_EXOP_VERIFY_CREDENTIALS_CONTROLS ) {
+        tag = ber_scanf( ber, "m", &controls );
+        if ( tag == LBER_ERROR ) {
+            rc = -1;
+            ldap_pvt_thread_mutex_unlock( &c->c_mutex );
+            goto done;
+        }
+    }
+
+    switch ( result ) {
+        case LDAP_SASL_BIND_IN_PROGRESS:
+            break;
+        case LDAP_SUCCESS:
+        default: {
+            c->c_state = SLAP_C_READY;
+            if ( result != LDAP_SUCCESS ) {
+                ber_memfree( c->c_auth.bv_val );
+                BER_BVZERO( &c->c_auth );
+            }
+            if ( !BER_BVISNULL( &c->c_vc_cookie ) ) {
+                ber_memfree( c->c_vc_cookie.bv_val );
+                BER_BVZERO( &c->c_vc_cookie );
+            }
+            if ( !BER_BVISNULL( &c->c_sasl_bind_mech ) ) {
+                ber_memfree( c->c_sasl_bind_mech.bv_val );
+                BER_BVZERO( &c->c_sasl_bind_mech );
+            }
+            break;
+        }
+    }
+    ldap_pvt_thread_mutex_unlock( &c->c_mutex );
+
+    ldap_pvt_thread_mutex_lock( &c->c_io_mutex );
+    output = c->c_pendingber;
+    if ( output == NULL && (output = ber_alloc()) == NULL ) {
+        rc = -1;
+        ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
+        goto done;
+    }
+    c->c_pendingber = output;
+
+    rc = ber_printf( output, "t{tit{eOOtO}tO}", LDAP_TAG_MESSAGE,
+            LDAP_TAG_MSGID, op->o_client_msgid, LDAP_RES_BIND,
+            result, &matched, &diagmsg,
+            LDAP_TAG_SASL_RES_CREDS, BER_BV_OPTIONAL( &creds ),
+            LDAP_TAG_CONTROLS, BER_BV_OPTIONAL( &controls ) );
+
+    ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
+    if ( rc >= 0 ) {
+        client_write_cb( -1, 0, c );
+        rc = 0;
+    }
+
+done:
+    operation_destroy( op );
+    ber_free( ber, 1 );
+    return rc;
+}
+
+static int
+handle_unsolicited( Connection *c, BerElement *ber )
+{
+    TAvlnode *root;
+    int freed;
+
+    Debug( LDAP_DEBUG_CONNS, "handle_unsolicited: "
+            "teardown for upstream connection %lu\n",
+            c->c_connid );
+
+    root = c->c_ops;
+    c->c_ops = NULL;
+    ldap_pvt_thread_mutex_unlock( &c->c_mutex );
+
+    freed = tavl_free( root, (AVL_FREE)operation_lost_upstream );
+    Debug( LDAP_DEBUG_TRACE, "handle_unsolicited: "
+            "dropped %d operations\n",
+            freed );
+
+    ldap_pvt_thread_mutex_lock( &c->c_mutex );
+    upstream_destroy( c );
+    ber_free( ber, 1 );
+
+    return -1;
+}
+
+/*
+ * Pull c->c_currentber from the connection and try to look up the operation on
+ * the upstream.
+ *
+ * If it's a notice of disconnection, we won't find it and need to tear down
+ * the connection and tell the clients, if we can't find the operation, ignore
+ * the message (either client already disconnected/abandoned it or the upstream
+ * is pulling our leg).
+ *
+ * Some responses need special handling:
+ * - Bind response
+ * - VC response where the client requested a Bind (both need to update the
+ *   client's bind status)
+ * - search entries/referrals and intermediate responses (will not trigger
+ *   operation to be removed)
+ *
+ * If the worker pool is overloaded, we might be called directly from
+ * upstream_read_cb, at that point, the connection hasn't been muted.
+ *
+ * TODO: when the client already has data pending on write, we should mute the
+ * upstream.
+ * - should record the BerElement on the Op and the Op on the client
+ */
+static int
+handle_one_response( Connection *c )
+{
+    BerElement *ber;
+    Operation *op = NULL, needle = { .o_upstream = c };
+    OperationHandler handler = NULL;
+    ber_tag_t tag;
+    ber_len_t len;
+    int rc = 0;
+
+    ber = c->c_currentber;
+    c->c_currentber = NULL;
+
+    tag = ber_get_int( ber, &needle.o_upstream_msgid );
+    if ( tag != LDAP_TAG_MSGID ) {
+        rc = -1;
+        ber_free( ber, 1 );
+        goto fail;
+    }
+
+    if ( needle.o_upstream_msgid == 0 ) {
+        return handle_unsolicited( c, ber );
+    } else if ( !( op = tavl_find(
+                           c->c_ops, &needle, operation_upstream_cmp ) ) ) {
+        /* Already abandoned, do nothing */
+        /*
+    } else if ( op->o_response_pending ) {
+        c->c_pendingop = op;
+        event_del( c->c_read_event );
+    */
+    } else {
+        /*
+        op->o_response_pending = ber;
+        */
+
+        tag = ber_peek_tag( ber, &len );
+        switch ( tag ) {
+            case LDAP_RES_SEARCH_ENTRY:
+            case LDAP_RES_SEARCH_REFERENCE:
+            case LDAP_RES_INTERMEDIATE:
+                handler = forward_response;
+                break;
+            case LDAP_RES_BIND:
+                handler = handle_bind_response;
+                break;
+            case LDAP_RES_EXTENDED:
+                if ( op->o_tag == LDAP_REQ_BIND ) {
+                    handler = handle_vc_bind_response;
+                }
+                break;
+        }
+        if ( !handler ) {
+            handler = forward_final_response;
+        }
+    }
+    if ( op ) {
+        Debug( LDAP_DEBUG_TRACE, "handle_one_response: "
+                "upstream=%lu, processing response for client %lu, msgid=%d\n",
+                c->c_connid, op->o_client->c_connid, op->o_client_msgid );
+    } else {
+        tag = ber_peek_tag( ber, &len );
+        Debug( LDAP_DEBUG_TRACE, "handle_one_response: "
+                "upstream=%lu, %s, msgid=%d not for a pending operation\n",
+                c->c_connid, slap_msgtype2str( tag ), needle.o_upstream_msgid );
+    }
+
+    ldap_pvt_thread_mutex_unlock( &c->c_mutex );
+    if ( handler ) {
+        rc = handler( op, ber );
+    }
+    ldap_pvt_thread_mutex_lock( &c->c_mutex );
+
+fail:
+    if ( rc ) {
+        Debug( LDAP_DEBUG_ANY, "handle_one_response: "
+                "error on processing a response on upstream connection %ld\n",
+                c->c_connid );
+        upstream_destroy( c );
+    }
+    return rc;
+}
+
+/*
+ * We start off with the upstream muted and c_currentber holding the response
+ * we received.
+ *
+ * We run handle_one_response on each response, stopping once we hit an error,
+ * have to wait on reading or process slap_conn_max_pdus_per_cycle responses so
+ * as to maintain fairness and not hog the worker thread forever.
+ *
+ * If we've run out of responses from the upstream or hit the budget, we unmute
+ * the connection and run handle_one_response, it might return an 'error' when
+ * the client is blocked on writing, it's that client's job to wake us again.
+ */
+static void *
+handle_responses( void *ctx, void *arg )
+{
+    Connection *c = arg;
+    int responses_handled = 0;
+
+    ldap_pvt_thread_mutex_lock( &c->c_mutex );
+    for ( ; responses_handled < slap_conn_max_pdus_per_cycle;
+            responses_handled++ ) {
+        BerElement *ber;
+        ber_tag_t tag;
+        ber_len_t len;
+
+        if ( handle_one_response( c ) ) {
+            /* Error, connection might already have been destroyed */
+            return NULL;
+        }
+        /* Otherwise, handle_one_response leaves the connection locked */
+
+        if ( (ber = ber_alloc()) == NULL ) {
+            Debug( LDAP_DEBUG_ANY, "handle_responses: "
+                    "ber_alloc failed\n" );
+            upstream_destroy( c );
+            return NULL;
+        }
+        c->c_currentber = ber;
+
+        tag = ber_get_next( c->c_sb, &len, ber );
+        if ( tag != LDAP_TAG_MESSAGE ) {
+            int err = sock_errno();
+
+            if ( err != EWOULDBLOCK && err != EAGAIN ) {
+                char ebuf[128];
+                Debug( LDAP_DEBUG_ANY, "handle_responses: "
+                        "ber_get_next on fd %d failed errno=%d (%s)\n",
+                        c->c_fd, err,
+                        sock_errstr( err, ebuf, sizeof(ebuf) ) );
+
+                c->c_currentber = NULL;
+                ber_free( ber, 1 );
+                upstream_destroy( c );
+                return NULL;
+            }
+            break;
+        }
+    }
+
+    event_add( c->c_read_event, NULL );
+    ldap_pvt_thread_mutex_unlock( &c->c_mutex );
+    return NULL;
+}
+
+/*
+ * Initial read on the upstream connection, if we get an LDAP PDU, submit the
+ * processing of this and successive ones to the work queue.
+ *
+ * If we can't submit it to the queue (overload), process this one and return
+ * to the event loop immediately after.
+ */
 void
 upstream_read_cb( evutil_socket_t s, short what, void *arg )
 {
     Connection *c = arg;
     BerElement *ber;
     ber_tag_t tag;
-    Operation *op, needle = { .o_upstream = c };
     ber_len_t len;
-    int finished = 0;
 
     ldap_pvt_thread_mutex_lock( &c->c_mutex );
     Debug( LDAP_DEBUG_CONNS, "upstream_read_cb: "
@@ -48,6 +472,7 @@ upstream_read_cb( evutil_socket_t s, short what, void *arg )
         ldap_pvt_thread_mutex_unlock( &c->c_mutex );
         return;
     }
+    c->c_currentber = ber;
 
     tag = ber_get_next( c->c_sb, &len, ber );
     if ( tag != LDAP_TAG_MESSAGE ) {
@@ -60,84 +485,29 @@ upstream_read_cb( evutil_socket_t s, short what, void *arg )
                     c->c_fd, err, sock_errstr( err, ebuf, sizeof(ebuf) ) );
 
             c->c_currentber = NULL;
-            goto fail;
+            ber_free( ber, 1 );
+            upstream_destroy( c );
+            return;
         }
-        c->c_currentber = ber;
+        event_add( c->c_read_event, NULL );
         ldap_pvt_thread_mutex_unlock( &c->c_mutex );
         return;
     }
 
-    c->c_currentber = NULL;
-
-    tag = ber_get_int( ber, &needle.o_upstream_msgid );
-    if ( tag != LDAP_TAG_MSGID || needle.o_upstream_msgid == 0 ) {
-        goto fail;
-    }
-
-    op = tavl_find( c->c_ops, &needle, operation_upstream_cmp );
-    if ( !op ) {
-        ber_free( ber, 1 );
-    } else {
-        Connection *client = op->o_client;
-        BerElement *output;
-        BerValue response, controls;
-        ber_tag_t type;
-
-        type = ber_skip_element( ber, &response );
-        switch ( type ) {
-            case LDAP_RES_SEARCH_ENTRY:
-            case LDAP_RES_SEARCH_REFERENCE:
-            case LDAP_RES_INTERMEDIATE:
-                break;
-            default:
-                finished = 1;
-                tavl_delete( &c->c_ops, op, operation_upstream_cmp );
-                break;
+    if ( !slap_conn_max_pdus_per_cycle ||
+            ldap_pvt_thread_pool_submit(
+                    &connection_pool, handle_responses, c ) ) {
+        /* If we're overloaded or configured as such, process one and resume in
+         * the next cycle */
+        if ( handle_one_response( c ) == LDAP_SUCCESS ) {
+            ldap_pvt_thread_mutex_unlock( &c->c_mutex );
         }
-        ldap_pvt_thread_mutex_unlock( &c->c_mutex );
-
-        tag = ber_peek_tag( ber, &len );
-        if ( tag == LDAP_TAG_CONTROLS ) {
-            tag = ber_skip_element( ber, &controls );
-        }
-
-        output = ber_alloc();
-        if ( !output ) {
-            goto fail;
-        }
-
-        ber_start_seq( output, LDAP_TAG_MESSAGE );
-        ber_put_int( output, op->o_client_msgid, LDAP_TAG_MSGID );
-        ber_put_berval( output, &response, type );
-        if ( tag == LDAP_TAG_CONTROLS ) {
-            ber_put_berval( output, &controls, LDAP_TAG_CONTROLS );
-        }
-        ber_put_seq( output );
-
-        if ( finished ) {
-            ldap_pvt_thread_mutex_lock( &client->c_mutex );
-            tavl_delete( &client->c_ops, op, operation_client_cmp );
-            ldap_pvt_thread_mutex_unlock( &client->c_mutex );
-            operation_destroy( op );
-        }
-
-        ldap_pvt_thread_mutex_lock( &client->c_io_mutex );
-        client->c_pendingber = output;
-        ldap_pvt_thread_mutex_unlock( &client->c_io_mutex );
-
-        client_write_cb( -1, 0, client );
         return;
     }
+    event_del( c->c_read_event );
 
     ldap_pvt_thread_mutex_unlock( &c->c_mutex );
-
     return;
-fail:
-    Debug( LDAP_DEBUG_ANY, "upstream_read_cb: "
-            "error on processing a response on upstream connection %ld\n",
-            c->c_connid );
-    ber_free( ber, 1 );
-    upstream_destroy( c );
 }
 
 void
@@ -205,6 +575,7 @@ upstream_bind_cb( evutil_socket_t s, short what, void *arg )
         ldap_pvt_thread_mutex_unlock( &c->c_mutex );
         return;
     }
+    c->c_currentber = ber;
 
     tag = ber_get_next( c->c_sb, &len, ber );
     if ( tag != LDAP_TAG_MESSAGE ) {
@@ -219,7 +590,6 @@ upstream_bind_cb( evutil_socket_t s, short what, void *arg )
             c->c_currentber = NULL;
             goto fail;
         }
-        c->c_currentber = ber;
         ldap_pvt_thread_mutex_unlock( &c->c_mutex );
         return;
     }
@@ -409,7 +779,7 @@ fail:
     return NULL;
 }
 
-static void
+void
 upstream_destroy( Connection *c )
 {
     Backend *b = c->c_private;
