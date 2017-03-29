@@ -289,12 +289,18 @@ NAN_METHOD(TxnWrap::del) {
             freeData = true;
         }
         else if (dataHandle->IsNumber()) {
-            data.mv_size = sizeof(double);
-            data.mv_data = new double;
-            
-            auto local = dataHandle->ToNumber(context).ToLocalChecked();
-            *((double*)data.mv_data) = local->Value();
-            freeData = true;
+            // be pesimistic - avoid deprecated non-maybe interface
+            Nan::Maybe<double> d = Nan::To<double>(dataHandle);
+            if (d.IsJust()) {
+                data.mv_size = sizeof(double);
+                data.mv_data = new double;
+                *((double*)data.mv_data) = d.FromJust();
+                freeData = true;
+            }
+            else {
+                // This error is surely impossible? Just trying to avoid deprecated warnings...
+                Nan::ThrowError("Is a number but isn't a double???");
+            }
         }
         else if (dataHandle->IsBoolean()) {
             data.mv_size = sizeof(double);

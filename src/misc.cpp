@@ -115,7 +115,6 @@ Local<Value> valToStringChecked(MDB_val &data) {
 }
 
 Local<Value> keyToHandle(MDB_val &key, node_lmdb::KeyType kt) {
-    const char *p = (const char*)key.mv_data;
     switch (kt) {
       case node_lmdb::uint32Key:
         return Nan::New<Integer>(*((uint32_t*)key.mv_data));
@@ -126,7 +125,7 @@ Local<Value> keyToHandle(MDB_val &key, node_lmdb::KeyType kt) {
       case node_lmdb::legacyStringKey:
         return valToString(key);
     }
-    assert(("Unhandled KeyType",0));
+    assert(("Unhandled KeyType"==0));
 }
 
 Local<Value> valToStringUnsafe(MDB_val &data) {
