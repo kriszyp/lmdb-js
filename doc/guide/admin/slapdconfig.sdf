@@ -305,9 +305,10 @@ This marks the beginning of a new {{TERM:BDB}} database instance
 declaration.
 
 
-H4: limits <who> <limit> [<limit> [...]]
+H4: limits <selector> <limit> [<limit> [...]]
 
-Specify time and size limits based on who initiated an operation.
+Specify time and size limits based on the operation's initiator or base
+DN.
 
 See the {{SECT:Limits}} section of this guide and {{slapd.conf}}(5)
 for more details.
