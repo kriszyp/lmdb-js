@@ -1406,7 +1406,7 @@ int mdb_tool_idl_add(
 	dbi = ai->ai_dbi;
 	for (i=0; keys[i].bv_val; i++) {
 	itmp.kstr = keys[i];
-	ic = tavl_find( (Avlnode *)ai->ai_root, &itmp, mdb_tool_idl_cmp );
+	ic = tavl_find( ai->ai_root, &itmp, mdb_tool_idl_cmp );
 
 	/* No entry yet, create one */
 	if ( !ic ) {
@@ -1428,7 +1428,7 @@ int mdb_tool_idl_add(
 		ic->count = 0;
 		ic->offset = 0;
 		ic->flags = 0;
-		tavl_insert( (Avlnode **)&ai->ai_root, ic, mdb_tool_idl_cmp,
+		tavl_insert( &ai->ai_root, ic, mdb_tool_idl_cmp,
 			avl_dup_error );
 
 		/* load existing key count here */

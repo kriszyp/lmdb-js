@@ -105,7 +105,7 @@ typedef struct sssvlv_info
 
 typedef struct sort_op
 {
-	Avlnode	*so_tree;
+	TAvlnode *so_tree;
 	sort_ctrl *so_ctrl;
 	sssvlv_info *so_info;
 	int so_paged;
@@ -398,7 +398,7 @@ static void free_sort_op( Connection *conn, sort_op *so )
 	int sess_id;
 	if ( so->so_tree ) {
 		if ( so->so_paged > SLAP_CONTROL_IGNORED ) {
-			Avlnode *cur_node, *next_node;
+			TAvlnode *cur_node, *next_node;
 			cur_node = so->so_tree;
 			while ( cur_node ) {
 				next_node = tavl_next( cur_node, TAVL_DIR_RIGHT );
@@ -441,7 +441,7 @@ static void send_list(
 	SlapReply		*rs,
 	sort_op			*so)
 {
-	Avlnode	*cur_node, *tmp_node;
+	TAvlnode *cur_node, *tmp_node;
 	vlv_ctrl *vc = op->o_controls[vlv_cid];
 	int i, j, dir, rc;
 	BackendDB *be;
@@ -594,8 +594,8 @@ range_err:
 
 static void send_page( Operation *op, SlapReply *rs, sort_op *so )
 {
-	Avlnode		*cur_node		= so->so_tree;
-	Avlnode		*next_node		= NULL;
+	TAvlnode *cur_node = so->so_tree;
+	TAvlnode *next_node = NULL;
 	BackendDB *be = op->o_bd;
 	Entry *e;
 	int rc;
@@ -659,7 +659,7 @@ static void send_entry(
 			send_list( op, rs, so );
 		} else {
 			/* Get the first node to send */
-			Avlnode *start_node = tavl_end(so->so_tree, TAVL_DIR_LEFT);
+			TAvlnode *start_node = tavl_end(so->so_tree, TAVL_DIR_LEFT);
 			so->so_tree = start_node;
 
 			if ( so->so_paged <= SLAP_CONTROL_IGNORED ) {

@@ -2625,6 +2625,8 @@ struct Operation {
 	ber_tag_t	o_tag;		/* tag of the request */
 	time_t		o_time;		/* time op was initiated */
 	int			o_tincr;	/* counter for multiple ops with same o_time */
+	int			o_tusec;	/* microsecond timestamp */
+	struct timeval o_qtime;	/* time spent in queues before execution */
 
 	BackendDB	*o_bd;	/* backend DB processing this op */
 	struct berval	o_req_dn;	/* DN of target of request */

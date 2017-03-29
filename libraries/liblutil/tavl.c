@@ -60,13 +60,13 @@ static const int avl_bfs[] = {LH, RH};
  * NOTE: this routine may malloc memory
  */
 int
-tavl_insert( Avlnode ** root, void *data, AVL_CMP fcmp, AVL_DUP fdup )
+tavl_insert( TAvlnode ** root, void *data, AVL_CMP fcmp, AVL_DUP fdup )
 {
-    Avlnode *t, *p, *s, *q, *r;
+    TAvlnode *t, *p, *s, *q, *r;
     int a, cmp, ncmp;
 
 	if ( *root == NULL ) {
-		if (( r = (Avlnode *) ber_memalloc( sizeof( Avlnode ))) == NULL ) {
+		if (( r = (TAvlnode *) ber_memalloc( sizeof( TAvlnode ))) == NULL ) {
 			return( -1 );
 		}
 		r->avl_link[0] = r->avl_link[1] = NULL;
@@ -91,7 +91,7 @@ tavl_insert( Avlnode ** root, void *data, AVL_CMP fcmp, AVL_DUP fdup )
 		q = avl_child( p, cmp );
 		if (q == NULL) {
 			/* insert */
-			if (( q = (Avlnode *) ber_memalloc( sizeof( Avlnode ))) == NULL ) {
+			if (( q = (TAvlnode *) ber_memalloc( sizeof( TAvlnode ))) == NULL ) {
 				return( -1 );
 			}
 			q->avl_link[cmp] = p->avl_link[cmp];
@@ -187,13 +187,13 @@ tavl_insert( Avlnode ** root, void *data, AVL_CMP fcmp, AVL_DUP fdup )
 }
 
 void*
-tavl_delete( Avlnode **root, void* data, AVL_CMP fcmp )
+tavl_delete( TAvlnode **root, void* data, AVL_CMP fcmp )
 {
-	Avlnode *p, *q, *r, *top;
+	TAvlnode *p, *q, *r, *top;
 	int side, side_bf, shorter, nside = -1;
 
 	/* parent stack */
-	Avlnode *pptr[MAX_TREE_DEPTH];
+	TAvlnode *pptr[MAX_TREE_DEPTH];
 	unsigned char pdir[MAX_TREE_DEPTH];
 	int depth = 0;
 
@@ -424,7 +424,7 @@ tavl_delete( Avlnode **root, void* data, AVL_CMP fcmp )
  */
 
 int
-tavl_free( Avlnode *root, AVL_FREE dfree )
+tavl_free( TAvlnode *root, AVL_FREE dfree )
 {
 	int	nleft, nright;
 
@@ -450,15 +450,15 @@ tavl_free( Avlnode *root, AVL_FREE dfree )
  */
 
 /*
- * tavl_find2 - returns Avlnode instead of data pointer.
- * tavl_find3 - as above, but returns Avlnode even if no match is found.
+ * tavl_find2 - returns TAvlnode instead of data pointer.
+ * tavl_find3 - as above, but returns TAvlnode even if no match is found.
  *				also set *ret = last comparison result, or -1 if root == NULL.
  */
-Avlnode *
-tavl_find3( Avlnode *root, const void *data, AVL_CMP fcmp, int *ret )
+TAvlnode *
+tavl_find3( TAvlnode *root, const void *data, AVL_CMP fcmp, int *ret )
 {
 	int	cmp = -1, dir;
-	Avlnode *prev = root;
+	TAvlnode *prev = root;
 
 	while ( root != 0 && (cmp = (*fcmp)( data, root->avl_data )) != 0 ) {
 		prev = root;
@@ -469,8 +469,8 @@ tavl_find3( Avlnode *root, const void *data, AVL_CMP fcmp, int *ret )
 	return root ? root : prev;
 }
 
-Avlnode *
-tavl_find2( Avlnode *root, const void *data, AVL_CMP fcmp )
+TAvlnode *
+tavl_find2( TAvlnode *root, const void *data, AVL_CMP fcmp )
 {
 	int	cmp;
 
@@ -482,7 +482,7 @@ tavl_find2( Avlnode *root, const void *data, AVL_CMP fcmp )
 }
 
 void*
-tavl_find( Avlnode *root, const void* data, AVL_CMP fcmp )
+tavl_find( TAvlnode *root, const void* data, AVL_CMP fcmp )
 {
 	int	cmp;
 
@@ -495,8 +495,8 @@ tavl_find( Avlnode *root, const void* data, AVL_CMP fcmp )
 }
 
 /* Return the leftmost or rightmost node in the tree */
-Avlnode *
-tavl_end( Avlnode *root, int dir )
+TAvlnode *
+tavl_end( TAvlnode *root, int dir )
 {
 	if ( root ) {
 		while ( root->avl_bits[dir] == AVL_CHILD )
@@ -506,8 +506,8 @@ tavl_end( Avlnode *root, int dir )
 }
 
 /* Return the next node in the given direction */
-Avlnode *
-tavl_next( Avlnode *root, int dir )
+TAvlnode *
+tavl_next( TAvlnode *root, int dir )
 {
 	if ( root ) {
 		int c = root->avl_bits[dir];

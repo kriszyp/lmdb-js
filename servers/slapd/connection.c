@@ -1053,6 +1053,13 @@ connection_operation( void *ctx, void *arg_v )
 	void *memctx_null = NULL;
 	ber_len_t memsiz;
 
+	gettimeofday( &op->o_qtime, NULL );
+	op->o_qtime.tv_usec -= op->o_tusec;
+	if ( op->o_qtime.tv_usec < 0 ) {
+		op->o_qtime.tv_usec += 1000000;
+		op->o_qtime.tv_sec--;
+	}
+	op->o_qtime.tv_sec -= op->o_time;
 	conn_counter_init( op, ctx );
 	ldap_pvt_thread_mutex_lock( &op->o_counters->sc_mutex );
 	/* FIXME: returns 0 in case of failure */

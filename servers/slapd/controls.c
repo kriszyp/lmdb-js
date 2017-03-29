@@ -843,7 +843,7 @@ get_ctrls2(
 
 		} else if( c->ldctl_oid == NULL ) {
 			Debug( LDAP_DEBUG_TRACE,
-				"get_ctrls: conn %lu got emtpy OID.\n",
+				"get_ctrls: conn %lu got empty OID.\n",
 				op->o_connid, 0, 0 );
 
 			slap_free_ctrls( op, op->o_ctrls );

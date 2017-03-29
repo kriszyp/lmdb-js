@@ -40,15 +40,19 @@
 #if SLAP_STATS_ETIME
 #define ETIME_SETUP \
 	struct timeval now; \
+	char timestr[64]; \
 	(void) gettimeofday( &now, NULL ); \
 	now.tv_sec -= op->o_time; \
 	now.tv_usec -= op->o_tincr; \
 	if ( now.tv_usec < 0 ) { \
 		--now.tv_sec; now.tv_usec += 1000000; \
-	}
-#define ETIME_LOGFMT	"etime=%d.%06d "
+	} \
+	sprintf(timestr, "qtime=%d.%06d etime=%d.%06d", \
+		(int)op->o_qtime.tv_sec, (int)op->o_qtime.tv_usec, \
+		(int)now.tv_sec, (int)now.tv_usec);
+#define ETIME_LOGFMT	"%s "
 #define StatslogEtime(lvl,fmt,pfx,tag,err,etxt,xtra) \
-	Statslog7(lvl,fmt,pfx,tag,err,(int)now.tv_sec,(int)now.tv_usec,etxt,xtra)
+	Statslog6(lvl,fmt,pfx,tag,err,timestr,etxt,xtra)
 #else
 #define ETIME_SETUP
 #define ETIME_LOGFMT	""
