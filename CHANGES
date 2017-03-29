@@ -34,6 +34,8 @@ OpenLDAP 2.4.45 Engineering
 		admin24 fixed slapo-syncprov information to be curent (ITS#8253)
 		admin24 fixed typo in access control docs (ITS#7341, ITS#8391)
 		admin24 fixed minor typo in tuning guide (ITS#8499)
+		Fixed ldap.conf(5) missing information on SASL_NOCANON option (ITS#7177)
+		Fixed ldapsearch(1) information on the V[V] flag behavior (ITS#7177, ITS#6339)
 		Fixed slapd-config(5), slapd.conf(5) clarification on interval keyword for refreshAndPersist (ITS#8538)
 		Fixed slapo-ppolicy(5) to clearly note rootdn requirement (ITS#8565)
 		Fixed slapo-syncprov(5) documentation to be current (ITS#8253)
