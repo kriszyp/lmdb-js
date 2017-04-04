@@ -69,6 +69,8 @@ char *global_host = NULL;
 static FILE *logfile;
 static char *logfileName;
 
+lload_features_t lload_features;
+
 ber_len_t sockbuf_max_incoming = SLAP_SB_MAX_INCOMING_DEFAULT;
 ber_len_t sockbuf_max_incoming_auth = SLAP_SB_MAX_INCOMING_AUTH;
 
@@ -104,6 +106,7 @@ static ConfigDriver config_tcp_buffer;
 static ConfigDriver config_restrict;
 static ConfigDriver config_loglevel;
 static ConfigDriver config_include;
+static ConfigDriver config_feature;
 #ifdef HAVE_TLS
 static ConfigDriver config_tls_option;
 static ConfigDriver config_tls_config;
@@ -226,6 +229,10 @@ static ConfigTable config_back_cf_table[] = {
     { "max_pdus_per_cycle", "count", 2, 2, 0,
         ARG_INT|ARG_MAGIC|CFG_RESCOUNT,
         &config_generic,
+    },
+    { "feature", "name", 2, 0, 0,
+        ARG_MAGIC,
+        &config_feature,
     },
     { "TLSCACertificate", NULL, 2, 2, 0,
 #ifdef HAVE_TLS
@@ -1012,6 +1019,27 @@ config_include( ConfigArgs *c )
         c->ca_private = cf;
     }
     return rc;
+}
+
+static int
+config_feature( ConfigArgs *c )
+{
+    slap_verbmasks features[] = {
+        { BER_BVC("vc"), LLOAD_FEATURE_VC },
+        { BER_BVC("proxyauthz"), LLOAD_FEATURE_PROXYAUTHZ },
+        { BER_BVNULL, 0 }
+    };
+    slap_mask_t mask = 0;
+    int i;
+
+    i = verbs_to_mask( c->argc, c->argv, features, &mask );
+    if ( i ) {
+        Debug( LDAP_DEBUG_ANY, "%s: <%s> unknown feature %s\n", c->log,
+                c->argv[0], c->argv[i] );
+        return 1;
+    }
+    lload_features |= mask;
+    return 0;
 }
 
 #ifdef HAVE_TLS

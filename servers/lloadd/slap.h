@@ -227,6 +227,11 @@ typedef struct config_reply_s ConfigReply; /* config.h */
 
 typedef struct Listener Listener;
 
+typedef enum {
+    LLOAD_FEATURE_VC = 1 << 0,
+    LLOAD_FEATURE_PROXYAUTHZ = 1 << 1,
+} lload_features_t;
+
 enum lload_tls_type {
     LLOAD_CLEARTEXT = 0,
     LLOAD_LDAPS,
@@ -279,13 +284,12 @@ struct Connection {
     struct event *c_read_event, *c_write_event;
 
     /* can only be changed by binding thread */
-    int c_features;
-#define SLAP_C_VC 1
-
     struct berval c_sasl_bind_mech; /* mech in progress */
     struct berval c_auth;           /* authcDN (possibly in progress) */
 
+#ifdef LDAP_API_FEATURE_VERIFY_CREDENTIALS
     struct berval c_vc_cookie;
+#endif /* LDAP_API_FEATURE_VERIFY_CREDENTIALS */
 
     /* Can be held while acquiring c_mutex to inject things into c_ops or
      * destroy the connection */
