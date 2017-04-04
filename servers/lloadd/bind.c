@@ -171,7 +171,18 @@ request_bind_as_vc( Operation *op )
             if ( !BER_BVISNULL( &c->c_auth ) ) {
                 ber_memfree( c->c_auth.bv_val );
             }
-            ber_dupbv( &c->c_auth, &binddn );
+            if ( !BER_BVISEMPTY( &binddn ) ) {
+                char *ptr;
+                c->c_auth.bv_len = STRLENOF("dn:") + binddn.bv_len;
+                c->c_auth.bv_val = ch_malloc( c->c_auth.bv_len + 1 );
+
+                ptr = lutil_strcopy( c->c_auth.bv_val, "dn:" );
+                ptr = lutil_strncopy( ptr, binddn.bv_val, binddn.bv_len );
+                *ptr = '\0';
+            } else {
+                BER_BVZERO( &c->c_auth );
+            }
+
             if ( !BER_BVISNULL( &c->c_sasl_bind_mech ) ) {
                 ber_memfree( c->c_sasl_bind_mech.bv_val );
                 BER_BVZERO( &c->c_sasl_bind_mech );

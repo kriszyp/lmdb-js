@@ -472,6 +472,8 @@ config_backend( ConfigArgs *c )
         }
     }
 
+    bindconf_tls_defaults( &b->b_bindconf );
+
     if ( b->b_bindconf.sb_method == LDAP_AUTH_SASL ) {
 #ifndef HAVE_CYRUS_SASL
         Debug( LDAP_DEBUG_ANY, "config_backend: "

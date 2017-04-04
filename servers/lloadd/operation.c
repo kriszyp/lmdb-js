@@ -298,12 +298,38 @@ request_process( void *ctx, void *arg )
     op->o_upstream_msgid = msgid = c->c_next_msgid++;
     rc = tavl_insert( &c->c_ops, op, operation_upstream_cmp, avl_dup_error );
     assert( rc == LDAP_SUCCESS );
-    ldap_pvt_thread_mutex_unlock( &c->c_mutex );
 
-    ber_printf( output, "t{titOtO}", LDAP_TAG_MESSAGE,
-            LDAP_TAG_MSGID, msgid,
-            op->o_tag, &op->o_request,
-            LDAP_TAG_CONTROLS, BER_BV_OPTIONAL( &op->o_ctrls ) );
+    if ( lload_features & LLOAD_FEATURE_PROXYAUTHZ ) {
+        Debug( LDAP_DEBUG_TRACE, "request_process: "
+                "proxying identity %s to upstream\n",
+                c->c_auth.bv_val );
+        ber_printf( output, "t{titOt{{sbO}" /* "}}" */, LDAP_TAG_MESSAGE,
+                LDAP_TAG_MSGID, msgid,
+                op->o_tag, &op->o_request,
+                LDAP_TAG_CONTROLS,
+                LDAP_CONTROL_PROXY_AUTHZ, 1, &c->c_auth );
+
+        if ( !BER_BVISNULL( &op->o_ctrls ) ) {
+            BerElement *control_ber = ber_alloc();
+            BerValue controls;
+
+            if ( !control_ber ) {
+                goto fail;
+            }
+            ber_init2( control_ber, &op->o_ctrls, 0 );
+            ber_peek_element( control_ber, &controls );
+
+            ber_write( output, controls.bv_val, controls.bv_len, 0 );
+            ber_free( control_ber, 0 );
+        }
+        ber_printf( output, /* "{{" */ "}}" );
+    } else {
+        ber_printf( output, "t{titOtO}", LDAP_TAG_MESSAGE,
+                LDAP_TAG_MSGID, msgid,
+                op->o_tag, &op->o_request,
+                LDAP_TAG_CONTROLS, BER_BV_OPTIONAL( &op->o_ctrls ) );
+    }
+    ldap_pvt_thread_mutex_unlock( &c->c_mutex );
     ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
 
     upstream_write_cb( -1, 0, c );

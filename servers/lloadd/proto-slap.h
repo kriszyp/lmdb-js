@@ -78,6 +78,7 @@ LDAP_SLAPD_F (int) read_config( const char *fname, const char *dir );
 LDAP_SLAPD_F (void) config_destroy( void );
 LDAP_SLAPD_F (int) verb_to_mask( const char *word, slap_verbmasks *v );
 LDAP_SLAPD_F (int) str2loglevel( const char *s, int *l );
+LDAP_SLAPD_F (void) bindconf_tls_defaults( slap_bindconf *bc );
 LDAP_SLAPD_F (void) bindconf_free( slap_bindconf *bc );
 
 /*
