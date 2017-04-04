@@ -1761,6 +1761,11 @@ syncrepl_accesslog_mods(
 		if ( !colon ) {
 			/* Invalid */
 			continue;
+		} else if ( colon == bv.bv_val ) {
+			/* ITS#6545: An empty attribute signals that a new mod
+			 * is about to start */
+			mod = NULL;
+			continue;
 		}
 
 		bv.bv_len = colon - bv.bv_val;
