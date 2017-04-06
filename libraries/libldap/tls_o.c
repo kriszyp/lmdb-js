@@ -1238,7 +1238,7 @@ tls_impl ldap_int_tls_impl = {
 
 	&tlso_sbio,
 
-#ifdef LDAP_R_COMPILE
+#if defined(LDAP_R_COMPILE) && OPENSSL_VERSION_NUMBER < 0x10100000
 	tlso_thr_init,
 #else
 	NULL,
