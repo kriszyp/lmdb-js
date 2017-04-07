@@ -49,7 +49,7 @@ New syslog engine
 [12:48] <hyc> I may try to sneak it into OpenLDAP 2.5
 
 
-Overhaul overlays and backends, see ITS 6166
+Overhaul overlays and backends, see ITS 6166, ITS6531
 
 (In relation to a discussion about slapo-chain)
 <hyc> anyway, the nicer ting to fix would be in 2.5, push all of the repl consumer code into its own overlay
