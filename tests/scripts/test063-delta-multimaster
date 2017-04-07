@@ -473,6 +473,23 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
+$LDAPMODIFY -D "$MANAGERDN" -H $URI1 -w $PASSWD \
+	>> $TESTOUT 2>&1 << EOF
+dn: $THEDN
+changetype: modify
+replace: sn
+sn: Replaced later
+-
+replace: sn
+sn: Surname
+EOF
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapmodify failed for server 1 database ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
 echo "Restoring replication between server 1 and 2..."
 n=1
 while [ $n -le $MMR ]; do
