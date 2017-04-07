@@ -107,6 +107,10 @@ static void tlso_thr_init( void )
 	CRYPTO_set_id_callback( tlso_thread_self );
 }
 #endif /* LDAP_R_COMPILE */
+#else
+#ifdef LDAP_R_COMPILE
+static void tlso_thr_init( void ) {}
+#endif
 #endif /* OpenSSL 1.1 */
 
 static STACK_OF(X509_NAME) *
@@ -1238,7 +1242,7 @@ tls_impl ldap_int_tls_impl = {
 
 	&tlso_sbio,
 
-#if defined(LDAP_R_COMPILE) && OPENSSL_VERSION_NUMBER < 0x10100000
+#ifdef LDAP_R_COMPILE
 	tlso_thr_init,
 #else
 	NULL,
