@@ -344,6 +344,7 @@ dnl ----------------------------------------------------------------
 dnl SLAPD Overlay Options
 Overlays="accesslog \
 	auditlog \
+	autoca \
 	collect \
 	constraint \
 	dds \
@@ -371,6 +372,8 @@ OL_ARG_ENABLE(overlays,[    --enable-overlays	  enable all available overlays],
 OL_ARG_ENABLE(accesslog,[    --enable-accesslog	  In-Directory Access Logging overlay],
 	no, [no yes mod], ol_enable_overlays)
 OL_ARG_ENABLE(auditlog,[    --enable-auditlog	  Audit Logging overlay],
+	no, [no yes mod], ol_enable_overlays)
+OL_ARG_ENABLE(autoca,[    --enable-autoca	  Automatic Certificate Authority overlay],
 	no, [no yes mod], ol_enable_overlays)
 OL_ARG_ENABLE(collect,[    --enable-collect	  Collect overlay],
 	no, [no yes mod], ol_enable_overlays)
@@ -2901,6 +2904,18 @@ if test "$ol_enable_auditlog" != no ; then
 		SLAPD_STATIC_OVERLAYS="$SLAPD_STATIC_OVERLAYS auditlog.o"
 	fi
 	AC_DEFINE_UNQUOTED(SLAPD_OVER_AUDITLOG,$MFLAG,[define for Audit Logging overlay])
+fi
+
+if test "$ol_enable_autoca" != no ; then
+	BUILD_AUDITLOG=$ol_enable_autoca
+	if test "$ol_enable_autoca" = mod ; then
+		MFLAG=SLAPD_MOD_DYNAMIC
+		SLAPD_DYNAMIC_OVERLAYS="$SLAPD_DYNAMIC_OVERLAYS autoca.la"
+	else
+		MFLAG=SLAPD_MOD_STATIC
+		SLAPD_STATIC_OVERLAYS="$SLAPD_STATIC_OVERLAYS autoca.o"
+	fi
+	AC_DEFINE_UNQUOTED(SLAPD_OVER_AUTOCA,$MFLAG,[define for Automatic Certificate Authority overlay])
 fi
 
 if test "$ol_enable_collect" != no ; then
