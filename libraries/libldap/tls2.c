@@ -199,7 +199,9 @@ ldap_int_tls_init_ctx( struct ldapoptions *lo, int is_server )
 	tls_init( ti );
 
 	if ( is_server && !lts.lt_certfile && !lts.lt_keyfile &&
-		!lts.lt_cacertfile && !lts.lt_cacertdir ) {
+		!lts.lt_cacertfile && !lts.lt_cacertdir &&
+		!lts.lt_cacert.bv_val && !lts.lt_cert.bv_val &&
+		!lts.lt_key.bv_val ) {
 		/* minimum configuration not provided */
 		return LDAP_NOT_SUPPORTED;
 	}
@@ -864,6 +866,36 @@ ldap_pvt_tls_set_option( LDAP *ld, int option, void *arg )
 			ldap_pvt_tls_ctx_free( lo->ldo_tls_ctx );
 		lo->ldo_tls_ctx = NULL;
 		return ldap_int_tls_init_ctx( lo, *(int *)arg );
+	case LDAP_OPT_X_TLS_CACERT:
+		if ( !arg ) return -1;
+		if ( lo->ldo_tls_cacert.bv_val )
+			LDAP_FREE( lo->ldo_tls_cacert.bv_val );
+		lo->ldo_tls_cacert.bv_len = ((struct berval *)arg)->bv_len;
+		lo->ldo_tls_cacert.bv_val = LDAP_MALLOC( lo->ldo_tls_cacert.bv_len );
+		if ( !lo->ldo_tls_cacert.bv_val )
+			return -1;
+		AC_MEMCPY( lo->ldo_tls_cacert.bv_val, ((struct berval *)arg)->bv_val, lo->ldo_tls_cacert.bv_len );
+		break;
+	case LDAP_OPT_X_TLS_CERT:
+		if ( !arg ) return -1;
+		if ( lo->ldo_tls_cert.bv_val )
+			LDAP_FREE( lo->ldo_tls_cert.bv_val );
+		lo->ldo_tls_cert.bv_len = ((struct berval *)arg)->bv_len;
+		lo->ldo_tls_cert.bv_val = LDAP_MALLOC( lo->ldo_tls_cert.bv_len );
+		if ( !lo->ldo_tls_cert.bv_val )
+			return -1;
+		AC_MEMCPY( lo->ldo_tls_cert.bv_val, ((struct berval *)arg)->bv_val, lo->ldo_tls_cert.bv_len );
+		break;
+	case LDAP_OPT_X_TLS_KEY:
+		if ( !arg ) return -1;
+		if ( lo->ldo_tls_key.bv_val )
+			LDAP_FREE( lo->ldo_tls_key.bv_val );
+		lo->ldo_tls_key.bv_len = ((struct berval *)arg)->bv_len;
+		lo->ldo_tls_key.bv_val = LDAP_MALLOC( lo->ldo_tls_key.bv_len );
+		if ( !lo->ldo_tls_key.bv_val )
+			return -1;
+		AC_MEMCPY( lo->ldo_tls_key.bv_val, ((struct berval *)arg)->bv_val, lo->ldo_tls_key.bv_len );
+		break;
 	default:
 		return -1;
 	}
