@@ -4658,10 +4658,14 @@ check_vals( ConfigTable *ct, ConfigArgs *ca, void *ptr, int isAttr )
 	}
 	for ( i=0; vals[i].bv_val; i++ ) {
 		ca->line = vals[i].bv_val;
+		ca->linelen = vals[i].bv_len;
 		if (( ad->ad_type->sat_flags & SLAP_AT_ORDERED_VAL ) &&
 			ca->line[0] == '{' ) {
 			char *idx = strchr( ca->line, '}' );
-			if ( idx ) ca->line = idx+1;
+			if ( idx ) {
+				ca->linelen -= (idx+1) - ca->line;
+				ca->line = idx+1;
+			}
 		}
 		rc = config_parse_vals( ct, ca, i );
 		if ( rc ) {
@@ -5447,10 +5451,12 @@ config_add_internal( CfBackInfo *cfb, Entry *e, ConfigArgs *ca, SlapReply *rs,
 			char *iptr = NULL;
 			ca->valx = -1;
 			ca->line = a->a_vals[i].bv_val;
+			ca->linelen = a->a_vals[i].bv_len;
 			if ( a->a_desc->ad_type->sat_flags & SLAP_AT_ORDERED ) {
 				ptr = strchr( ca->line, '}' );
 				if ( ptr ) {
 					iptr = strchr( ca->line, '{' );
+					ca->linelen -= (ptr+1) - ca->line;
 					ca->line = ptr+1;
 				}
 			}
@@ -5769,6 +5775,7 @@ config_modify_add( ConfigTable *ct, ConfigArgs *ca, AttributeDescription *ad,
 			if ( next == ca->line + 1 || next[ 0 ] != '}' ) {
 				return LDAP_OTHER;
 			}
+			ca->linelen -= (ptr+1) - ca->line;
 			ca->line = ptr+1;
 		}
 	}
@@ -5990,6 +5997,7 @@ config_modify_internal( CfEntryInfo *ce, Operation *op, SlapReply *rs,
 						bv.bv_val = ptr;
 					}
 					ca->line = bv.bv_val;
+					ca->linelen = bv.bv_len;
 					ca->valx = d->idx[i];
 					config_parse_vals(ct, ca, d->idx[i] );
 					rc = config_del_vals( ct, ca );
@@ -6028,6 +6036,7 @@ config_modify_internal( CfEntryInfo *ce, Operation *op, SlapReply *rs,
 				break;
 			for (i=0; ml->sml_values[i].bv_val; i++) {
 				ca->line = ml->sml_values[i].bv_val;
+				ca->linelen = ml->sml_values[i].bv_len;
 				ca->valx = -1;
 				rc = config_modify_add( ct, ca, ml->sml_desc, i );
 				if ( rc )
@@ -6057,6 +6066,7 @@ out:
 				}
 				for ( i=0; !BER_BVISNULL( &s->a_vals[i] ); i++ ) {
 					ca->line = s->a_vals[i].bv_val;
+					ca->linelen = s->a_vals[i].bv_len;
 					ca->valx = -1;
 					config_modify_add( ct, ca, s->a_desc, i );
 				}
@@ -6074,6 +6084,7 @@ out:
 					s->a_flags &= ~(SLAP_ATTR_IXDEL|SLAP_ATTR_IXADD);
 					for ( i=0; !BER_BVISNULL( &s->a_vals[i] ); i++ ) {
 						ca->line = s->a_vals[i].bv_val;
+						ca->linelen = s->a_vals[i].bv_len;
 						ca->valx = -1;
 						config_modify_add( ct, ca, s->a_desc, i );
 					}
