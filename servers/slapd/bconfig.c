@@ -4597,6 +4597,8 @@ config_find_table( ConfigOCs **colst, int nocs, AttributeDescription *ad,
 	ConfigArgs *ca )
 {
 	int i, j;
+	if (ad->ad_flags & SLAP_DESC_BINARY)
+		ad = ad->ad_type->sat_ad;
 
 	for (j=0; j<nocs; j++) {
 		for (i=0; colst[j]->co_table[i].name; i++)
