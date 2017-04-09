@@ -54,56 +54,12 @@
 
 #define ACA_SCHEMA_AT ACA_SCHEMA_ROOT ".1"
 #define ACA_SCHEMA_OC ACA_SCHEMA_ROOT ".2"
-#define ACA_SCHEMA_SYN ACA_SCHEMA_ROOT ".3"
-#define ACA_SCHEMA_MR ACA_SCHEMA_ROOT ".4"
 
 static AttributeDescription *ad_caCert, *ad_caPkey, *ad_usrCert, *ad_usrPkey;
 static AttributeDescription *ad_mail, *ad_ipaddr;
 static ObjectClass *oc_caObj, *oc_usrObj;
 
-/* OpenSSL privatekeys have no single specific format */
-static int
-privateKeyValidate(
-	Syntax		*syntax,
-	struct berval	*val )
-{
-	BerElementBuffer berbuf;
-	BerElement *ber = (BerElement *)&berbuf;
-	ber_tag_t tag;
-	ber_len_t len;
-	ber_int_t version;
-
-	ber_init2( ber, val, LBER_USE_DER );
-	tag = ber_skip_tag( ber, &len );	/* Sequence */
-	if ( tag != LBER_SEQUENCE ) return LDAP_INVALID_SYNTAX;
-	tag = ber_peek_tag( ber, &len );
-	if ( tag != LBER_INTEGER ) return LDAP_INVALID_SYNTAX;
-	tag = ber_get_int( ber, &version );
-	/* the rest varies for RSA, DSA, EC, PKCS#8 */
-	return LDAP_SUCCESS;
-}
-
-static slap_syntax_defs_rec aca_syntax = {
-	"( " ACA_SCHEMA_SYN ".1 DESC 'X.509 Private Key' "
-			"X-BINARY-TRANSFER-REQUIRED 'TRUE' "
-			"X-NOT-HUMAN-READABLE 'TRUE' )",
-			SLAP_SYNTAX_BINARY|SLAP_SYNTAX_BER,
-			NULL,
-			privateKeyValidate,
-			NULL };
-
-static slap_mrule_defs_rec aca_mrule = {
-	"( " ACA_SCHEMA_MR ".1 NAME 'privateKeyMatch' "
-		"SYNTAX " ACA_SCHEMA_SYN ".1 )",
-		SLAP_MR_HIDE | SLAP_MR_EQUALITY, NULL,
-		NULL, NULL, octetStringMatch, octetStringIndexer,
-		octetStringFilter, NULL };
-
 static char *aca_attrs[] = {
-	"( " ACA_SCHEMA_AT ".0 NAME 'x509PrivateKey' "
-		"DESC 'X.509 private key, use ;binary' "
-		"EQUALITY privateKeyMatch "
-		"SYNTAX " ACA_SCHEMA_SYN ".1 )",
 	"( " ACA_SCHEMA_AT ".1 NAME 'cAPrivateKey' "
 		"DESC 'X.509 CA private key, use ;binary' "
 		"SUP x509PrivateKey )",
@@ -930,12 +886,6 @@ int autoca_initialize() {
 	code = config_register_schema( autoca_cfg, autoca_ocs );
 	if ( code ) return code;
 
-	code = register_syntax( &aca_syntax );
-	if ( code ) return code;
-
-	code = register_matching_rule( &aca_mrule );
-	if ( code ) return code;
-
 	for ( i=0; aca_attrs[i]; i++ ) {
 		code = register_at( aca_attrs[i], NULL, 0 );
 		if ( code ) return code;
@@ -953,7 +903,6 @@ int autoca_initialize() {
 		code = register_oc( aca_ocs[i].ot, aca_ocs[i].oc, 0 );
 		if ( code ) return code;
 	}
-
 
 	return overlay_register( &autoca );
 }

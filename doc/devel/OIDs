@@ -62,12 +62,14 @@ ExperimentalAttr		OpenLDAPexperimental:1
 	entryExpireTimestamp	ExperimentalAttr:57		(slapo-dds)
 	rdnValue				ExperimentalAttr:58		(contrib/slapd-modules/samba4)
 	parentUUID				ExperimentalAttr:59		(...samba4)
+	x509PrivateKey			ExperimentalAttr:60
 
 
 ExperimentalSyntax		OpenLDAPexperimental:2
 	ACIsyntax				ExperimentalSyntax:1
 	authPassword			ExperimentalSyntax:2	check - this was promoted to RFC3112
 	authz					ExperimentalSyntax:7
+	privateKey				ExperimentalSyntax:13
 
 ExperimentalObjectClass	OpenLDAPexperimental:3
 	glue					ExperimentalObjectClass:4
@@ -86,6 +88,7 @@ ExperimentalMatchingRule	OpenLDAPexperimental:4
 	dnSubordinateMatch		ExperimentalMatchingRule:10
 	dnSuperiorMatch			ExperimentalMatchingRule:11
 	authzMatch				ExperimentalMatchingRule:12
+	privateKeyMatch			ExperimentalMatchingRule:13
 
 ExperimentalControl		OpenLDAPexperimental:5
 	noop					ExperimentalControl:2

@@ -593,6 +593,28 @@ attributeCertificateValidate( Syntax *syntax, struct berval *in )
 	return LDAP_SUCCESS;
 }
 
+/* accept an OpenSSL-compatible private key */
+static int
+privateKeyValidate(
+	Syntax		*syntax,
+	struct berval	*val )
+{
+	BerElementBuffer berbuf;
+	BerElement *ber = (BerElement *)&berbuf;
+	ber_tag_t tag;
+	ber_len_t len;
+	ber_int_t version;
+
+	ber_init2( ber, val, LBER_USE_DER );
+	tag = ber_skip_tag( ber, &len );	/* Sequence */
+	if ( tag != LBER_SEQUENCE ) return LDAP_INVALID_SYNTAX;
+	tag = ber_peek_tag( ber, &len );
+	if ( tag != LBER_INTEGER ) return LDAP_INVALID_SYNTAX;
+	tag = ber_get_int( ber, &version );
+	/* the rest varies for RSA, DSA, EC, PKCS#8 */
+	return LDAP_SUCCESS;
+}
+
 int
 octetStringMatch(
 	int *matchp,
@@ -6364,6 +6386,9 @@ static slap_syntax_defs_rec syntax_defs[] = {
 	{"( 1.3.6.1.4.1.4203.666.2.7 DESC 'OpenLDAP authz' )",
 		SLAP_SYNTAX_HIDE, NULL, authzValidate, authzPretty},
 
+	/* OpenSSL-compatible Private Keys for X.509 certificates */
+	{"( 1.3.6.1.4.1.4203.666.2.13 DESC 'OpenLDAP privateKey' )",
+		SLAP_SYNTAX_BINARY|SLAP_SYNTAX_BER, NULL, privateKeyValidate, NULL},
 	{NULL, 0, NULL, NULL, NULL}
 };
 
@@ -6848,6 +6873,13 @@ static slap_mrule_defs_rec mrule_defs[] = {
 		"SYNTAX 1.3.6.1.4.1.4203.666.2.7 )", /* OpenLDAP authz */
 		SLAP_MR_HIDE | SLAP_MR_EQUALITY, NULL,
 		NULL, authzNormalize, authzMatch,
+		NULL, NULL,
+		NULL},
+
+	{"( 1.3.6.1.4.1.4203.666.4.13 NAME 'privateKeyMatch' "
+		"SYNTAX 1.3.6.1.4.1.4203.666.2.13 )", /* OpenLDAP privateKey */
+		SLAP_MR_HIDE | SLAP_MR_EQUALITY, NULL,
+		NULL, NULL, octetStringMatch,
 		NULL, NULL,
 		NULL},
 
