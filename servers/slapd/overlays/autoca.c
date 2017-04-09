@@ -286,10 +286,17 @@ fail2:
 		if ( subj_name ) X509_NAME_free( subj_name );
 		goto fail1;
 	}
-	args->derpkey.bv_len = i2d_PrivateKey( evpk, NULL );
-	args->derpkey.bv_val = op->o_tmpalloc( args->derpkey.bv_len, op->o_tmpmemctx );
-	pp = args->derpkey.bv_val;
-	i2d_PrivateKey( evpk, &pp );
+	/* encode DER in PKCS#8 */
+	{
+		PKCS8_PRIV_KEY_INFO *p8inf;
+		if (( p8inf = EVP_PKEY2PKCS8( evpk )) == NULL )
+			goto fail2;
+		args->derpkey.bv_len = i2d_PKCS8_PRIV_KEY_INFO( p8inf, NULL );
+		args->derpkey.bv_val = op->o_tmpalloc( args->derpkey.bv_len, op->o_tmpmemctx );
+		pp = args->derpkey.bv_val;
+		i2d_PKCS8_PRIV_KEY_INFO( p8inf, &pp );
+		PKCS8_PRIV_KEY_INFO_free( p8inf );
+	}
 	args->newpkey = evpk;
 
 	/* set random serial */
@@ -440,10 +447,14 @@ static int autoca_savecert( Operation *op, saveargs *args )
 
 static const struct berval configDN = BER_BVC("cn=config");
 
-static int
-autoca_setca( Operation *op, struct berval *cacert )
+/* must run as a pool thread to avoid cn=config deadlock */
+static void *
+autoca_setca_task( void *ctx, void *arg )
 {
-	Operation op2;
+	Connection conn = { 0 };
+	OperationBuffer opbuf;
+	Operation *op;
+	struct berval *cacert = arg;
 	Modifications mod;
 	struct berval bvs[2];
 	BackendInfo *bi;
@@ -451,13 +462,15 @@ autoca_setca( Operation *op, struct berval *cacert )
 	SlapReply rs = {REP_RESULT};
 	const char *text;
 
-	op2 = *op;
+	connection_fake_init( &conn, &opbuf, ctx );
+	op = &opbuf.ob_op;
+
 	mod.sml_numvals = 1;
 	mod.sml_values = bvs;
 	mod.sml_nvalues = NULL;
 	mod.sml_desc = NULL;
 	if ( slap_str2ad( "olcTLSCACertificate;binary", &mod.sml_desc, &text ))
-		return -1;
+		goto leave;
 	mod.sml_op = LDAP_MOD_REPLACE;
 	mod.sml_flags = SLAP_MOD_INTERNAL;
 	bvs[0] = *cacert;
@@ -465,20 +478,32 @@ autoca_setca( Operation *op, struct berval *cacert )
 	mod.sml_next = NULL;
 
 	cb.sc_response = slap_null_cb;
-	op2.o_bd = select_backend( (struct berval *)&configDN, 0 );
-	if ( !op2.o_bd )
-		return -1;
+	op->o_bd = select_backend( (struct berval *)&configDN, 0 );
+	if ( !op->o_bd )
+		goto leave;
 
-	op2.o_tag = LDAP_REQ_MODIFY;
-	op2.o_callback = &cb;
-	op2.orm_modlist = &mod;
-	op2.orm_no_opattrs = 1;
-	op2.o_req_dn = configDN;
-	op2.o_req_ndn = configDN;
-	op2.o_dn = op2.o_bd->be_rootdn;
-	op2.o_ndn = op2.o_bd->be_rootndn;
-	op2.o_bd->be_modify( &op2, &rs );
-	return rs.sr_err;
+	op->o_tag = LDAP_REQ_MODIFY;
+	op->o_callback = &cb;
+	op->orm_modlist = &mod;
+	op->orm_no_opattrs = 1;
+	op->o_req_dn = configDN;
+	op->o_req_ndn = configDN;
+	op->o_dn = op->o_bd->be_rootdn;
+	op->o_ndn = op->o_bd->be_rootndn;
+	op->o_bd->be_modify( op, &rs );
+leave:
+	ch_free( arg );
+	return NULL;
+}
+
+static int
+autoca_setca( struct berval *cacert )
+{
+	struct berval *bv = ch_malloc( sizeof(struct berval) + cacert->bv_len );
+	bv->bv_len = cacert->bv_len;
+	bv->bv_val = (char *)(bv+1);
+	AC_MEMCPY( bv->bv_val, cacert->bv_val, bv->bv_len );
+	return ldap_pvt_thread_pool_submit( &connection_pool, autoca_setca_task, bv );
 }
 
 static int
@@ -827,6 +852,12 @@ autoca_op_response(
 			arg2.oc = NULL;
 		else
 			arg2.oc = oc_usrObj;
+		if ( !( rs->sr_flags & REP_ENTRY_MODIFIABLE ))
+		{
+			Entry *e = entry_dup( rs->sr_entry );
+			rs_replace_entry( op, rs, on, e );
+			rs->sr_flags |= REP_ENTRY_MODIFIABLE | REP_ENTRY_MUSTBEFREED;
+		}
 		arg2.dercert = &args.dercert;
 		arg2.derpkey = &args.derpkey;
 		arg2.on = on;
@@ -840,12 +871,6 @@ autoca_op_response(
 			/* If this is our cert DN, configure it */
 			if ( dn_match( &rs->sr_entry->e_nname, &ai->ai_localndn ))
 				autoca_setlocal( &op2, &args.dercert, &args.derpkey );
-			if ( !( rs->sr_flags & REP_ENTRY_MODIFIABLE ))
-			{
-				Entry *e = entry_dup( rs->sr_entry );
-				rs_replace_entry( op, rs, on, e );
-				rs->sr_flags |= REP_ENTRY_MODIFIABLE | REP_ENTRY_MUSTBEFREED;
-			}
 			attr_merge_one( rs->sr_entry, ad_usrCert, &args.dercert, NULL );
 			attr_merge_one( rs->sr_entry, ad_usrPkey, &args.derpkey, NULL );
 		}
@@ -863,7 +888,7 @@ autoca_op_search(
 )
 {
 	/* we only act on a search that returns just our cert/key attrs */
-	if ( op->ors_attrs[0].an_desc == ad_usrCert &&
+	if ( op->ors_attrs && op->ors_attrs[0].an_desc == ad_usrCert &&
 		op->ors_attrs[1].an_desc == ad_usrPkey &&
 		op->ors_attrs[2].an_name.bv_val == NULL )
 	{
@@ -966,7 +991,7 @@ autoca_db_open(
 						ai->ai_cert = d2i_X509( NULL, &pp, a->a_vals[0].bv_len );
 						/* If TLS wasn't configured yet, set this as our CA */
 						if ( !slap_tls_ctx )
-							autoca_setca( op, a->a_vals );
+							autoca_setca( a->a_vals );
 					}
 				}
 				gotat = 1;
@@ -1008,7 +1033,7 @@ autoca_db_open(
 
 			/* If TLS wasn't configured yet, set this as our CA */
 			if ( !slap_tls_ctx )
-				autoca_setca( op, &args.dercert );
+				autoca_setca( &args.dercert );
 
 			op->o_tmpfree( args.dercert.bv_val, op->o_tmpmemctx );
 			op->o_tmpfree( args.derpkey.bv_val, op->o_tmpmemctx );
