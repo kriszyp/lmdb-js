@@ -436,6 +436,48 @@ static int autoca_savecert( Operation *op, saveargs *args )
 	return rs.sr_err;
 }
 
+static int
+autoca_setca( Operation *op, struct berval *cacert )
+{
+	Operation op2;
+	Modifications mod;
+	struct berval bvs[2];
+	BackendInfo *bi;
+	slap_callback cb = {0};
+	SlapReply rs = {REP_RESULT};
+	const char *text;
+	static const struct berval config = BER_BVC("cn=config");
+
+	op2 = *op;
+	mod.sml_numvals = 1;
+	mod.sml_values = bvs;
+	mod.sml_nvalues = NULL;
+	mod.sml_desc = NULL;
+	if ( slap_str2ad( "olcTLSCACertificate", &mod.sml_desc, &text ))
+		return -1;
+	mod.sml_op = LDAP_MOD_REPLACE;
+	mod.sml_flags = SLAP_MOD_INTERNAL;
+	bvs[0] = *cacert;
+	BER_BVZERO( &bvs[1] );
+	mod.sml_next = NULL;
+
+	cb.sc_response = slap_null_cb;
+	op2.o_bd = select_backend( (struct berval *)&config, 0 );
+	if ( !op2.o_bd )
+		return -1;
+
+	op2.o_tag = LDAP_REQ_MODIFY;
+	op2.o_callback = &cb;
+	op2.orm_modlist = &mod;
+	op2.orm_no_opattrs = 1;
+	op2.o_req_dn = config;
+	op2.o_req_ndn = config;
+	op2.o_dn = op2.o_bd->be_rootdn;
+	op2.o_ndn = op2.o_bd->be_rootndn;
+	op2.o_bd->be_modify( &op2, &rs );
+	return rs.sr_err;
+}
+
 enum {
 	ACA_USRCLASS = 1,
 	ACA_SRVCLASS,
@@ -819,6 +861,9 @@ autoca_db_open(
 					{
 						pp = a->a_vals[0].bv_val;
 						ai->ai_cert = d2i_X509( NULL, &pp, a->a_vals[0].bv_len );
+						/* If TLS wasn't configured yet, set this as our CA */
+						if ( !slap_tls_ctx )
+							autoca_setca( op, a->a_vals );
 					}
 				}
 				gotat = 1;
@@ -857,6 +902,11 @@ autoca_db_open(
 			arg2.derpkey = &args.derpkey;
 
 			autoca_savecert( op, &arg2 );
+
+			/* If TLS wasn't configured yet, set this as our CA */
+			if ( !slap_tls_ctx )
+				autoca_setca( op, &args.dercert );
+
 			op->o_tmpfree( args.dercert.bv_val, op->o_tmpmemctx );
 			op->o_tmpfree( args.derpkey.bv_val, op->o_tmpmemctx );
 		}
