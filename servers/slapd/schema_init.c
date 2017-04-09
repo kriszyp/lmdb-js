@@ -593,7 +593,7 @@ attributeCertificateValidate( Syntax *syntax, struct berval *in )
 	return LDAP_SUCCESS;
 }
 
-/* accept an OpenSSL-compatible private key */
+/* accept a PKCS#8 private key */
 static int
 privateKeyValidate(
 	Syntax		*syntax,
@@ -611,7 +611,20 @@ privateKeyValidate(
 	tag = ber_peek_tag( ber, &len );
 	if ( tag != LBER_INTEGER ) return LDAP_INVALID_SYNTAX;
 	tag = ber_get_int( ber, &version );
-	/* the rest varies for RSA, DSA, EC, PKCS#8 */
+	tag = ber_skip_tag( ber, &len );	/* AlgorithmIdentifier */
+	if ( tag != LBER_SEQUENCE ) return LDAP_INVALID_SYNTAX;
+	ber_skip_data( ber, len );
+	tag = ber_skip_tag( ber, &len );	/* PrivateKey */
+	if ( tag != LBER_OCTETSTRING ) return LDAP_INVALID_SYNTAX;
+	ber_skip_data( ber, len );
+	tag = ber_skip_tag( ber, &len );
+	if ( tag == LBER_SET ) {			/* Optional Attributes */
+		ber_skip_data( ber, len );
+		tag = ber_skip_tag( ber, &len );
+	}
+
+	/* Must be at end now */
+	if ( len || tag != LBER_DEFAULT ) return LDAP_INVALID_SYNTAX;
 	return LDAP_SUCCESS;
 }
 
@@ -6386,7 +6399,7 @@ static slap_syntax_defs_rec syntax_defs[] = {
 	{"( 1.3.6.1.4.1.4203.666.2.7 DESC 'OpenLDAP authz' )",
 		SLAP_SYNTAX_HIDE, NULL, authzValidate, authzPretty},
 
-	/* OpenSSL-compatible Private Keys for X.509 certificates */
+	/* PKCS#8 Private Keys for X.509 certificates */
 	{"( 1.3.6.1.4.1.4203.666.2.13 DESC 'OpenLDAP privateKey' )",
 		SLAP_SYNTAX_BINARY|SLAP_SYNTAX_BER, NULL, privateKeyValidate, NULL},
 	{NULL, 0, NULL, NULL, NULL}
