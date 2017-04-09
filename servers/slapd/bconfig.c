@@ -4091,7 +4091,7 @@ config_tls_cleanup(ConfigArgs *c) {
 
 static int
 config_tls_option(ConfigArgs *c) {
-	int flag;
+	int flag, rc;
 	int berval = 0;
 	LDAP *ld = slap_tls_ld;
 	switch(c->type) {
@@ -4115,14 +4115,16 @@ config_tls_option(ConfigArgs *c) {
 		return 1;
 	}
 	if (c->op == SLAP_CONFIG_EMIT) {
-		return ldap_pvt_tls_get_option( ld, flag, berval ? &c->value_bv : &c->value_string );
+		return ldap_pvt_tls_get_option( ld, flag, berval ? (void *)&c->value_bv : (void *)&c->value_string );
 	} else if ( c->op == LDAP_MOD_DELETE ) {
 		c->cleanup = config_tls_cleanup;
 		return ldap_pvt_tls_set_option( ld, flag, NULL );
 	}
-	ch_free(c->value_string);
+	if ( !berval ) ch_free(c->value_string);
 	c->cleanup = config_tls_cleanup;
-	return(ldap_pvt_tls_set_option(ld, flag, berval ? &c->value_bv : c->argv[1]));
+	rc = ldap_pvt_tls_set_option(ld, flag, berval ? (void *)&c->value_bv : (void *)c->argv[1]);
+	if ( berval ) ch_free(c->value_bv.bv_val);
+	return rc;
 }
 
 /* FIXME: this ought to be provided by libldap */
@@ -4770,7 +4772,7 @@ config_rename_one( Operation *op, SlapReply *rs, Entry *e,
 	build_new_dn( &e->e_nname, &parent->ce_entry->e_nname, nnewrdn, NULL );
 
 	/* Replace attr */
-	rc = ldap_bv2rdn( &e->e_name, &rDN, &text, LDAP_DN_FORMAT_LDAP );
+	rc = ldap_bv2rdn( &e->e_name, &rDN, (char **)&text, LDAP_DN_FORMAT_LDAP );
 	if ( rc ) {
 		return rc;
 	}
@@ -5679,7 +5681,7 @@ static int
 config_back_add( Operation *op, SlapReply *rs )
 {
 	CfBackInfo *cfb;
-	int renumber;
+	int renumber, dopause = 1;
 	ConfigArgs ca;
 
 	if ( !access_allowed( op, op->ora_e, slap_schema.si_ad_entry,
@@ -5720,7 +5722,8 @@ config_back_add( Operation *op, SlapReply *rs )
 		rs->sr_err = SLAPD_ABANDON;
 		goto out;
 	}
-	ldap_pvt_thread_pool_pause( &connection_pool );
+	if ( ldap_pvt_thread_pool_pause( &connection_pool ) < 0 )
+		dopause = 0;
 
 	/* Strategy:
 	 * 1) check for existence of entry
@@ -5770,7 +5773,8 @@ config_back_add( Operation *op, SlapReply *rs )
 	}
 
 out2:;
-	ldap_pvt_thread_pool_resume( &connection_pool );
+	if ( dopause )
+		ldap_pvt_thread_pool_resume( &connection_pool );
 
 out:;
 	{	int repl = op->o_dont_replicate;
@@ -6211,7 +6215,8 @@ config_back_modify( Operation *op, SlapReply *rs )
 			rs->sr_err = SLAPD_ABANDON;
 			goto out;
 		}
-		ldap_pvt_thread_pool_pause( &connection_pool );
+		if ( ldap_pvt_thread_pool_pause( &connection_pool ) < 0 )
+			do_pause = 0;
 	}
 
 	/* Strategy:
@@ -6258,7 +6263,7 @@ config_back_modrdn( Operation *op, SlapReply *rs )
 	CfBackInfo *cfb;
 	CfEntryInfo *ce, *last;
 	struct berval rdn;
-	int ixold, ixnew;
+	int ixold, ixnew, dopause = 1;
 
 	cfb = (CfBackInfo *)op->o_bd->be_private;
 
@@ -6380,7 +6385,8 @@ config_back_modrdn( Operation *op, SlapReply *rs )
 		rs->sr_err = SLAPD_ABANDON;
 		goto out;
 	}
-	ldap_pvt_thread_pool_pause( &connection_pool );
+	if ( ldap_pvt_thread_pool_pause( &connection_pool ) < 0 )
+		dopause = 0;
 
 	if ( ce->ce_type == Cft_Schema ) {
 		req_modrdn_s modr = op->oq_modrdn;
@@ -6447,7 +6453,8 @@ config_back_modrdn( Operation *op, SlapReply *rs )
 		op->oq_modrdn = modr;
 	}
 
-	ldap_pvt_thread_pool_resume( &connection_pool );
+	if ( dopause )
+		ldap_pvt_thread_pool_resume( &connection_pool );
 out:
 	send_ldap_result( op, rs );
 	return rs->sr_err;
@@ -6459,6 +6466,7 @@ config_back_delete( Operation *op, SlapReply *rs )
 #ifdef SLAP_CONFIG_DELETE
 	CfBackInfo *cfb;
 	CfEntryInfo *ce, *last, *ce2;
+	int dopause = 1;
 
 	cfb = (CfBackInfo *)op->o_bd->be_private;
 
@@ -6477,7 +6485,8 @@ config_back_delete( Operation *op, SlapReply *rs )
 		char *iptr;
 		int count, ixold;
 
-		ldap_pvt_thread_pool_pause( &connection_pool );
+		if ( ldap_pvt_thread_pool_pause( &connection_pool ) < 0 )
+			dopause = 0;
 
 		if ( ce->ce_type == Cft_Overlay ){
 			overlay_remove( ce->ce_be, (slap_overinst *)ce->ce_bi, op );
@@ -6497,7 +6506,7 @@ config_back_delete( Operation *op, SlapReply *rs )
 			if ( !oc_at ) {
 				rs->sr_err = LDAP_OTHER;
 				rs->sr_text = "objectclass not found";
-				ldap_pvt_thread_pool_resume( &connection_pool );
+				if ( dopause ) ldap_pvt_thread_pool_resume( &connection_pool );
 				goto out;
 			}
 			for ( i=0; !BER_BVISNULL(&oc_at->a_nvals[i]); i++ ) {
@@ -6515,7 +6524,7 @@ config_back_delete( Operation *op, SlapReply *rs )
 						/* FIXME: We should return a helpful error message
 						 * here */
 					}
-					ldap_pvt_thread_pool_resume( &connection_pool );
+					if ( dopause ) ldap_pvt_thread_pool_resume( &connection_pool );
 					goto out;
 				}
 				break;
@@ -6524,7 +6533,7 @@ config_back_delete( Operation *op, SlapReply *rs )
 			if ( ce->ce_be == frontendDB || ce->ce_be == op->o_bd ){
 				rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
 				rs->sr_text = "Cannot delete config or frontend database";
-				ldap_pvt_thread_pool_resume( &connection_pool );
+				if ( dopause ) ldap_pvt_thread_pool_resume( &connection_pool );
 				goto out;
 			}
 			if ( ce->ce_be->bd_info->bi_db_close ) {
@@ -6586,7 +6595,7 @@ config_back_delete( Operation *op, SlapReply *rs )
 		ce->ce_entry->e_private=NULL;
 		entry_free(ce->ce_entry);
 		ch_free(ce);
-		ldap_pvt_thread_pool_resume( &connection_pool );
+		if ( dopause ) ldap_pvt_thread_pool_resume( &connection_pool );
 	} else {
 		rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
 	}
@@ -6803,7 +6812,7 @@ config_build_entry( Operation *op, SlapReply *rs, CfEntryInfo *parent,
 		attr_merge_normalize_one(e, slap_schema.si_ad_objectClass,
 			extra->co_name, NULL );
 
-	rc = ldap_bv2rdn( rdn, &rDN, &text, LDAP_DN_FORMAT_LDAP );
+	rc = ldap_bv2rdn( rdn, &rDN, (char **)&text, LDAP_DN_FORMAT_LDAP );
 	if ( rc ) {
 		goto fail;
 	}
