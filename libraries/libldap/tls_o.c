@@ -139,7 +139,9 @@ tlso_ca_list( char * bundle, char * dir, X509 *cert )
 	if ( cert ) {
 		X509_NAME *xn = X509_get_subject_name( cert );
 		xn = X509_NAME_dup( xn );
-		if ( xn )
+		if ( !ca_list )
+			ca_list = sk_X509_NAME_new_null();
+		if ( xn && ca_list )
 			sk_X509_NAME_push( ca_list, xn );
 	}
 	return ca_list;
