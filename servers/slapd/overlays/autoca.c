@@ -260,17 +260,16 @@ static int autoca_gencert( Operation *op, genargs *args )
 	X509_NAME *subj_name, *issuer_name;
 	X509 *subj_cert;
 	struct berval derdn;
-	const unsigned char *p;
+	unsigned char *pp;
 	EVP_PKEY *evpk = NULL;
 	int rc;
-	unsigned char *pp;
 
 	if ((subj_cert = X509_new()) == NULL)
 		return -1;
 
 	autoca_dnbv2der( op, args->subjectDN, &derdn );
-	p = (const unsigned char *)derdn.bv_val;
-	subj_name = d2i_X509_NAME( NULL, &p, derdn.bv_len );
+	pp = (unsigned char *)derdn.bv_val;
+	subj_name = d2i_X509_NAME( NULL, (const unsigned char **)&pp, derdn.bv_len );
 	op->o_tmpfree( derdn.bv_val, op->o_tmpmemctx );
 	if ( subj_name == NULL )
 	{
@@ -293,7 +292,7 @@ fail2:
 			goto fail2;
 		args->derpkey.bv_len = i2d_PKCS8_PRIV_KEY_INFO( p8inf, NULL );
 		args->derpkey.bv_val = op->o_tmpalloc( args->derpkey.bv_len, op->o_tmpmemctx );
-		pp = args->derpkey.bv_val;
+		pp = (unsigned char *)args->derpkey.bv_val;
 		i2d_PKCS8_PRIV_KEY_INFO( p8inf, &pp );
 		PKCS8_PRIV_KEY_INFO_free( p8inf );
 	}
@@ -372,7 +371,7 @@ fail3:
 		goto fail3;
 	args->dercert.bv_len = i2d_X509( subj_cert, NULL );
 	args->dercert.bv_val = op->o_tmpalloc( args->dercert.bv_len, op->o_tmpmemctx );
-	pp = args->dercert.bv_val;
+	pp = (unsigned char *)args->dercert.bv_val;
 	i2d_X509( subj_cert, &pp );
 	args->newcert = subj_cert;
 	return 0;
@@ -457,7 +456,6 @@ autoca_setca_task( void *ctx, void *arg )
 	struct berval *cacert = arg;
 	Modifications mod;
 	struct berval bvs[2];
-	BackendInfo *bi;
 	slap_callback cb = {0};
 	SlapReply rs = {REP_RESULT};
 	const char *text;
@@ -511,11 +509,9 @@ autoca_setlocal( Operation *op, struct berval *cert, struct berval *pkey )
 {
 	Modifications mod[2];
 	struct berval bvs[4];
-	BackendInfo *bi;
 	slap_callback cb = {0};
 	SlapReply rs = {REP_RESULT};
 	const char *text;
-	static const struct berval config = BER_BVC("cn=config");
 
 	mod[0].sml_numvals = 1;
 	mod[0].sml_values = bvs;
@@ -998,14 +994,14 @@ autoca_db_open(
 			a = attr_find( e->e_attrs, ad_caPkey );
 			if ( a ) {
 				const unsigned char *pp;
-				pp = a->a_vals[0].bv_val;
+				pp = (unsigned char *)a->a_vals[0].bv_val;
 				ai->ai_pkey = d2i_AutoPrivateKey( NULL, &pp, a->a_vals[0].bv_len );
 				if ( ai->ai_pkey )
 				{
 					a = attr_find( e->e_attrs, ad_caCert );
 					if ( a )
 					{
-						pp = a->a_vals[0].bv_val;
+						pp = (unsigned char *)a->a_vals[0].bv_val;
 						ai->ai_cert = d2i_X509( NULL, &pp, a->a_vals[0].bv_len );
 						/* If TLS wasn't configured yet, set this as our CA */
 						if ( !slap_tls_ctx )
@@ -1070,7 +1066,6 @@ static slap_overinst autoca;
 
 int autoca_initialize() {
 	int i, code;
-	const char *text;
 
 	autoca.on_bi.bi_type = "autoca";
 	autoca.on_bi.bi_db_init = autoca_db_init;
