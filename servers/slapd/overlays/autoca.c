@@ -101,6 +101,8 @@ typedef struct autoca_info {
 	EVP_PKEY *ai_pkey;
 	ObjectClass *ai_usrclass;
 	ObjectClass *ai_srvclass;
+	struct berval ai_localdn;
+	struct berval ai_localndn;
 	int ai_usrkeybits;
 	int ai_srvkeybits;
 	int ai_cakeybits;
@@ -436,6 +438,8 @@ static int autoca_savecert( Operation *op, saveargs *args )
 	return rs.sr_err;
 }
 
+static const struct berval configDN = BER_BVC("cn=config");
+
 static int
 autoca_setca( Operation *op, struct berval *cacert )
 {
@@ -446,14 +450,13 @@ autoca_setca( Operation *op, struct berval *cacert )
 	slap_callback cb = {0};
 	SlapReply rs = {REP_RESULT};
 	const char *text;
-	static const struct berval config = BER_BVC("cn=config");
 
 	op2 = *op;
 	mod.sml_numvals = 1;
 	mod.sml_values = bvs;
 	mod.sml_nvalues = NULL;
 	mod.sml_desc = NULL;
-	if ( slap_str2ad( "olcTLSCACertificate", &mod.sml_desc, &text ))
+	if ( slap_str2ad( "olcTLSCACertificate;binary", &mod.sml_desc, &text ))
 		return -1;
 	mod.sml_op = LDAP_MOD_REPLACE;
 	mod.sml_flags = SLAP_MOD_INTERNAL;
@@ -462,7 +465,7 @@ autoca_setca( Operation *op, struct berval *cacert )
 	mod.sml_next = NULL;
 
 	cb.sc_response = slap_null_cb;
-	op2.o_bd = select_backend( (struct berval *)&config, 0 );
+	op2.o_bd = select_backend( (struct berval *)&configDN, 0 );
 	if ( !op2.o_bd )
 		return -1;
 
@@ -470,11 +473,63 @@ autoca_setca( Operation *op, struct berval *cacert )
 	op2.o_callback = &cb;
 	op2.orm_modlist = &mod;
 	op2.orm_no_opattrs = 1;
-	op2.o_req_dn = config;
-	op2.o_req_ndn = config;
+	op2.o_req_dn = configDN;
+	op2.o_req_ndn = configDN;
 	op2.o_dn = op2.o_bd->be_rootdn;
 	op2.o_ndn = op2.o_bd->be_rootndn;
 	op2.o_bd->be_modify( &op2, &rs );
+	return rs.sr_err;
+}
+
+static int
+autoca_setlocal( Operation *op, struct berval *cert, struct berval *pkey )
+{
+	Modifications mod[2];
+	struct berval bvs[4];
+	BackendInfo *bi;
+	slap_callback cb = {0};
+	SlapReply rs = {REP_RESULT};
+	const char *text;
+	static const struct berval config = BER_BVC("cn=config");
+
+	mod[0].sml_numvals = 1;
+	mod[0].sml_values = bvs;
+	mod[0].sml_nvalues = NULL;
+	mod[0].sml_desc = NULL;
+	if ( slap_str2ad( "olcTLSCertificate;binary", &mod[0].sml_desc, &text ))
+		return -1;
+	mod[0].sml_op = LDAP_MOD_REPLACE;
+	mod[0].sml_flags = SLAP_MOD_INTERNAL;
+	bvs[0] = *cert;
+	BER_BVZERO( &bvs[1] );
+	mod[0].sml_next = &mod[1];
+
+	mod[1].sml_numvals = 1;
+	mod[1].sml_values = &bvs[2];
+	mod[1].sml_nvalues = NULL;
+	mod[1].sml_desc = NULL;
+	if ( slap_str2ad( "olcTLSCertificateKey;binary", &mod[1].sml_desc, &text ))
+		return -1;
+	mod[1].sml_op = LDAP_MOD_REPLACE;
+	mod[1].sml_flags = SLAP_MOD_INTERNAL;
+	bvs[2] = *pkey;
+	BER_BVZERO( &bvs[3] );
+	mod[1].sml_next = NULL;
+
+	cb.sc_response = slap_null_cb;
+	op->o_bd = select_backend( (struct berval *)&configDN, 0 );
+	if ( !op->o_bd )
+		return -1;
+
+	op->o_tag = LDAP_REQ_MODIFY;
+	op->o_callback = &cb;
+	op->orm_modlist = mod;
+	op->orm_no_opattrs = 1;
+	op->o_req_dn = configDN;
+	op->o_req_ndn = configDN;
+	op->o_dn = op->o_bd->be_rootdn;
+	op->o_ndn = op->o_bd->be_rootndn;
+	op->o_bd->be_modify( op, &rs );
 	return rs.sr_err;
 }
 
@@ -486,7 +541,8 @@ enum {
 	ACA_CAKEYBITS,
 	ACA_USRDAYS,
 	ACA_SRVDAYS,
-	ACA_CADAYS
+	ACA_CADAYS,
+	ACA_LOCALDN
 };
 
 static int autoca_cf( ConfigArgs *c )
@@ -530,6 +586,13 @@ static int autoca_cf( ConfigArgs *c )
 		case ACA_CADAYS:
 			c->value_int = ai->ai_cadays;
 			break;
+		case ACA_LOCALDN:
+			if ( !BER_BVISNULL( &ai->ai_localdn )) {
+				rc = value_add_one( &c->rvalue_vals, &ai->ai_localdn );
+			} else {
+				rc = 1;
+			}
+			break;
 		}
 		break;
 	case LDAP_MOD_DELETE:
@@ -539,6 +602,14 @@ static int autoca_cf( ConfigArgs *c )
 			break;
 		case ACA_SRVCLASS:
 			ai->ai_srvclass = NULL;
+			break;
+		case ACA_LOCALDN:
+			if ( ai->ai_localdn.bv_val ) {
+				ch_free( ai->ai_localdn.bv_val );
+				ch_free( ai->ai_localndn.bv_val );
+				BER_BVZERO( &ai->ai_localdn );
+				BER_BVZERO( &ai->ai_localndn );
+			}
 			break;
 		/* single-valued attrs, all no-ops */
 		}
@@ -590,6 +661,29 @@ static int autoca_cf( ConfigArgs *c )
 		case ACA_CADAYS:
 			ai->ai_cadays = c->value_int;
 			break;
+		case ACA_LOCALDN:
+			if ( c->be->be_nsuffix == NULL ) {
+				snprintf( c->cr_msg, sizeof( c->cr_msg ),
+					"suffix must be set" );
+				Debug( LDAP_DEBUG_CONFIG, "autoca_config: %s\n",
+					c->cr_msg, NULL, NULL );
+				rc = ARG_BAD_CONF;
+				break;
+			}
+			if ( !dnIsSuffix( &c->value_ndn, c->be->be_nsuffix )) {
+				snprintf( c->cr_msg, sizeof( c->cr_msg ),
+					"DN is not a subordinate of backend" );
+				Debug( LDAP_DEBUG_CONFIG, "autoca_config: %s\n",
+					c->cr_msg, NULL, NULL );
+				rc = ARG_BAD_CONF;
+				break;
+			}
+			if ( ai->ai_localdn.bv_val ) {
+				ch_free( ai->ai_localdn.bv_val );
+				ch_free( ai->ai_localndn.bv_val );
+			}
+			ai->ai_localdn = c->value_dn;
+			ai->ai_localndn = c->value_ndn;
 		}
 	}
 	return rc;
@@ -600,42 +694,47 @@ static ConfigTable autoca_cfg[] = {
 	  ARG_STRING|ARG_MAGIC|ACA_USRCLASS, autoca_cf,
 	  "( OLcfgOvAt:22.1 NAME 'olcACAuserClass' "
 	  "DESC 'ObjectClass of user entries' "
-	  "SYNTAX OMsDirectoryString )", NULL, NULL },
-	{ "servererClass", "objectclass", 2, 2, 0,
+	  "SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
+	{ "serverClass", "objectclass", 2, 2, 0,
 	  ARG_STRING|ARG_MAGIC|ACA_SRVCLASS, autoca_cf,
 	  "( OLcfgOvAt:22.2 NAME 'olcACAserverClass' "
 	  "DESC 'ObjectClass of server entries' "
-	  "SYNTAX OMsDirectoryString )", NULL, NULL },
+	  "SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
 	{ "userKeybits", "integer", 2, 2, 0,
 	  ARG_INT|ARG_MAGIC|ACA_USRKEYBITS, autoca_cf,
 	  "( OLcfgOvAt:22.3 NAME 'olcACAuserKeybits' "
 	  "DESC 'Size of PrivateKey for user entries' "
-	  "SYNTAX OMsInteger )", NULL, NULL },
+	  "SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
 	{ "serverKeybits", "integer", 2, 2, 0,
 	  ARG_INT|ARG_MAGIC|ACA_SRVKEYBITS, autoca_cf,
 	  "( OLcfgOvAt:22.4 NAME 'olcACAserverKeybits' "
 	  "DESC 'Size of PrivateKey for server entries' "
-	  "SYNTAX OMsInteger )", NULL, NULL },
+	  "SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
 	{ "caKeybits", "integer", 2, 2, 0,
 	  ARG_INT|ARG_MAGIC|ACA_CAKEYBITS, autoca_cf,
 	  "( OLcfgOvAt:22.5 NAME 'olcACAKeybits' "
 	  "DESC 'Size of PrivateKey for CA certificate' "
-	  "SYNTAX OMsInteger )", NULL, NULL },
+	  "SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
 	{ "userDays", "integer", 2, 2, 0,
 	  ARG_INT|ARG_MAGIC|ACA_USRDAYS, autoca_cf,
 	  "( OLcfgOvAt:22.6 NAME 'olcACAuserDays' "
 	  "DESC 'Lifetime of user certificates in days' "
-	  "SYNTAX OMsInteger )", NULL, NULL },
+	  "SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
 	{ "serverDays", "integer", 2, 2, 0,
 	  ARG_INT|ARG_MAGIC|ACA_SRVDAYS, autoca_cf,
 	  "( OLcfgOvAt:22.7 NAME 'olcACAserverDays' "
 	  "DESC 'Lifetime of server certificates in days' "
-	  "SYNTAX OMsInteger )", NULL, NULL },
+	  "SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
 	{ "caDays", "integer", 2, 2, 0,
 	  ARG_INT|ARG_MAGIC|ACA_CADAYS, autoca_cf,
 	  "( OLcfgOvAt:22.8 NAME 'olcACADays' "
 	  "DESC 'Lifetime of CA certificate in days' "
-	  "SYNTAX OMsInteger )", NULL, NULL },
+	  "SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
+	{ "localdn", "dn", 2, 2, 0,
+	  ARG_DN|ARG_MAGIC|ACA_LOCALDN, autoca_cf,
+	  "( OLcfgOvAt:22.9 NAME 'olcACAlocalDN' "
+	  "DESC 'DN of local server cert' "
+	  "SYNTAX OMsDN SINGLE-VALUE )", NULL, NULL },
 	{ NULL, NULL, 0, 0, 0, ARG_IGNORED }
 };
 
@@ -646,7 +745,8 @@ static ConfigOCs autoca_ocs[] = {
 	  "SUP olcOverlayConfig "
 	  "MAY ( olcACAuserClass $ olcACAserverClass $ "
 	   "olcACAuserKeybits $ olcACAserverKeybits $ olcACAKeyBits $ "
-	   "olcACAuserDays $ olcACAserverDays $ olcACADays ) )",
+	   "olcACAuserDays $ olcACAserverDays $ olcACADays $ "
+	   "olcACAlocalDN ) )",
 	  Cft_Overlay, autoca_cfg },
 	{ NULL, 0, NULL }
 };
@@ -737,6 +837,9 @@ autoca_op_response(
 		rc = autoca_savecert( &op2, &arg2 );
 		if ( !rc )
 		{
+			/* If this is our cert DN, configure it */
+			if ( dn_match( &rs->sr_entry->e_nname, &ai->ai_localndn ))
+				autoca_setlocal( &op2, &args.dercert, &args.derpkey );
 			if ( !( rs->sr_flags & REP_ENTRY_MODIFIABLE ))
 			{
 				Entry *e = entry_dup( rs->sr_entry );
