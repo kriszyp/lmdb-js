@@ -11,9 +11,15 @@ ETCDIR/slapd.conf
 The Automatic CA overlay generates X.509 certificate/key pairs for
 entries in the directory. The DN of a generated certificate is
 identical to the DN of the entry containing it. On startup it
-checks for a CA certificate in the suffix entry of the database
-and generates and stores one if not found. This CA certificate
-is used to sign all subsequently generated certificates.
+looks for a CA certificate and key in the suffix entry of the
+database which it will use to sign all subsequently generated
+certificates. A new CA certificate and key will be generated
+and stored in the suffix entry if none already exists. The CA
+certificate is stored in the cACertificate;binary attribute of
+the suffix entry, and the private key is stored in the
+cAPrivateKey;binary attribute of the suffix entry. These
+attributes may be overwritten if some other CA certificate/key
+pair is desired for use.
 .LP
 Certificates for users and servers are generated on demand using
 a Search request returning only the userCertificate;binary and
@@ -35,7 +41,8 @@ The CA's private key is stored in a
 .B cAPrivateKey
 attribute, and user and server private keys are stored in the
 .B userPrivateKey
-attribute. It is essential that access to these attributes be
+attribute. The private key values are encoded in PKCS#8 format.
+It is essential that access to these attributes be
 properly secured with ACLs. Both of these attributes inherit
 from the
 .B x509PrivateKey
@@ -46,6 +53,10 @@ attribute, so it is sufficient to use a single ACL rule like
 .fi
 
 at the beginning of the rules.
+.LP
+Currently there is no automated management for expiration or revocation.
+Obsolete certificates and keys must be manually removed by deleting
+an entry's userCertificate and userPrivateKey attributes.
 
 .SH CONFIGURATION
 These
@@ -84,6 +95,12 @@ The default is 1826, 5 years.
 .B caDays <integer>
 Specify the duration for the CA certificate's validity.
 The default is 3652, 10 years.
+.TP
+.B localDN <DN>
+Specify the DN of an entry that represents this server. Requests
+to generate a certificate/key pair for this DN will also install
+the certificate and key into slapd's TLS settings in cn=config
+for immediate use.
 
 .SH EXAMPLES
 .nf
