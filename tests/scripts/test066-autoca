@@ -175,7 +175,7 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-echo "Inserting autoca overlay on provider..."
+echo "Inserting autoca overlay on slapd..."
 if [ "$AUTOCA" = autocamod ]; then
 	$LDAPADD -D cn=config -H $URI1 -y $CONFIGPWF <<EOF > $TESTOUT 2>&1
 dn: cn=module,cn=config
@@ -246,8 +246,11 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
+# note - the attrs are being saved in raw DER form.
+# they need to be base64 encoded into PEM for most programs to use them
+# so we ignore those files for now.
 echo "Using ldapsearch to generate user cert..."
-$LDAPSEARCH -b "$BABSDN" -D $MANAGERDN -H $URI1 -w $PASSWD -s base \
+$LDAPSEARCH -b "$BABSDN" -D $MANAGERDN -H $URI1 -w $PASSWD -s base -ZZ \
 	-T $TESTDIR -t 'objectclass=*' 'userCertificate;binary' 'userPrivateKey;binary'  >> $TESTOUT 2>&1
 RC=$?
 
