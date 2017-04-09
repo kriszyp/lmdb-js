@@ -200,6 +200,9 @@ enum {
 	CFG_DISABLED,
 	CFG_THREADQS,
 	CFG_TLS_ECNAME,
+	CFG_TLS_CACERT,
+	CFG_TLS_CERT,
+	CFG_TLS_KEY,
 
 	CFG_LAST
 };
@@ -696,6 +699,15 @@ static ConfigTable config_back_cf_table[] = {
 	{ "timelimit", "limit", 2, 0, 0, ARG_MAY_DB|ARG_MAGIC,
 		&config_timelimit, "( OLcfgGlAt:67 NAME 'olcTimeLimit' "
 			"SYNTAX OMsDirectoryString )", NULL, NULL },
+	{ "TLSCACertificate", NULL, 2, 2, 0,
+#ifdef HAVE_TLS
+		CFG_TLS_CACERT|ARG_BINARY|ARG_MAGIC, &config_tls_option,
+#else
+		ARG_IGNORED, NULL,
+#endif
+		"( OLcfgGlAt:97 NAME 'olcTLSCACertificate' "
+			"DESC 'X.509 certificate, must use ;binary' "
+			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.8 SINGLE-VALUE )", NULL, NULL },
 	{ "TLSCACertificateFile", NULL, 2, 2, 0,
 #ifdef HAVE_TLS
 		CFG_TLS_CA_FILE|ARG_STRING|ARG_MAGIC, &config_tls_option,
@@ -712,6 +724,15 @@ static ConfigTable config_back_cf_table[] = {
 #endif
 		"( OLcfgGlAt:69 NAME 'olcTLSCACertificatePath' "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
+	{ "TLSCertificate", NULL, 2, 2, 0,
+#ifdef HAVE_TLS
+		CFG_TLS_CERT|ARG_BINARY|ARG_MAGIC, &config_tls_option,
+#else
+		ARG_IGNORED, NULL,
+#endif
+		"( OLcfgGlAt:98 NAME 'olcTLSCertificate' "
+			"DESC 'X.509 certificate, must use ;binary' "
+			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.8 SINGLE-VALUE )", NULL, NULL },
 	{ "TLSCertificateFile", NULL, 2, 2, 0,
 #ifdef HAVE_TLS
 		CFG_TLS_CERT_FILE|ARG_STRING|ARG_MAGIC, &config_tls_option,
@@ -720,6 +741,15 @@ static ConfigTable config_back_cf_table[] = {
 #endif
 		"( OLcfgGlAt:70 NAME 'olcTLSCertificateFile' "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
+	{ "TLSCertificateKey", NULL, 2, 2, 0,
+#ifdef HAVE_TLS
+		CFG_TLS_KEY|ARG_BINARY|ARG_MAGIC, &config_tls_option,
+#else
+		ARG_IGNORED, NULL,
+#endif
+		"( OLcfgGlAt:99 NAME 'olcTLSCertificateKey' "
+			"DESC 'X.509 privateKey, must use ;binary' "
+			"SYNTAX 1.3.6.1.4.1.4203.666.2.13 SINGLE-VALUE )", NULL, NULL },
 	{ "TLSCertificateKeyFile", NULL, 2, 2, 0,
 #ifdef HAVE_TLS
 		CFG_TLS_CERT_KEY|ARG_STRING|ARG_MAGIC, &config_tls_option,
@@ -868,6 +898,7 @@ static ConfigOCs cf_ocs[] = {
 		 "olcTimeLimit $ olcTLSCACertificateFile $ "
 		 "olcTLSCACertificatePath $ olcTLSCertificateFile $ "
 		 "olcTLSCertificateKeyFile $ olcTLSCipherSuite $ olcTLSCRLCheck $ "
+		 "olcTLSCACertificate $ olcTLSCertificate $ olcTLSCertificateKey $ "
 		 "olcTLSRandFile $ olcTLSVerifyClient $ olcTLSDHParamFile $ olcTLSECName $ "
 		 "olcTLSCRLFile $ olcTLSProtocolMin $ olcToolThreads $ olcWriteTimeout $ "
 		 "olcObjectIdentifier $ olcAttributeTypes $ olcObjectClasses $ "
@@ -4061,6 +4092,7 @@ config_tls_cleanup(ConfigArgs *c) {
 static int
 config_tls_option(ConfigArgs *c) {
 	int flag;
+	int berval = 0;
 	LDAP *ld = slap_tls_ld;
 	switch(c->type) {
 	case CFG_TLS_RAND:	flag = LDAP_OPT_X_TLS_RANDOM_FILE;	ld = NULL; break;
@@ -4074,20 +4106,23 @@ config_tls_option(ConfigArgs *c) {
 #ifdef HAVE_GNUTLS
 	case CFG_TLS_CRL_FILE:	flag = LDAP_OPT_X_TLS_CRLFILE;	break;
 #endif
+	case CFG_TLS_CACERT:	flag = LDAP_OPT_X_TLS_CACERT;	berval = 1;	break;
+	case CFG_TLS_CERT:		flag = LDAP_OPT_X_TLS_CERT;	berval = 1;	break;
+	case CFG_TLS_KEY:		flag = LDAP_OPT_X_TLS_KEY;	berval = 1;	break;
 	default:		Debug(LDAP_DEBUG_ANY, "%s: "
 					"unknown tls_option <0x%x>\n",
 					c->log, c->type, 0);
 		return 1;
 	}
 	if (c->op == SLAP_CONFIG_EMIT) {
-		return ldap_pvt_tls_get_option( ld, flag, &c->value_string );
+		return ldap_pvt_tls_get_option( ld, flag, berval ? &c->value_bv : &c->value_string );
 	} else if ( c->op == LDAP_MOD_DELETE ) {
 		c->cleanup = config_tls_cleanup;
 		return ldap_pvt_tls_set_option( ld, flag, NULL );
 	}
 	ch_free(c->value_string);
 	c->cleanup = config_tls_cleanup;
-	return(ldap_pvt_tls_set_option(ld, flag, c->argv[1]));
+	return(ldap_pvt_tls_set_option(ld, flag, berval ? &c->value_bv : c->argv[1]));
 }
 
 /* FIXME: this ought to be provided by libldap */
