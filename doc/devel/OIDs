@@ -1,0 +1,69 @@
+OpenLDAProot	1.3.6.1.4.1.4203
+
+OpenLDAP	OpenLDAProot:1
+
+OpenLDAPsyntax			OpenLDAP:1
+	authPasswordSyntax		OpenLDAPsyntax:2
+
+OpenLDAPmatchingrule	OpenLDAP:2
+	authPasswordExactMatch	OpenLDAPmatchingrule:2
+	authPasswordMatch		OpenLDAPmatchingrule:3
+
+OpenLDAPattributeType	OpenLDAP:3
+	supportedAuthPasswordSchemas	OpenLDAPattributeType:3
+	authPassword					OpenLDAPattributeType:4
+	supportedFeatures				OpenLDAPattributeType:5
+
+OpenLDAPobjectClass		OpenLDAP:4
+	OpenLDAPorg				OpenLDAPObjectClass:3
+	OpenLDAPou				OpenLDAPObjectClass:4
+	OpenLDAPperson			OpenLDAPObjectClass:5
+	OpenLDAPdisplayableObject	OpenLDAPObjectClass:6
+	authPasswordObject		OpenLDAPobjectClass:7
+
+OpenLDAPfeatures		OpenLDAP:5
+	allOperationalAttrs		OpenLDAPfeatures:1
+	OC AD lists				OpenLDAPfeatures:2
+	TrueFalseFilters		OpenLDAPfeatures:3
+	languageTagOptions		OpenLDAPfeatures:4
+	languageRangetags		OpenLDAPfeatures:5
+
+Syncrepl				OpenLDAP:9
+
+OpenLDAPcontrol			OpenLDAP:10
+	SubentriesControl		OpenLDAPcontrol:1
+
+OpenLDAPexop			OpenLDAP:11
+	passwordModify			OpenLDAPexop:1
+	whoAmI					OpenLDAPexop:3
+
+OpenLDAPinternal			OpenLDAP:12
+	OpenLDAPtesting			OpenLDAPinternal:1
+	OpenLDAPconfig			OpenLDAPinternal:2
+	
+
+OpenLDAPexperimental	OpenLDAProot:666
+
+ExperimentalAttr		OpenLDAPexperimental:1
+
+ExperimentalSyntax		OpenLDAPexperimental:2
+
+ExperimetnalObjectClass	OpenLDAPexperimental:3
+
+ExperimentalControl		OpenLDAPexperimental:5
+
+ExperimentalExop		OpenLDAPexperimental:6
+
+ExperimentalFeatures	OpenLDAPexperimental:8
+
+SelfContainedWorks		OpenLDAPexperimental:11
+	CSNs					SelfContainedWorks:2
+	chaining				SelfContainedWorks:3
+	retcode					SelfContainedWorks:4
+	accesslog				SelfContainedWorks:5
+	distProc				SelfContainedWorks:6
+	LDAP txns				SelfContainedWorks:7 (replaced by 1.3.6.1.1.21 RFC 5805)
+	dyngroup				SelfContainedWorks:8
+	proxyCache				SelfContainedWorks:9
+	X509 PMI				SelfContainedWorks:10
+	autoca					SelfContainedWorks:11
