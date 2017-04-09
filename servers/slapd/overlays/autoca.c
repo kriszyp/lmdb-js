@@ -964,6 +964,24 @@ autoca_db_open(
 	if (slapMode & SLAP_TOOL_MODE)
 		return 0;
 
+	if ( ! *aca_attr2[0].ad ) {
+		int i, code;
+		const char *text;
+
+		for ( i=0; aca_attr2[i].at; i++ ) {
+			code = slap_str2ad( aca_attr2[i].at, aca_attr2[i].ad, &text );
+			if ( code ) return code;
+		}
+
+		/* Schema may not be loaded, ignore if missing */
+		slap_str2ad( "ipHostNumber", &ad_ipaddr, &text );
+
+		for ( i=0; aca_ocs[i].ot; i++ ) {
+			code = register_oc( aca_ocs[i].ot, aca_ocs[i].oc, 0 );
+			if ( code ) return code;
+		}
+	}
+
 	thrctx = ldap_pvt_thread_pool_context();
 	connection_fake_init2( &conn, &opbuf, thrctx, 0 );
 	op = &opbuf.ob_op;
@@ -1066,19 +1084,6 @@ int autoca_initialize() {
 
 	for ( i=0; aca_attrs[i]; i++ ) {
 		code = register_at( aca_attrs[i], NULL, 0 );
-		if ( code ) return code;
-	}
-
-	for ( i=0; aca_attr2[i].at; i++ ) {
-		code = slap_str2ad( aca_attr2[i].at, aca_attr2[i].ad, &text );
-		if ( code ) return code;
-	}
-
-	/* Schema may not be loaded, ignore if missing */
-	slap_str2ad( "ipHostNumber", &ad_ipaddr, &text );
-
-	for ( i=0; aca_ocs[i].ot; i++ ) {
-		code = register_oc( aca_ocs[i].ot, aca_ocs[i].oc, 0 );
 		if ( code ) return code;
 	}
 
