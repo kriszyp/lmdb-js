@@ -1274,7 +1274,7 @@ slap_open_listener(
 	LDAPURLDesc *lud;
 	unsigned short port;
 	int err, addrlen = 0;
-	struct sockaddr **sal, **psal;
+	struct sockaddr **sal = NULL, **psal;
 	int socktype = SOCK_STREAM;	/* default to COTS */
 	ber_socket_t s;
 
