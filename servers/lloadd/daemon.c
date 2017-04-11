@@ -1300,6 +1300,7 @@ slapd_daemon( struct event_base *daemon_base )
     }
 
     LDAP_STAILQ_FOREACH ( b, &backend, b_next ) {
+        b->b_opening++;
         ldap_pvt_thread_pool_submit( &connection_pool, backend_connect, b );
     }
 

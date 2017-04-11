@@ -248,7 +248,8 @@ struct Backend {
     char *b_host;
 
     int b_numconns, b_numbindconns;
-    Connection *b_conns, *b_bindconns;
+    int b_bindavail, b_active, b_opening;
+    LDAP_LIST_HEAD(ConnSt, Connection) b_conns, b_bindconns;
 
     LDAP_STAILQ_ENTRY(Backend) b_next;
 };
@@ -263,11 +264,16 @@ enum sc_state {
     SLAP_C_ACTIVE,      /* exclusive operation (tls setup, ...) in progress */
     SLAP_C_BINDING,     /* binding */
 };
+enum sc_type {
+    SLAP_C_OPEN = 0, /* regular connection */
+    SLAP_C_BIND, /* connection used to handle bind client requests if VC not enabled */
+};
 /*
  * represents a connection from an ldap client/to ldap server
  */
 struct Connection {
     enum sc_state c_state; /* connection state */
+    enum sc_type c_type;
     ber_socket_t c_fd;
 
     ldap_pvt_thread_mutex_t c_mutex; /* protect the connection */
@@ -301,7 +307,7 @@ struct Connection {
     TAvlnode *c_ops; /* Operations pending on the connection */
 
 #define CONN_IS_TLS 1
-#define CONN_IS_CLIENT 4
+#define CONN_IS_BIND 4
 #define CONN_IS_IPC 8
 
 #ifdef HAVE_TLS
@@ -311,6 +317,9 @@ struct Connection {
 
     long c_n_ops_executing; /* num of ops currently executing */
     long c_n_ops_completed; /* num of ops completed */
+
+    /* Upstream: Protected by its backend's mutex */
+    LDAP_LIST_ENTRY( Connection ) c_next;
 
     void *c_private;
 };

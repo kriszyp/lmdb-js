@@ -735,16 +735,22 @@ upstream_bind( void *ctx, void *arg )
     return NULL;
 }
 
+/*
+ * We must already hold b->b_mutex when called.
+ */
 Connection *
 upstream_init( ber_socket_t s, Backend *b )
 {
     Connection *c;
     struct event_base *base = slap_get_base( s );
     struct event *event;
-    int flags = (b->b_tls == LLOAD_LDAPS) ? CONN_IS_TLS : 0;
+    int flags, is_bindconn = 0;
 
     assert( b != NULL );
 
+    b->b_opening--;
+
+    flags = (b->b_tls == LLOAD_LDAPS) ? CONN_IS_TLS : 0;
     c = connection_init( s, b->b_host, flags );
     c->c_private = b;
 
@@ -757,15 +763,38 @@ upstream_init( ber_socket_t s, Backend *b )
     /* We only register the write event when we have data pending */
     c->c_write_event = event;
 
-    if ( b->b_bindconf.sb_method == LDAP_AUTH_NONE ) {
+    /* Unless we are configured to use the VC exop, consider allocating the
+     * connection into the bind conn pool. Start off by allocating one for
+     * general use, then one for binds, then we start filling up the general
+     * connection pool, finally the bind pool */
+    if ( !(lload_features & LLOAD_FEATURE_VC) && b->b_active &&
+            b->b_numbindconns ) {
+        if ( !b->b_bindavail ) {
+            is_bindconn = 1;
+        } else if ( b->b_active >= b->b_numconns &&
+                b->b_bindavail < b->b_numbindconns ) {
+            is_bindconn = 1;
+        }
+    }
+
+    if ( is_bindconn || b->b_bindconf.sb_method == LDAP_AUTH_NONE ) {
         upstream_finish( c );
     } else {
         ldap_pvt_thread_pool_submit( &connection_pool, upstream_bind, c );
     }
 
-    ldap_pvt_thread_mutex_unlock( &c->c_mutex );
+    if ( is_bindconn ) {
+        LDAP_LIST_INSERT_HEAD( &b->b_bindconns, c, c_next );
+        c->c_type = SLAP_C_BIND;
+        b->b_bindavail++;
+    } else {
+        LDAP_LIST_INSERT_HEAD( &b->b_conns, c, c_next );
+        b->b_active++;
+    }
 
+    ldap_pvt_thread_mutex_unlock( &c->c_mutex );
     return c;
+
 fail:
     if ( c->c_write_event ) {
         event_del( c->c_write_event );
@@ -784,18 +813,22 @@ upstream_destroy( Connection *c )
 {
     Backend *b = c->c_private;
 
+    Debug( LDAP_DEBUG_CONNS, "upstream_destroy: freeing connection %lu\n",
+            c->c_connid );
+
+    assert( c->c_state != SLAP_C_INVALID );
     c->c_state = SLAP_C_INVALID;
     ldap_pvt_thread_mutex_unlock( &c->c_mutex );
 
     ldap_pvt_thread_mutex_lock( &b->b_mutex );
-    if ( !(b->b_conns == c) ) {
-        ldap_pvt_thread_mutex_unlock( &b->b_mutex );
-        return;
+    LDAP_LIST_REMOVE( c, c_next );
+    if ( c->c_type == SLAP_C_BIND ) {
+        b->b_bindavail--;
+    } else {
+        b->b_active--;
     }
-    b->b_conns = NULL;
     ldap_pvt_thread_mutex_unlock( &b->b_mutex );
-
-    ldap_pvt_thread_pool_submit( &connection_pool, backend_connect, b );
+    backend_retry( b );
 
     ldap_pvt_thread_mutex_lock( &c->c_mutex );
 

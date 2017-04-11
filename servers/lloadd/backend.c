@@ -32,25 +32,26 @@ upstream_name_cb( int result, struct evutil_addrinfo *res, void *arg )
 {
     Backend *b = arg;
     Connection *c;
-    ber_socket_t s;
+    ber_socket_t s = AC_SOCKET_INVALID;
     int rc;
+
+    ldap_pvt_thread_mutex_lock( &b->b_mutex );
 
     if ( result || !res ) {
         Debug( LDAP_DEBUG_ANY, "upstream_name_cb: "
                 "name resolution failed for backend '%s': %s\n",
                 b->b_bindconf.sb_uri.bv_val, evutil_gai_strerror( result ) );
-        return;
+        goto fail;
     }
 
-    s = socket( res->ai_family, SOCK_STREAM, 0 );
-    if ( s == AC_SOCKET_INVALID ) {
-        return;
+    /* TODO: if we get failures, try the other addrinfos */
+    if ( (s = socket( res->ai_family, SOCK_STREAM, 0 )) ==
+            AC_SOCKET_INVALID ) {
+        goto fail;
     }
 
-    rc = ber_pvt_socket_set_nonblock( s, 1 );
-    if ( rc ) {
-        evutil_closesocket( s );
-        return;
+    if ( ber_pvt_socket_set_nonblock( s, 1 ) ) {
+        goto fail;
     }
 
     if ( res->ai_family == PF_INET ) {
@@ -66,14 +67,21 @@ upstream_name_cb( int result, struct evutil_addrinfo *res, void *arg )
         Debug( LDAP_DEBUG_ANY, "upstream_name_cb: "
                 "failed to connect to server '%s'\n",
                 b->b_bindconf.sb_uri.bv_val );
-        evutil_closesocket( s );
-        return;
+        goto fail;
     }
 
     c = upstream_init( s, b );
-    ldap_pvt_thread_mutex_lock( &b->b_mutex );
-    b->b_conns = c;
     ldap_pvt_thread_mutex_unlock( &b->b_mutex );
+    backend_retry( b );
+    return;
+
+fail:
+    if ( s != AC_SOCKET_INVALID ) {
+        evutil_closesocket( s );
+    }
+    b->b_opening--;
+    ldap_pvt_thread_mutex_unlock( &b->b_mutex );
+    backend_retry( b );
 }
 
 Connection *
@@ -81,21 +89,65 @@ backend_select( Operation *op )
 {
     Backend *b;
 
+    /* TODO: Two runs, one with trylock, then one actually locked if we don't
+     * find anything? */
     LDAP_STAILQ_FOREACH ( b, &backend, b_next ) {
+        struct ConnSt *head;
         Connection *c;
 
         ldap_pvt_thread_mutex_lock( &b->b_mutex );
-        c = b->b_conns;
-        ldap_pvt_thread_mutex_lock( &c->c_io_mutex );
-        if ( c->c_state == SLAP_C_READY && !c->c_pendingber ) {
-            ldap_pvt_thread_mutex_unlock( &b->b_mutex );
-            return b->b_conns;
+        if ( op->o_tag == LDAP_REQ_BIND &&
+                !(lload_features & LLOAD_FEATURE_VC) ) {
+            head = &b->b_bindconns;
+        } else {
+            head = &b->b_conns;
         }
-        ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
+
+        /* TODO: Use CIRCLEQ so that we can do a natural round robin over the
+         * backend's connections? */
+        LDAP_LIST_FOREACH( c, head, c_next )
+        {
+            ldap_pvt_thread_mutex_lock( &c->c_io_mutex );
+            if ( c->c_state == SLAP_C_READY && !c->c_pendingber ) {
+                Debug( LDAP_DEBUG_CONNS, "backend_select: "
+                        "selected connection %lu for client %lu msgid=%d\n",
+                        c->c_connid, op->o_client->c_connid,
+                        op->o_client_msgid );
+                ldap_pvt_thread_mutex_unlock( &b->b_mutex );
+                return c;
+            }
+            ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
+        }
         ldap_pvt_thread_mutex_unlock( &b->b_mutex );
     }
 
     return NULL;
+}
+
+void
+backend_retry( Backend *b )
+{
+    int rc, requested;
+
+    ldap_pvt_thread_mutex_lock( &b->b_mutex );
+    /* TODO: timeout regime */
+
+    requested = b->b_numconns;
+    if ( !(lload_features & LLOAD_FEATURE_VC) ) {
+        requested += b->b_numbindconns;
+    }
+    if ( b->b_active + b->b_bindavail + b->b_opening < requested ) {
+        b->b_opening++;
+        rc = ldap_pvt_thread_pool_submit(
+                &connection_pool, backend_connect, b );
+        /* TODO check we're not shutting down */
+        if ( rc ) {
+            ldap_pvt_thread_mutex_unlock( &b->b_mutex );
+            backend_connect( NULL, b );
+            return;
+        }
+    }
+    ldap_pvt_thread_mutex_unlock( &b->b_mutex );
 }
 
 void *
@@ -103,26 +155,29 @@ backend_connect( void *ctx, void *arg )
 {
     struct evutil_addrinfo hints = {};
     Backend *b = arg;
+    char *hostname;
 
+    ldap_pvt_thread_mutex_lock( &b->b_mutex );
 #ifdef LDAP_PF_LOCAL
     if ( b->b_proto == LDAP_PROTO_IPC ) {
         struct sockaddr_un addr;
+        Connection *c;
         ber_socket_t s = socket( PF_LOCAL, SOCK_STREAM, 0 );
         int rc;
 
         if ( s == AC_SOCKET_INVALID ) {
-            return (void *)-1;
+            goto fail;
         }
 
         rc = ber_pvt_socket_set_nonblock( s, 1 );
         if ( rc ) {
             evutil_closesocket( s );
-            return (void *)-1;
+            goto fail;
         }
 
         if ( strlen( b->b_host ) > ( sizeof(addr.sun_path) - 1 ) ) {
             evutil_closesocket( s );
-            return (void *)-1;
+            goto fail;
         }
         memset( &addr, '\0', sizeof(addr) );
         addr.sun_family = AF_LOCAL;
@@ -132,10 +187,12 @@ backend_connect( void *ctx, void *arg )
                 s, (struct sockaddr *)&addr, sizeof(struct sockaddr_un) );
         if ( rc && errno != EINPROGRESS && errno != EWOULDBLOCK ) {
             evutil_closesocket( s );
-            return (void *)-1;
+            goto fail;
         }
 
-        b->b_conns = upstream_init( s, b );
+        c = upstream_init( s, b );
+        ldap_pvt_thread_mutex_unlock( &b->b_mutex );
+        backend_retry( b );
         return NULL;
     }
 #endif /* LDAP_PF_LOCAL */
@@ -145,6 +202,15 @@ backend_connect( void *ctx, void *arg )
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_protocol = IPPROTO_TCP;
 
-    evdns_getaddrinfo( dnsbase, b->b_host, NULL, &hints, upstream_name_cb, b );
+    hostname = b->b_host;
+    ldap_pvt_thread_mutex_unlock( &b->b_mutex );
+
+    evdns_getaddrinfo( dnsbase, hostname, NULL, &hints, upstream_name_cb, b );
     return NULL;
+
+fail:
+    b->b_opening--;
+    ldap_pvt_thread_mutex_unlock( &b->b_mutex );
+    backend_retry( b );
+    return (void *)-1;
 }

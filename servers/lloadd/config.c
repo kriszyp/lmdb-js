@@ -462,6 +462,9 @@ config_backend( ConfigArgs *c )
 
     b = ch_calloc( 1, sizeof(Backend) );
 
+    LDAP_LIST_INIT( &b->b_conns );
+    LDAP_LIST_INIT( &b->b_bindconns );
+
     b->b_numconns = 1;
     b->b_numbindconns = 1;
 
