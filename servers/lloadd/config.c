@@ -462,6 +462,9 @@ config_backend( ConfigArgs *c )
 
     b = ch_calloc( 1, sizeof(Backend) );
 
+    b->b_numconns = 1;
+    b->b_numbindconns = 1;
+
     for ( i = 1; i < c->argc; i++ ) {
         if ( bindconf_parse( c->argv[i], b ) ) {
             Debug( LDAP_DEBUG_ANY, "config_backend: "
@@ -486,6 +489,20 @@ config_backend( ConfigArgs *c )
         rc = -1;
         goto done;
 #endif
+    }
+
+    if ( b->b_numconns <= 0 ) {
+        Debug( LDAP_DEBUG_ANY, "config_backend: "
+                "invalid connection pool configuration\n" );
+        rc = -1;
+        goto done;
+    }
+
+    if ( b->b_numbindconns <= 0 ) {
+        Debug( LDAP_DEBUG_ANY, "config_backend: "
+                "invalid bind connection pool configuration\n" );
+        rc = -1;
+        goto done;
     }
 
     if ( BER_BVISNULL( &b->b_bindconf.sb_uri ) ) {
@@ -1884,6 +1901,9 @@ static slap_cf_aux_table bindkey[] = {
     { BER_BVC("authcID="), offsetof(Backend, b_bindconf.sb_authcId), 'b', 1, NULL },
     { BER_BVC("authzID="), offsetof(Backend, b_bindconf.sb_authzId), 'b', 1, NULL },
     { BER_BVC("keepalive="), offsetof(Backend, b_bindconf.sb_keepalive), 'x', 0, (slap_verbmasks *)slap_keepalive_parse },
+
+    { BER_BVC("numconns="), offsetof(Backend, b_numconns), 'i', 0, NULL },
+    { BER_BVC("bindconns="), offsetof(Backend, b_numbindconns), 'i', 0, NULL },
 #ifdef HAVE_TLS
     { BER_BVC("starttls="), offsetof(Backend, b_bindconf.sb_tls), 'i', 0, tlskey },
     { BER_BVC("tls_cert="), offsetof(Backend, b_bindconf.sb_tls_cert), 's', 1, NULL },
