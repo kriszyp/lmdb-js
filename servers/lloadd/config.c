@@ -463,7 +463,7 @@ config_backend( ConfigArgs *c )
     b = ch_calloc( 1, sizeof(Backend) );
 
     for ( i = 1; i < c->argc; i++ ) {
-        if ( bindconf_parse( c->argv[i], &b->b_bindconf ) ) {
+        if ( bindconf_parse( c->argv[i], b ) ) {
             Debug( LDAP_DEBUG_ANY, "config_backend: "
                     "error parsing backend configuration item '%s'\n",
                     c->argv[i] );
@@ -1764,12 +1764,6 @@ static slap_verbmasks methkey[] = {
     { BER_BVNULL, 0 }
 };
 
-static slap_verbmasks versionkey[] = {
-    { BER_BVC("2"), LDAP_VERSION2 },
-    { BER_BVC("3"), LDAP_VERSION3 },
-    { BER_BVNULL, 0 }
-};
-
 int
 slap_keepalive_parse(
         struct berval *val,
@@ -1878,32 +1872,31 @@ slap_sb_uri(
 }
 
 static slap_cf_aux_table bindkey[] = {
-    { BER_BVC("uri="), 0, 'x', 1, slap_sb_uri },
-    { BER_BVC("version="), offsetof(slap_bindconf, sb_version), 'i', 0, versionkey },
-    { BER_BVC("bindmethod="), offsetof(slap_bindconf, sb_method), 'i', 0, methkey },
-    { BER_BVC("timeout="), offsetof(slap_bindconf, sb_timeout_api), 'i', 0, NULL },
-    { BER_BVC("network-timeout="), offsetof(slap_bindconf, sb_timeout_net), 'i', 0, NULL },
-    { BER_BVC("binddn="), offsetof(slap_bindconf, sb_binddn), 'b', 1, NULL },
-    { BER_BVC("credentials="), offsetof(slap_bindconf, sb_cred), 'b', 1, NULL },
-    { BER_BVC("saslmech="), offsetof(slap_bindconf, sb_saslmech), 'b', 0, NULL },
-    { BER_BVC("secprops="), offsetof(slap_bindconf, sb_secprops), 's', 0, NULL },
-    { BER_BVC("realm="), offsetof(slap_bindconf, sb_realm), 'b', 0, NULL },
-    { BER_BVC("authcID="), offsetof(slap_bindconf, sb_authcId), 'b', 1, NULL },
-    { BER_BVC("authzID="), offsetof(slap_bindconf, sb_authzId), 'b', 1, NULL },
-    { BER_BVC("keepalive="), offsetof(slap_bindconf, sb_keepalive), 'x', 0, (slap_verbmasks *)slap_keepalive_parse },
+    { BER_BVC("uri="), offsetof(Backend, b_bindconf.sb_uri), 'x', 1, slap_sb_uri },
+    { BER_BVC("bindmethod="), offsetof(Backend, b_bindconf.sb_method), 'i', 0, methkey },
+    { BER_BVC("timeout="), offsetof(Backend, b_bindconf.sb_timeout_api), 'i', 0, NULL },
+    { BER_BVC("network-timeout="), offsetof(Backend, b_bindconf.sb_timeout_net), 'i', 0, NULL },
+    { BER_BVC("binddn="), offsetof(Backend, b_bindconf.sb_binddn), 'b', 1, NULL },
+    { BER_BVC("credentials="), offsetof(Backend, b_bindconf.sb_cred), 'b', 1, NULL },
+    { BER_BVC("saslmech="), offsetof(Backend, b_bindconf.sb_saslmech), 'b', 0, NULL },
+    { BER_BVC("secprops="), offsetof(Backend, b_bindconf.sb_secprops), 's', 0, NULL },
+    { BER_BVC("realm="), offsetof(Backend, b_bindconf.sb_realm), 'b', 0, NULL },
+    { BER_BVC("authcID="), offsetof(Backend, b_bindconf.sb_authcId), 'b', 1, NULL },
+    { BER_BVC("authzID="), offsetof(Backend, b_bindconf.sb_authzId), 'b', 1, NULL },
+    { BER_BVC("keepalive="), offsetof(Backend, b_bindconf.sb_keepalive), 'x', 0, (slap_verbmasks *)slap_keepalive_parse },
 #ifdef HAVE_TLS
-    { BER_BVC("starttls="), offsetof(slap_bindconf, sb_tls), 'i', 0, tlskey },
-    { BER_BVC("tls_cert="), offsetof(slap_bindconf, sb_tls_cert), 's', 1, NULL },
-    { BER_BVC("tls_key="), offsetof(slap_bindconf, sb_tls_key), 's', 1, NULL },
-    { BER_BVC("tls_cacert="), offsetof(slap_bindconf, sb_tls_cacert), 's', 1, NULL },
-    { BER_BVC("tls_cacertdir="), offsetof(slap_bindconf, sb_tls_cacertdir), 's', 1, NULL },
-    { BER_BVC("tls_reqcert="), offsetof(slap_bindconf, sb_tls_reqcert), 's', 0, NULL },
-    { BER_BVC("tls_reqsan="), offsetof(slap_bindconf, sb_tls_reqsan), 's', 0, NULL },
-    { BER_BVC("tls_cipher_suite="), offsetof(slap_bindconf, sb_tls_cipher_suite), 's', 0, NULL },
-    { BER_BVC("tls_protocol_min="), offsetof(slap_bindconf, sb_tls_protocol_min), 's', 0, NULL },
-    { BER_BVC("tls_ecname="), offsetof(slap_bindconf, sb_tls_ecname), 's', 0, NULL },
+    { BER_BVC("starttls="), offsetof(Backend, b_bindconf.sb_tls), 'i', 0, tlskey },
+    { BER_BVC("tls_cert="), offsetof(Backend, b_bindconf.sb_tls_cert), 's', 1, NULL },
+    { BER_BVC("tls_key="), offsetof(Backend, b_bindconf.sb_tls_key), 's', 1, NULL },
+    { BER_BVC("tls_cacert="), offsetof(Backend, b_bindconf.sb_tls_cacert), 's', 1, NULL },
+    { BER_BVC("tls_cacertdir="), offsetof(Backend, b_bindconf.sb_tls_cacertdir), 's', 1, NULL },
+    { BER_BVC("tls_reqcert="), offsetof(Backend, b_bindconf.sb_tls_reqcert), 's', 0, NULL },
+    { BER_BVC("tls_reqsan="), offsetof(Backend, b_bindconf.sb_tls_reqsan), 's', 0, NULL },
+    { BER_BVC("tls_cipher_suite="), offsetof(Backend, b_bindconf.sb_tls_cipher_suite), 's', 0, NULL },
+    { BER_BVC("tls_protocol_min="), offsetof(Backend, b_bindconf.sb_tls_protocol_min), 's', 0, NULL },
+    { BER_BVC("tls_ecname="), offsetof(Backend, b_bindconf.sb_tls_ecname), 's', 0, NULL },
 #ifdef HAVE_OPENSSL
-    { BER_BVC("tls_crlcheck="), offsetof(slap_bindconf, sb_tls_crlcheck), 's', 0, NULL },
+    { BER_BVC("tls_crlcheck="), offsetof(Backend, b_bindconf.sb_tls_crlcheck), 's', 0, NULL },
 #endif
 #endif
     { BER_BVNULL, 0, 0, 0, NULL }
@@ -2179,15 +2172,15 @@ slap_tls_get_config( LDAP *ld, int opt, char **val )
 }
 
 int
-bindconf_parse( const char *word, slap_bindconf *bc )
+bindconf_parse( const char *word, Backend *b )
 {
-    return slap_cf_aux_table_parse( word, bc, bindkey, "bind config" );
+    return slap_cf_aux_table_parse( word, b, bindkey, "bind config" );
 }
 
 int
-bindconf_unparse( slap_bindconf *bc, struct berval *bv )
+bindconf_unparse( Backend *b, struct berval *bv )
 {
-    return slap_cf_aux_table_unparse( bc, bv, bindkey );
+    return slap_cf_aux_table_unparse( b, bv, bindkey );
 }
 
 void
