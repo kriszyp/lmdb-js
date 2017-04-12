@@ -748,8 +748,6 @@ upstream_init( ber_socket_t s, Backend *b )
 
     assert( b != NULL );
 
-    b->b_opening--;
-
     flags = (b->b_tls == LLOAD_LDAPS) ? CONN_IS_TLS : 0;
     c = connection_init( s, b->b_host, flags );
     c->c_private = b;

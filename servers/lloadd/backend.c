@@ -31,7 +31,6 @@ static void
 upstream_name_cb( int result, struct evutil_addrinfo *res, void *arg )
 {
     Backend *b = arg;
-    Connection *c;
     ber_socket_t s = AC_SOCKET_INVALID;
     int rc;
 
@@ -70,7 +69,11 @@ upstream_name_cb( int result, struct evutil_addrinfo *res, void *arg )
         goto fail;
     }
 
-    c = upstream_init( s, b );
+    if ( !upstream_init( s, b ) ) {
+        goto fail;
+    }
+    b->b_opening--;
+    b->b_failed = 0;
     ldap_pvt_thread_mutex_unlock( &b->b_mutex );
     backend_retry( b );
     return;
@@ -80,6 +83,7 @@ fail:
         evutil_closesocket( s );
     }
     b->b_opening--;
+    b->b_failed++;
     ldap_pvt_thread_mutex_unlock( &b->b_mutex );
     backend_retry( b );
 }
@@ -161,7 +165,6 @@ backend_connect( void *ctx, void *arg )
 #ifdef LDAP_PF_LOCAL
     if ( b->b_proto == LDAP_PROTO_IPC ) {
         struct sockaddr_un addr;
-        Connection *c;
         ber_socket_t s = socket( PF_LOCAL, SOCK_STREAM, 0 );
         int rc;
 
@@ -190,7 +193,11 @@ backend_connect( void *ctx, void *arg )
             goto fail;
         }
 
-        c = upstream_init( s, b );
+        if ( !upstream_init( s, b ) ) {
+            goto fail;
+        }
+        b->b_opening--;
+        b->b_failed = 0;
         ldap_pvt_thread_mutex_unlock( &b->b_mutex );
         backend_retry( b );
         return NULL;
@@ -210,6 +217,7 @@ backend_connect( void *ctx, void *arg )
 
 fail:
     b->b_opening--;
+    b->b_failed++;
     ldap_pvt_thread_mutex_unlock( &b->b_mutex );
     backend_retry( b );
     return (void *)-1;
