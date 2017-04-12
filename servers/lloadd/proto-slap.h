@@ -40,7 +40,8 @@ struct config_reply_s; /* config.h */
  * backend.c
  */
 
-LDAP_SLAPD_F (void *) backend_connect( void *ctx, void *arg );
+LDAP_SLAPD_F (void) backend_connect( evutil_socket_t s, short what, void *arg );
+LDAP_SLAPD_F (void *) backend_connect_task( void *ctx, void *arg );
 LDAP_SLAPD_F (void) backend_retry( Backend *b );
 LDAP_SLAPD_F (Connection *) backend_select( Operation *op );
 

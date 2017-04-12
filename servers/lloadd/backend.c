@@ -134,34 +134,57 @@ backend_retry( Backend *b )
     int rc, requested;
 
     ldap_pvt_thread_mutex_lock( &b->b_mutex );
-    /* TODO: timeout regime */
 
     requested = b->b_numconns;
     if ( !(lload_features & LLOAD_FEATURE_VC) ) {
         requested += b->b_numbindconns;
     }
     if ( b->b_active + b->b_bindavail + b->b_opening < requested ) {
-        b->b_opening++;
-        rc = ldap_pvt_thread_pool_submit(
-                &connection_pool, backend_connect, b );
-        /* TODO check we're not shutting down */
-        if ( rc ) {
-            ldap_pvt_thread_mutex_unlock( &b->b_mutex );
-            backend_connect( NULL, b );
-            return;
+        if ( b->b_opening > 0 || b->b_failed > 0 ) {
+            if ( !event_pending( b->b_retry_event, EV_TIMEOUT, NULL ) ) {
+                Debug( LDAP_DEBUG_CONNS, "backend_retry: "
+                        "scheduling a retry in %d ms\n",
+                        b->b_retry_timeout );
+                b->b_opening++;
+                event_add( b->b_retry_event, &b->b_retry_tv );
+                ldap_pvt_thread_mutex_unlock( &b->b_mutex );
+                return;
+            } else {
+                Debug( LDAP_DEBUG_CONNS, "backend_retry: "
+                        "retry already scheduled\n" );
+            }
+        } else {
+            Debug( LDAP_DEBUG_CONNS, "backend_retry: "
+                    "scheduling re-connection straight away\n" );
+            b->b_opening++;
+            rc = ldap_pvt_thread_pool_submit(
+                    &connection_pool, backend_connect_task, b );
+            /* TODO check we're not shutting down */
+            if ( rc ) {
+                ldap_pvt_thread_mutex_unlock( &b->b_mutex );
+                backend_connect( -1, 0, b );
+                return;
+            }
         }
+    } else {
+        Debug( LDAP_DEBUG_CONNS, "backend_retry: "
+                "no more connections needed for this backend\n" );
     }
     ldap_pvt_thread_mutex_unlock( &b->b_mutex );
 }
 
-void *
-backend_connect( void *ctx, void *arg )
+void
+backend_connect( evutil_socket_t s, short what, void *arg )
 {
     struct evutil_addrinfo hints = {};
     Backend *b = arg;
     char *hostname;
 
     ldap_pvt_thread_mutex_lock( &b->b_mutex );
+    Debug( LDAP_DEBUG_CONNS, "backend_connect: "
+            "attempting connection to %s\n",
+            b->b_host );
+
 #ifdef LDAP_PF_LOCAL
     if ( b->b_proto == LDAP_PROTO_IPC ) {
         struct sockaddr_un addr;
@@ -200,7 +223,7 @@ backend_connect( void *ctx, void *arg )
         b->b_failed = 0;
         ldap_pvt_thread_mutex_unlock( &b->b_mutex );
         backend_retry( b );
-        return NULL;
+        return;
     }
 #endif /* LDAP_PF_LOCAL */
 
@@ -213,12 +236,18 @@ backend_connect( void *ctx, void *arg )
     ldap_pvt_thread_mutex_unlock( &b->b_mutex );
 
     evdns_getaddrinfo( dnsbase, hostname, NULL, &hints, upstream_name_cb, b );
-    return NULL;
+    return;
 
 fail:
     b->b_opening--;
     b->b_failed++;
     ldap_pvt_thread_mutex_unlock( &b->b_mutex );
     backend_retry( b );
-    return (void *)-1;
+}
+
+void *
+backend_connect_task( void *ctx, void *arg )
+{
+    backend_connect( -1, 0, arg );
+    return NULL;
 }
