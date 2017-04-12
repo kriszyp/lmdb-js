@@ -813,7 +813,8 @@ upstream_destroy( Connection *c )
 {
     Backend *b = c->c_private;
 
-    Debug( LDAP_DEBUG_CONNS, "upstream_destroy: freeing connection %lu\n",
+    Debug( LDAP_DEBUG_CONNS, "upstream_destroy: "
+            "freeing connection %lu\n",
             c->c_connid );
 
     assert( c->c_state != SLAP_C_INVALID );

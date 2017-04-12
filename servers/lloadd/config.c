@@ -508,6 +508,15 @@ config_backend( ConfigArgs *c )
         goto done;
     }
 
+    if ( b->b_retry_timeout < 0 ) {
+        Debug( LDAP_DEBUG_ANY, "config_backend: "
+                "invalid retry timeout configuration\n" );
+        rc = -1;
+        goto done;
+    }
+    b->b_retry_tv.tv_sec = b->b_retry_timeout / 1000;
+    b->b_retry_tv.tv_usec = ( b->b_retry_timeout % 1000 ) * 1000;
+
     if ( BER_BVISNULL( &b->b_bindconf.sb_uri ) ) {
         Debug( LDAP_DEBUG_ANY, "config_backend: "
                 "backend address not specified\n" );
@@ -1907,6 +1916,7 @@ static slap_cf_aux_table bindkey[] = {
 
     { BER_BVC("numconns="), offsetof(Backend, b_numconns), 'i', 0, NULL },
     { BER_BVC("bindconns="), offsetof(Backend, b_numbindconns), 'i', 0, NULL },
+    { BER_BVC("retry="), offsetof(Backend, b_retry_timeout), 'i', 0, NULL },
 #ifdef HAVE_TLS
     { BER_BVC("starttls="), offsetof(Backend, b_bindconf.sb_tls), 'i', 0, tlskey },
     { BER_BVC("tls_cert="), offsetof(Backend, b_bindconf.sb_tls_cert), 's', 1, NULL },
