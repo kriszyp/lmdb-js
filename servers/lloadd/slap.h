@@ -330,6 +330,7 @@ struct Connection {
 
 struct Operation {
     Connection *o_client, *o_upstream;
+    unsigned long o_client_connid, o_upstream_connid;
 
     ber_int_t o_client_msgid, o_upstream_msgid;
     ber_tag_t o_tag;

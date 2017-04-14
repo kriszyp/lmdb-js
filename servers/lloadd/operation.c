@@ -139,6 +139,7 @@ operation_init( Connection *c, BerElement *ber )
 
     op = ch_calloc( 1, sizeof(Operation) );
     op->o_client = c;
+    op->o_client_connid = c->c_connid;
     op->o_ber = ber;
 
     tag = ber_get_int( ber, &op->o_client_msgid );
@@ -149,9 +150,9 @@ operation_init( Connection *c, BerElement *ber )
     rc = tavl_insert( &c->c_ops, op, operation_client_cmp, avl_dup_error );
     if ( rc ) {
         Debug( LDAP_DEBUG_PACKETS, "operation_init: "
-                "several operations with same msgid=%d in-flight "
-                "from the client\n",
-                op->o_client_msgid );
+                "several operations with same msgid=%d in-flight from client "
+                "%lu\n",
+                op->o_client_msgid, op->o_client_connid );
         goto fail;
     }
 
@@ -173,7 +174,8 @@ operation_init( Connection *c, BerElement *ber )
 
     Debug( LDAP_DEBUG_TRACE, "operation_init: "
             "set up a new operation, %s with msgid=%d for client %lu\n",
-            slap_msgtype2str( op->o_tag ), op->o_client_msgid, c->c_connid );
+            slap_msgtype2str( op->o_tag ), op->o_client_msgid,
+            op->o_client_connid );
 
     return op;
 
@@ -241,7 +243,7 @@ operation_send_reject(
 
     Debug( LDAP_DEBUG_TRACE, "operation_send_reject: "
             "rejecting %s from client %lu with message: \"%s\"\n",
-            slap_msgtype2str( op->o_tag ), c->c_connid, msg );
+            slap_msgtype2str( op->o_tag ), op->o_client_connid, msg );
 
     ldap_pvt_thread_mutex_lock( &c->c_mutex );
     found = ( tavl_delete( &c->c_ops, op, operation_client_cmp ) == op );
@@ -295,6 +297,7 @@ request_process( void *ctx, void *arg )
         goto fail;
     }
     op->o_upstream = upstream;
+    op->o_upstream_connid = upstream->c_connid;
 
     output = upstream->c_pendingber;
     if ( output == NULL && (output = ber_alloc()) == NULL ) {

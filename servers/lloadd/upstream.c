@@ -42,7 +42,8 @@ forward_response( Operation *op, BerElement *ber )
 
     Debug( LDAP_DEBUG_CONNS, "forward_response: "
             "%s to client %lu request #%d\n",
-            slap_msgtype2str( response_tag ), c->c_connid, op->o_client_msgid );
+            slap_msgtype2str( response_tag ), op->o_client_connid,
+            op->o_client_msgid );
 
     ldap_pvt_thread_mutex_lock( &c->c_io_mutex );
     output = c->c_pendingber;
@@ -72,7 +73,7 @@ forward_final_response( Operation *op, BerElement *ber )
 
     Debug( LDAP_DEBUG_CONNS, "forward_final_response: "
             "finishing up with request #%d for client %lu\n",
-            op->o_client_msgid, op->o_client->c_connid );
+            op->o_client_msgid, op->o_client_connid );
     rc = forward_response( op, ber );
     operation_destroy( op );
 
@@ -104,7 +105,7 @@ handle_bind_response( Operation *op, BerElement *ber )
 
     Debug( LDAP_DEBUG_CONNS, "handle_bind_response: "
             "received response for bind request by client %lu, result=%d\n",
-            c->c_connid, result );
+            op->o_client_connid, result );
 
     switch ( result ) {
         case LDAP_SASL_BIND_IN_PROGRESS:
@@ -360,7 +361,7 @@ handle_one_response( Connection *c )
     if ( op ) {
         Debug( LDAP_DEBUG_TRACE, "handle_one_response: "
                 "upstream=%lu, processing response for client %lu, msgid=%d\n",
-                c->c_connid, op->o_client->c_connid, op->o_client_msgid );
+                c->c_connid, op->o_client_connid, op->o_client_msgid );
     } else {
         tag = ber_peek_tag( ber, &len );
         Debug( LDAP_DEBUG_TRACE, "handle_one_response: "
