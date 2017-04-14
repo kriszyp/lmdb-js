@@ -122,6 +122,8 @@ request_bind_as_vc( Operation *op )
     Connection *client = op->o_client, *upstream = op->o_upstream;
     BerElement *ber, *request, *copy = NULL;
     BerValue binddn, auth, mech;
+    char *msg = "internal error";
+    int result = LDAP_OTHER;
     ber_int_t version;
     ber_tag_t tag;
     ber_len_t len;
@@ -133,6 +135,8 @@ request_bind_as_vc( Operation *op )
 
     tag = ber_scanf( request, "im", &version, &binddn );
     if ( tag == LBER_ERROR || version != LDAP_VERSION3 ) {
+        result = LDAP_PROTOCOL_ERROR;
+        msg = "version not recognised";
         goto fail;
     }
 
@@ -143,6 +147,8 @@ request_bind_as_vc( Operation *op )
 
     tag = ber_skip_element( request, &auth );
     if ( tag == LBER_ERROR ) {
+        result = LDAP_PROTOCOL_ERROR;
+        msg = "malformed bind request";
         goto fail;
     }
 
@@ -204,6 +210,8 @@ request_bind_as_vc( Operation *op )
             ldap_pvt_thread_mutex_unlock( &client->c_mutex );
             break;
         default:
+            result = LDAP_PROTOCOL_ERROR;
+            msg = "malformed bind request";
             goto fail;
     }
 
@@ -225,6 +233,7 @@ fail:
         ber_free( copy, 0 );
     }
     ldap_pvt_thread_mutex_unlock( &upstream->c_io_mutex );
+    operation_send_reject( op, result, msg, 1 );
     ldap_pvt_thread_mutex_lock( &client->c_mutex );
     client_destroy( client );
     return 1;
