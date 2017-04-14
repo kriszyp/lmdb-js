@@ -105,7 +105,8 @@ client_read_cb( evutil_socket_t s, short what, void *arg )
 
 fail:
     if ( op ) {
-        tavl_delete( &c->c_ops, op, operation_client_cmp );
+        operation_send_reject(
+                op, LDAP_OTHER, "server error or overloaded", 1 );
         op->o_client = NULL;
         operation_destroy( op );
     }

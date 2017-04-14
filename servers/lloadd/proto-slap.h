@@ -151,7 +151,7 @@ LDAP_SLAPD_F (int) operation_upstream_cmp( const void *l, const void *r );
 LDAP_SLAPD_F (int) operation_client_cmp( const void *l, const void *r );
 LDAP_SLAPD_F (Operation *) operation_init( Connection *c, BerElement *ber );
 LDAP_SLAPD_F (void) operation_abandon( Operation *op );
-LDAP_SLAPD_F (void) operation_send_reject( Operation *op, int result, const char *msg );
+LDAP_SLAPD_F (void) operation_send_reject( Operation *op, int result, const char *msg, int send_anyway );
 LDAP_SLAPD_F (void) operation_lost_upstream( Operation *op );
 LDAP_SLAPD_F (void) operation_destroy( Operation *op );
 LDAP_SLAPD_F (void *) request_process( void *ctx, void *arg );
