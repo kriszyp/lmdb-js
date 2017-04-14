@@ -60,6 +60,7 @@ typedef enum {
 #define ARG_UINT	0x00008000
 #define ARG_ATDESC	0x00009000
 #define ARG_ULONG	0x0000a000
+#define ARG_BINARY	0x0000b000
 
 #define ARGS_SYNTAX	0xffff0000
 #define ARG_IGNORED	0x00080000
@@ -134,6 +135,7 @@ typedef struct config_args_s {
 	char *tline;
 	const char *fname;
 	int lineno;
+	int linelen;
 	char log[MAXPATHLEN + STRLENOF(": line ") + LDAP_PVT_INTTYPE_CHARS(unsigned long)];
 #define cr_msg reply.msg
 	ConfigReply reply;

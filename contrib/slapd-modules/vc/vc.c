@@ -255,7 +255,7 @@ vc_exop(
 		break;
 
 	case LDAP_AUTH_SASL:
-		tag = ber_scanf( ber, "{s" /*}*/ , &mechanism );
+		tag = ber_scanf( ber, "{m" /*}*/ , &mechanism );
 		if ( tag == LBER_ERROR || 
 			BER_BVISNULL( &mechanism ) || BER_BVISEMPTY( &mechanism ) )
 		{

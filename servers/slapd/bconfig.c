@@ -200,6 +200,9 @@ enum {
 	CFG_DISABLED,
 	CFG_THREADQS,
 	CFG_TLS_ECNAME,
+	CFG_TLS_CACERT,
+	CFG_TLS_CERT,
+	CFG_TLS_KEY,
 
 	CFG_LAST
 };
@@ -696,6 +699,15 @@ static ConfigTable config_back_cf_table[] = {
 	{ "timelimit", "limit", 2, 0, 0, ARG_MAY_DB|ARG_MAGIC,
 		&config_timelimit, "( OLcfgGlAt:67 NAME 'olcTimeLimit' "
 			"SYNTAX OMsDirectoryString )", NULL, NULL },
+	{ "TLSCACertificate", NULL, 2, 2, 0,
+#ifdef HAVE_TLS
+		CFG_TLS_CACERT|ARG_BINARY|ARG_MAGIC, &config_tls_option,
+#else
+		ARG_IGNORED, NULL,
+#endif
+		"( OLcfgGlAt:97 NAME 'olcTLSCACertificate' "
+			"DESC 'X.509 certificate, must use ;binary' "
+			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.8 SINGLE-VALUE )", NULL, NULL },
 	{ "TLSCACertificateFile", NULL, 2, 2, 0,
 #ifdef HAVE_TLS
 		CFG_TLS_CA_FILE|ARG_STRING|ARG_MAGIC, &config_tls_option,
@@ -712,6 +724,15 @@ static ConfigTable config_back_cf_table[] = {
 #endif
 		"( OLcfgGlAt:69 NAME 'olcTLSCACertificatePath' "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
+	{ "TLSCertificate", NULL, 2, 2, 0,
+#ifdef HAVE_TLS
+		CFG_TLS_CERT|ARG_BINARY|ARG_MAGIC, &config_tls_option,
+#else
+		ARG_IGNORED, NULL,
+#endif
+		"( OLcfgGlAt:98 NAME 'olcTLSCertificate' "
+			"DESC 'X.509 certificate, must use ;binary' "
+			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.8 SINGLE-VALUE )", NULL, NULL },
 	{ "TLSCertificateFile", NULL, 2, 2, 0,
 #ifdef HAVE_TLS
 		CFG_TLS_CERT_FILE|ARG_STRING|ARG_MAGIC, &config_tls_option,
@@ -720,6 +741,15 @@ static ConfigTable config_back_cf_table[] = {
 #endif
 		"( OLcfgGlAt:70 NAME 'olcTLSCertificateFile' "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
+	{ "TLSCertificateKey", NULL, 2, 2, 0,
+#ifdef HAVE_TLS
+		CFG_TLS_KEY|ARG_BINARY|ARG_MAGIC, &config_tls_option,
+#else
+		ARG_IGNORED, NULL,
+#endif
+		"( OLcfgGlAt:99 NAME 'olcTLSCertificateKey' "
+			"DESC 'X.509 privateKey, must use ;binary' "
+			"SYNTAX 1.3.6.1.4.1.4203.666.2.13 SINGLE-VALUE )", NULL, NULL },
 	{ "TLSCertificateKeyFile", NULL, 2, 2, 0,
 #ifdef HAVE_TLS
 		CFG_TLS_CERT_KEY|ARG_STRING|ARG_MAGIC, &config_tls_option,
@@ -868,6 +898,7 @@ static ConfigOCs cf_ocs[] = {
 		 "olcTimeLimit $ olcTLSCACertificateFile $ "
 		 "olcTLSCACertificatePath $ olcTLSCertificateFile $ "
 		 "olcTLSCertificateKeyFile $ olcTLSCipherSuite $ olcTLSCRLCheck $ "
+		 "olcTLSCACertificate $ olcTLSCertificate $ olcTLSCertificateKey $ "
 		 "olcTLSRandFile $ olcTLSVerifyClient $ olcTLSDHParamFile $ olcTLSECName $ "
 		 "olcTLSCRLFile $ olcTLSProtocolMin $ olcToolThreads $ olcWriteTimeout $ "
 		 "olcObjectIdentifier $ olcAttributeTypes $ olcObjectClasses $ "
@@ -4060,7 +4091,8 @@ config_tls_cleanup(ConfigArgs *c) {
 
 static int
 config_tls_option(ConfigArgs *c) {
-	int flag;
+	int flag, rc;
+	int berval = 0;
 	LDAP *ld = slap_tls_ld;
 	switch(c->type) {
 	case CFG_TLS_RAND:	flag = LDAP_OPT_X_TLS_RANDOM_FILE;	ld = NULL; break;
@@ -4074,20 +4106,25 @@ config_tls_option(ConfigArgs *c) {
 #ifdef HAVE_GNUTLS
 	case CFG_TLS_CRL_FILE:	flag = LDAP_OPT_X_TLS_CRLFILE;	break;
 #endif
+	case CFG_TLS_CACERT:	flag = LDAP_OPT_X_TLS_CACERT;	berval = 1;	break;
+	case CFG_TLS_CERT:		flag = LDAP_OPT_X_TLS_CERT;	berval = 1;	break;
+	case CFG_TLS_KEY:		flag = LDAP_OPT_X_TLS_KEY;	berval = 1;	break;
 	default:		Debug(LDAP_DEBUG_ANY, "%s: "
 					"unknown tls_option <0x%x>\n",
 					c->log, c->type, 0);
 		return 1;
 	}
 	if (c->op == SLAP_CONFIG_EMIT) {
-		return ldap_pvt_tls_get_option( ld, flag, &c->value_string );
+		return ldap_pvt_tls_get_option( ld, flag, berval ? (void *)&c->value_bv : (void *)&c->value_string );
 	} else if ( c->op == LDAP_MOD_DELETE ) {
 		c->cleanup = config_tls_cleanup;
 		return ldap_pvt_tls_set_option( ld, flag, NULL );
 	}
-	ch_free(c->value_string);
+	if ( !berval ) ch_free(c->value_string);
 	c->cleanup = config_tls_cleanup;
-	return(ldap_pvt_tls_set_option(ld, flag, c->argv[1]));
+	rc = ldap_pvt_tls_set_option(ld, flag, berval ? (void *)&c->value_bv : (void *)c->argv[1]);
+	if ( berval ) ch_free(c->value_bv.bv_val);
+	return rc;
 }
 
 /* FIXME: this ought to be provided by libldap */
@@ -4560,6 +4597,8 @@ config_find_table( ConfigOCs **colst, int nocs, AttributeDescription *ad,
 	ConfigArgs *ca )
 {
 	int i, j;
+	if (ad->ad_flags & SLAP_DESC_BINARY)
+		ad = ad->ad_type->sat_ad;
 
 	for (j=0; j<nocs; j++) {
 		for (i=0; colst[j]->co_table[i].name; i++)
@@ -4658,10 +4697,14 @@ check_vals( ConfigTable *ct, ConfigArgs *ca, void *ptr, int isAttr )
 	}
 	for ( i=0; vals[i].bv_val; i++ ) {
 		ca->line = vals[i].bv_val;
+		ca->linelen = vals[i].bv_len;
 		if (( ad->ad_type->sat_flags & SLAP_AT_ORDERED_VAL ) &&
 			ca->line[0] == '{' ) {
 			char *idx = strchr( ca->line, '}' );
-			if ( idx ) ca->line = idx+1;
+			if ( idx ) {
+				ca->linelen -= (idx+1) - ca->line;
+				ca->line = idx+1;
+			}
 		}
 		rc = config_parse_vals( ct, ca, i );
 		if ( rc ) {
@@ -4731,7 +4774,7 @@ config_rename_one( Operation *op, SlapReply *rs, Entry *e,
 	build_new_dn( &e->e_nname, &parent->ce_entry->e_nname, nnewrdn, NULL );
 
 	/* Replace attr */
-	rc = ldap_bv2rdn( &e->e_name, &rDN, &text, LDAP_DN_FORMAT_LDAP );
+	rc = ldap_bv2rdn( &e->e_name, &rDN, (char **)&text, LDAP_DN_FORMAT_LDAP );
 	if ( rc ) {
 		return rc;
 	}
@@ -5447,10 +5490,12 @@ config_add_internal( CfBackInfo *cfb, Entry *e, ConfigArgs *ca, SlapReply *rs,
 			char *iptr = NULL;
 			ca->valx = -1;
 			ca->line = a->a_vals[i].bv_val;
+			ca->linelen = a->a_vals[i].bv_len;
 			if ( a->a_desc->ad_type->sat_flags & SLAP_AT_ORDERED ) {
 				ptr = strchr( ca->line, '}' );
 				if ( ptr ) {
 					iptr = strchr( ca->line, '{' );
+					ca->linelen -= (ptr+1) - ca->line;
 					ca->line = ptr+1;
 				}
 			}
@@ -5638,7 +5683,7 @@ static int
 config_back_add( Operation *op, SlapReply *rs )
 {
 	CfBackInfo *cfb;
-	int renumber;
+	int renumber, dopause = 1;
 	ConfigArgs ca;
 
 	if ( !access_allowed( op, op->ora_e, slap_schema.si_ad_entry,
@@ -5679,7 +5724,8 @@ config_back_add( Operation *op, SlapReply *rs )
 		rs->sr_err = SLAPD_ABANDON;
 		goto out;
 	}
-	ldap_pvt_thread_pool_pause( &connection_pool );
+	if ( ldap_pvt_thread_pool_pause( &connection_pool ) < 0 )
+		dopause = 0;
 
 	/* Strategy:
 	 * 1) check for existence of entry
@@ -5729,7 +5775,8 @@ config_back_add( Operation *op, SlapReply *rs )
 	}
 
 out2:;
-	ldap_pvt_thread_pool_resume( &connection_pool );
+	if ( dopause )
+		ldap_pvt_thread_pool_resume( &connection_pool );
 
 out:;
 	{	int repl = op->o_dont_replicate;
@@ -5769,6 +5816,7 @@ config_modify_add( ConfigTable *ct, ConfigArgs *ca, AttributeDescription *ad,
 			if ( next == ca->line + 1 || next[ 0 ] != '}' ) {
 				return LDAP_OTHER;
 			}
+			ca->linelen -= (ptr+1) - ca->line;
 			ca->line = ptr+1;
 		}
 	}
@@ -5990,6 +6038,7 @@ config_modify_internal( CfEntryInfo *ce, Operation *op, SlapReply *rs,
 						bv.bv_val = ptr;
 					}
 					ca->line = bv.bv_val;
+					ca->linelen = bv.bv_len;
 					ca->valx = d->idx[i];
 					config_parse_vals(ct, ca, d->idx[i] );
 					rc = config_del_vals( ct, ca );
@@ -6028,6 +6077,7 @@ config_modify_internal( CfEntryInfo *ce, Operation *op, SlapReply *rs,
 				break;
 			for (i=0; ml->sml_values[i].bv_val; i++) {
 				ca->line = ml->sml_values[i].bv_val;
+				ca->linelen = ml->sml_values[i].bv_len;
 				ca->valx = -1;
 				rc = config_modify_add( ct, ca, ml->sml_desc, i );
 				if ( rc )
@@ -6057,6 +6107,7 @@ out:
 				}
 				for ( i=0; !BER_BVISNULL( &s->a_vals[i] ); i++ ) {
 					ca->line = s->a_vals[i].bv_val;
+					ca->linelen = s->a_vals[i].bv_len;
 					ca->valx = -1;
 					config_modify_add( ct, ca, s->a_desc, i );
 				}
@@ -6074,6 +6125,7 @@ out:
 					s->a_flags &= ~(SLAP_ATTR_IXDEL|SLAP_ATTR_IXADD);
 					for ( i=0; !BER_BVISNULL( &s->a_vals[i] ); i++ ) {
 						ca->line = s->a_vals[i].bv_val;
+						ca->linelen = s->a_vals[i].bv_len;
 						ca->valx = -1;
 						config_modify_add( ct, ca, s->a_desc, i );
 					}
@@ -6165,7 +6217,8 @@ config_back_modify( Operation *op, SlapReply *rs )
 			rs->sr_err = SLAPD_ABANDON;
 			goto out;
 		}
-		ldap_pvt_thread_pool_pause( &connection_pool );
+		if ( ldap_pvt_thread_pool_pause( &connection_pool ) < 0 )
+			do_pause = 0;
 	}
 
 	/* Strategy:
@@ -6212,7 +6265,7 @@ config_back_modrdn( Operation *op, SlapReply *rs )
 	CfBackInfo *cfb;
 	CfEntryInfo *ce, *last;
 	struct berval rdn;
-	int ixold, ixnew;
+	int ixold, ixnew, dopause = 1;
 
 	cfb = (CfBackInfo *)op->o_bd->be_private;
 
@@ -6334,7 +6387,8 @@ config_back_modrdn( Operation *op, SlapReply *rs )
 		rs->sr_err = SLAPD_ABANDON;
 		goto out;
 	}
-	ldap_pvt_thread_pool_pause( &connection_pool );
+	if ( ldap_pvt_thread_pool_pause( &connection_pool ) < 0 )
+		dopause = 0;
 
 	if ( ce->ce_type == Cft_Schema ) {
 		req_modrdn_s modr = op->oq_modrdn;
@@ -6401,7 +6455,8 @@ config_back_modrdn( Operation *op, SlapReply *rs )
 		op->oq_modrdn = modr;
 	}
 
-	ldap_pvt_thread_pool_resume( &connection_pool );
+	if ( dopause )
+		ldap_pvt_thread_pool_resume( &connection_pool );
 out:
 	send_ldap_result( op, rs );
 	return rs->sr_err;
@@ -6413,6 +6468,7 @@ config_back_delete( Operation *op, SlapReply *rs )
 #ifdef SLAP_CONFIG_DELETE
 	CfBackInfo *cfb;
 	CfEntryInfo *ce, *last, *ce2;
+	int dopause = 1;
 
 	cfb = (CfBackInfo *)op->o_bd->be_private;
 
@@ -6431,7 +6487,8 @@ config_back_delete( Operation *op, SlapReply *rs )
 		char *iptr;
 		int count, ixold;
 
-		ldap_pvt_thread_pool_pause( &connection_pool );
+		if ( ldap_pvt_thread_pool_pause( &connection_pool ) < 0 )
+			dopause = 0;
 
 		if ( ce->ce_type == Cft_Overlay ){
 			overlay_remove( ce->ce_be, (slap_overinst *)ce->ce_bi, op );
@@ -6451,7 +6508,7 @@ config_back_delete( Operation *op, SlapReply *rs )
 			if ( !oc_at ) {
 				rs->sr_err = LDAP_OTHER;
 				rs->sr_text = "objectclass not found";
-				ldap_pvt_thread_pool_resume( &connection_pool );
+				if ( dopause ) ldap_pvt_thread_pool_resume( &connection_pool );
 				goto out;
 			}
 			for ( i=0; !BER_BVISNULL(&oc_at->a_nvals[i]); i++ ) {
@@ -6469,7 +6526,7 @@ config_back_delete( Operation *op, SlapReply *rs )
 						/* FIXME: We should return a helpful error message
 						 * here */
 					}
-					ldap_pvt_thread_pool_resume( &connection_pool );
+					if ( dopause ) ldap_pvt_thread_pool_resume( &connection_pool );
 					goto out;
 				}
 				break;
@@ -6478,7 +6535,7 @@ config_back_delete( Operation *op, SlapReply *rs )
 			if ( ce->ce_be == frontendDB || ce->ce_be == op->o_bd ){
 				rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
 				rs->sr_text = "Cannot delete config or frontend database";
-				ldap_pvt_thread_pool_resume( &connection_pool );
+				if ( dopause ) ldap_pvt_thread_pool_resume( &connection_pool );
 				goto out;
 			}
 			if ( ce->ce_be->bd_info->bi_db_close ) {
@@ -6540,7 +6597,7 @@ config_back_delete( Operation *op, SlapReply *rs )
 		ce->ce_entry->e_private=NULL;
 		entry_free(ce->ce_entry);
 		ch_free(ce);
-		ldap_pvt_thread_pool_resume( &connection_pool );
+		if ( dopause ) ldap_pvt_thread_pool_resume( &connection_pool );
 	} else {
 		rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
 	}
@@ -6757,7 +6814,7 @@ config_build_entry( Operation *op, SlapReply *rs, CfEntryInfo *parent,
 		attr_merge_normalize_one(e, slap_schema.si_ad_objectClass,
 			extra->co_name, NULL );
 
-	rc = ldap_bv2rdn( rdn, &rDN, &text, LDAP_DN_FORMAT_LDAP );
+	rc = ldap_bv2rdn( rdn, &rDN, (char **)&text, LDAP_DN_FORMAT_LDAP );
 	if ( rc ) {
 		goto fail;
 	}

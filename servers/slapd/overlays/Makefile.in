@@ -16,6 +16,7 @@
 SRCS = overlays.c \
 	accesslog.c \
 	auditlog.c \
+	autoca.c \
 	constraint.c \
 	dds.c \
 	deref.c \
@@ -67,6 +68,9 @@ accesslog.la : accesslog.lo
 
 auditlog.la : auditlog.lo
 	$(LTLINK_MOD) -module -o $@ auditlog.lo version.lo $(LINK_LIBS)
+
+autoca.la : autoca.lo
+	$(LTLINK_MOD) -module -o $@ autoca.lo version.lo $(LINK_LIBS)
 
 constraint.la : constraint.lo
 	$(LTLINK_MOD) -module -o $@ constraint.lo version.lo $(LINK_LIBS)

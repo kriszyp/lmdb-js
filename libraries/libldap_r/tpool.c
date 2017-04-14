@@ -1031,6 +1031,8 @@ handle_pause( ldap_pvt_thread_pool_t *tpool, int pause_type )
 	{
 		ldap_int_thread_userctx_t *ctx = ldap_pvt_thread_pool_context();
 		pq = ctx->ltu_pq;
+		if ( !pq )
+			return(-1);
 	}
 
 	/* Let pool_unidle() ignore requests for new pauses */
