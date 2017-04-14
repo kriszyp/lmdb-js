@@ -38,9 +38,9 @@
 #	include <openssl/des.h>
 
 
-typedef des_cblock des_key;
-typedef des_cblock des_data_block;
-typedef des_key_schedule des_context;
+typedef DES_cblock des_key;
+typedef DES_cblock des_data_block;
+typedef DES_key_schedule des_context[1];
 #define des_failed(encrypted) 0
 #define des_finish(key, schedule) 
 
@@ -667,7 +667,7 @@ static void
 des_set_key_and_parity( des_key *key, unsigned char *keyData)
 {
     memcpy(key, keyData, 8);
-    des_set_odd_parity( key );
+    DES_set_odd_parity( key );
 }
 
 
@@ -699,7 +699,7 @@ des_set_key_and_parity( des_key *key, unsigned char *keyData)
 }
 
 static void
-des_set_key_unchecked( des_key *key, des_context ctxt )
+DES_set_key_unchecked( des_key *key, des_context ctxt )
 {
     ctxt[0] = NULL;
 
@@ -712,7 +712,7 @@ des_set_key_unchecked( des_key *key, des_context ctxt )
 }
 
 static void
-des_ecb_encrypt( des_data_block *plain, des_data_block *encrypted, 
+DES_ecb_encrypt( des_data_block *plain, des_data_block *encrypted,
 			des_context ctxt, int op)
 {
     SECStatus rv;
@@ -864,16 +864,16 @@ static int chk_lanman(
 	ldap_pvt_str2upper( UcasePassword );
 	
 	lmPasswd_to_key( UcasePassword, &key );
-	des_set_key_unchecked( &key, schedule );
-	des_ecb_encrypt( &StdText, &PasswordHash1, schedule , DES_ENCRYPT );
+	DES_set_key_unchecked( &key, schedule );
+	DES_ecb_encrypt( &StdText, &PasswordHash1, schedule , DES_ENCRYPT );
 
 	if (des_failed(&PasswordHash1)) {
 	    return LUTIL_PASSWD_ERR;
 	}
 	
 	lmPasswd_to_key( &UcasePassword[7], &key );
-	des_set_key_unchecked( &key, schedule );
-	des_ecb_encrypt( &StdText, &PasswordHash2, schedule , DES_ENCRYPT );
+	DES_set_key_unchecked( &key, schedule );
+	DES_ecb_encrypt( &StdText, &PasswordHash2, schedule , DES_ENCRYPT );
 	if (des_failed(&PasswordHash2)) {
 	    return LUTIL_PASSWD_ERR;
 	}
@@ -1160,12 +1160,12 @@ static int hash_lanman(
 	ldap_pvt_str2upper( UcasePassword );
 	
 	lmPasswd_to_key( UcasePassword, &key );
-	des_set_key_unchecked( &key, schedule );
-	des_ecb_encrypt( &StdText, &PasswordHash1, schedule , DES_ENCRYPT );
+	DES_set_key_unchecked( &key, schedule );
+	DES_ecb_encrypt( &StdText, &PasswordHash1, schedule , DES_ENCRYPT );
 	
 	lmPasswd_to_key( &UcasePassword[7], &key );
-	des_set_key_unchecked( &key, schedule );
-	des_ecb_encrypt( &StdText, &PasswordHash2, schedule , DES_ENCRYPT );
+	DES_set_key_unchecked( &key, schedule );
+	DES_ecb_encrypt( &StdText, &PasswordHash2, schedule , DES_ENCRYPT );
 	
 	sprintf( PasswordHash, "%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x", 
 		PasswordHash1[0],PasswordHash1[1],PasswordHash1[2],PasswordHash1[3],
