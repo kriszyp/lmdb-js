@@ -201,6 +201,12 @@ fail:
 void
 client_destroy( Connection *c )
 {
+    TAvlnode *root, *node;
+
+    Debug( LDAP_DEBUG_CONNS, "client_destroy: "
+            "destroying client %lu\n",
+            c->c_connid );
+
     assert( c->c_read_event != NULL );
     event_del( c->c_read_event );
     event_free( c->c_read_event );
@@ -209,6 +215,25 @@ client_destroy( Connection *c )
     event_del( c->c_write_event );
     event_free( c->c_write_event );
 
+    root = c->c_ops;
+    c->c_ops = NULL;
+
+    if ( !BER_BVISNULL( &c->c_auth ) ) {
+        ch_free( c->c_auth.bv_val );
+    }
+
     c->c_state = SLAP_C_INVALID;
     connection_destroy( c );
+
+    if ( !root ) return;
+
+    /* We don't hold c_mutex anymore */
+    node = tavl_end( root, TAVL_DIR_LEFT );
+    do {
+        Operation *op = node->avl_data;
+
+        op->o_client = NULL;
+        operation_abandon( op );
+    } while ( (node = tavl_next( node, TAVL_DIR_RIGHT )) );
+    tavl_free( root, NULL );
 }

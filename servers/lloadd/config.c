@@ -1917,6 +1917,9 @@ static slap_cf_aux_table bindkey[] = {
     { BER_BVC("numconns="), offsetof(Backend, b_numconns), 'i', 0, NULL },
     { BER_BVC("bindconns="), offsetof(Backend, b_numbindconns), 'i', 0, NULL },
     { BER_BVC("retry="), offsetof(Backend, b_retry_timeout), 'i', 0, NULL },
+
+    { BER_BVC("max-pending-ops="), offsetof(Backend, b_max_pending), 'i', 0, NULL },
+    { BER_BVC("conn-max-pending="), offsetof(Backend, b_max_conn_pending), 'i', 0, NULL },
 #ifdef HAVE_TLS
     { BER_BVC("starttls="), offsetof(Backend, b_bindconf.sb_tls), 'i', 0, tlskey },
     { BER_BVC("tls_cert="), offsetof(Backend, b_bindconf.sb_tls_cert), 's', 1, NULL },

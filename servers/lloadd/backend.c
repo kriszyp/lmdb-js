@@ -100,6 +100,15 @@ backend_select( Operation *op )
         Connection *c;
 
         ldap_pvt_thread_mutex_lock( &b->b_mutex );
+
+        if ( b->b_max_pending && b->b_n_ops_executing >= b->b_max_pending ) {
+            Debug( LDAP_DEBUG_CONNS, "backend_select: "
+                    "backend %s too busy\n",
+                    b->b_bindconf.sb_uri.bv_val );
+            ldap_pvt_thread_mutex_unlock( &b->b_mutex );
+            continue;
+        }
+
         if ( op->o_tag == LDAP_REQ_BIND &&
                 !(lload_features & LLOAD_FEATURE_VC) ) {
             head = &b->b_bindconns;
@@ -112,11 +121,15 @@ backend_select( Operation *op )
         LDAP_LIST_FOREACH( c, head, c_next )
         {
             ldap_pvt_thread_mutex_lock( &c->c_io_mutex );
-            if ( c->c_state == SLAP_C_READY && !c->c_pendingber ) {
+            if ( c->c_state == SLAP_C_READY && !c->c_pendingber &&
+                    ( b->b_max_conn_pending == 0 ||
+                            c->c_n_ops_executing < b->b_max_conn_pending ) ) {
                 Debug( LDAP_DEBUG_CONNS, "backend_select: "
                         "selected connection %lu for client %lu msgid=%d\n",
-                        c->c_connid, op->o_client->c_connid,
-                        op->o_client_msgid );
+                        c->c_connid, op->o_client_connid, op->o_client_msgid );
+
+                b->b_n_ops_executing++;
+                c->c_n_ops_executing++;
                 ldap_pvt_thread_mutex_unlock( &b->b_mutex );
                 return c;
             }

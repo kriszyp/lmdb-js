@@ -255,6 +255,9 @@ struct Backend {
     int b_bindavail, b_active, b_opening;
     LDAP_LIST_HEAD(ConnSt, Connection) b_conns, b_bindconns;
 
+    long b_max_pending, b_max_conn_pending;
+    long b_n_ops_executing;
+
     LDAP_STAILQ_ENTRY(Backend) b_next;
 };
 
