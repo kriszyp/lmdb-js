@@ -155,11 +155,14 @@ handle_vc_bind_response( Operation *op, BerElement *ber )
 
     tag = ber_peek_tag( ber, &len );
     if ( result == LDAP_PROTOCOL_ERROR ) {
-        Backend *b = op->o_upstream->c_private;
-        ldap_pvt_thread_mutex_lock( &op->o_upstream->c_mutex );
+        Connection *upstream = op->o_upstream;
+        Backend *b;
+
+        ldap_pvt_thread_mutex_lock( &upstream->c_mutex );
+        b = (Backend *)upstream->c_private;
         Debug( LDAP_DEBUG_ANY, "VC extended operation not supported on backend %s\n",
                 b->b_bindconf.sb_uri.bv_val );
-        ldap_pvt_thread_mutex_unlock( &op->o_upstream->c_mutex );
+        ldap_pvt_thread_mutex_unlock( &upstream->c_mutex );
     }
 
     ldap_pvt_thread_mutex_lock( &c->c_mutex );

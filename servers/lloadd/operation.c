@@ -276,38 +276,42 @@ request_process( void *ctx, void *arg )
 {
     Operation *op = arg;
     BerElement *output;
-    Connection *c;
+    Connection *client = op->o_client, *upstream;
     ber_int_t msgid;
     int rc;
 
-    c = backend_select( op );
-    if ( !c ) {
+    upstream = backend_select( op );
+    if ( !upstream ) {
         Debug( LDAP_DEBUG_STATS, "request_process: "
                 "no available connection found\n" );
         goto fail;
     }
-    op->o_upstream = c;
+    op->o_upstream = upstream;
 
-    output = c->c_pendingber;
+    output = upstream->c_pendingber;
     if ( output == NULL && (output = ber_alloc()) == NULL ) {
         goto fail;
     }
-    c->c_pendingber = output;
+    upstream->c_pendingber = output;
 
-    ldap_pvt_thread_mutex_lock( &c->c_mutex );
-    op->o_upstream_msgid = msgid = c->c_next_msgid++;
-    rc = tavl_insert( &c->c_ops, op, operation_upstream_cmp, avl_dup_error );
+    ldap_pvt_thread_mutex_unlock( &upstream->c_mutex );
+    op->o_upstream_msgid = msgid = upstream->c_next_msgid++;
+    rc = tavl_insert(
+            &upstream->c_ops, op, operation_upstream_cmp, avl_dup_error );
+    ldap_pvt_thread_mutex_unlock( &upstream->c_mutex );
     assert( rc == LDAP_SUCCESS );
 
     if ( lload_features & LLOAD_FEATURE_PROXYAUTHZ ) {
+        ldap_pvt_thread_mutex_lock( &client->c_mutex );
         Debug( LDAP_DEBUG_TRACE, "request_process: "
                 "proxying identity %s to upstream\n",
-                c->c_auth.bv_val );
+                client->c_auth.bv_val );
         ber_printf( output, "t{titOt{{sbO}" /* "}}" */, LDAP_TAG_MESSAGE,
                 LDAP_TAG_MSGID, msgid,
                 op->o_tag, &op->o_request,
                 LDAP_TAG_CONTROLS,
-                LDAP_CONTROL_PROXY_AUTHZ, 1, &c->c_auth );
+                LDAP_CONTROL_PROXY_AUTHZ, 1, &client->c_auth );
+        ldap_pvt_thread_mutex_unlock( &client->c_mutex );
 
         if ( !BER_BVISNULL( &op->o_ctrls ) ) {
             BerElement *control_ber = ber_alloc();
@@ -329,13 +333,16 @@ request_process( void *ctx, void *arg )
                 op->o_tag, &op->o_request,
                 LDAP_TAG_CONTROLS, BER_BV_OPTIONAL( &op->o_ctrls ) );
     }
-    ldap_pvt_thread_mutex_unlock( &c->c_mutex );
-    ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
+    ldap_pvt_thread_mutex_unlock( &upstream->c_io_mutex );
 
-    upstream_write_cb( -1, 0, c );
+    upstream_write_cb( -1, 0, upstream );
 
     return NULL;
+
 fail:
+    if ( upstream ) {
+        ldap_pvt_thread_mutex_unlock( &upstream->c_io_mutex );
+    }
     operation_send_reject( op, LDAP_OTHER, "internal error" );
     return NULL;
 }
