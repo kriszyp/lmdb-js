@@ -93,6 +93,12 @@ client_read_cb( evutil_socket_t s, short what, void *arg )
                     &connection_pool, client_bind, op );
             break;
         default:
+            if ( c->c_state == SLAP_C_BINDING ) {
+                ldap_pvt_thread_mutex_unlock( &c->c_mutex );
+                operation_send_reject(
+                        op, LDAP_PROTOCOL_ERROR, "bind in progress", 0 );
+                return;
+            }
             rc = ldap_pvt_thread_pool_submit(
                     &connection_pool, request_process, op );
             break;
