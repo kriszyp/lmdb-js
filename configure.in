@@ -568,6 +568,7 @@ BUILD_WT=no
 
 BUILD_ACCESSLOG=no
 BUILD_AUDITLOG=no
+BUILD_AUTOCA=no
 BUILD_CONSTRAINT=no
 BUILD_DDS=no
 BUILD_DENYOP=no
@@ -2907,7 +2908,7 @@ if test "$ol_enable_auditlog" != no ; then
 fi
 
 if test "$ol_enable_autoca" != no ; then
-	BUILD_AUDITLOG=$ol_enable_autoca
+	BUILD_AUTOCA=$ol_enable_autoca
 	if test "$ol_enable_autoca" = mod ; then
 		MFLAG=SLAPD_MOD_DYNAMIC
 		SLAPD_DYNAMIC_OVERLAYS="$SLAPD_DYNAMIC_OVERLAYS autoca.la"
@@ -3194,6 +3195,7 @@ dnl backends
 dnl overlays
   AC_SUBST(BUILD_ACCESSLOG)
   AC_SUBST(BUILD_AUDITLOG)
+  AC_SUBST(BUILD_AUTOCA)
   AC_SUBST(BUILD_COLLECT)
   AC_SUBST(BUILD_CONSTRAINT)
   AC_SUBST(BUILD_DDS)
