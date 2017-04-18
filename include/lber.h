@@ -173,7 +173,7 @@ typedef struct sockbuf Sockbuf;
 
 typedef struct sockbuf_io Sockbuf_IO;
 
-/* Structure for LBER IO operarion descriptor */
+/* Structure for LBER IO operation descriptor */
 typedef struct sockbuf_io_desc {
 	int			sbiod_level;
 	Sockbuf			*sbiod_sb;
