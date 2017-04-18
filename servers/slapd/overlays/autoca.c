@@ -37,6 +37,15 @@
 #include <openssl/x509v3.h>
 #include <openssl/evp.h>
 
+/* Starting with OpenSSL 1.1.0, rsa.h is no longer included in
+ * x509.h, so we need to explicitly include it for the
+ * call to EVP_PKEY_CTX_set_rsa_keygen_bits
+ */
+
+#if OPENSSL_VERSION_NUMBER >= 0x10100000
+#include <openssl/rsa.h>
+#endif
+
 /* This overlay implements a certificate authority that can generate
  * certificates automatically for any entry in the directory.
  * On startup it generates a self-signed CA cert for the directory's
