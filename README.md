@@ -149,7 +149,7 @@ When using a cursor keys are read from the database and it is necessary to speci
 The most direct mapping from LMDB C API is as a node.js Buffer (binary), however it is often more convenient to
 return the key as a string. To create a cursor that returns keys as Buffers, provide a second `true` prameter to the `cursor
 constructor`. Set the second parameter to `false` to always return keys as strings. Note that this parameter is ignored if the
-`dbi` was opened with `keyIsUint32` set - n this case all cursor functions will return the key as an integer.
+`dbi` was opened with `keyIsUint32` set - in this case all cursor functions will return the key as an integer.
 
 If the second parameter to the `cursor constructor` is *not* given then:
    * If the `dbi` was opened with `keyIsUint32` set the key is returned as an integer
