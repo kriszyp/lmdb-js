@@ -89,9 +89,6 @@ Every piece of data in LMDB is referred to by a **key**.
 You can use the methods `getString()`, `getBinary()`, `getNumber()` and `getBoolean()` to retrieve something,
 `putString()`, `putBinary()`, `putNumber()` and `putBoolean()` to store something and `del()` to delete something.
 
-Currently **only string, binary, number and boolean values are supported**, use `JSON.stringify` and `JSON.parse` for complex data structures.
-Because of the nature of LMDB, the data returned by `txn.getStringUnsafe()` and `txn.getBinaryUnsafe()` is only valid until the next `put` operation or the end of the transaction. Safer methods `txn.getBinary()` and `txn.getString()` will be garbage collected when there are no references to it.
-
 **IMPORTANT:** always close your transactions with `abort()` or `commit()` when you are done with them.
 
 ```javascript
@@ -127,6 +124,39 @@ Here is how you use LMDB in a typical scenario:
 * Now you can create `Txn`s with `env.beginTxn()` and operate on the database through a transaction by calling `txn.getString()`, `txn.putString()` etc.
 * When you are done, you should either `abort()` or `commit()` your transactions and `close()` your databases and environment.
 
+### Data Types in node-lmdb
+
+LMDB is very simple and fast. Using node-lmdb provides close to the native C API functionally, but expressed via a natural
+javascript API. To make simple things simple, node-lmdb defaults to presenting keys and values in LMDB as strings.
+For convenience number and boolean values are also supported.
+
+The simplest way to store other data types as keys or values is to use `JSON.stringify` before putting it into the database
+and `JSON.parse` when you retrieve the data.
+
+For more complex use cases access to keys and values as binary (node.js `Buffer` type) is provided. In LMDB itself keys 
+(with one exception) and values are simply binary sequences of bytes. You can retrieve a key or value from an LMDB database
+as binary even if it was written as a string. The same does not apply in reverse! Using binary access
+also allows interoperation with LMDB databases created by, or shared with applications that use data serialisation formats
+other than utf-16 strings (including, in particular, strings using other encodings such as utf-8).
+
+The one exception in LMDBs representation of keys is an optimisation for fixed-length keys. This is exposed
+by node-lmdb for one particular fixed length type: unsigned 32 bit integers. To use this optimisation specify `keyIsUint32: true`
+to `openDbi`. Because the `keyIsUint32 : true` option is passed through to LMDB and stored in the LMDB metadata for the database,
+a database created with this option set cannot be accessed without setting this option, and vice-versa.
+
+
+When using a cursor keys are read from the database and it is necessary to specify how the keys should be returned.
+The most direct mapping from LMDB C API is as a node.js Buffer (binary), however it is often more convenient to
+return the key as a string. To create a cursor that returns keys as Buffers, provide a second `true` prameter to the `cursor
+constructor`. Set the second parameter to `false` to always return keys as strings. Note that this parameter is ignored if the
+`dbi` was opened with `keyIsUint32` set - n this case all cursor functions will return the key as an integer.
+
+If the second parameter to the `cursor constructor` is *not* given then:
+   * If the `dbi` was opened with `keyIsUint32` set the key is returned as an integer
+   * If the value is being read as binary (`getCurrentBinary` or `getCurrentBinaryUnsafe`) the key is returned as a binary `Buffer`.
+   * Otherwise the key is returned as a `string`.
+This mode is deprecated and may be removed (replaced by a default as if the `cursor constructor` second parameter were `false`) in a future release.
+
 ### Examples
 
 You can find some in the source tree. There are some basic examples and I intend to create some advanced ones too.
@@ -142,6 +172,7 @@ The basic examples we currently have:
 * `examples/7-largedb.js` - shows how to work with an insanely large database
 * `examples/8-multiple-cursors-single-transactions.js` - shows how to use multiple cursors with a single transaction
 * `examples/9-unnamed-db.js` - shows how to use an unnamed database
+* `examples/4-binkeycursors.js` - shows how to work with cursors on a database with binary keys
 
 Advanced examples:
 
@@ -149,6 +180,14 @@ Advanced examples:
 * *More will come later, so don't forget to check back!*
 
 ### Caveats
+
+#### Unsafe Get Methods
+Because of the nature of LMDB, the data returned by `txn.getStringUnsafe()`, `txn.getBinaryUnsafe()`, `cursor.getCurrentStringUnsafe()`
+and `cursor.getCurrentBinaryUnsafe()` is **only valid until the next `put` operation or the end of the transaction**.
+If you need to use the data *later*, you can use the `txn.getBinary()`, `txn.getString()`, `cursor.getCurrentBinary()` and
+`cursor.getCurrentString()` methods. For most usage, the optimisation (no copy) gain from using the unsafe methods is so small
+as to be negligible - the `Unsafe` methods should be avoided.
+
 
 #### Working with strings
 
@@ -203,13 +242,18 @@ var data3 = txn.getString(dbi, key);
 
 ```
 
-#### Limitations of node-lmdb
+### Limitations of node-lmdb
 
-* **Only string, binary, number and boolean values are supported.** If you want to store complex data structures, use `JSON.stringify` before putting it into the database and `JSON.parse` when you retrieve the data.
-* **Only string and unsigned integer keys are supported.** Default is string, specify `keyIsUint32: true` to `openDbi` for unsigned integer. It would make the API too complicated to support more data types for keys.
-* Because of the nature of LMDB, the data returned by `txn.getStringUnsafe()` and `txn.getBinaryUnsafe()` is **only valid until the next `put` operation or the end of the transaction**. If you need to use the data *later*, you can use the `txn.getBinary()` and `txn.getString()` methods.
 * Fixed address map (called `MDB_FIXEDMAP` in C) features are **not exposed** by this binding because they are highly experimental
+* There is no option to specify a custom key comparison method, so if the order of traversal is important,
+the key must be constructed so as to be correctly ordered using lexicographical comparison of the
+binary byte sequence (LMDB's default comparison method). While LMDB itself does allow custom comparisons, exposing this through a
+language binding is not recommended by LMDB's author. The validity of the database depends on a consistent key comparison function
+so it is not appropriate to use this customisation except in very specialised use cases - exposing this customisation point
+would encourage misuse and potential database corruption. In any case, LMDB performance is very sensitive to comparison performance
+and many of the advantages of using LMDB would be lost were a complex (and non-native code) comparison function used.
 * Not all functions are wrapped by the binding yet. If there's one that you would like to see, drop me a line.
+
 
 Contributing
 ------------
