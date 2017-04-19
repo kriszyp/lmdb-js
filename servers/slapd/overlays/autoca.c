@@ -21,8 +21,6 @@
 
 #include "portable.h"
 
-#define SLAPD_OVER_AUTOCA	SLAPD_MOD_DYNAMIC
-
 #ifdef SLAPD_OVER_AUTOCA
 
 #include <stdio.h>
