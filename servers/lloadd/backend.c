@@ -76,6 +76,7 @@ upstream_name_cb( int result, struct evutil_addrinfo *res, void *arg )
     b->b_failed = 0;
     ldap_pvt_thread_mutex_unlock( &b->b_mutex );
     backend_retry( b );
+    free( res );
     return;
 
 fail:
@@ -86,6 +87,7 @@ fail:
     b->b_failed++;
     ldap_pvt_thread_mutex_unlock( &b->b_mutex );
     backend_retry( b );
+    free( res );
 }
 
 Connection *
