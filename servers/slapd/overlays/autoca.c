@@ -32,8 +32,10 @@
 #include "slap.h"
 #include "config.h"
 
+#include <openssl/x509.h>
 #include <openssl/x509v3.h>
 #include <openssl/evp.h>
+#include <openssl/bn.h>
 
 /* Starting with OpenSSL 1.1.0, rsa.h is no longer included in
  * x509.h, so we need to explicitly include it for the
@@ -42,6 +44,8 @@
 
 #if OPENSSL_VERSION_NUMBER >= 0x10100000
 #include <openssl/rsa.h>
+#define X509_get_notBefore(x)	X509_getm_notBefore(x)
+#define X509_get_notAfter(x)	X509_getm_notAfter(x)
 #endif
 
 /* This overlay implements a certificate authority that can generate
