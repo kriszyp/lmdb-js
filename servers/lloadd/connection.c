@@ -64,6 +64,9 @@ connection_destroy( Connection *c )
     if ( c->c_currentber ) {
         ber_free( c->c_currentber, 1 );
     }
+    if ( c->c_pendingber ) {
+        ber_free( c->c_pendingber, 1 );
+    }
 
     ldap_pvt_thread_mutex_unlock( &c->c_mutex );
 

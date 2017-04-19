@@ -232,7 +232,7 @@ operation_abandon( Operation *op )
             Debug( LDAP_DEBUG_ANY, "operation_abandon: "
                     "ber_alloc failed\n" );
             ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
-            return;
+            goto done;
         }
         c->c_pendingber = ber;
 
@@ -240,13 +240,15 @@ operation_abandon( Operation *op )
                 LDAP_TAG_MSGID, c->c_next_msgid++,
                 LDAP_REQ_ABANDON, op->o_upstream_msgid );
 
-        ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
-
         if ( rc == -1 ) {
             ber_free( ber, 1 );
-            return;
         }
-        upstream_write_cb( -1, 0, c );
+
+        ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
+
+        if ( rc != -1 ) {
+            upstream_write_cb( -1, 0, c );
+        }
     }
 
 done:
