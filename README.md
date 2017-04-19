@@ -147,15 +147,15 @@ a database created with this option set cannot be accessed without setting this 
 
 When using a cursor keys are read from the database and it is necessary to specify how the keys should be returned.
 The most direct mapping from LMDB C API is as a node.js Buffer (binary), however it is often more convenient to
-return the key as a string. To create a cursor that returns keys as Buffers, provide a second `true` prameter to the `cursor
-constructor`. Set the second parameter to `false` to always return keys as strings. Note that this parameter is ignored if the
+return the key as a string. To create a cursor that returns keys as Buffers, provide a third `true` prameter to the `cursor
+constructor`. Set the third parameter to `false` to always return keys as strings. Note that this parameter is ignored if the
 `dbi` was opened with `keyIsUint32` set - in this case all cursor functions will return the key as an integer.
 
-If the second parameter to the `cursor constructor` is *not* given then:
+If the third parameter to the `cursor constructor` is *not* given then:
    * If the `dbi` was opened with `keyIsUint32` set the key is returned as an integer
    * If the value is being read as binary (`getCurrentBinary` or `getCurrentBinaryUnsafe`) the key is returned as a binary `Buffer`.
    * Otherwise the key is returned as a `string`.
-This mode is deprecated and may be removed (replaced by a default as if the `cursor constructor` second parameter were `false`) in a future release.
+This mode is deprecated and may be removed (replaced by a default as if the `cursor constructor` third parameter were `false`) in a future release.
 
 ### Examples
 
@@ -172,7 +172,7 @@ The basic examples we currently have:
 * `examples/7-largedb.js` - shows how to work with an insanely large database
 * `examples/8-multiple-cursors-single-transactions.js` - shows how to use multiple cursors with a single transaction
 * `examples/9-unnamed-db.js` - shows how to use an unnamed database
-* `examples/4-binkeycursors.js` - shows how to work with cursors on a database with binary keys
+* `examples/10-binkeycursors.js` - shows how to work with cursors on a database with binary keys
 
 Advanced examples:
 
