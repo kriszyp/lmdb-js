@@ -38,6 +38,7 @@ CursorWrap::~CursorWrap() {
         this->tw->Unref();
         mdb_cursor_close(this->cursor);
     }
+    if (freeKey) freeKey(key);
 }
 
 NAN_METHOD(CursorWrap::ctor) {
