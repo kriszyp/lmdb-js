@@ -168,8 +168,7 @@ ldap_pvt_thread_pool_submit (
 
 int
 ldap_pvt_thread_pool_retract (
-	ldap_pvt_thread_pool_t *pool,
-	ldap_pvt_thread_start_t *start_routine, void *arg )
+	void *cookie )
 {
 	return(0);
 }
