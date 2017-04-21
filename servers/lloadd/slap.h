@@ -283,8 +283,74 @@ struct Connection {
     enum sc_type c_type;
     ber_socket_t c_fd;
 
+/*
+ * Connection reference counting:
+ * - connection has a reference counter in c_refcnt
+ * - also a liveness/validity token is added to c_refcnt during
+ *   connection_init, its existence is tracked in c_live and is usually the
+ *   only one that prevents it from being destroyed
+ * - anyone who needs to be able to lock the connection after unlocking it has
+ *   to use CONNECTION_UNLOCK_INCREF, they are then responsible that
+ *   CONNECTION_LOCK_DECREF+CONNECTION_UNLOCK_OR_DESTROY is used when they are
+ *   done with it
+ * - when a connection is considered dead, use (UPSTREAM|CLIENT)_DESTROY on a
+ *   locked connection, it might get disposed of or if anyone still holds a
+ *   token, it just gets unlocked and it's the last token holder's
+ *   responsibility to run *_UNLOCK_OR_DESTROY
+ * - (UPSTREAM|CLIENT)_LOCK_DESTROY is a shorthand for locking, decreasing
+ *   refcount and (UPSTREAM|CLIENT)_DESTROY
+ */
     ldap_pvt_thread_mutex_t c_mutex; /* protect the connection */
-    Sockbuf *c_sb;                   /* ber connection stuff */
+    int c_refcnt, c_live;
+#define CONNECTION_LOCK(c) ldap_pvt_thread_mutex_lock( &(c)->c_mutex )
+#define CONNECTION_UNLOCK(c) ldap_pvt_thread_mutex_unlock( &(c)->c_mutex )
+#define CONNECTION_LOCK_DECREF(c) \
+    do { \
+        CONNECTION_LOCK(c); \
+        (c)->c_refcnt--; \
+    } while (0)
+#define CONNECTION_UNLOCK_INCREF(c) \
+    do { \
+        (c)->c_refcnt++; \
+        CONNECTION_UNLOCK(c); \
+    } while (0)
+#define CONNECTION_UNLOCK_OR_DESTROY(type, c) \
+    do { \
+        assert( (c)->c_refcnt >= 0 ); \
+        if ( !( c )->c_refcnt ) { \
+            Debug( LDAP_DEBUG_TRACE, "%s: destroying " #type " connection connid=%lu\n", \
+                    __func__, (c)->c_connid ); \
+            type##_destroy( (c) ); \
+            (c) = NULL; \
+        } else { \
+            CONNECTION_UNLOCK(c); \
+        } \
+    } while (0)
+#define CONNECTION_DESTROY(type, c) \
+    do { \
+        (c)->c_refcnt -= (c)->c_live; \
+        (c)->c_live = 0; \
+        CONNECTION_UNLOCK_OR_DESTROY(type, c); \
+    } while (0)
+
+#define UPSTREAM_UNLOCK_OR_DESTROY(c) \
+    CONNECTION_UNLOCK_OR_DESTROY(upstream, c);
+#define UPSTREAM_DESTROY(c) CONNECTION_DESTROY(upstream, c)
+#define UPSTREAM_LOCK_DESTROY(c) \
+    do { \
+        CONNECTION_LOCK_DECREF(c); \
+        UPSTREAM_DESTROY(c); \
+    } while (0);
+
+#define CLIENT_UNLOCK_OR_DESTROY(c) CONNECTION_UNLOCK_OR_DESTROY(client, c);
+#define CLIENT_DESTROY(c) CONNECTION_DESTROY(client, c)
+#define CLIENT_LOCK_DESTROY(c) \
+    do { \
+        CONNECTION_LOCK_DECREF(c); \
+        CLIENT_DESTROY(c); \
+    } while (0);
+
+    Sockbuf *c_sb; /* ber connection stuff */
 
     /* set by connection_init */
     unsigned long c_connid;    /* unique id of this connection */
@@ -294,6 +360,7 @@ struct Connection {
     time_t c_activitytime;  /* when the connection was last used */
     ber_int_t c_next_msgid; /* msgid of the next message */
 
+    /* must not be used while holding either mutex */
     struct event *c_read_event, *c_write_event;
 
     /* can only be changed by binding thread */

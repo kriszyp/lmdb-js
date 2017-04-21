@@ -34,7 +34,10 @@ client_read_cb( evutil_socket_t s, short what, void *arg )
     ber_len_t len;
     int rc = 0;
 
-    ldap_pvt_thread_mutex_lock( &c->c_mutex );
+    /* What if the shutdown is already in progress and we get to lock the
+     * connection? */
+    CONNECTION_LOCK(c);
+
     Debug( LDAP_DEBUG_CONNS, "client_read_cb: "
             "connection %lu ready to read\n",
             c->c_connid );
@@ -43,6 +46,7 @@ client_read_cb( evutil_socket_t s, short what, void *arg )
     if ( ber == NULL && (ber = ber_alloc()) == NULL ) {
         Debug( LDAP_DEBUG_ANY, "client_read_cb: "
                 "ber_alloc failed\n" );
+        CLIENT_DESTROY(c);
         goto fail;
     }
 
@@ -57,10 +61,11 @@ client_read_cb( evutil_socket_t s, short what, void *arg )
                     c->c_fd, err, sock_errstr( err, ebuf, sizeof(ebuf) ) );
 
             c->c_currentber = NULL;
+            CLIENT_DESTROY(c);
             goto fail;
         }
         c->c_currentber = ber;
-        ldap_pvt_thread_mutex_unlock( &c->c_mutex );
+        CONNECTION_UNLOCK(c);
         return;
     }
 
@@ -70,21 +75,21 @@ client_read_cb( evutil_socket_t s, short what, void *arg )
     if ( !op ) {
         Debug( LDAP_DEBUG_ANY, "client_read_cb: "
                 "operation_init failed\n" );
-        ber_free( ber, 1 );
+        CLIENT_DESTROY(c);
         goto fail;
     }
 
     switch ( op->o_tag ) {
         case LDAP_REQ_UNBIND:
-            /* We do not expect anything more from the client */
+            /* We do not expect anything more from the client. Also, we are the
+             * read event, so don't need to unlock */
             event_del( c->c_read_event );
 
             rc = ldap_pvt_thread_pool_submit(
                     &connection_pool, client_reset, op );
             if ( rc ) {
-                tavl_delete( &c->c_ops, op, operation_client_cmp );
-                operation_destroy( op );
-                client_destroy( c );
+                CONNECTION_UNLOCK(c);
+                client_reset( NULL, op );
                 return;
             }
             break;
@@ -94,7 +99,7 @@ client_read_cb( evutil_socket_t s, short what, void *arg )
             break;
         default:
             if ( c->c_state == SLAP_C_BINDING ) {
-                ldap_pvt_thread_mutex_unlock( &c->c_mutex );
+                CONNECTION_UNLOCK(c);
                 operation_send_reject(
                         op, LDAP_PROTOCOL_ERROR, "bind in progress", 0 );
                 return;
@@ -104,8 +109,11 @@ client_read_cb( evutil_socket_t s, short what, void *arg )
             break;
     }
 
+    /* FIXME: unlocks in this function need more thought when we refcount
+     * operations */
+    CONNECTION_UNLOCK(c);
+
     if ( !rc ) {
-        ldap_pvt_thread_mutex_unlock( &c->c_mutex );
         return;
     }
 
@@ -113,13 +121,11 @@ fail:
     if ( op ) {
         operation_send_reject(
                 op, LDAP_OTHER, "server error or overloaded", 1 );
-        op->o_client = NULL;
         operation_destroy( op );
     } else if ( ber ) {
         ber_free( ber, 1 );
     }
 
-    client_destroy( c );
     return;
 }
 
@@ -127,6 +133,11 @@ void
 client_write_cb( evutil_socket_t s, short what, void *arg )
 {
     Connection *c = arg;
+
+    /* What if the shutdown is already in progress and we get to lock the
+     * connection? */
+    CONNECTION_LOCK(c);
+    CONNECTION_UNLOCK_INCREF(c);
 
     ldap_pvt_thread_mutex_lock( &c->c_io_mutex );
     Debug( LDAP_DEBUG_CONNS, "client_write_cb: "
@@ -136,15 +147,17 @@ client_write_cb( evutil_socket_t s, short what, void *arg )
     if ( ber_flush( c->c_sb, c->c_pendingber, 1 ) ) {
         int err = sock_errno();
         if ( err != EWOULDBLOCK && err != EAGAIN ) {
-            ldap_pvt_thread_mutex_lock( &c->c_mutex );
             ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
-            client_destroy( c );
+            CLIENT_LOCK_DESTROY(c);
             return;
         }
         event_add( c->c_write_event, NULL );
     }
     c->c_pendingber = NULL;
     ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
+
+    CONNECTION_LOCK_DECREF(c);
+    CLIENT_UNLOCK_OR_DESTROY(c);
 }
 
 Connection *
@@ -183,7 +196,7 @@ client_init(
     c->c_write_event = event;
 
     c->c_private = listener;
-    ldap_pvt_thread_mutex_unlock( &c->c_mutex );
+    CONNECTION_UNLOCK(c);
 
     return c;
 fail:

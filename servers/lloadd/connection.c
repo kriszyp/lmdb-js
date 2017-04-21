@@ -58,7 +58,10 @@ connection_destroy( Connection *c )
             "destroying connection %lu.\n",
             c->c_connid );
 
+    assert( c->c_live == 0 );
+    assert( c->c_refcnt == 0 );
     assert( c->c_state == SLAP_C_INVALID );
+
     ber_sockbuf_free( c->c_sb );
 
     if ( c->c_currentber ) {
@@ -68,7 +71,7 @@ connection_destroy( Connection *c )
         ber_free( c->c_pendingber, 1 );
     }
 
-    ldap_pvt_thread_mutex_unlock( &c->c_mutex );
+    CONNECTION_UNLOCK(c);
 
     ldap_pvt_thread_mutex_destroy( &c->c_io_mutex );
     ldap_pvt_thread_mutex_destroy( &c->c_mutex );
@@ -148,6 +151,7 @@ connection_init( ber_socket_t s, const char *peername, int flags )
 #endif
 
     c->c_next_msgid = 1;
+    c->c_refcnt = c->c_live = 1;
 
     ldap_pvt_thread_mutex_init( &c->c_mutex );
     ldap_pvt_thread_mutex_init( &c->c_io_mutex );
@@ -158,7 +162,7 @@ connection_init( ber_socket_t s, const char *peername, int flags )
             "connection connid=%lu allocated for socket fd=%d\n",
             c->c_connid, s );
 
-    ldap_pvt_thread_mutex_lock( &c->c_mutex );
+    CONNECTION_LOCK(c);
     c->c_state = SLAP_C_ACTIVE;
 
     return c;

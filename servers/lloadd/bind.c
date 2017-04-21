@@ -25,7 +25,8 @@
 #include "slap.h"
 
 /*
- * We hold op->o_upstream->c_io_mutex on entering the function.
+ * On entering the function, we've put a reference on both connections and hold
+ * upstream's c_io_mutex.
  */
 static int
 request_bind( Operation *op )
@@ -65,7 +66,7 @@ request_bind( Operation *op )
         goto fail;
     }
 
-    ldap_pvt_thread_mutex_lock( &client->c_mutex );
+    CONNECTION_LOCK(client);
     if ( !BER_BVISNULL( &client->c_auth ) ) {
         ch_free( client->c_auth.bv_val );
     }
@@ -81,9 +82,9 @@ request_bind( Operation *op )
     } else {
         BER_BVZERO( &client->c_auth );
     }
-    ldap_pvt_thread_mutex_unlock( &client->c_mutex );
+    CONNECTION_UNLOCK(client);
 
-    ldap_pvt_thread_mutex_lock( &upstream->c_mutex );
+    CONNECTION_LOCK(upstream);
     op->o_upstream_msgid = upstream->c_next_msgid++;
 
     ber_printf( ber, "t{titOtO}", LDAP_TAG_MESSAGE,
@@ -99,7 +100,7 @@ request_bind( Operation *op )
                  avl_dup_error ) ) {
         assert(0);
     }
-    ldap_pvt_thread_mutex_unlock( &upstream->c_mutex );
+    CONNECTION_UNLOCK(upstream);
 
     ldap_pvt_thread_mutex_unlock( &upstream->c_io_mutex );
 
@@ -112,13 +113,12 @@ fail:
         ber_free( copy, 0 );
     }
     ldap_pvt_thread_mutex_unlock( &upstream->c_io_mutex );
-    ldap_pvt_thread_mutex_lock( &op->o_client->c_mutex );
-    client_destroy( op->o_client );
     return 1;
 }
 
 /*
- * We hold op->o_upstream->c_io_mutex on entering the function.
+ * On entering the function, we've put a reference on both connections and hold
+ * upstream's c_io_mutex.
  */
 static int
 request_bind_as_vc( Operation *op )
@@ -166,7 +166,7 @@ request_bind_as_vc( Operation *op )
 
     op->o_upstream_msgid = upstream->c_next_msgid++;
 
-    ldap_pvt_thread_mutex_lock( &upstream->c_mutex );
+    CONNECTION_LOCK(upstream);
     ber_printf( ber, "t{tit{tst{{tOOtOtO}}}}", LDAP_TAG_MESSAGE,
             LDAP_TAG_MSGID, op->o_upstream_msgid,
             LDAP_REQ_EXTENDED,
@@ -175,23 +175,23 @@ request_bind_as_vc( Operation *op )
             LDAP_TAG_EXOP_VERIFY_CREDENTIALS_COOKIE, BER_BV_OPTIONAL( &upstream->c_vc_cookie ),
             &binddn, tag, &auth,
             LDAP_TAG_EXOP_VERIFY_CREDENTIALS_CONTROLS, BER_BV_OPTIONAL( &op->o_ctrls ) );
-    ldap_pvt_thread_mutex_unlock( &upstream->c_mutex );
+    CONNECTION_UNLOCK(upstream);
 
     tag = ber_peek_tag( copy, &len );
     switch ( tag ) {
         case LDAP_AUTH_SASL:
             ber_get_stringbv( copy, &mech, LBER_BV_NOTERM );
 
-            ldap_pvt_thread_mutex_lock( &client->c_mutex );
+            CONNECTION_LOCK(client);
             if ( ber_bvcmp( &mech, &client->c_sasl_bind_mech ) ) {
                 ber_memfree( client->c_sasl_bind_mech.bv_val );
                 ber_dupbv( &client->c_sasl_bind_mech, &mech );
             }
-            ldap_pvt_thread_mutex_unlock( &client->c_mutex );
+            CONNECTION_UNLOCK(client);
             /* TODO: extract authzdn from the message */
             break;
         case LDAP_AUTH_SIMPLE:
-            ldap_pvt_thread_mutex_lock( &client->c_mutex );
+            CONNECTION_LOCK(client);
             if ( !BER_BVISNULL( &client->c_auth ) ) {
                 ch_free( client->c_auth.bv_val );
             }
@@ -211,7 +211,7 @@ request_bind_as_vc( Operation *op )
                 ber_memfree( client->c_sasl_bind_mech.bv_val );
                 BER_BVZERO( &client->c_sasl_bind_mech );
             }
-            ldap_pvt_thread_mutex_unlock( &client->c_mutex );
+            CONNECTION_UNLOCK(client);
             break;
         default:
             result = LDAP_PROTOCOL_ERROR;
@@ -219,7 +219,7 @@ request_bind_as_vc( Operation *op )
             goto fail;
     }
 
-    ldap_pvt_thread_mutex_lock( &upstream->c_mutex );
+    CONNECTION_LOCK(upstream);
     Debug( LDAP_DEBUG_TRACE, "request_bind_as_vc: "
             "added bind from client connid=%lu to upstream connid=%lu as VC "
             "exop msgid=%d\n",
@@ -228,12 +228,13 @@ request_bind_as_vc( Operation *op )
                  avl_dup_error ) ) {
         assert(0);
     }
-    ldap_pvt_thread_mutex_unlock( &upstream->c_mutex );
+    CONNECTION_UNLOCK(upstream);
 
     ldap_pvt_thread_mutex_unlock( &upstream->c_io_mutex );
 
     ber_free( copy, 0 );
     upstream_write_cb( -1, 0, upstream );
+
     return 0;
 
 fail:
@@ -242,8 +243,6 @@ fail:
     }
     ldap_pvt_thread_mutex_unlock( &upstream->c_io_mutex );
     operation_send_reject( op, result, msg, 1 );
-    ldap_pvt_thread_mutex_lock( &client->c_mutex );
-    client_destroy( client );
     return 1;
 }
 
@@ -255,7 +254,7 @@ client_reset( void *ctx, void *arg )
     TAvlnode *root;
     int freed, destroy = 1;
 
-    ldap_pvt_thread_mutex_lock( &c->c_mutex );
+    CONNECTION_LOCK(c);
     root = c->c_ops;
     c->c_ops = NULL;
     c->c_state = SLAP_C_CLOSING;
@@ -271,7 +270,7 @@ client_reset( void *ctx, void *arg )
         ch_free( c->c_sasl_bind_mech.bv_val );
         BER_BVZERO( &c->c_sasl_bind_mech );
     }
-    ldap_pvt_thread_mutex_unlock( &c->c_mutex );
+    CONNECTION_UNLOCK_INCREF(c);
 
     tavl_delete( &root, op, operation_client_cmp );
     freed = tavl_free( root, (AVL_FREE)operation_abandon );
@@ -282,8 +281,10 @@ client_reset( void *ctx, void *arg )
 
     if ( destroy ) {
         operation_destroy( op );
-        ldap_pvt_thread_mutex_lock( &c->c_mutex );
-        client_destroy( c );
+        CLIENT_LOCK_DESTROY(c);
+    } else {
+        CONNECTION_LOCK_DECREF(c);
+        CLIENT_UNLOCK_OR_DESTROY(c);
     }
 
     return NULL;
@@ -296,6 +297,9 @@ client_bind( void *ctx, void *arg )
     Connection *upstream, *client = op->o_client;
     int rc = 0;
 
+    CONNECTION_LOCK(client);
+    CONNECTION_UNLOCK_INCREF(client);
+
     client_reset( ctx, arg );
 
     upstream = backend_select( op );
@@ -304,6 +308,8 @@ client_bind( void *ctx, void *arg )
                 "no available connection found\n" );
         operation_send_reject(
                 op, LDAP_UNAVAILABLE, "no connections available", 1 );
+        CONNECTION_LOCK_DECREF(client);
+        CLIENT_UNLOCK_OR_DESTROY(client);
         return NULL;
     }
 
@@ -315,15 +321,18 @@ client_bind( void *ctx, void *arg )
         rc = request_bind( op );
     }
 
+    CONNECTION_LOCK_DECREF(upstream);
+    UPSTREAM_UNLOCK_OR_DESTROY(upstream);
+
     if ( rc ) {
-        /* client doesn't exist anymore */
+        CLIENT_LOCK_DESTROY(client);
         return NULL;
     }
 
-    ldap_pvt_thread_mutex_lock( &client->c_mutex );
+    CONNECTION_LOCK_DECREF(client);
     rc = tavl_insert( &client->c_ops, op, operation_client_cmp, avl_dup_error );
     assert( rc == LDAP_SUCCESS );
-    ldap_pvt_thread_mutex_unlock( &client->c_mutex );
+    CLIENT_UNLOCK_OR_DESTROY(client);
 
     return NULL;
 }

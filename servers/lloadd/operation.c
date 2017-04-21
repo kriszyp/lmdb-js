@@ -114,23 +114,23 @@ operation_destroy( Operation *op )
      * something in to test with until we implement the freelist */
     if ( op->o_client ) {
         c = op->o_client;
-        ldap_pvt_thread_mutex_lock( &c->c_mutex );
+        CONNECTION_LOCK(c);
         if ( tavl_delete( &c->c_ops, op, operation_client_cmp ) ) {
             c->c_n_ops_executing--;
         }
-        ldap_pvt_thread_mutex_unlock( &c->c_mutex );
+        CONNECTION_UNLOCK(c);
     }
 
     if ( op->o_upstream ) {
         Backend *b = NULL;
 
         c = op->o_upstream;
-        ldap_pvt_thread_mutex_lock( &c->c_mutex );
+        CONNECTION_LOCK(c);
         if ( tavl_delete( &c->c_ops, op, operation_upstream_cmp ) ) {
             c->c_n_ops_executing--;
             b = (Backend *)c->c_private;
         }
-        ldap_pvt_thread_mutex_unlock( &c->c_mutex );
+        CONNECTION_UNLOCK(c);
 
         if ( b ) {
             ldap_pvt_thread_mutex_lock( &b->b_mutex );
@@ -142,6 +142,9 @@ operation_destroy( Operation *op )
     ch_free( op );
 }
 
+/*
+ * Entered holding c_mutex for now.
+ */
 Operation *
 operation_init( Connection *c, BerElement *ber )
 {
@@ -208,13 +211,13 @@ operation_abandon( Operation *op )
         BerElement *ber;
         Backend *b;
 
-        ldap_pvt_thread_mutex_lock( &c->c_mutex );
+        CONNECTION_LOCK(c);
         rc = ( tavl_delete( &c->c_ops, op, operation_upstream_cmp ) == NULL );
         if ( !rc ) {
             c->c_n_ops_executing--;
         }
         b = (Backend *)c->c_private;
-        ldap_pvt_thread_mutex_unlock( &c->c_mutex );
+        CONNECTION_UNLOCK_INCREF(c);
 
         if ( rc ) {
             /* The operation has already been abandoned or finished */
@@ -231,7 +234,9 @@ operation_abandon( Operation *op )
         if ( ber == NULL && (ber = ber_alloc()) == NULL ) {
             Debug( LDAP_DEBUG_ANY, "operation_abandon: "
                     "ber_alloc failed\n" );
+            CONNECTION_LOCK_DECREF(c);
             ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
+            UPSTREAM_UNLOCK_OR_DESTROY(c);
             goto done;
         }
         c->c_pendingber = ber;
@@ -244,7 +249,9 @@ operation_abandon( Operation *op )
             ber_free( ber, 1 );
         }
 
+        CONNECTION_LOCK_DECREF(c);
         ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
+        UPSTREAM_UNLOCK_OR_DESTROY(c);
 
         if ( rc != -1 ) {
             upstream_write_cb( -1, 0, c );
@@ -270,20 +277,20 @@ operation_send_reject(
             "rejecting %s from client %lu with message: \"%s\"\n",
             slap_msgtype2str( op->o_tag ), op->o_client_connid, msg );
 
-    ldap_pvt_thread_mutex_lock( &c->c_mutex );
+    CONNECTION_LOCK(c);
     found = ( tavl_delete( &c->c_ops, op, operation_client_cmp ) == op );
-    ldap_pvt_thread_mutex_unlock( &c->c_mutex );
-
     if ( !found && !send_anyway ) {
+        CONNECTION_UNLOCK(c);
         return;
     }
 
+    CONNECTION_UNLOCK_INCREF(c);
     ldap_pvt_thread_mutex_lock( &c->c_io_mutex );
 
     ber = c->c_pendingber;
     if ( ber == NULL && (ber = ber_alloc()) == NULL ) {
         ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
-        client_destroy( c );
+        CLIENT_LOCK_DESTROY(c);
         return;
     }
     c->c_pendingber = ber;
@@ -297,6 +304,9 @@ operation_send_reject(
     client_write_cb( -1, 0, c );
 
     operation_destroy( op );
+
+    CONNECTION_LOCK_DECREF(c);
+    CLIENT_UNLOCK_OR_DESTROY(c);
 }
 
 void
@@ -304,6 +314,7 @@ operation_lost_upstream( Operation *op )
 {
     operation_send_reject( op, LDAP_UNAVAILABLE,
             "connection to the remote server has been severed", 0 );
+    operation_destroy( op );
 }
 
 void *
@@ -330,15 +341,15 @@ request_process( void *ctx, void *arg )
     }
     upstream->c_pendingber = output;
 
-    ldap_pvt_thread_mutex_unlock( &upstream->c_mutex );
+    CONNECTION_LOCK_DECREF(upstream);
     op->o_upstream_msgid = msgid = upstream->c_next_msgid++;
     rc = tavl_insert(
             &upstream->c_ops, op, operation_upstream_cmp, avl_dup_error );
-    ldap_pvt_thread_mutex_unlock( &upstream->c_mutex );
+    CONNECTION_UNLOCK_INCREF(upstream);
     assert( rc == LDAP_SUCCESS );
 
     if ( lload_features & LLOAD_FEATURE_PROXYAUTHZ ) {
-        ldap_pvt_thread_mutex_lock( &client->c_mutex );
+        CONNECTION_LOCK(client);
         Debug( LDAP_DEBUG_TRACE, "request_process: "
                 "proxying identity %s to upstream\n",
                 client->c_auth.bv_val );
@@ -347,7 +358,7 @@ request_process( void *ctx, void *arg )
                 op->o_tag, &op->o_request,
                 LDAP_TAG_CONTROLS,
                 LDAP_CONTROL_PROXY_AUTHZ, 1, &client->c_auth );
-        ldap_pvt_thread_mutex_unlock( &client->c_mutex );
+        CONNECTION_UNLOCK(client);
 
         if ( !BER_BVISNULL( &op->o_ctrls ) ) {
             BerElement *control_ber = ber_alloc();
@@ -373,11 +384,16 @@ request_process( void *ctx, void *arg )
 
     upstream_write_cb( -1, 0, upstream );
 
+    CONNECTION_LOCK_DECREF(upstream);
+    UPSTREAM_UNLOCK_OR_DESTROY(upstream);
+
     return NULL;
 
 fail:
     if ( upstream ) {
         ldap_pvt_thread_mutex_unlock( &upstream->c_io_mutex );
+        CONNECTION_LOCK_DECREF(upstream);
+        UPSTREAM_UNLOCK_OR_DESTROY(upstream);
     }
     operation_send_reject( op, LDAP_OTHER, "internal error", 0 );
     return NULL;
