@@ -666,8 +666,9 @@ upstream_write_cb( evutil_socket_t s, short what, void *arg )
             return;
         }
         event_add( c->c_write_event, NULL );
+    } else {
+        c->c_pendingber = NULL;
     }
-    c->c_pendingber = NULL;
     ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
 
     CONNECTION_LOCK_DECREF(c);
