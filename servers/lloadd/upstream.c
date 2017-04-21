@@ -638,6 +638,7 @@ upstream_bind_cb( evutil_socket_t s, short what, void *arg )
     return;
 
 fail:
+    event_del( c->c_read_event );
     ber_free( ber, 1 );
     UPSTREAM_DESTROY(c);
 }
