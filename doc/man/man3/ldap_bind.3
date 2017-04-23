@@ -112,6 +112,12 @@ taking the same parameters but only initiating the bind operation and
 returning the message id of the request it sent.  The result of the
 operation can be obtained by a subsequent call to
 .BR ldap_result (3).
+The
+.B ldap_sasl_bind_s()
+and asynchronous
+.B ldap_sasl_bind()
+functions can also be used to make a simple bind by using
+LDAP_SASL_SIMPLE as the SASL mechanism.
 .SH GENERAL AUTHENTICATION
 The
 .B ldap_bind()
