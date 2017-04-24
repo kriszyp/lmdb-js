@@ -28,14 +28,11 @@
     "nan": "^2.6.2"
   },
   "devDependencies": {
-    "benchmark": "^2.1.0",
+    "benchmark": "^2.1.4",
     "chai": "^3.5.0",
     "mkdirp": "^0.5.1",
-    "mocha": "^2.5.3",
-    "nan": "^2.5.1",
-    "node": "0.0.0",
+    "mocha": "^3.3.0",
     "node-gyp": "^3.6.0",
-    "nodejs": "0.0.0",
-    "rimraf": "^2.5.2"
+    "rimraf": "^2.6.1"
   }
 }
