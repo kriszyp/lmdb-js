@@ -164,6 +164,20 @@ describe('Node.js LMDB Bindings', function() {
       txn.abort();
       dbi.close();
     });
+    it('will create a database with a user-supplied transaction', function () {
+      var txn = env.beginTxn();
+      var dbi = env.openDbi({
+        name: 'dbUsingUserSuppliedTxn',
+        create: true,
+        txn: txn
+      });
+      txn.putString(dbi, 'hello', 'world');
+      txn.commit();
+      
+      var txn = env.beginTxn({ readOnly: true });
+      var str = txn.getString(dbi, 'hello');
+      should.equal(str, 'world');
+    });
   });
   describe('Data types', function() {
     this.timeout(10000);

@@ -65,6 +65,7 @@ NAN_METHOD(DbiWrap::ctor) {
     Local<String> name;
     bool nameIsNull = false;
     NodeLmdbKeyType keyType = NodeLmdbKeyType::StringKey;
+    bool needsTransaction = true;
 
     EnvWrap *ew = Nan::ObjectWrap::Unwrap<EnvWrap>(info[0]->ToObject());
     
@@ -102,16 +103,25 @@ NAN_METHOD(DbiWrap::ctor) {
         if (create->IsBoolean() ? !create->BooleanValue() : true) {
             txnFlags |= MDB_RDONLY;
         }
+        
+        auto txnObj = options->Get(Nan::New<String>("txn").ToLocalChecked());
+        if (!txnObj->IsNull() && !txnObj->IsUndefined() && txnObj->IsObject()) {
+            TxnWrap *tw = Nan::ObjectWrap::Unwrap<TxnWrap>(txnObj->ToObject());
+            needsTransaction = false;
+            txn = tw->txn;
+        }
     }
     else {
         return Nan::ThrowError("Invalid parameters.");
     }
 
-    // Open transaction
-    rc = mdb_txn_begin(ew->env, nullptr, txnFlags, &txn);
-    if (rc != 0) {
-        // No need to call mdb_txn_abort, because mdb_txn_begin already cleans up after itself
-        return Nan::ThrowError(mdb_strerror(rc));
+    if (needsTransaction) {
+        // Open transaction
+        rc = mdb_txn_begin(ew->env, nullptr, txnFlags, &txn);
+        if (rc != 0) {
+            // No need to call mdb_txn_abort, because mdb_txn_begin already cleans up after itself
+            return Nan::ThrowError(mdb_strerror(rc));
+        }
     }
 
     // Open database
@@ -122,10 +132,12 @@ NAN_METHOD(DbiWrap::ctor) {
         return Nan::ThrowError(mdb_strerror(rc));
     }
 
-    // Commit transaction
-    rc = mdb_txn_commit(txn);
-    if (rc != 0) {
-        return Nan::ThrowError(mdb_strerror(rc));
+    if (needsTransaction) {
+        // Commit transaction
+        rc = mdb_txn_commit(txn);
+        if (rc != 0) {
+            return Nan::ThrowError(mdb_strerror(rc));
+        }
     }
 
     // Create wrapper
