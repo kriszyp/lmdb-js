@@ -3,6 +3,8 @@ node-lmdb
 
 This is a node.js binding for LMDB, an extremely fast and lightweight transactional key-value store database.
 
+[![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=venemo%40msn%2ecom&lc=US&item_name=to%20Timur%20Kristof%2c%20for%20node%2dlmdb%20development&item_number=node%2dlmdb&no_note=0&currency_code=USD&bn=PP%2dDonationsBF%3abtn_donate_SM%2egif%3aNonHostedGuest)
+
 About
 -----
 
@@ -342,3 +344,36 @@ These are the places I got my knowledge when developing node-lmdb:
 * V8 reference documentation: http://bespin.cz/~ondras/html/
 * Node.js C++ addons documentation: http://nodejs.org/api/addons.html
 * LMDB documentation: http://symas.com/mdb/doc/
+
+### Acknowledgements
+
+Below you can find a list of people who have contributed (in alphabetical order).
+Big thank you to everybody!  
+(NOTE: if you think your name should be here, but isn't, please contact the author.)
+
+* @aholstenson (Andreas Holstenson)
+* @antoinevw
+* @b-ono
+* @braydonf (Braydon Fuller)
+* @da77a
+* @erichocean (Erich Ocean)
+* @jahewson (John Hewson)
+* @justmoon (Stefan Thomas)
+* @Matt-Esch
+* @oliverzy (Oliver Zhou)
+* @rneilson (Raymond Neilson)
+
+Support
+-------
+
+node-lmdb is licensed to you under the terms of the MIT license, which means it comes with no warranty by default.
+
+However,
+
+* LMDB: Symas (the authors of LMDB) [offers commercial support of LMDB](https://symas.com/lightning-memory-mapped-database/).
+* node-lmdb: If you have urgent issues with node-lmdb or would like to get support, you can contact @Venemo (the node-lmdb author).
+
+You can also consider donating to support node-lmdb development:
+
+[![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=venemo%40msn%2ecom&lc=US&item_name=to%20Timur%20Kristof%2c%20for%20node%2dlmdb%20development&item_number=node%2dlmdb&no_note=0&currency_code=USD&bn=PP%2dDonationsBF%3abtn_donate_SM%2egif%3aNonHostedGuest)
+
