@@ -142,22 +142,6 @@ argtokey_callback_t argToKey(const Local<Value> &val, MDB_val &key, NodeLmdbKeyT
     return nullptr;
 }
 
-Local<Value> valToStringChecked(MDB_val &data) {
-    char *p = static_cast<char*>(data.mv_data);
-    if (data.mv_size & 1 ||
-        data.mv_size < sizeof(uint16_t) ||
-        p[data.mv_size-2] ||
-        p[data.mv_size-1]
-       ) {
-        Nan::ThrowError("Invalid UTF16 string");
-        return Nan::Undefined();
-    }
-    auto str = Nan::New<v8::String>(
-        static_cast<uint16_t*>(data.mv_data),
-        data.mv_size/sizeof(uint16_t)-1);
-    return str.ToLocalChecked();
-}
-
 Local<Value> keyToHandle(MDB_val &key, NodeLmdbKeyType keyType) {
     switch (keyType) {
     case NodeLmdbKeyType::Uint32Key:
@@ -165,7 +149,7 @@ Local<Value> keyToHandle(MDB_val &key, NodeLmdbKeyType keyType) {
     case NodeLmdbKeyType::BinaryKey:
         return valToBinary(key);
     case NodeLmdbKeyType::StringKey:
-        return valToStringChecked(key);
+        return valToString(key);
     default:
         Nan::ThrowError("Unknown key type. This is a bug in node-lmdb.");
         return Nan::Undefined();
@@ -180,14 +164,18 @@ Local<Value> valToStringUnsafe(MDB_val &data) {
 }
 
 Local<Value> valToString(MDB_val &data) {
-
-    if (data.mv_size < sizeof(uint16_t)) {
-        Nan::ThrowError("Invalid UTF16 string");
+    // UTF-16 buffer
+    const uint16_t *buffer = reinterpret_cast<const uint16_t*>(data.mv_data);
+    // Number of UTF-16 code points
+    size_t n = data.mv_size / sizeof(uint16_t);
+    
+    // Check zero termination
+    if (n < 1 || buffer[n - 1] != 0) {
+        Nan::ThrowError("Invalid UTF-16 string");
         return Nan::Undefined();
     }
     
-    auto buffer = reinterpret_cast<const uint16_t*>(data.mv_data);
-    int length = data.mv_size / sizeof(uint16_t) - 1;
+    size_t length = n - 1;
     auto str = Nan::New<v8::String>(buffer, length);
 
     return str.ToLocalChecked();
@@ -258,9 +246,9 @@ CustomExternalStringResource::CustomExternalStringResource(MDB_val *val) {
     // The UTF-16 data
     this->d = (uint16_t*)(val->mv_data);
     // Number of UTF-16 characters in the string
-    // Silently generate a 0 length if length invalid
     size_t n = val->mv_size / sizeof(uint16_t);
-    this->l = n ? n-1 : 0;
+    // Silently generate a 0 length if length invalid
+    this->l = n ? (n - 1) : 0;
 }
 
 CustomExternalStringResource::~CustomExternalStringResource() { }
