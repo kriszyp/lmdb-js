@@ -65,7 +65,7 @@ NAN_METHOD(TxnWrap::ctor) {
     tw->ew->Ref();
     tw->Wrap(info.This());
 
-    NanReturnThis();
+    return info.GetReturnValue().Set(info.This());
 }
 
 NAN_METHOD(TxnWrap::commit) {

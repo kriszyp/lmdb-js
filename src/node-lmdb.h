@@ -31,8 +31,6 @@
 #include <uv.h>
 #include "lmdb.h"
 
-#define NanReturnThis() return info.GetReturnValue().Set(info.This())
-
 using namespace v8;
 using namespace node;
 

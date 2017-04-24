@@ -85,7 +85,7 @@ NAN_METHOD(CursorWrap::ctor) {
     cw->kt = kt;
     cw->Wrap(info.This());
 
-    NanReturnThis();
+    return info.GetReturnValue().Set(info.This());
 }
 
 NAN_METHOD(CursorWrap::close) {

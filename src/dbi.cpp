@@ -129,7 +129,7 @@ NAN_METHOD(DbiWrap::ctor) {
     dw->flags = flags;
     dw->Wrap(info.This());
 
-    NanReturnThis();
+    return info.GetReturnValue().Set(info.This());
 }
 
 NAN_METHOD(DbiWrap::close) {

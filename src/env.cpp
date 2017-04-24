@@ -65,7 +65,7 @@ NAN_METHOD(EnvWrap::ctor) {
     ew->Wrap(info.This());
     ew->Ref();
 
-    NanReturnThis();
+    return info.GetReturnValue().Set(info.This());
 }
 
 template<class T>

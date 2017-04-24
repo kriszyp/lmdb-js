@@ -25,7 +25,7 @@
   "gypfile": true,
   "dependencies": {
     "bindings": "^1.2.1",
-    "nan": "^2.4"
+    "nan": "^2.6.2"
   },
   "devDependencies": {
     "benchmark": "^2.1.0",
