@@ -224,11 +224,11 @@ describe('Node.js LMDB Bindings', function() {
     it('binary key', function() {
       var buffer = new Buffer('48656c6c6f2c20776f726c6421', 'hex');
       var key = new Buffer('key2');
-      txn.putBinary(dbi, key, buffer);
-      var data = txn.getBinary(dbi, key);
+      txn.putBinary(dbi, key, buffer, { keyIsBuffer: true });
+      var data = txn.getBinary(dbi, key, { keyIsBuffer: true });
       data.should.deep.equal(buffer);
-      txn.del(dbi, key);
-      var data2 = txn.getBinary(dbi, key);
+      txn.del(dbi, key, { keyIsBuffer: true });
+      var data2 = txn.getBinary(dbi, key, { keyIsBuffer: true });
       should.equal(data2, null);
     });
     it('number', function() {
@@ -551,7 +551,8 @@ describe('Node.js LMDB Bindings', function() {
       });
       dbi = env.openDbi({
         name: 'cursorbinkeydata',
-        create: true
+        create: true,
+        keyIsBuffer: true
       });
       const txn = env.beginTxn();
       let count = 0;
@@ -571,7 +572,7 @@ describe('Node.js LMDB Bindings', function() {
     });
     it('will move cursor over key/values', function(done) {
       var txn = env.beginTxn();
-      var cursor = new lmdb.Cursor(txn, dbi, true);
+      var cursor = new lmdb.Cursor(txn, dbi);
       let expectedKey = (padding + 40).slice(-padding.length);
       let key = Buffer.from(expectedKey,keyEnc);
       cursor.goToKey(key);
@@ -623,7 +624,8 @@ describe('Node.js LMDB Bindings', function() {
       });
       dbi = env.openDbi({
         name: 'cursorbinkeydata',
-        create: false
+        create: false,
+        keyIsBuffer: true
       });
     });
 
@@ -634,7 +636,7 @@ describe('Node.js LMDB Bindings', function() {
 
     it('will move cursor over existing key/values', function(done) {
       var txn = env.beginTxn();
-      var cursor = new lmdb.Cursor(txn, dbi, true);
+      var cursor = new lmdb.Cursor(txn, dbi);
       let expectedKey = (padding + 40).slice(-padding.length);
       let key = Buffer.from(expectedKey,keyEnc);
       cursor.goToKey(key);
@@ -699,7 +701,8 @@ describe('Node.js LMDB Bindings', function() {
         name: 'mydb6',
         create: true,
         dupSort: true,
-        dupFixed: false
+        dupFixed: false,
+        keyIsBuffer: true
       });
     });
     after(function() {
@@ -715,7 +718,7 @@ describe('Node.js LMDB Bindings', function() {
       txn.commit();
 
       var txn2 = env.beginTxn({readonly: true});
-      var cursor = new lmdb.Cursor(txn2, dbi, true);
+      var cursor = new lmdb.Cursor(txn2, dbi);
       var found = cursor.goToKey(new Buffer('id'));
       should.exist(found);
       cursor.getCurrentBinary(function(key, value) {
@@ -748,7 +751,8 @@ describe('Node.js LMDB Bindings', function() {
         name: 'mydb7',
         create: true,
         dupSort: true,
-        dupFixed: true
+        dupFixed: true,
+        keyIsBuffer: true
       });
     });
     after(function() {
@@ -766,7 +770,7 @@ describe('Node.js LMDB Bindings', function() {
       txn.commit();
 
       var txn2 = env.beginTxn({readonly: true});
-      var cursor = new lmdb.Cursor(txn2, dbi, true);
+      var cursor = new lmdb.Cursor(txn2, dbi);
       var found = cursor.goToKey(new Buffer('id'));
       should.exist(found);
       cursor.getCurrentBinary(function(key, value) {
@@ -796,13 +800,14 @@ describe('Node.js LMDB Bindings', function() {
       });
       var dbi = env.openDbi({
         name: 'testfree',
-        create: true
+        create: true,
+        keyIsBuffer: true
       });
       var txn = env.beginTxn();
       txn.putBinary(dbi, expectedKey, expectedValue);
       txn.commit();
       var txn2 = env.beginTxn();
-      var cursor = new lmdb.Cursor(txn2, dbi, true);
+      var cursor = new lmdb.Cursor(txn2, dbi);
       var key;
       var value;
       cursor.goToFirst();
@@ -833,7 +838,8 @@ describe('Node.js LMDB Bindings', function() {
       });
       dbi = env.openDbi({
         name: 'testkeys',
-        create: true
+        create: true,
+        keyIsBuffer: true
       });
       var txn = env.beginTxn();
       txn.putBinary(dbi, expectedKey, expectedValue);
@@ -845,7 +851,7 @@ describe('Node.js LMDB Bindings', function() {
     });
     it('will be able to convert key to buffer', function(done) {
       var txn = env.beginTxn();
-      var cursor = new lmdb.Cursor(txn, dbi, true);
+      var cursor = new lmdb.Cursor(txn, dbi);
       cursor.goToFirst();
       cursor.getCurrentBinary(function(key, value) {
         var keyBuffer = new Buffer(key);

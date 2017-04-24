@@ -128,34 +128,57 @@ Here is how you use LMDB in a typical scenario:
 
 LMDB is very simple and fast. Using node-lmdb provides close to the native C API functionally, but expressed via a natural
 javascript API. To make simple things simple, node-lmdb defaults to presenting keys and values in LMDB as strings.
-For convenience number and boolean values are also supported.
+For convenience number, boolean and `Buffer` values are also supported.
 
-The simplest way to store other data types as keys or values is to use `JSON.stringify` before putting it into the database
+The simplest way to store complex data types (such as objects) is to use `JSON.stringify` before putting it into the database
 and `JSON.parse` when you retrieve the data.
 
 For more complex use cases access to keys and values as binary (node.js `Buffer` type) is provided. In LMDB itself keys 
 (with one exception) and values are simply binary sequences of bytes. You can retrieve a key or value from an LMDB database
 as binary even if it was written as a string. The same does not apply in reverse! Using binary access
 also allows interoperation with LMDB databases created by, or shared with applications that use data serialisation formats
-other than utf-16 strings (including, in particular, strings using other encodings such as utf-8).
+other than UTF-16 strings (including, in particular, strings using other encodings such as UTF-8).  
+See our chapter *Working with strings* for more details.
 
-The one exception in LMDBs representation of keys is an optimisation for fixed-length keys. This is exposed
+#### Keys
+
+* *Unsigned 32-bit integers*: The one exception in LMDBs representation of keys is an optimisation for fixed-length keys. This is exposed
 by node-lmdb for one particular fixed length type: unsigned 32 bit integers. To use this optimisation specify `keyIsUint32: true`
 to `openDbi`. Because the `keyIsUint32 : true` option is passed through to LMDB and stored in the LMDB metadata for the database,
 a database created with this option set cannot be accessed without setting this option, and vice-versa.
-
+* *Buffers*: If you pass `keyIsBuffer: true`, you can work with node `Buffer` instances as keys.
+* *Strings*: This is the default. You can also use `keyIsString: true`.
 
 When using a cursor keys are read from the database and it is necessary to specify how the keys should be returned.
 The most direct mapping from LMDB C API is as a node.js Buffer (binary), however it is often more convenient to
-return the key as a string. To create a cursor that returns keys as Buffers, provide a third `true` prameter to the `cursor
-constructor`. Set the third parameter to `false` to always return keys as strings. Note that this parameter is ignored if the
-`dbi` was opened with `keyIsUint32` set - in this case all cursor functions will return the key as an integer.
+return the key as a string, so that is the default.
 
-If the third parameter to the `cursor constructor` is *not* given then:
-   * If the `dbi` was opened with `keyIsUint32` set the key is returned as an integer
-   * If the value is being read as binary (`getCurrentBinary` or `getCurrentBinaryUnsafe`) the key is returned as a binary `Buffer`.
-   * Otherwise the key is returned as a `string`.
-This mode is deprecated and may be removed (replaced by a default as if the `cursor constructor` third parameter were `false`) in a future release.
+You can specify the key type when you open a database:
+
+```
+dbi = env.openDbi({
+    // ... etc.
+    keyIsBuffer: true
+});
+```
+
+When working with transactions, you can override the key type passed to `openDbi` by providing options to `put`, `get` and `del` functions.  
+For example:
+
+```
+var buffer = new Buffer('48656c6c6f2c20776f726c6421', 'hex');
+var key = new Buffer('key2');
+txn.putBinary(dbi, key, buffer, { keyIsBuffer: true });
+var data = txn.getBinary(dbi, key, { keyIsBuffer: true });
+data.should.deep.equal(buffer);
+txn.del(dbi, key, { keyIsBuffer: true });
+```
+
+Finally, when working with cursors, you can override the key type by passing similar options as the 3rd argument of the `Cursor` constructor:
+
+```
+cursor = new lmdb.Cursor(txn, dbi, { keyIsBuffer: true });
+```
 
 ### Examples
 

@@ -137,6 +137,10 @@ NAN_METHOD(TxnWrap::renew) {
 
 Nan::NAN_METHOD_RETURN_TYPE TxnWrap::getCommon(Nan::NAN_METHOD_ARGS_TYPE info, Local<Value> (*successFunc)(MDB_val&)) {
     Nan::HandleScope scope;
+    
+    if (info.Length() != 2 && info.Length() != 3) {
+        return Nan::ThrowError("Invalid number of arguments to cursor.get");
+    }
 
     TxnWrap *tw = Nan::ObjectWrap::Unwrap<TxnWrap>(info.This());
     DbiWrap *dw = Nan::ObjectWrap::Unwrap<DbiWrap>(info[0]->ToObject());
@@ -146,7 +150,12 @@ Nan::NAN_METHOD_RETURN_TYPE TxnWrap::getCommon(Nan::NAN_METHOD_ARGS_TYPE info, L
     }
 
     MDB_val key, data;
-    auto freeKey = argToKey(info[1], key, dw->keyIsUint32);
+    bool keyIsValid;
+    auto keyType = keyTypeFromOptions(info[2], dw->keyType);    
+    auto freeKey = argToKey(info[1], key, keyType, keyIsValid);
+    if (!keyIsValid) {
+        return;
+    }
 
     int rc = mdb_get(tw->txn, dw->dbi, &key, &data);
     
@@ -191,6 +200,10 @@ NAN_METHOD(TxnWrap::getBoolean) {
 
 Nan::NAN_METHOD_RETURN_TYPE TxnWrap::putCommon(Nan::NAN_METHOD_ARGS_TYPE info, void (*fillFunc)(Nan::NAN_METHOD_ARGS_TYPE info, MDB_val&), void (*freeData)(MDB_val&)) {
     Nan::HandleScope scope;
+    
+    if (info.Length() != 3 && info.Length() != 4) {
+        return Nan::ThrowError("Invalid number of arguments to cursor.put");
+    }
 
     TxnWrap *tw = Nan::ObjectWrap::Unwrap<TxnWrap>(info.This());
     DbiWrap *dw = Nan::ObjectWrap::Unwrap<DbiWrap>(info[0]->ToObject());
@@ -201,8 +214,12 @@ Nan::NAN_METHOD_RETURN_TYPE TxnWrap::putCommon(Nan::NAN_METHOD_ARGS_TYPE info, v
 
     int flags = 0;
     MDB_val key, data;
-
-    auto freeKey = argToKey(info[1], key, dw->keyIsUint32);
+    bool keyIsValid;
+    auto keyType = keyTypeFromOptions(info[3], dw->keyType);
+    auto freeKey = argToKey(info[1], key, keyType, keyIsValid);
+    if (!keyIsValid) {
+        return;
+    }
 
     fillFunc(info, data);
 
@@ -232,7 +249,7 @@ NAN_METHOD(TxnWrap::putBinary) {
         data.mv_size = node::Buffer::Length(info[2]);
         data.mv_data = node::Buffer::Data(info[2]);
     }, [](MDB_val &) -> void {
-        // I think the data is owned by the node::Buffer so we don't need to free it - need to clarify
+        // The data is owned by the node::Buffer so we don't need to free it.
     });
 }
 
@@ -267,7 +284,12 @@ NAN_METHOD(TxnWrap::del) {
     }
 
     MDB_val key;
-    auto freeKey = argToKey(info[1], key, dw->keyIsUint32);
+    bool keyIsValid;
+    auto keyType = keyTypeFromOptions(info[2], dw->keyType);
+    auto freeKey = argToKey(info[1], key, keyType, keyIsValid);
+    if (!keyIsValid) {
+        return;
+    }
 
     // Set data if dupSort true and data given
     MDB_val data;

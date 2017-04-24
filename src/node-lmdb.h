@@ -34,17 +34,21 @@
 using namespace v8;
 using namespace node;
 
-namespace node_lmdb {
-enum KeyType {
-  legacyStringKey, // unchecked assumption that keys are UTF16 with 0 terminator
-  // The folllowing key types have checks applied.
-  // If the conversion to/from format fails an exception will be thrown.
-  stringKey, // UCS-2/UTF-16 with zero terminator - Appears to V8 as string
-  uint32Key, // LMDB fixed size integer key with 32 bit keys - Appearts to V8 as ???
-  binaryKey // LMDB default key format - Appears to V8 as Buffer
-};
+enum class NodeLmdbKeyType {
 
-}
+    // Invalid key (used internally by node-lmdb)
+    InvalidKey = -1,
+
+    // UCS-2/UTF-16 with zero terminator - Appears to V8 as string
+    StringKey = 1,
+    
+    // LMDB fixed size integer key with 32 bit keys - Appearts to V8 as an Uint32
+    Uint32Key = 2,
+    
+    // LMDB default key format - Appears to V8 as node::Buffer
+    BinaryKey = 3,
+
+};
 
 // Exports misc stuff to the module
 void setupExportMisc(Handle<Object> exports);
@@ -56,9 +60,9 @@ void consoleLog(Local<Value> val);
 void consoleLog(const char *msg);
 void consoleLogN(int n);
 void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue, Local<Object> options);
-argtokey_callback_t argToKey(const Local<Value> &val, MDB_val &key, node_lmdb::KeyType kt);
-argtokey_callback_t argToKey(const Local<Value> &val, MDB_val &key, bool keyIsUint32);
-Local<Value> keyToHandle(MDB_val &key, node_lmdb::KeyType kt);
+argtokey_callback_t argToKey(const Local<Value> &val, MDB_val &key, NodeLmdbKeyType keyType, bool &isValid);
+NodeLmdbKeyType keyTypeFromOptions(const Local<Value> &val, NodeLmdbKeyType defaultKeyType = NodeLmdbKeyType::StringKey);
+Local<Value> keyToHandle(MDB_val &key, NodeLmdbKeyType keyType);
 
 Local<Value> valToString(MDB_val &data);
 Local<Value> valToStringUnsafe(MDB_val &data);
@@ -358,8 +362,8 @@ public:
 */
 class DbiWrap : public Nan::ObjectWrap {
 private:
-    // Stores whether keys should be treated as uint32_t
-    bool keyIsUint32;
+    // Tells how keys should be treated
+    NodeLmdbKeyType keyType;
     // Stores flags set when opened
     int flags;
     // The wrapped object
@@ -414,7 +418,7 @@ private:
     // The wrapped object
     MDB_cursor *cursor;
     // Stores how key is represented
-    node_lmdb::KeyType kt;
+    NodeLmdbKeyType keyType;
     // Key/data pair where the cursor is at
     MDB_val key, data;
     
@@ -453,7 +457,7 @@ public:
     // Helper method for getters (not exposed)
     static Nan::NAN_METHOD_RETURN_TYPE getCommon(
         Nan::NAN_METHOD_ARGS_TYPE info, MDB_cursor_op op,
-        argtokey_callback_t (*setKey)(CursorWrap* cw, Nan::NAN_METHOD_ARGS_TYPE info, MDB_val&),
+        argtokey_callback_t (*setKey)(CursorWrap* cw, Nan::NAN_METHOD_ARGS_TYPE info, MDB_val&, bool&),
         void (*setData)(CursorWrap* cw, Nan::NAN_METHOD_ARGS_TYPE info, MDB_val&),
         void (*freeData)(CursorWrap* cw, Nan::NAN_METHOD_ARGS_TYPE info, MDB_val&),
         Local<Value> (*convertFunc)(MDB_val &data));

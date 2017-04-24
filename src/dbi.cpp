@@ -22,6 +22,7 @@
 // THE SOFTWARE.
 
 #include "node-lmdb.h"
+#include <cstdio>
 
 using namespace v8;
 using namespace node;
@@ -31,6 +32,7 @@ void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue,
 DbiWrap::DbiWrap(MDB_env *env, MDB_dbi dbi) {
     this->env = env;
     this->dbi = dbi;
+    this->keyType = NodeLmdbKeyType::StringKey;
 }
 
 DbiWrap::~DbiWrap() {
@@ -60,11 +62,12 @@ NAN_METHOD(DbiWrap::ctor) {
     int rc;
     int flags = 0;
     int txnFlags = 0;
-    int keyIsUint32 = 0;
     Local<String> name;
     bool nameIsNull = false;
+    NodeLmdbKeyType keyType = NodeLmdbKeyType::StringKey;
 
     EnvWrap *ew = Nan::ObjectWrap::Unwrap<EnvWrap>(info[0]->ToObject());
+    
     if (info[1]->IsObject()) {
         Local<Object> options = info[1]->ToObject();
         nameIsNull = options->Get(Nan::New<String>("name").ToLocalChecked())->IsNull();
@@ -84,9 +87,13 @@ NAN_METHOD(DbiWrap::ctor) {
         // TODO: wrap mdb_set_compare
         // TODO: wrap mdb_set_dupsort
 
-        // See if key is uint32_t
-        setFlagFromValue(&keyIsUint32, 1, "keyIsUint32", false, options);
-        if (keyIsUint32) {
+        keyType = keyTypeFromOptions(options);
+        if (keyType == NodeLmdbKeyType::InvalidKey) {
+            // NOTE: Error has already been thrown inside keyTypeFromOptions
+            return;
+        }
+        
+        if (keyType == NodeLmdbKeyType::Uint32Key) {
             flags |= MDB_INTEGERKEY;
         }
 
@@ -125,7 +132,7 @@ NAN_METHOD(DbiWrap::ctor) {
     DbiWrap* dw = new DbiWrap(ew->env, dbi);
     dw->ew = ew;
     dw->ew->Ref();
-    dw->keyIsUint32 = keyIsUint32;
+    dw->keyType = keyType;
     dw->flags = flags;
     dw->Wrap(info.This());
 
