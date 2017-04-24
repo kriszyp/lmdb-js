@@ -180,10 +180,11 @@ NAN_METHOD(EnvWrap::openDbi) {
 
     MaybeLocal<Object> maybeInstance = Nan::New(dbiCtor)->NewInstance(Nan::GetCurrentContext(), argc, argv);
 
-    //Check if database could be opened
-    if((maybeInstance.IsEmpty())){
-        // TODO: How to get error thrown in dbiCtor on mdb_dbi_open ? MDB_NOTFOUND or MDB_DBS_FULL
-        return Nan::ThrowError("No Dbi found or too many databases open");
+    // Check if database could be opened
+    if ((maybeInstance.IsEmpty())) {
+        // The maybeInstance is empty because the dbiCtor called Nan::ThrowError.
+        // No need to call that here again, the user will get the error thrown there.
+        return;
     }
 
     Local<Object> instance = maybeInstance.ToLocalChecked();

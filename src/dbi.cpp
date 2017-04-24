@@ -92,7 +92,7 @@ NAN_METHOD(DbiWrap::ctor) {
 
         // Set flags for txn used to open database
         Local<Value> create = options->Get(Nan::New<String>("create").ToLocalChecked());
-        if (create->IsBoolean() ? !create->BooleanValue() : false) {
+        if (create->IsBoolean() ? !create->BooleanValue() : true) {
             txnFlags |= MDB_RDONLY;
         }
     }
@@ -103,7 +103,7 @@ NAN_METHOD(DbiWrap::ctor) {
     // Open transaction
     rc = mdb_txn_begin(ew->env, nullptr, txnFlags, &txn);
     if (rc != 0) {
-        mdb_txn_abort(txn);
+        // No need to call mdb_txn_abort, because mdb_txn_begin already cleans up after itself
         return Nan::ThrowError(mdb_strerror(rc));
     }
 

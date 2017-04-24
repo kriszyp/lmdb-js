@@ -24,11 +24,12 @@ if (cluster.isMaster) {
     create: true
   });
 
+  var workerCount = numCPUs * 2;
   var value = new Buffer('48656c6c6f2c20776f726c6421', 'hex');
 
   // This will start as many workers as there are CPUs available.
   var workers = [];
-  for (var i = 0; i < numCPUs * 4; i++) {
+  for (var i = 0; i < workerCount; i++) {
     var worker = cluster.fork();
     workers.push(worker);
   }
@@ -40,7 +41,7 @@ if (cluster.isMaster) {
       messages.push(msg);
       // Once every worker has replied with a response for the value
       // we can exit the test.
-      if (messages.length === numCPUs) {
+      if (messages.length === workerCount) {
         dbi.close();
         env.close();
         for (var i = 0; i < messages.length; i ++) {
@@ -58,9 +59,10 @@ if (cluster.isMaster) {
 
   txn.commit();
 
-  workers.forEach(function(worker) {
+  for (var i = 0; i < workers.length; i++) {
+    var worker = workers[i];
     worker.send({key: 'key' + i});
-  });
+  };
 
 } else {
 
