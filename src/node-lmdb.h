@@ -417,8 +417,6 @@ private:
     node_lmdb::KeyType kt;
     // Key/data pair where the cursor is at
     MDB_val key, data;
-    // Deleter function for the current key.
-    argtokey_callback_t freeKey;
     
     DbiWrap *dw;
     TxnWrap *tw;

@@ -29,7 +29,6 @@ using namespace node;
 
 CursorWrap::CursorWrap(MDB_cursor *cursor) {
     this->cursor = cursor;
-    this->freeKey = nullptr;
 }
 
 CursorWrap::~CursorWrap() {
@@ -38,7 +37,6 @@ CursorWrap::~CursorWrap() {
         this->tw->Unref();
         mdb_cursor_close(this->cursor);
     }
-    if (freeKey) freeKey(key);
 }
 
 NAN_METHOD(CursorWrap::ctor) {
@@ -125,18 +123,16 @@ Nan::NAN_METHOD_RETURN_TYPE CursorWrap::getCommon(
 
     int al = info.Length();
     CursorWrap *cw = Nan::ObjectWrap::Unwrap<CursorWrap>(info.This());
+    
+    argtokey_callback_t freeKey = nullptr;
 
     // When a new key is manually set
     if (setKey) {
-        // If we must free the current cw->key, free it now
-        if (cw->freeKey) {
-            cw->freeKey(cw->key);
-        }
-        
         // Set new key and assign the deleter function
-        cw->freeKey = setKey(cw, info, cw->key);
+        freeKey = setKey(cw, info, cw->key);
     }
     
+    // When data is manually set
     if (setData) {
         setData(cw, info, cw->data);
     }
@@ -151,17 +147,14 @@ Nan::NAN_METHOD_RETURN_TYPE CursorWrap::getCommon(
     tempKey.mv_size = cw->key.mv_size;
     tempKey.mv_data = cw->key.mv_data;
 
+    // Call LMDB
     int rc = mdb_cursor_get(cw->cursor, &(cw->key), &(cw->data), op);
     
-    // When cw->key.mv_data changes, it means it points inside the database now,
+    // cw->key points inside the database now,
     // so we should free the old key now.
-    if (tempKey.mv_data != cw->key.mv_data) {
-        if (cw->freeKey) {
-            cw->freeKey(tempKey);
-        }
-        
-        // No need to free the key that points to the database.
-        cw->freeKey = nullptr;
+    if (freeKey) {
+        freeKey(tempKey);
+        freeKey = nullptr;
     }
 
     if (rc == MDB_NOTFOUND) {
