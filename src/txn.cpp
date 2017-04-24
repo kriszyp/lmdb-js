@@ -146,13 +146,13 @@ Nan::NAN_METHOD_RETURN_TYPE TxnWrap::getCommon(Nan::NAN_METHOD_ARGS_TYPE info, L
     }
 
     MDB_val key, data;
-    void (*freeKey)(MDB_val&) = argToKey(info[1], key, dw->keyIsUint32);
-    if (!freeKey) {
-        return;
-    }
+    auto freeKey = argToKey(info[1], key, dw->keyIsUint32);
 
     int rc = mdb_get(tw->txn, dw->dbi, &key, &data);
-    freeKey(key);
+    
+    if (freeKey) {
+        freeKey(key);
+    }
 
     if (rc == MDB_NOTFOUND) {
         return info.GetReturnValue().Set(Nan::Null());
@@ -202,15 +202,14 @@ Nan::NAN_METHOD_RETURN_TYPE TxnWrap::putCommon(Nan::NAN_METHOD_ARGS_TYPE info, v
     int flags = 0;
     MDB_val key, data;
 
-    void (*freeKey)(MDB_val&) = argToKey(info[1], key, dw->keyIsUint32);
-    if (!freeKey) {
-        return;
-    }
+    auto freeKey = argToKey(info[1], key, dw->keyIsUint32);
 
     fillFunc(info, data);
 
     int rc = mdb_put(tw->txn, dw->dbi, &key, &data, flags);
-    freeKey(key);
+    if (freeKey) {
+        freeKey(key);
+    }
     freeData(data);
 
     if (rc != 0) {
@@ -268,10 +267,7 @@ NAN_METHOD(TxnWrap::del) {
     }
 
     MDB_val key;
-    void (*freeKey)(MDB_val&) = argToKey(info[1], key, dw->keyIsUint32);
-    if (!freeKey) {
-        return;
-    }
+    auto freeKey = argToKey(info[1], key, dw->keyIsUint32);
 
     // Set data if dupSort true and data given
     MDB_val data;
@@ -317,7 +313,10 @@ NAN_METHOD(TxnWrap::del) {
 
     int rc = mdb_del(tw->txn, dw->dbi, &key, freeData ? &data : nullptr);
 
-    freeKey(key);
+    if (freeKey) {
+        freeKey(key);
+    }
+    
     if (freeData) {
         if (dataHandle->IsString()) {
             delete[] (uint16_t*)data.mv_data;

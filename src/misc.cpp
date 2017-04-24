@@ -25,8 +25,6 @@
 #include <string.h>
 #include <stdio.h>
 
-static void DontFree(char* data, void* hint) {}
-
 void setupExportMisc(Handle<Object> exports) {
     Local<Object> versionObj = Nan::New<Object>();
 
@@ -60,10 +58,8 @@ argtokey_callback_t argToKey(const Local<Value> &val, MDB_val &key, node_lmdb::K
         key.mv_size = node::Buffer::Length(val);
         key.mv_data = node::Buffer::Data(val);
 
-        return ([](MDB_val &key) -> void {
-           // We shouldn't need free here - need to clarify
-        });
-
+        // No need to free, the key data belongs to the node::Buffer
+        return nullptr;
     }
 
     if (!uintKey && !val->IsString()) {
@@ -160,8 +156,10 @@ Local<Value> valToBinaryUnsafe(MDB_val &data) {
     return Nan::NewBuffer(
         (char*)data.mv_data,
         data.mv_size,
-        DontFree,
-        NULL
+        [](char *, void *) {
+            // Data belongs to LMDB, we shouldn't free it here
+        },
+        nullptr
     ).ToLocalChecked();
 }
 
