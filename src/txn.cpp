@@ -220,6 +220,16 @@ Nan::NAN_METHOD_RETURN_TYPE TxnWrap::putCommon(Nan::NAN_METHOD_ARGS_TYPE info, v
     if (!keyIsValid) {
         return;
     }
+    
+    if (!info[3]->IsNull() && !info[3]->IsUndefined() && info[3]->IsObject()) {
+        auto options = info[3]->ToObject();
+        setFlagFromValue(&flags, MDB_NODUPDATA, "noDupData", false, options);
+        setFlagFromValue(&flags, MDB_NOOVERWRITE, "noOverwrite", false, options);
+        setFlagFromValue(&flags, MDB_APPEND, "append", false, options);
+        setFlagFromValue(&flags, MDB_APPENDDUP, "appendDup", false, options);
+        
+        // NOTE: does not make sense to support MDB_RESERVE, because it wouldn't save the memcpy from V8 to lmdb
+    }
 
     fillFunc(info, data);
 
