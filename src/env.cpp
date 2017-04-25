@@ -189,6 +189,34 @@ NAN_METHOD(EnvWrap::stat) {
     info.GetReturnValue().Set(obj);
 }
 
+NAN_METHOD(EnvWrap::info) {
+    Nan::HandleScope scope;
+    
+    // Get the wrapper
+    EnvWrap *ew = Nan::ObjectWrap::Unwrap<EnvWrap>(info.This());
+    if (!ew->env) {
+        return Nan::ThrowError("The environment is already closed.");
+    }
+    
+    int rc;
+    MDB_envinfo envinfo;
+    
+    rc = mdb_env_info(ew->env, &envinfo);
+    if (rc != 0) {
+        return Nan::ThrowError(mdb_strerror(rc));
+    }
+    
+    Local<Object> obj = Nan::New<Object>();
+    obj->Set(Nan::New<String>("mapAddress").ToLocalChecked(), Nan::New<Number>((uint64_t) envinfo.me_mapaddr));
+    obj->Set(Nan::New<String>("mapSize").ToLocalChecked(), Nan::New<Number>(envinfo.me_mapsize));
+    obj->Set(Nan::New<String>("lastPageNumber").ToLocalChecked(), Nan::New<Number>(envinfo.me_last_pgno));
+    obj->Set(Nan::New<String>("lastTxnId").ToLocalChecked(), Nan::New<Number>(envinfo.me_last_txnid));
+    obj->Set(Nan::New<String>("maxReaders").ToLocalChecked(), Nan::New<Number>(envinfo.me_maxreaders));
+    obj->Set(Nan::New<String>("numReaders").ToLocalChecked(), Nan::New<Number>(envinfo.me_numreaders));
+
+    info.GetReturnValue().Set(obj);
+}
+
 NAN_METHOD(EnvWrap::beginTxn) {
     Nan::HandleScope scope;
 
@@ -282,8 +310,8 @@ void EnvWrap::setupExports(Handle<Object> exports) {
     envTpl->PrototypeTemplate()->Set(Nan::New<String>("openDbi").ToLocalChecked(), Nan::New<FunctionTemplate>(EnvWrap::openDbi));
     envTpl->PrototypeTemplate()->Set(Nan::New<String>("sync").ToLocalChecked(), Nan::New<FunctionTemplate>(EnvWrap::sync));
     envTpl->PrototypeTemplate()->Set(Nan::New<String>("stat").ToLocalChecked(), Nan::New<FunctionTemplate>(EnvWrap::stat));
+    envTpl->PrototypeTemplate()->Set(Nan::New<String>("info").ToLocalChecked(), Nan::New<FunctionTemplate>(EnvWrap::info));
     // TODO: wrap mdb_env_copy too
-    // TODO: wrap mdb_env_info too
 
     // TxnWrap: Prepare constructor template
     Local<FunctionTemplate> txnTpl = Nan::New<FunctionTemplate>(TxnWrap::ctor);

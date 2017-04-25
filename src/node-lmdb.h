@@ -109,9 +109,14 @@ public:
     static NAN_METHOD(ctor);
     
     /*
-        Gets statistics from the database environment.
+        Gets statistics about the database environment.
     */
     static NAN_METHOD(stat);
+    
+    /*
+        Gets information about the database environment.
+    */
+    static NAN_METHOD(info);
 
     /*
         Opens the database environment with the specified options. The options will be used to configure the environment before opening it.

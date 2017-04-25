@@ -58,7 +58,9 @@ describe('Node.js LMDB Bindings', function() {
       env = new lmdb.Env();
       env.open({
         path: testDirPath,
-        maxDbs: 10
+        maxDbs: 10,
+        maxReaders: 422,
+        mapSize: 100 * 1024 * 1024
       });
     });
     after(function() {
@@ -156,7 +158,19 @@ describe('Node.js LMDB Bindings', function() {
         err.should.be.an.instanceof(Error);
       }
     });
-    it('will get statistics for an environment', function() {
+    it('will get information about an environment', function() {
+      var info = env.info();
+      info.mapAddress.should.be.a('number');
+      info.mapSize.should.be.a('number');
+      info.lastPageNumber.should.be.a('number');
+      info.lastTxnId.should.be.a('number');
+      info.maxReaders.should.be.a('number');
+      info.numReaders.should.be.a('number');
+      
+      should.equal(info.mapSize, 100 * 1024 * 1024);
+      should.equal(info.maxReaders, 422);
+    });
+    it('will get statistics about an environment', function() {
       var stat = env.stat();
       stat.pageSize.should.be.a('number');
       stat.treeDepth.should.be.a('number');
@@ -164,7 +178,7 @@ describe('Node.js LMDB Bindings', function() {
       stat.treeLeafPageCount.should.be.a('number');
       stat.entryCount.should.be.a('number');
     });
-    it('will get statistics for a database', function() {
+    it('will get statistics about a database', function() {
       var dbi = env.openDbi({
         name: 'mydb2',
         create: true
