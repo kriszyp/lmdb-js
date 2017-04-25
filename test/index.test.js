@@ -206,6 +206,9 @@ describe('Node.js LMDB Bindings', function() {
       var txn = env.beginTxn({ readOnly: true });
       var str = txn.getString(dbi, 'hello');
       should.equal(str, 'world');
+      
+      txn.abort();
+      dbi.close();
     });
   });
   describe('Data types', function() {
