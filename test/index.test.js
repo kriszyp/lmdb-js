@@ -378,6 +378,35 @@ describe('Node.js LMDB Bindings', function() {
       
       done();
     });
+    it('will move cursor over values, expects to get correct key even if key is binary', function (done) {
+      var txn = env.beginTxn({ readOnly: true });
+      var cursor = new lmdb.Cursor(txn, dbi);
+      var count;
+      
+      for (count = 0; count < total; count ++) {
+        var expectedKey = "hello_" + count.toString(16);
+        var binaryKey = new Buffer(expectedKey + "\0", "utf16le");
+        var key = cursor.goToKey(binaryKey);
+        should.equal(expectedKey, key);
+        should.equal(binaryKey.toString("utf16le"), key + "\0");
+      }
+      
+      should.equal(count, total);
+      count = 0;
+      
+      for (var key = cursor.goToFirst(); key; key = cursor.goToNext()) {
+        var key2 = cursor.goToKey(new Buffer(key + "\0", "utf16le"), { keyIsBuffer: true });
+        should.equal(key, key2);
+        count ++;
+      }
+      
+      should.equal(count, total);
+      
+      cursor.close();
+      txn.abort();
+      
+      done();
+    });
     after(function () {
       dbi.close();
       env.close();
