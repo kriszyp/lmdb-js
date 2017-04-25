@@ -85,6 +85,8 @@ class EnvWrap : public Nan::ObjectWrap {
 private:
     // The wrapped object
     MDB_env *env;
+    // Current write transaction
+    MDB_txn *currentWriteTxn;
     // Constructor for TxnWrap
     static Nan::Persistent<Function> txnCtor;
     // Constructor for DbiWrap
@@ -188,7 +190,11 @@ private:
     // Reference to the MDB_env of the wrapped MDB_txn
     MDB_env *env;
 
+    // Environment wrapper of the current transaction
     EnvWrap *ew;
+    
+    // Flags used with mdb_txn_begin
+    unsigned int flags;
 
     friend class CursorWrap;
     friend class DbiWrap;

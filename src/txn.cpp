@@ -29,12 +29,17 @@ using namespace node;
 TxnWrap::TxnWrap(MDB_env *env, MDB_txn *txn) {
     this->env = env;
     this->txn = txn;
+    this->flags = 0;
 }
 
 TxnWrap::~TxnWrap() {
     // Close if not closed already
     if (this->txn) {
         mdb_txn_abort(txn);
+        // Unset current write transaction
+        if (this->ew && this->ew->currentWriteTxn == txn) {
+            this->ew->currentWriteTxn = nullptr;
+        }
         this->ew->Unref();
     }
 }
@@ -52,15 +57,25 @@ NAN_METHOD(TxnWrap::ctor) {
 
         setFlagFromValue(&flags, MDB_RDONLY, "readOnly", false, options);
     }
-
+    
+    // Check existence of current write transaction
+    if (0 == (flags & MDB_RDONLY) && ew->currentWriteTxn != nullptr) {
+        return Nan::ThrowError("You have already opened a write transaction in the current process, can't open a second one.");
+    }
 
     MDB_txn *txn;
     int rc = mdb_txn_begin(ew->env, nullptr, flags, &txn);
     if (rc != 0) {
         return Nan::ThrowError(mdb_strerror(rc));
     }
+    
+    // Set the current write transaction
+    if (0 == (flags & MDB_RDONLY)) {
+        ew->currentWriteTxn = txn;
+    }
 
     TxnWrap* tw = new TxnWrap(ew->env, txn);
+    tw->flags = flags;
     tw->ew = ew;
     tw->ew->Ref();
     tw->Wrap(info.This());
@@ -78,8 +93,14 @@ NAN_METHOD(TxnWrap::commit) {
     }
 
     int rc = mdb_txn_commit(tw->txn);
-    tw->txn = nullptr;
+    
+    // Unset the current write transaction
+    if (tw->ew->currentWriteTxn == tw->txn) {
+        tw->ew->currentWriteTxn = nullptr;
+    }
+    
     tw->ew->Unref();
+    tw->txn = nullptr;
 
     if (rc != 0) {
         return Nan::ThrowError(mdb_strerror(rc));
@@ -98,6 +119,12 @@ NAN_METHOD(TxnWrap::abort) {
     }
 
     mdb_txn_abort(tw->txn);
+    
+    // Unset the current write transaction
+    if (tw->ew->currentWriteTxn == tw->txn) {
+        tw->ew->currentWriteTxn = nullptr;
+    }
+    
     tw->ew->Unref();
     tw->txn = nullptr;
 

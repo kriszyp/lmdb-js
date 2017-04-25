@@ -40,6 +40,7 @@ typedef struct EnvSyncData {
 
 EnvWrap::EnvWrap() {
     this->env = nullptr;
+    this->currentWriteTxn = nullptr;
 }
 
 EnvWrap::~EnvWrap() {
@@ -167,8 +168,16 @@ NAN_METHOD(EnvWrap::beginTxn) {
     const int argc = 2;
 
     Local<Value> argv[argc] = { info.This(), info[0] };
-    Local<Object> instance = Nan::New(txnCtor)->NewInstance(Nan::GetCurrentContext(), argc, argv).ToLocalChecked();
+    MaybeLocal<Object> maybeInstance = Nan::New(txnCtor)->NewInstance(Nan::GetCurrentContext(), argc, argv);
 
+    // Check if txn could be created
+    if ((maybeInstance.IsEmpty())) {
+        // The maybeInstance is empty because the txnCtor called Nan::ThrowError.
+        // No need to call that here again, the user will get the error thrown there.
+        return;
+    }
+
+    Local<Object> instance = maybeInstance.ToLocalChecked();
     info.GetReturnValue().Set(instance);
 }
 
@@ -177,7 +186,6 @@ NAN_METHOD(EnvWrap::openDbi) {
 
     const unsigned argc = 2;
     Local<Value> argv[argc] = { info.This(), info[0] };
-
     MaybeLocal<Object> maybeInstance = Nan::New(dbiCtor)->NewInstance(Nan::GetCurrentContext(), argc, argv);
 
     // Check if database could be opened
@@ -188,7 +196,6 @@ NAN_METHOD(EnvWrap::openDbi) {
     }
 
     Local<Object> instance = maybeInstance.ToLocalChecked();
-
     info.GetReturnValue().Set(instance);
 }
 

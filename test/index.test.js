@@ -64,6 +64,13 @@ describe('Node.js LMDB Bindings', function() {
     after(function() {
       env.close();
     });
+    it('will attempt to create two write transactions', function () {
+      var wtxn1 = env.beginTxn();
+      (function() {
+        var wtxn2 = env.beginTxn();
+      }).should.throw("You have already opened a write transaction in the current process, can't open a second one.");
+      wtxn1.abort();
+    });
     it('will open a database, begin a transaction and get/put/delete data', function() {
       var dbi = env.openDbi({
         name: 'mydb1',
