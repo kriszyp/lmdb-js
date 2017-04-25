@@ -151,6 +151,11 @@ Nan::NAN_METHOD_RETURN_TYPE CursorWrap::getCommon(
     // Call LMDB
     int rc = mdb_cursor_get(cw->cursor, &(cw->key), &(cw->data), op);
     
+    // Check if key points inside LMDB
+    if (setKey && tempKey.mv_data == cw->key.mv_data) {
+        return Nan::ThrowError("Key doesn't point inside LMDB. This is a bug in node-lmdb.");
+    }
+    
     // cw->key points inside the database now,
     // so we should free the old key now.
     if (freeKey) {
@@ -294,7 +299,7 @@ inline argtokey_callback_t cursorArgToKey(CursorWrap* cw, Nan::NAN_METHOD_ARGS_T
 }
 
 NAN_METHOD(CursorWrap::goToKey) {
-    return getCommon(info, MDB_SET, cursorArgToKey<0, 1>, nullptr, nullptr, nullptr);
+    return getCommon(info, MDB_SET_KEY, cursorArgToKey<0, 1>, nullptr, nullptr, nullptr);
 }
 
 NAN_METHOD(CursorWrap::goToRange) {

@@ -324,6 +324,65 @@ describe('Node.js LMDB Bindings', function() {
       readTxn.abort();
     });
   });
+  describe('Cursors, basic operation', function() {
+    this.timeout(10000);
+    var env;
+    var dbi;
+    var total = 50;
+    
+    before(function() {
+      env = new lmdb.Env();
+      env.open({
+        path: testDirPath,
+        maxDbs: 10,
+        mapSize: 64 * 1024 * 1024
+      });
+      dbi = env.openDbi({
+        name: 'cursor_verybasic',
+        create: true
+      });
+      const txn = env.beginTxn();
+      let count = 0;
+      while (count < total) {
+        let key = "hello_" + count.toString(16);
+        let data = key + "_data";
+        txn.putString(dbi, key, data);
+        count++;
+      }
+      txn.commit();
+    });
+    it('will move cursor over values, expects to get correct key', function (done) {
+      var txn = env.beginTxn({ readOnly: true });
+      var cursor = new lmdb.Cursor(txn, dbi);
+      var count;
+      
+      for (count = 0; count < total; count ++) {
+        var expectedKey = "hello_" + count.toString(16);
+        var key = cursor.goToKey(expectedKey);
+        should.equal(expectedKey, key);
+      }
+      
+      should.equal(count, total);
+      count = 0;
+      
+      for (var key = cursor.goToFirst(); key; key = cursor.goToNext()) {
+        var key2 = cursor.goToKey(key);
+        should.equal(key, key2);
+        count ++;
+      }
+      
+      should.equal(count, total);
+      
+      cursor.close();
+      txn.abort();
+      
+      done();
+    });
+    after(function () {
+      dbi.close();
+      env.close();
+    });
+  });
   describe('Cursors', function() {
     this.timeout(10000);
     var env;
