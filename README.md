@@ -286,7 +286,7 @@ Contributing
 If you find problems with this module, open an issue on GitHub.
 Also feel free to send me pull requests. Contributions are more than welcome! :)
 
-### Building the module
+### Building node-lmdb
 
 LMDB is bundled in `node-lmdb` so you can simply build this module using `node-gyp`.
 
@@ -297,7 +297,59 @@ npm -g install node-gyp
 # Clone node-lmdb
 git clone git@github.com:Venemo/node-lmdb.git
 
-# Build
+# Go to node-lmdb directory
+cd node-lmdb
+
+# At first, you need to download all dependencies
+npm install
+
+# Once you have all the dependencies, the build is this simple
+node-gyp configure
+node-gyp build
+```
+
+### Building node-lmdb on Windows
+
+Windows isn't such a great platform for native node addons, but it can be made to work.
+See this very informative thread: https://github.com/nodejs/node-gyp/issues/629
+
+1. Install latest .NET Framework (v4.6.2 at the time of writing)
+2. Install latest node.js (v7.9.0 at the time of writing).
+3. This is Windows. Reboot.
+4. Now open a node.js command prompt as administrator and run the following commands.  
+*NOTE: these commands WILL take a LOT of time. Please be patient.*
+
+```
+npm -g install windows-build-tools
+npm -g install node-gyp
+npm -g install mocha
+npm config set msvs_version 2015 --global
+```
+
+After this, close the command prompt and open a new one (so that changes to `PATH` and whatever else
+can take proper effect). At this point you should have all the necessary junk for Windows to be able
+to handle the build. (You won't need to run node as administrator anymore.)
+Note that `windows-build-tools` will silently fail to install if you don't have the .NET Framework
+installed on your machine.
+
+5. Add python2 to `PATH`. Note that `windows-build-tools` installed python2 (v2.7.x) for you
+already, so easiest is to use "Change installation" in the Control Panel and select "Change" and then
+"Add python.exe to PATH".
+6. This is Windows. Reboot again just to be sure.
+
+Congrats! Now you can work with native node.js modules.
+
+When you are building node-lmdb for the first time, you need to install node-lmdb's dependencies with `npm install`:
+
+```
+cd node-lmdb
+npm install
+```
+
+Note that `npm install` will also attempt to build the module. However once you got all the dependencies,
+you only need to do the following for a build:
+
+```
 cd node-lmdb
 node-gyp configure
 node-gyp build
