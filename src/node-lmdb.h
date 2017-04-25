@@ -107,6 +107,11 @@ public:
         (Wrapper for `mdb_env_create`)
     */
     static NAN_METHOD(ctor);
+    
+    /*
+        Gets statistics from the database environment.
+    */
+    static NAN_METHOD(stat);
 
     /*
         Opens the database environment with the specified options. The options will be used to configure the environment before opening it.

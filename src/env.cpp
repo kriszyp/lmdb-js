@@ -162,6 +162,33 @@ NAN_METHOD(EnvWrap::close) {
     return;
 }
 
+NAN_METHOD(EnvWrap::stat) {
+    Nan::HandleScope scope;
+    
+    // Get the wrapper
+    EnvWrap *ew = Nan::ObjectWrap::Unwrap<EnvWrap>(info.This());
+    if (!ew->env) {
+        return Nan::ThrowError("The environment is already closed.");
+    }
+    
+    int rc;
+    MDB_stat stat;
+    
+    rc = mdb_env_stat(ew->env, &stat);
+    if (rc != 0) {
+        return Nan::ThrowError(mdb_strerror(rc));
+    }
+    
+    Local<Object> obj = Nan::New<Object>();
+    obj->Set(Nan::New<String>("pageSize").ToLocalChecked(), Nan::New<Number>(stat.ms_psize));
+    obj->Set(Nan::New<String>("treeDepth").ToLocalChecked(), Nan::New<Number>(stat.ms_depth));
+    obj->Set(Nan::New<String>("treeBranchPageCount").ToLocalChecked(), Nan::New<Number>(stat.ms_branch_pages));
+    obj->Set(Nan::New<String>("treeLeafPageCount").ToLocalChecked(), Nan::New<Number>(stat.ms_leaf_pages));
+    obj->Set(Nan::New<String>("entryCount").ToLocalChecked(), Nan::New<Number>(stat.ms_entries));
+
+    info.GetReturnValue().Set(obj);
+}
+
 NAN_METHOD(EnvWrap::beginTxn) {
     Nan::HandleScope scope;
 
@@ -254,8 +281,8 @@ void EnvWrap::setupExports(Handle<Object> exports) {
     envTpl->PrototypeTemplate()->Set(Nan::New<String>("beginTxn").ToLocalChecked(), Nan::New<FunctionTemplate>(EnvWrap::beginTxn));
     envTpl->PrototypeTemplate()->Set(Nan::New<String>("openDbi").ToLocalChecked(), Nan::New<FunctionTemplate>(EnvWrap::openDbi));
     envTpl->PrototypeTemplate()->Set(Nan::New<String>("sync").ToLocalChecked(), Nan::New<FunctionTemplate>(EnvWrap::sync));
+    envTpl->PrototypeTemplate()->Set(Nan::New<String>("stat").ToLocalChecked(), Nan::New<FunctionTemplate>(EnvWrap::stat));
     // TODO: wrap mdb_env_copy too
-    // TODO: wrap mdb_env_stat too
     // TODO: wrap mdb_env_info too
 
     // TxnWrap: Prepare constructor template

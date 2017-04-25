@@ -156,6 +156,14 @@ describe('Node.js LMDB Bindings', function() {
         err.should.be.an.instanceof(Error);
       }
     });
+    it('will get statistics for an environment', function() {
+      var stat = env.stat();
+      stat.pageSize.should.be.a('number');
+      stat.treeDepth.should.be.a('number');
+      stat.treeBranchPageCount.should.be.a('number');
+      stat.treeLeafPageCount.should.be.a('number');
+      stat.entryCount.should.be.a('number');
+    });
     it('will get statistics for a database', function() {
       var dbi = env.openDbi({
         name: 'mydb2',
