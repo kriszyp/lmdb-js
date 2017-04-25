@@ -92,6 +92,41 @@ NodeLmdbKeyType keyTypeFromOptions(const Local<Value> &val, NodeLmdbKeyType defa
     return keyType;
 }
 
+NodeLmdbKeyType inferKeyType(const Local<Value> &val) {
+    if (val->IsString()) {
+        return NodeLmdbKeyType::StringKey;
+    }
+    if (val->IsUint32()) {
+        return NodeLmdbKeyType::Uint32Key;
+    }
+    if (node::Buffer::HasInstance(val)) {
+        return NodeLmdbKeyType::BinaryKey;
+    }
+    
+    return NodeLmdbKeyType::InvalidKey;
+}
+
+NodeLmdbKeyType inferAndValidateKeyType(const Local<Value> &key, const Local<Value> &options, NodeLmdbKeyType dbiKeyType, bool &isValid) {
+    auto keyType = keyTypeFromOptions(options, NodeLmdbKeyType::DefaultKey);
+    auto inferredKeyType = inferKeyType(key);
+    isValid = false;
+    
+    if (keyType != NodeLmdbKeyType::DefaultKey && inferredKeyType != keyType) {
+        Nan::ThrowError("Specified key type doesn't match the key you gave.");
+        return NodeLmdbKeyType::InvalidKey;
+    }
+    else {
+        keyType = inferredKeyType;
+    }
+    if (dbiKeyType == NodeLmdbKeyType::Uint32Key && keyType != NodeLmdbKeyType::Uint32Key) {
+        Nan::ThrowError("You specified keyIsUint32 on the Dbi, so you can't use other key types with it.");
+        return NodeLmdbKeyType::InvalidKey;
+    }
+    
+    isValid = true;
+    return keyType;
+}
+
 argtokey_callback_t argToKey(const Local<Value> &val, MDB_val &key, NodeLmdbKeyType keyType, bool &isValid) {
     isValid = false;
 

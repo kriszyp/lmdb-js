@@ -38,6 +38,9 @@ enum class NodeLmdbKeyType {
 
     // Invalid key (used internally by node-lmdb)
     InvalidKey = -1,
+    
+    // Default key (used internally by node-lmdb)
+    DefaultKey = 0,
 
     // UCS-2/UTF-16 with zero terminator - Appears to V8 as string
     StringKey = 1,
@@ -61,6 +64,8 @@ void consoleLog(const char *msg);
 void consoleLogN(int n);
 void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue, Local<Object> options);
 argtokey_callback_t argToKey(const Local<Value> &val, MDB_val &key, NodeLmdbKeyType keyType, bool &isValid);
+NodeLmdbKeyType inferAndValidateKeyType(const Local<Value> &key, const Local<Value> &options, NodeLmdbKeyType dbiKeyType, bool &isValid);
+NodeLmdbKeyType inferKeyType(const Local<Value> &val);
 NodeLmdbKeyType keyTypeFromOptions(const Local<Value> &val, NodeLmdbKeyType defaultKeyType = NodeLmdbKeyType::StringKey);
 Local<Value> keyToHandle(MDB_val &key, NodeLmdbKeyType keyType);
 

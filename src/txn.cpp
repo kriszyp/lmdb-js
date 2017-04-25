@@ -151,7 +151,10 @@ Nan::NAN_METHOD_RETURN_TYPE TxnWrap::getCommon(Nan::NAN_METHOD_ARGS_TYPE info, L
 
     MDB_val key, data;
     bool keyIsValid;
-    auto keyType = keyTypeFromOptions(info[2], dw->keyType);    
+    auto keyType = inferAndValidateKeyType(info[1], info[2], dw->keyType, keyIsValid);
+    if (!keyIsValid) {
+        return;
+    }
     auto freeKey = argToKey(info[1], key, keyType, keyIsValid);
     if (!keyIsValid) {
         return;
@@ -215,7 +218,10 @@ Nan::NAN_METHOD_RETURN_TYPE TxnWrap::putCommon(Nan::NAN_METHOD_ARGS_TYPE info, v
     int flags = 0;
     MDB_val key, data;
     bool keyIsValid;
-    auto keyType = keyTypeFromOptions(info[3], dw->keyType);
+    auto keyType = inferAndValidateKeyType(info[1], info[3], dw->keyType, keyIsValid);
+    if (!keyIsValid) {
+        return;
+    }
     auto freeKey = argToKey(info[1], key, keyType, keyIsValid);
     if (!keyIsValid) {
         return;

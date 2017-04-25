@@ -238,11 +238,11 @@ describe('Node.js LMDB Bindings', function() {
     it('binary key', function() {
       var buffer = new Buffer('48656c6c6f2c20776f726c6421', 'hex');
       var key = new Buffer('key2');
-      txn.putBinary(dbi, key, buffer, { keyIsBuffer: true });
-      var data = txn.getBinary(dbi, key, { keyIsBuffer: true });
+      txn.putBinary(dbi, key, buffer);
+      var data = txn.getBinary(dbi, key);
       data.should.deep.equal(buffer);
       txn.del(dbi, key, { keyIsBuffer: true });
-      var data2 = txn.getBinary(dbi, key, { keyIsBuffer: true });
+      var data2 = txn.getBinary(dbi, key);
       should.equal(data2, null);
     });
     it('number', function() {
