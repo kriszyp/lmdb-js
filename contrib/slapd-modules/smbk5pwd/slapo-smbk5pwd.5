@@ -1,5 +1,5 @@
 .TH SLAPO-SMBK5PWD 5 "RELEASEDATE" "OpenLDAP LDVERSION"
-.\" Copyright 2015 The OpenLDAP Foundation All Rights Reserved.
+.\" Copyright 2015-2017 The OpenLDAP Foundation All Rights Reserved.
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
 .\" $OpenLDAP$
 .SH NAME
@@ -142,7 +142,7 @@ and thus can be run-time loaded and configured via back-config.
 The layout of a slapd.d based, table-driven configuration entry looks like:
 .LP
 .EX
-        # {0}smbk5pwd, {1}bdb, config
+        # {0}smbk5pwd, {1}mdb, config
         dn: olcOverlay={0}smbk5pwd,olcDatabase={1}mdb,cn=config
         objectClass: olcOverlayConfig
         objectClass: olcSmbK5PwdConfig
@@ -169,7 +169,7 @@ seconds).
 .LP
 
 .SH ACKNOWLEDGEMENTS
-This manual page has been writen by Peter Marschall based on the
+This manual page has been written by Peter Marschall based on the
 module's README file written by Howard Chu.
 .LP
 .B OpenLDAP

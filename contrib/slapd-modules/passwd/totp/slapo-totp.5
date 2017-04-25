@@ -1,131 +1,91 @@
-.TH SLAPO-TOTP 5 "RELEASEDATE" "OpenLDAP LDVERSION"
-.\" Copyright 2015 The OpenLDAP Foundation All Rights Reserved.
+.TH PW-TOTP 5 "2015/7/2" "PW-TOTP"
+.\" Copyright 2015 The OpenLDAP Foundation.
+.\" Portions Copyright 2015 by Howard Chu, Symas Corp. All rights reserved.
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
-.\" $OpenLDAP$
 .SH NAME
-slapo-totp \- TOTP password support overlay to slapd
+pw-totp \- TOTP Password handling module
 .SH SYNOPSIS
-ETCDIR/slapd.conf
-.RS
-.LP
-moduleload
-.B lastbind
-.LP
-moduleload
-.B totp
-.LP
-...
-.LP
-database ...
-.LP
-...
-.LP
-overlay
-.B lastbind
-.LP
-overlay
-.B totp
-.RE
+.B moduleload
+.I pw-totp.la
 .SH DESCRIPTION
-.LP
 The
-.B totp
-overlay to
-.BR slapd (8)
-provides support for RFC 6238 TOTP Time-based One
-Time Passwords in OpenLDAP using SHA-1, SHA-256, and SHA-512 hashes.
-.LP
-It does so by providing the following additional password schemes for use in slapd:
-.RS
-.TP
-.B {TOTP1}
-TOTP with SHA-1 as hash function.
-This algorithm is compatible with Google Authenticator.
-.TP
-.B {TOTP256}
-TOTP with SHA-256 as hash function
-.TP
-.B {TOTP512}
-TOTP with SHA-512 as hash function
-.RE
+.B pw-totp
+module allows time-based one-time password, AKA "authenticator-style",
+authentication to be added to applications that use LDAP for
+authentication. In most cases no changes to the applications are needed to switch
+to this type of authentication.
+
+With this module, the password needed for a user to authenticate is calculated
+based on the current time and a key that is stored in the user's LDAP entry. Since
+the password is based on the time, it changes periodically. Once used, it cannot be
+used again so keyloggers and shoulder-surfers are thwarted. A mobile
+phone application, such as the Google Authenticator (a 'prover'), can be used
+to calculate the user's current password, which is expressed as a six-digit
+number.
+Alternatively, the value can be calculated by some other application with access
+to the user's key and delivered to the user through SMS or some other channel.
+When prompted to authenticate, the user merely enters the six-digit code provided by
+the prover.
+
+This implementation complies with 
+.B RFC 6238 TOTP Time-based One Time Passwords
+and includes support for the SHA-1, SHA-256, and SHA-512 HMAC
+algorithms.
+
+The HMAC key used in the TOTP computation is stored in the userPassword attribute
+of the user's LDAP entry and the LDAP Password Modify Extended Operation is used to
+set and change the value. The
+value should correspond to that used by the the prover (authenticator). 
 
 .SH CONFIGURATION
-The
-.B totp
-overlay does not need any configuration beyond loading the module and
-defining it as an overlay where the users reside.
-.LP
-After that, the password schemes
-{TOTP1}, {TOTP256}, and {TOTP512}
-will be recognised in values of the
-.I userPassword
-attribute.
-.LP
-You can then instruct OpenLDAP to use these schemes when processing
-the LDAPv3 Password Modify (RFC 3062) extended operations by using the
-.BR password-hash
-option in
-.BR slapd.conf (5).
+Once the module is loaded with the moduleload command from the synopsis, 
+the {TOTP1}, {TOTP256}, and {TOTP512}
+password schemes will be recognized.
+
+On the databases where your users reside you must configure the
+totp overlay:
+
+.nf
+	database mdb
+	\...
+	overlay totp
+	\...
+.fi
+
+You can tell OpenLDAP to use one of these new schemes when processing LDAP
+Password Modify Extended Operations, thanks to the password-hash option in
+slapd.conf. For example:
+
+.nf
+	password-hash   {TOTP256}
+.fi
 
 .SH NOTES
-When using the
-.B lastbind
-overlay together with the
-.B totp
-overlay, the former one needs to be loaded first.
-.LP
-If you want to use the schemes described here with
-.BR slappasswd (8),
-don't forget to load the module using its command line options.
-The relevant option/value is:
-.RS
-.LP
-.B \-o
-.BR module\-load = totp
-.LP
-.RE
-Depending on
-.BR totp 's
-location, you may also need:
-.RS
-.LP
-.B \-o
-.BR module\-path = \fIpathspec\fP
-.RE
+This module includes functionality implemented by the slapo-lastbind overlay
+and cannot coexist with it in the same database. Also note
+that since the time that the last bind occurred
+is needed to properly implement TOTP, provisions need to be made to propagate
+the authTimestamp attribute to other servers that are providing authentication
+services.
 
+.SH BUGS
+The time step is hard-coded to thirty seconds. This should be OK for many use cases,
+but it would be nice if the value
+could be changed with a configuration keyword or in an attribute value.
 
-.SH EXAMPLES
-For instance, one could have the LDAP attribute:
-.LP
-.EX
-userPassword: {TOTP1}GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ
-.EE
-.LP
-which encodes the key
-.RB ' 12345678901234567890 '.
-.LP
-To make {TOTP1} the password algorithm used in Password Modify extended operations,
-simply set this line in slapd.conf(5):
-.LP
-.EX
-password-hash   {TOTP1}
-.EX
+The authenticator code that is generated is hard-coded to a length of six digits.
+While in most cases
+this is probably better than the alternative length of four digits, there may be
+cases where a four-digit value is preferred.
 
-.SH SEE ALSO
-.BR slapd.conf (5),
-.BR ldappasswd (1),
-.BR slappasswd (8),
-.BR ldap (3),
-.LP
-"OpenLDAP Administrator's Guide" (http://www.OpenLDAP.org/doc/admin/)
-.LP
+There is currently no way to require a separate PIN code with the authenticator
+code.
 
-.SH ACKNOWLEDGEMENTS
-This manual page has been writen by Peter Marschall based on the
-module's README file written by Howard Chu.
-.LP
-.B OpenLDAP
-is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).
-.B OpenLDAP
-is derived from University of Michigan LDAP 3.3 Release.
+In cases where password-hash lists multiple mechanisms, the TOTP key will also
+be changed at the same time. This is likely to be undesirable behavior.
 
+.SH "SEE ALSO"
+.BR slapd.conf (5) ldappasswd (1) 
+.SH ACKNOWLEDGEMENT
+This work was developed by Howard Chu of Symas Corporation for inclusion in
+OpenLDAP Software.
