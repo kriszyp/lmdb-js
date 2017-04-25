@@ -115,6 +115,7 @@ if test $WAIT != 0 ; then
 	echo PID $PID
 	read foo
 fi
+KILLPIDS="$PID"
 sleep 1
 
 echo "Using ldapsearch to check that slapd is running..."
