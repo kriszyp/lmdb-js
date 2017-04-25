@@ -141,6 +141,17 @@ describe('Node.js LMDB Bindings', function() {
       // Delete data
       txn.del(dbi, key);
       
+      // Put new binary data without zero termination
+      txn.putBinary(dbi, key, Buffer.from(expectedString));
+      
+      // Verify that you can't read it back as a string
+      (function () {
+        var data = txn.getString(dbi, key);
+      }).should.throw('Invalid zero-terminated UTF-16 string');
+      
+      // Delete data
+      txn.del(dbi, key);
+      
       // Verify non-existence of data
       var data3 = txn.getBinary(dbi, key);
       should.equal(data3, null);

@@ -206,7 +206,7 @@ Local<Value> valToString(MDB_val &data) {
     
     // Check zero termination
     if (n < 1 || buffer[n - 1] != 0) {
-        Nan::ThrowError("Invalid UTF-16 string");
+        Nan::ThrowError("Invalid zero-terminated UTF-16 string");
         return Nan::Undefined();
     }
     
