@@ -46,7 +46,22 @@ EnvWrap::EnvWrap() {
 EnvWrap::~EnvWrap() {
     // Close if not closed already
     if (this->env) {
+        this->cleanupStrayTxns();
         mdb_env_close(env);
+    }
+}
+
+void EnvWrap::cleanupStrayTxns() {
+    if (this->currentWriteTxn) {
+        mdb_txn_abort(this->currentWriteTxn->txn);
+        this->currentWriteTxn->removeFromEnvWrap();
+        this->currentWriteTxn->txn = nullptr;
+    }
+    while (this->readTxns.size()) {
+        TxnWrap *tw = *this->readTxns.begin();
+        mdb_txn_abort(tw->txn);
+        tw->removeFromEnvWrap();
+        tw->txn = nullptr;
     }
 }
 
@@ -156,6 +171,7 @@ NAN_METHOD(EnvWrap::close) {
         return Nan::ThrowError("The environment is already closed.");
     }
 
+    ew->cleanupStrayTxns();
     mdb_env_close(ew->env);
     ew->env = nullptr;
 

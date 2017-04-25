@@ -24,6 +24,8 @@
 #ifndef NODE_LMDB_H
 #define NODE_LMDB_H
 
+#include <vector>
+#include <algorithm>
 #include <v8.h>
 #include <node.h>
 #include <node_buffer.h>
@@ -76,6 +78,11 @@ Local<Value> valToBinaryUnsafe(MDB_val &data);
 Local<Value> valToNumber(MDB_val &data);
 Local<Value> valToBoolean(MDB_val &data);
 
+class TxnWrap;
+class DbiWrap;
+class EnvWrap;
+class CursorWrap;
+
 /*
     `Env`
     Represents a database environment.
@@ -86,11 +93,16 @@ private:
     // The wrapped object
     MDB_env *env;
     // Current write transaction
-    MDB_txn *currentWriteTxn;
+    TxnWrap *currentWriteTxn;
+    // List of open read transactions
+    std::vector<TxnWrap*> readTxns;
     // Constructor for TxnWrap
     static Nan::Persistent<Function> txnCtor;
     // Constructor for DbiWrap
     static Nan::Persistent<Function> dbiCtor;
+    
+    // Cleans up stray transactions
+    void cleanupStrayTxns();
 
     friend class TxnWrap;
     friend class DbiWrap;
@@ -205,9 +217,13 @@ private:
     
     // Flags used with mdb_txn_begin
     unsigned int flags;
+    
+    // Remove the current TxnWrap from its EnvWrap
+    void removeFromEnvWrap();
 
     friend class CursorWrap;
     friend class DbiWrap;
+    friend class EnvWrap;
 
 public:
     TxnWrap(MDB_env *env, MDB_txn *txn);

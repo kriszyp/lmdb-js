@@ -36,11 +36,24 @@ TxnWrap::~TxnWrap() {
     // Close if not closed already
     if (this->txn) {
         mdb_txn_abort(txn);
-        // Unset current write transaction
-        if (this->ew && this->ew->currentWriteTxn == txn) {
+        this->removeFromEnvWrap();
+    }
+}
+
+void TxnWrap::removeFromEnvWrap() {
+    if (this->ew) {
+        if (this->ew->currentWriteTxn == this) {
             this->ew->currentWriteTxn = nullptr;
         }
+        else {
+            auto it = std::find(ew->readTxns.begin(), ew->readTxns.end(), this);
+            if (it != ew->readTxns.end()) {
+                ew->readTxns.erase(it);
+            }
+        }
+        
         this->ew->Unref();
+        this->ew = nullptr;
     }
 }
 
@@ -68,17 +81,20 @@ NAN_METHOD(TxnWrap::ctor) {
     if (rc != 0) {
         return Nan::ThrowError(mdb_strerror(rc));
     }
-    
-    // Set the current write transaction
-    if (0 == (flags & MDB_RDONLY)) {
-        ew->currentWriteTxn = txn;
-    }
 
     TxnWrap* tw = new TxnWrap(ew->env, txn);
     tw->flags = flags;
     tw->ew = ew;
     tw->ew->Ref();
     tw->Wrap(info.This());
+    
+    // Set the current write transaction
+    if (0 == (flags & MDB_RDONLY)) {
+        ew->currentWriteTxn = tw;
+    }
+    else {
+        ew->readTxns.push_back(tw);
+    }
 
     return info.GetReturnValue().Set(info.This());
 }
@@ -93,13 +109,7 @@ NAN_METHOD(TxnWrap::commit) {
     }
 
     int rc = mdb_txn_commit(tw->txn);
-    
-    // Unset the current write transaction
-    if (tw->ew->currentWriteTxn == tw->txn) {
-        tw->ew->currentWriteTxn = nullptr;
-    }
-    
-    tw->ew->Unref();
+    tw->removeFromEnvWrap();
     tw->txn = nullptr;
 
     if (rc != 0) {
@@ -119,13 +129,7 @@ NAN_METHOD(TxnWrap::abort) {
     }
 
     mdb_txn_abort(tw->txn);
-    
-    // Unset the current write transaction
-    if (tw->ew->currentWriteTxn == tw->txn) {
-        tw->ew->currentWriteTxn = nullptr;
-    }
-    
-    tw->ew->Unref();
+    tw->removeFromEnvWrap();
     tw->txn = nullptr;
 
     return;
