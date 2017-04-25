@@ -375,8 +375,10 @@ private:
     MDB_dbi dbi;
     // Reference to the MDB_env of the wrapped MDB_dbi
     MDB_env *env;
-
+    // The EnvWrap object of the current Dbi
     EnvWrap *ew;
+    // Whether the Dbi was opened successfully
+    bool isOpen;
 
     friend class TxnWrap;
     friend class CursorWrap;

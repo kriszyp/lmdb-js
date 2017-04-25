@@ -19,21 +19,44 @@ env.open({
     maxDbs: 10
 });
 
-var txn = env.beginTxn();
+var txn1 = env.beginTxn();
 var dbi = env.openDbi({
 name: 'dbUsingUserSuppliedTxn',
     create: true,
-    txn: txn
+    txn: txn1
 });
-txn.putString(dbi, 'hello', 'world');
-txn.commit();
+txn1.putString(dbi, 'hello', 'world');
+txn1.commit();
 
 var txn2 = env.beginTxn({ readOnly: true });
 var str = txn2.getString(dbi, 'hello');
 txn2.abort();
 console.log(str);
 
-// Close the database
-dbi.close();
+var txn3 = env.beginTxn();
+dbi.drop({ txn: txn3 });
+txn3.commit();
+
+console.log("dbi dropped");
+
+var txn4 = env.beginTxn({ readOnly: true });
+try {
+    dbi = env.openDbi({
+    name: 'dbUsingUserSuppliedTxn',
+        create: false,
+        txn: txn4
+    });
+}
+catch (err) {
+    if (err.message.indexOf("MDB_NOTFOUND") >= 0) {
+        console.log("dbi not found anymore, because we dropped it");
+    }
+    else {
+        console.log(err);
+    }
+}
+txn4.abort();
+
 // Close the environment
 env.close();
+

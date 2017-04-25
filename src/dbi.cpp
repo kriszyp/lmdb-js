@@ -33,6 +33,8 @@ DbiWrap::DbiWrap(MDB_env *env, MDB_dbi dbi) {
     this->env = env;
     this->dbi = dbi;
     this->keyType = NodeLmdbKeyType::StringKey;
+    this->isOpen = false;
+    this->ew = nullptr;
 }
 
 DbiWrap::~DbiWrap() {
@@ -66,6 +68,7 @@ NAN_METHOD(DbiWrap::ctor) {
     bool nameIsNull = false;
     NodeLmdbKeyType keyType = NodeLmdbKeyType::StringKey;
     bool needsTransaction = true;
+    bool isOpen = false;
 
     EnvWrap *ew = Nan::ObjectWrap::Unwrap<EnvWrap>(info[0]->ToObject());
     
@@ -128,8 +131,13 @@ NAN_METHOD(DbiWrap::ctor) {
     // NOTE: nullptr in place of the name means using the unnamed database.
     rc = mdb_dbi_open(txn, nameIsNull ? nullptr : *String::Utf8Value(name), flags, &dbi);
     if (rc != 0) {
-        mdb_txn_abort(txn);
+        if (needsTransaction) {
+            mdb_txn_abort(txn);
+        }
         return Nan::ThrowError(mdb_strerror(rc));
+    }
+    else {
+        isOpen = true;
     }
 
     if (needsTransaction) {
@@ -142,10 +150,13 @@ NAN_METHOD(DbiWrap::ctor) {
 
     // Create wrapper
     DbiWrap* dw = new DbiWrap(ew->env, dbi);
-    dw->ew = ew;
-    dw->ew->Ref();
+    if (isOpen) {
+        dw->ew = ew;
+        dw->ew->Ref();
+    }
     dw->keyType = keyType;
     dw->flags = flags;
+    dw->isOpen = isOpen;
     dw->Wrap(info.This());
 
     return info.GetReturnValue().Set(info.This());
@@ -155,9 +166,15 @@ NAN_METHOD(DbiWrap::close) {
     Nan::HandleScope scope;
 
     DbiWrap *dw = Nan::ObjectWrap::Unwrap<DbiWrap>(info.This());
-    mdb_dbi_close(dw->env, dw->dbi);
-    dw->ew->Unref();
-    dw->ew = nullptr;
+    if (dw->isOpen) {
+        mdb_dbi_close(dw->env, dw->dbi);
+        dw->isOpen = false;
+        dw->ew->Unref();
+        dw->ew = nullptr;
+    }
+    else {
+        return Nan::ThrowError("The Dbi is not open, you can't close it.");
+    }
 
     return;
 }
@@ -169,32 +186,55 @@ NAN_METHOD(DbiWrap::drop) {
     int del = 1;
     int rc;
     MDB_txn *txn;
-
-    // Check if the database should be deleted
-    if (info.Length() == 2 && info[1]->IsObject()) {
-        Handle<Object> options = info[1]->ToObject();
-        Local<Value> opt = options->Get(Nan::New<String>("justFreePages").ToLocalChecked());
-        del = opt->IsBoolean() ? !(opt->BooleanValue()) : 1;
+    bool needsTransaction = true;
+    
+    if (!dw->isOpen) {
+        return Nan::ThrowError("The Dbi is not open, you can't drop it.");
     }
 
-    // Begin transaction
-    rc = mdb_txn_begin(dw->env, nullptr, 0, &txn);
-    if (rc != 0) {
-        return Nan::ThrowError(mdb_strerror(rc));
+    // Check if the database should be deleted
+    if (info.Length() == 1 && info[0]->IsObject()) {
+        Handle<Object> options = info[0]->ToObject();
+        
+        // Just free pages
+        Local<Value> opt = options->Get(Nan::New<String>("justFreePages").ToLocalChecked());
+        del = opt->IsBoolean() ? !(opt->BooleanValue()) : 1;
+        
+        // User-supplied txn
+        auto txnObj = options->Get(Nan::New<String>("txn").ToLocalChecked());
+        if (!txnObj->IsNull() && !txnObj->IsUndefined() && txnObj->IsObject()) {
+            TxnWrap *tw = Nan::ObjectWrap::Unwrap<TxnWrap>(txnObj->ToObject());
+            needsTransaction = false;
+            txn = tw->txn;
+        }
+    }
+
+    if (needsTransaction) {
+        // Begin transaction
+        rc = mdb_txn_begin(dw->env, nullptr, 0, &txn);
+        if (rc != 0) {
+            return Nan::ThrowError(mdb_strerror(rc));
+        }
     }
 
     // Drop database
     rc = mdb_drop(txn, dw->dbi, del);
     if (rc != 0) {
+        if (needsTransaction) {
+            mdb_txn_abort(txn);
+        }
         return Nan::ThrowError(mdb_strerror(rc));
     }
 
-    // Commit transaction
-    rc = mdb_txn_commit(txn);
-    if (rc != 0) {
-        return Nan::ThrowError(mdb_strerror(rc));
+    if (needsTransaction) {
+        // Commit transaction
+        rc = mdb_txn_commit(txn);
+        if (rc != 0) {
+            return Nan::ThrowError(mdb_strerror(rc));
+        }
     }
-
+    
+    dw->isOpen = false;
     dw->ew->Unref();
     dw->ew = nullptr;
 
