@@ -60,6 +60,9 @@ NAN_METHOD(CursorWrap::ctor) {
 
     // Get key type
     auto keyType = keyTypeFromOptions(info[2], dw->keyType);
+    if (dw->keyType == NodeLmdbKeyType::Uint32Key && keyType != NodeLmdbKeyType::Uint32Key) {
+        return Nan::ThrowError("You specified keyIsUint32 on the Dbi, so you can't use other key types with it.");
+    }
     
     // Open the cursor
     MDB_cursor *cursor;
@@ -240,18 +243,6 @@ MAKE_GET_FUNC(goToNextDup, MDB_NEXT_DUP);
 
 MAKE_GET_FUNC(goToPrevDup, MDB_PREV_DUP);
 
-NAN_METHOD(CursorWrap::goToKey) {
-    return getCommon(info, MDB_SET, [](CursorWrap* cw, Nan::NAN_METHOD_ARGS_TYPE info, MDB_val &key, bool &keyIsValid) -> argtokey_callback_t {
-        return argToKey(info[0], key, cw->keyType, keyIsValid);
-    }, nullptr, nullptr, nullptr);
-}
-
-NAN_METHOD(CursorWrap::goToRange) {
-    return getCommon(info, MDB_SET_RANGE, [](CursorWrap* cw, Nan::NAN_METHOD_ARGS_TYPE info, MDB_val &key, bool &keyIsValid) -> argtokey_callback_t {
-        return argToKey(info[0], key, cw->keyType, keyIsValid);
-    }, nullptr, nullptr, nullptr);
-}
-
 static void fillDataFromArg1(CursorWrap* cw, Nan::NAN_METHOD_ARGS_TYPE info, MDB_val &data) {
     if (info[1]->IsString()) {
         CustomExternalStringResource::writeTo(info[1]->ToString(), &data);
@@ -293,16 +284,29 @@ static void freeDataFromArg1(CursorWrap* cw, Nan::NAN_METHOD_ARGS_TYPE info, MDB
     }
 }
 
+template<size_t keyIndex, size_t optionsIndex>
+inline argtokey_callback_t cursorArgToKey(CursorWrap* cw, Nan::NAN_METHOD_ARGS_TYPE info, MDB_val &key, bool &keyIsValid) {
+    auto keyType = inferAndValidateKeyType(info[keyIndex], info[optionsIndex], cw->keyType, keyIsValid);
+    if (keyIsValid) {
+        return argToKey(info[keyIndex], key, keyType, keyIsValid);
+    }
+    return nullptr;
+}
+
+NAN_METHOD(CursorWrap::goToKey) {
+    return getCommon(info, MDB_SET, cursorArgToKey<0, 1>, nullptr, nullptr, nullptr);
+}
+
+NAN_METHOD(CursorWrap::goToRange) {
+    return getCommon(info, MDB_SET_RANGE, cursorArgToKey<0, 1>, nullptr, nullptr, nullptr);
+}
+
 NAN_METHOD(CursorWrap::goToDup) {
-    return getCommon(info, MDB_GET_BOTH, [](CursorWrap* cw, Nan::NAN_METHOD_ARGS_TYPE info, MDB_val &key, bool &keyIsValid) -> argtokey_callback_t {
-        return argToKey(info[0], key, cw->keyType, keyIsValid);
-    }, fillDataFromArg1, freeDataFromArg1, nullptr);
+    return getCommon(info, MDB_GET_BOTH, cursorArgToKey<0, 2>, fillDataFromArg1, freeDataFromArg1, nullptr);
 }
 
 NAN_METHOD(CursorWrap::goToDupRange) {
-    return getCommon(info, MDB_GET_BOTH_RANGE, [](CursorWrap* cw, Nan::NAN_METHOD_ARGS_TYPE info, MDB_val &key, bool &keyIsValid) -> argtokey_callback_t {
-        return argToKey(info[0], key, cw->keyType, keyIsValid);
-    }, fillDataFromArg1, freeDataFromArg1, nullptr);
+    return getCommon(info, MDB_GET_BOTH_RANGE, cursorArgToKey<0, 2>, fillDataFromArg1, freeDataFromArg1, nullptr);
 }
 
 void CursorWrap::setupExports(Handle<Object> exports) {

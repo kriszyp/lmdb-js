@@ -429,6 +429,9 @@ private:
     
     DbiWrap *dw;
     TxnWrap *tw;
+    
+    template<size_t keyIndex, size_t optionsIndex>
+    friend argtokey_callback_t cursorArgToKey(CursorWrap* cw, Nan::NAN_METHOD_ARGS_TYPE info, MDB_val &key, bool &keyIsValid);
 
 public:
     CursorWrap(MDB_cursor *cursor);
