@@ -39,6 +39,7 @@ OpenLDAP 2.4.45 Engineering
 		admin24 fixed minor typo in tuning guide (ITS#8499)
 		admin24 fixed information about the limits option (ITS#7700)
 		admin24 fixed missing options for syncrepl configuration (ITS#7700)
+		admin24 fixed accesslog documentation to note it should not be replicated (ITS#8344)
 		Fixed ldap.conf(5) missing information on SASL_NOCANON option (ITS#7177)
 		Fixed ldapsearch(1) information on the V[V] flag behavior (ITS#7177, ITS#6339)
 		Fixed slapd-config(5), slapd.conf(5) clarification on interval keyword for refreshAndPersist (ITS#8538)
