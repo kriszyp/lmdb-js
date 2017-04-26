@@ -307,18 +307,30 @@ inline argtokey_callback_t cursorArgToKey(CursorWrap* cw, Nan::NAN_METHOD_ARGS_T
 }
 
 NAN_METHOD(CursorWrap::goToKey) {
+    if (info.Length() != 1 && info.Length() != 2) {
+        return Nan::ThrowError("You called cursor.goToKey with an incorrect number of arguments. Arguments are: key (mandatory), options (optional).");
+    }
     return getCommon(info, MDB_SET_KEY, cursorArgToKey<0, 1>, nullptr, nullptr, nullptr);
 }
 
 NAN_METHOD(CursorWrap::goToRange) {
+    if (info.Length() != 1 && info.Length() != 2) {
+        return Nan::ThrowError("You called cursor.goToRange with an incorrect number of arguments. Arguments are: key (mandatory), options (optional).");
+    }
     return getCommon(info, MDB_SET_RANGE, cursorArgToKey<0, 1>, nullptr, nullptr, nullptr);
 }
 
 NAN_METHOD(CursorWrap::goToDup) {
+    if (info.Length() != 2 && info.Length() != 3) {
+        return Nan::ThrowError("You called cursor.goToDup with an incorrect number of arguments. Arguments are: key (mandatory), data (mandatory), options (optional).");
+    }
     return getCommon(info, MDB_GET_BOTH, cursorArgToKey<0, 2>, fillDataFromArg1, freeDataFromArg1, nullptr);
 }
 
 NAN_METHOD(CursorWrap::goToDupRange) {
+    if (info.Length() != 2 && info.Length() != 3) {
+        return Nan::ThrowError("You called cursor.goToDupRange with an incorrect number of arguments. Arguments are: key (mandatory), data (mandatory), options (optional).");
+    }
     return getCommon(info, MDB_GET_BOTH_RANGE, cursorArgToKey<0, 2>, fillDataFromArg1, freeDataFromArg1, nullptr);
 }
 
