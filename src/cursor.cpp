@@ -30,6 +30,7 @@ using namespace node;
 CursorWrap::CursorWrap(MDB_cursor *cursor) {
     this->cursor = cursor;
     this->keyType = NodeLmdbKeyType::StringKey;
+    this->freeKey = nullptr;
 }
 
 CursorWrap::~CursorWrap() {
@@ -37,6 +38,9 @@ CursorWrap::~CursorWrap() {
         this->dw->Unref();
         this->tw->Unref();
         mdb_cursor_close(this->cursor);
+    }
+    if (this->freeKey) {
+        this->freeKey(this->key);
     }
 }
 
@@ -120,14 +124,18 @@ Nan::NAN_METHOD_RETURN_TYPE CursorWrap::getCommon(
 
     int al = info.Length();
     CursorWrap *cw = Nan::ObjectWrap::Unwrap<CursorWrap>(info.This());
-    
-    argtokey_callback_t freeKey = nullptr;
 
     // When a new key is manually set
     if (setKey) {
+        // Free old key if necessary
+        if (cw->freeKey) {
+            cw->freeKey(cw->key);
+            cw->freeKey = nullptr;
+        }
+        
         // Set new key and assign the deleter function
         bool keyIsValid;
-        freeKey = setKey(cw, info, cw->key, keyIsValid);
+        cw->freeKey = setKey(cw, info, cw->key, keyIsValid);
         if (!keyIsValid) {
             return;
         }
@@ -152,15 +160,13 @@ Nan::NAN_METHOD_RETURN_TYPE CursorWrap::getCommon(
     int rc = mdb_cursor_get(cw->cursor, &(cw->key), &(cw->data), op);
     
     // Check if key points inside LMDB
-    if (setKey && tempKey.mv_data == cw->key.mv_data) {
-        return Nan::ThrowError("Key doesn't point inside LMDB. This is a bug in node-lmdb.");
-    }
-    
-    // cw->key points inside the database now,
-    // so we should free the old key now.
-    if (freeKey) {
-        freeKey(tempKey);
-        freeKey = nullptr;
+    if (tempKey.mv_data != cw->key.mv_data) {
+        // cw->key points inside the database now,
+        // so we should free the old key now.
+        if (cw->freeKey) {
+            cw->freeKey(tempKey);
+            cw->freeKey = nullptr;
+        }
     }
 
     if (rc == MDB_NOTFOUND) {
