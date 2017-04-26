@@ -259,12 +259,14 @@ static void fillDataFromArg1(CursorWrap* cw, Nan::NAN_METHOD_ARGS_TYPE info, MDB
     else if (info[1]->IsNumber()) {
         data.mv_size = sizeof(double);
         data.mv_data = new double;
-        *((double*)data.mv_data) = info[1]->ToNumber(Nan::GetCurrentContext()).ToLocalChecked()->Value();
+        auto local = Nan::To<v8::Number>(info[1]).ToLocalChecked();
+        *((double*)data.mv_data) = local->Value();
     }
     else if (info[1]->IsBoolean()) {
         data.mv_size = sizeof(double);
         data.mv_data = new bool;
-        *((bool*)data.mv_data) = info[1]->ToBoolean()->Value();
+        auto local = Nan::To<v8::Boolean>(info[1]).ToLocalChecked();
+        *((bool*)data.mv_data) = local->Value();
     }
     else {
         Nan::ThrowError("Invalid data type.");

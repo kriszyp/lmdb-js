@@ -239,7 +239,7 @@ NAN_METHOD(EnvWrap::beginTxn) {
     const int argc = 2;
 
     Local<Value> argv[argc] = { info.This(), info[0] };
-    MaybeLocal<Object> maybeInstance = Nan::New(txnCtor)->NewInstance(Nan::GetCurrentContext(), argc, argv);
+    Nan::MaybeLocal<Object> maybeInstance = Nan::NewInstance(Nan::New(txnCtor), argc, argv);
 
     // Check if txn could be created
     if ((maybeInstance.IsEmpty())) {
@@ -257,7 +257,7 @@ NAN_METHOD(EnvWrap::openDbi) {
 
     const unsigned argc = 2;
     Local<Value> argv[argc] = { info.This(), info[0] };
-    MaybeLocal<Object> maybeInstance = Nan::New(dbiCtor)->NewInstance(Nan::GetCurrentContext(), argc, argv);
+    Nan::MaybeLocal<Object> maybeInstance = Nan::NewInstance(Nan::New(dbiCtor), argc, argv);
 
     // Check if database could be opened
     if ((maybeInstance.IsEmpty())) {

@@ -304,7 +304,8 @@ NAN_METHOD(TxnWrap::putNumber) {
     return putCommon(info, [](Nan::NAN_METHOD_ARGS_TYPE info, MDB_val &data) -> void {
         data.mv_size = sizeof(double);
         data.mv_data = new double;
-        *((double*)data.mv_data) = info[2]->ToNumber(Nan::GetCurrentContext()).ToLocalChecked()->Value();
+        auto numberLocal = Nan::To<v8::Number>(info[2]).ToLocalChecked();
+        *((double*)data.mv_data) = numberLocal->Value();
     }, [](MDB_val &data) -> void {
         delete (double*)data.mv_data;
     });
@@ -314,7 +315,8 @@ NAN_METHOD(TxnWrap::putBoolean) {
     return putCommon(info, [](Nan::NAN_METHOD_ARGS_TYPE info, MDB_val &data) -> void {
         data.mv_size = sizeof(double);
         data.mv_data = new bool;
-        *((bool*)data.mv_data) = info[2]->ToBoolean()->Value();
+        auto booleanLocal = Nan::To<v8::Boolean>(info[2]).ToLocalChecked();
+        *((bool*)data.mv_data) = booleanLocal->Value();
     }, [](MDB_val &data) -> void {
         delete (bool*)data.mv_data;
     });
@@ -342,7 +344,7 @@ NAN_METHOD(TxnWrap::del) {
     MDB_val data;
     Local<Value> dataHandle = info[2];
     bool freeData = false;
-    auto context = Nan::GetCurrentContext();
+    
     if ((dw->flags & MDB_DUPSORT) && !(dataHandle->IsUndefined())) {
         if (dataHandle->IsString()) {
             CustomExternalStringResource::writeTo(dataHandle->ToString(), &data);
@@ -354,25 +356,17 @@ NAN_METHOD(TxnWrap::del) {
             freeData = true;
         }
         else if (dataHandle->IsNumber()) {
-            // be pesimistic - avoid deprecated non-maybe interface
-            Nan::Maybe<double> d = Nan::To<double>(dataHandle);
-            if (d.IsJust()) {
-                data.mv_size = sizeof(double);
-                data.mv_data = new double;
-                *((double*)data.mv_data) = d.FromJust();
-                freeData = true;
-            }
-            else {
-                // This error is surely impossible? Just trying to avoid deprecated warnings...
-                Nan::ThrowError("Is a number but isn't a double???");
-            }
+            auto numberLocal = Nan::To<v8::Number>(dataHandle).ToLocalChecked();
+            data.mv_size = sizeof(double);
+            data.mv_data = new double;
+            *reinterpret_cast<double*>(data.mv_data) = numberLocal->Value();
+            freeData = true;
         }
         else if (dataHandle->IsBoolean()) {
+            auto booleanLocal = Nan::To<v8::Boolean>(dataHandle).ToLocalChecked();
             data.mv_size = sizeof(double);
             data.mv_data = new bool;
-            
-            auto local = dataHandle->ToBoolean(context).ToLocalChecked();
-            *((bool*)data.mv_data) = local->Value();
+            *reinterpret_cast<bool*>(data.mv_data) = booleanLocal->Value();
             freeData = true;
         }
         else {
