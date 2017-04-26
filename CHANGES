@@ -44,6 +44,7 @@ OpenLDAP 2.4.45 Engineering
 		Fixed ldapsearch(1) information on the V[V] flag behavior (ITS#7177, ITS#6339)
 		Fixed slapd-config(5), slapd.conf(5) clarification on interval keyword for refreshAndPersist (ITS#8538)
 		Fixed slapo-ppolicy(5) to clearly note rootdn requirement (ITS#8565)
+		Fixed slapo-memberof(5) to note it is not safe to use with replication (ITS#8613)
 		Fixed slapo-syncprov(5) documentation to be current (ITS#8253)
 		Fixed slapadd(8) manpage to note slapd-mdb (ITS#8215)
 		Fixed various minor grammar issues in the man pages (ITS#8544)
