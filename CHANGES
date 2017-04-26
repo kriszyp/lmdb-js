@@ -23,6 +23,7 @@ OpenLDAP 2.4.45 Engineering
 	Build Environment
 		Added test065 for proxyauthz (ITS#8571)
 		Fix test008 to be portable (ITS#8414)
+		Fix test064 to wait for slapd to start (ITS#8644)
 		Fix its4336 regression test (ITS#8534)
 		Fix its4337 regression test (ITS#8535)
 		Fix regression tests to execute on all backends (ITS#8539)
