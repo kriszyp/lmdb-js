@@ -470,7 +470,7 @@ describe('Node.js LMDB Bindings', function() {
       dbi = env.openDbi({
         name: 'mydb5',
         create: true,
-        dupSort: true,
+        dupSort: false,
         keyIsUint32: true
       });
       var txn = env.beginTxn();
@@ -565,6 +565,91 @@ describe('Node.js LMDB Bindings', function() {
       });
       cursor.close();
       txn.abort();
+    });
+  });
+  describe('Cursors, dupsort', function() {
+    this.timeout(10000);
+    var env;
+    var dbi;
+    var total = 50;
+    var dataCount = {};
+    
+    before(function() {
+      env = new lmdb.Env();
+      env.open({
+        path: testDirPath,
+        maxDbs: 10,
+        mapSize: 64 * 1024 * 1024
+      });
+      dbi = env.openDbi({
+        name: 'cursor_dupsort',
+        create: true,
+        dupSort: true
+      });
+      const txn = env.beginTxn();
+      var count;
+      for (count = 0; count < total; count ++) {
+        let key = "hello_" + count.toString(16);
+        let data = key + "_data";
+        dataCount[key] = (count % 4) + 1;
+        for (var j = 0; j < dataCount[key]; j++) {
+          txn.putString(dbi, key, data + String(j));
+        }
+      }
+      txn.commit();
+    });
+    it('will move cursor over values, expects to get correct key and data', function (done) {
+      var txn = env.beginTxn({ readOnly: true });
+      var cursor = new lmdb.Cursor(txn, dbi);
+      var count;
+      
+      for (count = 0; count < total; count ++) {
+        var expectedKey = "hello_" + count.toString(16);
+        var expectedDataX = expectedKey + "_data";
+        var key = cursor.goToRange(expectedKey);
+        should.equal(expectedKey, key);
+        
+        var data = cursor.getCurrentString();
+        should.equal(expectedDataX + "0", data);
+        
+        var dc;
+        
+        // Iterate over dup keys
+        dc = 0;
+        for (var k = cursor.goToFirstDup(); k; k = cursor.goToNextDup()) {
+            var data = cursor.getCurrentString();
+            
+            should.equal(expectedKey, k);
+            should.equal(expectedDataX + String(dc), data);
+            
+            dc ++;
+        }
+        should.equal(dataCount[key], dc);
+        
+        // Iterate over dup keys by using goToDup first
+        dc = 0;
+        for (var k = cursor.goToDup(expectedKey, expectedDataX + "0"); k; k = cursor.goToNextDup()) {
+            var data = cursor.getCurrentString();
+            
+            should.equal(expectedKey, k);
+            should.equal(expectedDataX + String(dc), data);
+            
+            dc ++;
+        }
+        should.equal(dataCount[key], dc);
+      }
+      
+      should.equal(count, total);
+      count = 0;
+      
+      cursor.close();
+      txn.abort();
+      
+      done();
+    });
+    after(function () {
+      dbi.close();
+      env.close();
     });
   });
   describe('Cursors (with strings)', function() {
