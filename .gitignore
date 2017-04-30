@@ -35,3 +35,6 @@ MANIFEST
 
 # NPM dependencies
 node_modules/
+
+# Visual Studio Code directory
+.vscode
