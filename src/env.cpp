@@ -96,7 +96,6 @@ int applyUint32Setting(int (*f)(MDB_env *, T), MDB_env* e, Local<Object> options
     }
 
     return rc;
-
 }
 
 NAN_METHOD(EnvWrap::open) {
@@ -159,8 +158,6 @@ NAN_METHOD(EnvWrap::open) {
         ew->env = nullptr;
         return Nan::ThrowError(mdb_strerror(rc));
     }
-
-    return;
 }
 
 NAN_METHOD(EnvWrap::close) {
@@ -174,8 +171,6 @@ NAN_METHOD(EnvWrap::close) {
     ew->cleanupStrayTxns();
     mdb_env_close(ew->env);
     ew->env = nullptr;
-
-    return;
 }
 
 NAN_METHOD(EnvWrap::stat) {
@@ -310,8 +305,6 @@ NAN_METHOD(EnvWrap::sync) {
         delete d->callback;
         delete d;
     });
-
-    return;
 }
 
 void EnvWrap::setupExports(Handle<Object> exports) {

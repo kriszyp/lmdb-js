@@ -115,8 +115,6 @@ NAN_METHOD(TxnWrap::commit) {
     if (rc != 0) {
         return Nan::ThrowError(mdb_strerror(rc));
     }
-
-    return;
 }
 
 NAN_METHOD(TxnWrap::abort) {
@@ -131,8 +129,6 @@ NAN_METHOD(TxnWrap::abort) {
     mdb_txn_abort(tw->txn);
     tw->removeFromEnvWrap();
     tw->txn = nullptr;
-
-    return;
 }
 
 NAN_METHOD(TxnWrap::reset) {
@@ -145,8 +141,6 @@ NAN_METHOD(TxnWrap::reset) {
     }
 
     mdb_txn_reset(tw->txn);
-
-    return;
 }
 
 NAN_METHOD(TxnWrap::renew) {
@@ -162,8 +156,6 @@ NAN_METHOD(TxnWrap::renew) {
     if (rc != 0) {
         return Nan::ThrowError(mdb_strerror(rc));
     }
-
-    return;
 }
 
 Nan::NAN_METHOD_RETURN_TYPE TxnWrap::getCommon(Nan::NAN_METHOD_ARGS_TYPE info, Local<Value> (*successFunc)(MDB_val&)) {
@@ -180,21 +172,27 @@ Nan::NAN_METHOD_RETURN_TYPE TxnWrap::getCommon(Nan::NAN_METHOD_ARGS_TYPE info, L
         return Nan::ThrowError("The transaction is already closed.");
     }
 
-    MDB_val key, data;
+    MDB_val key, oldkey, data;
     bool keyIsValid;
     auto keyType = inferAndValidateKeyType(info[1], info[2], dw->keyType, keyIsValid);
     if (!keyIsValid) {
+        // inferAndValidateKeyType already threw an error
         return;
     }
     auto freeKey = argToKey(info[1], key, keyType, keyIsValid);
     if (!keyIsValid) {
+        // argToKey already threw an error
         return;
     }
+
+    // Bookkeeping for old key so that we can free it even if key will point inside LMDB
+    oldkey.mv_data = key.mv_data;
+    oldkey.mv_size = key.mv_size;
 
     int rc = mdb_get(tw->txn, dw->dbi, &key, &data);
     
     if (freeKey) {
-        freeKey(key);
+        freeKey(oldkey);
     }
 
     if (rc == MDB_NOTFOUND) {
@@ -251,10 +249,12 @@ Nan::NAN_METHOD_RETURN_TYPE TxnWrap::putCommon(Nan::NAN_METHOD_ARGS_TYPE info, v
     bool keyIsValid;
     auto keyType = inferAndValidateKeyType(info[1], info[3], dw->keyType, keyIsValid);
     if (!keyIsValid) {
+        // inferAndValidateKeyType already threw an error
         return;
     }
     auto freeKey = argToKey(info[1], key, keyType, keyIsValid);
     if (!keyIsValid) {
+        // argToKey already threw an error
         return;
     }
     
@@ -279,8 +279,6 @@ Nan::NAN_METHOD_RETURN_TYPE TxnWrap::putCommon(Nan::NAN_METHOD_ARGS_TYPE info, v
     if (rc != 0) {
         return Nan::ThrowError(mdb_strerror(rc));
     }
-
-    return;
 }
 
 NAN_METHOD(TxnWrap::putString) {
@@ -334,9 +332,14 @@ NAN_METHOD(TxnWrap::del) {
 
     MDB_val key;
     bool keyIsValid;
-    auto keyType = keyTypeFromOptions(info[2], dw->keyType);
+    auto keyType = inferAndValidateKeyType(info[1], info[2], dw->keyType, keyIsValid);
+    if (!keyIsValid) {
+        // inferAndValidateKeyType already threw an error
+        return;
+    }
     auto freeKey = argToKey(info[1], key, keyType, keyIsValid);
     if (!keyIsValid) {
+        // argToKey already threw an error
         return;
     }
 
@@ -398,6 +401,4 @@ NAN_METHOD(TxnWrap::del) {
     if (rc != 0) {
         return Nan::ThrowError(mdb_strerror(rc));
     }
-
-    return;
 }

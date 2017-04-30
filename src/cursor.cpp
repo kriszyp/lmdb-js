@@ -95,7 +95,6 @@ NAN_METHOD(CursorWrap::close) {
     cw->dw->Unref();
     cw->tw->Unref();
     cw->cursor = nullptr;
-    return;
 }
 
 NAN_METHOD(CursorWrap::del) {
@@ -122,8 +121,6 @@ NAN_METHOD(CursorWrap::del) {
     if (rc != 0) {
         return Nan::ThrowError(mdb_strerror(rc));
     }
-
-    return;
 }
 
 Nan::NAN_METHOD_RETURN_TYPE CursorWrap::getCommon(
@@ -151,6 +148,7 @@ Nan::NAN_METHOD_RETURN_TYPE CursorWrap::getCommon(
         bool keyIsValid;
         cw->freeKey = setKey(cw, info, cw->key, keyIsValid);
         if (!keyIsValid) {
+            // setKey already threw an error, no need to throw here
             return;
         }
     }

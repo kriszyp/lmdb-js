@@ -175,8 +175,6 @@ NAN_METHOD(DbiWrap::close) {
     else {
         return Nan::ThrowError("The Dbi is not open, you can't close it.");
     }
-
-    return;
 }
 
 NAN_METHOD(DbiWrap::drop) {
@@ -237,8 +235,6 @@ NAN_METHOD(DbiWrap::drop) {
     dw->isOpen = false;
     dw->ew->Unref();
     dw->ew = nullptr;
-
-    return;
 }
 
 NAN_METHOD(DbiWrap::stat) {
