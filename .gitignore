@@ -1,5 +1,7 @@
 
+# Build and test data
 build
+testdata
 test/testdata
 benchmark/benchdata
 
