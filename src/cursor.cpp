@@ -57,7 +57,7 @@ NAN_METHOD(CursorWrap::ctor) {
     if (arg0.IsEmpty() || arg1.IsEmpty()) {
         return Nan::ThrowError("Invalid arguments to the Cursor constructor. First must be a Txn, second must be a Dbi.");
     }
-    
+
     // Unwrap Txn and Dbi
     TxnWrap *tw = Nan::ObjectWrap::Unwrap<TxnWrap>(arg0.ToLocalChecked());
     DbiWrap *dw = Nan::ObjectWrap::Unwrap<DbiWrap>(arg1.ToLocalChecked());
@@ -67,7 +67,7 @@ NAN_METHOD(CursorWrap::ctor) {
     if (dw->keyType == NodeLmdbKeyType::Uint32Key && keyType != NodeLmdbKeyType::Uint32Key) {
         return Nan::ThrowError("You specified keyIsUint32 on the Dbi, so you can't use other key types with it.");
     }
-    
+
     // Open the cursor
     MDB_cursor *cursor;
     int rc = mdb_cursor_open(tw->txn, dw->dbi, &cursor);
@@ -101,10 +101,24 @@ NAN_METHOD(CursorWrap::close) {
 NAN_METHOD(CursorWrap::del) {
     Nan::HandleScope scope;
 
-    CursorWrap *cw = Nan::ObjectWrap::Unwrap<CursorWrap>(info.This());
-    // TODO: wrap MDB_NODUPDATA flag
+    if (info.Length() != 0 && info.Length() != 1) {
+        return Nan::ThrowError("cursor.del: Incorrect number of arguments provided, arguments: options (optional).");
+    }
 
-    int rc = mdb_cursor_del(cw->cursor, 0);
+    int flags = 0;
+
+    if (info.Length() == 1) {
+        if (!info[0]->IsObject()) {
+            return Nan::ThrowError("cursor.del: Invalid options argument. It should be an object.");
+        }
+        
+        auto options = Nan::To<v8::Object>(info[0]).ToLocalChecked();
+        setFlagFromValue(&flags, MDB_NODUPDATA, "noDupData", false, options);
+    }
+
+    CursorWrap *cw = Nan::ObjectWrap::Unwrap<CursorWrap>(info.This());
+
+    int rc = mdb_cursor_del(cw->cursor, flags);
     if (rc != 0) {
         return Nan::ThrowError(mdb_strerror(rc));
     }
@@ -132,7 +146,7 @@ Nan::NAN_METHOD_RETURN_TYPE CursorWrap::getCommon(
             cw->freeKey(cw->key);
             cw->freeKey = nullptr;
         }
-        
+
         // Set new key and assign the deleter function
         bool keyIsValid;
         cw->freeKey = setKey(cw, info, cw->key, keyIsValid);
@@ -140,7 +154,7 @@ Nan::NAN_METHOD_RETURN_TYPE CursorWrap::getCommon(
             return;
         }
     }
-    
+
     // When data is manually set
     if (setData) {
         setData(cw, info, cw->data);
@@ -150,7 +164,7 @@ Nan::NAN_METHOD_RETURN_TYPE CursorWrap::getCommon(
     MDB_val tempdata;
     tempdata.mv_size = cw->data.mv_size;
     tempdata.mv_data = cw->data.mv_data;
-    
+
     // Temporary bookkeeping for the current key
     MDB_val tempKey;
     tempKey.mv_size = cw->key.mv_size;
@@ -158,7 +172,7 @@ Nan::NAN_METHOD_RETURN_TYPE CursorWrap::getCommon(
 
     // Call LMDB
     int rc = mdb_cursor_get(cw->cursor, &(cw->key), &(cw->data), op);
-    
+
     // Check if key points inside LMDB
     if (tempKey.mv_data != cw->key.mv_data) {
         // cw->key points inside the database now,
