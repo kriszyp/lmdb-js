@@ -254,6 +254,20 @@ client_reset( Connection *c )
 
     root = c->c_ops;
     c->c_ops = NULL;
+
+    /* unless op->o_client_refcnt > op->o_client_live, there is noone using the
+     * operation from the client side and noone new will now that we've removed
+     * it from client's c_ops */
+    if ( root ) {
+        TAvlnode *node = tavl_end( root, TAVL_DIR_LEFT );
+        do {
+            Operation *op = node->avl_data;
+
+            /* make sure it's useable after we've unlocked the connection */
+            op->o_client_refcnt++;
+        } while ( (node = tavl_next( node, TAVL_DIR_RIGHT )) );
+    }
+
     if ( !BER_BVISNULL( &c->c_auth ) ) {
         ch_free( c->c_auth.bv_val );
         BER_BVZERO( &c->c_auth );
@@ -264,11 +278,24 @@ client_reset( Connection *c )
     }
     CONNECTION_UNLOCK_INCREF(c);
 
-    freed = tavl_free( root, (AVL_FREE)operation_abandon );
+    if ( root ) {
+        TAvlnode *node = tavl_end( root, TAVL_DIR_LEFT );
+        do {
+            Operation *op = node->avl_data;
 
-    Debug( LDAP_DEBUG_TRACE, "client_reset: "
-            "dropped %d operations\n",
-            freed );
+            operation_abandon( op );
+
+            CONNECTION_LOCK(c);
+            op->o_client_refcnt--;
+            operation_destroy_from_client( op );
+            CONNECTION_UNLOCK(c);
+        } while ( (node = tavl_next( node, TAVL_DIR_RIGHT )) );
+
+        freed = tavl_free( root, NULL );
+        Debug( LDAP_DEBUG_TRACE, "client_reset: "
+                "dropped %d operations\n",
+                freed );
+    }
 
     CONNECTION_LOCK_DECREF(c);
 }
@@ -280,6 +307,7 @@ client_bind( Connection *client, Operation *op )
     int rc = LDAP_SUCCESS;
 
     /* protect the Bind operation */
+    op->o_client_refcnt++;
     tavl_delete( &client->c_ops, op, operation_client_cmp );
     client->c_state = SLAP_C_BINDING;
 
@@ -293,6 +321,8 @@ client_bind( Connection *client, Operation *op )
         operation_send_reject(
                 op, LDAP_UNAVAILABLE, "no connections available", 1 );
         CONNECTION_LOCK_DECREF(client);
+        op->o_client_refcnt--;
+        operation_destroy_from_client( op );
         return rc;
     }
 
@@ -309,13 +339,19 @@ client_bind( Connection *client, Operation *op )
 
     CONNECTION_LOCK_DECREF(client);
     if ( rc ) {
+        op->o_client_refcnt--;
+        operation_destroy_from_client( op );
         CLIENT_DESTROY(client);
         return -1;
     }
 
-    rc = tavl_insert( &client->c_ops, op, operation_client_cmp, avl_dup_error );
-    assert( rc == LDAP_SUCCESS );
-    CLIENT_UNLOCK_OR_DESTROY(client);
+    if ( !--op->o_client_refcnt ) {
+        operation_destroy_from_client( op );
+    } else {
+        rc = tavl_insert(
+                &client->c_ops, op, operation_client_cmp, avl_dup_error );
+        assert( rc == LDAP_SUCCESS );
+    }
 
     return rc;
 }

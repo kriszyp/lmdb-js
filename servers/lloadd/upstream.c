@@ -75,7 +75,9 @@ forward_final_response( Operation *op, BerElement *ber )
             "finishing up with request #%d for client %lu\n",
             op->o_client_msgid, op->o_client_connid );
     rc = forward_response( op, ber );
-    operation_destroy( op );
+    CONNECTION_LOCK_DECREF(op->o_upstream);
+    operation_destroy_from_upstream( op );
+    CONNECTION_UNLOCK_INCREF(op->o_upstream);
 
     return rc;
 }
@@ -122,14 +124,21 @@ handle_bind_response( Operation *op, BerElement *ber )
                 ber_memfree( c->c_sasl_bind_mech.bv_val );
                 BER_BVZERO( &c->c_sasl_bind_mech );
             }
-            CONNECTION_UNLOCK(c);
+            if ( rc ) {
+                CONNECTION_UNLOCK_INCREF(c);
+            } else {
+                CONNECTION_UNLOCK(c);
+            }
             break;
         }
     }
 
 done:
     if ( rc ) {
-        operation_destroy( op );
+        CONNECTION_LOCK_DECREF(c);
+        operation_destroy_from_client( op );
+        CLIENT_UNLOCK_OR_DESTROY(c);
+
         ber_free( ber, 1 );
         return rc;
     }
@@ -179,7 +188,7 @@ handle_vc_bind_response( Operation *op, BerElement *ber )
         tag = ber_scanf( ber, "o", &c->c_vc_cookie );
         if ( tag == LBER_ERROR ) {
             rc = -1;
-            CONNECTION_UNLOCK(c);
+            CONNECTION_UNLOCK_INCREF(c);
             goto done;
         }
         tag = ber_peek_tag( ber, &len );
@@ -189,7 +198,7 @@ handle_vc_bind_response( Operation *op, BerElement *ber )
         tag = ber_scanf( ber, "m", &creds );
         if ( tag == LBER_ERROR ) {
             rc = -1;
-            CONNECTION_UNLOCK(c);
+            CONNECTION_UNLOCK_INCREF(c);
             goto done;
         }
         tag = ber_peek_tag( ber, &len );
@@ -199,7 +208,7 @@ handle_vc_bind_response( Operation *op, BerElement *ber )
         tag = ber_scanf( ber, "m", &controls );
         if ( tag == LBER_ERROR ) {
             rc = -1;
-            CONNECTION_UNLOCK(c);
+            CONNECTION_UNLOCK_INCREF(c);
             goto done;
         }
     }
@@ -225,7 +234,7 @@ handle_vc_bind_response( Operation *op, BerElement *ber )
             break;
         }
     }
-    CONNECTION_UNLOCK(c);
+    CONNECTION_UNLOCK_INCREF(c);
 
     ldap_pvt_thread_mutex_lock( &c->c_io_mutex );
     output = c->c_pendingber;
@@ -249,7 +258,9 @@ handle_vc_bind_response( Operation *op, BerElement *ber )
     }
 
 done:
-    operation_destroy( op );
+    CONNECTION_LOCK_DECREF(c);
+    operation_destroy_from_client( op );
+    CLIENT_UNLOCK_OR_DESTROY(c);
     ber_free( ber, 1 );
     return rc;
 }
@@ -370,11 +381,16 @@ handle_one_response( Connection *c )
                 c->c_connid, slap_msgtype2str( tag ), needle.o_upstream_msgid );
     }
 
-    CONNECTION_UNLOCK_INCREF(c);
     if ( handler ) {
+        op->o_upstream_refcnt++;
+        CONNECTION_UNLOCK_INCREF(c);
         rc = handler( op, ber );
+        CONNECTION_LOCK_DECREF(c);
+        op->o_upstream_refcnt--;
+        if ( !op->o_upstream_live ) {
+            operation_destroy_from_upstream( op );
+        }
     }
-    CONNECTION_LOCK_DECREF(c);
 
 fail:
     if ( rc ) {
@@ -826,7 +842,6 @@ upstream_destroy( Connection *c )
             "freeing connection %lu\n",
             c->c_connid );
 
-    assert( c->c_state != SLAP_C_INVALID );
     c->c_state = SLAP_C_INVALID;
 
     read_event = c->c_read_event;
@@ -857,5 +872,19 @@ upstream_destroy( Connection *c )
 
     CONNECTION_LOCK_DECREF(c);
 
+    /*
+     * If we attempted to destroy any operations, we might have lent a new
+     * refcnt token for a thread that raced us to that, let them call us again
+     * later
+     */
+    assert( c->c_refcnt >= 0 );
+    if ( c->c_refcnt ) {
+        c->c_state = SLAP_C_CLOSING;
+        Debug( LDAP_DEBUG_CONNS, "upstream_destroy: "
+                "connid=%lu aborting with refcnt=%d\n",
+                c->c_connid, c->c_refcnt );
+        CONNECTION_UNLOCK(c);
+        return;
+    }
     connection_destroy( c );
 }

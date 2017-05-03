@@ -398,11 +398,24 @@ struct Connection {
     void *c_private;
 };
 
-struct Operation {
-    Connection *o_client, *o_upstream;
-    unsigned long o_client_connid, o_upstream_connid;
+enum op_state {
+    SLAP_OP_NOT_FREEING = 0,
+    SLAP_OP_FREEING_UPSTREAM = 1 << 0,
+    SLAP_OP_FREEING_CLIENT = 1 << 1,
+};
 
-    ber_int_t o_client_msgid, o_upstream_msgid;
+struct Operation {
+    Connection *o_client;
+    unsigned long o_client_connid;
+    int o_client_live, o_client_refcnt;
+    ber_int_t o_client_msgid;
+
+    Connection *o_upstream;
+    unsigned long o_upstream_connid;
+    int o_upstream_live, o_upstream_refcnt;
+    ber_int_t o_upstream_msgid;
+
+    enum op_state o_freeing;
     ber_tag_t o_tag;
 
     BerElement *o_ber;

@@ -150,6 +150,7 @@ LDAP_SLAPD_V (const char *) slapd_slp_attrs;
 /*
  * operation.c
  */
+LDAP_SLAPD_V (ldap_pvt_thread_mutex_t) operation_mutex;
 LDAP_SLAPD_F (const char *) slap_msgtype2str( ber_tag_t tag );
 LDAP_SLAPD_F (int) operation_upstream_cmp( const void *l, const void *r );
 LDAP_SLAPD_F (int) operation_client_cmp( const void *l, const void *r );
@@ -157,7 +158,8 @@ LDAP_SLAPD_F (Operation *) operation_init( Connection *c, BerElement *ber );
 LDAP_SLAPD_F (void) operation_abandon( Operation *op );
 LDAP_SLAPD_F (void) operation_send_reject( Operation *op, int result, const char *msg, int send_anyway );
 LDAP_SLAPD_F (void) operation_lost_upstream( Operation *op );
-LDAP_SLAPD_F (void) operation_destroy( Operation *op );
+LDAP_SLAPD_F (void) operation_destroy_from_client( Operation *op );
+LDAP_SLAPD_F (void) operation_destroy_from_upstream( Operation *op );
 LDAP_SLAPD_F (int) request_abandon( Connection *c, Operation *op );
 LDAP_SLAPD_F (int) request_process( Connection *c, Operation *op );
 

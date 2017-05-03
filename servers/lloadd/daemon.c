@@ -92,6 +92,8 @@ struct evdns_base *dnsbase;
 
 static int emfile;
 
+ldap_pvt_thread_mutex_t operation_mutex;
+
 static volatile int waking;
 #define WAKE_DAEMON( l, w ) \
     do { \
@@ -721,6 +723,8 @@ slapd_daemon_init( const char *urls )
 
     Debug( LDAP_DEBUG_ARGS, "slapd_daemon_init: %s\n",
             urls ? urls : "<null>" );
+
+    ldap_pvt_thread_mutex_init( &operation_mutex );
 
 #ifdef HAVE_TCPD
     ldap_pvt_thread_mutex_init( &sd_tcpd_mutex );
