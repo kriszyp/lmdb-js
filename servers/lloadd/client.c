@@ -164,6 +164,8 @@ handle_one_request( Connection *c )
 
     switch ( op->o_tag ) {
         case LDAP_REQ_UNBIND:
+            /* There is never a response for this operation */
+            operation_destroy_from_client( op );
             c->c_state = SLAP_C_CLOSING;
             CLIENT_DESTROY(c);
             return -1;
