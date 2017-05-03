@@ -24,15 +24,15 @@
 #include "lutil.h"
 #include "slap.h"
 
+typedef int (*RequestHandler)( Connection *c, Operation *op );
+
 static void
 client_read_cb( evutil_socket_t s, short what, void *arg )
 {
     Connection *c = arg;
     BerElement *ber;
-    Operation *op = NULL;
     ber_tag_t tag;
     ber_len_t len;
-    int rc = 0;
 
     /* What if the shutdown is already in progress and we get to lock the
      * connection? */
@@ -47,8 +47,9 @@ client_read_cb( evutil_socket_t s, short what, void *arg )
         Debug( LDAP_DEBUG_ANY, "client_read_cb: "
                 "ber_alloc failed\n" );
         CLIENT_DESTROY(c);
-        goto fail;
+        return;
     }
+    c->c_currentber = ber;
 
     tag = ber_get_next( c->c_sb, &len, ber );
     if ( tag != LDAP_TAG_MESSAGE ) {
@@ -61,72 +62,134 @@ client_read_cb( evutil_socket_t s, short what, void *arg )
                     c->c_fd, err, sock_errstr( err, ebuf, sizeof(ebuf) ) );
 
             c->c_currentber = NULL;
+            ber_free( ber, 1 );
             CLIENT_DESTROY(c);
-            goto fail;
+            return;
         }
-        c->c_currentber = ber;
+        event_add( c->c_read_event, NULL );
         CONNECTION_UNLOCK(c);
         return;
     }
 
+    if ( !slap_conn_max_pdus_per_cycle ||
+            ldap_pvt_thread_pool_submit(
+                    &connection_pool, handle_requests, c ) ) {
+        /* If we're overloaded or configured as such, process one and resume in
+         * the next cycle.
+         *
+         * handle_one_request re-locks the mutex in the
+         * process, need to test it's still alive */
+        if ( handle_one_request( c ) == LDAP_SUCCESS ) {
+            CLIENT_UNLOCK_OR_DESTROY(c);
+        }
+        return;
+    }
+    event_del( c->c_read_event );
+
+    CONNECTION_UNLOCK(c);
+    return;
+}
+
+void *
+handle_requests( void *ctx, void *arg )
+{
+    Connection *c = arg;
+    int requests_handled = 0;
+
+    CONNECTION_LOCK(c);
+    for ( ; requests_handled < slap_conn_max_pdus_per_cycle;
+            requests_handled++ ) {
+        BerElement *ber;
+        ber_tag_t tag;
+        ber_len_t len;
+
+        /* handle_one_response may unlock the connection in the process, we
+         * need to expect that might be our responsibility to destroy it */
+        if ( handle_one_request( c ) ) {
+            /* Error, connection is unlocked and might already have been
+             * destroyed */
+            return NULL;
+        }
+        /* Otherwise, handle_one_request leaves the connection locked */
+
+        if ( (ber = ber_alloc()) == NULL ) {
+            Debug( LDAP_DEBUG_ANY, "client_read_cb: "
+                    "ber_alloc failed\n" );
+            CLIENT_DESTROY(c);
+            return NULL;
+        }
+        c->c_currentber = ber;
+
+        tag = ber_get_next( c->c_sb, &len, ber );
+        if ( tag != LDAP_TAG_MESSAGE ) {
+            int err = sock_errno();
+
+            if ( err != EWOULDBLOCK && err != EAGAIN ) {
+                char ebuf[128];
+                Debug( LDAP_DEBUG_ANY, "handle_requests: "
+                        "ber_get_next on fd %d failed errno=%d (%s)\n",
+                        c->c_fd, err,
+                        sock_errstr( err, ebuf, sizeof(ebuf) ) );
+
+                c->c_currentber = NULL;
+                ber_free( ber, 1 );
+                CLIENT_DESTROY(c);
+                return NULL;
+            }
+            break;
+        }
+    }
+
+    event_add( c->c_read_event, NULL );
+    CLIENT_UNLOCK_OR_DESTROY(c);
+    return NULL;
+}
+
+int
+handle_one_request( Connection *c )
+{
+    BerElement *ber;
+    Operation *op = NULL;
+    RequestHandler handler = NULL;
+
+    ber = c->c_currentber;
     c->c_currentber = NULL;
 
     op = operation_init( c, ber );
     if ( !op ) {
-        Debug( LDAP_DEBUG_ANY, "client_read_cb: "
+        Debug( LDAP_DEBUG_ANY, "handle_one_request: "
                 "operation_init failed\n" );
         CLIENT_DESTROY(c);
-        goto fail;
+        ber_free( ber, 1 );
+        return -1;
     }
 
     switch ( op->o_tag ) {
         case LDAP_REQ_UNBIND:
-            /* We do not expect anything more from the client. Also, we are the
-             * read event, so don't need to unlock */
-            event_del( c->c_read_event );
-
-            rc = ldap_pvt_thread_pool_submit(
-                    &connection_pool, client_reset, op );
-            if ( rc ) {
-                CONNECTION_UNLOCK(c);
-                client_reset( NULL, op );
-                return;
-            }
-            break;
+            c->c_state = SLAP_C_CLOSING;
+            CLIENT_DESTROY(c);
+            return -1;
         case LDAP_REQ_BIND:
-            rc = ldap_pvt_thread_pool_submit(
-                    &connection_pool, client_bind, op );
+            handler = client_bind;
+            break;
+        case LDAP_REQ_ABANDON:
+            /* FIXME: We need to be able to abandon a Bind request, handling
+             * ExOps (esp. Cancel) will be different */
+            handler = request_abandon;
             break;
         default:
             if ( c->c_state == SLAP_C_BINDING ) {
-                CONNECTION_UNLOCK(c);
+                CONNECTION_UNLOCK_INCREF(c);
                 operation_send_reject(
                         op, LDAP_PROTOCOL_ERROR, "bind in progress", 0 );
-                return;
+                CONNECTION_LOCK_DECREF(c);
+                return LDAP_SUCCESS;
             }
-            rc = ldap_pvt_thread_pool_submit(
-                    &connection_pool, request_process, op );
+            handler = request_process;
             break;
     }
 
-    /* FIXME: unlocks in this function need more thought when we refcount
-     * operations */
-    CONNECTION_UNLOCK(c);
-
-    if ( !rc ) {
-        return;
-    }
-
-fail:
-    if ( op ) {
-        operation_send_reject(
-                op, LDAP_OTHER, "server error or overloaded", 1 );
-        operation_destroy( op );
-    } else if ( ber ) {
-        ber_free( ber, 1 );
-    }
-
-    return;
+    return handler( c, op );
 }
 
 void

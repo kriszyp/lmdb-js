@@ -204,62 +204,93 @@ fail:
 void
 operation_abandon( Operation *op )
 {
+    Connection *c = op->o_upstream;
+    BerElement *ber;
+    Backend *b;
     int rc;
 
-    if ( op->o_upstream ) {
-        Connection *c = op->o_upstream;
-        BerElement *ber;
-        Backend *b;
+    if ( !c ) {
+        c = op->o_client;
 
         CONNECTION_LOCK(c);
-        rc = ( tavl_delete( &c->c_ops, op, operation_upstream_cmp ) == NULL );
-        if ( !rc ) {
-            c->c_n_ops_executing--;
-        }
-        b = (Backend *)c->c_private;
-        CONNECTION_UNLOCK_INCREF(c);
-
-        if ( rc ) {
-            /* The operation has already been abandoned or finished */
-            goto done;
-        }
-
-        ldap_pvt_thread_mutex_lock( &b->b_mutex );
-        b->b_n_ops_executing--;
-        ldap_pvt_thread_mutex_unlock( &b->b_mutex );
-
-        ldap_pvt_thread_mutex_lock( &c->c_io_mutex );
-
-        ber = c->c_pendingber;
-        if ( ber == NULL && (ber = ber_alloc()) == NULL ) {
-            Debug( LDAP_DEBUG_ANY, "operation_abandon: "
-                    "ber_alloc failed\n" );
-            CONNECTION_LOCK_DECREF(c);
-            ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
-            UPSTREAM_UNLOCK_OR_DESTROY(c);
-            goto done;
-        }
-        c->c_pendingber = ber;
-
-        rc = ber_printf( ber, "t{titi}", LDAP_TAG_MESSAGE,
-                LDAP_TAG_MSGID, c->c_next_msgid++,
-                LDAP_REQ_ABANDON, op->o_upstream_msgid );
-
-        if ( rc == -1 ) {
-            ber_free( ber, 1 );
-        }
-
-        CONNECTION_LOCK_DECREF(c);
-        ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
-        UPSTREAM_UNLOCK_OR_DESTROY(c);
-
-        if ( rc != -1 ) {
-            upstream_write_cb( -1, 0, c );
-        }
+        CLIENT_UNLOCK_OR_DESTROY(c);
+        operation_destroy( op );
+        return;
     }
 
+    CONNECTION_LOCK(c);
+    if ( tavl_delete( &c->c_ops, op, operation_upstream_cmp ) == NULL ) {
+        /* The operation has already been abandoned or finished */
+        goto done;
+    }
+    c->c_n_ops_executing--;
+    b = (Backend *)c->c_private;
+    CONNECTION_UNLOCK_INCREF(c);
+
+    ldap_pvt_thread_mutex_lock( &b->b_mutex );
+    b->b_n_ops_executing--;
+    ldap_pvt_thread_mutex_unlock( &b->b_mutex );
+
+    ldap_pvt_thread_mutex_lock( &c->c_io_mutex );
+
+    ber = c->c_pendingber;
+    if ( ber == NULL && (ber = ber_alloc()) == NULL ) {
+        Debug( LDAP_DEBUG_ANY, "operation_abandon: "
+                "ber_alloc failed\n" );
+        ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
+        CONNECTION_LOCK_DECREF(c);
+        goto done;
+    }
+    c->c_pendingber = ber;
+
+    rc = ber_printf( ber, "t{titi}", LDAP_TAG_MESSAGE,
+            LDAP_TAG_MSGID, c->c_next_msgid++,
+            LDAP_REQ_ABANDON, op->o_upstream_msgid );
+
+    if ( rc == -1 ) {
+        ber_free( ber, 1 );
+        c->c_pendingber = NULL;
+    }
+
+    ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
+
+    if ( rc != -1 ) {
+        upstream_write_cb( -1, 0, c );
+    }
+
+    CONNECTION_LOCK_DECREF(c);
+done:
+    UPSTREAM_UNLOCK_OR_DESTROY(c);
+    operation_destroy( op );
+}
+
+int
+request_abandon( Connection *c, Operation *op )
+{
+    Operation *request, needle = { .o_client = c };
+    ber_tag_t tag;
+    int rc = -1;
+
+    tag = ber_get_int( op->o_ber, &needle.o_client_msgid );
+    if ( tag != LDAP_REQ_ABANDON ) {
+        /* How would that happen if we already got the tag for the op? */
+        assert(0);
+        goto done;
+    }
+
+    request = tavl_find( c->c_ops, &needle, operation_client_cmp );
+    if ( !request ) {
+        goto done;
+    }
+
+    CONNECTION_UNLOCK_INCREF(c);
+    operation_abandon( request );
+    CONNECTION_LOCK_DECREF(c);
+
+    rc = LDAP_SUCCESS;
 done:
     operation_destroy( op );
+    return rc;
 }
 
 void
@@ -317,14 +348,15 @@ operation_lost_upstream( Operation *op )
     operation_destroy( op );
 }
 
-void *
-request_process( void *ctx, void *arg )
+int
+request_process( Connection *client, Operation *op )
 {
-    Operation *op = arg;
     BerElement *output;
-    Connection *client = op->o_client, *upstream;
+    Connection *upstream;
     ber_int_t msgid;
-    int rc;
+    int rc = LDAP_SUCCESS;
+
+    CONNECTION_UNLOCK_INCREF(client);
 
     upstream = backend_select( op );
     if ( !upstream ) {
@@ -346,10 +378,16 @@ request_process( void *ctx, void *arg )
     rc = tavl_insert(
             &upstream->c_ops, op, operation_upstream_cmp, avl_dup_error );
     CONNECTION_UNLOCK_INCREF(upstream);
+
+    Debug( LDAP_DEBUG_TRACE, "request_process: "
+            "client connid=%lu added %s msgid=%d to upstream connid=%lu as "
+            "msgid=%d\n",
+            op->o_client_connid, slap_msgtype2str( op->o_tag ),
+            op->o_client_msgid, op->o_upstream_connid, op->o_upstream_msgid );
     assert( rc == LDAP_SUCCESS );
 
     if ( lload_features & LLOAD_FEATURE_PROXYAUTHZ ) {
-        CONNECTION_LOCK(client);
+        CONNECTION_LOCK_DECREF(client);
         Debug( LDAP_DEBUG_TRACE, "request_process: "
                 "proxying identity %s to upstream\n",
                 client->c_auth.bv_val );
@@ -358,7 +396,7 @@ request_process( void *ctx, void *arg )
                 op->o_tag, &op->o_request,
                 LDAP_TAG_CONTROLS,
                 LDAP_CONTROL_PROXY_AUTHZ, 1, &client->c_auth );
-        CONNECTION_UNLOCK(client);
+        CONNECTION_UNLOCK_INCREF(client);
 
         if ( !BER_BVISNULL( &op->o_ctrls ) ) {
             BerElement *control_ber = ber_alloc();
@@ -387,7 +425,8 @@ request_process( void *ctx, void *arg )
     CONNECTION_LOCK_DECREF(upstream);
     UPSTREAM_UNLOCK_OR_DESTROY(upstream);
 
-    return NULL;
+    CONNECTION_LOCK_DECREF(client);
+    return rc;
 
 fail:
     if ( upstream ) {
@@ -396,5 +435,6 @@ fail:
         UPSTREAM_UNLOCK_OR_DESTROY(upstream);
     }
     operation_send_reject( op, LDAP_OTHER, "internal error", 0 );
-    return NULL;
+    CONNECTION_LOCK_DECREF(client);
+    return rc;
 }

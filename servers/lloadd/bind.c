@@ -246,22 +246,14 @@ fail:
     return 1;
 }
 
-void *
-client_reset( void *ctx, void *arg )
+void
+client_reset( Connection *c )
 {
-    Operation *op = arg;
-    Connection *c = op->o_client;
     TAvlnode *root;
-    int freed, destroy = 1;
+    int freed;
 
-    CONNECTION_LOCK(c);
     root = c->c_ops;
     c->c_ops = NULL;
-    c->c_state = SLAP_C_CLOSING;
-    if ( op->o_tag == LDAP_REQ_BIND ) {
-        c->c_state = SLAP_C_BINDING;
-        destroy = 0;
-    }
     if ( !BER_BVISNULL( &c->c_auth ) ) {
         ch_free( c->c_auth.bv_val );
         BER_BVZERO( &c->c_auth );
@@ -272,35 +264,27 @@ client_reset( void *ctx, void *arg )
     }
     CONNECTION_UNLOCK_INCREF(c);
 
-    tavl_delete( &root, op, operation_client_cmp );
     freed = tavl_free( root, (AVL_FREE)operation_abandon );
 
     Debug( LDAP_DEBUG_TRACE, "client_reset: "
             "dropped %d operations\n",
             freed );
 
-    if ( destroy ) {
-        operation_destroy( op );
-        CLIENT_LOCK_DESTROY(c);
-    } else {
-        CONNECTION_LOCK_DECREF(c);
-        CLIENT_UNLOCK_OR_DESTROY(c);
-    }
-
-    return NULL;
+    CONNECTION_LOCK_DECREF(c);
 }
 
-void *
-client_bind( void *ctx, void *arg )
+int
+client_bind( Connection *client, Operation *op )
 {
-    Operation *op = arg;
-    Connection *upstream, *client = op->o_client;
-    int rc = 0;
+    Connection *upstream;
+    int rc = LDAP_SUCCESS;
 
-    CONNECTION_LOCK(client);
+    /* protect the Bind operation */
+    tavl_delete( &client->c_ops, op, operation_client_cmp );
+    client->c_state = SLAP_C_BINDING;
+
+    client_reset( client );
     CONNECTION_UNLOCK_INCREF(client);
-
-    client_reset( ctx, arg );
 
     upstream = backend_select( op );
     if ( !upstream ) {
@@ -309,8 +293,7 @@ client_bind( void *ctx, void *arg )
         operation_send_reject(
                 op, LDAP_UNAVAILABLE, "no connections available", 1 );
         CONNECTION_LOCK_DECREF(client);
-        CLIENT_UNLOCK_OR_DESTROY(client);
-        return NULL;
+        return rc;
     }
 
     op->o_upstream = upstream;
@@ -324,15 +307,15 @@ client_bind( void *ctx, void *arg )
     CONNECTION_LOCK_DECREF(upstream);
     UPSTREAM_UNLOCK_OR_DESTROY(upstream);
 
+    CONNECTION_LOCK_DECREF(client);
     if ( rc ) {
-        CLIENT_LOCK_DESTROY(client);
-        return NULL;
+        CLIENT_DESTROY(client);
+        return -1;
     }
 
-    CONNECTION_LOCK_DECREF(client);
     rc = tavl_insert( &client->c_ops, op, operation_client_cmp, avl_dup_error );
     assert( rc == LDAP_SUCCESS );
     CLIENT_UNLOCK_OR_DESTROY(client);
 
-    return NULL;
+    return rc;
 }

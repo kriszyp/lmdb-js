@@ -63,12 +63,14 @@ LDAP_SLAPD_F (void) ch_free( void * );
 /*
  * bind.c
  */
-LDAP_SLAPD_F (void *) client_reset( void *ctx, void *arg );
-LDAP_SLAPD_F (void *) client_bind( void *ctx, void *arg );
+LDAP_SLAPD_F (void) client_reset( Connection *c );
+LDAP_SLAPD_F (int) client_bind( Connection *c, Operation *op );
 
 /*
  * client.c
  */
+LDAP_SLAPD_F (void *) handle_requests( void *ctx, void *arg );
+LDAP_SLAPD_F (int) handle_one_request( Connection *c );
 LDAP_SLAPD_F (Connection *) client_init( ber_socket_t s, Listener *url, const char *peername, struct event_base *base, int use_tls );
 LDAP_SLAPD_F (void) client_write_cb( evutil_socket_t s, short what, void *arg );
 LDAP_SLAPD_F (void) client_destroy( Connection *c );
@@ -154,7 +156,8 @@ LDAP_SLAPD_F (void) operation_abandon( Operation *op );
 LDAP_SLAPD_F (void) operation_send_reject( Operation *op, int result, const char *msg, int send_anyway );
 LDAP_SLAPD_F (void) operation_lost_upstream( Operation *op );
 LDAP_SLAPD_F (void) operation_destroy( Operation *op );
-LDAP_SLAPD_F (void *) request_process( void *ctx, void *arg );
+LDAP_SLAPD_F (int) request_abandon( Connection *c, Operation *op );
+LDAP_SLAPD_F (int) request_process( Connection *c, Operation *op );
 
 /*
  * sl_malloc.c
