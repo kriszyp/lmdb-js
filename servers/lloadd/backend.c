@@ -151,6 +151,12 @@ backend_retry( Backend *b )
 {
     int rc, requested;
 
+    if ( slapd_shutdown ) {
+        Debug( LDAP_DEBUG_CONNS, "backend_retry: "
+                "shutting down\n" );
+        return;
+    }
+
     ldap_pvt_thread_mutex_lock( &b->b_mutex );
 
     requested = b->b_numconns;
@@ -177,7 +183,6 @@ backend_retry( Backend *b )
             b->b_opening++;
             rc = ldap_pvt_thread_pool_submit(
                     &connection_pool, backend_connect_task, b );
-            /* TODO check we're not shutting down */
             if ( rc ) {
                 ldap_pvt_thread_mutex_unlock( &b->b_mutex );
                 backend_connect( -1, 0, b );
@@ -197,6 +202,12 @@ backend_connect( evutil_socket_t s, short what, void *arg )
     struct evutil_addrinfo hints = {};
     Backend *b = arg;
     char *hostname;
+
+    if ( slapd_shutdown ) {
+        Debug( LDAP_DEBUG_CONNS, "backend_connect: "
+                "doing nothing, shutdown in progress\n" );
+        return;
+    }
 
     ldap_pvt_thread_mutex_lock( &b->b_mutex );
     Debug( LDAP_DEBUG_CONNS, "backend_connect: "
@@ -268,4 +279,57 @@ backend_connect_task( void *ctx, void *arg )
 {
     backend_connect( -1, 0, arg );
     return NULL;
+}
+
+void
+backends_destroy( void )
+{
+    Backend *b;
+
+    while ( (b = LDAP_STAILQ_FIRST( &backend )) ) {
+        Connection *c;
+
+        Debug( LDAP_DEBUG_CONNS, "backends_destroy: "
+                "destroying backend uri='%s', numconns=%d, numbindconns=%d\n",
+                b->b_bindconf.sb_uri.bv_val, b->b_numconns, b->b_numbindconns );
+
+        while ( (c = LDAP_LIST_FIRST( &b->b_bindconns )) ) {
+            CONNECTION_LOCK(c);
+            UPSTREAM_DESTROY(c);
+        }
+        while ( (c = LDAP_LIST_FIRST( &b->b_conns )) ) {
+            CONNECTION_LOCK(c);
+            UPSTREAM_DESTROY(c);
+        }
+
+        LDAP_STAILQ_REMOVE_HEAD( &backend, b_next );
+        ldap_pvt_thread_mutex_destroy( &b->b_mutex );
+
+        event_del( b->b_retry_event );
+        event_free( b->b_retry_event );
+
+        ch_free( b->b_host );
+        ch_free( b->b_bindconf.sb_uri.bv_val );
+        ch_free( b->b_bindconf.sb_binddn.bv_val );
+        ch_free( b->b_bindconf.sb_cred.bv_val );
+        ch_free( b->b_bindconf.sb_saslmech.bv_val );
+        ch_free( b->b_bindconf.sb_secprops );
+        ch_free( b->b_bindconf.sb_realm.bv_val );
+        ch_free( b->b_bindconf.sb_authcId.bv_val );
+        ch_free( b->b_bindconf.sb_authzId.bv_val );
+
+#ifdef HAVE_TLS
+        ch_free( b->b_bindconf.sb_tls_cert );
+        ch_free( b->b_bindconf.sb_tls_key );
+        ch_free( b->b_bindconf.sb_tls_cacert );
+        ch_free( b->b_bindconf.sb_tls_cacertdir );
+        ch_free( b->b_bindconf.sb_tls_reqcert );
+        ch_free( b->b_bindconf.sb_tls_cipher_suite );
+        ch_free( b->b_bindconf.sb_tls_protocol_min );
+#ifdef HAVE_OPENSSL_CRL
+        ch_free( b->b_bindconf.sb_tls_crlcheck );
+#endif
+#endif
+        ch_free( b );
+    }
 }

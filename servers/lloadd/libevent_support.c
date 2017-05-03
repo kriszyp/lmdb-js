@@ -159,3 +159,9 @@ lload_libevent_init( void )
     evthread_set_id_callback( ldap_pvt_thread_self );
     return 0;
 }
+
+void
+lload_libevent_destroy( void )
+{
+    libevent_global_shutdown();
+}

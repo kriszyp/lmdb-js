@@ -782,6 +782,12 @@ slapd_daemon_destroy( void )
 
         for ( i = 0; i < slapd_daemon_threads; i++ ) {
             ldap_pvt_thread_mutex_destroy( &slap_daemon[i].sd_mutex );
+            if ( slap_daemon[i].wakeup_event ) {
+                event_free( slap_daemon[i].wakeup_event );
+            }
+            if ( slap_daemon[i].base ) {
+                event_base_free( slap_daemon[i].base );
+            }
         }
         lloadd_inited = 0;
 #ifdef HAVE_TCPD
@@ -844,6 +850,10 @@ destroy_listeners( void )
 
     free( slap_listeners );
     slap_listeners = NULL;
+
+    if ( listener_base ) {
+        event_base_free( listener_base );
+    }
 }
 
 static void
@@ -1342,6 +1352,8 @@ slapd_daemon( struct event_base *daemon_base )
                 t );
     }
     ldap_pvt_thread_pool_close( &connection_pool, 1 );
+    backends_destroy();
+    evdns_base_free( dnsbase, 0 );
 
     ch_free( daemon_tid );
     daemon_tid = NULL;

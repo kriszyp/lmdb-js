@@ -153,6 +153,8 @@ connection_init( ber_socket_t s, const char *peername, int flags )
     c->c_next_msgid = 1;
     c->c_refcnt = c->c_live = 1;
 
+    LDAP_LIST_ENTRY_INIT( c, c_next );
+
     ldap_pvt_thread_mutex_init( &c->c_mutex );
     ldap_pvt_thread_mutex_init( &c->c_io_mutex );
 

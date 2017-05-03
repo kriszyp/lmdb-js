@@ -44,6 +44,7 @@ LDAP_SLAPD_F (void) backend_connect( evutil_socket_t s, short what, void *arg );
 LDAP_SLAPD_F (void *) backend_connect_task( void *ctx, void *arg );
 LDAP_SLAPD_F (void) backend_retry( Backend *b );
 LDAP_SLAPD_F (Connection *) backend_select( Operation *op );
+LDAP_SLAPD_F (void) backends_destroy( void );
 
 /*
  * ch_malloc.c
@@ -138,6 +139,7 @@ LDAP_SLAPD_F (int) slap_destroy( void );
  * libevent_support.c
  */
 LDAP_SLAPD_F (int) lload_libevent_init( void );
+LDAP_SLAPD_F (void) lload_libevent_destroy( void );
 
 /*
  * main.c

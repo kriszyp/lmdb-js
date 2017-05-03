@@ -34,8 +34,6 @@ client_read_cb( evutil_socket_t s, short what, void *arg )
     ber_tag_t tag;
     ber_len_t len;
 
-    /* What if the shutdown is already in progress and we get to lock the
-     * connection? */
     CONNECTION_LOCK(c);
 
     Debug( LDAP_DEBUG_CONNS, "client_read_cb: "

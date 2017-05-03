@@ -883,6 +883,16 @@ unhandled_option:;
 #endif
 
 destroy:
+    if ( daemon_base ) {
+        for ( i = 0; signal_handlers[i].signal; i++ ) {
+            if ( signal_handlers[i].event ) {
+                event_del( signal_handlers[i].event );
+                event_free( signal_handlers[i].event );
+            }
+        }
+        event_base_free( daemon_base );
+    }
+
     if ( check & CHECK_LOGLEVEL ) {
         (void)loglevel_print( stdout );
     }
