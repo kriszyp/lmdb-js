@@ -658,6 +658,12 @@ void ldap_int_initialize( struct ldapoptions *gopts, int *dbglvl )
 	if ( ldap_int_tblsize == 0 ) ldap_int_ip_init();
 #endif
 
+#ifdef HAVE_CYRUS_SASL
+	if ( ldap_int_sasl_init() != 0 ) {
+		return;
+	}
+#endif
+
 	ldap_int_initialize_global_options(gopts, dbglvl);
 
 	if( getenv("LDAPNOINIT") != NULL ) {
