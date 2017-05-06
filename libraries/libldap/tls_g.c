@@ -358,7 +358,9 @@ tlsg_session_accept( tls_session *session )
 	tlsg_session *s = (tlsg_session *)session;
 	int rc;
 
-	rc = gnutls_handshake( s->session );
+	for ( rc = gnutls_handshake ( s->session );
+	      rc == GNUTLS_E_INTERRUPTED || rc == GNUTLS_E_AGAIN;
+	      rc = gnutls_handshake ( s->session ) );
 	if ( rc == 0 && s->ctx->reqcert != LDAP_OPT_X_TLS_NEVER ) {
 		const gnutls_datum_t *peer_cert_list;
 		unsigned int list_size;
