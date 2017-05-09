@@ -423,7 +423,7 @@ handle_responses( void *ctx, void *arg )
     Connection *c = arg;
     int responses_handled = 0;
 
-    CONNECTION_LOCK(c);
+    CONNECTION_LOCK_DECREF(c);
     for ( ; responses_handled < slap_conn_max_pdus_per_cycle;
             responses_handled++ ) {
         BerElement *ber;
@@ -534,9 +534,12 @@ upstream_read_cb( evutil_socket_t s, short what, void *arg )
         }
         return;
     }
-    event_del( c->c_read_event );
 
-    CONNECTION_UNLOCK(c);
+    /* We have scheduled a call to handle_responses which takes care of
+     * handling further requests, just make sure the connection sticks around
+     * for that */
+    event_del( c->c_read_event );
+    CONNECTION_UNLOCK_INCREF(c);
     return;
 }
 
