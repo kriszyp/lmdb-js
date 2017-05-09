@@ -677,7 +677,8 @@ upstream_write_cb( evutil_socket_t s, short what, void *arg )
             "have something to write to upstream %lu\n",
             c->c_connid );
 
-    if ( ber_flush( c->c_sb, c->c_pendingber, 1 ) ) {
+    /* We might have been beaten to flushing the data by another thread */
+    if ( c->c_pendingber && ber_flush( c->c_sb, c->c_pendingber, 1 ) ) {
         int err = sock_errno();
         if ( err != EWOULDBLOCK && err != EAGAIN ) {
             Debug( LDAP_DEBUG_ANY, "upstream_write_cb: "

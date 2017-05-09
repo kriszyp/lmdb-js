@@ -66,9 +66,11 @@ connection_destroy( Connection *c )
 
     if ( c->c_currentber ) {
         ber_free( c->c_currentber, 1 );
+        c->c_currentber = NULL;
     }
     if ( c->c_pendingber ) {
         ber_free( c->c_pendingber, 1 );
+        c->c_pendingber = NULL;
     }
 
     CONNECTION_UNLOCK(c);
