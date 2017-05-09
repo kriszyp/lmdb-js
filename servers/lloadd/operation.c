@@ -131,13 +131,16 @@ operation_upstream_cmp( const void *left, const void *right )
  * client/upstream_destroy(). Testing o_freeing for the mirror side's token
  * allows the winner to detect that it has been a party to the race and a token
  * in c_refcnt has been deposited on its behalf.
+ *
+ * Beware! This widget really touches all the mutexes we have and showcases the
+ * issues with maintaining so many mutex ordering restrictions.
  */
 void
 operation_destroy_from_client( Operation *op )
 {
-    Connection *client = op->o_client, *upstream = op->o_upstream;
+    Connection *upstream, *client = op->o_client;
     Backend *b = NULL;
-    int race_state;
+    int race_state, detach_client = !client->c_live;
 
     Debug( LDAP_DEBUG_TRACE, "operation_destroy_from_client: "
             "op=%p attempting to release operation\n",
@@ -147,6 +150,7 @@ operation_destroy_from_client( Operation *op )
     op->o_client_refcnt -= op->o_client_live;
     op->o_client_live = 0;
 
+    assert( op->o_client_refcnt <= client->c_refcnt );
     if ( op->o_client_refcnt ) {
         Debug( LDAP_DEBUG_TRACE, "operation_destroy_from_client: "
                 "op=%p not dead yet\n",
@@ -157,20 +161,16 @@ operation_destroy_from_client( Operation *op )
     /* 2. Remove from the operation map and TODO adjust the pending op count */
     tavl_delete( &client->c_ops, op, operation_client_cmp );
 
-    /* We reset the pointer after we have cleaned up both sides, upstream would
-     * not have been set at all */
-    if ( !op->o_upstream ) {
-        Debug( LDAP_DEBUG_TRACE, "operation_destroy_from_client: "
-                "op=%p no upstream, killing now\n",
-                op );
-        goto doit;
-    }
+    CONNECTION_UNLOCK_INCREF(client);
 
     /* 3. Detect whether we entered a race to free op and indicate that to any
      * others */
     ldap_pvt_thread_mutex_lock( &operation_mutex );
     race_state = op->o_freeing;
     op->o_freeing |= SLAP_OP_FREEING_CLIENT;
+    if ( detach_client ) {
+        op->o_client = NULL;
+    }
     ldap_pvt_thread_mutex_unlock( &operation_mutex );
 
     /* 4. If we lost the race, deal with it */
@@ -182,25 +182,34 @@ operation_destroy_from_client( Operation *op )
          * o_freeing again).
          */
         if ( race_state == SLAP_OP_FREEING_UPSTREAM ) {
-            client->c_refcnt++;
+            Debug( LDAP_DEBUG_TRACE, "operation_destroy_from_client: "
+                    "op=%p lost race, increasing client refcnt\n",
+                    op );
+            CONNECTION_LOCK(client);
+        } else {
+            Debug( LDAP_DEBUG_TRACE, "operation_destroy_from_client: "
+                    "op=%p lost race with another "
+                    "operation_destroy_from_client\n",
+                    op );
+            CONNECTION_LOCK_DECREF(client);
         }
-        Debug( LDAP_DEBUG_TRACE, "operation_destroy_from_client: "
-                "op=%p lost race, increasing client refcnt\n",
-                op );
         return;
     }
-    CONNECTION_UNLOCK_INCREF(client);
 
-    CONNECTION_LOCK(upstream);
     /* 5. If we raced the upstream side and won, reclaim the token */
     ldap_pvt_thread_mutex_lock( &operation_mutex );
-    if ( op->o_freeing & SLAP_OP_FREEING_UPSTREAM ) {
-        /*
-         * We have raced to destroy op and won. To avoid freeing the connection
-         * under us, a refcnt token has been left over for us on the upstream,
-         * decref and see whether we are in charge of freeing it
-         */
-        upstream->c_refcnt--;
+    upstream = op->o_upstream;
+    if ( upstream ) {
+        if ( op->o_freeing & SLAP_OP_FREEING_UPSTREAM ) {
+            /*
+            * We have raced to destroy op and won. To avoid freeing the connection
+            * under us, a refcnt token has been left over for us on the upstream,
+            * decref and see whether we are in charge of freeing it
+            */
+            CONNECTION_LOCK_DECREF(upstream);
+        } else {
+            CONNECTION_LOCK(upstream);
+        }
     }
     ldap_pvt_thread_mutex_unlock( &operation_mutex );
 
@@ -212,31 +221,31 @@ operation_destroy_from_client( Operation *op )
                 "op=%p other side still alive, refcnt=%d\n",
                 op, op->o_upstream_refcnt );
         /* There must have been no race if op is still alive */
+        assert( upstream != NULL );
+        CONNECTION_UNLOCK(upstream);
         ldap_pvt_thread_mutex_lock( &operation_mutex );
         op->o_freeing &= ~SLAP_OP_FREEING_CLIENT;
         assert( op->o_freeing == 0 );
         ldap_pvt_thread_mutex_unlock( &operation_mutex );
-        CONNECTION_UNLOCK(upstream);
         CONNECTION_LOCK_DECREF(client);
         return;
     }
 
     /* 7. Remove from the operation map and adjust the pending op count */
-    if ( tavl_delete( &upstream->c_ops, op, operation_upstream_cmp ) ) {
-        upstream->c_n_ops_executing--;
-        b = (Backend *)upstream->c_private;
+    if ( upstream ) {
+        if ( tavl_delete( &upstream->c_ops, op, operation_upstream_cmp ) ) {
+            upstream->c_n_ops_executing--;
+            b = (Backend *)upstream->c_private;
+        }
+        UPSTREAM_UNLOCK_OR_DESTROY(upstream);
+
+        if ( b ) {
+            ldap_pvt_thread_mutex_lock( &b->b_mutex );
+            b->b_n_ops_executing--;
+            ldap_pvt_thread_mutex_unlock( &b->b_mutex );
+        }
     }
-    UPSTREAM_UNLOCK_OR_DESTROY(upstream);
 
-    if ( b ) {
-        ldap_pvt_thread_mutex_lock( &b->b_mutex );
-        b->b_n_ops_executing--;
-        ldap_pvt_thread_mutex_unlock( &b->b_mutex );
-    }
-
-    CONNECTION_LOCK_DECREF(client);
-
-doit:
     /* 8. Release the operation */
     Debug( LDAP_DEBUG_TRACE, "operation_destroy_from_client: "
             "op=%p destroyed operation from client connid=%lu, "
@@ -244,6 +253,8 @@ doit:
             op, op->o_client_connid, op->o_client_msgid );
     ber_free( op->o_ber, 1 );
     ch_free( op );
+
+    CONNECTION_LOCK_DECREF(client);
 }
 
 /*
@@ -252,9 +263,9 @@ doit:
 void
 operation_destroy_from_upstream( Operation *op )
 {
-    Connection *client = op->o_client, *upstream = op->o_upstream;
+    Connection *client, *upstream = op->o_upstream;
     Backend *b = NULL;
-    int race_state;
+    int race_state, detach_upstream = !upstream->c_live;
 
     Debug( LDAP_DEBUG_TRACE, "operation_destroy_from_upstream: "
             "op=%p attempting to release operation\n",
@@ -264,6 +275,7 @@ operation_destroy_from_upstream( Operation *op )
     op->o_upstream_refcnt -= op->o_upstream_live;
     op->o_upstream_live = 0;
 
+    assert( op->o_upstream_refcnt <= upstream->c_refcnt );
     if ( op->o_upstream_refcnt ) {
         Debug( LDAP_DEBUG_TRACE, "operation_destroy_from_upstream: "
                 "op=%p not dead yet\n",
@@ -277,47 +289,60 @@ operation_destroy_from_upstream( Operation *op )
         b = (Backend *)upstream->c_private;
     }
 
+    CONNECTION_UNLOCK_INCREF(upstream);
+
     /* 3. Detect whether we entered a race to free op */
     ldap_pvt_thread_mutex_lock( &operation_mutex );
     race_state = op->o_freeing;
-    race_state |= SLAP_OP_FREEING_UPSTREAM;
-    ldap_pvt_thread_mutex_unlock( &operation_mutex );
-
-    /* 4. If we lost the race, deal with it */
-    if ( race_state == SLAP_OP_FREEING_CLIENT ) {
-        /*
-         * We have raced to destroy op and the first one to lose on this side,
-         * leave a refcnt token on upstream so we don't destroy it before the
-         * other side has finished (it knows we did that when it examines
-         * o_freeing again).
-         */
-        upstream->c_refcnt++;
+    op->o_freeing |= SLAP_OP_FREEING_UPSTREAM;
+    if ( detach_upstream ) {
+        op->o_upstream = NULL;
     }
-    CONNECTION_UNLOCK_INCREF(upstream);
+    ldap_pvt_thread_mutex_unlock( &operation_mutex );
 
     if ( b ) {
         ldap_pvt_thread_mutex_lock( &b->b_mutex );
         b->b_n_ops_executing--;
         ldap_pvt_thread_mutex_unlock( &b->b_mutex );
     }
+
+    /* 4. If we lost the race, deal with it */
     if ( race_state ) {
-        CONNECTION_LOCK_DECREF(upstream);
-        Debug( LDAP_DEBUG_TRACE, "operation_destroy_from_upstream: "
-                "op=%p lost race, increased client refcnt\n",
-                op );
+        /*
+         * We have raced to destroy op and the first one to lose on this side,
+         * leave a refcnt token on upstream so we don't destroy it before the
+         * other side has finished (it knows we did that when it examines
+         * o_freeing again).
+         */
+        if ( race_state == SLAP_OP_FREEING_CLIENT ) {
+            Debug( LDAP_DEBUG_TRACE, "operation_destroy_from_upstream: "
+                    "op=%p lost race, increased client refcnt\n",
+                    op );
+            CONNECTION_LOCK(upstream);
+        } else {
+            Debug( LDAP_DEBUG_TRACE, "operation_destroy_from_upstream: "
+                    "op=%p lost race with another "
+                    "operation_destroy_from_upstream\n",
+                    op );
+            CONNECTION_LOCK_DECREF(upstream);
+        }
         return;
     }
 
-    CONNECTION_LOCK(client);
     /* 5. If we raced the client side and won, reclaim the token */
     ldap_pvt_thread_mutex_lock( &operation_mutex );
-    if ( op->o_freeing & SLAP_OP_FREEING_CLIENT ) {
-        /*
-         * We have raced to destroy op and won. To avoid freeing the connection
-         * under us, a refcnt token has been left over for us on the client,
-         * decref and see whether we are in charge of freeing it
-         */
-        client->c_refcnt--;
+    client = op->o_client;
+    if ( client ) {
+        if ( op->o_freeing & SLAP_OP_FREEING_CLIENT ) {
+            /*
+             * We have raced to destroy op and won. To avoid freeing the connection
+             * under us, a refcnt token has been left over for us on the client,
+             * decref and see whether we are in charge of freeing it
+             */
+            CONNECTION_LOCK_DECREF(client);
+        } else {
+            CONNECTION_LOCK(client);
+        }
     }
     ldap_pvt_thread_mutex_unlock( &operation_mutex );
 
@@ -329,18 +354,21 @@ operation_destroy_from_upstream( Operation *op )
                 "op=%p other side still alive, refcnt=%d\n",
                 op, op->o_client_refcnt );
         /* There must have been no race if op is still alive */
+        assert( client != NULL );
+        CONNECTION_UNLOCK(client);
         ldap_pvt_thread_mutex_lock( &operation_mutex );
         op->o_freeing &= ~SLAP_OP_FREEING_UPSTREAM;
         assert( op->o_freeing == 0 );
         ldap_pvt_thread_mutex_unlock( &operation_mutex );
-        CONNECTION_UNLOCK(client);
         CONNECTION_LOCK_DECREF(upstream);
         return;
     }
 
     /* 7. Remove from the operation map and TODO adjust the pending op count */
-    tavl_delete( &client->c_ops, op, operation_client_cmp );
-    CLIENT_UNLOCK_OR_DESTROY(client);
+    if ( client ) {
+        tavl_delete( &client->c_ops, op, operation_client_cmp );
+        CLIENT_UNLOCK_OR_DESTROY(client);
+    }
 
     /* 8. Release the operation */
     Debug( LDAP_DEBUG_TRACE, "operation_destroy_from_upstream: "
@@ -418,21 +446,27 @@ fail:
 void
 operation_abandon( Operation *op )
 {
-    Connection *c = op->o_upstream;
+    Connection *c;
     BerElement *ber;
     Backend *b;
     int rc;
 
+    ldap_pvt_thread_mutex_lock( &operation_mutex );
+    c = op->o_upstream;
     if ( !c ) {
         c = op->o_client;
+        assert( c );
 
+        /* Caller should hold a reference on client */
         CONNECTION_LOCK(c);
+        ldap_pvt_thread_mutex_unlock( &operation_mutex );
         operation_destroy_from_client( op );
         CLIENT_UNLOCK_OR_DESTROY(c);
         return;
     }
 
     CONNECTION_LOCK(c);
+    ldap_pvt_thread_mutex_unlock( &operation_mutex );
     if ( tavl_delete( &c->c_ops, op, operation_upstream_cmp ) == NULL ) {
         /* The operation has already been abandoned or finished */
         goto done;
@@ -514,7 +548,7 @@ operation_send_reject(
         const char *msg,
         int send_anyway )
 {
-    Connection *c = op->o_client;
+    Connection *c;
     BerElement *ber;
     int found;
 
@@ -522,7 +556,22 @@ operation_send_reject(
             "rejecting %s from client %lu with message: \"%s\"\n",
             slap_msgtype2str( op->o_tag ), op->o_client_connid, msg );
 
+    ldap_pvt_thread_mutex_lock( &operation_mutex );
+    c = op->o_client;
+    if ( !c ) {
+        c = op->o_upstream;
+        /* One of the connections has initiated this and keeps a reference, if
+         * client is dead, it must have been the upstream */
+        assert( c );
+        CONNECTION_LOCK(c);
+        ldap_pvt_thread_mutex_unlock( &operation_mutex );
+        operation_destroy_from_upstream( op );
+        UPSTREAM_UNLOCK_OR_DESTROY(c);
+        return;
+    }
     CONNECTION_LOCK(c);
+    ldap_pvt_thread_mutex_unlock( &operation_mutex );
+
     found = ( tavl_delete( &c->c_ops, op, operation_client_cmp ) == op );
     if ( !found && !send_anyway ) {
         goto done;

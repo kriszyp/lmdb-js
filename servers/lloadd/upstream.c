@@ -384,14 +384,34 @@ handle_one_response( Connection *c )
     }
 
     if ( handler ) {
+        Connection *client;
+
         op->o_upstream_refcnt++;
         CONNECTION_UNLOCK_INCREF(c);
-        rc = handler( op, ber );
+
+        ldap_pvt_thread_mutex_lock( &operation_mutex );
+        client = op->o_client;
+        if ( client ) {
+            CONNECTION_LOCK(client);
+            CONNECTION_UNLOCK_INCREF(client);
+        }
+        ldap_pvt_thread_mutex_unlock( &operation_mutex );
+
+        if ( client ) {
+            rc = handler( op, ber );
+            CONNECTION_LOCK_DECREF(client);
+            CLIENT_UNLOCK_OR_DESTROY(client);
+        } else {
+            ber_free( ber, 1 );
+        }
+
         CONNECTION_LOCK_DECREF(c);
         op->o_upstream_refcnt--;
-        if ( !op->o_upstream_live ) {
+        if ( !client || !op->o_upstream_live ) {
             operation_destroy_from_upstream( op );
         }
+    } else {
+        ber_free( ber, 1 );
     }
 
 fail:
