@@ -670,6 +670,10 @@ upstream_write_cb( evutil_socket_t s, short what, void *arg )
     Connection *c = arg;
 
     CONNECTION_LOCK(c);
+    if ( !c->c_live ) {
+        CONNECTION_UNLOCK(c);
+        return;
+    }
     CONNECTION_UNLOCK_INCREF(c);
 
     ldap_pvt_thread_mutex_lock( &c->c_io_mutex );
