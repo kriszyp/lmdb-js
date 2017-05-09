@@ -870,11 +870,13 @@ upstream_destroy( Connection *c )
      * event_del will block if the event is currently executing its callback,
      * that callback might be waiting to lock c->c_mutex
      */
-    event_del( read_event );
-    event_free( read_event );
+    if ( read_event ) {
+        event_del( read_event );
+    }
 
-    event_del( write_event );
-    event_free( write_event );
+    if ( write_event ) {
+        event_del( write_event );
+    }
 
     ldap_pvt_thread_mutex_lock( &b->b_mutex );
     LDAP_LIST_REMOVE( c, c_next );
@@ -888,6 +890,16 @@ upstream_destroy( Connection *c )
     backend_retry( b );
 
     CONNECTION_LOCK_DECREF(c);
+
+    if ( c->c_read_event ) {
+        event_free( c->c_read_event );
+        c->c_read_event = NULL;
+    }
+
+    if ( c->c_write_event ) {
+        event_free( c->c_write_event );
+        c->c_write_event = NULL;
+    }
 
     /*
      * If we attempted to destroy any operations, we might have lent a new

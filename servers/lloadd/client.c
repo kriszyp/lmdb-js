@@ -278,12 +278,12 @@ client_init(
     return c;
 fail:
     if ( c->c_write_event ) {
-        event_del( c->c_write_event );
         event_free( c->c_write_event );
+        c->c_write_event = NULL;
     }
     if ( c->c_read_event ) {
-        event_del( c->c_read_event );
         event_free( c->c_read_event );
+        c->c_read_event = NULL;
     }
     c->c_state = SLAP_C_INVALID;
     connection_destroy( c );
@@ -298,13 +298,13 @@ client_destroy( Connection *c )
             c->c_connid );
 
     if ( c->c_read_event ) {
-        event_del( c->c_read_event );
         event_free( c->c_read_event );
+        c->c_read_event = NULL;
     }
 
     if ( c->c_write_event ) {
-        event_del( c->c_write_event );
         event_free( c->c_write_event );
+        c->c_write_event = NULL;
     }
 
     c->c_state = SLAP_C_INVALID;
