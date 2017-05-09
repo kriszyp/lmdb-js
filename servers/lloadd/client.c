@@ -35,6 +35,11 @@ client_read_cb( evutil_socket_t s, short what, void *arg )
     ber_len_t len;
 
     CONNECTION_LOCK(c);
+    if ( !c->c_live ) {
+        event_del( c->c_read_event );
+        CONNECTION_UNLOCK(c);
+        return;
+    }
 
     Debug( LDAP_DEBUG_CONNS, "client_read_cb: "
             "connection %lu ready to read\n",
@@ -61,6 +66,8 @@ client_read_cb( evutil_socket_t s, short what, void *arg )
 
             c->c_currentber = NULL;
             ber_free( ber, 1 );
+
+            event_del( c->c_read_event );
             CLIENT_DESTROY(c);
             return;
         }
