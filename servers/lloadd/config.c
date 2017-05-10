@@ -113,6 +113,8 @@ static ConfigDriver config_tls_config;
 #endif
 
 slap_b_head backend = LDAP_CIRCLEQ_HEAD_INITIALIZER(backend);
+ldap_pvt_thread_mutex_t backend_mutex;
+Backend *current_backend = NULL;
 
 enum {
     CFG_ACL = 1,

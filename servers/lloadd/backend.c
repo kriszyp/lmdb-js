@@ -93,21 +93,31 @@ fail:
 Connection *
 backend_select( Operation *op )
 {
-    Backend *b;
+    Backend *b, *first, *next;
+
+    ldap_pvt_thread_mutex_lock( &backend_mutex );
+    first = b = current_backend;
+    ldap_pvt_thread_mutex_unlock( &backend_mutex );
+
+    if ( !first ) {
+        return NULL;
+    }
 
     /* TODO: Two runs, one with trylock, then one actually locked if we don't
      * find anything? */
-    LDAP_CIRCLEQ_FOREACH ( b, &backend, b_next ) {
+    do {
         struct ConnSt *head;
         Connection *c;
 
         ldap_pvt_thread_mutex_lock( &b->b_mutex );
+        next = LDAP_CIRCLEQ_LOOP_NEXT( &backend, b, b_next );
 
         if ( b->b_max_pending && b->b_n_ops_executing >= b->b_max_pending ) {
             Debug( LDAP_DEBUG_CONNS, "backend_select: "
                     "backend %s too busy\n",
                     b->b_bindconf.sb_uri.bv_val );
             ldap_pvt_thread_mutex_unlock( &b->b_mutex );
+            b = next;
             continue;
         }
 
@@ -130,9 +140,14 @@ backend_select( Operation *op )
 
                 /*
                  * Round-robin step:
-                 * Rotate the queue to put this connection at the end.
+                 * Rotate the queue to put this connection at the end, same for
+                 * the backend.
                  */
                 LDAP_CIRCLEQ_MAKE_TAIL( head, c, c_next );
+
+                ldap_pvt_thread_mutex_lock( &backend_mutex );
+                current_backend = next;
+                ldap_pvt_thread_mutex_unlock( &backend_mutex );
 
                 b->b_n_ops_executing++;
                 c->c_n_ops_executing++;
@@ -145,7 +160,9 @@ backend_select( Operation *op )
             ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
         }
         ldap_pvt_thread_mutex_unlock( &b->b_mutex );
-    }
+
+        b = next;
+    } while ( b != first );
 
     return NULL;
 }
