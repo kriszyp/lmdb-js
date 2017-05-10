@@ -128,9 +128,16 @@ backend_select( Operation *op )
                         "selected connection %lu for client %lu msgid=%d\n",
                         c->c_connid, op->o_client_connid, op->o_client_msgid );
 
+                /*
+                 * Round-robin step:
+                 * Rotate the queue to put this connection at the end.
+                 */
+                LDAP_CIRCLEQ_MAKE_TAIL( head, c, c_next );
+
                 b->b_n_ops_executing++;
                 c->c_n_ops_executing++;
                 CONNECTION_UNLOCK_INCREF(c);
+
                 ldap_pvt_thread_mutex_unlock( &b->b_mutex );
                 return c;
             }
