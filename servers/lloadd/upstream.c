@@ -845,11 +845,11 @@ upstream_init( ber_socket_t s, Backend *b )
     }
 
     if ( is_bindconn ) {
-        LDAP_LIST_INSERT_HEAD( &b->b_bindconns, c, c_next );
+        LDAP_CIRCLEQ_INSERT_HEAD( &b->b_bindconns, c, c_next );
         c->c_type = SLAP_C_BIND;
         b->b_bindavail++;
     } else {
-        LDAP_LIST_INSERT_HEAD( &b->b_conns, c, c_next );
+        LDAP_CIRCLEQ_INSERT_HEAD( &b->b_conns, c, c_next );
         b->b_active++;
     }
 
@@ -899,10 +899,11 @@ upstream_destroy( Connection *c )
     }
 
     ldap_pvt_thread_mutex_lock( &b->b_mutex );
-    LDAP_LIST_REMOVE( c, c_next );
     if ( c->c_type == SLAP_C_BIND ) {
+        LDAP_CIRCLEQ_REMOVE( &b->b_bindconns, c, c_next );
         b->b_bindavail--;
     } else {
+        LDAP_CIRCLEQ_REMOVE( &b->b_conns, c, c_next );
         b->b_active--;
     }
     b->b_n_ops_executing -= c->c_n_ops_executing;

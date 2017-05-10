@@ -1313,7 +1313,7 @@ slapd_daemon( struct event_base *daemon_base )
         }
     }
 
-    LDAP_STAILQ_FOREACH ( b, &backend, b_next ) {
+    LDAP_CIRCLEQ_FOREACH ( b, &backend, b_next ) {
         struct event *retry_event =
                 evtimer_new( daemon_base, backend_connect, b );
 

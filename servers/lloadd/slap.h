@@ -121,7 +121,7 @@ typedef union Sockaddr {
 extern int slap_inet4or6;
 #endif
 
-typedef LDAP_STAILQ_HEAD(BeSt, Backend) slap_b_head;
+typedef LDAP_CIRCLEQ_HEAD(BeSt, Backend) slap_b_head;
 
 LDAP_SLAPD_V (slap_b_head) backend;
 
@@ -253,12 +253,12 @@ struct Backend {
 
     int b_numconns, b_numbindconns;
     int b_bindavail, b_active, b_opening;
-    LDAP_LIST_HEAD(ConnSt, Connection) b_conns, b_bindconns;
+    LDAP_CIRCLEQ_HEAD(ConnSt, Connection) b_conns, b_bindconns;
 
     long b_max_pending, b_max_conn_pending;
     long b_n_ops_executing;
 
-    LDAP_STAILQ_ENTRY(Backend) b_next;
+    LDAP_CIRCLEQ_ENTRY(Backend) b_next;
 };
 
 typedef int (*OperationHandler)( Operation *op, BerElement *ber );
@@ -393,7 +393,7 @@ struct Connection {
     long c_n_ops_completed; /* num of ops completed */
 
     /* Upstream: Protected by its backend's mutex */
-    LDAP_LIST_ENTRY( Connection ) c_next;
+    LDAP_CIRCLEQ_ENTRY( Connection ) c_next;
 
     void *c_private;
 };

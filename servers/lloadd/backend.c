@@ -97,7 +97,7 @@ backend_select( Operation *op )
 
     /* TODO: Two runs, one with trylock, then one actually locked if we don't
      * find anything? */
-    LDAP_STAILQ_FOREACH ( b, &backend, b_next ) {
+    LDAP_CIRCLEQ_FOREACH ( b, &backend, b_next ) {
         struct ConnSt *head;
         Connection *c;
 
@@ -118,10 +118,7 @@ backend_select( Operation *op )
             head = &b->b_conns;
         }
 
-        /* TODO: Use CIRCLEQ so that we can do a natural round robin over the
-         * backend's connections? */
-        LDAP_LIST_FOREACH( c, head, c_next )
-        {
+        LDAP_CIRCLEQ_FOREACH ( c, head, c_next ) {
             ldap_pvt_thread_mutex_lock( &c->c_io_mutex );
             CONNECTION_LOCK(c);
             if ( c->c_state == SLAP_C_READY && !c->c_pendingber &&
@@ -284,25 +281,25 @@ backend_connect_task( void *ctx, void *arg )
 void
 backends_destroy( void )
 {
-    Backend *b;
-
-    while ( (b = LDAP_STAILQ_FIRST( &backend )) ) {
-        Connection *c;
+    while ( !LDAP_CIRCLEQ_EMPTY( &backend ) ) {
+        Backend *b = LDAP_CIRCLEQ_FIRST( &backend );
 
         Debug( LDAP_DEBUG_CONNS, "backends_destroy: "
                 "destroying backend uri='%s', numconns=%d, numbindconns=%d\n",
                 b->b_bindconf.sb_uri.bv_val, b->b_numconns, b->b_numbindconns );
 
-        while ( (c = LDAP_LIST_FIRST( &b->b_bindconns )) ) {
+        while ( !LDAP_CIRCLEQ_EMPTY( &b->b_bindconns ) ) {
+            Connection *c = LDAP_CIRCLEQ_FIRST( &b->b_bindconns );
             CONNECTION_LOCK(c);
             UPSTREAM_DESTROY(c);
         }
-        while ( (c = LDAP_LIST_FIRST( &b->b_conns )) ) {
+        while ( !LDAP_CIRCLEQ_EMPTY( &b->b_conns ) ) {
+            Connection *c = LDAP_CIRCLEQ_FIRST( &b->b_conns );
             CONNECTION_LOCK(c);
             UPSTREAM_DESTROY(c);
         }
 
-        LDAP_STAILQ_REMOVE_HEAD( &backend, b_next );
+        LDAP_CIRCLEQ_REMOVE( &backend, b, b_next );
         ldap_pvt_thread_mutex_destroy( &b->b_mutex );
 
         event_del( b->b_retry_event );
