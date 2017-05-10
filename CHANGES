@@ -6,6 +6,7 @@ OpenLDAP 2.4.45 Engineering
 	Fixed libldap to expose error if user specified CA doesn't exist (ITS#8529)
 	Fixed libldap handling of Diffie-Hellman parameters (ITS#7506)
 	Fixed libldap GnuTLS use after free (ITS#8385)
+	Fixed libldap SASL initialization (ITS#8648)
 	Fixed slapd bconfig rDN escape handling (ITS#8574)
 	Fixed slapd segfault with invalid hostname (ITS#8631)
 	Fixed slapd sasl SEGV rebind in same session (ITS#8568)
