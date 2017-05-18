@@ -109,12 +109,12 @@ handle_bind_response( Operation *op, BerElement *ber )
             "received response for bind request by client %lu, result=%d\n",
             op->o_client_connid, result );
 
+    CONNECTION_LOCK(c);
     switch ( result ) {
         case LDAP_SASL_BIND_IN_PROGRESS:
             break;
         case LDAP_SUCCESS:
         default: {
-            CONNECTION_LOCK(c);
             c->c_state = SLAP_C_READY;
             if ( result != LDAP_SUCCESS ) {
                 ber_memfree( c->c_auth.bv_val );
@@ -124,24 +124,19 @@ handle_bind_response( Operation *op, BerElement *ber )
                 ber_memfree( c->c_sasl_bind_mech.bv_val );
                 BER_BVZERO( &c->c_sasl_bind_mech );
             }
-            if ( rc ) {
-                CONNECTION_UNLOCK_INCREF(c);
-            } else {
-                CONNECTION_UNLOCK(c);
-            }
             break;
         }
     }
 
 done:
     if ( rc ) {
-        CONNECTION_LOCK_DECREF(c);
         operation_destroy_from_client( op );
-        CLIENT_UNLOCK_OR_DESTROY(c);
+        CONNECTION_UNLOCK(c);
 
         ber_free( ber, 1 );
         return rc;
     }
+    CONNECTION_UNLOCK(c);
     return forward_final_response( op, ber );
 }
 
