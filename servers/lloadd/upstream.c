@@ -369,7 +369,8 @@ handle_one_response( Connection *c )
     }
     if ( op ) {
         Debug( LDAP_DEBUG_TRACE, "handle_one_response: "
-                "upstream=%lu, processing response for client %lu, msgid=%d\n",
+                "upstream=%lu, processing response for client connid=%lu, "
+                "msgid=%d\n",
                 c->c_connid, op->o_client_connid, op->o_client_msgid );
     } else {
         tag = ber_peek_tag( ber, &len );

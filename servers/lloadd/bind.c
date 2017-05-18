@@ -317,7 +317,8 @@ client_bind( Connection *client, Operation *op )
     upstream = backend_select( op );
     if ( !upstream ) {
         Debug( LDAP_DEBUG_STATS, "client_bind: "
-                "no available connection found\n" );
+                "connid=%lu, msgid=%d no available connection found\n",
+                op->o_client_connid, op->o_client_msgid );
         operation_send_reject(
                 op, LDAP_UNAVAILABLE, "no connections available", 1 );
         CONNECTION_LOCK_DECREF(client);
