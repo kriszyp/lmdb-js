@@ -517,7 +517,7 @@ request_abandon( Connection *c, Operation *op )
 {
     Operation *request, needle = { .o_client = c };
     ber_tag_t tag;
-    int rc = -1;
+    int rc = LDAP_SUCCESS;
 
     tag = ber_get_int( op->o_ber, &needle.o_client_msgid );
     if ( tag != LDAP_REQ_ABANDON ) {
@@ -535,7 +535,6 @@ request_abandon( Connection *c, Operation *op )
     operation_abandon( request );
     CONNECTION_LOCK_DECREF(c);
 
-    rc = LDAP_SUCCESS;
 done:
     operation_destroy_from_client( op );
     return rc;
