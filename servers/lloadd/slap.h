@@ -423,6 +423,7 @@ struct Operation {
     int o_upstream_live, o_upstream_refcnt;
     ber_int_t o_upstream_msgid;
 
+    ldap_pvt_thread_mutex_t o_mutex;
     enum op_state o_freeing;
     ber_tag_t o_tag;
 
