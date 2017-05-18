@@ -314,7 +314,7 @@ static int
 handle_one_response( Connection *c )
 {
     BerElement *ber;
-    Operation *op = NULL, needle = { .o_upstream = c };
+    Operation *op = NULL, needle = { .o_upstream_connid = c->c_connid };
     OperationHandler handler = NULL;
     ber_tag_t tag;
     ber_len_t len;

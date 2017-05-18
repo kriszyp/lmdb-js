@@ -86,7 +86,7 @@ operation_client_cmp( const void *left, const void *right )
 {
     const Operation *l = left, *r = right;
 
-    assert( l->o_client == r->o_client );
+    assert( l->o_client_connid == r->o_client_connid );
     return ( l->o_client_msgid < r->o_client_msgid ) ?
             -1 :
             ( l->o_client_msgid > r->o_client_msgid );
@@ -97,7 +97,7 @@ operation_upstream_cmp( const void *left, const void *right )
 {
     const Operation *l = left, *r = right;
 
-    assert( l->o_upstream == r->o_upstream );
+    assert( l->o_upstream_connid == r->o_upstream_connid );
     return ( l->o_upstream_msgid < r->o_upstream_msgid ) ?
             -1 :
             ( l->o_upstream_msgid > r->o_upstream_msgid );
@@ -515,7 +515,7 @@ done:
 int
 request_abandon( Connection *c, Operation *op )
 {
-    Operation *request, needle = { .o_client = c };
+    Operation *request, needle = { .o_client_connid = c->c_connid };
     ber_tag_t tag;
     int rc = LDAP_SUCCESS;
 
