@@ -16,6 +16,7 @@ OpenLDAP 2.4.45 Engineering
                     Custom modules may need to be updated for sc_writewait callback (ITS#8435)
 	Fixed slapd-ldap/meta broken LDAP_TAILQ macro (ITS#8576)
 	Fixed slapd-mdb so it passes ITS6794 regression test (ITS#6794)
+	Fixed slapd-mdb double free with size zero paged result (ITS#8655)
 	Fixed slapd-meta uninitialized diagnostic message (ITS#8442)
 	Fixed slapo-accesslog to honor pauses during purge for cn=config update (ITS#8423)
 	Fixed slapo-accesslog with multiple modifications to the same attribute (ITS#6545)
