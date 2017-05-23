@@ -116,6 +116,7 @@ fail:
     return 1;
 }
 
+#ifdef LDAP_API_FEATURE_VERIFY_CREDENTIALS
 /*
  * On entering the function, we've put a reference on both connections and hold
  * upstream's c_io_mutex.
@@ -245,6 +246,7 @@ fail:
     operation_send_reject( op, result, msg, 1 );
     return 1;
 }
+#endif /* LDAP_API_FEATURE_VERIFY_CREDENTIALS */
 
 void
 client_reset( Connection *c )
@@ -329,9 +331,13 @@ client_bind( Connection *client, Operation *op )
 
     op->o_upstream = upstream;
     op->o_upstream_connid = upstream->c_connid;
+
+#ifdef LDAP_API_FEATURE_VERIFY_CREDENTIALS
     if ( lload_features & LLOAD_FEATURE_VC ) {
         rc = request_bind_as_vc( op );
-    } else {
+    } else
+#endif /* LDAP_API_FEATURE_VERIFY_CREDENTIALS */
+    {
         rc = request_bind( op );
     }
 

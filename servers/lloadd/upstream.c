@@ -140,6 +140,7 @@ done:
     return forward_final_response( op, ber );
 }
 
+#ifdef LDAP_API_FEATURE_VERIFY_CREDENTIALS
 static int
 handle_vc_bind_response( Operation *op, BerElement *ber )
 {
@@ -259,6 +260,7 @@ done:
     ber_free( ber, 1 );
     return rc;
 }
+#endif /* LDAP_API_FEATURE_VERIFY_CREDENTIALS */
 
 static int
 handle_unsolicited( Connection *c, BerElement *ber )
@@ -358,9 +360,11 @@ handle_one_response( Connection *c )
                 handler = handle_bind_response;
                 break;
             case LDAP_RES_EXTENDED:
+#ifdef LDAP_API_FEATURE_VERIFY_CREDENTIALS
                 if ( op->o_tag == LDAP_REQ_BIND ) {
                     handler = handle_vc_bind_response;
                 }
+#endif /* LDAP_API_FEATURE_VERIFY_CREDENTIALS */
                 break;
         }
         if ( !handler ) {
@@ -827,8 +831,11 @@ upstream_init( ber_socket_t s, Backend *b )
      * connection into the bind conn pool. Start off by allocating one for
      * general use, then one for binds, then we start filling up the general
      * connection pool, finally the bind pool */
-    if ( !(lload_features & LLOAD_FEATURE_VC) && b->b_active &&
-            b->b_numbindconns ) {
+    if (
+#ifdef LDAP_API_FEATURE_VERIFY_CREDENTIALS
+            !(lload_features & LLOAD_FEATURE_VC) &&
+#endif /* LDAP_API_FEATURE_VERIFY_CREDENTIALS */
+            b->b_active && b->b_numbindconns ) {
         if ( !b->b_bindavail ) {
             is_bindconn = 1;
         } else if ( b->b_active >= b->b_numconns &&

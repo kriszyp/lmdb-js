@@ -232,7 +232,9 @@ typedef struct config_reply_s ConfigReply; /* config.h */
 typedef struct Listener Listener;
 
 typedef enum {
+#ifdef LDAP_API_FEATURE_VERIFY_CREDENTIALS
     LLOAD_FEATURE_VC = 1 << 0,
+#endif /* LDAP_API_FEATURE_VERIFY_CREDENTIALS */
     LLOAD_FEATURE_PROXYAUTHZ = 1 << 1,
 } lload_features_t;
 

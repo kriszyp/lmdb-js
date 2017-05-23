@@ -121,8 +121,11 @@ backend_select( Operation *op )
             continue;
         }
 
-        if ( op->o_tag == LDAP_REQ_BIND &&
-                !(lload_features & LLOAD_FEATURE_VC) ) {
+        if ( op->o_tag == LDAP_REQ_BIND
+#ifdef LDAP_API_FEATURE_VERIFY_CREDENTIALS
+                && !(lload_features & LLOAD_FEATURE_VC)
+#endif /* LDAP_API_FEATURE_VERIFY_CREDENTIALS */
+        ) {
             head = &b->b_bindconns;
         } else {
             head = &b->b_conns;
@@ -181,7 +184,10 @@ backend_retry( Backend *b )
     ldap_pvt_thread_mutex_lock( &b->b_mutex );
 
     requested = b->b_numconns;
-    if ( !(lload_features & LLOAD_FEATURE_VC) ) {
+#ifdef LDAP_API_FEATURE_VERIFY_CREDENTIALS
+    if ( !(lload_features & LLOAD_FEATURE_VC) )
+#endif /* LDAP_API_FEATURE_VERIFY_CREDENTIALS */
+    {
         requested += b->b_numbindconns;
     }
     if ( b->b_active + b->b_bindavail + b->b_opening < requested ) {
