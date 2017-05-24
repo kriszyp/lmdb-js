@@ -1225,11 +1225,11 @@ if test $ol_link_tls = no ; then
 		AC_CHECK_HEADERS(gnutls/gnutls.h)
 
 		if test $ac_cv_header_gnutls_gnutls_h = yes ; then
-			AC_PREPROC_IFELSE(
+			AC_PREPROC_IFELSE([AC_LANG_SOURCE(
 				[[#include <gnutls/gnutls.h>]
 [#if GNUTLS_VERSION_NUMBER < 0x020c00]
 [#error "GnuTLS 2.12.0 or newer required"]
-[#endif]],
+[#endif]])],
 					, [AC_MSG_FAILURE([GnuTLS is too old])])
 
 			AC_CHECK_LIB(gnutls, gnutls_init,
@@ -1506,7 +1506,7 @@ pthread_rwlock_t rwlock;
 				AC_MSG_ERROR([LinuxThreads header/library mismatch]);
 			fi
 
-			AC_CACHE_CHECK([if pthread_create() works],
+			AC_CACHE_CHECK([AC_LANG_SOURCE([if pthread_create() works])],
 				ol_cv_pthread_create_works,[
 			AC_RUN_IFELSE([OL_PTHREAD_TEST_PROGRAM],
 				[ol_cv_pthread_create_works=yes],
@@ -2556,7 +2556,7 @@ if test "$ac_cv_func_getpeereid" != yes; then
 		fi
 		AC_CHECK_MEMBERS([struct stat.st_fstype, struct stat.st_vfstype])
 		if test "$ac_cv_member_struct_stat_st_fstype" = yes; then
-			AC_COMPILE_IFELSE([struct stat st; char *ptr=st.st_fstype;],
+			AC_COMPILE_IFELSE([AC_LANG_SOURCE([struct stat st; char *ptr=st.st_fstype;])],
 				AC_DEFINE([HAVE_STRUCT_STAT_ST_FSTYPE_CHAR],1,[define to 1 if st_fstype is char *]),
 				AC_DEFINE([HAVE_STRUCT_STAT_ST_FSTYPE_INT],1,[define to 1 if st_fstype is int]))
 		fi

@@ -321,13 +321,13 @@ dnl --------------------------------------------------------------------
 dnl Get major and minor version from <db.h>
 AC_DEFUN([OL_BDB_HEADER_VERSION],
 [AC_CACHE_CHECK([for Berkeley DB major version in db.h], [ol_cv_bdb_major],[
-	AC_LANG_CONFTEST([
+	AC_LANG_CONFTEST([AC_LANG_SOURCE([
 #include <db.h>
 #ifndef DB_VERSION_MAJOR
 #	define DB_VERSION_MAJOR 1
 #endif
 __db_version DB_VERSION_MAJOR
-])
+])])
 	set X `eval "$ac_cpp -P conftest.$ac_ext" | $EGREP __db_version` none none
 	ol_cv_bdb_major=${3}
 ])
@@ -337,13 +337,13 @@ esac
 
 dnl Determine minor version
 AC_CACHE_CHECK([for Berkeley DB minor version in db.h], [ol_cv_bdb_minor],[
-	AC_LANG_CONFTEST([
+	AC_LANG_CONFTEST([AC_LANG_SOURCE([
 #include <db.h>
 #ifndef DB_VERSION_MINOR
 #	define DB_VERSION_MINOR 0
 #endif
 __db_version DB_VERSION_MINOR
-])
+])])
 	set X `eval "$ac_cpp -P conftest.$ac_ext" | $EGREP __db_version` none none
 	ol_cv_bdb_minor=${3}
 ])
@@ -678,7 +678,7 @@ AC_DEFUN([OL_PTHREAD_TEST_FUNCTION],[[
 ]])
 
 AC_DEFUN([OL_PTHREAD_TEST_PROGRAM],
-AC_LANG_SOURCE([OL_PTHREAD_TEST_INCLUDES
+[AC_LANG_SOURCE([OL_PTHREAD_TEST_INCLUDES
 
 int main(argc, argv)
 	int argc;
@@ -686,7 +686,7 @@ int main(argc, argv)
 {
 OL_PTHREAD_TEST_FUNCTION
 }
-]))
+])])
 dnl --------------------------------------------------------------------
 AC_DEFUN([OL_PTHREAD_TRY], [# Pthread try link: $1 ($2)
 if test "$ol_link_threads" = no ; then
