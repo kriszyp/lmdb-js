@@ -314,12 +314,45 @@ backends_destroy( void )
 
         while ( !LDAP_CIRCLEQ_EMPTY( &b->b_bindconns ) ) {
             Connection *c = LDAP_CIRCLEQ_FIRST( &b->b_bindconns );
+            TAvlnode *root;
+            long freed;
+
             CONNECTION_LOCK(c);
+            Debug( LDAP_DEBUG_CONNS, "backends_destroy: "
+                    "destroying bind connection connid=%lu, pending ops=%ld\n",
+                    c->c_connid, c->c_n_ops_executing );
+
+            root = c->c_ops;
+            c->c_ops = NULL;
+            CONNECTION_UNLOCK_INCREF(c);
+
+            freed = tavl_free( root, (AVL_FREE)operation_lost_upstream );
+
+            CONNECTION_LOCK_DECREF(c);
+            assert( freed == c->c_n_ops_executing );
+            assert( c->c_live );
             UPSTREAM_DESTROY(c);
         }
         while ( !LDAP_CIRCLEQ_EMPTY( &b->b_conns ) ) {
             Connection *c = LDAP_CIRCLEQ_FIRST( &b->b_conns );
+            TAvlnode *root;
+            long freed;
+
             CONNECTION_LOCK(c);
+            Debug( LDAP_DEBUG_CONNS, "backends_destroy: "
+                    "destroying regular connection connid=%lu, pending "
+                    "ops=%ld\n",
+                    c->c_connid, c->c_n_ops_executing );
+
+            root = c->c_ops;
+            c->c_ops = NULL;
+            CONNECTION_UNLOCK_INCREF(c);
+
+            freed = tavl_free( root, (AVL_FREE)operation_lost_upstream );
+
+            CONNECTION_LOCK_DECREF(c);
+            assert( freed == c->c_n_ops_executing );
+            assert( c->c_live );
             UPSTREAM_DESTROY(c);
         }
 
