@@ -18,10 +18,12 @@ SUBDIRS= progs
 
 BUILD_MDB=@BUILD_MDB@
 BUILD_SQL=@BUILD_SQL@
+BUILD_BALANCER=@BUILD_BALANCER@
 
 # test primary backends (default)
 test tests:
 	@$(MAKE) mdb
+	@$(MAKE) lloadd
 
 # test all backends
 alltests: tests
@@ -47,6 +49,14 @@ sql-yes sql-mod:	FORCE
 ldif test-ldif: FORCE
 	@echo "Initiating LDAP tests for LDIF..."
 	@$(RUN) -b ldif all
+
+lloadd test-lloadd: lloadd-$(BUILD_BALANCER)
+lloadd-no:
+	@echo "run configure with --enable-balancer to run the Load Balancer tests"
+
+lloadd-yes: FORCE
+	@echo "Initiating LDAP tests for the Load Balancer..."
+	@$(RUN) lloadd-all
 
 regressions:	FORCE
 	@echo "Testing (available) ITS regressions"

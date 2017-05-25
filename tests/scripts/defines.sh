@@ -151,6 +151,9 @@ VALREGEXCONF=$DATADIR/slapd-valregex.conf
 
 DYNAMICCONF=$DATADIR/slapd-dynamic.ldif
 
+LLOADDCONF=$DATADIR/lloadd.conf
+LLOADDANONCONF=$DATADIR/lloadd-anon.conf
+
 # generated files
 CONF1=$TESTDIR/slapd.1.conf
 CONF2=$TESTDIR/slapd.2.conf
@@ -196,6 +199,7 @@ CMP="diff -i"
 BCMP="diff -iB"
 CMPOUT=/dev/null
 SLAPD="$TESTWD/../servers/slapd/slapd -s0"
+LLOADD="$TESTWD/../servers/lloadd/lloadd -s0"
 LDAPPASSWD="$CLIENTDIR/ldappasswd $TOOLARGS"
 LDAPSASLSEARCH="$CLIENTDIR/ldapsearch $SASLARGS $TOOLPROTO $LDAP_TOOLARGS -LLL"
 LDAPSASLWHOAMI="$CLIENTDIR/ldapwhoami $SASLARGS $LDAP_TOOLARGS"
