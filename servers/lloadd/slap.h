@@ -122,8 +122,10 @@ extern int slap_inet4or6;
 #endif
 
 typedef LDAP_CIRCLEQ_HEAD(BeSt, Backend) slap_b_head;
+typedef LDAP_CIRCLEQ_HEAD(ClientSt, Connection) slap_c_head;
 
 LDAP_SLAPD_V (slap_b_head) backend;
+LDAP_SLAPD_V (slap_c_head) clients;
 LDAP_SLAPD_V (ldap_pvt_thread_mutex_t) backend_mutex;
 LDAP_SLAPD_V (Backend *) current_backend;
 
@@ -394,8 +396,12 @@ struct Connection {
     long c_n_ops_executing; /* num of ops currently executing */
     long c_n_ops_completed; /* num of ops completed */
 
-    /* Upstream: Protected by its backend's mutex */
-    LDAP_CIRCLEQ_ENTRY( Connection ) c_next;
+    /*
+     * Protected by the CIRCLEQ mutex:
+     * - Client: clients_mutex
+     * - Upstream: b->b_mutex
+     */
+    LDAP_CIRCLEQ_ENTRY(Connection) c_next;
 
     void *c_private;
 };

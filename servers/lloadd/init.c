@@ -99,6 +99,7 @@ slap_init( int mode, const char *name )
             LDAP_STAILQ_INIT( &slapd_rq.run_list );
 
             ldap_pvt_thread_mutex_init( &backend_mutex );
+            ldap_pvt_thread_mutex_init( &clients_mutex );
 
             break;
 

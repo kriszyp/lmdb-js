@@ -24,6 +24,10 @@
 #include "lutil.h"
 #include "slap.h"
 
+slap_c_head clients = LDAP_CIRCLEQ_HEAD_INITIALIZER( clients );
+
+ldap_pvt_thread_mutex_t clients_mutex;
+
 typedef int (*RequestHandler)( Connection *c, Operation *op );
 
 static void
@@ -178,7 +182,6 @@ handle_one_request( Connection *c )
         case LDAP_REQ_UNBIND:
             /* There is never a response for this operation */
             operation_destroy_from_client( op );
-            c->c_state = SLAP_C_CLOSING;
             CLIENT_DESTROY(c);
             return -1;
         case LDAP_REQ_BIND:
@@ -283,6 +286,13 @@ client_init(
     c->c_write_event = event;
 
     c->c_private = listener;
+
+    /* There should be no lock inversion yet since no other thread could
+     * approach it from clients side */
+    ldap_pvt_thread_mutex_lock( &clients_mutex );
+    LDAP_CIRCLEQ_INSERT_TAIL( &clients, c, c_next );
+    ldap_pvt_thread_mutex_unlock( &clients_mutex );
+
     CONNECTION_UNLOCK(c);
 
     return c;
@@ -303,9 +313,15 @@ fail:
 void
 client_destroy( Connection *c )
 {
+    enum sc_state state;
+
     Debug( LDAP_DEBUG_CONNS, "client_destroy: "
             "destroying client %lu\n",
             c->c_connid );
+
+    assert( c->c_state != SLAP_C_INVALID );
+    state = c->c_state;
+    c->c_state = SLAP_C_INVALID;
 
     if ( c->c_read_event ) {
         event_free( c->c_read_event );
@@ -317,11 +333,12 @@ client_destroy( Connection *c )
         c->c_write_event = NULL;
     }
 
-    c->c_state = SLAP_C_INVALID;
-    /* FIXME: we drop c_mutex in client_reset, operation_destroy_from_upstream
-     * might copy op->o_client and bump c_refcnt, it is then responsible to
-     * call destroy_client again, does that mean that we can be triggered for
-     * recursion over all connections? */
+    if ( state != SLAP_C_CLOSING ) {
+        ldap_pvt_thread_mutex_lock( &clients_mutex );
+        LDAP_CIRCLEQ_REMOVE( &clients, c, c_next );
+        ldap_pvt_thread_mutex_unlock( &clients_mutex );
+    }
+
     client_reset( c );
 
     /*
@@ -338,5 +355,27 @@ client_destroy( Connection *c )
         CONNECTION_UNLOCK(c);
         return;
     }
+
     connection_destroy( c );
+}
+
+void
+clients_destroy( void )
+{
+    ldap_pvt_thread_mutex_lock( &clients_mutex );
+    while ( !LDAP_CIRCLEQ_EMPTY( &clients ) ) {
+        Connection *c = LDAP_CIRCLEQ_FIRST( &clients );
+
+        ldap_pvt_thread_mutex_unlock( &clients_mutex );
+        CONNECTION_LOCK(c);
+        /* We have shut down all processing, a dying connection connection
+         * should have been reclaimed by now! */
+        assert( c->c_live );
+        /* Upstream connections have already been destroyed, there should be no
+         * ops left */
+        assert( !c->c_ops );
+        CLIENT_DESTROY(c);
+        ldap_pvt_thread_mutex_lock( &clients_mutex );
+    }
+    ldap_pvt_thread_mutex_unlock( &clients_mutex );
 }

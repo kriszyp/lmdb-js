@@ -75,6 +75,7 @@ LDAP_SLAPD_F (int) handle_one_request( Connection *c );
 LDAP_SLAPD_F (Connection *) client_init( ber_socket_t s, Listener *url, const char *peername, struct event_base *base, int use_tls );
 LDAP_SLAPD_F (void) client_write_cb( evutil_socket_t s, short what, void *arg );
 LDAP_SLAPD_F (void) client_destroy( Connection *c );
+LDAP_SLAPD_F (void) clients_destroy( void );
 
 /*
  * config.c
@@ -89,6 +90,7 @@ LDAP_SLAPD_F (void) bindconf_free( slap_bindconf *bc );
 /*
  * connection.c
  */
+LDAP_SLAPD_V (ldap_pvt_thread_mutex_t) clients_mutex;
 LDAP_SLAPD_F (Connection *) connection_init( ber_socket_t s, const char *peername, int use_tls );
 LDAP_SLAPD_F (void) connection_destroy( Connection *c );
 
