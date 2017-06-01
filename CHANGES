@@ -1,5 +1,7 @@
 OpenLDAP 2.4 Change Log
 
+OpenLDAP 2.4.46 Engineering
+
 OpenLDAP 2.4.45 Release (2017/06/01)
 	Added slapd support for OpenSSL 1.1.0 series (ITS#8353, ITS#8533, ITS#8634)
 	Fixed libldap to fail ldap_result if the handle is already bad (ITS#8585)
