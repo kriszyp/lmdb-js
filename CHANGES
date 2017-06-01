@@ -40,7 +40,7 @@ OpenLDAP 2.4.45 Release (2017/06/01)
 	Documentation
 		admin24 fixed tls_cipher_suite bindconf option (ITS#8099)
 		admin24 fixed typo cn=config to be slapd.d (ITS#8449)
-		admin24 fixed slapo-syncprov information to be curent (ITS#8253)
+		admin24 fixed slapo-syncprov information to be current (ITS#8253)
 		admin24 fixed typo in access control docs (ITS#7341, ITS#8391)
 		admin24 fixed minor typo in tuning guide (ITS#8499)
 		admin24 fixed information about the limits option (ITS#7700)
