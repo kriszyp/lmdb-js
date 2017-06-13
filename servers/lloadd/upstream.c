@@ -167,7 +167,7 @@ handle_vc_bind_response( Operation *op, BerElement *ber )
         CONNECTION_LOCK(upstream);
         b = (Backend *)upstream->c_private;
         Debug( LDAP_DEBUG_ANY, "VC extended operation not supported on backend %s\n",
-                b->b_bindconf.sb_uri.bv_val );
+                b->b_uri.bv_val );
         CONNECTION_UNLOCK(upstream);
     }
 
@@ -779,20 +779,20 @@ upstream_bind( void *ctx, void *arg )
     CONNECTION_UNLOCK_INCREF(c);
 
     ldap_pvt_thread_mutex_lock( &b->b_mutex );
-    if ( b->b_bindconf.sb_method == LDAP_AUTH_SIMPLE ) {
+    if ( bindconf.sb_method == LDAP_AUTH_SIMPLE ) {
         /* simple bind */
         ber_printf( ber, "{it{iOtON}}",
                 msgid, LDAP_REQ_BIND, LDAP_VERSION3,
-                &b->b_bindconf.sb_binddn, LDAP_AUTH_SIMPLE,
-                &b->b_bindconf.sb_cred );
+                &bindconf.sb_binddn, LDAP_AUTH_SIMPLE,
+                &bindconf.sb_cred );
 
 #ifdef HAVE_CYRUS_SASL
     } else {
         BerValue cred = BER_BVNULL;
         ber_printf( ber, "{it{iOt{OON}N}}",
                 msgid, LDAP_REQ_BIND, LDAP_VERSION3,
-                &b->b_bindconf.sb_binddn, LDAP_AUTH_SASL,
-                &b->b_bindconf.sb_saslmech, BER_BV_OPTIONAL( &cred ) );
+                &bindconf.sb_binddn, LDAP_AUTH_SASL,
+                &bindconf.sb_saslmech, BER_BV_OPTIONAL( &cred ) );
 #endif /* HAVE_CYRUS_SASL */
     }
     ldap_pvt_thread_mutex_unlock( &b->b_mutex );
@@ -857,7 +857,7 @@ upstream_init( ber_socket_t s, Backend *b )
         }
     }
 
-    if ( is_bindconn || b->b_bindconf.sb_method == LDAP_AUTH_NONE ) {
+    if ( is_bindconn || bindconf.sb_method == LDAP_AUTH_NONE ) {
         if ( upstream_finish( c ) ) {
             goto fail;
         }

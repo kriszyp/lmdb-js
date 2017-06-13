@@ -39,7 +39,7 @@ upstream_name_cb( int result, struct evutil_addrinfo *res, void *arg )
     if ( result || !res ) {
         Debug( LDAP_DEBUG_ANY, "upstream_name_cb: "
                 "name resolution failed for backend '%s': %s\n",
-                b->b_bindconf.sb_uri.bv_val, evutil_gai_strerror( result ) );
+                b->b_uri.bv_val, evutil_gai_strerror( result ) );
         goto fail;
     }
 
@@ -65,7 +65,7 @@ upstream_name_cb( int result, struct evutil_addrinfo *res, void *arg )
     if ( rc && errno != EINPROGRESS && errno != EWOULDBLOCK ) {
         Debug( LDAP_DEBUG_ANY, "upstream_name_cb: "
                 "failed to connect to server '%s'\n",
-                b->b_bindconf.sb_uri.bv_val );
+                b->b_uri.bv_val );
         goto fail;
     }
 
@@ -115,7 +115,7 @@ backend_select( Operation *op )
         if ( b->b_max_pending && b->b_n_ops_executing >= b->b_max_pending ) {
             Debug( LDAP_DEBUG_CONNS, "backend_select: "
                     "backend %s too busy\n",
-                    b->b_bindconf.sb_uri.bv_val );
+                    b->b_uri.bv_val );
             ldap_pvt_thread_mutex_unlock( &b->b_mutex );
             b = next;
             continue;
@@ -316,7 +316,7 @@ backends_destroy( void )
 
         Debug( LDAP_DEBUG_CONNS, "backends_destroy: "
                 "destroying backend uri='%s', numconns=%d, numbindconns=%d\n",
-                b->b_bindconf.sb_uri.bv_val, b->b_numconns, b->b_numbindconns );
+                b->b_uri.bv_val, b->b_numconns, b->b_numbindconns );
 
         while ( !LDAP_CIRCLEQ_EMPTY( &b->b_bindconns ) ) {
             Connection *c = LDAP_CIRCLEQ_FIRST( &b->b_bindconns );
@@ -349,27 +349,7 @@ backends_destroy( void )
         event_free( b->b_retry_event );
 
         ch_free( b->b_host );
-        ch_free( b->b_bindconf.sb_uri.bv_val );
-        ch_free( b->b_bindconf.sb_binddn.bv_val );
-        ch_free( b->b_bindconf.sb_cred.bv_val );
-        ch_free( b->b_bindconf.sb_saslmech.bv_val );
-        ch_free( b->b_bindconf.sb_secprops );
-        ch_free( b->b_bindconf.sb_realm.bv_val );
-        ch_free( b->b_bindconf.sb_authcId.bv_val );
-        ch_free( b->b_bindconf.sb_authzId.bv_val );
-
-#ifdef HAVE_TLS
-        ch_free( b->b_bindconf.sb_tls_cert );
-        ch_free( b->b_bindconf.sb_tls_key );
-        ch_free( b->b_bindconf.sb_tls_cacert );
-        ch_free( b->b_bindconf.sb_tls_cacertdir );
-        ch_free( b->b_bindconf.sb_tls_reqcert );
-        ch_free( b->b_bindconf.sb_tls_cipher_suite );
-        ch_free( b->b_bindconf.sb_tls_protocol_min );
-#ifdef HAVE_OPENSSL_CRL
-        ch_free( b->b_bindconf.sb_tls_crlcheck );
-#endif
-#endif
+        ch_free( b->b_uri.bv_val );
         ch_free( b );
     }
 }

@@ -1359,6 +1359,7 @@ slapd_daemon( struct event_base *daemon_base )
     ldap_pvt_thread_pool_close( &connection_pool, 1 );
     backends_destroy();
     clients_destroy();
+    bindconf_free( &bindconf );
     evdns_base_free( dnsbase, 0 );
 
     ch_free( daemon_tid );
