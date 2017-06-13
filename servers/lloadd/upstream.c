@@ -311,6 +311,11 @@ handle_unsolicited( Connection *c, BerElement *ber )
  * TODO: when the client already has data pending on write, we should mute the
  * upstream.
  * - should record the BerElement on the Op and the Op on the client
+ *
+ * The following hold on entering any of the handlers:
+ * - op->o_upstream_refcnt > 0
+ * - op->o_upstream->c_refcnt > 0
+ * - op->o_client->c_refcnt > 0
  */
 static int
 handle_one_response( Connection *c )

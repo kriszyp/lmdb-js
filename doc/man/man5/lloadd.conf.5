@@ -278,6 +278,14 @@ The default is 16; the minimum value is 2.
 Specify the number of work queues to use for the primary thread pool.
 The default is 1 and this is typically adequate for up to 8 CPU cores.
 The value should not exceed the number of CPUs in the system.
+.TP
+.B max_pdus_per_cycle <integer>
+If set to 0, PDUs are handled by the I/O threads directly, otherwise
+a task is queued to be picked up by the thread pool. This task will
+process PDUs from the connection until there is no more data to be
+read or this limit is reached when the I/O thread can pick it up again.
+Very high values have a potential to cause some connections to be
+starved in a very high-bandwidth environment.
 
 .SH TLS OPTIONS
 If
