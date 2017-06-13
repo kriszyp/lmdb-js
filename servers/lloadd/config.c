@@ -71,8 +71,8 @@ static char *logfileName;
 
 lload_features_t lload_features;
 
-ber_len_t sockbuf_max_incoming = SLAP_SB_MAX_INCOMING_DEFAULT;
-ber_len_t sockbuf_max_incoming_auth = SLAP_SB_MAX_INCOMING_AUTH;
+ber_len_t sockbuf_max_incoming_client = SLAP_SB_MAX_INCOMING_CLIENT;
+ber_len_t sockbuf_max_incoming_upstream = SLAP_SB_MAX_INCOMING_UPSTREAM;
 
 int slap_conn_max_pdus_per_cycle = SLAP_CONN_MAX_PDUS_PER_CYCLE_DEFAULT;
 
@@ -203,13 +203,13 @@ static ConfigTable config_back_cf_table[] = {
         ARG_MAGIC,
         &config_restrict,
     },
-    { "sockbuf_max_incoming", "max", 2, 2, 0,
+    { "sockbuf_max_incoming_client", "max", 2, 2, 0,
         ARG_BER_LEN_T,
-        &sockbuf_max_incoming,
+        &sockbuf_max_incoming_client,
     },
-    { "sockbuf_max_incoming_auth", "max", 2, 2, 0,
+    { "sockbuf_max_incoming_upstream", "max", 2, 2, 0,
         ARG_BER_LEN_T,
-        &sockbuf_max_incoming_auth,
+        &sockbuf_max_incoming_upstream,
     },
     { "tcp-buffer", "[listener=<listener>] [{read|write}=]size", 0, 0, 0,
 #ifdef LDAP_TCP_BUFFER

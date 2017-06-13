@@ -818,6 +818,11 @@ upstream_init( ber_socket_t s, Backend *b )
     c = connection_init( s, b->b_host, flags );
     c->c_private = b;
 
+    {
+        ber_len_t max = sockbuf_max_incoming_upstream;
+        ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_SET_MAX_INCOMING, &max );
+    }
+
     event = event_new( base, s, EV_WRITE, upstream_write_cb, c );
     if ( !event ) {
         Debug( LDAP_DEBUG_ANY, "upstream_init: "

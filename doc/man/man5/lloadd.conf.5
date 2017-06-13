@@ -251,12 +251,13 @@ The (absolute) name of a file that will hold the
 server's process ID (see
 .BR getpid (2)).
 .TP
-.B sockbuf_max_incoming <integer>
-Specify the maximum incoming LDAP PDU size for anonymous sessions.
+.B sockbuf_max_incoming_client <integer>
+Specify the maximum LDAP PDU size accepted coming from clients.
 The default is 262143.
 .TP
-.B sockbuf_max_incoming_auth <integer>
-Specify the maximum incoming LDAP PDU size for authenticated sessions.
+.B sockbuf_max_incoming_upstream <integer>
+Specify the maximum LDAP PDU size accepted coming from upstream
+connections.
 The default is 4194303.
 .TP
 .B tcp-buffer [listener=<URL>] [{read|write}=]<size>

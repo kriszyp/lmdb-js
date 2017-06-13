@@ -268,6 +268,11 @@ client_init(
 
     c = connection_init( s, peername, flags );
 
+    {
+        ber_len_t max = sockbuf_max_incoming_client;
+        ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_SET_MAX_INCOMING, &max );
+    }
+
     c->c_state = SLAP_C_READY;
 
     event = event_new( base, s, EV_READ|EV_PERSIST, client_read_cb, c );
