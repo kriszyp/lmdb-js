@@ -539,14 +539,23 @@ int
 request_abandon( Connection *c, Operation *op )
 {
     Operation *request, needle = { .o_client_connid = c->c_connid };
-    ber_tag_t tag;
     int rc = LDAP_SUCCESS;
 
-    tag = ber_get_int( op->o_ber, &needle.o_client_msgid );
-    if ( tag != LDAP_REQ_ABANDON ) {
-        /* How would that happen if we already got the tag for the op? */
-        assert(0);
-        goto done;
+    /* parse two's complement integer */
+    if ( !BER_BVISEMPTY( &op->o_request ) ) {
+        unsigned char *buf = (unsigned char *)op->o_request.bv_val;
+        ber_len_t i;
+        ber_int_t netnum = buf[0] & 0xff;
+
+        /* sign extend */
+        netnum = ( netnum ^ 0x80 ) - 0x80;
+
+        /* shift in the bytes */
+        for ( i = 1; i < op->o_request.bv_len; i++ ) {
+            netnum = ( netnum << 8 ) | buf[i];
+        }
+
+        needle.o_client_msgid = netnum;
     }
 
     request = tavl_find( c->c_ops, &needle, operation_client_cmp );
