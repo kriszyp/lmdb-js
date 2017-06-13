@@ -135,7 +135,7 @@ enum {
     CFG_THREADS,
     CFG_LOGFILE,
     CFG_MIRRORMODE,
-    CFG_LTHREADS,
+    CFG_IOTHREADS,
     CFG_THREADQS,
     CFG_TLS_ECNAME,
     CFG_TLS_CACERT,
@@ -183,8 +183,8 @@ static ConfigTable config_back_cf_table[] = {
         ARG_MAGIC,
         &config_include,
     },
-    { "listener-threads", "count", 2, 0, 0,
-        ARG_UINT|ARG_MAGIC|CFG_LTHREADS,
+    { "io-threads", "count", 2, 0, 0,
+        ARG_UINT|ARG_MAGIC|CFG_IOTHREADS,
         &config_generic,
     },
     { "logfile", "file", 2, 2, 0,
@@ -418,7 +418,7 @@ config_generic( ConfigArgs *c )
             connection_pool_queues = c->value_int; /* save for reference */
             break;
 
-        case CFG_LTHREADS: {
+        case CFG_IOTHREADS: {
             int mask = 0;
             /* use a power of two */
             while ( c->value_uint > 1 ) {
