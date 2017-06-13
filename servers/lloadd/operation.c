@@ -689,18 +689,9 @@ request_process( Connection *client, Operation *op )
         CONNECTION_UNLOCK_INCREF(client);
 
         if ( !BER_BVISNULL( &op->o_ctrls ) ) {
-            BerElement *control_ber = ber_alloc();
-            BerValue controls;
-
-            if ( !control_ber ) {
-                goto fail;
-            }
-            ber_init2( control_ber, &op->o_ctrls, 0 );
-            ber_peek_element( control_ber, &controls );
-
-            ber_write( output, controls.bv_val, controls.bv_len, 0 );
-            ber_free( control_ber, 0 );
+            ber_write( output, op->o_ctrls.bv_val, op->o_ctrls.bv_len, 0 );
         }
+
         ber_printf( output, /* "{{" */ "}}" );
     } else {
         ber_printf( output, "t{titOtO}", LDAP_TAG_MESSAGE,
