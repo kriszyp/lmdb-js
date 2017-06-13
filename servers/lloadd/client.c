@@ -225,6 +225,9 @@ client_write_cb( evutil_socket_t s, short what, void *arg )
     }
     CONNECTION_UNLOCK_INCREF(c);
 
+    /* Before we acquire any locks */
+    event_del( c->c_write_event );
+
     ldap_pvt_thread_mutex_lock( &c->c_io_mutex );
     Debug( LDAP_DEBUG_CONNS, "client_write_cb: "
             "have something to write to client %lu\n",

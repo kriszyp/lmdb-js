@@ -711,6 +711,9 @@ upstream_write_cb( evutil_socket_t s, short what, void *arg )
     }
     CONNECTION_UNLOCK_INCREF(c);
 
+    /* Before we acquire any locks */
+    event_del( c->c_write_event );
+
     ldap_pvt_thread_mutex_lock( &c->c_io_mutex );
     Debug( LDAP_DEBUG_CONNS, "upstream_write_cb: "
             "have something to write to upstream %lu\n",
@@ -892,6 +895,8 @@ upstream_destroy( Connection *c )
 {
     Backend *b = c->c_private;
     struct event *read_event, *write_event;
+    TAvlnode *root;
+    long freed;
 
     Debug( LDAP_DEBUG_CONNS, "upstream_destroy: "
             "freeing connection %lu\n",
@@ -899,9 +904,14 @@ upstream_destroy( Connection *c )
 
     c->c_state = SLAP_C_INVALID;
 
+    root = c->c_ops;
+    c->c_ops = NULL;
+
     read_event = c->c_read_event;
     write_event = c->c_write_event;
     CONNECTION_UNLOCK_INCREF(c);
+
+    freed = tavl_free( root, (AVL_FREE)operation_lost_upstream );
 
     /*
      * Avoid a deadlock:
