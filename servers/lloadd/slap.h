@@ -129,6 +129,7 @@ LDAP_SLAPD_V (slap_c_head) clients;
 LDAP_SLAPD_V (ldap_pvt_thread_mutex_t) backend_mutex;
 LDAP_SLAPD_V (Backend *) current_backend;
 LDAP_SLAPD_V (struct slap_bindconf) bindconf;
+LDAP_SLAPD_V (struct berval) lloadd_identity;
 
 LDAP_SLAPD_V (int) slapMode;
 #define SLAP_UNDEFINED_MODE 0x0000
@@ -281,6 +282,7 @@ enum sc_state {
 enum sc_type {
     SLAP_C_OPEN = 0, /* regular connection */
     SLAP_C_BIND, /* connection used to handle bind client requests if VC not enabled */
+    SLAP_C_PRIVILEGED, /* connection can override proxyauthz control */
 };
 /*
  * represents a connection from an ldap client/to ldap server

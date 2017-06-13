@@ -685,7 +685,8 @@ request_process( Connection *client, Operation *op )
             op->o_client_msgid, op->o_upstream_connid, op->o_upstream_msgid );
     assert( rc == LDAP_SUCCESS );
 
-    if ( lload_features & LLOAD_FEATURE_PROXYAUTHZ ) {
+    if ( (lload_features & LLOAD_FEATURE_PROXYAUTHZ) &&
+            client->c_type != SLAP_C_PRIVILEGED ) {
         CONNECTION_LOCK_DECREF(client);
         Debug( LDAP_DEBUG_TRACE, "request_process: "
                 "proxying identity %s to upstream\n",

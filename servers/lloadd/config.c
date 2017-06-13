@@ -118,6 +118,7 @@ ldap_pvt_thread_mutex_t backend_mutex;
 Backend *current_backend = NULL;
 
 struct slap_bindconf bindconf = {};
+struct berval lloadd_identity = BER_BVNULL;
 
 enum {
     CFG_ACL = 1,
@@ -621,6 +622,21 @@ config_bindconf( ConfigArgs *c )
 #endif
     }
 
+    if ( !BER_BVISNULL( &bindconf.sb_authzId ) ) {
+        ber_dupbv( &lloadd_identity, &bindconf.sb_authzId );
+    } else if ( !BER_BVISNULL( &bindconf.sb_authcId ) ) {
+        ber_dupbv( &lloadd_identity, &bindconf.sb_authcId );
+    } else if ( !BER_BVISNULL( &bindconf.sb_binddn ) ) {
+        char *ptr;
+
+        lloadd_identity.bv_len = STRLENOF("dn:") + bindconf.sb_binddn.bv_len;
+        lloadd_identity.bv_val = ch_malloc( lloadd_identity.bv_len + 1 );
+
+        ptr = lutil_strcopy( lloadd_identity.bv_val, "dn:" );
+        ptr = lutil_strncopy(
+                ptr, bindconf.sb_binddn.bv_val, bindconf.sb_binddn.bv_len );
+        *ptr = '\0';
+    }
     return 0;
 }
 

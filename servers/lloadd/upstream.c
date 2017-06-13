@@ -116,9 +116,12 @@ handle_bind_response( Operation *op, BerElement *ber )
         case LDAP_SUCCESS:
         default: {
             c->c_state = SLAP_C_READY;
+            c->c_type = SLAP_C_OPEN;
             if ( result != LDAP_SUCCESS ) {
                 ber_memfree( c->c_auth.bv_val );
                 BER_BVZERO( &c->c_auth );
+            } else if ( !ber_bvstrcasecmp( &c->c_auth, &lloadd_identity ) ) {
+                c->c_type = SLAP_C_PRIVILEGED;
             }
             if ( !BER_BVISNULL( &c->c_sasl_bind_mech ) ) {
                 ber_memfree( c->c_sasl_bind_mech.bv_val );
@@ -215,9 +218,12 @@ handle_vc_bind_response( Operation *op, BerElement *ber )
         case LDAP_SUCCESS:
         default: {
             c->c_state = SLAP_C_READY;
+            c->c_type = SLAP_C_OPEN;
             if ( result != LDAP_SUCCESS ) {
                 ber_memfree( c->c_auth.bv_val );
                 BER_BVZERO( &c->c_auth );
+            } else if ( !ber_bvstrcasecmp( &c->c_auth, &lloadd_identity ) ) {
+                c->c_type = SLAP_C_PRIVILEGED;
             }
             if ( !BER_BVISNULL( &c->c_vc_cookie ) ) {
                 ber_memfree( c->c_vc_cookie.bv_val );
