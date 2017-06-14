@@ -108,7 +108,11 @@ Supported features are:
 .TP
 .B proxyauthz
 when proxying an operation, pass the client's authorized identity using
-the proxy authorization control (RFC 4370).
+the proxy authorization control (RFC 4370). No control is added to the
+operation if initiated by a client whose bound identity matches the identity
+configured in
+.B bindconf
+(no normalisation of the DN is attempted).
 .\" .TP
 .\" .B vc
 .\" when receiving a bind operation from a client, pass it onto a backend
@@ -496,24 +500,22 @@ Specifies a file containing a Certificate Revocation List to be used
 for verifying that certificates have not been revoked. This directive is
 only valid when using GnuTLS and Mozilla NSS.
 
-.SH GENERAL BACKEND OPTIONS
-Options in this section only apply to the configuration file section
-for the specified backend.  They are supported by every
-type of backend.
+.SH BACKEND OPTIONS
+Options in this section describe how the
+.B lloadd
+connects and authenticates to the backend servers.
+
+It is assumed all backend servers serve the same data. On startup, the
+configured connections are set up and those not dedicated to handle bind
+requests are authenticated with the backend using the information in the
+.B bindconf
+option. The authentication configuration is shared between them.
 .TP
 .B backend
 .B uri=ldap[s]://<hostname>[:port]
 .B [retry=<retry interval in ms>]
 .B [network\-timeout=<seconds>]
 .B [timeout=<seconds>]
-.B [bindmethod=simple|sasl]
-.B [binddn=<dn>]
-.B [saslmech=<mech>]
-.B [authcid=<identity>]
-.B [authzid=<identity>]
-.B [credentials=<passwd>]
-.B [realm=<realm>]
-.B [secprops=<properties>]
 .B [keepalive=<idle>:<probes>:<interval>]
 .B [starttls=yes|critical]
 .B [tls_cert=<file>]
@@ -578,6 +580,14 @@ Bind request to complete. The defaults for these parameters come
 from
 .BR ldap.conf (5).
 
+.B [bindmethod=simple|sasl]
+.B [binddn=<dn>]
+.B [saslmech=<mech>]
+.B [authcid=<identity>]
+.B [authzid=<identity>]
+.B [credentials=<passwd>]
+.B [realm=<realm>]
+.B [secprops=<properties>]
 A
 .B bindmethod
 of
@@ -681,11 +691,13 @@ Here is a short example of a configuration file:
 argsfile  LOCALSTATEDIR/run/lloadd.args
 pidfile   LOCALSTATEDIR/run/lloadd.pid
 
-backend
-    uri=ldap://ldap1.example.com
+bindconf
     bindmethod=simple
     binddn=cn=test
     credentials=pass
+
+backend
+    uri=ldap://ldap1.example.com
     numconns=3
     bindconns=2
     retry=5000
@@ -694,9 +706,6 @@ backend
 
 backend
     uri=ldap://ldap2.example.com
-    bindmethod=simple
-    binddn=cn=test
-    credentials=pass
     numconns=3
     bindconns=2
     retry=5000
