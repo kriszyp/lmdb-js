@@ -736,7 +736,7 @@ slapd_daemon_init( const char *urls )
 
     if ( u == NULL || u[0] == NULL ) {
         Debug( LDAP_DEBUG_ANY, "slapd_daemon_init: "
-                "no urls (%s) provided.\n",
+                "no urls (%s) provided\n",
                 urls );
         if ( u ) ldap_charray_free( u );
         return -1;
@@ -1003,7 +1003,7 @@ slap_listener(
 
     if ( !c ) {
         Debug( LDAP_DEBUG_ANY, "slap_listener: "
-                "client_init(%ld, %s, %s) failed.\n",
+                "client_init(%ld, %s, %s) failed\n",
                 (long)s, peername, sl->sl_name.bv_val );
         slapd_close( s );
     }

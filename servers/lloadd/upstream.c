@@ -41,7 +41,7 @@ forward_response( Operation *op, BerElement *ber )
     }
 
     Debug( LDAP_DEBUG_CONNS, "forward_response: "
-            "%s to client %lu request #%d\n",
+            "%s to client connid=%lu request msgid=%d\n",
             slap_msgtype2str( response_tag ), op->o_client_connid,
             op->o_client_msgid );
 
@@ -72,8 +72,9 @@ forward_final_response( Operation *op, BerElement *ber )
     int rc;
 
     Debug( LDAP_DEBUG_CONNS, "forward_final_response: "
-            "finishing up with request #%d for client %lu\n",
-            op->o_client_msgid, op->o_client_connid );
+            "connid=%lu msgid=%d finishing up with a request for "
+            "client connid=%lu\n",
+            op->o_upstream_connid, op->o_upstream_msgid, op->o_client_connid );
     rc = forward_response( op, ber );
     CONNECTION_LOCK_DECREF(op->o_upstream);
     operation_destroy_from_upstream( op );
@@ -106,7 +107,8 @@ handle_bind_response( Operation *op, BerElement *ber )
     }
 
     Debug( LDAP_DEBUG_CONNS, "handle_bind_response: "
-            "received response for bind request by client %lu, result=%d\n",
+            "received response for bind request by client connid=%lu, "
+            "result=%d\n",
             op->o_client_connid, result );
 
     CONNECTION_LOCK(c);
@@ -169,7 +171,8 @@ handle_vc_bind_response( Operation *op, BerElement *ber )
 
         CONNECTION_LOCK(upstream);
         b = (Backend *)upstream->c_private;
-        Debug( LDAP_DEBUG_ANY, "VC extended operation not supported on backend %s\n",
+        Debug( LDAP_DEBUG_ANY, "handle_vc_bind_response: "
+                "VC extended operation not supported on backend %s\n",
                 b->b_uri.bv_val );
         CONNECTION_UNLOCK(upstream);
     }
@@ -177,7 +180,8 @@ handle_vc_bind_response( Operation *op, BerElement *ber )
     CONNECTION_LOCK(c);
 
     Debug( LDAP_DEBUG_CONNS, "handle_vc_bind_response: "
-            "received response for bind request by client %lu, result=%d\n",
+            "received response for bind request by client connid=%lu, "
+            "result=%d\n",
             c->c_connid, result );
 
     if ( tag == LDAP_TAG_EXOP_VERIFY_CREDENTIALS_COOKIE ) {
@@ -274,7 +278,7 @@ handle_unsolicited( Connection *c, BerElement *ber )
     c->c_state = SLAP_C_CLOSING;
 
     Debug( LDAP_DEBUG_CONNS, "handle_unsolicited: "
-            "teardown for upstream connection %lu\n",
+            "teardown for upstream connection connid=%lu\n",
             c->c_connid );
 
     UPSTREAM_DESTROY(c);
@@ -372,13 +376,14 @@ handle_one_response( Connection *c )
     }
     if ( op ) {
         Debug( LDAP_DEBUG_TRACE, "handle_one_response: "
-                "upstream=%lu, processing response for client connid=%lu, "
-                "msgid=%d\n",
+                "upstream connid=%lu, processing response for "
+                "client connid=%lu, msgid=%d\n",
                 c->c_connid, op->o_client_connid, op->o_client_msgid );
     } else {
         tag = ber_peek_tag( ber, &len );
-        Debug( LDAP_DEBUG_TRACE, "handle_one_response: "
-                "upstream=%lu, %s, msgid=%d not for a pending operation\n",
+        Debug( LDAP_DEBUG_STATS2, "handle_one_response: "
+                "upstream connid=%lu, %s, msgid=%d not for a pending "
+                "operation\n",
                 c->c_connid, slap_msgtype2str( tag ), needle.o_upstream_msgid );
     }
 
@@ -415,9 +420,10 @@ handle_one_response( Connection *c )
 
 fail:
     if ( rc ) {
-        Debug( LDAP_DEBUG_ANY, "handle_one_response: "
-                "error on processing a response on upstream connection %ld\n",
-                c->c_connid );
+        Debug( LDAP_DEBUG_STATS, "handle_one_response: "
+                "error on processing a response (%s) on upstream connection "
+                "connid=%ld, tag=%lx\n",
+                slap_msgtype2str( tag ), c->c_connid, tag );
         UPSTREAM_DESTROY(c);
     }
     /* We leave the connection locked */
@@ -487,6 +493,9 @@ handle_responses( void *ctx, void *arg )
     }
 
     event_add( c->c_read_event, NULL );
+    Debug( LDAP_DEBUG_CONNS, "handle_responses: "
+            "re-enabled read event on connid=%lu\n",
+            c->c_connid );
     UPSTREAM_UNLOCK_OR_DESTROY(c);
     return NULL;
 }
@@ -509,11 +518,14 @@ upstream_read_cb( evutil_socket_t s, short what, void *arg )
     CONNECTION_LOCK(c);
     if ( !c->c_live ) {
         event_del( c->c_read_event );
+        Debug( LDAP_DEBUG_CONNS, "upstream_read_cb: "
+                "suspended read event on a dead connid=%lu\n",
+                c->c_connid );
         CONNECTION_UNLOCK(c);
         return;
     }
     Debug( LDAP_DEBUG_CONNS, "upstream_read_cb: "
-            "connection %lu ready to read\n",
+            "connection connid=%lu ready to read\n",
             c->c_connid );
 
     ber = c->c_currentber;
@@ -542,10 +554,16 @@ upstream_read_cb( evutil_socket_t s, short what, void *arg )
             ber_free( ber, 1 );
 
             event_del( c->c_read_event );
+            Debug( LDAP_DEBUG_CONNS, "upstream_read_cb: "
+                    "suspended read event on dying connid=%lu\n",
+                    c->c_connid );
             UPSTREAM_DESTROY(c);
             return;
         }
         event_add( c->c_read_event, NULL );
+        Debug( LDAP_DEBUG_CONNS, "upstream_read_cb: "
+                "re-enabled read event on connid=%lu\n",
+                c->c_connid );
         CONNECTION_UNLOCK(c);
         return;
     }
@@ -580,7 +598,7 @@ upstream_finish( Connection *c )
     evutil_socket_t s = c->c_fd;
 
     Debug( LDAP_DEBUG_CONNS, "upstream_finish: "
-            "connection %lu is ready for use\n",
+            "connection connid=%lu is ready for use\n",
             c->c_connid );
 
     base = slap_get_base( s );
@@ -615,7 +633,7 @@ upstream_bind_cb( evutil_socket_t s, short what, void *arg )
 
     CONNECTION_LOCK(c);
     Debug( LDAP_DEBUG_CONNS, "upstream_bind_cb: "
-            "connection %lu ready to read\n",
+            "connection connid=%lu ready to read\n",
             c->c_connid );
 
     ber = c->c_currentber;
@@ -689,6 +707,9 @@ upstream_bind_cb( evutil_socket_t s, short what, void *arg )
 
 fail:
     event_del( c->c_read_event );
+    Debug( LDAP_DEBUG_CONNS, "upstream_bind_cb: "
+            "suspended read event on dying connid=%lu\n",
+            c->c_connid );
     ber_free( ber, 1 );
     UPSTREAM_DESTROY(c);
 }
@@ -710,7 +731,7 @@ upstream_write_cb( evutil_socket_t s, short what, void *arg )
 
     ldap_pvt_thread_mutex_lock( &c->c_io_mutex );
     Debug( LDAP_DEBUG_CONNS, "upstream_write_cb: "
-            "have something to write to upstream %lu\n",
+            "have something to write to upstream connid=%lu\n",
             c->c_connid );
 
     /* We might have been beaten to flushing the data by another thread */
@@ -893,7 +914,7 @@ upstream_destroy( Connection *c )
     long freed, executing;
 
     Debug( LDAP_DEBUG_CONNS, "upstream_destroy: "
-            "freeing connection %lu\n",
+            "freeing connection connid=%lu\n",
             c->c_connid );
 
     c->c_state = SLAP_C_INVALID;

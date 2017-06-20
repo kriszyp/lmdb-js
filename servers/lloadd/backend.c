@@ -138,7 +138,8 @@ backend_select( Operation *op )
                     ( b->b_max_conn_pending == 0 ||
                             c->c_n_ops_executing < b->b_max_conn_pending ) ) {
                 Debug( LDAP_DEBUG_CONNS, "backend_select: "
-                        "selected connection %lu for client %lu msgid=%d\n",
+                        "selected connection connid=%lu for client "
+                        "connid=%lu msgid=%d\n",
                         c->c_connid, op->o_client_connid, op->o_client_msgid );
 
                 /*

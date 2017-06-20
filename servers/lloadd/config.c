@@ -396,7 +396,7 @@ config_generic( ConfigArgs *c )
                 snprintf( c->cr_msg, sizeof(c->cr_msg),
                         "threads=%d smaller than minimum value 2",
                         c->value_int );
-                Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg );
+                Debug( LDAP_DEBUG_ANY, "%s: %s\n", c->log, c->cr_msg );
                 return 1;
 
             } else if ( c->value_int > 2 * SLAP_MAX_WORKER_THREADS ) {
@@ -405,7 +405,7 @@ config_generic( ConfigArgs *c )
                         "(2*%d=%d); YMMV",
                         c->value_int, SLAP_MAX_WORKER_THREADS,
                         2 * SLAP_MAX_WORKER_THREADS );
-                Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg );
+                Debug( LDAP_DEBUG_ANY, "%s: %s\n", c->log, c->cr_msg );
             }
             if ( slapMode & SLAP_SERVER_MODE )
                 ldap_pvt_thread_pool_maxthreads(
@@ -418,7 +418,7 @@ config_generic( ConfigArgs *c )
                 snprintf( c->cr_msg, sizeof(c->cr_msg),
                         "threadqueues=%d smaller than minimum value 1",
                         c->value_int );
-                Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg );
+                Debug( LDAP_DEBUG_ANY, "%s: %s\n", c->log, c->cr_msg );
                 return 1;
             }
             if ( slapMode & SLAP_SERVER_MODE )
@@ -449,14 +449,14 @@ config_generic( ConfigArgs *c )
             if ( c->value_int < 0 ) {
                 snprintf( c->cr_msg, sizeof(c->cr_msg),
                         "max_pdus_per_cycle=%d invalid", c->value_int );
-                Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg );
+                Debug( LDAP_DEBUG_ANY, "%s: %s\n", c->log, c->cr_msg );
                 return 1;
             }
             slap_conn_max_pdus_per_cycle = c->value_int;
             break;
 
         default:
-            Debug( LDAP_DEBUG_ANY, "%s: unknown CFG_TYPE %d.\n",
+            Debug( LDAP_DEBUG_ANY, "%s: unknown CFG_TYPE %d\n",
                     c->log, c->type );
             return 1;
     }
@@ -1324,7 +1324,7 @@ config_check_vals( ConfigTable *Conf, ConfigArgs *c, int check_only )
                 c->argv[0], Conf->what );
 
         ignored = "";
-        Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE, "%s: %s%s.\n",
+        Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE, "%s: %s%s\n",
                 c->log, c->cr_msg, ignored );
         return ARG_BAD_CONF;
     }
@@ -1647,7 +1647,7 @@ read_config_file(
         }
 
         if ( c->argc < 1 ) {
-            Debug( LDAP_DEBUG_ANY, "%s: bad config line.\n", c->log );
+            Debug( LDAP_DEBUG_ANY, "%s: bad config line\n", c->log );
             rc = 1;
             goto done;
         }
@@ -1674,7 +1674,7 @@ read_config_file(
 
         } else {
             Debug( LDAP_DEBUG_ANY, "%s: unknown directive "
-                    "<%s> outside backend info and database definitions.\n",
+                    "<%s> outside backend info and database definitions\n",
                     c->log, *c->argv );
             rc = 1;
             goto done;

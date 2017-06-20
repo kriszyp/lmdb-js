@@ -55,7 +55,7 @@ connection_destroy( Connection *c )
 {
     assert( c );
     Debug( LDAP_DEBUG_CONNS, "connection_destroy: "
-            "destroying connection %lu.\n",
+            "destroying connection connid=%lu\n",
             c->c_connid );
 
     assert( c->c_live == 0 );
@@ -94,7 +94,7 @@ connection_init( ber_socket_t s, const char *peername, int flags )
 
     if ( s == AC_SOCKET_INVALID ) {
         Debug( LDAP_DEBUG_ANY, "connection_init: "
-                "init of socket fd=%ld invalid.\n",
+                "init of socket fd=%ld invalid\n",
                 (long)s );
         return NULL;
     }
