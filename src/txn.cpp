@@ -322,7 +322,14 @@ NAN_METHOD(TxnWrap::putBoolean) {
 
 NAN_METHOD(TxnWrap::del) {
     Nan::HandleScope scope;
+    
+    // Check argument count
+    auto argCount = info.Length();
+    if (argCount < 2 || argCount > 4) {
+        return Nan::ThrowError("Invalid number of arguments to cursor.del, should be: (a) <dbi>, <key> (b) <dbi>, <key>, <options> (c) <dbi>, <key>, <data> (d) <dbi>, <key>, <data>, <options>");
+    }
 
+    // Unwrap native objects
     TxnWrap *tw = Nan::ObjectWrap::Unwrap<TxnWrap>(info.This());
     DbiWrap *dw = Nan::ObjectWrap::Unwrap<DbiWrap>(info[0]->ToObject());
 
@@ -330,9 +337,35 @@ NAN_METHOD(TxnWrap::del) {
         return Nan::ThrowError("The transaction is already closed.");
     }
 
+    // Take care of options object and data handle
+    Local<Value> options;
+    Local<Value> dataHandle;
+    
+    if (argCount == 4) {
+        options = info[3];
+        dataHandle = info[2];
+    }
+    else if (argCount == 3) {
+        if (info[2]->IsObject()) {
+            options = info[2];
+            dataHandle = Nan::Undefined();
+        }
+        else {
+            options = Nan::Undefined();
+            dataHandle = info[2];
+        }
+    }
+    else if (argCount == 2) {
+        options = Nan::Undefined();
+        dataHandle = Nan::Undefined();
+    }
+    else {
+        return Nan::ThrowError("Unknown arguments to cursor.del, this could be a node-lmdb bug!");
+    }
+
     MDB_val key;
     bool keyIsValid;
-    auto keyType = inferAndValidateKeyType(info[1], info[2], dw->keyType, keyIsValid);
+    auto keyType = inferAndValidateKeyType(info[1], options, dw->keyType, keyIsValid);
     if (!keyIsValid) {
         // inferAndValidateKeyType already threw an error
         return;
@@ -345,7 +378,6 @@ NAN_METHOD(TxnWrap::del) {
 
     // Set data if dupSort true and data given
     MDB_val data;
-    Local<Value> dataHandle = info[2];
     bool freeData = false;
     
     if ((dw->flags & MDB_DUPSORT) && !(dataHandle->IsUndefined())) {
