@@ -916,7 +916,7 @@ describe('Node.js LMDB Bindings', function() {
       });
     });
   });
-  describe('Dupsort', function() {
+  describe('Dupsort', function () {
     this.timeout(10000);
     var env;
     var dbi;
@@ -927,17 +927,21 @@ describe('Node.js LMDB Bindings', function() {
         maxDbs: 10,
         mapSize:  64 * 1024 * 1024
       });
+    });
+    after(function () {
+      env.close();
+    });
+    beforeEach(function () {
       dbi = env.openDbi({
-        name: 'mydb6',
+        name: 'testdb_dupsort',
         create: true,
         dupSort: true,
         dupFixed: false,
         keyIsBuffer: true
       });
     });
-    after(function() {
-      dbi.close();
-      env.close();
+    afterEach(function () {
+      dbi.drop();
     });
     it('will insert values with different lengths', function(done) {
       var txn = env.beginTxn();
@@ -964,6 +968,52 @@ describe('Node.js LMDB Bindings', function() {
           done();
         });
       });
+    });
+    it('will delete dupsort data correctly', function (done) {
+      var txn;
+      var cursor;
+      var key;
+      
+      // Add test data to database
+      txn = env.beginTxn();
+      txn.putNumber(dbi, 100, 1);
+      txn.putNumber(dbi, 100, 2);
+      txn.putNumber(dbi, 100, 3);
+      txn.putNumber(dbi, 100, 4);
+      txn.putNumber(dbi, 101, 1);
+      txn.putNumber(dbi, 101, 2);
+      txn.putNumber(dbi, 101, 3);
+      txn.putNumber(dbi, 101, 4);
+      txn.putNumber(dbi, 102, 1);
+      txn.putNumber(dbi, 102, 2);
+      txn.putNumber(dbi, 102, 3);
+      txn.putNumber(dbi, 102, 4);
+      txn.commit();
+      
+      // Now delete some data
+      txn = env.beginTxn();
+      txn.del(dbi, 101, 2);
+      txn.del(dbi, 101, 4);
+      txn.del(dbi, 102, 1);
+      txn.del(dbi, 102, 3);
+      txn.commit();
+      
+      // Verify data
+      txn = env.beginTxn({ readOnly: true });
+      cursor = new lmdb.Cursor(txn, dbi);
+      cursor.goToFirst().readUInt32LE().should.equal(100);
+      cursor.goToNext().readUInt32LE().should.equal(100);
+      cursor.goToNext().readUInt32LE().should.equal(100);
+      cursor.goToNext().readUInt32LE().should.equal(100);
+      cursor.goToNext().readUInt32LE().should.equal(101);
+      cursor.goToNext().readUInt32LE().should.equal(101);
+      cursor.goToNext().readUInt32LE().should.equal(102);
+      cursor.goToNext().readUInt32LE().should.equal(102);
+      should.equal(cursor.goToNext(), null);
+      
+      txn.abort();
+      
+      done();
     });
   });
   describe('Dupfixed', function() {
