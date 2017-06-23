@@ -87,18 +87,23 @@ static int
 handle_bind_response( Operation *op, BerElement *ber )
 {
     Connection *c = op->o_client;
+    BerValue response;
     BerElement *copy;
-    ber_int_t msgid, result;
+    ber_int_t result;
     ber_tag_t tag;
-    int rc = 0;
+    int rc = LDAP_SUCCESS;
 
-    copy = ber_dup( ber );
-    if ( !copy ) {
+    if ( (copy = ber_alloc()) == NULL ) {
         rc = -1;
         goto done;
     }
 
-    tag = ber_scanf( copy, "{i{e" /* "}}" */, &msgid, &result );
+    tag = ber_peek_element( ber, &response );
+    assert( tag == LDAP_RES_BIND );
+
+    ber_init2( copy, &response, 0 );
+
+    tag = ber_get_enum( copy, &result );
     ber_free( copy, 0 );
 
     if ( tag == LBER_ERROR ) {
@@ -132,16 +137,15 @@ handle_bind_response( Operation *op, BerElement *ber )
             break;
         }
     }
+    CONNECTION_UNLOCK(c);
 
 done:
     if ( rc ) {
-        operation_destroy_from_client( op );
-        CONNECTION_UNLOCK(c);
+        operation_send_reject( op, LDAP_OTHER, "internal error", 0 );
 
         ber_free( ber, 1 );
-        return rc;
+        return LDAP_SUCCESS;
     }
-    CONNECTION_UNLOCK(c);
     return forward_final_response( op, ber );
 }
 
