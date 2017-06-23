@@ -543,21 +543,17 @@ request_abandon( Connection *c, Operation *op )
     Operation *request, needle = { .o_client_connid = c->c_connid };
     int rc = LDAP_SUCCESS;
 
-    /* parse two's complement integer */
-    if ( !BER_BVISEMPTY( &op->o_request ) ) {
-        unsigned char *buf = (unsigned char *)op->o_request.bv_val;
-        ber_len_t i;
-        ber_int_t netnum = buf[0] & 0xff;
+    if ( ber_decode_int( &op->o_request, &needle.o_client_msgid ) ) {
+        Debug( LDAP_DEBUG_STATS, "request_abandon: "
+                "connid=%lu msgid=%d invalid integer sent in abandon request\n",
+                c->c_connid, op->o_client_msgid );
 
-        /* sign extend */
-        netnum = ( netnum ^ 0x80 ) - 0x80;
-
-        /* shift in the bytes */
-        for ( i = 1; i < op->o_request.bv_len; i++ ) {
-            netnum = ( netnum << 8 ) | buf[i];
-        }
-
-        needle.o_client_msgid = netnum;
+        CONNECTION_UNLOCK_INCREF(c);
+        operation_send_reject(
+                op, LDAP_PROTOCOL_ERROR, "invalid PDU received", 0 );
+        CONNECTION_LOCK_DECREF(c);
+        CLIENT_DESTROY(c);
+        return -1;
     }
 
     request = tavl_find( c->c_ops, &needle, operation_client_cmp );
