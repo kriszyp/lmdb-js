@@ -114,7 +114,7 @@ fi
 MYURI=`eval echo '$URI'$n`
 PROVIDERURI=`eval echo '$URI'$o`
 if test $INDEXDB = indexdb ; then
-INDEX1="olcDbIndex: objectClass,entryCSN,reqStart,reqDN eq"
+INDEX1="olcDbIndex: objectClass,entryCSN,reqStart,reqDN,reqResult eq"
 INDEX2="olcDbIndex: objectClass,entryCSN,entryUUID eq"
 else
 INDEX1=
