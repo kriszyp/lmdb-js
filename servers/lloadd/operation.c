@@ -652,11 +652,29 @@ done:
     CLIENT_UNLOCK_OR_DESTROY(c);
 }
 
+/*
+ * Upstream is shutting down, signal the client if necessary, but we have to
+ * call operation_destroy_from_upstream ourselves to detach upstream from the
+ * op.
+ *
+ * Only called from upstream_destroy.
+ */
 void
 operation_lost_upstream( Operation *op )
 {
+    Connection *c = op->o_upstream;
+    CONNECTION_LOCK(c);
+    op->o_upstream_refcnt++;
+    /* Matching the op reference on the connection as well */
+    CONNECTION_UNLOCK_INCREF(c);
+
     operation_send_reject( op, LDAP_UNAVAILABLE,
             "connection to the remote server has been severed", 0 );
+
+    CONNECTION_LOCK_DECREF(c);
+    op->o_upstream_refcnt--;
+    operation_destroy_from_upstream( op );
+    CONNECTION_UNLOCK(c);
 }
 
 int
