@@ -280,6 +280,11 @@ ber_get_enum LDAP_P((
 	BerElement *ber,
 	ber_int_t *num ));
 
+LBER_F( int )
+ber_decode_int LDAP_P((
+	const struct berval *bv,
+	ber_int_t *num ));
+
 LBER_F( ber_tag_t )
 ber_get_stringb LDAP_P((
 	BerElement *ber,
