@@ -922,9 +922,11 @@ upstream_destroy( Connection *c )
     root = c->c_ops;
     c->c_ops = NULL;
     executing = c->c_n_ops_executing;
+    c->c_n_ops_executing = 0;
 
     read_event = c->c_read_event;
     write_event = c->c_write_event;
+
     CONNECTION_UNLOCK_INCREF(c);
 
     freed = tavl_free( root, (AVL_FREE)operation_lost_upstream );

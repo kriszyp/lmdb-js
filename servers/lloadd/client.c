@@ -111,7 +111,10 @@ client_read_cb( evutil_socket_t s, short what, void *arg )
             "suspended read event on connid=%lu\n",
             c->c_connid );
 
-    CONNECTION_UNLOCK(c);
+    /* We have scheduled a call to handle_requests which takes care of
+     * handling further requests, just make sure the connection sticks around
+     * for that */
+    CONNECTION_UNLOCK_INCREF(c);
     return;
 }
 
@@ -121,7 +124,7 @@ handle_requests( void *ctx, void *arg )
     Connection *c = arg;
     int requests_handled = 0;
 
-    CONNECTION_LOCK(c);
+    CONNECTION_LOCK_DECREF(c);
     for ( ; requests_handled < slap_conn_max_pdus_per_cycle;
             requests_handled++ ) {
         BerElement *ber;
