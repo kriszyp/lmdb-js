@@ -234,6 +234,25 @@ ber_skip_element( BerElement *ber, struct berval *bv )
 	return tag;
 }
 
+/* Move past next element, point *bv at the complete element in-place, and
+ * return its tag. The caller may \0-terminate *bv, as next octet is saved in
+ * ber->ber_tag. Similar to ber_skip_element(ber, bv) except the tag+length
+ * header is also included in *bv.
+ */
+ber_tag_t
+ber_skip_raw( BerElement *ber, struct berval *bv )
+{
+	char		*val = ber->ber_ptr;
+	ber_tag_t	tag = ber_skip_element( ber, bv );
+
+	if ( tag != LBER_DEFAULT ) {
+		bv->bv_len += bv->bv_val - val;
+		bv->bv_val = val;
+	}
+
+	return tag;
+}
+
 ber_tag_t
 ber_peek_tag(
 	BerElement *ber,

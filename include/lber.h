@@ -256,6 +256,11 @@ ber_peek_tag LDAP_P((
 	ber_len_t *len ));
 
 LBER_F( ber_tag_t )
+ber_skip_raw LDAP_P((
+	BerElement *ber,
+	struct berval *bv ));
+
+LBER_F( ber_tag_t )
 ber_skip_element LDAP_P((
 	BerElement *ber,
 	struct berval *bv ));
