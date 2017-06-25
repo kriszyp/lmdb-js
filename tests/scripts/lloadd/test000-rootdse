@@ -16,7 +16,7 @@
 echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
 
-mkdir -p $TESTDIR $DBDIR1
+mkdir -p $TESTDIR $DBDIR1 $DBDIR2 $DBDIR3
 
 echo "Starting slapd on TCP/IP port $PORT2..."
 . $CONFFILTER $BACKEND < $SCHEMACONF > $CONF2
@@ -29,7 +29,7 @@ fi
 KILLPIDS="$PID"
 
 echo "Starting a second slapd on TCP/IP port $PORT3..."
-. $CONFFILTER $BACKEND < $SCHEMACONF > $CONF3
+sed -e "s,$DBDIR1,$DBDIR2," < $CONF2 > $CONF3
 $SLAPD -f $CONF3 -h $URI3 -d $LVL > $LOG3 2>&1 &
 PID=$!
 if test $WAIT != 0 ; then
@@ -39,7 +39,7 @@ fi
 KILLPIDS="$KILLPIDS $PID"
 
 echo "Starting a third slapd on TCP/IP port $PORT4..."
-. $CONFFILTER $BACKEND < $SCHEMACONF > $CONF4
+sed -e "s,$DBDIR1,$DBDIR3," < $CONF2 > $CONF4
 $SLAPD -f $CONF4 -h $URI4 -d $LVL > $LOG4 2>&1 &
 PID=$!
 if test $WAIT != 0 ; then
