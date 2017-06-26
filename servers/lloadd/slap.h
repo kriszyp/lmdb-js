@@ -101,6 +101,7 @@ LDAP_SLAPD_V (int) slap_debug;
 typedef unsigned long slap_mask_t;
 
 typedef struct Backend Backend;
+typedef struct PendingConnection PendingConnection;
 typedef struct Connection Connection;
 typedef struct Operation Operation;
 /* end of forward declarations */
@@ -246,6 +247,15 @@ enum lload_tls_type {
     LLOAD_STARTTLS,
 };
 
+struct PendingConnection {
+    Backend *backend;
+
+    struct event *event;
+    ber_socket_t fd;
+
+    LDAP_LIST_ENTRY(PendingConnection) next;
+};
+
 /* Can hold mutex when locking a linked connection */
 struct Backend {
     ldap_pvt_thread_mutex_t b_mutex;
@@ -262,6 +272,7 @@ struct Backend {
     int b_numconns, b_numbindconns;
     int b_bindavail, b_active, b_opening;
     LDAP_CIRCLEQ_HEAD(ConnSt, Connection) b_conns, b_bindconns;
+    LDAP_LIST_HEAD(ConnectingSt, PendingConnection) b_connecting;
 
     long b_max_pending, b_max_conn_pending;
     long b_n_ops_executing;
