@@ -755,10 +755,18 @@ request_process( Connection *client, Operation *op )
 
 fail:
     if ( upstream ) {
+        Backend *b;
+
         ldap_pvt_thread_mutex_unlock( &upstream->c_io_mutex );
         CONNECTION_LOCK_DECREF(upstream);
         upstream->c_n_ops_executing--;
+        b = (Backend *)upstream->c_private;
         UPSTREAM_UNLOCK_OR_DESTROY(upstream);
+
+        ldap_pvt_thread_mutex_lock( &b->b_mutex );
+        b->b_n_ops_executing--;
+        ldap_pvt_thread_mutex_unlock( &b->b_mutex );
+
         operation_send_reject( op, LDAP_OTHER, "internal error", 0 );
     }
     CONNECTION_LOCK_DECREF(client);
