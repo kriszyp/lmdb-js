@@ -773,5 +773,5 @@ fail:
     op->o_client_refcnt--;
     operation_destroy_from_client( op );
     CLIENT_UNLOCK_OR_DESTROY(client);
-    return -1;
+    return rc;
 }
