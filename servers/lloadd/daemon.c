@@ -79,7 +79,6 @@ int slapd_tcp_wmem;
 
 struct event_base *listener_base = NULL;
 Listener **slap_listeners = NULL;
-static volatile sig_atomic_t listening = 1; /* 0 when slap_listeners closed */
 static ldap_pvt_thread_t listener_tid, *daemon_tid;
 
 struct evdns_base *dnsbase;
@@ -134,46 +133,6 @@ typedef struct slap_daemon_st {
 static slap_daemon_st slap_daemon[SLAPD_MAX_DAEMON_THREADS];
 
 static void daemon_wakeup_cb( evutil_socket_t sig, short what, void *arg );
-
-/*
- * Remove the descriptor from daemon control
- */
-void
-slapd_remove( ber_socket_t s, Sockbuf *sb, int wasactive, int wake, int locked )
-{
-    int id = DAEMON_ID(s);
-
-    if ( !locked ) ldap_pvt_thread_mutex_lock( &slap_daemon[id].sd_mutex );
-
-    if ( sb ) ber_sockbuf_free( sb );
-
-    /* If we ran out of file descriptors, we dropped a listener from
-     * the select() loop. Now that we're removing a session from our
-     * control, we can try to resume a dropped listener to use.
-     */
-    if ( emfile && listening ) {
-        int i;
-        for ( i = 0; slap_listeners[i] != NULL; i++ ) {
-            Listener *lr = slap_listeners[i];
-
-            if ( lr->sl_sd == AC_SOCKET_INVALID ) continue;
-            if ( lr->sl_sd == s ) continue;
-            if ( lr->sl_mute ) {
-                lr->sl_mute = 0;
-                emfile--;
-                if ( DAEMON_ID(lr->sl_sd) != id )
-                    WAKE_DAEMON( DAEMON_ID(lr->sl_sd), wake );
-                break;
-            }
-        }
-        /* Walked the entire list without enabling anything; emfile
-         * counter is stale. Reset it.
-         */
-        if ( slap_listeners[i] == NULL ) emfile = 0;
-    }
-    ldap_pvt_thread_mutex_unlock( &slap_daemon[id].sd_mutex );
-    WAKE_DAEMON( id, wake || slapd_gentle_shutdown == 2 );
-}
 
 static void
 slapd_close( ber_socket_t s )
@@ -803,33 +762,6 @@ slapd_daemon_destroy( void )
 }
 
 static void
-close_listeners( int remove )
-{
-    int l;
-
-    if ( !listening ) return;
-    listening = 0;
-
-    for ( l = 0; slap_listeners[l] != NULL; l++ ) {
-        Listener *lr = slap_listeners[l];
-
-        if ( lr->sl_sd != AC_SOCKET_INVALID ) {
-            int s = lr->sl_sd;
-            lr->sl_sd = AC_SOCKET_INVALID;
-            if ( remove ) slapd_remove( s, NULL, 0, 0, 0 );
-
-#ifdef LDAP_PF_LOCAL
-            if ( lr->sl_sa.sa_addr.sa_family == AF_LOCAL ) {
-                unlink( lr->sl_sa.sa_un_addr.sun_path );
-            }
-#endif /* LDAP_PF_LOCAL */
-
-            slapd_close( s );
-        }
-    }
-}
-
-static void
 destroy_listeners( void )
 {
     Listener *lr, **ll = slap_listeners;
@@ -846,6 +778,12 @@ destroy_listeners( void )
         if ( lr->sl_name.bv_val ) {
             ber_memfree( lr->sl_name.bv_val );
         }
+
+#ifdef LDAP_PF_LOCAL
+        if ( lr->sl_sa.sa_addr.sa_family == AF_LOCAL ) {
+            unlink( lr->sl_sa.sa_un_addr.sun_path );
+        }
+#endif /* LDAP_PF_LOCAL */
 
         evconnlistener_free( lr->listener );
 
@@ -1043,6 +981,10 @@ listener_error_cb( struct evconnlistener *lev, void *arg )
         l->sl_mute = 1;
         evconnlistener_disable( lev );
         ldap_pvt_thread_mutex_unlock( &slap_daemon[0].sd_mutex );
+        Debug( LDAP_DEBUG_ANY, "listener_error_cb: "
+                "too many open files, cannot accept new connections on "
+                "url=%s\n",
+                l->sl_url.bv_val );
     } else {
         char ebuf[128];
         Debug( LDAP_DEBUG_ANY, "listener_error_cb: "
@@ -1050,6 +992,33 @@ listener_error_cb( struct evconnlistener *lev, void *arg )
                 sock_errstr( err, ebuf, sizeof(ebuf) ) );
         event_base_loopexit( l->base, NULL );
     }
+}
+
+void
+listeners_reactivate( void )
+{
+    int i;
+
+    ldap_pvt_thread_mutex_lock( &slap_daemon[0].sd_mutex );
+    for ( i = 0; emfile && slap_listeners[i] != NULL; i++ ) {
+        Listener *lr = slap_listeners[i];
+
+        if ( lr->sl_sd == AC_SOCKET_INVALID ) continue;
+        if ( lr->sl_mute ) {
+            emfile--;
+            evconnlistener_enable( lr->listener );
+            lr->sl_mute = 0;
+            Debug( LDAP_DEBUG_CONNS, "listeners_reactivate: "
+                    "reactivated listener url=%s\n",
+                    lr->sl_url.bv_val );
+        }
+    }
+    if ( emfile && slap_listeners[i] == NULL ) {
+        /* Walked the entire list without enabling anything; emfile
+         * counter is stale. Reset it. */
+        emfile = 0;
+    }
+    ldap_pvt_thread_mutex_unlock( &slap_daemon[0].sd_mutex );
 }
 
 static int
@@ -1342,7 +1311,6 @@ slapd_daemon( struct event_base *daemon_base )
 
     /* shutdown */
     event_base_loopexit( listener_base, 0 );
-    close_listeners( 0 );
 
     /* wait for the listener threads to complete */
     destroy_listeners();

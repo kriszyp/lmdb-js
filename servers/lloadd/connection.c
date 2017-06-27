@@ -79,6 +79,8 @@ connection_destroy( Connection *c )
     ldap_pvt_thread_mutex_destroy( &c->c_mutex );
 
     ch_free( c );
+
+    listeners_reactivate();
 }
 
 Connection *
