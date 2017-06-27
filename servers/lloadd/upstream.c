@@ -40,7 +40,7 @@ forward_response( Operation *op, BerElement *ber )
         ber_skip_element( ber, &controls );
     }
 
-    Debug( LDAP_DEBUG_CONNS, "forward_response: "
+    Debug( LDAP_DEBUG_TRACE, "forward_response: "
             "%s to client connid=%lu request msgid=%d\n",
             slap_msgtype2str( response_tag ), op->o_client_connid,
             op->o_client_msgid );
@@ -71,7 +71,7 @@ forward_final_response( Operation *op, BerElement *ber )
 {
     int rc;
 
-    Debug( LDAP_DEBUG_CONNS, "forward_final_response: "
+    Debug( LDAP_DEBUG_STATS, "forward_final_response: "
             "connid=%lu msgid=%d finishing up with a request for "
             "client connid=%lu\n",
             op->o_upstream_connid, op->o_upstream_msgid, op->o_client_connid );
@@ -111,10 +111,10 @@ handle_bind_response( Operation *op, BerElement *ber )
         goto done;
     }
 
-    Debug( LDAP_DEBUG_CONNS, "handle_bind_response: "
-            "received response for bind request by client connid=%lu, "
-            "result=%d\n",
-            op->o_client_connid, result );
+    Debug( LDAP_DEBUG_STATS, "handle_bind_response: "
+            "received response for bind request msgid=%d by client "
+            "connid=%lu, result=%d\n",
+            op->o_client_msgid, op->o_client_connid, result );
 
     CONNECTION_LOCK(upstream);
     if ( result != LDAP_SASL_BIND_IN_PROGRESS ) {
@@ -188,12 +188,12 @@ handle_vc_bind_response( Operation *op, BerElement *ber )
         CONNECTION_UNLOCK(upstream);
     }
 
-    CONNECTION_LOCK(c);
+    Debug( LDAP_DEBUG_STATS, "handle_vc_bind_response: "
+            "received response for bind request msgid=%d by client "
+            "connid=%lu, result=%d\n",
+            op->o_client_msgid, op->o_client_connid, result );
 
-    Debug( LDAP_DEBUG_CONNS, "handle_vc_bind_response: "
-            "received response for bind request by client connid=%lu, "
-            "result=%d\n",
-            c->c_connid, result );
+    CONNECTION_LOCK(c);
 
     if ( tag == LDAP_TAG_EXOP_VERIFY_CREDENTIALS_COOKIE ) {
         if ( !BER_BVISNULL( &c->c_vc_cookie ) ) {
@@ -386,7 +386,7 @@ handle_one_response( Connection *c )
         }
     }
     if ( op ) {
-        Debug( LDAP_DEBUG_TRACE, "handle_one_response: "
+        Debug( LDAP_DEBUG_STATS2, "handle_one_response: "
                 "upstream connid=%lu, processing response for "
                 "client connid=%lu, msgid=%d\n",
                 c->c_connid, op->o_client_connid, op->o_client_msgid );

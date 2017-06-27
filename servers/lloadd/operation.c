@@ -455,8 +455,9 @@ operation_init( Connection *c, BerElement *ber )
         ber_skip_element( ber, &op->o_ctrls );
     }
 
-    Debug( LDAP_DEBUG_TRACE, "operation_init: "
-            "set up a new operation, %s with msgid=%d for client connid=%lu\n",
+    Debug( LDAP_DEBUG_STATS, "operation_init: "
+            "received a new operation, %s with msgid=%d for client "
+            "connid=%lu\n",
             slap_msgtype2str( op->o_tag ), op->o_client_msgid,
             op->o_client_connid );
 
