@@ -100,6 +100,7 @@ request_bind( Operation *op )
                  avl_dup_error ) ) {
         assert(0);
     }
+    upstream->c_state = SLAP_C_ACTIVE;
     CONNECTION_UNLOCK(upstream);
 
     ldap_pvt_thread_mutex_unlock( &upstream->c_io_mutex );
