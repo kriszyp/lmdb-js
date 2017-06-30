@@ -54,19 +54,6 @@
 #include "ldap-int.h"
 #include "ldap_defaults.h"
 
-#ifdef LDAP_DEBUG
-
-#define oslocal_debug(ld,fmt,arg1,arg2,arg3) \
-do { \
-	ldap_log_printf(ld, LDAP_DEBUG_TRACE, fmt, arg1, arg2, arg3); \
-} while(0)
-
-#else
-
-#define oslocal_debug(ld,fmt,arg1,arg2,arg3) ((void)0)
-
-#endif /* LDAP_DEBUG */
-
 static void
 ldap_pvt_set_errno(int err)
 {

@@ -51,12 +51,12 @@
 		(int)op->o_qtime.tv_sec, (int)op->o_qtime.tv_usec, \
 		(int)now.tv_sec, (int)now.tv_usec);
 #define ETIME_LOGFMT	"%s "
-#define StatslogEtime(lvl,fmt,pfx,tag,err,etxt,xtra) \
-	Statslog6(lvl,fmt,pfx,tag,err,timestr,etxt,xtra)
+#define StatslogEtime(lvl,fmt,pfx,tag,err,...) \
+	Debug(lvl,fmt,pfx,tag,err,timestr,__VA_ARGS__)
 #else
 #define ETIME_SETUP
 #define ETIME_LOGFMT	""
-#define StatslogEtime	Statslog
+#define StatslogEtime	Debug
 #endif	/* SLAP_STATS_ETIME */
 
 const struct berval slap_dummy_bv = BER_BVNULL;

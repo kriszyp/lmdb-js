@@ -73,28 +73,41 @@
 
 #define ldap_debug	((LDAP_INT_GLOBAL_OPT())->ldo_debug)
 
+#define LDAP_INT_DEBUG
 #include "ldap_log.h"
-
-#undef Debug
 
 #ifdef LDAP_DEBUG
 
 #define DebugTest( level ) \
 	( ldap_debug & level )
 
-#define Debug( level, fmt, arg1, arg2, arg3 ) \
-	do { if ( ldap_debug & level ) \
-	ldap_log_printf( NULL, (level), (fmt), (arg1), (arg2), (arg3) ); \
+#define Debug0( level, fmt ) \
+	do { if ( DebugTest( (level) ) ) \
+	ldap_log_printf( NULL, (level), fmt ); \
 	} while ( 0 )
 
-#define LDAP_Debug( subsystem, level, fmt, arg1, arg2, arg3 )\
-	ldap_log_printf( NULL, (level), (fmt), (arg1), (arg2), (arg3) )
+#define Debug1( level, fmt, arg1 ) \
+	do { if ( DebugTest( (level) ) ) \
+	ldap_log_printf( NULL, (level), fmt, arg1 ); \
+	} while ( 0 )
+
+#define Debug2( level, fmt, arg1, arg2 ) \
+	do { if ( DebugTest( (level) ) ) \
+	ldap_log_printf( NULL, (level), fmt, arg1, arg2 ); \
+	} while ( 0 )
+
+#define Debug3( level, fmt, arg1, arg2, arg3 ) \
+	do { if ( DebugTest( (level) ) ) \
+	ldap_log_printf( NULL, (level), fmt, arg1, arg2, arg3 ); \
+	} while ( 0 )
 
 #else
 
 #define DebugTest( level )                                    (0 == 1)
-#define Debug( level, fmt, arg1, arg2, arg3 )                 ((void)0)
-#define LDAP_Debug( subsystem, level, fmt, arg1, arg2, arg3 ) ((void)0)
+#define Debug0( level, fmt )                                  ((void)0)
+#define Debug1( level, fmt, arg1 )                            ((void)0)
+#define Debug2( level, fmt, arg1, arg2 )                      ((void)0)
+#define Debug3( level, fmt, arg1, arg2, arg3 )                ((void)0)
 
 #endif /* LDAP_DEBUG */
 

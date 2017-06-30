@@ -27,6 +27,7 @@
 #define _LBER_INT_H
 
 #include "lber.h"
+#define LDAP_INT_DEBUG
 #include "ldap_log.h"
 #include "lber_pvt.h"
 #include "ldap_queue.h"
