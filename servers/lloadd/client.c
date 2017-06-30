@@ -66,12 +66,17 @@ client_read_cb( evutil_socket_t s, short what, void *arg )
         int err = sock_errno();
 
         if ( err != EWOULDBLOCK && err != EAGAIN ) {
-            if ( err ) {
+            if ( err || tag == LBER_ERROR ) {
                 char ebuf[128];
-                Debug( LDAP_DEBUG_ANY, "client_read_cb: "
-                        "ber_get_next on fd %d failed errno=%d (%s)\n",
+                Debug( LDAP_DEBUG_STATS, "client_read_cb: "
+                        "ber_get_next on fd=%d failed errno=%d (%s)\n",
                         c->c_fd, err,
                         sock_errstr( err, ebuf, sizeof(ebuf) ) );
+            } else {
+                Debug( LDAP_DEBUG_STATS, "client_read_cb: "
+                        "ber_get_next on fd=%d connid=%lu received "
+                        "a strange PDU tag=%lx\n",
+                        c->c_fd, c->c_connid, tag );
             }
 
             c->c_currentber = NULL;
@@ -153,12 +158,17 @@ handle_requests( void *ctx, void *arg )
             int err = sock_errno();
 
             if ( err != EWOULDBLOCK && err != EAGAIN ) {
-                if ( err ) {
+                if ( err || tag == LBER_ERROR ) {
                     char ebuf[128];
                     Debug( LDAP_DEBUG_ANY, "handle_requests: "
-                            "ber_get_next on fd %d failed errno=%d (%s)\n",
+                            "ber_get_next on fd=%d failed errno=%d (%s)\n",
                             c->c_fd, err,
                             sock_errstr( err, ebuf, sizeof(ebuf) ) );
+                } else {
+                    Debug( LDAP_DEBUG_STATS, "handle_requests: "
+                            "ber_get_next on fd=%d connid=%lu received "
+                            "a strange PDU tag=%lx\n",
+                            c->c_fd, c->c_connid, tag );
                 }
 
                 c->c_currentber = NULL;
@@ -260,7 +270,7 @@ client_write_cb( evutil_socket_t s, short what, void *arg )
             char ebuf[128];
             ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
             Debug( LDAP_DEBUG_ANY, "client_write_cb: "
-                    "ber_flush on fd %d failed errno=%d (%s)\n",
+                    "ber_flush on fd=%d failed errno=%d (%s)\n",
                     c->c_fd, err, sock_errstr( err, ebuf, sizeof(ebuf) ) );
             CLIENT_LOCK_DESTROY(c);
             return;

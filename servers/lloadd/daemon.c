@@ -138,7 +138,7 @@ static void
 slapd_close( ber_socket_t s )
 {
     Debug( LDAP_DEBUG_CONNS, "slapd_close: "
-            "closing %ld\n",
+            "closing fd=%ld\n",
             (long)s );
     tcp_close( s );
 }
