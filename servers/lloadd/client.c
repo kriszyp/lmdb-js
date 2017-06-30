@@ -130,8 +130,7 @@ handle_requests( void *ctx, void *arg )
     int requests_handled = 0;
 
     CONNECTION_LOCK_DECREF(c);
-    for ( ; requests_handled < slap_conn_max_pdus_per_cycle;
-            requests_handled++ ) {
+    for ( ;; ) {
         BerElement *ber;
         ber_tag_t tag;
         ber_len_t len;
@@ -144,6 +143,11 @@ handle_requests( void *ctx, void *arg )
             return NULL;
         }
         /* Otherwise, handle_one_request leaves the connection locked */
+
+        if ( ++requests_handled >= slap_conn_max_pdus_per_cycle ) {
+            /* Do not read now, re-enable read event instead */
+            break;
+        }
 
         if ( (ber = ber_alloc()) == NULL ) {
             Debug( LDAP_DEBUG_ANY, "client_read_cb: "
