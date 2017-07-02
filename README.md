@@ -27,8 +27,8 @@ Here are the main highlights of LMDB, for more, visit http://symas.com/mdb :)
 ### Supported platforms
 
 * Tested and works on Linux (author uses Fedora 20)
-* Tested and works on Mac OS X - see https://github.com/Venemo/node-lmdb/issues/3
-* **Not yet tested** on Windows - see https://github.com/Venemo/node-lmdb/issues/2
+* Tested and works on Mac OS X
+* Tested and works on Windows
 
 ### License info
 
