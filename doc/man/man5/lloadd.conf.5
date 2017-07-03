@@ -289,7 +289,7 @@ a task is queued to be picked up by the thread pool. This task will
 process PDUs from the connection until there is no more data to be
 read or this limit is reached when the I/O thread can pick it up again.
 Very high values have a potential to cause some connections to be
-starved in a very high-bandwidth environment.
+starved in a very high-bandwidth environment. The default is 1000.
 
 .SH TLS OPTIONS
 If
@@ -500,7 +500,7 @@ Specifies a file containing a Certificate Revocation List to be used
 for verifying that certificates have not been revoked. This directive is
 only valid when using GnuTLS and Mozilla NSS.
 
-.SH BACKEND OPTIONS
+.SH BACKEND CONFIGURATION
 Options in this section describe how the
 .B lloadd
 connects and authenticates to the backend servers.
@@ -510,6 +510,56 @@ configured connections are set up and those not dedicated to handle bind
 requests are authenticated with the backend using the information in the
 .B bindconf
 option. The authentication configuration is shared between them.
+.TP
+.B bindconf
+.B [bindmethod=simple|sasl]
+.B [binddn=<dn>]
+.B [saslmech=<mech>]
+.B [authcid=<identity>]
+.B [authzid=<identity>]
+.B [credentials=<passwd>]
+.B [realm=<realm>]
+.B [secprops=<properties>]
+
+Specifies the bind credentials
+.B lloadd
+uses when setting up its regular connections to all backends.
+
+A
+.B bindmethod
+of
+.B simple
+requires the options
+.B binddn
+and
+.B credentials
+and should only be used when adequate security services
+(e.g. TLS or IPSEC) are in place.
+.B REMEMBER: simple bind credentials must be in cleartext!
+A
+.B bindmethod
+of
+.B sasl
+requires the option
+.B saslmech.
+Depending on the mechanism, an authentication identity and/or
+credentials can be specified using
+.B authcid
+and
+.B credentials.
+The
+.B authzid
+parameter may be used to specify an authorization identity.
+Specific security properties (as with the
+.B sasl\-secprops
+keyword above) for a SASL bind can be set with the
+.B secprops
+option. A non default SASL realm can be set with the
+.B realm
+option.
+
+.SH BACKEND OPTIONS
+
 .TP
 .B backend
 .B uri=ldap[s]://<hostname>[:port]
@@ -552,7 +602,7 @@ made immediately, if one happens on establishing a new connection to this
 backend, lloadd will wait before a new reconnect attempt is made
 according to the
 .B retry
-parameter.
+parameter (default is 5 seconds).
 
 Operations will be distributed across the backend's connections
 .RB ( upstreams ).
@@ -576,50 +626,7 @@ network connection to the provider. Once a connection is
 established, the
 .B timeout
 parameter determines how long the consumer will wait for the initial
-Bind request to complete. The defaults for these parameters come
-from
-.BR ldap.conf (5).
-
-.B [bindmethod=simple|sasl]
-.B [binddn=<dn>]
-.B [saslmech=<mech>]
-.B [authcid=<identity>]
-.B [authzid=<identity>]
-.B [credentials=<passwd>]
-.B [realm=<realm>]
-.B [secprops=<properties>]
-A
-.B bindmethod
-of
-.B simple
-requires the options
-.B binddn
-and
-.B credentials
-and should only be used when adequate security services
-(e.g. TLS or IPSEC) are in place.
-.B REMEMBER: simple bind credentials must be in cleartext!
-A
-.B bindmethod
-of
-.B sasl
-requires the option
-.B saslmech.
-Depending on the mechanism, an authentication identity and/or
-credentials can be specified using
-.B authcid
-and
-.B credentials.
-The
-.B authzid
-parameter may be used to specify an authorization identity.
-Specific security properties (as with the
-.B sasl\-secprops
-keyword above) for a SASL bind can be set with the
-.B secprops
-option. A non default SASL realm can be set with the
-.B realm
-option.
+Bind request to complete. By default no timeouts are in effect.
 
 The
 .B keepalive
