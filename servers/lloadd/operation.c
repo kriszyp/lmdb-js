@@ -628,6 +628,9 @@ operation_send_reject(
     ber = c->c_pendingber;
     if ( ber == NULL && (ber = ber_alloc()) == NULL ) {
         ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
+        Debug( LDAP_DEBUG_ANY, "operation_send_reject: "
+                "ber_alloc failed, closing connid=%lu\n",
+                c->c_connid );
         CONNECTION_LOCK_DECREF(c);
         operation_destroy_from_client( op );
         CLIENT_DESTROY(c);

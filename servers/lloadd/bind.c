@@ -118,6 +118,9 @@ fail:
         ber_free( copy, 0 );
     }
     ldap_pvt_thread_mutex_unlock( &upstream->c_io_mutex );
+    Debug( LDAP_DEBUG_STATS, "request_bind: "
+            "connid=%lu bind request processing failed, closing\n",
+            client->c_connid );
     return 1;
 }
 
@@ -248,6 +251,9 @@ fail:
         ber_free( copy, 0 );
     }
     ldap_pvt_thread_mutex_unlock( &upstream->c_io_mutex );
+    Debug( LDAP_DEBUG_STATS, "request_bind_as_vc: "
+            "connid=%lu bind request processing failed, closing\n",
+            client->c_connid );
     operation_send_reject( op, result, msg, 1 );
     return 1;
 }

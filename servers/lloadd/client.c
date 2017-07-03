@@ -55,7 +55,8 @@ client_read_cb( evutil_socket_t s, short what, void *arg )
     ber = c->c_currentber;
     if ( ber == NULL && (ber = ber_alloc()) == NULL ) {
         Debug( LDAP_DEBUG_ANY, "client_read_cb: "
-                "ber_alloc failed\n" );
+                "connid=%lu, ber_alloc failed\n",
+                c->c_connid );
         CLIENT_DESTROY(c);
         return;
     }
@@ -151,7 +152,8 @@ handle_requests( void *ctx, void *arg )
 
         if ( (ber = ber_alloc()) == NULL ) {
             Debug( LDAP_DEBUG_ANY, "client_read_cb: "
-                    "ber_alloc failed\n" );
+                    "connid=%lu, ber_alloc failed\n",
+                    c->c_connid );
             CLIENT_DESTROY(c);
             return NULL;
         }
@@ -205,7 +207,8 @@ handle_one_request( Connection *c )
     op = operation_init( c, ber );
     if ( !op ) {
         Debug( LDAP_DEBUG_ANY, "handle_one_request: "
-                "operation_init failed\n" );
+                "connid=%lu, operation_init failed\n",
+                c->c_connid );
         CLIENT_DESTROY(c);
         ber_free( ber, 1 );
         return -1;
