@@ -39,8 +39,9 @@ LDAPCtrl::LDAPCtrl(const string& oid, bool critical, const string& data){
 LDAPCtrl::LDAPCtrl(const LDAPControl* ctrl){
     DEBUG(LDAP_DEBUG_CONSTRUCT,"LDAPCtrl::LDAPCtrl()" << endl);
     m_oid = string(ctrl->ldctl_oid);
-    m_oid = ctrl->ldctl_iscritical ? true : false;
-    m_oid = string(ctrl->ldctl_value.bv_val, ctrl->ldctl_value.bv_len );
+    m_isCritical = ctrl->ldctl_iscritical ? true : false;
+    m_data = string(ctrl->ldctl_value.bv_val, ctrl->ldctl_value.bv_len );
+    m_noData = ctrl->ldctl_value.bv_len ? false : true;
 }
 
 LDAPCtrl::~LDAPCtrl(){
