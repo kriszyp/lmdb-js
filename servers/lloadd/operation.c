@@ -138,13 +138,13 @@ operation_upstream_cmp( const void *left, const void *right )
 void
 operation_destroy_from_client( Operation *op )
 {
-    Connection *upstream, *client = op->o_client;
+    Connection *upstream = NULL, *client = op->o_client;
     Backend *b = NULL;
     int race_state, detach_client = !client->c_live;
 
     Debug( LDAP_DEBUG_TRACE, "operation_destroy_from_client: "
-            "op=%p attempting to release operation\n",
-            op );
+            "op=%p attempting to release operation%s\n",
+            op, detach_client ? " and detach client" : "" );
 
     /* 1. liveness/refcnt adjustment and test */
     op->o_client_refcnt -= op->o_client_live;
@@ -166,6 +166,9 @@ operation_destroy_from_client( Operation *op )
     ldap_pvt_thread_mutex_lock( &op->o_mutex );
     race_state = op->o_freeing;
     op->o_freeing |= SLAP_OP_FREEING_CLIENT;
+    if ( detach_client ) {
+        op->o_freeing |= SLAP_OP_DETACHING_CLIENT;
+    }
     ldap_pvt_thread_mutex_unlock( &op->o_mutex );
 
     CONNECTION_UNLOCK_INCREF(client);
@@ -184,7 +187,9 @@ operation_destroy_from_client( Operation *op )
          * other side has finished (it knows we did that when it examines
          * o_freeing again).
          */
-        if ( !detach_client && race_state == SLAP_OP_FREEING_UPSTREAM ) {
+        if ( !detach_client &&
+                (race_state & SLAP_OP_FREEING_MASK) ==
+                        SLAP_OP_FREEING_UPSTREAM ) {
             Debug( LDAP_DEBUG_TRACE, "operation_destroy_from_client: "
                     "op=%p lost race, increased client refcnt connid=%lu "
                     "to refcnt=%d\n",
@@ -202,9 +207,11 @@ operation_destroy_from_client( Operation *op )
 
     /* 5. If we raced the upstream side and won, reclaim the token */
     ldap_pvt_thread_mutex_lock( &operation_mutex );
-    upstream = op->o_upstream;
-    if ( upstream ) {
-        CONNECTION_LOCK(upstream);
+    if ( !(race_state & SLAP_OP_DETACHING_UPSTREAM) ) {
+        upstream = op->o_upstream;
+        if ( upstream ) {
+            CONNECTION_LOCK(upstream);
+        }
     }
     ldap_pvt_thread_mutex_unlock( &operation_mutex );
 
@@ -233,6 +240,9 @@ operation_destroy_from_client( Operation *op )
         /* There must have been no race if op is still alive */
         ldap_pvt_thread_mutex_lock( &op->o_mutex );
         op->o_freeing &= ~SLAP_OP_FREEING_CLIENT;
+        if ( detach_client ) {
+            op->o_freeing &= ~SLAP_OP_DETACHING_CLIENT;
+        }
         assert( op->o_freeing == 0 );
         ldap_pvt_thread_mutex_unlock( &op->o_mutex );
 
@@ -275,13 +285,13 @@ operation_destroy_from_client( Operation *op )
 void
 operation_destroy_from_upstream( Operation *op )
 {
-    Connection *client, *upstream = op->o_upstream;
+    Connection *client = NULL, *upstream = op->o_upstream;
     Backend *b = NULL;
     int race_state, detach_upstream = !upstream->c_live;
 
     Debug( LDAP_DEBUG_TRACE, "operation_destroy_from_upstream: "
-            "op=%p attempting to release operation\n",
-            op );
+            "op=%p attempting to release operation%s\n",
+            op, detach_upstream ? " and detach upstream" : "" );
 
     /* 1. liveness/refcnt adjustment and test */
     op->o_upstream_refcnt -= op->o_upstream_live;
@@ -304,6 +314,9 @@ operation_destroy_from_upstream( Operation *op )
     ldap_pvt_thread_mutex_lock( &op->o_mutex );
     race_state = op->o_freeing;
     op->o_freeing |= SLAP_OP_FREEING_UPSTREAM;
+    if ( detach_upstream ) {
+        op->o_freeing |= SLAP_OP_DETACHING_UPSTREAM;
+    }
     ldap_pvt_thread_mutex_unlock( &op->o_mutex );
 
     CONNECTION_UNLOCK_INCREF(upstream);
@@ -329,7 +342,9 @@ operation_destroy_from_upstream( Operation *op )
          * other side has finished (it knows we did that when it examines
          * o_freeing again).
          */
-        if ( !detach_upstream && race_state == SLAP_OP_FREEING_CLIENT ) {
+        if ( !detach_upstream &&
+                (race_state & SLAP_OP_FREEING_MASK) ==
+                        SLAP_OP_FREEING_CLIENT ) {
             Debug( LDAP_DEBUG_TRACE, "operation_destroy_from_upstream: "
                     "op=%p lost race, increased upstream refcnt connid=%lu "
                     "to refcnt=%d\n",
@@ -347,9 +362,11 @@ operation_destroy_from_upstream( Operation *op )
 
     /* 5. If we raced the client side and won, reclaim the token */
     ldap_pvt_thread_mutex_lock( &operation_mutex );
-    client = op->o_client;
-    if ( client ) {
-        CONNECTION_LOCK(client);
+    if ( !(race_state & SLAP_OP_DETACHING_CLIENT) ) {
+        client = op->o_client;
+        if ( client ) {
+            CONNECTION_LOCK(client);
+        }
     }
     ldap_pvt_thread_mutex_unlock( &operation_mutex );
 
@@ -377,6 +394,9 @@ operation_destroy_from_upstream( Operation *op )
         /* There must have been no race if op is still alive */
         ldap_pvt_thread_mutex_lock( &op->o_mutex );
         op->o_freeing &= ~SLAP_OP_FREEING_UPSTREAM;
+        if ( detach_upstream ) {
+            op->o_freeing &= ~SLAP_OP_DETACHING_UPSTREAM;
+        }
         assert( op->o_freeing == 0 );
         ldap_pvt_thread_mutex_unlock( &op->o_mutex );
 
