@@ -123,26 +123,30 @@ handle_bind_response( Operation *op, BerElement *ber )
     CONNECTION_UNLOCK(upstream);
 
     CONNECTION_LOCK(client);
-    switch ( result ) {
-        case LDAP_SASL_BIND_IN_PROGRESS:
-            break;
-        case LDAP_SUCCESS:
-        default: {
-            client->c_state = SLAP_C_READY;
-            client->c_type = SLAP_C_OPEN;
-            if ( result != LDAP_SUCCESS ) {
-                ber_memfree( client->c_auth.bv_val );
-                BER_BVZERO( &client->c_auth );
-            } else if ( !ber_bvstrcasecmp(
-                                &client->c_auth, &lloadd_identity ) ) {
-                client->c_type = SLAP_C_PRIVILEGED;
+    if ( client->c_state == SLAP_C_BINDING ) {
+        switch ( result ) {
+            case LDAP_SASL_BIND_IN_PROGRESS:
+                break;
+            case LDAP_SUCCESS:
+            default: {
+                client->c_state = SLAP_C_READY;
+                client->c_type = SLAP_C_OPEN;
+                if ( result != LDAP_SUCCESS ) {
+                    ber_memfree( client->c_auth.bv_val );
+                    BER_BVZERO( &client->c_auth );
+                } else if ( !ber_bvstrcasecmp(
+                                    &client->c_auth, &lloadd_identity ) ) {
+                    client->c_type = SLAP_C_PRIVILEGED;
+                }
+                if ( !BER_BVISNULL( &client->c_sasl_bind_mech ) ) {
+                    ber_memfree( client->c_sasl_bind_mech.bv_val );
+                    BER_BVZERO( &client->c_sasl_bind_mech );
+                }
+                break;
             }
-            if ( !BER_BVISNULL( &client->c_sasl_bind_mech ) ) {
-                ber_memfree( client->c_sasl_bind_mech.bv_val );
-                BER_BVZERO( &client->c_sasl_bind_mech );
-            }
-            break;
         }
+    } else {
+        assert( client->c_state == SLAP_C_INVALID );
     }
     CONNECTION_UNLOCK(client);
 
@@ -227,29 +231,34 @@ handle_vc_bind_response( Operation *op, BerElement *ber )
         }
     }
 
-    switch ( result ) {
-        case LDAP_SASL_BIND_IN_PROGRESS:
-            break;
-        case LDAP_SUCCESS:
-        default: {
-            c->c_state = SLAP_C_READY;
-            c->c_type = SLAP_C_OPEN;
-            if ( result != LDAP_SUCCESS ) {
-                ber_memfree( c->c_auth.bv_val );
-                BER_BVZERO( &c->c_auth );
-            } else if ( !ber_bvstrcasecmp( &c->c_auth, &lloadd_identity ) ) {
-                c->c_type = SLAP_C_PRIVILEGED;
+    if ( c->c_state == SLAP_C_BINDING ) {
+        switch ( result ) {
+            case LDAP_SASL_BIND_IN_PROGRESS:
+                break;
+            case LDAP_SUCCESS:
+            default: {
+                c->c_state = SLAP_C_READY;
+                c->c_type = SLAP_C_OPEN;
+                if ( result != LDAP_SUCCESS ) {
+                    ber_memfree( c->c_auth.bv_val );
+                    BER_BVZERO( &c->c_auth );
+                } else if ( !ber_bvstrcasecmp(
+                                    &c->c_auth, &lloadd_identity ) ) {
+                    c->c_type = SLAP_C_PRIVILEGED;
+                }
+                if ( !BER_BVISNULL( &c->c_vc_cookie ) ) {
+                    ber_memfree( c->c_vc_cookie.bv_val );
+                    BER_BVZERO( &c->c_vc_cookie );
+                }
+                if ( !BER_BVISNULL( &c->c_sasl_bind_mech ) ) {
+                    ber_memfree( c->c_sasl_bind_mech.bv_val );
+                    BER_BVZERO( &c->c_sasl_bind_mech );
+                }
+                break;
             }
-            if ( !BER_BVISNULL( &c->c_vc_cookie ) ) {
-                ber_memfree( c->c_vc_cookie.bv_val );
-                BER_BVZERO( &c->c_vc_cookie );
-            }
-            if ( !BER_BVISNULL( &c->c_sasl_bind_mech ) ) {
-                ber_memfree( c->c_sasl_bind_mech.bv_val );
-                BER_BVZERO( &c->c_sasl_bind_mech );
-            }
-            break;
         }
+    } else {
+        assert( c->c_state == SLAP_C_INVALID );
     }
     CONNECTION_UNLOCK_INCREF(c);
 
