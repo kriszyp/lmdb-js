@@ -277,7 +277,8 @@ backend_retry( Backend *b )
     }
     if ( b->b_active + b->b_bindavail + b->b_opening < requested ) {
         if ( b->b_opening > 0 || b->b_failed > 0 ) {
-            if ( !event_pending( b->b_retry_event, EV_TIMEOUT, NULL ) ) {
+            if ( b->b_failed > 0 &&
+                    !event_pending( b->b_retry_event, EV_TIMEOUT, NULL ) ) {
                 Debug( LDAP_DEBUG_CONNS, "backend_retry: "
                         "scheduling a retry in %d ms\n",
                         b->b_retry_timeout );
@@ -287,7 +288,7 @@ backend_retry( Backend *b )
                 return;
             } else {
                 Debug( LDAP_DEBUG_CONNS, "backend_retry: "
-                        "retry already scheduled\n" );
+                        "retry in progress already\n" );
             }
         } else {
             Debug( LDAP_DEBUG_CONNS, "backend_retry: "
@@ -323,7 +324,8 @@ backend_connect( evutil_socket_t s, short what, void *arg )
 
     ldap_pvt_thread_mutex_lock( &b->b_mutex );
     Debug( LDAP_DEBUG_CONNS, "backend_connect: "
-            "attempting connection to %s\n",
+            "%sattempting connection to %s\n",
+            (what & EV_TIMEOUT) ? "retry timeout finished, " : "",
             b->b_host );
 
 #ifdef LDAP_PF_LOCAL
