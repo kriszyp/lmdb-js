@@ -146,7 +146,8 @@ handle_bind_response( Operation *op, BerElement *ber )
             }
         }
     } else {
-        assert( client->c_state == SLAP_C_INVALID );
+        assert( client->c_state == SLAP_C_INVALID ||
+                client->c_state == SLAP_C_CLOSING );
     }
     CONNECTION_UNLOCK(client);
 
@@ -258,7 +259,7 @@ handle_vc_bind_response( Operation *op, BerElement *ber )
             }
         }
     } else {
-        assert( c->c_state == SLAP_C_INVALID );
+        assert( c->c_state == SLAP_C_INVALID || c->c_state == SLAP_C_CLOSING );
     }
     CONNECTION_UNLOCK_INCREF(c);
 
