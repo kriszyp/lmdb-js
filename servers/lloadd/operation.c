@@ -179,7 +179,7 @@ operation_destroy_from_client( Operation *op )
         ldap_pvt_thread_mutex_unlock( &operation_mutex );
     }
 
-    /* 4. If we lost the race, deal with it */
+    /* 4. If we lost the race, deal with it straight away */
     if ( race_state ) {
         /*
          * We have raced to destroy op and the first one to lose on this side,
@@ -187,9 +187,13 @@ operation_destroy_from_client( Operation *op )
          * other side has finished (it knows we did that when it examines
          * o_freeing again).
          */
-        if ( !detach_client &&
-                (race_state & SLAP_OP_FREEING_MASK) ==
-                        SLAP_OP_FREEING_UPSTREAM ) {
+        if ( detach_client ) {
+            Debug( LDAP_DEBUG_TRACE, "operation_destroy_from_client: "
+                    "op=%p lost race but client connid=%lu is going down\n",
+                    op, client->c_connid );
+            CONNECTION_LOCK_DECREF(client);
+        } else if ( (race_state & SLAP_OP_FREEING_MASK) ==
+                SLAP_OP_FREEING_UPSTREAM ) {
             Debug( LDAP_DEBUG_TRACE, "operation_destroy_from_client: "
                     "op=%p lost race, increased client refcnt connid=%lu "
                     "to refcnt=%d\n",
@@ -198,8 +202,9 @@ operation_destroy_from_client( Operation *op )
         } else {
             Debug( LDAP_DEBUG_TRACE, "operation_destroy_from_client: "
                     "op=%p lost race with another "
-                    "operation_destroy_from_client\n",
-                    op );
+                    "operation_destroy_from_client, "
+                    "client connid=%lu\n",
+                    op, client->c_connid );
             CONNECTION_LOCK_DECREF(client);
         }
         return;
@@ -216,16 +221,23 @@ operation_destroy_from_client( Operation *op )
     ldap_pvt_thread_mutex_unlock( &operation_mutex );
 
     ldap_pvt_thread_mutex_lock( &op->o_mutex );
+    /* We don't actually resolve the race in full until we grab the other's
+     * c_mutex+op->o_mutex here */
     if ( upstream && ( op->o_freeing & SLAP_OP_FREEING_UPSTREAM ) ) {
-        /*
-         * We have raced to destroy op and won. To avoid freeing the connection
-         * under us, a refcnt token has been left over for us on the upstream,
-         * decref and see whether we are in charge of freeing it
-         */
-        upstream->c_refcnt--;
-        Debug( LDAP_DEBUG_TRACE, "operation_destroy_from_client: "
-                "op=%p other side lost race with us, upstream connid=%lu\n",
-                op, upstream->c_connid );
+        if ( op->o_freeing & SLAP_OP_DETACHING_UPSTREAM ) {
+            CONNECTION_UNLOCK(upstream);
+            upstream = NULL;
+        } else {
+            /*
+             * We have raced to destroy op and won. To avoid freeing the connection
+             * under us, a refcnt token has been left over for us on the upstream,
+             * decref and see whether we are in charge of freeing it
+             */
+            upstream->c_refcnt--;
+            Debug( LDAP_DEBUG_TRACE, "operation_destroy_from_client: "
+                    "op=%p other side lost race with us, upstream connid=%lu\n",
+                    op, upstream->c_connid );
+        }
     }
     ldap_pvt_thread_mutex_unlock( &op->o_mutex );
 
@@ -334,7 +346,7 @@ operation_destroy_from_upstream( Operation *op )
         ldap_pvt_thread_mutex_unlock( &b->b_mutex );
     }
 
-    /* 4. If we lost the race, deal with it */
+    /* 4. If we lost the race, deal with it straight away */
     if ( race_state ) {
         /*
          * We have raced to destroy op and the first one to lose on this side,
@@ -342,9 +354,13 @@ operation_destroy_from_upstream( Operation *op )
          * other side has finished (it knows we did that when it examines
          * o_freeing again).
          */
-        if ( !detach_upstream &&
-                (race_state & SLAP_OP_FREEING_MASK) ==
-                        SLAP_OP_FREEING_CLIENT ) {
+        if ( detach_upstream ) {
+            Debug( LDAP_DEBUG_TRACE, "operation_destroy_from_upstream: "
+                    "op=%p lost race but upstream connid=%lu is going down\n",
+                    op, upstream->c_connid );
+            CONNECTION_LOCK_DECREF(upstream);
+        } else if ( (race_state & SLAP_OP_FREEING_MASK) ==
+                SLAP_OP_FREEING_CLIENT ) {
             Debug( LDAP_DEBUG_TRACE, "operation_destroy_from_upstream: "
                     "op=%p lost race, increased upstream refcnt connid=%lu "
                     "to refcnt=%d\n",
@@ -353,8 +369,9 @@ operation_destroy_from_upstream( Operation *op )
         } else {
             Debug( LDAP_DEBUG_TRACE, "operation_destroy_from_upstream: "
                     "op=%p lost race with another "
-                    "operation_destroy_from_upstream\n",
-                    op );
+                    "operation_destroy_from_upstream, "
+                    "upstream connid=%lu\n",
+                    op, upstream->c_connid );
             CONNECTION_LOCK_DECREF(upstream);
         }
         return;
@@ -370,17 +387,24 @@ operation_destroy_from_upstream( Operation *op )
     }
     ldap_pvt_thread_mutex_unlock( &operation_mutex );
 
+    /* We don't actually resolve the race in full until we grab the other's
+     * c_mutex+op->o_mutex here */
     ldap_pvt_thread_mutex_lock( &op->o_mutex );
     if ( client && ( op->o_freeing & SLAP_OP_FREEING_CLIENT ) ) {
-        /*
-         * We have raced to destroy op and won. To avoid freeing the connection
-         * under us, a refcnt token has been left over for us on the client,
-         * decref and see whether we are in charge of freeing it
-         */
-        client->c_refcnt--;
-        Debug( LDAP_DEBUG_TRACE, "operation_destroy_from_upstream: "
-                "op=%p other side lost race with us, client connid=%lu\n",
-                op, client->c_connid );
+        if ( op->o_freeing & SLAP_OP_DETACHING_CLIENT ) {
+            CONNECTION_UNLOCK(client);
+            client = NULL;
+        } else {
+            /*
+             * We have raced to destroy op and won. To avoid freeing the connection
+             * under us, a refcnt token has been left over for us on the client,
+             * decref and see whether we are in charge of freeing it
+             */
+            client->c_refcnt--;
+            Debug( LDAP_DEBUG_TRACE, "operation_destroy_from_upstream: "
+                    "op=%p other side lost race with us, client connid=%lu\n",
+                    op, client->c_connid );
+        }
     }
     ldap_pvt_thread_mutex_unlock( &op->o_mutex );
 
