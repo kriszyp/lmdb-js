@@ -443,6 +443,9 @@ handle_one_response( Connection *c )
         CONNECTION_LOCK_DECREF(c);
         op->o_upstream_refcnt--;
         if ( !client || !op->o_upstream_refcnt ) {
+            if ( c->c_state == SLAP_C_BINDING ) {
+                c->c_state = SLAP_C_READY;
+            }
             operation_destroy_from_upstream( op );
         }
     } else {

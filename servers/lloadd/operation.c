@@ -541,6 +541,9 @@ operation_abandon( Operation *op )
         /* The operation has already been abandoned or finished */
         goto unlock;
     }
+    if ( c->c_state == SLAP_C_BINDING ) {
+        c->c_state = SLAP_C_READY;
+    }
     c->c_n_ops_executing--;
     b = (Backend *)c->c_private;
     CONNECTION_UNLOCK_INCREF(c);
@@ -586,6 +589,9 @@ done:
 
     /* Caller should hold a reference on client */
     CONNECTION_LOCK(c);
+    if ( c->c_state == SLAP_C_BINDING ) {
+        c->c_state = SLAP_C_READY;
+    }
     op->o_client_refcnt--;
     operation_destroy_from_client( op );
     CONNECTION_UNLOCK(c);
@@ -622,6 +628,13 @@ request_abandon( Connection *c, Operation *op )
             "connid=%lu msgid=%d abandoning %s msgid=%d\n",
             c->c_connid, op->o_client_msgid, slap_msgtype2str( request->o_tag ),
             needle.o_client_msgid );
+
+    if ( c->c_state == SLAP_C_BINDING ) {
+        /* We have found the request and we are binding, it must be a bind
+         * request */
+        assert( request->o_tag == LDAP_REQ_BIND );
+        c->c_state = SLAP_C_READY;
+    }
 
     CONNECTION_UNLOCK_INCREF(c);
     operation_abandon( request );
