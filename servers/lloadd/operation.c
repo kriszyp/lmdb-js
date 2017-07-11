@@ -513,6 +513,13 @@ fail:
     return NULL;
 }
 
+/*
+ * Will remove the operation from its upstream and if it was still there,
+ * sends an abandon request.
+ *
+ * Being called from client_reset or request_abandon, the following hold:
+ * - op->o_client_refcnt > 0 (and it follows that op->o_client != NULL)
+ */
 void
 operation_abandon( Operation *op )
 {
@@ -524,22 +531,15 @@ operation_abandon( Operation *op )
     ldap_pvt_thread_mutex_lock( &operation_mutex );
     c = op->o_upstream;
     if ( !c ) {
-        c = op->o_client;
-        assert( c );
-
-        /* Caller should hold a reference on client */
-        CONNECTION_LOCK(c);
         ldap_pvt_thread_mutex_unlock( &operation_mutex );
-        operation_destroy_from_client( op );
-        CLIENT_UNLOCK_OR_DESTROY(c);
-        return;
+        goto done;
     }
 
     CONNECTION_LOCK(c);
     ldap_pvt_thread_mutex_unlock( &operation_mutex );
     if ( tavl_delete( &c->c_ops, op, operation_upstream_cmp ) == NULL ) {
         /* The operation has already been abandoned or finished */
-        goto done;
+        goto unlock;
     }
     c->c_n_ops_executing--;
     b = (Backend *)c->c_private;
@@ -557,7 +557,7 @@ operation_abandon( Operation *op )
                 "ber_alloc failed\n" );
         ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
         CONNECTION_LOCK_DECREF(c);
-        goto done;
+        goto unlock;
     }
     c->c_pendingber = ber;
 
@@ -577,9 +577,18 @@ operation_abandon( Operation *op )
     }
 
     CONNECTION_LOCK_DECREF(c);
-done:
-    operation_destroy_from_upstream( op );
+unlock:
     UPSTREAM_UNLOCK_OR_DESTROY(c);
+
+done:
+    c = op->o_client;
+    assert( c );
+
+    /* Caller should hold a reference on client */
+    CONNECTION_LOCK(c);
+    op->o_client_refcnt--;
+    operation_destroy_from_client( op );
+    CONNECTION_UNLOCK(c);
 }
 
 int

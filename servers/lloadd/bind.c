@@ -263,7 +263,6 @@ void
 client_reset( Connection *c )
 {
     TAvlnode *root;
-    int freed;
 
     root = c->c_ops;
     c->c_ops = NULL;
@@ -292,19 +291,8 @@ client_reset( Connection *c )
     CONNECTION_UNLOCK_INCREF(c);
 
     if ( root ) {
-        TAvlnode *node = tavl_end( root, TAVL_DIR_LEFT );
-        do {
-            Operation *op = node->avl_data;
-
-            operation_abandon( op );
-
-            CONNECTION_LOCK(c);
-            op->o_client_refcnt--;
-            operation_destroy_from_client( op );
-            CONNECTION_UNLOCK(c);
-        } while ( (node = tavl_next( node, TAVL_DIR_RIGHT )) );
-
-        freed = tavl_free( root, NULL );
+        int freed;
+        freed = tavl_free( root, (AVL_FREE)operation_abandon );
         Debug( LDAP_DEBUG_TRACE, "client_reset: "
                 "dropped %d operations\n",
                 freed );

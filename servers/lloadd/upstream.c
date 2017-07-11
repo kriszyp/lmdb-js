@@ -418,8 +418,13 @@ handle_one_response( Connection *c )
         client = op->o_client;
         if ( client ) {
             CONNECTION_LOCK(client);
-            op->o_client_refcnt++;
-            CONNECTION_UNLOCK_INCREF(client);
+            if ( client->c_live ) {
+                op->o_client_refcnt++;
+                CONNECTION_UNLOCK_INCREF(client);
+            } else {
+                CONNECTION_UNLOCK(client);
+                client = NULL;
+            }
         }
         ldap_pvt_thread_mutex_unlock( &operation_mutex );
 
