@@ -85,6 +85,10 @@ sock_back_modify(
 		case LDAP_MOD_REPLACE:
 			fprintf( fp, "replace: %s\n", mod->sm_desc->ad_cname.bv_val );
 			break;
+
+		case LDAP_MOD_INCREMENT:
+			fprintf( fp, "increment: %s\n", mod->sm_desc->ad_cname.bv_val );
+			break;
 		}
 
 		if( mod->sm_values != NULL ) {
