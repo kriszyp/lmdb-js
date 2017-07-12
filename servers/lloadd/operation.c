@@ -668,10 +668,10 @@ operation_send_reject(
          * client is dead, it must have been the upstream */
         assert( c );
         CONNECTION_LOCK(c);
+        ldap_pvt_thread_mutex_unlock( &operation_mutex );
         Debug( LDAP_DEBUG_TRACE, "operation_send_reject: "
                 "not sending msgid=%d, client connid=%lu is dead\n",
                 op->o_client_msgid, op->o_client_connid );
-        ldap_pvt_thread_mutex_unlock( &operation_mutex );
         operation_destroy_from_upstream( op );
         UPSTREAM_UNLOCK_OR_DESTROY(c);
         return;
