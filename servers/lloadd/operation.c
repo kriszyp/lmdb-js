@@ -581,6 +581,15 @@ operation_abandon( Operation *op )
 
     CONNECTION_LOCK_DECREF(c);
 unlock:
+    /*
+     * FIXME: the dance in operation_destroy_from_upstream might be slower than
+     * optimal as we've done some of the things above already. However, we want
+     * to clear o_upstream from the op if it's dying, but witnessing and
+     * navigating the race to do that safely is too complex to copy here.
+     */
+    if ( !c->c_live ) {
+        operation_destroy_from_upstream( op );
+    }
     UPSTREAM_UNLOCK_OR_DESTROY(c);
 
 done:
