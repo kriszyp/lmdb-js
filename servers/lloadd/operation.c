@@ -778,6 +778,7 @@ request_process( Connection *client, Operation *op )
 
     output = upstream->c_pendingber;
     if ( output == NULL && (output = ber_alloc()) == NULL ) {
+        rc = -1;
         goto fail;
     }
     upstream->c_pendingber = output;
@@ -851,9 +852,8 @@ fail:
     CONNECTION_LOCK_DECREF(client);
     op->o_client_refcnt--;
     operation_destroy_from_client( op );
-    CLIENT_UNLOCK_OR_DESTROY(client);
-    if ( !client ) {
-        rc = -1;
+    if ( rc ) {
+        CLIENT_DESTROY(client);
     }
     return rc;
 }
