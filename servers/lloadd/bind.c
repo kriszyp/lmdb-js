@@ -310,10 +310,11 @@ client_bind( Connection *client, Operation *op )
     /* protect the Bind operation */
     op->o_client_refcnt++;
     tavl_delete( &client->c_ops, op, operation_client_cmp );
-    client->c_state = SLAP_C_BINDING;
-    client->c_type = SLAP_C_OPEN;
 
     client_reset( client );
+
+    client->c_state = SLAP_C_BINDING;
+    client->c_type = SLAP_C_OPEN;
 
     rc = tavl_insert( &client->c_ops, op, operation_client_cmp, avl_dup_error );
     assert( rc == LDAP_SUCCESS );
