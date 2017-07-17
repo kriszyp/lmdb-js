@@ -174,9 +174,9 @@ operation_destroy_from_client( Operation *op )
     CONNECTION_UNLOCK_INCREF(client);
 
     if ( detach_client ) {
-        ldap_pvt_thread_mutex_lock( &operation_mutex );
+        ldap_pvt_thread_mutex_lock( &op->o_link_mutex );
         op->o_client = NULL;
-        ldap_pvt_thread_mutex_unlock( &operation_mutex );
+        ldap_pvt_thread_mutex_unlock( &op->o_link_mutex );
     }
 
     /* 4. If we lost the race, deal with it straight away */
@@ -211,14 +211,14 @@ operation_destroy_from_client( Operation *op )
     }
 
     /* 5. If we raced the upstream side and won, reclaim the token */
-    ldap_pvt_thread_mutex_lock( &operation_mutex );
+    ldap_pvt_thread_mutex_lock( &op->o_link_mutex );
     if ( !(race_state & SLAP_OP_DETACHING_UPSTREAM) ) {
         upstream = op->o_upstream;
         if ( upstream ) {
             CONNECTION_LOCK(upstream);
         }
     }
-    ldap_pvt_thread_mutex_unlock( &operation_mutex );
+    ldap_pvt_thread_mutex_unlock( &op->o_link_mutex );
 
     ldap_pvt_thread_mutex_lock( &op->o_mutex );
     /* We don't actually resolve the race in full until we grab the other's
@@ -286,6 +286,7 @@ operation_destroy_from_client( Operation *op )
             op, op->o_client_connid, op->o_client_msgid );
     ber_free( op->o_ber, 1 );
     ldap_pvt_thread_mutex_destroy( &op->o_mutex );
+    ldap_pvt_thread_mutex_destroy( &op->o_link_mutex );
     ch_free( op );
 
     CONNECTION_LOCK_DECREF(client);
@@ -334,11 +335,11 @@ operation_destroy_from_upstream( Operation *op )
     CONNECTION_UNLOCK_INCREF(upstream);
 
     /* 3. Detect whether we entered a race to free op */
-    ldap_pvt_thread_mutex_lock( &operation_mutex );
+    ldap_pvt_thread_mutex_lock( &op->o_link_mutex );
     if ( detach_upstream ) {
         op->o_upstream = NULL;
     }
-    ldap_pvt_thread_mutex_unlock( &operation_mutex );
+    ldap_pvt_thread_mutex_unlock( &op->o_link_mutex );
 
     if ( b ) {
         ldap_pvt_thread_mutex_lock( &b->b_mutex );
@@ -378,14 +379,14 @@ operation_destroy_from_upstream( Operation *op )
     }
 
     /* 5. If we raced the client side and won, reclaim the token */
-    ldap_pvt_thread_mutex_lock( &operation_mutex );
+    ldap_pvt_thread_mutex_lock( &op->o_link_mutex );
     if ( !(race_state & SLAP_OP_DETACHING_CLIENT) ) {
         client = op->o_client;
         if ( client ) {
             CONNECTION_LOCK(client);
         }
     }
-    ldap_pvt_thread_mutex_unlock( &operation_mutex );
+    ldap_pvt_thread_mutex_unlock( &op->o_link_mutex );
 
     /* We don't actually resolve the race in full until we grab the other's
      * c_mutex+op->o_mutex here */
@@ -443,6 +444,7 @@ operation_destroy_from_upstream( Operation *op )
             op, op->o_client_connid, op->o_client_msgid );
     ber_free( op->o_ber, 1 );
     ldap_pvt_thread_mutex_destroy( &op->o_mutex );
+    ldap_pvt_thread_mutex_destroy( &op->o_link_mutex );
     ch_free( op );
 
     CONNECTION_LOCK_DECREF(upstream);
@@ -465,6 +467,7 @@ operation_init( Connection *c, BerElement *ber )
     op->o_ber = ber;
 
     ldap_pvt_thread_mutex_init( &op->o_mutex );
+    ldap_pvt_thread_mutex_init( &op->o_link_mutex );
 
     op->o_client_live = op->o_client_refcnt = 1;
     op->o_upstream_live = op->o_upstream_refcnt = 1;
@@ -528,15 +531,15 @@ operation_abandon( Operation *op )
     Backend *b;
     int rc;
 
-    ldap_pvt_thread_mutex_lock( &operation_mutex );
+    ldap_pvt_thread_mutex_lock( &op->o_link_mutex );
     c = op->o_upstream;
     if ( !c ) {
-        ldap_pvt_thread_mutex_unlock( &operation_mutex );
+        ldap_pvt_thread_mutex_unlock( &op->o_link_mutex );
         goto done;
     }
 
     CONNECTION_LOCK(c);
-    ldap_pvt_thread_mutex_unlock( &operation_mutex );
+    ldap_pvt_thread_mutex_unlock( &op->o_link_mutex );
     if ( tavl_delete( &c->c_ops, op, operation_upstream_cmp ) == NULL ) {
         /* The operation has already been abandoned or finished */
         goto unlock;
@@ -669,7 +672,7 @@ operation_send_reject(
             "rejecting %s from client connid=%lu with message: \"%s\"\n",
             slap_msgtype2str( op->o_tag ), op->o_client_connid, msg );
 
-    ldap_pvt_thread_mutex_lock( &operation_mutex );
+    ldap_pvt_thread_mutex_lock( &op->o_link_mutex );
     c = op->o_client;
     if ( !c ) {
         c = op->o_upstream;
@@ -677,7 +680,7 @@ operation_send_reject(
          * client is dead, it must have been the upstream */
         assert( c );
         CONNECTION_LOCK(c);
-        ldap_pvt_thread_mutex_unlock( &operation_mutex );
+        ldap_pvt_thread_mutex_unlock( &op->o_link_mutex );
         Debug( LDAP_DEBUG_TRACE, "operation_send_reject: "
                 "not sending msgid=%d, client connid=%lu is dead\n",
                 op->o_client_msgid, op->o_client_connid );
@@ -686,7 +689,7 @@ operation_send_reject(
         return;
     }
     CONNECTION_LOCK(c);
-    ldap_pvt_thread_mutex_unlock( &operation_mutex );
+    ldap_pvt_thread_mutex_unlock( &op->o_link_mutex );
 
     found = ( tavl_delete( &c->c_ops, op, operation_client_cmp ) == op );
     if ( !found && !send_anyway ) {

@@ -445,7 +445,13 @@ struct Operation {
     int o_upstream_live, o_upstream_refcnt;
     ber_int_t o_upstream_msgid;
 
+    /* Protects o_client, o_upstream pointers before we lock their c_mutex if
+     * we don't know they are still alive */
+    ldap_pvt_thread_mutex_t o_link_mutex;
+    /* Protects o_freeing, can be locked while holding c_mutex */
     ldap_pvt_thread_mutex_t o_mutex;
+    /* Consistent w.r.t. o_mutex, only written to while holding
+     * op->o_{client,upstream}->c_mutex */
     enum op_state o_freeing;
     ber_tag_t o_tag;
 

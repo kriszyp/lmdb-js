@@ -414,7 +414,7 @@ handle_one_response( Connection *c )
         op->o_upstream_refcnt++;
         CONNECTION_UNLOCK_INCREF(c);
 
-        ldap_pvt_thread_mutex_lock( &operation_mutex );
+        ldap_pvt_thread_mutex_lock( &op->o_link_mutex );
         client = op->o_client;
         if ( client ) {
             CONNECTION_LOCK(client);
@@ -426,7 +426,7 @@ handle_one_response( Connection *c )
                 client = NULL;
             }
         }
-        ldap_pvt_thread_mutex_unlock( &operation_mutex );
+        ldap_pvt_thread_mutex_unlock( &op->o_link_mutex );
 
         if ( client ) {
             rc = handler( op, ber );
