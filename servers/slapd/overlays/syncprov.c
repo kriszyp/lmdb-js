@@ -1980,6 +1980,8 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 						continue;
 					syncprov_qresp( opc, sm->sm_op, LDAP_SYNC_DELETE );
 				}
+				if ( opc->ssres.s_info )
+					free_resinfo( &opc->ssres );
 				break;
 			}
 		}
