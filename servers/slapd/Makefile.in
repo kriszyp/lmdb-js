@@ -210,7 +210,7 @@ slapd.def: libbackends.a liboverlays.a version.o
 	dlltool --exclude-symbols main,ServiceMain@8 --export-all-symbols \
 			--output-def $@.tmp $$objs;
 	echo EXPORTS > $@
-	$(SED) -e 1,2d -e 's/ @ [0-9][0-9]*//' $@.tmp | sort >> $@
+	$(SED) -e 1,2d -e 's/ @ [0-9][0-9]*//' -e '/\.refptr\./d' $@.tmp | sort >> $@
 	$(RM) $@.tmp
 
 symdummy.c: slapd.def
