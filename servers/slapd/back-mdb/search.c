@@ -1124,8 +1124,11 @@ loop_continue:
 		if ( moi == &opinfo && !wwctx.flag && mdb->mi_rtxn_size ) {
 			wwctx.nentries++;
 			if ( wwctx.nentries >= mdb->mi_rtxn_size ) {
+				MDB_envinfo ei;
 				wwctx.nentries = 0;
-				mdb_rtxn_snap( op, &wwctx );
+				mdb_env_info(mdb->mi_dbenv, &ei);
+				if ( ei.me_last_txnid > mdb_txn_id( ltid ))
+					mdb_rtxn_snap( op, &wwctx );
 			}
 		}
 		if ( wwctx.flag ) {
