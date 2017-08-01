@@ -1977,7 +1977,8 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 					if ( sm->sm_op->s_op->o_abandon )
 						continue;
 					syncprov_qresp( opc, sm->sm_op, LDAP_SYNC_DELETE );
-					free_resinfo( &opc->ssres );
+					if ( opc->ssres.s_info )
+						free_resinfo( &opc->ssres );
 				}
 				break;
 			}
