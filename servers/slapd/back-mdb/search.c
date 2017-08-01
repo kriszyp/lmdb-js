@@ -719,6 +719,7 @@ adminlimit:
 	}
 
 	wwctx.flag = 0;
+	wwctx.nentries = 0;
 	/* If we're running in our own read txn */
 	if (  moi == &opinfo ) {
 		cb.sc_writewait = mdb_writewait;
