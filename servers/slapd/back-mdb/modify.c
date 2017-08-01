@@ -329,6 +329,7 @@ do_del:
  			 */
  			mod->sm_op = LDAP_MOD_ADD;
 			softop = 1;
+			chkpresent = 0;
 			goto do_add;
 
 		case SLAP_MOD_SOFTDEL:
@@ -356,6 +357,7 @@ do_del:
  			 * We need to add index if necessary.
  			 */
  			mod->sm_op = LDAP_MOD_ADD;
+			softop = 0;
 			chkpresent = 1;
 			goto do_add;
 
