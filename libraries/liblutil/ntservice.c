@@ -58,8 +58,9 @@ int lutil_srv_install(LPCTSTR lpszServiceName, LPCTSTR lpszDisplayName,
 	HKEY		hKey;
 	DWORD		dwValue, dwDisposition;
 	SC_HANDLE	schSCManager, schService;
-	char *sp = strchr( lpszBinaryPathName, ' ');
+	char *sp = strrchr( lpszBinaryPathName, '\\');
 
+	if ( sp ) sp = strchr(sp, ' ');
 	if ( sp ) *sp = '\0';
 	fprintf( stderr, "The install path is %s.\n", lpszBinaryPathName );
 	if ( sp ) *sp = ' ';
