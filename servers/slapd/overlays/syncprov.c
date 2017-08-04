@@ -1973,14 +1973,13 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 				/* for each match in opc->smatches:
 				 *   send DELETE msg
 				 */
-				ldap_pvt_thread_mutex_lock( &si->si_ops_mutex );
 				for ( sm = opc->smatches; sm; sm=sm->sm_next ) {
 					if ( sm->sm_op->s_op->o_abandon )
 						continue;
 					syncprov_qresp( opc, sm->sm_op, LDAP_SYNC_DELETE );
 				}
-				free_resinfo( &opc->ssres );
-				ldap_pvt_thread_mutex_unlock( &si->si_ops_mutex );
+				if ( opc->ssres.s_info )
+					free_resinfo( &opc->ssres );
 				break;
 			}
 		}
