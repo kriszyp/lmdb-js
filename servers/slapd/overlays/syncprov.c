@@ -1019,7 +1019,7 @@ syncprov_qstart( syncops *so )
 
 /* Queue a persistent search response */
 static int
-syncprov_qresp( opcookie *opc, syncops *so, int mode, int immed )
+syncprov_qresp( opcookie *opc, syncops *so, int mode )
 {
 	syncres *sr;
 	resinfo *ri;
@@ -1074,10 +1074,7 @@ syncprov_qresp( opcookie *opc, syncops *so, int mode, int immed )
 				ri->ri_csn.bv_val = NULL;
 			}
 		}
-		if (immed)
-			ri->ri_list = NULL;
-		else
-			ri->ri_list = &opc->ssres;
+		ri->ri_list = &opc->ssres;
 		ri->ri_e = opc->se;
 		ri->ri_csn.bv_len = csn.bv_len;
 		ri->ri_isref = opc->sreference;
@@ -1352,13 +1349,13 @@ syncprov_matchops( Operation *op, opcookie *opc, int saveit )
 			} else {
 				/* if found send UPDATE else send ADD */
 				syncprov_qresp( opc, ss,
-					found ? LDAP_SYNC_MODIFY : LDAP_SYNC_ADD, 0 );
+					found ? LDAP_SYNC_MODIFY : LDAP_SYNC_ADD );
 			}
 		} else if ( !saveit && found ) {
 			/* send DELETE */
-			syncprov_qresp( opc, ss, LDAP_SYNC_DELETE, 0 );
+			syncprov_qresp( opc, ss, LDAP_SYNC_DELETE );
 		} else if ( !saveit ) {
-			syncprov_qresp( opc, ss, LDAP_SYNC_NEW_COOKIE, 0 );
+			syncprov_qresp( opc, ss, LDAP_SYNC_NEW_COOKIE );
 		}
 		if ( !saveit && found ) {
 			/* Decrement s_inuse, was incremented when called
@@ -1911,7 +1908,7 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 					 * the originating server may be configured to store
 					 * their csn values in different entries.
 					 */
-					syncprov_qresp( opc, ss, LDAP_SYNC_NEW_COOKIE, 0 );
+					syncprov_qresp( opc, ss, LDAP_SYNC_NEW_COOKIE );
 				}
 				ldap_pvt_thread_mutex_unlock( &si->si_ops_mutex );
 			}
@@ -1979,7 +1976,9 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 				for ( sm = opc->smatches; sm; sm=sm->sm_next ) {
 					if ( sm->sm_op->s_op->o_abandon )
 						continue;
-					syncprov_qresp( opc, sm->sm_op, LDAP_SYNC_DELETE, 1 );
+					syncprov_qresp( opc, sm->sm_op, LDAP_SYNC_DELETE );
+					if ( opc->ssres.s_info )
+						free_resinfo( &opc->ssres );
 				}
 				break;
 			}
