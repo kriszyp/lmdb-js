@@ -124,14 +124,14 @@ cursor2.getCurrentString(printFunc);
 console.log("");
 console.log("cursor1 - now iterating through all the keys");
 
-for (var found = cursor1.goToFirst(); found; found = cursor1.goToNext()) {
+for (var found = cursor1.goToFirst(); found !== null; found = cursor1.goToNext()) {
   console.log("-----> key:", found);
 }
 
 console.log("");
 console.log("cursor2 - now iterating through all the keys");
 
-for (var found = cursor2.goToFirst(); found; found = cursor2.goToNext()) {
+for (var found = cursor2.goToFirst(); found !== null; found = cursor2.goToNext()) {
   console.log("-----> key:", found);
 }
 

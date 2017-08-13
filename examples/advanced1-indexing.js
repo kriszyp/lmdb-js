@@ -93,7 +93,7 @@ var indexingEngine = (function() {
         var results = [];
 
         // Go the the first occourence of `str` and iterate from there
-        for (var found = cursor.goToRange(str); found; found = cursor.goToNext()) {
+        for (var found = cursor.goToRange(str); found !== null; found = cursor.goToNext()) {
             // Stop the loop if the current key is no longer what we're looking for
             if (found !== str)
                 break;

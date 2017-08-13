@@ -93,7 +93,7 @@ cursor.getCurrentBoolean(printFunc);
 console.log("");
 console.log("now iterating through all the keys");
 
-for (var found = cursor.goToFirst(); found; found = cursor.goToNext()) {
+for (var found = cursor.goToFirst(); found !== null; found = cursor.goToNext()) {
     console.log("-----> key:", found);
 }
 

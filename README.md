@@ -26,7 +26,7 @@ Here are the main highlights of LMDB, for more, visit http://symas.com/mdb :)
 
 ### Supported platforms
 
-* Tested and works on Linux (author uses Fedora 20)
+* Tested and works on Linux (author uses Fedora)
 * Tested and works on Mac OS X
 * Tested and works on Windows
 
@@ -125,6 +125,20 @@ Here is how you use LMDB in a typical scenario:
 * You open a `Dbi` by calling `env.openDbi()` and passing the database configuration options.
 * Now you can create `Txn`s with `env.beginTxn()` and operate on the database through a transaction by calling `txn.getString()`, `txn.putString()` etc.
 * When you are done, you should either `abort()` or `commit()` your transactions and `close()` your databases and environment.
+
+Example iteration over a database with a `Cursor`:
+
+```javascript
+var cursor = new lmdb.Cursor(txn, dbi);
+
+for (var found = cursor.goToFirst(); found !== null; found = cursor.goToNext()) {
+    // Here 'found' contains the key, and you can get the data with eg. getCurrentString/getCurrentBinary etc.
+    // ...
+}
+```
+
+The cursor `goTo` methods (`goToFirst`, `goToNext`, etc.) will return the current key. When an item is not found, `null` is returned.
+Beware that the key itself could be a *falsy* JavaScript value, so you need to explicitly check against `null` with the `!==` operator in your loops.
 
 ### Data Types in node-lmdb
 

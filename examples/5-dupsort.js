@@ -94,7 +94,7 @@ console.log("iterating through a duplicate key: for");
 
 var key = "apple";
 
-for (var found = (cursor.goToRange(key) === key); found; found = cursor.goToNextDup()) {
+for (var found = (cursor.goToRange(key) === key); found !== null; found = cursor.goToNextDup()) {
     cursor.getCurrentNumber(function(key, data) {
         // do something with data
         console.log(key, data);
