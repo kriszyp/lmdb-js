@@ -1365,6 +1365,19 @@ fail:
 	li = ca->be->be_private;
 
 	if ( at ) {
+		char **urls;
+
+		urls = ldap_str2charray( at->a_vals[ 0 ].bv_val, ", \t" );
+		if ( !urls || !urls[0] || urls[1] ) {
+			ldap_charray_free( urls );
+			Debug( LDAP_DEBUG_ANY, "slapd-chain: "
+				"olcDbURI must contain exactly one url, got %s\n",
+				at->a_vals[ 0 ].bv_val, 0, 0 );
+			rc = LDAP_CONSTRAINT_VIOLATION;
+			goto done;
+		}
+		ldap_charray_free( urls );
+
 		li->li_uri = ch_strdup( at->a_vals[ 0 ].bv_val );
 		value_add_one( &li->li_bvuri, &at->a_vals[ 0 ] );
 		if ( avl_insert( &lc->lc_lai.lai_tree, (caddr_t)li,
