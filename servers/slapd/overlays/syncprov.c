@@ -1494,6 +1494,7 @@ syncprov_checkpoint( Operation *op, slap_overinst *on )
 	opm.o_bd->bd_info = on->on_info->oi_orig;
 	opm.o_managedsait = SLAP_CONTROL_NONCRITICAL;
 	opm.o_no_schema_check = 1;
+	opm.o_opid = -1;
 	opm.o_bd->be_modify( &opm, &rsm );
 
 	if ( rsm.sr_err == LDAP_NO_SUCH_OBJECT &&
