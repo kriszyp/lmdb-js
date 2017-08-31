@@ -89,6 +89,7 @@ typedef struct ldapconn_base_t {
 	(BER_BVISEMPTY(&(op)->o_ndn) ? \
 		LDAP_BACK_PCONN_ANON_SET((lc), (op)) : LDAP_BACK_PCONN_ROOTDN_SET((lc), (op)))
 
+	struct ldapinfo_t	*lcb_ldapinfo;
 	struct berval		lcb_local_ndn;
 	unsigned		lcb_refcnt;
 	time_t			lcb_create_time;
@@ -98,6 +99,7 @@ typedef struct ldapconn_base_t {
 typedef struct ldapconn_t {
 	ldapconn_base_t		lc_base;
 #define	lc_conn			lc_base.lcb_conn
+#define	lc_ldapinfo			lc_base.lcb_ldapinfo
 #define	lc_local_ndn		lc_base.lcb_local_ndn
 #define	lc_refcnt		lc_base.lcb_refcnt
 #define	lc_create_time		lc_base.lcb_create_time
