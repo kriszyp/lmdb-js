@@ -207,7 +207,7 @@ ldap_add_ext(
 	int	*msgidp )
 {
 	BerElement	*ber;
-	int		i, rc;
+	int		rc;
 	ber_int_t	id;
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_add_ext\n", 0, 0, 0 );

@@ -395,7 +395,6 @@ crc32(const void *vbuf, int len)
 {
 	const unsigned char	*buf = vbuf;
 	ber_uint_t		crc = 0xffffffff;
-	int				i;
 
 	while (len > 7) {
 		CRC8;

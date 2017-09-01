@@ -211,7 +211,10 @@ static int		sc_returnContRef;
 #define get_returnContRef(op)		((op)->o_returnContRef & SLAP_CONTROL_MASK)
 
 static struct berval	slap_EXOP_CHAINEDREQUEST = BER_BVC( LDAP_EXOP_X_CHAINEDREQUEST );
+#ifdef LDAP_DEVEL
 static struct berval	slap_FEATURE_CANCHAINOPS = BER_BVC( LDAP_FEATURE_X_CANCHAINOPS );
+#endif
+
 
 static BackendInfo	*lback;
 

@@ -103,7 +103,6 @@ ldap_extended_operation(
 	int				*msgidp )
 {
 	BerElement *ber;
-	int rc;
 	ber_int_t id;
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_extended_operation\n", 0, 0, 0 );

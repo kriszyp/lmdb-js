@@ -235,7 +235,6 @@ mdb_db_open( BackendDB *be, ConfigReply *cr )
 		} else if ( i == MDB_DN2ID ) {
 			MDB_cursor *mc;
 			MDB_val key, data;
-			ID id;
 			mdb_set_dupsort( txn, mdb->mi_dbis[i], mdb_dup_compare );
 			/* check for old dn2id format */
 			rc = mdb_cursor_open( txn, mdb->mi_dbis[i], &mc );

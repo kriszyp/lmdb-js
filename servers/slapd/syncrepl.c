@@ -2188,11 +2188,8 @@ syncrepl_op_modify( Operation *op, SlapReply *rs )
 	if ( match < 0 ) {
 		Operation op2 = *op;
 		AttributeName an[2];
-		const char *text;
 		struct berval bv;
-		char *ptr;
-		Modifications *ml;
-		int size, rc;
+		int size;
 		SlapReply rs1 = {0};
 		resolve_ctxt rx;
 		slap_callback cb = { NULL, syncrepl_resolve_cb, NULL, NULL };

@@ -359,5 +359,5 @@ ldap_connect_to_path(LDAP *ld, Sockbuf *sb, LDAPURLDesc *srv, int async)
 	return rc;
 }
 #else
-static int dummy;
+static int dummy; /* generate also a warning: 'dummy' defined but not used (at least here) */
 #endif /* LDAP_PF_LOCAL */

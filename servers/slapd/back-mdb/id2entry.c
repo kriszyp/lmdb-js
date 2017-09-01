@@ -384,7 +384,6 @@ int mdb_id2entry(
 	ID id,
 	Entry **e )
 {
-	struct mdb_info *mdb = (struct mdb_info *) op->o_bd->be_private;
 	MDB_val key, data;
 	int rc = 0;
 
@@ -534,7 +533,6 @@ int mdb_entry_release(
 {
 	struct mdb_info *mdb = (struct mdb_info *) op->o_bd->be_private;
 	struct mdb_op_info *moi = NULL;
-	int rc;
  
 	/* slapMode : SLAP_SERVER_MODE, SLAP_TOOL_MODE,
 			SLAP_TRUNCATE_MODE, SLAP_UNDEFINED_MODE */
@@ -924,8 +922,7 @@ static int mdb_entry_partsize(struct mdb_info *mdb, MDB_txn *txn, Entry *e,
 static int mdb_entry_encode(Operation *op, Entry *e, MDB_val *data, Ecount *eh)
 {
 	struct mdb_info *mdb = (struct mdb_info *) op->o_bd->be_private;
-	ber_len_t len, i;
-	int rc;
+	ber_len_t i;
 	Attribute *a;
 	unsigned char *ptr;
 	unsigned int *lp, l;
@@ -1004,7 +1001,6 @@ int mdb_entry_decode(Operation *op, MDB_txn *txn, MDB_val *data, ID id, Entry **
 	Attribute *a;
 	Entry *x;
 	const char *text;
-	AttributeDescription *ad;
 	unsigned int *lp = (unsigned int *)data->mv_data;
 	unsigned char *ptr;
 	BerVarray bptr;
