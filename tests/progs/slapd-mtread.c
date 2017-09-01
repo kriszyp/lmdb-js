@@ -576,7 +576,7 @@ do_conn( char *uri, char *manager, struct berval *passwd,
 {
 	LDAP	*ld = NULL;
 	int	version = LDAP_VERSION3;
-	int  	i = 0, do_retry = maxretries;
+	int  	do_retry = maxretries;
 	int     rc = LDAP_SUCCESS;
 	char	thrstr[BUFSIZ];
 
@@ -712,7 +712,7 @@ do_random2( LDAP *ld,
 	int     rc = LDAP_SUCCESS;
 	int		lo, hi, range;
 	int	flen;
-	LDAPMessage *res = NULL, *e = NULL;
+	LDAPMessage *res = NULL;
 	char	*ptr, *ftail;
 	char	thrstr[BUFSIZ];
 	char	fbuf[BUFSIZ];

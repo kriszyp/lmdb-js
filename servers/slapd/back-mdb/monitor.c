@@ -118,9 +118,9 @@ mdb_monitor_update(
 	Entry		*e,
 	void		*priv )
 {
+#ifdef MDB_MONITOR_IDX
 	struct mdb_info		*mdb = (struct mdb_info *) priv;
 
-#ifdef MDB_MONITOR_IDX
 	mdb_monitor_idx_entry_add( mdb, e );
 #endif /* MDB_MONITOR_IDX */
 
@@ -259,7 +259,9 @@ mdb_monitor_initialize( void )
 int
 mdb_monitor_db_init( BackendDB *be )
 {
+#ifdef MDB_MONITOR_IDX
 	struct mdb_info		*mdb = (struct mdb_info *) be->be_private;
+#endif /* MDB_MONITOR_IDX */
 
 	if ( mdb_monitor_initialize() == LDAP_SUCCESS ) {
 		/* monitoring in back-mdb is on by default */

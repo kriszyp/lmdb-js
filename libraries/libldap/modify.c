@@ -152,7 +152,7 @@ ldap_modify_ext( LDAP *ld,
 	int *msgidp )
 {
 	BerElement	*ber;
-	int		i, rc;
+	int		rc;
 	ber_int_t	id;
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_modify_ext\n", 0, 0, 0 );

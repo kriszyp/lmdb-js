@@ -917,7 +917,6 @@ syncprov_qstart( syncops *so );
 static int
 syncprov_qplay( Operation *op, syncops *so )
 {
-	slap_overinst *on = LDAP_SLIST_FIRST(&so->s_op->o_extra)->oe_key;
 	syncres *sr;
 	int rc = 0;
 
@@ -1597,7 +1596,7 @@ syncprov_add_slog( Operation *op )
 		}
 		sl->sl_num++;
 		while ( sl->sl_num > sl->sl_size ) {
-			int i, j;
+			int i;
 			se = sl->sl_head;
 			sl->sl_head = se->se_next;
 			for ( i=0; i<sl->sl_numcsns; i++ )

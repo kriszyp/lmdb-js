@@ -292,7 +292,6 @@ static void scope_chunk_free( void *key, void *data )
 
 static ID2 *scope_chunk_get( Operation *op )
 {
-	struct mdb_info *mdb = (struct mdb_info *) op->o_bd->be_private;
 	ID2 *ret = NULL;
 
 	ldap_pvt_thread_pool_getkey( op->o_threadctx, (void *)scope_chunk_get,
@@ -309,7 +308,6 @@ static ID2 *scope_chunk_get( Operation *op )
 
 static void scope_chunk_ret( Operation *op, ID2 *scopes )
 {
-	struct mdb_info *mdb = (struct mdb_info *) op->o_bd->be_private;
 	void *ret = NULL;
 
 	ldap_pvt_thread_pool_getkey( op->o_threadctx, (void *)scope_chunk_get,
