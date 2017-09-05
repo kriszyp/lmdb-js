@@ -53,7 +53,7 @@ sock_back_initialize(
 	bi->bi_op_delete = sock_back_delete;
 	bi->bi_op_abandon = 0;
 
-	bi->bi_extended = 0;
+	bi->bi_extended = sock_back_extended;
 
 	bi->bi_chk_referrals = 0;
 

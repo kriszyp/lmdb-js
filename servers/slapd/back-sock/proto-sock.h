@@ -40,6 +40,8 @@ extern BI_op_modrdn	sock_back_modrdn;
 extern BI_op_add	sock_back_add;
 extern BI_op_delete	sock_back_delete;
 
+extern BI_op_extended	sock_back_extended;
+
 extern int sock_back_init_cf( BackendInfo *bi );
 
 LDAP_END_DECL
