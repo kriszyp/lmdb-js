@@ -106,6 +106,7 @@ static ConfigOCs osocs[] = {
 #define SOCK_OP_MODRDN	0x020
 #define SOCK_OP_ADD		0x040
 #define SOCK_OP_DELETE	0x080
+#define SOCK_OP_EXTENDED	0x100
 
 #define SOCK_REP_RESULT	0x001
 #define SOCK_REP_SEARCH	0x002
@@ -127,6 +128,7 @@ static slap_verbmasks ov_ops[] = {
 	{ BER_BVC("modrdn"), SOCK_OP_MODRDN },
 	{ BER_BVC("add"), SOCK_OP_ADD },
 	{ BER_BVC("delete"), SOCK_OP_DELETE },
+	{ BER_BVC("extended"), SOCK_OP_EXTENDED },
 	{ BER_BVNULL, 0 }
 };
 
@@ -249,7 +251,9 @@ static BI_op_bind *sockfuncs[] = {
 	sock_back_modify,
 	sock_back_modrdn,
 	sock_back_add,
-	sock_back_delete
+	sock_back_delete,
+	0,                    /* abandon not supported */
+	sock_back_extended
 };
 
 static const int sockopflags[] = {
@@ -260,7 +264,9 @@ static const int sockopflags[] = {
 	SOCK_OP_MODIFY,
 	SOCK_OP_MODRDN,
 	SOCK_OP_ADD,
-	SOCK_OP_DELETE
+	SOCK_OP_DELETE,
+	0,                    /* abandon not supported */
+	SOCK_OP_EXTENDED
 };
 
 static int sock_over_op(
@@ -283,6 +289,7 @@ static int sock_over_op(
 	case LDAP_REQ_MODRDN:	which = op_modrdn; break;
 	case LDAP_REQ_ADD:	which = op_add; break;
 	case LDAP_REQ_DELETE:	which = op_delete; break;
+	case LDAP_REQ_EXTENDED:	which = op_extended; break;
 	default:
 		return SLAP_CB_CONTINUE;
 	}
@@ -365,6 +372,7 @@ sock_over_setup()
 	sockover.on_bi.bi_op_modrdn = sock_over_op;
 	sockover.on_bi.bi_op_add = sock_over_op;
 	sockover.on_bi.bi_op_delete = sock_over_op;
+	sockover.on_bi.bi_extended = sock_over_op;
 	sockover.on_response = sock_over_response;
 
 	sockover.on_bi.bi_cf_ocs = osocs;
