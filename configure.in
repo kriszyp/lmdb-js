@@ -2242,10 +2242,16 @@ if test $ol_enable_crypt != no ; then
 		AC_CHECK_LIB(crypt, crypt, [LUTIL_LIBS="$LUTIL_LIBS -lcrypt"
 			have_crypt=yes], [have_crypt=no])])
 
+	LIBS="$TLS_LIBS $LIBS"
+	AC_CHECK_LIB(crypt, crypt_r, [have_crypt_r=yes], [have_crypt_r=no])
+
 	LIBS="$save_LIBS"
 
 	if test $have_crypt = yes ; then
 		AC_DEFINE(HAVE_CRYPT,1, [define if crypt(3) is available])
+		if test $have_crypt_r = yes ; then
+			AC_DEFINE(HAVE_CRYPT_R, 1, [define if crypt_r() is also available])
+		fi
 	else
 		AC_MSG_WARN([could not find crypt])
 		if test $ol_enable_crypt = yes ; then

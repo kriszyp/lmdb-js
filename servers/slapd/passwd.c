@@ -23,8 +23,11 @@
 #include <ac/unistd.h>
 
 #ifdef SLAPD_CRYPT
+#ifdef HAVE_CRYPT_R
+#define __USE_GNU
+#endif /* HAVE_CRYPT_R */
 #include <ac/crypt.h>
-#endif
+#endif /* SLAPD_CRYPT */
 
 #include "slap.h"
 
@@ -590,6 +593,30 @@ slap_passwd_hash(
 static ldap_pvt_thread_mutex_t passwd_mutex;
 static lutil_cryptfunc slapd_crypt;
 
+#ifdef HAVE_CRYPT_R
+static int slapd_crypt( const char *key, const char *salt, char **hash )
+{
+	char *cr;
+	int rc;
+	struct crypt_data data;
+
+	data.initialized = 0;
+	cr = crypt_r( key, salt, &data );
+	if ( cr == NULL || cr[0] == '\0' ) {
+		/* salt must have been invalid */
+		rc = LUTIL_PASSWD_ERR;
+	} else {
+		if ( hash ) {
+			*hash = ber_strdup( cr );
+			rc = LUTIL_PASSWD_OK;
+		} else {
+			rc = strcmp( salt, cr ) ? LUTIL_PASSWD_ERR : LUTIL_PASSWD_OK;
+		}
+	}
+
+    return rc;
+}
+#else
 static int slapd_crypt( const char *key, const char *salt, char **hash )
 {
 	char *cr;
@@ -614,6 +641,8 @@ static int slapd_crypt( const char *key, const char *salt, char **hash )
 	ldap_pvt_thread_mutex_unlock( &passwd_mutex );
 	return rc;
 }
+#endif /* HAVE_CRYPT_R */
+
 #endif /* SLAPD_CRYPT */
 
 void slap_passwd_init()
