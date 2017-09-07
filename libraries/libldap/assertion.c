@@ -31,6 +31,8 @@ ldap_create_assertion_control_value(
 	BerElement		*ber = NULL;
 	int			err;
 
+	ld->ld_errno = LDAP_SUCCESS;
+
 	if ( assertion == NULL || assertion[ 0 ] == '\0' ) {
 		ld->ld_errno = LDAP_PARAM_ERROR;
 		return ld->ld_errno;
