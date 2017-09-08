@@ -109,7 +109,7 @@ ldap_pvt_close_socket(LDAP *ld, int s)
 #define TRACE do { \
 	char ebuf[128]; \
 	oslocal_debug(ld, \
-		"ldap_is_socket_ready: errror on socket %d: errno: %d (%s)\n", \
+		"ldap_is_socket_ready: error on socket %d: errno: %d (%s)\n", \
 		s, \
 		errno, \
 		AC_STRERROR_R(errno, ebuf, sizeof ebuf)); \
