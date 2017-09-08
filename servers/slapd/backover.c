@@ -728,16 +728,6 @@ cleanup:
 }
 
 static int
-over_op_func_cleanup( Operation *op, SlapReply *rs )
-{
-	slap_callback *cb = op->o_callback;
-	if ( rs->sr_type == REP_RESULT && cb != NULL) {
-		op->o_callback = cb->sc_next;
-		op->o_tmpfree( cb, op->o_tmpmemctx );
-	}
-}
-
-static int
 over_op_func(
 	Operation *op,
 	SlapReply *rs,
@@ -765,7 +755,7 @@ over_op_func(
 	}
 	if ( op->o_tag != LDAP_REQ_ABANDON && op->o_tag != LDAP_REQ_UNBIND ) {
 		cb = (slap_callback *)op->o_tmpcalloc( 1, sizeof(slap_callback), op->o_tmpmemctx );
-		cb->sc_cleanup = over_op_func_cleanup;
+		cb->sc_cleanup = NULL;
 		cb->sc_response = over_back_response;
 		cb->sc_writewait = NULL;
 		cb->sc_next = op->o_callback;
