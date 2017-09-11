@@ -58,7 +58,7 @@ wt_tool_entry_open( BackendDB *be, int mode )
     if( !wc ){
 		Debug( LDAP_DEBUG_ANY,
 			   LDAP_XSTRING(wt_tool_entry_open)
-			   ": wt_ctx_get failed: %s (%d)\n",
+			   ": wt_ctx_get failed\n",
 			   0, 0, 0 );
 		return -1;
     }
@@ -496,7 +496,7 @@ done:
 		rc = wc->session->rollback_transaction(wc->session, NULL);
 		Debug( LDAP_DEBUG_ANY,
 			   "=> " LDAP_XSTRING(wt_tool_entry_reindex)
-			   ": rollback transaction %s\n",
+			   ": rollback transaction %s (%d)\n",
 			   wiredtiger_strerror(rc), rc, 0 );
 	}
 

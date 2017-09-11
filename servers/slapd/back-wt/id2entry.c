@@ -157,7 +157,7 @@ int wt_id2entry( BackendDB *be,
 	if ( rc ) {
 		Debug( LDAP_DEBUG_ANY,
 			   LDAP_XSTRING(wt_id2entry)
-			   ": entry decode error: %s (%d)\n",
+			   ": entry decode error: %d\n",
 			   rc, 0, 0 );
 		goto done;
 	}

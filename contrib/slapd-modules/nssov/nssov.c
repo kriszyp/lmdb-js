@@ -947,7 +947,7 @@ nssov_db_close(
 
 	if ( slapMode & SLAP_SERVER_MODE ) {
 		/* close socket if it's still in use */
-		if (ni->ni_socket >= 0);
+		if (ni->ni_socket >= 0)
 		{
 			if (close(ni->ni_socket))
 				Debug( LDAP_DEBUG_ANY,"problem closing server socket (ignored): %s",strerror(errno),0,0);

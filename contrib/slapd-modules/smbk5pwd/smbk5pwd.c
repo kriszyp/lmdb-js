@@ -837,7 +837,7 @@ smbk5pwd_cf_func( ConfigArgs *c )
 		if ( c->value_int < 0 ) {
 			Debug( LDAP_DEBUG_ANY, "%s: smbk5pwd: "
 				"<%s> invalid negative value \"%d\".",
-				c->log, c->argv[ 0 ], 0 );
+				c->log, c->argv[ 0 ], c->value_int );
 			return 1;
 		}
 		pi->smb_must_change = c->value_int;
@@ -855,7 +855,7 @@ smbk5pwd_cf_func( ConfigArgs *c )
                 if ( c->value_int < 0 ) {
                         Debug( LDAP_DEBUG_ANY, "%s: smbk5pwd: "
                                 "<%s> invalid negative value \"%d\".",
-                                c->log, c->argv[ 0 ], 0 );
+                                c->log, c->argv[ 0 ], c->value_int );
                         return 1;
                 }
                 pi->smb_can_change = c->value_int;

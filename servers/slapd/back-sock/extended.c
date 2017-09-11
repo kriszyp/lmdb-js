@@ -32,7 +32,7 @@ sock_back_extended( Operation *op, SlapReply *rs )
 	FILE		*fp;
 	struct berval b64;
 
-	Debug( LDAP_DEBUG_ARGS, "==> sock_back_extended(%s)\n",
+	Debug( LDAP_DEBUG_ARGS, "==> sock_back_extended(%s, %s)\n",
 		op->ore_reqoid.bv_val, op->o_req_dn.bv_val, 0 );
 
 	if ( (fp = opensock( si->si_sockpath )) == NULL ) {

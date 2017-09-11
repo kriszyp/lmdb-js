@@ -116,7 +116,7 @@ bdb_db_open( BackendDB *be, ConfigReply *cr )
 	if ( be->be_suffix == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
 			LDAP_XSTRING(bdb_db_open) ": need suffix.\n",
-			1, 0, 0 );
+			0, 0, 0 );
 		return -1;
 	}
 

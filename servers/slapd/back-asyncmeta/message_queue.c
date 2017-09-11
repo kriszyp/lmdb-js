@@ -470,8 +470,7 @@ void asyncmeta_clear_bm_context(bm_context_t *bc)
 		}
 		break;
 	default:
-		Debug( LDAP_DEBUG_TRACE, "==> asyncmeta_clear_bm_context: other message type",
-	       0, 0, 0 );
+		Debug( LDAP_DEBUG_TRACE, "==> asyncmeta_clear_bm_context: other message type" );
 	}
 	if (bmc->dc != NULL) {
 		free (bmc->dc);
@@ -480,8 +479,7 @@ void asyncmeta_clear_bm_context(bm_context_t *bc)
 
 	if (clear_cl > 0) {
 		asyncmeta_free_candidate_list(cl, lock);
-		Debug( LDAP_DEBUG_TRACE, "==> asyncmeta_clear_bm_context: free_cl_list\n",
-	       0, 0, 0 );
+		Debug( LDAP_DEBUG_TRACE, "==> asyncmeta_clear_bm_context: free_cl_list\n" );
 	}
 #else
 	asyncmeta_memctx_put(op->o_threadctx, op->o_tmpmemctx);

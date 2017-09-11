@@ -288,7 +288,7 @@ rewrite_parse(
 	} else {
 		Debug( LDAP_DEBUG_ANY,
 				"[%s:%d] unknown command '%s'\n",
-				fname, lineno, "" );
+				fname, lineno, argv[ 0 ] );
 		return -1;
 	}
 
