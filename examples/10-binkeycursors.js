@@ -41,7 +41,7 @@ var printFunc = function(key, data) {
 var txn = env.beginTxn();
 
 // Create cursor
-var cursor = new lmdb.Cursor(txn, dbi, true);
+var cursor = new lmdb.Cursor(txn, dbi, { keyIsBuffer: true });
 
 console.log("first (expected a)");
 cursor.goToFirst();
