@@ -257,7 +257,7 @@ register_supported_control2(const char *controloid,
 	if ( num_known_controls >= SLAP_MAX_CIDS ) {
 		Debug( LDAP_DEBUG_ANY, "Too many controls registered."
 			" Recompile slapd with SLAP_MAX_CIDS defined > %d\n",
-		SLAP_MAX_CIDS, 0, 0 );
+		num_known_controls, 0, 0 );
 		return LDAP_OTHER;
 	}
 
