@@ -813,8 +813,6 @@ backsql_get_attr_vals( void *v_at, void *v_bsi )
 						bsi->bsi_op->o_tmpmemctx );
 
 					if ( retval != LDAP_SUCCESS ) {
-						char	buf[ SLAP_TEXT_BUFLEN ];
-
 						/* FIXME: we're ignoring invalid values,
 						 * but we're accepting the attributes;
 						 * should we fail at all? */

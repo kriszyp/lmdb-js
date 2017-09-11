@@ -258,8 +258,6 @@ asyncmeta_clear_one_msc(
 	if ( msc->msc_ld != NULL ) {
 
 #ifdef DEBUG_205
-		char	buf[ BUFSIZ ];
-
 		Debug(LDAP_DEBUG_ANY,
 		      "### %s asyncmeta_clear_one_msc ldap_unbind_ext[%d] ld=%p\n",
 		      op ? op->o_log_prefix : "", candidate,

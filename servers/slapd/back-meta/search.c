@@ -122,8 +122,6 @@ meta_search_dobind_init(
 		/* another thread is binding the target for this conn; wait */
 
 #ifdef DEBUG_205
-		char	buf[ SLAP_TEXT_BUFLEN ] = { '\0' };
-
 		Debug(LDAP_DEBUG_ANY,
 		      "### %s meta_search_dobind_init[%d] mc=%p ld=%p needbind\n",
 		      op->o_log_prefix, candidate, (void *)mc,
@@ -137,8 +135,6 @@ meta_search_dobind_init(
 		/* we'll need to bind the target for this conn */
 
 #ifdef DEBUG_205
-		char buf[ SLAP_TEXT_BUFLEN ];
-
 		Debug(LDAP_DEBUG_ANY,
 		      "### %s meta_search_dobind_init[%d] mc=%p ld=%p binding\n",
 		      op->o_log_prefix, candidate, (void *)mc,
@@ -1740,8 +1736,6 @@ free_message:;
 							/* if still binding, destroy */
 
 #ifdef DEBUG_205
-							char buf[ SLAP_TEXT_BUFLEN ];
-
 							Debug(LDAP_DEBUG_ANY,
 							      "### %s meta_back_search(abandon) " "ldap_unbind_ext[%ld] mc=%p ld=%p\n",
 							      op->o_log_prefix,
@@ -2133,8 +2127,6 @@ meta_send_entry(
 			if ( slap_bv2undef_ad( &mapped, &attr->a_desc, &text,
 				SLAP_AD_PROXIED ) != LDAP_SUCCESS )
 			{
-				char	buf[ SLAP_TEXT_BUFLEN ];
-
 				Debug(LDAP_DEBUG_ANY,
 				      "%s meta_send_entry(\"%s\"): " "slap_bv2undef_ad(%s): %s\n",
 				      op->o_log_prefix, ent.e_name.bv_val,

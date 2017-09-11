@@ -254,8 +254,6 @@ meta_clear_one_candidate(
 	if ( msc->msc_ld != NULL ) {
 
 #ifdef DEBUG_205
-		char	buf[ BUFSIZ ];
-
 		Debug(LDAP_DEBUG_ANY,
 		      "### %s meta_clear_one_candidate ldap_unbind_ext[%d] mc=%p ld=%p\n",
 		      op ? op->o_log_prefix : "", candidate, (void *)mc,
