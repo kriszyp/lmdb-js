@@ -126,7 +126,7 @@ NSSOV_HANDLE(
 	READ_STRING(fp,cbp.buf);
 	cbp.name.bv_len = tmpint32;
 	cbp.name.bv_val = cbp.buf;,
-	Debug(LDAP_DEBUG_TRACE,"nssov_protocol_byname(%s)\n",cbp.name.bv_val,0,0);,
+	Debug(LDAP_DEBUG_TRACE,"nssov_protocol_byname(%s)\n",cbp.name.bv_val);,
 	NSLCD_ACTION_PROTOCOL_BYNAME,
 	nssov_filter_byname(cbp.mi,0,&cbp.name,&filter)
 )
@@ -141,7 +141,7 @@ NSSOV_HANDLE(
 	cbp.numb.bv_val = cbp.buf;
 	cbp.numb.bv_len = snprintf(cbp.buf,sizeof(cbp.buf),"%d",protocol);
 	BER_BVZERO(&cbp.name);,
-	Debug(LDAP_DEBUG_TRACE,"nssov_protocol_bynumber(%s)\n",cbp.numb.bv_val,0,0);,
+	Debug(LDAP_DEBUG_TRACE,"nssov_protocol_bynumber(%s)\n",cbp.numb.bv_val);,
 	NSLCD_ACTION_PROTOCOL_BYNUMBER,
 	nssov_filter_byid(cbp.mi,1,&cbp.numb,&filter)
 )
@@ -150,7 +150,7 @@ NSSOV_HANDLE(
 	protocol,all,
 	struct berval filter;
 	/* no parameters to read */,
-	Debug(LDAP_DEBUG_TRACE,"nssov_protocol_all()\n",0,0,0);,
+	Debug(LDAP_DEBUG_TRACE,"nssov_protocol_all()\n");,
 	NSLCD_ACTION_PROTOCOL_ALL,
 	(filter=cbp.mi->mi_filter,0)
 )

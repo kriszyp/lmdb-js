@@ -281,14 +281,14 @@ NSSOV_HANDLE(
 	cbp.name.bv_len = tmpint32;
 	cbp.name.bv_val = cbp.buf;
 	if (!isvalidgroupname(&cbp.name)) {
-		Debug(LDAP_DEBUG_ANY,"nssov_group_byname(%s): invalid group name\n",cbp.name.bv_val,0,0);
+		Debug(LDAP_DEBUG_ANY,"nssov_group_byname(%s): invalid group name\n",cbp.name.bv_val);
 		return -1;
 	}
 	cbp.wantmembers = 1;
 	cbp.ni = ni;
 	BER_BVZERO(&cbp.gidnum);
 	BER_BVZERO(&cbp.user);,
-	Debug(LDAP_DEBUG_TRACE,"nslcd_group_byname(%s)\n",cbp.name.bv_val,0,0);,
+	Debug(LDAP_DEBUG_TRACE,"nslcd_group_byname(%s)\n",cbp.name.bv_val);,
 	NSLCD_ACTION_GROUP_BYNAME,
 	nssov_filter_byname(cbp.mi,CN_KEY,&cbp.name,&filter)
 )
@@ -306,7 +306,7 @@ NSSOV_HANDLE(
 	cbp.ni = ni;
 	BER_BVZERO(&cbp.name);
 	BER_BVZERO(&cbp.user);,
-	Debug(LDAP_DEBUG_TRACE,"nssov_group_bygid(%s)\n",cbp.gidnum.bv_val,0,0);,
+	Debug(LDAP_DEBUG_TRACE,"nssov_group_bygid(%s)\n",cbp.gidnum.bv_val);,
 	NSLCD_ACTION_GROUP_BYGID,
 	nssov_filter_byid(cbp.mi,GID_KEY,&cbp.gidnum,&filter)
 )
@@ -320,14 +320,14 @@ NSSOV_HANDLE(
 	cbp.user.bv_len = tmpint32;
 	cbp.user.bv_val = cbp.buf;
 	if (!isvalidusername(&cbp.user)) {
-		Debug(LDAP_DEBUG_ANY,"nssov_group_bymember(%s): invalid user name\n",cbp.user.bv_val,0,0);
+		Debug(LDAP_DEBUG_ANY,"nssov_group_bymember(%s): invalid user name\n",cbp.user.bv_val);
 		return -1;
 	}
 	cbp.wantmembers = 0;
 	cbp.ni = ni;
 	BER_BVZERO(&cbp.name);
 	BER_BVZERO(&cbp.gidnum);,
-	Debug(LDAP_DEBUG_TRACE,"nssov_group_bymember(%s)\n",cbp.user.bv_val,0,0);,
+	Debug(LDAP_DEBUG_TRACE,"nssov_group_bymember(%s)\n",cbp.user.bv_val);,
 	NSLCD_ACTION_GROUP_BYMEMBER,
 	mkfilter_group_bymember(&cbp,&filter)
 )
@@ -340,7 +340,7 @@ NSSOV_HANDLE(
 	cbp.ni = ni;
 	BER_BVZERO(&cbp.name);
 	BER_BVZERO(&cbp.gidnum);,
-	Debug(LDAP_DEBUG_TRACE,"nssov_group_all()\n",0,0,0);,
+	Debug(LDAP_DEBUG_TRACE,"nssov_group_all()\n");,
 	NSLCD_ACTION_GROUP_ALL,
 	(filter=cbp.mi->mi_filter,0)
 )

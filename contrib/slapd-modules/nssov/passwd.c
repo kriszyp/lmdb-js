@@ -399,11 +399,11 @@ NSSOV_HANDLE(
 	cbp.name.bv_len = tmpint32;
 	cbp.name.bv_val = cbp.buf;
 	if (!isvalidusername(&cbp.name)) {
-		Debug(LDAP_DEBUG_ANY,"nssov_passwd_byname(%s): invalid user name\n",cbp.name.bv_val,0,0);
+		Debug(LDAP_DEBUG_ANY,"nssov_passwd_byname(%s): invalid user name\n",cbp.name.bv_val);
 		return -1;
 	}
 	BER_BVZERO(&cbp.id); ,
-	Debug(LDAP_DEBUG_TRACE,"nssov_passwd_byname(%s)\n",cbp.name.bv_val,0,0);,
+	Debug(LDAP_DEBUG_TRACE,"nssov_passwd_byname(%s)\n",cbp.name.bv_val);,
 	NSLCD_ACTION_PASSWD_BYNAME,
 	nssov_filter_byname(cbp.mi,UID_KEY,&cbp.name,&filter)
 )
@@ -418,7 +418,7 @@ NSSOV_HANDLE(
 	cbp.id.bv_val = cbp.buf;
 	cbp.id.bv_len = snprintf(cbp.buf,sizeof(cbp.buf),"%d",uid);
 	BER_BVZERO(&cbp.name);,
-	Debug(LDAP_DEBUG_TRACE,"nssov_passwd_byuid(%s)\n",cbp.id.bv_val,0,0);,
+	Debug(LDAP_DEBUG_TRACE,"nssov_passwd_byuid(%s)\n",cbp.id.bv_val);,
 	NSLCD_ACTION_PASSWD_BYUID,
 	nssov_filter_byid(cbp.mi,UIDN_KEY,&cbp.id,&filter)
 )
@@ -429,7 +429,7 @@ NSSOV_HANDLE(
 	/* no parameters to read */
 	BER_BVZERO(&cbp.name);
 	BER_BVZERO(&cbp.id);,
-	Debug(LDAP_DEBUG_TRACE,"nssov_passwd_all()\n",0,0,0);,
+	Debug(LDAP_DEBUG_TRACE,"nssov_passwd_all()\n");,
 	NSLCD_ACTION_PASSWD_ALL,
 	(filter=cbp.mi->mi_filter,0)
 )

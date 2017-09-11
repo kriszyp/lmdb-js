@@ -124,13 +124,13 @@ static long to_date(struct berval *date,AttributeDescription *attr)
 		if (a->a_numvals > 1) \
 		{ \
 			Debug(LDAP_DEBUG_ANY,"shadow entry %s contains multiple %s values\n", \
-				entry->e_name.bv_val, cbp->mi->mi_attrs[key].an_desc->ad_cname.bv_val,0); \
+				entry->e_name.bv_val, cbp->mi->mi_attrs[key].an_desc->ad_cname.bv_val); \
 		} \
 		var=strtol(a->a_vals[0].bv_val,&tmp,0); \
 		if ((a->a_vals[0].bv_val[0]=='\0')||(*tmp!='\0')) \
 		{ \
 			Debug(LDAP_DEBUG_ANY,"shadow entry %s contains non-numeric %s value\n", \
-				entry->e_name.bv_val, cbp->mi->mi_attrs[key].an_desc->ad_cname.bv_val,0); \
+				entry->e_name.bv_val, cbp->mi->mi_attrs[key].an_desc->ad_cname.bv_val); \
 			return 0; \
 		} \
 	}
@@ -144,7 +144,7 @@ static long to_date(struct berval *date,AttributeDescription *attr)
 		if (a->a_numvals > 1) \
 		{ \
 			Debug(LDAP_DEBUG_ANY,"shadow entry %s contains multiple %s values\n", \
-				entry->e_name.bv_val, cbp->mi->mi_attrs[key].an_desc->ad_cname.bv_val,0); \
+				entry->e_name.bv_val, cbp->mi->mi_attrs[key].an_desc->ad_cname.bv_val); \
 		} \
 		var=to_date(&a->a_vals[0],cbp->mi->mi_attrs[key].an_desc); \
 	}
@@ -241,7 +241,7 @@ NSSOV_HANDLE(
 	READ_STRING(fp,cbp.buf);,
 	cbp.name.bv_len = tmpint32;
 	cbp.name.bv_val = cbp.buf;
-	Debug(LDAP_DEBUG_ANY,"nssov_shadow_byname(%s)\n",cbp.name.bv_val,0,0);,
+	Debug(LDAP_DEBUG_ANY,"nssov_shadow_byname(%s)\n",cbp.name.bv_val);,
 	NSLCD_ACTION_SHADOW_BYNAME,
 	nssov_filter_byname(cbp.mi,UID_KEY,&cbp.name,&filter)
 )
@@ -251,7 +251,7 @@ NSSOV_HANDLE(
 	struct berval filter;
 	/* no parameters to read */
 	BER_BVZERO(&cbp.name);,
-	Debug(LDAP_DEBUG_ANY,"nssov_shadow_all()\n",0,0,0);,
+	Debug(LDAP_DEBUG_ANY,"nssov_shadow_all()\n");,
 	NSLCD_ACTION_SHADOW_ALL,
 	(filter=cbp.mi->mi_filter,0)
 )

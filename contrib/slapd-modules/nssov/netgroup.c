@@ -193,7 +193,7 @@ NSSOV_HANDLE(
 	READ_STRING(fp,cbp.buf);,
 	cbp.name.bv_len = tmpint32;
 	cbp.name.bv_val = cbp.buf;
-	Debug(LDAP_DEBUG_TRACE,"nssov_netgroup_byname(%s)\n",cbp.name.bv_val,0,0);,
+	Debug(LDAP_DEBUG_TRACE,"nssov_netgroup_byname(%s)\n",cbp.name.bv_val);,
 	NSLCD_ACTION_NETGROUP_BYNAME,
 	nssov_filter_byname(cbp.mi,0,&cbp.name,&filter)
 )

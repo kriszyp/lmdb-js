@@ -217,7 +217,7 @@ NSSOV_HANDLE(
 	READ_STRING(fp,cbp.pbuf);
 	cbp.prot.bv_len = tmpint32;
 	cbp.prot.bv_val = tmpint32 ? cbp.pbuf : NULL;,
-	Debug(LDAP_DEBUG_TRACE,"nssov_service_byname(%s,%s)\n",cbp.name.bv_val,cbp.prot.bv_val ? cbp.prot.bv_val : "",0);,
+	Debug(LDAP_DEBUG_TRACE,"nssov_service_byname(%s,%s)\n",cbp.name.bv_val,cbp.prot.bv_val ? cbp.prot.bv_val : "");,
 	NSLCD_ACTION_SERVICE_BYNAME,
 	mkfilter_service_byname(cbp.mi,&cbp.name,&cbp.prot,&filter)
 )
@@ -234,7 +234,7 @@ NSSOV_HANDLE(
 	READ_STRING(fp,cbp.pbuf);
 	cbp.prot.bv_len = tmpint32;
 	cbp.prot.bv_val = tmpint32 ? cbp.pbuf : NULL;,
-	Debug(LDAP_DEBUG_TRACE,"nssov_service_bynumber(%s,%s)\n",cbp.name.bv_val,cbp.prot.bv_val,0);,
+	Debug(LDAP_DEBUG_TRACE,"nssov_service_bynumber(%s,%s)\n",cbp.name.bv_val,cbp.prot.bv_val);,
 	NSLCD_ACTION_SERVICE_BYNUMBER,
 	mkfilter_service_bynumber(cbp.mi,&cbp.name,&cbp.prot,&filter)
 )
@@ -244,7 +244,7 @@ NSSOV_HANDLE(
 	struct berval filter;
 	/* no parameters to read */
 	BER_BVZERO(&cbp.prot);,
-	Debug(LDAP_DEBUG_TRACE,"nssov_service_all()\n",0,0,0);,
+	Debug(LDAP_DEBUG_TRACE,"nssov_service_all()\n");,
 	NSLCD_ACTION_SERVICE_ALL,
 	(filter=cbp.mi->mi_filter,0)
 )

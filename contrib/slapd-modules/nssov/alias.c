@@ -100,7 +100,7 @@ NSSOV_HANDLE(
 	READ_STRING(fp,cbp.buf);
 	cbp.name.bv_len = tmpint32;
 	cbp.name.bv_val = cbp.buf;,
-	Debug(LDAP_DEBUG_TRACE,"nssov_alias_byname(%s)\n",cbp.name.bv_val,0,0);,
+	Debug(LDAP_DEBUG_TRACE,"nssov_alias_byname(%s)\n",cbp.name.bv_val);,
 	NSLCD_ACTION_ALIAS_BYNAME,
 	nssov_filter_byname(cbp.mi,0,&cbp.name,&filter)
 )
@@ -110,7 +110,7 @@ NSSOV_HANDLE(
 	struct berval filter;
 	/* no parameters to read */
 	BER_BVZERO(&cbp.name);,
-	Debug(LDAP_DEBUG,"nssov_alias_all()\n",0,0,0);,
+	Debug(LDAP_DEBUG,"nssov_alias_all()\n");,
 	NSLCD_ACTION_ALIAS_ALL,
 	(filter=cbp.mi->mi_filter,0)
 )

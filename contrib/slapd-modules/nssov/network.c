@@ -121,7 +121,7 @@ NSSOV_HANDLE(
 	READ_STRING(fp,cbp.buf);
 	cbp.name.bv_len = tmpint32;
 	cbp.name.bv_val = cbp.buf;,
-	Debug(LDAP_DEBUG_TRACE,"nssov_network_byname(%s)\n",cbp.name.bv_val,0,0);,
+	Debug(LDAP_DEBUG_TRACE,"nssov_network_byname(%s)\n",cbp.name.bv_val);,
 	NSLCD_ACTION_NETWORK_BYNAME,
 	nssov_filter_byname(cbp.mi,0,&cbp.name,&filter)
 )
@@ -139,12 +139,12 @@ NSSOV_HANDLE(
 	/* translate the address to a string */
 	if (inet_ntop(af,addr,cbp.buf,sizeof(cbp.buf))==NULL)
 	{
-		Debug(LDAP_DEBUG_ANY,"nssov: unable to convert address to string\n",0,0,0);
+		Debug(LDAP_DEBUG_ANY,"nssov: unable to convert address to string\n");
 		return -1;
 	}
 	cbp.addr.bv_val = cbp.buf;
 	cbp.addr.bv_len = strlen(cbp.buf);,
-	Debug(LDAP_DEBUG_TRACE,"nslcd_network_byaddr(%s)\n",cbp.addr.bv_val,0,0);,
+	Debug(LDAP_DEBUG_TRACE,"nslcd_network_byaddr(%s)\n",cbp.addr.bv_val);,
 	NSLCD_ACTION_NETWORK_BYADDR,
 	nssov_filter_byid(cbp.mi,1,&cbp.addr,&filter)
 )
@@ -155,7 +155,7 @@ NSSOV_HANDLE(
 	/* no parameters to read */
 	BER_BVZERO(&cbp.name);
 	BER_BVZERO(&cbp.addr);,
-	Debug(LDAP_DEBUG_TRACE,"nssov_network_all()\n",0,0,0);,
+	Debug(LDAP_DEBUG_TRACE,"nssov_network_all()\n");,
 	NSLCD_ACTION_NETWORK_ALL,
 	(filter=cbp.mi->mi_filter,0)
 )
