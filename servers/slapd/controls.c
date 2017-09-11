@@ -600,7 +600,7 @@ slap_global_control( Operation *op, const char *oid, int *cid )
 #if 0
 	Debug( LDAP_DEBUG_TRACE,
 		"slap_global_control: unavailable control: %s\n",      
-		oid, 0, 0 );
+		oid );
 #endif
 
 	return LDAP_COMPARE_FALSE;

@@ -690,7 +690,7 @@ backsql_get_attr_vals( void *v_at, void *v_bsi )
 #ifdef BACKSQL_TRACE
 	Debug( LDAP_DEBUG_TRACE, "backsql_get_attr_vals(): "
 		"query=\"%s\" keyval=" BACKSQL_IDFMT "\n", at->bam_query,
-		BACKSQL_IDARG(bsi->bsi_c_eid->eid_keyval), 0 );
+		BACKSQL_IDARG(bsi->bsi_c_eid->eid_keyval) );
 #endif /* BACKSQL_TRACE */
 
 	rc = SQLExecute( sth );

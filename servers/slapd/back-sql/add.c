@@ -193,7 +193,7 @@ backsql_modify_delete_all_values(
 				"   backsql_modify_delete_all_values() "
 				"arg(%d)=" BACKSQL_IDFMT "\n",
 				pno + 1 + po,
-				BACKSQL_IDARG(e_id->eid_keyval), 0 );
+				BACKSQL_IDARG(e_id->eid_keyval) );
 
 			/*
 			 * check for syntax needed here 
@@ -475,7 +475,7 @@ add_only:;
 					"   backsql_modify_internal(): "
 					"arg(%d)=" BACKSQL_IDFMT "\n", 
 					pno + 1 + po,
-					BACKSQL_IDARG(e_id->eid_keyval), 0 );
+					BACKSQL_IDARG(e_id->eid_keyval) );
 
 				/*
 				 * check for syntax needed here
@@ -633,7 +633,7 @@ add_only:;
 					"   backsql_modify_internal(): "
 					"arg(%d)=" BACKSQL_IDFMT "\n", 
 					pno + 1 + po,
-					BACKSQL_IDARG(e_id->eid_keyval), 0 );
+					BACKSQL_IDARG(e_id->eid_keyval) );
 
 				/*
 				 * check for syntax needed here 
@@ -1306,7 +1306,7 @@ backsql_add( Operation *op, SlapReply *rs )
 
 	Debug( LDAP_DEBUG_TRACE, "   backsql_add(\"%s\"): "
 		"create_proc returned keyval=" BACKSQL_IDNUMFMT "\n",
-		op->ora_e->e_name.bv_val, new_keyval, 0 );
+		op->ora_e->e_name.bv_val, new_keyval );
 
 	rc = backsql_Prepare( dbh, &sth, bi->sql_insentry_stmt, 0 );
 	if ( rc != SQL_SUCCESS ) {

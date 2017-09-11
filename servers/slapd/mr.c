@@ -505,7 +505,7 @@ int mr_schema_info( Entry *e )
 		}
 #if 0
 		Debug( LDAP_DEBUG_TRACE, "Merging mr [%lu] %s\n",
-			mr->smr_str.bv_len, mr->smr_str.bv_val, 0 );
+			mr->smr_str.bv_len, mr->smr_str.bv_val );
 #endif
 
 		nval.bv_val = mr->smr_oid;
@@ -536,7 +536,7 @@ int mru_schema_info( Entry *e )
 
 #if 0
 		Debug( LDAP_DEBUG_TRACE, "Merging mru [%lu] %s\n",
-			mru->smru_str.bv_len, mru->smru_str.bv_val, 0 );
+			mru->smru_str.bv_len, mru->smru_str.bv_val );
 #endif
 
 		nval.bv_val = mru->smru_oid;

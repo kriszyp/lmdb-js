@@ -363,7 +363,7 @@ wt_dn2id(
 	struct wt_info *wi = (struct wy_info *) op->o_bd->be_private;
 	WT_CURSOR *cursor = NULL;
 	int rc;
-	Debug( LDAP_DEBUG_TRACE, "=> wt_dn2id(\"%s\")\n", dn->bv_val, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "=> wt_dn2id(\"%s\")\n", dn->bv_val );
 
 	rc = session->open_cursor(session, WT_INDEX_DN"(id)",
                               NULL, NULL, &cursor);

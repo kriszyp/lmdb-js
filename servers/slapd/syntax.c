@@ -351,7 +351,7 @@ syn_schema_info( Entry *e )
 		}
 #if 0
 		Debug( LDAP_DEBUG_TRACE, "Merging syn [%ld] %s\n",
-	       (long) val.bv_len, val.bv_val, 0 );
+	       (long) val.bv_len, val.bv_val );
 #endif
 
 		nval.bv_val = syn->ssyn_oid;

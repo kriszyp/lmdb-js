@@ -107,7 +107,7 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 
 	Debug( LDAP_DEBUG_TRACE,
 		"   backsql_modrdn(): entry id=" BACKSQL_IDFMT "\n",
-		BACKSQL_IDARG(e_id.eid_id), 0, 0 );
+		BACKSQL_IDARG(e_id.eid_id) );
 
 	if ( get_assert( op ) &&
 			( test_filter( op, &r, get_assertion( op ) )
@@ -167,7 +167,7 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 
 	Debug( LDAP_DEBUG_TRACE,
 		"   backsql_modrdn(): old parent entry id is " BACKSQL_IDFMT "\n",
-		BACKSQL_IDARG(bsi.bsi_base_id.eid_id), 0, 0 );
+		BACKSQL_IDARG(bsi.bsi_base_id.eid_id) );
 
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_modrdn(): "
@@ -222,7 +222,7 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 
 		Debug( LDAP_DEBUG_TRACE,
 			"   backsql_modrdn(): new parent entry id=" BACKSQL_IDFMT "\n",
-			BACKSQL_IDARG(n_id.eid_id), 0, 0 );
+			BACKSQL_IDARG(n_id.eid_id) );
 
 		if ( !access_allowed( op, &n, slap_schema.si_ad_children, 
 					NULL, ACL_WADD, NULL ) ) {

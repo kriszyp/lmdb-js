@@ -1746,7 +1746,7 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 	}
 	
 	Debug( LDAP_DEBUG_TRACE, "id: '" BACKSQL_IDNUMFMT "'\n",
-		bsi->bsi_oc->bom_id, 0, 0 );
+		bsi->bsi_oc->bom_id );
 
 	rc = backsql_BindParamNumID( sth, 1, SQL_PARAM_INPUT,
 			&bsi->bsi_oc->bom_id );
@@ -1883,7 +1883,7 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 		assert( !BER_BVISNULL( &bsi->bsi_base_id.eid_ndn ) );
 
 		Debug( LDAP_DEBUG_TRACE, "(one)id=" BACKSQL_IDFMT "\n",
-			BACKSQL_IDARG(bsi->bsi_base_id.eid_id), 0, 0 );
+			BACKSQL_IDARG(bsi->bsi_base_id.eid_id) );
 		rc = backsql_BindParamID( sth, 2, SQL_PARAM_INPUT,
 				&bsi->bsi_base_id.eid_id );
 		if ( rc != SQL_SUCCESS ) {
@@ -2604,8 +2604,7 @@ backsql_entry_get(
 		/* find attribute values */
 		if ( is_entry_alias( bsi.bsi_e ) ) {
 			Debug( LDAP_DEBUG_ACL,
-				"<= backsql_entry_get: entry is an alias\n",
-				0, 0, 0 );
+				"<= backsql_entry_get: entry is an alias\n" );
 			rc = LDAP_ALIAS_PROBLEM;
 			goto return_results;
 		}

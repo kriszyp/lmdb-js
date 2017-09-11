@@ -103,7 +103,7 @@ backsql_modify( Operation *op, SlapReply *rs )
 	Debug( LDAP_DEBUG_TRACE, "   backsql_modify(): "
 		"modifying entry \"%s\" (id=" BACKSQL_IDFMT ")\n", 
 		bsi.bsi_base_id.eid_dn.bv_val,
-		BACKSQL_IDARG(bsi.bsi_base_id.eid_id), 0 );
+		BACKSQL_IDARG(bsi.bsi_base_id.eid_id) );
 
 	if ( get_assert( op ) &&
 			( test_filter( op, &m, get_assertion( op ) )
