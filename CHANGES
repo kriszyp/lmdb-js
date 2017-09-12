@@ -3,6 +3,7 @@ OpenLDAP 2.4 Change Log
 OpenLDAP 2.4.46 Engineering
 	Fixed slapd Eventlog registry key creation on 64-bit Windows (ITS#8705)
 	Fixed slapo-syncprov memory leak with delete operations (ITS#8690)
+	Fixed slapo-syncprov to not clear pending operation when checkpointing (ITS#8444)
 	Build Environment
 		Fixed Windows build with newer MINGW version (ITS#8697)
 	Documentation
