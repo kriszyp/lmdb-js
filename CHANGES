@@ -1,6 +1,7 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.46 Engineering
+	Fixed slapd Eventlog registry key creation on 64-bit Windows (ITS#8705)
 	Build Environment
 		Fixed Windows build with newer MINGW version (ITS#8697)
 
