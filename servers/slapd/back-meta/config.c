@@ -1827,13 +1827,63 @@ meta_back_cf_gen( ConfigArgs *c )
 
 		case LDAP_BACK_CFG_SUFFIXM:	/* unused */
 		case LDAP_BACK_CFG_REWRITE:
-			if ( mt->mt_rwmap.rwm_bva_rewrite ) {
-				ber_bvarray_free( mt->mt_rwmap.rwm_bva_rewrite );
-				mt->mt_rwmap.rwm_bva_rewrite = NULL;
-			}
-			if ( mt->mt_rwmap.rwm_rw )
+		{
+			if ( c->valx >= 0 ) {
+				int i;
+
+				for ( i = 0; !BER_BVISNULL( &mt->mt_rwmap.rwm_bva_rewrite[ i ] ); i++ );
+
+				if ( c->valx >= i ) {
+					rc = 1;
+					break;
+				}
+
+				ber_memfree( mt->mt_rwmap.rwm_bva_rewrite[ c->valx ].bv_val );
+				for ( i = c->valx; !BER_BVISNULL( &mt->mt_rwmap.rwm_bva_rewrite[ i + 1 ] ); i++ )
+				{
+					mt->mt_rwmap.rwm_bva_rewrite[ i ] = mt->mt_rwmap.rwm_bva_rewrite[ i + 1 ];
+				}
+				BER_BVZERO( &mt->mt_rwmap.rwm_bva_rewrite[ i ] );
+
 				rewrite_info_delete( &mt->mt_rwmap.rwm_rw );
-			break;
+				assert( mt->mt_rwmap.rwm_rw == NULL );
+
+				rc = meta_rwi_init( &mt->mt_rwmap.rwm_rw );
+
+				for ( i = 0; !BER_BVISNULL( &mt->mt_rwmap.rwm_bva_rewrite[ i ] ); i++ )
+				{
+					ConfigArgs ca = { 0 };
+
+					ca.line = mt->mt_rwmap.rwm_bva_rewrite[ i ].bv_val;
+					init_config_argv( &ca );
+					config_parse_ldif( &ca );
+
+					if ( !strcasecmp( ca.argv[0], "suffixmassage" )) {
+						rc = meta_suffixm_config( &ca, ca.argc, ca.argv, mt );
+					} else {
+						rc = rewrite_parse( mt->mt_rwmap.rwm_rw,
+								    c->fname, c->lineno, ca.argc, ca.argv );
+					}
+
+
+					ch_free( ca.tline );
+					ch_free( ca.argv );
+
+					assert( rc == 0 );
+				}
+
+			} else if ( mt->mt_rwmap.rwm_rw != NULL ) {
+				if ( mt->mt_rwmap.rwm_bva_rewrite ) {
+					ber_bvarray_free( mt->mt_rwmap.rwm_bva_rewrite );
+					mt->mt_rwmap.rwm_bva_rewrite = NULL;
+				}
+				if ( mt->mt_rwmap.rwm_rw )
+					rewrite_info_delete( &mt->mt_rwmap.rwm_rw );
+
+				meta_rwi_init( &mt->mt_rwmap.rwm_rw );
+			}
+		}
+		break;
 
 		case LDAP_BACK_CFG_MAP:
 			if ( mt->mt_rwmap.rwm_bva_map ) {
