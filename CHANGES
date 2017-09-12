@@ -4,6 +4,8 @@ OpenLDAP 2.4.46 Engineering
 	Fixed slapd Eventlog registry key creation on 64-bit Windows (ITS#8705)
 	Build Environment
 		Fixed Windows build with newer MINGW version (ITS#8697)
+	Documentation
+		Delete stub manpage for back-ldbm (ITS#8713)
 
 OpenLDAP 2.4.45 Release (2017/06/01)
 	Added slapd support for OpenSSL 1.1.0 series (ITS#8353, ITS#8533, ITS#8634)
