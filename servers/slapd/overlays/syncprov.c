@@ -2656,6 +2656,10 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 			/* our state is older, complain to consumer */
 				rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
 				rs->sr_text = "consumer state is newer than provider!";
+				Log4( LDAP_DEBUG_SYNC, ldap_syslog_level,
+					"consumer %d state %s is newer than provider %d state %s\n",
+					sids[i], srs->sr_state.ctxcsn[i].bv_val, sids[j], /* == slap_serverID */
+					ctxcsn[j].bv_val);
 bailout:
 				if ( sop ) {
 					syncops **sp = &si->si_ops;
