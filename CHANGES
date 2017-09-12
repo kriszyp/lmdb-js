@@ -1,6 +1,8 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.46 Engineering
+	Build Environment
+		Fixed Windows build with newer MINGW version (ITS#8697)
 
 OpenLDAP 2.4.45 Release (2017/06/01)
 	Added slapd support for OpenSSL 1.1.0 series (ITS#8353, ITS#8533, ITS#8634)
