@@ -421,6 +421,13 @@ ldap_int_tls_connect( LDAP *ld, LDAPConn *conn, const char *host )
 	return 0;
 }
 
+int
+ldap_pvt_tls_connect( LDAP *ld, Sockbuf *sb, const char *host )
+{
+	LDAPConn conn = { .lconn_sb = sb };
+	return ldap_int_tls_connect( ld, &conn, host );
+}
+
 /*
  * Call this to do a TLS accept on a sockbuf.
  * Everything else is the same as with tls_connect.
