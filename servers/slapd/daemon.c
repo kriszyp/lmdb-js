@@ -407,7 +407,7 @@ static slap_daemon_st slap_daemon[SLAPD_MAX_DAEMON_THREADS];
 	SLAP_DEVPOLL_SOCK_LX(t,(s)) = (l); \
 	SLAP_DEVPOLL_SOCK_FD(t,(s)) = (s); \
 	SLAP_DEVPOLL_SOCK_EV(t,(s)) = POLLIN; \
-	SLAP_DEVPOLL_WRITE_POLLFD(t,(s), &SLAP_DEVPOLL_SOCK_EP((s)), 1, "ADD", 1); \
+	SLAP_DEVPOLL_WRITE_POLLFD(t,(s), &SLAP_DEVPOLL_SOCK_EP(t, (s)), 1, "ADD", 1); \
 	slap_daemon[t].sd_nfds++; \
 } while (0)
 
@@ -443,6 +443,16 @@ static slap_daemon_st slap_daemon[SLAPD_MAX_DAEMON_THREADS];
 # define SLAP_EVENT_IS_LISTENER(t,i)	SLAP_DEVPOLL_EV_LISTENER(SLAP_DEVPOLL_SOCK_LX(t, SLAP_EVENT_FD(t,(i))))
 # define SLAP_EVENT_LISTENER(t,i)		SLAP_DEVPOLL_SOCK_LX(t, SLAP_EVENT_FD(t,(i)))
 
+# define SLAP_SOCK_DESTROY(t)		do { \
+	if ( slap_daemon[t].sd_pollfd != NULL ) { \
+		ch_free( slap_daemon[t].sd_pollfd ); \
+		slap_daemon[t].sd_pollfd = NULL; \
+		slap_daemon[t].sd_index = NULL; \
+		slap_daemon[t].sd_l = NULL; \
+		close( slap_daemon[t].sd_dpfd ); \
+	} \
+} while ( 0 )
+
 # define SLAP_SOCK_INIT(t)		do { \
 	slap_daemon[t].sd_pollfd = ch_calloc( 1, \
 		( sizeof(struct pollfd) * 2 \
@@ -455,7 +465,7 @@ static slap_daemon_st slap_daemon[SLAPD_MAX_DAEMON_THREADS];
 		Debug( LDAP_DEBUG_ANY, "daemon: " SLAP_EVENT_FNAME ": " \
 			"open(\"" SLAP_EVENT_FNAME "\") failed errno=%d\n", \
 			errno, 0, 0 ); \
-		SLAP_SOCK_DESTROY; \
+		SLAP_SOCK_DESTROY(t); \
 		return -1; \
 	} \
 	for ( i = 0; i < dtblsize; i++ ) { \
@@ -463,16 +473,6 @@ static slap_daemon_st slap_daemon[SLAPD_MAX_DAEMON_THREADS];
 		slap_daemon[t].sd_index[i] = -1; \
 	} \
 } while (0)
-
-# define SLAP_SOCK_DESTROY(t)		do { \
-	if ( slap_daemon[t].sd_pollfd != NULL ) { \
-		ch_free( slap_daemon[t].sd_pollfd ); \
-		slap_daemon[t].sd_pollfd = NULL; \
-		slap_daemon[t].sd_index = NULL; \
-		slap_daemon[t].sd_l = NULL; \
-		close( slap_daemon[t].sd_dpfd ); \
-	} \
-} while ( 0 )
 
 # define SLAP_EVENT_DECL		struct pollfd *revents
 
