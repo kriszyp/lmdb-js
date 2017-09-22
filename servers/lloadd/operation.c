@@ -620,11 +620,10 @@ request_abandon( Connection *c, Operation *op )
                 "connid=%lu msgid=%d invalid integer sent in abandon request\n",
                 c->c_connid, op->o_client_msgid );
 
-        CONNECTION_UNLOCK_INCREF(c);
-        operation_send_reject(
-                op, LDAP_PROTOCOL_ERROR, "invalid PDU received", 0 );
-        CONNECTION_LOCK_DECREF(c);
-        CONNECTION_DESTROY(c);
+        if ( operation_send_reject_locked( op, LDAP_PROTOCOL_ERROR,
+                     "invalid PDU received", 0 ) == LDAP_SUCCESS ) {
+            CONNECTION_DESTROY(c);
+        }
         return -1;
     }
 
@@ -657,6 +656,63 @@ done:
     return rc;
 }
 
+/*
+ * Called with op->o_client non-NULL and already locked.
+ */
+int
+operation_send_reject_locked(
+        Operation *op,
+        int result,
+        const char *msg,
+        int send_anyway )
+{
+    Connection *c = op->o_client;
+    BerElement *ber;
+    int found;
+
+    Debug( LDAP_DEBUG_TRACE, "operation_send_reject_locked: "
+            "rejecting %s from client connid=%lu with message: \"%s\"\n",
+            slap_msgtype2str( op->o_tag ), c->c_connid, msg );
+
+    found = ( tavl_delete( &c->c_ops, op, operation_client_cmp ) == op );
+    if ( !found && !send_anyway ) {
+        Debug( LDAP_DEBUG_TRACE, "operation_send_reject_locked: "
+                "msgid=%d not scheduled for client connid=%lu anymore, "
+                "not sending\n",
+                op->o_client_msgid, c->c_connid );
+        goto done;
+    }
+
+    CONNECTION_UNLOCK_INCREF(c);
+    ldap_pvt_thread_mutex_lock( &c->c_io_mutex );
+
+    ber = c->c_pendingber;
+    if ( ber == NULL && (ber = ber_alloc()) == NULL ) {
+        ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
+        Debug( LDAP_DEBUG_ANY, "operation_send_reject_locked: "
+                "ber_alloc failed, closing connid=%lu\n",
+                c->c_connid );
+        CONNECTION_LOCK_DECREF(c);
+        operation_destroy_from_client( op );
+        CONNECTION_DESTROY(c);
+        return -1;
+    }
+    c->c_pendingber = ber;
+
+    ber_printf( ber, "t{tit{ess}}", LDAP_TAG_MESSAGE,
+            LDAP_TAG_MSGID, op->o_client_msgid,
+            slap_req2res( op->o_tag ), result, "", msg );
+
+    ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
+
+    connection_write_cb( -1, 0, c );
+
+    CONNECTION_LOCK_DECREF(c);
+done:
+    operation_destroy_from_client( op );
+    return LDAP_SUCCESS;
+}
+
 void
 operation_send_reject(
         Operation *op,
@@ -665,12 +721,6 @@ operation_send_reject(
         int send_anyway )
 {
     Connection *c;
-    BerElement *ber;
-    int found;
-
-    Debug( LDAP_DEBUG_TRACE, "operation_send_reject: "
-            "rejecting %s from client connid=%lu with message: \"%s\"\n",
-            slap_msgtype2str( op->o_tag ), op->o_client_connid, msg );
 
     ldap_pvt_thread_mutex_lock( &op->o_link_mutex );
     c = op->o_client;
@@ -691,43 +741,12 @@ operation_send_reject(
     CONNECTION_LOCK(c);
     ldap_pvt_thread_mutex_unlock( &op->o_link_mutex );
 
-    found = ( tavl_delete( &c->c_ops, op, operation_client_cmp ) == op );
-    if ( !found && !send_anyway ) {
-        Debug( LDAP_DEBUG_TRACE, "operation_send_reject: "
-                "msgid=%d not scheduled for client connid=%lu anymore, "
-                "not sending\n",
-                op->o_client_msgid, c->c_connid );
-        goto done;
+    /* Non-zero return means connection has been unlocked and might be
+     * destroyed */
+    if ( operation_send_reject_locked( op, result, msg, send_anyway ) ==
+            LDAP_SUCCESS ) {
+        CONNECTION_UNLOCK_OR_DESTROY(c);
     }
-
-    CONNECTION_UNLOCK_INCREF(c);
-    ldap_pvt_thread_mutex_lock( &c->c_io_mutex );
-
-    ber = c->c_pendingber;
-    if ( ber == NULL && (ber = ber_alloc()) == NULL ) {
-        ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
-        Debug( LDAP_DEBUG_ANY, "operation_send_reject: "
-                "ber_alloc failed, closing connid=%lu\n",
-                c->c_connid );
-        CONNECTION_LOCK_DECREF(c);
-        operation_destroy_from_client( op );
-        CONNECTION_DESTROY(c);
-        return;
-    }
-    c->c_pendingber = ber;
-
-    ber_printf( ber, "t{tit{ess}}", LDAP_TAG_MESSAGE,
-            LDAP_TAG_MSGID, op->o_client_msgid,
-            slap_req2res( op->o_tag ), result, "", msg );
-
-    ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
-
-    connection_write_cb( -1, 0, c );
-
-    CONNECTION_LOCK_DECREF(c);
-done:
-    operation_destroy_from_client( op );
-    CONNECTION_UNLOCK_OR_DESTROY(c);
 }
 
 /*
