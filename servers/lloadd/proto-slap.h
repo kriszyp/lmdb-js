@@ -70,10 +70,8 @@ LDAP_SLAPD_F (int) client_bind( Connection *c, Operation *op );
 /*
  * client.c
  */
-LDAP_SLAPD_F (void *) handle_requests( void *ctx, void *arg );
 LDAP_SLAPD_F (int) handle_one_request( Connection *c );
 LDAP_SLAPD_F (Connection *) client_init( ber_socket_t s, Listener *url, const char *peername, struct event_base *base, int use_tls );
-LDAP_SLAPD_F (void) client_write_cb( evutil_socket_t s, short what, void *arg );
 LDAP_SLAPD_F (void) client_destroy( Connection *c );
 LDAP_SLAPD_F (void) clients_destroy( void );
 
@@ -91,6 +89,8 @@ LDAP_SLAPD_F (void) bindconf_free( slap_bindconf *bc );
  * connection.c
  */
 LDAP_SLAPD_V (ldap_pvt_thread_mutex_t) clients_mutex;
+LDAP_SLAPD_F (void) connection_write_cb( evutil_socket_t s, short what, void *arg );
+LDAP_SLAPD_F (void) connection_read_cb( evutil_socket_t s, short what, void *arg );
 LDAP_SLAPD_F (Connection *) connection_init( ber_socket_t s, const char *peername, int use_tls );
 LDAP_SLAPD_F (void) connection_destroy( Connection *c );
 
@@ -187,8 +187,6 @@ LDAP_SLAPD_F (void *) slap_sl_context( void *ptr );
 /*
  * upstream.c
  */
-LDAP_SLAPD_F (void) upstream_write_cb( evutil_socket_t s, short what, void *arg );
-LDAP_SLAPD_F (void) upstream_read_cb( evutil_socket_t s, short what, void *arg );
 LDAP_SLAPD_F (Connection *) upstream_init( ber_socket_t s, Backend *b );
 LDAP_SLAPD_F (void) upstream_destroy( Connection *c );
 

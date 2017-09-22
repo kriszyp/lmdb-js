@@ -62,7 +62,7 @@ forward_response( Operation *op, BerElement *ber )
     ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
 
     ber_free( ber, 1 );
-    client_write_cb( -1, 0, c );
+    connection_write_cb( -1, 0, c );
     return 0;
 }
 
@@ -280,14 +280,14 @@ handle_vc_bind_response( Operation *op, BerElement *ber )
 
     ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
     if ( rc >= 0 ) {
-        client_write_cb( -1, 0, c );
+        connection_write_cb( -1, 0, c );
         rc = 0;
     }
 
 done:
     CONNECTION_LOCK_DECREF(c);
     operation_destroy_from_client( op );
-    CLIENT_UNLOCK_OR_DESTROY(c);
+    CONNECTION_UNLOCK_OR_DESTROY(c);
     ber_free( ber, 1 );
     return rc;
 }
@@ -302,7 +302,7 @@ handle_unsolicited( Connection *c, BerElement *ber )
             "teardown for upstream connection connid=%lu\n",
             c->c_connid );
 
-    UPSTREAM_DESTROY(c);
+    CONNECTION_DESTROY(c);
     ber_free( ber, 1 );
 
     return -1;
@@ -325,7 +325,7 @@ handle_unsolicited( Connection *c, BerElement *ber )
  *   operation to be removed)
  *
  * If the worker pool is overloaded, we might be called directly from
- * upstream_read_cb, at that point, the connection hasn't been muted.
+ * the read callback, at that point, the connection hasn't been muted.
  *
  * TODO: when the client already has data pending on write, we should mute the
  * upstream.
@@ -435,7 +435,7 @@ handle_one_response( Connection *c )
             if ( !op->o_client_refcnt ) {
                 operation_destroy_from_client( op );
             }
-            CLIENT_UNLOCK_OR_DESTROY(client);
+            CONNECTION_UNLOCK_OR_DESTROY(client);
         } else {
             ber_free( ber, 1 );
         }
@@ -458,186 +458,10 @@ fail:
                 "error on processing a response (%s) on upstream connection "
                 "connid=%ld, tag=%lx\n",
                 slap_msgtype2str( tag ), c->c_connid, tag );
-        UPSTREAM_DESTROY(c);
+        CONNECTION_DESTROY(c);
     }
     /* We leave the connection locked */
     return rc;
-}
-
-/*
- * We start off with the upstream muted and c_currentber holding the response
- * we received.
- *
- * We run handle_one_response on each response, stopping once we hit an error,
- * have to wait on reading or process slap_conn_max_pdus_per_cycle responses so
- * as to maintain fairness and not hog the worker thread forever.
- *
- * If we've run out of responses from the upstream or hit the budget, we unmute
- * the connection and run handle_one_response, it might return an 'error' when
- * the client is blocked on writing, it's that client's job to wake us again.
- */
-static void *
-handle_responses( void *ctx, void *arg )
-{
-    Connection *c = arg;
-    int responses_handled = 0;
-
-    CONNECTION_LOCK_DECREF(c);
-    for ( ;; ) {
-        BerElement *ber;
-        ber_tag_t tag;
-        ber_len_t len;
-
-        /* handle_one_response may unlock the connection in the process, we
-         * need to expect that might be our responsibility to destroy it */
-        if ( handle_one_response( c ) ) {
-            /* Error, connection is unlocked and might already have been
-             * destroyed */
-            return NULL;
-        }
-        /* Otherwise, handle_one_response leaves the connection locked */
-
-        if ( ++responses_handled >= slap_conn_max_pdus_per_cycle ) {
-            /* Do not read now, re-enable read event instead */
-            break;
-        }
-
-        if ( (ber = ber_alloc()) == NULL ) {
-            Debug( LDAP_DEBUG_ANY, "handle_responses: "
-                    "ber_alloc failed\n" );
-            UPSTREAM_DESTROY(c);
-            return NULL;
-        }
-        c->c_currentber = ber;
-
-        tag = ber_get_next( c->c_sb, &len, ber );
-        if ( tag != LDAP_TAG_MESSAGE ) {
-            int err = sock_errno();
-
-            if ( err != EWOULDBLOCK && err != EAGAIN ) {
-                if ( err || tag == LBER_ERROR ) {
-                    char ebuf[128];
-                    Debug( LDAP_DEBUG_ANY, "handle_responses: "
-                            "ber_get_next on fd=%d failed errno=%d (%s)\n",
-                            c->c_fd, err,
-                            sock_errstr( err, ebuf, sizeof(ebuf) ) );
-                } else {
-                    Debug( LDAP_DEBUG_STATS, "handle_responses: "
-                            "ber_get_next on fd=%d connid=%lu received "
-                            "a strange PDU tag=%lx\n",
-                            c->c_fd, c->c_connid, tag );
-                }
-
-                c->c_currentber = NULL;
-                ber_free( ber, 1 );
-                UPSTREAM_DESTROY(c);
-                return NULL;
-            }
-            break;
-        }
-    }
-
-    event_add( c->c_read_event, NULL );
-    Debug( LDAP_DEBUG_CONNS, "handle_responses: "
-            "re-enabled read event on connid=%lu\n",
-            c->c_connid );
-    UPSTREAM_UNLOCK_OR_DESTROY(c);
-    return NULL;
-}
-
-/*
- * Initial read on the upstream connection, if we get an LDAP PDU, submit the
- * processing of this and successive ones to the work queue.
- *
- * If we can't submit it to the queue (overload), process this one and return
- * to the event loop immediately after.
- */
-void
-upstream_read_cb( evutil_socket_t s, short what, void *arg )
-{
-    Connection *c = arg;
-    BerElement *ber;
-    ber_tag_t tag;
-    ber_len_t len;
-
-    CONNECTION_LOCK(c);
-    if ( !c->c_live ) {
-        event_del( c->c_read_event );
-        Debug( LDAP_DEBUG_CONNS, "upstream_read_cb: "
-                "suspended read event on a dead connid=%lu\n",
-                c->c_connid );
-        CONNECTION_UNLOCK(c);
-        return;
-    }
-    Debug( LDAP_DEBUG_CONNS, "upstream_read_cb: "
-            "connection connid=%lu ready to read\n",
-            c->c_connid );
-
-    ber = c->c_currentber;
-    if ( ber == NULL && (ber = ber_alloc()) == NULL ) {
-        Debug( LDAP_DEBUG_ANY, "upstream_read_cb: "
-                "ber_alloc failed\n" );
-        UPSTREAM_DESTROY(c);
-        return;
-    }
-    c->c_currentber = ber;
-
-    tag = ber_get_next( c->c_sb, &len, ber );
-    if ( tag != LDAP_TAG_MESSAGE ) {
-        int err = sock_errno();
-
-        if ( err != EWOULDBLOCK && err != EAGAIN ) {
-            if ( err || tag == LBER_ERROR ) {
-                char ebuf[128];
-                Debug( LDAP_DEBUG_ANY, "upstream_read_cb: "
-                        "ber_get_next on fd=%d failed errno=%d (%s)\n",
-                        c->c_fd, err,
-                        sock_errstr( err, ebuf, sizeof(ebuf) ) );
-            } else {
-                Debug( LDAP_DEBUG_STATS, "upstream_read_cb: "
-                        "ber_get_next on fd=%d connid=%lu received "
-                        "a strange PDU tag=%lx\n",
-                        c->c_fd, c->c_connid, tag );
-            }
-
-            c->c_currentber = NULL;
-            ber_free( ber, 1 );
-
-            event_del( c->c_read_event );
-            Debug( LDAP_DEBUG_CONNS, "upstream_read_cb: "
-                    "suspended read event on dying connid=%lu\n",
-                    c->c_connid );
-            UPSTREAM_DESTROY(c);
-            return;
-        }
-        event_add( c->c_read_event, NULL );
-        Debug( LDAP_DEBUG_CONNS, "upstream_read_cb: "
-                "re-enabled read event on connid=%lu\n",
-                c->c_connid );
-        CONNECTION_UNLOCK(c);
-        return;
-    }
-
-    if ( !slap_conn_max_pdus_per_cycle ||
-            ldap_pvt_thread_pool_submit(
-                    &connection_pool, handle_responses, c ) ) {
-        /* If we're overloaded or configured as such, process one and resume in
-         * the next cycle.
-         *
-         * handle_one_response re-locks the mutex in the
-         * process, need to test it's still alive */
-        if ( handle_one_response( c ) == LDAP_SUCCESS ) {
-            UPSTREAM_UNLOCK_OR_DESTROY(c);
-        }
-        return;
-    }
-
-    /* We have scheduled a call to handle_responses which takes care of
-     * handling further requests, just make sure the connection sticks around
-     * for that */
-    event_del( c->c_read_event );
-    CONNECTION_UNLOCK_INCREF(c);
-    return;
 }
 
 int
@@ -653,7 +477,7 @@ upstream_finish( Connection *c )
 
     base = slap_get_base( s );
 
-    event = event_new( base, s, EV_READ|EV_PERSIST, upstream_read_cb, c );
+    event = event_new( base, s, EV_READ|EV_PERSIST, connection_read_cb, c );
     if ( !event ) {
         Debug( LDAP_DEBUG_ANY, "upstream_finish: "
                 "Read event could not be allocated\n" );
@@ -769,50 +593,7 @@ fail:
             "suspended read event on dying connid=%lu\n",
             c->c_connid );
     ber_free( ber, 1 );
-    UPSTREAM_DESTROY(c);
-}
-
-void
-upstream_write_cb( evutil_socket_t s, short what, void *arg )
-{
-    Connection *c = arg;
-
-    CONNECTION_LOCK(c);
-    if ( !c->c_live ) {
-        CONNECTION_UNLOCK(c);
-        return;
-    }
-    CONNECTION_UNLOCK_INCREF(c);
-
-    /* Before we acquire any locks */
-    event_del( c->c_write_event );
-
-    ldap_pvt_thread_mutex_lock( &c->c_io_mutex );
-    Debug( LDAP_DEBUG_CONNS, "upstream_write_cb: "
-            "have something to write to upstream connid=%lu\n",
-            c->c_connid );
-
-    /* We might have been beaten to flushing the data by another thread */
-    if ( c->c_pendingber && ber_flush( c->c_sb, c->c_pendingber, 1 ) ) {
-        int err = sock_errno();
-
-        if ( err != EWOULDBLOCK && err != EAGAIN ) {
-            char ebuf[128];
-            Debug( LDAP_DEBUG_ANY, "upstream_write_cb: "
-                    "ber_flush on fd=%d failed errno=%d (%s)\n",
-                    c->c_fd, err, sock_errstr( err, ebuf, sizeof(ebuf) ) );
-            ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
-            UPSTREAM_LOCK_DESTROY(c);
-            return;
-        }
-        event_add( c->c_write_event, NULL );
-    } else {
-        c->c_pendingber = NULL;
-    }
-    ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
-
-    CONNECTION_LOCK_DECREF(c);
-    UPSTREAM_UNLOCK_OR_DESTROY(c);
+    CONNECTION_DESTROY(c);
 }
 
 void *
@@ -837,7 +618,7 @@ upstream_bind( void *ctx, void *arg )
     if ( !event ) {
         Debug( LDAP_DEBUG_ANY, "upstream_bind: "
                 "Read event could not be allocated\n" );
-        UPSTREAM_DESTROY(c);
+        CONNECTION_DESTROY(c);
         return NULL;
     }
     event_add( event, NULL );
@@ -874,10 +655,10 @@ upstream_bind( void *ctx, void *arg )
     c->c_pendingber = ber;
     ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
 
-    upstream_write_cb( -1, 0, c );
+    connection_write_cb( -1, 0, c );
 
     CONNECTION_LOCK_DECREF(c);
-    UPSTREAM_UNLOCK_OR_DESTROY(c);
+    CONNECTION_UNLOCK_OR_DESTROY(c);
 
     return NULL;
 }
@@ -896,21 +677,34 @@ upstream_init( ber_socket_t s, Backend *b )
     assert( b != NULL );
 
     flags = (b->b_tls == LLOAD_LDAPS) ? CONN_IS_TLS : 0;
-    c = connection_init( s, b->b_host, flags );
+    if ( (c = connection_init( s, b->b_host, flags )) == NULL ) {
+        return NULL;
+    }
+
     c->c_private = b;
+    c->c_is_tls = b->b_tls;
+    c->c_pdu_cb = handle_one_response;
 
     {
         ber_len_t max = sockbuf_max_incoming_upstream;
         ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_SET_MAX_INCOMING, &max );
     }
 
-    event = event_new( base, s, EV_WRITE, upstream_write_cb, c );
+    event = event_new( base, s, EV_READ|EV_PERSIST, connection_read_cb, c );
+    if ( !event ) {
+        Debug( LDAP_DEBUG_ANY, "upstream_init: "
+                "Read event could not be allocated\n" );
+        goto fail;
+    }
+    c->c_read_event = event;
+
+    event = event_new( base, s, EV_WRITE, connection_write_cb, c );
     if ( !event ) {
         Debug( LDAP_DEBUG_ANY, "upstream_init: "
                 "Write event could not be allocated\n" );
         goto fail;
     }
-    /* We only register the write event when we have data pending */
+    /* We only add the write event when we have data pending */
     c->c_write_event = event;
 
     /* Unless we are configured to use the VC exop, consider allocating the
@@ -947,6 +741,7 @@ upstream_init( ber_socket_t s, Backend *b )
         b->b_active++;
     }
 
+    c->c_destroy = upstream_destroy;
     CONNECTION_UNLOCK(c);
     return c;
 
@@ -959,7 +754,11 @@ fail:
         event_del( c->c_read_event );
         event_free( c->c_read_event );
     }
-    UPSTREAM_DESTROY(c);
+
+    c->c_state = SLAP_C_INVALID;
+    CONNECTION_DESTROY(c);
+    assert( c == NULL );
+
     return NULL;
 }
 
@@ -970,11 +769,14 @@ upstream_destroy( Connection *c )
     struct event *read_event, *write_event;
     TAvlnode *root;
     long freed, executing;
+    enum sc_state state;
 
     Debug( LDAP_DEBUG_CONNS, "upstream_destroy: "
             "freeing connection connid=%lu\n",
             c->c_connid );
 
+    assert( c->c_state != SLAP_C_INVALID );
+    state = c->c_state;
     c->c_state = SLAP_C_INVALID;
 
     root = c->c_ops;
@@ -1003,17 +805,20 @@ upstream_destroy( Connection *c )
         event_del( write_event );
     }
 
-    ldap_pvt_thread_mutex_lock( &b->b_mutex );
-    if ( c->c_type == SLAP_C_BIND ) {
-        LDAP_CIRCLEQ_REMOVE( &b->b_bindconns, c, c_next );
-        b->b_bindavail--;
-    } else {
-        LDAP_CIRCLEQ_REMOVE( &b->b_conns, c, c_next );
-        b->b_active--;
+    /* Remove from the backend on first pass */
+    if ( state != SLAP_C_CLOSING ) {
+        ldap_pvt_thread_mutex_lock( &b->b_mutex );
+        if ( c->c_type == SLAP_C_BIND ) {
+            LDAP_CIRCLEQ_REMOVE( &b->b_bindconns, c, c_next );
+            b->b_bindavail--;
+        } else {
+            LDAP_CIRCLEQ_REMOVE( &b->b_conns, c, c_next );
+            b->b_active--;
+        }
+        b->b_n_ops_executing -= executing;
+        ldap_pvt_thread_mutex_unlock( &b->b_mutex );
+        backend_retry( b );
     }
-    b->b_n_ops_executing -= executing;
-    ldap_pvt_thread_mutex_unlock( &b->b_mutex );
-    backend_retry( b );
 
     CONNECTION_LOCK_DECREF(c);
 

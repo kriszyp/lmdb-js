@@ -110,7 +110,7 @@ request_bind( Operation *op )
     ldap_pvt_thread_mutex_unlock( &upstream->c_io_mutex );
 
     ber_free( copy, 0 );
-    upstream_write_cb( -1, 0, upstream );
+    connection_write_cb( -1, 0, upstream );
     return 0;
 
 fail:
@@ -242,7 +242,7 @@ request_bind_as_vc( Operation *op )
     ldap_pvt_thread_mutex_unlock( &upstream->c_io_mutex );
 
     ber_free( copy, 0 );
-    upstream_write_cb( -1, 0, upstream );
+    connection_write_cb( -1, 0, upstream );
 
     return 0;
 
@@ -346,13 +346,13 @@ client_bind( Connection *client, Operation *op )
     }
 
     CONNECTION_LOCK_DECREF(upstream);
-    UPSTREAM_UNLOCK_OR_DESTROY(upstream);
+    CONNECTION_UNLOCK_OR_DESTROY(upstream);
 
     CONNECTION_LOCK_DECREF(client);
     if ( rc ) {
         op->o_client_refcnt--;
         operation_destroy_from_client( op );
-        CLIENT_DESTROY(client);
+        CONNECTION_DESTROY(client);
         return -1;
     }
 
