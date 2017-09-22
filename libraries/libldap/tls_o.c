@@ -1309,11 +1309,13 @@ tlso_seed_PRNG( const char *randfile )
 		 * The fact is that when $HOME is NULL, .rnd is used.
 		 */
 		randfile = RAND_file_name( buffer, sizeof( buffer ) );
-
-	} else if (RAND_egd(randfile) > 0) {
+	}
+#ifndef OPENSSL_NO_EGD
+	else if (RAND_egd(randfile) > 0) {
 		/* EGD socket */
 		return 0;
 	}
+#endif
 
 	if (randfile == NULL) {
 		Debug( LDAP_DEBUG_ANY,
