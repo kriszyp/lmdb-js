@@ -476,6 +476,7 @@ config_backend( ConfigArgs *c )
 
     LDAP_CIRCLEQ_INIT( &b->b_conns );
     LDAP_CIRCLEQ_INIT( &b->b_bindconns );
+    LDAP_CIRCLEQ_INIT( &b->b_preparing );
 
     b->b_numconns = 1;
     b->b_numbindconns = 1;

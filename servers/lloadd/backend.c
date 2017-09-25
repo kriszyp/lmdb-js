@@ -32,14 +32,13 @@ upstream_connect_cb( evutil_socket_t s, short what, void *arg )
 {
     PendingConnection *conn = arg;
     Backend *b = conn->backend;
-    int rc = -1;
+    int error = 0, rc = -1;
 
     ldap_pvt_thread_mutex_lock( &b->b_mutex );
     Debug( LDAP_DEBUG_CONNS, "upstream_connect_cb: "
             "fd=%d connection callback for backend uri='%s'\n",
             s, b->b_uri.bv_val );
     if ( what == EV_WRITE ) {
-        int error;
         socklen_t optlen = sizeof(error);
 
         if ( getsockopt( conn->fd, SOL_SOCKET, SO_ERROR, (void *)&error,
@@ -59,22 +58,26 @@ upstream_connect_cb( evutil_socket_t s, short what, void *arg )
 
 done:
     if ( rc ) {
+        char ebuf[128];
         evutil_closesocket( conn->fd );
+        b->b_opening--;
         b->b_failed++;
         Debug( LDAP_DEBUG_ANY, "upstream_connect_cb: "
-                "fd=%d connection set up failed\n",
-                s );
+                "fd=%d connection set up failed%s%s\n",
+                s, error ? ": " : "",
+                error ? sock_errstr( error, ebuf, sizeof(ebuf) ) : "" );
     } else {
         b->b_failed = 0;
     }
-    b->b_opening--;
+    LDAP_LIST_REMOVE( conn, next );
     ldap_pvt_thread_mutex_unlock( &b->b_mutex );
 
-    LDAP_LIST_REMOVE( conn, next );
     event_free( conn->event );
     ch_free( conn );
 
-    backend_retry( b );
+    if ( rc ) {
+        backend_retry( b );
+    }
 }
 
 static void
@@ -147,20 +150,12 @@ upstream_name_cb( int result, struct evutil_addrinfo *res, void *arg )
         Debug( LDAP_DEBUG_CONNS, "upstream_name_cb: "
                 "connection to backend uri=%s in progress\n",
                 b->b_uri.bv_val );
-
-        ldap_pvt_thread_mutex_unlock( &b->b_mutex );
-        free( res );
-        return;
-    }
-
-    if ( !upstream_init( s, b ) ) {
+    } else if ( !upstream_init( s, b ) ) {
         goto fail;
     }
-    b->b_opening--;
-    b->b_failed = 0;
+
     ldap_pvt_thread_mutex_unlock( &b->b_mutex );
-    backend_retry( b );
-    free( res );
+    evutil_freeaddrinfo( res );
     return;
 
 fail:
@@ -171,7 +166,9 @@ fail:
     b->b_failed++;
     ldap_pvt_thread_mutex_unlock( &b->b_mutex );
     backend_retry( b );
-    free( res );
+    if ( res ) {
+        evutil_freeaddrinfo( res );
+    }
 }
 
 Connection *
@@ -386,17 +383,11 @@ backend_connect( evutil_socket_t s, short what, void *arg )
             Debug( LDAP_DEBUG_CONNS, "backend_connect: "
                     "connection to backend uri=%s in progress\n",
                     b->b_uri.bv_val );
-
-            ldap_pvt_thread_mutex_unlock( &b->b_mutex );
-            return;
         } else if ( !upstream_init( s, b ) ) {
             goto fail;
         }
 
-        b->b_opening--;
-        b->b_failed = 0;
         ldap_pvt_thread_mutex_unlock( &b->b_mutex );
-        backend_retry( b );
         return;
     }
 #endif /* LDAP_PF_LOCAL */
@@ -447,6 +438,17 @@ backends_destroy( void )
             evutil_closesocket( pending->fd );
             LDAP_LIST_REMOVE( pending, next );
             ch_free( pending );
+        }
+        while ( !LDAP_CIRCLEQ_EMPTY( &b->b_preparing ) ) {
+            Connection *c = LDAP_CIRCLEQ_FIRST( &b->b_preparing );
+
+            CONNECTION_LOCK(c);
+            Debug( LDAP_DEBUG_CONNS, "backends_destroy: "
+                    "destroying connection being set up connid=%lu\n",
+                    c->c_connid );
+
+            assert( c->c_live );
+            CONNECTION_DESTROY(c);
         }
         while ( !LDAP_CIRCLEQ_EMPTY( &b->b_bindconns ) ) {
             Connection *c = LDAP_CIRCLEQ_FIRST( &b->b_bindconns );
