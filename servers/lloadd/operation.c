@@ -629,13 +629,20 @@ request_abandon( Connection *c, Operation *op )
 
     request = tavl_find( c->c_ops, &needle, operation_client_cmp );
     if ( !request ) {
-        Debug( LDAP_DEBUG_TRACE, "request_abandon: "
+        Debug( LDAP_DEBUG_STATS, "request_abandon: "
                 "connid=%lu msgid=%d requests abandon of an operation "
                 "msgid=%d not being processed anymore\n",
                 c->c_connid, op->o_client_msgid, needle.o_client_msgid );
         goto done;
+    } else if ( request->o_tag == LDAP_REQ_BIND ) {
+        /* RFC 4511 states we must not allow Abandon on Binds */
+        Debug( LDAP_DEBUG_STATS, "request_abandon: "
+                "connid=%lu msgid=%d requests abandon of a bind operation "
+                "msgid=%d\n",
+                c->c_connid, op->o_client_msgid, needle.o_client_msgid );
+        goto done;
     }
-    Debug( LDAP_DEBUG_TRACE, "request_abandon: "
+    Debug( LDAP_DEBUG_STATS, "request_abandon: "
             "connid=%lu msgid=%d abandoning %s msgid=%d\n",
             c->c_connid, op->o_client_msgid, slap_msgtype2str( request->o_tag ),
             needle.o_client_msgid );
