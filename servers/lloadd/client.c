@@ -65,6 +65,9 @@ handle_one_request( Connection *c )
              * ExOps (esp. Cancel) will be different */
             handler = request_abandon;
             break;
+        case LDAP_REQ_EXTENDED:
+            handler = request_extended;
+            break;
         default:
             if ( c->c_state == SLAP_C_BINDING ) {
                 return operation_send_reject_locked(

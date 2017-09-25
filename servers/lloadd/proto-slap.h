@@ -122,6 +122,14 @@ LDAP_SLAPD_V (int) slapd_tcp_wmem;
             ( memcmp( (bv1)->bv_val, (bv2)->bv_val, (bv1)->bv_len ) == 0 ) )
 
 /*
+ * extended.c
+ */
+LDAP_SLAPD_V (Avlnode *) lload_exop_handlers;
+LDAP_SLAPD_F (int) exop_handler_cmp( const void *l, const void *r );
+LDAP_SLAPD_F (int) request_extended( Connection *c, Operation *op );
+LDAP_SLAPD_F (int) lload_exop_init( void );
+
+/*
  * globals.c
  */
 LDAP_SLAPD_V (const struct berval) slap_empty_bv;

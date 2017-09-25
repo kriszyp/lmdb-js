@@ -101,6 +101,8 @@ slap_init( int mode, const char *name )
             ldap_pvt_thread_mutex_init( &backend_mutex );
             ldap_pvt_thread_mutex_init( &clients_mutex );
 
+            lload_exop_init();
+
             break;
 
         default:
