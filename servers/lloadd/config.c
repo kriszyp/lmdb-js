@@ -569,13 +569,14 @@ config_backend( ConfigArgs *c )
     }
 
 #else /* HAVE_TLS */
+    /* Specifying ldaps:// overrides starttls= settings */
     tmp = ldap_pvt_url_scheme2tls( lud->lud_scheme );
     if ( tmp ) {
         b->b_tls = LLOAD_LDAPS;
     }
 
     if ( !lud->lud_port ) {
-        b->b_port = b->b_tls ? LDAPS_PORT : LDAP_PORT;
+        b->b_port = tmp ? LDAPS_PORT : LDAP_PORT;
     } else {
         b->b_port = lud->lud_port;
     }
@@ -1829,9 +1830,9 @@ config_push_cleanup( ConfigArgs *ca, ConfigDriver *cleanup )
 }
 
 static slap_verbmasks tlskey[] = {
-    { BER_BVC("no"), SB_TLS_OFF },
-    { BER_BVC("yes"), SB_TLS_ON },
-    { BER_BVC("critical"), SB_TLS_CRITICAL },
+    { BER_BVC("no"), LLOAD_CLEARTEXT },
+    { BER_BVC("yes"), LLOAD_STARTTLS_OPTIONAL },
+    { BER_BVC("critical"), LLOAD_STARTTLS },
     { BER_BVNULL, 0 }
 };
 
@@ -1955,6 +1956,7 @@ static slap_cf_aux_table backendkey[] = {
 
     { BER_BVC("max-pending-ops="), offsetof(Backend, b_max_pending), 'i', 0, NULL },
     { BER_BVC("conn-max-pending="), offsetof(Backend, b_max_conn_pending), 'i', 0, NULL },
+    { BER_BVC("starttls="), offsetof(Backend, b_tls), 'i', 0, tlskey },
     { BER_BVNULL, 0, 0, 0, NULL }
 };
 
@@ -1971,7 +1973,6 @@ static slap_cf_aux_table bindkey[] = {
     { BER_BVC("authzID="), offsetof(slap_bindconf, sb_authzId), 'b', 1, NULL },
     { BER_BVC("keepalive="), offsetof(slap_bindconf, sb_keepalive), 'x', 0, (slap_verbmasks *)slap_keepalive_parse },
 #ifdef HAVE_TLS
-    { BER_BVC("starttls="), offsetof(slap_bindconf, sb_tls), 'i', 0, tlskey },
     { BER_BVC("tls_cert="), offsetof(slap_bindconf, sb_tls_cert), 's', 1, NULL },
     { BER_BVC("tls_key="), offsetof(slap_bindconf, sb_tls_key), 's', 1, NULL },
     { BER_BVC("tls_cacert="), offsetof(slap_bindconf, sb_tls_cacert), 's', 1, NULL },

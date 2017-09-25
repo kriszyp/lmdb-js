@@ -335,10 +335,6 @@ connection_init( ber_socket_t s, const char *peername, int flags )
 
     assert( peername != NULL );
 
-#ifndef HAVE_TLS
-    assert( !(flags & CONN_IS_TLS) );
-#endif
-
     if ( s == AC_SOCKET_INVALID ) {
         Debug( LDAP_DEBUG_ANY, "connection_init: "
                 "init of socket fd=%ld invalid\n",
@@ -362,10 +358,6 @@ connection_init( ber_socket_t s, const char *peername, int flags )
 #endif
         ber_sockbuf_add_io( c->c_sb, &ber_sockbuf_io_fd,
                 LBER_SBIOD_LEVEL_PROVIDER, (void *)&s );
-#ifdef LDAP_PF_LOCAL_SENDMSG
-        if ( !BER_BVISEMPTY( peerbv ) )
-            ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_UNGET_BUF, peerbv );
-#endif
     } else
 #endif /* LDAP_PF_LOCAL */
     {
@@ -380,18 +372,6 @@ connection_init( ber_socket_t s, const char *peername, int flags )
 #ifdef LDAP_DEBUG
     ber_sockbuf_add_io(
             c->c_sb, &ber_sockbuf_io_debug, INT_MAX, (void *)"lload_" );
-#endif
-
-#ifdef HAVE_TLS
-    if ( flags & CONN_IS_TLS ) {
-        /* TODO: will need an asynchronous TLS implementation in libldap */
-        assert(0);
-        c->c_is_tls = 1;
-        c->c_needs_tls_accept = 1;
-    } else {
-        c->c_is_tls = 0;
-        c->c_needs_tls_accept = 0;
-    }
 #endif
 
     c->c_next_msgid = 1;

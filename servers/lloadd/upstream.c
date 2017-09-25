@@ -426,6 +426,180 @@ upstream_finish( Connection *c )
     return rc;
 }
 
+static void
+upstream_tls_handshake_cb( evutil_socket_t s, short what, void *arg )
+{
+    Connection *c = arg;
+    Backend *b;
+    int rc = LDAP_SUCCESS;
+
+    CONNECTION_LOCK(c);
+    if ( what & EV_TIMEOUT ) {
+        Debug( LDAP_DEBUG_CONNS, "upstream_tls_handshake_cb: "
+                "connid=%lu, timeout reached, destroying\n",
+                c->c_connid );
+        goto fail;
+    }
+    b = c->c_private;
+
+    rc = ldap_pvt_tls_connect( slap_tls_ld, c->c_sb, b->b_host );
+    if ( rc < 0 ) {
+        goto fail;
+    }
+
+    if ( rc == 0 ) {
+        struct event_base *base = event_get_base( c->c_read_event );
+
+        /*
+         * We're finished, replace the callbacks
+         *
+         * This is deadlock-safe, since both share the same base - the one
+         * that's just running us.
+         */
+        event_del( c->c_read_event );
+        event_del( c->c_write_event );
+
+        event_assign( c->c_read_event, base, c->c_fd, EV_READ|EV_PERSIST,
+                connection_read_cb, c );
+        event_add( c->c_read_event, NULL );
+
+        event_assign( c->c_write_event, base, c->c_fd, EV_WRITE,
+                connection_write_cb, c );
+        Debug( LDAP_DEBUG_CONNS, "upstream_tls_handshake_cb: "
+                "connid=%lu finished\n",
+                c->c_connid );
+        c->c_is_tls = LLOAD_TLS_ESTABLISHED;
+
+        CONNECTION_UNLOCK_INCREF(c);
+        ldap_pvt_thread_mutex_lock( &b->b_mutex );
+        CONNECTION_LOCK_DECREF(c);
+
+        rc = upstream_finish( c );
+
+        ldap_pvt_thread_mutex_unlock( &b->b_mutex );
+
+        if ( rc == LDAP_SUCCESS ) {
+            backend_retry( b );
+        }
+    } else if ( ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_NEEDS_WRITE, NULL ) ) {
+        event_add( c->c_write_event, lload_write_timeout );
+        Debug( LDAP_DEBUG_CONNS, "upstream_tls_handshake_cb: "
+                "connid=%lu need write rc=%d\n",
+                c->c_connid, rc );
+    }
+    CONNECTION_UNLOCK_OR_DESTROY(c);
+    return;
+
+fail:
+    Debug( LDAP_DEBUG_CONNS, "upstream_tls_handshake_cb: "
+            "connid=%lu failed rc=%d\n",
+            c->c_connid, rc );
+    CONNECTION_DESTROY(c);
+}
+
+static int
+upstream_starttls( Connection *c )
+{
+    BerValue matcheddn, message, responseOid,
+             startTLSOid = BER_BVC(LDAP_EXOP_START_TLS);
+    BerElement *ber = c->c_currentber;
+    struct event_base *base;
+    ber_int_t msgid, result;
+    ber_tag_t tag;
+
+    c->c_currentber = NULL;
+
+    if ( ber_scanf( ber, "it", &msgid, &tag ) == LBER_ERROR ) {
+        Debug( LDAP_DEBUG_ANY, "upstream_starttls: "
+                "protocol violation from server\n" );
+        goto fail;
+    }
+
+    if ( msgid != ( c->c_next_msgid - 1 ) || tag != LDAP_RES_EXTENDED ) {
+        Debug( LDAP_DEBUG_ANY, "upstream_starttls: "
+                "unexpected %s from server, msgid=%d\n",
+                slap_msgtype2str( tag ), msgid );
+        goto fail;
+    }
+
+    if ( ber_scanf( ber, "{emm}", &result, &matcheddn, &message ) ==
+                 LBER_ERROR ) {
+        Debug( LDAP_DEBUG_ANY, "upstream_starttls: "
+                "protocol violation on StartTLS response\n" );
+        goto fail;
+    }
+
+    if ( (tag = ber_get_tag( ber )) != LBER_DEFAULT ) {
+        if ( tag != LDAP_TAG_EXOP_RES_OID ||
+                ber_scanf( ber, "{m}", &responseOid ) == LBER_DEFAULT ) {
+            Debug( LDAP_DEBUG_ANY, "upstream_starttls: "
+                    "protocol violation on StartTLS response\n" );
+            goto fail;
+        }
+
+        if ( ber_bvcmp( &responseOid, &startTLSOid ) ) {
+            Debug( LDAP_DEBUG_ANY, "upstream_starttls: "
+                    "oid=%s not a StartTLS response\n",
+                    responseOid.bv_val );
+            goto fail;
+        }
+    }
+
+    if ( result != LDAP_SUCCESS ) {
+        Backend *b = c->c_private;
+        int rc;
+
+        Debug( LDAP_DEBUG_STATS, "upstream_starttls: "
+                "server doesn't support StartTLS rc=%d message='%s'%s\n",
+                result, message.bv_val,
+                (c->c_is_tls == LLOAD_STARTTLS_OPTIONAL) ? ", ignored" : "" );
+        if ( c->c_is_tls != LLOAD_STARTTLS_OPTIONAL ) {
+            goto fail;
+        }
+        c->c_is_tls = LLOAD_CLEARTEXT;
+
+        ber_free( ber, 1 );
+
+        CONNECTION_UNLOCK_INCREF(c);
+        ldap_pvt_thread_mutex_lock( &b->b_mutex );
+        CONNECTION_LOCK_DECREF(c);
+
+        rc = upstream_finish( c );
+
+        ldap_pvt_thread_mutex_unlock( &b->b_mutex );
+
+        if ( rc == LDAP_SUCCESS ) {
+            backend_retry( b );
+        }
+
+        CONNECTION_UNLOCK_OR_DESTROY(c);
+        return rc;
+    }
+
+    base = event_get_base( c->c_read_event );
+
+    event_del( c->c_read_event );
+    event_del( c->c_write_event );
+
+    event_assign( c->c_read_event, base, c->c_fd, EV_READ|EV_PERSIST,
+            upstream_tls_handshake_cb, c );
+    event_assign( c->c_write_event, base, c->c_fd, EV_WRITE,
+            upstream_tls_handshake_cb, c );
+
+    event_add( c->c_read_event, NULL );
+    event_add( c->c_write_event, lload_write_timeout );
+
+    CONNECTION_UNLOCK(c);
+
+    ber_free( ber, 1 );
+    return -1;
+
+fail:
+    ber_free( ber, 1 );
+    CONNECTION_DESTROY(c);
+    return -1;
+}
+
 /*
  * We must already hold b->b_mutex when called.
  */
@@ -439,7 +613,7 @@ upstream_init( ber_socket_t s, Backend *b )
 
     assert( b != NULL );
 
-    flags = (b->b_tls == LLOAD_LDAPS) ? CONN_IS_TLS : 0;
+    flags = (b->b_proto == LDAP_PROTO_IPC) ? CONN_IS_IPC : 0;
     if ( (c = connection_init( s, b->b_host, flags )) == NULL ) {
         return NULL;
     }
@@ -473,11 +647,37 @@ upstream_init( ber_socket_t s, Backend *b )
     /* We only add the write event when we have data pending */
     c->c_write_event = event;
 
-    rc = upstream_finish( c );
-    if ( rc < 0 ) {
-        goto fail;
-    }
+    if ( c->c_is_tls == LLOAD_CLEARTEXT ) {
+        rc = upstream_finish( c );
+        if ( rc < 0 ) {
+            goto fail;
+        }
+    } else if ( c->c_is_tls == LLOAD_LDAPS ) {
+        event_assign( c->c_read_event, base, s, EV_READ|EV_PERSIST,
+                upstream_tls_handshake_cb, c );
+        event_assign( c->c_write_event, base, s, EV_WRITE,
+                upstream_tls_handshake_cb, c );
+        event_add( c->c_write_event, lload_write_timeout );
+    } else if ( c->c_is_tls == LLOAD_STARTTLS ||
+            c->c_is_tls == LLOAD_STARTTLS_OPTIONAL ) {
+        BerElement *output;
 
+        ldap_pvt_thread_mutex_lock( &c->c_io_mutex );
+        if ( (output = c->c_pendingber = ber_alloc()) == NULL ) {
+            ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
+            goto fail;
+        }
+        ber_printf( output, "t{tit{ts}}", LDAP_TAG_MESSAGE,
+                LDAP_TAG_MSGID, c->c_next_msgid++,
+                LDAP_REQ_EXTENDED,
+                LDAP_TAG_EXOP_REQ_OID, LDAP_EXOP_START_TLS );
+        ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
+
+        c->c_pdu_cb = upstream_starttls;
+        CONNECTION_UNLOCK_INCREF(c);
+        connection_write_cb( s, 0, c );
+        CONNECTION_LOCK_DECREF(c);
+    }
     event_add( c->c_read_event, NULL );
 
     c->c_destroy = upstream_destroy;

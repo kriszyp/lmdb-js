@@ -244,7 +244,9 @@ typedef enum {
 enum lload_tls_type {
     LLOAD_CLEARTEXT = 0,
     LLOAD_LDAPS,
+    LLOAD_STARTTLS_OPTIONAL,
     LLOAD_STARTTLS,
+    LLOAD_TLS_ESTABLISHED,
 };
 
 struct PendingConnection {
@@ -405,7 +407,6 @@ struct Connection {
 
 #ifdef HAVE_TLS
     enum lload_tls_type c_is_tls; /* true if this LDAP over raw TLS */
-    char c_needs_tls_accept;      /* true if SSL_accept should be called */
 #endif
 
     long c_n_ops_executing; /* num of ops currently executing */
