@@ -23,6 +23,82 @@
 Avlnode *lload_exop_handlers = NULL;
 
 int
+handle_starttls( Connection *c, Operation *op )
+{
+    struct event_base *base = event_get_base( c->c_read_event );
+    BerElement *output;
+    char *msg = NULL;
+    int rc = LDAP_SUCCESS;
+
+    tavl_delete( &c->c_ops, op, operation_client_cmp );
+
+    if ( c->c_is_tls == LLOAD_TLS_ESTABLISHED ) {
+        rc = LDAP_OPERATIONS_ERROR;
+        msg = "TLS layer already in effect";
+    } else if ( c->c_state == LLOAD_C_BINDING ) {
+        rc = LDAP_OPERATIONS_ERROR;
+        msg = "bind in progress";
+    } else if ( c->c_ops ) {
+        rc = LDAP_OPERATIONS_ERROR;
+        msg = "cannot start TLS when operations are outstanding";
+    } else if ( !slap_tls_ctx ) {
+        rc = LDAP_UNAVAILABLE;
+        msg = "Could not initialize TLS";
+    }
+
+    Debug( LDAP_DEBUG_STATS, "handle_starttls: "
+            "handling StartTLS exop connid=%lu rc=%d msg=%s\n",
+            c->c_connid, rc, msg );
+
+    if ( rc ) {
+        /* We've already removed the operation from the queue */
+        return operation_send_reject_locked( op, rc, msg, 1 );
+    }
+
+    CONNECTION_UNLOCK_INCREF(c);
+
+    event_del( c->c_read_event );
+    event_del( c->c_write_event );
+    /*
+     * At this point, we are the only thread handling the connection:
+     * - there are no upstream operations
+     * - the I/O callbacks have been successfully removed
+     *
+     * This means we can safely reconfigure both I/O events now.
+     */
+
+    ldap_pvt_thread_mutex_lock( &c->c_io_mutex );
+    output = c->c_pendingber;
+    if ( output == NULL && (output = ber_alloc()) == NULL ) {
+        ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
+        CONNECTION_LOCK_DECREF(c);
+        operation_destroy_from_client( op );
+        CONNECTION_DESTROY(c);
+        return -1;
+    }
+    c->c_pendingber = output;
+    ber_printf( output, "t{tit{ess}}", LDAP_TAG_MESSAGE,
+            LDAP_TAG_MSGID, op->o_client_msgid,
+            LDAP_RES_EXTENDED, LDAP_SUCCESS, "", "" );
+    ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
+
+    CONNECTION_LOCK_DECREF(c);
+    event_assign( c->c_read_event, base, c->c_fd, EV_READ|EV_PERSIST,
+            client_tls_handshake_cb, c );
+    event_add( c->c_read_event, NULL );
+
+    event_assign( c->c_write_event, base, c->c_fd, EV_WRITE,
+            client_tls_handshake_cb, c );
+    /* We already have something to write */
+    event_add( c->c_write_event, lload_write_timeout );
+
+    operation_destroy_from_client( op );
+    CONNECTION_UNLOCK_INCREF(c);
+
+    return -1;
+}
+
+int
 request_extended( Connection *c, Operation *op )
 {
     ExopHandler *handler, needle = {};
@@ -67,7 +143,9 @@ request_extended( Connection *c, Operation *op )
     return request_process( c, op );
 }
 
-ExopHandler lload_exops[] = { { BER_BVNULL }
+ExopHandler lload_exops[] = {
+        { BER_BVC(LDAP_EXOP_START_TLS), handle_starttls },
+        { BER_BVNULL }
 };
 
 int

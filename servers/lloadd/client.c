@@ -240,6 +240,99 @@ handle_one_request( Connection *c )
     return handler( c, op );
 }
 
+/*
+ * The connection has a token assigned to it when the callback is set up.
+ */
+void
+client_tls_handshake_cb( evutil_socket_t s, short what, void *arg )
+{
+    Connection *c = arg;
+    int rc = 0;
+
+    CONNECTION_LOCK_DECREF(c);
+    if ( what & EV_TIMEOUT ) {
+        Debug( LDAP_DEBUG_CONNS, "client_tls_handshake_cb: "
+                "connid=%lu, timeout reached, destroying\n",
+                c->c_connid );
+        goto fail;
+    }
+
+    /*
+     * In case of StartTLS, make sure we flush the response first.
+     * Also before we try to read anything from the connection, it isn't
+     * permitted to Abandon a StartTLS exop per RFC4511 anyway.
+     */
+    ldap_pvt_thread_mutex_lock( &c->c_io_mutex );
+    if ( c->c_pendingber ) {
+        ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
+        CONNECTION_UNLOCK_INCREF(c);
+        connection_write_cb( s, what, arg );
+        ldap_pvt_thread_mutex_lock( &c->c_io_mutex );
+        CONNECTION_LOCK_DECREF(c);
+
+        if ( !c->c_live ) {
+            ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
+            goto fail;
+        }
+
+        /* Do we still have data pending? If so, connection_write_cb would
+         * already have arranged the write callback to trigger again */
+        if ( c->c_pendingber ) {
+            ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
+            CONNECTION_UNLOCK_INCREF(c);
+            return;
+        }
+    }
+    ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
+
+    rc = ldap_pvt_tls_accept( c->c_sb, slap_tls_ctx );
+    if ( rc < 0 ) {
+        goto fail;
+    }
+
+    if ( rc == 0 ) {
+        struct event_base *base = event_get_base( c->c_read_event );
+
+        /*
+         * We're finished, replace the callbacks
+         *
+         * This is deadlock-safe, since both share the same base - the one
+         * that's just running us.
+         */
+        event_del( c->c_read_event );
+        event_del( c->c_write_event );
+
+        event_assign( c->c_read_event, base, c->c_fd, EV_READ|EV_PERSIST,
+                connection_read_cb, c );
+        event_add( c->c_read_event, NULL );
+
+        event_assign( c->c_write_event, base, c->c_fd, EV_WRITE,
+                connection_write_cb, c );
+        Debug( LDAP_DEBUG_CONNS, "client_tls_handshake_cb: "
+                "connid=%lu finished\n",
+                c->c_connid );
+
+        c->c_is_tls = LLOAD_TLS_ESTABLISHED;
+
+        /* The temporary reference established for us is no longer needed */
+        CONNECTION_UNLOCK_OR_DESTROY(c);
+        return;
+    } else if ( ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_NEEDS_WRITE, NULL ) ) {
+        event_add( c->c_write_event, lload_write_timeout );
+        Debug( LDAP_DEBUG_CONNS, "client_tls_handshake_cb: "
+                "connid=%lu need write rc=%d\n",
+                c->c_connid, rc );
+    }
+    CONNECTION_UNLOCK_INCREF(c);
+    return;
+
+fail:
+    Debug( LDAP_DEBUG_CONNS, "client_tls_handshake_cb: "
+            "connid=%lu failed rc=%d\n",
+            c->c_connid, rc );
+    CONNECTION_DESTROY(c);
+}
+
 Connection *
 client_init(
         ber_socket_t s,
@@ -265,6 +358,25 @@ client_init(
     }
 
     c->c_state = LLOAD_C_READY;
+
+    if ( flags & CONN_IS_TLS ) {
+        int rc;
+
+        c->c_is_tls = LLOAD_LDAPS;
+
+        rc = ldap_pvt_tls_accept( c->c_sb, slap_tls_ctx );
+        if ( rc < 0 ) {
+            Debug( LDAP_DEBUG_CONNS, "client_init: "
+                    "connid=%lu failed initial TLS accept rc=%d\n",
+                    c->c_connid, rc );
+            goto fail;
+        }
+
+        if ( rc ) {
+            c->c_refcnt++;
+            read_cb = write_cb = client_tls_handshake_cb;
+        }
+    }
 
     event = event_new( base, s, EV_READ|EV_PERSIST, read_cb, c );
     if ( !event ) {

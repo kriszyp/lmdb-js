@@ -74,6 +74,7 @@ LDAP_SLAPD_F (int) handle_vc_bind_response( Operation *op, BerElement *ber );
 LDAP_SLAPD_F (int) request_abandon( Connection *c, Operation *op );
 LDAP_SLAPD_F (int) request_process( Connection *c, Operation *op );
 LDAP_SLAPD_F (int) handle_one_request( Connection *c );
+LDAP_SLAPD_F (void) client_tls_handshake_cb( evutil_socket_t s, short what, void *arg );
 LDAP_SLAPD_F (Connection *) client_init( ber_socket_t s, Listener *url, const char *peername, struct event_base *base, int use_tls );
 LDAP_SLAPD_F (void) client_reset( Connection *c );
 LDAP_SLAPD_F (void) client_destroy( Connection *c );
