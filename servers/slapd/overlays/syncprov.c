@@ -1013,7 +1013,7 @@ syncprov_qstart( syncops *so )
 {
 	so->s_flags |= PS_TASK_QUEUED;
 	so->s_inuse++;
-	ldap_pvt_thread_pool_submit( &connection_pool, 
+	ldap_pvt_thread_pool_submit( &connection_pool,
 		syncprov_qtask, so );
 }
 
@@ -1549,7 +1549,7 @@ syncprov_add_slog( Operation *op )
 		}
 
 		/* Allocate a record. UUIDs are not NUL-terminated. */
-		se = ch_malloc( sizeof( slog_entry ) + opc->suuid.bv_len + 
+		se = ch_malloc( sizeof( slog_entry ) + opc->suuid.bv_len +
 			op->o_csn.bv_len + 1 );
 		se->se_next = NULL;
 		se->se_tag = op->o_tag;
@@ -2435,7 +2435,7 @@ syncprov_search_response( Operation *op, SlapReply *rs )
 		} else {
 		/* It's RefreshAndPersist, transition to Persist phase */
 			syncprov_sendinfo( op, rs, ( ss->ss_flags & SS_PRESENT ) ?
-	 			LDAP_TAG_SYNC_REFRESH_PRESENT : LDAP_TAG_SYNC_REFRESH_DELETE,
+				LDAP_TAG_SYNC_REFRESH_PRESENT : LDAP_TAG_SYNC_REFRESH_DELETE,
 				( ss->ss_flags & SS_CHANGED ) ? &cookie : NULL,
 				1, NULL, 0 );
 			if ( !BER_BVISNULL( &cookie ))
@@ -2670,7 +2670,7 @@ bailout:
 				send_ldap_result( op, rs );
 				return rs->sr_err;
 			}
- 		}
+		}
 		if ( BER_BVISEMPTY( &mincsn )) {
 			mincsn = maxcsn;
 			minsid = maxsid;
@@ -3216,8 +3216,8 @@ syncprov_db_close(
 	ConfigReply *cr
 )
 {
-    slap_overinst   *on = (slap_overinst *) be->bd_info;
-    syncprov_info_t *si = (syncprov_info_t *)on->on_bi.bi_private;
+	slap_overinst   *on = (slap_overinst *) be->bd_info;
+	syncprov_info_t *si = (syncprov_info_t *)on->on_bi.bi_private;
 #ifdef SLAP_CONFIG_DELETE
 	syncops *so, *sonext;
 #endif /* SLAP_CONFIG_DELETE */
@@ -3256,7 +3256,7 @@ syncprov_db_close(
 	overlay_unregister_control( be, LDAP_CONTROL_SYNC );
 #endif /* SLAP_CONFIG_DELETE */
 
-    return 0;
+	return 0;
 }
 
 static int
