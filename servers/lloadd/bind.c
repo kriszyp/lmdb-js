@@ -29,7 +29,7 @@
  * upstream's c_io_mutex.
  */
 static int
-request_bind( Operation *op )
+client_bind( Operation *op )
 {
     Connection *client = op->o_client, *upstream = op->o_upstream;
     BerElement *ber, *copy = NULL;
@@ -130,7 +130,7 @@ fail:
  * upstream's c_io_mutex.
  */
 static int
-request_bind_as_vc( Operation *op )
+client_bind_as_vc( Operation *op )
 {
     Connection *client = op->o_client, *upstream = op->o_upstream;
     BerElement *ber, *request, *copy = NULL;
@@ -302,7 +302,7 @@ client_reset( Connection *c )
 }
 
 int
-client_bind( Connection *client, Operation *op )
+request_bind( Connection *client, Operation *op )
 {
     Connection *upstream;
     int rc = LDAP_SUCCESS;
@@ -338,11 +338,11 @@ client_bind( Connection *client, Operation *op )
 
 #ifdef LDAP_API_FEATURE_VERIFY_CREDENTIALS
     if ( lload_features & LLOAD_FEATURE_VC ) {
-        rc = request_bind_as_vc( op );
+        rc = client_bind_as_vc( op );
     } else
 #endif /* LDAP_API_FEATURE_VERIFY_CREDENTIALS */
     {
-        rc = request_bind( op );
+        rc = client_bind( op );
     }
 
     CONNECTION_LOCK_DECREF(upstream);

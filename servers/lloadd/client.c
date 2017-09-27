@@ -58,7 +58,7 @@ handle_one_request( Connection *c )
             CONNECTION_DESTROY(c);
             return -1;
         case LDAP_REQ_BIND:
-            handler = client_bind;
+            handler = request_bind;
             break;
         case LDAP_REQ_ABANDON:
             /* FIXME: We need to be able to abandon a Bind request, handling

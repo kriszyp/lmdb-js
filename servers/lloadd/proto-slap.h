@@ -65,7 +65,7 @@ LDAP_SLAPD_F (void) ch_free( void * );
  * bind.c
  */
 LDAP_SLAPD_F (void) client_reset( Connection *c );
-LDAP_SLAPD_F (int) client_bind( Connection *c, Operation *op );
+LDAP_SLAPD_F (int) request_bind( Connection *c, Operation *op );
 
 /*
  * client.c
