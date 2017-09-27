@@ -259,48 +259,6 @@ fail:
 }
 #endif /* LDAP_API_FEATURE_VERIFY_CREDENTIALS */
 
-void
-client_reset( Connection *c )
-{
-    TAvlnode *root;
-
-    root = c->c_ops;
-    c->c_ops = NULL;
-
-    /* unless op->o_client_refcnt > op->o_client_live, there is noone using the
-     * operation from the client side and noone new will now that we've removed
-     * it from client's c_ops */
-    if ( root ) {
-        TAvlnode *node = tavl_end( root, TAVL_DIR_LEFT );
-        do {
-            Operation *op = node->avl_data;
-
-            /* make sure it's useable after we've unlocked the connection */
-            op->o_client_refcnt++;
-        } while ( (node = tavl_next( node, TAVL_DIR_RIGHT )) );
-    }
-
-    if ( !BER_BVISNULL( &c->c_auth ) ) {
-        ch_free( c->c_auth.bv_val );
-        BER_BVZERO( &c->c_auth );
-    }
-    if ( !BER_BVISNULL( &c->c_sasl_bind_mech ) ) {
-        ch_free( c->c_sasl_bind_mech.bv_val );
-        BER_BVZERO( &c->c_sasl_bind_mech );
-    }
-    CONNECTION_UNLOCK_INCREF(c);
-
-    if ( root ) {
-        int freed;
-        freed = tavl_free( root, (AVL_FREE)operation_abandon );
-        Debug( LDAP_DEBUG_TRACE, "client_reset: "
-                "dropped %d operations\n",
-                freed );
-    }
-
-    CONNECTION_LOCK_DECREF(c);
-}
-
 int
 request_bind( Connection *client, Operation *op )
 {

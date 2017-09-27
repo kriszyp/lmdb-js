@@ -29,6 +29,166 @@ slap_c_head clients = LDAP_CIRCLEQ_HEAD_INITIALIZER( clients );
 ldap_pvt_thread_mutex_t clients_mutex;
 
 int
+request_abandon( Connection *c, Operation *op )
+{
+    Operation *request, needle = { .o_client_connid = c->c_connid };
+    int rc = LDAP_SUCCESS;
+
+    if ( ber_decode_int( &op->o_request, &needle.o_client_msgid ) ) {
+        Debug( LDAP_DEBUG_STATS, "request_abandon: "
+                "connid=%lu msgid=%d invalid integer sent in abandon request\n",
+                c->c_connid, op->o_client_msgid );
+
+        if ( operation_send_reject_locked( op, LDAP_PROTOCOL_ERROR,
+                     "invalid PDU received", 0 ) == LDAP_SUCCESS ) {
+            CONNECTION_DESTROY(c);
+        }
+        return -1;
+    }
+
+    request = tavl_find( c->c_ops, &needle, operation_client_cmp );
+    if ( !request ) {
+        Debug( LDAP_DEBUG_STATS, "request_abandon: "
+                "connid=%lu msgid=%d requests abandon of an operation "
+                "msgid=%d not being processed anymore\n",
+                c->c_connid, op->o_client_msgid, needle.o_client_msgid );
+        goto done;
+    } else if ( request->o_tag == LDAP_REQ_BIND ) {
+        /* RFC 4511 states we must not allow Abandon on Binds */
+        Debug( LDAP_DEBUG_STATS, "request_abandon: "
+                "connid=%lu msgid=%d requests abandon of a bind operation "
+                "msgid=%d\n",
+                c->c_connid, op->o_client_msgid, needle.o_client_msgid );
+        goto done;
+    }
+    Debug( LDAP_DEBUG_STATS, "request_abandon: "
+            "connid=%lu msgid=%d abandoning %s msgid=%d\n",
+            c->c_connid, op->o_client_msgid, slap_msgtype2str( request->o_tag ),
+            needle.o_client_msgid );
+
+    if ( c->c_state == LLOAD_C_BINDING ) {
+        /* We have found the request and we are binding, it must be a bind
+         * request */
+        assert( request->o_tag == LDAP_REQ_BIND );
+        c->c_state = LLOAD_C_READY;
+    }
+
+    CONNECTION_UNLOCK_INCREF(c);
+    operation_abandon( request );
+    CONNECTION_LOCK_DECREF(c);
+
+done:
+    operation_destroy_from_client( op );
+    return rc;
+}
+
+int
+request_process( Connection *client, Operation *op )
+{
+    BerElement *output;
+    Connection *upstream;
+    ber_int_t msgid;
+    int rc = LDAP_SUCCESS;
+
+    op->o_client_refcnt++;
+    CONNECTION_UNLOCK_INCREF(client);
+
+    upstream = backend_select( op );
+    if ( !upstream ) {
+        Debug( LDAP_DEBUG_STATS, "request_process: "
+                "connid=%lu, msgid=%d no available connection found\n",
+                op->o_client_connid, op->o_client_msgid );
+
+        operation_send_reject(
+                op, LDAP_UNAVAILABLE, "no connections available", 1 );
+        goto fail;
+    }
+    op->o_upstream = upstream;
+    op->o_upstream_connid = upstream->c_connid;
+
+    output = upstream->c_pendingber;
+    if ( output == NULL && (output = ber_alloc()) == NULL ) {
+        rc = -1;
+        goto fail;
+    }
+    upstream->c_pendingber = output;
+
+    CONNECTION_LOCK_DECREF(upstream);
+    op->o_upstream_msgid = msgid = upstream->c_next_msgid++;
+    rc = tavl_insert(
+            &upstream->c_ops, op, operation_upstream_cmp, avl_dup_error );
+    CONNECTION_UNLOCK_INCREF(upstream);
+
+    Debug( LDAP_DEBUG_TRACE, "request_process: "
+            "client connid=%lu added %s msgid=%d to upstream connid=%lu as "
+            "msgid=%d\n",
+            op->o_client_connid, slap_msgtype2str( op->o_tag ),
+            op->o_client_msgid, op->o_upstream_connid, op->o_upstream_msgid );
+    assert( rc == LDAP_SUCCESS );
+
+    if ( (lload_features & LLOAD_FEATURE_PROXYAUTHZ) &&
+            client->c_type != LLOAD_C_PRIVILEGED ) {
+        CONNECTION_LOCK_DECREF(client);
+        Debug( LDAP_DEBUG_TRACE, "request_process: "
+                "proxying identity %s to upstream\n",
+                client->c_auth.bv_val );
+        ber_printf( output, "t{titOt{{sbO}" /* "}}" */, LDAP_TAG_MESSAGE,
+                LDAP_TAG_MSGID, msgid,
+                op->o_tag, &op->o_request,
+                LDAP_TAG_CONTROLS,
+                LDAP_CONTROL_PROXY_AUTHZ, 1, &client->c_auth );
+        CONNECTION_UNLOCK_INCREF(client);
+
+        if ( !BER_BVISNULL( &op->o_ctrls ) ) {
+            ber_write( output, op->o_ctrls.bv_val, op->o_ctrls.bv_len, 0 );
+        }
+
+        ber_printf( output, /* "{{" */ "}}" );
+    } else {
+        ber_printf( output, "t{titOtO}", LDAP_TAG_MESSAGE,
+                LDAP_TAG_MSGID, msgid,
+                op->o_tag, &op->o_request,
+                LDAP_TAG_CONTROLS, BER_BV_OPTIONAL( &op->o_ctrls ) );
+    }
+    ldap_pvt_thread_mutex_unlock( &upstream->c_io_mutex );
+
+    connection_write_cb( -1, 0, upstream );
+
+    CONNECTION_LOCK_DECREF(upstream);
+    CONNECTION_UNLOCK_OR_DESTROY(upstream);
+
+    CONNECTION_LOCK_DECREF(client);
+    if ( !--op->o_client_refcnt ) {
+        operation_destroy_from_client( op );
+    }
+    return rc;
+
+fail:
+    if ( upstream ) {
+        Backend *b;
+
+        ldap_pvt_thread_mutex_unlock( &upstream->c_io_mutex );
+        CONNECTION_LOCK_DECREF(upstream);
+        upstream->c_n_ops_executing--;
+        b = (Backend *)upstream->c_private;
+        CONNECTION_UNLOCK_OR_DESTROY(upstream);
+
+        ldap_pvt_thread_mutex_lock( &b->b_mutex );
+        b->b_n_ops_executing--;
+        ldap_pvt_thread_mutex_unlock( &b->b_mutex );
+
+        operation_send_reject( op, LDAP_OTHER, "internal error", 0 );
+    }
+    CONNECTION_LOCK_DECREF(client);
+    op->o_client_refcnt--;
+    operation_destroy_from_client( op );
+    if ( rc ) {
+        CONNECTION_DESTROY(client);
+    }
+    return rc;
+}
+
+int
 handle_one_request( Connection *c )
 {
     BerElement *ber;
@@ -151,6 +311,48 @@ fail:
     CONNECTION_DESTROY(c);
     assert( c == NULL );
     return NULL;
+}
+
+void
+client_reset( Connection *c )
+{
+    TAvlnode *root;
+
+    root = c->c_ops;
+    c->c_ops = NULL;
+
+    /* unless op->o_client_refcnt > op->o_client_live, there is noone using the
+     * operation from the client side and noone new will now that we've removed
+     * it from client's c_ops */
+    if ( root ) {
+        TAvlnode *node = tavl_end( root, TAVL_DIR_LEFT );
+        do {
+            Operation *op = node->avl_data;
+
+            /* make sure it's useable after we've unlocked the connection */
+            op->o_client_refcnt++;
+        } while ( (node = tavl_next( node, TAVL_DIR_RIGHT )) );
+    }
+
+    if ( !BER_BVISNULL( &c->c_auth ) ) {
+        ch_free( c->c_auth.bv_val );
+        BER_BVZERO( &c->c_auth );
+    }
+    if ( !BER_BVISNULL( &c->c_sasl_bind_mech ) ) {
+        ch_free( c->c_sasl_bind_mech.bv_val );
+        BER_BVZERO( &c->c_sasl_bind_mech );
+    }
+    CONNECTION_UNLOCK_INCREF(c);
+
+    if ( root ) {
+        int freed;
+        freed = tavl_free( root, (AVL_FREE)operation_abandon );
+        Debug( LDAP_DEBUG_TRACE, "client_reset: "
+                "dropped %d operations\n",
+                freed );
+    }
+
+    CONNECTION_LOCK_DECREF(c);
 }
 
 void
