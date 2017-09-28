@@ -78,16 +78,16 @@ LDAP_BEGIN_DECL
 #define SLAP_STRDUP(s) ber_strdup( ( s ) )
 #define SLAP_STRNDUP(s, l) ber_strndup( ( s ), ( l ) )
 
-#define SERVICE_NAME OPENLDAP_PACKAGE "-slapd"
+#define SERVICE_NAME OPENLDAP_PACKAGE "-lloadd"
 #define SLAPD_ANONYMOUS ""
 #define SLAP_STRING_UNKNOWN "unknown"
 
 #define SLAP_MAX_WORKER_THREADS ( 16 )
 
-#define SLAP_SB_MAX_INCOMING_CLIENT ( ( 1 << 18 ) - 1 )
-#define SLAP_SB_MAX_INCOMING_UPSTREAM ( ( 1 << 24 ) - 1 )
+#define LLOAD_SB_MAX_INCOMING_CLIENT ( ( 1 << 18 ) - 1 )
+#define LLOAD_SB_MAX_INCOMING_UPSTREAM ( ( 1 << 24 ) - 1 )
 
-#define SLAP_CONN_MAX_PDUS_PER_CYCLE_DEFAULT 10
+#define LLOAD_CONN_MAX_PDUS_PER_CYCLE_DEFAULT 10
 
 #define SLAP_TEXT_BUFLEN ( 256 )
 
@@ -292,17 +292,17 @@ typedef void (*CONNECTION_DESTROY_CB)( Connection *c );
 
 /* connection state (protected by c_mutex) */
 enum sc_state {
-    SLAP_C_INVALID = 0, /* MUST BE ZERO (0) */
-    SLAP_C_READY,       /* ready */
-    SLAP_C_CLOSING,     /* closing */
-    SLAP_C_ACTIVE,      /* exclusive operation (tls setup, ...) in progress */
-    SLAP_C_BINDING,     /* binding */
+    LLOAD_C_INVALID = 0, /* MUST BE ZERO (0) */
+    LLOAD_C_READY,       /* ready */
+    LLOAD_C_CLOSING,     /* closing */
+    LLOAD_C_ACTIVE,      /* exclusive operation (tls setup, ...) in progress */
+    LLOAD_C_BINDING,     /* binding */
 };
 enum sc_type {
-    SLAP_C_OPEN = 0,  /* regular connection */
-    SLAP_C_PREPARING, /* upstream connection not assigned yet */
-    SLAP_C_BIND, /* connection used to handle bind client requests if VC not enabled */
-    SLAP_C_PRIVILEGED, /* connection can override proxyauthz control */
+    LLOAD_C_OPEN = 0,  /* regular connection */
+    LLOAD_C_PREPARING, /* upstream connection not assigned yet */
+    LLOAD_C_BIND, /* connection used to handle bind client requests if VC not enabled */
+    LLOAD_C_PRIVILEGED, /* connection can override proxyauthz control */
 };
 /*
  * represents a connection from an ldap client/to ldap server
@@ -422,16 +422,16 @@ struct Connection {
 };
 
 enum op_state {
-    SLAP_OP_NOT_FREEING = 0,
-    SLAP_OP_FREEING_UPSTREAM = 1 << 0,
-    SLAP_OP_FREEING_CLIENT = 1 << 1,
-    SLAP_OP_DETACHING_UPSTREAM = 1 << 2,
-    SLAP_OP_DETACHING_CLIENT = 1 << 3,
+    LLOAD_OP_NOT_FREEING = 0,
+    LLOAD_OP_FREEING_UPSTREAM = 1 << 0,
+    LLOAD_OP_FREEING_CLIENT = 1 << 1,
+    LLOAD_OP_DETACHING_UPSTREAM = 1 << 2,
+    LLOAD_OP_DETACHING_CLIENT = 1 << 3,
 };
-#define SLAP_OP_FREEING_MASK \
-    ( SLAP_OP_FREEING_UPSTREAM | SLAP_OP_FREEING_CLIENT )
-#define SLAP_OP_DETACHING_MASK \
-    ( SLAP_OP_DETACHING_UPSTREAM | SLAP_OP_DETACHING_CLIENT )
+#define LLOAD_OP_FREEING_MASK \
+    ( LLOAD_OP_FREEING_UPSTREAM | LLOAD_OP_FREEING_CLIENT )
+#define LLOAD_OP_DETACHING_MASK \
+    ( LLOAD_OP_DETACHING_UPSTREAM | LLOAD_OP_DETACHING_CLIENT )
 
 struct Operation {
     Connection *o_client;

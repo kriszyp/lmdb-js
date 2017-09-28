@@ -60,7 +60,7 @@ request_extended( Connection *c, Operation *op )
     }
     ber_free( copy, 0 );
 
-    if ( c->c_state == SLAP_C_BINDING ) {
+    if ( c->c_state == LLOAD_C_BINDING ) {
         return operation_send_reject_locked(
                 op, LDAP_PROTOCOL_ERROR, "bind in progress", 0 );
     }

@@ -104,7 +104,7 @@ request_bind( Operation *op )
                  avl_dup_error ) ) {
         assert(0);
     }
-    upstream->c_state = SLAP_C_ACTIVE;
+    upstream->c_state = LLOAD_C_ACTIVE;
     CONNECTION_UNLOCK(upstream);
 
     ldap_pvt_thread_mutex_unlock( &upstream->c_io_mutex );
@@ -313,8 +313,8 @@ client_bind( Connection *client, Operation *op )
 
     client_reset( client );
 
-    client->c_state = SLAP_C_BINDING;
-    client->c_type = SLAP_C_OPEN;
+    client->c_state = LLOAD_C_BINDING;
+    client->c_type = LLOAD_C_OPEN;
 
     rc = tavl_insert( &client->c_ops, op, operation_client_cmp, avl_dup_error );
     assert( rc == LDAP_SUCCESS );
@@ -358,9 +358,9 @@ client_bind( Connection *client, Operation *op )
 
     if ( !--op->o_client_refcnt ) {
         operation_destroy_from_client( op );
-        if ( client->c_state == SLAP_C_BINDING ) {
-            client->c_state = SLAP_C_READY;
-            client->c_type = SLAP_C_OPEN;
+        if ( client->c_state == LLOAD_C_BINDING ) {
+            client->c_state = LLOAD_C_READY;
+            client->c_type = LLOAD_C_OPEN;
             if ( !BER_BVISNULL( &client->c_auth ) ) {
                 ber_memfree( client->c_auth.bv_val );
                 BER_BVZERO( &client->c_auth );

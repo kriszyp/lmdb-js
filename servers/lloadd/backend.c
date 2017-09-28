@@ -215,7 +215,7 @@ backend_select( Operation *op )
         LDAP_CIRCLEQ_FOREACH ( c, head, c_next ) {
             ldap_pvt_thread_mutex_lock( &c->c_io_mutex );
             CONNECTION_LOCK(c);
-            if ( c->c_state == SLAP_C_READY && !c->c_pendingber &&
+            if ( c->c_state == LLOAD_C_READY && !c->c_pendingber &&
                     ( b->b_max_conn_pending == 0 ||
                             c->c_n_ops_executing < b->b_max_conn_pending ) ) {
                 Debug( LDAP_DEBUG_CONNS, "backend_select: "

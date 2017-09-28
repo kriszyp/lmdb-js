@@ -289,7 +289,7 @@ connection_destroy( Connection *c )
 
     assert( c->c_live == 0 );
     assert( c->c_refcnt == 0 );
-    assert( c->c_state == SLAP_C_INVALID );
+    assert( c->c_state == LLOAD_C_INVALID );
 
     ber_sockbuf_free( c->c_sb );
 
@@ -394,7 +394,7 @@ connection_init( ber_socket_t s, const char *peername, int flags )
             c->c_connid, s, peername );
 
     CONNECTION_LOCK(c);
-    c->c_state = SLAP_C_ACTIVE;
+    c->c_state = LLOAD_C_ACTIVE;
 
     return c;
 }

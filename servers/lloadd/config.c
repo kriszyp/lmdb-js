@@ -71,10 +71,10 @@ static char *logfileName;
 
 lload_features_t lload_features;
 
-ber_len_t sockbuf_max_incoming_client = SLAP_SB_MAX_INCOMING_CLIENT;
-ber_len_t sockbuf_max_incoming_upstream = SLAP_SB_MAX_INCOMING_UPSTREAM;
+ber_len_t sockbuf_max_incoming_client = LLOAD_SB_MAX_INCOMING_CLIENT;
+ber_len_t sockbuf_max_incoming_upstream = LLOAD_SB_MAX_INCOMING_UPSTREAM;
 
-int slap_conn_max_pdus_per_cycle = SLAP_CONN_MAX_PDUS_PER_CYCLE_DEFAULT;
+int slap_conn_max_pdus_per_cycle = LLOAD_CONN_MAX_PDUS_PER_CYCLE_DEFAULT;
 
 int slap_write_timeout = 10000;
 

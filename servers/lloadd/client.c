@@ -69,7 +69,7 @@ handle_one_request( Connection *c )
             handler = request_extended;
             break;
         default:
-            if ( c->c_state == SLAP_C_BINDING ) {
+            if ( c->c_state == LLOAD_C_BINDING ) {
                 return operation_send_reject_locked(
                         op, LDAP_PROTOCOL_ERROR, "bind in progress", 0 );
             }
@@ -104,7 +104,7 @@ client_init(
         ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_SET_MAX_INCOMING, &max );
     }
 
-    c->c_state = SLAP_C_READY;
+    c->c_state = LLOAD_C_READY;
 
     event = event_new( base, s, EV_READ|EV_PERSIST, read_cb, c );
     if ( !event ) {
@@ -147,7 +147,7 @@ fail:
         c->c_read_event = NULL;
     }
 
-    c->c_state = SLAP_C_INVALID;
+    c->c_state = LLOAD_C_INVALID;
     CONNECTION_DESTROY(c);
     assert( c == NULL );
     return NULL;
@@ -163,9 +163,9 @@ client_destroy( Connection *c )
             "destroying client connid=%lu\n",
             c->c_connid );
 
-    assert( c->c_state != SLAP_C_INVALID );
+    assert( c->c_state != LLOAD_C_INVALID );
     state = c->c_state;
-    c->c_state = SLAP_C_INVALID;
+    c->c_state = LLOAD_C_INVALID;
 
     read_event = c->c_read_event;
     write_event = c->c_write_event;
@@ -190,7 +190,7 @@ client_destroy( Connection *c )
         event_del( write_event );
     }
 
-    if ( state != SLAP_C_CLOSING ) {
+    if ( state != LLOAD_C_CLOSING ) {
         ldap_pvt_thread_mutex_lock( &clients_mutex );
         LDAP_CIRCLEQ_REMOVE( &clients, c, c_next );
         ldap_pvt_thread_mutex_unlock( &clients_mutex );
@@ -217,7 +217,7 @@ client_destroy( Connection *c )
      */
     assert( c->c_refcnt >= 0 );
     if ( c->c_refcnt ) {
-        c->c_state = SLAP_C_CLOSING;
+        c->c_state = LLOAD_C_CLOSING;
         Debug( LDAP_DEBUG_CONNS, "client_destroy: "
                 "connid=%lu aborting with refcnt=%d\n",
                 c->c_connid, c->c_refcnt );
