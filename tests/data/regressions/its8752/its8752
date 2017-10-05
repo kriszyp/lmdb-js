@@ -202,9 +202,11 @@ changetype: modify
 replace: sn
 sn: Fudd
 EOMODS
-
+	sleep 1
 	n=`expr $n + 1`
 done
+
+test $KILLSERVERS != no && kill -HUP $KILLPIDS
 
 echo ">>>>> Test succeeded"
 
