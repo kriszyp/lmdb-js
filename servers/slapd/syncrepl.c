@@ -157,7 +157,6 @@ static int syncrepl_op_modify( Operation *op, SlapReply *rs );
 /* callback functions */
 static int dn_callback( Operation *, SlapReply * );
 static int nonpresent_callback( Operation *, SlapReply * );
-static int null_callback( Operation *, SlapReply * );
 
 static AttributeDescription *sync_descs[4];
 
@@ -2244,6 +2243,34 @@ syncrepl_op_modify( Operation *op, SlapReply *rs )
 }
 
 static int
+syncrepl_null_callback(
+	Operation *op,
+	SlapReply *rs )
+{
+	/* If we're not the last callback in the chain, move to the end */
+	if ( op->o_callback->sc_next ) {
+		slap_callback **sc, *s1;
+		s1 = op->o_callback;
+		op->o_callback = op->o_callback->sc_next;
+		for ( sc = &op->o_callback; *sc; sc = &(*sc)->sc_next ) ;
+		*sc = s1;
+		s1->sc_next = NULL;
+		return SLAP_CB_CONTINUE;
+	}
+	if ( rs->sr_err != LDAP_SUCCESS &&
+		rs->sr_err != LDAP_REFERRAL &&
+		rs->sr_err != LDAP_ALREADY_EXISTS &&
+		rs->sr_err != LDAP_NO_SUCH_OBJECT &&
+		rs->sr_err != LDAP_NOT_ALLOWED_ON_NONLEAF )
+	{
+		Debug( LDAP_DEBUG_ANY,
+			"syncrepl_null_callback : error code 0x%x\n",
+			rs->sr_err, 0, 0 );
+	}
+	return LDAP_SUCCESS;
+}
+
+static int
 syncrepl_message_to_op(
 	syncinfo_t	*si,
 	Operation	*op,
@@ -2254,7 +2281,7 @@ syncrepl_message_to_op(
 	Modifications	*modlist = NULL;
 	logschema *ls;
 	SlapReply rs = { REP_RESULT };
-	slap_callback cb = { NULL, null_callback, NULL, NULL };
+	slap_callback cb = { NULL, syncrepl_null_callback, NULL, NULL };
 
 	const char	*text;
 	char txtbuf[SLAP_TEXT_BUFLEN];
@@ -2969,7 +2996,7 @@ syncrepl_entry(
 		slap_sl_free( op->ors_filterstr.bv_val, op->o_tmpmemctx );
 	}
 
-	cb.sc_response = null_callback;
+	cb.sc_response = syncrepl_null_callback;
 	cb.sc_private = si;
 
 	if ( entry && !BER_BVISNULL( &entry->e_name ) ) {
@@ -3372,7 +3399,7 @@ retry_modrdn:;
 				op->o_delete_glue_parent = 0;
 				if ( !be_issuffix( be, &op->o_req_ndn ) ) {
 					slap_callback cb = { NULL };
-					cb.sc_response = slap_null_cb;
+					cb.sc_response = syncrepl_null_callback;
 					dnParent( &op->o_req_ndn, &pdn );
 					op->o_req_dn = pdn;
 					op->o_req_ndn = pdn;
@@ -3570,7 +3597,7 @@ syncrepl_del_nonpresent(
 			np_list = LDAP_LIST_NEXT( np_list, npe_link );
 			op->o_tag = LDAP_REQ_DELETE;
 			op->o_callback = &cb;
-			cb.sc_response = null_callback;
+			cb.sc_response = syncrepl_null_callback;
 			cb.sc_private = si;
 			op->o_req_dn = *np_prev->npe_name;
 			op->o_req_ndn = *np_prev->npe_nname;
@@ -3612,7 +3639,7 @@ syncrepl_del_nonpresent(
 				op->o_delete_glue_parent = 0;
 				if ( !be_issuffix( be, &op->o_req_ndn ) ) {
 					slap_callback cb = { NULL };
-					cb.sc_response = slap_null_cb;
+					cb.sc_response = syncrepl_null_callback;
 					dnParent( &op->o_req_ndn, &pdn );
 					op->o_req_dn = pdn;
 					op->o_req_ndn = pdn;
@@ -3665,7 +3692,7 @@ syncrepl_add_glue_ancestors(
 
 	op->o_tag = LDAP_REQ_ADD;
 	op->o_callback = &cb;
-	cb.sc_response = null_callback;
+	cb.sc_response = syncrepl_null_callback;
 	cb.sc_private = NULL;
 
 	dn = e->e_name;
@@ -3807,7 +3834,7 @@ syncrepl_add_glue(
 
 	op->o_tag = LDAP_REQ_ADD;
 	op->o_callback = &cb;
-	cb.sc_response = null_callback;
+	cb.sc_response = syncrepl_null_callback;
 	cb.sc_private = NULL;
 
 	op->o_req_dn = e->e_name;
@@ -3919,7 +3946,7 @@ syncrepl_updateCookie(
 
 	op->o_tag = LDAP_REQ_MODIFY;
 
-	cb.sc_response = null_callback;
+	cb.sc_response = syncrepl_null_callback;
 	cb.sc_private = si;
 
 	op->o_callback = &cb;
@@ -4408,24 +4435,6 @@ nonpresent_callback(
 			presentlist_delete( &si->si_presentlist, &a->a_nvals[0] );
 			ch_free( present_uuid );
 		}
-	}
-	return LDAP_SUCCESS;
-}
-
-static int
-null_callback(
-	Operation*	op,
-	SlapReply*	rs )
-{
-	if ( rs->sr_err != LDAP_SUCCESS &&
-		rs->sr_err != LDAP_REFERRAL &&
-		rs->sr_err != LDAP_ALREADY_EXISTS &&
-		rs->sr_err != LDAP_NO_SUCH_OBJECT &&
-		rs->sr_err != LDAP_NOT_ALLOWED_ON_NONLEAF )
-	{
-		Debug( LDAP_DEBUG_ANY,
-			"null_callback : error code 0x%x\n",
-			rs->sr_err, 0, 0 );
 	}
 	return LDAP_SUCCESS;
 }
