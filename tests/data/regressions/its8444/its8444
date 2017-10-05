@@ -38,8 +38,7 @@ if test $BACKEND = ldif ; then
         exit 0
 fi
 
-echo "This test tracks a case where the memberof overlay incorrectly writes to"
-echo "the accesslog DB when a group is deleted."
+echo "This test tracks a case where changes are incorrectly skipped"
 echo "See http://www.openldap.org/its/index.cgi/?findid=8444 for more information."
 
 MMR=4
