@@ -15,6 +15,7 @@ OpenLDAP 2.4.46 Engineering
 		Fixed Windows build with newer MINGW version (ITS#8697)
 	Documentation
 		Delete stub manpage for back-ldbm (ITS#8713)
+		Fixed ldap_bind(3) to mention the LDAP_SASL_SIMPLE mechanism (ITS#8121)
 		Fixed slapd-config(5) typo for olcTLSCipherSuite (ITS#8715)
 		Fixed slapo-syncprov(5) indexing requirements (ITS#5048)
 
