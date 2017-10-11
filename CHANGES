@@ -14,6 +14,7 @@ OpenLDAP 2.4.46 Engineering
 	Fixed slapo-syncprov to not clear pending operation when checkpointing (ITS#8444)
 	Build Environment
 		Fixed Windows build with newer MINGW version (ITS#8697)
+		Fixed compiler warnings and removed unused variables (ITS#8578)
 	Documentation
 		Delete stub manpage for back-ldbm (ITS#8713)
 		Fixed ldap_bind(3) to mention the LDAP_SASL_SIMPLE mechanism (ITS#8121)
