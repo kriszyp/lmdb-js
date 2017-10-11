@@ -2,6 +2,7 @@ OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.46 Engineering
 	Fixed libldap connection delete callbacks when TLS fails to start (ITS#8717)
+	Fixed libldap to not reuse tls_session if TLS hostname check fails (ITS#7373)
 	Fixed slapd Eventlog registry key creation on 64-bit Windows (ITS#8705)
 	Fixed slapd-ldap TLS connection timeout with high latency connections (ITS#8720)
 	Fixed slapd-mdb with an optimization for long lived read transactions (ITS#8226)
