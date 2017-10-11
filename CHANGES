@@ -3,10 +3,11 @@ OpenLDAP 2.4 Change Log
 OpenLDAP 2.4.46 Engineering
 	Fixed libldap connection delete callbacks when TLS fails to start (ITS#8717)
 	Fixed slapd Eventlog registry key creation on 64-bit Windows (ITS#8705)
-	Fixed slapo-syncprov memory leak with delete operations (ITS#8690)
-	Fixed slapo-syncprov to not clear pending operation when checkpointing (ITS#8444)
 	Fixed slapd-ldap TLS connection timeout with high latency connections (ITS#8720)
 	Fixed slapd-mdb with an optimization for long lived read transactions (ITS#8226)
+	Fixed slapo-dds entryTTL to actually decrease as per RFC 2589 (ITS#7100)
+	Fixed slapo-syncprov memory leak with delete operations (ITS#8690)
+	Fixed slapo-syncprov to not clear pending operation when checkpointing (ITS#8444)
 	Build Environment
 		Fixed Windows build with newer MINGW version (ITS#8697)
 	Documentation
