@@ -853,6 +853,17 @@ Specify which auxprop plugins to use for authentication lookups. The
 default is empty, which just uses slapd's internal support. Usually
 no other auxprop plugins are needed.
 .TP
+.B sasl\-auxprops\-dontusecopy <attr> [...]
+Specify which attribute(s) should be subject to the don't use copy control. This
+is necessary for some SASL mechanisms such as OTP to work in a replicated
+environment. The attribute "cmusaslsecretOTP" is the default value.
+.TP
+.B sasl\-auxprops\-dontusecopy\-ignore on | off
+Used to disable replication of the attribute(s) defined by
+sasl-auxprops-dontusecopy and instead use a local value for the attribute. This
+allows the SASL mechanism to continue to work if the master is offline. This can
+cause replication inconsistency. Defaults to off.
+.TP
 .B sasl\-host <fqdn>
 Used to specify the fully qualified domain name used for SASL processing.
 .TP
