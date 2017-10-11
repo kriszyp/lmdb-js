@@ -6,6 +6,7 @@ OpenLDAP 2.4.46 Engineering
 	Fixed libldap MozNSS CA certificate hash matching (ITS#7374)
 	Fixed slapd Eventlog registry key creation on 64-bit Windows (ITS#8705)
 	Fixed slapd-ldap TLS connection timeout with high latency connections (ITS#8720)
+	Fixed slapd-ldap to ignore unknown schema when omit-unknown-schema is set (ITS#7520)
 	Fixed slapd-mdb with an optimization for long lived read transactions (ITS#8226)
 	Fixed slapo-dds entryTTL to actually decrease as per RFC 2589 (ITS#7100)
 	Fixed slapo-syncprov memory leak with delete operations (ITS#8690)
