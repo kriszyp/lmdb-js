@@ -8,6 +8,7 @@ OpenLDAP 2.4.46 Engineering
 	Fixed slapd-ldap TLS connection timeout with high latency connections (ITS#8720)
 	Fixed slapd-ldap to ignore unknown schema when omit-unknown-schema is set (ITS#7520)
 	Fixed slapd-mdb with an optimization for long lived read transactions (ITS#8226)
+	Fixed slapd-meta assert when olcDbRewrite is modified (ITS#8404)
 	Fixed slapo-dds entryTTL to actually decrease as per RFC 2589 (ITS#7100)
 	Fixed slapo-syncprov memory leak with delete operations (ITS#8690)
 	Fixed slapo-syncprov to not clear pending operation when checkpointing (ITS#8444)
