@@ -5,6 +5,7 @@ OpenLDAP 2.4.46 Engineering
 	Fixed libldap to not reuse tls_session if TLS hostname check fails (ITS#7373)
 	Fixed libldap cross-compiling with OpenSSL 1.1 (ITS#8687)
 	Fixed libldap MozNSS CA certificate hash matching (ITS#7374)
+	Fixed libldap MozNSS with PEM certs when also using an NSS cert db (ITS#7389)
 	Fixed slapd Eventlog registry key creation on 64-bit Windows (ITS#8705)
 	Fixed slapd-ldap TLS connection timeout with high latency connections (ITS#8720)
 	Fixed slapd-ldap to ignore unknown schema when omit-unknown-schema is set (ITS#7520)
