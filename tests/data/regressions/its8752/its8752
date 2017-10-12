@@ -29,6 +29,12 @@ if test $BACKEND = ldif ; then
 	exit 0
 fi
 
+dtest=`date +%N|sed s/...$//`
+
+if test $dtest = N; then
+	echo "nanosecond date values not supported, test skipped"
+	exit 0
+fi
 
 MMR=4
 XDIR=$TESTDIR/srv
@@ -190,6 +196,7 @@ while [ $n -le $MMR ]; do
 	n=`expr $n + 1`
 done
 
+echo "Setting up accesslog on each master..."
 n=1
 while [ $n -le $MMR ]; do
 	echo "Modifying dn: cn=Elmer_Fudd,ou=People,dc=example,dc=com on master $n"
@@ -202,7 +209,46 @@ changetype: modify
 replace: sn
 sn: Fudd
 EOMODS
-	sleep 1
+	sleep 5
+	n=`expr $n + 1`
+done
+
+echo "Sleeping 30 seconds to ensure replication is reconciled between all nodes"
+sleep 30
+
+echo "Starting random master/entry modifications..."
+DN1="cn=Elmer_Fudd,ou=People,$BASEDN"
+VAL1="Fudd"
+
+DN2="cn=Jessica_Rabbit,ou=People,$BASEDN"
+VAL2="Rabbit"
+
+DN3="cn=Bugs_Bunny,ou=People,$BASEDN"
+VAL3="Bunny"
+
+DN4="cn=Daffy_Duck,ou=People,$BASEDN"
+VAL4="Duck"
+
+n=1
+while [ $n -le 20000 ]; do
+	seed=`date +%N|sed s/...$//`
+	rvalue=`echo|awk "BEGIN {srand($seed)
+{print int(1+rand()*4)}}"`
+	MYURI=`eval echo '$URI'$rvalue`
+	seed=`date +%N|sed s/...$//`
+	rvalue=`echo|awk "BEGIN {srand($seed)
+{print int(1+rand()*4)}}"`
+	MYDN=`eval echo '$DN'$rvalue`
+	MYVAL=`eval echo '$VAL'$rvalue`
+	echo "Modifying $MYURI entry $MYDN with value $MYVAL iteration $n of 20000"
+	$LDAPMODIFY -v -D "$MANAGERDN" -H $MYURI -w $PASSWD > \
+		$TESTOUT 2>&1 << EOMODS
+
+dn: $MYDN
+changetype: modify
+replace: sn
+sn: $MYVAL
+EOMODS
 	n=`expr $n + 1`
 done
 
