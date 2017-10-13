@@ -940,7 +940,6 @@ ppolicy_ctrls_cleanup( Operation *op, SlapReply *rs )
 	if ( ppb->send_ctrl ) {
 		ctrls_cleanup( op, rs, ppb->oldctrls );
 	}
-	op->o_callback->sc_cleanup = NULL;
 	return SLAP_CB_CONTINUE;
 }
 
