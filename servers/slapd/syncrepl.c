@@ -46,11 +46,13 @@ struct nonpresent_entry {
 
 typedef struct cookie_state {
 	ldap_pvt_thread_mutex_t	cs_mutex;
+	ldap_pvt_thread_cond_t cs_cond;
 	struct berval *cs_vals;
 	int *cs_sids;
 	int	cs_num;
 	int cs_age;
 	int cs_ref;
+	int cs_updating;
 
 	/* pending changes, not yet committed */
 	ldap_pvt_thread_mutex_t	cs_pmutex;
@@ -2393,6 +2395,9 @@ syncrepl_message_to_op(
 	op->o_callback = &cb;
 	slap_op_time( &op->o_time, &op->o_tincr );
 
+	Debug( LDAP_DEBUG_SYNC, "syncrepl_message_to_op: %s tid %x\n",
+		si->si_ridtxt, op->o_tid, 0 );
+
 	switch( op->o_tag ) {
 	case LDAP_REQ_ADD:
 	case LDAP_REQ_MODIFY:
@@ -2900,8 +2905,8 @@ syncrepl_entry(
 	int	freecsn = 1;
 
 	Debug( LDAP_DEBUG_SYNC,
-		"syncrepl_entry: %s LDAP_RES_SEARCH_ENTRY(LDAP_SYNC_%s)\n",
-		si->si_ridtxt, syncrepl_state2str( syncstate ), 0 );
+		"syncrepl_entry: %s LDAP_RES_SEARCH_ENTRY(LDAP_SYNC_%s) tid %x\n",
+		si->si_ridtxt, syncrepl_state2str( syncstate ), op->o_tid );
 
 	if (( syncstate == LDAP_SYNC_PRESENT || syncstate == LDAP_SYNC_ADD ) ) {
 		if ( !si->si_refreshPresent && !si->si_refreshDone ) {
@@ -3879,6 +3884,8 @@ syncrepl_updateCookie(
 	mod.sml_next = NULL;
 
 	ldap_pvt_thread_mutex_lock( &si->si_cookieState->cs_mutex );
+	while ( si->si_cookieState->cs_updating )
+		ldap_pvt_thread_cond_wait( &si->si_cookieState->cs_cond, &si->si_cookieState->cs_mutex );
 
 #ifdef CHECK_CSN
 	for ( i=0; i<syncCookie->numcsns; i++ ) {
@@ -3941,6 +3948,10 @@ syncrepl_updateCookie(
 		ch_free( sc.sids );
 		return 0;
 	}
+
+	si->si_cookieState->cs_updating = 1;
+	ldap_pvt_thread_mutex_unlock( &si->si_cookieState->cs_mutex );
+
 	op->o_bd = si->si_wbe;
 	slap_queue_csn( op, &first );
 
@@ -3979,6 +3990,7 @@ syncrepl_updateCookie(
 
 	op->orm_no_opattrs = 0;
 	op->o_dont_replicate = 0;
+	ldap_pvt_thread_mutex_lock( &si->si_cookieState->cs_mutex );
 
 	if ( rs_modify.sr_err == LDAP_SUCCESS ) {
 		slap_sync_cookie_free( &si->si_syncCookie, 0 );
@@ -4011,6 +4023,8 @@ syncrepl_updateCookie(
 	}
 #endif
 
+	si->si_cookieState->cs_updating = 0;
+	ldap_pvt_thread_cond_broadcast( &si->si_cookieState->cs_cond );
 	ldap_pvt_thread_mutex_unlock( &si->si_cookieState->cs_mutex );
 
 	op->o_bd = be;
@@ -4675,6 +4689,7 @@ syncinfo_free( syncinfo_t *sie, int free_all )
 			if ( !sie->si_cookieState->cs_ref ) {
 				ch_free( sie->si_cookieState->cs_sids );
 				ber_bvarray_free( sie->si_cookieState->cs_vals );
+				ldap_pvt_thread_cond_destroy( &sie->si_cookieState->cs_cond );
 				ldap_pvt_thread_mutex_destroy( &sie->si_cookieState->cs_mutex );
 				ch_free( sie->si_cookieState->cs_psids );
 				ber_bvarray_free( sie->si_cookieState->cs_pvals );
@@ -5476,6 +5491,7 @@ add_syncrepl(
 			si->si_cookieState = ch_calloc( 1, sizeof( cookie_state ));
 			ldap_pvt_thread_mutex_init( &si->si_cookieState->cs_mutex );
 			ldap_pvt_thread_mutex_init( &si->si_cookieState->cs_pmutex );
+			ldap_pvt_thread_cond_init( &si->si_cookieState->cs_cond );
 
 			c->be->be_syncinfo = si;
 		}
