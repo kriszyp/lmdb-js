@@ -716,8 +716,7 @@ int overlay_op_walk(
 	if ( rc == LDAP_UNWILLING_TO_PERFORM ) {
 		slap_callback *sc_next;
 cleanup:
-		for ( ; op->o_callback && op->o_callback->sc_response !=
-			over_back_response; op->o_callback = sc_next ) {
+		for ( ; op->o_callback; op->o_callback = sc_next ) {
 			sc_next = op->o_callback->sc_next;
 			if ( op->o_callback->sc_cleanup ) {
 				op->o_callback->sc_cleanup( op, rs );
