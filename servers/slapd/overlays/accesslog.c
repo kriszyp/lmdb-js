@@ -1943,7 +1943,7 @@ accesslog_mod_cleanup( Operation *op, SlapReply *rs )
 
 	op->o_tmpfree( sc, op->o_tmpmemctx );
 
-	if ( on ) {
+	if ( on && rs->sr_err != LDAP_SUCCESS ) {
 		BackendInfo *bi = op->o_bd->bd_info;
 		op->o_bd->bd_info = (BackendInfo *)on;
 		accesslog_response( op, rs );
@@ -1994,11 +1994,11 @@ accesslog_op_mod( Operation *op, SlapReply *rs )
 	}
 			
 	if ( doit ) {
-		slap_callback *cb = op->o_tmpcalloc( 1, sizeof( slap_callback ), op->o_tmpmemctx ), *cb2;
+		slap_callback *cb = op->o_tmpcalloc( 1, sizeof( slap_callback ), op->o_tmpmemctx );
 		cb->sc_cleanup = accesslog_mod_cleanup;
 		cb->sc_private = on;
-		for ( cb2 = op->o_callback; cb2->sc_next; cb2 = cb2->sc_next );
-		cb2->sc_next = cb;
+		cb->sc_next = op->o_callback;
+		op->o_callback = cb;
 
 #ifdef RMUTEX_DEBUG
 		Debug( LDAP_DEBUG_SYNC,
