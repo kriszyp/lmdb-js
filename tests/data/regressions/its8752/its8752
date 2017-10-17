@@ -36,6 +36,9 @@ if test $dtest = N; then
 	exit 0
 fi
 
+echo "This test tracks a case where slapd deadlocks during a significant write load"
+echo "See http://www.openldap.org/its/index.cgi/?findid=8752 for more information."
+
 MMR=4
 XDIR=$TESTDIR/srv
 
@@ -214,6 +217,8 @@ EOMODS
 done
 
 echo "Sleeping 30 seconds to ensure replication is reconciled between all nodes"
+echo "The next step of the test will perform 20000 random write operations and may take some time."
+echo "As this test is for a deadlock, it will take manual intervention to exit the test if one occurs."
 sleep 30
 
 echo "Starting random master/entry modifications..."
