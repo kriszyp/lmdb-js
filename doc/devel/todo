@@ -48,7 +48,6 @@ Localize tools
 
 Small projects
 --------------
-Add BSD kqueue(2) support to slapd(8)
 Add DSML capabilities to command line tools
 Add LDIFv2 (XML) support to command line tools
 Implement authPassword (RFC 3112)
