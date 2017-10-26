@@ -157,7 +157,7 @@ class is as follows:
     SUP top STRUCTURAL
     MUST ( reqStart $ reqType $ reqSession )
     MAY ( reqDN $ reqAuthzID $ reqControls $ reqRespControls $
-        reqEnd $ reqResult $ reqMessage $ reqReferral ) )
+        reqEnd $ reqResult $ reqMessage $ reqReferral $ reqEntryUUID ) )
 .RE
 .P
 Note that all of the OIDs used in the logging schema currently reside
@@ -224,6 +224,11 @@ The
 .B reqReferral
 attribute carries any referrals that were returned with the result of the
 request.
+
+The
+.B reqEntryUUID
+attribute records the entryUUID attribute of the entry operated on, for an Add
+request, this is the entryUUID of the newly created entry.
 
 Operation-specific classes are defined with additional attributes to carry
 all of the relevant parameters associated with the operation:
