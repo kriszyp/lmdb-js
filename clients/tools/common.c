@@ -153,6 +153,8 @@ static int print_deref( LDAP *ld, LDAPControl *ctrl );
 #ifdef LDAP_CONTROL_X_WHATFAILED
 static int print_whatfailed( LDAP *ld, LDAPControl *ctrl );
 #endif
+static int print_syncstate( LDAP *ld, LDAPControl *ctrl );
+static int print_syncdone( LDAP *ld, LDAPControl *ctrl );
 
 static struct tool_ctrls_t {
 	const char	*oid;
@@ -177,6 +179,8 @@ static struct tool_ctrls_t {
 #ifdef LDAP_CONTROL_X_WHATFAILED
 	{ LDAP_CONTROL_X_WHATFAILED,			TOOL_ALL,	print_whatfailed },
 #endif
+	{ LDAP_CONTROL_SYNC_STATE,			TOOL_SEARCH,	print_syncstate },
+	{ LDAP_CONTROL_SYNC_DONE,			TOOL_SEARCH,	print_syncdone },
 	{ NULL,						0,		NULL }
 };
 
@@ -2334,6 +2338,135 @@ print_whatfailed( LDAP *ld, LDAPControl *ctrl )
 	return 0;
 }
 #endif
+
+static int
+print_syncstate( LDAP *ld, LDAPControl *ctrl )
+{
+	struct berval syncUUID, syncCookie = BER_BVNULL;
+	char buf[LDAP_LUTIL_UUIDSTR_BUFSIZE], *uuidstr = "(UUID malformed)";
+	BerElement *ber;
+	ber_tag_t tag;
+	ber_len_t len;
+	ber_int_t state;
+	int rc;
+
+	if ( ldif ) {
+		return 0;
+	}
+
+	/* Create a BerElement from the berval returned in the control. */
+	ber = ber_init( &ctrl->ldctl_value );
+
+	if ( ber == NULL ) {
+		return LDAP_NO_MEMORY;
+	}
+
+	if ( ber_scanf( ber, "{em", &state, &syncUUID ) == LBER_ERROR ) {
+		ber_free( ber, 1 );
+		return 1;
+	}
+
+	tag = ber_get_stringbv( ber, &syncCookie, 0 );
+
+	rc = lutil_uuidstr_from_normalized(
+			syncUUID.bv_val, syncUUID.bv_len,
+			buf, LDAP_LUTIL_UUIDSTR_BUFSIZE );
+
+	if ( rc > 0 && rc < LDAP_LUTIL_UUIDSTR_BUFSIZE ) {
+		uuidstr = buf;
+	}
+
+	switch ( state ) {
+		case LDAP_SYNC_PRESENT:
+			printf(_("# SyncState control, UUID %s present\n"), uuidstr);
+			break;
+		case LDAP_SYNC_ADD:
+			printf(_("# SyncState control, UUID %s added\n"), uuidstr);
+			break;
+		case LDAP_SYNC_MODIFY:
+			printf(_("# SyncState control, UUID %s modified\n"), uuidstr);
+			break;
+		case LDAP_SYNC_DELETE:
+			printf(_("# SyncState control, UUID %s deleted\n"), uuidstr);
+			break;
+		default:
+			ber_free( ber, 1 );
+			return 1;
+	}
+
+	if ( tag != LBER_ERROR ) {
+		if ( ldif_is_not_printable( syncCookie.bv_val, syncCookie.bv_len ) ) {
+			struct berval bv;
+
+			bv.bv_len = LUTIL_BASE64_ENCODE_LEN( syncCookie.bv_len ) + 1;
+			bv.bv_val = ber_memalloc( bv.bv_len + 1 );
+
+			bv.bv_len = lutil_b64_ntop(
+					(unsigned char *) syncCookie.bv_val, syncCookie.bv_len,
+					bv.bv_val, bv.bv_len );
+
+			printf(_("# cookie:: %s\n"), bv.bv_val );
+			ber_memfree( bv.bv_val );
+		} else {
+			printf(_("# cookie: %s\n"), syncCookie.bv_val );
+		}
+	}
+
+	ber_free( ber, 1 );
+	return 0;
+}
+
+static int
+print_syncdone( LDAP *ld, LDAPControl *ctrl )
+{
+	BerElement *ber;
+	struct berval cookie = BER_BVNULL;
+	ber_tag_t tag;
+	ber_len_t len;
+	ber_int_t refreshDeletes = 0;
+
+	if ( ldif ) {
+		return 0;
+	}
+
+	/* Create a BerElement from the berval returned in the control. */
+	ber = ber_init( &ctrl->ldctl_value );
+
+	if ( ber == NULL ) {
+		return LDAP_NO_MEMORY;
+	}
+
+	ber_skip_tag( ber, &len );
+	if ( ber_peek_tag( ber, &len ) == LDAP_TAG_SYNC_COOKIE ) {
+		ber_scanf( ber, "m", &cookie );
+	}
+	if ( ber_peek_tag( ber, &len ) == LDAP_TAG_REFRESHDELETES ) {
+		ber_scanf( ber, "b", &refreshDeletes );
+	}
+
+	printf(_("# SyncDone control refreshDeletes=%d\n"), refreshDeletes ? 1 : 0 );
+
+	if ( !BER_BVISNULL( &cookie ) ) {
+		if ( ldif_is_not_printable( cookie.bv_val, cookie.bv_len ) ) {
+			struct berval bv;
+
+			bv.bv_len = LUTIL_BASE64_ENCODE_LEN( cookie.bv_len ) + 1;
+			bv.bv_val = ber_memalloc( bv.bv_len + 1 );
+
+			bv.bv_len = lutil_b64_ntop(
+					(unsigned char *) cookie.bv_val, cookie.bv_len,
+					bv.bv_val, bv.bv_len );
+
+			printf(_("# cookie:: %s\n"), bv.bv_val );
+			ber_memfree( bv.bv_val );
+		} else {
+			printf(_("# cookie: %s\n"), cookie.bv_val );
+		}
+	}
+
+	ber_free( ber, 1 );
+	return 0;
+}
 
 #ifdef LDAP_CONTROL_AUTHZID_RESPONSE
 static int

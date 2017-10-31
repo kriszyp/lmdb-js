@@ -173,6 +173,9 @@ static void print_extended(
 	LDAP *ld,
 	LDAPMessage *extended );
 
+static void print_syncinfo(
+	BerValue *info );
+
 static void print_partial(
 	LDAP *ld,
 	LDAPMessage *partial );
@@ -1521,7 +1524,11 @@ static int dosearch(
 				nresponses_psearch = 0;
 
 				if ( strcmp( retoid, LDAP_SYNC_INFO ) == 0 ) {
-					printf(_("SyncInfo Received\n"));
+					if ( ldif < 1 ) {
+						print_syncinfo( retdata );
+					} else if ( ldif < 2 ) {
+						printf(_("# SyncInfo Received\n"));
+					}
 					ldap_memfree( retoid );
 					ber_bvfree( retdata );
 					break;
@@ -1774,6 +1781,167 @@ static void print_extended(
 	}
 
 	print_result( ld, extended, 0 );
+}
+
+static void print_syncinfo(
+	BerValue *data )
+{
+	BerElement *syncinfo;
+	struct berval bv, cookie;
+	ber_tag_t tag;
+	ber_len_t len;
+
+	if ( (syncinfo = ber_alloc()) == NULL ) {
+		return;
+	}
+	ber_init2( syncinfo, data, 0 );
+
+	printf(_("# SyncInfo Received: "));
+	tag = ber_skip_tag( syncinfo, &len );
+	switch (tag) {
+		case LDAP_TAG_SYNC_NEW_COOKIE: {
+			printf(_("new cookie\n"));
+			ber_scanf( syncinfo, "m", &cookie );
+
+			if ( ldif_is_not_printable( cookie.bv_val, cookie.bv_len ) ) {
+				bv.bv_len = LUTIL_BASE64_ENCODE_LEN(
+						cookie.bv_len ) + 1;
+				bv.bv_val = ber_memalloc( bv.bv_len + 1 );
+
+				bv.bv_len = lutil_b64_ntop(
+						(unsigned char *) cookie.bv_val,
+						cookie.bv_len,
+						bv.bv_val, bv.bv_len );
+
+				printf(_("# cookie:: %s\n"), bv.bv_val );
+				ber_memfree( bv.bv_val );
+			} else {
+				printf(_("# cookie: %s\n"), cookie.bv_val );
+			}
+			} break;
+		case LDAP_TAG_SYNC_REFRESH_DELETE: {
+			ber_int_t done = 1;
+			printf(_("refresh delete\n"));
+			tag = ber_peek_tag( syncinfo, &len );
+			if ( tag == LDAP_TAG_SYNC_COOKIE ) {
+				ber_scanf( syncinfo, "m", &cookie );
+
+				if ( ldif_is_not_printable( cookie.bv_val, cookie.bv_len ) ) {
+					bv.bv_len = LUTIL_BASE64_ENCODE_LEN(
+							cookie.bv_len ) + 1;
+					bv.bv_val = ber_memalloc( bv.bv_len + 1 );
+
+					bv.bv_len = lutil_b64_ntop(
+							(unsigned char *) cookie.bv_val,
+							cookie.bv_len,
+							bv.bv_val, bv.bv_len );
+
+					printf(_("# cookie:: %s\n"), bv.bv_val );
+					ber_memfree( bv.bv_val );
+				} else {
+					printf(_("# cookie: %s\n"), cookie.bv_val );
+				}
+
+				tag = ber_peek_tag( syncinfo, &len );
+			}
+			if ( tag == LDAP_TAG_REFRESHDONE ) {
+				ber_get_boolean( syncinfo, &done );
+			}
+			if ( done )
+				printf(_("# refresh done, switching to persist stage\n"));
+			} break;
+		case LDAP_TAG_SYNC_REFRESH_PRESENT: {
+			ber_int_t done = 1;
+			printf(_("refresh present\n"));
+			tag = ber_peek_tag( syncinfo, &len );
+			if ( tag == LDAP_TAG_SYNC_COOKIE ) {
+				ber_scanf( syncinfo, "m", &cookie );
+
+				if ( ldif_is_not_printable( cookie.bv_val, cookie.bv_len ) ) {
+					bv.bv_len = LUTIL_BASE64_ENCODE_LEN(
+							cookie.bv_len ) + 1;
+					bv.bv_val = ber_memalloc( bv.bv_len + 1 );
+
+					bv.bv_len = lutil_b64_ntop(
+							(unsigned char *) cookie.bv_val,
+							cookie.bv_len,
+							bv.bv_val, bv.bv_len );
+
+					printf(_("# cookie:: %s\n"), bv.bv_val );
+					ber_memfree( bv.bv_val );
+				} else {
+					printf(_("# cookie: %s\n"), cookie.bv_val );
+				}
+
+				tag = ber_peek_tag( syncinfo, &len );
+			}
+			if ( tag == LDAP_TAG_REFRESHDONE ) {
+				ber_get_boolean( syncinfo, &done );
+			}
+			if ( done )
+				printf(_("# refresh done, switching to persist stage\n"));
+			} break;
+		case LDAP_TAG_SYNC_ID_SET: {
+			ber_int_t refreshDeletes = 0;
+			BerVarray uuids;
+
+			printf(_("ID Set\n"));
+			tag = ber_peek_tag( syncinfo, &len );
+			if ( tag == LDAP_TAG_SYNC_COOKIE ) {
+				ber_scanf( syncinfo, "m", &cookie );
+
+				if ( ldif_is_not_printable( cookie.bv_val, cookie.bv_len ) ) {
+					bv.bv_len = LUTIL_BASE64_ENCODE_LEN(
+							cookie.bv_len ) + 1;
+					bv.bv_val = ber_memalloc( bv.bv_len + 1 );
+
+					bv.bv_len = lutil_b64_ntop(
+							(unsigned char *) cookie.bv_val,
+							cookie.bv_len,
+							bv.bv_val, bv.bv_len );
+
+					printf(_("# cookie:: %s\n"), bv.bv_val );
+					ber_memfree( bv.bv_val );
+				} else {
+					printf(_("# cookie: %s\n"), cookie.bv_val );
+				}
+
+				tag = ber_peek_tag( syncinfo, &len );
+			}
+			if ( tag == LDAP_TAG_REFRESHDELETES ) {
+				ber_get_boolean( syncinfo, &refreshDeletes );
+				tag = ber_peek_tag( syncinfo, &len );
+			}
+			if ( refreshDeletes ) {
+				printf(_("# following UUIDs no longer match the search\n"));
+			}
+
+			printf(_("# syncUUIDs:\n"));
+			ber_scanf( syncinfo, "[W]", &uuids );
+			if ( uuids ) {
+				char buf[LDAP_LUTIL_UUIDSTR_BUFSIZE];
+				int i;
+
+				for ( i=0; !BER_BVISNULL( &uuids[i] ); i++ ) {
+					int rc = lutil_uuidstr_from_normalized(
+							uuids[i].bv_val, uuids[i].bv_len,
+							buf, LDAP_LUTIL_UUIDSTR_BUFSIZE );
+					if ( rc <= 0 || rc >= LDAP_LUTIL_UUIDSTR_BUFSIZE ) {
+						printf(_("#\t(UUID malformed)\n"));
+					} else {
+						printf(_("#\t%s\n"), buf);
+					}
+				}
+				ber_bvarray_free( uuids );
+			}
+			} break;
+		case LBER_DEFAULT:
+			printf(_("empty SyncInfoValue\n"));
+		default:
+			printf(_("SyncInfoValue unknown\n"));
+			break;
+	}
+	ber_free( syncinfo, 0 );
 }
 
 static void print_partial(
