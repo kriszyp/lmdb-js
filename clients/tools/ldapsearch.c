@@ -156,7 +156,7 @@ usage( void )
 #ifdef LDAP_CONTROL_X_SERVER_NOTIFICATION
 	fprintf( stderr, _("             [!]serverNotif              (MS AD Server Notification)\n"));
 #endif
-	fprintf( stderr, _("             [!]<oid>[=:<b64value>] (generic control; no response handling)\n"));
+	fprintf( stderr, _("             [!]<oid>[=:<value>|::<b64value>] (generic control; no response handling)\n"));
 	fprintf( stderr, _("  -f file    read operations from `file'\n"));
 	fprintf( stderr, _("  -F prefix  URL prefix for files (default: %s)\n"), def_urlpre);
 	fprintf( stderr, _("  -l limit   time limit (in seconds, or \"none\" or \"max\") for search\n"));
