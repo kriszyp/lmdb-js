@@ -549,6 +549,13 @@ LDAP_F (BerElement *) ldap_build_add_req LDAP_P((
 	ber_int_t *msgidp ));
 
 /*
+ * in lbase64.c
+ */
+
+LDAP_F (int) ldap_int_decode_b64_inplace LDAP_P((
+	struct berval *value ));
+
+/*
  * in compare.c
  */
 
