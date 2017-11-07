@@ -3386,6 +3386,7 @@ tls_impl ldap_int_tls_impl = {
 	tlsm_session_version,
 	tlsm_session_cipher,
 	tlsm_session_peercert,
+	NULL,
 
 	&tlsm_sbio,
 

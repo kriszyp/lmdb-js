@@ -43,6 +43,8 @@
 
 #include <gnutls/gnutls.h>
 #include <gnutls/x509.h>
+#include <gnutls/abstract.h>
+#include <gnutls/crypto.h>
 
 typedef struct tlsg_ctx {
 	gnutls_certificate_credentials_t cred;
@@ -752,6 +754,109 @@ tlsg_session_peercert( tls_session *sess, struct berval *der )
 	return 0;
 }
 
+static int
+tlsg_session_pinning( LDAP *ld, tls_session *sess, char *hashalg, struct berval *hash )
+{
+	tlsg_session *s = (tlsg_session *)sess;
+	const gnutls_datum_t *cert_list;
+	unsigned int cert_list_size = 0;
+	gnutls_x509_crt_t crt;
+	gnutls_pubkey_t pubkey;
+	gnutls_datum_t key = {};
+	gnutls_digest_algorithm_t alg;
+	struct berval keyhash;
+	size_t len;
+	int rc = -1;
+
+	if ( hashalg ) {
+		alg = gnutls_digest_get_id( hashalg );
+		if ( alg == GNUTLS_DIG_UNKNOWN ) {
+			Debug( LDAP_DEBUG_ANY, "tlsg_session_pinning: "
+					"unknown hashing algorithm for GnuTLS: '%s'\n",
+					hashalg, 0, 0 );
+			return rc;
+		}
+	}
+
+	cert_list = gnutls_certificate_get_peers( s->session, &cert_list_size );
+	if ( cert_list_size == 0 ) {
+		return rc;
+	}
+
+	if ( gnutls_x509_crt_init( &crt ) < 0 ) {
+		return rc;
+	}
+
+	if ( gnutls_x509_crt_import( crt, &cert_list[0], GNUTLS_X509_FMT_DER ) ) {
+		goto done;
+	}
+
+	if ( gnutls_pubkey_init( &pubkey ) ) {
+		goto done;
+	}
+
+	if ( gnutls_pubkey_import_x509( pubkey, crt, 0 ) < 0 ) {
+		goto done;
+	}
+
+	gnutls_pubkey_export( pubkey, GNUTLS_X509_FMT_DER, key.data, &len );
+	if ( len <= 0 ) {
+		goto done;
+	}
+
+	key.data = LDAP_MALLOC( len );
+	if ( !key.data ) {
+		goto done;
+	}
+
+	key.size = len;
+
+	if ( gnutls_pubkey_export( pubkey, GNUTLS_X509_FMT_DER,
+				key.data, &len ) < 0 ) {
+		goto done;
+	}
+
+	if ( hashalg ) {
+		keyhash.bv_len = gnutls_hash_get_len( alg );
+		keyhash.bv_val = LDAP_MALLOC( keyhash.bv_len );
+		if ( !keyhash.bv_val || gnutls_fingerprint( alg, &key,
+					keyhash.bv_val, &keyhash.bv_len ) < 0 ) {
+			goto done;
+		}
+	} else {
+		keyhash.bv_val = (char *)key.data;
+		keyhash.bv_len = key.size;
+	}
+
+	if ( ber_bvcmp( hash, &keyhash ) ) {
+		rc = LDAP_CONNECT_ERROR;
+		Debug( LDAP_DEBUG_ANY, "tlsg_session_pinning: "
+				"public key hash does not match provided pin.\n", 0, 0, 0 );
+		if ( ld->ld_error ) {
+			LDAP_FREE( ld->ld_error );
+		}
+		ld->ld_error = LDAP_STRDUP(
+			_("TLS: public key hash does not match provided pin"));
+	} else {
+		rc = LDAP_SUCCESS;
+	}
+
+done:
+	if ( pubkey ) {
+		gnutls_pubkey_deinit( pubkey );
+	}
+	if ( crt ) {
+		gnutls_x509_crt_deinit( crt );
+	}
+	if ( keyhash.bv_val != (char *)key.data ) {
+		LDAP_FREE( keyhash.bv_val );
+	}
+	if ( key.data ) {
+		LDAP_FREE( key.data );
+	}
+	return rc;
+}
+
 /* suites is a string of colon-separated cipher suite names. */
 static int
 tlsg_parse_ciphers( tlsg_ctx *ctx, char *suites )
@@ -1012,6 +1117,7 @@ tls_impl ldap_int_tls_impl = {
 	tlsg_session_version,
 	tlsg_session_cipher,
 	tlsg_session_peercert,
+	tlsg_session_pinning,
 
 	&tlsg_sbio,
 

@@ -151,6 +151,23 @@ ldap_create( LDAP **ldp )
 	/* Properly initialize the structs mutex */
 	ldap_pvt_thread_mutex_init( &(ld->ld_ldopts_mutex) );
 #endif
+
+#ifdef HAVE_TLS
+	if ( ld->ld_options.ldo_tls_pin_hashalg ) {
+		int len = strlen( gopts->ldo_tls_pin_hashalg );
+
+		ld->ld_options.ldo_tls_pin_hashalg =
+			LDAP_MALLOC( len + 1 + gopts->ldo_tls_pin.bv_len );
+		if ( !ld->ld_options.ldo_tls_pin_hashalg ) goto nomem;
+
+		ld->ld_options.ldo_tls_pin.bv_val = ld->ld_options.ldo_tls_pin_hashalg
+			+ len + 1;
+		AC_MEMCPY( ld->ld_options.ldo_tls_pin_hashalg, gopts->ldo_tls_pin_hashalg,
+				len + 1 + gopts->ldo_tls_pin.bv_len );
+	} else if ( !BER_BVISEMPTY(&ld->ld_options.ldo_tls_pin) ) {
+		ber_dupbv( &ld->ld_options.ldo_tls_pin, &gopts->ldo_tls_pin );
+	}
+#endif
 	LDAP_MUTEX_UNLOCK( &gopts->ldo_mutex );
 
 	ld->ld_valid = LDAP_VALID_SESSION;
@@ -214,6 +231,15 @@ nomem:
 	LDAP_FREE( ld->ld_options.ldo_def_sasl_authcid );
 	LDAP_FREE( ld->ld_options.ldo_def_sasl_realm );
 	LDAP_FREE( ld->ld_options.ldo_def_sasl_mech );
+#endif
+
+#ifdef HAVE_TLS
+	/* tls_pin_hashalg and tls_pin share the same buffer */
+	if ( ld->ld_options.ldo_tls_pin_hashalg ) {
+		LDAP_FREE( ld->ld_options.ldo_tls_pin_hashalg );
+	} else {
+		LDAP_FREE( ld->ld_options.ldo_tls_pin.bv_val );
+	}
 #endif
 	LDAP_FREE( (char *)ld );
 	return LDAP_NO_MEMORY;
