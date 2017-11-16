@@ -69,7 +69,7 @@ char *global_host = NULL;
 static FILE *logfile;
 static char *logfileName;
 
-static struct timeval timeout_write_tv = { 10, 0 };
+static struct timeval timeout_net_tv, timeout_write_tv = { 10, 0 };
 
 lload_features_t lload_features;
 
@@ -78,6 +78,7 @@ ber_len_t sockbuf_max_incoming_upstream = LLOAD_SB_MAX_INCOMING_UPSTREAM;
 
 int slap_conn_max_pdus_per_cycle = LLOAD_CONN_MAX_PDUS_PER_CYCLE_DEFAULT;
 
+struct timeval *lload_timeout_net = NULL;
 struct timeval *lload_write_timeout = &timeout_write_tv;
 
 char *slapd_pid_file = NULL;
@@ -662,6 +663,13 @@ config_bindconf( ConfigArgs *c )
         ptr = lutil_strncopy(
                 ptr, bindconf.sb_binddn.bv_val, bindconf.sb_binddn.bv_len );
         *ptr = '\0';
+    }
+
+    if ( bindconf.sb_timeout_net ) {
+        timeout_net_tv.tv_sec = bindconf.sb_timeout_net;
+        lload_timeout_net = &timeout_net_tv;
+    } else {
+        lload_timeout_net = NULL;
     }
 
 #ifdef HAVE_TLS

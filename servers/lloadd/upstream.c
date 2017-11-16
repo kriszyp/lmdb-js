@@ -292,6 +292,11 @@ upstream_bind_cb( Connection *c )
             c->c_pdu_cb = handle_one_response;
             c->c_state = LLOAD_C_READY;
             c->c_type = LLOAD_C_OPEN;
+            c->c_read_timeout = NULL;
+            event_add( c->c_read_event, c->c_read_timeout );
+            Debug( LDAP_DEBUG_CONNS, "upstream_bind_cb: "
+                    "connid=%lu finished binding, now active\n",
+                    c->c_connid );
             CONNECTION_UNLOCK_INCREF(c);
             ldap_pvt_thread_mutex_lock( &b->b_mutex );
             LDAP_CIRCLEQ_REMOVE( &b->b_preparing, c, c_next );
@@ -365,6 +370,8 @@ upstream_bind( void *ctx, void *arg )
     connection_write_cb( -1, 0, c );
 
     CONNECTION_LOCK_DECREF(c);
+    c->c_read_timeout = lload_timeout_net;
+    event_add( c->c_read_event, c->c_read_timeout );
     CONNECTION_UNLOCK_OR_DESTROY(c);
 
     return NULL;
@@ -459,9 +466,10 @@ upstream_tls_handshake_cb( evutil_socket_t s, short what, void *arg )
         event_del( c->c_read_event );
         event_del( c->c_write_event );
 
+        c->c_read_timeout = NULL;
         event_assign( c->c_read_event, base, c->c_fd, EV_READ|EV_PERSIST,
                 connection_read_cb, c );
-        event_add( c->c_read_event, NULL );
+        event_add( c->c_read_event, c->c_read_timeout );
 
         event_assign( c->c_write_event, base, c->c_fd, EV_WRITE,
                 connection_write_cb, c );
@@ -581,12 +589,13 @@ upstream_starttls( Connection *c )
     event_del( c->c_read_event );
     event_del( c->c_write_event );
 
+    c->c_read_timeout = lload_timeout_net;
     event_assign( c->c_read_event, base, c->c_fd, EV_READ|EV_PERSIST,
             upstream_tls_handshake_cb, c );
     event_assign( c->c_write_event, base, c->c_fd, EV_WRITE,
             upstream_tls_handshake_cb, c );
 
-    event_add( c->c_read_event, NULL );
+    event_add( c->c_read_event, c->c_read_timeout );
     event_add( c->c_write_event, lload_write_timeout );
 
     CONNECTION_UNLOCK(c);
@@ -678,7 +687,7 @@ upstream_init( ber_socket_t s, Backend *b )
         connection_write_cb( s, 0, c );
         CONNECTION_LOCK_DECREF(c);
     }
-    event_add( c->c_read_event, NULL );
+    event_add( c->c_read_event, c->c_read_timeout );
 
     c->c_destroy = upstream_destroy;
     CONNECTION_UNLOCK_OR_DESTROY(c);

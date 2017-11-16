@@ -254,6 +254,7 @@ LDAP_SLAPD_V (const char) Versionstr[];
 LDAP_SLAPD_V (int) global_gentlehup;
 LDAP_SLAPD_V (int) global_idletimeout;
 
+LDAP_SLAPD_V (struct timeval *) lload_timeout_net;
 LDAP_SLAPD_V (struct timeval *) lload_write_timeout;
 
 LDAP_SLAPD_V (char *) global_host;

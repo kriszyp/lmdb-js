@@ -83,9 +83,10 @@ handle_starttls( Connection *c, Operation *op )
     ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
 
     CONNECTION_LOCK_DECREF(c);
+    c->c_read_timeout = lload_timeout_net;
     event_assign( c->c_read_event, base, c->c_fd, EV_READ|EV_PERSIST,
             client_tls_handshake_cb, c );
-    event_add( c->c_read_event, NULL );
+    event_add( c->c_read_event, c->c_read_timeout );
 
     event_assign( c->c_write_event, base, c->c_fd, EV_WRITE,
             client_tls_handshake_cb, c );

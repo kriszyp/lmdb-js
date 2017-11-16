@@ -302,9 +302,10 @@ client_tls_handshake_cb( evutil_socket_t s, short what, void *arg )
         event_del( c->c_read_event );
         event_del( c->c_write_event );
 
+        c->c_read_timeout = NULL;
         event_assign( c->c_read_event, base, c->c_fd, EV_READ|EV_PERSIST,
                 connection_read_cb, c );
-        event_add( c->c_read_event, NULL );
+        event_add( c->c_read_event, c->c_read_timeout );
 
         event_assign( c->c_write_event, base, c->c_fd, EV_WRITE,
                 connection_write_cb, c );
@@ -374,6 +375,7 @@ client_init(
 
         if ( rc ) {
             c->c_refcnt++;
+            c->c_read_timeout = lload_timeout_net;
             read_cb = write_cb = client_tls_handshake_cb;
         }
     }
@@ -385,7 +387,7 @@ client_init(
         goto fail;
     }
     c->c_read_event = event;
-    event_add( c->c_read_event, NULL );
+    event_add( c->c_read_event, c->c_read_timeout );
 
     event = event_new( base, s, EV_WRITE, write_cb, c );
     if ( !event ) {

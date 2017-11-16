@@ -128,7 +128,7 @@ handle_pdus( void *ctx, void *arg )
         }
     }
 
-    event_add( c->c_read_event, NULL );
+    event_add( c->c_read_event, c->c_read_timeout );
     Debug( LDAP_DEBUG_CONNS, "handle_pdus: "
             "re-enabled read event on connid=%lu\n",
             c->c_connid );
@@ -211,7 +211,7 @@ connection_read_cb( evutil_socket_t s, short what, void *arg )
             CONNECTION_DESTROY(c);
             return;
         }
-        event_add( c->c_read_event, NULL );
+        event_add( c->c_read_event, c->c_read_timeout );
         Debug( LDAP_DEBUG_CONNS, "connection_read_cb: "
                 "re-enabled read event on connid=%lu\n",
                 c->c_connid );

@@ -526,6 +526,8 @@ option. The authentication configuration is shared between them.
 .B [credentials=<passwd>]
 .B [realm=<realm>]
 .B [secprops=<properties>]
+.B [timeout=<seconds>]
+.B [network\-timeout=<seconds>]
 
 Specifies the bind credentials
 .B lloadd
@@ -564,14 +566,32 @@ option. A non default SASL realm can be set with the
 .B realm
 option.
 
+The
+.B timeout
+parameter indicates how long an operation can be pending a response (result,
+search entry, ...) from the server in seconds. Due to how timeouts are
+detected, the timeout might not be detected and handled up to
+.B timeout
+seconds after it happens.
+
+The
+.B network\-timeout
+parameter sets how long the consumer will wait to establish a
+network connection to the provider. Once a connection is
+established, the
+.B timeout
+parameter determines how long the consumer will wait for the initial
+Bind request to complete.
+
+Timeout set to 0 means no timeout is in effect and by default, no timeouts are
+in effect.
+
 .SH BACKEND OPTIONS
 
 .TP
 .B backend
 .B uri=ldap[s]://<hostname>[:port]
 .B [retry=<retry interval in ms>]
-.B [network\-timeout=<seconds>]
-.B [timeout=<seconds>]
 .B [keepalive=<idle>:<probes>:<interval>]
 .B [starttls=yes|critical]
 .B [tls_cert=<file>]
@@ -624,15 +644,6 @@ will limit the total number or unfinished operations across all backend's
 connections,
 .BR 0 ,
 the default, means no limit will be imposed for this backend.
-
-The
-.B network\-timeout
-parameter sets how long the consumer will wait to establish a
-network connection to the provider. Once a connection is
-established, the
-.B timeout
-parameter determines how long the consumer will wait for the initial
-Bind request to complete. By default no timeouts are in effect.
 
 The
 .B keepalive

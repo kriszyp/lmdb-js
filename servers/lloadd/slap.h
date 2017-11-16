@@ -383,6 +383,7 @@ struct Connection {
 
     /* must not be used while holding either mutex */
     struct event *c_read_event, *c_write_event;
+    struct timeval *c_read_timeout;
 
     /* can only be changed by binding thread */
     struct berval c_sasl_bind_mech; /* mech in progress */
