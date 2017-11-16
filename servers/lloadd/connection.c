@@ -269,7 +269,7 @@ connection_write_cb( evutil_socket_t s, short what, void *arg )
             CONNECTION_LOCK_DESTROY(c);
             return;
         }
-        event_add( c->c_write_event, NULL );
+        event_add( c->c_write_event, lload_write_timeout );
     } else {
         c->c_pendingber = NULL;
     }

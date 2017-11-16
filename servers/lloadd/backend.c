@@ -117,8 +117,6 @@ upstream_name_cb( int result, struct evutil_addrinfo *res, void *arg )
     }
     /* Asynchronous connect */
     if ( rc ) {
-        struct timeval tv = { slap_write_timeout / 1000,
-                1000 * ( slap_write_timeout % 1000 ) };
         PendingConnection *conn;
 
         if ( errno != EINPROGRESS && errno != EWOULDBLOCK ) {
@@ -145,7 +143,7 @@ upstream_name_cb( int result, struct evutil_addrinfo *res, void *arg )
             goto fail;
         }
 
-        event_add( conn->event, &tv );
+        event_add( conn->event, lload_write_timeout );
         LDAP_LIST_INSERT_HEAD( &b->b_connecting, conn, next );
         Debug( LDAP_DEBUG_CONNS, "upstream_name_cb: "
                 "connection to backend uri=%s in progress\n",
@@ -353,8 +351,6 @@ backend_connect( evutil_socket_t s, short what, void *arg )
                 s, (struct sockaddr *)&addr, sizeof(struct sockaddr_un) );
         /* Asynchronous connect */
         if ( rc ) {
-            struct timeval tv = { slap_write_timeout / 1000,
-                    1000 * ( slap_write_timeout % 1000 ) };
             PendingConnection *conn;
 
             if ( errno != EINPROGRESS && errno != EWOULDBLOCK ) {
@@ -378,7 +374,7 @@ backend_connect( evutil_socket_t s, short what, void *arg )
                 goto fail;
             }
 
-            event_add( conn->event, &tv );
+            event_add( conn->event, lload_write_timeout );
             LDAP_LIST_INSERT_HEAD( &b->b_connecting, conn, next );
             Debug( LDAP_DEBUG_CONNS, "backend_connect: "
                     "connection to backend uri=%s in progress\n",

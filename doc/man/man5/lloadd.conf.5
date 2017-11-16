@@ -290,6 +290,12 @@ process PDUs from the connection until there is no more data to be
 read or this limit is reached when the I/O thread can pick it up again.
 Very high values have a potential to cause some connections to be
 starved in a very high-bandwidth environment. The default is 1000.
+.TP
+.B iotimeout <integer>
+Specify the number of milliseconds to wait before forcibly closing
+a connection with an outstanding write. This allows faster recovery from
+various network hang conditions.  An iotimeout of 0 disables this feature.
+The default is 10000.
 
 .SH TLS OPTIONS
 If
