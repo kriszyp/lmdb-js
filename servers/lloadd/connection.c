@@ -161,6 +161,14 @@ connection_read_cb( evutil_socket_t s, short what, void *arg )
         return;
     }
 
+    if ( what & EV_TIMEOUT ) {
+        Debug( LDAP_DEBUG_CONNS, "connection_read_cb: "
+                "connid=%lu, timeout reached, destroying\n",
+                c->c_connid );
+        CONNECTION_DESTROY(c);
+        return;
+    }
+
     Debug( LDAP_DEBUG_CONNS, "connection_read_cb: "
             "connection connid=%lu ready to read\n",
             c->c_connid );
@@ -244,6 +252,14 @@ connection_write_cb( evutil_socket_t s, short what, void *arg )
     CONNECTION_LOCK(c);
     if ( !c->c_live ) {
         CONNECTION_UNLOCK(c);
+        return;
+    }
+
+    if ( what & EV_TIMEOUT ) {
+        Debug( LDAP_DEBUG_CONNS, "connection_write_cb: "
+                "connid=%lu, timeout reached, destroying\n",
+                c->c_connid );
+        CONNECTION_DESTROY(c);
         return;
     }
     CONNECTION_UNLOCK_INCREF(c);
