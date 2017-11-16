@@ -442,7 +442,7 @@ upstream_tls_handshake_cb( evutil_socket_t s, short what, void *arg )
     }
     b = c->c_private;
 
-    rc = ldap_pvt_tls_connect( slap_tls_ld, c->c_sb, b->b_host );
+    rc = ldap_pvt_tls_connect( slap_tls_backend_ld, c->c_sb, b->b_host );
     if ( rc < 0 ) {
         goto fail;
     }

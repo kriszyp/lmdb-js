@@ -111,7 +111,7 @@ static int check = CHECK_NONE;
 static int version = 0;
 
 void *slap_tls_ctx;
-LDAP *slap_tls_ld;
+LDAP *slap_tls_ld, *slap_tls_backend_ld;
 
 static int
 slapd_opt_slp( const char *val, void *arg )
@@ -669,6 +669,11 @@ unhandled_option:;
 #endif
 
 #ifdef HAVE_TLS
+    rc = ldap_create( &slap_tls_backend_ld );
+    if ( rc ) {
+        SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 20 );
+        goto destroy;
+    }
     rc = ldap_create( &slap_tls_ld );
     if ( rc ) {
         SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 20 );

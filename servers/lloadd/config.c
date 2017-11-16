@@ -636,8 +636,6 @@ config_bindconf( ConfigArgs *c )
         }
     }
 
-    bindconf_tls_defaults( &bindconf );
-
     if ( bindconf.sb_method == LDAP_AUTH_SASL ) {
 #ifndef HAVE_CYRUS_SASL
         Debug( LDAP_DEBUG_ANY, "config_bindconf: "
@@ -665,6 +663,12 @@ config_bindconf( ConfigArgs *c )
                 ptr, bindconf.sb_binddn.bv_val, bindconf.sb_binddn.bv_len );
         *ptr = '\0';
     }
+
+#ifdef HAVE_TLS
+    if ( bindconf.sb_tls_do_init ) {
+        bindconf_tls_set( &bindconf, slap_tls_backend_ld );
+    }
+#endif /* HAVE_TLS */
     return 0;
 }
 
@@ -1973,6 +1977,10 @@ static slap_cf_aux_table bindkey[] = {
     { BER_BVC("authzID="), offsetof(slap_bindconf, sb_authzId), 'b', 1, NULL },
     { BER_BVC("keepalive="), offsetof(slap_bindconf, sb_keepalive), 'x', 0, (slap_verbmasks *)slap_keepalive_parse },
 #ifdef HAVE_TLS
+    /* NOTE: replace "11" with the actual index
+     * of the first TLS-related line */
+#define aux_TLS (bindkey+11) /* beginning of TLS keywords */
+
     { BER_BVC("tls_cert="), offsetof(slap_bindconf, sb_tls_cert), 's', 1, NULL },
     { BER_BVC("tls_key="), offsetof(slap_bindconf, sb_tls_key), 's', 1, NULL },
     { BER_BVC("tls_cacert="), offsetof(slap_bindconf, sb_tls_cacert), 's', 1, NULL },
@@ -2258,6 +2266,138 @@ slap_tls_get_config( LDAP *ld, int opt, char **val )
     return -1;
 }
 
+#ifdef HAVE_TLS
+static struct {
+    const char *key;
+    size_t offset;
+    int opt;
+} bindtlsopts[] = {
+    { "tls_cert", offsetof(slap_bindconf, sb_tls_cert), LDAP_OPT_X_TLS_CERTFILE },
+    { "tls_key", offsetof(slap_bindconf, sb_tls_key), LDAP_OPT_X_TLS_KEYFILE },
+    { "tls_cacert", offsetof(slap_bindconf, sb_tls_cacert), LDAP_OPT_X_TLS_CACERTFILE },
+    { "tls_cacertdir", offsetof(slap_bindconf, sb_tls_cacertdir), LDAP_OPT_X_TLS_CACERTDIR },
+    { "tls_cipher_suite", offsetof(slap_bindconf, sb_tls_cipher_suite), LDAP_OPT_X_TLS_CIPHER_SUITE },
+    { "tls_ecname", offsetof(slap_bindconf, sb_tls_ecname), LDAP_OPT_X_TLS_ECNAME },
+    { NULL, 0 }
+};
+
+int
+bindconf_tls_set( slap_bindconf *bc, LDAP *ld )
+{
+    int i, rc, newctx = 0, res = 0;
+    char *ptr = (char *)bc, **word;
+
+    if ( bc->sb_tls_do_init ) {
+        for ( i = 0; bindtlsopts[i].opt; i++ ) {
+            word = (char **)( ptr + bindtlsopts[i].offset );
+            if ( *word ) {
+                rc = ldap_set_option( ld, bindtlsopts[i].opt, *word );
+                if ( rc ) {
+                    Debug( LDAP_DEBUG_ANY, "bindconf_tls_set: "
+                            "failed to set %s to %s\n",
+                            bindtlsopts[i].key, *word );
+                    res = -1;
+                } else
+                    newctx = 1;
+            }
+        }
+        if ( bc->sb_tls_reqcert ) {
+            rc = ldap_pvt_tls_config(
+                    ld, LDAP_OPT_X_TLS_REQUIRE_CERT, bc->sb_tls_reqcert );
+            if ( rc ) {
+                Debug( LDAP_DEBUG_ANY, "bindconf_tls_set: "
+                        "failed to set tls_reqcert to %s\n",
+                        bc->sb_tls_reqcert );
+                res = -1;
+            } else {
+                newctx = 1;
+                /* retrieve the parsed setting for later use */
+                ldap_get_option( ld, LDAP_OPT_X_TLS_REQUIRE_CERT,
+                        &bc->sb_tls_int_reqcert );
+            }
+        }
+        if ( bc->sb_tls_reqsan ) {
+            rc = ldap_pvt_tls_config(
+                    ld, LDAP_OPT_X_TLS_REQUIRE_SAN, bc->sb_tls_reqsan );
+            if ( rc ) {
+                Debug( LDAP_DEBUG_ANY, "bindconf_tls_set: "
+                        "failed to set tls_reqsan to %s\n",
+                        bc->sb_tls_reqsan );
+                res = -1;
+            } else {
+                newctx = 1;
+                /* retrieve the parsed setting for later use */
+                ldap_get_option( ld, LDAP_OPT_X_TLS_REQUIRE_SAN,
+                        &bc->sb_tls_int_reqsan );
+            }
+        }
+        if ( bc->sb_tls_protocol_min ) {
+            rc = ldap_pvt_tls_config(
+                    ld, LDAP_OPT_X_TLS_PROTOCOL_MIN, bc->sb_tls_protocol_min );
+            if ( rc ) {
+                Debug( LDAP_DEBUG_ANY, "bindconf_tls_set: "
+                        "failed to set tls_protocol_min to %s\n",
+                        bc->sb_tls_protocol_min );
+                res = -1;
+            } else
+                newctx = 1;
+        }
+#ifdef HAVE_OPENSSL
+        if ( bc->sb_tls_crlcheck ) {
+            rc = ldap_pvt_tls_config(
+                    ld, LDAP_OPT_X_TLS_CRLCHECK, bc->sb_tls_crlcheck );
+            if ( rc ) {
+                Debug( LDAP_DEBUG_ANY, "bindconf_tls_set: "
+                        "failed to set tls_crlcheck to %s\n",
+                        bc->sb_tls_crlcheck );
+                res = -1;
+            } else
+                newctx = 1;
+        }
+#endif
+        if ( !res ) bc->sb_tls_do_init = 0;
+    }
+
+    if ( newctx ) {
+        int opt = 0;
+
+        if ( bc->sb_tls_ctx ) {
+            ldap_pvt_tls_ctx_free( bc->sb_tls_ctx );
+            bc->sb_tls_ctx = NULL;
+        }
+        rc = ldap_set_option( ld, LDAP_OPT_X_TLS_NEWCTX, &opt );
+        if ( rc )
+            res = rc;
+        else
+            ldap_get_option( ld, LDAP_OPT_X_TLS_CTX, &bc->sb_tls_ctx );
+    } else if ( bc->sb_tls_ctx ) {
+        rc = ldap_set_option( ld, LDAP_OPT_X_TLS_CTX, bc->sb_tls_ctx );
+        if ( rc == LDAP_SUCCESS ) {
+            /* these options aren't actually inside the ctx, so have to be set again */
+            ldap_set_option(
+                    ld, LDAP_OPT_X_TLS_REQUIRE_CERT, &bc->sb_tls_int_reqcert );
+            ldap_set_option(
+                    ld, LDAP_OPT_X_TLS_REQUIRE_SAN, &bc->sb_tls_int_reqsan );
+        } else
+            res = rc;
+    }
+
+    return res;
+}
+#endif
+
+int
+bindconf_tls_parse( const char *word, slap_bindconf *bc )
+{
+#ifdef HAVE_TLS
+    if ( slap_cf_aux_table_parse( word, bc, aux_TLS, "tls config" ) == 0 ) {
+        bc->sb_tls_do_init = 1;
+        return 0;
+    }
+#endif
+    return -1;
+}
+
 int
 backend_parse( const char *word, Backend *b )
 {
@@ -2267,6 +2407,12 @@ backend_parse( const char *word, Backend *b )
 int
 bindconf_parse( const char *word, slap_bindconf *bc )
 {
+#ifdef HAVE_TLS
+    /* Detect TLS config changes explicitly */
+    if ( bindconf_tls_parse( word, bc ) == 0 ) {
+        return 0;
+    }
+#endif
     return slap_cf_aux_table_parse( word, bc, bindkey, "bind config" );
 }
 
