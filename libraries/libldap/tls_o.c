@@ -867,7 +867,11 @@ tlso_session_pinning( LDAP *ld, tls_session *sess, char *hashalg, struct berval 
 			goto done;
 		}
 
+#if OPENSSL_VERSION_NUMBER >= 0x10100000
 		mdctx = EVP_MD_CTX_new();
+#else
+		mdctx = EVP_MD_CTX_create();
+#endif
 		if ( !mdctx ) {
 			rc = -1;
 			goto done;
@@ -877,7 +881,11 @@ tlso_session_pinning( LDAP *ld, tls_session *sess, char *hashalg, struct berval 
 		EVP_DigestUpdate( mdctx, key.bv_val, key.bv_len );
 		EVP_DigestFinal_ex( mdctx, (unsigned char *)keyhash.bv_val, &len );
 		keyhash.bv_len = len;
+#if OPENSSL_VERSION_NUMBER >= 0x10100000
 		EVP_MD_CTX_free( mdctx );
+#else
+		EVP_MD_CTX_destroy( mdctx );
+#endif
 	} else {
 		keyhash = key;
 	}
