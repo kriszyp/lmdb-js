@@ -344,12 +344,15 @@ down:;
 
 	default:
 other:;
+		/* convert rc to the correct LDAP error and send it back to the client:
+		   assing the error to rs, so we can use it as argument to slap_map_api2result
+		   and then assign the output back to rs->sr_err */
 		rs->sr_err = rc;
-		rc = slap_map_api2result( rs );
+		rs->sr_err = slap_map_api2result( rs );
 
 		ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
 		meta_clear_one_candidate( op, mc, candidate );
-		candidates[ candidate ].sr_err = rc;
+		candidates[ candidate ].sr_err = rs->sr_err;
 		if ( META_BACK_ONERR_STOP( mi ) ) {
 			LDAP_BACK_CONN_TAINTED_SET( mc );
 			meta_back_release_conn_lock( mi, mc, 0 );
