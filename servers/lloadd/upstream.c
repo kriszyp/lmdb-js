@@ -242,6 +242,7 @@ handle_one_response( Connection *c )
             operation_destroy_from_upstream( op );
         }
     } else {
+        assert(0);
         ber_free( ber, 1 );
     }
 
