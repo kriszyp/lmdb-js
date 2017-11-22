@@ -446,6 +446,7 @@ struct Operation {
     unsigned long o_upstream_connid;
     int o_upstream_live, o_upstream_refcnt;
     ber_int_t o_upstream_msgid;
+    time_t o_last_response;
 
     /* Protects o_client, o_upstream pointers before we lock their c_mutex if
      * we don't know they are still alive */
@@ -456,6 +457,7 @@ struct Operation {
      * op->o_{client,upstream}->c_mutex */
     enum op_state o_freeing;
     ber_tag_t o_tag;
+    time_t o_start;
 
     BerElement *o_ber;
     BerValue o_request, o_ctrls;

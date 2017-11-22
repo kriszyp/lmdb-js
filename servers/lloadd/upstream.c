@@ -188,6 +188,7 @@ handle_one_response( Connection *c )
         }
     }
     if ( op ) {
+        op->o_last_response = slap_get_time();
         Debug( LDAP_DEBUG_STATS2, "handle_one_response: "
                 "upstream connid=%lu, processing response for "
                 "client connid=%lu, msgid=%d\n",

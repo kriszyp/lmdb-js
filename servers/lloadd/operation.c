@@ -465,6 +465,7 @@ operation_init( Connection *c, BerElement *ber )
     op->o_client = c;
     op->o_client_connid = c->c_connid;
     op->o_ber = ber;
+    op->o_start = slap_get_time();
 
     ldap_pvt_thread_mutex_init( &op->o_mutex );
     ldap_pvt_thread_mutex_init( &op->o_link_mutex );
