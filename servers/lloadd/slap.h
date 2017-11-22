@@ -275,6 +275,7 @@ struct Backend {
     int b_bindavail, b_active, b_opening;
     LDAP_CIRCLEQ_HEAD(ConnSt, Connection) b_conns, b_bindconns, b_preparing;
     LDAP_LIST_HEAD(ConnectingSt, PendingConnection) b_connecting;
+    Connection *b_last_conn, *b_last_bindconn;
 
     long b_max_pending, b_max_conn_pending;
     long b_n_ops_executing;

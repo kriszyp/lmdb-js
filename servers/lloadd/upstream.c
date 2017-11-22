@@ -300,10 +300,16 @@ upstream_bind_cb( Connection *c )
             CONNECTION_UNLOCK_INCREF(c);
             ldap_pvt_thread_mutex_lock( &b->b_mutex );
             LDAP_CIRCLEQ_REMOVE( &b->b_preparing, c, c_next );
-            LDAP_CIRCLEQ_INSERT_HEAD( &b->b_conns, c, c_next );
             b->b_active++;
             b->b_opening--;
             b->b_failed = 0;
+            if ( b->b_last_conn ) {
+                LDAP_CIRCLEQ_INSERT_AFTER(
+                        &b->b_conns, b->b_last_conn, c, c_next );
+            } else {
+                LDAP_CIRCLEQ_INSERT_HEAD( &b->b_conns, c, c_next );
+            }
+            b->b_last_conn = c;
             ldap_pvt_thread_mutex_unlock( &b->b_mutex );
             backend_retry( b );
             CONNECTION_LOCK_DECREF(c);
@@ -407,20 +413,31 @@ upstream_finish( Connection *c )
 
     if ( is_bindconn ) {
         LDAP_CIRCLEQ_REMOVE( &b->b_preparing, c, c_next );
-        LDAP_CIRCLEQ_INSERT_HEAD( &b->b_bindconns, c, c_next );
         c->c_state = LLOAD_C_READY;
         c->c_type = LLOAD_C_BIND;
         b->b_bindavail++;
         b->b_opening--;
         b->b_failed = 0;
+        if ( b->b_last_bindconn ) {
+            LDAP_CIRCLEQ_INSERT_AFTER(
+                    &b->b_bindconns, b->b_last_bindconn, c, c_next );
+        } else {
+            LDAP_CIRCLEQ_INSERT_HEAD( &b->b_bindconns, c, c_next );
+        }
+        b->b_last_bindconn = c;
     } else if ( bindconf.sb_method == LDAP_AUTH_NONE ) {
         LDAP_CIRCLEQ_REMOVE( &b->b_preparing, c, c_next );
-        LDAP_CIRCLEQ_INSERT_HEAD( &b->b_conns, c, c_next );
         c->c_state = LLOAD_C_READY;
         c->c_type = LLOAD_C_OPEN;
         b->b_active++;
         b->b_opening--;
         b->b_failed = 0;
+        if ( b->b_last_conn ) {
+            LDAP_CIRCLEQ_INSERT_AFTER( &b->b_conns, b->b_last_conn, c, c_next );
+        } else {
+            LDAP_CIRCLEQ_INSERT_HEAD( &b->b_conns, c, c_next );
+        }
+        b->b_last_conn = c;
     } else {
         rc = 1;
         ldap_pvt_thread_pool_submit( &connection_pool, upstream_bind, c );
@@ -769,9 +786,27 @@ upstream_destroy( Connection *c )
             b->b_opening--;
             b->b_failed++;
         } else if ( c->c_type == LLOAD_C_BIND ) {
+            if ( c == b->b_last_bindconn ) {
+                Connection *prev =
+                        LDAP_CIRCLEQ_LOOP_PREV( &b->b_bindconns, c, c_next );
+                if ( prev == c ) {
+                    b->b_last_bindconn = NULL;
+                } else {
+                    b->b_last_bindconn = prev;
+                }
+            }
             LDAP_CIRCLEQ_REMOVE( &b->b_bindconns, c, c_next );
             b->b_bindavail--;
         } else {
+            if ( c == b->b_last_conn ) {
+                Connection *prev =
+                        LDAP_CIRCLEQ_LOOP_PREV( &b->b_conns, c, c_next );
+                if ( prev == c ) {
+                    b->b_last_conn = NULL;
+                } else {
+                    b->b_last_conn = prev;
+                }
+            }
             LDAP_CIRCLEQ_REMOVE( &b->b_conns, c, c_next );
             b->b_active--;
         }
