@@ -171,6 +171,7 @@ LDAP_SLAPD_F (const char *) slap_msgtype2str( ber_tag_t tag );
 LDAP_SLAPD_F (int) operation_upstream_cmp( const void *l, const void *r );
 LDAP_SLAPD_F (int) operation_client_cmp( const void *l, const void *r );
 LDAP_SLAPD_F (Operation *) operation_init( Connection *c, BerElement *ber );
+LDAP_SLAPD_F (int) operation_send_abandon( Operation *op );
 LDAP_SLAPD_F (void) operation_abandon( Operation *op );
 LDAP_SLAPD_F (void) operation_send_reject( Operation *op, int result, const char *msg, int send_anyway );
 LDAP_SLAPD_F (int) operation_send_reject_locked( Operation *op, int result, const char *msg, int send_anyway );
