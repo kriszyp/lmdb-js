@@ -122,6 +122,8 @@ LDAP_SLAPD_V (int) slapd_tcp_rmem;
 LDAP_SLAPD_V (int) slapd_tcp_wmem;
 #endif /* LDAP_TCP_BUFFER */
 
+LDAP_SLAPD_V (struct event *) lload_timeout_event;
+
 #define bvmatch( bv1, bv2 ) \
     ( ( (bv1)->bv_len == (bv2)->bv_len ) && \
             ( memcmp( (bv1)->bv_val, (bv2)->bv_val, (bv1)->bv_len ) == 0 ) )
@@ -178,6 +180,7 @@ LDAP_SLAPD_F (int) operation_send_reject_locked( Operation *op, int result, cons
 LDAP_SLAPD_F (void) operation_lost_upstream( Operation *op );
 LDAP_SLAPD_F (void) operation_destroy_from_client( Operation *op );
 LDAP_SLAPD_F (void) operation_destroy_from_upstream( Operation *op );
+LDAP_SLAPD_F (void) operations_timeout( evutil_socket_t s, short what, void *arg );
 
 /*
  * sl_malloc.c
@@ -255,6 +258,7 @@ LDAP_SLAPD_V (const char) Versionstr[];
 LDAP_SLAPD_V (int) global_gentlehup;
 LDAP_SLAPD_V (int) global_idletimeout;
 
+LDAP_SLAPD_V (struct timeval *) lload_timeout_api;
 LDAP_SLAPD_V (struct timeval *) lload_timeout_net;
 LDAP_SLAPD_V (struct timeval *) lload_write_timeout;
 

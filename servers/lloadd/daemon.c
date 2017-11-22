@@ -83,6 +83,8 @@ static ldap_pvt_thread_t listener_tid, *daemon_tid;
 
 struct evdns_base *dnsbase;
 
+struct event *lload_timeout_event;
+
 #ifndef SLAPD_LISTEN_BACKLOG
 #define SLAPD_LISTEN_BACKLOG 1024
 #endif /* ! SLAPD_LISTEN_BACKLOG */
@@ -1234,6 +1236,7 @@ slapd_daemon( struct event_base *daemon_base )
     int i, rc;
     Backend *b;
     struct event_base *base;
+    struct event *event;
 
     assert( daemon_base != NULL );
 
@@ -1280,17 +1283,29 @@ slapd_daemon( struct event_base *daemon_base )
 
     current_backend = LDAP_CIRCLEQ_FIRST( &backend );
     LDAP_CIRCLEQ_FOREACH ( b, &backend, b_next ) {
-        struct event *retry_event =
-                evtimer_new( daemon_base, backend_connect, b );
-
-        if ( !retry_event ) {
+        event = evtimer_new( daemon_base, backend_connect, b );
+        if ( !event ) {
             Debug( LDAP_DEBUG_ANY, "lloadd: "
                     "failed to allocate retry event\n" );
             return -1;
         }
-        b->b_retry_event = retry_event;
+        b->b_retry_event = event;
 
         backend_retry( b );
+    }
+
+    event = evtimer_new( daemon_base, operations_timeout, event_self_cbarg() );
+    if ( !event ) {
+        Debug( LDAP_DEBUG_ANY, "lloadd: "
+                "failed to allocate timeout event\n" );
+        return -1;
+    }
+    lload_timeout_event = event;
+
+    /* TODO: should we just add it with any timeout and re-add when the timeout
+     * changes? */
+    if ( lload_timeout_api ) {
+        event_add( event, lload_timeout_api );
     }
 
     lloadd_inited = 1;
