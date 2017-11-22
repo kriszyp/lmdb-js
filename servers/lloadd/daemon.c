@@ -1289,14 +1289,8 @@ slapd_daemon( struct event_base *daemon_base )
             return -1;
         }
         b->b_retry_event = retry_event;
-        b->b_opening++;
 
-        rc = ldap_pvt_thread_pool_submit(
-                &connection_pool, backend_connect_task, b );
-        if ( rc ) {
-            Debug( LDAP_DEBUG_ANY, "failed to schedule backend connection task (%d)\n", rc );
-            return rc;
-        }
+        backend_retry( b );
     }
 
     lloadd_inited = 1;
