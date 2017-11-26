@@ -2225,7 +2225,7 @@ approxFilter(
 	return LDAP_SUCCESS;
 }
 
-/* Remove all spaces and '-' characters */
+/* Remove all spaces and '-' characters, unless the result would be empty */
 static int
 telephoneNumberNormalize(
 	slap_mask_t usage,
@@ -2239,8 +2239,11 @@ telephoneNumberNormalize(
 
 	assert( SLAP_MR_IS_VALUE_OF_SYNTAX( usage ) != 0 );
 
-	/* validator should have refused an empty string */
-	assert( !BER_BVISEMPTY( val ) );
+	/* Ensure q is big enough, though validator should have caught this */
+	if ( BER_BVISEMPTY( val )) {
+		BER_BVZERO( normalized );
+		return LDAP_INVALID_SYNTAX;
+	}
 
 	q = normalized->bv_val = slap_sl_malloc( val->bv_len + 1, ctx );
 
@@ -2249,15 +2252,12 @@ telephoneNumberNormalize(
 			*q++ = *p;
 		}
 	}
+	if ( q == normalized->bv_val ) {
+		*q++ = ' ';
+	}
 	*q = '\0';
 
 	normalized->bv_len = q - normalized->bv_val;
-
-	if( BER_BVISEMPTY( normalized ) ) {
-		slap_sl_free( normalized->bv_val, ctx );
-		BER_BVZERO( normalized );
-		return LDAP_INVALID_SYNTAX;
-	}
 
 	return LDAP_SUCCESS;
 }
