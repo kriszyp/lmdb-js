@@ -24,6 +24,54 @@
 #include "lutil.h"
 #include "lload.h"
 
+struct berval mech_external = BER_BVC("EXTERNAL");
+
+int
+bind_mech_external(
+        LloadConnection *client,
+        LloadOperation *op,
+        struct berval *credentials )
+{
+    BerValue binddn;
+    void *ssl;
+    char *ptr;
+
+    client->c_state = LLOAD_C_READY;
+    client->c_type = LLOAD_C_OPEN;
+
+    /*
+     * We only support implicit assertion.
+     *
+     * Although RFC 4513 says the credentials field must be missing, RFC 4422
+     * doesn't and libsasl2 will pass a zero-length string to send. We have to
+     * allow that.
+     */
+    if ( !BER_BVISEMPTY( credentials ) ) {
+        return operation_send_reject_locked( op, LDAP_UNWILLING_TO_PERFORM,
+                "proxy authorization is not supported", 1 );
+    }
+
+    ssl = ldap_pvt_tls_sb_ctx( client->c_sb );
+    if ( !ssl || ldap_pvt_tls_get_peer_dn( ssl, &binddn, NULL, 0 ) ) {
+        return operation_send_reject_locked( op, LDAP_INVALID_CREDENTIALS,
+                "no externally negotiated identity", 1 );
+    }
+    client->c_auth.bv_len = binddn.bv_len + STRLENOF("dn:");
+    client->c_auth.bv_val = ch_malloc( client->c_auth.bv_len + 1 );
+
+    ptr = lutil_strcopy( client->c_auth.bv_val, "dn:" );
+    ptr = lutil_strncopy( ptr, binddn.bv_val, binddn.bv_len );
+    *ptr = '\0';
+
+    ber_memfree( binddn.bv_val );
+
+    if ( !ber_bvstrcasecmp( &client->c_auth, &lloadd_identity ) ) {
+        client->c_type = LLOAD_C_PRIVILEGED;
+    }
+
+    return operation_send_reject_locked( op, LDAP_SUCCESS, "", 1 );
+}
+
 /*
  * On entering the function, we've put a reference on both connections and hold
  * upstream's c_io_mutex.
@@ -185,9 +233,29 @@ request_bind( LloadConnection *client, LloadOperation *op )
         if ( ber_get_stringbv( copy, &mech, LBER_BV_NOTERM ) == LBER_ERROR ) {
             goto fail;
         }
-        if ( ber_bvcmp( &mech, &client->c_sasl_bind_mech ) ) {
-            ber_memfree( client->c_sasl_bind_mech.bv_val );
+        if ( !ber_bvcmp( &mech, &mech_external ) ) {
+            struct berval credentials = BER_BVNULL;
+
+            ber_get_stringbv( copy, &credentials, LBER_BV_NOTERM );
+            rc = bind_mech_external( client, op, &credentials );
+
+            /* terminate the upstream side if client switched mechanisms */
+            if ( !BER_BVISNULL( &client->c_sasl_bind_mech ) ) {
+                op->o_client_refcnt++;
+                CONNECTION_UNLOCK_INCREF(client);
+                operation_abandon( op );
+                CONNECTION_LOCK_DECREF(client);
+
+                ber_memfree( client->c_sasl_bind_mech.bv_val );
+                BER_BVZERO( &client->c_sasl_bind_mech );
+            }
+
+            ber_free( copy, 0 );
+            return rc;
+        } else if ( BER_BVISNULL( &client->c_sasl_bind_mech ) ) {
             ber_dupbv( &client->c_sasl_bind_mech, &mech );
+        } else if ( ber_bvcmp( &mech, &client->c_sasl_bind_mech ) ) {
+            ber_bvreplace( &client->c_sasl_bind_mech, &mech );
         }
     } else {
         goto fail;
