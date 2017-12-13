@@ -39,10 +39,8 @@ request_abandon( Connection *c, Operation *op )
                 "connid=%lu msgid=%d invalid integer sent in abandon request\n",
                 c->c_connid, op->o_client_msgid );
 
-        if ( operation_send_reject_locked( op, LDAP_PROTOCOL_ERROR,
-                     "invalid PDU received", 0 ) == LDAP_SUCCESS ) {
-            CONNECTION_DESTROY(c);
-        }
+        operation_destroy_from_client( op );
+        CONNECTION_DESTROY(c);
         return -1;
     }
 
@@ -221,8 +219,8 @@ handle_one_request( Connection *c )
             handler = request_bind;
             break;
         case LDAP_REQ_ABANDON:
-            /* FIXME: We need to be able to abandon a Bind request, handling
-             * ExOps (esp. Cancel) will be different */
+            /* We can't send a response to abandon requests even if a bind is
+             * currently in progress */
             handler = request_abandon;
             break;
         case LDAP_REQ_EXTENDED:
