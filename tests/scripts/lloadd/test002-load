@@ -20,6 +20,10 @@ if test x$TESTLOOPS = x ; then
     TESTLOOPS=50
 fi
 
+if test x$TESTCHILDREN = x ; then
+    TESTCHILDREN=20
+fi
+
 if test x$MAXRETRIES = x ; then
     MAXRETRIES=5
 fi
@@ -140,43 +144,18 @@ fi
 $MONITORDATA "$DATADIR" "$TESTDIR"
 
 
-echo "Using tester for concurrent server access..."
-# FIXME: Phase 1 only - we send 'Unwilling to perform' for some request types
+echo "Using tester for concurrent server access ($TESTCHILDREN x $TESTLOOPS ops)..."
 $SLAPDTESTER -P "$PROGDIR" -d "$TESTDIR" \
     -H $URI1 -D "$MANAGERDN" -w $PASSWD \
-    -l $TESTLOOPS -r $MAXRETRIES \
-    -i '*INVALID_CREDENTIALS' -i '*UNAVAILABLE' \
-    -i 'UNWILLING_TO_PERFORM'
-RC=$?
-
-if test $RC != 0 ; then
-    echo "slapd-tester failed ($RC)!"
-    test $KILLSERVERS != no && kill -HUP $KILLPIDS
-    exit $RC
-fi
-
-echo "Using ldapsearch to retrieve all the entries..."
-$LDAPSEARCH -S "" -b "$BASEDN" -H $URI1 \
-    'objectClass=*' > $SEARCHOUT 2>&1
+    -t 1 -l $TESTLOOPS -r $MAXRETRIES -j $TESTCHILDREN \
+    -i '*INVALID_CREDENTIALS,*BUSY,UNWILLING_TO_PERFORM'
 RC=$?
 
 test $KILLSERVERS != no && kill -HUP $KILLPIDS
 
 if test $RC != 0 ; then
-    echo "ldapsearch failed ($RC)!"
+    echo "slapd-tester failed ($RC)!"
     exit $RC
-fi
-
-echo "Filtering ldapsearch results..."
-$LDIFFILTER < $SEARCHOUT > $SEARCHFLT
-echo "Filtering original ldif used to create database..."
-$LDIFFILTER < $LDIF > $LDIFFLT
-echo "Comparing filter output..."
-$CMP $SEARCHFLT $LDIFFLT > $CMPOUT
-
-if test $? != 0 ; then
-    echo "comparison failed - database was not created correctly"
-    exit 1
 fi
 
 echo ">>>>> Test succeeded"
