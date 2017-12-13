@@ -29,21 +29,68 @@
  * upstream's c_io_mutex.
  */
 static int
-client_bind( LloadOperation *op )
+client_bind(
+        LloadOperation *op,
+        struct berval *binddn,
+        ber_tag_t tag,
+        struct berval *auth )
 {
-    LloadConnection *client = op->o_client, *upstream = op->o_upstream;
-    BerElement *ber, *copy = NULL;
-    BerValue binddn;
-    ber_tag_t tag;
-    ber_int_t version;
+    LloadConnection *upstream = op->o_upstream;
 
-    ber = upstream->c_pendingber;
-    if ( ber == NULL && (ber = ber_alloc()) == NULL ) {
-        Debug( LDAP_DEBUG_ANY, "request_bind: "
-                "ber_alloc failed\n" );
-        goto fail;
-    }
-    upstream->c_pendingber = ber;
+    ber_printf( upstream->c_pendingber, "t{titOtO}", LDAP_TAG_MESSAGE,
+            LDAP_TAG_MSGID, op->o_upstream_msgid,
+            LDAP_REQ_BIND, &op->o_request,
+            LDAP_TAG_CONTROLS, BER_BV_OPTIONAL( &op->o_ctrls ) );
+
+    return 0;
+}
+
+#ifdef LDAP_API_FEATURE_VERIFY_CREDENTIALS
+/*
+ * On entering the function, we've put a reference on both connections and hold
+ * upstream's c_io_mutex.
+ */
+static int
+client_bind_as_vc(
+        LloadOperation *op,
+        struct berval *binddn,
+        ber_tag_t tag,
+        struct berval *auth )
+{
+    LloadConnection *upstream = op->o_upstream;
+
+    CONNECTION_LOCK(upstream);
+    ber_printf( upstream->c_pendingber, "t{tit{tst{{tOOtOtO}}}}", LDAP_TAG_MESSAGE,
+            LDAP_TAG_MSGID, op->o_upstream_msgid,
+            LDAP_REQ_EXTENDED,
+            LDAP_TAG_EXOP_REQ_OID, LDAP_EXOP_VERIFY_CREDENTIALS,
+            LDAP_TAG_EXOP_REQ_VALUE,
+            LDAP_TAG_EXOP_VERIFY_CREDENTIALS_COOKIE, BER_BV_OPTIONAL( &upstream->c_vc_cookie ),
+            &binddn, tag, &auth,
+            LDAP_TAG_EXOP_VERIFY_CREDENTIALS_CONTROLS, BER_BV_OPTIONAL( &op->o_ctrls ) );
+    CONNECTION_UNLOCK(upstream);
+    return 0;
+}
+#endif /* LDAP_API_FEATURE_VERIFY_CREDENTIALS */
+
+int
+request_bind( LloadConnection *client, LloadOperation *op )
+{
+    LloadConnection *upstream = NULL;
+    BerElement *ber, *copy;
+    struct berval binddn, auth;
+    ber_int_t version;
+    ber_tag_t tag;
+    int res, rc = LDAP_SUCCESS;
+
+    /* protect the Bind operation */
+    op->o_client_refcnt++;
+    tavl_delete( &client->c_ops, op, operation_client_cmp );
+
+    client_reset( client );
+
+    client->c_state = LLOAD_C_BINDING;
+    client->c_type = LLOAD_C_OPEN;
 
     if ( (copy = ber_alloc()) == NULL ) {
         goto fail;
@@ -56,11 +103,10 @@ client_bind( LloadOperation *op )
                 "failed to parse version field\n" );
         goto fail;
     } else if ( version != LDAP_VERSION3 ) {
-        ldap_pvt_thread_mutex_unlock( &upstream->c_io_mutex );
-        operation_send_reject(
+        operation_send_reject_locked(
                 op, LDAP_PROTOCOL_ERROR, "LDAP version unsupported", 1 );
         ber_free( copy, 0 );
-        return 0;
+        return LDAP_SUCCESS;
     }
 
     tag = ber_get_stringbv( copy, &binddn, LBER_BV_NOTERM );
@@ -70,31 +116,66 @@ client_bind( LloadOperation *op )
         goto fail;
     }
 
-    CONNECTION_LOCK(client);
-    if ( !BER_BVISNULL( &client->c_auth ) ) {
-        ch_free( client->c_auth.bv_val );
-    }
+    tag = ber_skip_element( copy, &auth );
+    if ( tag == LDAP_AUTH_SIMPLE ) {
+        if ( !BER_BVISNULL( &client->c_auth ) ) {
+            ch_free( client->c_auth.bv_val );
+        }
+        if ( !BER_BVISEMPTY( &binddn ) ) {
+            char *ptr;
+            client->c_auth.bv_len = STRLENOF("dn:") + binddn.bv_len;
+            client->c_auth.bv_val = ch_malloc( client->c_auth.bv_len + 1 );
 
-    if ( !BER_BVISEMPTY( &binddn ) ) {
-        char *ptr;
-        client->c_auth.bv_len = STRLENOF("dn:") + binddn.bv_len;
-        client->c_auth.bv_val = ch_malloc( client->c_auth.bv_len + 1 );
+            ptr = lutil_strcopy( client->c_auth.bv_val, "dn:" );
+            ptr = lutil_strncopy( ptr, binddn.bv_val, binddn.bv_len );
+            *ptr = '\0';
+        } else {
+            BER_BVZERO( &client->c_auth );
+        }
 
-        ptr = lutil_strcopy( client->c_auth.bv_val, "dn:" );
-        ptr = lutil_strncopy( ptr, binddn.bv_val, binddn.bv_len );
-        *ptr = '\0';
+        if ( !BER_BVISNULL( &client->c_sasl_bind_mech ) ) {
+            ber_memfree( client->c_sasl_bind_mech.bv_val );
+            BER_BVZERO( &client->c_sasl_bind_mech );
+        }
+    } else if ( tag == LDAP_AUTH_SASL ) {
+        operation_send_reject( op, LDAP_AUTH_METHOD_NOT_SUPPORTED,
+                "no SASL support available yet", 1 );
+        ber_free( copy, 0 );
+        return LDAP_SUCCESS;
     } else {
-        BER_BVZERO( &client->c_auth );
+        goto fail;
     }
-    CONNECTION_UNLOCK(client);
+
+    rc = tavl_insert( &client->c_ops, op, operation_client_cmp, avl_dup_error );
+    assert( rc == LDAP_SUCCESS );
+    CONNECTION_UNLOCK_INCREF(client);
+
+    upstream = backend_select( op, &res );
+    if ( !upstream ) {
+        Debug( LDAP_DEBUG_STATS, "request_bind: "
+                "connid=%lu, msgid=%d no available connection found\n",
+                op->o_client_connid, op->o_client_msgid );
+        operation_send_reject( op, res, "no connections available", 1 );
+        goto done;
+    }
+
+    ber = upstream->c_pendingber;
+    if ( ber == NULL && (ber = ber_alloc()) == NULL ) {
+        Debug( LDAP_DEBUG_ANY, "request_bind: "
+                "ber_alloc failed\n" );
+        ldap_pvt_thread_mutex_unlock( &upstream->c_io_mutex );
+        CONNECTION_LOCK_DECREF(upstream);
+        CONNECTION_UNLOCK_OR_DESTROY(upstream);
+
+        CONNECTION_LOCK_DECREF(client);
+        goto fail;
+    }
+    upstream->c_pendingber = ber;
 
     CONNECTION_LOCK(upstream);
+    op->o_upstream = upstream;
+    op->o_upstream_connid = upstream->c_connid;
     op->o_upstream_msgid = upstream->c_next_msgid++;
-
-    ber_printf( ber, "t{titOtO}", LDAP_TAG_MESSAGE,
-            LDAP_TAG_MSGID, op->o_upstream_msgid,
-            LDAP_REQ_BIND, &op->o_request,
-            LDAP_TAG_CONTROLS, BER_BV_OPTIONAL( &op->o_ctrls ) );
 
     Debug( LDAP_DEBUG_TRACE, "request_bind: "
             "added bind from client connid=%lu to upstream connid=%lu "
@@ -104,231 +185,59 @@ client_bind( LloadOperation *op )
                  avl_dup_error ) ) {
         assert(0);
     }
-    upstream->c_state = LLOAD_C_ACTIVE;
+    upstream->c_state = LLOAD_C_BINDING;
     CONNECTION_UNLOCK(upstream);
-
-    ldap_pvt_thread_mutex_unlock( &upstream->c_io_mutex );
-
-    ber_free( copy, 0 );
-    connection_write_cb( -1, 0, upstream );
-    return 0;
-
-fail:
-    if ( copy ) {
-        ber_free( copy, 0 );
-    }
-    ldap_pvt_thread_mutex_unlock( &upstream->c_io_mutex );
-    Debug( LDAP_DEBUG_STATS, "request_bind: "
-            "connid=%lu bind request processing failed, closing\n",
-            client->c_connid );
-    return 1;
-}
-
-#ifdef LDAP_API_FEATURE_VERIFY_CREDENTIALS
-/*
- * On entering the function, we've put a reference on both connections and hold
- * upstream's c_io_mutex.
- */
-static int
-client_bind_as_vc( LloadOperation *op )
-{
-    LloadConnection *client = op->o_client, *upstream = op->o_upstream;
-    BerElement *ber, *request, *copy = NULL;
-    BerValue binddn, auth, mech;
-    char *msg = "internal error";
-    int result = LDAP_OTHER;
-    ber_int_t version;
-    ber_tag_t tag;
-    ber_len_t len;
-
-    if ( (request = ber_alloc()) == NULL ) {
-        goto fail;
-    }
-    ber_init2( request, &op->o_request, 0 );
-
-    tag = ber_scanf( request, "im", &version, &binddn );
-    if ( tag == LBER_ERROR || version != LDAP_VERSION3 ) {
-        result = LDAP_PROTOCOL_ERROR;
-        msg = "version not recognised";
-        goto fail;
-    }
-
-    copy = ber_dup( request );
-    if ( !copy ) {
-        goto fail;
-    }
-
-    tag = ber_skip_element( request, &auth );
-    if ( tag == LBER_ERROR ) {
-        result = LDAP_PROTOCOL_ERROR;
-        msg = "malformed bind request";
-        goto fail;
-    }
-
-    ber = upstream->c_pendingber;
-    if ( ber == NULL && (ber = ber_alloc()) == NULL ) {
-        Debug( LDAP_DEBUG_ANY, "request_bind_as_vc: "
-                "ber_alloc failed\n" );
-        goto fail;
-    }
-    upstream->c_pendingber = ber;
-
-    op->o_upstream_msgid = upstream->c_next_msgid++;
-
-    CONNECTION_LOCK(upstream);
-    ber_printf( ber, "t{tit{tst{{tOOtOtO}}}}", LDAP_TAG_MESSAGE,
-            LDAP_TAG_MSGID, op->o_upstream_msgid,
-            LDAP_REQ_EXTENDED,
-            LDAP_TAG_EXOP_REQ_OID, LDAP_EXOP_VERIFY_CREDENTIALS,
-            LDAP_TAG_EXOP_REQ_VALUE,
-            LDAP_TAG_EXOP_VERIFY_CREDENTIALS_COOKIE, BER_BV_OPTIONAL( &upstream->c_vc_cookie ),
-            &binddn, tag, &auth,
-            LDAP_TAG_EXOP_VERIFY_CREDENTIALS_CONTROLS, BER_BV_OPTIONAL( &op->o_ctrls ) );
-    CONNECTION_UNLOCK(upstream);
-
-    tag = ber_peek_tag( copy, &len );
-    switch ( tag ) {
-        case LDAP_AUTH_SASL:
-            ber_get_stringbv( copy, &mech, LBER_BV_NOTERM );
-
-            CONNECTION_LOCK(client);
-            if ( ber_bvcmp( &mech, &client->c_sasl_bind_mech ) ) {
-                ber_memfree( client->c_sasl_bind_mech.bv_val );
-                ber_dupbv( &client->c_sasl_bind_mech, &mech );
-            }
-            CONNECTION_UNLOCK(client);
-            /* TODO: extract authzdn from the message */
-            break;
-        case LDAP_AUTH_SIMPLE:
-            CONNECTION_LOCK(client);
-            if ( !BER_BVISNULL( &client->c_auth ) ) {
-                ch_free( client->c_auth.bv_val );
-            }
-            if ( !BER_BVISEMPTY( &binddn ) ) {
-                char *ptr;
-                client->c_auth.bv_len = STRLENOF("dn:") + binddn.bv_len;
-                client->c_auth.bv_val = ch_malloc( client->c_auth.bv_len + 1 );
-
-                ptr = lutil_strcopy( client->c_auth.bv_val, "dn:" );
-                ptr = lutil_strncopy( ptr, binddn.bv_val, binddn.bv_len );
-                *ptr = '\0';
-            } else {
-                BER_BVZERO( &client->c_auth );
-            }
-
-            if ( !BER_BVISNULL( &client->c_sasl_bind_mech ) ) {
-                ber_memfree( client->c_sasl_bind_mech.bv_val );
-                BER_BVZERO( &client->c_sasl_bind_mech );
-            }
-            CONNECTION_UNLOCK(client);
-            break;
-        default:
-            result = LDAP_PROTOCOL_ERROR;
-            msg = "malformed bind request";
-            goto fail;
-    }
-
-    CONNECTION_LOCK(upstream);
-    Debug( LDAP_DEBUG_TRACE, "request_bind_as_vc: "
-            "added bind from client connid=%lu to upstream connid=%lu "
-            "as VC exop msgid=%d\n",
-            op->o_client_connid, op->o_upstream_connid, op->o_upstream_msgid );
-    if ( tavl_insert( &upstream->c_ops, op, operation_upstream_cmp,
-                 avl_dup_error ) ) {
-        assert(0);
-    }
-    CONNECTION_UNLOCK(upstream);
-
-    ldap_pvt_thread_mutex_unlock( &upstream->c_io_mutex );
-
-    ber_free( copy, 0 );
-    connection_write_cb( -1, 0, upstream );
-
-    return 0;
-
-fail:
-    if ( copy ) {
-        ber_free( copy, 0 );
-    }
-    ldap_pvt_thread_mutex_unlock( &upstream->c_io_mutex );
-    Debug( LDAP_DEBUG_STATS, "request_bind_as_vc: "
-            "connid=%lu bind request processing failed, closing\n",
-            client->c_connid );
-    operation_send_reject( op, result, msg, 1 );
-    return 1;
-}
-#endif /* LDAP_API_FEATURE_VERIFY_CREDENTIALS */
-
-int
-request_bind( LloadConnection *client, LloadOperation *op )
-{
-    LloadConnection *upstream;
-    int res, rc = LDAP_SUCCESS;
-
-    /* protect the Bind operation */
-    op->o_client_refcnt++;
-    tavl_delete( &client->c_ops, op, operation_client_cmp );
-
-    client_reset( client );
-
-    client->c_state = LLOAD_C_BINDING;
-    client->c_type = LLOAD_C_OPEN;
-
-    rc = tavl_insert( &client->c_ops, op, operation_client_cmp, avl_dup_error );
-    assert( rc == LDAP_SUCCESS );
-    CONNECTION_UNLOCK_INCREF(client);
-
-    upstream = backend_select( op, &res );
-    if ( !upstream ) {
-        Debug( LDAP_DEBUG_STATS, "client_bind: "
-                "connid=%lu, msgid=%d no available connection found\n",
-                op->o_client_connid, op->o_client_msgid );
-        operation_send_reject( op, res, "no connections available", 1 );
-        CONNECTION_LOCK_DECREF(client);
-        op->o_client_refcnt--;
-        operation_destroy_from_client( op );
-        return rc;
-    }
-
-    op->o_upstream = upstream;
-    op->o_upstream_connid = upstream->c_connid;
 
 #ifdef LDAP_API_FEATURE_VERIFY_CREDENTIALS
     if ( lload_features & LLOAD_FEATURE_VC ) {
-        rc = client_bind_as_vc( op );
+        rc = client_bind_as_vc( op, &binddn, tag, &auth );
     } else
 #endif /* LDAP_API_FEATURE_VERIFY_CREDENTIALS */
     {
-        rc = client_bind( op );
+        rc = client_bind( op, &binddn, tag, &auth );
     }
 
-    CONNECTION_LOCK_DECREF(upstream);
-    CONNECTION_UNLOCK_OR_DESTROY(upstream);
+done:
+    if ( rc == LDAP_SUCCESS ) {
+        CONNECTION_LOCK(client);
+        if ( upstream ) {
+            ldap_pvt_thread_mutex_unlock( &upstream->c_io_mutex );
+        }
 
-    CONNECTION_LOCK_DECREF(client);
-    if ( rc ) {
+        if ( !--op->o_client_refcnt || !upstream ) {
+            operation_destroy_from_client( op );
+            if ( client->c_state == LLOAD_C_BINDING ) {
+                client->c_state = LLOAD_C_READY;
+                client->c_type = LLOAD_C_OPEN;
+                if ( !BER_BVISNULL( &client->c_auth ) ) {
+                    ch_free( client->c_auth.bv_val );
+                    BER_BVZERO( &client->c_auth );
+                }
+                if ( !BER_BVISNULL( &client->c_sasl_bind_mech ) ) {
+                    ber_memfree( client->c_sasl_bind_mech.bv_val );
+                    BER_BVZERO( &client->c_sasl_bind_mech );
+                }
+            }
+        }
+        CONNECTION_UNLOCK(client);
+
+        if ( upstream ) {
+            connection_write_cb( -1, 0, upstream );
+            CONNECTION_LOCK_DECREF(upstream);
+            CONNECTION_UNLOCK_OR_DESTROY(upstream);
+        }
+        CONNECTION_LOCK_DECREF(client);
+    } else {
+fail:
+        rc = -1;
+
+        CONNECTION_LOCK_DECREF(client);
         op->o_client_refcnt--;
         operation_destroy_from_client( op );
         CONNECTION_DESTROY(client);
-        return -1;
     }
 
-    if ( !--op->o_client_refcnt ) {
-        operation_destroy_from_client( op );
-        if ( client->c_state == LLOAD_C_BINDING ) {
-            client->c_state = LLOAD_C_READY;
-            client->c_type = LLOAD_C_OPEN;
-            if ( !BER_BVISNULL( &client->c_auth ) ) {
-                ber_memfree( client->c_auth.bv_val );
-                BER_BVZERO( &client->c_auth );
-            }
-            if ( !BER_BVISNULL( &client->c_sasl_bind_mech ) ) {
-                ber_memfree( client->c_sasl_bind_mech.bv_val );
-                BER_BVZERO( &client->c_sasl_bind_mech );
-            }
-        }
-    }
-
+    ber_free( copy, 0 );
     return rc;
 }
 
