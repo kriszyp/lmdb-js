@@ -135,6 +135,8 @@ LDAP_SLAPD_F (void) lload_libevent_destroy( void );
 /*
  * operation.c
  */
+LDAP_SLAPD_V (ldap_pvt_thread_mutex_t) lload_pin_mutex;
+LDAP_SLAPD_V (unsigned long) lload_next_pin;
 LDAP_SLAPD_F (const char *) lload_msgtype2str( ber_tag_t tag );
 LDAP_SLAPD_F (int) operation_upstream_cmp( const void *l, const void *r );
 LDAP_SLAPD_F (int) operation_client_cmp( const void *l, const void *r );

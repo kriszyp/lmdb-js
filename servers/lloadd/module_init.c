@@ -63,6 +63,7 @@ lload_conn_pool_init()
 
     ldap_pvt_thread_mutex_init( &backend_mutex );
     ldap_pvt_thread_mutex_init( &clients_mutex );
+    ldap_pvt_thread_mutex_init( &lload_pin_mutex );
 
     lload_exop_init();
     Debug( LDAP_DEBUG_TRACE, "lload_conn_pool_init: "

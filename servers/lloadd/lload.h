@@ -257,6 +257,8 @@ struct LloadConnection {
     struct berval c_sasl_bind_mech; /* mech in progress */
     struct berval c_auth;           /* authcDN (possibly in progress) */
 
+    unsigned long c_pin_id;
+
 #ifdef LDAP_API_FEATURE_VERIFY_CREDENTIALS
     struct berval c_vc_cookie;
 #endif /* LDAP_API_FEATURE_VERIFY_CREDENTIALS */
@@ -321,6 +323,7 @@ struct LloadOperation {
     enum op_state o_freeing;
     ber_tag_t o_tag;
     time_t o_start;
+    unsigned long o_pin_id;
 
     BerElement *o_ber;
     BerValue o_request, o_ctrls;

@@ -81,7 +81,47 @@ request_bind( LloadConnection *client, LloadOperation *op )
     struct berval binddn, auth;
     ber_int_t version;
     ber_tag_t tag;
+    unsigned long pin = client->c_pin_id;
     int res, rc = LDAP_SUCCESS;
+
+    if ( pin ) {
+        LloadOperation *pinned_op, needle = {
+            .o_client_connid = client->c_connid,
+            .o_client_msgid = 0,
+            .o_pin_id = client->c_pin_id,
+        };
+
+        Debug( LDAP_DEBUG_CONNS, "request_bind: "
+                "client connid=%lu is pinned pin=%lu\n",
+                client->c_connid, pin );
+
+        pinned_op =
+                tavl_delete( &client->c_ops, &needle, operation_client_cmp );
+        if ( pinned_op ) {
+            assert( op->o_tag == pinned_op->o_tag );
+
+            pinned_op->o_client_msgid = op->o_client_msgid;
+
+            /* Preserve the new BerElement and its pointers, reclaim the old
+             * one in operation_destroy_from_client if it's still there */
+            needle.o_ber = pinned_op->o_ber;
+            pinned_op->o_ber = op->o_ber;
+            op->o_ber = needle.o_ber;
+
+            pinned_op->o_request = op->o_request;
+            pinned_op->o_ctrls = op->o_ctrls;
+
+            /*
+             * pinned_op is accessible from the upstream, protect it since we
+             * lose the client lock in operation_destroy_from_client temporarily
+             */
+            pinned_op->o_client_refcnt++;
+            operation_destroy_from_client( op );
+            pinned_op->o_client_refcnt--;
+
+            op = pinned_op;
+        }
+    }
 
     /* protect the Bind operation */
     op->o_client_refcnt++;
@@ -138,10 +178,17 @@ request_bind( LloadConnection *client, LloadOperation *op )
             BER_BVZERO( &client->c_sasl_bind_mech );
         }
     } else if ( tag == LDAP_AUTH_SASL ) {
-        operation_send_reject( op, LDAP_AUTH_METHOD_NOT_SUPPORTED,
-                "no SASL support available yet", 1 );
-        ber_free( copy, 0 );
-        return LDAP_SUCCESS;
+        struct berval mech;
+
+        ber_init2( copy, &auth, 0 );
+
+        if ( ber_get_stringbv( copy, &mech, LBER_BV_NOTERM ) == LBER_ERROR ) {
+            goto fail;
+        }
+        if ( ber_bvcmp( &mech, &client->c_sasl_bind_mech ) ) {
+            ber_memfree( client->c_sasl_bind_mech.bv_val );
+            ber_dupbv( &client->c_sasl_bind_mech, &mech );
+        }
     } else {
         goto fail;
     }
@@ -150,12 +197,42 @@ request_bind( LloadConnection *client, LloadOperation *op )
     assert( rc == LDAP_SUCCESS );
     CONNECTION_UNLOCK_INCREF(client);
 
-    upstream = backend_select( op, &res );
+    if ( pin ) {
+        ldap_pvt_thread_mutex_lock( &op->o_link_mutex );
+        upstream = op->o_upstream;
+        if ( upstream ) {
+            CONNECTION_LOCK(upstream);
+            if ( !upstream->c_live ) {
+                CONNECTION_UNLOCK(upstream);
+                upstream = NULL;
+            }
+        }
+        ldap_pvt_thread_mutex_unlock( &op->o_link_mutex );
+    }
+
+    /* If we were pinned but lost the link, don't look for a new upstream, we
+     * have to reject the op and clear pin */
+    if ( upstream ) {
+        CONNECTION_UNLOCK_INCREF(upstream);
+        ldap_pvt_thread_mutex_lock( &upstream->c_io_mutex );
+    } else if ( !pin ) {
+        upstream = backend_select( op, &res );
+    } else {
+        Debug( LDAP_DEBUG_STATS, "request_bind: "
+                "connid=%lu, msgid=%d pinned upstream lost\n",
+                op->o_client_connid, op->o_client_msgid );
+        operation_send_reject( op, LDAP_UNAVAILABLE,
+                "connection to the remote server has been severed", 1 );
+        pin = 0;
+        goto done;
+    }
+
     if ( !upstream ) {
         Debug( LDAP_DEBUG_STATS, "request_bind: "
                 "connid=%lu, msgid=%d no available connection found\n",
                 op->o_client_connid, op->o_client_msgid );
         operation_send_reject( op, res, "no connections available", 1 );
+        assert( client->c_pin_id == 0 );
         goto done;
     }
 
@@ -173,6 +250,18 @@ request_bind( LloadConnection *client, LloadOperation *op )
     upstream->c_pendingber = ber;
 
     CONNECTION_LOCK(upstream);
+    if ( pin ) {
+        tavl_delete( &upstream->c_ops, op, operation_upstream_cmp );
+    } else if ( tag == LDAP_AUTH_SASL && !op->o_pin_id ) {
+        ldap_pvt_thread_mutex_lock( &lload_pin_mutex );
+        pin = op->o_pin_id = lload_next_pin++;
+        Debug( LDAP_DEBUG_CONNS, "request_bind: "
+                "client connid=%lu allocated pin=%lu linking it to upstream "
+                "connid=%lu\n",
+                op->o_client_connid, pin, upstream->c_connid );
+        ldap_pvt_thread_mutex_unlock( &lload_pin_mutex );
+    }
+
     op->o_upstream = upstream;
     op->o_upstream_connid = upstream->c_connid;
     op->o_upstream_msgid = upstream->c_next_msgid++;
@@ -204,11 +293,13 @@ done:
             ldap_pvt_thread_mutex_unlock( &upstream->c_io_mutex );
         }
 
+        client->c_pin_id = pin;
         if ( !--op->o_client_refcnt || !upstream ) {
             operation_destroy_from_client( op );
             if ( client->c_state == LLOAD_C_BINDING ) {
                 client->c_state = LLOAD_C_READY;
                 client->c_type = LLOAD_C_OPEN;
+                client->c_pin_id = 0;
                 if ( !BER_BVISNULL( &client->c_auth ) ) {
                     ch_free( client->c_auth.bv_val );
                     BER_BVZERO( &client->c_auth );
@@ -234,6 +325,7 @@ fail:
         CONNECTION_LOCK_DECREF(client);
         op->o_client_refcnt--;
         operation_destroy_from_client( op );
+        client->c_pin_id = 0;
         CONNECTION_DESTROY(client);
     }
 
@@ -250,6 +342,7 @@ handle_bind_response(
     LloadConnection *upstream = op->o_upstream;
     BerValue response;
     BerElement *copy;
+    LloadOperation *removed;
     ber_int_t result;
     ber_tag_t tag;
     int rc = LDAP_SUCCESS;
@@ -280,18 +373,36 @@ handle_bind_response(
     CONNECTION_LOCK(upstream);
     if ( result != LDAP_SASL_BIND_IN_PROGRESS ) {
         upstream->c_state = LLOAD_C_READY;
+        op->o_pin_id = 0;
+    } else {
+        if ( tavl_delete( &upstream->c_ops, op, operation_upstream_cmp ) ) {
+            op->o_upstream_msgid = 0;
+            op->o_upstream_refcnt++;
+            rc = tavl_insert( &upstream->c_ops, op, operation_upstream_cmp,
+                    avl_dup_error );
+            assert( rc == LDAP_SUCCESS );
+        }
     }
     CONNECTION_UNLOCK(upstream);
 
     CONNECTION_LOCK(client);
+    removed = tavl_delete( &client->c_ops, op, operation_client_cmp );
+    assert( !removed || op == removed );
+
     if ( client->c_state == LLOAD_C_BINDING ) {
         switch ( result ) {
             case LDAP_SASL_BIND_IN_PROGRESS:
+                op->o_client_msgid = 0;
+                rc = tavl_insert( &client->c_ops, op, operation_client_cmp,
+                        avl_dup_error );
+                assert( rc == LDAP_SUCCESS );
                 break;
             case LDAP_SUCCESS:
             default: {
+                op->o_client = NULL;
                 client->c_state = LLOAD_C_READY;
                 client->c_type = LLOAD_C_OPEN;
+                client->c_pin_id = 0;
                 if ( result != LDAP_SUCCESS ) {
                     ber_memfree( client->c_auth.bv_val );
                     BER_BVZERO( &client->c_auth );
@@ -314,7 +425,7 @@ handle_bind_response(
 
 done:
     if ( rc ) {
-        operation_send_reject( op, LDAP_OTHER, "internal error", 0 );
+        operation_send_reject( op, LDAP_OTHER, "internal error", 1 );
 
         ber_free( ber, 1 );
         return LDAP_SUCCESS;
@@ -403,6 +514,7 @@ handle_vc_bind_response(
             default: {
                 client->c_state = LLOAD_C_READY;
                 client->c_type = LLOAD_C_OPEN;
+                client->c_pin_id = 0;
                 if ( result != LDAP_SUCCESS ) {
                     ber_memfree( client->c_auth.bv_val );
                     BER_BVZERO( &client->c_auth );

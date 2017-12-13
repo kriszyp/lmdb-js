@@ -78,9 +78,11 @@ forward_final_response(
             "client connid=%lu\n",
             op->o_upstream_connid, op->o_upstream_msgid, op->o_client_connid );
     rc = forward_response( client, op, ber );
-    CONNECTION_LOCK_DECREF(op->o_upstream);
-    operation_destroy_from_upstream( op );
-    CONNECTION_UNLOCK_INCREF(op->o_upstream);
+    CONNECTION_LOCK(op->o_upstream);
+    if ( !op->o_pin_id || !op->o_upstream_refcnt-- ) {
+        operation_destroy_from_upstream( op );
+    }
+    CONNECTION_UNLOCK(op->o_upstream);
 
     return rc;
 }

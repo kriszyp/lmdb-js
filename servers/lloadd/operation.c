@@ -18,6 +18,9 @@
 #include "lutil.h"
 #include "lload.h"
 
+ldap_pvt_thread_mutex_t lload_pin_mutex;
+unsigned long lload_next_pin = 1;
+
 ber_tag_t
 slap_req2res( ber_tag_t tag )
 {
@@ -87,9 +90,14 @@ operation_client_cmp( const void *left, const void *right )
     const LloadOperation *l = left, *r = right;
 
     assert( l->o_client_connid == r->o_client_connid );
-    return ( l->o_client_msgid < r->o_client_msgid ) ?
-            -1 :
-            ( l->o_client_msgid > r->o_client_msgid );
+    if ( l->o_client_msgid || r->o_client_msgid ) {
+        return ( l->o_client_msgid < r->o_client_msgid ) ?
+                -1 :
+                ( l->o_client_msgid > r->o_client_msgid );
+    } else {
+        return ( l->o_pin_id < r->o_pin_id ) ? -1 :
+                ( l->o_pin_id > r->o_pin_id );
+    }
 }
 
 int
@@ -98,9 +106,14 @@ operation_upstream_cmp( const void *left, const void *right )
     const LloadOperation *l = left, *r = right;
 
     assert( l->o_upstream_connid == r->o_upstream_connid );
-    return ( l->o_upstream_msgid < r->o_upstream_msgid ) ?
-            -1 :
-            ( l->o_upstream_msgid > r->o_upstream_msgid );
+    if ( l->o_upstream_msgid || r->o_upstream_msgid ) {
+        return ( l->o_upstream_msgid < r->o_upstream_msgid ) ?
+                -1 :
+                ( l->o_upstream_msgid > r->o_upstream_msgid );
+    } else {
+        return ( l->o_pin_id < r->o_pin_id ) ? -1 :
+                ( l->o_pin_id > r->o_pin_id );
+    }
 }
 
 /*
@@ -632,6 +645,9 @@ done:
     CONNECTION_LOCK(c);
     if ( c->c_state == LLOAD_C_BINDING ) {
         c->c_state = LLOAD_C_READY;
+        if ( op->o_pin_id ) {
+            c->c_pin_id = 0;
+        }
     }
     op->o_client_refcnt--;
     operation_destroy_from_client( op );
