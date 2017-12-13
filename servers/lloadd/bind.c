@@ -333,9 +333,12 @@ request_bind( LloadConnection *client, LloadOperation *op )
 }
 
 int
-handle_bind_response( LloadOperation *op, BerElement *ber )
+handle_bind_response(
+        LloadConnection *client,
+        LloadOperation *op,
+        BerElement *ber )
 {
-    LloadConnection *client = op->o_client, *upstream = op->o_upstream;
+    LloadConnection *upstream = op->o_upstream;
     BerValue response;
     BerElement *copy;
     ber_int_t result;
@@ -407,14 +410,16 @@ done:
         ber_free( ber, 1 );
         return LDAP_SUCCESS;
     }
-    return forward_final_response( op, ber );
+    return forward_final_response( client, op, ber );
 }
 
 #ifdef LDAP_API_FEATURE_VERIFY_CREDENTIALS
 int
-handle_vc_bind_response( LloadOperation *op, BerElement *ber )
+handle_vc_bind_response(
+        LloadConnection *client,
+        LloadOperation *op,
+        BerElement *ber )
 {
-    LloadConnection *c = op->o_client;
     BerElement *output;
     BerValue matched, diagmsg, creds = BER_BVNULL, controls = BER_BVNULL;
     ber_int_t result;
@@ -447,16 +452,16 @@ handle_vc_bind_response( LloadOperation *op, BerElement *ber )
             "connid=%lu, result=%d\n",
             op->o_client_msgid, op->o_client_connid, result );
 
-    CONNECTION_LOCK(c);
+    CONNECTION_LOCK(client);
 
     if ( tag == LDAP_TAG_EXOP_VERIFY_CREDENTIALS_COOKIE ) {
-        if ( !BER_BVISNULL( &c->c_vc_cookie ) ) {
-            ber_memfree( c->c_vc_cookie.bv_val );
+        if ( !BER_BVISNULL( &client->c_vc_cookie ) ) {
+            ber_memfree( client->c_vc_cookie.bv_val );
         }
-        tag = ber_scanf( ber, "o", &c->c_vc_cookie );
+        tag = ber_scanf( ber, "o", &client->c_vc_cookie );
         if ( tag == LBER_ERROR ) {
             rc = -1;
-            CONNECTION_UNLOCK_INCREF(c);
+            CONNECTION_UNLOCK_INCREF(client);
             goto done;
         }
         tag = ber_peek_tag( ber, &len );
@@ -466,7 +471,7 @@ handle_vc_bind_response( LloadOperation *op, BerElement *ber )
         tag = ber_scanf( ber, "m", &creds );
         if ( tag == LBER_ERROR ) {
             rc = -1;
-            CONNECTION_UNLOCK_INCREF(c);
+            CONNECTION_UNLOCK_INCREF(client);
             goto done;
         }
         tag = ber_peek_tag( ber, &len );
@@ -476,51 +481,51 @@ handle_vc_bind_response( LloadOperation *op, BerElement *ber )
         tag = ber_scanf( ber, "m", &controls );
         if ( tag == LBER_ERROR ) {
             rc = -1;
-            CONNECTION_UNLOCK_INCREF(c);
+            CONNECTION_UNLOCK_INCREF(client);
             goto done;
         }
     }
 
-    if ( c->c_state == LLOAD_C_BINDING ) {
+    if ( client->c_state == LLOAD_C_BINDING ) {
         switch ( result ) {
             case LDAP_SASL_BIND_IN_PROGRESS:
                 break;
             case LDAP_SUCCESS:
             default: {
-                c->c_state = LLOAD_C_READY;
-                c->c_type = LLOAD_C_OPEN;
+                client->c_state = LLOAD_C_READY;
+                client->c_type = LLOAD_C_OPEN;
                 if ( result != LDAP_SUCCESS ) {
-                    ber_memfree( c->c_auth.bv_val );
-                    BER_BVZERO( &c->c_auth );
+                    ber_memfree( client->c_auth.bv_val );
+                    BER_BVZERO( &client->c_auth );
                 } else if ( !ber_bvstrcasecmp(
-                                    &c->c_auth, &lloadd_identity ) ) {
-                    c->c_type = LLOAD_C_PRIVILEGED;
+                                    &client->c_auth, &lloadd_identity ) ) {
+                    client->c_type = LLOAD_C_PRIVILEGED;
                 }
-                if ( !BER_BVISNULL( &c->c_vc_cookie ) ) {
-                    ber_memfree( c->c_vc_cookie.bv_val );
-                    BER_BVZERO( &c->c_vc_cookie );
+                if ( !BER_BVISNULL( &client->c_vc_cookie ) ) {
+                    ber_memfree( client->c_vc_cookie.bv_val );
+                    BER_BVZERO( &client->c_vc_cookie );
                 }
-                if ( !BER_BVISNULL( &c->c_sasl_bind_mech ) ) {
-                    ber_memfree( c->c_sasl_bind_mech.bv_val );
-                    BER_BVZERO( &c->c_sasl_bind_mech );
+                if ( !BER_BVISNULL( &client->c_sasl_bind_mech ) ) {
+                    ber_memfree( client->c_sasl_bind_mech.bv_val );
+                    BER_BVZERO( &client->c_sasl_bind_mech );
                 }
                 break;
             }
         }
     } else {
-        assert( c->c_state == LLOAD_C_INVALID ||
-                c->c_state == LLOAD_C_CLOSING );
+        assert( client->c_state == LLOAD_C_INVALID ||
+                client->c_state == LLOAD_C_CLOSING );
     }
-    CONNECTION_UNLOCK_INCREF(c);
+    CONNECTION_UNLOCK_INCREF(client);
 
-    ldap_pvt_thread_mutex_lock( &c->c_io_mutex );
-    output = c->c_pendingber;
+    ldap_pvt_thread_mutex_lock( &client->c_io_mutex );
+    output = client->c_pendingber;
     if ( output == NULL && (output = ber_alloc()) == NULL ) {
         rc = -1;
-        ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
+        ldap_pvt_thread_mutex_unlock( &client->c_io_mutex );
         goto done;
     }
-    c->c_pendingber = output;
+    client->c_pendingber = output;
 
     rc = ber_printf( output, "t{tit{eOOtO}tO}", LDAP_TAG_MESSAGE,
             LDAP_TAG_MSGID, op->o_client_msgid, LDAP_RES_BIND,
@@ -528,16 +533,16 @@ handle_vc_bind_response( LloadOperation *op, BerElement *ber )
             LDAP_TAG_SASL_RES_CREDS, BER_BV_OPTIONAL( &creds ),
             LDAP_TAG_CONTROLS, BER_BV_OPTIONAL( &controls ) );
 
-    ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
+    ldap_pvt_thread_mutex_unlock( &client->c_io_mutex );
     if ( rc >= 0 ) {
-        connection_write_cb( -1, 0, c );
+        connection_write_cb( -1, 0, client );
         rc = 0;
     }
 
 done:
-    CONNECTION_LOCK_DECREF(c);
+    CONNECTION_LOCK_DECREF(client);
     operation_destroy_from_client( op );
-    CONNECTION_UNLOCK_OR_DESTROY(c);
+    CONNECTION_UNLOCK_OR_DESTROY(client);
     ber_free( ber, 1 );
     return rc;
 }

@@ -25,9 +25,8 @@
 #include "lload.h"
 
 int
-forward_response( LloadOperation *op, BerElement *ber )
+forward_response( LloadConnection *client, LloadOperation *op, BerElement *ber )
 {
-    LloadConnection *c = op->o_client;
     BerElement *output;
     BerValue response, controls = BER_BVNULL;
     ber_tag_t tag, response_tag;
@@ -45,29 +44,32 @@ forward_response( LloadOperation *op, BerElement *ber )
             lload_msgtype2str( response_tag ), op->o_client_connid,
             op->o_client_msgid );
 
-    ldap_pvt_thread_mutex_lock( &c->c_io_mutex );
-    output = c->c_pendingber;
+    ldap_pvt_thread_mutex_lock( &client->c_io_mutex );
+    output = client->c_pendingber;
     if ( output == NULL && (output = ber_alloc()) == NULL ) {
         ber_free( ber, 1 );
-        ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
+        ldap_pvt_thread_mutex_unlock( &client->c_io_mutex );
         return -1;
     }
-    c->c_pendingber = output;
+    client->c_pendingber = output;
 
     ber_printf( output, "t{titOtO}", LDAP_TAG_MESSAGE,
             LDAP_TAG_MSGID, op->o_client_msgid,
             response_tag, &response,
             LDAP_TAG_CONTROLS, BER_BV_OPTIONAL( &controls ) );
 
-    ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
+    ldap_pvt_thread_mutex_unlock( &client->c_io_mutex );
 
     ber_free( ber, 1 );
-    connection_write_cb( -1, 0, c );
+    connection_write_cb( -1, 0, client );
     return 0;
 }
 
 int
-forward_final_response( LloadOperation *op, BerElement *ber )
+forward_final_response(
+        LloadConnection *client,
+        LloadOperation *op,
+        BerElement *ber )
 {
     int rc;
 
@@ -75,7 +77,7 @@ forward_final_response( LloadOperation *op, BerElement *ber )
             "connid=%lu msgid=%d finishing up with a request for "
             "client connid=%lu\n",
             op->o_upstream_connid, op->o_upstream_msgid, op->o_client_connid );
-    rc = forward_response( op, ber );
+    rc = forward_response( client, op, ber );
     CONNECTION_LOCK_DECREF(op->o_upstream);
     operation_destroy_from_upstream( op );
     CONNECTION_UNLOCK_INCREF(op->o_upstream);
@@ -223,7 +225,7 @@ handle_one_response( LloadConnection *c )
         ldap_pvt_thread_mutex_unlock( &op->o_link_mutex );
 
         if ( client ) {
-            rc = handler( op, ber );
+            rc = handler( client, op, ber );
             CONNECTION_LOCK_DECREF(client);
             op->o_client_refcnt--;
             if ( !op->o_client_refcnt ) {

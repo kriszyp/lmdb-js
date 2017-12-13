@@ -148,7 +148,9 @@ struct LloadBackend {
     LDAP_CIRCLEQ_ENTRY(LloadBackend) b_next;
 };
 
-typedef int (*LloadOperationHandler)( LloadOperation *op, BerElement *ber );
+typedef int (*LloadOperationHandler)( LloadConnection *client,
+        LloadOperation *op,
+        BerElement *ber );
 typedef int (*RequestHandler)( LloadConnection *c, LloadOperation *op );
 typedef struct lload_exop_handlers_t {
     struct berval oid;

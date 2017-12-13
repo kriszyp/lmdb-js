@@ -50,8 +50,8 @@ LDAP_SLAPD_F (void) backends_destroy( void );
  * bind.c
  */
 LDAP_SLAPD_F (int) request_bind( LloadConnection *c, LloadOperation *op );
-LDAP_SLAPD_F (int) handle_bind_response( LloadOperation *op, BerElement *ber );
-LDAP_SLAPD_F (int) handle_vc_bind_response( LloadOperation *op, BerElement *ber );
+LDAP_SLAPD_F (int) handle_bind_response( LloadConnection *client, LloadOperation *op, BerElement *ber );
+LDAP_SLAPD_F (int) handle_vc_bind_response( LloadConnection *client, LloadOperation *op, BerElement *ber );
 
 /*
  * client.c
@@ -151,8 +151,8 @@ LDAP_SLAPD_F (void) operations_timeout( evutil_socket_t s, short what, void *arg
 /*
  * upstream.c
  */
-LDAP_SLAPD_F (int) forward_final_response( LloadOperation *op, BerElement *ber );
-LDAP_SLAPD_F (int) forward_response( LloadOperation *op, BerElement *ber );
+LDAP_SLAPD_F (int) forward_final_response( LloadConnection *client, LloadOperation *op, BerElement *ber );
+LDAP_SLAPD_F (int) forward_response( LloadConnection *client, LloadOperation *op, BerElement *ber );
 LDAP_SLAPD_F (LloadConnection *) upstream_init( ber_socket_t s, LloadBackend *b );
 LDAP_SLAPD_F (void) upstream_destroy( LloadConnection *c );
 
