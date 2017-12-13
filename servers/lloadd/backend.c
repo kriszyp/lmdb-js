@@ -176,13 +176,15 @@ fail:
 }
 
 LloadConnection *
-backend_select( LloadOperation *op )
+backend_select( LloadOperation *op, int *res )
 {
     LloadBackend *b, *first, *next;
 
     ldap_pvt_thread_mutex_lock( &backend_mutex );
     first = b = current_backend;
     ldap_pvt_thread_mutex_unlock( &backend_mutex );
+
+    *res = LDAP_UNAVAILABLE;
 
     if ( !first ) {
         return NULL;
@@ -203,6 +205,7 @@ backend_select( LloadOperation *op )
                     b->b_uri.bv_val );
             ldap_pvt_thread_mutex_unlock( &b->b_mutex );
             b = next;
+            *res = LDAP_BUSY;
             continue;
         }
 
@@ -214,6 +217,9 @@ backend_select( LloadOperation *op )
             head = &b->b_bindconns;
         } else {
             head = &b->b_conns;
+        }
+        if ( !LDAP_CIRCLEQ_EMPTY( head ) ) {
+            *res = LDAP_BUSY;
         }
 
         LDAP_CIRCLEQ_FOREACH ( c, head, c_next ) {
@@ -243,6 +249,7 @@ backend_select( LloadOperation *op )
                 CONNECTION_UNLOCK_INCREF(c);
 
                 ldap_pvt_thread_mutex_unlock( &b->b_mutex );
+                *res = LDAP_SUCCESS;
                 return c;
             }
             CONNECTION_UNLOCK(c);

@@ -263,7 +263,7 @@ int
 request_bind( LloadConnection *client, LloadOperation *op )
 {
     LloadConnection *upstream;
-    int rc = LDAP_SUCCESS;
+    int res, rc = LDAP_SUCCESS;
 
     /* protect the Bind operation */
     op->o_client_refcnt++;
@@ -278,13 +278,12 @@ request_bind( LloadConnection *client, LloadOperation *op )
     assert( rc == LDAP_SUCCESS );
     CONNECTION_UNLOCK_INCREF(client);
 
-    upstream = backend_select( op );
+    upstream = backend_select( op, &res );
     if ( !upstream ) {
         Debug( LDAP_DEBUG_STATS, "client_bind: "
                 "connid=%lu, msgid=%d no available connection found\n",
                 op->o_client_connid, op->o_client_msgid );
-        operation_send_reject(
-                op, LDAP_UNAVAILABLE, "no connections available", 1 );
+        operation_send_reject( op, res, "no connections available", 1 );
         CONNECTION_LOCK_DECREF(client);
         op->o_client_refcnt--;
         operation_destroy_from_client( op );
