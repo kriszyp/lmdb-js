@@ -533,9 +533,20 @@ operation_send_abandon( LloadOperation *op )
     }
     upstream->c_pendingber = ber;
 
-    rc = ber_printf( ber, "t{titi}", LDAP_TAG_MESSAGE,
-            LDAP_TAG_MSGID, upstream->c_next_msgid++,
-            LDAP_REQ_ABANDON, op->o_upstream_msgid );
+    Debug( LDAP_DEBUG_TRACE, "operation_send_abandon: "
+            "abandoning %s msgid=%d on connid=%lu\n",
+            lload_msgtype2str( op->o_tag ), op->o_upstream_msgid,
+            op->o_upstream_connid );
+
+    if ( op->o_tag == LDAP_REQ_BIND ) {
+        rc = ber_printf( ber, "t{tit{ist{s}}}", LDAP_TAG_MESSAGE,
+                LDAP_TAG_MSGID, upstream->c_next_msgid++,
+                LDAP_REQ_BIND, LDAP_VERSION3, "", LDAP_AUTH_SASL, "" );
+    } else {
+        rc = ber_printf( ber, "t{titi}", LDAP_TAG_MESSAGE,
+                LDAP_TAG_MSGID, upstream->c_next_msgid++,
+                LDAP_REQ_ABANDON, op->o_upstream_msgid );
+    }
 
     if ( rc < 0 ) {
         ber_free( ber, 1 );
@@ -574,6 +585,11 @@ operation_abandon( LloadOperation *op )
     ldap_pvt_thread_mutex_unlock( &op->o_link_mutex );
     if ( tavl_delete( &c->c_ops, op, operation_upstream_cmp ) == NULL ) {
         /* The operation has already been abandoned or finished */
+        Debug( LDAP_DEBUG_TRACE, "operation_abandon: "
+                "%s from connid=%lu msgid=%d not present in connid=%lu any "
+                "more\n",
+                lload_msgtype2str( op->o_tag ), op->o_client_connid,
+                op->o_client_msgid, op->o_upstream_connid );
         goto unlock;
     }
     if ( c->c_state == LLOAD_C_BINDING ) {
