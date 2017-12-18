@@ -32,7 +32,7 @@
 #include <ac/string.h>
 #include <ac/time.h>
 
-#include "slap.h"
+#include "lload.h"
 #include "lber_pvt.h"
 
 #include "ldap_rq.h"
@@ -61,11 +61,11 @@ int connection_pool_max = SLAP_MAX_WORKER_THREADS;
 int connection_pool_queues = 1;
 int slap_tool_thread_max = 1;
 
-static const char *slap_name = NULL;
+static const char *lload_name = NULL;
 int slapMode = SLAP_UNDEFINED_MODE;
 
 int
-slap_init( int mode, const char *name )
+lload_init( int mode, const char *name )
 {
     int rc = LDAP_SUCCESS;
 
@@ -89,7 +89,7 @@ slap_init( int mode, const char *name )
                     "initiated server.\n",
                     name );
 
-            slap_name = name;
+            lload_name = name;
 
             ldap_pvt_thread_pool_init_q( &connection_pool, connection_pool_max,
                     0, connection_pool_queues );
@@ -119,13 +119,13 @@ slap_init( int mode, const char *name )
 }
 
 int
-slap_destroy( void )
+lload_destroy( void )
 {
     int rc = LDAP_SUCCESS;
 
     Debug( LDAP_DEBUG_TRACE, "%s destroy: "
             "freeing system resources.\n",
-            slap_name );
+            lload_name );
 
     ldap_pvt_thread_pool_free( &connection_pool );
 
@@ -134,7 +134,7 @@ slap_destroy( void )
             break;
 
         default:
-            Debug( LDAP_DEBUG_ANY, "slap_destroy(): "
+            Debug( LDAP_DEBUG_ANY, "lload_destroy(): "
                     "undefined mode (%d).\n",
                     slapMode );
 

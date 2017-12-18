@@ -21,7 +21,7 @@
 #include <event2/event.h>
 #include <event2/thread.h>
 
-#include "slap.h"
+#include "lload.h"
 #include "ldap_pvt_thread.h"
 
 static void *

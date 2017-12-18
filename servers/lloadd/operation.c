@@ -16,7 +16,7 @@
 #include "portable.h"
 
 #include "lutil.h"
-#include "slap.h"
+#include "lload.h"
 
 ber_tag_t
 slap_req2res( ber_tag_t tag )
@@ -52,7 +52,7 @@ slap_req2res( ber_tag_t tag )
 }
 
 const char *
-slap_msgtype2str( ber_tag_t tag )
+lload_msgtype2str( ber_tag_t tag )
 {
     switch ( tag ) {
         case LDAP_REQ_ABANDON: return "abandon request";
@@ -84,7 +84,7 @@ slap_msgtype2str( ber_tag_t tag )
 int
 operation_client_cmp( const void *left, const void *right )
 {
-    const Operation *l = left, *r = right;
+    const LloadOperation *l = left, *r = right;
 
     assert( l->o_client_connid == r->o_client_connid );
     return ( l->o_client_msgid < r->o_client_msgid ) ?
@@ -95,7 +95,7 @@ operation_client_cmp( const void *left, const void *right )
 int
 operation_upstream_cmp( const void *left, const void *right )
 {
-    const Operation *l = left, *r = right;
+    const LloadOperation *l = left, *r = right;
 
     assert( l->o_upstream_connid == r->o_upstream_connid );
     return ( l->o_upstream_msgid < r->o_upstream_msgid ) ?
@@ -136,10 +136,10 @@ operation_upstream_cmp( const void *left, const void *right )
  * issues with maintaining so many mutex ordering restrictions.
  */
 void
-operation_destroy_from_client( Operation *op )
+operation_destroy_from_client( LloadOperation *op )
 {
-    Connection *upstream = NULL, *client = op->o_client;
-    Backend *b = NULL;
+    LloadConnection *upstream = NULL, *client = op->o_client;
+    LloadBackend *b = NULL;
     int race_state, detach_client = !client->c_live;
 
     Debug( LDAP_DEBUG_TRACE, "operation_destroy_from_client: "
@@ -268,7 +268,7 @@ operation_destroy_from_client( Operation *op )
     if ( upstream ) {
         if ( tavl_delete( &upstream->c_ops, op, operation_upstream_cmp ) ) {
             upstream->c_n_ops_executing--;
-            b = (Backend *)upstream->c_private;
+            b = (LloadBackend *)upstream->c_private;
         }
         CONNECTION_UNLOCK_OR_DESTROY(upstream);
 
@@ -296,10 +296,10 @@ operation_destroy_from_client( Operation *op )
  * See operation_destroy_from_client.
  */
 void
-operation_destroy_from_upstream( Operation *op )
+operation_destroy_from_upstream( LloadOperation *op )
 {
-    Connection *client = NULL, *upstream = op->o_upstream;
-    Backend *b = NULL;
+    LloadConnection *client = NULL, *upstream = op->o_upstream;
+    LloadBackend *b = NULL;
     int race_state, detach_upstream = !upstream->c_live;
 
     Debug( LDAP_DEBUG_TRACE, "operation_destroy_from_upstream: "
@@ -321,7 +321,7 @@ operation_destroy_from_upstream( Operation *op )
     /* 2. Remove from the operation map and adjust the pending op count */
     if ( tavl_delete( &upstream->c_ops, op, operation_upstream_cmp ) ) {
         upstream->c_n_ops_executing--;
-        b = (Backend *)upstream->c_private;
+        b = (LloadBackend *)upstream->c_private;
     }
 
     ldap_pvt_thread_mutex_lock( &op->o_mutex );
@@ -453,15 +453,15 @@ operation_destroy_from_upstream( Operation *op )
 /*
  * Entered holding c_mutex for now.
  */
-Operation *
-operation_init( Connection *c, BerElement *ber )
+LloadOperation *
+operation_init( LloadConnection *c, BerElement *ber )
 {
-    Operation *op;
+    LloadOperation *op;
     ber_tag_t tag;
     ber_len_t len;
     int rc;
 
-    op = ch_calloc( 1, sizeof(Operation) );
+    op = ch_calloc( 1, sizeof(LloadOperation) );
     op->o_client = c;
     op->o_client_connid = c->c_connid;
     op->o_ber = ber;
@@ -506,7 +506,7 @@ operation_init( Connection *c, BerElement *ber )
     Debug( LDAP_DEBUG_STATS, "operation_init: "
             "received a new operation, %s with msgid=%d for client "
             "connid=%lu\n",
-            slap_msgtype2str( op->o_tag ), op->o_client_msgid,
+            lload_msgtype2str( op->o_tag ), op->o_client_msgid,
             op->o_client_connid );
 
     c->c_n_ops_executing++;
@@ -518,9 +518,9 @@ fail:
 }
 
 int
-operation_send_abandon( Operation *op )
+operation_send_abandon( LloadOperation *op )
 {
-    Connection *upstream = op->o_upstream;
+    LloadConnection *upstream = op->o_upstream;
     BerElement *ber;
     int rc = -1;
 
@@ -557,10 +557,10 @@ done:
  * - op->o_client_refcnt > 0 (and it follows that op->o_client != NULL)
  */
 void
-operation_abandon( Operation *op )
+operation_abandon( LloadOperation *op )
 {
-    Connection *c;
-    Backend *b;
+    LloadConnection *c;
+    LloadBackend *b;
     int rc = LDAP_SUCCESS;
 
     ldap_pvt_thread_mutex_lock( &op->o_link_mutex );
@@ -580,7 +580,7 @@ operation_abandon( Operation *op )
         c->c_state = LLOAD_C_READY;
     }
     c->c_n_ops_executing--;
-    b = (Backend *)c->c_private;
+    b = (LloadBackend *)c->c_private;
     CONNECTION_UNLOCK_INCREF(c);
 
     ldap_pvt_thread_mutex_lock( &b->b_mutex );
@@ -627,18 +627,18 @@ done:
  */
 int
 operation_send_reject_locked(
-        Operation *op,
+        LloadOperation *op,
         int result,
         const char *msg,
         int send_anyway )
 {
-    Connection *c = op->o_client;
+    LloadConnection *c = op->o_client;
     BerElement *ber;
     int found;
 
     Debug( LDAP_DEBUG_TRACE, "operation_send_reject_locked: "
             "rejecting %s from client connid=%lu with message: \"%s\"\n",
-            slap_msgtype2str( op->o_tag ), c->c_connid, msg );
+            lload_msgtype2str( op->o_tag ), c->c_connid, msg );
 
     found = ( tavl_delete( &c->c_ops, op, operation_client_cmp ) == op );
     if ( !found && !send_anyway ) {
@@ -681,12 +681,12 @@ done:
 
 void
 operation_send_reject(
-        Operation *op,
+        LloadOperation *op,
         int result,
         const char *msg,
         int send_anyway )
 {
-    Connection *c;
+    LloadConnection *c;
 
     ldap_pvt_thread_mutex_lock( &op->o_link_mutex );
     c = op->o_client;
@@ -723,9 +723,9 @@ operation_send_reject(
  * Only called from upstream_destroy.
  */
 void
-operation_lost_upstream( Operation *op )
+operation_lost_upstream( LloadOperation *op )
 {
-    Connection *c = op->o_upstream;
+    LloadConnection *c = op->o_upstream;
     CONNECTION_LOCK(c);
     op->o_upstream_refcnt++;
     /* Matching the op reference on the connection as well */
@@ -741,17 +741,18 @@ operation_lost_upstream( Operation *op )
 }
 
 void
-connection_timeout( Connection *upstream, time_t threshold )
+connection_timeout( LloadConnection *upstream, time_t threshold )
 {
-    Operation *op;
+    LloadOperation *op;
     TAvlnode *ops = NULL, *node;
-    Backend *b = upstream->c_private;
+    LloadBackend *b = upstream->c_private;
     int rc, nops = 0;
 
     for ( node = tavl_end( upstream->c_ops, TAVL_DIR_LEFT ); node &&
-            ((Operation *)node->avl_data)->o_start < threshold; /* shortcut */
+            ((LloadOperation *)node->avl_data)->o_start <
+                    threshold; /* shortcut */
             node = tavl_next( node, TAVL_DIR_RIGHT ) ) {
-        Operation *found_op;
+        LloadOperation *found_op;
 
         op = node->avl_data;
 
@@ -770,7 +771,7 @@ connection_timeout( Connection *upstream, time_t threshold )
         Debug( LDAP_DEBUG_STATS2, "connection_timeout: "
                 "timing out %s from connid=%lu msgid=%d sent to connid=%lu as "
                 "msgid=%d\n",
-                slap_msgtype2str( op->o_tag ), op->o_client_connid,
+                lload_msgtype2str( op->o_tag ), op->o_client_connid,
                 op->o_client_msgid, op->o_upstream_connid,
                 op->o_upstream_msgid );
         nops++;
@@ -791,7 +792,7 @@ connection_timeout( Connection *upstream, time_t threshold )
 
     for ( node = tavl_end( ops, TAVL_DIR_LEFT ); node;
             node = tavl_next( node, TAVL_DIR_RIGHT ) ) {
-        Connection *client;
+        LloadConnection *client;
 
         op = node->avl_data;
 
@@ -835,12 +836,12 @@ connection_timeout( Connection *upstream, time_t threshold )
 
 static void
 backend_timeout(
-        Backend *b,
-        struct ConnSt *cq,
-        Connection **lastp,
+        LloadBackend *b,
+        lload_c_head *cq,
+        LloadConnection **lastp,
         time_t threshold )
 {
-    Connection *c, *old;
+    LloadConnection *c, *old;
     unsigned long last_connid;
 
     ldap_pvt_thread_mutex_lock( &b->b_mutex );
@@ -899,7 +900,7 @@ void
 operations_timeout( evutil_socket_t s, short what, void *arg )
 {
     struct event *self = arg;
-    Backend *b;
+    LloadBackend *b;
     time_t threshold;
 
     Debug( LDAP_DEBUG_TRACE, "operations_timeout: "

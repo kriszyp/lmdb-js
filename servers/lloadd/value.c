@@ -27,7 +27,7 @@
 
 #include "portable.h"
 
-#include "slap.h"
+#include "lload.h"
 
 int
 value_add_one( BerVarray *vals, struct berval *addval )

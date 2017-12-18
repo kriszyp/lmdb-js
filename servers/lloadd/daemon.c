@@ -39,7 +39,7 @@
 #include <event2/dns.h>
 #include <event2/listener.h>
 
-#include "slap.h"
+#include "lload.h"
 #include "ldap_pvt_thread.h"
 #include "lutil.h"
 
@@ -69,8 +69,8 @@ struct runqueue_s slapd_rq;
 #ifndef SLAPD_MAX_DAEMON_THREADS
 #define SLAPD_MAX_DAEMON_THREADS 16
 #endif
-int slapd_daemon_threads = 1;
-int slapd_daemon_mask;
+int lload_daemon_threads = 1;
+int lload_daemon_mask;
 
 #ifdef LDAP_TCP_BUFFER
 int slapd_tcp_rmem;
@@ -78,7 +78,7 @@ int slapd_tcp_wmem;
 #endif /* LDAP_TCP_BUFFER */
 
 struct event_base *listener_base = NULL;
-Listener **slap_listeners = NULL;
+LloadListener **lload_listeners = NULL;
 static ldap_pvt_thread_t listener_tid, *daemon_tid;
 
 struct evdns_base *dnsbase;
@@ -89,7 +89,7 @@ struct event *lload_timeout_event;
 #define SLAPD_LISTEN_BACKLOG 1024
 #endif /* ! SLAPD_LISTEN_BACKLOG */
 
-#define DAEMON_ID(fd) ( fd & slapd_daemon_mask )
+#define DAEMON_ID(fd) ( fd & lload_daemon_mask )
 
 static int emfile;
 
@@ -97,7 +97,7 @@ static volatile int waking;
 #define WAKE_DAEMON( l, w ) \
     do { \
         if ( w ) { \
-            event_active( slap_daemon[l].wakeup_event, EV_WRITE, 0 ); \
+            event_active( lload_daemon[l].wakeup_event, EV_WRITE, 0 ); \
         } \
     } while (0)
 
@@ -123,28 +123,28 @@ typedef struct listener_item {
     ber_socket_t fd;
 } listener_item;
 
-typedef struct slap_daemon_st {
+typedef struct lload_daemon_st {
     ldap_pvt_thread_mutex_t sd_mutex;
 
     struct event_base *base;
     struct event *wakeup_event;
-} slap_daemon_st;
+} lload_daemon_st;
 
-static slap_daemon_st slap_daemon[SLAPD_MAX_DAEMON_THREADS];
+static lload_daemon_st lload_daemon[SLAPD_MAX_DAEMON_THREADS];
 
 static void daemon_wakeup_cb( evutil_socket_t sig, short what, void *arg );
 
 static void
-slapd_close( ber_socket_t s )
+lloadd_close( ber_socket_t s )
 {
-    Debug( LDAP_DEBUG_CONNS, "slapd_close: "
+    Debug( LDAP_DEBUG_CONNS, "lloadd_close: "
             "closing fd=%ld\n",
             (long)s );
     tcp_close( s );
 }
 
 static void
-slap_free_listener_addresses( struct sockaddr **sal )
+lload_free_listener_addresses( struct sockaddr **sal )
 {
     struct sockaddr **sap;
     if ( sal == NULL ) return;
@@ -230,7 +230,7 @@ get_url_perms( char **exts, mode_t *perms, int *crit )
 
 /* port = 0 indicates AF_LOCAL */
 static int
-slap_get_listener_addresses(
+lload_get_listener_addresses(
         const char *host,
         unsigned short port,
         struct sockaddr ***sal )
@@ -246,7 +246,7 @@ slap_get_listener_addresses(
 
         if ( strlen( host ) >
                 ( sizeof( ((struct sockaddr_un *)*sap)->sun_path ) - 1 ) ) {
-            Debug( LDAP_DEBUG_ANY, "slap_get_listener_addresses: "
+            Debug( LDAP_DEBUG_ANY, "lload_get_listener_addresses: "
                     "domain socket path (%s) too long in URL\n",
                     host );
             goto errexit;
@@ -269,7 +269,7 @@ slap_get_listener_addresses(
         snprintf( serv, sizeof(serv), "%d", port );
 
         if ( (err = getaddrinfo( host, serv, &hints, &res )) ) {
-            Debug( LDAP_DEBUG_ANY, "slap_get_listener_addresses: "
+            Debug( LDAP_DEBUG_ANY, "lload_get_listener_addresses: "
                     "getaddrinfo() failed: %s\n",
                     AC_GAI_STRERROR(err) );
             return -1;
@@ -285,7 +285,7 @@ slap_get_listener_addresses(
 
         for ( sai = res; sai; sai = sai->ai_next ) {
             if ( sai->ai_addr == NULL ) {
-                Debug( LDAP_DEBUG_ANY, "slap_get_listener_addresses: "
+                Debug( LDAP_DEBUG_ANY, "lload_get_listener_addresses: "
                         "getaddrinfo ai_addr is NULL?\n" );
                 freeaddrinfo( res );
                 goto errexit;
@@ -329,7 +329,7 @@ slap_get_listener_addresses(
         } else if ( !inet_aton( host, &in ) ) {
             he = gethostbyname( host );
             if ( he == NULL ) {
-                Debug( LDAP_DEBUG_ANY, "slap_get_listener_addresses: "
+                Debug( LDAP_DEBUG_ANY, "lload_get_listener_addresses: "
                         "invalid host %s\n",
                         host );
                 return -1;
@@ -354,16 +354,16 @@ slap_get_listener_addresses(
     return 0;
 
 errexit:
-    slap_free_listener_addresses(*sal);
+    lload_free_listener_addresses(*sal);
     return -1;
 }
 
 static int
-slap_open_listener( const char *url, int *listeners, int *cur )
+lload_open_listener( const char *url, int *listeners, int *cur )
 {
     int num, tmp, rc;
-    Listener l;
-    Listener *li;
+    LloadListener l;
+    LloadListener *li;
     LDAPURLDesc *lud;
     unsigned short port;
     int err, addrlen = 0;
@@ -382,7 +382,7 @@ slap_open_listener( const char *url, int *listeners, int *cur )
     rc = ldap_url_parse( url, &lud );
 
     if ( rc != LDAP_URL_SUCCESS ) {
-        Debug( LDAP_DEBUG_ANY, "slap_open_listener: "
+        Debug( LDAP_DEBUG_ANY, "lload_open_listener: "
                 "listen URL \"%s\" parse error=%d\n",
                 url, rc );
         return rc;
@@ -394,7 +394,7 @@ slap_open_listener( const char *url, int *listeners, int *cur )
 
 #ifndef HAVE_TLS
     if ( ldap_pvt_url_scheme2tls( lud->lud_scheme ) ) {
-        Debug( LDAP_DEBUG_ANY, "slap_open_listener: "
+        Debug( LDAP_DEBUG_ANY, "lload_open_listener: "
                 "TLS not supported (%s)\n",
                 url );
         ldap_free_urldesc( lud );
@@ -422,13 +422,13 @@ slap_open_listener( const char *url, int *listeners, int *cur )
     if ( tmp == LDAP_PROTO_IPC ) {
 #ifdef LDAP_PF_LOCAL
         if ( lud->lud_host == NULL || lud->lud_host[0] == '\0' ) {
-            err = slap_get_listener_addresses( LDAPI_SOCK, 0, &sal );
+            err = lload_get_listener_addresses( LDAPI_SOCK, 0, &sal );
         } else {
-            err = slap_get_listener_addresses( lud->lud_host, 0, &sal );
+            err = lload_get_listener_addresses( lud->lud_host, 0, &sal );
         }
 #else /* ! LDAP_PF_LOCAL */
 
-        Debug( LDAP_DEBUG_ANY, "slap_open_listener: "
+        Debug( LDAP_DEBUG_ANY, "lload_open_listener: "
                 "URL scheme not supported: %s\n",
                 url );
         ldap_free_urldesc( lud );
@@ -437,9 +437,9 @@ slap_open_listener( const char *url, int *listeners, int *cur )
     } else {
         if ( lud->lud_host == NULL || lud->lud_host[0] == '\0' ||
                 strcmp( lud->lud_host, "*" ) == 0 ) {
-            err = slap_get_listener_addresses( NULL, port, &sal );
+            err = lload_get_listener_addresses( NULL, port, &sal );
         } else {
-            err = slap_get_listener_addresses( lud->lud_host, port, &sal );
+            err = lload_get_listener_addresses( lud->lud_host, port, &sal );
         }
     }
 
@@ -453,18 +453,18 @@ slap_open_listener( const char *url, int *listeners, int *cur )
 
     ldap_free_urldesc( lud );
     if ( err ) {
-        slap_free_listener_addresses( sal );
+        lload_free_listener_addresses( sal );
         return -1;
     }
 
     /* If we got more than one address returned, we need to make space
-     * for it in the slap_listeners array.
+     * for it in the lload_listeners array.
      */
     for ( num = 0; sal[num]; num++ ) /* empty */;
     if ( num > 1 ) {
         *listeners += num - 1;
-        slap_listeners = ch_realloc(
-                slap_listeners, ( *listeners + 1 ) * sizeof(Listener *) );
+        lload_listeners = ch_realloc( lload_listeners,
+                ( *listeners + 1 ) * sizeof(LloadListener *) );
     }
 
     psal = sal;
@@ -492,7 +492,7 @@ slap_open_listener( const char *url, int *listeners, int *cur )
         s = socket( (*sal)->sa_family, socktype, 0 );
         if ( s == AC_SOCKET_INVALID ) {
             int err = sock_errno();
-            Debug( LDAP_DEBUG_ANY, "slap_open_listener: "
+            Debug( LDAP_DEBUG_ANY, "lload_open_listener: "
                     "%s socket() failed errno=%d (%s)\n",
                     af, err, sock_errstr( err, ebuf, sizeof(ebuf) ) );
             sal++;
@@ -514,7 +514,7 @@ slap_open_listener( const char *url, int *listeners, int *cur )
                     s, SOL_SOCKET, SO_REUSEADDR, (char *)&tmp, sizeof(tmp) );
             if ( rc == AC_SOCKET_ERROR ) {
                 int err = sock_errno();
-                Debug( LDAP_DEBUG_ANY, "slap_open_listener(%ld): "
+                Debug( LDAP_DEBUG_ANY, "lload_open_listener(%ld): "
                         "setsockopt(SO_REUSEADDR) failed errno=%d (%s)\n",
                         (long)l.sl_sd, err,
                         sock_errstr( err, ebuf, sizeof(ebuf) ) );
@@ -535,7 +535,7 @@ slap_open_listener( const char *url, int *listeners, int *cur )
                         sizeof(tmp) );
                 if ( rc == AC_SOCKET_ERROR ) {
                     int err = sock_errno();
-                    Debug( LDAP_DEBUG_ANY, "slap_open_listener(%ld): "
+                    Debug( LDAP_DEBUG_ANY, "lload_open_listener(%ld): "
                             "setsockopt(IPV6_V6ONLY) failed errno=%d (%s)\n",
                             (long)l.sl_sd, err,
                             sock_errstr( err, ebuf, sizeof(ebuf) ) );
@@ -583,7 +583,7 @@ slap_open_listener( const char *url, int *listeners, int *cur )
 #endif /* LDAP_PF_LOCAL */
         if ( rc ) {
             err = sock_errno();
-            Debug( LDAP_DEBUG_ANY, "slap_open_listener: "
+            Debug( LDAP_DEBUG_ANY, "lload_open_listener: "
                     "bind(%ld) failed errno=%d (%s)\n",
                     (long)l.sl_sd, err,
                     sock_errstr( err, ebuf, sizeof(ebuf) ) );
@@ -641,7 +641,7 @@ slap_open_listener( const char *url, int *listeners, int *cur )
 #endif /* LDAP_PF_INET6 */
 
             default:
-                Debug( LDAP_DEBUG_ANY, "slap_open_listener: "
+                Debug( LDAP_DEBUG_ANY, "lload_open_listener: "
                         "unsupported address family (%d)\n",
                         (int)(*sal)->sa_family );
                 break;
@@ -649,23 +649,23 @@ slap_open_listener( const char *url, int *listeners, int *cur )
 
         AC_MEMCPY( &l.sl_sa, *sal, addrlen );
         ber_str2bv( url, 0, 1, &l.sl_url );
-        li = ch_malloc( sizeof(Listener) );
+        li = ch_malloc( sizeof(LloadListener) );
         *li = l;
-        slap_listeners[*cur] = li;
+        lload_listeners[*cur] = li;
         (*cur)++;
         sal++;
     }
 
-    slap_free_listener_addresses( psal );
+    lload_free_listener_addresses( psal );
 
     if ( l.sl_url.bv_val == NULL ) {
-        Debug( LDAP_DEBUG_ANY, "slap_open_listener: "
+        Debug( LDAP_DEBUG_ANY, "lload_open_listener: "
                 "failed on %s\n",
                 url );
         return -1;
     }
 
-    Debug( LDAP_DEBUG_TRACE, "slap_open_listener: "
+    Debug( LDAP_DEBUG_TRACE, "lload_open_listener: "
             "listener initialized %s\n",
             l.sl_url.bv_val );
 
@@ -675,12 +675,12 @@ slap_open_listener( const char *url, int *listeners, int *cur )
 int lloadd_inited = 0;
 
 int
-slapd_daemon_init( const char *urls )
+lloadd_daemon_init( const char *urls )
 {
     int i, j, n;
     char **u;
 
-    Debug( LDAP_DEBUG_ARGS, "slapd_daemon_init: %s\n",
+    Debug( LDAP_DEBUG_ARGS, "lloadd_daemon_init: %s\n",
             urls ? urls : "<null>" );
 
 #ifdef HAVE_TCPD
@@ -692,7 +692,7 @@ slapd_daemon_init( const char *urls )
     u = ldap_str2charray( urls, " " );
 
     if ( u == NULL || u[0] == NULL ) {
-        Debug( LDAP_DEBUG_ANY, "slapd_daemon_init: "
+        Debug( LDAP_DEBUG_ANY, "lloadd_daemon_init: "
                 "no urls (%s) provided\n",
                 urls );
         if ( u ) ldap_charray_free( u );
@@ -700,33 +700,33 @@ slapd_daemon_init( const char *urls )
     }
 
     for ( i = 0; u[i] != NULL; i++ ) {
-        Debug( LDAP_DEBUG_TRACE, "slapd_daemon_init: "
+        Debug( LDAP_DEBUG_TRACE, "lloadd_daemon_init: "
                 "listen on %s\n",
                 u[i] );
     }
 
     if ( i == 0 ) {
-        Debug( LDAP_DEBUG_ANY, "slapd_daemon_init: "
+        Debug( LDAP_DEBUG_ANY, "lloadd_daemon_init: "
                 "no listeners to open (%s)\n",
                 urls );
         ldap_charray_free( u );
         return -1;
     }
 
-    Debug( LDAP_DEBUG_TRACE, "slapd_daemon_init: "
+    Debug( LDAP_DEBUG_TRACE, "lloadd_daemon_init: "
             "%d listeners to open...\n",
             i );
-    slap_listeners = ch_malloc( ( i + 1 ) * sizeof(Listener *) );
+    lload_listeners = ch_malloc( ( i + 1 ) * sizeof(LloadListener *) );
 
     for ( n = 0, j = 0; u[n]; n++ ) {
-        if ( slap_open_listener( u[n], &i, &j ) ) {
+        if ( lload_open_listener( u[n], &i, &j ) ) {
             ldap_charray_free( u );
             return -1;
         }
     }
-    slap_listeners[j] = NULL;
+    lload_listeners[j] = NULL;
 
-    Debug( LDAP_DEBUG_TRACE, "slapd_daemon_init: "
+    Debug( LDAP_DEBUG_TRACE, "lloadd_daemon_init: "
             "%d listeners opened\n",
             i );
 
@@ -736,18 +736,18 @@ slapd_daemon_init( const char *urls )
 }
 
 int
-slapd_daemon_destroy( void )
+lloadd_daemon_destroy( void )
 {
     if ( lloadd_inited ) {
         int i;
 
-        for ( i = 0; i < slapd_daemon_threads; i++ ) {
-            ldap_pvt_thread_mutex_destroy( &slap_daemon[i].sd_mutex );
-            if ( slap_daemon[i].wakeup_event ) {
-                event_free( slap_daemon[i].wakeup_event );
+        for ( i = 0; i < lload_daemon_threads; i++ ) {
+            ldap_pvt_thread_mutex_destroy( &lload_daemon[i].sd_mutex );
+            if ( lload_daemon[i].wakeup_event ) {
+                event_free( lload_daemon[i].wakeup_event );
             }
-            if ( slap_daemon[i].base ) {
-                event_base_free( slap_daemon[i].base );
+            if ( lload_daemon[i].base ) {
+                event_base_free( lload_daemon[i].base );
             }
         }
         lloadd_inited = 0;
@@ -762,7 +762,7 @@ slapd_daemon_destroy( void )
 static void
 destroy_listeners( void )
 {
-    Listener *lr, **ll = slap_listeners;
+    LloadListener *lr, **ll = lload_listeners;
 
     if ( ll == NULL ) return;
 
@@ -788,8 +788,8 @@ destroy_listeners( void )
         free( lr );
     }
 
-    free( slap_listeners );
-    slap_listeners = NULL;
+    free( lload_listeners );
+    lload_listeners = NULL;
 
     if ( listener_base ) {
         event_base_free( listener_base );
@@ -797,15 +797,15 @@ destroy_listeners( void )
 }
 
 static void
-slap_listener(
+lload_listener(
         struct evconnlistener *listener,
         ber_socket_t s,
         struct sockaddr *a,
         int len,
         void *arg )
 {
-    Listener *sl = arg;
-    Connection *c;
+    LloadListener *sl = arg;
+    LloadConnection *c;
     Sockaddr *from = (Sockaddr *)a;
 #ifdef SLAPD_RLOOKUPS
     char hbuf[NI_MAXHOST];
@@ -829,7 +829,7 @@ slap_listener(
     int tid;
     char ebuf[128];
 
-    Debug( LDAP_DEBUG_TRACE, ">>> slap_listener(%s)\n", sl->sl_url.bv_val );
+    Debug( LDAP_DEBUG_TRACE, ">>> lload_listener(%s)\n", sl->sl_url.bv_val );
 
     peername[0] = '\0';
 
@@ -840,7 +840,7 @@ slap_listener(
 
     tid = DAEMON_ID(s);
 
-    Debug( LDAP_DEBUG_CONNS, "slap_listener: "
+    Debug( LDAP_DEBUG_CONNS, "lload_listener: "
             "listen=%ld, new connection fd=%ld\n",
             (long)sl->sl_sd, (long)s );
 
@@ -859,7 +859,7 @@ slap_listener(
                 s, SOL_SOCKET, SO_KEEPALIVE, (char *)&tmp, sizeof(tmp) );
         if ( rc == AC_SOCKET_ERROR ) {
             int err = sock_errno();
-            Debug( LDAP_DEBUG_ANY, "slap_listener(%ld): "
+            Debug( LDAP_DEBUG_ANY, "lload_listener(%ld): "
                     "setsockopt(SO_KEEPALIVE) failed errno=%d (%s)\n",
                     (long)s, err, sock_errstr( err, ebuf, sizeof(ebuf) ) );
         }
@@ -871,7 +871,7 @@ slap_listener(
                 s, IPPROTO_TCP, TCP_NODELAY, (char *)&tmp, sizeof(tmp) );
         if ( rc == AC_SOCKET_ERROR ) {
             int err = sock_errno();
-            Debug( LDAP_DEBUG_ANY, "slap_listener(%ld): "
+            Debug( LDAP_DEBUG_ANY, "lload_listener(%ld): "
                     "setsockopt(TCP_NODELAY) failed errno=%d (%s)\n",
                     (long)s, err, sock_errstr( err, ebuf, sizeof(ebuf) ) );
         }
@@ -928,30 +928,30 @@ slap_listener(
         } break;
 
         default:
-            slapd_close( s );
+            lloadd_close( s );
             return;
     }
 
 #ifdef HAVE_TLS
     if ( sl->sl_is_tls ) cflag |= CONN_IS_TLS;
 #endif
-    c = client_init( s, sl, peername, slap_daemon[tid].base, cflag );
+    c = client_init( s, sl, peername, lload_daemon[tid].base, cflag );
 
     if ( !c ) {
-        Debug( LDAP_DEBUG_ANY, "slap_listener: "
+        Debug( LDAP_DEBUG_ANY, "lload_listener: "
                 "client_init(%ld, %s, %s) failed\n",
                 (long)s, peername, sl->sl_name.bv_val );
-        slapd_close( s );
+        lloadd_close( s );
     }
 
     return;
 }
 
 static void *
-slap_listener_thread( void *ctx )
+lload_listener_thread( void *ctx )
 {
     int rc = event_base_dispatch( listener_base );
-    Debug( LDAP_DEBUG_ANY, "slap_listener_thread: "
+    Debug( LDAP_DEBUG_ANY, "lload_listener_thread: "
             "event loop finished: rc=%d\n",
             rc );
 
@@ -961,7 +961,7 @@ slap_listener_thread( void *ctx )
 static void
 listener_error_cb( struct evconnlistener *lev, void *arg )
 {
-    Listener *l = arg;
+    LloadListener *l = arg;
     int err = EVUTIL_SOCKET_ERROR();
 
     assert( l->listener == lev );
@@ -973,12 +973,12 @@ listener_error_cb( struct evconnlistener *lev, void *arg )
             err == ENFILE ||
 #endif /* ENFILE */
             0 ) {
-        ldap_pvt_thread_mutex_lock( &slap_daemon[0].sd_mutex );
+        ldap_pvt_thread_mutex_lock( &lload_daemon[0].sd_mutex );
         emfile++;
         /* Stop listening until an existing session closes */
         l->sl_mute = 1;
         evconnlistener_disable( lev );
-        ldap_pvt_thread_mutex_unlock( &slap_daemon[0].sd_mutex );
+        ldap_pvt_thread_mutex_unlock( &lload_daemon[0].sd_mutex );
         Debug( LDAP_DEBUG_ANY, "listener_error_cb: "
                 "too many open files, cannot accept new connections on "
                 "url=%s\n",
@@ -997,9 +997,9 @@ listeners_reactivate( void )
 {
     int i;
 
-    ldap_pvt_thread_mutex_lock( &slap_daemon[0].sd_mutex );
-    for ( i = 0; emfile && slap_listeners[i] != NULL; i++ ) {
-        Listener *lr = slap_listeners[i];
+    ldap_pvt_thread_mutex_lock( &lload_daemon[0].sd_mutex );
+    for ( i = 0; emfile && lload_listeners[i] != NULL; i++ ) {
+        LloadListener *lr = lload_listeners[i];
 
         if ( lr->sl_sd == AC_SOCKET_INVALID ) continue;
         if ( lr->sl_mute ) {
@@ -1011,16 +1011,16 @@ listeners_reactivate( void )
                     lr->sl_url.bv_val );
         }
     }
-    if ( emfile && slap_listeners[i] == NULL ) {
+    if ( emfile && lload_listeners[i] == NULL ) {
         /* Walked the entire list without enabling anything; emfile
          * counter is stale. Reset it. */
         emfile = 0;
     }
-    ldap_pvt_thread_mutex_unlock( &slap_daemon[0].sd_mutex );
+    ldap_pvt_thread_mutex_unlock( &lload_daemon[0].sd_mutex );
 }
 
 static int
-slap_listener_activate( void )
+lload_listener_activate( void )
 {
     struct evconnlistener *listener;
     int l, rc;
@@ -1029,8 +1029,8 @@ slap_listener_activate( void )
     listener_base = event_base_new();
     if ( !listener_base ) return -1;
 
-    for ( l = 0; slap_listeners[l] != NULL; l++ ) {
-        if ( slap_listeners[l]->sl_sd == AC_SOCKET_INVALID ) continue;
+    for ( l = 0; lload_listeners[l] != NULL; l++ ) {
+        if ( lload_listeners[l]->sl_sd == AC_SOCKET_INVALID ) continue;
 
             /* FIXME: TCP-only! */
 #ifdef LDAP_TCP_BUFFER
@@ -1039,107 +1039,107 @@ slap_listener_activate( void )
             socklen_t optlen;
 
             size = 0;
-            if ( slap_listeners[l]->sl_tcp_rmem > 0 ) {
-                size = slap_listeners[l]->sl_tcp_rmem;
+            if ( lload_listeners[l]->sl_tcp_rmem > 0 ) {
+                size = lload_listeners[l]->sl_tcp_rmem;
             } else if ( slapd_tcp_rmem > 0 ) {
                 size = slapd_tcp_rmem;
             }
 
             if ( size > 0 ) {
                 optlen = sizeof(origsize);
-                rc = getsockopt( slap_listeners[l]->sl_sd, SOL_SOCKET,
+                rc = getsockopt( lload_listeners[l]->sl_sd, SOL_SOCKET,
                         SO_RCVBUF, (void *)&origsize, &optlen );
 
                 if ( rc ) {
                     int err = sock_errno();
-                    Debug( LDAP_DEBUG_ANY, "slap_listener_activate: "
+                    Debug( LDAP_DEBUG_ANY, "lload_listener_activate: "
                             "getsockopt(SO_RCVBUF) failed errno=%d (%s)\n",
                             err, AC_STRERROR_R( err, ebuf, sizeof(ebuf) ) );
                 }
 
                 optlen = sizeof(size);
-                rc = setsockopt( slap_listeners[l]->sl_sd, SOL_SOCKET,
+                rc = setsockopt( lload_listeners[l]->sl_sd, SOL_SOCKET,
                         SO_RCVBUF, (const void *)&size, optlen );
 
                 if ( rc ) {
                     int err = sock_errno();
-                    Debug( LDAP_DEBUG_ANY, "slapd_listener_activate: "
+                    Debug( LDAP_DEBUG_ANY, "lload_listener_activate: "
                             "setsockopt(SO_RCVBUF) failed errno=%d (%s)\n",
                             err, sock_errstr( err, ebuf, sizeof(ebuf) ) );
                 }
 
                 optlen = sizeof(realsize);
-                rc = getsockopt( slap_listeners[l]->sl_sd, SOL_SOCKET,
+                rc = getsockopt( lload_listeners[l]->sl_sd, SOL_SOCKET,
                         SO_RCVBUF, (void *)&realsize, &optlen );
 
                 if ( rc ) {
                     int err = sock_errno();
-                    Debug( LDAP_DEBUG_ANY, "slapd_listener_activate: "
+                    Debug( LDAP_DEBUG_ANY, "lload_listener_activate: "
                             "getsockopt(SO_RCVBUF) failed errno=%d (%s)\n",
                             err, sock_errstr( err, ebuf, sizeof(ebuf) ) );
                 }
 
-                Debug( LDAP_DEBUG_ANY, "slapd_listener_activate: "
+                Debug( LDAP_DEBUG_ANY, "lload_listener_activate: "
                         "url=%s (#%d) RCVBUF original size=%d requested "
                         "size=%d real size=%d\n",
-                        slap_listeners[l]->sl_url.bv_val, l, origsize, size,
+                        lload_listeners[l]->sl_url.bv_val, l, origsize, size,
                         realsize );
             }
 
             size = 0;
-            if ( slap_listeners[l]->sl_tcp_wmem > 0 ) {
-                size = slap_listeners[l]->sl_tcp_wmem;
+            if ( lload_listeners[l]->sl_tcp_wmem > 0 ) {
+                size = lload_listeners[l]->sl_tcp_wmem;
             } else if ( slapd_tcp_wmem > 0 ) {
                 size = slapd_tcp_wmem;
             }
 
             if ( size > 0 ) {
                 optlen = sizeof(origsize);
-                rc = getsockopt( slap_listeners[l]->sl_sd, SOL_SOCKET,
+                rc = getsockopt( lload_listeners[l]->sl_sd, SOL_SOCKET,
                         SO_SNDBUF, (void *)&origsize, &optlen );
 
                 if ( rc ) {
                     int err = sock_errno();
-                    Debug( LDAP_DEBUG_ANY, "slapd_listener_activate: "
+                    Debug( LDAP_DEBUG_ANY, "lload_listener_activate: "
                             "getsockopt(SO_SNDBUF) failed errno=%d (%s)\n",
                             err, sock_errstr( err, ebuf, sizeof(ebuf) ) );
                 }
 
                 optlen = sizeof(size);
-                rc = setsockopt( slap_listeners[l]->sl_sd, SOL_SOCKET,
+                rc = setsockopt( lload_listeners[l]->sl_sd, SOL_SOCKET,
                         SO_SNDBUF, (const void *)&size, optlen );
 
                 if ( rc ) {
                     int err = sock_errno();
-                    Debug( LDAP_DEBUG_ANY, "slapd_listener_activate: "
+                    Debug( LDAP_DEBUG_ANY, "lload_listener_activate: "
                             "setsockopt(SO_SNDBUF) failed errno=%d (%s)\n",
                             err, sock_errstr( err, ebuf, sizeof(ebuf) ) );
                 }
 
                 optlen = sizeof(realsize);
-                rc = getsockopt( slap_listeners[l]->sl_sd, SOL_SOCKET,
+                rc = getsockopt( lload_listeners[l]->sl_sd, SOL_SOCKET,
                         SO_SNDBUF, (void *)&realsize, &optlen );
 
                 if ( rc ) {
                     int err = sock_errno();
-                    Debug( LDAP_DEBUG_ANY, "slapd_listener_activate: "
+                    Debug( LDAP_DEBUG_ANY, "lload_listener_activate: "
                             "getsockopt(SO_SNDBUF) failed errno=%d (%s)\n",
                             err, sock_errstr( err, ebuf, sizeof(ebuf) ) );
                 }
 
-                Debug( LDAP_DEBUG_ANY, "slapd_listener_activate: "
+                Debug( LDAP_DEBUG_ANY, "lload_listener_activate: "
                         "url=%s (#%d) SNDBUF original size=%d requested "
                         "size=%d real size=%d\n",
-                        slap_listeners[l]->sl_url.bv_val, l, origsize, size,
+                        lload_listeners[l]->sl_url.bv_val, l, origsize, size,
                         realsize );
             }
         }
 #endif /* LDAP_TCP_BUFFER */
 
-        slap_listeners[l]->sl_busy = 1;
-        listener = evconnlistener_new( listener_base, slap_listener,
-                slap_listeners[l], LEV_OPT_THREADSAFE, SLAPD_LISTEN_BACKLOG,
-                slap_listeners[l]->sl_sd );
+        lload_listeners[l]->sl_busy = 1;
+        listener = evconnlistener_new( listener_base, lload_listener,
+                lload_listeners[l], LEV_OPT_THREADSAFE, SLAPD_LISTEN_BACKLOG,
+                lload_listeners[l]->sl_sd );
         if ( !listener ) {
             int err = sock_errno();
 
@@ -1150,13 +1150,13 @@ slap_listener_activate( void )
              */
             if ( err == EADDRINUSE ) {
                 int i;
-                struct sockaddr_in sa = slap_listeners[l]->sl_sa.sa_in_addr;
+                struct sockaddr_in sa = lload_listeners[l]->sl_sa.sa_in_addr;
                 struct sockaddr_in6 sa6;
 
                 if ( sa.sin_family == AF_INET &&
                         sa.sin_addr.s_addr == htonl( INADDR_ANY ) ) {
                     for ( i = 0; i < l; i++ ) {
-                        sa6 = slap_listeners[i]->sl_sa.sa_in6_addr;
+                        sa6 = lload_listeners[i]->sl_sa.sa_in6_addr;
                         if ( sa6.sin6_family == AF_INET6 &&
                                 !memcmp( &sa6.sin6_addr, &in6addr_any,
                                         sizeof(struct in6_addr) ) ) {
@@ -1166,60 +1166,60 @@ slap_listener_activate( void )
 
                     if ( i < l ) {
                         /* We are already listening to in6addr_any */
-                        Debug( LDAP_DEBUG_CONNS, "slap_listener_activate: "
+                        Debug( LDAP_DEBUG_CONNS, "lload_listener_activate: "
                                 "Attempt to listen to 0.0.0.0 failed, "
                                 "already listening on ::, assuming IPv4 "
                                 "included\n" );
-                        slapd_close( slap_listeners[l]->sl_sd );
-                        slap_listeners[l]->sl_sd = AC_SOCKET_INVALID;
+                        lloadd_close( lload_listeners[l]->sl_sd );
+                        lload_listeners[l]->sl_sd = AC_SOCKET_INVALID;
                         continue;
                     }
                 }
             }
 #endif /* LDAP_PF_INET6 */
-            Debug( LDAP_DEBUG_ANY, "slap_listener_activate: "
+            Debug( LDAP_DEBUG_ANY, "lload_listener_activate: "
                     "listen(%s, 5) failed errno=%d (%s)\n",
-                    slap_listeners[l]->sl_url.bv_val, err,
+                    lload_listeners[l]->sl_url.bv_val, err,
                     sock_errstr( err, ebuf, sizeof(ebuf) ) );
             return -1;
         }
 
-        slap_listeners[l]->base = listener_base;
-        slap_listeners[l]->listener = listener;
+        lload_listeners[l]->base = listener_base;
+        lload_listeners[l]->listener = listener;
         evconnlistener_set_error_cb( listener, listener_error_cb );
     }
 
     rc = ldap_pvt_thread_create(
-            &listener_tid, 0, slap_listener_thread, slap_listeners[l] );
+            &listener_tid, 0, lload_listener_thread, lload_listeners[l] );
 
     if ( rc != 0 ) {
-        Debug( LDAP_DEBUG_ANY, "slap_listener_activate(%d): "
+        Debug( LDAP_DEBUG_ANY, "lload_listener_activate(%d): "
                 "submit failed (%d)\n",
-                slap_listeners[l]->sl_sd, rc );
+                lload_listeners[l]->sl_sd, rc );
     }
     return rc;
 }
 
 static void *
-slapd_daemon_task( void *ptr )
+lloadd_io_task( void *ptr )
 {
     int rc;
     int tid = (ldap_pvt_thread_t *)ptr - daemon_tid;
-    struct event_base *base = slap_daemon[tid].base;
+    struct event_base *base = lload_daemon[tid].base;
     struct event *event;
 
     event = event_new( base, -1, EV_WRITE, daemon_wakeup_cb, ptr );
     if ( !event ) {
-        Debug( LDAP_DEBUG_ANY, "slapd_daemon_task: "
+        Debug( LDAP_DEBUG_ANY, "lloadd_io_task: "
                 "failed to set up the wakeup event\n" );
         return (void *)-1;
     }
     event_add( event, NULL );
-    slap_daemon[tid].wakeup_event = event;
+    lload_daemon[tid].wakeup_event = event;
 
     /* run */
     rc = event_base_dispatch( base );
-    Debug( LDAP_DEBUG_ANY, "slapd_daemon_task: "
+    Debug( LDAP_DEBUG_ANY, "lloadd_io_task: "
             "Daemon %d, event loop finished: rc=%d\n",
             tid, rc );
 
@@ -1231,10 +1231,10 @@ slapd_daemon_task( void *ptr )
 }
 
 int
-slapd_daemon( struct event_base *daemon_base )
+lloadd_daemon( struct event_base *daemon_base )
 {
     int i, rc;
-    Backend *b;
+    LloadBackend *b;
     struct event_base *base;
     struct event *event;
 
@@ -1249,25 +1249,25 @@ slapd_daemon( struct event_base *daemon_base )
         return -1;
     }
 
-    if ( slapd_daemon_threads > SLAPD_MAX_DAEMON_THREADS )
-        slapd_daemon_threads = SLAPD_MAX_DAEMON_THREADS;
+    if ( lload_daemon_threads > SLAPD_MAX_DAEMON_THREADS )
+        lload_daemon_threads = SLAPD_MAX_DAEMON_THREADS;
 
     daemon_tid =
-            ch_malloc( slapd_daemon_threads * sizeof(ldap_pvt_thread_t) );
+            ch_malloc( lload_daemon_threads * sizeof(ldap_pvt_thread_t) );
 
-    for ( i = 0; i < slapd_daemon_threads; i++ ) {
+    for ( i = 0; i < lload_daemon_threads; i++ ) {
         base = event_base_new();
         if ( !base ) {
             Debug( LDAP_DEBUG_ANY, "lloadd startup: "
                     "failed to acquire event base for an I/O thread\n" );
             return -1;
         }
-        slap_daemon[i].base = base;
+        lload_daemon[i].base = base;
 
-        ldap_pvt_thread_mutex_init( &slap_daemon[i].sd_mutex );
+        ldap_pvt_thread_mutex_init( &lload_daemon[i].sd_mutex );
         /* threads that handle client and upstream sockets */
         rc = ldap_pvt_thread_create(
-                &daemon_tid[i], 0, slapd_daemon_task, &daemon_tid[i] );
+                &daemon_tid[i], 0, lloadd_io_task, &daemon_tid[i] );
 
         if ( rc != 0 ) {
             Debug( LDAP_DEBUG_ANY, "lloadd startup: "
@@ -1277,7 +1277,7 @@ slapd_daemon( struct event_base *daemon_base )
         }
     }
 
-    if ( (rc = slap_listener_activate()) != 0 ) {
+    if ( (rc = lload_listener_activate()) != 0 ) {
         return rc;
     }
 
@@ -1320,7 +1320,7 @@ slapd_daemon( struct event_base *daemon_base )
     /* wait for the listener threads to complete */
     destroy_listeners();
 
-    for ( i = 0; i < slapd_daemon_threads; i++ )
+    for ( i = 0; i < lload_daemon_threads; i++ )
         ldap_pvt_thread_join( daemon_tid[i], (void *)NULL );
 
     if ( LogTest( LDAP_DEBUG_ANY ) ) {
@@ -1332,13 +1332,13 @@ slapd_daemon( struct event_base *daemon_base )
     ldap_pvt_thread_pool_close( &connection_pool, 1 );
     backends_destroy();
     clients_destroy();
-    bindconf_free( &bindconf );
+    lload_bindconf_free( &bindconf );
     evdns_base_free( dnsbase, 0 );
 
     ch_free( daemon_tid );
     daemon_tid = NULL;
 
-    slapd_daemon_destroy();
+    lloadd_daemon_destroy();
 
     return 0;
 }
@@ -1352,12 +1352,12 @@ daemon_wakeup_cb( evutil_socket_t sig, short what, void *arg )
             "Daemon thread %d woken up\n",
             tid );
     if ( slapd_shutdown ) {
-        event_base_loopexit( slap_daemon[tid].base, NULL );
+        event_base_loopexit( lload_daemon[tid].base, NULL );
     }
 }
 
 void
-slap_sig_shutdown( evutil_socket_t sig, short what, void *arg )
+lload_sig_shutdown( evutil_socket_t sig, short what, void *arg )
 {
     struct event_base *daemon_base = arg;
     int save_errno = errno;
@@ -1383,7 +1383,7 @@ slap_sig_shutdown( evutil_socket_t sig, short what, void *arg )
         slapd_shutdown = 1;
     }
 
-    for ( i = 0; i < slapd_daemon_threads; i++ ) {
+    for ( i = 0; i < lload_daemon_threads; i++ ) {
         WAKE_DAEMON( i, 1 );
     }
     event_base_loopexit( daemon_base, NULL );
@@ -1392,42 +1392,42 @@ slap_sig_shutdown( evutil_socket_t sig, short what, void *arg )
 }
 
 struct event_base *
-slap_get_base( ber_socket_t s )
+lload_get_base( ber_socket_t s )
 {
     int tid = DAEMON_ID(s);
-    return slap_daemon[tid].base;
+    return lload_daemon[tid].base;
 }
 
-Listener **
-slapd_get_listeners( void )
+LloadListener **
+lloadd_get_listeners( void )
 {
     /* Could return array with no listeners if !listening, but current
      * callers mostly look at the URLs.  E.g. syncrepl uses this to
      * identify the server, which means it wants the startup arguments.
      */
-    return slap_listeners;
+    return lload_listeners;
 }
 
 /* Reject all incoming requests */
 void
-slap_suspend_listeners( void )
+lload_suspend_listeners( void )
 {
     int i;
-    for ( i = 0; slap_listeners[i]; i++ ) {
-        slap_listeners[i]->sl_mute = 1;
-        evconnlistener_disable( slap_listeners[i]->listener );
-        listen( slap_listeners[i]->sl_sd, 0 );
+    for ( i = 0; lload_listeners[i]; i++ ) {
+        lload_listeners[i]->sl_mute = 1;
+        evconnlistener_disable( lload_listeners[i]->listener );
+        listen( lload_listeners[i]->sl_sd, 0 );
     }
 }
 
 /* Resume after a suspend */
 void
-slap_resume_listeners( void )
+lload_resume_listeners( void )
 {
     int i;
-    for ( i = 0; slap_listeners[i]; i++ ) {
-        slap_listeners[i]->sl_mute = 0;
-        listen( slap_listeners[i]->sl_sd, SLAPD_LISTEN_BACKLOG );
-        evconnlistener_enable( slap_listeners[i]->listener );
+    for ( i = 0; lload_listeners[i]; i++ ) {
+        lload_listeners[i]->sl_mute = 0;
+        listen( lload_listeners[i]->sl_sd, SLAPD_LISTEN_BACKLOG );
+        evconnlistener_enable( lload_listeners[i]->listener );
     }
 }

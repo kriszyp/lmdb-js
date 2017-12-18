@@ -25,13 +25,13 @@
 #include <event2/dns.h>
 
 #include "lutil.h"
-#include "slap.h"
+#include "lload.h"
 
 static void
 upstream_connect_cb( evutil_socket_t s, short what, void *arg )
 {
-    PendingConnection *conn = arg;
-    Backend *b = conn->backend;
+    LloadPendingConnection *conn = arg;
+    LloadBackend *b = conn->backend;
     int error = 0, rc = -1;
 
     ldap_pvt_thread_mutex_lock( &b->b_mutex );
@@ -89,7 +89,7 @@ done:
 static void
 upstream_name_cb( int result, struct evutil_addrinfo *res, void *arg )
 {
-    Backend *b = arg;
+    LloadBackend *b = arg;
     ber_socket_t s = AC_SOCKET_INVALID;
     int rc;
 
@@ -123,7 +123,7 @@ upstream_name_cb( int result, struct evutil_addrinfo *res, void *arg )
     }
     /* Asynchronous connect */
     if ( rc ) {
-        PendingConnection *conn;
+        LloadPendingConnection *conn;
 
         if ( errno != EINPROGRESS && errno != EWOULDBLOCK ) {
             Debug( LDAP_DEBUG_ANY, "upstream_name_cb: "
@@ -133,12 +133,12 @@ upstream_name_cb( int result, struct evutil_addrinfo *res, void *arg )
             goto fail;
         }
 
-        conn = ch_calloc( 1, sizeof(PendingConnection) );
+        conn = ch_calloc( 1, sizeof(LloadPendingConnection) );
         LDAP_LIST_ENTRY_INIT( conn, next );
         conn->backend = b;
         conn->fd = s;
 
-        conn->event = event_new( slap_get_base( s ), s, EV_WRITE|EV_PERSIST,
+        conn->event = event_new( lload_get_base( s ), s, EV_WRITE|EV_PERSIST,
                 upstream_connect_cb, conn );
         if ( !conn->event ) {
             Debug( LDAP_DEBUG_ANY, "upstream_name_cb: "
@@ -175,10 +175,10 @@ fail:
     }
 }
 
-Connection *
-backend_select( Operation *op )
+LloadConnection *
+backend_select( LloadOperation *op )
 {
-    Backend *b, *first, *next;
+    LloadBackend *b, *first, *next;
 
     ldap_pvt_thread_mutex_lock( &backend_mutex );
     first = b = current_backend;
@@ -191,8 +191,8 @@ backend_select( Operation *op )
     /* TODO: Two runs, one with trylock, then one actually locked if we don't
      * find anything? */
     do {
-        struct ConnSt *head;
-        Connection *c;
+        lload_c_head *head;
+        LloadConnection *c;
 
         ldap_pvt_thread_mutex_lock( &b->b_mutex );
         next = LDAP_CIRCLEQ_LOOP_NEXT( &backend, b, b_next );
@@ -257,7 +257,7 @@ backend_select( Operation *op )
 }
 
 void
-backend_retry( Backend *b )
+backend_retry( LloadBackend *b )
 {
     int rc, requested;
 
@@ -314,7 +314,7 @@ void
 backend_connect( evutil_socket_t s, short what, void *arg )
 {
     struct evutil_addrinfo hints = {};
-    Backend *b = arg;
+    LloadBackend *b = arg;
     char *hostname;
 
     if ( slapd_shutdown ) {
@@ -357,19 +357,19 @@ backend_connect( evutil_socket_t s, short what, void *arg )
                 s, (struct sockaddr *)&addr, sizeof(struct sockaddr_un) );
         /* Asynchronous connect */
         if ( rc ) {
-            PendingConnection *conn;
+            LloadPendingConnection *conn;
 
             if ( errno != EINPROGRESS && errno != EWOULDBLOCK ) {
                 evutil_closesocket( s );
                 goto fail;
             }
 
-            conn = ch_calloc( 1, sizeof(PendingConnection) );
+            conn = ch_calloc( 1, sizeof(LloadPendingConnection) );
             LDAP_LIST_ENTRY_INIT( conn, next );
             conn->backend = b;
             conn->fd = s;
 
-            conn->event = event_new( slap_get_base( s ), s,
+            conn->event = event_new( lload_get_base( s ), s,
                     EV_WRITE|EV_PERSIST, upstream_connect_cb, conn );
             if ( !conn->event ) {
                 Debug( LDAP_DEBUG_ANY, "backend_connect: "
@@ -423,14 +423,15 @@ void
 backends_destroy( void )
 {
     while ( !LDAP_CIRCLEQ_EMPTY( &backend ) ) {
-        Backend *b = LDAP_CIRCLEQ_FIRST( &backend );
+        LloadBackend *b = LDAP_CIRCLEQ_FIRST( &backend );
 
         Debug( LDAP_DEBUG_CONNS, "backends_destroy: "
                 "destroying backend uri='%s', numconns=%d, numbindconns=%d\n",
                 b->b_uri.bv_val, b->b_numconns, b->b_numbindconns );
 
         while ( !LDAP_LIST_EMPTY( &b->b_connecting ) ) {
-            PendingConnection *pending = LDAP_LIST_FIRST( &b->b_connecting );
+            LloadPendingConnection *pending =
+                    LDAP_LIST_FIRST( &b->b_connecting );
 
             Debug( LDAP_DEBUG_CONNS, "backends_destroy: "
                     "destroying socket pending connect() fd=%d\n",
@@ -442,7 +443,7 @@ backends_destroy( void )
             ch_free( pending );
         }
         while ( !LDAP_CIRCLEQ_EMPTY( &b->b_preparing ) ) {
-            Connection *c = LDAP_CIRCLEQ_FIRST( &b->b_preparing );
+            LloadConnection *c = LDAP_CIRCLEQ_FIRST( &b->b_preparing );
 
             CONNECTION_LOCK(c);
             Debug( LDAP_DEBUG_CONNS, "backends_destroy: "
@@ -453,7 +454,7 @@ backends_destroy( void )
             CONNECTION_DESTROY(c);
         }
         while ( !LDAP_CIRCLEQ_EMPTY( &b->b_bindconns ) ) {
-            Connection *c = LDAP_CIRCLEQ_FIRST( &b->b_bindconns );
+            LloadConnection *c = LDAP_CIRCLEQ_FIRST( &b->b_bindconns );
 
             CONNECTION_LOCK(c);
             Debug( LDAP_DEBUG_CONNS, "backends_destroy: "
@@ -464,7 +465,7 @@ backends_destroy( void )
             CONNECTION_DESTROY(c);
         }
         while ( !LDAP_CIRCLEQ_EMPTY( &b->b_conns ) ) {
-            Connection *c = LDAP_CIRCLEQ_FIRST( &b->b_conns );
+            LloadConnection *c = LDAP_CIRCLEQ_FIRST( &b->b_conns );
 
             CONNECTION_LOCK(c);
             Debug( LDAP_DEBUG_CONNS, "backends_destroy: "

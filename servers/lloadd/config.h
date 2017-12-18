@@ -128,19 +128,19 @@ typedef struct config_args_s {
 #define value_string values.v_string
 #define value_bv values.v_bv
 
-int config_fp_parse_line( ConfigArgs *c );
+int lload_config_fp_parse_line( ConfigArgs *c );
 
-int config_set_vals( ConfigTable *ct, ConfigArgs *c );
-int config_add_vals( ConfigTable *ct, ConfigArgs *c );
+int lload_config_get_vals( ConfigTable *ct, ConfigArgs *c );
+int lload_config_add_vals( ConfigTable *ct, ConfigArgs *c );
 
 int config_push_cleanup( ConfigArgs *c, ConfigDriver *cleanup );
 
-void init_config_argv( ConfigArgs *c );
-int read_config_file( const char *fname, int depth, ConfigArgs *cf, ConfigTable *cft );
+void lload_init_config_argv( ConfigArgs *c );
+int lload_read_config_file( const char *fname, int depth, ConfigArgs *cf, ConfigTable *cft );
 
-ConfigTable *config_find_keyword( ConfigTable *ct, ConfigArgs *c );
+ConfigTable *lload_config_find_keyword( ConfigTable *ct, ConfigArgs *c );
 
-Listener *config_check_my_url( const char *url, LDAPURLDesc *lud );
+LloadListener *lload_config_check_my_url( const char *url, LDAPURLDesc *lud );
 
 LDAP_END_DECL
 

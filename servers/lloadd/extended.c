@@ -18,12 +18,15 @@
 #include <ac/string.h>
 
 #include "lutil.h"
-#include "slap.h"
+#include "lload.h"
 
 Avlnode *lload_exop_handlers = NULL;
 
+void *lload_tls_ctx;
+LDAP *lload_tls_ld, *lload_tls_backend_ld;
+
 int
-handle_starttls( Connection *c, Operation *op )
+handle_starttls( LloadConnection *c, LloadOperation *op )
 {
     struct event_base *base = event_get_base( c->c_read_event );
     BerElement *output;
@@ -41,7 +44,7 @@ handle_starttls( Connection *c, Operation *op )
     } else if ( c->c_ops ) {
         rc = LDAP_OPERATIONS_ERROR;
         msg = "cannot start TLS when operations are outstanding";
-    } else if ( !slap_tls_ctx ) {
+    } else if ( !lload_tls_ctx ) {
         rc = LDAP_UNAVAILABLE;
         msg = "Could not initialize TLS";
     }
@@ -100,7 +103,7 @@ handle_starttls( Connection *c, Operation *op )
 }
 
 int
-request_extended( Connection *c, Operation *op )
+request_extended( LloadConnection *c, LloadOperation *op )
 {
     ExopHandler *handler, needle = {};
     BerElement *copy;

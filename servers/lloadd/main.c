@@ -37,7 +37,7 @@
 
 #include <event2/event.h>
 
-#include "slap.h"
+#include "lload.h"
 #include "lutil.h"
 #include "ldif.h"
 
@@ -71,25 +71,25 @@ struct signal_handler {
     event_callback_fn handler;
     struct event *event;
 } signal_handlers[] = {
-        { LDAP_SIGUSR2, slap_sig_shutdown },
+        { LDAP_SIGUSR2, lload_sig_shutdown },
 
 #ifdef SIGPIPE
         { SIGPIPE, sigpipe },
 #endif
 #ifdef SIGHUP
-        { SIGHUP, slap_sig_shutdown },
+        { SIGHUP, lload_sig_shutdown },
 #endif
-        { SIGINT, slap_sig_shutdown },
-        { SIGTERM, slap_sig_shutdown },
+        { SIGINT, lload_sig_shutdown },
+        { SIGTERM, lload_sig_shutdown },
 #ifdef SIGTRAP
-        { SIGTRAP, slap_sig_shutdown },
+        { SIGTRAP, lload_sig_shutdown },
 #endif
 #ifdef LDAP_SIGCHLD
         { LDAP_SIGCHLD, wait4child },
 #endif
 #ifdef SIGBREAK
         /* SIGBREAK is generated when Ctrl-Break is pressed. */
-        { SIGBREAK, slap_sig_shutdown },
+        { SIGBREAK, lload_sig_shutdown },
 #endif
         { 0, NULL }
 };
@@ -109,9 +109,6 @@ const char Versionstr[] = OPENLDAP_PACKAGE
 #define CHECK_LOGLEVEL 0x02
 static int check = CHECK_NONE;
 static int version = 0;
-
-void *slap_tls_ctx;
-LDAP *slap_tls_ld, *slap_tls_backend_ld;
 
 static int
 slapd_opt_slp( const char *val, void *arg )
@@ -394,7 +391,7 @@ main( int argc, char **argv )
         char *regService = NULL;
 
         if ( is_NT_Service ) {
-            lutil_CommenceStartupProcessing( serverName, slap_sig_shutdown );
+            lutil_CommenceStartupProcessing( serverName, lload_sig_shutdown );
             if ( strcmp( serverName, SERVICE_NAME ) ) regService = serverName;
         }
 
@@ -636,7 +633,7 @@ unhandled_option:;
 
     global_host = ldap_pvt_get_fqdn( NULL );
 
-    if ( check == CHECK_NONE && slapd_daemon_init( urls ) != 0 ) {
+    if ( check == CHECK_NONE && lloadd_daemon_init( urls ) != 0 ) {
         rc = 1;
         SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 16 );
         goto stop;
@@ -669,12 +666,12 @@ unhandled_option:;
 #endif
 
 #ifdef HAVE_TLS
-    rc = ldap_create( &slap_tls_backend_ld );
+    rc = ldap_create( &lload_tls_backend_ld );
     if ( rc ) {
         SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 20 );
         goto destroy;
     }
-    rc = ldap_create( &slap_tls_ld );
+    rc = ldap_create( &lload_tls_ld );
     if ( rc ) {
         SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 20 );
         goto destroy;
@@ -686,16 +683,16 @@ unhandled_option:;
      */
     rc = LDAP_OPT_X_TLS_NEVER;
     (void)ldap_pvt_tls_set_option(
-            slap_tls_ld, LDAP_OPT_X_TLS_REQUIRE_CERT, &rc );
+            lload_tls_ld, LDAP_OPT_X_TLS_REQUIRE_CERT, &rc );
 #endif
 
-    rc = slap_init( serverMode, serverName );
+    rc = lload_init( serverMode, serverName );
     if ( rc ) {
         SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 18 );
         goto destroy;
     }
 
-    if ( read_config( configfile, configdir ) != 0 ) {
+    if ( lload_read_config( configfile, configdir ) != 0 ) {
         rc = 1;
         SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 19 );
 
@@ -750,11 +747,11 @@ unhandled_option:;
 
         /* Force new ctx to be created */
         rc = ldap_pvt_tls_set_option(
-                slap_tls_ld, LDAP_OPT_X_TLS_NEWCTX, &opt );
+                lload_tls_ld, LDAP_OPT_X_TLS_NEWCTX, &opt );
         if ( rc == 0 ) {
             /* The ctx's refcount is bumped up here */
             ldap_pvt_tls_get_option(
-                    slap_tls_ld, LDAP_OPT_X_TLS_CTX, &slap_tls_ctx );
+                    lload_tls_ld, LDAP_OPT_X_TLS_CTX, &lload_tls_ctx );
         } else if ( rc != LDAP_NOT_SUPPORTED ) {
             Debug( LDAP_DEBUG_ANY, "main: "
                     "TLS init def ctx failed: %d\n",
@@ -862,7 +859,7 @@ unhandled_option:;
     }
 
     /*
-     * FIXME: moved here from slapd_daemon_task()
+     * FIXME: moved here from lloadd_daemon_task()
      * because back-monitor db_open() needs it
      */
     time( &starttime );
@@ -882,7 +879,7 @@ unhandled_option:;
                 configfile ? configfile : LLOADD_DEFAULT_CONFIGFILE, urls );
 #endif
 
-    rc = slapd_daemon( daemon_base );
+    rc = lloadd_daemon( daemon_base );
 
 #ifdef HAVE_NT_SERVICE_MANAGER
     /* Throw away the event that we used during the startup process. */
@@ -904,7 +901,7 @@ destroy:
         (void)loglevel_print( stdout );
     }
     /* remember an error during destroy */
-    rc |= slap_destroy();
+    rc |= lload_destroy();
 
 stop:
 #ifdef HAVE_NT_EVENT_LOG
@@ -920,12 +917,12 @@ stop:
 #ifdef LOG_DEBUG
     closelog();
 #endif
-    slapd_daemon_destroy();
+    lloadd_daemon_destroy();
 
 #ifdef HAVE_TLS
-    if ( slap_tls_ld ) {
-        ldap_pvt_tls_ctx_free( slap_tls_ctx );
-        ldap_unbind_ext( slap_tls_ld, NULL, NULL );
+    if ( lload_tls_ld ) {
+        ldap_pvt_tls_ctx_free( lload_tls_ctx );
+        ldap_unbind_ext( lload_tls_ld, NULL, NULL );
     }
     ldap_pvt_tls_destroy();
 #endif
@@ -937,7 +934,7 @@ stop:
         unlink( slapd_args_file );
     }
 
-    config_destroy();
+    lload_config_destroy();
 
     if ( configfile ) ch_free( configfile );
     if ( configdir ) ch_free( configdir );

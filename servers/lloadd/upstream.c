@@ -22,12 +22,12 @@
 #include <ac/unistd.h>
 
 #include "lutil.h"
-#include "slap.h"
+#include "lload.h"
 
 int
-forward_response( Operation *op, BerElement *ber )
+forward_response( LloadOperation *op, BerElement *ber )
 {
-    Connection *c = op->o_client;
+    LloadConnection *c = op->o_client;
     BerElement *output;
     BerValue response, controls = BER_BVNULL;
     ber_tag_t tag, response_tag;
@@ -42,7 +42,7 @@ forward_response( Operation *op, BerElement *ber )
 
     Debug( LDAP_DEBUG_TRACE, "forward_response: "
             "%s to client connid=%lu request msgid=%d\n",
-            slap_msgtype2str( response_tag ), op->o_client_connid,
+            lload_msgtype2str( response_tag ), op->o_client_connid,
             op->o_client_msgid );
 
     ldap_pvt_thread_mutex_lock( &c->c_io_mutex );
@@ -67,7 +67,7 @@ forward_response( Operation *op, BerElement *ber )
 }
 
 int
-forward_final_response( Operation *op, BerElement *ber )
+forward_final_response( LloadOperation *op, BerElement *ber )
 {
     int rc;
 
@@ -84,7 +84,7 @@ forward_final_response( Operation *op, BerElement *ber )
 }
 
 static int
-handle_unsolicited( Connection *c, BerElement *ber )
+handle_unsolicited( LloadConnection *c, BerElement *ber )
 {
     if ( c->c_state == LLOAD_C_READY ) {
         c->c_state = LLOAD_C_CLOSING;
@@ -129,11 +129,11 @@ handle_unsolicited( Connection *c, BerElement *ber )
  * - op->o_client->c_refcnt > 0
  */
 static int
-handle_one_response( Connection *c )
+handle_one_response( LloadConnection *c )
 {
     BerElement *ber;
-    Operation *op = NULL, needle = { .o_upstream_connid = c->c_connid };
-    OperationHandler handler = NULL;
+    LloadOperation *op = NULL, needle = { .o_upstream_connid = c->c_connid };
+    LloadOperationHandler handler = NULL;
     ber_tag_t tag;
     ber_len_t len;
     int rc = LDAP_SUCCESS;
@@ -198,11 +198,12 @@ handle_one_response( Connection *c )
         Debug( LDAP_DEBUG_STATS2, "handle_one_response: "
                 "upstream connid=%lu, %s, msgid=%d not for a pending "
                 "operation\n",
-                c->c_connid, slap_msgtype2str( tag ), needle.o_upstream_msgid );
+                c->c_connid, lload_msgtype2str( tag ),
+                needle.o_upstream_msgid );
     }
 
     if ( handler ) {
-        Connection *client;
+        LloadConnection *client;
 
         op->o_upstream_refcnt++;
         CONNECTION_UNLOCK_INCREF(c);
@@ -251,7 +252,7 @@ fail:
         Debug( LDAP_DEBUG_STATS, "handle_one_response: "
                 "error on processing a response (%s) on upstream connection "
                 "connid=%ld, tag=%lx\n",
-                slap_msgtype2str( tag ), c->c_connid, tag );
+                lload_msgtype2str( tag ), c->c_connid, tag );
         CONNECTION_DESTROY(c);
     }
     /* We leave the connection locked */
@@ -259,10 +260,10 @@ fail:
 }
 
 int
-upstream_bind_cb( Connection *c )
+upstream_bind_cb( LloadConnection *c )
 {
     BerElement *ber = c->c_currentber;
-    Backend *b = c->c_private;
+    LloadBackend *b = c->c_private;
     BerValue matcheddn, message;
     ber_tag_t tag;
     ber_int_t msgid, result;
@@ -278,7 +279,7 @@ upstream_bind_cb( Connection *c )
     if ( msgid != ( c->c_next_msgid - 1 ) || tag != LDAP_RES_BIND ) {
         Debug( LDAP_DEBUG_ANY, "upstream_bind_cb: "
                 "unexpected %s from server, msgid=%d\n",
-                slap_msgtype2str( tag ), msgid );
+                lload_msgtype2str( tag ), msgid );
         goto fail;
     }
 
@@ -339,7 +340,7 @@ fail:
 void *
 upstream_bind( void *ctx, void *arg )
 {
-    Connection *c = arg;
+    LloadConnection *c = arg;
     BerElement *ber;
     ber_int_t msgid;
 
@@ -389,9 +390,9 @@ upstream_bind( void *ctx, void *arg )
  * The backend is already locked when entering the function.
  */
 static int
-upstream_finish( Connection *c )
+upstream_finish( LloadConnection *c )
 {
-    Backend *b = c->c_private;
+    LloadBackend *b = c->c_private;
     int is_bindconn = 0, rc = 0;
 
     c->c_pdu_cb = handle_one_response;
@@ -455,8 +456,8 @@ upstream_finish( Connection *c )
 static void
 upstream_tls_handshake_cb( evutil_socket_t s, short what, void *arg )
 {
-    Connection *c = arg;
-    Backend *b;
+    LloadConnection *c = arg;
+    LloadBackend *b;
     int rc = LDAP_SUCCESS;
 
     CONNECTION_LOCK(c);
@@ -468,7 +469,7 @@ upstream_tls_handshake_cb( evutil_socket_t s, short what, void *arg )
     }
     b = c->c_private;
 
-    rc = ldap_pvt_tls_connect( slap_tls_backend_ld, c->c_sb, b->b_host );
+    rc = ldap_pvt_tls_connect( lload_tls_backend_ld, c->c_sb, b->b_host );
     if ( rc < 0 ) {
         goto fail;
     }
@@ -525,7 +526,7 @@ fail:
 }
 
 static int
-upstream_starttls( Connection *c )
+upstream_starttls( LloadConnection *c )
 {
     BerValue matcheddn, message, responseOid,
              startTLSOid = BER_BVC(LDAP_EXOP_START_TLS);
@@ -545,7 +546,7 @@ upstream_starttls( Connection *c )
     if ( msgid != ( c->c_next_msgid - 1 ) || tag != LDAP_RES_EXTENDED ) {
         Debug( LDAP_DEBUG_ANY, "upstream_starttls: "
                 "unexpected %s from server, msgid=%d\n",
-                slap_msgtype2str( tag ), msgid );
+                lload_msgtype2str( tag ), msgid );
         goto fail;
     }
 
@@ -573,7 +574,7 @@ upstream_starttls( Connection *c )
     }
 
     if ( result != LDAP_SUCCESS ) {
-        Backend *b = c->c_private;
+        LloadBackend *b = c->c_private;
         int rc;
 
         Debug( LDAP_DEBUG_STATS, "upstream_starttls: "
@@ -631,18 +632,18 @@ fail:
 /*
  * We must already hold b->b_mutex when called.
  */
-Connection *
-upstream_init( ber_socket_t s, Backend *b )
+LloadConnection *
+upstream_init( ber_socket_t s, LloadBackend *b )
 {
-    Connection *c;
-    struct event_base *base = slap_get_base( s );
+    LloadConnection *c;
+    struct event_base *base = lload_get_base( s );
     struct event *event;
     int flags, rc = -1;
 
     assert( b != NULL );
 
     flags = (b->b_proto == LDAP_PROTO_IPC) ? CONN_IS_IPC : 0;
-    if ( (c = connection_init( s, b->b_host, flags )) == NULL ) {
+    if ( (c = lload_connection_init( s, b->b_host, flags )) == NULL ) {
         return NULL;
     }
 
@@ -738,9 +739,9 @@ fail:
 }
 
 void
-upstream_destroy( Connection *c )
+upstream_destroy( LloadConnection *c )
 {
-    Backend *b = c->c_private;
+    LloadBackend *b = c->c_private;
     struct event *read_event, *write_event;
     TAvlnode *root;
     long freed, executing;
@@ -789,7 +790,7 @@ upstream_destroy( Connection *c )
             b->b_failed++;
         } else if ( c->c_type == LLOAD_C_BIND ) {
             if ( c == b->b_last_bindconn ) {
-                Connection *prev =
+                LloadConnection *prev =
                         LDAP_CIRCLEQ_LOOP_PREV( &b->b_bindconns, c, c_next );
                 if ( prev == c ) {
                     b->b_last_bindconn = NULL;
@@ -801,7 +802,7 @@ upstream_destroy( Connection *c )
             b->b_bindavail--;
         } else {
             if ( c == b->b_last_conn ) {
-                Connection *prev =
+                LloadConnection *prev =
                         LDAP_CIRCLEQ_LOOP_PREV( &b->b_conns, c, c_next );
                 if ( prev == c ) {
                     b->b_last_conn = NULL;

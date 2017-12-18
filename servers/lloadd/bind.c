@@ -22,16 +22,16 @@
 #include <ac/unistd.h>
 
 #include "lutil.h"
-#include "slap.h"
+#include "lload.h"
 
 /*
  * On entering the function, we've put a reference on both connections and hold
  * upstream's c_io_mutex.
  */
 static int
-client_bind( Operation *op )
+client_bind( LloadOperation *op )
 {
-    Connection *client = op->o_client, *upstream = op->o_upstream;
+    LloadConnection *client = op->o_client, *upstream = op->o_upstream;
     BerElement *ber, *copy = NULL;
     BerValue binddn;
     ber_tag_t tag;
@@ -130,9 +130,9 @@ fail:
  * upstream's c_io_mutex.
  */
 static int
-client_bind_as_vc( Operation *op )
+client_bind_as_vc( LloadOperation *op )
 {
-    Connection *client = op->o_client, *upstream = op->o_upstream;
+    LloadConnection *client = op->o_client, *upstream = op->o_upstream;
     BerElement *ber, *request, *copy = NULL;
     BerValue binddn, auth, mech;
     char *msg = "internal error";
@@ -260,9 +260,9 @@ fail:
 #endif /* LDAP_API_FEATURE_VERIFY_CREDENTIALS */
 
 int
-request_bind( Connection *client, Operation *op )
+request_bind( LloadConnection *client, LloadOperation *op )
 {
-    Connection *upstream;
+    LloadConnection *upstream;
     int rc = LDAP_SUCCESS;
 
     /* protect the Bind operation */
@@ -334,9 +334,9 @@ request_bind( Connection *client, Operation *op )
 }
 
 int
-handle_bind_response( Operation *op, BerElement *ber )
+handle_bind_response( LloadOperation *op, BerElement *ber )
 {
-    Connection *client = op->o_client, *upstream = op->o_upstream;
+    LloadConnection *client = op->o_client, *upstream = op->o_upstream;
     BerValue response;
     BerElement *copy;
     ber_int_t result;
@@ -413,9 +413,9 @@ done:
 
 #ifdef LDAP_API_FEATURE_VERIFY_CREDENTIALS
 int
-handle_vc_bind_response( Operation *op, BerElement *ber )
+handle_vc_bind_response( LloadOperation *op, BerElement *ber )
 {
-    Connection *c = op->o_client;
+    LloadConnection *c = op->o_client;
     BerElement *output;
     BerValue matched, diagmsg, creds = BER_BVNULL, controls = BER_BVNULL;
     ber_int_t result;
@@ -432,11 +432,11 @@ handle_vc_bind_response( Operation *op, BerElement *ber )
 
     tag = ber_peek_tag( ber, &len );
     if ( result == LDAP_PROTOCOL_ERROR ) {
-        Connection *upstream = op->o_upstream;
-        Backend *b;
+        LloadConnection *upstream = op->o_upstream;
+        LloadBackend *b;
 
         CONNECTION_LOCK(upstream);
-        b = (Backend *)upstream->c_private;
+        b = (LloadBackend *)upstream->c_private;
         Debug( LDAP_DEBUG_ANY, "handle_vc_bind_response: "
                 "VC extended operation not supported on backend %s\n",
                 b->b_uri.bv_val );

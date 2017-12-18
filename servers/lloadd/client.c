@@ -22,16 +22,16 @@
 #include <ac/unistd.h>
 
 #include "lutil.h"
-#include "slap.h"
+#include "lload.h"
 
-slap_c_head clients = LDAP_CIRCLEQ_HEAD_INITIALIZER( clients );
+lload_c_head clients = LDAP_CIRCLEQ_HEAD_INITIALIZER( clients );
 
 ldap_pvt_thread_mutex_t clients_mutex;
 
 int
-request_abandon( Connection *c, Operation *op )
+request_abandon( LloadConnection *c, LloadOperation *op )
 {
-    Operation *request, needle = { .o_client_connid = c->c_connid };
+    LloadOperation *request, needle = { .o_client_connid = c->c_connid };
     int rc = LDAP_SUCCESS;
 
     if ( ber_decode_int( &op->o_request, &needle.o_client_msgid ) ) {
@@ -61,8 +61,8 @@ request_abandon( Connection *c, Operation *op )
     }
     Debug( LDAP_DEBUG_STATS, "request_abandon: "
             "connid=%lu msgid=%d abandoning %s msgid=%d\n",
-            c->c_connid, op->o_client_msgid, slap_msgtype2str( request->o_tag ),
-            needle.o_client_msgid );
+            c->c_connid, op->o_client_msgid,
+            lload_msgtype2str( request->o_tag ), needle.o_client_msgid );
 
     if ( c->c_state == LLOAD_C_BINDING ) {
         /* We have found the request and we are binding, it must be a bind
@@ -81,10 +81,10 @@ done:
 }
 
 int
-request_process( Connection *client, Operation *op )
+request_process( LloadConnection *client, LloadOperation *op )
 {
     BerElement *output;
-    Connection *upstream;
+    LloadConnection *upstream;
     ber_int_t msgid;
     int rc = LDAP_SUCCESS;
 
@@ -120,7 +120,7 @@ request_process( Connection *client, Operation *op )
     Debug( LDAP_DEBUG_TRACE, "request_process: "
             "client connid=%lu added %s msgid=%d to upstream connid=%lu as "
             "msgid=%d\n",
-            op->o_client_connid, slap_msgtype2str( op->o_tag ),
+            op->o_client_connid, lload_msgtype2str( op->o_tag ),
             op->o_client_msgid, op->o_upstream_connid, op->o_upstream_msgid );
     assert( rc == LDAP_SUCCESS );
 
@@ -163,12 +163,12 @@ request_process( Connection *client, Operation *op )
 
 fail:
     if ( upstream ) {
-        Backend *b;
+        LloadBackend *b;
 
         ldap_pvt_thread_mutex_unlock( &upstream->c_io_mutex );
         CONNECTION_LOCK_DECREF(upstream);
         upstream->c_n_ops_executing--;
-        b = (Backend *)upstream->c_private;
+        b = (LloadBackend *)upstream->c_private;
         CONNECTION_UNLOCK_OR_DESTROY(upstream);
 
         ldap_pvt_thread_mutex_lock( &b->b_mutex );
@@ -187,10 +187,10 @@ fail:
 }
 
 int
-handle_one_request( Connection *c )
+handle_one_request( LloadConnection *c )
 {
     BerElement *ber;
-    Operation *op = NULL;
+    LloadOperation *op = NULL;
     RequestHandler handler = NULL;
 
     ber = c->c_currentber;
@@ -244,7 +244,7 @@ handle_one_request( Connection *c )
 void
 client_tls_handshake_cb( evutil_socket_t s, short what, void *arg )
 {
-    Connection *c = arg;
+    LloadConnection *c = arg;
     int rc = 0;
 
     CONNECTION_LOCK_DECREF(c);
@@ -283,7 +283,7 @@ client_tls_handshake_cb( evutil_socket_t s, short what, void *arg )
     }
     ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
 
-    rc = ldap_pvt_tls_accept( c->c_sb, slap_tls_ctx );
+    rc = ldap_pvt_tls_accept( c->c_sb, lload_tls_ctx );
     if ( rc < 0 ) {
         goto fail;
     }
@@ -332,22 +332,22 @@ fail:
     CONNECTION_DESTROY(c);
 }
 
-Connection *
+LloadConnection *
 client_init(
         ber_socket_t s,
-        Listener *listener,
+        LloadListener *listener,
         const char *peername,
         struct event_base *base,
         int flags )
 {
-    Connection *c;
+    LloadConnection *c;
     struct event *event;
     event_callback_fn read_cb = connection_read_cb,
                       write_cb = connection_write_cb;
 
     assert( listener != NULL );
 
-    if ( (c = connection_init( s, peername, flags )) == NULL ) {
+    if ( (c = lload_connection_init( s, peername, flags) ) == NULL ) {
         return NULL;
     }
 
@@ -363,7 +363,7 @@ client_init(
 
         c->c_is_tls = LLOAD_LDAPS;
 
-        rc = ldap_pvt_tls_accept( c->c_sb, slap_tls_ctx );
+        rc = ldap_pvt_tls_accept( c->c_sb, lload_tls_ctx );
         if ( rc < 0 ) {
             Debug( LDAP_DEBUG_CONNS, "client_init: "
                     "connid=%lu failed initial TLS accept rc=%d\n",
@@ -426,7 +426,7 @@ fail:
 }
 
 void
-client_reset( Connection *c )
+client_reset( LloadConnection *c )
 {
     TAvlnode *root;
 
@@ -439,7 +439,7 @@ client_reset( Connection *c )
     if ( root ) {
         TAvlnode *node = tavl_end( root, TAVL_DIR_LEFT );
         do {
-            Operation *op = node->avl_data;
+            LloadOperation *op = node->avl_data;
 
             /* make sure it's useable after we've unlocked the connection */
             op->o_client_refcnt++;
@@ -468,7 +468,7 @@ client_reset( Connection *c )
 }
 
 void
-client_destroy( Connection *c )
+client_destroy( LloadConnection *c )
 {
     enum sc_state state;
     struct event *read_event, *write_event;
@@ -547,7 +547,7 @@ clients_destroy( void )
 {
     ldap_pvt_thread_mutex_lock( &clients_mutex );
     while ( !LDAP_CIRCLEQ_EMPTY( &clients ) ) {
-        Connection *c = LDAP_CIRCLEQ_FIRST( &clients );
+        LloadConnection *c = LDAP_CIRCLEQ_FIRST( &clients );
 
         ldap_pvt_thread_mutex_unlock( &clients_mutex );
         CONNECTION_LOCK(c);

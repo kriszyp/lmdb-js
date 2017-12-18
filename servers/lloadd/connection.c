@@ -37,13 +37,13 @@
 #include <ac/unistd.h>
 
 #include "lutil.h"
-#include "slap.h"
+#include "lload.h"
 
 static ldap_pvt_thread_mutex_t conn_nextid_mutex;
 static unsigned long conn_nextid = 0;
 
 static void
-connection_assign_nextid( Connection *conn )
+lload_connection_assign_nextid( LloadConnection *conn )
 {
     ldap_pvt_thread_mutex_lock( &conn_nextid_mutex );
     conn->c_connid = conn_nextid++;
@@ -55,7 +55,7 @@ connection_assign_nextid( Connection *conn )
  * received.
  *
  * We run c->c_pdu_cb for each pdu, stopping once we hit an error, have to wait
- * on reading or after we process slap_conn_max_pdus_per_cycle pdus so as to
+ * on reading or after we process lload_conn_max_pdus_per_cycle pdus so as to
  * maintain fairness and not hog the worker thread forever.
  *
  * If we've run out of pdus immediately available from the stream or hit the
@@ -69,7 +69,7 @@ connection_assign_nextid( Connection *conn )
 static void *
 handle_pdus( void *ctx, void *arg )
 {
-    Connection *c = arg;
+    LloadConnection *c = arg;
     int pdus_handled = 0;
 
     CONNECTION_LOCK_DECREF(c);
@@ -87,7 +87,7 @@ handle_pdus( void *ctx, void *arg )
         }
         /* Otherwise, handle_one_request leaves the connection locked */
 
-        if ( ++pdus_handled >= slap_conn_max_pdus_per_cycle ) {
+        if ( ++pdus_handled >= lload_conn_max_pdus_per_cycle ) {
             /* Do not read now, re-enable read event instead */
             break;
         }
@@ -146,7 +146,7 @@ handle_pdus( void *ctx, void *arg )
 void
 connection_read_cb( evutil_socket_t s, short what, void *arg )
 {
-    Connection *c = arg;
+    LloadConnection *c = arg;
     BerElement *ber;
     ber_tag_t tag;
     ber_len_t len;
@@ -219,7 +219,7 @@ connection_read_cb( evutil_socket_t s, short what, void *arg )
         return;
     }
 
-    if ( !slap_conn_max_pdus_per_cycle ||
+    if ( !lload_conn_max_pdus_per_cycle ||
             ldap_pvt_thread_pool_submit( &connection_pool, handle_pdus, c ) ) {
         /* If we're overloaded or configured as such, process one and resume in
          * the next cycle.
@@ -247,7 +247,7 @@ connection_read_cb( evutil_socket_t s, short what, void *arg )
 void
 connection_write_cb( evutil_socket_t s, short what, void *arg )
 {
-    Connection *c = arg;
+    LloadConnection *c = arg;
 
     CONNECTION_LOCK(c);
     if ( !c->c_live ) {
@@ -296,7 +296,7 @@ connection_write_cb( evutil_socket_t s, short what, void *arg )
 }
 
 void
-connection_destroy( Connection *c )
+connection_destroy( LloadConnection *c )
 {
     assert( c );
     Debug( LDAP_DEBUG_CONNS, "connection_destroy: "
@@ -328,15 +328,15 @@ connection_destroy( Connection *c )
     listeners_reactivate();
 }
 
-Connection *
-connection_init( ber_socket_t s, const char *peername, int flags )
+LloadConnection *
+lload_connection_init( ber_socket_t s, const char *peername, int flags )
 {
-    Connection *c;
+    LloadConnection *c;
 
     assert( peername != NULL );
 
     if ( s == AC_SOCKET_INVALID ) {
-        Debug( LDAP_DEBUG_ANY, "connection_init: "
+        Debug( LDAP_DEBUG_ANY, "lload_connection_init: "
                 "init of socket fd=%ld invalid\n",
                 (long)s );
         return NULL;
@@ -344,7 +344,7 @@ connection_init( ber_socket_t s, const char *peername, int flags )
 
     assert( s >= 0 );
 
-    c = ch_calloc( 1, sizeof(Connection) );
+    c = ch_calloc( 1, sizeof(LloadConnection) );
 
     c->c_fd = s;
     c->c_sb = ber_sockbuf_alloc();
@@ -383,9 +383,9 @@ connection_init( ber_socket_t s, const char *peername, int flags )
     ldap_pvt_thread_mutex_init( &c->c_mutex );
     ldap_pvt_thread_mutex_init( &c->c_io_mutex );
 
-    connection_assign_nextid( c );
+    lload_connection_assign_nextid( c );
 
-    Debug( LDAP_DEBUG_CONNS, "connection_init: "
+    Debug( LDAP_DEBUG_CONNS, "lload_connection_init: "
             "connection connid=%lu allocated for socket fd=%d peername=%s\n",
             c->c_connid, s, peername );
 

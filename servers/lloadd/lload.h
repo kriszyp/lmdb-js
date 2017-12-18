@@ -1,4 +1,4 @@
-/* slap.h - stand alone ldap server include file */
+/* lload.h - load balancer include file */
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
@@ -24,8 +24,8 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
-#ifndef _SLAP_H_
-#define _SLAP_H_
+#ifndef _LLOAD_H_
+#define _LLOAD_H_
 
 #include "ldap_defaults.h"
 
@@ -41,6 +41,8 @@
 #include <ac/param.h>
 
 #include "avl.h"
+
+#include "../servers/slapd/slap.h"
 
 #ifndef ldap_debug
 #define ldap_debug slap_debug
@@ -60,179 +62,42 @@
 
 LDAP_BEGIN_DECL
 
-/*
- * SLAPD Memory allocation macros
- *
- * Unlike ch_*() routines, these routines do not assert() upon
- * allocation error.  They are intended to be used instead of
- * ch_*() routines where the caller has implemented proper
- * checking for and handling of allocation errors.
- *
- * Patches to convert ch_*() calls to SLAP_*() calls welcomed.
- */
-#define SLAP_MALLOC(s) ber_memalloc( ( s ) )
-#define SLAP_CALLOC(n, s) ber_memcalloc( ( n ), ( s ) )
-#define SLAP_REALLOC(p, s) ber_memrealloc( ( p ), ( s ) )
-#define SLAP_FREE(p) ber_memfree( ( p ) )
-#define SLAP_VFREE(v) ber_memvfree( (void **)( v ) )
-#define SLAP_STRDUP(s) ber_strdup( ( s ) )
-#define SLAP_STRNDUP(s, l) ber_strndup( ( s ), ( l ) )
+#ifdef SERVICE_NAME
+#undef SERVICE_NAME
+#endif
 
 #define SERVICE_NAME OPENLDAP_PACKAGE "-lloadd"
-#define SLAPD_ANONYMOUS ""
-#define SLAP_STRING_UNKNOWN "unknown"
 
-#define SLAP_MAX_WORKER_THREADS ( 16 )
-
-#define LLOAD_SB_MAX_INCOMING_CLIENT ( ( 1 << 18 ) - 1 )
+#define LLOAD_SB_MAX_INCOMING_CLIENT ( ( 1 << 24 ) - 1 )
 #define LLOAD_SB_MAX_INCOMING_UPSTREAM ( ( 1 << 24 ) - 1 )
 
 #define LLOAD_CONN_MAX_PDUS_PER_CYCLE_DEFAULT 10
 
-#define SLAP_TEXT_BUFLEN ( 256 )
-
-/* unknown config file directive */
-#define SLAP_CONF_UNKNOWN ( -1026 )
-
 #define BER_BV_OPTIONAL( bv ) ( BER_BVISNULL( bv ) ? NULL : ( bv ) )
 
-LDAP_SLAPD_V (int) slap_debug;
-
-typedef unsigned long slap_mask_t;
-
-typedef struct Backend Backend;
-typedef struct PendingConnection PendingConnection;
-typedef struct Connection Connection;
-typedef struct Operation Operation;
+typedef struct LloadBackend LloadBackend;
+typedef struct LloadPendingConnection LloadPendingConnection;
+typedef struct LloadConnection LloadConnection;
+typedef struct LloadOperation LloadOperation;
 /* end of forward declarations */
 
-typedef union Sockaddr {
-    struct sockaddr sa_addr;
-    struct sockaddr_in sa_in_addr;
-#ifdef LDAP_PF_INET6
-    struct sockaddr_storage sa_storage;
-    struct sockaddr_in6 sa_in6_addr;
-#endif
-#ifdef LDAP_PF_LOCAL
-    struct sockaddr_un sa_un_addr;
-#endif
-} Sockaddr;
+typedef LDAP_CIRCLEQ_HEAD(BeSt, LloadBackend) lload_b_head;
+typedef LDAP_CIRCLEQ_HEAD(ConnSt, LloadConnection) lload_c_head;
 
-#ifdef LDAP_PF_INET6
-extern int slap_inet4or6;
-#endif
-
-typedef LDAP_CIRCLEQ_HEAD(BeSt, Backend) slap_b_head;
-typedef LDAP_CIRCLEQ_HEAD(ClientSt, Connection) slap_c_head;
-
-LDAP_SLAPD_V (slap_b_head) backend;
-LDAP_SLAPD_V (slap_c_head) clients;
+LDAP_SLAPD_V (lload_b_head) backend;
+LDAP_SLAPD_V (lload_c_head) clients;
 LDAP_SLAPD_V (ldap_pvt_thread_mutex_t) backend_mutex;
-LDAP_SLAPD_V (Backend *) current_backend;
+LDAP_SLAPD_V (LloadBackend *) current_backend;
 LDAP_SLAPD_V (struct slap_bindconf) bindconf;
 LDAP_SLAPD_V (struct berval) lloadd_identity;
 
-LDAP_SLAPD_V (int) slapMode;
-#define SLAP_UNDEFINED_MODE 0x0000
-#define SLAP_SERVER_MODE 0x0001
-#define SLAP_TOOL_MODE 0x0002
-#define SLAP_MODE 0x0003
-
-#define SLAP_SERVER_RUNNING 0x8000
-
-#define SB_TLS_DEFAULT ( -1 )
-#define SB_TLS_OFF 0
-#define SB_TLS_ON 1
-#define SB_TLS_CRITICAL 2
-
-typedef struct slap_keepalive {
-    int sk_idle;
-    int sk_probes;
-    int sk_interval;
-} slap_keepalive;
-
-typedef struct slap_bindconf {
-    struct berval sb_uri;
-    int sb_version;
-    int sb_tls;
-    int sb_method;
-    int sb_timeout_api;
-    int sb_timeout_net;
-    struct berval sb_binddn;
-    struct berval sb_cred;
-    struct berval sb_saslmech;
-    char *sb_secprops;
-    struct berval sb_realm;
-    struct berval sb_authcId;
-    struct berval sb_authzId;
-    slap_keepalive sb_keepalive;
-#ifdef HAVE_TLS
-    void *sb_tls_ctx;
-    char *sb_tls_cert;
-    char *sb_tls_key;
-    char *sb_tls_cacert;
-    char *sb_tls_cacertdir;
-    char *sb_tls_reqcert;
-    char *sb_tls_reqsan;
-    char *sb_tls_cipher_suite;
-    char *sb_tls_protocol_min;
-    char *sb_tls_ecname;
-#ifdef HAVE_OPENSSL
-    char *sb_tls_crlcheck;
-#endif
-    int sb_tls_int_reqcert;
-    int sb_tls_int_reqsan;
-    int sb_tls_do_init;
-#endif
-} slap_bindconf;
-
-typedef struct slap_verbmasks {
-    struct berval word;
-    const slap_mask_t mask;
-} slap_verbmasks;
-
-typedef struct slap_cf_aux_table {
-    struct berval key;
-    int off;
-    char type;
-    char quote;
-    void *aux;
-} slap_cf_aux_table;
-
-typedef int slap_cf_aux_table_parse_x( struct berval *val,
+typedef int lload_cf_aux_table_parse_x( struct berval *val,
         void *bc,
         slap_cf_aux_table *tab0,
         const char *tabmsg,
         int unparse );
 
-#define SLAP_RESTRICT_OP_ADD 0x0001U
-#define SLAP_RESTRICT_OP_BIND 0x0002U
-#define SLAP_RESTRICT_OP_COMPARE 0x0004U
-#define SLAP_RESTRICT_OP_DELETE 0x0008U
-#define SLAP_RESTRICT_OP_EXTENDED 0x0010U
-#define SLAP_RESTRICT_OP_MODIFY 0x0020U
-#define SLAP_RESTRICT_OP_RENAME 0x0040U
-#define SLAP_RESTRICT_OP_SEARCH 0x0080U
-#define SLAP_RESTRICT_OP_MASK 0x00FFU
-
-#define SLAP_RESTRICT_READONLY 0x80000000U
-
-#define SLAP_RESTRICT_EXOP_START_TLS 0x0100U
-#define SLAP_RESTRICT_EXOP_MODIFY_PASSWD 0x0200U
-#define SLAP_RESTRICT_EXOP_WHOAMI 0x0400U
-#define SLAP_RESTRICT_EXOP_CANCEL 0x0800U
-#define SLAP_RESTRICT_EXOP_MASK 0xFF00U
-
-#define SLAP_RESTRICT_OP_READS \
-    ( SLAP_RESTRICT_OP_COMPARE | SLAP_RESTRICT_OP_SEARCH )
-#define SLAP_RESTRICT_OP_WRITES \
-    ( SLAP_RESTRICT_OP_ADD | SLAP_RESTRICT_OP_DELETE | SLAP_RESTRICT_OP_MODIFY | SLAP_RESTRICT_OP_RENAME )
-#define SLAP_RESTRICT_OP_ALL \
-    ( SLAP_RESTRICT_OP_READS | SLAP_RESTRICT_OP_WRITES | SLAP_RESTRICT_OP_BIND | SLAP_RESTRICT_OP_EXTENDED )
-
-typedef struct config_reply_s ConfigReply; /* config.h */
-
-typedef struct Listener Listener;
+typedef struct LloadListener LloadListener;
 
 typedef enum {
 #ifdef LDAP_API_FEATURE_VERIFY_CREDENTIALS
@@ -249,17 +114,17 @@ enum lload_tls_type {
     LLOAD_TLS_ESTABLISHED,
 };
 
-struct PendingConnection {
-    Backend *backend;
+struct LloadPendingConnection {
+    LloadBackend *backend;
 
     struct event *event;
     ber_socket_t fd;
 
-    LDAP_LIST_ENTRY(PendingConnection) next;
+    LDAP_LIST_ENTRY(LloadPendingConnection) next;
 };
 
 /* Can hold mutex when locking a linked connection */
-struct Backend {
+struct LloadBackend {
     ldap_pvt_thread_mutex_t b_mutex;
 
     struct berval b_uri;
@@ -273,25 +138,25 @@ struct Backend {
 
     int b_numconns, b_numbindconns;
     int b_bindavail, b_active, b_opening;
-    LDAP_CIRCLEQ_HEAD(ConnSt, Connection) b_conns, b_bindconns, b_preparing;
-    LDAP_LIST_HEAD(ConnectingSt, PendingConnection) b_connecting;
-    Connection *b_last_conn, *b_last_bindconn;
+    lload_c_head b_conns, b_bindconns, b_preparing;
+    LDAP_LIST_HEAD(ConnectingSt, LloadPendingConnection) b_connecting;
+    LloadConnection *b_last_conn, *b_last_bindconn;
 
     long b_max_pending, b_max_conn_pending;
     long b_n_ops_executing;
 
-    LDAP_CIRCLEQ_ENTRY(Backend) b_next;
+    LDAP_CIRCLEQ_ENTRY(LloadBackend) b_next;
 };
 
-typedef int (*OperationHandler)( Operation *op, BerElement *ber );
-typedef int (*RequestHandler)( Connection *c, Operation *op );
+typedef int (*LloadOperationHandler)( LloadOperation *op, BerElement *ber );
+typedef int (*RequestHandler)( LloadConnection *c, LloadOperation *op );
 typedef struct lload_exop_handlers_t {
     struct berval oid;
     RequestHandler func;
 } ExopHandler;
 
-typedef int (*CONNECTION_PDU_CB)( Connection *c );
-typedef void (*CONNECTION_DESTROY_CB)( Connection *c );
+typedef int (*CONNECTION_PDU_CB)( LloadConnection *c );
+typedef void (*CONNECTION_DESTROY_CB)( LloadConnection *c );
 
 /* connection state (protected by c_mutex) */
 enum sc_state {
@@ -310,16 +175,16 @@ enum sc_type {
 /*
  * represents a connection from an ldap client/to ldap server
  */
-struct Connection {
+struct LloadConnection {
     enum sc_state c_state; /* connection state */
     enum sc_type c_type;
     ber_socket_t c_fd;
 
 /*
- * Connection reference counting:
+ * LloadConnection reference counting:
  * - connection has a reference counter in c_refcnt
  * - also a liveness/validity token is added to c_refcnt during
- *   connection_init, its existence is tracked in c_live and is usually the
+ *   lload_connection_init, its existence is tracked in c_live and is usually the
  *   only one that prevents it from being destroyed
  * - anyone who needs to be able to lock the connection after unlocking it has
  *   to use CONNECTION_UNLOCK_INCREF, they are then responsible that
@@ -403,10 +268,6 @@ struct Connection {
 
     TAvlnode *c_ops; /* Operations pending on the connection */
 
-#define CONN_IS_TLS 1
-#define CONN_IS_BIND 4
-#define CONN_IS_IPC 8
-
 #ifdef HAVE_TLS
     enum lload_tls_type c_is_tls; /* true if this LDAP over raw TLS */
 #endif
@@ -419,7 +280,7 @@ struct Connection {
      * - Client: clients_mutex
      * - Upstream: b->b_mutex
      */
-    LDAP_CIRCLEQ_ENTRY(Connection) c_next;
+    LDAP_CIRCLEQ_ENTRY(LloadConnection) c_next;
 
     void *c_private;
 };
@@ -436,13 +297,13 @@ enum op_state {
 #define LLOAD_OP_DETACHING_MASK \
     ( LLOAD_OP_DETACHING_UPSTREAM | LLOAD_OP_DETACHING_CLIENT )
 
-struct Operation {
-    Connection *o_client;
+struct LloadOperation {
+    LloadConnection *o_client;
     unsigned long o_client_connid;
     int o_client_live, o_client_refcnt;
     ber_int_t o_client_msgid;
 
-    Connection *o_upstream;
+    LloadConnection *o_upstream;
     unsigned long o_upstream_connid;
     int o_upstream_live, o_upstream_refcnt;
     ber_int_t o_upstream_msgid;
@@ -463,34 +324,10 @@ struct Operation {
     BerValue o_request, o_ctrls;
 };
 
-#ifdef LDAP_DEBUG
-#ifdef LDAP_SYSLOG
-#ifdef LOG_LOCAL4
-#define SLAP_DEFAULT_SYSLOG_USER LOG_LOCAL4
-#endif /* LOG_LOCAL4 */
-
-#define Statslog( level, fmt, connid, opid, arg1, arg2, arg3 ) \
-    Log( (level), ldap_syslog_level, (fmt), (connid), (opid), \
-            ( arg1 ), ( arg2 ), ( arg3 ) )
-#define StatslogTest( level ) ( ( ldap_debug | ldap_syslog ) & ( level ) )
-#else /* !LDAP_SYSLOG */
-#define Statslog( level, fmt, connid, opid, arg1, arg2, arg3 ) \
-    do { \
-        if ( ldap_debug & (level) ) \
-            lutil_debug( ldap_debug, (level), (fmt), (connid), (opid), \
-                    ( arg1 ), ( arg2 ), ( arg3 ) ); \
-    } while (0)
-#define StatslogTest( level ) ( ldap_debug & ( level ) )
-#endif /* !LDAP_SYSLOG */
-#else /* !LDAP_DEBUG */
-#define Statslog( level, fmt, connid, opid, arg1, arg2, arg3 ) ( (void)0 )
-#define StatslogTest( level ) ( 0 )
-#endif /* !LDAP_DEBUG */
-
 /*
  * listener; need to access it from monitor backend
  */
-struct Listener {
+struct LloadListener {
     struct berval sl_url;
     struct berval sl_name;
     mode_t sl_perms;
@@ -513,6 +350,5 @@ struct Listener {
 
 LDAP_END_DECL
 
-#include "proto-slap.h"
-
-#endif /* _SLAP_H_ */
+#include "proto-lload.h"
+#endif /* _LLOAD_H_ */
