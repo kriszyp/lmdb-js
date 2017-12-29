@@ -2042,6 +2042,12 @@ LDAP_F( int )
 ldap_is_ldapi_url LDAP_P((
 	LDAP_CONST char *url ));
 
+#ifdef LDAP_CONNECTIONLESS
+LDAP_F( int )
+ldap_is_ldapc_url LDAP_P((
+	LDAP_CONST char *url ));
+#endif
+
 LDAP_F( int )
 ldap_url_parse LDAP_P((
 	LDAP_CONST char *url,
