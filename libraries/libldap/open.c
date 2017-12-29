@@ -33,6 +33,7 @@
 #include <ac/unistd.h>
 
 #include "ldap-int.h"
+#include "ldap.h"
 #include "ldap_log.h"
 
 /* Caller must hold the conn_mutex since simultaneous accesses are possible */
