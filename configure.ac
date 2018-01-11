@@ -414,7 +414,8 @@ dnl ----------------------------------------------------------------
 dnl BALANCER OPTIONS
 AC_ARG_ENABLE(balanceroptions,[
 LLOADD (Load Balancer Daemon) Options:])
-OL_ARG_ENABLE(balancer,[  --enable-balancer	  enable building load balancer], auto)dnl
+OL_ARG_ENABLE(balancer, [AS_HELP_STRING([--enable-balancer], [enable load balancer])],
+	no, [no yes mod])
 
 dnl ----------------------------------------------------------------
 AC_ARG_ENABLE(xxliboptions,[
@@ -445,13 +446,18 @@ if test $ol_enable_slapd = no ; then
 			eval "ol_enable_$i=no"
 		fi
 	done
+
+	if test $ol_enable_balancer = mod ; then
+		AC_MSG_WARN([slapd disabled, ignoring --enable-balancer=mod argument])
+		ol_enable_balancer=no
+	fi
 else
 	dnl If slapd enabled and loadable module support disabled
 	dnl then require at least one built-in backend
 
 	if test $ol_enable_modules = no; then
 
-		for i in backends overlays $Backends $Overlays; do
+		for i in backends overlays balancer $Backends $Overlays; do
 			eval "ol_tmp=\$ol_enable_$i"
 			if test -n "$ol_tmp" && test "$ol_tmp" = mod ; then
 				AC_MSG_ERROR([--enable-$i=mod requires --enable-modules])
@@ -487,7 +493,7 @@ if test $ol_enable_modules = yes ; then
 	ol_enable_dynamic=yes
 fi
 
-if test $ol_enable_balancer = yes ; then
+if test $ol_enable_balancer != no ; then
 	dnl Load Balancer was specifically enabled
 	if test $ol_with_threads = no ; then
 		AC_MSG_ERROR([Load balancer requires threads])
@@ -524,6 +530,7 @@ CLIENT_LIBS=
 
 SLAPD_LIBS=
 BALANCER_LIBS=
+BALANCER_INCLUDE=
 
 BUILD_SLAPD=no
 BUILD_BALANCER=no
@@ -2967,7 +2974,13 @@ fi
 if test "$ol_enable_balancer" != no \
 		-a "$ol_with_threads" != no \
 		-a "$have_libevent" = yes ; then
-	BUILD_BALANCER=yes
+	if test "$ol_enable_balancer" = mod; then
+		BALANCER_INCLUDE=Makefile.module
+		BUILD_BALANCER=mod
+	else
+		BALANCER_INCLUDE=Makefile.server
+		BUILD_BALANCER=yes
+	fi
 fi
 
 if test "$ol_enable_slapi" != no ; then
@@ -3088,6 +3101,8 @@ AC_SUBST(SLAPD_SQL_INCLUDES)
 AC_SUBST(WT_INCS)
 AC_SUBST(WT_LIBS)
 
+AC_SUBST(BALANCER_INCLUDE)
+
 dnl ----------------------------------------------------------------
 dnl final help output
 AC_ARG_WITH(xxinstall,[
@@ -3134,7 +3149,9 @@ AC_CONFIG_FILES([Makefile:build/top.mk:Makefile.in:build/dir.mk]
 [servers/slapd/shell-backends/Makefile:build/top.mk:servers/slapd/shell-backends/Makefile.in:build/srv.mk]
 [servers/slapd/slapi/Makefile:build/top.mk:servers/slapd/slapi/Makefile.in:build/lib.mk:build/lib-shared.mk]
 [servers/slapd/overlays/Makefile:build/top.mk:servers/slapd/overlays/Makefile.in:build/lib.mk]
-[servers/lloadd/Makefile:build/top.mk:servers/lloadd/Makefile.in:build/srv.mk]
+[servers/lloadd/Makefile:build/top.mk:servers/lloadd/Makefile.in]
+[servers/lloadd/Makefile.server:servers/lloadd/Makefile_server.in:build/srv.mk]
+[servers/lloadd/Makefile.module:servers/lloadd/Makefile_module.in:build/mod.mk]
 [tests/Makefile:build/top.mk:tests/Makefile.in:build/dir.mk]
 [tests/run]
 [tests/progs/Makefile:build/top.mk:tests/progs/Makefile.in:build/rules.mk])

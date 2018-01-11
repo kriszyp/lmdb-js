@@ -150,9 +150,13 @@ lload_libevent_init( void )
         lload_libevent_cond_timedwait
     };
 
+#ifndef BALANCER_MODULE
+    /* only necessary if lload is a server, slapd already calls
+     * ldap_pvt_thread_initialize() */
     if ( ldap_pvt_thread_initialize() ) {
         return -1;
     }
+#endif
 
     evthread_set_lock_callbacks( &cbs );
     evthread_set_condition_callbacks( &cond_cbs );

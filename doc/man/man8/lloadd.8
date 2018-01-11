@@ -215,6 +215,41 @@ This allows one to specifically query the SLP DAs for LDAP servers holding the
 .I production
 tree in case multiple trees are available.
 .RE
+
+.SH RELATION TO SLAPD(8)
+.B Lloadd
+can be compiled as a
+.B slapd
+loadable module. In that case, it can be loaded as such:
+.LP
+.nf
+.ft tt
+	moduleload path/to/lloadd.la lloadd.conf "listening URLs"
+.ft
+.fi
+
+This enables
+.B lloadd
+to provide additional features through the host slapd process like access to
+run-time statistics in
+.B cn=monitor
+and dynamic configuration from
+.BR cn=config .
+
+The listening sockets specified will be under direct control of
+.B lloadd
+and need to be different from the sockets slapd is configured to listen on.
+Clients connecting to these are completely separate from regular LDAP clients
+connecting to the usual
+.B slapd
+sockets -
+.B lloadd
+clients have no access to slapd databases, similarly,
+.B slapd
+client traffic does not propagate to the
+.B lloadd
+backend servers in any way.
+
 .SH EXAMPLES
 To start
 .I lloadd
@@ -237,9 +272,22 @@ on voluminous debugging which will be printed on standard error, type:
 	LIBEXECDIR/lloadd \-f /var/tmp/lloadd.conf \-d 255
 .ft
 .fi
+.LP
+To start
+.B lloadd
+as a module inside a slapd process listening on ldap://:1389 and ldaps://,
+put the following in your slapd.conf (or its equivalent in cn=config):
+.LP
+.nf
+.ft tt
+	moduleload lloadd.la /var/tmp/lloadd.conf "ldap://:1389 ldaps://"
+.ft
+.fi
 .SH "SEE ALSO"
 .BR ldap (3),
 .BR lloadd.conf (5),
+.BR slapd-config (5),
+.BR slapd-monitor (5),
 .BR slapd (8).
 .LP
 "OpenLDAP Administrator's Guide" (http://www.OpenLDAP.org/doc/admin/)

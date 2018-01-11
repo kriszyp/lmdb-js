@@ -18,6 +18,7 @@ SUBDIRS= progs
 
 BUILD_MDB=@BUILD_MDB@
 BUILD_SQL=@BUILD_SQL@
+BUILD_SLAPD=@BUILD_SLAPD@
 BUILD_BALANCER=@BUILD_BALANCER@
 
 # test primary backends (default)
@@ -54,7 +55,12 @@ lloadd test-lloadd: lloadd-$(BUILD_BALANCER)
 lloadd-no:
 	@echo "run configure with --enable-balancer to run the Load Balancer tests"
 
-lloadd-yes: FORCE
+lloadd-yes: lloadd-slapd-$(BUILD_SLAPD)
+
+lloadd-slapd-no:
+	@echo "run configure with --enable-slapd to run the Load Balancer tests"
+
+lloadd-slapd-yes: FORCE
 	@echo "Initiating LDAP tests for the Load Balancer..."
 	@$(RUN) lloadd-all
 
