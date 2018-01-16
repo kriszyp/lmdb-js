@@ -204,11 +204,13 @@ request_bind( LloadConnection *client, LloadOperation *op )
         goto fail;
     }
 
+    if ( !BER_BVISNULL( &client->c_auth ) ) {
+        ch_free( client->c_auth.bv_val );
+        BER_BVZERO( &client->c_auth );
+    }
+
     tag = ber_skip_element( copy, &auth );
     if ( tag == LDAP_AUTH_SIMPLE ) {
-        if ( !BER_BVISNULL( &client->c_auth ) ) {
-            ch_free( client->c_auth.bv_val );
-        }
         if ( !BER_BVISEMPTY( &binddn ) ) {
             char *ptr;
             client->c_auth.bv_len = STRLENOF("dn:") + binddn.bv_len;
@@ -217,8 +219,6 @@ request_bind( LloadConnection *client, LloadOperation *op )
             ptr = lutil_strcopy( client->c_auth.bv_val, "dn:" );
             ptr = lutil_strncopy( ptr, binddn.bv_val, binddn.bv_len );
             *ptr = '\0';
-        } else {
-            BER_BVZERO( &client->c_auth );
         }
 
         if ( !BER_BVISNULL( &client->c_sasl_bind_mech ) ) {
