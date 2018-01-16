@@ -29,6 +29,7 @@
 #include "ldap.h"
 
 #include "lutil.h"
+#include "lutil_ldap.h"
 #include "ldap_pvt.h"
 #include "slapd-common.h"
 
@@ -355,6 +356,63 @@ tester_config_opt( struct tester_conn_args *config, char opt, char *optarg )
 			}
 			break;
 
+#ifdef HAVE_CYRUS_SASL
+		case 'O':
+			if ( config->secprops != NULL ) {
+				return -1;
+			}
+			if ( config->authmethod != -1 && config->authmethod != LDAP_AUTH_SASL ) {
+				return -1;
+			}
+			config->authmethod = LDAP_AUTH_SASL;
+			config->secprops = ber_strdup( optarg );
+			break;
+
+		case 'R':
+			if ( config->realm != NULL ) {
+				return -1;
+			}
+			if ( config->authmethod != -1 && config->authmethod != LDAP_AUTH_SASL ) {
+				return -1;
+			}
+			config->authmethod = LDAP_AUTH_SASL;
+			config->realm = ber_strdup( optarg );
+			break;
+
+		case 'U':
+			if ( config->authc_id != NULL ) {
+				return -1;
+			}
+			if ( config->authmethod != -1 && config->authmethod != LDAP_AUTH_SASL ) {
+				return -1;
+			}
+			config->authmethod = LDAP_AUTH_SASL;
+			config->authc_id = ber_strdup( optarg );
+			break;
+
+		case 'X':
+			if ( config->authz_id != NULL ) {
+				return -1;
+			}
+			if ( config->authmethod != -1 && config->authmethod != LDAP_AUTH_SASL ) {
+				return -1;
+			}
+			config->authmethod = LDAP_AUTH_SASL;
+			config->authz_id = ber_strdup( optarg );
+			break;
+
+		case 'Y':
+			if ( config->mech != NULL ) {
+				return -1;
+			}
+			if ( config->authmethod != -1 && config->authmethod != LDAP_AUTH_SASL ) {
+				return -1;
+			}
+			config->authmethod = LDAP_AUTH_SASL;
+			config->mech = ber_strdup( optarg );
+			break;
+#endif
+
 		case 'p':
 			if ( lutil_atoi( &config->port, optarg ) != 0 ) {
 				return -1;
@@ -405,8 +463,32 @@ tester_config_finish( struct tester_conn_args *config )
 	}
 
 	if ( config->authmethod == -1 ) {
+#ifdef HAVE_CYRUS_SASL
+		if ( config->binddn != NULL ) {
+			config->authmethod = LDAP_AUTH_SIMPLE;
+		} else {
+			config->authmethod = LDAP_AUTH_SASL;
+		}
+#else
 		config->authmethod = LDAP_AUTH_SIMPLE;
+#endif
 	}
+
+#ifdef HAVE_CYRUS_SASL
+	if ( config->authmethod == LDAP_AUTH_SASL ) {
+		config->defaults = lutil_sasl_defaults( NULL,
+			config->mech,
+			config->realm,
+			config->authc_id,
+			config->pass.bv_val,
+			config->authz_id );
+
+		if ( config->defaults == NULL ) {
+			tester_error( "unable to prepare SASL defaults" );
+			exit( EXIT_FAILURE );
+		}
+	}
+#endif
 }
 
 void
@@ -428,9 +510,34 @@ retry:;
 		config->chaserefs ? LDAP_OPT_ON: LDAP_OPT_OFF );
 
 	if ( !( flags & TESTER_INIT_ONLY ) ) {
-		rc = ldap_sasl_bind_s( ld,
-				config->binddn, LDAP_SASL_SIMPLE,
-				&config->pass, NULL, NULL, NULL );
+		if ( config->authmethod == LDAP_AUTH_SASL ) {
+#ifdef HAVE_CYRUS_SASL
+			if ( config->secprops != NULL ) {
+				rc = ldap_set_option( ld,
+						LDAP_OPT_X_SASL_SECPROPS, config->secprops );
+
+				if ( rc != LDAP_OPT_SUCCESS ) {
+					tester_ldap_error( ld, "ldap_set_option(SECPROPS)", NULL );
+					exit( EXIT_FAILURE );
+				}
+			}
+
+			rc = ldap_sasl_interactive_bind_s( ld,
+					config->binddn,
+					config->mech,
+					NULL, NULL,
+					LDAP_SASL_QUIET,
+					lutil_sasl_interact,
+					config->defaults );
+#else /* HAVE_CYRUS_SASL */
+			/* caller shouldn't have allowed this */
+			assert(0);
+#endif
+		} else if ( config->authmethod == LDAP_AUTH_SIMPLE ) {
+			rc = ldap_sasl_bind_s( ld,
+					config->binddn, LDAP_SASL_SIMPLE,
+					&config->pass, NULL, NULL, NULL );
+		}
 
 		if ( rc != LDAP_SUCCESS ) {
 			tester_ldap_error( ld, "ldap_sasl_bind_s", NULL );

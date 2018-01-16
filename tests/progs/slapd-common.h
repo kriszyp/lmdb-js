@@ -54,10 +54,19 @@ struct tester_conn_args {
 
 	char *binddn;
 	struct berval pass;
+
+#ifdef HAVE_CYRUS_SASL
+	char *mech;
+	char *realm;
+	char *authz_id;
+	char *authc_id;
+	char *secprops;
+	void *defaults;
+#endif
 };
 
 #define TESTER_INIT_ONLY (1 << 0)
-#define TESTER_COMMON_OPTS "CD:d:H:h:L:l:i:p:r:t:w:x"
+#define TESTER_COMMON_OPTS "CD:d:H:h:L:l:i:O:p:R:U:X:Y:r:t:w:x"
 #define TESTER_COMMON_HELP \
 	"[-C] " \
 	"[-D <dn> [-w <passwd>]] " \
@@ -68,7 +77,10 @@ struct tester_conn_args {
 	"[-L <outerloops>] " \
 	"[-r <maxretries>] " \
 	"[-t <delay>] " \
-	"[-x] "
+	"[-O <SASL secprops>] " \
+	"[-R <SASL realm>] " \
+	"[-U <SASL authcid> [-X <SASL authzid>]] " \
+	"[-x | -Y <SASL mech>] "
 
 extern int tester_config_opt( struct tester_conn_args *config, char opt, char *optarg );
 extern void tester_config_finish( struct tester_conn_args *config );

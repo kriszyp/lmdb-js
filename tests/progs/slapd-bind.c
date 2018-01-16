@@ -34,6 +34,7 @@
 
 #include "ldap.h"
 #include "lutil.h"
+#include "lutil_ldap.h"
 #include "lber_pvt.h"
 #include "ldap_pvt.h"
 
@@ -201,6 +202,7 @@ do_bind( struct tester_conn_args *config, char *dn, int maxloop,
 	int force, int noinit, LDAP **ldp, int action_type, void *action )
 {
 	LDAP	*ld = ldp ? *ldp : NULL;
+	char	*bindfunc = "ldap_sasl_bind_s";
 	int  	i, rc = -1;
 
 	/* for internal search */
@@ -257,9 +259,41 @@ do_bind( struct tester_conn_args *config, char *dn, int maxloop,
 	for ( i = 0; i < maxloop; i++ ) {
 		if ( !noinit || ld == NULL ) {
 			tester_init_ld( &ld, config, TESTER_INIT_ONLY );
+
+#ifdef HAVE_CYRUS_SASL
+			if ( config->secprops != NULL ) {
+				rc = ldap_set_option( ld,
+						LDAP_OPT_X_SASL_SECPROPS, config->secprops );
+
+				if( rc != LDAP_OPT_SUCCESS ) {
+					tester_ldap_error( ld, "ldap_set_option(SECPROPS)", NULL );
+					exit( EXIT_FAILURE );
+				}
+			}
+#endif
 		}
 
-		rc = ldap_sasl_bind_s( ld, dn, LDAP_SASL_SIMPLE, &config->pass, NULL, NULL, NULL );
+		if ( config->authmethod == LDAP_AUTH_SASL ) {
+#ifdef HAVE_CYRUS_SASL
+			bindfunc = "ldap_sasl_interactive_bind_s";
+			rc = ldap_sasl_interactive_bind_s( ld,
+					config->binddn,
+					config->mech,
+					NULL, NULL,
+					LDAP_SASL_QUIET,
+					lutil_sasl_interact,
+					config->defaults );
+#else /* HAVE_CYRUS_SASL */
+			/* caller shouldn't have allowed this */
+			assert(0);
+#endif
+		} else if ( config->authmethod == LDAP_AUTH_SIMPLE ) {
+			bindfunc = "ldap_sasl_bind_s";
+			rc = ldap_sasl_bind_s( ld,
+					config->binddn, LDAP_SASL_SIMPLE,
+					&config->pass, NULL, NULL, NULL );
+		}
+
 		if ( rc ) {
 			int first = tester_ignore_err( rc );
 
@@ -267,12 +301,12 @@ do_bind( struct tester_conn_args *config, char *dn, int maxloop,
 			if ( first ) {
 				/* only log if first occurrence */
 				if ( ( force < 2 && first > 0 ) || abs(first) == 1 ) {
-					tester_ldap_error( ld, "ldap_sasl_bind_s", NULL );
+					tester_ldap_error( ld, bindfunc, NULL );
 				}
 				rc = LDAP_SUCCESS;
 
 			} else {
-				tester_ldap_error( ld, "ldap_sasl_bind_s", NULL );
+				tester_ldap_error( ld, bindfunc, NULL );
 			}
 		}
 
