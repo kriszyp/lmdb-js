@@ -471,12 +471,14 @@ handle_bind_response(
                 client->c_state = LLOAD_C_READY;
                 client->c_type = LLOAD_C_OPEN;
                 client->c_pin_id = 0;
-                if ( result != LDAP_SUCCESS ) {
-                    ber_memfree( client->c_auth.bv_val );
-                    BER_BVZERO( &client->c_auth );
-                } else if ( !ber_bvstrcasecmp(
-                                    &client->c_auth, &lloadd_identity ) ) {
-                    client->c_type = LLOAD_C_PRIVILEGED;
+                if ( !BER_BVISNULL( &client->c_auth ) ) {
+                    if ( result != LDAP_SUCCESS ) {
+                        ber_memfree( client->c_auth.bv_val );
+                        BER_BVZERO( &client->c_auth );
+                    } else if ( !ber_bvstrcasecmp(
+                                        &client->c_auth, &lloadd_identity ) ) {
+                        client->c_type = LLOAD_C_PRIVILEGED;
+                    }
                 }
                 if ( !BER_BVISNULL( &client->c_sasl_bind_mech ) ) {
                     ber_memfree( client->c_sasl_bind_mech.bv_val );
