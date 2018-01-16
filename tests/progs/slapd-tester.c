@@ -789,12 +789,10 @@ main( int argc, char **argv )
 	bargs[banum++] = bloops;
 	bargs[banum++] = "-L";
 	bargs[banum++] = outerloops;
-#if 0
 	bargs[banum++] = "-r";
 	bargs[banum++] = retries;
 	bargs[banum++] = "-t";
 	bargs[banum++] = delay;
-#endif
 	if ( friendly ) {
 		bargs[banum++] = friendlyOpt;
 	}
