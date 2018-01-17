@@ -121,6 +121,67 @@ client_bind_as_vc(
 }
 #endif /* LDAP_API_FEATURE_VERIFY_CREDENTIALS */
 
+/*
+ * The client connection can be in the following states:
+ * 1) there are betwee zero and many non-bind operations pending
+ *    client->c_state == LLOAD_C_READY && client->c_pin_id == 0
+ * 2) there is one bind operation pending (waiting on an upstream response)
+ *    a) It is a simple bind
+ *    b) It is a SASL bind
+ * 3) there is one SASL bind in progress (received a LDAP_SASL_BIND_IN_PROGRESS
+ *    response)
+ *
+ * In cases 2 and 3, client->c_state == LLOAD_C_BINDING, a SASL bind is in
+ * progress/pending if c_sasl_bind_mech is set.
+ *
+ * In the first case, client_reset abandons all operations on the respective
+ * upstreams, case 2a has client_reset send an anonymous bind to upstream to
+ * terminate the bind. In cases 2b and 3, c_pin_id is set and we retrieve the
+ * op. The rest is the same for both.
+ *
+ * If c_pin_id is unset, we request an upstream connection assigned, otherwise,
+ * we try to reuse the pinned upstream. In the case of no upstream, we reject
+ * the request. A SASL bind request means we acquire a new pin_id if we don't
+ * have one already.
+ *
+ * We have to reset c_auth (which holds the current or pending identity) and
+ * make sure we set it up eventually:
+ * - In the case of a simple bind, we already know the final identity being
+ *   requested so we set it up immediately
+ * - In SASL binds, for mechanisms we implement ourselves (EXTERNAL), we set it
+ *   up at some point
+ * - Otherwise, we have to ask the upstream what it thinks as the bind
+ *   succeeds, we send an LDAP "Who Am I?" exop, this is one of the few
+ *   requests we send on our own. If we implement the mechanism, we provide the
+ *   identity (EXTERNAL uses the client certificate DN)
+ *
+ * At the end of the request processing, if nothing goes wrong, we're in state
+ * 2b (with c_pin_id set to the op's o_pin_id), or state 2a (we could reset
+ * c_pin_id/o_pin_id if we wanted but we don't always do that at the moment).
+ * If something does go wrong, we're either tearing down the client or we
+ * reject the request and switch to state 1 (clearing c_pin_id).
+ *
+ * As usual, we have to make any changes to the target connection before we've
+ * sent the PDU over it - while we are in charge of the read side and nothing
+ * happens there without our ceding control, the other read side could wake up
+ * at any time and pre-empt us.
+ *
+ * On a response (in handle_bind_response):
+ * - to a simple bind, clear c_auth on a failure otherwise keep it while we
+ *   just reset the client to state 1
+ * - failure response to a SASL bind - reset client to state 1
+ * - LDAP_SASL_BIND_IN_PROGRESS - clear o_*_msgid from the op (have to
+ *   remove+reinsert it from the respective c_ops!), we need it since it is the
+ *   vessel maintaining the pin between client and upstream
+ * - all of the above forward the response immediately
+ * - LDAP_SUCCESS for a SASL bind - we send a "Who Am I?" request to retrieve
+ *   the client's DN, only on receiving the response do we finalise the
+ *   exchange by forwarding the successful bind response
+ *
+ * We can't do the same for VC Exop since the exchange is finished at the end
+ * and we need a change to the VC Exop spec to have the server (optionally?)
+ * respond with the final authzid (saving us a roundtrip as well).
+ */
 int
 request_bind( LloadConnection *client, LloadOperation *op )
 {
