@@ -607,6 +607,10 @@ operation_abandon( LloadOperation *op )
     }
     if ( c->c_state == LLOAD_C_BINDING ) {
         c->c_state = LLOAD_C_READY;
+        if ( !BER_BVISNULL( &c->c_sasl_bind_mech ) ) {
+            ber_memfree( c->c_sasl_bind_mech.bv_val );
+            BER_BVZERO( &c->c_sasl_bind_mech );
+        }
     }
     c->c_n_ops_executing--;
     b = (LloadBackend *)c->c_private;

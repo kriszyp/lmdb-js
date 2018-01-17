@@ -318,6 +318,11 @@ connection_destroy( LloadConnection *c )
         c->c_pendingber = NULL;
     }
 
+    if ( !BER_BVISNULL( &c->c_sasl_bind_mech ) ) {
+        ber_memfree( c->c_sasl_bind_mech.bv_val );
+        BER_BVZERO( &c->c_sasl_bind_mech );
+    }
+
     CONNECTION_UNLOCK(c);
 
     ldap_pvt_thread_mutex_destroy( &c->c_io_mutex );

@@ -126,7 +126,7 @@ request_bind( LloadConnection *client, LloadOperation *op )
 {
     LloadConnection *upstream = NULL;
     BerElement *ber, *copy;
-    struct berval binddn, auth;
+    struct berval binddn, auth, mech = BER_BVNULL;
     ber_int_t version;
     ber_tag_t tag;
     unsigned long pin = client->c_pin_id;
@@ -226,8 +226,6 @@ request_bind( LloadConnection *client, LloadOperation *op )
             BER_BVZERO( &client->c_sasl_bind_mech );
         }
     } else if ( tag == LDAP_AUTH_SASL ) {
-        struct berval mech;
-
         ber_init2( copy, &auth, 0 );
 
         if ( ber_get_stringbv( copy, &mech, LBER_BV_NOTERM ) == LBER_ERROR ) {
@@ -310,6 +308,10 @@ request_bind( LloadConnection *client, LloadOperation *op )
                 "ber_alloc failed\n" );
         ldap_pvt_thread_mutex_unlock( &upstream->c_io_mutex );
         CONNECTION_LOCK_DECREF(upstream);
+        if ( !BER_BVISNULL( &upstream->c_sasl_bind_mech ) ) {
+            ber_memfree( upstream->c_sasl_bind_mech.bv_val );
+            BER_BVZERO( &upstream->c_sasl_bind_mech );
+        }
         CONNECTION_UNLOCK_OR_DESTROY(upstream);
 
         CONNECTION_LOCK_DECREF(client);
@@ -333,6 +335,15 @@ request_bind( LloadConnection *client, LloadOperation *op )
     op->o_upstream = upstream;
     op->o_upstream_connid = upstream->c_connid;
     op->o_upstream_msgid = upstream->c_next_msgid++;
+
+    if ( BER_BVISNULL( &mech ) ) {
+        if ( !BER_BVISNULL( &upstream->c_sasl_bind_mech ) ) {
+            ber_memfree( upstream->c_sasl_bind_mech.bv_val );
+            BER_BVZERO( &upstream->c_sasl_bind_mech );
+        }
+    } else if ( ber_bvcmp( &upstream->c_sasl_bind_mech, &mech ) ) {
+        ber_bvreplace( &upstream->c_sasl_bind_mech, &mech );
+    }
 
     Debug( LDAP_DEBUG_TRACE, "request_bind: "
             "added bind from client connid=%lu to upstream connid=%lu "
@@ -440,6 +451,11 @@ handle_bind_response(
 
     CONNECTION_LOCK(upstream);
     if ( result != LDAP_SASL_BIND_IN_PROGRESS ) {
+        if ( !BER_BVISNULL( &upstream->c_sasl_bind_mech ) ) {
+            ber_memfree( upstream->c_sasl_bind_mech.bv_val );
+            BER_BVZERO( &upstream->c_sasl_bind_mech );
+        }
+
         upstream->c_state = LLOAD_C_READY;
         op->o_pin_id = 0;
     } else {
