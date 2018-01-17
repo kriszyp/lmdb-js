@@ -29,8 +29,19 @@ forward_response( LloadConnection *client, LloadOperation *op, BerElement *ber )
 {
     BerElement *output;
     BerValue response, controls = BER_BVNULL;
+    ber_int_t msgid;
     ber_tag_t tag, response_tag;
     ber_len_t len;
+
+    CONNECTION_LOCK(client);
+    if ( op->o_client_msgid ) {
+        msgid = op->o_client_msgid;
+    } else {
+        assert( op->o_pin_id );
+        msgid = op->o_saved_msgid;
+        op->o_saved_msgid = 0;
+    }
+    CONNECTION_UNLOCK(client);
 
     response_tag = ber_skip_element( ber, &response );
 
@@ -41,8 +52,7 @@ forward_response( LloadConnection *client, LloadOperation *op, BerElement *ber )
 
     Debug( LDAP_DEBUG_TRACE, "forward_response: "
             "%s to client connid=%lu request msgid=%d\n",
-            lload_msgtype2str( response_tag ), op->o_client_connid,
-            op->o_client_msgid );
+            lload_msgtype2str( response_tag ), op->o_client_connid, msgid );
 
     ldap_pvt_thread_mutex_lock( &client->c_io_mutex );
     output = client->c_pendingber;
@@ -54,7 +64,7 @@ forward_response( LloadConnection *client, LloadOperation *op, BerElement *ber )
     client->c_pendingber = output;
 
     ber_printf( output, "t{titOtO}", LDAP_TAG_MESSAGE,
-            LDAP_TAG_MSGID, op->o_client_msgid,
+            LDAP_TAG_MSGID, msgid,
             response_tag, &response,
             LDAP_TAG_CONTROLS, BER_BV_OPTIONAL( &controls ) );
 

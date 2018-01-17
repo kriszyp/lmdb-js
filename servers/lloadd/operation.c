@@ -696,6 +696,14 @@ operation_send_reject_locked(
         goto done;
     }
 
+    if ( op->o_client_msgid == 0 ) {
+        assert( op->o_saved_msgid == 0 && op->o_pin_id );
+        Debug( LDAP_DEBUG_TRACE, "operation_send_reject_locked: "
+                "operation pin=%lu is just a pin, not sending\n",
+                op->o_pin_id );
+        goto done;
+    }
+
     CONNECTION_UNLOCK_INCREF(c);
     ldap_pvt_thread_mutex_lock( &c->c_io_mutex );
 

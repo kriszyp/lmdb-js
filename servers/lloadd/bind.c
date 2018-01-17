@@ -476,6 +476,7 @@ handle_bind_response(
     if ( client->c_state == LLOAD_C_BINDING ) {
         switch ( result ) {
             case LDAP_SASL_BIND_IN_PROGRESS:
+                op->o_saved_msgid = op->o_client_msgid;
                 op->o_client_msgid = 0;
                 rc = tavl_insert( &client->c_ops, op, operation_client_cmp,
                         avl_dup_error );

@@ -306,6 +306,7 @@ struct LloadOperation {
     unsigned long o_client_connid;
     int o_client_live, o_client_refcnt;
     ber_int_t o_client_msgid;
+    ber_int_t o_saved_msgid;
 
     LloadConnection *o_upstream;
     unsigned long o_upstream_connid;
