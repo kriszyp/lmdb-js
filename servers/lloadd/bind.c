@@ -322,6 +322,9 @@ request_bind( LloadConnection *client, LloadOperation *op )
     CONNECTION_LOCK(upstream);
     if ( pin ) {
         tavl_delete( &upstream->c_ops, op, operation_upstream_cmp );
+        if ( tag == LDAP_AUTH_SIMPLE ) {
+            pin = op->o_pin_id = 0;
+        }
     } else if ( tag == LDAP_AUTH_SASL && !op->o_pin_id ) {
         ldap_pvt_thread_mutex_lock( &lload_pin_mutex );
         pin = op->o_pin_id = lload_next_pin++;
