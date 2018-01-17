@@ -578,7 +578,9 @@ done:
  * sends an abandon request.
  *
  * Being called from client_reset or request_abandon, the following hold:
- * - op->o_client_refcnt > 0 (and it follows that op->o_client != NULL)
+ * - noone else is processing the read part of the client connection (no new
+ *   operations come in there - relevant for the c_state checks)
+ * - op->o_client_refcnt > op->o_client_live (and it follows that op->o_client != NULL)
  */
 void
 operation_abandon( LloadOperation *op )
@@ -649,10 +651,19 @@ done:
     CONNECTION_LOCK(c);
     if ( c->c_state == LLOAD_C_BINDING ) {
         c->c_state = LLOAD_C_READY;
+        if ( !BER_BVISNULL( &c->c_auth ) ) {
+            ber_memfree( c->c_auth.bv_val );
+            BER_BVZERO( &c->c_auth );
+        }
+        if ( !BER_BVISNULL( &c->c_sasl_bind_mech ) ) {
+            ber_memfree( c->c_sasl_bind_mech.bv_val );
+            BER_BVZERO( &c->c_sasl_bind_mech );
+        }
         if ( op->o_pin_id ) {
             c->c_pin_id = 0;
         }
     }
+    assert( op->o_client_refcnt > op->o_client_live );
     op->o_client_refcnt--;
     operation_destroy_from_client( op );
     CONNECTION_UNLOCK(c);

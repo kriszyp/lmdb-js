@@ -71,6 +71,8 @@ request_abandon( LloadConnection *c, LloadOperation *op )
         c->c_state = LLOAD_C_READY;
     }
 
+    /* operation_abandon requires a reference since it is passed with c unlocked */
+    request->o_client_refcnt++;
     CONNECTION_UNLOCK_INCREF(c);
     operation_abandon( request );
     CONNECTION_LOCK_DECREF(c);
