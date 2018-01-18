@@ -476,6 +476,86 @@ fail:
     return rc;
 }
 
+/*
+ * Remember the response, but first ask the server what
+ * authorization identity has been negotiated.
+ *
+ * Also, this request will fail if the server thinks a SASL
+ * confidentiality/integrity layer has been negotiated so we catch
+ * it early and no other clients are affected.
+ */
+int
+finish_sasl_bind(
+        LloadConnection *upstream,
+        LloadOperation *op,
+        BerElement *ber )
+{
+    LloadConnection *client = op->o_client;
+    BerElement *output;
+    LloadOperation *removed;
+    ber_int_t msgid;
+    int rc;
+
+    if ( !(lload_features & LLOAD_FEATURE_PROXYAUTHZ) ) {
+        Debug( LDAP_DEBUG_TRACE, "finish_sasl_bind: "
+                "connid=%lu not configured to do proxyauthz, making no "
+                "attempt to resolve final authzid name\n",
+                op->o_client_connid );
+        CONNECTION_UNLOCK(upstream);
+        return forward_final_response( client, op, ber );
+    }
+
+    removed = tavl_delete( &upstream->c_ops, op, operation_upstream_cmp );
+    if ( !removed ) {
+        assert( upstream->c_state != LLOAD_C_BINDING );
+        /* FIXME: has client replaced this bind since? */
+        assert(0);
+
+        operation_destroy_from_upstream( op );
+    }
+    assert( removed == op && upstream->c_state == LLOAD_C_BINDING );
+
+    CONNECTION_UNLOCK(upstream);
+
+    Debug( LDAP_DEBUG_TRACE, "finish_sasl_bind: "
+            "SASL exchange in lieu of client connid=%lu to upstream "
+            "connid=%lu finished, resolving final authzid name\n",
+            op->o_client_connid, op->o_upstream_connid );
+
+    ldap_pvt_thread_mutex_lock( &upstream->c_io_mutex );
+    output = upstream->c_pendingber;
+    if ( output == NULL && (output = ber_alloc()) == NULL ) {
+        ldap_pvt_thread_mutex_unlock( &upstream->c_io_mutex );
+        return -1;
+    }
+    upstream->c_pendingber = output;
+
+    msgid = upstream->c_next_msgid++;
+    ber_printf( output, "t{tit{ts}}", LDAP_TAG_MESSAGE,
+            LDAP_TAG_MSGID, msgid,
+            LDAP_REQ_EXTENDED,
+            LDAP_TAG_EXOP_REQ_OID, LDAP_EXOP_WHO_AM_I );
+
+    /* Make sure noone flushes the buffer before we re-insert the operation */
+    CONNECTION_LOCK(upstream);
+    ldap_pvt_thread_mutex_unlock( &upstream->c_io_mutex );
+
+    op->o_upstream_msgid = msgid;
+
+    /* remember the response for later */
+    ber_free( op->o_ber, 1 );
+    op->o_ber = ber;
+
+    rc = tavl_insert(
+            &upstream->c_ops, op, operation_upstream_cmp, avl_dup_error );
+    assert( rc == LDAP_SUCCESS );
+
+    CONNECTION_UNLOCK(upstream);
+
+    connection_write_cb( -1, 0, upstream );
+    return LDAP_SUCCESS;
+}
+
 int
 handle_bind_response(
         LloadConnection *client,
@@ -515,13 +595,20 @@ handle_bind_response(
 
     CONNECTION_LOCK(upstream);
     if ( result != LDAP_SASL_BIND_IN_PROGRESS ) {
+        int sasl_finished = 0;
         if ( !BER_BVISNULL( &upstream->c_sasl_bind_mech ) ) {
+            sasl_finished = 1;
             ber_memfree( upstream->c_sasl_bind_mech.bv_val );
             BER_BVZERO( &upstream->c_sasl_bind_mech );
         }
 
-        upstream->c_state = LLOAD_C_READY;
+        assert( op->o_client_msgid && op->o_upstream_msgid );
         op->o_pin_id = 0;
+
+        if ( sasl_finished && result == LDAP_SUCCESS ) {
+            return finish_sasl_bind( upstream, op, ber );
+        }
+        upstream->c_state = LLOAD_C_READY;
     } else {
         if ( tavl_delete( &upstream->c_ops, op, operation_upstream_cmp ) ) {
             op->o_upstream_msgid = 0;
@@ -582,6 +669,99 @@ done:
         return LDAP_SUCCESS;
     }
     return forward_final_response( client, op, ber );
+}
+
+int
+handle_whoami_response(
+        LloadConnection *client,
+        LloadOperation *op,
+        BerElement *ber )
+{
+    LloadConnection *upstream = op->o_upstream;
+    BerValue matched, diagmsg;
+    BerElement *saved_response = op->o_ber;
+    LloadOperation *removed;
+    ber_int_t result;
+    ber_tag_t tag;
+    ber_len_t len;
+
+    Debug( LDAP_DEBUG_TRACE, "handle_whoami_response: "
+            "connid=%ld received whoami response in lieu of connid=%ld\n",
+            upstream->c_connid, client->c_connid );
+
+    tag = ber_scanf( ber, "{emm" /* "}" */,
+            &result, &matched, &diagmsg );
+    if ( tag == LBER_ERROR ) {
+        operation_send_reject( op, LDAP_OTHER, "upstream protocol error", 0 );
+        return -1;
+    }
+
+    CONNECTION_LOCK_DECREF(upstream);
+    if ( result == LDAP_PROTOCOL_ERROR ) {
+        LloadBackend *b;
+
+        b = (LloadBackend *)upstream->c_private;
+        Debug( LDAP_DEBUG_ANY, "handle_whoami_response: "
+                "Who Am I? extended operation not supported on backend %s, "
+                "proxyauthz with clients that do SASL binds will not work "
+                "msg=%s!\n",
+                b->b_uri.bv_val, diagmsg.bv_val );
+        CONNECTION_UNLOCK_INCREF(upstream);
+        operation_send_reject( op, LDAP_OTHER, "upstream protocol error", 0 );
+        return -1;
+    }
+    upstream->c_state = LLOAD_C_READY;
+
+    CONNECTION_UNLOCK_INCREF(upstream);
+
+    tag = ber_peek_tag( ber, &len );
+
+    CONNECTION_LOCK_DECREF(client);
+
+    assert( client->c_state == LLOAD_C_BINDING &&
+            BER_BVISNULL( &client->c_auth ) );
+    if ( !BER_BVISNULL( &client->c_auth ) ) {
+        ber_memfree( client->c_auth.bv_val );
+        BER_BVZERO( &client->c_auth );
+    }
+
+    if ( tag == LDAP_TAG_EXOP_RES_VALUE ) {
+        tag = ber_scanf( ber, "o", &client->c_auth );
+        if ( tag == LBER_ERROR ) {
+            operation_send_reject_locked(
+                    op, LDAP_OTHER, "upstream protocol error", 0 );
+            CONNECTION_DESTROY(client);
+            return -1;
+        }
+    }
+
+    removed = tavl_delete( &client->c_ops, op, operation_client_cmp );
+    assert( !removed || op == removed );
+
+    Debug( LDAP_DEBUG_TRACE, "handle_whoami_response: "
+            "connid=%ld new authid=%s\n",
+            client->c_connid, client->c_auth.bv_val );
+
+    if ( client->c_state == LLOAD_C_BINDING ) {
+        op->o_client = NULL;
+        client->c_state = LLOAD_C_READY;
+        client->c_type = LLOAD_C_OPEN;
+        client->c_pin_id = 0;
+        if ( !BER_BVISNULL( &client->c_auth ) &&
+                !ber_bvstrcasecmp( &client->c_auth, &lloadd_identity ) ) {
+            client->c_type = LLOAD_C_PRIVILEGED;
+        }
+        if ( !BER_BVISNULL( &client->c_sasl_bind_mech ) ) {
+            ber_memfree( client->c_sasl_bind_mech.bv_val );
+            BER_BVZERO( &client->c_sasl_bind_mech );
+        }
+    }
+
+    CONNECTION_UNLOCK_INCREF(client);
+
+    /* defer the disposal of ber to operation_destroy_* */
+    op->o_ber = ber;
+    return forward_final_response( client, op, saved_response );
 }
 
 #ifdef LDAP_API_FEATURE_VERIFY_CREDENTIALS

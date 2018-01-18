@@ -51,6 +51,7 @@ LDAP_SLAPD_F (void) backends_destroy( void );
  */
 LDAP_SLAPD_F (int) request_bind( LloadConnection *c, LloadOperation *op );
 LDAP_SLAPD_F (int) handle_bind_response( LloadConnection *client, LloadOperation *op, BerElement *ber );
+LDAP_SLAPD_F (int) handle_whoami_response( LloadConnection *client, LloadOperation *op, BerElement *ber );
 LDAP_SLAPD_F (int) handle_vc_bind_response( LloadConnection *client, LloadOperation *op, BerElement *ber );
 
 /*

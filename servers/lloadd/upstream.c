@@ -190,11 +190,16 @@ handle_one_response( LloadConnection *c )
                 handler = handle_bind_response;
                 break;
             case LDAP_RES_EXTENDED:
-#ifdef LDAP_API_FEATURE_VERIFY_CREDENTIALS
                 if ( op->o_tag == LDAP_REQ_BIND ) {
-                    handler = handle_vc_bind_response;
-                }
+#ifdef LDAP_API_FEATURE_VERIFY_CREDENTIALS
+                    if ( lload_features & LLOAD_FEATURE_VC ) {
+                        handler = handle_vc_bind_response;
+                    } else
 #endif /* LDAP_API_FEATURE_VERIFY_CREDENTIALS */
+                    {
+                        handler = handle_whoami_response;
+                    }
+                }
                 break;
         }
         if ( !handler ) {
