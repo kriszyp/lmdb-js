@@ -177,8 +177,8 @@ main( int argc, char **argv )
 
 		} else {
 			do_search( config, sbase, scope, filter,
-				NULL, attrs, noattrs, config->loops,
-				nobind, force );
+				NULL, attrs, noattrs, nobind,
+				config->loops, force );
 		}
 	}
 
