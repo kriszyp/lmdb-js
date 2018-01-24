@@ -55,7 +55,7 @@ lloadd test-lloadd: lloadd-$(BUILD_BALANCER)
 lloadd-no:
 	@echo "run configure with --enable-balancer to run the Load Balancer tests"
 
-lloadd-yes: lloadd-slapd-$(BUILD_SLAPD)
+lloadd-yes lloadd-mod: lloadd-slapd-$(BUILD_SLAPD)
 
 lloadd-slapd-no:
 	@echo "run configure with --enable-slapd to run the Load Balancer tests"

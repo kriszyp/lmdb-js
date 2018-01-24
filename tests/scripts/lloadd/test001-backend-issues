@@ -93,8 +93,13 @@ if test $RC != 0 ; then
 fi
 
 echo "Starting lloadd on TCP/IP port $PORT1..."
-. $CONFFILTER $BACKEND < $LLOADDUNREACHABLECONF > $CONF1
-$LLOADD -f $CONF1 -h $URI1 -d $LVL > $LOG1 2>&1 &
+. $CONFFILTER $BACKEND < $LLOADDUNREACHABLECONF > $CONF1.lloadd
+if test $AC_lloadd = lloaddyes; then
+    $LLOADD -f $CONF1.lloadd -h $URI1 -d $LVL > $LOG1 2>&1 &
+else
+    . $CONFFILTER $BACKEND < $SLAPDLLOADCONF > $CONF1.slapd
+    $SLAPD -f $CONF1.slapd -h $URI6 -d $LVL > $LOG1 2>&1 &
+fi
 PID=$!
 if test $WAIT != 0 ; then
     echo PID $PID
