@@ -121,7 +121,7 @@ static void tlso_thr_init( void ) {}
  * OpenSSL 1.1 API and later makes the BIO method concrete types internal.
  */
 
-static const BIO_METHOD *
+static BIO_METHOD *
 BIO_meth_new( int type, const char *name )
 {
 	BIO_METHOD *method = LDAP_MALLOC( sizeof(BIO_METHOD) );
