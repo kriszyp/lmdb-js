@@ -885,7 +885,7 @@ tlso_session_pinning( LDAP *ld, tls_session *sess, char *hashalg, struct berval 
 	tlso_session *s = (tlso_session *)sess;
 	unsigned char *tmp, digest[EVP_MAX_MD_SIZE];
 	struct berval key,
-				  keyhash = { .bv_val = digest, .bv_len = sizeof(digest) };
+				  keyhash = { sizeof(digest), digest };
 	X509 *cert = SSL_get_peer_certificate(s);
 	int len, rc = LDAP_SUCCESS;
 
