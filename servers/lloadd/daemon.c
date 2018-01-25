@@ -85,6 +85,12 @@ struct evdns_base *dnsbase;
 
 struct event *lload_timeout_event;
 
+/*
+ * global lload statistics. Not mutex protected to preserve performance -
+ * increment is atomic, at most we risk a bit of inconsistency
+ */
+lload_global_stats_t lload_stats;
+
 #ifndef SLAPD_LISTEN_BACKLOG
 #define SLAPD_LISTEN_BACKLOG 1024
 #endif /* ! SLAPD_LISTEN_BACKLOG */
@@ -1430,4 +1436,11 @@ lload_resume_listeners( void )
         listen( lload_listeners[i]->sl_sd, SLAPD_LISTEN_BACKLOG );
         evconnlistener_enable( lload_listeners[i]->listener );
     }
+}
+
+/* we need this in a file that compiles for both module and server */
+void
+lload_counters_init()
+{
+    memset( &lload_stats, 0, sizeof(lload_global_stats_t) );
 }

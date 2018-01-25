@@ -39,6 +39,8 @@ bind_mech_external(
     client->c_state = LLOAD_C_READY;
     client->c_type = LLOAD_C_OPEN;
 
+    op->o_res = LLOAD_OP_COMPLETED;
+
     /*
      * We only support implicit assertion.
      *
@@ -225,6 +227,11 @@ request_bind( LloadConnection *client, LloadOperation *op )
              * lose the client lock in operation_destroy_from_client temporarily
              */
             pinned_op->o_client_refcnt++;
+            op->o_res = LLOAD_OP_COMPLETED;
+
+            /* We didn't start a new operation, just continuing an existing one */
+            lload_stats.counters[LLOAD_STATS_OPS_BIND].lc_ops_received--;
+
             operation_destroy_from_client( op );
             pinned_op->o_client_refcnt--;
 
@@ -379,6 +386,10 @@ request_bind( LloadConnection *client, LloadOperation *op )
         goto fail;
     }
     upstream->c_pendingber = ber;
+
+    if ( !pin ) {
+        lload_stats.counters[LLOAD_STATS_OPS_BIND].lc_ops_forwarded++;
+    }
 
     CONNECTION_LOCK(upstream);
     if ( pin ) {

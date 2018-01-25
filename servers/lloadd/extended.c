@@ -96,6 +96,7 @@ handle_starttls( LloadConnection *c, LloadOperation *op )
     /* We already have something to write */
     event_add( c->c_write_event, lload_write_timeout );
 
+    op->o_res = LLOAD_OP_COMPLETED;
     operation_destroy_from_client( op );
     CONNECTION_UNLOCK_INCREF(c);
 

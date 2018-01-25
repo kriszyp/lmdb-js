@@ -223,6 +223,9 @@ operation_destroy_from_client( LloadOperation *op )
         return;
     }
 
+    /* it seems we will be destroying the operation,
+     * so update the global rejected cunter if needed */
+    operation_update_global_rejected( op );
     /* 5. If we raced the upstream side and won, reclaim the token */
     ldap_pvt_thread_mutex_lock( &op->o_link_mutex );
     if ( !(race_state & LLOAD_OP_DETACHING_UPSTREAM) ) {
@@ -281,6 +284,7 @@ operation_destroy_from_client( LloadOperation *op )
     if ( upstream ) {
         if ( tavl_delete( &upstream->c_ops, op, operation_upstream_cmp ) ) {
             upstream->c_n_ops_executing--;
+            operation_update_conn_counters( op );
             b = (LloadBackend *)upstream->c_private;
         }
         CONNECTION_UNLOCK_OR_DESTROY(upstream);
@@ -288,6 +292,7 @@ operation_destroy_from_client( LloadOperation *op )
         if ( b ) {
             ldap_pvt_thread_mutex_lock( &b->b_mutex );
             b->b_n_ops_executing--;
+            operation_update_backend_counters( op, b );
             ldap_pvt_thread_mutex_unlock( &b->b_mutex );
         }
     }
@@ -331,9 +336,13 @@ operation_destroy_from_upstream( LloadOperation *op )
         return;
     }
 
+    /* it seems we will be destroying the operation,
+     * so update the global rejected cunter if needed */
+    operation_update_global_rejected( op );
     /* 2. Remove from the operation map and adjust the pending op count */
     if ( tavl_delete( &upstream->c_ops, op, operation_upstream_cmp ) ) {
         upstream->c_n_ops_executing--;
+        operation_update_conn_counters( op );
         b = (LloadBackend *)upstream->c_private;
     }
 
@@ -357,6 +366,7 @@ operation_destroy_from_upstream( LloadOperation *op )
     if ( b ) {
         ldap_pvt_thread_mutex_lock( &b->b_mutex );
         b->b_n_ops_executing--;
+        operation_update_backend_counters( op, b );
         ldap_pvt_thread_mutex_unlock( &b->b_mutex );
     }
 
@@ -590,6 +600,10 @@ operation_abandon( LloadOperation *op )
     int rc = LDAP_SUCCESS;
 
     ldap_pvt_thread_mutex_lock( &op->o_link_mutex );
+    /* for now consider all abandoned operations completed,
+     * perhaps add a separate counter later */
+    op->o_res = LLOAD_OP_COMPLETED;
+
     c = op->o_upstream;
     if ( !c ) {
         ldap_pvt_thread_mutex_unlock( &op->o_link_mutex );
@@ -620,6 +634,7 @@ operation_abandon( LloadOperation *op )
 
     ldap_pvt_thread_mutex_lock( &b->b_mutex );
     b->b_n_ops_executing--;
+    operation_update_backend_counters( op, b );
     ldap_pvt_thread_mutex_unlock( &b->b_mutex );
 
     if ( operation_send_abandon( op ) == LDAP_SUCCESS ) {
@@ -791,6 +806,7 @@ operation_lost_upstream( LloadOperation *op )
 
     CONNECTION_LOCK_DECREF(c);
     op->o_upstream_refcnt--;
+    op->o_res = LLOAD_OP_FAILED;
     operation_destroy_from_upstream( op );
     CONNECTION_UNLOCK(c);
 }
@@ -817,6 +833,7 @@ connection_timeout( LloadConnection *upstream, time_t threshold )
         }
 
         op->o_upstream_refcnt++;
+        op->o_res = LLOAD_OP_FAILED;
         found_op = tavl_delete( &upstream->c_ops, op, operation_upstream_cmp );
         assert( op == found_op );
 
@@ -981,4 +998,44 @@ done:
     Debug( LDAP_DEBUG_TRACE, "operations_timeout: "
             "timeout task finished\n" );
     evtimer_add( self, lload_timeout_api );
+}
+
+void
+operation_update_global_rejected( LloadOperation *op )
+{
+    if ( op->o_res == LLOAD_OP_REJECTED && op->o_upstream_connid == 0 ) {
+        switch ( op->o_tag ) {
+            case LDAP_REQ_BIND:
+                lload_stats.counters[LLOAD_STATS_OPS_BIND].lc_ops_rejected++;
+                break;
+            default:
+                lload_stats.counters[LLOAD_STATS_OPS_OTHER].lc_ops_rejected++;
+                break;
+        }
+    }
+}
+
+void
+operation_update_conn_counters( LloadOperation *op )
+{
+    assert( op->o_upstream != NULL );
+    if ( op->o_res == LLOAD_OP_COMPLETED ) {
+        op->o_upstream->c_counters.lc_ops_completed++;
+    } else {
+        op->o_upstream->c_counters.lc_ops_failed++;
+    }
+}
+
+void
+operation_update_backend_counters( LloadOperation *op, LloadBackend *b )
+{
+    int stat_type = op->o_tag == LDAP_REQ_BIND ? LLOAD_STATS_OPS_BIND :
+                                                 LLOAD_STATS_OPS_OTHER;
+
+    assert( b != NULL );
+    if ( op->o_res == LLOAD_OP_COMPLETED ) {
+        b->b_counters[stat_type].lc_ops_completed++;
+    } else {
+        b->b_counters[stat_type].lc_ops_failed++;
+    }
 }

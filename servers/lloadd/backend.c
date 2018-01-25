@@ -245,7 +245,13 @@ backend_select( LloadOperation *op, int *res )
                 ldap_pvt_thread_mutex_unlock( &backend_mutex );
 
                 b->b_n_ops_executing++;
+                if ( op->o_tag == LDAP_REQ_BIND ) {
+                    b->b_counters[LLOAD_STATS_OPS_BIND].lc_ops_received++;
+                } else {
+                    b->b_counters[LLOAD_STATS_OPS_OTHER].lc_ops_received++;
+                }
                 c->c_n_ops_executing++;
+                c->c_counters.lc_ops_received++;
                 CONNECTION_UNLOCK_INCREF(c);
 
                 ldap_pvt_thread_mutex_unlock( &b->b_mutex );

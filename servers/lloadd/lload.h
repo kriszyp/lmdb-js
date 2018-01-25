@@ -43,6 +43,7 @@
 #include "avl.h"
 
 #include "../servers/slapd/slap.h"
+#include "../slapd/back-monitor/back-monitor.h"
 
 #ifndef ldap_debug
 #define ldap_debug slap_debug
@@ -123,6 +124,26 @@ struct LloadPendingConnection {
     LDAP_LIST_ENTRY(LloadPendingConnection) next;
 };
 
+typedef struct lload_counters_t {
+    ldap_pvt_mp_t lc_ops_completed;
+    ldap_pvt_mp_t lc_ops_received;
+    ldap_pvt_mp_t lc_ops_forwarded;
+    ldap_pvt_mp_t lc_ops_rejected;
+    ldap_pvt_mp_t lc_ops_failed;
+} lload_counters_t;
+
+enum {
+    LLOAD_STATS_OPS_BIND = 0,
+    LLOAD_STATS_OPS_OTHER,
+    LLOAD_STATS_OPS_LAST
+};
+
+typedef struct lload_global_stats_t {
+    ldap_pvt_mp_t global_incoming;
+    ldap_pvt_mp_t global_outgoing;
+    lload_counters_t counters[LLOAD_STATS_OPS_LAST];
+} lload_global_stats_t;
+
 /* Can hold mutex when locking a linked connection */
 struct LloadBackend {
     ldap_pvt_thread_mutex_t b_mutex;
@@ -144,6 +165,8 @@ struct LloadBackend {
 
     long b_max_pending, b_max_conn_pending;
     long b_n_ops_executing;
+
+    lload_counters_t b_counters[LLOAD_STATS_OPS_LAST];
 
     LDAP_CIRCLEQ_ENTRY(LloadBackend) b_next;
 };
@@ -276,8 +299,9 @@ struct LloadConnection {
     enum lload_tls_type c_is_tls; /* true if this LDAP over raw TLS */
 #endif
 
-    long c_n_ops_executing; /* num of ops currently executing */
-    long c_n_ops_completed; /* num of ops completed */
+    long c_n_ops_executing;      /* num of ops currently executing */
+    long c_n_ops_completed;      /* num of ops completed */
+    lload_counters_t c_counters; /* per connection operation counters */
 
     /*
      * Protected by the CIRCLEQ mutex:
@@ -296,6 +320,14 @@ enum op_state {
     LLOAD_OP_DETACHING_UPSTREAM = 1 << 2,
     LLOAD_OP_DETACHING_CLIENT = 1 << 3,
 };
+
+/* operation result for monitoring purposes */
+enum op_result {
+    LLOAD_OP_REJECTED,  /* operation was not forwarded */
+    LLOAD_OP_COMPLETED, /* operation sent and response received */
+    LLOAD_OP_FAILED, /* operation was forwarded, but no response was received */
+};
+
 #define LLOAD_OP_FREEING_MASK \
     ( LLOAD_OP_FREEING_UPSTREAM | LLOAD_OP_FREEING_CLIENT )
 #define LLOAD_OP_DETACHING_MASK \
@@ -326,6 +358,7 @@ struct LloadOperation {
     time_t o_start;
     unsigned long o_pin_id;
 
+    enum op_result o_res;
     BerElement *o_ber;
     BerValue o_request, o_ctrls;
 };
@@ -354,6 +387,13 @@ struct LloadListener {
 #endif
 };
 
+typedef int (*CONNECTION_CLIENT_WALK)( LloadConnection *c, void *argv );
+
+struct lload_monitor_conn_arg {
+    Operation *op;
+    monitor_subsys_t *ms;
+    Entry **ep;
+};
 LDAP_END_DECL
 
 #include "proto-lload.h"

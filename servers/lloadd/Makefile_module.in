@@ -19,7 +19,7 @@ XSRCS	= version.c
 NT_SRCS = ../slapd/nt_svc.c
 NT_OBJS = ../slapd/nt_svc.o ../../libraries/liblutil/slapdmsg.res
 
-SRCS	+= module_init.c
+SRCS	+= module_init.c monitor.c
 
 OBJS	= $(patsubst %.c,%.lo,$(SRCS)) $(@PLAT@_OBJS)
 

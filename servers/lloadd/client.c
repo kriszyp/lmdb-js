@@ -34,6 +34,8 @@ request_abandon( LloadConnection *c, LloadOperation *op )
     LloadOperation *request, needle = { .o_client_connid = c->c_connid };
     int rc = LDAP_SUCCESS;
 
+    op->o_res = LLOAD_OP_COMPLETED;
+
     if ( ber_decode_int( &op->o_request, &needle.o_client_msgid ) ) {
         Debug( LDAP_DEBUG_STATS, "request_abandon: "
                 "connid=%lu msgid=%d invalid integer sent in abandon request\n",
@@ -125,6 +127,8 @@ request_process( LloadConnection *client, LloadOperation *op )
             op->o_client_msgid, op->o_upstream_connid, op->o_upstream_msgid );
     assert( rc == LDAP_SUCCESS );
 
+    lload_stats.counters[LLOAD_STATS_OPS_OTHER].lc_ops_forwarded++;
+
     if ( (lload_features & LLOAD_FEATURE_PROXYAUTHZ) &&
             client->c_type != LLOAD_C_PRIVILEGED ) {
         CONNECTION_LOCK_DECREF(client);
@@ -209,7 +213,9 @@ handle_one_request( LloadConnection *c )
 
     switch ( op->o_tag ) {
         case LDAP_REQ_UNBIND:
+            lload_stats.counters[LLOAD_STATS_OPS_OTHER].lc_ops_received++;
             /* There is never a response for this operation */
+            op->o_res = LLOAD_OP_COMPLETED;
             operation_destroy_from_client( op );
             Debug( LDAP_DEBUG_STATS, "handle_one_request: "
                     "received unbind, closing client connid=%lu\n",
@@ -217,14 +223,17 @@ handle_one_request( LloadConnection *c )
             CONNECTION_DESTROY(c);
             return -1;
         case LDAP_REQ_BIND:
+            lload_stats.counters[LLOAD_STATS_OPS_BIND].lc_ops_received++;
             handler = request_bind;
             break;
         case LDAP_REQ_ABANDON:
+            lload_stats.counters[LLOAD_STATS_OPS_OTHER].lc_ops_received++;
             /* We can't send a response to abandon requests even if a bind is
              * currently in progress */
             handler = request_abandon;
             break;
         case LDAP_REQ_EXTENDED:
+            lload_stats.counters[LLOAD_STATS_OPS_OTHER].lc_ops_received++;
             handler = request_extended;
             break;
         default:
@@ -232,6 +241,7 @@ handle_one_request( LloadConnection *c )
                 return operation_send_reject_locked(
                         op, LDAP_PROTOCOL_ERROR, "bind in progress", 0 );
             }
+            lload_stats.counters[LLOAD_STATS_OPS_OTHER].lc_ops_received++;
             handler = request_process;
             break;
     }
@@ -560,6 +570,23 @@ clients_destroy( void )
         assert( !c->c_ops );
         CONNECTION_DESTROY(c);
         ldap_pvt_thread_mutex_lock( &clients_mutex );
+    }
+    ldap_pvt_thread_mutex_unlock( &clients_mutex );
+}
+
+void
+clients_walk( CONNECTION_CLIENT_WALK apply, void *argv )
+{
+    LloadConnection *c;
+    ldap_pvt_thread_mutex_lock( &clients_mutex );
+    if ( LDAP_CIRCLEQ_EMPTY( &clients ) ) {
+        ldap_pvt_thread_mutex_unlock( &clients_mutex );
+        return;
+    }
+
+    /* Todo is it possible to do this without holding this lock? */
+    LDAP_CIRCLEQ_FOREACH ( c, &clients, c_next ) {
+        apply( c, argv );
     }
     ldap_pvt_thread_mutex_unlock( &clients_mutex );
 }

@@ -89,6 +89,7 @@ forward_final_response(
             op->o_upstream_connid, op->o_upstream_msgid, op->o_client_connid );
     rc = forward_response( client, op, ber );
     CONNECTION_LOCK(op->o_upstream);
+    op->o_res = LLOAD_OP_COMPLETED;
     if ( !op->o_pin_id || !op->o_upstream_refcnt-- ) {
         operation_destroy_from_upstream( op );
     }

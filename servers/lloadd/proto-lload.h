@@ -65,6 +65,7 @@ LDAP_SLAPD_F (LloadConnection *) client_init( ber_socket_t s, LloadListener *url
 LDAP_SLAPD_F (void) client_reset( LloadConnection *c );
 LDAP_SLAPD_F (void) client_destroy( LloadConnection *c );
 LDAP_SLAPD_F (void) clients_destroy( void );
+LDAP_SLAPD_F (void) clients_walk( CONNECTION_CLIENT_WALK apply, void *argv );
 
 /*
  * config.c
@@ -126,12 +127,20 @@ LDAP_SLAPD_F (int) lload_exop_init( void );
  */
 LDAP_SLAPD_F (int) lload_init( int mode, const char *name );
 LDAP_SLAPD_F (int) lload_destroy( void );
+LDAP_SLAPD_F (void) lload_counters_init( void );
 
 /*
  * libevent_support.c
  */
 LDAP_SLAPD_F (int) lload_libevent_init( void );
 LDAP_SLAPD_F (void) lload_libevent_destroy( void );
+
+#ifdef BALANCER_MODULE
+/*
+ * monitor.c
+ */
+LDAP_SLAPD_F (int) lload_monitor_initialize( void );
+#endif /* BALANCER_MODULE */
 
 /*
  * operation.c
@@ -150,7 +159,9 @@ LDAP_SLAPD_F (void) operation_lost_upstream( LloadOperation *op );
 LDAP_SLAPD_F (void) operation_destroy_from_client( LloadOperation *op );
 LDAP_SLAPD_F (void) operation_destroy_from_upstream( LloadOperation *op );
 LDAP_SLAPD_F (void) operations_timeout( evutil_socket_t s, short what, void *arg );
-
+LDAP_SLAPD_F (void) operation_update_conn_counters( LloadOperation *op );
+LDAP_SLAPD_F (void) operation_update_backend_counters( LloadOperation *op, LloadBackend *b );
+LDAP_SLAPD_F (void) operation_update_global_rejected( LloadOperation *op );
 /*
  * upstream.c
  */
@@ -180,6 +191,8 @@ LDAP_SLAPD_V (struct timeval *) lload_write_timeout;
 LDAP_SLAPD_V (char *) global_host;
 LDAP_SLAPD_V (int) lber_debug;
 LDAP_SLAPD_V (int) ldap_syslog;
+
+LDAP_SLAPD_V (lload_global_stats_t) lload_stats;
 
 LDAP_END_DECL
 
