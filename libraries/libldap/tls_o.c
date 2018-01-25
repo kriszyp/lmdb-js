@@ -121,7 +121,7 @@ static void tlso_thr_init( void ) {}
  * OpenSSL 1.1 API and later makes the BIO method concrete types internal.
  */
 
-static const BIO_METHOD *
+static BIO_METHOD *
 BIO_meth_new( int type, const char *name )
 {
 	BIO_METHOD *method = LDAP_MALLOC( sizeof(BIO_METHOD) );
@@ -883,7 +883,7 @@ static int
 tlso_session_pinning( LDAP *ld, tls_session *sess, char *hashalg, struct berval *hash )
 {
 	tlso_session *s = (tlso_session *)sess;
-	char *tmp, digest[EVP_MAX_MD_SIZE];
+	unsigned char *tmp, digest[EVP_MAX_MD_SIZE];
 	struct berval key,
 				  keyhash = { .bv_val = digest, .bv_len = sizeof(digest) };
 	X509 *cert = SSL_get_peer_certificate(s);
