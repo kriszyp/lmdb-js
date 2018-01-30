@@ -2298,6 +2298,7 @@ accesslog_db_root(
 		db = *li->li_db;
 		op->o_bd = &db;
 
+		op->o_tag = LDAP_REQ_ADD;
 		op->ora_e = e;
 		op->o_req_dn = e->e_name;
 		op->o_req_ndn = e->e_nname;

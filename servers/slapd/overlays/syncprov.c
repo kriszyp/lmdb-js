@@ -1812,6 +1812,55 @@ syncprov_playlog( Operation *op, SlapReply *rs, sessionlog *sl,
 }
 
 static int
+syncprov_new_ctxcsn( opcookie *opc, syncprov_info_t *si, int csn_changed, int numvals, BerVarray vals )
+{
+	unsigned i;
+	int j, sid;
+
+	for ( i=0; i<numvals; i++ ) {
+		sid = slap_parse_csn_sid( &vals[i] );
+		for ( j=0; j<si->si_numcsns; j++ ) {
+			if ( sid < si->si_sids[j] )
+				break;
+			if ( sid == si->si_sids[j] ) {
+				if ( ber_bvcmp( &vals[i], &si->si_ctxcsn[j] ) > 0 ) {
+					ber_bvreplace( &si->si_ctxcsn[j], &vals[i] );
+					csn_changed = 1;
+				}
+				break;
+			}
+		}
+
+		if ( j == si->si_numcsns || sid != si->si_sids[j] ) {
+			slap_insert_csn_sids( (struct sync_cookie *)&si->si_ctxcsn,
+				j, sid, &vals[i] );
+			csn_changed = 1;
+		}
+	}
+	if ( csn_changed )
+		si->si_dirty = 0;
+	ldap_pvt_thread_rdwr_wunlock( &si->si_csn_rwlock );
+
+	if ( csn_changed ) {
+		syncops *ss;
+		ldap_pvt_thread_mutex_lock( &si->si_ops_mutex );
+		for ( ss = si->si_ops; ss; ss = ss->s_next ) {
+			if ( ss->s_op->o_abandon )
+				continue;
+			/* Send the updated csn to all syncrepl consumers,
+			 * including the server from which it originated.
+			 * The syncrepl consumer and syncprov provider on
+			 * the originating server may be configured to store
+			 * their csn values in different entries.
+			 */
+			syncprov_qresp( opc, ss, LDAP_SYNC_NEW_COOKIE );
+		}
+		ldap_pvt_thread_mutex_unlock( &si->si_ops_mutex );
+	}
+	return csn_changed;
+}
+
+static int
 syncprov_op_response( Operation *op, SlapReply *rs )
 {
 	opcookie *opc = op->o_callback->sc_private;
@@ -1882,56 +1931,26 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 			 * all the attribute values, as there may be more than one csn
 			 * that changed, and only one can be passed in the csn queue.
 			 */
-			Modifications *mod = op->orm_modlist;
-			unsigned i;
-			int j, sid;
-
-			for ( i=0; i<mod->sml_numvals; i++ ) {
-				sid = slap_parse_csn_sid( &mod->sml_values[i] );
-				for ( j=0; j<si->si_numcsns; j++ ) {
-					if ( sid < si->si_sids[j] )
-						break;
-					if ( sid == si->si_sids[j] ) {
-						if ( ber_bvcmp( &mod->sml_values[i], &si->si_ctxcsn[j] ) > 0 ) {
-							ber_bvreplace( &si->si_ctxcsn[j], &mod->sml_values[i] );
-							csn_changed = 1;
-						}
-						break;
-					}
-				}
-
-				if ( j == si->si_numcsns || sid != si->si_sids[j] ) {
-					slap_insert_csn_sids( (struct sync_cookie *)&si->si_ctxcsn,
-						j, sid, &mod->sml_values[i] );
-					csn_changed = 1;
-				}
-			}
-			if ( csn_changed )
-				si->si_dirty = 0;
-			ldap_pvt_thread_rdwr_wunlock( &si->si_csn_rwlock );
-
-			if ( csn_changed ) {
-				syncops *ss;
-				ldap_pvt_thread_mutex_lock( &si->si_ops_mutex );
-				for ( ss = si->si_ops; ss; ss = ss->s_next ) {
-					if ( ss->s_op->o_abandon )
-						continue;
-					/* Send the updated csn to all syncrepl consumers,
-					 * including the server from which it originated.
-					 * The syncrepl consumer and syncprov provider on
-					 * the originating server may be configured to store
-					 * their csn values in different entries.
-					 */
-					syncprov_qresp( opc, ss, LDAP_SYNC_NEW_COOKIE );
-				}
-				ldap_pvt_thread_mutex_unlock( &si->si_ops_mutex );
-			}
+				csn_changed = syncprov_new_ctxcsn( opc, si, csn_changed,
+					op->orm_modlist->sml_numvals, op->orm_modlist->sml_values );
 			} else {
-			ldap_pvt_thread_rdwr_wunlock( &si->si_csn_rwlock );
+				ldap_pvt_thread_rdwr_wunlock( &si->si_csn_rwlock );
 			}
 			if ( csn_changed )
 				si->si_numops++;
 			goto leave;
+		}
+
+		/* If we're adding the context entry, parse all of its contextCSNs */
+		if ( op->o_tag == LDAP_REQ_ADD &&
+			dn_match( &op->o_req_ndn, &si->si_contextdn )) {
+			Attribute *a = attr_find( op->ora_e->e_attrs, slap_schema.si_ad_contextCSN );
+			if ( a ) {
+				csn_changed = syncprov_new_ctxcsn( opc, si, csn_changed, a->a_numvals, a->a_vals );
+				if ( csn_changed )
+					si->si_numops++;
+				goto added;
+			}
 		}
 
 		if ( csn_changed )
@@ -1960,6 +1979,7 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 		si->si_dirty = !csn_changed;
 		ldap_pvt_thread_rdwr_wunlock( &si->si_csn_rwlock );
 
+added:
 		if ( do_check ) {
 			ldap_pvt_thread_rdwr_rlock( &si->si_csn_rwlock );
 			syncprov_checkpoint( op, on );
