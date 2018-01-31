@@ -118,6 +118,7 @@ typedef struct syncinfo_s {
 	int			si_got;
 	int			si_strict_refresh;	/* stop listening during fallback refresh */
 	int			si_too_old;
+	int			si_has_syncprov;
 	ber_int_t	si_msgid;
 	Avlnode			*si_presentlist;
 	LDAP			*si_ld;
@@ -147,7 +148,7 @@ static int syncrepl_entry(
 					struct berval *cookieCSN );
 static int syncrepl_updateCookie(
 					syncinfo_t *, Operation *,
-					struct sync_cookie * );
+					struct sync_cookie *, int save );
 static struct berval * slap_uuidstr_from_normalized(
 					struct berval *, struct berval *, void * );
 static int syncrepl_add_glue_ancestors(
@@ -554,6 +555,7 @@ check_syncprov(
 			ber_bvarray_free( a.a_nvals );
 		}
 		ber_bvarray_free( a.a_vals );
+		si->si_has_syncprov = 1;
 	}
 	/* See if the cookieState has changed due to anything outside
 	 * this particular consumer. That includes other consumers in
@@ -718,6 +720,8 @@ do_syncrep1(
 					si->si_syncCookie.sids[i] = si->si_cookieState->cs_sids[i];
 			}
 			ldap_pvt_thread_mutex_unlock( &si->si_cookieState->cs_mutex );
+			/* Also look in syncprov overlay, if it was already active */
+			check_syncprov( op, si );
 		}
 
 		ch_free( si->si_syncCookie.octet_str.bv_val );
@@ -1015,7 +1019,7 @@ do_syncrep2(
 				if ( ( rc = syncrepl_message_to_op( si, op, msg ) ) == LDAP_SUCCESS &&
 					syncCookie.ctxcsn )
 				{
-					rc = syncrepl_updateCookie( si, op, &syncCookie );
+					rc = syncrepl_updateCookie( si, op, &syncCookie, 0 );
 				} else switch ( rc ) {
 					case LDAP_ALREADY_EXISTS:
 					case LDAP_NO_SUCH_OBJECT:
@@ -1043,7 +1047,7 @@ do_syncrep2(
 					syncstate, syncUUID, syncCookie.ctxcsn ) ) == LDAP_SUCCESS &&
 					syncCookie.ctxcsn )
 				{
-					rc = syncrepl_updateCookie( si, op, &syncCookie );
+					rc = syncrepl_updateCookie( si, op, &syncCookie, 0 );
 				}
 			}
 			if ( punlock >= 0 ) {
@@ -1189,7 +1193,7 @@ do_syncrep2(
 			}
 			if ( syncCookie.ctxcsn && match < 0 && err == LDAP_SUCCESS )
 			{
-				rc = syncrepl_updateCookie( si, op, &syncCookie );
+				rc = syncrepl_updateCookie( si, op, &syncCookie, 1 );
 			}
 			if ( err == LDAP_SUCCESS
 				&& si->si_logstate == SYNCLOG_FALLBACK ) {
@@ -1361,7 +1365,7 @@ do_syncrep2(
 
 					if ( syncCookie.ctxcsn )
 					{
-						rc = syncrepl_updateCookie( si, op, &syncCookie);
+						rc = syncrepl_updateCookie( si, op, &syncCookie, 1 );
 					}
 					if ( si->si_presentlist ) {
 						presentlist_free( si->si_presentlist );
@@ -3860,7 +3864,8 @@ static int
 syncrepl_updateCookie(
 	syncinfo_t *si,
 	Operation *op,
-	struct sync_cookie *syncCookie )
+	struct sync_cookie *syncCookie,
+	int save )
 {
 	Backend *be = op->o_bd;
 	Modifications mod;
@@ -3952,40 +3957,47 @@ syncrepl_updateCookie(
 	si->si_cookieState->cs_updating = 1;
 	ldap_pvt_thread_mutex_unlock( &si->si_cookieState->cs_mutex );
 
-	op->o_bd = si->si_wbe;
-	slap_queue_csn( op, &first );
+	if ( save || !si->si_has_syncprov ) {
+		op->o_bd = si->si_wbe;
+		slap_queue_csn( op, &first );
 
-	op->o_tag = LDAP_REQ_MODIFY;
+		op->o_tag = LDAP_REQ_MODIFY;
 
-	cb.sc_response = syncrepl_null_callback;
-	cb.sc_private = si;
+		cb.sc_response = syncrepl_null_callback;
+		cb.sc_private = si;
 
-	op->o_callback = &cb;
-	op->o_req_dn = si->si_contextdn;
-	op->o_req_ndn = si->si_contextdn;
+		op->o_callback = &cb;
+		op->o_req_dn = si->si_contextdn;
+		op->o_req_ndn = si->si_contextdn;
 
-	/* update contextCSN */
-	op->o_dont_replicate = 1;
+		/* update contextCSN */
+		op->o_dont_replicate = 1;
 
-	mod.sml_numvals = sc.numcsns;
-	mod.sml_values = sc.ctxcsn;
+		mod.sml_numvals = sc.numcsns;
+		mod.sml_values = sc.ctxcsn;
 
-	op->orm_modlist = &mod;
-	op->orm_no_opattrs = 1;
-	rc = op->o_bd->be_modify( op, &rs_modify );
+		op->orm_modlist = &mod;
+		op->orm_no_opattrs = 1;
+		rc = op->o_bd->be_modify( op, &rs_modify );
 
-	if ( rs_modify.sr_err == LDAP_NO_SUCH_OBJECT &&
-		SLAP_SYNC_SUBENTRY( op->o_bd )) {
-		const char	*text;
-		char txtbuf[SLAP_TEXT_BUFLEN];
-		size_t textlen = sizeof txtbuf;
-		Entry *e = slap_create_context_csn_entry( op->o_bd, NULL );
-		rs_reinit( &rs_modify, REP_RESULT );
-		rc = slap_mods2entry( &mod, &e, 0, 1, &text, txtbuf, textlen);
-		op->ora_e = e;
-		rc = op->o_bd->be_add( op, &rs_modify );
-		if ( e == op->ora_e )
-			be_entry_release_w( op, op->ora_e );
+		if ( rs_modify.sr_err == LDAP_NO_SUCH_OBJECT &&
+			SLAP_SYNC_SUBENTRY( op->o_bd )) {
+			const char	*text;
+			char txtbuf[SLAP_TEXT_BUFLEN];
+			size_t textlen = sizeof txtbuf;
+			Entry *e = slap_create_context_csn_entry( op->o_bd, NULL );
+			rs_reinit( &rs_modify, REP_RESULT );
+			rc = slap_mods2entry( &mod, &e, 0, 1, &text, txtbuf, textlen);
+			op->ora_e = e;
+			rc = op->o_bd->be_add( op, &rs_modify );
+			if ( e == op->ora_e )
+				be_entry_release_w( op, op->ora_e );
+		}
+
+		op->orm_no_opattrs = 0;
+		op->o_dont_replicate = 0;
+	} else {
+		rc = 0;
 	}
 
 	op->orm_no_opattrs = 0;
@@ -4028,7 +4040,8 @@ syncrepl_updateCookie(
 	ldap_pvt_thread_mutex_unlock( &si->si_cookieState->cs_mutex );
 
 	op->o_bd = be;
-	op->o_tmpfree( op->o_csn.bv_val, op->o_tmpmemctx );
+	if ( op->o_csn.bv_val )
+		op->o_tmpfree( op->o_csn.bv_val, op->o_tmpmemctx );
 	BER_BVZERO( &op->o_csn );
 	if ( mod.sml_next ) slap_mods_free( mod.sml_next, 1 );
 
