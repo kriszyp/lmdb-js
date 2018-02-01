@@ -57,7 +57,7 @@ slap_get_commit_csn(
 	ldap_pvt_thread_mutex_lock( &be->be_pcl_mutex );
 
 	LDAP_TAILQ_FOREACH( csne, be->be_pending_csn_list, ce_csn_link ) {
-		if ( csne->ce_opid == op->o_opid && csne->ce_connid == op->o_connid ) {
+		if ( csne->ce_op == op ) {
 			csne->ce_state = SLAP_CSN_COMMIT;
 			if ( foundit ) *foundit = 1;
 			break;
@@ -94,7 +94,7 @@ slap_rewind_commit_csn( Operation *op )
 	ldap_pvt_thread_mutex_lock( &be->be_pcl_mutex );
 
 	LDAP_TAILQ_FOREACH( csne, be->be_pending_csn_list, ce_csn_link ) {
-		if ( csne->ce_opid == op->o_opid && csne->ce_connid == op->o_connid ) {
+		if ( csne->ce_op == op ) {
 			csne->ce_state = SLAP_CSN_PENDING;
 			break;
 		}
@@ -116,7 +116,7 @@ slap_graduate_commit_csn( Operation *op )
 	ldap_pvt_thread_mutex_lock( &be->be_pcl_mutex );
 
 	LDAP_TAILQ_FOREACH( csne, be->be_pending_csn_list, ce_csn_link ) {
-		if ( csne->ce_opid == op->o_opid && csne->ce_connid == op->o_connid ) {
+		if ( csne->ce_op == op ) {
 			LDAP_TAILQ_REMOVE( be->be_pending_csn_list,
 				csne, ce_csn_link );
 			Debug( LDAP_DEBUG_SYNC, "slap_graduate_commit_csn: removing %p %s\n",
@@ -191,8 +191,7 @@ slap_queue_csn(
 	ber_dupbv( &pending->ce_csn, csn );
 	ber_bvreplace_x( &op->o_csn, &pending->ce_csn, op->o_tmpmemctx );
 	pending->ce_sid = slap_parse_csn_sid( csn );
-	pending->ce_connid = op->o_connid;
-	pending->ce_opid = op->o_opid;
+	pending->ce_op = op;
 	pending->ce_state = SLAP_CSN_PENDING;
 
 	ldap_pvt_thread_mutex_lock( &be->be_pcl_mutex );
