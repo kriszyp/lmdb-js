@@ -33,9 +33,6 @@
 
 LDAP_BEGIN_DECL
 
-struct config_args_s;  /* config.h */
-struct config_reply_s; /* config.h */
-
 /*
  * backend.c
  */

@@ -165,22 +165,27 @@ static ConfigTable config_back_cf_table[] = {
     { "", "", 0, 0, 0,
         ARG_MAGIC,
         &config_fname,
+        NULL, NULL, NULL
     },
     { "argsfile", "file", 2, 2, 0,
         ARG_STRING,
         &slapd_args_file,
+        NULL, NULL, NULL
     },
     { "concurrency", "level", 2, 2, 0,
         ARG_INT|ARG_MAGIC|CFG_CONCUR,
         &config_generic,
+        NULL, NULL, NULL
     },
     { "backend", "backend options", 2, 0, 0,
         ARG_MAGIC|CFG_BACKEND,
         &config_backend,
+        NULL, NULL, NULL
     },
     { "bindconf", "backend credentials", 2, 0, 0,
         ARG_MAGIC|CFG_BINDCONF,
         &config_bindconf,
+        NULL, NULL, NULL
     },
     { "gentlehup", "on|off", 2, 2, 0,
 #ifdef SIGHUP
@@ -190,42 +195,52 @@ static ConfigTable config_back_cf_table[] = {
         ARG_IGNORED,
         NULL,
 #endif
+        NULL, NULL, NULL
     },
     { "idletimeout", "timeout", 2, 2, 0,
         ARG_INT,
         &global_idletimeout,
+        NULL, NULL, NULL
     },
     { "include", "file", 2, 2, 0,
         ARG_MAGIC,
         &config_include,
+        NULL, NULL, NULL
     },
     { "io-threads", "count", 2, 0, 0,
         ARG_UINT|ARG_MAGIC|CFG_IOTHREADS,
         &config_generic,
+        NULL, NULL, NULL
     },
     { "logfile", "file", 2, 2, 0,
         ARG_STRING|ARG_MAGIC|CFG_LOGFILE,
         &config_generic,
+        NULL, NULL, NULL
     },
     { "loglevel", "level", 2, 0, 0,
         ARG_MAGIC,
         &config_loglevel,
+        NULL, NULL, NULL
     },
     { "pidfile", "file", 2, 2, 0,
         ARG_STRING,
         &slapd_pid_file,
+        NULL, NULL, NULL
     },
     { "restrict", "op_list", 2, 0, 0,
         ARG_MAGIC,
         &config_restrict,
+        NULL, NULL, NULL
     },
     { "sockbuf_max_incoming_client", "max", 2, 2, 0,
         ARG_BER_LEN_T,
         &sockbuf_max_incoming_client,
+        NULL, NULL, NULL
     },
     { "sockbuf_max_incoming_upstream", "max", 2, 2, 0,
         ARG_BER_LEN_T,
         &sockbuf_max_incoming_upstream,
+        NULL, NULL, NULL
     },
     { "tcp-buffer", "[listener=<listener>] [{read|write}=]size", 0, 0, 0,
 #ifdef LDAP_TCP_BUFFER
@@ -235,22 +250,27 @@ static ConfigTable config_back_cf_table[] = {
         ARG_IGNORED,
         NULL,
 #endif
+        NULL, NULL, NULL
     },
     { "threads", "count", 2, 2, 0,
         ARG_INT|ARG_MAGIC|CFG_THREADS,
         &config_generic,
+        NULL, NULL, NULL
     },
     { "threadqueues", "count", 2, 2, 0,
         ARG_INT|ARG_MAGIC|CFG_THREADQS,
         &config_generic,
+        NULL, NULL, NULL
     },
     { "max_pdus_per_cycle", "count", 2, 2, 0,
         ARG_INT|ARG_MAGIC|CFG_RESCOUNT,
         &config_generic,
+        NULL, NULL, NULL
     },
     { "feature", "name", 2, 0, 0,
         ARG_MAGIC,
         &config_feature,
+        NULL, NULL, NULL
     },
     { "TLSCACertificate", NULL, 2, 2, 0,
 #ifdef HAVE_TLS
@@ -260,6 +280,7 @@ static ConfigTable config_back_cf_table[] = {
         ARG_IGNORED,
         NULL,
 #endif
+        NULL, NULL, NULL
     },
     { "TLSCACertificateFile", NULL, 2, 2, 0,
 #ifdef HAVE_TLS
@@ -269,6 +290,7 @@ static ConfigTable config_back_cf_table[] = {
         ARG_IGNORED,
         NULL,
 #endif
+        NULL, NULL, NULL
     },
     { "TLSCACertificatePath", NULL, 2, 2, 0,
 #ifdef HAVE_TLS
@@ -278,6 +300,7 @@ static ConfigTable config_back_cf_table[] = {
         ARG_IGNORED,
         NULL,
 #endif
+        NULL, NULL, NULL
     },
     { "TLSCertificate", NULL, 2, 2, 0,
 #ifdef HAVE_TLS
@@ -287,6 +310,7 @@ static ConfigTable config_back_cf_table[] = {
         ARG_IGNORED,
         NULL,
 #endif
+        NULL, NULL, NULL
     },
     { "TLSCertificateFile", NULL, 2, 2, 0,
 #ifdef HAVE_TLS
@@ -296,6 +320,7 @@ static ConfigTable config_back_cf_table[] = {
         ARG_IGNORED,
         NULL,
 #endif
+        NULL, NULL, NULL
     },
     { "TLSCertificateKey", NULL, 2, 2, 0,
 #ifdef HAVE_TLS
@@ -305,6 +330,7 @@ static ConfigTable config_back_cf_table[] = {
         ARG_IGNORED,
         NULL,
 #endif
+        NULL, NULL, NULL
     },
     { "TLSCertificateKeyFile", NULL, 2, 2, 0,
 #ifdef HAVE_TLS
@@ -314,6 +340,7 @@ static ConfigTable config_back_cf_table[] = {
         ARG_IGNORED,
         NULL,
 #endif
+        NULL, NULL, NULL
     },
     { "TLSCipherSuite", NULL, 2, 2, 0,
 #ifdef HAVE_TLS
@@ -323,6 +350,7 @@ static ConfigTable config_back_cf_table[] = {
         ARG_IGNORED,
         NULL,
 #endif
+        NULL, NULL, NULL
     },
     { "TLSCRLCheck", NULL, 2, 2, 0,
 #if defined(HAVE_TLS) && defined(HAVE_OPENSSL)
@@ -332,6 +360,7 @@ static ConfigTable config_back_cf_table[] = {
         ARG_IGNORED,
         NULL,
 #endif
+        NULL, NULL, NULL
     },
     { "TLSCRLFile", NULL, 2, 2, 0,
 #if defined(HAVE_GNUTLS)
@@ -341,6 +370,7 @@ static ConfigTable config_back_cf_table[] = {
         ARG_IGNORED,
         NULL,
 #endif
+        NULL, NULL, NULL
     },
     { "TLSRandFile", NULL, 2, 2, 0,
 #ifdef HAVE_TLS
@@ -350,6 +380,7 @@ static ConfigTable config_back_cf_table[] = {
         ARG_IGNORED,
         NULL,
 #endif
+        NULL, NULL, NULL
     },
     { "TLSVerifyClient", NULL, 2, 2, 0,
 #ifdef HAVE_TLS
@@ -359,6 +390,7 @@ static ConfigTable config_back_cf_table[] = {
         ARG_IGNORED,
         NULL,
 #endif
+        NULL, NULL, NULL
     },
     { "TLSDHParamFile", NULL, 2, 2, 0,
 #ifdef HAVE_TLS
@@ -368,6 +400,7 @@ static ConfigTable config_back_cf_table[] = {
         ARG_IGNORED,
         NULL,
 #endif
+        NULL, NULL, NULL
     },
     { "TLSECName", NULL, 2, 2, 0,
 #ifdef HAVE_TLS
@@ -377,6 +410,7 @@ static ConfigTable config_back_cf_table[] = {
         ARG_IGNORED,
         NULL,
 #endif
+        NULL, NULL, NULL
     },
     { "TLSProtocolMin", NULL, 2, 2, 0,
 #ifdef HAVE_TLS
@@ -386,10 +420,12 @@ static ConfigTable config_back_cf_table[] = {
         ARG_IGNORED,
         NULL,
 #endif
+        NULL, NULL, NULL
     },
     { "iotimeout", "ms timeout", 2, 2, 0,
         ARG_INT|ARG_MAGIC|CFG_IOTIMEOUT,
         &config_generic,
+        NULL, NULL, NULL
     },
 
     { NULL, NULL, 0, 0, 0, ARG_IGNORED, NULL }
@@ -2794,4 +2830,10 @@ lload_config_check_my_url( const char *url, LDAPURLDesc *lud )
         }
     }
     return NULL;
+}
+
+int
+lload_back_init_cf( BackendInfo *bi )
+{
+    return 0;
 }
