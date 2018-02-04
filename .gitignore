@@ -95,6 +95,7 @@ libraries/libldap_r/getentry.c
 libraries/libldap_r/getvalues.c
 libraries/libldap_r/gssapi.c
 libraries/libldap_r/init.c
+libraries/libldap_r/lbase64.c
 libraries/libldap_r/ldap_sync.c
 libraries/libldap_r/ldif.c
 libraries/libldap_r/ldifutil.c
