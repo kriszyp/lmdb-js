@@ -224,7 +224,9 @@ loadable module. In that case, it can be loaded as such:
 .LP
 .nf
 .ft tt
-	moduleload path/to/lloadd.la lloadd.conf "listening URLs"
+    moduleload path/to/lloadd.la
+    backend lload
+    listen "listening URLs"
 .ft
 .fi
 
@@ -280,7 +282,9 @@ put the following in your slapd.conf (or its equivalent in cn=config):
 .LP
 .nf
 .ft tt
-	moduleload lloadd.la /var/tmp/lloadd.conf "ldap://:1389 ldaps://"
+    moduleload lloadd.la
+    backend lload
+    listen "ldap://:1389 ldaps://"
 .ft
 .fi
 .SH "SEE ALSO"

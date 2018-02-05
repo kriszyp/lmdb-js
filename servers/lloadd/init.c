@@ -37,6 +37,7 @@
 
 #include "ldap_rq.h"
 
+#ifndef BALANCER_MODULE
 /*
  * read-only global variables or variables only written by the listener
  * thread (after they are initialized) - no need to protect them with a mutex.
@@ -61,8 +62,10 @@ int connection_pool_max = SLAP_MAX_WORKER_THREADS;
 int connection_pool_queues = 1;
 int slap_tool_thread_max = 1;
 
-static const char *lload_name = NULL;
 int slapMode = SLAP_UNDEFINED_MODE;
+#endif /* !BALANCER_MODULE */
+
+static const char *lload_name = NULL;
 
 int
 lload_init( int mode, const char *name )

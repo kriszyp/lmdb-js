@@ -60,11 +60,18 @@
 /*
  * defaults for various global variables
  */
+#ifdef BALANCER_MODULE
+char *listeners_list = NULL;
+#else /* !BALANCER_MODULE */
 slap_mask_t global_allows = 0;
 slap_mask_t global_disallows = 0;
 int global_gentlehup = 0;
 int global_idletimeout = 0;
 char *global_host = NULL;
+
+char *slapd_pid_file = NULL;
+char *slapd_args_file = NULL;
+#endif /* !BALANCER_MODULE */
 
 static FILE *logfile;
 static char *logfileName;
@@ -82,9 +89,6 @@ int lload_conn_max_pdus_per_cycle = LLOAD_CONN_MAX_PDUS_PER_CYCLE_DEFAULT;
 struct timeval *lload_timeout_api = NULL;
 struct timeval *lload_timeout_net = NULL;
 struct timeval *lload_write_timeout = &timeout_write_tv;
-
-char *slapd_pid_file = NULL;
-char *slapd_args_file = NULL;
 
 static int fp_getline( FILE *fp, ConfigArgs *c );
 static void fp_getline_init( ConfigArgs *c );
@@ -131,6 +135,7 @@ enum {
     CFG_ACL = 1,
     CFG_BACKEND,
     CFG_BINDCONF,
+    CFG_LISTEN,
     CFG_TLS_RAND,
     CFG_TLS_CIPHER,
     CFG_TLS_PROTOCOL_MIN,
@@ -147,6 +152,8 @@ enum {
     CFG_LOGFILE,
     CFG_MIRRORMODE,
     CFG_IOTHREADS,
+    CFG_MAXBUF_CLIENT,
+    CFG_MAXBUF_UPSTREAM,
     CFG_THREADQS,
     CFG_TLS_ECNAME,
     CFG_TLS_CACERT,
@@ -177,15 +184,25 @@ static ConfigTable config_back_cf_table[] = {
         &config_generic,
         NULL, NULL, NULL
     },
-    { "backend", "backend options", 2, 0, 0,
+    { "backend-server", "backend options", 2, 0, 0,
         ARG_MAGIC|CFG_BACKEND,
         &config_backend,
-        NULL, NULL, NULL
+        "( OLcfgBkAt:13.1 "
+            "NAME 'olcBkLloadBackend' "
+            "DESC 'Lload backend configuration options' "
+            "SYNTAX OMsDirectoryString "
+            "SINGLE-VALUE )",
+        NULL, NULL
     },
     { "bindconf", "backend credentials", 2, 0, 0,
         ARG_MAGIC|CFG_BINDCONF,
         &config_bindconf,
-        NULL, NULL, NULL
+        "( OLcfgBkAt:13.2 "
+            "NAME 'olcBkLloadBindconf' "
+            "DESC 'Backend credentials' "
+            "SYNTAX OMsDirectoryString "
+            "SINGLE-VALUE )",
+        NULL, NULL
     },
     { "gentlehup", "on|off", 2, 2, 0,
 #ifdef SIGHUP
@@ -200,7 +217,13 @@ static ConfigTable config_back_cf_table[] = {
     { "idletimeout", "timeout", 2, 2, 0,
         ARG_INT,
         &global_idletimeout,
-        NULL, NULL, NULL
+        "( OLcfgBkAt:13.3 "
+            "NAME 'olcBkLloadIdleTimeout' "
+            "DESC 'Connection idle timeout' "
+            "EQUALITY integerMatch "
+            "SYNTAX OMsInteger "
+            "SINGLE-VALUE )",
+        NULL, NULL
     },
     { "include", "file", 2, 2, 0,
         ARG_MAGIC,
@@ -210,8 +233,25 @@ static ConfigTable config_back_cf_table[] = {
     { "io-threads", "count", 2, 0, 0,
         ARG_UINT|ARG_MAGIC|CFG_IOTHREADS,
         &config_generic,
-        NULL, NULL, NULL
+        "( OLcfgBkAt:13.4 "
+            "NAME 'olcBkLloadIOThreads' "
+            "DESC 'I/O threads' "
+            "SYNTAX OMsInteger "
+            "SINGLE-VALUE )",
+        NULL, NULL
     },
+#ifdef BALANCER_MODULE
+    { "listen", "uri list", 2, 2, 0,
+        ARG_STRING|CFG_LISTEN,
+        &listeners_list,
+        "( OLcfgBkAt:13.5 "
+            "NAME 'olcBkLloadListen' "
+            "DESC 'A list of listener adresses' "
+            "SYNTAX OMsDirectoryString "
+            "SINGLE-VALUE )",
+        NULL, NULL
+    },
+#endif /* BALANCER_MODULE */
     { "logfile", "file", 2, 2, 0,
         ARG_STRING|ARG_MAGIC|CFG_LOGFILE,
         &config_generic,
@@ -233,14 +273,24 @@ static ConfigTable config_back_cf_table[] = {
         NULL, NULL, NULL
     },
     { "sockbuf_max_incoming_client", "max", 2, 2, 0,
-        ARG_BER_LEN_T,
+        ARG_BER_LEN_T|CFG_MAXBUF_CLIENT,
         &sockbuf_max_incoming_client,
-        NULL, NULL, NULL
+        "( OLcfgBkAt:13.6 "
+            "NAME 'olcBkLloadSockbufMaxClient' "
+            "DESC 'The maximum LDAP PDU size accepted coming from clients' "
+            "SYNTAX OMsInteger "
+            "SINGLE-VALUE )",
+        NULL, NULL
     },
     { "sockbuf_max_incoming_upstream", "max", 2, 2, 0,
         ARG_BER_LEN_T,
         &sockbuf_max_incoming_upstream,
-        NULL, NULL, NULL
+        "( OLcfgBkAt:13.7 "
+            "NAME 'olcBkLloadSockbufMaxUpstream' "
+            "DESC 'The maximum LDAP PDU size accepted coming from upstream' "
+            "SYNTAX OMsInteger "
+            "SINGLE-VALUE )",
+        NULL, NULL
     },
     { "tcp-buffer", "[listener=<listener>] [{read|write}=]size", 0, 0, 0,
 #ifdef LDAP_TCP_BUFFER
@@ -430,6 +480,25 @@ static ConfigTable config_back_cf_table[] = {
 
     { NULL, NULL, 0, 0, 0, ARG_IGNORED, NULL }
 };
+
+#ifdef BALANCER_MODULE
+static ConfigOCs lloadocs[] = {
+    { "( OLcfgBkOc:13.1 "
+        "NAME 'olcLloadConfig' "
+        "DESC 'Lload backend configuration' "
+        "SUP olcBackendConfig "
+        "MAY ( olcBkLloadBackend "
+            "$ olcBkLloadBindconf "
+            "$ olcBkLloadIOThreads "
+            "$ olcBkLloadListen "
+            "$ olcBkLloadSockbufMaxClient "
+            "$ olcBkLloadSockbufMaxUpstream "
+        ") )",
+        Cft_Backend, config_back_cf_table,
+        NULL, NULL },
+    { NULL, 0, NULL }
+};
+#endif /* BALANCER_MODULE */
 
 static int
 config_generic( ConfigArgs *c )
@@ -1886,12 +1955,14 @@ slap_verbmasks_destroy( slap_verbmasks *v )
     return 0;
 }
 
+#ifndef BALANCER_MODULE
 int
 config_push_cleanup( ConfigArgs *ca, ConfigDriver *cleanup )
 {
     /* Stub, cleanups only run in online config */
     return 0;
 }
+#endif /* !BALANCER_MODULE */
 
 static slap_verbmasks tlskey[] = {
     { BER_BVC("no"), LLOAD_CLEARTEXT },
@@ -2832,8 +2903,15 @@ lload_config_check_my_url( const char *url, LDAPURLDesc *lud )
     return NULL;
 }
 
+#ifdef BALANCER_MODULE
 int
 lload_back_init_cf( BackendInfo *bi )
 {
-    return 0;
+    /* Make sure we don't exceed the bits reserved for userland */
+    config_check_userland( CFG_LAST );
+
+    bi->bi_cf_ocs = lloadocs;
+
+    return config_register_schema( config_back_cf_table, lloadocs );
 }
+#endif /* BALANCER_MODULE */

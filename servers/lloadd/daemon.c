@@ -45,17 +45,13 @@
 
 #include "ldap_rq.h"
 
-#ifdef HAVE_TCPD
-int allow_severity = LOG_INFO;
-int deny_severity = LOG_NOTICE;
-#endif /* TCP Wrappers */
-
 #ifdef LDAP_PF_LOCAL
 #include <sys/stat.h>
 /* this should go in <ldap.h> as soon as it is accepted */
 #define LDAPI_MOD_URLEXT "x-mod"
 #endif /* LDAP_PF_LOCAL */
 
+#ifndef BALANCER_MODULE
 #ifdef LDAP_PF_INET6
 int slap_inet4or6 = AF_UNSPEC;
 #else /* ! INETv6 */
@@ -66,16 +62,23 @@ int slap_inet4or6 = AF_INET;
 time_t starttime;
 struct runqueue_s slapd_rq;
 
+#ifdef LDAP_TCP_BUFFER
+int slapd_tcp_rmem;
+int slapd_tcp_wmem;
+#endif /* LDAP_TCP_BUFFER */
+
+volatile sig_atomic_t slapd_shutdown = 0;
+volatile sig_atomic_t slapd_gentle_shutdown = 0;
+volatile sig_atomic_t slapd_abrupt_shutdown = 0;
+#endif /* !BALANCER_MODULE */
+
+static int emfile;
+
 #ifndef SLAPD_MAX_DAEMON_THREADS
 #define SLAPD_MAX_DAEMON_THREADS 16
 #endif
 int lload_daemon_threads = 1;
 int lload_daemon_mask;
-
-#ifdef LDAP_TCP_BUFFER
-int slapd_tcp_rmem;
-int slapd_tcp_wmem;
-#endif /* LDAP_TCP_BUFFER */
 
 struct event_base *listener_base = NULL;
 LloadListener **lload_listeners = NULL;
@@ -96,20 +99,6 @@ lload_global_stats_t lload_stats;
 #endif /* ! SLAPD_LISTEN_BACKLOG */
 
 #define DAEMON_ID(fd) ( fd & lload_daemon_mask )
-
-static int emfile;
-
-static volatile int waking;
-#define WAKE_DAEMON( l, w ) \
-    do { \
-        if ( w ) { \
-            event_active( lload_daemon[l].wakeup_event, EV_WRITE, 0 ); \
-        } \
-    } while (0)
-
-volatile sig_atomic_t slapd_shutdown = 0;
-volatile sig_atomic_t slapd_gentle_shutdown = 0;
-volatile sig_atomic_t slapd_abrupt_shutdown = 0;
 
 #ifdef HAVE_WINSOCK
 ldap_pvt_thread_mutex_t slapd_ws_mutex;
@@ -1390,7 +1379,7 @@ lload_sig_shutdown( evutil_socket_t sig, short what, void *arg )
     }
 
     for ( i = 0; i < lload_daemon_threads; i++ ) {
-        WAKE_DAEMON( i, 1 );
+        event_base_loopexit( lload_daemon[i].base, NULL );
     }
     event_base_loopexit( daemon_base, NULL );
 

@@ -77,6 +77,9 @@ LDAP_SLAPD_F (int) lload_bindconf_parse( const char *word, slap_bindconf *bc );
 LDAP_SLAPD_F (int) lload_bindconf_unparse( slap_bindconf *bc, struct berval *bv );
 LDAP_SLAPD_F (int) lload_bindconf_tls_set( slap_bindconf *bc, LDAP *ld );
 LDAP_SLAPD_F (void) lload_bindconf_free( slap_bindconf *bc );
+#ifdef BALANCER_MODULE
+LDAP_SLAPD_F (int) lload_back_init_cf( BackendInfo *bi );
+#endif
 
 /*
  * connection.c
@@ -103,6 +106,7 @@ LDAP_SLAPD_F (void) lload_sig_shutdown( evutil_socket_t sig, short what, void *a
 
 LDAP_SLAPD_V (struct evdns_base *) dnsbase;
 LDAP_SLAPD_V (volatile sig_atomic_t) slapd_shutdown;
+LDAP_SLAPD_V (volatile sig_atomic_t) slapd_gentle_shutdown;
 LDAP_SLAPD_V (int) lloadd_inited;
 
 LDAP_SLAPD_V (struct event *) lload_timeout_event;
@@ -190,7 +194,7 @@ LDAP_SLAPD_V (int) lber_debug;
 LDAP_SLAPD_V (int) ldap_syslog;
 
 LDAP_SLAPD_V (lload_global_stats_t) lload_stats;
-
+LDAP_SLAPD_V (char *) listeners_list;
 LDAP_END_DECL
 
 #endif /* PROTO_LLOAD_H */

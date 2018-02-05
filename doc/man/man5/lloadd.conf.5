@@ -29,18 +29,13 @@ is as follows:
 .nf
     # comment - these options apply to the server as a whole
     <global configuration options>
-    # first backend definition & configuration options
-    backend <backend 1 definition>
-    <configuration options specific to backend 1>
-    # subsequent backend definitions & configuration options
+    # first backend definition
+    backend-server <backend 1 definition>
+    # subsequent backend definitions
     ...
 .fi
 .LP
-As many backend-specific sections as desired may be included.  Global
-options can be overridden in a backend (for options that appear more
-than once, the last appearance in the
-.B lloadd.conf
-file is used).
+As many backend servers may be configured as desired.
 .LP
 If a line begins with white space, it is considered a continuation
 of the previous line.  No physical line should be over 2000 bytes
@@ -60,6 +55,23 @@ The specific configuration options available are discussed below in the
 Global Configuration Options and General Backend Options.
 Refer to the "OpenLDAP Administrator's Guide" for more
 details on the lloadd configuration file.
+
+.SH SLAPD INTEGRATION
+Note that when
+.B lloadd
+is configured as a
+.B slapd
+module, any option that shares the same name as an option in
+.BR slapd.conf (5),
+the
+.B slapd
+interpretation wins. An additional option is available in this case:
+.TP
+.B listen "<listen URIs>"
+The URIs the Load Balancer module should listen on. Must not overlap with the
+ones that
+.B slapd
+uses for its own listening sockets.
 
 .SH GLOBAL CONFIGURATION OPTIONS
 Options described in this section apply to all backends, unless specifically
@@ -123,6 +135,7 @@ configured in
 .\" option has no effect as there is no need to maintain dedicated bind
 .\" connections anymore.
 .PD
+.RE
 .RE
 .TP
 .B include <filename>
@@ -589,7 +602,7 @@ in effect.
 .SH BACKEND OPTIONS
 
 .TP
-.B backend
+.B backend-server
 .B uri=ldap[s]://<hostname>[:port]
 .B [retry=<retry interval in ms>]
 .B [keepalive=<idle>:<probes>:<interval>]
@@ -720,7 +733,7 @@ bindconf
     binddn=cn=test
     credentials=pass
 
-backend
+backend-server
     uri=ldap://ldap1.example.com
     numconns=3
     bindconns=2
@@ -728,7 +741,7 @@ backend
     max-pending-ops=5
     conn-max-pending=3
 
-backend
+backend-server
     uri=ldap://ldap2.example.com
     numconns=3
     bindconns=2
@@ -749,6 +762,7 @@ default lloadd configuration file
 .SH SEE ALSO
 .BR ldap (3),
 .BR gnutls\-cli (1),
+.BR slapd.conf (5),
 .BR lloadd (8),
 .BR slapd (8).
 .LP

@@ -149,14 +149,8 @@ lload_module_start_daemon( void *ctx, void *arg )
 }
 
 int
-init_module( int argc, char *argv[] )
+lload_back_open( BackendInfo *bi )
 {
-    if ( argc != 2 ) {
-        Debug( LDAP_DEBUG_CONFIG, "lloadd: "
-                "incorrect number of arguments to module\n" );
-        return -1;
-    }
-
     if ( slapMode & SLAP_TOOL_MODE ) {
         return 0;
     }
@@ -170,14 +164,10 @@ init_module( int argc, char *argv[] )
     }
 #endif /* HAVE_TLS */
 
-    if ( lloadd_daemon_init( argv[1] ) != 0 ) {
+    if ( lloadd_daemon_init( listeners_list ) != 0 ) {
         return -1;
     }
     lload_conn_pool_init();
-
-    if ( lload_read_config( argv[0], NULL ) != 0 ) {
-        return -1;
-    }
 
     if ( lload_monitor_initialize() != 0 ) {
         return -1;
@@ -185,4 +175,44 @@ init_module( int argc, char *argv[] )
 
     return ldap_pvt_thread_pool_submit(
             &connection_pool, lload_module_start_daemon, NULL );
+
+    return 0;
 }
+
+int
+lload_back_initialize( BackendInfo *bi )
+{
+    bi->bi_flags = SLAP_BFLAG_STANDALONE;
+    bi->bi_open = lload_back_open;
+    bi->bi_config = config_generic_wrapper;
+    bi->bi_close = 0;
+    bi->bi_destroy = 0;
+
+    bi->bi_db_init = 0;
+    bi->bi_db_config = 0;
+    bi->bi_db_open = 0;
+    bi->bi_db_close = 0;
+    bi->bi_db_destroy = 0;
+
+    bi->bi_op_bind = 0;
+    bi->bi_op_unbind = 0;
+    bi->bi_op_search = 0;
+    bi->bi_op_compare = 0;
+    bi->bi_op_modify = 0;
+    bi->bi_op_modrdn = 0;
+    bi->bi_op_add = 0;
+    bi->bi_op_delete = 0;
+    bi->bi_op_abandon = 0;
+
+    bi->bi_extended = 0;
+
+    bi->bi_chk_referrals = 0;
+
+    bi->bi_connection_init = 0;
+    bi->bi_connection_destroy = 0;
+
+    lload_back_init_cf( bi );
+    return 0;
+}
+
+SLAP_BACKEND_INIT_MODULE( lload )
