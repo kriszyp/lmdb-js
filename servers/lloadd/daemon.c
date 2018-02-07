@@ -84,6 +84,7 @@ struct event_base *listener_base = NULL;
 LloadListener **lload_listeners = NULL;
 static ldap_pvt_thread_t listener_tid, *daemon_tid;
 
+struct event_base *daemon_base = NULL;
 struct evdns_base *dnsbase;
 
 struct event *lload_timeout_event;

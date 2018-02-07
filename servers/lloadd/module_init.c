@@ -44,8 +44,9 @@ ldap_pvt_thread_t lloadd_main_thread;
 void *
 lload_start_daemon( void *arg )
 {
-    struct event_base *daemon_base = event_base_new();
     int rc = 0, i;
+
+    daemon_base = event_base_new();
     if ( !daemon_base ) {
         Debug( LDAP_DEBUG_ANY, "lload_start_daemon: "
                 "main event base allocation failed\n" );
@@ -103,12 +104,25 @@ lload_back_open( BackendInfo *bi )
 }
 
 int
+lload_back_close( BackendInfo *bi )
+{
+    if ( slapMode & SLAP_TOOL_MODE ) {
+        return 0;
+    }
+
+    event_base_loopexit( daemon_base, NULL );
+    ldap_pvt_thread_join( lloadd_main_thread, (void *)NULL );
+
+    return 0;
+}
+
+int
 lload_back_initialize( BackendInfo *bi )
 {
     bi->bi_flags = SLAP_BFLAG_STANDALONE;
     bi->bi_open = lload_back_open;
     bi->bi_config = config_generic_wrapper;
-    bi->bi_close = 0;
+    bi->bi_close = lload_back_close;
     bi->bi_destroy = 0;
 
     bi->bi_db_init = 0;
