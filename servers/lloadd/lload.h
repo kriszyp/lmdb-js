@@ -92,6 +92,11 @@ LDAP_SLAPD_V (LloadBackend *) current_backend;
 LDAP_SLAPD_V (struct slap_bindconf) bindconf;
 LDAP_SLAPD_V (struct berval) lloadd_identity;
 
+/* Used to coordinate server (un)pause, shutdown */
+LDAP_SLAPD_V (ldap_pvt_thread_mutex_t) lload_wait_mutex;
+LDAP_SLAPD_V (ldap_pvt_thread_cond_t) lload_pause_cond;
+LDAP_SLAPD_V (ldap_pvt_thread_cond_t) lload_wait_cond;
+
 typedef int lload_cf_aux_table_parse_x( struct berval *val,
         void *bc,
         slap_cf_aux_table *tab0,

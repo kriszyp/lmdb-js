@@ -64,6 +64,10 @@ lload_conn_pool_init()
 {
     int rc = 0;
 
+    ldap_pvt_thread_mutex_init( &lload_wait_mutex );
+    ldap_pvt_thread_cond_init( &lload_pause_cond );
+    ldap_pvt_thread_cond_init( &lload_wait_cond );
+
     ldap_pvt_thread_mutex_init( &backend_mutex );
     ldap_pvt_thread_mutex_init( &clients_mutex );
     ldap_pvt_thread_mutex_init( &lload_pin_mutex );
@@ -72,6 +76,20 @@ lload_conn_pool_init()
     Debug( LDAP_DEBUG_TRACE, "lload_conn_pool_init: "
             "mutexes initialized.\n" );
     return rc;
+}
+
+static int
+lload_pause_cb( BackendInfo *bi )
+{
+    lload_pause_server();
+    return 0;
+}
+
+static int
+lload_unpause_cb( BackendInfo *bi )
+{
+    lload_unpause_server();
+    return 0;
 }
 
 int
@@ -110,7 +128,10 @@ lload_back_close( BackendInfo *bi )
         return 0;
     }
 
+    ldap_pvt_thread_mutex_lock( &lload_wait_mutex );
     event_base_loopexit( daemon_base, NULL );
+    ldap_pvt_thread_cond_wait( &lload_wait_cond, &lload_wait_mutex );
+    ldap_pvt_thread_mutex_unlock( &lload_wait_mutex );
     ldap_pvt_thread_join( lloadd_main_thread, (void *)NULL );
 
     return 0;
@@ -122,6 +143,8 @@ lload_back_initialize( BackendInfo *bi )
     bi->bi_flags = SLAP_BFLAG_STANDALONE;
     bi->bi_open = lload_back_open;
     bi->bi_config = config_generic_wrapper;
+    bi->bi_pause = lload_pause_cb;
+    bi->bi_unpause = lload_unpause_cb;
     bi->bi_close = lload_back_close;
     bi->bi_destroy = 0;
 

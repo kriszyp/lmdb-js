@@ -104,6 +104,9 @@ LDAP_SLAPD_V (int) lload_daemon_mask;
 
 LDAP_SLAPD_F (void) lload_sig_shutdown( evutil_socket_t sig, short what, void *arg );
 
+LDAP_SLAPD_F (void) lload_pause_server( void );
+LDAP_SLAPD_F (void) lload_unpause_server( void );
+
 LDAP_SLAPD_V (struct event_base *) daemon_base;
 LDAP_SLAPD_V (struct evdns_base *) dnsbase;
 LDAP_SLAPD_V (volatile sig_atomic_t) slapd_shutdown;

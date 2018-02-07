@@ -74,6 +74,10 @@ volatile sig_atomic_t slapd_abrupt_shutdown = 0;
 
 static int emfile;
 
+ldap_pvt_thread_mutex_t lload_wait_mutex;
+ldap_pvt_thread_cond_t lload_wait_cond;
+ldap_pvt_thread_cond_t lload_pause_cond;
+
 #ifndef SLAPD_MAX_DAEMON_THREADS
 #define SLAPD_MAX_DAEMON_THREADS 16
 #endif
@@ -137,6 +141,43 @@ lloadd_close( ber_socket_t s )
             "closing fd=%ld\n",
             (long)s );
     tcp_close( s );
+}
+
+static int
+lload_base_dispatch( struct event_base *base )
+{
+    int rc;
+
+    while ( (rc = event_base_dispatch( base )) == 0 ) {
+        if ( event_base_got_exit( base ) ) {
+            break;
+        }
+
+        Debug( LDAP_DEBUG_TRACE, "lload_base_dispatch: "
+                "handling pause\n" );
+        /*
+         * We are pausing, signal the pausing thread we've finished and
+         * wait until the thread pool resumes operation.
+         *
+         * Do this in lockstep with the pausing thread.
+         */
+        ldap_pvt_thread_mutex_lock( &lload_wait_mutex );
+        ldap_pvt_thread_cond_signal( &lload_wait_cond );
+
+        /* Now wait until we resume */
+        ldap_pvt_thread_cond_wait( &lload_pause_cond, &lload_wait_mutex );
+        ldap_pvt_thread_mutex_unlock( &lload_wait_mutex );
+
+        Debug( LDAP_DEBUG_TRACE, "lload_base_dispatch: "
+                "resuming\n" );
+    }
+
+    if ( rc ) {
+        Debug( LDAP_DEBUG_ANY, "lload_base_dispatch: "
+                "event_base_dispatch() returned an error rc=%d\n",
+                rc );
+    }
+    return rc;
 }
 
 static void
@@ -946,7 +987,7 @@ lload_listener(
 static void *
 lload_listener_thread( void *ctx )
 {
-    int rc = event_base_dispatch( listener_base );
+    int rc = lload_base_dispatch( listener_base );
     Debug( LDAP_DEBUG_ANY, "lload_listener_thread: "
             "event loop finished: rc=%d\n",
             rc );
@@ -1214,7 +1255,7 @@ lloadd_io_task( void *ptr )
     lload_daemon[tid].wakeup_event = event;
 
     /* run */
-    rc = event_base_dispatch( base );
+    rc = lload_base_dispatch( base );
     Debug( LDAP_DEBUG_ANY, "lloadd_io_task: "
             "Daemon %d, event loop finished: rc=%d\n",
             tid, rc );
@@ -1305,7 +1346,7 @@ lloadd_daemon( struct event_base *daemon_base )
     }
 
     lloadd_inited = 1;
-    rc = event_base_dispatch( daemon_base );
+    rc = lload_base_dispatch( daemon_base );
     Debug( LDAP_DEBUG_ANY, "lloadd shutdown: "
             "Main event loop finished: rc=%d\n",
             rc );
@@ -1351,6 +1392,55 @@ daemon_wakeup_cb( evutil_socket_t sig, short what, void *arg )
         event_base_loopexit( lload_daemon[tid].base, NULL );
     }
 }
+
+#ifdef BALANCER_MODULE
+/*
+ * Signal the event base to terminate processing as soon as it can and wait for
+ * lload_base_dispatch to notify us this has happened.
+ */
+static int
+lload_pause_base( struct event_base *base )
+{
+    int rc;
+
+    ldap_pvt_thread_mutex_lock( &lload_wait_mutex );
+    event_base_loopbreak( base );
+    rc = ldap_pvt_thread_cond_wait( &lload_wait_cond, &lload_wait_mutex );
+    ldap_pvt_thread_mutex_unlock( &lload_wait_mutex );
+
+    return rc;
+}
+
+void
+lload_pause_server( void )
+{
+    int i;
+
+    lload_pause_base( listener_base );
+    lload_pause_base( daemon_base );
+
+    for ( i = 0; i < lload_daemon_threads; i++ ) {
+        lload_pause_base( lload_daemon[i].base );
+    }
+}
+
+void
+lload_unpause_server( void )
+{
+    /*
+     * Make sure lloadd is completely ready to unpause by now:
+     *
+     * After the broadcast, we handle I/O and begin filling the thread pool, in
+     * high load conditions, we might hit the pool limits and start processing
+     * operations in the I/O threads (one PDU per socket at a time for fairness
+     * sake) even before a pause has finished from slapd's point of view!
+     *
+     * When (max_pdus_per_cycle == 0) we don't use the pool for these at all and
+     * most lload processing starts immediately making this even more prominent.
+     */
+    ldap_pvt_thread_cond_broadcast( &lload_pause_cond );
+}
+#endif /* BALANCER_MODULE */
 
 void
 lload_sig_shutdown( evutil_socket_t sig, short what, void *arg )

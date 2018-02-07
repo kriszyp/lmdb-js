@@ -101,6 +101,10 @@ lload_init( int mode, const char *name )
             LDAP_STAILQ_INIT( &slapd_rq.task_list );
             LDAP_STAILQ_INIT( &slapd_rq.run_list );
 
+            ldap_pvt_thread_mutex_init( &lload_wait_mutex );
+            ldap_pvt_thread_cond_init( &lload_wait_cond );
+            ldap_pvt_thread_cond_init( &lload_pause_cond );
+
             ldap_pvt_thread_mutex_init( &backend_mutex );
             ldap_pvt_thread_mutex_init( &clients_mutex );
             ldap_pvt_thread_mutex_init( &lload_pin_mutex );
