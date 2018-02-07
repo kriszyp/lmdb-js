@@ -177,8 +177,8 @@ static struct {
     { "( olmBalancerAttributes:10 "
       "NAME ( 'olmConnectionType' ) "
       "DESC 'Connection type' "
-      "EQUALITY integerMatch "
-      "SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 "
+      "EQUALITY caseIgnoreMatch "
+      "SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 "
       "NO-USER-MODIFICATION "
       "USAGE dSAOperation )",
         &ad_olmConnectionType },
@@ -553,7 +553,29 @@ lload_monitor_up_conn_entry( LloadConnection *c, void *argv )
     e = mbe->entry_stub( &arg->ms->mss_dn, &arg->ms->mss_ndn, &bv_rdn,
             oc_olmBalancerConnection, NULL, NULL );
 
-    UI2BV( &bv_type, (long long unsigned int)c->c_type );
+    switch ( c->c_type ) {
+        case LLOAD_C_OPEN: {
+            struct berval bv = BER_BVC("regular");
+            bv_type = bv;
+        } break;
+        case LLOAD_C_PREPARING: {
+            struct berval bv = BER_BVC("preparing");
+            bv_type = bv;
+        } break;
+        case LLOAD_C_BIND: {
+            struct berval bv = BER_BVC("bind");
+            bv_type = bv;
+        } break;
+        case LLOAD_C_PRIVILEGED: {
+            struct berval bv = BER_BVC("privileged");
+            bv_type = bv;
+        } break;
+        default: {
+            struct berval bv = BER_BVC("unknown");
+            bv_type = bv;
+        } break;
+    }
+
     UI2BV( &bv_pending, (long long unsigned int)c->c_n_ops_executing );
     UI2BV( &bv_received, c->c_counters.lc_ops_received );
     UI2BV( &bv_completed, c->c_counters.lc_ops_completed );
@@ -565,7 +587,6 @@ lload_monitor_up_conn_entry( LloadConnection *c, void *argv )
     attr_merge_normalize_one( e, ad_olmCompletedOps, &bv_completed, NULL );
     attr_merge_normalize_one( e, ad_olmFailedOps, &bv_failed, NULL );
 
-    ch_free( bv_type.bv_val );
     ch_free( bv_pending.bv_val );
     ch_free( bv_received.bv_val );
     ch_free( bv_completed.bv_val );
