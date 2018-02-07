@@ -140,7 +140,7 @@ LDAP_SLAPD_F (void) lload_libevent_destroy( void );
 /*
  * monitor.c
  */
-LDAP_SLAPD_F (int) lload_monitor_initialize( void );
+LDAP_SLAPD_F (int) lload_monitor_open( void );
 #endif /* BALANCER_MODULE */
 
 /*

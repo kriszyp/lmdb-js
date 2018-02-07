@@ -263,82 +263,6 @@ static struct {
     { NULL }
 };
 
-int
-lload_monitor_initialize( void )
-{
-    int i, code;
-    static int lload_monitor_initialized = 0;
-    ConfigArgs c;
-    char *argv[3];
-    /* set to 0 when successfully initialized; otherwise, remember failure */
-    static int lload_monitor_initialized_failure = 1;
-
-    /* register schema here; if compiled as dynamic object,
-     * must be loaded __after__ back_monitor.la */
-
-    if ( lload_monitor_initialized++ ) {
-        return lload_monitor_initialized_failure;
-    }
-
-    if ( backend_info( "monitor" ) == NULL ) {
-        return -1;
-    }
-
-    argv[0] = "lload monitor";
-    c.argv = argv;
-    c.argc = 3;
-    c.fname = argv[0];
-    for ( i = 0; s_oid[i].name; i++ ) {
-        argv[1] = s_oid[i].name;
-        argv[2] = s_oid[i].oid;
-
-        if ( parse_oidm( &c, 0, NULL ) != 0 ) {
-            Debug( LDAP_DEBUG_ANY, "lload_monitor_initialize: "
-                    "unable to add objectIdentifier \"%s=%s\"\n",
-                    s_oid[i].name, s_oid[i].oid );
-            return 2;
-        }
-    }
-
-    for ( i = 0; s_at[i].desc != NULL; i++ ) {
-        code = register_at( s_at[i].desc, s_at[i].ad, 1 );
-        if ( code != LDAP_SUCCESS ) {
-            Debug( LDAP_DEBUG_ANY, "lload_monitor_initialize: "
-                    "register_at failed for attributeType (%s)\n",
-                    s_at[i].desc );
-            return 3;
-
-        } else {
-            (*s_at[i].ad)->ad_type->sat_flags |= SLAP_AT_HIDE;
-        }
-    }
-
-    for ( i = 0; s_oc[i].desc != NULL; i++ ) {
-        code = register_oc( s_oc[i].desc, s_oc[i].oc, 1 );
-        if ( code != LDAP_SUCCESS ) {
-            Debug( LDAP_DEBUG_ANY, "lload_monitor_initialize: "
-                    "register_oc failed for objectClass (%s)\n",
-                    s_oc[i].desc );
-            return 4;
-
-        } else {
-            (*s_oc[i].oc)->soc_flags |= SLAP_OC_HIDE;
-        }
-    }
-
-    for ( i = 0; s_moc[i].name != NULL; i++ ) {
-        *s_moc[i].oc = oc_find( s_moc[i].name );
-        if ( !*s_moc[i].oc ) {
-            Debug( LDAP_DEBUG_ANY, "lload_monitor_initialize: "
-                    "failed to find objectClass (%s)\n",
-                    s_moc[i].name );
-            return 5;
-        }
-    }
-
-    return (lload_monitor_initialized_failure = LDAP_SUCCESS);
-}
-
 static int
 lload_monitor_subsystem_destroy( BackendDB *be, monitor_subsys_t *ms )
 {
@@ -933,6 +857,62 @@ done:
     return rc;
 }
 
+static int
+lload_monitor_incoming_count( LloadConnection *conn, void *argv )
+{
+    lload_global_stats_t *tmp_stats = argv;
+    tmp_stats->global_incoming++;
+    return 0;
+}
+
+/*
+ * Update all global statistics other than rejected and received,
+ * which are updated in real time
+ */
+void *
+lload_monitor_update_global_stats( void *ctx, void *arg )
+{
+    struct re_s *rtask = arg;
+    lload_global_stats_t tmp_stats = {};
+    LloadBackend *b;
+    int i;
+
+    Debug( LDAP_DEBUG_TRACE, "lload_monitor_update_global_stats: "
+            "updating stats\n" );
+    /* count incoming connections */
+    clients_walk( lload_monitor_incoming_count, &tmp_stats );
+
+    LDAP_CIRCLEQ_FOREACH ( b, &backend, b_next ) {
+        ldap_pvt_thread_mutex_lock( &b->b_mutex );
+        tmp_stats.global_outgoing += b->b_active + b->b_bindavail;
+
+        /* merge completed and failed stats */
+        for ( i = 0; i < LLOAD_STATS_OPS_LAST; i++ ) {
+            tmp_stats.counters[i].lc_ops_completed +=
+                    b->b_counters[i].lc_ops_completed;
+            tmp_stats.counters[i].lc_ops_failed +=
+                    b->b_counters[i].lc_ops_failed;
+        }
+        ldap_pvt_thread_mutex_unlock( &b->b_mutex );
+    }
+
+    /* update lload_stats */
+    lload_stats.global_outgoing = tmp_stats.global_outgoing;
+    lload_stats.global_incoming = tmp_stats.global_incoming;
+    for ( i = 0; i < LLOAD_STATS_OPS_LAST; i++ ) {
+        lload_stats.counters[i].lc_ops_completed =
+                tmp_stats.counters[i].lc_ops_completed;
+        lload_stats.counters[i].lc_ops_failed =
+                tmp_stats.counters[i].lc_ops_failed;
+    }
+
+    /* reschedule */
+    ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
+    ldap_pvt_runqueue_stoptask( &slapd_rq, rtask );
+    ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
+    return NULL;
+}
+
 static char *lload_subsys_rdn[] = {
     LLOAD_MONITOR_BALANCER_RDN,
     LLOAD_MONITOR_INCOMING_RDN,
@@ -1002,32 +982,111 @@ static struct monitor_subsys_t balancer_subsys[] = {
 };
 
 int
-lload_monitor_mss_init()
+lload_monitor_open( void )
 {
+    static int lload_monitor_initialized_failure = 1;
+    static int lload_monitor_initialized = 0;
     BackendInfo *mi;
     monitor_extra_t *mbe;
     monitor_subsys_t *mss;
-    char **rdn;
-    int rc = 0;
+    ConfigArgs c;
+    char *argv[3], **rdn;
+    int i, rc;
 
+    /* check if monitor is configured and usable */
     mi = backend_info( "monitor" );
-    if ( !mi ) {
-        Debug( LDAP_DEBUG_CONFIG, "lload_monitor_mss_init: "
-                "not registering, monitor backend unavailable\n" );
+    if ( !mi || !mi->bi_extra ) {
+        Debug( LDAP_DEBUG_CONFIG, "lload_monitor_open: "
+                "monitor backend not available, monitoring disabled\n" );
         return 0;
     }
     mbe = mi->bi_extra;
+
+    /* don't bother if monitor is not configured */
+    if ( !mbe->is_configured() ) {
+        static int warning = 0;
+
+        if ( warning++ == 0 ) {
+            Debug( LDAP_DEBUG_CONFIG, "lload_monitor_open: "
+                    "monitoring disabled; "
+                    "configure monitor database to enable\n" );
+        }
+
+        return 0;
+    }
+
+    if ( lload_monitor_initialized++ ) {
+        return lload_monitor_initialized_failure;
+    }
+
+    argv[0] = "lload monitor";
+    c.argv = argv;
+    c.argc = 3;
+    c.fname = argv[0];
+    for ( i = 0; s_oid[i].name; i++ ) {
+        argv[1] = s_oid[i].name;
+        argv[2] = s_oid[i].oid;
+
+        if ( parse_oidm( &c, 0, NULL ) != 0 ) {
+            Debug( LDAP_DEBUG_ANY, "lload_monitor_open: "
+                    "unable to add objectIdentifier \"%s=%s\"\n",
+                    s_oid[i].name, s_oid[i].oid );
+            return 2;
+        }
+    }
+
+    for ( i = 0; s_at[i].desc != NULL; i++ ) {
+        rc = register_at( s_at[i].desc, s_at[i].ad, 1 );
+        if ( rc != LDAP_SUCCESS ) {
+            Debug( LDAP_DEBUG_ANY, "lload_monitor_open: "
+                    "register_at failed for attributeType (%s)\n",
+                    s_at[i].desc );
+            return 3;
+
+        } else {
+            (*s_at[i].ad)->ad_type->sat_flags |= SLAP_AT_HIDE;
+        }
+    }
+
+    for ( i = 0; s_oc[i].desc != NULL; i++ ) {
+        rc = register_oc( s_oc[i].desc, s_oc[i].oc, 1 );
+        if ( rc != LDAP_SUCCESS ) {
+            Debug( LDAP_DEBUG_ANY, "lload_monitor_open: "
+                    "register_oc failed for objectClass (%s)\n",
+                    s_oc[i].desc );
+            return 4;
+
+        } else {
+            (*s_oc[i].oc)->soc_flags |= SLAP_OC_HIDE;
+        }
+    }
+
+    for ( i = 0; s_moc[i].name != NULL; i++ ) {
+        *s_moc[i].oc = oc_find( s_moc[i].name );
+        if ( !*s_moc[i].oc ) {
+            Debug( LDAP_DEBUG_ANY, "lload_monitor_open: "
+                    "failed to find objectClass (%s)\n",
+                    s_moc[i].name );
+            return 5;
+        }
+    }
 
     /* register the subsystems - Servers are registered in backends_init */
     for ( mss = balancer_subsys, rdn = lload_subsys_rdn; mss->mss_name;
             mss++, rdn++ ) {
         ber_str2bv( *rdn, 0, 1, &mss->mss_rdn );
-        if ( mbe->register_subsys( mss ) ) {
-            Debug( LDAP_DEBUG_ANY, "lload_monitor_mss_init: "
-                    "failed to register %s subsystem",
+        if ( mbe->register_subsys_late( mss ) ) {
+            Debug( LDAP_DEBUG_ANY, "lload_monitor_open: "
+                    "failed to register %s subsystem\n",
                     mss->mss_name );
             return -1;
         }
     }
-    return rc;
+
+    ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
+    ldap_pvt_runqueue_insert( &slapd_rq, 1, lload_monitor_update_global_stats,
+            NULL, "lload_monitor_update_global_stats", "lloadd" );
+    ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
+
+    return (lload_monitor_initialized_failure = LDAP_SUCCESS);
 }
