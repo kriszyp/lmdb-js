@@ -374,8 +374,9 @@ request_bind( LloadConnection *client, LloadOperation *op )
     if ( ber == NULL && (ber = ber_alloc()) == NULL ) {
         Debug( LDAP_DEBUG_ANY, "request_bind: "
                 "ber_alloc failed\n" );
-        ldap_pvt_thread_mutex_unlock( &upstream->c_io_mutex );
         CONNECTION_LOCK_DECREF(upstream);
+        ldap_pvt_thread_mutex_unlock( &upstream->c_io_mutex );
+        upstream->c_state = LLOAD_C_READY;
         if ( !BER_BVISNULL( &upstream->c_sasl_bind_mech ) ) {
             ber_memfree( upstream->c_sasl_bind_mech.bv_val );
             BER_BVZERO( &upstream->c_sasl_bind_mech );
@@ -605,7 +606,28 @@ handle_bind_response(
             op->o_client_msgid, op->o_client_connid, result );
 
     CONNECTION_LOCK(upstream);
-    if ( result != LDAP_SASL_BIND_IN_PROGRESS ) {
+    if ( !tavl_find( upstream->c_ops, op, operation_upstream_cmp ) ) {
+        /*
+         * operation might not be found because:
+         * - it has timed out (only happens when debugging/hung/...)
+         *   a response has been sent for us, we must not send another
+         * - it has been abandoned (new bind, unbind)
+         *   no response is expected
+         * - ???
+         */
+        operation_destroy_from_upstream( op );
+        CONNECTION_UNLOCK(upstream);
+        return LDAP_SUCCESS;
+    }
+
+    if ( result == LDAP_SASL_BIND_IN_PROGRESS ) {
+        tavl_delete( &upstream->c_ops, op, operation_upstream_cmp );
+        op->o_upstream_msgid = 0;
+        op->o_upstream_refcnt++;
+        rc = tavl_insert(
+                &upstream->c_ops, op, operation_upstream_cmp, avl_dup_error );
+        assert( rc == LDAP_SUCCESS );
+    } else {
         int sasl_finished = 0;
         if ( !BER_BVISNULL( &upstream->c_sasl_bind_mech ) ) {
             sasl_finished = 1;
@@ -620,14 +642,6 @@ handle_bind_response(
             return finish_sasl_bind( upstream, op, ber );
         }
         upstream->c_state = LLOAD_C_READY;
-    } else {
-        if ( tavl_delete( &upstream->c_ops, op, operation_upstream_cmp ) ) {
-            op->o_upstream_msgid = 0;
-            op->o_upstream_refcnt++;
-            rc = tavl_insert( &upstream->c_ops, op, operation_upstream_cmp,
-                    avl_dup_error );
-            assert( rc == LDAP_SUCCESS );
-        }
     }
     CONNECTION_UNLOCK(upstream);
 

@@ -837,6 +837,15 @@ connection_timeout( LloadConnection *upstream, time_t threshold )
         found_op = tavl_delete( &upstream->c_ops, op, operation_upstream_cmp );
         assert( op == found_op );
 
+        if ( upstream->c_state == LLOAD_C_BINDING ) {
+            assert( op->o_tag == LDAP_REQ_BIND && upstream->c_ops == NULL );
+            upstream->c_state = LLOAD_C_READY;
+            if ( !BER_BVISNULL( &upstream->c_sasl_bind_mech ) ) {
+                ber_memfree( upstream->c_sasl_bind_mech.bv_val );
+                BER_BVZERO( &upstream->c_sasl_bind_mech );
+            }
+        }
+
         rc = tavl_insert( &ops, op, operation_upstream_cmp, avl_dup_error );
         assert( rc == LDAP_SUCCESS );
 
