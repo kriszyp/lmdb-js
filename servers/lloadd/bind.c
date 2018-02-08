@@ -306,14 +306,11 @@ request_bind( LloadConnection *client, LloadOperation *op )
             rc = bind_mech_external( client, op, &credentials );
 
             /* terminate the upstream side if client switched mechanisms */
-            if ( !BER_BVISNULL( &client->c_sasl_bind_mech ) ) {
+            if ( pin ) {
                 op->o_client_refcnt++;
                 CONNECTION_UNLOCK_INCREF(client);
                 operation_abandon( op );
                 CONNECTION_LOCK_DECREF(client);
-
-                ber_memfree( client->c_sasl_bind_mech.bv_val );
-                BER_BVZERO( &client->c_sasl_bind_mech );
             }
 
             ber_free( copy, 0 );
@@ -736,6 +733,10 @@ handle_whoami_response(
         return -1;
     }
     upstream->c_state = LLOAD_C_READY;
+    if ( !BER_BVISNULL( &upstream->c_sasl_bind_mech ) ) {
+        ber_memfree( upstream->c_sasl_bind_mech.bv_val );
+        BER_BVZERO( &upstream->c_sasl_bind_mech );
+    }
 
     CONNECTION_UNLOCK_INCREF(upstream);
 
