@@ -6,6 +6,7 @@ OpenLDAP 2.4.46 Engineering
 	Fixed libldap cross-compiling with OpenSSL 1.1 (ITS#8687)
 	Fixed libldap MozNSS CA certificate hash matching (ITS#7374)
 	Fixed libldap MozNSS with PEM certs when also using an NSS cert db (ITS#7389)
+	Fixed libldap MozNSS initialization (ITS#8484)
 	Fixed libldap GnuTLS with GNUTLS_E_AGAIN (ITS#8650)
 	Fixed libldap memory leak with cancel operations (ITS#8782)
 	Fixed slapd Eventlog registry key creation on 64-bit Windows (ITS#8705)
