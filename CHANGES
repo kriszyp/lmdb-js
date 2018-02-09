@@ -26,6 +26,7 @@ OpenLDAP 2.4.46 Engineering
 	Fixed slapo-syncprov memory leak with delete operations (ITS#8690)
 	Fixed slapo-syncprov to not clear pending operation when checkpointing (ITS#8444)
 	Fixed slapo-syncprov to initialize an empty accesslog db if configured (ITS#8100)
+	Fixed slapo-syncprov not to log checkpoints to accesslog db (ITS#8607)
 	Build Environment
 		Fixed Windows build with newer MINGW version (ITS#8697)
 		Fixed compiler warnings and removed unused variables (ITS#8578)
