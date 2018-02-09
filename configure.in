@@ -271,7 +271,6 @@ OL_ARG_ENABLE(dynacl,[    --enable-dynacl	  enable run-time loadable ACL support
 OL_ARG_ENABLE(aci,[    --enable-aci	  enable per-object ACIs (experimental)], no, [no yes mod])dnl
 OL_ARG_ENABLE(cleartext,[    --enable-cleartext	  enable cleartext passwords], yes)dnl
 OL_ARG_ENABLE(crypt,[    --enable-crypt	  enable crypt(3) passwords], no)dnl
-OL_ARG_ENABLE(lmpasswd,[    --enable-lmpasswd	  enable LAN Manager passwords], no)dnl
 OL_ARG_ENABLE(spasswd,[    --enable-spasswd	  enable (Cyrus) SASL password verification], no)dnl
 OL_ARG_ENABLE(modules,[    --enable-modules	  enable dynamic module support], no)dnl
 OL_ARG_ENABLE(rewrite,[    --enable-rewrite	  enable DN rewriting in back-ldap and rwm overlay], auto)dnl
@@ -505,12 +504,6 @@ fi
 
 if test $ol_enable_asyncmeta/$ol_enable_ldap = yes/no ; then
 	AC_MSG_ERROR([--enable-asyncmeta requires --enable-ldap])
-fi
-
-if test $ol_enable_lmpasswd = yes ; then
-	if test $ol_with_tls = no ; then
-		AC_MSG_ERROR([LAN Manager passwords require OpenSSL])
-	fi
 fi
 
 if test $ol_enable_spasswd = yes ; then
@@ -1293,15 +1286,6 @@ else
 	AC_MSG_WARN([TLS data protection not supported!])
 fi
 
-dnl ----------------------------------------------------------------
-dnl LAN Manger password checking requires DES from OpenSSL
-if test $ol_enable_lmpasswd != no; then
-	if test $ol_link_tls != yes ; then
-		AC_MSG_ERROR([LAN Manager passwords require OpenSSL])
-	fi
-
-	AC_DEFINE(SLAPD_LMHASH, 1, [define to support LAN Manager passwords])
-fi
 
 dnl ----------------------------------------------------------------
 dnl Threads?
