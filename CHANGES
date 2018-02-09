@@ -15,6 +15,7 @@ OpenLDAP 2.4.46 Engineering
 	Fixed slapd syncrepl deadlock when updating cookie (ITS#8752)
 	Fixed slapd syncrepl callback to always be last in the stack (ITS#8752)
 	Fixed slapd telephoneNumberNormalize when the value is spaces and hyphens (ITS#8778)
+	Fixed slapd CSN queue processing (ITS#8801)
 	Fixed slapd-ldap TLS connection timeout with high latency connections (ITS#8720)
 	Fixed slapd-ldap to ignore unknown schema when omit-unknown-schema is set (ITS#7520)
 	Fixed slapd-mdb with an optimization for long lived read transactions (ITS#8226)
