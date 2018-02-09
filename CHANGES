@@ -7,6 +7,7 @@ OpenLDAP 2.4.46 Engineering
 	Fixed libldap MozNSS CA certificate hash matching (ITS#7374)
 	Fixed libldap MozNSS with PEM certs when also using an NSS cert db (ITS#7389)
 	Fixed libldap GnuTLS with GNUTLS_E_AGAIN (ITS#8650)
+	Fixed libldap memory leak with cancel operations (ITS#8782)
 	Fixed slapd Eventlog registry key creation on 64-bit Windows (ITS#8705)
 	Fixed slapd syncrepl deadlock when updating cookie (ITS#8752)
 	Fixed slapd syncrepl callback to always be last in the stack (ITS#8752)
