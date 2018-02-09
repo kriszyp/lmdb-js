@@ -4,6 +4,7 @@ OpenLDAP 2.4.46 Engineering
 	Fixed libldap connection delete callbacks when TLS fails to start (ITS#8717)
 	Fixed libldap to not reuse tls_session if TLS hostname check fails (ITS#7373)
 	Fixed libldap cross-compiling with OpenSSL 1.1 (ITS#8687)
+	Fixed libldap OpenSSL 1.1.1 compatibility with BIO_method (ITS#8791)
 	Fixed libldap MozNSS CA certificate hash matching (ITS#7374)
 	Fixed libldap MozNSS with PEM certs when also using an NSS cert db (ITS#7389)
 	Fixed libldap MozNSS initialization (ITS#8484)
