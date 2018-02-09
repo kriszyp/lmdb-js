@@ -113,6 +113,10 @@ typedef SSIZE_T	ssize_t;
 /* Most platforms have posix_memalign, older may only have memalign */
 #define HAVE_MEMALIGN	1
 #include <malloc.h>
+/* On Solaris, we need the POSIX sigwait function */
+#if defined (__sun)
+# define _POSIX_PTHREAD_SEMANTICS	1
+#endif
 #endif
 
 #if !(defined(BYTE_ORDER) || defined(__BYTE_ORDER))
@@ -9754,8 +9758,11 @@ int mdb_dbi_open(MDB_txn *txn, const char *name, unsigned int flags, MDB_dbi *db
 		MDB_node *node = NODEPTR(mc.mc_pg[mc.mc_top], mc.mc_ki[mc.mc_top]);
 		if ((node->mn_flags & (F_DUPDATA|F_SUBDATA)) != F_SUBDATA)
 			return MDB_INCOMPATIBLE;
-	} else if (! (rc == MDB_NOTFOUND && (flags & MDB_CREATE))) {
-		return rc;
+	} else {
+		if (rc != MDB_NOTFOUND || !(flags & MDB_CREATE))
+			return rc;
+		if (F_ISSET(txn->mt_flags, MDB_TXN_RDONLY))
+			return EACCES;
 	}
 
 	/* Done here so we cannot fail after creating a new DB */
