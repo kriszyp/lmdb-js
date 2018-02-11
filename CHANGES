@@ -29,6 +29,7 @@ OpenLDAP 2.4.46 Engineering
 	Fixed slapo-syncprov to initialize an empty accesslog db if configured (ITS#8100)
 	Fixed slapo-syncprov not to log checkpoints to accesslog db (ITS#8607)
 	Fixed slapo-syncprov to process changes from this SID on REFRESH (ITS#8800)
+	Fixed slapo-syncprov session log parsing to not block other operations (ITS#8486)
 	Build Environment
 		Fixed Windows build with newer MINGW version (ITS#8697)
 		Fixed compiler warnings and removed unused variables (ITS#8578)
