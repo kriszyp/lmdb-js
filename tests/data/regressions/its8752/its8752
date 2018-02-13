@@ -150,6 +150,7 @@ fi
 echo "Stopping slapd and reworking configuration for MMR..."
 
 test $KILLSERVERS != no && kill -HUP $KILLPIDS
+wait $KILLPIDS
 
 KILLPIDS=
 n=1
@@ -158,19 +159,19 @@ while [ $n -le $MMR ]; do
 	MYLOG=`eval echo '$LOG'$n`
 	MYCONF=`eval echo '$CONF'$n`
 	echo "Starting provider slapd on TCP/IP URI $MYURI"
-	. $CONFFILTER $BACKEND $MONITORDB < $ITSDIR/slapd.conf.mmr > $CONF
-	sed -e "s/MMR/$n/g" $CONF > $MYCONF
+	. $CONFFILTER $BACKEND $MONITORDB < $ITSDIR/slapd.conf.mmr > $TESTDIR/slapd.conf
+	sed -e "s/MMR/$n/g" $TESTDIR/slapd.conf > $MYCONF
 	j=1
 	while [ $j -le $MMR ]; do
 		MMCURI=`eval echo '$URI'$j`
-		sed -e "s|MMC${j}|${MMCURI}|" $MYCONF > $CONF
-		mv $CONF $MYCONF
+		sed -e "s|MMC${j}|${MMCURI}|" $MYCONF > $TESTDIR/slapd.conf
+		mv $TESTDIR/slapd.conf $MYCONF
 		j=`expr $j + 1`
 	done
-	if [ -f $CONF ]; then
-		rm -f $CONF
+	if [ -f $TESTDIR/slapd.conf ]; then
+		rm -f $TESTDIR/slapd.conf
 	fi
-	$SLAPD -f $MYCONF -h $MYURI  -d $LVL $TIMING > $MYLOG 2>&1 &
+	$SLAPD -f $MYCONF -h $MYURI  -d $LVL $TIMING >> $MYLOG 2>&1 &
 	PID=$!
 	if test $WAIT != 0 ; then
 		echo PID $PID
