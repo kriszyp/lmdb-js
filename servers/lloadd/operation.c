@@ -526,6 +526,15 @@ operation_init( LloadConnection *c, BerElement *ber )
         ber_skip_element( ber, &op->o_ctrls );
     }
 
+    switch ( op->o_tag ) {
+        case LDAP_REQ_BIND:
+            lload_stats.counters[LLOAD_STATS_OPS_BIND].lc_ops_received++;
+            break;
+        default:
+            lload_stats.counters[LLOAD_STATS_OPS_OTHER].lc_ops_received++;
+            break;
+    }
+
     Debug( LDAP_DEBUG_STATS, "operation_init: "
             "received a new operation, %s with msgid=%d for client "
             "connid=%lu\n",

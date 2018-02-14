@@ -213,7 +213,6 @@ handle_one_request( LloadConnection *c )
 
     switch ( op->o_tag ) {
         case LDAP_REQ_UNBIND:
-            lload_stats.counters[LLOAD_STATS_OPS_OTHER].lc_ops_received++;
             /* There is never a response for this operation */
             op->o_res = LLOAD_OP_COMPLETED;
             operation_destroy_from_client( op );
@@ -223,17 +222,14 @@ handle_one_request( LloadConnection *c )
             CONNECTION_DESTROY(c);
             return -1;
         case LDAP_REQ_BIND:
-            lload_stats.counters[LLOAD_STATS_OPS_BIND].lc_ops_received++;
             handler = request_bind;
             break;
         case LDAP_REQ_ABANDON:
-            lload_stats.counters[LLOAD_STATS_OPS_OTHER].lc_ops_received++;
             /* We can't send a response to abandon requests even if a bind is
              * currently in progress */
             handler = request_abandon;
             break;
         case LDAP_REQ_EXTENDED:
-            lload_stats.counters[LLOAD_STATS_OPS_OTHER].lc_ops_received++;
             handler = request_extended;
             break;
         default:
@@ -241,7 +237,6 @@ handle_one_request( LloadConnection *c )
                 return operation_send_reject_locked(
                         op, LDAP_PROTOCOL_ERROR, "bind in progress", 0 );
             }
-            lload_stats.counters[LLOAD_STATS_OPS_OTHER].lc_ops_received++;
             handler = request_process;
             break;
     }
