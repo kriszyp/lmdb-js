@@ -609,10 +609,6 @@ operation_abandon( LloadOperation *op )
     int rc = LDAP_SUCCESS;
 
     ldap_pvt_thread_mutex_lock( &op->o_link_mutex );
-    /* for now consider all abandoned operations completed,
-     * perhaps add a separate counter later */
-    op->o_res = LLOAD_OP_COMPLETED;
-
     c = op->o_upstream;
     if ( !c ) {
         ldap_pvt_thread_mutex_unlock( &op->o_link_mutex );
@@ -621,6 +617,11 @@ operation_abandon( LloadOperation *op )
 
     CONNECTION_LOCK(c);
     ldap_pvt_thread_mutex_unlock( &op->o_link_mutex );
+
+    /* for now consider all abandoned operations completed,
+     * perhaps add a separate counter later */
+    op->o_res = LLOAD_OP_COMPLETED;
+
     if ( tavl_delete( &c->c_ops, op, operation_upstream_cmp ) == NULL ) {
         /* The operation has already been abandoned or finished */
         Debug( LDAP_DEBUG_TRACE, "operation_abandon: "
@@ -806,6 +807,7 @@ operation_lost_upstream( LloadOperation *op )
 {
     LloadConnection *c = op->o_upstream;
     CONNECTION_LOCK(c);
+    op->o_res = LLOAD_OP_FAILED;
     op->o_upstream_refcnt++;
     /* Matching the op reference on the connection as well */
     CONNECTION_UNLOCK_INCREF(c);
@@ -815,7 +817,6 @@ operation_lost_upstream( LloadOperation *op )
 
     CONNECTION_LOCK_DECREF(c);
     op->o_upstream_refcnt--;
-    op->o_res = LLOAD_OP_FAILED;
     operation_destroy_from_upstream( op );
     CONNECTION_UNLOCK(c);
 }
@@ -1021,7 +1022,8 @@ done:
 void
 operation_update_global_rejected( LloadOperation *op )
 {
-    if ( op->o_res == LLOAD_OP_REJECTED && op->o_upstream_connid == 0 ) {
+    if ( op->o_res == LLOAD_OP_REJECTED ) {
+        assert( op->o_upstream_connid == 0 );
         switch ( op->o_tag ) {
             case LDAP_REQ_BIND:
                 lload_stats.counters[LLOAD_STATS_OPS_BIND].lc_ops_rejected++;
