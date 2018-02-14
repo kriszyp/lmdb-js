@@ -333,6 +333,38 @@ connection_destroy( LloadConnection *c )
     listeners_reactivate();
 }
 
+/*
+ * Expected to be run from lload_unpause_server, so there are no other threads
+ * running.
+ */
+void
+lload_connection_close( LloadConnection *c )
+{
+    TAvlnode *node;
+
+    /* We lock so we can use CONNECTION_UNLOCK_OR_DESTROY to drop the
+     * connection if we can */
+    CONNECTION_LOCK(c);
+
+    /* The first thing we do is make sure we don't get new Operations in */
+    c->c_state = LLOAD_C_CLOSING;
+
+    for ( node = tavl_end( c->c_ops, TAVL_DIR_LEFT ); node;
+            node = tavl_next( node, TAVL_DIR_RIGHT ) ) {
+        LloadOperation *op = node->avl_data;
+
+        if ( op->o_client_msgid == 0 ) {
+            if ( op->o_client == c ) {
+                operation_destroy_from_client( op );
+            } else {
+                assert( op->o_upstream == c );
+                operation_destroy_from_upstream( op );
+            }
+        }
+    }
+    CONNECTION_UNLOCK_OR_DESTROY(c);
+}
+
 LloadConnection *
 lload_connection_init( ber_socket_t s, const char *peername, int flags )
 {

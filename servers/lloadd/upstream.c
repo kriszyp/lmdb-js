@@ -101,7 +101,7 @@ forward_final_response(
 static int
 handle_unsolicited( LloadConnection *c, BerElement *ber )
 {
-    if ( c->c_state == LLOAD_C_READY ) {
+    if ( c->c_state != LLOAD_C_PREPARING ) {
         c->c_state = LLOAD_C_CLOSING;
     }
 
@@ -799,7 +799,7 @@ upstream_destroy( LloadConnection *c )
     }
 
     /* Remove from the backend on first pass */
-    if ( state != LLOAD_C_CLOSING ) {
+    if ( state != LLOAD_C_DYING ) {
         ldap_pvt_thread_mutex_lock( &b->b_mutex );
         if ( c->c_type == LLOAD_C_PREPARING ) {
             LDAP_CIRCLEQ_REMOVE( &b->b_preparing, c, c_next );
@@ -854,7 +854,7 @@ upstream_destroy( LloadConnection *c )
      */
     assert( c->c_refcnt >= 0 );
     if ( c->c_refcnt ) {
-        c->c_state = LLOAD_C_CLOSING;
+        c->c_state = LLOAD_C_DYING;
         Debug( LDAP_DEBUG_CONNS, "upstream_destroy: "
                 "connid=%lu aborting with refcnt=%d\n",
                 c->c_connid, c->c_refcnt );

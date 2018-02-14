@@ -227,8 +227,7 @@ handle_one_request( LloadConnection *c )
         case LDAP_REQ_ABANDON:
             /* We can't send a response to abandon requests even if a bind is
              * currently in progress */
-            handler = request_abandon;
-            break;
+            return request_abandon( c, op );
         case LDAP_REQ_EXTENDED:
             handler = request_extended;
             break;
@@ -239,6 +238,11 @@ handle_one_request( LloadConnection *c )
             }
             handler = request_process;
             break;
+    }
+
+    if ( c->c_state == LLOAD_C_CLOSING ) {
+        return operation_send_reject_locked(
+                op, LDAP_UNAVAILABLE, "connection is shutting down", 0 );
     }
 
     return handler( c, op );
@@ -510,7 +514,7 @@ client_destroy( LloadConnection *c )
         event_del( write_event );
     }
 
-    if ( state != LLOAD_C_CLOSING ) {
+    if ( state != LLOAD_C_DYING ) {
         ldap_pvt_thread_mutex_lock( &clients_mutex );
         LDAP_CIRCLEQ_REMOVE( &clients, c, c_next );
         ldap_pvt_thread_mutex_unlock( &clients_mutex );
@@ -537,7 +541,7 @@ client_destroy( LloadConnection *c )
      */
     assert( c->c_refcnt >= 0 );
     if ( c->c_refcnt ) {
-        c->c_state = LLOAD_C_CLOSING;
+        c->c_state = LLOAD_C_DYING;
         Debug( LDAP_DEBUG_CONNS, "client_destroy: "
                 "connid=%lu aborting with refcnt=%d\n",
                 c->c_connid, c->c_refcnt );

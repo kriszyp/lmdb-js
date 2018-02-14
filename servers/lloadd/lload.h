@@ -195,6 +195,7 @@ enum sc_state {
     LLOAD_C_CLOSING,     /* closing */
     LLOAD_C_ACTIVE,      /* exclusive operation (tls setup, ...) in progress */
     LLOAD_C_BINDING,     /* binding */
+    LLOAD_C_DYING, /* part-processed dead but someone still holds a reference */
 };
 enum sc_type {
     LLOAD_C_OPEN = 0,  /* regular connection */
@@ -246,6 +247,10 @@ struct LloadConnection {
 #define CONNECTION_UNLOCK_OR_DESTROY(c) \
     do { \
         assert( (c)->c_refcnt >= 0 ); \
+        if ( (c)->c_state == LLOAD_C_CLOSING && !( c )->c_ops ) { \
+            (c)->c_refcnt -= (c)->c_live; \
+            (c)->c_live = 0; \
+        } \
         if ( !( c )->c_refcnt ) { \
             Debug( LDAP_DEBUG_TRACE, "%s: destroying connection connid=%lu\n", \
                     __func__, (c)->c_connid ); \

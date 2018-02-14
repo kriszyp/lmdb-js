@@ -87,6 +87,7 @@ LDAP_SLAPD_F (int) lload_back_init_cf( BackendInfo *bi );
 LDAP_SLAPD_V (ldap_pvt_thread_mutex_t) clients_mutex;
 LDAP_SLAPD_F (void) connection_write_cb( evutil_socket_t s, short what, void *arg );
 LDAP_SLAPD_F (void) connection_read_cb( evutil_socket_t s, short what, void *arg );
+LDAP_SLAPD_F (void) lload_connection_close( LloadConnection *c );
 LDAP_SLAPD_F (LloadConnection *) lload_connection_init( ber_socket_t s, const char *peername, int use_tls );
 LDAP_SLAPD_F (void) connection_destroy( LloadConnection *c );
 
