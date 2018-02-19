@@ -1367,7 +1367,7 @@ lloadd_daemon( struct event_base *daemon_base )
                 t );
     }
     ldap_pvt_thread_pool_close( &connection_pool, 1 );
-    backends_destroy();
+    lload_backends_destroy();
     clients_destroy();
     lload_bindconf_free( &bindconf );
     evdns_base_free( dnsbase, 0 );

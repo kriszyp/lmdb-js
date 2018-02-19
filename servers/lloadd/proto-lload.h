@@ -41,7 +41,9 @@ LDAP_SLAPD_F (void) backend_connect( evutil_socket_t s, short what, void *arg );
 LDAP_SLAPD_F (void *) backend_connect_task( void *ctx, void *arg );
 LDAP_SLAPD_F (void) backend_retry( LloadBackend *b );
 LDAP_SLAPD_F (LloadConnection *) backend_select( LloadOperation *op, int *res );
-LDAP_SLAPD_F (void) backends_destroy( void );
+LDAP_SLAPD_F (void) backend_reset( LloadBackend *b );
+LDAP_SLAPD_F (void) lload_backend_destroy( LloadBackend *b );
+LDAP_SLAPD_F (void) lload_backends_destroy( void );
 
 /*
  * bind.c

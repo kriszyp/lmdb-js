@@ -433,71 +433,92 @@ backend_connect_task( void *ctx, void *arg )
 }
 
 void
-backends_destroy( void )
+backend_reset( LloadBackend *b )
+{
+    while ( !LDAP_LIST_EMPTY( &b->b_connecting ) ) {
+        LloadPendingConnection *pending = LDAP_LIST_FIRST( &b->b_connecting );
+
+        Debug( LDAP_DEBUG_CONNS, "backend_reset: "
+                "destroying socket pending connect() fd=%d\n",
+                pending->fd );
+
+        event_free( pending->event );
+        evutil_closesocket( pending->fd );
+        LDAP_LIST_REMOVE( pending, next );
+        ch_free( pending );
+    }
+    while ( !LDAP_CIRCLEQ_EMPTY( &b->b_preparing ) ) {
+        LloadConnection *c = LDAP_CIRCLEQ_FIRST( &b->b_preparing );
+
+        CONNECTION_LOCK(c);
+        Debug( LDAP_DEBUG_CONNS, "backend_reset: "
+                "destroying connection being set up connid=%lu\n",
+                c->c_connid );
+
+        assert( c->c_live );
+        CONNECTION_DESTROY(c);
+        assert( !c );
+    }
+    while ( !LDAP_CIRCLEQ_EMPTY( &b->b_bindconns ) ) {
+        LloadConnection *c = LDAP_CIRCLEQ_FIRST( &b->b_bindconns );
+
+        CONNECTION_LOCK(c);
+        Debug( LDAP_DEBUG_CONNS, "backend_reset: "
+                "destroying bind connection connid=%lu, pending ops=%ld\n",
+                c->c_connid, c->c_n_ops_executing );
+
+        assert( c->c_live );
+        CONNECTION_DESTROY(c);
+        assert( !c );
+    }
+    while ( !LDAP_CIRCLEQ_EMPTY( &b->b_conns ) ) {
+        LloadConnection *c = LDAP_CIRCLEQ_FIRST( &b->b_conns );
+
+        CONNECTION_LOCK(c);
+        Debug( LDAP_DEBUG_CONNS, "backend_reset: "
+                "destroying regular connection connid=%lu, pending ops=%ld\n",
+                c->c_connid, c->c_n_ops_executing );
+
+        assert( c->c_live );
+        CONNECTION_DESTROY(c);
+        assert( !c );
+    }
+}
+
+void
+lload_backend_destroy( LloadBackend *b )
+{
+    LloadBackend *next = LDAP_CIRCLEQ_LOOP_NEXT( &backend, b, b_next );
+
+    Debug( LDAP_DEBUG_CONNS, "lload_backend_destroy: "
+            "destroying backend uri='%s', numconns=%d, numbindconns=%d\n",
+            b->b_uri.bv_val, b->b_numconns, b->b_numbindconns );
+
+    backend_reset( b );
+
+    LDAP_CIRCLEQ_REMOVE( &backend, b, b_next );
+    if ( b == next ) {
+        current_backend = NULL;
+    } else {
+        current_backend = next;
+    }
+
+    ldap_pvt_thread_mutex_destroy( &b->b_mutex );
+
+    event_del( b->b_retry_event );
+    event_free( b->b_retry_event );
+
+    ch_free( b->b_host );
+    ch_free( b->b_uri.bv_val );
+    ch_free( b );
+}
+
+void
+lload_backends_destroy( void )
 {
     while ( !LDAP_CIRCLEQ_EMPTY( &backend ) ) {
         LloadBackend *b = LDAP_CIRCLEQ_FIRST( &backend );
 
-        Debug( LDAP_DEBUG_CONNS, "backends_destroy: "
-                "destroying backend uri='%s', numconns=%d, numbindconns=%d\n",
-                b->b_uri.bv_val, b->b_numconns, b->b_numbindconns );
-
-        while ( !LDAP_LIST_EMPTY( &b->b_connecting ) ) {
-            LloadPendingConnection *pending =
-                    LDAP_LIST_FIRST( &b->b_connecting );
-
-            Debug( LDAP_DEBUG_CONNS, "backends_destroy: "
-                    "destroying socket pending connect() fd=%d\n",
-                    pending->fd );
-
-            event_free( pending->event );
-            evutil_closesocket( pending->fd );
-            LDAP_LIST_REMOVE( pending, next );
-            ch_free( pending );
-        }
-        while ( !LDAP_CIRCLEQ_EMPTY( &b->b_preparing ) ) {
-            LloadConnection *c = LDAP_CIRCLEQ_FIRST( &b->b_preparing );
-
-            CONNECTION_LOCK(c);
-            Debug( LDAP_DEBUG_CONNS, "backends_destroy: "
-                    "destroying connection being set up connid=%lu\n",
-                    c->c_connid );
-
-            assert( c->c_live );
-            CONNECTION_DESTROY(c);
-        }
-        while ( !LDAP_CIRCLEQ_EMPTY( &b->b_bindconns ) ) {
-            LloadConnection *c = LDAP_CIRCLEQ_FIRST( &b->b_bindconns );
-
-            CONNECTION_LOCK(c);
-            Debug( LDAP_DEBUG_CONNS, "backends_destroy: "
-                    "destroying bind connection connid=%lu, pending ops=%ld\n",
-                    c->c_connid, c->c_n_ops_executing );
-
-            assert( c->c_live );
-            CONNECTION_DESTROY(c);
-        }
-        while ( !LDAP_CIRCLEQ_EMPTY( &b->b_conns ) ) {
-            LloadConnection *c = LDAP_CIRCLEQ_FIRST( &b->b_conns );
-
-            CONNECTION_LOCK(c);
-            Debug( LDAP_DEBUG_CONNS, "backends_destroy: "
-                    "destroying regular connection connid=%lu, pending "
-                    "ops=%ld\n",
-                    c->c_connid, c->c_n_ops_executing );
-
-            assert( c->c_live );
-            CONNECTION_DESTROY(c);
-        }
-
-        LDAP_CIRCLEQ_REMOVE( &backend, b, b_next );
-        ldap_pvt_thread_mutex_destroy( &b->b_mutex );
-
-        event_del( b->b_retry_event );
-        event_free( b->b_retry_event );
-
-        ch_free( b->b_host );
-        ch_free( b->b_uri.bv_val );
-        ch_free( b );
+        lload_backend_destroy( b );
     }
 }
