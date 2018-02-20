@@ -516,6 +516,46 @@ ldap_pvt_thread_pool_retract (
 	return task != NULL;
 }
 
+/* Walk the pool and allow tasks to be retracted, only to be called while the
+ * pool is paused */
+int
+ldap_pvt_thread_pool_walk(
+	ldap_pvt_thread_pool_t *tpool,
+	ldap_pvt_thread_start_t *start,
+	ldap_pvt_thread_walk_t *cb, void *arg )
+{
+	struct ldap_int_thread_pool_s *pool;
+	struct ldap_int_thread_poolq_s *pq;
+	ldap_int_thread_task_t *task;
+	int i;
+
+	if (tpool == NULL)
+		return(-1);
+
+	pool = *tpool;
+
+	if (pool == NULL)
+		return(-1);
+
+	ldap_pvt_thread_mutex_lock(&pool->ltp_mutex);
+	assert(pool->ltp_pause == PAUSED);
+	ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
+
+	for (i=0; i<pool->ltp_numqs; i++) {
+		pq = pool->ltp_wqs[i];
+		LDAP_STAILQ_FOREACH(task, &pq->ltp_pending_list, ltt_next.q) {
+			if ( task->ltt_start_routine == start ) {
+				if ( cb( task->ltt_start_routine, task->ltt_arg, arg ) ) {
+					/* retract */
+					task->ltt_start_routine = no_task;
+					task->ltt_arg = NULL;
+				}
+			}
+		}
+	}
+	return 0;
+}
+
 /* Set number of work queues in this pool. Should not be
  * more than the number of CPUs. */
 int

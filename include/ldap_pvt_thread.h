@@ -220,6 +220,7 @@ ldap_pvt_thread_rdwr_active LDAP_P((ldap_pvt_thread_rdwr_t *rdwrp));
 typedef ldap_int_thread_pool_t ldap_pvt_thread_pool_t;
 
 typedef void * (ldap_pvt_thread_start_t) LDAP_P((void *ctx, void *arg));
+typedef int (ldap_pvt_thread_walk_t) LDAP_P((ldap_pvt_thread_start_t *start, void *start_arg, void *arg));
 typedef void (ldap_pvt_thread_pool_keyfree_t) LDAP_P((void *key, void *data));
 #endif /* !LDAP_PVT_THREAD_H_DONE */
 
@@ -252,6 +253,13 @@ ldap_pvt_thread_pool_submit2 LDAP_P((
 LDAP_F( int )
 ldap_pvt_thread_pool_retract LDAP_P((
 	void *cookie ));
+
+LDAP_F( int )
+ldap_pvt_thread_pool_walk LDAP_P((
+	ldap_pvt_thread_pool_t *pool,
+	ldap_pvt_thread_start_t *start,
+	ldap_pvt_thread_walk_t *cb,
+	void *arg ));
 
 LDAP_F( int )
 ldap_pvt_thread_pool_maxthreads LDAP_P((
