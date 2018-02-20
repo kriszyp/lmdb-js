@@ -87,6 +87,7 @@ LDAP_SLAPD_F (int) lload_back_init_cf( BackendInfo *bi );
  * connection.c
  */
 LDAP_SLAPD_V (ldap_pvt_thread_mutex_t) clients_mutex;
+LDAP_SLAPD_F (void *) handle_pdus( void *ctx, void *arg );
 LDAP_SLAPD_F (void) connection_write_cb( evutil_socket_t s, short what, void *arg );
 LDAP_SLAPD_F (void) connection_read_cb( evutil_socket_t s, short what, void *arg );
 LDAP_SLAPD_F (void) lload_connection_close( LloadConnection *c );
@@ -175,6 +176,7 @@ LDAP_SLAPD_F (void) operation_update_global_rejected( LloadOperation *op );
  */
 LDAP_SLAPD_F (int) forward_final_response( LloadConnection *client, LloadOperation *op, BerElement *ber );
 LDAP_SLAPD_F (int) forward_response( LloadConnection *client, LloadOperation *op, BerElement *ber );
+LDAP_SLAPD_F (void *) upstream_bind( void *ctx, void *arg );
 LDAP_SLAPD_F (LloadConnection *) upstream_init( ber_socket_t s, LloadBackend *b );
 LDAP_SLAPD_F (void) upstream_destroy( LloadConnection *c );
 

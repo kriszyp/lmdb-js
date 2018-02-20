@@ -66,7 +66,7 @@ lload_connection_assign_nextid( LloadConnection *conn )
  * already has a pdu pending on the same operation, it's their job to make sure
  * we're woken up again.
  */
-static void *
+void *
 handle_pdus( void *ctx, void *arg )
 {
     LloadConnection *c = arg;
