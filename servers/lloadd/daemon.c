@@ -1394,6 +1394,306 @@ daemon_wakeup_cb( evutil_socket_t sig, short what, void *arg )
 }
 
 #ifdef BALANCER_MODULE
+int
+backend_conn_cb( ldap_pvt_thread_start_t *start, void *startarg, void *arg )
+{
+    LloadConnection *c = startarg;
+    LloadBackend *b = arg;
+
+    if ( b == NULL || c->c_private == b ) {
+        if ( start == upstream_bind ) {
+            /* FIXME: is upstream_bind safe without a reference of its own? */
+            CONNECTION_LOCK(c);
+        } else {
+            CONNECTION_LOCK_DECREF(c);
+        }
+        CONNECTION_DESTROY(c);
+        return 1;
+    }
+    return 0;
+}
+
+int
+client_tls_cb( ldap_pvt_thread_start_t *start, void *startarg, void *arg )
+{
+    LloadConnection *c = startarg;
+
+    if ( c->c_destroy == client_destroy &&
+            c->c_is_tls == LLOAD_TLS_ESTABLISHED ) {
+        CONNECTION_LOCK_DESTROY(c);
+        return 1;
+    }
+    return 0;
+}
+
+void
+lload_handle_backend_invalidation( LloadChange *change )
+{
+    LloadBackend *b = change->target;
+
+    assert( change->object == LLOAD_BACKEND );
+
+    if ( change->type == LDAP_REQ_ADD ) {
+        backend_retry( b );
+        return;
+    } else if ( change->type == LDAP_REQ_DELETE ) {
+        lload_backend_destroy( b );
+        return;
+    }
+    assert( change->type == LDAP_REQ_MODIFY );
+    assert( change->flags.generic != 0 );
+
+    /*
+     * A change that can't be handled gracefully, terminate all connections and
+     * start over.
+     */
+    if ( change->flags.backend & LLOAD_BACKEND_MOD_OTHER ) {
+        ldap_pvt_thread_pool_walk(
+                &connection_pool, handle_pdus, backend_conn_cb, b );
+        ldap_pvt_thread_pool_walk(
+                &connection_pool, upstream_bind, backend_conn_cb, b );
+        backend_reset( b );
+        backend_retry( b );
+        return;
+    }
+
+    /*
+     * Handle changes to number of connections:
+     * - a change might get the connection limit above the pool size:
+     *   - consider closing (in order of priority?):
+     *     - connections awaiting connect() completion
+     *     - connections currently preparing
+     *     - bind connections over limit (which is 0 if 'feature vc' is on
+     *     - regular connections over limit
+     * - below pool size
+     *   - call backend_retry if there are no opening connections
+     * - one pool size above and one below the configured size
+     *   - still close the ones above limit, it should sort itself out
+     *     the only issue is if a closing connection isn't guaranteed to do
+     *     that at some point
+     */
+    if ( change->flags.backend & LLOAD_BACKEND_MOD_CONNS ) {
+        int bind_requested = 0, need_close = 0, need_open = 0;
+        LloadConnection *c;
+
+        bind_requested =
+#ifdef LDAP_API_FEATURE_VERIFY_CREDENTIALS
+                (lload_features & LLOAD_FEATURE_VC) ? 0 :
+#endif /* LDAP_API_FEATURE_VERIFY_CREDENTIALS */
+                b->b_numbindconns;
+
+        if ( b->b_bindavail > bind_requested ) {
+            need_close += b->b_bindavail - bind_requested;
+        } else if ( b->b_bindavail < bind_requested ) {
+            need_open = 1;
+        }
+
+        if ( b->b_active > b->b_numconns ) {
+            need_close += b->b_active - b->b_numconns;
+        } else if ( b->b_active < b->b_numconns ) {
+            need_open = 1;
+        }
+
+        if ( !need_open ) {
+            need_close += b->b_opening;
+
+            while ( !LDAP_LIST_EMPTY( &b->b_connecting ) ) {
+                LloadPendingConnection *p = LDAP_LIST_FIRST( &b->b_connecting );
+
+                LDAP_LIST_REMOVE( p, next );
+                event_free( p->event );
+                evutil_closesocket( p->fd );
+                ch_free( p );
+                b->b_opening--;
+                need_close--;
+            }
+        }
+
+        if ( need_close || !need_open ) {
+            /* It might be too late to repurpose a preparing connection, just
+             * close them all */
+            while ( !LDAP_CIRCLEQ_EMPTY( &b->b_preparing ) ) {
+                c = LDAP_CIRCLEQ_FIRST( &b->b_preparing );
+
+                event_del( c->c_read_event );
+                CONNECTION_LOCK_DESTROY(c);
+                assert( c == NULL );
+                b->b_opening--;
+                need_close--;
+            }
+            event_del( b->b_retry_event );
+            assert( b->b_opening == 0 );
+        }
+
+        if ( b->b_bindavail > bind_requested ) {
+            int diff = b->b_bindavail - bind_requested;
+
+            assert( need_close >= diff );
+
+            LDAP_CIRCLEQ_FOREACH ( c, &b->b_bindconns, c_next ) {
+                lload_connection_close( c );
+                need_close--;
+                diff--;
+                if ( !diff ) {
+                    break;
+                }
+            }
+            assert( diff == 0 );
+        }
+
+        if ( b->b_active > b->b_numconns ) {
+            int diff = b->b_active - b->b_numconns;
+
+            assert( need_close >= diff );
+
+            LDAP_CIRCLEQ_FOREACH ( c, &b->b_conns, c_next ) {
+                lload_connection_close( c );
+                need_close--;
+                diff--;
+                if ( !diff ) {
+                    break;
+                }
+            }
+            assert( diff == 0 );
+        }
+        assert( need_close == 0 );
+
+        if ( need_open ) {
+            backend_retry( b );
+        }
+    }
+}
+
+void
+lload_handle_bindconf_invalidation( LloadChange *change )
+{
+    LloadBackend *b;
+    LloadConnection *c;
+
+    assert( change->type == LDAP_REQ_MODIFY );
+    assert( change->object == LLOAD_BINDCONF );
+
+    if ( change->flags.bindconf == LLOAD_BINDCONF_MOD_TIMEOUTS ) {
+        /* Nothing needs doing, things will generally fall into place */
+        return;
+    }
+
+    /*
+     * Only timeout changes can be handled gracefully, terminate all
+     * connections and start over.
+     */
+    /*
+     * - terminate all backends' connections
+     * - reconsider the PRIVILEGED flag on all clients
+     */
+    /*
+     * walk the task queue to remove any tasks belonging to our connections.
+     */
+    ldap_pvt_thread_pool_walk(
+            &connection_pool, handle_pdus, backend_conn_cb, NULL );
+    ldap_pvt_thread_pool_walk(
+            &connection_pool, upstream_bind, backend_conn_cb, NULL );
+
+    LDAP_CIRCLEQ_FOREACH ( b, &backend, b_next ) {
+        backend_reset( b );
+        backend_retry( b );
+    }
+
+    LDAP_CIRCLEQ_FOREACH ( c, &clients, c_next ) {
+        int privileged = ber_bvstrcasecmp( &c->c_auth, &lloadd_identity );
+
+        /* We have just terminated all pending operations, there should be no
+         * connections still binding/closing */
+        assert( c->c_state == LLOAD_C_READY );
+
+        c->c_type = privileged ? LLOAD_C_PRIVILEGED : LLOAD_C_OPEN;
+    }
+    assert(0);
+}
+
+void
+lload_handle_global_invalidation( LloadChange *change )
+{
+    assert( change->type == LDAP_REQ_MODIFY );
+    assert( change->object == LLOAD_DAEMON );
+
+    if ( change->flags.daemon & LLOAD_DAEMON_MOD_THREADS ) {
+        /* walk the task queue to remove any tasks belonging to us. */
+        /* TODO: initiate a full module restart, everything will fall into
+         * place at that point */
+        ldap_pvt_thread_pool_walk(
+                &connection_pool, handle_pdus, backend_conn_cb, NULL );
+        ldap_pvt_thread_pool_walk(
+                &connection_pool, upstream_bind, backend_conn_cb, NULL );
+        assert(0);
+        return;
+    }
+
+    if ( change->flags.daemon & LLOAD_DAEMON_MOD_FEATURES ) {
+        /* TODO: how do we detect what the old feature value was, maybe store
+         * it in change->target? */
+        /* TODO: feature change handling:
+         * - VC:
+         *   - on: terminate all bind connections
+         *   - off: cancel all bind operations in progress, reopen bind connections
+         * - ProxyAuthz: nothing needed?
+         */
+        assert(0);
+    }
+
+    if ( change->flags.daemon & LLOAD_DAEMON_MOD_TLS ) {
+        /* terminate all clients with TLS set up */
+        ldap_pvt_thread_pool_walk(
+                &connection_pool, handle_pdus, client_tls_cb, NULL );
+        if ( !LDAP_CIRCLEQ_EMPTY( &clients ) ) {
+            LloadConnection *c = LDAP_CIRCLEQ_FIRST( &clients );
+            unsigned long first_connid = c->c_connid;
+
+            while ( c ) {
+                LloadConnection *next =
+                        LDAP_CIRCLEQ_LOOP_NEXT( &clients, c, c_next );
+                if ( c->c_is_tls ) {
+                    CONNECTION_LOCK(c);
+                    CONNECTION_DESTROY(c);
+                    assert( c == NULL );
+                }
+                c = next;
+                if ( c->c_connid <= first_connid ) {
+                    c = NULL;
+                }
+            }
+        }
+        assert(0);
+    }
+}
+
+int
+lload_handle_invalidation( LloadChange *change )
+{
+    if ( change->type == LDAP_REQ_MODIFY && change->flags.generic == 0 ) {
+        Debug( LDAP_DEBUG_ANY, "lload_handle_invalidation: "
+                "a modify where apparently nothing changed\n" );
+    }
+
+    switch ( change->object ) {
+        case LLOAD_BACKEND:
+            lload_handle_backend_invalidation( change );
+            break;
+        case LLOAD_DAEMON:
+            lload_handle_global_invalidation( change );
+            break;
+        case LLOAD_BINDCONF:
+            lload_handle_bindconf_invalidation( change );
+            break;
+        default:
+            Debug( LDAP_DEBUG_ANY, "lload_handle_invalidation: "
+                    "unrecognised change\n" );
+            assert(0);
+    }
+
+    return LDAP_SUCCESS;
+}
+
 /*
  * Signal the event base to terminate processing as soon as it can and wait for
  * lload_base_dispatch to notify us this has happened.

@@ -80,6 +80,7 @@ typedef struct LloadBackend LloadBackend;
 typedef struct LloadPendingConnection LloadPendingConnection;
 typedef struct LloadConnection LloadConnection;
 typedef struct LloadOperation LloadOperation;
+typedef struct LloadChange LloadChange;
 /* end of forward declarations */
 
 typedef LDAP_CIRCLEQ_HEAD(BeSt, LloadBackend) lload_b_head;
@@ -104,6 +105,40 @@ typedef int lload_cf_aux_table_parse_x( struct berval *val,
         int unparse );
 
 typedef struct LloadListener LloadListener;
+
+enum lc_object {
+    LLOAD_UNDEFINED = 0,
+    LLOAD_DAEMON,
+    LLOAD_BINDCONF,
+    LLOAD_BACKEND,
+};
+
+enum lcf_daemon {
+    LLOAD_DAEMON_MOD_THREADS = 1 << 0,
+    LLOAD_DAEMON_MOD_FEATURES = 1 << 1,
+    LLOAD_DAEMON_MOD_TLS = 1 << 2,
+};
+
+enum lcf_bindconf {
+    LLOAD_BINDCONF_MOD_TIMEOUTS = 1 << 0,
+};
+
+enum lcf_backend {
+    LLOAD_BACKEND_MOD_OTHER = 1 << 0,
+    LLOAD_BACKEND_MOD_CONNS = 1 << 1,
+};
+
+struct LloadChange {
+    ber_tag_t type;
+    enum lc_object object;
+    union {
+        int generic;
+        enum lcf_daemon daemon;
+        enum lcf_bindconf bindconf;
+        enum lcf_backend backend;
+    } flags;
+    void *target;
+};
 
 typedef enum {
 #ifdef LDAP_API_FEATURE_VERIFY_CREDENTIALS
