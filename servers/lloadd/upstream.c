@@ -105,7 +105,7 @@ handle_unsolicited( LloadConnection *c, BerElement *ber )
         c->c_state = LLOAD_C_CLOSING;
     }
 
-    Debug( LDAP_DEBUG_CONNS, "handle_unsolicited: "
+    Debug( LDAP_DEBUG_STATS, "handle_unsolicited: "
             "teardown for upstream connection connid=%lu\n",
             c->c_connid );
 
