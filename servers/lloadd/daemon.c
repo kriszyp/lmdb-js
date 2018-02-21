@@ -1393,7 +1393,15 @@ daemon_wakeup_cb( evutil_socket_t sig, short what, void *arg )
     }
 }
 
+LloadChange lload_change = { .type = LLOAD_UNDEFINED };
+
 #ifdef BALANCER_MODULE
+int
+backend_connect_cb( ldap_pvt_thread_start_t *start, void *startarg, void *arg )
+{
+    return arg == NULL || arg == startarg;
+}
+
 int
 backend_conn_cb( ldap_pvt_thread_start_t *start, void *startarg, void *arg )
 {
@@ -1434,9 +1442,19 @@ lload_handle_backend_invalidation( LloadChange *change )
     assert( change->object == LLOAD_BACKEND );
 
     if ( change->type == LDAP_REQ_ADD ) {
+        if ( !current_backend ) {
+            current_backend = b;
+        }
         backend_retry( b );
         return;
     } else if ( change->type == LDAP_REQ_DELETE ) {
+        ldap_pvt_thread_pool_walk(
+                &connection_pool, handle_pdus, backend_conn_cb, b );
+        ldap_pvt_thread_pool_walk(
+                &connection_pool, upstream_bind, backend_conn_cb, b );
+        /* Check there are no pending connection tasks either */
+        ldap_pvt_thread_pool_walk(
+                &connection_pool, backend_connect_task, backend_connect_cb, b );
         lload_backend_destroy( b );
         return;
     }
@@ -1573,7 +1591,9 @@ lload_handle_bindconf_invalidation( LloadChange *change )
     assert( change->type == LDAP_REQ_MODIFY );
     assert( change->object == LLOAD_BINDCONF );
 
-    if ( change->flags.bindconf == LLOAD_BINDCONF_MOD_TIMEOUTS ) {
+    change->flags.bindconf &= ~LLOAD_BINDCONF_MOD_TIMEOUTS;
+
+    if ( !change->flags.bindconf ) {
         /* Nothing needs doing, things will generally fall into place */
         return;
     }
@@ -1581,13 +1601,6 @@ lload_handle_bindconf_invalidation( LloadChange *change )
     /*
      * Only timeout changes can be handled gracefully, terminate all
      * connections and start over.
-     */
-    /*
-     * - terminate all backends' connections
-     * - reconsider the PRIVILEGED flag on all clients
-     */
-    /*
-     * walk the task queue to remove any tasks belonging to our connections.
      */
     ldap_pvt_thread_pool_walk(
             &connection_pool, handle_pdus, backend_conn_cb, NULL );
@@ -1599,16 +1612,16 @@ lload_handle_bindconf_invalidation( LloadChange *change )
         backend_retry( b );
     }
 
+    /* Reconsider the PRIVILEGED flag on all clients */
     LDAP_CIRCLEQ_FOREACH ( c, &clients, c_next ) {
         int privileged = ber_bvstrcasecmp( &c->c_auth, &lloadd_identity );
 
-        /* We have just terminated all pending operations, there should be no
-         * connections still binding/closing */
+        /* We have just terminated all pending operations (even pins), there
+         * should be no connections still binding/closing */
         assert( c->c_state == LLOAD_C_READY );
 
         c->c_type = privileged ? LLOAD_C_PRIVILEGED : LLOAD_C_OPEN;
     }
-    assert(0);
 }
 
 void
@@ -1630,15 +1643,39 @@ lload_handle_global_invalidation( LloadChange *change )
     }
 
     if ( change->flags.daemon & LLOAD_DAEMON_MOD_FEATURES ) {
-        /* TODO: how do we detect what the old feature value was, maybe store
-         * it in change->target? */
-        /* TODO: feature change handling:
-         * - VC:
+        lload_features_t feature_diff =
+                lload_features ^ ( ~(uintptr_t)change->target );
+        /* Feature change handling:
+         * - VC (TODO):
          *   - on: terminate all bind connections
          *   - off: cancel all bind operations in progress, reopen bind connections
-         * - ProxyAuthz: nothing needed?
+         * - ProxyAuthz:
+         *   - on: nothing needed
+         *   - off: clear c_auth/privileged on each client
          */
-        assert(0);
+
+        assert( change->target );
+        if ( feature_diff & LLOAD_FEATURE_VC ) {
+            assert(0);
+            feature_diff &= ~LLOAD_FEATURE_VC;
+        }
+        if ( feature_diff & LLOAD_FEATURE_PROXYAUTHZ ) {
+            if ( !(lload_features & LLOAD_FEATURE_PROXYAUTHZ) ) {
+                LloadConnection *c;
+                /* We switched proxyauthz off */
+                LDAP_CIRCLEQ_FOREACH ( c, &clients, c_next ) {
+                    if ( !BER_BVISNULL( &c->c_auth ) ) {
+                        ber_memfree( c->c_auth.bv_val );
+                        BER_BVZERO( &c->c_auth );
+                    }
+                    if ( c->c_type == LLOAD_C_PRIVILEGED ) {
+                        c->c_type = LLOAD_C_OPEN;
+                    }
+                }
+            }
+            feature_diff &= ~LLOAD_FEATURE_PROXYAUTHZ;
+        }
+        assert( !feature_diff );
     }
 
     if ( change->flags.daemon & LLOAD_DAEMON_MOD_TLS ) {
@@ -1663,7 +1700,6 @@ lload_handle_global_invalidation( LloadChange *change )
                 }
             }
         }
-        assert(0);
     }
 }
 
@@ -1714,6 +1750,7 @@ lload_pause_base( struct event_base *base )
 void
 lload_pause_server( void )
 {
+    LloadChange ch = { .type = LLOAD_UNDEFINED };
     int i;
 
     lload_pause_base( listener_base );
@@ -1722,11 +1759,17 @@ lload_pause_server( void )
     for ( i = 0; i < lload_daemon_threads; i++ ) {
         lload_pause_base( lload_daemon[i].base );
     }
+
+    lload_change = ch;
 }
 
 void
 lload_unpause_server( void )
 {
+    if ( lload_change.type != LLOAD_UNDEFINED ) {
+        lload_handle_invalidation( &lload_change );
+    }
+
     /*
      * Make sure lloadd is completely ready to unpause by now:
      *

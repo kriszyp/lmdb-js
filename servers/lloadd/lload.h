@@ -138,7 +138,7 @@ struct LloadChange {
         enum lcf_backend backend;
     } flags;
     void *target;
-};
+} lload_change;
 
 typedef enum {
 #ifdef LDAP_API_FEATURE_VERIFY_CREDENTIALS
@@ -438,6 +438,11 @@ struct lload_monitor_conn_arg {
     Operation *op;
     monitor_subsys_t *ms;
     Entry **ep;
+};
+
+/* config requires a bi_private with configuration data - dummy for now */
+struct lload_conf_info {
+    int dummy;
 };
 LDAP_END_DECL
 

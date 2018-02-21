@@ -40,6 +40,7 @@
 #include "ldap_rq.h"
 
 ldap_pvt_thread_t lloadd_main_thread;
+struct lload_conf_info lload_info;
 
 void *
 lload_start_daemon( void *arg )
@@ -171,6 +172,7 @@ lload_back_initialize( BackendInfo *bi )
     bi->bi_connection_init = 0;
     bi->bi_connection_destroy = 0;
 
+    bi->bi_private = &lload_info;
     return lload_back_init_cf( bi );
 }
 
