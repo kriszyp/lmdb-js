@@ -106,6 +106,7 @@ request_process( LloadConnection *client, LloadOperation *op )
     }
     op->o_upstream = upstream;
     op->o_upstream_connid = upstream->c_connid;
+    op->o_res = LLOAD_OP_FAILED;
 
     output = upstream->c_pendingber;
     if ( output == NULL && (output = ber_alloc()) == NULL ) {

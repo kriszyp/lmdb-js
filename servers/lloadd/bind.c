@@ -408,6 +408,7 @@ request_bind( LloadConnection *client, LloadOperation *op )
     op->o_upstream = upstream;
     op->o_upstream_connid = upstream->c_connid;
     op->o_upstream_msgid = upstream->c_next_msgid++;
+    op->o_res = LLOAD_OP_FAILED;
 
     if ( BER_BVISNULL( &mech ) ) {
         if ( !BER_BVISNULL( &upstream->c_sasl_bind_mech ) ) {
