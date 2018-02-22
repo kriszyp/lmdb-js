@@ -307,18 +307,23 @@ again:
 			MDB_cursor *mvc;
 			Attribute *a;
 			rc = mdb_cursor_open( txn, mdb->mi_dbis[MDB_ID2VAL], &mvc );
-			if( rc )
-				return rc;
-			for ( a = ec.multi; a; a=a->a_next ) {
-				if (!(a->a_flags & SLAP_ATTR_BIG_MULTI))
-					continue;
-				rc = mdb_mval_put( op, mvc, e->e_id, a );
-				if( rc != LDAP_SUCCESS )
-					break;
+			if( !rc ) {
+				for ( a = ec.multi; a; a=a->a_next ) {
+					if (!(a->a_flags & SLAP_ATTR_BIG_MULTI))
+						continue;
+					rc = mdb_mval_put( op, mvc, e->e_id, a );
+					if( rc )
+						break;
+				}
+				mdb_cursor_close( mvc );
 			}
-			mdb_cursor_close( mvc );
-			if ( rc )
-				return rc;
+			if ( rc ) {
+				Debug( LDAP_DEBUG_ANY,
+					"mdb_id2entry_put: mdb_mval_put failed: %s(%d) \"%s\"\n",
+					mdb_strerror(rc), rc,
+					e->e_nname.bv_val );
+				return LDAP_OTHER;
+			}
 		}
 	}
 	if (rc) {

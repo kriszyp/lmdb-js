@@ -183,8 +183,11 @@ do_add:
 				if ( anew->a_flags & SLAP_ATTR_BIG_MULTI ) {
 					if (!mvc) {
 						err = mdb_cursor_open( tid, mdb->mi_dbis[MDB_ID2VAL], &mvc );
-						if (err)
+						if (err) {
+mval_fail:					strncpy( textbuf, mdb_strerror( err ), textlen );
+							err = LDAP_OTHER;
 							break;
+						}
 					}
 					/* if prev was set, just add new values */
 					if (a_flags & SLAP_ATTR_BIG_MULTI ) {
@@ -199,6 +202,8 @@ do_add:
 						if (anew->a_nvals == anew->a_vals)
 							anew->a_nvals = NULL;
 					}
+					if ( err )
+						goto mval_fail;
 				}
 			}
 			break;
@@ -237,7 +242,7 @@ do_del:
 					if (!mvc) {
 						err = mdb_cursor_open( tid, mdb->mi_dbis[MDB_ID2VAL], &mvc );
 						if (err)
-							break;
+							goto mval_fail;
 					}
 					if ( mod->sm_numvals ) {
 						anew = attr_find( e->e_attrs, mod->sm_desc );
@@ -259,6 +264,8 @@ do_del:
 						anew->a_numvals = 0;
 					}
 					err = mdb_mval_del( op, mvc, e->e_id, anew );
+					if ( err )
+						goto mval_fail;
 				}
 			}
 			break;
@@ -279,7 +286,7 @@ do_del:
 					if (!mvc) {
 						err = mdb_cursor_open( tid, mdb->mi_dbis[MDB_ID2VAL], &mvc );
 						if (err)
-							break;
+							goto mval_fail;
 					}
 					/* delete all values */
 					anew = &a_dummy;
@@ -287,17 +294,19 @@ do_del:
 					anew->a_numvals = 0;
 					err = mdb_mval_del( op, mvc, e->e_id, anew );
 					if (err)
-						break;
+						goto mval_fail;
 				}
 				anew = attr_find( e->e_attrs, mod->sm_desc );
-				if (mod->sm_numvals >= mdb->mi_multi_lo) {
+				if (mod->sm_numvals > mdb->mi_multi_hi) {
 					anew->a_flags |= SLAP_ATTR_BIG_MULTI;
 					if (!mvc) {
 						err = mdb_cursor_open( tid, mdb->mi_dbis[MDB_ID2VAL], &mvc );
 						if (err)
-							break;
+							goto mval_fail;
 					}
 					err = mdb_mval_put(op, mvc, e->e_id, anew);
+					if (err)
+						goto mval_fail;
 				} else if (anew) {
 					/* revert back to normal attr */
 					anew->a_flags &= ~SLAP_ATTR_BIG_MULTI;
