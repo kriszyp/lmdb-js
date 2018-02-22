@@ -1491,17 +1491,9 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 	if ( lo->mask & LOG_OP_WRITES ) {
 		slap_callback *cb;
 
-		/* Most internal ops are not logged */
-		if ( op->o_dont_replicate) {
-			/* Let contextCSN updates from syncrepl thru; the underlying
-			 * syncprov needs to see them. Skip others.
-			 */
-			if (( op->o_tag != LDAP_REQ_MODIFY ||
-				op->orm_modlist->sml_op != LDAP_MOD_REPLACE ||
-				op->orm_modlist->sml_desc != slap_schema.si_ad_contextCSN ) &&
-				op->orm_no_opattrs )
+		/* These internal ops are not logged */
+		if ( op->o_dont_replicate )
 			return SLAP_CB_CONTINUE;
-		}
 
 		ldap_pvt_thread_mutex_lock( &li->li_log_mutex );
 		old = li->li_old;
@@ -1963,18 +1955,8 @@ accesslog_op_mod( Operation *op, SlapReply *rs )
 	int doit = 0;
 
 	/* These internal ops are not logged */
-	if ( op->o_dont_replicate ) {
-		/* Let contextCSN updates from syncrepl thru; the underlying
-		 * syncprov needs to see them. Skip others.
-		 */
-		if (( op->o_tag != LDAP_REQ_MODIFY ||
-			op->orm_modlist->sml_op != LDAP_MOD_REPLACE ||
-			op->orm_modlist->sml_desc != slap_schema.si_ad_contextCSN ) &&
-			op->orm_no_opattrs )
+	if ( op->o_dont_replicate )
 		return SLAP_CB_CONTINUE;
-		/* give this a unique timestamp */
-		op->o_tincr++;
-	}
 
 	logop = accesslog_op2logop( op );
 	lo = logops+logop+EN_OFFSET;
