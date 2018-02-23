@@ -366,6 +366,14 @@ request_bind( LloadConnection *client, LloadOperation *op )
         assert( client->c_pin_id == 0 );
         goto done;
     }
+    /*
+     * At this point, either:
+     * - upstream is READY and pin == 0
+     * - upstream is BINDING, pin != 0 and op->o_upstream_msgid == 0
+     *
+     * A pinned upstream we marked for closing at some point ago should have
+     * closed by now.
+     */
 
     ber = upstream->c_pendingber;
     if ( ber == NULL && (ber = ber_alloc()) == NULL ) {
@@ -618,7 +626,28 @@ handle_bind_response(
         return LDAP_SUCCESS;
     }
 
-    if ( result == LDAP_SASL_BIND_IN_PROGRESS ) {
+    /*
+     * We might be marked for closing, forward the response if we can, but do
+     * no more if it's a SASL bind - just finish the operation and send failure
+     * in that case (since we can't resolve the bind identity correctly).
+     */
+    if ( upstream->c_state == LLOAD_C_CLOSING ) {
+        /* FIXME: this is too ad-hoc */
+        if ( ( result == LDAP_SUCCESS ||
+                     result == LDAP_SASL_BIND_IN_PROGRESS ) &&
+                !BER_BVISNULL( &upstream->c_sasl_bind_mech ) ) {
+            CONNECTION_UNLOCK(upstream);
+            operation_send_reject(
+                    op, LDAP_UNAVAILABLE, "upstream connection is closing", 0 );
+
+            ber_free( ber, 1 );
+            return LDAP_SUCCESS;
+        }
+
+        assert( op->o_client_msgid && op->o_upstream_msgid );
+        op->o_pin_id = 0;
+
+    } else if ( result == LDAP_SASL_BIND_IN_PROGRESS ) {
         tavl_delete( &upstream->c_ops, op, operation_upstream_cmp );
         op->o_upstream_msgid = 0;
         op->o_upstream_refcnt++;
@@ -733,7 +762,11 @@ handle_whoami_response(
         operation_send_reject( op, LDAP_OTHER, "upstream protocol error", 0 );
         return -1;
     }
-    upstream->c_state = LLOAD_C_READY;
+
+    if ( upstream->c_state != LLOAD_C_CLOSING ) {
+        assert( upstream->c_state == LLOAD_C_BINDING );
+        upstream->c_state = LLOAD_C_READY;
+    }
     if ( !BER_BVISNULL( &upstream->c_sasl_bind_mech ) ) {
         ber_memfree( upstream->c_sasl_bind_mech.bv_val );
         BER_BVZERO( &upstream->c_sasl_bind_mech );
