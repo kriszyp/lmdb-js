@@ -105,7 +105,7 @@ objectClass: olcConfig
 objectClass: top
 objectClass: olcSyncProvConfig
 olcOverlay: {0}syncprov
-olcSpCheckpoint: 20 10
+olcSpCheckpoint: 1 10
 olcSpSessionlog: 50
 
 dn: olcOverlay={1}accesslog,olcDatabase={1}@BACKEND@,cn=config
