@@ -68,6 +68,69 @@ int slapMode = SLAP_UNDEFINED_MODE;
 static const char *lload_name = NULL;
 
 int
+lload_global_init( void )
+{
+    int rc;
+
+    if ( lload_libevent_init() ) {
+        return -1;
+    }
+
+#ifdef HAVE_TLS
+    if ( ldap_create( &lload_tls_backend_ld ) ) {
+        return -1;
+    }
+    if ( ldap_create( &lload_tls_ld ) ) {
+        return -1;
+    }
+
+    /* Library defaults to full certificate checking. This is correct when
+     * a client is verifying a server because all servers should have a
+     * valid cert. But few clients have valid certs, so we want our default
+     * to be no checking. The config file can override this as usual.
+     */
+    rc = LDAP_OPT_X_TLS_NEVER;
+    (void)ldap_pvt_tls_set_option(
+            lload_tls_ld, LDAP_OPT_X_TLS_REQUIRE_CERT, &rc );
+#endif
+
+    ldap_pvt_thread_mutex_init( &lload_wait_mutex );
+    ldap_pvt_thread_cond_init( &lload_wait_cond );
+    ldap_pvt_thread_cond_init( &lload_pause_cond );
+
+    ldap_pvt_thread_mutex_init( &backend_mutex );
+    ldap_pvt_thread_mutex_init( &clients_mutex );
+    ldap_pvt_thread_mutex_init( &lload_pin_mutex );
+
+    if ( lload_exop_init() ) {
+        return -1;
+    }
+    return 0;
+}
+
+int
+lload_tls_init( void )
+{
+#ifdef HAVE_TLS
+    int rc, opt = 1;
+
+    /* Force new ctx to be created */
+    rc = ldap_pvt_tls_set_option( lload_tls_ld, LDAP_OPT_X_TLS_NEWCTX, &opt );
+    if ( rc == 0 ) {
+        /* The ctx's refcount is bumped up here */
+        ldap_pvt_tls_get_option(
+                lload_tls_ld, LDAP_OPT_X_TLS_CTX, &lload_tls_ctx );
+    } else if ( rc != LDAP_NOT_SUPPORTED ) {
+        Debug( LDAP_DEBUG_ANY, "lload_global_init: "
+                "TLS init def ctx failed: %d\n",
+                rc );
+        return -1;
+    }
+#endif
+    return 0;
+}
+
+int
 lload_init( int mode, const char *name )
 {
     int rc = LDAP_SUCCESS;
@@ -101,16 +164,7 @@ lload_init( int mode, const char *name )
             LDAP_STAILQ_INIT( &slapd_rq.task_list );
             LDAP_STAILQ_INIT( &slapd_rq.run_list );
 
-            ldap_pvt_thread_mutex_init( &lload_wait_mutex );
-            ldap_pvt_thread_cond_init( &lload_wait_cond );
-            ldap_pvt_thread_cond_init( &lload_pause_cond );
-
-            ldap_pvt_thread_mutex_init( &backend_mutex );
-            ldap_pvt_thread_mutex_init( &clients_mutex );
-            ldap_pvt_thread_mutex_init( &lload_pin_mutex );
-
-            lload_exop_init();
-
+            rc = lload_global_init();
             break;
 
         default:

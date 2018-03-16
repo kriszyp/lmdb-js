@@ -33,6 +33,7 @@
 #include <ac/time.h>
 
 #include "../servers/slapd/slap.h"
+#include "../servers/slapd/config.h"
 
 #include "lload.h"
 #include "lber_pvt.h"
@@ -45,7 +46,7 @@ struct lload_conf_info lload_info;
 void *
 lload_start_daemon( void *arg )
 {
-    int rc = 0, i;
+    int rc = 0;
 
     daemon_base = event_base_new();
     if ( !daemon_base ) {
@@ -59,37 +60,21 @@ lload_start_daemon( void *arg )
     return (void *)(uintptr_t)rc;
 }
 
-/* from init.c */
-int
-lload_conn_pool_init()
-{
-    int rc = 0;
-
-    ldap_pvt_thread_mutex_init( &lload_wait_mutex );
-    ldap_pvt_thread_cond_init( &lload_pause_cond );
-    ldap_pvt_thread_cond_init( &lload_wait_cond );
-
-    ldap_pvt_thread_mutex_init( &backend_mutex );
-    ldap_pvt_thread_mutex_init( &clients_mutex );
-    ldap_pvt_thread_mutex_init( &lload_pin_mutex );
-
-    lload_exop_init();
-    Debug( LDAP_DEBUG_TRACE, "lload_conn_pool_init: "
-            "mutexes initialized.\n" );
-    return rc;
-}
-
 static int
 lload_pause_cb( BackendInfo *bi )
 {
-    lload_pause_server();
+    if ( daemon_base ) {
+        lload_pause_server();
+    }
     return 0;
 }
 
 static int
 lload_unpause_cb( BackendInfo *bi )
 {
-    lload_unpause_server();
+    if ( daemon_base ) {
+        lload_unpause_server();
+    }
     return 0;
 }
 
@@ -99,20 +84,14 @@ lload_back_open( BackendInfo *bi )
     if ( slapMode & SLAP_TOOL_MODE ) {
         return 0;
     }
-    if ( lload_libevent_init() ) {
+
+    if ( lload_tls_init() != 0 ) {
         return -1;
     }
-    global_host = ldap_pvt_get_fqdn( NULL );
-#ifdef HAVE_TLS
-    if ( ldap_create( &lload_tls_backend_ld ) ) {
-        return -1;
-    }
-#endif /* HAVE_TLS */
 
     if ( lloadd_daemon_init( listeners_list ) != 0 ) {
         return -1;
     }
-    lload_conn_pool_init();
 
     if ( lload_monitor_open() != 0 ) {
         return -1;
@@ -171,6 +150,10 @@ lload_back_initialize( BackendInfo *bi )
 
     bi->bi_connection_init = 0;
     bi->bi_connection_destroy = 0;
+
+    if ( lload_global_init() ) {
+        return -1;
+    }
 
     bi->bi_private = &lload_info;
     return lload_back_init_cf( bi );

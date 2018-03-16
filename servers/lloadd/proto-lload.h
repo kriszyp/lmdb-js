@@ -134,6 +134,8 @@ LDAP_SLAPD_F (int) lload_exop_init( void );
 /*
  * init.c
  */
+LDAP_SLAPD_F (int) lload_global_init( void );
+LDAP_SLAPD_F (int) lload_tls_init( void );
 LDAP_SLAPD_F (int) lload_init( int mode, const char *name );
 LDAP_SLAPD_F (int) lload_destroy( void );
 LDAP_SLAPD_F (void) lload_counters_init( void );

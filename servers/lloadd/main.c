@@ -625,10 +625,6 @@ unhandled_option:;
 
     Debug( LDAP_DEBUG_ANY, "%s", Versionstr );
 
-    if ( lload_libevent_init() ) {
-        goto stop;
-    }
-
     global_host = ldap_pvt_get_fqdn( NULL );
 
     if ( check == CHECK_NONE && lloadd_daemon_init( urls ) != 0 ) {
@@ -661,27 +657,6 @@ unhandled_option:;
     if ( username != NULL || groupname != NULL ) {
         slap_init_user( username, groupname );
     }
-#endif
-
-#ifdef HAVE_TLS
-    rc = ldap_create( &lload_tls_backend_ld );
-    if ( rc ) {
-        SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 20 );
-        goto destroy;
-    }
-    rc = ldap_create( &lload_tls_ld );
-    if ( rc ) {
-        SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 20 );
-        goto destroy;
-    }
-    /* Library defaults to full certificate checking. This is correct when
-     * a client is verifying a server because all servers should have a
-     * valid cert. But few clients have valid certs, so we want our default
-     * to be no checking. The config file can override this as usual.
-     */
-    rc = LDAP_OPT_X_TLS_NEVER;
-    (void)ldap_pvt_tls_set_option(
-            lload_tls_ld, LDAP_OPT_X_TLS_REQUIRE_CERT, &rc );
 #endif
 
     rc = lload_init( serverMode, serverName );
@@ -740,24 +715,10 @@ unhandled_option:;
         goto destroy;
     }
 
-    {
-        int opt = 1;
-
-        /* Force new ctx to be created */
-        rc = ldap_pvt_tls_set_option(
-                lload_tls_ld, LDAP_OPT_X_TLS_NEWCTX, &opt );
-        if ( rc == 0 ) {
-            /* The ctx's refcount is bumped up here */
-            ldap_pvt_tls_get_option(
-                    lload_tls_ld, LDAP_OPT_X_TLS_CTX, &lload_tls_ctx );
-        } else if ( rc != LDAP_NOT_SUPPORTED ) {
-            Debug( LDAP_DEBUG_ANY, "main: "
-                    "TLS init def ctx failed: %d\n",
-                    rc );
-            rc = 1;
-            SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 20 );
-            goto destroy;
-        }
+    if ( lload_tls_init() ) {
+        rc = 1;
+        SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 20 );
+        goto destroy;
     }
 #endif
 
