@@ -1318,17 +1318,19 @@ lloadd_daemon( struct event_base *daemon_base )
         return rc;
     }
 
-    current_backend = LDAP_CIRCLEQ_FIRST( &backend );
-    LDAP_CIRCLEQ_FOREACH ( b, &backend, b_next ) {
-        event = evtimer_new( daemon_base, backend_connect, b );
-        if ( !event ) {
-            Debug( LDAP_DEBUG_ANY, "lloadd: "
-                    "failed to allocate retry event\n" );
-            return -1;
-        }
-        b->b_retry_event = event;
+    if ( !LDAP_CIRCLEQ_EMPTY( &backend ) ) {
+        current_backend = LDAP_CIRCLEQ_FIRST( &backend );
+        LDAP_CIRCLEQ_FOREACH ( b, &backend, b_next ) {
+            event = evtimer_new( daemon_base, backend_connect, b );
+            if ( !event ) {
+                Debug( LDAP_DEBUG_ANY, "lloadd: "
+                        "failed to allocate retry event\n" );
+                return -1;
+            }
+            b->b_retry_event = event;
 
-        backend_retry( b );
+            backend_retry( b );
+        }
     }
 
     event = evtimer_new( daemon_base, operations_timeout, event_self_cbarg() );
