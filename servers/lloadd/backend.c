@@ -510,6 +510,7 @@ lload_backend_destroy( LloadBackend *b )
 
     ch_free( b->b_host );
     ch_free( b->b_uri.bv_val );
+    ch_free( b->b_name.bv_val );
     ch_free( b );
 }
 

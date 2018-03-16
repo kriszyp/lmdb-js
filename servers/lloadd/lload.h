@@ -188,7 +188,7 @@ typedef struct lload_global_stats_t {
 struct LloadBackend {
     ldap_pvt_thread_mutex_t b_mutex;
 
-    struct berval b_uri;
+    struct berval b_name, b_uri;
     int b_proto, b_port;
     enum lload_tls_type b_tls;
     char *b_host;

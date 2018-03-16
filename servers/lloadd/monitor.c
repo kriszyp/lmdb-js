@@ -687,9 +687,6 @@ done:
     return rc;
 }
 
-static struct monitor_subsys_t *servers_subsys;
-/* Not sure if this has to be a subsystem at all, perhaps just entries? */
-
 static int
 lload_monitor_server_update(
         Operation *op,
@@ -816,7 +813,6 @@ lload_monitor_backends_init( BackendDB *be, monitor_subsys_t *ms )
 {
     monitor_extra_t *mbe;
     Entry *e;
-    unsigned int i = 1, j = 0;
     int rc;
     LloadBackend *b;
 
@@ -847,22 +843,15 @@ lload_monitor_backends_init( BackendDB *be, monitor_subsys_t *ms )
     }
 
     LDAP_CIRCLEQ_FOREACH ( b, &backend, b_next ) {
-        j++;
-    }
+        monitor_subsys_t *bk_mss = ch_calloc( 1, sizeof(monitor_subsys_t) );
 
-    servers_subsys = ch_calloc( j, sizeof(monitor_subsys_t) );
-    LDAP_CIRCLEQ_FOREACH ( b, &backend, b_next ) {
-        monitor_subsys_t *bk_mss;
-        struct berval bv;
+        bk_mss->mss_rdn.bv_len = sizeof("cn=") + b->b_name.bv_len;
+        bk_mss->mss_rdn.bv_val = ch_malloc( bk_mss->mss_rdn.bv_len );
+        bk_mss->mss_rdn.bv_len = snprintf( bk_mss->mss_rdn.bv_val,
+                bk_mss->mss_rdn.bv_len, "cn=%s", b->b_name.bv_val );
 
-        bv.bv_len = sizeof( "cn=Server 4294967295" );
-        bv.bv_val = ch_malloc( bv.bv_len );
-        bv.bv_len = snprintf( bv.bv_val, bv.bv_len, "cn=Server %u", i );
-
-        bk_mss = &servers_subsys[i - 1];
-        bk_mss->mss_name = bv.bv_val;
         ber_str2bv( LLOAD_MONITOR_BACKENDS_DN, 0, 0, &bk_mss->mss_dn );
-        ber_dupbv( &bk_mss->mss_rdn, &bv );
+        bk_mss->mss_name = b->b_name.bv_val;
         bk_mss->mss_flags = MONITOR_F_VOLATILE_CH;
         bk_mss->mss_open = lload_monitor_backend_open;
         bk_mss->mss_create = lload_monitor_up_conn_create;
@@ -876,7 +865,6 @@ lload_monitor_backends_init( BackendDB *be, monitor_subsys_t *ms )
                     bk_mss->mss_name );
             return -1;
         }
-        i++;
     }
 done:
     entry_free( e );

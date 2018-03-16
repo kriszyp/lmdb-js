@@ -1085,7 +1085,7 @@ config_bindconf( ConfigArgs *c )
 
         lload_bindconf_unparse( &bindconf, &bv );
 
-        for ( i = 0; isspace((unsigned char)bv.bv_val[i]); i++ )
+        for ( i = 0; isspace( (unsigned char)bv.bv_val[i] ); i++ )
             /* count spaces */;
 
         if ( i ) {
@@ -3563,6 +3563,11 @@ static int
 lload_backend_ldadd( CfEntryInfo *p, Entry *e, ConfigArgs *ca )
 {
     LloadBackend *b;
+    Attribute *a;
+    AttributeDescription *ad = NULL;
+    struct berval bv, type, rdn;
+    const char *text;
+    char *name;
 
     Debug( LDAP_DEBUG_TRACE, "lload_backend_ldadd: "
             "a new backend-server is being added\n" );
@@ -3571,7 +3576,26 @@ lload_backend_ldadd( CfEntryInfo *p, Entry *e, ConfigArgs *ca )
             p->ce_bi->bi_cf_ocs != lloadocs )
         return LDAP_CONSTRAINT_VIOLATION;
 
+    dnRdn( &e->e_name, &rdn );
+    type.bv_len = strchr( rdn.bv_val, '=' ) - rdn.bv_val;
+    type.bv_val = rdn.bv_val;
+
+    /* Find attr */
+    slap_bv2ad( &type, &ad, &text );
+    if ( ad != slap_schema.si_ad_cn ) return LDAP_NAMING_VIOLATION;
+
+    a = attr_find( e->e_attrs, ad );
+    if ( !a || a->a_numvals != 1 ) return LDAP_NAMING_VIOLATION;
+    bv = a->a_vals[0];
+
+    if ( bv.bv_val[0] == '{' && ( name = strchr( bv.bv_val, '}' ) ) ) {
+        name++;
+        bv.bv_len -= name - bv.bv_val;
+        bv.bv_val = name;
+    }
+
     b = backend_alloc();
+    ber_dupbv( &b->b_name, &bv );
 
     ca->bi = p->ce_bi;
     ca->ca_private = b;
@@ -3611,8 +3635,13 @@ lload_cfadd( Operation *op, SlapReply *rs, Entry *p, ConfigArgs *c )
 
     bv.bv_val = c->cr_msg;
     LDAP_CIRCLEQ_FOREACH ( b, &backend, b_next ) {
+        char buf[STRLENOF( "server 4294967295" ) + 1] = { 0 };
+
         bv.bv_len = snprintf( c->cr_msg, sizeof(c->cr_msg),
                 "cn=" SLAP_X_ORDERED_FMT "server %d", i, i + 1 );
+
+        snprintf( buf, sizeof(buf), "server %d", i + 1 );
+        ber_str2bv( buf, 0, 1, &b->b_name );
 
         c->ca_private = b;
         c->valx = i;
