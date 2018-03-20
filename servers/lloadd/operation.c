@@ -806,16 +806,11 @@ void
 operation_lost_upstream( LloadOperation *op )
 {
     LloadConnection *c = op->o_upstream;
-    CONNECTION_LOCK(c);
-    op->o_res = LLOAD_OP_FAILED;
-    op->o_upstream_refcnt++;
-    /* Matching the op reference on the connection as well */
-    CONNECTION_UNLOCK_INCREF(c);
 
     operation_send_reject( op, LDAP_UNAVAILABLE,
             "connection to the remote server has been severed", 0 );
 
-    CONNECTION_LOCK_DECREF(c);
+    CONNECTION_LOCK(c);
     op->o_upstream_refcnt--;
     operation_destroy_from_upstream( op );
     CONNECTION_UNLOCK(c);

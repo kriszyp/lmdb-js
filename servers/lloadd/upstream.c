@@ -760,7 +760,7 @@ upstream_destroy( LloadConnection *c )
 {
     LloadBackend *b = c->c_private;
     struct event *read_event, *write_event;
-    TAvlnode *root;
+    TAvlnode *root, *node;
     long freed, executing;
     enum sc_state state;
 
@@ -779,6 +779,14 @@ upstream_destroy( LloadConnection *c )
 
     read_event = c->c_read_event;
     write_event = c->c_write_event;
+
+    for ( node = tavl_end( root, TAVL_DIR_LEFT ); node;
+            node = tavl_next( node, TAVL_DIR_RIGHT ) ) {
+        LloadOperation *op = node->avl_data;
+
+        op->o_res = LLOAD_OP_FAILED;
+        op->o_upstream_refcnt++;
+    }
 
     CONNECTION_UNLOCK_INCREF(c);
 
