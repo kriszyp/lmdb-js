@@ -787,6 +787,10 @@ lloadd_daemon_destroy( void )
                 event_base_free( lload_daemon[i].base );
             }
         }
+
+        event_base_free( daemon_base );
+        daemon_base = NULL;
+
         lloadd_inited = 0;
 #ifdef HAVE_TCPD
         ldap_pvt_thread_mutex_destroy( &sd_tcpd_mutex );
@@ -1359,9 +1363,11 @@ lloadd_daemon( struct event_base *daemon_base )
     /* wait for the listener threads to complete */
     destroy_listeners();
 
-    for ( i = 0; i < lload_daemon_threads; i++ )
-        ldap_pvt_thread_join( daemon_tid[i], (void *)NULL );
+    for ( i = 0; i < lload_daemon_threads; i++ ) {
+        event_del( lload_daemon[i].wakeup_event );
+    }
 
+#ifndef BALANCER_MODULE
     if ( LogTest( LDAP_DEBUG_ANY ) ) {
         int t = ldap_pvt_thread_pool_backload( &connection_pool );
         Debug( LDAP_DEBUG_ANY, "lloadd shutdown: "
@@ -1369,15 +1375,25 @@ lloadd_daemon( struct event_base *daemon_base )
                 t );
     }
     ldap_pvt_thread_pool_close( &connection_pool, 1 );
+#endif
+
     lload_backends_destroy();
     clients_destroy();
     lload_bindconf_free( &bindconf );
     evdns_base_free( dnsbase, 0 );
 
+    for ( i = 0; i < lload_daemon_threads; i++ ) {
+        ldap_pvt_thread_join( daemon_tid[i], (void *)NULL );
+    }
+
     ch_free( daemon_tid );
     daemon_tid = NULL;
 
     lloadd_daemon_destroy();
+
+    /* If we're a slapd module, let the thread that initiated the shut down
+     * know we've finished */
+    ldap_pvt_thread_cond_signal( &lload_wait_cond );
 
     return 0;
 }
