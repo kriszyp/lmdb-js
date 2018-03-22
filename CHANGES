@@ -1,5 +1,7 @@
 OpenLDAP 2.4 Change Log
 
+OpenLDAP 2.4.47 Engineering
+
 OpenLDAP 2.4.46 Release (2018/03/22)
 	Fixed libldap connection delete callbacks when TLS fails to start (ITS#8717)
 	Fixed libldap to not reuse tls_session if TLS hostname check fails (ITS#7373)
