@@ -37,6 +37,7 @@ OpenLDAP 2.4.46 Engineering
 	Documentation
 		Delete stub manpage for back-ldbm (ITS#8713)
 		Fixed ldap_bind(3) to mention the LDAP_SASL_SIMPLE mechanism (ITS#8121)
+		Fixed ldap.conf(5) to note SASL_MECH/SASL_REALM are no longer user-only (ITS#8818)
 		Fixed slapd-config(5) typo for olcTLSCipherSuite (ITS#8715)
 		Fixed slapo-syncprov(5) indexing requirements (ITS#5048)
 
