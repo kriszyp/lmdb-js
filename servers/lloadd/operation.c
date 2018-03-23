@@ -610,7 +610,7 @@ operation_abandon( LloadOperation *op )
 
     ldap_pvt_thread_mutex_lock( &op->o_link_mutex );
     c = op->o_upstream;
-    if ( !c ) {
+    if ( !c || !c->c_live ) {
         ldap_pvt_thread_mutex_unlock( &op->o_link_mutex );
         goto done;
     }
@@ -640,6 +640,8 @@ operation_abandon( LloadOperation *op )
     }
     c->c_n_ops_executing--;
     b = (LloadBackend *)c->c_private;
+
+    op->o_upstream_refcnt++;
     CONNECTION_UNLOCK_INCREF(c);
 
     ldap_pvt_thread_mutex_lock( &b->b_mutex );
@@ -652,14 +654,10 @@ operation_abandon( LloadOperation *op )
     }
 
     CONNECTION_LOCK_DECREF(c);
+    op->o_upstream_refcnt--;
+
 unlock:
-    /*
-     * FIXME: the dance in operation_destroy_from_upstream might be slower than
-     * optimal as we've done some of the things above already. However, we want
-     * to clear o_upstream from the op if it's dying, but witnessing and
-     * navigating the race to do that safely is too complex to copy here.
-     */
-    if ( !c->c_live ) {
+    if ( !c->c_live || !op->o_upstream_refcnt ) {
         operation_destroy_from_upstream( op );
     }
     if ( rc ) {
