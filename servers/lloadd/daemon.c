@@ -1460,6 +1460,15 @@ lload_handle_backend_invalidation( LloadChange *change )
     assert( change->object == LLOAD_BACKEND );
 
     if ( change->type == LDAP_REQ_ADD ) {
+        BackendInfo *mi = backend_info( "monitor" );
+
+        if ( mi ) {
+            monitor_extra_t *mbe = mi->bi_extra;
+            if ( mbe->is_configured() ) {
+                lload_monitor_backend_init( mi, b );
+            }
+        }
+
         if ( !current_backend ) {
             current_backend = b;
         }

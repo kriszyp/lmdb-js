@@ -269,6 +269,28 @@ lload_monitor_subsystem_destroy( BackendDB *be, monitor_subsys_t *ms )
     return LDAP_SUCCESS;
 }
 
+static int
+lload_monitor_backend_destroy( BackendDB *be, monitor_subsys_t *ms )
+{
+    LloadBackend *b = ms->mss_private;
+    monitor_extra_t *mbe;
+    int rc = LDAP_SUCCESS;
+
+    mbe = (monitor_extra_t *)be->bd_info->bi_extra;
+    if ( b->b_monitor ) {
+        ms->mss_destroy = lload_monitor_subsystem_destroy;
+
+        assert( b->b_monitor == ms );
+        b->b_monitor = NULL;
+
+        rc = mbe->unregister_entry( &ms->mss_ndn );
+        ber_memfree( ms->mss_dn.bv_val );
+        ber_memfree( ms->mss_ndn.bv_val );
+    }
+
+    return rc;
+}
+
 static void
 lload_monitor_balancer_dispose( void **priv )
 {
@@ -803,8 +825,46 @@ lload_monitor_backend_open( BackendDB *be, monitor_subsys_t *ms )
                 e->e_name.bv_val );
         goto done;
     }
+
+    b->b_monitor = ms;
+    ms->mss_destroy = lload_monitor_backend_destroy;
+
 done:
     entry_free( e );
+    return rc;
+}
+
+int
+lload_monitor_backend_init( BackendInfo *bi, LloadBackend *b )
+{
+    monitor_extra_t *mbe;
+    monitor_subsys_t *bk_mss;
+
+    mbe = (monitor_extra_t *)bi->bi_extra;
+
+    /* FIXME: With back-monitor as it works now, there is no way to know when
+     * this can be safely freed so we leak it on shutdown */
+    bk_mss = ch_calloc( 1, sizeof(monitor_subsys_t) );
+    bk_mss->mss_rdn.bv_len = sizeof("cn=") + b->b_name.bv_len;
+    bk_mss->mss_rdn.bv_val = ch_malloc( bk_mss->mss_rdn.bv_len );
+    bk_mss->mss_rdn.bv_len = snprintf( bk_mss->mss_rdn.bv_val,
+            bk_mss->mss_rdn.bv_len, "cn=%s", b->b_name.bv_val );
+
+    ber_str2bv( LLOAD_MONITOR_BACKENDS_DN, 0, 0, &bk_mss->mss_dn );
+    bk_mss->mss_name = b->b_name.bv_val;
+    bk_mss->mss_flags = MONITOR_F_VOLATILE_CH;
+    bk_mss->mss_open = lload_monitor_backend_open;
+    bk_mss->mss_create = lload_monitor_up_conn_create;
+    bk_mss->mss_destroy = lload_monitor_subsystem_destroy;
+    bk_mss->mss_update = NULL;
+    bk_mss->mss_private = b;
+
+    if ( mbe->register_subsys_late( bk_mss ) ) {
+        Debug( LDAP_DEBUG_ANY, "lload_monitor_backend_init: "
+                "failed to register backend %s\n",
+                bk_mss->mss_name );
+        return -1;
+    }
     return LDAP_SUCCESS;
 }
 
@@ -843,27 +903,8 @@ lload_monitor_backends_init( BackendDB *be, monitor_subsys_t *ms )
     }
 
     LDAP_CIRCLEQ_FOREACH ( b, &backend, b_next ) {
-        monitor_subsys_t *bk_mss = ch_calloc( 1, sizeof(monitor_subsys_t) );
-
-        bk_mss->mss_rdn.bv_len = sizeof("cn=") + b->b_name.bv_len;
-        bk_mss->mss_rdn.bv_val = ch_malloc( bk_mss->mss_rdn.bv_len );
-        bk_mss->mss_rdn.bv_len = snprintf( bk_mss->mss_rdn.bv_val,
-                bk_mss->mss_rdn.bv_len, "cn=%s", b->b_name.bv_val );
-
-        ber_str2bv( LLOAD_MONITOR_BACKENDS_DN, 0, 0, &bk_mss->mss_dn );
-        bk_mss->mss_name = b->b_name.bv_val;
-        bk_mss->mss_flags = MONITOR_F_VOLATILE_CH;
-        bk_mss->mss_open = lload_monitor_backend_open;
-        bk_mss->mss_create = lload_monitor_up_conn_create;
-        bk_mss->mss_destroy = lload_monitor_subsystem_destroy;
-        bk_mss->mss_update = NULL;
-        bk_mss->mss_private = b;
-
-        if ( mbe->register_subsys_late( bk_mss ) ) {
-            Debug( LDAP_DEBUG_ANY, "lload_monitor_backends_init: "
-                    "failed to register %s subsystem",
-                    bk_mss->mss_name );
-            return -1;
+        if ( (rc = lload_monitor_backend_init( be->bd_info, b )) ) {
+            break;
         }
     }
 done:

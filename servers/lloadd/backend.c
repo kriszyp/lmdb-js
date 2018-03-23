@@ -503,6 +503,20 @@ lload_backend_destroy( LloadBackend *b )
         current_backend = next;
     }
 
+#ifdef BALANCER_MODULE
+    if ( b->b_monitor ) {
+        BackendDB *be;
+        struct berval monitordn = BER_BVC("cn=monitor");
+        int rc;
+
+        be = select_backend( &monitordn, 0 );
+
+        /* FIXME: implement proper subsys shutdown in back-monitor or make
+         * backend just an entry, not a subsys */
+        rc = b->b_monitor->mss_destroy( be, b->b_monitor );
+        assert( rc == LDAP_SUCCESS );
+    }
+#endif /* BALANCER_MODULE */
     ldap_pvt_thread_mutex_destroy( &b->b_mutex );
 
     event_del( b->b_retry_event );

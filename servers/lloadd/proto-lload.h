@@ -151,6 +151,7 @@ LDAP_SLAPD_F (void) lload_libevent_destroy( void );
  * monitor.c
  */
 LDAP_SLAPD_F (int) lload_monitor_open( void );
+LDAP_SLAPD_F (int) lload_monitor_backend_init( BackendInfo *bi, LloadBackend *b );
 #endif /* BALANCER_MODULE */
 
 /*

@@ -208,6 +208,10 @@ struct LloadBackend {
 
     lload_counters_t b_counters[LLOAD_STATS_OPS_LAST];
 
+#ifdef BALANCER_MODULE
+    monitor_subsys_t *b_monitor;
+#endif /* BALANCER_MODULE */
+
     LDAP_CIRCLEQ_ENTRY(LloadBackend) b_next;
 };
 
