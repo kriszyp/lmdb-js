@@ -182,6 +182,36 @@ describe('Node.js LMDB Bindings', function() {
       should.equal(info.mapSize, 100 * 1024 * 1024);
       should.equal(info.maxReaders, 422);
     });
+    it('will check for open transactions before resizing the mapSize', function() {
+      var dbi = env.openDbi({
+          name: 'mydb1',
+          create: true
+      });
+      var info = env.info();
+      should.equal(info.mapSize, 100 * 1024 * 1024);
+      // Open write transaction
+      var txn = env.beginTxn();
+      try {
+        env.resize(info.mapSize * 2);
+      } catch (err) {
+        err.should.be.an.instanceof(Error);
+      }
+      txn.abort();
+      info = env.info();
+      should.equal(info.mapSize, 100 * 1024 * 1024);
+
+      // Open readOnly transaction
+      txn = env.beginTxn({ readOnly: true });
+      try {
+          env.resize(info.mapSize * 2);
+      } catch (err) {
+          err.should.be.an.instanceof(Error);
+      }
+      txn.abort();
+      info = env.info();
+      should.equal(info.mapSize, 100 * 1024 * 1024);
+      dbi.close();
+    });
     it('will resize the mapSize', function() {
       var dbi = env.openDbi({
           name: 'mydb1',

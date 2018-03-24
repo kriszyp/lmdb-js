@@ -170,6 +170,16 @@ NAN_METHOD(EnvWrap::resize) {
         return Nan::ThrowError("The environment is already closed.");
     }
 
+    // Check that the correct number/type of arguments was given.
+    if (info.Length() != 1 || !info[0]->IsNumber()) {
+        return Nan::ThrowError("Call env.resize() with exactly one argument which is a number.");
+    }
+
+    // Since this function may only be called if no transactions are active in this process, check this condition.
+    if (ew->currentWriteTxn || ew->readTxns.size()) {
+        return Nan::ThrowError("Only call env.resize() when there are no active transactions. Please close all transactions before calling env.resize().");
+    }
+
     double mapSizeDouble = info[0]->NumberValue();
     size_t mapSizeSizeT = (size_t) mapSizeDouble;
     int rc = mdb_env_set_mapsize(ew->env, mapSizeSizeT);

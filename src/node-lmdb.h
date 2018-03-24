@@ -149,7 +149,6 @@ public:
 
     /*
         Resizes the maximal size of the memory map. It may be called if no transactions are active in this process.
-        Note that the library does not check for this condition, the caller must ensure it explicitly.
         (Wrapper for `mdb_env_set_mapsize`)
 
         Parameters:
