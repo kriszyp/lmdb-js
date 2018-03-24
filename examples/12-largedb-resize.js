@@ -39,10 +39,10 @@ catch (error) {
 }
 
 var info = env.info();
-var stat = env.stat();
-var currentSize = stat.pageSize * (info.lastPageNumber + 1);
-env.resize(currentSize * 2);
-console.log('database size after resize', (currentSize * 2 / 1024 / 1024), 'MB');
+console.log('maximal database size before resize', (info.mapSize / 1024 / 1024), 'MB');
+env.resize(info.mapSize * 2);
+info = env.info();
+console.log('maximal database size after resize', (info.mapSize / 1024 / 1024), 'MB');
 
 for (var i = 0; i < 1000; i++) {
     var txn = env.beginTxn();

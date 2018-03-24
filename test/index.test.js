@@ -49,6 +49,7 @@ describe('Node.js LMDB Bindings', function() {
     env.beginTxn.should.be.a('function');
     env.openDbi.should.be.a('function');
     env.sync.should.be.a('function');
+    env.resize.should.be.a('function');
     env.close();
   });
   describe('Basics', function() {
@@ -180,6 +181,18 @@ describe('Node.js LMDB Bindings', function() {
       
       should.equal(info.mapSize, 100 * 1024 * 1024);
       should.equal(info.maxReaders, 422);
+    });
+    it('will resize the mapSize', function() {
+      var dbi = env.openDbi({
+          name: 'mydb1',
+          create: true
+      });
+      var info = env.info();
+      should.equal(info.mapSize, 100 * 1024 * 1024);
+      env.resize(info.mapSize * 2);
+      info = env.info();
+      should.equal(info.mapSize, 200 * 1024 * 1024);
+      dbi.close();
     });
     it('will get statistics about an environment', function() {
       var stat = env.stat();
