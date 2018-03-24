@@ -148,6 +148,17 @@ public:
     static NAN_METHOD(open);
 
     /*
+        Resizes the maximal size of the memory map. It may be called if no transactions are active in this process.
+        Note that the library does not check for this condition, the caller must ensure it explicitly.
+        (Wrapper for `mdb_env_set_mapsize`)
+
+        Parameters:
+
+        * maximal size of the memory map (the full environment) in bytes (default is 10485760 bytes)
+    */
+    static NAN_METHOD(resize);
+
+    /*
         Closes the database environment.
         (Wrapper for `mdb_env_close`)
     */

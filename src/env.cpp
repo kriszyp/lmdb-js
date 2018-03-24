@@ -160,6 +160,24 @@ NAN_METHOD(EnvWrap::open) {
     }
 }
 
+NAN_METHOD(EnvWrap::resize) {
+    Nan::HandleScope scope;
+
+    // Get the wrapper
+    EnvWrap *ew = Nan::ObjectWrap::Unwrap<EnvWrap>(info.This());
+
+    if (!ew->env) {
+        return Nan::ThrowError("The environment is already closed.");
+    }
+
+    double mapSizeDouble = info[0]->NumberValue();
+    size_t mapSizeSizeT = (size_t) mapSizeDouble;
+    int rc = mdb_env_set_mapsize(ew->env, mapSizeSizeT);
+    if (rc != 0) {
+        return Nan::ThrowError(mdb_strerror(rc));
+    }
+}
+
 NAN_METHOD(EnvWrap::close) {
     EnvWrap *ew = Nan::ObjectWrap::Unwrap<EnvWrap>(info.This());
     ew->Unref();
@@ -320,6 +338,7 @@ void EnvWrap::setupExports(Handle<Object> exports) {
     envTpl->PrototypeTemplate()->Set(Nan::New<String>("sync").ToLocalChecked(), Nan::New<FunctionTemplate>(EnvWrap::sync));
     envTpl->PrototypeTemplate()->Set(Nan::New<String>("stat").ToLocalChecked(), Nan::New<FunctionTemplate>(EnvWrap::stat));
     envTpl->PrototypeTemplate()->Set(Nan::New<String>("info").ToLocalChecked(), Nan::New<FunctionTemplate>(EnvWrap::info));
+    envTpl->PrototypeTemplate()->Set(Nan::New<String>("resize").ToLocalChecked(), Nan::New<FunctionTemplate>(EnvWrap::resize));
     // TODO: wrap mdb_env_copy too
 
     // TxnWrap: Prepare constructor template
