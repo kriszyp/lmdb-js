@@ -92,6 +92,17 @@ describe('Node.js LMDB Bindings', function() {
       txn.commit();
       dbi.close();
     });
+    it('env.openDbi should throw an error when invalid parameters are passed', function() {
+      chai.assert.throw(function () {
+        env.openDbi();
+      });
+      chai.assert.throw(function () {
+        env.openDbi(null);
+      });
+      chai.assert.throw(function () {
+        env.openDbi(1);
+      });
+    });
     it('will open a database, begin a transaction and get/put/delete string data containing zeros', function() {
       var dbi = env.openDbi({
         name: 'mydb1x',
