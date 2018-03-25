@@ -54,8 +54,8 @@ EnvWrap::~EnvWrap() {
 void EnvWrap::cleanupStrayTxns() {
     if (this->currentWriteTxn) {
         mdb_txn_abort(this->currentWriteTxn->txn);
-        this->currentWriteTxn->removeFromEnvWrap();
         this->currentWriteTxn->txn = nullptr;
+        this->currentWriteTxn->removeFromEnvWrap();
     }
     while (this->readTxns.size()) {
         TxnWrap *tw = *this->readTxns.begin();
