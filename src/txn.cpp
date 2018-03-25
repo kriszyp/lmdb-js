@@ -308,26 +308,30 @@ NAN_METHOD(TxnWrap::putBinary) {
     });
 }
 
+// This is used by putNumber for temporary storage
+static thread_local double numberToPut = 0.0;
+
 NAN_METHOD(TxnWrap::putNumber) {
     return putCommon(info, [](Nan::NAN_METHOD_ARGS_TYPE info, MDB_val &data) -> void {
-        data.mv_size = sizeof(double);
-        data.mv_data = new double;
         auto numberLocal = Nan::To<v8::Number>(info[2]).ToLocalChecked();
-        *((double*)data.mv_data) = numberLocal->Value();
-    }, [](MDB_val &data) -> void {
-        delete (double*)data.mv_data;
-    });
+        numberToPut = numberLocal->Value();
+
+        data.mv_size = sizeof(double);
+        data.mv_data = &numberToPut;
+    }, nullptr);
 }
+
+// This is used by putBoolean for temporary storage
+static thread_local bool booleanToPut = false;
 
 NAN_METHOD(TxnWrap::putBoolean) {
     return putCommon(info, [](Nan::NAN_METHOD_ARGS_TYPE info, MDB_val &data) -> void {
-        data.mv_size = sizeof(double);
-        data.mv_data = new bool;
         auto booleanLocal = Nan::To<v8::Boolean>(info[2]).ToLocalChecked();
-        *((bool*)data.mv_data) = booleanLocal->Value();
-    }, [](MDB_val &data) -> void {
-        delete (bool*)data.mv_data;
-    });
+        booleanToPut = booleanLocal->Value();
+
+        data.mv_size = sizeof(bool);
+        data.mv_data = &booleanToPut;
+    }, nullptr);
 }
 
 NAN_METHOD(TxnWrap::del) {
