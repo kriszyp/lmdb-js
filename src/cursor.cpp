@@ -196,13 +196,17 @@ Nan::NAN_METHOD_RETURN_TYPE CursorWrap::getCommon(
     Local<Value> dataHandle = Nan::Undefined();
     if (convertFunc) {
         dataHandle = convertFunc(cw->data);
-        if (al > 0 && info[al - 1]->IsFunction()) {
-            // In this case, we expect the key/data pair to be correctly filled
-            const unsigned argc = 2;
-            Local<Value> argv[argc] = { keyHandle, dataHandle };
-            Nan::Callback *callback = new Nan::Callback(Local<Function>::Cast(info[info.Length() - 1]));
-            callback->Call(argc, argv);
-            delete callback;
+
+        if (al > 0) {
+            const auto &callbackFunc = info[al - 1];
+
+            if (callbackFunc->IsFunction()) {
+                // In this case, we expect the key/data pair to be correctly filled
+                constexpr const unsigned argc = 2;
+                Local<Value> argv[argc] = { keyHandle, dataHandle };
+                
+                callbackFunc.As<Function>()->Call(Nan::Undefined(), argc, argv);
+            }
         }
     }
 

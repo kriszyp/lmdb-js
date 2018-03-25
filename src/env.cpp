@@ -328,8 +328,8 @@ NAN_METHOD(EnvWrap::sync) {
         else {
             argv[0] = Nan::Error(mdb_strerror(d->rc));
         }
-
-        d->callback->Call(argc, argv);
+        
+        Nan::Call(*(d->callback), argc, argv);
         delete d->callback;
         delete d;
     });
