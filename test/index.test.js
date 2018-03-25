@@ -8,6 +8,7 @@ var should = chai.should();
 var spawn = require('child_process').spawn;
 
 var lmdb = require('..');
+const MAX_DB_SIZE = 256 * 1024 * 1024;
 
 describe('Node.js LMDB Bindings', function() {
   var testDirPath = path.resolve(__dirname, './testdata');
@@ -61,7 +62,7 @@ describe('Node.js LMDB Bindings', function() {
         path: testDirPath,
         maxDbs: 10,
         maxReaders: 422,
-        mapSize: 100 * 1024 * 1024
+        mapSize: MAX_DB_SIZE
       });
     });
     after(function() {
@@ -179,7 +180,7 @@ describe('Node.js LMDB Bindings', function() {
       info.maxReaders.should.be.a('number');
       info.numReaders.should.be.a('number');
       
-      should.equal(info.mapSize, 100 * 1024 * 1024);
+      should.equal(info.mapSize, MAX_DB_SIZE);
       should.equal(info.maxReaders, 422);
     });
     it('will check for open transactions before resizing the mapSize', function() {
@@ -188,7 +189,7 @@ describe('Node.js LMDB Bindings', function() {
           create: true
       });
       var info = env.info();
-      should.equal(info.mapSize, 100 * 1024 * 1024);
+      should.equal(info.mapSize, MAX_DB_SIZE);
       // Open write transaction
       var txn = env.beginTxn();
       try {
@@ -198,7 +199,7 @@ describe('Node.js LMDB Bindings', function() {
       }
       txn.abort();
       info = env.info();
-      should.equal(info.mapSize, 100 * 1024 * 1024);
+      should.equal(info.mapSize, MAX_DB_SIZE);
 
       // Open readOnly transaction
       txn = env.beginTxn({ readOnly: true });
@@ -209,7 +210,7 @@ describe('Node.js LMDB Bindings', function() {
       }
       txn.abort();
       info = env.info();
-      should.equal(info.mapSize, 100 * 1024 * 1024);
+      should.equal(info.mapSize, MAX_DB_SIZE);
       dbi.close();
     });
     it('will resize the mapSize', function() {
@@ -218,10 +219,10 @@ describe('Node.js LMDB Bindings', function() {
           create: true
       });
       var info = env.info();
-      should.equal(info.mapSize, 100 * 1024 * 1024);
+      should.equal(info.mapSize, MAX_DB_SIZE);
       env.resize(info.mapSize * 2);
       info = env.info();
-      should.equal(info.mapSize, 200 * 1024 * 1024);
+      should.equal(info.mapSize, 2 * MAX_DB_SIZE);
       dbi.close();
     });
     it('will get statistics about an environment', function() {
@@ -421,7 +422,7 @@ describe('Node.js LMDB Bindings', function() {
       env.open({
         path: testDirPath,
         maxDbs: 10,
-        mapSize: 64 * 1024 * 1024
+        mapSize: MAX_DB_SIZE
       });
       dbi = env.openDbi({
         name: 'cursor_verybasic',
@@ -508,7 +509,7 @@ describe('Node.js LMDB Bindings', function() {
       env.open({
         path: testDirPath,
         maxDbs: 10,
-        mapSize: 64 * 1024 * 1024
+        mapSize: MAX_DB_SIZE
       });
       dbi = env.openDbi({
         name: 'mydb5',
@@ -622,7 +623,7 @@ describe('Node.js LMDB Bindings', function() {
       env.open({
         path: testDirPath,
         maxDbs: 10,
-        mapSize: 64 * 1024 * 1024
+        mapSize: MAX_DB_SIZE
       });
       dbi = env.openDbi({
         name: 'cursor_dupsort',
@@ -705,7 +706,7 @@ describe('Node.js LMDB Bindings', function() {
       env.open({
         path: testDirPath,
         maxDbs: 10,
-        mapSize: 64 * 1024 * 1024
+        mapSize: MAX_DB_SIZE
       });
       dbi = env.openDbi({
         name: 'cursorstrings',
@@ -820,7 +821,7 @@ describe('Node.js LMDB Bindings', function() {
       env.open({
         path: testDirPath,
         maxDbs: 10,
-        mapSize: 64 * 1024 * 1024
+        mapSize: MAX_DB_SIZE
       });
       dbi = env.openDbi({
         name: 'cursorbinkeydata',
@@ -893,7 +894,7 @@ describe('Node.js LMDB Bindings', function() {
       env.open({
         path: testDirPath,
         maxDbs: 10,
-        mapSize: 64 * 1024 * 1024
+        mapSize: MAX_DB_SIZE
       });
       dbi = env.openDbi({
         name: 'cursorbinkeydata',
@@ -968,7 +969,7 @@ describe('Node.js LMDB Bindings', function() {
       env.open({
         path: testDirPath,
         maxDbs: 10,
-        mapSize:  64 * 1024 * 1024
+        mapSize:  MAX_DB_SIZE
       });
     });
     after(function () {
@@ -1068,7 +1069,7 @@ describe('Node.js LMDB Bindings', function() {
       env.open({
         path: testDirPath,
         maxDbs: 10,
-        mapSize:  64 * 1024 * 1024
+        mapSize: MAX_DB_SIZE
       });
       dbi = env.openDbi({
         name: 'mydb7',
@@ -1119,7 +1120,7 @@ describe('Node.js LMDB Bindings', function() {
       env.open({
         path: testDirPath,
         maxDbs: 12,
-        mapSize: 64 * 1024 * 1024
+        mapSize: MAX_DB_SIZE
       });
       var dbi = env.openDbi({
         name: 'testfree',
@@ -1157,7 +1158,7 @@ describe('Node.js LMDB Bindings', function() {
       env.open({
         path: testDirPath,
         maxDbs: 12,
-        mapSize: 64 * 1024 * 1024
+        mapSize: MAX_DB_SIZE
       });
       dbi = env.openDbi({
         name: 'testkeys',
