@@ -51,6 +51,8 @@ describe('Node.js LMDB Bindings', function() {
     env.openDbi.should.be.a('function');
     env.sync.should.be.a('function');
     env.resize.should.be.a('function');
+    env.stat.should.be.a('function');
+    env.info.should.be.a('function');
     env.close();
   });
   describe('Basics', function() {
