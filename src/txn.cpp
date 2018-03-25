@@ -268,14 +268,24 @@ Nan::NAN_METHOD_RETURN_TYPE TxnWrap::putCommon(Nan::NAN_METHOD_ARGS_TYPE info, v
         // NOTE: does not make sense to support MDB_RESERVE, because it wouldn't save the memcpy from V8 to lmdb
     }
 
+    // Fill key and data
     fillFunc(info, data);
+    
+    // Keep a copy of the original key and data, so we can free them
+    MDB_val originalKey = key;
+    MDB_val originalData = data;
 
     int rc = mdb_put(tw->txn, dw->dbi, &key, &data, flags);
+    
+    // Free original key and data (what was supplied by the user, not what points to lmdb)
     if (freeKey) {
-        freeKey(key);
+        freeKey(originalKey);
     }
-    freeData(data);
+    if (freeData) {
+        freeData(originalData);
+    }
 
+    // Check result code
     if (rc != 0) {
         return Nan::ThrowError(mdb_strerror(rc));
     }
