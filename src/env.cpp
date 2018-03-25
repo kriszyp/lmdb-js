@@ -75,7 +75,7 @@ NAN_METHOD(EnvWrap::ctor) {
 
     if (rc != 0) {
         mdb_env_close(ew->env);
-        return Nan::ThrowError(mdb_strerror(rc));
+        return throwLmdbError(rc);
     }
 
     ew->Wrap(info.This());
@@ -117,7 +117,7 @@ NAN_METHOD(EnvWrap::open) {
     // Parse the maxDbs option
     rc = applyUint32Setting<unsigned>(&mdb_env_set_maxdbs, ew->env, options, 1, "maxDbs");
     if (rc != 0) {
-        return Nan::ThrowError(mdb_strerror(rc));
+        return throwLmdbError(rc);
     }
 
     // Parse the mapSize option
@@ -127,7 +127,7 @@ NAN_METHOD(EnvWrap::open) {
         size_t mapSizeSizeT = (size_t) mapSizeDouble;
         rc = mdb_env_set_mapsize(ew->env, mapSizeSizeT);
         if (rc != 0) {
-            return Nan::ThrowError(mdb_strerror(rc));
+            return throwLmdbError(rc);
         }
     }
 
@@ -135,7 +135,7 @@ NAN_METHOD(EnvWrap::open) {
     // NOTE: mdb.c defines DEFAULT_READERS as 126
     rc = applyUint32Setting<unsigned>(&mdb_env_set_maxreaders, ew->env, options, 126, "maxReaders");
     if (rc != 0) {
-        return Nan::ThrowError(mdb_strerror(rc));
+        return throwLmdbError(rc);
     }
 
     // NOTE: MDB_FIXEDMAP is not exposed here since it is "highly experimental" + it is irrelevant for this use case
@@ -156,7 +156,7 @@ NAN_METHOD(EnvWrap::open) {
     if (rc != 0) {
         mdb_env_close(ew->env);
         ew->env = nullptr;
-        return Nan::ThrowError(mdb_strerror(rc));
+        return throwLmdbError(rc);
     }
 }
 
@@ -184,7 +184,7 @@ NAN_METHOD(EnvWrap::resize) {
     size_t mapSizeSizeT = (size_t) mapSizeDouble;
     int rc = mdb_env_set_mapsize(ew->env, mapSizeSizeT);
     if (rc != 0) {
-        return Nan::ThrowError(mdb_strerror(rc));
+        return throwLmdbError(rc);
     }
 }
 
@@ -215,7 +215,7 @@ NAN_METHOD(EnvWrap::stat) {
     
     rc = mdb_env_stat(ew->env, &stat);
     if (rc != 0) {
-        return Nan::ThrowError(mdb_strerror(rc));
+        return throwLmdbError(rc);
     }
     
     Local<Object> obj = Nan::New<Object>();
@@ -242,7 +242,7 @@ NAN_METHOD(EnvWrap::info) {
     
     rc = mdb_env_info(ew->env, &envinfo);
     if (rc != 0) {
-        return Nan::ThrowError(mdb_strerror(rc));
+        return throwLmdbError(rc);
     }
     
     Local<Object> obj = Nan::New<Object>();

@@ -242,6 +242,12 @@ Local<Value> valToBoolean(MDB_val &data) {
     return Nan::New<Boolean>(*((bool*)data.mv_data));
 }
 
+void throwLmdbError(int rc) {
+    auto err = Nan::Error(mdb_strerror(rc));
+    err.As<Object>()->Set(Nan::New("code").ToLocalChecked(), Nan::New(rc));
+    return Nan::ThrowError(err);
+}
+
 void consoleLog(const char *msg) {
     Local<String> str = Nan::New("console.log('").ToLocalChecked();
     str = String::Concat(str, Nan::New<String>(msg).ToLocalChecked());

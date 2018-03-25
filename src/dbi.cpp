@@ -123,7 +123,7 @@ NAN_METHOD(DbiWrap::ctor) {
         rc = mdb_txn_begin(ew->env, nullptr, txnFlags, &txn);
         if (rc != 0) {
             // No need to call mdb_txn_abort, because mdb_txn_begin already cleans up after itself
-            return Nan::ThrowError(mdb_strerror(rc));
+            return throwLmdbError(rc);
         }
     }
 
@@ -134,7 +134,7 @@ NAN_METHOD(DbiWrap::ctor) {
         if (needsTransaction) {
             mdb_txn_abort(txn);
         }
-        return Nan::ThrowError(mdb_strerror(rc));
+        return throwLmdbError(rc);
     }
     else {
         isOpen = true;
@@ -144,7 +144,7 @@ NAN_METHOD(DbiWrap::ctor) {
         // Commit transaction
         rc = mdb_txn_commit(txn);
         if (rc != 0) {
-            return Nan::ThrowError(mdb_strerror(rc));
+            return throwLmdbError(rc);
         }
     }
 
@@ -211,7 +211,7 @@ NAN_METHOD(DbiWrap::drop) {
         // Begin transaction
         rc = mdb_txn_begin(dw->env, nullptr, 0, &txn);
         if (rc != 0) {
-            return Nan::ThrowError(mdb_strerror(rc));
+            return throwLmdbError(rc);
         }
     }
 
@@ -221,14 +221,14 @@ NAN_METHOD(DbiWrap::drop) {
         if (needsTransaction) {
             mdb_txn_abort(txn);
         }
-        return Nan::ThrowError(mdb_strerror(rc));
+        return throwLmdbError(rc);
     }
 
     if (needsTransaction) {
         // Commit transaction
         rc = mdb_txn_commit(txn);
         if (rc != 0) {
-            return Nan::ThrowError(mdb_strerror(rc));
+            return throwLmdbError(rc);
         }
     }
     

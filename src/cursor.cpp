@@ -72,7 +72,7 @@ NAN_METHOD(CursorWrap::ctor) {
     MDB_cursor *cursor;
     int rc = mdb_cursor_open(tw->txn, dw->dbi, &cursor);
     if (rc != 0) {
-        return Nan::ThrowError(mdb_strerror(rc));
+        return throwLmdbError(rc);
     }
 
     // Create wrapper
@@ -119,7 +119,7 @@ NAN_METHOD(CursorWrap::del) {
 
     int rc = mdb_cursor_del(cw->cursor, flags);
     if (rc != 0) {
-        return Nan::ThrowError(mdb_strerror(rc));
+        return throwLmdbError(rc);
     }
 }
 
@@ -185,7 +185,7 @@ Nan::NAN_METHOD_RETURN_TYPE CursorWrap::getCommon(
         return info.GetReturnValue().Set(Nan::Null());
     }
     else if (rc != 0) {
-        return Nan::ThrowError(mdb_strerror(rc));
+        return throwLmdbError(rc);
     }
 
     Local<Value> keyHandle = Nan::Undefined();

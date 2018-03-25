@@ -78,6 +78,8 @@ Local<Value> valToBinaryUnsafe(MDB_val &data);
 Local<Value> valToNumber(MDB_val &data);
 Local<Value> valToBoolean(MDB_val &data);
 
+void throwLmdbError(int rc);
+
 class TxnWrap;
 class DbiWrap;
 class EnvWrap;

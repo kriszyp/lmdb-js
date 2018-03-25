@@ -79,7 +79,7 @@ NAN_METHOD(TxnWrap::ctor) {
     MDB_txn *txn;
     int rc = mdb_txn_begin(ew->env, nullptr, flags, &txn);
     if (rc != 0) {
-        return Nan::ThrowError(mdb_strerror(rc));
+        return throwLmdbError(rc);
     }
 
     TxnWrap* tw = new TxnWrap(ew->env, txn);
@@ -113,7 +113,7 @@ NAN_METHOD(TxnWrap::commit) {
     tw->txn = nullptr;
 
     if (rc != 0) {
-        return Nan::ThrowError(mdb_strerror(rc));
+        return throwLmdbError(rc);
     }
 }
 
@@ -154,7 +154,7 @@ NAN_METHOD(TxnWrap::renew) {
 
     int rc = mdb_txn_renew(tw->txn);
     if (rc != 0) {
-        return Nan::ThrowError(mdb_strerror(rc));
+        return throwLmdbError(rc);
     }
 }
 
@@ -199,7 +199,7 @@ Nan::NAN_METHOD_RETURN_TYPE TxnWrap::getCommon(Nan::NAN_METHOD_ARGS_TYPE info, L
         return info.GetReturnValue().Set(Nan::Null());
     }
     else if (rc != 0) {
-        return Nan::ThrowError(mdb_strerror(rc));
+        return throwLmdbError(rc);
     }
     else {
       return info.GetReturnValue().Set(successFunc(data));
@@ -287,7 +287,7 @@ Nan::NAN_METHOD_RETURN_TYPE TxnWrap::putCommon(Nan::NAN_METHOD_ARGS_TYPE info, v
 
     // Check result code
     if (rc != 0) {
-        return Nan::ThrowError(mdb_strerror(rc));
+        return throwLmdbError(rc);
     }
 }
 
@@ -445,6 +445,6 @@ NAN_METHOD(TxnWrap::del) {
     }
 
     if (rc != 0) {
-        return Nan::ThrowError(mdb_strerror(rc));
+        return throwLmdbError(rc);
     }
 }
