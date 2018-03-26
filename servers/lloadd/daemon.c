@@ -1363,8 +1363,19 @@ lloadd_daemon( struct event_base *daemon_base )
     /* wait for the listener threads to complete */
     destroy_listeners();
 
+    /* TODO: Mark upstream connections closing */
+
     for ( i = 0; i < lload_daemon_threads; i++ ) {
-        event_del( lload_daemon[i].wakeup_event );
+        /*
+         * https://github.com/libevent/libevent/issues/623
+         * deleting the event doesn't notify the base, just activate it and
+         * let it delete itself
+         */
+        event_active( lload_daemon[i].wakeup_event, EV_READ, 0 );
+    }
+
+    for ( i = 0; i < lload_daemon_threads; i++ ) {
+        ldap_pvt_thread_join( daemon_tid[i], (void *)NULL );
     }
 
 #ifndef BALANCER_MODULE
@@ -1381,10 +1392,6 @@ lloadd_daemon( struct event_base *daemon_base )
     clients_destroy();
     lload_bindconf_free( &bindconf );
     evdns_base_free( dnsbase, 0 );
-
-    for ( i = 0; i < lload_daemon_threads; i++ ) {
-        ldap_pvt_thread_join( daemon_tid[i], (void *)NULL );
-    }
 
     ch_free( daemon_tid );
     daemon_tid = NULL;
@@ -1406,9 +1413,7 @@ daemon_wakeup_cb( evutil_socket_t sig, short what, void *arg )
     Debug( LDAP_DEBUG_TRACE, "daemon_wakeup_cb: "
             "Daemon thread %d woken up\n",
             tid );
-    if ( slapd_shutdown ) {
-        event_base_loopexit( lload_daemon[tid].base, NULL );
-    }
+    event_del( lload_daemon[tid].wakeup_event );
 }
 
 LloadChange lload_change = { .type = LLOAD_UNDEFINED };
