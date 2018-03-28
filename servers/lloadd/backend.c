@@ -95,6 +95,7 @@ upstream_name_cb( int result, struct evutil_addrinfo *res, void *arg )
 
     ldap_pvt_thread_mutex_lock( &b->b_mutex );
 
+    b->b_dns_req = NULL;
     if ( result || !res ) {
         Debug( LDAP_DEBUG_ANY, "upstream_name_cb: "
                 "name resolution failed for backend '%s': %s\n",
@@ -169,7 +170,9 @@ fail:
     b->b_opening--;
     b->b_failed++;
     ldap_pvt_thread_mutex_unlock( &b->b_mutex );
-    backend_retry( b );
+    if ( result != EVUTIL_EAI_CANCEL ) {
+        backend_retry( b );
+    }
     if ( res ) {
         evutil_freeaddrinfo( res );
     }
@@ -415,7 +418,9 @@ backend_connect( evutil_socket_t s, short what, void *arg )
     hostname = b->b_host;
     ldap_pvt_thread_mutex_unlock( &b->b_mutex );
 
-    evdns_getaddrinfo( dnsbase, hostname, NULL, &hints, upstream_name_cb, b );
+    assert( b->b_dns_req == NULL );
+    b->b_dns_req = evdns_getaddrinfo(
+            dnsbase, hostname, NULL, &hints, upstream_name_cb, b );
     return;
 
 fail:
@@ -482,6 +487,11 @@ backend_reset( LloadBackend *b )
         assert( c->c_live );
         CONNECTION_DESTROY(c);
         assert( !c );
+    }
+    if ( b->b_dns_req ) {
+        evdns_getaddrinfo_cancel( b->b_dns_req );
+        b->b_dns_req = NULL;
+        b->b_opening--;
     }
 }
 

@@ -212,6 +212,8 @@ struct LloadBackend {
     monitor_subsys_t *b_monitor;
 #endif /* BALANCER_MODULE */
 
+    struct evdns_getaddrinfo_request *b_dns_req;
+
     LDAP_CIRCLEQ_ENTRY(LloadBackend) b_next;
 };
 
