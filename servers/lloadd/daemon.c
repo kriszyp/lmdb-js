@@ -1432,13 +1432,7 @@ backend_conn_cb( ldap_pvt_thread_start_t *start, void *startarg, void *arg )
     LloadBackend *b = arg;
 
     if ( b == NULL || c->c_private == b ) {
-        if ( start == upstream_bind ) {
-            /* FIXME: is upstream_bind safe without a reference of its own? */
-            CONNECTION_LOCK(c);
-        } else {
-            CONNECTION_LOCK_DECREF(c);
-        }
-        CONNECTION_DESTROY(c);
+        CONNECTION_LOCK_DESTROY(c);
         return 1;
     }
     return 0;

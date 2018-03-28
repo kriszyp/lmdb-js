@@ -361,7 +361,7 @@ upstream_bind( void *ctx, void *arg )
     BerElement *ber;
     ber_int_t msgid;
 
-    CONNECTION_LOCK(c);
+    CONNECTION_LOCK_DECREF(c);
     c->c_pdu_cb = upstream_bind_cb;
     CONNECTION_UNLOCK_INCREF(c);
 
@@ -460,6 +460,7 @@ upstream_finish( LloadConnection *c )
         b->b_last_conn = c;
     } else {
         rc = 1;
+        c->c_refcnt++;
         ldap_pvt_thread_pool_submit( &connection_pool, upstream_bind, c );
     }
 
