@@ -311,8 +311,8 @@ backend_retry( LloadBackend *b )
             Debug( LDAP_DEBUG_CONNS, "backend_retry: "
                     "scheduling re-connection straight away\n" );
             b->b_opening++;
-            rc = ldap_pvt_thread_pool_submit(
-                    &connection_pool, backend_connect_task, b );
+            rc = ldap_pvt_thread_pool_submit2(
+                    &connection_pool, backend_connect_task, b, &b->b_cookie );
             if ( rc ) {
                 ldap_pvt_thread_mutex_unlock( &b->b_mutex );
                 backend_connect( -1, 0, b );
@@ -344,6 +344,10 @@ backend_connect( evutil_socket_t s, short what, void *arg )
             "%sattempting connection to %s\n",
             (what & EV_TIMEOUT) ? "retry timeout finished, " : "",
             b->b_host );
+
+    if ( b->b_cookie ) {
+        b->b_cookie = NULL;
+    }
 
 #ifdef LDAP_PF_LOCAL
     if ( b->b_proto == LDAP_PROTO_IPC ) {
@@ -451,6 +455,7 @@ backend_reset( LloadBackend *b )
         evutil_closesocket( pending->fd );
         LDAP_LIST_REMOVE( pending, next );
         ch_free( pending );
+        b->b_opening--;
     }
     while ( !LDAP_CIRCLEQ_EMPTY( &b->b_preparing ) ) {
         LloadConnection *c = LDAP_CIRCLEQ_FIRST( &b->b_preparing );
@@ -493,6 +498,23 @@ backend_reset( LloadBackend *b )
         b->b_dns_req = NULL;
         b->b_opening--;
     }
+    if ( b->b_cookie ) {
+        int rc;
+        rc = ldap_pvt_thread_pool_retract( b->b_cookie );
+        assert( rc == 1 );
+        b->b_cookie = NULL;
+        b->b_opening--;
+    }
+    if ( b->b_retry_event &&
+            event_pending( b->b_retry_event, EV_TIMEOUT, NULL ) ) {
+        assert( b->b_failed );
+        event_del( b->b_retry_event );
+        b->b_opening--;
+    }
+    assert( b->b_opening == 0 );
+    assert( b->b_active == 0 );
+    assert( b->b_bindavail == 0 );
+    b->b_failed = 0;
 }
 
 void
@@ -529,8 +551,11 @@ lload_backend_destroy( LloadBackend *b )
 #endif /* BALANCER_MODULE */
     ldap_pvt_thread_mutex_destroy( &b->b_mutex );
 
-    event_del( b->b_retry_event );
-    event_free( b->b_retry_event );
+    if ( b->b_retry_event ) {
+        event_del( b->b_retry_event );
+        event_free( b->b_retry_event );
+        b->b_retry_event = NULL;
+    }
 
     ch_free( b->b_host );
     ch_free( b->b_uri.bv_val );

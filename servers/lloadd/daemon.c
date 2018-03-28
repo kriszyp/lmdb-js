@@ -1420,12 +1420,6 @@ LloadChange lload_change = { .type = LLOAD_UNDEFINED };
 
 #ifdef BALANCER_MODULE
 int
-backend_connect_cb( ldap_pvt_thread_start_t *start, void *startarg, void *arg )
-{
-    return arg == NULL || arg == startarg;
-}
-
-int
 backend_conn_cb( ldap_pvt_thread_start_t *start, void *startarg, void *arg )
 {
     LloadConnection *c = startarg;
@@ -1478,9 +1472,12 @@ lload_handle_backend_invalidation( LloadChange *change )
                 &connection_pool, handle_pdus, backend_conn_cb, b );
         ldap_pvt_thread_pool_walk(
                 &connection_pool, upstream_bind, backend_conn_cb, b );
-        /* Check there are no pending connection tasks either */
-        ldap_pvt_thread_pool_walk(
-                &connection_pool, backend_connect_task, backend_connect_cb, b );
+        /* Drop the connection task if it's queued */
+        if ( b->b_cookie ) {
+            int rc = ldap_pvt_thread_pool_retract( b->b_cookie );
+            assert( rc == 1 );
+            b->b_opening--;
+        }
         lload_backend_destroy( b );
         return;
     }

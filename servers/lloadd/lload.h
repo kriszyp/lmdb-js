@@ -213,6 +213,7 @@ struct LloadBackend {
 #endif /* BALANCER_MODULE */
 
     struct evdns_getaddrinfo_request *b_dns_req;
+    void *b_cookie;
 
     LDAP_CIRCLEQ_ENTRY(LloadBackend) b_next;
 };
