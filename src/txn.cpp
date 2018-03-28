@@ -234,7 +234,7 @@ Nan::NAN_METHOD_RETURN_TYPE TxnWrap::putCommon(Nan::NAN_METHOD_ARGS_TYPE info, v
     Nan::HandleScope scope;
     
     if (info.Length() != 3 && info.Length() != 4) {
-        return Nan::ThrowError("Invalid number of arguments to cursor.put");
+        return Nan::ThrowError("Invalid number of arguments to txn.put");
     }
 
     TxnWrap *tw = Nan::ObjectWrap::Unwrap<TxnWrap>(info.This());
