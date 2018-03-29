@@ -2,7 +2,7 @@
   "targets": [
     {
       "target_name": "node-lmdb",
-	  'win_delay_load_hook': 'false',
+      "win_delay_load_hook": "false",
       "sources": [
         "dependencies/lmdb/libraries/liblmdb/mdb.c",
         "dependencies/lmdb/libraries/liblmdb/midl.c",
@@ -20,12 +20,17 @@
       "conditions": [
         ["OS=='linux'", {
           "ldflags": [
+            "-fPIC",
+            "-fvisibility=hidden"
           ],
           "cflags": [
             "-fPIC",
+            "-fvisibility=hidden",
             "-Wimplicit-fallthrough=2"
           ],
           "cflags_cc": [
+            "-fPIC",
+            "-fvisibility=hidden",
             "-fvisibility-inlines-hidden",
             "-std=c++0x"
           ]
