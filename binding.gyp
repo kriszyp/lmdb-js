@@ -20,12 +20,10 @@
       "conditions": [
         ["OS=='linux'", {
           "ldflags": [
-            "-O3",
-            "-rdynamic"
           ],
           "cflags": [
             "-fPIC",
-            "-O3"
+            "-Wimplicit-fallthrough=2"
           ],
           "cflags_cc": [
             "-fvisibility-inlines-hidden",
@@ -40,9 +38,9 @@
             "CLANG_CXX_LIBRARY": "libc++"
           }
         }],
-		["OS=='win'", {
-			"libraries": ["ntdll.lib"]
-		}],
+        ["OS=='win'", {
+            "libraries": ["ntdll.lib"]
+        }],
       ],
     }
   ]
