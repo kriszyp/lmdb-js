@@ -25,8 +25,7 @@
           ],
           "cflags": [
             "-fPIC",
-            "-fvisibility=hidden",
-            "-Wimplicit-fallthrough=2"
+            "-fvisibility=hidden"
           ],
           "cflags_cc": [
             "-fPIC",
