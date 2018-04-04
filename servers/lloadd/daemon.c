@@ -702,6 +702,25 @@ lload_open_listener(
     return 0;
 }
 
+int
+lload_open_new_listener( const char *url, LDAPURLDesc *lud )
+{
+    int rc, i, j = 0;
+
+    for ( i = 0; lload_listeners && lload_listeners[i] != NULL;
+            i++ ) /* count */
+        ;
+    j = i;
+
+    i++;
+    lload_listeners = ch_realloc(
+            lload_listeners, ( i + 1 ) * sizeof(LloadListener *) );
+
+    rc = lload_open_listener( url, lud, &i, &j );
+    lload_listeners[j] = NULL;
+    return rc;
+}
+
 int lloadd_inited = 0;
 
 int
