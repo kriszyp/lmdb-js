@@ -117,6 +117,8 @@ enum lcf_daemon {
     LLOAD_DAEMON_MOD_THREADS = 1 << 0,
     LLOAD_DAEMON_MOD_FEATURES = 1 << 1,
     LLOAD_DAEMON_MOD_TLS = 1 << 2,
+    LLOAD_DAEMON_MOD_LISTENER_ADD = 1 << 3,
+    LLOAD_DAEMON_MOD_LISTENER_REPLACE = 1 << 4,
 };
 
 enum lcf_bindconf {

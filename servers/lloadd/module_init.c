@@ -89,13 +89,11 @@ lload_back_open( BackendInfo *bi )
         return -1;
     }
 
-    if ( lloadd_listeners_init( listeners_list ) != 0 ) {
-        return -1;
-    }
-
     if ( lload_monitor_open() != 0 ) {
         return -1;
     }
+
+    assert( lloadd_get_listeners() );
 
     return ldap_pvt_thread_create(
             &lloadd_main_thread, 0, lload_start_daemon, NULL );

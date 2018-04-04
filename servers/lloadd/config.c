@@ -141,6 +141,7 @@ enum {
     CFG_BACKEND,
     CFG_BINDCONF,
     CFG_LISTEN,
+    CFG_LISTEN_URI,
     CFG_TLS_RAND,
     CFG_TLS_CIPHER,
     CFG_TLS_PROTOCOL_MIN,
@@ -256,11 +257,16 @@ static ConfigTable config_back_cf_table[] = {
     { "listen", "uri list", 2, 2, 0,
         ARG_STRING|ARG_MAGIC|CFG_LISTEN,
         &config_generic,
+        NULL, NULL, NULL
+    },
+    { "", "uri", 2, 2, 0,
+        ARG_MAGIC|CFG_LISTEN_URI,
+        &config_generic,
         "( OLcfgBkAt:13.5 "
             "NAME 'olcBkLloadListen' "
-            "DESC 'A list of listener adresses' "
-            "SYNTAX OMsDirectoryString "
-            "SINGLE-VALUE )",
+            "DESC 'A listener adress' "
+            /* We don't handle adding/removing a value, so no EQUALITY yet */
+            "SYNTAX OMsDirectoryString )",
         NULL, NULL
     },
 #endif /* BALANCER_MODULE */
@@ -753,14 +759,21 @@ config_generic( ConfigArgs *c )
             case CFG_IOTHREADS:
                 c->value_uint = lload_daemon_threads;
                 break;
-#ifdef BALANCER_MODULE
-            case CFG_LISTEN:
-                /* TODO fix this, make it multivalued */
-                rc = snprintf( c->cr_msg, sizeof(c->cr_msg), "\"%s\"",
-                             listeners_list ) >= sizeof(c->cr_msg);
-                c->value_string = ch_strdup( c->cr_msg );
-                break;
-#endif /* BALANCER_MODULE */
+            case CFG_LISTEN_URI: {
+                LloadListener **ll = lloadd_get_listeners();
+                struct berval bv = BER_BVNULL;
+
+                for ( ; ll && *ll; ll++ ) {
+                    /* The same url could have spawned several consecutive
+                     * listeners */
+                    if ( !BER_BVISNULL( &bv ) &&
+                            !ber_bvcmp( &bv, &(*ll)->sl_url ) ) {
+                        continue;
+                    }
+                    ber_dupbv( &bv, &(*ll)->sl_url );
+                    ber_bvarray_add( &c->rvalue_vals, &bv );
+                }
+            } break;
             case CFG_MAXBUF_CLIENT:
                 c->value_uint = sockbuf_max_incoming_client;
                 break;
@@ -791,14 +804,60 @@ config_generic( ConfigArgs *c )
         case CFG_CONCUR:
             ldap_pvt_thread_set_concurrency( c->value_uint );
             break;
-#ifdef BALANCER_MODULE
         case CFG_LISTEN:
-            /* Todo this is not good - we need validity checks,
-             * check if already allocated, if it's being modified stop old
-             * listeners, etc */
-            listeners_list = c->value_string;
+            if ( lloadd_inited ) {
+                snprintf( c->cr_msg, sizeof(c->cr_msg),
+                        "listen directive can only be specified once" );
+                ch_free( c->value_string );
+                return 1;
+            }
+            if ( lloadd_listeners_init( c->value_string ) ) {
+                snprintf( c->cr_msg, sizeof(c->cr_msg),
+                        "could not open one of the listener sockets: %s",
+                        c->value_string );
+                ch_free( c->value_string );
+                return 1;
+            }
+            ch_free( c->value_string );
             break;
-#endif /* BALANCER_MODULE */
+        case CFG_LISTEN_URI: {
+            LDAPURLDesc *lud;
+            LloadListener *l;
+
+            if ( ldap_url_parse_ext(
+                         c->line, &lud, LDAP_PVT_URL_PARSE_DEF_PORT ) ) {
+                snprintf( c->cr_msg, sizeof(c->cr_msg),
+                        "string %s could not be parsed as an LDAP URL",
+                        c->line );
+                Debug( LDAP_DEBUG_ANY, "%s: %s\n", c->log, c->cr_msg );
+                return 1;
+            }
+
+            /* A sanity check, although it will not catch everything */
+            if ( ( l = lload_config_check_my_url( c->line, lud ) ) ) {
+                snprintf( c->cr_msg, sizeof(c->cr_msg),
+                        "Load Balancer already configured to listen on %s "
+                        "(while adding %s)",
+                        l->sl_url.bv_val, c->line );
+                Debug( LDAP_DEBUG_ANY, "%s: %s\n", c->log, c->cr_msg );
+                return 1;
+            }
+
+            if ( !lloadd_inited ) {
+                if ( lload_open_new_listener( c->line, lud ) ) {
+                    snprintf( c->cr_msg, sizeof(c->cr_msg),
+                            "could not open a listener for %s", c->line );
+                    Debug( LDAP_DEBUG_ANY, "%s: %s\n", c->log, c->cr_msg );
+                    return 1;
+                }
+            } else {
+                snprintf( c->cr_msg, sizeof(c->cr_msg),
+                        "listener changes will not take effect until restart: "
+                        "%s",
+                        c->line );
+                Debug( LDAP_DEBUG_ANY, "%s: %s\n", c->log, c->cr_msg );
+            }
+        } break;
         case CFG_THREADS:
             if ( c->value_uint < 2 ) {
                 snprintf( c->cr_msg, sizeof(c->cr_msg),
