@@ -842,9 +842,16 @@ config_generic( ConfigArgs *c )
                 mask <<= 1;
                 mask |= 1;
             }
-            lload_daemon_mask = mask;
-            lload_daemon_threads = mask + 1;
-            flag = LLOAD_DAEMON_MOD_THREADS;
+            if ( !lloadd_inited ) {
+                lload_daemon_mask = mask;
+                lload_daemon_threads = mask + 1;
+                flag = LLOAD_DAEMON_MOD_THREADS;
+            } else {
+                snprintf( c->cr_msg, sizeof(c->cr_msg),
+                        "io thread changes will not take effect until "
+                        "restart" );
+                Debug( LDAP_DEBUG_ANY, "%s: %s\n", c->log, c->cr_msg );
+            }
         } break;
 
         case CFG_LOGFILE: {
