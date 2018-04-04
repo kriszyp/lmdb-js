@@ -627,7 +627,7 @@ unhandled_option:;
 
     global_host = ldap_pvt_get_fqdn( NULL );
 
-    if ( check == CHECK_NONE && lloadd_daemon_init( urls ) != 0 ) {
+    if ( check == CHECK_NONE && lloadd_listeners_init( urls ) != 0 ) {
         rc = 1;
         SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 16 );
         goto stop;

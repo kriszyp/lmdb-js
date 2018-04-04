@@ -89,7 +89,7 @@ lload_back_open( BackendInfo *bi )
         return -1;
     }
 
-    if ( lloadd_daemon_init( listeners_list ) != 0 ) {
+    if ( lloadd_listeners_init( listeners_list ) != 0 ) {
         return -1;
     }
 

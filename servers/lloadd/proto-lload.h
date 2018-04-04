@@ -97,7 +97,7 @@ LDAP_SLAPD_F (void) connection_destroy( LloadConnection *c );
 /*
  * daemon.c
  */
-LDAP_SLAPD_F (int) lloadd_daemon_init( const char *urls );
+LDAP_SLAPD_F (int) lloadd_listeners_init( const char *urls );
 LDAP_SLAPD_F (int) lloadd_daemon_destroy( void );
 LDAP_SLAPD_F (int) lloadd_daemon( struct event_base *daemon_base );
 LDAP_SLAPD_F (LloadListener **) lloadd_get_listeners( void );

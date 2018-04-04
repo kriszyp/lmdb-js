@@ -966,17 +966,16 @@ backend_config_url( LloadBackend *b, struct berval *uri )
 {
     LDAPURLDesc *lud = NULL;
     char *host = NULL;
-    int rc, port, proto, tls;
+    int rc, proto, tls;
 
     /* Effect no changes until we've checked everything */
 
-    rc = ldap_url_parse( uri->bv_val, &lud );
+    rc = ldap_url_parse_ext( uri->bv_val, &lud, LDAP_PVT_URL_PARSE_DEF_PORT );
     if ( rc != LDAP_URL_SUCCESS ) {
         Debug( LDAP_DEBUG_ANY, "backend_config_url: "
                 "listen URL \"%s\" parse error=%d\n",
                 uri->bv_val, rc );
-        rc = -1;
-        goto done;
+        return -1;
     }
 
     tls = ldap_pvt_url_scheme2tls( lud->lud_scheme );
@@ -992,12 +991,6 @@ backend_config_url( LloadBackend *b, struct berval *uri )
         rc = -1;
         goto done;
 #endif /* ! HAVE_TLS */
-    }
-
-    if ( !lud->lud_port ) {
-        port = tls ? LDAPS_PORT : LDAP_PORT;
-    } else {
-        port = lud->lud_port;
     }
 
     proto = ldap_pvt_url_scheme2proto( lud->lud_scheme );
@@ -1033,7 +1026,7 @@ backend_config_url( LloadBackend *b, struct berval *uri )
 
     b->b_proto = proto;
     b->b_tls = tls;
-    b->b_port = port;
+    b->b_port = lud->lud_port;
     b->b_host = ch_strdup( host );
 
 done:
@@ -1217,7 +1210,7 @@ tcp_buffer_parse(
     if ( strncasecmp( argv[i], "listener=", STRLENOF("listener=") ) == 0 ) {
         char *url = argv[i] + STRLENOF("listener=");
 
-        if ( ldap_url_parse( url, &lud ) ) {
+        if ( ldap_url_parse_ext( url, &lud, LDAP_PVT_URL_PARSE_DEF_PORT ) ) {
             rc = LDAP_INVALID_SYNTAX;
             goto done;
         }
@@ -3406,7 +3399,8 @@ lload_config_check_my_url( const char *url, LDAPURLDesc *lud )
             !strcasecmp( global_host, lud->lud_host ) ) {
         for ( i = 0; l && l[i]; i++ ) {
             LDAPURLDesc *lu2;
-            ldap_url_parse( l[i]->sl_url.bv_val, &lu2 );
+            ldap_url_parse_ext(
+                    l[i]->sl_url.bv_val, &lu2, LDAP_PVT_URL_PARSE_DEF_PORT );
             do {
                 if ( strcasecmp( lud->lud_scheme, lu2->lud_scheme ) ) break;
                 if ( lud->lud_port != lu2->lud_port ) break;

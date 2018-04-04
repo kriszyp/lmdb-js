@@ -396,12 +396,15 @@ errexit:
 }
 
 static int
-lload_open_listener( const char *url, int *listeners, int *cur )
+lload_open_listener(
+        const char *url,
+        LDAPURLDesc *lud,
+        int *listeners,
+        int *cur )
 {
     int num, tmp, rc;
     LloadListener l;
     LloadListener *li;
-    LDAPURLDesc *lud;
     unsigned short port;
     int err, addrlen = 0;
     struct sockaddr **sal = NULL, **psal;
@@ -416,14 +419,8 @@ lload_open_listener( const char *url, int *listeners, int *cur )
     int crit = 1;
 #endif /* LDAP_PF_LOCAL || SLAP_X_LISTENER_MOD */
 
-    rc = ldap_url_parse( url, &lud );
-
-    if ( rc != LDAP_URL_SUCCESS ) {
-        Debug( LDAP_DEBUG_ANY, "lload_open_listener: "
-                "listen URL \"%s\" parse error=%d\n",
-                url, rc );
-        return rc;
-    }
+    assert( url );
+    assert( lud );
 
     l.sl_url.bv_val = NULL;
     l.sl_mute = 0;
@@ -442,10 +439,6 @@ lload_open_listener( const char *url, int *listeners, int *cur )
 
 #else /* HAVE_TLS */
     l.sl_is_tls = ldap_pvt_url_scheme2tls( lud->lud_scheme );
-
-    if ( !lud->lud_port ) {
-        lud->lud_port = l.sl_is_tls ? LDAPS_PORT : LDAP_PORT;
-    }
 #endif /* HAVE_TLS */
 
 #ifdef LDAP_TCP_BUFFER
@@ -712,12 +705,13 @@ lload_open_listener( const char *url, int *listeners, int *cur )
 int lloadd_inited = 0;
 
 int
-lloadd_daemon_init( const char *urls )
+lloadd_listeners_init( const char *urls )
 {
     int i, j, n;
     char **u;
+    LDAPURLDesc *lud;
 
-    Debug( LDAP_DEBUG_ARGS, "lloadd_daemon_init: %s\n",
+    Debug( LDAP_DEBUG_ARGS, "lloadd_listeners_init: %s\n",
             urls ? urls : "<null>" );
 
 #ifdef HAVE_TCPD
@@ -729,7 +723,7 @@ lloadd_daemon_init( const char *urls )
     u = ldap_str2charray( urls, " " );
 
     if ( u == NULL || u[0] == NULL ) {
-        Debug( LDAP_DEBUG_ANY, "lloadd_daemon_init: "
+        Debug( LDAP_DEBUG_ANY, "lloadd_listeners_init: "
                 "no urls (%s) provided\n",
                 urls );
         if ( u ) ldap_charray_free( u );
@@ -737,33 +731,41 @@ lloadd_daemon_init( const char *urls )
     }
 
     for ( i = 0; u[i] != NULL; i++ ) {
-        Debug( LDAP_DEBUG_TRACE, "lloadd_daemon_init: "
+        Debug( LDAP_DEBUG_TRACE, "lloadd_listeners_init: "
                 "listen on %s\n",
                 u[i] );
     }
 
     if ( i == 0 ) {
-        Debug( LDAP_DEBUG_ANY, "lloadd_daemon_init: "
+        Debug( LDAP_DEBUG_ANY, "lloadd_listeners_init: "
                 "no listeners to open (%s)\n",
                 urls );
         ldap_charray_free( u );
         return -1;
     }
 
-    Debug( LDAP_DEBUG_TRACE, "lloadd_daemon_init: "
+    Debug( LDAP_DEBUG_TRACE, "lloadd_listeners_init: "
             "%d listeners to open...\n",
             i );
     lload_listeners = ch_malloc( ( i + 1 ) * sizeof(LloadListener *) );
 
     for ( n = 0, j = 0; u[n]; n++ ) {
-        if ( lload_open_listener( u[n], &i, &j ) ) {
+        if ( ldap_url_parse_ext( u[n], &lud, LDAP_PVT_URL_PARSE_DEF_PORT ) ) {
+            Debug( LDAP_DEBUG_ANY, "lloadd_listeners_init: "
+                    "could not parse url %s\n",
+                    u[n] );
+            ldap_charray_free( u );
+            return -1;
+        }
+
+        if ( lload_open_listener( u[n], lud, &i, &j ) ) {
             ldap_charray_free( u );
             return -1;
         }
     }
     lload_listeners[j] = NULL;
 
-    Debug( LDAP_DEBUG_TRACE, "lloadd_daemon_init: "
+    Debug( LDAP_DEBUG_TRACE, "lloadd_listeners_init: "
             "%d listeners opened\n",
             i );
 
