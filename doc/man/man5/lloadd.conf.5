@@ -65,18 +65,34 @@ module, any option that shares the same name as an option in
 .BR slapd.conf (5),
 the
 .B slapd
-interpretation wins. An additional option is available in this case:
+interpretation wins and the
+.B lloadd
+option mentioned is unavailable through
+.BR slapd.conf (5)
+directly, instead, it would have to be configured via a dedicated attribute in
+cn=config. In particular,
+.B lloadd
+keeps its own TLS context and serving TLS to clients is not available except
+through the dynamic configuration.
+
+An additional option is available when running as a
+.B slapd
+module:
 .TP
 .B listen "<listen URIs>"
 The URIs the Load Balancer module should listen on. Must not overlap with the
 ones that
 .B slapd
-uses for its own listening sockets.
+uses for its own listening sockets. The related
+.B cn=config
+attribute is
+.B olcBkLloadListen
+with each URI provided as a separate value. No changes to this attribute made
+after the server has started up will take effect until it is restarted.
 
 .SH GLOBAL CONFIGURATION OPTIONS
-Options described in this section apply to all backends, unless specifically
-overridden in a backend definition. Arguments that should be replaced by
-actual text are shown in brackets <>.
+Options described in this section apply to all backends. Arguments that should
+be replaced by actual text are shown in brackets <>.
 .TP
 .B argsfile <filename>
 The (absolute) name of a file that will hold the
@@ -125,6 +141,10 @@ operation if initiated by a client whose bound identity matches the identity
 configured in
 .B bindconf
 (no normalisation of the DN is attempted).
+
+If SASL binds are issued by clients and this feature is enabled, backend
+servers need to support LDAP Who Am I? extended operation for the Load Balancer
+to detect the correct authorization identity.
 .\" .TP
 .\" .B vc
 .\" when receiving a bind operation from a client, pass it onto a backend
@@ -146,6 +166,9 @@ continuing with the next line of the current file.
 Specify the number of threads to use for the connection manager.
 The default is 1 and this is typically adequate for up to 16 CPU cores.
 The value should be set to a power of 2.
+
+If modified after server starts up, a change to this option will not take
+effect until the server has been restarted.
 .TP
 .B logfile <filename>
 Specify a file for recording debug log messages. By default these messages
@@ -314,7 +337,9 @@ The default is 10000.
 If
 .B lloadd
 is built with support for Transport Layer Security, there are more options
-you can specify.
+you can specify. None of these are available when compiled as a
+.BR slapd (8)
+module except through cn=config.
 .TP
 .B TLSCipherSuite <cipher-suite-spec>
 Permits configuring what ciphers will be accepted and the preference order.
@@ -754,6 +779,16 @@ backend-server
 "OpenLDAP Administrator's Guide" contains a longer annotated
 example of a configuration file.
 The original ETCDIR/lloadd.conf is another example.
+
+.SH LIMITATIONS
+Support for proxying SASL Binds is limited to the
+.B EXTERNAL
+mechanism (and only to extract the DN of a client TLS cerificate if used during
+the last renegotiation) and mechanisms that rely neither on connection metadata
+(as Kerberos does) nor establish a SASL integrity/confidentialiy layer (again,
+some Kerberos mechanisms,
+.B DIGEST-MD5
+can negotiate this).
 
 .SH FILES
 .TP
