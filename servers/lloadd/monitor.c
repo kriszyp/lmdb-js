@@ -728,6 +728,12 @@ lload_monitor_server_update(
 
     ldap_pvt_thread_mutex_unlock( &b->b_mutex );
 
+    /* Right now, there is no way to retrieve the entry from monitor's
+     * cache to replace URI at the moment it is modified */
+    a = attr_find( e->e_attrs, ad_olmServerURI );
+    assert( a != NULL );
+    ber_bvreplace( &a->a_vals[0], &b->b_uri );
+
     a = attr_find( e->e_attrs, ad_olmActiveConnections );
     assert( a != NULL );
     UI2BV( &a->a_vals[0], active );
