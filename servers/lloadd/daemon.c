@@ -1302,9 +1302,11 @@ lloadd_daemon( struct event_base *daemon_base )
 
     assert( daemon_base != NULL );
 
-    dnsbase = evdns_base_new( daemon_base,
-            EVDNS_BASE_INITIALIZE_NAMESERVERS |
-                    EVDNS_BASE_DISABLE_WHEN_INACTIVE );
+#ifndef EVDNS_BASE_INITIALIZE_NAMESERVERS /* libevent 2.0 support */
+#define EVDNS_BASE_INITIALIZE_NAMESERVERS 1
+#endif /* !EVDNS_BASE_INITIALIZE_NAMESERVERS */
+
+    dnsbase = evdns_base_new( daemon_base, EVDNS_BASE_INITIALIZE_NAMESERVERS );
     if ( !dnsbase ) {
         Debug( LDAP_DEBUG_ANY, "lloadd startup: "
                 "failed to set up for async name resolution\n" );
@@ -1358,7 +1360,7 @@ lloadd_daemon( struct event_base *daemon_base )
         }
     }
 
-    event = evtimer_new( daemon_base, operations_timeout, event_self_cbarg() );
+    event = evtimer_new( daemon_base, operations_timeout, NULL );
     if ( !event ) {
         Debug( LDAP_DEBUG_ANY, "lloadd: "
                 "failed to allocate timeout event\n" );

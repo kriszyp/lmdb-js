@@ -983,7 +983,6 @@ backend_timeout(
 void
 operations_timeout( evutil_socket_t s, short what, void *arg )
 {
-    struct event *self = arg;
     LloadBackend *b;
     time_t threshold;
 
@@ -1009,7 +1008,7 @@ operations_timeout( evutil_socket_t s, short what, void *arg )
 done:
     Debug( LDAP_DEBUG_TRACE, "operations_timeout: "
             "timeout task finished\n" );
-    evtimer_add( self, lload_timeout_api );
+    evtimer_add( lload_timeout_event, lload_timeout_api );
 }
 
 void
