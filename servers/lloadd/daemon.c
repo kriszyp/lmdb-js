@@ -1439,7 +1439,7 @@ daemon_wakeup_cb( evutil_socket_t sig, short what, void *arg )
     event_del( lload_daemon[tid].wakeup_event );
 }
 
-LloadChange lload_change = { .type = LLOAD_UNDEFINED };
+LloadChange lload_change = { .type = LLOAD_CHANGE_UNDEFINED };
 
 #ifdef BALANCER_MODULE
 int
@@ -1475,7 +1475,7 @@ lload_handle_backend_invalidation( LloadChange *change )
 
     assert( change->object == LLOAD_BACKEND );
 
-    if ( change->type == LDAP_REQ_ADD ) {
+    if ( change->type == LLOAD_CHANGE_ADD ) {
         BackendInfo *mi = backend_info( "monitor" );
 
         if ( mi ) {
@@ -1490,7 +1490,7 @@ lload_handle_backend_invalidation( LloadChange *change )
         }
         backend_retry( b );
         return;
-    } else if ( change->type == LDAP_REQ_DELETE ) {
+    } else if ( change->type == LLOAD_CHANGE_DEL ) {
         ldap_pvt_thread_pool_walk(
                 &connection_pool, handle_pdus, backend_conn_cb, b );
         ldap_pvt_thread_pool_walk(
@@ -1504,8 +1504,7 @@ lload_handle_backend_invalidation( LloadChange *change )
         lload_backend_destroy( b );
         return;
     }
-    assert( change->type == LDAP_REQ_MODIFY );
-    assert( change->flags.generic != 0 );
+    assert( change->type == LLOAD_CHANGE_MODIFY );
 
     /*
      * A change that can't be handled gracefully, terminate all connections and
@@ -1629,51 +1628,9 @@ lload_handle_backend_invalidation( LloadChange *change )
 }
 
 void
-lload_handle_bindconf_invalidation( LloadChange *change )
-{
-    LloadBackend *b;
-    LloadConnection *c;
-
-    assert( change->type == LDAP_REQ_MODIFY );
-    assert( change->object == LLOAD_BINDCONF );
-
-    change->flags.bindconf &= ~LLOAD_BINDCONF_MOD_TIMEOUTS;
-
-    if ( !change->flags.bindconf ) {
-        /* Nothing needs doing, things will generally fall into place */
-        return;
-    }
-
-    /*
-     * Only timeout changes can be handled gracefully, terminate all
-     * connections and start over.
-     */
-    ldap_pvt_thread_pool_walk(
-            &connection_pool, handle_pdus, backend_conn_cb, NULL );
-    ldap_pvt_thread_pool_walk(
-            &connection_pool, upstream_bind, backend_conn_cb, NULL );
-
-    LDAP_CIRCLEQ_FOREACH ( b, &backend, b_next ) {
-        backend_reset( b );
-        backend_retry( b );
-    }
-
-    /* Reconsider the PRIVILEGED flag on all clients */
-    LDAP_CIRCLEQ_FOREACH ( c, &clients, c_next ) {
-        int privileged = ber_bvstrcasecmp( &c->c_auth, &lloadd_identity );
-
-        /* We have just terminated all pending operations (even pins), there
-         * should be no connections still binding/closing */
-        assert( c->c_state == LLOAD_C_READY );
-
-        c->c_type = privileged ? LLOAD_C_PRIVILEGED : LLOAD_C_OPEN;
-    }
-}
-
-void
 lload_handle_global_invalidation( LloadChange *change )
 {
-    assert( change->type == LDAP_REQ_MODIFY );
+    assert( change->type == LLOAD_CHANGE_MODIFY );
     assert( change->object == LLOAD_DAEMON );
 
     if ( change->flags.daemon & LLOAD_DAEMON_MOD_THREADS ) {
@@ -1747,12 +1704,45 @@ lload_handle_global_invalidation( LloadChange *change )
             }
         }
     }
+
+    if ( change->flags.daemon & LLOAD_DAEMON_MOD_BINDCONF ) {
+        LloadBackend *b;
+        LloadConnection *c;
+
+        /*
+         * Only timeout changes can be handled gracefully, terminate all
+         * connections and start over.
+         */
+        ldap_pvt_thread_pool_walk(
+                &connection_pool, handle_pdus, backend_conn_cb, NULL );
+        ldap_pvt_thread_pool_walk(
+                &connection_pool, upstream_bind, backend_conn_cb, NULL );
+
+        LDAP_CIRCLEQ_FOREACH ( b, &backend, b_next ) {
+            ldap_pvt_thread_mutex_lock( &b->b_mutex );
+            backend_reset( b );
+            backend_retry( b );
+            ldap_pvt_thread_mutex_unlock( &b->b_mutex );
+        }
+
+        /* Reconsider the PRIVILEGED flag on all clients */
+        LDAP_CIRCLEQ_FOREACH ( c, &clients, c_next ) {
+            int privileged = ber_bvstrcasecmp( &c->c_auth, &lloadd_identity );
+
+            /* We have just terminated all pending operations (even pins), there
+             * should be no connections still binding/closing */
+            assert( c->c_state == LLOAD_C_READY );
+
+            c->c_type = privileged ? LLOAD_C_PRIVILEGED : LLOAD_C_OPEN;
+        }
+    }
 }
 
 int
 lload_handle_invalidation( LloadChange *change )
 {
-    if ( change->type == LDAP_REQ_MODIFY && change->flags.generic == 0 ) {
+    if ( (change->type == LLOAD_CHANGE_MODIFY) &&
+            change->flags.generic == 0 ) {
         Debug( LDAP_DEBUG_ANY, "lload_handle_invalidation: "
                 "a modify where apparently nothing changed\n" );
     }
@@ -1763,9 +1753,6 @@ lload_handle_invalidation( LloadChange *change )
             break;
         case LLOAD_DAEMON:
             lload_handle_global_invalidation( change );
-            break;
-        case LLOAD_BINDCONF:
-            lload_handle_bindconf_invalidation( change );
             break;
         default:
             Debug( LDAP_DEBUG_ANY, "lload_handle_invalidation: "
@@ -1796,7 +1783,7 @@ lload_pause_base( struct event_base *base )
 void
 lload_pause_server( void )
 {
-    LloadChange ch = { .type = LLOAD_UNDEFINED };
+    LloadChange ch = { .type = LLOAD_CHANGE_UNDEFINED };
     int i;
 
     lload_pause_base( listener_base );
@@ -1812,7 +1799,7 @@ lload_pause_server( void )
 void
 lload_unpause_server( void )
 {
-    if ( lload_change.type != LLOAD_UNDEFINED ) {
+    if ( lload_change.type != LLOAD_CHANGE_UNDEFINED ) {
         lload_handle_invalidation( &lload_change );
     }
 

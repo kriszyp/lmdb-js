@@ -106,10 +106,19 @@ typedef int lload_cf_aux_table_parse_x( struct berval *val,
 
 typedef struct LloadListener LloadListener;
 
+enum lc_type {
+    LLOAD_CHANGE_UNDEFINED = 0,
+    LLOAD_CHANGE_MODIFY,
+    LLOAD_CHANGE_ADD,
+    LLOAD_CHANGE_DEL,
+};
+
 enum lc_object {
     LLOAD_UNDEFINED = 0,
     LLOAD_DAEMON,
+    /*
     LLOAD_BINDCONF,
+    */
     LLOAD_BACKEND,
 };
 
@@ -119,10 +128,7 @@ enum lcf_daemon {
     LLOAD_DAEMON_MOD_TLS = 1 << 2,
     LLOAD_DAEMON_MOD_LISTENER_ADD = 1 << 3,
     LLOAD_DAEMON_MOD_LISTENER_REPLACE = 1 << 4,
-};
-
-enum lcf_bindconf {
-    LLOAD_BINDCONF_MOD_TIMEOUTS = 1 << 0,
+    LLOAD_DAEMON_MOD_BINDCONF = 1 << 5,
 };
 
 enum lcf_backend {
@@ -131,12 +137,11 @@ enum lcf_backend {
 };
 
 struct LloadChange {
-    ber_tag_t type;
+    enum lc_type type;
     enum lc_object object;
     union {
         int generic;
         enum lcf_daemon daemon;
-        enum lcf_bindconf bindconf;
         enum lcf_backend backend;
     } flags;
     void *target;

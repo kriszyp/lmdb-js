@@ -751,9 +751,6 @@ config_generic( ConfigArgs *c )
     enum lcf_daemon flag = 0;
     int rc = LDAP_SUCCESS;
 
-    lload_change.type = c->op;
-    lload_change.object = LLOAD_DAEMON;
-
     if ( c->op == SLAP_CONFIG_EMIT ) {
         switch ( c->type ) {
             case CFG_IOTHREADS:
@@ -799,6 +796,9 @@ config_generic( ConfigArgs *c )
          * the moment */
         return rc;
     }
+
+    lload_change.type = LLOAD_CHANGE_MODIFY;
+    lload_change.object = LLOAD_DAEMON;
 
     switch ( c->type ) {
         case CFG_CONCUR:
@@ -1136,9 +1136,6 @@ config_bindconf( ConfigArgs *c )
 {
     int i;
 
-    lload_change.type = c->op;
-    lload_change.object = LLOAD_DAEMON;
-
     if ( c->op == SLAP_CONFIG_EMIT ) {
         struct berval bv;
 
@@ -1160,6 +1157,10 @@ config_bindconf( ConfigArgs *c )
         lload_bindconf_free( &bindconf );
         return LDAP_SUCCESS;
     }
+
+    lload_change.type = LLOAD_CHANGE_MODIFY;
+    lload_change.object = LLOAD_DAEMON;
+    lload_change.flags.daemon |= LLOAD_DAEMON_MOD_BINDCONF;
 
     for ( i = 1; i < c->argc; i++ ) {
         if ( lload_bindconf_parse( c->argv[i], &bindconf ) ) {
@@ -1821,16 +1822,18 @@ config_feature( ConfigArgs *c )
     slap_mask_t mask = 0;
     int i;
 
-    lload_change.type = c->op;
+    if ( c->op == SLAP_CONFIG_EMIT ) {
+        return mask_to_verbs( features, lload_features, &c->rvalue_vals );
+    }
+
+    lload_change.type = LLOAD_CHANGE_MODIFY;
     lload_change.object = LLOAD_DAEMON;
     lload_change.flags.daemon |= LLOAD_DAEMON_MOD_FEATURES;
     if ( !lload_change.target ) {
         lload_change.target = (void *)(uintptr_t)~lload_features;
     }
 
-    if ( c->op == SLAP_CONFIG_EMIT ) {
-        return mask_to_verbs( features, lload_features, &c->rvalue_vals );
-    } else if ( c->op == LDAP_MOD_DELETE ) {
+    if ( c->op == LDAP_MOD_DELETE ) {
         if ( !c->line ) {
             /* Last value has been deleted */
             lload_features = 0;
@@ -1883,13 +1886,9 @@ config_tls_cleanup( ConfigArgs *c )
 static int
 config_tls_option( ConfigArgs *c )
 {
-    int flag, rc;
+    int flag;
     int berval = 0;
     LDAP *ld = lload_tls_ld;
-
-    lload_change.type = c->op;
-    lload_change.object = LLOAD_DAEMON;
-    lload_change.flags.daemon |= LLOAD_DAEMON_MOD_TLS;
 
     switch ( c->type ) {
         case CFG_TLS_RAND:
@@ -1943,16 +1942,19 @@ config_tls_option( ConfigArgs *c )
     if ( c->op == SLAP_CONFIG_EMIT ) {
         return ldap_pvt_tls_get_option( ld, flag,
                 berval ? (void *)&c->value_bv : (void *)&c->value_string );
-    } else if ( c->op == LDAP_MOD_DELETE ) {
-        config_push_cleanup( c, config_tls_cleanup );
+    }
+
+    lload_change.type = LLOAD_CHANGE_MODIFY;
+    lload_change.object = LLOAD_DAEMON;
+    lload_change.flags.daemon |= LLOAD_DAEMON_MOD_TLS;
+
+    config_push_cleanup( c, config_tls_cleanup );
+    if ( c->op == LDAP_MOD_DELETE ) {
         return ldap_pvt_tls_set_option( ld, flag, NULL );
     }
     if ( !berval ) ch_free( c->value_string );
-    config_push_cleanup( c, config_tls_cleanup );
-    rc = ldap_pvt_tls_set_option(
+    return ldap_pvt_tls_set_option(
             ld, flag, berval ? (void *)&c->value_bv : (void *)c->argv[1] );
-    if ( berval ) ch_free( c->value_bv.bv_val );
-    return rc;
 }
 
 /* FIXME: this ought to be provided by libldap */
@@ -1960,10 +1962,6 @@ static int
 config_tls_config( ConfigArgs *c )
 {
     int i, flag;
-
-    lload_change.type = c->op;
-    lload_change.object = LLOAD_DAEMON;
-    lload_change.flags.daemon |= LLOAD_DAEMON_MOD_TLS;
 
     switch ( c->type ) {
         case CFG_TLS_CRLCHECK:
@@ -1983,13 +1981,18 @@ config_tls_config( ConfigArgs *c )
     }
     if ( c->op == SLAP_CONFIG_EMIT ) {
         return lload_tls_get_config( lload_tls_ld, flag, &c->value_string );
-    } else if ( c->op == LDAP_MOD_DELETE ) {
+    }
+
+    lload_change.type = LLOAD_CHANGE_MODIFY;
+    lload_change.object = LLOAD_DAEMON;
+    lload_change.flags.daemon |= LLOAD_DAEMON_MOD_TLS;
+
+    config_push_cleanup( c, config_tls_cleanup );
+    if ( c->op == LDAP_MOD_DELETE ) {
         int i = 0;
-        config_push_cleanup( c, config_tls_cleanup );
         return ldap_pvt_tls_set_option( lload_tls_ld, flag, &i );
     }
     ch_free( c->value_string );
-    config_push_cleanup( c, config_tls_cleanup );
     if ( isdigit( (unsigned char)c->argv[1][0] ) &&
             c->type != CFG_TLS_PROTOCOL_MIN ) {
         if ( lutil_atoi( &i, c->argv[1] ) != 0 ) {
@@ -3500,10 +3503,6 @@ backend_cf_gen( ConfigArgs *c )
 
     assert( b != NULL );
 
-    lload_change.type = c->op;
-    lload_change.object = LLOAD_BACKEND;
-    lload_change.target = b;
-
     if ( c->op == SLAP_CONFIG_EMIT ) {
         switch ( c->type ) {
             case CFG_URI:
@@ -3602,6 +3601,14 @@ backend_cf_gen( ConfigArgs *c )
             rc = 1;
             break;
     }
+
+    /* do not set this if it has already been set by another callback, e.g.
+     * lload_backend_ldadd */
+    if ( lload_change.type == LLOAD_CHANGE_UNDEFINED ) {
+        lload_change.type = LLOAD_CHANGE_MODIFY;
+    }
+    lload_change.object = LLOAD_BACKEND;
+    lload_change.target = b;
     lload_change.flags.backend |= flag;
 
     config_push_cleanup( c, lload_backend_finish );
@@ -3665,7 +3672,7 @@ lload_backend_ldadd( CfEntryInfo *p, Entry *e, ConfigArgs *ca )
      * save the new config when done with the entry */
     ca->lineno = 0;
 
-    lload_change.type = LDAP_REQ_ADD;
+    lload_change.type = LLOAD_CHANGE_ADD;
     lload_change.object = LLOAD_BACKEND;
     lload_change.target = b;
 
@@ -3678,7 +3685,7 @@ lload_backend_lddel( CfEntryInfo *ce, Operation *op )
 {
     LloadBackend *b = ce->ce_private;
 
-    lload_change.type = op->o_tag;
+    lload_change.type = LLOAD_CHANGE_DEL;
     lload_change.object = LLOAD_BACKEND;
     lload_change.target = b;
 
