@@ -488,7 +488,7 @@ backend_connect_task( void *ctx, void *arg )
  * Needs exclusive access to the backend.
  */
 void
-backend_reset( LloadBackend *b )
+backend_reset( LloadBackend *b, int gentle )
 {
     if ( b->b_cookie ) {
         int rc;
@@ -497,7 +497,8 @@ backend_reset( LloadBackend *b )
         b->b_cookie = NULL;
         b->b_opening--;
     }
-    if ( event_pending( b->b_retry_event, EV_TIMEOUT, NULL ) ) {
+    if ( b->b_retry_event &&
+            event_pending( b->b_retry_event, EV_TIMEOUT, NULL ) ) {
         assert( b->b_failed );
         event_del( b->b_retry_event );
         b->b_opening--;
@@ -520,64 +521,19 @@ backend_reset( LloadBackend *b )
         ch_free( pending );
         b->b_opening--;
     }
-    while ( !LDAP_CIRCLEQ_EMPTY( &b->b_preparing ) ) {
-        LloadConnection *c = LDAP_CIRCLEQ_FIRST( &b->b_preparing );
-
-        CONNECTION_LOCK(c);
-        Debug( LDAP_DEBUG_CONNS, "backend_reset: "
-                "destroying connection being set up connid=%lu\n",
-                c->c_connid );
-
-        assert( c->c_live );
-        CONNECTION_DESTROY(c);
-        assert( !c );
-    }
-    while ( !LDAP_CIRCLEQ_EMPTY( &b->b_bindconns ) ) {
-        LloadConnection *c = LDAP_CIRCLEQ_FIRST( &b->b_bindconns );
-
-        CONNECTION_LOCK(c);
-        Debug( LDAP_DEBUG_CONNS, "backend_reset: "
-                "destroying bind connection connid=%lu, pending ops=%ld\n",
-                c->c_connid, c->c_n_ops_executing );
-
-        assert( c->c_live );
-        CONNECTION_DESTROY(c);
-        assert( !c );
-    }
-    while ( !LDAP_CIRCLEQ_EMPTY( &b->b_conns ) ) {
-        LloadConnection *c = LDAP_CIRCLEQ_FIRST( &b->b_conns );
-
-        CONNECTION_LOCK(c);
-        Debug( LDAP_DEBUG_CONNS, "backend_reset: "
-                "destroying regular connection connid=%lu, pending ops=%ld\n",
-                c->c_connid, c->c_n_ops_executing );
-
-        assert( c->c_live );
-        CONNECTION_DESTROY(c);
-        assert( !c );
-    }
-    if ( b->b_dns_req ) {
-        evdns_getaddrinfo_cancel( b->b_dns_req );
-        b->b_dns_req = NULL;
-        b->b_opening--;
-    }
-    if ( b->b_cookie ) {
-        int rc;
-        rc = ldap_pvt_thread_pool_retract( b->b_cookie );
-        assert( rc == 1 );
-        b->b_cookie = NULL;
-        b->b_opening--;
-    }
-    if ( b->b_retry_event &&
-            event_pending( b->b_retry_event, EV_TIMEOUT, NULL ) ) {
-        assert( b->b_failed );
-        event_del( b->b_retry_event );
-        b->b_opening--;
-    }
+    connections_walk(
+            &b->b_mutex, &b->b_preparing, lload_connection_close, &gentle );
+    assert( LDAP_CIRCLEQ_EMPTY( &b->b_preparing ) );
     assert( b->b_opening == 0 );
-    assert( b->b_active == 0 );
-    assert( b->b_bindavail == 0 );
     b->b_failed = 0;
+
+    connections_walk_last( &b->b_mutex, &b->b_bindconns, b->b_last_bindconn,
+            lload_connection_close, &gentle );
+    assert( gentle || b->b_bindavail == 0 );
+
+    connections_walk_last( &b->b_mutex, &b->b_conns, b->b_last_conn,
+            lload_connection_close, &gentle );
+    assert( gentle || b->b_active == 0 );
 }
 
 void
@@ -589,8 +545,9 @@ lload_backend_destroy( LloadBackend *b )
             "destroying backend uri='%s', numconns=%d, numbindconns=%d\n",
             b->b_uri.bv_val, b->b_numconns, b->b_numbindconns );
 
+    ldap_pvt_thread_mutex_lock( &b->b_mutex );
     b->b_numconns = b->b_numbindconns = 0;
-    backend_reset( b );
+    backend_reset( b, 0 );
 
     LDAP_CIRCLEQ_REMOVE( &backend, b, b_next );
     if ( b == next ) {
@@ -613,6 +570,7 @@ lload_backend_destroy( LloadBackend *b )
         assert( rc == LDAP_SUCCESS );
     }
 #endif /* BALANCER_MODULE */
+    ldap_pvt_thread_mutex_unlock( &b->b_mutex );
     ldap_pvt_thread_mutex_destroy( &b->b_mutex );
 
     if ( b->b_retry_event ) {

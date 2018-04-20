@@ -41,7 +41,7 @@ LDAP_SLAPD_F (void) backend_connect( evutil_socket_t s, short what, void *arg );
 LDAP_SLAPD_F (void *) backend_connect_task( void *ctx, void *arg );
 LDAP_SLAPD_F (void) backend_retry( LloadBackend *b );
 LDAP_SLAPD_F (LloadConnection *) backend_select( LloadOperation *op, int *res );
-LDAP_SLAPD_F (void) backend_reset( LloadBackend *b );
+LDAP_SLAPD_F (void) backend_reset( LloadBackend *b, int gentle );
 LDAP_SLAPD_F (void) lload_backend_destroy( LloadBackend *b );
 LDAP_SLAPD_F (void) lload_backends_destroy( void );
 
@@ -64,7 +64,7 @@ LDAP_SLAPD_F (LloadConnection *) client_init( ber_socket_t s, LloadListener *url
 LDAP_SLAPD_F (void) client_reset( LloadConnection *c );
 LDAP_SLAPD_F (void) client_destroy( LloadConnection *c );
 LDAP_SLAPD_F (void) clients_destroy( void );
-LDAP_SLAPD_F (void) clients_walk( CONNECTION_CLIENT_WALK apply, void *argv );
+LDAP_SLAPD_F (void) clients_walk( CONNCB apply, void *argv );
 
 /*
  * config.c
@@ -90,9 +90,15 @@ LDAP_SLAPD_V (ldap_pvt_thread_mutex_t) clients_mutex;
 LDAP_SLAPD_F (void *) handle_pdus( void *ctx, void *arg );
 LDAP_SLAPD_F (void) connection_write_cb( evutil_socket_t s, short what, void *arg );
 LDAP_SLAPD_F (void) connection_read_cb( evutil_socket_t s, short what, void *arg );
-LDAP_SLAPD_F (void) lload_connection_close( LloadConnection *c );
+LDAP_SLAPD_F (int) lload_connection_close( LloadConnection *c, void *arg );
 LDAP_SLAPD_F (LloadConnection *) lload_connection_init( ber_socket_t s, const char *peername, int use_tls );
 LDAP_SLAPD_F (void) connection_destroy( LloadConnection *c );
+LDAP_SLAPD_F (void) connections_walk_last( ldap_pvt_thread_mutex_t *cq_mutex,
+        lload_c_head *cq,
+        LloadConnection *cq_last,
+        CONNCB cb,
+        void *arg );
+LDAP_SLAPD_F (void) connections_walk( ldap_pvt_thread_mutex_t *cq_mutex, lload_c_head *cq, CONNCB cb, void *arg );
 
 /*
  * daemon.c

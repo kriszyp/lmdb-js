@@ -814,12 +814,13 @@ operation_lost_upstream( LloadOperation *op )
     CONNECTION_UNLOCK(c);
 }
 
-void
-connection_timeout( LloadConnection *upstream, time_t threshold )
+int
+connection_timeout( LloadConnection *upstream, void *arg )
 {
     LloadOperation *op;
     TAvlnode *ops = NULL, *node;
     LloadBackend *b = upstream->c_private;
+    time_t threshold = *(time_t *)arg;
     int rc, nops = 0;
 
     for ( node = tavl_end( upstream->c_ops, TAVL_DIR_LEFT ); node &&
@@ -862,7 +863,7 @@ connection_timeout( LloadConnection *upstream, time_t threshold )
     }
 
     if ( nops == 0 ) {
-        return;
+        return LDAP_SUCCESS;
     }
     upstream->c_n_ops_executing -= nops;
     Debug( LDAP_DEBUG_STATS, "connection_timeout: "
@@ -916,68 +917,7 @@ connection_timeout( LloadConnection *upstream, time_t threshold )
     CONNECTION_LOCK_DECREF(upstream);
     /* just dispose of the AVL, most operations should already be gone */
     tavl_free( ops, NULL );
-}
-
-static void
-backend_timeout(
-        LloadBackend *b,
-        lload_c_head *cq,
-        LloadConnection **lastp,
-        time_t threshold )
-{
-    LloadConnection *c, *old;
-    unsigned long last_connid;
-
-    ldap_pvt_thread_mutex_lock( &b->b_mutex );
-    if ( !*lastp ) {
-        ldap_pvt_thread_mutex_unlock( &b->b_mutex );
-        return;
-    }
-    last_connid = (*lastp)->c_connid;
-    c = LDAP_CIRCLEQ_LOOP_NEXT( cq, *lastp, c_next );
-    CONNECTION_LOCK(c);
-    ldap_pvt_thread_mutex_unlock( &b->b_mutex );
-
-    /*
-     * Ugh... concurrency is annoying:
-     * - we maintain the connections in the cq CIRCLEQ_ in ascending c_connid
-     *   order
-     * - the connection with the highest c_connid is maintained at *lastp
-     * - we can only use cq when we hold b->b_mutex
-     * - connections might be added to or removed from cq while we're busy
-     *   processing connections
-     * - connection_destroy touches cq
-     * - we can't even hold locks of two different connections
-     * - we need a way to detect we've finished looping around cq for some
-     *   definition of looping around
-     *
-     * So as a result, 90% of the code below is spent navigating that...
-     */
-    while ( c->c_connid <= last_connid ) {
-        Debug( LDAP_DEBUG_TRACE, "backend_timeout: "
-                "timing out operations for connid=%lu which has %ld "
-                "pending ops\n",
-                c->c_connid, c->c_n_ops_executing );
-        connection_timeout( c, threshold );
-        if ( c->c_connid == last_connid ) {
-            break;
-        }
-
-        CONNECTION_UNLOCK_INCREF(c);
-
-        ldap_pvt_thread_mutex_lock( &b->b_mutex );
-        old = c;
-        c = LDAP_CIRCLEQ_LOOP_NEXT( cq, c, c_next );
-        CONNECTION_LOCK(c);
-        CONNECTION_UNLOCK_INCREF(c);
-        ldap_pvt_thread_mutex_unlock( &b->b_mutex );
-
-        CONNECTION_LOCK_DECREF(old);
-        CONNECTION_UNLOCK_OR_DESTROY(old);
-
-        CONNECTION_LOCK_DECREF(c);
-    }
-    CONNECTION_UNLOCK_OR_DESTROY(c);
+    return LDAP_SUCCESS;
 }
 
 void
@@ -993,17 +933,25 @@ operations_timeout( evutil_socket_t s, short what, void *arg )
     threshold = slap_get_time() - lload_timeout_api->tv_sec;
 
     LDAP_CIRCLEQ_FOREACH ( b, &backend, b_next ) {
-        if ( b->b_n_ops_executing == 0 ) continue;
+        ldap_pvt_thread_mutex_lock( &b->b_mutex );
+        if ( b->b_n_ops_executing == 0 ) {
+            ldap_pvt_thread_mutex_unlock( &b->b_mutex );
+            continue;
+        }
 
         Debug( LDAP_DEBUG_TRACE, "operations_timeout: "
                 "timing out binds for backend uri=%s\n",
                 b->b_uri.bv_val );
-        backend_timeout( b, &b->b_bindconns, &b->b_last_bindconn, threshold );
+        connections_walk_last( &b->b_mutex, &b->b_bindconns, b->b_last_bindconn,
+                connection_timeout, &threshold );
 
         Debug( LDAP_DEBUG_TRACE, "operations_timeout: "
                 "timing out other operations for backend uri=%s\n",
                 b->b_uri.bv_val );
-        backend_timeout( b, &b->b_conns, &b->b_last_conn, threshold );
+        connections_walk_last( &b->b_mutex, &b->b_conns, b->b_last_conn,
+                connection_timeout, &threshold );
+
+        ldap_pvt_thread_mutex_unlock( &b->b_mutex );
     }
 done:
     Debug( LDAP_DEBUG_TRACE, "operations_timeout: "

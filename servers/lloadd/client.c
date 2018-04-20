@@ -575,7 +575,7 @@ clients_destroy( void )
 }
 
 void
-clients_walk( CONNECTION_CLIENT_WALK apply, void *argv )
+clients_walk( CONNCB apply, void *argv )
 {
     LloadConnection *c;
     ldap_pvt_thread_mutex_lock( &clients_mutex );

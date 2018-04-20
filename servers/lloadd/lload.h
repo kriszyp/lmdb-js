@@ -446,7 +446,7 @@ struct LloadListener {
 #endif
 };
 
-typedef int (*CONNECTION_CLIENT_WALK)( LloadConnection *c, void *argv );
+typedef int (*CONNCB)( LloadConnection *c, void *arg );
 
 struct lload_monitor_conn_arg {
     Operation *op;

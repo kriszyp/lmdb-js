@@ -1388,11 +1388,11 @@ lloadd_daemon( struct event_base *daemon_base )
     /* wait for the listener threads to complete */
     destroy_listeners();
 
-    /* TODO: Mark upstream connections closing */
+    /* Mark upstream connections closing and prevent from opening new ones */
     LDAP_CIRCLEQ_FOREACH ( b, &backend, b_next ) {
         ldap_pvt_thread_mutex_lock( &b->b_mutex );
         b->b_numconns = b->b_numbindconns = 0;
-        backend_reset( b );
+        backend_reset( b, 1 );
         ldap_pvt_thread_mutex_unlock( &b->b_mutex );
     }
 
@@ -1496,7 +1496,9 @@ lload_handle_backend_invalidation( LloadChange *change )
         if ( !current_backend ) {
             current_backend = b;
         }
+        ldap_pvt_thread_mutex_lock( &b->b_mutex );
         backend_retry( b );
+        ldap_pvt_thread_mutex_unlock( &b->b_mutex );
         return;
     } else if ( change->type == LLOAD_CHANGE_DEL ) {
         ldap_pvt_thread_pool_walk(
@@ -1517,8 +1519,10 @@ lload_handle_backend_invalidation( LloadChange *change )
                 &connection_pool, handle_pdus, backend_conn_cb, b );
         ldap_pvt_thread_pool_walk(
                 &connection_pool, upstream_bind, backend_conn_cb, b );
-        backend_reset( b );
+        ldap_pvt_thread_mutex_lock( &b->b_mutex );
+        backend_reset( b, 0 );
         backend_retry( b );
+        ldap_pvt_thread_mutex_unlock( &b->b_mutex );
         return;
     }
 
@@ -1599,7 +1603,9 @@ lload_handle_backend_invalidation( LloadChange *change )
             assert( need_close >= diff );
 
             LDAP_CIRCLEQ_FOREACH ( c, &b->b_bindconns, c_next ) {
-                lload_connection_close( c );
+                int gentle = 1;
+
+                lload_connection_close( c, &gentle );
                 need_close--;
                 diff--;
                 if ( !diff ) {
@@ -1615,7 +1621,9 @@ lload_handle_backend_invalidation( LloadChange *change )
             assert( need_close >= diff );
 
             LDAP_CIRCLEQ_FOREACH ( c, &b->b_conns, c_next ) {
-                lload_connection_close( c );
+                int gentle = 1;
+
+                lload_connection_close( c, &gentle );
                 need_close--;
                 diff--;
                 if ( !diff ) {
@@ -1627,7 +1635,9 @@ lload_handle_backend_invalidation( LloadChange *change )
         assert( need_close == 0 );
 
         if ( need_open ) {
+            ldap_pvt_thread_mutex_lock( &b->b_mutex );
             backend_retry( b );
+            ldap_pvt_thread_mutex_unlock( &b->b_mutex );
         }
     }
 }
@@ -1725,7 +1735,7 @@ lload_handle_global_invalidation( LloadChange *change )
 
         LDAP_CIRCLEQ_FOREACH ( b, &backend, b_next ) {
             ldap_pvt_thread_mutex_lock( &b->b_mutex );
-            backend_reset( b );
+            backend_reset( b, 0 );
             backend_retry( b );
             ldap_pvt_thread_mutex_unlock( &b->b_mutex );
         }

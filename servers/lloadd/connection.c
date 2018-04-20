@@ -334,17 +334,130 @@ connection_destroy( LloadConnection *c )
 }
 
 /*
- * Expected to be run from lload_unpause_server, so there are no other threads
- * running.
+ * Called holding mutex, will walk cq calling cb on all connections whose
+ * c_connid <= cq_last->c_connid that still exist at the time we get to them.
  */
 void
-lload_connection_close( LloadConnection *c )
+connections_walk_last(
+        ldap_pvt_thread_mutex_t *cq_mutex,
+        lload_c_head *cq,
+        LloadConnection *cq_last,
+        CONNCB cb,
+        void *arg )
+{
+    LloadConnection *c, *old;
+    unsigned long last_connid;
+
+    if ( LDAP_CIRCLEQ_EMPTY( cq ) ) {
+        return;
+    }
+    last_connid = cq_last->c_connid;
+    c = LDAP_CIRCLEQ_LOOP_NEXT( cq, cq_last, c_next );
+    assert( c->c_connid <= last_connid );
+
+    CONNECTION_LOCK(c);
+    ldap_pvt_thread_mutex_unlock( cq_mutex );
+
+    /*
+     * Ugh... concurrency is annoying:
+     * - we maintain the connections in the cq CIRCLEQ_ in ascending c_connid
+     *   order
+     * - the connection with the highest c_connid is maintained at cq_last
+     * - we can only use cq when we hold cq_mutex
+     * - connections might be added to or removed from cq while we're busy
+     *   processing connections
+     * - connection_destroy touches cq
+     * - we can't even hold locks of two different connections
+     * - we need a way to detect we've finished looping around cq for some
+     *   definition of looping around
+     *
+     * So as a result, 90% of the code below is spent navigating that...
+     */
+    while ( c->c_connid <= last_connid ) {
+        /* Do not permit the callback to actually free the connection even if
+         * it wants to, we need it to traverse cq */
+        c->c_refcnt++;
+        if ( cb( c, arg ) ) {
+            c->c_refcnt--;
+            break;
+        }
+        c->c_refcnt--;
+
+        if ( c->c_connid == last_connid ) {
+            break;
+        }
+
+        CONNECTION_UNLOCK_INCREF(c);
+
+        ldap_pvt_thread_mutex_lock( cq_mutex );
+        old = c;
+retry:
+        c = LDAP_CIRCLEQ_LOOP_NEXT( cq, c, c_next );
+
+        if ( c->c_connid <= old->c_connid ) {
+            ldap_pvt_thread_mutex_unlock( cq_mutex );
+
+            CONNECTION_LOCK_DECREF(old);
+            CONNECTION_UNLOCK_OR_DESTROY(old);
+
+            ldap_pvt_thread_mutex_lock( cq_mutex );
+            return;
+        }
+
+        CONNECTION_LOCK(c);
+        assert( c->c_state != LLOAD_C_DYING );
+        if ( c->c_state == LLOAD_C_INVALID ) {
+            /* This dying connection will be unlinked once we release cq_mutex
+             * and it wouldn't be safe to iterate further, skip over it */
+            CONNECTION_UNLOCK(c);
+            goto retry;
+        }
+        CONNECTION_UNLOCK_INCREF(c);
+        ldap_pvt_thread_mutex_unlock( cq_mutex );
+
+        CONNECTION_LOCK_DECREF(old);
+        CONNECTION_UNLOCK_OR_DESTROY(old);
+
+        CONNECTION_LOCK_DECREF(c);
+        assert( c->c_state != LLOAD_C_DYING );
+        assert( c->c_state != LLOAD_C_INVALID );
+    }
+    CONNECTION_UNLOCK_OR_DESTROY(c);
+    ldap_pvt_thread_mutex_lock( cq_mutex );
+}
+
+void
+connections_walk(
+        ldap_pvt_thread_mutex_t *cq_mutex,
+        lload_c_head *cq,
+        CONNCB cb,
+        void *arg )
+{
+    LloadConnection *cq_last = LDAP_CIRCLEQ_LAST( cq );
+    return connections_walk_last( cq_mutex, cq, cq_last, cb, arg );
+}
+
+/*
+ * Caller is expected to hold the lock.
+ */
+int
+lload_connection_close( LloadConnection *c, void *arg )
 {
     TAvlnode *node;
+    int gentle = *(int *)arg;
 
-    /* We lock so we can use CONNECTION_UNLOCK_OR_DESTROY to drop the
-     * connection if we can */
-    CONNECTION_LOCK(c);
+    if ( !c->c_live ) {
+        return LDAP_SUCCESS;
+    }
+
+    if ( !gentle ) {
+        /* Caller has a reference on this connection,
+         * it doesn't actually die here */
+        CONNECTION_DESTROY(c);
+        assert( c );
+        CONNECTION_LOCK(c);
+        return LDAP_SUCCESS;
+    }
 
     /* The first thing we do is make sure we don't get new Operations in */
     c->c_state = LLOAD_C_CLOSING;
@@ -362,7 +475,7 @@ lload_connection_close( LloadConnection *c )
             }
         }
     }
-    CONNECTION_UNLOCK_OR_DESTROY(c);
+    return LDAP_SUCCESS;
 }
 
 LloadConnection *
