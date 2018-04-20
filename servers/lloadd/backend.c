@@ -50,13 +50,14 @@ upstream_connect_cb( evutil_socket_t s, short what, void *arg )
             return;
         } else if ( error ) {
             goto done;
-        } else if ( !upstream_init( s, conn->backend ) ) {
+        } else if ( upstream_init( s, conn->backend ) == NULL ) {
             goto done;
         }
         rc = LDAP_SUCCESS;
     }
 
 done:
+    LDAP_LIST_REMOVE( conn, next );
     if ( rc ) {
         evutil_closesocket( conn->fd );
         b->b_opening--;
@@ -72,18 +73,14 @@ done:
                     s, error ? ": " : "",
                     error ? sock_errstr( error, ebuf, sizeof(ebuf) ) : "" );
         }
+        backend_retry( b );
     } else {
         b->b_failed = 0;
     }
-    LDAP_LIST_REMOVE( conn, next );
     ldap_pvt_thread_mutex_unlock( &b->b_mutex );
 
     event_free( conn->event );
     ch_free( conn );
-
-    if ( rc ) {
-        backend_retry( b );
-    }
 }
 
 static void
@@ -168,7 +165,7 @@ upstream_name_cb( int result, struct evutil_addrinfo *res, void *arg )
         Debug( LDAP_DEBUG_CONNS, "upstream_name_cb: "
                 "connection to backend uri=%s in progress\n",
                 b->b_uri.bv_val );
-    } else if ( !upstream_init( s, b ) ) {
+    } else if ( upstream_init( s, b ) == NULL ) {
         goto fail;
     }
 
@@ -182,8 +179,8 @@ fail:
     }
     b->b_opening--;
     b->b_failed++;
-    ldap_pvt_thread_mutex_unlock( &b->b_mutex );
     backend_retry( b );
+    ldap_pvt_thread_mutex_unlock( &b->b_mutex );
     if ( res ) {
         evutil_freeaddrinfo( res );
     }
@@ -283,18 +280,20 @@ backend_select( LloadOperation *op, int *res )
     return NULL;
 }
 
+/*
+ * Will schedule a connection attempt if there is a need for it. Need exclusive
+ * access to backend, its b_mutex is not touched here, though.
+ */
 void
 backend_retry( LloadBackend *b )
 {
-    int rc, requested;
+    int requested;
 
     if ( slapd_shutdown ) {
         Debug( LDAP_DEBUG_CONNS, "backend_retry: "
                 "shutting down\n" );
         return;
     }
-
-    ldap_pvt_thread_mutex_lock( &b->b_mutex );
 
     requested = b->b_numconns;
 #ifdef LDAP_API_FEATURE_VERIFY_CREDENTIALS
@@ -303,38 +302,46 @@ backend_retry( LloadBackend *b )
     {
         requested += b->b_numbindconns;
     }
-    if ( b->b_active + b->b_bindavail + b->b_opening < requested ) {
-        if ( b->b_opening > 0 || b->b_failed > 0 ) {
-            if ( b->b_failed > 0 &&
-                    !event_pending( b->b_retry_event, EV_TIMEOUT, NULL ) ) {
-                Debug( LDAP_DEBUG_CONNS, "backend_retry: "
-                        "scheduling a retry in %d ms\n",
-                        b->b_retry_timeout );
-                b->b_opening++;
-                event_add( b->b_retry_event, &b->b_retry_tv );
-                ldap_pvt_thread_mutex_unlock( &b->b_mutex );
-                return;
-            } else {
-                Debug( LDAP_DEBUG_CONNS, "backend_retry: "
-                        "retry in progress already\n" );
-            }
-        } else {
-            Debug( LDAP_DEBUG_CONNS, "backend_retry: "
-                    "scheduling re-connection straight away\n" );
-            b->b_opening++;
-            rc = ldap_pvt_thread_pool_submit2(
-                    &connection_pool, backend_connect_task, b, &b->b_cookie );
-            if ( rc ) {
-                ldap_pvt_thread_mutex_unlock( &b->b_mutex );
-                backend_connect( -1, 0, b );
-                return;
-            }
-        }
-    } else {
+
+    if ( b->b_active + b->b_bindavail + b->b_opening >= requested ) {
         Debug( LDAP_DEBUG_CONNS, "backend_retry: "
                 "no more connections needed for this backend\n" );
+        return;
     }
-    ldap_pvt_thread_mutex_unlock( &b->b_mutex );
+
+    if ( b->b_opening > 0 ) {
+        Debug( LDAP_DEBUG_CONNS, "backend_retry: "
+                "retry in progress already\n" );
+        assert( b->b_opening == 1 );
+        return;
+    }
+
+    /* We incremented b_opening when we activated the event, so it can't be
+     * pending */
+    assert( !event_pending( b->b_retry_event, EV_TIMEOUT, NULL ) );
+    b->b_opening++;
+
+    if ( b->b_failed > 0 ) {
+        Debug( LDAP_DEBUG_CONNS, "backend_retry: "
+                "scheduling a retry in %d ms\n",
+                b->b_retry_timeout );
+        event_add( b->b_retry_event, &b->b_retry_tv );
+        return;
+    }
+
+    Debug( LDAP_DEBUG_CONNS, "backend_retry: "
+            "scheduling re-connection straight away\n" );
+
+    if ( ldap_pvt_thread_pool_submit2(
+                 &connection_pool, backend_connect_task, b, &b->b_cookie ) ) {
+        Debug( LDAP_DEBUG_ANY, "backend_retry: "
+                "failed to submit retry task, scheduling a retry instead\n" );
+        /* The current implementation of ldap_pvt_thread_pool_submit2 can fail
+         * and still set (an invalid) cookie */
+        b->b_cookie = NULL;
+        b->b_failed++;
+        event_add( b->b_retry_event, &b->b_retry_tv );
+    }
 }
 
 void
@@ -421,7 +428,7 @@ backend_connect( evutil_socket_t s, short what, void *arg )
             Debug( LDAP_DEBUG_CONNS, "backend_connect: "
                     "connection to backend uri=%s in progress\n",
                     b->b_uri.bv_val );
-        } else if ( !upstream_init( s, b ) ) {
+        } else if ( upstream_init( s, b ) == NULL ) {
             goto fail;
         }
 
@@ -466,8 +473,8 @@ backend_connect( evutil_socket_t s, short what, void *arg )
 fail:
     b->b_opening--;
     b->b_failed++;
-    ldap_pvt_thread_mutex_unlock( &b->b_mutex );
     backend_retry( b );
+    ldap_pvt_thread_mutex_unlock( &b->b_mutex );
 }
 
 void *

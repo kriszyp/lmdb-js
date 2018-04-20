@@ -330,8 +330,8 @@ upstream_bind_cb( LloadConnection *c )
                 LDAP_CIRCLEQ_INSERT_HEAD( &b->b_conns, c, c_next );
             }
             b->b_last_conn = c;
-            ldap_pvt_thread_mutex_unlock( &b->b_mutex );
             backend_retry( b );
+            ldap_pvt_thread_mutex_unlock( &b->b_mutex );
             CONNECTION_LOCK_DECREF(c);
         } break;
 #ifdef HAVE_CYRUS_SASL
@@ -410,7 +410,7 @@ static int
 upstream_finish( LloadConnection *c )
 {
     LloadBackend *b = c->c_private;
-    int is_bindconn = 0, rc = 0;
+    int is_bindconn = 0;
 
     c->c_pdu_cb = handle_one_response;
 
@@ -459,16 +459,28 @@ upstream_finish( LloadConnection *c )
         }
         b->b_last_conn = c;
     } else {
-        rc = 1;
+        if ( ldap_pvt_thread_pool_submit(
+                     &connection_pool, upstream_bind, c ) ) {
+            Debug( LDAP_DEBUG_ANY, "upstream_finish: "
+                    "failed to set up a bind callback for connid=%lu\n",
+                    c->c_connid );
+            return -1;
+        }
         c->c_refcnt++;
-        ldap_pvt_thread_pool_submit( &connection_pool, upstream_bind, c );
+
+        Debug( LDAP_DEBUG_CONNS, "upstream_finish: "
+                "scheduled a bind callback for connid=%lu\n",
+                c->c_connid );
+        return LDAP_SUCCESS;
     }
 
     Debug( LDAP_DEBUG_CONNS, "upstream_finish: "
-            "%sconnection connid=%lu is%s ready for use\n",
-            is_bindconn ? "bind " : "", c->c_connid, rc ? " almost" : "" );
+            "%sconnection connid=%lu for backend server '%s' is ready for "
+            "use\n",
+            is_bindconn ? "bind " : "", c->c_connid, b->b_name.bv_val );
 
-    return rc;
+    backend_retry( b );
+    return LDAP_SUCCESS;
 }
 
 static void
@@ -521,11 +533,10 @@ upstream_tls_handshake_cb( evutil_socket_t s, short what, void *arg )
         CONNECTION_LOCK_DECREF(c);
 
         rc = upstream_finish( c );
-
         ldap_pvt_thread_mutex_unlock( &b->b_mutex );
 
-        if ( rc == LDAP_SUCCESS ) {
-            backend_retry( b );
+        if ( rc ) {
+            goto fail;
         }
     } else if ( ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_NEEDS_WRITE, NULL ) ) {
         event_add( c->c_write_event, lload_write_timeout );
@@ -604,21 +615,20 @@ upstream_starttls( LloadConnection *c )
         }
         c->c_is_tls = LLOAD_CLEARTEXT;
 
-        ber_free( ber, 1 );
-
         CONNECTION_UNLOCK_INCREF(c);
         ldap_pvt_thread_mutex_lock( &b->b_mutex );
         CONNECTION_LOCK_DECREF(c);
 
         rc = upstream_finish( c );
-
         ldap_pvt_thread_mutex_unlock( &b->b_mutex );
 
-        if ( rc == LDAP_SUCCESS ) {
-            backend_retry( b );
+        if ( rc ) {
+            goto fail;
         }
 
+        ber_free( ber, 1 );
         CONNECTION_UNLOCK_OR_DESTROY(c);
+
         return rc;
     }
 
@@ -656,7 +666,7 @@ upstream_init( ber_socket_t s, LloadBackend *b )
     LloadConnection *c;
     struct event_base *base = lload_get_base( s );
     struct event *event;
-    int flags, rc = -1;
+    int flags;
 
     assert( b != NULL );
 
@@ -695,8 +705,7 @@ upstream_init( ber_socket_t s, LloadBackend *b )
     c->c_write_event = event;
 
     if ( c->c_is_tls == LLOAD_CLEARTEXT ) {
-        rc = upstream_finish( c );
-        if ( rc < 0 ) {
+        if ( upstream_finish( c ) ) {
             goto fail;
         }
     } else if ( c->c_is_tls == LLOAD_LDAPS ) {
@@ -729,13 +738,6 @@ upstream_init( ber_socket_t s, LloadBackend *b )
 
     c->c_destroy = upstream_destroy;
     CONNECTION_UNLOCK_OR_DESTROY(c);
-
-    /* has upstream_finish() finished? */
-    if ( rc == LDAP_SUCCESS ) {
-        ldap_pvt_thread_mutex_unlock( &b->b_mutex );
-        backend_retry( b );
-        ldap_pvt_thread_mutex_lock( &b->b_mutex );
-    }
 
     return c;
 
@@ -840,8 +842,8 @@ upstream_destroy( LloadConnection *c )
             b->b_active--;
         }
         b->b_n_ops_executing -= executing;
-        ldap_pvt_thread_mutex_unlock( &b->b_mutex );
         backend_retry( b );
+        ldap_pvt_thread_mutex_unlock( &b->b_mutex );
     }
 
     CONNECTION_LOCK_DECREF(c);

@@ -1354,9 +1354,11 @@ lloadd_daemon( struct event_base *daemon_base )
                         "failed to allocate retry event\n" );
                 return -1;
             }
-            b->b_retry_event = event;
 
+            ldap_pvt_thread_mutex_lock( &b->b_mutex );
+            b->b_retry_event = event;
             backend_retry( b );
+            ldap_pvt_thread_mutex_unlock( &b->b_mutex );
         }
     }
 
