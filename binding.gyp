@@ -19,6 +19,16 @@
       ],
       "conditions": [
         ["OS=='linux'", {
+          "variables": {
+            "gcc_version" : "<!(gcc -dumpversion | cut -d '.' -f 1)",
+          },
+          "conditions": [
+            ["gcc_version>=7", {
+              "cflags": [
+                "-Wimplicit-fallthrough=2",
+              ],
+            }],
+          ],
           "ldflags": [
             "-fPIC",
             "-fvisibility=hidden"
