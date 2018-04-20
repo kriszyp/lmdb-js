@@ -93,9 +93,22 @@ upstream_name_cb( int result, struct evutil_addrinfo *res, void *arg )
     ber_socket_t s = AC_SOCKET_INVALID;
     int rc;
 
-    ldap_pvt_thread_mutex_lock( &b->b_mutex );
+    if ( result == EVUTIL_EAI_CANCEL ) {
+        Debug( LDAP_DEBUG_ANY, "upstream_name_cb: "
+                "cancelled\n" );
+        return;
+    }
 
+    ldap_pvt_thread_mutex_lock( &b->b_mutex );
+    /* We were already running when backend_reset tried to cancel us, but were
+     * already stuck waiting for the mutex, nothing to do and b_opening has
+     * been decremented as well */
+    if ( b->b_dns_req == NULL ) {
+        ldap_pvt_thread_mutex_unlock( &b->b_mutex );
+        return;
+    }
     b->b_dns_req = NULL;
+
     if ( result || !res ) {
         Debug( LDAP_DEBUG_ANY, "upstream_name_cb: "
                 "name resolution failed for backend '%s': %s\n",
@@ -170,9 +183,7 @@ fail:
     b->b_opening--;
     b->b_failed++;
     ldap_pvt_thread_mutex_unlock( &b->b_mutex );
-    if ( result != EVUTIL_EAI_CANCEL ) {
-        backend_retry( b );
-    }
+    backend_retry( b );
     if ( res ) {
         evutil_freeaddrinfo( res );
     }
@@ -331,23 +342,28 @@ backend_connect( evutil_socket_t s, short what, void *arg )
 {
     struct evutil_addrinfo hints = {};
     LloadBackend *b = arg;
+    struct evdns_getaddrinfo_request *request, *placeholder;
     char *hostname;
 
-    if ( slapd_shutdown ) {
-        Debug( LDAP_DEBUG_CONNS, "backend_connect: "
-                "doing nothing, shutdown in progress\n" );
-        return;
-    }
-
     ldap_pvt_thread_mutex_lock( &b->b_mutex );
-    Debug( LDAP_DEBUG_CONNS, "backend_connect: "
-            "%sattempting connection to %s\n",
-            (what & EV_TIMEOUT) ? "retry timeout finished, " : "",
-            b->b_host );
+    assert( b->b_dns_req == NULL );
 
     if ( b->b_cookie ) {
         b->b_cookie = NULL;
     }
+
+    if ( slapd_shutdown ) {
+        Debug( LDAP_DEBUG_CONNS, "backend_connect: "
+                "doing nothing, shutdown in progress\n" );
+        b->b_opening--;
+        ldap_pvt_thread_mutex_unlock( &b->b_mutex );
+        return;
+    }
+
+    Debug( LDAP_DEBUG_CONNS, "backend_connect: "
+            "%sattempting connection to %s\n",
+            (what & EV_TIMEOUT) ? "retry timeout finished, " : "",
+            b->b_host );
 
 #ifdef LDAP_PF_LOCAL
     if ( b->b_proto == LDAP_PROTO_IPC ) {
@@ -420,11 +436,31 @@ backend_connect( evutil_socket_t s, short what, void *arg )
     hints.ai_protocol = IPPROTO_TCP;
 
     hostname = b->b_host;
+
+    /*
+     * Picking any value on the stack. This is unique to our thread without
+     * having to call ldap_pvt_thread_self.
+     * We might have to revert to using ldap_pvt_thread_self eventually since
+     * this betrays where exactly our stack lies - potentially weakening some
+     * protections like ASLR.
+     */
+    placeholder = (struct evdns_getaddrinfo_request *)&request;
+    b->b_dns_req = placeholder;
     ldap_pvt_thread_mutex_unlock( &b->b_mutex );
 
-    assert( b->b_dns_req == NULL );
-    b->b_dns_req = evdns_getaddrinfo(
+    request = evdns_getaddrinfo(
             dnsbase, hostname, NULL, &hints, upstream_name_cb, b );
+
+    ldap_pvt_thread_mutex_lock( &b->b_mutex );
+    assert( request || b->b_dns_req != placeholder );
+
+    /* Record the request, unless upstream_name_cb or another thread
+     * cleared it. Another thread is usually backend_reset or backend_connect
+     * if upstream_name_cb finished and scheduled another one */
+    if ( b->b_dns_req == placeholder ) {
+        b->b_dns_req = request;
+    }
+    ldap_pvt_thread_mutex_unlock( &b->b_mutex );
     return;
 
 fail:
