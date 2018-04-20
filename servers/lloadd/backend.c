@@ -484,9 +484,29 @@ backend_connect_task( void *ctx, void *arg )
     return NULL;
 }
 
+/*
+ * Needs exclusive access to the backend.
+ */
 void
 backend_reset( LloadBackend *b )
 {
+    if ( b->b_cookie ) {
+        int rc;
+        rc = ldap_pvt_thread_pool_retract( b->b_cookie );
+        assert( rc == 1 );
+        b->b_cookie = NULL;
+        b->b_opening--;
+    }
+    if ( event_pending( b->b_retry_event, EV_TIMEOUT, NULL ) ) {
+        assert( b->b_failed );
+        event_del( b->b_retry_event );
+        b->b_opening--;
+    }
+    if ( b->b_dns_req ) {
+        evdns_getaddrinfo_cancel( b->b_dns_req );
+        b->b_dns_req = NULL;
+        b->b_opening--;
+    }
     while ( !LDAP_LIST_EMPTY( &b->b_connecting ) ) {
         LloadPendingConnection *pending = LDAP_LIST_FIRST( &b->b_connecting );
 
@@ -569,6 +589,7 @@ lload_backend_destroy( LloadBackend *b )
             "destroying backend uri='%s', numconns=%d, numbindconns=%d\n",
             b->b_uri.bv_val, b->b_numconns, b->b_numbindconns );
 
+    b->b_numconns = b->b_numbindconns = 0;
     backend_reset( b );
 
     LDAP_CIRCLEQ_REMOVE( &backend, b, b_next );

@@ -1389,6 +1389,12 @@ lloadd_daemon( struct event_base *daemon_base )
     destroy_listeners();
 
     /* TODO: Mark upstream connections closing */
+    LDAP_CIRCLEQ_FOREACH ( b, &backend, b_next ) {
+        ldap_pvt_thread_mutex_lock( &b->b_mutex );
+        b->b_numconns = b->b_numbindconns = 0;
+        backend_reset( b );
+        ldap_pvt_thread_mutex_unlock( &b->b_mutex );
+    }
 
     for ( i = 0; i < lload_daemon_threads; i++ ) {
         /*
@@ -1497,12 +1503,6 @@ lload_handle_backend_invalidation( LloadChange *change )
                 &connection_pool, handle_pdus, backend_conn_cb, b );
         ldap_pvt_thread_pool_walk(
                 &connection_pool, upstream_bind, backend_conn_cb, b );
-        /* Drop the connection task if it's queued */
-        if ( b->b_cookie ) {
-            int rc = ldap_pvt_thread_pool_retract( b->b_cookie );
-            assert( rc == 1 );
-            b->b_opening--;
-        }
         lload_backend_destroy( b );
         return;
     }
@@ -1586,7 +1586,10 @@ lload_handle_backend_invalidation( LloadChange *change )
                 b->b_opening--;
                 need_close--;
             }
-            event_del( b->b_retry_event );
+            if ( event_pending( b->b_retry_event, EV_TIMEOUT, NULL ) ) {
+                event_del( b->b_retry_event );
+                b->b_opening--;
+            }
             assert( b->b_opening == 0 );
         }
 
