@@ -554,39 +554,10 @@ client_destroy( LloadConnection *c )
 }
 
 void
-clients_destroy( void )
+clients_destroy( int gentle )
 {
     ldap_pvt_thread_mutex_lock( &clients_mutex );
-    while ( !LDAP_CIRCLEQ_EMPTY( &clients ) ) {
-        LloadConnection *c = LDAP_CIRCLEQ_FIRST( &clients );
-
-        ldap_pvt_thread_mutex_unlock( &clients_mutex );
-        CONNECTION_LOCK(c);
-        /* We have shut down all processing, a dying connection connection
-         * should have been reclaimed by now! */
-        assert( c->c_live );
-        /* Upstream connections have already been destroyed, there should be no
-         * ops left */
-        assert( !c->c_ops );
-        CONNECTION_DESTROY(c);
-        ldap_pvt_thread_mutex_lock( &clients_mutex );
-    }
-    ldap_pvt_thread_mutex_unlock( &clients_mutex );
-}
-
-void
-clients_walk( CONNCB apply, void *argv )
-{
-    LloadConnection *c;
-    ldap_pvt_thread_mutex_lock( &clients_mutex );
-    if ( LDAP_CIRCLEQ_EMPTY( &clients ) ) {
-        ldap_pvt_thread_mutex_unlock( &clients_mutex );
-        return;
-    }
-
-    /* Todo is it possible to do this without holding this lock? */
-    LDAP_CIRCLEQ_FOREACH ( c, &clients, c_next ) {
-        apply( c, argv );
-    }
+    connections_walk(
+            &clients_mutex, &clients, lload_connection_close, &gentle );
     ldap_pvt_thread_mutex_unlock( &clients_mutex );
 }

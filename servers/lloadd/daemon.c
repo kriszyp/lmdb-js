@@ -1396,6 +1396,9 @@ lloadd_daemon( struct event_base *daemon_base )
         ldap_pvt_thread_mutex_unlock( &b->b_mutex );
     }
 
+    /* Do the same for clients */
+    clients_destroy( 1 );
+
     for ( i = 0; i < lload_daemon_threads; i++ ) {
         /*
          * https://github.com/libevent/libevent/issues/623
@@ -1420,7 +1423,7 @@ lloadd_daemon( struct event_base *daemon_base )
 #endif
 
     lload_backends_destroy();
-    clients_destroy();
+    clients_destroy( 0 );
     lload_bindconf_free( &bindconf );
     evdns_base_free( dnsbase, 0 );
 

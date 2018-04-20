@@ -548,7 +548,10 @@ lload_monitor_in_conn_create(
     mp_parent = e_parent->e_private;
     arg.ms = (monitor_subsys_t *)mp_parent->mp_info;
 
-    clients_walk( lload_monitor_in_conn_entry, &arg );
+    ldap_pvt_thread_mutex_lock( &clients_mutex );
+    connections_walk(
+            &clients_mutex, &clients, lload_monitor_in_conn_entry, &arg );
+    ldap_pvt_thread_mutex_unlock( &clients_mutex );
 
     return 0;
 }
@@ -935,8 +938,12 @@ lload_monitor_update_global_stats( void *ctx, void *arg )
 
     Debug( LDAP_DEBUG_TRACE, "lload_monitor_update_global_stats: "
             "updating stats\n" );
+
     /* count incoming connections */
-    clients_walk( lload_monitor_incoming_count, &tmp_stats );
+    ldap_pvt_thread_mutex_lock( &clients_mutex );
+    connections_walk( &clients_mutex, &clients, lload_monitor_incoming_count,
+            &tmp_stats );
+    ldap_pvt_thread_mutex_unlock( &clients_mutex );
 
     LDAP_CIRCLEQ_FOREACH ( b, &backend, b_next ) {
         ldap_pvt_thread_mutex_lock( &b->b_mutex );
