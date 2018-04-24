@@ -18,6 +18,9 @@ echo "running defines.sh"
 
 mkdir -p $TESTDIR $DBDIR1 $DBDIR2 $DBDIR3
 
+$SLAPPASSWD -g -n >$CONFIGPWF
+echo "rootpw `$SLAPPASSWD -T $CONFIGPWF`" >$TESTDIR/configpw.conf
+
 echo "Starting slapd on TCP/IP port $PORT2..."
 . $CONFFILTER $BACKEND < $SCHEMACONF > $CONF2
 $SLAPD -f $CONF2 -h $URI2 -d $LVL > $LOG2 2>&1 &
