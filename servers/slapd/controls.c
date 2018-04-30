@@ -1660,8 +1660,8 @@ static int parseDomainScope (
 		return LDAP_PROTOCOL_ERROR;
 	}
 
-	if ( BER_BVISNULL( &ctrl->ldctl_value )) {
-		rs->sr_text = "domainScope control value not empty";
+	if ( !BER_BVISNULL( &ctrl->ldctl_value )) {
+		rs->sr_text = "domainScope control value not absent";
 		return LDAP_PROTOCOL_ERROR;
 	}
 
