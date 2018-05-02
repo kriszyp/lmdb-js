@@ -1924,6 +1924,7 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 		/* Don't do any processing for consumer contextCSN updates */
 		if ( SLAPD_SYNC_IS_SYNCCONN( op->o_connid ) &&
 			op->o_tag == LDAP_REQ_MODIFY &&
+			op->orm_modlist &&
 			op->orm_modlist->sml_op == LDAP_MOD_REPLACE &&
 			op->orm_modlist->sml_desc == slap_schema.si_ad_contextCSN ) {
 			/* Catch contextCSN updates from syncrepl. We have to look at
