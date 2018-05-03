@@ -294,7 +294,7 @@ client_tls_handshake_cb( evutil_socket_t s, short what, void *arg )
     }
     ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
 
-    rc = ldap_pvt_tls_accept( c->c_sb, lload_tls_ctx );
+    rc = ldap_pvt_tls_accept( c->c_sb, LLOAD_TLS_CTX );
     if ( rc < 0 ) {
         goto fail;
     }
@@ -374,7 +374,7 @@ client_init(
 
         c->c_is_tls = LLOAD_LDAPS;
 
-        rc = ldap_pvt_tls_accept( c->c_sb, lload_tls_ctx );
+        rc = ldap_pvt_tls_accept( c->c_sb, LLOAD_TLS_CTX );
         if ( rc < 0 ) {
             Debug( LDAP_DEBUG_CONNS, "client_init: "
                     "connid=%lu failed initial TLS accept rc=%d\n",

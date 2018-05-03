@@ -70,9 +70,11 @@ interpretation wins and the
 option mentioned is unavailable through
 .BR slapd.conf (5)
 directly, instead, it would have to be configured via a dedicated attribute in
-cn=config. In particular,
+cn=config. In particular, unless the
+.B TLSShareSlapdCTX
+option is set,
 .B lloadd
-keeps its own TLS context and serving TLS to clients is not available except
+keeps its own TLS context which cannot be configured except
 through the dynamic configuration.
 
 An additional option is available when running as a
@@ -337,9 +339,32 @@ The default is 10000.
 If
 .B lloadd
 is built with support for Transport Layer Security, there are more options
-you can specify. None of these are available when compiled as a
+you can specify.
+
+.TP
+.B TLSShareSlapdCTX { on | off }
+If set to no (the default),
+.B lloadd
+will use its own TLS context (needs to be configured via
+.B cn=config
+unless
+.B lloadd
+is run as a standalone daemon). If enabled, the options for
+.B slapd
+apply instead, since the
+.BR slapd 's
+TLS context is used then.
+
+.LP
+
+The following options are available only when compiled as a standalone daemon.
+When compiled as a
 .BR slapd (8)
-module except through cn=config.
+module, the cn=config equivalents need to be used if a separate TLS context for
+the module is needed, otherwise use the
+.B TLSShareSlapdCTX
+option.
+
 .TP
 .B TLSCipherSuite <cipher-suite-spec>
 Permits configuring what ciphers will be accepted and the preference order.

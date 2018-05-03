@@ -126,6 +126,7 @@ static ConfigDriver config_tls_option;
 static ConfigDriver config_tls_config;
 #endif
 #ifdef BALANCER_MODULE
+static ConfigDriver config_share_tls_ctx;
 static ConfigDriver backend_cf_gen;
 #endif /* BALANCER_MODULE */
 
@@ -153,6 +154,7 @@ enum {
     CFG_TLS_VERIFY,
     CFG_TLS_CRLCHECK,
     CFG_TLS_CRL_FILE,
+    CFG_TLS_SHARE_CTX,
     CFG_CONCUR,
     CFG_THREADS,
     CFG_LOGFILE,
@@ -587,6 +589,22 @@ static ConfigTable config_back_cf_table[] = {
             "SINGLE-VALUE )",
         NULL, NULL
     },
+    { "TLSShareSlapdCTX", NULL, 2, 2, 0,
+#if defined(HAVE_TLS) && defined(BALANCER_MODULE)
+        CFG_TLS_SHARE_CTX|ARG_ON_OFF|ARG_MAGIC,
+        &config_share_tls_ctx,
+#else
+        ARG_IGNORED,
+        NULL,
+#endif
+        "( OLcfgBkAt:13.33 "
+            "NAME 'olcBkLloadTLSShareSlapdCTX' "
+            "DESC 'Share slapd TLS context (all other lloadd TLS options cease to take effect)' "
+            "EQUALITY booleanMatch "
+            "SYNTAX OMsBoolean "
+            "SINGLE-VALUE )",
+        NULL, NULL
+    },
     { "iotimeout", "ms timeout", 2, 2, 0,
         ARG_UINT|ARG_MAGIC|CFG_IOTIMEOUT,
         &config_generic,
@@ -716,6 +734,7 @@ static ConfigOCs lloadocs[] = {
             "$ olcBkLloadTLSECName "
             "$ olcBkLloadTLSProtocolMin "
             "$ olcBkLloadTLSCRLFile "
+            "$ olcBkLloadTLSShareSlapdCTX "
         ") )",
         Cft_Backend, config_back_cf_table,
         NULL,
@@ -2007,6 +2026,31 @@ config_tls_config( ConfigArgs *c )
     }
 }
 #endif
+
+#ifdef BALANCER_MODULE
+static int
+config_share_tls_ctx( ConfigArgs *c )
+{
+    int rc = LDAP_SUCCESS;
+
+    if ( c->op == SLAP_CONFIG_EMIT ) {
+        c->value_int = lload_use_slap_tls_ctx;
+        return rc;
+    }
+
+    lload_change.type = LLOAD_CHANGE_MODIFY;
+    lload_change.object = LLOAD_DAEMON;
+    lload_change.flags.daemon |= LLOAD_DAEMON_MOD_TLS;
+
+    if ( c->op == LDAP_MOD_DELETE ) {
+        lload_use_slap_tls_ctx = 0;
+        return rc;
+    }
+
+    lload_use_slap_tls_ctx = c->value_int;
+    return rc;
+}
+#endif /* BALANCER_MODULE */
 
 void
 lload_init_config_argv( ConfigArgs *c )

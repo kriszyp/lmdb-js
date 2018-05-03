@@ -24,6 +24,9 @@ Avlnode *lload_exop_handlers = NULL;
 
 void *lload_tls_ctx;
 LDAP *lload_tls_ld, *lload_tls_backend_ld;
+#ifdef BALANCER_MODULE
+int lload_use_slap_tls_ctx = 0;
+#endif
 
 int
 handle_starttls( LloadConnection *c, LloadOperation *op )
@@ -44,7 +47,7 @@ handle_starttls( LloadConnection *c, LloadOperation *op )
     } else if ( c->c_ops ) {
         rc = LDAP_OPERATIONS_ERROR;
         msg = "cannot start TLS when operations are outstanding";
-    } else if ( !lload_tls_ctx ) {
+    } else if ( !LLOAD_TLS_CTX ) {
         rc = LDAP_UNAVAILABLE;
         msg = "Could not initialize TLS";
     }

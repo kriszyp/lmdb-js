@@ -128,6 +128,9 @@ LDAP_SLAPD_V (struct event *) lload_timeout_event;
 LDAP_SLAPD_V (LDAP *) lload_tls_backend_ld;
 LDAP_SLAPD_V (LDAP *) lload_tls_ld;
 LDAP_SLAPD_V (void *) lload_tls_ctx;
+#ifdef BALANCER_MODULE
+LDAP_SLAPD_V (int) lload_use_slap_tls_ctx;
+#endif /* BALANCER_MODULE */
 
 /*
  * extended.c

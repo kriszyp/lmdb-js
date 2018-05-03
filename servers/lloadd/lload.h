@@ -154,6 +154,12 @@ typedef enum {
     LLOAD_FEATURE_PROXYAUTHZ = 1 << 1,
 } lload_features_t;
 
+#ifdef BALANCER_MODULE
+#define LLOAD_TLS_CTX ( lload_use_slap_tls_ctx ? slap_tls_ctx : lload_tls_ctx )
+#else
+#define LLOAD_TLS_CTX ( lload_tls_ctx )
+#endif
+
 enum lload_tls_type {
     LLOAD_CLEARTEXT = 0,
     LLOAD_LDAPS,
