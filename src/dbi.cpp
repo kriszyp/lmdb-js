@@ -232,9 +232,12 @@ NAN_METHOD(DbiWrap::drop) {
         }
     }
     
-    dw->isOpen = false;
-    dw->ew->Unref();
-    dw->ew = nullptr;
+    // Only close database if del == 1
+    if (del == 1) {
+        dw->isOpen = false;
+        dw->ew->Unref();
+        dw->ew = nullptr;
+    }
 }
 
 NAN_METHOD(DbiWrap::stat) {
