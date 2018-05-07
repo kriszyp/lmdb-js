@@ -105,6 +105,16 @@ describe('Node.js LMDB Bindings', function() {
         env.openDbi(1);
       });
     });
+    it('will open a database and empty the database without closing it', function() {
+      var dbi = env.openDbi({
+        name: 'mydb1',
+        create: true
+      });
+      dbi.drop({
+        justFreePages: true
+      });
+      dbi.close();
+    });
     it('will open a database, begin a transaction and get/put/delete string data containing zeros', function() {
       var dbi = env.openDbi({
         name: 'mydb1x',
