@@ -205,7 +205,7 @@ Nan::NAN_METHOD_RETURN_TYPE CursorWrap::getCommon(
                 constexpr const unsigned argc = 2;
                 Local<Value> argv[argc] = { keyHandle, dataHandle };
                 
-                Nan::Call(Nan::Callback(callbackFunc.As<Function>()), argc, argv);
+                Nan::Call(Nan::Callback(Local<Function>::Cast(callbackFunc)), argc, argv);
             }
         }
     }
