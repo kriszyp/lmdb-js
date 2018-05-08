@@ -424,9 +424,11 @@ Big thank you to everybody!
 * @da77a
 * @erichocean (Erich Ocean)
 * @jahewson (John Hewson)
+* @jeffesquivels (Jeffrey Esquivel S.)
 * @justmoon (Stefan Thomas)
 * @Matt-Esch
 * @oliverzy (Oliver Zhou)
+* @paberr (Pascal Berrang)
 * @rneilson (Raymond Neilson)
 
 Support

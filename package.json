@@ -3,9 +3,20 @@
   "description": "Node binding for LMDB, the Lightning Memory-Mapped Database",
   "author": "Timur Kristóf <venemo@fedoraproject.org>",
   "contributors": [
-    "Timur Kristóf <venemo@fedoraproject.org>",
-    "Erich Ocean <erich@xygroup.co>",
-    "Braydon Fuller <courier@braydon.com>"
+    "Timur Kristóf",
+    "Erich Ocean",
+    "Braydon Fuller",
+    "Andreas Holstenson (aholstenson)",
+    "antoinevw",
+    "b-ono",
+    "da77a",
+    "John Hewson (jahewson)",
+    "Jeffrey Esquivel S. (jeffesquivels)",
+    "Stefan Thomas (justmoon)",
+    "Matt-Esch",
+    "Oliver Zhou (oliverzy)",
+    "Pascal Berrang (paberr)",
+    "Raymond Neilson (rneilson)"
   ],
   "license": "MIT",
   "keywords": [
@@ -16,7 +27,7 @@
     "binding"
   ],
   "repository": "https://github.com/Venemo/node-lmdb",
-  "version": "0.5.4",
+  "version": "0.6.0",
   "main": "./index.js",
   "scripts": {
     "test": "./node_modules/.bin/mocha test/**.test.js --recursive",
