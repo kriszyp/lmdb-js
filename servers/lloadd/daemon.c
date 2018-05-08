@@ -143,43 +143,6 @@ lloadd_close( ber_socket_t s )
     tcp_close( s );
 }
 
-static int
-lload_base_dispatch( struct event_base *base )
-{
-    int rc;
-
-    while ( (rc = event_base_dispatch( base )) == 0 ) {
-        if ( event_base_got_exit( base ) ) {
-            break;
-        }
-
-        Debug( LDAP_DEBUG_TRACE, "lload_base_dispatch: "
-                "handling pause\n" );
-        /*
-         * We are pausing, signal the pausing thread we've finished and
-         * wait until the thread pool resumes operation.
-         *
-         * Do this in lockstep with the pausing thread.
-         */
-        ldap_pvt_thread_mutex_lock( &lload_wait_mutex );
-        ldap_pvt_thread_cond_signal( &lload_wait_cond );
-
-        /* Now wait until we resume */
-        ldap_pvt_thread_cond_wait( &lload_pause_cond, &lload_wait_mutex );
-        ldap_pvt_thread_mutex_unlock( &lload_wait_mutex );
-
-        Debug( LDAP_DEBUG_TRACE, "lload_base_dispatch: "
-                "resuming\n" );
-    }
-
-    if ( rc ) {
-        Debug( LDAP_DEBUG_ANY, "lload_base_dispatch: "
-                "event_base_dispatch() returned an error rc=%d\n",
-                rc );
-    }
-    return rc;
-}
-
 static void
 lload_free_listener_addresses( struct sockaddr **sal )
 {
@@ -1012,7 +975,7 @@ lload_listener(
 static void *
 lload_listener_thread( void *ctx )
 {
-    int rc = lload_base_dispatch( listener_base );
+    int rc = event_base_dispatch( listener_base );
     Debug( LDAP_DEBUG_ANY, "lload_listener_thread: "
             "event loop finished: rc=%d\n",
             rc );
@@ -1280,7 +1243,7 @@ lloadd_io_task( void *ptr )
     lload_daemon[tid].wakeup_event = event;
 
     /* run */
-    rc = lload_base_dispatch( base );
+    rc = event_base_dispatch( base );
     Debug( LDAP_DEBUG_ANY, "lloadd_io_task: "
             "Daemon %d, event loop finished: rc=%d\n",
             tid, rc );
@@ -1377,7 +1340,7 @@ lloadd_daemon( struct event_base *daemon_base )
     }
 
     lloadd_inited = 1;
-    rc = lload_base_dispatch( daemon_base );
+    rc = event_base_dispatch( daemon_base );
     Debug( LDAP_DEBUG_ANY, "lloadd shutdown: "
             "Main event loop finished: rc=%d\n",
             rc );
@@ -1781,9 +1744,26 @@ lload_handle_invalidation( LloadChange *change )
     return LDAP_SUCCESS;
 }
 
+static void
+lload_pause_event_cb( evutil_socket_t s, short what, void *arg )
+{
+    /*
+     * We are pausing, signal the pausing thread we've finished and
+     * wait until the thread pool resumes operation.
+     *
+     * Do this in lockstep with the pausing thread.
+     */
+    ldap_pvt_thread_mutex_lock( &lload_wait_mutex );
+    ldap_pvt_thread_cond_signal( &lload_wait_cond );
+
+    /* Now wait until we unpause, then we can resume operation */
+    ldap_pvt_thread_cond_wait( &lload_pause_cond, &lload_wait_mutex );
+    ldap_pvt_thread_mutex_unlock( &lload_wait_mutex );
+}
+
 /*
  * Signal the event base to terminate processing as soon as it can and wait for
- * lload_base_dispatch to notify us this has happened.
+ * lload_pause_event_cb to notify us this has happened.
  */
 static int
 lload_pause_base( struct event_base *base )
@@ -1791,7 +1771,7 @@ lload_pause_base( struct event_base *base )
     int rc;
 
     ldap_pvt_thread_mutex_lock( &lload_wait_mutex );
-    event_base_loopbreak( base );
+    event_base_once( base, -1, EV_TIMEOUT, lload_pause_event_cb, base, NULL );
     rc = ldap_pvt_thread_cond_wait( &lload_wait_cond, &lload_wait_mutex );
     ldap_pvt_thread_mutex_unlock( &lload_wait_mutex );
 
