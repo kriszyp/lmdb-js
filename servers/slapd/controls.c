@@ -330,15 +330,6 @@ register_supported_control2(const char *controloid,
 
 	} else {
 		if ( sc->sc_extendedopsbv ) {
-			/* FIXME: in principle, we should rather merge
-			 * existing extops with those supported by the
-			 * new control handling implementation.
-			 * In fact, whether a control is compatible with
-			 * an extop should not be a matter of implementation.
-			 * We likely also need a means for a newly
-			 * registered extop to declare that it is
-			 * comptible with an already registered control.
-			 */
 			ber_bvarray_free( sc->sc_extendedopsbv );
 			sc->sc_extendedopsbv = NULL;
 			sc->sc_extendedops = NULL;
@@ -386,6 +377,60 @@ unregister_supported_control( const char *controloid )
 	return 0;
 }
 #endif /* SLAP_CONFIG_DELETE */
+
+int
+register_control_exop( const char *controloid, char *exopoid )
+{
+	struct slap_control *sc = NULL;
+	BerVarray extendedopsbv;
+	char **extendedops;
+	int i;
+
+	if ( controloid == NULL || exopoid == NULL ) {
+		return LDAP_PARAM_ERROR;
+	}
+
+	for ( i = 0; slap_known_controls[ i ]; i++ ) {
+		if ( strcmp( controloid, slap_known_controls[ i ] ) == 0 ) {
+			sc = find_ctrl( controloid );
+			assert( sc != NULL );
+			break;
+		}
+	}
+
+	if ( !sc ) {
+		Debug( LDAP_DEBUG_ANY, "register_control_exop: "
+			"Control %s not registered.\n",
+			controloid, 0, 0 );
+		return LDAP_PARAM_ERROR;
+	}
+
+	for ( i = 0; sc->sc_extendedops && sc->sc_extendedops[ i ]; i++ ) {
+		if ( strcmp( exopoid, sc->sc_extendedops[ i ] ) == 0 ) {
+			return LDAP_SUCCESS;
+		}
+	}
+
+	extendedops = ber_memrealloc( sc->sc_extendedops, (i + 2) * sizeof( char * ) );
+	if ( extendedops == NULL ) {
+		return LDAP_NO_MEMORY;
+	}
+	sc->sc_extendedops = extendedops;
+
+	extendedopsbv = ber_memrealloc( sc->sc_extendedopsbv, (i + 2) * sizeof( struct berval ) );
+	if ( extendedopsbv == NULL ) {
+		return LDAP_NO_MEMORY;
+	}
+	sc->sc_extendedopsbv = extendedopsbv;
+
+	extendedops[ i ] = exopoid;
+	extendedops[ i+1 ] = NULL;
+
+	ber_str2bv( exopoid, 0, 1, &extendedopsbv[ i ] );
+	BER_BVZERO( &extendedopsbv[ i+1 ] );
+
+	return LDAP_SUCCESS;
+}
 
 /*
  * One-time initialization of internal controls.

@@ -679,6 +679,7 @@ LDAP_SLAPD_F (int) register_supported_control2 LDAP_P((
 LDAP_SLAPD_F (int) unregister_supported_control LDAP_P((
 	const char* controloid ));
 #endif /* SLAP_CONFIG_DELETE */
+LDAP_SLAPD_F (int) register_control_exop LDAP_P (( const char *controloid, char *exopoid ));
 LDAP_SLAPD_F (int) slap_controls_init LDAP_P ((void));
 LDAP_SLAPD_F (void) controls_destroy LDAP_P ((void));
 LDAP_SLAPD_F (int) controls_root_dse_info LDAP_P ((Entry *e));
