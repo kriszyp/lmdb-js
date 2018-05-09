@@ -3267,6 +3267,18 @@ slap_sig_wake( int sig )
 	errno = save_errno;
 }
 
+int
+slap_pause_server( void )
+{
+	return ldap_pvt_thread_pool_pause( &connection_pool );
+}
+
+int
+slap_unpause_server( void )
+{
+	return ldap_pvt_thread_pool_resume( &connection_pool );
+}
+
 
 void
 slapd_add_internal( ber_socket_t s, int isactive )
