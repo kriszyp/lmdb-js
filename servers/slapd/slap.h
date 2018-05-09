@@ -1992,6 +1992,8 @@ struct BackendDB {
 typedef int (BI_bi_func) LDAP_P((BackendInfo *bi));
 typedef BI_bi_func BI_init;
 typedef BI_bi_func BI_open;
+typedef BI_bi_func BI_pause;
+typedef BI_bi_func BI_unpause;
 typedef BI_bi_func BI_close;
 typedef BI_bi_func BI_destroy;
 typedef int (BI_config) LDAP_P((BackendInfo *bi,
@@ -2251,6 +2253,8 @@ struct BackendInfo {
 	BI_init	*bi_init;
 	BI_config	*bi_config;
 	BI_open *bi_open;
+	BI_pause	*bi_pause;
+	BI_unpause	*bi_unpause;
 	BI_close	*bi_close;
 	BI_destroy	*bi_destroy;
 
