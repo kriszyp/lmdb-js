@@ -218,6 +218,19 @@ ldap_pvt_thread_pool_destroy (
 	return(0);
 }
 
+int
+ldap_pvt_thread_pool_close (
+	ldap_pvt_thread_pool_t *pool, int run_pending )
+{
+	return(0);
+}
+
+int
+ldap_pvt_thread_pool_free ( ldap_pvt_thread_pool_t *pool )
+{
+	return(0);
+}
+
 void
 ldap_pvt_thread_pool_idle ( ldap_pvt_thread_pool_t *pool )
 {

@@ -135,6 +135,8 @@
  */
 #undef	ldap_pvt_thread_pool_destroy
 #define	ldap_pvt_thread_pool_destroy(p,r) ldap_int_thread_pool_destroy(p,r)
+#define	ldap_pvt_thread_pool_close(p,r) ldap_int_thread_pool_close(p,r)
+#define	ldap_pvt_thread_pool_free(p) ldap_int_thread_pool_free(p)
 #endif
 
 #ifdef LDAP_THREAD_DEBUG_IMPLEMENTATION	/* thr_debug.c */

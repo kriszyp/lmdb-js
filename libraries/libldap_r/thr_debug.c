@@ -1221,6 +1221,36 @@ ldap_pvt_thread_pool_destroy( ldap_pvt_thread_pool_t *tpool, int run_pending )
 }
 
 int
+ldap_pvt_thread_pool_close( ldap_pvt_thread_pool_t *tpool, int run_pending )
+{
+	int rc, has_pool;
+	ERROR_IF( !threading_enabled, "ldap_pvt_thread_pool_close" );
+	has_pool = (tpool && *tpool);
+	rc = ldap_int_thread_pool_close( tpool, run_pending );
+	if( has_pool && rc ) {
+		ERROR( rc, "ldap_pvt_thread_pool_close" );
+	}
+	return rc;
+}
+
+int
+ldap_pvt_thread_pool_free( ldap_pvt_thread_pool_t *tpool )
+{
+	int rc, has_pool;
+	ERROR_IF( !threading_enabled, "ldap_pvt_thread_pool_free" );
+	has_pool = (tpool && *tpool);
+	rc = ldap_int_thread_pool_free( tpool );
+	if( has_pool ) {
+		if( rc ) {
+			ERROR( rc, "ldap_pvt_thread_pool_free" );
+		} else {
+			adjust_count( Idx_tpool, -1 );
+		}
+	}
+	return rc;
+}
+
+int
 ldap_pvt_thread_pool_pause( ldap_pvt_thread_pool_t *tpool )
 {
 	ERROR_IF( !threading_enabled, "ldap_pvt_thread_pool_pause" );
