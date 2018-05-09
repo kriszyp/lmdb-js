@@ -3073,7 +3073,7 @@ loop:
 			"slapd shutdown: waiting for %d operations/tasks to finish\n",
 			t, 0, 0 );
 	}
-	ldap_pvt_thread_pool_destroy( &connection_pool, 1 );
+	ldap_pvt_thread_pool_close( &connection_pool, 1 );
 
 	return NULL;
 }

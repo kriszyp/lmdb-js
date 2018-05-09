@@ -229,6 +229,9 @@ int slap_shutdown( Backend *be )
 		"%s shutdown: initiated\n",
 		slap_name, 0, 0 );
 
+	/* Make sure the pool stops now even if we did not start up fully */
+	ldap_pvt_thread_pool_close( &connection_pool, 1 );
+
 	/* let backends do whatever cleanup they need to do */
 	return backend_shutdown( be ); 
 }
@@ -244,6 +247,8 @@ int slap_destroy(void)
 	if ( default_referral ) {
 		ber_bvarray_free( default_referral );
 	}
+
+	ldap_pvt_thread_pool_free( &connection_pool );
 
 	/* clear out any thread-keys for the main thread */
 	ldap_pvt_thread_pool_context_reset( ldap_pvt_thread_pool_context());
