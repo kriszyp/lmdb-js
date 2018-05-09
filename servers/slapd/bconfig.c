@@ -5724,7 +5724,7 @@ config_back_add( Operation *op, SlapReply *rs )
 		rs->sr_err = SLAPD_ABANDON;
 		goto out;
 	}
-	if ( ldap_pvt_thread_pool_pause( &connection_pool ) < 0 )
+	if ( slap_pause_server() < 0 )
 		dopause = 0;
 
 	/* Strategy:
@@ -5776,7 +5776,7 @@ config_back_add( Operation *op, SlapReply *rs )
 
 out2:;
 	if ( dopause )
-		ldap_pvt_thread_pool_resume( &connection_pool );
+		slap_unpause_server();
 
 out:;
 	{	int repl = op->o_dont_replicate;
@@ -6217,7 +6217,7 @@ config_back_modify( Operation *op, SlapReply *rs )
 			rs->sr_err = SLAPD_ABANDON;
 			goto out;
 		}
-		if ( ldap_pvt_thread_pool_pause( &connection_pool ) < 0 )
+		if ( slap_pause_server() < 0 )
 			do_pause = 0;
 	}
 
@@ -6252,7 +6252,7 @@ config_back_modify( Operation *op, SlapReply *rs )
 	}
 
 	if ( do_pause )
-		ldap_pvt_thread_pool_resume( &connection_pool );
+		slap_unpause_server();
 out:
 	send_ldap_result( op, rs );
 	slap_graduate_commit_csn( op );
@@ -6387,7 +6387,7 @@ config_back_modrdn( Operation *op, SlapReply *rs )
 		rs->sr_err = SLAPD_ABANDON;
 		goto out;
 	}
-	if ( ldap_pvt_thread_pool_pause( &connection_pool ) < 0 )
+	if ( slap_pause_server() < 0 )
 		dopause = 0;
 
 	if ( ce->ce_type == Cft_Schema ) {
@@ -6456,7 +6456,7 @@ config_back_modrdn( Operation *op, SlapReply *rs )
 	}
 
 	if ( dopause )
-		ldap_pvt_thread_pool_resume( &connection_pool );
+		slap_unpause_server();
 out:
 	send_ldap_result( op, rs );
 	return rs->sr_err;
@@ -6487,7 +6487,7 @@ config_back_delete( Operation *op, SlapReply *rs )
 		char *iptr;
 		int count, ixold;
 
-		if ( ldap_pvt_thread_pool_pause( &connection_pool ) < 0 )
+		if ( slap_pause_server() < 0 )
 			dopause = 0;
 
 		if ( ce->ce_type == Cft_Overlay ){
@@ -6508,7 +6508,7 @@ config_back_delete( Operation *op, SlapReply *rs )
 			if ( !oc_at ) {
 				rs->sr_err = LDAP_OTHER;
 				rs->sr_text = "objectclass not found";
-				if ( dopause ) ldap_pvt_thread_pool_resume( &connection_pool );
+				if ( dopause ) slap_unpause_server();
 				goto out;
 			}
 			for ( i=0; !BER_BVISNULL(&oc_at->a_nvals[i]); i++ ) {
@@ -6526,7 +6526,7 @@ config_back_delete( Operation *op, SlapReply *rs )
 						/* FIXME: We should return a helpful error message
 						 * here */
 					}
-					if ( dopause ) ldap_pvt_thread_pool_resume( &connection_pool );
+					if ( dopause ) slap_unpause_server();
 					goto out;
 				}
 				break;
@@ -6535,7 +6535,7 @@ config_back_delete( Operation *op, SlapReply *rs )
 			if ( ce->ce_be == frontendDB || ce->ce_be == op->o_bd ){
 				rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
 				rs->sr_text = "Cannot delete config or frontend database";
-				if ( dopause ) ldap_pvt_thread_pool_resume( &connection_pool );
+				if ( dopause ) slap_unpause_server();
 				goto out;
 			}
 			if ( ce->ce_be->bd_info->bi_db_close ) {
@@ -6597,7 +6597,7 @@ config_back_delete( Operation *op, SlapReply *rs )
 		ce->ce_entry->e_private=NULL;
 		entry_free(ce->ce_entry);
 		ch_free(ce);
-		if ( dopause ) ldap_pvt_thread_pool_resume( &connection_pool );
+		if ( dopause ) slap_unpause_server();
 	} else {
 		rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
 	}
