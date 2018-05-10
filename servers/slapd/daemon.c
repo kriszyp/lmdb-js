@@ -2977,10 +2977,11 @@ loop:
 				}
 
 #ifdef HAVE_KQUEUE
-				if ( SLAP_EVENT_IS_WRITE( tid, i ) ) {
+				if ( SLAP_EVENT_IS_WRITE( tid, i ) )
 #else
-				if ( SLAP_EVENT_IS_WRITE( i ) ) {
+				if ( SLAP_EVENT_IS_WRITE( i ) )
 #endif  /* HAVE_KQUEUE */
+				{
 					Debug( LDAP_DEBUG_CONNS,
 						"daemon: write active on %d\n",
 						fd, 0, 0 );
@@ -3000,10 +3001,11 @@ loop:
 				}
 				/* If event is a read */
 #ifdef HAVE_KQUEUE
-				if ( SLAP_EVENT_IS_READ( tid, i )) {
+				if ( SLAP_EVENT_IS_READ( tid, i ))
 #else
-				if ( SLAP_EVENT_IS_READ( i )) {
+				if ( SLAP_EVENT_IS_READ( i ))
 #endif /* HAVE_KQUEUE */
+				{
 					r = 1;
 					Debug( LDAP_DEBUG_CONNS,
 						"daemon: read active on %d\n",
