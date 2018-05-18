@@ -25,7 +25,7 @@ if test $ACCESSLOG = accesslogno; then
         exit 0
 fi
 if test $DYNLIST = dynlistno; then
-        echo "Accesslog overlay not available, test skipped"
+        echo "Dynlist overlay not available, test skipped"
         exit 0
 fi
 if test $MEMBEROF = memberofno; then
