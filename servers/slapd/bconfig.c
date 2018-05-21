@@ -5519,6 +5519,11 @@ ok:
 		if ( coptr->co_type == Cft_Database ) {
 			rc = backend_startup_one( ca->be, &ca->reply );
 
+		} else if ( coptr->co_type == Cft_Backend ) {
+			if ( ca->bi->bi_open ) {
+				rc = ca->bi->bi_open( ca->bi );
+			}
+
 		} else if ( coptr->co_type == Cft_Overlay ) {
 			if ( ca->bi->bi_db_open ) {
 				BackendInfo *bi_orig = ca->be->bd_info;
@@ -7226,6 +7231,10 @@ config_back_db_open( BackendDB *be, ConfigReply *cr )
 			bi->bi_cf_ocs );
 		if ( !e ) {
 			return -1;
+		}
+		if ( bi->bi_cf_ocs && bi->bi_cf_ocs->co_cfadd ) {
+			rs_reinit( &rs, REP_RESULT );
+			bi->bi_cf_ocs->co_cfadd( op, &rs, e, &c );
 		}
 		i++;
 	}
