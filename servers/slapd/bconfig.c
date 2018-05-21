@@ -7200,6 +7200,7 @@ config_back_db_open( BackendDB *be, ConfigReply *cr )
 	 */
 	
 	c.line = 0;
+	i = 0;
 	LDAP_STAILQ_FOREACH( bi, &backendInfo, bi_next) {
 		if (!bi->bi_cf_ocs) {
 			/* If it only supports the old config mech, complain. */
@@ -7215,7 +7216,8 @@ config_back_db_open( BackendDB *be, ConfigReply *cr )
 
 		rdn.bv_val = c.log;
 		rdn.bv_len = snprintf(rdn.bv_val, sizeof( c.log ),
-			"%s=%s", cfAd_backend->ad_cname.bv_val, bi->bi_type);
+			"%s=" SLAP_X_ORDERED_FMT "%s", cfAd_backend->ad_cname.bv_val,
+			i, bi->bi_type);
 		if ( rdn.bv_len >= sizeof( c.log ) ) {
 			/* FIXME: holler ... */ ;
 		}
@@ -7225,6 +7227,7 @@ config_back_db_open( BackendDB *be, ConfigReply *cr )
 		if ( !e ) {
 			return -1;
 		}
+		i++;
 	}
 
 	/* Create database nodes... */
