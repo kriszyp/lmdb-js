@@ -835,7 +835,7 @@ read_config_file(const char *fname, int depth, ConfigArgs *cf, ConfigTable *cft)
 				goto done;
 			}
 			
-		} else if ( c->bi && !c->be ) {
+		} else if ( ( c->bi && !c->be ) || ( c->bi && c->bi->bi_flags & SLAP_BFLAG_STANDALONE ) ) {
 			rc = SLAP_CONF_UNKNOWN;
 			if ( c->bi->bi_cf_ocs ) {
 				ct = config_find_keyword( c->bi->bi_cf_ocs->co_table, c );

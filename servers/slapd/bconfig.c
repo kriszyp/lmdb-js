@@ -1702,6 +1702,10 @@ config_generic(ConfigArgs *c) {
 					c->log, c->cr_msg, c->argv[1] );
 				return(1);
 			}
+			if ( c->bi->bi_flags & SLAP_BFLAG_STANDALONE ) {
+				c->bi->bi_nDB++;
+				nbackends++;
+			}
 			break;
 
 		case CFG_DATABASE:
@@ -7217,7 +7221,7 @@ config_back_db_open( BackendDB *be, ConfigReply *cr )
 			}
 			continue;
 		}
-		if (!bi->bi_private) continue;
+		if ( !bi->bi_private && !(bi->bi_flags & SLAP_BFLAG_STANDALONE) ) continue;
 
 		rdn.bv_val = c.log;
 		rdn.bv_len = snprintf(rdn.bv_val, sizeof( c.log ),
