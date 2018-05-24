@@ -203,7 +203,7 @@ struct LloadBackend {
 
     struct berval b_name, b_uri;
     int b_proto, b_port;
-    enum lload_tls_type b_tls;
+    enum lload_tls_type b_tls, b_tls_conf;
     char *b_host;
 
     int b_retry_timeout, b_failed;

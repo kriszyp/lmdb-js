@@ -1044,7 +1044,7 @@ backend_config_url( LloadBackend *b, struct berval *uri )
 {
     LDAPURLDesc *lud = NULL;
     char *host = NULL;
-    int rc, proto, tls;
+    int rc, proto, tls = b->b_tls_conf;
 
     /* Effect no changes until we've checked everything */
 
@@ -1056,8 +1056,7 @@ backend_config_url( LloadBackend *b, struct berval *uri )
         return -1;
     }
 
-    tls = ldap_pvt_url_scheme2tls( lud->lud_scheme );
-    if ( tls ) {
+    if ( ldap_pvt_url_scheme2tls( lud->lud_scheme ) ) {
 #ifdef HAVE_TLS
         /* Specifying ldaps:// overrides starttls= settings */
         tls = LLOAD_LDAPS;
@@ -2724,7 +2723,7 @@ static slap_cf_aux_table backendkey[] = {
 
     { BER_BVC("max-pending-ops="), offsetof(LloadBackend, b_max_pending), 'i', 0, NULL },
     { BER_BVC("conn-max-pending="), offsetof(LloadBackend, b_max_conn_pending), 'i', 0, NULL },
-    { BER_BVC("starttls="), offsetof(LloadBackend, b_tls), 'i', 0, tlskey },
+    { BER_BVC("starttls="), offsetof(LloadBackend, b_tls_conf), 'i', 0, tlskey },
     { BER_BVNULL, 0, 0, 0, NULL }
 };
 
@@ -3568,7 +3567,7 @@ backend_cf_gen( ConfigArgs *c )
                 c->value_uint = b->b_max_pending;
                 break;
             case CFG_STARTTLS:
-                enum_to_verb( tlskey, b->b_tls, &c->value_bv );
+                enum_to_verb( tlskey, b->b_tls_conf, &c->value_bv );
                 break;
             default:
                 rc = 1;
@@ -3581,7 +3580,7 @@ backend_cf_gen( ConfigArgs *c )
          * attributes */
         switch ( c->type ) {
             case CFG_STARTTLS:
-                b->b_tls = LLOAD_CLEARTEXT;
+                b->b_tls_conf = LLOAD_CLEARTEXT;
                 break;
             default:
                 break;
@@ -3639,7 +3638,7 @@ backend_cf_gen( ConfigArgs *c )
                 Debug( LDAP_DEBUG_ANY, "%s: %s\n", c->log, c->cr_msg );
                 return 1;
             }
-            b->b_tls = tlskey[i].mask;
+            b->b_tls_conf = tlskey[i].mask;
         } break;
         default:
             rc = 1;
