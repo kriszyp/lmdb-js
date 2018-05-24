@@ -36,8 +36,10 @@
 #include <ac/time.h>
 #include <ac/unistd.h>
 
-#include "lutil.h"
 #include "lload.h"
+
+#include "lutil.h"
+#include "lutil_ldap.h"
 
 static ldap_pvt_thread_mutex_t conn_nextid_mutex;
 static unsigned long conn_nextid = 0;
@@ -322,6 +324,15 @@ connection_destroy( LloadConnection *c )
         ber_memfree( c->c_sasl_bind_mech.bv_val );
         BER_BVZERO( &c->c_sasl_bind_mech );
     }
+#ifdef HAVE_CYRUS_SASL
+    if ( c->c_sasl_defaults ) {
+        lutil_sasl_freedefs( c->c_sasl_defaults );
+        c->c_sasl_defaults = NULL;
+    }
+    if ( c->c_sasl_authctx ) {
+        sasl_dispose( &c->c_sasl_authctx );
+    }
+#endif /* HAVE_CYRUS_SASL */
 
     CONNECTION_UNLOCK(c);
 

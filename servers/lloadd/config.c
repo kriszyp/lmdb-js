@@ -1194,10 +1194,6 @@ config_bindconf( ConfigArgs *c )
         Debug( LDAP_DEBUG_ANY, "config_bindconf: "
                 "no sasl support available\n" );
         return -1;
-#else /* HAVE_CYRUS_SASL */
-        Debug( LDAP_DEBUG_ANY, "config_bindconf: "
-                "no sasl support yet\n" );
-        return -1;
 #endif
     }
 

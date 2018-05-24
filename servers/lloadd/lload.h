@@ -61,6 +61,14 @@
 
 #include <event2/event.h>
 
+#ifdef HAVE_CYRUS_SASL
+#ifdef HAVE_SASL_SASL_H
+#include <sasl/sasl.h>
+#else
+#include <sasl.h>
+#endif
+#endif /* HAVE_CYRUS_SASL */
+
 LDAP_BEGIN_DECL
 
 #ifdef SERVICE_NAME
@@ -346,6 +354,11 @@ struct LloadConnection {
     struct berval c_auth;           /* authcDN (possibly in progress) */
 
     unsigned long c_pin_id;
+
+#ifdef HAVE_CYRUS_SASL
+    sasl_conn_t *c_sasl_authctx;
+    void *c_sasl_defaults;
+#endif /* HAVE_CYRUS_SASL */
 
 #ifdef LDAP_API_FEATURE_VERIFY_CREDENTIALS
     struct berval c_vc_cookie;

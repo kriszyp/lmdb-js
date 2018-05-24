@@ -21,8 +21,22 @@
 #include <ac/time.h>
 #include <ac/unistd.h>
 
-#include "lutil.h"
 #include "lload.h"
+
+#include "lutil.h"
+#include "lutil_ldap.h"
+
+#ifdef HAVE_CYRUS_SASL
+static const sasl_callback_t client_callbacks[] = {
+#ifdef SASL_CB_GETREALM
+        { SASL_CB_GETREALM, NULL, NULL },
+#endif
+        { SASL_CB_USER, NULL, NULL },
+        { SASL_CB_AUTHNAME, NULL, NULL },
+        { SASL_CB_PASS, NULL, NULL },
+        { SASL_CB_LIST_END, NULL, NULL }
+};
+#endif /* HAVE_CYRUS_SASL */
 
 int
 forward_response( LloadConnection *client, LloadOperation *op, BerElement *ber )
@@ -276,6 +290,135 @@ fail:
     return rc;
 }
 
+#ifdef HAVE_CYRUS_SASL
+static int
+sasl_bind_step( LloadConnection *c, BerValue *scred, BerValue *ccred )
+{
+    LloadBackend *b = c->c_private;
+    sasl_conn_t *ctx = c->c_sasl_authctx;
+    sasl_interact_t *prompts = NULL;
+    unsigned credlen;
+    int rc = -1;
+
+    if ( !ctx ) {
+        const char *mech = NULL;
+        void *ssl;
+
+        if ( sasl_client_new( "ldap", b->b_host, NULL, NULL, client_callbacks,
+                     0, &ctx ) != SASL_OK ) {
+            goto done;
+        }
+        c->c_sasl_authctx = ctx;
+
+        assert( c->c_sasl_defaults == NULL );
+        c->c_sasl_defaults =
+                lutil_sasl_defaults( NULL, bindconf.sb_saslmech.bv_val,
+                        bindconf.sb_realm.bv_val, bindconf.sb_authcId.bv_val,
+                        bindconf.sb_cred.bv_val, bindconf.sb_authzId.bv_val );
+
+#ifdef HAVE_TLS
+        /* Check for TLS */
+        ssl = ldap_pvt_tls_sb_ctx( c->c_sb );
+        if ( ssl ) {
+            struct berval authid = BER_BVNULL;
+            ber_len_t ssf;
+
+            ssf = ldap_pvt_tls_get_strength( ssl );
+            (void)ldap_pvt_tls_get_my_dn( ssl, &authid, NULL, 0 );
+
+            sasl_setprop( ctx, SASL_SSF_EXTERNAL, &ssf );
+            sasl_setprop( ctx, SASL_AUTH_EXTERNAL, authid.bv_val );
+            ch_free( authid.bv_val );
+#ifdef SASL_CHANNEL_BINDING /* 2.1.25+ */
+            {
+                char cbinding[64];
+                struct berval cbv = { sizeof(cbinding), cbinding };
+                if ( ldap_pvt_tls_get_unique( ssl, &cbv, 0 ) ) {
+                    sasl_channel_binding_t *cb =
+                            ch_malloc( sizeof(*cb) + cbv.bv_len );
+                    void *cb_data;
+                    cb->name = "ldap";
+                    cb->critical = 0;
+                    cb->len = cbv.bv_len;
+                    cb->data = cb_data = cb + 1;
+                    memcpy( cb_data, cbv.bv_val, cbv.bv_len );
+                    sasl_setprop( ctx, SASL_CHANNEL_BINDING, cb );
+                }
+            }
+#endif
+        }
+#endif
+
+#if !defined(_WIN32)
+        /* Check for local */
+        if ( b->b_proto == LDAP_PROTO_IPC ) {
+            char authid[sizeof( "gidNumber=4294967295+uidNumber=4294967295,"
+                                "cn=peercred,cn=external,cn=auth" )];
+            int ssf = LDAP_PVT_SASL_LOCAL_SSF;
+
+            sprintf( authid,
+                    "gidNumber=%u+uidNumber=%u,"
+                    "cn=peercred,cn=external,cn=auth",
+                    getegid(), geteuid() );
+            sasl_setprop( ctx, SASL_SSF_EXTERNAL, &ssf );
+            sasl_setprop( ctx, SASL_AUTH_EXTERNAL, authid );
+        }
+#endif
+
+        do {
+            rc = sasl_client_start( ctx, bindconf.sb_saslmech.bv_val,
+                    &prompts,
+                    (const char **)&ccred->bv_val, &credlen,
+                    &mech );
+
+            if ( rc == SASL_INTERACT ) {
+                if ( lutil_sasl_interact( NULL, LDAP_SASL_QUIET,
+                             c->c_sasl_defaults, prompts ) ) {
+                    break;
+                }
+            }
+        } while ( rc == SASL_INTERACT );
+
+        ber_str2bv( mech, 0, 0, &c->c_sasl_bind_mech );
+    } else {
+        assert( c->c_sasl_defaults );
+
+        do {
+            rc = sasl_client_step( ctx,
+                    (scred == NULL) ? NULL : scred->bv_val,
+                    (scred == NULL) ? 0 : scred->bv_len,
+                    &prompts,
+                    (const char **)&ccred->bv_val, &credlen);
+
+            if ( rc == SASL_INTERACT ) {
+                if ( lutil_sasl_interact( NULL, LDAP_SASL_QUIET,
+                             c->c_sasl_defaults, prompts ) ) {
+                    break;
+                }
+            }
+        } while ( rc == SASL_INTERACT );
+    }
+
+    if ( rc == SASL_OK ) {
+        sasl_ssf_t *ssf;
+        rc = sasl_getprop( ctx, SASL_SSF, (const void **)(char *)&ssf );
+        if ( rc == SASL_OK && ssf && *ssf ) {
+            Debug( LDAP_DEBUG_CONNS, "sasl_bind_step: "
+                    "connid=%lu mech=%s setting up a new SASL security layer\n",
+                    c->c_connid, c->c_sasl_bind_mech.bv_val );
+            ldap_pvt_sasl_install( c->c_sb, ctx );
+        }
+    }
+    ccred->bv_len = credlen;
+
+done:
+    Debug( LDAP_DEBUG_TRACE, "sasl_bind_step: "
+            "connid=%lu next step for SASL bind mech=%s rc=%d\n",
+            c->c_connid, c->c_sasl_bind_mech.bv_val, rc );
+    return rc;
+}
+#endif /* HAVE_CYRUS_SASL */
+
 int
 upstream_bind_cb( LloadConnection *c )
 {
@@ -308,7 +451,63 @@ upstream_bind_cb( LloadConnection *c )
     }
 
     switch ( result ) {
-        case LDAP_SUCCESS: {
+        case LDAP_SUCCESS:
+#ifdef HAVE_CYRUS_SASL
+        case LDAP_SASL_BIND_IN_PROGRESS:
+            if ( !BER_BVISNULL( &c->c_sasl_bind_mech ) ) {
+                BerValue scred = BER_BVNULL, ccred;
+                ber_len_t len;
+                int rc;
+
+                CONNECTION_UNLOCK_INCREF(c);
+                if ( ber_peek_tag( ber, &len ) == LDAP_TAG_SASL_RES_CREDS &&
+                        ber_scanf( ber, "m", &scred ) == LBER_ERROR ) {
+                    Debug( LDAP_DEBUG_ANY, "upstream_bind_cb: "
+                            "sasl bind response malformed\n" );
+                    CONNECTION_LOCK_DECREF(c);
+                    goto fail;
+                }
+
+                rc = sasl_bind_step( c, &scred, &ccred );
+                if ( rc != SASL_OK &&
+                        ( rc != SASL_CONTINUE || result == LDAP_SUCCESS ) ) {
+                    CONNECTION_LOCK_DECREF(c);
+                    goto fail;
+                }
+
+                if ( result == LDAP_SASL_BIND_IN_PROGRESS ) {
+                    BerElement *outber;
+
+                    ldap_pvt_thread_mutex_lock( &c->c_io_mutex );
+                    outber = c->c_pendingber;
+                    if ( outber == NULL && (outber = ber_alloc()) == NULL ) {
+                        ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
+                        CONNECTION_LOCK_DECREF(c);
+                        goto fail;
+                    }
+                    c->c_pendingber = outber;
+
+                    msgid = c->c_next_msgid++;
+                    ber_printf( outber, "{it{iOt{OON}N}}",
+                            msgid, LDAP_REQ_BIND, LDAP_VERSION3,
+                            &bindconf.sb_binddn, LDAP_AUTH_SASL,
+                            &c->c_sasl_bind_mech, BER_BV_OPTIONAL( &ccred ) );
+                    ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
+
+                    connection_write_cb( -1, 0, c );
+
+                    CONNECTION_LOCK_DECREF(c);
+                    if ( rc == SASL_OK ) {
+                        BER_BVZERO( &c->c_sasl_bind_mech );
+                    }
+                    break;
+                }
+                CONNECTION_LOCK_DECREF(c);
+            }
+            if ( result == LDAP_SASL_BIND_IN_PROGRESS ) {
+                goto fail;
+            }
+#endif /* HAVE_CYRUS_SASL */
             c->c_pdu_cb = handle_one_response;
             c->c_state = LLOAD_C_READY;
             c->c_type = LLOAD_C_OPEN;
@@ -333,11 +532,7 @@ upstream_bind_cb( LloadConnection *c )
             backend_retry( b );
             ldap_pvt_thread_mutex_unlock( &b->b_mutex );
             CONNECTION_LOCK_DECREF(c);
-        } break;
-#ifdef HAVE_CYRUS_SASL
-        case LDAP_SASL_BIND_IN_PROGRESS:
-            /* TODO: fallthrough until we implement SASL */
-#endif /* HAVE_CYRUS_SASL */
+            break;
         default:
             Debug( LDAP_DEBUG_ANY, "upstream_bind_cb: "
                     "upstream bind failed, rc=%d, message='%s'\n",
@@ -368,9 +563,7 @@ upstream_bind( void *ctx, void *arg )
     ldap_pvt_thread_mutex_lock( &c->c_io_mutex );
     ber = c->c_pendingber;
     if ( ber == NULL && (ber = ber_alloc()) == NULL ) {
-        ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
-        CONNECTION_LOCK_DESTROY(c);
-        return NULL;
+        goto fail;
     }
     c->c_pendingber = ber;
     msgid = c->c_next_msgid++;
@@ -384,11 +577,22 @@ upstream_bind( void *ctx, void *arg )
 
 #ifdef HAVE_CYRUS_SASL
     } else {
-        BerValue cred = BER_BVNULL;
+        BerValue cred;
+        int rc;
+
+        rc = sasl_bind_step( c, NULL, &cred );
+        if ( rc != SASL_OK && rc != SASL_CONTINUE ) {
+            goto fail;
+        }
+
         ber_printf( ber, "{it{iOt{OON}N}}",
                 msgid, LDAP_REQ_BIND, LDAP_VERSION3,
                 &bindconf.sb_binddn, LDAP_AUTH_SASL,
-                &bindconf.sb_saslmech, BER_BV_OPTIONAL( &cred ) );
+                &c->c_sasl_bind_mech, BER_BV_OPTIONAL( &cred ) );
+
+        if ( rc == SASL_OK ) {
+            BER_BVZERO( &c->c_sasl_bind_mech );
+        }
 #endif /* HAVE_CYRUS_SASL */
     }
     ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
@@ -400,6 +604,11 @@ upstream_bind( void *ctx, void *arg )
     event_add( c->c_read_event, c->c_read_timeout );
     CONNECTION_UNLOCK_OR_DESTROY(c);
 
+    return NULL;
+
+fail:
+    ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
+    CONNECTION_LOCK_DESTROY(c);
     return NULL;
 }
 
@@ -872,5 +1081,7 @@ upstream_destroy( LloadConnection *c )
         CONNECTION_UNLOCK(c);
         return;
     }
+
+    BER_BVZERO( &c->c_sasl_bind_mech );
     connection_destroy( c );
 }
