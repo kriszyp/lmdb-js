@@ -3023,22 +3023,13 @@ sp_cf_gen(ConfigArgs *c)
 			si->si_chktime = 0;
 			break;
 		case SP_SESSL:
-			if ( si->si_logs )
-				si->si_logs->sl_size = 0;
-			else
-				rc = LDAP_NO_SUCH_ATTRIBUTE;
+			si->si_logs->sl_size = 0;
 			break;
 		case SP_NOPRES:
-			if ( si->si_nopres )
-				si->si_nopres = 0;
-			else
-				rc = LDAP_NO_SUCH_ATTRIBUTE;
+			si->si_nopres = 0;
 			break;
 		case SP_USEHINT:
-			if ( si->si_usehint )
-				si->si_usehint = 0;
-			else
-				rc = LDAP_NO_SUCH_ATTRIBUTE;
+			si->si_usehint = 0;
 			break;
 		}
 		return rc;
