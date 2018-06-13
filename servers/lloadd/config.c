@@ -848,8 +848,7 @@ config_generic( ConfigArgs *c )
                 snprintf( c->cr_msg, sizeof(c->cr_msg),
                         "string %s could not be parsed as an LDAP URL",
                         c->line );
-                Debug( LDAP_DEBUG_ANY, "%s: %s\n", c->log, c->cr_msg );
-                return 1;
+                goto fail;
             }
 
             /* A sanity check, although it will not catch everything */
@@ -858,16 +857,14 @@ config_generic( ConfigArgs *c )
                         "Load Balancer already configured to listen on %s "
                         "(while adding %s)",
                         l->sl_url.bv_val, c->line );
-                Debug( LDAP_DEBUG_ANY, "%s: %s\n", c->log, c->cr_msg );
-                return 1;
+                goto fail;
             }
 
             if ( !lloadd_inited ) {
                 if ( lload_open_new_listener( c->line, lud ) ) {
                     snprintf( c->cr_msg, sizeof(c->cr_msg),
                             "could not open a listener for %s", c->line );
-                    Debug( LDAP_DEBUG_ANY, "%s: %s\n", c->log, c->cr_msg );
-                    return 1;
+                    goto fail;
                 }
             } else {
                 snprintf( c->cr_msg, sizeof(c->cr_msg),
@@ -882,8 +879,7 @@ config_generic( ConfigArgs *c )
                 snprintf( c->cr_msg, sizeof(c->cr_msg),
                         "threads=%d smaller than minimum value 2",
                         c->value_uint );
-                Debug( LDAP_DEBUG_ANY, "%s: %s\n", c->log, c->cr_msg );
-                return 1;
+                goto fail;
 
             } else if ( c->value_uint > 2 * SLAP_MAX_WORKER_THREADS ) {
                 snprintf( c->cr_msg, sizeof(c->cr_msg),
@@ -904,8 +900,7 @@ config_generic( ConfigArgs *c )
                 snprintf( c->cr_msg, sizeof(c->cr_msg),
                         "threadqueues=%d smaller than minimum value 1",
                         c->value_uint );
-                Debug( LDAP_DEBUG_ANY, "%s: %s\n", c->log, c->cr_msg );
-                return 1;
+                goto fail;
             }
             if ( slapMode & SLAP_SERVER_MODE )
                 ldap_pvt_thread_pool_queues( &connection_pool, c->value_uint );
@@ -967,6 +962,15 @@ config_generic( ConfigArgs *c )
     lload_change.flags.daemon |= flag;
 
     return 0;
+
+fail:
+    if ( lload_change.type == LLOAD_CHANGE_ADD ) {
+        /* Abort the ADD */
+        lload_change.type = LLOAD_CHANGE_DEL;
+    }
+
+    Debug( LDAP_DEBUG_ANY, "%s: %s\n", c->log, c->cr_msg );
+    return 1;
 }
 
 static int
@@ -1003,8 +1007,7 @@ lload_backend_finish( ConfigArgs *ca )
         if ( !event ) {
             Debug( LDAP_DEBUG_ANY, "lload_backend_finish: "
                     "failed to allocate retry event\n" );
-            lload_backend_destroy( b );
-            return -1;
+            goto fail;
         }
         b->b_retry_event = event;
     }
@@ -1012,7 +1015,11 @@ lload_backend_finish( ConfigArgs *ca )
     return LDAP_SUCCESS;
 
 fail:
-    LDAP_CIRCLEQ_REMOVE( &backend, b, b_next );
+    if ( lload_change.type == LLOAD_CHANGE_ADD ) {
+        /* Abort the ADD */
+        lload_change.type = LLOAD_CHANGE_DEL;
+    }
+
     lload_backend_destroy( b );
     return -1;
 }
@@ -3589,7 +3596,7 @@ backend_cf_gen( ConfigArgs *c )
             rc = backend_config_url( b, &c->value_bv );
             if ( rc ) {
                 backend_config_url( b, &b->b_uri );
-                break;
+                goto fail;
             }
             if ( !BER_BVISNULL( &b->b_uri ) ) {
                 ch_free( b->b_uri.bv_val );
@@ -3601,8 +3608,7 @@ backend_cf_gen( ConfigArgs *c )
             if ( !c->value_uint ) {
                 snprintf( c->cr_msg, sizeof(c->cr_msg),
                         "invalid connection pool configuration" );
-                Debug( LDAP_DEBUG_ANY, "%s: %s\n", c->log, c->cr_msg );
-                return 1;
+                goto fail;
             }
             b->b_numconns = c->value_uint;
             flag = LLOAD_BACKEND_MOD_CONNS;
@@ -3611,8 +3617,7 @@ backend_cf_gen( ConfigArgs *c )
             if ( !c->value_uint ) {
                 snprintf( c->cr_msg, sizeof(c->cr_msg),
                         "invalid connection pool configuration" );
-                Debug( LDAP_DEBUG_ANY, "%s: %s\n", c->log, c->cr_msg );
-                return 1;
+                goto fail;
             }
             b->b_numbindconns = c->value_uint;
             flag = LLOAD_BACKEND_MOD_CONNS;
@@ -3631,8 +3636,7 @@ backend_cf_gen( ConfigArgs *c )
             if ( BER_BVISNULL( &tlskey[i].word ) ) {
                 snprintf( c->cr_msg, sizeof(c->cr_msg),
                         "invalid starttls configuration" );
-                Debug( LDAP_DEBUG_ANY, "%s: %s\n", c->log, c->cr_msg );
-                return 1;
+                goto fail;
             }
             b->b_tls_conf = tlskey[i].mask;
         } break;
@@ -3652,6 +3656,15 @@ backend_cf_gen( ConfigArgs *c )
 
     config_push_cleanup( c, lload_backend_finish );
     return rc;
+
+fail:
+    if ( lload_change.type == LLOAD_CHANGE_ADD ) {
+        /* Abort the ADD */
+        lload_change.type = LLOAD_CHANGE_DEL;
+    }
+
+    Debug( LDAP_DEBUG_ANY, "%s: %s\n", c->log, c->cr_msg );
+    return 1;
 }
 
 int
