@@ -153,6 +153,7 @@ DYNAMICCONF=$DATADIR/slapd-dynamic.ldif
 
 SLAPDLLOADCONF=$DATADIR/slapd-lload.conf
 LLOADDCONF=$DATADIR/lloadd.conf
+LLOADDEMPTYCONF=$DATADIR/lloadd-empty.conf
 LLOADDANONCONF=$DATADIR/lloadd-anon.conf
 LLOADDUNREACHABLECONF=$DATADIR/lloadd-backend-issues.conf
 
