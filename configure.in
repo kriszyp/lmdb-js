@@ -610,6 +610,7 @@ KRB4_LIBS=
 KRB5_LIBS=
 SASL_LIBS=
 TLS_LIBS=
+WITH_TLS_TYPE=
 MODULES_LIBS=
 SLAPI_LIBS=
 LIBSLAPI=
@@ -1210,6 +1211,7 @@ if test $ol_with_tls = openssl || test $ol_with_tls = auto ; then
 		if test $have_openssl = yes ; then
 			ol_with_tls=openssl
 			ol_link_tls=yes
+			WITH_TLS_TYPE=openssl
 
 			AC_DEFINE(HAVE_OPENSSL, 1, 
 				[define if you have OpenSSL])
@@ -1250,6 +1252,7 @@ if test $ol_link_tls = no ; then
 			if test $have_gnutls = yes ; then
 				ol_with_tls=gnutls
 				ol_link_tls=yes
+				WITH_TLS_TYPE=gnutls
 
 				TLS_LIBS="-lgnutls"
 
@@ -3261,6 +3264,7 @@ AC_SUBST(KRB4_LIBS)
 AC_SUBST(KRB5_LIBS)
 AC_SUBST(SASL_LIBS)
 AC_SUBST(TLS_LIBS)
+AC_SUBST(WITH_TLS_TYPE)
 AC_SUBST(MODULES_LIBS)
 AC_SUBST(SLAPI_LIBS)
 AC_SUBST(LIBSLAPI)

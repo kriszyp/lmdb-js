@@ -761,6 +761,7 @@ AUTH_LIBS
 LIBSLAPI
 SLAPI_LIBS
 MODULES_LIBS
+WITH_TLS_TYPE
 TLS_LIBS
 SASL_LIBS
 KRB5_LIBS
@@ -5223,6 +5224,7 @@ KRB4_LIBS=
 KRB5_LIBS=
 SASL_LIBS=
 TLS_LIBS=
+WITH_TLS_TYPE=
 MODULES_LIBS=
 SLAPI_LIBS=
 LIBSLAPI=
@@ -15701,6 +15703,7 @@ fi
 		if test $have_openssl = yes ; then
 			ol_with_tls=openssl
 			ol_link_tls=yes
+			WITH_TLS_TYPE=openssl
 
 
 $as_echo "#define HAVE_OPENSSL 1" >>confdefs.h
@@ -15835,6 +15838,7 @@ fi
 			if test $have_gnutls = yes ; then
 				ol_with_tls=gnutls
 				ol_link_tls=yes
+				WITH_TLS_TYPE=gnutls
 
 				TLS_LIBS="-lgnutls"
 
