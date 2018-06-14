@@ -147,6 +147,141 @@ static const struct ol_attribute {
 #define MAX_LDAP_ATTR_LEN  sizeof("GSSAPI_ALLOW_REMOTE_PRINCIPAL")
 #define MAX_LDAP_ENV_PREFIX_LEN 8
 
+static int
+ldap_int_conf_option(
+	struct ldapoptions *gopts,
+	char *cmd, char *opt, int userconf )
+{
+	int i;
+
+	for(i=0; attrs[i].type != ATTR_NONE; i++) {
+		void *p;
+
+		if( !userconf && attrs[i].useronly ) {
+			continue;
+		}
+
+		if(strcasecmp(cmd, attrs[i].name) != 0) {
+			continue;
+		}
+
+		switch(attrs[i].type) {
+		case ATTR_BOOL:
+			if((strcasecmp(opt, "on") == 0)
+				|| (strcasecmp(opt, "yes") == 0)
+				|| (strcasecmp(opt, "true") == 0))
+			{
+				LDAP_BOOL_SET(gopts, attrs[i].offset);
+
+			} else {
+				LDAP_BOOL_CLR(gopts, attrs[i].offset);
+			}
+
+			break;
+
+		case ATTR_INT: {
+			char *next;
+			long l;
+			p = &((char *) gopts)[attrs[i].offset];
+			l = strtol( opt, &next, 10 );
+			if ( next != opt && next[ 0 ] == '\0' ) {
+				* (int*) p = l;
+			}
+			} break;
+
+		case ATTR_KV: {
+				const struct ol_keyvalue *kv;
+
+				for(kv = attrs[i].data;
+					kv->key != NULL;
+					kv++) {
+
+					if(strcasecmp(opt, kv->key) == 0) {
+						p = &((char *) gopts)[attrs[i].offset];
+						* (int*) p = kv->value;
+						break;
+					}
+				}
+			} break;
+
+		case ATTR_STRING:
+			p = &((char *) gopts)[attrs[i].offset];
+			if (* (char**) p != NULL) LDAP_FREE(* (char**) p);
+			* (char**) p = LDAP_STRDUP(opt);
+			break;
+		case ATTR_OPTION:
+			ldap_set_option( NULL, attrs[i].offset, opt );
+			break;
+		case ATTR_SASL:
+#ifdef HAVE_CYRUS_SASL
+			ldap_int_sasl_config( gopts, attrs[i].offset, opt );
+#endif
+			break;
+		case ATTR_GSSAPI:
+#ifdef HAVE_GSSAPI
+			ldap_int_gssapi_config( gopts, attrs[i].offset, opt );
+#endif
+			break;
+		case ATTR_TLS:
+#ifdef HAVE_TLS
+			ldap_pvt_tls_config( NULL, attrs[i].offset, opt );
+#endif
+			break;
+		case ATTR_OPT_TV: {
+			struct timeval tv;
+			char *next;
+			tv.tv_usec = 0;
+			tv.tv_sec = strtol( opt, &next, 10 );
+			if ( next != opt && next[ 0 ] == '\0' && tv.tv_sec > 0 ) {
+				(void)ldap_set_option( NULL, attrs[i].offset, (const void *)&tv );
+			}
+			} break;
+		case ATTR_OPT_INT: {
+			long l;
+			char *next;
+			l = strtol( opt, &next, 10 );
+			if ( next != opt && next[ 0 ] == '\0' && l > 0 && (long)((int)l) == l ) {
+				int v = (int)l;
+				(void)ldap_set_option( NULL, attrs[i].offset, (const void *)&v );
+			}
+			} break;
+		}
+
+		break;
+	}
+
+	if ( attrs[i].type == ATTR_NONE ) {
+		Debug( LDAP_DEBUG_TRACE, "ldap_pvt_tls_config: "
+				"unknown option '%s'",
+				cmd, 0, 0 );
+		return 1;
+	}
+
+	return 0;
+}
+
+int
+ldap_pvt_conf_option(
+	char *cmd, char *opt, int userconf )
+{
+	struct ldapoptions *gopts;
+	int rc = LDAP_OPT_ERROR;
+
+	/* Get pointer to global option structure */
+	gopts = LDAP_INT_GLOBAL_OPT();
+	if (NULL == gopts) {
+		return LDAP_NO_MEMORY;
+	}
+
+	if ( gopts->ldo_valid != LDAP_INITIALIZED ) {
+		ldap_int_initialize(gopts, NULL);
+		if ( gopts->ldo_valid != LDAP_INITIALIZED )
+			return LDAP_LOCAL_ERROR;
+	}
+
+	return ldap_int_conf_option( gopts, cmd, opt, userconf );
+}
+
 static void openldap_ldap_init_w_conf(
 	const char *file, int userconf )
 {
@@ -212,101 +347,7 @@ static void openldap_ldap_init_w_conf(
 		while(isspace((unsigned char)*start)) start++;
 		opt = start;
 
-		for(i=0; attrs[i].type != ATTR_NONE; i++) {
-			void *p;
-
-			if( !userconf && attrs[i].useronly ) {
-				continue;
-			}
-
-			if(strcasecmp(cmd, attrs[i].name) != 0) {
-				continue;
-			}
-
-			switch(attrs[i].type) {
-			case ATTR_BOOL:
-				if((strcasecmp(opt, "on") == 0) 
-					|| (strcasecmp(opt, "yes") == 0)
-					|| (strcasecmp(opt, "true") == 0))
-				{
-					LDAP_BOOL_SET(gopts, attrs[i].offset);
-
-				} else {
-					LDAP_BOOL_CLR(gopts, attrs[i].offset);
-				}
-
-				break;
-
-			case ATTR_INT: {
-				char *next;
-				long l;
-				p = &((char *) gopts)[attrs[i].offset];
-				l = strtol( opt, &next, 10 );
-				if ( next != opt && next[ 0 ] == '\0' ) {
-					* (int*) p = l;
-				}
-				} break;
-
-			case ATTR_KV: {
-					const struct ol_keyvalue *kv;
-
-					for(kv = attrs[i].data;
-						kv->key != NULL;
-						kv++) {
-
-						if(strcasecmp(opt, kv->key) == 0) {
-							p = &((char *) gopts)[attrs[i].offset];
-							* (int*) p = kv->value;
-							break;
-						}
-					}
-				} break;
-
-			case ATTR_STRING:
-				p = &((char *) gopts)[attrs[i].offset];
-				if (* (char**) p != NULL) LDAP_FREE(* (char**) p);
-				* (char**) p = LDAP_STRDUP(opt);
-				break;
-			case ATTR_OPTION:
-				ldap_set_option( NULL, attrs[i].offset, opt );
-				break;
-			case ATTR_SASL:
-#ifdef HAVE_CYRUS_SASL
-			   	ldap_int_sasl_config( gopts, attrs[i].offset, opt );
-#endif
-				break;
-			case ATTR_GSSAPI:
-#ifdef HAVE_GSSAPI
-				ldap_int_gssapi_config( gopts, attrs[i].offset, opt );
-#endif
-				break;
-			case ATTR_TLS:
-#ifdef HAVE_TLS
-			   	ldap_pvt_tls_config( NULL, attrs[i].offset, opt );
-#endif
-				break;
-			case ATTR_OPT_TV: {
-				struct timeval tv;
-				char *next;
-				tv.tv_usec = 0;
-				tv.tv_sec = strtol( opt, &next, 10 );
-				if ( next != opt && next[ 0 ] == '\0' && tv.tv_sec > 0 ) {
-					(void)ldap_set_option( NULL, attrs[i].offset, (const void *)&tv );
-				}
-				} break;
-			case ATTR_OPT_INT: {
-				long l;
-				char *next;
-				l = strtol( opt, &next, 10 );
-				if ( next != opt && next[ 0 ] == '\0' && l > 0 && (long)((int)l) == l ) {
-					int v = (int)l;
-					(void)ldap_set_option( NULL, attrs[i].offset, (const void *)&v );
-				}
-				} break;
-			}
-
-			break;
-		}
+		ldap_int_conf_option( gopts, cmd, opt, userconf );
 	}
 
 	fclose(fp);

@@ -326,6 +326,11 @@ struct ldifrecord;
 LDAP_F ( int ) ldap_pvt_discard LDAP_P((
 	struct ldap *ld, ber_int_t msgid ));
 
+/* init.c */
+LDAP_F( int )
+ldap_pvt_conf_option LDAP_P((
+	char *cmd, char *opt, int userconf ));
+
 /* ldifutil.c */
 LDAP_F( int )
 ldap_parse_ldif_record_x LDAP_P((

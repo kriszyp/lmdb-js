@@ -374,9 +374,9 @@ N_("  -I         use SASL Interactive mode\n"),
 N_("  -n         show what would be done but don't actually do it\n"),
 N_("  -N         do not use reverse DNS to canonicalize SASL host name\n"),
 N_("  -O props   SASL security properties\n"),
-N_("  -o <opt>[=<optparam>] general options\n"),
+N_("  -o <opt>[=<optparam>] any libldap ldap.conf options, plus\n"),
+N_("             ldif_wrap=<width> (in columns, or \"no\" for no wrapping)\n"),
 N_("             nettimeout=<timeout> (in seconds, or \"none\" or \"max\")\n"),
-N_("             ldif-wrap=<width> (in columns, or \"no\" for no wrapping)\n"),
 N_("  -p port    port on LDAP server\n"),
 N_("  -Q         use SASL Quiet mode\n"),
 N_("  -R realm   SASL realm\n"),
@@ -838,6 +838,11 @@ tool_args( int argc, char **argv )
 			if ( (cvalue = strchr( control, '=' )) != NULL ) {
 				*cvalue++ = '\0';
 			}
+			for ( next=control; *next; next++ ) {
+				if ( *next == '-' ) {
+					*next = '_';
+				}
+			}
 
 			if ( strcasecmp( control, "nettimeout" ) == 0 ) {
 				if( nettimeout.tv_sec != -1 ) {
@@ -867,7 +872,7 @@ tool_args( int argc, char **argv )
 	 				exit( EXIT_FAILURE );
  				}
 
-			} else if ( strcasecmp( control, "ldif-wrap" ) == 0 ) {
+			} else if ( strcasecmp( control, "ldif_wrap" ) == 0 ) {
 				if ( cvalue == 0 ) {
 					ldif_wrap = LDIF_LINE_WIDTH;
 
@@ -878,13 +883,13 @@ tool_args( int argc, char **argv )
 					unsigned int u;
 					if ( lutil_atou( &u, cvalue ) ) {
 						fprintf( stderr,
-							_("Unable to parse ldif-wrap=\"%s\"\n"), cvalue );
+							_("Unable to parse ldif_wrap=\"%s\"\n"), cvalue );
 		 				exit( EXIT_FAILURE );
 					}
 					ldif_wrap = (ber_len_t)u;
 				}
 
-			} else {
+			} else if ( ldap_pvt_conf_option( control, cvalue, 1 ) ) {
 				fprintf( stderr, "Invalid general option name: %s\n",
 					control );
 				usage();

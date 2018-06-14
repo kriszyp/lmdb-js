@@ -228,7 +228,8 @@ parse_slapopt( int tool, int *mode )
 			break;
 		}
 
-	} else if ( strncasecmp( optarg, "ldif-wrap", len ) == 0 ) {
+	} else if ( ( strncasecmp( optarg, "ldif_wrap", len ) == 0 ) ||
+			( strncasecmp( optarg, "ldif-wrap", len ) == 0 ) ) {
 		switch ( tool ) {
 		case SLAPCAT:
 			if ( strcasecmp( p, "no" ) == 0 ) {
@@ -237,7 +238,7 @@ parse_slapopt( int tool, int *mode )
 			} else {
 				unsigned int u;
 				if ( lutil_atou( &u, p ) ) {
-					Debug( LDAP_DEBUG_ANY, "unable to parse ldif-wrap=\"%s\".\n", p, 0, 0 );
+					Debug( LDAP_DEBUG_ANY, "unable to parse ldif_wrap=\"%s\".\n", p, 0, 0 );
 					return -1;
 				}
 				ldif_wrap = (ber_len_t)u;
