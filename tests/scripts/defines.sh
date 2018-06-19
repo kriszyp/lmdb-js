@@ -157,6 +157,7 @@ LLOADDEMPTYCONF=$DATADIR/lloadd-empty.conf
 LLOADDANONCONF=$DATADIR/lloadd-anon.conf
 LLOADDUNREACHABLECONF=$DATADIR/lloadd-backend-issues.conf
 LLOADDTLSCONF=$DATADIR/lloadd-tls.conf
+LLOADDSASLCONF=$DATADIR/lloadd-sasl.conf
 
 # generated files
 CONF1=$TESTDIR/slapd.1.conf
