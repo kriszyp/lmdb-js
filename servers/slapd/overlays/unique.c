@@ -965,6 +965,8 @@ unique_search(
 	slap_callback cb = { NULL, NULL, NULL, NULL }; /* XXX */
 	unique_counter uq = { NULL, 0 };
 	int rc;
+	char *errmsg;
+	int errmsgsize;
 
 	Debug(LDAP_DEBUG_TRACE, "==> unique_search %s\n", key->bv_val, 0, 0);
 
@@ -1009,9 +1011,12 @@ unique_search(
 	Debug(LDAP_DEBUG_TRACE, "=> unique_search found %d records\n", uq.count, 0, 0);
 
 	if(uq.count) {
+		errmsgsize = sizeof("non-unique attributes found with ") + key->bv_len;
+		errmsg = ch_malloc(errmsgsize);
+		snprintf( errmsg, errmsgsize, "non-unique attributes found with %s", key->bv_val );
 		op->o_bd->bd_info = (BackendInfo *) on->on_info;
-		send_ldap_error(op, rs, LDAP_CONSTRAINT_VIOLATION,
-			"some attributes not unique");
+		send_ldap_error(op, rs, LDAP_CONSTRAINT_VIOLATION, errmsg);
+		ch_free(errmsg);
 		return(rs->sr_err);
 	}
 
