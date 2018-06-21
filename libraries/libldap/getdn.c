@@ -27,6 +27,7 @@
 
 #include "ldap-int.h"
 #include "ldap_schema.h"
+#include "ldif.h"
 
 /* extension to UFN that turns trailing "dc=value" rdns in DNS style,
  * e.g. "ou=People,dc=openldap,dc=org" => "People, openldap.org" */
@@ -2475,6 +2476,11 @@ dn2domain( LDAPDN dn, struct berval *bv, int pos, int *iRDN )
 		ava = rdn[ 0 ];
 
 		if ( !LDAP_DN_IS_RDN_DC( rdn ) ) {
+			break;
+		}
+
+		if ( ldif_is_not_printable( ava->la_value.bv_val, ava->la_value.bv_len ) ) {
+			domain = 0;
 			break;
 		}
 
