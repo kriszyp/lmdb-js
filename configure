@@ -19687,108 +19687,6 @@ $as_echo "$ol_cv_pthread_select_yields" >&6; }
 	;;
 esac
 
-case $ol_with_threads in auto | yes | mach)
-
-		for ac_header in mach/cthreads.h cthreads.h
-do :
-  as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
-ac_fn_c_check_header_mongrel "$LINENO" "$ac_header" "$as_ac_Header" "$ac_includes_default"
-eval as_val=\$$as_ac_Header
-   if test "x$as_val" = x""yes; then :
-  cat >>confdefs.h <<_ACEOF
-#define `$as_echo "HAVE_$ac_header" | $as_tr_cpp` 1
-_ACEOF
-
-fi
-
-done
-
-	if test $ac_cv_header_mach_cthreads_h = yes ; then
-		ol_with_threads=found
-
-				ac_fn_c_check_func "$LINENO" "cthread_fork" "ac_cv_func_cthread_fork"
-if test "x$ac_cv_func_cthread_fork" = x""yes; then :
-  ol_link_threads=yes
-fi
-
-
-		if test $ol_link_threads = no ; then
-									{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for cthread_fork with -all_load" >&5
-$as_echo_n "checking for cthread_fork with -all_load... " >&6; }
-if test "${ol_cv_cthread_all_load+set}" = set; then :
-  $as_echo_n "(cached) " >&6
-else
-
-								save_LIBS="$LIBS"
-				LIBS="-all_load $LIBS"
-				cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-#include <mach/cthreads.h>
-int
-main ()
-{
-
-					cthread_fork((void *)0, (void *)0);
-
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ol_cv_cthread_all_load=yes
-else
-  ol_cv_cthread_all_load=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-								LIBS="$save_LIBS"
-
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ol_cv_cthread_all_load" >&5
-$as_echo "$ol_cv_cthread_all_load" >&6; }
-
-			if test $ol_cv_cthread_all_load = yes ; then
-				LTHREAD_LIBS="$LTHREAD_LIBS -all_load"
-				ol_link_threads=mach
-				ol_with_threads=found
-			fi
-		fi
-
-	elif test $ac_cv_header_cthreads_h = yes ; then
-
-		ol_with_threads=found
-
-				save_LIBS="$LIBS"
-		LIBS="$LIBS -lthreads"
-		ac_fn_c_check_func "$LINENO" "cthread_fork" "ac_cv_func_cthread_fork"
-if test "x$ac_cv_func_cthread_fork" = x""yes; then :
-  ol_link_threads=yes
-fi
-
-		LIBS="$save_LIBS"
-
-		if test $ol_link_threads = yes ; then
-			LTHREAD_LIBS="-lthreads"
-			ol_link_threads=mach
-			ol_with_threads=found
-		else
-			as_fn_error "could not link with Mach CThreads" "$LINENO" 5
-		fi
-
-	elif test $ol_with_threads = mach ; then
-		as_fn_error "could not locate Mach CThreads" "$LINENO" 5
-	fi
-
-	if test $ol_link_threads = mach ; then
-
-$as_echo "#define HAVE_MACH_CTHREADS 1" >>confdefs.h
-
-	elif test $ol_with_threads = found ; then
-		as_fn_error "could not link with Mach CThreads" "$LINENO" 5
-	fi
-	;;
-esac
-
 case $ol_with_threads in auto | yes | pth)
 
 	for ac_header in pth.h
@@ -20024,18 +19922,6 @@ $as_echo "#define HAVE_LINUX_THREADS 1" >>confdefs.h
 
 	fi
 
-
-	for ac_header in mach/cthreads.h
-do :
-  ac_fn_c_check_header_mongrel "$LINENO" "mach/cthreads.h" "ac_cv_header_mach_cthreads_h" "$ac_includes_default"
-if test "x$ac_cv_header_mach_cthreads_h" = x""yes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_MACH_CTHREADS_H 1
-_ACEOF
-
-fi
-
-done
 
 	for ac_header in thread.h synch.h
 do :
