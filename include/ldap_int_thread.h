@@ -23,10 +23,6 @@ LDAP_F(int) ldap_int_thread_destroy    LDAP_P(( void ));
 
 LDAP_END_DECL
 
-LDAP_BEGIN_DECL
-typedef struct ldap_int_thread_rmutex_s * ldap_int_thread_rmutex_t;
-LDAP_END_DECL
-
 #ifndef _LDAP_INT_THREAD_H
 #define _LDAP_INT_THREAD_H
 
