@@ -1648,71 +1648,6 @@ int main(argc, argv)
 	;;
 esac
 
-case $ol_with_threads in auto | yes | mach)
-
-	dnl check for Mach CThreads
-	AC_CHECK_HEADERS(mach/cthreads.h cthreads.h)
-	if test $ac_cv_header_mach_cthreads_h = yes ; then
-		ol_with_threads=found
-
-		dnl check for cthreads support in current $LIBS
-		AC_CHECK_FUNC(cthread_fork,[ol_link_threads=yes])
-
-		if test $ol_link_threads = no ; then
-			dnl try -all_load
-			dnl this test needs work
-			AC_CACHE_CHECK([for cthread_fork with -all_load],
-				[ol_cv_cthread_all_load], [
-				dnl save the flags
-				save_LIBS="$LIBS"
-				LIBS="-all_load $LIBS"
-				AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <mach/cthreads.h>]], [[
-					cthread_fork((void *)0, (void *)0);
-					]])],[ol_cv_cthread_all_load=yes],[ol_cv_cthread_all_load=no])
-				dnl restore the LIBS
-				LIBS="$save_LIBS"
-			])
-
-			if test $ol_cv_cthread_all_load = yes ; then
-				LTHREAD_LIBS="$LTHREAD_LIBS -all_load"
-				ol_link_threads=mach
-				ol_with_threads=found
-			fi
-		fi
-
-	elif test $ac_cv_header_cthreads_h = yes ; then
-		dnl Hurd variant of Mach Cthreads
-		dnl uses <cthreads.h> and -lthreads
-
-		ol_with_threads=found
- 
-		dnl save the flags
-		save_LIBS="$LIBS"
-		LIBS="$LIBS -lthreads"
-		AC_CHECK_FUNC(cthread_fork,[ol_link_threads=yes])
-		LIBS="$save_LIBS"
-
-		if test $ol_link_threads = yes ; then
-			LTHREAD_LIBS="-lthreads"
-			ol_link_threads=mach
-			ol_with_threads=found
-		else
-			AC_MSG_ERROR([could not link with Mach CThreads])
-		fi
-
-	elif test $ol_with_threads = mach ; then
-		AC_MSG_ERROR([could not locate Mach CThreads])
-	fi
-
-	if test $ol_link_threads = mach ; then
-		AC_DEFINE(HAVE_MACH_CTHREADS,1,
-			[define if you have Mach Cthreads])
-	elif test $ol_with_threads = found ; then
-		AC_MSG_ERROR([could not link with Mach CThreads])
-	fi
-	;;
-esac
-
 case $ol_with_threads in auto | yes | pth)
 
 	AC_CHECK_HEADERS(pth.h)
@@ -1777,7 +1712,6 @@ if test $ol_with_threads = manual ; then
 	AC_CHECK_FUNCS(sched_yield pthread_yield)
 	OL_HEADER_LINUX_THREADS
 
-	AC_CHECK_HEADERS(mach/cthreads.h)
 	AC_CHECK_HEADERS(thread.h synch.h)
 fi
 

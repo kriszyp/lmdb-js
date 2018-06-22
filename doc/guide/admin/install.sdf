@@ -140,7 +140,7 @@ more information.
 H3: Threads
 
 OpenLDAP is designed to take advantage of threads.  OpenLDAP
-supports POSIX {{pthreads}}, Mach {{CThreads}}, and a number of
+supports POSIX {{pthreads}}, NT threads and a number of
 other varieties.  {{EX:configure}} will complain if it cannot
 find a suitable thread subsystem.   If this occurs, please
 consult the {{F:Software|Installation|Platform Hints}} section

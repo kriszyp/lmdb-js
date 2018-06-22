@@ -81,34 +81,6 @@ typedef pthread_rwlock_t ldap_int_thread_rdwr_t;
 
 LDAP_END_DECL
 
-#elif defined ( HAVE_MACH_CTHREADS )
-/**********************************
- *                                *
- * definitions for Mach CThreads  *
- *                                *
- **********************************/
-
-#if defined( HAVE_MACH_CTHREADS_H )
-#	include <mach/cthreads.h>
-#elif defined( HAVE_CTHREADS_H )
-#	include <cthreads.h>
-#endif
-
-LDAP_BEGIN_DECL
-
-typedef cthread_t		ldap_int_thread_t;
-typedef ldap_int_thread_rmutex_t		ldap_int_thread_mutex_recursive_t;
-typedef struct mutex		ldap_int_thread_mutex_t;
-typedef struct condition	ldap_int_thread_cond_t;
-typedef cthread_key_t		ldap_int_thread_key_t;
-
-#ifndef LDAP_INT_MUTEX_NULL
-#define LDAP_INT_MUTEX_NULL	MUTEX_INITIALIZER
-#define LDAP_INT_MUTEX_FIRSTCREATE(m)	((void) 0)
-#endif
-
-LDAP_END_DECL
-
 #elif defined( HAVE_GNU_PTH )
 /***********************************
  *                                 *

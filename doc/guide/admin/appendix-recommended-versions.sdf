@@ -24,7 +24,6 @@ Feature|Software|Version
 |{{PRD:MIT Kerberos}}|Version
 Threads:
 |POSIX {{pthreads}}|Version
-|Mach {{CThreads}}|Version
 TCP Wrappers|Name|Version
 !endblock
 

@@ -858,7 +858,6 @@ datadir
 slapadd
 reqFilter
 matcheddomain
-CThreads
 slapacl
 requestName
 randkey

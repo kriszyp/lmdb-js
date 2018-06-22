@@ -123,9 +123,6 @@
 /* Define to 1 if you have the <crypt.h> header file. */
 #undef HAVE_CRYPT_H
 
-/* Define to 1 if you have the <cthreads.h> header file. */
-#undef HAVE_CTHREADS_H
-
 /* Define to 1 if you have the `ctime_r' function. */
 #undef HAVE_CTIME_R
 
@@ -336,12 +333,6 @@
 
 /* Define to 1 if you have the <ltdl.h> header file. */
 #undef HAVE_LTDL_H
-
-/* define if you have Mach Cthreads */
-#undef HAVE_MACH_CTHREADS
-
-/* Define to 1 if you have the <mach/cthreads.h> header file. */
-#undef HAVE_MACH_CTHREADS_H
 
 /* Define to 1 if you have the <malloc.h> header file. */
 #undef HAVE_MALLOC_H
