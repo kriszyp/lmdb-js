@@ -44,9 +44,7 @@ LDAP_END_DECL
 
 LDAP_BEGIN_DECL
 
-#define LDAP_THREAD_HAVE_NATIVE_RECURSIVE_MUTEX
 typedef pthread_t		ldap_int_thread_t;
-typedef pthread_mutex_t		ldap_int_thread_mutex_recursive_t;
 typedef pthread_mutex_t		ldap_int_thread_mutex_t;
 typedef pthread_cond_t		ldap_int_thread_cond_t;
 typedef pthread_key_t		ldap_int_thread_key_t;
@@ -93,9 +91,7 @@ LDAP_END_DECL
 
 LDAP_BEGIN_DECL
 
-#define LDAP_THREAD_HAVE_NATIVE_RECURSIVE_MUTEX
 typedef pth_t		ldap_int_thread_t;
-typedef pth_mutex_t	ldap_int_thread_mutex_recursive_t;
 typedef pth_mutex_t	ldap_int_thread_mutex_t;
 typedef pth_cond_t	ldap_int_thread_cond_t;
 typedef pth_key_t	ldap_int_thread_key_t;
@@ -124,9 +120,7 @@ LDAP_END_DECL
 
 LDAP_BEGIN_DECL
 
-#define LDAP_THREAD_HAVE_NATIVE_RECURSIVE_MUTEX
 typedef thread_t		ldap_int_thread_t;
-typedef mutex_t			ldap_int_thread_mutex_recursive_t;
 typedef mutex_t			ldap_int_thread_mutex_t;
 typedef cond_t			ldap_int_thread_cond_t;
 typedef thread_key_t	ldap_int_thread_key_t;
@@ -157,9 +151,7 @@ typedef thread_key_t	ldap_int_thread_key_t;
 
 LDAP_BEGIN_DECL
 
-#define LDAP_THREAD_HAVE_NATIVE_RECURSIVE_MUTEX
 typedef unsigned long	ldap_int_thread_t;
-typedef HANDLE	ldap_int_thread_mutex_recursive_t;
 typedef HANDLE	ldap_int_thread_mutex_t;
 typedef HANDLE	ldap_int_thread_cond_t;
 typedef DWORD	ldap_int_thread_key_t;
@@ -186,9 +178,7 @@ LDAP_END_DECL
 
 LDAP_BEGIN_DECL
 
-#define LDAP_THREAD_HAVE_NATIVE_RECURSIVE_MUTEX
 typedef int			ldap_int_thread_t;
-typedef int			ldap_int_thread_mutex_recursive_t;
 typedef int			ldap_int_thread_mutex_t;
 typedef int			ldap_int_thread_cond_t;
 typedef int			ldap_int_thread_key_t;

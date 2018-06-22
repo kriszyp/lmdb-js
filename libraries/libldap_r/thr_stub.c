@@ -150,17 +150,6 @@ ldap_pvt_thread_mutex_unlock( ldap_pvt_thread_mutex_t *mutex )
 	return 0;
 }
 
-int ldap_pvt_thread_mutex_recursive_init( ldap_pvt_thread_mutex_recursive_t *mutex )
-	LDAP_GCCATTR((alias("ldap_pvt_thread_mutex_init")));
-int ldap_pvt_thread_mutex_recursive_destroy( ldap_pvt_thread_mutex_recursive_t *mutex )
-	LDAP_GCCATTR((alias("ldap_pvt_thread_mutex_destroy")));
-int ldap_pvt_thread_mutex_recursive_lock( ldap_pvt_thread_mutex_recursive_t *mutex )
-	LDAP_GCCATTR((alias("ldap_pvt_thread_mutex_lock")));
-int ldap_pvt_thread_mutex_recursive_trylock( ldap_pvt_thread_mutex_recursive_t *mutex )
-	LDAP_GCCATTR((alias("ldap_pvt_thread_mutex_trylock")));
-int ldap_pvt_thread_mutex_recursive_unlock( ldap_pvt_thread_mutex_recursive_t *mutex )
-	LDAP_GCCATTR((alias("ldap_pvt_thread_mutex_unlock")));
-
 /*
  * NO_THREADS requires a separate tpool implementation since
  * generic ldap_pvt_thread_pool_wrapper loops forever.
