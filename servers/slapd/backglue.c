@@ -1312,7 +1312,7 @@ glue_db_init(
 
 	SLAP_DBFLAGS( be ) |= SLAP_DBFLAG_GLUE_INSTANCE;
 
-	if ( ga_list ) {
+	if ( ga_list && ( slapMode & SLAP_SERVER_MODE ) ) {
 		be->bd_info = (BackendInfo *)oi;
 		glue_sub_attach( 1 );
 	}
