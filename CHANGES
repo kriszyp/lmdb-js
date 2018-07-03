@@ -2,6 +2,7 @@ OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.47 Engineering
 	Added slapd-sock DN qualifier for subtrees to be processed (ITS#8051)
+	Added slapd-sock ability to send extended operations to external listeners (ITS#8714)
 
 OpenLDAP 2.4.46 Release (2018/03/22)
 	Fixed libldap connection delete callbacks when TLS fails to start (ITS#8717)
