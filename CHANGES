@@ -3,6 +3,7 @@ OpenLDAP 2.4 Change Log
 OpenLDAP 2.4.47 Engineering
 	Added slapd-sock DN qualifier for subtrees to be processed (ITS#8051)
 	Added slapd-sock ability to send extended operations to external listeners (ITS#8714)
+	Fixed libldap dn to domain parsing with bad input (ITS#8842)
 	Fixed slapd slapcat to correctly honor -g option (ITS#8667)
 	Fixed slapd cn=config when modifying slapo-syncprov config (ITS#8616)
 	Fixed slapd domainScope control to match Microsoft specification (ITS#8840)
