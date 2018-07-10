@@ -8,6 +8,7 @@ OpenLDAP 2.4.47 Engineering
 	Fixed slapd cn=config when modifying slapo-syncprov config (ITS#8616)
 	Fixed slapd domainScope control to match Microsoft specification (ITS#8840)
 	Fixed slapd-bdb/hdb/mdb to not convert certain IDLs to ranges (ITS#8868)
+	Fixed slapo-memberof cn=config modifications (ITS#8663)
 	Fixed slapo-syncprov will NULL modlist (ITS#8843)
 
 OpenLDAP 2.4.46 Release (2018/03/22)
