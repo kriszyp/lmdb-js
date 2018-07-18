@@ -213,7 +213,7 @@ static int mdb_mval_get(Operation *op, MDB_cursor *mc, ID id, Attribute *a, int 
 	char *ptr;
 	char ivk[ID2VKSZ];
 	unsigned i;
-	int rc;
+	int rc = 0;
 	unsigned short s;
 
 	memcpy(ivk, &id, sizeof(id));
@@ -238,7 +238,7 @@ static int mdb_mval_get(Operation *op, MDB_cursor *mc, ID id, Attribute *a, int 
 		else
 			rc = mdb_cursor_get(mc, &key, data, MDB_NEXT_DUP);
 		if (rc)
-			return rc;
+			break;
 		ptr = (char*)data[0].mv_data + data[0].mv_size - 2;
 		memcpy(&s, ptr, 2);
 		if (have_nvals) {
@@ -252,11 +252,12 @@ static int mdb_mval_get(Operation *op, MDB_cursor *mc, ID id, Attribute *a, int 
 			a->a_vals[i].bv_len = data[0].mv_size - 3;
 		}
 	}
+	a->a_numvals = i;
 	BER_BVZERO(&a->a_vals[i]);
 	if (have_nvals) {
 		BER_BVZERO(&a->a_nvals[i]);
 	}
-	return 0;
+	return rc;
 }
 
 #define ADD_FLAGS	(MDB_NOOVERWRITE|MDB_APPEND)
@@ -1065,10 +1066,11 @@ int mdb_entry_decode(Operation *op, MDB_txn *txn, MDB_val *data, ID id, Entry **
 				if (rc)
 					goto leave;
 			}
+			i = a->a_numvals;
 			mdb_mval_get(op, mvc, id, a, have_nval);
-			bptr += a->a_numvals + 1;
+			bptr += i + 1;
 			if (have_nval)
-				bptr += a->a_numvals + 1;
+				bptr += i + 1;
 		} else {
 			for (i=0; i<a->a_numvals; i++) {
 				bptr->bv_len = *lp++;
