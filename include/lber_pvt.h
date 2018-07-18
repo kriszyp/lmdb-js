@@ -201,6 +201,10 @@ ber_bvarray_dup_x LDAP_P(( BerVarray *dst, BerVarray src, void *ctx ));
 		(dst)->bv_val = (bv)->bv_val; \
 	} while (0)
 
+#ifndef STRLENOF
+#define STRLENOF(s)	(sizeof(s)-1)
+#endif
+
 #define BER_BVC(s)		{ STRLENOF(s), (char *)(s) }
 #define BER_BVNULL		{ 0L, NULL }
 #define BER_BVZERO(bv) \
