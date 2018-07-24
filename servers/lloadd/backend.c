@@ -38,6 +38,12 @@ upstream_connect_cb( evutil_socket_t s, short what, void *arg )
     Debug( LDAP_DEBUG_CONNS, "upstream_connect_cb: "
             "fd=%d connection callback for backend uri='%s'\n",
             s, b->b_uri.bv_val );
+
+    if ( s != conn->fd ) {
+        /* backend_reset has been here first */
+        goto preempted;
+    }
+
     if ( what == EV_WRITE ) {
         socklen_t optlen = sizeof(error);
 
@@ -74,9 +80,8 @@ done:
                     error ? sock_errstr( error, ebuf, sizeof(ebuf) ) : "" );
         }
         backend_retry( b );
-    } else {
-        b->b_failed = 0;
     }
+preempted:
     ldap_pvt_thread_mutex_unlock( &b->b_mutex );
 
     event_free( conn->event );
@@ -485,22 +490,39 @@ backend_connect_task( void *ctx, void *arg )
 }
 
 /*
- * Needs exclusive access to the backend.
+ * Needs exclusive access to the backend and no other thread is allowed to call
+ * backend_retry while we're handling this.
+ *
+ * If gentle == 0, a full pause must be in effect, else we risk deadlocking on
+ * event_free().
  */
 void
 backend_reset( LloadBackend *b, int gentle )
 {
     if ( b->b_cookie ) {
-        int rc;
-        rc = ldap_pvt_thread_pool_retract( b->b_cookie );
-        assert( rc == 1 );
-        b->b_cookie = NULL;
-        b->b_opening--;
+        if ( ldap_pvt_thread_pool_retract( b->b_cookie ) ) {
+            b->b_cookie = NULL;
+            b->b_opening--;
+        } else {
+            /*
+             * The task might not be cancelable because it just started
+             * executing.
+             *
+             * Shutdown should be the only time when the thread pool is
+             * in that state. Keep the cookie in to keep an eye on whether
+             * it's finished yet.
+             */
+            assert( slapd_shutdown );
+        }
     }
+    /* Not safe to hold our mutex and call event_del/free if the event's
+     * callback is running, relinquish the mutex while we do so. */
     if ( b->b_retry_event &&
             event_pending( b->b_retry_event, EV_TIMEOUT, NULL ) ) {
         assert( b->b_failed );
+        ldap_pvt_thread_mutex_unlock( &b->b_mutex );
         event_del( b->b_retry_event );
+        ldap_pvt_thread_mutex_lock( &b->b_mutex );
         b->b_opening--;
     }
     if ( b->b_dns_req ) {
@@ -515,16 +537,24 @@ backend_reset( LloadBackend *b, int gentle )
                 "destroying socket pending connect() fd=%d\n",
                 pending->fd );
 
-        event_free( pending->event );
+        event_active( pending->event, EV_WRITE, 0 );
         evutil_closesocket( pending->fd );
+        pending->fd = -1;
         LDAP_LIST_REMOVE( pending, next );
-        ch_free( pending );
+
+        if ( !gentle ) {
+            /* None of the event bases are running, we're safe to free the
+             * event right now and potentially free the backend itself */
+            event_free( pending->event );
+            ch_free( pending );
+        }
+        /* else, just let the event dispose of the resources on its own later */
         b->b_opening--;
     }
     connections_walk(
             &b->b_mutex, &b->b_preparing, lload_connection_close, &gentle );
     assert( LDAP_CIRCLEQ_EMPTY( &b->b_preparing ) );
-    assert( b->b_opening == 0 );
+    assert( b->b_opening == ( b->b_cookie ? 1 : 0 ) );
     b->b_failed = 0;
 
     connections_walk_last( &b->b_mutex, &b->b_bindconns, b->b_last_bindconn,
