@@ -260,7 +260,7 @@ slapd.exp: libslapd.a
 		--base-file slapd.base --output-exp $@
 
 slapi/libslapi.la: FORCE
-	(cd slapi; $(MAKE) $(MFLAGS) all)
+	cd slapi && $(MAKE) $(MFLAGS) all
 
 slapd: $(SLAPD_DEPENDS) @LIBSLAPI@
 	$(LTLINK) -o $@ $(SLAPD_OBJECTS) $(LIBS) \
@@ -274,11 +274,11 @@ sslapd: version.o
 	$(LTLINK) -static -o $@ $(OBJS) version.o $(LIBS) $(WRAP_LIBS)
 
 dummy $(SLAPD_DYNAMIC_BACKENDS): slapd
-	cd $@; $(MAKE) $(MFLAGS) all
+	cd $@ && $(MAKE) $(MFLAGS) all
 	@touch $@
 
 dynamic_overlays: slapd
-	cd overlays; $(MAKE) $(MFLAGS) dynamic
+	cd overlays && $(MAKE) $(MFLAGS) dynamic
 
 #
 # In Windows, dynamic backends have to be built after slapd. For this
@@ -289,8 +289,8 @@ dynamic_overlays: slapd
 	    echo "building static backends..."; \
 	    for i in XX $(SLAPD_STATIC_BACKENDS); do \
 	    	if test $$i != XX; then \
-		    echo " "; echo "  cd $$i; $(MAKE) $(MFLAGS) all"; \
-		    ( cd $$i; $(MAKE) $(MFLAGS) all ); \
+		    echo " "; echo "  cd $$i && $(MAKE) $(MFLAGS) all"; \
+		    ( cd $$i && $(MAKE) $(MFLAGS) all ); \
 		    if test $$? != 0; then exit 1; fi; \
 		fi; \
 	    done; \
@@ -322,7 +322,7 @@ libbackends.a: .backend
 	@ls -l libbackends.a; echo ""
 
 liboverlays.a: FORCE
-	cd overlays; $(MAKE) $(MFLAGS) static
+	cd overlays && $(MAKE) $(MFLAGS) static
 
 version.c: Makefile
 	@-$(RM) $@
@@ -335,8 +335,8 @@ backends.o: backends.c $(srcdir)/slap.h
 depend-local-srv: FORCE
 	@for i in $(SUBDIRS); do \
 		if test -d $$i && test -f $$i/Makefile ; then \
-			echo; echo "  cd $$i; $(MAKE) $(MFLAGS) depend"; \
-			( cd $$i; $(MAKE) $(MFLAGS) depend ); \
+			echo; echo "  cd $$i && $(MAKE) $(MFLAGS) depend"; \
+			( cd $$i && $(MAKE) $(MFLAGS) depend ); \
 			if test $$? != 0 ; then exit 1; fi ; \
 		fi; \
 	done
@@ -351,8 +351,8 @@ veryclean-local:
 clean-local-srv: FORCE
 	@for i in $(SUBDIRS); do \
 		if test -d $$i && test -f $$i/Makefile ; then \
-			echo; echo "  cd $$i; $(MAKE) $(MFLAGS) clean"; \
-			( cd $$i; $(MAKE) $(MFLAGS) clean ); \
+			echo; echo "  cd $$i && $(MAKE) $(MFLAGS) clean"; \
+			( cd $$i && $(MAKE) $(MFLAGS) clean ); \
 			if test $$? != 0 ; then exit 1; fi ; \
 		fi; \
 	done
@@ -361,8 +361,8 @@ clean-local-srv: FORCE
 veryclean-local-srv: FORCE
 	@for i in $(SUBDIRS); do \
 		if test -d $$i && test -f $$i/Makefile ; then \
-			echo; echo "  cd $$i; $(MAKE) $(MFLAGS) clean"; \
-			( cd $$i; $(MAKE) $(MFLAGS) veryclean ); \
+			echo; echo "  cd $$i && $(MAKE) $(MFLAGS) clean"; \
+			( cd $$i && $(MAKE) $(MFLAGS) veryclean ); \
 		fi; \
 	done
 
@@ -382,8 +382,8 @@ install-slapd: FORCE
 		slapd$(EXEEXT) $(DESTDIR)$(libexecdir)
 	@for i in $(SUBDIRS); do \
 	    if test -d $$i && test -f $$i/Makefile ; then \
-		echo; echo "  cd $$i; $(MAKE) $(MFLAGS) install"; \
-		( cd $$i; $(MAKE) $(MFLAGS) install ); \
+		echo; echo "  cd $$i && $(MAKE) $(MFLAGS) install"; \
+		( cd $$i && $(MAKE) $(MFLAGS) install ); \
 		if test $$? != 0 ; then exit 1; fi ; \
 	    fi; \
 	done
