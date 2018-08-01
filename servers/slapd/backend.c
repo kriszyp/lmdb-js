@@ -1500,7 +1500,7 @@ fe_acl_group(
 					 * or if filter parsing fails.
 					 * In the latter case,
 					 * we should give up. */
-					if ( ludp->lud_filter != NULL && ludp->lud_filter != '\0') {
+					if ( ludp->lud_filter != NULL && *ludp->lud_filter != '\0') {
 						filter = str2filter_x( op, ludp->lud_filter );
 						if ( filter == NULL ) {
 							/* give up... */
