@@ -2631,7 +2631,7 @@ void tool_print_ctrls(
 		/* known controls */
 		for ( j = 0; tool_ctrl_response[j].oid != NULL; j++ ) {
 			if ( strcmp( tool_ctrl_response[j].oid, ctrls[i]->ldctl_oid ) == 0 ) {
-				if ( !tool_ctrl_response[j].mask & tool_type ) {
+				if ( !(tool_ctrl_response[j].mask & tool_type )) {
 					/* this control should not appear
 					 * with this tool; warning? */
 				}

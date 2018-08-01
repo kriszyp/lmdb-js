@@ -446,7 +446,7 @@ constraint_cf_gen( ConfigArgs *c )
 						}
 
 						if ( ap.restrict_lud->lud_attrs != NULL ) {
-							if ( ap.restrict_lud->lud_attrs[0] != '\0' ) {
+							if ( ap.restrict_lud->lud_attrs[0] != NULL ) {
 								snprintf( c->cr_msg, sizeof( c->cr_msg ),
 									"%s %s: attrs not allowed in restrict URI %s\n",
 									c->argv[0], c->argv[1], arg);
