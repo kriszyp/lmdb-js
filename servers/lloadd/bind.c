@@ -352,7 +352,7 @@ request_bind( LloadConnection *client, LloadOperation *op )
         Debug( LDAP_DEBUG_STATS, "request_bind: "
                 "connid=%lu, msgid=%d pinned upstream lost\n",
                 op->o_client_connid, op->o_client_msgid );
-        operation_send_reject( op, LDAP_UNAVAILABLE,
+        operation_send_reject( op, LDAP_OTHER,
                 "connection to the remote server has been severed", 1 );
         pin = 0;
         goto done;
@@ -638,7 +638,7 @@ handle_bind_response(
                 !BER_BVISNULL( &upstream->c_sasl_bind_mech ) ) {
             CONNECTION_UNLOCK(upstream);
             operation_send_reject(
-                    op, LDAP_UNAVAILABLE, "upstream connection is closing", 0 );
+                    op, LDAP_OTHER, "upstream connection is closing", 0 );
 
             ber_free( ber, 1 );
             return LDAP_SUCCESS;

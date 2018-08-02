@@ -805,7 +805,7 @@ operation_lost_upstream( LloadOperation *op )
 {
     LloadConnection *c = op->o_upstream;
 
-    operation_send_reject( op, LDAP_UNAVAILABLE,
+    operation_send_reject( op, LDAP_OTHER,
             "connection to the remote server has been severed", 0 );
 
     CONNECTION_LOCK(c);
