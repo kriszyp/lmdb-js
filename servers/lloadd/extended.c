@@ -36,6 +36,7 @@ handle_starttls( LloadConnection *c, LloadOperation *op )
     char *msg = NULL;
     int rc = LDAP_SUCCESS;
 
+    CONNECTION_LOCK(c);
     tavl_delete( &c->c_ops, op, operation_client_cmp );
 
     if ( c->c_is_tls == LLOAD_TLS_ESTABLISHED ) {
@@ -51,6 +52,7 @@ handle_starttls( LloadConnection *c, LloadOperation *op )
         rc = LDAP_UNAVAILABLE;
         msg = "Could not initialize TLS";
     }
+    CONNECTION_UNLOCK(c);
 
     Debug( LDAP_DEBUG_STATS, "handle_starttls: "
             "handling StartTLS exop connid=%lu rc=%d msg=%s\n",
@@ -58,10 +60,9 @@ handle_starttls( LloadConnection *c, LloadOperation *op )
 
     if ( rc ) {
         /* We've already removed the operation from the queue */
-        return operation_send_reject_locked( op, rc, msg, 1 );
+        operation_send_reject( op, rc, msg, 1 );
+        return LDAP_SUCCESS;
     }
-
-    CONNECTION_UNLOCK_INCREF(c);
 
     event_del( c->c_read_event );
     event_del( c->c_write_event );
@@ -77,9 +78,8 @@ handle_starttls( LloadConnection *c, LloadOperation *op )
     output = c->c_pendingber;
     if ( output == NULL && (output = ber_alloc()) == NULL ) {
         ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
-        CONNECTION_LOCK_DECREF(c);
-        operation_destroy_from_client( op );
-        CONNECTION_DESTROY(c);
+        operation_unlink( op );
+        CONNECTION_LOCK_DESTROY(c);
         return -1;
     }
     c->c_pendingber = output;
@@ -88,7 +88,7 @@ handle_starttls( LloadConnection *c, LloadOperation *op )
             LDAP_RES_EXTENDED, LDAP_SUCCESS, "", "" );
     ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
 
-    CONNECTION_LOCK_DECREF(c);
+    CONNECTION_LOCK(c);
     c->c_read_timeout = lload_timeout_net;
     event_assign( c->c_read_event, base, c->c_fd, EV_READ|EV_PERSIST,
             client_tls_handshake_cb, c );
@@ -100,8 +100,9 @@ handle_starttls( LloadConnection *c, LloadOperation *op )
     event_add( c->c_write_event, lload_write_timeout );
 
     op->o_res = LLOAD_OP_COMPLETED;
-    operation_destroy_from_client( op );
-    CONNECTION_UNLOCK_INCREF(c);
+    CONNECTION_UNLOCK(c);
+
+    operation_unlink( op );
 
     return -1;
 }
@@ -115,10 +116,8 @@ request_extended( LloadConnection *c, LloadOperation *op )
     ber_tag_t tag;
 
     if ( (copy = ber_alloc()) == NULL ) {
-        if ( operation_send_reject_locked(
-                     op, LDAP_OTHER, "internal error", 0 ) == LDAP_SUCCESS ) {
-            CONNECTION_DESTROY(c);
-        }
+        operation_send_reject( op, LDAP_OTHER, "internal error", 0 );
+        CONNECTION_LOCK_DESTROY(c);
         return -1;
     }
 
@@ -128,8 +127,9 @@ request_extended( LloadConnection *c, LloadOperation *op )
     if ( tag != LDAP_TAG_EXOP_REQ_OID ) {
         Debug( LDAP_DEBUG_STATS, "request_extended: "
                 "no OID present in extended request\n" );
-        return operation_send_reject_locked(
-                op, LDAP_PROTOCOL_ERROR, "decoding error", 0 );
+        operation_send_reject( op, LDAP_PROTOCOL_ERROR, "decoding error", 0 );
+        CONNECTION_LOCK_DESTROY(c);
+        return -1;
     }
 
     needle.oid = bv;
@@ -145,8 +145,8 @@ request_extended( LloadConnection *c, LloadOperation *op )
     ber_free( copy, 0 );
 
     if ( c->c_state == LLOAD_C_BINDING ) {
-        return operation_send_reject_locked(
-                op, LDAP_PROTOCOL_ERROR, "bind in progress", 0 );
+        operation_send_reject( op, LDAP_PROTOCOL_ERROR, "bind in progress", 0 );
+        return LDAP_SUCCESS;
     }
     return request_process( c, op );
 }

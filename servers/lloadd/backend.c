@@ -33,6 +33,7 @@ upstream_connect_cb( evutil_socket_t s, short what, void *arg )
     LloadPendingConnection *conn = arg;
     LloadBackend *b = conn->backend;
     int error = 0, rc = -1;
+    epoch_t epoch;
 
     ldap_pvt_thread_mutex_lock( &b->b_mutex );
     Debug( LDAP_DEBUG_CONNS, "upstream_connect_cb: "
@@ -44,6 +45,8 @@ upstream_connect_cb( evutil_socket_t s, short what, void *arg )
         goto preempted;
     }
 
+    epoch = epoch_join();
+
     if ( what == EV_WRITE ) {
         socklen_t optlen = sizeof(error);
 
@@ -53,6 +56,7 @@ upstream_connect_cb( evutil_socket_t s, short what, void *arg )
         }
         if ( error == EINTR || error == EINPROGRESS || error == EWOULDBLOCK ) {
             ldap_pvt_thread_mutex_unlock( &b->b_mutex );
+            epoch_leave( epoch );
             return;
         } else if ( error ) {
             goto done;
@@ -63,6 +67,8 @@ upstream_connect_cb( evutil_socket_t s, short what, void *arg )
     }
 
 done:
+    epoch_leave( epoch );
+
     LDAP_LIST_REMOVE( conn, next );
     if ( rc ) {
         evutil_closesocket( conn->fd );
@@ -93,6 +99,7 @@ upstream_name_cb( int result, struct evutil_addrinfo *res, void *arg )
 {
     LloadBackend *b = arg;
     ber_socket_t s = AC_SOCKET_INVALID;
+    epoch_t epoch;
     int rc;
 
     if ( result == EVUTIL_EAI_CANCEL ) {
@@ -111,6 +118,7 @@ upstream_name_cb( int result, struct evutil_addrinfo *res, void *arg )
     }
     b->b_dns_req = NULL;
 
+    epoch = epoch_join();
     if ( result || !res ) {
         Debug( LDAP_DEBUG_ANY, "upstream_name_cb: "
                 "name resolution failed for backend '%s': %s\n",
@@ -176,6 +184,7 @@ upstream_name_cb( int result, struct evutil_addrinfo *res, void *arg )
 
     ldap_pvt_thread_mutex_unlock( &b->b_mutex );
     evutil_freeaddrinfo( res );
+    epoch_leave( epoch );
     return;
 
 fail:
@@ -189,6 +198,7 @@ fail:
     if ( res ) {
         evutil_freeaddrinfo( res );
     }
+    epoch_leave( epoch );
 }
 
 LloadConnection *
@@ -268,7 +278,6 @@ backend_select( LloadOperation *op, int *res )
                 }
                 c->c_n_ops_executing++;
                 c->c_counters.lc_ops_received++;
-                CONNECTION_UNLOCK_INCREF(c);
 
                 ldap_pvt_thread_mutex_unlock( &b->b_mutex );
                 *res = LDAP_SUCCESS;
@@ -356,6 +365,7 @@ backend_connect( evutil_socket_t s, short what, void *arg )
     LloadBackend *b = arg;
     struct evdns_getaddrinfo_request *request, *placeholder;
     char *hostname;
+    epoch_t epoch;
 
     ldap_pvt_thread_mutex_lock( &b->b_mutex );
     assert( b->b_dns_req == NULL );
@@ -371,6 +381,8 @@ backend_connect( evutil_socket_t s, short what, void *arg )
         ldap_pvt_thread_mutex_unlock( &b->b_mutex );
         return;
     }
+
+    epoch = epoch_join();
 
     Debug( LDAP_DEBUG_CONNS, "backend_connect: "
             "%sattempting connection to %s\n",
@@ -438,6 +450,7 @@ backend_connect( evutil_socket_t s, short what, void *arg )
         }
 
         ldap_pvt_thread_mutex_unlock( &b->b_mutex );
+        epoch_leave( epoch );
         return;
     }
 #endif /* LDAP_PF_LOCAL */
@@ -473,6 +486,7 @@ backend_connect( evutil_socket_t s, short what, void *arg )
         b->b_dns_req = request;
     }
     ldap_pvt_thread_mutex_unlock( &b->b_mutex );
+    epoch_leave( epoch );
     return;
 
 fail:
@@ -480,6 +494,7 @@ fail:
     b->b_failed++;
     backend_retry( b );
     ldap_pvt_thread_mutex_unlock( &b->b_mutex );
+    epoch_leave( epoch );
 }
 
 void *

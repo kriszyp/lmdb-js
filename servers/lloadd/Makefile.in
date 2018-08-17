@@ -20,7 +20,7 @@ NT_SRCS = nt_svc.c
 NT_OBJS = nt_svc.o ../../libraries/liblutil/slapdmsg.res
 
 SRCS	= backend.c bind.c config.c connection.c client.c \
-		  daemon.c extended.c init.c operation.c \
+		  daemon.c epoch.c extended.c init.c operation.c \
 		  upstream.c libevent_support.c \
 		  $(@PLAT@_SRCS)
 

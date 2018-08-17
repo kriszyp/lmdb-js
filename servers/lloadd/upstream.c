@@ -38,6 +38,8 @@ static const sasl_callback_t client_callbacks[] = {
 };
 #endif /* HAVE_CYRUS_SASL */
 
+static void upstream_unlink( LloadConnection *upstream );
+
 int
 forward_response( LloadConnection *client, LloadOperation *op, BerElement *ber )
 {
@@ -101,13 +103,13 @@ forward_final_response(
             "connid=%lu msgid=%d finishing up with a request for "
             "client connid=%lu\n",
             op->o_upstream_connid, op->o_upstream_msgid, op->o_client_connid );
+
     rc = forward_response( client, op, ber );
-    CONNECTION_LOCK(op->o_upstream);
+
     op->o_res = LLOAD_OP_COMPLETED;
-    if ( !op->o_pin_id || !op->o_upstream_refcnt-- ) {
-        operation_destroy_from_upstream( op );
+    if ( !op->o_pin_id ) {
+        operation_unlink( op );
     }
-    CONNECTION_UNLOCK(op->o_upstream);
 
     return rc;
 }
@@ -177,11 +179,13 @@ handle_one_response( LloadConnection *c )
         goto fail;
     }
 
+    CONNECTION_LOCK(c);
     if ( needle.o_upstream_msgid == 0 ) {
         return handle_unsolicited( c, ber );
     } else if ( !( op = tavl_find(
                            c->c_ops, &needle, operation_upstream_cmp ) ) ) {
         /* Already abandoned, do nothing */
+        CONNECTION_UNLOCK(c);
         ber_free( ber, 1 );
         return rc;
         /*
@@ -190,6 +194,7 @@ handle_one_response( LloadConnection *c )
         event_del( c->c_read_event );
     */
     } else {
+        CONNECTION_UNLOCK(c);
         /*
         op->o_response_pending = ber;
         */
@@ -239,39 +244,13 @@ handle_one_response( LloadConnection *c )
     if ( handler ) {
         LloadConnection *client;
 
-        op->o_upstream_refcnt++;
-        CONNECTION_UNLOCK_INCREF(c);
-
         ldap_pvt_thread_mutex_lock( &op->o_link_mutex );
         client = op->o_client;
-        if ( client ) {
-            CONNECTION_LOCK(client);
-            if ( client->c_live ) {
-                op->o_client_refcnt++;
-                CONNECTION_UNLOCK_INCREF(client);
-            } else {
-                CONNECTION_UNLOCK(client);
-                client = NULL;
-            }
-        }
         ldap_pvt_thread_mutex_unlock( &op->o_link_mutex );
-
-        if ( client ) {
+        if ( client && IS_ALIVE( client, c_refcnt ) ) {
             rc = handler( client, op, ber );
-            CONNECTION_LOCK_DECREF(client);
-            op->o_client_refcnt--;
-            if ( !op->o_client_refcnt ) {
-                operation_destroy_from_client( op );
-            }
-            CONNECTION_UNLOCK_OR_DESTROY(client);
         } else {
             ber_free( ber, 1 );
-        }
-
-        CONNECTION_LOCK_DECREF(c);
-        op->o_upstream_refcnt--;
-        if ( !client || !op->o_upstream_refcnt ) {
-            operation_destroy_from_upstream( op );
         }
     } else {
         assert(0);
@@ -284,9 +263,8 @@ fail:
                 "error on processing a response (%s) on upstream connection "
                 "connid=%ld, tag=%lx\n",
                 lload_msgtype2str( tag ), c->c_connid, tag );
-        CONNECTION_DESTROY(c);
+        CONNECTION_LOCK_DESTROY(c);
     }
-    /* We leave the connection locked */
     return rc;
 }
 
@@ -459,19 +437,16 @@ upstream_bind_cb( LloadConnection *c )
                 ber_len_t len;
                 int rc;
 
-                CONNECTION_UNLOCK_INCREF(c);
                 if ( ber_peek_tag( ber, &len ) == LDAP_TAG_SASL_RES_CREDS &&
                         ber_scanf( ber, "m", &scred ) == LBER_ERROR ) {
                     Debug( LDAP_DEBUG_ANY, "upstream_bind_cb: "
                             "sasl bind response malformed\n" );
-                    CONNECTION_LOCK_DECREF(c);
                     goto fail;
                 }
 
                 rc = sasl_bind_step( c, &scred, &ccred );
                 if ( rc != SASL_OK &&
                         ( rc != SASL_CONTINUE || result == LDAP_SUCCESS ) ) {
-                    CONNECTION_LOCK_DECREF(c);
                     goto fail;
                 }
 
@@ -482,7 +457,6 @@ upstream_bind_cb( LloadConnection *c )
                     outber = c->c_pendingber;
                     if ( outber == NULL && (outber = ber_alloc()) == NULL ) {
                         ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
-                        CONNECTION_LOCK_DECREF(c);
                         goto fail;
                     }
                     c->c_pendingber = outber;
@@ -496,27 +470,25 @@ upstream_bind_cb( LloadConnection *c )
 
                     connection_write_cb( -1, 0, c );
 
-                    CONNECTION_LOCK_DECREF(c);
                     if ( rc == SASL_OK ) {
                         BER_BVZERO( &c->c_sasl_bind_mech );
                     }
                     break;
                 }
-                CONNECTION_LOCK_DECREF(c);
             }
             if ( result == LDAP_SASL_BIND_IN_PROGRESS ) {
                 goto fail;
             }
 #endif /* HAVE_CYRUS_SASL */
+            CONNECTION_LOCK(c);
             c->c_pdu_cb = handle_one_response;
             c->c_state = LLOAD_C_READY;
             c->c_type = LLOAD_C_OPEN;
             c->c_read_timeout = NULL;
-            event_add( c->c_read_event, c->c_read_timeout );
             Debug( LDAP_DEBUG_CONNS, "upstream_bind_cb: "
                     "connid=%lu finished binding, now active\n",
                     c->c_connid );
-            CONNECTION_UNLOCK_INCREF(c);
+            CONNECTION_UNLOCK(c);
             ldap_pvt_thread_mutex_lock( &b->b_mutex );
             LDAP_CIRCLEQ_REMOVE( &b->b_preparing, c, c_next );
             b->b_active++;
@@ -531,7 +503,6 @@ upstream_bind_cb( LloadConnection *c )
             b->b_last_conn = c;
             backend_retry( b );
             ldap_pvt_thread_mutex_unlock( &b->b_mutex );
-            CONNECTION_LOCK_DECREF(c);
             break;
         default:
             Debug( LDAP_DEBUG_ANY, "upstream_bind_cb: "
@@ -540,12 +511,13 @@ upstream_bind_cb( LloadConnection *c )
             goto fail;
     }
 
+    event_add( c->c_read_event, c->c_read_timeout );
     ber_free( ber, 1 );
-    return LDAP_SUCCESS;
+    return -1;
 
 fail:
+    CONNECTION_LOCK_DESTROY(c);
     ber_free( ber, 1 );
-    CONNECTION_DESTROY(c);
     return -1;
 }
 
@@ -556,9 +528,17 @@ upstream_bind( void *ctx, void *arg )
     BerElement *ber;
     ber_int_t msgid;
 
-    CONNECTION_LOCK_DECREF(c);
+    /* A reference was passed on to us */
+    assert( IS_ALIVE( c, c_refcnt ) );
+
+    if ( !IS_ALIVE( c, c_live ) ) {
+        RELEASE_REF( c, c_refcnt, c->c_destroy );
+        return NULL;
+    }
+
+    CONNECTION_LOCK(c);
     c->c_pdu_cb = upstream_bind_cb;
-    CONNECTION_UNLOCK_INCREF(c);
+    CONNECTION_UNLOCK(c);
 
     ldap_pvt_thread_mutex_lock( &c->c_io_mutex );
     ber = c->c_pendingber;
@@ -599,16 +579,18 @@ upstream_bind( void *ctx, void *arg )
 
     connection_write_cb( -1, 0, c );
 
-    CONNECTION_LOCK_DECREF(c);
+    CONNECTION_LOCK(c);
     c->c_read_timeout = lload_timeout_net;
     event_add( c->c_read_event, c->c_read_timeout );
-    CONNECTION_UNLOCK_OR_DESTROY(c);
+    CONNECTION_UNLOCK(c);
 
+    RELEASE_REF( c, c_refcnt, c->c_destroy );
     return NULL;
 
 fail:
     ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
     CONNECTION_LOCK_DESTROY(c);
+    RELEASE_REF( c, c_refcnt, c->c_destroy );
     return NULL;
 }
 
@@ -621,6 +603,7 @@ upstream_finish( LloadConnection *c )
     LloadBackend *b = c->c_private;
     int is_bindconn = 0;
 
+    assert( c->c_live );
     c->c_pdu_cb = handle_one_response;
 
     /* Unless we are configured to use the VC exop, consider allocating the
@@ -675,7 +658,8 @@ upstream_finish( LloadConnection *c )
                     c->c_connid );
             return -1;
         }
-        c->c_refcnt++;
+        /* keep a reference for upstream_bind */
+        acquire_ref( &c->c_refcnt );
 
         Debug( LDAP_DEBUG_CONNS, "upstream_finish: "
                 "scheduled a bind callback for connid=%lu\n",
@@ -697,6 +681,7 @@ upstream_tls_handshake_cb( evutil_socket_t s, short what, void *arg )
 {
     LloadConnection *c = arg;
     LloadBackend *b;
+    epoch_t epoch;
     int rc = LDAP_SUCCESS;
 
     CONNECTION_LOCK(c);
@@ -737,9 +722,9 @@ upstream_tls_handshake_cb( evutil_socket_t s, short what, void *arg )
                 c->c_connid );
         c->c_is_tls = LLOAD_TLS_ESTABLISHED;
 
-        CONNECTION_UNLOCK_INCREF(c);
+        CONNECTION_UNLOCK(c);
         ldap_pvt_thread_mutex_lock( &b->b_mutex );
-        CONNECTION_LOCK_DECREF(c);
+        CONNECTION_LOCK(c);
 
         rc = upstream_finish( c );
         ldap_pvt_thread_mutex_unlock( &b->b_mutex );
@@ -753,14 +738,18 @@ upstream_tls_handshake_cb( evutil_socket_t s, short what, void *arg )
                 "connid=%lu need write rc=%d\n",
                 c->c_connid, rc );
     }
-    CONNECTION_UNLOCK_OR_DESTROY(c);
+    CONNECTION_UNLOCK(c);
     return;
 
 fail:
     Debug( LDAP_DEBUG_CONNS, "upstream_tls_handshake_cb: "
             "connid=%lu failed rc=%d\n",
             c->c_connid, rc );
+
+    assert( c->c_ops == NULL );
+    epoch = epoch_join();
     CONNECTION_DESTROY(c);
+    epoch_leave( epoch );
 }
 
 static int
@@ -774,6 +763,7 @@ upstream_starttls( LloadConnection *c )
     ber_tag_t tag;
 
     c->c_currentber = NULL;
+    CONNECTION_LOCK(c);
 
     if ( ber_scanf( ber, "it", &msgid, &tag ) == LBER_ERROR ) {
         Debug( LDAP_DEBUG_ANY, "upstream_starttls: "
@@ -824,9 +814,9 @@ upstream_starttls( LloadConnection *c )
         }
         c->c_is_tls = LLOAD_CLEARTEXT;
 
-        CONNECTION_UNLOCK_INCREF(c);
+        CONNECTION_UNLOCK(c);
         ldap_pvt_thread_mutex_lock( &b->b_mutex );
-        CONNECTION_LOCK_DECREF(c);
+        CONNECTION_LOCK(c);
 
         rc = upstream_finish( c );
         ldap_pvt_thread_mutex_unlock( &b->b_mutex );
@@ -836,7 +826,7 @@ upstream_starttls( LloadConnection *c )
         }
 
         ber_free( ber, 1 );
-        CONNECTION_UNLOCK_OR_DESTROY(c);
+        CONNECTION_UNLOCK(c);
 
         return rc;
     }
@@ -884,6 +874,7 @@ upstream_init( ber_socket_t s, LloadBackend *b )
         return NULL;
     }
 
+    CONNECTION_LOCK(c);
     c->c_private = b;
     c->c_is_tls = b->b_tls;
     c->c_pdu_cb = handle_one_response;
@@ -939,14 +930,15 @@ upstream_init( ber_socket_t s, LloadBackend *b )
         ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
 
         c->c_pdu_cb = upstream_starttls;
-        CONNECTION_UNLOCK_INCREF(c);
+        CONNECTION_UNLOCK(c);
         connection_write_cb( s, 0, c );
-        CONNECTION_LOCK_DECREF(c);
+        CONNECTION_LOCK(c);
     }
     event_add( c->c_read_event, c->c_read_timeout );
 
     c->c_destroy = upstream_destroy;
-    CONNECTION_UNLOCK_OR_DESTROY(c);
+    c->c_unlink = upstream_unlink;
+    CONNECTION_UNLOCK(c);
 
     return c;
 
@@ -961,46 +953,39 @@ fail:
     }
 
     c->c_state = LLOAD_C_INVALID;
-    CONNECTION_DESTROY(c);
-    assert( c == NULL );
+    c->c_live--;
+    c->c_refcnt--;
+    connection_destroy( c );
 
     return NULL;
 }
 
-void
-upstream_destroy( LloadConnection *c )
+static void
+upstream_unlink( LloadConnection *c )
 {
     LloadBackend *b = c->c_private;
     struct event *read_event, *write_event;
-    TAvlnode *root, *node;
+    TAvlnode *root;
     long freed, executing;
-    enum sc_state state;
 
-    Debug( LDAP_DEBUG_CONNS, "upstream_destroy: "
-            "freeing connection connid=%lu\n",
+    Debug( LDAP_DEBUG_CONNS, "upstream_unlink: "
+            "removing upstream connid=%lu\n",
             c->c_connid );
 
     assert( c->c_state != LLOAD_C_INVALID );
-    state = c->c_state;
-    c->c_state = LLOAD_C_INVALID;
+    assert( c->c_state != LLOAD_C_DYING );
+
+    c->c_state = LLOAD_C_DYING;
+
+    read_event = c->c_read_event;
+    write_event = c->c_write_event;
 
     root = c->c_ops;
     c->c_ops = NULL;
     executing = c->c_n_ops_executing;
     c->c_n_ops_executing = 0;
 
-    read_event = c->c_read_event;
-    write_event = c->c_write_event;
-
-    for ( node = tavl_end( root, TAVL_DIR_LEFT ); node;
-            node = tavl_next( node, TAVL_DIR_RIGHT ) ) {
-        LloadOperation *op = node->avl_data;
-
-        op->o_res = LLOAD_OP_FAILED;
-        op->o_upstream_refcnt++;
-    }
-
-    CONNECTION_UNLOCK_INCREF(c);
+    CONNECTION_UNLOCK(c);
 
     freed = tavl_free( root, (AVL_FREE)operation_lost_upstream );
     assert( freed == executing );
@@ -1018,44 +1003,53 @@ upstream_destroy( LloadConnection *c )
         event_del( write_event );
     }
 
-    /* Remove from the backend on first pass */
-    if ( state != LLOAD_C_DYING ) {
-        ldap_pvt_thread_mutex_lock( &b->b_mutex );
-        if ( c->c_type == LLOAD_C_PREPARING ) {
-            LDAP_CIRCLEQ_REMOVE( &b->b_preparing, c, c_next );
-            b->b_opening--;
-            b->b_failed++;
-        } else if ( c->c_type == LLOAD_C_BIND ) {
-            if ( c == b->b_last_bindconn ) {
-                LloadConnection *prev =
-                        LDAP_CIRCLEQ_LOOP_PREV( &b->b_bindconns, c, c_next );
-                if ( prev == c ) {
-                    b->b_last_bindconn = NULL;
-                } else {
-                    b->b_last_bindconn = prev;
-                }
+    ldap_pvt_thread_mutex_lock( &b->b_mutex );
+    if ( c->c_type == LLOAD_C_PREPARING ) {
+        LDAP_CIRCLEQ_REMOVE( &b->b_preparing, c, c_next );
+        b->b_opening--;
+        b->b_failed++;
+    } else if ( c->c_type == LLOAD_C_BIND ) {
+        if ( c == b->b_last_bindconn ) {
+            LloadConnection *prev =
+                    LDAP_CIRCLEQ_LOOP_PREV( &b->b_bindconns, c, c_next );
+            if ( prev == c ) {
+                b->b_last_bindconn = NULL;
+            } else {
+                b->b_last_bindconn = prev;
             }
-            LDAP_CIRCLEQ_REMOVE( &b->b_bindconns, c, c_next );
-            b->b_bindavail--;
-        } else {
-            if ( c == b->b_last_conn ) {
-                LloadConnection *prev =
-                        LDAP_CIRCLEQ_LOOP_PREV( &b->b_conns, c, c_next );
-                if ( prev == c ) {
-                    b->b_last_conn = NULL;
-                } else {
-                    b->b_last_conn = prev;
-                }
-            }
-            LDAP_CIRCLEQ_REMOVE( &b->b_conns, c, c_next );
-            b->b_active--;
         }
-        b->b_n_ops_executing -= executing;
-        backend_retry( b );
-        ldap_pvt_thread_mutex_unlock( &b->b_mutex );
+        LDAP_CIRCLEQ_REMOVE( &b->b_bindconns, c, c_next );
+        b->b_bindavail--;
+    } else {
+        if ( c == b->b_last_conn ) {
+            LloadConnection *prev =
+                    LDAP_CIRCLEQ_LOOP_PREV( &b->b_conns, c, c_next );
+            if ( prev == c ) {
+                b->b_last_conn = NULL;
+            } else {
+                b->b_last_conn = prev;
+            }
+        }
+        LDAP_CIRCLEQ_REMOVE( &b->b_conns, c, c_next );
+        b->b_active--;
     }
+    b->b_n_ops_executing -= executing;
+    backend_retry( b );
+    ldap_pvt_thread_mutex_unlock( &b->b_mutex );
 
-    CONNECTION_LOCK_DECREF(c);
+    CONNECTION_LOCK(c);
+}
+
+void
+upstream_destroy( LloadConnection *c )
+{
+    Debug( LDAP_DEBUG_CONNS, "upstream_destroy: "
+            "freeing connection connid=%lu\n",
+            c->c_connid );
+
+    CONNECTION_LOCK(c);
+    assert( c->c_state == LLOAD_C_DYING );
+    c->c_state = LLOAD_C_INVALID;
 
     if ( c->c_read_event ) {
         event_free( c->c_read_event );
@@ -1067,21 +1061,8 @@ upstream_destroy( LloadConnection *c )
         c->c_write_event = NULL;
     }
 
-    /*
-     * If we attempted to destroy any operations, we might have lent a new
-     * refcnt token for a thread that raced us to that, let them call us again
-     * later
-     */
-    assert( c->c_refcnt >= 0 );
-    if ( c->c_refcnt ) {
-        c->c_state = LLOAD_C_DYING;
-        Debug( LDAP_DEBUG_CONNS, "upstream_destroy: "
-                "connid=%lu aborting with refcnt=%d\n",
-                c->c_connid, c->c_refcnt );
-        CONNECTION_UNLOCK(c);
-        return;
+    if ( c->c_type != LLOAD_C_BIND ) {
+        BER_BVZERO( &c->c_sasl_bind_mech );
     }
-
-    BER_BVZERO( &c->c_sasl_bind_mech );
     connection_destroy( c );
 }

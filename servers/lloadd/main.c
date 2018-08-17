@@ -424,6 +424,8 @@ main( int argc, char **argv )
     }
 #endif
 
+    epoch_init();
+
     while ( (i = getopt( argc, argv,
                       "c:d:f:F:h:n:o:s:tV"
 #ifdef LDAP_PF_INET6

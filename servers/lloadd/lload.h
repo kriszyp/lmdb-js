@@ -84,6 +84,8 @@ LDAP_BEGIN_DECL
 
 #define BER_BV_OPTIONAL( bv ) ( BER_BVISNULL( bv ) ? NULL : ( bv ) )
 
+#include <epoch.h>
+
 typedef struct LloadBackend LloadBackend;
 typedef struct LloadPendingConnection LloadPendingConnection;
 typedef struct LloadConnection LloadConnection;
@@ -280,58 +282,39 @@ struct LloadConnection {
  * - also a liveness/validity token is added to c_refcnt during
  *   lload_connection_init, its existence is tracked in c_live and is usually the
  *   only one that prevents it from being destroyed
- * - anyone who needs to be able to lock the connection after unlocking it has
- *   to use CONNECTION_UNLOCK_INCREF, they are then responsible that
- *   CONNECTION_LOCK_DECREF+CONNECTION_UNLOCK_OR_DESTROY is used when they are
- *   done with it
+ * - anyone who needs to be able to relock the connection after unlocking it has
+ *   to use acquire_ref(), they need to make sure a matching
+ *   RELEASE_REF( c, c_refcnt, c->c_destroy ); is run eventually
  * - when a connection is considered dead, use CONNECTION_DESTROY on a locked
- *   connection, it might get disposed of or if anyone still holds a token, it
- *   just gets unlocked and it's the last token holder's responsibility to run
- *   CONNECTION_UNLOCK_OR_DESTROY
- * - CONNECTION_LOCK_DESTROY is a shorthand for locking, decreasing refcount
- *   and CONNECTION_DESTROY
+ *   connection, it will be made unreachable from normal places and either
+ *   scheduled for reclamation when safe to do so or if anyone still holds a
+ *   reference, it just gets unlocked and reclaimed after the last ref is
+ *   released
+ * - CONNECTION_LOCK_DESTROY is a shorthand for locking and CONNECTION_DESTROY
  */
     ldap_pvt_thread_mutex_t c_mutex; /* protect the connection */
-    int c_refcnt, c_live;
+    uintptr_t c_refcnt, c_live;
+    CONNECTION_DESTROY_CB c_unlink;
     CONNECTION_DESTROY_CB c_destroy;
     CONNECTION_PDU_CB c_pdu_cb;
 #define CONNECTION_LOCK(c) ldap_pvt_thread_mutex_lock( &(c)->c_mutex )
 #define CONNECTION_UNLOCK(c) ldap_pvt_thread_mutex_unlock( &(c)->c_mutex )
-#define CONNECTION_LOCK_DECREF(c) \
+#define CONNECTION_UNLINK_(c) \
     do { \
-        CONNECTION_LOCK(c); \
-        (c)->c_refcnt--; \
-    } while (0)
-#define CONNECTION_UNLOCK_INCREF(c) \
-    do { \
-        (c)->c_refcnt++; \
-        CONNECTION_UNLOCK(c); \
-    } while (0)
-#define CONNECTION_UNLOCK_OR_DESTROY(c) \
-    do { \
-        assert( (c)->c_refcnt >= 0 ); \
-        if ( (c)->c_state == LLOAD_C_CLOSING && !( c )->c_ops ) { \
-            (c)->c_refcnt -= (c)->c_live; \
+        if ( (c)->c_live ) { \
             (c)->c_live = 0; \
-        } \
-        if ( !( c )->c_refcnt ) { \
-            Debug( LDAP_DEBUG_TRACE, "%s: destroying connection connid=%lu\n", \
-                    __func__, (c)->c_connid ); \
-            (c)->c_destroy( (c) ); \
-            (c) = NULL; \
-        } else { \
-            CONNECTION_UNLOCK(c); \
+            RELEASE_REF( (c), c_refcnt, c->c_destroy ); \
+            (c)->c_unlink( (c) ); \
         } \
     } while (0)
 #define CONNECTION_DESTROY(c) \
     do { \
-        (c)->c_refcnt -= (c)->c_live; \
-        (c)->c_live = 0; \
-        CONNECTION_UNLOCK_OR_DESTROY(c); \
+        CONNECTION_UNLINK_(c); \
+        CONNECTION_UNLOCK(c); \
     } while (0)
 #define CONNECTION_LOCK_DESTROY(c) \
     do { \
-        CONNECTION_LOCK_DECREF(c); \
+        CONNECTION_LOCK(c); \
         CONNECTION_DESTROY(c); \
     } while (0);
 
@@ -393,11 +376,12 @@ struct LloadConnection {
 
 enum op_state {
     LLOAD_OP_NOT_FREEING = 0,
-    LLOAD_OP_FREEING_UPSTREAM = 1 << 0,
-    LLOAD_OP_FREEING_CLIENT = 1 << 1,
-    LLOAD_OP_DETACHING_UPSTREAM = 1 << 2,
-    LLOAD_OP_DETACHING_CLIENT = 1 << 3,
+    LLOAD_OP_DETACHING_CLIENT = 1 << 1,
+    LLOAD_OP_DETACHING_UPSTREAM = 1 << 0,
 };
+
+#define LLOAD_OP_DETACHING_MASK \
+    ( LLOAD_OP_DETACHING_UPSTREAM | LLOAD_OP_DETACHING_CLIENT )
 
 /* operation result for monitoring purposes */
 enum op_result {
@@ -406,32 +390,28 @@ enum op_result {
     LLOAD_OP_FAILED, /* operation was forwarded, but no response was received */
 };
 
-#define LLOAD_OP_FREEING_MASK \
-    ( LLOAD_OP_FREEING_UPSTREAM | LLOAD_OP_FREEING_CLIENT )
-#define LLOAD_OP_DETACHING_MASK \
-    ( LLOAD_OP_DETACHING_UPSTREAM | LLOAD_OP_DETACHING_CLIENT )
-
+/*
+ * Operation reference tracking:
+ * - o_refcnt is set to 1, never incremented
+ * - operation_unlink sets it to 0 and on transition from 1 clears both
+ *   connection links (o_client, o_upstream)
+ */
 struct LloadOperation {
+    uintptr_t o_refcnt;
+
     LloadConnection *o_client;
     unsigned long o_client_connid;
-    int o_client_live, o_client_refcnt;
     ber_int_t o_client_msgid;
     ber_int_t o_saved_msgid;
 
     LloadConnection *o_upstream;
     unsigned long o_upstream_connid;
-    int o_upstream_live, o_upstream_refcnt;
     ber_int_t o_upstream_msgid;
     time_t o_last_response;
 
-    /* Protects o_client, o_upstream pointers before we lock their c_mutex if
-     * we don't know they are still alive */
+    /* Protects o_client, o_upstream links */
     ldap_pvt_thread_mutex_t o_link_mutex;
-    /* Protects o_freeing, can be locked while holding c_mutex */
-    ldap_pvt_thread_mutex_t o_mutex;
-    /* Consistent w.r.t. o_mutex, only written to while holding
-     * op->o_{client,upstream}->c_mutex */
-    enum op_state o_freeing;
+
     ber_tag_t o_tag;
     time_t o_start;
     unsigned long o_pin_id;

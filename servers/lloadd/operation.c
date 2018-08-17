@@ -117,363 +117,6 @@ operation_upstream_cmp( const void *left, const void *right )
 }
 
 /*
- * Free the operation, subject to there being noone else holding a reference
- * to it.
- *
- * Both operation_destroy_from_* functions are the same, two implementations
- * exist to cater for the fact that either side (client or upstream) might
- * decide to destroy it and each holds a different mutex.
- *
- * Due to the fact that we rely on mutexes on both connections which have a
- * different timespan from the operation, we have to take the following race
- * into account:
- *
- * Trigger
- * - both operation_destroy_from_client and operation_destroy_from_upstream
- *   are called at the same time (each holding its mutex), several times
- *   before one of them finishes
- * - either or both connections might have started the process of being
- *   destroyed
- *
- * We need to detect that the race has happened and only allow one of them to
- * free the operation (we use o_freeing != 0 to announce+detect that).
- *
- * In case the caller was in the process of destroying the connection and the
- * race had been won by the mirror caller, it will increment c_refcnt on its
- * connection and make sure to postpone the final step in
- * client/upstream_destroy(). Testing o_freeing for the mirror side's token
- * allows the winner to detect that it has been a party to the race and a token
- * in c_refcnt has been deposited on its behalf.
- *
- * Beware! This widget really touches all the mutexes we have and showcases the
- * issues with maintaining so many mutex ordering restrictions.
- */
-void
-operation_destroy_from_client( LloadOperation *op )
-{
-    LloadConnection *upstream = NULL, *client = op->o_client;
-    LloadBackend *b = NULL;
-    int race_state, detach_client = !client->c_live;
-
-    Debug( LDAP_DEBUG_TRACE, "operation_destroy_from_client: "
-            "op=%p attempting to release operation%s\n",
-            op, detach_client ? " and detach client" : "" );
-
-    /* 1. liveness/refcnt adjustment and test */
-    op->o_client_refcnt -= op->o_client_live;
-    op->o_client_live = 0;
-
-    assert( op->o_client_refcnt <= client->c_refcnt );
-    if ( op->o_client_refcnt ) {
-        Debug( LDAP_DEBUG_TRACE, "operation_destroy_from_client: "
-                "op=%p not dead yet\n",
-                op );
-        return;
-    }
-
-    /* 2. Remove from the operation map and TODO adjust the pending op count */
-    tavl_delete( &client->c_ops, op, operation_client_cmp );
-
-    /* 3. Detect whether we entered a race to free op and indicate that to any
-     * others */
-    ldap_pvt_thread_mutex_lock( &op->o_mutex );
-    race_state = op->o_freeing;
-    op->o_freeing |= LLOAD_OP_FREEING_CLIENT;
-    if ( detach_client ) {
-        op->o_freeing |= LLOAD_OP_DETACHING_CLIENT;
-    }
-    ldap_pvt_thread_mutex_unlock( &op->o_mutex );
-
-    CONNECTION_UNLOCK_INCREF(client);
-
-    if ( detach_client ) {
-        ldap_pvt_thread_mutex_lock( &op->o_link_mutex );
-        op->o_client = NULL;
-        ldap_pvt_thread_mutex_unlock( &op->o_link_mutex );
-    }
-
-    /* 4. If we lost the race, deal with it straight away */
-    if ( race_state ) {
-        /*
-         * We have raced to destroy op and the first one to lose on this side,
-         * leave a refcnt token on client so we don't destroy it before the
-         * other side has finished (it knows we did that when it examines
-         * o_freeing again).
-         */
-        if ( detach_client ) {
-            Debug( LDAP_DEBUG_TRACE, "operation_destroy_from_client: "
-                    "op=%p lost race but client connid=%lu is going down\n",
-                    op, client->c_connid );
-            CONNECTION_LOCK_DECREF(client);
-        } else if ( (race_state & LLOAD_OP_FREEING_MASK) ==
-                LLOAD_OP_FREEING_UPSTREAM ) {
-            Debug( LDAP_DEBUG_TRACE, "operation_destroy_from_client: "
-                    "op=%p lost race, increased client refcnt connid=%lu "
-                    "to refcnt=%d\n",
-                    op, client->c_connid, client->c_refcnt );
-            CONNECTION_LOCK(client);
-        } else {
-            Debug( LDAP_DEBUG_TRACE, "operation_destroy_from_client: "
-                    "op=%p lost race with another "
-                    "operation_destroy_from_client, "
-                    "client connid=%lu\n",
-                    op, client->c_connid );
-            CONNECTION_LOCK_DECREF(client);
-        }
-        return;
-    }
-
-    /* it seems we will be destroying the operation,
-     * so update the global rejected cunter if needed */
-    operation_update_global_rejected( op );
-    /* 5. If we raced the upstream side and won, reclaim the token */
-    ldap_pvt_thread_mutex_lock( &op->o_link_mutex );
-    if ( !(race_state & LLOAD_OP_DETACHING_UPSTREAM) ) {
-        upstream = op->o_upstream;
-        if ( upstream ) {
-            CONNECTION_LOCK(upstream);
-        }
-    }
-    ldap_pvt_thread_mutex_unlock( &op->o_link_mutex );
-
-    ldap_pvt_thread_mutex_lock( &op->o_mutex );
-    /* We don't actually resolve the race in full until we grab the other's
-     * c_mutex+op->o_mutex here */
-    if ( upstream && ( op->o_freeing & LLOAD_OP_FREEING_UPSTREAM ) ) {
-        if ( op->o_freeing & LLOAD_OP_DETACHING_UPSTREAM ) {
-            CONNECTION_UNLOCK(upstream);
-            upstream = NULL;
-        } else {
-            /*
-             * We have raced to destroy op and won. To avoid freeing the connection
-             * under us, a refcnt token has been left over for us on the upstream,
-             * decref and see whether we are in charge of freeing it
-             */
-            upstream->c_refcnt--;
-            Debug( LDAP_DEBUG_TRACE, "operation_destroy_from_client: "
-                    "op=%p other side lost race with us, upstream connid=%lu\n",
-                    op, upstream->c_connid );
-        }
-    }
-    ldap_pvt_thread_mutex_unlock( &op->o_mutex );
-
-    /* 6. liveness/refcnt adjustment and test */
-    op->o_upstream_refcnt -= op->o_upstream_live;
-    op->o_upstream_live = 0;
-    if ( op->o_upstream_refcnt ) {
-        Debug( LDAP_DEBUG_TRACE, "operation_destroy_from_client: "
-                "op=%p other side still alive, refcnt=%d\n",
-                op, op->o_upstream_refcnt );
-
-        /* There must have been no race if op is still alive */
-        ldap_pvt_thread_mutex_lock( &op->o_mutex );
-        op->o_freeing &= ~LLOAD_OP_FREEING_CLIENT;
-        if ( detach_client ) {
-            op->o_freeing &= ~LLOAD_OP_DETACHING_CLIENT;
-        }
-        assert( op->o_freeing == 0 );
-        ldap_pvt_thread_mutex_unlock( &op->o_mutex );
-
-        assert( upstream != NULL );
-        CONNECTION_UNLOCK_OR_DESTROY(upstream);
-        CONNECTION_LOCK_DECREF(client);
-        return;
-    }
-
-    /* 7. Remove from the operation map and adjust the pending op count */
-    if ( upstream ) {
-        if ( tavl_delete( &upstream->c_ops, op, operation_upstream_cmp ) ) {
-            upstream->c_n_ops_executing--;
-            operation_update_conn_counters( op );
-            b = (LloadBackend *)upstream->c_private;
-        }
-        CONNECTION_UNLOCK_OR_DESTROY(upstream);
-
-        if ( b ) {
-            ldap_pvt_thread_mutex_lock( &b->b_mutex );
-            b->b_n_ops_executing--;
-            operation_update_backend_counters( op, b );
-            ldap_pvt_thread_mutex_unlock( &b->b_mutex );
-        }
-    }
-
-    /* 8. Release the operation */
-    Debug( LDAP_DEBUG_TRACE, "operation_destroy_from_client: "
-            "op=%p destroyed operation from client connid=%lu, "
-            "client msgid=%d\n",
-            op, op->o_client_connid, op->o_client_msgid );
-    ber_free( op->o_ber, 1 );
-    ldap_pvt_thread_mutex_destroy( &op->o_mutex );
-    ldap_pvt_thread_mutex_destroy( &op->o_link_mutex );
-    ch_free( op );
-
-    CONNECTION_LOCK_DECREF(client);
-}
-
-/*
- * See operation_destroy_from_client.
- */
-void
-operation_destroy_from_upstream( LloadOperation *op )
-{
-    LloadConnection *client = NULL, *upstream = op->o_upstream;
-    LloadBackend *b = NULL;
-    int race_state, detach_upstream = !upstream->c_live;
-
-    Debug( LDAP_DEBUG_TRACE, "operation_destroy_from_upstream: "
-            "op=%p attempting to release operation%s\n",
-            op, detach_upstream ? " and detach upstream" : "" );
-
-    /* 1. liveness/refcnt adjustment and test */
-    op->o_upstream_refcnt -= op->o_upstream_live;
-    op->o_upstream_live = 0;
-
-    assert( op->o_upstream_refcnt <= upstream->c_refcnt );
-    if ( op->o_upstream_refcnt ) {
-        Debug( LDAP_DEBUG_TRACE, "operation_destroy_from_upstream: "
-                "op=%p not dead yet\n",
-                op );
-        return;
-    }
-
-    /* it seems we will be destroying the operation,
-     * so update the global rejected cunter if needed */
-    operation_update_global_rejected( op );
-    /* 2. Remove from the operation map and adjust the pending op count */
-    if ( tavl_delete( &upstream->c_ops, op, operation_upstream_cmp ) ) {
-        upstream->c_n_ops_executing--;
-        operation_update_conn_counters( op );
-        b = (LloadBackend *)upstream->c_private;
-    }
-
-    ldap_pvt_thread_mutex_lock( &op->o_mutex );
-    race_state = op->o_freeing;
-    op->o_freeing |= LLOAD_OP_FREEING_UPSTREAM;
-    if ( detach_upstream ) {
-        op->o_freeing |= LLOAD_OP_DETACHING_UPSTREAM;
-    }
-    ldap_pvt_thread_mutex_unlock( &op->o_mutex );
-
-    CONNECTION_UNLOCK_INCREF(upstream);
-
-    /* 3. Detect whether we entered a race to free op */
-    ldap_pvt_thread_mutex_lock( &op->o_link_mutex );
-    if ( detach_upstream ) {
-        op->o_upstream = NULL;
-    }
-    ldap_pvt_thread_mutex_unlock( &op->o_link_mutex );
-
-    if ( b ) {
-        ldap_pvt_thread_mutex_lock( &b->b_mutex );
-        b->b_n_ops_executing--;
-        operation_update_backend_counters( op, b );
-        ldap_pvt_thread_mutex_unlock( &b->b_mutex );
-    }
-
-    /* 4. If we lost the race, deal with it straight away */
-    if ( race_state ) {
-        /*
-         * We have raced to destroy op and the first one to lose on this side,
-         * leave a refcnt token on upstream so we don't destroy it before the
-         * other side has finished (it knows we did that when it examines
-         * o_freeing again).
-         */
-        if ( detach_upstream ) {
-            Debug( LDAP_DEBUG_TRACE, "operation_destroy_from_upstream: "
-                    "op=%p lost race but upstream connid=%lu is going down\n",
-                    op, upstream->c_connid );
-            CONNECTION_LOCK_DECREF(upstream);
-        } else if ( (race_state & LLOAD_OP_FREEING_MASK) ==
-                LLOAD_OP_FREEING_CLIENT ) {
-            Debug( LDAP_DEBUG_TRACE, "operation_destroy_from_upstream: "
-                    "op=%p lost race, increased upstream refcnt connid=%lu "
-                    "to refcnt=%d\n",
-                    op, upstream->c_connid, upstream->c_refcnt );
-            CONNECTION_LOCK(upstream);
-        } else {
-            Debug( LDAP_DEBUG_TRACE, "operation_destroy_from_upstream: "
-                    "op=%p lost race with another "
-                    "operation_destroy_from_upstream, "
-                    "upstream connid=%lu\n",
-                    op, upstream->c_connid );
-            CONNECTION_LOCK_DECREF(upstream);
-        }
-        return;
-    }
-
-    /* 5. If we raced the client side and won, reclaim the token */
-    ldap_pvt_thread_mutex_lock( &op->o_link_mutex );
-    if ( !(race_state & LLOAD_OP_DETACHING_CLIENT) ) {
-        client = op->o_client;
-        if ( client ) {
-            CONNECTION_LOCK(client);
-        }
-    }
-    ldap_pvt_thread_mutex_unlock( &op->o_link_mutex );
-
-    /* We don't actually resolve the race in full until we grab the other's
-     * c_mutex+op->o_mutex here */
-    ldap_pvt_thread_mutex_lock( &op->o_mutex );
-    if ( client && ( op->o_freeing & LLOAD_OP_FREEING_CLIENT ) ) {
-        if ( op->o_freeing & LLOAD_OP_DETACHING_CLIENT ) {
-            CONNECTION_UNLOCK(client);
-            client = NULL;
-        } else {
-            /*
-             * We have raced to destroy op and won. To avoid freeing the connection
-             * under us, a refcnt token has been left over for us on the client,
-             * decref and see whether we are in charge of freeing it
-             */
-            client->c_refcnt--;
-            Debug( LDAP_DEBUG_TRACE, "operation_destroy_from_upstream: "
-                    "op=%p other side lost race with us, client connid=%lu\n",
-                    op, client->c_connid );
-        }
-    }
-    ldap_pvt_thread_mutex_unlock( &op->o_mutex );
-
-    /* 6. liveness/refcnt adjustment and test */
-    op->o_client_refcnt -= op->o_client_live;
-    op->o_client_live = 0;
-    if ( op->o_client_refcnt ) {
-        Debug( LDAP_DEBUG_TRACE, "operation_destroy_from_upstream: "
-                "op=%p other side still alive, refcnt=%d\n",
-                op, op->o_client_refcnt );
-        /* There must have been no race if op is still alive */
-        ldap_pvt_thread_mutex_lock( &op->o_mutex );
-        op->o_freeing &= ~LLOAD_OP_FREEING_UPSTREAM;
-        if ( detach_upstream ) {
-            op->o_freeing &= ~LLOAD_OP_DETACHING_UPSTREAM;
-        }
-        assert( op->o_freeing == 0 );
-        ldap_pvt_thread_mutex_unlock( &op->o_mutex );
-
-        assert( client != NULL );
-        CONNECTION_UNLOCK_OR_DESTROY(client);
-        CONNECTION_LOCK_DECREF(upstream);
-        return;
-    }
-
-    /* 7. Remove from the operation map and TODO adjust the pending op count */
-    if ( client ) {
-        tavl_delete( &client->c_ops, op, operation_client_cmp );
-        CONNECTION_UNLOCK_OR_DESTROY(client);
-    }
-
-    /* 8. Release the operation */
-    Debug( LDAP_DEBUG_TRACE, "operation_destroy_from_upstream: "
-            "op=%p destroyed operation from client connid=%lu, "
-            "client msgid=%d\n",
-            op, op->o_client_connid, op->o_client_msgid );
-    ber_free( op->o_ber, 1 );
-    ldap_pvt_thread_mutex_destroy( &op->o_mutex );
-    ldap_pvt_thread_mutex_destroy( &op->o_link_mutex );
-    ch_free( op );
-
-    CONNECTION_LOCK_DECREF(upstream);
-}
-
-/*
  * Entered holding c_mutex for now.
  */
 LloadOperation *
@@ -490,11 +133,9 @@ operation_init( LloadConnection *c, BerElement *ber )
     op->o_ber = ber;
     op->o_start = slap_get_time();
 
-    ldap_pvt_thread_mutex_init( &op->o_mutex );
     ldap_pvt_thread_mutex_init( &op->o_link_mutex );
 
-    op->o_client_live = op->o_client_refcnt = 1;
-    op->o_upstream_live = op->o_upstream_refcnt = 1;
+    op->o_refcnt = 1;
 
     tag = ber_get_int( ber, &op->o_client_msgid );
     if ( tag != LDAP_TAG_MSGID ) {
@@ -549,12 +190,162 @@ fail:
     return NULL;
 }
 
-int
-operation_send_abandon( LloadOperation *op )
+void
+operation_destroy( LloadOperation *op )
 {
-    LloadConnection *upstream = op->o_upstream;
+    Debug( LDAP_DEBUG_TRACE, "operation_destroy: "
+            "op=%p destroyed operation from client connid=%lu, "
+            "client msgid=%d\n",
+            op, op->o_client_connid, op->o_client_msgid );
+
+    assert( op->o_refcnt == 0 );
+    assert( op->o_client == NULL );
+    assert( op->o_upstream == NULL );
+
+    ber_free( op->o_ber, 1 );
+    ldap_pvt_thread_mutex_destroy( &op->o_link_mutex );
+    ch_free( op );
+}
+
+int
+operation_unlink( LloadOperation *op )
+{
+    LloadConnection *client, *upstream;
+    uintptr_t prev_refcnt;
+    int result = 0;
+
+    if ( !( prev_refcnt = try_release_ref(
+                    &op->o_refcnt, op, (dispose_cb *)operation_destroy ) ) ) {
+        return result;
+    }
+
+    assert( prev_refcnt == 1 );
+
+    Debug( LDAP_DEBUG_TRACE, "operation_unlink: "
+            "unlinking operation between client connid=%lu and upstream "
+            "connid=%lu "
+            "client msgid=%d\n",
+            op->o_client_connid, op->o_upstream_connid, op->o_client_msgid );
+
+    ldap_pvt_thread_mutex_lock( &op->o_link_mutex );
+    client = op->o_client;
+    upstream = op->o_upstream;
+
+    op->o_client = NULL;
+    op->o_upstream = NULL;
+    ldap_pvt_thread_mutex_unlock( &op->o_link_mutex );
+
+    assert( client || upstream );
+
+    if ( client ) {
+        result |= operation_unlink_client( op, client );
+        operation_update_global_rejected( op );
+    }
+
+    if ( upstream ) {
+        result |= operation_unlink_upstream( op, upstream );
+    }
+
+    return result;
+}
+
+int
+operation_unlink_client( LloadOperation *op, LloadConnection *client )
+{
+    LloadOperation *removed;
+    int result = 0;
+
+    Debug( LDAP_DEBUG_TRACE, "operation_unlink_client: "
+            "unlinking operation op=%p msgid=%d client connid=%lu\n",
+            op, op->o_client_msgid, op->o_client_connid );
+
+    CONNECTION_LOCK(client);
+    if ( (removed = tavl_delete(
+                   &client->c_ops, op, operation_client_cmp )) ) {
+        result = LLOAD_OP_DETACHING_CLIENT;
+
+        assert( op == removed );
+        client->c_n_ops_executing--;
+
+        if ( client->c_state == LLOAD_C_BINDING ) {
+            client->c_state = LLOAD_C_READY;
+            if ( !BER_BVISNULL( &client->c_auth ) ) {
+                ber_memfree( client->c_auth.bv_val );
+                BER_BVZERO( &client->c_auth );
+            }
+            if ( !BER_BVISNULL( &client->c_sasl_bind_mech ) ) {
+                ber_memfree( client->c_sasl_bind_mech.bv_val );
+                BER_BVZERO( &client->c_sasl_bind_mech );
+            }
+            if ( op->o_pin_id ) {
+                client->c_pin_id = 0;
+            }
+        }
+    }
+    if ( client->c_state == LLOAD_C_CLOSING && !client->c_ops ) {
+        CONNECTION_DESTROY(client);
+    } else {
+        CONNECTION_UNLOCK(client);
+    }
+
+    return result;
+}
+
+int
+operation_unlink_upstream( LloadOperation *op, LloadConnection *upstream )
+{
+    LloadOperation *removed;
+    LloadBackend *b = NULL;
+    int result = 0;
+
+    Debug( LDAP_DEBUG_TRACE, "operation_unlink_upstream: "
+            "unlinking operation op=%p msgid=%d upstream connid=%lu\n",
+            op, op->o_upstream_msgid, op->o_upstream_connid );
+
+    CONNECTION_LOCK(upstream);
+    if ( (removed = tavl_delete(
+                   &upstream->c_ops, op, operation_upstream_cmp )) ) {
+        result |= LLOAD_OP_DETACHING_UPSTREAM;
+
+        assert( op == removed );
+        upstream->c_n_ops_executing--;
+
+        if ( upstream->c_state == LLOAD_C_BINDING ) {
+            assert( op->o_tag == LDAP_REQ_BIND && upstream->c_ops == NULL );
+            upstream->c_state = LLOAD_C_READY;
+            if ( !BER_BVISNULL( &upstream->c_sasl_bind_mech ) ) {
+                ber_memfree( upstream->c_sasl_bind_mech.bv_val );
+                BER_BVZERO( &upstream->c_sasl_bind_mech );
+            }
+        }
+        operation_update_conn_counters( op, upstream );
+        b = (LloadBackend *)upstream->c_private;
+    }
+    if ( upstream->c_state == LLOAD_C_CLOSING && !upstream->c_ops ) {
+        CONNECTION_DESTROY(upstream);
+    } else {
+        CONNECTION_UNLOCK(upstream);
+    }
+
+    if ( b ) {
+        ldap_pvt_thread_mutex_lock( &b->b_mutex );
+        b->b_n_ops_executing--;
+        operation_update_backend_counters( op, b );
+        ldap_pvt_thread_mutex_unlock( &b->b_mutex );
+    }
+
+    return result;
+}
+
+int
+operation_send_abandon( LloadOperation *op, LloadConnection *upstream )
+{
     BerElement *ber;
     int rc = -1;
+
+    if ( !IS_ALIVE( upstream, c_refcnt ) ) {
+        return rc;
+    }
 
     ldap_pvt_thread_mutex_lock( &upstream->c_io_mutex );
     ber = upstream->c_pendingber;
@@ -605,114 +396,64 @@ void
 operation_abandon( LloadOperation *op )
 {
     LloadConnection *c;
-    LloadBackend *b;
-    int rc = LDAP_SUCCESS;
 
     ldap_pvt_thread_mutex_lock( &op->o_link_mutex );
     c = op->o_upstream;
-    if ( !c || !c->c_live ) {
-        ldap_pvt_thread_mutex_unlock( &op->o_link_mutex );
+    ldap_pvt_thread_mutex_unlock( &op->o_link_mutex );
+    if ( !c || !IS_ALIVE( c, c_refcnt ) ) {
         goto done;
     }
-
-    CONNECTION_LOCK(c);
-    ldap_pvt_thread_mutex_unlock( &op->o_link_mutex );
 
     /* for now consider all abandoned operations completed,
      * perhaps add a separate counter later */
     op->o_res = LLOAD_OP_COMPLETED;
-
-    if ( tavl_delete( &c->c_ops, op, operation_upstream_cmp ) == NULL ) {
+    if ( !operation_unlink_upstream( op, c ) ) {
         /* The operation has already been abandoned or finished */
         Debug( LDAP_DEBUG_TRACE, "operation_abandon: "
                 "%s from connid=%lu msgid=%d not present in connid=%lu any "
                 "more\n",
                 lload_msgtype2str( op->o_tag ), op->o_client_connid,
                 op->o_client_msgid, op->o_upstream_connid );
-        goto unlock;
+        goto done;
     }
-    if ( c->c_state == LLOAD_C_BINDING ) {
-        c->c_state = LLOAD_C_READY;
-        if ( !BER_BVISNULL( &c->c_sasl_bind_mech ) ) {
-            ber_memfree( c->c_sasl_bind_mech.bv_val );
-            BER_BVZERO( &c->c_sasl_bind_mech );
-        }
-    }
-    c->c_n_ops_executing--;
-    b = (LloadBackend *)c->c_private;
 
-    op->o_upstream_refcnt++;
-    CONNECTION_UNLOCK_INCREF(c);
-
-    ldap_pvt_thread_mutex_lock( &b->b_mutex );
-    b->b_n_ops_executing--;
-    operation_update_backend_counters( op, b );
-    ldap_pvt_thread_mutex_unlock( &b->b_mutex );
-
-    if ( operation_send_abandon( op ) == LDAP_SUCCESS ) {
+    if ( operation_send_abandon( op, c ) == LDAP_SUCCESS ) {
         connection_write_cb( -1, 0, c );
     }
 
-    CONNECTION_LOCK_DECREF(c);
-    op->o_upstream_refcnt--;
-
-unlock:
-    if ( !c->c_live || !op->o_upstream_refcnt ) {
-        operation_destroy_from_upstream( op );
-    }
-    if ( rc ) {
-        CONNECTION_DESTROY(c);
-    } else {
-        CONNECTION_UNLOCK_OR_DESTROY(c);
-    }
-
 done:
-    c = op->o_client;
-    assert( c );
-
-    /* Caller should hold a reference on client */
-    CONNECTION_LOCK(c);
-    if ( c->c_state == LLOAD_C_BINDING ) {
-        c->c_state = LLOAD_C_READY;
-        if ( !BER_BVISNULL( &c->c_auth ) ) {
-            ber_memfree( c->c_auth.bv_val );
-            BER_BVZERO( &c->c_auth );
-        }
-        if ( !BER_BVISNULL( &c->c_sasl_bind_mech ) ) {
-            ber_memfree( c->c_sasl_bind_mech.bv_val );
-            BER_BVZERO( &c->c_sasl_bind_mech );
-        }
-        if ( op->o_pin_id ) {
-            c->c_pin_id = 0;
-        }
-    }
-    assert( op->o_client_refcnt > op->o_client_live );
-    op->o_client_refcnt--;
-    operation_destroy_from_client( op );
-    CONNECTION_UNLOCK(c);
+    operation_unlink( op );
 }
 
-/*
- * Called with op->o_client non-NULL and already locked.
- */
-int
-operation_send_reject_locked(
+void
+operation_send_reject(
         LloadOperation *op,
         int result,
         const char *msg,
         int send_anyway )
 {
-    LloadConnection *c = op->o_client;
+    LloadConnection *c;
     BerElement *ber;
     int found;
 
-    Debug( LDAP_DEBUG_TRACE, "operation_send_reject_locked: "
+    Debug( LDAP_DEBUG_TRACE, "operation_send_reject: "
             "rejecting %s from client connid=%lu with message: \"%s\"\n",
-            lload_msgtype2str( op->o_tag ), c->c_connid, msg );
+            lload_msgtype2str( op->o_tag ), op->o_client_connid, msg );
 
-    found = ( tavl_delete( &c->c_ops, op, operation_client_cmp ) == op );
+    ldap_pvt_thread_mutex_lock( &op->o_link_mutex );
+    c = op->o_client;
+    ldap_pvt_thread_mutex_unlock( &op->o_link_mutex );
+    if ( !c || !IS_ALIVE( c, c_refcnt ) ) {
+        Debug( LDAP_DEBUG_TRACE, "operation_send_reject: "
+                "not sending msgid=%d, client connid=%lu is dead\n",
+                op->o_client_msgid, op->o_client_connid );
+
+        goto done;
+    }
+
+    found = operation_unlink_client( op, c );
     if ( !found && !send_anyway ) {
-        Debug( LDAP_DEBUG_TRACE, "operation_send_reject_locked: "
+        Debug( LDAP_DEBUG_TRACE, "operation_send_reject: "
                 "msgid=%d not scheduled for client connid=%lu anymore, "
                 "not sending\n",
                 op->o_client_msgid, c->c_connid );
@@ -721,25 +462,21 @@ operation_send_reject_locked(
 
     if ( op->o_client_msgid == 0 ) {
         assert( op->o_saved_msgid == 0 && op->o_pin_id );
-        Debug( LDAP_DEBUG_TRACE, "operation_send_reject_locked: "
+        Debug( LDAP_DEBUG_TRACE, "operation_send_reject: "
                 "operation pin=%lu is just a pin, not sending\n",
                 op->o_pin_id );
         goto done;
     }
 
-    CONNECTION_UNLOCK_INCREF(c);
     ldap_pvt_thread_mutex_lock( &c->c_io_mutex );
-
     ber = c->c_pendingber;
     if ( ber == NULL && (ber = ber_alloc()) == NULL ) {
         ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
-        Debug( LDAP_DEBUG_ANY, "operation_send_reject_locked: "
+        Debug( LDAP_DEBUG_ANY, "operation_send_reject: "
                 "ber_alloc failed, closing connid=%lu\n",
                 c->c_connid );
-        CONNECTION_LOCK_DECREF(c);
-        operation_destroy_from_client( op );
-        CONNECTION_DESTROY(c);
-        return -1;
+        CONNECTION_LOCK_DESTROY(c);
+        goto done;
     }
     c->c_pendingber = ber;
 
@@ -751,46 +488,8 @@ operation_send_reject_locked(
 
     connection_write_cb( -1, 0, c );
 
-    CONNECTION_LOCK_DECREF(c);
 done:
-    operation_destroy_from_client( op );
-    return LDAP_SUCCESS;
-}
-
-void
-operation_send_reject(
-        LloadOperation *op,
-        int result,
-        const char *msg,
-        int send_anyway )
-{
-    LloadConnection *c;
-
-    ldap_pvt_thread_mutex_lock( &op->o_link_mutex );
-    c = op->o_client;
-    if ( !c ) {
-        c = op->o_upstream;
-        /* One of the connections has initiated this and keeps a reference, if
-         * client is dead, it must have been the upstream */
-        assert( c );
-        CONNECTION_LOCK(c);
-        ldap_pvt_thread_mutex_unlock( &op->o_link_mutex );
-        Debug( LDAP_DEBUG_TRACE, "operation_send_reject: "
-                "not sending msgid=%d, client connid=%lu is dead\n",
-                op->o_client_msgid, op->o_client_connid );
-        operation_destroy_from_upstream( op );
-        CONNECTION_UNLOCK_OR_DESTROY(c);
-        return;
-    }
-    CONNECTION_LOCK(c);
-    ldap_pvt_thread_mutex_unlock( &op->o_link_mutex );
-
-    /* Non-zero return means connection has been unlocked and might be
-     * destroyed */
-    if ( operation_send_reject_locked( op, result, msg, send_anyway ) ==
-            LDAP_SUCCESS ) {
-        CONNECTION_UNLOCK_OR_DESTROY(c);
-    }
+    operation_unlink( op );
 }
 
 /*
@@ -803,32 +502,27 @@ operation_send_reject(
 void
 operation_lost_upstream( LloadOperation *op )
 {
-    LloadConnection *c = op->o_upstream;
-
     operation_send_reject( op, LDAP_OTHER,
             "connection to the remote server has been severed", 0 );
-
-    CONNECTION_LOCK(c);
-    op->o_upstream_refcnt--;
-    operation_destroy_from_upstream( op );
-    CONNECTION_UNLOCK(c);
 }
 
 int
 connection_timeout( LloadConnection *upstream, void *arg )
 {
     LloadOperation *op;
-    TAvlnode *ops = NULL, *node;
+    TAvlnode *ops = NULL, *node, *next;
     LloadBackend *b = upstream->c_private;
     time_t threshold = *(time_t *)arg;
     int rc, nops = 0;
 
+    CONNECTION_LOCK(upstream);
     for ( node = tavl_end( upstream->c_ops, TAVL_DIR_LEFT ); node &&
             ((LloadOperation *)node->avl_data)->o_start <
                     threshold; /* shortcut */
-            node = tavl_next( node, TAVL_DIR_RIGHT ) ) {
+            node = next ) {
         LloadOperation *found_op;
 
+        next = tavl_next( node, TAVL_DIR_RIGHT );
         op = node->avl_data;
 
         /* Have we received another response since? */
@@ -836,7 +530,6 @@ connection_timeout( LloadConnection *upstream, void *arg )
             continue;
         }
 
-        op->o_upstream_refcnt++;
         op->o_res = LLOAD_OP_FAILED;
         found_op = tavl_delete( &upstream->c_ops, op, operation_upstream_cmp );
         assert( op == found_op );
@@ -863,13 +556,15 @@ connection_timeout( LloadConnection *upstream, void *arg )
     }
 
     if ( nops == 0 ) {
+        CONNECTION_UNLOCK(upstream);
         return LDAP_SUCCESS;
     }
     upstream->c_n_ops_executing -= nops;
+    upstream->c_counters.lc_ops_failed += nops;
     Debug( LDAP_DEBUG_STATS, "connection_timeout: "
             "timing out %d operations for connid=%lu\n",
             nops, upstream->c_connid );
-    CONNECTION_UNLOCK_INCREF(upstream);
+    CONNECTION_UNLOCK(upstream);
 
     ldap_pvt_thread_mutex_lock( &b->b_mutex );
     b->b_n_ops_executing -= nops;
@@ -877,36 +572,17 @@ connection_timeout( LloadConnection *upstream, void *arg )
 
     for ( node = tavl_end( ops, TAVL_DIR_LEFT ); node;
             node = tavl_next( node, TAVL_DIR_RIGHT ) ) {
-        LloadConnection *client;
-
         op = node->avl_data;
 
-        ldap_pvt_thread_mutex_lock( &op->o_link_mutex );
-        client = op->o_client;
-        if ( !client ) {
-            ldap_pvt_thread_mutex_unlock( &op->o_link_mutex );
-            continue;
-        }
-        CONNECTION_LOCK(client);
-        ldap_pvt_thread_mutex_unlock( &op->o_link_mutex );
-
-        /* operation_send_reject_locked unlocks and destroys client on
-         * failure */
-        if ( operation_send_reject_locked( op,
-                     op->o_tag == LDAP_REQ_SEARCH ? LDAP_TIMELIMIT_EXCEEDED :
-                                                    LDAP_ADMINLIMIT_EXCEEDED,
-                     "upstream did not respond in time", 0 ) == LDAP_SUCCESS ) {
-            CONNECTION_UNLOCK_OR_DESTROY(client);
-        }
+        operation_send_reject( op,
+                op->o_tag == LDAP_REQ_SEARCH ? LDAP_TIMELIMIT_EXCEEDED :
+                                               LDAP_ADMINLIMIT_EXCEEDED,
+                "upstream did not respond in time", 0 );
 
         if ( rc == LDAP_SUCCESS ) {
-            rc = operation_send_abandon( op );
+            rc = operation_send_abandon( op, upstream );
         }
-
-        CONNECTION_LOCK(upstream);
-        op->o_upstream_refcnt--;
-        operation_destroy_from_upstream( op );
-        CONNECTION_UNLOCK(upstream);
+        operation_unlink( op );
     }
 
     /* TODO: if operation_send_abandon failed, we need to kill the upstream */
@@ -914,7 +590,13 @@ connection_timeout( LloadConnection *upstream, void *arg )
         connection_write_cb( -1, 0, upstream );
     }
 
-    CONNECTION_LOCK_DECREF(upstream);
+    CONNECTION_LOCK(upstream);
+    if ( upstream->c_state == LLOAD_C_CLOSING && !upstream->c_ops ) {
+        CONNECTION_DESTROY(upstream);
+    } else {
+        CONNECTION_UNLOCK(upstream);
+    }
+
     /* just dispose of the AVL, most operations should already be gone */
     tavl_free( ops, NULL );
     return LDAP_SUCCESS;
@@ -933,11 +615,15 @@ operations_timeout( evutil_socket_t s, short what, void *arg )
     threshold = slap_get_time() - lload_timeout_api->tv_sec;
 
     LDAP_CIRCLEQ_FOREACH ( b, &backend, b_next ) {
+        epoch_t epoch;
+
         ldap_pvt_thread_mutex_lock( &b->b_mutex );
         if ( b->b_n_ops_executing == 0 ) {
             ldap_pvt_thread_mutex_unlock( &b->b_mutex );
             continue;
         }
+
+        epoch = epoch_join();
 
         Debug( LDAP_DEBUG_TRACE, "operations_timeout: "
                 "timing out binds for backend uri=%s\n",
@@ -951,6 +637,7 @@ operations_timeout( evutil_socket_t s, short what, void *arg )
         connections_walk_last( &b->b_mutex, &b->b_conns, b->b_last_conn,
                 connection_timeout, &threshold );
 
+        epoch_leave( epoch );
         ldap_pvt_thread_mutex_unlock( &b->b_mutex );
     }
 done:
@@ -976,13 +663,12 @@ operation_update_global_rejected( LloadOperation *op )
 }
 
 void
-operation_update_conn_counters( LloadOperation *op )
+operation_update_conn_counters( LloadOperation *op, LloadConnection *upstream )
 {
-    assert( op->o_upstream != NULL );
     if ( op->o_res == LLOAD_OP_COMPLETED ) {
-        op->o_upstream->c_counters.lc_ops_completed++;
+        upstream->c_counters.lc_ops_completed++;
     } else {
-        op->o_upstream->c_counters.lc_ops_failed++;
+        upstream->c_counters.lc_ops_failed++;
     }
 }
 

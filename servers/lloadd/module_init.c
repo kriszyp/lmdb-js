@@ -85,6 +85,10 @@ lload_back_open( BackendInfo *bi )
         return 0;
     }
 
+    /* This will fail if we ever try to instantiate more than one lloadd within
+     * the process */
+    epoch_init();
+
     if ( lload_tls_init() != 0 ) {
         return -1;
     }

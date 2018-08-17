@@ -759,6 +759,7 @@ lloadd_listeners_init( const char *urls )
 int
 lloadd_daemon_destroy( void )
 {
+    epoch_shutdown();
     if ( lloadd_inited ) {
         int i;
 
@@ -1674,8 +1675,7 @@ lload_handle_global_invalidation( LloadChange *change )
                 LloadConnection *next =
                         LDAP_CIRCLEQ_LOOP_NEXT( &clients, c, c_next );
                 if ( c->c_is_tls ) {
-                    CONNECTION_LOCK(c);
-                    CONNECTION_DESTROY(c);
+                    CONNECTION_LOCK_DESTROY(c);
                     assert( c == NULL );
                 }
                 c = next;
