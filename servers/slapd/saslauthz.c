@@ -2074,7 +2074,7 @@ int slap_sasl_authorized( Operation *op,
 	if( authz_policy & SASL_AUTHZ_TO ) {
 		rc = slap_sasl_check_authz( op, authcDN, authzDN,
 			slap_schema.si_ad_saslAuthzTo, authcDN );
-		if( rc == LDAP_SUCCESS && !(authz_policy & SASL_AUTHZ_AND) ) {
+		if(( rc == LDAP_SUCCESS ) ^ (( authz_policy & SASL_AUTHZ_AND) != 0)) {
 			goto DONE;
 		}
 	}
