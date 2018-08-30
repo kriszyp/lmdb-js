@@ -838,6 +838,7 @@ static int mdb_entry_partsize(struct mdb_info *mdb, MDB_txn *txn, Entry *e,
 	ber_len_t len, dlen;
 	int i, nat = 0, nval = 0, nnval = 0, doff = 0;
 	Attribute *a;
+	unsigned hi;
 
 	eh->multi = NULL;
 	len = 4*sizeof(int);	/* nattrs, nvals, ocflags, offset */
@@ -858,7 +859,8 @@ static int mdb_entry_partsize(struct mdb_info *mdb, MDB_txn *txn, Entry *e,
 		len += 2*sizeof(int);	/* AD index, numvals */
 		dlen += 2*sizeof(int);
 		nval += a->a_numvals + 1;	/* empty berval at end */
-		if (a->a_numvals > mdb->mi_multi_hi)
+		mdb_attr_multi_thresh( mdb, a->a_desc, &hi, NULL );
+		if (a->a_numvals > hi)
 			a->a_flags |= SLAP_ATTR_BIG_MULTI;
 		if (a->a_flags & SLAP_ATTR_BIG_MULTI)
 			doff += a->a_numvals;

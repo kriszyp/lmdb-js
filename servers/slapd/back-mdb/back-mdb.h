@@ -147,6 +147,8 @@ typedef struct mdb_attrinfo {
 	MDB_cursor *ai_cursor;	/* for tools */
 	int ai_idx;	/* position in AI array */
 	MDB_dbi ai_dbi;
+	unsigned ai_multi_hi;
+	unsigned ai_multi_lo;
 } AttrInfo;
 
 /* tool threaded indexer state */

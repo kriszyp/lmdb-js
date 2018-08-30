@@ -312,7 +312,7 @@ static int index_at_values(
 	/* If this type has no AD, we've never used it before */
 	if( type->sat_ad ) {
 		ai = mdb_attr_mask( op->o_bd->be_private, type->sat_ad );
-		if ( ai ) {
+		if ( ai && ( ai->ai_indexmask || ai->ai_newmask )) {
 #ifdef LDAP_COMP_MATCH
 			/* component indexing */
 			if ( ai->ai_cr ) {
@@ -351,7 +351,7 @@ static int index_at_values(
 		if( desc ) {
 			ai = mdb_attr_mask( op->o_bd->be_private, desc );
 
-			if( ai ) {
+			if( ai && ( ai->ai_indexmask || ai->ai_newmask )) {
 				if ( opid == MDB_INDEX_UPDATE_OP )
 					mask = ai->ai_newmask & ~ai->ai_indexmask;
 				else
