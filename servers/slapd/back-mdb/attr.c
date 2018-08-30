@@ -533,7 +533,7 @@ mdb_attr_multi_config(
 	if ( next == s || next[0] != '\0' )
 		goto badval;
 
-	if ( lo >= hi ) {
+	if ( lo > hi ) {
 badval:
 		snprintf(c_reply->msg, sizeof(c_reply->msg),
 			"invalid hi/lo thresholds" );
