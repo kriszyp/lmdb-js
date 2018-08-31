@@ -427,8 +427,16 @@ fail:
 #endif
 		rc = ainfo_insert( mdb, a );
 		if( rc ) {
+			AttrInfo *b = mdb_attr_mask( mdb, ad );
+			/* If this is just a multival record, reuse it for index info */
+			if ( !( b->ai_indexmask || b->ai_newmask ) && b->ai_multi_lo < UINT_MAX ) {
+				b->ai_indexmask = a->ai_indexmask;
+				b->ai_newmask = a->ai_newmask;
+				ch_free( a );
+				rc = 0;
+				continue;
+			}
 			if ( mdb->mi_flags & MDB_IS_OPEN ) {
-				AttrInfo *b = mdb_attr_mask( mdb, ad );
 				/* If there is already an index defined for this attribute
 				 * it must be replaced. Otherwise we end up with multiple 
 				 * olcIndex values for the same attribute */
@@ -578,6 +586,15 @@ fail:
 
 		rc = ainfo_insert( mdb, a );
 		if( rc ) {
+			AttrInfo *b = mdb_attr_mask( mdb, ad );
+			/* If this is just an index record, reuse it for multival info */
+			if ( b->ai_multi_lo == UINT_MAX ) {
+				b->ai_multi_hi = a->ai_multi_hi;
+				b->ai_multi_lo = a->ai_multi_lo;
+				ch_free( a );
+				rc = 0;
+				continue;
+			}
 			if (c_reply) {
 				snprintf(c_reply->msg, sizeof(c_reply->msg),
 					"duplicate multival definition for attr \"%s\"",
@@ -693,12 +710,18 @@ void mdb_attr_flush( struct mdb_info *mdb )
 
 	for ( i=0; i<mdb->mi_nattrs; i++ ) {
 		if ( mdb->mi_attrs[i]->ai_indexmask & MDB_INDEX_DELETING ) {
-			int j;
-			mdb_attr_info_free( mdb->mi_attrs[i] );
-			mdb->mi_nattrs--;
-			for (j=i; j<mdb->mi_nattrs; j++)
-				mdb->mi_attrs[j] = mdb->mi_attrs[j+1];
-			i--;
+			/* if this is also a multival rec, just clear index */
+			if ( mdb->mi_attrs[i]->ai_multi_lo < UINT_MAX ) {
+				mdb->mi_attrs[i]->ai_indexmask = 0;
+				mdb->mi_attrs[i]->ai_newmask = 0;
+			} else {
+				int j;
+				mdb_attr_info_free( mdb->mi_attrs[i] );
+				mdb->mi_nattrs--;
+				for (j=i; j<mdb->mi_nattrs; j++)
+					mdb->mi_attrs[j] = mdb->mi_attrs[j+1];
+				i--;
+			}
 		}
 	}
 }
