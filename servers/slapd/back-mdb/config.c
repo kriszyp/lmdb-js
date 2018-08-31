@@ -423,10 +423,11 @@ mdb_cf_gen( ConfigArgs *c )
 			if ( c->valx == -1 ) {
 				int i;
 
-				/* delete all (FIXME) */
+				/* delete all */
 				for ( i = 0; i < mdb->mi_nattrs; i++ ) {
 					mdb->mi_attrs[i]->ai_indexmask |= MDB_INDEX_DELETING;
 				}
+				mdb->mi_defaultmask = 0;
 				mdb->mi_flags |= MDB_DEL_INDEX;
 				c->cleanup = mdb_cf_cleanup;
 
