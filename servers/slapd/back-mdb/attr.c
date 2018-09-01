@@ -122,7 +122,7 @@ mdb_attr_dbs_open(
 	for ( i=0; i<mdb->mi_nattrs; i++ ) {
 		if ( mdb->mi_attrs[i]->ai_dbi )	/* already open */
 			continue;
-		if ( !mdb->mi_attrs[i]->ai_indexmask )	/* not an index record */
+		if ( !( mdb->mi_attrs[i]->ai_indexmask || mdb->mi_attrs[i]->ai_newmask ))	/* not an index record */
 			continue;
 		rc = mdb_dbi_open( txn, mdb->mi_attrs[i]->ai_desc->ad_type->sat_cname.bv_val,
 			flags, &mdb->mi_attrs[i]->ai_dbi );
