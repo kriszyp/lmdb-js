@@ -254,6 +254,9 @@ fail:
 			/* no suffix! */
 			continue;
 		}
+		if ( SLAP_DBHIDDEN( be )) {
+			continue;
+		}
 		if ( SLAP_MONITOR( be )) {
 			if( attr_merge_one( e, ad_monitorContext,
 					&be->be_suffix[0],
