@@ -43,6 +43,9 @@
 #include <openssl/err.h>
 #include <openssl/rand.h>
 #include <openssl/safestack.h>
+#include <openssl/bn.h>
+#include <openssl/rsa.h>
+#include <openssl/dh.h>
 #elif defined( HAVE_SSL_H )
 #include <ssl.h>
 #endif
