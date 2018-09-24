@@ -323,7 +323,7 @@ slap_auxprop_lookup(
 
 	/* we don't know anything about this, ignore it */
 	if ( !conn ) {
-		rc == LDAP_SUCCESS;
+		rc = LDAP_SUCCESS;
 		goto done;
 	}
 
