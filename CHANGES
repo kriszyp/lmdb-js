@@ -12,6 +12,8 @@ OpenLDAP 2.4.47 Engineering
 	Fixed slapd-bdb/hdb/mdb to not convert certain IDLs to ranges (ITS#8868)
 	Fixed slapo-memberof cn=config modifications (ITS#8663)
 	Fixed slapo-syncprov with NULL modlist (ITS#8843)
+	Build Environment
+		Fixed missing includes with OpenSSL 1.0.2 (ITS#8809)
 
 OpenLDAP 2.4.46 Release (2018/03/22)
 	Fixed libldap connection delete callbacks when TLS fails to start (ITS#8717)
