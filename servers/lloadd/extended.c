@@ -32,12 +32,15 @@ int
 handle_starttls( LloadConnection *c, LloadOperation *op )
 {
     struct event_base *base = event_get_base( c->c_read_event );
+    LloadOperation *found;
     BerElement *output;
     char *msg = NULL;
     int rc = LDAP_SUCCESS;
 
     CONNECTION_LOCK(c);
-    tavl_delete( &c->c_ops, op, operation_client_cmp );
+    found = tavl_delete( &c->c_ops, op, operation_client_cmp );
+    assert( op == found );
+    c->c_n_ops_executing--;
 
     if ( c->c_is_tls == LLOAD_TLS_ESTABLISHED ) {
         rc = LDAP_OPERATIONS_ERROR;

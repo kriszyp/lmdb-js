@@ -445,9 +445,12 @@ void
 client_reset( LloadConnection *c )
 {
     TAvlnode *root;
+    long freed = 0, executing;
 
     root = c->c_ops;
     c->c_ops = NULL;
+    executing = c->c_n_ops_executing;
+    c->c_n_ops_executing = 0;
 
     if ( !BER_BVISNULL( &c->c_auth ) ) {
         ch_free( c->c_auth.bv_val );
@@ -460,12 +463,12 @@ client_reset( LloadConnection *c )
     CONNECTION_UNLOCK(c);
 
     if ( root ) {
-        int freed;
         freed = tavl_free( root, (AVL_FREE)operation_abandon );
         Debug( LDAP_DEBUG_TRACE, "client_reset: "
-                "dropped %d operations\n",
+                "dropped %ld operations\n",
                 freed );
     }
+    assert( freed == executing );
 
     CONNECTION_LOCK(c);
 }

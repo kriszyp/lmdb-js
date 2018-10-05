@@ -244,6 +244,7 @@ request_bind( LloadConnection *client, LloadOperation *op )
     }
 
     tavl_delete( &client->c_ops, op, operation_client_cmp );
+    client->c_n_ops_executing--;
 
     client_reset( client );
 
@@ -326,6 +327,7 @@ request_bind( LloadConnection *client, LloadOperation *op )
 
     rc = tavl_insert( &client->c_ops, op, operation_client_cmp, avl_dup_error );
     assert( rc == LDAP_SUCCESS );
+    client->c_n_ops_executing++;
     CONNECTION_UNLOCK(client);
 
     if ( pin ) {
@@ -663,6 +665,7 @@ handle_bind_response(
     assert( !removed || op == removed );
 
     if ( client->c_state == LLOAD_C_BINDING ) {
+        assert( removed );
         switch ( result ) {
             case LDAP_SASL_BIND_IN_PROGRESS:
                 op->o_saved_msgid = op->o_client_msgid;
@@ -676,6 +679,7 @@ handle_bind_response(
                 client->c_state = LLOAD_C_READY;
                 client->c_type = LLOAD_C_OPEN;
                 client->c_pin_id = 0;
+                client->c_n_ops_executing--;
                 if ( !BER_BVISNULL( &client->c_auth ) ) {
                     if ( result != LDAP_SUCCESS ) {
                         ber_memfree( client->c_auth.bv_val );
@@ -693,6 +697,9 @@ handle_bind_response(
             }
         }
     } else {
+        if ( removed ) {
+            client->c_n_ops_executing--;
+        }
         assert( client->c_state == LLOAD_C_DYING ||
                 client->c_state == LLOAD_C_CLOSING );
     }
@@ -783,6 +790,9 @@ handle_whoami_response(
     removed = tavl_delete( &client->c_ops, op, operation_client_cmp );
     assert( !removed || op == removed );
     op->o_pin_id = 0;
+    if ( removed ) {
+        client->c_n_ops_executing--;
+    }
 
     Debug( LDAP_DEBUG_TRACE, "handle_whoami_response: "
             "connid=%ld new authid=%s\n",
