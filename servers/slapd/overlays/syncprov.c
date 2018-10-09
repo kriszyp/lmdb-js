@@ -887,7 +887,8 @@ syncprov_sendresp( Operation *op, resinfo *ri, syncops *so, int mode )
 	rs.sr_flags = REP_CTRLS_MUSTBEFREED;
 	csns[0] = ri->ri_csn;
 	BER_BVZERO( &csns[1] );
-	slap_compose_sync_cookie( op, &cookie, csns, so->s_rid, slap_serverID ? slap_serverID : -1 );
+	slap_compose_sync_cookie( op, &cookie, csns, so->s_rid,
+				 slap_serverID ? slap_serverID : -1, NULL );
 
 #ifdef LDAP_DEBUG
 	if ( so->s_sid > 0 ) {
@@ -1139,7 +1140,7 @@ syncprov_qresp( opcookie *opc, syncops *so, int mode )
 		syncprov_info_t	*si = opc->son->on_bi.bi_private;
 
 		slap_compose_sync_cookie( NULL, &ri->ri_cookie, si->si_ctxcsn,
-			so->s_rid, slap_serverID ? slap_serverID : -1);
+			so->s_rid, slap_serverID ? slap_serverID : -1, NULL );
 	}
 	Debug( LDAP_DEBUG_SYNC, "%s syncprov_qresp: "
 		"set up a new syncres mode=%d csn=%s\n",
@@ -1899,7 +1900,7 @@ syncprov_playlog( Operation *op, SlapReply *rs, sessionlog *sl,
 
 		if ( delcsn[0].bv_len ) {
 			slap_compose_sync_cookie( op, &cookie, delcsn, srs->sr_state.rid,
-				slap_serverID ? slap_serverID : -1 );
+				slap_serverID ? slap_serverID : -1, delcsn );
 
 			Debug( LDAP_DEBUG_SYNC, "%s syncprov_playlog: cookie=%s\n",
 				op->o_log_prefix, cookie.bv_val );
@@ -2537,7 +2538,8 @@ syncprov_search_response( Operation *op, SlapReply *rs )
 		/* If we're in delta-sync mode, always send a cookie */
 		if ( si->si_nopres && si->si_usehint && a ) {
 			struct berval cookie;
-			slap_compose_sync_cookie( op, &cookie, a->a_nvals, srs->sr_state.rid, slap_serverID ? slap_serverID : -1 );
+			slap_compose_sync_cookie( op, &cookie, a->a_nvals, srs->sr_state.rid,
+					slap_serverID ? slap_serverID : -1, NULL );
 			rs->sr_err = syncprov_state_ctrl( op, rs, rs->sr_entry,
 				LDAP_SYNC_ADD, rs->sr_ctrls, 0, 1, &cookie );
 			op->o_tmpfree( cookie.bv_val, op->o_tmpmemctx );
@@ -2551,7 +2553,8 @@ syncprov_search_response( Operation *op, SlapReply *rs )
 		if ( ( ss->ss_flags & SS_CHANGED ) &&
 			ss->ss_ctxcsn && !BER_BVISNULL( &ss->ss_ctxcsn[0] )) {
 			slap_compose_sync_cookie( op, &cookie, ss->ss_ctxcsn,
-				srs->sr_state.rid, slap_serverID ? slap_serverID : -1 );
+				srs->sr_state.rid,
+				slap_serverID ? slap_serverID : -1, NULL );
 
 			Debug( LDAP_DEBUG_SYNC, "%s syncprov_search_response: cookie=%s\n",
 				op->o_log_prefix, cookie.bv_val );
