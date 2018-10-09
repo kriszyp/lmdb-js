@@ -4381,7 +4381,12 @@ syncrepl_del_nonpresent(
 
 	if ( !LDAP_LIST_EMPTY( &si->si_nonpresentlist ) ) {
 
-		if ( sc->ctxcsn && !BER_BVISNULL( &sc->ctxcsn[m] ) ) {
+		if ( !BER_BVISNULL( &sc->delcsn ) ) {
+			Debug( LDAP_DEBUG_SYNC, "syncrepl_del_nonpresent: %s "
+					"using delcsn=%s\n",
+					si->si_ridtxt, sc->delcsn.bv_val );
+			csn = sc->delcsn;
+		} else if ( sc->ctxcsn && !BER_BVISNULL( &sc->ctxcsn[m] ) ) {
 			csn = sc->ctxcsn[m];
 		} else {
 			csn = si->si_syncCookie.ctxcsn[0];
