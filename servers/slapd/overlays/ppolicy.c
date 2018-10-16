@@ -1505,7 +1505,7 @@ ppolicy_add(
 		return rs->sr_err;
 
 	/* If this is a replica, assume the master checked everything */
-	if ( be_shadow_update( op ))
+	if ( SLAPD_SYNC_IS_SYNCCONN( op->o_connid ) )
 		return SLAP_CB_CONTINUE;
 
 	/* Check for password in entry */
@@ -1649,7 +1649,7 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 	/* If this is a replica, we may need to tweak some of the
 	 * master's modifications. Otherwise, just pass it through.
 	 */
-	if ( be_shadow_update( op )) {
+	if ( SLAPD_SYNC_IS_SYNCCONN( op->o_connid ) ) {
 		Modifications **prev;
 		Attribute *a_grace, *a_lock, *a_fail;
 
@@ -1665,26 +1665,27 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 			/* If we're deleting an attr that didn't exist,
 			 * drop this delete op
 			 */
-			if ( ml->sml_op == LDAP_MOD_DELETE ) {
+			if ( ml->sml_op == LDAP_MOD_DELETE ||
+					ml->sml_op == SLAP_MOD_SOFTDEL ) {
 				int drop = 0;
 
 				if ( ml->sml_desc == ad_pwdGraceUseTime ) {
 					if ( !a_grace || got_del_grace ) {
-						drop = 1;
+						drop = ml->sml_op == LDAP_MOD_DELETE;
 					} else {
 						got_del_grace = 1;
 					}
 				} else
 				if ( ml->sml_desc == ad_pwdAccountLockedTime ) {
 					if ( !a_lock || got_del_lock ) {
-						drop = 1;
+						drop = ml->sml_op == LDAP_MOD_DELETE;
 					} else {
 						got_del_lock = 1;
 					}
 				} else
 				if ( ml->sml_desc == ad_pwdFailureTime ) {
 					if ( !a_fail || got_del_fail ) {
-						drop = 1;
+						drop = ml->sml_op == LDAP_MOD_DELETE;
 					} else {
 						got_del_fail = 1;
 					}
