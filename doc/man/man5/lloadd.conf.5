@@ -329,6 +329,10 @@ read or this limit is reached when the I/O thread can pick it up again.
 Very high values have a potential to cause some connections to be
 starved in a very high-bandwidth environment. The default is 1000.
 .TP
+.B client_max_pending <integer>
+Will cause the load balancer to limit the number unfinished operations for each
+client connection. The default is 0, unlimited.
+.TP
 .B iotimeout <integer>
 Specify the number of milliseconds to wait before forcibly closing
 a connection with an outstanding write. This allows faster recovery from

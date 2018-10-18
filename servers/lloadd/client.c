@@ -24,6 +24,8 @@
 #include "lutil.h"
 #include "lload.h"
 
+long lload_client_max_pending = 0;
+
 lload_c_head clients = LDAP_CIRCLEQ_HEAD_INITIALIZER( clients );
 
 ldap_pvt_thread_mutex_t clients_mutex;
@@ -188,6 +190,7 @@ handle_one_request( LloadConnection *c )
     BerElement *ber;
     LloadOperation *op = NULL;
     RequestHandler handler = NULL;
+    int over_limit = 0;
 
     ber = c->c_currentber;
     c->c_currentber = NULL;
@@ -201,6 +204,10 @@ handle_one_request( LloadConnection *c )
         CONNECTION_DESTROY(c);
         ber_free( ber, 1 );
         return -1;
+    }
+    if ( lload_client_max_pending &&
+            c->c_n_ops_executing >= lload_client_max_pending ) {
+        over_limit = 1;
     }
     CONNECTION_UNLOCK(c);
 
@@ -223,15 +230,23 @@ handle_one_request( LloadConnection *c )
              * currently in progress */
             return request_abandon( c, op );
         case LDAP_REQ_EXTENDED:
-            handler = request_extended;
-            break;
         default:
             if ( c->c_state == LLOAD_C_BINDING ) {
                 operation_send_reject(
                         op, LDAP_PROTOCOL_ERROR, "bind in progress", 0 );
                 return LDAP_SUCCESS;
             }
-            handler = request_process;
+            if ( over_limit ) {
+                operation_send_reject( op, LDAP_BUSY,
+                        "pending operation limit reached on this connection",
+                        0 );
+                return LDAP_SUCCESS;
+            }
+            if ( op->o_tag == LDAP_REQ_EXTENDED ) {
+                handler = request_extended;
+            } else {
+                handler = request_process;
+            }
             break;
     }
 

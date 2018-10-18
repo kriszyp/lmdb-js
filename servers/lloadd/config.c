@@ -177,6 +177,7 @@ enum {
     CFG_MAX_PENDING_OPS,
     CFG_MAX_PENDING_CONNS,
     CFG_STARTTLS,
+    CFG_CLIENT_PENDING,
 
     CFG_LAST
 };
@@ -616,6 +617,17 @@ static ConfigTable config_back_cf_table[] = {
             "SINGLE-VALUE )",
         NULL, NULL
     },
+    { "client_max_pending", NULL, 2, 2, 0,
+        ARG_MAGIC|ARG_UINT|CFG_CLIENT_PENDING,
+        &config_generic,
+        "( OLcfgBkAt:13.35 "
+            "NAME 'olcBkLloadClientMaxPending' "
+            "DESC 'Maximum pending operations per client connection' "
+            "EQUALITY integerMatch "
+            "SYNTAX OMsInteger "
+            "SINGLE-VALUE )",
+        NULL, NULL
+    },
 
     /* cn=config only options */
 #ifdef BALANCER_MODULE
@@ -803,6 +815,9 @@ config_generic( ConfigArgs *c )
                 c->value_uint = 1000 * lload_write_timeout->tv_sec +
                         lload_write_timeout->tv_usec / 1000;
                 break;
+            case CFG_CLIENT_PENDING:
+                c->value_uint = lload_client_max_pending;
+                break;
             default:
                 rc = 1;
                 break;
@@ -952,6 +967,9 @@ config_generic( ConfigArgs *c )
             break;
         case CFG_MAXBUF_UPSTREAM:
             sockbuf_max_incoming_upstream = c->value_uint;
+            break;
+        case CFG_CLIENT_PENDING:
+            lload_client_max_pending = c->value_uint;
             break;
         default:
             Debug( LDAP_DEBUG_ANY, "%s: unknown CFG_TYPE %d\n",

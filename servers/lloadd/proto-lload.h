@@ -64,6 +64,7 @@ LDAP_SLAPD_F (LloadConnection *) client_init( ber_socket_t s, LloadListener *url
 LDAP_SLAPD_F (void) client_reset( LloadConnection *c );
 LDAP_SLAPD_F (void) client_destroy( LloadConnection *c );
 LDAP_SLAPD_F (void) clients_destroy( int gentle );
+LDAP_SLAPD_V (long) lload_client_max_pending;
 
 /*
  * config.c
