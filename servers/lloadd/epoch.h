@@ -132,6 +132,7 @@ int try_release_ref( uintptr_t *refp, void *object, dispose_cb *cb );
  */
 #define RELEASE_REF( object, ref_field, cb ) \
     do { \
+        assert( IS_ALIVE( (object), ref_field ) ); \
         if ( !__atomic_sub_fetch( \
                      &(object)->ref_field, 1, __ATOMIC_ACQ_REL ) ) { \
             epoch_append( object, (dispose_cb *)cb ); \

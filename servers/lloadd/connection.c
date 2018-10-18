@@ -128,6 +128,11 @@ handle_pdus( void *ctx, void *arg )
             }
             break;
         }
+
+        assert( IS_ALIVE( c, c_refcnt ) );
+        epoch_leave( epoch );
+        epoch = epoch_join();
+        assert( IS_ALIVE( c, c_refcnt ) );
     }
 
     event_add( c->c_read_event, c->c_read_timeout );
