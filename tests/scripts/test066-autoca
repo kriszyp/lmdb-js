@@ -40,7 +40,7 @@ $SLAPPASSWD -g -n >$CONFIGPWF
 echo "Starting slapd on TCP/IP port $PORT1..."
 . $CONFFILTER $BACKEND $MONITORDB < $DYNAMICCONF > $CONFLDIF
 $SLAPADD -F $CFDIR -n 0 -l $CONFLDIF
-$SLAPD -F $CFDIR -h $URI1 -d $LVL $TIMING > $LOG1 2>&1 &
+$SLAPD -F $CFDIR -h $URIP1 -d $LVL $TIMING > $LOG1 2>&1 &
 PID=$!
 if test $WAIT != 0 ; then
     echo PID $PID
@@ -53,7 +53,7 @@ sleep 1
 
 echo "Using ldapsearch to check that slapd is running..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -s base -b "" -H $URI1 \
+	$LDAPSEARCH -s base -b "" -H $URIP1 \
 		'objectclass=*' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 0 ; then
@@ -70,7 +70,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Adding schema and databases on slapd..."
-$LDAPADD -D cn=config -H $URI1 -y $CONFIGPWF <<EOF >>$TESTOUT 2>&1
+$LDAPADD -D cn=config -H $URIP1 -y $CONFIGPWF <<EOF >>$TESTOUT 2>&1
 include: file://$ABS_SCHEMADIR/core.ldif
 
 include: file://$ABS_SCHEMADIR/cosine.ldif
@@ -92,7 +92,7 @@ nullExclude="" nullOK=""
 test $BACKEND = null && nullExclude="# " nullOK="OK"
 
 if [ "$BACKENDTYPE" = mod ]; then
-	$LDAPADD -D cn=config -H $URI1 -y $CONFIGPWF <<EOF >>$TESTOUT 2>&1
+	$LDAPADD -D cn=config -H $URIP1 -y $CONFIGPWF <<EOF >>$TESTOUT 2>&1
 dn: cn=module,cn=config
 objectClass: olcModuleList
 cn: module
@@ -107,7 +107,7 @@ EOF
 	fi
 fi
 
-$LDAPADD -D cn=config -H $URI1 -y $CONFIGPWF <<EOF >>$TESTOUT 2>&1
+$LDAPADD -D cn=config -H $URIP1 -y $CONFIGPWF <<EOF >>$TESTOUT 2>&1
 dn: olcDatabase={1}$BACKEND,cn=config
 objectClass: olcDatabaseConfig
 ${nullExclude}objectClass: olc${BACKEND}Config
@@ -125,7 +125,7 @@ if test $RC != 0 ; then
 fi
 
 if test $INDEXDB = indexdb ; then
-	$LDAPMODIFY -D cn=config -H $URI1 -y $CONFIGPWF <<EOF >>$TESTOUT 2>&1
+	$LDAPMODIFY -D cn=config -H $URIP1 -y $CONFIGPWF <<EOF >>$TESTOUT 2>&1
 dn: olcDatabase={1}$BACKEND,cn=config
 changetype: modify
 add: olcDbIndex
@@ -141,7 +141,7 @@ EOF
 fi
 
 echo "Using ldapadd to populate slapd..."
-$LDAPADD -D "$MANAGERDN" -H $URI1 -w $PASSWD -f $LDIFORDERED \
+$LDAPADD -D "$MANAGERDN" -H $URIP1 -w $PASSWD -f $LDIFORDERED \
 	>> $TESTOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
@@ -151,7 +151,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Adding server entries to slapd..."
-$LDAPADD -D "$MANAGERDN" -H $URI1 -w $PASSWD <<EOF >> $TESTOUT 2>&1
+$LDAPADD -D "$MANAGERDN" -H $URIP1 -w $PASSWD <<EOF >> $TESTOUT 2>&1
 dn: ou=Servers,$BASEDN
 objectClass: organizationalUnit
 ou: Servers
@@ -177,7 +177,7 @@ fi
 
 echo "Inserting autoca overlay on slapd..."
 if [ "$AUTOCA" = autocamod ]; then
-	$LDAPADD -D cn=config -H $URI1 -y $CONFIGPWF <<EOF > $TESTOUT 2>&1
+	$LDAPADD -D cn=config -H $URIP1 -y $CONFIGPWF <<EOF > $TESTOUT 2>&1
 dn: cn=module,cn=config
 objectClass: olcModuleList
 cn: module
@@ -191,7 +191,7 @@ EOF
 		exit $RC
 	fi
 fi
-$LDAPMODIFY -D cn=config -H $URI1 -y $CONFIGPWF <<EOF >> $TESTOUT 2>&1
+$LDAPMODIFY -D cn=config -H $URIP1 -y $CONFIGPWF <<EOF >> $TESTOUT 2>&1
 dn: olcOverlay=autoca,olcDatabase={1}$BACKEND,cn=config
 changetype: add
 objectClass: olcOverlayConfig
@@ -206,7 +206,7 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 echo "Using ldapsearch to retrieve CA cert..."
-$LDAPSEARCH -b $BASEDN -D $MANAGERDN -H $URI1 -w $PASSWD -s base \
+$LDAPSEARCH -b $BASEDN -D $MANAGERDN -H $URIP1 -w $PASSWD -s base \
 	'objectclass=*' 'cACertificate;binary'  > $SEARCHOUT 2>&1
 RC=$?
 
@@ -222,7 +222,7 @@ sed -e "/^dn:/d" -e "s/cACertificate;binary:://" -e "/^$/d" $SEARCHOUT >> $TESTD
 echo "-----END CERTIFICATE-----" >> $TESTDIR/cacert.pem
 
 echo "Using ldapsearch to generate localhost cert..."
-$LDAPSEARCH -b cn=localhost,ou=Servers,$BASEDN -D $MANAGERDN -H $URI1 -w $PASSWD -s base \
+$LDAPSEARCH -b cn=localhost,ou=Servers,$BASEDN -D $MANAGERDN -H $URIP1 -w $PASSWD -s base \
 	-A 'objectclass=*' 'userCertificate;binary' 'userPrivateKey;binary'  >> $TESTOUT 2>&1
 RC=$?
 
@@ -236,7 +236,7 @@ echo "Using ldapsearch to attempt TLS..."
 unset LDAPNOINIT
 LDAPTLS_CACERT=$TESTDIR/cacert.pem
 export LDAPTLS_CACERT
-$LDAPSEARCH -b $BASEDN -D $MANAGERDN -H $URI1 -w $PASSWD -s base -ZZ \
+$LDAPSEARCH -b $BASEDN -D $MANAGERDN -H $URIP1 -w $PASSWD -s base -ZZ \
 	'objectclass=*' >> $TESTOUT 2>&1
 RC=$?
 
@@ -250,7 +250,7 @@ fi
 # they need to be base64 encoded into PEM for most programs to use them
 # so we ignore those files for now.
 echo "Using ldapsearch to generate user cert..."
-$LDAPSEARCH -b "$BABSDN" -D $MANAGERDN -H $URI1 -w $PASSWD -s base -ZZ \
+$LDAPSEARCH -b "$BABSDN" -D $MANAGERDN -H $URIP1 -w $PASSWD -s base -ZZ \
 	-T $TESTDIR -t 'objectclass=*' 'userCertificate;binary' 'userPrivateKey;binary'  >> $TESTOUT 2>&1
 RC=$?
 
@@ -261,7 +261,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Using ldapsearch to retrieve user cert..."
-$LDAPSEARCH -b "$BABSDN" -D $MANAGERDN -H $URI1 -w $PASSWD -s base -ZZ \
+$LDAPSEARCH -b "$BABSDN" -D $MANAGERDN -H $URIP1 -w $PASSWD -s base -ZZ \
 	'objectclass=*' 'userCertificate;binary' > $SEARCHOUT 2>&1
 RC=$?
 
@@ -277,7 +277,7 @@ sed -e "/^dn:/d" -e "/^ dc=com/d" -e "s/userCertificate;binary:://" -e "/^$/d" $
 echo "-----END CERTIFICATE-----" >> $TESTDIR/usercert.pem
 
 echo "Using ldapsearch to retrieve user key..."
-$LDAPSEARCH -b "$BABSDN" -D $MANAGERDN -H $URI1 -w $PASSWD -s base -ZZ \
+$LDAPSEARCH -b "$BABSDN" -D $MANAGERDN -H $URIP1 -w $PASSWD -s base -ZZ \
 	'objectclass=*' 'userPrivateKey;binary' > $SEARCHOUT 2>&1
 RC=$?
 
@@ -298,7 +298,7 @@ export LDAPTLS_CERT
 export LDAPTLS_KEY
 
 echo "Setting TLSVerifyClient to try..."
-$LDAPMODIFY -D cn=config -H $URI1 -y $CONFIGPWF <<EOF >> $TESTOUT 2>&1
+$LDAPMODIFY -D cn=config -H $URIP1 -y $CONFIGPWF <<EOF >> $TESTOUT 2>&1
 dn: cn=config
 changetype: modify
 replace: olcTLSVerifyClient
@@ -311,7 +311,7 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-$CLIENTDIR/ldapwhoami -Y EXTERNAL -H $URI1 -ZZ
+$CLIENTDIR/ldapwhoami -Y EXTERNAL -H $URIP1 -ZZ
 
 if test $RC != 0 ; then
 	echo "ldapwhoami failed ($RC)!"
