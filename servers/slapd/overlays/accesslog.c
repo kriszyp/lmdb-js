@@ -1665,7 +1665,8 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 			}
 			/* ITS#6545: when the same attribute is edited multiple times,
 			 * record the transition */
-			if ( m->sml_next && m->sml_desc == m->sml_next->sml_desc ) {
+			if ( m->sml_next && m->sml_desc == m->sml_next->sml_desc &&
+					m->sml_op == m->sml_next->sml_op ) {
 				ber_str2bv( ":", STRLENOF(":"), 1, &vals[i] );
 				i++;
 			}
