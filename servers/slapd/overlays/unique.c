@@ -1012,11 +1012,11 @@ unique_search(
 
 	if(uq.count) {
 		errmsgsize = sizeof("non-unique attributes found with ") + key->bv_len;
-		errmsg = ch_malloc(errmsgsize);
+		errmsg = op->o_tmpalloc(errmsgsize, op->o_tmpmemctx);
 		snprintf( errmsg, errmsgsize, "non-unique attributes found with %s", key->bv_val );
 		op->o_bd->bd_info = (BackendInfo *) on->on_info;
 		send_ldap_error(op, rs, LDAP_CONSTRAINT_VIOLATION, errmsg);
-		ch_free(errmsg);
+		op->o_tmpfree(errmsg, op->o_tmpmemctx);
 		return(rs->sr_err);
 	}
 
