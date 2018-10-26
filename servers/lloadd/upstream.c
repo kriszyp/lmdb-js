@@ -537,6 +537,7 @@ upstream_bind( void *ctx, void *arg )
     }
 
     CONNECTION_LOCK(c);
+    assert( !event_pending( c->c_read_event, EV_READ, NULL ) );
     c->c_pdu_cb = upstream_bind_cb;
     CONNECTION_UNLOCK(c);
 
@@ -666,6 +667,7 @@ upstream_finish( LloadConnection *c )
                 c->c_connid );
         return LDAP_SUCCESS;
     }
+    event_add( c->c_read_event, c->c_read_timeout );
 
     Debug( LDAP_DEBUG_CONNS, "upstream_finish: "
             "%sconnection connid=%lu for backend server '%s' is ready for "
@@ -713,8 +715,6 @@ upstream_tls_handshake_cb( evutil_socket_t s, short what, void *arg )
         c->c_read_timeout = NULL;
         event_assign( c->c_read_event, base, c->c_fd, EV_READ|EV_PERSIST,
                 connection_read_cb, c );
-        event_add( c->c_read_event, c->c_read_timeout );
-
         event_assign( c->c_write_event, base, c->c_fd, EV_WRITE,
                 connection_write_cb, c );
         Debug( LDAP_DEBUG_CONNS, "upstream_tls_handshake_cb: "
@@ -904,6 +904,9 @@ upstream_init( ber_socket_t s, LloadBackend *b )
     /* We only add the write event when we have data pending */
     c->c_write_event = event;
 
+    c->c_destroy = upstream_destroy;
+    c->c_unlink = upstream_unlink;
+
     if ( c->c_is_tls == LLOAD_CLEARTEXT ) {
         if ( upstream_finish( c ) ) {
             goto fail;
@@ -911,6 +914,7 @@ upstream_init( ber_socket_t s, LloadBackend *b )
     } else if ( c->c_is_tls == LLOAD_LDAPS ) {
         event_assign( c->c_read_event, base, s, EV_READ|EV_PERSIST,
                 upstream_tls_handshake_cb, c );
+        event_add( c->c_read_event, c->c_read_timeout );
         event_assign( c->c_write_event, base, s, EV_WRITE,
                 upstream_tls_handshake_cb, c );
         event_add( c->c_write_event, lload_write_timeout );
@@ -933,11 +937,10 @@ upstream_init( ber_socket_t s, LloadBackend *b )
         CONNECTION_UNLOCK(c);
         connection_write_cb( s, 0, c );
         CONNECTION_LOCK(c);
+        if ( IS_ALIVE( c, c_live ) ) {
+            event_add( c->c_read_event, c->c_read_timeout );
+        }
     }
-    event_add( c->c_read_event, c->c_read_timeout );
-
-    c->c_destroy = upstream_destroy;
-    c->c_unlink = upstream_unlink;
     CONNECTION_UNLOCK(c);
 
     return c;
