@@ -127,6 +127,10 @@ operation_init( LloadConnection *c, BerElement *ber )
     ber_len_t len;
     int rc;
 
+    if ( !IS_ALIVE( c, c_live ) ) {
+        return NULL;
+    }
+
     op = ch_calloc( 1, sizeof(LloadOperation) );
     op->o_client = c;
     op->o_client_connid = c->c_connid;
@@ -343,7 +347,7 @@ operation_send_abandon( LloadOperation *op, LloadConnection *upstream )
     BerElement *ber;
     int rc = -1;
 
-    if ( !IS_ALIVE( upstream, c_refcnt ) ) {
+    if ( !IS_ALIVE( upstream, c_live ) ) {
         return rc;
     }
 
@@ -400,7 +404,7 @@ operation_abandon( LloadOperation *op )
     ldap_pvt_thread_mutex_lock( &op->o_link_mutex );
     c = op->o_upstream;
     ldap_pvt_thread_mutex_unlock( &op->o_link_mutex );
-    if ( !c || !IS_ALIVE( c, c_refcnt ) ) {
+    if ( !c || !IS_ALIVE( c, c_live ) ) {
         goto done;
     }
 
@@ -443,7 +447,7 @@ operation_send_reject(
     ldap_pvt_thread_mutex_lock( &op->o_link_mutex );
     c = op->o_client;
     ldap_pvt_thread_mutex_unlock( &op->o_link_mutex );
-    if ( !c || !IS_ALIVE( c, c_refcnt ) ) {
+    if ( !c || !IS_ALIVE( c, c_live ) ) {
         Debug( LDAP_DEBUG_TRACE, "operation_send_reject: "
                 "not sending msgid=%d, client connid=%lu is dead\n",
                 op->o_client_msgid, op->o_client_connid );

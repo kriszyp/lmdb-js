@@ -259,6 +259,9 @@ backend_select( LloadOperation *op, int *res )
                         "connid=%lu msgid=%d\n",
                         c->c_connid, op->o_client_connid, op->o_client_msgid );
 
+                /* c_state is DYING if we're about to be unlinked */
+                assert( IS_ALIVE( c, c_live ) );
+
                 /*
                  * Round-robin step:
                  * Rotate the queue to put this connection at the end, same for

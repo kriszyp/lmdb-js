@@ -338,7 +338,7 @@ request_bind( LloadConnection *client, LloadOperation *op )
         if ( upstream ) {
             ldap_pvt_thread_mutex_lock( &upstream->c_io_mutex );
             CONNECTION_LOCK(upstream);
-            if ( !upstream->c_live ) {
+            if ( !IS_ALIVE( upstream, c_live ) ) {
                 CONNECTION_UNLOCK(upstream);
                 ldap_pvt_thread_mutex_unlock( &upstream->c_io_mutex );
                 upstream = NULL;
@@ -429,6 +429,29 @@ request_bind( LloadConnection *client, LloadOperation *op )
     op->o_upstream_connid = upstream->c_connid;
     op->o_upstream_msgid = upstream->c_next_msgid++;
     op->o_res = LLOAD_OP_FAILED;
+
+    /* Was it unlinked in the meantime? No need to send a response since the
+     * client is dead */
+    if ( !IS_ALIVE( op, o_refcnt ) ) {
+        LloadBackend *b = upstream->c_private;
+
+        upstream->c_n_ops_executing--;
+        ldap_pvt_thread_mutex_unlock( &upstream->c_io_mutex );
+        CONNECTION_UNLOCK(upstream);
+
+        ldap_pvt_thread_mutex_lock( &b->b_mutex );
+        b->b_n_ops_executing--;
+        ldap_pvt_thread_mutex_unlock( &b->b_mutex );
+
+        assert( !IS_ALIVE( client, c_live ) );
+        ldap_pvt_thread_mutex_lock( &op->o_link_mutex );
+        if ( op->o_upstream ) {
+            op->o_upstream = NULL;
+        }
+        ldap_pvt_thread_mutex_unlock( &op->o_link_mutex );
+        rc = -1;
+        goto done;
+    }
 
     if ( BER_BVISNULL( &mech ) ) {
         if ( !BER_BVISNULL( &upstream->c_sasl_bind_mech ) ) {

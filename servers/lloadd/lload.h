@@ -301,8 +301,7 @@ struct LloadConnection {
 #define CONNECTION_UNLOCK(c) ldap_pvt_thread_mutex_unlock( &(c)->c_mutex )
 #define CONNECTION_UNLINK_(c) \
     do { \
-        if ( (c)->c_live ) { \
-            (c)->c_live = 0; \
+        if ( __atomic_exchange_n( &(c)->c_live, 0, __ATOMIC_ACQ_REL ) ) { \
             RELEASE_REF( (c), c_refcnt, c->c_destroy ); \
             (c)->c_unlink( (c) ); \
         } \

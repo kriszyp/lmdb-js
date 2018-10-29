@@ -161,16 +161,13 @@ connection_read_cb( evutil_socket_t s, short what, void *arg )
     ber_len_t len;
     epoch_t epoch;
 
-    CONNECTION_LOCK(c);
-    if ( !c->c_live ) {
+    if ( !IS_ALIVE( c, c_live ) ) {
         event_del( c->c_read_event );
-        CONNECTION_UNLOCK(c);
         Debug( LDAP_DEBUG_CONNS, "connection_read_cb: "
                 "suspended read event on a dead connid=%lu\n",
                 c->c_connid );
         return;
     }
-    CONNECTION_UNLOCK(c);
 
     if ( what & EV_TIMEOUT ) {
         Debug( LDAP_DEBUG_CONNS, "connection_read_cb: "
@@ -271,15 +268,12 @@ connection_write_cb( evutil_socket_t s, short what, void *arg )
     LloadConnection *c = arg;
     epoch_t epoch;
 
-    CONNECTION_LOCK(c);
     Debug( LDAP_DEBUG_CONNS, "connection_write_cb: "
             "considering writing to%s connid=%lu what=%hd\n",
             c->c_live ? " live" : " dead", c->c_connid, what );
-    if ( !c->c_live ) {
-        CONNECTION_UNLOCK(c);
+    if ( !IS_ALIVE( c, c_live ) ) {
         return;
     }
-    CONNECTION_UNLOCK(c);
 
     if ( what & EV_TIMEOUT ) {
         Debug( LDAP_DEBUG_CONNS, "connection_write_cb: "

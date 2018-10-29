@@ -247,7 +247,7 @@ handle_one_response( LloadConnection *c )
         ldap_pvt_thread_mutex_lock( &op->o_link_mutex );
         client = op->o_client;
         ldap_pvt_thread_mutex_unlock( &op->o_link_mutex );
-        if ( client && IS_ALIVE( client, c_refcnt ) ) {
+        if ( client && IS_ALIVE( client, c_live ) ) {
             rc = handler( client, op, ber );
         } else {
             ber_free( ber, 1 );
@@ -1053,6 +1053,8 @@ upstream_destroy( LloadConnection *c )
     CONNECTION_LOCK(c);
     assert( c->c_state == LLOAD_C_DYING );
     c->c_state = LLOAD_C_INVALID;
+
+    assert( c->c_ops == NULL );
 
     if ( c->c_read_event ) {
         event_free( c->c_read_event );

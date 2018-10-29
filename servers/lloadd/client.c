@@ -106,6 +106,28 @@ request_process( LloadConnection *client, LloadOperation *op )
     op->o_upstream_connid = upstream->c_connid;
     op->o_res = LLOAD_OP_FAILED;
 
+    /* Was it unlinked in the meantime? No need to send a response since the
+     * client is dead */
+    if ( !IS_ALIVE( op, o_refcnt ) ) {
+        LloadBackend *b = upstream->c_private;
+
+        upstream->c_n_ops_executing--;
+        ldap_pvt_thread_mutex_unlock( &upstream->c_io_mutex );
+        CONNECTION_UNLOCK(upstream);
+
+        ldap_pvt_thread_mutex_lock( &b->b_mutex );
+        b->b_n_ops_executing--;
+        ldap_pvt_thread_mutex_unlock( &b->b_mutex );
+
+        assert( !IS_ALIVE( client, c_live ) );
+        ldap_pvt_thread_mutex_lock( &op->o_link_mutex );
+        if ( op->o_upstream ) {
+            op->o_upstream = NULL;
+        }
+        ldap_pvt_thread_mutex_unlock( &op->o_link_mutex );
+        return -1;
+    }
+
     output = upstream->c_pendingber;
     if ( output == NULL && (output = ber_alloc()) == NULL ) {
         LloadBackend *b = upstream->c_private;
@@ -286,12 +308,9 @@ client_tls_handshake_cb( evutil_socket_t s, short what, void *arg )
         ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
         connection_write_cb( s, what, arg );
 
-        CONNECTION_LOCK(c);
-        if ( !c->c_live ) {
-            CONNECTION_UNLOCK(c);
+        if ( !IS_ALIVE( c, c_live ) ) {
             goto fail;
         }
-        CONNECTION_UNLOCK(c);
 
         /* Do we still have data pending? If so, connection_write_cb would
          * already have arranged the write callback to trigger again */
@@ -324,7 +343,7 @@ client_tls_handshake_cb( evutil_socket_t s, short what, void *arg )
         c->c_read_timeout = NULL;
         event_assign( c->c_read_event, base, c->c_fd, EV_READ|EV_PERSIST,
                 connection_read_cb, c );
-        if ( c->c_live ) {
+        if ( IS_ALIVE( c, c_live ) ) {
             event_add( c->c_read_event, c->c_read_timeout );
         }
 
@@ -338,11 +357,11 @@ client_tls_handshake_cb( evutil_socket_t s, short what, void *arg )
         CONNECTION_UNLOCK(c);
         return;
     } else if ( ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_NEEDS_WRITE, NULL ) ) {
-        CONNECTION_LOCK(c);
-        if ( c->c_live ) {
+        if ( IS_ALIVE( c, c_live ) ) {
+            CONNECTION_LOCK(c);
             event_add( c->c_write_event, lload_write_timeout );
+            CONNECTION_UNLOCK(c);
         }
-        CONNECTION_UNLOCK(c);
         Debug( LDAP_DEBUG_CONNS, "client_tls_handshake_cb: "
                 "connid=%lu need write rc=%d\n",
                 c->c_connid, rc );
@@ -536,6 +555,8 @@ client_destroy( LloadConnection *c )
     CONNECTION_LOCK(c);
     assert( c->c_state == LLOAD_C_DYING );
     c->c_state = LLOAD_C_INVALID;
+
+    assert( c->c_ops == NULL );
 
     if ( c->c_read_event ) {
         event_free( c->c_read_event );
