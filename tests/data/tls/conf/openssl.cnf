@@ -51,7 +51,7 @@ commonName              = supplied
 emailAddress            = optional
 
 [ req ]
-default_bits            = 2048
+default_bits            = @KEY_BITS@
 default_keyfile         = privkey.pem
 distinguished_name      = req_distinguished_name
 attributes              = req_attributes

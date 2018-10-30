@@ -5,6 +5,9 @@ if [ x"$openssl" = "x" ]; then
 echo "OpenSSL command line binary not found, skipping..."
 fi
 
+KEY_BITS=4096
+KEY_TYPE=rsa:$KEY_BITS
+
 USAGE="$0 [-s] [-u <user@domain.com>]"
 SERVER=0
 USER=0
@@ -45,13 +48,13 @@ echo "00" > cruft/serial
 touch cruft/index.txt
 touch cruft/index.txt.attr
 hn=$(hostname -f)
-sed -e "s;@HOSTNAME@;$hn;" conf/openssl.cnf >  ./openssl.cnf
+sed -e "s;@HOSTNAME@;$hn;" -e "s;@KEY_BITS@;$KEY_BITS;" conf/openssl.cnf >  ./openssl.cnf
 
 if [ $SERVER = 1 ]; then
 	rm -rf private/localhost.key certs/localhost.crt
 
 	$openssl req -new -nodes -out localhost.csr -keyout private/localhost.key \
-		-newkey rsa:1024 -config ./openssl.cnf \
+		-newkey $KEY_TYPE -config ./openssl.cnf \
 		-subj "/CN=localhost/OU=OpenLDAP Test Suite/O=OpenLDAP Foundation/ST=CA/C=US" \
 		-batch > /dev/null 2>&1
 
@@ -66,7 +69,7 @@ if [ $USER = 1 ]; then
 	rm -f certs/$EMAIL.crt private/$EMAIL.key $EMAIL.csr
 
 	$openssl req -new -nodes -out $EMAIL.csr -keyout private/$EMAIL.key \
-		-newkey rsa:1024 -config ./openssl.cnf \
+		-newkey $KEY_TYPE -config ./openssl.cnf \
 		-subj "/emailAddress=$EMAIL/CN=$EMAIL/OU=OpenLDAP/O=OpenLDAP Foundation/ST=CA/C=US" \
 		-batch >/dev/null 2>&1
 
