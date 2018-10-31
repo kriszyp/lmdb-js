@@ -41,8 +41,8 @@
 #include "slapd-common.h"
 
 static int
-do_bind( struct tester_conn_args *config, char *dn, int maxloop,
-	int force, int noinit, LDAP **ldp, int action_type, void *action );
+do_bind( struct tester_conn_args *config, char *dn, int maxloop, int force,
+	int noinit, LDAP **ldp, struct berval *pass, int action_type, void *action );
 
 static int
 do_base( struct tester_conn_args *config, char *dn, char *base, char *filter, char *pwattr,
@@ -187,7 +187,7 @@ main( int argc, char **argv )
 				filter, pwattr, force, noinit, -1, NULL );
 		} else {
 			rc = do_bind( config, config->binddn,
-				config->loops, force, noinit, NULL, -1, NULL );
+				config->loops, force, noinit, NULL, &config->pass, -1, NULL );
 		}
 		if ( rc == LDAP_SERVER_DOWN )
 			break;
@@ -198,8 +198,8 @@ main( int argc, char **argv )
 
 
 static int
-do_bind( struct tester_conn_args *config, char *dn, int maxloop,
-	int force, int noinit, LDAP **ldp, int action_type, void *action )
+do_bind( struct tester_conn_args *config, char *dn, int maxloop, int force,
+	int noinit, LDAP **ldp, struct berval *pass, int action_type, void *action )
 {
 	LDAP	*ld = ldp ? *ldp : NULL;
 	char	*bindfunc = "ldap_sasl_bind_s";
@@ -277,7 +277,7 @@ do_bind( struct tester_conn_args *config, char *dn, int maxloop,
 #ifdef HAVE_CYRUS_SASL
 			bindfunc = "ldap_sasl_interactive_bind_s";
 			rc = ldap_sasl_interactive_bind_s( ld,
-					config->binddn,
+					dn,
 					config->mech,
 					NULL, NULL,
 					LDAP_SASL_QUIET,
@@ -290,8 +290,8 @@ do_bind( struct tester_conn_args *config, char *dn, int maxloop,
 		} else if ( config->authmethod == LDAP_AUTH_SIMPLE ) {
 			bindfunc = "ldap_sasl_bind_s";
 			rc = ldap_sasl_bind_s( ld,
-					config->binddn, LDAP_SASL_SIMPLE,
-					&config->pass, NULL, NULL, NULL );
+					dn, LDAP_SASL_SIMPLE,
+					pass, NULL, NULL, NULL );
 		}
 
 		if ( rc ) {
@@ -477,6 +477,7 @@ novals:;
 
 	/* Ok, got list of DNs, now start binding to each */
 	for ( i = 0; i < config->loops; i++ ) {
+		struct berval *pass = &config->pass;
 		int		j;
 
 #if 0	/* use high-order bits for better randomness (Numerical Recipes in "C") */
@@ -485,10 +486,10 @@ novals:;
 		j = ((double)ndns)*rand()/(RAND_MAX + 1.0);
 
 		if ( creds && !BER_BVISEMPTY( &creds[j] ) ) {
-			config->pass = creds[j];
+			pass = &creds[j];
 		}
 
-		if ( do_bind( config, dns[j], 1, force, noinit, &ld,
+		if ( do_bind( config, dns[j], 1, force, noinit, &ld, pass,
 			action_type, action ) && !force )
 		{
 			break;
