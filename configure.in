@@ -1063,7 +1063,7 @@ if test $ac_cv_header_sys_uuid_h = yes ; then
 			[define if you have uuid_to_str()])
 
 		test "$ac_cv_search_uuid_to_str" = "none required" || \
-			SLAPD_LIBS="$SLAPD_LIBS $ac_cv_search_uuid_to_str"
+			LUTIL_LIBS="$LUTIL_LIBS $ac_cv_search_uuid_to_str"
 	fi
 fi
 
@@ -1082,7 +1082,7 @@ if test $have_uuid = no ; then
 				[define if you have uuid_generate()])
 
 			test "$ac_cv_search_uuid_generate" = "none required" || \
-				SLAPD_LIBS="$SLAPD_LIBS $ac_cv_search_uuid_generate"
+				LUTIL_LIBS="$LUTIL_LIBS $ac_cv_search_uuid_generate"
 		fi
 	fi
 fi
