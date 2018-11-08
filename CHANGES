@@ -17,6 +17,8 @@ OpenLDAP 2.4.47 Engineering
 	Fixed slapo-syncprov with NULL modlist (ITS#8843)
 	Build Environment
 		Fixed missing includes with OpenSSL 1.0.2 (ITS#8809)
+	Contrib
+		Fixed slapo-pbkdf2 hash generation (ITS#8878)
 
 OpenLDAP 2.4.46 Release (2018/03/22)
 	Fixed libldap connection delete callbacks when TLS fails to start (ITS#8717)
