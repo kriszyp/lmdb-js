@@ -57,7 +57,7 @@ syncrepl
     scope=sub
     schemachecking=on
     retry="5 10 60 +"
-    logbase="cn=accesslog"
+    logbase="cn=log"
     logfilter="(&(objectClass=auditWriteObject)(reqResult=0))"
     syncdata=accesslog
     sizeLimit=unlimited
@@ -75,7 +75,7 @@ syncrepl
     scope=sub
     schemachecking=on
     retry="5 10 60 +"
-    logbase="cn=accesslog"
+    logbase="cn=log"
     logfilter="(&(objectClass=auditWriteObject)(reqResult=0))"
     syncdata=accesslog
     sizeLimit=unlimited
@@ -93,7 +93,7 @@ syncrepl
     scope=sub
     schemachecking=on
     retry="5 10 60 +"
-    logbase="cn=accesslog"
+    logbase="cn=log"
     logfilter="(&(objectClass=auditWriteObject)(reqResult=0))"
     syncdata=accesslog
     sizeLimit=unlimited
@@ -111,7 +111,7 @@ syncrepl
     scope=sub
     schemachecking=on
     retry="5 10 60 +"
-    logbase="cn=accesslog"
+    logbase="cn=log"
     logfilter="(&(objectClass=auditWriteObject)(reqResult=0))"
     syncdata=accesslog
     sizeLimit=unlimited
@@ -135,6 +135,7 @@ rootdn          "cn=Manager,dc=example,dc=com"
 #~null~#directory	@TESTDIR@/srvMMR/db.2
 #indexdb#index		objectClass	eq
 #indexdb#index		entryCSN,entryUUID,reqEnd,reqResult,reqStart eq
+#mdb#maxsize        @MAPSIZE@
 
 overlay syncprov
 syncprov-reloadhint true
