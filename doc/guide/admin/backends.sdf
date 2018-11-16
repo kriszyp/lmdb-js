@@ -444,7 +444,7 @@ a new Perl object that handles all the requests for that particular instance of 
 
 The Shell backend to {{slapd}}(8) executes external programs to implement 
 operations, and is designed to make it easy to tie an existing database to the 
-slapd front-end. This backend is is primarily intended to be used in prototypes.
+slapd front-end. This backend is primarily intended to be used in prototypes.
 
 H3: back-perl/back-shell Configuration
 
