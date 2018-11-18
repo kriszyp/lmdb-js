@@ -104,7 +104,7 @@ ldap_create_dirsync_control(
 		flags, maxAttrCount, cookie, &value );
 	if ( ld->ld_errno == LDAP_SUCCESS ) {
 		ld->ld_errno = ldap_control_create( LDAP_CONTROL_X_DIRSYNC,
-			0, &value, 0, ctrlp );
+			1, &value, 0, ctrlp );
 		if ( ld->ld_errno != LDAP_SUCCESS ) {
 			LDAP_FREE( value.bv_val );
 		}
