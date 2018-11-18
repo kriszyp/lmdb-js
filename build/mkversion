@@ -50,7 +50,12 @@ if test $# != 1 ; then
 fi
 
 APPLICATION=$1
-WHOWHERE="$USER@`uname -n`:`pwd`"
+# Reproducible builds set SOURCE_DATE_EPOCH, want constant strings
+if [ -n "${SOURCE_DATE_EPOCH}" ]; then
+   WHOWHERE="openldap"
+else
+   WHOWHERE="$USER@$(uname -n):$(pwd)"
+fi
 
 cat << __EOF__
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
