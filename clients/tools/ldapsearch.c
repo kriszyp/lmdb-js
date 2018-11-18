@@ -139,6 +139,16 @@ usage( void )
 #ifdef LDAP_CONTROL_X_DEREF
 	fprintf( stderr, _("             [!]deref=derefAttr:attr[,...][;derefAttr:attr[,...][;...]]\n"));
 #endif
+#ifdef LDAP_CONTROL_X_DIRSYNC
+	fprintf( stderr, _("             !dirSync=<flags>/<maxAttrCount>[/<cookie>]\n"));
+	fprintf( stderr, _("                                         (MS AD DirSync)\n"));
+#endif
+#ifdef LDAP_CONTROL_X_EXTENDED_DN
+	fprintf( stderr, _("             [!]extendedDn=<flag>        (MS AD Extended DN\n"));
+#endif
+#ifdef LDAP_CONTROL_X_SHOW_DELETED
+	fprintf( stderr, _("             [!]showDeleted              (MS AD Show Deleted)\n"));
+#endif
 	fprintf( stderr, _("             [!]<oid>[=:<b64value>] (generic control; no response handling)\n"));
 	fprintf( stderr, _("  -f file    read operations from `file'\n"));
 	fprintf( stderr, _("  -F prefix  URL prefix for files (default: %s)\n"), def_urlpre);
@@ -243,6 +253,22 @@ static int save_nctrls = 0;
 static int derefcrit;
 static LDAPDerefSpec *ds;
 static struct berval derefval;
+#endif
+
+#ifdef LDAP_CONTROL_X_DIRSYNC
+static int dirSync;
+static int dirSyncFlags;
+static int dirSyncMaxAttrCount;
+static struct berval dirSyncCookie;
+#endif
+
+#ifdef LDAP_CONTROL_X_EXTENDED_DN
+static int extendedDn;
+static int extendedDnFlag;
+#endif
+
+#ifdef LDAP_CONTROL_X_SHOW_DELETED
+static int showDeleted;
 #endif
 
 static int
@@ -625,6 +651,101 @@ handle_private_option( int i )
 			ldap_memfree( specs );
 #endif /* LDAP_CONTROL_X_DEREF */
 
+#ifdef LDAP_CONTROL_X_DIRSYNC
+		} else if ( strcasecmp( control, "dirSync" ) == 0 ) {
+			char *maxattrp;
+			char *cookiep;
+			int num, tmp;
+			if( dirSync ) {
+				fprintf( stderr,
+					_("dirSync control previously specified\n"));
+				exit( EXIT_FAILURE );
+			}
+			if ( cvalue == NULL ) {
+				fprintf( stderr, _("missing specification of dirSync control\n"));
+				exit( EXIT_FAILURE );
+			}
+			if( !crit ) {
+				fprintf( stderr,
+			         _("dirSync: critical flag required\n") );
+				usage();
+			}
+			maxattrp = strchr( cvalue, '/' );
+			if ( maxattrp == NULL ) {
+				fprintf( stderr, _("dirSync control value \"%s\" invalid\n"),
+					cvalue );
+				exit( EXIT_FAILURE );
+			}
+			*maxattrp++ = '\0';
+			cookiep = strchr( maxattrp, '/' );
+			if ( cookiep != NULL ) {
+				*cookiep++ = '\0';
+				if ( *cookiep != '\0' ) {
+					ber_str2bv( cookiep, 0, 0, &dirSyncCookie );
+				}
+			}
+			num = sscanf( cvalue, "%d", &tmp );
+			if ( num != 1 ) {
+				fprintf( stderr,
+					_("Invalid value for dirSync, %s.\n"),
+					cvalue );
+				exit( EXIT_FAILURE );
+			}
+			dirSyncFlags = tmp;
+
+			num = sscanf( maxattrp, "%d", &tmp );
+			if ( num != 1 ) {
+				fprintf( stderr,
+					_("Invalid value for dirSync, %s.\n"),
+					maxattrp );
+				exit( EXIT_FAILURE );
+			}
+			dirSyncMaxAttrCount = tmp;
+
+			dirSync = 1 + crit;
+#endif /* LDAP_CONTROL_X_DIRSYNC */
+
+#ifdef LDAP_CONTROL_X_EXTENDED_DN
+		} else if ( strcasecmp( control, "extendedDn" ) == 0 ) {
+			int num, tmp;
+			if( extendedDn ) {
+				fprintf( stderr,
+					_("extendedDn control previously specified\n"));
+				exit( EXIT_FAILURE );
+			}
+			if ( cvalue == NULL ) {
+				fprintf( stderr, _("missing specification of extendedDn control\n"));
+				exit( EXIT_FAILURE );
+			}
+			num = sscanf( cvalue, "%d", &tmp );
+			if ( num != 1 ) {
+				fprintf( stderr,
+					_("Invalid value for extendedDn, %s.\n"),
+					cvalue );
+				exit( EXIT_FAILURE );
+			}
+
+			extendedDnFlag = tmp;
+			extendedDn = 1 + crit;
+#endif /* LDAP_CONTROL_X_EXTENDED_DN */
+
+#ifdef LDAP_CONTROL_X_SHOW_DELETED
+		} else if ( strcasecmp( control, "showDeleted" ) == 0 ) {
+			int num, tmp;
+			if( showDeleted ) {
+				fprintf( stderr,
+					_("showDeleted control previously specified\n"));
+				exit( EXIT_FAILURE );
+			}
+			if ( cvalue != NULL ) {
+				fprintf( stderr,
+			         _("showDeleted: no control value expected\n") );
+				usage();
+			}
+
+			showDeleted = 1 + crit;
+#endif /* LDAP_CONTROL_X_SHOW_DELETED */
+
 		} else if ( tool_is_oid( control ) ) {
 			if ( c != NULL ) {
 				int i;
@@ -924,6 +1045,15 @@ getNextPage:
 #ifdef LDAP_CONTROL_X_DEREF
 		|| derefcrit
 #endif
+#ifdef LDAP_CONTROL_X_DIRSYNC
+		|| dirSync
+#endif
+#ifdef LDAP_CONTROL_X_EXTENDED_DN
+		|| extendedDn
+#endif
+#ifdef LDAP_CONTROL_X_SHOW_DELETED
+		|| showDeleted
+#endif
 		|| domainScope
 		|| pagedResults
 		|| ldapsync
@@ -1090,7 +1220,7 @@ getNextPage:
 			}
 
 			c[i].ldctl_oid = LDAP_CONTROL_VLVREQUEST;
-			c[i].ldctl_iscritical = sss > 1;
+			c[i].ldctl_iscritical = vlv > 1;
 			i++;
 		}
 #ifdef LDAP_CONTROL_X_DEREF
@@ -1122,6 +1252,54 @@ getNextPage:
 			i++;
 		}
 #endif /* LDAP_CONTROL_X_DEREF */
+#ifdef LDAP_CONTROL_X_DIRSYNC
+		if ( dirSync ) {
+			if ( ctrl_add() ) {
+				tool_exit( ld, EXIT_FAILURE );
+			}
+
+			if ( ldap_create_dirsync_value( ld,
+				dirSyncFlags, dirSyncMaxAttrCount, &dirSyncCookie,
+				&c[i].ldctl_value ) )
+			{
+				tool_exit( ld, EXIT_FAILURE );
+			}
+
+			c[i].ldctl_oid = LDAP_CONTROL_X_DIRSYNC;
+			c[i].ldctl_iscritical = dirSync > 1;
+			i++;
+		}
+#endif
+#ifdef LDAP_CONTROL_X_EXTENDED_DN
+		if ( extendedDn ) {
+			if ( ctrl_add() ) {
+				tool_exit( ld, EXIT_FAILURE );
+			}
+
+			if ( ldap_create_extended_dn_value( ld,
+				extendedDnFlag, &c[i].ldctl_value ) )
+			{
+				tool_exit( ld, EXIT_FAILURE );
+			}
+
+			c[i].ldctl_oid = LDAP_CONTROL_X_EXTENDED_DN;
+			c[i].ldctl_iscritical = extendedDn > 1;
+			i++;
+		}
+#endif
+#ifdef LDAP_CONTROL_X_SHOW_DELETED
+		if ( showDeleted ) {
+			if ( ctrl_add() ) {
+				tool_exit( ld, EXIT_FAILURE );
+			}
+
+			c[i].ldctl_oid = LDAP_CONTROL_X_SHOW_DELETED;
+			c[i].ldctl_value.bv_val = NULL;
+			c[i].ldctl_value.bv_len = 0;
+			c[i].ldctl_iscritical = showDeleted > 1;
+			i++;
+		}
+#endif
 	}
 
 	tool_server_controls( ld, c, i );

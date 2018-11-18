@@ -155,6 +155,9 @@ static int print_whatfailed( LDAP *ld, LDAPControl *ctrl );
 #endif
 static int print_syncstate( LDAP *ld, LDAPControl *ctrl );
 static int print_syncdone( LDAP *ld, LDAPControl *ctrl );
+#ifdef LDAP_CONTROL_X_DIRSYNC
+static int print_dirsync( LDAP *ld, LDAPControl *ctrl );
+#endif
 
 static struct tool_ctrls_t {
 	const char	*oid;
@@ -181,6 +184,9 @@ static struct tool_ctrls_t {
 #endif
 	{ LDAP_CONTROL_SYNC_STATE,			TOOL_SEARCH,	print_syncstate },
 	{ LDAP_CONTROL_SYNC_DONE,			TOOL_SEARCH,	print_syncdone },
+#ifdef LDAP_CONTROL_X_DIRSYNC
+	{ LDAP_CONTROL_X_DIRSYNC,			TOOL_SEARCH,	print_dirsync },
+#endif
 	{ NULL,						0,		NULL }
 };
 
@@ -2467,6 +2473,38 @@ print_syncdone( LDAP *ld, LDAPControl *ctrl )
 	ber_free( ber, 1 );
 	return 0;
 }
+
+#ifdef LDAP_CONTROL_X_DIRSYNC
+static int
+print_dirsync( LDAP *ld, LDAPControl *ctrl )
+{
+	int rc, continueFlag;
+	struct berval cookie;
+
+	rc = ldap_parse_dirsync_control( ld, ctrl,
+		&continueFlag, &cookie );
+	if ( rc == LDAP_SUCCESS ) {
+		printf(_("# DirSync control continueFlag=%d\n"), continueFlag );
+		if ( !BER_BVISNULL( &cookie )) {
+			if ( ldif_is_not_printable( cookie.bv_val, cookie.bv_len ) ) {
+				struct berval bv;
+
+				bv.bv_len = LUTIL_BASE64_ENCODE_LEN( cookie.bv_len ) + 1;
+				bv.bv_val = ber_memalloc( bv.bv_len + 1 );
+
+				bv.bv_len = lutil_b64_ntop(
+						(unsigned char *) cookie.bv_val, cookie.bv_len,
+						bv.bv_val, bv.bv_len );
+
+				printf(_("# cookie:: %s\n"), bv.bv_val );
+				ber_memfree( bv.bv_val );
+			} else {
+				printf(_("# cookie: %s\n"), cookie.bv_val );
+			}
+		}
+	}
+}
+#endif
 
 #ifdef LDAP_CONTROL_AUTHZID_RESPONSE
 static int

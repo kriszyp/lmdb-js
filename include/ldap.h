@@ -347,6 +347,14 @@ typedef struct ldapcontrol {
 
 /* MS Active Directory controls - not implemented in slapd(8) */
 #define LDAP_CONTROL_X_EXTENDED_DN		"1.2.840.113556.1.4.529"
+#define LDAP_CONTROL_X_SHOW_DELETED		"1.2.840.113556.1.4.417"
+#define LDAP_CONTROL_X_DIRSYNC			"1.2.840.113556.1.4.841"
+
+#define LDAP_CONTROL_X_DIRSYNC_OBJECT_SECURITY		0x00000001
+#define LDAP_CONTROL_X_DIRSYNC_ANCESTORS_FIRST		0x00000800
+#define LDAP_CONTROL_X_DIRSYNC_PUBLIC_DATA_ONLY		0x00002000
+#define LDAP_CONTROL_X_DIRSYNC_INCREMENTAL_VALUES	0x80000000
+
 
 /* <draft-wahl-ldap-session> */
 #define LDAP_CONTROL_X_SESSION_TRACKING		"1.3.6.1.4.1.21008.108.63.1"
@@ -2546,6 +2554,55 @@ ldap_parse_session_tracking_control LDAP_P((
 	struct berval *id ));
 
 #endif /* LDAP_CONTROL_X_SESSION_TRACKING */
+
+/*
+ * in msctrl.c
+ */
+#ifdef LDAP_CONTROL_X_DIRSYNC
+LDAP_F( int )
+ldap_create_dirsync_value LDAP_P((
+	LDAP		*ld,
+	int		flags,
+	int		maxAttrCount,
+	struct berval	*cookie,
+	struct berval	*value ));
+
+LDAP_F( int )
+ldap_create_dirsync_control LDAP_P((
+	LDAP		*ld,
+	int		flags,
+	int		maxAttrCount,
+	struct berval	*cookie,
+	LDAPControl	**ctrlp ));
+
+LDAP_F( int )
+ldap_parse_dirsync_control LDAP_P((
+	LDAP		*ld,
+	LDAPControl	*ctrl,
+	int		*continueFlag,
+	struct berval	*cookie ));
+#endif /* LDAP_CONTROL_X_DIRSYNC */
+
+#ifdef LDAP_CONTROL_X_EXTENDED_DN
+LDAP_F( int )
+ldap_create_extended_dn_value LDAP_P((
+	LDAP		*ld,
+	int		flag,
+	struct berval	*value ));
+
+LDAP_F( int )
+ldap_create_extended_dn_control LDAP_P((
+	LDAP		*ld,
+	int		flag,
+	LDAPControl	**ctrlp ));
+#endif /* LDAP_CONTROL_X_EXTENDED_DN */
+
+#ifdef LDAP_CONTROL_X_SHOW_DELETED
+LDAP_F( int )
+ldap_create_show_deleted_control LDAP_P((
+	LDAP		*ld,
+	LDAPControl	**ctrlp ));
+#endif /* LDAP_CONTROL_X_SHOW_DELETED */
 
 /*
  * in assertion.c
