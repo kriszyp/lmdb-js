@@ -130,6 +130,8 @@ OpenLDAP 2.4.44 Release (2016/02/05)
 	Fixed slapo-ppolicy pwdMaxRecordedFailure must never be zero (ITS#8327)
 	Fixed slapo-syncprov abandon processing (ITS#8354)
 	Fixed slapo-syncprov ctxcsn snapshot on refresh (ITS#8281, ITS#8365)
+	Build Environment
+		Added slapd reproducible build support (ITS#8928)
 	Documentation
 		admin24 Stop linking to Berkeley DB downloads (ITS#8362)
 		admin24 Update documentation for LMDB preference
