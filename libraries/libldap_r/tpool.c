@@ -922,11 +922,11 @@ ldap_pvt_thread_pool_free ( ldap_pvt_thread_pool_t *tpool )
 
 		assert( !pq->ltp_open_count );
 		assert( LDAP_SLIST_EMPTY(&pq->ltp_free_list) );
+		ldap_pvt_thread_cond_destroy(&pq->ltp_cond);
+		ldap_pvt_thread_mutex_destroy(&pq->ltp_mutex);
 		if (pq->ltp_free) {
 			LDAP_FREE(pq->ltp_free);
 		}
-		ldap_pvt_thread_cond_destroy(&pq->ltp_cond);
-		ldap_pvt_thread_mutex_destroy(&pq->ltp_mutex);
 	}
 	LDAP_FREE(pool->ltp_wqs);
 	LDAP_FREE(pool);
