@@ -548,10 +548,10 @@ lload_monitor_in_conn_create(
     mp_parent = e_parent->e_private;
     arg.ms = (monitor_subsys_t *)mp_parent->mp_info;
 
-    ldap_pvt_thread_mutex_lock( &clients_mutex );
+    checked_lock( &clients_mutex );
     connections_walk(
             &clients_mutex, &clients, lload_monitor_in_conn_entry, &arg );
-    ldap_pvt_thread_mutex_unlock( &clients_mutex );
+    checked_unlock( &clients_mutex );
 
     return 0;
 }
@@ -655,13 +655,13 @@ lload_monitor_up_conn_create(
 
     arg.ms = ms;
 
-    ldap_pvt_thread_mutex_lock( &b->b_mutex );
+    checked_lock( &b->b_mutex );
     connections_walk_last( &b->b_mutex, &b->b_conns, b->b_last_conn,
             lload_monitor_up_conn_entry, &arg );
 
     connections_walk_last( &b->b_mutex, &b->b_bindconns, b->b_last_bindconn,
             lload_monitor_up_conn_entry, &arg );
-    ldap_pvt_thread_mutex_unlock( &b->b_mutex );
+    checked_unlock( &b->b_mutex );
 
     return 0;
 }
@@ -722,7 +722,7 @@ lload_monitor_server_update(
                   failed = 0;
     int i;
 
-    ldap_pvt_thread_mutex_lock( &b->b_mutex );
+    checked_lock( &b->b_mutex );
     active = b->b_active + b->b_bindavail;
 
     LDAP_CIRCLEQ_FOREACH ( c, &b->b_preparing, c_next ) {
@@ -743,7 +743,7 @@ lload_monitor_server_update(
     assert( a != NULL );
     UI2BV( &a->a_vals[0], (long long unsigned int)b->b_n_ops_executing );
 
-    ldap_pvt_thread_mutex_unlock( &b->b_mutex );
+    checked_unlock( &b->b_mutex );
 
     /* Right now, there is no way to retrieve the entry from monitor's
      * cache to replace URI at the moment it is modified */
@@ -935,13 +935,13 @@ lload_monitor_update_global_stats( void *ctx, void *arg )
             "updating stats\n" );
 
     /* count incoming connections */
-    ldap_pvt_thread_mutex_lock( &clients_mutex );
+    checked_lock( &clients_mutex );
     connections_walk( &clients_mutex, &clients, lload_monitor_incoming_count,
             &tmp_stats );
-    ldap_pvt_thread_mutex_unlock( &clients_mutex );
+    checked_unlock( &clients_mutex );
 
     LDAP_CIRCLEQ_FOREACH ( b, &backend, b_next ) {
-        ldap_pvt_thread_mutex_lock( &b->b_mutex );
+        checked_lock( &b->b_mutex );
         tmp_stats.global_outgoing += b->b_active + b->b_bindavail;
 
         /* merge completed and failed stats */
@@ -951,7 +951,7 @@ lload_monitor_update_global_stats( void *ctx, void *arg )
             tmp_stats.counters[i].lc_ops_failed +=
                     b->b_counters[i].lc_ops_failed;
         }
-        ldap_pvt_thread_mutex_unlock( &b->b_mutex );
+        checked_unlock( &b->b_mutex );
     }
 
     /* update lload_stats */
@@ -965,9 +965,9 @@ lload_monitor_update_global_stats( void *ctx, void *arg )
     }
 
     /* reschedule */
-    ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
+    checked_lock( &slapd_rq.rq_mutex );
     ldap_pvt_runqueue_stoptask( &slapd_rq, rtask );
-    ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
+    checked_unlock( &slapd_rq.rq_mutex );
     return NULL;
 }
 
@@ -1141,10 +1141,10 @@ lload_monitor_open( void )
         }
     }
 
-    ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
+    checked_lock( &slapd_rq.rq_mutex );
     ldap_pvt_runqueue_insert( &slapd_rq, 1, lload_monitor_update_global_stats,
             NULL, "lload_monitor_update_global_stats", "lloadd" );
-    ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
+    checked_unlock( &slapd_rq.rq_mutex );
 
     return (lload_monitor_initialized_failure = LDAP_SUCCESS);
 }

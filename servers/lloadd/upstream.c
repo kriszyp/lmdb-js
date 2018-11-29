@@ -70,11 +70,11 @@ forward_response( LloadConnection *client, LloadOperation *op, BerElement *ber )
             "%s to client connid=%lu request msgid=%d\n",
             lload_msgtype2str( response_tag ), op->o_client_connid, msgid );
 
-    ldap_pvt_thread_mutex_lock( &client->c_io_mutex );
+    checked_lock( &client->c_io_mutex );
     output = client->c_pendingber;
     if ( output == NULL && (output = ber_alloc()) == NULL ) {
         ber_free( ber, 1 );
-        ldap_pvt_thread_mutex_unlock( &client->c_io_mutex );
+        checked_unlock( &client->c_io_mutex );
         return -1;
     }
     client->c_pendingber = output;
@@ -84,7 +84,7 @@ forward_response( LloadConnection *client, LloadOperation *op, BerElement *ber )
             response_tag, &response,
             LDAP_TAG_CONTROLS, BER_BV_OPTIONAL( &controls ) );
 
-    ldap_pvt_thread_mutex_unlock( &client->c_io_mutex );
+    checked_unlock( &client->c_io_mutex );
 
     ber_free( ber, 1 );
     connection_write_cb( -1, 0, client );
@@ -244,9 +244,9 @@ handle_one_response( LloadConnection *c )
     if ( handler ) {
         LloadConnection *client;
 
-        ldap_pvt_thread_mutex_lock( &op->o_link_mutex );
+        checked_lock( &op->o_link_mutex );
         client = op->o_client;
-        ldap_pvt_thread_mutex_unlock( &op->o_link_mutex );
+        checked_unlock( &op->o_link_mutex );
         if ( client && IS_ALIVE( client, c_live ) ) {
             rc = handler( client, op, ber );
         } else {
@@ -454,10 +454,10 @@ upstream_bind_cb( LloadConnection *c )
                 if ( result == LDAP_SASL_BIND_IN_PROGRESS ) {
                     BerElement *outber;
 
-                    ldap_pvt_thread_mutex_lock( &c->c_io_mutex );
+                    checked_lock( &c->c_io_mutex );
                     outber = c->c_pendingber;
                     if ( outber == NULL && (outber = ber_alloc()) == NULL ) {
-                        ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
+                        checked_unlock( &c->c_io_mutex );
                         goto fail;
                     }
                     c->c_pendingber = outber;
@@ -467,7 +467,7 @@ upstream_bind_cb( LloadConnection *c )
                             msgid, LDAP_REQ_BIND, LDAP_VERSION3,
                             &bindconf.sb_binddn, LDAP_AUTH_SASL,
                             &c->c_sasl_bind_mech, BER_BV_OPTIONAL( &ccred ) );
-                    ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
+                    checked_unlock( &c->c_io_mutex );
 
                     connection_write_cb( -1, 0, c );
 
@@ -490,7 +490,7 @@ upstream_bind_cb( LloadConnection *c )
                     "connid=%lu finished binding, now active\n",
                     c->c_connid );
             CONNECTION_UNLOCK(c);
-            ldap_pvt_thread_mutex_lock( &b->b_mutex );
+            checked_lock( &b->b_mutex );
             LDAP_CIRCLEQ_REMOVE( &b->b_preparing, c, c_next );
             b->b_active++;
             b->b_opening--;
@@ -503,7 +503,7 @@ upstream_bind_cb( LloadConnection *c )
             }
             b->b_last_conn = c;
             backend_retry( b );
-            ldap_pvt_thread_mutex_unlock( &b->b_mutex );
+            checked_unlock( &b->b_mutex );
             break;
         default:
             Debug( LDAP_DEBUG_ANY, "upstream_bind_cb: "
@@ -542,7 +542,7 @@ upstream_bind( void *ctx, void *arg )
     c->c_pdu_cb = upstream_bind_cb;
     CONNECTION_UNLOCK(c);
 
-    ldap_pvt_thread_mutex_lock( &c->c_io_mutex );
+    checked_lock( &c->c_io_mutex );
     ber = c->c_pendingber;
     if ( ber == NULL && (ber = ber_alloc()) == NULL ) {
         goto fail;
@@ -577,7 +577,7 @@ upstream_bind( void *ctx, void *arg )
         }
 #endif /* HAVE_CYRUS_SASL */
     }
-    ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
+    checked_unlock( &c->c_io_mutex );
 
     connection_write_cb( -1, 0, c );
 
@@ -590,7 +590,7 @@ upstream_bind( void *ctx, void *arg )
     return NULL;
 
 fail:
-    ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
+    checked_unlock( &c->c_io_mutex );
     CONNECTION_LOCK_DESTROY(c);
     RELEASE_REF( c, c_refcnt, c->c_destroy );
     return NULL;
@@ -724,11 +724,11 @@ upstream_tls_handshake_cb( evutil_socket_t s, short what, void *arg )
         c->c_is_tls = LLOAD_TLS_ESTABLISHED;
 
         CONNECTION_UNLOCK(c);
-        ldap_pvt_thread_mutex_lock( &b->b_mutex );
+        checked_lock( &b->b_mutex );
         CONNECTION_LOCK(c);
 
         rc = upstream_finish( c );
-        ldap_pvt_thread_mutex_unlock( &b->b_mutex );
+        checked_unlock( &b->b_mutex );
 
         if ( rc ) {
             goto fail;
@@ -816,11 +816,11 @@ upstream_starttls( LloadConnection *c )
         c->c_is_tls = LLOAD_CLEARTEXT;
 
         CONNECTION_UNLOCK(c);
-        ldap_pvt_thread_mutex_lock( &b->b_mutex );
+        checked_lock( &b->b_mutex );
         CONNECTION_LOCK(c);
 
         rc = upstream_finish( c );
-        ldap_pvt_thread_mutex_unlock( &b->b_mutex );
+        checked_unlock( &b->b_mutex );
 
         if ( rc ) {
             goto fail;
@@ -923,16 +923,16 @@ upstream_init( ber_socket_t s, LloadBackend *b )
             c->c_is_tls == LLOAD_STARTTLS_OPTIONAL ) {
         BerElement *output;
 
-        ldap_pvt_thread_mutex_lock( &c->c_io_mutex );
+        checked_lock( &c->c_io_mutex );
         if ( (output = c->c_pendingber = ber_alloc()) == NULL ) {
-            ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
+            checked_unlock( &c->c_io_mutex );
             goto fail;
         }
         ber_printf( output, "t{tit{ts}}", LDAP_TAG_MESSAGE,
                 LDAP_TAG_MSGID, c->c_next_msgid++,
                 LDAP_REQ_EXTENDED,
                 LDAP_TAG_EXOP_REQ_OID, LDAP_EXOP_START_TLS );
-        ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
+        checked_unlock( &c->c_io_mutex );
 
         c->c_pdu_cb = upstream_starttls;
         CONNECTION_UNLOCK(c);
@@ -1007,7 +1007,7 @@ upstream_unlink( LloadConnection *c )
         event_del( write_event );
     }
 
-    ldap_pvt_thread_mutex_lock( &b->b_mutex );
+    checked_lock( &b->b_mutex );
     if ( c->c_type == LLOAD_C_PREPARING ) {
         LDAP_CIRCLEQ_REMOVE( &b->b_preparing, c, c_next );
         b->b_opening--;
@@ -1039,7 +1039,7 @@ upstream_unlink( LloadConnection *c )
     }
     b->b_n_ops_executing -= executing;
     backend_retry( b );
-    ldap_pvt_thread_mutex_unlock( &b->b_mutex );
+    checked_unlock( &b->b_mutex );
 
     CONNECTION_LOCK(c);
 }

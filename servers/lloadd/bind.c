@@ -331,16 +331,16 @@ request_bind( LloadConnection *client, LloadOperation *op )
     CONNECTION_UNLOCK(client);
 
     if ( pin ) {
-        ldap_pvt_thread_mutex_lock( &op->o_link_mutex );
+        checked_lock( &op->o_link_mutex );
         upstream = op->o_upstream;
-        ldap_pvt_thread_mutex_unlock( &op->o_link_mutex );
+        checked_unlock( &op->o_link_mutex );
 
         if ( upstream ) {
-            ldap_pvt_thread_mutex_lock( &upstream->c_io_mutex );
+            checked_lock( &upstream->c_io_mutex );
             CONNECTION_LOCK(upstream);
             if ( !IS_ALIVE( upstream, c_live ) ) {
                 CONNECTION_UNLOCK(upstream);
-                ldap_pvt_thread_mutex_unlock( &upstream->c_io_mutex );
+                checked_unlock( &upstream->c_io_mutex );
                 upstream = NULL;
             }
         }
@@ -381,17 +381,17 @@ request_bind( LloadConnection *client, LloadOperation *op )
 
     ber = upstream->c_pendingber;
     if ( ber == NULL && (ber = ber_alloc()) == NULL ) {
-        ldap_pvt_thread_mutex_unlock( &upstream->c_io_mutex );
+        checked_unlock( &upstream->c_io_mutex );
         if ( !pin ) {
             LloadBackend *b = upstream->c_private;
 
             upstream->c_n_ops_executing--;
             CONNECTION_UNLOCK(upstream);
 
-            ldap_pvt_thread_mutex_lock( &b->b_mutex );
+            checked_lock( &b->b_mutex );
             b->b_n_ops_executing--;
             operation_update_backend_counters( op, b );
-            ldap_pvt_thread_mutex_unlock( &b->b_mutex );
+            checked_unlock( &b->b_mutex );
         } else {
             CONNECTION_UNLOCK(upstream);
         }
@@ -416,13 +416,13 @@ request_bind( LloadConnection *client, LloadOperation *op )
             pin = op->o_pin_id = 0;
         }
     } else if ( tag == LDAP_AUTH_SASL && !op->o_pin_id ) {
-        ldap_pvt_thread_mutex_lock( &lload_pin_mutex );
+        checked_lock( &lload_pin_mutex );
         pin = op->o_pin_id = lload_next_pin++;
         Debug( LDAP_DEBUG_CONNS, "request_bind: "
                 "client connid=%lu allocated pin=%lu linking it to upstream "
                 "connid=%lu\n",
                 op->o_client_connid, pin, upstream->c_connid );
-        ldap_pvt_thread_mutex_unlock( &lload_pin_mutex );
+        checked_unlock( &lload_pin_mutex );
     }
 
     op->o_upstream = upstream;
@@ -436,19 +436,19 @@ request_bind( LloadConnection *client, LloadOperation *op )
         LloadBackend *b = upstream->c_private;
 
         upstream->c_n_ops_executing--;
-        ldap_pvt_thread_mutex_unlock( &upstream->c_io_mutex );
+        checked_unlock( &upstream->c_io_mutex );
         CONNECTION_UNLOCK(upstream);
 
-        ldap_pvt_thread_mutex_lock( &b->b_mutex );
+        checked_lock( &b->b_mutex );
         b->b_n_ops_executing--;
-        ldap_pvt_thread_mutex_unlock( &b->b_mutex );
+        checked_unlock( &b->b_mutex );
 
         assert( !IS_ALIVE( client, c_live ) );
-        ldap_pvt_thread_mutex_lock( &op->o_link_mutex );
+        checked_lock( &op->o_link_mutex );
         if ( op->o_upstream ) {
             op->o_upstream = NULL;
         }
-        ldap_pvt_thread_mutex_unlock( &op->o_link_mutex );
+        checked_unlock( &op->o_link_mutex );
         rc = -1;
         goto done;
     }
@@ -481,7 +481,7 @@ request_bind( LloadConnection *client, LloadOperation *op )
     {
         rc = client_bind( op, upstream, &binddn, tag, &auth );
     }
-    ldap_pvt_thread_mutex_unlock( &upstream->c_io_mutex );
+    checked_unlock( &upstream->c_io_mutex );
 
 done:
 
@@ -534,10 +534,10 @@ finish_sasl_bind(
 
     CONNECTION_UNLOCK(upstream);
 
-    ldap_pvt_thread_mutex_lock( &upstream->c_io_mutex );
+    checked_lock( &upstream->c_io_mutex );
     output = upstream->c_pendingber;
     if ( output == NULL && (output = ber_alloc()) == NULL ) {
-        ldap_pvt_thread_mutex_unlock( &upstream->c_io_mutex );
+        checked_unlock( &upstream->c_io_mutex );
         CONNECTION_LOCK_DESTROY(upstream);
         return -1;
     }
@@ -551,7 +551,7 @@ finish_sasl_bind(
 
     /* Make sure noone flushes the buffer before we re-insert the operation */
     CONNECTION_LOCK(upstream);
-    ldap_pvt_thread_mutex_unlock( &upstream->c_io_mutex );
+    checked_unlock( &upstream->c_io_mutex );
 
     op->o_upstream_msgid = msgid;
 
@@ -612,9 +612,9 @@ handle_bind_response(
             "connid=%lu, result=%d\n",
             op->o_client_msgid, op->o_client_connid, result );
 
-    ldap_pvt_thread_mutex_lock( &op->o_link_mutex );
+    checked_lock( &op->o_link_mutex );
     upstream = op->o_upstream;
-    ldap_pvt_thread_mutex_unlock( &op->o_link_mutex );
+    checked_unlock( &op->o_link_mutex );
     if ( !upstream ) {
         return LDAP_SUCCESS;
     }
@@ -763,9 +763,9 @@ handle_whoami_response(
         return -1;
     }
 
-    ldap_pvt_thread_mutex_lock( &op->o_link_mutex );
+    checked_lock( &op->o_link_mutex );
     upstream = op->o_upstream;
-    ldap_pvt_thread_mutex_unlock( &op->o_link_mutex );
+    checked_unlock( &op->o_link_mutex );
     if ( !upstream ) {
         return LDAP_SUCCESS;
     }
@@ -868,9 +868,9 @@ handle_vc_bind_response(
     if ( result == LDAP_PROTOCOL_ERROR ) {
         LloadConnection *upstream;
 
-        ldap_pvt_thread_mutex_lock( &op->o_link_mutex );
+        checked_lock( &op->o_link_mutex );
         upstream = op->o_upstream;
-        ldap_pvt_thread_mutex_unlock( &op->o_link_mutex );
+        checked_unlock( &op->o_link_mutex );
         if ( upstream ) {
             LloadBackend *b;
 
@@ -955,11 +955,11 @@ handle_vc_bind_response(
     }
     CONNECTION_UNLOCK(client);
 
-    ldap_pvt_thread_mutex_lock( &client->c_io_mutex );
+    checked_lock( &client->c_io_mutex );
     output = client->c_pendingber;
     if ( output == NULL && (output = ber_alloc()) == NULL ) {
         rc = -1;
-        ldap_pvt_thread_mutex_unlock( &client->c_io_mutex );
+        checked_unlock( &client->c_io_mutex );
         goto done;
     }
     client->c_pendingber = output;
@@ -970,7 +970,7 @@ handle_vc_bind_response(
             LDAP_TAG_SASL_RES_CREDS, BER_BV_OPTIONAL( &creds ),
             LDAP_TAG_CONTROLS, BER_BV_OPTIONAL( &controls ) );
 
-    ldap_pvt_thread_mutex_unlock( &client->c_io_mutex );
+    checked_unlock( &client->c_io_mutex );
     if ( rc >= 0 ) {
         connection_write_cb( -1, 0, client );
         rc = 0;

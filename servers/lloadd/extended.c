@@ -77,10 +77,10 @@ handle_starttls( LloadConnection *c, LloadOperation *op )
      * This means we can safely reconfigure both I/O events now.
      */
 
-    ldap_pvt_thread_mutex_lock( &c->c_io_mutex );
+    checked_lock( &c->c_io_mutex );
     output = c->c_pendingber;
     if ( output == NULL && (output = ber_alloc()) == NULL ) {
-        ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
+        checked_unlock( &c->c_io_mutex );
         operation_unlink( op );
         CONNECTION_LOCK_DESTROY(c);
         return -1;
@@ -89,7 +89,7 @@ handle_starttls( LloadConnection *c, LloadOperation *op )
     ber_printf( output, "t{tit{ess}}", LDAP_TAG_MESSAGE,
             LDAP_TAG_MSGID, op->o_client_msgid,
             LDAP_RES_EXTENDED, LDAP_SUCCESS, "", "" );
-    ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
+    checked_unlock( &c->c_io_mutex );
 
     CONNECTION_LOCK(c);
     c->c_read_timeout = lload_timeout_net;

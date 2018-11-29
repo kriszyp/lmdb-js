@@ -35,7 +35,7 @@ upstream_connect_cb( evutil_socket_t s, short what, void *arg )
     int error = 0, rc = -1;
     epoch_t epoch;
 
-    ldap_pvt_thread_mutex_lock( &b->b_mutex );
+    checked_lock( &b->b_mutex );
     Debug( LDAP_DEBUG_CONNS, "upstream_connect_cb: "
             "fd=%d connection callback for backend uri='%s'\n",
             s, b->b_uri.bv_val );
@@ -55,7 +55,7 @@ upstream_connect_cb( evutil_socket_t s, short what, void *arg )
             goto done;
         }
         if ( error == EINTR || error == EINPROGRESS || error == EWOULDBLOCK ) {
-            ldap_pvt_thread_mutex_unlock( &b->b_mutex );
+            checked_unlock( &b->b_mutex );
             epoch_leave( epoch );
             return;
         } else if ( error ) {
@@ -88,7 +88,7 @@ done:
         backend_retry( b );
     }
 preempted:
-    ldap_pvt_thread_mutex_unlock( &b->b_mutex );
+    checked_unlock( &b->b_mutex );
 
     event_free( conn->event );
     ch_free( conn );
@@ -108,12 +108,12 @@ upstream_name_cb( int result, struct evutil_addrinfo *res, void *arg )
         return;
     }
 
-    ldap_pvt_thread_mutex_lock( &b->b_mutex );
+    checked_lock( &b->b_mutex );
     /* We were already running when backend_reset tried to cancel us, but were
      * already stuck waiting for the mutex, nothing to do and b_opening has
      * been decremented as well */
     if ( b->b_dns_req == NULL ) {
-        ldap_pvt_thread_mutex_unlock( &b->b_mutex );
+        checked_unlock( &b->b_mutex );
         return;
     }
     b->b_dns_req = NULL;
@@ -182,7 +182,7 @@ upstream_name_cb( int result, struct evutil_addrinfo *res, void *arg )
         goto fail;
     }
 
-    ldap_pvt_thread_mutex_unlock( &b->b_mutex );
+    checked_unlock( &b->b_mutex );
     evutil_freeaddrinfo( res );
     epoch_leave( epoch );
     return;
@@ -194,7 +194,7 @@ fail:
     b->b_opening--;
     b->b_failed++;
     backend_retry( b );
-    ldap_pvt_thread_mutex_unlock( &b->b_mutex );
+    checked_unlock( &b->b_mutex );
     if ( res ) {
         evutil_freeaddrinfo( res );
     }
@@ -206,9 +206,9 @@ backend_select( LloadOperation *op, int *res )
 {
     LloadBackend *b, *first, *next;
 
-    ldap_pvt_thread_mutex_lock( &backend_mutex );
+    checked_lock( &backend_mutex );
     first = b = current_backend;
-    ldap_pvt_thread_mutex_unlock( &backend_mutex );
+    checked_unlock( &backend_mutex );
 
     *res = LDAP_UNAVAILABLE;
 
@@ -222,14 +222,14 @@ backend_select( LloadOperation *op, int *res )
         lload_c_head *head;
         LloadConnection *c;
 
-        ldap_pvt_thread_mutex_lock( &b->b_mutex );
+        checked_lock( &b->b_mutex );
         next = LDAP_CIRCLEQ_LOOP_NEXT( &backend, b, b_next );
 
         if ( b->b_max_pending && b->b_n_ops_executing >= b->b_max_pending ) {
             Debug( LDAP_DEBUG_CONNS, "backend_select: "
                     "backend %s too busy\n",
                     b->b_uri.bv_val );
-            ldap_pvt_thread_mutex_unlock( &b->b_mutex );
+            checked_unlock( &b->b_mutex );
             b = next;
             *res = LDAP_BUSY;
             continue;
@@ -249,7 +249,7 @@ backend_select( LloadOperation *op, int *res )
         }
 
         LDAP_CIRCLEQ_FOREACH ( c, head, c_next ) {
-            ldap_pvt_thread_mutex_lock( &c->c_io_mutex );
+            checked_lock( &c->c_io_mutex );
             CONNECTION_LOCK(c);
             if ( c->c_state == LLOAD_C_READY && !c->c_pendingber &&
                     ( b->b_max_conn_pending == 0 ||
@@ -269,9 +269,9 @@ backend_select( LloadOperation *op, int *res )
                  */
                 LDAP_CIRCLEQ_MAKE_TAIL( head, c, c_next );
 
-                ldap_pvt_thread_mutex_lock( &backend_mutex );
+                checked_lock( &backend_mutex );
                 current_backend = next;
-                ldap_pvt_thread_mutex_unlock( &backend_mutex );
+                checked_unlock( &backend_mutex );
 
                 b->b_n_ops_executing++;
                 if ( op->o_tag == LDAP_REQ_BIND ) {
@@ -282,14 +282,14 @@ backend_select( LloadOperation *op, int *res )
                 c->c_n_ops_executing++;
                 c->c_counters.lc_ops_received++;
 
-                ldap_pvt_thread_mutex_unlock( &b->b_mutex );
+                checked_unlock( &b->b_mutex );
                 *res = LDAP_SUCCESS;
                 return c;
             }
             CONNECTION_UNLOCK(c);
-            ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
+            checked_unlock( &c->c_io_mutex );
         }
-        ldap_pvt_thread_mutex_unlock( &b->b_mutex );
+        checked_unlock( &b->b_mutex );
 
         b = next;
     } while ( b != first );
@@ -370,7 +370,7 @@ backend_connect( evutil_socket_t s, short what, void *arg )
     char *hostname;
     epoch_t epoch;
 
-    ldap_pvt_thread_mutex_lock( &b->b_mutex );
+    checked_lock( &b->b_mutex );
     assert( b->b_dns_req == NULL );
 
     if ( b->b_cookie ) {
@@ -381,7 +381,7 @@ backend_connect( evutil_socket_t s, short what, void *arg )
         Debug( LDAP_DEBUG_CONNS, "backend_connect: "
                 "doing nothing, shutdown in progress\n" );
         b->b_opening--;
-        ldap_pvt_thread_mutex_unlock( &b->b_mutex );
+        checked_unlock( &b->b_mutex );
         return;
     }
 
@@ -452,7 +452,7 @@ backend_connect( evutil_socket_t s, short what, void *arg )
             goto fail;
         }
 
-        ldap_pvt_thread_mutex_unlock( &b->b_mutex );
+        checked_unlock( &b->b_mutex );
         epoch_leave( epoch );
         return;
     }
@@ -474,12 +474,12 @@ backend_connect( evutil_socket_t s, short what, void *arg )
      */
     placeholder = (struct evdns_getaddrinfo_request *)&request;
     b->b_dns_req = placeholder;
-    ldap_pvt_thread_mutex_unlock( &b->b_mutex );
+    checked_unlock( &b->b_mutex );
 
     request = evdns_getaddrinfo(
             dnsbase, hostname, NULL, &hints, upstream_name_cb, b );
 
-    ldap_pvt_thread_mutex_lock( &b->b_mutex );
+    checked_lock( &b->b_mutex );
     assert( request || b->b_dns_req != placeholder );
 
     /* Record the request, unless upstream_name_cb or another thread
@@ -488,7 +488,7 @@ backend_connect( evutil_socket_t s, short what, void *arg )
     if ( b->b_dns_req == placeholder ) {
         b->b_dns_req = request;
     }
-    ldap_pvt_thread_mutex_unlock( &b->b_mutex );
+    checked_unlock( &b->b_mutex );
     epoch_leave( epoch );
     return;
 
@@ -496,7 +496,7 @@ fail:
     b->b_opening--;
     b->b_failed++;
     backend_retry( b );
-    ldap_pvt_thread_mutex_unlock( &b->b_mutex );
+    checked_unlock( &b->b_mutex );
     epoch_leave( epoch );
 }
 
@@ -538,9 +538,9 @@ backend_reset( LloadBackend *b, int gentle )
     if ( b->b_retry_event &&
             event_pending( b->b_retry_event, EV_TIMEOUT, NULL ) ) {
         assert( b->b_failed );
-        ldap_pvt_thread_mutex_unlock( &b->b_mutex );
+        checked_unlock( &b->b_mutex );
         event_del( b->b_retry_event );
-        ldap_pvt_thread_mutex_lock( &b->b_mutex );
+        checked_lock( &b->b_mutex );
         b->b_opening--;
     }
     if ( b->b_dns_req ) {
@@ -593,7 +593,7 @@ lload_backend_destroy( LloadBackend *b )
             "destroying backend uri='%s', numconns=%d, numbindconns=%d\n",
             b->b_uri.bv_val, b->b_numconns, b->b_numbindconns );
 
-    ldap_pvt_thread_mutex_lock( &b->b_mutex );
+    checked_lock( &b->b_mutex );
     b->b_numconns = b->b_numbindconns = 0;
     backend_reset( b, 0 );
 
@@ -618,7 +618,7 @@ lload_backend_destroy( LloadBackend *b )
         assert( rc == LDAP_SUCCESS );
     }
 #endif /* BALANCER_MODULE */
-    ldap_pvt_thread_mutex_unlock( &b->b_mutex );
+    checked_unlock( &b->b_mutex );
     ldap_pvt_thread_mutex_destroy( &b->b_mutex );
 
     if ( b->b_retry_event ) {

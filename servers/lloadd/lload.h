@@ -86,6 +86,11 @@ LDAP_BEGIN_DECL
 
 #include <epoch.h>
 
+#define checked_lock( mutex ) \
+    if ( ldap_pvt_thread_mutex_lock( mutex ) != 0 ) assert(0)
+#define checked_unlock( mutex ) \
+    if ( ldap_pvt_thread_mutex_unlock( mutex ) != 0 ) assert(0)
+
 typedef struct LloadBackend LloadBackend;
 typedef struct LloadPendingConnection LloadPendingConnection;
 typedef struct LloadConnection LloadConnection;
@@ -297,8 +302,14 @@ struct LloadConnection {
     CONNECTION_DESTROY_CB c_unlink;
     CONNECTION_DESTROY_CB c_destroy;
     CONNECTION_PDU_CB c_pdu_cb;
-#define CONNECTION_LOCK(c) ldap_pvt_thread_mutex_lock( &(c)->c_mutex )
-#define CONNECTION_UNLOCK(c) ldap_pvt_thread_mutex_unlock( &(c)->c_mutex )
+#define CONNECTION_LOCK(c) \
+    do { \
+        checked_lock( &(c)->c_mutex ); \
+    } while (0)
+#define CONNECTION_UNLOCK(c) \
+    do { \
+        checked_unlock( &(c)->c_mutex ); \
+    } while (0)
 #define CONNECTION_UNLINK_(c) \
     do { \
         if ( __atomic_exchange_n( &(c)->c_live, 0, __ATOMIC_ACQ_REL ) ) { \

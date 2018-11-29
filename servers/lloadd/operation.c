@@ -231,13 +231,13 @@ operation_unlink( LloadOperation *op )
             "client msgid=%d\n",
             op->o_client_connid, op->o_upstream_connid, op->o_client_msgid );
 
-    ldap_pvt_thread_mutex_lock( &op->o_link_mutex );
+    checked_lock( &op->o_link_mutex );
     client = op->o_client;
     upstream = op->o_upstream;
 
     op->o_client = NULL;
     op->o_upstream = NULL;
-    ldap_pvt_thread_mutex_unlock( &op->o_link_mutex );
+    checked_unlock( &op->o_link_mutex );
 
     assert( client || upstream );
 
@@ -332,10 +332,10 @@ operation_unlink_upstream( LloadOperation *op, LloadConnection *upstream )
     }
 
     if ( b ) {
-        ldap_pvt_thread_mutex_lock( &b->b_mutex );
+        checked_lock( &b->b_mutex );
         b->b_n_ops_executing--;
         operation_update_backend_counters( op, b );
-        ldap_pvt_thread_mutex_unlock( &b->b_mutex );
+        checked_unlock( &b->b_mutex );
     }
 
     return result;
@@ -351,7 +351,7 @@ operation_send_abandon( LloadOperation *op, LloadConnection *upstream )
         return rc;
     }
 
-    ldap_pvt_thread_mutex_lock( &upstream->c_io_mutex );
+    checked_lock( &upstream->c_io_mutex );
     ber = upstream->c_pendingber;
     if ( ber == NULL && (ber = ber_alloc()) == NULL ) {
         Debug( LDAP_DEBUG_ANY, "operation_send_abandon: "
@@ -383,7 +383,7 @@ operation_send_abandon( LloadOperation *op, LloadConnection *upstream )
     rc = LDAP_SUCCESS;
 
 done:
-    ldap_pvt_thread_mutex_unlock( &upstream->c_io_mutex );
+    checked_unlock( &upstream->c_io_mutex );
     return rc;
 }
 
@@ -401,9 +401,9 @@ operation_abandon( LloadOperation *op )
 {
     LloadConnection *c;
 
-    ldap_pvt_thread_mutex_lock( &op->o_link_mutex );
+    checked_lock( &op->o_link_mutex );
     c = op->o_upstream;
-    ldap_pvt_thread_mutex_unlock( &op->o_link_mutex );
+    checked_unlock( &op->o_link_mutex );
     if ( !c || !IS_ALIVE( c, c_live ) ) {
         goto done;
     }
@@ -444,9 +444,9 @@ operation_send_reject(
             "rejecting %s from client connid=%lu with message: \"%s\"\n",
             lload_msgtype2str( op->o_tag ), op->o_client_connid, msg );
 
-    ldap_pvt_thread_mutex_lock( &op->o_link_mutex );
+    checked_lock( &op->o_link_mutex );
     c = op->o_client;
-    ldap_pvt_thread_mutex_unlock( &op->o_link_mutex );
+    checked_unlock( &op->o_link_mutex );
     if ( !c || !IS_ALIVE( c, c_live ) ) {
         Debug( LDAP_DEBUG_TRACE, "operation_send_reject: "
                 "not sending msgid=%d, client connid=%lu is dead\n",
@@ -472,10 +472,10 @@ operation_send_reject(
         goto done;
     }
 
-    ldap_pvt_thread_mutex_lock( &c->c_io_mutex );
+    checked_lock( &c->c_io_mutex );
     ber = c->c_pendingber;
     if ( ber == NULL && (ber = ber_alloc()) == NULL ) {
-        ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
+        checked_unlock( &c->c_io_mutex );
         Debug( LDAP_DEBUG_ANY, "operation_send_reject: "
                 "ber_alloc failed, closing connid=%lu\n",
                 c->c_connid );
@@ -488,7 +488,7 @@ operation_send_reject(
             LDAP_TAG_MSGID, op->o_client_msgid,
             slap_req2res( op->o_tag ), result, "", msg );
 
-    ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
+    checked_unlock( &c->c_io_mutex );
 
     connection_write_cb( -1, 0, c );
 
@@ -570,9 +570,9 @@ connection_timeout( LloadConnection *upstream, void *arg )
             nops, upstream->c_connid );
     CONNECTION_UNLOCK(upstream);
 
-    ldap_pvt_thread_mutex_lock( &b->b_mutex );
+    checked_lock( &b->b_mutex );
     b->b_n_ops_executing -= nops;
-    ldap_pvt_thread_mutex_unlock( &b->b_mutex );
+    checked_unlock( &b->b_mutex );
 
     for ( node = tavl_end( ops, TAVL_DIR_LEFT ); node;
             node = tavl_next( node, TAVL_DIR_RIGHT ) ) {
@@ -621,9 +621,9 @@ operations_timeout( evutil_socket_t s, short what, void *arg )
     LDAP_CIRCLEQ_FOREACH ( b, &backend, b_next ) {
         epoch_t epoch;
 
-        ldap_pvt_thread_mutex_lock( &b->b_mutex );
+        checked_lock( &b->b_mutex );
         if ( b->b_n_ops_executing == 0 ) {
-            ldap_pvt_thread_mutex_unlock( &b->b_mutex );
+            checked_unlock( &b->b_mutex );
             continue;
         }
 
@@ -642,7 +642,7 @@ operations_timeout( evutil_socket_t s, short what, void *arg )
                 connection_timeout, &threshold );
 
         epoch_leave( epoch );
-        ldap_pvt_thread_mutex_unlock( &b->b_mutex );
+        checked_unlock( &b->b_mutex );
     }
 done:
     Debug( LDAP_DEBUG_TRACE, "operations_timeout: "

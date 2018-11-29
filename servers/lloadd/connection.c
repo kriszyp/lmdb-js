@@ -101,9 +101,9 @@ handle_pdus( void *ctx, void *arg )
         }
         c->c_currentber = ber;
 
-        ldap_pvt_thread_mutex_lock( &c->c_io_mutex );
+        checked_lock( &c->c_io_mutex );
         tag = ber_get_next( c->c_sb, &len, ber );
-        ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
+        checked_unlock( &c->c_io_mutex );
         if ( tag != LDAP_TAG_MESSAGE ) {
             int err = sock_errno();
 
@@ -198,9 +198,9 @@ connection_read_cb( evutil_socket_t s, short what, void *arg )
     }
     c->c_currentber = ber;
 
-    ldap_pvt_thread_mutex_lock( &c->c_io_mutex );
+    checked_lock( &c->c_io_mutex );
     tag = ber_get_next( c->c_sb, &len, ber );
-    ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
+    checked_unlock( &c->c_io_mutex );
 
     if ( tag != LDAP_TAG_MESSAGE ) {
         int err = sock_errno();
@@ -295,7 +295,7 @@ connection_write_cb( evutil_socket_t s, short what, void *arg )
 
     epoch = epoch_join();
 
-    ldap_pvt_thread_mutex_lock( &c->c_io_mutex );
+    checked_lock( &c->c_io_mutex );
     Debug( LDAP_DEBUG_CONNS, "connection_write_cb: "
             "have something to write to connection connid=%lu\n",
             c->c_connid );
@@ -306,7 +306,7 @@ connection_write_cb( evutil_socket_t s, short what, void *arg )
 
         if ( err != EWOULDBLOCK && err != EAGAIN ) {
             char ebuf[128];
-            ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
+            checked_unlock( &c->c_io_mutex );
             Debug( LDAP_DEBUG_ANY, "connection_write_cb: "
                     "ber_flush on fd=%d failed errno=%d (%s)\n",
                     c->c_fd, err, sock_errstr( err, ebuf, sizeof(ebuf) ) );
@@ -317,7 +317,7 @@ connection_write_cb( evutil_socket_t s, short what, void *arg )
     } else {
         c->c_pendingber = NULL;
     }
-    ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
+    checked_unlock( &c->c_io_mutex );
 
 done:
     RELEASE_REF( c, c_refcnt, c->c_destroy );
@@ -418,12 +418,12 @@ connections_walk_last(
     do {
         int rc;
 
-        ldap_pvt_thread_mutex_unlock( cq_mutex );
+        checked_unlock( cq_mutex );
 
         rc = cb( c, arg );
         RELEASE_REF( c, c_refcnt, c->c_destroy );
 
-        ldap_pvt_thread_mutex_lock( cq_mutex );
+        checked_lock( cq_mutex );
         if ( rc || LDAP_CIRCLEQ_EMPTY( cq ) ) {
             break;
         }

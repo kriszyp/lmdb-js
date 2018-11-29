@@ -1319,10 +1319,10 @@ lloadd_daemon( struct event_base *daemon_base )
                 return -1;
             }
 
-            ldap_pvt_thread_mutex_lock( &b->b_mutex );
+            checked_lock( &b->b_mutex );
             b->b_retry_event = event;
             backend_retry( b );
-            ldap_pvt_thread_mutex_unlock( &b->b_mutex );
+            checked_unlock( &b->b_mutex );
         }
     }
 
@@ -1354,10 +1354,10 @@ lloadd_daemon( struct event_base *daemon_base )
 
     /* Mark upstream connections closing and prevent from opening new ones */
     LDAP_CIRCLEQ_FOREACH ( b, &backend, b_next ) {
-        ldap_pvt_thread_mutex_lock( &b->b_mutex );
+        checked_lock( &b->b_mutex );
         b->b_numconns = b->b_numbindconns = 0;
         backend_reset( b, 1 );
-        ldap_pvt_thread_mutex_unlock( &b->b_mutex );
+        checked_unlock( &b->b_mutex );
     }
 
     /* Do the same for clients */
@@ -1463,9 +1463,9 @@ lload_handle_backend_invalidation( LloadChange *change )
         if ( !current_backend ) {
             current_backend = b;
         }
-        ldap_pvt_thread_mutex_lock( &b->b_mutex );
+        checked_lock( &b->b_mutex );
         backend_retry( b );
-        ldap_pvt_thread_mutex_unlock( &b->b_mutex );
+        checked_unlock( &b->b_mutex );
         return;
     } else if ( change->type == LLOAD_CHANGE_DEL ) {
         ldap_pvt_thread_pool_walk(
@@ -1486,10 +1486,10 @@ lload_handle_backend_invalidation( LloadChange *change )
                 &connection_pool, handle_pdus, backend_conn_cb, b );
         ldap_pvt_thread_pool_walk(
                 &connection_pool, upstream_bind, backend_conn_cb, b );
-        ldap_pvt_thread_mutex_lock( &b->b_mutex );
+        checked_lock( &b->b_mutex );
         backend_reset( b, 0 );
         backend_retry( b );
-        ldap_pvt_thread_mutex_unlock( &b->b_mutex );
+        checked_unlock( &b->b_mutex );
         return;
     }
 
@@ -1602,9 +1602,9 @@ lload_handle_backend_invalidation( LloadChange *change )
         assert( need_close == 0 );
 
         if ( need_open ) {
-            ldap_pvt_thread_mutex_lock( &b->b_mutex );
+            checked_lock( &b->b_mutex );
             backend_retry( b );
-            ldap_pvt_thread_mutex_unlock( &b->b_mutex );
+            checked_unlock( &b->b_mutex );
         }
     }
 }
@@ -1700,10 +1700,10 @@ lload_handle_global_invalidation( LloadChange *change )
                 &connection_pool, upstream_bind, backend_conn_cb, NULL );
 
         LDAP_CIRCLEQ_FOREACH ( b, &backend, b_next ) {
-            ldap_pvt_thread_mutex_lock( &b->b_mutex );
+            checked_lock( &b->b_mutex );
             backend_reset( b, 0 );
             backend_retry( b );
-            ldap_pvt_thread_mutex_unlock( &b->b_mutex );
+            checked_unlock( &b->b_mutex );
         }
 
         /* Reconsider the PRIVILEGED flag on all clients */
@@ -1753,12 +1753,12 @@ lload_pause_event_cb( evutil_socket_t s, short what, void *arg )
      *
      * Do this in lockstep with the pausing thread.
      */
-    ldap_pvt_thread_mutex_lock( &lload_wait_mutex );
+    checked_lock( &lload_wait_mutex );
     ldap_pvt_thread_cond_signal( &lload_wait_cond );
 
     /* Now wait until we unpause, then we can resume operation */
     ldap_pvt_thread_cond_wait( &lload_pause_cond, &lload_wait_mutex );
-    ldap_pvt_thread_mutex_unlock( &lload_wait_mutex );
+    checked_unlock( &lload_wait_mutex );
 }
 
 /*
@@ -1770,10 +1770,10 @@ lload_pause_base( struct event_base *base )
 {
     int rc;
 
-    ldap_pvt_thread_mutex_lock( &lload_wait_mutex );
+    checked_lock( &lload_wait_mutex );
     event_base_once( base, -1, EV_TIMEOUT, lload_pause_event_cb, base, NULL );
     rc = ldap_pvt_thread_cond_wait( &lload_wait_cond, &lload_wait_mutex );
-    ldap_pvt_thread_mutex_unlock( &lload_wait_mutex );
+    checked_unlock( &lload_wait_mutex );
 
     return rc;
 }

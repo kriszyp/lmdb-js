@@ -110,10 +110,10 @@ lload_back_close( BackendInfo *bi )
         return 0;
     }
 
-    ldap_pvt_thread_mutex_lock( &lload_wait_mutex );
+    checked_lock( &lload_wait_mutex );
     event_base_loopexit( daemon_base, NULL );
     ldap_pvt_thread_cond_wait( &lload_wait_cond, &lload_wait_mutex );
-    ldap_pvt_thread_mutex_unlock( &lload_wait_mutex );
+    checked_unlock( &lload_wait_mutex );
     ldap_pvt_thread_join( lloadd_main_thread, (void *)NULL );
 
     return 0;

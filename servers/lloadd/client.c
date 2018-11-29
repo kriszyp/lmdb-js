@@ -112,19 +112,19 @@ request_process( LloadConnection *client, LloadOperation *op )
         LloadBackend *b = upstream->c_private;
 
         upstream->c_n_ops_executing--;
-        ldap_pvt_thread_mutex_unlock( &upstream->c_io_mutex );
+        checked_unlock( &upstream->c_io_mutex );
         CONNECTION_UNLOCK(upstream);
 
-        ldap_pvt_thread_mutex_lock( &b->b_mutex );
+        checked_lock( &b->b_mutex );
         b->b_n_ops_executing--;
-        ldap_pvt_thread_mutex_unlock( &b->b_mutex );
+        checked_unlock( &b->b_mutex );
 
         assert( !IS_ALIVE( client, c_live ) );
-        ldap_pvt_thread_mutex_lock( &op->o_link_mutex );
+        checked_lock( &op->o_link_mutex );
         if ( op->o_upstream ) {
             op->o_upstream = NULL;
         }
-        ldap_pvt_thread_mutex_unlock( &op->o_link_mutex );
+        checked_unlock( &op->o_link_mutex );
         return -1;
     }
 
@@ -134,12 +134,12 @@ request_process( LloadConnection *client, LloadOperation *op )
 
         upstream->c_n_ops_executing--;
         CONNECTION_UNLOCK(upstream);
-        ldap_pvt_thread_mutex_unlock( &upstream->c_io_mutex );
+        checked_unlock( &upstream->c_io_mutex );
 
-        ldap_pvt_thread_mutex_lock( &b->b_mutex );
+        checked_lock( &b->b_mutex );
         b->b_n_ops_executing--;
         operation_update_backend_counters( op, b );
-        ldap_pvt_thread_mutex_unlock( &b->b_mutex );
+        checked_unlock( &b->b_mutex );
 
         Debug( LDAP_DEBUG_ANY, "request_process: "
                 "ber_alloc failed\n" );
@@ -187,7 +187,7 @@ request_process( LloadConnection *client, LloadOperation *op )
                 op->o_tag, &op->o_request,
                 LDAP_TAG_CONTROLS, BER_BV_OPTIONAL( &op->o_ctrls ) );
     }
-    ldap_pvt_thread_mutex_unlock( &upstream->c_io_mutex );
+    checked_unlock( &upstream->c_io_mutex );
 
     connection_write_cb( -1, 0, upstream );
     return rc;
@@ -303,9 +303,9 @@ client_tls_handshake_cb( evutil_socket_t s, short what, void *arg )
      * Also before we try to read anything from the connection, it isn't
      * permitted to Abandon a StartTLS exop per RFC4511 anyway.
      */
-    ldap_pvt_thread_mutex_lock( &c->c_io_mutex );
+    checked_lock( &c->c_io_mutex );
     if ( c->c_pendingber ) {
-        ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
+        checked_unlock( &c->c_io_mutex );
         connection_write_cb( s, what, arg );
 
         if ( !IS_ALIVE( c, c_live ) ) {
@@ -314,15 +314,15 @@ client_tls_handshake_cb( evutil_socket_t s, short what, void *arg )
 
         /* Do we still have data pending? If so, connection_write_cb would
          * already have arranged the write callback to trigger again */
-        ldap_pvt_thread_mutex_lock( &c->c_io_mutex );
+        checked_lock( &c->c_io_mutex );
         if ( c->c_pendingber ) {
-            ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
+            checked_unlock( &c->c_io_mutex );
             return;
         }
     }
 
     rc = ldap_pvt_tls_accept( c->c_sb, LLOAD_TLS_CTX );
-    ldap_pvt_thread_mutex_unlock( &c->c_io_mutex );
+    checked_unlock( &c->c_io_mutex );
     if ( rc < 0 ) {
         goto fail;
     }
@@ -452,9 +452,9 @@ client_init(
     /* We only register the write event when we have data pending */
     event_add( c->c_read_event, c->c_read_timeout );
 
-    ldap_pvt_thread_mutex_lock( &clients_mutex );
+    checked_lock( &clients_mutex );
     LDAP_CIRCLEQ_INSERT_TAIL( &clients, c, c_next );
-    ldap_pvt_thread_mutex_unlock( &clients_mutex );
+    checked_unlock( &clients_mutex );
     CONNECTION_UNLOCK(c);
 
     return c;
@@ -536,9 +536,9 @@ client_unlink( LloadConnection *c )
     }
 
     if ( state != LLOAD_C_DYING ) {
-        ldap_pvt_thread_mutex_lock( &clients_mutex );
+        checked_lock( &clients_mutex );
         LDAP_CIRCLEQ_REMOVE( &clients, c, c_next );
-        ldap_pvt_thread_mutex_unlock( &clients_mutex );
+        checked_unlock( &clients_mutex );
     }
 
     CONNECTION_LOCK(c);
@@ -575,8 +575,8 @@ client_destroy( LloadConnection *c )
 void
 clients_destroy( int gentle )
 {
-    ldap_pvt_thread_mutex_lock( &clients_mutex );
+    checked_lock( &clients_mutex );
     connections_walk(
             &clients_mutex, &clients, lload_connection_close, &gentle );
-    ldap_pvt_thread_mutex_unlock( &clients_mutex );
+    checked_unlock( &clients_mutex );
 }
