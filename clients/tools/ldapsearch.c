@@ -679,10 +679,24 @@ handle_private_option( int i )
 			*maxattrp++ = '\0';
 			cookiep = strchr( maxattrp, '/' );
 			if ( cookiep != NULL ) {
-				*cookiep++ = '\0';
-				if ( *cookiep != '\0' ) {
-					ber_str2bv( cookiep, 0, 0, &dirSyncCookie );
+				if ( cookiep[1] != '\0' ) {
+					struct berval type;
+					int freeval;
+					char save1, save2;
+
+					/* dummy type "x"
+					 * to use ldif_parse_line2() */
+					save1 = cookiep[ -1 ];
+					save2 = cookiep[ -2 ];
+					cookiep[ -2 ] = 'x';
+					cookiep[ -1 ] = ':';
+					cookiep[  0 ] = ':';
+					ldif_parse_line2( &cookiep[ -2 ], &type,
+						&dirSyncCookie, &freeval );
+					cookiep[ -1 ] = save1;
+					cookiep[ -2 ] = save2;
 				}
+				*cookiep = '\0';
 			}
 			num = sscanf( cvalue, "%d", &tmp );
 			if ( num != 1 ) {
