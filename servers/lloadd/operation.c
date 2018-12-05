@@ -146,6 +146,7 @@ operation_init( LloadConnection *c, BerElement *ber )
         goto fail;
     }
 
+    CONNECTION_ASSERT_LOCKED(c);
     rc = tavl_insert( &c->c_ops, op, operation_client_cmp, avl_dup_error );
     if ( rc ) {
         Debug( LDAP_DEBUG_PACKETS, "operation_init: "

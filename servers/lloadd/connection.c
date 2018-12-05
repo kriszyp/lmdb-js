@@ -332,6 +332,7 @@ connection_destroy( LloadConnection *c )
             "destroying connection connid=%lu\n",
             c->c_connid );
 
+    CONNECTION_ASSERT_LOCKED(c);
     assert( c->c_live == 0 );
     assert( c->c_refcnt == 0 );
     assert( c->c_state == LLOAD_C_INVALID );
@@ -394,12 +395,15 @@ connections_walk_last(
     if ( LDAP_CIRCLEQ_EMPTY( cq ) ) {
         return;
     }
+    assert_locked( cq_mutex );
+
     last_connid = c->c_connid;
     c = LDAP_CIRCLEQ_LOOP_NEXT( cq, c, c_next );
 
     while ( !acquire_ref( &c->c_refcnt ) ) {
         c = LDAP_CIRCLEQ_LOOP_NEXT( cq, c, c_next );
         if ( c->c_connid >= last_connid ) {
+            assert_locked( cq_mutex );
             return;
         }
     }
@@ -432,10 +436,12 @@ connections_walk_last(
             LloadConnection *old = c;
             c = LDAP_CIRCLEQ_LOOP_NEXT( cq, c, c_next );
             if ( c->c_connid <= old->c_connid || c->c_connid > last_connid ) {
+                assert_locked( cq_mutex );
                 return;
             }
         } while ( !acquire_ref( &c->c_refcnt ) );
     } while ( c->c_connid <= last_connid );
+    assert_locked( cq_mutex );
 }
 
 void

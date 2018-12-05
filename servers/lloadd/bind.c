@@ -37,6 +37,7 @@ bind_mech_external(
     char *ptr, *message = "";
     int result = LDAP_SUCCESS;
 
+    CONNECTION_ASSERT_LOCKED(client);
     client->c_state = LLOAD_C_READY;
     client->c_type = LLOAD_C_OPEN;
 
@@ -370,6 +371,7 @@ request_bind( LloadConnection *client, LloadOperation *op )
         assert( client->c_pin_id == 0 );
         goto done;
     }
+    assert_locked( &upstream->c_io_mutex );
     /*
      * At this point, either:
      * - upstream is READY and pin == 0
@@ -524,6 +526,7 @@ finish_sasl_bind(
     ber_int_t msgid;
     int rc;
 
+    CONNECTION_ASSERT_LOCKED(upstream);
     removed = tavl_delete( &upstream->c_ops, op, operation_upstream_cmp );
     if ( !removed ) {
         assert( upstream->c_state != LLOAD_C_BINDING );

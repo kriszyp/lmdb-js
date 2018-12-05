@@ -91,6 +91,13 @@ LDAP_BEGIN_DECL
 #define checked_unlock( mutex ) \
     if ( ldap_pvt_thread_mutex_unlock( mutex ) != 0 ) assert(0)
 
+#ifdef LDAP_THREAD_DEBUG
+#define assert_locked( mutex ) \
+    if ( ldap_pvt_thread_mutex_trylock( mutex ) == 0 ) assert(0)
+#else
+#define assert_locked( mutex ) ( (void)0 )
+#endif
+
 typedef struct LloadBackend LloadBackend;
 typedef struct LloadPendingConnection LloadPendingConnection;
 typedef struct LloadConnection LloadConnection;
@@ -302,6 +309,7 @@ struct LloadConnection {
     CONNECTION_DESTROY_CB c_unlink;
     CONNECTION_DESTROY_CB c_destroy;
     CONNECTION_PDU_CB c_pdu_cb;
+#define CONNECTION_ASSERT_LOCKED(c) assert_locked( &(c)->c_mutex )
 #define CONNECTION_LOCK(c) \
     do { \
         checked_lock( &(c)->c_mutex ); \

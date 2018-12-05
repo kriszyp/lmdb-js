@@ -117,6 +117,7 @@ forward_final_response(
 static int
 handle_unsolicited( LloadConnection *c, BerElement *ber )
 {
+    CONNECTION_ASSERT_LOCKED(c);
     if ( c->c_state != LLOAD_C_PREPARING ) {
         c->c_state = LLOAD_C_CLOSING;
     }
@@ -605,6 +606,8 @@ upstream_finish( LloadConnection *c )
     LloadBackend *b = c->c_private;
     int is_bindconn = 0;
 
+    assert_locked( &b->b_mutex );
+    CONNECTION_ASSERT_LOCKED(c);
     assert( c->c_live );
     c->c_pdu_cb = handle_one_response;
 
@@ -975,6 +978,7 @@ upstream_unlink( LloadConnection *c )
     Debug( LDAP_DEBUG_CONNS, "upstream_unlink: "
             "removing upstream connid=%lu\n",
             c->c_connid );
+    CONNECTION_ASSERT_LOCKED(c);
 
     assert( c->c_state != LLOAD_C_INVALID );
     assert( c->c_state != LLOAD_C_DYING );
@@ -1042,6 +1046,7 @@ upstream_unlink( LloadConnection *c )
     checked_unlock( &b->b_mutex );
 
     CONNECTION_LOCK(c);
+    CONNECTION_ASSERT_LOCKED(c);
 }
 
 void

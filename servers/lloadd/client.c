@@ -102,6 +102,8 @@ request_process( LloadConnection *client, LloadOperation *op )
         operation_send_reject( op, res, "no connections available", 1 );
         goto fail;
     }
+    CONNECTION_ASSERT_LOCKED(upstream);
+    assert_locked( &upstream->c_io_mutex );
     op->o_upstream = upstream;
     op->o_upstream_connid = upstream->c_connid;
     op->o_res = LLOAD_OP_FAILED;
@@ -481,6 +483,7 @@ client_reset( LloadConnection *c )
     TAvlnode *root;
     long freed = 0, executing;
 
+    CONNECTION_ASSERT_LOCKED(c);
     root = c->c_ops;
     c->c_ops = NULL;
     executing = c->c_n_ops_executing;
@@ -505,6 +508,7 @@ client_reset( LloadConnection *c )
     assert( freed == executing );
 
     CONNECTION_LOCK(c);
+    CONNECTION_ASSERT_LOCKED(c);
 }
 
 void
@@ -517,6 +521,7 @@ client_unlink( LloadConnection *c )
             "removing client connid=%lu\n",
             c->c_connid );
 
+    CONNECTION_ASSERT_LOCKED(c);
     assert( c->c_state != LLOAD_C_INVALID );
     assert( c->c_state != LLOAD_C_DYING );
 
@@ -543,6 +548,7 @@ client_unlink( LloadConnection *c )
 
     CONNECTION_LOCK(c);
     client_reset( c );
+    CONNECTION_ASSERT_LOCKED(c);
 }
 
 void

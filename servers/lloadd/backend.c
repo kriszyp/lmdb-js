@@ -284,6 +284,8 @@ backend_select( LloadOperation *op, int *res )
 
                 checked_unlock( &b->b_mutex );
                 *res = LDAP_SUCCESS;
+                CONNECTION_ASSERT_LOCKED(c);
+                assert_locked( &c->c_io_mutex );
                 return c;
             }
             CONNECTION_UNLOCK(c);
@@ -311,6 +313,7 @@ backend_retry( LloadBackend *b )
                 "shutting down\n" );
         return;
     }
+    assert_locked( &b->b_mutex );
 
     requested = b->b_numconns;
 #ifdef LDAP_API_FEATURE_VERIFY_CREDENTIALS
@@ -323,6 +326,7 @@ backend_retry( LloadBackend *b )
     if ( b->b_active + b->b_bindavail + b->b_opening >= requested ) {
         Debug( LDAP_DEBUG_CONNS, "backend_retry: "
                 "no more connections needed for this backend\n" );
+        assert_locked( &b->b_mutex );
         return;
     }
 
@@ -330,6 +334,7 @@ backend_retry( LloadBackend *b )
         Debug( LDAP_DEBUG_CONNS, "backend_retry: "
                 "retry in progress already\n" );
         assert( b->b_opening == 1 );
+        assert_locked( &b->b_mutex );
         return;
     }
 
@@ -343,6 +348,7 @@ backend_retry( LloadBackend *b )
                 "scheduling a retry in %d ms\n",
                 b->b_retry_timeout );
         event_add( b->b_retry_event, &b->b_retry_tv );
+        assert_locked( &b->b_mutex );
         return;
     }
 
@@ -359,6 +365,7 @@ backend_retry( LloadBackend *b )
         b->b_failed++;
         event_add( b->b_retry_event, &b->b_retry_tv );
     }
+    assert_locked( &b->b_mutex );
 }
 
 void
@@ -517,6 +524,7 @@ backend_connect_task( void *ctx, void *arg )
 void
 backend_reset( LloadBackend *b, int gentle )
 {
+    assert_locked( &b->b_mutex );
     if ( b->b_cookie ) {
         if ( ldap_pvt_thread_pool_retract( b->b_cookie ) ) {
             b->b_cookie = NULL;
@@ -582,6 +590,7 @@ backend_reset( LloadBackend *b, int gentle )
     connections_walk_last( &b->b_mutex, &b->b_conns, b->b_last_conn,
             lload_connection_close, &gentle );
     assert( gentle || b->b_active == 0 );
+    assert_locked( &b->b_mutex );
 }
 
 void
