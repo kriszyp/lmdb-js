@@ -1449,11 +1449,9 @@ accesslog_op2logop( Operation *op )
 	return LOG_EN_UNKNOWN;
 }
 
-static int accesslog_mod_cleanup( Operation *op, SlapReply *rs );
-
 static int accesslog_response(Operation *op, SlapReply *rs) {
 	slap_overinst *on = (slap_overinst *)op->o_callback->sc_private;
-	log_info *li;
+	log_info *li = on->on_bi.bi_private;
 	Attribute *a, *last_attr;
 	Modifications *m;
 	struct berval *b, uuid = BER_BVNULL;
@@ -1468,9 +1466,11 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 	Operation op2 = {0};
 	SlapReply rs2 = {REP_RESULT};
 
-	if ( !on )
-		return SLAP_CB_CONTINUE;
-	li = on->on_bi.bi_private;
+	{
+		slap_callback *sc = op->o_callback;
+		op->o_callback = sc->sc_next;
+		op->o_tmpfree(sc, op->o_tmpmemctx );
+	}
 
 	if ( rs->sr_type != REP_RESULT && rs->sr_type != REP_EXTENDED )
 		return SLAP_CB_CONTINUE;
@@ -1504,13 +1504,6 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 		uuid = li->li_uuid;
 		li->li_old = NULL;
 		BER_BVZERO( &li->li_uuid );
-		/* Disarm mod_cleanup */
-		for ( cb = op->o_callback; cb; cb = cb->sc_next ) {
-			if ( cb->sc_cleanup == accesslog_mod_cleanup && cb->sc_private == (void *)on ) {
-				cb->sc_private = NULL;
-				break;
-			}
-		}
 #ifdef RMUTEX_DEBUG
 		Debug( LDAP_DEBUG_SYNC,
 			"accesslog_response: unlocking rmutex for tid %x\n",
@@ -1909,21 +1902,6 @@ accesslog_op_misc( Operation *op, SlapReply *rs )
 }
 
 static int
-accesslog_mod_cleanup( Operation *op, SlapReply *rs )
-{
-	slap_callback *sc = op->o_callback;
-	slap_overinst *on = sc->sc_private;
-
-	if ( on && rs->sr_err != LDAP_SUCCESS ) {
-		accesslog_response( op, rs );
-	}
-	op->o_callback = sc->sc_next;
-	op->o_tmpfree( sc, op->o_tmpmemctx );
-
-	return 0;
-}
-
-static int
 accesslog_op_mod( Operation *op, SlapReply *rs )
 {
 	slap_overinst *on = (slap_overinst *)op->o_bd->bd_info;
@@ -1952,7 +1930,7 @@ accesslog_op_mod( Operation *op, SlapReply *rs )
 			
 	if ( doit ) {
 		slap_callback *cb = op->o_tmpcalloc( 1, sizeof( slap_callback ), op->o_tmpmemctx );
-		cb->sc_cleanup = accesslog_mod_cleanup;
+		cb->sc_cleanup = accesslog_response;
 		cb->sc_response = accesslog_response;
 		cb->sc_private = on;
 		cb->sc_next = op->o_callback;
