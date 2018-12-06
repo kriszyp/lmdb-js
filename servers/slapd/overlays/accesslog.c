@@ -1290,10 +1290,8 @@ accesslog_ctrls(
 	
 }
 
-static Entry *accesslog_entry( Operation *op, SlapReply *rs, int logop,
-	Operation *op2 ) {
-	slap_overinst *on = (slap_overinst *)op->o_bd->bd_info;
-	log_info *li = on->on_bi.bi_private;
+static Entry *accesslog_entry( Operation *op, SlapReply *rs,
+	log_info *li, int logop, Operation *op2 ) {
 
 	char rdnbuf[STRLENOF(RDNEQ)+LDAP_LUTIL_GENTIME_BUFSIZE+8];
 	char nrdnbuf[STRLENOF(RDNEQ)+LDAP_LUTIL_GENTIME_BUFSIZE+8];
@@ -1451,9 +1449,11 @@ accesslog_op2logop( Operation *op )
 	return LOG_EN_UNKNOWN;
 }
 
+static int accesslog_mod_cleanup( Operation *op, SlapReply *rs );
+
 static int accesslog_response(Operation *op, SlapReply *rs) {
-	slap_overinst *on = (slap_overinst *)op->o_bd->bd_info;
-	log_info *li = on->on_bi.bi_private;
+	slap_overinst *on = (slap_overinst *)op->o_callback->sc_private;
+	log_info *li;
 	Attribute *a, *last_attr;
 	Modifications *m;
 	struct berval *b, uuid = BER_BVNULL;
@@ -1467,6 +1467,10 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 	BerVarray vals;
 	Operation op2 = {0};
 	SlapReply rs2 = {REP_RESULT};
+
+	if ( !on )
+		return SLAP_CB_CONTINUE;
+	li = on->on_bi.bi_private;
 
 	if ( rs->sr_type != REP_RESULT && rs->sr_type != REP_EXTENDED )
 		return SLAP_CB_CONTINUE;
@@ -1502,7 +1506,7 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 		BER_BVZERO( &li->li_uuid );
 		/* Disarm mod_cleanup */
 		for ( cb = op->o_callback; cb; cb = cb->sc_next ) {
-			if ( cb->sc_private == (void *)on ) {
+			if ( cb->sc_cleanup == accesslog_mod_cleanup && cb->sc_private == (void *)on ) {
 				cb->sc_private = NULL;
 				break;
 			}
@@ -1523,7 +1527,7 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 	if ( li->li_success && rs->sr_err != LDAP_SUCCESS )
 		goto done;
 
-	e = accesslog_entry( op, rs, logop, &op2 );
+	e = accesslog_entry( op, rs, li, logop, &op2 );
 
 	attr_merge_one( e, ad_reqDN, &op->o_req_dn, &op->o_req_ndn );
 
@@ -1887,36 +1891,13 @@ done:
 	return SLAP_CB_CONTINUE;
 }
 
-/* Since Bind success is sent by the frontend, it won't normally enter
- * the overlay response callback. Add another callback to make sure it
- * gets here.
- */
 static int
-accesslog_bind_resp( Operation *op, SlapReply *rs )
-{
-	BackendDB *be, db;
-	int rc;
-	slap_callback *sc;
-
-	be = op->o_bd;
-	db = *be;
-	op->o_bd = &db;
-	db.bd_info = op->o_callback->sc_private;
-	rc = accesslog_response( op, rs );
-	op->o_bd = be;
-	sc = op->o_callback;
-	op->o_callback = sc->sc_next;
-	op->o_tmpfree( sc, op->o_tmpmemctx );
-	return rc;
-}
-
-static int
-accesslog_op_bind( Operation *op, SlapReply *rs )
+accesslog_op_misc( Operation *op, SlapReply *rs )
 {
 	slap_callback *sc;
 
 	sc = op->o_tmpcalloc( 1, sizeof(slap_callback), op->o_tmpmemctx );
-	sc->sc_response = accesslog_bind_resp;
+	sc->sc_response = accesslog_response;
 	sc->sc_private = op->o_bd->bd_info;
 
 	if ( op->o_callback ) {
@@ -1933,16 +1914,13 @@ accesslog_mod_cleanup( Operation *op, SlapReply *rs )
 {
 	slap_callback *sc = op->o_callback;
 	slap_overinst *on = sc->sc_private;
-	op->o_callback = sc->sc_next;
-
-	op->o_tmpfree( sc, op->o_tmpmemctx );
 
 	if ( on && rs->sr_err != LDAP_SUCCESS ) {
-		BackendInfo *bi = op->o_bd->bd_info;
-		op->o_bd->bd_info = (BackendInfo *)on;
 		accesslog_response( op, rs );
-		op->o_bd->bd_info = bi;
 	}
+	op->o_callback = sc->sc_next;
+	op->o_tmpfree( sc, op->o_tmpmemctx );
+
 	return 0;
 }
 
@@ -1974,11 +1952,12 @@ accesslog_op_mod( Operation *op, SlapReply *rs )
 	}
 			
 	if ( doit ) {
-		slap_callback *cb = op->o_tmpcalloc( 1, sizeof( slap_callback ), op->o_tmpmemctx ), *cb2;
+		slap_callback *cb = op->o_tmpcalloc( 1, sizeof( slap_callback ), op->o_tmpmemctx );
 		cb->sc_cleanup = accesslog_mod_cleanup;
+		cb->sc_response = accesslog_response;
 		cb->sc_private = on;
-		for ( cb2 = op->o_callback; cb2->sc_next; cb2 = cb2->sc_next );
-		cb2->sc_next = cb;
+		cb->sc_next = op->o_callback;
+		op->o_callback = cb;
 
 #ifdef RMUTEX_DEBUG
 		Debug( LDAP_DEBUG_SYNC,
@@ -2053,7 +2032,7 @@ accesslog_unbind( Operation *op, SlapReply *rs )
 				return SLAP_CB_CONTINUE;
 		}
 
-		e = accesslog_entry( op, rs, LOG_EN_UNBIND, &op2 );
+		e = accesslog_entry( op, rs, li, LOG_EN_UNBIND, &op2 );
 		op2.o_hdr = op->o_hdr;
 		op2.o_tag = LDAP_REQ_ADD;
 		op2.o_bd = li->li_db;
@@ -2101,7 +2080,7 @@ accesslog_abandon( Operation *op, SlapReply *rs )
 			return SLAP_CB_CONTINUE;
 	}
 
-	e = accesslog_entry( op, rs, LOG_EN_ABANDON, &op2 );
+	e = accesslog_entry( op, rs, li, LOG_EN_ABANDON, &op2 );
 	bv.bv_val = buf;
 	bv.bv_len = snprintf( buf, sizeof( buf ), "%d", op->orn_msgid );
 	if ( bv.bv_len < sizeof( buf ) ) {
@@ -2344,14 +2323,16 @@ int accesslog_initialize()
 	accesslog.on_bi.bi_db_open = accesslog_db_open;
 
 	accesslog.on_bi.bi_op_add = accesslog_op_mod;
-	accesslog.on_bi.bi_op_bind = accesslog_op_bind;
+	accesslog.on_bi.bi_op_bind = accesslog_op_misc;
+	accesslog.on_bi.bi_op_compare = accesslog_op_misc;
 	accesslog.on_bi.bi_op_delete = accesslog_op_mod;
 	accesslog.on_bi.bi_op_modify = accesslog_op_mod;
 	accesslog.on_bi.bi_op_modrdn = accesslog_op_mod;
+	accesslog.on_bi.bi_op_search = accesslog_op_misc;
+	accesslog.on_bi.bi_extended = accesslog_op_misc;
 	accesslog.on_bi.bi_op_unbind = accesslog_unbind;
 	accesslog.on_bi.bi_op_abandon = accesslog_abandon;
 	accesslog.on_bi.bi_operational = accesslog_operational;
-	accesslog.on_response = accesslog_response;
 
 	accesslog.on_bi.bi_cf_ocs = log_cfocs;
 
