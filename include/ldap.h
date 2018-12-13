@@ -346,6 +346,7 @@ typedef struct ldapcontrol {
 #define LDAP_CONTROL_X_TREE_DELETE		"1.2.840.113556.1.4.805"
 
 /* MS Active Directory controls - not implemented in slapd(8) */
+#define LDAP_CONTROL_X_SERVER_NOTIFICATION	"1.2.840.113556.1.4.528"
 #define LDAP_CONTROL_X_EXTENDED_DN		"1.2.840.113556.1.4.529"
 #define LDAP_CONTROL_X_SHOW_DELETED		"1.2.840.113556.1.4.417"
 #define LDAP_CONTROL_X_DIRSYNC			"1.2.840.113556.1.4.841"
@@ -2603,6 +2604,13 @@ ldap_create_show_deleted_control LDAP_P((
 	LDAP		*ld,
 	LDAPControl	**ctrlp ));
 #endif /* LDAP_CONTROL_X_SHOW_DELETED */
+
+#ifdef LDAP_CONTROL_X_SERVER_NOTIFICATION
+LDAP_F( int )
+ldap_create_server_notification_control LDAP_P((
+	LDAP		*ld,
+	LDAPControl	**ctrlp ));
+#endif /* LDAP_CONTROL_X_SERVER_NOTIFICATION */
 
 /*
  * in assertion.c

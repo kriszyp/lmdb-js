@@ -260,3 +260,21 @@ ldap_create_extended_dn_control(
 }
 
 #endif /* LDAP_CONTROL_X_EXTENDED_DN */
+
+#ifdef LDAP_CONTROL_X_SERVER_NOTIFICATION
+
+int
+ldap_create_sever_notification_control( LDAP *ld,
+                                    LDAPControl **ctrlp )
+{
+	assert( ld != NULL );
+	assert( LDAP_VALID( ld ) );
+	assert( ctrlp != NULL );
+
+	ld->ld_errno = ldap_control_create( LDAP_CONTROL_X_SERVER_NOTIFICATION,
+		0, NULL, 0, ctrlp );
+
+	return ld->ld_errno;
+}
+
+#endif /* LDAP_CONTROL_X_SERVER_NOTIFICATION */
