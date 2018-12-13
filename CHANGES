@@ -7,6 +7,7 @@ OpenLDAP 2.4.47 Engineering
 	Fixed libldap dn to domain parsing with bad input (ITS#8842)
 	Fixed slapd slapcat to correctly honor -g option (ITS#8667)
 	Fixed slapd to correctly handle NO_SUCH_OBJECT with dynamic groups (ITS#8923)
+	Fixed slapd to check status of rdnNormalize (ITS#8932)
 	Fixed slapd cn=config when modifying slapo-syncprov config (ITS#8616)
 	Fixed slapd sasl authz-policy "all" behavior (ITS#8909)
 	Fixed slapd sasl minor typo (ITS#8918)
