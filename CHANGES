@@ -3,6 +3,7 @@ OpenLDAP 2.4 Change Log
 OpenLDAP 2.4.47 Engineering
 	Added slapd-sock DN qualifier for subtrees to be processed (ITS#8051)
 	Added slapd-sock ability to send extended operations to external listeners (ITS#8714)
+	Fixed liblber to avoid incremental access to user-supplied bv in dupbv (ITS#8752)
 	Fixed libldap dn to domain parsing with bad input (ITS#8842)
 	Fixed slapd slapcat to correctly honor -g option (ITS#8667)
 	Fixed slapd to correctly handle NO_SUCH_OBJECT with dynamic groups (ITS#8923)
@@ -12,6 +13,7 @@ OpenLDAP 2.4.47 Engineering
 	Fixed slapd to correctly hide hidden DBs in the rootDSE (ITS#8912)
 	Fixed slapd domainScope control to match Microsoft specification (ITS#8840)
 	Fixed slapd-bdb/hdb/mdb to not convert certain IDLs to ranges (ITS#8868)
+	Fixed slapo-accesslog deadlock during cleanup (ITS#8752)
 	Fixed slapo-memberof cn=config modifications (ITS#8663)
 	Fixed slapo-ppolicy with multimaster replication (ITS#8927)
 	Fixed slapo-syncprov with NULL modlist (ITS#8843)
