@@ -3046,22 +3046,8 @@ syncrepl_entry(
 		slap_queue_csn( op, syncCSN );
 	}
 
-	if ( !si->si_refreshDone ) {
-		if ( si->si_lazyCommit )
-			op->o_lazyCommit = SLAP_CONTROL_NONCRITICAL;
-		if ( si->si_refreshCount == 500 ) {
-			LDAP_SLIST_REMOVE( &op->o_extra, si->si_refreshTxn, OpExtra, oe_next );
-			op->o_bd->bd_info->bi_op_txn( op, SLAP_TXN_COMMIT, &si->si_refreshTxn );
-			si->si_refreshCount = 0;
-			si->si_refreshTxn = NULL;
-		}
-		if ( op->o_bd->bd_info->bi_op_txn ) {
-			if ( !si->si_refreshCount ) {
-				op->o_bd->bd_info->bi_op_txn( op, SLAP_TXN_BEGIN, &si->si_refreshTxn );
-			}
-			si->si_refreshCount++;
-		}
-	}
+	if ( !si->si_refreshDone && si->si_lazyCommit )
+		op->o_lazyCommit = SLAP_CONTROL_NONCRITICAL;
 
 	slap_op_time( &op->o_time, &op->o_tincr );
 	switch ( syncstate ) {
