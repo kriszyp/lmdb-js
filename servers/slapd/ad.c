@@ -219,6 +219,7 @@ int slap_bv2ad(
 	optn = bv->bv_val + bv->bv_len;
 
 	for( opt=options; opt != NULL; opt=next ) {
+		Attr_option *aopt;
 		int optlen;
 		opt++; 
 		next = strchrlen( opt, optn, ';', &optlen );
@@ -245,11 +246,11 @@ int slap_bv2ad(
 			desc.ad_flags |= SLAP_DESC_BINARY;
 			continue;
 
-		} else if ( ad_find_option_definition( opt, optlen ) ) {
+		} else if (( aopt = ad_find_option_definition( opt, optlen )) ) {
 			int i;
 
 			if( opt[optlen-1] == '-' ||
-				( opt[optlen-1] == '=' && msad_range_hack )) {
+				( aopt->name.bv_val[aopt->name.bv_len-1] == '=' && msad_range_hack )) {
 				desc.ad_flags |= SLAP_DESC_TAG_RANGE;
 			}
 
