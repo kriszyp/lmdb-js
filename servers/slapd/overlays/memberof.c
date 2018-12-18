@@ -1689,6 +1689,7 @@ static ConfigTable mo_cfg[] = {
 		2, 2, 0, ARG_MAGIC|ARG_DN|MO_DN, mo_cf_gen,
 		"( OLcfgOvAt:18.0 NAME 'olcMemberOfDN' "
 			"DESC 'DN to be used as modifiersName' "
+			"EQUALITY distinguishedNameMatch "
 			"SYNTAX OMsDN SINGLE-VALUE )",
 		NULL, NULL },
 
@@ -1697,6 +1698,7 @@ static ConfigTable mo_cfg[] = {
 		"( OLcfgOvAt:18.1 NAME 'olcMemberOfDangling' "
 			"DESC 'Behavior with respect to dangling members, "
 				"constrained to ignore, drop, error' "
+			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )",
 		NULL, NULL },
 
@@ -1704,6 +1706,7 @@ static ConfigTable mo_cfg[] = {
 		2, 2, 0, ARG_MAGIC|ARG_ON_OFF|MO_REFINT, mo_cf_gen,
 		"( OLcfgOvAt:18.2 NAME 'olcMemberOfRefInt' "
 			"DESC 'Take care of referential integrity' "
+			"EQUALITY booleanMatch "
 			"SYNTAX OMsBoolean SINGLE-VALUE )",
 		NULL, NULL },
 
@@ -1711,6 +1714,7 @@ static ConfigTable mo_cfg[] = {
 		2, 2, 0, ARG_MAGIC|MO_GROUP_OC, mo_cf_gen,
 		"( OLcfgOvAt:18.3 NAME 'olcMemberOfGroupOC' "
 			"DESC 'Group objectClass' "
+			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )",
 		NULL, NULL },
 
@@ -1718,6 +1722,7 @@ static ConfigTable mo_cfg[] = {
 		2, 2, 0, ARG_MAGIC|ARG_ATDESC|MO_MEMBER_AD, mo_cf_gen,
 		"( OLcfgOvAt:18.4 NAME 'olcMemberOfMemberAD' "
 			"DESC 'member attribute' "
+			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )",
 		NULL, NULL },
 
@@ -1725,6 +1730,7 @@ static ConfigTable mo_cfg[] = {
 		2, 2, 0, ARG_MAGIC|ARG_ATDESC|MO_MEMBER_OF_AD, mo_cf_gen,
 		"( OLcfgOvAt:18.5 NAME 'olcMemberOfMemberOfAD' "
 			"DESC 'memberOf attribute' "
+			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )",
 		NULL, NULL },
 
@@ -1742,6 +1748,7 @@ static ConfigTable mo_cfg[] = {
 		2, 2, 0, ARG_MAGIC|MO_DANGLING_ERROR, mo_cf_gen,
 		"( OLcfgOvAt:18.7 NAME 'olcMemberOfDanglingError' "
 			"DESC 'Error code returned in case of dangling back reference' "
+			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )",
 		NULL, NULL },
 

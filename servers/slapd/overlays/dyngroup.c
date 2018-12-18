@@ -124,6 +124,7 @@ static ConfigTable dgroupcfg[] = {
 	{ "attrpair", "member-attribute> <URL-attribute", 3, 3, 0,
 	  ARG_MAGIC, dgroup_cf,
 	  "( OLcfgOvAt:17.1 NAME 'olcDGAttrPair' "
+	  "EQUALITY caseIgnoreMatch "
 	  "DESC 'Member and MemberURL attribute pair' "
 	  "SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ NULL, NULL, 0, 0, 0, ARG_IGNORED }

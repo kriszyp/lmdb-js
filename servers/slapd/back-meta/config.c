@@ -114,6 +114,7 @@ static ConfigTable metacfg[] = {
 		meta_back_cf_gen, "( OLcfgDbAt:0.14 "
 			"NAME 'olcDbURI' "
 			"DESC 'URI (list) for remote DSA' "
+			"EQUALITY caseExactMatch "
 			"SYNTAX OMsDirectoryString "
 			"SINGLE-VALUE )",
 		NULL, NULL },
@@ -122,6 +123,7 @@ static ConfigTable metacfg[] = {
 		meta_back_cf_gen, "( OLcfgDbAt:3.1 "
 			"NAME 'olcDbStartTLS' "
 			"DESC 'StartTLS' "
+			"EQUALITY caseExactMatch "
 			"SYNTAX OMsDirectoryString "
 			"SINGLE-VALUE )",
 		NULL, NULL },
@@ -130,6 +132,7 @@ static ConfigTable metacfg[] = {
 		meta_back_cf_gen, "( OLcfgDbAt:3.2 "
 			"NAME 'olcDbACLAuthcDn' "
 			"DESC 'Remote ACL administrative identity' "
+			"EQUALITY distinguishedNameMatch "
 			"OBSOLETE "
 			"SYNTAX OMsDN "
 			"SINGLE-VALUE )",
@@ -156,6 +159,7 @@ static ConfigTable metacfg[] = {
 		meta_back_cf_gen, "( OLcfgDbAt:3.7 "
 			"NAME 'olcDbIDAssertBind' "
 			"DESC 'Remote Identity Assertion administrative identity auth bind configuration' "
+			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString "
 			"SINGLE-VALUE )",
 		NULL, NULL },
@@ -173,6 +177,7 @@ static ConfigTable metacfg[] = {
 		meta_back_cf_gen, "( OLcfgDbAt:3.10 "
 			"NAME 'olcDbRebindAsUser' "
 			"DESC 'Rebind as user' "
+			"EQUALITY booleanMatch "
 			"SYNTAX OMsBoolean "
 			"SINGLE-VALUE )",
 		NULL, NULL },
@@ -181,6 +186,7 @@ static ConfigTable metacfg[] = {
 		meta_back_cf_gen, "( OLcfgDbAt:3.11 "
 			"NAME 'olcDbChaseReferrals' "
 			"DESC 'Chase referrals' "
+			"EQUALITY booleanMatch "
 			"SYNTAX OMsBoolean "
 			"SINGLE-VALUE )",
 		NULL, NULL },
@@ -189,6 +195,7 @@ static ConfigTable metacfg[] = {
 		meta_back_cf_gen, "( OLcfgDbAt:3.12 "
 			"NAME 'olcDbTFSupport' "
 			"DESC 'Absolute filters support' "
+			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString "
 			"SINGLE-VALUE )",
 		NULL, NULL },
@@ -197,6 +204,7 @@ static ConfigTable metacfg[] = {
 		meta_back_cf_gen, "( OLcfgDbAt:3.14 "
 			"NAME 'olcDbTimeout' "
 			"DESC 'Per-operation timeouts' "
+			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString "
 			"SINGLE-VALUE )",
 		NULL, NULL },
@@ -205,6 +213,7 @@ static ConfigTable metacfg[] = {
 		meta_back_cf_gen, "( OLcfgDbAt:3.15 "
 			"NAME 'olcDbIdleTimeout' "
 			"DESC 'connection idle timeout' "
+			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString "
 			"SINGLE-VALUE )",
 		NULL, NULL },
@@ -213,6 +222,7 @@ static ConfigTable metacfg[] = {
 		meta_back_cf_gen, "( OLcfgDbAt:3.16 "
 			"NAME 'olcDbConnTtl' "
 			"DESC 'connection ttl' "
+			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString "
 			"SINGLE-VALUE )",
 		NULL, NULL },
@@ -229,6 +239,7 @@ static ConfigTable metacfg[] = {
 		meta_back_cf_gen, "( OLcfgDbAt:3.18 "
 			"NAME 'olcDbProtocolVersion' "
 			"DESC 'protocol version' "
+			"EQUALITY integerMatch "
 			"SYNTAX OMsInteger "
 			"SINGLE-VALUE )",
 		NULL, NULL },
@@ -237,6 +248,7 @@ static ConfigTable metacfg[] = {
 		meta_back_cf_gen, "( OLcfgDbAt:3.19 "
 			"NAME 'olcDbSingleConn' "
 			"DESC 'cache a single connection per identity' "
+			"EQUALITY booleanMatch "
 			"SYNTAX OMsBoolean "
 			"SINGLE-VALUE )",
 		NULL, NULL },
@@ -245,6 +257,7 @@ static ConfigTable metacfg[] = {
 		meta_back_cf_gen, "( OLcfgDbAt:3.20 "
 			"NAME 'olcDbCancel' "
 			"DESC 'abandon/ignore/exop operations when appropriate' "
+			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString "
 			"SINGLE-VALUE )",
 		NULL, NULL },
@@ -253,6 +266,7 @@ static ConfigTable metacfg[] = {
 		meta_back_cf_gen, "( OLcfgDbAt:3.21 "
 			"NAME 'olcDbQuarantine' "
 			"DESC 'Quarantine database if connection fails and retry according to rule' "
+			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString "
 			"SINGLE-VALUE )",
 		NULL, NULL },
@@ -261,6 +275,7 @@ static ConfigTable metacfg[] = {
 		meta_back_cf_gen, "( OLcfgDbAt:3.22 "
 			"NAME 'olcDbUseTemporaryConn' "
 			"DESC 'Use temporary connections if the cached one is busy' "
+			"EQUALITY booleanMatch "
 			"SYNTAX OMsBoolean "
 			"SINGLE-VALUE )",
 		NULL, NULL },
@@ -269,6 +284,7 @@ static ConfigTable metacfg[] = {
 		meta_back_cf_gen, "( OLcfgDbAt:3.23 "
 			"NAME 'olcDbConnectionPoolMax' "
 			"DESC 'Max size of privileged connections pool' "
+			"EQUALITY integerMatch "
 			"SYNTAX OMsInteger "
 			"SINGLE-VALUE )",
 		NULL, NULL },
@@ -278,6 +294,7 @@ static ConfigTable metacfg[] = {
 		meta_back_cf_gen, "( OLcfgDbAt:3.24 "
 			"NAME 'olcDbSessionTrackingRequest' "
 			"DESC 'Add session tracking control to proxied requests' "
+			"EQUALITY booleanMatch "
 			"SYNTAX OMsBoolean "
 			"SINGLE-VALUE )",
 		NULL, NULL },
@@ -287,6 +304,7 @@ static ConfigTable metacfg[] = {
 		meta_back_cf_gen, "( OLcfgDbAt:3.25 "
 			"NAME 'olcDbNoRefs' "
 			"DESC 'Do not return search reference responses' "
+			"EQUALITY booleanMatch "
 			"SYNTAX OMsBoolean "
 			"SINGLE-VALUE )",
 		NULL, NULL },
@@ -295,6 +313,7 @@ static ConfigTable metacfg[] = {
 		meta_back_cf_gen, "( OLcfgDbAt:3.26 "
 			"NAME 'olcDbNoUndefFilter' "
 			"DESC 'Do not propagate undefined search filters' "
+			"EQUALITY booleanMatch "
 			"SYNTAX OMsBoolean "
 			"SINGLE-VALUE )",
 		NULL, NULL },
@@ -343,6 +362,7 @@ static ConfigTable metacfg[] = {
 		meta_back_cf_gen, "( OLcfgDbAt:3.105 "
 			"NAME 'olcDbDefaultTarget' "
 			"DESC 'Specify the default target' "
+			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString "
 			"SINGLE-VALUE )",
 		NULL, NULL },
@@ -351,6 +371,7 @@ static ConfigTable metacfg[] = {
 		meta_back_cf_gen, "( OLcfgDbAt:3.106 "
 			"NAME 'olcDbDnCacheTtl' "
 			"DESC 'dncache ttl' "
+			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString "
 			"SINGLE-VALUE )",
 		NULL, NULL },
@@ -359,7 +380,8 @@ static ConfigTable metacfg[] = {
 		meta_back_cf_gen, "( OLcfgDbAt:3.107 "
 			"NAME 'olcDbBindTimeout' "
 			"DESC 'bind timeout' "
-			"SYNTAX OMsDirectoryString "
+			"EQUALITY integerMatch "
+			"SYNTAX OMsInteger "
 			"SINGLE-VALUE )",
 		NULL, NULL },
 	{ "onerr", "CONTINUE|report|stop", 2, 2, 0,
@@ -367,6 +389,7 @@ static ConfigTable metacfg[] = {
 		meta_back_cf_gen, "( OLcfgDbAt:3.108 "
 			"NAME 'olcDbOnErr' "
 			"DESC 'error handling' "
+			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString "
 			"SINGLE-VALUE )",
 		NULL, NULL },
@@ -375,6 +398,7 @@ static ConfigTable metacfg[] = {
 		meta_back_cf_gen, "( OLcfgDbAt:3.109 "
 			"NAME 'olcDbPseudoRootBindDefer' "
 			"DESC 'error handling' "
+			"EQUALITY booleanMatch "
 			"SYNTAX OMsBoolean "
 			"SINGLE-VALUE )",
 		NULL, NULL },
@@ -392,6 +416,7 @@ static ConfigTable metacfg[] = {
 		meta_back_cf_gen, "( OLcfgDbAt:3.110 "
 			"NAME 'olcDbNretries' "
 			"DESC 'retry handling' "
+			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString "
 			"SINGLE-VALUE )",
 		NULL, NULL },
@@ -400,6 +425,7 @@ static ConfigTable metacfg[] = {
 		meta_back_cf_gen, "( OLcfgDbAt:3.111 "
 			"NAME 'olcDbClientPr' "
 			"DESC 'PagedResults handling' "
+			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString "
 			"SINGLE-VALUE )",
 		NULL, NULL },
@@ -416,6 +442,7 @@ static ConfigTable metacfg[] = {
 		meta_back_cf_gen, "( OLcfgDbAt:3.29 "
 			"NAME 'olcDbKeepalive' "
 			"DESC 'TCP keepalive' "
+			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString "
 			"SINGLE-VALUE )",
 		NULL, NULL },
@@ -1276,11 +1303,12 @@ meta_back_cf_gen( ConfigArgs *c )
 		case LDAP_BACK_CFG_NETWORK_TIMEOUT:
 			if ( mc->mc_network_timeout == 0 ) {
 				return 1;
+			} else {
+				char	buf[ SLAP_TEXT_BUFLEN ];
+				lutil_unparse_time( buf, sizeof( buf ), mc->mc_network_timeout );
+				ber_str2bv( buf, 0, 0, &bv );
+				value_add_one( &c->rvalue_vals, &bv );
 			}
-			bv.bv_len = snprintf( c->cr_msg, sizeof(c->cr_msg), "%ld",
-				mc->mc_network_timeout );
-			bv.bv_val = c->cr_msg;
-			value_add_one( &c->rvalue_vals, &bv );
 			break;
 
 		case LDAP_BACK_CFG_NOREFS:

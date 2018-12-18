@@ -65,35 +65,43 @@ static ConfigTable bdbcfg[] = {
 		(void *)offsetof(struct bdb_info, bi_cache.c_minfree),
 		"( OLcfgDbAt:1.11 NAME 'olcDbCacheFree' "
 			"DESC 'Number of extra entries to free when max is reached' "
+			"EQUALITY integerMatch "
 			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
 	{ "cachesize", "size", 2, 2, 0, ARG_ULONG|ARG_OFFSET,
 		(void *)offsetof(struct bdb_info, bi_cache.c_maxsize),
 		"( OLcfgDbAt:1.1 NAME 'olcDbCacheSize' "
 			"DESC 'Entry cache size in entries' "
+			"EQUALITY integerMatch "
 			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
 	{ "checkpoint", "kbyte> <min", 3, 3, 0, ARG_MAGIC|BDB_CHKPT,
 		bdb_cf_gen, "( OLcfgDbAt:1.2 NAME 'olcDbCheckpoint' "
 			"DESC 'Database checkpoint interval in kbytes and minutes' "
+			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )",NULL, NULL },
 	{ "checksum", NULL, 1, 2, 0, ARG_ON_OFF|ARG_MAGIC|BDB_CHECKSUM,
 		bdb_cf_gen, "( OLcfgDbAt:1.16 NAME 'olcDbChecksum' "
 			"DESC 'Enable database checksum validation' "
+			"EQUALITY booleanMatch "
 			"SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
 	{ "cryptfile", "file", 2, 2, 0, ARG_STRING|ARG_MAGIC|BDB_CRYPTFILE,
 		bdb_cf_gen, "( OLcfgDbAt:1.13 NAME 'olcDbCryptFile' "
 			"DESC 'Pathname of file containing the DB encryption key' "
+			"EQUALITY caseExactMatch "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )",NULL, NULL },
 	{ "cryptkey", "key", 2, 2, 0, ARG_BERVAL|ARG_MAGIC|BDB_CRYPTKEY,
 		bdb_cf_gen, "( OLcfgDbAt:1.14 NAME 'olcDbCryptKey' "
 			"DESC 'DB encryption key' "
+			"EQUALITY caseExactMatch "
 			"SYNTAX OMsOctetString SINGLE-VALUE )",NULL, NULL },
 	{ "dbconfig", "DB_CONFIG setting", 1, 0, 0, ARG_MAGIC|BDB_CONFIG,
 		bdb_cf_gen, "( OLcfgDbAt:1.3 NAME 'olcDbConfig' "
 			"DESC 'BerkeleyDB DB_CONFIG configuration directives' "
+			"EQUALITY caseIgnoreIA5Match "
 			"SYNTAX OMsIA5String X-ORDERED 'VALUES' )", NULL, NULL },
 	{ "dbnosync", NULL, 1, 2, 0, ARG_ON_OFF|ARG_MAGIC|BDB_NOSYNC,
 		bdb_cf_gen, "( OLcfgDbAt:1.4 NAME 'olcDbNoSync' "
 			"DESC 'Disable synchronous database writes' "
+			"EQUALITY booleanMatch "
 			"SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
 	{ "dbpagesize", "db> <size", 3, 3, 0, ARG_MAGIC|BDB_PGSIZE,
 		bdb_cf_gen, "( OLcfgDbAt:1.15 NAME 'olcDbPageSize' "
@@ -108,16 +116,19 @@ static ConfigTable bdbcfg[] = {
 #endif
 		"( OLcfgDbAt:1.5 NAME 'olcDbDirtyRead' "
 		"DESC 'Allow reads of uncommitted data' "
+		"EQUALITY booleanMatch "
 		"SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
 	{ "dncachesize", "size", 2, 2, 0, ARG_ULONG|ARG_OFFSET,
 		(void *)offsetof(struct bdb_info, bi_cache.c_eimax),
 		"( OLcfgDbAt:1.12 NAME 'olcDbDNcacheSize' "
 			"DESC 'DN cache size' "
+			"EQUALITY integerMatch "
 			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
 	{ "idlcachesize", "size", 2, 2, 0, ARG_ULONG|ARG_OFFSET,
 		(void *)offsetof(struct bdb_info, bi_idl_cache_max_size),
 		"( OLcfgDbAt:1.6 NAME 'olcDbIDLcacheSize' "
 		"DESC 'IDL cache size in IDLs' "
+		"EQUALITY integerMatch "
 		"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
 	{ "index", "attr> <[pres,eq,approx,sub]", 2, 3, 0, ARG_MAGIC|BDB_INDEX,
 		bdb_cf_gen, "( OLcfgDbAt:0.2 NAME 'olcDbIndex' "
@@ -128,23 +139,28 @@ static ConfigTable bdbcfg[] = {
 		(void *)offsetof(struct bdb_info, bi_linear_index), 
 		"( OLcfgDbAt:1.7 NAME 'olcDbLinearIndex' "
 		"DESC 'Index attributes one at a time' "
+		"EQUALITY booleanMatch "
 		"SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
 	{ "lockdetect", "policy", 2, 2, 0, ARG_MAGIC|BDB_LOCKD,
 		bdb_cf_gen, "( OLcfgDbAt:1.8 NAME 'olcDbLockDetect' "
 		"DESC 'Deadlock detection algorithm' "
+		"EQUALITY caseIgnoreMatch "
 		"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
 	{ "mode", "mode", 2, 2, 0, ARG_MAGIC|BDB_MODE,
 		bdb_cf_gen, "( OLcfgDbAt:0.3 NAME 'olcDbMode' "
 		"DESC 'Unix permissions of database files' "
+		"EQUALITY caseIgnoreMatch "
 		"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
 	{ "searchstack", "depth", 2, 2, 0, ARG_INT|ARG_MAGIC|BDB_SSTACK,
 		bdb_cf_gen, "( OLcfgDbAt:1.9 NAME 'olcDbSearchStack' "
 		"DESC 'Depth of search stack in IDLs' "
+		"EQUALITY integerMatch "
 		"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
 	{ "shm_key", "key", 2, 2, 0, ARG_LONG|ARG_OFFSET,
 		(void *)offsetof(struct bdb_info, bi_shm_key), 
 		"( OLcfgDbAt:1.10 NAME 'olcDbShmKey' "
 		"DESC 'Key for shared memory region' "
+		"EQUALITY integerMatch "
 		"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
 	{ NULL, NULL, 0, 0, 0, ARG_IGNORED,
 		NULL, NULL, NULL, NULL }

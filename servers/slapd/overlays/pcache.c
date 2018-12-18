@@ -3657,6 +3657,7 @@ static ConfigTable pccfg[] = {
 		6, 6, 0, ARG_MAGIC|ARG_NO_DELETE|PC_MAIN, pc_cf_gen,
 		"( OLcfgOvAt:2.1 NAME ( 'olcPcache' 'olcProxyCache' ) "
 			"DESC 'Proxy Cache basic parameters' "
+			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
 	{ "pcacheAttrset", "index> <attributes...",
 		2, 0, 0, ARG_MAGIC|PC_ATTR, pc_cf_gen,
@@ -3677,26 +3678,31 @@ static ConfigTable pccfg[] = {
 		2, 2, 0, ARG_MAGIC|PC_RESP, pc_cf_gen,
 		"( OLcfgOvAt:2.4 NAME 'olcPcachePosition' "
 			"DESC 'Response callback position in overlay stack' "
+			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
 	{ "pcacheMaxQueries", "queries",
 		2, 2, 0, ARG_INT|ARG_MAGIC|PC_QUERIES, pc_cf_gen,
 		"( OLcfgOvAt:2.5 NAME ( 'olcPcacheMaxQueries' 'olcProxyCacheQueries' ) "
 			"DESC 'Maximum number of queries to cache' "
+			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
 	{ "pcachePersist", "TRUE|FALSE",
 		2, 2, 0, ARG_ON_OFF|ARG_OFFSET, (void *)offsetof(cache_manager, save_queries),
 		"( OLcfgOvAt:2.6 NAME ( 'olcPcachePersist' 'olcProxySaveQueries' ) "
 			"DESC 'Save cached queries for hot restart' "
+			"EQUALITY booleanMatch "
 			"SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
 	{ "pcacheValidate", "TRUE|FALSE",
 		2, 2, 0, ARG_ON_OFF|ARG_OFFSET, (void *)offsetof(cache_manager, check_cacheability),
 		"( OLcfgOvAt:2.7 NAME ( 'olcPcacheValidate' 'olcProxyCheckCacheability' ) "
 			"DESC 'Check whether the results of a query are cacheable, e.g. for schema issues' "
+			"EQUALITY booleanMatch "
 			"SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
 	{ "pcacheOffline", "TRUE|FALSE",
 		2, 2, 0, ARG_ON_OFF|ARG_MAGIC|PC_OFFLINE, pc_cf_gen,
 		"( OLcfgOvAt:2.8 NAME 'olcPcacheOffline' "
 			"DESC 'Set cache to offline mode and disable expiration' "
+			"EQUALITY booleanMatch "
 			"SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
 	{ "pcacheBind", "filter> <attrset-index> <TTR> <scope> <base",
 		6, 6, 0, ARG_MAGIC|PC_BIND, pc_cf_gen,

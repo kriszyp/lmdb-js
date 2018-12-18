@@ -1724,6 +1724,7 @@ static ConfigTable agcfg[] = {
 		2, 2, 0, ARG_MAGIC|AG_MEMBER_OF_AD, ag_cfgen,
 		"( OLcfgCtAt:2.2 NAME 'olcAGmemberOfAd' "
 			"DESC 'memberOf attribute' "
+			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )",
 			NULL, NULL },
 

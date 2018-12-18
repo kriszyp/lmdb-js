@@ -96,6 +96,7 @@ static ConfigTable log_cfats[] = {
 	{ "logdb", "suffix", 2, 2, 0, ARG_DN|ARG_MAGIC|LOG_DB,
 		log_cf_gen, "( OLcfgOvAt:4.1 NAME 'olcAccessLogDB' "
 			"DESC 'Suffix of database for log content' "
+			"EQUALITY distinguishedNameMatch "
 			"SUP distinguishedName SINGLE-VALUE )", NULL, NULL },
 	{ "logops", "op|writes|reads|session|all", 2, 0, 0,
 		ARG_MAGIC|LOG_OPS,
@@ -106,14 +107,17 @@ static ConfigTable log_cfats[] = {
 	{ "logpurge", "age> <interval", 3, 3, 0, ARG_MAGIC|LOG_PURGE,
 		log_cf_gen, "( OLcfgOvAt:4.3 NAME 'olcAccessLogPurge' "
 			"DESC 'Log cleanup parameters' "
+			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
 	{ "logsuccess", NULL, 2, 2, 0, ARG_MAGIC|ARG_ON_OFF|LOG_SUCCESS,
 		log_cf_gen, "( OLcfgOvAt:4.4 NAME 'olcAccessLogSuccess' "
 			"DESC 'Log successful ops only' "
+			"EQUALITY booleanMatch "
 			"SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
 	{ "logold", "filter", 2, 2, 0, ARG_MAGIC|LOG_OLD,
 		log_cf_gen, "( OLcfgOvAt:4.5 NAME 'olcAccessLogOld' "
 			"DESC 'Log old values when modifying entries matching the filter' "
+			"EQUALITY caseExactMatch "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
 	{ "logoldattr", "attrs", 2, 0, 0, ARG_MAGIC|LOG_OLDATTR,
 		log_cf_gen, "( OLcfgOvAt:4.6 NAME 'olcAccessLogOldAttr' "

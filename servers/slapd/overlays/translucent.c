@@ -61,36 +61,42 @@ static ConfigTable translucentcfg[] = {
 	  (void *)offsetof(translucent_info, strict),
 	  "( OLcfgOvAt:14.1 NAME 'olcTranslucentStrict' "
 	  "DESC 'Reveal attribute deletion constraint violations' "
+	  "EQUALITY booleanMatch "
 	  "SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
 	{ "translucent_no_glue", "on|off", 1, 2, 0,
 	  ARG_ON_OFF|ARG_OFFSET,
 	  (void *)offsetof(translucent_info, no_glue),
 	  "( OLcfgOvAt:14.2 NAME 'olcTranslucentNoGlue' "
 	  "DESC 'Disable automatic glue records for ADD and MODRDN' "
+	  "EQUALITY booleanMatch "
 	  "SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
 	{ "translucent_local", "attr[,attr...]", 1, 2, 0,
 	  ARG_MAGIC|TRANS_LOCAL,
 	  translucent_cf_gen,
 	  "( OLcfgOvAt:14.3 NAME 'olcTranslucentLocal' "
 	  "DESC 'Attributes to use in local search filter' "
+	  "EQUALITY caseIgnoreMatch "
 	  "SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ "translucent_remote", "attr[,attr...]", 1, 2, 0,
 	  ARG_MAGIC|TRANS_REMOTE,
 	  translucent_cf_gen,
 	  "( OLcfgOvAt:14.4 NAME 'olcTranslucentRemote' "
 	  "DESC 'Attributes to use in remote search filter' "
+	  "EQUALITY caseIgnoreMatch "
 	  "SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ "translucent_bind_local", "on|off", 1, 2, 0,
 	  ARG_ON_OFF|ARG_OFFSET,
 	  (void *)offsetof(translucent_info, bind_local),
 	  "( OLcfgOvAt:14.5 NAME 'olcTranslucentBindLocal' "
 	  "DESC 'Enable local bind' "
+	  "EQUALITY booleanMatch "
 	  "SYNTAX OMsBoolean SINGLE-VALUE)", NULL, NULL },
 	{ "translucent_pwmod_local", "on|off", 1, 2, 0,
 	  ARG_ON_OFF|ARG_OFFSET,
 	  (void *)offsetof(translucent_info, pwmod_local),
 	  "( OLcfgOvAt:14.6 NAME 'olcTranslucentPwModLocal' "
 	  "DESC 'Enable local RFC 3062 Password Modify extended operation' "
+	  "EQUALITY booleanMatch "
 	  "SYNTAX OMsBoolean SINGLE-VALUE)", NULL, NULL },
 	{ NULL, NULL, 0, 0, 0, ARG_IGNORED }
 };

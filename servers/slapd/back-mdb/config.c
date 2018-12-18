@@ -47,15 +47,17 @@ static ConfigTable mdbcfg[] = {
 	{ "directory", "dir", 2, 2, 0, ARG_STRING|ARG_MAGIC|MDB_DIRECTORY,
 		mdb_cf_gen, "( OLcfgDbAt:0.1 NAME 'olcDbDirectory' "
 			"DESC 'Directory for database content' "
-			"EQUALITY caseIgnoreMatch "
+			"EQUALITY caseExactMatch "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
 	{ "checkpoint", "kbyte> <min", 3, 3, 0, ARG_MAGIC|MDB_CHKPT,
 		mdb_cf_gen, "( OLcfgDbAt:1.2 NAME 'olcDbCheckpoint' "
 			"DESC 'Database checkpoint interval in kbytes and minutes' "
+			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )",NULL, NULL },
 	{ "dbnosync", NULL, 1, 2, 0, ARG_ON_OFF|ARG_MAGIC|MDB_DBNOSYNC,
 		mdb_cf_gen, "( OLcfgDbAt:1.4 NAME 'olcDbNoSync' "
 			"DESC 'Disable synchronous database writes' "
+			"EQUALITY booleanMatch "
 			"SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
 	{ "envflags", "flags", 2, 0, 0, ARG_MAGIC|MDB_ENVFLAGS,
 		mdb_cf_gen, "( OLcfgDbAt:12.3 NAME 'olcDbEnvFlags' "
@@ -71,32 +73,39 @@ static ConfigTable mdbcfg[] = {
 		(void *)offsetof(struct mdb_info, mi_maxentrysize),
 		"( OLcfgDbAt:12.4 NAME 'olcDbMaxEntrySize' "
 		"DESC 'Maximum size of an entry in bytes' "
+		"EQUALITY integerMatch "
 		"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
 	{ "maxreaders", "num", 2, 2, 0, ARG_UINT|ARG_MAGIC|MDB_MAXREADERS,
 		mdb_cf_gen, "( OLcfgDbAt:12.1 NAME 'olcDbMaxReaders' "
 		"DESC 'Maximum number of threads that may access the DB concurrently' "
+		"EQUALITY integerMatch "
 		"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
 	{ "maxsize", "size", 2, 2, 0, ARG_ULONG|ARG_MAGIC|MDB_MAXSIZE,
 		mdb_cf_gen, "( OLcfgDbAt:12.2 NAME 'olcDbMaxSize' "
 		"DESC 'Maximum size of DB in bytes' "
+		"EQUALITY integerMatch "
 		"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
 	{ "mode", "mode", 2, 2, 0, ARG_MAGIC|MDB_MODE,
 		mdb_cf_gen, "( OLcfgDbAt:0.3 NAME 'olcDbMode' "
 		"DESC 'Unix permissions of database files' "
+		"EQUALITY caseIgnoreMatch "
 		"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
 	{ "multival", "attr> <hi,lo", 3, 3, 0, ARG_MAGIC|MDB_MULTIVAL,
 		mdb_cf_gen,
 		"( OLcfgDbAt:12.6 NAME 'olcDbMultival' "
 		"DESC 'Hi/Lo thresholds for splitting multivalued attr out of main blob' "
+		"EQUALITY caseIgnoreMatch "
 		"SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ "rtxnsize", "entries", 2, 2, 0, ARG_UINT|ARG_OFFSET,
 		(void *)offsetof(struct mdb_info, mi_rtxn_size),
 		"( OLcfgDbAt:12.5 NAME 'olcDbRtxnSize' "
 		"DESC 'Number of entries to process in one read transaction' "
+		"EQUALITY integerMatch "
 		"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
 	{ "searchstack", "depth", 2, 2, 0, ARG_INT|ARG_MAGIC|MDB_SSTACK,
 		mdb_cf_gen, "( OLcfgDbAt:1.9 NAME 'olcDbSearchStack' "
 		"DESC 'Depth of search stack in IDLs' "
+		"EQUALITY integerMatch "
 		"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
 	{ NULL, NULL, 0, 0, 0, ARG_IGNORED,
 		NULL, NULL, NULL, NULL }

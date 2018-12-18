@@ -43,6 +43,7 @@ static ConfigTable auditlogcfg[] = {
 	  (void *)offsetof(auditlog_data, ad_logfile),
 	  "( OLcfgOvAt:15.1 NAME 'olcAuditlogFile' "
 	  "DESC 'Filename for auditlogging' "
+	  "EQUALITY caseExactMatch "
 	  "SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ NULL, NULL, 0, 0, 0, ARG_IGNORED }
 };

@@ -224,24 +224,28 @@ static ConfigTable ppolicycfg[] = {
 	  ARG_DN|ARG_QUOTE|ARG_MAGIC|PPOLICY_DEFAULT, ppolicy_cf_default,
 	  "( OLcfgOvAt:12.1 NAME 'olcPPolicyDefault' "
 	  "DESC 'DN of a pwdPolicy object for uncustomized objects' "
+	  "EQUALITY distinguishedNameMatch "
 	  "SYNTAX OMsDN SINGLE-VALUE )", NULL, NULL },
 	{ "ppolicy_hash_cleartext", "on|off", 1, 2, 0,
 	  ARG_ON_OFF|ARG_OFFSET|PPOLICY_HASH_CLEARTEXT,
 	  (void *)offsetof(pp_info,hash_passwords),
 	  "( OLcfgOvAt:12.2 NAME 'olcPPolicyHashCleartext' "
 	  "DESC 'Hash passwords on add or modify' "
+	  "EQUALITY booleanMatch "
 	  "SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
 	{ "ppolicy_forward_updates", "on|off", 1, 2, 0,
 	  ARG_ON_OFF|ARG_OFFSET,
 	  (void *)offsetof(pp_info,forward_updates),
 	  "( OLcfgOvAt:12.4 NAME 'olcPPolicyForwardUpdates' "
 	  "DESC 'Allow policy state updates to be forwarded via updateref' "
+	  "EQUALITY booleanMatch "
 	  "SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
 	{ "ppolicy_use_lockout", "on|off", 1, 2, 0,
 	  ARG_ON_OFF|ARG_OFFSET|PPOLICY_USE_LOCKOUT,
 	  (void *)offsetof(pp_info,use_lockout),
 	  "( OLcfgOvAt:12.3 NAME 'olcPPolicyUseLockout' "
 	  "DESC 'Warn clients with AccountLocked' "
+	  "EQUALITY booleanMatch "
 	  "SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
 	{ NULL, NULL, 0, 0, 0, ARG_IGNORED }
 };

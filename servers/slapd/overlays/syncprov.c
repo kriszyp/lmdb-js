@@ -2952,18 +2952,22 @@ static ConfigTable spcfg[] = {
 	{ "syncprov-checkpoint", "ops> <minutes", 3, 3, 0, ARG_MAGIC|SP_CHKPT,
 		sp_cf_gen, "( OLcfgOvAt:1.1 NAME 'olcSpCheckpoint' "
 			"DESC 'ContextCSN checkpoint interval in ops and minutes' "
+			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
 	{ "syncprov-sessionlog", "ops", 2, 2, 0, ARG_INT|ARG_MAGIC|SP_SESSL,
 		sp_cf_gen, "( OLcfgOvAt:1.2 NAME 'olcSpSessionlog' "
 			"DESC 'Session log size in ops' "
+			"EQUALITY integerMatch "
 			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
 	{ "syncprov-nopresent", NULL, 2, 2, 0, ARG_ON_OFF|ARG_MAGIC|SP_NOPRES,
 		sp_cf_gen, "( OLcfgOvAt:1.3 NAME 'olcSpNoPresent' "
 			"DESC 'Omit Present phase processing' "
+			"EQUALITY booleanMatch "
 			"SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
 	{ "syncprov-reloadhint", NULL, 2, 2, 0, ARG_ON_OFF|ARG_MAGIC|SP_USEHINT,
 		sp_cf_gen, "( OLcfgOvAt:1.4 NAME 'olcSpReloadHint' "
 			"DESC 'Observe Reload Hint in Request control' "
+			"EQUALITY booleanMatch "
 			"SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
 	{ NULL, NULL, 0, 0, 0, ARG_IGNORED }
 };

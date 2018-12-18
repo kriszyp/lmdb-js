@@ -74,12 +74,14 @@ static ConfigTable lastbindcfg[] = {
 	  "( OLcfgCtAt:5.1 "
 	  "NAME 'olcLastBindPrecision' "
 	  "DESC 'Precision of authTimestamp attribute' "
+	  "EQUALITY integerMatch "
 	  "SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
 	{ "lastbind_forward_updates", "on|off", 1, 2, 0,
 	  ARG_ON_OFF|ARG_OFFSET,
 	  (void *)offsetof(lastbind_info,forward_updates),
 	  "( OLcfgAt:5.2 NAME 'olcLastBindForwardUpdates' "
 	  "DESC 'Allow authTimestamp updates to be forwarded via updateref' "
+	  "EQUALITY booleanMatch "
 	  "SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
 	{ NULL, NULL, 0, 0, 0, ARG_IGNORED }
 };

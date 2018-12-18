@@ -43,6 +43,7 @@ static ConfigTable perlcfg[] = {
 		(void *)offsetof(PerlBackend, pb_filter_search_results),
 		"( OLcfgDbAt:11.3 NAME 'olcPerlFilterSearchResults' "
 			"DESC 'Filter search results before returning to client' "
+			"EQUALITY booleanMatch "
 			"SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
 	{ "perlModuleConfig", "args", 2, 0, 0,
 		ARG_MAGIC|PERL_CONFIG, perl_cf, 
