@@ -3684,7 +3684,7 @@ static ConfigTable pccfg[] = {
 		2, 2, 0, ARG_INT|ARG_MAGIC|PC_QUERIES, pc_cf_gen,
 		"( OLcfgOvAt:2.5 NAME ( 'olcPcacheMaxQueries' 'olcProxyCacheQueries' ) "
 			"DESC 'Maximum number of queries to cache' "
-			"EQUALITY caseIgnoreMatch "
+			"EQUALITY integerMatch "
 			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
 	{ "pcachePersist", "TRUE|FALSE",
 		2, 2, 0, ARG_ON_OFF|ARG_OFFSET, (void *)offsetof(cache_manager, save_queries),

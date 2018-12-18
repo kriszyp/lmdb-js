@@ -602,7 +602,7 @@ static ConfigTable config_back_cf_table[] = {
 	{ "rootpw", "password", 2, 2, 0, ARG_BERVAL|ARG_DB|ARG_MAGIC,
 		&config_rootpw, "( OLcfgDbAt:0.9 NAME 'olcRootPW' "
 			"EQUALITY octetStringMatch "
-			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
+			"SYNTAX OMsOctetString SINGLE-VALUE )", NULL, NULL },
 	{ "sasl-authz-policy", NULL, 2, 2, 0, ARG_MAGIC|CFG_AZPOLICY,
 		&config_generic, NULL, NULL, NULL },
 	{ "sasl-auxprops", NULL, 2, 0, 0,
@@ -796,7 +796,7 @@ static ConfigTable config_back_cf_table[] = {
 #endif
 		"( OLcfgGlAt:99 NAME 'olcTLSCertificateKey' "
 			"DESC 'X.509 privateKey, must use ;binary' "
-			"EQUALITY octetStringMatch "
+			"EQUALITY privateKeyMatch "
 			"SYNTAX 1.3.6.1.4.1.4203.666.2.13 SINGLE-VALUE )", NULL, NULL },
 	{ "TLSCertificateKeyFile", NULL, 2, 2, 0,
 #ifdef HAVE_TLS

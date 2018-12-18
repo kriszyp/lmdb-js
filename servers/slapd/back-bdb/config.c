@@ -91,7 +91,7 @@ static ConfigTable bdbcfg[] = {
 	{ "cryptkey", "key", 2, 2, 0, ARG_BERVAL|ARG_MAGIC|BDB_CRYPTKEY,
 		bdb_cf_gen, "( OLcfgDbAt:1.14 NAME 'olcDbCryptKey' "
 			"DESC 'DB encryption key' "
-			"EQUALITY caseExactMatch "
+			"EQUALITY octetStringMatch "
 			"SYNTAX OMsOctetString SINGLE-VALUE )",NULL, NULL },
 	{ "dbconfig", "DB_CONFIG setting", 1, 0, 0, ARG_MAGIC|BDB_CONFIG,
 		bdb_cf_gen, "( OLcfgDbAt:1.3 NAME 'olcDbConfig' "
