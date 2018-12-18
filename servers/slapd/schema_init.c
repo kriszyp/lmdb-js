@@ -609,18 +609,28 @@ privateKeyValidate(
 	tag = ber_skip_tag( ber, &len );	/* Sequence */
 	if ( tag != LBER_SEQUENCE ) return LDAP_INVALID_SYNTAX;
 	tag = ber_peek_tag( ber, &len );
-	if ( tag != LBER_INTEGER ) return LDAP_INVALID_SYNTAX;
-	tag = ber_get_int( ber, &version );
-	tag = ber_skip_tag( ber, &len );	/* AlgorithmIdentifier */
-	if ( tag != LBER_SEQUENCE ) return LDAP_INVALID_SYNTAX;
-	ber_skip_data( ber, len );
-	tag = ber_skip_tag( ber, &len );	/* PrivateKey */
-	if ( tag != LBER_OCTETSTRING ) return LDAP_INVALID_SYNTAX;
-	ber_skip_data( ber, len );
-	tag = ber_skip_tag( ber, &len );
-	if ( tag == LBER_SET ) {			/* Optional Attributes */
+	if ( tag != LBER_INTEGER ) {
+		/* might be an encrypted key */
+		if ( tag == LBER_SEQUENCE ) {	/* encryptionAlgorithm */
+			ber_skip_data( ber, len );
+			tag = ber_skip_tag( ber, &len );	/* encryptedData */
+			if ( tag != LBER_OCTETSTRING ) return LDAP_INVALID_SYNTAX;
+			ber_skip_data( ber, len );
+		} else
+			return LDAP_INVALID_SYNTAX;
+	} else {
+		tag = ber_get_int( ber, &version );
+		tag = ber_skip_tag( ber, &len );	/* AlgorithmIdentifier */
+		if ( tag != LBER_SEQUENCE ) return LDAP_INVALID_SYNTAX;
+		ber_skip_data( ber, len );
+		tag = ber_skip_tag( ber, &len );	/* PrivateKey */
+		if ( tag != LBER_OCTETSTRING ) return LDAP_INVALID_SYNTAX;
 		ber_skip_data( ber, len );
 		tag = ber_skip_tag( ber, &len );
+		if ( tag == LBER_SET ) {			/* Optional Attributes */
+			ber_skip_data( ber, len );
+			tag = ber_skip_tag( ber, &len );
+		}
 	}
 
 	/* Must be at end now */
@@ -6385,7 +6395,7 @@ static slap_syntax_defs_rec syntax_defs[] = {
 		SLAP_SYNTAX_HIDE, NULL, authzValidate, authzPretty},
 
 	/* PKCS#8 Private Keys for X.509 certificates */
-	{"( 1.3.6.1.4.1.4203.666.2.13 DESC 'OpenLDAP privateKey' )",
+	{"( 1.2.840.113549.1.8.1.1 DESC 'PKCS#8 PrivateKeyInfo' )",
 		SLAP_SYNTAX_BINARY|SLAP_SYNTAX_BER, NULL, privateKeyValidate, NULL},
 	{NULL, 0, NULL, NULL, NULL}
 };
@@ -6875,7 +6885,7 @@ static slap_mrule_defs_rec mrule_defs[] = {
 		NULL},
 
 	{"( 1.3.6.1.4.1.4203.666.4.13 NAME 'privateKeyMatch' "
-		"SYNTAX 1.3.6.1.4.1.4203.666.2.13 )", /* OpenLDAP privateKey */
+		"SYNTAX 1.2.840.113549.1.8.1.1 )", /* PKCS#8 privateKey */
 		SLAP_MR_HIDE | SLAP_MR_EQUALITY, NULL,
 		NULL, NULL, octetStringMatch,
 		NULL, NULL,

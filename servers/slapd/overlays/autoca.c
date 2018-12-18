@@ -73,10 +73,10 @@ static ObjectClass *oc_caObj, *oc_usrObj;
 static char *aca_attrs[] = {
 	"( " ACA_SCHEMA_AT ".1 NAME 'cAPrivateKey' "
 		"DESC 'X.509 CA private key, use ;binary' "
-		"SUP x509PrivateKey )",
+		"SUP pKCS8PrivateKey )",
 	"( " ACA_SCHEMA_AT ".2 NAME 'userPrivateKey' "
 		"DESC 'X.509 user private key, use ;binary' "
-		"SUP x509PrivateKey )",
+		"SUP pKCS8PrivateKey )",
 	NULL
 };
 

@@ -796,8 +796,7 @@ static ConfigTable config_back_cf_table[] = {
 #endif
 		"( OLcfgGlAt:99 NAME 'olcTLSCertificateKey' "
 			"DESC 'X.509 privateKey, must use ;binary' "
-			"EQUALITY privateKeyMatch "
-			"SYNTAX 1.3.6.1.4.1.4203.666.2.13 SINGLE-VALUE )", NULL, NULL },
+			"SUP pKCS8PrivateKey SINGLE-VALUE )", NULL, NULL },
 	{ "TLSCertificateKeyFile", NULL, 2, 2, 0,
 #ifdef HAVE_TLS
 		CFG_TLS_CERT_KEY|ARG_STRING|ARG_MAGIC, &config_tls_option,

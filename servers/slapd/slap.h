@@ -985,7 +985,7 @@ struct slap_internal_schema {
 	AttributeDescription *si_ad_seeAlso;
 
 	/* privateKeys */
-	AttributeDescription *si_ad_x509PrivateKey;
+	AttributeDescription *si_ad_pKCS8PrivateKey;
 
 	/* Undefined Attribute Type */
 	AttributeType	*si_at_undefined;
