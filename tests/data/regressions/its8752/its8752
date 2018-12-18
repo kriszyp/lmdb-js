@@ -189,7 +189,7 @@ while [ $n -le $MMR ]; do
 		read foo
 	fi
 	KILLPIDS="$PID $KILLPIDS"
-	sleep $SLEEP0
+	sleep $SLEEP1
 
 	echo "Using ldapsearch to check that provider slapd is running..."
 	for i in 0 1 2 3 4 5; do
@@ -230,7 +230,7 @@ EOMODS
 		test $KILLSERVERS != no && kill -HUP $KILLPIDS
 		exit 1
 	fi
-	sleep $SLEEP0
+	sleep $SLEEP1
 	n=`expr $n + 1`
 done
 
@@ -407,7 +407,7 @@ while [ $n -le $MMR ]; do
         read foo
     fi
     KILLPIDS="$PID $KILLPIDS"
-    sleep $SLEEP0
+    sleep $SLEEP1
 
     echo "Using ldapsearch to check that provider slapd is running..."
     for i in 0 1 2 3 4 5; do
