@@ -416,7 +416,7 @@ static ConfigTable config_back_cf_table[] = {
 			"SUP labeledURI )", NULL, NULL },
 	{ "index_hash64", "on|off", 2, 2, 0, ARG_ON_OFF|ARG_MAGIC|CFG_IX_HASH64,
 		&config_generic, "( OLcfgGlAt:94 NAME 'olcIndexHash64' "
-			"EQUALITY integerMatch "
+			"EQUALITY booleanMatch "
 			"SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
 	{ "index_substr_if_minlen", "min", 2, 2, 0, ARG_UINT|ARG_NONZERO|ARG_MAGIC|CFG_SSTR_IF_MIN,
 		&config_generic, "( OLcfgGlAt:20 NAME 'olcIndexSubstrIfMinLen' "
