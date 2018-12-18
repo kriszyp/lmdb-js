@@ -1784,10 +1784,10 @@ attributetype ( MSADat4:845
 	SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
 	SINGLE-VALUE )
 
-attributetype ( MSADat4:44
-	NAME 'homeDirectory'
-	SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
-	SINGLE-VALUE )
+#attributetype ( MSADat4:44
+#	NAME 'homeDirectory'
+#	SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
+#	SINGLE-VALUE )
 
 attributetype ( MSADat4:698
 	NAME 'dhcpUniqueKey'
