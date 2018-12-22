@@ -48,7 +48,7 @@ typedef struct slap_list {
 	struct slap_list *next;
 } slap_list;
 static slap_list *attr_chunks;
-static Attribute *attr_list;
+static Attribute *attrs_list;
 static ldap_pvt_thread_mutex_t attr_mutex;
 
 int
@@ -68,8 +68,8 @@ attr_prealloc( int num )
 		a->a_next = a+1;
 		a++;
 	}
-	a->a_next = attr_list;
-	attr_list = (Attribute *)(s+1);
+	a->a_next = attrs_list;
+	attrs_list = (Attribute *)(s+1);
 
 	return 0;
 }
@@ -80,10 +80,10 @@ attr_alloc( AttributeDescription *ad )
 	Attribute *a;
 
 	ldap_pvt_thread_mutex_lock( &attr_mutex );
-	if ( !attr_list )
+	if ( !attrs_list )
 		attr_prealloc( CHUNK_SIZE );
-	a = attr_list;
-	attr_list = a->a_next;
+	a = attrs_list;
+	attrs_list = a->a_next;
 	a->a_next = NULL;
 	ldap_pvt_thread_mutex_unlock( &attr_mutex );
 	
@@ -102,21 +102,21 @@ attrs_alloc( int num )
 	Attribute **a;
 
 	ldap_pvt_thread_mutex_lock( &attr_mutex );
-	for ( a = &attr_list; *a && num > 0; a = &(*a)->a_next ) {
+	for ( a = &attrs_list; *a && num > 0; a = &(*a)->a_next ) {
 		if ( !head )
 			head = *a;
 		num--;
 	}
-	attr_list = *a;
+	attrs_list = *a;
 	if ( num > 0 ) {
 		attr_prealloc( num > CHUNK_SIZE ? num : CHUNK_SIZE );
-		*a = attr_list;
+		*a = attrs_list;
 		for ( ; *a && num > 0; a = &(*a)->a_next ) {
 			if ( !head )
 				head = *a;
 			num--;
 		}
-		attr_list = *a;
+		attrs_list = *a;
 	}
 	*a = NULL;
 	ldap_pvt_thread_mutex_unlock( &attr_mutex );
@@ -163,8 +163,8 @@ attr_free( Attribute *a )
 {
 	attr_clean( a );
 	ldap_pvt_thread_mutex_lock( &attr_mutex );
-	a->a_next = attr_list;
-	attr_list = a;
+	a->a_next = attrs_list;
+	attrs_list = a;
 	ldap_pvt_thread_mutex_unlock( &attr_mutex );
 }
 
@@ -204,8 +204,8 @@ attrs_free( Attribute *a )
 		ldap_pvt_thread_mutex_lock( &attr_mutex );
 		/* replace NULL with current attr list and let attr list
 		 * start from last attribute returned to list */
-		tail->a_next = attr_list;
-		attr_list = b;
+		tail->a_next = attrs_list;
+		attrs_list = b;
 		ldap_pvt_thread_mutex_unlock( &attr_mutex );
 	}
 }
