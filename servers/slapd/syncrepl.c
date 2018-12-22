@@ -3615,7 +3615,7 @@ retry_add:;
 		op->o_req_ndn = dni.ndn;
 		if ( dni.renamed ) {
 			struct berval noldp, newp;
-			Modifications *mod, **modtail, **ml, *m2;
+			Modifications *mod, **modtail, **ml, *m2 = NULL;
 			int i, got_replace = 0, just_rename = 0;
 			SlapReply rs_modify = {REP_RESULT};
 
@@ -3863,7 +3863,7 @@ retry_modrdn:;
 			op->o_req_ndn = dni.ndn;
 			op->o_tag = LDAP_REQ_DELETE;
 			op->o_bd = si->si_wbe;
-			if ( !syncCSN ) {
+			if ( !syncCSN && si->si_syncCookie.ctxcsn ) {
 				slap_queue_csn( op, si->si_syncCookie.ctxcsn );
 			}
 			rc = op->o_bd->be_delete( op, &rs_delete );
@@ -4847,16 +4847,18 @@ dn_callback(
 					/* a should not be NULL but apparently it happens.
 					 * ITS#7144
 					 */
-					dni->oldNcount = a ? a->a_numvals : 0;
-					for ( newpos=0, a=dni->new_entry->e_attrs;
-						a && a->a_desc != ad; newpos++, a=a->a_next );
-					if ( !a || oldpos != newpos || attr_valfind( a,
-						SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH |
-						SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH |
-						SLAP_MR_VALUE_OF_SYNTAX,
-						&oldVal, NULL, op->o_tmpmemctx ) != LDAP_SUCCESS )
-					{
-						dni->delOldRDN = 1;
+					if ( a ) {
+						dni->oldNcount = a->a_numvals;
+						for ( newpos=0, a=dni->new_entry->e_attrs;
+							a && a->a_desc != ad; newpos++, a=a->a_next );
+						if ( !a || oldpos != newpos || attr_valfind( a,
+							SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH |
+							SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH |
+							SLAP_MR_VALUE_OF_SYNTAX,
+							&oldVal, NULL, op->o_tmpmemctx ) != LDAP_SUCCESS )
+						{
+							dni->delOldRDN = 1;
+						}
 					}
 					/* Get the newRDN's desc */
 					dnRdn( &dni->new_entry->e_nname, &oldRDN );
