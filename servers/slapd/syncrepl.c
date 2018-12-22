@@ -503,11 +503,15 @@ ldap_sync_search(
 		c[0].ldctl_iscritical = 1;
 		ctrls[0] = &c[0];
 
-		c[1].ldctl_oid = LDAP_CONTROL_X_SHOW_DELETED;
-		BER_BVZERO( &c[1].ldctl_value );
-		c[1].ldctl_iscritical = 1;
-		ctrls[1] = &c[1];
-		ctrls[2] = NULL;
+		if ( !BER_BVISEMPTY( &si->si_dirSyncCookie )) {
+			c[1].ldctl_oid = LDAP_CONTROL_X_SHOW_DELETED;
+			BER_BVZERO( &c[1].ldctl_value );
+			c[1].ldctl_iscritical = 1;
+			ctrls[1] = &c[1];
+			ctrls[2] = NULL;
+		} else {
+			ctrls[1] = NULL;
+		}
 	} else
 #endif
 	{
@@ -945,6 +949,8 @@ do_syncrep2(
 				if ( rc == 0 )
 					rc = syncrepl_entry( si, op, entry, &modlist, syncstate, syncUUID, NULL );
 				op->o_tmpfree( syncUUID[0].bv_val, op->o_tmpmemctx );
+				if ( modlist )
+					slap_mods_free( modlist, 1);
 				if ( rc )
 					goto done;
 				break;
@@ -2983,7 +2989,18 @@ syncrepl_dirsync_message(
 			*syncstate = LDAP_SYNC_DELETE;
 		} else if ( mod->sml_desc == sy_ad_whenCreated ) {
 			*syncstate = LDAP_SYNC_ADD;
+			*modtail = mod;
+			modtail = &mod->sml_next;
+			mod  = (Modifications *) ch_malloc( sizeof( Modifications ) );
+
+			mod->sml_op = LDAP_MOD_REPLACE;
+			mod->sml_flags = 0;
+			mod->sml_next = NULL;
 			mod->sml_desc = slap_schema.si_ad_createTimestamp;
+			mod->sml_type = mod->sml_desc->ad_cname;
+			ber_bvarray_dup_x( &mod->sml_values, tmp.sml_values, NULL );
+			mod->sml_nvalues = NULL;
+			mod->sml_numvals = 0;	/* slap_mods_check will set this */
 		}	/* else is a modify or modrdn */
 
 		*modtail = mod;
@@ -3633,8 +3650,13 @@ retry_add:;
 			}
 			op->orr_deleteoldrdn = dni.delOldRDN;
 			op->orr_modlist = NULL;
-			if ( ( rc = slap_modrdn2mods( op, &rs_modify ) ) ) {
-				goto done;
+#ifdef LDAP_CONTROL_X_DIRSYNC
+			if ( syncstate != MSAD_DIRSYNC_MODIFY )
+#endif
+			{
+				if ( ( rc = slap_modrdn2mods( op, &rs_modify ) ) ) {
+					goto done;
+				}
 			}
 
 			/* Drop the RDN-related mods from this op, because their
@@ -4882,6 +4904,7 @@ dn_callback(
 					 * entry contents.
 					 */
 					dni->mods = *dni->modlist;
+					*dni->modlist = NULL;
 				} else
 #endif
 				{
@@ -5163,6 +5186,11 @@ syncinfo_free( syncinfo_t *sie, int free_all )
 			ch_free( sie->si_retrynum_init );
 		}
 		slap_sync_cookie_free( &sie->si_syncCookie, 0 );
+#ifdef LDAP_CONTROL_X_DIRSYNC
+		if ( sie->si_dirSyncCookie.bv_val ) {
+			ch_free( sie->si_dirSyncCookie.bv_val );
+		}
+#endif
 		if ( sie->si_presentlist ) {
 		    presentlist_free( sie->si_presentlist );
 		}
