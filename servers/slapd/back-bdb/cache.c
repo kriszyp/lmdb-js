@@ -1268,7 +1268,7 @@ bdb_cache_modrdn(
 	/* If we've done repeated mods on a cached entry, then e_attrs
 	 * is no longer contiguous with the entry, and must be freed.
 	 */
-	if ( (void *)e->e_attrs != (void *)(e+1) ) {
+	if ( (void *)e->e_attrs != (void *)(e+1) && e->e_attrs != new->e_attrs ) {
 		attrs_free( e->e_attrs );
 	}
 	e->e_attrs = new->e_attrs;
