@@ -105,6 +105,7 @@ R2SRSLAVECONF=$DATADIR/slapd-syncrepl-slave-refresh2.conf
 P1SRSLAVECONF=$DATADIR/slapd-syncrepl-slave-persist1.conf
 P2SRSLAVECONF=$DATADIR/slapd-syncrepl-slave-persist2.conf
 P3SRSLAVECONF=$DATADIR/slapd-syncrepl-slave-persist3.conf
+DIRSYNC1CONF=$DATADIR/slapd-dirsync1.conf
 REFSLAVECONF=$DATADIR/slapd-ref-slave.conf
 SCHEMACONF=$DATADIR/slapd-schema.conf
 TLSCONF=$DATADIR/slapd-tls.conf
@@ -175,6 +176,7 @@ TOOLPROTO="-P 3"
 
 # cmds
 CONFFILTER=$SRCDIR/scripts/conf.sh
+CONFDIRSYNC=$SRCDIR/scripts/confdirsync.sh
 
 MONITORDATA=$SRCDIR/scripts/monitor_data.sh
 
@@ -280,6 +282,8 @@ SQLADD=$DATADIR/sql-add.ldif
 LDIFUNORDERED=$DATADIR/test-unordered.ldif
 LDIFREORDERED=$DATADIR/test-reordered.ldif
 LDIFMODIFY=$DATADIR/test-modify.ldif
+LDIFDIRSYNCCP=$DATADIR/test-dirsync-cp.ldif
+LDIFDIRSYNCNOCP=$DATADIR/test-dirsync-nocp.ldif
 
 # strings
 MONITOR=""
