@@ -76,7 +76,8 @@ bdb_modrdn( Operation	*op, SlapReply *rs )
 	if( 0 ) {
 retry:	/* transaction retry */
 		if ( dummy.e_attrs ) {
-			attrs_free( dummy.e_attrs );
+			if ( dummy.e_attrs != e->e_attrs )
+				attrs_free( dummy.e_attrs );
 			dummy.e_attrs = NULL;
 		}
 		if (e != NULL) {
@@ -537,8 +538,6 @@ retry:	/* transaction retry */
 		goto return_results;
 	}
 
-	assert( op->orr_modlist != NULL );
-
 	if( op->o_preread ) {
 		if( preread_ctrl == NULL ) {
 			preread_ctrl = &ctrls[num_ctrls++];
@@ -615,24 +614,25 @@ retry:	/* transaction retry */
 
 	dummy.e_attrs = e->e_attrs;
 
-	/* modify entry */
-	rs->sr_err = bdb_modify_internal( op, lt2, op->orr_modlist, &dummy,
-		&rs->sr_text, textbuf, textlen );
-	if( rs->sr_err != LDAP_SUCCESS ) {
-		Debug(LDAP_DEBUG_TRACE,
-			"<=- " LDAP_XSTRING(bdb_modrdn)
-			": modify failed: %s (%d)\n",
-			db_strerror(rs->sr_err), rs->sr_err, 0 );
-		if ( ( rs->sr_err == LDAP_INSUFFICIENT_ACCESS ) && opinfo.boi_err ) {
-			rs->sr_err = opinfo.boi_err;
+	if( op->orr_modlist != NULL ) {
+		/* modify entry */
+		rs->sr_err = bdb_modify_internal( op, lt2, op->orr_modlist, &dummy,
+			&rs->sr_text, textbuf, textlen );
+		if( rs->sr_err != LDAP_SUCCESS ) {
+			Debug(LDAP_DEBUG_TRACE,
+				"<=- " LDAP_XSTRING(bdb_modrdn)
+				": modify failed: %s (%d)\n",
+				db_strerror(rs->sr_err), rs->sr_err, 0 );
+			if ( ( rs->sr_err == LDAP_INSUFFICIENT_ACCESS ) && opinfo.boi_err ) {
+				rs->sr_err = opinfo.boi_err;
+			}
+			switch( rs->sr_err ) {
+			case DB_LOCK_DEADLOCK:
+			case DB_LOCK_NOTGRANTED:
+				goto retry;
+			}
+			goto return_results;
 		}
-		if ( dummy.e_attrs == e->e_attrs ) dummy.e_attrs = NULL;
-		switch( rs->sr_err ) {
-		case DB_LOCK_DEADLOCK:
-		case DB_LOCK_NOTGRANTED:
-			goto retry;
-		}
-		goto return_results;
 	}
 
 	/* id2entry index */
@@ -708,8 +708,6 @@ retry:	/* transaction retry */
 		} else {
 			rs->sr_err = LDAP_X_NO_OPERATION;
 			ltid = NULL;
-			/* Only free attrs if they were dup'd.  */
-			if ( dummy.e_attrs == e->e_attrs ) dummy.e_attrs = NULL;
 			goto return_results;
 		}
 
@@ -754,7 +752,7 @@ retry:	/* transaction retry */
 	if( num_ctrls ) rs->sr_ctrls = ctrls;
 
 return_results:
-	if ( dummy.e_attrs ) {
+	if ( dummy.e_attrs != e->e_attrs ) {
 		attrs_free( dummy.e_attrs );
 	}
 	send_ldap_result( op, rs );

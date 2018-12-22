@@ -378,17 +378,18 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 	}
 	SQLFreeStmt( sth, SQL_DROP );
 
-	assert( op->orr_modlist != NULL );
-
 	slap_mods_opattrs( op, &op->orr_modlist, 1 );
 
 	assert( e_id.eid_oc != NULL );
 	oc = e_id.eid_oc;
-	rs->sr_err = backsql_modify_internal( op, rs, dbh, oc, &e_id, op->orr_modlist );
-	slap_graduate_commit_csn( op );
-	if ( rs->sr_err != LDAP_SUCCESS ) {
-		e = &r;
-		goto done;
+
+	if ( op->orr_modlist != NULL ) {
+		rs->sr_err = backsql_modify_internal( op, rs, dbh, oc, &e_id, op->orr_modlist );
+		slap_graduate_commit_csn( op );
+		if ( rs->sr_err != LDAP_SUCCESS ) {
+			e = &r;
+			goto done;
+		}
 	}
 
 	if ( BACKSQL_CHECK_SCHEMA( bi ) ) {
