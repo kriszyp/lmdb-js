@@ -575,7 +575,7 @@ mdb_modrdn( Operation	*op, SlapReply *rs )
 	if( num_ctrls ) rs->sr_ctrls = ctrls;
 
 return_results:
-	if ( dummy.e_attrs != e->e_attrs ) {
+	if ( e != NULL && dummy.e_attrs != e->e_attrs ) {
 		attrs_free( dummy.e_attrs );
 	}
 	send_ldap_result( op, rs );
