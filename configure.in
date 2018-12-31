@@ -1866,7 +1866,13 @@ if test $ol_enable_bdb/$ol_enable_hdb != no/no; then
 		BDB_LIBS="$BDB_LIBS $ol_cv_lib_db"
 	fi
 
-	SLAPD_LIBS="$SLAPD_LIBS \$(BDB_LIBS)"
+	dnl link BDB library to slapd when there is a
+	dnl static BDB based backend in use
+	if test $ol_enable_bdb/$ol_enable_hdb != mod/mod ; then
+		if test $ol_enable_bdb = yes -o $ol_enable_hdb = yes ; then
+			SLAPD_LIBS="$SLAPD_LIBS \$(BDB_LIBS)"
+		fi
+	fi
 
 	ol_link_bdb=yes 
 fi
