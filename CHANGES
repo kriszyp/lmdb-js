@@ -2,6 +2,8 @@ OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.48 Engineering
 	Fixed liblber leaks (ITS#8727)
+	Build Environment
+		Fixed slapd to only link to BDB libraries with static build (ITS#8948)
 
 OpenLDAP 2.4.47 Release (2018/12/19)
 	Added slapd-sock DN qualifier for subtrees to be processed (ITS#8051)
