@@ -539,6 +539,8 @@ SLAPD_NDB_INCS=
 LTHREAD_LIBS=
 LUTIL_LIBS=
 
+CLIENT_LIBS=
+
 SLAPD_LIBS=
 
 BUILD_SLAPD=no
@@ -1101,6 +1103,7 @@ if test $have_uuid = no ; then
 		]])],[need_rpcrt=yes],[need_rpcrt=no])
 	if test $need_rpcrt = yes; then
 		SLAPD_LIBS="$SLAPD_LIBS -lrpcrt4"
+		CLIENT_LIBS="$CLIENT_LIBS -lrpcrt4"
 	fi
 	LIBS="$save_LIBS"
 	AC_MSG_RESULT($need_rpcrt)
@@ -3179,6 +3182,7 @@ dnl overlays
   AC_SUBST(BUILD_VALSORT)
 
 AC_SUBST(LDAP_LIBS)
+AC_SUBST(CLIENT_LIBS)
 AC_SUBST(SLAPD_LIBS)
 AC_SUBST(BDB_LIBS)
 AC_SUBST(SLAPD_NDB_LIBS)

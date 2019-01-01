@@ -26,7 +26,7 @@ LDAP_LIBDIR= ../../libraries
 MKVOPTS = -s
 
 XLIBS =  $(LDAP_L)
-XXLIBS	= $(SECURITY_LIBS) $(LUTIL_LIBS)
+XXLIBS	= $(SECURITY_LIBS) $(LUTIL_LIBS) $(CLIENT_LIBS)
 
 XSRCS	= ldsversion.c ldmversion.c lddversion.c ldrversion.c ldpversion.c \
 	ldwversion.c ldvversion.c ldcversion.c ldeversion.c lduversion.c
