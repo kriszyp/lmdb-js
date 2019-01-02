@@ -103,6 +103,7 @@ libraries/libldap_r/ltest
 libraries/libldap_r/messages.c
 libraries/libldap_r/modify.c
 libraries/libldap_r/modrdn.c
+libraries/libldap_r/msctrl.c
 libraries/libldap_r/open.c
 libraries/libldap_r/options.c
 libraries/libldap_r/os-ip.c
