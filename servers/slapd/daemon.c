@@ -304,7 +304,7 @@ static slap_daemon_st slap_daemon[SLAPD_MAX_DAEMON_THREADS];
 
 # define SLAP_EVENT_WAIT(t, tvp, nsp)	do { \
 	*(nsp) = epoll_wait( slap_daemon[t].sd_epfd, revents, \
-		dtblsize, (tvp) ? (tvp)->tv_sec * 1000 : -1 ); \
+		dtblsize, (tvp) ? ((tvp)->tv_sec * 1000 + (tvp)->tv_usec / 1000) : -1 ); \
 } while (0)
 
 #elif defined(SLAP_X_DEVPOLL) && defined(HAVE_DEVPOLL)
@@ -480,7 +480,7 @@ static slap_daemon_st slap_daemon[SLAPD_MAX_DAEMON_THREADS];
 
 # define SLAP_EVENT_WAIT(t, tvp, nsp)	do { \
 	struct dvpoll		sd_dvpoll; \
-	sd_dvpoll.dp_timeout = (tvp) ? (tvp)->tv_sec * 1000 : -1; \
+	sd_dvpoll.dp_timeout = (tvp) ? ((tvp)->tv_sec * 1000 + (tvp)->tv_usec / 1000) : -1; \
 	sd_dvpoll.dp_nfds = dtblsize; \
 	sd_dvpoll.dp_fds = revents; \
 	*(nsp) = ioctl( slap_daemon[t].sd_dpfd, DP_POLL, &sd_dvpoll ); \
