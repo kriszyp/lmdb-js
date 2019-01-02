@@ -89,6 +89,13 @@ static void tlso_locking_cb( int mode, int type, const char *file, int line )
 	}
 }
 
+#if OPENSSL_VERSION_NUMBER >= 0x0909000
+static void tlso_thread_self( CRYPTO_THREADID *id )
+{
+	CRYPTO_THREADID_set_pointer( id, (void *)ldap_pvt_thread_self() );
+}
+#define CRYPTO_set_id_callback(foo)	CRYPTO_THREADID_set_callback(foo)
+#else
 static unsigned long tlso_thread_self( void )
 {
 	/* FIXME: CRYPTO_set_id_callback only works when ldap_pvt_thread_t
@@ -101,6 +108,7 @@ static unsigned long tlso_thread_self( void )
 
 	return (unsigned long) ldap_pvt_thread_self();
 }
+#endif
 
 static void tlso_thr_init( void )
 {
