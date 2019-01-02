@@ -2,6 +2,7 @@ OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.48 Engineering
 	Fixed liblber leaks (ITS#8727)
+	Fixed libldap_r handling of deprecated OpenSSL function (ITS#8353)
 	Build Environment
 		Fixed slapd to only link to BDB libraries with static build (ITS#8948)
 
