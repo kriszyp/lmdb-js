@@ -1902,15 +1902,11 @@ mo_cf_gen( ConfigArgs *c )
 			break;
 
 		case MO_MEMBER_AD:
-			if ( mo->mo_ad_member != NULL ){
-				value_add_one( &c->rvalue_vals, &mo->mo_ad_member->ad_cname );
-			}
+			c->value_ad = mo->mo_ad_member;
 			break;
 
 		case MO_MEMBER_OF_AD:
-			if ( mo->mo_ad_memberof != NULL ){
-				value_add_one( &c->rvalue_vals, &mo->mo_ad_memberof->ad_cname );
-			}
+			c->value_ad = mo->mo_ad_memberof;
 			break;
 
 		default:
