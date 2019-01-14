@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2018 The OpenLDAP Foundation.
+ * Copyright 1998-2019 The OpenLDAP Foundation.
  * Portions Copyright 2018 Howard Chu.
  * All rights reserved.
  *
