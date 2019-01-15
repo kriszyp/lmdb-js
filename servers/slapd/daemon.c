@@ -255,6 +255,14 @@ static slap_daemon_st slap_daemon[SLAPD_MAX_DAEMON_THREADS];
     } \
 } while (0)
 
+/* a kqueue fd obtained before a fork can't be used in child process.
+ * close it and reacquire it.
+ */
+# define SLAP_SOCK_INIT2() do { \
+	close(slap_daemon[0].sd_kq); \
+	slap_daemon[0].sd_kq = kqueue(); \
+} while (0)
+
 # define SLAP_SOCK_DESTROY(t) do { \
 	int kq_i; \
     if (slap_daemon[t].sd_kq > 0) { \
@@ -516,6 +524,8 @@ static slap_daemon_st slap_daemon[SLAPD_MAX_DAEMON_THREADS];
 	for ( j = 0; j < dtblsize; j++ ) slap_daemon[t].sd_index[j] = -1; \
 } while (0)
 
+# define SLAP_SOCK_INIT2()
+
 # define SLAP_SOCK_DESTROY(t)		do { \
 	if ( slap_daemon[t].sd_epolls != NULL ) { \
 		ch_free( slap_daemon[t].sd_epolls ); \
@@ -701,6 +711,8 @@ static slap_daemon_st slap_daemon[SLAPD_MAX_DAEMON_THREADS];
 	} \
 } while (0)
 
+# define SLAP_SOCK_INIT2()
+
 # define SLAP_EVENT_DECL		struct pollfd *revents
 
 # define SLAP_EVENT_INIT(t)		do { \
@@ -794,6 +806,8 @@ static slap_daemon_st slap_daemon[SLAPD_MAX_DAEMON_THREADS];
 	slap_daemon[t].sd_nfds = t*2 + 2; \
 	} while ( 0 )
 
+# define SLAP_SOCK_INIT2()
+
 # define SLAP_SOCK_DESTROY(t)	do { \
 	ch_free( slapd_ws_sockets ); slapd_ws_sockets = NULL; \
 	slap_daemon[t].sd_flags = NULL; \
@@ -859,6 +873,8 @@ static slap_daemon_st slap_daemon[SLAPD_MAX_DAEMON_THREADS];
 	FD_ZERO(&slap_daemon[t].sd_readers); \
 	FD_ZERO(&slap_daemon[t].sd_writers); \
 } while (0)
+
+# define SLAP_SOCK_INIT2()
 
 # define SLAP_SOCK_DESTROY(t)
 
@@ -3123,6 +3139,8 @@ slapd_daemon( void )
 		slapd_daemon_threads = SLAPD_MAX_DAEMON_THREADS;
 
 	listener_tid = ch_malloc(slapd_daemon_threads * sizeof(ldap_pvt_thread_t));
+
+	SLAP_SOCK_INIT2();
 
 	/* daemon_init only inits element 0 */
 	for ( i=1; i<slapd_daemon_threads; i++ )
