@@ -25,8 +25,8 @@ if (cluster.isMaster) {
     create: true
   });
 
-  var workerCount = numCPUs * 2;
-  var value = new Buffer('48656c6c6f2c20776f726c6421', 'hex');
+  var workerCount = Math.min(numCPUs * 2, 10);
+  var value = Buffer.from('48656c6c6f2c20776f726c6421', 'hex');
 
   // This will start as many workers as there are CPUs available.
   var workers = [];
