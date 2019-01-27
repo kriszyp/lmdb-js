@@ -30,14 +30,6 @@ Nan::Persistent<Function> EnvWrap::txnCtor;
 
 Nan::Persistent<Function> EnvWrap::dbiCtor;
 
-typedef struct EnvSyncData {
-    uv_work_t request;
-    Nan::Callback *callback;
-    EnvWrap *ew;
-    MDB_env *env;
-    int rc;
-} EnvSyncData;
-
 EnvWrap::EnvWrap() {
     this->env = nullptr;
     this->currentWriteTxn = nullptr;
