@@ -103,10 +103,6 @@ class SyncWorker : public Nan::AsyncWorker {
     SyncWorker(MDB_env* env, Nan::Callback *callback)
       : Nan::AsyncWorker(callback), env(env) {}
 
-/*    ~SyncWorker() {
-      delete env;
-    }*/
-
     void Execute() {
       int rc = mdb_env_sync(env, 1);
       if (rc != 0) {
