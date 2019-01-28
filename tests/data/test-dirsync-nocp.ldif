@@ -27,7 +27,7 @@ description: MSAD doesn't like long descriptions
 description: 5K and 3K are too big
 
 dn: cn=Barbara Jensen,ou=Information Technology Division,ou=People,dc=example,dc=com
-objectclass: inetorgperson
+objectclass: inetOrgPerson
 objectclass: domainRelatedObject
 cn: Barbara Jensen
 sn:: IEplbnNlbiA=
@@ -47,7 +47,7 @@ telephonenumber: +1 313 555 9022
 associatedDomain: test.openldap.org
 
 dn: cn=Bjorn Jensen,ou=Information Technology Division,ou=People,dc=example,dc=com
-objectclass: inetorgperson
+objectclass: inetOrgPerson
 objectclass: domainRelatedObject
 cn: Bjorn Jensen
 sn: Jensen
@@ -66,7 +66,7 @@ telephonenumber: +1 313 555 0355
 associatedDomain: test.openldap.org
 
 dn: cn=Dorothy Stevens,ou=Alumni Association,ou=People,dc=example,dc=com
-objectclass: inetorgperson
+objectclass: inetOrgPerson
 objectclass: domainRelatedObject
 cn: Dorothy Stevens
 sn: Stevens
@@ -83,7 +83,7 @@ homephone: +1 313 555 0454
 associatedDomain: test.openldap.org
 
 dn: cn=James A Jones 1,ou=Alumni Association,ou=People,dc=example,dc=com
-objectclass: inetorgperson
+objectclass: inetOrgPerson
 objectclass: domainRelatedObject
 cn: James A Jones 1
 sn: Jones
@@ -101,7 +101,7 @@ telephonenumber: +1 313 555 0895
 associatedDomain: test.openldap.org
 
 dn: cn=James A Jones 2,ou=Information Technology Division,ou=People,dc=example,dc=com
-objectclass: inetorgperson
+objectclass: inetOrgPerson
 objectclass: domainRelatedObject
 cn: James A Jones 2
 sn: Doe
@@ -118,7 +118,7 @@ telephonenumber: +1 313 555 7334
 associatedDomain: test.openldap.org
 
 dn: cn=Jane Doe,ou=Alumni Association,ou=People,dc=example,dc=com
-objectclass: inetorgperson
+objectclass: inetOrgPerson
 objectclass: domainRelatedObject
 cn: Jane Doe
 sn: Doe
@@ -136,7 +136,7 @@ telephonenumber: +1 313 555 4774
 associatedDomain: test.openldap.org
 
 dn: cn=Jennifer Smith,ou=Alumni Association,ou=People,dc=example,dc=com
-objectclass: inetorgperson
+objectclass: inetOrgPerson
 objectclass: domainRelatedObject
 cn: Jennifer Smith
 sn: Smith
@@ -153,7 +153,7 @@ telephonenumber: +1 313 555 8232
 associatedDomain: test.openldap.org
 
 dn: cn=John Doe,ou=Information Technology Division,ou=People,dc=example,dc=com
-objectclass: inetorgperson
+objectclass: inetOrgPerson
 objectclass: domainRelatedObject
 cn: John Doe
 sn: Doe
@@ -170,7 +170,7 @@ telephonenumber: +1 313 555 9394
 associatedDomain: test.openldap.org
 
 dn: cn=Manager,dc=example,dc=com
-objectclass: inetorgperson
+objectclass: inetOrgPerson
 objectclass: domainRelatedObject
 cn: Manager
 sn: Manager
@@ -179,7 +179,7 @@ userpassword:: c2VjcmV0
 associatedDomain: test.openldap.org
 
 dn: cn=Mark Elliot,ou=Alumni Association,ou=People,dc=example,dc=com
-objectclass: inetorgperson
+objectclass: inetOrgPerson
 objectclass: domainRelatedObject
 cn: Mark Elliot
 sn: Elliot
@@ -196,7 +196,7 @@ telephonenumber: +1 313 555 4177
 associatedDomain: test.openldap.org
 
 dn: cn=Ursula Hampster,ou=Alumni Association,ou=People,dc=example,dc=com
-objectclass: inetorgperson
+objectclass: inetOrgPerson
 objectclass: domainRelatedObject
 cn: Ursula Hampster
 sn: Hampster
@@ -226,7 +226,7 @@ member: cn=Bjorn Jensen,ou=Information Technology Division,ou=People,dc=example,
 owner: cn=Manager,dc=example,dc=com
 cn: All Staff
 description: Everyone in the sample data
-objectclass: groupofnames
+objectclass: groupOfNames
 objectclass: domainRelatedObject
 associatedDomain: test.openldap.org
 
@@ -234,7 +234,7 @@ dn: cn=ITD Staff,ou=Groups,dc=example,dc=com
 owner: cn=Manager,dc=example,dc=com
 description: All ITD Staff
 cn: ITD Staff
-objectclass: groupofuniquenames
+objectclass: groupOfUniqueNames
 objectclass: domainRelatedObject
 uniquemember: cn=Manager,dc=example,dc=com
 uniquemember: cn=Bjorn Jensen,OU=Information Technology Division,ou=People,dc=example,dc=com 
@@ -253,7 +253,7 @@ member: cn=Ursula Hampster,ou=Alumni Association,ou=People,dc=example,dc=com
 owner: cn=Manager,dc=example,dc=com
 description: All Alumni Assoc Staff
 cn: Alumni Assoc Staff
-objectclass: groupofnames
+objectclass: groupOfNames
 objectclass: domainRelatedObject
 associatedDomain: test.openldap.org
 

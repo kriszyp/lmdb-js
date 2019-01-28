@@ -109,7 +109,7 @@ ldap_parse_ldif_record_x(
 	char	*line, *dn;
 	int		rc, modop;
 	int		expect_modop, expect_sep;
-	int		ldapadd, new_entry, delete_entry, got_all;
+	int		ldapadd, new_entry, delete_entry, got_all, no_dn;
 	LDAPMod	**pmods;
 	int version;
 	LDAPControl **pctrls;
@@ -121,9 +121,11 @@ ldap_parse_ldif_record_x(
 	memset( lr, 0, sizeof(LDIFRecord) );
 	lr->lr_ctx = ctx; /* save memory context for later */
 	ldapadd = flags & LDIF_DEFAULT_ADD;
+	no_dn = flags & LDIF_NO_DN;
+	expect_modop = flags & LDIF_MODS_ONLY;
 	new_entry = ldapadd;
 
-	rc = got_all = delete_entry = modop = expect_modop = 0;
+	rc = got_all = delete_entry = modop = 0;
 	expect_sep = 0;
 	version = 0;
 	pmods = NULL;
@@ -162,7 +164,7 @@ ldap_parse_ldif_record_x(
 		}
 		lr->lr_freeval[i] = freev;
 
-		if ( dn == NULL ) {
+		if ( dn == NULL && !no_dn ) {
 			if ( linenum+i == 1 && BV_CASEMATCH( lr->lr_btype+i, &BV_VERSION )) {
 				/* lutil_atoi() introduces a dependence of libldap
 				 * on liblutil; we only allow version 1 by now (ITS#6654)
@@ -190,7 +192,7 @@ ldap_parse_ldif_record_x(
 	}
 
 	/* check to make sure there was a dn: line */
-	if ( !dn ) {
+	if ( !dn && !no_dn ) {
 		rc = 0;
 		goto leave;
 	}
@@ -207,27 +209,31 @@ ldap_parse_ldif_record_x(
 		goto leave;
 	}
 
-	i = idn+1;
-	/* Check for "control" tag after dn and before changetype. */
-	if ( BV_CASEMATCH( lr->lr_btype+i, &BV_CONTROL )) {
-		/* Parse and add it to the list of controls */
-		if ( !( flags & LDIF_NO_CONTROLS ) ) {
-			rc = parse_ldif_control( lr->lr_vals+i, &pctrls );
-			if (rc != 0) {
-				fprintf( stderr,
-						 _("%s: Error processing %s line, line %lu: %s\n"),
-						 errstr, BV_CONTROL.bv_val, linenum+i, ldap_err2string(rc) );
+	if ( no_dn ) {
+		i = 0;
+	} else {
+		i = idn+1;
+		/* Check for "control" tag after dn and before changetype. */
+		if ( BV_CASEMATCH( lr->lr_btype+i, &BV_CONTROL )) {
+			/* Parse and add it to the list of controls */
+			if ( !( flags & LDIF_NO_CONTROLS ) ) {
+				rc = parse_ldif_control( lr->lr_vals+i, &pctrls );
+				if (rc != 0) {
+					fprintf( stderr,
+							 _("%s: Error processing %s line, line %lu: %s\n"),
+							 errstr, BV_CONTROL.bv_val, linenum+i, ldap_err2string(rc) );
+				}
 			}
-		}
-		i++;
-		if ( i>= lr->lr_lines ) {
+			i++;
+			if ( i>= lr->lr_lines ) {
 short_input:
-			fprintf( stderr,
-				_("%s: Expecting more input after %s line, line %lu\n"),
-				errstr, lr->lr_btype[i-1].bv_val, linenum+i );
-			
-			rc = LDAP_PARAM_ERROR;
-			goto leave;
+				fprintf( stderr,
+					_("%s: Expecting more input after %s line, line %lu\n"),
+					errstr, lr->lr_btype[i-1].bv_val, linenum+i );
+
+				rc = LDAP_PARAM_ERROR;
+				goto leave;
+			}
 		}
 	}
 
@@ -421,7 +427,8 @@ short_input:
 
 	lr->lr_mops = ber_memalloc_x( lr->lr_lines+1, ctx );
 	lr->lr_mops[lr->lr_lines] = M_SEP;
-	lr->lr_mops[i-1] = M_SEP;
+	if ( i > 0 )
+		lr->lr_mops[i-1] = M_SEP;
 
 	for ( ; i<lr->lr_lines; i++ ) {
 		if ( expect_modop ) {
@@ -510,7 +517,8 @@ short_input:
 	j = 0;
 	k = -1;
 	BER_BVZERO(&bv);
-	lr->lr_mops[idn-1] = M_SEP;
+	if ( idn > 0 )
+		lr->lr_mops[idn-1] = M_SEP;
 	for (i=idn; i<lr->lr_lines; i++) {
 		if ( lr->lr_mops[i] == M_SEP )
 			continue;

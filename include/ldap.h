@@ -2685,6 +2685,8 @@ ldap_parse_deref_control LDAP_P((
 #define LDIF_DEFAULT_ADD  0x01 /* if changetype missing, assume LDAP_ADD */
 #define LDIF_ENTRIES_ONLY 0x02 /* ignore changetypes other than add */
 #define LDIF_NO_CONTROLS  0x04 /* ignore control specifications */
+#define LDIF_MODS_ONLY    0x08 /* no changetypes, assume LDAP_MODIFY */
+#define LDIF_NO_DN        0x10 /* dn is not present */
 
 typedef struct ldifrecord {
 	ber_tag_t lr_op; /* type of operation - LDAP_REQ_MODIFY, LDAP_REQ_ADD, etc. */
