@@ -65,4134 +65,4134 @@ olcObjectIdentifier: MSADsecDesc 1.3.6.1.4.1.1466.115.121.1.40
 #olcObjectIdentifier: MSADsecDesc MSADat4:907
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat2:104
+olcAttributeTypes: ( MSADat2:104
   NAME 'ownerBL'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:1424
+olcAttributeTypes: ( MSADat4:1424
   NAME 'msCOM-PartitionSetLink'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:1425
+olcAttributeTypes: ( MSADat4:1425
   NAME 'msCOM-UserLink'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:1669
+olcAttributeTypes: ( MSADat4:1669
   NAME 'msDS-Approx-Immed-Subordinates'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1704
+olcAttributeTypes: ( MSADat4:1704
   NAME 'msDS-NCReplCursors'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:1705
+olcAttributeTypes: ( MSADat4:1705
   NAME 'msDS-NCReplInboundNeighbors'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:1706
+olcAttributeTypes: ( MSADat4:1706
   NAME 'msDS-NCReplOutboundNeighbors'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:1707
+olcAttributeTypes: ( MSADat4:1707
   NAME 'msDS-ReplAttributeMetaData'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:1708
+olcAttributeTypes: ( MSADat4:1708
   NAME 'msDS-ReplValueMetaData'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:1793
+olcAttributeTypes: ( MSADat4:1793
   NAME 'msDS-NonMembers'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:1794
+olcAttributeTypes: ( MSADat4:1794
   NAME 'msDS-NonMembersBL'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
 #
-olcAttributeTpes: ( MSADat4:1806
+olcAttributeTypes: ( MSADat4:1806
   NAME 'msDS-MembersForAzRole'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:1807
+olcAttributeTypes: ( MSADat4:1807
   NAME 'msDS-MembersForAzRoleBL'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
 #
-olcAttributeTpes: ( MSADat4:1808 NAME 'msDS-OperationsForAzTask' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
+olcAttributeTypes: ( MSADat4:1808 NAME 'msDS-OperationsForAzTask' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:1809 NAME 'msDS-OperationsForAzTaskBL' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
-olcAttributeTpes: ( MSADat4:1810 NAME 'msDS-TasksForAzTask' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
+olcAttributeTypes: ( MSADat4:1809 NAME 'msDS-OperationsForAzTaskBL' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
+olcAttributeTypes: ( MSADat4:1810 NAME 'msDS-TasksForAzTask' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:1811 NAME 'msDS-TasksForAzTaskBL' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
-olcAttributeTpes: ( MSADat4:1812 NAME 'msDS-OperationsForAzRole' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
+olcAttributeTypes: ( MSADat4:1811 NAME 'msDS-TasksForAzTaskBL' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
+olcAttributeTypes: ( MSADat4:1812 NAME 'msDS-OperationsForAzRole' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:1813 NAME 'msDS-OperationsForAzRoleBL' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
-olcAttributeTpes: ( MSADat4:1814 NAME 'msDS-TasksForAzRole' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
+olcAttributeTypes: ( MSADat4:1813 NAME 'msDS-OperationsForAzRoleBL' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
+olcAttributeTypes: ( MSADat4:1814 NAME 'msDS-TasksForAzRole' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:1815 NAME 'msDS-TasksForAzRoleBL' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
+olcAttributeTypes: ( MSADat4:1815 NAME 'msDS-TasksForAzRoleBL' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:1837 NAME 'msDs-masteredBy' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
-attributeType ( MSADat4:1840 NAME 'msDS-ObjectReference' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
+olcAttributeTypes: ( MSADat4:1837 NAME 'msDs-masteredBy' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
+olcAttributeTypes: ( MSADat4:1840 NAME 'msDS-ObjectReference' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
 # NO-USER-MODIFICATION
-attributeType ( MSADat4:1841 NAME 'msDS-ObjectReferenceBL' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
+olcAttributeTypes: ( MSADat4:1841 NAME 'msDS-ObjectReferenceBL' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
 #
-attributeType ( MSADat4:1865 NAME 'msDS-PrincipalName' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' SINGLE-VALUE )
-#
-# NO-USER-MODIFICATION
-attributeType ( MSADat4:1930 NAME 'msDS-RevealedDSAs' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
-# NO-USER-MODIFICATION
-attributeType ( MSADat4:1931 NAME 'msDS-KrbTgtLinkBl' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
+olcAttributeTypes: ( MSADat4:1865 NAME 'msDS-PrincipalName' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' SINGLE-VALUE )
 #
 # NO-USER-MODIFICATION
-attributeType ( MSADat4:1932 NAME 'msDS-IsFullReplicaFor' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
+olcAttributeTypes: ( MSADat4:1930 NAME 'msDS-RevealedDSAs' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
 # NO-USER-MODIFICATION
-attributeType ( MSADat4:1933 NAME 'msDS-IsDomainFor' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
-# NO-USER-MODIFICATION
-attributeType ( MSADat4:1934 NAME 'msDS-IsPartialReplicaFor' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
+olcAttributeTypes: ( MSADat4:1931 NAME 'msDS-KrbTgtLinkBl' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
 #
 # NO-USER-MODIFICATION
-attributeType ( MSADat4:1957 NAME 'msDS-AuthenticatedToAccountlist' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
-attributeType ( MSADat4:1958 NAME 'msDS-AuthenticatedAtDC' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
+olcAttributeTypes: ( MSADat4:1932 NAME 'msDS-IsFullReplicaFor' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
+# NO-USER-MODIFICATION
+olcAttributeTypes: ( MSADat4:1933 NAME 'msDS-IsDomainFor' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
+# NO-USER-MODIFICATION
+olcAttributeTypes: ( MSADat4:1934 NAME 'msDS-IsPartialReplicaFor' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
 #
 # NO-USER-MODIFICATION
-attributeType ( MSADat4:1975 NAME 'msDS-RevealedListBL' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
+olcAttributeTypes: ( MSADat4:1957 NAME 'msDS-AuthenticatedToAccountlist' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
+olcAttributeTypes: ( MSADat4:1958 NAME 'msDS-AuthenticatedAtDC' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
 #
-olcAttributeTpes: ( MSADat4:1968 NAME 'msDS-NC-RO-Replica-Locations-BL' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:2021 NAME 'msDS-PSOApplied' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
+olcAttributeTypes: ( MSADat4:1975 NAME 'msDS-RevealedListBL' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
+#
+olcAttributeTypes: ( MSADat4:1968 NAME 'msDS-NC-RO-Replica-Locations-BL' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:2024 NAME 'msDS-NcType' SYNTAX '1.3.6.1.4.1.1466.115.121.1.27' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:2021 NAME 'msDS-PSOApplied' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:2052 NAME 'msDS-OIDToGroupLinkBl' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
-olcAttributeTpes: ( MSADat4:2057 NAME 'msDS-HostServiceAccountBL' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
+olcAttributeTypes: ( MSADat4:2024 NAME 'msDS-NcType' SYNTAX '1.3.6.1.4.1.1466.115.121.1.27' SINGLE-VALUE )
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:2058 NAME 'isRecycled' SYNTAX '1.3.6.1.4.1.1466.115.121.1.7' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:2052 NAME 'msDS-OIDToGroupLinkBl' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
+olcAttributeTypes: ( MSADat4:2057 NAME 'msDS-HostServiceAccountBL' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:2059 NAME 'msDS-LocalEffectiveDeletionTime' SYNTAX '1.3.6.1.4.1.1466.115.121.1.24' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:2058 NAME 'isRecycled' SYNTAX '1.3.6.1.4.1.1466.115.121.1.7' SINGLE-VALUE )
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:2060 NAME 'msDS-LocalEffectiveRecycleTime' SYNTAX '1.3.6.1.4.1.1466.115.121.1.24' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:2059 NAME 'msDS-LocalEffectiveDeletionTime' SYNTAX '1.3.6.1.4.1.1466.115.121.1.24' SINGLE-VALUE )
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:2067 NAME 'msDS-LastKnownRDN' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:2060 NAME 'msDS-LocalEffectiveRecycleTime' SYNTAX '1.3.6.1.4.1.1466.115.121.1.24' SINGLE-VALUE )
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:2069 NAME 'msDS-EnabledFeatureBL' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
-olcAttributeTpes: ( MSADat4:2102 NAME 'msDS-ClaimSharesPossibleValuesWithBL' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
-olcAttributeTpes: ( MSADat4:2104 NAME 'msDS-MembersOfResourcePropertyListBL' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
-olcAttributeTpes: ( MSADat4:2168 NAME 'msDS-IsPrimaryComputerFor' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
+olcAttributeTypes: ( MSADat4:2067 NAME 'msDS-LastKnownRDN' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' SINGLE-VALUE )
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:2188 NAME 'msDS-ValueTypeReferenceBL' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
+olcAttributeTypes: ( MSADat4:2069 NAME 'msDS-EnabledFeatureBL' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
+olcAttributeTypes: ( MSADat4:2102 NAME 'msDS-ClaimSharesPossibleValuesWithBL' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
+olcAttributeTypes: ( MSADat4:2104 NAME 'msDS-MembersOfResourcePropertyListBL' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
+olcAttributeTypes: ( MSADat4:2168 NAME 'msDS-IsPrimaryComputerFor' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:2193 NAME 'msDS-TDOIngressBL' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
+olcAttributeTypes: ( MSADat4:2188 NAME 'msDS-ValueTypeReferenceBL' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:2194 NAME 'msDS-TDOEgressBL' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
+olcAttributeTypes: ( MSADat4:2193 NAME 'msDS-TDOIngressBL' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:2203 NAME 'msDS-parentdistname' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' SINGLE-VALUE )
-olcAttributeTpes: ( MSADat4:2235 NAME 'msDS-ReplValueMetaDataExt' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
+olcAttributeTypes: ( MSADat4:2194 NAME 'msDS-TDOEgressBL' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:2236 NAME 'msds-memberOfTransitive' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
+olcAttributeTypes: ( MSADat4:2203 NAME 'msDS-parentdistname' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:2235 NAME 'msDS-ReplValueMetaDataExt' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:2238 NAME 'msds-memberTransitive' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
-olcAttributeTpes: ( MSADat6:18.1.347 NAME 'msSFU30PosixMemberOf' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
-olcAttributeTpes: ( MSADat6:13.3.102 NAME 'msDFSR-MemberReferenceBL' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
-olcAttributeTpes: ( MSADat6:13.3.103 NAME 'msDFSR-ComputerReferenceBL' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
+olcAttributeTypes: ( MSADat4:2236 NAME 'msds-memberOfTransitive' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
+# NO-USER-MODIFICATION
+olcAttributeTypes: ( MSADat4:2238 NAME 'msds-memberTransitive' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
+olcAttributeTypes: ( MSADat6:18.1.347 NAME 'msSFU30PosixMemberOf' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
+olcAttributeTypes: ( MSADat6:13.3.102 NAME 'msDFSR-MemberReferenceBL' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
+olcAttributeTypes: ( MSADat6:13.3.103 NAME 'msDFSR-ComputerReferenceBL' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
 #
 #
-olcAttributeTpes: ( MSADat4:1792 NAME 'msDS-AzLDAPQuery' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' SINGLE-VALUE )
-olcAttributeTpes: ( MSADat4:1801 NAME 'msDS-AzBizRule' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' SINGLE-VALUE )
-olcAttributeTpes: ( MSADat4:1802 NAME 'msDS-AzBizRuleLanguage' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' SINGLE-VALUE )
-olcAttributeTpes: ( MSADat4:1803 NAME 'msDS-AzLastImportedBizRulePath' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' SINGLE-VALUE )
-olcAttributeTpes: ( MSADat4:1819 NAME 'msDS-AzApplicationData' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:1792 NAME 'msDS-AzLDAPQuery' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:1801 NAME 'msDS-AzBizRule' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:1802 NAME 'msDS-AzBizRuleLanguage' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:1803 NAME 'msDS-AzLastImportedBizRulePath' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:1819 NAME 'msDS-AzApplicationData' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' SINGLE-VALUE )
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:1949 NAME 'msDS-AzObjectGuid' SYNTAX '1.3.6.1.4.1.1466.115.121.1.40' SINGLE-VALUE )
-olcAttributeTpes: ( MSADat4:1950 NAME 'msDS-AzGenericData' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' SINGLE-VALUE )
-olcAttributeTpes: ( MSADat4:2167 NAME 'msDS-PrimaryComputer' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
-olcAttributeTpes: ( MSADat6:18.1.309 NAME 'msSFU30Name' SYNTAX '1.3.6.1.4.1.1466.115.121.1.26' SINGLE-VALUE )
-olcAttributeTpes: ( MSADat6:18.1.339 NAME 'msSFU30NisDomain' SYNTAX '1.3.6.1.4.1.1466.115.121.1.26' SINGLE-VALUE )
-olcAttributeTpes: ( MSADat6:18.1.346 NAME 'msSFU30PosixMember' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
+olcAttributeTypes: ( MSADat4:1949 NAME 'msDS-AzObjectGuid' SYNTAX '1.3.6.1.4.1.1466.115.121.1.40' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:1950 NAME 'msDS-AzGenericData' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:2167 NAME 'msDS-PrimaryComputer' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
+olcAttributeTypes: ( MSADat6:18.1.309 NAME 'msSFU30Name' SYNTAX '1.3.6.1.4.1.1466.115.121.1.26' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat6:18.1.339 NAME 'msSFU30NisDomain' SYNTAX '1.3.6.1.4.1.1466.115.121.1.26' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat6:18.1.346 NAME 'msSFU30PosixMember' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
 #
-olcAttributeTpes: ( MSADat4:1426 NAME 'msCOM-UserPartitionSetLink' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' SINGLE-VALUE )
-olcAttributeTpes: ( MSADat4:1441 NAME 'msDS-Cached-Membership' SYNTAX '1.3.6.1.4.1.1466.115.121.1.40' SINGLE-VALUE )
-olcAttributeTpes: ( MSADat4:1442 NAME 'msDS-Cached-Membership-Time-Stamp' SYNTAX 'MSADlargeInteger' SINGLE-VALUE )
-olcAttributeTpes: ( MSADat4:1443 NAME 'msDS-Site-Affinity' SYNTAX '1.3.6.1.4.1.1466.115.121.1.40' )
-olcAttributeTpes: ( MSADat4:1460 NAME 'msDS-User-Account-Control-Computed' SYNTAX '1.3.6.1.4.1.1466.115.121.1.27' SINGLE-VALUE )
-olcAttributeTpes: ( MSADat4:1696 NAME 'lastLogonTimestamp' SYNTAX 'MSADlargeInteger' SINGLE-VALUE )
-olcAttributeTpes: ( MSADat4:1785 NAME 'msIIS-FTPRoot' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' SINGLE-VALUE )
-olcAttributeTpes: ( MSADat4:1786 NAME 'msIIS-FTPDir' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' SINGLE-VALUE )
-olcAttributeTpes: ( MSADat4:1843 NAME 'msDRM-IdentityCertificate' SYNTAX '1.3.6.1.4.1.1466.115.121.1.40' )
-olcAttributeTpes: ( MSADat4:1879 NAME 'msDS-SourceObjectDN' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' SINGLE-VALUE )
-olcAttributeTpes: ( MSADat4:1892 NAME 'msPKIRoamingTimeStamp' SYNTAX '1.3.6.1.4.1.1466.115.121.1.40' SINGLE-VALUE )
-olcAttributeTpes: ( MSADat4:1893 NAME 'msPKIDPAPIMasterKeys' SYNTAX 'MSADdnWithOctetString' )
-olcAttributeTpes: ( MSADat4:1894 NAME 'msPKIAccountCredentials' SYNTAX 'MSADdnWithOctetString' )
-olcAttributeTpes: ( MSADat4:1913 NAME 'msRADIUS-FramedInterfaceId' SYNTAX '1.3.6.1.4.1.1466.115.121.1.26' SINGLE-VALUE )
-olcAttributeTpes: ( MSADat4:1914 NAME 'msRADIUS-SavedFramedInterfaceId' SYNTAX '1.3.6.1.4.1.1466.115.121.1.26' SINGLE-VALUE )
-olcAttributeTpes: ( MSADat4:1915 NAME 'msRADIUS-FramedIpv6Prefix' SYNTAX '1.3.6.1.4.1.1466.115.121.1.26' SINGLE-VALUE )
-olcAttributeTpes: ( MSADat4:1916 NAME 'msRADIUS-SavedFramedIpv6Prefix' SYNTAX '1.3.6.1.4.1.1466.115.121.1.26' SINGLE-VALUE )
-olcAttributeTpes: ( MSADat4:1917 NAME 'msRADIUS-FramedIpv6Route' SYNTAX '1.3.6.1.4.1.1466.115.121.1.26' )
-olcAttributeTpes: ( MSADat4:1918 NAME 'msRADIUS-SavedFramedIpv6Route' SYNTAX '1.3.6.1.4.1.1466.115.121.1.26' )
+olcAttributeTypes: ( MSADat4:1426 NAME 'msCOM-UserPartitionSetLink' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:1441 NAME 'msDS-Cached-Membership' SYNTAX '1.3.6.1.4.1.1466.115.121.1.40' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:1442 NAME 'msDS-Cached-Membership-Time-Stamp' SYNTAX 'MSADlargeInteger' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:1443 NAME 'msDS-Site-Affinity' SYNTAX '1.3.6.1.4.1.1466.115.121.1.40' )
+olcAttributeTypes: ( MSADat4:1460 NAME 'msDS-User-Account-Control-Computed' SYNTAX '1.3.6.1.4.1.1466.115.121.1.27' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:1696 NAME 'lastLogonTimestamp' SYNTAX 'MSADlargeInteger' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:1785 NAME 'msIIS-FTPRoot' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:1786 NAME 'msIIS-FTPDir' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:1843 NAME 'msDRM-IdentityCertificate' SYNTAX '1.3.6.1.4.1.1466.115.121.1.40' )
+olcAttributeTypes: ( MSADat4:1879 NAME 'msDS-SourceObjectDN' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:1892 NAME 'msPKIRoamingTimeStamp' SYNTAX '1.3.6.1.4.1.1466.115.121.1.40' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:1893 NAME 'msPKIDPAPIMasterKeys' SYNTAX 'MSADdnWithOctetString' )
+olcAttributeTypes: ( MSADat4:1894 NAME 'msPKIAccountCredentials' SYNTAX 'MSADdnWithOctetString' )
+olcAttributeTypes: ( MSADat4:1913 NAME 'msRADIUS-FramedInterfaceId' SYNTAX '1.3.6.1.4.1.1466.115.121.1.26' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:1914 NAME 'msRADIUS-SavedFramedInterfaceId' SYNTAX '1.3.6.1.4.1.1466.115.121.1.26' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:1915 NAME 'msRADIUS-FramedIpv6Prefix' SYNTAX '1.3.6.1.4.1.1466.115.121.1.26' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:1916 NAME 'msRADIUS-SavedFramedIpv6Prefix' SYNTAX '1.3.6.1.4.1.1466.115.121.1.26' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:1917 NAME 'msRADIUS-FramedIpv6Route' SYNTAX '1.3.6.1.4.1.1466.115.121.1.26' )
+olcAttributeTypes: ( MSADat4:1918 NAME 'msRADIUS-SavedFramedIpv6Route' SYNTAX '1.3.6.1.4.1.1466.115.121.1.26' )
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:1929 NAME 'msDS-SecondaryKrbTgtNumber' SYNTAX '1.3.6.1.4.1.1466.115.121.1.27' SINGLE-VALUE )
-olcAttributeTpes: ( MSADat4:1963 NAME 'msDS-SupportedEncryptionTypes' SYNTAX '1.3.6.1.4.1.1466.115.121.1.27' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:1929 NAME 'msDS-SecondaryKrbTgtNumber' SYNTAX '1.3.6.1.4.1.1466.115.121.1.27' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:1963 NAME 'msDS-SupportedEncryptionTypes' SYNTAX '1.3.6.1.4.1.1466.115.121.1.27' SINGLE-VALUE )
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:1970 NAME 'msDS-LastSuccessfulInteractiveLogonTime' SYNTAX 'MSADlargeInteger' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:1970 NAME 'msDS-LastSuccessfulInteractiveLogonTime' SYNTAX 'MSADlargeInteger' SINGLE-VALUE )
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:1971 NAME 'msDS-LastFailedInteractiveLogonTime' SYNTAX 'MSADlargeInteger' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:1971 NAME 'msDS-LastFailedInteractiveLogonTime' SYNTAX 'MSADlargeInteger' SINGLE-VALUE )
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:1972 NAME 'msDS-FailedInteractiveLogonCount' SYNTAX '1.3.6.1.4.1.1466.115.121.1.27' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:1972 NAME 'msDS-FailedInteractiveLogonCount' SYNTAX '1.3.6.1.4.1.1466.115.121.1.27' SINGLE-VALUE )
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:1973 NAME 'msDS-FailedInteractiveLogonCountAtLastSuccessfulLogon' SYNTAX '1.3.6.1.4.1.1466.115.121.1.27' SINGLE-VALUE )
-olcAttributeTpes: ( MSADat4:1976 NAME 'msTSProfilePath' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' SINGLE-VALUE )
-olcAttributeTpes: ( MSADat4:1977 NAME 'msTSHomeDirectory' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' SINGLE-VALUE )
-olcAttributeTpes: ( MSADat4:1978 NAME 'msTSHomeDrive' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' SINGLE-VALUE )
-olcAttributeTpes: ( MSADat4:1979 NAME 'msTSAllowLogon' SYNTAX '1.3.6.1.4.1.1466.115.121.1.7' SINGLE-VALUE )
-olcAttributeTpes: ( MSADat4:1980 NAME 'msTSRemoteControl' SYNTAX '1.3.6.1.4.1.1466.115.121.1.27' SINGLE-VALUE )
-olcAttributeTpes: ( MSADat4:1981 NAME 'msTSMaxDisconnectionTime' SYNTAX '1.3.6.1.4.1.1466.115.121.1.27' SINGLE-VALUE )
-olcAttributeTpes: ( MSADat4:1982 NAME 'msTSMaxConnectionTime' SYNTAX '1.3.6.1.4.1.1466.115.121.1.27' SINGLE-VALUE )
-olcAttributeTpes: ( MSADat4:1983 NAME 'msTSMaxIdleTime' SYNTAX '1.3.6.1.4.1.1466.115.121.1.27' SINGLE-VALUE )
-olcAttributeTpes: ( MSADat4:1984 NAME 'msTSReconnectionAction' SYNTAX '1.3.6.1.4.1.1466.115.121.1.7' SINGLE-VALUE )
-olcAttributeTpes: ( MSADat4:1985 NAME 'msTSBrokenConnectionAction' SYNTAX '1.3.6.1.4.1.1466.115.121.1.7' SINGLE-VALUE )
-olcAttributeTpes: ( MSADat4:1986 NAME 'msTSConnectClientDrives' SYNTAX '1.3.6.1.4.1.1466.115.121.1.7' SINGLE-VALUE )
-olcAttributeTpes: ( MSADat4:1987 NAME 'msTSConnectPrinterDrives' SYNTAX '1.3.6.1.4.1.1466.115.121.1.7' SINGLE-VALUE )
-olcAttributeTpes: ( MSADat4:1988 NAME 'msTSDefaultToMainPrinter' SYNTAX '1.3.6.1.4.1.1466.115.121.1.7' SINGLE-VALUE )
-olcAttributeTpes: ( MSADat4:1989 NAME 'msTSWorkDirectory' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' SINGLE-VALUE )
-olcAttributeTpes: ( MSADat4:1990 NAME 'msTSInitialProgram' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' SINGLE-VALUE )
-olcAttributeTpes: ( MSADat4:1991 NAME 'msTSProperty01' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
-olcAttributeTpes: ( MSADat4:1992 NAME 'msTSProperty02' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
-olcAttributeTpes: ( MSADat4:1993 NAME 'msTSExpireDate' SYNTAX '1.3.6.1.4.1.1466.115.121.1.24' SINGLE-VALUE )
-olcAttributeTpes: ( MSADat4:1994 NAME 'msTSLicenseVersion' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' SINGLE-VALUE )
-olcAttributeTpes: ( MSADat4:1995 NAME 'msTSManagingLS' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' SINGLE-VALUE )
-olcAttributeTpes: ( MSADat4:1996 NAME 'msDS-UserPasswordExpiryTimeComputed' SYNTAX 'MSADlargeInteger' SINGLE-VALUE )
-olcAttributeTpes: ( MSADat4:2008 NAME 'msTSManagingLS4' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' SINGLE-VALUE )
-olcAttributeTpes: ( MSADat4:2005 NAME 'msTSManagingLS3' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' SINGLE-VALUE )
-olcAttributeTpes: ( MSADat4:2002 NAME 'msTSManagingLS2' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' SINGLE-VALUE )
-olcAttributeTpes: ( MSADat4:2006 NAME 'msTSExpireDate4' SYNTAX '1.3.6.1.4.1.1466.115.121.1.24' SINGLE-VALUE )
-olcAttributeTpes: ( MSADat4:2003 NAME 'msTSExpireDate3' SYNTAX '1.3.6.1.4.1.1466.115.121.1.24' SINGLE-VALUE )
-olcAttributeTpes: ( MSADat4:2000 NAME 'msTSExpireDate2' SYNTAX '1.3.6.1.4.1.1466.115.121.1.24' SINGLE-VALUE )
-olcAttributeTpes: ( MSADat4:2004 NAME 'msTSLicenseVersion3' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' SINGLE-VALUE )
-olcAttributeTpes: ( MSADat4:2001 NAME 'msTSLicenseVersion2' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' SINGLE-VALUE )
-olcAttributeTpes: ( MSADat4:2007 NAME 'msTSLicenseVersion4' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' SINGLE-VALUE )
-olcAttributeTpes: ( MSADat4:2009 NAME 'msTSLSProperty01' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
-olcAttributeTpes: ( MSADat4:2010 NAME 'msTSLSProperty02' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
+olcAttributeTypes: ( MSADat4:1973 NAME 'msDS-FailedInteractiveLogonCountAtLastSuccessfulLogon' SYNTAX '1.3.6.1.4.1.1466.115.121.1.27' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:1976 NAME 'msTSProfilePath' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:1977 NAME 'msTSHomeDirectory' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:1978 NAME 'msTSHomeDrive' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:1979 NAME 'msTSAllowLogon' SYNTAX '1.3.6.1.4.1.1466.115.121.1.7' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:1980 NAME 'msTSRemoteControl' SYNTAX '1.3.6.1.4.1.1466.115.121.1.27' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:1981 NAME 'msTSMaxDisconnectionTime' SYNTAX '1.3.6.1.4.1.1466.115.121.1.27' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:1982 NAME 'msTSMaxConnectionTime' SYNTAX '1.3.6.1.4.1.1466.115.121.1.27' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:1983 NAME 'msTSMaxIdleTime' SYNTAX '1.3.6.1.4.1.1466.115.121.1.27' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:1984 NAME 'msTSReconnectionAction' SYNTAX '1.3.6.1.4.1.1466.115.121.1.7' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:1985 NAME 'msTSBrokenConnectionAction' SYNTAX '1.3.6.1.4.1.1466.115.121.1.7' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:1986 NAME 'msTSConnectClientDrives' SYNTAX '1.3.6.1.4.1.1466.115.121.1.7' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:1987 NAME 'msTSConnectPrinterDrives' SYNTAX '1.3.6.1.4.1.1466.115.121.1.7' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:1988 NAME 'msTSDefaultToMainPrinter' SYNTAX '1.3.6.1.4.1.1466.115.121.1.7' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:1989 NAME 'msTSWorkDirectory' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:1990 NAME 'msTSInitialProgram' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:1991 NAME 'msTSProperty01' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
+olcAttributeTypes: ( MSADat4:1992 NAME 'msTSProperty02' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
+olcAttributeTypes: ( MSADat4:1993 NAME 'msTSExpireDate' SYNTAX '1.3.6.1.4.1.1466.115.121.1.24' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:1994 NAME 'msTSLicenseVersion' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:1995 NAME 'msTSManagingLS' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:1996 NAME 'msDS-UserPasswordExpiryTimeComputed' SYNTAX 'MSADlargeInteger' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:2008 NAME 'msTSManagingLS4' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:2005 NAME 'msTSManagingLS3' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:2002 NAME 'msTSManagingLS2' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:2006 NAME 'msTSExpireDate4' SYNTAX '1.3.6.1.4.1.1466.115.121.1.24' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:2003 NAME 'msTSExpireDate3' SYNTAX '1.3.6.1.4.1.1466.115.121.1.24' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:2000 NAME 'msTSExpireDate2' SYNTAX '1.3.6.1.4.1.1466.115.121.1.24' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:2004 NAME 'msTSLicenseVersion3' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:2001 NAME 'msTSLicenseVersion2' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:2007 NAME 'msTSLicenseVersion4' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:2009 NAME 'msTSLSProperty01' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
+olcAttributeTypes: ( MSADat4:2010 NAME 'msTSLSProperty02' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:2022 NAME 'msDS-ResultantPSO' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' SINGLE-VALUE )
-olcAttributeTpes: ( MSADat4:2050 NAME 'msPKI-CredentialRoamingTokens' SYNTAX 'MSADdnWithOctetString' )
-olcAttributeTpes: ( MSADat4:2073 NAME 'msTSPrimaryDesktop' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' SINGLE-VALUE )
-olcAttributeTpes: ( MSADat4:2075 NAME 'msTSSecondaryDesktops' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
-olcAttributeTpes: ( MSADat4:2276 NAME 'msDS-SyncServerUrl' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
-olcAttributeTpes: ( MSADat4:2285 NAME 'msDS-AssignedAuthNPolicySilo' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:2022 NAME 'msDS-ResultantPSO' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:2050 NAME 'msPKI-CredentialRoamingTokens' SYNTAX 'MSADdnWithOctetString' )
+olcAttributeTypes: ( MSADat4:2073 NAME 'msTSPrimaryDesktop' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:2075 NAME 'msTSSecondaryDesktops' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
+olcAttributeTypes: ( MSADat4:2276 NAME 'msDS-SyncServerUrl' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
+olcAttributeTypes: ( MSADat4:2285 NAME 'msDS-AssignedAuthNPolicySilo' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' SINGLE-VALUE )
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:2288 NAME 'msDS-AuthNPolicySiloMembersBL' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
-olcAttributeTpes: ( MSADat4:2295 NAME 'msDS-AssignedAuthNPolicy' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:2288 NAME 'msDS-AuthNPolicySiloMembersBL' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
+olcAttributeTypes: ( MSADat4:2295 NAME 'msDS-AssignedAuthNPolicy' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' SINGLE-VALUE )
 #
 ## NO-USER-MODIFICATION
-#olcAttributeTpes: ( MSADat4:1459 NAME 'msDS-Behavior-Version' SYNTAX '1.3.6.1.4.1.1466.115.121.1.27' SINGLE-VALUE )
-#olcAttributeTpes: ( MSADat4:1788 NAME 'msDS-PerUserTrustQuota' SYNTAX '1.3.6.1.4.1.1466.115.121.1.27' SINGLE-VALUE )
-#olcAttributeTpes: ( MSADat4:1789 NAME 'msDS-AllUsersTrustQuota' SYNTAX '1.3.6.1.4.1.1466.115.121.1.27' SINGLE-VALUE )
-#olcAttributeTpes: ( MSADat4:1790 NAME 'msDS-PerUserTrustTombstonesQuota' SYNTAX '1.3.6.1.4.1.1466.115.121.1.27' SINGLE-VALUE )
+#olcAttributeTypes: ( MSADat4:1459 NAME 'msDS-Behavior-Version' SYNTAX '1.3.6.1.4.1.1466.115.121.1.27' SINGLE-VALUE )
+#olcAttributeTypes: ( MSADat4:1788 NAME 'msDS-PerUserTrustQuota' SYNTAX '1.3.6.1.4.1.1466.115.121.1.27' SINGLE-VALUE )
+#olcAttributeTypes: ( MSADat4:1789 NAME 'msDS-AllUsersTrustQuota' SYNTAX '1.3.6.1.4.1.1466.115.121.1.27' SINGLE-VALUE )
+#olcAttributeTypes: ( MSADat4:1790 NAME 'msDS-PerUserTrustTombstonesQuota' SYNTAX '1.3.6.1.4.1.1466.115.121.1.27' SINGLE-VALUE )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:1717 NAME 'msDS-AdditionalDnsHostName' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
+olcAttributeTypes: ( MSADat4:1717 NAME 'msDS-AdditionalDnsHostName' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 ## NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:1718 NAME 'msDS-AdditionalSamAccountName' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
+olcAttributeTypes: ( MSADat4:1718 NAME 'msDS-AdditionalSamAccountName' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:1783 NAME 'msDS-ExecuteScriptPassword' SYNTAX '1.3.6.1.4.1.1466.115.121.1.40' SINGLE-VALUE )
-olcAttributeTpes: ( MSADat4:1923 NAME 'msDS-KrbTgtLink' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:1783 NAME 'msDS-ExecuteScriptPassword' SYNTAX '1.3.6.1.4.1.1466.115.121.1.40' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:1923 NAME 'msDS-KrbTgtLink' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' SINGLE-VALUE )
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:1924 NAME 'msDS-RevealedUsers' SYNTAX 'MSADdnWithOctetString' )
-olcAttributeTpes: ( MSADat4:1926 NAME 'msDS-NeverRevealGroup' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
-olcAttributeTpes: ( MSADat4:1928 NAME 'msDS-RevealOnDemandGroup' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
+olcAttributeTypes: ( MSADat4:1924 NAME 'msDS-RevealedUsers' SYNTAX 'MSADdnWithOctetString' )
+olcAttributeTypes: ( MSADat4:1926 NAME 'msDS-NeverRevealGroup' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
+olcAttributeTypes: ( MSADat4:1928 NAME 'msDS-RevealOnDemandGroup' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:1940 NAME 'msDS-RevealedList' SYNTAX 'MSADdnWithString' )
-olcAttributeTpes: ( MSADat4:1959 NAME 'msDS-isGC' SYNTAX '1.3.6.1.4.1.1466.115.121.1.7' SINGLE-VALUE )
-olcAttributeTpes: ( MSADat4:1960 NAME 'msDS-isRODC' SYNTAX '1.3.6.1.4.1.1466.115.121.1.7' SINGLE-VALUE )
-olcAttributeTpes: ( MSADat4:1961 NAME 'msDS-SiteName' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:1940 NAME 'msDS-RevealedList' SYNTAX 'MSADdnWithString' )
+olcAttributeTypes: ( MSADat4:1959 NAME 'msDS-isGC' SYNTAX '1.3.6.1.4.1.1466.115.121.1.7' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:1960 NAME 'msDS-isRODC' SYNTAX '1.3.6.1.4.1.1466.115.121.1.7' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:1961 NAME 'msDS-SiteName' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' SINGLE-VALUE )
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:1962 NAME 'msDS-PromotionSettings' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' SINGLE-VALUE )
-olcAttributeTpes: ( MSADat4:1966 NAME 'msTPM-OwnerInformation' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' SINGLE-VALUE )
-olcAttributeTpes: ( MSADat4:2025 NAME 'msDS-IsUserCachableAtRodc' SYNTAX '1.3.6.1.4.1.1466.115.121.1.27' SINGLE-VALUE )
-olcAttributeTpes: ( MSADat4:2056 NAME 'msDS-HostServiceAccount' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
-olcAttributeTpes: ( MSADat4:2070 NAME 'msTSEndpointData' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' SINGLE-VALUE )
-olcAttributeTpes: ( MSADat4:2071 NAME 'msTSEndpointType' SYNTAX '1.3.6.1.4.1.1466.115.121.1.27' SINGLE-VALUE )
-olcAttributeTpes: ( MSADat4:2072 NAME 'msTSEndpointPlugin' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:1962 NAME 'msDS-PromotionSettings' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:1966 NAME 'msTPM-OwnerInformation' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:2025 NAME 'msDS-IsUserCachableAtRodc' SYNTAX '1.3.6.1.4.1.1466.115.121.1.27' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:2056 NAME 'msDS-HostServiceAccount' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
+olcAttributeTypes: ( MSADat4:2070 NAME 'msTSEndpointData' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:2071 NAME 'msTSEndpointType' SYNTAX '1.3.6.1.4.1.1466.115.121.1.27' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:2072 NAME 'msTSEndpointPlugin' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' SINGLE-VALUE )
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:2074 NAME 'msTSPrimaryDesktopBL' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
+olcAttributeTypes: ( MSADat4:2074 NAME 'msTSPrimaryDesktopBL' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:2078 NAME 'msTSSecondaryDesktopBL' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
-olcAttributeTpes: ( MSADat4:2109 NAME 'msTPM-TpmInformationForComputer' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:2078 NAME 'msTSSecondaryDesktopBL' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
+olcAttributeTypes: ( MSADat4:2109 NAME 'msTPM-TpmInformationForComputer' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' SINGLE-VALUE )
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:2166 NAME 'msDS-GenerationId' SYNTAX '1.3.6.1.4.1.1466.115.121.1.40' SINGLE-VALUE )
-olcAttributeTpes: ( MSADat4:2180 NAME 'msImaging-ThumbprintHash' SYNTAX '1.3.6.1.4.1.1466.115.121.1.40' SINGLE-VALUE )
-olcAttributeTpes: ( MSADat4:2181 NAME 'msImaging-HashAlgorithm' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' SINGLE-VALUE )
-olcAttributeTpes: ( MSADat4:2234 NAME 'netbootDUID' SYNTAX '1.3.6.1.4.1.1466.115.121.1.40' SINGLE-VALUE )
-olcAttributeTpes: ( MSADat6:18.1.323 NAME 'msSFU30Aliases' SYNTAX '1.3.6.1.4.1.1466.115.121.1.26' )
-#olcAttributeTpes: ( 1.3.6.1.1.1.1.26 NAME 'nisMapName' SYNTAX '1.3.6.1.4.1.1466.115.121.1.26' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:2166 NAME 'msDS-GenerationId' SYNTAX '1.3.6.1.4.1.1466.115.121.1.40' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:2180 NAME 'msImaging-ThumbprintHash' SYNTAX '1.3.6.1.4.1.1466.115.121.1.40' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:2181 NAME 'msImaging-HashAlgorithm' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat4:2234 NAME 'netbootDUID' SYNTAX '1.3.6.1.4.1.1466.115.121.1.40' SINGLE-VALUE )
+olcAttributeTypes: ( MSADat6:18.1.323 NAME 'msSFU30Aliases' SYNTAX '1.3.6.1.4.1.1466.115.121.1.26' )
+#olcAttributeTypes: ( 1.3.6.1.1.1.1.26 NAME 'nisMapName' SYNTAX '1.3.6.1.4.1.1466.115.121.1.26' SINGLE-VALUE )
 #
 #
-olcAttributeTpes: ( MSADat4:856
+olcAttributeTypes: ( MSADat4:856
   NAME 'netbootNewMachineOU'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:13
+olcAttributeTypes: ( MSADat4:13
   NAME 'builtinCreationTime'
   SYNTAX 'MSADlargeInteger'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1335
+olcAttributeTypes: ( MSADat4:1335
   NAME 'pKIEnrollmentAccess'
   SYNTAX 'MSADcis' )
 #
-olcAttributeTpes: ( MSADat4:1333
+olcAttributeTypes: ( MSADat4:1333
   NAME 'pKIExtendedKeyUsage'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:1123
+olcAttributeTypes: ( MSADat4:1123
   NAME 'msNPCalledStationID'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.26' )
 #
-olcAttributeTpes: ( MSADat4:539
+olcAttributeTypes: ( MSADat4:539
   NAME 'initialAuthIncoming'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat2:370
+olcAttributeTypes: ( MSADat2:370
   NAME 'objectClassCategory'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:41
+olcAttributeTypes: ( MSADat4:41
   NAME 'generatedConnection'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.7'
   SINGLE-VALUE )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:911
+olcAttributeTypes: ( MSADat4:911
   NAME 'allowedChildClasses'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.38' )
 #
-olcAttributeTpes: ( MSADat4:68
+olcAttributeTypes: ( MSADat4:68
   NAME 'machineArchitecture'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27' )
 #
-olcAttributeTpes: ( MSADat4:767
+olcAttributeTypes: ( MSADat4:767
   NAME 'aCSMaxPeakBandwidth'
   SYNTAX 'MSADlargeInteger'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:72
+olcAttributeTypes: ( MSADat4:72
   NAME 'marshalledInterface'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40' )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:368
+olcAttributeTypes: ( MSADat4:368
   NAME 'rIDManagerReference'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:770
+olcAttributeTypes: ( MSADat4:770
   NAME 'aCSEnableACSService'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.7'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1237
+olcAttributeTypes: ( MSADat4:1237
   NAME 'mSMQRoutingService'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.7'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1405
+olcAttributeTypes: ( MSADat4:1405
   NAME 'mS-SQL-AllowQueuedUpdatingSubscription'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.7'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:648
+olcAttributeTypes: ( MSADat4:648
   NAME 'primaryTelexNumber'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:8
+olcAttributeTypes: ( MSADat4:8
   NAME 'userAccountControl'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:563
+olcAttributeTypes: ( MSADat4:563
   NAME 'shellPropertyPages'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:4
+olcAttributeTypes: ( MSADat4:4
   NAME 'replUpToDateVector'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:484
+olcAttributeTypes: ( MSADat4:484
   NAME 'fRSDirectoryFilter'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:230
+olcAttributeTypes: ( MSADat4:230
   NAME 'printSeparatorFile'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1329
+olcAttributeTypes: ( MSADat4:1329
   NAME 'pKIMaxIssuingDepth'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1307
+olcAttributeTypes: ( MSADat4:1307
   NAME 'accountNameHistory'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:1386
+olcAttributeTypes: ( MSADat4:1386
   NAME 'mS-SQL-GPSLongitude'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:562
+olcAttributeTypes: ( MSADat4:562
   NAME 'adminPropertyPages'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:121
+olcAttributeTypes: ( MSADat4:121
   NAME 'securityIdentifier'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:166
+olcAttributeTypes: ( MSADat4:166
   NAME 'groupMembershipSAM'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:659
+olcAttributeTypes: ( MSADat4:659
   NAME 'serviceDNSNameType'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:585
+olcAttributeTypes: ( MSADat4:585
   NAME 'meetingIsEncrypted'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1400
+olcAttributeTypes: ( MSADat4:1400
   NAME 'mS-SQL-Applications'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:330
+olcAttributeTypes: ( MSADat4:330
   NAME 'lastUpdateSequence'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:50
+olcAttributeTypes: ( MSADat4:50
   NAME 'lastContentIndexed'
   SYNTAX 'MSADlargeInteger'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:567
+olcAttributeTypes: ( MSADat4:567
   NAME 'meetingDescription'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-#olcAttributeTpes: ( MSADat4:880
+#olcAttributeTypes: ( MSADat4:880
 #	NAME 'fRSTimeLastCommand'
 #	SYNTAX '1.3.6.1.4.1.1466.115.121.1.53'
 #	SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:83
+olcAttributeTypes: ( MSADat4:83
   NAME 'monikerDisplayName'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:321
+olcAttributeTypes: ( MSADat4:321
   NAME 'requiredCategories'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40' )
 #
-olcAttributeTpes: ( MSADat4:813
+olcAttributeTypes: ( MSADat4:813
   NAME 'upgradeProductCode'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40' )
 #
-olcAttributeTpes: ( MSADat4:774
+olcAttributeTypes: ( MSADat4:774
   NAME 'aCSMaxNoOfLogFiles'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1370
+olcAttributeTypes: ( MSADat4:1370
   NAME 'mS-SQL-CharacterSet'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:578
+olcAttributeTypes: ( MSADat4:578
   NAME 'meetingContactInfo'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1397
+olcAttributeTypes: ( MSADat4:1397
   NAME 'mS-SQL-CreationDate'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:32
+olcAttributeTypes: ( MSADat4:32
   NAME 'domainPolicyObject'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:703
+olcAttributeTypes: ( MSADat4:703
   NAME 'dhcpObjDescription'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:573
+olcAttributeTypes: ( MSADat4:573
   NAME 'meetingApplication'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:518
+olcAttributeTypes: ( MSADat4:518
   NAME 'defaultHidingValue'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.7'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:875
+olcAttributeTypes: ( MSADat4:875
   NAME 'fRSMemberReference'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:701
+olcAttributeTypes: ( MSADat4:701
   NAME 'dhcpIdentification'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:135
+olcAttributeTypes: ( MSADat4:135
   NAME 'trustAuthOutgoing'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:197
+olcAttributeTypes: ( MSADat4:197
   NAME 'systemMustContain'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.38' )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:1412
+olcAttributeTypes: ( MSADat4:1412
   NAME 'primaryGroupToken'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:118
+olcAttributeTypes: ( MSADat4:118
   NAME 'rpcNsProfileEntry'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:129
+olcAttributeTypes: ( MSADat4:129
   NAME 'trustAuthIncoming'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1225
+olcAttributeTypes: ( MSADat4:1225
   NAME 'mSMQPrevSiteGates'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
 #
-olcAttributeTpes: ( MSADat4:607
+olcAttributeTypes: ( MSADat4:607
   NAME 'queryPolicyObject'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:712
+olcAttributeTypes: ( MSADat4:712
   NAME 'optionDescription'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:1314
+olcAttributeTypes: ( MSADat4:1314
   NAME 'aCSMaximumSDUSize'
   SYNTAX 'MSADlargeInteger'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:530
+olcAttributeTypes: ( MSADat4:530
   NAME 'nonSecurityMember'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
 #
-olcAttributeTpes: ( MSADat4:31
+olcAttributeTypes: ( MSADat4:31
   NAME 'fRSReplicaSetType'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:763
+olcAttributeTypes: ( MSADat4:763
   NAME 'aCSTotalNoOfFlows'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:915
+olcAttributeTypes: ( MSADat4:915
   NAME 'possibleInferiors'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.38' )
 #
-olcAttributeTpes: ( MSADat4:851
+olcAttributeTypes: ( MSADat4:851
   NAME 'netbootMaxClients'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1385
+olcAttributeTypes: ( MSADat4:1385
   NAME 'mS-SQL-GPSLatitude'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:765
+olcAttributeTypes: ( MSADat4:765
   NAME 'aCSPermissionBits'
   SYNTAX 'MSADlargeInteger'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:926
+olcAttributeTypes: ( MSADat4:926
   NAME 'mSMQTransactional'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.7'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1390
+olcAttributeTypes: ( MSADat4:1390
   NAME 'mS-SQL-Description'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:913
+olcAttributeTypes: ( MSADat4:913
   NAME 'allowedAttributes'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.38' )
 #
-olcAttributeTpes: ( MSADat4:491
+olcAttributeTypes: ( MSADat4:491
   NAME 'fRSFaultCondition'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat2:54
+olcAttributeTypes: ( MSADat2:54
   NAME 'tombstoneLifetime'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:809
+olcAttributeTypes: ( MSADat4:809
   NAME 'remoteStorageGUID'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:644
+olcAttributeTypes: ( MSADat4:644
   NAME 'showInAddressBook'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
 #
-olcAttributeTpes: ( MSADat4:213
+olcAttributeTypes: ( MSADat4:213
   NAME 'defaultClassStore'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
 #
-olcAttributeTpes: ( MSADat4:577
+olcAttributeTypes: ( MSADat4:577
   NAME 'meetingOriginator'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:656
+olcAttributeTypes: ( MSADat4:656
   NAME 'userPrincipalName'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1316
+olcAttributeTypes: ( MSADat4:1316
   NAME 'aCSMinimumLatency'
   SYNTAX 'MSADlargeInteger'
   SINGLE-VALUE )
 #
-#olcAttributeTpes: ( MSADat2:617
+#olcAttributeTypes: ( MSADat2:617
 #	NAME 'homePostalAddress'
 #	SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
 #	SINGLE-VALUE )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:638
+olcAttributeTypes: ( MSADat4:638
   NAME 'isPrivilegeHolder'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
 #
-olcAttributeTpes: ( MSADat4:533
+olcAttributeTypes: ( MSADat4:533
   NAME 'fRSReplicaSetGUID'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:371
+olcAttributeTypes: ( MSADat4:371
   NAME 'rIDAllocationPool'
   SYNTAX 'MSADlargeInteger'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1327
+olcAttributeTypes: ( MSADat4:1327
   NAME 'pKIDefaultKeySpec'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:537
+olcAttributeTypes: ( MSADat4:537
   NAME 'dynamicLDAPServer'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12'
   SINGLE-VALUE )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:516
+olcAttributeTypes: ( MSADat4:516
   NAME 'serverReferenceBL'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:500
+olcAttributeTypes: ( MSADat4:500
   NAME 'fRSServiceCommand'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1304
+olcAttributeTypes: ( MSADat4:1304
   NAME 'sDRightsEffective'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:1249
+olcAttributeTypes: ( MSADat4:1249
   NAME 'proxiedObjectName'
   SYNTAX 'MSADdnWithOctetString'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:586
+olcAttributeTypes: ( MSADat4:586
   NAME 'meetingRecurrence'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:251
+olcAttributeTypes: ( MSADat4:251
   NAME 'cOMTreatAsClassId'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1245
+olcAttributeTypes: ( MSADat4:1245
   NAME 'globalAddressList'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:908
+olcAttributeTypes: ( MSADat4:908
   NAME 'extendedClassInfo'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:459
+olcAttributeTypes: ( MSADat4:459
   NAME 'machineWidePolicy'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40' )
 #
-olcAttributeTpes: ( MSADat4:356
+olcAttributeTypes: ( MSADat4:356
   NAME 'foreignIdentifier'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:1242
+olcAttributeTypes: ( MSADat4:1242
   NAME 'dNReferenceUpdate'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
 #
-olcAttributeTpes: ( MSADat4:134
+olcAttributeTypes: ( MSADat4:134
   NAME 'trustPosixOffset'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:36
+olcAttributeTypes: ( MSADat4:36
   NAME 'enabledConnection'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.7'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:627
+olcAttributeTypes: ( MSADat4:627
   NAME 'ipsecNFAReference'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
 #
-olcAttributeTpes: ( MSADat4:86
+olcAttributeTypes: ( MSADat4:86
   NAME 'userWorkstations'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat2:301
+olcAttributeTypes: ( MSADat2:301
   NAME 'garbageCollPeriod'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:933
+olcAttributeTypes: ( MSADat4:933
   NAME 'mSMQComputerType'
   SYNTAX 'MSADtelex'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:65
+olcAttributeTypes: ( MSADat4:65
   NAME 'logonWorkstation'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:921
+olcAttributeTypes: ( MSADat4:921
   NAME 'mSMQJournalQuota'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:108
+olcAttributeTypes: ( MSADat4:108
   NAME 'remoteSourceType'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:95
+olcAttributeTypes: ( MSADat4:95
   NAME 'pwdHistoryLength'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:920
+olcAttributeTypes: ( MSADat4:920
   NAME 'mSMQBasePriority'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:196
+olcAttributeTypes: ( MSADat4:196
   NAME 'systemMayContain'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.38' )
 #
-olcAttributeTpes: ( MSADat4:1407
+olcAttributeTypes: ( MSADat4:1407
   NAME 'mS-SQL-ThirdParty'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.7'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1243
+olcAttributeTypes: ( MSADat4:1243
   NAME 'mSMQQueueNameExt'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:485
+olcAttributeTypes: ( MSADat4:485
   NAME 'fRSUpdateTimeout'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:924
+olcAttributeTypes: ( MSADat4:924
   NAME 'mSMQPrivacyLevel'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:615
+olcAttributeTypes: ( MSADat4:615
   NAME 'shellContextMenu'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:618
+olcAttributeTypes: ( MSADat4:618
   NAME 'wellKnownObjects'
   SYNTAX 'MSADdnWithOctetString' )
 #
-olcAttributeTpes: ( MSADat4:789
+olcAttributeTypes: ( MSADat4:789
   NAME 'transportDLLName'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:458
+olcAttributeTypes: ( MSADat4:458
   NAME 'qualityOfService'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:73
+olcAttributeTypes: ( MSADat4:73
   NAME 'lockoutThreshold'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:105
+olcAttributeTypes: ( MSADat4:105
   NAME 'remoteServerName'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:694
+olcAttributeTypes: ( MSADat4:694
   NAME 'previousParentCA'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
 #
-olcAttributeTpes: ( MSADat4:1345
+olcAttributeTypes: ( MSADat4:1345
   NAME 'dSUIShellMaximum'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:303
+olcAttributeTypes: ( MSADat4:303
   NAME 'notificationList'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1244
+olcAttributeTypes: ( MSADat4:1244
   NAME 'addressBookRoots'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
 #
-olcAttributeTpes: ( MSADat4:878
+olcAttributeTypes: ( MSADat4:878
   NAME 'fRSPrimaryMember'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12'
   SINGLE-VALUE )
 #
-#olcAttributeTpes: ( MSADat4:587
+#olcAttributeTypes: ( MSADat4:587
 #	NAME 'meetingStartTime'
 #	SYNTAX '1.3.6.1.4.1.1466.115.121.1.53' )
 #
-olcAttributeTpes: ( MSADat4:1310
+olcAttributeTypes: ( MSADat4:1310
   NAME 'mSMQSiteGatesMig'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
 #
-olcAttributeTpes: ( MSADat4:709
+olcAttributeTypes: ( MSADat4:709
   NAME 'dhcpReservations'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.44' )
 #
-olcAttributeTpes: ( MSADat4:614
+olcAttributeTypes: ( MSADat4:614
   NAME 'adminContextMenu'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:1332
+olcAttributeTypes: ( MSADat4:1332
   NAME 'pKIOverlapPeriod'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:142
+olcAttributeTypes: ( MSADat4:142
   NAME 'winsockAddresses'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40' )
 #
-olcAttributeTpes: ( MSADat4:923
+olcAttributeTypes: ( MSADat4:923
   NAME 'mSMQAuthenticate'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.7'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1344
+olcAttributeTypes: ( MSADat4:1344
   NAME 'dSUIAdminMaximum'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:848
+olcAttributeTypes: ( MSADat4:848
   NAME 'appSchemaVersion'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:123
+olcAttributeTypes: ( MSADat4:123
   NAME 'serviceClassInfo'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40' )
 #
-olcAttributeTpes: ( MSADat4:769
+olcAttributeTypes: ( MSADat4:769
   NAME 'aCSEventLogLevel'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:751
+olcAttributeTypes: ( MSADat4:751
   NAME 'userSharedFolder'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:421
+olcAttributeTypes: ( MSADat4:421
   NAME 'domainWidePolicy'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40' )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:669
+olcAttributeTypes: ( MSADat4:669
   NAME 'rIDSetReferences'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
 #
-olcAttributeTpes: ( MSADat4:815
+olcAttributeTypes: ( MSADat4:815
   NAME 'canUpgradeScript'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:610
+olcAttributeTypes: ( MSADat4:610
   NAME 'classDisplayName'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat2:226
+olcAttributeTypes: ( MSADat2:226
   NAME 'adminDescription'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:67
+olcAttributeTypes: ( MSADat4:67
   NAME 'lSAModifiedCount'
   SYNTAX 'MSADlargeInteger'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:509
+olcAttributeTypes: ( MSADat4:509
   NAME 'serviceClassName'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:56
+olcAttributeTypes: ( MSADat4:56
   NAME 'localPolicyFlags'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:115
+olcAttributeTypes: ( MSADat4:115
   NAME 'rpcNsInterfaceID'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat2:194
+olcAttributeTypes: ( MSADat2:194
   NAME 'adminDisplayName'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:753
+olcAttributeTypes: ( MSADat4:753
   NAME 'nameServiceFlags'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:589
+olcAttributeTypes: ( MSADat4:589
   NAME 'meetingBandwidth'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27' )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:755
+olcAttributeTypes: ( MSADat4:755
   NAME 'domainIdentifier'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:370
+olcAttributeTypes: ( MSADat4:370
   NAME 'rIDAvailablePool'
   SYNTAX 'MSADlargeInteger'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:655
+olcAttributeTypes: ( MSADat4:655
   NAME 'legacyExchangeDN'
   SYNTAX 'MSADtelex'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:470
+olcAttributeTypes: ( MSADat4:470
   NAME 'trustAttributes'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:535
+olcAttributeTypes: ( MSADat4:535
   NAME 'fRSRootSecurity'
   SYNTAX 'MSADcis'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:532
+olcAttributeTypes: ( MSADat4:532
   NAME 'superiorDNSRoot'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:278
+olcAttributeTypes: ( MSADat4:278
   NAME 'printMaxYExtent'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:277
+olcAttributeTypes: ( MSADat4:277
   NAME 'printMaxXExtent'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:280
+olcAttributeTypes: ( MSADat4:280
   NAME 'printMinYExtent'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:279
+olcAttributeTypes: ( MSADat4:279
   NAME 'printMinXExtent'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat2:32
+olcAttributeTypes: ( MSADat2:32
   NAME 'attributeSyntax'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.38'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:247
+olcAttributeTypes: ( MSADat4:247
   NAME 'printAttributes'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:152
+olcAttributeTypes: ( MSADat4:152
   NAME 'groupAttributes'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:816
+olcAttributeTypes: ( MSADat4:816
   NAME 'fileExtPriority'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:930
+olcAttributeTypes: ( MSADat4:930
   NAME 'mSMQServiceType'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:363
+olcAttributeTypes: ( MSADat4:363
   NAME 'operatingSystem'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1371
+olcAttributeTypes: ( MSADat4:1371
   NAME 'mS-SQL-SortOrder'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:329
+olcAttributeTypes: ( MSADat4:329
   NAME 'versionNumberLo'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:884
+olcAttributeTypes: ( MSADat4:884
   NAME 'msRRASAttribute'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:781
+olcAttributeTypes: ( MSADat4:781
   NAME 'lastKnownParent'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1209
+olcAttributeTypes: ( MSADat4:1209
   NAME 'shortServerName'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:60
+olcAttributeTypes: ( MSADat4:60
   NAME 'lockoutDuration'
   SYNTAX 'MSADlargeInteger'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:232
+olcAttributeTypes: ( MSADat4:232
   NAME 'defaultPriority'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:754
+olcAttributeTypes: ( MSADat4:754
   NAME 'rpcNsEntryFlags'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:713
+olcAttributeTypes: ( MSADat4:713
   NAME 'optionsLocation'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.44' )
 #
-olcAttributeTpes: ( MSADat4:328
+olcAttributeTypes: ( MSADat4:328
   NAME 'versionNumberHi'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:366
+olcAttributeTypes: ( MSADat4:366
   NAME 'rpcNsAnnotation'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:886
+olcAttributeTypes: ( MSADat4:886
   NAME 'purportedSearch'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:776
+olcAttributeTypes: ( MSADat4:776
   NAME 'aCSDSBMPriority'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:961
+olcAttributeTypes: ( MSADat4:961
   NAME 'mSMQSiteForeign'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.7' )
 #
-olcAttributeTpes: ( MSADat4:335
+olcAttributeTypes: ( MSADat4:335
   NAME 'currentLocation'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:570
+olcAttributeTypes: ( MSADat4:570
   NAME 'meetingProtocol'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:420
+olcAttributeTypes: ( MSADat4:420
   NAME 'publicKeyPolicy'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1402
+olcAttributeTypes: ( MSADat4:1402
   NAME 'mS-SQL-Publisher'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:812
+olcAttributeTypes: ( MSADat4:812
   NAME 'createWizardExt'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:1373
+olcAttributeTypes: ( MSADat4:1373
   NAME 'mS-SQL-Clustered'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.7'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:334
+olcAttributeTypes: ( MSADat4:334
   NAME 'volTableIdxGUID'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:696
+olcAttributeTypes: ( MSADat4:696
   NAME 'currentParentCA'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
 #
-olcAttributeTpes: ( MSADat4:504
+olcAttributeTypes: ( MSADat4:504
   NAME 'seqNotification'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:515
+olcAttributeTypes: ( MSADat4:515
   NAME 'serverReference'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1119
+olcAttributeTypes: ( MSADat4:1119
   NAME 'msNPAllowDialin'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.7'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1387
+olcAttributeTypes: ( MSADat4:1387
   NAME 'mS-SQL-GPSHeight'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1378
+olcAttributeTypes: ( MSADat4:1378
   NAME 'mS-SQL-AppleTalk'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:269
+olcAttributeTypes: ( MSADat4:269
   NAME 'linkTrackSecret'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:378
+olcAttributeTypes: ( MSADat4:378
   NAME 'dnsAllowDynamic'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.7'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:49
+olcAttributeTypes: ( MSADat4:49
   NAME 'badPasswordTime'
   SYNTAX 'MSADlargeInteger'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:637
+olcAttributeTypes: ( MSADat4:637
   NAME 'privilegeHolder'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
 #
-olcAttributeTpes: ( MSADat4:289
+olcAttributeTypes: ( MSADat4:289
   NAME 'printMediaReady'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:288
+olcAttributeTypes: ( MSADat4:288
   NAME 'printMACAddress'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:66
+olcAttributeTypes: ( MSADat4:66
   NAME 'lSACreationTime'
   SYNTAX 'MSADlargeInteger'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:569
+olcAttributeTypes: ( MSADat4:569
   NAME 'meetingLocation'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:784
+olcAttributeTypes: ( MSADat4:784
   NAME 'aCSIdentityName'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:1410
+olcAttributeTypes: ( MSADat4:1410
   NAME 'mS-DS-CreatorSID'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1374
+olcAttributeTypes: ( MSADat4:1374
   NAME 'mS-SQL-NamedPipe'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:843
+olcAttributeTypes: ( MSADat4:843
   NAME 'lDAPAdminLimits'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat2:460
+olcAttributeTypes: ( MSADat2:460
   NAME 'lDAPDisplayName'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:218
+olcAttributeTypes: ( MSADat4:218
   NAME 'applicationName'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:695
+olcAttributeTypes: ( MSADat4:695
   NAME 'pendingParentCA'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
 #
-olcAttributeTpes: ( MSADat4:779
+olcAttributeTypes: ( MSADat4:779
   NAME 'aCSCacheTimeout'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:574
+olcAttributeTypes: ( MSADat4:574
   NAME 'meetingLanguage'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:778
+olcAttributeTypes: ( MSADat4:778
   NAME 'aCSDSBMDeadTime'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:697
+olcAttributeTypes: ( MSADat4:697
   NAME 'cACertificateDN'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:138
+olcAttributeTypes: ( MSADat4:138
   NAME 'userParameters'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:132
+olcAttributeTypes: ( MSADat4:132
   NAME 'trustDirection'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:962
+olcAttributeTypes: ( MSADat4:962
   NAME 'mSMQQueueQuota'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:936
+olcAttributeTypes: ( MSADat4:936
   NAME 'mSMQEncryptKey'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:885
+olcAttributeTypes: ( MSADat4:885
   NAME 'terminalServer'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:233
+olcAttributeTypes: ( MSADat4:233
   NAME 'printStartTime'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:664
+olcAttributeTypes: ( MSADat4:664
   NAME 'syncWithObject'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:344
+olcAttributeTypes: ( MSADat4:344
   NAME 'groupsToIgnore'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:665
+olcAttributeTypes: ( MSADat4:665
   NAME 'syncMembership'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
 #
-olcAttributeTpes: ( MSADat4:666
+olcAttributeTypes: ( MSADat4:666
   NAME 'syncAttributes'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:214
+olcAttributeTypes: ( MSADat4:214
   NAME 'nextLevelStore'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:302
+olcAttributeTypes: ( MSADat4:302
   NAME 'sAMAccountType'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1401
+olcAttributeTypes: ( MSADat4:1401
   NAME 'mS-SQL-Keywords'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat2:210
+olcAttributeTypes: ( MSADat2:210
   NAME 'proxyAddresses'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:284
+olcAttributeTypes: ( MSADat4:284
   NAME 'bytesPerMinute'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:241
+olcAttributeTypes: ( MSADat4:241
   NAME 'printMaxCopies'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:98
+olcAttributeTypes: ( MSADat4:98
   NAME 'primaryGroupID'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:89
+olcAttributeTypes: ( MSADat4:89
   NAME 'nTGroupMembers'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40' )
 #
-olcAttributeTpes: ( MSADat4:1228
+olcAttributeTypes: ( MSADat4:1228
   NAME 'mSMQDsServices'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.7'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:43
+olcAttributeTypes: ( MSADat4:43
   NAME 'fRSVersionGUID'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:486
+olcAttributeTypes: ( MSADat4:486
   NAME 'fRSWorkingPath'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat2:18
+olcAttributeTypes: ( MSADat2:18
   NAME 'otherTelephone'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat2:277
+olcAttributeTypes: ( MSADat2:277
   NAME 'otherHomePhone'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:151
+olcAttributeTypes: ( MSADat4:151
   NAME 'oEMInformation'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat2:459
+olcAttributeTypes: ( MSADat2:459
   NAME 'networkAddress'
   SYNTAX 'MSADtelex' )
 #
-olcAttributeTpes: ( MSADat4:966
+olcAttributeTypes: ( MSADat4:966
   NAME 'mSMQDigestsMig'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40' )
 #
-olcAttributeTpes: ( MSADat4:568
+olcAttributeTypes: ( MSADat4:568
   NAME 'meetingKeyword'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:844
+olcAttributeTypes: ( MSADat4:844
   NAME 'lDAPIPDenyList'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40' )
 #
-olcAttributeTpes: ( MSADat4:847
+olcAttributeTypes: ( MSADat4:847
   NAME 'installUiLevel'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:894
+olcAttributeTypes: ( MSADat4:894
   NAME 'gPCFileSysPath'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:488
+olcAttributeTypes: ( MSADat4:488
   NAME 'fRSStagingPath'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat2:351
+olcAttributeTypes: ( MSADat2:351
   NAME 'auxiliaryClass'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.38' )
 #
-olcAttributeTpes: ( MSADat4:159
+olcAttributeTypes: ( MSADat4:159
   NAME 'accountExpires'
   SYNTAX 'MSADlargeInteger'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:718
+olcAttributeTypes: ( MSADat4:718
   NAME 'dhcpProperties'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40' )
 #
-olcAttributeTpes: ( MSADat4:346
+olcAttributeTypes: ( MSADat4:346
   NAME 'desktopProfile'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:762
+olcAttributeTypes: ( MSADat4:762
   NAME 'aCSServiceType'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-#olcAttributeTpes: ( MSADat2:610
+#olcAttributeTypes: ( MSADat2:610
 #	NAME 'employeeNumber'
 #	SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
 #	SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1213
+olcAttributeTypes: ( MSADat4:1213
   NAME 'assocNTAccount'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:498
+olcAttributeTypes: ( MSADat4:498
   NAME 'creationWizard'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:253
+olcAttributeTypes: ( MSADat4:253
   NAME 'cOMOtherProgId'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:202
+olcAttributeTypes: ( MSADat4:202
   NAME 'auditingPolicy'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:635
+olcAttributeTypes: ( MSADat4:635
   NAME 'privilegeValue'
   SYNTAX 'MSADlargeInteger'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1366
+olcAttributeTypes: ( MSADat4:1366
   NAME 'mS-SQL-Location'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1334
+olcAttributeTypes: ( MSADat4:1334
   NAME 'pKIDefaultCSPs'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:270
+olcAttributeTypes: ( MSADat4:270
   NAME 'printShareName'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat2:33
+olcAttributeTypes: ( MSADat2:33
   NAME 'isSingleValued'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.7'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:472
+olcAttributeTypes: ( MSADat4:472
   NAME 'domainCrossRef'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1240
+olcAttributeTypes: ( MSADat4:1240
   NAME 'netbootSIFFile'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:250
+olcAttributeTypes: ( MSADat4:250
   NAME 'cOMUniqueLIBID'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:657
+olcAttributeTypes: ( MSADat4:657
   NAME 'serviceDNSName'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:782
+olcAttributeTypes: ( MSADat4:782
   NAME 'objectCategory'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:122
+olcAttributeTypes: ( MSADat4:122
   NAME 'serviceClassID'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:720
+olcAttributeTypes: ( MSADat4:720
   NAME 'dhcpUpdateTime'
   SYNTAX 'MSADlargeInteger'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:221
+olcAttributeTypes: ( MSADat4:221
   NAME 'sAMAccountName'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-#olcAttributeTpes: ( MSADat4:588
+#olcAttributeTypes: ( MSADat4:588
 #	NAME 'meetingEndTime'
 #	SYNTAX '1.3.6.1.4.1.1466.115.121.1.53' )
 #
-olcAttributeTpes: ( MSADat4:1389
+olcAttributeTypes: ( MSADat4:1389
   NAME 'mS-SQL-Language'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:777
+olcAttributeTypes: ( MSADat4:777
   NAME 'aCSDSBMRefresh'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1393
+olcAttributeTypes: ( MSADat4:1393
   NAME 'mS-SQL-Database'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:20
+olcAttributeTypes: ( MSADat4:20
   NAME 'cOMInterfaceID'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:1403
+olcAttributeTypes: ( MSADat4:1403
   NAME 'mS-SQL-AllowKnownPullSubscription'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.7'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1394
+olcAttributeTypes: ( MSADat4:1394
   NAME 'mS-SQL-AllowAnonymousSubscription'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.7'
   SINGLE-VALUE )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:654
+olcAttributeTypes: ( MSADat4:654
   NAME 'managedObjects'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
 #
-olcAttributeTpes: ( MSADat2:8
+olcAttributeTypes: ( MSADat2:8
   NAME 'possSuperiors'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.38' )
 #
-olcAttributeTpes: ( MSADat4:791
+olcAttributeTypes: ( MSADat4:791
   NAME 'transportType'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:345
+olcAttributeTypes: ( MSADat4:345
   NAME 'groupPriority'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:117
+olcAttributeTypes: ( MSADat4:117
   NAME 'rpcNsPriority'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27' )
 #
-olcAttributeTpes: ( MSADat4:917
+olcAttributeTypes: ( MSADat4:917
   NAME 'mSMQQueueType'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:141
+olcAttributeTypes: ( MSADat4:141
   NAME 'versionNumber'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat2:121
+olcAttributeTypes: ( MSADat2:121
   NAME 'uSNLastObjRem'
   SYNTAX 'MSADlargeInteger'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1346
+olcAttributeTypes: ( MSADat4:1346
   NAME 'templateRoots'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
 #
-olcAttributeTpes: ( MSADat4:93
+olcAttributeTypes: ( MSADat4:93
   NAME 'pwdProperties'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:290
+olcAttributeTypes: ( MSADat4:290
   NAME 'printNumberUp'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:536
+olcAttributeTypes: ( MSADat4:536
   NAME 'fRSExtensions'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:286
+olcAttributeTypes: ( MSADat4:286
   NAME 'printRateUnit'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:846
+olcAttributeTypes: ( MSADat4:846
   NAME 'msiScriptSize'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:274
+olcAttributeTypes: ( MSADat4:274
   NAME 'printSpooling'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:608
+olcAttributeTypes: ( MSADat4:608
   NAME 'queryPolicyBL'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
 #
-olcAttributeTpes: ( MSADat4:103
+olcAttributeTypes: ( MSADat4:103
   NAME 'proxyLifetime'
   SYNTAX 'MSADlargeInteger'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:144
+olcAttributeTypes: ( MSADat4:144
   NAME 'operatorCount'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:860
+olcAttributeTypes: ( MSADat4:860
   NAME 'netbootServer'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:369
+olcAttributeTypes: ( MSADat4:369
   NAME 'fSMORoleOwner'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:276
+olcAttributeTypes: ( MSADat4:276
   NAME 'driverVersion'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1388
+olcAttributeTypes: ( MSADat4:1388
   NAME 'mS-SQL-Version'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:939
+olcAttributeTypes: ( MSADat4:939
   NAME 'mSMQNameStyle'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.7'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat2:471
+olcAttributeTypes: ( MSADat2:471
   NAME 'schemaVersion'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27' )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat2:436
+olcAttributeTypes: ( MSADat2:436
   NAME 'directReports'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
 #
-olcAttributeTpes: ( MSADat2:255
+olcAttributeTypes: ( MSADat2:255
   NAME 'addressSyntax'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:235
+olcAttributeTypes: ( MSADat4:235
   NAME 'printFormName'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:15
+olcAttributeTypes: ( MSADat4:15
   NAME 'msiScriptPath'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1312
+olcAttributeTypes: ( MSADat4:1312
   NAME 'aCSServerList'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-#olcAttributeTpes: ( MSADat2:615
+#olcAttributeTypes: ( MSADat2:615
 #	NAME 'personalTitle'
 #	SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
 #	SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1305
+olcAttributeTypes: ( MSADat4:1305
   NAME 'moveTreeState'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40' )
 #
-olcAttributeTpes: ( MSADat4:945
+olcAttributeTypes: ( MSADat4:945
   NAME 'mSMQSiteGates'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
 #
-olcAttributeTpes: ( MSADat4:1238
+olcAttributeTypes: ( MSADat4:1238
   NAME 'mSMQDsService'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.7'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat2:76
+olcAttributeTypes: ( MSADat2:76
   NAME 'objectVersion'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1414
+olcAttributeTypes: ( MSADat4:1414
   NAME 'dNSTombstoned'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.7'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:941
+olcAttributeTypes: ( MSADat4:941
   NAME 'mSMQLongLived'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:534
+olcAttributeTypes: ( MSADat4:534
   NAME 'fRSLevelLimit'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:845
+olcAttributeTypes: ( MSADat4:845
   NAME 'msiScriptName'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-#olcAttributeTpes: ( MSADat4:44
+#olcAttributeTypes: ( MSADat4:44
 #  NAME 'homeDirectory'
 #  SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
 #  SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:698
+olcAttributeTypes: ( MSADat4:698
   NAME 'dhcpUniqueKey'
   SYNTAX 'MSADlargeInteger'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat2:227
+olcAttributeTypes: ( MSADat2:227
   NAME 'extensionName'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-#olcAttributeTpes: ( MSADat2:256
+#olcAttributeTypes: ( MSADat2:256
 #	NAME 'streetAddress'
 #	SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
 #	SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:113
+olcAttributeTypes: ( MSADat4:113
   NAME 'rpcNsBindings'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:237
+olcAttributeTypes: ( MSADat4:237
   NAME 'printBinNames'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:109
+olcAttributeTypes: ( MSADat4:109
   NAME 'replicaSource'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:246
+olcAttributeTypes: ( MSADat4:246
   NAME 'printLanguage'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:1365
+olcAttributeTypes: ( MSADat4:1365
   NAME 'mS-SQL-Contact'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:357
+olcAttributeTypes: ( MSADat4:357
   NAME 'nTMixedDomain'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:483
+olcAttributeTypes: ( MSADat4:483
   NAME 'fRSFileFilter'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:332
+olcAttributeTypes: ( MSADat4:332
   NAME 'birthLocation'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:682
+olcAttributeTypes: ( MSADat4:682
   NAME 'friendlyNames'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:622
+olcAttributeTypes: ( MSADat4:622
   NAME 'ipsecDataType'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:584
+olcAttributeTypes: ( MSADat4:584
   NAME 'meetingRating'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:681
+olcAttributeTypes: ( MSADat4:681
   NAME 'indexedScopes'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:312
+olcAttributeTypes: ( MSADat4:312
   NAME 'rpcNsObjectID'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:168
+olcAttributeTypes: ( MSADat4:168
   NAME 'modifiedCount'
   SYNTAX 'MSADlargeInteger'
   SINGLE-VALUE )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat2:218
+olcAttributeTypes: ( MSADat2:218
   NAME 'oMObjectClass'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:772
+olcAttributeTypes: ( MSADat4:772
   NAME 'aCSPolicyName'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:502
+olcAttributeTypes: ( MSADat4:502
   NAME 'timeVolChange'
   SYNTAX 'MSADlargeInteger'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:337
+olcAttributeTypes: ( MSADat4:337
   NAME 'currMachineId'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:120
+olcAttributeTypes: ( MSADat4:120
   NAME 'schemaFlagsEx'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1356
+olcAttributeTypes: ( MSADat4:1356
   NAME 'validAccesses'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:158
+olcAttributeTypes: ( MSADat4:158
   NAME 'domainReplica'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1309
+olcAttributeTypes: ( MSADat4:1309
   NAME 'mSMQInterval2'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1308
+olcAttributeTypes: ( MSADat4:1308
   NAME 'mSMQInterval1'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:916
+olcAttributeTypes: ( MSADat4:916
   NAME 'canonicalName'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:94
+olcAttributeTypes: ( MSADat4:94
   NAME 'ntPwdHistory'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40' )
 #
-olcAttributeTpes: ( MSADat4:133
+olcAttributeTypes: ( MSADat4:133
   NAME 'trustPartner'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:160
+olcAttributeTypes: ( MSADat4:160
   NAME 'lmPwdHistory'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40' )
 #
-olcAttributeTpes: ( MSADat4:1380
+olcAttributeTypes: ( MSADat4:1380
   NAME 'mS-SQL-Status'
   SYNTAX 'MSADlargeInteger'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat2:469
+olcAttributeTypes: ( MSADat2:469
   NAME 'USNIntersite'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:858
+olcAttributeTypes: ( MSADat4:858
   NAME 'netbootTools'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:99
+olcAttributeTypes: ( MSADat4:99
   NAME 'priorSetTime'
   SYNTAX 'MSADlargeInteger'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1367
+olcAttributeTypes: ( MSADat4:1367
   NAME 'mS-SQL-Memory'
   SYNTAX 'MSADlargeInteger'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:950
+olcAttributeTypes: ( MSADat4:950
   NAME 'mSMQServices'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-#olcAttributeTpes: ( MSADat2:613
+#olcAttributeTypes: ( MSADat2:613
 #	NAME 'employeeType'
 #	SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
 #	SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:27
+olcAttributeTypes: ( MSADat4:27
   NAME 'currentValue'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:822
+olcAttributeTypes: ( MSADat4:822
   NAME 'siteLinkList'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
 #
-olcAttributeTpes: ( MSADat4:107
+olcAttributeTypes: ( MSADat4:107
   NAME 'remoteSource'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:325
+olcAttributeTypes: ( MSADat4:325
   NAME 'setupCommand'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat2:212
+olcAttributeTypes: ( MSADat2:212
   NAME 'dSHeuristics'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1336
+olcAttributeTypes: ( MSADat4:1336
   NAME 'replInterval'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:234
+olcAttributeTypes: ( MSADat4:234
   NAME 'printEndTime'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat2:1
+olcAttributeTypes: ( MSADat2:1
   NAME 'instanceType'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:722
+olcAttributeTypes: ( MSADat4:722
   NAME 'otherIpPhone'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:965
+olcAttributeTypes: ( MSADat4:965
   NAME 'mSMQSiteName'
   SYNTAX 'MSADtelex'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:579
+olcAttributeTypes: ( MSADat4:579
   NAME 'meetingOwner'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:242
+olcAttributeTypes: ( MSADat4:242
   NAME 'printCollate'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.7'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:480
+olcAttributeTypes: ( MSADat4:480
   NAME 'defaultGroup'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:79
+olcAttributeTypes: ( MSADat4:79
   NAME 'minPwdLength'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:864
+olcAttributeTypes: ( MSADat4:864
   NAME 'netbootSCPBL'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:650
+olcAttributeTypes: ( MSADat4:650
   NAME 'mhsORAddress'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-#olcAttributeTpes: ( MSADat4:651
+#olcAttributeTypes: ( MSADat4:651
 #	NAME 'otherMailbox'
 #	SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:367
+olcAttributeTypes: ( MSADat4:367
   NAME 'rpcNsCodeset'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat2:14
+olcAttributeTypes: ( MSADat2:14
   NAME 'hasMasterNCs'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
 #
-olcAttributeTpes: ( MSADat4:952
+olcAttributeTypes: ( MSADat4:952
   NAME 'mSMQMigrated'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.7'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat2:74
+olcAttributeTypes: ( MSADat2:74
   NAME 'dSASignature'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat2:115
+olcAttributeTypes: ( MSADat2:115
   NAME 'invocationId'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:254
+olcAttributeTypes: ( MSADat4:254
   NAME 'cOMTypelibId'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:26
+olcAttributeTypes: ( MSADat4:26
   NAME 'creationTime'
   SYNTAX 'MSADlargeInteger'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:581
+olcAttributeTypes: ( MSADat4:581
   NAME 'meetingScope'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:336
+olcAttributeTypes: ( MSADat4:336
   NAME 'volTableGUID'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:513
+olcAttributeTypes: ( MSADat4:513
   NAME 'siteObjectBL'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
 #
-olcAttributeTpes: ( MSADat4:756
+olcAttributeTypes: ( MSADat4:756
   NAME 'aCSTimeOfDay'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:757
+olcAttributeTypes: ( MSADat4:757
   NAME 'aCSDirection'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:77
+olcAttributeTypes: ( MSADat4:77
   NAME 'maxTicketAge'
   SYNTAX 'MSADlargeInteger'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:481
+olcAttributeTypes: ( MSADat4:481
   NAME 'schemaUpdate'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.24'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:80
+olcAttributeTypes: ( MSADat4:80
   NAME 'minTicketAge'
   SYNTAX 'MSADlargeInteger'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:628
+olcAttributeTypes: ( MSADat4:628
   NAME 'ipsecNegotiationPolicyReference'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat2:327
+olcAttributeTypes: ( MSADat2:327
   NAME 'helpFileName'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:148
+olcAttributeTypes: ( MSADat4:148
   NAME 'schemaIDGUID'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:810
+olcAttributeTypes: ( MSADat4:810
   NAME 'createDialog'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:964
+olcAttributeTypes: ( MSADat4:964
   NAME 'mSMQNt4Flags'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:327
+olcAttributeTypes: ( MSADat4:327
   NAME 'packageFlags'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat2:464
+olcAttributeTypes: ( MSADat2:464
   NAME 'wWWHomePage'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:507
+olcAttributeTypes: ( MSADat4:507
   NAME 'volumeCount'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:273
+olcAttributeTypes: ( MSADat4:273
   NAME 'printStatus'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:890
+olcAttributeTypes: ( MSADat4:890
   NAME 'uPNSuffixes'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:471
+olcAttributeTypes: ( MSADat4:471
   NAME 'trustParent'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1301
+olcAttributeTypes: ( MSADat4:1301
   NAME 'tokenGroups'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40' )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:375
+olcAttributeTypes: ( MSADat4:375
   NAME 'systemFlags'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:667
+olcAttributeTypes: ( MSADat4:667
   NAME 'syncWithSID'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1306
+olcAttributeTypes: ( MSADat4:1306
   NAME 'dNSProperty'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40' )
 #
-olcAttributeTpes: ( MSADat4:710
+olcAttributeTypes: ( MSADat4:710
   NAME 'superScopes'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.44' )
 #
-olcAttributeTpes: ( MSADat4:1347
+olcAttributeTypes: ( MSADat4:1347
   NAME 'sPNMappings'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:272
+olcAttributeTypes: ( MSADat4:272
   NAME 'printNotify'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:282
+olcAttributeTypes: ( MSADat4:282
   NAME 'printMemory'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:154
+olcAttributeTypes: ( MSADat4:154
   NAME 'serverState'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:942
+olcAttributeTypes: ( MSADat4:942
   NAME 'mSMQVersion'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:373
+olcAttributeTypes: ( MSADat4:373
   NAME 'rIDUsedPool'
   SYNTAX 'MSADlargeInteger'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1355
+olcAttributeTypes: ( MSADat4:1355
   NAME 'queryFilter'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:300
+olcAttributeTypes: ( MSADat4:300
   NAME 'printerName'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:97
+olcAttributeTypes: ( MSADat4:97
   NAME 'preferredOU'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:649
+olcAttributeTypes: ( MSADat4:649
   NAME 'primaryInternationalISDNNumber'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:333
+olcAttributeTypes: ( MSADat4:333
   NAME 'oMTIndxGuid'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:1337
+olcAttributeTypes: ( MSADat4:1337
   NAME 'mSMQUserSid'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:487
+olcAttributeTypes: ( MSADat4:487
   NAME 'fRSRootPath'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:918
+olcAttributeTypes: ( MSADat4:918
   NAME 'mSMQJournal'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.7'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:499
+olcAttributeTypes: ( MSADat4:499
   NAME 'contextMenu'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:764
+olcAttributeTypes: ( MSADat4:764
   NAME 'aCSPriority'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:937
+olcAttributeTypes: ( MSADat4:937
   NAME 'mSMQSignKey'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:359
+olcAttributeTypes: ( MSADat4:359
   NAME 'netbootGUID'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:925
+olcAttributeTypes: ( MSADat4:925
   NAME 'mSMQOwnerID'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat2:24
+olcAttributeTypes: ( MSADat2:24
   NAME 'mustContain'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.38' )
 #
-olcAttributeTpes: ( MSADat4:379
+olcAttributeTypes: ( MSADat4:379
   NAME 'dnsAllowXFR'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.7'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1379
+olcAttributeTypes: ( MSADat4:1379
   NAME 'mS-SQL-Vines'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:948
+olcAttributeTypes: ( MSADat4:948
   NAME 'mSMQDigests'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40' )
 #
-olcAttributeTpes: ( MSADat4:662
+olcAttributeTypes: ( MSADat4:662
   NAME 'lockoutTime'
   SYNTAX 'MSADlargeInteger'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:53
+olcAttributeTypes: ( MSADat4:53
   NAME 'lastSetTime'
   SYNTAX 'MSADlargeInteger'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:25
+olcAttributeTypes: ( MSADat4:25
   NAME 'countryCode'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1377
+olcAttributeTypes: ( MSADat4:1377
   NAME 'mS-SQL-TCPIP'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:934
+olcAttributeTypes: ( MSADat4:934
   NAME 'mSMQForeign'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.7'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:571
+olcAttributeTypes: ( MSADat4:571
   NAME 'meetingType'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:714
+olcAttributeTypes: ( MSADat4:714
   NAME 'dhcpOptions'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40' )
 #
-olcAttributeTpes: ( MSADat4:704
+olcAttributeTypes: ( MSADat4:704
   NAME 'dhcpServers'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.44' )
 #
-olcAttributeTpes: ( MSADat4:283
+olcAttributeTypes: ( MSADat4:283
   NAME 'assetNumber'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat2:350
+olcAttributeTypes: ( MSADat2:350
   NAME 'addressType'
   SYNTAX 'MSADtelex'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:940
+olcAttributeTypes: ( MSADat4:940
   NAME 'mSMQCSPName'
   SYNTAX 'MSADtelex'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:671
+olcAttributeTypes: ( MSADat4:671
   NAME 'msiFileList'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:619
+olcAttributeTypes: ( MSADat4:619
   NAME 'dNSHostName'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:705
+olcAttributeTypes: ( MSADat4:705
   NAME 'dhcpSubnets'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.44' )
 #
-olcAttributeTpes: ( MSADat4:1328
+olcAttributeTypes: ( MSADat4:1328
   NAME 'pKIKeyUsage'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat2:30
+olcAttributeTypes: ( MSADat2:30
   NAME 'attributeID'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.38'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:506
+olcAttributeTypes: ( MSADat4:506
   NAME 'objectCount'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:503
+olcAttributeTypes: ( MSADat4:503
   NAME 'timeRefresh'
   SYNTAX 'MSADlargeInteger'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:139
+olcAttributeTypes: ( MSADat4:139
   NAME 'profilePath'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:818
+olcAttributeTypes: ( MSADat4:818
   NAME 'productCode'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:647
+olcAttributeTypes: ( MSADat4:647
   NAME 'otherMobile'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:12
+olcAttributeTypes: ( MSADat4:12
   NAME 'badPwdCount'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1368
+olcAttributeTypes: ( MSADat4:1368
   NAME 'mS-SQL-Build'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-#olcAttributeTpes: ( MSADat2:13
+#olcAttributeTypes: ( MSADat2:13
 #	NAME 'displayName'
 #	SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
 #	SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:87
+olcAttributeTypes: ( MSADat4:87
   NAME 'nETBIOSName'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1395
+olcAttributeTypes: ( MSADat4:1395
   NAME 'mS-SQL-Alias'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:75
+olcAttributeTypes: ( MSADat4:75
   NAME 'maxRenewAge'
   SYNTAX 'MSADlargeInteger'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:806
+olcAttributeTypes: ( MSADat4:806
   NAME 'treatAsLeaf'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.7'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:960
+olcAttributeTypes: ( MSADat4:960
   NAME 'mSMQNt4Stub'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27' )
 #
-olcAttributeTpes: ( MSADat4:324
+olcAttributeTypes: ( MSADat4:324
   NAME 'packageType'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:1212
+olcAttributeTypes: ( MSADat4:1212
   NAME 'isEphemeral'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.7'
   SINGLE-VALUE )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat2:36
+olcAttributeTypes: ( MSADat2:36
   NAME 'dMDLocation'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:715
+olcAttributeTypes: ( MSADat4:715
   NAME 'dhcpClasses'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40' )
 #
-olcAttributeTpes: ( MSADat4:39
+olcAttributeTypes: ( MSADat4:39
   NAME 'forceLogoff'
   SYNTAX 'MSADlargeInteger'
   SINGLE-VALUE )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat2:2
+olcAttributeTypes: ( MSADat2:2
   NAME 'whenCreated'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.24'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:566
+olcAttributeTypes: ( MSADat4:566
   NAME 'meetingName'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:786
+olcAttributeTypes: ( MSADat4:786
   NAME 'mailAddress'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:590
+olcAttributeTypes: ( MSADat4:590
   NAME 'meetingBlob'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:71
+olcAttributeTypes: ( MSADat4:71
   NAME 'machineRole'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat2:334
+olcAttributeTypes: ( MSADat2:334
   NAME 'searchFlags'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat2:3
+olcAttributeTypes: ( MSADat2:3
   NAME 'whenChanged'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.24'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:702
+olcAttributeTypes: ( MSADat4:702
   NAME 'dhcpObjName'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:897
+olcAttributeTypes: ( MSADat4:897
   NAME 'aCSMaxAggregatePeakRatePerUser'
   SYNTAX 'MSADlargeInteger'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:326
+olcAttributeTypes: ( MSADat4:326
   NAME 'packageName'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:170
+olcAttributeTypes: ( MSADat4:170
   NAME 'systemOnly'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.7'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:935
+olcAttributeTypes: ( MSADat4:935
   NAME 'mSMQOSType'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:680
+olcAttributeTypes: ( MSADat4:680
   NAME 'queryPoint'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:271
+olcAttributeTypes: ( MSADat4:271
   NAME 'printOwner'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat2:19
+olcAttributeTypes: ( MSADat2:19
   NAME 'uSNCreated'
   SYNTAX 'MSADlargeInteger'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:494
+olcAttributeTypes: ( MSADat4:494
   NAME 'siteServer'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
 #
-olcAttributeTpes: ( MSADat4:114
+olcAttributeTypes: ( MSADat4:114
   NAME 'rpcNsGroup'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:609
+olcAttributeTypes: ( MSADat4:609
   NAME 'sIDHistory'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40' )
 #
-olcAttributeTpes: ( MSADat4:882
+olcAttributeTypes: ( MSADat4:882
   NAME 'fRSVersion'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:64
+olcAttributeTypes: ( MSADat4:64
   NAME 'logonHours'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:854
+olcAttributeTypes: ( MSADat4:854
   NAME 'netbootAnswerOnlyValidClients'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.7'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:96
+olcAttributeTypes: ( MSADat4:96
   NAME 'pwdLastSet'
   SYNTAX 'MSADlargeInteger'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:243
+olcAttributeTypes: ( MSADat4:243
   NAME 'printColor'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.7'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1391
+olcAttributeTypes: ( MSADat4:1391
   NAME 'mS-SQL-Type'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:40
+olcAttributeTypes: ( MSADat4:40
   NAME 'fromServer'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:157
+olcAttributeTypes: ( MSADat4:157
   NAME 'serverRole'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:100
+olcAttributeTypes: ( MSADat4:100
   NAME 'priorValue'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:169
+olcAttributeTypes: ( MSADat4:169
   NAME 'logonCount'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:90
+olcAttributeTypes: ( MSADat4:90
   NAME 'unicodePwd'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat2:21
+olcAttributeTypes: ( MSADat2:21
   NAME 'subClassOf'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.38'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1396
+olcAttributeTypes: ( MSADat4:1396
   NAME 'mS-SQL-Size'
   SYNTAX 'MSADlargeInteger'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:101
+olcAttributeTypes: ( MSADat4:101
   NAME 'privateKey'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:512
+olcAttributeTypes: ( MSADat4:512
   NAME 'siteObject'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:62
+olcAttributeTypes: ( MSADat4:62
   NAME 'scriptPath'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:223
+olcAttributeTypes: ( MSADat4:223
   NAME 'serverName'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:953
+olcAttributeTypes: ( MSADat4:953
   NAME 'mSMQSiteID'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:340
+olcAttributeTypes: ( MSADat4:340
   NAME 'rightsGuid'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:374
+olcAttributeTypes: ( MSADat4:374
   NAME 'rIDNextRID'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:583
+olcAttributeTypes: ( MSADat4:583
   NAME 'meetingURL'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat2:400
+olcAttributeTypes: ( MSADat2:400
   NAME 'addressEntryDisplayTableMSDOS'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:76
+olcAttributeTypes: ( MSADat4:76
   NAME 'maxStorage'
   SYNTAX 'MSADlargeInteger'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat2:35
+olcAttributeTypes: ( MSADat2:35
   NAME 'rangeUpper'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat2:34
+olcAttributeTypes: ( MSADat2:34
   NAME 'rangeLower'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat2:118
+olcAttributeTypes: ( MSADat2:118
   NAME 'otherPager'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:639
+olcAttributeTypes: ( MSADat4:639
   NAME 'isMemberOfPartialAttributeSet'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.7'
   SINGLE-VALUE )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:1224
+olcAttributeTypes: ( MSADat4:1224
   NAME 'parentGUID'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat2:141
+olcAttributeTypes: ( MSADat2:141
   NAME 'department'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat2:25
+olcAttributeTypes: ( MSADat2:25
   NAME 'mayContain'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.38' )
 #
-olcAttributeTpes: ( MSADat4:150
+olcAttributeTypes: ( MSADat4:150
   NAME 'adminCount'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:51
+olcAttributeTypes: ( MSADat4:51
   NAME 'lastLogoff'
   SYNTAX 'MSADlargeInteger'
   SINGLE-VALUE )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:1409
+olcAttributeTypes: ( MSADat4:1409
   NAME 'masteredBy'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
 #
-olcAttributeTpes: ( MSADat4:35
+olcAttributeTypes: ( MSADat4:35
   NAME 'employeeID'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:719
+olcAttributeTypes: ( MSADat4:719
   NAME 'dhcpMaxKey'
   SYNTAX 'MSADlargeInteger'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:229
+olcAttributeTypes: ( MSADat4:229
   NAME 'driverName'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1363
+olcAttributeTypes: ( MSADat4:1363
   NAME 'mS-SQL-Name'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:322
+olcAttributeTypes: ( MSADat4:322
   NAME 'categoryId'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:889
+olcAttributeTypes: ( MSADat4:889
   NAME 'additionalTrustedServiceNames'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:1354
+olcAttributeTypes: ( MSADat4:1354
   NAME 'scopeFlags'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:672
+olcAttributeTypes: ( MSADat4:672
   NAME 'categories'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:855
+olcAttributeTypes: ( MSADat4:855
   NAME 'netbootNewMachineNamingPolicy'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:19
+olcAttributeTypes: ( MSADat4:19
   NAME 'cOMClassID'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat2:120
+olcAttributeTypes: ( MSADat2:120
   NAME 'uSNChanged'
   SYNTAX 'MSADlargeInteger'
   SINGLE-VALUE )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:2
+olcAttributeTypes: ( MSADat4:2
   NAME 'objectGUID'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:707
+olcAttributeTypes: ( MSADat4:707
   NAME 'dhcpRanges'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.44' )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:1358
+olcAttributeTypes: ( MSADat4:1358
   NAME 'schemaInfo'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40' )
 #
-olcAttributeTpes: ( MSADat4:646
+olcAttributeTypes: ( MSADat4:646
   NAME 'otherFacsimileTelephoneNumber'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:520
+olcAttributeTypes: ( MSADat4:520
   NAME 'machinePasswordChangeInterval'
   SYNTAX 'MSADlargeInteger'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:674
+olcAttributeTypes: ( MSADat4:674
   NAME 'rootTrust'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
 #
-olcAttributeTpes: ( MSADat4:136
+olcAttributeTypes: ( MSADat4:136
   NAME 'trustType'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:750
+olcAttributeTypes: ( MSADat4:750
   NAME 'groupType'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:896
+olcAttributeTypes: ( MSADat4:896
   NAME 'uSNSource'
   SYNTAX 'MSADlargeInteger'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:919
+olcAttributeTypes: ( MSADat4:919
   NAME 'mSMQQuota'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:927
+olcAttributeTypes: ( MSADat4:927
   NAME 'mSMQSites'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40' )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:910
+olcAttributeTypes: ( MSADat4:910
   NAME 'fromEntry'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.7' )
 #
-olcAttributeTpes: ( MSADat4:1376
+olcAttributeTypes: ( MSADat4:1376
   NAME 'mS-SQL-SPX'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:892
+olcAttributeTypes: ( MSADat4:892
   NAME 'gPOptions'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:814
+olcAttributeTypes: ( MSADat4:814
   NAME 'msiScript'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:285
+olcAttributeTypes: ( MSADat4:285
   NAME 'printRate'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:683
+olcAttributeTypes: ( MSADat4:683
   NAME 'cRLPartitionedRevocationList'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:652
+olcAttributeTypes: ( MSADat4:652
   NAME 'assistant'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:490
+olcAttributeTypes: ( MSADat4:490
   NAME 'fRSDSPoll'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:663
+olcAttributeTypes: ( MSADat4:663
   NAME 'partialAttributeDeletionList'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:52
+olcAttributeTypes: ( MSADat4:52
   NAME 'lastLogon'
   SYNTAX 'MSADlargeInteger'
   SINGLE-VALUE )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat2:22
+olcAttributeTypes: ( MSADat2:22
   NAME 'governsID'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.38'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:341
+olcAttributeTypes: ( MSADat4:341
   NAME 'appliesTo'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:268
+olcAttributeTypes: ( MSADat4:268
   NAME 'eFSPolicy'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40' )
 #
-olcAttributeTpes: ( MSADat4:155
+olcAttributeTypes: ( MSADat4:155
   NAME 'uASCompat'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:538
+olcAttributeTypes: ( MSADat4:538
   NAME 'prefixMap'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:661
+olcAttributeTypes: ( MSADat4:661
   NAME 'isDefunct'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.7'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:708
+olcAttributeTypes: ( MSADat4:708
   NAME 'dhcpSites'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.44' )
 #
-olcAttributeTpes: ( MSADat4:888
+olcAttributeTypes: ( MSADat4:888
   NAME 'iPSECNegotiationPolicyAction'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:382
+olcAttributeTypes: ( MSADat4:382
   NAME 'dnsRecord'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40' )
 #
-olcAttributeTpes: ( MSADat4:21
+olcAttributeTypes: ( MSADat4:21
   NAME 'cOMProgID'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:45
+olcAttributeTypes: ( MSADat4:45
   NAME 'homeDrive'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:580
+olcAttributeTypes: ( MSADat4:580
   NAME 'meetingIP'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1321
+olcAttributeTypes: ( MSADat4:1321
   NAME 'aCSNonReservedMinPolicedSize'
   SYNTAX 'MSADlargeInteger'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:717
+olcAttributeTypes: ( MSADat4:717
   NAME 'dhcpState'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.44' )
 #
-olcAttributeTpes: ( MSADat4:922
+olcAttributeTypes: ( MSADat4:922
   NAME 'mSMQLabel'
   SYNTAX 'MSADtelex'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:74
+olcAttributeTypes: ( MSADat4:74
   NAME 'maxPwdAge'
   SYNTAX 'MSADlargeInteger'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:78
+olcAttributeTypes: ( MSADat4:78
   NAME 'minPwdAge'
   SYNTAX 'MSADlargeInteger'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:689
+olcAttributeTypes: ( MSADat4:689
   NAME 'cRLObject'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:146
+olcAttributeTypes: ( MSADat4:146
   NAME 'objectSid'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:565
+olcAttributeTypes: ( MSADat4:565
   NAME 'meetingID'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:620
+olcAttributeTypes: ( MSADat4:620
   NAME 'ipsecName'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat2:48
+olcAttributeTypes: ( MSADat2:48
   NAME 'isDeleted'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.7'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:760
+olcAttributeTypes: ( MSADat4:760
   NAME 'aCSAggregateTokenRatePerUser'
   SYNTAX 'MSADlargeInteger'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:623
+olcAttributeTypes: ( MSADat4:623
   NAME 'ipsecData'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:668
+olcAttributeTypes: ( MSADat4:668
   NAME 'domainCAs'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
 #
-olcAttributeTpes: ( MSADat4:687
+olcAttributeTypes: ( MSADat4:687
   NAME 'cAConnect'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:238
+olcAttributeTypes: ( MSADat4:238
   NAME 'printMaxResolutionSupported'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:700
+olcAttributeTypes: ( MSADat4:700
   NAME 'dhcpFlags'
   SYNTAX 'MSADlargeInteger'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat2:402
+olcAttributeTypes: ( MSADat2:402
   NAME 'helpData16'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:653
+olcAttributeTypes: ( MSADat4:653
   NAME 'managedBy'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat2:9
+olcAttributeTypes: ( MSADat2:9
   NAME 'helpData32'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:944
+olcAttributeTypes: ( MSADat4:944
   NAME 'mSMQSite2'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:943
+olcAttributeTypes: ( MSADat4:943
   NAME 'mSMQSite1'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:677
+olcAttributeTypes: ( MSADat4:677
   NAME 'replTopologyStayOfExecution'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:912
+olcAttributeTypes: ( MSADat4:912
   NAME 'allowedChildClassesEffective'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.38' )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat2:231
+olcAttributeTypes: ( MSADat2:231
   NAME 'oMSyntax'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:231
+olcAttributeTypes: ( MSADat4:231
   NAME 'priority'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:48
+olcAttributeTypes: ( MSADat4:48
   NAME 'keywords'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:946
+olcAttributeTypes: ( MSADat4:946
   NAME 'mSMQCost'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:821
+olcAttributeTypes: ( MSADat4:821
   NAME 'siteList'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
 #
-olcAttributeTpes: ( MSADat4:145
+olcAttributeTypes: ( MSADat4:145
   NAME 'revision'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat2:91
+olcAttributeTypes: ( MSADat2:91
   NAME 'repsFrom'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40' )
 #
-olcAttributeTpes: ( MSADat4:645
+olcAttributeTypes: ( MSADat4:645
   NAME 'userCert'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:951
+olcAttributeTypes: ( MSADat4:951
   NAME 'mSMQQMID'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:228
+olcAttributeTypes: ( MSADat4:228
   NAME 'portName'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:859
+olcAttributeTypes: ( MSADat4:859
   NAME 'netbootLocallyInstalledOSes'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:261
+olcAttributeTypes: ( MSADat4:261
   NAME 'division'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:902
+olcAttributeTypes: ( MSADat4:902
   NAME 'aCSMaxSizeOfRSVPAccountFile'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:699
+olcAttributeTypes: ( MSADat4:699
   NAME 'dhcpType'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:301
+olcAttributeTypes: ( MSADat4:301
   NAME 'wbemPath'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:362
+olcAttributeTypes: ( MSADat4:362
   NAME 'siteGUID'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat2:26
+olcAttributeTypes: ( MSADat2:26
   NAME 'rDNAttID'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.38'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:900
+olcAttributeTypes: ( MSADat4:900
   NAME 'aCSRSVPAccountFilesLocation'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1226
+olcAttributeTypes: ( MSADat4:1226
   NAME 'mSMQDependentClientServices'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.7'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:222
+olcAttributeTypes: ( MSADat4:222
   NAME 'location'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:874
+olcAttributeTypes: ( MSADat4:874
   NAME 'fRSFlags'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:219
+olcAttributeTypes: ( MSADat4:219
   NAME 'iconPath'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:688
+olcAttributeTypes: ( MSADat4:688
   NAME 'cAWEBURL'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:716
+olcAttributeTypes: ( MSADat4:716
   NAME 'mscopeId'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.44'
   SINGLE-VALUE )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:660
+olcAttributeTypes: ( MSADat4:660
   NAME 'treeName'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:211
+olcAttributeTypes: ( MSADat4:211
   NAME 'schedule'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:557
+olcAttributeTypes: ( MSADat4:557
   NAME 'parentCA'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:249
+olcAttributeTypes: ( MSADat4:249
   NAME 'cOMCLSID'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:675
+olcAttributeTypes: ( MSADat4:675
   NAME 'catalogs'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat2:102
+olcAttributeTypes: ( MSADat2:102
   NAME 'memberOf'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
 #
-olcAttributeTpes: ( MSADat4:690
+olcAttributeTypes: ( MSADat4:690
   NAME 'cAUsages'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:706
+olcAttributeTypes: ( MSADat4:706
   NAME 'dhcpMask'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.44' )
 #
-olcAttributeTpes: ( MSADat4:511
+olcAttributeTypes: ( MSADat4:511
   NAME 'flatName'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:686
+olcAttributeTypes: ( MSADat4:686
   NAME 'domainID'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:58
+olcAttributeTypes: ( MSADat4:58
   NAME 'localeID'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27' )
 #
-olcAttributeTpes: ( MSADat4:16
+olcAttributeTypes: ( MSADat4:16
   NAME 'codePage'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:768
+olcAttributeTypes: ( MSADat4:768
   NAME 'aCSEnableRSVPMessageLogging'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.7'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:240
+olcAttributeTypes: ( MSADat4:240
   NAME 'printOrientationsSupported'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:883
+olcAttributeTypes: ( MSADat4:883
   NAME 'msRRASVendorAttributeEntry'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:1246
+olcAttributeTypes: ( MSADat4:1246
   NAME 'interSiteTopologyGenerator'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:307
+olcAttributeTypes: ( MSADat4:307
   NAME 'options'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:28
+olcAttributeTypes: ( MSADat4:28
   NAME 'dnsRoot'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:887
+olcAttributeTypes: ( MSADat4:887
   NAME 'iPSECNegotiationPolicyType'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1392
+olcAttributeTypes: ( MSADat4:1392
   NAME 'mS-SQL-InformationDirectory'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.7'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:365
+olcAttributeTypes: ( MSADat4:365
   NAME 'operatingSystemServicePack'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:88
+olcAttributeTypes: ( MSADat4:88
   NAME 'nextRid'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:865
+olcAttributeTypes: ( MSADat4:865
   NAME 'pekList'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat2:7
+olcAttributeTypes: ( MSADat2:7
   NAME 'subRefs'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
 #
-olcAttributeTpes: ( MSADat4:505
+olcAttributeTypes: ( MSADat4:505
   NAME 'oMTGuid'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:205
+olcAttributeTypes: ( MSADat4:205
   NAME 'pKTGuid'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat2:146
+olcAttributeTypes: ( MSADat2:146
   NAME 'company'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:82
+olcAttributeTypes: ( MSADat4:82
   NAME 'moniker'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40' )
 #
-olcAttributeTpes: ( MSADat4:156
+olcAttributeTypes: ( MSADat4:156
   NAME 'comment'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:721
+olcAttributeTypes: ( MSADat4:721
   NAME 'ipPhone'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1361
+olcAttributeTypes: ( MSADat4:1361
   NAME 'mS-DS-ConsistencyChildCount'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:679
+olcAttributeTypes: ( MSADat4:679
   NAME 'creator'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:137
+olcAttributeTypes: ( MSADat4:137
   NAME 'uNCName'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:55
+olcAttributeTypes: ( MSADat4:55
   NAME 'dBCSPwd'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1239
+olcAttributeTypes: ( MSADat4:1239
   NAME 'mSMQDependentClientService'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.7'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:684
+olcAttributeTypes: ( MSADat4:684
   NAME 'certificateAuthorityObject'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:621
+olcAttributeTypes: ( MSADat4:621
   NAME 'ipsecID'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:914
+olcAttributeTypes: ( MSADat4:914
   NAME 'allowedAttributesEffective'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.38' )
 #
-#olcAttributeTpes: ( MSADat2:598
+#olcAttributeTypes: ( MSADat2:598
 #	NAME 'dmdName'
 #	SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
 #	SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:759
+olcAttributeTypes: ( MSADat4:759
   NAME 'aCSMaxPeakBandwidthPerFlow'
   SYNTAX 'MSADlargeInteger'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat2:557
+olcAttributeTypes: ( MSADat2:557
   NAME 'Enabled'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.7'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat2:326
+olcAttributeTypes: ( MSADat2:326
   NAME 'perRecipDialogDisplayTable'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1248
+olcAttributeTypes: ( MSADat4:1248
   NAME 'interSiteTopologyFailover'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:895
+olcAttributeTypes: ( MSADat4:895
   NAME 'transportAddressAttribute'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.38'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:852
+olcAttributeTypes: ( MSADat4:852
   NAME 'netbootCurrentClientCount'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:372
+olcAttributeTypes: ( MSADat4:372
   NAME 'rIDPreviousAllocationPool'
   SYNTAX 'MSADlargeInteger'
   SINGLE-VALUE )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat2:83
+olcAttributeTypes: ( MSADat2:83
   NAME 'repsTo'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40' )
 #
-olcAttributeTpes: ( MSADat4:224
+olcAttributeTypes: ( MSADat4:224
   NAME 'defaultSecurityDescriptor'
   SYNTAX 'MSADsecDesc'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:519
+olcAttributeTypes: ( MSADat4:519
   NAME 'lastBackupRestorationTime'
   SYNTAX 'MSADlargeInteger'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:873
+olcAttributeTypes: ( MSADat4:873
   NAME 'fRSControlOutboundBacklog'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:255
+olcAttributeTypes: ( MSADat4:255
   NAME 'vendor'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:891
+olcAttributeTypes: ( MSADat4:891
   NAME 'gPLink'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat2:214
+olcAttributeTypes: ( MSADat2:214
   NAME 'originalDisplayTableMSDOS'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat2:50
+olcAttributeTypes: ( MSADat2:50
   NAME 'linkID'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1130
+olcAttributeTypes: ( MSADat4:1130
   NAME 'msNPSavedCallingStationID'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.26' )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat2:49
+olcAttributeTypes: ( MSADat2:49
   NAME 'mAPIID'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:510
+olcAttributeTypes: ( MSADat4:510
   NAME 'serviceBindingInformation'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat2:16
+olcAttributeTypes: ( MSADat2:16
   NAME 'nCName'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1303
+olcAttributeTypes: ( MSADat4:1303
   NAME 'tokenGroupsNoGCAcceptable'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40' )
 #
-olcAttributeTpes: ( MSADat4:1418
+olcAttributeTypes: ( MSADat4:1418
   NAME 'tokenGroupsGlobalAndUniversal'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40' )
 #
-olcAttributeTpes: ( MSADat4:1190
+olcAttributeTypes: ( MSADat4:1190
   NAME 'msRASSavedFramedIPAddress'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:766
+olcAttributeTypes: ( MSADat4:766
   NAME 'aCSAllocableRSVPBandwidth'
   SYNTAX 'MSADlargeInteger'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:61
+olcAttributeTypes: ( MSADat4:61
   NAME 'lockOutObservationWindow'
   SYNTAX 'MSADlargeInteger'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:857
+olcAttributeTypes: ( MSADat4:857
   NAME 'netbootIntelliMirrorOSes'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:1320
+olcAttributeTypes: ( MSADat4:1320
   NAME 'aCSNonReservedMaxSDUSize'
   SYNTAX 'MSADlargeInteger'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:265
+olcAttributeTypes: ( MSADat4:265
   NAME 'notes'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:673
+olcAttributeTypes: ( MSADat4:673
   NAME 'retiredReplDSASignatures'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1313
+olcAttributeTypes: ( MSADat4:1313
   NAME 'aCSMaxTokenBucketPerFlow'
   SYNTAX 'MSADlargeInteger'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat2:324
+olcAttributeTypes: ( MSADat2:324
   NAME 'addressEntryDisplayTable'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1317
+olcAttributeTypes: ( MSADat4:1317
   NAME 'aCSMinimumDelayVariation'
   SYNTAX 'MSADlargeInteger'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:872
+olcAttributeTypes: ( MSADat4:872
   NAME 'fRSControlInboundBacklog'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:38
+olcAttributeTypes: ( MSADat4:38
   NAME 'flags'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1399
+olcAttributeTypes: ( MSADat4:1399
   NAME 'mS-SQL-LastDiagnosticDate'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1348
+olcAttributeTypes: ( MSADat4:1348
   NAME 'gPCMachineExtensionNames'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1411
+olcAttributeTypes: ( MSADat4:1411
   NAME 'ms-DS-MachineAccountQuota'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat2:325
+olcAttributeTypes: ( MSADat2:325
   NAME 'perMsgDialogDisplayTable'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:57
+olcAttributeTypes: ( MSADat4:57
   NAME 'defaultLocalPolicyObject'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1189
+olcAttributeTypes: ( MSADat4:1189
   NAME 'msRASSavedCallbackNumber'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.26'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:685
+olcAttributeTypes: ( MSADat4:685
   NAME 'parentCACertificateChain'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:893
+olcAttributeTypes: ( MSADat4:893
   NAME 'gPCFunctionalityVersion'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:879
+olcAttributeTypes: ( MSADat4:879
   NAME 'fRSServiceCommandStatus'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1319
+olcAttributeTypes: ( MSADat4:1319
   NAME 'aCSNonReservedTokenSize'
   SYNTAX 'MSADlargeInteger'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:775
+olcAttributeTypes: ( MSADat4:775
   NAME 'aCSMaxSizeOfRSVPLogFile'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat2:135
+olcAttributeTypes: ( MSADat2:135
   NAME 'cost'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:81
+olcAttributeTypes: ( MSADat4:81
   NAME 'modifiedCountAtLastProm'
   SYNTAX 'MSADlargeInteger'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:773
+olcAttributeTypes: ( MSADat4:773
   NAME 'aCSRSVPLogFilesLocation'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-#olcAttributeTpes: ( MSADat2:81
+#olcAttributeTypes: ( MSADat2:81
 #	NAME 'info'
 #	SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
 #	SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:125
+olcAttributeTypes: ( MSADat4:125
   NAME 'supplementalCredentials'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40' )
 #
-olcAttributeTpes: ( MSADat4:819
+olcAttributeTypes: ( MSADat4:819
   NAME 'bridgeheadTransportList'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
 #
-olcAttributeTpes: ( MSADat4:967
+olcAttributeTypes: ( MSADat4:967
   NAME 'mSMQSignCertificatesMig'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
 ## NO-USER-MODIFICATION
-#olcAttributeTpes: ( MSADat4:1
+#olcAttributeTypes: ( MSADat4:1
 #	NAME 'name'
 #	SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
 #	SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1153
+olcAttributeTypes: ( MSADat4:1153
   NAME 'msRADIUSFramedIPAddress'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1408
+olcAttributeTypes: ( MSADat4:1408
   NAME 'mS-DS-ReplicatesNCReason'
   SYNTAX 'MSADdnWithOctetString' )
 #
-olcAttributeTpes: ( MSADat4:899
+olcAttributeTypes: ( MSADat4:899
   NAME 'aCSEnableRSVPAccounting'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.7'
   SINGLE-VALUE )
 #
-#olcAttributeTpes: ( MSADat4:881
+#olcAttributeTypes: ( MSADat4:881
 #	NAME 'fRSTimeLastConfigChange'
 #	SYNTAX '1.3.6.1.4.1.1466.115.121.1.53'
 #	SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:281
+olcAttributeTypes: ( MSADat4:281
   NAME 'printStaplingSupported'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.7'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1247
+olcAttributeTypes: ( MSADat4:1247
   NAME 'interSiteTopologyRenew'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:364
+olcAttributeTypes: ( MSADat4:364
   NAME 'operatingSystemVersion'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:91
+olcAttributeTypes: ( MSADat4:91
   NAME 'otherLoginWorkstations'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:849
+olcAttributeTypes: ( MSADat4:849
   NAME 'netbootAllowNewClients'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.7'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1372
+olcAttributeTypes: ( MSADat4:1372
   NAME 'mS-SQL-UnicodeSortOrder'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:749
+olcAttributeTypes: ( MSADat4:749
   NAME 'url'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:206
+olcAttributeTypes: ( MSADat4:206
   NAME 'pKT'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:199
+olcAttributeTypes: ( MSADat4:199
   NAME 'serviceInstanceVersion'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat2:169
+olcAttributeTypes: ( MSADat2:169
   NAME 'showInAdvancedViewOnly'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.7'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:758
+olcAttributeTypes: ( MSADat4:758
   NAME 'aCSMaxTokenRatePerFlow'
   SYNTAX 'MSADlargeInteger'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:868
+olcAttributeTypes: ( MSADat4:868
   NAME 'isCriticalSystemObject'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.7'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:576
+olcAttributeTypes: ( MSADat4:576
   NAME 'meetingMaxParticipants'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1208
+olcAttributeTypes: ( MSADat4:1208
   NAME 'aNR'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:153
+olcAttributeTypes: ( MSADat4:153
   NAME 'rid'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat2:523
+olcAttributeTypes: ( MSADat2:523
   NAME 'proxyGenerationEnabled'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.7'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:871
+olcAttributeTypes: ( MSADat4:871
   NAME 'fRSControlDataCreation'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:692
+olcAttributeTypes: ( MSADat4:692
   NAME 'previousCACertificates'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:24
+olcAttributeTypes: ( MSADat4:24
   NAME 'contentIndexingAllowed'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.7'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:633
+olcAttributeTypes: ( MSADat4:633
   NAME 'policyReplicationFlags'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:870
+olcAttributeTypes: ( MSADat4:870
   NAME 'frsComputerReferenceBL'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
 #
-olcAttributeTpes: ( MSADat4:1318
+olcAttributeTypes: ( MSADat4:1318
   NAME 'aCSNonReservedPeakRate'
   SYNTAX 'MSADlargeInteger'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:901
+olcAttributeTypes: ( MSADat4:901
   NAME 'aCSMaxNoOfAccountFiles'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:514
+olcAttributeTypes: ( MSADat4:514
   NAME 'physicalLocationObject'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:928
+olcAttributeTypes: ( MSADat4:928
   NAME 'mSMQOutRoutingServers'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:820
+olcAttributeTypes: ( MSADat4:820
   NAME 'bridgeheadServerListBL'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
 #
-olcAttributeTpes: ( MSADat4:1145
+olcAttributeTypes: ( MSADat4:1145
   NAME 'msRADIUSCallbackNumber'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.26'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:361
+olcAttributeTypes: ( MSADat4:361
   NAME 'netbootMachineFilePath'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:963
+olcAttributeTypes: ( MSADat4:963
   NAME 'mSMQQueueJournalQuota'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:853
+olcAttributeTypes: ( MSADat4:853
   NAME 'netbootAnswerRequests'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.7'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:415
+olcAttributeTypes: ( MSADat4:415
   NAME 'operatingSystemHotfix'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:149
+olcAttributeTypes: ( MSADat4:149
   NAME 'attributeSecurityGUID'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:711
+olcAttributeTypes: ( MSADat4:711
   NAME 'superScopeDescription'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:1359
+olcAttributeTypes: ( MSADat4:1359
   NAME 'otherWellKnownObjects'
   SYNTAX 'MSADdnWithOctetString' )
 #
-olcAttributeTpes: ( MSADat4:780
+olcAttributeTypes: ( MSADat4:780
   NAME 'aCSNonReservedTxLimit'
   SYNTAX 'MSADlargeInteger'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:11
+olcAttributeTypes: ( MSADat4:11
   NAME 'authenticationOptions'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:867
+olcAttributeTypes: ( MSADat4:867
   NAME 'altSecurityIdentities'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:1349
+olcAttributeTypes: ( MSADat4:1349
   NAME 'gPCUserExtensionNames'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:358
+olcAttributeTypes: ( MSADat4:358
   NAME 'netbootInitialization'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1364
+olcAttributeTypes: ( MSADat4:1364
   NAME 'mS-SQL-RegisteredOwner'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:761
+olcAttributeTypes: ( MSADat4:761
   NAME 'aCSMaxDurationPerFlow'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1330
+olcAttributeTypes: ( MSADat4:1330
   NAME 'pKICriticalExtensions'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:748
+olcAttributeTypes: ( MSADat4:748
   NAME 'attributeDisplayNames'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:1404
+olcAttributeTypes: ( MSADat4:1404
   NAME 'mS-SQL-AllowImmediateUpdatingSubscription'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.7'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1191
+olcAttributeTypes: ( MSADat4:1191
   NAME 'msRASSavedFramedRoute'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.26' )
 #
-olcAttributeTpes: ( MSADat4:752
+olcAttributeTypes: ( MSADat4:752
   NAME 'userSharedFolderOther'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-#olcAttributeTpes: ( MSADat2:131
+#olcAttributeTypes: ( MSADat2:131
 #	NAME 'co'
 #	SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
 #	SINGLE-VALUE )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:909
+olcAttributeTypes: ( MSADat4:909
   NAME 'extendedAttributeInfo'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:1241
+olcAttributeTypes: ( MSADat4:1241
   NAME 'netbootMirrorDataFile'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:1315
+olcAttributeTypes: ( MSADat4:1315
   NAME 'aCSMinimumPolicedSize'
   SYNTAX 'MSADlargeInteger'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1353
+olcAttributeTypes: ( MSADat4:1353
   NAME 'localizationDisplayId'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:582
+olcAttributeTypes: ( MSADat4:582
   NAME 'meetingAdvertiseScope'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1343
+olcAttributeTypes: ( MSADat4:1343
   NAME 'dSUIAdminNotification'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:1381
+olcAttributeTypes: ( MSADat4:1381
   NAME 'mS-SQL-LastUpdatedDate'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:1357
+olcAttributeTypes: ( MSADat4:1357
   NAME 'dSCorePropagationData'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.24' )
 #
-olcAttributeTpes: ( MSADat4:320
+olcAttributeTypes: ( MSADat4:320
   NAME 'implementedCategories'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40' )
 #
-olcAttributeTpes: ( MSADat4:783
+olcAttributeTypes: ( MSADat4:783
   NAME 'defaultObjectCategory'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:422
+olcAttributeTypes: ( MSADat4:422
   NAME 'domainPolicyReference'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:929
+olcAttributeTypes: ( MSADat4:929
   NAME 'mSMQInRoutingServers'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
 #
-olcAttributeTpes: ( MSADat4:1311
+olcAttributeTypes: ( MSADat4:1311
   NAME 'printDuplexSupported'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.7'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:693
+olcAttributeTypes: ( MSADat4:693
   NAME 'pendingCACertificates'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat2:281
+olcAttributeTypes: ( MSADat2:281
   NAME 'nTSecurityDescriptor'
   SYNTAX 'MSADsecDesc'
   SINGLE-VALUE )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:198
+olcAttributeTypes: ( MSADat4:198
   NAME 'systemAuxiliaryClass'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.38' )
 #
-olcAttributeTpes: ( MSADat4:898
+olcAttributeTypes: ( MSADat4:898
   NAME 'aCSNonReservedTxSize'
   SYNTAX 'MSADlargeInteger'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1382
+olcAttributeTypes: ( MSADat4:1382
   NAME 'mS-SQL-InformationURL'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:3
+olcAttributeTypes: ( MSADat4:3
   NAME 'replPropertyMetaData'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1384
+olcAttributeTypes: ( MSADat4:1384
   NAME 'mS-SQL-PublicationURL'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:275
+olcAttributeTypes: ( MSADat4:275
   NAME 'printKeepPrintedJobs'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.7'
   SINGLE-VALUE )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat2:267
+olcAttributeTypes: ( MSADat2:267
   NAME 'uSNDSALastObjRemoved'
   SYNTAX 'MSADlargeInteger'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:381
+olcAttributeTypes: ( MSADat4:381
   NAME 'dnsNotifySecondaries'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27' )
 #
-olcAttributeTpes: ( MSADat4:1360
+olcAttributeTypes: ( MSADat4:1360
   NAME 'mS-DS-ConsistencyGuid'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:869
+olcAttributeTypes: ( MSADat4:869
   NAME 'frsComputerReference'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1369
+olcAttributeTypes: ( MSADat4:1369
   NAME 'mS-SQL-ServiceAccount'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1124
+olcAttributeTypes: ( MSADat4:1124
   NAME 'msNPCallingStationID'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.26' )
 #
-olcAttributeTpes: ( MSADat4:947
+olcAttributeTypes: ( MSADat4:947
   NAME 'mSMQSignCertificates'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:624
+olcAttributeTypes: ( MSADat4:624
   NAME 'ipsecOwnersReference'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
 #
-olcAttributeTpes: ( MSADat4:14
+olcAttributeTypes: ( MSADat4:14
   NAME 'builtinModifiedCount'
   SYNTAX 'MSADlargeInteger'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:634
+olcAttributeTypes: ( MSADat4:634
   NAME 'privilegeDisplayName'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:380
+olcAttributeTypes: ( MSADat4:380
   NAME 'dnsSecureSecondaries'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27' )
 #
-olcAttributeTpes: ( MSADat4:817
+olcAttributeTypes: ( MSADat4:817
   NAME 'localizedDescription'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:195
+olcAttributeTypes: ( MSADat4:195
   NAME 'systemPossSuperiors'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.38' )
 #
-olcAttributeTpes: ( MSADat2:353
+olcAttributeTypes: ( MSADat2:353
   NAME 'displayNamePrintable'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.44'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:771
+olcAttributeTypes: ( MSADat4:771
   NAME 'servicePrincipalName'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:866
+olcAttributeTypes: ( MSADat4:866
   NAME 'pekKeyChangeInterval'
   SYNTAX 'MSADlargeInteger'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat2:445
+olcAttributeTypes: ( MSADat2:445
   NAME 'originalDisplayTable'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1398
+olcAttributeTypes: ( MSADat4:1398
   NAME 'mS-SQL-LastBackupDate'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:517
+olcAttributeTypes: ( MSADat4:517
   NAME 'ipsecPolicyReference'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:823
+olcAttributeTypes: ( MSADat4:823
   NAME 'certificateTemplates'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat2:15
+olcAttributeTypes: ( MSADat2:15
   NAME 'hasPartialReplicaNCs'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
 #
-olcAttributeTpes: ( MSADat4:457
+olcAttributeTypes: ( MSADat4:457
   NAME 'localPolicyReference'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12'
   SINGLE-VALUE )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat2:380
+olcAttributeTypes: ( MSADat2:380
   NAME 'extendedCharsAllowed'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.7'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:629
+olcAttributeTypes: ( MSADat4:629
   NAME 'ipsecFilterReference'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
 #
-olcAttributeTpes: ( MSADat4:626
+olcAttributeTypes: ( MSADat4:626
   NAME 'ipsecISAKMPReference'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12'
   SINGLE-VALUE )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:876
+olcAttributeTypes: ( MSADat4:876
   NAME 'fRSMemberReferenceBL'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
 #
-olcAttributeTpes: ( MSADat4:314
+olcAttributeTypes: ( MSADat4:314
   NAME 'rpcNsTransferSyntax'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1227
+olcAttributeTypes: ( MSADat4:1227
   NAME 'mSMQRoutingServices'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.7'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1375
+olcAttributeTypes: ( MSADat4:1375
   NAME 'mS-SQL-MultiProtocol'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:825
+olcAttributeTypes: ( MSADat4:825
   NAME 'enrollmentProviders'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:287
+olcAttributeTypes: ( MSADat4:287
   NAME 'printNetworkAddress'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1171
+olcAttributeTypes: ( MSADat4:1171
   NAME 'msRADIUSServiceType'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:631
+olcAttributeTypes: ( MSADat4:631
   NAME 'printPagesPerMinute'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:299
+olcAttributeTypes: ( MSADat4:299
   NAME 'printMediaSupported'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
 #
-olcAttributeTpes: ( MSADat4:824
+olcAttributeTypes: ( MSADat4:824
   NAME 'signatureAlgorithms'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:877
+olcAttributeTypes: ( MSADat4:877
   NAME 'fRSPartnerAuthLevel'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:636
+olcAttributeTypes: ( MSADat4:636
   NAME 'privilegeAttributes'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.27'
   SINGLE-VALUE )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:640
+olcAttributeTypes: ( MSADat4:640
   NAME 'partialAttributeSet'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:850
+olcAttributeTypes: ( MSADat4:850
   NAME 'netbootLimitClients'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.7'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1383
+olcAttributeTypes: ( MSADat4:1383
   NAME 'mS-SQL-ConnectionURL'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1406
+olcAttributeTypes: ( MSADat4:1406
   NAME 'mS-SQL-AllowSnapshotFilesFTPDownloading'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.7'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1331
+olcAttributeTypes: ( MSADat4:1331
   NAME 'pKIExpirationPeriod'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
   SINGLE-VALUE )
 #
 # NO-USER-MODIFICATION
-olcAttributeTpes: ( MSADat4:531
+olcAttributeTypes: ( MSADat4:531
   NAME 'nonSecurityMemberBL'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
 #
-olcAttributeTpes: ( MSADat4:540
+olcAttributeTypes: ( MSADat4:540
   NAME 'initialAuthOutgoing'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
   SINGLE-VALUE )
 #
-olcAttributeTpes: ( MSADat4:1158
+olcAttributeTypes: ( MSADat4:1158
   NAME 'msRADIUSFramedRoute'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.26' )
 #
-olcAttributeTpes: ( MSADat4:200
+olcAttributeTypes: ( MSADat4:200
   NAME 'controlAccessRights'
   SYNTAX '1.3.6.1.4.1.1466.115.121.1.40' )
 #
