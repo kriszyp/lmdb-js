@@ -4,6 +4,7 @@ OpenLDAP 2.4.48 Engineering
 	Fixed liblber leaks (ITS#8727)
 	Fixed libldap_r handling of deprecated OpenSSL function (ITS#8353)
 	Fixed slapd with idletime of less than four seconds (ITS#8952)
+	Fixed slapd-mdb index cleanup with cn=config (ITS#8472)
 	Fixed slapo-memberof conversion from slapd.conf to cn=config (ITS#8663)
 	Build Environment
 		Fixed slapd to only link to BDB libraries with static build (ITS#8948)
