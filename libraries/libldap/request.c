@@ -184,7 +184,8 @@ ldap_int_flush_request(
 
 	LDAP_ASSERT_MUTEX_OWNER( &ld->ld_conn_mutex );
 	if ( ber_flush2( lc->lconn_sb, lr->lr_ber, LBER_FLUSH_FREE_NEVER ) != 0 ) {
-		if ( sock_errno() == EAGAIN ) {
+		if (( sock_errno() == EAGAIN ) || ( sock_errno() == ENOTCONN )) {
+			/* ENOTCONN is returned in Solaris 10 */
 			/* need to continue write later */
 			lr->lr_status = LDAP_REQST_WRITING;
 			ldap_mark_select_write( ld, lc->lconn_sb );
