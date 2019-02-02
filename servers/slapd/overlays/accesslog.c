@@ -1526,7 +1526,8 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 
 	e = accesslog_entry( op, rs, li, logop, &op2 );
 
-	attr_merge_one( e, ad_reqDN, &op->o_req_dn, &op->o_req_ndn );
+	if ( !BER_BVISEMPTY( &op->o_req_ndn ))
+		attr_merge_one( e, ad_reqDN, &op->o_req_dn, &op->o_req_ndn );
 
 	if ( rs->sr_text ) {
 		ber_str2bv( rs->sr_text, 0, 0, &bv );
