@@ -42,11 +42,11 @@ mdb_monitor_idx_entry_add(
 static AttributeDescription	*ad_olmDbNotIndexed;
 #endif /* MDB_MONITOR_IDX */
 
-static AttributeDescription *ad_olmDbPagesMax,
-	*ad_olmDbPagesUsed, *ad_olmDbPagesFree;
+static AttributeDescription *ad_olmMDBPagesMax,
+	*ad_olmMDBPagesUsed, *ad_olmMDBPagesFree;
 
-static AttributeDescription *ad_olmDbReadersMax,
-	*ad_olmDbReadersUsed;
+static AttributeDescription *ad_olmMDBReadersMax,
+	*ad_olmMDBReadersUsed;
 /*
  * NOTE: there's some confusion in monitor OID arc;
  * by now, let's consider:
@@ -93,45 +93,45 @@ static struct {
 		&ad_olmDbNotIndexed },
 #endif /* MDB_MONITOR_IDX */
 
-	{ "( olmDatabaseAttributes:3 "
-		"NAME ( 'olmDbPagesMax' ) "
+	{ "( olmMDBAttributes:1 "
+		"NAME ( 'olmMDBPagesMax' ) "
 		"DESC 'Maximum number of pages' "
 		"SUP monitorCounter "
 		"NO-USER-MODIFICATION "
 		"USAGE dSAOperation )",
-		&ad_olmDbPagesMax },
+		&ad_olmMDBPagesMax },
 
-	{ "( olmDatabaseAttributes:4 "
-		"NAME ( 'olmDbPagesUsed' ) "
+	{ "( olmMDBAttributes:2 "
+		"NAME ( 'olmMDBPagesUsed' ) "
 		"DESC 'Number of pages in use' "
 		"SUP monitorCounter "
 		"NO-USER-MODIFICATION "
 		"USAGE dSAOperation )",
-		&ad_olmDbPagesUsed },
+		&ad_olmMDBPagesUsed },
 
-	{ "( olmDatabaseAttributes:5 "
-		"NAME ( 'olmDbPagesFree' ) "
+	{ "( olmMDBAttributes:3 "
+		"NAME ( 'olmMDBPagesFree' ) "
 		"DESC 'Number of free pages' "
 		"SUP monitorCounter "
 		"NO-USER-MODIFICATION "
 		"USAGE dSAOperation )",
-		&ad_olmDbPagesFree },
+		&ad_olmMDBPagesFree },
 
-	{ "( olmDatabaseAttributes:6 "
-		"NAME ( 'olmDbReadersMax' ) "
+	{ "( olmMDBAttributes:4 "
+		"NAME ( 'olmMDBReadersMax' ) "
 		"DESC 'Maximum number of readers' "
 		"SUP monitorCounter "
 		"NO-USER-MODIFICATION "
 		"USAGE dSAOperation )",
-		&ad_olmDbReadersMax },
+		&ad_olmMDBReadersMax },
 
-	{ "( olmDatabaseAttributes:7 "
-		"NAME ( 'olmDbReadersUsed' ) "
+	{ "( olmMDBAttributes:5 "
+		"NAME ( 'olmMDBReadersUsed' ) "
 		"DESC 'Number of readers in use' "
 		"SUP monitorCounter "
 		"NO-USER-MODIFICATION "
 		"USAGE dSAOperation )",
-		&ad_olmDbReadersUsed },
+		&ad_olmMDBReadersUsed },
 	{ NULL }
 };
 
@@ -149,8 +149,8 @@ static struct {
 #ifdef MDB_MONITOR_IDX
 			"$ olmDbNotIndexed "
 #endif /* MDB_MONITOR_IDX */
-			"$ olmDbPagesMax $ olmDbPagesUsed $ olmDbPagesFree "
-			"$ olmDbReadersMax $ olmDbReadersUsed "
+			"$ olmMDBPagesMax $ olmMDBPagesUsed $ olmMDBPagesFree "
+			"$ olmMDBReadersMax $ olmMDBReadersUsed "
 			") )",
 		&oc_olmMDBDatabase },
 
@@ -181,25 +181,25 @@ mdb_monitor_update(
 	mdb_env_stat( mdb->mi_dbenv, &mst );
 	mdb_env_info( mdb->mi_dbenv, &mei );
 
-	a = attr_find( e->e_attrs, ad_olmDbPagesMax );
+	a = attr_find( e->e_attrs, ad_olmMDBPagesMax );
 	assert( a != NULL );
 	bv.bv_val = buf;
 	bv.bv_len = snprintf( buf, sizeof( buf ), "%lu", mei.me_mapsize / mst.ms_psize );
 	ber_bvreplace( &a->a_vals[ 0 ], &bv );
 
-	a = attr_find( e->e_attrs, ad_olmDbPagesUsed );
+	a = attr_find( e->e_attrs, ad_olmMDBPagesUsed );
 	assert( a != NULL );
 	bv.bv_val = buf;
 	bv.bv_len = snprintf( buf, sizeof( buf ), "%lu", mei.me_last_pgno+1 );
 	ber_bvreplace( &a->a_vals[ 0 ], &bv );
 
-	a = attr_find( e->e_attrs, ad_olmDbReadersMax );
+	a = attr_find( e->e_attrs, ad_olmMDBReadersMax );
 	assert( a != NULL );
 	bv.bv_val = buf;
 	bv.bv_len = snprintf( buf, sizeof( buf ), "%lu", mei.me_maxreaders );
 	ber_bvreplace( &a->a_vals[ 0 ], &bv );
 
-	a = attr_find( e->e_attrs, ad_olmDbReadersUsed );
+	a = attr_find( e->e_attrs, ad_olmMDBReadersUsed );
 	assert( a != NULL );
 	bv.bv_val = buf;
 	bv.bv_len = snprintf( buf, sizeof( buf ), "%lu", mei.me_numreaders );
@@ -219,8 +219,9 @@ mdb_monitor_update(
 			}
 			mdb_cursor_close( cursor );
 		}
+		mdb_txn_abort( txn );
 
-		a = attr_find( e->e_attrs, ad_olmDbPagesFree );
+		a = attr_find( e->e_attrs, ad_olmMDBPagesFree );
 		assert( a != NULL );
 		bv.bv_val = buf;
 		bv.bv_len = snprintf( buf, sizeof( buf ), "%lu", pages );
@@ -430,23 +431,23 @@ mdb_monitor_db_open( BackendDB *be )
 	{
 		struct berval bv = BER_BVC( "0" );
 
-		next->a_desc = ad_olmDbPagesMax;
+		next->a_desc = ad_olmMDBPagesMax;
 		attr_valadd( next, &bv, NULL, 1 );
 		next = next->a_next;
 
-		next->a_desc = ad_olmDbPagesUsed;
+		next->a_desc = ad_olmMDBPagesUsed;
 		attr_valadd( next, &bv, NULL, 1 );
 		next = next->a_next;
 
-		next->a_desc = ad_olmDbPagesFree;
+		next->a_desc = ad_olmMDBPagesFree;
 		attr_valadd( next, &bv, NULL, 1 );
 		next = next->a_next;
 
-		next->a_desc = ad_olmDbReadersMax;
+		next->a_desc = ad_olmMDBReadersMax;
 		attr_valadd( next, &bv, NULL, 1 );
 		next = next->a_next;
 
-		next->a_desc = ad_olmDbReadersUsed;
+		next->a_desc = ad_olmMDBReadersUsed;
 		attr_valadd( next, &bv, NULL, 1 );
 		next = next->a_next;
 	}
