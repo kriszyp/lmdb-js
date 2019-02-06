@@ -1210,4 +1210,40 @@ describe('Node.js LMDB Bindings', function() {
       });
     });
   });
+  describe('Sync', function() {
+    var env;
+    var dbi;
+    before(function() {
+      env = new lmdb.Env();
+      env.open({
+        path: testDirPath,
+        maxDbs: 12,
+        mapSize: MAX_DB_SIZE
+      });
+      dbi = env.openDbi({
+        name: 'testsync',
+        create: true,
+        keyIsBuffer: true
+      });
+    });
+    after(function() {
+      dbi.close();
+      env.close();
+    });
+    it('should not block promise callbacks', function(done) {
+      var timeoutResult
+      new Promise(resolve => {
+        env.sync(() => {
+          resolve();
+        })
+      }).then(() => {
+        // this should execute immediately after it is synced, before the timeout, so timeoutResult should be undefined
+        done(timeoutResult)
+      });
+      setTimeout(() => {
+        timeoutResult = 'Timeout occurred'
+      }, 100);
+    });
+  });
+
 });

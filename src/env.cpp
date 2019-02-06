@@ -30,14 +30,6 @@ Nan::Persistent<Function> EnvWrap::txnCtor;
 
 Nan::Persistent<Function> EnvWrap::dbiCtor;
 
-typedef struct EnvSyncData {
-    uv_work_t request;
-    Nan::Callback *callback;
-    EnvWrap *ew;
-    MDB_env *env;
-    int rc;
-} EnvSyncData;
-
 EnvWrap::EnvWrap() {
     this->env = nullptr;
     this->currentWriteTxn = nullptr;
@@ -98,6 +90,32 @@ int applyUint32Setting(int (*f)(MDB_env *, T), MDB_env* e, Local<Object> options
     return rc;
 }
 
+class SyncWorker : public Nan::AsyncWorker {
+  public:
+    SyncWorker(MDB_env* env, Nan::Callback *callback)
+      : Nan::AsyncWorker(callback), env(env) {}
+
+    void Execute() {
+      int rc = mdb_env_sync(env, 1);
+      if (rc != 0) {
+        SetErrorMessage(mdb_strerror(rc));
+      }
+    }
+
+    void HandleOKCallback() {
+      Nan::HandleScope scope;
+      v8::Local<v8::Value> argv[] = {
+          Nan::Null()
+      };
+
+      callback->Call(1, argv, async_resource);
+    }
+
+  private:
+    MDB_env* env;
+};
+
+
 NAN_METHOD(EnvWrap::open) {
     Nan::HandleScope scope;
 
@@ -131,7 +149,7 @@ NAN_METHOD(EnvWrap::open) {
         }
     }
 
-    // Parse the maxDbs option
+    // Parse the maxReaders option
     // NOTE: mdb.c defines DEFAULT_READERS as 126
     rc = applyUint32Setting<unsigned>(&mdb_env_set_maxreaders, ew->env, options, 126, "maxReaders");
     if (rc != 0) {
@@ -307,37 +325,16 @@ NAN_METHOD(EnvWrap::sync) {
         return Nan::ThrowError("The environment is already closed.");
     }
 
-    Local<Function> callback = info[0].As<Function>();
+    Nan::Callback* callback = new Nan::Callback(
+      v8::Local<v8::Function>::Cast(info[0])
+    );
 
-    EnvSyncData *d = new EnvSyncData;
-    d->request.data = d;
-    d->ew = ew;
-    d->env = ew->env;
-    d->callback = new Nan::Callback(callback);
+    SyncWorker* worker = new SyncWorker(
+      ew->env, callback
+    );
 
-    uv_queue_work(uv_default_loop(), &(d->request), [](uv_work_t *request) -> void {
-        // Performing the sync (this will be called on a separate thread)
-        EnvSyncData *d = static_cast<EnvSyncData*>(request->data);
-        d->rc = mdb_env_sync(d->env, 1);
-    }, [](uv_work_t *request, int) -> void {
-        Nan::HandleScope scope;
-
-        // Executed after the sync is finished
-        EnvSyncData *d = static_cast<EnvSyncData*>(request->data);
-        const unsigned argc = 1;
-        Local<Value> argv[argc];
-
-        if (d->rc == 0) {
-            argv[0] = Nan::Null();
-        }
-        else {
-            argv[0] = Nan::Error(mdb_strerror(d->rc));
-        }
-        
-        Nan::Call(*(d->callback), argc, argv);
-        delete d->callback;
-        delete d;
-    });
+    Nan::AsyncQueueWorker(worker);
+    return;
 }
 
 void EnvWrap::setupExports(Handle<Object> exports) {
