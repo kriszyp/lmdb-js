@@ -25,8 +25,8 @@ if (cluster.isMaster) {
     create: true
   });
 
-  var workerCount = numCPUs * 2;
-  var value = new Buffer('48656c6c6f2c20776f726c6421', 'hex');
+  var workerCount = Math.min(numCPUs * 2, 20);
+  var value = Buffer.from('48656c6c6f2c20776f726c6421', 'hex');
 
   // This will start as many workers as there are CPUs available.
   var workers = [];
@@ -81,12 +81,19 @@ if (cluster.isMaster) {
   var dbi = env.openDbi({
     name: 'cluster'
   });
-  var txn = env.beginTxn({readOnly: true});
 
   process.on('message', function(msg) {
     if (msg.key) {
+      var txn = env.beginTxn({readOnly: true});
       var value = txn.getBinary(dbi, msg.key);
-      process.send(value.toString('hex'));
+      
+      if (value === null) {
+        process.send("");
+      } else {
+        process.send(value.toString('hex'));
+      }
+      
+      txn.abort();
     }
   });
 
