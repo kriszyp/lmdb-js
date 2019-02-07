@@ -426,6 +426,12 @@ and the
 .BR port
 fields.
 This option is OpenLDAP specific.
+.TP
+.B LDAP_OPT_KEEPCONN
+Instructs
+.BR ldap_result (3)
+to keep the connection open on read error or if Notice of Disconnection is received. In these cases, the connection should be closed by the caller.
+This option is OpenLDAP specific.
 .SH SASL OPTIONS
 The SASL options are OpenLDAP specific.
 .TP

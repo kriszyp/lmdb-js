@@ -138,6 +138,7 @@ LDAP_BEGIN_DECL
 #define	LDAP_OPT_CONNECT_ASYNC		0x5010	/* create connections asynchronously */
 #define	LDAP_OPT_CONNECT_CB			0x5011	/* connection callbacks */
 #define	LDAP_OPT_SESSION_REFCNT		0x5012	/* session reference count */
+#define	LDAP_OPT_KEEPCONN		0x5013	/* keep the connection on read error or NoD */
 
 /* OpenLDAP TLS options */
 #define LDAP_OPT_X_TLS				0x6000

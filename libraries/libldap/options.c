@@ -379,6 +379,11 @@ ldap_get_option(
 		rc = LDAP_OPT_SUCCESS;
 		break;
 
+	case LDAP_OPT_KEEPCONN:
+		* (int *) outvalue = (int) LDAP_BOOL_GET(lo, LDAP_BOOL_KEEPCONN);
+		rc = LDAP_OPT_SUCCESS;
+		break;
+
 	case LDAP_OPT_X_KEEPALIVE_IDLE:
 		* (int *) outvalue = lo->ldo_keepalive_idle;
 		rc = LDAP_OPT_SUCCESS;
@@ -494,6 +499,14 @@ ldap_set_option(
 		rc = LDAP_OPT_SUCCESS;
 		break;
 
+	case LDAP_OPT_KEEPCONN:
+		if(invalue == LDAP_OPT_OFF) {
+			LDAP_BOOL_CLR(lo, LDAP_BOOL_KEEPCONN);
+		} else {
+			LDAP_BOOL_SET(lo, LDAP_BOOL_KEEPCONN);
+		}
+		rc = LDAP_OPT_SUCCESS;
+		break;
 	/* options which can withstand invalue == NULL */
 	case LDAP_OPT_SERVER_CONTROLS: {
 			LDAPControl *const *controls =

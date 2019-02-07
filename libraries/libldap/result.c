@@ -510,7 +510,9 @@ nextresp3:
 		if ( err == EWOULDBLOCK ) return LDAP_MSG_X_KEEP_LOOKING;
 		if ( err == EAGAIN ) return LDAP_MSG_X_KEEP_LOOKING;
 		ld->ld_errno = LDAP_SERVER_DOWN;
-		--lc->lconn_refcnt;
+		if ( !LDAP_BOOL_GET( &ld->ld_options, LDAP_BOOL_KEEPCONN )) {
+			--lc->lconn_refcnt;
+		}
 		lc->lconn_status = 0;
 		return -1;
 
@@ -892,7 +894,8 @@ nextresp2:
 			 * RFC 4511 unsolicited (id == 0) responses
 			 * shouldn't necessarily end the connection
 			 */
-			if ( lc != NULL && id != 0 ) {
+			if ( lc != NULL && id != 0 &&
+			     !LDAP_BOOL_GET( &ld->ld_options, LDAP_BOOL_KEEPCONN )) {
 				--lc->lconn_refcnt;
 				lc = NULL;
 			}
@@ -959,7 +962,8 @@ nextresp2:
 			}
 
 			/* get rid of the connection... */
-			if ( lc != NULL ) {
+			if ( lc != NULL &&
+			     !LDAP_BOOL_GET( &ld->ld_options, LDAP_BOOL_KEEPCONN )) {
 				--lc->lconn_refcnt;
 			}
 
