@@ -122,7 +122,13 @@ int connections_init(void)
 	assert( connections[0].c_struct_state == SLAP_C_UNINITIALIZED );
 	assert( connections[dtblsize-1].c_struct_state == SLAP_C_UNINITIALIZED );
 
-	for (i=0; i<dtblsize; i++) connections[i].c_conn_idx = i;
+	for (i=0; i<dtblsize; i++) {
+		connections[i].c_conn_idx = i;
+		ldap_pvt_thread_mutex_init( &connections[i].c_mutex );
+		ldap_pvt_thread_mutex_init( &connections[i].c_write1_mutex );
+		ldap_pvt_thread_cond_init( &connections[i].c_write1_cv );
+	}
+
 
 	/*
 	 * per entry initialization of the Connection array initialization
@@ -350,6 +356,8 @@ Connection * connection_init(
 	assert( s >= 0 );
 	assert( s < dtblsize );
 	c = &connections[s];
+
+	ldap_pvt_thread_mutex_lock( &c->c_mutex );
 	if( c->c_struct_state == SLAP_C_UNINITIALIZED ) {
 		doinit = 1;
 	} else {
@@ -397,19 +405,12 @@ Connection * connection_init(
 
 		c->c_currentber = NULL;
 
-		/* should check status of thread calls */
-		ldap_pvt_thread_mutex_init( &c->c_mutex );
-		ldap_pvt_thread_mutex_init( &c->c_write1_mutex );
-		ldap_pvt_thread_cond_init( &c->c_write1_cv );
-
 #ifdef LDAP_SLAPI
 		if ( slapi_plugins_used ) {
 			slapi_int_create_object_extensions( SLAPI_X_EXT_CONNECTION, c );
 		}
 #endif
 	}
-
-	ldap_pvt_thread_mutex_lock( &c->c_mutex );
 
 	assert( BER_BVISNULL( &c->c_authmech ) );
 	assert( BER_BVISNULL( &c->c_dn ) );
