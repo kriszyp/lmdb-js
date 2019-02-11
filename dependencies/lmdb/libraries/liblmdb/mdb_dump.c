@@ -1,6 +1,6 @@
 /* mdb_dump.c - memory-mapped database dump tool */
 /*
- * Copyright 2011-2017 Howard Chu, Symas Corp.
+ * Copyright 2011-2018 Howard Chu, Symas Corp.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -20,7 +20,11 @@
 #include <signal.h>
 #include "lmdb.h"
 
-#define Yu	MDB_PRIy(u)
+#ifdef _WIN32
+#define Z	"I"
+#else
+#define Z	"z"
+#endif
 
 #define PRINT	1
 static int mode;
@@ -111,7 +115,7 @@ static int dumpit(MDB_txn *txn, MDB_dbi dbi, char *name)
 	if (name)
 		printf("database=%s\n", name);
 	printf("type=btree\n");
-	printf("mapsize=%"Yu"\n", info.me_mapsize);
+	printf("mapsize=%" Z "u\n", info.me_mapsize);
 	if (info.me_mapaddr)
 		printf("mapaddr=%p\n", info.me_mapaddr);
 	printf("maxreaders=%u\n", info.me_maxreaders);
