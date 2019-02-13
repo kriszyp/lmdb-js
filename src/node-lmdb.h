@@ -158,7 +158,7 @@ public:
         * maximal size of the memory map (the full environment) in bytes (default is 10485760 bytes)
     */
     static NAN_METHOD(resize);
-
+    
     /*
         Closes the database environment.
         (Wrapper for `mdb_env_close`)
@@ -455,6 +455,10 @@ public:
     static NAN_METHOD(drop);
 
     static NAN_METHOD(stat);
+
+    static NAN_METHOD(putAsync);
+
+    static NAN_METHOD(batchAsync);
 };
 
 /*
