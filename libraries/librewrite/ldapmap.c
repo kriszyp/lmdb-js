@@ -106,8 +106,8 @@ map_ldap_parse(
 
 	if ( argc < 1 ) {
 		Debug( LDAP_DEBUG_ANY,
-				"[%s:%d] ldap map needs URI\n%s",
-				fname, lineno, "" );
+				"[%s:%d] ldap map needs URI\n",
+				fname, lineno, 0 );
 		free( data );
 		return NULL;
 	}

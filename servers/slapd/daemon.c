@@ -207,7 +207,7 @@ static slap_daemon_st slap_daemon[SLAPD_MAX_DAEMON_THREADS];
         if (!events) { \
             Debug(LDAP_DEBUG_ANY, \
                 "daemon: SLAP_EVENT_INIT: ch_malloc of events failed, wanted %d bytes\n", \
-                sizeof(*events) * SLAP_EVENT_MAX(t), 0, 0); \
+                sizeof(*events) * SLAP_EVENT_MAX(t)); \
                 slapd_shutdown = 2; \
         } \
     } \
@@ -216,7 +216,7 @@ static slap_daemon_st slap_daemon[SLAPD_MAX_DAEMON_THREADS];
 # define SLAP_SOCK_INIT(t) do { \
     int kq_i; \
     size_t kq_nbytes; \
-    Debug(LDAP_DEBUG_ANY, "daemon: SLAP_SOCK_INIT: dtblsize=%d\n", dtblsize, 0, 0); \
+    Debug(LDAP_DEBUG_ANY, "daemon: SLAP_SOCK_INIT: dtblsize=%d\n", dtblsize); \
     slap_daemon[t].sd_nfds       = 0; \
     slap_daemon[t].sd_changeidx  = 0; \
     for (kq_i = 0;  kq_i < 2;  kq_i++) { \
@@ -228,7 +228,7 @@ static slap_daemon_st slap_daemon[SLAPD_MAX_DAEMON_THREADS];
         if (!kqc->sd_changes) { \
             Debug(LDAP_DEBUG_ANY, \
                   "daemon: SLAP_SOCK_INIT: ch_calloc of slap_daemon.sd_changes[%d] failed, wanted %d bytes, shutting down\n", \
-                  kq_i, kq_nbytes, 0); \
+                  kq_i, kq_nbytes); \
                   slapd_shutdown = 2; \
         } \
     } \
@@ -237,7 +237,7 @@ static slap_daemon_st slap_daemon[SLAPD_MAX_DAEMON_THREADS];
     if (!slap_daemon[t].sd_fdmodes) { \
         Debug(LDAP_DEBUG_ANY, \
             "daemon: SLAP_SOCK_INIT: ch_calloc of slap_daemon.sd_fdmodes failed, wanted %d bytes, shutting down\n", \
-            kq_nbytes, 0, 0); \
+            kq_nbytes); \
         slapd_shutdown = 2; \
     } \
     kq_nbytes = sizeof(*slap_daemon[t].sd_l) * dtblsize; \
@@ -245,12 +245,12 @@ static slap_daemon_st slap_daemon[SLAPD_MAX_DAEMON_THREADS];
     if (!slap_daemon[t].sd_l) { \
         Debug(LDAP_DEBUG_ANY, \
             "daemon: SLAP_SOCK_INIT: ch_calloc of slap_daemon.sd_l failed, wanted %d bytes, shutting down\n", \
-            kq_nbytes, 0, 0); \
+            kq_nbytes); \
         slapd_shutdown = 2; \
     } \
     slap_daemon[t].sd_kq = kqueue(); \
     if (slap_daemon[t].sd_kq < 0) { \
-        Debug(LDAP_DEBUG_ANY, "daemon: SLAP_SOCK_INIT: kqueue() failed, errno=%d, shutting down\n", errno, 0, 0); \
+        Debug(LDAP_DEBUG_ANY, "daemon: SLAP_SOCK_INIT: kqueue() failed, errno=%d, shutting down\n", errno); \
         slapd_shutdown = 2; \
     } \
 } while (0)
@@ -321,7 +321,7 @@ static slap_daemon_st slap_daemon[SLAPD_MAX_DAEMON_THREADS];
         if (!kqc->sd_changes) { \
             Debug(LDAP_DEBUG_ANY, \
                 "daemon: SLAP_KQUEUE_CHANGE: ch_realloc of slap_daemon.sd_kqc[%d].sd_changes failed, wanted %d bytes, shutting down\n", \
-                slap_daemon[t].sd_changeidx, kq_nbytes, 0); \
+                slap_daemon[t].sd_changeidx, kq_nbytes); \
             slapd_shutdown = 2; \
             break; /* Don't want to do the EV_SET if sd_changes is NULL */ \
         } \
@@ -476,7 +476,7 @@ static slap_daemon_st slap_daemon[SLAPD_MAX_DAEMON_THREADS];
 	} else { \
 		Debug( LDAP_DEBUG_ANY, \
 			"daemon: epoll_ctl(ADD,fd=%d) failed, errno=%d, shutting down\n", \
-			s, errno, 0 ); \
+			s, errno ); \
 		slapd_shutdown = 2; \
 	} \
 } while (0)
@@ -639,7 +639,7 @@ static slap_daemon_st slap_daemon[SLAPD_MAX_DAEMON_THREADS];
  * need to shutdown.
  */
 # define SLAP_SOCK_ADD(t, s, l)		do { \
-	Debug( LDAP_DEBUG_CONNS, "SLAP_SOCK_ADD(%d, %p)\n", (s), (l), 0 ); \
+	Debug( LDAP_DEBUG_CONNS, "SLAP_SOCK_ADD(%d, %p)\n", (s), (l) ); \
 	SLAP_DEVPOLL_SOCK_IX(t,(s)) = slap_daemon[t].sd_nfds; \
 	SLAP_DEVPOLL_SOCK_LX(t,(s)) = (l); \
 	SLAP_DEVPOLL_SOCK_FD(t,(s)) = (s); \
@@ -652,7 +652,7 @@ static slap_daemon_st slap_daemon[SLAPD_MAX_DAEMON_THREADS];
 
 # define SLAP_SOCK_DEL(t,s)		do { \
 	int fd, index = SLAP_DEVPOLL_SOCK_IX(t,(s)); \
-	Debug( LDAP_DEBUG_CONNS, "SLAP_SOCK_DEL(%d)\n", (s), 0, 0 ); \
+	Debug( LDAP_DEBUG_CONNS, "SLAP_SOCK_DEL(%d)\n", (s) ); \
 	if ( index < 0 ) break; \
 	if ( index < slap_daemon[t].sd_nfds - 1 ) { \
 		struct pollfd pfd = slap_daemon[t].sd_pollfd[index]; \
@@ -701,7 +701,7 @@ static slap_daemon_st slap_daemon[SLAPD_MAX_DAEMON_THREADS];
 	if ( slap_daemon[t].sd_dpfd == -1 ) { \
 		Debug( LDAP_DEBUG_ANY, "daemon: " SLAP_EVENT_FNAME ": " \
 			"open(\"" SLAP_EVENT_FNAME "\") failed errno=%d\n", \
-			errno, 0, 0 ); \
+			errno ); \
 		SLAP_SOCK_DESTROY(t); \
 		return -1; \
 	} \
@@ -3239,7 +3239,7 @@ slap_sig_shutdown( int sig )
 	int i;
 
 #if 0
-	Debug(LDAP_DEBUG_TRACE, "slap_sig_shutdown: signal %d\n", sig, 0, 0);
+	Debug(LDAP_DEBUG_TRACE, "slap_sig_shutdown: signal %d\n", sig);
 #endif
 
 	/*

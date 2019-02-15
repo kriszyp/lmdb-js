@@ -2632,7 +2632,7 @@ acl_string_expand(
 	*dp = '\0';
 	bv->bv_len = size;
 
-	Debug( LDAP_DEBUG_ACL, "=> acl_string_expand: pattern:  %.*s\n", (int)pat->bv_len, pat->bv_val, 0 );
+	Debug( LDAP_DEBUG_ACL, "=> acl_string_expand: pattern:  %.*s\n", (int)pat->bv_len, pat->bv_val );
 	Debug( LDAP_DEBUG_ACL, "=> acl_string_expand: expanded: %s\n", bv->bv_val, 0, 0 );
 
 	return 0;

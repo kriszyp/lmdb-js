@@ -116,17 +116,14 @@ do_modify(
 					"replace")), tmp->sml_type.bv_val, 0 );
 
 		if ( tmp->sml_values == NULL ) {
-			Debug( LDAP_DEBUG_ARGS, "%s\n",
-			   "\t\tno values", NULL, NULL );
+			Debug( LDAP_DEBUG_ARGS, "\t\tno values\n" );
 		} else if ( BER_BVISNULL( &tmp->sml_values[ 0 ] ) ) {
-			Debug( LDAP_DEBUG_ARGS, "%s\n",
-			   "\t\tzero values", NULL, NULL );
+			Debug( LDAP_DEBUG_ARGS, "\t\tzero values\n" );
 		} else if ( BER_BVISNULL( &tmp->sml_values[ 1 ] ) ) {
-			Debug( LDAP_DEBUG_ARGS, "%s, length %ld\n",
-			   "\t\tone value", (long) tmp->sml_values[0].bv_len, NULL );
+			Debug( LDAP_DEBUG_ARGS, "\t\tone value, length %ld\n",
+			   (long) tmp->sml_values[0].bv_len );
 		} else {
-			Debug( LDAP_DEBUG_ARGS, "%s\n",
-			   "\t\tmultiple values", NULL, NULL );
+			Debug( LDAP_DEBUG_ARGS, "\t\tmultiple values\n" );
 		}
 	}
 

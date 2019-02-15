@@ -67,15 +67,15 @@ rewrite_parse(
 	if ( strcasecmp( argv[ 0 ], "rewriteEngine" ) == 0 ) {
 		if ( argc < 2 ) {
 			Debug( LDAP_DEBUG_ANY,
-					"[%s:%d] rewriteEngine needs 'state'\n%s",
-					fname, lineno, "" );
+					"[%s:%d] rewriteEngine needs 'state'\n",
+					fname, lineno, 0 );
 			return -1;
 
 		} else if ( argc > 2 ) {
 			Debug( LDAP_DEBUG_ANY,
 					"[%s:%d] extra fields in rewriteEngine"
-					" will be discarded\n%s",
-					fname, lineno, "" );
+					" will be discarded\n",
+					fname, lineno, 0 );
 		}
 
 		if ( strcasecmp( argv[ 1 ], "on" ) == 0 ) {
@@ -87,8 +87,8 @@ rewrite_parse(
 		} else {
 			Debug( LDAP_DEBUG_ANY,
 					"[%s:%d] unknown 'state' in rewriteEngine;"
-					" assuming 'on'\n%s",
-					fname, lineno, "" );
+					" assuming 'on'\n",
+					fname, lineno, 0 );
 			info->li_state = REWRITE_ON;
 		}
 		rc = REWRITE_SUCCESS;
@@ -99,8 +99,8 @@ rewrite_parse(
 	} else if ( strcasecmp( argv[ 0 ], "rewriteMaxPasses" ) == 0 ) {
 		if ( argc < 2 ) {
 			Debug( LDAP_DEBUG_ANY,
-					"[%s:%d] rewriteMaxPasses needs 'value'\n%s",
-					fname, lineno, "" );
+					"[%s:%d] rewriteMaxPasses needs 'value'\n",
+					fname, lineno, 0 );
 			return -1;
 		}
 
@@ -144,8 +144,8 @@ rewrite_parse(
 	} else if ( strcasecmp( argv[ 0 ], "rewriteContext" ) == 0 ) {
 		if ( argc < 2 ) {
 			Debug( LDAP_DEBUG_ANY,
-					"[%s:%d] rewriteContext needs 'name'\n%s",
-					fname, lineno, "" );
+					"[%s:%d] rewriteContext needs 'name'\n",
+					fname, lineno, 0 );
 			return -1;
 		} 
 
@@ -178,8 +178,8 @@ rewrite_parse(
 					 Debug( LDAP_DEBUG_ANY,
 							 "[%s:%d] rewriteContext"
 							 " needs 'name' after"
-							 " 'alias'\n%s",
-							 fname, lineno, "" );
+							 " 'alias'\n",
+							 fname, lineno, 0 );
 					 return -1;
 
 				 } else if ( argc > 4 ) {
@@ -188,8 +188,8 @@ rewrite_parse(
 							 " rewriteContext"
 							 " after aliased name"
 							 " will be"
-							 " discarded\n%s",
-							 fname, lineno, "" );
+							 " discarded\n",
+							 fname, lineno, 0 );
 				 }
 				 
 				 aliased = rewrite_context_find( info, 
@@ -211,8 +211,8 @@ rewrite_parse(
 				 Debug( LDAP_DEBUG_ANY,
 						 "[%s:%d] extra fields"
 						 " in rewriteContext"
-						 " will be discarded\n%s",
-						 fname, lineno, "" );
+						 " will be discarded\n",
+						 fname, lineno, 0 );
 			 }
 		 }
 		 rc = REWRITE_SUCCESS;
@@ -224,22 +224,22 @@ rewrite_parse(
 		if ( argc < 3 ) {
 			Debug( LDAP_DEBUG_ANY,
 					"[%s:%d] rewriteRule needs 'pattern'"
-					" 'subst' ['flags']\n%s",
-					fname, lineno, "" );
+					" 'subst' ['flags']\n",
+					fname, lineno, 0 );
 			return -1;
 
 		} else if ( argc > 4 ) {
 			Debug( LDAP_DEBUG_ANY,
 					"[%s:%d] extra fields in rewriteRule"
-					" will be discarded\n%s",
-					fname, lineno, "" );
+					" will be discarded\n",
+					fname, lineno, 0 );
 		}
 
 		if ( rewrite_int_curr_context == NULL ) {
 			Debug( LDAP_DEBUG_ANY,
 					"[%s:%d] rewriteRule outside a"
-					" context; will add to default\n%s",
-					fname, lineno, "" );
+					" context; will add to default\n",
+					fname, lineno, 0 );
 			rewrite_int_curr_context = rewrite_context_find( info,
 					REWRITE_DEFAULT_CONTEXT );
 
@@ -260,8 +260,8 @@ rewrite_parse(
 		if ( argc < 3 ) {
 			Debug( LDAP_DEBUG_ANY,
 					"[%s:%d] rewriteMap needs at least 'type'"
-					" and 'name' ['args']\n%s",
-					fname, lineno, "" );
+					" and 'name' ['args']\n",
+					fname, lineno, 0 );
 			return -1;
 		}
 
@@ -275,8 +275,8 @@ rewrite_parse(
 		if ( argc < 3 ) {
 			Debug( LDAP_DEBUG_ANY,
 					"[%s:%d] rewriteParam needs 'name'"
-					" and 'value'\n%s",
-					fname, lineno, "" );
+					" and 'value'\n",
+					fname, lineno, 0 );
 			return -1;
 		}
 
@@ -432,8 +432,8 @@ rewrite_parse_builtin_map(
 	 */	
 	} else {
 		free( map );
-		Debug( LDAP_DEBUG_ANY, "[%s:%d] unknown map type\n%s",
-				fname, lineno, "" );
+		Debug( LDAP_DEBUG_ANY, "[%s:%d] unknown map type\n",
+				fname, lineno );
 		return -1;
 	}
 

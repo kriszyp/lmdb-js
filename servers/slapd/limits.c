@@ -328,8 +328,8 @@ limits_parse(
 	if ( argc < 3 ) {
 		Debug( LDAP_DEBUG_ANY,
 			"%s : line %d: missing arg(s) in "
-			"\"limits <pattern> <limits>\" line.\n%s",
-			fname, lineno, "" );
+			"\"limits <pattern> <limits>\" line.\n",
+			fname, lineno, 0 );
 		return( -1 );
 	}
 

@@ -371,7 +371,7 @@ wt_dn2id(
 		Debug( LDAP_DEBUG_ANY,
 			   LDAP_XSTRING(wt_dn2id)
 			   ": cursor open failed: %s (%d)\n",
-			   wiredtiger_strerror(rc), rc, 0 );
+			   wiredtiger_strerror(rc), rc );
 		return rc;
 	}
 	cursor->set_key(cursor, dn->bv_val);
