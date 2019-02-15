@@ -42,7 +42,7 @@ do_delete(
 	struct berval dn = BER_BVNULL;
 
 	Debug( LDAP_DEBUG_TRACE, "%s do_delete\n",
-		op->o_log_prefix, 0, 0 );
+		op->o_log_prefix );
 	/*
 	 * Parse the delete request.  It looks like this:
 	 *
@@ -51,14 +51,14 @@ do_delete(
 
 	if ( ber_scanf( op->o_ber, "m", &dn ) == LBER_ERROR ) {
 		Debug( LDAP_DEBUG_ANY, "%s do_delete: ber_scanf failed\n",
-			op->o_log_prefix, 0, 0 );
+			op->o_log_prefix );
 		send_ldap_discon( op, rs, LDAP_PROTOCOL_ERROR, "decoding error" );
 		return SLAPD_DISCONNECT;
 	}
 
 	if( get_ctrls( op, rs, 1 ) != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY, "%s do_delete: get_ctrls failed\n",
-			op->o_log_prefix, 0, 0 );
+			op->o_log_prefix );
 		goto cleanup;
 	} 
 
@@ -66,17 +66,17 @@ do_delete(
 		op->o_tmpmemctx );
 	if( rs->sr_err != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY, "%s do_delete: invalid dn (%s)\n",
-			op->o_log_prefix, dn.bv_val, 0 );
+			op->o_log_prefix, dn.bv_val );
 		send_ldap_error( op, rs, LDAP_INVALID_DN_SYNTAX, "invalid DN" );
 		goto cleanup;
 	}
 
-	Statslog( LDAP_DEBUG_STATS, "%s DEL dn=\"%s\"\n",
-		op->o_log_prefix, op->o_req_dn.bv_val, 0, 0, 0 );
+	Debug( LDAP_DEBUG_STATS, "%s DEL dn=\"%s\"\n",
+		op->o_log_prefix, op->o_req_dn.bv_val );
 
 	if( op->o_req_ndn.bv_len == 0 ) {
 		Debug( LDAP_DEBUG_ANY, "%s do_delete: root dse!\n",
-			op->o_log_prefix, 0, 0 );
+			op->o_log_prefix );
 		/* protocolError would likely be a more appropriate error */
 		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
 			"cannot delete the root DSE" );
@@ -84,7 +84,7 @@ do_delete(
 
 	} else if ( bvmatch( &op->o_req_ndn, &frontendDB->be_schemandn ) ) {
 		Debug( LDAP_DEBUG_ANY, "%s do_delete: subschema subentry!\n",
-			op->o_log_prefix, 0, 0 );
+			op->o_log_prefix );
 		/* protocolError would likely be a more appropriate error */
 		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
 			"cannot delete the root DSE" );

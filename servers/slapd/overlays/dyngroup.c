@@ -96,14 +96,14 @@ static int dgroup_cf( ConfigArgs *c )
 			snprintf( c->cr_msg, sizeof( c->cr_msg ), "%s attribute description unknown: \"%s\"",
 				c->argv[0], c->argv[1] );
 			Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
-				"%s: %s\n", c->log, c->cr_msg, 0 );
+				"%s: %s\n", c->log, c->cr_msg );
 			return ARG_BAD_CONF;
 		}
 		if ( slap_str2ad( c->argv[2], &ap.ap_uri, &text ) ) {
 			snprintf( c->cr_msg, sizeof( c->cr_msg ), "%s attribute description unknown: \"%s\"",
 				c->argv[0], c->argv[2] );
 			Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
-				"%s: %s\n", c->log, c->cr_msg, 0 );
+				"%s: %s\n", c->log, c->cr_msg );
 			return ARG_BAD_CONF;
 		}
 		/* The on->on_bi.bi_private pointer can be used for

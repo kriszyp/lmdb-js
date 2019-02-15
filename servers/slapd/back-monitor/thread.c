@@ -119,8 +119,7 @@ monitor_subsys_thread_init(
 	if ( monitor_cache_get( mi, &ms->mss_ndn, &e_thread ) ) {
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_thread_init: unable to get entry \"%s\"\n",
-			ms->mss_dn.bv_val, 
-			0, 0 );
+			ms->mss_dn.bv_val );
 		return( -1 );
 	}
 
@@ -145,7 +144,7 @@ monitor_subsys_thread_init(
 				"monitor_subsys_thread_init: "
 				"unable to create entry \"%s,%s\"\n",
 				mt[ i ].rdn.bv_val,
-				ms->mss_ndn.bv_val, 0 );
+				ms->mss_ndn.bv_val );
 			return( -1 );
 		}
 
@@ -201,7 +200,7 @@ monitor_subsys_thread_init(
 				"monitor_subsys_thread_init: "
 				"unable to add entry \"%s,%s\"\n",
 				mt[ i ].rdn.bv_val,
-				ms->mss_dn.bv_val, 0 );
+				ms->mss_dn.bv_val );
 			return( -1 );
 		}
 	

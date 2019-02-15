@@ -68,7 +68,7 @@ meta_back_bind( Operation *op, SlapReply *rs )
 	rs->sr_err = LDAP_SUCCESS;
 
 	Debug( LDAP_DEBUG_ARGS, "%s meta_back_bind: dn=\"%s\".\n",
-		op->o_log_prefix, op->o_req_dn.bv_val, 0 );
+		op->o_log_prefix, op->o_req_dn.bv_val );
 
 	/* the test on the bind method should be superfluous */
 	switch ( be_rootdn_bind( op, rs ) ) {
@@ -105,7 +105,7 @@ meta_back_bind( Operation *op, SlapReply *rs )
 				rs->sr_text ? rs->sr_text : "" );
 			Debug( LDAP_DEBUG_ANY,
 				"%s %s\n",
-				op->o_log_prefix, buf, 0 );
+				op->o_log_prefix, buf );
 		}
 
 		/* FIXME: there might be cases where we don't want
@@ -152,7 +152,7 @@ meta_back_bind( Operation *op, SlapReply *rs )
 			Debug( LDAP_DEBUG_ANY,
 				"### %s meta_back_bind: more than one"
 				" candidate selected...\n",
-				op->o_log_prefix, 0, 0 );
+				op->o_log_prefix );
 		}
 
 		if ( isroot ) {
@@ -225,7 +225,7 @@ meta_back_bind( Operation *op, SlapReply *rs )
 					assert( !LDAP_BACK_PCONN_ISPRIV( mc ) );
 					Debug( LDAP_DEBUG_TRACE,
 						"=>meta_back_bind: destroying conn %lu (refcnt=%u)\n",
-						mc->mc_conn->c_connid, mc->mc_refcnt, 0 );
+						mc->mc_conn->c_connid, mc->mc_refcnt );
 
 					if ( tmpmc->mc_refcnt != 0 ) {
 						/* taint it */
@@ -320,7 +320,7 @@ meta_back_bind_op_result(
 
 	Debug( LDAP_DEBUG_TRACE,
 		">>> %s meta_back_bind_op_result[%d]\n",
-		op->o_log_prefix, candidate, 0 );
+		op->o_log_prefix, candidate );
 
 	/* make sure this is clean */
 	assert( rs->sr_ctrls == NULL );
@@ -799,7 +799,7 @@ retry_binding:;
 				rc, ldap_err2string( rc ) );
 			Debug( LDAP_DEBUG_ANY,
 				"%s %s\n",
-				op->o_log_prefix, buf, 0 );
+				op->o_log_prefix, buf );
 
 			/*
 			 * null cred bind should always succeed
@@ -1199,7 +1199,7 @@ retry:;
 						( xtext ? xtext : "" ),
 						( xmatched ? xmatched : "" ) );
 					Debug( LDAP_DEBUG_ANY, "%s %s.\n",
-						op->o_log_prefix, buf, 0 );
+						op->o_log_prefix, buf );
 				}
 
 				/*

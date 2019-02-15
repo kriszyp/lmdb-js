@@ -40,7 +40,7 @@ presence_candidates(
 	WT_CURSOR *cursor = NULL;
 
 	Debug( LDAP_DEBUG_TRACE, "=> wt_presence_candidates (%s)\n",
-		   desc->ad_cname.bv_val, 0, 0 );
+		   desc->ad_cname.bv_val );
 
 	WT_IDL_ALL( wi, ids );
 
@@ -55,7 +55,7 @@ presence_candidates(
 		/* not indexed */
 		Debug( LDAP_DEBUG_TRACE,
 			   "<= wt_presence_candidates: (%s) not indexed\n",
-			   desc->ad_cname.bv_val, 0, 0 );
+			   desc->ad_cname.bv_val );
 		return 0;
 	}
 
@@ -63,14 +63,14 @@ presence_candidates(
 		Debug( LDAP_DEBUG_TRACE,
 			   "<= wt_presence_candidates: (%s) index_param "
 			   "returned=%d\n",
-			   desc->ad_cname.bv_val, rc, 0 );
+			   desc->ad_cname.bv_val, rc );
 		return 0;
 	}
 
 	if( prefix.bv_val == NULL ) {
 		Debug( LDAP_DEBUG_TRACE,
 			   "<= wt_presence_candidates: (%s) no prefix\n",
-			   desc->ad_cname.bv_val, 0, 0 );
+			   desc->ad_cname.bv_val );
 		return -1;
 	}
 
@@ -79,7 +79,7 @@ presence_candidates(
 	if( !cursor ) {
 		Debug( LDAP_DEBUG_ANY,
 			   "<= wt_presence_candidates: open index cursor failed: %s\n",
-			   desc->ad_type->sat_cname.bv_val, 0, 0 );
+			   desc->ad_type->sat_cname.bv_val );
 		return 0;
 	}
 
@@ -115,7 +115,7 @@ equality_candidates(
 	WT_CURSOR *cursor = NULL;
 
 	Debug( LDAP_DEBUG_TRACE, "=> wt_equality_candidates (%s)\n",
-		   ava->aa_desc->ad_cname.bv_val, 0, 0 );
+		   ava->aa_desc->ad_cname.bv_val );
 
 	if ( ava->aa_desc == slap_schema.si_ad_entryDN ) {
 		ID id = NOID;
@@ -137,14 +137,14 @@ equality_candidates(
 	if ( rc == LDAP_INAPPROPRIATE_MATCHING ) {
 		Debug( LDAP_DEBUG_ANY,
 			   "<= wt_equality_candidates: (%s) not indexed\n",
-			   ava->aa_desc->ad_cname.bv_val, 0, 0 );
+			   ava->aa_desc->ad_cname.bv_val );
 		return 0;
 	}
 
 	if( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY,
 			   "<= wt_equality_candidates: (%s) index_param failed (%d)\n",
-			   ava->aa_desc->ad_cname.bv_val, rc, 0 );
+			   ava->aa_desc->ad_cname.bv_val, rc );
 		return 0;
 	}
 
@@ -177,7 +177,7 @@ equality_candidates(
 	if( keys == NULL ) {
 		Debug( LDAP_DEBUG_TRACE,
 			   "<= wt_equality_candidates: (%s) no keys\n",
-			   ava->aa_desc->ad_cname.bv_val, 0, 0 );
+			   ava->aa_desc->ad_cname.bv_val );
 		return 0;
 	}
 
@@ -186,7 +186,7 @@ equality_candidates(
 	if( !cursor ) {
 		Debug( LDAP_DEBUG_ANY,
 			   "<= wt_equality_candidates: open index cursor failed: %s\n",
-			   ava->aa_desc->ad_type->sat_cname.bv_val, 0, 0 );
+			   ava->aa_desc->ad_type->sat_cname.bv_val );
 		return 0;
 	}
 
@@ -200,7 +200,7 @@ equality_candidates(
 			Debug( LDAP_DEBUG_TRACE,
 				   "<= wt_equality_candidates: (%s) "
 				   "key read failed (%d)\n",
-				   ava->aa_desc->ad_cname.bv_val, rc, 0 );
+				   ava->aa_desc->ad_cname.bv_val, rc );
 			break;
 		}
 		if ( i == 0 ) {
@@ -246,7 +246,7 @@ approx_candidates(
 	WT_CURSOR *cursor = NULL;
 
 	Debug( LDAP_DEBUG_TRACE, "=> wt_approx_candidates (%s)\n",
-		   ava->aa_desc->ad_cname.bv_val, 0, 0 );
+		   ava->aa_desc->ad_cname.bv_val );
 
 	WT_IDL_ALL( wi, ids );
 
@@ -256,14 +256,14 @@ approx_candidates(
 	if ( rc == LDAP_INAPPROPRIATE_MATCHING ) {
 		Debug( LDAP_DEBUG_ANY,
 			   "<= wt_approx_candidates: (%s) not indexed\n",
-			   ava->aa_desc->ad_cname.bv_val, 0, 0 );
+			   ava->aa_desc->ad_cname.bv_val );
 		return 0;
 	}
 
 	if( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY,
 			   "<= wt_approx_candidates: (%s) index_param failed (%d)\n",
-			   ava->aa_desc->ad_cname.bv_val, rc, 0 );
+			   ava->aa_desc->ad_cname.bv_val, rc );
 		return 0;
 	}
 
@@ -300,7 +300,7 @@ approx_candidates(
 	if( keys == NULL ) {
 		Debug( LDAP_DEBUG_TRACE,
 			   "<= wt_approx_candidates: (%s) no keys (%s)\n",
-			   prefix.bv_val, ava->aa_desc->ad_cname.bv_val, 0 );
+			   prefix.bv_val, ava->aa_desc->ad_cname.bv_val );
 		return 0;
 	}
 
@@ -309,7 +309,7 @@ approx_candidates(
 	if( !cursor ) {
 		Debug( LDAP_DEBUG_ANY,
 			   "<= wt_approx_candidates: open index cursor failed: %s\n",
-			   ava->aa_desc->ad_type->sat_cname.bv_val, 0, 0 );
+			   ava->aa_desc->ad_type->sat_cname.bv_val );
 		return 0;
 	}
 
@@ -322,14 +322,14 @@ approx_candidates(
 		} else if( rc != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_TRACE,
 				   "<= wt_approx_candidates: (%s) key read failed (%d)\n",
-				   ava->aa_desc->ad_cname.bv_val, rc, 0 );
+				   ava->aa_desc->ad_cname.bv_val, rc );
 			break;
 		}
 
 		if( WT_IDL_IS_ZERO( tmp ) ) {
 			Debug( LDAP_DEBUG_TRACE,
 				   "<= wt_approx_candidates: (%s) NULL\n",
-				   ava->aa_desc->ad_cname.bv_val, 0, 0 );
+				   ava->aa_desc->ad_cname.bv_val );
 			WT_IDL_ZERO( ids );
 			break;
 		}
@@ -377,7 +377,7 @@ substring_candidates(
 	WT_CURSOR *cursor = NULL;
 
 	Debug( LDAP_DEBUG_TRACE, "=> wt_substring_candidates (%s)\n",
-		   sub->sa_desc->ad_cname.bv_val, 0, 0 );
+		   sub->sa_desc->ad_cname.bv_val );
 
 	WT_IDL_ALL( wi, ids );
 
@@ -387,7 +387,7 @@ substring_candidates(
 	if ( rc == LDAP_INAPPROPRIATE_MATCHING ) {
 		Debug( LDAP_DEBUG_ANY,
 			   "<= wt_substring_candidates: (%s) not indexed\n",
-			   sub->sa_desc->ad_cname.bv_val, 0, 0 );
+			   sub->sa_desc->ad_cname.bv_val );
 		return 0;
 	}
 
@@ -395,7 +395,7 @@ substring_candidates(
 		Debug( LDAP_DEBUG_ANY,
 			   "<= wt_substring_candidates: (%s) "
 			   "index_param failed (%d)\n",
-			   sub->sa_desc->ad_cname.bv_val, rc, 0 );
+			   sub->sa_desc->ad_cname.bv_val, rc );
 		return 0;
 	}
 
@@ -421,14 +421,14 @@ substring_candidates(
 	if( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE,
 			   "<= wt_substring_candidates: (%s) MR filter failed (%d)\n",
-			   sub->sa_desc->ad_cname.bv_val, rc, 0 );
+			   sub->sa_desc->ad_cname.bv_val, rc );
 		return 0;
 	}
 
 	if( keys == NULL ) {
 		Debug( LDAP_DEBUG_TRACE,
 			   "<= wt_substring_candidates: (0x%04lx) no keys (%s)\n",
-			   mask, sub->sa_desc->ad_cname.bv_val, 0 );
+			   mask, sub->sa_desc->ad_cname.bv_val );
 		return 0;
 	}
 
@@ -437,7 +437,7 @@ substring_candidates(
 	if( !cursor ) {
 		Debug( LDAP_DEBUG_ANY,
 			   "<= wt_substring_candidates: open index cursor failed: %s\n",
-			   sub->sa_desc->ad_cname.bv_val, 0, 0 );
+			   sub->sa_desc->ad_cname.bv_val );
 		return 0;
 	}
 
@@ -451,14 +451,14 @@ substring_candidates(
 		} else if( rc != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_TRACE,
 				   "<= wt_substring_candidates: (%s) key read failed (%d)\n",
-				   sub->sa_desc->ad_cname.bv_val, rc, 0 );
+				   sub->sa_desc->ad_cname.bv_val, rc );
 			break;
 		}
 
 		if( WT_IDL_IS_ZERO( tmp ) ) {
 			Debug( LDAP_DEBUG_TRACE,
 				   "<= wt_substring_candidates: (%s) NULL\n",
-				   sub->sa_desc->ad_cname.bv_val, 0, 0 );
+				   sub->sa_desc->ad_cname.bv_val );
 			WT_IDL_ZERO( ids );
 			break;
 		}
@@ -501,7 +501,7 @@ list_candidates(
 	int rc = 0;
 	Filter  *f;
 
-	Debug( LDAP_DEBUG_FILTER, "=> wt_list_candidates 0x%x\n", ftype, 0, 0 );
+	Debug( LDAP_DEBUG_FILTER, "=> wt_list_candidates 0x%x\n", ftype );
 	for ( f = flist; f != NULL; f = f->f_next ) {
 		/* ignore precomputed scopes */
 		if ( f->f_choice == SLAPD_FILTER_COMPUTED &&
@@ -553,7 +553,7 @@ list_candidates(
 	} else {
 		Debug( LDAP_DEBUG_FILTER,
 			   "<= wt_list_candidates: undefined rc=%d\n",
-			   rc, 0, 0 );
+			   rc );
 	}
 
 	return 0;
@@ -570,7 +570,7 @@ wt_filter_candidates(
 {
 	struct wt_info *wi = (struct wt_info *)op->o_bd->be_private;
 	int rc = 0;
-	Debug( LDAP_DEBUG_FILTER, "=> wt_filter_candidates\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_FILTER, "=> wt_filter_candidates\n" );
 
 	if ( f->f_choice & SLAPD_FILTER_UNDEFINED ) {
 		WT_IDL_ZERO( ids );
@@ -598,22 +598,22 @@ wt_filter_candidates(
 		}
 		break;
 	case LDAP_FILTER_PRESENT:
-		Debug( LDAP_DEBUG_FILTER, "\tPRESENT\n", 0, 0, 0 );
+		Debug( LDAP_DEBUG_FILTER, "\tPRESENT\n" );
 		rc = presence_candidates( op, wc, f->f_desc, ids );
 		break;
 
 	case LDAP_FILTER_EQUALITY:
-		Debug( LDAP_DEBUG_FILTER, "\tEQUALITY\n", 0, 0, 0 );
+		Debug( LDAP_DEBUG_FILTER, "\tEQUALITY\n" );
 		rc = equality_candidates( op, wc, f->f_ava, ids, tmp );
 		break;
 
 	case LDAP_FILTER_APPROX:
-		Debug( LDAP_DEBUG_FILTER, "\tAPPROX\n", 0, 0, 0 );
+		Debug( LDAP_DEBUG_FILTER, "\tAPPROX\n" );
 		rc = approx_candidates( op, wc, f->f_ava, ids, tmp );
 		break;
 
 	case LDAP_FILTER_SUBSTRINGS:
-		Debug( LDAP_DEBUG_FILTER, "\tSUBSTRINGS\n", 0, 0, 0 );
+		Debug( LDAP_DEBUG_FILTER, "\tSUBSTRINGS\n" );
 		rc = substring_candidates( op, wc, f->f_sub, ids, tmp );
 		break;
 
@@ -626,37 +626,37 @@ wt_filter_candidates(
     case LDAP_FILTER_LE:
 		/* if no LE index, use pres */
 		/* TODO: not implement yet */
-		Debug( LDAP_DEBUG_FILTER, "\tLE\n", 0, 0, 0 );
+		Debug( LDAP_DEBUG_FILTER, "\tLE\n" );
 		rc = presence_candidates( op, wc, f->f_ava->aa_desc, ids );
 		break;
 
 	case LDAP_FILTER_NOT:
 		/* no indexing to support NOT filters */
-		Debug( LDAP_DEBUG_FILTER, "\tNOT\n", 0, 0, 0 );
+		Debug( LDAP_DEBUG_FILTER, "\tNOT\n" );
 		WT_IDL_ALL( wi, ids );
 		break;
 
 	case LDAP_FILTER_AND:
-		Debug( LDAP_DEBUG_FILTER, "\tAND\n", 0, 0, 0 );
+		Debug( LDAP_DEBUG_FILTER, "\tAND\n" );
 		rc = list_candidates( op, wc,
 							  f->f_and, LDAP_FILTER_AND, ids, tmp, stack );
 		break;
 
 	case LDAP_FILTER_OR:
-		Debug( LDAP_DEBUG_FILTER, "\tOR\n", 0, 0, 0 );
+		Debug( LDAP_DEBUG_FILTER, "\tOR\n" );
 		rc = list_candidates( op, wc,
 							  f->f_or, LDAP_FILTER_OR, ids, tmp, stack );
 		break;
 
 	case LDAP_FILTER_EXT:
 		/* TODO: not implement yet */
-		Debug( LDAP_DEBUG_FILTER, "\tEXT\n", 0, 0, 0 );
+		Debug( LDAP_DEBUG_FILTER, "\tEXT\n" );
 		rc = presence_candidates( op, wc, f->f_ava->aa_desc, ids );
 		break;
 
 	default:
 		Debug( LDAP_DEBUG_FILTER, "\tUNKNOWN %lu\n",
-			   (unsigned long) f->f_choice, 0, 0 );
+			   (unsigned long) f->f_choice );
 		/* Must not return NULL, otherwise extended filters break */
 		WT_IDL_ALL( wi, ids );
 	}

@@ -152,7 +152,7 @@ static int write_group(nssov_group_cbp *cbp,Entry *entry)
 		if ( !a )
 		{
 			Debug(LDAP_DEBUG_ANY,"group entry %s does not contain %s value\n",
-					entry->e_name.bv_val, cbp->mi->mi_attrs[CN_KEY].an_desc->ad_cname.bv_val,0);
+					entry->e_name.bv_val, cbp->mi->mi_attrs[CN_KEY].an_desc->ad_cname.bv_val );
 			return 0;
 		}
 		names = a->a_vals;
@@ -170,7 +170,7 @@ static int write_group(nssov_group_cbp *cbp,Entry *entry)
 		if ( !a )
 		{
 			Debug(LDAP_DEBUG_ANY,"group entry %s does not contain %s value\n",
-					entry->e_name.bv_val, cbp->mi->mi_attrs[GID_KEY].an_desc->ad_cname.bv_val,0);
+					entry->e_name.bv_val, cbp->mi->mi_attrs[GID_KEY].an_desc->ad_cname.bv_val );
 			return 0;
 		}
 		gids = a->a_vals;
@@ -232,7 +232,7 @@ static int write_group(nssov_group_cbp *cbp,Entry *entry)
 		if (!isvalidgroupname(&names[i]))
 		{
 			Debug(LDAP_DEBUG_ANY,"nssov: group entry %s contains invalid group name: \"%s\"\n",
-													entry->e_name.bv_val,names[i].bv_val,0);
+													entry->e_name.bv_val,names[i].bv_val );
 		}
 		else
 		{

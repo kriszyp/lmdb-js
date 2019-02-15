@@ -131,7 +131,7 @@ nops_modify( Operation *op, SlapReply *rs )
 
 		/* This is a nop, remove it */
 		Debug(LDAP_DEBUG_TRACE, "removing nop on %s",
-			a->a_desc->ad_cname.bv_val, 0, 0 );
+			a->a_desc->ad_cname.bv_val );
 
 		nops_rm_mod(&op->orm_modlist, mc);
 	}

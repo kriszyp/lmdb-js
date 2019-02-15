@@ -42,7 +42,7 @@ do_search(
 	ber_len_t	siz, off, i;
 
 	Debug( LDAP_DEBUG_TRACE, "%s do_search\n",
-		op->o_log_prefix, 0, 0 );
+		op->o_log_prefix );
 	/*
 	 * Parse the search request.  It looks like this:
 	 *
@@ -113,7 +113,7 @@ do_search(
 	rs->sr_err = dnPrettyNormal( NULL, &base, &op->o_req_dn, &op->o_req_ndn, op->o_tmpmemctx );
 	if( rs->sr_err != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY, "%s do_search: invalid dn: \"%s\"\n",
-			op->o_log_prefix, base.bv_val, 0 );
+			op->o_log_prefix, base.bv_val );
 		send_ldap_error( op, rs, LDAP_INVALID_DN_SYNTAX, "invalid DN" );
 		goto return_results;
 	}
@@ -138,7 +138,7 @@ do_search(
 	filter2bv_x( op, op->ors_filter, &op->ors_filterstr );
 	
 	Debug( LDAP_DEBUG_ARGS, "    filter: %s\n",
-		!BER_BVISEMPTY( &op->ors_filterstr ) ? op->ors_filterstr.bv_val : "empty", 0, 0 );
+		!BER_BVISEMPTY( &op->ors_filterstr ) ? op->ors_filterstr.bv_val : "empty" );
 
 	/* attributes */
 	siz = sizeof(AttributeName);
@@ -194,29 +194,29 @@ do_search(
 
 	if( get_ctrls( op, rs, 1 ) != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY, "%s do_search: get_ctrls failed\n",
-			op->o_log_prefix, 0, 0 );
+			op->o_log_prefix );
 		goto return_results;
 	}
 
-	Debug( LDAP_DEBUG_ARGS, "    attrs:", 0, 0, 0 );
+	Debug( LDAP_DEBUG_ARGS, "    attrs:" );
 
 	if ( siz != 0 ) {
 		for ( i = 0; i<siz; i++ ) {
-			Debug( LDAP_DEBUG_ARGS, " %s", op->ors_attrs[i].an_name.bv_val, 0, 0 );
+			Debug( LDAP_DEBUG_ARGS, " %s", op->ors_attrs[i].an_name.bv_val );
 		}
 	}
 
-	Debug( LDAP_DEBUG_ARGS, "\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_ARGS, "\n" );
 
-	if ( StatslogTest( LDAP_DEBUG_STATS ) ) {
+	if (LogTest( LDAP_DEBUG_STATS ) ) {
 		char abuf[BUFSIZ/2], *ptr = abuf;
 		unsigned len = 0, alen;
 
 		sprintf(abuf, "scope=%d deref=%d", op->ors_scope, op->ors_deref);
-		Statslog( LDAP_DEBUG_STATS,
+		Debug( LDAP_DEBUG_STATS,
 		        "%s SRCH base=\"%s\" %s filter=\"%s\"\n",
 		        op->o_log_prefix, op->o_req_dn.bv_val, abuf,
-		        op->ors_filterstr.bv_val, 0 );
+		        op->ors_filterstr.bv_val );
 
 		for ( i = 0; i<siz; i++ ) {
 			alen = op->ors_attrs[i].an_name.bv_len;
@@ -224,8 +224,8 @@ do_search(
 				alen = sizeof(abuf)-1;
 			}
 			if (len && (len + 1 + alen >= sizeof(abuf))) {
-				Statslog( LDAP_DEBUG_STATS, "%s SRCH attr=%s\n",
-				    op->o_log_prefix, abuf, 0, 0, 0 );
+				Debug( LDAP_DEBUG_STATS, "%s SRCH attr=%s\n",
+				    op->o_log_prefix, abuf );
 				len = 0;
 				ptr = abuf;
 			}
@@ -238,8 +238,8 @@ do_search(
 			*ptr = '\0';
 		}
 		if (len) {
-			Statslog( LDAP_DEBUG_STATS, "%s SRCH attr=%s\n",
-	    			op->o_log_prefix, abuf, 0, 0, 0 );
+			Debug( LDAP_DEBUG_STATS, "%s SRCH attr=%s\n",
+					op->o_log_prefix, abuf );
 		}
 	}
 

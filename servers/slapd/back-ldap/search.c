@@ -72,7 +72,7 @@ ldap_back_munge_filter(
 	int gotit = 0;
 
 	Debug( LDAP_DEBUG_ARGS, "=> ldap_back_munge_filter \"%s\"\n",
-			filter->bv_val, 0, 0 );
+			filter->bv_val );
 
 	for ( ptr = strchr( filter->bv_val, '(' ); 
 			ptr;
@@ -135,7 +135,7 @@ ldap_back_munge_filter(
 	}
 
 	Debug( LDAP_DEBUG_ARGS, "<= ldap_back_munge_filter \"%s\" (%d)\n",
-			filter->bv_val, gotit, 0 );
+			filter->bv_val, gotit );
 
 	return gotit;
 }
@@ -453,7 +453,7 @@ retry:
 					"%s ldap_back_search: "
 					"got SEARCH_REFERENCE "
 					"with no referrals\n",
-					op->o_log_prefix, 0, 0 );
+					op->o_log_prefix );
 			}
 
 			/* cleanup */
@@ -526,7 +526,7 @@ retry:
 						"%s ldap_back_search: "
 						"got referrals with err=%d\n",
 						op->o_log_prefix,
-						rs->sr_err, 0 );
+						rs->sr_err );
 
 				} else {
 					int	cnt;
@@ -550,7 +550,7 @@ retry:
 					"got err=%d with null "
 					"or empty referrals\n",
 					op->o_log_prefix,
-					rs->sr_err, 0 );
+					rs->sr_err );
 
 				rs->sr_err = LDAP_NO_SUCH_OBJECT;
 			}

@@ -175,7 +175,7 @@ ldap_back_dn_massage(
 				"ldap_back_dn_massage:"
 				" converted \"%s\" to \"%s\"\n",
 				BER_BVISNULL( dn ) ? "" : dn->bv_val,
-				BER_BVISNULL( res ) ? "" : res->bv_val, 0 );
+				BER_BVISNULL( res ) ? "" : res->bv_val );
 			break;
 		}
 	}

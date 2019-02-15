@@ -170,7 +170,7 @@ monitor_back_search( Operation *op, SlapReply *rs )
 	Entry		*e_nv = NULL, *e_ch = NULL;
 	slap_mask_t	mask;
 
-	Debug( LDAP_DEBUG_TRACE, "=> monitor_back_search\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "=> monitor_back_search\n" );
 
 
 	/* get entry with reader lock */

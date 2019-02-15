@@ -90,7 +90,7 @@ noopsrch_response( Operation *op, SlapReply *rs )
 	if ( rs->sr_type == REP_SEARCH ) {
 		nc->nc_nentries++;
 #ifdef NOOPSRCH_DEBUG
-		Debug( LDAP_DEBUG_TRACE, "noopsrch_response(REP_SEARCH): nentries=%d\n", nc->nc_nentries, 0, 0 );
+		Debug( LDAP_DEBUG_TRACE, "noopsrch_response(REP_SEARCH): nentries=%d\n", nc->nc_nentries );
 #endif
 		return 0;
 
@@ -203,7 +203,7 @@ noopsrch_db_init( BackendDB *be, ConfigReply *cr)
 		if ( rc != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_ANY,
 				"noopsrch_initialize: Failed to register control '%s' (%d)\n",
-				LDAP_CONTROL_X_NOOPSRCH, rc, 0 );
+				LDAP_CONTROL_X_NOOPSRCH, rc );
 			return rc;
 		}
 	}

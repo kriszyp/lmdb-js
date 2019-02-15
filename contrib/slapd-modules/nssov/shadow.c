@@ -94,7 +94,7 @@ static long to_date(struct berval *date,AttributeDescription *attr)
 		if ((buffer[0]=='\0')||(*tmp!='\0'))
 		{
 			Debug(LDAP_DEBUG_ANY,"shadow entry contains non-numeric %s value\n",
-				attr->ad_cname.bv_val,0,0);
+				attr->ad_cname.bv_val );
 			return 0;
 		}
 		return value/864-134774;
@@ -105,7 +105,7 @@ static long to_date(struct berval *date,AttributeDescription *attr)
 	if ((date->bv_val[0]=='\0')||(*tmp!='\0'))
 	{
 		Debug(LDAP_DEBUG_ANY,"shadow entry contains non-numeric %s value\n",
-			attr->ad_cname.bv_val,0,0);
+			attr->ad_cname.bv_val );
 		return 0;
 	}
 	return value;
@@ -176,7 +176,7 @@ static int write_shadow(nssov_shadow_cbp *cbp,Entry *entry)
 		if (!a)
 		{
 			Debug(LDAP_DEBUG_ANY,"shadow entry %s does not contain %s value\n",
-				entry->e_name.bv_val, cbp->mi->mi_attrs[UID_KEY].an_desc->ad_cname.bv_val,0);
+				entry->e_name.bv_val, cbp->mi->mi_attrs[UID_KEY].an_desc->ad_cname.bv_val );
 			return 0;
 		}
 		names = a->a_vals;

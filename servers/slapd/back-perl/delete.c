@@ -54,6 +54,6 @@ perl_back_delete(
 
 	send_ldap_result( op, rs );
 
-	Debug( LDAP_DEBUG_ANY, "Perl DELETE\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_ANY, "Perl DELETE\n" );
 	return( 0 );
 }

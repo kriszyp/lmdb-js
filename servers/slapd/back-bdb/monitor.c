@@ -272,7 +272,7 @@ bdb_monitor_initialize( void )
 			Debug( LDAP_DEBUG_ANY, LDAP_XSTRING(bdb_monitor_initialize)
 				": unable to add "
 				"objectIdentifier \"%s=%s\"\n",
-				s_oid[ i ].name, s_oid[ i ].oid, 0 );
+				s_oid[ i ].name, s_oid[ i ].oid );
 			return 2;
 		}
 	}
@@ -282,7 +282,7 @@ bdb_monitor_initialize( void )
 		if ( code != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_ANY, LDAP_XSTRING(bdb_monitor_initialize)
 				": register_at failed for attributeType (%s)\n",
-				s_at[ i ].desc, 0, 0 );
+				s_at[ i ].desc );
 			return 3;
 
 		} else {
@@ -295,7 +295,7 @@ bdb_monitor_initialize( void )
 		if ( code != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_ANY, LDAP_XSTRING(bdb_monitor_initialize)
 				": register_oc failed for objectClass (%s)\n",
-				s_oc[ i ].desc, 0, 0 );
+				s_oc[ i ].desc );
 			return 4;
 
 		} else {
@@ -358,8 +358,7 @@ bdb_monitor_db_open( BackendDB *be )
 		if ( warning++ == 0 ) {
 			Debug( LDAP_DEBUG_ANY, LDAP_XSTRING(bdb_monitor_db_open)
 				": monitoring disabled; "
-				"configure monitor database to enable\n",
-				0, 0, 0 );
+				"configure monitor database to enable\n" );
 		}
 
 		return 0;

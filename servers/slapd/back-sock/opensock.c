@@ -47,7 +47,7 @@ opensock(
 
 	fd = socket(PF_UNIX, SOCK_STREAM, 0);
 	if ( fd < 0 ) {
-		Debug( LDAP_DEBUG_ANY, "socket create failed\n", 0, 0, 0 );
+		Debug( LDAP_DEBUG_ANY, "socket create failed\n" );
 		return( NULL );
 	}
 
@@ -56,13 +56,13 @@ opensock(
 		sockpath);
 	if ( connect( fd, (struct sockaddr *)&sockun, sizeof(sockun) ) < 0 ) {
 		Debug( LDAP_DEBUG_ANY, "socket connect(%s) failed\n",
-			sockpath ? sockpath : "<null>", 0, 0 );
+			sockpath ? sockpath : "<null>" );
 		close( fd );
 		return( NULL );
 	}
 
 	if ( ( fp = fdopen( fd, "r+" ) ) == NULL ) {
-		Debug( LDAP_DEBUG_ANY, "fdopen failed\n", 0, 0, 0 );
+		Debug( LDAP_DEBUG_ANY, "fdopen failed\n" );
 		close( fd );
 		return( NULL );
 	}

@@ -91,7 +91,7 @@ perl_back_modify(
 
 	send_ldap_result( op, rs );
 
-	Debug( LDAP_DEBUG_ANY, "Perl MODIFY\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_ANY, "Perl MODIFY\n" );
 	return( 0 );
 }
 

@@ -1407,7 +1407,7 @@ bdb_cache_delete(
 	}
 
 	Debug( LDAP_DEBUG_TRACE, "====> bdb_cache_delete( %ld )\n",
-		e->e_id, 0, 0 );
+		e->e_id );
 
 	/* set lru mutex */
 	ldap_pvt_thread_mutex_lock( &bdb->bi_cache.c_lru_mutex );
@@ -1529,7 +1529,7 @@ bdb_cache_release_all( Cache *cache )
 	/* set lru mutex */
 	ldap_pvt_thread_mutex_lock( &cache->c_lru_mutex );
 
-	Debug( LDAP_DEBUG_TRACE, "====> bdb_cache_release_all\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "====> bdb_cache_release_all\n" );
 
 	avl_free( cache->c_dntree.bei_kids, NULL );
 	avl_free( cache->c_idtree, bdb_entryinfo_release );
@@ -1681,7 +1681,7 @@ bdb_reader_get( Operation *op, DB_ENV *env, DB_TXN **txn )
 			data, bdb_reader_free, NULL, NULL ) ) ) {
 			TXN_ABORT( *txn );
 			Debug( LDAP_DEBUG_ANY, "bdb_reader_get: err %s(%d)\n",
-				db_strerror(rc), rc, 0 );
+				db_strerror(rc), rc );
 
 			return rc;
 		}

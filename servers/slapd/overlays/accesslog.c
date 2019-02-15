@@ -980,7 +980,7 @@ log_cf_gen(ConfigArgs *c)
 					snprintf( c->cr_msg, sizeof( c->cr_msg ), "%s <%s>: %s",
 						c->argv[0], c->argv[i], text );
 					Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
-						"%s: %s\n", c->log, c->cr_msg, 0 );
+						"%s: %s\n", c->log, c->cr_msg );
 					rc = ARG_BAD_CONF;
 					break;
 				}
@@ -1016,14 +1016,14 @@ log_cf_gen(ConfigArgs *c)
 					snprintf( c->cr_msg, sizeof( c->cr_msg ), "%s invalid DN: %s",
 						c->argv[0], c->argv[2] );
 					Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
-						"%s: %s\n", c->log, c->cr_msg, 0 );
+						"%s: %s\n", c->log, c->cr_msg );
 					rc = ARG_BAD_CONF;
 				}
 			} else {
 				snprintf( c->cr_msg, sizeof( c->cr_msg ), "%s invalid ops: %s",
 					c->argv[0], c->argv[1] );
 				Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
-					"%s: %s\n", c->log, c->cr_msg, 0 );
+					"%s: %s\n", c->log, c->cr_msg );
 				rc = ARG_BAD_CONF;
 			}
 			}
@@ -1511,7 +1511,7 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 #ifdef RMUTEX_DEBUG
 		Debug( LDAP_DEBUG_SYNC,
 			"accesslog_response: unlocking rmutex for tid %x\n",
-			op->o_tid, 0, 0 );
+			op->o_tid );
 #endif
 		ldap_pvt_thread_mutex_unlock( &li->li_op_rmutex );
 	}
@@ -1877,7 +1877,7 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 	if ( rs2.sr_err != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_SYNC,
 			"accesslog_response: got result 0x%x adding log entry %s\n",
-			rs2.sr_err, op2.o_req_dn.bv_val, 0 );
+			rs2.sr_err, op2.o_req_dn.bv_val );
 	}
 	if ( e == op2.ora_e ) entry_free( e );
 	e = NULL;
@@ -1945,13 +1945,13 @@ accesslog_op_mod( Operation *op, SlapReply *rs )
 #ifdef RMUTEX_DEBUG
 		Debug( LDAP_DEBUG_SYNC,
 			"accesslog_op_mod: locking rmutex for tid %x\n",
-			op->o_tid, 0, 0 );
+			op->o_tid );
 #endif
 		ldap_pvt_thread_mutex_lock( &li->li_op_rmutex );
 #ifdef RMUTEX_DEBUG
 		Debug( LDAP_DEBUG_STATS,
 			"accesslog_op_mod: locked rmutex for tid %x\n",
-			op->o_tid, 0, 0 );
+			op->o_tid );
 #endif
 		if ( li->li_oldf && ( op->o_tag == LDAP_REQ_DELETE ||
 			op->o_tag == LDAP_REQ_MODIFY ||
@@ -2275,8 +2275,7 @@ accesslog_db_open(
 	}
 	if ( li->li_db == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
-			"accesslog: \"logdb <suffix>\" missing or invalid.\n",
-			0, 0, 0 );
+			"accesslog: \"logdb <suffix>\" missing or invalid.\n" );
 		return 1;
 	}
 
@@ -2331,8 +2330,7 @@ int accesslog_initialize()
 		code = register_syntax( &lsyntaxes[ i ].syn );
 		if ( code != 0 ) {
 			Debug( LDAP_DEBUG_ANY,
-				"accesslog_init: register_syntax failed\n",
-				0, 0, 0 );
+				"accesslog_init: register_syntax failed\n" );
 			return code;
 		}
 
@@ -2343,8 +2341,7 @@ int accesslog_initialize()
 				Debug( LDAP_DEBUG_ANY,
 					"accesslog_init: "
 					"mr_make_syntax_compat_with_mrs "
-					"failed\n",
-					0, 0, 0 );
+					"failed\n" );
 				return code;
 			}
 		}
@@ -2356,8 +2353,7 @@ int accesslog_initialize()
 		code = register_at( lattrs[i].at, lattrs[i].ad, 0 );
 		if ( code ) {
 			Debug( LDAP_DEBUG_ANY,
-				"accesslog_init: register_at failed\n",
-				0, 0, 0 );
+				"accesslog_init: register_at failed\n" );
 			return -1;
 		}
 	}
@@ -2368,8 +2364,7 @@ int accesslog_initialize()
 		code = register_oc( locs[i].ot, locs[i].oc, 0 );
 		if ( code ) {
 			Debug( LDAP_DEBUG_ANY,
-				"accesslog_init: register_oc failed\n",
-				0, 0, 0 );
+				"accesslog_init: register_oc failed\n" );
 			return -1;
 		}
 	}

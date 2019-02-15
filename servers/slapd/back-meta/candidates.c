@@ -259,7 +259,7 @@ meta_clear_one_candidate(
 		snprintf( buf, sizeof( buf ), "meta_clear_one_candidate ldap_unbind_ext[%d] mc=%p ld=%p",
 			candidate, (void *)mc, (void *)msc->msc_ld );
 		Debug( LDAP_DEBUG_ANY, "### %s %s\n",
-			op ? op->o_log_prefix : "", buf, 0 );
+			op ? op->o_log_prefix : "", buf );
 #endif /* DEBUG_205 */
 
 		ldap_unbind_ext( msc->msc_ld, NULL, NULL );

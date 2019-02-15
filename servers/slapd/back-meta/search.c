@@ -87,7 +87,7 @@ meta_search_dobind_init(
 	meta_search_candidate_t	retcode;
 
 	Debug( LDAP_DEBUG_TRACE, "%s >>> meta_search_dobind_init[%d]\n",
-		op->o_log_prefix, candidate, 0 );
+		op->o_log_prefix, candidate );
 
 	/*
 	 * all the targets are already bound as pseudoroot
@@ -265,7 +265,7 @@ retry:;
 		snprintf( buf, sizeof( buf ), "meta_search_dobind_init[%d] mc=%p ld=%p rc=%d",
 			candidate, (void *)mc, (void *)mc->mc_conns[ candidate ].msc_ld, rc );
 		Debug( LDAP_DEBUG_ANY, "### %s %s\n",
-			op->o_log_prefix, buf, 0 );
+			op->o_log_prefix, buf );
 	}
 #endif /* DEBUG_205 */
 
@@ -484,7 +484,7 @@ meta_back_search_start(
 		return META_SEARCH_NOT_CANDIDATE;
 	}
 
-	Debug( LDAP_DEBUG_TRACE, "%s >>> meta_back_search_start[%d]\n", op->o_log_prefix, candidate, 0 );
+	Debug( LDAP_DEBUG_TRACE, "%s >>> meta_back_search_start[%d]\n", op->o_log_prefix, candidate );
 
 	/*
 	 * modifies the base according to the scope, if required
@@ -908,7 +908,7 @@ getconn:;
 		if ( sendok & LDAP_BACK_BINDING ) {
 			Debug( LDAP_DEBUG_ANY,
 				"%s meta_back_search: unable to initialize conn\n",
-				op->o_log_prefix, 0, 0 );
+				op->o_log_prefix );
 			rs->sr_err = LDAP_UNAVAILABLE;
 			rs->sr_text = "unable to initialize connection to remote targets";
 			send_ldap_result( op, rs );
@@ -921,7 +921,7 @@ getconn:;
 
 #ifdef DEBUG_205
 		Debug( LDAP_DEBUG_ANY, "*** %s drop mc=%p create new connection\n",
-			op->o_log_prefix, (void *)mc, 0 );
+			op->o_log_prefix, (void *)mc );
 #endif /* DEBUG_205 */
 
 		meta_back_release_conn( mi, mc );
@@ -1142,7 +1142,7 @@ getconn:;
 					META_BACK_CONN_CREATING( &mc->mc_conns[ i ] ) ? " conncreating" : "" );
 				ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
 					
-				Debug( LDAP_DEBUG_ANY, "!!! %s\n", buf, 0, 0 );
+				Debug( LDAP_DEBUG_ANY, "!!! %s\n", buf );
 			}
 #endif /* DEBUG_205 */
 			
@@ -1526,7 +1526,7 @@ really_bad:;
 							candidates[ i ].sr_matched ? candidates[ i ].sr_matched : "",
 							(long) candidates[ i ].sr_err );
 						if ( candidates[ i ].sr_err == LDAP_SUCCESS ) {
-							Debug( LDAP_DEBUG_TRACE, "%s.\n", buf, 0, 0 );
+							Debug( LDAP_DEBUG_TRACE, "%s.\n", buf );
 	
 						} else {
 							Debug( LDAP_DEBUG_ANY, "%s (%s) text=\"%s\".\n",
@@ -1763,7 +1763,7 @@ free_message:;
 								op->o_log_prefix, i, (void *)mc,
 								(void *)mc->mc_conns[i].msc_ld );
 
-							Debug( LDAP_DEBUG_ANY, "### %s\n", buf, 0, 0 );
+							Debug( LDAP_DEBUG_ANY, "### %s\n", buf );
 #endif /* DEBUG_205 */
 
 							meta_clear_one_candidate( op, mc, i );
@@ -2095,7 +2095,7 @@ meta_send_entry(
 		Debug( LDAP_DEBUG_ANY,
 			"%s meta_send_entry(\"%s\"): "
 			"invalid DN syntax\n",
-			op->o_log_prefix, ent.e_name.bv_val, 0 );
+			op->o_log_prefix, ent.e_name.bv_val );
 		rc = LDAP_INVALID_DN_SYNTAX;
 		goto done;
 	}
@@ -2158,7 +2158,7 @@ meta_send_entry(
 					op->o_log_prefix, ent.e_name.bv_val,
 					mapped.bv_val, text );
 
-				Debug( LDAP_DEBUG_ANY, "%s", buf, 0, 0 );
+				Debug( LDAP_DEBUG_ANY, "%s", buf );
 				( void )ber_scanf( &ber, "x" /* [W] */ );
 				attr_free( attr );
 				continue;

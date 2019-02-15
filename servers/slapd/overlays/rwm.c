@@ -1667,7 +1667,7 @@ rwm_suffixmassage_config(
 				       " <massaged suffix>\" without "
 				       "<suffix> part requires database "
 				       "suffix be defined first.\n",
-				fname, lineno, 0 );
+				fname, lineno );
 			return 1;
 		}
 		bvnc = be->be_suffix[ 0 ];
@@ -1681,7 +1681,7 @@ rwm_suffixmassage_config(
  		Debug( LDAP_DEBUG_ANY, "%s: line %d: syntax is"
 			       " \"suffixMassage [<suffix>]"
 			       " <massaged suffix>\"\n",
-			fname, lineno, 0 );
+			fname, lineno );
 		return 1;
 	}
 
@@ -1812,7 +1812,7 @@ rwm_db_config(
 		if ( argc != 2 ) {
 			Debug( LDAP_DEBUG_ANY,
 		"%s: line %d: \"t-f-support {no|yes|discover}\" needs 1 argument.\n",
-					fname, lineno, 0 );
+					fname, lineno );
 			return( 1 );
 		}
 
@@ -1827,7 +1827,7 @@ rwm_db_config(
 			Debug( LDAP_DEBUG_ANY,
 		"%s: line %d: \"discover\" not supported yet "
 		"in \"t-f-support {no|yes|discover}\".\n",
-					fname, lineno, 0 );
+					fname, lineno );
 			return( 1 );
 #if 0
 			rwmap->rwm_flags |= RWM_F_SUPPORT_T_F_DISCOVER;
@@ -1844,7 +1844,7 @@ rwm_db_config(
 		if ( argc !=2 ) { 
 			Debug( LDAP_DEBUG_ANY,
 		"%s: line %d: \"normalize-mapped-attrs {no|yes}\" needs 1 argument.\n",
-					fname, lineno, 0 );
+					fname, lineno );
 			return( 1 );
 		}
 

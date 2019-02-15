@@ -104,7 +104,7 @@ mdb_compare( Operation *op, SlapReply *rs )
 			rs->sr_matched = e->e_name.bv_val;
 		}
 
-		Debug( LDAP_DEBUG_TRACE, "entry is referral\n", 0, 0, 0 );
+		Debug( LDAP_DEBUG_TRACE, "entry is referral\n" );
 
 		send_ldap_result( op, rs );
 

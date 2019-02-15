@@ -331,7 +331,7 @@ authzid_db_init( BackendDB *be, ConfigReply *cr )
 		if ( cr ) {
 			snprintf( cr->msg, sizeof(cr->msg), 
 				"slapo-authzid must be global" );
-			Debug( LDAP_DEBUG_ANY, "%s\n", cr->msg, 0, 0 );
+			Debug( LDAP_DEBUG_ANY, "%s\n", cr->msg );
 		}
 		return 1;
 	}
@@ -344,7 +344,7 @@ authzid_db_init( BackendDB *be, ConfigReply *cr )
 	if ( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY,
 			"authzid_initialize: Failed to register control '%s' (%d)\n",
-			LDAP_CONTROL_AUTHZID_REQUEST, rc, 0 );
+			LDAP_CONTROL_AUTHZID_REQUEST, rc );
 		return rc;
 	}
 

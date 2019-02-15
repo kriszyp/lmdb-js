@@ -116,7 +116,7 @@ asyncmeta_back_search_start(
 		return META_SEARCH_NOT_CANDIDATE;
 	}
 
-	Debug( LDAP_DEBUG_TRACE, "%s >>> asyncmeta_back_search_start[%d]\n", op->o_log_prefix, candidate, 0 );
+	Debug( LDAP_DEBUG_TRACE, "%s >>> asyncmeta_back_search_start[%d]\n", op->o_log_prefix, candidate );
 	/*
 	 * modifies the base according to the scope, if required
 	 */
@@ -550,7 +550,7 @@ asyncmeta_back_search( Operation *op, SlapReply *rs )
 			/* target is already bound, just send the search request */
 			ncandidates++;
 			Debug( LDAP_DEBUG_TRACE, "%s asyncmeta_back_search: IS_CANDIDATE "
-			       "cnd=\"%ld\"\n", op->o_log_prefix, i , 0);
+			       "cnd=\"%ld\"\n", op->o_log_prefix, i );
 
 			rc = asyncmeta_back_search_start( op, rs, mc, bc, i,  NULL, 0 );
 			if (rc == META_SEARCH_ERR) {
@@ -567,7 +567,7 @@ asyncmeta_back_search( Operation *op, SlapReply *rs )
 			break;
 		case META_SEARCH_NOT_CANDIDATE:
 			Debug( LDAP_DEBUG_TRACE, "%s asyncmeta_back_search: NOT_CANDIDATE "
-			       "cnd=\"%ld\"\n", op->o_log_prefix, i , 0);
+			       "cnd=\"%ld\"\n", op->o_log_prefix, i );
 			candidates[ i ].sr_msgid = META_MSGID_IGNORE;
 			break;
 
@@ -599,7 +599,7 @@ asyncmeta_back_search( Operation *op, SlapReply *rs )
 
 		case META_SEARCH_ERR:
 			Debug( LDAP_DEBUG_TRACE, "%s asyncmeta_back_search: SEARCH_ERR "
-			       "cnd=\"%ldd\"\n", op->o_log_prefix, i , 0);
+			       "cnd=\"%ldd\"\n", op->o_log_prefix, i );
 			candidates[ i ].sr_msgid = META_MSGID_IGNORE;
 			candidates[ i ].sr_type = REP_RESULT;
 

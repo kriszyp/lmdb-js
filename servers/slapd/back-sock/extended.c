@@ -33,7 +33,7 @@ sock_back_extended( Operation *op, SlapReply *rs )
 	struct berval b64;
 
 	Debug( LDAP_DEBUG_ARGS, "==> sock_back_extended(%s, %s)\n",
-		op->ore_reqoid.bv_val, op->o_req_dn.bv_val, 0 );
+		op->ore_reqoid.bv_val, op->o_req_dn.bv_val );
 
 	if ( (fp = opensock( si->si_sockpath )) == NULL ) {
 		send_ldap_error( op, rs, LDAP_OTHER,

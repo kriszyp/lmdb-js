@@ -533,7 +533,7 @@ deref_db_init( BackendDB *be, ConfigReply *cr)
 		if ( rc != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_ANY,
 				"deref_init: Failed to register control (%d)\n",
-				rc, 0, 0 );
+				rc );
 			return rc;
 		}
 	}

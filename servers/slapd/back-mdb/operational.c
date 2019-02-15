@@ -68,7 +68,7 @@ mdb_hasSubordinates(
 		Debug(LDAP_DEBUG_ARGS, 
 			"<=- " LDAP_XSTRING(mdb_hasSubordinates)
 			": has_children failed: %s (%d)\n", 
-			mdb_strerror(rc), rc, 0 );
+			mdb_strerror(rc), rc );
 		rc = LDAP_OTHER;
 	}
 

@@ -43,7 +43,7 @@ int mdb_next_id( BackendDB *be, MDB_cursor *mc, ID *out )
 	default:
 		Debug( LDAP_DEBUG_ANY,
 			"=> mdb_next_id: get failed: %s (%d)\n",
-			mdb_strerror(rc), rc, 0 );
+			mdb_strerror(rc), rc );
 		goto done;
 	}
 	mdb->mi_nextid = *out;

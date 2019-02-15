@@ -57,6 +57,6 @@ perl_back_add(
 
 	send_ldap_result( op, rs );
 
-	Debug( LDAP_DEBUG_ANY, "Perl ADD\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_ANY, "Perl ADD\n" );
 	return( 0 );
 }

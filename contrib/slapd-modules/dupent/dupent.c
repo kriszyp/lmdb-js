@@ -535,7 +535,7 @@ dupent_initialize( void )
 	if ( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY,
 			"dupent_initialize: Failed to register control (%d)\n",
-			rc, 0, 0 );
+			rc );
 		return -1;
 	}
 

@@ -56,7 +56,7 @@ value_add(
 		    * sizeof(struct berval) );
 		if( *vals == NULL ) {
 			Debug(LDAP_DEBUG_TRACE,
-		      "value_add: SLAP_MALLOC failed.\n", 0, 0, 0 );
+		      "value_add: SLAP_MALLOC failed.\n" );
 			return LBER_ERROR_MEMORY;
 		}
 		n = 0;
@@ -69,7 +69,7 @@ value_add(
 		    (n + nn + 1) * sizeof(struct berval) );
 		if( *vals == NULL ) {
 			Debug(LDAP_DEBUG_TRACE,
-		      "value_add: SLAP_MALLOC failed.\n", 0, 0, 0 );
+		      "value_add: SLAP_MALLOC failed.\n" );
 			return LBER_ERROR_MEMORY;
 		}
 	}
@@ -96,7 +96,7 @@ value_add_one(
 		*vals = (BerVarray) SLAP_MALLOC( 2 * sizeof(struct berval) );
 		if( *vals == NULL ) {
 			Debug(LDAP_DEBUG_TRACE,
-		      "value_add_one: SLAP_MALLOC failed.\n", 0, 0, 0 );
+		      "value_add_one: SLAP_MALLOC failed.\n" );
 			return LBER_ERROR_MEMORY;
 		}
 		n = 0;
@@ -109,7 +109,7 @@ value_add_one(
 		    (n + 2) * sizeof(struct berval) );
 		if( *vals == NULL ) {
 			Debug(LDAP_DEBUG_TRACE,
-		      "value_add_one: SLAP_MALLOC failed.\n", 0, 0, 0 );
+		      "value_add_one: SLAP_MALLOC failed.\n" );
 			return LBER_ERROR_MEMORY;
 		}
 	}

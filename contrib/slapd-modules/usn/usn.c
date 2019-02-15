@@ -204,8 +204,7 @@ usn_db_init(
 
 	if ( SLAP_ISGLOBALOVERLAY( be ) ) {
 		Debug( LDAP_DEBUG_ANY,
-			"usn must be instantiated within a database.\n",
-			0, 0, 0 );
+			"usn must be instantiated within a database.\n" );
 		return 1;
 	}
 
@@ -312,7 +311,7 @@ usn_init( void )
 		code = register_at( as[i].desc, as[i].adp, 0 );
 		if ( code ) {
 			Debug( LDAP_DEBUG_ANY,
-				"usn_init: register_at #%d failed\n", i, 0, 0 );
+				"usn_init: register_at #%d failed\n", i );
 			return code;
 		}
 	}

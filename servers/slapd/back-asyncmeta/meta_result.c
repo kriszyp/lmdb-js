@@ -181,7 +181,7 @@ asyncmeta_send_entry(
 		Debug( LDAP_DEBUG_ANY,
 			"%s asyncmeta_send_entry(\"%s\"): "
 			"invalid DN syntax\n",
-			op->o_log_prefix, ent.e_name.bv_val, 0 );
+			op->o_log_prefix, ent.e_name.bv_val );
 		rc = LDAP_INVALID_DN_SYNTAX;
 		goto done;
 	}
@@ -240,7 +240,7 @@ asyncmeta_send_entry(
 					op->o_log_prefix, ent.e_name.bv_val,
 					mapped.bv_val, text );
 
-				Debug( LDAP_DEBUG_ANY, "%s", buf, 0, 0 );
+				Debug( LDAP_DEBUG_ANY, "%s", buf );
 				( void )ber_scanf( &ber, "x" /* [W] */ );
 				op->o_tmpfree( attr, op->o_tmpmemctx );
 				continue;
@@ -517,7 +517,7 @@ next_attr:;
 	Debug( LDAP_DEBUG_TRACE,
 	       "%s asyncmeta_send_entry(\"%s\"): "
 	       ".\n",
-	       op->o_log_prefix, ent.e_name.bv_val, 0);
+	       op->o_log_prefix, ent.e_name.bv_val );
 	ldap_get_entry_controls( mc->mc_conns[target].msc_ldr,
 		e, &rs->sr_ctrls );
 	rs->sr_entry = &ent;
@@ -654,7 +654,7 @@ asyncmeta_search_last_result(a_metaconn_t *mc, bm_context_t *bc, int candidate, 
 	Debug( LDAP_DEBUG_TRACE,
 	       "%s asyncmeta_search_last_result(\"%s\"): "
 	       ".\n",
-	       op->o_log_prefix, 0, 0);
+	       op->o_log_prefix, 0 );
 	rs->sr_err = sres;
 	rs->sr_matched = ( sres == LDAP_SUCCESS ? NULL : matched );
 	rs->sr_ref = ( sres == LDAP_REFERRAL ? rs->sr_v2ref : NULL );
@@ -775,7 +775,7 @@ asyncmeta_handle_bind_result(LDAPMessage *msg, a_metaconn_t *mc, bm_context_t *b
 	candidates = bc->candidates;
 	Debug( LDAP_DEBUG_TRACE,
 	       "%s asyncmeta_handle_bind_result[%d]\n",
-	       op->o_log_prefix, candidate, 0);
+	       op->o_log_prefix, candidate );
 	retcode = asyncmeta_dobind_result( op, rs, mc, candidate, candidates, msg );
 	if ( retcode == META_SEARCH_CANDIDATE ) {
 		switch (op->o_tag) {
@@ -865,7 +865,7 @@ asyncmeta_handle_search_msg(LDAPMessage *res, a_metaconn_t *mc, bm_context_t *bc
 		case LDAP_RES_SEARCH_ENTRY:
 			Debug( LDAP_DEBUG_TRACE,
 				"%s asyncmeta_handle_search_msg: msc %p entry\n",
-				op.o_log_prefix, msc, 0);
+				op.o_log_prefix, msc );
 			if ( candidates[ i ].sr_type == REP_INTERMEDIATE ) {
 				/* don't retry any more... */
 				candidates[ i ].sr_type = REP_RESULT;
@@ -991,7 +991,7 @@ asyncmeta_handle_search_msg(LDAPMessage *res, a_metaconn_t *mc, bm_context_t *bc
 		case LDAP_RES_SEARCH_RESULT:
 			Debug( LDAP_DEBUG_TRACE,
 				"%s asyncmeta_handle_search_msg: msc %p result\n",
-				op.o_log_prefix, msc, 0);
+				op.o_log_prefix, msc );
 			candidates[ i ].sr_type = REP_RESULT;
 			candidates[ i ].sr_msgid = META_MSGID_IGNORE;
 			/* NOTE: ignores response controls
@@ -1114,11 +1114,11 @@ asyncmeta_handle_search_msg(LDAPMessage *res, a_metaconn_t *mc, bm_context_t *bc
 					  candidates[ i ].sr_matched ? candidates[ i ].sr_matched : "",
 					  (long) candidates[ i ].sr_err );
 				if ( candidates[ i ].sr_err == LDAP_SUCCESS ) {
-					Debug( LDAP_DEBUG_TRACE, "%s.\n", buf, 0, 0 );
+					Debug( LDAP_DEBUG_TRACE, "%s.\n", buf );
 
 				} else {
 					Debug( LDAP_DEBUG_ANY, "%s (%s).\n",
-						   buf, ldap_err2string( candidates[ i ].sr_err ), 0 );
+						   buf, ldap_err2string( candidates[ i ].sr_err ) );
 								}
 			}
 
@@ -1262,7 +1262,7 @@ got_err:
 			if (asyncmeta_is_last_result(mc, bc, i) == 0) {
 				Debug( LDAP_DEBUG_TRACE,
 					"%s asyncmeta_handle_search_msg: msc %p last result\n",
-					op.o_log_prefix, msc, 0);
+					op.o_log_prefix, msc );
 				asyncmeta_search_last_result(mc, bc, i, sres);
 err_cleanup:
 				rc = rs->sr_err;
@@ -1473,7 +1473,7 @@ asyncmeta_op_read_error(a_metaconn_t *mc, int candidate, int error)
 	/* no outstanding ops, nothing to do but log */
 	Debug( LDAP_DEBUG_ANY,
 	       "asyncmeta_op_read_error: %x\n",
-	       error,0,0 );
+	       error );
 #if 0
 	if (mc->mc_conns[candidate].conn) {
 		Connection *conn = mc->mc_conns[candidate].conn;
@@ -1584,7 +1584,7 @@ again:
 			continue;
 		}
 		Debug(LDAP_DEBUG_TRACE, "asyncmeta_op_handle_result: got msgid %d on msc %p\n",
-			ldap_msgid(msg), msc, 0);
+			ldap_msgid(msg), msc );
 		ldap_pvt_thread_mutex_lock( &mc->mc_om_mutex );
 		bc = asyncmeta_find_message(ldap_msgid(msg), mc, i);
 
@@ -1593,7 +1593,7 @@ again:
 		ldap_pvt_thread_mutex_unlock( &mc->mc_om_mutex );
 		if (!bc) {
 			Debug( LDAP_DEBUG_ANY,
-				"asyncmeta_op_handle_result: Unable to find bc for msguid %d\n", ldap_msgid(msg), 0, 0 );
+				"asyncmeta_op_handle_result: Unable to find bc for msguid %d\n", ldap_msgid(msg) );
 			ldap_msgfree(msg);
 			continue;
 		}
@@ -1651,7 +1651,7 @@ again:
 			Debug( LDAP_DEBUG_ANY,
 				   "asyncmeta_op_handle_result: "
 				   "unrecognized response message tag=%d\n",
-				   rc,0,0 );
+				   rc );
 
 			}
 		}

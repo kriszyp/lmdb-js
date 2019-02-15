@@ -94,7 +94,7 @@ slap_init( int mode, const char *name )
 		slap_debug |= LDAP_DEBUG_NONE;
 		Debug( LDAP_DEBUG_ANY,
 		    "%s: module_init failed\n",
-			name, 0, 0 );
+			name );
 		return 1;
 	}
 #endif
@@ -103,7 +103,7 @@ slap_init( int mode, const char *name )
 		slap_debug |= LDAP_DEBUG_NONE;
 		Debug( LDAP_DEBUG_ANY,
 		    "%s: slap_schema_init failed\n",
-		    name, 0, 0 );
+		    name );
 		return 1;
 	}
 
@@ -111,7 +111,7 @@ slap_init( int mode, const char *name )
 		slap_debug |= LDAP_DEBUG_NONE;
 		Debug( LDAP_DEBUG_ANY,
 		    "%s: filter_init failed\n",
-		    name, 0, 0 );
+		    name );
 		return 1;
 	}
 
@@ -119,7 +119,7 @@ slap_init( int mode, const char *name )
 		slap_debug |= LDAP_DEBUG_NONE;
 		Debug( LDAP_DEBUG_ANY,
 		    "%s: entry_init failed\n",
-		    name, 0, 0 );
+		    name );
 		return 1;
 	}
 
@@ -131,8 +131,7 @@ slap_init( int mode, const char *name )
 	case SLAP_TOOL_MODE:
 		Debug( LDAP_DEBUG_TRACE,
 			"%s init: initiated %s.\n",	name,
-			(mode & SLAP_MODE) == SLAP_TOOL_MODE ? "tool" : "server",
-			0 );
+			(mode & SLAP_MODE) == SLAP_TOOL_MODE ? "tool" : "server" );
 
 		slap_name = name;
 
@@ -160,7 +159,7 @@ slap_init( int mode, const char *name )
 	default:
 		slap_debug |= LDAP_DEBUG_NONE;
 		Debug( LDAP_DEBUG_ANY,
-			"%s init: undefined mode (%d).\n", name, mode, 0 );
+			"%s init: undefined mode (%d).\n", name, mode );
 
 		rc = 1;
 		break;
@@ -170,7 +169,7 @@ slap_init( int mode, const char *name )
 		slap_debug |= LDAP_DEBUG_NONE;
 		Debug( LDAP_DEBUG_ANY,
 		    "%s: slap_controls_init failed\n",
-		    name, 0, 0 );
+		    name );
 		return 1;
 	}
 
@@ -178,7 +177,7 @@ slap_init( int mode, const char *name )
 		slap_debug |= LDAP_DEBUG_NONE;
 		Debug( LDAP_DEBUG_ANY,
 		    "%s: frontend_init failed\n",
-		    name, 0, 0 );
+		    name );
 		return 1;
 	}
 
@@ -186,7 +185,7 @@ slap_init( int mode, const char *name )
 		slap_debug |= LDAP_DEBUG_NONE;
 		Debug( LDAP_DEBUG_ANY,
 		    "%s: overlay_init failed\n",
-		    name, 0, 0 );
+		    name );
 		return 1;
 	}
 
@@ -194,7 +193,7 @@ slap_init( int mode, const char *name )
 		slap_debug |= LDAP_DEBUG_NONE;
 		Debug( LDAP_DEBUG_ANY,
 		    "%s: glue/subordinate init failed\n",
-		    name, 0, 0 );
+		    name );
 
 		return 1;
 	}
@@ -203,7 +202,7 @@ slap_init( int mode, const char *name )
 		slap_debug |= LDAP_DEBUG_NONE;
 		Debug( LDAP_DEBUG_ANY,
 		    "%s: acl_init failed\n",
-		    name, 0, 0 );
+		    name );
 		return 1;
 	}
 
@@ -215,7 +214,7 @@ int slap_startup( Backend *be )
 	int rc;
 	Debug( LDAP_DEBUG_TRACE,
 		"%s startup: initiated.\n",
-		slap_name, 0, 0 );
+		slap_name );
 
 	rc = backend_startup( be );
 	if ( !rc && ( slapMode & SLAP_SERVER_MODE ))
@@ -227,7 +226,7 @@ int slap_shutdown( Backend *be )
 {
 	Debug( LDAP_DEBUG_TRACE,
 		"%s shutdown: initiated\n",
-		slap_name, 0, 0 );
+		slap_name );
 
 	/* Make sure the pool stops now even if we did not start up fully */
 	ldap_pvt_thread_pool_close( &connection_pool, 1 );
@@ -242,7 +241,7 @@ int slap_destroy(void)
 
 	Debug( LDAP_DEBUG_TRACE,
 		"%s destroy: freeing system resources.\n",
-		slap_name, 0, 0 );
+		slap_name );
 
 	if ( default_referral ) {
 		ber_bvarray_free( default_referral );
@@ -270,7 +269,7 @@ int slap_destroy(void)
 
 	default:
 		Debug( LDAP_DEBUG_ANY,
-			"slap_destroy(): undefined mode (%d).\n", slapMode, 0, 0 );
+			"slap_destroy(): undefined mode (%d).\n", slapMode );
 
 		rc = 1;
 		break;

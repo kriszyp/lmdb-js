@@ -52,7 +52,7 @@ rwm_map_config(
 	if ( argc < 3 || argc > 4 ) {
 		Debug( LDAP_DEBUG_ANY,
 	"%s: line %d: syntax is \"map {objectclass | attribute} [<local> | *] {<foreign> | *}\"\n",
-			fname, lineno, 0 );
+			fname, lineno );
 		return 1;
 	}
 
@@ -67,7 +67,7 @@ rwm_map_config(
 		Debug( LDAP_DEBUG_ANY, "%s: line %d: syntax is "
 			"\"map {objectclass | attribute} [<local> | *] "
 			"{<foreign> | *}\"\n",
-			fname, lineno, 0 );
+			fname, lineno );
 		return 1;
 	}
 
@@ -100,7 +100,7 @@ rwm_map_config(
 	{
 		Debug( LDAP_DEBUG_ANY,
 			"%s: line %d: objectclass attribute cannot be mapped\n",
-			fname, lineno, 0 );
+			fname, lineno );
 		return 1;
 	}
 
@@ -109,7 +109,7 @@ rwm_map_config(
 	if ( mapping == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
 			"%s: line %d: out of memory\n",
-			fname, lineno, 0 );
+			fname, lineno );
 		return 1;
 	}
 	ber_str2bv( src, 0, 1, &mapping[0].m_src );
@@ -189,7 +189,7 @@ rwm_map_config(
 	"%s: line %d: source attributeType '%s': %d",
 						fname, lineno, src, rc );
 					Debug( LDAP_DEBUG_ANY, "%s (%s)\n",
-						prefix, text ? text : "null", 0 );
+						prefix, text ? text : "null" );
 					goto error_return;
 				}
 
@@ -213,7 +213,7 @@ rwm_map_config(
 	"%s: line %d: destination attributeType '%s': %d",
 					fname, lineno, dst, rc );
 				Debug( LDAP_DEBUG_ANY, "%s (%s)\n",
-					prefix, text ? text : "null", 0 );
+					prefix, text ? text : "null" );
 				goto error_return;
 			}
 		}
@@ -225,7 +225,7 @@ rwm_map_config(
 	{
 		Debug( LDAP_DEBUG_ANY,
 			"%s: line %d: duplicate mapping found.\n",
-			fname, lineno, 0 );
+			fname, lineno );
 		/* FIXME: free stuff */
 		goto error_return;
 	}

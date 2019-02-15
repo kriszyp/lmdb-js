@@ -44,7 +44,7 @@ mdb_dn2entry(
 	MDB_cursor *mc;
 
 	Debug(LDAP_DEBUG_TRACE, "mdb_dn2entry(\"%s\")\n",
-		dn->bv_val ? dn->bv_val : "", 0, 0 );
+		dn->bv_val ? dn->bv_val : "" );
 
 	*e = NULL;
 

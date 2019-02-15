@@ -49,7 +49,7 @@ meta_back_add( Operation *op, SlapReply *rs )
 	LDAPControl	**ctrls = NULL;
 
 	Debug(LDAP_DEBUG_ARGS, "==> meta_back_add: %s\n",
-			op->o_req_dn.bv_val, 0, 0 );
+			op->o_req_dn.bv_val );
 
 	/*
 	 * get the current connection

@@ -64,7 +64,7 @@ mdb_referrals( Operation *op, SlapReply *rs )
 		Debug( LDAP_DEBUG_TRACE,
 			LDAP_XSTRING(mdb_referrals)
 			": dn2entry failed: %s (%d)\n",
-			mdb_strerror(rc), rc, 0 );
+			mdb_strerror(rc), rc );
 		rs->sr_text = "internal error";
 		rc = LDAP_OTHER;
 		goto done;

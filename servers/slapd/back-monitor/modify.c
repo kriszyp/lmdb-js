@@ -38,7 +38,7 @@ monitor_back_modify( Operation *op, SlapReply *rs )
 	Entry		*matched;
 	Entry		*e;
 
-	Debug(LDAP_DEBUG_ARGS, "monitor_back_modify:\n", 0, 0, 0);
+	Debug(LDAP_DEBUG_ARGS, "monitor_back_modify:\n" );
 
 	/* acquire and lock entry */
 	monitor_cache_dn2entry( op, rs, &op->o_req_ndn, &e, &matched );

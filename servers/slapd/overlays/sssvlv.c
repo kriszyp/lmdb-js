@@ -155,8 +155,7 @@ static struct berval* select_value(
 
 	Debug(LDAP_DEBUG_TRACE, "%s: value selected for compare: %s\n",
 		debug_header,
-		SAFESTR(ber1->bv_val, "<Empty>"),
-		0);
+		SAFESTR(ber1->bv_val, "<Empty>") );
 
 	return ber1;
 }
@@ -1002,7 +1001,7 @@ static int get_ordering_rule(
 			rs->sr_err = LDAP_INAPPROPRIATE_MATCHING;
 			rs->sr_text = "serverSort control: No ordering rule";
 			Debug(LDAP_DEBUG_TRACE, "%s: no ordering rule function for %s\n",
-				debug_header, matchrule->bv_val, 0);
+				debug_header, matchrule->bv_val );
 		}
 	}
 	else {
@@ -1012,7 +1011,7 @@ static int get_ordering_rule(
 			rs->sr_text = "serverSort control: No ordering rule";
 			Debug(LDAP_DEBUG_TRACE,
 				"%s: no ordering rule specified and no default ordering rule for attribute %s\n",
-				debug_header, ad->ad_cname.bv_val, 0);
+				debug_header, ad->ad_cname.bv_val );
 		}
 	}
 
@@ -1096,7 +1095,7 @@ static int build_key(
 			"serverSort control: Unrecognized attribute type in sort key";
 		Debug(LDAP_DEBUG_TRACE,
 			"%s: Unrecognized attribute type in sort key: %s\n",
-			debug_header, SAFESTR(attr.bv_val, "<None>"), 0);
+			debug_header, SAFESTR(attr.bv_val, "<None>") );
 		rs->sr_err = LDAP_NO_SUCH_ATTRIBUTE;
 		return rs->sr_err;
 	}
@@ -1332,7 +1331,7 @@ static int sssvlv_db_init(
 			&sss_cid );
 		if ( rc != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_ANY, "Failed to register Sort Request control '%s' (%d)\n",
-				LDAP_CONTROL_SORTREQUEST, rc, 0 );
+				LDAP_CONTROL_SORTREQUEST, rc );
 			return rc;
 		}
 
@@ -1344,7 +1343,7 @@ static int sssvlv_db_init(
 			&vlv_cid );
 		if ( rc != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_ANY, "Failed to register VLV Request control '%s' (%d)\n",
-				LDAP_CONTROL_VLVREQUEST, rc, 0 );
+				LDAP_CONTROL_VLVREQUEST, rc );
 #ifdef SLAP_CONFIG_DELETE
 			overlay_unregister_control( be, LDAP_CONTROL_SORTREQUEST );
 			unregister_supported_control( LDAP_CONTROL_SORTREQUEST );
@@ -1421,7 +1420,7 @@ int sssvlv_initialize()
 
 	rc = overlay_register( &sssvlv );
 	if ( rc != LDAP_SUCCESS ) {
-		Debug( LDAP_DEBUG_ANY, "Failed to register server side sort overlay\n", 0, 0, 0 );
+		Debug( LDAP_DEBUG_ANY, "Failed to register server side sort overlay\n" );
 	}
 
 	return rc;

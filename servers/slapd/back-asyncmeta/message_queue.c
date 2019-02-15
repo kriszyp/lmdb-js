@@ -365,8 +365,7 @@ void asyncmeta_free_op(Operation *op)
 	case LDAP_REQ_DELETE:
 		break;
 	default:
-		Debug( LDAP_DEBUG_TRACE, "==> asyncmeta_free_op : other message type",
-	       0, 0, 0 );
+		Debug( LDAP_DEBUG_TRACE, "==> asyncmeta_free_op : other message type" );
 	}
 
 	if (op->o_ctrls != NULL) {

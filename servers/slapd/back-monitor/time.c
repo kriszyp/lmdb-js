@@ -59,7 +59,7 @@ monitor_subsys_time_init(
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_time_init: "
 			"unable to get entry \"%s\"\n",
-			ms->mss_ndn.bv_val, 0, 0 );
+			ms->mss_ndn.bv_val );
 		return( -1 );
 	}
 
@@ -74,7 +74,7 @@ monitor_subsys_time_init(
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_time_init: "
 			"unable to create entry \"%s,%s\"\n",
-			bv.bv_val, ms->mss_ndn.bv_val, 0 );
+			bv.bv_val, ms->mss_ndn.bv_val );
 		return( -1 );
 	}
 	attr_merge_normalize_one( e, mi->mi_ad_monitorTimestamp,
@@ -93,7 +93,7 @@ monitor_subsys_time_init(
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_time_init: "
 			"unable to add entry \"%s,%s\"\n",
-			bv.bv_val, ms->mss_ndn.bv_val, 0 );
+			bv.bv_val, ms->mss_ndn.bv_val );
 		return( -1 );
 	}
 	
@@ -110,7 +110,7 @@ monitor_subsys_time_init(
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_time_init: "
 			"unable to create entry \"%s,%s\"\n",
-			bv.bv_val, ms->mss_ndn.bv_val, 0 );
+			bv.bv_val, ms->mss_ndn.bv_val );
 		return( -1 );
 	}
 	attr_merge_normalize_one( e, mi->mi_ad_monitorTimestamp,
@@ -129,7 +129,7 @@ monitor_subsys_time_init(
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_time_init: "
 			"unable to add entry \"%s,%s\"\n",
-			bv.bv_val, ms->mss_ndn.bv_val, 0 );
+			bv.bv_val, ms->mss_ndn.bv_val );
 		return( -1 );
 	}
 	
@@ -146,7 +146,7 @@ monitor_subsys_time_init(
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_time_init: "
 			"unable to create entry \"%s,%s\"\n",
-			bv.bv_val, ms->mss_ndn.bv_val, 0 );
+			bv.bv_val, ms->mss_ndn.bv_val );
 		return( -1 );
 	}
 	BER_BVSTR( &value, "0" );
@@ -166,7 +166,7 @@ monitor_subsys_time_init(
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_time_init: "
 			"unable to add entry \"%s,%s\"\n",
-			bv.bv_val, ms->mss_ndn.bv_val, 0 );
+			bv.bv_val, ms->mss_ndn.bv_val );
 		return( -1 );
 	}
 	

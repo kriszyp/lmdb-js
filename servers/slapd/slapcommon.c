@@ -145,25 +145,25 @@ parse_slapopt( int tool, int *mode )
 
 	} else if ( strncasecmp( optarg, "ssf", len ) == 0 ) {
 		if ( lutil_atou( &ssf, p ) ) {
-			Debug( LDAP_DEBUG_ANY, "unable to parse ssf=\"%s\".\n", p, 0, 0 );
+			Debug( LDAP_DEBUG_ANY, "unable to parse ssf=\"%s\".\n", p );
 			return -1;
 		}
 
 	} else if ( strncasecmp( optarg, "transport_ssf", len ) == 0 ) {
 		if ( lutil_atou( &transport_ssf, p ) ) {
-			Debug( LDAP_DEBUG_ANY, "unable to parse transport_ssf=\"%s\".\n", p, 0, 0 );
+			Debug( LDAP_DEBUG_ANY, "unable to parse transport_ssf=\"%s\".\n", p );
 			return -1;
 		}
 
 	} else if ( strncasecmp( optarg, "tls_ssf", len ) == 0 ) {
 		if ( lutil_atou( &tls_ssf, p ) ) {
-			Debug( LDAP_DEBUG_ANY, "unable to parse tls_ssf=\"%s\".\n", p, 0, 0 );
+			Debug( LDAP_DEBUG_ANY, "unable to parse tls_ssf=\"%s\".\n", p );
 			return -1;
 		}
 
 	} else if ( strncasecmp( optarg, "sasl_ssf", len ) == 0 ) {
 		if ( lutil_atou( &sasl_ssf, p ) ) {
-			Debug( LDAP_DEBUG_ANY, "unable to parse sasl_ssf=\"%s\".\n", p, 0, 0 );
+			Debug( LDAP_DEBUG_ANY, "unable to parse sasl_ssf=\"%s\".\n", p );
 			return -1;
 		}
 
@@ -200,13 +200,13 @@ parse_slapopt( int tool, int *mode )
 			} else if ( strcasecmp( p, "no" ) == 0 ) {
 				*mode |= SLAP_TOOL_NO_SCHEMA_CHECK;
 			} else {
-				Debug( LDAP_DEBUG_ANY, "unable to parse schema-check=\"%s\".\n", p, 0, 0 );
+				Debug( LDAP_DEBUG_ANY, "unable to parse schema-check=\"%s\".\n", p );
 				return -1;
 			}
 			break;
 
 		default:
-			Debug( LDAP_DEBUG_ANY, "schema-check meaningless for tool.\n", 0, 0, 0 );
+			Debug( LDAP_DEBUG_ANY, "schema-check meaningless for tool.\n" );
 			break;
 		}
 
@@ -218,13 +218,13 @@ parse_slapopt( int tool, int *mode )
 			} else if ( strcasecmp( p, "no" ) == 0 ) {
 				*mode &= ~SLAP_TOOL_VALUE_CHECK;
 			} else {
-				Debug( LDAP_DEBUG_ANY, "unable to parse value-check=\"%s\".\n", p, 0, 0 );
+				Debug( LDAP_DEBUG_ANY, "unable to parse value-check=\"%s\".\n", p );
 				return -1;
 			}
 			break;
 
 		default:
-			Debug( LDAP_DEBUG_ANY, "value-check meaningless for tool.\n", 0, 0, 0 );
+			Debug( LDAP_DEBUG_ANY, "value-check meaningless for tool.\n" );
 			break;
 		}
 
@@ -238,7 +238,7 @@ parse_slapopt( int tool, int *mode )
 			} else {
 				unsigned int u;
 				if ( lutil_atou( &u, p ) ) {
-					Debug( LDAP_DEBUG_ANY, "unable to parse ldif_wrap=\"%s\".\n", p, 0, 0 );
+					Debug( LDAP_DEBUG_ANY, "unable to parse ldif_wrap=\"%s\".\n", p );
 					return -1;
 				}
 				ldif_wrap = (ber_len_t)u;
@@ -246,7 +246,7 @@ parse_slapopt( int tool, int *mode )
 			break;
 
 		default:
-			Debug( LDAP_DEBUG_ANY, "ldif-wrap meaningless for tool.\n", 0, 0, 0 );
+			Debug( LDAP_DEBUG_ANY, "ldif-wrap meaningless for tool.\n" );
 			break;
 		}
 
@@ -849,7 +849,7 @@ slap_tool_init(
 			Debug( LDAP_DEBUG_ANY,
 				"The first database does not allow %s;"
 				" using the first available one (%d)\n",
-				progname, dbnum, 0 );
+				progname, dbnum );
 		}
 
 	} else if ( dbnum >= nbackends ) {

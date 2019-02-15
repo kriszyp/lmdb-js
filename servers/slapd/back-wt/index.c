@@ -159,7 +159,7 @@ static int indexer(
 		Debug( LDAP_DEBUG_ANY,
 			   LDAP_XSTRING(indexer)
 			   ": open index cursor failed: %s\n",
-			   atname->bv_val, 0, 0 );
+			   atname->bv_val );
 		goto done;
 	}
 

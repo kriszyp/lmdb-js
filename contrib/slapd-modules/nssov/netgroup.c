@@ -93,7 +93,7 @@ static int write_netgroup_triple(TFILE *fp,const char *triple)
 	/* we should have a bracket now */
 	if (triple[i]!='(')
 	{
-		Debug(LDAP_DEBUG_ANY,"write_netgroup_triple(): entry does not begin with '(' (entry skipped)\n",0,0,0);
+		Debug(LDAP_DEBUG_ANY,"write_netgroup_triple(): entry does not begin with '(' (entry skipped)\n" );
 		return 0;
 	}
 	i++;
@@ -103,7 +103,7 @@ static int write_netgroup_triple(TFILE *fp,const char *triple)
 		/* nothing else to do */ ;
 	if (triple[i]!=',')
 	{
-		Debug(LDAP_DEBUG_ANY,"write_netgroup_triple(): missing ',' (entry skipped)\n",0,0,0);
+		Debug(LDAP_DEBUG_ANY,"write_netgroup_triple(): missing ',' (entry skipped)\n" );
 		return 0;
 	}
 	hoste=i;
@@ -114,7 +114,7 @@ static int write_netgroup_triple(TFILE *fp,const char *triple)
 		/* nothing else to do */ ;
 	if (triple[i]!=',')
 	{
-		Debug(LDAP_DEBUG_ANY,"write_netgroup_triple(): missing ',' (entry skipped)\n",0,0,0);
+		Debug(LDAP_DEBUG_ANY,"write_netgroup_triple(): missing ',' (entry skipped)\n" );
 		return 0;
 	}
 	usere=i;
@@ -125,7 +125,7 @@ static int write_netgroup_triple(TFILE *fp,const char *triple)
 		/* nothing else to do */ ;
 	if (triple[i]!=')')
 	{
-		Debug(LDAP_DEBUG_ANY,"write_netgroup_triple(): missing ')' (entry skipped)\n",0,0,0);
+		Debug(LDAP_DEBUG_ANY,"write_netgroup_triple(): missing ')' (entry skipped)\n" );
 		return 0;
 	}
 	domaine=i;
@@ -136,7 +136,7 @@ static int write_netgroup_triple(TFILE *fp,const char *triple)
 	/* if anything is left in the string we have a problem */
 	if (triple[i]!='\0')
 	{
-		Debug(LDAP_DEBUG_ANY,"write_netgroup_triple(): string contains trailing data (entry skipped)\n",0,0,0);
+		Debug(LDAP_DEBUG_ANY,"write_netgroup_triple(): string contains trailing data (entry skipped)\n" );
 		return 0;
 	}
 	/* write strings */

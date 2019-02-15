@@ -190,7 +190,7 @@ static int indexer(
 	if ( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY,
 			"bdb_index_read: Could not open DB %s\n",
-			atname->bv_val, 0, 0 );
+			atname->bv_val );
 		return LDAP_OTHER;
 	}
 

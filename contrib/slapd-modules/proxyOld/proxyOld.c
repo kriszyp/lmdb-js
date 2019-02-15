@@ -88,12 +88,12 @@ proxyOld_parse(
 	if ( BER_BVISEMPTY( &dn )) {
 		Debug( LDAP_DEBUG_TRACE,
 			"proxyOld_parse: conn=%lu anonymous\n",
-				op->o_connid, 0, 0 );
+				op->o_connid );
 		authzDN.bv_val = ch_strdup("");
 	} else {
 		Debug( LDAP_DEBUG_ARGS,
 			"proxyOld_parse: conn %lu ctrl DN=\"%s\"\n",
-				op->o_connid, dn.bv_val, 0 );
+				op->o_connid, dn.bv_val );
 		rc = dnNormalize( 0, NULL, NULL, &dn, &authzDN, op->o_tmpmemctx );
 		if ( rc != LDAP_SUCCESS ) {
 			goto done;
@@ -112,9 +112,9 @@ proxyOld_parse(
 	op->o_ndn = authzDN;
 	ber_dupbv( &op->o_dn, &authzDN );
 
-	Statslog( LDAP_DEBUG_STATS, "conn=%lu op=%lu PROXYOLD dn=\"%s\"\n",
+	Debug( LDAP_DEBUG_STATS, "conn=%lu op=%lu PROXYOLD dn=\"%s\"\n",
 		op->o_connid, op->o_opid,
-		authzDN.bv_len ? authzDN.bv_val : "anonymous", 0, 0 );
+		authzDN.bv_len ? authzDN.bv_val : "anonymous" );
 	rc = LDAP_SUCCESS;
 done:
 	ber_free( ber, 1 );

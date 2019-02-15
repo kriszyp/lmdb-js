@@ -43,7 +43,7 @@ ldap_back_conn_destroy(
 
 	Debug( LDAP_DEBUG_TRACE,
 		"=>ldap_back_conn_destroy: fetching conn %ld\n",
-		conn->c_connid, 0, 0 );
+		conn->c_connid );
 
 	lc_curr.lc_conn = conn;
 	

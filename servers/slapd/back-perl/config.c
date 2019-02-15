@@ -182,7 +182,7 @@ perl_cf(
 
 				snprintf( c->cr_msg, sizeof( c->cr_msg ), "%s: error %s",
 					c->log, SvPV(ERRSV, len ));
-				Debug( LDAP_DEBUG_ANY, "%s\n", c->cr_msg, 0, 0 );
+				Debug( LDAP_DEBUG_ANY, "%s\n", c->cr_msg );
 				rc = 1;
 			} else {
 				dSP; ENTER; SAVETMPS;

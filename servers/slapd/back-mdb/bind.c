@@ -36,7 +36,7 @@ mdb_bind( Operation *op, SlapReply *rs )
 
 	Debug( LDAP_DEBUG_ARGS,
 		"==> " LDAP_XSTRING(mdb_bind) ": dn: %s\n",
-		op->o_req_dn.bv_val, 0, 0);
+		op->o_req_dn.bv_val );
 
 	/* allow noauth binds */
 	switch ( be_rootdn_bind( op, NULL ) ) {
@@ -89,22 +89,20 @@ mdb_bind( Operation *op, SlapReply *rs )
 	/* check for deleted */
 	if ( is_entry_subentry( e ) ) {
 		/* entry is an subentry, don't allow bind */
-		Debug( LDAP_DEBUG_TRACE, "entry is subentry\n", 0,
-			0, 0 );
+		Debug( LDAP_DEBUG_TRACE, "entry is subentry\n" );
 		rs->sr_err = LDAP_INVALID_CREDENTIALS;
 		goto done;
 	}
 
 	if ( is_entry_alias( e ) ) {
 		/* entry is an alias, don't allow bind */
-		Debug( LDAP_DEBUG_TRACE, "entry is alias\n", 0, 0, 0 );
+		Debug( LDAP_DEBUG_TRACE, "entry is alias\n" );
 		rs->sr_err = LDAP_INVALID_CREDENTIALS;
 		goto done;
 	}
 
 	if ( is_entry_referral( e ) ) {
-		Debug( LDAP_DEBUG_TRACE, "entry is referral\n", 0,
-			0, 0 );
+		Debug( LDAP_DEBUG_TRACE, "entry is referral\n" );
 		rs->sr_err = LDAP_INVALID_CREDENTIALS;
 		goto done;
 	}

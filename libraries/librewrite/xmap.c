@@ -56,14 +56,14 @@ rewrite_xmap_parse(
 	assert( currpos != NULL );
 
 	Debug( LDAP_DEBUG_ARGS, "rewrite_xmap_parse: %s\n",
-			s, 0, 0 );
+			s );
 
 	*currpos = NULL;
 
 	map = calloc( sizeof( struct rewrite_map ), 1 );
 	if ( map == NULL ) {
 		Debug( LDAP_DEBUG_ANY, "rewrite_xmap_parse:"
-				" calloc failed\n", 0, 0, 0 );
+				" calloc failed\n" );
 		return NULL;
 	}
 

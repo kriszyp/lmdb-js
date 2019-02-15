@@ -58,6 +58,6 @@ perl_back_modrdn(
 	
 	send_ldap_result( op, rs );
 
-	Debug( LDAP_DEBUG_ANY, "Perl MODRDN\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_ANY, "Perl MODRDN\n" );
 	return( 0 );
 }

@@ -348,7 +348,7 @@ retry_lock:;
 				assert( !LDAP_BACK_PCONN_ISPRIV( lc ) );
 				Debug( LDAP_DEBUG_TRACE,
 					"=>ldap_back_bind: destroying conn %lu (refcnt=%u)\n",
-					lc->lc_conn->c_connid, lc->lc_refcnt, 0 );
+					lc->lc_conn->c_connid, lc->lc_refcnt );
 
 				if ( tmplc->lc_refcnt != 0 ) {
 					/* taint it */
@@ -1104,7 +1104,7 @@ retry_lock:
 				
 			Debug( LDAP_DEBUG_TRACE,
 				"=>ldap_back_getconn: %s: %s\n",
-				op->o_log_prefix, buf, 0 );
+				op->o_log_prefix, buf );
 		}
 	
 		if ( !LDAP_BACK_PCONN_ISPRIV( lc ) ) {
@@ -1172,7 +1172,7 @@ retry_lock:
 				(void *)lc, refcnt,
 				expiring ? " expiring" : "" );
 			Debug( LDAP_DEBUG_TRACE,
-				"=>ldap_back_getconn: %s.\n", buf, 0, 0 );
+				"=>ldap_back_getconn: %s.\n", buf );
 		}
 	}
 
@@ -1229,7 +1229,7 @@ ldap_back_quarantine(
 
 			Debug( LDAP_DEBUG_ANY,
 				"%s: ldap_back_quarantine enter.\n",
-				op->o_log_prefix, 0, 0 );
+				op->o_log_prefix );
 
 			ri->ri_idx = 0;
 			ri->ri_count = 0;
@@ -1406,7 +1406,7 @@ retry_lock:;
 				LDAP_BACK_DONTSEND, &binddn, &bindcred );
 			if ( rc != 1 ) {
 				Debug( LDAP_DEBUG_ANY, "Error: ldap_back_is_proxy_authz "
-					"returned %d, misconfigured URI?\n", rc, 0, 0 );
+					"returned %d, misconfigured URI?\n", rc );
 				rs->sr_err = LDAP_OTHER;
 				rs->sr_text = "misconfigured URI?";
 				LDAP_BACK_CONN_ISBOUND_CLEAR( lc );
@@ -1438,7 +1438,7 @@ retry_lock:;
 			if ( rc != LDAP_OPT_SUCCESS ) {
 				Debug( LDAP_DEBUG_ANY, "Error: ldap_set_option "
 					"(SECPROPS,\"%s\") failed!\n",
-					sb->sb_secprops, 0, 0 );
+					sb->sb_secprops );
 				goto done;
 			}
 		}
@@ -1506,7 +1506,7 @@ retry:;
 		tmp_dn = "";
 		if ( !BER_BVISNULL( &lc->lc_bound_ndn ) && !BER_BVISEMPTY( &lc->lc_bound_ndn ) ) {
 			Debug( LDAP_DEBUG_ANY, "%s ldap_back_dobind_int: DN=\"%s\" without creds, binding anonymously",
-				op->o_log_prefix, lc->lc_bound_ndn.bv_val, 0 );
+				op->o_log_prefix, lc->lc_bound_ndn.bv_val );
 		}
 
 	} else {
@@ -1872,7 +1872,7 @@ retry:;
 						"%s ldap_back_op_result: "
 						"got referrals with err=%d\n",
 						op->o_log_prefix,
-						rs->sr_err, 0 );
+						rs->sr_err );
 
 				} else {
 					int	i;
@@ -1893,7 +1893,7 @@ retry:;
 					"got err=%d with null "
 					"or empty referrals\n",
 					op->o_log_prefix,
-					rs->sr_err, 0 );
+					rs->sr_err );
 
 				rs->sr_err = LDAP_NO_SUCH_OBJECT;
 			}
@@ -2058,7 +2058,7 @@ ldap_back_retry( ldapconn_t **lcp, Operation *op, SlapReply *rs, ldap_back_send_
 	} else {
 		Debug( LDAP_DEBUG_TRACE,
 			"ldap_back_retry: conn %p refcnt=%u unable to retry.\n",
-			(void *)(*lcp), (*lcp)->lc_refcnt, 0 );
+			(void *)(*lcp), (*lcp)->lc_refcnt );
 
 		LDAP_BACK_CONN_TAINTED_SET( *lcp );
 		ldap_back_release_conn_lock( li, lcp, 0 );
@@ -2373,7 +2373,7 @@ ldap_back_proxy_authz_bind(
 						ctrlsp, NULL );
 					if ( ctrl ) {
 						Debug( LDAP_DEBUG_TRACE, "%s: ldap_back_proxy_authz_bind: authzID=\"%s\" (authzid)\n",
-							op->o_log_prefix, ctrl->ldctl_value.bv_val, 0 );
+							op->o_log_prefix, ctrl->ldctl_value.bv_val );
 						if ( ctrl->ldctl_value.bv_len > STRLENOF("dn:") &&
 							strncasecmp( ctrl->ldctl_value.bv_val, "dn:", STRLENOF("dn:") ) == 0 )
 						{
@@ -2392,7 +2392,7 @@ ldap_back_proxy_authz_bind(
 				rc = ldap_whoami_s( lc->lc_ld, &val, NULL, NULL );
 				if ( rc == LDAP_SUCCESS && val != NULL ) {
 					Debug( LDAP_DEBUG_TRACE, "%s: ldap_back_proxy_authz_bind: authzID=\"%s\" (whoami)\n",
-						op->o_log_prefix, val->bv_val, 0 );
+						op->o_log_prefix, val->bv_val );
 					if ( val->bv_len > STRLENOF("dn:") &&
 						strncasecmp( val->bv_val, "dn:", STRLENOF("dn:") ) == 0 )
 					{

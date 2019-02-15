@@ -170,7 +170,7 @@ slap_access_allowed(
 
 	/* grant database root access */
 	if ( be_isroot( op ) ) {
-		Debug( LDAP_DEBUG_ACL, "<= root access granted\n", 0, 0, 0 );
+		Debug( LDAP_DEBUG_ACL, "<= root access granted\n" );
 		mask = ACL_LVL_MANAGE;
 		goto done;
 	}
@@ -191,7 +191,7 @@ slap_access_allowed(
 	{
 		Debug( LDAP_DEBUG_ACL, "NoUserMod Operational attribute:"
 			" %s access granted\n",
-			attr, 0, 0 );
+			attr );
 		goto done;
 	}
 
@@ -261,10 +261,10 @@ slap_access_allowed(
 				for ( n = dn_data[i].rm_so; 
 				      n < dn_data[i].rm_eo; n++ ) {
 					Debug( LDAP_DEBUG_ACL, "%c", 
-					       data[n], 0, 0 );
+					       data[n] );
 				}
 			}
-			Debug( LDAP_DEBUG_ACL, "\n", 0, 0, 0 );
+			Debug( LDAP_DEBUG_ACL, "\n" );
 		}
 
 		/* val matches */
@@ -279,10 +279,10 @@ slap_access_allowed(
 				for ( n = val_data[i].rm_so; 
 				      n < val_data[i].rm_eo; n++ ) {
 					Debug( LDAP_DEBUG_ACL, "%c", 
-					       data[n], 0, 0 );
+					       data[n] );
 				}
 			}
-			Debug( LDAP_DEBUG_ACL, "\n", 0, 0, 0 );
+			Debug( LDAP_DEBUG_ACL, "\n" );
 		}
 
 		control = slap_acl_mask( a, prev, &mask, op,
@@ -299,12 +299,12 @@ slap_access_allowed(
 	if ( ACL_IS_INVALID( mask ) ) {
 		Debug( LDAP_DEBUG_ACL,
 			"=> slap_access_allowed: \"%s\" (%s) invalid!\n",
-			e->e_dn, attr, 0 );
+			e->e_dn, attr );
 		ACL_PRIV_ASSIGN( mask, *maskp );
 
 	} else if ( control == ACL_BREAK ) {
 		Debug( LDAP_DEBUG_ACL,
-			"=> slap_access_allowed: no more rules\n", 0, 0, 0 );
+			"=> slap_access_allowed: no more rules\n" );
 
 		goto done;
 	}
@@ -413,12 +413,12 @@ access_allowed_mask(
 			{
 			Debug( LDAP_DEBUG_ACL,
 				"=> access_allowed: result was in cache (%s)\n",
-				attr, 0, 0 );
+				attr );
 				return state->as_result;
 		} else {
 			Debug( LDAP_DEBUG_ACL,
 				"=> access_allowed: result not in cache (%s)\n",
-				attr, 0, 0 );
+				attr );
 		}
 	}
 
@@ -461,12 +461,12 @@ access_allowed_mask(
 		if ( ACL_IS_INVALID( mask ) ) {
 			Debug( LDAP_DEBUG_ACL,
 				"=> access_allowed: \"%s\" (%s) invalid!\n",
-				e->e_dn, attr, 0 );
+				e->e_dn, attr );
 			ACL_INIT( mask );
 
 		} else {
 			Debug( LDAP_DEBUG_ACL,
-				"=> access_allowed: no more rules\n", 0, 0, 0 );
+				"=> access_allowed: no more rules\n" );
 
 			goto done;
 		}
@@ -559,7 +559,7 @@ slap_acl_get(
 				ber_len_t patlen;
 
 				Debug( LDAP_DEBUG_ACL, "=> dn: [%d] %s\n", 
-					*count, a->acl_dn_pat.bv_val, 0 );
+					*count, a->acl_dn_pat.bv_val );
 				patlen = a->acl_dn_pat.bv_len;
 				if ( dnlen < patlen )
 					continue;
@@ -602,7 +602,7 @@ slap_acl_get(
 			}
 
 			Debug( LDAP_DEBUG_ACL, "=> acl_get: [%d] matched\n",
-				*count, 0, 0 );
+				*count );
 		}
 
 		if ( a->acl_attrs && !ad_inlist( desc, a->acl_attrs ) ) {
@@ -629,7 +629,7 @@ slap_acl_get(
 			if ( a->acl_attrval_style == ACL_STYLE_REGEX ) {
 				Debug( LDAP_DEBUG_ACL,
 					"acl_get: valpat %s\n",
-					a->acl_attrval.bv_val, 0, 0 );
+					a->acl_attrval.bv_val );
 				if ( regexec ( &a->acl_attrval_re, 
 						    val->bv_val, 
 						    matches->val_count, 
@@ -643,7 +643,7 @@ slap_acl_get(
 				const char *text;
 				Debug( LDAP_DEBUG_ACL,
 					"acl_get: val %s\n",
-					a->acl_attrval.bv_val, 0, 0 );
+					a->acl_attrval.bv_val );
 	
 				if ( a->acl_attrs[0].an_desc->ad_type->sat_syntax != slap_schema.si_syn_distinguishedName ) {
 					if (value_match( &match, desc,
@@ -701,7 +701,7 @@ slap_acl_get(
 		}
 
 		Debug( LDAP_DEBUG_ACL, "=> acl_get: [%d] attr %s\n",
-		       *count, attr, 0);
+		       *count, attr );
 		return a;
 	}
 
@@ -711,7 +711,7 @@ slap_acl_get(
 		goto retry;
 	}
 
-	Debug( LDAP_DEBUG_ACL, "<= acl_get: done.\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_ACL, "<= acl_get: done.\n" );
 	return( NULL );
 }
 
@@ -1033,7 +1033,7 @@ acl_mask_dnattr(
 		return 1;
 	}
 
-	Debug( LDAP_DEBUG_ACL, "<= check a_dn_at: %s\n", attr, 0, 0 );
+	Debug( LDAP_DEBUG_ACL, "<= check a_dn_at: %s\n", attr );
 	bv = *opndn;
 
 	/* see if asker is listed in dnattr */
@@ -1141,7 +1141,7 @@ slap_acl_mask(
 
 	Debug( LDAP_DEBUG_ACL,
 		"=> acl_mask: access to entry \"%s\", attr \"%s\" requested\n",
-		e->e_dn, attr, 0 );
+		e->e_dn, attr );
 
 	Debug( LDAP_DEBUG_ACL,
 		"=> acl_mask: to %s by \"%s\", (%s) \n",
@@ -1191,7 +1191,7 @@ slap_acl_mask(
 		/* AND <who> clauses */
 		if ( !BER_BVISEMPTY( &b->a_dn_pat ) ) {
 			Debug( LDAP_DEBUG_ACL, "<= check a_dn_pat: %s\n",
-				b->a_dn_pat.bv_val, 0, 0);
+				b->a_dn_pat.bv_val );
 			/*
 			 * if access applies to the entry itself, and the
 			 * user is bound as somebody in the same namespace as
@@ -1215,7 +1215,7 @@ slap_acl_mask(
 			struct berval	ndn;
 
 			Debug( LDAP_DEBUG_ACL, "<= check a_realdn_pat: %s\n",
-				b->a_realdn_pat.bv_val, 0, 0);
+				b->a_realdn_pat.bv_val );
 			/*
 			 * if access applies to the entry itself, and the
 			 * user is bound as somebody in the same namespace as
@@ -1247,7 +1247,7 @@ slap_acl_mask(
 				continue;
 			}
 			Debug( LDAP_DEBUG_ACL, "<= check a_sockurl_pat: %s\n",
-				b->a_sockurl_pat.bv_val, 0, 0 );
+				b->a_sockurl_pat.bv_val );
 
 			if ( !ber_bvccmp( &b->a_sockurl_pat, '*' ) ) {
 				if ( b->a_sockurl_style == ACL_STYLE_REGEX) {
@@ -1287,7 +1287,7 @@ slap_acl_mask(
 				continue;
 			}
 			Debug( LDAP_DEBUG_ACL, "<= check a_domain_pat: %s\n",
-				b->a_domain_pat.bv_val, 0, 0 );
+				b->a_domain_pat.bv_val );
 			if ( !ber_bvccmp( &b->a_domain_pat, '*' ) ) {
 				if ( b->a_domain_style == ACL_STYLE_REGEX) {
 					if ( !regex_matches( &b->a_domain_pat, op->o_conn->c_peer_domain.bv_val,
@@ -1341,7 +1341,7 @@ slap_acl_mask(
 				continue;
 			}
 			Debug( LDAP_DEBUG_ACL, "<= check a_peername_path: %s\n",
-				b->a_peername_pat.bv_val, 0, 0 );
+				b->a_peername_pat.bv_val );
 			if ( !ber_bvccmp( &b->a_peername_pat, '*' ) ) {
 				if ( b->a_peername_style == ACL_STYLE_REGEX ) {
 					if ( !regex_matches( &b->a_peername_pat, op->o_conn->c_peer_name.bv_val,
@@ -1493,7 +1493,7 @@ slap_acl_mask(
 				continue;
 			}
 			Debug( LDAP_DEBUG_ACL, "<= check a_sockname_path: %s\n",
-				b->a_sockname_pat.bv_val, 0, 0 );
+				b->a_sockname_pat.bv_val );
 			if ( !ber_bvccmp( &b->a_sockname_pat, '*' ) ) {
 				if ( b->a_sockname_style == ACL_STYLE_REGEX) {
 					if ( !regex_matches( &b->a_sockname_pat, op->o_conn->c_sock_name.bv_val,
@@ -1562,7 +1562,7 @@ slap_acl_mask(
 			}
 
 			Debug( LDAP_DEBUG_ACL, "<= check a_group_pat: %s\n",
-				b->a_group_pat.bv_val, 0, 0 );
+				b->a_group_pat.bv_val );
 
 			/* b->a_group is an unexpanded entry name, expanded it should be an 
 			 * entry with objectclass group* and we test to see if odn is one of
@@ -1657,7 +1657,7 @@ slap_acl_mask(
 			char		buf[ACL_BUF_SIZE];
 
 			Debug( LDAP_DEBUG_ACL, "<= check a_set_pat: %s\n",
-				b->a_set_pat.bv_val, 0, 0 );
+				b->a_set_pat.bv_val );
 
 			if ( b->a_set_style == ACL_STYLE_EXPAND ) {
 				AclRegexMatches	tmp_matches,
@@ -1726,7 +1726,7 @@ slap_acl_mask(
 
 		if ( b->a_authz.sai_ssf ) {
 			Debug( LDAP_DEBUG_ACL, "<= check a_authz.sai_ssf: ACL %u > OP %u\n",
-				b->a_authz.sai_ssf, op->o_ssf, 0 );
+				b->a_authz.sai_ssf, op->o_ssf );
 			if ( b->a_authz.sai_ssf >  op->o_ssf ) {
 				continue;
 			}
@@ -1735,7 +1735,7 @@ slap_acl_mask(
 		if ( b->a_authz.sai_transport_ssf ) {
 			Debug( LDAP_DEBUG_ACL,
 				"<= check a_authz.sai_transport_ssf: ACL %u > OP %u\n",
-				b->a_authz.sai_transport_ssf, op->o_transport_ssf, 0 );
+				b->a_authz.sai_transport_ssf, op->o_transport_ssf );
 			if ( b->a_authz.sai_transport_ssf >  op->o_transport_ssf ) {
 				continue;
 			}
@@ -1744,7 +1744,7 @@ slap_acl_mask(
 		if ( b->a_authz.sai_tls_ssf ) {
 			Debug( LDAP_DEBUG_ACL,
 				"<= check a_authz.sai_tls_ssf: ACL %u > OP %u\n",
-				b->a_authz.sai_tls_ssf, op->o_tls_ssf, 0 );
+				b->a_authz.sai_tls_ssf, op->o_tls_ssf );
 			if ( b->a_authz.sai_tls_ssf >  op->o_tls_ssf ) {
 				continue;
 			}
@@ -1753,7 +1753,7 @@ slap_acl_mask(
 		if ( b->a_authz.sai_sasl_ssf ) {
 			Debug( LDAP_DEBUG_ACL,
 				"<= check a_authz.sai_sasl_ssf: ACL %u > OP %u\n",
-				b->a_authz.sai_sasl_ssf, op->o_sasl_ssf, 0 );
+				b->a_authz.sai_sasl_ssf, op->o_sasl_ssf );
 			if ( b->a_authz.sai_sasl_ssf >	op->o_sasl_ssf ) {
 				continue;
 			}
@@ -1764,8 +1764,7 @@ slap_acl_mask(
 			slap_dynacl_t	*da;
 			slap_access_t	tgrant, tdeny;
 
-			Debug( LDAP_DEBUG_ACL, "<= check a_dynacl\n",
-				0, 0, 0 );
+			Debug( LDAP_DEBUG_ACL, "<= check a_dynacl\n" );
 
 			/* this case works different from the others above.
 			 * since dynamic ACL's themselves give permissions, we need
@@ -1790,7 +1789,7 @@ slap_acl_mask(
 				ACL_INVALIDATE(deny);
 
 				Debug( LDAP_DEBUG_ACL, "    <= check a_dynacl: %s\n",
-					da->da_name, 0, 0 );
+					da->da_name );
 
 				/*
 				 * XXXmanu Only DN matches are supplied 
@@ -1870,7 +1869,7 @@ slap_acl_mask(
 
 		Debug( LDAP_DEBUG_ACL,
 			"<= acl_mask: [%d] mask: %s\n",
-			i, accessmask2str(*mask, accessmaskbuf, 1), 0 );
+			i, accessmask2str(*mask, accessmaskbuf, 1) );
 
 		if( b->a_type == ACL_CONTINUE ) {
 			continue;
@@ -1888,7 +1887,7 @@ slap_acl_mask(
 
 	Debug( LDAP_DEBUG_ACL,
 		"<= acl_mask: no more <who> clauses, returning %s (stop)\n",
-		accessmask2str(*mask, accessmaskbuf, 1), 0, 0 );
+		accessmask2str(*mask, accessmaskbuf, 1) );
 	return ACL_STOP;
 }
 
@@ -1926,8 +1925,7 @@ acl_check_modlist(
 	/* short circuit root database access */
 	if ( be_isroot( op ) ) {
 		Debug( LDAP_DEBUG_ACL,
-			"<= acl_access_allowed: granted to database root\n",
-		    0, 0, 0 );
+			"<= acl_access_allowed: granted to database root\n" );
 		goto done;
 	}
 
@@ -1950,7 +1948,7 @@ acl_check_modlist(
 		if ( mlist->sml_flags & SLAP_MOD_INTERNAL ) {
 			Debug( LDAP_DEBUG_ACL, "acl: internal mod %s:"
 				" modify access granted\n",
-				mlist->sml_desc->ad_cname.bv_val, 0, 0 );
+				mlist->sml_desc->ad_cname.bv_val );
 			continue;
 		}
 
@@ -1964,7 +1962,7 @@ acl_check_modlist(
 		{
 			Debug( LDAP_DEBUG_ACL, "acl: no-user-mod %s:"
 				" modify access granted\n",
-				mlist->sml_desc->ad_cname.bv_val, 0, 0 );
+				mlist->sml_desc->ad_cname.bv_val );
 			continue;
 		}
 
@@ -2185,7 +2183,7 @@ acl_set_gather( SetCookie *cookie, struct berval *name, AttributeDescription *de
 	if ( rc != LDAP_URL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE,
 			"%s acl_set_gather: unable to parse URL=\"%s\"\n",
-			cp->asc_op->o_log_prefix, name->bv_val, 0 );
+			cp->asc_op->o_log_prefix, name->bv_val );
 
 		rc = LDAP_PROTOCOL_ERROR;
 		goto url_done;
@@ -2197,7 +2195,7 @@ acl_set_gather( SetCookie *cookie, struct berval *name, AttributeDescription *de
 		/* extensions parts must be empty */
 		Debug( LDAP_DEBUG_TRACE,
 			"%s acl_set_gather: host/exts must be absent in URL=\"%s\"\n",
-			cp->asc_op->o_log_prefix, name->bv_val, 0 );
+			cp->asc_op->o_log_prefix, name->bv_val );
 
 		rc = LDAP_PROTOCOL_ERROR;
 		goto url_done;
@@ -2211,7 +2209,7 @@ acl_set_gather( SetCookie *cookie, struct berval *name, AttributeDescription *de
 	if ( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE,
 			"%s acl_set_gather: DN=\"%s\" normalize failed\n",
-			cp->asc_op->o_log_prefix, ludp->lud_dn, 0 );
+			cp->asc_op->o_log_prefix, ludp->lud_dn );
 
 		goto url_done;
 	}
@@ -2220,7 +2218,7 @@ acl_set_gather( SetCookie *cookie, struct berval *name, AttributeDescription *de
 	if ( ( op2.o_bd == NULL ) || ( op2.o_bd->be_search == NULL ) ) {
 		Debug( LDAP_DEBUG_TRACE,
 			"%s acl_set_gather: no database could be selected for DN=\"%s\"\n",
-			cp->asc_op->o_log_prefix, op2.o_req_ndn.bv_val, 0 );
+			cp->asc_op->o_log_prefix, op2.o_req_ndn.bv_val );
 
 		rc = LDAP_NO_SUCH_OBJECT;
 		goto url_done;
@@ -2234,7 +2232,7 @@ acl_set_gather( SetCookie *cookie, struct berval *name, AttributeDescription *de
 		if ( op2.ors_filter == NULL ) {
 			Debug( LDAP_DEBUG_TRACE,
 				"%s acl_set_gather: unable to parse filter=\"%s\"\n",
-				cp->asc_op->o_log_prefix, op2.ors_filterstr.bv_val, 0 );
+				cp->asc_op->o_log_prefix, op2.ors_filterstr.bv_val );
 
 			rc = LDAP_PROTOCOL_ERROR;
 			goto url_done;
@@ -2633,7 +2631,7 @@ acl_string_expand(
 	bv->bv_len = size;
 
 	Debug( LDAP_DEBUG_ACL, "=> acl_string_expand: pattern:  %.*s\n", (int)pat->bv_len, pat->bv_val );
-	Debug( LDAP_DEBUG_ACL, "=> acl_string_expand: expanded: %s\n", bv->bv_val, 0, 0 );
+	Debug( LDAP_DEBUG_ACL, "=> acl_string_expand: expanded: %s\n", bv->bv_val );
 
 	return 0;
 }
@@ -2662,7 +2660,7 @@ regex_matches(
 	if ( acl_string_expand( &bv, pat, dn_matches, val_matches, matches )) {
 		Debug( LDAP_DEBUG_TRACE,
 			"expand( \"%s\", \"%s\") failed\n",
-			pat->bv_val, str, 0 );
+			pat->bv_val, str );
 		return( 0 );
 	}
 	rc = regcomp( &re, newbuf, REG_EXTENDED|REG_ICASE );
@@ -2680,10 +2678,10 @@ regex_matches(
 	regfree( &re );
 
 	Debug( LDAP_DEBUG_TRACE,
-	    "=> regex_matches: string:	 %s\n", str, 0, 0 );
+	    "=> regex_matches: string:	 %s\n", str );
 	Debug( LDAP_DEBUG_TRACE,
 	    "=> regex_matches: rc: %d %s\n",
-		rc, !rc ? "matches" : "no matches", 0 );
+		rc, !rc ? "matches" : "no matches" );
 	return( !rc );
 }
 

@@ -435,7 +435,7 @@ mdb_search( Operation *op, SlapReply *rs )
 	mdb_op_info	opinfo = {{{0}}}, *moi = &opinfo;
 	MDB_txn			*ltid = NULL;
 
-	Debug( LDAP_DEBUG_TRACE, "=> " LDAP_XSTRING(mdb_search) "\n", 0, 0, 0);
+	Debug( LDAP_DEBUG_TRACE, "=> " LDAP_XSTRING(mdb_search) "\n" );
 	attrs = op->oq_search.rs_attrs;
 
 	manageDSAit = get_manageDSAit( op );
@@ -608,8 +608,7 @@ dn2entry_retry:
 		}
 
 		Debug( LDAP_DEBUG_TRACE,
-			LDAP_XSTRING(mdb_search) ": entry is referral\n",
-			0, 0, 0 );
+			LDAP_XSTRING(mdb_search) ": entry is referral\n" );
 
 		rs->sr_matched = matched_dn.bv_val;
 		send_ldap_result( op, rs );
@@ -684,8 +683,7 @@ dn2entry_retry:
 
 	if ( candidates[0] == 0 ) {
 		Debug( LDAP_DEBUG_TRACE,
-			LDAP_XSTRING(mdb_search) ": no candidates\n",
-			0, 0, 0 );
+			LDAP_XSTRING(mdb_search) ": no candidates\n" );
 
 		goto nochange;
 	}
@@ -739,8 +737,7 @@ dn2entry_retry:
 		if ( id == NOID ) {
 			Debug( LDAP_DEBUG_TRACE, 
 				LDAP_XSTRING(mdb_search)
-				": no paged results candidates\n",
-				0, 0, 0 );
+				": no paged results candidates\n" );
 			send_paged_response( op, rs, &lastid, 0 );
 
 			rs->sr_err = LDAP_OTHER;
@@ -877,7 +874,7 @@ loop_begin:
 			Debug( LDAP_DEBUG_TRACE,
 				LDAP_XSTRING(mdb_search)
 				": %ld scope not okay\n",
-				(long) id, 0, 0 );
+				(long) id );
 			goto loop_continue;
 		}
 
@@ -898,7 +895,7 @@ notfound:
 					Debug( LDAP_DEBUG_TRACE,
 						LDAP_XSTRING(mdb_search)
 						": candidate %ld not found\n",
-						(long) id, 0, 0 );
+						(long) id );
 				} else {
 					/* get the next ID from the DB */
 					rs->sr_err = mdb_get_nextid( mci, &cursor );
@@ -1116,7 +1113,7 @@ notfound:
 			Debug( LDAP_DEBUG_TRACE,
 				LDAP_XSTRING(mdb_search)
 				": %ld does not match filter\n",
-				(long) id, 0, 0 );
+				(long) id );
 		}
 
 loop_continue:
@@ -1229,7 +1226,7 @@ static int base_candidate(
 	ID		*ids )
 {
 	Debug(LDAP_DEBUG_ARGS, "base_candidates: base: \"%s\" (0x%08lx)\n",
-		e->e_nname.bv_val, (long) e->e_id, 0);
+		e->e_nname.bv_val, (long) e->e_id );
 
 	ids[0] = 1;
 	ids[1] = e->e_id;
@@ -1387,7 +1384,7 @@ static int search_candidates(
 	if( rc ) {
 		Debug(LDAP_DEBUG_TRACE,
 			"mdb_search_candidates: failed (rc=%d)\n",
-			rc, NULL, NULL );
+			rc );
 
 	} else {
 		Debug(LDAP_DEBUG_TRACE,
@@ -1460,7 +1457,7 @@ send_paged_response(
 
 	Debug(LDAP_DEBUG_ARGS,
 		"send_paged_response: lastid=0x%08lx nentries=%d\n", 
-		lastid ? *lastid : 0, rs->sr_nentries, NULL );
+		lastid ? *lastid : 0, rs->sr_nentries );
 
 	ctrls[1] = NULL;
 

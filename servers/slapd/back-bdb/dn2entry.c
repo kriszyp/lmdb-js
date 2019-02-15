@@ -40,7 +40,7 @@ bdb_dn2entry(
 	int rc, rc2;
 
 	Debug(LDAP_DEBUG_TRACE, "bdb_dn2entry(\"%s\")\n",
-		dn->bv_val, 0, 0 );
+		dn->bv_val );
 
 	*e = NULL;
 

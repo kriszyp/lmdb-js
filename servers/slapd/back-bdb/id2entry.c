@@ -330,10 +330,10 @@ int bdb_entry_get(
 	DB_LOCK		lock;
 
 	Debug( LDAP_DEBUG_ARGS,
-		"=> bdb_entry_get: ndn: \"%s\"\n", ndn->bv_val, 0, 0 ); 
+		"=> bdb_entry_get: ndn: \"%s\"\n", ndn->bv_val );
 	Debug( LDAP_DEBUG_ARGS,
 		"=> bdb_entry_get: oc: \"%s\", at: \"%s\"\n",
-		oc ? oc->soc_cname.bv_val : "(null)", at_name, 0);
+		oc ? oc->soc_cname.bv_val : "(null)", at_name );
 
 	if( op ) {
 		OpExtra *oex;
@@ -379,18 +379,18 @@ dn2entry_retry:
 	if (e == NULL) {
 		Debug( LDAP_DEBUG_ACL,
 			"=> bdb_entry_get: cannot find entry: \"%s\"\n",
-				ndn->bv_val, 0, 0 ); 
+				ndn->bv_val );
 		return LDAP_NO_SUCH_OBJECT; 
 	}
 	
 	Debug( LDAP_DEBUG_ACL,
 		"=> bdb_entry_get: found entry: \"%s\"\n",
-		ndn->bv_val, 0, 0 ); 
+		ndn->bv_val );
 
 	if ( oc && !is_entry_objectclass( e, oc, 0 )) {
 		Debug( LDAP_DEBUG_ACL,
 			"<= bdb_entry_get: failed to find objectClass %s\n",
-			oc->soc_cname.bv_val, 0, 0 ); 
+			oc->soc_cname.bv_val );
 		rc = LDAP_NO_SUCH_ATTRIBUTE;
 		goto return_results;
 	}
@@ -399,7 +399,7 @@ dn2entry_retry:
 	if ( at && attr_find( e->e_attrs, at ) == NULL ) {
 		Debug( LDAP_DEBUG_ACL,
 			"<= bdb_entry_get: failed to find attribute %s\n",
-			at->ad_cname.bv_val, 0, 0 ); 
+			at->ad_cname.bv_val );
 		rc = LDAP_NO_SUCH_ATTRIBUTE;
 		goto return_results;
 	}
@@ -441,6 +441,6 @@ return_results:
 
 	Debug( LDAP_DEBUG_TRACE,
 		"bdb_entry_get: rc=%d\n",
-		rc, 0, 0 ); 
+		rc );
 	return(rc);
 }

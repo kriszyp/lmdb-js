@@ -90,7 +90,7 @@ int is_entry_objectclass(
 		Debug( LDAP_DEBUG_ANY, "is_entry_objectclass(\"%s\", \"%s\") "
 			"no objectClass attribute\n",
 			e->e_dn == NULL ? "" : e->e_dn,
-			oc->soc_oclass.oc_oid, 0 );
+			oc->soc_oclass.oc_oid );
 
 		/* mark flags as set */
 		e->e_ocflags |= SLAP_OC__END;

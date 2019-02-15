@@ -43,7 +43,7 @@ mdb_key_read(
 	int kbuf[2];
 #endif
 
-	Debug( LDAP_DEBUG_TRACE, "=> key_read\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "=> key_read\n" );
 
 #ifndef MISALIGNED_OK
 	if (k->bv_len & ALIGNER) {
@@ -62,10 +62,10 @@ mdb_key_read(
 
 	if( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "<= mdb_index_read: failed (%d)\n",
-			rc, 0, 0 );
+			rc );
 	} else {
 		Debug( LDAP_DEBUG_TRACE, "<= mdb_index_read %ld candidates\n",
-			(long) MDB_IDL_N(ids), 0, 0 );
+			(long) MDB_IDL_N(ids) );
 	}
 
 	return rc;

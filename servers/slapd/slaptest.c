@@ -53,7 +53,7 @@ test_file( const char *fname, const char *ftype )
 		if ( !( st.st_mode & S_IWRITE ) ) {
 			Debug( LDAP_DEBUG_ANY, "%s file "
 				"\"%s\" exists, but user does not have access\n",
-				ftype, fname, 0 );
+				ftype, fname );
 			return -1;
 		}
 		break;

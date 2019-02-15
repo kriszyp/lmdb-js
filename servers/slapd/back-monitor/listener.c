@@ -48,7 +48,7 @@ monitor_subsys_listener_init(
 
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_listener_init: "
-			"unable to get listeners\n", 0, 0, 0 );
+			"unable to get listeners\n" );
 		return( -1 );
 	}
 
@@ -58,7 +58,7 @@ monitor_subsys_listener_init(
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_listener_init: "
 			"unable to get entry \"%s\"\n",
-			ms->mss_ndn.bv_val, 0, 0 );
+			ms->mss_ndn.bv_val );
 		return( -1 );
 	}
 
@@ -81,7 +81,7 @@ monitor_subsys_listener_init(
 			Debug( LDAP_DEBUG_ANY,
 				"monitor_subsys_listener_init: "
 				"unable to create entry \"cn=Listener %d,%s\"\n",
-				i, ms->mss_ndn.bv_val, 0 );
+				i, ms->mss_ndn.bv_val );
 			return( -1 );
 		}
 
@@ -123,7 +123,7 @@ monitor_subsys_listener_init(
 			Debug( LDAP_DEBUG_ANY,
 				"monitor_subsys_listener_init: "
 				"unable to add entry \"cn=Listener %d,%s\"\n",
-				i, ms->mss_ndn.bv_val, 0 );
+				i, ms->mss_ndn.bv_val );
 			return( -1 );
 		}
 

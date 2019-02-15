@@ -787,7 +787,7 @@ int slap_bv2undef_ad(
 		Debug( LDAP_DEBUG_ANY,
 			"%s attributeDescription \"%s\" inserted.\n",
 			( flags & SLAP_AD_PROXIED ) ? "PROXIED" : "UNKNOWN",
-			desc->ad_cname.bv_val, 0 );
+			desc->ad_cname.bv_val );
 	}
 
 	if( !*ad ) {
@@ -1145,15 +1145,14 @@ file2anlist( AttributeName *an, const char *fname, const char *brkstr )
 	if ( fp == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
 			"get_attrs_from_file: failed to open attribute list file "
-			"\"%s\": %s\n", fname, strerror(errno), 0 );
+			"\"%s\": %s\n", fname, strerror(errno) );
 		return NULL;
 	}
 
 	lcur = line = (char *) ch_malloc( lmax );
 	if ( !line ) {
 		Debug( LDAP_DEBUG_ANY,
-			"get_attrs_from_file: could not allocate memory\n",
-			0, 0, 0 );
+			"get_attrs_from_file: could not allocate memory\n" );
 		fclose(fp);
 		return NULL;
 	}
@@ -1172,8 +1171,7 @@ file2anlist( AttributeName *an, const char *fname, const char *brkstr )
 			line = (char *) ch_realloc( line, lmax );
 			if ( !line ) {
 				Debug( LDAP_DEBUG_ANY,
-					"get_attrs_from_file: could not allocate memory\n",
-					0, 0, 0 );
+					"get_attrs_from_file: could not allocate memory\n" );
 				fclose(fp);
 				return NULL;
 			}

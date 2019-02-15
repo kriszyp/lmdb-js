@@ -74,7 +74,7 @@ dn2entry_retry:
 		Debug( LDAP_DEBUG_TRACE,
 			LDAP_XSTRING(bdb_referrals)
 			": dn2entry failed: %s (%d)\n",
-			db_strerror(rc), rc, 0 ); 
+			db_strerror(rc), rc );
 		rs->sr_text = "internal error";
 		return LDAP_OTHER;
 	}

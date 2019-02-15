@@ -425,7 +425,7 @@ vc_initialize( void )
 	if ( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY,
 			"vc_initialize: unable to register VerifyCredentials exop: %d.\n",
-			rc, 0, 0 );
+			rc );
 	}
 
 	ldap_pvt_thread_mutex_init( &vc_mutex );

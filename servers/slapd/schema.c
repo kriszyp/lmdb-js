@@ -46,7 +46,7 @@ schema_info( Entry **entry, const char **text )
 	if( e == NULL ) {
 		/* Out of memory, do something about it */
 		Debug( LDAP_DEBUG_ANY, 
-			"schema_info: entry_alloc failed - out of memory.\n", 0, 0, 0 );
+			"schema_info: entry_alloc failed - out of memory.\n" );
 		*text = "out of memory";
 		return LDAP_OTHER;
 	}

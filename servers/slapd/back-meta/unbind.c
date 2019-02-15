@@ -46,7 +46,7 @@ meta_back_conn_destroy(
 	Debug( LDAP_DEBUG_TRACE,
 		"=>meta_back_conn_destroy: fetching conn=%ld DN=\"%s\"\n",
 		conn->c_connid,
-		BER_BVISNULL( &conn->c_ndn ) ? "" : conn->c_ndn.bv_val, 0 );
+		BER_BVISNULL( &conn->c_ndn ) ? "" : conn->c_ndn.bv_val );
 	
 	mc_curr.mc_conn = conn;
 	

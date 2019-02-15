@@ -40,7 +40,7 @@ bdb_dn2id_add(
 	struct berval	ptr, pdn;
 
 	Debug( LDAP_DEBUG_TRACE, "=> bdb_dn2id_add 0x%lx: \"%s\"\n",
-		e->e_id, e->e_ndn, 0 );
+		e->e_id, e->e_ndn );
 	assert( e->e_id != NOID );
 
 	DBTzero( &key );
@@ -136,7 +136,7 @@ bdb_dn2id_add(
 
 done:
 	op->o_tmpfree( buf, op->o_tmpmemctx );
-	Debug( LDAP_DEBUG_TRACE, "<= bdb_dn2id_add 0x%lx: %d\n", e->e_id, rc, 0 );
+	Debug( LDAP_DEBUG_TRACE, "<= bdb_dn2id_add 0x%lx: %d\n", e->e_id, rc );
 	return rc;
 }
 
@@ -155,7 +155,7 @@ bdb_dn2id_delete(
 	int		rc;
 
 	Debug( LDAP_DEBUG_TRACE, "=> bdb_dn2id_delete 0x%lx: \"%s\"\n",
-		e->e_id, e->e_ndn, 0 );
+		e->e_id, e->e_ndn );
 
 	DBTzero( &key );
 	key.size = e->e_nname.bv_len + 2;
@@ -240,7 +240,7 @@ bdb_dn2id_delete(
 
 done:
 	op->o_tmpfree( buf, op->o_tmpmemctx );
-	Debug( LDAP_DEBUG_TRACE, "<= bdb_dn2id_delete 0x%lx: %d\n", e->e_id, rc, 0 );
+	Debug( LDAP_DEBUG_TRACE, "<= bdb_dn2id_delete 0x%lx: %d\n", e->e_id, rc );
 	return rc;
 }
 
@@ -258,7 +258,7 @@ bdb_dn2id(
 	DBT		key, data;
 	ID		nid;
 
-	Debug( LDAP_DEBUG_TRACE, "=> bdb_dn2id(\"%s\")\n", dn->bv_val, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "=> bdb_dn2id(\"%s\")\n", dn->bv_val );
 
 	DBTzero( &key );
 	key.size = dn->bv_len + 2;
@@ -280,11 +280,11 @@ bdb_dn2id(
 
 	if( rc != 0 ) {
 		Debug( LDAP_DEBUG_TRACE, "<= bdb_dn2id: get failed: %s (%d)\n",
-			db_strerror( rc ), rc, 0 );
+			db_strerror( rc ), rc );
 	} else {
 		BDB_DISK2ID( &nid, &ei->bei_id );
 		Debug( LDAP_DEBUG_TRACE, "<= bdb_dn2id: got id=0x%lx\n",
-			ei->bei_id, 0, 0 );
+			ei->bei_id );
 	}
 	op->o_tmpfree( key.data, op->o_tmpmemctx );
 	return rc;
@@ -303,7 +303,7 @@ bdb_dn2id_children(
 	int		rc;
 
 	Debug( LDAP_DEBUG_TRACE, "=> bdb_dn2id_children(\"%s\")\n",
-		e->e_nname.bv_val, 0, 0 );
+		e->e_nname.bv_val );
 	DBTzero( &key );
 	key.size = e->e_nname.bv_len + 2;
 	key.data = op->o_tmpalloc( key.size, op->o_tmpmemctx );
@@ -353,7 +353,7 @@ bdb_dn2idl(
 		? DN_ONE_PREFIX : DN_SUBTREE_PREFIX;
 
 	Debug( LDAP_DEBUG_TRACE, "=> bdb_dn2idl(\"%s\")\n",
-		ndn->bv_val, 0, 0 );
+		ndn->bv_val );
 
 #ifndef	BDB_MULTIPLE_SUFFIXES
 	if ( prefix == DN_SUBTREE_PREFIX
@@ -378,7 +378,7 @@ bdb_dn2idl(
 	if( rc != 0 ) {
 		Debug( LDAP_DEBUG_TRACE,
 			"<= bdb_dn2idl: get failed: %s (%d)\n",
-			db_strerror( rc ), rc, 0 );
+			db_strerror( rc ), rc );
 
 	} else {
 		Debug( LDAP_DEBUG_TRACE,
@@ -516,7 +516,7 @@ hdb_dn2id_add(
 	char *ptr;
 
 	Debug( LDAP_DEBUG_TRACE, "=> hdb_dn2id_add 0x%lx: \"%s\"\n",
-		e->e_id, e->e_ndn, 0 );
+		e->e_id, e->e_ndn );
 
 	nrlen = dn_rdnlen( op->o_bd, &e->e_nname );
 	if (nrlen) {
@@ -593,7 +593,7 @@ hdb_dn2id_add(
 	}
 
 	op->o_tmpfree( d, op->o_tmpmemctx );
-	Debug( LDAP_DEBUG_TRACE, "<= hdb_dn2id_add 0x%lx: %d\n", e->e_id, rc, 0 );
+	Debug( LDAP_DEBUG_TRACE, "<= hdb_dn2id_add 0x%lx: %d\n", e->e_id, rc );
 
 	return rc;
 }
@@ -615,7 +615,7 @@ hdb_dn2id_delete(
 	unsigned char dlen[2];
 
 	Debug( LDAP_DEBUG_TRACE, "=> hdb_dn2id_delete 0x%lx: \"%s\"\n",
-		e->e_id, e->e_ndn, 0 );
+		e->e_id, e->e_ndn );
 
 	DBTzero(&key);
 	key.size = sizeof(ID);
@@ -689,7 +689,7 @@ func_leave:
 			}
 		}
 	}
-	Debug( LDAP_DEBUG_TRACE, "<= hdb_dn2id_delete 0x%lx: %d\n", e->e_id, rc, 0 );
+	Debug( LDAP_DEBUG_TRACE, "<= hdb_dn2id_delete 0x%lx: %d\n", e->e_id, rc );
 	return rc;
 }
 
@@ -711,7 +711,7 @@ hdb_dn2id(
 	unsigned char dlen[2];
 	ID idp, parentID;
 
-	Debug( LDAP_DEBUG_TRACE, "=> hdb_dn2id(\"%s\")\n", in->bv_val, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "=> hdb_dn2id(\"%s\")\n", in->bv_val );
 
 	nrlen = dn_rdnlen( op->o_bd, in );
 	if (!nrlen) nrlen = in->bv_len;
@@ -767,10 +767,10 @@ hdb_dn2id(
 	op->o_tmpfree( d, op->o_tmpmemctx );
 	if( rc != 0 ) {
 		Debug( LDAP_DEBUG_TRACE, "<= hdb_dn2id: get failed: %s (%d)\n",
-			db_strerror( rc ), rc, 0 );
+			db_strerror( rc ), rc );
 	} else {
 		Debug( LDAP_DEBUG_TRACE, "<= hdb_dn2id: got id=0x%lx\n",
-			ei->bei_id, 0, 0 );
+			ei->bei_id );
 	}
 
 	return rc;
@@ -1151,7 +1151,7 @@ hdb_dn2idl(
 	struct dn2id_cookie cx;
 
 	Debug( LDAP_DEBUG_TRACE, "=> hdb_dn2idl(\"%s\")\n",
-		ndn->bv_val, 0, 0 );
+		ndn->bv_val );
 
 #ifndef BDB_MULTIPLE_SUFFIXES
 	if ( op->ors_scope != LDAP_SCOPE_ONELEVEL && 

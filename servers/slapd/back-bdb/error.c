@@ -32,7 +32,7 @@ void bdb_errcall( const DB_ENV *env, const char *pfx, const char * msg )
 	if ( msg[0] > 0x7f )
 		__etoa( msg );
 #endif
-	Debug( LDAP_DEBUG_ANY, "bdb(%s): %s\n", pfx, msg, 0 );
+	Debug( LDAP_DEBUG_ANY, "bdb(%s): %s\n", pfx, msg );
 }
 
 #if DB_VERSION_FULL >= 0x04030000
@@ -42,7 +42,7 @@ void bdb_msgcall( const DB_ENV *env, const char *msg )
 	if ( msg[0] > 0x7f )
 		__etoa( msg );
 #endif
-	Debug( LDAP_DEBUG_TRACE, "bdb: %s\n", msg, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "bdb: %s\n", msg );
 }
 #endif
 

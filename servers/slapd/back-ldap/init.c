@@ -209,7 +209,7 @@ ldap_back_db_open( BackendDB *be, ConfigReply *cr )
 
 	Debug( LDAP_DEBUG_TRACE,
 		"ldap_back_db_open: URI=%s\n",
-		li->li_uri != NULL ? li->li_uri : "", 0, 0 );
+		li->li_uri != NULL ? li->li_uri : "" );
 
 	/* by default, use proxyAuthz control on each operation */
 	switch ( li->li_idassert_mode ) {

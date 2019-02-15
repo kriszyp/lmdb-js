@@ -462,7 +462,7 @@ register_at( char *def, AttributeDescription **rad, int dupok )
 	}
 	if ( code ) {
 		Debug( LDAP_DEBUG_ANY, "register_at: AttributeType \"%s\": %s\n",
-			def, err, 0 );
+			def, err );
 	}
 	if ( rad ) *rad = ad;
 	return code;
@@ -488,7 +488,7 @@ aa_initialize( void )
 		code = register_at( aa_attrs[i].at, aa_attrs[i].ad, 0 );
 		if ( code ) {
 			Debug( LDAP_DEBUG_ANY,
-				"aa_initialize: register_at failed\n", 0, 0, 0 );
+				"aa_initialize: register_at failed\n" );
 			return -1;
 		}
 	}

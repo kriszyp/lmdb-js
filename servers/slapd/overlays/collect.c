@@ -206,7 +206,7 @@ collect_cf( ConfigArgs *c )
 			snprintf( c->cr_msg, sizeof( c->cr_msg ), "%s invalid DN: \"%s\"",
 				c->argv[0], c->argv[1] );
 			Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
-				"%s: %s\n", c->log, c->cr_msg, 0 );
+				"%s: %s\n", c->log, c->cr_msg );
 			return ARG_BAD_CONF;
 		}
 
@@ -226,7 +226,7 @@ collect_cf( ConfigArgs *c )
 			snprintf( c->cr_msg, sizeof( c->cr_msg ), "%s DN already configured: \"%s\"",
 				c->argv[0], c->argv[1] );
 			Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
-				"%s: %s\n", c->log, c->cr_msg, 0 );
+				"%s: %s\n", c->log, c->cr_msg );
 			return ARG_BAD_CONF;
 		}
 
@@ -244,7 +244,7 @@ collect_cf( ConfigArgs *c )
 					"%s attribute description unknown: \"%s\"",
 					c->argv[0], arg);
 				Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
-					"%s: %s\n", c->log, c->cr_msg, 0 );
+					"%s: %s\n", c->log, c->cr_msg );
 				ch_free( ci );
 				return ARG_BAD_CONF;
 			}

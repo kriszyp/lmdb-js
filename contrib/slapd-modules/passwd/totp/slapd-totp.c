@@ -744,7 +744,7 @@ static int totp_db_open(
 			if (rc) {
 				snprintf(cr->msg, sizeof(cr->msg), "unable to find or register authTimestamp attribute: %s (%d)",
 					text, rc);
-				Debug(LDAP_DEBUG_ANY, "totp: %s.\n", cr->msg, 0, 0);
+				Debug(LDAP_DEBUG_ANY, "totp: %s.\n", cr->msg );
 			}
 			ad_authTimestamp->ad_type->sat_flags |= SLAP_AT_MANAGEABLE;
 		}

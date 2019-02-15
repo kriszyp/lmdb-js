@@ -56,7 +56,7 @@ slap_init_user( char *user, char *group )
 	    got_uid = 1;
 	    if ( lutil_atou( &u, user ) != 0 ) {
 		Debug( LDAP_DEBUG_ANY, "Unble to parse user %s\n",
-		       user, 0, 0 );
+		       user );
 
 		exit( EXIT_FAILURE );
 	    }
@@ -73,7 +73,7 @@ slap_init_user( char *user, char *group )
 	did_getpw:
 	    if ( pwd == NULL ) {
 		Debug( LDAP_DEBUG_ANY, "No passwd entry for user %s\n",
-		       user, 0, 0 );
+		       user );
 
 		exit( EXIT_FAILURE );
 	    }
@@ -99,7 +99,7 @@ slap_init_user( char *user, char *group )
 
 	    if ( lutil_atou( &g, group ) != 0 ) {
 		Debug( LDAP_DEBUG_ANY, "Unble to parse group %s\n",
-		       group, 0, 0 );
+		       group );
 
 		exit( EXIT_FAILURE );
 	    }
@@ -115,7 +115,7 @@ slap_init_user( char *user, char *group )
 	did_group:
 	    if ( grp == NULL ) {
 		Debug( LDAP_DEBUG_ANY, "No group entry for group %s\n",
-		       group, 0, 0 );
+		       group );
 
 		exit( EXIT_FAILURE );
 	    }
@@ -127,7 +127,7 @@ slap_init_user( char *user, char *group )
     if ( user ) {
 	if ( getuid() == 0 && initgroups( user, gid ) != 0 ) {
 	    Debug( LDAP_DEBUG_ANY,
-		   "Could not set the group access (gid) list\n", 0, 0, 0 );
+		   "Could not set the group access (gid) list\n" );
 
 	    exit( EXIT_FAILURE );
 	}
@@ -141,14 +141,14 @@ slap_init_user( char *user, char *group )
     if ( got_gid ) {
 	if ( setgid( gid ) != 0 ) {
 	    Debug( LDAP_DEBUG_ANY, "Could not set real group id to %d\n",
-		       (int) gid, 0, 0 );
+		       (int) gid );
 
 	    exit( EXIT_FAILURE );
 	}
 #ifdef HAVE_SETEGID
 	if ( setegid( gid ) != 0 ) {
 	    Debug( LDAP_DEBUG_ANY, "Could not set effective group id to %d\n",
-		       (int) gid, 0, 0 );
+		       (int) gid );
 
 	    exit( EXIT_FAILURE );
 	}
@@ -158,14 +158,14 @@ slap_init_user( char *user, char *group )
     if ( got_uid ) {
 	if ( setuid( uid ) != 0 ) {
 	    Debug( LDAP_DEBUG_ANY, "Could not set real user id to %d\n",
-		       (int) uid, 0, 0 );
+		       (int) uid );
 
 	    exit( EXIT_FAILURE );
 	}
 #ifdef HAVE_SETEUID
 	if ( seteuid( uid ) != 0 ) {
 	    Debug( LDAP_DEBUG_ANY, "Could not set effective user id to %d\n",
-		       (int) uid, 0, 0 );
+		       (int) uid );
 
 	    exit( EXIT_FAILURE );
 	}

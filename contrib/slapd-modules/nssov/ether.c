@@ -77,7 +77,7 @@ static int write_ether(nssov_ether_cbp *cbp,Entry *entry)
 		if ( !a )
 		{
 			Debug(LDAP_DEBUG_ANY,"ether entry %s does not contain %s value\n",
-							entry->e_name.bv_val,cbp->mi->mi_attrs[0].an_desc->ad_cname.bv_val,0 );
+							entry->e_name.bv_val,cbp->mi->mi_attrs[0].an_desc->ad_cname.bv_val );
 			return 0;
 		}
 		names = a->a_vals;
@@ -95,7 +95,7 @@ static int write_ether(nssov_ether_cbp *cbp,Entry *entry)
 		if ( !a )
 		{
 			Debug(LDAP_DEBUG_ANY,"ether entry %s does not contain %s value\n",
-							entry->e_name.bv_val,cbp->mi->mi_attrs[1].an_desc->ad_cname.bv_val,0 );
+							entry->e_name.bv_val,cbp->mi->mi_attrs[1].an_desc->ad_cname.bv_val );
 			return 0;
 		}
 		ethers = a->a_vals;

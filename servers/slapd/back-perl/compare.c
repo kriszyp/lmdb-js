@@ -73,7 +73,7 @@ perl_back_compare(
 
 	send_ldap_result( op, rs );
 
-	Debug( LDAP_DEBUG_ANY, "Perl COMPARE\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_ANY, "Perl COMPARE\n" );
 
 	return (0);
 }

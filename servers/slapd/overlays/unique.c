@@ -211,7 +211,7 @@ unique_new_domain_uri ( unique_domain_uri **urip,
 			snprintf( c->cr_msg, sizeof( c->cr_msg ),
 				  "suffix must be set" );
 			Debug ( LDAP_DEBUG_CONFIG, "unique config: %s\n",
-				c->cr_msg, NULL, NULL );
+				c->cr_msg );
 			rc = ARG_BAD_CONF;
 			goto exit;
 		}
@@ -229,7 +229,7 @@ unique_new_domain_uri ( unique_domain_uri **urip,
 			Debug( LDAP_DEBUG_ANY,
 				"slapo-unique needs a rootdn; "
 				"backend <%s> has none, YMMV.\n",
-				be->be_nsuffix[0].bv_val, 0, 0 );
+				be->be_nsuffix[0].bv_val );
 		}
 	}
 
@@ -288,7 +288,7 @@ exit:
 	*urip = uri;
 	if ( rc ) {
 		Debug ( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
-			"%s: %s\n", c->log, c->cr_msg, 0 );
+			"%s: %s\n", c->log, c->cr_msg );
 		unique_free_domain_uri ( uri );
 		*urip = NULL;
 	}
@@ -335,7 +335,7 @@ unique_new_domain ( unique_domain **domainp,
 	LDAPURLDesc *url_desc, *url_descs = NULL;
 
 	Debug(LDAP_DEBUG_TRACE, "==> unique_new_domain <%s>\n",
-	      domain_spec, 0, 0);
+	      domain_spec );
 
 	domain = ch_calloc ( 1, sizeof (unique_domain) );
 	ber_str2bv( domain_spec, 0, 1, &domain->domain_spec );
@@ -385,7 +385,7 @@ exit:
 	*domainp = domain;
 	if ( rc ) {
 		Debug ( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
-			"%s: %s\n", c->log, c->cr_msg, 0 );
+			"%s: %s\n", c->log, c->cr_msg );
 		unique_free_domain ( domain );
 		*domainp = NULL;
 	}
@@ -436,7 +436,7 @@ unique_cf_base( ConfigArgs *c )
 			snprintf( c->cr_msg, sizeof( c->cr_msg ),
 				  "cannot set legacy attrs when URIs are present" );
 			Debug ( LDAP_DEBUG_CONFIG, "unique config: %s\n",
-				c->cr_msg, NULL, NULL );
+				c->cr_msg );
 			rc = ARG_BAD_CONF;
 			break;
 		}
@@ -444,7 +444,7 @@ unique_cf_base( ConfigArgs *c )
 			snprintf( c->cr_msg, sizeof( c->cr_msg ),
 				  "suffix must be set" );
 			Debug ( LDAP_DEBUG_CONFIG, "unique config: %s\n",
-				c->cr_msg, NULL, NULL );
+				c->cr_msg );
 			rc = ARG_BAD_CONF;
 			break;
 		}
@@ -453,7 +453,7 @@ unique_cf_base( ConfigArgs *c )
 			snprintf( c->cr_msg, sizeof( c->cr_msg ),
 				  "dn is not a suffix of backend base" );
 			Debug ( LDAP_DEBUG_CONFIG, "unique config: %s\n",
-				c->cr_msg, NULL, NULL );
+				c->cr_msg );
 			rc = ARG_BAD_CONF;
 			break;
 		}
@@ -549,7 +549,7 @@ unique_cf_attrs( ConfigArgs *c )
 			snprintf( c->cr_msg, sizeof( c->cr_msg ),
 				  "cannot set legacy attrs when URIs are present" );
 			Debug ( LDAP_DEBUG_CONFIG, "unique config: %s\n",
-				c->cr_msg, NULL, NULL );
+				c->cr_msg );
 			rc = ARG_BAD_CONF;
 			break;
 		}
@@ -560,7 +560,7 @@ unique_cf_attrs( ConfigArgs *c )
 			snprintf( c->cr_msg, sizeof( c->cr_msg ),
 				  "cannot set both attrs and ignore-attrs" );
 			Debug ( LDAP_DEBUG_CONFIG, "unique config: %s\n",
-				c->cr_msg, NULL, NULL );
+				c->cr_msg );
 			rc = ARG_BAD_CONF;
 			break;
 		}
@@ -622,7 +622,7 @@ unique_cf_attrs( ConfigArgs *c )
 
 	if ( rc ) {
 		Debug ( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
-			"%s: %s\n", c->log, c->cr_msg, 0 );
+			"%s: %s\n", c->log, c->cr_msg );
 	}
 	return rc;
 }
@@ -670,7 +670,7 @@ unique_cf_strict( ConfigArgs *c )
 			snprintf( c->cr_msg, sizeof( c->cr_msg ),
 				  "cannot set legacy attrs when URIs are present" );
 			Debug ( LDAP_DEBUG_CONFIG, "unique config: %s\n",
-				c->cr_msg, NULL, NULL );
+				c->cr_msg );
 			rc = ARG_BAD_CONF;
 			break;
 		}
@@ -752,7 +752,7 @@ unique_cf_uri( ConfigArgs *c )
 			snprintf( c->cr_msg, sizeof( c->cr_msg ),
 				  "cannot set Uri when legacy attrs are present" );
 			Debug ( LDAP_DEBUG_CONFIG, "unique config: %s\n",
-				c->cr_msg, NULL, NULL );
+				c->cr_msg );
 			rc = ARG_BAD_CONF;
 			break;
 		}
@@ -791,7 +791,7 @@ unique_db_init(
 	slap_overinst *on = (slap_overinst *)be->bd_info;
 	unique_data **privatep = (unique_data **) &on->on_bi.bi_private;
 
-	Debug(LDAP_DEBUG_TRACE, "==> unique_db_init\n", 0, 0, 0);
+	Debug(LDAP_DEBUG_TRACE, "==> unique_db_init\n" );
 
 	*privatep = ch_calloc ( 1, sizeof ( unique_data ) );
 
@@ -808,7 +808,7 @@ unique_db_destroy(
 	unique_data **privatep = (unique_data **) &on->on_bi.bi_private;
 	unique_data *private = *privatep;
 
-	Debug(LDAP_DEBUG_TRACE, "==> unique_db_destroy\n", 0, 0, 0);
+	Debug(LDAP_DEBUG_TRACE, "==> unique_db_destroy\n" );
 
 	if ( private ) {
 		unique_domain *domains = private->domains;
@@ -849,7 +849,7 @@ static int count_attr_cb(
 	if ( dn_match( uc->ndn, &rs->sr_entry->e_nname )) return(0);
 
 	Debug(LDAP_DEBUG_TRACE, "==> count_attr_cb <%s>\n",
-		rs->sr_entry ? rs->sr_entry->e_name.bv_val : "UNKNOWN_DN", 0, 0);
+		rs->sr_entry ? rs->sr_entry->e_name.bv_val : "UNKNOWN_DN" );
 
 	uc->count++;
 
@@ -968,7 +968,7 @@ unique_search(
 	char *errmsg;
 	int errmsgsize;
 
-	Debug(LDAP_DEBUG_TRACE, "==> unique_search %s\n", key->bv_val, 0, 0);
+	Debug(LDAP_DEBUG_TRACE, "==> unique_search %s\n", key->bv_val );
 
 	nop->ors_filter = str2filter_x(nop, key->bv_val);
 	if(nop->ors_filter == NULL) {
@@ -1006,7 +1006,7 @@ unique_search(
 		send_ldap_error(op, rs, rc, "unique_search failed");
 		rc = rs->sr_err;
 	} else if(uq.count) {
-		Debug(LDAP_DEBUG_TRACE, "=> unique_search found %d records\n", uq.count, 0, 0);
+		Debug(LDAP_DEBUG_TRACE, "=> unique_search found %d records\n", uq.count );
 
 		errmsgsize = sizeof("non-unique attributes found with ") + key->bv_len;
 		errmsg = op->o_tmpalloc(errmsgsize, op->o_tmpmemctx);
@@ -1016,7 +1016,7 @@ unique_search(
 		op->o_tmpfree(errmsg, op->o_tmpmemctx);
 		rc = rs->sr_err;
 	} else {
-		Debug(LDAP_DEBUG_TRACE, "=> unique_search found no records\n", 0, 0, 0);
+		Debug(LDAP_DEBUG_TRACE, "=> unique_search found no records\n" );
 		rc = SLAP_CB_CONTINUE;
 	}
 
@@ -1043,7 +1043,7 @@ unique_add(
 	int rc = SLAP_CB_CONTINUE;
 
 	Debug(LDAP_DEBUG_TRACE, "==> unique_add <%s>\n",
-	      op->o_req_dn.bv_val, 0, 0);
+	      op->o_req_dn.bv_val );
 
 	/* skip the checks if the operation has manageDsaIt control in it
 	 * (for replication) */
@@ -1051,7 +1051,7 @@ unique_add(
 	     && access_allowed ( op, op->ora_e,
 				 slap_schema.si_ad_entry, NULL,
 				 ACL_MANAGE, NULL ) ) {
-		Debug(LDAP_DEBUG_TRACE, "unique_add: administrative bypass, skipping\n", 0, 0, 0);
+		Debug(LDAP_DEBUG_TRACE, "unique_add: administrative bypass, skipping\n" );
 		return rc;
 	}
 
@@ -1078,7 +1078,7 @@ unique_add(
 				{
 					Debug( LDAP_DEBUG_TRACE,
 						"==> unique_add_skip<%s>\n",
-						op->o_req_dn.bv_val, 0, 0 );
+						op->o_req_dn.bv_val );
 					continue;
 				}
 			}
@@ -1175,10 +1175,10 @@ unique_modify(
 	int rc = SLAP_CB_CONTINUE;
 
 	Debug(LDAP_DEBUG_TRACE, "==> unique_modify <%s>\n",
-	      op->o_req_dn.bv_val, 0, 0);
+	      op->o_req_dn.bv_val );
 
 	if ( !op->orm_modlist ) {
-		Debug(LDAP_DEBUG_TRACE, "unique_modify: got empty modify op\n", 0, 0, 0);
+		Debug(LDAP_DEBUG_TRACE, "unique_modify: got empty modify op\n" );
 		return rc;
 	}
 
@@ -1190,7 +1190,7 @@ unique_modify(
 	     && access_allowed ( op, e,
 				 slap_schema.si_ad_entry, NULL,
 				 ACL_MANAGE, NULL ) ) {
-		Debug(LDAP_DEBUG_TRACE, "unique_modify: administrative bypass, skipping\n", 0, 0, 0);
+		Debug(LDAP_DEBUG_TRACE, "unique_modify: administrative bypass, skipping\n" );
 		overlay_entry_release_ov( op, e, 0, on );
 		return rc;
 	}
@@ -1303,7 +1303,7 @@ unique_modrdn(
 	int rc = SLAP_CB_CONTINUE;
 
 	Debug(LDAP_DEBUG_TRACE, "==> unique_modrdn <%s> <%s>\n",
-		op->o_req_dn.bv_val, op->orr_newrdn.bv_val, 0);
+		op->o_req_dn.bv_val, op->orr_newrdn.bv_val );
 
 	/* skip the checks if the operation has manageDsaIt control in it
 	 * (for replication) */
@@ -1313,7 +1313,7 @@ unique_modrdn(
 	     && access_allowed ( op, e,
 				 slap_schema.si_ad_entry, NULL,
 				 ACL_MANAGE, NULL ) ) {
-		Debug(LDAP_DEBUG_TRACE, "unique_modrdn: administrative bypass, skipping\n", 0, 0, 0);
+		Debug(LDAP_DEBUG_TRACE, "unique_modrdn: administrative bypass, skipping\n" );
 		overlay_entry_release_ov( op, e, 0, on );
 		return rc;
 	}

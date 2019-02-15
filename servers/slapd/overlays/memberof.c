@@ -435,7 +435,7 @@ memberof_value_modify(
 				"memberof_value_modify DN=\"%s\" add %s=\"%s\" failed err=%d",
 				op2.o_req_dn.bv_val, ad->ad_cname.bv_val, new_dn->bv_val, rs2.sr_err );
 			Debug( LDAP_DEBUG_ANY, "%s: %s\n",
-				op->o_log_prefix, buf, 0 );
+				op->o_log_prefix, buf );
 		}
 
 		assert( op2.orm_modlist == &mod[ mcnt ] );
@@ -477,7 +477,7 @@ memberof_value_modify(
 				"memberof_value_modify DN=\"%s\" delete %s=\"%s\" failed err=%d",
 				op2.o_req_dn.bv_val, ad->ad_cname.bv_val, old_dn->bv_val, rs2.sr_err );
 			Debug( LDAP_DEBUG_ANY, "%s: %s\n",
-				op->o_log_prefix, buf, 0 );
+				op->o_log_prefix, buf );
 		}
 
 		assert( op2.orm_modlist == &mod[ mcnt ] );
@@ -543,7 +543,7 @@ memberof_op_add( Operation *op, SlapReply *rs )
 		Debug( LDAP_DEBUG_ANY, "%s: memberof_op_add(\"%s\"): "
 			"consistency checks not implemented when overlay "
 			"is instantiated as global.\n",
-			op->o_log_prefix, op->o_req_dn.bv_val, 0 );
+			op->o_log_prefix, op->o_req_dn.bv_val );
 		return SLAP_CB_CONTINUE;
 	}
 
@@ -1649,7 +1649,7 @@ memberof_db_init(
 			Debug( LDAP_DEBUG_ANY,
 					"memberof_db_init: "
 					"unable to find objectClass=\"%s\"\n",
-					SLAPD_GROUP_CLASS, 0, 0 );
+					SLAPD_GROUP_CLASS );
 			return 1;
 		}
 	}
@@ -2023,7 +2023,7 @@ mo_cf_gen( ConfigArgs *c )
 					"unable to find group objectClass=\"%s\"",
 					c->argv[ 1 ] );
 				Debug( LDAP_DEBUG_CONFIG, "%s: %s.\n",
-					c->log, c->cr_msg, 0 );
+					c->log, c->cr_msg );
 				return 1;
 			}
 
@@ -2042,7 +2042,7 @@ mo_cf_gen( ConfigArgs *c )
 					"have DN (%s) or nameUID (%s) syntax",
 					c->argv[ 1 ], SLAPD_DN_SYNTAX, SLAPD_NAMEUID_SYNTAX );
 				Debug( LDAP_DEBUG_CONFIG, "%s: %s.\n",
-					c->log, c->cr_msg, 0 );
+					c->log, c->cr_msg );
 				return 1;
 			}
 
@@ -2060,7 +2060,7 @@ mo_cf_gen( ConfigArgs *c )
 					"have DN (%s) or nameUID (%s) syntax",
 					c->argv[ 1 ], SLAPD_DN_SYNTAX, SLAPD_NAMEUID_SYNTAX );
 				Debug( LDAP_DEBUG_CONFIG, "%s: %s.\n",
-					c->log, c->cr_msg, 0 );
+					c->log, c->cr_msg );
 				return 1;
 			}
 
@@ -2172,7 +2172,7 @@ memberof_initialize( void )
 		if ( code ) {
 			Debug( LDAP_DEBUG_ANY,
 				"memberof_initialize: register_at #%d failed\n",
-				i, 0, 0 );
+				i );
 			return code;
 		}
 	}

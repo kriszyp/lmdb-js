@@ -61,7 +61,7 @@ static int write_alias(nssov_alias_cbp *cbp,Entry *entry)
 		if ( !a )
 		{
 			Debug(LDAP_DEBUG_ANY,"alias entry %s does not contain %s value\n",
-				entry->e_name.bv_val,cbp->mi->mi_attrs[0].an_desc->ad_cname.bv_val,0 );
+				entry->e_name.bv_val,cbp->mi->mi_attrs[0].an_desc->ad_cname.bv_val );
 			return 0;
 		}
 		names = a->a_vals;

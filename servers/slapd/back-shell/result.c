@@ -62,12 +62,12 @@ read_and_send_results(
 			if ( errno == EINTR ) continue;
 
 			Debug( LDAP_DEBUG_ANY, "shell: fgets failed: %s (%d)\n",
-				AC_STRERROR_R(errno, ebuf, sizeof ebuf), errno, 0 ); 
+				AC_STRERROR_R(errno, ebuf, sizeof ebuf), errno );
 			break;
 		}
 
 		Debug( LDAP_DEBUG_SHELL, "shell search reading line (%s)\n",
-		    line, 0, 0 );
+		    line );
 
 		/* ignore lines beginning with # (LDIFv1 comments) */
 		if ( *line == '#' ) {
@@ -97,7 +97,7 @@ read_and_send_results(
 
 			if ( (rs->sr_entry = str2entry( buf )) == NULL ) {
 				Debug( LDAP_DEBUG_ANY, "str2entry(%s) failed\n",
-				    buf, 0, 0 );
+				    buf );
 			} else {
 				rs->sr_attrs = op->oq_search.rs_attrs;
 				rs->sr_flags = REP_ENTRY_MODIFIABLE;

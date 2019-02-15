@@ -160,19 +160,19 @@ vernum_db_init(
 	vernum_t	*vn = NULL;
 
 	if ( SLAP_ISGLOBALOVERLAY( be ) ) {
-		Log0( LDAP_DEBUG_ANY, LDAP_LEVEL_ERR,
+		Log( LDAP_DEBUG_ANY, LDAP_LEVEL_ERR,
 			"vernum_db_init: vernum cannot be used as global overlay.\n" );
 		return 1;
 	}
 
 	if ( be->be_nsuffix == NULL ) {
-		Log0( LDAP_DEBUG_ANY, LDAP_LEVEL_ERR,
+		Log( LDAP_DEBUG_ANY, LDAP_LEVEL_ERR,
 			"vernum_db_init: database must have suffix\n" );
 		return 1;
 	}
 
 	if ( BER_BVISNULL( &be->be_rootndn ) || BER_BVISEMPTY( &be->be_rootndn ) ) {
-		Log1( LDAP_DEBUG_ANY, LDAP_LEVEL_ERR,
+		Log( LDAP_DEBUG_ANY, LDAP_LEVEL_ERR,
 			"vernum_db_init: missing rootdn for database DN=\"%s\", YMMV\n",
 			be->be_suffix[ 0 ].bv_val );
 	}
@@ -227,7 +227,7 @@ vernum_repair_cb( Operation *op, SlapReply *rs )
 	rcb->mods = mod;
 
 	Debug( LDAP_DEBUG_TRACE, "%s: vernum_repair_cb: scheduling entry DN=\"%s\" for repair\n",
-		op->o_log_prefix, rs->sr_entry->e_name.bv_val, 0 );
+		op->o_log_prefix, rs->sr_entry->e_name.bv_val );
 
 	return 0;
 }
@@ -326,7 +326,7 @@ vernum_repair( BackendDB *be )
 		slap_mods_free( op->orm_modlist->sml_next, 1 );
 		if ( rs2.sr_err == LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_TRACE, "%s: vernum_repair: entry DN=\"%s\" repaired\n",
-				op->o_log_prefix, rmod->ndn.bv_val, 0 );
+				op->o_log_prefix, rmod->ndn.bv_val );
 			nrepaired++;
 
 		} else {
@@ -343,7 +343,7 @@ done_search:;
 	op->o_tmpfree( op->ors_filterstr.bv_val, op->o_tmpmemctx );
 	filter_free_x( op, op->ors_filter, 1 );
 
-	Log1( LDAP_DEBUG_STATS, LDAP_LEVEL_INFO,
+	Log( LDAP_DEBUG_STATS, LDAP_LEVEL_INFO,
 		"vernum: repaired=%d\n", nrepaired );
 
 	return 0;
@@ -358,7 +358,7 @@ vernum_db_open(
 	vernum_t *vn = (vernum_t *)on->on_bi.bi_private;
 
 	if ( SLAP_SINGLE_SHADOW( be ) ) {
-		Log1( LDAP_DEBUG_ANY, LDAP_LEVEL_ERR,
+		Log( LDAP_DEBUG_ANY, LDAP_LEVEL_ERR,
 			"vernum incompatible with shadow database \"%s\".\n",
 			be->be_suffix[ 0 ].bv_val );
 		return 1;
@@ -372,7 +372,7 @@ vernum_db_open(
 		rc = slap_str2ad( "unicodePwd", &vn->vn_attr, &text );
 		if ( rc != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_ANY, "vernum: unable to find attribute 'unicodePwd' (%d: %s)\n",
-				rc, text, 0 );
+				rc, text );
 			return 1;
 		}
 
@@ -425,7 +425,7 @@ vernum_initialize(void)
 		if ( code ) {
 			Debug( LDAP_DEBUG_ANY,
 				"vernum_initialize: register_at #%d failed\n",
-				i, 0, 0 );
+				i );
 			return code;
 		}
 

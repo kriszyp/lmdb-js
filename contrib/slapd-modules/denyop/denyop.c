@@ -141,7 +141,7 @@ denyop_config(
 			Debug( LDAP_DEBUG_ANY, "%s: line %d: "
 				"operation list missing in "
 				"\"denyop <op-list>\" line.\n",
-				fname, lineno, 0 );
+				fname, lineno );
 			return( 1 );
 		}
 

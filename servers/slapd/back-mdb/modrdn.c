@@ -72,7 +72,7 @@ mdb_modrdn( Operation	*op, SlapReply *rs )
 	if( rs->sr_err != 0 ) {
 		Debug( LDAP_DEBUG_TRACE,
 			LDAP_XSTRING(mdb_modrdn) ": txn_begin failed: "
-			"%s (%d)\n", mdb_strerror(rs->sr_err), rs->sr_err, 0 );
+			"%s (%d)\n", mdb_strerror(rs->sr_err), rs->sr_err );
 		rs->sr_err = LDAP_OTHER;
 		rs->sr_text = "internal error";
 		goto return_results;
@@ -103,7 +103,7 @@ mdb_modrdn( Operation	*op, SlapReply *rs )
 		Debug(LDAP_DEBUG_TRACE,
 			"<=- " LDAP_XSTRING(mdb_modrdn)
 			": cursor_open failed: %s (%d)\n",
-			mdb_strerror(rs->sr_err), rs->sr_err, 0 );
+			mdb_strerror(rs->sr_err), rs->sr_err );
 		rs->sr_err = LDAP_OTHER;
 		rs->sr_text = "DN cursor_open failed";
 		goto return_results;
@@ -112,7 +112,7 @@ mdb_modrdn( Operation	*op, SlapReply *rs )
 	switch( rs->sr_err ) {
 	case MDB_NOTFOUND:
 		Debug( LDAP_DEBUG_TRACE, LDAP_XSTRING(mdb_modrdn)
-			": parent does not exist\n", 0, 0, 0);
+			": parent does not exist\n" );
 		rs->sr_ref = referral_rewrite( default_referral, NULL,
 					&op->o_req_dn, LDAP_SCOPE_DEFAULT );
 		rs->sr_err = LDAP_REFERRAL;
@@ -141,15 +141,14 @@ mdb_modrdn( Operation	*op, SlapReply *rs )
 
 	if ( ! rs->sr_err ) {
 		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
-		Debug( LDAP_DEBUG_TRACE, "no access to parent\n", 0,
-			0, 0 );
+		Debug( LDAP_DEBUG_TRACE, "no access to parent\n" );
 		rs->sr_text = "no write access to parent's children";
 		goto return_results;
 	}
 
 	Debug( LDAP_DEBUG_TRACE,
 		LDAP_XSTRING(mdb_modrdn) ": wr to children "
-		"of entry %s OK\n", p_ndn.bv_val, 0, 0 );
+		"of entry %s OK\n", p_ndn.bv_val );
 
 	if ( p_ndn.bv_val == slap_empty_bv.bv_val ) {
 		p_dn = slap_empty_bv;
@@ -159,7 +158,7 @@ mdb_modrdn( Operation	*op, SlapReply *rs )
 
 	Debug( LDAP_DEBUG_TRACE,
 		LDAP_XSTRING(mdb_modrdn) ": parent dn=%s\n",
-		p_dn.bv_val, 0, 0 );
+		p_dn.bv_val );
 
 	/* get entry */
 	rs->sr_err = mdb_dn2entry( op, txn, mc, &op->o_req_ndn, &e, &nsubs, 0 );
@@ -221,8 +220,7 @@ mdb_modrdn( Operation	*op, SlapReply *rs )
 	/* check write on old entry */
 	rs->sr_err = access_allowed( op, e, entry, NULL, ACL_WRITE, NULL );
 	if ( ! rs->sr_err ) {
-		Debug( LDAP_DEBUG_TRACE, "no access to entry\n", 0,
-			0, 0 );
+		Debug( LDAP_DEBUG_TRACE, "no access to entry\n" );
 		rs->sr_text = "no write access to old entry";
 		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
 		goto return_results;
@@ -233,7 +231,7 @@ mdb_modrdn( Operation	*op, SlapReply *rs )
 		rs->sr_ref = get_entry_referrals( op, e );
 
 		Debug( LDAP_DEBUG_TRACE, LDAP_XSTRING(mdb_modrdn)
-			": entry %s is referral\n", e->e_dn, 0, 0 );
+			": entry %s is referral\n", e->e_dn );
 
 		rs->sr_err = LDAP_REFERRAL,
 		rs->sr_matched = e->e_name.bv_val;
@@ -251,13 +249,13 @@ mdb_modrdn( Operation	*op, SlapReply *rs )
 		Debug( LDAP_DEBUG_TRACE,
 			LDAP_XSTRING(mdb_modrdn)
 			": new parent \"%s\" requested...\n",
-			op->oq_modrdn.rs_newSup->bv_val, 0, 0 );
+			op->oq_modrdn.rs_newSup->bv_val );
 
 		/*  newSuperior == oldParent? */
 		if( dn_match( &p_ndn, op->oq_modrdn.rs_nnewSup ) ) {
 			Debug( LDAP_DEBUG_TRACE, "mdb_back_modrdn: "
 				"new parent \"%s\" same as the old parent \"%s\"\n",
-				op->oq_modrdn.rs_newSup->bv_val, p_dn.bv_val, 0 );
+				op->oq_modrdn.rs_newSup->bv_val, p_dn.bv_val );
 			op->oq_modrdn.rs_newSup = NULL; /* ignore newSuperior */
 		}
 	}
@@ -293,7 +291,7 @@ mdb_modrdn( Operation	*op, SlapReply *rs )
 				Debug( LDAP_DEBUG_TRACE,
 					LDAP_XSTRING(mdb_modrdn)
 					": newSup(ndn=%s) not here!\n",
-					np_ndn->bv_val, 0, 0);
+					np_ndn->bv_val );
 				rs->sr_text = "new superior not found";
 				rs->sr_err = LDAP_NO_SUCH_OBJECT;
 				goto return_results;
@@ -313,8 +311,7 @@ mdb_modrdn( Operation	*op, SlapReply *rs )
 			if( ! rs->sr_err ) {
 				Debug( LDAP_DEBUG_TRACE,
 					LDAP_XSTRING(mdb_modrdn)
-					": no wr to newSup children\n",
-					0, 0, 0 );
+					": no wr to newSup children\n" );
 				rs->sr_text = "no write access to new superior's children";
 				rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
 				goto return_results;
@@ -323,14 +320,13 @@ mdb_modrdn( Operation	*op, SlapReply *rs )
 			Debug( LDAP_DEBUG_TRACE,
 				LDAP_XSTRING(mdb_modrdn)
 				": wr to new parent OK np=%p, id=%ld\n",
-				(void *) np, (long) np->e_id, 0 );
+				(void *) np, (long) np->e_id );
 
 			if ( is_entry_alias( np ) ) {
 				/* parent is an alias, don't allow add */
 				Debug( LDAP_DEBUG_TRACE,
 					LDAP_XSTRING(mdb_modrdn)
-					": entry is alias\n",
-					0, 0, 0 );
+					": entry is alias\n" );
 				rs->sr_text = "new superior is an alias";
 				rs->sr_err = LDAP_ALIAS_PROBLEM;
 				goto return_results;
@@ -340,8 +336,7 @@ mdb_modrdn( Operation	*op, SlapReply *rs )
 				/* parent is a referral, don't allow add */
 				Debug( LDAP_DEBUG_TRACE,
 					LDAP_XSTRING(mdb_modrdn)
-					": entry is referral\n",
-					0, 0, 0 );
+					": entry is referral\n" );
 				rs->sr_text = "new superior is a referral";
 				rs->sr_err = LDAP_OTHER;
 				goto return_results;
@@ -365,8 +360,7 @@ mdb_modrdn( Operation	*op, SlapReply *rs )
 				if ( ! rs->sr_err ) {
 					rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
 					Debug( LDAP_DEBUG_TRACE,
-						"no access to new superior\n",
-						0, 0, 0 );
+						"no access to new superior\n" );
 					rs->sr_text =
 						"no write access to new superior's children";
 					goto return_results;
@@ -376,8 +370,7 @@ mdb_modrdn( Operation	*op, SlapReply *rs )
 
 		Debug( LDAP_DEBUG_TRACE,
 			LDAP_XSTRING(mdb_modrdn)
-			": wr to new parent's children OK\n",
-			0, 0, 0 );
+			": wr to new parent's children OK\n" );
 
 		new_parent_dn = np_dn;
 	}
@@ -392,7 +385,7 @@ mdb_modrdn( Operation	*op, SlapReply *rs )
 	}
 
 	Debug( LDAP_DEBUG_TRACE, LDAP_XSTRING(mdb_modrdn) ": new ndn=%s\n",
-		new_ndn.bv_val, 0, 0 );
+		new_ndn.bv_val );
 
 	/* Shortcut the search */
 	rs->sr_err = mdb_dn2id ( op, txn, NULL, &new_ndn, &nid, NULL, NULL, NULL );
@@ -421,7 +414,7 @@ mdb_modrdn( Operation	*op, SlapReply *rs )
 		{
 			Debug( LDAP_DEBUG_TRACE,
 				"<=- " LDAP_XSTRING(mdb_modrdn)
-				": pre-read failed!\n", 0, 0, 0 );
+				": pre-read failed!\n" );
 			if ( op->o_preread & SLAP_CONTROL_CRITICAL ) {
 				/* FIXME: is it correct to abort
 				 * operation if control fails? */
@@ -439,7 +432,7 @@ mdb_modrdn( Operation	*op, SlapReply *rs )
 		Debug(LDAP_DEBUG_TRACE,
 			"<=- " LDAP_XSTRING(mdb_modrdn)
 			": dn2id del failed: %s (%d)\n",
-			mdb_strerror(rs->sr_err), rs->sr_err, 0 );
+			mdb_strerror(rs->sr_err), rs->sr_err );
 		rs->sr_err = LDAP_OTHER;
 		rs->sr_text = "DN index delete fail";
 		goto return_results;
@@ -458,7 +451,7 @@ mdb_modrdn( Operation	*op, SlapReply *rs )
 		Debug(LDAP_DEBUG_TRACE,
 			"<=- " LDAP_XSTRING(mdb_modrdn)
 			": dn2id add failed: %s (%d)\n",
-			mdb_strerror(rs->sr_err), rs->sr_err, 0 );
+			mdb_strerror(rs->sr_err), rs->sr_err );
 		rs->sr_err = LDAP_OTHER;
 		rs->sr_text = "DN index add failed";
 		goto return_results;
@@ -474,7 +467,7 @@ mdb_modrdn( Operation	*op, SlapReply *rs )
 			Debug(LDAP_DEBUG_TRACE,
 				"<=- " LDAP_XSTRING(mdb_modrdn)
 				": modify failed: %s (%d)\n",
-				mdb_strerror(rs->sr_err), rs->sr_err, 0 );
+				mdb_strerror(rs->sr_err), rs->sr_err );
 			goto return_results;
 		}
 	}
@@ -485,7 +478,7 @@ mdb_modrdn( Operation	*op, SlapReply *rs )
 		Debug(LDAP_DEBUG_TRACE,
 			"<=- " LDAP_XSTRING(mdb_modrdn)
 			": id2entry failed: %s (%d)\n",
-			mdb_strerror(rs->sr_err), rs->sr_err, 0 );
+			mdb_strerror(rs->sr_err), rs->sr_err );
 		if ( rs->sr_err == LDAP_ADMINLIMIT_EXCEEDED ) {
 			rs->sr_text = "entry too big";
 		} else {
@@ -506,7 +499,7 @@ mdb_modrdn( Operation	*op, SlapReply *rs )
 					Debug(LDAP_DEBUG_ARGS,
 						"<=- " LDAP_XSTRING(mdb_modrdn)
 						": has_children failed: %s (%d)\n",
-						mdb_strerror(rs->sr_err), rs->sr_err, 0 );
+						mdb_strerror(rs->sr_err), rs->sr_err );
 					rs->sr_err = LDAP_OTHER;
 					rs->sr_text = "internal error";
 					goto return_results;
@@ -529,7 +522,7 @@ mdb_modrdn( Operation	*op, SlapReply *rs )
 		{
 			Debug( LDAP_DEBUG_TRACE,
 				"<=- " LDAP_XSTRING(mdb_modrdn)
-				": post-read failed!\n", 0, 0, 0 );
+				": post-read failed!\n" );
 			if ( op->o_postread & SLAP_CONTROL_CRITICAL ) {
 				/* FIXME: is it correct to abort
 				 * operation if control fails? */

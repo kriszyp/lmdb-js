@@ -48,7 +48,7 @@ do_modify(
 #endif
 
 	Debug( LDAP_DEBUG_TRACE, "%s do_modify\n",
-		op->o_log_prefix, 0, 0 );
+		op->o_log_prefix );
 	/*
 	 * Parse the modify request.  It looks like this:
 	 *
@@ -70,13 +70,13 @@ do_modify(
 
 	if ( ber_scanf( op->o_ber, "{m" /*}*/, &dn ) == LBER_ERROR ) {
 		Debug( LDAP_DEBUG_ANY, "%s do_modify: ber_scanf failed\n",
-			op->o_log_prefix, 0, 0 );
+			op->o_log_prefix );
 		send_ldap_discon( op, rs, LDAP_PROTOCOL_ERROR, "decoding error" );
 		return SLAPD_DISCONNECT;
 	}
 
 	Debug( LDAP_DEBUG_ARGS, "%s do_modify: dn (%s)\n",
-		op->o_log_prefix, dn.bv_val, 0 );
+		op->o_log_prefix, dn.bv_val );
 
 	rs->sr_err = slap_parse_modlist( op, rs, op->o_ber, &op->oq_modify );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
@@ -88,7 +88,7 @@ do_modify(
 
 	if( get_ctrls( op, rs, 1 ) != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY, "%s do_modify: get_ctrls failed\n",
-			op->o_log_prefix, 0, 0 );
+			op->o_log_prefix );
 		/* get_ctrls has sent results.	Now clean up. */
 		goto cleanup;
 	}
@@ -97,7 +97,7 @@ do_modify(
 		op->o_tmpmemctx );
 	if( rs->sr_err != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY, "%s do_modify: invalid dn (%s)\n",
-			op->o_log_prefix, dn.bv_val, 0 );
+			op->o_log_prefix, dn.bv_val );
 		send_ldap_error( op, rs, LDAP_INVALID_DN_SYNTAX, "invalid DN" );
 		goto cleanup;
 	}
@@ -106,14 +106,14 @@ do_modify(
 
 #ifdef LDAP_DEBUG
 	Debug( LDAP_DEBUG_ARGS, "%s modifications:\n",
-			op->o_log_prefix, 0, 0 );
+			op->o_log_prefix );
 
 	for ( tmp = op->orm_modlist; tmp != NULL; tmp = tmp->sml_next ) {
 		Debug( LDAP_DEBUG_ARGS, "\t%s: %s\n",
 			tmp->sml_op == LDAP_MOD_ADD ? "add" :
 				(tmp->sml_op == LDAP_MOD_INCREMENT ? "increment" :
 				(tmp->sml_op == LDAP_MOD_DELETE ? "delete" :
-					"replace")), tmp->sml_type.bv_val, 0 );
+					"replace")), tmp->sml_type.bv_val );
 
 		if ( tmp->sml_values == NULL ) {
 			Debug( LDAP_DEBUG_ARGS, "\t\tno values\n" );
@@ -127,24 +127,24 @@ do_modify(
 		}
 	}
 
-	if ( StatslogTest( LDAP_DEBUG_STATS ) ) {
+	if (LogTest( LDAP_DEBUG_STATS ) ) {
 		char abuf[BUFSIZ/2], *ptr = abuf;
 		int len = 0;
 
-		Statslog( LDAP_DEBUG_STATS, "%s MOD dn=\"%s\"\n",
-			op->o_log_prefix, op->o_req_dn.bv_val, 0, 0, 0 );
+		Debug( LDAP_DEBUG_STATS, "%s MOD dn=\"%s\"\n",
+			op->o_log_prefix, op->o_req_dn.bv_val );
 
 		for ( tmp = op->orm_modlist; tmp != NULL; tmp = tmp->sml_next ) {
 			if (len + 1 + tmp->sml_type.bv_len > sizeof(abuf)) {
-				Statslog( LDAP_DEBUG_STATS, "%s MOD attr=%s\n",
-				    op->o_log_prefix, abuf, 0, 0, 0 );
+				Debug( LDAP_DEBUG_STATS, "%s MOD attr=%s\n",
+				    op->o_log_prefix, abuf );
 
 				len = 0;
 				ptr = abuf;
 
 				if( 1 + tmp->sml_type.bv_len > sizeof(abuf)) {
-					Statslog( LDAP_DEBUG_STATS, "%s MOD attr=%s\n",
-						op->o_log_prefix, tmp->sml_type.bv_val, 0, 0, 0 );
+					Debug( LDAP_DEBUG_STATS, "%s MOD attr=%s\n",
+						op->o_log_prefix, tmp->sml_type.bv_val );
 					continue;
 				}
 			}
@@ -156,8 +156,8 @@ do_modify(
 			len += tmp->sml_type.bv_len;
 		}
 		if (len) {
-			Statslog( LDAP_DEBUG_STATS, "%s MOD attr=%s\n",
-	    			op->o_log_prefix, abuf, 0, 0, 0 );
+			Debug( LDAP_DEBUG_STATS, "%s MOD attr=%s\n",
+					op->o_log_prefix, abuf );
 		}
 	}
 #endif	/* LDAP_DEBUG */
@@ -201,14 +201,14 @@ fe_op_modify( Operation *op, SlapReply *rs )
 	
 	if ( BER_BVISEMPTY( &op->o_req_ndn ) ) {
 		Debug( LDAP_DEBUG_ANY, "%s do_modify: root dse!\n",
-			op->o_log_prefix, 0, 0 );
+			op->o_log_prefix );
 		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
 			"modify upon the root DSE not supported" );
 		goto cleanup;
 
 	} else if ( bvmatch( &op->o_req_ndn, &frontendDB->be_schemandn ) ) {
 		Debug( LDAP_DEBUG_ANY, "%s do_modify: subschema subentry!\n",
-			op->o_log_prefix, 0, 0 );
+			op->o_log_prefix );
 		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
 			"modification of subschema subentry not supported" );
 		goto cleanup;
@@ -633,7 +633,7 @@ int slap_mods_check(
 					if ( rc ) {
 						Debug( LDAP_DEBUG_ANY,
 							"<= str2entry NULL (ssyn_normalize %d)\n",
-							rc, 0, 0 );
+							rc );
 						snprintf( textbuf, textlen,
 							"%s: value #%ld normalization failed",
 							ml->sml_type.bv_val, (long) nvals );

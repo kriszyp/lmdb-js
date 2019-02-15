@@ -283,7 +283,7 @@ register_matching_rule(
 
 	if( def->mrd_usage == SLAP_MR_NONE && def->mrd_compat_syntaxes == NULL ) {
 		Debug( LDAP_DEBUG_ANY, "register_matching_rule: not usable %s\n",
-		    def->mrd_desc, 0, 0 );
+		    def->mrd_desc );
 
 		return -1;
 	}
@@ -293,7 +293,7 @@ register_matching_rule(
 		if( amr == NULL ) {
 			Debug( LDAP_DEBUG_ANY, "register_matching_rule: "
 				"could not locate associated matching rule %s for %s\n",
-				def->mrd_associated, def->mrd_desc, 0 );
+				def->mrd_associated, def->mrd_desc );
 
 			return -1;
 		}
@@ -306,14 +306,14 @@ register_matching_rule(
 			{
 				Debug( LDAP_DEBUG_ANY, "register_matching_rule: "
 						"inappropriate (approx) association %s for %s\n",
-					def->mrd_associated, def->mrd_desc, 0 );
+					def->mrd_associated, def->mrd_desc );
 				return -1;
 			}
 
 		} else if (!( amr->smr_usage & SLAP_MR_EQUALITY )) {
 				Debug( LDAP_DEBUG_ANY, "register_matching_rule: "
 					"inappropriate (equalilty) association %s for %s\n",
-					def->mrd_associated, def->mrd_desc, 0 );
+					def->mrd_associated, def->mrd_desc );
 				return -1;
 		}
 	}
@@ -373,7 +373,7 @@ matching_rule_use_init( void )
 	MatchingRule	*mr;
 	MatchingRuleUse	**mru_ptr = &LDAP_SLIST_FIRST(&mru_list);
 
-	Debug( LDAP_DEBUG_TRACE, "matching_rule_use_init\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "matching_rule_use_init\n" );
 
 	LDAP_SLIST_FOREACH( mr, &mr_list, smr_next ) {
 		AttributeType	*at;
@@ -417,7 +417,7 @@ matching_rule_use_init( void )
 
 		Debug( LDAP_DEBUG_TRACE, "    %s (%s): ", 
 				mru->smru_oid, 
-				mru->smru_names ? mru->smru_names[ 0 ] : "", 0 );
+				mru->smru_names ? mru->smru_names[ 0 ] : "" );
 
 		at = NULL;
 		for ( at_start( &at ); at; at_next( &at ) ) {
@@ -437,7 +437,7 @@ matching_rule_use_init( void )
 			mru->smru_applies_oids = applies_oids;
 			{
 				char *str = ldap_matchingruleuse2str( &mru->smru_mruleuse );
-				Debug( LDAP_DEBUG_TRACE, "matchingRuleUse: %s\n", str, 0, 0 );
+				Debug( LDAP_DEBUG_TRACE, "matchingRuleUse: %s\n", str );
 				ldap_memfree( str );
 			}
 

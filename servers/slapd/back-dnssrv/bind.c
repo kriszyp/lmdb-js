@@ -37,7 +37,7 @@ dnssrv_back_bind(
 {
 	Debug( LDAP_DEBUG_TRACE, "DNSSRV: bind dn=\"%s\" (%d)\n",
 		BER_BVISNULL( &op->o_req_dn ) ? "" : op->o_req_dn.bv_val, 
-		op->orb_method, 0 );
+		op->orb_method );
 
 	/* allow rootdn as a means to auth without the need to actually
  	 * contact the proxied DSA */
@@ -56,10 +56,10 @@ dnssrv_back_bind(
 		!BER_BVISEMPTY( &op->orb_cred ) )
 	{
 		/* simple bind */
-		Statslog( LDAP_DEBUG_STATS,
+		Debug( LDAP_DEBUG_STATS,
 		   	"%s DNSSRV BIND dn=\"%s\" provided cleartext passwd\n",
 	   		op->o_log_prefix,
-			BER_BVISNULL( &op->o_req_dn ) ? "" : op->o_req_dn.bv_val , 0, 0, 0 );
+			BER_BVISNULL( &op->o_req_dn ) ? "" : op->o_req_dn.bv_val );
 
 		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
 			"you shouldn't send strangers your password" );
@@ -69,7 +69,7 @@ dnssrv_back_bind(
 		/* NOTE: we're not going to get here anyway:
 		 * unauthenticated bind is dealt with by the frontend */
 		Debug( LDAP_DEBUG_TRACE, "DNSSRV: BIND dn=\"%s\"\n",
-			BER_BVISNULL( &op->o_req_dn ) ? "" : op->o_req_dn.bv_val, 0, 0 );
+			BER_BVISNULL( &op->o_req_dn ) ? "" : op->o_req_dn.bv_val );
 
 		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
 			"anonymous bind expected" );

@@ -158,7 +158,7 @@ int write_address(TFILE *fp,struct berval *addr)
 		/* failure, log but write simple invalid address
 			 (otherwise the address list is messed up) */
 		/* TODO: have error message in correct format */
-		Debug(LDAP_DEBUG_ANY,"nssov: unparseable address: %s\n",addr->bv_val,0,0);
+		Debug(LDAP_DEBUG_ANY,"nssov: unparseable address: %s\n",addr->bv_val );
 		/* write an illegal address type */
 		WRITE_INT32(fp,-1);
 		/* write an empty address */
@@ -176,14 +176,14 @@ int read_address(TFILE *fp,char *addr,int *addrlen,int *af)
 	READ_INT32(fp,*af);
 	if ((*af!=AF_INET)&&(*af!=AF_INET6))
 	{
-		Debug(LDAP_DEBUG_ANY,"nssov: incorrect address family specified: %d\n",*af,0,0);
+		Debug(LDAP_DEBUG_ANY,"nssov: incorrect address family specified: %d\n",*af );
 		return -1;
 	}
 	/* read address length */
 	READ_INT32(fp,len);
 	if ((len>*addrlen)||(len<=0))
 	{
-		Debug(LDAP_DEBUG_ANY,"nssov: address length incorrect: %d\n",len,0,0);
+		Debug(LDAP_DEBUG_ANY,"nssov: address length incorrect: %d\n",len );
 		return -1;
 	}
 	*addrlen=len;
@@ -243,7 +243,7 @@ static int read_header(TFILE *fp,int32_t *action)
   READ_INT32(fp,tmpint32);
   if (tmpint32 != (int32_t)NSLCD_VERSION)
   {
-    Debug( LDAP_DEBUG_TRACE,"nssov: wrong nslcd version id (%d)\n",(int)tmpint32,0,0);
+    Debug( LDAP_DEBUG_TRACE,"nssov: wrong nslcd version id (%d)\n",(int)tmpint32 );
     return -1;
   }
   /* read the request type */
@@ -258,7 +258,7 @@ int nssov_config(nssov_info *ni,TFILE *fp,Operation *op)
 
 	READ_INT32(fp,opt);
 
-	Debug(LDAP_DEBUG_TRACE, "nssov_config (%d)\n",opt,0,0);
+	Debug(LDAP_DEBUG_TRACE, "nssov_config (%d)\n",opt );
 
 	WRITE_INT32(fp,NSLCD_VERSION);
 	WRITE_INT32(fp,NSLCD_ACTION_CONFIG_GET);
@@ -271,7 +271,7 @@ int nssov_config(nssov_info *ni,TFILE *fp,Operation *op)
 		if (!BER_BVISEMPTY(&ni->ni_pam_password_prohibit_message)) {
 			Debug(LDAP_DEBUG_TRACE,"nssov_config(): %s (%s)\n",
 				"password_prohibit_message",
-				ni->ni_pam_password_prohibit_message.bv_val,0);
+				ni->ni_pam_password_prohibit_message.bv_val );
 			WRITE_STRING(fp,ni->ni_pam_password_prohibit_message.bv_val);
 		}
 	default:
@@ -299,10 +299,10 @@ static void handleconnection(nssov_info *ni,int sock,Operation *op)
 
   /* log connection */
   if (LUTIL_GETPEEREID(sock,&uid,&gid,&peerbv))
-    Debug( LDAP_DEBUG_TRACE,"nssov: connection from unknown client: %s\n",strerror(errno),0,0);
+    Debug( LDAP_DEBUG_TRACE,"nssov: connection from unknown client: %s\n",strerror(errno) );
   else
     Debug( LDAP_DEBUG_TRACE,"nssov: connection from uid=%d gid=%d\n",
-                      (int)uid,(int)gid,0);
+                      (int)uid,(int)gid );
 
   /* Should do authid mapping too */
   op->o_dn.bv_len = sprintf(authid,"gidNumber=%d+uidNumber=%d,cn=peercred,cn=external,cn=auth",
@@ -322,7 +322,7 @@ static void handleconnection(nssov_info *ni,int sock,Operation *op)
                      READBUFFER_MINSIZE,READBUFFER_MAXSIZE,
                      WRITEBUFFER_MINSIZE,WRITEBUFFER_MAXSIZE))==NULL)
   {
-    Debug( LDAP_DEBUG_ANY,"nssov: cannot create stream for writing: %s",strerror(errno),0,0);
+    Debug( LDAP_DEBUG_ANY,"nssov: cannot create stream for writing: %s",strerror(errno) );
     (void)close(sock);
     return;
   }
@@ -372,7 +372,7 @@ static void handleconnection(nssov_info *ni,int sock,Operation *op)
 	case NSLCD_ACTION_PAM_PWMOD:		(void)pam_pwmod(ni,fp,op,uid); break;
 	case NSLCD_ACTION_CONFIG_GET:			(void)nssov_config(ni,fp,op); break;
     default:
-      Debug( LDAP_DEBUG_ANY,"nssov: invalid request id: %d",(int)action,0,0);
+      Debug( LDAP_DEBUG_ANY,"nssov: invalid request id: %d",(int)action );
       break;
   }
   /* we're done with the request */
@@ -405,25 +405,25 @@ static void *acceptconn(void *ctx, void *arg)
 		{
 			if ((errno==EINTR)||(errno==EAGAIN)||(errno==EWOULDBLOCK))
 			{
-				Debug( LDAP_DEBUG_TRACE,"nssov: accept() failed (ignored): %s",strerror(errno),0,0);
+				Debug( LDAP_DEBUG_TRACE,"nssov: accept() failed (ignored): %s",strerror(errno) );
 				return NULL;
 			}
-			Debug( LDAP_DEBUG_ANY,"nssov: accept() failed: %s",strerror(errno),0,0);
+			Debug( LDAP_DEBUG_ANY,"nssov: accept() failed: %s",strerror(errno) );
 			return NULL;
 		}
 		/* make sure O_NONBLOCK is not inherited */
 		if ((j=fcntl(csock,F_GETFL,0))<0)
 		{
-			Debug( LDAP_DEBUG_ANY,"nssov: fcntl(F_GETFL) failed: %s",strerror(errno),0,0);
+			Debug( LDAP_DEBUG_ANY,"nssov: fcntl(F_GETFL) failed: %s",strerror(errno) );
 			if (close(csock))
-				Debug( LDAP_DEBUG_ANY,"nssov: problem closing socket: %s",strerror(errno),0,0);
+				Debug( LDAP_DEBUG_ANY,"nssov: problem closing socket: %s",strerror(errno) );
 			return NULL;
 		}
 		if (fcntl(csock,F_SETFL,j&~O_NONBLOCK)<0)
 		{
-			Debug( LDAP_DEBUG_ANY,"nssov: fcntl(F_SETFL,~O_NONBLOCK) failed: %s",strerror(errno),0,0);
+			Debug( LDAP_DEBUG_ANY,"nssov: fcntl(F_SETFL,~O_NONBLOCK) failed: %s",strerror(errno) );
 			if (close(csock))
-				Debug( LDAP_DEBUG_ANY,"nssov: problem closing socket: %s",strerror(errno),0,0);
+				Debug( LDAP_DEBUG_ANY,"nssov: problem closing socket: %s",strerror(errno) );
 			return NULL;
 		}
 	}
@@ -732,7 +732,7 @@ nss_cf_gen(ConfigArgs *c)
 				if (i != LDAP_SUCCESS) {
 					snprintf(c->cr_msg, sizeof(c->cr_msg),
 						"nssov: host attr unknown: %s", text);
-					Debug(LDAP_DEBUG_ANY,"%s\n",c->cr_msg,0,0);
+					Debug(LDAP_DEBUG_ANY,"%s\n",c->cr_msg );
 					rc = 1;
 					break;
 				}
@@ -743,7 +743,7 @@ nss_cf_gen(ConfigArgs *c)
 				if (i != LDAP_SUCCESS) {
 					snprintf(c->cr_msg, sizeof(c->cr_msg),
 						"nssov: authorizedService attr unknown: %s", text);
-					Debug(LDAP_DEBUG_ANY,"%s\n",c->cr_msg,0,0);
+					Debug(LDAP_DEBUG_ANY,"%s\n",c->cr_msg );
 					rc = 1;
 					break;
 				}
@@ -837,7 +837,7 @@ nssov_db_open(
 			if ( slap_bv2ad( &mi->mi_attrs[j].an_name,
 				&mi->mi_attrs[j].an_desc, &text )) {
 				Debug(LDAP_DEBUG_ANY,"nssov: invalid attr \"%s\": %s\n",
-					mi->mi_attrs[j].an_name.bv_val, text, 0 );
+					mi->mi_attrs[j].an_name.bv_val, text );
 				return -1;
 			}
 		}
@@ -852,7 +852,7 @@ nssov_db_open(
 		i = slap_str2ad("host", &nssov_pam_host_ad, &text);
 		if (i != LDAP_SUCCESS) {
 			Debug(LDAP_DEBUG_ANY,"nssov: host attr unknown: %s\n",
-				text, 0, 0 );
+				text );
 			return -1;
 		}
 	}
@@ -863,7 +863,7 @@ nssov_db_open(
 		i = slap_str2ad("authorizedService", &nssov_pam_svc_ad, &text);
 		if (i != LDAP_SUCCESS) {
 			Debug(LDAP_DEBUG_ANY,"nssov: authorizedService attr unknown: %s\n",
-				text, 0, 0 );
+				text );
 			return -1;
 		}
 	}
@@ -871,22 +871,22 @@ nssov_db_open(
 		/* make sure /var/run/nslcd exists */
 		if (mkdir(NSLCD_PATH, (mode_t) 0555)) {
 			Debug(LDAP_DEBUG_TRACE,"nssov: mkdir(%s) failed (ignored): %s\n",
-					NSLCD_PATH,strerror(errno),0);
+					NSLCD_PATH,strerror(errno) );
 		} else {
-			Debug(LDAP_DEBUG_TRACE,"nssov: created %s\n",NSLCD_PATH,0,0);
+			Debug(LDAP_DEBUG_TRACE,"nssov: created %s\n",NSLCD_PATH );
 		}
 
 		/* create a socket */
 		if ( (sock=socket(PF_UNIX,SOCK_STREAM,0))<0 )
 		{
-			Debug(LDAP_DEBUG_ANY,"nssov: cannot create socket: %s\n",strerror(errno),0,0);
+			Debug(LDAP_DEBUG_ANY,"nssov: cannot create socket: %s\n",strerror(errno) );
 			return -1;
 		}
 		/* remove existing named socket */
 		if (unlink(NSLCD_SOCKET)<0)
 		{
 			Debug( LDAP_DEBUG_TRACE,"nssov: unlink() of "NSLCD_SOCKET" failed (ignored): %s\n",
-							strerror(errno),0,0);
+							strerror(errno) );
 		}
 		/* create socket address structure */
 		memset(&addr,0,sizeof(struct sockaddr_un));
@@ -897,17 +897,17 @@ nssov_db_open(
 		if (bind(sock,(struct sockaddr *)&addr,sizeof(struct sockaddr_un)))
 		{
 			Debug( LDAP_DEBUG_ANY,"nssov: bind() to "NSLCD_SOCKET" failed: %s",
-							strerror(errno),0,0);
+							strerror(errno) );
 			if (close(sock))
-				Debug( LDAP_DEBUG_ANY,"nssov: problem closing socket: %s",strerror(errno),0,0);
+				Debug( LDAP_DEBUG_ANY,"nssov: problem closing socket: %s",strerror(errno) );
 			return -1;
 		}
 		/* close the file descriptor on exit */
 		if (fcntl(sock,F_SETFD,FD_CLOEXEC)<0)
 		{
-			Debug( LDAP_DEBUG_ANY,"nssov: fcntl(F_SETFL,O_NONBLOCK) failed: %s",strerror(errno),0,0);
+			Debug( LDAP_DEBUG_ANY,"nssov: fcntl(F_SETFL,O_NONBLOCK) failed: %s",strerror(errno) );
 			if (close(sock))
-				Debug( LDAP_DEBUG_ANY,"nssov: problem closing socket: %s",strerror(errno),0,0);
+				Debug( LDAP_DEBUG_ANY,"nssov: problem closing socket: %s",strerror(errno) );
 			return -1;
 		}
 		/* set permissions of socket so anybody can do requests */
@@ -917,17 +917,17 @@ nssov_db_open(
 			 http://lkml.org/lkml/2005/5/16/11 */
 		if (chmod(NSLCD_SOCKET,(mode_t)0666))
 		{
-			Debug( LDAP_DEBUG_ANY,"nssov: chmod(0666) failed: %s",strerror(errno),0,0);
+			Debug( LDAP_DEBUG_ANY,"nssov: chmod(0666) failed: %s",strerror(errno) );
 			if (close(sock))
-				Debug( LDAP_DEBUG_ANY,"nssov: problem closing socket: %s",strerror(errno),0,0);
+				Debug( LDAP_DEBUG_ANY,"nssov: problem closing socket: %s",strerror(errno) );
 			return -1;
 		}
 		/* start listening for connections */
 		if (listen(sock,SOMAXCONN)<0)
 		{
-			Debug( LDAP_DEBUG_ANY,"nssov: listen() failed: %s",strerror(errno),0,0);
+			Debug( LDAP_DEBUG_ANY,"nssov: listen() failed: %s",strerror(errno) );
 			if (close(sock))
-				Debug( LDAP_DEBUG_ANY,"nssov: problem closing socket: %s",strerror(errno),0,0);
+				Debug( LDAP_DEBUG_ANY,"nssov: problem closing socket: %s",strerror(errno) );
 			return -1;
 		}
 		ni->ni_socket = sock;
@@ -950,14 +950,14 @@ nssov_db_close(
 		if (ni->ni_socket >= 0)
 		{
 			if (close(ni->ni_socket))
-				Debug( LDAP_DEBUG_ANY,"problem closing server socket (ignored): %s",strerror(errno),0,0);
+				Debug( LDAP_DEBUG_ANY,"problem closing server socket (ignored): %s",strerror(errno) );
 			ni->ni_socket = -1;
 		}
 		/* remove existing named socket */
 		if (unlink(NSLCD_SOCKET)<0)
 		{
 			Debug( LDAP_DEBUG_TRACE,"unlink() of "NSLCD_SOCKET" failed (ignored): %s",
-				strerror(errno),0,0);
+				strerror(errno) );
 		}
 	}
 	return 0;

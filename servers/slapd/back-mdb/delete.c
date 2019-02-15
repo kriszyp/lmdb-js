@@ -44,7 +44,7 @@ mdb_delete( Operation *op, SlapReply *rs )
 	int parent_is_leaf = 0;
 
 	Debug( LDAP_DEBUG_ARGS, "==> " LDAP_XSTRING(mdb_delete) ": %s\n",
-		op->o_req_dn.bv_val, 0, 0 );
+		op->o_req_dn.bv_val );
 
 #ifdef LDAP_X_TXN
 	if( op->o_txnSpec && txn_preop( op, rs ))
@@ -59,7 +59,7 @@ mdb_delete( Operation *op, SlapReply *rs )
 	if( rs->sr_err != 0 ) {
 		Debug( LDAP_DEBUG_TRACE,
 			LDAP_XSTRING(mdb_delete) ": txn_begin failed: "
-			"%s (%d)\n", mdb_strerror(rs->sr_err), rs->sr_err, 0 );
+			"%s (%d)\n", mdb_strerror(rs->sr_err), rs->sr_err );
 		rs->sr_err = LDAP_OTHER;
 		rs->sr_text = "internal error";
 		goto return_results;
@@ -103,7 +103,7 @@ mdb_delete( Operation *op, SlapReply *rs )
 	if ( rs->sr_err == MDB_NOTFOUND ) {
 		Debug( LDAP_DEBUG_ARGS,
 			"<=- " LDAP_XSTRING(mdb_delete) ": no such object %s\n",
-			op->o_req_dn.bv_val, 0, 0);
+			op->o_req_dn.bv_val );
 
 		if ( p && !BER_BVISEMPTY( &p->e_name )) {
 			rs->sr_matched = ch_strdup( p->e_name.bv_val );
@@ -150,7 +150,7 @@ mdb_delete( Operation *op, SlapReply *rs )
 	if ( rs->sr_err == MDB_NOTFOUND || ( !manageDSAit && is_entry_glue( e ))) {
 		Debug( LDAP_DEBUG_ARGS,
 			"<=- " LDAP_XSTRING(mdb_delete) ": no such object %s\n",
-			op->o_req_dn.bv_val, 0, 0);
+			op->o_req_dn.bv_val );
 
 		rs->sr_matched = ch_strdup( e->e_dn );
 		if ( is_entry_referral( e )) {
@@ -177,7 +177,7 @@ mdb_delete( Operation *op, SlapReply *rs )
 		if ( !rs->sr_err  ) {
 			Debug( LDAP_DEBUG_TRACE,
 				"<=- " LDAP_XSTRING(mdb_delete) ": no write "
-				"access to parent\n", 0, 0, 0 );
+				"access to parent\n" );
 			rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
 			rs->sr_text = "no write access to parent";
 			goto return_results;
@@ -199,8 +199,7 @@ mdb_delete( Operation *op, SlapReply *rs )
 				if ( !rs->sr_err  ) {
 					Debug( LDAP_DEBUG_TRACE,
 						"<=- " LDAP_XSTRING(mdb_delete)
-						": no access to parent\n",
-						0, 0, 0 );
+						": no access to parent\n" );
 					rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
 					rs->sr_text = "no write access to parent";
 					goto return_results;
@@ -209,7 +208,7 @@ mdb_delete( Operation *op, SlapReply *rs )
 			} else {
 				Debug( LDAP_DEBUG_TRACE,
 					"<=- " LDAP_XSTRING(mdb_delete)
-					": no parent and not root\n", 0, 0, 0 );
+					": no parent and not root\n" );
 				rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
 				goto return_results;
 			}
@@ -229,7 +228,7 @@ mdb_delete( Operation *op, SlapReply *rs )
 	if ( !rs->sr_err  ) {
 		Debug( LDAP_DEBUG_TRACE,
 			"<=- " LDAP_XSTRING(mdb_delete) ": no write access "
-			"to entry\n", 0, 0, 0 );
+			"to entry\n" );
 		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
 		rs->sr_text = "no write access to entry";
 		goto return_results;
@@ -240,8 +239,7 @@ mdb_delete( Operation *op, SlapReply *rs )
 		rs->sr_ref = get_entry_referrals( op, e );
 
 		Debug( LDAP_DEBUG_TRACE,
-			LDAP_XSTRING(mdb_delete) ": entry is referral\n",
-			0, 0, 0 );
+			LDAP_XSTRING(mdb_delete) ": entry is referral\n" );
 
 		rs->sr_err = LDAP_REFERRAL;
 		rs->sr_matched = ch_strdup( e->e_name.bv_val );
@@ -260,7 +258,7 @@ mdb_delete( Operation *op, SlapReply *rs )
 		{
 			Debug( LDAP_DEBUG_TRACE,
 				"<=- " LDAP_XSTRING(mdb_delete) ": pre-read "
-				"failed!\n", 0, 0, 0 );
+				"failed!\n" );
 			if ( op->o_preread & SLAP_CONTROL_CRITICAL ) {
 				/* FIXME: is it correct to abort
 				 * operation if control fails? */
@@ -279,7 +277,7 @@ mdb_delete( Operation *op, SlapReply *rs )
 			Debug(LDAP_DEBUG_ARGS,
 				"<=- " LDAP_XSTRING(mdb_delete)
 				": non-leaf %s\n",
-				op->o_req_dn.bv_val, 0, 0);
+				op->o_req_dn.bv_val );
 			rs->sr_err = LDAP_NOT_ALLOWED_ON_NONLEAF;
 			rs->sr_text = "subordinate objects must be deleted first";
 			break;
@@ -287,7 +285,7 @@ mdb_delete( Operation *op, SlapReply *rs )
 			Debug(LDAP_DEBUG_ARGS,
 				"<=- " LDAP_XSTRING(mdb_delete)
 				": has_children failed: %s (%d)\n",
-				mdb_strerror(rs->sr_err), rs->sr_err, 0 );
+				mdb_strerror(rs->sr_err), rs->sr_err );
 			rs->sr_err = LDAP_OTHER;
 			rs->sr_text = "internal error";
 		}
@@ -300,7 +298,7 @@ mdb_delete( Operation *op, SlapReply *rs )
 	if ( rs->sr_err != 0 ) {
 		Debug(LDAP_DEBUG_TRACE,
 			"<=- " LDAP_XSTRING(mdb_delete) ": dn2id failed: "
-			"%s (%d)\n", mdb_strerror(rs->sr_err), rs->sr_err, 0 );
+			"%s (%d)\n", mdb_strerror(rs->sr_err), rs->sr_err );
 		rs->sr_text = "DN index delete failed";
 		rs->sr_err = LDAP_OTHER;
 		goto return_results;
@@ -311,7 +309,7 @@ mdb_delete( Operation *op, SlapReply *rs )
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		Debug(LDAP_DEBUG_TRACE,
 			"<=- " LDAP_XSTRING(mdb_delete) ": index failed: "
-			"%s (%d)\n", mdb_strerror(rs->sr_err), rs->sr_err, 0 );
+			"%s (%d)\n", mdb_strerror(rs->sr_err), rs->sr_err );
 		rs->sr_text = "entry index delete failed";
 		rs->sr_err = LDAP_OTHER;
 		goto return_results;
@@ -338,7 +336,7 @@ mdb_delete( Operation *op, SlapReply *rs )
 	if ( rs->sr_err != 0 ) {
 		Debug( LDAP_DEBUG_TRACE,
 			"<=- " LDAP_XSTRING(mdb_delete) ": id2entry failed: "
-			"%s (%d)\n", mdb_strerror(rs->sr_err), rs->sr_err, 0 );
+			"%s (%d)\n", mdb_strerror(rs->sr_err), rs->sr_err );
 		rs->sr_text = "entry delete failed";
 		rs->sr_err = LDAP_OTHER;
 		goto return_results;
@@ -355,7 +353,7 @@ mdb_delete( Operation *op, SlapReply *rs )
 				Debug(LDAP_DEBUG_ARGS,
 					"<=- " LDAP_XSTRING(mdb_delete)
 					": has_children failed: %s (%d)\n",
-					mdb_strerror(rs->sr_err), rs->sr_err, 0 );
+					mdb_strerror(rs->sr_err), rs->sr_err );
 				rs->sr_err = LDAP_OTHER;
 				rs->sr_text = "internal error";
 				goto return_results;

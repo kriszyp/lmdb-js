@@ -34,7 +34,7 @@ int
 monitor_back_bind( Operation *op, SlapReply *rs )
 {
 	Debug(LDAP_DEBUG_ARGS, "==> monitor_back_bind: dn: %s\n", 
-			op->o_req_dn.bv_val, 0, 0 );
+			op->o_req_dn.bv_val );
 
 	if ( be_isroot_pw( op ) ) {
 		return LDAP_SUCCESS;

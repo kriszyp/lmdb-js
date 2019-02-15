@@ -1101,7 +1101,7 @@ register_at( const char *def, AttributeDescription **rad, int dupok )
 	}
 	if ( code ) {
 		Debug( LDAP_DEBUG_ANY, "register_at: AttributeType \"%s\": %s\n",
-			def, err, 0 );
+			def, err );
 	}
 	if ( rad ) *rad = ad;
 	return code;

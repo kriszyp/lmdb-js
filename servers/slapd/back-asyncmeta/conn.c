@@ -157,7 +157,7 @@ asyncmeta_init_one_conn(
 							"retry block #%d try #%d",
 							candidate, ri->ri_idx, ri->ri_count );
 						Debug( LDAP_DEBUG_ANY, "%s %s.\n",
-							op->o_log_prefix, buf, 0 );
+							op->o_log_prefix, buf );
 					}
 
 					mt->mt_isquarantined = LDAP_BACK_FQ_RETRYING;
@@ -997,7 +997,7 @@ asyncmeta_getconn(
 
 		Debug( LDAP_DEBUG_TRACE,
 		       "==>asyncmeta__getconn: got target=%d for ndn=\"%s\" from cache\n",
-		       i, op->o_req_ndn.bv_val, 0 );
+		       i, op->o_req_ndn.bv_val );
 			if ( LDAP_BACK_CONN_ISPRIV( &mc_curr ) ) {
 				LDAP_BACK_CONN_ISPRIV_SET( mc );
 
@@ -1076,7 +1076,7 @@ asyncmeta_getconn(
 					ncandidates++;
 
 					Debug( LDAP_DEBUG_TRACE, "%s: asyncmeta_getconn[%d]\n",
-						op->o_log_prefix, i, 0 );
+						op->o_log_prefix, i );
 
 				} else if ( lerr == LDAP_UNAVAILABLE && !META_BACK_ONERR_STOP( mi ) ) {
 					META_CANDIDATE_SET( &candidates[ i ] );
@@ -1226,7 +1226,7 @@ asyncmeta_quarantine(
 
 			Debug( LDAP_DEBUG_ANY,
 				"%s asyncmeta_quarantine[%d]: enter.\n",
-				op->o_log_prefix, candidate, 0 );
+				op->o_log_prefix, candidate );
 
 			ri->ri_idx = 0;
 			ri->ri_count = 0;
@@ -1240,7 +1240,7 @@ asyncmeta_quarantine(
 					"asyncmeta_quarantine[%d]: block #%d try #%d failed",
 					candidate, ri->ri_idx, ri->ri_count );
 				Debug( LDAP_DEBUG_ANY, "%s %s.\n",
-					op->o_log_prefix, buf, 0 );
+					op->o_log_prefix, buf );
 			}
 
 			++ri->ri_count;
@@ -1262,7 +1262,7 @@ asyncmeta_quarantine(
 	} else if ( mt->mt_isquarantined == LDAP_BACK_FQ_RETRYING ) {
 		Debug( LDAP_DEBUG_ANY,
 			"%s asyncmeta_quarantine[%d]: exit.\n",
-			op->o_log_prefix, candidate, 0 );
+			op->o_log_prefix, candidate );
 
 		if ( mi->mi_quarantine_f ) {
 			(void)mi->mi_quarantine_f( mi, candidate,

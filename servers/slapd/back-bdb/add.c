@@ -46,7 +46,7 @@ bdb_add(Operation *op, SlapReply *rs )
 	int num_ctrls = 0;
 
 	Debug(LDAP_DEBUG_ARGS, "==> " LDAP_XSTRING(bdb_add) ": %s\n",
-		op->ora_e->e_name.bv_val, 0, 0);
+		op->ora_e->e_name.bv_val );
 
 #ifdef LDAP_X_TXN
 	if( op->o_txnSpec && txn_preop( op, rs ))
@@ -61,7 +61,7 @@ bdb_add(Operation *op, SlapReply *rs )
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE,
 			LDAP_XSTRING(bdb_add) ": entry failed schema check: "
-			"%s (%d)\n", rs->sr_text, rs->sr_err, 0 );
+			"%s (%d)\n", rs->sr_text, rs->sr_err );
 		goto return_results;
 	}
 
@@ -71,7 +71,7 @@ bdb_add(Operation *op, SlapReply *rs )
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE,
 			LDAP_XSTRING(bdb_add) ": entry failed op attrs add: "
-			"%s (%d)\n", rs->sr_text, rs->sr_err, 0 );
+			"%s (%d)\n", rs->sr_text, rs->sr_err );
 		goto return_results;
 	}
 
@@ -121,13 +121,13 @@ retry:	/* transaction retry */
 	if( rs->sr_err != 0 ) {
 		Debug( LDAP_DEBUG_TRACE,
 			LDAP_XSTRING(bdb_add) ": txn_begin failed: %s (%d)\n",
-			db_strerror(rs->sr_err), rs->sr_err, 0 );
+			db_strerror(rs->sr_err), rs->sr_err );
 		rs->sr_err = LDAP_OTHER;
 		rs->sr_text = "internal error";
 		goto return_results;
 	}
 	Debug( LDAP_DEBUG_TRACE, LDAP_XSTRING(bdb_add) ": txn1 id: %x\n",
-		ltid->id(ltid), 0, 0 );
+		ltid->id(ltid) );
 
 	opinfo.boi_oe.oe_key = bdb;
 	opinfo.boi_txn = ltid;
@@ -180,7 +180,7 @@ retry:	/* transaction retry */
 		p = NULL;
 		Debug( LDAP_DEBUG_TRACE,
 			LDAP_XSTRING(bdb_add) ": parent "
-			"does not exist\n", 0, 0, 0 );
+			"does not exist\n" );
 
 		rs->sr_err = LDAP_REFERRAL;
 		rs->sr_flags = REP_MATCHED_MUSTBEFREED | REP_REF_MUSTBEFREED;
@@ -202,8 +202,7 @@ retry:	/* transaction retry */
 		p = NULL;
 
 		Debug( LDAP_DEBUG_TRACE,
-			LDAP_XSTRING(bdb_add) ": no write access to parent\n",
-			0, 0, 0 );
+			LDAP_XSTRING(bdb_add) ": no write access to parent\n" );
 		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
 		rs->sr_text = "no write access to parent";
 		goto return_results;;
@@ -215,8 +214,7 @@ retry:	/* transaction retry */
 			p = NULL;
 			/* parent is a subentry, don't allow add */
 			Debug( LDAP_DEBUG_TRACE,
-				LDAP_XSTRING(bdb_add) ": parent is subentry\n",
-				0, 0, 0 );
+				LDAP_XSTRING(bdb_add) ": parent is subentry\n" );
 			rs->sr_err = LDAP_OBJECT_CLASS_VIOLATION;
 			rs->sr_text = "parent is a subentry";
 			goto return_results;;
@@ -227,8 +225,7 @@ retry:	/* transaction retry */
 			p = NULL;
 			/* parent is an alias, don't allow add */
 			Debug( LDAP_DEBUG_TRACE,
-				LDAP_XSTRING(bdb_add) ": parent is alias\n",
-				0, 0, 0 );
+				LDAP_XSTRING(bdb_add) ": parent is alias\n" );
 			rs->sr_err = LDAP_ALIAS_PROBLEM;
 			rs->sr_text = "parent is an alias";
 			goto return_results;;
@@ -242,8 +239,7 @@ retry:	/* transaction retry */
 			bdb_unlocked_cache_return_entry_r( bdb, p );
 			p = NULL;
 			Debug( LDAP_DEBUG_TRACE,
-				LDAP_XSTRING(bdb_add) ": parent is referral\n",
-				0, 0, 0 );
+				LDAP_XSTRING(bdb_add) ": parent is referral\n" );
 
 			rs->sr_err = LDAP_REFERRAL;
 			rs->sr_flags = REP_MATCHED_MUSTBEFREED | REP_REF_MUSTBEFREED;
@@ -295,8 +291,7 @@ retry:	/* transaction retry */
 		}
 
 		Debug( LDAP_DEBUG_TRACE,
-			LDAP_XSTRING(bdb_add) ": no write access to entry\n",
-			0, 0, 0 );
+			LDAP_XSTRING(bdb_add) ": no write access to entry\n" );
 		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
 		rs->sr_text = "no write access to entry";
 		goto return_results;;
@@ -313,8 +308,7 @@ retry:	/* transaction retry */
 		}
 
 		Debug( LDAP_DEBUG_TRACE,
-			LDAP_XSTRING(bdb_add) ": no write access to attribute\n",
-			0, 0, 0 );
+			LDAP_XSTRING(bdb_add) ": no write access to attribute\n" );
 		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
 		rs->sr_text = "no write access to attribute";
 		goto return_results;;
@@ -325,7 +319,7 @@ retry:	/* transaction retry */
 		if( rs->sr_err != 0 ) {
 			Debug( LDAP_DEBUG_TRACE,
 				LDAP_XSTRING(bdb_add) ": next_id failed (%d)\n",
-				rs->sr_err, 0, 0 );
+				rs->sr_err );
 			rs->sr_err = LDAP_OTHER;
 			rs->sr_text = "internal error";
 			goto return_results;
@@ -340,20 +334,20 @@ retry:	/* transaction retry */
 	if( rs->sr_err != 0 ) {
 		Debug( LDAP_DEBUG_TRACE,
 			LDAP_XSTRING(bdb_add) ": txn_begin(2) failed: "
-			"%s (%d)\n", db_strerror(rs->sr_err), rs->sr_err, 0 );
+			"%s (%d)\n", db_strerror(rs->sr_err), rs->sr_err );
 		rs->sr_err = LDAP_OTHER;
 		rs->sr_text = "internal error";
 		goto return_results;
 	}
 	Debug( LDAP_DEBUG_TRACE, LDAP_XSTRING(bdb_add) ": txn2 id: %x\n",
-		lt2->id(lt2), 0, 0 );
+		lt2->id(lt2) );
 
 	/* dn2id index */
 	rs->sr_err = bdb_dn2id_add( op, lt2, ei, op->ora_e );
 	if ( rs->sr_err != 0 ) {
 		Debug( LDAP_DEBUG_TRACE,
 			LDAP_XSTRING(bdb_add) ": dn2id_add failed: %s (%d)\n",
-			db_strerror(rs->sr_err), rs->sr_err, 0 );
+			db_strerror(rs->sr_err), rs->sr_err );
 
 		switch( rs->sr_err ) {
 		case DB_LOCK_DEADLOCK:
@@ -372,8 +366,7 @@ retry:	/* transaction retry */
 	rs->sr_err = bdb_index_entry_add( op, lt2, op->ora_e );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE,
-			LDAP_XSTRING(bdb_add) ": index_entry_add failed\n",
-			0, 0, 0 );
+			LDAP_XSTRING(bdb_add) ": index_entry_add failed\n" );
 		switch( rs->sr_err ) {
 		case DB_LOCK_DEADLOCK:
 		case DB_LOCK_NOTGRANTED:
@@ -389,8 +382,7 @@ retry:	/* transaction retry */
 	rs->sr_err = bdb_id2entry_add( op->o_bd, lt2, op->ora_e );
 	if ( rs->sr_err != 0 ) {
 		Debug( LDAP_DEBUG_TRACE,
-			LDAP_XSTRING(bdb_add) ": id2entry_add failed\n",
-			0, 0, 0 );
+			LDAP_XSTRING(bdb_add) ": id2entry_add failed\n" );
 		switch( rs->sr_err ) {
 		case DB_LOCK_DEADLOCK:
 		case DB_LOCK_NOTGRANTED:
@@ -419,7 +411,7 @@ retry:	/* transaction retry */
 		{
 			Debug( LDAP_DEBUG_TRACE,
 				"<=- " LDAP_XSTRING(bdb_add) ": post-read "
-				"failed!\n", 0, 0, 0 );
+				"failed!\n" );
 			if ( op->o_postread & SLAP_CONTROL_CRITICAL ) {
 				/* FIXME: is it correct to abort
 				 * operation if control fails? */

@@ -51,21 +51,20 @@ static void idl_dump( ID *ids )
 		Debug( LDAP_DEBUG_ANY,
                "IDL: range ( %ld - %ld )\n",
                (long) WT_IDL_RANGE_FIRST( ids ),
-               (long) WT_IDL_RANGE_LAST( ids ),
-               0);
+               (long) WT_IDL_RANGE_LAST( ids ) );
 
 	} else {
 		ID i;
-		Debug( LDAP_DEBUG_ANY, "IDL: size %ld", (long) ids[0], 0, 0 );
+		Debug( LDAP_DEBUG_ANY, "IDL: size %ld", (long) ids[0] );
 
 		for( i=1; i<=ids[0]; i++ ) {
 			if( i % 16 == 1 ) {
-				Debug( LDAP_DEBUG_ANY, "\n", 0, 0, 0 );
+				Debug( LDAP_DEBUG_ANY, "\n" );
 			}
-			Debug( LDAP_DEBUG_ANY, "  %02lx", (long) ids[i], 0, 0 );
+			Debug( LDAP_DEBUG_ANY, "  %02lx", (long) ids[i] );
 		}
 
-		Debug( LDAP_DEBUG_ANY, "\n", 0, 0, 0 );
+		Debug( LDAP_DEBUG_ANY, "\n" );
 	}
 
 	idl_check( ids );
@@ -136,7 +135,7 @@ int wt_idl_insert( ID *ids, ID id )
 	unsigned x;
 
 #if IDL_DEBUG > 1
-	Debug( LDAP_DEBUG_ANY, "insert: %04lx at %d\n", (long) id, x, 0 );
+	Debug( LDAP_DEBUG_ANY, "insert: %04lx at %d\n", (long) id, x );
 	idl_dump( ids );
 #elif IDL_DEBUG > 0
 	idl_check( ids );
@@ -197,7 +196,7 @@ static int wt_idl_delete( ID *ids, ID id )
 	unsigned x;
 
 #if IDL_DEBUG > 1
-	Debug( LDAP_DEBUG_ANY, "delete: %04lx at %d\n", (long) id, x, 0 );
+	Debug( LDAP_DEBUG_ANY, "delete: %04lx at %d\n", (long) id, x );
 	idl_dump( ids );
 #elif IDL_DEBUG > 0
 	idl_check( ids );

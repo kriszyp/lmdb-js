@@ -121,7 +121,7 @@ backsql_operational(
 			got[ BACKSQL_OP_LAST ] = { 0 };
 
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_operational(): entry \"%s\"\n",
-			rs->sr_entry->e_nname.bv_val, 0, 0 );
+			rs->sr_entry->e_nname.bv_val );
 
 	for ( ap = &rs->sr_entry->e_attrs; *ap; ap = &(*ap)->a_next ) {
 		if ( (*ap)->a_desc == slap_schema.si_ad_hasSubordinates ) {
@@ -166,8 +166,7 @@ backsql_operational(
 	rc = backsql_get_db_conn( op, &dbh );
 	if ( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_operational(): "
-			"could not get connection handle - exiting\n", 
-			0, 0, 0 );
+			"could not get connection handle - exiting\n" );
 		return 1;
 	}
 
@@ -188,7 +187,7 @@ backsql_operational(
 
 		default:
 			Debug( LDAP_DEBUG_TRACE, "backsql_operational(): "
-				"has_children failed( %d)\n", rc, 0, 0 );
+				"has_children failed( %d)\n", rc );
 			return 1;
 		}
 	}
@@ -205,8 +204,7 @@ backsql_operational(
 				BACKSQL_ISF_GET_ID );
 		if ( rc != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_TRACE, "backsql_operational(): "
-				"could not retrieve entry ID - no such entry\n", 
-				0, 0, 0 );
+				"could not retrieve entry ID - no such entry\n" );
 			return 1;
 		}
 
@@ -220,8 +218,7 @@ backsql_operational(
 
 		if ( *ap == NULL ) {
 			Debug( LDAP_DEBUG_TRACE, "backsql_operational(): "
-				"could not retrieve entryUUID\n", 
-				0, 0, 0 );
+				"could not retrieve entryUUID\n" );
 			return 1;
 		}
 
@@ -235,15 +232,14 @@ backsql_operational(
 		*ap = backsql_operational_entryCSN( op );
 		if ( *ap == NULL ) {
 			Debug( LDAP_DEBUG_TRACE, "backsql_operational(): "
-				"could not retrieve entryCSN\n", 
-				0, 0, 0 );
+				"could not retrieve entryCSN\n" );
 			return 1;
 		}
 
 		ap = &(*ap)->a_next;
 	}
 
-	Debug( LDAP_DEBUG_TRACE, "<==backsql_operational(%d)\n", rc, 0, 0);
+	Debug( LDAP_DEBUG_TRACE, "<==backsql_operational(%d)\n", rc );
 
 	return rc;
 }

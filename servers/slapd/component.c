@@ -298,7 +298,7 @@ get_aliased_filter_aa ( Operation* op, AttributeAssertion* a_assert, AttributeAl
 {
 	struct berval assert_bv;
 
-	Debug( LDAP_DEBUG_FILTER, "get_aliased_filter\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_FILTER, "get_aliased_filter\n" );
 
 	if ( !aa->aa_cf  )
 		return LDAP_PROTOCOL_ERROR;
@@ -319,7 +319,7 @@ get_aliased_filter( Operation* op,
 {
 	struct berval assert_bv;
 
-	Debug( LDAP_DEBUG_FILTER, "get_aliased_filter\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_FILTER, "get_aliased_filter\n" );
 
 	if ( !aa->aa_cf  ) return LDAP_PROTOCOL_ERROR;
 
@@ -342,7 +342,7 @@ get_comp_filter( Operation* op, struct berval* bv,
 	ComponentAssertionValue cav;
 	int rc;
 
-	Debug( LDAP_DEBUG_FILTER, "get_comp_filter\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_FILTER, "get_comp_filter\n" );
 	if ( (rc = slapd_ber2cav(bv, &cav) ) != LDAP_SUCCESS ) {
 		return rc;
 	}
@@ -413,7 +413,7 @@ get_comp_filter_list( Operation *op, ComponentAssertionValue *cav,
 	int		err;
 	ber_tag_t	tag;
 
-	Debug( LDAP_DEBUG_FILTER, "get_comp_filter_list\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_FILTER, "get_comp_filter_list\n" );
 	new = f;
 	for ( tag = comp_first_element( cav );
 		tag != LDAP_COMP_FILTER_UNDEFINED;
@@ -439,7 +439,7 @@ get_componentId( Operation *op, ComponentAssertionValue* cav,
 	type = peek_componentId_type( cav );
 
 	Debug( LDAP_DEBUG_FILTER, "get_compId [%lu]\n",
-		(unsigned long) type, 0, 0 );
+		(unsigned long) type );
 	len = 0;
 	_cid.ci_type = type;
 	_cid.ci_next = NULL;
@@ -732,7 +732,7 @@ get_matching_rule( Operation *op, ComponentAssertionValue* cav,
 	*mr = mr_bvfind( &rule_text );
 	cav->cav_ptr += count;
 	Debug( LDAP_DEBUG_FILTER, "get_matching_rule: %s\n",
-		(*mr)->smr_mrule.mr_oid, 0, 0 );
+		(*mr)->smr_mrule.mr_oid );
 	if ( *mr == NULL ) {
 		*text = "component matching rule not recognized";
 		return LDAP_INAPPROPRIATE_MATCHING;
@@ -950,7 +950,7 @@ get_item( Operation *op, ComponentAssertionValue* cav, ComponentAssertion** ca,
 	struct berval value;
 	MatchingRule* mr;
 
-	Debug( LDAP_DEBUG_FILTER, "get_item \n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_FILTER, "get_item \n" );
 	if ( op )
 		_ca = op->o_tmpalloc( sizeof( ComponentAssertion ), op->o_tmpmemctx );
 	else
@@ -1087,7 +1087,7 @@ parse_comp_filter( Operation* op, ComponentAssertionValue* cav,
 
 	switch ( f.cf_choice ) {
 	case LDAP_COMP_FILTER_AND:
-	Debug( LDAP_DEBUG_FILTER, "LDAP_COMP_FILTER_AND\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_FILTER, "LDAP_COMP_FILTER_AND\n" );
 		err = get_comp_filter_list( op, cav, &f.cf_and, text );
 		if ( err != LDAP_SUCCESS ) {
 			break;
@@ -1099,7 +1099,7 @@ parse_comp_filter( Operation* op, ComponentAssertionValue* cav,
 		break;
 
 	case LDAP_COMP_FILTER_OR:
-	Debug( LDAP_DEBUG_FILTER, "LDAP_COMP_FILTER_OR\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_FILTER, "LDAP_COMP_FILTER_OR\n" );
 		err = get_comp_filter_list( op, cav, &f.cf_or, text );
 		if ( err != LDAP_SUCCESS ) {
 			break;
@@ -1112,7 +1112,7 @@ parse_comp_filter( Operation* op, ComponentAssertionValue* cav,
 		break;
 
 	case LDAP_COMP_FILTER_NOT:
-	Debug( LDAP_DEBUG_FILTER, "LDAP_COMP_FILTER_NOT\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_FILTER, "LDAP_COMP_FILTER_NOT\n" );
 		err = parse_comp_filter( op, cav, &f.cf_not, text );
 		if ( err != LDAP_SUCCESS ) {
 			break;
@@ -1139,7 +1139,7 @@ parse_comp_filter( Operation* op, ComponentAssertionValue* cav,
 		break;
 
 	case LDAP_COMP_FILTER_ITEM:
-	Debug( LDAP_DEBUG_FILTER, "LDAP_COMP_FILTER_ITEM\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_FILTER, "LDAP_COMP_FILTER_ITEM\n" );
 		err = get_item( op, cav, &f.cf_ca, text );
 		if ( err != LDAP_SUCCESS ) {
 			break;
@@ -1302,7 +1302,7 @@ test_comp_filter(
 
 	if ( !f ) return LDAP_PROTOCOL_ERROR;
 
-	Debug( LDAP_DEBUG_FILTER, "test_comp_filter\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_FILTER, "test_comp_filter\n" );
 	switch ( f->cf_choice ) {
 	case SLAPD_FILTER_COMPUTED:
 		rc = f->cf_result;
@@ -1349,8 +1349,7 @@ free_comp_filter( ComponentFilter* f )
 {
 	if ( !f ) {
 		Debug( LDAP_DEBUG_FILTER,
-			"free_comp_filter: Invalid filter so failed to release memory\n",
-			0, 0, 0 );
+			"free_comp_filter: Invalid filter so failed to release memory\n" );
 		return;
 	}
 	switch ( f->cf_choice ) {

@@ -698,7 +698,7 @@ static int autoca_cf( ConfigArgs *c )
 				snprintf( c->cr_msg, sizeof( c->cr_msg ),
 					"suffix must be set" );
 				Debug( LDAP_DEBUG_CONFIG, "autoca_config: %s\n",
-					c->cr_msg, NULL, NULL );
+					c->cr_msg );
 				rc = ARG_BAD_CONF;
 				break;
 			}
@@ -706,7 +706,7 @@ static int autoca_cf( ConfigArgs *c )
 				snprintf( c->cr_msg, sizeof( c->cr_msg ),
 					"DN is not a subordinate of backend" );
 				Debug( LDAP_DEBUG_CONFIG, "autoca_config: %s\n",
-					c->cr_msg, NULL, NULL );
+					c->cr_msg );
 				rc = ARG_BAD_CONF;
 				break;
 			}

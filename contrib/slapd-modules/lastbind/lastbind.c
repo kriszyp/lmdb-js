@@ -290,7 +290,7 @@ int lastbind_initialize()
 		code = register_at( lastBind_OpSchema[i].def, lastBind_OpSchema[i].ad, 0 );
 		if ( code ) {
 			Debug( LDAP_DEBUG_ANY,
-				"lastbind_initialize: register_at failed\n", 0, 0, 0 );
+				"lastbind_initialize: register_at failed\n" );
 			return code;
 		}
 	}

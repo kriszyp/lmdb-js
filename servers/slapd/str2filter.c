@@ -44,7 +44,7 @@ str2filter_x( Operation *op, const char *str )
 	BerElement *ber = (BerElement *)&berbuf;
 	const char *text = NULL;
 
-	Debug( LDAP_DEBUG_FILTER, "str2filter \"%s\"\n", str, 0, 0 );
+	Debug( LDAP_DEBUG_FILTER, "str2filter \"%s\"\n", str );
 
 	if ( str == NULL || *str == '\0' ) {
 		return NULL;

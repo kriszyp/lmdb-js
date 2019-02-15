@@ -307,10 +307,10 @@ regex_matches(
 	regfree( &re );
 
 	Debug( LDAP_DEBUG_TRACE,
-	    "=> regex_matches: string:	 %s\n", str, 0, 0 );
+	    "=> regex_matches: string:	 %s\n", str );
 	Debug( LDAP_DEBUG_TRACE,
 	    "=> regex_matches: rc: %d %s\n",
-		rc, !rc ? "matches" : "no matches", 0 );
+		rc, !rc ? "matches" : "no matches" );
 	return( !rc );
 }
 

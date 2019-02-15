@@ -277,13 +277,13 @@ slapi_op_bind_callback( Operation *op, SlapReply *rs, int prc )
 			ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
 
 			/* log authorization identity */
-			Statslog( LDAP_DEBUG_STATS,
+			Debug( LDAP_DEBUG_STATS,
 				"%s BIND dn=\"%s\" mech=%s (SLAPI) ssf=0\n",
 				op->o_log_prefix,
 				BER_BVISNULL( &op->o_conn->c_dn )
 					? "<empty>" : op->o_conn->c_dn.bv_val,
 				BER_BVISNULL( &op->orb_mech )
-					? "<empty>" : op->orb_mech.bv_val, 0, 0 );
+					? "<empty>" : op->orb_mech.bv_val );
 
 			return -1;
 		}

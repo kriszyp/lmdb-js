@@ -37,7 +37,7 @@ int
 do_unbind( Operation *op, SlapReply *rs )
 {
 	Debug( LDAP_DEBUG_TRACE, "%s do_unbind\n",
-		op->o_log_prefix, 0, 0 );
+		op->o_log_prefix );
 
 	/*
 	 * Parse the unbind request.  It looks like this:
@@ -45,8 +45,7 @@ do_unbind( Operation *op, SlapReply *rs )
 	 *	UnBindRequest ::= NULL
 	 */
 
-	Statslog( LDAP_DEBUG_STATS, "%s UNBIND\n", op->o_log_prefix,
-		0, 0, 0, 0 );
+	Debug( LDAP_DEBUG_STATS, "%s UNBIND\n", op->o_log_prefix );
 
 	if ( frontendDB->be_unbind ) {
 		op->o_bd = frontendDB;

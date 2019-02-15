@@ -87,7 +87,7 @@ monitor_subsys_log_open(
 			Debug( LDAP_DEBUG_ANY,
 				"monitor_subsys_log_init: "
 				"unable to get entry \"%s\"\n",
-				ms->mss_ndn.bv_val, 0, 0 );
+				ms->mss_ndn.bv_val );
 			ber_bvarray_free( bva );
 			return( -1 );
 		}

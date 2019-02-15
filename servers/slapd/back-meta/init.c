@@ -101,8 +101,7 @@ meta_back_db_init(
 	bi = backend_info( "ldap" );
 	if ( !bi || !bi->bi_extra ) {
 		Debug( LDAP_DEBUG_ANY,
-			"meta_back_db_init: needs back-ldap\n",
-			0, 0, 0 );
+			"meta_back_db_init: needs back-ldap\n" );
 		return 1;
 	}
 
@@ -200,7 +199,7 @@ meta_target_finish(
 			"(likely authz=\"*\" used with \"non-prescriptive\" flag)",
 			log );
 		Debug( LDAP_DEBUG_ANY, "%s (target %s)\n",
-			msg, mt->mt_uri, 0 );
+			msg, mt->mt_uri );
 		return 1;
 	}
 
@@ -251,8 +250,7 @@ meta_back_db_open(
 			return 0;
 
 		Debug( LDAP_DEBUG_ANY,
-			"meta_back_db_open: no targets defined\n",
-			0, 0, 0 );
+			"meta_back_db_open: no targets defined\n" );
 		return 1;
 	}
 

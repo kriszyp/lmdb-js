@@ -40,7 +40,7 @@ bdb_key_read(
 	int rc;
 	DBT key;
 
-	Debug( LDAP_DEBUG_TRACE, "=> key_read\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "=> key_read\n" );
 
 	DBTzero( &key );
 	bv2DBT(k,&key);
@@ -51,10 +51,10 @@ bdb_key_read(
 
 	if( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "<= bdb_index_read: failed (%d)\n",
-			rc, 0, 0 );
+			rc );
 	} else {
 		Debug( LDAP_DEBUG_TRACE, "<= bdb_index_read %ld candidates\n",
-			(long) BDB_IDL_N(ids), 0, 0 );
+			(long) BDB_IDL_N(ids) );
 	}
 
 	return rc;
@@ -75,7 +75,7 @@ bdb_key_change(
 	DBT	key;
 
 	Debug( LDAP_DEBUG_TRACE, "=> key_change(%s,%lx)\n",
-		op == SLAP_INDEX_ADD_OP ? "ADD":"DELETE", (long) id, 0 );
+		op == SLAP_INDEX_ADD_OP ? "ADD":"DELETE", (long) id );
 
 	DBTzero( &key );
 	bv2DBT(k,&key);
@@ -98,7 +98,7 @@ bdb_key_change(
 		if ( rc == DB_NOTFOUND ) rc = 0;
 	}
 
-	Debug( LDAP_DEBUG_TRACE, "<= key_change %d\n", rc, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "<= key_change %d\n", rc );
 
 	return rc;
 }

@@ -218,7 +218,7 @@ rewrite_context_apply(
 
 	Debug( LDAP_DEBUG_TRACE, "==> rewrite_context_apply"
 			" [depth=%d] string='%s'\n",
-			op->lo_depth, string, 0 );
+			op->lo_depth, string );
 	assert( op->lo_depth > 0 );
 	
 	s = (char *)string;
@@ -246,7 +246,7 @@ rewrite_context_apply(
 			
 		case REWRITE_REGEXEC_ERR:
 			Debug( LDAP_DEBUG_ANY, "==> rewrite_context_apply"
-					" error ...\n", 0, 0, 0);
+					" error ...\n" );
 
 			/*
 			 * Checks for special actions to be taken
@@ -268,7 +268,7 @@ rewrite_context_apply(
 					case REWRITE_ACTION_IGNORE_ERR:
 						Debug( LDAP_DEBUG_ANY,
 					"==> rewrite_context_apply"
-					" ignoring error ...\n", 0, 0, 0 );
+					" ignoring error ...\n" );
 						do_continue = 1;
 						break;
 

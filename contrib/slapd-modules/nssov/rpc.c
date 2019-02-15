@@ -65,7 +65,7 @@ static int write_rpc(nssov_rpc_cbp *cbp,Entry *entry)
 	if ( !a || !a->a_vals )
 	{
 		Debug(LDAP_DEBUG_ANY,"rpc entry %s does not contain %s value\n",
-			entry->e_name.bv_val, cbp->mi->mi_attrs[0].an_desc->ad_cname.bv_val, 0 );
+			entry->e_name.bv_val, cbp->mi->mi_attrs[0].an_desc->ad_cname.bv_val );
 		return 0;
 	}
 	names = a->a_vals;
@@ -88,17 +88,17 @@ static int write_rpc(nssov_rpc_cbp *cbp,Entry *entry)
 	if ( !a || !a->a_vals )
 	{
 		Debug(LDAP_DEBUG_ANY,"rpc entry %s does not contain %s value\n",
-			entry->e_name.bv_val, cbp->mi->mi_attrs[1].an_desc->ad_cname.bv_val, 0 );
+			entry->e_name.bv_val, cbp->mi->mi_attrs[1].an_desc->ad_cname.bv_val );
 		return 0;
 	} else if ( a->a_numvals > 1 ) {
 		Debug(LDAP_DEBUG_ANY,"rpc entry %s contains multiple %s values\n",
-			entry->e_name.bv_val, cbp->mi->mi_attrs[1].an_desc->ad_cname.bv_val, 0 );
+			entry->e_name.bv_val, cbp->mi->mi_attrs[1].an_desc->ad_cname.bv_val );
 	}
 	number=(int)strtol(a->a_vals[0].bv_val,&tmp,0);
 	if (*tmp)
 	{
 		Debug(LDAP_DEBUG_ANY,"rpc entry %s contains non-numeric %s value\n",
-			entry->e_name.bv_val, cbp->mi->mi_attrs[1].an_desc->ad_cname.bv_val, 0 );
+			entry->e_name.bv_val, cbp->mi->mi_attrs[1].an_desc->ad_cname.bv_val );
 		return 0;
 	}
 	/* write the entry */

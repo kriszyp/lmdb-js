@@ -147,7 +147,7 @@ null_back_respond( Operation *op, SlapReply *rs, int rc )
 
 				Debug( LDAP_DEBUG_TRACE,
 					"<=- null_back_respond: pre-read "
-					"failed!\n", 0, 0, 0 );
+					"failed!\n" );
 
 				if ( op->o_preread & SLAP_CONTROL_CRITICAL ) {
 					/* FIXME: is it correct to abort
@@ -188,7 +188,7 @@ null_back_respond( Operation *op, SlapReply *rs, int rc )
 
 				Debug( LDAP_DEBUG_TRACE,
 					"<=- null_back_respond: post-read "
-					"failed!\n", 0, 0, 0 );
+					"failed!\n" );
 
 				if ( op->o_postread & SLAP_CONTROL_CRITICAL ) {
 					/* FIXME: is it correct to abort
@@ -409,7 +409,7 @@ null_back_initialize( BackendInfo *bi )
 	};
 
 	Debug( LDAP_DEBUG_TRACE,
-		"null_back_initialize: initialize null backend\n", 0, 0, 0 );
+		"null_back_initialize: initialize null backend\n" );
 
 	bi->bi_flags |=
 		SLAP_BFLAG_INCREMENT |

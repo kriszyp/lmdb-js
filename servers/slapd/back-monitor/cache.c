@@ -239,7 +239,7 @@ retry:;
 				Debug( LDAP_DEBUG_ANY,
 					"monitor_cache_remove(\"%s\"): "
 					"not in parent's list\n",
-					ndn->bv_val, 0, 0 );
+					ndn->bv_val );
 			}
 
 			/* either succeeded, and the entry is no longer

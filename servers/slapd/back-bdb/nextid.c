@@ -69,7 +69,7 @@ int bdb_last_id( BackendDB *be, DB_TXN *tid )
 	default:
 		Debug( LDAP_DEBUG_ANY,
 			"=> bdb_last_id: get failed: %s (%d)\n",
-			db_strerror(rc), rc, 0 );
+			db_strerror(rc), rc );
 		goto done;
 	}
 

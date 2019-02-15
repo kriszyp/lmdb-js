@@ -259,7 +259,7 @@ asyncmeta_back_modify( Operation *op, SlapReply *rs )
 	slap_callback *cb = op->o_callback;
 
 	Debug(LDAP_DEBUG_ARGS, "==> asyncmeta_back_modify: %s\n",
-	      op->o_req_dn.bv_val, 0, 0 );
+	      op->o_req_dn.bv_val );
 
 	asyncmeta_new_bm_context(op, rs, &bc, mi->mi_ntargets );
 	if (bc == NULL) {
@@ -300,7 +300,7 @@ asyncmeta_back_modify( Operation *op, SlapReply *rs )
 	case META_SEARCH_CANDIDATE:
 		/* target is already bound, just send the request */
 		Debug( LDAP_DEBUG_TRACE, "%s asyncmeta_back_modify:  "
-		       "cnd=\"%ld\"\n", op->o_log_prefix, candidate , 0);
+		       "cnd=\"%ld\"\n", op->o_log_prefix, candidate );
 
 		rc = asyncmeta_back_modify_start( op, rs, mc, bc, candidate);
 		if (rc == META_SEARCH_ERR) {
@@ -315,7 +315,7 @@ asyncmeta_back_modify( Operation *op, SlapReply *rs )
 			break;
 	case META_SEARCH_NOT_CANDIDATE:
 		Debug( LDAP_DEBUG_TRACE, "%s asyncmeta_back_modify: NOT_CANDIDATE "
-		       "cnd=\"%ld\"\n", op->o_log_prefix, candidate , 0);
+		       "cnd=\"%ld\"\n", op->o_log_prefix, candidate );
 		candidates[ candidate ].sr_msgid = META_MSGID_IGNORE;
 		ldap_pvt_thread_mutex_lock( &mc->mc_om_mutex);
 		asyncmeta_drop_bc(mc, bc);
@@ -348,7 +348,7 @@ asyncmeta_back_modify( Operation *op, SlapReply *rs )
 
 	case META_SEARCH_ERR:
 			Debug( LDAP_DEBUG_TRACE, "%s asyncmeta_back_modify: ERR "
-			       "cnd=\"%ldd\"\n", op->o_log_prefix, candidate , 0);
+			       "cnd=\"%ldd\"\n", op->o_log_prefix, candidate );
 			candidates[ candidate ].sr_msgid = META_MSGID_IGNORE;
 			candidates[ candidate ].sr_type = REP_RESULT;
 			ldap_pvt_thread_mutex_lock( &mc->mc_om_mutex);

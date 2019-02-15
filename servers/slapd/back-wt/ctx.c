@@ -32,8 +32,7 @@ wt_ctx_init(struct wt_info *wi)
 	if( !wc ) {
 		Debug( LDAP_DEBUG_ANY,
 			   LDAP_XSTRING(wt_ctx_init)
-			   ": cannot allocate memory\n",
-			   0, 0, 0 );
+			   ": cannot allocate memory\n" );
 		return NULL;
 	}
 
@@ -45,7 +44,7 @@ wt_ctx_init(struct wt_info *wi)
 			Debug( LDAP_DEBUG_ANY,
 				   LDAP_XSTRING(wt_ctx_session)
 				   ": open_session error %s(%d)\n",
-				   wiredtiger_strerror(rc), rc, 0 );
+				   wiredtiger_strerror(rc), rc );
 			return NULL;
 		}
 	}
@@ -77,8 +76,7 @@ wt_ctx_get(Operation *op, struct wt_info *wi){
 		if( !wc ) {
 			Debug( LDAP_DEBUG_ANY,
 				   LDAP_XSTRING(wt_ctx)
-				   ": wt_ctx_init failed\n",
-				   0, 0, 0 );
+				   ": wt_ctx_init failed\n" );
 			return NULL;
 		}
 		rc = ldap_pvt_thread_pool_setkey( op->o_threadctx,
@@ -86,7 +84,7 @@ wt_ctx_get(Operation *op, struct wt_info *wi){
 										  NULL, NULL );
 		if( rc ) {
 			Debug( LDAP_DEBUG_ANY, "wt_ctx: setkey error(%d)\n",
-				   rc, 0, 0 );
+				   rc );
 			return NULL;
 		}
 		return wc;
@@ -126,7 +124,7 @@ wt_ctx_index_cursor(wt_ctx *wc, struct berval *name, int create)
 		Debug( LDAP_DEBUG_ANY,
 			   LDAP_XSTRING(wt_id2entry_put)
 			   ": open cursor failed: %s (%d)\n",
-			   wiredtiger_strerror(rc), rc, 0 );
+			   wiredtiger_strerror(rc), rc );
 		return NULL;
 	}
 

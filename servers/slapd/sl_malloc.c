@@ -309,7 +309,7 @@ slap_sl_malloc(
 		newptr = ber_memalloc_x( size, NULL );
 		if ( newptr ) return newptr;
 		Debug(LDAP_DEBUG_ANY, "slap_sl_malloc of %lu bytes failed\n",
-			(unsigned long) size, 0, 0);
+			(unsigned long) size );
 		assert( 0 );
 		exit( EXIT_FAILURE );
 	}
@@ -389,7 +389,7 @@ slap_sl_malloc(
 
 	Debug(LDAP_DEBUG_TRACE,
 		"sl_malloc %lu: ch_malloc\n",
-		(unsigned long) size, 0, 0);
+		(unsigned long) size );
 	return ch_malloc(size);
 }
 
@@ -409,7 +409,7 @@ slap_sl_calloc( ber_len_t n, ber_len_t size, void *ctx )
 		memset( newptr, 0, n*size );
 	} else {
 		Debug(LDAP_DEBUG_ANY, "slap_sl_calloc(%lu,%lu) out of range\n",
-			(unsigned long) n, (unsigned long) size, 0);
+			(unsigned long) n, (unsigned long) size );
 		assert(0);
 		exit(EXIT_FAILURE);
 	}
@@ -434,7 +434,7 @@ slap_sl_realloc(void *ptr, ber_len_t size, void *ctx)
 			return newptr;
 		}
 		Debug(LDAP_DEBUG_ANY, "slap_sl_realloc of %lu bytes failed\n",
-			(unsigned long) size, 0, 0);
+			(unsigned long) size );
 		assert(0);
 		exit( EXIT_FAILURE );
 	}
@@ -579,8 +579,7 @@ slap_sl_free(void *ptr, void *ctx)
 						break;
 
 						Debug(LDAP_DEBUG_TRACE, "slap_sl_free: "
-							"free object not found while bit is clear.\n",
-							0, 0, 0);
+							"free object not found while bit is clear.\n" );
 						assert(so != NULL);
 
 					}
@@ -629,8 +628,7 @@ slap_sl_free(void *ptr, void *ctx)
 						break;
 
 						Debug(LDAP_DEBUG_TRACE, "slap_sl_free: "
-							"free object not found while bit is clear.\n",
-							0, 0, 0 );
+							"free object not found while bit is clear.\n" );
 						assert(so != NULL);
 
 					}
@@ -720,27 +718,27 @@ print_slheap(int level, void *ctx)
 	int i, j, once = 0;
 
 	if (!ctx) {
-		Debug(level, "NULL memctx\n", 0, 0, 0);
+		Debug(level, "NULL memctx\n" );
 		return;
 	}
 
-	Debug(level, "sh->sh_maxorder=%d\n", sh->sh_maxorder, 0, 0);
+	Debug(level, "sh->sh_maxorder=%d\n", sh->sh_maxorder );
 
 	for (i = order_start; i <= sh->sh_maxorder; i++) {
 		once = 0;
-		Debug(level, "order=%d\n", i, 0, 0);
+		Debug(level, "order=%d\n", i );
 		for (j = 0; j < (1<<(sh->sh_maxorder-i))/8; j++) {
-			Debug(level, "%02x ", sh->sh_map[i-order_start][j], 0, 0);
+			Debug(level, "%02x ", sh->sh_map[i-order_start][j] );
 			once = 1;
 		}
 		if (!once) {
-			Debug(level, "%02x ", sh->sh_map[i-order_start][0], 0, 0);
+			Debug(level, "%02x ", sh->sh_map[i-order_start][0] );
 		}
-		Debug(level, "\n", 0, 0, 0);
-		Debug(level, "free list:\n", 0, 0, 0);
+		Debug(level, "\n" );
+		Debug(level, "free list:\n" );
 		so = LDAP_LIST_FIRST(&sh->sh_free[i-order_start]);
 		while (so) {
-			Debug(level, "%p\n", so->so_ptr, 0, 0);
+			Debug(level, "%p\n", so->so_ptr );
 			so = LDAP_LIST_NEXT(so, so_link);
 		}
 	}

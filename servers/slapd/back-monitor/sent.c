@@ -80,7 +80,7 @@ monitor_subsys_sent_init(
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_sent_init: "
 			"unable to get entry \"%s\"\n",
-			ms->mss_ndn.bv_val, 0, 0 );
+			ms->mss_ndn.bv_val );
 		return( -1 );
 	}
 
@@ -101,7 +101,7 @@ monitor_subsys_sent_init(
 				"monitor_subsys_sent_init: "
 				"unable to create entry \"%s,%s\"\n",
 				monitor_sent[ i ].rdn.bv_val,
-				ms->mss_ndn.bv_val, 0 );
+				ms->mss_ndn.bv_val );
 			return( -1 );
 		}
 
@@ -126,7 +126,7 @@ monitor_subsys_sent_init(
 				"monitor_subsys_sent_init: "
 				"unable to add entry \"%s,%s\"\n",
 				monitor_sent[ i ].rdn.bv_val,
-				ms->mss_ndn.bv_val, 0 );
+				ms->mss_ndn.bv_val );
 			return( -1 );
 		}
 	

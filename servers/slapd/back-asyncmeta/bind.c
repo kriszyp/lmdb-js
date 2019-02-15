@@ -70,7 +70,7 @@ asyncmeta_back_bind( Operation *op, SlapReply *rs )
 	rs->sr_err = LDAP_SUCCESS;
 
 	Debug( LDAP_DEBUG_ARGS, "%s asyncmeta_back_bind: dn=\"%s\".\n",
-		op->o_log_prefix, op->o_req_dn.bv_val, 0 );
+		op->o_log_prefix, op->o_req_dn.bv_val );
 
 	/* the test on the bind method should be superfluous */
 	switch ( be_rootdn_bind( op, rs ) ) {
@@ -107,7 +107,7 @@ asyncmeta_back_bind( Operation *op, SlapReply *rs )
 				rs->sr_text ? rs->sr_text : "" );
 			Debug( LDAP_DEBUG_ANY,
 				"%s %s\n",
-				op->o_log_prefix, buf, 0 );
+				op->o_log_prefix, buf );
 		}
 
 		/* FIXME: there might be cases where we don't want
@@ -152,7 +152,7 @@ asyncmeta_back_bind( Operation *op, SlapReply *rs )
 			Debug( LDAP_DEBUG_ANY,
 				"### %s asyncmeta_back_bind: more than one"
 				" candidate selected...\n",
-				op->o_log_prefix, 0, 0 );
+				op->o_log_prefix );
 		}
 
 		if ( isroot ) {
@@ -262,7 +262,7 @@ asyncmeta_bind_op_result(
 
 	Debug( LDAP_DEBUG_TRACE,
 		">>> %s asyncmeta_bind_op_result[%d]\n",
-		op->o_log_prefix, candidate, 0 );
+		op->o_log_prefix, candidate );
 
 	/* make sure this is clean */
 	assert( rs->sr_ctrls == NULL );
@@ -983,7 +983,7 @@ retry:;
 						( xtext ? xtext : "" ),
 						( xmatched ? xmatched : "" ) );
 					Debug( LDAP_DEBUG_ANY, "%s %s.\n",
-						op->o_log_prefix, buf, 0 );
+						op->o_log_prefix, buf );
 				}
 
 				/*
@@ -1693,7 +1693,7 @@ asyncmeta_dobind_init(Operation *op, SlapReply *rs, bm_context_t *bc, a_metaconn
 	meta_search_candidate_t	retcode;
 
 	Debug( LDAP_DEBUG_TRACE, "%s >>> asyncmeta_search_dobind_init[%d]\n",
-		op->o_log_prefix, candidate, 0 );
+		op->o_log_prefix, candidate );
 
 	if ( mc->mc_authz_target == META_BOUND_ALL ) {
 		return META_SEARCH_CANDIDATE;
@@ -1864,7 +1864,7 @@ retry_bind:
 		snprintf( buf, sizeof( buf ), "asyncmeta_search_dobind_init[%d] mc=%p ld=%p rc=%d",
 			candidate, (void *)mc, (void *)mc->mc_conns[ candidate ].msc_ld, rc );
 		Debug( LDAP_DEBUG_ANY, "### %s %s\n",
-			op->o_log_prefix, buf, 0 );
+			op->o_log_prefix, buf );
 	}
 #endif /* DEBUG_205 */
 

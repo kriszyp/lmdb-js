@@ -38,7 +38,7 @@ backsql_bind( Operation *op, SlapReply *rs )
 	AttributeName		anlist[2];
 	int			rc;
  
- 	Debug( LDAP_DEBUG_TRACE, "==>backsql_bind()\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "==>backsql_bind()\n" );
 
 	switch ( be_rootdn_bind( op, rs ) ) {
 	case SLAP_CB_CONTINUE:
@@ -48,15 +48,14 @@ backsql_bind( Operation *op, SlapReply *rs )
 		/* in case of success, front end will send result;
 		 * otherwise, be_rootdn_bind() did */
  		Debug( LDAP_DEBUG_TRACE, "<==backsql_bind(%d)\n",
-			rs->sr_err, 0, 0 );
+			rs->sr_err );
 		return rs->sr_err;
 	}
 
 	rs->sr_err = backsql_get_db_conn( op, &dbh );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
      		Debug( LDAP_DEBUG_TRACE, "backsql_bind(): "
-			"could not get connection handle - exiting\n",
-			0, 0, 0 );
+			"could not get connection handle - exiting\n" );
 
 		rs->sr_text = ( rs->sr_err == LDAP_OTHER )
 			? "SQL-backend error" : NULL;
@@ -73,8 +72,7 @@ backsql_bind( Operation *op, SlapReply *rs )
 			BACKSQL_ISF_GET_ENTRY );
 	if ( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_bind(): "
-			"could not retrieve bindDN ID - no such entry\n", 
-			0, 0, 0 );
+			"could not retrieve bindDN ID - no such entry\n" );
 		rs->sr_err = LDAP_INVALID_CREDENTIALS;
 		goto error_return;
 	}
@@ -109,7 +107,7 @@ error_return:;
 		send_ldap_result( op, rs );
 	}
 	
-	Debug( LDAP_DEBUG_TRACE,"<==backsql_bind()\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE,"<==backsql_bind()\n" );
 
 	return rs->sr_err;
 }

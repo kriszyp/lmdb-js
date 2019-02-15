@@ -75,7 +75,7 @@ over_db_config(
 					Debug( LDAP_DEBUG_ANY, "over_db_config(): "
 							"warning, freshly added "
 							"overlay #%d \"%s\" is already in list\n",
-							i, (*onp)->on_bi.bi_type, 0 );
+							i, (*onp)->on_bi.bi_type );
 
 					/* NOTE: if the overlay already exists,
 					 * there is no way to merge the results
@@ -949,7 +949,7 @@ overlay_register(
 			Debug( LDAP_DEBUG_ANY,
 				"overlay_register(\"%s\"): "
 				"name already in use.\n",
-				on->on_bi.bi_type, 0, 0 );
+				on->on_bi.bi_type );
 			return -1;
 		}
 
@@ -982,7 +982,7 @@ overlay_register(
 						"name already in use "
 						"as obsolete by overlay \"%s\".\n",
 						on->on_bi.bi_type,
-						tmp->on_bi.bi_obsolete_names[ i ], 0 );
+						tmp->on_bi.bi_obsolete_names[ i ] );
 					return -1;
 				}
 
@@ -1054,7 +1054,7 @@ overlay_find( const char *over_type )
 						"overlay_find(\"%s\"): "
 						"obsolete name for \"%s\".\n",
 						on->on_bi.bi_obsolete_names[ i ],
-						on->on_bi.bi_type, 0 );
+						on->on_bi.bi_type );
 					goto foundit;
 				}
 			}
@@ -1339,7 +1339,7 @@ overlay_config( BackendDB *be, const char *ov, int idx, BackendInfo **res, Confi
 
 	on = overlay_find( ov );
 	if ( !on ) {
-		Debug( LDAP_DEBUG_ANY, "overlay \"%s\" not found\n", ov, 0, 0 );
+		Debug( LDAP_DEBUG_ANY, "overlay \"%s\" not found\n", ov );
 		return 1;
 	}
 
@@ -1357,14 +1357,14 @@ overlay_config( BackendDB *be, const char *ov, int idx, BackendInfo **res, Confi
 			if ( on->on_bi.bi_flags & SLAPO_BFLAG_DBONLY ) {
 				Debug( LDAP_DEBUG_ANY, "overlay_config(): "
 					"overlay \"%s\" cannot be global.\n",
-					ov, 0, 0 );
+					ov );
 				return 1;
 			}
 
 		} else if ( on->on_bi.bi_flags & SLAPO_BFLAG_GLOBONLY ) {
 			Debug( LDAP_DEBUG_ANY, "overlay_config(): "
 				"overlay \"%s\" can only be global.\n",
-				ov, 0, 0 );
+				ov );
 			return 1;
 		}
 
@@ -1430,7 +1430,7 @@ overlay_config( BackendDB *be, const char *ov, int idx, BackendInfo **res, Confi
 			if ( SLAPO_SINGLE( be ) ) {
 				Debug( LDAP_DEBUG_ANY, "overlay_config(): "
 					"overlay \"%s\" already in list\n",
-					ov, 0, 0 );
+					ov );
 				return 1;
 			}
 		}

@@ -377,7 +377,7 @@ attr_valadd(
 		    (a->a_numvals + nn + 1) * sizeof(struct berval) );
 	if( v2 == NULL ) {
 		Debug(LDAP_DEBUG_TRACE,
-		  "attr_valadd: SLAP_REALLOC failed.\n", 0, 0, 0 );
+		  "attr_valadd: SLAP_REALLOC failed.\n" );
 		return LBER_ERROR_MEMORY;
 	}
 	a->a_vals = v2;
@@ -386,7 +386,7 @@ attr_valadd(
 				(a->a_numvals + nn + 1) * sizeof(struct berval) );
 		if( v2 == NULL ) {
 			Debug(LDAP_DEBUG_TRACE,
-			  "attr_valadd: SLAP_REALLOC failed.\n", 0, 0, 0 );
+			  "attr_valadd: SLAP_REALLOC failed.\n" );
 			return LBER_ERROR_MEMORY;
 		}
 		a->a_nvals = v2;

@@ -258,7 +258,7 @@ bdb_online_index( void *ctx, void *arg )
 		if ( rc ) 
 			break;
 		Debug( LDAP_DEBUG_TRACE, LDAP_XSTRING(bdb_online_index) ": txn id: %x\n",
-			txn->id(txn), 0, 0 );
+			txn->id(txn) );
 		if ( getnext ) {
 			getnext = 0;
 			BDB_ID2DISK( id, &nid );
@@ -379,7 +379,7 @@ bdb_cf_cleanup( ConfigArgs *c )
 			snprintf( c->cr_msg, sizeof( c->cr_msg ),
 				"failed to reopen database, rc=%d", rc );
 			Debug( LDAP_DEBUG_ANY, LDAP_XSTRING(bdb_cf_cleanup)
-				": %s\n", c->cr_msg, 0, 0 );
+				": %s\n", c->cr_msg );
 			rc = LDAP_OTHER;
 		}
 	}
@@ -841,7 +841,7 @@ bdb_cf_gen( ConfigArgs *c )
 		if ( !f ) {
 			snprintf( c->cr_msg, sizeof( c->cr_msg ), "%s: invalid path: %s",
 				c->log, strerror( errno ));
-			Debug( LDAP_DEBUG_ANY, "%s\n", c->cr_msg, 0, 0 );
+			Debug( LDAP_DEBUG_ANY, "%s\n", c->cr_msg );
 			return -1;
 		}
 
@@ -937,7 +937,7 @@ bdb_cf_gen( ConfigArgs *c )
 			snprintf( c->cr_msg, sizeof( c->cr_msg ),
 				"%s: size must be > 0 and <= 64: %d",
 				c->log, s );
-			Debug( LDAP_DEBUG_ANY, "%s\n", c->cr_msg, 0, 0 );
+			Debug( LDAP_DEBUG_ANY, "%s\n", c->cr_msg );
 			return -1;
 		}
 		i = strlen(c->argv[1]);

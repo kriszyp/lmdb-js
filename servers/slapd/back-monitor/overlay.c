@@ -51,8 +51,7 @@ monitor_subsys_overlay_init(
 			"monitor_subsys_backend_init: "
 			"unable to get "
 			"\"" SLAPD_MONITOR_DATABASE_NAME "\" "
-			"subsystem\n",
-			0, 0, 0 );
+			"subsystem\n" );
 		return -1;
 	}
 
@@ -60,7 +59,7 @@ monitor_subsys_overlay_init(
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_overlay_init: "
 			"unable to get entry \"%s\"\n",
-			ms->mss_ndn.bv_val, 0, 0 );
+			ms->mss_ndn.bv_val );
 		return( -1 );
 	}
 
@@ -83,7 +82,7 @@ monitor_subsys_overlay_init(
 			Debug( LDAP_DEBUG_ANY,
 				"monitor_subsys_overlay_init: "
 				"unable to create entry \"cn=Overlay %d,%s\"\n",
-				i, ms->mss_ndn.bv_val, 0 );
+				i, ms->mss_ndn.bv_val );
 			return( -1 );
 		}
 		ber_str2bv( on->on_bi.bi_type, 0, 0, &bv );
@@ -126,7 +125,7 @@ monitor_subsys_overlay_init(
 			Debug( LDAP_DEBUG_ANY,
 				"monitor_subsys_overlay_init: "
 				"unable to add entry \"cn=Overlay %d,%s\"\n",
-				i, ms->mss_ndn.bv_val, 0 );
+				i, ms->mss_ndn.bv_val );
 			return( -1 );
 		}
 
