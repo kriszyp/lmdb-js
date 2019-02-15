@@ -26,7 +26,7 @@ unsigned int MDB_idl_logn = MDB_IDL_LOGN;
 unsigned int MDB_idl_db_size = 1 << MDB_IDL_LOGN;
 unsigned int MDB_idl_um_size = 1 << (MDB_IDL_LOGN+1);
 unsigned int MDB_idl_db_max = (1 << MDB_IDL_LOGN) - 1;
-unsigned int MDB_idl_um_max = (1 << (MDB_IDL_LOGN+1) - 1);
+unsigned int MDB_idl_um_max = (1 << (MDB_IDL_LOGN+1)) - 1;
 
 #define IDL_MAX(x,y)	( (x) > (y) ? (x) : (y) )
 #define IDL_MIN(x,y)	( (x) < (y) ? (x) : (y) )
