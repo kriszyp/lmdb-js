@@ -155,7 +155,7 @@ ldap_modify_ext( LDAP *ld,
 	int		rc;
 	ber_int_t	id;
 
-	Debug( LDAP_DEBUG_TRACE, "ldap_modify_ext\n", 0, 0, 0 );
+	Debug0( LDAP_DEBUG_TRACE, "ldap_modify_ext\n" );
 
 	/* check client controls */
 	rc = ldap_int_client_controls( ld, cctrls );
@@ -196,7 +196,7 @@ ldap_modify( LDAP *ld, LDAP_CONST char *dn, LDAPMod **mods )
 {
 	int rc, msgid;
 
-	Debug( LDAP_DEBUG_TRACE, "ldap_modify\n", 0, 0, 0 );
+	Debug0( LDAP_DEBUG_TRACE, "ldap_modify\n" );
 
 	rc = ldap_modify_ext( ld, dn, mods, NULL, NULL, &msgid );
 

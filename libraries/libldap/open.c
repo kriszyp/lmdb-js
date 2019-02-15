@@ -89,8 +89,8 @@ ldap_open( LDAP_CONST char *host, int port )
 	int rc;
 	LDAP		*ld;
 
-	Debug( LDAP_DEBUG_TRACE, "ldap_open(%s, %d)\n",
-		host, port, 0 );
+	Debug2( LDAP_DEBUG_TRACE, "ldap_open(%s, %d)\n",
+		host, port );
 
 	ld = ldap_init( host, port );
 	if ( ld == NULL ) {
@@ -106,8 +106,8 @@ ldap_open( LDAP_CONST char *host, int port )
 		ld = NULL;
 	}
 
-	Debug( LDAP_DEBUG_TRACE, "ldap_open: %s\n",
-		ld != NULL ? "succeeded" : "failed", 0, 0 );
+	Debug1( LDAP_DEBUG_TRACE, "ldap_open: %s\n",
+		ld != NULL ? "succeeded" : "failed" );
 
 	return ld;
 }
@@ -133,7 +133,7 @@ ldap_create( LDAP **ldp )
 			return LDAP_LOCAL_ERROR;
 	}
 
-	Debug( LDAP_DEBUG_TRACE, "ldap_create\n", 0, 0, 0 );
+	Debug0( LDAP_DEBUG_TRACE, "ldap_create\n" );
 
 	if ( (ld = (LDAP *) LDAP_CALLOC( 1, sizeof(LDAP) )) == NULL ) {
 		return( LDAP_NO_MEMORY );
@@ -421,7 +421,7 @@ ldap_int_open_connection(
 	int rc = -1;
 	int proto;
 
-	Debug( LDAP_DEBUG_TRACE, "ldap_int_open_connection\n", 0, 0, 0 );
+	Debug0( LDAP_DEBUG_TRACE, "ldap_int_open_connection\n" );
 
 	switch ( proto = ldap_pvt_url_scheme2proto( srv->lud_scheme ) ) {
 		case LDAP_PROTO_TCP:
@@ -607,7 +607,7 @@ ldap_dup( LDAP *old )
 		return( NULL );
 	}
 
-	Debug( LDAP_DEBUG_TRACE, "ldap_dup\n", 0, 0, 0 );
+	Debug0( LDAP_DEBUG_TRACE, "ldap_dup\n" );
 
 	if ( (ld = (LDAP *) LDAP_CALLOC( 1, sizeof(LDAP) )) == NULL ) {
 		return( NULL );

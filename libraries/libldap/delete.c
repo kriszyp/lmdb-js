@@ -96,7 +96,7 @@ ldap_delete_ext(
 	BerElement	*ber;
 	ber_int_t	id;
 
-	Debug( LDAP_DEBUG_TRACE, "ldap_delete_ext\n", 0, 0, 0 );
+	Debug0( LDAP_DEBUG_TRACE, "ldap_delete_ext\n" );
 
 	assert( ld != NULL );
 	assert( LDAP_VALID( ld ) );
@@ -160,7 +160,7 @@ ldap_delete( LDAP *ld, LDAP_CONST char *dn )
 	 *	DelRequest ::= DistinguishedName,
 	 */
 
-	Debug( LDAP_DEBUG_TRACE, "ldap_delete\n", 0, 0, 0 );
+	Debug0( LDAP_DEBUG_TRACE, "ldap_delete\n" );
 
 	return ldap_delete_ext( ld, dn, NULL, NULL, &msgid ) == LDAP_SUCCESS
 		? msgid : -1 ;

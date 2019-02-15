@@ -70,9 +70,9 @@ ldap_int_decode_b64_inplace( struct berval *value )
 		for ( i = 0; i < 4; i++ ) {
 			if ( p[i] != '=' && (p[i] & 0x80 ||
 			    b642nib[ p[i] & 0x7f ] > 0x3f) ) {
-				Debug( LDAP_DEBUG_ANY,
+				Debug2( LDAP_DEBUG_ANY,
 					_("ldap_pvt_decode_b64_inplace: invalid base64 encoding"
-					" char (%c) 0x%x\n"), p[i], p[i], 0 );
+					" char (%c) 0x%x\n"), p[i], p[i] );
 				return( -1 );
 			}
 		}

@@ -105,7 +105,7 @@ ldap_extended_operation(
 	BerElement *ber;
 	ber_int_t id;
 
-	Debug( LDAP_DEBUG_TRACE, "ldap_extended_operation\n", 0, 0, 0 );
+	Debug0( LDAP_DEBUG_TRACE, "ldap_extended_operation\n" );
 
 	assert( ld != NULL );
 	assert( LDAP_VALID( ld ) );
@@ -143,7 +143,7 @@ ldap_extended_operation_s(
     int     msgid;
     LDAPMessage *res;
 
-	Debug( LDAP_DEBUG_TRACE, "ldap_extended_operation_s\n", 0, 0, 0 );
+	Debug0( LDAP_DEBUG_TRACE, "ldap_extended_operation_s\n" );
 
 	assert( ld != NULL );
 	assert( LDAP_VALID( ld ) );
@@ -194,7 +194,7 @@ ldap_parse_extended_result (
 	assert( LDAP_VALID( ld ) );
 	assert( res != NULL );
 
-	Debug( LDAP_DEBUG_TRACE, "ldap_parse_extended_result\n", 0, 0, 0 );
+	Debug0( LDAP_DEBUG_TRACE, "ldap_parse_extended_result\n" );
 
 	if( ld->ld_version < LDAP_VERSION3 ) {
 		ld->ld_errno = LDAP_NOT_SUPPORTED;
@@ -318,7 +318,7 @@ ldap_parse_intermediate (
 	assert( LDAP_VALID( ld ) );
 	assert( res != NULL );
 
-	Debug( LDAP_DEBUG_TRACE, "ldap_parse_intermediate\n", 0, 0, 0 );
+	Debug0( LDAP_DEBUG_TRACE, "ldap_parse_intermediate\n" );
 
 	if( ld->ld_version < LDAP_VERSION3 ) {
 		ld->ld_errno = LDAP_NOT_SUPPORTED;

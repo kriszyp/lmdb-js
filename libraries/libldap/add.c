@@ -210,7 +210,7 @@ ldap_add_ext(
 	int		rc;
 	ber_int_t	id;
 
-	Debug( LDAP_DEBUG_TRACE, "ldap_add_ext\n", 0, 0, 0 );
+	Debug0( LDAP_DEBUG_TRACE, "ldap_add_ext\n" );
 	assert( ld != NULL );
 	assert( LDAP_VALID( ld ) );
 	assert( dn != NULL );

@@ -65,7 +65,7 @@
 int
 ldap_bind( LDAP *ld, LDAP_CONST char *dn, LDAP_CONST char *passwd, int authmethod )
 {
-	Debug( LDAP_DEBUG_TRACE, "ldap_bind\n", 0, 0, 0 );
+	Debug0( LDAP_DEBUG_TRACE, "ldap_bind\n" );
 
 	switch ( authmethod ) {
 	case LDAP_AUTH_SIMPLE:
@@ -106,7 +106,7 @@ ldap_bind_s(
 	LDAP_CONST char *passwd,
 	int authmethod )
 {
-	Debug( LDAP_DEBUG_TRACE, "ldap_bind_s\n", 0, 0, 0 );
+	Debug0( LDAP_DEBUG_TRACE, "ldap_bind_s\n" );
 
 	switch ( authmethod ) {
 	case LDAP_AUTH_SIMPLE:

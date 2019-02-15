@@ -90,7 +90,7 @@ ldap_pvt_search(
 	int timelimit;
 	ber_int_t id;
 
-	Debug( LDAP_DEBUG_TRACE, "ldap_search_ext\n", 0, 0, 0 );
+	Debug0( LDAP_DEBUG_TRACE, "ldap_search_ext\n" );
 
 	assert( ld != NULL );
 	assert( LDAP_VALID( ld ) );
@@ -227,7 +227,7 @@ ldap_search(
 	BerElement	*ber;
 	ber_int_t	id;
 
-	Debug( LDAP_DEBUG_TRACE, "ldap_search\n", 0, 0, 0 );
+	Debug0( LDAP_DEBUG_TRACE, "ldap_search\n" );
 
 	assert( ld != NULL );
 	assert( LDAP_VALID( ld ) );
@@ -367,7 +367,7 @@ ldap_build_search_req(
 			ptr = buf;
 		}
 
-		Debug( LDAP_DEBUG_ARGS, "ldap_build_search_req ATTRS:%s\n", ptr, 0,0 );
+		Debug1( LDAP_DEBUG_ARGS, "ldap_build_search_req ATTRS:%s\n", ptr );
 	}
 #endif /* LDAP_DEBUG */
 

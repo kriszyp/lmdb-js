@@ -251,9 +251,9 @@ ldap_int_conf_option(
 	}
 
 	if ( attrs[i].type == ATTR_NONE ) {
-		Debug( LDAP_DEBUG_TRACE, "ldap_pvt_tls_config: "
+		Debug1( LDAP_DEBUG_TRACE, "ldap_pvt_tls_config: "
 				"unknown option '%s'",
-				cmd, 0, 0 );
+				cmd );
 		return 1;
 	}
 
@@ -301,7 +301,7 @@ static void openldap_ldap_init_w_conf(
 		return;
 	}
 
-	Debug(LDAP_DEBUG_TRACE, "ldap_init: trying %s\n", file, 0, 0);
+	Debug1(LDAP_DEBUG_TRACE, "ldap_init: trying %s\n", file );
 
 	fp = fopen(file, "r");
 	if(fp == NULL) {
@@ -309,7 +309,7 @@ static void openldap_ldap_init_w_conf(
 		return;
 	}
 
-	Debug(LDAP_DEBUG_TRACE, "ldap_init: using %s\n", file, 0, 0);
+	Debug1(LDAP_DEBUG_TRACE, "ldap_init: using %s\n", file );
 
 	while((start = fgets(linebuf, sizeof(linebuf), fp)) != NULL) {
 		/* skip lines starting with '#' */
@@ -371,12 +371,11 @@ static void openldap_ldap_init_w_userconf(const char *file)
 	home = getenv("HOME");
 
 	if (home != NULL) {
-		Debug(LDAP_DEBUG_TRACE, "ldap_init: HOME env is %s\n",
-		      home, 0, 0);
+		Debug1(LDAP_DEBUG_TRACE, "ldap_init: HOME env is %s\n",
+		      home );
 		path = LDAP_MALLOC(strlen(home) + strlen(file) + sizeof( LDAP_DIRSEP "."));
 	} else {
-		Debug(LDAP_DEBUG_TRACE, "ldap_init: HOME env is NULL\n",
-		      0, 0, 0);
+		Debug0(LDAP_DEBUG_TRACE, "ldap_init: HOME env is NULL\n" );
 	}
 
 	if(home != NULL && path != NULL) {
@@ -749,26 +748,26 @@ void ldap_int_initialize( struct ldapoptions *gopts, int *dbglvl )
 		char *altfile = getenv(LDAP_ENV_PREFIX "CONF");
 
 		if( altfile != NULL ) {
-			Debug(LDAP_DEBUG_TRACE, "ldap_init: %s env is %s\n",
-			      LDAP_ENV_PREFIX "CONF", altfile, 0);
+			Debug2(LDAP_DEBUG_TRACE, "ldap_init: %s env is %s\n",
+			      LDAP_ENV_PREFIX "CONF", altfile );
 			openldap_ldap_init_w_sysconf( altfile );
 		}
 		else
-			Debug(LDAP_DEBUG_TRACE, "ldap_init: %s env is NULL\n",
-			      LDAP_ENV_PREFIX "CONF", 0, 0);
+			Debug1(LDAP_DEBUG_TRACE, "ldap_init: %s env is NULL\n",
+			      LDAP_ENV_PREFIX "CONF" );
 	}
 
 	{
 		char *altfile = getenv(LDAP_ENV_PREFIX "RC");
 
 		if( altfile != NULL ) {
-			Debug(LDAP_DEBUG_TRACE, "ldap_init: %s env is %s\n",
-			      LDAP_ENV_PREFIX "RC", altfile, 0);
+			Debug2(LDAP_DEBUG_TRACE, "ldap_init: %s env is %s\n",
+			      LDAP_ENV_PREFIX "RC", altfile );
 			openldap_ldap_init_w_userconf( altfile );
 		}
 		else
-			Debug(LDAP_DEBUG_TRACE, "ldap_init: %s env is NULL\n",
-			      LDAP_ENV_PREFIX "RC", 0, 0);
+			Debug1(LDAP_DEBUG_TRACE, "ldap_init: %s env is NULL\n",
+			      LDAP_ENV_PREFIX "RC" );
 	}
 
 	openldap_ldap_init_w_env(gopts, NULL);

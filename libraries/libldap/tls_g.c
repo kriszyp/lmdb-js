@@ -221,16 +221,15 @@ tlsg_ctx_init( struct ldapoptions *lo, struct ldaptls *lt, int is_server )
 
  	if ( lo->ldo_tls_ciphersuite &&
 		tlsg_parse_ciphers( ctx, lt->lt_ciphersuite )) {
- 		Debug( LDAP_DEBUG_ANY,
+		Debug1( LDAP_DEBUG_ANY,
  			   "TLS: could not set cipher list %s.\n",
- 			   lo->ldo_tls_ciphersuite, 0, 0 );
+			   lo->ldo_tls_ciphersuite );
 		return -1;
  	}
 
 	if (lo->ldo_tls_cacertdir != NULL) {
-		Debug( LDAP_DEBUG_ANY, 
-		       "TLS: warning: cacertdir not implemented for gnutls\n",
-		       NULL, NULL, NULL );
+		Debug0( LDAP_DEBUG_ANY,
+		       "TLS: warning: cacertdir not implemented for gnutls\n" );
 	}
 
 	if (lo->ldo_tls_cacertfile != NULL) {
@@ -311,14 +310,12 @@ tlsg_ctx_init( struct ldapoptions *lo, struct ldaptls *lt, int is_server )
 		rc = gnutls_certificate_set_x509_key( ctx->cred, certs, max, key );
 		if ( rc ) return -1;
 	} else if (( lo->ldo_tls_certfile || lo->ldo_tls_keyfile )) {
-		Debug( LDAP_DEBUG_ANY,
-		       "TLS: only one of certfile and keyfile specified\n",
-		       NULL, NULL, NULL );
+		Debug0( LDAP_DEBUG_ANY,
+		       "TLS: only one of certfile and keyfile specified\n" );
 		return -1;
 	} else if (( lo->ldo_tls_cert.bv_val || lo->ldo_tls_key.bv_val )) {
-		Debug( LDAP_DEBUG_ANY,
-		       "TLS: only one of cert and key specified\n",
-		       NULL, NULL, NULL );
+		Debug0( LDAP_DEBUG_ANY,
+		       "TLS: only one of cert and key specified\n" );
 		return -1;
 	}
 
@@ -554,9 +551,8 @@ tlsg_session_chkhost( LDAP *ld, tls_session *session, const char *name_in )
 	peer_cert_list = gnutls_certificate_get_peers( s->session, 
 						&list_size );
 	if ( !peer_cert_list ) {
-		Debug( LDAP_DEBUG_ANY,
-			"TLS: unable to get peer certificate.\n",
-			0, 0, 0 );
+		Debug0( LDAP_DEBUG_ANY,
+			"TLS: unable to get peer certificate.\n" );
 		/* If this was a fatal condition, things would have
 		 * aborted long before now.
 		 */
@@ -649,9 +645,8 @@ tlsg_session_chkhost( LDAP *ld, tls_session *session, const char *name_in )
 		}
 
 		if ( ret < 0 ) {
-			Debug( LDAP_DEBUG_ANY,
-				"TLS: unable to get common name from peer certificate.\n",
-				0, 0, 0 );
+			Debug0( LDAP_DEBUG_ANY,
+				"TLS: unable to get common name from peer certificate.\n" );
 			ret = LDAP_CONNECT_ERROR;
 			if ( ld->ld_error ) {
 				LDAP_FREE( ld->ld_error );
@@ -676,9 +671,9 @@ tlsg_session_chkhost( LDAP *ld, tls_session *session, const char *name_in )
 
 		if( ret == LDAP_LOCAL_ERROR ) {
 			altname[altnamesize] = '\0';
-			Debug( LDAP_DEBUG_ANY, "TLS: hostname (%s) does not match "
+			Debug2( LDAP_DEBUG_ANY, "TLS: hostname (%s) does not match "
 				"common name in certificate (%s).\n", 
-				name, altname, 0 );
+				name, altname );
 			ret = LDAP_CONNECT_ERROR;
 			if ( ld->ld_error ) {
 				LDAP_FREE( ld->ld_error );
@@ -769,9 +764,9 @@ tlsg_session_pinning( LDAP *ld, tls_session *sess, char *hashalg, struct berval 
 	if ( hashalg ) {
 		alg = gnutls_digest_get_id( hashalg );
 		if ( alg == GNUTLS_DIG_UNKNOWN ) {
-			Debug( LDAP_DEBUG_ANY, "tlsg_session_pinning: "
+			Debug1( LDAP_DEBUG_ANY, "tlsg_session_pinning: "
 					"unknown hashing algorithm for GnuTLS: '%s'\n",
-					hashalg, 0, 0 );
+					hashalg );
 			return rc;
 		}
 	}
@@ -828,8 +823,8 @@ tlsg_session_pinning( LDAP *ld, tls_session *sess, char *hashalg, struct berval 
 
 	if ( ber_bvcmp( hash, &keyhash ) ) {
 		rc = LDAP_CONNECT_ERROR;
-		Debug( LDAP_DEBUG_ANY, "tlsg_session_pinning: "
-				"public key hash does not match provided pin.\n", 0, 0, 0 );
+		Debug0( LDAP_DEBUG_ANY, "tlsg_session_pinning: "
+				"public key hash does not match provided pin.\n" );
 		if ( ld->ld_error ) {
 			LDAP_FREE( ld->ld_error );
 		}
@@ -1057,35 +1052,31 @@ tlsg_cert_verify( tlsg_session *ssl )
 
 	err = gnutls_certificate_verify_peers2( ssl->session, &status );
 	if ( err < 0 ) {
-		Debug( LDAP_DEBUG_ANY,"TLS: gnutls_certificate_verify_peers2 failed %d\n",
-			err,0,0 );
+		Debug1( LDAP_DEBUG_ANY,"TLS: gnutls_certificate_verify_peers2 failed %d\n",
+			err );
 		return -1;
 	}
 	if ( status ) {
-		Debug( LDAP_DEBUG_TRACE,"TLS: peer cert untrusted or revoked (0x%x)\n",
-			status, 0,0 );
+		Debug1( LDAP_DEBUG_TRACE,"TLS: peer cert untrusted or revoked (0x%x)\n",
+			status );
 		return -1;
 	}
 	peertime = gnutls_certificate_expiration_time_peers( ssl->session );
 	if ( peertime == (time_t) -1 ) {
-		Debug( LDAP_DEBUG_ANY, "TLS: gnutls_certificate_expiration_time_peers failed\n",
-			0, 0, 0 );
+		Debug0( LDAP_DEBUG_ANY, "TLS: gnutls_certificate_expiration_time_peers failed\n" );
 		return -1;
 	}
 	if ( peertime < now ) {
-		Debug( LDAP_DEBUG_ANY, "TLS: peer certificate is expired\n",
-			0, 0, 0 );
+		Debug0( LDAP_DEBUG_ANY, "TLS: peer certificate is expired\n" );
 		return -1;
 	}
 	peertime = gnutls_certificate_activation_time_peers( ssl->session );
 	if ( peertime == (time_t) -1 ) {
-		Debug( LDAP_DEBUG_ANY, "TLS: gnutls_certificate_activation_time_peers failed\n",
-			0, 0, 0 );
+		Debug0( LDAP_DEBUG_ANY, "TLS: gnutls_certificate_activation_time_peers failed\n" );
 		return -1;
 	}
 	if ( peertime > now ) {
-		Debug( LDAP_DEBUG_ANY, "TLS: peer certificate not yet active\n",
-			0, 0, 0 );
+		Debug0( LDAP_DEBUG_ANY, "TLS: peer certificate not yet active\n" );
 		return -1;
 	}
 	return 0;

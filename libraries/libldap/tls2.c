@@ -253,9 +253,8 @@ ldap_int_tls_init_ctx( struct ldapoptions *lo, int is_server )
 #endif
 	lo->ldo_tls_ctx = ti->ti_ctx_new( lo );
 	if ( lo->ldo_tls_ctx == NULL ) {
-		Debug( LDAP_DEBUG_ANY,
-		   "TLS: could not allocate default ctx.\n",
-			0,0,0);
+		Debug0( LDAP_DEBUG_ANY,
+		   "TLS: could not allocate default ctx.\n" );
 		rc = -1;
 		goto error_exit;
 	}
@@ -310,7 +309,7 @@ alloc_handle( void *ctx_arg, int is_server )
 
 	ssl = tls_imp->ti_session_new( ctx, is_server );
 	if ( ssl == NULL ) {
-		Debug( LDAP_DEBUG_ANY,"TLS: can't create ssl handle.\n",0,0,0);
+		Debug0( LDAP_DEBUG_ANY,"TLS: can't create ssl handle.\n" );
 		return NULL;
 	}
 	return ssl;
@@ -406,8 +405,8 @@ ldap_int_tls_connect( LDAP *ld, LDAPConn *conn, const char *host )
 #endif
 		}
 
-		Debug( LDAP_DEBUG_ANY,"TLS: can't connect: %s.\n",
-			ld->ld_error ? ld->ld_error : "" ,0,0);
+		Debug1( LDAP_DEBUG_ANY,"TLS: can't connect: %s.\n",
+			ld->ld_error ? ld->ld_error : "" );
 
 		ber_sockbuf_remove_io( sb, tls_imp->ti_sbio,
 			LBER_SBIOD_LEVEL_TRANSPORT );
@@ -465,8 +464,8 @@ ldap_pvt_tls_accept( Sockbuf *sb, void *ctx_arg )
 		if ( DebugTest( LDAP_DEBUG_ANY ) ) {
 			char buf[256], *msg;
 			msg = tls_imp->ti_session_errmsg( ssl, err, buf, sizeof(buf) );
-			Debug( LDAP_DEBUG_ANY,"TLS: can't accept: %s.\n",
-				msg ? msg : "(unknown)", 0, 0 );
+			Debug1( LDAP_DEBUG_ANY,"TLS: can't accept: %s.\n",
+				msg ? msg : "(unknown)" );
 		}
 
 		ber_sockbuf_remove_io( sb, tls_imp->ti_sbio,
@@ -1102,8 +1101,8 @@ ldap_int_tls_start ( LDAP *ld, LDAPConn *conn, LDAPURLDesc *srv )
 		} else if ( sb->sb_trans_needs_write ) {
 			wr=1;
 		}
-		Debug( LDAP_DEBUG_TRACE, "ldap_int_tls_start: ldap_int_tls_connect needs %s\n",
-				wr ? "write": "read", 0, 0);
+		Debug1( LDAP_DEBUG_TRACE, "ldap_int_tls_start: ldap_int_tls_connect needs %s\n",
+				wr ? "write": "read" );
 
 		ret = ldap_int_poll( ld, sd, &tv, wr);
 		if ( ret < 0 ) {
@@ -1153,7 +1152,7 @@ ldap_int_tls_start ( LDAP *ld, LDAPConn *conn, LDAPURLDesc *srv )
 					start_time_tv.tv_usec = curr_time_tv.tv_usec;
 				}
 				tv = tv0;
-				Debug( LDAP_DEBUG_TRACE, "ldap_int_tls_start: ld %p %ld s %ld us to go\n",
+				Debug3( LDAP_DEBUG_TRACE, "ldap_int_tls_start: ld %p %ld s %ld us to go\n",
 					(void *)ld, (long) tv.tv_sec, (long) tv.tv_usec );
 			}
 		}

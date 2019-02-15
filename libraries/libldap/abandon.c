@@ -68,7 +68,7 @@ ldap_abandon_ext(
 {
 	int	rc;
 
-	Debug( LDAP_DEBUG_TRACE, "ldap_abandon_ext %d\n", msgid, 0, 0 );
+	Debug1( LDAP_DEBUG_TRACE, "ldap_abandon_ext %d\n", msgid );
 
 	/* check client controls */
 	LDAP_MUTEX_LOCK( &ld->ld_req_mutex );
@@ -98,7 +98,7 @@ ldap_abandon_ext(
 int
 ldap_abandon( LDAP *ld, int msgid )
 {
-	Debug( LDAP_DEBUG_TRACE, "ldap_abandon %d\n", msgid, 0, 0 );
+	Debug1( LDAP_DEBUG_TRACE, "ldap_abandon %d\n", msgid );
 	return ldap_abandon_ext( ld, msgid, NULL, NULL ) == LDAP_SUCCESS
 		? 0 : -1;
 }
@@ -130,8 +130,8 @@ do_abandon(
 	Sockbuf		*sb;
 	LDAPRequest	*lr;
 
-	Debug( LDAP_DEBUG_TRACE, "do_abandon origid %d, msgid %d\n",
-		origid, msgid, 0 );
+	Debug2( LDAP_DEBUG_TRACE, "do_abandon origid %d, msgid %d\n",
+		origid, msgid );
 
 	/* find the request that we are abandoning */
 start_again:;

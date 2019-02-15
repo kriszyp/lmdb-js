@@ -814,7 +814,7 @@ ldap_url_parse_ext( LDAP_CONST char *url_in, LDAPURLDesc **ludpp, unsigned flags
 	 * because a call to LDAP_INT_GLOBAL_OPT() will try to allocate
 	 * the options and cause infinite recursion
 	 */
-	Debug( LDAP_DEBUG_TRACE, "ldap_url_parse_ext(%s)\n", url_in, 0, 0 );
+	Debug1( LDAP_DEBUG_TRACE, "ldap_url_parse_ext(%s)\n", url_in );
 #endif
 
 	*ludpp = NULL;	/* pessimistic */

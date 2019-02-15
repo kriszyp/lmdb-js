@@ -63,14 +63,14 @@ ldap_pvt_set_errno(int err)
 static int
 ldap_pvt_ndelay_on(LDAP *ld, int fd)
 {
-	oslocal_debug(ld, "ldap_ndelay_on: %d\n",fd,0,0);
+	Debug1(LDAP_DEBUG_TRACE, "ldap_ndelay_on: %d\n",fd );
 	return ber_pvt_socket_set_nonblock( fd, 1 );
 }
    
 static int
 ldap_pvt_ndelay_off(LDAP *ld, int fd)
 {
-	oslocal_debug(ld, "ldap_ndelay_off: %d\n",fd,0,0);
+	Debug1(LDAP_DEBUG_TRACE, "ldap_ndelay_off: %d\n",fd );
 	return ber_pvt_socket_set_nonblock( fd, 0 );
 }
 
@@ -78,7 +78,7 @@ static ber_socket_t
 ldap_pvt_socket(LDAP *ld)
 {
 	ber_socket_t s = socket(PF_LOCAL, SOCK_STREAM, 0);
-	oslocal_debug(ld, "ldap_new_socket: %d\n",s,0,0);
+	Debug1(LDAP_DEBUG_TRACE, "ldap_new_socket: %d\n",s );
 #ifdef FD_CLOEXEC
 	fcntl(s, F_SETFD, FD_CLOEXEC);
 #endif
@@ -88,15 +88,14 @@ ldap_pvt_socket(LDAP *ld)
 static int
 ldap_pvt_close_socket(LDAP *ld, int s)
 {
-	oslocal_debug(ld, "ldap_close_socket: %d\n",s,0,0);
+	Debug1(LDAP_DEBUG_TRACE, "ldap_close_socket: %d\n",s );
 	return tcp_close(s);
 }
 
 #undef TRACE
 #define TRACE do { \
 	char ebuf[128]; \
-	oslocal_debug(ld, \
-		"ldap_is_socket_ready: error on socket %d: errno: %d (%s)\n", \
+	Debug3(LDAP_DEBUG_TRACE, "ldap_is_socket_ready: error on socket %d: errno: %d (%s)\n", \
 		s, \
 		errno, \
 		AC_STRERROR_R(errno, ebuf, sizeof ebuf)); \
@@ -108,7 +107,7 @@ ldap_pvt_close_socket(LDAP *ld, int s)
 static int
 ldap_pvt_is_socket_ready(LDAP *ld, int s)
 {
-	oslocal_debug(ld, "ldap_is_sock_ready: %d\n",s,0,0);
+	Debug1(LDAP_DEBUG_TRACE, "ldap_is_sock_ready: %d\n",s );
 
 #if defined( notyet ) /* && defined( SO_ERROR ) */
 {
@@ -163,7 +162,8 @@ ldap_pvt_connect(LDAP *ld, ber_socket_t s, struct sockaddr_un *sa, int async)
 		opt_tv = &tv;
 	}
 
-	oslocal_debug(ld, "ldap_connect_timeout: fd: %d tm: %ld async: %d\n",
+	Debug3(LDAP_DEBUG_TRACE,
+		"ldap_connect_timeout: fd: %d tm: %ld async: %d\n",
 		s, opt_tv ? tv.tv_sec : -1L, async);
 
 	if ( ldap_pvt_ndelay_on(ld, s) == -1 ) return -1;
@@ -300,7 +300,7 @@ sendcred:
 	}
 #endif
 
-	oslocal_debug(ld, "ldap_connect_timeout: timed out\n",0,0,0);
+	Debug0(LDAP_DEBUG_TRACE, "ldap_connect_timeout: timed out\n" );
 	ldap_pvt_set_errno( ETIMEDOUT );
 	return ( -1 );
 }
@@ -313,7 +313,7 @@ ldap_connect_to_path(LDAP *ld, Sockbuf *sb, LDAPURLDesc *srv, int async)
 	int			rc;
 	const char *path = srv->lud_host;
 
-	oslocal_debug(ld, "ldap_connect_to_path\n",0,0,0);
+	Debug0(LDAP_DEBUG_TRACE, "ldap_connect_to_path\n" );
 
 	if ( path == NULL || path[0] == '\0' ) {
 		path = LDAPI_SOCK;
@@ -329,7 +329,7 @@ ldap_connect_to_path(LDAP *ld, Sockbuf *sb, LDAPURLDesc *srv, int async)
 		return -1;
 	}
 
-	oslocal_debug(ld, "ldap_connect_to_path: Trying %s\n", path, 0, 0);
+	Debug1(LDAP_DEBUG_TRACE, "ldap_connect_to_path: Trying %s\n", path );
 
 	memset( &server, '\0', sizeof(server) );
 	server.sun_family = AF_LOCAL;

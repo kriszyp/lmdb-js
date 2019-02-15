@@ -42,7 +42,7 @@ ldap_get_values( LDAP *ld, LDAPMessage *entry, LDAP_CONST char *target )
 	assert( entry != NULL );
 	assert( target != NULL );
 
-	Debug( LDAP_DEBUG_TRACE, "ldap_get_values\n", 0, 0, 0 );
+	Debug0( LDAP_DEBUG_TRACE, "ldap_get_values\n" );
 
 	ber = *entry->lm_ber;
 
@@ -99,7 +99,7 @@ ldap_get_values_len( LDAP *ld, LDAPMessage *entry, LDAP_CONST char *target )
 	assert( entry != NULL );
 	assert( target != NULL );
 
-	Debug( LDAP_DEBUG_TRACE, "ldap_get_values_len\n", 0, 0, 0 );
+	Debug0( LDAP_DEBUG_TRACE, "ldap_get_values_len\n" );
 
 	ber = *entry->lm_ber;
 
