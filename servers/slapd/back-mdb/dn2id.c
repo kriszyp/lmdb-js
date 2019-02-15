@@ -664,7 +664,7 @@ mdb_idscope(
 			ptr += data.mv_size - sizeof(ID);
 			memcpy( &id, ptr, sizeof(ID) );
 			if ( id == base ) {
-				if ( res[0] >= MDB_IDL_DB_SIZE-1 ) {
+				if ( res[0] >= MDB_idl_db_max ) {
 					/* too many aliases in scope. Fallback to range */
 					MDB_IDL_RANGE( res, MDB_IDL_FIRST( ids ), MDB_IDL_LAST( ids ));
 					goto leave;

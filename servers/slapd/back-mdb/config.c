@@ -22,13 +22,16 @@
 #include <ac/errno.h>
 
 #include "back-mdb.h"
+#include "idl.h"
 
 #include "config.h"
 
 #include "lutil.h"
 #include "ldap_rq.h"
 
+
 static ConfigDriver mdb_cf_gen;
+static ConfigDriver mdb_bk_cfg;
 
 enum {
 	MDB_CHKPT = 1,
@@ -41,9 +44,15 @@ enum {
 	MDB_MODE,
 	MDB_SSTACK,
 	MDB_MULTIVAL,
+	MDB_IDLEXP,
 };
 
 static ConfigTable mdbcfg[] = {
+	{ "idlexp", "log", 2, 2, 0, ARG_UINT|ARG_MAGIC|MDB_IDLEXP,
+		mdb_bk_cfg, "( OLcfgBkAt:12.1 NAME 'olcBkMdbIdlExp' "
+			"DESC 'Power of 2 used to set IDL size' "
+			"EQUALITY integerMatch "
+			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
 	{ "directory", "dir", 2, 2, 0, ARG_STRING|ARG_MAGIC|MDB_DIRECTORY,
 		mdb_cf_gen, "( OLcfgDbAt:0.1 NAME 'olcDbDirectory' "
 			"DESC 'Directory for database content' "
@@ -113,16 +122,23 @@ static ConfigTable mdbcfg[] = {
 
 static ConfigOCs mdbocs[] = {
 	{
+		"( OLcfgBkOc:12.1 "
+		"NAME 'olcMdbBkConfig' "
+		"DESC 'MDB backend configuration' "
+		"SUP olcBackendConfig "
+		"MAY olcBkMdbIdlExp )",
+			Cft_Backend, mdbcfg },
+	{
 		"( OLcfgDbOc:12.1 "
 		"NAME 'olcMdbConfig' "
-		"DESC 'MDB backend configuration' "
+		"DESC 'MDB database configuration' "
 		"SUP olcDatabaseConfig "
 		"MUST olcDbDirectory "
 		"MAY ( olcDbCheckpoint $ olcDbEnvFlags $ "
 		"olcDbNoSync $ olcDbIndex $ olcDbMaxReaders $ olcDbMaxSize $ "
 		"olcDbMode $ olcDbSearchStack $ olcDbMaxEntrySize $ olcDbRtxnSize $ "
 		"olcDbMultival ) )",
-		 	Cft_Database, mdbcfg },
+			Cft_Database, mdbcfg+1 },
 	{ NULL, 0, NULL }
 };
 
@@ -134,6 +150,29 @@ static slap_verbmasks mdb_envflags[] = {
 	{ BER_BVC("nordahead"),	MDB_NORDAHEAD },
 	{ BER_BVNULL, 0 }
 };
+
+static int
+mdb_bk_cfg( ConfigArgs *c )
+{
+	int rc = 0;
+	if ( c->op == SLAP_CONFIG_EMIT ) {
+		if ( MDB_idl_logn != MDB_IDL_LOGN )
+			c->value_int = MDB_idl_logn;
+		else
+			rc = 1;
+	} else if ( c->op == LDAP_MOD_DELETE ) {
+		MDB_idl_logn = 0;
+		mdb_idl_reset();
+	} else {
+		if ( c->value_int >= MDB_IDL_LOGN && c->value_int < sizeof(int) * CHAR_BIT ) {
+			MDB_idl_logn = c->value_int;
+			mdb_idl_reset();
+		} else {
+			rc = 1;
+		}
+	}
+	return rc;
+}
 
 /* perform periodic syncs */
 static void *

@@ -1268,14 +1268,14 @@ mdb_tool_idl_flush_one( MDB_cursor *mc, AttrIxInfo *ai, mdb_tool_idl_cache *ic )
 	ID id, nid;
 
 	/* Freshly allocated, ignore it */
-	if ( !ic->head && ic->count <= MDB_IDL_DB_SIZE ) {
+	if ( !ic->head && ic->count <= MDB_idl_db_size ) {
 		return 0;
 	}
 
 	key.mv_data = ic->kstr.bv_val;
 	key.mv_size = ic->kstr.bv_len;
 
-	if ( ic->count > MDB_IDL_DB_SIZE ) {
+	if ( ic->count > MDB_idl_db_size ) {
 		while ( ic->flags & WAS_FOUND ) {
 			rc = mdb_cursor_get( mc, &key, data, MDB_SET );
 			if ( rc ) {
@@ -1438,7 +1438,7 @@ int mdb_tool_idl_add(
 			ic->flags |= WAS_FOUND;
 			nid = *(ID *)data.mv_data;
 			if ( nid == 0 ) {
-				ic->count = MDB_IDL_DB_SIZE+1;
+				ic->count = MDB_idl_db_size+1;
 				ic->flags |= WAS_RANGE;
 			} else {
 				size_t count;
@@ -1451,11 +1451,11 @@ int mdb_tool_idl_add(
 		}
 	}
 	/* are we a range already? */
-	if ( ic->count > MDB_IDL_DB_SIZE ) {
+	if ( ic->count > MDB_idl_db_size ) {
 		ic->last = id;
 		continue;
 	/* Are we at the limit, and converting to a range? */
-	} else if ( ic->count == MDB_IDL_DB_SIZE ) {
+	} else if ( ic->count == MDB_idl_db_size ) {
 		if ( ic->head ) {
 			ic->tail->next = ax->ai_flist;
 			ax->ai_flist = ic->head;

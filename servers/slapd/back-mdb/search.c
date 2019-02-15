@@ -142,11 +142,11 @@ static int search_aliases(
 	Filter	af;
 
 	aliases = stack;	/* IDL of all aliases in the database */
-	curscop = aliases + MDB_IDL_DB_SIZE;	/* Aliases in the current scope */
-	visited = curscop + MDB_IDL_DB_SIZE;	/* IDs we've seen in this search */
-	newsubs = visited + MDB_IDL_DB_SIZE;	/* New subtrees we've added */
-	oldsubs = newsubs + MDB_IDL_DB_SIZE;	/* Subtrees added previously */
-	tmp = oldsubs + MDB_IDL_DB_SIZE;	/* Scratch space for deref_base() */
+	curscop = aliases + MDB_idl_db_size;	/* Aliases in the current scope */
+	visited = curscop + MDB_idl_db_size;	/* IDs we've seen in this search */
+	newsubs = visited + MDB_idl_db_size;	/* New subtrees we've added */
+	oldsubs = newsubs + MDB_idl_db_size;	/* Subtrees added previously */
+	tmp = oldsubs + MDB_idl_db_size;	/* Scratch space for deref_base() */
 
 	af.f_choice = LDAP_FILTER_EQUALITY;
 	af.f_ava = &aa_alias;
@@ -297,7 +297,7 @@ static ID2 *scope_chunk_get( Operation *op )
 	ldap_pvt_thread_pool_getkey( op->o_threadctx, (void *)scope_chunk_get,
 			(void *)&ret, NULL );
 	if ( !ret ) {
-		ret = ch_malloc( MDB_IDL_UM_SIZE * sizeof( ID2 ));
+		ret = ch_malloc( MDB_idl_um_size * sizeof( ID2 ));
 	} else {
 		void *r2 = ret[0].mval.mv_data;
 		ldap_pvt_thread_pool_setkey( op->o_threadctx, (void *)scope_chunk_get,
@@ -416,8 +416,8 @@ mdb_search( Operation *op, SlapReply *rs )
 	struct mdb_info *mdb = (struct mdb_info *) op->o_bd->be_private;
 	ID		id, cursor, nsubs, ncand, cscope;
 	ID		lastid = NOID;
-	ID		candidates[MDB_IDL_UM_SIZE];
-	ID		iscopes[MDB_IDL_DB_SIZE];
+	ID		candidates[MDB_idl_um_size];
+	ID		iscopes[MDB_idl_db_size];
 	ID2		*scopes;
 	void	*stack;
 	Entry		*e = NULL, *base = NULL;
@@ -1289,7 +1289,7 @@ static void *search_stack( Operation *op )
 	}
 
 	if ( !ret ) {
-		ret = ch_malloc( mdb->mi_search_stack_depth * MDB_IDL_UM_SIZE
+		ret = ch_malloc( mdb->mi_search_stack_depth * MDB_idl_um_size
 			* sizeof( ID ) );
 		if ( op->o_threadctx ) {
 			ldap_pvt_thread_pool_setkey( op->o_threadctx, (void *)search_stack,
@@ -1366,7 +1366,7 @@ static int search_candidates(
 
 	/* Allocate IDL stack, plus 1 more for former tmp */
 	if ( depth+1 > mdb->mi_search_stack_depth ) {
-		stack = ch_malloc( (depth + 1) * MDB_IDL_UM_SIZE * sizeof( ID ) );
+		stack = ch_malloc( (depth + 1) * MDB_idl_um_size * sizeof( ID ) );
 	}
 
 	if( op->ors_deref & LDAP_DEREF_SEARCHING ) {
@@ -1377,7 +1377,7 @@ static int search_candidates(
 
 	if ( rc == LDAP_SUCCESS ) {
 		rc = mdb_filter_candidates( op, isc->mt, f, ids,
-			stack, stack+MDB_IDL_UM_SIZE );
+			stack, stack+MDB_idl_um_size );
 	}
 
 	if ( depth+1 > mdb->mi_search_stack_depth ) {

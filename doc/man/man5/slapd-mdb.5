@@ -22,6 +22,18 @@ much simpler to manage.
 .SH CONFIGURATION
 These
 .B slapd.conf
+options apply to the \fBmdb\fP backend.
+That is, they must follow a "backend mdb" line and
+come before any subsequent "backend" or "database" lines.
+.TP
+.BI idlexp \ <exp>
+Specify a power of 2 for the maximum size of an index slot.
+The default is 16, yielding a maximum slot size of 2^16 or 65536.
+Once set, this option applies to every \fBmdb\fP database instance.
+.LP
+
+These
+.B slapd.conf
 options apply to the \fBmdb\fP backend database.
 That is, they must follow a "database mdb" line and
 come before any subsequent "backend" or "database" lines.

@@ -270,7 +270,7 @@ comp_list_candidates(
 			continue;
 		}
 		MDB_IDL_ZERO( save );
-		rc = comp_candidates( op, rtxn, mra, f, save, tmp, save+MDB_IDL_UM_SIZE );
+		rc = comp_candidates( op, rtxn, mra, f, save, tmp, save+MDB_idl_um_size );
 
 		if ( rc != 0 ) {
 			if ( ftype == LDAP_COMP_FILTER_AND ) {
@@ -580,7 +580,7 @@ list_candidates(
 		}
 		MDB_IDL_ZERO( save );
 		rc = mdb_filter_candidates( op, rtxn, f, save, tmp,
-			save+MDB_IDL_UM_SIZE );
+			save+MDB_idl_um_size );
 
 		if ( rc != 0 ) {
 			if ( ftype == LDAP_FILTER_AND ) {

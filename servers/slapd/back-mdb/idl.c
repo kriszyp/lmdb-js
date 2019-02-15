@@ -22,6 +22,12 @@
 #include "back-mdb.h"
 #include "idl.h"
 
+unsigned int MDB_idl_logn = MDB_IDL_LOGN;
+unsigned int MDB_idl_db_size = 1 << MDB_IDL_LOGN;
+unsigned int MDB_idl_um_size = 1 << (MDB_IDL_LOGN+1);
+unsigned int MDB_idl_db_max = (1 << MDB_IDL_LOGN) - 1;
+unsigned int MDB_idl_um_max = (1 << (MDB_IDL_LOGN+1) - 1);
+
 #define IDL_MAX(x,y)	( (x) > (y) ? (x) : (y) )
 #define IDL_MIN(x,y)	( (x) < (y) ? (x) : (y) )
 #define IDL_CMP(x,y)	( (x) < (y) ? -1 : (x) > (y) )
@@ -66,6 +72,17 @@ static void idl_dump( ID *ids )
 }
 #endif /* IDL_DEBUG > 1 */
 #endif /* IDL_DEBUG > 0 */
+
+void mdb_idl_reset()
+{
+	if ( !MDB_idl_logn )
+		MDB_idl_logn = MDB_IDL_LOGN;
+
+	MDB_idl_db_size = 1 << MDB_idl_logn;
+	MDB_idl_um_size = 1 << (MDB_idl_logn+1);
+	MDB_idl_db_max = MDB_idl_db_size - 1;
+	MDB_idl_um_max = MDB_idl_um_size - 1;
+}
 
 unsigned mdb_idl_search( ID *ids, ID id )
 {
@@ -160,7 +177,7 @@ int mdb_idl_insert( ID *ids, ID id )
 		return -1;
 	}
 
-	if ( ++ids[0] >= MDB_IDL_DB_MAX ) {
+	if ( ++ids[0] >= MDB_idl_db_max ) {
 		if( id < ids[1] ) {
 			ids[1] = id;
 			ids[2] = ids[ids[0]-1];
@@ -447,7 +464,7 @@ mdb_idl_insert_keys(
 				err = "c_count";
 				goto fail;
 			}
-			if ( count >= MDB_IDL_DB_MAX ) {
+			if ( count >= MDB_idl_db_max ) {
 			/* No room, convert to a range */
 				lo = *i;
 				rc = mdb_cursor_get( cursor, &key, &data, MDB_LAST_DUP );
@@ -784,7 +801,7 @@ over:		ida = IDL_MIN( MDB_IDL_FIRST(a), MDB_IDL_FIRST(b) );
 	/* The distinct elements of a are cat'd to b */
 	while( ida != NOID || idb != NOID ) {
 		if ( ida < idb ) {
-			if( ++cursorc > MDB_IDL_UM_MAX ) {
+			if( ++cursorc > MDB_idl_um_max ) {
 				goto over;
 			}
 			b[cursorc] = ida;
@@ -949,7 +966,7 @@ int mdb_idl_append_one( ID *ids, ID id )
 		}
 	}
 	ids[0]++;
-	if ( ids[0] >= MDB_IDL_UM_MAX ) {
+	if ( ids[0] >= MDB_idl_um_max ) {
 		ids[0] = NOID;
 		ids[2] = id;
 	} else {
@@ -977,7 +994,7 @@ int mdb_idl_append( ID *a, ID *b )
 	ida = MDB_IDL_LAST( a );
 	idb = MDB_IDL_LAST( b );
 	if ( MDB_IDL_IS_RANGE( a ) || MDB_IDL_IS_RANGE(b) ||
-		a[0] + b[0] >= MDB_IDL_UM_MAX ) {
+		a[0] + b[0] >= MDB_idl_um_max ) {
 		a[2] = IDL_MAX( ida, idb );
 		a[1] = IDL_MIN( a[1], b[1] );
 		a[0] = NOID;
@@ -1239,7 +1256,7 @@ int mdb_id2l_insert( ID2L ids, ID2 *id )
 		return -1;
 	}
 
-	if ( ids[0].mid >= MDB_IDL_UM_MAX ) {
+	if ( ids[0].mid >= MDB_idl_um_max ) {
 		/* too big */
 		return -2;
 

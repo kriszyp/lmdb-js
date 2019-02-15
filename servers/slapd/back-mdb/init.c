@@ -68,7 +68,7 @@ mdb_db_init( BackendDB *be, ConfigReply *cr )
 	mdb->mi_multi_lo = UINT_MAX;
 
 	be->be_private = mdb;
-	be->be_cf_ocs = be->bd_info->bi_cf_ocs;
+	be->be_cf_ocs = be->bd_info->bi_cf_ocs+1;
 
 #ifndef MDB_MULTIPLE_SUFFIXES
 	SLAP_DBFLAGS( be ) |= SLAP_DBFLAG_ONE_SUFFIX;
