@@ -194,12 +194,9 @@ meta_target_finish(
 	if ( ( mt->mt_idassert_flags & LDAP_BACK_AUTH_AUTHZ_ALL )
 		&& !( mt->mt_idassert_flags & LDAP_BACK_AUTH_PRESCRIPTIVE ) )
 	{
-		snprintf( msg, msize,
-			"%s: inconsistent idassert configuration "
-			"(likely authz=\"*\" used with \"non-prescriptive\" flag)",
-			log );
-		Debug( LDAP_DEBUG_ANY, "%s (target %s)\n",
-			msg, mt->mt_uri );
+		Debug(LDAP_DEBUG_ANY,
+		      "%s: inconsistent idassert configuration " "(likely authz=\"*\" used with \"non-prescriptive\" flag) (target %s)\n",
+		      log, mt->mt_uri );
 		return 1;
 	}
 

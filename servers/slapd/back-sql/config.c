@@ -703,14 +703,10 @@ create_baseObject(
 	rc = ldap_bv2rdn( &be->be_suffix[ 0 ], &rdn, (char **)&p,
 			LDAP_DN_FORMAT_LDAP );
 	if ( rc != LDAP_SUCCESS ) {
-		snprintf( buf, sizeof(buf),
-			"unable to extract RDN "
-			"from baseObject DN \"%s\" (%d: %s)",
-			be->be_suffix[ 0 ].bv_val,
-			rc, ldap_err2string( rc ) );
-		Debug( LDAP_DEBUG_TRACE,
-			"<==backsql_db_config (%s line %d): %s\n",
-			fname, lineno, buf );
+		Debug(LDAP_DEBUG_TRACE,
+		      "<==backsql_db_config (%s line %d): unable to extract RDN " "from baseObject DN \"%s\" (%d: %s)\n",
+		      fname, lineno, be->be_suffix[0].bv_val, rc,
+		      ldap_err2string(rc) );
 		return 1;
 	}
 
@@ -725,15 +721,10 @@ create_baseObject(
 
 		rc = slap_bv2ad( &ava->la_attr, &ad, &text );
 		if ( rc != LDAP_SUCCESS ) {
-			snprintf( buf, sizeof(buf),
-				"AttributeDescription of naming "
-				"attribute #%d from baseObject "
-				"DN \"%s\": %d: %s",
-				iAVA, be->be_suffix[ 0 ].bv_val,
-				rc, ldap_err2string( rc ) );
-			Debug( LDAP_DEBUG_TRACE,
-				"<==backsql_db_config (%s line %d): %s\n",
-				fname, lineno, buf );
+			Debug(LDAP_DEBUG_TRACE,
+			      "<==backsql_db_config (%s line %d): AttributeDescription of naming " "attribute #%d from baseObject " "DN \"%s\": %d: %s\n",
+			      fname, lineno, iAVA, be->be_suffix[0].bv_val,
+			      rc, ldap_err2string(rc) );
 			return 1;
 		}
 		
@@ -750,16 +741,11 @@ create_baseObject(
 				&bv, NULL );
 	
 			if ( rc != LDAP_SUCCESS ) {
-				snprintf( buf, sizeof(buf),
-					"prettying of attribute #%d "
-					"from baseObject "
-					"DN \"%s\" failed: %d: %s",
-					iAVA, be->be_suffix[ 0 ].bv_val,
-					rc, ldap_err2string( rc ) );
-				Debug( LDAP_DEBUG_TRACE,
-					"<==backsql_db_config (%s line %d): "
-					"%s\n",
-					fname, lineno, buf );
+				Debug(LDAP_DEBUG_TRACE,
+				      "<==backsql_db_config (%s line %d): " "prettying of attribute #%d " "from baseObject " "DN \"%s\" failed: %d: %s\n",
+				      fname, lineno, iAVA,
+				      be->be_suffix[0].bv_val, rc,
+				      ldap_err2string(rc) );
 				return 1;
 			}
 		}

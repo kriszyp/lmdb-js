@@ -234,13 +234,10 @@ asyncmeta_send_entry(
 			{
 				char	buf[ SLAP_TEXT_BUFLEN ];
 
-				snprintf( buf, sizeof( buf ),
-					"%s meta_send_entry(\"%s\"): "
-					"slap_bv2undef_ad(%s): %s\n",
-					op->o_log_prefix, ent.e_name.bv_val,
-					mapped.bv_val, text );
-
-				Debug( LDAP_DEBUG_ANY, "%s", buf );
+				Debug(LDAP_DEBUG_ANY,
+				      "%s meta_send_entry(\"%s\"): " "slap_bv2undef_ad(%s): %s\n",
+				      op->o_log_prefix, ent.e_name.bv_val,
+				      mapped.bv_val, text );
 				( void )ber_scanf( &ber, "x" /* [W] */ );
 				op->o_tmpfree( attr, op->o_tmpmemctx );
 				continue;
@@ -1647,13 +1644,10 @@ again:
 			mc->mc_info->mi_targets[i]->mt_timeout_ops = 0;
 			break;
 		default:
-			{
 			Debug( LDAP_DEBUG_ANY,
-				   "asyncmeta_op_handle_result: "
-				   "unrecognized response message tag=%d\n",
-				   rc );
-
-			}
+			      "asyncmeta_op_handle_result: "
+			      "unrecognized response message tag=%d\n",
+			      rc );
 		}
 		if (msg)
 			ldap_msgfree(msg);

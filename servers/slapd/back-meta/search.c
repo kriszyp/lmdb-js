@@ -109,12 +109,11 @@ meta_search_dobind_init(
 			bound = 1;
 		}
 
-		snprintf( buf, sizeof( buf ), " mc=%p ld=%p%s DN=\"%s\"",
-			(void *)mc, (void *)msc->msc_ld,
-			bound ? " bound" : " anonymous",
-			bound == 0 ? "" : msc->msc_bound_ndn.bv_val );
-		Debug( LDAP_DEBUG_ANY, "### %s meta_search_dobind_init[%d]%s\n",
-			op->o_log_prefix, candidate, buf );
+		Debug(LDAP_DEBUG_ANY,
+		      "### %s meta_search_dobind_init[%d] mc=%p ld=%p%s DN=\"%s\"\n",
+		      op->o_log_prefix, candidate, (void *)mc,
+		      (void *)msc->msc_ld, bound ? " bound" : " anonymous",
+		      bound == 0 ? "" : msc->msc_bound_ndn.bv_val );
 #endif /* DEBUG_205 */
 
 		retcode = META_SEARCH_CANDIDATE;
@@ -125,10 +124,10 @@ meta_search_dobind_init(
 #ifdef DEBUG_205
 		char	buf[ SLAP_TEXT_BUFLEN ] = { '\0' };
 
-		snprintf( buf, sizeof( buf ), " mc=%p ld=%p needbind",
-			(void *)mc, (void *)msc->msc_ld );
-		Debug( LDAP_DEBUG_ANY, "### %s meta_search_dobind_init[%d]%s\n",
-			op->o_log_prefix, candidate, buf );
+		Debug(LDAP_DEBUG_ANY,
+		      "### %s meta_search_dobind_init[%d] mc=%p ld=%p needbind\n",
+		      op->o_log_prefix, candidate, (void *)mc,
+		      (void *)msc->msc_ld );
 #endif /* DEBUG_205 */
 
 		candidates[ candidate ].sr_msgid = META_MSGID_NEED_BIND;
@@ -140,10 +139,10 @@ meta_search_dobind_init(
 #ifdef DEBUG_205
 		char buf[ SLAP_TEXT_BUFLEN ];
 
-		snprintf( buf, sizeof( buf ), " mc=%p ld=%p binding",
-			(void *)mc, (void *)msc->msc_ld );
-		Debug( LDAP_DEBUG_ANY, "### %s meta_search_dobind_init[%d]%s\n",
-			op->o_log_prefix, candidate, buf );
+		Debug(LDAP_DEBUG_ANY,
+		      "### %s meta_search_dobind_init[%d] mc=%p ld=%p binding\n",
+		      op->o_log_prefix, candidate, (void *)mc,
+		      (void *)msc->msc_ld );
 #endif /* DEBUG_205 */
 
 		if ( msc->msc_ld == NULL ) {
@@ -259,14 +258,10 @@ retry:;
 			NULL, NULL, &candidates[ candidate ].sr_msgid );
 
 #ifdef DEBUG_205
-	{
-		char buf[ SLAP_TEXT_BUFLEN ];
-
-		snprintf( buf, sizeof( buf ), "meta_search_dobind_init[%d] mc=%p ld=%p rc=%d",
-			candidate, (void *)mc, (void *)mc->mc_conns[ candidate ].msc_ld, rc );
-		Debug( LDAP_DEBUG_ANY, "### %s %s\n",
-			op->o_log_prefix, buf );
-	}
+	Debug(LDAP_DEBUG_ANY,
+	      "### %s meta_search_dobind_init[%d] mc=%p ld=%p rc=%d\n",
+	      op->o_log_prefix, candidate, (void *)mc,
+	      (void *)mc->mc_conns[candidate].msc_ld, rc );
 #endif /* DEBUG_205 */
 
 	switch ( rc ) {
@@ -294,21 +289,14 @@ down:;
 
 			assert( mc->mc_refcnt > 0 );
 			if ( LogTest( LDAP_DEBUG_ANY ) ) {
-				char	buf[ SLAP_TEXT_BUFLEN ];
-
 				/* this lock is required; however,
 				 * it's invoked only when logging is on */
 				ldap_pvt_thread_mutex_lock( &mt->mt_uri_mutex );
-				snprintf( buf, sizeof( buf ),
-					"retrying URI=\"%s\" DN=\"%s\"",
-					mt->mt_uri,
-					BER_BVISNULL( &msc->msc_bound_ndn ) ?
-						"" : msc->msc_bound_ndn.bv_val );
+				Debug(LDAP_DEBUG_ANY,
+				      "%s meta_search_dobind_init[%d]: retrying URI=\"%s\" DN=\"%s\".\n",
+				      op->o_log_prefix, candidate, mt->mt_uri,
+				      BER_BVISNULL(&msc->msc_bound_ndn) ? "" : msc->msc_bound_ndn.bv_val );
 				ldap_pvt_thread_mutex_unlock( &mt->mt_uri_mutex );
-
-				Debug( LDAP_DEBUG_ANY,
-					"%s meta_search_dobind_init[%d]: %s.\n",
-					op->o_log_prefix, candidate, buf );
 			}
 
 			meta_clear_one_candidate( op, mc, candidate );
@@ -1130,19 +1118,15 @@ getconn:;
 
 #ifdef DEBUG_205
 			if ( msc->msc_ld == NULL ) {
-				char	buf[ SLAP_TEXT_BUFLEN ];
-
 				ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
-				snprintf( buf, sizeof( buf ),
-					"%s meta_back_search[%ld] mc=%p msgid=%d%s%s%s\n",
-					op->o_log_prefix, (long)i, (void *)mc,
-					candidates[ i ].sr_msgid,
-					META_IS_BINDING( &candidates[ i ] ) ? " binding" : "",
-					LDAP_BACK_CONN_BINDING( &mc->mc_conns[ i ] ) ? " connbinding" : "",
-					META_BACK_CONN_CREATING( &mc->mc_conns[ i ] ) ? " conncreating" : "" );
+				Debug(LDAP_DEBUG_ANY,
+				      "!!! %s meta_back_search[%ld] mc=%p msgid=%d%s%s%s\n\n",
+				      op->o_log_prefix, (long)i, (void *)mc,
+				      candidates[i].sr_msgid,
+				      META_IS_BINDING(&candidates[i]) ? " binding" : "",
+				      LDAP_BACK_CONN_BINDING(&mc->mc_conns[i]) ? " connbinding" : "",
+				      META_BACK_CONN_CREATING(&mc->mc_conns[i]) ? " conncreating" : "" );
 				ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
-					
-				Debug( LDAP_DEBUG_ANY, "!!! %s\n", buf );
 			}
 #endif /* DEBUG_205 */
 			
@@ -1758,12 +1742,11 @@ free_message:;
 #ifdef DEBUG_205
 							char buf[ SLAP_TEXT_BUFLEN ];
 
-							snprintf( buf, sizeof( buf), "%s meta_back_search(abandon) "
-								"ldap_unbind_ext[%ld] mc=%p ld=%p",
-								op->o_log_prefix, i, (void *)mc,
-								(void *)mc->mc_conns[i].msc_ld );
-
-							Debug( LDAP_DEBUG_ANY, "### %s\n", buf );
+							Debug(LDAP_DEBUG_ANY,
+							      "### %s meta_back_search(abandon) " "ldap_unbind_ext[%ld] mc=%p ld=%p\n",
+							      op->o_log_prefix,
+							      i, (void *)mc,
+							      (void *)mc->mc_conns[i].msc_ld );
 #endif /* DEBUG_205 */
 
 							meta_clear_one_candidate( op, mc, i );
@@ -2152,13 +2135,10 @@ meta_send_entry(
 			{
 				char	buf[ SLAP_TEXT_BUFLEN ];
 
-				snprintf( buf, sizeof( buf ),
-					"%s meta_send_entry(\"%s\"): "
-					"slap_bv2undef_ad(%s): %s\n",
-					op->o_log_prefix, ent.e_name.bv_val,
-					mapped.bv_val, text );
-
-				Debug( LDAP_DEBUG_ANY, "%s", buf );
+				Debug(LDAP_DEBUG_ANY,
+				      "%s meta_send_entry(\"%s\"): " "slap_bv2undef_ad(%s): %s\n",
+				      op->o_log_prefix, ent.e_name.bv_val,
+				      mapped.bv_val, text );
 				( void )ber_scanf( &ber, "x" /* [W] */ );
 				attr_free( attr );
 				continue;

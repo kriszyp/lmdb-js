@@ -430,12 +430,10 @@ memberof_value_modify(
 		op2.o_bd->bd_info = bi;
 		LDAP_SLIST_REMOVE(&op2.o_extra, &oex, OpExtra, oe_next);
 		if ( rs2.sr_err != LDAP_SUCCESS ) {
-			char buf[ SLAP_TEXT_BUFLEN ];
-			snprintf( buf, sizeof( buf ),
-				"memberof_value_modify DN=\"%s\" add %s=\"%s\" failed err=%d",
-				op2.o_req_dn.bv_val, ad->ad_cname.bv_val, new_dn->bv_val, rs2.sr_err );
-			Debug( LDAP_DEBUG_ANY, "%s: %s\n",
-				op->o_log_prefix, buf );
+			Debug(LDAP_DEBUG_ANY,
+			      "%s: memberof_value_modify DN=\"%s\" add %s=\"%s\" failed err=%d\n",
+			      op->o_log_prefix, op2.o_req_dn.bv_val,
+			      ad->ad_cname.bv_val, new_dn->bv_val, rs2.sr_err );
 		}
 
 		assert( op2.orm_modlist == &mod[ mcnt ] );
@@ -472,12 +470,10 @@ memberof_value_modify(
 		op2.o_bd->bd_info = bi;
 		LDAP_SLIST_REMOVE(&op2.o_extra, &oex, OpExtra, oe_next);
 		if ( rs2.sr_err != LDAP_SUCCESS ) {
-			char buf[ SLAP_TEXT_BUFLEN ];
-			snprintf( buf, sizeof( buf ),
-				"memberof_value_modify DN=\"%s\" delete %s=\"%s\" failed err=%d",
-				op2.o_req_dn.bv_val, ad->ad_cname.bv_val, old_dn->bv_val, rs2.sr_err );
-			Debug( LDAP_DEBUG_ANY, "%s: %s\n",
-				op->o_log_prefix, buf );
+			Debug(LDAP_DEBUG_ANY,
+			      "%s: memberof_value_modify DN=\"%s\" delete %s=\"%s\" failed err=%d\n",
+			      op->o_log_prefix, op2.o_req_dn.bv_val,
+			      ad->ad_cname.bv_val, old_dn->bv_val, rs2.sr_err );
 		}
 
 		assert( op2.orm_modlist == &mod[ mcnt ] );

@@ -267,13 +267,10 @@ backsql_dn2id(
 		char	buf[ SLAP_TEXT_BUFLEN ];
 
 #ifdef LDAP_DEBUG
-		snprintf( buf, sizeof(buf),
-			"id=%s keyval=%s oc_id=%s dn=%s",
-			row.cols[ 0 ], row.cols[ 1 ],
-			row.cols[ 2 ], row.cols[ 3 ] );
-		Debug( LDAP_DEBUG_TRACE,
-			"   backsql_dn2id(\"%s\"): %s\n",
-			ndn->bv_val, buf );
+		Debug(LDAP_DEBUG_TRACE,
+		      "   backsql_dn2id(\"%s\"): id=%s keyval=%s oc_id=%s dn=%s\n",
+		      ndn->bv_val, row.cols[0], row.cols[1], row.cols[2],
+		      row.cols[3] );
 #endif /* LDAP_DEBUG */
 
 		res = LDAP_SUCCESS;
@@ -786,21 +783,16 @@ backsql_get_attr_vals( void *v_at, void *v_bsi )
 				}
 
 				if ( retval != LDAP_SUCCESS ) {
-					char	buf[ SLAP_TEXT_BUFLEN ];
-
 					/* FIXME: we're ignoring invalid values,
 					 * but we're accepting the attributes;
 					 * should we fail at all? */
-					snprintf( buf, sizeof( buf ),
-							"unable to %s value #%lu "
-							"of AttributeDescription %s",
-							pretty ? "prettify" : "validate",
-							k - oldcount,
-							at->bam_ad->ad_cname.bv_val );
-					Debug( LDAP_DEBUG_TRACE,
-						"==>backsql_get_attr_vals(\"%s\"): "
-						"%s (%d)\n",
-						bsi->bsi_e->e_name.bv_val, buf, retval );
+					Debug(LDAP_DEBUG_TRACE,
+					      "==>backsql_get_attr_vals(\"%s\"): " "unable to %s value #%lu " "of AttributeDescription %s (%d)\n",
+					      bsi->bsi_e->e_name.bv_val,
+					      pretty ? "prettify" : "validate",
+					      k - oldcount,
+					      at->bam_ad->ad_cname.bv_val,
+					      retval );
 					continue;
 				}
 #endif /* BACKSQL_PRETTY_VALIDATE */
@@ -826,15 +818,12 @@ backsql_get_attr_vals( void *v_at, void *v_bsi )
 						/* FIXME: we're ignoring invalid values,
 						 * but we're accepting the attributes;
 						 * should we fail at all? */
-						snprintf( buf, sizeof( buf ),
-							"unable to normalize value #%lu "
-							"of AttributeDescription %s",
-							k - oldcount,
-							at->bam_ad->ad_cname.bv_val );
-						Debug( LDAP_DEBUG_TRACE,
-							"==>backsql_get_attr_vals(\"%s\"): "
-							"%s (%d)\n",
-							bsi->bsi_e->e_name.bv_val, buf, retval );
+						Debug(LDAP_DEBUG_TRACE,
+						      "==>backsql_get_attr_vals(\"%s\"): " "unable to normalize value #%lu " "of AttributeDescription %s (%d)\n",
+						      bsi->bsi_e->e_name.bv_val,
+						      k - oldcount,
+						      at->bam_ad->ad_cname.bv_val,
+						      retval );
 
 #ifdef BACKSQL_PRETTY_VALIDATE
 						if ( pretty ) {

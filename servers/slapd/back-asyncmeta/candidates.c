@@ -260,10 +260,10 @@ asyncmeta_clear_one_msc(
 #ifdef DEBUG_205
 		char	buf[ BUFSIZ ];
 
-		snprintf( buf, sizeof( buf ), "asyncmeta_clear_one_msc ldap_unbind_ext[%d] ld=%p",
-			candidate, (void *)msc->msc_ld );
-		Debug( LDAP_DEBUG_ANY, "### %s %s\n",
-		       op ? op->o_log_prefix : "", buf );
+		Debug(LDAP_DEBUG_ANY,
+		      "### %s asyncmeta_clear_one_msc ldap_unbind_ext[%d] ld=%p\n",
+		      op ? op->o_log_prefix : "", candidate,
+		      (void *)msc->msc_ld );
 #endif /* DEBUG_205 */
 
 		ldap_unbind_ext( msc->msc_ld, NULL, NULL );

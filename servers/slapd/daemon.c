@@ -2436,12 +2436,10 @@ slapd_daemon_task(
 						err, sock_errstr(err) );
 				}
 
-				snprintf( buf, sizeof( buf ),
-					"url=%s (#%d) RCVBUF original size=%d requested size=%d real size=%d", 
-					slap_listeners[l]->sl_url.bv_val, l, origsize, size, realsize );
-				Debug( LDAP_DEBUG_ANY,
-					"slapd_daemon_task: %s\n",
-					buf );
+				Debug(LDAP_DEBUG_ANY,
+				      "slapd_daemon_task: url=%s (#%d) RCVBUF original size=%d requested size=%d real size=%d\n",
+				      slap_listeners[l]->sl_url.bv_val, l,
+				      origsize, size, realsize );
 			}
 
 			size = 0;
@@ -2494,12 +2492,10 @@ slapd_daemon_task(
 						err, sock_errstr(err) );
 				}
 
-				snprintf( buf, sizeof( buf ),
-					"url=%s (#%d) SNDBUF original size=%d requested size=%d real size=%d", 
-					slap_listeners[l]->sl_url.bv_val, l, origsize, size, realsize );
-				Debug( LDAP_DEBUG_ANY,
-					"slapd_daemon_task: %s\n",
-					buf );
+				Debug(LDAP_DEBUG_ANY,
+				      "slapd_daemon_task: url=%s (#%d) SNDBUF original size=%d requested size=%d real size=%d\n",
+				      slap_listeners[l]->sl_url.bv_val, l,
+				      origsize, size, realsize );
 			}
 		}
 #endif /* LDAP_TCP_BUFFER */

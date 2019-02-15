@@ -855,14 +855,10 @@ backsql_add_attr(
 		}
 
 #ifdef LDAP_DEBUG
-		if ( LogTest( LDAP_DEBUG_TRACE ) ) {
-			snprintf( logbuf, sizeof( logbuf ), "val[%lu], id=" BACKSQL_IDNUMFMT,
-					i, new_keyval );
-			Debug( LDAP_DEBUG_TRACE, "   backsql_add_attr(\"%s\"): "
-				"executing \"%s\" %s\n", 
-				op->ora_e->e_name.bv_val,
-				at_rec->bam_add_proc, logbuf );
-		}
+		Debug(LDAP_DEBUG_TRACE,
+		      "   backsql_add_attr(\"%s\"): " "executing \"%s\" val[%lu], id=" BACKSQL_IDNUMFMT "\n",
+		      op->ora_e->e_name.bv_val, at_rec->bam_add_proc,
+		      i, new_keyval );
 #endif
 		rc = SQLExecute( sth );
 		if ( rc == SQL_SUCCESS && prc == LDAP_SUCCESS ) {
@@ -1383,16 +1379,11 @@ backsql_add( Operation *op, SlapReply *rs )
 		goto done;
 	}
 
-	if ( LogTest( LDAP_DEBUG_TRACE ) ) {
-		char buf[ SLAP_TEXT_BUFLEN ];
-
-		snprintf( buf, sizeof(buf),
-			"executing \"%s\" for dn=\"%s\"  oc_map_id=" BACKSQL_IDNUMFMT " p_id=" BACKSQL_IDFMT " keyval=" BACKSQL_IDNUMFMT,
-			bi->sql_insentry_stmt, op->ora_e->e_name.bv_val,
-			oc->bom_id, BACKSQL_IDARG(bsi.bsi_base_id.eid_id),
-			new_keyval );
-		Debug( LDAP_DEBUG_TRACE, "   backsql_add(): %s\n", buf );
-	}
+	Debug(LDAP_DEBUG_TRACE,
+	      "   backsql_add(): executing \"%s\" for dn=\"%s\"  oc_map_id=" BACKSQL_IDNUMFMT " p_id=" BACKSQL_IDFMT " keyval=" BACKSQL_IDNUMFMT "\n",
+	      bi->sql_insentry_stmt, op->ora_e->e_name.bv_val,
+	      oc->bom_id, BACKSQL_IDARG(bsi.bsi_base_id.eid_id),
+	      new_keyval );
 
 	rc = SQLExecute( sth );
 	if ( rc != SQL_SUCCESS ) {

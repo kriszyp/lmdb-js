@@ -1095,17 +1095,10 @@ retry_lock:
 	
 		ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
 
-		if ( LogTest( LDAP_DEBUG_TRACE ) ) {
-			char	buf[ SLAP_TEXT_BUFLEN ];
-
-			snprintf( buf, sizeof( buf ),
-				"lc=%p inserted refcnt=%u rc=%d",
-				(void *)lc, refcnt, rs->sr_err );
-				
-			Debug( LDAP_DEBUG_TRACE,
-				"=>ldap_back_getconn: %s: %s\n",
-				op->o_log_prefix, buf );
-		}
+		Debug(LDAP_DEBUG_TRACE,
+		      "=>ldap_back_getconn: %s: lc=%p inserted refcnt=%u rc=%d\n",
+		      op->o_log_prefix, (void *)lc, refcnt,
+		      rs->sr_err );
 	
 		if ( !LDAP_BACK_PCONN_ISPRIV( lc ) ) {
 			/* Err could be -1 in case a duplicate ldapconn is inserted */
@@ -1164,16 +1157,9 @@ retry_lock:
 			ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
 		}
 
-		if ( LogTest( LDAP_DEBUG_TRACE ) ) {
-			char	buf[ SLAP_TEXT_BUFLEN ];
-
-			snprintf( buf, sizeof( buf ),
-				"conn %p fetched refcnt=%u%s",
-				(void *)lc, refcnt,
-				expiring ? " expiring" : "" );
-			Debug( LDAP_DEBUG_TRACE,
-				"=>ldap_back_getconn: %s.\n", buf );
-		}
+		Debug(LDAP_DEBUG_TRACE,
+		      "=>ldap_back_getconn: conn %p fetched refcnt=%u%s.\n",
+		      (void *)lc, refcnt, expiring ? " expiring" : "" );
 	}
 
 #ifdef HAVE_TLS

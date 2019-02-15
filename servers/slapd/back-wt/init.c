@@ -238,12 +238,10 @@ wt_back_initialize( BackendInfo *bi )
 		SLAP_BFLAG_REFERRALS;
 
 	bi->bi_controls = controls;
-
-	{ /* version check */
-		Debug( LDAP_DEBUG_TRACE,
-			   LDAP_XSTRING(wt_back_initialize) ": %s\n",
-			   wiredtiger_version(NULL, NULL, NULL) );
-	}
+/* version check */
+	Debug( LDAP_DEBUG_TRACE,
+		   LDAP_XSTRING(wt_back_initialize) ": %s\n",
+		   wiredtiger_version(NULL, NULL, NULL) );
 
 	bi->bi_open = 0;
 	bi->bi_close = 0;

@@ -369,27 +369,13 @@ backsql_oc_get_attr_mapping( void *v_oc, void *v_bas )
 			}
 		}
 
-		{
-			char		buf[ SLAP_TEXT_BUFLEN ];
-
-			snprintf( buf, sizeof( buf ),
-				"attributeType: "
-				"name=\"%s\" "
-				"sel_expr=\"%s\" "
-				"from=\"%s\" "
-				"join_where=\"%s\" "
-				"add_proc=\"%s\" "
-				"delete_proc=\"%s\" "
-				"sel_expr_u=\"%s\"",
-				at_row.cols[ 0 ],
-				at_row.cols[ 1 ],
-				at_row.cols[ 2 ],
-				at_row.cols[ 3 ] ? at_row.cols[ 3 ] : "",
-				at_row.cols[ 4 ] ? at_row.cols[ 4 ] : "",
-				at_row.cols[ 5 ] ? at_row.cols[ 5 ] : "",
-				at_row.cols[ 8 ] ? at_row.cols[ 8 ] : "");
-			Debug( LDAP_DEBUG_TRACE, "%s\n", buf );
-		}
+		Debug(LDAP_DEBUG_TRACE,
+		      "attributeType: " "name=\"%s\" " "sel_expr=\"%s\" " "from=\"%s\" " "join_where=\"%s\" " "add_proc=\"%s\" " "delete_proc=\"%s\" " "sel_expr_u=\"%s\"\n",
+		      at_row.cols[0], at_row.cols[1], at_row.cols[2],
+		      at_row.cols[3] ? at_row.cols[3] : "",
+		      at_row.cols[4] ? at_row.cols[4] : "",
+		      at_row.cols[5] ? at_row.cols[5] : "",
+		      at_row.cols[8] ? at_row.cols[8] : "" );
 
 		rc = slap_str2ad( at_row.cols[ 0 ], &ad, &text );
 		if ( rc != LDAP_SUCCESS ) {
@@ -589,31 +575,15 @@ backsql_load_schema_map( backsql_info *bi, SQLHDBC dbh )
 			}
 		}
 
-		{
-			char		buf[ SLAP_TEXT_BUFLEN ];
-
-			snprintf( buf, sizeof( buf ),
-				"objectClass: "
-				"id=\"%s\" "
-				"name=\"%s\" "
-				"keytbl=\"%s\" "
-				"keycol=\"%s\" "
-				"create_proc=\"%s\" "
-				"create_keyval=\"%s\" "
-				"delete_proc=\"%s\" "
-				"expect_return=\"%s\""
-				"create_hint=\"%s\" ",
-				oc_row.cols[ 0 ],
-				oc_row.cols[ 1 ],
-				oc_row.cols[ 2 ],
-				oc_row.cols[ 3 ],
-				oc_row.cols[ 4 ] ? oc_row.cols[ 4 ] : "",
-				( BACKSQL_CREATE_NEEDS_SELECT( bi ) && oc_row.cols[ 5 ] ) ? oc_row.cols[ 5 ] : "",
-				oc_row.cols[ delete_proc_idx ] ? oc_row.cols[ delete_proc_idx ] : "",
-				oc_row.cols[ delete_proc_idx + 1 ],
-				( ( oc_row.ncols > create_hint_idx ) && oc_row.cols[ create_hint_idx ] ) ? oc_row.cols[ create_hint_idx ] : "" );
-			Debug( LDAP_DEBUG_TRACE, "%s\n", buf );
-		}
+		Debug(LDAP_DEBUG_TRACE,
+		      "objectClass: " "id=\"%s\" " "name=\"%s\" " "keytbl=\"%s\" " "keycol=\"%s\" " "create_proc=\"%s\" " "create_keyval=\"%s\" " "delete_proc=\"%s\" " "expect_return=\"%s\"" "create_hint=\"%s\" \n",
+		      oc_row.cols[0], oc_row.cols[1], oc_row.cols[2],
+		      oc_row.cols[3],
+		      oc_row.cols[4] ? oc_row.cols[4] : "",
+		      (BACKSQL_CREATE_NEEDS_SELECT(bi) && oc_row.cols[5]) ? oc_row.cols[5] : "",
+		      oc_row.cols[delete_proc_idx] ? oc_row.cols[delete_proc_idx] : "",
+		      oc_row.cols[delete_proc_idx + 1],
+		      ((oc_row.ncols > create_hint_idx) && oc_row.cols[create_hint_idx]) ? oc_row.cols[create_hint_idx] : "" );
 
 		oc_map = (backsql_oc_map_rec *)ch_calloc( 1,
 				sizeof( backsql_oc_map_rec ) );

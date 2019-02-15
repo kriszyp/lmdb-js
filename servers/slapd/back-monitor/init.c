@@ -988,16 +988,11 @@ monitor_back_register_entry_attrs(
 	if ( filter == NULL ) filter = &empty_bv;
 
 	if ( be_monitor == NULL ) {
-		char		buf[ SLAP_TEXT_BUFLEN ];
-
-		snprintf( buf, sizeof( buf ),
-			"monitor_back_register_entry_%s(base=\"%s\" scope=%s filter=\"%s\"): "
-			"monitor database not configured.\n",
-			fname,
-			BER_BVISNULL( nbase ) ? "" : nbase->bv_val,
-			ldap_pvt_scope2str( scope ),
-			BER_BVISNULL( filter ) ? "" : filter->bv_val );
-		Debug( LDAP_DEBUG_ANY, "%s\n", buf );
+		Debug(LDAP_DEBUG_ANY,
+		      "monitor_back_register_entry_%s(base=\"%s\" scope=%s filter=\"%s\"): " "monitor database not configured.\n\n",
+		      fname, BER_BVISNULL(nbase) ? "" : nbase->bv_val,
+		      ldap_pvt_scope2str(scope),
+		      BER_BVISNULL(filter) ? "" : filter->bv_val );
 
 		return -1;
 	}
@@ -1036,19 +1031,12 @@ monitor_back_register_entry_attrs(
 
 		if ( BER_BVISNULL( &ndn ) ) {
 			if ( monitor_search2ndn( nbase, scope, filter, &ndn ) ) {
-				char		buf[ SLAP_TEXT_BUFLEN ];
-
-				snprintf( buf, sizeof( buf ),
-					"monitor_back_register_entry_%s(\"\"): "
-					"base=\"%s\" scope=%s filter=\"%s\": "
-					"unable to find entry\n",
-					fname,
-					nbase->bv_val ? nbase->bv_val : "\"\"",
-					ldap_pvt_scope2str( scope ),
-					filter->bv_val );
-
-				/* entry does not exist */
-				Debug( LDAP_DEBUG_ANY, "%s\n", buf );
+				Debug(LDAP_DEBUG_ANY,
+				      "monitor_back_register_entry_%s(\"\"): " "base=\"%s\" scope=%s filter=\"%s\": " "unable to find entry\n\n",
+				      fname,
+				      nbase->bv_val ? nbase->bv_val : "\"\"",
+				      ldap_pvt_scope2str(scope),
+				      filter->bv_val );
 				return -1;
 			}
 
@@ -1443,16 +1431,11 @@ monitor_back_unregister_entry_attrs(
 	char		*fname = ( target_a == NULL ? "callback" : "attrs" );
 
 	if ( be_monitor == NULL ) {
-		char		buf[ SLAP_TEXT_BUFLEN ];
-
-		snprintf( buf, sizeof( buf ),
-			"monitor_back_unregister_entry_%s(base=\"%s\" scope=%s filter=\"%s\"): "
-			"monitor database not configured.\n",
-			fname,
-			BER_BVISNULL( nbase ) ? "" : nbase->bv_val,
-			ldap_pvt_scope2str( scope ),
-			BER_BVISNULL( filter ) ? "" : filter->bv_val );
-		Debug( LDAP_DEBUG_ANY, "%s\n", buf );
+		Debug(LDAP_DEBUG_ANY,
+		      "monitor_back_unregister_entry_%s(base=\"%s\" scope=%s filter=\"%s\"): " "monitor database not configured.\n\n",
+		      fname, BER_BVISNULL(nbase) ? "" : nbase->bv_val,
+		      ldap_pvt_scope2str(scope),
+		      BER_BVISNULL(filter) ? "" : filter->bv_val );
 
 		return -1;
 	}
@@ -1494,18 +1477,11 @@ monitor_back_unregister_entry_attrs(
 
 		if ( BER_BVISNULL( &ndn ) ) {
 			if ( monitor_search2ndn( nbase, scope, filter, &ndn ) ) {
-				char		buf[ SLAP_TEXT_BUFLEN ];
-
-				snprintf( buf, sizeof( buf ),
-					"monitor_back_unregister_entry_%s(\"\"): "
-					"base=\"%s\" scope=%d filter=\"%s\": "
-					"unable to find entry\n",
-					fname,
-					nbase->bv_val ? nbase->bv_val : "\"\"",
-					scope, filter->bv_val );
-
-				/* entry does not exist */
-				Debug( LDAP_DEBUG_ANY, "%s\n", buf );
+				Debug(LDAP_DEBUG_ANY,
+				      "monitor_back_unregister_entry_%s(\"\"): " "base=\"%s\" scope=%d filter=\"%s\": " "unable to find entry\n\n",
+				      fname,
+				      nbase->bv_val ? nbase->bv_val : "\"\"",
+				      scope, filter->bv_val );
 				return -1;
 			}
 

@@ -112,13 +112,9 @@ entry_schema_check(
 		if( is_at_single_value( a->a_desc->ad_type ) &&
 			a->a_vals[1].bv_val != NULL )
 		{
-			snprintf( textbuf, textlen, 
-				"attribute '%s' cannot have multiple values",
-				type );
-
-			Debug( LDAP_DEBUG_ANY,
-			    "Entry (%s), %s\n",
-			    e->e_dn, textbuf );
+			Debug(LDAP_DEBUG_ANY,
+			      "Entry (%s), attribute '%s' cannot have multiple values\n",
+			      e->e_dn, type );
 
 			return LDAP_CONSTRAINT_VIOLATION;
 		}
@@ -165,26 +161,18 @@ entry_schema_check(
 
 	sc = oc_bvfind( &asc->a_vals[0] );
 	if( sc == NULL ) {
-		snprintf( textbuf, textlen, 
-			"unrecognized structuralObjectClass '%s'",
-			asc->a_vals[0].bv_val );
-
-		Debug( LDAP_DEBUG_ANY,
-			"entry_check_schema(%s): %s\n",
-			e->e_dn, textbuf );
+		Debug(LDAP_DEBUG_ANY,
+		      "entry_check_schema(%s): unrecognized structuralObjectClass '%s'\n",
+		      e->e_dn, asc->a_vals[0].bv_val );
 
 		rc = LDAP_OBJECT_CLASS_VIOLATION;
 		goto done;
 	}
 
 	if( sc->soc_kind != LDAP_SCHEMA_STRUCTURAL ) {
-		snprintf( textbuf, textlen, 
-			"structuralObjectClass '%s' is not STRUCTURAL",
-			asc->a_vals[0].bv_val );
-
-		Debug( LDAP_DEBUG_ANY,
-			"entry_check_schema(%s): %s\n",
-			e->e_dn, textbuf );
+		Debug(LDAP_DEBUG_ANY,
+		      "entry_check_schema(%s): structuralObjectClass '%s' is not STRUCTURAL\n",
+		      e->e_dn, asc->a_vals[0].bv_val );
 
 		rc = LDAP_OTHER;
 		goto done;
@@ -192,13 +180,9 @@ entry_schema_check(
 
 got_soc:
 	if( !manage && sc->soc_obsolete ) {
-		snprintf( textbuf, textlen, 
-			"structuralObjectClass '%s' is OBSOLETE",
-			asc->a_vals[0].bv_val );
-
-		Debug( LDAP_DEBUG_ANY,
-			"entry_check_schema(%s): %s\n",
-			e->e_dn, textbuf );
+		Debug(LDAP_DEBUG_ANY,
+		      "entry_check_schema(%s): structuralObjectClass '%s' is OBSOLETE\n",
+		      e->e_dn, asc->a_vals[0].bv_val );
 
 		rc = LDAP_OBJECT_CLASS_VIOLATION;
 		goto done;
@@ -256,13 +240,9 @@ got_soc:
 	/* check that the entry has required attrs of the content rule */
 	if( cr ) {
 		if( !manage && cr->scr_obsolete ) {
-			snprintf( textbuf, textlen, 
-				"content rule '%s' is obsolete",
-				ldap_contentrule2name( &cr->scr_crule ));
-
-			Debug( LDAP_DEBUG_ANY,
-				"Entry (%s): %s\n",
-				e->e_dn, textbuf );
+			Debug(LDAP_DEBUG_ANY,
+			      "Entry (%s): content rule '%s' is obsolete\n",
+			      e->e_dn, ldap_contentrule2name(&cr->scr_crule) );
 
 			rc = LDAP_OBJECT_CLASS_VIOLATION;
 			goto done;
@@ -279,14 +259,11 @@ got_soc:
 
 			/* not there => schema violation */
 			if ( a == NULL ) {
-				snprintf( textbuf, textlen, 
-					"content rule '%s' requires attribute '%s'",
-					ldap_contentrule2name( &cr->scr_crule ),
-					at->sat_cname.bv_val );
-
-				Debug( LDAP_DEBUG_ANY,
-					"Entry (%s): %s\n",
-					e->e_dn, textbuf );
+				Debug(LDAP_DEBUG_ANY,
+				      "Entry (%s): content rule '%s' requires attribute '%s'\n",
+				      e->e_dn,
+				      ldap_contentrule2name(&cr->scr_crule),
+				      at->sat_cname.bv_val );
 
 				rc = LDAP_OBJECT_CLASS_VIOLATION;
 				goto done;
@@ -304,14 +281,11 @@ got_soc:
 
 			/* there => schema violation */
 			if ( a != NULL ) {
-				snprintf( textbuf, textlen, 
-					"content rule '%s' precluded attribute '%s'",
-					ldap_contentrule2name( &cr->scr_crule ),
-					at->sat_cname.bv_val );
-
-				Debug( LDAP_DEBUG_ANY,
-					"Entry (%s): %s\n",
-					e->e_dn, textbuf );
+				Debug(LDAP_DEBUG_ANY,
+				      "Entry (%s): content rule '%s' precluded attribute '%s'\n",
+				      e->e_dn,
+				      ldap_contentrule2name(&cr->scr_crule),
+				      at->sat_cname.bv_val );
 
 				rc = LDAP_OBJECT_CLASS_VIOLATION;
 				goto done;
@@ -324,13 +298,9 @@ got_soc:
 		oc = socs[i];
 		if ( !manage && oc->soc_obsolete ) {
 			/* disallow obsolete classes */
-			snprintf( textbuf, textlen, 
-				"objectClass '%s' is OBSOLETE",
-				aoc->a_vals[i].bv_val );
-
-			Debug( LDAP_DEBUG_ANY,
-				"entry_check_schema(%s): %s\n",
-				e->e_dn, textbuf );
+			Debug(LDAP_DEBUG_ANY,
+			      "entry_check_schema(%s): objectClass '%s' is OBSOLETE\n",
+			      e->e_dn, aoc->a_vals[i].bv_val );
 
 			rc = LDAP_OBJECT_CLASS_VIOLATION;
 			goto done;
@@ -371,13 +341,9 @@ got_soc:
 				}
 
 				if( xc != NULL ) {
-					snprintf( textbuf, textlen, "instantiation of "
-						"abstract objectClass '%s' not allowed",
-						aoc->a_vals[i].bv_val );
-
-					Debug( LDAP_DEBUG_ANY,
-						"entry_check_schema(%s): %s\n",
-						e->e_dn, textbuf );
+					Debug(LDAP_DEBUG_ANY,
+					      "entry_check_schema(%s): instantiation of " "abstract objectClass '%s' not allowed\n",
+					      e->e_dn, aoc->a_vals[i].bv_val );
 
 					rc = LDAP_OBJECT_CLASS_VIOLATION;
 					goto done;
@@ -429,13 +395,9 @@ got_soc:
 
 			s = oc_check_required( e, oc, &aoc->a_vals[i] );
 			if (s != NULL) {
-				snprintf( textbuf, textlen, 
-					"object class '%s' requires attribute '%s'",
-					aoc->a_vals[i].bv_val, s );
-
-				Debug( LDAP_DEBUG_ANY,
-					"Entry (%s): %s\n",
-					e->e_dn, textbuf );
+				Debug(LDAP_DEBUG_ANY,
+				      "Entry (%s): object class '%s' requires attribute '%s'\n",
+				      e->e_dn, aoc->a_vals[i].bv_val, s );
 
 				rc = LDAP_OBJECT_CLASS_VIOLATION;
 				goto done;
@@ -483,13 +445,9 @@ got_soc:
 		if ( rc != LDAP_SUCCESS ) {
 			char *type = a->a_desc->ad_cname.bv_val;
 
-			snprintf( textbuf, textlen, 
-				"attribute '%s' not allowed",
-				type );
-
-			Debug( LDAP_DEBUG_ANY,
-			    "Entry (%s), %s\n",
-			    e->e_dn, textbuf );
+			Debug(LDAP_DEBUG_ANY,
+			      "Entry (%s), attribute '%s' not allowed\n",
+			      e->e_dn, type );
 
 			goto done;
 		}

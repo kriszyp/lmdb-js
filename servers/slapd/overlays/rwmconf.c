@@ -184,12 +184,10 @@ rwm_map_config(
 						&mapping[0].m_src_ad, &text,
 						SLAP_AD_PROXIED );
 				if ( rc != LDAP_SUCCESS ) {
-					char prefix[1024];
-					snprintf( prefix, sizeof(prefix),
-	"%s: line %d: source attributeType '%s': %d",
-						fname, lineno, src, rc );
-					Debug( LDAP_DEBUG_ANY, "%s (%s)\n",
-						prefix, text ? text : "null" );
+					Debug(LDAP_DEBUG_ANY,
+					      "%s: line %d: source attributeType '%s': %d (%s)\n",
+					      fname, lineno, src, rc,
+					      text ? text : "null" );
 					goto error_return;
 				}
 
@@ -208,12 +206,10 @@ rwm_map_config(
 					&mapping[0].m_dst_ad, &text,
 					SLAP_AD_PROXIED );
 			if ( rc != LDAP_SUCCESS ) {
-				char prefix[1024];
-				snprintf( prefix, sizeof(prefix), 
-	"%s: line %d: destination attributeType '%s': %d",
-					fname, lineno, dst, rc );
-				Debug( LDAP_DEBUG_ANY, "%s (%s)\n",
-					prefix, text ? text : "null" );
+				Debug(LDAP_DEBUG_ANY,
+				      "%s: line %d: destination attributeType '%s': %d (%s)\n",
+				      fname, lineno, dst, rc,
+				      text ? text : "null" );
 				goto error_return;
 			}
 		}

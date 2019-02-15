@@ -299,16 +299,11 @@ meta_back_init_one_conn(
 				dont_retry = ( ri->ri_num[ ri->ri_idx ] == SLAP_RETRYNUM_TAIL
 					|| slap_get_time() < ri->ri_last + ri->ri_interval[ ri->ri_idx ] );
 				if ( !dont_retry ) {
-					if ( LogTest( LDAP_DEBUG_ANY ) ) {
-						char	buf[ SLAP_TEXT_BUFLEN ];
-
-						snprintf( buf, sizeof( buf ),
-							"meta_back_init_one_conn[%d]: quarantine "
-							"retry block #%d try #%d",
-							candidate, ri->ri_idx, ri->ri_count );
-						Debug( LDAP_DEBUG_ANY, "%s %s.\n",
-							op->o_log_prefix, buf );
-					}
+					Debug(LDAP_DEBUG_ANY,
+					      "%s meta_back_init_one_conn[%d]: quarantine " "retry block #%d try #%d.\n",
+					      op->o_log_prefix,
+					      candidate, ri->ri_idx,
+					      ri->ri_count );
 
 					mt->mt_isquarantined = LDAP_BACK_FQ_RETRYING;
 				}
@@ -725,21 +720,14 @@ meta_back_retry(
 		struct berval save_cred;
 
 		if ( LogTest( LDAP_DEBUG_ANY ) ) {
-			char	buf[ SLAP_TEXT_BUFLEN ];
-
 			/* this lock is required; however,
 			 * it's invoked only when logging is on */
 			ldap_pvt_thread_mutex_lock( &mt->mt_uri_mutex );
-			snprintf( buf, sizeof( buf ),
-				"retrying URI=\"%s\" DN=\"%s\"",
-				mt->mt_uri,
-				BER_BVISNULL( &msc->msc_bound_ndn ) ?
-					"" : msc->msc_bound_ndn.bv_val );
+			Debug(LDAP_DEBUG_ANY,
+			      "%s meta_back_retry[%d]: retrying URI=\"%s\" DN=\"%s\".\n",
+			      op->o_log_prefix, candidate, mt->mt_uri,
+			      BER_BVISNULL(&msc->msc_bound_ndn) ? "" : msc->msc_bound_ndn.bv_val );
 			ldap_pvt_thread_mutex_unlock( &mt->mt_uri_mutex );
-
-			Debug( LDAP_DEBUG_ANY,
-				"%s meta_back_retry[%d]: %s.\n",
-				op->o_log_prefix, candidate, buf );
 		}
 
 		/* save credentials, if any, for later use;
@@ -1864,15 +1852,10 @@ meta_back_quarantine(
 			break;
 
 		case LDAP_BACK_FQ_RETRYING:
-			if ( LogTest( LDAP_DEBUG_ANY ) ) {
-				char	buf[ SLAP_TEXT_BUFLEN ];
-
-				snprintf( buf, sizeof( buf ),
-					"meta_back_quarantine[%d]: block #%d try #%d failed",
-					candidate, ri->ri_idx, ri->ri_count );
-				Debug( LDAP_DEBUG_ANY, "%s %s.\n",
-					op->o_log_prefix, buf );
-			}
+			Debug(LDAP_DEBUG_ANY,
+			      "%s meta_back_quarantine[%d]: block #%d try #%d failed.\n",
+			      op->o_log_prefix, candidate, ri->ri_idx,
+			      ri->ri_count );
 
 			++ri->ri_count;
 			if ( ri->ri_num[ ri->ri_idx ] != SLAP_RETRYNUM_FOREVER

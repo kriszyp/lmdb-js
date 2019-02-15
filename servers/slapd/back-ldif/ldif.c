@@ -1604,11 +1604,10 @@ ldif_move_entry(
 			}
 
 			if ( rc != LDAP_SUCCESS ) {
-				char s[128];
-				snprintf( s, sizeof s, "%s (%s)", *text, STRERROR( errno ));
-				Debug( LDAP_DEBUG_ANY,
-					"ldif_move_entry: %s: \"%s\" -> \"%s\"\n",
-					s, op->o_req_dn.bv_val, entry->e_dn );
+				Debug(LDAP_DEBUG_ANY,
+				      "ldif_move_entry: %s (%s): \"%s\" -> \"%s\"\n",
+				      *text, STRERROR(errno),
+				      op->o_req_dn.bv_val, entry->e_dn );
 			}
 		}
 

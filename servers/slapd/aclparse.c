@@ -168,12 +168,9 @@ regtest(const char *fname, int lineno, char *pat) {
 
 		regerror(e, &re, error, sizeof(error));
 
-		snprintf( buf, sizeof( buf ),
-			"regular expression \"%s\" bad because of %s",
-			pat, error );
-		Debug( LDAP_DEBUG_ANY,
-			"%s: line %d: %s\n",
-			fname, lineno, buf );
+		Debug(LDAP_DEBUG_ANY,
+		      "%s: line %d: regular expression \"%s\" bad because of %s\n",
+		      fname, lineno, pat, error );
 		acl_usage();
 		exit( EXIT_FAILURE );
 	}
@@ -515,16 +512,11 @@ parse_acl(
 
 						if( !mr_usable_with_at( a->acl_attrval_mr, a->acl_attrs[ 0 ].an_desc->ad_type ) )
 						{
-							char	buf[ SLAP_TEXT_BUFLEN ];
-
-							snprintf( buf, sizeof( buf ),
-								"matching rule \"%s\" use "
-								"with attr \"%s\" not appropriate.",
-								mr, a->acl_attrs[ 0 ].an_name.bv_val );
-								
-
-							Debug( LDAP_DEBUG_ANY, "%s: line %d: %s\n",
-								fname, lineno, buf );
+							Debug(LDAP_DEBUG_ANY,
+							      "%s: line %d: matching rule \"%s\" use " "with attr \"%s\" not appropriate.\n",
+							      fname, lineno,
+							      mr,
+							      a->acl_attrs[0].an_name.bv_val );
 							goto fail;
 						}
 					}
@@ -539,12 +531,12 @@ parse_acl(
 
 								regerror( e, &a->acl_attrval_re, err, sizeof( err ) );
 
-								snprintf( buf, sizeof( buf ),
-									"regular expression \"%s\" bad because of %s",
-									right, err );
-
-								Debug( LDAP_DEBUG_ANY, "%s: line %d: %s\n",
-									fname, lineno, buf );
+								Debug(LDAP_DEBUG_ANY,
+								      "%s: line %d: regular expression \"%s\" bad because of %s\n",
+								      fname,
+								      lineno,
+								      right,
+								      err );
 								goto fail;
 							}
 							a->acl_attrval_style = ACL_STYLE_REGEX;
@@ -574,45 +566,34 @@ parse_acl(
 								} else if ( !strcasecmp( style, "children" ) ) {
 									a->acl_attrval_style = ACL_STYLE_CHILDREN;
 								} else {
-									char	buf[ SLAP_TEXT_BUFLEN ];
-
-									snprintf( buf, sizeof( buf ),
-										"unknown val.<style> \"%s\" for attributeType \"%s\" "
-											"with DN syntax.",
-										style,
-										a->acl_attrs[0].an_desc->ad_cname.bv_val );
-
-									Debug( LDAP_DEBUG_CONFIG | LDAP_DEBUG_ACL, 
-										"%s: line %d: %s\n",
-										fname, lineno, buf );
+									Debug(LDAP_DEBUG_CONFIG | LDAP_DEBUG_ACL,
+									      "%s: line %d: unknown val.<style> \"%s\" for attributeType \"%s\" " "with DN syntax.\n",
+									      fname,
+									      lineno,
+									      style,
+									      a->acl_attrs[0].an_desc->ad_cname.bv_val );
 									goto fail;
 								}
 
 								rc = dnNormalize( 0, NULL, NULL, &bv, &a->acl_attrval, NULL );
 								if ( rc != LDAP_SUCCESS ) {
-									char	buf[ SLAP_TEXT_BUFLEN ];
-
-									snprintf( buf, sizeof( buf ),
-										"unable to normalize DN \"%s\" "
-										"for attributeType \"%s\" (%d).",
-										bv.bv_val,
-										a->acl_attrs[0].an_desc->ad_cname.bv_val,
-										rc );
-									Debug( LDAP_DEBUG_ANY, 
-										"%s: line %d: %s\n",
-										fname, lineno, buf );
+									Debug(LDAP_DEBUG_ANY,
+									      "%s: line %d: unable to normalize DN \"%s\" " "for attributeType \"%s\" (%d).\n",
+									      fname,
+									      lineno,
+									      bv.bv_val,
+									      a->acl_attrs[0].an_desc->ad_cname.bv_val,
+									      rc );
 									goto fail;
 								}
 
 							} else {
-								char	buf[ SLAP_TEXT_BUFLEN ];
-
-								snprintf( buf, sizeof( buf ),
-									"unknown val.<style> \"%s\" for attributeType \"%s\".",
-									style, a->acl_attrs[0].an_desc->ad_cname.bv_val );
-								Debug( LDAP_DEBUG_CONFIG | LDAP_DEBUG_ACL, 
-									"%s: line %d: %s\n",
-									fname, lineno, buf );
+								Debug(LDAP_DEBUG_CONFIG | LDAP_DEBUG_ACL,
+								      "%s: line %d: unknown val.<style> \"%s\" for attributeType \"%s\".\n",
+								      fname,
+								      lineno,
+								      style,
+								      a->acl_attrs[0].an_desc->ad_cname.bv_val );
 								goto fail;
 							}
 						}
@@ -646,14 +627,12 @@ parse_acl(
 							&text,
 							NULL );
 						if ( rc != LDAP_SUCCESS ) {
-							char	buf[ SLAP_TEXT_BUFLEN ];
-
-							snprintf( buf, sizeof( buf ), "%s: line %d: "
-								" attr \"%s\" normalization failed (%d: %s)",
-								fname, lineno,
-								a->acl_attrs[ 0 ].an_name.bv_val, rc, text );
-							Debug( LDAP_DEBUG_ANY, "%s: line %d: %s.\n",
-								fname, lineno, buf );
+							Debug(LDAP_DEBUG_ANY,
+							      "%s: line %d: %s: line %d: " " attr \"%s\" normalization failed (%d: %s).\n",
+							      fname, lineno,
+							      fname, lineno,
+							      a->acl_attrs[0].an_name.bv_val,
+							      rc, text );
 							goto fail;
 						}
 					}
@@ -697,11 +676,10 @@ parse_acl(
 							buf[ SLAP_TEXT_BUFLEN ];
 
 						regerror( e, &a->acl_dn_re, err, sizeof( err ) );
-						snprintf( buf, sizeof( buf ),
-							"regular expression \"%s\" bad because of %s",
-							right, err );
-						Debug( LDAP_DEBUG_ANY, "%s: line %d: %s\n",
-							fname, lineno, buf );
+						Debug(LDAP_DEBUG_ANY,
+						      "%s: line %d: regular expression \"%s\" bad because of %s\n",
+						      fname, lineno, right,
+						      err );
 						goto fail;
 					}
 				}
@@ -1061,14 +1039,10 @@ parse_acl(
 					rc = slap_str2ad( right, &bdn->a_at, &text );
 
 					if( rc != LDAP_SUCCESS ) {
-						char	buf[ SLAP_TEXT_BUFLEN ];
-
-						snprintf( buf, sizeof( buf ),
-							"dnattr \"%s\": %s",
-							right, text );
-						Debug( LDAP_DEBUG_ANY,
-							"%s: line %d: %s\n",
-							fname, lineno, buf );
+						Debug(LDAP_DEBUG_ANY,
+						      "%s: line %d: dnattr \"%s\": %s\n",
+						      fname, lineno, right,
+						      text );
 						goto fail;
 					}
 
@@ -1078,16 +1052,10 @@ parse_acl(
 						!is_at_syntax( bdn->a_at->ad_type,
 						SLAPD_NAMEUID_SYNTAX ))
 					{
-						char	buf[ SLAP_TEXT_BUFLEN ];
-
-						snprintf( buf, sizeof( buf ),
-							"dnattr \"%s\": "
-							"inappropriate syntax: %s\n",
-							right,
-							bdn->a_at->ad_type->sat_syntax_oid );
-						Debug( LDAP_DEBUG_ANY,
-							"%s: line %d: %s\n",
-							fname, lineno, buf );
+						Debug(LDAP_DEBUG_ANY,
+						      "%s: line %d: dnattr \"%s\": " "inappropriate syntax: %s\n\n",
+						      fname, lineno, right,
+						      bdn->a_at->ad_type->sat_syntax_oid );
 						goto fail;
 					}
 
@@ -1230,14 +1198,10 @@ parse_acl(
 
 					rc = slap_str2ad( attr_name, &b->a_group_at, &text );
 					if ( rc != LDAP_SUCCESS ) {
-						char	buf[ SLAP_TEXT_BUFLEN ];
-
-						snprintf( buf, sizeof( buf ),
-							"group \"%s\": %s.",
-							right, text );
-						Debug( LDAP_DEBUG_ANY,
-							"%s: line %d: %s\n",
-							fname, lineno, buf );
+						Debug(LDAP_DEBUG_ANY,
+						      "%s: line %d: group \"%s\": %s.\n",
+						      fname, lineno, right,
+						      text );
 						goto fail;
 					}
 
@@ -1248,19 +1212,11 @@ parse_acl(
 						&& !is_at_subtype( b->a_group_at->ad_type,
 							slap_schema.si_ad_labeledURI->ad_type ) /* e.g. memberURL */ )
 					{
-						char	buf[ SLAP_TEXT_BUFLEN ];
-
-						snprintf( buf, sizeof( buf ),
-							"group \"%s\" attr \"%s\": inappropriate syntax: %s; "
-							"must be " SLAPD_DN_SYNTAX " (DN), "
-							SLAPD_NAMEUID_SYNTAX " (NameUID) "
-							"or a subtype of labeledURI.",
-							right,
-							attr_name,
-							at_syntax( b->a_group_at->ad_type ) );
-						Debug( LDAP_DEBUG_ANY,
-							"%s: line %d: %s\n",
-							fname, lineno, buf );
+						Debug(LDAP_DEBUG_ANY,
+						      "%s: line %d: group \"%s\" attr \"%s\": inappropriate syntax: %s; " "must be " SLAPD_DN_SYNTAX " (DN), " SLAPD_NAMEUID_SYNTAX " (NameUID) " "or a subtype of labeledURI.\n",
+						      fname, lineno, right,
+						      attr_name,
+						      at_syntax(b->a_group_at->ad_type) );
 						goto fail;
 					}
 
@@ -1276,14 +1232,11 @@ parse_acl(
 							ocs, NULL );
 
 						if( rc != 0 ) {
-							char	buf[ SLAP_TEXT_BUFLEN ];
-
-							snprintf( buf, sizeof( buf ),
-								"group: \"%s\" not allowed by \"%s\".",
-								b->a_group_at->ad_cname.bv_val,
-								b->a_group_oc->soc_oid );
-							Debug( LDAP_DEBUG_ANY, "%s: line %d: %s\n",
-								fname, lineno, buf );
+							Debug(LDAP_DEBUG_ANY,
+							      "%s: line %d: group: \"%s\" not allowed by \"%s\".\n",
+							      fname, lineno,
+							      b->a_group_at->ad_cname.bv_val,
+							      b->a_group_oc->soc_oid );
 							goto fail;
 						}
 					}

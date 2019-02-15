@@ -96,19 +96,11 @@ asyncmeta_back_bind( Operation *op, SlapReply *rs )
 	 * invalidCredentials */
 	mc = asyncmeta_getconn( op, rs, candidates, NULL, LDAP_BACK_BIND_DONTSEND, 1 );
 	if ( !mc ) {
-		if ( LogTest( LDAP_DEBUG_ANY ) ) {
-			char	buf[ SLAP_TEXT_BUFLEN ];
-
-			snprintf( buf, sizeof( buf ),
-				"asyncmeta_back_bind: no target "
-				"for dn \"%s\" (%d%s%s).",
-				op->o_req_dn.bv_val, rs->sr_err,
-				rs->sr_text ? ". " : "",
-				rs->sr_text ? rs->sr_text : "" );
-			Debug( LDAP_DEBUG_ANY,
-				"%s %s\n",
-				op->o_log_prefix, buf );
-		}
+		Debug(LDAP_DEBUG_ANY,
+		      "%s asyncmeta_back_bind: no target " "for dn \"%s\" (%d%s%s).\n",
+		      op->o_log_prefix, op->o_req_dn.bv_val,
+		      rs->sr_err, rs->sr_text ? ". " : "",
+		      rs->sr_text ? rs->sr_text : "" );
 
 		/* FIXME: there might be cases where we don't want
 		 * to map the error onto invalidCredentials */
@@ -341,12 +333,10 @@ retry:;
 			ldap_get_option( msc->msc_ld, LDAP_OPT_ERROR_NUMBER,
 				&rs->sr_err );
 
-			snprintf( buf, sizeof( buf ),
-				"err=%d (%s) nretries=%d",
-				rs->sr_err, ldap_err2string( rs->sr_err ), nretries );
-			Debug( LDAP_DEBUG_ANY,
-				"### %s asyncmeta_bind_op_result[%d]: %s.\n",
-				op->o_log_prefix, candidate, buf );
+			Debug(LDAP_DEBUG_ANY,
+			      "### %s asyncmeta_bind_op_result[%d]: err=%d (%s) nretries=%d.\n",
+			      op->o_log_prefix, candidate, rs->sr_err,
+			      ldap_err2string(rs->sr_err), nretries );
 			break;
 
 		default:
@@ -973,18 +963,11 @@ retry:;
 
 				rs->sr_err = slap_map_api2result( rs );
 
-				if ( LogTest( LDAP_DEBUG_ANY ) ) {
-					char	buf[ SLAP_TEXT_BUFLEN ];
-
-					snprintf( buf, sizeof( buf ),
-						"asyncmeta_back_op_result[%d] "
-						"err=%d text=\"%s\" matched=\"%s\"",
-						i, rs->sr_err,
-						( xtext ? xtext : "" ),
-						( xmatched ? xmatched : "" ) );
-					Debug( LDAP_DEBUG_ANY, "%s %s.\n",
-						op->o_log_prefix, buf );
-				}
+				Debug(LDAP_DEBUG_ANY,
+				      "%s asyncmeta_back_op_result[%d] " "err=%d text=\"%s\" matched=\"%s\".\n",
+				      op->o_log_prefix, i, rs->sr_err,
+				      (xtext ? xtext : ""),
+				      (xmatched ? xmatched : "") );
 
 				/*
 				 * FIXME: need to rewrite "match" (need rwinfo)
@@ -1711,12 +1694,11 @@ asyncmeta_dobind_init(Operation *op, SlapReply *rs, bm_context_t *bc, a_metaconn
 			bound = 1;
 		}
 
-		snprintf( buf, sizeof( buf ), " mc=%p ld=%p%s DN=\"%s\"",
-			(void *)mc, (void *)msc->msc_ld,
-			bound ? " bound" : " anonymous",
-			bound == 0 ? "" : msc->msc_bound_ndn.bv_val );
-		Debug( LDAP_DEBUG_ANY, "### %s asyncmeta_search_dobind_init[%d]%s\n",
-			op->o_log_prefix, candidate, buf );
+		Debug(LDAP_DEBUG_ANY,
+		      "### %s asyncmeta_search_dobind_init[%d] mc=%p ld=%p%s DN=\"%s\"\n",
+		      op->o_log_prefix, candidate, (void *)mc,
+		      (void *)msc->msc_ld, bound ? " bound" : " anonymous",
+		      bound == 0 ? "" : msc->msc_bound_ndn.bv_val );
 #endif /* DEBUG_205 */
 
 		retcode = META_SEARCH_CANDIDATE;
@@ -1727,10 +1709,10 @@ asyncmeta_dobind_init(Operation *op, SlapReply *rs, bm_context_t *bc, a_metaconn
 #ifdef DEBUG_205
 		char	buf[ SLAP_TEXT_BUFLEN ] = { '\0' };
 
-		snprintf( buf, sizeof( buf ), " mc=%p ld=%p needbind",
-			(void *)mc, (void *)msc->msc_ld );
-		Debug( LDAP_DEBUG_ANY, "### %s asyncmeta_search_dobind_init[%d]%s\n",
-			op->o_log_prefix, candidate, buf );
+		Debug(LDAP_DEBUG_ANY,
+		      "### %s asyncmeta_search_dobind_init[%d] mc=%p ld=%p needbind\n",
+		      op->o_log_prefix, candidate, (void *)mc,
+		      (void *)msc->msc_ld );
 #endif /* DEBUG_205 */
 
 		candidates[ candidate ].sr_msgid = META_MSGID_NEED_BIND;
@@ -1742,10 +1724,10 @@ asyncmeta_dobind_init(Operation *op, SlapReply *rs, bm_context_t *bc, a_metaconn
 #ifdef DEBUG_205
 		char buf[ SLAP_TEXT_BUFLEN ];
 
-		snprintf( buf, sizeof( buf ), " mc=%p ld=%p binding",
-			(void *)mc, (void *)msc->msc_ld );
-		Debug( LDAP_DEBUG_ANY, "### %s asyncmeta_search_dobind_init[%d]%s\n",
-			op->o_log_prefix, candidate, buf );
+		Debug(LDAP_DEBUG_ANY,
+		      "### %s asyncmeta_search_dobind_init[%d] mc=%p ld=%p binding\n",
+		      op->o_log_prefix, candidate, (void *)mc,
+		      (void *)msc->msc_ld );
 #endif /* DEBUG_205 */
 
 		if ( msc->msc_ld == NULL ) {
@@ -1858,14 +1840,10 @@ retry_bind:
 	candidates[ candidate ].sr_msgid = msgid;
 	asyncmeta_set_msc_time(msc);
 #ifdef DEBUG_205
-	{
-		char buf[ SLAP_TEXT_BUFLEN ];
-
-		snprintf( buf, sizeof( buf ), "asyncmeta_search_dobind_init[%d] mc=%p ld=%p rc=%d",
-			candidate, (void *)mc, (void *)mc->mc_conns[ candidate ].msc_ld, rc );
-		Debug( LDAP_DEBUG_ANY, "### %s %s\n",
-			op->o_log_prefix, buf );
-	}
+	Debug(LDAP_DEBUG_ANY,
+	      "### %s asyncmeta_search_dobind_init[%d] mc=%p ld=%p rc=%d\n",
+	      op->o_log_prefix, candidate, (void *)mc,
+	      (void *)mc->mc_conns[candidate].msc_ld, rc );
 #endif /* DEBUG_205 */
 
 	switch ( rc ) {
@@ -1936,21 +1914,14 @@ retry_dobind:
 	/* need to retry */
 	retries--;
 	if ( LogTest( LDAP_DEBUG_ANY ) ) {
-		char	buf[ SLAP_TEXT_BUFLEN ];
-
 		/* this lock is required; however,
 		 * it's invoked only when logging is on */
 		ldap_pvt_thread_mutex_lock( &mt->mt_uri_mutex );
-		snprintf( buf, sizeof( buf ),
-			  "retrying URI=\"%s\" DN=\"%s\"",
-			  mt->mt_uri,
-			  BER_BVISNULL( &msc->msc_bound_ndn ) ?
-			  "" : msc->msc_bound_ndn.bv_val );
+		Debug(LDAP_DEBUG_ANY,
+		      "%s asyncmeta_search_dobind_init_with_retry[%d]: retrying URI=\"%s\" DN=\"%s\".\n",
+		      op->o_log_prefix, candidate, mt->mt_uri,
+		      BER_BVISNULL(&msc->msc_bound_ndn) ? "" : msc->msc_bound_ndn.bv_val );
 		ldap_pvt_thread_mutex_unlock( &mt->mt_uri_mutex );
-
-		Debug( LDAP_DEBUG_ANY,
-		       "%s asyncmeta_search_dobind_init_with_retry[%d]: %s.\n",
-		       op->o_log_prefix, candidate, buf );
 	}
 
 	ldap_pvt_thread_mutex_lock( &mc->mc_om_mutex );

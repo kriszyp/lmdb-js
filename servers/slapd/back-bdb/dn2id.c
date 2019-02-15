@@ -63,11 +63,10 @@ bdb_dn2id_add(
 	/* store it -- don't override */
 	rc = db->put( db, txn, &key, &data, DB_NOOVERWRITE );
 	if( rc != 0 ) {
-		char buf[ SLAP_TEXT_BUFLEN ];
-		snprintf( buf, sizeof( buf ), "%s => bdb_dn2id_add dn=\"%s\" ID=0x%lx",
-			op->o_log_prefix, e->e_name.bv_val, e->e_id );
-		Debug( LDAP_DEBUG_ANY, "%s: put failed: %s %d\n",
-			buf, db_strerror(rc), rc );
+		Debug(LDAP_DEBUG_ANY,
+		      "%s => bdb_dn2id_add dn=\"%s\" ID=0x%lx: put failed: %s %d\n",
+		      op->o_log_prefix, e->e_name.bv_val, e->e_id,
+		      db_strerror(rc), rc );
 		goto done;
 	}
 
