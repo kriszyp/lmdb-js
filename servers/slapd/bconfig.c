@@ -1766,6 +1766,7 @@ config_generic(ConfigArgs *c) {
 				c->bi->bi_nDB++;
 				nbackends++;
 			}
+			c->be = NULL;
 			break;
 
 		case CFG_DATABASE:
