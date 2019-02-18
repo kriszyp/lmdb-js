@@ -32,6 +32,8 @@
 #include "../back-ldap/back-ldap.h"
 #include "back-asyncmeta.h"
 
+int asyncmeta_debug;
+
 int
 asyncmeta_back_open(
 	BackendInfo	*bi )
@@ -46,6 +48,14 @@ int
 asyncmeta_back_initialize(
 	BackendInfo	*bi )
 {
+	int rc;
+	struct berval debugbv = BER_BVC("asyncmeta");
+
+	rc = slap_loglevel_get( &debugbv, &asyncmeta_debug );
+	if ( rc ) {
+		return rc;
+	}
+
 	bi->bi_flags =
 #if 0
 	/* this is not (yet) set essentially because back-meta does not
@@ -89,7 +99,7 @@ asyncmeta_back_initialize(
 	bi->bi_chk_referrals = 0;
 
 	bi->bi_connection_init = 0;
-	bi->bi_connection_destroy = asyncmeta_back_conn_destroy;
+	bi->bi_connection_destroy =  0 /* asyncmeta_back_conn_destroy */;
 
 	return asyncmeta_back_init_cf( bi );
 }
@@ -164,9 +174,7 @@ asyncmeta_target_finish(
 )
 {
 	slap_bindconf	sb = { BER_BVNULL };
-	struct berval mapped;
 	int rc;
-	int msc_num, i;
 
 	ber_str2bv( mt->mt_uri, 0, 0, &sb.sb_uri );
 	sb.sb_version = mt->mt_version;
@@ -216,21 +224,6 @@ asyncmeta_target_finish(
 		mi->mi_flags &= ~META_BACK_F_PROXYAUTHZ_NOANON;
 	}
 
-	BER_BVZERO( &mapped );
-	asyncmeta_map( &mt->mt_rwmap.rwm_at,
-		&slap_schema.si_ad_entryDN->ad_cname, &mapped,
-		BACKLDAP_REMAP );
-	if ( BER_BVISNULL( &mapped ) || mapped.bv_val[0] == '\0' ) {
-		mt->mt_rep_flags |= REP_NO_ENTRYDN;
-	}
-
-	BER_BVZERO( &mapped );
-	asyncmeta_map( &mt->mt_rwmap.rwm_at,
-		&slap_schema.si_ad_subschemaSubentry->ad_cname, &mapped,
-		BACKLDAP_REMAP );
-	if ( BER_BVISNULL( &mapped ) || mapped.bv_val[0] == '\0' ) {
-		mt->mt_rep_flags |= REP_NO_SUBSCHEMA;
-	}
 	return 0;
 }
 
@@ -240,10 +233,8 @@ asyncmeta_back_db_open(
 	ConfigReply	*cr )
 {
 	a_metainfo_t	*mi = (a_metainfo_t *)be->be_private;
-
 	char msg[SLAP_TEXT_BUFLEN];
-
-	int		i, rc;
+	int		i;
 
 	if ( mi->mi_ntargets == 0 ) {
 		/* Dynamically added, nothing to check here until
@@ -272,11 +263,12 @@ asyncmeta_back_db_open(
 		mc->mc_authz_target = META_BOUND_NONE;
 		mc->mc_conns = ch_calloc( mi->mi_ntargets, sizeof( a_metasingleconn_t ));
 		mc->mc_info = mi;
+		LDAP_STAILQ_INIT( &mc->mc_om_list );
 	}
-
+	mi->mi_suffix = be->be_suffix[0];
 	ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
 	mi->mi_task = ldap_pvt_runqueue_insert( &slapd_rq, 0,
-		asyncmeta_timeout_loop, mi, "asyncmeta_timeout_loop", be->be_suffix[0].bv_val );
+		asyncmeta_timeout_loop, mi, "asyncmeta_timeout_loop", mi->mi_suffix.bv_val );
 	ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
 	return 0;
 }
@@ -299,36 +291,6 @@ asyncmeta_back_conn_free(
 }
 
 static void
-mapping_free(
-	void		*v_mapping )
-{
-	struct ldapmapping *mapping = v_mapping;
-	ch_free( mapping->src.bv_val );
-	ch_free( mapping->dst.bv_val );
-	ch_free( mapping );
-}
-
-static void
-mapping_dst_free(
-	void		*v_mapping )
-{
-	struct ldapmapping *mapping = v_mapping;
-
-	if ( BER_BVISEMPTY( &mapping->dst ) ) {
-		mapping_free( &mapping[ -1 ] );
-	}
-}
-
-void
-asyncmeta_back_map_free( struct ldapmap *lm )
-{
-	avl_free( lm->remap, mapping_dst_free );
-	avl_free( lm->map, mapping_free );
-	lm->remap = NULL;
-	lm->map = NULL;
-}
-
-static void
 asyncmeta_back_stop_miconns( a_metainfo_t *mi )
 {
 
@@ -344,7 +306,7 @@ asyncmeta_back_clear_miconns( a_metainfo_t *mi )
 		mc = &mi->mi_conns[i];
 		/* todo clear the message queue */
 		for (j = 0; j < mi->mi_ntargets; j ++) {
-			asyncmeta_clear_one_msc(NULL, mc, j);
+			asyncmeta_clear_one_msc(NULL, mc, j, 1, __FUNCTION__);
 		}
 		free(mc->mc_conns);
 		ldap_pvt_thread_mutex_destroy( &mc->mc_om_mutex );
@@ -401,14 +363,12 @@ asyncmeta_target_free(
 	if ( mt->mt_idassert_authz != NULL ) {
 		ber_bvarray_free( mt->mt_idassert_authz );
 	}
-	if ( mt->mt_rwmap.rwm_rw ) {
-		rewrite_info_delete( &mt->mt_rwmap.rwm_rw );
-		if ( mt->mt_rwmap.rwm_bva_rewrite )
-			ber_bvarray_free( mt->mt_rwmap.rwm_bva_rewrite );
+	if ( !BER_BVISNULL( &mt->mt_lsuffixm )) {
+		ch_free( mt->mt_lsuffixm.bv_val );
 	}
-	asyncmeta_back_map_free( &mt->mt_rwmap.rwm_oc );
-	asyncmeta_back_map_free( &mt->mt_rwmap.rwm_at );
-	ber_bvarray_free( mt->mt_rwmap.rwm_bva_map );
+	if ( !BER_BVISNULL( &mt->mt_rsuffixm )) {
+		ch_free( mt->mt_rsuffixm.bv_val );
+	}
 	free( mt );
 }
 
@@ -420,8 +380,6 @@ asyncmeta_back_db_close(
 	a_metainfo_t	*mi;
 
 	if ( be->be_private ) {
-		int i;
-
 		mi = ( a_metainfo_t * )be->be_private;
 		if ( mi->mi_task != NULL ) {
 			ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
@@ -435,6 +393,7 @@ asyncmeta_back_db_close(
 		asyncmeta_back_stop_miconns( mi );
 		ldap_pvt_thread_mutex_unlock( &mi->mi_mc_mutex );
 	}
+	return 0;
 }
 
 int
@@ -486,13 +445,14 @@ asyncmeta_back_db_destroy(
 		if ( META_BACK_QUARANTINE( mi ) ) {
 			mi->mi_ldap_extra->retry_info_destroy( &mi->mi_quarantine );
 		}
-	}
-	ldap_pvt_thread_mutex_lock( &mi->mi_mc_mutex );
-	asyncmeta_back_clear_miconns(mi);
-	ldap_pvt_thread_mutex_unlock( &mi->mi_mc_mutex );
-	ldap_pvt_thread_mutex_destroy( &mi->mi_mc_mutex );
 
-	free( be->be_private );
+		ldap_pvt_thread_mutex_lock( &mi->mi_mc_mutex );
+		asyncmeta_back_clear_miconns(mi);
+		ldap_pvt_thread_mutex_unlock( &mi->mi_mc_mutex );
+		ldap_pvt_thread_mutex_destroy( &mi->mi_mc_mutex );
+
+		free( be->be_private );
+	}
 	return 0;
 }
 

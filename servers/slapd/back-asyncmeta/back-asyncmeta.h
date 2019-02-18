@@ -27,18 +27,12 @@
 #ifndef SLAPD_ASYNCMETA_H
 #define SLAPD_ASYNCMETA_H
 
-#ifndef ENABLE_REWRITE
-#error "--enable-rewrite is required!"
-#endif
-
 #ifdef LDAP_DEVEL
 #define SLAPD_META_CLIENT_PR 1
 #endif /* LDAP_DEVEL */
 
 #include "proto-asyncmeta.h"
 
-/* String rewrite library */
-#include "rewrite.h"
 #include "ldap_rq.h"
 
 LDAP_BEGIN_DECL
@@ -49,108 +43,6 @@ LDAP_BEGIN_DECL
 #ifndef META_BACK_PRINT_CONNTREE
 #define META_BACK_PRINT_CONNTREE 0
 #endif /* !META_BACK_PRINT_CONNTREE */
-
-/* from back-ldap.h before rwm removal */
-struct ldapmap {
-	int drop_missing;
-
-	Avlnode *map;
-	Avlnode *remap;
-};
-
-struct ldapmapping {
-	struct berval src;
-	struct berval dst;
-};
-
-struct ldaprwmap {
-	/*
-	 * DN rewriting
-	 */
-	struct rewrite_info *rwm_rw;
-	BerVarray rwm_bva_rewrite;
-
-	/*
-	 * Attribute/objectClass mapping
-	 */
-	struct ldapmap rwm_oc;
-	struct ldapmap rwm_at;
-	BerVarray rwm_bva_map;
-};
-
-/* Whatever context asyncmeta_dn_massage needs... */
-typedef struct a_dncookie {
-	struct a_metatarget_t	*target;
-
-	Connection		*conn;
-	char			*ctx;
-	SlapReply		*rs;
-} a_dncookie;
-
-int asyncmeta_dn_massage(a_dncookie *dc, struct berval *dn,
-	struct berval *res);
-
-extern int asyncmeta_conn_dup( void *c1, void *c2 );
-extern void asyncmeta_conn_free( void *c );
-
-/* attributeType/objectClass mapping */
-int asyncmeta_mapping_cmp (const void *, const void *);
-int asyncmeta_mapping_dup (void *, void *);
-
-void asyncmeta_map_init ( struct ldapmap *lm, struct ldapmapping ** );
-int asyncmeta_mapping ( struct ldapmap *map, struct berval *s,
-	struct ldapmapping **m, int remap );
-void asyncmeta_map ( struct ldapmap *map, struct berval *s, struct berval *m,
-	int remap );
-#define BACKLDAP_MAP	0
-#define BACKLDAP_REMAP	1
-char *
-asyncmeta_map_filter(
-	struct ldapmap *at_map,
-	struct ldapmap *oc_map,
-	struct berval *f,
-	int remap );
-
-int
-asyncmeta_map_attrs(
-	Operation *op,
-	struct ldapmap *at_map,
-	AttributeName *a,
-	int remap,
-	char ***mapped_attrs );
-
-extern int
-asyncmeta_filter_map_rewrite(
-	a_dncookie	*dc,
-	Filter		*f,
-	struct berval	*fstr,
-	int		remap,
-	void		*memctx );
-
-/* suffix massaging by means of librewrite */
-extern int
-asyncmeta_suffix_massage_config( struct rewrite_info *info,
-	struct berval *pvnc,
-	struct berval *nvnc,
-	struct berval *prnc,
-	struct berval *nrnc );
-
-extern int
-asyncmeta_back_referral_result_rewrite(
-	a_dncookie	*dc,
-	BerVarray	a_vals,
-	void		*memctx );
-extern int
-asyncmeta_dnattr_rewrite(
-	a_dncookie	*dc,
-	BerVarray	a_vals );
-extern int
-asyncmeta_dnattr_result_rewrite(
-	a_dncookie	*dc,
-	BerVarray	a_vals );
-
-
-/* (end of) from back-ldap.h before rwm removal */
 
 /*
  * A a_metasingleconn_t can be in the following, mutually exclusive states:
@@ -171,6 +63,7 @@ asyncmeta_dnattr_result_rewrite(
 
 #define META_BACK_FCONN_INITED		(0x00100000U)
 #define META_BACK_FCONN_CREATING	(0x00200000U)
+#define META_BACK_FCONN_INVALID	        (0x00400000U)
 
 #define	META_BACK_CONN_INITED(lc)		LDAP_BACK_CONN_ISSET((lc), META_BACK_FCONN_INITED)
 #define	META_BACK_CONN_INITED_SET(lc)		LDAP_BACK_CONN_SET((lc), META_BACK_FCONN_INITED)
@@ -180,6 +73,9 @@ asyncmeta_dnattr_result_rewrite(
 #define	META_BACK_CONN_CREATING_SET(lc)		LDAP_BACK_CONN_SET((lc), META_BACK_FCONN_CREATING)
 #define	META_BACK_CONN_CREATING_CLEAR(lc)	LDAP_BACK_CONN_CLEAR((lc), META_BACK_FCONN_CREATING)
 #define	META_BACK_CONN_CREATING_CPY(lc, mlc)	LDAP_BACK_CONN_CPY((lc), META_BACK_FCONN_CREATING, (mlc))
+#define	META_BACK_CONN_INVALID(lc)		LDAP_BACK_CONN_ISSET((lc), META_BACK_FCONN_INVALID)
+#define	META_BACK_CONN_INVALID_SET(lc)		LDAP_BACK_CONN_SET((lc), META_BACK_FCONN_INVALID)
+#define	META_BACK_CONN_INVALID_CLEAR(lc)	LDAP_BACK_CONN_CLEAR((lc), META_BACK_FCONN_INVALID)
 
 struct a_metainfo_t;
 struct a_metaconn_t;
@@ -190,20 +86,25 @@ struct a_metatarget_t;
 #define	META_RETRYING			((ber_tag_t)0x4)
 
 typedef struct bm_context_t {
-	LDAP_SLIST_ENTRY(bm_context_t) bc_next;
+	LDAP_STAILQ_ENTRY(bm_context_t) bc_next;
+	struct a_metaconn_t *bc_mc;
 	time_t			timeout;
 	time_t                  stoptime;
 	ldap_back_send_t	sendok;
 	ldap_back_send_t	retrying;
 	int candidate_match;
-	int sent;
-	int bc_active;
+	volatile int bc_active;
 	int searchtime;	/* stoptime is a search timelimit */
 	int is_ok;
+	int is_root;
+	volatile sig_atomic_t bc_invalid;
 	SlapReply		rs;
 	Operation		*op;
+	Operation               copy_op;
 	LDAPControl	        **ctrls;
 	int                     *msgids;
+	int                     *nretries;  /* number of times to retry a failed send on an msc */
+	struct berval	        c_peer_name; /* peer name of original op->o_conn*/
 	SlapReply               *candidates;
 } bm_context_t;
 
@@ -226,14 +127,16 @@ typedef struct a_metasingleconn_t {
 	LDAP            	*msc_ld;
 	LDAP            	*msc_ldr;
 	time_t			msc_time;
+	time_t                  msc_binding_time;
+	time_t                  msc_result_time;
 	struct berval          	msc_bound_ndn;
 	struct berval		msc_cred;
 	unsigned		msc_mscflags;
+
 	/* NOTE: lc_lcflags is redefined to msc_mscflags to reuse the macros
 	 * defined for back-ldap */
 #define	lc_lcflags		msc_mscflags
-	int msc_pending_ops;
-	int msc_timeout_ops;
+	volatile int msc_active;
 		/* Connection for the select */
 	Connection *conn;
 } a_metasingleconn_t;
@@ -267,7 +170,7 @@ typedef struct a_metaconn_t {
 	int pending_ops;
 	ldap_pvt_thread_mutex_t	mc_om_mutex;
 	/* queue for pending operations */
-	LDAP_SLIST_HEAD(BCList, bm_context_t) mc_om_list;
+	LDAP_STAILQ_HEAD(BCList, bm_context_t) mc_om_list;
 	/* supersedes the connection stuff */
 	a_metasingleconn_t	*mc_conns;
 } a_metaconn_t;
@@ -309,7 +212,7 @@ typedef struct a_metacommon_t {
 #define META_RETRY_UNDEFINED	(-2)
 #define META_RETRY_FOREVER	(-1)
 #define META_RETRY_NEVER	(0)
-#define META_RETRY_DEFAULT	(10)
+#define META_RETRY_DEFAULT	(2)
 
 	unsigned		mc_flags;
 #define	META_BACK_CMN_ISSET(mc,f)		( ( (mc)->mc_flags & (f) ) == (f) )
@@ -359,6 +262,9 @@ typedef struct a_metatarget_t {
 	struct berval		mt_psuffix;		/* pretty suffix */
 	struct berval		mt_nsuffix;		/* normalized suffix */
 
+	struct berval		mt_lsuffixm;	/* local suffix for massage */
+	struct berval		mt_rsuffixm;	/* remote suffix for massage */
+
 	struct berval		mt_binddn;
 	struct berval		mt_bindpw;
 
@@ -378,8 +284,6 @@ typedef struct a_metatarget_t {
 #define	mt_idassert_tls		mt_idassert.si_bc.sb_tls
 #define	mt_idassert_flags	mt_idassert.si_flags
 #define	mt_idassert_authz	mt_idassert.si_authz
-
-	struct ldaprwmap	mt_rwmap;
 
 	sig_atomic_t		mt_isquarantined;
 	ldap_pvt_thread_mutex_t	mt_quarantine_mutex;
@@ -520,6 +424,7 @@ typedef struct a_metainfo_t {
 	int                    mi_next_conn;
 	a_metaconn_t          *mi_conns;
 
+	struct berval		mi_suffix;
 } a_metainfo_t;
 
 typedef enum meta_op_type {
@@ -527,6 +432,33 @@ typedef enum meta_op_type {
 	META_OP_REQUIRE_SINGLE,
 	META_OP_REQUIRE_ALL
 } meta_op_type;
+
+/* Whatever context asyncmeta_dn_massage needs... */
+typedef struct a_dncookie {
+	Operation		*op;
+	struct a_metatarget_t	*target;
+	void	*memctx;
+	int	to_from;
+} a_dncookie;
+
+
+#define MASSAGE_REQ	0
+#define MASSAGE_REP	1
+
+extern void
+asyncmeta_dn_massage(a_dncookie *dc, struct berval *dn,
+	struct berval *res);
+
+extern void
+asyncmeta_filter_map_rewrite(
+	a_dncookie	*dc,
+	Filter		*f,
+	struct berval	*fstr );
+
+extern void
+asyncmeta_back_referral_result_rewrite(
+	a_dncookie	*dc,
+	BerVarray	a_vals );
 
 extern a_metaconn_t *
 asyncmeta_getconn(
@@ -537,17 +469,6 @@ asyncmeta_getconn(
 	ldap_back_send_t	sendok,
 	int                     alloc_new);
 
-extern int
-asyncmeta_retry(
-	Operation		*op,
-	SlapReply		*rs,
-	a_metaconn_t		**mcp,
-	int			candidate,
-	ldap_back_send_t	sendok );
-
-extern void
-asyncmeta_conn_free(
-	void			*v_mc );
 
 extern int
 asyncmeta_init_one_conn(
@@ -567,24 +488,6 @@ asyncmeta_quarantine(
 	int			candidate );
 
 extern int
-asyncmeta_dobind(
-	Operation		*op,
-	SlapReply		*rs,
-	a_metaconn_t		*mc,
-	ldap_back_send_t	sendok,
-	SlapReply               *candidates);
-
-extern int
-asyncmeta_single_dobind(
-	Operation		*op,
-	SlapReply		*rs,
-	a_metaconn_t		**mcp,
-	int			candidate,
-	ldap_back_send_t	sendok,
-	int			retries,
-	int			dolock );
-
-extern int
 asyncmeta_proxy_authz_cred(
 	a_metaconn_t		*mc,
 	int			candidate,
@@ -596,30 +499,12 @@ asyncmeta_proxy_authz_cred(
 	int			*method );
 
 extern int
-asyncmeta_cancel(
-	a_metaconn_t		*mc,
-	Operation		*op,
-	SlapReply		*rs,
-	ber_int_t		msgid,
-	int			candidate,
-	ldap_back_send_t	sendok );
-
-extern int
-asyncmeta_op_result(
-	a_metaconn_t		*mc,
-	Operation		*op,
-	SlapReply		*rs,
-	int			candidate,
-	ber_int_t		msgid,
-	time_t			timeout,
-	ldap_back_send_t	sendok );
-
-extern int
 asyncmeta_controls_add(
 	Operation	*op,
 	SlapReply	*rs,
 	a_metaconn_t	*mc,
 	int		candidate,
+	int             isroot,
 	LDAPControl	***pctrls );
 
 extern int
@@ -682,9 +567,6 @@ asyncmeta_dncache_delete_entry(
 extern void
 asyncmeta_dncache_free( void *entry );
 
-extern void
-asyncmeta_back_map_free( struct ldapmap *lm );
-
 extern int
 asyncmeta_subtree_destroy( a_metasubtree_t *ms );
 
@@ -724,12 +606,12 @@ void asyncmeta_clear_bm_context(bm_context_t *bc);
 
 int asyncmeta_add_message_queue(a_metaconn_t *mc, bm_context_t *bc);
 void asyncmeta_drop_bc(a_metaconn_t *mc, bm_context_t *bc);
+void asyncmeta_drop_bc_from_fconn(bm_context_t *bc);
 
 bm_context_t *
 asyncmeta_find_message(ber_int_t msgid, a_metaconn_t *mc, int candidate);
 
-bm_context_t *
-asyncmeta_find_message_by_opmsguid(ber_int_t msgid, a_metaconn_t *mc, int remove);
+void asyncmeta_memctx_toggle(void *thrctx);
 
 void* asyncmeta_op_handle_result(void *ctx, void *arg);
 int asyncmeta_back_cleanup( Operation *op, SlapReply *rs, bm_context_t *bm );
@@ -738,16 +620,19 @@ int
 asyncmeta_clear_one_msc(
 	Operation	*op,
 	a_metaconn_t	*msc,
-	int		candidate );
+	int		candidate,
+	int             unbind,
+	const char *          caller);
 
 a_metaconn_t *
 asyncmeta_get_next_mc( a_metainfo_t *mi );
 
 void* asyncmeta_timeout_loop(void *ctx, void *arg);
+
 int
 asyncmeta_start_timeout_loop(a_metatarget_t *mt, a_metainfo_t *mi);
+
 void asyncmeta_set_msc_time(a_metasingleconn_t *msc);
-void asyncmeta_clear_message_queue(a_metasingleconn_t *msc);
 
 int asyncmeta_back_cancel(
 	a_metaconn_t	*mc,
@@ -755,25 +640,15 @@ int asyncmeta_back_cancel(
 	ber_int_t		msgid,
 	int				candidate );
 
-int
-asyncmeta_back_cancel_msc(
-	Operation		*op,
-	SlapReply		*rs,
-	ber_int_t		msgid,
-	a_metasingleconn_t	*msc,
-	int                     candidate,
-	ldap_back_send_t	sendok );
-
-int
-asyncmeta_back_abandon_candidate(
-	a_metaconn_t		*mc,
-	Operation		*op,
-	ber_int_t		msgid,
-	int			candidate );
 void
 asyncmeta_send_result(bm_context_t* bc, int error, char *text);
 
-int asyncmeta_new_bm_context(Operation *op, SlapReply *rs, bm_context_t **new_bc, int ntargets);
+int asyncmeta_new_bm_context(Operation *op,
+			     SlapReply *rs,
+			     bm_context_t **new_bc,
+			     int ntargets,
+			     a_metainfo_t       *mi);
+
 int asyncmeta_start_listeners(a_metaconn_t *mc, SlapReply *candidates,  bm_context_t *bc);
 int asyncmeta_start_one_listener(a_metaconn_t *mc, SlapReply *candidates,  bm_context_t *bc, int candidate);
 
@@ -785,7 +660,8 @@ asyncmeta_back_search_start(
 	bm_context_t          *bc,
 	int                   candidate,
 	struct berval	      *prcookie,
-	ber_int_t	      prsize );
+	ber_int_t	      prsize,
+	int do_lock);
 
 meta_search_candidate_t
 asyncmeta_dobind_init(
@@ -808,40 +684,97 @@ asyncmeta_back_add_start(Operation *op,
 			 SlapReply *rs,
 			 a_metaconn_t *mc,
 			 bm_context_t *bc,
-			 int candidate);
+			 int candidate,
+			 int do_lock);
 meta_search_candidate_t
 asyncmeta_back_modify_start(Operation *op,
-			 SlapReply *rs,
-			 a_metaconn_t *mc,
-			 bm_context_t *bc,
-			 int candidate);
+			    SlapReply *rs,
+			    a_metaconn_t *mc,
+			    bm_context_t *bc,
+			    int candidate,
+			    int do_lock);
 
 meta_search_candidate_t
 asyncmeta_back_modrdn_start(Operation *op,
-			 SlapReply *rs,
-			 a_metaconn_t *mc,
-			 bm_context_t *bc,
-			 int candidate);
+			    SlapReply *rs,
+			    a_metaconn_t *mc,
+			    bm_context_t *bc,
+			    int candidate,
+			    int do_lock);
 meta_search_candidate_t
 asyncmeta_back_delete_start(Operation *op,
-			 SlapReply *rs,
-			 a_metaconn_t *mc,
-			 bm_context_t *bc,
-			 int candidate);
+			    SlapReply *rs,
+			    a_metaconn_t *mc,
+			    bm_context_t *bc,
+			    int candidate,
+			    int do_lock);
 
 meta_search_candidate_t
 asyncmeta_back_compare_start(Operation *op,
-			 SlapReply *rs,
-			 a_metaconn_t *mc,
-			 bm_context_t *bc,
-			 int candidate);
+			     SlapReply *rs,
+			     a_metaconn_t *mc,
+			     bm_context_t *bc,
+			     int candidate,
+			     int do_lock);
+
+bm_context_t *
+asyncmeta_bc_in_queue(a_metaconn_t *mc,
+		      bm_context_t *bc);
+
+int
+asyncmeta_error_cleanup(Operation *op,
+			SlapReply *rs,
+			bm_context_t *bc,
+			a_metaconn_t *mc,
+			int candidate);
+
+int
+asyncmeta_reset_msc(Operation	*op,
+		    a_metaconn_t	*mc,
+		    int		candidate,
+		    int             unbind,
+		    const char *caller);
 
 
 void
-asyncmeta_sender_error(Operation *op,
-		       SlapReply *rs,
-		       slap_callback *cb);
+asyncmeta_back_conn_free(
+	            void 		*v_mc );
 
+void asyncmeta_log_msc(a_metasingleconn_t *msc);
+void asyncmeta_log_conns(a_metainfo_t *mi);
+
+void asyncmeta_get_timestamp(char *buf);
+
+int
+asyncmeta_dncache_update_entry(a_metadncache_t	*cache,
+			       struct berval	*ndn,
+			       int 		target );
+
+void
+asyncmeta_dnattr_result_rewrite(a_dncookie		*dc,
+				BerVarray		a_vals);
+
+void
+asyncmeta_referral_result_rewrite(a_dncookie		*dc,
+				  BerVarray		a_vals);
+
+meta_search_candidate_t
+asyncmeta_send_all_pending_ops(a_metaconn_t *mc,
+			       int          candidate,
+			       void         *ctx,
+			       int          dolock);
+meta_search_candidate_t
+asyncmeta_return_bind_errors(a_metaconn_t *mc,
+			     int          candidate,
+			     SlapReply    *bind_result,
+			     void         *ctx,
+			     int          dolock);
+
+/* The the maximum time in seconds after a result has been received on a connection,
+ * after which it can be reset if a sender error occurs. Should this be configurable? */
+#define META_BACK_RESULT_INTERVAL (2)
+
+extern int asyncmeta_debug;
 
 LDAP_END_DECL
 

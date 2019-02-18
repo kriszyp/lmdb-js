@@ -43,7 +43,6 @@ extern BI_op_modify		asyncmeta_back_modify;
 extern BI_op_modrdn		asyncmeta_back_modrdn;
 extern BI_op_add		asyncmeta_back_add;
 extern BI_op_delete		asyncmeta_back_delete;
-extern BI_op_abandon		asyncmeta_back_abandon;
 
 extern BI_connection_destroy	asyncmeta_back_conn_destroy;
 

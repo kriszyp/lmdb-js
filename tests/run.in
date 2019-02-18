@@ -33,6 +33,7 @@ AC_null=@BUILD_NULL@
 # other backends
 AC_ldap=ldap@BUILD_LDAP@
 AC_meta=meta@BUILD_META@
+AC_asyncmeta=asyncmeta@BUILD_ASYNCMETA@
 AC_monitor=@BUILD_MONITOR@
 AC_relay=relay@BUILD_RELAY@
 AC_sql=sql@BUILD_SQL@
@@ -70,8 +71,10 @@ fi
 if test "${AC_meta}" = "metamod" && test "${AC_LIBS_DYNAMIC}" = "static" ; then
 	AC_meta="metano"
 fi
-
-export AC_bdb AC_hdb AC_ldap AC_mdb AC_meta AC_monitor AC_null AC_relay AC_sql \
+if test "${AC_asyncmeta}" = "metamod" && test "${AC_LIBS_DYNAMIC}" = "static" ; then
+	AC_meta="asyncmetano"
+fi
+export AC_bdb AC_hdb AC_ldap AC_mdb AC_meta AC_asyncmeta AC_monitor AC_null AC_relay AC_sql \
 	AC_accesslog AC_autoca AC_constraint AC_dds AC_dynlist AC_memberof AC_pcache AC_ppolicy \
 	AC_refint AC_retcode AC_rwm AC_unique AC_syncprov AC_translucent \
 	AC_valsort \
