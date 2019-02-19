@@ -2503,6 +2503,7 @@ print_dirsync( LDAP *ld, LDAPControl *ctrl )
 			}
 		}
 	}
+	return rc;
 }
 #endif
 

@@ -1555,7 +1555,7 @@ syncprov_add_slog( Operation *op )
 			ldap_pvt_thread_mutex_lock( &sl->sl_mutex );
 			/* can only do this if no one else is reading the log at the moment */
 			if (!sl->sl_playing) {
-			while ( se = sl->sl_head ) {
+			while ( (se = sl->sl_head) ) {
 				sl->sl_head = se->se_next;
 				ch_free( se );
 			}

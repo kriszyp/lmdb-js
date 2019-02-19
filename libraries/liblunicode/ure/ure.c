@@ -1859,7 +1859,7 @@ ure_write_dfa(ure_dfa_t dfa, FILE *out)
                     if (sym->props & (1 << k)) {
                         if (h != 0)
                           putc(',', out);
-                        fprintf(out, "%hd", k + 1);
+                        fprintf(out, "%d", k + 1);
                         h = 1;
                     }
                 }

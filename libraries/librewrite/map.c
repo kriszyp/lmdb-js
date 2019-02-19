@@ -462,7 +462,6 @@ rewrite_map_apply(
 				val );
 		else
 			rc = REWRITE_ERR;
-			break;
 		break;
 	}
 

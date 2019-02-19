@@ -196,13 +196,13 @@ mdb_monitor_update(
 	a = attr_find( e->e_attrs, ad_olmMDBReadersMax );
 	assert( a != NULL );
 	bv.bv_val = buf;
-	bv.bv_len = snprintf( buf, sizeof( buf ), "%lu", mei.me_maxreaders );
+	bv.bv_len = snprintf( buf, sizeof( buf ), "%u", mei.me_maxreaders );
 	ber_bvreplace( &a->a_vals[ 0 ], &bv );
 
 	a = attr_find( e->e_attrs, ad_olmMDBReadersUsed );
 	assert( a != NULL );
 	bv.bv_val = buf;
-	bv.bv_len = snprintf( buf, sizeof( buf ), "%lu", mei.me_numreaders );
+	bv.bv_len = snprintf( buf, sizeof( buf ), "%u", mei.me_numreaders );
 	ber_bvreplace( &a->a_vals[ 0 ], &bv );
 
 	rc = mdb_txn_begin( mdb->mi_dbenv, NULL, MDB_RDONLY, &txn );
