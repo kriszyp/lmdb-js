@@ -755,6 +755,7 @@ LDAP_SLAPD_F (int) bindconf_unparse LDAP_P((
 LDAP_SLAPD_F (int) bindconf_tls_set LDAP_P((
 	slap_bindconf *bc, LDAP *ld ));
 LDAP_SLAPD_F (void) bindconf_free LDAP_P(( slap_bindconf *bc ));
+LDAP_SLAPD_F (void) slap_client_keepalive LDAP_P(( LDAP *ld, slap_keepalive *sk ));
 LDAP_SLAPD_F (int) slap_client_connect LDAP_P(( LDAP **ldp, slap_bindconf *sb ));
 LDAP_SLAPD_F (int) config_generic_wrapper LDAP_P(( Backend *be,
 	const char *fname, int lineno, int argc, char **argv ));
@@ -1682,6 +1683,9 @@ LDAP_SLAPD_F (char **) slap_sasl_mechs( Connection *c );
 LDAP_SLAPD_F (int) slap_sasl_external( Connection *c,
 	slap_ssf_t ssf,	/* relative strength of external security */
 	struct berval *authid );	/* asserted authentication id */
+
+LDAP_SLAPD_F (int) slap_sasl_cbinding( Connection *c,
+	struct berval *cbv );
 
 LDAP_SLAPD_F (int) slap_sasl_reset( Connection *c );
 LDAP_SLAPD_F (int) slap_sasl_close( Connection *c );

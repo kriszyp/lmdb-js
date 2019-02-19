@@ -76,6 +76,9 @@ static oid_name oids[] = {
 
 #ifdef HAVE_TLS
 
+LDAP_F(int) ldap_pvt_tls_check_hostname LDAP_P(( LDAP *ld, void *s, const char *name_in ));
+LDAP_F(int) ldap_pvt_tls_get_peercert LDAP_P(( void *s, struct berval *der ));
+
 void
 ldap_pvt_tls_ctx_free ( void *c )
 {
