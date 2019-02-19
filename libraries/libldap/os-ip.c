@@ -443,7 +443,7 @@ ldap_pvt_connect(LDAP *ld, ber_socket_t s,
 		if ( connect(s, sin, addrlen) != AC_SOCKET_ERROR ) {
 			osip_debug(ld, "connect success\n", 0, 0, 0);
 
-			if ( opt_tv && ldap_pvt_ndelay_off(ld, s) == -1 )
+			if ( !async && opt_tv && ldap_pvt_ndelay_off(ld, s) == -1 )
 				return ( -1 );
 			return ( 0 );
 		}
