@@ -431,7 +431,7 @@ ldap_pvt_connect(LDAP *ld, ber_socket_t s,
 		if ( connect(s, sin, addrlen) != AC_SOCKET_ERROR ) {
 			Debug0(LDAP_DEBUG_TRACE, "connect success\n" );
 
-			if ( opt_tv && ldap_pvt_ndelay_off(ld, s) == -1 )
+			if ( !async && opt_tv && ldap_pvt_ndelay_off(ld, s) == -1 )
 				return ( -1 );
 			return ( 0 );
 		}

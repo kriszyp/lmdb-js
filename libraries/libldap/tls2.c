@@ -1050,7 +1050,7 @@ ldap_int_tls_start ( LDAP *ld, LDAPConn *conn, LDAPURLDesc *srv )
 	Sockbuf *sb;
 	char *host;
 	void *ssl;
-	int ret;
+	int ret, async;
 #ifdef LDAP_USE_NON_BLOCKING_TLS
 	struct timeval start_time_tv, tv, tv0;
 	ber_socket_t	sd = AC_SOCKET_ERROR;
@@ -1077,8 +1077,12 @@ ldap_int_tls_start ( LDAP *ld, LDAPConn *conn, LDAPURLDesc *srv )
 	/*
 	 * Use non-blocking io during SSL Handshake when a timeout is configured
 	 */
+	async = LDAP_BOOL_GET( &ld->ld_options, LDAP_BOOL_CONNECT_ASYNC );
 	if ( ld->ld_options.ldo_tm_net.tv_sec >= 0 ) {
-		ber_sockbuf_ctrl( sb, LBER_SB_OPT_SET_NONBLOCK, (void*)1 );
+		if ( !async ) {
+			/* if async, this has already been set */
+			ber_sockbuf_ctrl( sb, LBER_SB_OPT_SET_NONBLOCK, (void*)1 );
+		}
 		ber_sockbuf_ctrl( sb, LBER_SB_OPT_GET_FD, &sd );
 		tv = ld->ld_options.ldo_tm_net;
 		tv0 = tv;
@@ -1112,8 +1116,10 @@ ldap_int_tls_start ( LDAP *ld, LDAPConn *conn, LDAPURLDesc *srv )
 			ld->ld_errno = LDAP_TIMEOUT;
 			break;
 		} else {
-			/* ldap_int_poll called ldap_pvt_ndelay_off */
-			ber_sockbuf_ctrl( sb, LBER_SB_OPT_SET_NONBLOCK, (void*)1 );
+			/* ldap_int_poll called ldap_pvt_ndelay_off if not async */
+			if ( !async ) {
+				ber_sockbuf_ctrl( sb, LBER_SB_OPT_SET_NONBLOCK, (void*)1 );
+			}
 			ret = ldap_int_tls_connect( ld, conn, host );
 			if ( ret > 0 ) { /* need to call tls_connect once more */
 				struct timeval curr_time_tv, delta_tv;
@@ -1160,7 +1166,8 @@ ldap_int_tls_start ( LDAP *ld, LDAPConn *conn, LDAPURLDesc *srv )
 			}
 		}
 	}
-	if ( ld->ld_options.ldo_tm_net.tv_sec >= 0 ) {
+	/* Leave it nonblocking if async */
+	if ( !async && ld->ld_options.ldo_tm_net.tv_sec >= 0 ) {
 		ber_sockbuf_ctrl( sb, LBER_SB_OPT_SET_NONBLOCK, NULL );
 	}
 #endif /* LDAP_USE_NON_BLOCKING_TLS */

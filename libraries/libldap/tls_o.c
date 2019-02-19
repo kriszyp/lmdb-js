@@ -529,7 +529,19 @@ tlso_session_connect( LDAP *ld, tls_session *sess )
 	tlso_session *s = (tlso_session *)sess;
 
 	/* Caller expects 0 = success, OpenSSL returns 1 = success */
-	return SSL_connect( s ) - 1;
+	int rc = SSL_connect( s ) - 1;
+#ifdef LDAP_USE_NON_BLOCKING_TLS
+	if ( rc < 0 ) {
+		int sockerr = sock_errno();
+		int sslerr = SSL_get_error( s, rc+1 );
+		if ( sslerr == SSL_ERROR_WANT_READ || sslerr == SSL_ERROR_WANT_WRITE ) {
+			rc = 0;
+		} else if ( sslerr == SSL_ERROR_SYSCALL &&
+			( sockerr == EAGAIN || sockerr == ENOTCONN )) {
+			rc = 0;
+		}
+	}
+#endif /* LDAP_USE_NON_BLOCKING_TLS */
 }
 
 static int
