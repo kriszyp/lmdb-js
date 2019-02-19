@@ -71,7 +71,10 @@
 #	define LDAP_INT_GLOBAL_OPT() (&ldap_int_global_options)
 #endif
 
+/* if used from server code, ldap_debug already points elsewhere */
+#ifndef ldap_debug
 #define ldap_debug	((LDAP_INT_GLOBAL_OPT())->ldo_debug)
+#endif /* !ldap_debug */
 
 #define LDAP_INT_DEBUG
 #include "ldap_log.h"
