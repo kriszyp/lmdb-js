@@ -494,7 +494,7 @@ bdb_monitor_db_close( BackendDB *be )
 		BackendInfo		*mi = backend_info( "monitor" );
 		monitor_extra_t		*mbe;
 
-		if ( mi && &mi->bi_extra ) {
+		if ( mi && mi->bi_extra ) {
 			mbe = mi->bi_extra;
 			mbe->unregister_entry_callback( &bdb->bi_monitor.bdm_ndn,
 				(monitor_callback_t *)bdb->bi_monitor.bdm_cb,
