@@ -264,8 +264,6 @@ backsql_dn2id(
 	backsql_BindRowAsStrings_x( sth, &row, op->o_tmpmemctx );
 	rc = SQLFetch( sth );
 	if ( BACKSQL_SUCCESS( rc ) ) {
-		char	buf[ SLAP_TEXT_BUFLEN ];
-
 #ifdef LDAP_DEBUG
 		Debug(LDAP_DEBUG_TRACE,
 		      "   backsql_dn2id(\"%s\"): id=%s keyval=%s oc_id=%s dn=%s\n",

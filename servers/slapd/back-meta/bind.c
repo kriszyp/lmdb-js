@@ -308,7 +308,6 @@ meta_back_bind_op_result(
 	struct timeval		tv;
 	int			rc;
 	int			nretries = mt->mt_nretries;
-	char			buf[ SLAP_TEXT_BUFLEN ];
 
 	Debug( LDAP_DEBUG_TRACE,
 		">>> %s meta_back_bind_op_result[%d]\n",
@@ -753,14 +752,11 @@ retry_binding:;
 		 * in case of failure, it resets mc...
 		 */
 		if ( rc != LDAP_SUCCESS ) {
-			char		buf[ SLAP_TEXT_BUFLEN ];
-
 			if ( mc == NULL ) {
 				/* meta_back_single_dobind() already sent 
 				 * response and released connection */
 				goto send_err;
 			}
-
 
 			if ( rc == LDAP_UNAVAILABLE ) {
 				/* FIXME: meta_back_retry() already re-calls

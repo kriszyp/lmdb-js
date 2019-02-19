@@ -102,7 +102,6 @@ meta_search_dobind_init(
 		/* already bound (or anonymous) */
 
 #ifdef DEBUG_205
-		char	buf[ SLAP_TEXT_BUFLEN ] = { '\0' };
 		int	bound = 0;
 
 		if ( LDAP_BACK_CONN_ISBOUND( msc ) ) {
@@ -1374,7 +1373,6 @@ really_bad:;
 					}
 
 				} else if ( rc == LDAP_RES_SEARCH_RESULT ) {
-					char		buf[ SLAP_TEXT_BUFLEN ];
 					char		**references = NULL;
 					LDAPControl	**ctrls = NULL;
 
@@ -1499,6 +1497,7 @@ really_bad:;
 					sres = slap_map_api2result( rs );
 	
 					if ( LogTest( LDAP_DEBUG_TRACE | LDAP_DEBUG_ANY ) ) {
+						char buf[ SLAP_TEXT_BUFLEN ];
 						snprintf( buf, sizeof( buf ),
 							"%s meta_back_search[%ld] "
 							"match=\"%s\" err=%ld",

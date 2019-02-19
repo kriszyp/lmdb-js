@@ -526,17 +526,12 @@ parse_acl(
 							int e = regcomp( &a->acl_attrval_re, bv.bv_val,
 								REG_EXTENDED | REG_ICASE );
 							if ( e ) {
-								char	err[SLAP_TEXT_BUFLEN],
-									buf[ SLAP_TEXT_BUFLEN ];
+								char	err[SLAP_TEXT_BUFLEN];
 
 								regerror( e, &a->acl_attrval_re, err, sizeof( err ) );
-
 								Debug(LDAP_DEBUG_ANY,
 								      "%s: line %d: regular expression \"%s\" bad because of %s\n",
-								      fname,
-								      lineno,
-								      right,
-								      err );
+								      fname, lineno, right, err );
 								goto fail;
 							}
 							a->acl_attrval_style = ACL_STYLE_REGEX;
@@ -672,14 +667,12 @@ parse_acl(
 					int e = regcomp( &a->acl_dn_re, a->acl_dn_pat.bv_val,
 						REG_EXTENDED | REG_ICASE );
 					if ( e ) {
-						char	err[ SLAP_TEXT_BUFLEN ],
-							buf[ SLAP_TEXT_BUFLEN ];
+						char	err[ SLAP_TEXT_BUFLEN ];
 
 						regerror( e, &a->acl_dn_re, err, sizeof( err ) );
 						Debug(LDAP_DEBUG_ANY,
 						      "%s: line %d: regular expression \"%s\" bad because of %s\n",
-						      fname, lineno, right,
-						      err );
+						      fname, lineno, right, err );
 						goto fail;
 					}
 				}

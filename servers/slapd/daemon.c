@@ -2384,7 +2384,6 @@ slapd_daemon_task(
 		if ( 1 ) {
 			int origsize, size, realsize, rc;
 			socklen_t optlen;
-			char buf[ SLAP_TEXT_BUFLEN ];
 
 			size = 0;
 			if ( slap_listeners[l]->sl_tcp_rmem > 0 ) {
