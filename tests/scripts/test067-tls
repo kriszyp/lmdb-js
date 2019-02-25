@@ -21,10 +21,41 @@ if test $WITH_TLS = no ; then
         exit 0
 fi
 
+openssl="$(which openssl 2>/dev/null)"
+certtool="$(which certtool 2>/dev/null)"
+base64="$(which base64 2>/dev/null)"
+
 mkdir -p $TESTDIR $DBDIR1
 cp -r $DATADIR/tls $TESTDIR
 
 cd $TESTWD
+
+if test -z "$TLS_PEERKEY_HASHALG"; then
+	TLS_PEERKEY_HASHALG=sha256
+fi
+if test -n "${openssl}"; then
+	TLS_PEERKEY="`"${openssl}" x509 -pubkey -noout -in $TESTDIR/tls/certs/localhost.crt | \
+		"${openssl}" rsa -pubin -outform der 2>/dev/null | \
+		"${openssl}" enc -base64 2>/dev/null`"
+
+	TLS_PEERKEY_HASHED="$TLS_PEERKEY_HASHALG:`"${openssl}" x509 -pubkey -noout -in $TESTDIR/tls/certs/localhost.crt | \
+		"${openssl}" rsa -pubin -outform der 2>/dev/null | \
+		"${openssl}" dgst "-$TLS_PEERKEY_HASHALG" -binary 2>/dev/null | \
+		"${openssl}" enc -base64 2>/dev/null`"
+
+	TLS_PEERKEY_HASHED_FAIL="$TLS_PEERKEY_HASHALG:`echo "a fake key to hash" | \
+		"${openssl}" dgst "-$TLS_PEERKEY_HASHALG" -binary 2>/dev/null | \
+		"${openssl}" enc -base64 2>/dev/null`"
+elif test -n "${certtool}" && test -n "${base64}"; then
+	echo "OpenSSL not found, falling back to certtool"
+	echo "This will not exercise hashed pin functionality"
+	TLS_PEERKEY="`"${certtool}" --certificate-pubkey --outder \
+		--infile $TESTDIR/tls/certs/localhost.crt \
+		--load-pubkey $TESTDIR/tls/certs/localhost.crt \
+		| "${base64}"`"
+else
+	echo "No way to extract the public key from certificate, key pinning tests will be skipped..."
+fi
 
 echo "Starting ldap:/// slapd on TCP/IP port $PORT1 and ldaps:/// slapd on $PORT2..."
 . $CONFFILTER $BACKEND $MONITORDB < $TLSCONF > $CONF1
@@ -61,6 +92,7 @@ $LDAPSEARCH -o tls_reqcert=never -ZZ -b "" -s base -H $URIP1 \
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapsearch (startTLS) failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
 else
 	echo "success"
@@ -72,6 +104,7 @@ $LDAPSEARCH -o tls_cacert=$TESTDIR/tls/ca/certs/testsuiteCA.crt -o tls_reqcert=h
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapsearch (startTLS) failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
 else
 	echo "success"
@@ -84,10 +117,74 @@ if test $WITH_TLS_TYPE = openssl ; then
 	RC=$?
 	if test $RC != 0 ; then
 		echo "ldapsearch (protocol-min) failed ($RC)!"
+		test $KILLSERVERS != no && kill -HUP $KILLPIDS
 		exit $RC
 	else
 		echo "success"
 	fi
+fi
+
+echo -n "Using ldapsearch with StartTLS and pinning enabled but a pin that doesn't match..."
+$LDAPSEARCH -o tls_reqcert=never -o tls_peerkey_hash=abcd -ZZ \
+	-b "" -s base -H $URIP1 '@extensibleObject' > $SEARCHOUT 2>&1
+RC=$?
+if test $RC = 0 ; then
+	echo "ldapsearch (StartTLS) succeeded when it should have failed($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit 1
+else
+	echo "failed correctly with error code ($RC)"
+fi
+
+echo -n "Using ldapsearch with StartTLS and a valid plaintext pin..."
+if test -n "$TLS_PEERKEY"; then
+	$LDAPSEARCH -o tls_reqcert=hard -o tls_cacert=$TESTDIR/tls/ca/certs/testsuiteCA.crt \
+		-o tls_peerkey_hash="${TLS_PEERKEY}" \
+		-ZZ -b "" -s base -H $URIP1 '@extensibleObject' > $SEARCHOUT 2>&1
+	RC=$?
+	if test $RC != 0 ; then
+		echo "ldapsearch (ldaps) failed ($RC)!"
+		test $KILLSERVERS != no && kill -HUP $KILLPIDS
+		exit $RC
+	else
+		echo "success"
+	fi
+else
+	echo "skipped"
+fi
+
+echo -n "Using ldapsearch with StartTLS and an invalid hashed pin..."
+if test -n "$TLS_PEERKEY_HASHED_FAIL"; then
+	$LDAPSEARCH -o tls_reqcert=hard -o tls_cacert=$TESTDIR/tls/ca/certs/testsuiteCA.crt \
+		-o tls_peerkey_hash="${TLS_PEERKEY_HASHED_FAIL}" \
+		-ZZ -b "" -s base -H $URIP1 '@extensibleObject' > $SEARCHOUT 2>&1
+	RC=$?
+	if test $RC = 0 ; then
+		echo "ldapsearch (ldaps) succeeded when it should have failed($RC)!"
+		test $KILLSERVERS != no && kill -HUP $KILLPIDS
+		exit 1
+	else
+		echo "failed correctly with error code ($RC)"
+	fi
+else
+	echo "skipped"
+fi
+
+echo -n "Using ldapsearch with StartTLS and a valid hashed pin..."
+if test -n "$TLS_PEERKEY_HASHED"; then
+	$LDAPSEARCH -o tls_reqcert=hard -o tls_cacert=$TESTDIR/tls/ca/certs/testsuiteCA.crt \
+		-o tls_peerkey_hash="${TLS_PEERKEY_HASHED}" \
+		-ZZ -b "" -s base -H $URIP1 '@extensibleObject' > $SEARCHOUT 2>&1
+	RC=$?
+	if test $RC != 0 ; then
+		echo "ldapsearch (ldaps) failed ($RC)!"
+		test $KILLSERVERS != no && kill -HUP $KILLPIDS
+		exit $RC
+	else
+		echo "success"
+	fi
+else
+	echo "skipped"
 fi
 
 echo -n "Using ldapsearch on $SURI2 with no server cert validation..."
@@ -97,6 +194,7 @@ $LDAPSEARCH -o tls_reqcert=never -b "cn=Subschema" -s base -H $SURIP2 \
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapsearch (ldaps) failed($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
 else
 	echo "success"
@@ -109,6 +207,7 @@ $LDAPSEARCH -o tls_reqcert=hard -b "cn=Subschema" -s base -H $SURIP2 \
 RC=$?
 if test $RC = 0 ; then
 	echo "ldapsearch (ldaps) succeeded when it should have failed($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit 1
 else
 	echo "failed correctly with error code ($RC)"
@@ -121,9 +220,78 @@ $LDAPSEARCH -o tls_cacert=$TESTDIR/tls/ca/certs/testsuiteCA.crt -o tls_reqcert=h
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapsearch (ldaps) failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
 else
 	echo "success"
+fi
+
+echo -n "Using ldapsearch on $SURI2 with pinning enabled but a pin that doesn't match..."
+$LDAPSEARCH -o tls_reqcert=never -o tls_peerkey_hash=abcd \
+	-b "cn=Subschema" -s base -H $SURIP2 \
+	'(&(objectClasses=top)(objectClasses=2.5.6.0))' cn objectClass \
+	>> $SEARCHOUT  2>&1
+RC=$?
+if test $RC = 0 ; then
+	echo "ldapsearch (ldaps) succeeded when it should have failed($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit 1
+else
+	echo "failed correctly with error code ($RC)"
+fi
+
+echo -n "Using ldapsearch on $SURI2 with a valid plaintext pin..."
+if test -n "$TLS_PEERKEY"; then
+	$LDAPSEARCH -o tls_cacert=$TESTDIR/tls/ca/certs/testsuiteCA.crt -o tls_reqcert=hard \
+		-o tls_peerkey_hash="${TLS_PEERKEY}" -b "cn=Subschema" -s base -H $SURIP2 \
+		'(&(objectClasses=top)(objectClasses=2.5.6.0))' cn objectClass \
+		>> $SEARCHOUT  2>&1
+	RC=$?
+	if test $RC != 0 ; then
+		echo "ldapsearch (ldaps) failed ($RC)!"
+		test $KILLSERVERS != no && kill -HUP $KILLPIDS
+		exit $RC
+	else
+		echo "success"
+	fi
+else
+	echo "skipped"
+fi
+
+echo -n "Using ldapsearch on $SURI2 with an invalid hashed pin..."
+if test -n "$TLS_PEERKEY_HASHED_FAIL"; then
+	$LDAPSEARCH -o tls_cacert=$TESTDIR/tls/ca/certs/testsuiteCA.crt -o tls_reqcert=hard \
+		-o tls_peerkey_hash="${TLS_PEERKEY_HASHED_FAIL}" -b "cn=Subschema" -s base -H $SURIP2 \
+		'(&(objectClasses=top)(objectClasses=2.5.6.0))' cn objectClass \
+		>> $SEARCHOUT  2>&1
+	RC=$?
+	if test $RC = 0 ; then
+		echo "ldapsearch (ldaps) succeeded when it should have failed($RC)!"
+		test $KILLSERVERS != no && kill -HUP $KILLPIDS
+		exit 1
+	else
+		echo "failed correctly with error code ($RC)"
+	fi
+else
+	echo "skipped"
+fi
+
+echo -n "Using ldapsearch on $SURI2 with a valid hashed pin..."
+if test -n "$TLS_PEERKEY_HASHED"; then
+	$LDAPSEARCH -o tls_cacert=$TESTDIR/tls/ca/certs/testsuiteCA.crt -o tls_reqcert=hard \
+		-o tls_peerkey_hash="${TLS_PEERKEY_HASHED}" -b "cn=Subschema" -s base -H $SURIP2 \
+		'(&(objectClasses=top)(objectClasses=2.5.6.0))' cn objectClass \
+		>> $SEARCHOUT  2>&1
+	RC=$?
+	if test $RC != 0 ; then
+		echo "ldapsearch (ldaps) failed ($RC)!"
+		test $KILLSERVERS != no && kill -HUP $KILLPIDS
+		exit $RC
+	else
+		echo "success"
+	fi
+else
+	echo "skipped"
 fi
 
 test $KILLSERVERS != no && kill -HUP $KILLPIDS
