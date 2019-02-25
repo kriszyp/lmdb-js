@@ -31,7 +31,7 @@ XXSRCS    = apitest.c test.c \
 	tls2.c tls_o.c tls_g.c tls_m.c \
 	turn.c ppolicy.c dds.c txn.c ldap_sync.c stctrl.c \
 	assertion.c deref.c ldifutil.c ldif.c fetch.c lbase64.c \
-	msctrl.c
+	msctrl.c psearchctrl.c
 SRCS	= threads.c rdwr.c tpool.c rq.c \
 	thr_posix.c thr_thr.c thr_nt.c \
 	thr_pth.c thr_stub.c thr_debug.c
@@ -50,7 +50,7 @@ OBJS	= threads.lo rdwr.lo tpool.lo  rq.lo \
 	tls2.lo tls_o.lo tls_g.lo tls_m.lo \
 	turn.lo ppolicy.lo dds.lo txn.lo ldap_sync.lo stctrl.lo \
 	assertion.lo deref.lo ldifutil.lo ldif.lo fetch.lo lbase64.lo \
-	msctrl.lo
+	msctrl.lo psearchctrl.lo
 
 LDAP_INCDIR= ../../include       
 LDAP_LIBDIR= ../../libraries

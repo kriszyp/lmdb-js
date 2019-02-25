@@ -29,7 +29,7 @@ SRCS	= bind.c open.c result.c error.c compare.c search.c \
 	tls2.c tls_o.c tls_g.c tls_m.c \
 	turn.c ppolicy.c dds.c txn.c ldap_sync.c stctrl.c \
 	assertion.c deref.c ldifutil.c ldif.c fetch.c lbase64.c \
-	msctrl.c
+	msctrl.c psearchctrl.c
 
 OBJS	= bind.lo open.lo result.lo error.lo compare.lo search.lo \
 	controls.lo messages.lo references.lo extended.lo cyrus.lo \
@@ -43,7 +43,7 @@ OBJS	= bind.lo open.lo result.lo error.lo compare.lo search.lo \
 	tls2.lo tls_o.lo tls_g.lo tls_m.lo \
 	turn.lo ppolicy.lo dds.lo txn.lo ldap_sync.lo stctrl.lo \
 	assertion.lo deref.lo ldifutil.lo ldif.lo fetch.lo lbase64.lo \
-	msctrl.lo
+	msctrl.lo psearchctrl.lo
 
 LDAP_INCDIR= ../../include       
 LDAP_LIBDIR= ../../libraries

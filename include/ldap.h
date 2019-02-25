@@ -2680,6 +2680,37 @@ ldap_parse_deref_control LDAP_P((
 	LDAPDerefRes	**drp ));
 
 /*
+ * in psearch.c
+ */
+
+LDAP_F( int )
+ldap_create_persistentsearch_control_value LDAP_P((
+	LDAP *ld,
+	int changetypes,
+	int changesonly,
+	int return_echg_ctls,
+	struct berval *value ));
+
+LDAP_F( int )
+ldap_create_persistentsearch_control LDAP_P((
+	LDAP *ld,
+	int changetypes,
+	int changesonly,
+	int return_echg_ctls,
+	int isCritical,
+	LDAPControl **ctrlp ));
+
+LDAP_F( int )
+ldap_parse_entrychange_control LDAP_P((
+	LDAP *ld,
+	LDAPControl *ctrl,
+	int *chgtypep,
+	struct berval *prevdnp,
+	int *chgnumpresentp,
+	long *chgnump ));
+
+
+/*
  * high level LDIF to LDAP structure support
  */
 #define LDIF_DEFAULT_ADD  0x01 /* if changetype missing, assume LDAP_ADD */

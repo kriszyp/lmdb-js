@@ -139,6 +139,7 @@ typedef int (*print_ctrl_fn)( LDAP *ld, LDAPControl *ctrl );
 static int print_preread( LDAP *ld, LDAPControl *ctrl );
 static int print_postread( LDAP *ld, LDAPControl *ctrl );
 static int print_paged_results( LDAP *ld, LDAPControl *ctrl );
+static int print_psearch( LDAP *ld, LDAPControl *ctrl );
 #ifdef LDAP_CONTROL_AUTHZID_RESPONSE
 static int print_authzid( LDAP *ld, LDAPControl *ctrl );
 #endif
@@ -167,6 +168,7 @@ static struct tool_ctrls_t {
 	{ LDAP_CONTROL_PRE_READ,			TOOL_ALL,	print_preread },
 	{ LDAP_CONTROL_POST_READ,			TOOL_ALL,	print_postread },
 	{ LDAP_CONTROL_PAGEDRESULTS,			TOOL_SEARCH,	print_paged_results },
+	{ LDAP_CONTROL_PERSIST_ENTRY_CHANGE_NOTICE,			TOOL_SEARCH,	print_psearch },
 #ifdef LDAP_CONTROL_AUTHZID_RESPONSE
 	/* this is generally deprecated in favor of LDAP WhoAmI? operation, hence only supported as a VC inner control */
 	{ LDAP_CONTROL_AUTHZID_RESPONSE,		TOOL_VC,	print_authzid },
@@ -2159,6 +2161,60 @@ print_paged_results( LDAP *ld, LDAPControl *ctrl )
 	}
 
 	return 0;
+}
+
+static int
+print_psearch( LDAP *ld, LDAPControl *ctrl )
+{
+	int rc;
+	int chgtype;
+	int chgpres;
+	long chgnum;
+	struct berval prevdn;
+
+	rc = ldap_parse_entrychange_control( ld, ctrl, &chgtype, &prevdn,
+		&chgpres, &chgnum );
+	if ( rc == LDAP_SUCCESS ) {
+		char buf[ BUFSIZ ];
+		char *ptr = buf;
+		int blen = sizeof(buf), len;
+		
+		switch( chgtype ) {
+		case LDAP_CONTROL_PERSIST_ENTRY_CHANGE_ADD:
+			len = snprintf( ptr, blen, "add" );
+			ptr += len;
+			blen -= len;
+			break;
+		case LDAP_CONTROL_PERSIST_ENTRY_CHANGE_DELETE:
+			len = snprintf( ptr, blen, "delete" );
+			ptr += len;
+			blen -= len;
+			break;
+		case LDAP_CONTROL_PERSIST_ENTRY_CHANGE_MODIFY:
+			len = snprintf( ptr, blen, "modify" );
+			ptr += len;
+			blen -= len;
+			break;
+		case LDAP_CONTROL_PERSIST_ENTRY_CHANGE_RENAME:
+			len = snprintf( ptr, blen, "moddn" );
+			ptr += len;
+			blen -= len;
+			if ( prevdn.bv_val != NULL ) {
+				len = snprintf( ptr, blen, " prevdn %s", prevdn.bv_val );
+				ptr += len;
+				blen -= len;
+			}
+			break;
+		}
+		if ( chgpres ) {
+			len = snprintf( ptr, blen, " changeNumber %ld", chgnum) ;
+			ptr += len;
+			blen -= len;
+		}
+
+		tool_write_ldif( ldif ? LDIF_PUT_COMMENT : LDIF_PUT_VALUE,
+			ldif ? "persistentSearch: " : "persistentSearch", buf, len );
+	}
 }
 
 static int

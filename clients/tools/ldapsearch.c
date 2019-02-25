@@ -129,6 +129,7 @@ usage( void )
 	fprintf( stderr, _("             !dontUseCopy                (Don't Use Copy)\n"));
 	fprintf( stderr, _("             [!]mv=<filter>              (RFC 3876 matched values filter)\n"));
 	fprintf( stderr, _("             [!]pr=<size>[/prompt|noprompt] (RFC 2696 paged results/prompt)\n"));
+	fprintf( stderr, _("             [!]ps=<changetypes>/<changesonly>/<echg> (draft persisten search)\n"));
 	fprintf( stderr, _("             [!]sss=[-]<attr[:OID]>[/[-]<attr[:OID]>...]\n"));
 	fprintf( stderr, _("                                         (RFC 2891 server side sorting)\n"));
 	fprintf( stderr, _("             [!]subentries[=true|false]  (RFC 3672 subentries)\n"));
@@ -236,6 +237,9 @@ static struct berval vlvValue;
 static int ldapsync = 0;
 static struct berval sync_cookie = { 0, NULL };
 static int sync_slimit = -1;
+
+static int psearch = 0;
+static int ps_chgtypes, ps_chgsonly, ps_echg_ctrls;
 
 /* cookie and morePagedResults moved to common.c */
 static int pagedResults = 0;
@@ -466,6 +470,28 @@ handle_private_option( int i )
 			}
 			pageSize = (ber_int_t) tmp;
 			pagedResults = 1 + crit;
+
+		} else if ( strcasecmp( control, "ps" ) == 0 ) {
+			int num, tmp;
+			/* PersistentSearch control */
+			if ( psearch != 0 ) {
+				fprintf( stderr,
+					_("PersistentSearch previously specified\n") );
+				exit( EXIT_FAILURE );
+			}
+			if( cvalue != NULL ) {
+				num = sscanf( cvalue, "%i/%d/%d", &ps_chgtypes, &ps_chgsonly, &ps_echg_ctrls );
+				if ( num != 3 ) {
+					fprintf( stderr,
+						_("Invalid value for PersistentSearch, %s.\n"),
+						cvalue );
+					exit( EXIT_FAILURE );
+				}
+			} else {
+				fprintf(stderr, _("Invalid value for PersistentSearch.\n"));
+				exit( EXIT_FAILURE );
+			}
+			psearch = 1 + crit;
 
 #ifdef LDAP_CONTROL_DONTUSECOPY
 		} else if ( strcasecmp( control, "dontUseCopy" ) == 0 ) {
@@ -1097,6 +1123,7 @@ getNextPage:
 #endif
 		|| domainScope
 		|| pagedResults
+		|| psearch
 		|| ldapsync
 		|| sss
 		|| subentries
@@ -1230,6 +1257,22 @@ getNextPage:
 			
 			c[i].ldctl_oid = LDAP_CONTROL_PAGEDRESULTS;
 			c[i].ldctl_iscritical = pagedResults > 1;
+			i++;
+		}
+
+		if ( psearch ) {
+			if ( ctrl_add() ) {
+				tool_exit( ld, EXIT_FAILURE );
+			}
+
+			if ( ldap_create_persistentsearch_control_value( ld,
+				ps_chgtypes, ps_chgsonly, ps_echg_ctrls, &c[i].ldctl_value ) )
+			{
+				tool_exit( ld, EXIT_FAILURE );
+			}
+
+			c[i].ldctl_oid = LDAP_CONTROL_PERSIST_REQUEST;
+			c[i].ldctl_iscritical = psearch > 1;
 			i++;
 		}
 
