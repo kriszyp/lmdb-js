@@ -209,6 +209,15 @@ public:
         * Callback to be executed after the sync is complete.
     */
     static NAN_METHOD(sync);
+
+    /*
+        Performs a set of operations asynchronously, automatically wrapping it in its own transaction
+
+        Parameters:
+
+        * Callback to be executed after the sync is complete.
+    */
+    static NAN_METHOD(batchBinary);
 };
 
 /*
@@ -426,6 +435,7 @@ private:
 
     friend class TxnWrap;
     friend class CursorWrap;
+    friend class EnvWrap;
 
 public:
     DbiWrap(MDB_env *env, MDB_dbi dbi);
@@ -455,10 +465,6 @@ public:
     static NAN_METHOD(drop);
 
     static NAN_METHOD(stat);
-
-    static NAN_METHOD(putAsync);
-
-    static NAN_METHOD(batchAsync);
 };
 
 /*

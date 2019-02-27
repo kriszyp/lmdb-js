@@ -26,6 +26,7 @@
 using namespace v8;
 using namespace node;
 
+#define IGNORE_NOTFOUND    (1)
 Nan::Persistent<Function> EnvWrap::txnCtor;
 
 Nan::Persistent<Function> EnvWrap::dbiCtor;
@@ -96,24 +97,87 @@ class SyncWorker : public Nan::AsyncWorker {
       : Nan::AsyncWorker(callback), env(env) {}
 
     void Execute() {
-      int rc = mdb_env_sync(env, 1);
-      if (rc != 0) {
-        SetErrorMessage(mdb_strerror(rc));
-      }
+        int rc = mdb_env_sync(env, 1);
+        if (rc != 0) {
+            SetErrorMessage(mdb_strerror(rc));
+        }
     }
 
     void HandleOKCallback() {
-      Nan::HandleScope scope;
-      v8::Local<v8::Value> argv[] = {
-          Nan::Null()
-      };
+        Nan::HandleScope scope;
+        v8::Local<v8::Value> argv[] = {
+            Nan::Null()
+        };
 
-      callback->Call(1, argv, async_resource);
+        callback->Call(1, argv, async_resource);
     }
 
   private:
     MDB_env* env;
 };
+
+struct action_t {
+    MDB_val key;
+    MDB_val data;
+    MDB_dbi dbi;
+    argtokey_callback_t freeKey;
+};
+
+class BatchWorker : public Nan::AsyncWorker {
+  public:
+    BatchWorker(MDB_env* env, action_t *actions, int actionCount, int putFlags, int flags, Nan::Callback *callback)
+      : Nan::AsyncWorker(callback), actions(actions), actionCount(actionCount), putFlags(putFlags), flags(flags), env(env) {}
+
+    void Execute() {
+        MDB_txn *txn;
+        int rc = mdb_txn_begin(env, nullptr, 0, &txn);
+        if (rc != 0) {
+            return SetErrorMessage(mdb_strerror(rc));
+        }
+        for (int i = 0; i < actionCount; i++) {
+            action_t* action = &actions[i];
+            if (action->data.mv_data == nullptr) {
+                rc = mdb_del(txn, action->dbi, &action->key, nullptr);
+                if (rc == MDB_NOTFOUND && (flags & IGNORE_NOTFOUND)) {
+                    rc = 0; // ignore not_found errors
+                }
+            } else {
+                rc = mdb_put(txn, action->dbi, &action->key, &action->data, putFlags);
+            }
+
+            if (action->freeKey) { // if we created a key and needs to be cleaned up, do it now
+                action->freeKey(action->key);
+            }
+            if (rc != 0) {
+                mdb_txn_abort(txn);
+                return SetErrorMessage(mdb_strerror(rc));
+            }
+        }
+        delete[] actions;
+
+        rc = mdb_txn_commit(txn);
+        if (rc != 0) {
+            return SetErrorMessage(mdb_strerror(rc));
+        }
+    }
+
+    void HandleOKCallback() {
+        Nan::HandleScope scope;
+        v8::Local<v8::Value> argv[] = {
+           Nan::Null()
+        };
+
+        callback->Call(1, argv, async_resource);
+    }
+
+  private:
+      MDB_env* env;
+      int actionCount;
+      action_t* actions;
+      int putFlags;
+      int flags;
+};
+
 
 
 NAN_METHOD(EnvWrap::open) {
@@ -336,6 +400,88 @@ NAN_METHOD(EnvWrap::sync) {
 }
 
 
+NAN_METHOD(EnvWrap::batchBinary) {
+    Nan::HandleScope scope;
+
+    EnvWrap *ew = Nan::ObjectWrap::Unwrap<EnvWrap>(info.This());
+
+    if (!ew->env) {
+        return Nan::ThrowError("The environment is already closed.");
+    }
+    v8::Local<v8::Array> array = v8::Local<v8::Array>::Cast(info[0]);
+
+    int length = array->Length();
+    action_t* actions = new action_t[length];
+
+    int putFlags = 0;
+    int flags = 0;
+    Nan::Callback* callback;
+    Local<Value> options = info[1];
+
+    if (!info[1]->IsNull() && !info[1]->IsUndefined() && info[1]->IsObject()) {
+        Local<Object> optionsObject = options->ToObject();
+        setFlagFromValue(&putFlags, MDB_NODUPDATA, "noDupData", false, optionsObject);
+        setFlagFromValue(&putFlags, MDB_NOOVERWRITE, "noOverwrite", false, optionsObject);
+        setFlagFromValue(&putFlags, MDB_APPEND, "append", false, optionsObject);
+        setFlagFromValue(&putFlags, MDB_APPENDDUP, "appendDup", false, optionsObject);
+        setFlagFromValue(&flags, IGNORE_NOTFOUND, "ignoreNotFound", false, optionsObject);
+        callback = new Nan::Callback(
+            v8::Local<v8::Function>::Cast(info[2])
+        );
+    } else {
+        callback = new Nan::Callback(
+            v8::Local<v8::Function>::Cast(info[1])
+        );
+    }
+
+    BatchWorker* worker = new BatchWorker(
+        ew->env, actions, length, putFlags, flags, callback
+    );
+    int persistedIndex = 0;
+    for (unsigned int i = 0; i < array->Length(); i++) {
+        if (!array->Get(i)->IsArray())
+            continue;
+        action_t* action = &actions[i];
+        v8::Local<v8::Object> operation = v8::Local<v8::Object>::Cast(array->Get(i));
+        DbiWrap *dw = Nan::ObjectWrap::Unwrap<DbiWrap>(v8::Local<v8::Object>::Cast(operation->Get(0)));
+        action->dbi = dw->dbi;
+        v8::Local<v8::Value> key = operation->Get(1);
+
+        bool keyIsValid;
+        auto keyType = inferAndValidateKeyType(key, options, dw->keyType, keyIsValid);
+        if (!keyIsValid) {
+            // inferAndValidateKeyType already threw an error
+            return;
+        }
+        action->freeKey = argToKey(key, action->key, keyType, keyIsValid);
+        if (!keyIsValid) {
+            // argToKey already threw an error
+            return;
+        }
+        // persist the reference until we are done with the operation
+        worker->SaveToPersistent(persistedIndex++, key);
+        v8::Local<v8::Value> value = operation->Get(2);
+        
+        if (value->IsNullOrUndefined()) {
+            action->data.mv_data = nullptr;
+        } else if (value->IsArrayBufferView()) {
+            action->data.mv_size = node::Buffer::Length(value);
+            action->data.mv_data = node::Buffer::Data(value);
+            // likewise persist value if needed too
+            worker->SaveToPersistent(persistedIndex++, value);
+        } else {
+            return Nan::ThrowError("The value must be a buffer or null/undefined.");
+        }
+    }
+
+    worker->SaveToPersistent("env", info.This());
+
+    Nan::AsyncQueueWorker(worker);
+    return;
+}
+
+
+
 void EnvWrap::setupExports(Handle<Object> exports) {
     // EnvWrap: Prepare constructor template
     Local<FunctionTemplate> envTpl = Nan::New<FunctionTemplate>(EnvWrap::ctor);
@@ -347,6 +493,7 @@ void EnvWrap::setupExports(Handle<Object> exports) {
     envTpl->PrototypeTemplate()->Set(Nan::New<String>("beginTxn").ToLocalChecked(), Nan::New<FunctionTemplate>(EnvWrap::beginTxn));
     envTpl->PrototypeTemplate()->Set(Nan::New<String>("openDbi").ToLocalChecked(), Nan::New<FunctionTemplate>(EnvWrap::openDbi));
     envTpl->PrototypeTemplate()->Set(Nan::New<String>("sync").ToLocalChecked(), Nan::New<FunctionTemplate>(EnvWrap::sync));
+    envTpl->PrototypeTemplate()->Set(Nan::New<String>("batchBinary").ToLocalChecked(), Nan::New<FunctionTemplate>(EnvWrap::batchBinary));
     envTpl->PrototypeTemplate()->Set(Nan::New<String>("stat").ToLocalChecked(), Nan::New<FunctionTemplate>(EnvWrap::stat));
     envTpl->PrototypeTemplate()->Set(Nan::New<String>("info").ToLocalChecked(), Nan::New<FunctionTemplate>(EnvWrap::info));
     envTpl->PrototypeTemplate()->Set(Nan::New<String>("resize").ToLocalChecked(), Nan::New<FunctionTemplate>(EnvWrap::resize));
@@ -385,8 +532,6 @@ void EnvWrap::setupExports(Handle<Object> exports) {
     dbiTpl->PrototypeTemplate()->Set(Nan::New<String>("close").ToLocalChecked(), Nan::New<FunctionTemplate>(DbiWrap::close));
     dbiTpl->PrototypeTemplate()->Set(Nan::New<String>("drop").ToLocalChecked(), Nan::New<FunctionTemplate>(DbiWrap::drop));
     dbiTpl->PrototypeTemplate()->Set(Nan::New<String>("stat").ToLocalChecked(), Nan::New<FunctionTemplate>(DbiWrap::stat));
-    dbiTpl->PrototypeTemplate()->Set(Nan::New<String>("putAsync").ToLocalChecked(), Nan::New<FunctionTemplate>(DbiWrap::putAsync));
-    dbiTpl->PrototypeTemplate()->Set(Nan::New<String>("batchAsync").ToLocalChecked(), Nan::New<FunctionTemplate>(DbiWrap::batchAsync));
     // TODO: wrap mdb_stat too
     // DbiWrap: Get constructor
     EnvWrap::dbiCtor.Reset( dbiTpl->GetFunction());

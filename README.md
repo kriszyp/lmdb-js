@@ -23,6 +23,7 @@ Here are the main highlights of LMDB, for more, visit http://symas.com/mdb :)
 * Support for transactions and multiple databases in the same environment
 * Support for multi-threaded and multi-process use
 * Zero-copy lookup (memory map)
+* Crash-proof design
 
 ### Supported platforms
 
@@ -109,6 +110,28 @@ else {
 txn.putString(dbi, 2, "Yes, it's this simple!");
 txn.commit();
 ```
+
+#### Asynchronous batched operations
+
+You can batch together a set of operations to be processed asynchronously with `node-lmdb`. Committing multiple operations at once can improve performance, and performing a batch of operations and allowing the transaction to sync can be efficiently delegated to an asynchronous thread. The `batchBinary` method accepts an array of write operation requests, where each operation is an array:
+* A three element array for `put`ing data: `[dbi, key, value]` (where value is a binary/buffer)
+* A two element array for `del`eting data: `[dbi, key]`
+When `batchBinary` is called, `node-ldmb` will asynchronously create a new write transaction, execute all the operations in the provided array, and commit the transaction (if there were no errors, otherwise it will abort the transaction). This entire transaction will be created by `node-lmdb` and executed in a separate thread. The callback function will be called once the transaction is finished. It is possible for an explicit write transaction in the main JS thread to block or be blocked by the asynchronous transaction.
+For example:
+```javascript
+env.batchBinary([
+    [dbi, key1, Buffer.from("Hello")], // put in key 1
+    [dbi, key2, Buffer.from("World")], // put in key 2
+    [dbi, key3] // delete any entry from key 3
+], options, (error) => {
+    if (error) {
+        console.error(error);
+    } else {
+        // operations finished and succeeded.
+    }
+})
+```
+The options include all the flags from `put` `options`, and an `ignoreNotFound` flag to indicate that failures to delete non-existent keys should be ignored.
 
 ### Basic concepts
 

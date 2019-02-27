@@ -1245,7 +1245,7 @@ describe('Node.js LMDB Bindings', function() {
       }, 100);
     });
   });
-  describe('Async', function() {
+  describe('batch', function() {
     this.timeout(10000);
     var env;
     before(function() {
@@ -1260,69 +1260,36 @@ describe('Node.js LMDB Bindings', function() {
     after(function() {
       env.close();
     });
-    it('will putAsync and read it', function(done) {
+    it('will batchBinary and read it', function(done) {
       var dbi = env.openDbi({
         name: 'mydb8',
         create: true
       });
       var data = [
-        { key: Buffer.from([3]), value: Buffer.from([4, 5]) },
-        { key: Buffer.from([4]), value: Buffer.from([5, 6]) },
-        { key: Buffer.from([5]), value: Buffer.from([6, 7]) },
+        [ dbi, Buffer.from([4]), Buffer.from([1, 2]) ],
+        [ dbi, Buffer.from([5]), Buffer.from([3, 4]) ],
+        [ dbi, Buffer.from([6]), Buffer.from([5, 6]) ],
+        [ dbi, Buffer.from([7]) ]
       ]
-      var ops = 0
-      for (var i = 0; i < data.length; i++) {
-        dbi.putAsync(data[i].key, data[i].value, function(error) {
-          console.log('putAsync callback')
-          if (error) {
-            return console.error('got an error in callback', error)
-          }
-          ops++
-
-          if (ops == data.length) {
-            var txn = env.beginTxn();
-            for (var i = 0; i < data.length; i++) {
-              var key = data[i].key
-              var value = txn.getBinary(dbi, key);
-              console.log('checking', key, value);
-              should.equal(value.equals(txn.getBinary(dbi, key)), true);
-            }
-            txn.commit();
-            dbi.close();
-            done();
-          }
-        })
-      }
-      console.log('called putAsync')
-    });
-    it('will batchAsync and read it', function(done) {
-      var dbi = env.openDbi({
-        name: 'mydb8',
-        create: true
-      });
-      var data = [
-        { key: Buffer.from([4]), value: Buffer.from([1, 2]), type: 'put' },
-        { key: Buffer.from([5]), value: Buffer.from([3, 4]), type: 'put' },
-        { key: Buffer.from([6]), value: Buffer.from([5, 6]), type: 'put' },
-      ]
-      dbi.batchAsync(data, function(error) {
-        console.log('batchAsync callback')
+      env.batchBinary(data, { keyIsBuffer: true, ignoreNotFound: true }, function(error) {
         if (error) {
           return console.error('got an error in callback', error)
         }
 
         var txn = env.beginTxn();
         for (var i = 0; i < data.length; i++) {
-          var key = data[i].key
-          var value = txn.getBinary(dbi, key);
-          console.log('checking', key, value);
-          should.equal(value.equals(txn.getBinary(dbi, key)), true);
+          var key = data[i][1]
+          var value = data[i][2]
+          //console.log('checking', key, txn.getBinary(dbi, key));
+          if (value)
+            should.equal(value.equals(txn.getBinary(dbi, key)), true);
+          else
+            should.equal(txn.getBinary(dbi, key), null);
         }
         txn.commit();
         dbi.close();
         done();
       });
-      console.log('called batchAsync')
     });
   });
 });
