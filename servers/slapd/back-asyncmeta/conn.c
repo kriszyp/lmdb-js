@@ -182,6 +182,9 @@ asyncmeta_init_one_conn(
 		       op->o_log_prefix, rs->sr_err );
 		goto error_return;
 	}
+
+	ldap_set_option( msc->msc_ld, LDAP_OPT_KEEPCONN, LDAP_OPT_ON);
+
 	msc->msc_ldr = ldap_dup(msc->msc_ld);
 	if (!msc->msc_ldr) {
 		ldap_ld_free(msc->msc_ld, 0, NULL, NULL);
@@ -1037,7 +1040,7 @@ int asyncmeta_start_one_listener(a_metaconn_t *mc,
 
 	msc = &mc->mc_conns[candidate];
 	if ( slapd_shutdown || !META_BACK_CONN_INITED( msc ) || msc->msc_ld == NULL
-	    || !META_IS_CANDIDATE( &candidates[ candidate ] )) {
+	    || META_BACK_CONN_INVALID(msc) || !META_IS_CANDIDATE( &candidates[ candidate ] )) {
 		return LDAP_SUCCESS;
 	}
 	bc->msgids[candidate] = candidates[candidate].sr_msgid;

@@ -1510,6 +1510,7 @@ again:
 		if (rc < 1) {
 			if (rc < 0) {
 				ldap_get_option( mc->mc_conns[i].msc_ldr, LDAP_OPT_ERROR_NUMBER, &rc);
+				META_BACK_CONN_INVALID_SET(&mc->mc_conns[i]);
 				asyncmeta_op_read_error(mc, i, rc, ctx);
 			}
 			ldap_pvt_thread_mutex_lock( &mc->mc_om_mutex );
@@ -1626,9 +1627,12 @@ retry_bc:
 	slap_sl_mem_setctx(ctx, oldctx);
 	if (mc->mc_conns) {
 		ldap_pvt_thread_mutex_lock( &mc->mc_om_mutex );
-		for (i=0; i<ntargets; i++)
-			if (mc->mc_conns[i].msc_ldr && mc->mc_conns[i].conn)
+		for (i=0; i<ntargets; i++) {
+			if (!slapd_shutdown && !META_BACK_CONN_INVALID(msc)
+			    && mc->mc_conns[i].msc_ldr && mc->mc_conns[i].conn) {
 				connection_client_enable(mc->mc_conns[i].conn);
+			}
+		}
 		ldap_pvt_thread_mutex_unlock( &mc->mc_om_mutex );
 	}
 	return NULL;
