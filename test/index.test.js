@@ -1260,7 +1260,7 @@ describe('Node.js LMDB Bindings', function() {
     after(function() {
       env.close();
     });
-    it('will batchBinary and read it', function(done) {
+    it('will batchWrite and read it', function(done) {
       var dbi = env.openDbi({
         name: 'mydb8',
         create: true
@@ -1271,7 +1271,7 @@ describe('Node.js LMDB Bindings', function() {
         [ dbi, Buffer.from([6]), Buffer.from([5, 6]) ],
         [ dbi, Buffer.from([7]) ]
       ]
-      env.batchBinary(data, { keyIsBuffer: true, ignoreNotFound: true }, function(error) {
+      env.batchWrite(data, { keyIsBuffer: true, ignoreNotFound: true }, function(error) {
         if (error) {
           return console.error('got an error in callback', error)
         }

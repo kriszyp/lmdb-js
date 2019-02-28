@@ -400,7 +400,7 @@ NAN_METHOD(EnvWrap::sync) {
 }
 
 
-NAN_METHOD(EnvWrap::batchBinary) {
+NAN_METHOD(EnvWrap::batchWrite) {
     Nan::HandleScope scope;
 
     EnvWrap *ew = Nan::ObjectWrap::Unwrap<EnvWrap>(info.This());
@@ -438,6 +438,9 @@ NAN_METHOD(EnvWrap::batchBinary) {
         ew->env, actions, length, putFlags, flags, callback
     );
     int persistedIndex = 0;
+    bool keyIsValid = false;
+    NodeLmdbKeyType keyType;
+
     for (unsigned int i = 0; i < array->Length(); i++) {
         if (!array->Get(i)->IsArray())
             continue;
@@ -447,11 +450,13 @@ NAN_METHOD(EnvWrap::batchBinary) {
         action->dbi = dw->dbi;
         v8::Local<v8::Value> key = operation->Get(1);
 
-        bool keyIsValid;
-        auto keyType = inferAndValidateKeyType(key, options, dw->keyType, keyIsValid);
         if (!keyIsValid) {
-            // inferAndValidateKeyType already threw an error
-            return;
+            // just execute this the first time so we didn't need to re-execute for each iteration
+            keyType = inferAndValidateKeyType(key, options, dw->keyType, keyIsValid);
+            if (!keyIsValid) {
+                // inferAndValidateKeyType already threw an error
+                return;
+            }
         }
         action->freeKey = argToKey(key, action->key, keyType, keyIsValid);
         if (!keyIsValid) {
@@ -493,7 +498,7 @@ void EnvWrap::setupExports(Handle<Object> exports) {
     envTpl->PrototypeTemplate()->Set(Nan::New<String>("beginTxn").ToLocalChecked(), Nan::New<FunctionTemplate>(EnvWrap::beginTxn));
     envTpl->PrototypeTemplate()->Set(Nan::New<String>("openDbi").ToLocalChecked(), Nan::New<FunctionTemplate>(EnvWrap::openDbi));
     envTpl->PrototypeTemplate()->Set(Nan::New<String>("sync").ToLocalChecked(), Nan::New<FunctionTemplate>(EnvWrap::sync));
-    envTpl->PrototypeTemplate()->Set(Nan::New<String>("batchBinary").ToLocalChecked(), Nan::New<FunctionTemplate>(EnvWrap::batchBinary));
+    envTpl->PrototypeTemplate()->Set(Nan::New<String>("batchWrite").ToLocalChecked(), Nan::New<FunctionTemplate>(EnvWrap::batchWrite));
     envTpl->PrototypeTemplate()->Set(Nan::New<String>("stat").ToLocalChecked(), Nan::New<FunctionTemplate>(EnvWrap::stat));
     envTpl->PrototypeTemplate()->Set(Nan::New<String>("info").ToLocalChecked(), Nan::New<FunctionTemplate>(EnvWrap::info));
     envTpl->PrototypeTemplate()->Set(Nan::New<String>("resize").ToLocalChecked(), Nan::New<FunctionTemplate>(EnvWrap::resize));

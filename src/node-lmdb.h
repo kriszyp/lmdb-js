@@ -158,7 +158,7 @@ public:
         * maximal size of the memory map (the full environment) in bytes (default is 10485760 bytes)
     */
     static NAN_METHOD(resize);
-    
+
     /*
         Closes the database environment.
         (Wrapper for `mdb_env_close`)
@@ -217,7 +217,7 @@ public:
 
         * Callback to be executed after the sync is complete.
     */
-    static NAN_METHOD(batchBinary);
+    static NAN_METHOD(batchWrite);
 };
 
 /*

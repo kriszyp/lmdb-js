@@ -113,16 +113,16 @@ txn.commit();
 
 #### Asynchronous batched operations
 
-You can batch together a set of operations to be processed asynchronously with `node-lmdb`. Committing multiple operations at once can improve performance, and performing a batch of operations and allowing the transaction to sync can be efficiently delegated to an asynchronous thread. The `batchBinary` method accepts an array of write operation requests, where each operation is an array:
+You can batch together a set of operations to be processed asynchronously with `node-lmdb`. Committing multiple operations at once can improve performance, and performing a batch of operations and allowing the transaction to sync can be efficiently delegated to an asynchronous thread. The `batchWrite` method accepts an array of write operation requests, where each operation is an array:
 * A three element array for `put`ing data: `[dbi, key, value]` (where value is a binary/buffer)
 * A two element array for `del`eting data: `[dbi, key]`
-When `batchBinary` is called, `node-ldmb` will asynchronously create a new write transaction, execute all the operations in the provided array, and commit the transaction (if there were no errors, otherwise it will abort the transaction). This entire transaction will be created by `node-lmdb` and executed in a separate thread. The callback function will be called once the transaction is finished. It is possible for an explicit write transaction in the main JS thread to block or be blocked by the asynchronous transaction.
+When `batchWrite` is called, `node-ldmb` will asynchronously create a new write transaction, execute all the operations in the provided array, and commit the transaction (if there were no errors, otherwise it will abort the transaction). This entire transaction will be created by `node-lmdb` and executed in a separate thread. The callback function will be called once the transaction is finished. It is possible for an explicit write transaction in the main JS thread to block or be blocked by the asynchronous transaction.
 For example:
 ```javascript
-env.batchBinary([
+env.batchWrite([
     [dbi, key1, Buffer.from("Hello")], // put in key 1
     [dbi, key2, Buffer.from("World")], // put in key 2
-    [dbi, key3] // delete any entry from key 3
+    [dbi, key3] // delete any entry from key 3 (can also use null as value to indicate delete)
 ], options, (error) => {
     if (error) {
         console.error(error);
@@ -131,7 +131,7 @@ env.batchBinary([
     }
 })
 ```
-The options include all the flags from `put` `options`, and an `ignoreNotFound` flag to indicate that failures to delete non-existent keys should be ignored.
+The options include all the flags from `put` `options`, and an `ignoreNotFound` flag to indicate that failures to delete non-existent keys should be ignored. All the keys in a batch must be of the same type.
 
 ### Basic concepts
 
