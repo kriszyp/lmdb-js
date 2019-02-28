@@ -108,6 +108,7 @@ P2SRSLAVECONF=$DATADIR/slapd-syncrepl-slave-persist2.conf
 P3SRSLAVECONF=$DATADIR/slapd-syncrepl-slave-persist3.conf
 DIRSYNC1CONF=$DATADIR/slapd-dirsync1.conf
 DSEESYNC1CONF=$DATADIR/slapd-dsee-slave1.conf
+DSEESYNC2CONF=$DATADIR/slapd-dsee-slave2.conf
 REFSLAVECONF=$DATADIR/slapd-ref-slave.conf
 SCHEMACONF=$DATADIR/slapd-schema.conf
 TLSCONF=$DATADIR/slapd-tls.conf

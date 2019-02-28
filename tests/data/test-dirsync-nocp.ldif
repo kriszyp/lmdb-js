@@ -237,8 +237,8 @@ cn: ITD Staff
 objectclass: groupOfUniqueNames
 objectclass: domainRelatedObject
 uniquemember: cn=Manager,dc=example,dc=com
-uniquemember: cn=Bjorn Jensen,OU=Information Technology Division,ou=People,dc=example,dc=com 
-uniquemember: cn=James A Jones 2,ou=Information Technology Division,ou=People,dc=example,dc=com 
+uniquemember: cn=Bjorn Jensen,OU=Information Technology Division,ou=People,dc=example,dc=com
+uniquemember: cn=James A Jones 2,ou=Information Technology Division,ou=People,dc=example,dc=com
 uniquemember: cn=John Doe,ou=Information Technology Division,ou=People,dc=example,dc=com
 associatedDomain: test.openldap.org
 

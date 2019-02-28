@@ -428,6 +428,7 @@ init_syncrepl(syncinfo_t *si)
 		for ( i = 0; dsee_descs[ i ] != NULL; i++ ) {
 			attrs[ n++ ] = ch_strdup ( dsee_descs[i]->ad_cname.bv_val );
 		}
+		attrs[n] = NULL;
 	}
 	
 	si->si_attrs = attrs;
@@ -541,7 +542,7 @@ ldap_sync_search(
 			}
 			ldap_msgfree( res );
 			if ( gotfirst && gotlast ) {
-				if ( !si->si_lastchange || si->si_lastchange < first )
+				if ( si->si_lastchange < first || (!si->si_lastchange && !si->si_refreshDone ))
 					si->si_logstate = SYNCLOG_FALLBACK;
 				/* if we're in logging mode, it will update si_lastchange itself */
 				if ( si->si_logstate == SYNCLOG_FALLBACK )
@@ -628,7 +629,16 @@ ldap_sync_search(
 #endif
 #ifdef DO_DSEE
 	if ( si->si_syncdata == SYNCDATA_CHANGELOG ) {
-		ctrls[0] = NULL;
+		if ( si->si_logstate == SYNCLOG_LOGGING && si->si_type == LDAP_SYNC_REFRESH_AND_PERSIST ) {
+			c[0].ldctl_oid = LDAP_CONTROL_PERSIST_REQUEST;
+			c[0].ldctl_iscritical = 0;
+			rc = ldap_create_persistentsearch_control_value( si->si_ld, LDAP_CONTROL_PERSIST_ENTRY_CHANGE_ADD,
+				0, 1, &c[0].ldctl_value );
+			ctrls[0] = &c[0];
+			ctrls[1] = NULL;
+		} else {
+			ctrls[0] = NULL;
+		}
 	} else
 #endif
 	{
@@ -1090,12 +1100,30 @@ do_syncrep2(
 				break;
 			}
 #endif
+			ldap_get_entry_controls( si->si_ld, msg, &rctrls );
+			ldap_get_dn_ber( si->si_ld, msg, NULL, &bdn );
+			if (!bdn.bv_len) {
+				bdn.bv_val = empty;
+				bdn.bv_len = sizeof(empty)-1;
+			}
 #ifdef DO_DSEE
 			if ( si->si_syncdata == SYNCDATA_CHANGELOG ) {
 				if ( si->si_logstate == SYNCLOG_LOGGING ) {
 					rc = syncrepl_message_to_op( si, op, msg );
 					if ( rc )
-						si->si_logstate = SYNCLOG_FALLBACK;
+						goto logerr;
+					if ( si->si_type == LDAP_SYNC_REFRESH_AND_PERSIST && rctrls ) {
+						LDAPControl **next = NULL;
+						/* The notification control is only sent during persist phase */
+						rctrlp = ldap_control_find( LDAP_CONTROL_PERSIST_ENTRY_CHANGE_NOTICE, rctrls, &next );
+						if ( rctrlp ) {
+							if ( !si->si_refreshDone )
+								si->si_refreshDone = 1;
+							if ( si->si_refreshDone )
+								syncrepl_dsee_update( si, op );
+						}
+					}
+
 				} else {
 					syncstate = DSEE_SYNC_ADD;
 					rc = syncrepl_message_to_entry( si, op, msg,
@@ -1111,12 +1139,6 @@ do_syncrep2(
 				break;
 			}
 #endif
-			ldap_get_entry_controls( si->si_ld, msg, &rctrls );
-			ldap_get_dn_ber( si->si_ld, msg, NULL, &bdn );
-			if (!bdn.bv_len) {
-				bdn.bv_val = empty;
-				bdn.bv_len = sizeof(empty)-1;
-			}
 			/* we can't work without the control */
 			if ( rctrls ) {
 				LDAPControl **next = NULL;
@@ -1269,7 +1291,9 @@ do_syncrep2(
 					syncCookie.ctxcsn )
 				{
 					rc = syncrepl_updateCookie( si, op, &syncCookie, 0 );
-				} else switch ( rc ) {
+				} else
+logerr:
+					switch ( rc ) {
 					case LDAP_ALREADY_EXISTS:
 					case LDAP_NO_SUCH_OBJECT:
 					case LDAP_NO_SUCH_ATTRIBUTE:
@@ -1365,8 +1389,13 @@ do_syncrep2(
 			if ( si->si_syncdata == SYNCDATA_CHANGELOG && err == LDAP_SUCCESS ) {
 				rc = syncrepl_dsee_update( si, op );
 				if ( rc == LDAP_SUCCESS ) {
-					rc = -2;	/* schedule a re-poll */
-					si->si_logstate = SYNCLOG_LOGGING;
+					if ( si->si_logstate == SYNCLOG_FALLBACK ) {
+						si->si_logstate = SYNCLOG_LOGGING;
+						si->si_refreshDone = 1;
+						rc = LDAP_SYNC_REFRESH_REQUIRED;
+					} else {
+						rc = -2;
+					}
 				}
 				goto done;
 			}
