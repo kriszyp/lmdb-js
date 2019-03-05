@@ -228,11 +228,11 @@ NAN_METHOD(EnvWrap::open) {
     setFlagFromValue(&flags, MDB_NOSYNC, "noSync", false, options);
     setFlagFromValue(&flags, MDB_MAPASYNC, "mapAsync", false, options);
     setFlagFromValue(&flags, MDB_NOLOCK, "unsafeNoLock", false, options);
-    
+
     if (flags & MDB_NOLOCK) {
         fprintf(stderr, "You chose to use MDB_NOLOCK which is not officially supported by node-lmdb. You have been warned!\n");
     }
-    
+
     // Set MDB_NOTLS to enable multiple read-only transactions on the same thread (in this case, the nodejs main thread)
     flags |= MDB_NOTLS;
 
@@ -288,21 +288,21 @@ NAN_METHOD(EnvWrap::close) {
 
 NAN_METHOD(EnvWrap::stat) {
     Nan::HandleScope scope;
-    
+
     // Get the wrapper
     EnvWrap *ew = Nan::ObjectWrap::Unwrap<EnvWrap>(info.This());
     if (!ew->env) {
         return Nan::ThrowError("The environment is already closed.");
     }
-    
+
     int rc;
     MDB_stat stat;
-    
+
     rc = mdb_env_stat(ew->env, &stat);
     if (rc != 0) {
         return throwLmdbError(rc);
     }
-    
+
     Local<Object> obj = Nan::New<Object>();
     obj->Set(Nan::New<String>("pageSize").ToLocalChecked(), Nan::New<Number>(stat.ms_psize));
     obj->Set(Nan::New<String>("treeDepth").ToLocalChecked(), Nan::New<Number>(stat.ms_depth));
@@ -315,21 +315,21 @@ NAN_METHOD(EnvWrap::stat) {
 
 NAN_METHOD(EnvWrap::info) {
     Nan::HandleScope scope;
-    
+
     // Get the wrapper
     EnvWrap *ew = Nan::ObjectWrap::Unwrap<EnvWrap>(info.This());
     if (!ew->env) {
         return Nan::ThrowError("The environment is already closed.");
     }
-    
+
     int rc;
     MDB_envinfo envinfo;
-    
+
     rc = mdb_env_info(ew->env, &envinfo);
     if (rc != 0) {
         return throwLmdbError(rc);
     }
-    
+
     Local<Object> obj = Nan::New<Object>();
     obj->Set(Nan::New<String>("mapAddress").ToLocalChecked(), Nan::New<Number>((uint64_t) envinfo.me_mapaddr));
     obj->Set(Nan::New<String>("mapSize").ToLocalChecked(), Nan::New<Number>(envinfo.me_mapsize));
@@ -418,7 +418,7 @@ NAN_METHOD(EnvWrap::batchWrite) {
     Nan::Callback* callback;
     Local<Value> options = info[1];
 
-    if (!info[1]->IsNull() && !info[1]->IsUndefined() && info[1]->IsObject()) {
+    if (!info[1]->IsNull() && !info[1]->IsUndefined() && info[1]->IsObject() && !info[1]->IsFunction()) {
         Local<Object> optionsObject = options->ToObject();
         setFlagFromValue(&putFlags, MDB_NODUPDATA, "noDupData", false, optionsObject);
         setFlagFromValue(&putFlags, MDB_NOOVERWRITE, "noOverwrite", false, optionsObject);
@@ -466,7 +466,7 @@ NAN_METHOD(EnvWrap::batchWrite) {
         // persist the reference until we are done with the operation
         worker->SaveToPersistent(persistedIndex++, key);
         v8::Local<v8::Value> value = operation->Get(2);
-        
+
         if (value->IsNullOrUndefined()) {
             action->data.mv_data = nullptr;
         } else if (value->IsArrayBufferView()) {
