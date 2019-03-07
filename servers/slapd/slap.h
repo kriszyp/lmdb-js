@@ -2929,8 +2929,6 @@ struct Connection {
 
 	ldap_pvt_thread_mutex_t	c_write1_mutex;	/* only one pdu written at a time */
 	ldap_pvt_thread_cond_t	c_write1_cv;	/* only one pdu written at a time */
-	ldap_pvt_thread_mutex_t	c_write2_mutex;	/* used to wait for sd write-ready */
-	ldap_pvt_thread_cond_t	c_write2_cv;	/* used to wait for sd write-ready*/
 
 	BerElement	*c_currentber;	/* ber we're attempting to read */
 	int			c_writers;		/* number of writers waiting */
