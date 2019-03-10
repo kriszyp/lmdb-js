@@ -7,6 +7,7 @@ OpenLDAP 2.4.48 Engineering
 	Fixed libldap_r handling of deprecated OpenSSL function (ITS#8353)
 	Fixed slapd with an idletimeout of less than four seconds (ITS#8952)
 	Fixed slapd-ldap starttls connections timeout behavior (ITS#8963)
+	Fixed slapd-mdb fix bitshift integer overflow (ITS#8989)
 	Fixed slapd-mdb index cleanup with cn=config (ITS#8472)
 	Fixed slapo-accesslog possible assert with exops (ITS#8971)
 	Fixed slapo-memberof conversion from slapd.conf to cn=config (ITS#8663)
