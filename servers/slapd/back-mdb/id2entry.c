@@ -897,12 +897,12 @@ static int mdb_entry_partsize(struct mdb_info *mdb, MDB_txn *txn, Entry *e,
 }
 
 /* Flag bits for an encoded attribute */
-#define MDB_AT_SORTED	(1<<(sizeof(unsigned int)*CHAR_BIT-1))
+#define MDB_AT_SORTED	(1U<<(sizeof(unsigned int)*CHAR_BIT-1))
 	/* the values are in sorted order */
 #define MDB_AT_MULTI	(1<<(sizeof(unsigned int)*CHAR_BIT-2))
 	/* the values of this multi-valued attr are stored separately */
 
-#define MDB_AT_NVALS	(1<<(sizeof(unsigned int)*CHAR_BIT-1))
+#define MDB_AT_NVALS	(1U<<(sizeof(unsigned int)*CHAR_BIT-1))
 	/* this attribute has normalized values */
 
 /* Flatten an Entry into a buffer. The buffer starts with the count of the
