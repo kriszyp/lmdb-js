@@ -568,7 +568,7 @@ static int mdb_entry_partsize(struct mdb_info *mdb, MDB_txn *txn, Entry *e,
 	return 0;
 }
 
-#define HIGH_BIT (1<<(sizeof(unsigned int)*CHAR_BIT-1))
+#define HIGH_BIT (1U<<(sizeof(unsigned int)*CHAR_BIT-1))
 
 /* Flatten an Entry into a buffer. The buffer starts with the count of the
  * number of attributes in the entry, the total number of values in the
