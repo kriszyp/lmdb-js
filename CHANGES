@@ -6,6 +6,7 @@ OpenLDAP 2.4.48 Engineering
 	Fixed libldap ASYNC connections with Solaris 10 (ITS#8968)
 	Fixed libldap_r handling of deprecated OpenSSL function (ITS#8353)
 	Fixed slapd with an idletimeout of less than four seconds (ITS#8952)
+	Fixed slapo-accesslog with SLAP_MOD_SOFT modifications (ITS#8990)
 	Fixed slapd-ldap starttls connections timeout behavior (ITS#8963)
 	Fixed slapd-mdb fix bitshift integer overflow (ITS#8989)
 	Fixed slapd-mdb index cleanup with cn=config (ITS#8472)
