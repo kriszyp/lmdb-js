@@ -542,6 +542,7 @@ tlso_session_connect( LDAP *ld, tls_session *sess )
 		}
 	}
 #endif /* LDAP_USE_NON_BLOCKING_TLS */
+	return rc;
 }
 
 static int
