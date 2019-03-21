@@ -321,6 +321,7 @@ sasl_bind_step( LloadConnection *c, BerValue *scred, BerValue *ccred )
                     cb->data = cb_data = cb + 1;
                     memcpy( cb_data, cbv.bv_val, cbv.bv_len );
                     sasl_setprop( ctx, SASL_CHANNEL_BINDING, cb );
+                    c->c_sasl_cbinding = cb;
                 }
             }
 #endif

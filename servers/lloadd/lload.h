@@ -340,6 +340,10 @@ struct LloadConnection {
 #ifdef HAVE_CYRUS_SASL
     sasl_conn_t *c_sasl_authctx;
     void *c_sasl_defaults;
+#ifdef SASL_CHANNEL_BINDING /* 2.1.25+ */
+    sasl_channel_binding_t *c_sasl_cbinding; /* Else cyrus-sasl would happily
+                                              * leak it on sasl_dispose */
+#endif /* SASL_CHANNEL_BINDING */
 #endif /* HAVE_CYRUS_SASL */
 
 #ifdef LDAP_API_FEATURE_VERIFY_CREDENTIALS

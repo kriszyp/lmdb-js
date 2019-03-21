@@ -357,6 +357,11 @@ connection_destroy( LloadConnection *c )
         c->c_sasl_defaults = NULL;
     }
     if ( c->c_sasl_authctx ) {
+#ifdef SASL_CHANNEL_BINDING /* 2.1.25+ */
+        if ( c->c_sasl_cbinding ) {
+            ch_free( c->c_sasl_cbinding );
+        }
+#endif
         sasl_dispose( &c->c_sasl_authctx );
     }
 #endif /* HAVE_CYRUS_SASL */
