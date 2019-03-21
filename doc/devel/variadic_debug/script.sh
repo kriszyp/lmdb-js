@@ -10,15 +10,15 @@ SPATCH_OPTS=( --macro-file-builtins "$PATCH_DIR/macros.h" )
 
 SED_TRANSFORMATIONS=()
 
-# strip trailing whitespace copied from source on affected lines
-SED_TRANSFORMATIONS+=( -e 's/^\(+.*\)\s\+$/\1/' )
-
 # split out multipart strings back to original form (one per line)
 SED_TRANSFORMATIONS+=( -e 's/^\(+\s*\)\(.*"\) \(".*\)"$/\1\2\n+\1\3/' )
 
 # re-add whitespace around parentheses
-SED_TRANSFORMATIONS+=( -e 's/^\(+.*Debug[0-3]\?(\)\s*$/\1 /' )
+SED_TRANSFORMATIONS+=( -e 's/^\(+.*Debug[0-3]\?(\)\s*/\1 /' )
 SED_TRANSFORMATIONS+=( -e 's/^\(+.*[^ ]\));$/\1 );/' )
+
+# strip trailing whitespace copied from source on affected lines
+SED_TRANSFORMATIONS+=( -e 's/^\(+.*\)\s\+$/\1/' )
 
 # fix whitespace errors in source we touch
 SED_TRANSFORMATIONS+=( -e 's/^\(+.*\)    \t/\1\t\t/' )
@@ -29,7 +29,7 @@ normalise() {
     shift
 
     # iterate until we've reached fixpoint
-    while ! cmp "$patch" "${patch}.new"; do
+    while ! cmp "$patch" "${patch}.new" 2>/dev/null; do
         if [ -e "${patch}.new" ]; then
             mv -- "${patch}.new" "$patch"
         fi
