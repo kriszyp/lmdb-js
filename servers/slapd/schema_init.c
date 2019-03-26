@@ -2310,7 +2310,7 @@ telephoneNumberNormalize(
 	struct berval *normalized,
 	void *ctx )
 {
-	char *p, *q;
+	char *p, *q, *end;
 
 	assert( SLAP_MR_IS_VALUE_OF_SYNTAX( usage ) != 0 );
 
@@ -2322,7 +2322,8 @@ telephoneNumberNormalize(
 
 	q = normalized->bv_val = slap_sl_malloc( val->bv_len + 1, ctx );
 
-	for( p = val->bv_val; *p; p++ ) {
+	end = val->bv_val + val->bv_len;
+	for( p = val->bv_val; *p && p < end; p++ ) {
 		if ( ! ( ASCII_SPACE( *p ) || *p == '-' )) {
 			*q++ = *p;
 		}
@@ -3755,7 +3756,10 @@ certificateExactNormalize(
 		bvdn.bv_len = val->bv_len - len;
 
 		rc = dnX509normalize( &bvdn, &issuer_dn );
-		if ( rc != LDAP_SUCCESS ) goto done;
+		if ( rc != LDAP_SUCCESS ) {
+			rc = LDAP_INVALID_SYNTAX;
+			goto done;
+		}
 	}
 
 	normalized->bv_len = STRLENOF( "{ serialNumber , issuer rdnSequence:\"\" }" )
@@ -4243,7 +4247,10 @@ certificateListExactNormalize(
 	bvtu.bv_len = len;
 
 	rc = dnX509normalize( &bvdn, &issuer_dn );
-	if ( rc != LDAP_SUCCESS ) goto done;
+	if ( rc != LDAP_SUCCESS ) {
+		rc = LDAP_INVALID_SYNTAX;
+		goto done;
+	}
 
 	thisUpdate.bv_val = tubuf;
 	thisUpdate.bv_len = sizeof(tubuf);
@@ -4895,7 +4902,10 @@ attributeCertificateExactNormalize(
 	bvdn.bv_val = val->bv_val + len;
 	bvdn.bv_len = val->bv_len - len;
 	rc = dnX509normalize( &bvdn, &issuer_dn );
-	if ( rc != LDAP_SUCCESS ) goto done;
+	if ( rc != LDAP_SUCCESS ) {
+		rc = LDAP_INVALID_SYNTAX;
+		goto done;
+	}
 	
 	tag = ber_skip_tag( ber, &len );	/* sequence of RDN */
 	ber_skip_data( ber, len ); 
