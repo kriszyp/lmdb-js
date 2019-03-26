@@ -2235,7 +2235,8 @@ telephoneNumberNormalize(
 	struct berval *normalized,
 	void *ctx )
 {
-	char *p, *q, *end;
+	char *q;
+	ber_len_t c;
 
 	assert( SLAP_MR_IS_VALUE_OF_SYNTAX( usage ) != 0 );
 
@@ -2247,10 +2248,9 @@ telephoneNumberNormalize(
 
 	q = normalized->bv_val = slap_sl_malloc( val->bv_len + 1, ctx );
 
-	end = val->bv_val + val->bv_len;
-	for( p = val->bv_val; *p && p < end; p++ ) {
-		if ( ! ( ASCII_SPACE( *p ) || *p == '-' )) {
-			*q++ = *p;
+	for( c = 0; c < val->bv_len; c++ ) {
+		if ( ! ( ASCII_SPACE( val->bv_val[c] ) || val->bv_val[c] == '-' )) {
+			*q++ = val->bv_val[c];
 		}
 	}
 	if ( q == normalized->bv_val ) {
@@ -2791,18 +2791,19 @@ IA5StringNormalize(
 	struct berval *normalized,
 	void *ctx )
 {
-	char *p, *q;
+	char *p, *q, *end;
 	int casefold = !SLAP_MR_ASSOCIATED( mr,
 		slap_schema.si_mr_caseExactIA5Match );
 
 	assert( SLAP_MR_IS_VALUE_OF_SYNTAX( use ) != 0 );
 
 	p = val->bv_val;
+	end = val->bv_val + val->bv_len;
 
 	/* Ignore initial whitespace */
-	while ( ASCII_SPACE( *p ) ) p++;
+	while ( p < end && ASCII_SPACE( *p ) ) p++;
 
-	normalized->bv_len = val->bv_len - ( p - val->bv_val );
+	normalized->bv_len = p < end ? (val->bv_len - ( p - val->bv_val )) : 0;
 	normalized->bv_val = slap_sl_malloc( normalized->bv_len + 1, ctx );
 	AC_MEMCPY( normalized->bv_val, p, normalized->bv_len );
 	normalized->bv_val[normalized->bv_len] = '\0';
