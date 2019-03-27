@@ -144,7 +144,9 @@ do_modrdn( struct tester_conn_args *config,
 	i = 0;
 
 retry:;
-	tester_init_ld( &ld, config, 0 );
+	if ( ld == NULL ) {
+		tester_init_ld( &ld, config, 0 );
+	}
 
 	if ( do_retry == config->retries ) {
 		fprintf( stderr, "PID=%ld - Modrdn(%d): entry=\"%s\".\n",

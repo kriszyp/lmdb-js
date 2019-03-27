@@ -150,7 +150,9 @@ do_modify( struct tester_conn_args *config,
 	mods[1] = NULL;
 
 retry:;
-	tester_init_ld( &ld, config, 0 );
+	if ( ld == NULL ) {
+		tester_init_ld( &ld, config, 0 );
+	}
 
 	if ( do_retry == config->retries ) {
 		fprintf( stderr, "PID=%ld - Modify(%d): entry=\"%s\".\n",

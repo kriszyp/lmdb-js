@@ -518,6 +518,7 @@ retry:;
 
 				if ( rc != LDAP_OPT_SUCCESS ) {
 					tester_ldap_error( ld, "ldap_set_option(SECPROPS)", NULL );
+					ldap_unbind_ext( ld, NULL, NULL );
 					exit( EXIT_FAILURE );
 				}
 			}
@@ -552,7 +553,7 @@ retry:;
 						goto retry;
 					}
 			}
-			tester_ldap_error( ld, "ldap_sasl_bind_s", NULL );
+			ldap_unbind_ext( ld, NULL, NULL );
 			exit( EXIT_FAILURE );
 		}
 	}

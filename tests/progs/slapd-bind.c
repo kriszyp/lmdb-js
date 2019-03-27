@@ -469,6 +469,9 @@ novals:;
 
 	if ( ndns == 0 ) {
 		tester_error( "No DNs" );
+		if ( ld != NULL ) {
+			ldap_unbind_ext( ld, NULL, NULL );
+		}
 		return 1;
 	}
 
