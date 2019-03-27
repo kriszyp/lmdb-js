@@ -112,7 +112,7 @@ slappasswd( int argc, char *argv[] )
 	int		i;
 	char		*newline = "\n";
 	struct berval passwd = BER_BVNULL;
-	struct berval hash;
+	struct berval hash = BER_BVNULL;
 
 #ifdef LDAP_DEBUG
 	/* tools default to "none", so that at least LDAP_DEBUG_ANY
@@ -257,7 +257,7 @@ slappasswd( int argc, char *argv[] )
 	}
 
 	lutil_passwd_hash( &passwd, scheme, &hash, &text );
-	if( hash.bv_val == NULL ) {
+	if ( BER_BVISNULL( &hash ) ) {
 		fprintf( stderr,
 			"Password generation failed for scheme %s: %s\n",
 			scheme, text ? text : "" );
@@ -279,6 +279,12 @@ destroy:;
 #ifdef SLAPD_MODULES
 	module_kill();
 #endif
+	if ( !BER_BVISNULL( &hash ) ) {
+		ber_memfree( hash.bv_val );
+	}
+	if ( passwd.bv_val != hash.bv_val && !BER_BVISNULL( &passwd ) ) {
+		ber_memfree( passwd.bv_val );
+	}
 
 	return rc;
 }
