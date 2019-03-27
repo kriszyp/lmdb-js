@@ -481,7 +481,8 @@ ldap_int_sasl_bind(
 			{
 				char cbinding[64];
 				struct berval cbv = { sizeof(cbinding), cbinding };
-				if ( ldap_pvt_tls_get_unique( ssl, &cbv, 0 )) {
+				if ( ld->ld_defconn->lconn_sasl_cbind == NULL &&
+					ldap_pvt_tls_get_unique( ssl, &cbv, 0 )) {
 					sasl_channel_binding_t *cb = ldap_memalloc( sizeof(*cb) +
 						cbv.bv_len);
 					void *cb_data; /* used since cb->data is const* */
