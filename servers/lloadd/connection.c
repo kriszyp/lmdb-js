@@ -102,6 +102,10 @@ handle_pdus( void *ctx, void *arg )
         c->c_currentber = ber;
 
         checked_lock( &c->c_io_mutex );
+        if ( (lload_features & LLOAD_FEATURE_PAUSE) &&
+                (c->c_io_state & LLOAD_C_READ_PAUSE) ) {
+            goto pause;
+        }
         tag = ber_get_next( c->c_sb, &len, ber );
         checked_unlock( &c->c_io_mutex );
         if ( tag != LDAP_TAG_MESSAGE ) {
@@ -135,10 +139,18 @@ handle_pdus( void *ctx, void *arg )
         assert( IS_ALIVE( c, c_refcnt ) );
     }
 
-    event_add( c->c_read_event, c->c_read_timeout );
-    Debug( LDAP_DEBUG_CONNS, "handle_pdus: "
-            "re-enabled read event on connid=%lu\n",
-            c->c_connid );
+    checked_lock( &c->c_io_mutex );
+    if ( !(lload_features & LLOAD_FEATURE_PAUSE) ||
+            !(c->c_io_state & LLOAD_C_READ_PAUSE) ) {
+        event_add( c->c_read_event, c->c_read_timeout );
+        Debug( LDAP_DEBUG_CONNS, "handle_pdus: "
+                "re-enabled read event on connid=%lu\n",
+                c->c_connid );
+    }
+pause:
+    c->c_io_state &= ~LLOAD_C_READ_HANDOVER;
+    checked_unlock( &c->c_io_mutex );
+
 done:
     RELEASE_REF( c, c_refcnt, c->c_destroy );
     epoch_leave( epoch );
@@ -160,6 +172,7 @@ connection_read_cb( evutil_socket_t s, short what, void *arg )
     ber_tag_t tag;
     ber_len_t len;
     epoch_t epoch;
+    int pause;
 
     if ( !IS_ALIVE( c, c_live ) ) {
         event_del( c->c_read_event );
@@ -199,7 +212,9 @@ connection_read_cb( evutil_socket_t s, short what, void *arg )
     c->c_currentber = ber;
 
     checked_lock( &c->c_io_mutex );
+    assert( !(c->c_io_state & LLOAD_C_READ_HANDOVER) );
     tag = ber_get_next( c->c_sb, &len, ber );
+    pause = c->c_io_state & LLOAD_C_READ_PAUSE;
     checked_unlock( &c->c_io_mutex );
 
     if ( tag != LDAP_TAG_MESSAGE ) {
@@ -229,20 +244,34 @@ connection_read_cb( evutil_socket_t s, short what, void *arg )
             CONNECTION_LOCK_DESTROY(c);
             goto out;
         }
-        event_add( c->c_read_event, c->c_read_timeout );
-        Debug( LDAP_DEBUG_CONNS, "connection_read_cb: "
-                "re-enabled read event on connid=%lu\n",
-                c->c_connid );
+        if ( !(lload_features & LLOAD_FEATURE_PAUSE) || !pause ) {
+            event_add( c->c_read_event, c->c_read_timeout );
+            Debug( LDAP_DEBUG_CONNS, "connection_read_cb: "
+                    "re-enabled read event on connid=%lu\n",
+                    c->c_connid );
+        }
         goto out;
     }
 
+    checked_lock( &c->c_io_mutex );
+    c->c_io_state |= LLOAD_C_READ_HANDOVER;
+    checked_unlock( &c->c_io_mutex );
     event_del( c->c_read_event );
+
     if ( !lload_conn_max_pdus_per_cycle ||
             ldap_pvt_thread_pool_submit( &connection_pool, handle_pdus, c ) ) {
         /* If we're overloaded or configured as such, process one and resume in
          * the next cycle. */
-        event_add( c->c_read_event, c->c_read_timeout );
-        c->c_pdu_cb( c );
+        int rc = c->c_pdu_cb( c );
+
+        checked_lock( &c->c_io_mutex );
+        c->c_io_state &= ~LLOAD_C_READ_HANDOVER;
+        if ( rc == LDAP_SUCCESS &&
+                ( !(lload_features & LLOAD_FEATURE_PAUSE) ||
+                        !(c->c_io_state & LLOAD_C_READ_PAUSE) ) ) {
+            event_add( c->c_read_event, c->c_read_timeout );
+        }
+        checked_unlock( &c->c_io_mutex );
         goto out;
     }
 
@@ -313,9 +342,28 @@ connection_write_cb( evutil_socket_t s, short what, void *arg )
             CONNECTION_LOCK_DESTROY(c);
             goto done;
         }
+
+        if ( !(c->c_io_state & LLOAD_C_READ_PAUSE) ) {
+            Debug( LDAP_DEBUG_CONNS, "connection_write_cb: "
+                    "connection connid=%lu blocked on writing, marking "
+                    "paused\n",
+                    c->c_connid );
+        }
+        c->c_io_state |= LLOAD_C_READ_PAUSE;
+
+        /* TODO: Do not reset write timeout unless we wrote something */
         event_add( c->c_write_event, lload_write_timeout );
     } else {
         c->c_pendingber = NULL;
+        if ( c->c_io_state & LLOAD_C_READ_PAUSE ) {
+            c->c_io_state ^= LLOAD_C_READ_PAUSE;
+            Debug( LDAP_DEBUG_CONNS, "connection_write_cb: "
+                    "Unpausing connection connid=%lu\n",
+                    c->c_connid );
+            if ( !(c->c_io_state & LLOAD_C_READ_HANDOVER) ) {
+                event_add( c->c_read_event, c->c_read_timeout );
+            }
+        }
     }
     checked_unlock( &c->c_io_mutex );
 

@@ -89,6 +89,7 @@ handle_starttls( LloadConnection *c, LloadOperation *op )
     ber_printf( output, "t{tit{ess}}", LDAP_TAG_MESSAGE,
             LDAP_TAG_MSGID, op->o_client_msgid,
             LDAP_RES_EXTENDED, LDAP_SUCCESS, "", "" );
+    c->c_io_state &= ~LLOAD_C_READ_HANDOVER;
     checked_unlock( &c->c_io_mutex );
 
     CONNECTION_LOCK(c);

@@ -1856,6 +1856,7 @@ config_feature( ConfigArgs *c )
         { BER_BVC("vc"), LLOAD_FEATURE_VC },
 #endif /* LDAP_API_FEATURE_VERIFY_CREDENTIALS */
         { BER_BVC("proxyauthz"), LLOAD_FEATURE_PROXYAUTHZ },
+        { BER_BVC("read_pause"), LLOAD_FEATURE_PAUSE },
         { BER_BVNULL, 0 }
     };
     slap_mask_t mask = 0;

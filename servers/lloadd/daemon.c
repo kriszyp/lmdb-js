@@ -1637,12 +1637,17 @@ lload_handle_global_invalidation( LloadChange *change )
          * - ProxyAuthz:
          *   - on: nothing needed
          *   - off: clear c_auth/privileged on each client
+         * - read pause (WIP):
+         *   - nothing needed?
          */
 
         assert( change->target );
         if ( feature_diff & LLOAD_FEATURE_VC ) {
             assert(0);
             feature_diff &= ~LLOAD_FEATURE_VC;
+        }
+        if ( feature_diff & LLOAD_FEATURE_PAUSE ) {
+            feature_diff &= ~LLOAD_FEATURE_PAUSE;
         }
         if ( feature_diff & LLOAD_FEATURE_PROXYAUTHZ ) {
             if ( !(lload_features & LLOAD_FEATURE_PROXYAUTHZ) ) {

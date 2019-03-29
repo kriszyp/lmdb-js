@@ -513,6 +513,9 @@ upstream_bind_cb( LloadConnection *c )
             goto fail;
     }
 
+    checked_lock( &c->c_io_mutex );
+    c->c_io_state &= ~LLOAD_C_READ_HANDOVER;
+    checked_unlock( &c->c_io_mutex );
     event_add( c->c_read_event, c->c_read_timeout );
     ber_free( ber, 1 );
     return -1;
@@ -578,6 +581,9 @@ upstream_bind( void *ctx, void *arg )
         }
 #endif /* HAVE_CYRUS_SASL */
     }
+    /* TODO: can we be paused at this point? Then we'd have to move this line
+     * after connection_write_cb */
+    c->c_io_state &= ~LLOAD_C_READ_HANDOVER;
     checked_unlock( &c->c_io_mutex );
 
     connection_write_cb( -1, 0, c );
@@ -832,11 +838,16 @@ upstream_starttls( LloadConnection *c )
         ber_free( ber, 1 );
         CONNECTION_UNLOCK(c);
 
+        checked_lock( &c->c_io_mutex );
+        c->c_io_state &= ~LLOAD_C_READ_HANDOVER;
+        checked_unlock( &c->c_io_mutex );
+
         return rc;
     }
 
     base = event_get_base( c->c_read_event );
 
+    c->c_io_state &= ~LLOAD_C_READ_HANDOVER;
     event_del( c->c_read_event );
     event_del( c->c_write_event );
 

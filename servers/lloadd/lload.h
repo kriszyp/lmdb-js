@@ -174,6 +174,7 @@ typedef enum {
     LLOAD_FEATURE_VC = 1 << 0,
 #endif /* LDAP_API_FEATURE_VERIFY_CREDENTIALS */
     LLOAD_FEATURE_PROXYAUTHZ = 1 << 1,
+    LLOAD_FEATURE_PAUSE = 1 << 2,
 } lload_features_t;
 
 #ifdef BALANCER_MODULE
@@ -272,7 +273,8 @@ enum sc_state {
     LLOAD_C_CLOSING,     /* closing */
     LLOAD_C_ACTIVE,      /* exclusive operation (tls setup, ...) in progress */
     LLOAD_C_BINDING,     /* binding */
-    LLOAD_C_DYING, /* part-processed dead but someone still holds a reference */
+    LLOAD_C_DYING,       /* part-processed dead waiting to be freed, someone
+                          * might still be observing it */
 };
 enum sc_type {
     LLOAD_C_OPEN = 0,  /* regular connection */
@@ -280,12 +282,22 @@ enum sc_type {
     LLOAD_C_BIND, /* connection used to handle bind client requests if VC not enabled */
     LLOAD_C_PRIVILEGED, /* connection can override proxyauthz control */
 };
+enum sc_io_state {
+    LLOAD_C_OPERATIONAL = 0,        /* all is good */
+    LLOAD_C_READ_HANDOVER = 1 << 0, /* A task to process PDUs is scheduled or
+                                     * running, do not re-enable c_read_event */
+    LLOAD_C_READ_PAUSE = 1 << 1,    /* We want to pause reading until the client
+                                     * has sufficiently caught up with what we
+                                     * sent */
+};
+
 /*
  * represents a connection from an ldap client/to ldap server
  */
 struct LloadConnection {
     enum sc_state c_state; /* connection state */
     enum sc_type c_type;
+    enum sc_io_state c_io_state;
     ber_socket_t c_fd;
 
 /*

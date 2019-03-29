@@ -266,6 +266,11 @@ handle_one_request( LloadConnection *c )
                         0 );
                 return LDAP_SUCCESS;
             }
+            if ( c->c_io_state & LLOAD_C_READ_PAUSE ) {
+                operation_send_reject( op, LDAP_BUSY,
+                        "writing side backlogged, please keep reading", 0 );
+                return LDAP_SUCCESS;
+            }
             if ( op->o_tag == LDAP_REQ_EXTENDED ) {
                 handler = request_extended;
             } else {
