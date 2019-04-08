@@ -177,6 +177,10 @@ typedef enum {
     LLOAD_FEATURE_PAUSE = 1 << 2,
 } lload_features_t;
 
+#define LLOAD_FEATURE_SUPPORTED_MASK ( \
+    LLOAD_FEATURE_PROXYAUTHZ | \
+    0 )
+
 #ifdef BALANCER_MODULE
 #define LLOAD_TLS_CTX ( lload_use_slap_tls_ctx ? slap_tls_ctx : lload_tls_ctx )
 #else

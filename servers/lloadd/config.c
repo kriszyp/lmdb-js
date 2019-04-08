@@ -1890,6 +1890,19 @@ config_feature( ConfigArgs *c )
                 c->argv[0], c->argv[i] );
         return 1;
     }
+
+    if ( mask & ~LLOAD_FEATURE_SUPPORTED_MASK ) {
+        for ( i = 1; i < c->argc; i++ ) {
+            int j = verb_to_mask( c->argv[i], features );
+            if ( features[j].mask & ~LLOAD_FEATURE_SUPPORTED_MASK ) {
+                Debug( LDAP_DEBUG_ANY, "%s: <%s> "
+                        "experimental feature %s is undocumented, unsupported "
+                        "and can change or disappear at any time!\n",
+                        c->log, c->argv[0], c->argv[i] );
+            }
+        }
+    }
+
     lload_features |= mask;
     return 0;
 }
