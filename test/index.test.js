@@ -1266,24 +1266,45 @@ describe('Node.js LMDB Bindings', function() {
         create: true
       });
       var data = [
+        [ dbi, Buffer.from([47]), Buffer.from([1, 2]), Buffer.from([5, 2]) ],
         [ dbi, Buffer.from([4]), Buffer.from([1, 2]) ],
         [ dbi, Buffer.from([5]), Buffer.from([3, 4]) ],
         [ dbi, Buffer.from([6]), Buffer.from([5, 6]) ],
-        [ dbi, Buffer.from([7]) ]
+        [ dbi, Buffer.from([7]) ],
+        [ dbi, Buffer.from([6]), Buffer.from([7, 8]), Buffer.from([1, 1]) ],
+        [ dbi, Buffer.from([6]), Buffer.from([7, 8]), Buffer.from([5]) ],
+        {
+          db: dbi,
+          key: Buffer.from([5]),
+          value: Buffer.from([8, 9]),
+          ifValue: Buffer.from([7]),
+          ifKey: Buffer.from([6]),
+          ifExactMatch: false,
+        }
+
       ];
-      env.batchWrite(data, { keyIsBuffer: true, ignoreNotFound: true }, function(error) {
+      env.batchWrite(data, { keyIsBuffer: true, progress(results) {
+        //console.log('progress', results)
+      } }, function(error, results) {
         if (error) {
           should.fail(error);
           return done();
         }
+        results.should.deep.equal([ 1, 0, 0, 0, 2, 1, 0, 0 ]);
 
         var txn = env.beginTxn();
-        for (var i = 0; i < data.length; i++) {
-          var key = data[i][1]
-          var value = data[i][2]
-          //console.log('checking', key, txn.getBinary(dbi, key));
-          if (value)
+        var expectedData = [
+          [ Buffer.from([4]), Buffer.from([1, 2]) ],
+          [ Buffer.from([5]), Buffer.from([8, 9]) ],
+          [ Buffer.from([7]) ],
+          [ Buffer.from([6]), Buffer.from([7, 8]) ],
+        ];
+        for (var i = 0; i < expectedData.length; i++) {
+          var key = expectedData[i][0];
+          var value = expectedData[i][1];
+          if (value) {
             should.equal(value.equals(txn.getBinary(dbi, key)), true);
+          }
           else
             should.equal(txn.getBinary(dbi, key), null);
         }
@@ -1291,6 +1312,7 @@ describe('Node.js LMDB Bindings', function() {
         dbi.close();
         done();
       });
+      console.log('submitted batch')
     });
     it('will batchWrite strings and read it', function(done) {
       var dbi = env.openDbi({
@@ -1301,7 +1323,7 @@ describe('Node.js LMDB Bindings', function() {
         [ dbi, 'key 1', Buffer.from([1, 2]) ],
         [ dbi, 'key 2', Buffer.from([3, 4]) ],
         [ dbi, 'key 3', Buffer.from([5, 6]) ]
-      ]
+      ];
       env.batchWrite(data, function(error) {
         if (error) {
           should.fail(error);
@@ -1310,8 +1332,8 @@ describe('Node.js LMDB Bindings', function() {
 
         var txn = env.beginTxn();
         for (var i = 0; i < data.length; i++) {
-          var key = data[i][1]
-          var value = data[i][2]
+          var key = data[i][1];
+          var value = data[i][2];
           //console.log('checking', key, txn.getBinary(dbi, key));
           if (value)
             should.equal(value.equals(txn.getBinary(dbi, key)), true);

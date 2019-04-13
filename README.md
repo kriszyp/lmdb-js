@@ -113,25 +113,46 @@ txn.commit();
 
 #### Asynchronous batched operations
 
-You can batch together a set of operations to be processed asynchronously with `node-lmdb`. Committing multiple operations at once can improve performance, and performing a batch of operations and allowing the transaction to sync can be efficiently delegated to an asynchronous thread. The `batchWrite` method accepts an array of write operation requests, where each operation is an array:
-* A three element array for `put`ing data: `[dbi, key, value]` (where value is a binary/buffer)
-* A two element array for `del`eting data: `[dbi, key]`
-When `batchWrite` is called, `node-ldmb` will asynchronously create a new write transaction, execute all the operations in the provided array, and commit the transaction (if there were no errors, otherwise it will abort the transaction). This entire transaction will be created by `node-lmdb` and executed in a separate thread. The callback function will be called once the transaction is finished. It is possible for an explicit write transaction in the main JS thread to block or be blocked by the asynchronous transaction.
+You can batch together a set of operations to be processed asynchronously with `node-lmdb`. Committing multiple operations at once can improve performance, and performing a batch of operations and using sync transactions (slower, but maintains crash-proof integrity) can be efficiently delegated to an asynchronous thread. In addition, writes can be defined as conditional by specifying the required value to match in order for the operation to be performed, to allow for deterministic atomic writes based on prior state. The `batchWrite` method accepts an array of write operation requests, where each operation is an object or array. If it is an object, the supported properties are:
+* `db` (required) - The database to write to
+* `key` (required) - The key to write
+* `value` (optional) - If specified, this is the value to `put` into the entry. If absent or undefined, this write operation will be a delete, and delete this key. This should be a binary/buffer value.
+* `ifValue` (optional) - If specified, the write operation (put or delete) will only be performed if the provided `ifValue` matches the existing value for this entry. This should be a binary/buffer value.
+* `ifExactMatch` (optional) - If set to true, the conditional write requires that `ifValue` exactly match the existing value, byte for byte and length. By default `ifValue` can be a prefix and only needs to match the number of bytes in `ifValue` (for example if `ifValue` is `Buffer.from([5, 2])`, the conditional write will be performed if the `value` starts with 5, 2).
+* `ifKey` (optional) - If specified, indicates the key to use for for matching the conditional value. By default, the key use to match `ifValue` is the same key as the write operation.
+* `ifDB` (optional) - If specified, indicates the db to use for for matching the conditional value. By default, the key use to match `ifValue` is the same db as the write operation.
+
+If the write operation is a specified with an array, the supported elements are:
+* A three element array for `put`ing data: `[db, key, value]` (where `value` is a binary/buffer)
+* A two element array for `del`eting data: `[db, key]`
+* A four element array for conditionally `put`ing or `del`eting data: `[db, key, value, ifValue]` (where `value` and `ifValue` are as specificied in the object definition)
+
+When `batchWrite` is called, `node-ldmb` will asynchronously create a new write transaction, execute all the operations in the provided array, except for any conditional writes where the condition failed, and commit the transaction, if there were no errors. For conditional writes, if the condition did not match, the write will be skipped, but the transaction will still be committed. However, if any errors occur, the transaction will be aborted. This entire transaction will be created by `node-lmdb` and executed in a separate thread. The callback function will be called once the transaction is finished. It is possible for an explicit write transaction in the main JS thread to block or be blocked by the asynchronous transaction.
 For example:
 ```javascript
 env.batchWrite([
     [dbi, key1, Buffer.from("Hello")], // put in key 1
     [dbi, key2, Buffer.from("World")], // put in key 2
-    [dbi, key3] // delete any entry from key 3 (can also use null as value to indicate delete)
-], options, (error) => {
+    [dbi, key3], // delete any entry from key 3 (can also use null as value to indicate delete)
+    [dbi, key4, valuePlusOne, oldValue] // you could atomically increment by specifying the require previous state
+], options, (error, results) => {
     if (error) {
         console.error(error);
     } else {
-        // operations finished and succeeded.
+        // operations finished and transaction was committed
+        let didWriteToKey4Succeed = results[3] === 0
     }
 })
 ```
-The options include all the flags from `put` `options`, and an `ignoreNotFound` flag to indicate that failures to delete non-existent keys should be ignored. All the keys in a batch must be of the same type.
+The callback function will be either be called with an error in the first argument, or an array in the second argument with the results of the operations. The array will be the same length as the array of write operations, with one to one correspondence by position, and each value in the result array will be:
+0 - Operation successfully written
+1 - Condition not met (only can happen if a condition was provided)
+2 - Attempt to delete non-existent key (only can happen if `ignoreNotFound` enabled)
+
+
+The options include all the flags from `put` `options`, and this optional property:
+* `progress` - This should be a function, if provided, will be called to report the progress of the write operations, returning the results array, with completion values filled in for completed operations, and all uncompleted operations will correspond to `undefined` in the eleemnt positions in the array. Progress events are best-effort in node; the write operations are performed in a separate thread, and progress events occur if and when node's event queue is free to run them (they are not guaranteed to fire if the main thread is busy).
+
 
 ### Basic concepts
 
