@@ -74,7 +74,10 @@ epoch_shutdown( void )
         assert( !epoch_threads[epoch] );
     }
 
-    /* Free pending references */
+    /*
+     * Even with the work in epoch_leave(), shutdown code doesn't currently
+     * observe any epoch, so there might still be references left to free.
+     */
     epoch = EPOCH_PREV(current_epoch);
     next = references[epoch];
     references[epoch] = NULL;
@@ -144,7 +147,82 @@ epoch_join( void )
 void
 epoch_leave( epoch_t epoch )
 {
-    __atomic_sub_fetch( &epoch_threads[epoch], 1, __ATOMIC_ACQ_REL );
+    struct pending_ref *p, *next, *old_refs = NULL, *current_refs = NULL;
+
+    /* Are there other threads observing our epoch? */
+    if ( __atomic_sub_fetch( &epoch_threads[epoch], 1, __ATOMIC_ACQ_REL ) ) {
+        return;
+    }
+
+    /*
+     * Optimisation for the case when we're mostly idle. Otherwise we won't
+     * release resources until another thread comes by and joins the epoch
+     * (twice), and there's no idea how soon (or late) that is going to happen.
+     *
+     * NB. There is no limit to the number of threads executing the following
+     * code in parallel.
+     */
+    ldap_pvt_thread_rdwr_rlock( &epoch_mutex );
+    /*
+     * Anything could happen between the subtract and the lock being acquired
+     * above, so check again. But once we hold this lock (and confirm no more
+     * threads still observe either prospective epoch), noone will be able to
+     * finish epoch_join until we've released epoch_mutex since it holds that:
+     *
+     * epoch_threads[EPOCH_PREV(current_epoch)] == 0
+     *
+     * and that leads epoch_join() to acquire a write lock on &epoch_mutex.
+     */
+    if ( __atomic_load_n( &epoch_threads[epoch], __ATOMIC_RELAXED ) ) {
+        /* Epoch counter has run full circle */
+        ldap_pvt_thread_rdwr_runlock( &epoch_mutex );
+        return;
+    } else if ( epoch == current_epoch ) {
+        if ( __atomic_load_n(
+                     &epoch_threads[EPOCH_PREV(epoch)], __ATOMIC_RELAXED ) ) {
+            /* There is another (older) thread still running */
+            ldap_pvt_thread_rdwr_runlock( &epoch_mutex );
+            return;
+        }
+
+        /* We're all alone, it's safe to claim all references and free them. */
+        __atomic_exchange( &references[EPOCH_PREV(epoch)], &old_refs,
+                &old_refs, __ATOMIC_ACQ_REL );
+        __atomic_exchange( &references[epoch], &current_refs, &current_refs,
+                __ATOMIC_ACQ_REL );
+    } else if ( epoch == EPOCH_PREV(current_epoch) ) {
+        if ( __atomic_load_n(
+                     &epoch_threads[EPOCH_NEXT(epoch)], __ATOMIC_RELAXED ) ) {
+            /* There is another (newer) thread still running */
+            ldap_pvt_thread_rdwr_runlock( &epoch_mutex );
+            return;
+        }
+
+        /* We're all alone, it's safe to claim all references and free them. */
+        __atomic_exchange(
+                &references[epoch], &old_refs, &old_refs, __ATOMIC_ACQ_REL );
+        __atomic_exchange( &references[EPOCH_NEXT(epoch)], &current_refs,
+                &current_refs, __ATOMIC_ACQ_REL );
+    }
+    /*
+     * Else the current_epoch has moved far enough that no references remain to
+     * be freed.
+     */
+    ldap_pvt_thread_rdwr_runlock( &epoch_mutex );
+
+    for ( p = old_refs; p; p = next ) {
+        next = p->next;
+
+        p->dispose( p->object );
+        ch_free( p );
+    }
+
+    for ( p = current_refs; p; p = next ) {
+        next = p->next;
+
+        p->dispose( p->object );
+        ch_free( p );
+    }
 }
 
 /*
