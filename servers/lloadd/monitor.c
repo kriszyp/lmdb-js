@@ -637,9 +637,11 @@ lload_monitor_up_conn_create(
 {
     monitor_entry_t *mp_parent;
     monitor_subsys_t *ms;
-    LloadConnection *c;
     LloadBackend *b;
-    struct lload_monitor_conn_arg *arg;
+    struct lload_monitor_conn_arg arg = {
+            .op = op,
+            .ep = ep,
+    };
 
     assert( e_parent->e_private != NULL );
 
@@ -651,23 +653,16 @@ lload_monitor_up_conn_create(
         return -1;
     }
 
-    arg = ch_calloc( 1, sizeof(struct lload_monitor_conn_arg) );
-    arg->op = op;
-    arg->ep = ep;
-    arg->ms = ms;
+    arg.ms = ms;
 
-    /* How to avoid this long lock? */
     ldap_pvt_thread_mutex_lock( &b->b_mutex );
-    LDAP_CIRCLEQ_FOREACH ( c, &b->b_conns, c_next ) {
-        lload_monitor_up_conn_entry( c, arg );
-    }
+    connections_walk_last( &b->b_mutex, &b->b_conns, b->b_last_conn,
+            lload_monitor_up_conn_entry, &arg );
 
-    LDAP_CIRCLEQ_FOREACH ( c, &b->b_bindconns, c_next ) {
-        lload_monitor_up_conn_entry( c, arg );
-    }
+    connections_walk_last( &b->b_mutex, &b->b_bindconns, b->b_last_bindconn,
+            lload_monitor_up_conn_entry, &arg );
     ldap_pvt_thread_mutex_unlock( &b->b_mutex );
 
-    ch_free( arg );
     return 0;
 }
 
