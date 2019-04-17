@@ -1011,7 +1011,7 @@
 /* define for Referential Integrity overlay */
 #undef SLAPD_OVER_REFINT
 
-/* define for Referential Integrity overlay */
+/* define for Return Code Integrity overlay */
 #undef SLAPD_OVER_RETCODE
 
 /* define for Rewrite/Remap overlay */
