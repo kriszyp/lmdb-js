@@ -1,0 +1,28 @@
+{
+  "name": "lmdb-store",
+  "author": "Kris Zyp",
+  "version": "0.1.0",
+  "description": "Simple, effiecent, scalable data store wrapper for LDMB",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "http://github.com/DoctorEvidence/lmdb-store"
+  },
+  "scripts": {
+    "test": "./node_modules/.bin/mocha tests -u tdd"
+  },
+  "main": "./index.js",
+  "typings": "./index.d.ts",
+  "dependencies": {
+    "fs-extra": "^7.0.0",
+    "node-lmdb": "kriszyp/node-lmdb#upgrades-0.3"
+  },
+  "optionalDependencies": {
+    "weakvaluemap": "^0.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "latest",
+    "chai": "^4",
+    "mocha": "^4"
+  }
+}
