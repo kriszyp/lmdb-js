@@ -2,7 +2,7 @@ OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.48 Engineering
 	Fixed liblber leaks (ITS#8727)
-	Fixed libldap ASYNC TLS so it works (ITS#8957)
+	Fixed libldap ASYNC TLS so it works (ITS#8957,ITS#8980)
 	Fixed libldap ASYNC connections with Solaris 10 (ITS#8968)
 	Fixed libldap_r handling of deprecated OpenSSL function (ITS#8353)
 	Fixed slapd with an idletimeout of less than four seconds (ITS#8952)
