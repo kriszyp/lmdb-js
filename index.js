@@ -45,6 +45,7 @@ function open(path, options) {
 	options = Object.assign({
 		path,
 		noSubdir: Boolean(extension),
+		//noSync: true,
 		noMetaSync: true, // we use the completion of the next transaction to mark when a previous transaction is finally durable, plus meta-sync doesn't really wait for flush to finish on windows, so not altogether reliable anyway
 		useWritemap: true, // it seems like this makes the dbs slightly more prone to corruption, but definitely still occurs without, and this provides better performance
 	}, options)
@@ -79,8 +80,8 @@ function open(path, options) {
 		writes: 0,
 		transactions: 0,
 		readTxn: env.beginTxn(READING_TNX),
-		sharedBuffersActiveTxn: env.beginTxn(READING_TNX),
-		sharedBuffersToInvalidateTxn: env.beginTxn(READING_TNX),
+//		sharedBuffersActiveTxn: env.beginTxn(READING_TNX),
+//		sharedBuffersToInvalidateTxn: env.beginTxn(READING_TNX),
 		transaction(execute, noSync, abort) {
 			let result
 			if (this.writeTxn) {
@@ -96,12 +97,16 @@ function open(path, options) {
 			try {
 				this.transactions++
 				txn = this.writeTxn = env.beginTxn()
+			    let startCpu = process.cpuUsage()
+				let start = Date.now()
 				result = execute()
+				//console.log('after execute', Date.now() - start, process.cpuUsage(startCpu))
 				if (abort) {
 					txn.abort()
 				} else {
 					txn.commit()
 				}
+				//console.log('after commit', Date.now() - start, process.cpuUsage(startCpu))
 				committed = true
 				if (noSync)
 					return result
@@ -170,12 +175,12 @@ function open(path, options) {
 				let start = Date.now()
 
 				txn = this.writeTxn || env.beginTxn()
-				console.log('after begin', Date.now() - start, process.cpuUsage(startCpu))
 				txn.putBinary(db, id, value, AS_BINARY)
-				console.log('after put', Date.now() - start, process.cpuUsage(startCpu))
+				/*if (Date.now() - start > 20)
+					console.log('after put', Date.now() - start, process.cpuUsage(startCpu))*/
 				if (!this.writeTxn) {
 					txn.commit()
-					console.log('after commit', Date.now() - start, process.cpuUsage(startCpu))
+					//console.log('after commit', Date.now() - start, process.cpuUsage(startCpu))
 				}
 			} catch(error) {
 				if (this.writeTxn)
@@ -304,6 +309,7 @@ function open(path, options) {
 			}
 			return iterable
 		},
+		averageTransactionTime: 5,
 		scheduleCommit() {
 			if (!this.pendingBatch) {
 				// pendingBatch promise represents the completion of the transaction
@@ -322,7 +328,9 @@ function open(path, options) {
 								const doBatch = () => {
 									let start = Date.now()
 									env.batchWrite(operations, AS_BINARY_ALLOW_NOT_FOUND, (error, results) => {
-										console.log('did batch', (Date.now() - start) + 'ms', name, operations.length/*map(o => o[1].toString('binary')).join(',')*/)
+										let duration = Date.now() - start
+										this.averageTransactionTime = (this.averageTransactionTime * 3 + duration) / 4
+										//console.log('did batch', (duration) + 'ms', name, operations.length/*map(o => o[1].toString('binary')).join(',')*/)
 										if (error) {
 											try {
 												// see if we can recover from recoverable error (like full map with a resize)
@@ -347,7 +355,7 @@ function open(path, options) {
 										resolve()
 								})
 							}
-						}, 50)
+						}, this.averageTransactionTime * 50)
 					})
 				})
 				// pendingBatch promise represents the completion of the transaction, but the metadata update that
@@ -400,10 +408,10 @@ function open(path, options) {
 		},
 		resetSharedBuffers(force) {
 			// these have to overlap, so we can access the old buffers and be assured anything that sticks around still has a read txn before it
-			let toAbort = this.sharedBuffersToInvalidateTxn
+/*			let toAbort = this.sharedBuffersToInvalidateTxn
 			this.sharedBuffersToInvalidateTxn = this.sharedBuffersActiveTxn
 			if (!force)
-				this.sharedBuffersActiveTxn = env.beginTxn(READING_TNX)
+				this.sharedBuffersActiveTxn = env.beginTxn(READING_TNX)*/
 
 			let newSharedBuffersActive = new WeakValueMap();
 			[sharedBuffersToInvalidate, sharedBuffersActive].forEach((sharedBuffers, i) => {
@@ -425,7 +433,7 @@ function open(path, options) {
 				sharedBuffersToInvalidate = sharedBuffersActive
 			}
 			sharedBuffersActive = newSharedBuffersActive
-			try {
+			/*try {
 				toAbort.abort() // release the previous shared buffer txn
 			} catch(error) {
 				console.warn(error)
@@ -436,7 +444,7 @@ function open(path, options) {
 			}
 			} catch(error) {
 				console.warn(error)
-			}
+			}*/
 		},
 		sync(callback) {
 			return env.sync(callback || function(error) {
@@ -512,8 +520,8 @@ function open(path, options) {
 			if (db) {
 				db.readTxn = env.beginTxn(READING_TNX)
 				db.readTxn.reset()
-				db.sharedBuffersActiveTxn = env.beginTxn(READING_TNX)
-				db.sharedBuffersToInvalidateTxn = env.beginTxn(READING_TNX)
+				//db.sharedBuffersActiveTxn = env.beginTxn(READING_TNX)
+				//db.sharedBuffersToInvalidateTxn = env.beginTxn(READING_TNX)
 			}
 			let result = retry()
 			return result

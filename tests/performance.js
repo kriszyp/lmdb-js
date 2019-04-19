@@ -59,10 +59,13 @@ console.log('opened')
 	test('lmdb-write', () => {
 		let last
 		console.log('starting')
-		for (let i = 0; i < 300; i++) {
-			console.log('putSync', i)
+		for (let i = 0; i < 10; i++) {
+		debugger
+		lmdb.transaction(() => {
+		for (let i = 0; i < 30; i++) {
 			last= lmdb.putSync(Buffer.from((i % 1000).toString()), sampleBuffer)
-			console.log('putSync done', i)
+		}
+		})
 		}
 		return last
 	})
