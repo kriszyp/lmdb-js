@@ -166,10 +166,16 @@ function open(path, options) {
 				}
 				this.bytesWritten += value && value.length || 0
 				this.writes++
+			    let startCpu = process.cpuUsage()
+				let start = Date.now()
+
 				txn = this.writeTxn || env.beginTxn()
+				console.log('after begin', Date.now() - start, process.cpuUsage(startCpu))
 				txn.putBinary(db, id, value, AS_BINARY)
+				console.log('after put', Date.now() - start, process.cpuUsage(startCpu))
 				if (!this.writeTxn) {
 					txn.commit()
+					console.log('after commit', Date.now() - start, process.cpuUsage(startCpu))
 				}
 			} catch(error) {
 				if (this.writeTxn)
@@ -314,8 +320,9 @@ function open(path, options) {
 								let operations = scheduledOperations
 								scheduledOperations = null
 								const doBatch = () => {
+									let start = Date.now()
 									env.batchWrite(operations, AS_BINARY_ALLOW_NOT_FOUND, (error, results) => {
-										//console.log('did batch', name, operations.length/*map(o => o[1].toString('binary')).join(',')*/)
+										console.log('did batch', (Date.now() - start) + 'ms', name, operations.length/*map(o => o[1].toString('binary')).join(',')*/)
 										if (error) {
 											try {
 												// see if we can recover from recoverable error (like full map with a resize)
