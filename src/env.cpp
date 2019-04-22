@@ -405,6 +405,40 @@ NAN_METHOD(EnvWrap::stat) {
     info.GetReturnValue().Set(obj);
 }
 
+NAN_METHOD(EnvWrap::freeStat) {
+    Nan::HandleScope scope;
+
+    // Get the wrapper
+    EnvWrap *ew = Nan::ObjectWrap::Unwrap<EnvWrap>(info.This());
+    if (!ew->env) {
+        return Nan::ThrowError("The environment is already closed.");
+    }
+
+    MDB_stat stat;
+
+    MDB_txn *txn;
+    int rc = mdb_txn_begin(ew->env, nullptr, MDB_RDONLY, &txn);
+    if (rc != 0) {
+        return throwLmdbError(rc);
+    }
+    rc = mdb_stat(txn, 0, &stat);
+    mdb_txn_abort(txn);
+    if (rc != 0) {
+        return throwLmdbError(rc);
+    }
+
+    Local<Object> obj = Nan::New<Object>();
+    obj->Set(Nan::New<String>("pageSize").ToLocalChecked(), Nan::New<Number>(stat.ms_psize));
+    obj->Set(Nan::New<String>("treeDepth").ToLocalChecked(), Nan::New<Number>(stat.ms_depth));
+    obj->Set(Nan::New<String>("treeBranchPageCount").ToLocalChecked(), Nan::New<Number>(stat.ms_branch_pages));
+    obj->Set(Nan::New<String>("treeLeafPageCount").ToLocalChecked(), Nan::New<Number>(stat.ms_leaf_pages));
+    obj->Set(Nan::New<String>("entryCount").ToLocalChecked(), Nan::New<Number>(stat.ms_entries));
+    obj->Set(Nan::New<String>("overflowPages").ToLocalChecked(), Nan::New<Number>(stat.ms_overflow_pages));
+
+    info.GetReturnValue().Set(obj);
+}
+
+
 NAN_METHOD(EnvWrap::info) {
     Nan::HandleScope scope;
 
@@ -431,6 +465,24 @@ NAN_METHOD(EnvWrap::info) {
     obj->Set(Nan::New<String>("numReaders").ToLocalChecked(), Nan::New<Number>(envinfo.me_numreaders));
 
     info.GetReturnValue().Set(obj);
+}
+
+NAN_METHOD(EnvWrap::readerCheck) {
+    Nan::HandleScope scope;
+
+    // Get the wrapper
+    EnvWrap *ew = Nan::ObjectWrap::Unwrap<EnvWrap>(info.This());
+    if (!ew->env) {
+        return Nan::ThrowError("The environment is already closed.");
+    }
+
+    int rc, dead;
+
+    rc = mdb_reader_check(ew->env, &dead);
+    if (rc != 0) {
+        return throwLmdbError(rc);
+    }
+    info.GetReturnValue().Set(Nan::New<Number>(dead));
 }
 
 NAN_METHOD(EnvWrap::beginTxn) {
@@ -644,7 +696,9 @@ void EnvWrap::setupExports(Handle<Object> exports) {
     envTpl->PrototypeTemplate()->Set(Nan::New<String>("sync").ToLocalChecked(), Nan::New<FunctionTemplate>(EnvWrap::sync));
     envTpl->PrototypeTemplate()->Set(Nan::New<String>("batchWrite").ToLocalChecked(), Nan::New<FunctionTemplate>(EnvWrap::batchWrite));
     envTpl->PrototypeTemplate()->Set(Nan::New<String>("stat").ToLocalChecked(), Nan::New<FunctionTemplate>(EnvWrap::stat));
+    envTpl->PrototypeTemplate()->Set(Nan::New<String>("freeStat").ToLocalChecked(), Nan::New<FunctionTemplate>(EnvWrap::freeStat));
     envTpl->PrototypeTemplate()->Set(Nan::New<String>("info").ToLocalChecked(), Nan::New<FunctionTemplate>(EnvWrap::info));
+    envTpl->PrototypeTemplate()->Set(Nan::New<String>("readerCheck").ToLocalChecked(), Nan::New<FunctionTemplate>(EnvWrap::readerCheck));
     envTpl->PrototypeTemplate()->Set(Nan::New<String>("resize").ToLocalChecked(), Nan::New<FunctionTemplate>(EnvWrap::resize));
     // TODO: wrap mdb_env_copy too
 

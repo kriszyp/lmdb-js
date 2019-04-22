@@ -126,11 +126,21 @@ public:
         Gets statistics about the database environment.
     */
     static NAN_METHOD(stat);
+
+    /*
+        Gets statistics about the free-space database.
+    */
+    static NAN_METHOD(freeStat);
     
     /*
         Gets information about the database environment.
     */
     static NAN_METHOD(info);
+
+    /*
+        Stale reader check
+    */
+    static NAN_METHOD(readerCheck);
 
     /*
         Opens the database environment with the specified options. The options will be used to configure the environment before opening it.
