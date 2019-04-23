@@ -46,8 +46,9 @@ function open(path, options) {
 		path,
 		noSubdir: Boolean(extension),
 		//noSync: true,
-		noMetaSync: true, // we use the completion of the next transaction to mark when a previous transaction is finally durable, plus meta-sync doesn't really wait for flush to finish on windows, so not altogether reliable anyway
+		//noMetaSync: true, // we use the completion of the next transaction to mark when a previous transaction is finally durable, plus meta-sync doesn't really wait for flush to finish on windows, so not altogether reliable anyway
 		useWritemap: true, // it seems like this makes the dbs slightly more prone to corruption, but definitely still occurs without, and this provides better performance
+		useWriteThrough: true,
 	}, options)
 
 	if (options && options.clearOnStart) {
@@ -158,9 +159,9 @@ function open(path, options) {
 				scheduledOperations = []
 			}
 			let index = scheduledOperations.push([db, id, value, ifValue]) - 1
-			let syncResults = this.scheduleCommit()
-			return ifValue === undefined ? syncResults :
-				new ConditionalWriteResult(syncResults, index)
+			let commit = this.scheduleCommit()
+			return ifValue === undefined ? commit.unconditionalResults :
+				commit.results.then((writeResults) => writeResults[index] === 0)
 		},
 		putSync(id, value) {
 			let txn
@@ -214,9 +215,9 @@ function open(path, options) {
 				scheduledOperations = []
 			}
 			let index = scheduledOperations.push([db, id, undefined, ifValue]) - 1
-			let syncResults = this.scheduleCommit()
-			return ifValue === undefined ? syncResults :
-				new ConditionalWriteResult(syncResults, index)
+			let commit = this.scheduleCommit()
+			return ifValue === undefined ? commit.unconditionalResults :
+				commit.results.then((writeResults) => writeResults[index] === 0)
 		},
 		iterable(options) {
 			let iterable = new ArrayLikeIterable()
@@ -313,12 +314,12 @@ function open(path, options) {
 		scheduleCommit() {
 			if (!this.pendingBatch) {
 				// pendingBatch promise represents the completion of the transaction
-				let thisBatch = this.pendingBatch = new Promise((resolve, reject) => {
-					when(this.currentBatch, () => {
+				let whenCommitted = new Promise((resolve, reject) => {
+					when(this.currentCommit, () => {
 						let timeout = setTimeout(this.runNextBatch = () => {
 							this.runNextBatch = null
 							clearTimeout(timeout)
-							let currentBatch = this.currentBatch = this.pendingBatch
+							this.currentCommit = whenCommitted
 							this.pendingBatch = null
 							this.pendingSync = null
 							if (scheduledOperations) {
@@ -336,49 +337,32 @@ function open(path, options) {
 												// see if we can recover from recoverable error (like full map with a resize)
 												handleError(error, this, null, doBatch)
 											} catch(error) {
+												this.currentCommit = null
 												reject(error)
 											}
 										} else {
+											this.currentCommit = null
 											resolve(results)
 										}
 									})
 								}
 								doBatch()
-							} else {
-								let start = Date.now()
-								// if no operations are queued, we just do a sync, not transaction necessary
-								// TODO: Ideally we'd like this to be only an fdatasync/FlushFileBuffers call, and the map already asyncrhonously flushing for the metadata
-								this.sync((error) => {
-									if (error) {
-										reject(error)
-									} else
-										resolve()
-								})
 							}
-						}, this.averageTransactionTime * 50)
+						}, 20)
 					})
 				})
-				// pendingBatch promise represents the completion of the transaction, but the metadata update that
-				// points to the new transaction is not guaranteed to be written to disk until the next transaction
-				// or sync (something that calls fdatasync/FlushFileBuffers)
-				this.pendingSynced = {
-					// only schedule the follow up sync lazily, if the promise then is actually called
-					then: (onFulfilled, onRejected) =>
-						// schedule another commit after this one so the meta-data write can be flushed, even if it ends up just being a sync call
-						thisBatch.then((results) => {
-							this.scheduleCommit()
-							return this.pendingBatch.finally(() => onFulfilled(results))
-						}),
-					// provide access to the transaction promise, since if availability of subsequent read is what is needed,
-					// the committed promise provides that (you don't have to wait for disk flush to access the committed data in memory)
-					committed: this.pendingBatch
+				this.pendingBatch = {
+					results: whenCommitted,
+					unconditionalResults: whenCommitted.then(() => true) // for returning for non-conditional
 				}
 			}
-			if (scheduledOperations && scheduledOperations.length > 1000 && this.runNextBatch) {
+			if (scheduledOperations && scheduledOperations.length > 3000 && this.runNextBatch) {
 				// past a certain threshold, run it immediately
+				let batch = this.pendingBatch
 				this.runNextBatch()
+				return batch
 			}
-			return this.pendingSynced
+			return this.pendingBatch
 		},
 		batch(operations) {
 			this.writes += operations.length
@@ -400,7 +384,7 @@ function open(path, options) {
 					}
 				}
 			}
-			return this.scheduleCommit()
+			return this.scheduleCommit().unconditionalResults
 		},
 		close() {
 			db.close()

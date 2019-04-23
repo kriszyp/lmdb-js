@@ -56,16 +56,28 @@ console.log('opened')
 		}
 		return level.batch(operations)
 	})*/
-	test('lmdb-write', () => {
+	test.only('lmdb-write', () => {
 		let last
 		console.log('starting')
-		for (let i = 0; i < 10; i++) {
-		debugger
-		lmdb.transaction(() => {
-		for (let i = 0; i < 30; i++) {
-			last= lmdb.putSync(Buffer.from((i % 1000).toString()), sampleBuffer)
-		}
-		})
+		for (let i = 0; i < 1000; i++) {
+			let start = Date.now()
+			let actionTime
+			let cpuStart = process.cpuUsage()
+
+			lmdb.transaction(() => {
+				for (let j = 0; j < 100; j++) {
+					let buffer = Buffer.allocUnsafe(4)
+					buffer.writeInt32BE(Math.round(Math.random() * (i * 100 + j)))
+					last= lmdb.putSync(buffer, sampleBuffer.slice(0, Math.round(Math.random() * (i * 100 + j))))
+				}
+				actionTime = Date.now() - start
+			})
+			let duration = Date.now() - start
+			if (duration > 10) {
+				cpuDuration = process.cpuUsage(cpuStart)
+				console.log(i, 'duration', duration, 'actions time:', actionTime, 'transaction:', duration - actionTime,
+					'user cpu:', cpuDuration.user, 'system cpu:', cpuDuration.system)
+			}
 		}
 		return last
 	})
