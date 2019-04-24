@@ -45,7 +45,7 @@ all: $(PROGRAMS)
 
 vc.la:	vc.lo
 	$(LIBTOOL) --mode=link $(CC) $(OPT) -version-info $(LTVER) \
-	-rpath $(moduledir) -module -o $@ $? $(LIBS)
+	-rpath $(libdir) -module -o $@ $? $(LIBS)
 
 clean:
 	rm -rf *.o *.lo *.la .libs
