@@ -48,7 +48,6 @@ function open(path, options) {
 		//noSync: true,
 		//noMetaSync: true, // we use the completion of the next transaction to mark when a previous transaction is finally durable, plus meta-sync doesn't really wait for flush to finish on windows, so not altogether reliable anyway
 		useWritemap: true, // it seems like this makes the dbs slightly more prone to corruption, but definitely still occurs without, and this provides better performance
-		useWriteThrough: true,
 	}, options)
 
 	if (options && options.clearOnStart) {
