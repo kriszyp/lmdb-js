@@ -3212,11 +3212,8 @@ syncprov_db_open(
 		char csnbuf[ LDAP_PVT_CSNSTR_BUFSIZE ];
 		struct berval csn;
 
-		if ( slap_serverID || SLAP_SYNC_SHADOW( op->o_bd )) {
-		/* If we're also a consumer, then don't generate anything.
-		 * Wait for our provider to send it to us, or for a local
-		 * modify if we have multimaster.
-		 */
+		if ( SLAP_SINGLE_SHADOW( op->o_bd ) ) {
+			/* Not in charge of this serverID, don't generate anything. */
 			goto out;
 		}
 		csn.bv_val = csnbuf;
