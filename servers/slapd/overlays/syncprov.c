@@ -3196,6 +3196,11 @@ syncprov_db_open(
 			/* Not in charge of this serverID, don't generate anything. */
 			goto out;
 		}
+		if ( !SLAP_SYNC_SUBENTRY( be ) && rc != LDAP_SUCCESS
+				&& rc != LDAP_NO_SUCH_ATTRIBUTE ) {
+			/* If the DB is genuinely empty, don't generate one either. */
+			goto out;
+		}
 		csn.bv_val = csnbuf;
 		csn.bv_len = sizeof( csnbuf );
 		slap_get_csn( op, &csn, 0 );
