@@ -56,7 +56,7 @@ enum class NodeLmdbKeyType {
 };
 
 // Exports misc stuff to the module
-void setupExportMisc(Handle<Object> exports);
+void setupExportMisc(Local<Object> exports);
 
 // Helper callback
 typedef void (*argtokey_callback_t)(MDB_val &key);
@@ -114,7 +114,7 @@ public:
     ~EnvWrap();
 
     // Sets up exports for the Env constructor
-    static void setupExports(Handle<Object> exports);
+    static void setupExports(Local<Object> exports);
 
     /*
         Constructor of the database environment. You need to `open()` it before you can use it.
@@ -506,7 +506,7 @@ public:
     ~CursorWrap();
 
     // Sets up exports for the Cursor constructor
-    static void setupExports(Handle<Object> exports);
+    static void setupExports(Local<Object> exports);
 
     /*
         Opens a new cursor for the specified transaction and database instance.
@@ -698,7 +698,7 @@ public:
     const uint16_t *data() const;
     size_t length() const;
 
-    static void writeTo(Handle<String> str, MDB_val *val);
+    static void writeTo(Local<String> str, MDB_val *val);
 };
 
 #endif // NODE_LMDB_H

@@ -28,7 +28,7 @@ using namespace node;
 
 extern "C" {
     // Initializes the module
-    void initializeModule(Handle<Object> exports) {
+    void initializeModule(Local<Object> exports) {
         // Export Env as constructor for EnvWrap
         EnvWrap::setupExports(exports);
 

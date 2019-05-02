@@ -25,22 +25,24 @@
 #include <string.h>
 #include <stdio.h>
 
-void setupExportMisc(Handle<Object> exports) {
+void setupExportMisc(Local<Object> exports) {
     Local<Object> versionObj = Nan::New<Object>();
 
     int major, minor, patch;
     char *str = mdb_version(&major, &minor, &patch);
-    versionObj->Set(Nan::New<String>("versionString").ToLocalChecked(), Nan::New<String>(str).ToLocalChecked());
-    versionObj->Set(Nan::New<String>("major").ToLocalChecked(), Nan::New<Integer>(major));
-    versionObj->Set(Nan::New<String>("minor").ToLocalChecked(), Nan::New<Integer>(minor));
-    versionObj->Set(Nan::New<String>("patch").ToLocalChecked(), Nan::New<Integer>(patch));
+    Local<Context> context = Nan::GetCurrentContext();
+    versionObj->Set(context, Nan::New<String>("versionString").ToLocalChecked(), Nan::New<String>(str).ToLocalChecked());
+    versionObj->Set(context, Nan::New<String>("major").ToLocalChecked(), Nan::New<Integer>(major));
+    versionObj->Set(context, Nan::New<String>("minor").ToLocalChecked(), Nan::New<Integer>(minor));
+    versionObj->Set(context, Nan::New<String>("patch").ToLocalChecked(), Nan::New<Integer>(patch));
 
-    exports->Set(Nan::New<String>("version").ToLocalChecked(), versionObj);
+    exports->Set(context, Nan::New<String>("version").ToLocalChecked(), versionObj);
 }
 
 void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue, Local<Object> options) {
-    Local<Value> opt = options->Get(Nan::New<String>(name).ToLocalChecked());
-    if (opt->IsBoolean() ? opt->BooleanValue() : defaultValue) {
+    Local<Context> context = Nan::GetCurrentContext();
+    Local<Value> opt = options->Get(context, Nan::New<String>(name).ToLocalChecked()).ToLocalChecked();
+    if (opt->IsBoolean() ? opt->BooleanValue(context).ToChecked() : defaultValue) {
         *flags |= flag;
     }
 }
@@ -54,7 +56,7 @@ NodeLmdbKeyType keyTypeFromOptions(const Local<Value> &val, NodeLmdbKeyType defa
         return NodeLmdbKeyType::InvalidKey;
     }
     
-    auto obj = val->ToObject();
+    auto obj = Local<Object>::Cast(val);
 
     NodeLmdbKeyType keyType = defaultKeyType;
     int keyIsUint32 = 0;
@@ -134,7 +136,7 @@ argtokey_callback_t argToKey(const Local<Value> &val, MDB_val &key, NodeLmdbKeyT
         }
         
         isValid = true;
-        CustomExternalStringResource::writeTo(val->ToString(), &key);
+        CustomExternalStringResource::writeTo(Local<String>::Cast(val), &key);
         return ([](MDB_val &key) -> void {
             delete[] (uint16_t*)key.mv_data;
         });
@@ -147,7 +149,7 @@ argtokey_callback_t argToKey(const Local<Value> &val, MDB_val &key, NodeLmdbKeyT
         
         isValid = true;
         uint32_t* uint32Key = new uint32_t;
-        *uint32Key = val->Uint32Value();
+        *uint32Key = val->Uint32Value(Nan::GetCurrentContext()).ToChecked();
         key.mv_size = sizeof(uint32_t);
         key.mv_data = uint32Key;
 
@@ -244,14 +246,14 @@ Local<Value> valToBoolean(MDB_val &data) {
 
 void throwLmdbError(int rc) {
     auto err = Nan::Error(mdb_strerror(rc));
-    err.As<Object>()->Set(Nan::New("code").ToLocalChecked(), Nan::New(rc));
+    err.As<Object>()->Set(Nan::GetCurrentContext(), Nan::New("code").ToLocalChecked(), Nan::New(rc));
     return Nan::ThrowError(err);
 }
 
 void consoleLog(const char *msg) {
     Local<String> str = Nan::New("console.log('").ToLocalChecked();
-    str = String::Concat(str, Nan::New<String>(msg).ToLocalChecked());
-    str = String::Concat(str, Nan::New("');").ToLocalChecked());
+    //str = String::Concat(str, Nan::New<String>(msg).ToLocalChecked());
+    //str = String::Concat(str, Nan::New("');").ToLocalChecked());
 
     Local<Script> script = Nan::CompileScript(str).ToLocalChecked();
     Nan::RunScript(script);
@@ -259,8 +261,8 @@ void consoleLog(const char *msg) {
 
 void consoleLog(Local<Value> val) {
     Local<String> str = Nan::New<String>("console.log('").ToLocalChecked();
-    str = String::Concat(str, val->ToString());
-    str = String::Concat(str, Nan::New<String>("');").ToLocalChecked());
+    //str = String::Concat(str, Local<String>::Cast(val));
+    //str = String::Concat(str, Nan::New<String>("');").ToLocalChecked());
 
     Local<Script> script = Nan::CompileScript(str).ToLocalChecked();
     Nan::RunScript(script);
@@ -273,10 +275,10 @@ void consoleLogN(int n) {
     consoleLog(c);
 }
 
-void CustomExternalStringResource::writeTo(Handle<String> str, MDB_val *val) {
+void CustomExternalStringResource::writeTo(Local<String> str, MDB_val *val) {
     unsigned int l = str->Length() + 1;
     uint16_t *d = new uint16_t[l];
-    str->Write(d);
+    str->Write(Isolate::GetCurrent(), d);
     d[l - 1] = 0;
 
     val->mv_data = d;
