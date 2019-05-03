@@ -60,11 +60,11 @@ void TxnWrap::removeFromEnvWrap() {
 NAN_METHOD(TxnWrap::ctor) {
     Nan::HandleScope scope;
 
-    EnvWrap *ew = Nan::ObjectWrap::Unwrap<EnvWrap>(info[0]->ToObject());
+    EnvWrap *ew = Nan::ObjectWrap::Unwrap<EnvWrap>(Local<Object>::Cast(info[0]));
     int flags = 0;
 
     if (info[1]->IsObject()) {
-        Local<Object> options = info[1]->ToObject();
+        Local<Object> options = Local<Object>::Cast(info[1]);
 
         // Get flags from options
 
@@ -166,7 +166,7 @@ Nan::NAN_METHOD_RETURN_TYPE TxnWrap::getCommon(Nan::NAN_METHOD_ARGS_TYPE info, L
     }
 
     TxnWrap *tw = Nan::ObjectWrap::Unwrap<TxnWrap>(info.This());
-    DbiWrap *dw = Nan::ObjectWrap::Unwrap<DbiWrap>(info[0]->ToObject());
+    DbiWrap *dw = Nan::ObjectWrap::Unwrap<DbiWrap>(Local<Object>::Cast(info[0]));
 
     if (!tw->txn) {
         return Nan::ThrowError("The transaction is already closed.");
@@ -238,7 +238,7 @@ Nan::NAN_METHOD_RETURN_TYPE TxnWrap::putCommon(Nan::NAN_METHOD_ARGS_TYPE info, v
     }
 
     TxnWrap *tw = Nan::ObjectWrap::Unwrap<TxnWrap>(info.This());
-    DbiWrap *dw = Nan::ObjectWrap::Unwrap<DbiWrap>(info[0]->ToObject());
+    DbiWrap *dw = Nan::ObjectWrap::Unwrap<DbiWrap>(Local<Object>::Cast(info[0]));
 
     if (!tw->txn) {
         return Nan::ThrowError("The transaction is already closed.");
@@ -259,7 +259,7 @@ Nan::NAN_METHOD_RETURN_TYPE TxnWrap::putCommon(Nan::NAN_METHOD_ARGS_TYPE info, v
     }
     
     if (!info[3]->IsNull() && !info[3]->IsUndefined() && info[3]->IsObject()) {
-        auto options = info[3]->ToObject();
+        auto options = Local<Object>::Cast(info[3]);
         setFlagFromValue(&flags, MDB_NODUPDATA, "noDupData", false, options);
         setFlagFromValue(&flags, MDB_NOOVERWRITE, "noOverwrite", false, options);
         setFlagFromValue(&flags, MDB_APPEND, "append", false, options);
@@ -293,7 +293,7 @@ Nan::NAN_METHOD_RETURN_TYPE TxnWrap::putCommon(Nan::NAN_METHOD_ARGS_TYPE info, v
 
 NAN_METHOD(TxnWrap::putString) {
     return putCommon(info, [](Nan::NAN_METHOD_ARGS_TYPE info, MDB_val &data) -> void {
-        CustomExternalStringResource::writeTo(info[2]->ToString(), &data);
+        CustomExternalStringResource::writeTo(Local<String>::Cast(info[2]), &data);
     }, [](MDB_val &data) -> void {
         delete[] (uint16_t*)data.mv_data;
     });
@@ -345,7 +345,7 @@ NAN_METHOD(TxnWrap::del) {
 
     // Unwrap native objects
     TxnWrap *tw = Nan::ObjectWrap::Unwrap<TxnWrap>(info.This());
-    DbiWrap *dw = Nan::ObjectWrap::Unwrap<DbiWrap>(info[0]->ToObject());
+    DbiWrap *dw = Nan::ObjectWrap::Unwrap<DbiWrap>(Local<Object>::Cast(info[0]));
 
     if (!tw->txn) {
         return Nan::ThrowError("The transaction is already closed.");
@@ -396,7 +396,7 @@ NAN_METHOD(TxnWrap::del) {
     
     if ((dw->flags & MDB_DUPSORT) && !(dataHandle->IsUndefined())) {
         if (dataHandle->IsString()) {
-            CustomExternalStringResource::writeTo(dataHandle->ToString(), &data);
+            CustomExternalStringResource::writeTo(Local<String>::Cast(dataHandle), &data);
             freeData = true;
         }
         else if (node::Buffer::HasInstance(dataHandle)) {

@@ -272,7 +272,7 @@ MAKE_GET_FUNC(goToPrevDup, MDB_PREV_DUP);
 
 static void fillDataFromArg1(CursorWrap* cw, Nan::NAN_METHOD_ARGS_TYPE info, MDB_val &data) {
     if (info[1]->IsString()) {
-        CustomExternalStringResource::writeTo(info[1]->ToString(), &data);
+        CustomExternalStringResource::writeTo(Local<String>::Cast(info[1]), &data);
     }
     else if (node::Buffer::HasInstance(info[1])) {
         data.mv_size = node::Buffer::Length(info[1]);
@@ -350,7 +350,7 @@ NAN_METHOD(CursorWrap::goToDupRange) {
     return getCommon(info, MDB_GET_BOTH_RANGE, cursorArgToKey<0, 2>, fillDataFromArg1, freeDataFromArg1, nullptr);
 }
 
-void CursorWrap::setupExports(Handle<Object> exports) {
+void CursorWrap::setupExports(Local<Object> exports) {
     // CursorWrap: Prepare constructor template
     Local<FunctionTemplate> cursorTpl = Nan::New<FunctionTemplate>(CursorWrap::ctor);
     cursorTpl->SetClassName(Nan::New<String>("Cursor").ToLocalChecked());
@@ -378,5 +378,5 @@ void CursorWrap::setupExports(Handle<Object> exports) {
     cursorTpl->PrototypeTemplate()->Set(Nan::New<String>("del").ToLocalChecked(), Nan::New<FunctionTemplate>(CursorWrap::del));
 
     // Set exports
-    exports->Set(Nan::New<String>("Cursor").ToLocalChecked(), cursorTpl->GetFunction());
+    exports->Set(Nan::GetCurrentContext(), Nan::New<String>("Cursor").ToLocalChecked(), cursorTpl->GetFunction(Nan::GetCurrentContext()).ToLocalChecked());
 }
