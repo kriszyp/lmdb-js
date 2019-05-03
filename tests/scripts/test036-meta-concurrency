@@ -40,22 +40,6 @@ rm -rf $TESTDIR
 
 mkdir -p $TESTDIR $DBDIR1 $DBDIR2
 
-# NOTE: this could be added to all tests...
-if test "$BACKEND" = "bdb" || test "$BACKEND" = "hdb" ; then
-	if test "x$DB_CONFIG" != "x" ; then \
-		if test -f $DB_CONFIG ; then
-			echo "==> using DB_CONFIG \"$DB_CONFIG\""
-			cp $DB_CONFIG $DBDIR1
-			cp $DB_CONFIG $DBDIR2
-		else
-			echo "==> DB_CONFIG must point to a valid file (ignored)"
-		fi
-	else
-		echo "==> set \"DB_CONFIG\" to the DB_CONFIG file you want to use for the test."
-	fi
-	echo ""
-fi
-
 echo "Starting slapd on TCP/IP port $PORT1..."
 . $CONFFILTER $BACKEND $MONITORDB < $METACONF1 > $CONF1
 $SLAPD -f $CONF1 -h $URI1 -d $LVL $TIMING > $LOG1 2>&1 &

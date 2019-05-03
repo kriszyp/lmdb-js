@@ -90,7 +90,7 @@ H4: access to <what> [ by <who> [<accesslevel>] [<control>] ]+
 
 This directive grants access (specified by <accesslevel>) to a set
 of entries and/or attributes (specified by <what>) by one or more
-requestors (specified by <who>).  See the {{SECT:Access Control}} section of 
+requestors (specified by <who>).  See the {{SECT:Access Control}} section of
 this guide for basic usage.
 
 !if 0
@@ -162,7 +162,7 @@ Level	Keyword		Description
 !endblock
 
 The desired log level can be input as a single integer that
-combines the (ORed) desired levels, both in decimal or in hexadecimal 
+combines the (ORed) desired levels, both in decimal or in hexadecimal
 notation, as a list of integers (that are ORed internally), or as a list of the names that are shown between brackets, such that
 
 >		loglevel 129
@@ -264,9 +264,7 @@ supported backend types listed in Table 6.2.
 !block table; align=Center; coltags="EX,N"; \
 	title="Table 6.2: Database Backends"
 Types	Description
-bdb	Berkeley DB transactional backend (deprecated)
 dnssrv	DNS SRV backend
-hdb	Hierarchical variant of bdb backend (deprecated)
 ldap	Lightweight Directory Access Protocol (Proxy) backend
 mdb	Memory-Mapped DB backend
 meta	Meta Directory backend
@@ -279,9 +277,9 @@ sql	SQL Programmable backend
 
 \Example:
 
->	backend bdb
+>	backend mdb
 
-This marks the beginning of a new {{TERM:BDB}} backend
+This marks the beginning of a new {{TERM:MDB}} backend
 definition.
 
 
@@ -299,9 +297,9 @@ supported backend types listed in Table 6.2.
 
 \Example:
 
->	database bdb
+>	database mdb
 
-This marks the beginning of a new {{TERM:BDB}} database instance
+This marks the beginning of a new {{TERM:MDB}} database instance
 declaration.
 
 
@@ -507,7 +505,7 @@ defaults for these parameters come from {{ldap.conf}}(5).
 The {{EX:binddn}} parameter gives the DN to bind as for the
 syncrepl searches to the provider slapd. It should be a DN
 which has read access to the replication content in the
-master database. 
+master database.
 
 The {{EX:bindmethod}} is {{EX:simple}} or {{EX:sasl}},
 depending on whether simple password-based authentication or
@@ -564,8 +562,7 @@ conforms to the obsolete {{changelog}} format. If the {{EX:syncdata}}
 parameter is omitted or set to {{EX:"default"}} then the log
 parameters are ignored.
 
-The {{syncrepl}} replication mechanism is supported by the {{bdb}},
-{{hdb}}, and {{mdb}} backends.
+The {{syncrepl}} replication mechanism is supported by the {{mdb}} backend.
 
 See the {{SECT:LDAP Sync Replication}} chapter of this guide for
 more information on how to use this directive.
@@ -584,31 +581,207 @@ If specified multiple times, each {{TERM:URL}} is provided.
 >	updateref	ldap://master.example.net
 
 
-H3: BDB and HDB Database Directives
+H3: MDB Database Directives
 
-Directives in this category only apply to both the {{TERM:BDB}}
-and the {{TERM:HDB}} database.
-That is, they must follow a "database bdb" or "database hdb" line
-and come before any
-subsequent "backend" or "database" line.  For a complete reference
-of BDB/HDB configuration directives, see {{slapd-bdb}}(5).
+Directives in this category only apply to the {{TERM:MDB}}
+database backend.
+That is, they must follow a "database mdb" line
+and come before any subsequent "backend" or "database" lines.
+For a complete reference of MDB configuration directives, see {{slapd-mdb}}(5).
 
 
 H4: directory <directory>
 
-This directive specifies the directory where the BDB files
+This directive specifies the directory where the MDB files
 containing the database and associated indices live.
 
 \Default:
 
 >	directory /usr/local/var/openldap-data
 
+H4: checkpoint <kbyte> <min>
+
+This directive specifies the frequency for flushing the database disk
+buffers. This directive is only needed if the {{dbnosync}} option is
+{{EX:TRUE}}.
+The checkpoint will occur if either <kbyte> data has been written or
+<min> minutes have passed since the last checkpoint. Both arguments default
+to zero, in which case they are ignored. When the <min> argument is
+non-zero, an internal task will run every <min> minutes to perform the
+checkpoint. Note: currently the _kbyte_ setting is unimplemented.
+
+\Example:
+
+>   checkpoint: 1024 10
+
+H4: dbnosync: { TRUE | FALSE }
+
+This directive causes on-disk database contents to not be immediately
+synchronized with in memory changes upon change.  Setting this option
+to {{EX:TRUE}} may improve performance at the expense of data integrity.
+
+
+H4: envflags: {nosync,nometasync,writemap,mapasync,nordahead}
+
+This option specifies flags for finer-grained control of  the  LMDB  library's
+operation.
+
+* {{F:nosync}}: This is exactly the same as the dbnosync directive.
+
+* {{F:nometasync}}: Flush the data on a commit, but skip the sync of the meta
+page. This mode is slightly faster than doing a full sync, but can
+potentially lose the last committed transaction if the operating system
+crashes. If both nometasync and nosync are set, the nosync flag takes
+precedence.
+
+* {{F:writemap}}: Use a writable memory map instead of just read-only. This
+speeds up write operations but makes the database vulnerable to corruption in
+case any bugs in slapd cause stray writes into the mmap region.
+
+* {{F:mapasync}}: When using a writable memory map and performing flushes on
+each commit, use an asynchronous flush instead of a synchronous flush (the
+default). This option has no effect if writemap has not been set. It also has
+no effect if nosync is set.
+
+* {{F:nordahead}}: Turn off file readahead. Usually the OS performs readahead
+on every read request. This usually boosts read performance but can be
+harmful to random access read performance if the system's memory is full and
+the DB is larger than RAM. This option is not implemented on Windows.
+
+
+H4: index: {<attrlist> | default} [pres,eq,approx,sub,none]
+
+This directive specifies the indices to maintain for the given
+attribute. If only an {{EX:<attrlist>}} is given, the default
+indices are maintained. The index keywords correspond to the
+common types of matches that may be used in an LDAP search filter.
+
+\Example:
+
+>   index: default pres,eq
+>   index: uid
+>   index: cn,sn pres,eq,sub
+>   index: objectClass eq
+
+The first line sets the default set of indices to maintain to
+present and equality.  The second line causes the default (pres,eq)
+set of indices to be maintained for the {{EX:uid}} attribute type.
+The third line causes present, equality, and substring indices to
+be maintained for {{EX:cn}} and {{EX:sn}} attribute types.  The
+fourth line causes an equality index for the {{EX:objectClass}}
+attribute type.
+
+There is no index keyword for inequality matches. Generally these
+matches do not use an index. However, some attributes do support
+indexing for inequality matches, based on the equality index.
+
+A substring index can be more explicitly specified as {{EX:subinitial}},
+{{EX:subany}}, or {{EX:subfinal}}, corresponding to the three
+possible components
+of a substring match filter. A subinitial index only indexes
+substrings that appear at the beginning of an attribute value.
+A subfinal index only indexes substrings that appear at the end
+of an attribute value, while subany indexes substrings that occur
+anywhere in a value.
+
+Note that by default, setting an index for an attribute also
+affects every subtype of that attribute. E.g., setting an equality
+index on the {{EX:name}} attribute causes {{EX:cn}}, {{EX:sn}}, and every other
+attribute that inherits from {{EX:name}} to be indexed.
+
+By default, no indices are maintained.  It is generally advised
+that minimally an equality index upon objectClass be maintained.
+
+>   index: objectClass eq
+
+Additional indices should be configured corresponding to the
+most common searches that are used on the database.
+Presence indexing should not be configured for an attribute
+unless the attribute occurs very rarely in the database, and
+presence searches on the attribute occur very frequently during
+normal use of the directory. Most applications don't use presence
+searches, so usually presence indexing is not very useful.
+
+
+H4: maxreaders: <integer>
+
+This directive specifies the maximum number of threads that may have
+concurrent read access to the database. Tools such as slapcat count as a
+single thread, in addition to threads in any active slapd processes. The
+default is 126.
+
+
+H4: maxsize: <bytes>
+
+This directive specifies the maximum size of the database in bytes. A memory
+map of this size is allocated at startup time and the database will not be
+allowed to grow beyond this size. The default is 10485760 bytes (10MB). This
+setting may be changed upward if the configured limit needs to be increased.
+
+Note: It is important to set this to as large a value as possible, (relative
+to anticipated growth of the actual data over time) since growing the size
+later may not be practical when the system is under heavy load.
+
+
+H4: mode: { <octal> | <symbolic> }
+
+This directive specifies the file protection mode that newly
+created database index files should have. This can be in the form
+{{EX:0600}} or {{EX:-rw-------}}
+
+\Default:
+
+>   mode: 0600
+
+
+H4: rtxnsize: <entries>
+
+This directive specifies the maximum number of entries to process in a single
+read transaction when executing a large search. Long-lived read transactions
+prevent old database pages from being reused in write transactions, and so
+can cause significant growth of the database file when there is heavy write
+traffic. This setting causes the read transaction in large searches to be
+released and reacquired after the given number of entries has been read, to
+give writers the opportunity to reclaim old database pages. The default is
+10000.
+
+
+H4: searchstack: <integer>
+
+Specify the depth of the stack used for search filter evaluation.
+Search filters are evaluated on a stack to accommodate nested {{EX:AND}} /
+{{EX:OR}} clauses. An individual stack is allocated for each server thread.
+The depth of the stack determines how complex a filter can be evaluated
+without requiring any additional memory allocation. Filters that are
+nested deeper than the search stack depth will cause a separate stack to
+be allocated for that particular search operation. These separate allocations
+can have a major negative impact on server performance, but specifying
+too much stack will also consume a great deal of memory. Each search
+uses 512K bytes per level on a 32-bit machine, or 1024K bytes per level
+on a 64-bit machine. The default stack depth is 16, thus 8MB or 16MB
+per thread is used on 32 and 64 bit machines, respectively. Also the
+512KB size of a single stack slot is set by a compile-time constant which
+may be changed if needed; the code must be recompiled for the change
+to take effect.
+
+\Default:
+
+>   searchstack: 16
+
+
+H4: Sample Entry
+
+>database mdb
+>suffix: "dc=example,dc=com"
+>directory: /usr/local/var/openldap-data
+>index: objectClass eq
+
 
 H2: Configuration File Example
 
 The following is an example configuration file, interspersed
 with explanatory text. It defines two databases to handle
-different parts of the {{TERM:X.500}} tree; both are {{TERM:BDB}}
+different parts of the {{TERM:X.500}} tree; both are {{TERM:MDB}}
 database instances. The line numbers shown are provided for
 reference only and are not included in the actual file. First, the
 global configuration section:
@@ -617,7 +790,7 @@ E:  1.    # example config file - global configuration section
 E:  2.    include /usr/local/etc/schema/core.schema
 E:  3.    referral ldap://root.openldap.org
 E:  4.    access to * by * read
- 
+
 Line 1 is a comment. Line 2 includes another config file
 which contains {{core}} schema definitions.
 The {{EX:referral}} directive on line 3
@@ -629,7 +802,7 @@ Line 4 is a global access control.  It applies to all
 entries (after any applicable database-specific access
 controls).
 
-The next section of the configuration file defines a BDB
+The next section of the configuration file defines a MDB
 backend that will handle queries for things in the
 "dc=example,dc=com" portion of the tree. The
 database is to be replicated to two slave slapds, one on
@@ -637,8 +810,8 @@ truelies, the other on judgmentday. Indices are to be
 maintained for several attributes, and the {{EX:userPassword}}
 attribute is to be protected from unauthorized access.
 
-E:  5.    # BDB definition for the example.com
-E:  6.    database bdb
+E:  5.    # MDB definition for the example.com
+E:  6.    database mdb
 E:  7.    suffix "dc=example,dc=com"
 E:  8.    directory /usr/local/var/openldap-data
 E:  9.    rootdn "cn=Manager,dc=example,dc=com"
@@ -678,13 +851,13 @@ All other attributes are writable by the entry and the "admin"
 entry, but may be read by all users (authenticated or not).
 
 The next section of the example configuration file defines another
-BDB database. This one handles queries involving the
+MDB database. This one handles queries involving the
 {{EX:dc=example,dc=net}} subtree but is managed by the same entity
 as the first database.  Note that without line 39, the read access
 would be allowed due to the global access rule at line 4.
 
-E: 33.    # BDB definition for example.net
-E: 34.    database bdb
+E: 33.    # MDB definition for example.net
+E: 34.    database mdb
 E: 35.    suffix "dc=example,dc=net"
 E: 36.    directory /usr/local/var/openldap-data-net
 E: 37.    rootdn "cn=Manager,dc=example,dc=com"

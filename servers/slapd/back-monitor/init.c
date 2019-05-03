@@ -1962,8 +1962,8 @@ monitor_back_initialize(
 		{ "olmGenericAttributes",		"olmSubSystemAttributes:0" },
 		{ "olmDatabaseAttributes",		"olmSubSystemAttributes:1" },
 
-		/* for example, back-bdb specific attrs
-		 * are in "olmDatabaseAttributes:1"
+		/* for example, back-mdb specific attrs
+		 * are in "olmDatabaseAttributes:12"
 		 *
 		 * NOTE: developers, please record here OID assignments
 		 * for other modules */
@@ -1973,8 +1973,8 @@ monitor_back_initialize(
 		{ "olmGenericObjectClasses",		"olmSubSystemObjectClasses:0" },
 		{ "olmDatabaseObjectClasses",		"olmSubSystemObjectClasses:1" },
 
-		/* for example, back-bdb specific objectClasses
-		 * are in "olmDatabaseObjectClasses:1"
+		/* for example, back-mdb specific objectClasses
+		 * are in "olmDatabaseObjectClasses:12"
 		 *
 		 * NOTE: developers, please record here OID assignments
 		 * for other modules */

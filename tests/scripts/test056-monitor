@@ -85,8 +85,7 @@ echo "Using ldapsearch to read database monitor entries..."
 $LDAPSEARCH -S "" -b "$DATABASESMONITORDN" -h $LOCALHOST -p $PORT1 \
 	'objectclass=*' \
 	structuralObjectClass entryDN namingContexts readOnly \
-	monitorIsShadow monitorContext \
-	olmBDBEntryCache olmBDBDNCache olmBDBIDLCache \
+	monitorIsShadow monitorContext
 	> $SEARCHOUT 2>&1
 RC=$?
 
@@ -101,11 +100,8 @@ $LDIFFILTER -b monitor < $SEARCHOUT > $SEARCHFLT
 
 TMPMONITOROUT2=$MONITOROUT2
 case $BACKEND in
-bdb|hdb)
-	;;
 *)
 	TMPMONITOROUT2=$TESTDIR/monitor2.out
-	grep -v "olmBDB" $MONITOROUT2 > $TMPMONITOROUT2
 	;;
 esac
 

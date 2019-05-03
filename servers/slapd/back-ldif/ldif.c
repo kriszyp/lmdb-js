@@ -113,7 +113,7 @@ static int write_data( int fd, const char *spew, int len, int *save_errno );
 #endif /* !_WIN32 */
 
 /*
- * Left and Right "{num}" prefix to ordered RDNs ("olcDatabase={1}bdb").
+ * Left and Right "{num}" prefix to ordered RDNs ("olcDatabase={1}mdb").
  * IX_DN* are for LDAP RDNs, IX_FS* for their .ldif filenames.
  */
 #define IX_DNL	'{'

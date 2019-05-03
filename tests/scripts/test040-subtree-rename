@@ -16,11 +16,6 @@
 echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
 
-if test $BACKEND = bdb ; then
-	echo "subtree rename not supported by back-$BACKEND"
-	exit 0
-fi
-
 mkdir -p $TESTDIR $DBDIR1
 
 echo "Starting slapd on TCP/IP port $PORT1..."

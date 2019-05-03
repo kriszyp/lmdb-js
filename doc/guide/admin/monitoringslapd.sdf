@@ -214,12 +214,10 @@ backends, as well as backends loaded by modules.  For example:
 >	monitoredInfo: config                 
 >	monitoredInfo: ldif     
 >	monitoredInfo: monitor
->	monitoredInfo: bdb        
->	monitoredInfo: hdb
 >	monitoredInfo: mdb
 
-This indicates the {{config}}, {{ldif}}, {{monitor}}, {{bdb}},
-and {{hdb}} backends are available.
+This indicates the {{config}}, {{ldif}}, {{monitor}},
+and {{mdb}} backends are available.
 
 The {{EX:cn=Backends,cn=Monitor}} object is also a container
 for available backend objects.  Each available backend object
@@ -243,33 +241,6 @@ contains information about a particular backend.  For example:
 >	seeAlso: cn=Database 2,cn=Databases,cn=Monitor
 >	
 >	dn: cn=Backend 3,cn=Backends,cn=Monitor
->	monitoredInfo: bdb
->	monitorRuntimeConfig: TRUE
->	supportedControl: 1.3.6.1.1.12
->	supportedControl: 2.16.840.1.113730.3.4.2
->	supportedControl: 1.3.6.1.4.1.4203.666.5.2
->	supportedControl: 1.2.840.113556.1.4.319
->	supportedControl: 1.3.6.1.1.13.1
->	supportedControl: 1.3.6.1.1.13.2
->	supportedControl: 1.3.6.1.4.1.4203.1.10.1
->	supportedControl: 1.2.840.113556.1.4.1413
->	supportedControl: 1.3.6.1.4.1.4203.666.11.7.2
->	seeAlso: cn=Database 1,cn=Databases,cn=Monitor
->	
->	dn: cn=Backend 4,cn=Backends,cn=Monitor
->	monitoredInfo: hdb
->	monitorRuntimeConfig: TRUE
->	supportedControl: 1.3.6.1.1.12
->	supportedControl: 2.16.840.1.113730.3.4.2
->	supportedControl: 1.3.6.1.4.1.4203.666.5.2
->	supportedControl: 1.2.840.113556.1.4.319
->	supportedControl: 1.3.6.1.1.13.1
->	supportedControl: 1.3.6.1.1.13.2
->	supportedControl: 1.3.6.1.4.1.4203.1.10.1
->	supportedControl: 1.2.840.113556.1.4.1413
->	supportedControl: 1.3.6.1.4.1.4203.666.11.7.2
->
->	dn: cn=Backend 5,cn=Backends,cn=Monitor
 >	monitoredInfo: mdb
 >	monitorRuntimeConfig: TRUE
 >	supportedControl: 1.3.6.1.1.12

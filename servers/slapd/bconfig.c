@@ -247,7 +247,7 @@ static OidRec OidMacros[] = {
  * Backend/Database registry
  *
  * OLcfg{Bk|Db}{Oc|At}:0		-> common
- * OLcfg{Bk|Db}{Oc|At}:1		-> back-bdb(/back-hdb)
+ * OLcfg{Bk|Db}{Oc|At}:1		-> back-bdb(/back-hdb) (removed)
  * OLcfg{Bk|Db}{Oc|At}:2		-> back-ldif
  * OLcfg{Bk|Db}{Oc|At}:3		-> back-ldap/meta
  * OLcfg{Bk|Db}{Oc|At}:4		-> back-monitor

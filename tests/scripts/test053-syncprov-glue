@@ -479,29 +479,6 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-case $BACKEND in bdb | hdb)
-db_stat=
-for path in `echo "$PATH" | sed -e 's/:/ /g'`; do
-	if test -f "$path/db_stat" && \
-		"$path/db_stat" -E -h $PRODDIR/db > /dev/null 2>&1
-	then
-		db_stat="$path/db_stat"
-		break
-	fi
-done
-
-if test -z "$db_stat" ; then
-	echo "Could not find a working db_stat in PATH!"
-	lock_bug=1
-elif "$db_stat" -E -h $PRODDIR/db | egrep -q 'HELD .* len:'; then
-	echo "WARNING: Glue lock bug hit, next modify could deadlock"
-	lock_bug=2
-else
-	echo "Glue lock bug not found :-)"
-	lock_bug=0
-fi
-esac
-
 echo "Using ldapmodify to modify glue suffix on provider..."
 $LDAPADD -D "$MANAGERDN" -H $URI1 -w $PASSWD <<EOF >> $TESTOUT 2>&1
 dn: dc=example,dc=com

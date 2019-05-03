@@ -5613,7 +5613,7 @@ cleanup:;
 	cm->monitor_cb = (void *)cb;
 
 	/* we don't need to keep track of the attributes, because
-	 * bdb_monitor_free() takes care of everything */
+	 * mdb_monitor_free() takes care of everything */
 	if ( a != NULL ) {
 		attrs_free( a );
 	}
@@ -5697,7 +5697,7 @@ pcache_initialize()
 	}
 #endif /* PCACHE_EXOP_QUERY_DELETE */
 
-	argv[ 0 ] = "back-bdb/back-hdb monitor";
+	argv[ 0 ] = "back-mdb monitor";
 	c.argv = argv;
 	c.argc = 3;
 	c.fname = argv[0];

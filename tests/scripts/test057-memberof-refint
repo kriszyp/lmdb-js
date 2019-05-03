@@ -27,11 +27,6 @@ if test $REFINT = refintno; then
 	exit 0
 fi 
 
-if test $BACKEND = bdb; then
-	echo "$BACKEND backend does not support subtree rename, test skipped"
-	exit 0
-fi
-
 mkdir -p $TESTDIR $DBDIR1 $TESTDIR/confdir
 
 $SLAPPASSWD -g -n >$CONFIGPWF
@@ -66,11 +61,10 @@ fi
 
 cat /dev/null > $TESTOUT
 
-indexInclude="" mainInclude="" bdbInclude="# " nullExclude=""
+indexInclude="" mainInclude="" nullExclude=""
 test $INDEXDB = indexdb	|| indexInclude="# "
 test $MAINDB  = maindb	|| mainInclude="# "
 case $BACKEND in
-bdb | hdb) bdbInclude="" ;;
 null) nullExclude="# " ;;
 esac
 
@@ -104,7 +98,6 @@ olcRootDN: cn=Manager,$BASEDN
 olcRootPW:: c2VjcmV0
 olcMonitoring: TRUE
 ${nullExclude}olcDbDirectory: $TESTDIR/db.1.a/
-${bdbInclude}olcDbCacheSize: 1000
 ${indexInclude}olcDbIndex: objectClass eq
 ${indexInclude}olcDbIndex: cn pres,eq,sub
 ${indexInclude}olcDbIndex: uid pres,eq,sub

@@ -102,7 +102,6 @@ NOSYNC
 env
 pagedResultsControl
 dup
-hdb
 LDIFv
 syslog
 monitorTimestamp
@@ -886,7 +885,6 @@ proxyAttrSet
 proxyAttrset
 mary
 crlcheck
-olcBdbConfig
 kadmin
 mech
 slapcat
@@ -1189,7 +1187,6 @@ moddn
 calloc
 LDFLAGS
 attributeOrValueExists
-olcHdbConfig
 bsize
 auditObject
 dnssrv
@@ -1491,7 +1488,6 @@ ghenry
 odbcinst
 reqType
 slapover
-BerkeleyDB's
 attributename
 lwrap
 reqStart
@@ -1627,7 +1623,6 @@ DSAIT
 olcHidden
 mySNMP
 metainformation
-BerkeleyDB
 ldapuri
 auditAbandon
 RANDFILE
@@ -1661,7 +1656,6 @@ olcPasswordHash
 ldapc
 loopback
 ldapi
-BDB's
 GETREALM
 functionalities
 noplain
@@ -1669,7 +1663,6 @@ NOECHOPROMPT
 AES
 ldaps
 notoc
-bdb
 LDAPv
 IPsec
 olcServerID

@@ -27,7 +27,7 @@
  * Caveats:
  * - right now, the overlay assumes that all values of the objectClass
  *   attribute will be returned in rs->sr_entry; this may not be true
- *   in general, but it usually is for back-bdb/back-hdb.  To generalize,
+ *   in general, but it usually is for back-mdb.  To generalize,
  *   the search request should be analyzed, and if allowedAttributes or
  *   allowedAttributesEffective are requested, add objectClass to the
  *   requested attributes

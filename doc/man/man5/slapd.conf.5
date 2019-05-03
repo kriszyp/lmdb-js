@@ -1276,10 +1276,8 @@ type of backend.
 .B backend <databasetype>
 Mark the beginning of a backend definition. <databasetype>
 should be one of
-.BR bdb ,
 .BR config ,
 .BR dnssrv ,
-.BR hdb ,
 .BR ldap ,
 .BR ldif ,
 .BR mdb ,
@@ -1306,10 +1304,8 @@ option are mandatory for each database.
 .B database <databasetype>
 Mark the beginning of a new database instance definition. <databasetype>
 should be one of
-.BR bdb ,
 .BR config ,
 .BR dnssrv ,
-.BR hdb ,
 .BR ldap ,
 .BR ldif ,
 .BR mdb ,
@@ -1619,8 +1615,7 @@ By default, mirrormode is off.
 This option enables database-specific monitoring in the entry related
 to the current database in the "cn=Databases,cn=Monitor" subtree 
 of the monitor database, if the monitor database is enabled.
-Currently, only the BDB and the HDB databases provide database-specific
-monitoring.
+Currently, only the MDB database provides database-specific monitoring.
 The default depends on the backend type.
 .TP
 .B overlay <overlay-name>

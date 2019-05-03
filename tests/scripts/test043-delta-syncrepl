@@ -32,7 +32,7 @@ fi
 
 mkdir -p $TESTDIR $DBDIR1A $DBDIR1B $DBDIR2
 
-SPEC="mdb=a,bdb=a,hdb=a"
+SPEC="mdb=a"
 
 #
 # Test replication:

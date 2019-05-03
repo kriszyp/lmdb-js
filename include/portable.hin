@@ -96,12 +96,6 @@
 /* Define to 1 if you have the `bcopy' function. */
 #undef HAVE_BCOPY
 
-/* define this if Berkeley DB is available */
-#undef HAVE_BERKELEY_DB
-
-/* define if Berkeley DB has DB_THREAD support */
-#undef HAVE_BERKELEY_DB_THREAD
-
 /* Define to 1 if you have the <bits/types.h> header file. */
 #undef HAVE_BITS_TYPES_H
 
@@ -927,9 +921,6 @@
 /* define to support LDAP Async Metadirectory backend */
 #undef SLAPD_ASYNCMETA
 
-/* define to support BDB backend */
-#undef SLAPD_BDB
-
 /* define to support cleartext passwords */
 #undef SLAPD_CLEARTEXT
 
@@ -938,9 +929,6 @@
 
 /* define to support DNS SRV backend */
 #undef SLAPD_DNSSRV
-
-/* define to support HDB backend */
-#undef SLAPD_HDB
 
 /* define to support LDAP backend */
 #undef SLAPD_LDAP

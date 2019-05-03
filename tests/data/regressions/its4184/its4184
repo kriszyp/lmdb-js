@@ -16,10 +16,6 @@
 echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
 
-if test "$BACKEND" != "bdb" && test "$BACKEND" != "hdb" ; then
-	echo "Warning: this test is known to affect bdb and hdb, although it may impact other backends as well."
-fi
-
 mkdir -p $DBDIR1A $DBDIR2A
 
 ITS=4184

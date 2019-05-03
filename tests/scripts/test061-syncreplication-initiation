@@ -63,7 +63,6 @@ KILLPIDS=
 $SLAPPASSWD -g -n >$CONFIGPWF
 
 case "$BACKEND" in
-	bdb|hdb)	olcDbCheckpoint="olcDbCheckpoint";;
 	*)		olcDbCheckpoint="# olcDbCheckpoint";;
 esac
 

@@ -1818,7 +1818,6 @@ struct BackendDB {
 
 /*
  * define to honor hasSubordinates operational attribute in search filters
- * (in previous use there was a flaw with back-bdb; now it is fixed).
  */
 #define		be_has_subordinates bd_info->bi_has_subordinates
 

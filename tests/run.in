@@ -24,8 +24,6 @@ EGREP_CMD="@EGREP@"
 export SRCDIR TOPSRCDIR LN_S EGREP_CMD
 
 # backends known to ./run -b <backend> (used to deduce $BACKENDTYPE)
-AC_bdb=@BUILD_BDB@
-AC_hdb=@BUILD_HDB@
 AC_ldif=yes
 AC_mdb=@BUILD_MDB@
 AC_null=@BUILD_NULL@
@@ -74,7 +72,7 @@ fi
 if test "${AC_asyncmeta}" = "metamod" && test "${AC_LIBS_DYNAMIC}" = "static" ; then
 	AC_meta="asyncmetano"
 fi
-export AC_bdb AC_hdb AC_ldap AC_mdb AC_meta AC_asyncmeta AC_monitor AC_null AC_relay AC_sql \
+export AC_ldap AC_mdb AC_meta AC_asyncmeta AC_monitor AC_null AC_relay AC_sql \
 	AC_accesslog AC_autoca AC_constraint AC_dds AC_dynlist AC_memberof AC_pcache AC_ppolicy \
 	AC_refint AC_retcode AC_rwm AC_unique AC_syncprov AC_translucent \
 	AC_valsort \
@@ -158,7 +156,7 @@ while test $# -gt 0 ; do
 done
 
 if test -z "$BACKEND" ; then
-	for b in bdb hdb mdb ; do
+	for b in mdb ; do
 		if eval "test \"\$AC_$b\" != no" ; then
 			BACKEND=$b
 			break
@@ -179,7 +177,7 @@ fi
 # maindb: main storage backend.  Currently index,limits,mode,paged results.
 INDEXDB=noindexdb MAINDB=nomaindb
 case $BACKEND in
-	bdb|hdb|mdb) INDEXDB=indexdb MAINDB=maindb ;;
+	mdb) INDEXDB=indexdb MAINDB=maindb ;;
 	ndb) INDEXDB=indexdb ;;
 esac
 

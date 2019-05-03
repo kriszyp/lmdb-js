@@ -72,11 +72,10 @@ EOF
 	fi
 fi
 
-indexInclude="" mainInclude="" bdbInclude="# " nullExclude=""
+indexInclude="" mainInclude="" " nullExclude=""
 test $INDEXDB = indexdb	|| indexInclude="# "
 test $MAINDB  = maindb	|| mainInclude="# "
 case $BACKEND in
-bdb | hdb) bdbInclude="" ;;
 null) nullExclude="# " ;;
 esac
 
@@ -114,7 +113,6 @@ olcRootDN: cn=Manager,$BASEDN
 olcRootPW:: c2VjcmV0
 olcMonitoring: TRUE
 ${nullExclude}olcDbDirectory: $TESTDIR/db.1.a/
-${bdbInclude}olcDbCacheSize: 1000
 ${indexInclude}olcDbIndex: objectClass eq
 ${indexInclude}olcDbIndex: cn pres,eq,sub
 ${indexInclude}olcDbIndex: uid pres,eq,sub
