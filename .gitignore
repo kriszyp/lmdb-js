@@ -1,6 +1,7 @@
 
 # Build and test data
 build
+prebuilds
 testdata
 test/testdata
 benchmark/benchdata
@@ -41,3 +42,4 @@ node_modules/
 # Visual Studio Code directory
 .vscode
 
+package-lock.json

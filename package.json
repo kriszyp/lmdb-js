@@ -30,12 +30,15 @@
   "version": "0.6.2",
   "main": "./index.js",
   "scripts": {
+    "install": "prebuild-install || node-gyp rebuild",
+    "prebuild": "prebuild --all --verbose",
     "test": "./node_modules/.bin/mocha test/**.test.js --recursive",
     "benchmark": "node ./benchmark/index.js"
   },
   "gypfile": true,
   "dependencies": {
     "bindings": "^1.2.1",
+    "prebuild-install": "^5.2.5",
     "nan": "^2.12.0"
   },
   "devDependencies": {
@@ -44,6 +47,7 @@
     "mkdirp": "^0.5.1",
     "mocha": "^5.2.0",
     "node-gyp": "^3.6.0",
+    "prebuild": "8.2.1",
     "rimraf": "^2.6.1",
     "jshint": "^2.9.4"
   }
