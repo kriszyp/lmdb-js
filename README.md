@@ -377,9 +377,9 @@ git remote add lmdb https://github.com/LMDB/lmdb.git
 # Fetch new remote
 git fetch lmdb
 # Adding the subtree (when it's not there yet)
-git subtree add  --prefix=dependencies/lmdb lmdb HEAD --squash
+git subtree add  --prefix=dependencies/lmdb lmdb mdb.RE/0.9 --squash
 # Updating the subtree (when already added)
-git subtree pull --prefix=dependencies/lmdb lmdb HEAD --squash
+git subtree pull --prefix=dependencies/lmdb lmdb mdb.RE/0.9 --squash
 ```
 
 ### Developer FAQ
