@@ -417,7 +417,7 @@ ldap_sync_search(
 	/* If we're using a log but we have no state, then fallback to
 	 * normal mode for a full refresh.
 	 */
-	if ( si->si_syncdata && !si->si_syncCookie.numcsns ) {
+	if ( si->si_syncdata && !si->si_syncCookie.numcsns && !si->si_refreshDone ) {
 		si->si_logstate = SYNCLOG_FALLBACK;
 	}
 
@@ -1194,6 +1194,7 @@ do_syncrep2(
 			if ( err == LDAP_SUCCESS
 				&& si->si_logstate == SYNCLOG_FALLBACK ) {
 				si->si_logstate = SYNCLOG_LOGGING;
+				si->si_refreshDone = 1;
 				rc = LDAP_SYNC_REFRESH_REQUIRED;
 				slap_resume_listeners();
 			} else {
