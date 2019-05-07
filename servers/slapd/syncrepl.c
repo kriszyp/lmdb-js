@@ -553,7 +553,8 @@ ldap_sync_search(
 			}
 		} else
 #endif
-		if ( si->si_logstate == SYNCLOG_LOGGING && !si->si_syncCookie.numcsns ) {
+		if ( si->si_logstate == SYNCLOG_LOGGING && !si->si_syncCookie.numcsns &&
+				!si->si_refreshDone ) {
 			si->si_logstate = SYNCLOG_FALLBACK;
 		}
 	}
@@ -1492,6 +1493,7 @@ logerr:
 			if ( err == LDAP_SUCCESS
 				&& si->si_logstate == SYNCLOG_FALLBACK ) {
 				si->si_logstate = SYNCLOG_LOGGING;
+				si->si_refreshDone = 1;
 				rc = LDAP_SYNC_REFRESH_REQUIRED;
 				slap_resume_listeners();
 			} else {
