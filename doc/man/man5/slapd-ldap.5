@@ -585,6 +585,7 @@ is used.
 .HP
 .hy 0
 .B tls {[try\-]start|[try\-]propagate|ldaps}
+.B [starttls=no]
 .B [tls_cert=<file>]
 .B [tls_key=<file>]
 .B [tls_cacert=<file>]
@@ -605,7 +606,9 @@ if the StartTLS operation failed; its use is \fBnot\fP recommended.
 The TLS settings default to the same as the main slapd TLS settings,
 except for
 .B tls_reqcert
-which defaults to "demand".
+which defaults to "demand" and
+.B starttls
+which is ignored.
 .RE
 
 .TP
