@@ -13,7 +13,7 @@ var getRandomBuffer = () => {
 	return randomBuffer
 }
 suite('performance', function() {
-	//removeSync('tests/db')
+	removeSync('tests/db')
 
 //	const level = openLevel('tests/db/test-level')
 console.log('opening')
@@ -59,13 +59,15 @@ console.log('opened')
 	test.only('lmdb-write', () => {
 		let last
 		console.log('starting')
+		let cpuStart = process.cpuUsage()
+		let start = Date.now()
 		for (let i = 0; i < 1000; i++) {
 			let start = Date.now()
 			let actionTime
 			let cpuStart = process.cpuUsage()
 
 			lmdb.transaction(() => {
-				for (let j = 0; j < 100; j++) {
+				for (let j = 0; j < 10; j++) {
 					let buffer = Buffer.allocUnsafe(4)
 					buffer.writeInt32BE(Math.round(Math.random() * (i * 100 + j)))
 					last= lmdb.putSync(buffer, sampleBuffer.slice(0, Math.round(Math.random() * (i * 100 + j))))
@@ -74,11 +76,13 @@ console.log('opened')
 			})
 			let duration = Date.now() - start
 			if (duration > 10) {
-				cpuDuration = process.cpuUsage(cpuStart)
+				let cpuDuration = process.cpuUsage(cpuStart)
 				console.log(i, 'duration', duration, 'actions time:', actionTime, 'transaction:', duration - actionTime,
 					'user cpu:', cpuDuration.user, 'system cpu:', cpuDuration.system)
 			}
 		}
+		let cpuDuration = process.cpuUsage(cpuStart)
+		console.log('total time',  Date.now() - start, 'user cpu:', cpuDuration.user, 'system cpu:', cpuDuration.system)
 		return last
 	})
 	test('lmdb-read', () => {
