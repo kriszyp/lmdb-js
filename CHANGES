@@ -9,12 +9,14 @@ OpenLDAP 2.4.48 Engineering
 	Fixed libldap_r handling of deprecated OpenSSL function (ITS#8353)
 	Fixed slapd with an idletimeout of less than four seconds (ITS#8952)
 	Fixed slapd config parser variable for Windows64 (ITS#9012)
+	Fixed slapd syncrepl fallback handling with delta-syncrepl (ITS#9015)
 	Fixed slapo-accesslog with SLAP_MOD_SOFT modifications (ITS#8990)
 	Fixed slapd-ldap starttls connections timeout behavior (ITS#8963)
 	Fixed slapd-mdb fix bitshift integer overflow (ITS#8989)
 	Fixed slapd-mdb index cleanup with cn=config (ITS#8472)
 	Fixed slapo-accesslog possible assert with exops (ITS#8971)
 	Fixed slapo-memberof conversion from slapd.conf to cn=config (ITS#8663)
+	Fixed slapo-syncprov contextCSN generation (ITS#9015)
 	Build Environment
 		Fixed slapd to only link to BDB libraries with static build (ITS#8948)
 	Documentation
