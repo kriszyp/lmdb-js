@@ -1336,7 +1336,7 @@ chain_ldadd( CfEntryInfo *p, Entry *e, ConfigArgs *ca )
 
 	} else
 #endif
-	if ( lc->lc_common_li != NULL && at == NULL ) {
+	if ( lc->lc_common_li != NULL && lc->lc_common_li != lc->lc_cfg_li && at == NULL ) {
 		/* FIXME: we should generate an empty default entry
 		 * if none is supplied */
 		Debug( LDAP_DEBUG_ANY, "slapd-chain: "
@@ -1356,6 +1356,7 @@ chain_ldadd( CfEntryInfo *p, Entry *e, ConfigArgs *ca )
 
 	}
 	rc = ldap_chain_db_init_one( ca->be );
+	lc->lc_cfg_li = NULL;
 
 	if ( rc != 0 ) {
 fail:
@@ -1460,6 +1461,8 @@ chain_cfadd( Operation *op, SlapReply *rs, Entry *p, ConfigArgs *ca )
 
 		ca->be->be_private = priv;
 	}
+
+	lc->lc_cfg_li = NULL;
 
 	return 0;
 }
