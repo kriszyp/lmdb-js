@@ -2220,7 +2220,7 @@ meta_back_cf_gen( ConfigArgs *c )
 
 	case LDAP_BACK_CFG_FILTER: {
 		metafilter_t *mf, **m2;
-		mf = ch_malloc( sizeof( metafilter_t ));
+		mf = ch_calloc( 1, sizeof( metafilter_t ));
 		rc = regcomp( &mf->mf_regex, c->argv[1], REG_EXTENDED );
 		if ( rc ) {
 			char regerr[ SLAP_TEXT_BUFLEN ];
