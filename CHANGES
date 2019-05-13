@@ -12,6 +12,7 @@ OpenLDAP 2.4.48 Engineering
 	Fixed slapd syncrepl fallback handling with delta-syncrepl (ITS#9015)
 	Fixed slapo-accesslog with SLAP_MOD_SOFT modifications (ITS#8990)
 	Fixed slapd-ldap starttls connections timeout behavior (ITS#8963)
+	Fixed slapd-meta conversion from slapd.conf to cn=config (ITS#8743)
 	Fixed slapd-mdb fix bitshift integer overflow (ITS#8989)
 	Fixed slapd-mdb index cleanup with cn=config (ITS#8472)
 	Fixed slapo-accesslog possible assert with exops (ITS#8971)
