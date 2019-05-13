@@ -72,7 +72,7 @@ EOF
 	fi
 fi
 
-indexInclude="" mainInclude="" " nullExclude=""
+indexInclude="" mainInclude="" nullExclude=""
 test $INDEXDB = indexdb	|| indexInclude="# "
 test $MAINDB  = maindb	|| mainInclude="# "
 case $BACKEND in

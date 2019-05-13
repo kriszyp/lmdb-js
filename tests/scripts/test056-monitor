@@ -85,7 +85,7 @@ echo "Using ldapsearch to read database monitor entries..."
 $LDAPSEARCH -S "" -b "$DATABASESMONITORDN" -h $LOCALHOST -p $PORT1 \
 	'objectclass=*' \
 	structuralObjectClass entryDN namingContexts readOnly \
-	monitorIsShadow monitorContext
+	monitorIsShadow monitorContext \
 	> $SEARCHOUT 2>&1
 RC=$?
 
@@ -98,15 +98,8 @@ fi
 echo "Filtering ldapsearch results..."
 $LDIFFILTER -b monitor < $SEARCHOUT > $SEARCHFLT
 
-TMPMONITOROUT2=$MONITOROUT2
-case $BACKEND in
-*)
-	TMPMONITOROUT2=$TESTDIR/monitor2.out
-	;;
-esac
-
 echo "Comparing filter output..."
-$CMP $SEARCHFLT $TMPMONITOROUT2 > $CMPOUT
+$CMP $SEARCHFLT $MONITOROUT2 > $CMPOUT
 
 if test $? != 0 ; then
         echo "comparison failed - database monitor output is not correct"
