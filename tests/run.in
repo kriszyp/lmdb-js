@@ -69,7 +69,7 @@ fi
 if test "${AC_meta}" = "metamod" && test "${AC_LIBS_DYNAMIC}" = "static" ; then
 	AC_meta="metano"
 fi
-if test "${AC_asyncmeta}" = "metamod" && test "${AC_LIBS_DYNAMIC}" = "static" ; then
+if test "${AC_asyncmeta}" = "asyncmetamod" && test "${AC_LIBS_DYNAMIC}" = "static" ; then
 	AC_meta="asyncmetano"
 fi
 export AC_ldap AC_mdb AC_meta AC_asyncmeta AC_monitor AC_null AC_relay AC_sql \
