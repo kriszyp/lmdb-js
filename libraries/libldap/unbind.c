@@ -131,7 +131,9 @@ ldap_ld_free(
 	}
 	LDAP_MUTEX_UNLOCK( &ld->ld_res_mutex );
 
-	ber_sockbuf_free( ld->ld_sb );
+	/* Should already be closed by ldap_free_connection which knows not to free
+	 * this one */
+	ber_int_sb_destroy( ld->ld_sb );
 
 	LDAP_MUTEX_LOCK( &ld->ld_ldopts_mutex );
 
