@@ -70,23 +70,24 @@ class ArrayLikeIterable {
 		//return Array.from(this)
 	}
 	get asArray() {
-		return this._asArray || (this._asArray = new Promise((resolve, reject) => {
-			let iterator = this[Symbol.iterator](true)
-			let array = []
-			let iterable = this
-			function next(result) {
-				while (result.done !== true) {
-					if (result.then) {
-						return result.then(next)
-					} else {
-						array.push(result.value)
-					}
-					result = iterator.next()
+		if (this._asArray)
+			return this._asArray
+
+		let iterator = this[Symbol.iterator]()
+		let array = []
+		let iterable = this
+		function next(result) {
+			while (result.done !== true) {
+				if (result.then) {
+					return result.then(next)
+				} else {
+					array.push(result.value)
 				}
-				resolve(iterable._asArray = array)
+				result = iterator.next()
 			}
-			next(iterator.next())
-		}))
+			return iterable._asArray = array
+		}
+		return next(iterator.next())
 	}
 	resolveData() {
 		return this.asArray

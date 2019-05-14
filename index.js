@@ -4,7 +4,7 @@ const { Env, openDbi, Cursor } = require('node-lmdb')
 const { ArrayLikeIterable } = require('./util/ArrayLikeIterable')
 //import { Database } from './Database'
 const when  = require('./util/when')
-const { WeakValueMap } = require('./util/WeakValueMap')
+const EventEmitter = require('events')
 
 const STARTING_ARRAY = [null]
 const VALUE_OVERFLOW_THRESHOLD = 2048
@@ -36,9 +36,6 @@ function open(path, options) {
 	let committingWrites
 	let scheduledWrites
 	let scheduledOperations
-	let sharedBuffersActive = new WeakValueMap()
-	let sharedBuffersToInvalidate = new WeakValueMap()
-	let shareId = 0
 	let extension = pathModule.extname(path)
 	let name = pathModule.basename(path, extension)
     fs.ensureDirSync(pathModule.dirname(path))
@@ -54,6 +51,7 @@ function open(path, options) {
 		console.info('Removed', path)
 	}
 	env.open(options)
+	let events = new EventEmitter()
 
 	function openDB() {
 		try {
@@ -72,14 +70,13 @@ function open(path, options) {
 		env,
 		path,
 		name,
+		events,
 		bytesRead: 0,
 		bytesWritten: 0,
 		reads: 0,
 		writes: 0,
 		transactions: 0,
 		readTxn: env.beginTxn(READING_TNX),
-//		sharedBuffersActiveTxn: env.beginTxn(READING_TNX),
-//		sharedBuffersToInvalidateTxn: env.beginTxn(READING_TNX),
 		transaction(execute, noSync, abort) {
 			let result
 			if (this.writeTxn) {
@@ -121,7 +118,7 @@ function open(path, options) {
 				this.writeTxn = null
 			}
 		},
-		get(id, options) {
+		get(id, copy) {
 			let txn
 			try {
 				const writeTxn = this.writeTxn
@@ -131,25 +128,24 @@ function open(path, options) {
 					txn = this.readTxn
 					txn.renew()
 				}
-				let result = (options && options.noCopy) ? txn.getBinaryUnsafe(db, id, AS_BINARY) : txn.getBinary(db, id, AS_BINARY)
-				
-				if (!writeTxn) {
-					txn.reset()
+				let result = copy ? txn.getBinaryUnsafe(db, id, AS_BINARY) : txn.getBinary(db, id, AS_BINARY)
+				if (result === null) // missing entry, really should be undefined
+					result = undefined
+				else
+					this.bytesRead += result.length || 1
+				try {
+					if (copy)
+						result = copy(result)
+				} finally {
+					if (!writeTxn) {
+						txn.reset()
+					}
 				}
-				this.bytesRead += result && result.length || 1
 				this.reads++
-				if (result !== null) // missing entry, really should be undefined
-					return result
+				return result
 			} catch(error) {
 				return handleError(error, this, txn, () => this.get(id))
 			}
-		},
-		notifyOnInvalidation(buffer, onInvalidation) {
-			if (!buffer)
-				return
-			let parentArrayBuffer = buffer.buffer // this is the internal ArrayBuffer with that references the external/shared memory
-			sharedBuffersActive.set(shareId++, parentArrayBuffer)
-			parentArrayBuffer.onInvalidation = onInvalidation
 		},
 		put(id, value, ifValue) {
 			if (!scheduledOperations) {
@@ -216,9 +212,9 @@ function open(path, options) {
 			return ifValue === undefined ? commit.unconditionalResults :
 				commit.results.then((writeResults) => writeResults[index] === 0)
 		},
-		iterable(options) {
+		getRange(options) {
 			let iterable = new ArrayLikeIterable()
-			iterable[Symbol.iterator] = (async) => {
+			iterable[Symbol.iterator] = () => {
 				let currentKey = options.start || (options.reverse ? Buffer.from([255, 255]) : Buffer.from([0]))
 				let endKey = options.end || (options.reverse ? Buffer.from([0]) : Buffer.from([255, 255]))
 				const reverse = options.reverse
@@ -315,6 +311,7 @@ function open(path, options) {
 					when(this.currentCommit, () => {
 						let timeout = setTimeout(this.runNextBatch = () => {
 							this.runNextBatch = null
+							events.emit('beforecommit', { scheduledOperations })
 							clearTimeout(timeout)
 							this.currentCommit = whenCommitted
 							this.pendingBatch = null
@@ -387,45 +384,14 @@ function open(path, options) {
 			db.close()
 			env.close()
 		},
-		resetSharedBuffers(force) {
-			// these have to overlap, so we can access the old buffers and be assured anything that sticks around still has a read txn before it
-/*			let toAbort = this.sharedBuffersToInvalidateTxn
-			this.sharedBuffersToInvalidateTxn = this.sharedBuffersActiveTxn
-			if (!force)
-				this.sharedBuffersActiveTxn = env.beginTxn(READING_TNX)*/
-
-			let newSharedBuffersActive = new WeakValueMap();
-			[sharedBuffersToInvalidate, sharedBuffersActive].forEach((sharedBuffers, i) => {
-				let bufferIds = sharedBuffers._keysAsArray()
-				for (const id of bufferIds) {
-					let buffer = sharedBuffers.get(id)
-					let forceUnload = force || buffer.length < VALUE_OVERFLOW_THRESHOLD
-					if (buffer && buffer.onInvalidation) {
-						if (buffer.onInvalidation(forceUnload || i) === false && !forceUnload) {
-							newSharedBuffersActive.set(id, buffer)
-						}
-						// else false is specifically indicating that the shared buffer is still valid, so keep it around in that case
-					}
-				}
-			})
-			if (force) {
-				sharedBuffersToInvalidate = new WeakValueMap()
-			} else {
-				sharedBuffersToInvalidate = sharedBuffersActive
-			}
-			sharedBuffersActive = newSharedBuffersActive
-			/*try {
-				toAbort.abort() // release the previous shared buffer txn
-			} catch(error) {
-				console.warn(error)
-			}
-			try {
-			if (force) {
-				this.sharedBuffersToInvalidateTxn.abort()
-			}
-			} catch(error) {
-				console.warn(error)
-			}*/
+		on(event, callback) {
+			return events.on(event, callback)
+		},
+		once(event, callback) {
+			return events.once(event, callback)
+		},
+		emit(event) {
+			return events.emit.apply(events, arguments)
 		},
 		sync(callback) {
 			return env.sync(callback || function(error) {
@@ -488,11 +454,7 @@ function open(path, options) {
 		if (error.message.startsWith('MDB_MAP_FULL') || error.message.startsWith('MDB_MAP_RESIZED')) {
 			const newSize = Math.ceil(env.info().mapSize * 1.3 / 0x200000 + 1) * 0x200000
 			if (db) {
-				try {
-				db.resetSharedBuffers(true)
-				}catch (error) {
-					console.error(error)
-				}
+				db.emit('remap')
 			}
 
 			env.resize(newSize)
@@ -500,13 +462,12 @@ function open(path, options) {
 			if (db) {
 				db.readTxn = env.beginTxn(READING_TNX)
 				db.readTxn.reset()
-				//db.sharedBuffersActiveTxn = env.beginTxn(READING_TNX)
-				//db.sharedBuffersToInvalidateTxn = env.beginTxn(READING_TNX)
 			}
 			let result = retry()
 			return result
 		} else if (error.message.startsWith('MDB_PAGE_NOTFOUND') || error.message.startsWith('MDB_CURSOR_FULL') || error.message.startsWith('MDB_CORRUPTED') || error.message.startsWith('MDB_INVALID')) {
 			// the noSync setting means that we can have partial corruption and we need to be able to recover
+			db.emit('remap')
 			try {
 				env.close()
 			} catch (error) {}
