@@ -227,24 +227,6 @@ esac
 AC_SUBST(ldap_subdir)dnl
 
 dnl ----------------------------------------------------------------
-dnl --with-moduledir
-
-moduledir="openldap"
-
-AC_ARG_WITH(moduledir,
-[  --with-moduledir=DIR    change default module subdirectory used for installs],
-[case "$withval" in
-	no) moduledir=""
-		;;
-	yes)
-		;;
-	*)
-		moduledir="$withval"
-		;;
-esac
-])dnl
-
-dnl ----------------------------------------------------------------
 dnl General "enable" options
 dnl set default to traditional to enable the original debug style
 OL_ARG_ENABLE(debug,[  --enable-debug 	  enable debugging], yes, [no yes traditional])dnl
@@ -541,21 +523,6 @@ fi
 AC_MSG_RESULT(done)
 
 dnl ----------------------------------------------------------------
-
-dnl set moduledir- if moduledir starts with a /, then leave it alone.
-dnl otherwise, prepend libexecdir to it.
-case $moduledir in
-	/*|\\*)
-		;;
-	*)
-		moduledir=$libexecdir/$moduledir
-		;;
-esac
-
-AC_SUBST(moduledir)
-
-dnl ----------------------------------------------------------------
-
 dnl Initialize vars
 LDAP_LIBS=
 SLAPD_NDB_LIBS=
