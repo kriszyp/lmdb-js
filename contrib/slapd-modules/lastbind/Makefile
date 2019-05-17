@@ -47,7 +47,7 @@ all: $(PROGRAMS)
 
 lastbind.la: lastbind.lo
 	$(LIBTOOL) --mode=link $(CC) $(OPT) -version-info $(LTVER) \
-	-rpath $(libdir) -module -o $@ $? $(LIBS)
+	-rpath $(moduledir) -module -o $@ $? $(LIBS)
 
 clean:
 	rm -rf *.o *.lo *.la .libs

@@ -47,15 +47,15 @@ all: $(PROGRAMS)
 
 pguid.la: pguid.lo
 	$(LIBTOOL) --mode=link $(CC) $(OPT) -version-info $(LTVER) \
-	-rpath $(libdir) -module -o $@ $? $(LIBS)
+	-rpath $(moduledir) -module -o $@ $? $(LIBS)
 
 rdnval.la: rdnval.lo
 	$(LIBTOOL) --mode=link $(CC) $(OPT) -version-info $(LTVER) \
-	-rpath $(libdir) -module -o $@ $? $(LIBS)
+	-rpath $(moduledir) -module -o $@ $? $(LIBS)
 
 vernum.la: vernum.lo
 	$(LIBTOOL) --mode=link $(CC) $(OPT) -version-info $(LTVER) \
-	-rpath $(libdir) -module -o $@ $? $(LIBS)
+	-rpath $(moduledir) -module -o $@ $? $(LIBS)
 
 clean:
 	rm -rf *.o *.lo *.la .libs
