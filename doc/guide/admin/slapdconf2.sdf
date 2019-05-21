@@ -466,11 +466,11 @@ DN may refer to a SASL identity.
 
 Entry-based Example:
 
->	olcRootDN: "cn=Manager,dc=example,dc=com"
+>	olcRootDN: cn=Manager,dc=example,dc=com
 
 SASL-based Example:
 
->	olcRootDN: "uid=root,cn=example.com,cn=digest-md5,cn=auth"
+>	olcRootDN: uid=root,cn=example.com,cn=digest-md5,cn=auth
 
 See the {{SECT:SASL Authentication}} section for information on
 SASL authentication identities.
@@ -520,7 +520,7 @@ in the configuration.)
 
 \Example:
 
->	olcSuffix: "dc=example,dc=com"
+>	olcSuffix: dc=example,dc=com
 
 Queries with a DN ending in "dc=example,dc=com"
 will be passed to this backend.
@@ -933,7 +933,7 @@ H4: Sample Entry
 >objectClass: olcDatabaseConfig
 >objectClass: olcMdbConfig
 >olcDatabase: mdb
->olcSuffix: "dc=example,dc=com"
+>olcSuffix: dc=example,dc=com
 >olcDbDirectory: /usr/local/var/openldap-data
 >olcDbIndex: objectClass eq
 
@@ -1079,9 +1079,9 @@ E: 52.    dn: olcDatabase=mdb,cn=config
 E: 53.    objectClass: olcDatabaseConfig
 E: 54.    objectClass: olcMdbConfig
 E: 55.    olcDatabase: mdb
-E: 56.    olcSuffix: "dc=example,dc=net"
+E: 56.    olcSuffix: dc=example,dc=net
 E: 57.    olcDbDirectory: /usr/local/var/openldap-data-net
-E: 58.    olcRootDN: "cn=Manager,dc=example,dc=com"
+E: 58.    olcRootDN: cn=Manager,dc=example,dc=com
 E: 59.    olcDbIndex: objectClass eq
 E: 60.    olcAccess: to * by users read
 
