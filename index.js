@@ -38,7 +38,8 @@ function open(path, options) {
 	let scheduledOperations
 	let extension = pathModule.extname(path)
 	let name = pathModule.basename(path, extension)
-    fs.ensureDirSync(pathModule.dirname(path))
+	if (!fs.existsSync(pathModule.dirname(path)))
+    	fs.ensureDirSync(pathModule.dirname(path))
 	options = Object.assign({
 		path,
 		noSubdir: Boolean(extension),
@@ -211,6 +212,10 @@ function open(path, options) {
 			let commit = this.scheduleCommit()
 			return ifValue === undefined ? commit.unconditionalResults :
 				commit.results.then((writeResults) => writeResults[index] === 0)
+		},
+		iterable(options) {
+			console.warn('iterable is deprecated')
+			return this.getRange(options)
 		},
 		getRange(options) {
 			let iterable = new ArrayLikeIterable()

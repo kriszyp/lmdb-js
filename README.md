@@ -70,3 +70,7 @@ The `lmdb-store` instance includes `on` and `once` methods for listening to data
 ## License
 
 `lmdb-store` is licensed under the terms of the MIT license.
+
+## Related Projects
+
+`node-lmdb` 

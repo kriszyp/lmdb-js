@@ -1,7 +1,7 @@
 {
   "name": "lmdb-store",
   "author": "Kris Zyp",
-  "version": "0.1.4",
+  "version": "0.2.0",
   "description": "Simple, effiecent, scalable data store wrapper for LDMB",
   "license": "MIT",
   "repository": {
@@ -14,7 +14,7 @@
   "main": "./index.js",
   "typings": "./index.d.ts",
   "dependencies": {
-    "fs-extra": "^7.0.0",
+    "fs-extra": "^8.0.1",
     "node-lmdb": "kriszyp/node-lmdb#upgrades-0.3.5"
   },
   "devDependencies": {
