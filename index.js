@@ -145,7 +145,7 @@ function open(path, options) {
 				this.reads++
 				return result
 			} catch(error) {
-				return handleError(error, this, txn, () => this.get(id))
+				return handleError(error, this, txn, () => this.get(id, copy))
 			}
 		},
 		put(id, value, ifValue) {
@@ -180,7 +180,7 @@ function open(path, options) {
 			} catch(error) {
 				if (this.writeTxn)
 					throw error // if we are in a transaction, the whole transaction probably needs to restart
-				return handleError(error, this, txn, () => this.put(id, value))
+				return handleError(error, this, txn, () => this.putSync(id, value))
 			}
 		},
 		removeSync(id) {
@@ -201,7 +201,7 @@ function open(path, options) {
 				}
 				if (this.writeTxn)
 					throw error // if we are in a transaction, the whole transaction probably needs to restart
-				return handleError(error, this, txn, () => this.remove(id))
+				return handleError(error, this, txn, () => this.removeSync(id))
 			}
 		},
 		remove(id, ifValue) {
