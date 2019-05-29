@@ -6,6 +6,7 @@ const { ArrayLikeIterable } = require('./util/ArrayLikeIterable')
 const when  = require('./util/when')
 const EventEmitter = require('events')
 
+const RANGE_BATCH_SIZE = 100
 const STARTING_ARRAY = [null]
 const VALUE_OVERFLOW_THRESHOLD = 2048
 const AS_STRING = {
@@ -248,7 +249,9 @@ function open(path, options) {
 							currentKey = cursor.goToRange(currentKey)
 						}
 						let i = 0
-						while (!(finished = currentKey === null || (reverse ? currentKey.compare(endKey) <= 0 : currentKey.compare(endKey) >= 0)) && i++ < 100) {
+						while (!(finished = currentKey === null ||
+								(reverse ? currentKey.compare(endKey) <= 0 : currentKey.compare(endKey) >= 0)) &&
+							i++ < RANGE_BATCH_SIZE) {
 							try {
 								array.push(currentKey, options.values === false ? null : cursor.getCurrentBinary())
 							} catch(error) {
@@ -297,7 +300,6 @@ function open(path, options) {
 						}
 					},
 					return() {
-						console.log('return called on iterator', this.ended)
 						return { done: true }
 					},
 					throw() {
@@ -314,7 +316,7 @@ function open(path, options) {
 				// pendingBatch promise represents the completion of the transaction
 				let whenCommitted = new Promise((resolve, reject) => {
 					when(this.currentCommit, () => {
-						let timeout = setTimeout(this.runNextBatch = () => {
+						let timeout = setTimeout(this.runNextBatch = (results, error) => {
 							this.runNextBatch = null
 							events.emit('beforecommit', { scheduledOperations })
 							clearTimeout(timeout)
@@ -346,6 +348,10 @@ function open(path, options) {
 									})
 								}
 								doBatch()
+							} else if (error) {
+								reject(error)
+							} else {
+								resolve(results && results.length ? results : [])
 							}
 						}, 20)
 					})
@@ -356,12 +362,52 @@ function open(path, options) {
 				}
 			}
 			if (scheduledOperations && scheduledOperations.length > 3000 && this.runNextBatch) {
-				// past a certain threshold, run it immediately
+				// past a certain threshold, run it immediately and synchronously
 				let batch = this.pendingBatch
-				this.runNextBatch()
+				try {
+					let results = this.batchSync()
+					this.runNextBatch(results)
+				} catch (error) {
+					this.runNextBatch([], error)
+				}
 				return batch
 			}
 			return this.pendingBatch
+		},
+		batchSync() {
+			let value
+			let results = new Array(scheduledOperations.length)
+			this.transaction(() => {
+				for (let i = 0, l = scheduledOperations.length; i < l; i++) {
+					let [db, id, value, ifValue] = scheduledOperations[i]
+					if (ifValue !== undefined) {
+						value = this.get(id)
+						let matches
+						if (value) {
+							if (ifValue) {
+								matches = value.length >= ifValue.length && value.slice(0, ifValue.length).equals(ifValue)
+							} else {
+								matches = false
+							}
+						} else {
+							matches = !ifValue
+						}
+						if (!matches) {
+							results[i] = 1
+							continue
+						}
+					}
+					if (value === undefined) {
+						results[i] = this.removeSync(id) ? 0 : 2
+					} else {
+						this.putSync(id, value)
+						results[i] = 0
+					}
+				}
+			})
+			console.log('batchSync', scheduledOperations.length)
+			scheduledOperations = null
+			return results
 		},
 		batch(operations) {
 			this.writes += operations.length
