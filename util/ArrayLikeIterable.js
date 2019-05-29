@@ -16,31 +16,14 @@ class ArrayLikeIterable {
 		result[Symbol.iterator] = (async) => {
 			let iterator = source[Symbol.iterator](async)
 			return {
-				next(resolvedResult) {
+				next() {
 					let result
 					do {
-						let iteratorResult
-						if (resolvedResult) {
-							iteratorResult = resolvedResult
-							resolvedResult = null // don't go in this branch on next iteration
-						} else {
-							iteratorResult = iterator.next()
-							if (iteratorResult.then) {
-								return iteratorResult.then(iteratorResult => this.next(iteratorResult))
-							}
+						result = iterator.next()
+						if (result.done === true) {
+							return result
 						}
-						if (iteratorResult.done === true) {
-							return iteratorResult
-						}
-						result = func(iteratorResult.value)
-						if (result && result.then) {
-							return result.then(result =>
-								result == SKIP ?
-									this.next() :
-									{
-										value: result
-									})
-						}
+						result = func(result.value)
 					} while(result == SKIP)
 					return {
 						value: result
@@ -69,25 +52,20 @@ class ArrayLikeIterable {
 		throw new Error('Can not serialize async iteratables without first calling resolveJSON')
 		//return Array.from(this)
 	}
+	forEach(callback) {
+		let iterator = this[Symbol.iterator]()
+		let array = []
+		let result
+		while ((result = iterator.next()).done !== true) {
+			callback(result.value)
+		}
+	}
 	get asArray() {
 		if (this._asArray)
 			return this._asArray
-
-		let iterator = this[Symbol.iterator]()
 		let array = []
-		let iterable = this
-		function next(result) {
-			while (result.done !== true) {
-				if (result.then) {
-					return result.then(next)
-				} else {
-					array.push(result.value)
-				}
-				result = iterator.next()
-			}
-			return iterable._asArray = array
-		}
-		return next(iterator.next())
+		this.forEach((value) => array.push(value))
+		return this._asArray = array
 	}
 	resolveData() {
 		return this.asArray
