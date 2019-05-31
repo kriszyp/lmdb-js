@@ -61,7 +61,7 @@ for (let [key, value] of db.getRange({ start, end })) {
 
 ## Events
 
-The `lmdb-store` instance includes `on` and `once` methods for listening to database events. There are two events:
+The `lmdb-store` instance is an <a href="https://nodejs.org/dist/latest-v11.x/docs/api/events.html#events_class_eventemitter">EventEmitter</a>, allowing application to listen to database events. There are two events:
 
 `remap` - This event is fired before a database is resized, and the memory-map is remapped. If any data has been read using `get` with `noCopy` prior to this event, that data/buffer _must_ not be accessed after this event, or it will cause a segmentation fault and your program will exit (this is non-recoverable).
 
