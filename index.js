@@ -7,9 +7,7 @@ const when  = require('./util/when')
 const EventEmitter = require('events')
 
 const RANGE_BATCH_SIZE = 100
-const STARTING_ARRAY = [null]
-const VALUE_OVERFLOW_THRESHOLD = 2048
-const DEFAULT_SYNC_BATCH_THRESHOLD = 3000
+const DEFAULT_SYNC_BATCH_THRESHOLD = 20000000
 const AS_STRING = {
 	asBuffer: false
 }
@@ -30,7 +28,6 @@ function genericErrorHandler(err) {
 	}
 }
 let env
-const EXTENSION = '.mdpack'
 exports.open = open
 function open(path, options) {
 	let env = new Env()
@@ -74,8 +71,6 @@ function open(path, options) {
 			openDB()
 			this.dbName = dbName
 			this.env = env
-			this.bytesRead = 0
-			this.bytesWritten = 0
 			this.reads = 0
 			this.writes = 0
 			this.transactions = 0
@@ -141,8 +136,6 @@ function open(path, options) {
 				let result = copy ? txn.getBinaryUnsafe(this.db, id, AS_BINARY) : txn.getBinary(this.db, id, AS_BINARY)
 				if (result === null) // missing entry, really should be undefined
 					result = undefined
-				else
-					this.bytesRead += result.length || 1
 				try {
 					if (copy)
 						result = copy(result)
@@ -160,8 +153,11 @@ function open(path, options) {
 		put(id, value, ifValue) {
 			if (!scheduledOperations) {
 				scheduledOperations = []
+				scheduledOperations.bytes = 0
 			}
 			let index = scheduledOperations.push([this.db, id, value, ifValue]) - 1
+			// track the size of the scheduled operations (and include the approx size of the array structure too)
+			scheduledOperations.bytes += id.length + (value && value.length || 0) + (ifValue && ifValue.length || 0) + 200
 			let commit = this.scheduleCommit()
 			return ifValue === undefined ? commit.unconditionalResults :
 				commit.results.then((writeResults) => writeResults[index] === 0)
@@ -173,7 +169,6 @@ function open(path, options) {
 					throw new Error('putting string value')
 					value = Buffer.from(value)
 				}
-				this.bytesWritten += value && value.length || 0
 				this.writes++
 			    let startCpu = process.cpuUsage()
 				let start = Date.now()
@@ -216,8 +211,10 @@ function open(path, options) {
 		remove(id, ifValue) {
 			if (!scheduledOperations) {
 				scheduledOperations = []
+				scheduledOperations.bytes = 0
 			}
 			let index = scheduledOperations.push([this.db, id, undefined, ifValue]) - 1
+			scheduledOperations.bytes += id.length + (ifValue && ifValue.length || 0) + 200
 			let commit = this.scheduleCommit()
 			return ifValue === undefined ? commit.unconditionalResults :
 				commit.results.then((writeResults) => writeResults[index] === 0)
@@ -368,14 +365,14 @@ function open(path, options) {
 				})
 				this.pendingBatch = {
 					results: whenCommitted,
-					unconditionalResults: whenCommitted.then(() => true) // for returning for non-conditional
+					unconditionalResults: whenCommitted.then(() => true) // for returning from non-conditional operations
 				}
 			}
-			if (scheduledOperations && scheduledOperations.length >= this.syncBatchThreshold && this.runNextBatch) {
+			if (scheduledOperations && scheduledOperations.bytes >= this.syncBatchThreshold && this.runNextBatch) {
 				// past a certain threshold, run it immediately and synchronously
 				let batch = this.pendingBatch
 				try {
-					let results = this.batchSync()
+					let results = this.commitBatchNow()
 					this.runNextBatch(results)
 				} catch (error) {
 					this.runNextBatch([], error)
@@ -384,7 +381,7 @@ function open(path, options) {
 			}
 			return this.pendingBatch
 		}
-		batchSync() {
+		commitBatchNow() {
 			let value
 			let results = new Array(scheduledOperations.length)
 			this.transaction(() => {
@@ -415,29 +412,22 @@ function open(path, options) {
 					}
 				}
 			})
-			console.log('batchSync', scheduledOperations.length)
+			console.log('commitBatchNow', scheduledOperations.bytes, scheduledOperations.length)
 			scheduledOperations = null
 			return results
 		}
 		batch(operations) {
 			this.writes += operations.length
-			this.bytesWritten += operations.reduce((a, b) => a + (b.value && b.value.length || 0), 0)
+			if (!scheduledOperations) {
+				scheduledOperations = []
+				scheduledOperations.bytes = 0
+			}
 			for (let operation of operations) {
 				if (typeof operation.key != 'object')
 					throw new Error('non-buffer key')
-				try {
-					let value = operation.value
-					if (!scheduledOperations) {
-						scheduledOperations = []
-					}
-					scheduledOperations.push([this.db, operation.key, value])
-				} catch (error) {
-					if (error.message.startsWith('MDB_NOTFOUND')) {
-						// not an error
-					} else {
-						throw error
-					}
-				}
+				let value = operation.value
+				scheduledOperations.push([this.db, operation.key, value])
+				scheduledOperations.bytes += operation.key.length + (value && value.length || 0) + 200
 			}
 			return this.scheduleCommit().unconditionalResults
 		}
