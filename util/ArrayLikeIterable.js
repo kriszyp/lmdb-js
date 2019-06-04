@@ -16,14 +16,31 @@ class ArrayLikeIterable {
 		result[Symbol.iterator] = (async) => {
 			let iterator = source[Symbol.iterator](async)
 			return {
-				next() {
+				next(resolvedResult) {
 					let result
 					do {
-						result = iterator.next()
-						if (result.done === true) {
-							return result
+						let iteratorResult
+						if (resolvedResult) {
+							iteratorResult = resolvedResult
+							resolvedResult = null // don't go in this branch on next iteration
+						} else {
+							iteratorResult = iterator.next()
+							if (iteratorResult.then) {
+								return iteratorResult.then(iteratorResult => this.next(iteratorResult))
+							}
 						}
-						result = func(result.value)
+						if (iteratorResult.done === true) {
+							return iteratorResult
+						}
+						result = func(iteratorResult.value)
+						if (result && result.then) {
+							return result.then(result =>
+								result == SKIP ?
+									this.next() :
+									{
+										value: result
+									})
+						}
 					} while(result == SKIP)
 					return {
 						value: result
@@ -45,27 +62,42 @@ class ArrayLikeIterable {
 	filter(func) {
 		return this.map(element => func(element) ? element : SKIP)
 	}
-	toJSON() {
-		if (this._asArray && this._asArray.forEach) {
-			return this._asArray
-		}
-		throw new Error('Can not serialize async iteratables without first calling resolveJSON')
-		//return Array.from(this)
-	}
+
 	forEach(callback) {
 		let iterator = this[Symbol.iterator]()
-		let array = []
 		let result
 		while ((result = iterator.next()).done !== true) {
 			callback(result.value)
 		}
 	}
+	toJSON() {
+		if (this.asArray && this.asArray.forEach) {
+			return this.asArray
+		}
+		throw new Error('Can not serialize async iteratables without first calling resolveJSON')
+		//return Array.from(this)
+	}
 	get asArray() {
 		if (this._asArray)
 			return this._asArray
-		let array = []
-		this.forEach((value) => array.push(value))
-		return this._asArray = array
+		let promise = new Promise((resolve, reject) => {
+			let iterator = this[Symbol.iterator](true)
+			let array = []
+			let iterable = this
+			function next(result) {
+				while (result.done !== true) {
+					if (result.then) {
+						return result.then(next)
+					} else {
+						array.push(result.value)
+					}
+					result = iterator.next()
+				}
+				resolve(iterable._asArray = array)
+			}
+			next(iterator.next())
+		})
+		return this._asArray || (this._asArray = promise)
 	}
 	resolveData() {
 		return this.asArray
