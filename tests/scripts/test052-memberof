@@ -262,6 +262,11 @@ $LDAPMODIFY -h $LOCALHOST -p $PORT1 \
 	>> $TESTOUT 2>&1 << EOF
 dn: cn=Cartoonia,ou=Groups,$BASEDN
 changetype: modrdn
+newrdn: cn=Toon town
+deleteoldrdn: 1
+
+dn: cn=Toon town,ou=Groups,$BASEDN
+changetype: modrdn
 newrdn: cn=Toon Town
 deleteoldrdn: 1
 EOF
