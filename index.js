@@ -8,15 +8,11 @@ const EventEmitter = require('events')
 
 const RANGE_BATCH_SIZE = 100
 const DEFAULT_SYNC_BATCH_THRESHOLD = 20000000
-const AS_STRING = {
-	asBuffer: false
-}
 const AS_BINARY = {
 	keyIsBuffer: true
 }
-const AS_BINARY_ALLOW_NOT_FOUND = {
-	keyIsBuffer: true,
-	ignoreNotFound: true
+const AS_STRING = {
+	asBuffer: false
 }
 const READING_TNX = {
 	readOnly: true
@@ -133,7 +129,7 @@ function open(path, options) {
 					txn = readTxn
 					txn.renew()
 				}
-				let result = copy ? txn.getBinaryUnsafe(this.db, id, AS_BINARY) : txn.getBinary(this.db, id, AS_BINARY)
+				let result = copy ? txn.getBinaryUnsafe(this.db, id) : txn.getBinary(this.db, id)
 				if (result === null) // missing entry, really should be undefined
 					result = undefined
 				try {
@@ -174,7 +170,7 @@ function open(path, options) {
 				let start = Date.now()
 
 				txn = writeTxn || env.beginTxn()
-				txn.putBinary(this.db, id, value, AS_BINARY)
+				txn.putBinary(this.db, id, value)
 				/*if (Date.now() - start > 20)
 					console.log('after put', Date.now() - start, process.cpuUsage(startCpu))*/
 				if (!writeTxn) {
@@ -236,7 +232,7 @@ function open(path, options) {
 					let cursor
 					try {
 						readTxn.renew()
-						cursor = new Cursor(readTxn, this.db, AS_BINARY)
+						cursor = new Cursor(readTxn, this.db)
 						if (reverse) {
 							// for reverse retrieval, goToRange is backwards because it positions at the key equal or *greater than* the provided key
 							let nextKey = cursor.goToRange(currentKey)
@@ -321,7 +317,7 @@ function open(path, options) {
 				// pendingBatch promise represents the completion of the transaction
 				let whenCommitted = new Promise((resolve, reject) => {
 					when(this.currentCommit, () => {
-						let timeout = setTimeout(this.runNextBatch = (results, error) => {
+						let timeout = setTimeout(this.runNextBatch = (batchWriter) => {
 							this.runNextBatch = null
 							for (const store of stores) {
 								store.emit('beforecommit', { scheduledOperations })
@@ -334,16 +330,16 @@ function open(path, options) {
 								// operations to perform, collect them as an array and start doing them
 								let operations = scheduledOperations
 								scheduledOperations = null
-								const doBatch = () => {
+								const writeBatch = () => {
 									let start = Date.now()
-									env.batchWrite(operations, AS_BINARY_ALLOW_NOT_FOUND, (error, results) => {
+									let callback = (error, results) => {
 										let duration = Date.now() - start
 										this.averageTransactionTime = (this.averageTransactionTime * 3 + duration) / 4
 										//console.log('did batch', (duration) + 'ms', name, operations.length/*map(o => o[1].toString('binary')).join(',')*/)
 										if (error) {
 											try {
 												// see if we can recover from recoverable error (like full map with a resize)
-												handleError(error, this, null, doBatch)
+												handleError(error, this, null, writeBatch)
 											} catch(error) {
 												this.currentCommit = null
 												reject(error)
@@ -352,9 +348,13 @@ function open(path, options) {
 											this.currentCommit = null
 											resolve(results)
 										}
-									})
+									}
+									if (typeof batchWriter === 'function')
+										batchWriter(operations, callback)
+									else
+										env.batchWrite(operations, AS_BINARY, callback)
 								}
-								doBatch()
+								writeBatch()
 							} else if (error) {
 								reject(error)
 							} else {
@@ -371,22 +371,23 @@ function open(path, options) {
 			if (scheduledOperations && scheduledOperations.bytes >= this.syncBatchThreshold && this.runNextBatch) {
 				// past a certain threshold, run it immediately and synchronously
 				let batch = this.pendingBatch
-				try {
-					let results = this.commitBatchNow()
-					this.runNextBatch(results)
-				} catch (error) {
-					this.runNextBatch([], error)
-				}
+				this.runNextBatch((operations, callback) => {
+					try {
+						callback(null, this.commitBatchNow(operations))
+					} catch (error) {
+						callback(error)
+					}
+				})
 				return batch
 			}
 			return this.pendingBatch
 		}
-		commitBatchNow() {
+		commitBatchNow(operations) {
 			let value
-			let results = new Array(scheduledOperations.length)
+			let results = new Array(operations.length)
 			this.transaction(() => {
-				for (let i = 0, l = scheduledOperations.length; i < l; i++) {
-					let [db, id, value, ifValue] = scheduledOperations[i]
+				for (let i = 0, l = operations.length; i < l; i++) {
+					let [db, id, value, ifValue] = operations[i]
 					if (ifValue !== undefined) {
 						value = this.get(id)
 						let matches
@@ -412,8 +413,7 @@ function open(path, options) {
 					}
 				}
 			})
-			console.log('commitBatchNow', scheduledOperations.bytes, scheduledOperations.length)
-			scheduledOperations = null
+			console.log('commitBatchNow', operations.bytes, operations.length)
 			return results
 		}
 		batch(operations) {
