@@ -364,6 +364,12 @@ memberof_value_modify(
 	struct berval	values[ 4 ], nvalues[ 4 ];
 	int		mcnt = 0;
 
+	if ( old_ndn != NULL && new_ndn != NULL &&
+		ber_bvcmp( old_ndn, new_ndn ) == 0 ) {
+	    /* DNs compare equal, it's a noop */
+	    return;
+	}
+
 	op2.o_tag = LDAP_REQ_MODIFY;
 
 	op2.o_req_dn = *ndn;
