@@ -686,7 +686,7 @@ replica servers:
 >     directory /db/accesslog
 >     rootdn cn=accesslog
 >     index default eq
->     index entryCSN,objectClass,reqEnd,reqResult,reqStart
+>     index entryCSN,objectClass,reqEnd,reqResult,reqStart,reqDN
 >     
 >     overlay syncprov
 >     syncprov-nopresent TRUE
