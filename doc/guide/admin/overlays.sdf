@@ -108,7 +108,7 @@ The following is an example used for {{SECT:delta-syncrepl replication}}:
 >        directory /usr/local/var/openldap-accesslog
 >        rootdn cn=accesslog
 >        index default eq
->        index entryCSN,objectClass,reqEnd,reqResult,reqStart
+>        index entryCSN,objectClass,reqEnd,reqResult,reqStart,reqDN
 
 Accesslog overlay definitions for the primary db
 
