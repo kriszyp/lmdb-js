@@ -987,8 +987,6 @@ The following example is for a self-contained push-based replication solution:
 >	directory   /usr/local/var/openldap-data
 >	
 >	checkpoint      1024 5
->	cachesize       10000
->	idlcachesize    10000
 >	
 >	index       objectClass eq
 >	# rest of indexes
@@ -1073,8 +1071,6 @@ A replica configuration for this type of setup could be:
 >	directory   /usr/local/var/openldap-slave/data
 >	
 >	checkpoint      1024 5
->	cachesize       10000
->	idlcachesize    10000
 >	
 >	index       objectClass eq
 >	# rest of indexes

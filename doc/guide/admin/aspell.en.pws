@@ -220,8 +220,6 @@ AVAs
 associatedDomain
 organizationalRole
 initgroups
-olcDbCachesize
-olcDbCacheSize
 ETCDIR
 colaligns
 olcReadOnly
@@ -426,10 +424,8 @@ txt
 UTR
 XER
 roomNumber
-olcDbIDLcacheSize
 namespace
 LDAPControl
-dbconfig
 olcAttributeOptions
 dsaparam
 searchResult
@@ -964,7 +960,6 @@ unwillingToPerform
 PhotoURI
 MyCompany
 mkdep
-idlcachesize
 irresponsive
 PasswordModify
 readOnly
@@ -1182,7 +1177,6 @@ monitorRuntimeConfig
 olcAuditlogFile
 namingContexts
 referralAttrDN
-idlecachesize
 moddn
 calloc
 LDFLAGS
@@ -1374,7 +1368,6 @@ spasswd
 sprintf
 monitorCounterObject
 Instanstantiation
-olcDbConfig
 olcLastMod
 vals
 param
