@@ -984,7 +984,7 @@ ldap_pvt_tls_set_option( LDAP *ld, int option, void *arg )
 
 		if ( !tls_imp->ti_session_pinning ) return -1;
 
-		if ( !pin ) {
+		if ( !pin || !*pin ) {
 			if ( lo->ldo_tls_pin_hashalg ) {
 				LDAP_FREE( lo->ldo_tls_pin_hashalg );
 			} else if ( lo->ldo_tls_pin.bv_val ) {
