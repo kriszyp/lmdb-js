@@ -557,15 +557,6 @@ ldap_int_destroy_global_options(void)
  */
 void ldap_int_initialize_global_options( struct ldapoptions *gopts, int *dbglvl )
 {
-#ifdef LDAP_R_COMPILE
-	LDAP_PVT_MUTEX_FIRSTCREATE(gopts->ldo_mutex);
-#endif
-	LDAP_MUTEX_LOCK( &gopts->ldo_mutex );
-	if (gopts->ldo_valid == LDAP_INITIALIZED) {
-		/* someone else got here first */
-		LDAP_MUTEX_UNLOCK( &gopts->ldo_mutex );
-		return;
-	}
 	if (dbglvl)
 	    gopts->ldo_debug = *dbglvl;
 	else
@@ -629,7 +620,6 @@ void ldap_int_initialize_global_options( struct ldapoptions *gopts, int *dbglvl 
 	gopts->ldo_keepalive_idle = 0;
 
 	gopts->ldo_valid = LDAP_INITIALIZED;
-	LDAP_MUTEX_UNLOCK( &gopts->ldo_mutex );
    	return;
 }
 
@@ -643,7 +633,14 @@ int	ldap_int_stackguard;
 
 void ldap_int_initialize( struct ldapoptions *gopts, int *dbglvl )
 {
+#ifdef LDAP_R_COMPILE
+	LDAP_PVT_MUTEX_FIRSTCREATE( gopts->ldo_mutex );
+#endif
+
+	LDAP_MUTEX_LOCK( &gopts->ldo_mutex );
 	if ( gopts->ldo_valid == LDAP_INITIALIZED ) {
+		/* someone else got here first */
+		LDAP_MUTEX_UNLOCK( &gopts->ldo_mutex );
 		return;
 	}
 
@@ -659,7 +656,7 @@ void ldap_int_initialize( struct ldapoptions *gopts, int *dbglvl )
 	if ( WSAStartup( wVersionRequested, &wsaData ) != 0 ) {
 		/* Tell the user that we couldn't find a usable */
 		/* WinSock DLL.                                  */
-		return;
+		goto done;
 	}
  
 	/* Confirm that the WinSock DLL supports 2.0.*/
@@ -674,13 +671,13 @@ void ldap_int_initialize( struct ldapoptions *gopts, int *dbglvl )
 	    /* Tell the user that we couldn't find a usable */
 	    /* WinSock DLL.                                  */
 	    WSACleanup( );
-	    return; 
+	    goto done;
 	}
 }	/* The WinSock DLL is acceptable. Proceed. */
 #elif defined(HAVE_WINSOCK)
 {	WSADATA wsaData;
 	if ( WSAStartup( 0x0101, &wsaData ) != 0 ) {
-	    return;
+	    goto done;
 	}
 }
 #endif
@@ -705,14 +702,14 @@ void ldap_int_initialize( struct ldapoptions *gopts, int *dbglvl )
 
 #ifdef HAVE_CYRUS_SASL
 	if ( ldap_int_sasl_init() != 0 ) {
-		return;
+		goto done;
 	}
 #endif
 
 	ldap_int_initialize_global_options(gopts, dbglvl);
 
 	if( getenv("LDAPNOINIT") != NULL ) {
-		return;
+		goto done;
 	}
 
 #ifdef LDAP_R_COMPILE
@@ -739,7 +736,7 @@ void ldap_int_initialize( struct ldapoptions *gopts, int *dbglvl )
 
 #ifdef HAVE_GETEUID
 	if ( geteuid() != getuid() )
-		return;
+		goto done;
 #endif
 
 	openldap_ldap_init_w_userconf(LDAP_USERRC_FILE);
@@ -771,4 +768,7 @@ void ldap_int_initialize( struct ldapoptions *gopts, int *dbglvl )
 	}
 
 	openldap_ldap_init_w_env(gopts, NULL);
+
+done:
+	LDAP_MUTEX_UNLOCK( &gopts->ldo_mutex );
 }
