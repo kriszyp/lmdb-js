@@ -1894,7 +1894,7 @@ static struct {
 
 int bindconf_tls_set( slap_bindconf *bc, LDAP *ld )
 {
-	int i, rc, newctx = 0, res = 0;
+	int i, rc, res = 0;
 	char *ptr = (char *)bc, **word;
 
 	bc->sb_tls_do_init = 0;
@@ -1908,8 +1908,7 @@ int bindconf_tls_set( slap_bindconf *bc, LDAP *ld )
 					"bindconf_tls_set: failed to set %s to %s\n",
 						bindtlsopts[i].key, *word );
 				res = -1;
-			} else
-				newctx = 1;
+			}
 		}
 	}
 	if ( bc->sb_tls_reqcert ) {
@@ -1920,8 +1919,7 @@ int bindconf_tls_set( slap_bindconf *bc, LDAP *ld )
 				"bindconf_tls_set: failed to set tls_reqcert to %s\n",
 					bc->sb_tls_reqcert );
 			res = -1;
-		} else
-			newctx = 1;
+		}
 	}
 	if ( bc->sb_tls_protocol_min ) {
 		rc = ldap_pvt_tls_config( ld, LDAP_OPT_X_TLS_PROTOCOL_MIN,
@@ -1931,8 +1929,7 @@ int bindconf_tls_set( slap_bindconf *bc, LDAP *ld )
 				"bindconf_tls_set: failed to set tls_protocol_min to %s\n",
 					bc->sb_tls_protocol_min );
 			res = -1;
-		} else
-			newctx = 1;
+		}
 	}
 #ifdef HAVE_OPENSSL_CRL
 	if ( bc->sb_tls_crlcheck ) {
@@ -1943,17 +1940,15 @@ int bindconf_tls_set( slap_bindconf *bc, LDAP *ld )
 				"bindconf_tls_set: failed to set tls_crlcheck to %s\n",
 					bc->sb_tls_crlcheck );
 			res = -1;
-		} else
-			newctx = 1;
+		}
 	}
 #endif
-	if ( newctx ) {
+	if ( bc->sb_tls_ctx ) {
+		rc = ldap_set_option( ld, LDAP_OPT_X_TLS_CTX, bc->sb_tls_ctx );
+		if ( rc )
+			res = rc;
+	} else {
 		int opt = 0;
-
-		if ( bc->sb_tls_ctx ) {
-			ldap_pvt_tls_ctx_free( bc->sb_tls_ctx );
-			bc->sb_tls_ctx = NULL;
-		}
 		rc = ldap_set_option( ld, LDAP_OPT_X_TLS_NEWCTX, &opt );
 		if ( rc )
 			res = rc;
@@ -2030,14 +2025,7 @@ slap_client_connect( LDAP **ldp, slap_bindconf *sb )
 	slap_client_keepalive(ld, &sb->sb_keepalive);
 
 #ifdef HAVE_TLS
-	if ( sb->sb_tls_do_init ) {
-		rc = bindconf_tls_set( sb, ld );
-
-	} else if ( sb->sb_tls_ctx ) {
-		rc = ldap_set_option( ld, LDAP_OPT_X_TLS_CTX,
-			sb->sb_tls_ctx );
-	}
-
+	rc = bindconf_tls_set( sb, ld );
 	if ( rc ) {
 		Debug( LDAP_DEBUG_ANY,
 			"slap_client_connect: "
