@@ -611,6 +611,9 @@ ldap_connect_to_host(LDAP *ld, Sockbuf *sb,
 			continue;
 		}
 
+#ifndef LDAP_PF_INET6
+		if ( sai->ai_family == AF_INET6 ) continue;
+#endif
 		/* we assume AF_x and PF_x are equal for all x */
 		s = ldap_int_socket( ld, sai->ai_family, socktype );
 		if ( s == AC_SOCKET_INVALID ) {
