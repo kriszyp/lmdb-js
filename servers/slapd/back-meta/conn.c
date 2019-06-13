@@ -436,10 +436,7 @@ retry_lock:;
 		bindconf_tls_set( sb, msc->msc_ld );
 
 		if ( !is_ldaps ) {
-			if ( sb == &mt->mt_idassert.si_bc && sb->sb_tls_ctx ) {
-				do_start_tls = 1;
-
-			} else if ( META_BACK_TGT_USE_TLS( mt )
+			if ( META_BACK_TGT_USE_TLS( mt )
 				|| ( op->o_conn->c_is_tls && META_BACK_TGT_PROPAGATE_TLS( mt ) ) )
 			{
 				do_start_tls = 1;
