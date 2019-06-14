@@ -24,6 +24,7 @@ OpenLDAP 2.4.48 Engineering
 		Fixed slapd to only link to BDB libraries with static build (ITS#8948)
 	Documentation
 		General - Fixed minor typos (ITS#8764, ITS#8761)
+		admin24 - Miscellaneous updates promoting mdb and fixing examples (ITS#9031)
 		slapd.access(5) - Note MDB is the primary backend (ITS#8881)
 		slapd.backends(5) - Note MDB is the recommended backend (ITS#8771)
 		slapd-ldap(5) - Document starttls parameter (ITS#8693)
