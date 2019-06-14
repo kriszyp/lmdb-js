@@ -7,6 +7,7 @@ OpenLDAP 2.4.48 Engineering
 	Fixed libldap ASYNC connections with Solaris 10 (ITS#8968)
 	Fixed libldap with SASL_NOCANON=on and ldapi connections (ITS#7585)
 	Fixed libldap to use AI_ADDRCONFIG when available (ITS#7326)
+	Fixed libldap to be able to unset syncrepl TLS options (ITS#7042)
 	Fixed libldap_r handling of deprecated OpenSSL function (ITS#8353)
 	Fixed slapd with an idletimeout of less than four seconds (ITS#8952)
 	Fixed slapd config parser variable for Windows64 (ITS#9012)
