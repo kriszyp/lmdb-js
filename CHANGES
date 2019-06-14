@@ -10,6 +10,7 @@ OpenLDAP 2.4.48 Engineering
 	Fixed libldap to be able to unset syncrepl TLS options (ITS#7042)
 	Fixed libldap race condition in ldap_int_initialize (ITS#7996, ITS#8450)
 	Fixed libldap return code in ldap_create_assertion_control_value (ITS#8674)
+	Fixed libldap to correctly disable IPv6 when configured to do so (ITS#8754)
 	Fixed libldap_r handling of deprecated OpenSSL function (ITS#8353)
 	Fixed slapd with an idletimeout of less than four seconds (ITS#8952)
 	Fixed slapd config parser variable for Windows64 (ITS#9012)
