@@ -22,6 +22,7 @@ OpenLDAP 2.4.48 Engineering
 	Fixed slapd-ldap TLS settings on reconnection (ITS#8427)
 	Fixed slapd-meta conversion from slapd.conf to cn=config (ITS#8743)
 	Fixed slapd-meta TLS settings on reconnection (ITS#8427)
+	Fixed slapd-meta assertion when network interface goes down (ITS#8841)
 	Fixed slapd-mdb fix bitshift integer overflow (ITS#8989)
 	Fixed slapd-mdb index cleanup with cn=config (ITS#8472)
 	Fixed slapo-accesslog possible assert with exops (ITS#8971)
