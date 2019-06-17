@@ -24,6 +24,7 @@ OpenLDAP 2.4.48 Engineering
 	Fixed slapo-accesslog with SLAP_MOD_SOFT modifications (ITS#8990)
 	Fixed slapd-ldap starttls connections timeout behavior (ITS#8963)
 	Fixed slapd-ldap TLS settings on reconnection (ITS#8427)
+	Fixed slapd-ldap segfault when entry result doesn't match filter (ITS#8997)
 	Fixed slapd-meta conversion from slapd.conf to cn=config (ITS#8743)
 	Fixed slapd-meta TLS settings on reconnection (ITS#8427)
 	Fixed slapd-meta assertion when network interface goes down (ITS#8841)
