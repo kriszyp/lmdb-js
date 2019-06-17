@@ -1006,6 +1006,7 @@ retry:
 	e = ldap_first_entry( lc->lc_ld, result );
 	if ( e == NULL ) {
 		/* the entry exists, but it doesn't match the filter? */
+		rc = LDAP_NO_RESULTS_RETURNED;
 		goto cleanup;
 	}
 
