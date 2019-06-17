@@ -203,14 +203,16 @@ if defined, selects what
 identities are authorized to exploit the identity assertion feature.
 The string
 .B <authz-regexp>
-follows the rules defined for the
+mostly follows the rules defined for the
 .I authzFrom
 attribute.
 See 
 .BR slapd.conf (5),
 section related to
 .BR authz\-policy ,
-for details on the syntax of this field.
+for details on the syntax of this field.  This parameter differs from
+the documented behavior in relation to the meaning of *, which in this
+case allows anonymous rather than denies.
 
 .HP
 .hy 0
