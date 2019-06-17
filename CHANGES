@@ -31,6 +31,7 @@ OpenLDAP 2.4.48 Engineering
 	Fixed slapd-mdb index cleanup with cn=config (ITS#8472)
 	Fixed slapo-accesslog possible assert with exops (ITS#8971)
 	Fixed slapo-memberof conversion from slapd.conf to cn=config (ITS#8663)
+	Fixed slapo-rwm to not free original filter (ITS#8964)
 	Fixed slapo-syncprov contextCSN generation (ITS#9015)
 	Build Environment
 		Fixed slapd to only link to BDB libraries with static build (ITS#8948)
