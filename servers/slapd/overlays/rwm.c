@@ -125,11 +125,15 @@ rwm_op_rollback( Operation *op, SlapReply *rs, rwm_op_state *ros )
 		break;
 	case LDAP_REQ_SEARCH:
 		op->o_tmpfree( ros->mapped_attrs, op->o_tmpmemctx );
-		filter_free_x( op, op->ors_filter, 1 );
-		op->o_tmpfree( op->ors_filterstr.bv_val, op->o_tmpmemctx );
 		op->ors_attrs = ros->ors_attrs;
-		op->ors_filter = ros->ors_filter;
-		op->ors_filterstr = ros->ors_filterstr;
+		if ( op->ors_filter != ros->ors_filter ) {
+			filter_free_x( op, op->ors_filter, 1 );
+			op->ors_filter = ros->ors_filter;
+		}
+		if ( op->ors_filterstr.bv_val != ros->ors_filterstr.bv_val ) {
+			op->o_tmpfree( op->ors_filterstr.bv_val, op->o_tmpmemctx );
+			op->ors_filterstr = ros->ors_filterstr;
+		}
 		break;
 	case LDAP_REQ_EXTENDED:
 		if ( op->ore_reqdata != ros->ore_reqdata ) {
