@@ -38,6 +38,7 @@ OpenLDAP 2.4.48 Engineering
 	Fixed slapo-syncprov contextCSN generation (ITS#9015)
 	Build Environment
 		Fixed slapd to only link to BDB libraries with static build (ITS#8948)
+		Fixed libldap implicit declaration with LDAP_CONNECTIONLESS (ITS#8794)
 	Documentation
 		General - Fixed minor typos (ITS#8764, ITS#8761)
 		admin24 - Miscellaneous updates promoting mdb and fixing examples (ITS#9031)
