@@ -4,6 +4,7 @@ OpenLDAP 2.4.48 Engineering
 	Added libldap OpenSSL Elliptic Curve support (ITS#7595)
 	Added libldap Expose OpenLDAP specific interfaces in openldap.h (ITS#8671)
 	Fixed liblber leaks (ITS#8727)
+	Fixed liblber with partial flush (ITS#8864)
 	Fixed libldap ASYNC TLS so it works (ITS#8957,ITS#8980)
 	Fixed libldap ASYNC connections with Solaris 10 (ITS#8968)
 	Fixed libldap with SASL_NOCANON=on and ldapi connections (ITS#7585)
