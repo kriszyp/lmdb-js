@@ -38,11 +38,13 @@ static ConfigTable nullcfg[] = {
 		(void *)offsetof(null_info, ni_bind_allowed),
 		"( OLcfgDbAt:8.1 NAME 'olcDbBindAllowed' "
 		"DESC 'Allow binds to this database' "
+		"EQUALITY booleanMatch "
 		"SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
 	{ "dosearch", "true|FALSE", 1, 2, 0, ARG_ON_OFF|ARG_OFFSET,
 		(void *)offsetof(null_info, ni_dosearch),
 		"( OLcfgDbAt:8.2 NAME 'olcDbDoSearch' "
 		"DESC 'Return an entry on searches' "
+		"EQUALITY booleanMatch "
 		"SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
 	{ NULL, NULL, 0, 0, 0, ARG_IGNORED,
 		NULL, NULL, NULL, NULL }

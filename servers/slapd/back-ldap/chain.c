@@ -1239,12 +1239,14 @@ static ConfigTable chaincfg[] = {
 		2, 4, 0, ARG_MAGIC|ARG_BERVAL|CH_CHAINING, chain_cf_gen,
 		"( OLcfgOvAt:3.1 NAME 'olcChainingBehavior' "
 			"DESC 'Chaining behavior control parameters (draft-sermersheim-ldap-chaining)' "
+			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
 #endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
 	{ "chain-cache-uri", "TRUE/FALSE",
 		2, 2, 0, ARG_MAGIC|ARG_ON_OFF|CH_CACHE_URI, chain_cf_gen,
 		"( OLcfgOvAt:3.2 NAME 'olcChainCacheURI' "
 			"DESC 'Enables caching of URIs not present in configuration' "
+			"EQUALITY booleanMatch "
 			"SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
 	{ "chain-max-depth", "args",
 		2, 2, 0, ARG_MAGIC|ARG_INT|CH_MAX_DEPTH, chain_cf_gen,
@@ -1257,6 +1259,7 @@ static ConfigTable chaincfg[] = {
 		2, 2, 0, ARG_MAGIC|ARG_ON_OFF|CH_RETURN_ERR, chain_cf_gen,
 		"( OLcfgOvAt:3.4 NAME 'olcChainReturnError' "
 			"DESC 'Errors are returned instead of the original referral' "
+			"EQUALITY booleanMatch "
 			"SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
 	{ NULL, NULL, 0, 0, 0, ARG_IGNORED }
 };

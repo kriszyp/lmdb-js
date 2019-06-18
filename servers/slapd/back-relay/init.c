@@ -36,6 +36,7 @@ static ConfigTable relaycfg[] = {
 		relay_back_cf, "( OLcfgDbAt:5.1 "
 			"NAME 'olcRelay' "
 			"DESC 'Relay DN' "
+			"EQUALITY distinguishedNameMatch "
 			"SYNTAX OMsDN "
 			"SINGLE-VALUE )",
 		NULL, NULL },
