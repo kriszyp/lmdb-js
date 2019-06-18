@@ -3,11 +3,11 @@ LMDB is probably the fastest and most efficient database on the planet, if used 
 * Queueing asynchronous write operations with promise-based API
 * Transaction management
 * Iterable queries/cursors
+<a href="https://dev.doctorevidence.com/"><img src="./assets/powers-dre.png" width="203" style="float: right"/></a>
 
 `lmdb-store` is build on the excellent `node-lmdb` package.
 
 ## Design
-<a href="https://dev.doctorevidence.com/"><img src="./assets/powers-dre.png" width="203" /></a>
 When an `lmdb-store` is created, an LMDB environment/database is created, and starts with a default DB size of 1MB. LMDB itself uses a fixed size, but `lmdb-store` detects whenever the database goes beyond the current size, and automatically increases the size of DB, and re-executes the write operations after resizing. With this, you do not have to make any estimates of database size, the databases automatically grow as needed (as you would expect from a database!)
 
 `lmdb-store` is designed for synchronous reads, and asynchronous writes. In idiomatic NodeJS code, I/O operations are performed asynchronously. `lmdb-store` observes this design pattern; because LMDB is a memory-mapped database, read operations do not use any I/O (other than the slight possibility of a page fault), and can almost always be performed faster than Node's event queue callbacks can even execute, and it is easier to for code get instant synchronous values from reads. On the otherhand, in default mode with sync'ed/flushed transactions, write operations do involve I/O, and furthermore can achieve vastly higher throughput by batching operations. The entire transaction of batch operation are performed in a separate thread. Consequently, `lmdb-store` is designed for writes to go through this batching process and return a simple promise that resolves once the write is completed and flushed to disk.
