@@ -3,7 +3,6 @@ LMDB is probably the fastest and most efficient database on the planet, if used 
 * Queueing asynchronous write operations with promise-based API
 * Transaction management
 * Iterable queries/cursors
-<a href="https://dev.doctorevidence.com/"><img src="./assets/powers-dre.png" width="203" style="float: right"/></a>
 
 `lmdb-store` is build on the excellent `node-lmdb` package.
 
@@ -83,3 +82,4 @@ The `lmdb-store` instance is an <a href="https://nodejs.org/dist/latest-v11.x/do
 ## Related Projects
 
 `node-lmdb` 
+<a href="https://dev.doctorevidence.com/"><img src="./assets/powers-dre.png" width="203"/></a>
