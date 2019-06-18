@@ -19,7 +19,7 @@
   },
   "devDependencies": {
     "@types/node": "latest",
-    "chai": "^4",
-    "mocha": "^4"
+    "chai": "^4.2",
+    "mocha": "^6.1"
   }
 }
