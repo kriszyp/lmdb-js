@@ -2062,12 +2062,13 @@ int slap_sasl_authorized( Operation *op,
 		goto DONE;
 	}
 
-	/* Allow the manager to authorize as any DN. */
-	if( op->o_conn->c_authz_backend &&
-		be_isroot_dn( op->o_conn->c_authz_backend, authcDN ))
+	/* Allow the manager to authorize as any DN in its own DBs. */
 	{
-		rc = LDAP_SUCCESS;
-		goto DONE;
+		Backend *zbe = select_backend( authzDN, 1 );
+		if ( zbe && be_isroot_dn( zbe, authcDN )) {
+			rc = LDAP_SUCCESS;
+			goto DONE;
+		}
 	}
 
 	/* Check source rules */
