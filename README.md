@@ -470,6 +470,7 @@ Big thank you to everybody!
 * @jahewson (John Hewson)
 * @jeffesquivels (Jeffrey Esquivel S.)
 * @justmoon (Stefan Thomas)
+* @kriszyp (Kris Zyp)
 * @Matt-Esch
 * @oliverzy (Oliver Zhou)
 * @paberr (Pascal Berrang)
