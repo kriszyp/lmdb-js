@@ -34,6 +34,7 @@ OpenLDAP 2.4.48 Engineering
 	Fixed slapo-accesslog possible assert with exops (ITS#8971)
 	Fixed slapo-chain to correctly reject multiple chaining URIs (ITS#8637)
 	Fixed slapo-memberof conversion from slapd.conf to cn=config (ITS#8663)
+	Fixed slapo-memberof for group name change to itself (ITS#9000)
 	Fixed slapo-ppolicy behavior when pwdInHistory is changed (ITS#8349)
 	Fixed slapo-rwm to not free original filter (ITS#8964)
 	Fixed slapo-syncprov contextCSN generation (ITS#9015)
