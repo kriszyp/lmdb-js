@@ -8,6 +8,7 @@ const EventEmitter = require('events')
 
 const RANGE_BATCH_SIZE = 100
 const DEFAULT_SYNC_BATCH_THRESHOLD = 20000000
+const DEFAULT_COMMIT_DELAY = 20
 const AS_BINARY = {
 	keyIsBuffer: true
 }
@@ -72,6 +73,7 @@ function open(path, options) {
 			this.transactions = 0
 			this.averageTransactionTime = 5
 			this.syncBatchThreshold = DEFAULT_SYNC_BATCH_THRESHOLD
+			this.commitDelay = DEFAULT_COMMIT_DELAY
 			Object.assign(this, options)
 			allDbs.set(dbName ? name + '-' + dbName : name, this)
 			stores.push(this)
@@ -352,7 +354,7 @@ function open(path, options) {
 									if (typeof batchWriter === 'function')
 										batchWriter(operations, callback)
 									else
-										env.batchWrite(operations, AS_BINARY, callback)
+										env.batchWrite(operations, callback)
 								}
 								writeBatch()
 							} else if (error) {
@@ -360,7 +362,7 @@ function open(path, options) {
 							} else {
 								resolve(results && results.length ? results : [])
 							}
-						}, 20)
+						}, this.commitDelay)
 					})
 				})
 				this.pendingBatch = {

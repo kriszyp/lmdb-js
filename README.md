@@ -26,7 +26,7 @@ let myStore = open('my-store', {
 	useWritemap: true
 });
 ```
-
+(see store options below for more options)
 Once you have a store the following methods are available:
 ### `store.get(key: Buffer, copy?: Function): Buffer`
 Get the value at the specified key. The `key` must be a buffer, and the return value will either be a buffer if the entry exists, or `undefined` if the entry does not exist.
@@ -50,8 +50,8 @@ This will delete the entry at the specified key. This functions like `putSync`, 
 ### store.transaction(execute: Function)
 This will begin synchronous transaction, execute the provided function, and then commit the transaction. The provided function can perform `get`s, `putSync`s, and `removeSync`s within the transaction, and the result will be committed.
 
-### `getRange(options: { start?: key, end?: key, reverse?: boolean}): Iterable<{ key: Buffer, value: Buffer }>`
-This starts a cursor-based query of a range of data in the database, returning an iterable that also has `map`, `filter`, and `forEach` methods. The returned cursor/query is lazy, and retrieves data _as_ iteration takes place, so a large range could specified without forcing all the entries to be read and loaded in memory upfront, and one can exit out of the loop without traversing the whole range in the database. The query is iterable, we can use it directly in a for-of:
+### `getRange(options: { start?: Buffer, end?: Buffer, reverse?: boolean}): Iterable<{ key: Buffer, value: Buffer }>`
+This starts a cursor-based query of a range of data in the database, returning an iterable that also has `map`, `filter`, and `forEach` methods. The `start` and `end` indicate the starting and ending key for the range. The `reverse` flag can be used to indicate reverse traversal. The returned cursor/query is lazy, and retrieves data _as_ iteration takes place, so a large range could specified without forcing all the entries to be read and loaded in memory upfront, and one can exit out of the loop without traversing the whole range in the database. The query is iterable, we can use it directly in a for-of:
 ```
 for (let { key, value } of db.getRange({ start, end })) {
 	// for each key-value pair in the given range
@@ -66,6 +66,38 @@ db.getRange({ start, end })
 	})
 ```
 Note that `map` and `filter` are also lazy, they will only be executed once their returned iterable is iterated or `forEach` is called on it. The `map` and `filter` functions also support async/promise-based functions, and can create async iterable if the callback functions execute asynchronously (return a promise).
+
+### openDB(dbName: string)
+LMDB supports multiple databases per environment (an environment is a single memory-mapped file). When you initialize an LMDB store with `open`, the store uses the default database, `"data"`. However, you can use multiple databases per environment and instantiate a store for each one. To do this, make sure you set the `maxDbs` (it defaults to 1). For example, we can open multiple stores for a single environment:
+```
+const { open } = require('lmdb-store');
+let myStore = open('all-my-data', {
+	maxDbs: 5
+});
+let usersStore = myStore.openDB('users');
+let groupsStore = myStore.openDB('groups');
+let productsStore = myStore.openDB('products');
+```
+Each of the opened/returned stores has the same API as the default store for the environment. Each of the stores for one environment also share the same batch queue and automated transactions with each other, so immediately writing data from two stores with the same environment will be batched together in the same commit. For example:
+```
+usersStore.put(userKey, userData);
+groupsStore.put(groupKey, groupData);
+```
+Both these puts will be batched and after 20ms be committed in the same transaction.
+
+### Store Options
+The open method has the following signature:
+`open(path, options)`
+If the `path` has an `.` in it, it is treated as a file name, otherwise it is treated as a directory name, where the data will be stored. The `options` argument should be an object, and supports the following properties, all of which are optional:
+* commitDelay - This is the amount of time to wait (in milliseconds) for batching write operations before committing the writes (in a transaction). This defaults to 20ms. A shorter delay means more immediate commits, but a longer delay can be more efficient at collected more writes into a single transaction and reducing I/O load.
+* syncBatchThreshold - This parameter defines a limit on the number of batched bytes in write operations that can be pending for a transaction before ldmb-store will be force an immediate synchronous commit of all pending batched data for the store. This provides a safeguard against too much data being enqueued for asynchronous commit, and excessive memory usage, that can sometimes occur for a large number of continuous `put` calls without waiting for an event turn for the timer to execute. The default is 20000000 (bytes).
+The following options map to LMDB's env flags, <a href="http://www.lmdb.tech/doc/group__mdb.html">described here</a>:
+* useWritemap - Use writemaps (this is the only flag we recommend using)
+* noSubdir - Treat `path` as a filename instead of directory (this is the default if the path appears to end with an extension, has '.' in it)
+* noSync - Doesn't sync the data to disk. We highly discourage this flag, since it can result in data corruption and lmdb-store mitigates performance issues associated with disk syncs by batching.
+* noMetaSync - This isn't as dangerous as `noSync`, but doesn't improve performance much either.
+* readOnly
+* mapAsync
 
 ## Events
 
