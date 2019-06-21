@@ -589,14 +589,14 @@ char * ldap_int_hostname = NULL;
 void ldap_int_initialize( struct ldapoptions *gopts, int *dbglvl )
 {
 #ifdef LDAP_R_COMPILE
-	LDAP_PVT_MUTEX_FIRSTCREATE( gopts->ldo_mutex );
-#endif
+	static ldap_pvt_thread_mutex_t init_mutex;
+	LDAP_PVT_MUTEX_FIRSTCREATE( init_mutex );
 
-	LDAP_MUTEX_LOCK( &gopts->ldo_mutex );
+	LDAP_MUTEX_LOCK( &init_mutex );
+#endif
 	if ( gopts->ldo_valid == LDAP_INITIALIZED ) {
 		/* someone else got here first */
-		LDAP_MUTEX_UNLOCK( &gopts->ldo_mutex );
-		return;
+		goto done;
 	}
 
 	ldap_int_error_init();
@@ -718,6 +718,8 @@ void ldap_int_initialize( struct ldapoptions *gopts, int *dbglvl )
 
 	openldap_ldap_init_w_env(gopts, NULL);
 
-done:
-	LDAP_MUTEX_UNLOCK( &gopts->ldo_mutex );
+done:;
+#ifdef LDAP_R_COMPILE
+	LDAP_MUTEX_UNLOCK( &init_mutex );
+#endif
 }
