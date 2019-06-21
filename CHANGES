@@ -2,7 +2,7 @@ OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.48 Engineering
 	Added libldap OpenSSL Elliptic Curve support (ITS#7595)
-	Added libldap Expose OpenLDAP specific interfaces in openldap.h (ITS#8671)
+	Added libldap Expose OpenLDAP specific interfaces via openldap.h (ITS#8671)
 	Added slapd-monitor support for slapd-mdb (ITS#7770)
 	Fixed liblber leaks (ITS#8727)
 	Fixed liblber with partial flush (ITS#8864)
