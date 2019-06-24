@@ -199,7 +199,7 @@ RC=$?
 if test $RC != 1 ; then
     echo "ldapwhoami should have failed ($RC)!"
     test $KILLSERVERS != no && kill -HUP $KILLPIDS
-    exit $RC
+    exit 1
 fi
 
 ID="uid=jaj,ou=People,dc=example,dc=it"
