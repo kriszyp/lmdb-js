@@ -15,6 +15,8 @@
 
 #include "portable.h"
 
+#ifdef HAVE_CYRUS_SASL
+
 #include <stdio.h>
 
 #include <ac/socket.h>
@@ -31,14 +33,12 @@
 
 #include "ldap-int.h"
 
-#ifdef HAVE_CYRUS_SASL
-
-#ifdef HAVE_LIMITS_H
-#include <limits.h>
-#endif
-
 #ifndef INT_MAX
 #define	INT_MAX	2147483647	/* 32 bit signed max */
+#endif
+
+#if !defined(HOST_NAME_MAX) && defined(_POSIX_HOST_NAME_MAX)
+#define HOST_NAME_MAX _POSIX_HOST_NAME_MAX
 #endif
 
 #ifdef HAVE_SASL_SASL_H
