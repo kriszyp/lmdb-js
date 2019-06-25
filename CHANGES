@@ -44,6 +44,7 @@ OpenLDAP 2.4.48 Engineering
 	Build Environment
 		Fixed slapd to only link to BDB libraries with static build (ITS#8948)
 		Fixed libldap implicit declaration with LDAP_CONNECTIONLESS (ITS#8794)
+		Fixed libldap double inclusion of limits.h in cyrus.c (ITS#9041)
 	Documentation
 		General - Fixed minor typos (ITS#8764, ITS#8761)
 		admin24 - Miscellaneous updates promoting mdb and fixing examples (ITS#9031)
