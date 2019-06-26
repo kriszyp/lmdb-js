@@ -209,6 +209,8 @@ slap_get_csn(
 	if ( csn == NULL ) return LDAP_OTHER;
 
 	csn->bv_len = ldap_pvt_csnstr( csn->bv_val, csn->bv_len, slap_serverID, 0 );
+	Debug( LDAP_DEBUG_SYNC, "slap_get_csn: %s generated new csn=%s manage=%d\n",
+		op->o_log_prefix, csn->bv_val, manage_ctxcsn );
 	if ( manage_ctxcsn )
 		slap_queue_csn( op, csn );
 

@@ -863,6 +863,8 @@ do_syncrep1(
 	}
 
 	si->si_refreshDone = 0;
+	Debug( LDAP_DEBUG_SYNC, "do_syncrep1: %s starting refresh (sending cookie=%s)\n",
+		si->si_ridtxt, si->si_syncCookie.octet_str.bv_val, 0 );
 
 	rc = ldap_sync_search( si, op->o_tmpmemctx );
 
@@ -3040,9 +3042,9 @@ syncrepl_entry(
 	int	retry = 1;
 	int	freecsn = 1;
 
-	Debug( LDAP_DEBUG_SYNC,
-		"syncrepl_entry: %s LDAP_RES_SEARCH_ENTRY(LDAP_SYNC_%s) tid %x\n",
-		si->si_ridtxt, syncrepl_state2str( syncstate ), op->o_tid );
+	Log4( LDAP_DEBUG_SYNC, ldap_syslog_level,
+		"syncrepl_entry: %s LDAP_RES_SEARCH_ENTRY(LDAP_SYNC_%s) csn=%s tid %x\n",
+		si->si_ridtxt, syncrepl_state2str( syncstate ), syncCSN ? syncCSN->bv_val : "(none)", op->o_tid );
 
 	if (( syncstate == LDAP_SYNC_PRESENT || syncstate == LDAP_SYNC_ADD ) ) {
 		if ( !si->si_refreshPresent && !si->si_refreshDone ) {
@@ -3654,6 +3656,9 @@ syncrepl_del_nonpresent(
 			op->ors_slimit = 1;
 			uf.f_av_value = uuids[i];
 			filter2bv_x( op, op->ors_filter, &op->ors_filterstr );
+			Debug( LDAP_DEBUG_SYNC, "syncrepl_del_nonpresent: %s "
+				"checking non-present filter=%s\n",
+				si->si_ridtxt, op->ors_filterstr.bv_val, 0 );
 			rc = be->be_search( op, &rs_search );
 			op->o_tmpfree( op->ors_filterstr.bv_val, op->o_tmpmemctx );
 		}
@@ -4603,6 +4608,8 @@ nonpresent_callback(
 	if ( rs->sr_type == REP_RESULT ) {
 		count = presentlist_free( si->si_presentlist );
 		si->si_presentlist = NULL;
+		Debug( LDAP_DEBUG_SYNC, "nonpresent_callback: %s "
+			"had %d items left in the list\n", si->si_ridtxt, count, 0 );
 
 	} else if ( rs->sr_type == REP_SEARCH ) {
 		if ( !( si->si_refreshDelete & NP_DELETE_ONE ) ) {
@@ -4612,15 +4619,12 @@ nonpresent_callback(
 				present_uuid = presentlist_find( si->si_presentlist, &a->a_nvals[0] );
 			}
 
-			if ( LogTest( LDAP_DEBUG_SYNC ) ) {
-				char buf[sizeof("rid=999 non")];
-
-				snprintf( buf, sizeof(buf), "%s %s", si->si_ridtxt,
-					present_uuid ? "" : "non" );
-
-				Debug( LDAP_DEBUG_SYNC, "nonpresent_callback: %spresent UUID %s, dn %s\n",
-					buf, a ? a->a_vals[0].bv_val : "<missing>", rs->sr_entry->e_name.bv_val );
-			}
+			Log4(LDAP_DEBUG_SYNC, ldap_syslog_level, "nonpresent_callback: "
+				"%s %spresent UUID %s, dn %s\n",
+				si->si_ridtxt,
+				present_uuid ? "" : "non",
+				a ? a->a_vals[0].bv_val : "<missing>",
+				rs->sr_entry->e_name.bv_val );
 
 			if ( a == NULL ) return 0;
 		}
