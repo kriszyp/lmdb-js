@@ -252,7 +252,7 @@ if test $USE_SASL != "no" ; then
 	if test $RC != 50 ; then
 		echo "ldapwhoami should have failed ($RC)!"
 		test $KILLSERVERS != no && kill -HUP $KILLPIDS
-		exit $RC
+		exit 1
 	fi
 
 	echo "Filtering ldapsearch results..."
