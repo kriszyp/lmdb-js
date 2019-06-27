@@ -161,12 +161,15 @@ mdb_bk_cfg( ConfigArgs *c )
 		else
 			rc = 1;
 	} else if ( c->op == LDAP_MOD_DELETE ) {
-		MDB_idl_logn = 0;
+		/* We expect to immediately be followed by an Add, but */
+		MDB_idl_logn = MDB_IDL_LOGN;	/* return to default for safety */
 		mdb_idl_reset();
+		c->bi->bi_private = 0;
 	} else {
 		if ( c->value_int >= MDB_IDL_LOGN && c->value_int < sizeof(int) * CHAR_BIT ) {
 			MDB_idl_logn = c->value_int;
 			mdb_idl_reset();
+			c->bi->bi_private = (void *)8;	/* non-NULL to show we're using it */
 		} else {
 			rc = 1;
 		}
