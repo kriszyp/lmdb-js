@@ -15,6 +15,8 @@
 
 #include "portable.h"
 
+#include "ldap-int.h"
+
 #ifdef HAVE_CYRUS_SASL
 
 #include <stdio.h>
@@ -30,8 +32,6 @@
 #ifdef HAVE_LIMITS_H
 #include <limits.h>
 #endif
-
-#include "ldap-int.h"
 
 #ifndef INT_MAX
 #define	INT_MAX	2147483647	/* 32 bit signed max */
