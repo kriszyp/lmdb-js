@@ -416,7 +416,8 @@ mdb_search( Operation *op, SlapReply *rs )
 	struct mdb_info *mdb = (struct mdb_info *) op->o_bd->be_private;
 	ID		id, cursor, nsubs, ncand, cscope;
 	ID		lastid = NOID;
-	ID		*candidates, *iscopes;
+	ID		candidates[MDB_idl_um_size];
+	ID		iscopes[MDB_idl_db_size];
 	ID2		*scopes;
 	void	*stack;
 	Entry		*e = NULL, *base = NULL;
@@ -464,9 +465,7 @@ mdb_search( Operation *op, SlapReply *rs )
 	}
 
 	scopes = scope_chunk_get( op );
-	candidates = search_stack( op );
-	iscopes = candidates + MDB_idl_um_size;
-	stack = iscopes + MDB_idl_db_size;
+	stack = search_stack( op );
 	isc.mt = ltid;
 	isc.mc = mcd;
 	isc.scopes = scopes;
@@ -1269,11 +1268,6 @@ static int oc_filter(
 	return rc;
 }
 
-typedef struct IDLchunk {
-	unsigned int logn;
-	unsigned int pad;
-} IDLchunk;
-
 static void search_stack_free( void *key, void *data )
 {
 	ber_memfree_x(data, NULL);
@@ -1282,31 +1276,26 @@ static void search_stack_free( void *key, void *data )
 static void *search_stack( Operation *op )
 {
 	struct mdb_info *mdb = (struct mdb_info *) op->o_bd->be_private;
-	IDLchunk *ic = NULL;
+	void *ret = NULL;
 
 	if ( op->o_threadctx ) {
 		ldap_pvt_thread_pool_getkey( op->o_threadctx, (void *)search_stack,
-			&ic, NULL );
+			&ret, NULL );
 	} else {
-		ic = mdb->mi_search_stack;
+		ret = mdb->mi_search_stack;
 	}
 
-	if ( ic && ic->logn != MDB_idl_logn ) {
-		ber_memfree_x( ic, NULL );
-		ic = NULL;
-	}
-
-	if ( !ic ) {
-		ic = ch_malloc(( mdb->mi_search_stack_depth + 2 ) * MDB_idl_um_size
-			* sizeof( ID ) + sizeof( IDLchunk ) );
+	if ( !ret ) {
+		ret = ch_malloc( mdb->mi_search_stack_depth * MDB_idl_um_size
+			* sizeof( ID ) );
 		if ( op->o_threadctx ) {
 			ldap_pvt_thread_pool_setkey( op->o_threadctx, (void *)search_stack,
-				ic, search_stack_free, NULL, NULL );
+				ret, search_stack_free, NULL, NULL );
 		} else {
-			mdb->mi_search_stack = ic;
+			mdb->mi_search_stack = ret;
 		}
 	}
-	return ic+1;
+	return ret;
 }
 
 static int search_candidates(
