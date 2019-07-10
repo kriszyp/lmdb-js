@@ -554,7 +554,7 @@ Connection * connection_init(
 	c->c_close_reason = "?";			/* should never be needed */
 
 	c->c_ssf = c->c_transport_ssf = ssf;
-	c->c_tls_ssf = 0;
+	c->c_tls_ssf = c->c_sasl_ssf = 0;
 
 #ifdef HAVE_TLS
 	if ( flags & CONN_IS_TLS ) {
