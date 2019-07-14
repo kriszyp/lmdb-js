@@ -641,6 +641,22 @@ mdb_idscope(
 	rc = mdb_cursor_open( txn, dbi, &cursor );
 	if ( rc ) return rc;
 
+	/* first see if base has any children at all */
+	key.mv_data = &base;
+	rc = mdb_cursor_get( cursor, &key, &data, MDB_SET );
+	if ( rc ) {
+		goto leave;
+	}
+	{
+		size_t dkids;
+		rc = mdb_cursor_count( cursor, &dkids );
+		if ( rc == 0 ) {
+			if ( dkids < 2 ) {
+				goto leave;
+			}
+		}
+	}
+
 	ida = mdb_idl_first( ids, &cid );
 
 	/* Don't bother moving out of ids if it's a range */
