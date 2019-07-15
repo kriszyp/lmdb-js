@@ -33,6 +33,7 @@ OpenLDAP 2.4.48 Engineering
 	Fixed slapd-meta assertion when network interface goes down (ITS#8841)
 	Fixed slapd-mdb fix bitshift integer overflow (ITS#8989)
 	Fixed slapd-mdb index cleanup with cn=config (ITS#8472)
+	Fixed slapd-mdb to improve performance with alias deref (ITS#7657)
 	Fixed slapo-accesslog possible assert with exops (ITS#8971)
 	Fixed slapo-chain to correctly reject multiple chaining URIs (ITS#8637)
 	Fixed slapo-chain conversion from slapd.conf to cn=config (ITS#8799)
