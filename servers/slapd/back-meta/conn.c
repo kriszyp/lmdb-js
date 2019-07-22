@@ -433,7 +433,11 @@ retry_lock:;
 			sb = &mt->mt_tls;
 		}
 
-		bindconf_tls_set( sb, msc->msc_ld );
+		if ( sb->sb_tls_do_init ) {
+			bindconf_tls_set( sb, msc->msc_ld );
+		} else if ( sb->sb_tls_ctx ) {
+			ldap_set_option( msc->msc_ld, LDAP_OPT_X_TLS_CTX, sb->sb_tls_ctx );
+		}
 
 		if ( !is_ldaps ) {
 			if ( sb == &mt->mt_idassert.si_bc && sb->sb_tls_ctx ) {

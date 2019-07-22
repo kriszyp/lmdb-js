@@ -729,7 +729,11 @@ ldap_back_prepare_conn( ldapconn_t *lc, Operation *op, SlapReply *rs, ldap_back_
 		sb = &li->li_tls;
 	}
 
-	bindconf_tls_set( sb, ld );
+	if ( sb->sb_tls_do_init ) {
+		bindconf_tls_set( sb, ld );
+	} else if ( sb->sb_tls_ctx ) {
+		ldap_set_option( ld, LDAP_OPT_X_TLS_CTX, sb->sb_tls_ctx );
+	}
 
 	/* if required by the bindconf configuration, force TLS */
 	if ( ( sb == &li->li_acl || sb == &li->li_idassert.si_bc ) &&
