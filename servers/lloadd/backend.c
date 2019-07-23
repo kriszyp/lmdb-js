@@ -136,6 +136,73 @@ upstream_name_cb( int result, struct evutil_addrinfo *res, void *arg )
         goto fail;
     }
 
+#if defined(SO_KEEPALIVE) || defined(TCP_NODELAY)
+    if ( b->b_proto == LDAP_PROTO_TCP ) {
+        int dummy = 1;
+#ifdef SO_KEEPALIVE
+        if ( setsockopt( s, SOL_SOCKET, SO_KEEPALIVE, (char *)&dummy,
+                     sizeof(dummy) ) == AC_SOCKET_ERROR ) {
+            Debug( LDAP_DEBUG_TRACE, "upstream_name_cb: "
+                    "setsockopt(%d, SO_KEEPALIVE) failed (ignored).\n",
+                    s );
+        }
+        if ( bindconf.sb_keepalive.sk_idle > 0 ) {
+#ifdef TCP_KEEPIDLE
+            if ( setsockopt( s, IPPROTO_TCP, TCP_KEEPIDLE,
+                         (void *)&bindconf.sb_keepalive.sk_idle,
+                         sizeof(bindconf.sb_keepalive.sk_idle) ) ==
+                    AC_SOCKET_ERROR ) {
+                Debug( LDAP_DEBUG_TRACE, "upstream_name_cb: "
+                        "setsockopt(%d, TCP_KEEPIDLE) failed (ignored).\n",
+                        s );
+            }
+#else
+            Debug( LDAP_DEBUG_TRACE, "upstream_name_cb: "
+                    "sockopt TCP_KEEPIDLE not supported on this system.\n" );
+#endif /* TCP_KEEPIDLE */
+        }
+        if ( bindconf.sb_keepalive.sk_probes > 0 ) {
+#ifdef TCP_KEEPCNT
+            if ( setsockopt( s, IPPROTO_TCP, TCP_KEEPCNT,
+                         (void *)&bindconf.sb_keepalive.sk_probes,
+                         sizeof(bindconf.sb_keepalive.sk_probes) ) ==
+                    AC_SOCKET_ERROR ) {
+                Debug( LDAP_DEBUG_TRACE, "upstream_name_cb: "
+                        "setsockopt(%d, TCP_KEEPCNT) failed (ignored).\n",
+                        s );
+            }
+#else
+            Debug( LDAP_DEBUG_TRACE, "upstream_name_cb: "
+                    "sockopt TCP_KEEPCNT not supported on this system.\n" );
+#endif /* TCP_KEEPCNT */
+        }
+        if ( bindconf.sb_keepalive.sk_interval > 0 ) {
+#ifdef TCP_KEEPINTVL
+            if ( setsockopt( s, IPPROTO_TCP, TCP_KEEPINTVL,
+                         (void *)&bindconf.sb_keepalive.sk_interval,
+                         sizeof(bindconf.sb_keepalive.sk_interval) ) ==
+                    AC_SOCKET_ERROR ) {
+                Debug( LDAP_DEBUG_TRACE, "upstream_name_cb: "
+                        "setsockopt(%d, TCP_KEEPINTVL) failed (ignored).\n",
+                        s );
+            }
+#else
+            Debug( LDAP_DEBUG_TRACE, "upstream_name_cb: "
+                    "sockopt TCP_KEEPINTVL not supported on this system.\n" );
+#endif /* TCP_KEEPINTVL */
+        }
+#endif /* SO_KEEPALIVE */
+#ifdef TCP_NODELAY
+        if ( setsockopt( s, IPPROTO_TCP, TCP_NODELAY, (char *)&dummy,
+                     sizeof(dummy) ) == AC_SOCKET_ERROR ) {
+            Debug( LDAP_DEBUG_TRACE, "upstream_name_cb: "
+                    "setsockopt(%d, TCP_NODELAY) failed (ignored).\n",
+                    s );
+        }
+#endif /* TCP_NODELAY */
+    }
+#endif /* SO_KEEPALIVE || TCP_NODELAY */
+
     if ( res->ai_family == PF_INET ) {
         struct sockaddr_in *ai = (struct sockaddr_in *)res->ai_addr;
         ai->sin_port = htons( b->b_port );
