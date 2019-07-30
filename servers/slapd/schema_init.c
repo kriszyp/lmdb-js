@@ -5954,18 +5954,18 @@ again:
 	if( BER_BVISEMPTY( &tmp ) ) return LDAP_SUCCESS;
 
 	while( !BER_BVISEMPTY( &tmp ) && ( tmp.bv_val[0] == ' ' ) ) {
-		tmp.bv_len++;
-		tmp.bv_val--;
+		tmp.bv_len--;
+		tmp.bv_val++;
 	}
 	if( !BER_BVISEMPTY( &tmp ) && ( tmp.bv_val[0] == '$' ) ) {
-		tmp.bv_len++;
-		tmp.bv_val--;
+		tmp.bv_len--;
+		tmp.bv_val++;
 	} else {
 		return LDAP_INVALID_SYNTAX;
 	}
 	while( !BER_BVISEMPTY( &tmp ) && ( tmp.bv_val[0] == ' ' ) ) {
-		tmp.bv_len++;
-		tmp.bv_val--;
+		tmp.bv_len--;
+		tmp.bv_val++;
 	}
 
 	goto again;
