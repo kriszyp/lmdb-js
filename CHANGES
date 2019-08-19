@@ -1,6 +1,8 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.49 Engineering
+	Documentation
+		slapo-ppolicy(5) - Correctly document pwdGraceAuthnLimit (ITS#9065)
 
 OpenLDAP 2.4.48 (2019/07/24)
 	Added libldap OpenSSL Elliptic Curve support (ITS#7595)
