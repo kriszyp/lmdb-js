@@ -1233,8 +1233,8 @@ if test $ol_link_tls = no ; then
 		if test $ac_cv_header_gnutls_gnutls_h = yes ; then
 			AC_PREPROC_IFELSE([AC_LANG_SOURCE(
 				[[#include <gnutls/gnutls.h>]
-[#if GNUTLS_VERSION_NUMBER < 0x020c00]
-[#error "GnuTLS 2.12.0 or newer required"]
+[#if GNUTLS_VERSION_NUMBER < 0x030202]
+[#error "GnuTLS 3.2.2 or newer required"]
 [#endif]])],
 					, [AC_MSG_FAILURE([GnuTLS is too old])])
 
