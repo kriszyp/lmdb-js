@@ -2805,6 +2805,10 @@ if test "$ol_enable_auditlog" != no ; then
 fi
 
 if test "$ol_enable_autoca" != no ; then
+	if test $ol_with_tls != openssl ; then
+		AC_MSG_ERROR([--enable-autoca=$ol_enable_autoca requires --with-tls=openssl])
+	fi
+
 	BUILD_AUTOCA=$ol_enable_autoca
 	if test "$ol_enable_autoca" = mod ; then
 		MFLAG=SLAPD_MOD_DYNAMIC
