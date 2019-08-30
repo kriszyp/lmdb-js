@@ -112,6 +112,7 @@ libraries/libldap_r/pagectrl.c
 libraries/libldap_r/passwd.c
 libraries/libldap_r/ppolicy.c
 libraries/libldap_r/print.c
+libraries/libldap_r/psearchctrl.c
 libraries/libldap_r/references.c
 libraries/libldap_r/request.c
 libraries/libldap_r/result.c
