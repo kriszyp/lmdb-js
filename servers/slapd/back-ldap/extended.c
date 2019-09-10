@@ -58,7 +58,7 @@ ldap_back_extended_one( Operation *op, SlapReply *rs, ldap_back_exop_f exop )
 		return -1;
 	}
 
-	ctrls = op->o_ctrls;
+	ctrls = oldctrls = op->o_ctrls;
 	if ( ldap_back_controls_add( op, rs, lc, &ctrls ) )
 	{
 		op->o_ctrls = oldctrls;
