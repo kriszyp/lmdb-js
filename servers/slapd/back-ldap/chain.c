@@ -1376,7 +1376,7 @@ fail:
 			ldap_charray_free( urls );
 			Debug( LDAP_DEBUG_ANY, "slapd-chain: "
 				"olcDbURI must contain exactly one url, got %s\n",
-				at->a_vals[ 0 ].bv_val, 0, 0 );
+				at->a_vals[ 0 ].bv_val );
 			rc = LDAP_CONSTRAINT_VIOLATION;
 			goto done;
 		}
