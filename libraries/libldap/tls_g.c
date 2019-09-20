@@ -149,9 +149,17 @@ tlsg_getfile( const char *path, gnutls_datum_t *buf )
 {
 	int rc = -1, fd;
 	struct stat st;
+	char ebuf[128];
 
 	fd = open( path, O_RDONLY );
-	if ( fd >= 0 && fstat( fd, &st ) == 0 ) {
+	if ( fd < 0 ) {
+		Debug2( LDAP_DEBUG_ANY,
+			"TLS: opening `%s' failed: %s\n",
+			path,
+			AC_STRERROR_R( errno, ebuf, sizeof ebuf ));
+		return -1;
+	}
+	if ( fstat( fd, &st ) == 0 ) {
 		buf->size = st.st_size;
 		buf->data = LDAP_MALLOC( st.st_size + 1 );
 		if ( buf->data ) {
@@ -196,8 +204,21 @@ tlsg_ctx_init( struct ldapoptions *lo, struct ldaptls *lt, int is_server )
 			ctx->cred,
 			lt->lt_cacertfile,
 			GNUTLS_X509_FMT_PEM );
-		if ( rc < 0 ) return -1;
+		if ( rc < 0 ) {
+			Debug3( LDAP_DEBUG_ANY,
+				"TLS: could not use CA certificate file `%s': %s (%d)\n",
+				lo->ldo_tls_cacertfile,
+				gnutls_strerror( rc ),
+				rc );
+			return -1;
+		} else if ( rc == 0 ) {
+			Debug1( LDAP_DEBUG_ANY,
+				"TLS: warning: no certificate loaded from CA certificate file `%s'.\n",
+				lo->ldo_tls_cacertfile );
+			/* only warn, no return */
+		}
 	}
+
 	if (lo->ldo_tls_cacert.bv_val != NULL ) {
 		gnutls_datum_t buf;
 		buf.data = (unsigned char *)lo->ldo_tls_cacert.bv_val;
@@ -206,7 +227,13 @@ tlsg_ctx_init( struct ldapoptions *lo, struct ldaptls *lt, int is_server )
 			ctx->cred,
 			&buf,
 			GNUTLS_X509_FMT_DER );
-		if ( rc < 0 ) return -1;
+		if ( rc < 0 ) {
+			Debug2( LDAP_DEBUG_ANY,
+				"TLS: could not use CA certificate: %s (%d)\n",
+				gnutls_strerror( rc ),
+				rc );
+			return -1;
+		}
 	}
 
 	if (( lo->ldo_tls_certfile && lo->ldo_tls_keyfile ) ||
@@ -231,12 +258,23 @@ tlsg_ctx_init( struct ldapoptions *lo, struct ldaptls *lt, int is_server )
 				GNUTLS_X509_FMT_DER );
 		} else {
 			rc = tlsg_getfile( lt->lt_keyfile, &buf );
-			if ( rc ) return -1;
+			if ( rc ) {
+				Debug1( LDAP_DEBUG_ANY,
+					"TLS: could not use private key file `%s`.\n",
+					lt->lt_keyfile);
+				return -1;
+			}
 			rc = gnutls_x509_privkey_import( key, &buf,
 				GNUTLS_X509_FMT_PEM );
 			LDAP_FREE( buf.data );
 		}
-		if ( rc < 0 ) return rc;
+		if ( rc < 0 ) {
+			Debug2( LDAP_DEBUG_ANY,
+				"TLS: could not use private key: %s (%d)\n",
+				gnutls_strerror( rc ),
+				rc );
+			return rc;
+		}
 
 		if ( lo->ldo_tls_cert.bv_val ) {
 			buf.data = (unsigned char *)lo->ldo_tls_cert.bv_val;
@@ -245,12 +283,23 @@ tlsg_ctx_init( struct ldapoptions *lo, struct ldaptls *lt, int is_server )
 				GNUTLS_X509_FMT_DER, 0 );
 		} else {
 			rc = tlsg_getfile( lt->lt_certfile, &buf );
-			if ( rc ) return -1;
+			if ( rc ) {
+				Debug1( LDAP_DEBUG_ANY,
+					"TLS: could not use certificate file `%s`.\n",
+					lt->lt_certfile);
+				return -1;
+			}
 			rc = gnutls_x509_crt_list_import( certs, &max, &buf,
 				GNUTLS_X509_FMT_PEM, 0 );
 			LDAP_FREE( buf.data );
 		}
-		if ( rc < 0 ) return rc;
+		if ( rc < 0 ) {
+			Debug2( LDAP_DEBUG_ANY,
+				"TLS: could not use certificate: %s (%d)\n",
+				gnutls_strerror( rc ),
+				rc );
+			return rc;
+		}
 
 		/* If there's only one cert and it's not self-signed,
 		 * then we have to build the cert chain.
@@ -267,7 +316,13 @@ tlsg_ctx_init( struct ldapoptions *lo, struct ldaptls *lt, int is_server )
 			}
 		}
 		rc = gnutls_certificate_set_x509_key( ctx->cred, certs, max, key );
-		if ( rc ) return -1;
+		if ( rc ) {
+			Debug2( LDAP_DEBUG_ANY,
+				"TLS: could not use certificate with key: %s (%d)\n",
+				gnutls_strerror( rc ),
+				rc );
+			return -1;
+		}
 	} else if (( lo->ldo_tls_certfile || lo->ldo_tls_keyfile )) {
 		Debug0( LDAP_DEBUG_ANY,
 		       "TLS: only one of certfile and keyfile specified\n" );
