@@ -54,7 +54,7 @@ slapdmsg.bin: FORCE
 	@if [ ! -f $@ ]; then cp $(srcdir)/$@ .; fi
 
 slapdmsg.res: slapdmsg.rc slapdmsg.bin
-	windres $< -O coff -o $@
+	$(RC) $< -O coff -o $@
 
 clean-local:
 	$(RM) *.res
