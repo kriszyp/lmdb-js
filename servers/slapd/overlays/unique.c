@@ -368,7 +368,7 @@ unique_new_domain ( unique_domain **domainp,
 
 	for ( url_desc = url_descs;
 	      url_desc;
-	      url_desc = url_descs->lud_next ) {
+	      url_desc = url_desc->lud_next ) {
 		rc = unique_new_domain_uri ( &domain->uri,
 					     url_desc,
 					     c );
