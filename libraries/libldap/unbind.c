@@ -134,6 +134,7 @@ ldap_ld_free(
 	/* Should already be closed by ldap_free_connection which knows not to free
 	 * this one */
 	ber_int_sb_destroy( ld->ld_sb );
+	LBER_FREE( ld->ld_sb );
 
 	LDAP_MUTEX_LOCK( &ld->ld_ldopts_mutex );
 
