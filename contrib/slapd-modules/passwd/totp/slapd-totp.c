@@ -94,11 +94,16 @@ static void HMAC_CTX_free(HMAC_CTX *ctx)
 #include "slap.h"
 #include "config.h"
 
-static LUTIL_PASSWD_CHK_FUNC chk_totp1, chk_totp256, chk_totp512;
-static LUTIL_PASSWD_HASH_FUNC hash_totp1, hash_totp256, hash_totp512;
+static LUTIL_PASSWD_CHK_FUNC chk_totp1, chk_totp256, chk_totp512,
+	chk_totp1andpw, chk_totp256andpw, chk_totp512andpw;
+static LUTIL_PASSWD_HASH_FUNC hash_totp1, hash_totp256, hash_totp512,
+	hash_totp1andpw, hash_totp256andpw, hash_totp512andpw;
 static const struct berval scheme_totp1 = BER_BVC("{TOTP1}");
 static const struct berval scheme_totp256 = BER_BVC("{TOTP256}");
 static const struct berval scheme_totp512 = BER_BVC("{TOTP512}");
+static const struct berval scheme_totp1andpw = BER_BVC("{TOTP1ANDPW}");
+static const struct berval scheme_totp256andpw = BER_BVC("{TOTP256ANDPW}");
+static const struct berval scheme_totp512andpw = BER_BVC("{TOTP512ANDPW}");
 
 static AttributeDescription *ad_authTimestamp;
 
@@ -412,6 +417,8 @@ static int totp_bind_response( Operation *op, SlapReply *rs );
 
 #define TIME_STEP	30
 #define DIGITS	6
+#define DELIM	'|'	/* a single character */
+#define TOTP_AND_PW_HASH_SCHEME	"{SSHA}"
 
 static int chk_totp(
 	const struct berval *passwd,
@@ -423,7 +430,7 @@ static int chk_totp(
 	Operation *op;
 	Entry *e;
 	Attribute *a;
-	long t = time(0L) / TIME_STEP;
+	long t, told = 0;
 	int rc;
 	myval out, key;
 	char outbuf[32];
@@ -439,13 +446,14 @@ static int chk_totp(
 	if (rc != LDAP_SUCCESS) return LUTIL_PASSWD_ERR;
 
 	/* Make sure previous login is older than current time */
+	t = op->o_time / TIME_STEP;
 	a = attr_find(e->e_attrs, ad_authTimestamp);
 	if (a) {
 		struct lutil_tm tm;
 		struct lutil_timet tt;
 		if (lutil_parsetime(a->a_vals[0].bv_val, &tm) == 0 &&
 			lutil_tm2time(&tm, &tt) == 0) {
-			long told = tt.tt_sec / TIME_STEP;
+			told = tt.tt_sec / TIME_STEP;
 			if (told >= t)
 				rc = LUTIL_PASSWD_ERR;
 		}
@@ -507,6 +515,59 @@ out:
 	return rc;
 }
 
+static int chk_totp_and_pw(
+	const struct berval *scheme,
+	const struct berval *passwd,
+	const struct berval *cred,
+	const char **text,
+	const void *mech)
+{
+	char *s;
+	int rc = LUTIL_PASSWD_ERR, rc_pass, rc_otp;
+	ber_len_t len;
+	struct berval cred_pass, cred_otp, passwd_pass, passwd_otp;
+
+	/* Check credential length, no point to continue if too short */
+	if (cred->bv_len <= DIGITS)
+		return rc;
+
+	/* The OTP seed of the stored password */
+	s = strchr(passwd->bv_val, DELIM);
+	if (s) {
+		len = s - passwd->bv_val;
+	} else {
+		return rc;
+	}
+	if (!ber_str2bv(passwd->bv_val, len, 1, &passwd_otp))
+		return rc;
+
+	/* The password part of the stored password */
+	s++;
+	ber_str2bv(s, 0, 0, &passwd_pass);
+
+	/* The OTP part of the entered credential */
+	ber_str2bv(&cred->bv_val[cred->bv_len - DIGITS], DIGITS, 0, &cred_otp);
+
+	/* The password part of the entered credential */
+	if (!ber_str2bv(cred->bv_val, cred->bv_len - DIGITS, 0, &cred_pass)) {
+		/* Cleanup */
+		memset(passwd_otp.bv_val, 0, passwd_otp.bv_len);
+		ber_memfree(passwd_otp.bv_val);
+		return rc;
+	}
+
+	rc_otp = chk_totp(&passwd_otp, &cred_otp, mech, text);
+	rc_pass = lutil_passwd(&passwd_pass, &cred_pass, NULL, text);
+	if (rc_otp == LUTIL_PASSWD_OK && rc_pass == LUTIL_PASSWD_OK)
+		rc = LUTIL_PASSWD_OK;
+
+	/* Cleanup and return */
+	memset(passwd_otp.bv_val, 0, passwd_otp.bv_len);
+	ber_memfree(passwd_otp.bv_val);
+
+	return rc;
+}
+
 static int chk_totp1(
 	const struct berval *scheme,
 	const struct berval *passwd,
@@ -534,6 +595,33 @@ static int chk_totp512(
 	return chk_totp(passwd, cred, TOTP_SHA512, text);
 }
 
+static int chk_totp1andpw(
+	const struct berval *scheme,
+	const struct berval *passwd,
+	const struct berval *cred,
+	const char **text)
+{
+	return chk_totp_and_pw(scheme, passwd, cred, text, TOTP_SHA1);
+}
+
+static int chk_totp256andpw(
+	const struct berval *scheme,
+	const struct berval *passwd,
+	const struct berval *cred,
+	const char **text)
+{
+	return chk_totp_and_pw(scheme, passwd, cred, text, TOTP_SHA256);
+}
+
+static int chk_totp512andpw(
+	const struct berval *scheme,
+	const struct berval *passwd,
+	const struct berval *cred,
+	const char **text)
+{
+	return chk_totp_and_pw(scheme, passwd, cred, text, TOTP_SHA512);
+}
+
 static int passwd_string32(
 	const struct berval *scheme,
 	const struct berval *passwd,
@@ -552,6 +640,74 @@ static int passwd_string32(
 		return LUTIL_PASSWD_ERR;
 	}
 	return LUTIL_PASSWD_OK;
+}
+
+static int hash_totp_and_pw(
+	const struct berval *scheme,
+	const struct berval *passwd,
+	struct berval *hash,
+	const char **text)
+{
+	struct berval otp, pass, hash_otp, hash_pass;
+	ber_len_t len;
+	char *s;
+	int rc = LUTIL_PASSWD_ERR;
+
+	/* The OTP seed part */
+	s = strchr(passwd->bv_val, DELIM);
+	if (s) {
+		len = s - passwd->bv_val;
+	} else {
+		return rc;
+	}
+	if (!ber_str2bv(passwd->bv_val, len, 0, &otp))
+		return rc;
+
+	/* The static password part */
+	s++;
+	ber_str2bv(s, 0, 0, &pass);
+
+	/* Hash the OTP seed */
+	rc = passwd_string32(scheme, &otp, &hash_otp);
+
+	/* If successful, hash the static password, else cleanup and return */
+	if (rc == LUTIL_PASSWD_OK) {
+		rc = lutil_passwd_hash(&pass, TOTP_AND_PW_HASH_SCHEME,
+			&hash_pass, text);
+	} else {
+		return LUTIL_PASSWD_ERR;
+	}
+
+	/* If successful, allocate memory to combine them, else cleanup
+	 *  and return */
+	if (rc == LUTIL_PASSWD_OK) {
+		/* Add 1 character to bv_len to hold DELIM */
+		hash->bv_len = hash_pass.bv_len + hash_otp.bv_len + 1;
+		hash->bv_val = ber_memalloc(hash->bv_len + 1);
+		if (!hash->bv_val)
+			rc = LUTIL_PASSWD_ERR;
+	} else {
+		memset(hash_otp.bv_val, 0, hash_otp.bv_len);
+		ber_memfree(hash_otp.bv_val);
+		return LUTIL_PASSWD_ERR;
+	}
+
+	/* If successful, combine the two hashes with the delimiter */
+	if (rc == LUTIL_PASSWD_OK) {
+		AC_MEMCPY(hash->bv_val, hash_otp.bv_val, hash_otp.bv_len);
+		hash->bv_val[hash_otp.bv_len] = DELIM;
+		AC_MEMCPY(hash->bv_val + hash_otp.bv_len + 1,
+			hash_pass.bv_val, hash_pass.bv_len);
+		hash->bv_val[hash->bv_len] = '\0';
+	}
+
+	/* Cleanup and return */
+	memset(hash_otp.bv_val, 0, hash_otp.bv_len);
+	memset(hash_pass.bv_val, 0, hash_pass.bv_len);
+	ber_memfree(hash_otp.bv_val);
+	ber_memfree(hash_pass.bv_val);
+
+	return rc;
 }
 
 static int hash_totp1(
@@ -597,6 +753,51 @@ static int hash_totp512(
 	}
 #endif
 	return passwd_string32(scheme, passwd, hash);
+}
+
+static int hash_totp1andpw(
+	const struct berval *scheme,
+	const struct berval *passwd,
+	struct berval *hash,
+	const char **text)
+{
+#if 0
+	if (passwd->bv_len != SHA_DIGEST_LENGTH) {
+		*text = "invalid key length";
+		return LUTIL_PASSWD_ERR;
+	}
+#endif
+	return hash_totp_and_pw(scheme, passwd, hash, text);
+}
+
+static int hash_totp256andpw(
+	const struct berval *scheme,
+	const struct berval *passwd,
+	struct berval *hash,
+	const char **text)
+{
+#if 0
+	if (passwd->bv_len != SHA256_DIGEST_LENGTH) {
+		*text = "invalid key length";
+		return LUTIL_PASSWD_ERR;
+	}
+#endif
+	return hash_totp_and_pw(scheme, passwd, hash, text);
+}
+
+static int hash_totp512andpw(
+	const struct berval *scheme,
+	const struct berval *passwd,
+	struct berval *hash,
+	const char **text)
+{
+#if 0
+	if (passwd->bv_len != SHA512_DIGEST_LENGTH) {
+		*text = "invalid key length";
+		return LUTIL_PASSWD_ERR;
+	}
+#endif
+	return hash_totp_and_pw(scheme, passwd, hash, text);
 }
 
 static int totp_op_cleanup(
@@ -782,6 +983,12 @@ totp_initialize(void)
 		rc = lutil_passwd_add((struct berval *) &scheme_totp256, chk_totp256, hash_totp256);
 	if (!rc)
 		rc = lutil_passwd_add((struct berval *) &scheme_totp512, chk_totp512, hash_totp512);
+	if (!rc)
+		rc = lutil_passwd_add((struct berval *) &scheme_totp1andpw, chk_totp1andpw, hash_totp1andpw);
+	if (!rc)
+		rc = lutil_passwd_add((struct berval *) &scheme_totp256andpw, chk_totp256andpw, hash_totp256andpw);
+	if (!rc)
+		rc = lutil_passwd_add((struct berval *) &scheme_totp512andpw, chk_totp512andpw, hash_totp512andpw);
 	if (rc)
 		return rc;
 

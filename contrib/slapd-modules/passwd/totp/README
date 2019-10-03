@@ -9,6 +9,17 @@ userPassword: {TOTP1}GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ
 
 which encodes the key '12345678901234567890'.
 
+It can also encode credentials consisting of a TOTP and a static
+password.  The format for this is:
+
+userPassword: {TOTP1ANDPW}GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ|<some_other_passwd>
+
+where <some_other_passwd> can be any scheme currently understood
+by OpenLDAP.  For example, using '{SHA}5en6G6MezRroT3XKqkdPOmY/BfQ='
+would encode the above TOTP with a static password of 'secret'.  To
+authenticate using this scheme, enter the static password immediately
+followed by the TOTP, for example 'secret123456'.
+
 
 Building
 --------
@@ -33,7 +44,8 @@ cannot use that overlay on the same database as this one.
 Configuring
 -----------
 
-The {TOTP1}, {TOTP256}, and {TOTP512} password schemes should now be recognised.
+The {TOTP1}, {TOTP256}, {TOTP512}, {TOTP1ANDPW}, {TOTP256ANDPW},
+and {TOTP512ANDPW} password schemes should now be recognised.
 
 You can also tell OpenLDAP to use one of these new schemes when processing LDAP
 Password Modify Extended Operations, thanks to the password-hash option in

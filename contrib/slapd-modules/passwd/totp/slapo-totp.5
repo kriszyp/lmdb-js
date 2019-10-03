@@ -27,6 +27,12 @@ to the user's key and delivered to the user through SMS or some other channel.
 When prompted to authenticate, the user merely enters the six-digit code provided by
 the prover.
 
+Additionally, the overlay can also authenticate TOTP passwords
+combined with a static password.  To do this, utilize one of the
+{TOTP1ANDPW}, {TOTP256ANDPW}, or {TOTP512ANDPW} password schemes
+and append the static password scheme value to the end of the
+userPassword attribute, separated by a pipe (|) character.
+
 This implementation complies with 
 .B RFC 6238 TOTP Time-based One Time Passwords
 and includes support for the SHA-1, SHA-256, and SHA-512 HMAC
@@ -39,7 +45,8 @@ value should correspond to that used by the the prover (authenticator).
 
 .SH CONFIGURATION
 Once the module is loaded with the moduleload command from the synopsis, 
-the {TOTP1}, {TOTP256}, and {TOTP512}
+the {TOTP1}, {TOTP256}, {TOTP512}
+{TOTP1ANDPW}, {TOTP256ANDPW}, and {TOTP512ANDPW}
 password schemes will be recognized.
 
 On the databases where your users reside you must configure the
@@ -68,6 +75,11 @@ is needed to properly implement TOTP, provisions need to be made to propagate
 the authTimestamp attribute to other servers that are providing authentication
 services.
 
+The hash functions for the {TOTP1ANDPW}, {TOTP256ANDPW}, and {TOTP512ANDPW}
+schemes expect the secret to be entered in the form:
+<OTP seed><DELIM><static password>, where DELIM is currently defined
+as the pipe character (|).
+
 .SH BUGS
 The time step is hard-coded to thirty seconds. This should be OK for many use cases,
 but it would be nice if the value
@@ -85,9 +97,6 @@ While in most cases
 this is probably better than the alternative length of four digits, there may be
 cases where a four-digit value is preferred.
 
-There is currently no way to require a separate PIN code with the authenticator
-code.
-
 In cases where password-hash lists multiple mechanisms, the TOTP key will also
 be changed at the same time. This is likely to be undesirable behavior.
 
@@ -96,3 +105,5 @@ be changed at the same time. This is likely to be undesirable behavior.
 .SH ACKNOWLEDGEMENT
 This work was developed by Howard Chu of Symas Corporation for inclusion in
 OpenLDAP Software.
+
+Password + TOTP support added by Greg Veldman on behalf of SCinet.
