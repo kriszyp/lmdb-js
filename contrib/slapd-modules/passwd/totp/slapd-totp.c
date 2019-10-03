@@ -479,7 +479,6 @@ static int chk_totp(
 	out.mv_val = outbuf;
 	out.mv_len = sizeof(outbuf);
 	generate(&key, t, DIGITS, &out, mech);
-	memset(key.mv_val, 0, key.mv_len);
 
 	/* compare */
 	if (out.mv_len != cred->bv_len) {
@@ -489,7 +488,21 @@ static int chk_totp(
 
 	rc = memcmp(out.mv_val, cred->bv_val, out.mv_len) ? LUTIL_PASSWD_ERR : LUTIL_PASSWD_OK;
 
+	/* If current value doesn't match, try again with previous value
+	 * but only if the most recent login is older than the previous
+	 * time step but still set */
+	if (rc == LUTIL_PASSWD_ERR && told < t - 1 && told > 0) {
+		out.mv_val = outbuf;
+		out.mv_len = sizeof(outbuf);
+		generate(&key, t - 1, DIGITS, &out, mech);
+		/* compare */
+		if (out.mv_len != cred->bv_len)
+			goto out;
+		rc = memcmp(out.mv_val, cred->bv_val, out.mv_len) ? LUTIL_PASSWD_ERR : LUTIL_PASSWD_OK;
+	}
+
 out:
+	memset(key.mv_val, 0, key.mv_len);
 	ber_memfree(key.mv_val);
 	return rc;
 }

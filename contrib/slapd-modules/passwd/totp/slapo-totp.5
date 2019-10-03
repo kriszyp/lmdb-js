@@ -72,6 +72,13 @@ services.
 The time step is hard-coded to thirty seconds. This should be OK for many use cases,
 but it would be nice if the value
 could be changed with a configuration keyword or in an attribute value.
+However, after one successful initial authentication (to verify
+the clocks on the server and the user's prover are in sync) the TOTP
+value of the previous time window may also be used to successfully
+authenticate, provided no successful bind has been performed already
+in the current or previous time window.  This eliminates false
+negatives caused by user or network delays
+entering or transmitting the TOTP value.
 
 The authenticator code that is generated is hard-coded to a length of six digits.
 While in most cases
