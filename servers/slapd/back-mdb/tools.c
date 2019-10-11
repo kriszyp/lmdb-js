@@ -217,6 +217,17 @@ int mdb_tool_entry_close(
 		}
 		mdb_tool_txn = NULL;
 	}
+	if( txi ) {
+		int rc;
+		if (( rc = mdb_txn_commit( txi ))) {
+			Debug( LDAP_DEBUG_ANY,
+				LDAP_XSTRING(mdb_tool_entry_close) ": database %s: "
+				"txn_commit failed: %s (%d)\n",
+				be->be_suffix[0].bv_val, mdb_strerror(rc), rc );
+			return -1;
+		}
+		txi = NULL;
+	}
 
 	if( nholes ) {
 		unsigned i;
