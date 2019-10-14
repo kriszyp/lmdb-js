@@ -272,7 +272,7 @@ static int mdb_id2entry_put(
 	struct mdb_info *mdb = (struct mdb_info *) op->o_bd->be_private;
 	Ecount ec;
 	MDB_val key, data;
-	int rc, adding = flag;
+	int rc, adding = flag, prev_ads = mdb->mi_numads;
 
 	/* We only store rdns, and they go in the dn2id database. */
 
@@ -280,16 +280,20 @@ static int mdb_id2entry_put(
 	key.mv_size = sizeof(ID);
 
 	rc = mdb_entry_partsize( mdb, txn, e, &ec );
-	if (rc)
-		return LDAP_OTHER;
+	if (rc) {
+		rc = LDAP_OTHER;
+		goto fail;
+	}
 
 	flag |= MDB_RESERVE;
 
 	if (e->e_id < mdb->mi_nextid)
 		flag &= ~MDB_APPEND;
 
-	if (mdb->mi_maxentrysize && ec.len > mdb->mi_maxentrysize)
-		return LDAP_ADMINLIMIT_EXCEEDED;
+	if (mdb->mi_maxentrysize && ec.len > mdb->mi_maxentrysize) {
+		rc = LDAP_ADMINLIMIT_EXCEEDED;
+		goto fail;
+	}
 
 again:
 	data.mv_size = ec.dlen;
@@ -300,7 +304,7 @@ again:
 	if (rc == MDB_SUCCESS) {
 		rc = mdb_entry_encode( op, e, &data, &ec );
 		if( rc != LDAP_SUCCESS )
-			return rc;
+			goto fail;
 		/* Handle adds of large multi-valued attrs here.
 		 * Modifies handle them directly.
 		 */
@@ -323,7 +327,8 @@ again:
 					"mdb_id2entry_put: mdb_mval_put failed: %s(%d) \"%s\"\n",
 					mdb_strerror(rc), rc,
 					e->e_nname.bv_val );
-				return LDAP_OTHER;
+				rc = LDAP_OTHER;
+				goto fail;
 			}
 		}
 	}
@@ -339,6 +344,10 @@ again:
 			e->e_nname.bv_val );
 		if ( rc != MDB_KEYEXIST )
 			rc = LDAP_OTHER;
+	}
+fail:
+	if (rc) {
+		mdb_ad_unwind( mdb, prev_ads );
 	}
 	return rc;
 }
