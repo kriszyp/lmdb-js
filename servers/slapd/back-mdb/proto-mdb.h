@@ -48,6 +48,7 @@ void mdb_attr_info_free( AttrInfo *ai );
 
 int mdb_ad_read( struct mdb_info *mdb, MDB_txn *txn );
 int mdb_ad_get( struct mdb_info *mdb, MDB_txn *txn, AttributeDescription *ad );
+void mdb_ad_unwind( struct mdb_info *mdb, int prev_ads );
 
 /*
  * config.c
