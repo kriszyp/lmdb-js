@@ -1,6 +1,7 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.49 Engineering
+	Fixed back-mdb to honor unchecked limit with alias deref (ITS#7657)
 	Documentation
 		slapo-ppolicy(5) - Correctly document pwdGraceAuthnLimit (ITS#9065)
 
