@@ -3,6 +3,7 @@ OpenLDAP 2.4 Change Log
 OpenLDAP 2.4.49 Engineering
 	Fixed back-mdb to honor unchecked limit with alias deref (ITS#7657)
 	Documentation
+		slapd-config(5)/slapd.conf(5) - Fix missing bold tag for keyword (ITS#9063)
 		slapo-ppolicy(5) - Correctly document pwdGraceAuthnLimit (ITS#9065)
 
 OpenLDAP 2.4.48 (2019/07/24)
