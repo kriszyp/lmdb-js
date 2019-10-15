@@ -1,6 +1,7 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.49 Engineering
+	Fixed libldap to correctly free sb (ITS#9081, ITS#8755)
 	Fixed back-ldap to set oldctrls correctly (ITS#9076)
 	Fixed back-mdb to honor unchecked limit with alias deref (ITS#7657)
 	Build Environment
