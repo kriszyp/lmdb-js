@@ -329,6 +329,18 @@ if test $COUNT != 1 ; then
 	exit 1
 fi
 
+$LDAPPASSWD -h $LOCALHOST -p $PORT1 \
+	-w $PASS -a $PASS -s passwordthatistoolong \
+	-D "$USER" -e ppolicy > ${TESTOUT}.2 2>&1
+RC=$?
+cat ${TESTOUT}.2 >> $TESTOUT
+COUNT=`grep "Password is too long for policy" ${TESTOUT}.2 | wc -l`
+if test $COUNT != 1 ; then
+	echo "Control not returned in response"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit 1
+fi
+
 echo "Testing hashed length requirement..."
 
 $LDAPMODIFY -h $LOCALHOST -p $PORT1 -D "$USER" -w $PASS > \
@@ -403,6 +415,58 @@ if test $RC = 0 ; then
 	echo "Multiple password modify replace test failed ($RC)!"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit 1
+fi
+
+echo "Testing idle password expiration"
+echo "Reconfiguring policy to replace expiration with idle expiration..."
+$LDAPMODIFY -v -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD >> \
+	$TESTOUT 2>&1 << EOMODS
+dn: cn=Standard Policy, ou=Policies, dc=example, dc=com
+changetype: modify
+delete: pwdMaxAge
+-
+add: pwdMaxIdle
+pwdMaxIdle: 15
+
+EOMODS
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapmodify failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+$LDAPSEARCH -e ppolicy -h $LOCALHOST -p $PORT1 -D "$USER" -w $PASS \
+	-b "$BASEDN" -s base > $SEARCHOUT 2>&1
+
+echo "Waiting 20 seconds for password to expire..."
+sleep 20
+
+$LDAPSEARCH -e ppolicy -h $LOCALHOST -p $PORT1 -D "$USER" -w $PASS \
+	-b "$BASEDN" -s base >> $SEARCHOUT 2>&1
+RC=$?
+if test $RC != 49 ; then
+	echo "Password idle expiration failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit 1
+fi
+
+echo "Reverting policy changes..."
+$LDAPMODIFY -v -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD >> \
+	$TESTOUT 2>&1 << EOMODS
+dn: cn=Standard Policy, ou=Policies, dc=example, dc=com
+changetype: modify
+delete: pwdMaxIdle
+-
+add: pwdMaxAge
+pwdMaxAge: 30
+
+EOMODS
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapmodify failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
 fi
 
 if test "$BACKLDAP" != "ldapno" && test "$SYNCPROV" != "syncprovno"  ; then 
