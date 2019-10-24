@@ -16,7 +16,6 @@ include: file://@TESTWD@/@SCHEMADIR@/cosine.ldif
 include: file://@TESTWD@/@SCHEMADIR@/inetorgperson.ldif
 include: file://@TESTWD@/@SCHEMADIR@/misc.ldif
 include: file://@TESTWD@/@SCHEMADIR@/nis.ldif
-include: file://@TESTWD@/@SCHEMADIR@/ppolicy.ldif
 
 #mod#dn: cn=module{0},cn=config
 #mod#objectClass: olcModuleList

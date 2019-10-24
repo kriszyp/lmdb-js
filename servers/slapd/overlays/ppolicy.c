@@ -109,6 +109,15 @@ static AttributeDescription *ad_pwdChangedTime, *ad_pwdAccountLockedTime,
 	*ad_pwdFailureTime, *ad_pwdHistory, *ad_pwdGraceUseTime, *ad_pwdReset,
 	*ad_pwdPolicySubentry;
 
+/* Policy attributes */
+static AttributeDescription *ad_pwdMinAge, *ad_pwdMaxAge, *ad_pwdMaxIdle,
+	*ad_pwdInHistory, *ad_pwdCheckQuality, *ad_pwdMinLength,
+	*ad_pwdMaxFailure, *ad_pwdGraceExpiry, *ad_pwdGraceAuthNLimit,
+	*ad_pwdExpireWarning, *ad_pwdLockoutDuration, *ad_pwdFailureCountInterval,
+	*ad_pwdCheckModule, *ad_pwdLockout, *ad_pwdMustChange,
+	*ad_pwdAllowUserChange, *ad_pwdSafeModify, *ad_pwdAttribute,
+	*ad_pwdMaxRecordedFailure;
+
 static struct schema_info {
 	char *def;
 	AttributeDescription **ad;
@@ -175,38 +184,141 @@ static struct schema_info {
 #endif
 		"USAGE directoryOperation )",
 		&ad_pwdPolicySubentry },
+
+	{	"( 1.3.6.1.4.1.42.2.27.8.1.1 "
+		"NAME ( 'pwdAttribute' ) "
+		"EQUALITY objectIdentifierMatch "
+		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.38 )",
+		&ad_pwdAttribute },
+	{	"( 1.3.6.1.4.1.42.2.27.8.1.2 "
+		"NAME ( 'pwdMinAge' ) "
+		"EQUALITY integerMatch "
+		"ORDERING integerOrderingMatch "
+		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 "
+		"SINGLE-VALUE )",
+		&ad_pwdMinAge },
+	{	"( 1.3.6.1.4.1.42.2.27.8.1.3 "
+		"NAME ( 'pwdMaxAge' ) "
+		"EQUALITY integerMatch "
+		"ORDERING integerOrderingMatch "
+		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 "
+		"SINGLE-VALUE )",
+		&ad_pwdMaxAge },
+	{	"( 1.3.6.1.4.1.42.2.27.8.1.4 "
+		"NAME ( 'pwdInHistory' ) "
+		"EQUALITY integerMatch "
+		"ORDERING integerOrderingMatch "
+		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 "
+		"SINGLE-VALUE )",
+		&ad_pwdInHistory },
+	{	"( 1.3.6.1.4.1.42.2.27.8.1.5 "
+		"NAME ( 'pwdCheckQuality' ) "
+		"EQUALITY integerMatch "
+		"ORDERING integerOrderingMatch "
+		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 "
+		"SINGLE-VALUE )",
+		&ad_pwdCheckQuality },
+	{	"( 1.3.6.1.4.1.42.2.27.8.1.6 "
+		"NAME ( 'pwdMinLength' ) "
+		"EQUALITY integerMatch "
+		"ORDERING integerOrderingMatch "
+		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 "
+		"SINGLE-VALUE )",
+		&ad_pwdMinLength },
+	{	"( 1.3.6.1.4.1.42.2.27.8.1.7 "
+		"NAME ( 'pwdExpireWarning' ) "
+		"EQUALITY integerMatch "
+		"ORDERING integerOrderingMatch "
+		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 "
+		"SINGLE-VALUE )",
+		&ad_pwdExpireWarning },
+	{	"( 1.3.6.1.4.1.42.2.27.8.1.8 "
+		"NAME ( 'pwdGraceAuthNLimit' ) "
+		"EQUALITY integerMatch "
+		"ORDERING integerOrderingMatch "
+		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 "
+		"SINGLE-VALUE )",
+		&ad_pwdGraceAuthNLimit },
+	{	"( 1.3.6.1.4.1.42.2.27.8.1.9 "
+		"NAME ( 'pwdLockout' ) "
+		"EQUALITY booleanMatch "
+		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.7 "
+		"SINGLE-VALUE )",
+		&ad_pwdLockout },
+	{	"( 1.3.6.1.4.1.42.2.27.8.1.10 "
+		"NAME ( 'pwdLockoutDuration' ) "
+		"EQUALITY integerMatch "
+		"ORDERING integerOrderingMatch "
+		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 "
+		"SINGLE-VALUE )",
+		&ad_pwdLockoutDuration },
+	{	"( 1.3.6.1.4.1.42.2.27.8.1.11 "
+		"NAME ( 'pwdMaxFailure' ) "
+		"EQUALITY integerMatch "
+		"ORDERING integerOrderingMatch "
+		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 "
+		"SINGLE-VALUE )",
+		&ad_pwdMaxFailure },
+	{	"( 1.3.6.1.4.1.42.2.27.8.1.12 "
+		"NAME ( 'pwdFailureCountInterval' ) "
+		"EQUALITY integerMatch "
+		"ORDERING integerOrderingMatch "
+		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 "
+		"SINGLE-VALUE )",
+		&ad_pwdFailureCountInterval },
+	{	"( 1.3.6.1.4.1.42.2.27.8.1.13 "
+		"NAME ( 'pwdMustChange' ) "
+		"EQUALITY booleanMatch "
+		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.7 "
+		"SINGLE-VALUE )",
+		&ad_pwdMustChange },
+	{	"( 1.3.6.1.4.1.42.2.27.8.1.14 "
+		"NAME ( 'pwdAllowUserChange' ) "
+		"EQUALITY booleanMatch "
+		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.7 "
+		"SINGLE-VALUE )",
+		&ad_pwdAllowUserChange },
+	{	"( 1.3.6.1.4.1.42.2.27.8.1.15 "
+		"NAME ( 'pwdSafeModify' ) "
+		"EQUALITY booleanMatch "
+		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.7 "
+		"SINGLE-VALUE )",
+		&ad_pwdSafeModify },
+	{	"( 1.3.6.1.4.1.42.2.27.8.1.32 "
+		"NAME ( 'pwdMaxRecordedFailure' ) "
+		"EQUALITY integerMatch "
+		"ORDERING integerOrderingMatch "
+		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 "
+		"SINGLE-VALUE )",
+		&ad_pwdMaxRecordedFailure },
+	{	"( 1.3.6.1.4.1.4754.1.99.1 "
+		"NAME ( 'pwdCheckModule' ) "
+		"EQUALITY caseExactIA5Match "
+		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 "
+		"DESC 'Loadable module that instantiates check_password() function' "
+		"SINGLE-VALUE )",
+		&ad_pwdCheckModule },
+
 	{ NULL, NULL }
 };
 
-/* User attributes */
-static AttributeDescription *ad_pwdMinAge, *ad_pwdMaxAge, *ad_pwdInHistory,
-	*ad_pwdCheckQuality, *ad_pwdMinLength, *ad_pwdMaxFailure, 
-	*ad_pwdGraceAuthNLimit, *ad_pwdExpireWarning, *ad_pwdLockoutDuration,
-	*ad_pwdFailureCountInterval, *ad_pwdCheckModule, *ad_pwdLockout,
-	*ad_pwdMustChange, *ad_pwdAllowUserChange, *ad_pwdSafeModify,
-	*ad_pwdAttribute, *ad_pwdMaxRecordedFailure;
-
-#define TAB(name)	{ #name, &ad_##name }
-
-static struct schema_info pwd_UsSchema[] = {
-	TAB(pwdAttribute),
-	TAB(pwdMinAge),
-	TAB(pwdMaxAge),
-	TAB(pwdInHistory),
-	TAB(pwdCheckQuality),
-	TAB(pwdMinLength),
-	TAB(pwdMaxFailure),
-	TAB(pwdMaxRecordedFailure),
-	TAB(pwdGraceAuthNLimit),
-	TAB(pwdExpireWarning),
-	TAB(pwdLockout),
-	TAB(pwdLockoutDuration),
-	TAB(pwdFailureCountInterval),
-	TAB(pwdCheckModule),
-	TAB(pwdMustChange),
-	TAB(pwdAllowUserChange),
-	TAB(pwdSafeModify),
-	{ NULL, NULL }
+static char *pwd_ocs[] = {
+	"( 1.3.6.1.4.1.4754.2.99.1 "
+		"NAME 'pwdPolicyChecker' "
+		"SUP top "
+		"AUXILIARY "
+		"MAY ( pwdCheckModule )" ,
+	"( 1.3.6.1.4.1.42.2.27.8.2.1 "
+		"NAME 'pwdPolicy' "
+		"SUP top "
+		"AUXILIARY "
+		"MUST ( pwdAttribute ) "
+		"MAY ( pwdMinAge $ pwdMaxAge $ pwdInHistory $ pwdCheckQuality $ "
+		"pwdMinLength $ pwdExpireWarning $ pwdGraceAuthNLimit $ pwdLockout $ "
+		"pwdLockoutDuration $ pwdMaxFailure $ pwdFailureCountInterval $ "
+		"pwdMustChange $ pwdAllowUserChange $ pwdSafeModify $ "
+		"pwdMaxRecordedFailure ) )",
+	NULL
 };
 
 static ldap_pvt_thread_mutex_t chk_syntax_mutex;
@@ -2397,39 +2509,6 @@ ppolicy_db_init(
 		return 1;
 	}
 
-	/* Has User Schema been initialized yet? */
-	if ( !pwd_UsSchema[0].ad[0] ) {
-		const char *err;
-		int i, code;
-
-		for (i=0; pwd_UsSchema[i].def; i++) {
-			code = slap_str2ad( pwd_UsSchema[i].def, pwd_UsSchema[i].ad, &err );
-			if ( code ) {
-				if ( cr ){
-					snprintf( cr->msg, sizeof(cr->msg), 
-						"User Schema load failed for attribute \"%s\". Error code %d: %s",
-						pwd_UsSchema[i].def, code, err );
-					Debug( LDAP_DEBUG_ANY, "%s\n", cr->msg );
-				}
-				return code;
-			}
-		}
-		{
-			Syntax *syn;
-			MatchingRule *mr;
-
-			syn = ch_malloc( sizeof( Syntax ));
-			*syn = *ad_pwdAttribute->ad_type->sat_syntax;
-			syn->ssyn_pretty = attrPretty;
-			ad_pwdAttribute->ad_type->sat_syntax = syn;
-
-			mr = ch_malloc( sizeof( MatchingRule ));
-			*mr = *ad_pwdAttribute->ad_type->sat_equality;
-			mr->smr_normalize = attrNormalize;
-			ad_pwdAttribute->ad_type->sat_equality = mr;
-		}
-	}
-
 	on->on_bi.bi_private = ch_calloc( sizeof(pp_info), 1 );
 
 	if ( !pwcons ) {
@@ -2510,6 +2589,29 @@ int ppolicy_initialize()
 		if ( is_at_no_user_mod( (*pwd_OpSchema[i].ad)->ad_type )) {
 			(*pwd_OpSchema[i].ad)->ad_type->sat_flags |=
 				SLAP_AT_MANAGEABLE;
+		}
+	}
+	{
+		Syntax *syn;
+		MatchingRule *mr;
+
+		syn = ch_malloc( sizeof( Syntax ));
+		*syn = *ad_pwdAttribute->ad_type->sat_syntax;
+		syn->ssyn_pretty = attrPretty;
+		ad_pwdAttribute->ad_type->sat_syntax = syn;
+
+		mr = ch_malloc( sizeof( MatchingRule ));
+		*mr = *ad_pwdAttribute->ad_type->sat_equality;
+		mr->smr_normalize = attrNormalize;
+		ad_pwdAttribute->ad_type->sat_equality = mr;
+	}
+
+	for (i=0; pwd_ocs[i]; i++) {
+		code = register_oc( pwd_ocs[i], NULL, 0 );
+		if ( code ) {
+			Debug( LDAP_DEBUG_ANY, "ppolicy_initialize: "
+				"register_oc failed\n" );
+			return code;
 		}
 	}
 
