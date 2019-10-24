@@ -78,6 +78,8 @@ typedef struct pass_policy {
 	int pwdMinLength; /* minimum number of chars in password */
 	int pwdExpireWarning; /* number of seconds that warning controls are
 							sent before a password expires */
+	int pwdGraceExpiry; /* number of seconds after expiry grace logins are
+						   valid */
 	int pwdGraceAuthNLimit; /* number of times you can log in with an
 							expired password */
 	int pwdLockout; /* 0 = do not lockout passwords, 1 = lock them out */
@@ -719,6 +721,9 @@ ppolicy_get( Operation *op, Entry *e, PassPolicy *pp )
 	if ( ( a = attr_find( pe->e_attrs, ad_pwdMaxRecordedFailure ) )
 			&& lutil_atoi( &pp->pwdMaxRecordedFailure, a->a_vals[0].bv_val ) != 0 )
 		goto defaultpol;
+	if ( ( a = attr_find( pe->e_attrs, ad_pwdGraceExpiry ) )
+			&& lutil_atoi( &pp->pwdGraceExpiry, a->a_vals[0].bv_val ) != 0 )
+		goto defaultpol;
 	if ( ( a = attr_find( pe->e_attrs, ad_pwdGraceAuthNLimit ) )
 			&& lutil_atoi( &pp->pwdGraceAuthNLimit, a->a_vals[0].bv_val ) != 0 )
 		goto defaultpol;
@@ -1332,9 +1337,13 @@ ppolicy_bind_response( Operation *op, SlapReply *rs )
 grace:
 		if (!pwExpired) goto check_expiring_password;
 		
-		if ((a = attr_find( e->e_attrs, ad_pwdGraceUseTime )) == NULL)
+		if ( ppb->pp.pwdGraceExpiry &&
+				now - pwtime > ppb->pp.pwdMaxAge + ppb->pp.pwdGraceExpiry ) {
+			/* Grace logins have expired now */
+			ngut = 0;
+		} else if ((a = attr_find( e->e_attrs, ad_pwdGraceUseTime )) == NULL) {
 			ngut = ppb->pp.pwdGraceAuthNLimit;
-		else {
+		} else {
 			for(ngut=0; a->a_nvals[ngut].bv_val; ngut++);
 			ngut = ppb->pp.pwdGraceAuthNLimit - ngut;
 		}
