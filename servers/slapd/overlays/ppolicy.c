@@ -1122,6 +1122,7 @@ ppolicy_bind_response( Operation *op, SlapReply *rs )
 {
 	ppbind *ppb = op->o_callback->sc_private;
 	slap_overinst *on = ppb->on;
+	pp_info *pi = on->on_bi.bi_private;
 	Modifications *mod = ppb->mod, *m;
 	int pwExpired = 0;
 	int ngut = -1, warn = -1, age, rc;
@@ -1411,7 +1412,6 @@ locked:
 		Operation op2 = *op;
 		SlapReply r2 = { REP_RESULT };
 		slap_callback cb = { NULL, slap_null_cb, NULL, NULL };
-		pp_info *pi = on->on_bi.bi_private;
 		LDAPControl c, *ca[2];
 
 		op2.o_tag = LDAP_REQ_MODIFY;
@@ -1452,7 +1452,6 @@ locked:
 
 	if ( ppb->send_ctrl ) {
 		LDAPControl *ctrl = NULL;
-		pp_info *pi = on->on_bi.bi_private;
 
 		/* Do we really want to tell that the account is locked? */
 		if ( ppb->pErr == PP_accountLocked && !pi->use_lockout ) {
