@@ -987,6 +987,9 @@ struct slap_internal_schema {
 	/* privateKeys */
 	AttributeDescription *si_ad_pKCS8PrivateKey;
 
+	/* ppolicy lastbind equivalent */
+	AttributeDescription *si_ad_pwdLastSuccess;
+
 	/* Undefined Attribute Type */
 	AttributeType	*si_at_undefined;
 
@@ -1867,10 +1870,12 @@ struct BackendDB {
 #define SLAP_DBFLAG_SYNC_SUBENTRY	0x40000U /* use subentry for context */
 #define SLAP_DBFLAG_MULTI_SHADOW	0x80000U /* uses mirrorMode/multi-master */
 #define SLAP_DBFLAG_DISABLED	0x100000U
+#define SLAP_DBFLAG_LASTBIND	0x200000U
 	slap_mask_t	be_flags;
 #define SLAP_DBFLAGS(be)			((be)->be_flags)
 #define SLAP_NOLASTMOD(be)			(SLAP_DBFLAGS(be) & SLAP_DBFLAG_NOLASTMOD)
 #define SLAP_LASTMOD(be)			(!SLAP_NOLASTMOD(be))
+#define SLAP_LASTBIND(be)			(SLAP_DBFLAGS(be) & SLAP_DBFLAG_LASTBIND)
 #define SLAP_DBHIDDEN(be)			(SLAP_DBFLAGS(be) & SLAP_DBFLAG_HIDDEN)
 #define SLAP_DBDISABLED(be)			(SLAP_DBFLAGS(be) & SLAP_DBFLAG_DISABLED)
 #define SLAP_DB_ONE_SUFFIX(be)		(SLAP_DBFLAGS(be) & SLAP_DBFLAG_ONE_SUFFIX)

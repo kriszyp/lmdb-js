@@ -72,6 +72,8 @@ typedef struct pass_policy {
 	AttributeDescription *ad; /* attribute to which the policy applies */
 	int pwdMinAge; /* minimum time (seconds) until passwd can change */
 	int pwdMaxAge; /* time in seconds until pwd will expire after change */
+	int pwdMaxIdle; /* number of seconds since last successful bind before
+					   passwd gets locked out */
 	int pwdInHistory; /* number of previous passwords kept */
 	int pwdCheckQuality; /* 0 = don't check quality, 1 = check if possible,
 						   2 = check mandatory; fail if not possible */
@@ -207,6 +209,7 @@ static struct schema_info {
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.24 "
 		"SINGLE-VALUE NO-USER-MODIFICATION USAGE directoryOperation )",
 		&ad_pwdEndTime },
+	/* Defined in schema_prep.c now
 	{	"( 1.3.6.1.4.1.42.2.27.8.1.29 "
 		"NAME ( 'pwdLastSuccess' ) "
 		"DESC 'The timestamp of the last successful authentication' "
@@ -215,6 +218,7 @@ static struct schema_info {
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.24 "
 		"SINGLE-VALUE NO-USER-MODIFICATION USAGE directoryOperation )",
 		&ad_pwdLastSuccess },
+	*/
 	{	"( 1.3.6.1.4.1.42.2.27.8.1.33 "
 		"NAME ( 'pwdAccountTmpLockoutEnd' ) "
 		"DESC 'Temporary lockout end' "
@@ -576,6 +580,24 @@ account_locked( Operation *op, Entry *e,
 		}
 	}
 
+	/* Only check if database maintains lastbind */
+	if ( pp->pwdMaxIdle && SLAP_LASTBIND( op->o_bd ) ) {
+		time_t lastbindtime = (time_t)-1;
+
+		la = attr_find( e->e_attrs, ad_pwdLastSuccess );
+		if ( la == NULL ) {
+			la = attr_find( e->e_attrs, ad_pwdChangedTime );
+		}
+		if ( la != NULL ) {
+			lastbindtime = parse_time( la->a_nvals[0].bv_val );
+		}
+
+		if ( lastbindtime != (time_t)-1 &&
+				op->o_time > lastbindtime + pp->pwdMaxIdle ) {
+			return 1;
+		}
+	}
+
 	if ( (la = attr_find( e->e_attrs, ad_pwdAccountLockedTime )) != NULL ) {
 		BerVarray vals = la->a_nvals;
 
@@ -772,6 +794,9 @@ ppolicy_get( Operation *op, Entry *e, PassPolicy *pp )
 		goto defaultpol;
 	if ( ( a = attr_find( pe->e_attrs, ad_pwdMaxAge ) )
 			&& lutil_atoi( &pp->pwdMaxAge, a->a_vals[0].bv_val ) != 0 )
+		goto defaultpol;
+	if ( ( a = attr_find( pe->e_attrs, ad_pwdMaxIdle ) )
+			&& lutil_atoi( &pp->pwdMaxIdle, a->a_vals[0].bv_val ) != 0 )
 		goto defaultpol;
 	if ( ( a = attr_find( pe->e_attrs, ad_pwdInHistory ) )
 			&& lutil_atoi( &pp->pwdInHistory, a->a_vals[0].bv_val ) != 0 )
@@ -1935,7 +1960,8 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 	LDAPControl		*ctrl = NULL;
 	LDAPControl 		**oldctrls = NULL;
 	int			is_pwdexop = 0;
-	int got_del_grace = 0, got_del_lock = 0, got_pw = 0, got_del_fail = 0;
+	int got_del_grace = 0, got_del_lock = 0, got_pw = 0, got_del_fail = 0,
+		got_del_success = 0;
 	int got_changed = 0, got_history = 0;
 
 	op->o_bd->bd_info = (BackendInfo *)on->on_info;
@@ -1949,11 +1975,12 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 	 */
 	if ( SLAPD_SYNC_IS_SYNCCONN( op->o_connid ) ) {
 		Modifications **prev;
-		Attribute *a_grace, *a_lock, *a_fail;
+		Attribute *a_grace, *a_lock, *a_fail, *a_success;
 
 		a_grace = attr_find( e->e_attrs, ad_pwdGraceUseTime );
 		a_lock = attr_find( e->e_attrs, ad_pwdAccountLockedTime );
 		a_fail = attr_find( e->e_attrs, ad_pwdFailureTime );
+		a_success = attr_find( e->e_attrs, ad_pwdLastSuccess );
 
 		for( prev = &op->orm_modlist, ml = *prev; ml; ml = *prev ) {
 
@@ -1988,6 +2015,13 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 						got_del_fail = 1;
 					}
 				}
+				if ( ml->sml_desc == ad_pwdLastSuccess ) {
+					if ( !a_success || got_del_success ) {
+						drop = ml->sml_op == LDAP_MOD_DELETE;
+					} else {
+						got_del_success = 1;
+					}
+				}
 				if ( drop ) {
 					*prev = ml->sml_next;
 					ml->sml_next = NULL;
@@ -1999,7 +2033,7 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 		}
 
 		/* If we're resetting the password, make sure grace, accountlock,
-		 * and failure also get removed.
+		 * success, and failure also get removed.
 		 */
 		if ( got_pw ) {
 			if ( a_grace && !got_del_grace ) {
@@ -2033,6 +2067,18 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 				ml->sml_flags = SLAP_MOD_INTERNAL;
 				ml->sml_type.bv_val = NULL;
 				ml->sml_desc = ad_pwdFailureTime;
+				ml->sml_numvals = 0;
+				ml->sml_values = NULL;
+				ml->sml_nvalues = NULL;
+				ml->sml_next = NULL;
+				*prev = ml;
+			}
+			if ( a_success && !got_del_success ) {
+				ml = (Modifications *) ch_malloc( sizeof( Modifications ) );
+				ml->sml_op = LDAP_MOD_DELETE;
+				ml->sml_flags = SLAP_MOD_INTERNAL;
+				ml->sml_type.bv_val = NULL;
+				ml->sml_desc = ad_pwdLastSuccess;
 				ml->sml_numvals = 0;
 				ml->sml_values = NULL;
 				ml->sml_nvalues = NULL;
@@ -2145,6 +2191,8 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 				got_del_lock = 1;
 			} else if ( ml->sml_desc == ad_pwdFailureTime ) {
 				got_del_fail = 1;
+			} else if ( ml->sml_desc == ad_pwdLastSuccess ) {
+				got_del_success = 1;
 			}
 		}
 		if ( ml->sml_desc == ad_pwdChangedTime ) {
@@ -2463,6 +2511,17 @@ do_modify:
 			modtail = mods;
 		}
 
+		/* TODO: do we remove pwdLastSuccess or set it to 'now'? */
+		if (!got_del_success && attr_find(e->e_attrs, ad_pwdLastSuccess )){
+			mods = (Modifications *) ch_calloc( sizeof( Modifications ), 1 );
+			mods->sml_op = LDAP_MOD_DELETE;
+			mods->sml_flags = SLAP_MOD_INTERNAL;
+			mods->sml_desc = ad_pwdLastSuccess;
+			mods->sml_next = NULL;
+			modtail->sml_next = mods;
+			modtail = mods;
+		}
+
 		/* Delete all pwdInHistory attribute */
 		if (!got_history && pp.pwdInHistory == 0 &&
             attr_find(e->e_attrs, ad_pwdHistory )){
@@ -2769,6 +2828,7 @@ int ppolicy_initialize()
 				SLAP_AT_MANAGEABLE;
 		}
 	}
+	ad_pwdLastSuccess = slap_schema.si_ad_pwdLastSuccess;
 	{
 		Syntax *syn;
 		MatchingRule *mr;

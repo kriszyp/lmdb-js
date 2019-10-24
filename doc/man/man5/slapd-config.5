@@ -1429,6 +1429,12 @@ createTimestamp attributes for entries. It also controls
 the entryCSN and entryUUID attributes, which are needed
 by the syncrepl provider. By default, olcLastMod is TRUE.
 .TP
+.B olcLastBind: TRUE | FALSE
+Controls whether
+.B slapd
+will automatically maintain the pwdLastSuccess attribute for
+entries. By default, olcLastBind is FALSE.
+.TP
 .B olcLimits: <selector> <limit> [<limit> [...]]
 Specify time and size limits based on the operation's initiator or
 base DN.

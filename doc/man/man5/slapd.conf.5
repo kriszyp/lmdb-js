@@ -1364,6 +1364,12 @@ createTimestamp attributes for entries. It also controls
 the entryCSN and entryUUID attributes, which are needed
 by the syncrepl provider. By default, lastmod is on.
 .TP
+.B lastbind on | off
+Controls whether
+.B slapd
+will automatically maintain the pwdLastSuccess attribute for
+entries. By default, lastbind is off.
+.TP
 .B limits <selector> <limit> [<limit> [...]]
 Specify time and size limits based on the operation's initiator or
 base DN.

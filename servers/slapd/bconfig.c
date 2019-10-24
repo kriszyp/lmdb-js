@@ -178,6 +178,7 @@ enum {
 	CFG_MODLOAD,
 	CFG_MODPATH,
 	CFG_LASTMOD,
+	CFG_LASTBIND,
 	CFG_AZPOLICY,
 	CFG_AZREGEXP,
 	CFG_AZDUC,
@@ -440,6 +441,10 @@ static ConfigTable config_back_cf_table[] = {
 			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
 	{ "lastmod", "on|off", 2, 2, 0, ARG_DB|ARG_ON_OFF|ARG_MAGIC|CFG_LASTMOD,
 		&config_generic, "( OLcfgDbAt:0.4 NAME 'olcLastMod' "
+			"EQUALITY booleanMatch "
+			"SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
+	{ "lastbind", "on|off", 2, 2, 0, ARG_DB|ARG_ON_OFF|ARG_MAGIC|CFG_LASTBIND,
+		&config_generic, "( OLcfgDbAt:0.22 NAME 'olcLastBind' "
 			"EQUALITY booleanMatch "
 			"SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
 	{ "ldapsyntax",	"syntax", 2, 0, 0,
@@ -981,7 +986,7 @@ static ConfigOCs cf_ocs[] = {
 		"SUP olcConfig STRUCTURAL "
 		"MUST olcDatabase "
 		"MAY ( olcDisabled $ olcHidden $ olcSuffix $ olcSubordinate $ olcAccess $ "
-		 "olcAddContentAcl $ olcLastMod $ olcLimits $ "
+		 "olcAddContentAcl $ olcLastMod $ olcLastBind $ olcLimits $ "
 		 "olcMaxDerefDepth $ olcPlugin $ olcReadOnly $ olcReplica $ "
 		 "olcReplicaArgsFile $ olcReplicaPidFile $ olcReplicationInterval $ "
 		 "olcReplogFile $ olcRequires $ olcRestrict $ olcRootDN $ olcRootPW $ "
@@ -1321,6 +1326,9 @@ config_generic(ConfigArgs *c) {
 		case CFG_LASTMOD:
 			c->value_int = (SLAP_NOLASTMOD(c->be) == 0);
 			break;
+		case CFG_LASTBIND:
+			c->value_int = (SLAP_NOLASTMOD(c->be) == 0);
+			break;
 		case CFG_SYNC_SUBENTRY:
 			c->value_int = (SLAP_SYNC_SUBENTRY(c->be) != 0);
 			break;
@@ -1435,6 +1443,7 @@ config_generic(ConfigArgs *c) {
 		case CFG_AZPOLICY:
 		case CFG_DEPTH:
 		case CFG_LASTMOD:
+		case CFG_LASTBIND:
 		case CFG_MONITORING:
 		case CFG_SASLSECP:
 		case CFG_SSTR_IF_MAX:
@@ -2274,6 +2283,13 @@ sortval_reject:
 				SLAP_DBFLAGS(c->be) &= ~SLAP_DBFLAG_NOLASTMOD;
 			else
 				SLAP_DBFLAGS(c->be) |= SLAP_DBFLAG_NOLASTMOD;
+			break;
+
+		case CFG_LASTBIND:
+			if (c->value_int)
+				SLAP_DBFLAGS(c->be) |= SLAP_DBFLAG_LASTBIND;
+			else
+				SLAP_DBFLAGS(c->be) &= ~SLAP_DBFLAG_LASTBIND;
 			break;
 
 		case CFG_MIRRORMODE:

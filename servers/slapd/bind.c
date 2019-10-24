@@ -31,6 +31,7 @@
 #include <ac/string.h>
 #include <ac/socket.h>
 
+#include "lutil.h"
 #include "slap.h"
 
 int
@@ -400,6 +401,113 @@ cleanup:;
 }
 
 int
+fe_op_lastbind( Operation *op )
+{
+	Operation op2 = *op;
+	SlapReply r2 = { REP_RESULT };
+	slap_callback cb = { NULL, slap_null_cb, NULL, NULL };
+	LDAPControl c, *ca[2];
+	Modifications *m;
+	Entry *e;
+	Attribute *a;
+	char nowstr[ LDAP_LUTIL_GENTIME_BUFSIZE ];
+	struct berval timestamp;
+	time_t bindtime = (time_t)-1;
+	int rc;
+
+	rc = be_entry_get_rw( op, &op->o_conn->c_ndn, NULL, NULL, 0, &e );
+	if ( rc != LDAP_SUCCESS ) {
+		return -1;
+	}
+
+	/* get authTimestamp attribute, if it exists */
+	if ( (a = attr_find( e->e_attrs, slap_schema.si_ad_pwdLastSuccess )) != NULL ) {
+		struct lutil_tm tm;
+		struct lutil_timet tt;
+
+		if ( lutil_parsetime( a->a_nvals[0].bv_val, &tm ) == 0 ) {
+			lutil_tm2time( &tm, &tt );
+			bindtime = tt.tt_sec;
+		}
+		Debug( LDAP_DEBUG_ANY, "fe_op_lastbind: "
+				"old pwdLastSuccess value=%s %lds ago\n",
+				a->a_nvals[0].bv_val, bindtime == (time_t)-1 ? -1 : op->o_time - bindtime );
+
+		/*
+		 * TODO: If the recorded bind time is within configurable precision,
+		 * it doesn't need to be updated (save a write for nothing)
+		 */
+		if ( bindtime != (time_t)-1 && op->o_time <= bindtime ) {
+			be_entry_release_r( op, e );
+			return LDAP_SUCCESS;
+		}
+	}
+
+	/* update the authTimestamp in the user's entry with the current time */
+	timestamp.bv_val = nowstr;
+	timestamp.bv_len = sizeof(nowstr);
+	slap_timestamp( &op->o_time, &timestamp );
+
+	m = ch_calloc( sizeof(Modifications), 1 );
+	m->sml_op = LDAP_MOD_REPLACE;
+	m->sml_flags = 0;
+	m->sml_type = slap_schema.si_ad_pwdLastSuccess->ad_cname;
+	m->sml_desc = slap_schema.si_ad_pwdLastSuccess;
+	m->sml_numvals = 1;
+	m->sml_values = ch_calloc( sizeof(struct berval), 2 );
+	m->sml_nvalues = ch_calloc( sizeof(struct berval), 2 );
+
+	ber_dupbv( &m->sml_values[0], &timestamp );
+	ber_dupbv( &m->sml_nvalues[0], &timestamp );
+
+	be_entry_release_r( op, e );
+
+	op2.o_tag = LDAP_REQ_MODIFY;
+	op2.o_req_dn = op->o_conn->c_dn;
+	op2.o_req_ndn = op->o_conn->c_ndn;
+	op2.o_callback = &cb;
+	op2.orm_modlist = m;
+	op2.orm_no_opattrs = 0;
+	op2.o_dn = op->o_bd->be_rootdn;
+	op2.o_ndn = op->o_bd->be_rootndn;
+
+	/*
+	 * TODO: this is core+frontend, not everything works the same way?
+	 */
+	/*
+	 * Code for forwarding of updates adapted from ppolicy.c of slapo-ppolicy
+	 *
+	 * If this server is a shadow and forward_updates is true,
+	 * use the frontend to perform this modify. That will trigger
+	 * the update referral, which can then be forwarded by the
+	 * chain overlay. Obviously the updateref and chain overlay
+	 * must be configured appropriately for this to be useful.
+	 */
+	if ( SLAP_SHADOW( op->o_bd ) ) {
+		/* Must use Relax control since these are no-user-mod */
+		op2.o_relax = SLAP_CONTROL_CRITICAL;
+		op2.o_ctrls = ca;
+		ca[0] = &c;
+		ca[1] = NULL;
+		BER_BVZERO( &c.ldctl_value );
+		c.ldctl_iscritical = 1;
+		c.ldctl_oid = LDAP_CONTROL_RELAX;
+	} else {
+		/* If not forwarding, don't update opattrs and don't replicate */
+		if ( SLAP_SINGLE_SHADOW( op->o_bd )) {
+			op2.orm_no_opattrs = 1;
+			op2.o_dont_replicate = 1;
+		}
+	}
+
+	rc = op->o_bd->be_modify( &op2, &r2 );
+	slap_mods_free( m, 1 );
+
+done:
+	return rc;
+}
+
+int
 fe_op_bind_success( Operation *op, SlapReply *rs )
 {
 	ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
@@ -435,6 +543,10 @@ fe_op_bind_success( Operation *op, SlapReply *rs )
 		op->o_protocol, op->o_req_dn.bv_val, op->o_conn->c_dn.bv_val );
 
 	ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
+
+	if ( SLAP_LASTBIND( op->o_bd ) ) {
+		fe_op_lastbind( op );
+	}
 
 	/* send this here to avoid a race condition */
 	send_ldap_result( op, rs );
