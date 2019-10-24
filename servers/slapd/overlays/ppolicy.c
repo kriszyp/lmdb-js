@@ -102,6 +102,8 @@ typedef struct pass_policy {
 							1 = password change must supply existing pwd */
 	char pwdCheckModule[MODULE_NAME_SZ]; /* name of module to dynamically
 										    load to check password */
+	struct berval pwdCheckModuleArg; /* Optional argument to the password check
+										module */
 } PassPolicy;
 
 typedef struct pw_hist {
@@ -123,9 +125,9 @@ static AttributeDescription *ad_pwdMinAge, *ad_pwdMaxAge, *ad_pwdMaxIdle,
 	*ad_pwdMaxFailure, *ad_pwdGraceExpiry, *ad_pwdGraceAuthNLimit,
 	*ad_pwdExpireWarning, *ad_pwdMinDelay, *ad_pwdMaxDelay,
 	*ad_pwdLockoutDuration, *ad_pwdFailureCountInterval,
-	*ad_pwdCheckModule, *ad_pwdLockout, *ad_pwdMustChange,
-	*ad_pwdAllowUserChange, *ad_pwdSafeModify, *ad_pwdAttribute,
-	*ad_pwdMaxRecordedFailure;
+	*ad_pwdCheckModule, *ad_pwdCheckModuleArg, *ad_pwdLockout,
+	*ad_pwdMustChange, *ad_pwdAllowUserChange, *ad_pwdSafeModify,
+	*ad_pwdAttribute, *ad_pwdMaxRecordedFailure;
 
 static struct schema_info {
 	char *def;
@@ -376,6 +378,13 @@ static struct schema_info {
 		"DESC 'Loadable module that instantiates check_password() function' "
 		"SINGLE-VALUE )",
 		&ad_pwdCheckModule },
+	{	"( 1.3.6.1.4.1.4754.1.99.2 "
+		"NAME ( 'pwdCheckModuleArg' ) "
+		"EQUALITY octetStringMatch "
+		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.40 "
+		"DESC 'Argument to pass to check_password() function' "
+		"SINGLE-VALUE )",
+		&ad_pwdCheckModuleArg },
 
 	{ NULL, NULL }
 };
@@ -385,7 +394,7 @@ static char *pwd_ocs[] = {
 		"NAME 'pwdPolicyChecker' "
 		"SUP top "
 		"AUXILIARY "
-		"MAY ( pwdCheckModule )" ,
+		"MAY ( pwdCheckModule $ pwdCheckModuleArg ) )" ,
 	"( 1.3.6.1.4.1.42.2.27.8.2.1 "
 		"NAME 'pwdPolicy' "
 		"SUP top "
@@ -843,6 +852,9 @@ ppolicy_get( Operation *op, Entry *e, PassPolicy *pp )
 			sizeof(pp->pwdCheckModule) );
 		pp->pwdCheckModule[sizeof(pp->pwdCheckModule)-1] = '\0';
 	}
+	if ( ( a = attr_find( pe->e_attrs, ad_pwdCheckModuleArg ) ) ) {
+		ber_dupbv_x( &pp->pwdCheckModuleArg, &a->a_vals[0], op->o_tmpmemctx );
+	}
 
 	if ((a = attr_find( pe->e_attrs, ad_pwdLockout )))
     		pp->pwdLockout = bvmatch( &a->a_nvals[0], &slap_true_bv );
@@ -991,18 +1003,23 @@ check_password_quality( struct berval *cred, PassPolicy *pp, LDAPPasswordPolicyE
 			 * passed in. Module can still allocate a buffer for
 			 * it if the provided one is too small.
 			 */
-			int (*prog)( char *passwd, char **text, Entry *ent );
+			int (*prog)( char *passwd, char **text, Entry *ent, struct berval *arg );
 
 			if ((prog = lt_dlsym( mod, "check_password" )) == NULL) {
 				err = lt_dlerror();
-			    
+
 				Debug(LDAP_DEBUG_ANY,
 					"check_password_quality: lt_dlsym failed: (%s) %s.\n",
 					pp->pwdCheckModule, err );
 				ok = LDAP_OTHER;
 			} else {
+				struct berval *arg = NULL;
+				if ( !BER_BVISNULL( &pp->pwdCheckModuleArg ) ) {
+					arg = &pp->pwdCheckModuleArg;
+				}
+
 				ldap_pvt_thread_mutex_lock( &chk_syntax_mutex );
-				ok = prog( ptr, txt, e );
+				ok = prog( ptr, txt, e, arg );
 				ldap_pvt_thread_mutex_unlock( &chk_syntax_mutex );
 				if (ok != LDAP_SUCCESS) {
 					Debug(LDAP_DEBUG_ANY,
