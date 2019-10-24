@@ -85,6 +85,8 @@ typedef struct pass_policy {
 							expired password */
 	int pwdLockout; /* 0 = do not lockout passwords, 1 = lock them out */
 	int pwdLockoutDuration; /* time in seconds a password is locked out for */
+	int pwdMinDelay; /* base bind delay in seconds on failure */
+	int pwdMaxDelay; /* maximum bind delay in seconds */
 	int pwdMaxFailure; /* number of failed binds allowed before lockout */
 	int pwdMaxRecordedFailure;	/* number of failed binds to store */
 	int pwdFailureCountInterval; /* number of seconds before failure
@@ -111,7 +113,7 @@ typedef struct pw_hist {
 static AttributeDescription *ad_pwdChangedTime, *ad_pwdAccountLockedTime,
 	*ad_pwdFailureTime, *ad_pwdHistory, *ad_pwdGraceUseTime, *ad_pwdReset,
 	*ad_pwdPolicySubentry, *ad_pwdStartTime, *ad_pwdEndTime,
-	*ad_pwdLastSuccess;
+	*ad_pwdLastSuccess, *ad_pwdAccountTmpLockoutEnd;
 
 /* Policy attributes */
 static AttributeDescription *ad_pwdMinAge, *ad_pwdMaxAge, *ad_pwdMaxIdle,
@@ -213,6 +215,19 @@ static struct schema_info {
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.24 "
 		"SINGLE-VALUE NO-USER-MODIFICATION USAGE directoryOperation )",
 		&ad_pwdLastSuccess },
+	{	"( 1.3.6.1.4.1.42.2.27.8.1.33 "
+		"NAME ( 'pwdAccountTmpLockoutEnd' ) "
+		"DESC 'Temporary lockout end' "
+		"EQUALITY generalizedTimeMatch "
+		"ORDERING generalizedTimeOrderingMatch "
+		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.24 "
+		"SINGLE-VALUE "
+#if 0
+		/* Not until Relax control is released */
+		"NO-USER-MODIFICATION "
+#endif
+		"USAGE directoryOperation )",
+		&ad_pwdAccountTmpLockoutEnd },
 
 	{	"( 1.3.6.1.4.1.42.2.27.8.1.1 "
 		"NAME ( 'pwdAttribute' ) "
@@ -544,6 +559,23 @@ account_locked( Operation *op, Entry *e,
 	if ( !pp->pwdLockout )
 		return 0;
 
+	if ( (la = attr_find( e->e_attrs, ad_pwdAccountTmpLockoutEnd )) != NULL ) {
+		BerVarray vals = la->a_nvals;
+		time_t then, now = op->o_time;
+
+		/*
+		 * We have temporarily locked the account after a failure
+		 */
+		if ( vals[0].bv_val != NULL ) {
+			if ( (then = parse_time( vals[0].bv_val )) == (time_t)-1 ) {
+				return 1;
+			}
+			if ( now < then ) {
+				return 1;
+			}
+		}
+	}
+
 	if ( (la = attr_find( e->e_attrs, ad_pwdAccountLockedTime )) != NULL ) {
 		BerVarray vals = la->a_nvals;
 
@@ -774,6 +806,12 @@ ppolicy_get( Operation *op, Entry *e, PassPolicy *pp )
 	if ( ( a = attr_find( pe->e_attrs, ad_pwdLockoutDuration ) )
 			&& lutil_atoi( &pp->pwdLockoutDuration, a->a_vals[0].bv_val ) != 0 )
 		goto defaultpol;
+	if ( ( a = attr_find( pe->e_attrs, ad_pwdMinDelay ) )
+			&& lutil_atoi( &pp->pwdMinDelay, a->a_vals[0].bv_val ) != 0 )
+		goto defaultpol;
+	if ( ( a = attr_find( pe->e_attrs, ad_pwdMaxDelay ) )
+			&& lutil_atoi( &pp->pwdMaxDelay, a->a_vals[0].bv_val ) != 0 )
+		goto defaultpol;
 
 	if ( ( a = attr_find( pe->e_attrs, ad_pwdCheckModule ) ) ) {
 		strncpy( pp->pwdCheckModule, a->a_vals[0].bv_val,
@@ -794,6 +832,12 @@ ppolicy_get( Operation *op, Entry *e, PassPolicy *pp )
 		pp->pwdMaxRecordedFailure = pp->pwdMaxFailure;
 	if ( !pp->pwdMaxRecordedFailure )
 		pp->pwdMaxRecordedFailure = PPOLICY_DEFAULT_MAXRECORDED_FAILURE;
+
+	if ( pp->pwdMinDelay && !pp->pwdMaxDelay ) {
+		Debug( LDAP_DEBUG_ANY, "ppolicy_get: pwdMinDelay was set but pwdMaxDelay wasn't, "
+				"assuming they are equal\n" );
+		pp->pwdMaxDelay = pp->pwdMinDelay;
+	}
 
 	op->o_bd->bd_info = (BackendInfo *)on->on_info;
 	be_entry_release_r( op, pe );
@@ -1174,7 +1218,7 @@ ppolicy_bind_response( Operation *op, SlapReply *rs )
 	pp_info *pi = on->on_bi.bi_private;
 	Modifications *mod = ppb->mod, *m;
 	int pwExpired = 0;
-	int ngut = -1, warn = -1, age, rc;
+	int ngut = -1, warn = -1, fc = 0, age, rc;
 	Attribute *a;
 	time_t now, pwtime = (time_t)-1;
 	struct lutil_tm now_tm;
@@ -1213,7 +1257,7 @@ ppolicy_bind_response( Operation *op, SlapReply *rs )
 	timestamp_usec.bv_len += STRLENOF(".123456");
 
 	if ( rs->sr_err == LDAP_INVALID_CREDENTIALS ) {
-		int i = 0, fc = 0;
+		int i = 0;
 
 		m = ch_calloc( sizeof(Modifications), 1 );
 		m->sml_op = LDAP_MOD_ADD;
@@ -1319,6 +1363,30 @@ ppolicy_bind_response( Operation *op, SlapReply *rs )
 			m->sml_nvalues = ch_calloc( sizeof(struct berval), 2 );
 			ber_dupbv( &m->sml_values[0], &timestamp );
 			ber_dupbv( &m->sml_nvalues[0], &timestamp );
+			m->sml_next = mod;
+			mod = m;
+		} else if ( ppb->pp.pwdMinDelay ) {
+			int waittime = ppb->pp.pwdMinDelay << fc;
+			time_t wait_end;
+			struct berval lockout_stamp;
+
+			if ( waittime > ppb->pp.pwdMaxDelay ) {
+				waittime = ppb.pp.pwdMaxDelay;
+			}
+			wait_end = now + waittime;
+
+			slap_timestamp( &wait_end, &lockout_stamp );
+
+			m = ch_calloc( sizeof(Modifications), 1 );
+			m->sml_op = LDAP_MOD_REPLACE;
+			m->sml_flags = 0;
+			m->sml_type = ad_pwdAccountTmpLockoutEnd->ad_cname;
+			m->sml_desc = ad_pwdAccountTmpLockoutEnd;
+			m->sml_numvals = 1;
+			m->sml_values = ch_calloc( sizeof(struct berval), 2 );
+			m->sml_nvalues = ch_calloc( sizeof(struct berval), 2 );
+			ber_dupbv( &m->sml_values[0], &lockout_stamp );
+			ber_dupbv( &m->sml_nvalues[0], &lockout_stamp );
 			m->sml_next = mod;
 			mod = m;
 		}
