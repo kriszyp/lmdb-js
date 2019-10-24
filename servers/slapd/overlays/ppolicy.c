@@ -507,6 +507,40 @@ account_locked( Operation *op, Entry *e,
 
 	assert(mod != NULL);
 
+	if ( (la = attr_find( e->e_attrs, ad_pwdStartTime )) != NULL ) {
+		BerVarray vals = la->a_nvals;
+		time_t then, now = op->o_time;
+
+		/*
+		 * Password has a defined start of validity
+		 */
+		if ( vals[0].bv_val != NULL ) {
+			if ( (then = parse_time( vals[0].bv_val )) == (time_t)-1 ) {
+				return 1;
+			}
+			if ( now < then ) {
+				return 1;
+			}
+		}
+	}
+
+	if ( (la = attr_find( e->e_attrs, ad_pwdEndTime )) != NULL ) {
+		BerVarray vals = la->a_nvals;
+		time_t then, now = op->o_time;
+
+		/*
+		 * Password has a defined end of validity
+		 */
+		if ( vals[0].bv_val != NULL ) {
+			if ( (then = parse_time( vals[0].bv_val )) == (time_t)-1 ) {
+				return 1;
+			}
+			if ( then <= now ) {
+				return 1;
+			}
+		}
+	}
+
 	if ( !pp->pwdLockout )
 		return 0;
 
