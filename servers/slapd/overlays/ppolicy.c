@@ -76,6 +76,7 @@ typedef struct pass_policy {
 	int pwdCheckQuality; /* 0 = don't check quality, 1 = check if possible,
 						   2 = check mandatory; fail if not possible */
 	int pwdMinLength; /* minimum number of chars in password */
+	int pwdMaxLength; /* maximum number of chars in password */
 	int pwdExpireWarning; /* number of seconds that warning controls are
 							sent before a password expires */
 	int pwdGraceExpiry; /* number of seconds after expiry grace logins are
@@ -715,6 +716,9 @@ ppolicy_get( Operation *op, Entry *e, PassPolicy *pp )
 	if ( ( a = attr_find( pe->e_attrs, ad_pwdMinLength ) )
 			&& lutil_atoi( &pp->pwdMinLength, a->a_vals[0].bv_val ) != 0 )
 		goto defaultpol;
+	if ( ( a = attr_find( pe->e_attrs, ad_pwdMaxLength ) )
+			&& lutil_atoi( &pp->pwdMaxLength, a->a_vals[0].bv_val ) != 0 )
+		goto defaultpol;
 	if ( ( a = attr_find( pe->e_attrs, ad_pwdMaxFailure ) )
 			&& lutil_atoi( &pp->pwdMaxFailure, a->a_vals[0].bv_val ) != 0 )
 		goto defaultpol;
@@ -826,6 +830,12 @@ check_password_quality( struct berval *cred, PassPolicy *pp, LDAPPasswordPolicyE
 	if ((cred->bv_len == 0) || (pp->pwdMinLength > cred->bv_len)) {
 		rc = LDAP_CONSTRAINT_VIOLATION;
 		if ( err ) *err = PP_passwordTooShort;
+		return rc;
+	}
+
+	if ( pp->pwdMaxLength && cred->bv_len > pp->pwdMaxLength ) {
+		rc = LDAP_CONSTRAINT_VIOLATION;
+		if ( err ) *err = PP_passwordTooLong;
 		return rc;
 	}
 
