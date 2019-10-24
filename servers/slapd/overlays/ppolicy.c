@@ -107,13 +107,15 @@ typedef struct pw_hist {
 /* Operational attributes */
 static AttributeDescription *ad_pwdChangedTime, *ad_pwdAccountLockedTime,
 	*ad_pwdFailureTime, *ad_pwdHistory, *ad_pwdGraceUseTime, *ad_pwdReset,
-	*ad_pwdPolicySubentry;
+	*ad_pwdPolicySubentry, *ad_pwdStartTime, *ad_pwdEndTime,
+	*ad_pwdLastSuccess;
 
 /* Policy attributes */
 static AttributeDescription *ad_pwdMinAge, *ad_pwdMaxAge, *ad_pwdMaxIdle,
-	*ad_pwdInHistory, *ad_pwdCheckQuality, *ad_pwdMinLength,
+	*ad_pwdInHistory, *ad_pwdCheckQuality, *ad_pwdMinLength, *ad_pwdMaxLength,
 	*ad_pwdMaxFailure, *ad_pwdGraceExpiry, *ad_pwdGraceAuthNLimit,
-	*ad_pwdExpireWarning, *ad_pwdLockoutDuration, *ad_pwdFailureCountInterval,
+	*ad_pwdExpireWarning, *ad_pwdMinDelay, *ad_pwdMaxDelay,
+	*ad_pwdLockoutDuration, *ad_pwdFailureCountInterval,
 	*ad_pwdCheckModule, *ad_pwdLockout, *ad_pwdMustChange,
 	*ad_pwdAllowUserChange, *ad_pwdSafeModify, *ad_pwdAttribute,
 	*ad_pwdMaxRecordedFailure;
@@ -184,6 +186,30 @@ static struct schema_info {
 #endif
 		"USAGE directoryOperation )",
 		&ad_pwdPolicySubentry },
+	{	"( 1.3.6.1.4.1.42.2.27.8.1.27 "
+		"NAME ( 'pwdStartTime' ) "
+		"DESC 'The time the password becomes enabled' "
+		"EQUALITY generalizedTimeMatch "
+		"ORDERING generalizedTimeOrderingMatch "
+		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.24 "
+		"SINGLE-VALUE NO-USER-MODIFICATION USAGE directoryOperation )",
+		&ad_pwdStartTime },
+	{	"( 1.3.6.1.4.1.42.2.27.8.1.28 "
+		"NAME ( 'pwdEndTime' ) "
+		"DESC 'The time the password becomes disabled' "
+		"EQUALITY generalizedTimeMatch "
+		"ORDERING generalizedTimeOrderingMatch "
+		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.24 "
+		"SINGLE-VALUE NO-USER-MODIFICATION USAGE directoryOperation )",
+		&ad_pwdEndTime },
+	{	"( 1.3.6.1.4.1.42.2.27.8.1.29 "
+		"NAME ( 'pwdLastSuccess' ) "
+		"DESC 'The timestamp of the last successful authentication' "
+		"EQUALITY generalizedTimeMatch "
+		"ORDERING generalizedTimeOrderingMatch "
+		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.24 "
+		"SINGLE-VALUE NO-USER-MODIFICATION USAGE directoryOperation )",
+		&ad_pwdLastSuccess },
 
 	{	"( 1.3.6.1.4.1.42.2.27.8.1.1 "
 		"NAME ( 'pwdAttribute' ) "
@@ -225,6 +251,12 @@ static struct schema_info {
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 "
 		"SINGLE-VALUE )",
 		&ad_pwdMinLength },
+	{	"( 1.3.6.1.4.1.42.2.27.8.1.31 "
+		"NAME ( 'pwdMaxLength' ) "
+		"EQUALITY integerMatch "
+		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 "
+		"SINGLE-VALUE )",
+		&ad_pwdMaxLength },
 	{	"( 1.3.6.1.4.1.42.2.27.8.1.7 "
 		"NAME ( 'pwdExpireWarning' ) "
 		"EQUALITY integerMatch "
@@ -239,6 +271,12 @@ static struct schema_info {
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 "
 		"SINGLE-VALUE )",
 		&ad_pwdGraceAuthNLimit },
+	{	"( 1.3.6.1.4.1.42.2.27.8.1.30 "
+		"NAME ( 'pwdGraceExpiry' ) "
+		"EQUALITY integerMatch "
+		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 "
+		"SINGLE-VALUE )",
+		&ad_pwdGraceExpiry },
 	{	"( 1.3.6.1.4.1.42.2.27.8.1.9 "
 		"NAME ( 'pwdLockout' ) "
 		"EQUALITY booleanMatch "
@@ -284,6 +322,24 @@ static struct schema_info {
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.7 "
 		"SINGLE-VALUE )",
 		&ad_pwdSafeModify },
+	{	"( 1.3.6.1.4.1.42.2.27.8.1.24 "
+		"NAME ( 'pwdMinDelay' ) "
+		"EQUALITY integerMatch "
+		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 "
+		"SINGLE-VALUE )",
+		&ad_pwdMinDelay },
+	{	"( 1.3.6.1.4.1.42.2.27.8.1.25 "
+		"NAME ( 'pwdMaxDelay' ) "
+		"EQUALITY integerMatch "
+		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 "
+		"SINGLE-VALUE )",
+		&ad_pwdMaxDelay },
+	{	"( 1.3.6.1.4.1.42.2.27.8.1.26 "
+		"NAME ( 'pwdMaxIdle' ) "
+		"EQUALITY integerMatch "
+		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 "
+		"SINGLE-VALUE )",
+		&ad_pwdMaxIdle },
 	{	"( 1.3.6.1.4.1.42.2.27.8.1.32 "
 		"NAME ( 'pwdMaxRecordedFailure' ) "
 		"EQUALITY integerMatch "
@@ -314,9 +370,11 @@ static char *pwd_ocs[] = {
 		"AUXILIARY "
 		"MUST ( pwdAttribute ) "
 		"MAY ( pwdMinAge $ pwdMaxAge $ pwdInHistory $ pwdCheckQuality $ "
-		"pwdMinLength $ pwdExpireWarning $ pwdGraceAuthNLimit $ pwdLockout $ "
+		"pwdMinLength $ pwdMaxLength $ pwdExpireWarning $ "
+		"pwdGraceAuthNLimit $ pwdGraceExpiry $ pwdLockout $ "
 		"pwdLockoutDuration $ pwdMaxFailure $ pwdFailureCountInterval $ "
 		"pwdMustChange $ pwdAllowUserChange $ pwdSafeModify $ "
+		"pwdMinDelay $ pwdMaxDelay $ pwdMaxIdle $ "
 		"pwdMaxRecordedFailure ) )",
 	NULL
 };
