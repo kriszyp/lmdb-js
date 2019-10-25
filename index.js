@@ -415,7 +415,6 @@ function open(path, options) {
 					}
 				}
 			})
-			console.log('commitBatchNow', operations.bytes, operations.length)
 			return results
 		}
 		batch(operations) {
