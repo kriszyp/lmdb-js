@@ -103,7 +103,7 @@ NAN_METHOD(DbiWrap::ctor) {
 
         // Set flags for txn used to open database
         Local<Value> create = options->Get(Nan::GetCurrentContext(), Nan::New<String>("create").ToLocalChecked()).ToLocalChecked();
-        if (create->IsBoolean() ? !create->BooleanValue(Nan::GetCurrentContext()).ToChecked() : true) {
+        if (create->IsBoolean() ? !create->BooleanValue(Isolate::GetCurrent()) : true) {
             txnFlags |= MDB_RDONLY;
         }
         
@@ -196,7 +196,7 @@ NAN_METHOD(DbiWrap::drop) {
         
         // Just free pages
         Local<Value> opt = options->Get(Nan::GetCurrentContext(), Nan::New<String>("justFreePages").ToLocalChecked()).ToLocalChecked();
-        del = opt->IsBoolean() ? !(opt->BooleanValue(Nan::GetCurrentContext()).ToChecked()) : 1;
+        del = opt->IsBoolean() ? !(opt->BooleanValue(Isolate::GetCurrent())) : 1;
         
         // User-supplied txn
         auto txnObj = options->Get(Nan::GetCurrentContext(), Nan::New<String>("txn").ToLocalChecked()).ToLocalChecked();
