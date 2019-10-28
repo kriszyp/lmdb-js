@@ -100,12 +100,13 @@ object class.  The definition of that class is as follows:
     MUST ( pwdAttribute )
     MAY (
         pwdMinAge $ pwdMaxAge $ pwdInHistory $
-        pwdCheckQuality $ pwdMinLength $
+        pwdCheckQuality $ pwdMinLength $ pwdMaxLength $
         pwdExpireWarning $ pwdGraceAuthnLimit $
-        pwdLockout $ pwdLockoutDuration $
+        pwdGraceExpiry $ pwdLockout $ pwdLockoutDuration $
         pwdMaxFailure $ pwdFailureCountInterval $
         pwdMustChange $ pwdAllowUserChange $
-        pwdSafeModify $ pwdMaxRecordedFailure ) )
+        pwdSafeModify $ pwdMaxRecordedFailure $
+        pwdMinDelay $ pwdMaxDelay $ pwdMaxIdle ) )
 .RE
 
 This implementation also provides an additional
@@ -117,7 +118,7 @@ objectclass, used for password quality checking (see below).
     NAME 'pwdPolicyChecker'
     AUXILIARY
     SUP top
-    MAY ( pwdCheckModule ) )
+    MAY ( pwdCheckModule $ pwdCheckModuleArg ) )
 .RE
 .P
 Every account that should be subject to password policy control should
@@ -260,6 +261,34 @@ is two (2)).
    SINGLE\-VALUE )
 .RE
 
+.B pwdMaxLength
+.P
+When syntax checking is enabled
+(see also the
+.B pwdCheckQuality
+attribute), this attribute contains the maximum
+number of characters that will be accepted in a password. If this
+attribute is not present, maximum password length is not
+enforced. If the server is unable to check the length of the password,
+whether due to a client-side hashed password or some other reason,
+the server will, depending on the
+value of
+.BR pwdCheckQuality ,
+either accept the password
+without checking it (if
+.B pwdCheckQuality
+is zero (0) or one (1)) or refuse it (if
+.B pwdCheckQuality
+is two (2)).
+.LP
+.RS 4
+(  1.3.6.1.4.1.42.2.27.8.1.31
+   NAME 'pwdMaxLength'
+   EQUALITY integerMatch
+   SYNTAX 1.3.6.1.4.1.1466.115.121.1.27
+   SINGLE\-VALUE )
+.RE
+
 .B pwdExpireWarning
 .P
 This attribute contains the maximum number of seconds before a
@@ -288,6 +317,22 @@ directory.
 (  1.3.6.1.4.1.42.2.27.8.1.8
    NAME 'pwdGraceAuthnLimit'
    EQUALITY integerMatch
+   SYNTAX 1.3.6.1.4.1.1466.115.121.1.27
+   SINGLE\-VALUE )
+.RE
+
+.B pwdGraceExpiry
+.P
+This attribute specifies the number of seconds the grace
+authentications are valid.  If this attribute is not present or if
+the value is zero (0), there is no time limit on the grace
+authentications.
+.LP
+.RS 4
+(  1.3.6.1.4.1.42.2.27.8.1.30
+   NAME 'pwdGraceExpiry'
+   EQUALITY integerMatch
+   ORDERING integerOrderingMatch
    SYNTAX 1.3.6.1.4.1.1466.115.121.1.27
    SINGLE\-VALUE )
 .RE
@@ -378,7 +423,7 @@ to the value of
 If that value is also 0, the default is 5.
 .LP
 .RS 4
-(  1.3.6.1.4.1.42.2.27.8.1.16
+(  1.3.6.1.4.1.42.2.27.8.1.32
    NAME 'pwdMaxRecordedFailure'
    EQUALITY integerMatch
    SYNTAX 1.3.6.1.4.1.1466.115.121.1.27
@@ -477,7 +522,76 @@ along with the new password.
    SINGLE\-VALUE )
 .RE
 
-.B pwdCheckModule
+.B pwdMinDelay
+.P
+This attribute specifies the number of seconds to delay responding to
+the first failed authentication attempt.  If this attribute is not
+set or is zero (0), no delays will be used.
+.B pwdMaxDelay
+must also be specified if
+.B pwdMinDelay
+is set.
+
+Note that this implementation uses a variable lockout instead of
+delaying the bind response.
+.LP
+.RS 4
+(  1.3.6.1.4.1.42.2.27.8.1.24
+   NAME 'pwdMinDelay'
+   EQUALITY integerMatch
+   ORDERING integerOrderingMatch
+   SYNTAX 1.3.6.1.4.1.1466.115.121.1.27
+   SINGLE\-VALUE )
+.RE
+
+.B pwdMaxDelay
+.P
+This attribute specifies the maximum number of seconds to delay when
+responding to a failed authentication attempt.  The time specified in
+.B pwdMinDelay
+is used as the starting time and is then doubled on each failure until
+the delay time is greater than or equal to
+.B pwdMaxDelay
+(or a successful authentication occurs, which resets the failure
+counter).
+.B pwdMinDelay
+must also be specified if
+.B pwdMaxDelay
+is set.
+
+Note that this implementation uses a variable lockout instead of
+delaying the bind response.
+.LP
+.RS 4
+(  1.3.6.1.4.1.42.2.27.8.1.25
+   NAME 'pwdMaxDelay'
+   EQUALITY integerMatch
+   ORDERING integerOrderingMatch
+   SYNTAX 1.3.6.1.4.1.1466.115.121.1.27
+   SINGLE\-VALUE )
+.RE
+
+.B pwdMaxIdle
+.P
+This attribute specifies the number of seconds an account may remain
+unused before it becomes locked.  If this attribute is not set or is
+zero (0), no check is performed. For this to be enforced,
+.B lastbind
+functionality needs to be enabled on the database, that is
+.B olcLastBind
+is set to
+.BR TRUE .
+.LP
+.RS 4
+(  1.3.6.1.4.1.42.2.27.8.1.26
+   NAME 'pwdMaxIdle'
+   EQUALITY integerMatch
+   ORDERING integerOrderingMatch
+   SYNTAX 1.3.6.1.4.1.1466.115.121.1.27
+   SINGLE\-VALUE )
+.RE
+
+.BR pwdCheckModule / pwdCheckModuleArg
 .P
 This attribute names a user-defined loadable module that must
 instantiate the check_password() function.  This function
@@ -490,7 +604,7 @@ function prototype:
 .RS 4
 int
 .I check_password
-(char *pPasswd, char **ppErrStr, Entry *pEntry);
+(char *pPasswd, char **ppErrStr, Entry *pEntry, struct berval *pArg);
 .RE
 The
 .B pPasswd
@@ -498,10 +612,20 @@ parameter contains the clear-text user password, the
 .B ppErrStr
 parameter contains a double pointer that allows the function
 to return human-readable details about any error it encounters.
-The optional
+
+The
 .B pEntry
-parameter, if non-NULL, carries a pointer to the
+parameter is optional, if non-NULL, carries a pointer to the
 entry whose password is being checked.
+
+The optional
+.B pArg
+parameter points to a
+.B struct berval
+containing the value of
+.B pwdCheckModuleArg
+in the effective password policy, if set, otherwise NULL.
+
 If
 .B ppErrStr
 is NULL, then 
@@ -521,6 +645,13 @@ be free()'d by slapd.
    NAME 'pwdCheckModule'
    EQUALITY caseExactIA5Match
    SYNTAX 1.3.6.1.4.1.1466.115.121.1.26
+   SINGLE\-VALUE )
+
+( 1.3.6.1.4.1.4754.1.99.2
+   NAME 'pwdCheckModuleArg'
+   EQUALITY octetStringMatch
+   SYNTAX 1.3.6.1.4.1.1466.115.121.1.40
+   DESC 'Argument to pass to check_password() function'
    SINGLE\-VALUE )
 .RE
 .P
@@ -735,6 +866,7 @@ field is in GMT format.
 .RE
 
 .B pwdGraceUseTime
+
 This attribute contains the list of timestamps of logins made after
 the user password in the DN has expired.  These post-expiration
 logins are known as "\fIgrace logins\fP".
@@ -780,6 +912,66 @@ administrative reset.
    USAGE directoryOperation)
 .RE
 
+.B pwdStartTime
+
+This attribute specifies the time the entry's password becomes valid
+for authentication.  Authentication attempts made before this time
+will fail.  If this attribute does not exist, then no restriction
+applies.
+.LP
+.RS 4
+(  1.3.6.1.4.1.42.2.27.8.1.27
+   NAME 'pwdStartTime'
+   DESC 'The time the password becomes enabled'
+   EQUALITY generalizedTimeMatch
+   ORDERING generalizedTimeOrderingMatch
+   SYNTAX 1.3.6.1.4.1.1466.115.121.1.24
+   SINGLE\-VALUE
+   NO\-USER\-MODIFICATION
+   USAGE directoryOperation )
+.RE
+
+.B pwdEndTime
+
+This attribute specifies the time the entry's password becomes
+invalid for authentication.  Authentication attempts made after this
+time will fail, regardless of expiration or grace settings.  If this
+attribute does not exist, then this restriction does not apply.
+.LP
+.RS 4
+(  1.3.6.1.4.1.42.2.27.8.1.28
+   NAME 'pwdEndTime'
+   DESC 'The time the password becomes disabled'
+   EQUALITY generalizedTimeMatch
+   ORDERING generalizedTimeOrderingMatch
+   SYNTAX 1.3.6.1.4.1.1466.115.121.1.24
+   SINGLE\-VALUE
+   NO\-USER\-MODIFICATION
+   USAGE directoryOperation )
+.RE
+
+Note that pwdStartTime may be set to a time greater than or equal to
+pwdEndTime; this simply disables the account.
+
+.B pwdAccountTmpLockoutEnd
+.P
+This attribute that the user's password has been locked out temporarily
+according to the
+.B pwdMinDelay
+policy option and when the lockout ends.
+.LP
+.RS 4
+(  1.3.6.1.4.1.42.2.27.8.1.33
+   NAME 'pwdAccountTmpLockoutEnd'
+   DESC 'Temporary lockout end'
+   EQUALITY generalizedTimeMatch
+   ORDERING generalizedTimeOrderingMatch
+   SYNTAX 1.3.6.1.4.1.1466.115.121.1.24
+   SINGLE\-VALUE
+   NO\-USER\-MODIFICATION
+   USAGE directoryOperation )
+.RE
+
 .SH EXAMPLES
 .LP
 .RS
@@ -802,7 +994,7 @@ ppolicy_default "cn=Standard,ou=Policies,dc=example,dc=com"
 .LP
 IETF LDAP password policy proposal by P. Behera, L.  Poitou and J.
 Sermersheim:  documented in IETF document
-"draft-behera-ldap-password-policy-09.txt".
+"draft-behera-ldap-password-policy-10.txt".
 
 .SH BUGS
 The LDAP Password Policy specification is not yet an approved standard,
@@ -821,7 +1013,7 @@ IETF LDAP password policy proposal by P. Behera, L.
 Poitou and J. Sermersheim.
 The proposal is fully documented in
 the
-IETF document named draft-behera-ldap-password-policy-09.txt,
-written in July of 2005.
+IETF document named draft-behera-ldap-password-policy-10.txt,
+written in August of 2009.
 .P
 .so ../Project
