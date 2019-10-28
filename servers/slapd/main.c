@@ -400,11 +400,16 @@ int main( int argc, char **argv )
 
 	slap_sl_mem_init();
 
+
 	(void) ldap_pvt_thread_initialize();
 
 	serverName = lutil_progname( "slapd", argc, argv );
 
 	if ( strcmp( serverName, "slapd" ) ) {
+#ifdef DEBUG_CLOSE
+		extern void slapd_debug_close();
+		slapd_debug_close();
+#endif
 		for (i=0; tools[i].name; i++) {
 			if ( !strcmp( serverName, tools[i].name ) ) {
 				rc = tools[i].func(argc, argv);
@@ -649,6 +654,10 @@ int main( int argc, char **argv )
 					optarg );
 			}
 
+#ifdef DEBUG_CLOSE
+			extern void slapd_debug_close();
+			slapd_debug_close();
+#endif
 			/* try full option string first */
 			for ( i = 0; tools[i].name; i++ ) {
 				if ( strcmp( optarg, &tools[i].name[4] ) == 0 ) {

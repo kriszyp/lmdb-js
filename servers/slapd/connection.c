@@ -541,6 +541,23 @@ Connection * connection_init(
 		Debug( LDAP_DEBUG_ANY,
 			"connection_init(%d, %s): set nonblocking failed\n",
 			s, c->c_peer_name.bv_val, 0 );
+
+		c->c_listener = NULL;
+		if(c->c_peer_domain.bv_val != NULL) {
+			free(c->c_peer_domain.bv_val);
+		}
+		BER_BVZERO( &c->c_peer_domain );
+		if(c->c_peer_name.bv_val != NULL) {
+			free(c->c_peer_name.bv_val);
+		}
+		BER_BVZERO( &c->c_peer_name );
+
+		ber_sockbuf_free( c->c_sb );
+		c->c_sb = NULL;
+		c->c_sd = AC_SOCKET_INVALID;
+		ldap_pvt_thread_mutex_unlock( &c->c_mutex );
+
+		return NULL;
 	}
 
 	ldap_pvt_thread_mutex_lock( &conn_nextid_mutex );
