@@ -14,104 +14,166 @@
  * <http://www.OpenLDAP.org/license.html>.
  */
 
-#define _GNU_SOURCE
-
 #include "portable.h"
 #include "ac/string.h"
 #include "lber_pvt.h"
 #include "lutil.h"
 
-#include <argon2.h>
 #include <stdint.h>
 #include <stdlib.h>
+
+#ifdef SLAPD_ARGON2_USE_ARGON2
+#include <argon2.h>
 
 /*
  * For now, we hardcode the default values from the argon2 command line tool
  * (as of argon2 release 20161029)
  */
 #define SLAPD_ARGON2_ITERATIONS 3
-#define SLAPD_ARGON2_MEMORY 12
+#define SLAPD_ARGON2_MEMORY (1 << 12)
 #define SLAPD_ARGON2_PARALLELISM 1
 #define SLAPD_ARGON2_SALT_LENGTH 16
 #define SLAPD_ARGON2_HASH_LENGTH 32
 
+#else /* !SLAPD_ARGON2_USE_ARGON2 */
+#include <sodium.h>
+
+/*
+ * Or libsodium moderate settings
+ */
+#define SLAPD_ARGON2_ITERATIONS crypto_pwhash_OPSLIMIT_INTERACTIVE
+#define SLAPD_ARGON2_MEMORY crypto_pwhash_MEMLIMIT_INTERACTIVE
+#define SLAPD_ARGON2_PARALLELISM 1
+#define SLAPD_ARGON2_SALT_LENGTH crypto_pwhash_SALTBYTES
+#define SLAPD_ARGON2_HASH_LENGTH 32
+
+#endif
+
 const struct berval slapd_argon2_scheme = BER_BVC("{ARGON2}");
 
-static int slapd_argon2_hash(
-  const struct berval *scheme,
-  const struct berval *passwd,
-  struct berval *hash,
-  const char **text) {
+static int
+slapd_argon2_hash(
+		const struct berval *scheme,
+		const struct berval *passwd,
+		struct berval *hash,
+		const char **text )
+{
 
-  /*
-   * Duplicate these values here so future code which allows
-   * configuration has an easier time.
-   */
-  uint32_t iterations = SLAPD_ARGON2_ITERATIONS;
-  uint32_t memory = (1 << SLAPD_ARGON2_MEMORY);
-  uint32_t parallelism = SLAPD_ARGON2_PARALLELISM;
-  uint32_t salt_length = SLAPD_ARGON2_SALT_LENGTH;
-  uint32_t hash_length = SLAPD_ARGON2_HASH_LENGTH;
+	/*
+	 * Duplicate these values here so future code which allows
+	 * configuration has an easier time.
+	 */
+	uint32_t iterations, memory, parallelism, salt_length, hash_length;
+	char *p;
+	int rc = LUTIL_PASSWD_ERR;
 
-  size_t encoded_length = argon2_encodedlen(iterations, memory, parallelism,
-                            salt_length, hash_length, Argon2_i);
+#ifdef SLAPD_ARGON2_USE_ARGON2
+	struct berval salt;
+	size_t encoded_length;
 
-  /*
-   * Gather random bytes for our salt
-   */
-  struct berval salt;
-  salt.bv_len = salt_length;
-  salt.bv_val = ber_memalloc(salt.bv_len);
+	iterations = SLAPD_ARGON2_ITERATIONS;
+	memory = SLAPD_ARGON2_MEMORY;
+	parallelism = SLAPD_ARGON2_PARALLELISM;
+	salt_length = SLAPD_ARGON2_SALT_LENGTH;
+	hash_length = SLAPD_ARGON2_HASH_LENGTH;
 
-  int rc = lutil_entropy((unsigned char*)salt.bv_val, salt.bv_len);
+	encoded_length = argon2_encodedlen( iterations, memory, parallelism,
+			salt_length, hash_length, Argon2_id );
 
-  if(rc) {
-    ber_memfree(salt.bv_val);
-    return LUTIL_PASSWD_ERR;
-  }
+	salt.bv_len = salt_length;
+	salt.bv_val = ber_memalloc( salt.bv_len );
 
-  struct berval encoded;
-  encoded.bv_len = encoded_length;
-  encoded.bv_val = ber_memalloc(encoded.bv_len);
-  /*
-   * Do the actual heavy lifting
-   */
-  rc = argon2i_hash_encoded(iterations, memory, parallelism,
-            passwd->bv_val, passwd->bv_len, salt.bv_val, salt_length, hash_length,
-            encoded.bv_val, encoded_length);
-  ber_memfree(salt.bv_val);
+	if ( salt.bv_val == NULL ) {
+		return LUTIL_PASSWD_ERR;
+	}
 
-  if(rc) {
-    ber_memfree(encoded.bv_val);
-    return LUTIL_PASSWD_ERR;
-  }
+	if ( lutil_entropy( (unsigned char*)salt.bv_val, salt.bv_len ) ) {
+		ber_memfree( salt.bv_val );
+		return LUTIL_PASSWD_ERR;
+	}
 
-  hash->bv_len = scheme->bv_len + encoded_length;
-  hash->bv_val = ber_memalloc(hash->bv_len);
+	p = hash->bv_val = ber_memalloc( scheme->bv_len + encoded_length );
+	if ( p == NULL ) {
+		ber_memfree( salt.bv_val );
+		return LUTIL_PASSWD_ERR;
+	}
 
-  AC_MEMCPY(hash->bv_val, scheme->bv_val, scheme->bv_len);
-  AC_MEMCPY(hash->bv_val + scheme->bv_len, encoded.bv_val, encoded.bv_len);
+	AC_MEMCPY( p, scheme->bv_val, scheme->bv_len );
+	p += scheme->bv_len;
 
-  ber_memfree(encoded.bv_val);
+	/*
+	 * Do the actual heavy lifting
+	 */
+	if ( argon2i_hash_encoded( iterations, memory, parallelism,
+				passwd->bv_val, passwd->bv_len,
+				salt.bv_val, salt_length, hash_length,
+				p, encoded_length ) == 0 ) {
+		rc = LUTIL_PASSWD_OK;
+	}
+	hash->bv_len = scheme->bv_len + encoded_length;
+	ber_memfree( salt.bv_val );
 
-  return LUTIL_PASSWD_OK;
+#else /* !SLAPD_ARGON2_USE_ARGON2 */
+	iterations = SLAPD_ARGON2_ITERATIONS;
+	memory = SLAPD_ARGON2_MEMORY;
+	/* Not exposed by libsodium
+	parallelism = SLAPD_ARGON2_PARALLELISM;
+	salt_length = SLAPD_ARGON2_SALT_LENGTH;
+	hash_length = SLAPD_ARGON2_HASH_LENGTH;
+	*/
+
+	p = hash->bv_val = ber_memalloc( scheme->bv_len + crypto_pwhash_STRBYTES );
+	if ( p == NULL ) {
+		return LUTIL_PASSWD_ERR;
+	}
+
+	AC_MEMCPY( hash->bv_val, scheme->bv_val, scheme->bv_len );
+	p += scheme->bv_len;
+
+	if ( crypto_pwhash_str( p, passwd->bv_val, passwd->bv_len,
+				iterations, memory ) == 0 ) {
+		hash->bv_len = strlen( hash->bv_val );
+		rc = LUTIL_PASSWD_OK;
+	}
+#endif
+
+	if ( rc ) {
+		ber_memfree( hash->bv_val );
+		return LUTIL_PASSWD_ERR;
+	}
+
+	return LUTIL_PASSWD_OK;
 }
 
-static int slapd_argon2_verify(
-  const struct berval *scheme,
-  const struct berval *passwd,
-  const struct berval *cred,
-  const char **text) {
+static int
+slapd_argon2_verify(
+		const struct berval *scheme,
+		const struct berval *passwd,
+		const struct berval *cred,
+		const char **text )
+{
+	int rc = LUTIL_PASSWD_ERR;
 
-  int rc = argon2i_verify(passwd->bv_val, cred->bv_val, cred->bv_len);
+#ifdef SLAPD_ARGON2_USE_ARGON2
+	if ( strncmp( passwd->bv_val, "$argon2i$", STRLENOF("$argon2i$") ) == 0 ) {
+		rc = argon2i_verify( passwd->bv_val, cred->bv_val, cred->bv_len );
+	} else if ( strncmp( passwd->bv_val, "$argon2d$", STRLENOF("$argon2d$") ) == 0 ) {
+		rc = argon2d_verify( passwd->bv_val, cred->bv_val, cred->bv_len );
+	} else if ( strncmp( passwd->bv_val, "$argon2id$", STRLENOF("$argon2id$") ) == 0 ) {
+		rc = argon2id_verify( passwd->bv_val, cred->bv_val, cred->bv_len );
+	}
+#else /* !SLAPD_ARGON2_USE_ARGON2 */
+	rc = crypto_pwhash_str_verify( passwd->bv_val, cred->bv_val, cred->bv_len );
+#endif
 
-  if (rc) {
-    return LUTIL_PASSWD_ERR;
-  }
-  return LUTIL_PASSWD_OK;
+	if ( rc ) {
+		return LUTIL_PASSWD_ERR;
+	}
+	return LUTIL_PASSWD_OK;
 }
 
-int init_module(int argc, char *argv[]) {
-  return lutil_passwd_add((struct berval *)&slapd_argon2_scheme,
-              slapd_argon2_verify, slapd_argon2_hash);
+int init_module( int argc, char *argv[] )
+{
+	return lutil_passwd_add( (struct berval *)&slapd_argon2_scheme,
+			slapd_argon2_verify, slapd_argon2_hash );
 }

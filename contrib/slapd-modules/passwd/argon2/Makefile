@@ -12,7 +12,19 @@ OPT = -g -O2 -Wall
 #DEFS = -DSLAPD_ARGON2_DEBUG
 
 INCS = $(LDAP_INC)
-LIBS = $(LDAP_LIB) -largon2
+LIBS = $(LDAP_LIB)
+
+implementation = sodium
+
+ifeq ($(implementation),argon2)
+LIBS += -largon2
+DEFS += -DSLAPD_ARGON2_USE_ARGON2
+else ifeq ($(implementation),sodium)
+LIBS += -lsodium
+DEFS += -DSLAPD_ARGON2_USE_SODIUM
+else
+$(error Unsupported implementation $(implementation))
+endif
 
 PROGRAMS = pw-argon2.la
 LTVER = 0:0:0
