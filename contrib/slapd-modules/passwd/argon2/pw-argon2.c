@@ -49,6 +49,10 @@
 
 #endif
 
+static unsigned long iterations = SLAPD_ARGON2_ITERATIONS;
+static unsigned long memory = SLAPD_ARGON2_MEMORY;
+static unsigned long parallelism = SLAPD_ARGON2_PARALLELISM;
+
 const struct berval slapd_argon2_scheme = BER_BVC("{ARGON2}");
 
 static int
@@ -63,7 +67,7 @@ slapd_argon2_hash(
 	 * Duplicate these values here so future code which allows
 	 * configuration has an easier time.
 	 */
-	uint32_t iterations, memory, parallelism, salt_length, hash_length;
+	uint32_t salt_length, hash_length;
 	char *p;
 	int rc = LUTIL_PASSWD_ERR;
 
@@ -71,9 +75,6 @@ slapd_argon2_hash(
 	struct berval salt;
 	size_t encoded_length;
 
-	iterations = SLAPD_ARGON2_ITERATIONS;
-	memory = SLAPD_ARGON2_MEMORY;
-	parallelism = SLAPD_ARGON2_PARALLELISM;
 	salt_length = SLAPD_ARGON2_SALT_LENGTH;
 	hash_length = SLAPD_ARGON2_HASH_LENGTH;
 
@@ -114,10 +115,7 @@ slapd_argon2_hash(
 	ber_memfree( salt.bv_val );
 
 #else /* !SLAPD_ARGON2_USE_ARGON2 */
-	iterations = SLAPD_ARGON2_ITERATIONS;
-	memory = SLAPD_ARGON2_MEMORY;
 	/* Not exposed by libsodium
-	parallelism = SLAPD_ARGON2_PARALLELISM;
 	salt_length = SLAPD_ARGON2_SALT_LENGTH;
 	hash_length = SLAPD_ARGON2_HASH_LENGTH;
 	*/
@@ -174,6 +172,42 @@ slapd_argon2_verify(
 
 int init_module( int argc, char *argv[] )
 {
+	int i;
+
+	for ( i=0; i < argc; i++ ) {
+		char *p;
+		unsigned long value;
+
+		switch ( *argv[i] ) {
+			case 'm':
+				p = strchr( argv[i], '=' );
+				if ( !p || lutil_atoulx( &value, p+1, 0 ) ) {
+					return -1;
+				}
+				memory = value;
+				break;
+
+			case 't':
+				p = strchr( argv[i], '=' );
+				if ( !p || lutil_atoulx( &value, p+1, 0 ) ) {
+					return -1;
+				}
+				iterations = value;
+				break;
+
+			case 'p':
+				p = strchr( argv[i], '=' );
+				if ( !p || lutil_atoulx( &value, p+1, 0 ) ) {
+					return -1;
+				}
+				parallelism = value;
+				break;
+
+			default:
+				return -1;
+		}
+	}
+
 	return lutil_passwd_add( (struct berval *)&slapd_argon2_scheme,
 			slapd_argon2_verify, slapd_argon2_hash );
 }
