@@ -190,16 +190,12 @@ monitor_subsys_ops_update(
 		ldap_pvt_mp_init( nCompleted );
 
 		ldap_pvt_thread_mutex_lock( &slap_counters.sc_mutex );
-		for ( i = 0; i < SLAP_OP_LAST; i++ ) {
-			ldap_pvt_mp_add( nInitiated, slap_counters.sc_ops_initiated_[ i ] );
-			ldap_pvt_mp_add( nCompleted, slap_counters.sc_ops_completed_[ i ] );
-		}
+		ldap_pvt_mp_add( nInitiated, slap_counters.sc_ops_initiated );
+		ldap_pvt_mp_add( nCompleted, slap_counters.sc_ops_completed );
 		for ( sc = slap_counters.sc_next; sc; sc = sc->sc_next ) {
 			ldap_pvt_thread_mutex_lock( &sc->sc_mutex );
-			for ( i = 0; i < SLAP_OP_LAST; i++ ) {
-				ldap_pvt_mp_add( nInitiated, sc->sc_ops_initiated_[ i ] );
-				ldap_pvt_mp_add( nCompleted, sc->sc_ops_completed_[ i ] );
-			}
+			ldap_pvt_mp_add( nInitiated, sc->sc_ops_initiated );
+			ldap_pvt_mp_add( nCompleted, sc->sc_ops_completed );
 			ldap_pvt_thread_mutex_unlock( &sc->sc_mutex );
 		}
 		ldap_pvt_thread_mutex_unlock( &slap_counters.sc_mutex );
