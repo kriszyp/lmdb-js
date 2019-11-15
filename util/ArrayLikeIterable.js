@@ -30,6 +30,7 @@ class ArrayLikeIterable {
 							}
 						}
 						if (iteratorResult.done === true) {
+							this.done = true
 							return iteratorResult
 						}
 						result = func(iteratorResult.value)
